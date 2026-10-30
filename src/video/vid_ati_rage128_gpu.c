@@ -368,6 +368,7 @@ r128_unsetenv(const char *key)
         X(vkCreateCommandPool)                      \
         X(vkAllocateCommandBuffers)                 \
         X(vkCreateFence)                            \
+        X(vkCreateSemaphore)                        \
         X(vkCreateQueryPool)                        \
         X(vkBeginCommandBuffer)                     \
         X(vkCmdResetQueryPool)                      \
@@ -388,6 +389,7 @@ r128_unsetenv(const char *key)
         X(vkDeviceWaitIdle)                         \
         X(vkDestroyQueryPool)                       \
         X(vkDestroyFence)                           \
+        X(vkDestroySemaphore)                       \
         X(vkDestroyCommandPool)                     \
         X(vkDestroyDescriptorPool)                  \
         X(vkDestroyPipeline)                        \
@@ -524,6 +526,7 @@ r128_vk_load_instance(VkInstance inst)
 #    define vkCreateCommandPool                      r128_vk.vkCreateCommandPool
 #    define vkAllocateCommandBuffers                 r128_vk.vkAllocateCommandBuffers
 #    define vkCreateFence                            r128_vk.vkCreateFence
+#    define vkCreateSemaphore                        r128_vk.vkCreateSemaphore
 #    define vkCreateQueryPool                        r128_vk.vkCreateQueryPool
 #    define vkBeginCommandBuffer                     r128_vk.vkBeginCommandBuffer
 #    define vkCmdResetQueryPool                      r128_vk.vkCmdResetQueryPool
@@ -544,6 +547,7 @@ r128_vk_load_instance(VkInstance inst)
 #    define vkDeviceWaitIdle                         r128_vk.vkDeviceWaitIdle
 #    define vkDestroyQueryPool                       r128_vk.vkDestroyQueryPool
 #    define vkDestroyFence                           r128_vk.vkDestroyFence
+#    define vkDestroySemaphore                       r128_vk.vkDestroySemaphore
 #    define vkDestroyCommandPool                     r128_vk.vkDestroyCommandPool
 #    define vkDestroyDescriptorPool                  r128_vk.vkDestroyDescriptorPool
 #    define vkDestroyPipeline                        r128_vk.vkDestroyPipeline
@@ -608,12 +612,6 @@ r128_vk_load_instance(VkInstance inst)
 /* format fields only: this stage's texel format stays a runtime
    selector in the folded pipeline (off/dead stages, seed tuples) */
 #    define GPU_TUPLE_FMT_ANY 0xffffffffu
-/* z-ladder words per segment (u32 each; a table-fog pixel takes two: the
-   rung and the fog fraction). Raising this together with GPU_SPAN_CAP
-   lets segments grow, but the host-side leveling in gpu_batch_row is
-   quadratic in spans per row, so its cost grows faster than the GPU
-   wait shrinks. */
-#    define GPU_PX_CAP (8u << 20)
 /* Serial (self-aliasing) draws run one lane in one workgroup, measured
    at about 17 us per pixel on an Apple M1 Pro, so this cap holds one
    such draw to about a quarter second of GPU time. A larger alias draw
@@ -630,14 +628,14 @@ r128_vk_load_instance(VkInstance inst)
    in stage 1. */
 typedef struct seg_span_t {
     int64_t  e0, e1, e2;
-    uint64_t zline;
+    int64_t  zline; /* fixed-point depth at x0 (r128_zfx) */
     int32_t  x0, x1, py, tri;
-    uint32_t drow, zrow, px_base, pad1;
+    uint32_t drow, zrow, pad0, pad1;
 } seg_span_t;
 
 typedef struct seg_tri_t {
     int64_t  e0dxi, e1dxi, e2dxi;
-    uint64_t dZdx;
+    int64_t  dZdx; /* per-pixel step of zline */
     float    invs, lod_bias;
     float    texw0, texh0, texw1, texh1;
     uint32_t zfn, z_wr;
@@ -828,10 +826,18 @@ typedef struct gpu_fill_t {
     uint32_t addr, pitch, len, rows, color;
     uint32_t src, spitch;
     uint8_t  kind, bar;
-    /* mid: -1 = head-of-segment op. >= 0 = a host-data store into bytes
-       the segment's earlier draws sample: recorded into the mirror
-       between run mid-1 and run mid (stream order, no split) and into
-       the import after the mirror-back. kind 1, mirror on only. */
+    /* pre: with mid >= 0, the op writes the import before the
+       mirror-back instead of after it (see mid). */
+    uint8_t pre;
+    /* mid: -1 = head-of-segment op. >= 0 = an op ordered after the
+       segment's earlier draws, mirror on only: recorded into the mirror
+       between run mid-1 and run mid (stream order, no split). With pre
+       clear it is a host-data store into bytes those draws only sample
+       (kind 1), written into the import after the mirror-back. With pre
+       set it is a solid fill or a broadcast of staged fill bytes (kind 0
+       or 1) into bytes those draws may also store, written into the
+       import after the mirror-down and before the mirror-back, so the
+       mirror-back's copy of every drawn cell carries the final bytes. */
     int32_t mid;
 } gpu_fill_t;
 
@@ -940,6 +946,11 @@ typedef struct r128_gpu_buf_t {
 
 typedef struct gpu_slot_t {
     VkCommandBuffer cb;
+    /* the slot's copy-queue batch (mirror back, tail fills, audit copy)
+       when the backend has a copy queue; VK_NULL_HANDLE otherwise */
+    VkCommandBuffer xcb;
+    /* signals when the slot's last submitted batch completes; with a copy
+       queue that batch waits for the other, so one fence covers both */
     VkFence         fence;
     /* guards vkWaitForFences/vkResetFences on this fence: retirement
        (submit thread) vs the read-path fence wait (CPU thread) */
@@ -951,7 +962,19 @@ typedef struct gpu_slot_t {
     atomic_int      fence_seen;
     VkQueryPool     tqpool;
     VkDescriptorSet dset;
-    r128_gpu_buf_t  b_rows, b_order, b_spans, b_tris, b_lad, b_pal;
+    r128_gpu_buf_t  b_rows, b_order, b_spans, b_tris, b_pal;
+    /* Device-local copies of the four record buffers, which the kernels
+       read when the backend has them (rec_dev). The CPU builds and reads
+       records in the host buffers above; each submit copies the bytes
+       its segment used across (up_rows_b and up_ord_b: the row pairs and
+       slot words written; spans and triangles are counted in nspans and
+       ntris). Every lane of a workgroup reads its slot word, span and
+       triangle fields, so reading them over the bus from host memory
+       would cross it once per lane group instead of once per submit. */
+    r128_gpu_buf_t  d_rows, d_order, d_spans, d_tris;
+    uint32_t        up_rows_b, up_ord_b;
+    /* the copy-queue batch that uploads them, ahead of the kernels */
+    VkCommandBuffer ucb;
     uint32_t        c_lo, c_hi, z_lo, z_hi, q_lo, q_hi, r_lo, r_hi,
         f_lo, f_hi;
     /* the exact texture ranges behind q_lo/q_hi (the exact texture range
@@ -968,6 +991,8 @@ typedef struct gpu_slot_t {
     int      fq_ovf;
     uint64_t seq;
     int      timestamped;
+    /* valid timestamp bits of the queue that wrote stamps 5 and 4 */
+    uint32_t tq_bk_bits;
     /* segment samples staged texels: the arena must not recycle or move
        until this slot retires (submit thread only, like build_slot) */
     int stage_ref;
@@ -1009,18 +1034,58 @@ typedef struct r128_gpu_t {
     int verify, async;
     int fold_en; /* 0 = R128_GPU_FOLD=0, uber-only diagnostic mode */
     /* VRAM mirror: the seg kernels address a device-local copy of VRAM
-       instead of the host-pointer import. Each segment copies its
-       touched color/z/texture byte ranges down before the dispatches
-       and the color/z ranges back after, outside the ladder/shade
-       timestamps, so the import stays the only authoritative copy for
-       every other consumer. The reason is shader speed: measured on an
-       NVIDIA RTX 5070 under Windows, shading from the imported host
-       pointer took 20.7 ns per pixel and from device-local memory
-       1.6 ns. mirror_en clears only when the allocation fails. */
+       instead of the host-pointer import. The reason is shader speed:
+       measured on an NVIDIA RTX 5070 under Windows, shading from the
+       imported host pointer took 20.7 ns per pixel and from
+       device-local memory 1.6 ns. mirror_en clears only when the
+       allocation fails.
+
+       The import stays complete at every fence: once a segment's fence
+       has signaled, every byte its kernels stored is in svga.vram too,
+       so no host-side reader needs to know the mirror exists. Each
+       segment copies into the mirror only the pages of its color, depth
+       and texture ranges that the host-newer map (dev->vram_hnew) marks,
+       and back out only the 256-byte cells its spans can store (bk_*,
+       filled by the span capture). On a discrete card both copies cross
+       the bus, so copying unchanged bytes is what this keeps to a
+       minimum. */
     int            mirror_en;
     VkBuffer       mirror_buf;
     VkDeviceMemory mirror_mem;
     VkDeviceSize   mirror_cap;
+    /* Store cells of the segment being captured: one bit per 256-byte
+       cell, 16 per 4 KB page in bk_cell, and one bit per page that has
+       any in bk_pg, so the walk at dispatch and the reset visit only
+       touched pages. bk_guard: a store reached past the top of VRAM
+       into the 4-byte guard. Submit thread only, like the rest of the
+       accumulation. */
+    uint16_t     *bk_cell;
+    uint64_t     *bk_pg;
+    uint32_t      bk_npages;
+    int           bk_guard;
+    /* Carried cells: the store cells of submits of the open segment that
+       ended at a cadence point without a mirror-back (gpu_flush_body),
+       in the bk_cell / bk_pg layout, with the color and depth hulls they
+       lie in. The mirror holds those bytes newer than the import until
+       the segment's real end merges them back into bk_cell before its
+       mirror-back. bkc_on: some cell is carried. Submit thread only. */
+    uint16_t     *bkc_cell;
+    uint64_t     *bkc_pg;
+    int           bkc_on, bkc_guard;
+    uint32_t      bkc_clo, bkc_chi, bkc_zlo, bkc_zhi;
+    /* region list for one mirror copy, bk_npages * 18 + 2 entries */
+    VkBufferCopy *mir_rc;
+    /* fills[] index up to which gpu_disp_runs recorded the mid fills
+       into the mirror; a mid fill at or past it reaches only the import */
+    uint32_t mid_mirrored;
+    /* R128_GPU_MIRROR_AUDIT: after each submit's fence, copy the whole
+       mirror out and compare it with svga.vram on every page the map
+       calls clean. A diagnostic for the replay rig: a guest store that
+       lands between the fence and the compare would read as a false
+       difference in a running VM. */
+    int            mir_audit;
+    r128_gpu_buf_t audit_buf;
+    uint64_t       st_audit_pages, st_audit_bytes, st_audit_bad;
 
     /* Vulkan objects shared by all in-flight segment slots */
     VkInstance            inst;
@@ -1029,6 +1094,32 @@ typedef struct r128_gpu_t {
     VkQueue               queue;
     uint32_t              qfam;
     VkCommandPool         pool;
+    /* Copy queue. On a discrete card the copies between the mirror and
+       the import cross the bus, and on the kernels' queue they keep the
+       host's 3D engine busy while they do. A family that offers transfer
+       but neither graphics nor compute is a separate copy engine (a DMA
+       engine), so the record uploads, the mirror back, the tail fills
+       and the present snapshots go there. xfam is ~0u when there is no such family or
+       no timeline semaphore support, and then everything stays on queue.
+       fams[] lists the two families for buffers shared between them.
+
+       Order: every batch on either queue waits for the timeline value
+       the batch submitted before it signaled, and signals the next one,
+       so the batches run in submission order, which queue_mtx already
+       serializes. The wait carries the memory dependency between queues
+       that a pipeline barrier cannot. tl_val is the last value signaled;
+       queue_mtx guards it. */
+    VkQueue               xqueue;
+    uint32_t              xfam, xtqbits;
+    uint32_t              fams[2];
+    VkCommandPool         xpool;
+    VkSemaphore           tl_sem;
+    uint64_t              tl_val;
+    /* the kernels read the slots' device-local record copies; 0 when
+       they could not be allocated, and the kernels read the host
+       buffers instead. rec_up_bytes: bytes uploaded, for the close log */
+    int                   rec_dev;
+    uint64_t              rec_up_bytes;
     uint32_t              tqbits, max_wg_x;
     float                 tqperiod;
     VkDescriptorPool      dpool;
@@ -1040,7 +1131,6 @@ typedef struct r128_gpu_t {
        an aliasing draw takes the CPU fallback (counted, correct). */
     VkPipeline pipes_serial[GPU_KERNELS];
     atomic_int serial_ready;
-    VkPipeline lad_pipe; /* z-ladder pre-pass */
     /* generic 2D RMW op: own 2-binding layout + 28-byte push range so
        the shared seg ABI (and its warm Metal cache) is untouched */
     VkPipeline            rmw_pipe;
@@ -1101,7 +1191,7 @@ typedef struct r128_gpu_t {
     _Atomic uint64_t flip_seq;
 
     /* segment accumulation (CCE/submit thread) */
-    uint32_t nspans, ntris, seg_px;
+    uint32_t nspans, ntris;
     /* deferred 2D solid fills, always recorded ahead of this segment's
        dispatches (a fill arriving with spans pending splits the segment
        first, so within any one submit every fill precedes every span) */
@@ -1351,8 +1441,10 @@ typedef struct r128_gpu_t {
     uint32_t v_save_cap;
 
     /* stats */
+    /* st_carry: submits that ended at a cadence point and left the
+       segment open (gpu_flush_body); st_segments counts them too */
     uint64_t st_segments, st_runs, st_spans, st_tris, st_fallback,
-        st_flush[GF_CAUSES];
+        st_flush[GF_CAUSES], st_carry;
     uint64_t st_verify_seg, st_verify_bad;
     int      rejects_logged;
     /* Reject-shape tally: one bump per FAILED predicate per rejected
@@ -1465,9 +1557,10 @@ typedef struct r128_gpu_t {
     uint64_t pr_2d_tag_ns[GPU_2D_TAGS], pr_int_2d_tag_ns[GPU_2D_TAGS];
     uint64_t pr_int_submits, pr_int_chained;
     uint64_t pr_int_tsc, pr_int_polls, pr_int_cce_ns;
-    /* per-segment cost split at interval start: GPU ladder vs mirror
-       copies, host capture/sort/record -- names which side saturates
-       when submits/s spike */
+    /* per-segment cost split at interval start: GPU timestamps 0 -> 1
+       (an empty interval; the lad= field) vs mirror copies, host
+       capture/sort/record -- names which side saturates when submits/s
+       spike */
     uint64_t pr_int_lad_ns, pr_int_mir_ns, pr_int_mir_bytes;
     uint64_t pr_int_cap_ns, pr_int_sort_ns, pr_int_rec_ns;
     uint32_t pr_int_max_inflight;
@@ -1496,7 +1589,11 @@ typedef struct r128_gpu_t {
     uint64_t pr_lvl, pr_slots, pr_px_k[GPU_KERNELS], pr_px_zless;
     uint64_t pr_dbar, pr_delide, pr_dtex;
     uint64_t pr_gpu_lad_ns, pr_gpu_shade_ns, pr_gpu_seg;
-    uint64_t pr_gpu_mirror_ns, pr_mirror_bytes; /* mirror probe copies */
+    uint64_t pr_gpu_mirror_ns, pr_mirror_bytes; /* mirror copies, both ways */
+    /* bus bytes by stream: mirror down and back (their sum is
+       pr_mirror_bytes), queued 2D ops that store into the import, and
+       present snapshot copies (import to import, so read and written) */
+    uint64_t pr_mir_dn_bytes, pr_mir_bk_bytes, pr_q2d_bytes, pr_snap_bytes;
     uint64_t pr_rows_k[GPU_KERNELS], pr_erows_k[GPU_KERNELS];
     uint64_t pr_bat_k[GPU_KERNELS], pr_ebat_k[GPU_KERNELS];
     uint64_t pr_epx_k[GPU_KERNELS], pr_runs_k[GPU_KERNELS];
@@ -1547,9 +1644,10 @@ typedef struct r128_gpu_t {
        bounced to the CPU walk (AGP or wrapped range, or no staging
        space for the resolved bytes), bad = verify2d
        bytes that did not match the broadcast color; tiled = rects of
-       those queued over a tiled dst as tile-layout pieces */
+       those queued over a tiled dst as tile-layout pieces; pre = rects
+       ordered after the pending draws instead of splitting the segment */
     uint64_t st_fill_rects, st_fill_rows, st_fill_px, st_fill_cpu, st_fill_bad,
-        st_fill_tiled;
+        st_fill_tiled, st_fill_pre;
     uint64_t st_fill_cpu_r[2]; /* 0 AGP or wrap, 1 staging is NULL */
     uint64_t st_fill_skip[5];  /* rop, wmask, aux, pattern, cca */
     /* mono-expand queue: runs = leave-alone set-bit run fills, orects =
@@ -1660,12 +1758,14 @@ prof_lv_bin(uint32_t n)
     return b;
 }
 
+/* b - a for two timestamps written on one queue, whose family counts
+   with bits valid bits and wraps there. */
 static uint64_t
-gpu_ts_delta(const r128_gpu_t *g, uint64_t a, uint64_t b)
+gpu_ts_delta(uint32_t bits, uint64_t a, uint64_t b)
 {
-    if (g->tqbits >= 64)
+    if (bits >= 64)
         return b - a;
-    return (b - a) & ((1ull << g->tqbits) - 1ull);
+    return (b - a) & ((1ull << bits) - 1ull);
 }
 
 /* ------------------------------------------------------------------ */
@@ -2907,6 +3007,19 @@ gpu_pending_draw_hit(r128_gpu_t *g, uint32_t lo, uint32_t hi,
             || (texture && gpu_pending_texq_hit(g, lo, hi)));
 }
 
+/* Does the open segment hold draws a queued 2D op must be ordered
+   against? Spans captured since the last submit, or cells a cadence
+   submit carried: their stores sit in the mirror and reach the import
+   only at the segment's real end, so an op at the head of the next
+   submit would read the import's older bytes there, or write bytes the
+   real end's mirror-back then overwrites. Submit thread only, like the
+   span count. */
+static int
+gpu_seg_has_draws(const r128_gpu_t *g)
+{
+    return g->nspans || g->bkc_on;
+}
+
 /* bar flag for a new op vs everything already queued: any RAW, WAR or
    WAW byte conflict with an earlier op's VRAM ranges. */
 static int
@@ -2949,6 +3062,42 @@ gpu_mid_range_hit(const r128_gpu_t *g, uint32_t lo, uint32_t hi)
         if (lo < ohi && hi > olo)
             return 1;
     }
+    return 0;
+}
+
+/* Does [lo,hi) touch a queued mid op that writes the import after the
+   mirror-back? A later draw storing there, or a later fill ordered
+   before the mirror-back, would have its bytes overwritten by that
+   late write, so either one splits the segment. A mid op written before
+   the mirror-back does not count: the mirror-back copies the final
+   bytes of every drawn cell over it. */
+static int
+gpu_mid_tail_hit(const r128_gpu_t *g, uint32_t lo, uint32_t hi)
+{
+    if (!g->nmid || lo >= hi)
+        return 0;
+    for (uint32_t i = 0; i < g->nfills; i++) {
+        uint64_t olo, ohi;
+
+        if (g->fills[i].mid < 0 || g->fills[i].pre)
+            continue;
+        olo = g->fills[i].addr;
+        ohi = (uint64_t) g->fills[i].addr
+            + (uint64_t) (g->fills[i].rows - 1) * g->fills[i].pitch
+            + g->fills[i].len;
+        if (lo < ohi && hi > olo)
+            return 1;
+    }
+    return 0;
+}
+
+/* Is any mid op queued that writes the import after the mirror-back? */
+static int
+gpu_tail_mid_queued(const r128_gpu_t *g)
+{
+    for (uint32_t i = 0; g->nmid && i < g->nfills; i++)
+        if (g->fills[i].mid >= 0 && !g->fills[i].pre)
+            return 1;
     return 0;
 }
 
@@ -3145,7 +3294,7 @@ prim_ranges(const rage128_raster_state_t *rs, uint32_t vram_mask,
 }
 
 /* Worst-case capture cost of one triangle: rows x 256 px chunks (spans)
-   and rows x width (ladder rungs), from the vertex extents with the
+   and rows x width (pixels), from the vertex extents with the
    same subpixel slack prim_ranges uses. It can only overestimate: the
    raster walk clips to the bounding box and the scissor, so the real
    capture never exceeds it. Out-of-range float coordinates price as the
@@ -4195,8 +4344,9 @@ gpu_prof_interval(r128_gpu_t *g, int force)
         }
         memcpy(g->pr_int_reads, g->owner->tel_reads, sizeof(g->pr_int_reads));
 
-        /* lad/mir split the GPU side (ladder+shade vs mirror copies,
-           mir bytes in MB); cap/sort/rec split the host side per second */
+        /* lad/mir split the GPU side (the empty stamp 0 -> 1 interval,
+           kept so the line's fields stay in place, vs mirror copies, mir
+           bytes in MB); cap/sort/rec split the host side per second */
         gpu_log("RAGE128 GPU: interval: t=%llums dt=%llums emu=%u%% gpu=%llums "
                 "reuse=%llums present=%llums 2d=%llums op=%03x/%s opwait=%llums "
                 "submits=%llu chained=%llu max=%u in=%u cap=%u "
@@ -4336,19 +4486,20 @@ gpu_slot_retire(r128_gpu_t *g, gpu_slot_t *sl, int cause)
     }
 
     if (sl->timestamped) {
-        uint64_t tq[5];
+        uint64_t tq[6];
 
-        if (vkGetQueryPoolResults(g->dev, sl->tqpool, 0, 5, sizeof(tq), tq,
+        if (vkGetQueryPoolResults(g->dev, sl->tqpool, 0, 6, sizeof(tq), tq,
                                   sizeof(tq[0]), VK_QUERY_RESULT_64_BIT)
             == VK_SUCCESS) {
-            uint64_t lad_ns   = (uint64_t) ((double) gpu_ts_delta(g, tq[0], tq[1])
+            uint64_t lad_ns   = (uint64_t) ((double) gpu_ts_delta(g->tqbits, tq[0], tq[1])
                                           * g->tqperiod);
-            uint64_t shade_ns = (uint64_t) ((double) gpu_ts_delta(g, tq[1], tq[2])
+            uint64_t shade_ns = (uint64_t) ((double) gpu_ts_delta(g->tqbits, tq[1], tq[2])
                                             * g->tqperiod);
-            /* mirror copies: 3 -> 0 down, 2 -> 4 back (both ~0 when the
-               mirror is unavailable) */
-            uint64_t mir_ns = (uint64_t) ((double) (gpu_ts_delta(g, tq[3], tq[0])
-                                                    + gpu_ts_delta(g, tq[2], tq[4]))
+            /* mirror copies: 3 -> 0 down, 5 -> 4 back (both ~0 when the
+               mirror is unavailable); each pair is written on one queue,
+               and 5 -> 4 wraps at the width of the queue that wrote it */
+            uint64_t mir_ns = (uint64_t) ((double) (gpu_ts_delta(g->tqbits, tq[3], tq[0])
+                                                    + gpu_ts_delta(sl->tq_bk_bits, tq[5], tq[4]))
                                           * g->tqperiod);
 
             g->pr_gpu_lad_ns += lad_ns;
@@ -4431,11 +4582,12 @@ gpu_reap(r128_gpu_t *g)
    the masked address, while a texture interval carries unmasked card
    addresses: a [lo, hi) that crosses or sits above vram_size maps onto
    the wrapped low bytes, not onto bytes past the top (color/z arrive
-   already folded by rng_fold). A piece that reaches the top also
-   copies the 4-byte guard word, both ways: the kernel's straddling top
-   cell writes into it, and nothing else can write it between a
-   segment's copy-down and copy-back (present copies are separate
-   submits, ordered after the segment). The caller passes resident
+   already folded by rng_fold). The 4-byte guard word past the top is
+   copied down whenever a piece reaches the top, and back whenever a
+   store reaches it: the kernel's straddling top cell writes into it,
+   and nothing else can write it between a segment's copy-down and
+   copy-back (present copies are separate submits, ordered after the
+   segment). The caller passes resident
    intervals only: a staged (AGP) target's interval names an arena the
    kernels address directly, and its local alias copied back would
    land on bytes the fence never covered. */
@@ -4481,7 +4633,7 @@ gpu_mirror_pieces(uint32_t vram_mask, uint32_t lo, uint32_t hi,
    on the same bytes are a write-after-write hazard even when the data
    is identical, and such overlaps are common: a color/z pair packed
    back to back, or a texture union that spans the render target. */
-#    define GPU_MIRROR_NIN 3
+#    define GPU_MIRROR_NIN 4
 
 static unsigned
 gpu_mirror_plan(uint32_t vram_mask, const gpu_rng_t *in, unsigned nin,
@@ -4493,7 +4645,7 @@ gpu_mirror_plan(uint32_t vram_mask, const gpu_rng_t *in, unsigned nin,
         nin = GPU_MIRROR_NIN;
     for (unsigned i = 0; i < nin; i++)
         n += gpu_mirror_pieces(vram_mask, in[i].lo, in[i].hi, out + n);
-    /* insertion sort by lo (n <= 6) */
+    /* insertion sort by lo (n <= 2 * GPU_MIRROR_NIN) */
     for (unsigned i = 1; i < n; i++) {
         gpu_rng_t t = out[i];
         unsigned  j = i;
@@ -4515,25 +4667,208 @@ gpu_mirror_plan(uint32_t vram_mask, const gpu_rng_t *in, unsigned nin,
     return m;
 }
 
-/* Copy raw VRAM intervals between the import and the device-local
-   mirror as one disjoint region list. */
-static void
-gpu_mirror_copy(r128_gpu_t *g, gpu_slot_t *sl, VkBuffer src, VkBuffer dst,
-                uint32_t vram_mask, const gpu_rng_t *in, unsigned nin)
-{
-    gpu_rng_t    p[GPU_MIRROR_NIN * 2];
-    VkBufferCopy rc[GPU_MIRROR_NIN * 2];
-    unsigned     n = gpu_mirror_plan(vram_mask, in, nin, p);
+static void     gpu_bci_share(const r128_gpu_t *g, VkBufferCreateInfo *bci);
+static VkResult gpu_submit(r128_gpu_t *g, VkQueue q, VkCommandBuffer cb,
+                           VkFence f);
+static void     gpu_cmd_barrier(VkCommandBuffer cb, int xq,
+                                VkPipelineStageFlags ss, VkPipelineStageFlags ds,
+                                VkAccessFlags sa, VkAccessFlags da);
 
-    if (!n)
-        return;
-    for (unsigned i = 0; i < n; i++) {
-        rc[i].srcOffset = p[i].lo;
-        rc[i].dstOffset = p[i].lo;
-        rc[i].size      = p[i].hi - p[i].lo;
-        g->pr_mirror_bytes += rc[i].size;
+/* Append [lo, hi) to a mirror copy's region list, extending the last
+   region when the two touch. Callers append in ascending address order,
+   so the list stays sorted and disjoint: separate regions of one copy
+   are unordered against each other, and two that overlapped would be a
+   write-after-write hazard even with identical data. */
+static unsigned
+gpu_rc_add(VkBufferCopy *rc, unsigned n, uint32_t lo, uint32_t hi)
+{
+    if (n && rc[n - 1].srcOffset + rc[n - 1].size == lo) {
+        rc[n - 1].size += hi - lo;
+        return n;
     }
-    vkCmdCopyBuffer(sl->cb, src, dst, n, rc);
+    rc[n].srcOffset = lo;
+    rc[n].dstOffset = lo;
+    rc[n].size      = hi - lo;
+    return n + 1;
+}
+
+/* gpu_rc_add for [lo, hi) minus the ranges [alo, ahi) and [blo, bhi),
+   in ascending order. Either cut may be empty, and they may overlap. */
+static unsigned
+gpu_rc_add_minus(VkBufferCopy *rc, unsigned n, uint32_t lo, uint32_t hi,
+                 uint32_t alo, uint32_t ahi, uint32_t blo, uint32_t bhi)
+{
+    uint32_t cut[2][2] = { { alo, ahi }, { blo, bhi } };
+    uint32_t cur       = lo;
+
+    if (blo < alo) {
+        cut[0][0] = blo;
+        cut[0][1] = bhi;
+        cut[1][0] = alo;
+        cut[1][1] = ahi;
+    }
+    for (int i = 0; i < 2 && cur < hi; i++) {
+        if (cut[i][1] <= cut[i][0] || cut[i][1] <= cur)
+            continue;
+        if (cut[i][0] > cur)
+            n = gpu_rc_add(rc, n, cur, cut[i][0] < hi ? cut[i][0] : hi);
+        cur = cut[i][1];
+    }
+    if (cur < hi)
+        n = gpu_rc_add(rc, n, cur, hi);
+    return n;
+}
+
+/* gpu_rc_add for the parts of [lo, hi) inside the sorted, disjoint
+   pieces pc[0..np). */
+static unsigned
+gpu_rc_add_clip(VkBufferCopy *rc, unsigned n, uint32_t lo, uint32_t hi,
+                const gpu_rng_t *pc, unsigned np)
+{
+    for (unsigned k = 0; k < np; k++) {
+        uint32_t a = lo > pc[k].lo ? lo : pc[k].lo;
+        uint32_t b = hi < pc[k].hi ? hi : pc[k].hi;
+
+        if (a < b)
+            n = gpu_rc_add(rc, n, a, b);
+    }
+    return n;
+}
+
+/* Record a region list as copy commands, 512 regions per command, and
+   count its bytes into the total and into one direction's counter. */
+static void
+gpu_rc_record(r128_gpu_t *g, VkCommandBuffer cb, VkBuffer src, VkBuffer dst,
+              unsigned n, uint64_t *dir_bytes)
+{
+    for (unsigned i = 0; i < n; i++) {
+        g->pr_mirror_bytes += g->mir_rc[i].size;
+        *dir_bytes += g->mir_rc[i].size;
+    }
+    for (unsigned d = 0; d < n; d += 512u)
+        vkCmdCopyBuffer(cb, src, dst, n - d < 512u ? n - d : 512u,
+                        g->mir_rc + d);
+}
+
+static int
+gpu_ctz64(uint64_t v)
+{
+    int n = 0;
+
+    while (!(v & 1u)) {
+        v >>= 1;
+        n++;
+    }
+    return n;
+}
+
+/* Mark store cells [lo, hi) of the segment being captured; hi <= the
+   top of VRAM. */
+static void
+gpu_bk_cells(r128_gpu_t *g, uint32_t lo, uint32_t hi)
+{
+    for (uint32_t c = lo >> 8; c <= (hi - 1u) >> 8; c++) {
+        uint32_t pg = c >> 4;
+
+        if (!g->bk_cell[pg])
+            g->bk_pg[pg >> 6] |= (uint64_t) 1 << (pg & 63u);
+        g->bk_cell[pg] |= (uint16_t) (1u << (c & 15u));
+    }
+}
+
+/* A span may store len bytes from local address a on: the kernel forms
+   each pixel's address as row + x * bpp and masks it, so a run that
+   passes the top of VRAM continues at the bottom, and the pixel that
+   straddles the top stores into the guard word. Both are marked. */
+static void
+gpu_bk_mark(r128_gpu_t *g, uint32_t a, uint32_t len, uint32_t vram_mask)
+{
+    uint32_t size = vram_mask + 1u;
+    uint32_t end;
+
+    if (!len)
+        return;
+    a &= vram_mask;
+    end = a + len;
+    if (end > size) {
+        g->bk_guard = 1;
+        gpu_bk_cells(g, 0, end - size);
+        end = size;
+    }
+    gpu_bk_cells(g, a, end);
+}
+
+/* Drop the segment's store cells, visiting only the pages that hold
+   some. */
+static void
+gpu_bk_reset(r128_gpu_t *g)
+{
+    if (!g->bk_cell)
+        return;
+    for (uint32_t w = 0; w < (g->bk_npages + 63u) / 64u; w++) {
+        uint64_t bits = g->bk_pg[w];
+
+        while (bits) {
+            g->bk_cell[w * 64u + (uint32_t) gpu_ctz64(bits)] = 0;
+            bits &= bits - 1u;
+        }
+        g->bk_pg[w] = 0;
+    }
+    g->bk_guard = 0;
+}
+
+/* Move the store cells of a submit that ends at a cadence point into
+   the carried map, with the hulls they lie in, and clear the segment's
+   own map for the next submit. The hulls only grow while the segment
+   stays open, so the latest ones cover every carried cell. */
+static void
+gpu_bkc_take(r128_gpu_t *g, uint32_t clo, uint32_t chi, uint32_t zlo,
+             uint32_t zhi)
+{
+    for (uint32_t w = 0; w < (g->bk_npages + 63u) / 64u; w++) {
+        uint64_t bits = g->bk_pg[w];
+
+        while (bits) {
+            uint32_t pg = w * 64u + (uint32_t) gpu_ctz64(bits);
+
+            bits &= bits - 1u;
+            g->bkc_cell[pg] |= g->bk_cell[pg];
+            g->bk_cell[pg] = 0;
+        }
+        g->bkc_pg[w] |= g->bk_pg[w];
+        g->bk_pg[w] = 0;
+    }
+    g->bkc_guard |= g->bk_guard;
+    g->bk_guard = 0;
+    g->bkc_clo  = clo;
+    g->bkc_chi  = chi;
+    g->bkc_zlo  = zlo;
+    g->bkc_zhi  = zhi;
+    g->bkc_on   = 1;
+}
+
+/* The open segment's real end: merge the carried cells into the
+   segment's own map, so its mirror-back copies them, and clear the
+   carried map. */
+static void
+gpu_bkc_give(r128_gpu_t *g)
+{
+    for (uint32_t w = 0; g->bkc_on && w < (g->bk_npages + 63u) / 64u; w++) {
+        uint64_t bits = g->bkc_pg[w];
+
+        while (bits) {
+            uint32_t pg = w * 64u + (uint32_t) gpu_ctz64(bits);
+
+            bits &= bits - 1u;
+            g->bk_cell[pg] |= g->bkc_cell[pg];
+            g->bkc_cell[pg] = 0;
+        }
+        g->bk_pg[w] |= g->bkc_pg[w];
+        g->bkc_pg[w] = 0;
+    }
+    g->bk_guard |= g->bkc_guard;
+    g->bkc_guard = 0;
+    g->bkc_on    = 0;
 }
 
 /* Record a queued copy's regions: rows x len from src (spitch stride,
@@ -4567,27 +4902,62 @@ gpu_fill_copy_cmd(VkCommandBuffer cb, VkBuffer sb, VkBuffer db,
     }
 }
 
-/* Order a mid fill's copy against everything recorded before it (the
-   runs that sample the old bytes, earlier copies on the same bytes)
-   and make its bytes visible to what follows. */
+/* Record a solid fill (kind 0) into one buffer, the import or the
+   mirror: rows of len bytes, pitch apart, as one command when the rows
+   are contiguous. */
 static void
-gpu_mid_copy_cmd(VkCommandBuffer cb, VkBuffer sb, VkBuffer db,
+gpu_fill_cmd(VkCommandBuffer cb, VkBuffer b, const gpu_fill_t *f)
+{
+    if (f->rows == 1 || f->pitch == f->len)
+        vkCmdFillBuffer(cb, b, f->addr,
+                        (VkDeviceSize) (f->rows - 1) * f->pitch + f->len,
+                        f->color);
+    else
+        for (uint32_t r = 0; r < f->rows; r++)
+            vkCmdFillBuffer(cb, b,
+                            (VkDeviceSize) f->addr
+                                + (VkDeviceSize) r * f->pitch,
+                            f->len, f->color);
+}
+
+/* A queued 2D op that stores into the import only: mark its destination
+   pages host-newer, from the first destination word to the last row's
+   end (the RMW kernel works on whole words). Recorded before the mirror
+   down of the same submit, which copies the marked pages it reads after
+   the op has run. */
+static void
+gpu_q2d_mark(r128_gpu_t *g, const gpu_fill_t *f)
+{
+    uint32_t lo = f->addr & ~3u;
+    uint64_t hi = (uint64_t) f->addr + (uint64_t) (f->rows - 1) * f->pitch
+        + f->len + 3u;
+
+    r128_vram_hnew(g->owner, lo, (uint32_t) (hi - lo));
+}
+
+/* Order a mid op against everything recorded before it (the runs that
+   sample or store the old bytes, earlier ops on the same bytes) and make
+   its bytes visible to what follows. A solid fill is a buffer fill; a
+   staged op copies from the staging ring. xq: cb is a copy-queue batch
+   (gpu_cmd_barrier). */
+static void
+gpu_mid_copy_cmd(VkCommandBuffer cb, int xq, VkBuffer sb, VkBuffer db,
                  const gpu_fill_t *f, VkAccessFlags dst_access,
                  VkPipelineStageFlags dst_stage)
 {
-    VkMemoryBarrier mb = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
-
-    mb.srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT
-        | VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
-    mb.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 1, &mb, 0, NULL,
-                         0, NULL);
-    gpu_fill_copy_cmd(cb, sb, db, f);
-    mb.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    mb.dstAccessMask = dst_access;
-    vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TRANSFER_BIT, dst_stage, 0, 1,
-                         &mb, 0, NULL, 0, NULL);
+    gpu_cmd_barrier(cb, xq,
+                    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT
+                        | VK_ACCESS_TRANSFER_READ_BIT
+                        | VK_ACCESS_TRANSFER_WRITE_BIT,
+                    VK_ACCESS_TRANSFER_WRITE_BIT);
+    if (f->kind == 0)
+        gpu_fill_cmd(cb, db, f);
+    else
+        gpu_fill_copy_cmd(cb, sb, db, f);
+    gpu_cmd_barrier(cb, xq, VK_PIPELINE_STAGE_TRANSFER_BIT, dst_stage,
+                    VK_ACCESS_TRANSFER_WRITE_BIT, dst_access);
 }
 
 /* Head barrier against an in-flight slot. The source scope must include
@@ -4673,16 +5043,23 @@ gpu_disp_fills(r128_gpu_t *g, gpu_slot_t *sl, uint32_t nd)
             VkBuffer db = f->kind == 3 ? g->stage2d.b : g->vram_buf;
 
             gpu_fill_copy_cmd(sl->cb, sb, db, f);
-        } else if (f->rows == 1 || f->pitch == f->len)
-            vkCmdFillBuffer(sl->cb, g->vram_buf, f->addr,
-                            (VkDeviceSize) (f->rows - 1) * f->pitch + f->len,
-                            f->color);
-        else
-            for (uint32_t r = 0; r < f->rows; r++)
-                vkCmdFillBuffer(sl->cb, g->vram_buf,
-                                (VkDeviceSize) f->addr
-                                    + (VkDeviceSize) r * f->pitch,
-                                f->len, f->color);
+        } else {
+            gpu_fill_cmd(sl->cb, g->vram_buf, f);
+            /* A solid fill has no input, so it is recorded into the
+               mirror as well, where it crosses no bus, and its pages
+               need no copy down afterwards. */
+            if (g->mirror_en
+                && (uint64_t) f->addr + (uint64_t) (f->rows - 1) * f->pitch
+                        + f->len
+                    <= (uint64_t) g->owner->vram_size)
+                gpu_fill_cmd(sl->cb, g->mirror_buf, f);
+            else
+                gpu_q2d_mark(g, f);
+        }
+        if (f->kind == 1 || f->kind == 2 || f->kind == 4)
+            gpu_q2d_mark(g, f);
+        if (f->kind != 3)
+            g->pr_q2d_bytes += (uint64_t) f->rows * f->len;
     }
     if (nd) {
         VkMemoryBarrier mb = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
@@ -4697,16 +5074,29 @@ gpu_disp_fills(r128_gpu_t *g, gpu_slot_t *sl, uint32_t nd)
     }
 }
 
-/* Mirror down: gpu_disp_fills and any prior submit's copy-back wrote
-   the import; the kernels read color/z (blend, z-test) and sample the
-   texture interval from the mirror. +4 on the texture end keeps the
-   last texel's linear overrun covered. */
+/* Mirror down. The kernels read color and depth (blend, the depth
+   test) and sample textures from the mirror, so the pages of those
+   ranges must be current there. A page is copied only when the
+   host-newer map marks it (the mark covers every store into svga.vram
+   that the mirror did not also receive: host stores, the CPU 2D walk
+   and refused primitives, and the queued 2D ops that write only the
+   import, marked by gpu_disp_fills just before this). Clearing a mark
+   copies its whole page, so the bytes of the page outside the ranges
+   are current too. Pages outside the ranges keep their marks until a
+   segment reads them. The texture range is the q hull, +4 for the last
+   texel's linear overrun; the guard word is copied whenever a range
+   reaches the top, since present copies rewrite it in the import.
+   Submit thread only: it is the only thread that clears marks. */
 static void
 gpu_disp_mirror_down(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
                      uint32_t clo, uint32_t chi, uint32_t zlo, uint32_t zhi,
                      uint32_t qlo, uint32_t qhi)
 {
-    VkMemoryBarrier mb = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
+    VkMemoryBarrier mb   = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
+    rage128_t      *dev  = g->owner;
+    atomic_uchar   *h    = dev->vram_hnew;
+    uint32_t        size = vram_mask + 1u;
+    unsigned        n    = 0;
 
     mb.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT
         | VK_ACCESS_SHADER_WRITE_BIT;
@@ -4715,48 +5105,86 @@ gpu_disp_mirror_down(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
     vkCmdPipelineBarrier(sl->cb, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
                          VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
                          1, &mb, 0, NULL, 0, NULL);
+    /* the every-page mark becomes a mark on each page; the acquire pairs
+       with the writer's release, as on a single page */
+    if (atomic_load_explicit(&dev->vram_hnew_all, memory_order_relaxed)
+        && atomic_exchange_explicit(&dev->vram_hnew_all, 0,
+                                    memory_order_acquire))
+        for (uint32_t p = 0; p < g->bk_npages; p++)
+            atomic_store_explicit(&h[p], 1, memory_order_relaxed);
     {
         gpu_rng_t in[3] = {
             { clo, chi                        },
             { zlo, zhi                        },
             { qlo, qhi > qlo ? qhi + 4u : qhi }
         };
+        gpu_rng_t pc[GPU_MIRROR_NIN * 2];
+        unsigned  np;
 
         if (sl->mir_stg & 1u)
             in[0].hi = 0;
         if (sl->mir_stg & 2u)
             in[1].hi = 0;
-        gpu_mirror_copy(g, sl, g->vram_buf, g->mirror_buf, vram_mask,
-                        in, 3);
+        np = gpu_mirror_plan(vram_mask, in, 3, pc);
+        for (unsigned i = 0; i < np; i++) {
+            uint32_t top = pc[i].hi > size ? size : pc[i].hi;
+
+            for (uint32_t pg = pc[i].lo >> 12; top && pg <= (top - 1u) >> 12; pg++) {
+                /* Two pieces can share a page. One already in the list is
+                   left alone, even if a host store has marked it again
+                   since: a second region over the same bytes would overlap
+                   the first, which a copy command does not allow, and the
+                   store stays marked for the next segment that reads it. */
+                if (n && (pg << 12) < g->mir_rc[n - 1].srcOffset + g->mir_rc[n - 1].size)
+                    continue;
+                /* a relaxed load first: most pages are clean, and the
+                   exchange is a read-modify-write */
+                if (atomic_load_explicit(&h[pg], memory_order_relaxed)
+                    && atomic_exchange_explicit(&h[pg], 0,
+                                                memory_order_acquire)) {
+                    uint32_t plo = pg << 12;
+                    uint32_t phi = (pg + 1u) << 12 > size ? size
+                                                          : (pg + 1u) << 12;
+                    uint32_t m   = g->bkc_on ? g->bkc_cell[pg] : 0;
+
+                    /* Carried cells hold bytes the mirror has newer
+                       than the import (an earlier submit of the open
+                       segment stored them and copied nothing back), so
+                       the copy skips them inside the carried hulls. No
+                       host store lands there while the segment is open:
+                       it tests the pending hulls and flushes first. The
+                       rest of each such cell, and every other cell,
+                       comes down as usual. */
+                    if (!m) {
+                        n = gpu_rc_add(g->mir_rc, n, plo, phi);
+                    } else {
+                        for (uint32_t k = 0; k < 16u; k++) {
+                            uint32_t cs = plo + (k << 8);
+                            uint32_t ce = cs + 256u > phi ? phi : cs + 256u;
+
+                            if (cs >= phi)
+                                break;
+                            if ((m >> k) & 1u)
+                                n = gpu_rc_add_minus(g->mir_rc, n, cs, ce,
+                                                     g->bkc_clo, g->bkc_chi,
+                                                     g->bkc_zlo, g->bkc_zhi);
+                            else
+                                n = gpu_rc_add(g->mir_rc, n, cs, ce);
+                        }
+                    }
+                }
+            }
+            if (pc[i].hi > size)
+                n = gpu_rc_add(g->mir_rc, n, size, size + GPU_MIRROR_GUARD);
+        }
     }
+    gpu_rc_record(g, sl->cb, g->vram_buf, g->mirror_buf, n, &g->pr_mir_dn_bytes);
     mb.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     mb.dstAccessMask = VK_ACCESS_SHADER_READ_BIT
         | VK_ACCESS_SHADER_WRITE_BIT;
     vkCmdPipelineBarrier(sl->cb, VK_PIPELINE_STAGE_TRANSFER_BIT,
                          VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
                          1, &mb, 0, NULL, 0, NULL);
-}
-
-/* The ladder dispatch over every span, its results fenced for the runs. */
-static void
-gpu_disp_ladder(r128_gpu_t *g, gpu_slot_t *sl, int use_tq)
-{
-    uint32_t        pcv[2] = { g->nspans, 0 };
-    VkMemoryBarrier mb     = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
-
-    vkCmdBindPipeline(sl->cb, VK_PIPELINE_BIND_POINT_COMPUTE, g->lad_pipe);
-    vkCmdPushConstants(sl->cb, g->plyt, VK_SHADER_STAGE_COMPUTE_BIT, 0, 8,
-                       pcv);
-    /* 32 lanes per span (closed-form ladder), 8 spans per workgroup */
-    vkCmdDispatch(sl->cb, (g->nspans + 7u) / 8u, 1, 1);
-    mb.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    mb.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    vkCmdPipelineBarrier(sl->cb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
-                         1, &mb, 0, NULL, 0, NULL);
-    if (use_tq)
-        vkCmdWriteTimestamp(sl->cb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                            sl->tqpool, 1);
 }
 
 /* One dispatch per run, mid fills ordered in before the run they
@@ -4789,7 +5217,7 @@ gpu_disp_runs(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
                 continue;
             if ((uint32_t) f->mid > dp[i].run)
                 break;
-            gpu_mid_copy_cmd(sl->cb, g->stage2d.b, g->mirror_buf, f,
+            gpu_mid_copy_cmd(sl->cb, 0, g->stage2d.b, g->mirror_buf, f,
                              VK_ACCESS_SHADER_READ_BIT
                                  | VK_ACCESS_SHADER_WRITE_BIT,
                              VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
@@ -4889,68 +5317,267 @@ gpu_disp_runs(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
                            pcv);
         vkCmdDispatch(sl->cb, dp[i].nrows, 1, 1);
     }
+    g->mid_mirrored = mid_next;
 }
 
-/* Mirror back: the kernels' color/z stores return to the import, which
-   stays the authoritative copy for the CPU thread, scanout, 2D, the
-   present snapshot and the next segment's mirror-down. The destination
-   scope covers every later consumer. */
-static void
-gpu_disp_mirror_back(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
-                     uint32_t clo, uint32_t chi, uint32_t zlo, uint32_t zhi)
+/* Mirror back: the kernels' color and depth stores return to the
+   import, which every other consumer reads (the CPU thread, scanout, 2D,
+   the present snapshot). Only the 256-byte cells the segment's spans can
+   store are copied (gpu_bk_mark, from the span capture), in address
+   order, so after the fence the import holds every stored byte and the
+   rest of each range was never changed in the mirror. The destination
+   scope covers every later consumer. carried: the cell map also holds
+   cells carried from earlier submits of the segment (gpu_bkc_give),
+   which lie in the carried hulls. Recorded into cb, the slot's command
+   buffer or, with xq set, its copy-queue batch. Returns the number of
+   regions copied. */
+static unsigned
+gpu_disp_mirror_back(r128_gpu_t *g, gpu_slot_t *sl, VkCommandBuffer cb, int xq,
+                     uint32_t vram_mask, uint32_t clo, uint32_t chi,
+                     uint32_t zlo, uint32_t zhi, int carried)
 {
-    VkMemoryBarrier mb = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
+    uint32_t        size = vram_mask + 1u;
+    unsigned        n    = 0;
+    gpu_rng_t       in[4] = {
+        { clo, chi },
+        { zlo, zhi },
+        { g->bkc_clo, g->bkc_chi },
+        { g->bkc_zlo, g->bkc_zhi }
+    };
+    gpu_rng_t pc[GPU_MIRROR_NIN * 2];
+    unsigned  np;
 
-    mb.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    mb.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-    vkCmdPipelineBarrier(sl->cb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-                         1, &mb, 0, NULL, 0, NULL);
-    {
-        gpu_rng_t in[2] = {
-            { clo, chi },
-            { zlo, zhi }
-        };
+    /* Cells are clipped to the color and depth hulls. Every kernel store
+       lies inside them, and they are the ranges a host store is tested
+       against before it lands (the slot's c and z ranges): a host store
+       to a cell byte outside them would not wait, and the copy would
+       then write the mirror's older byte over it. A staged target's
+       stores do not reach the mirror, so its hull is left out. Carried
+       cells keep the hulls of the submits that stored them, so a staged
+       target later in the segment does not drop them. */
+    if (sl->mir_stg & 1u)
+        in[0].hi = 0;
+    if (sl->mir_stg & 2u)
+        in[1].hi = 0;
+    np = gpu_mirror_plan(vram_mask, in, carried ? 4 : 2, pc);
 
-        if (sl->mir_stg & 1u)
-            in[0].hi = 0;
-        if (sl->mir_stg & 2u)
-            in[1].hi = 0;
-        gpu_mirror_copy(g, sl, g->mirror_buf, g->vram_buf, vram_mask,
-                        in, 2);
+    gpu_cmd_barrier(cb, xq, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT);
+    for (uint32_t w = 0; w < (g->bk_npages + 63u) / 64u; w++) {
+        uint64_t bits = g->bk_pg[w];
+
+        while (bits) {
+            uint32_t pg   = w * 64u + (uint32_t) gpu_ctz64(bits);
+            uint32_t m    = g->bk_cell[pg];
+            uint32_t base = pg << 12;
+
+            bits &= bits - 1u;
+            /* each run of set cells is one region */
+            while (m) {
+                uint32_t c = (uint32_t) gpu_ctz64(m), e = c;
+
+                while (e < 16u && (m >> e) & 1u)
+                    e++;
+                n = gpu_rc_add_clip(g->mir_rc, n, base + (c << 8),
+                                    base + (e << 8), pc, np);
+                m &= ~(((1u << e) - 1u) & ~((1u << c) - 1u));
+            }
+        }
     }
-    mb.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    mb.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT
-        | VK_ACCESS_TRANSFER_WRITE_BIT
-        | VK_ACCESS_SHADER_READ_BIT
-        | VK_ACCESS_SHADER_WRITE_BIT
-        | VK_ACCESS_HOST_READ_BIT;
-    vkCmdPipelineBarrier(sl->cb, VK_PIPELINE_STAGE_TRANSFER_BIT,
+    if (g->bk_guard)
+        n = gpu_rc_add_clip(g->mir_rc, n, size, size + GPU_MIRROR_GUARD, pc, np);
+    gpu_rc_record(g, cb, g->mirror_buf, g->vram_buf, n, &g->pr_mir_bk_bytes);
+    gpu_cmd_barrier(cb, xq, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT
+                        | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+                        | VK_PIPELINE_STAGE_HOST_BIT,
+                    VK_ACCESS_TRANSFER_WRITE_BIT,
+                    VK_ACCESS_TRANSFER_READ_BIT
+                        | VK_ACCESS_TRANSFER_WRITE_BIT
+                        | VK_ACCESS_SHADER_READ_BIT
+                        | VK_ACCESS_SHADER_WRITE_BIT
+                        | VK_ACCESS_HOST_READ_BIT);
+    return n;
+}
+
+/* Mid ops that write the import before the mirror-back, in stream
+   order. back is set when the mirror-back follows (mirror on and runs
+   recorded). An op ordered after the last run was not recorded into the
+   mirror between the runs, so it goes into the mirror here first: the
+   mirror-back copies whole drawn cells from the mirror, and a drawn cell
+   holding the op's bytes must carry them. Without a mirror-back the op
+   goes into the import only and its pages are marked host-newer, so the
+   next segment that reads them copies them down. Recorded into cb with
+   the mirror back (the copy queue's batch when xq is set); returns the
+   number recorded. */
+static unsigned
+gpu_disp_pre_fills(r128_gpu_t *g, VkCommandBuffer cb, int xq, int back)
+{
+    unsigned n = 0;
+
+    for (uint32_t i = 0; g->nmid && i < g->nfills; i++) {
+        const gpu_fill_t *f = &g->fills[i];
+
+        if (f->mid < 0 || !f->pre)
+            continue;
+        if (back && i >= g->mid_mirrored)
+            gpu_mid_copy_cmd(cb, xq, g->stage2d.b, g->mirror_buf, f,
+                             VK_ACCESS_TRANSFER_READ_BIT
+                                 | VK_ACCESS_TRANSFER_WRITE_BIT,
+                             VK_PIPELINE_STAGE_TRANSFER_BIT);
+        if (!back)
+            gpu_q2d_mark(g, f);
+        g->pr_q2d_bytes += (uint64_t) f->rows * f->len;
+        n++;
+        gpu_mid_copy_cmd(cb, xq, g->stage2d.b, g->vram_buf, f,
+                         VK_ACCESS_TRANSFER_READ_BIT
+                             | VK_ACCESS_TRANSFER_WRITE_BIT
+                             | VK_ACCESS_SHADER_READ_BIT
+                             | VK_ACCESS_SHADER_WRITE_BIT
+                             | VK_ACCESS_HOST_READ_BIT,
                          VK_PIPELINE_STAGE_TRANSFER_BIT
                              | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
-                             | VK_PIPELINE_STAGE_HOST_BIT,
-                         0, 1, &mb, 0, NULL, 0, NULL);
+                             | VK_PIPELINE_STAGE_HOST_BIT);
+    }
+    return n;
 }
 
 /* Mid fills into the import, recorded after the mirror-back so the fill
    lands last; no draw in the segment stores to those bytes, since such
    a draw splits the segment (gpu_mid_range_hit). Same visibility scope
    as the mirror-back: the host reads these bytes after the fence, and
-   the next segment mirrors them down. */
-static void
-gpu_disp_tail_fills(r128_gpu_t *g, gpu_slot_t *sl)
+   the next segment mirrors them down. Recorded into cb as for the
+   mirror back; returns the number recorded. */
+static unsigned
+gpu_disp_tail_fills(r128_gpu_t *g, VkCommandBuffer cb, int xq)
 {
-    for (uint32_t i = 0; g->nmid && i < g->nfills; i++)
-        if (g->fills[i].mid >= 0)
-            gpu_mid_copy_cmd(sl->cb, g->stage2d.b, g->vram_buf, &g->fills[i],
-                             VK_ACCESS_TRANSFER_READ_BIT
-                                 | VK_ACCESS_TRANSFER_WRITE_BIT
-                                 | VK_ACCESS_SHADER_READ_BIT
-                                 | VK_ACCESS_SHADER_WRITE_BIT
-                                 | VK_ACCESS_HOST_READ_BIT,
-                             VK_PIPELINE_STAGE_TRANSFER_BIT
-                                 | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
-                                 | VK_PIPELINE_STAGE_HOST_BIT);
+    unsigned n = 0;
+
+    for (uint32_t i = 0; g->nmid && i < g->nfills; i++) {
+        if (g->fills[i].mid < 0 || g->fills[i].pre)
+            continue;
+        /* a mid fill ordered after the segment's last run, or one whose
+           runs were dropped, was never recorded into the mirror: mark it */
+        if (i >= g->mid_mirrored)
+            gpu_q2d_mark(g, &g->fills[i]);
+        g->pr_q2d_bytes += (uint64_t) g->fills[i].rows * g->fills[i].len;
+        gpu_mid_copy_cmd(cb, xq, g->stage2d.b, g->vram_buf, &g->fills[i],
+                         VK_ACCESS_TRANSFER_READ_BIT
+                             | VK_ACCESS_TRANSFER_WRITE_BIT
+                             | VK_ACCESS_SHADER_READ_BIT
+                             | VK_ACCESS_SHADER_WRITE_BIT
+                             | VK_ACCESS_HOST_READ_BIT,
+                         VK_PIPELINE_STAGE_TRANSFER_BIT
+                             | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+                             | VK_PIPELINE_STAGE_HOST_BIT);
+        n++;
+    }
+    return n;
+}
+
+/* Mirror audit, recording half: after everything else in the slot,
+   copy the whole guest range of the mirror into the host-visible audit
+   buffer. Recorded into cb as for the mirror back. */
+static void
+gpu_audit_record(r128_gpu_t *g, VkCommandBuffer cb, int xq, uint32_t vram_mask)
+{
+    VkBufferCopy rc = { 0, 0, (VkDeviceSize) vram_mask + 1u };
+
+    gpu_cmd_barrier(cb, xq,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                    VK_ACCESS_TRANSFER_READ_BIT);
+    vkCmdCopyBuffer(cb, g->mirror_buf, g->audit_buf.b, 1, &rc);
+    gpu_cmd_barrier(cb, xq, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+                    VK_ACCESS_HOST_READ_BIT);
+}
+
+/* Mirror audit, checking half: wait for the slot, then compare the
+   mirror's copy with svga.vram on every page the host-newer map calls
+   clean. A clean page that differs is a store the map missed (a writer
+   without a mark) or a kernel store the copy back missed. A page whose
+   mark appears while it is compared was stored to by the host meanwhile
+   and is not counted. */
+static void
+gpu_audit_check(r128_gpu_t *g, gpu_slot_t *sl)
+{
+    rage128_t     *dev = g->owner;
+    const uint8_t *m   = (const uint8_t *) g->audit_buf.map;
+    const uint8_t *v   = dev->svga.vram;
+
+    vkWaitForFences(g->dev, 1, &sl->fence, VK_TRUE, UINT64_MAX);
+    if (atomic_load_explicit(&dev->vram_hnew_all, memory_order_acquire))
+        return;
+    for (uint32_t p = 0; p < g->bk_npages; p++) {
+        uint32_t off = p << 12;
+
+        if (atomic_load_explicit(&dev->vram_hnew[p], memory_order_acquire))
+            continue;
+        g->st_audit_pages++;
+        g->st_audit_bytes += 4096u;
+        if (!memcmp(m + off, v + off, 4096u)
+            || atomic_load_explicit(&dev->vram_hnew[p], memory_order_acquire))
+            continue;
+        g->st_audit_bad++;
+        if (g->st_audit_bad <= 16) {
+            uint32_t i = 0;
+
+            while (m[off + i] == v[off + i])
+                i++;
+            gpu_err("RAGE128 GPU: MIRROR AUDIT: segment %llu page %05x byte "
+                    "%08x mirror=%02x vram=%02x\n",
+                    (unsigned long long) g->st_segments, p, off + i,
+                    m[off + i], v[off + i]);
+        }
+    }
+}
+
+/* Record upload: copy the bytes this segment's records use from the host
+   buffers into the slot's device-local copies, which the kernels read.
+   The submit makes the host's writes visible to the copy. With a copy
+   queue the copies are their own batch, submitted here, before the
+   kernels' batch, which then waits for it on the timeline; without one
+   they open the kernels' command buffer, followed by a barrier. The
+   slot's previous kernels finished reading the copies before its fence
+   signaled, and the slot is reused only after that. queue_mtx held. */
+static void
+gpu_disp_rec_upload(r128_gpu_t *g, gpu_slot_t *sl, int xq,
+                    const VkCommandBufferBeginInfo *bi)
+{
+    const VkDeviceSize    sz[4] = { sl->up_rows_b, sl->up_ord_b,
+                                    (VkDeviceSize) g->nspans * sizeof(seg_span_t),
+                                    (VkDeviceSize) g->ntris * sizeof(seg_tri_t) };
+    const r128_gpu_buf_t *hs[4] = { &sl->b_rows, &sl->b_order, &sl->b_spans,
+                                    &sl->b_tris };
+    const r128_gpu_buf_t *ds[4] = { &sl->d_rows, &sl->d_order, &sl->d_spans,
+                                    &sl->d_tris };
+    VkCommandBuffer       cb    = xq ? sl->ucb : sl->cb;
+    int                   any   = 0;
+
+    for (int i = 0; i < 4; i++) {
+        VkBufferCopy c = { 0, 0, sz[i] };
+
+        if (!sz[i])
+            continue;
+        if (!any && xq)
+            vkBeginCommandBuffer(cb, bi);
+        vkCmdCopyBuffer(cb, hs[i]->b, ds[i]->b, 1, &c);
+        g->rec_up_bytes += sz[i];
+        any = 1;
+    }
+    if (!any)
+        return;
+    if (xq) {
+        vkEndCommandBuffer(cb);
+        if (gpu_submit(g, g->xqueue, cb, VK_NULL_HANDLE) != VK_SUCCESS)
+            fatal("RAGE128 GPU: record upload submit failed\n");
+    } else
+        gpu_cmd_barrier(cb, 0, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                        VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
 }
 
 /* Record and submit one slot. A head barrier orders shared VRAM against
@@ -4960,13 +5587,18 @@ gpu_dispatch(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
              const gpu_disp_t *dp, uint32_t nd,
              uint32_t clo, uint32_t chi, uint32_t zlo, uint32_t zhi,
              uint32_t qlo, uint32_t qhi, uint32_t rlo, uint32_t rhi,
-             uint32_t flo, uint32_t fhi)
+             uint32_t flo, uint32_t fhi, int carry)
 {
     VkCommandBufferBeginInfo bi = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-    VkSubmitInfo             si = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
     uint64_t                 t0;
-    int                      use_tq = g->prof && g->tqbits
+    /* xq: the mirror back, the tail fills and the audit copy go into
+       the slot's copy-queue batch, submitted after the kernels' batch */
+    int      xq     = g->tl_sem != VK_NULL_HANDLE;
+    int      use_tq = g->prof && g->tqbits && (!xq || g->xtqbits)
         && sl->tqpool != VK_NULL_HANDLE;
+    VkCommandBuffer tcb  = xq ? sl->xcb : sl->cb;
+    unsigned        tail = 0;
+    int             carried = 0;
     unsigned prior = gpu_inflight_count(g);
 
     gpu_prof_interval(g, 0);
@@ -4979,7 +5611,9 @@ gpu_dispatch(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
     pthread_mutex_lock(&g->queue_mtx);
     vkBeginCommandBuffer(sl->cb, &bi);
     if (use_tq)
-        vkCmdResetQueryPool(sl->cb, sl->tqpool, 0, 5);
+        vkCmdResetQueryPool(sl->cb, sl->tqpool, 0, 6);
+    if (g->rec_dev)
+        gpu_disp_rec_upload(g, sl, xq, &bi);
     if (prior)
         gpu_disp_head_barrier(g, sl);
     if (g->nfills > g->nmid)
@@ -4987,7 +5621,9 @@ gpu_dispatch(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
     /* Stamps 3 and 0 bracket the mirror-down at the bottom-of-pipe
        stage: a top-of-pipe stamp is taken when the command is reached,
        not when the copies (or the fills before them) have finished, and
-       would charge their tail to the ladder interval 0 -> 1. */
+       would charge their tail to the shading interval. Stamp 1 follows
+       stamp 0 directly: the interval 0 -> 1 has no work of its own, and
+       1 -> 2 is the shading. */
     if (use_tq)
         vkCmdWriteTimestamp(sl->cb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                             sl->tqpool, 3);
@@ -4998,25 +5634,98 @@ gpu_dispatch(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
                             sl->tqpool, 0);
     vkCmdBindDescriptorSets(sl->cb, VK_PIPELINE_BIND_POINT_COMPUTE, g->plyt,
                             0, 1, &sl->dset, 0, NULL);
-    gpu_disp_ladder(g, sl, use_tq);
+    if (use_tq)
+        vkCmdWriteTimestamp(sl->cb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                            sl->tqpool, 1);
+    g->mid_mirrored = 0;
     gpu_disp_runs(g, sl, vram_mask, dp, nd);
     if (use_tq)
         vkCmdWriteTimestamp(sl->cb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                             sl->tqpool, 2);
-    if (g->mirror_en && nd)
-        gpu_disp_mirror_back(g, sl, vram_mask, clo, chi, zlo, zhi);
-    gpu_disp_tail_fills(g, sl);
+    /* Stamps 5 and 4 bracket the pre-back fills, mirror back and tail
+       fills, all on the queue that runs them: timestamps from two queues
+       are not compared. */
+    if (xq)
+        vkBeginCommandBuffer(tcb, &bi);
+    if (use_tq)
+        vkCmdWriteTimestamp(tcb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                            sl->tqpool, 5);
+    /* A real end with cells carried records a mirror-back even with no
+       new runs, so its pre-back fills go into the mirror as well: the
+       mirror-back would otherwise copy the carried cells' older bytes
+       over the fill. */
+    if (!carry)
+        carried = g->bkc_on;
+    tail += gpu_disp_pre_fills(g, tcb, xq, g->mirror_en && (nd || carried));
+    /* A carry submit ends at a cadence point and leaves the segment
+       open: no mirror-back (its cells are carried to the real end) and
+       no tail ops (the flush does not carry while any is queued). The
+       mirror audit compares the two buffers at a fence, where a carry
+       submit leaves the import behind on purpose, so it is not recorded
+       there. */
+    if (!carry) {
+        gpu_bkc_give(g);
+        /* With no runs (SOFT_RESET_GUI dropped the draws since the last
+           carry) the cell map holds only carried cells, and the segment's
+           hulls may still include the dropped draws' extent. That extent
+           was never mirrored down, so a host store there since the carry
+           sits in the import only: the copy is clipped to the carried
+           hulls alone, or it would lay the mirror's older bytes over that
+           store. */
+        if (g->mirror_en && (nd || carried))
+            tail += gpu_disp_mirror_back(g, sl, tcb, xq, vram_mask,
+                                         nd ? clo : 0, nd ? chi : 0,
+                                         nd ? zlo : 0, nd ? zhi : 0, carried);
+        tail += gpu_disp_tail_fills(g, tcb, xq);
+        if (g->mir_audit) {
+            gpu_audit_record(g, tcb, xq, vram_mask);
+            tail++;
+        }
+    }
     g->nfills = 0;
     g->nmid   = 0;
     if (use_tq)
-        vkCmdWriteTimestamp(sl->cb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+        vkCmdWriteTimestamp(tcb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                             sl->tqpool, 4);
+    if (xq && !tail) {
+        /* Nothing to copy back, so the copy batch is not submitted. Its
+           closing barrier, the one the single queue records after an
+           empty mirror back, goes into the kernels' batch instead, and
+           so do its stamps, as an empty interval. */
+        if (!carry && g->mirror_en && (nd || carried))
+            gpu_cmd_barrier(sl->cb, 0,
+                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+                                | VK_PIPELINE_STAGE_TRANSFER_BIT,
+                            VK_PIPELINE_STAGE_TRANSFER_BIT
+                                | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+                                | VK_PIPELINE_STAGE_HOST_BIT,
+                            VK_ACCESS_SHADER_WRITE_BIT
+                                | VK_ACCESS_TRANSFER_WRITE_BIT,
+                            VK_ACCESS_TRANSFER_READ_BIT
+                                | VK_ACCESS_TRANSFER_WRITE_BIT
+                                | VK_ACCESS_SHADER_READ_BIT
+                                | VK_ACCESS_SHADER_WRITE_BIT
+                                | VK_ACCESS_HOST_READ_BIT);
+        if (use_tq) {
+            vkCmdWriteTimestamp(sl->cb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                                sl->tqpool, 5);
+            vkCmdWriteTimestamp(sl->cb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                                sl->tqpool, 4);
+        }
+    }
     vkEndCommandBuffer(sl->cb);
-    si.commandBufferCount = 1;
-    si.pCommandBuffers    = &sl->cb;
-    if (vkQueueSubmit(g->queue, 1, &si, sl->fence) != VK_SUCCESS)
+    if (xq)
+        vkEndCommandBuffer(tcb);
+    /* the fence goes on the last batch submitted; the copy batch waits
+       for the kernels' batch, so its fence covers both */
+    if (gpu_submit(g, g->queue, sl->cb, xq && tail ? VK_NULL_HANDLE : sl->fence)
+            != VK_SUCCESS
+        || (xq && tail
+            && gpu_submit(g, g->xqueue, tcb, sl->fence) != VK_SUCCESS))
         fatal("RAGE128 GPU: queue submit failed\n");
     pthread_mutex_unlock(&g->queue_mtx);
+    if (g->mir_audit && !carry)
+        gpu_audit_check(g, sl);
     if (g->prof)
         g->pr_record_ns += prof_now() - t0;
 
@@ -5052,6 +5761,7 @@ gpu_dispatch(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
         sl->pb_kmask |= 1u << dp[k].kernel;
     }
     sl->timestamped = use_tq;
+    sl->tq_bk_bits  = xq && tail ? g->xtqbits : g->tqbits;
     atomic_store_explicit(&sl->fence_seen, 0, memory_order_relaxed);
     atomic_fetch_add_explicit(&g->inflight, 1, memory_order_acq_rel);
     atomic_store_explicit(&sl->submitted, 1, memory_order_release);
@@ -5075,7 +5785,6 @@ gpu_accum_drop_3d(r128_gpu_t *g)
 {
     g->nspans          = 0;
     g->ntris           = 0;
-    g->seg_px          = 0;
     g->nruns           = 0;
     g->ntexq           = 0;
     g->texq_ovf        = 0;
@@ -5089,6 +5798,7 @@ gpu_accum_drop_3d(r128_gpu_t *g)
     g->seg_czstaged    = 0;
     g->npal            = 0;
     g->pal_up_gen      = 0;
+    gpu_bk_reset(g);
     /* kept mid fills now precede every run the segment will gain */
     for (uint32_t i = 0; g->nmid && i < g->nfills; i++)
         if (g->fills[i].mid > 0)
@@ -5119,8 +5829,10 @@ rage128_gpu_abandon(rage128_t *dev)
 
     if (!g || !atomic_load_explicit(&g->pending, memory_order_acquire))
         return;
+    /* Carried cells belong to draws already submitted: the segment stays
+       open so its real end still copies them back. */
     pthread_mutex_lock(&g->flush_mtx);
-    if (g->nfills)
+    if (g->nfills || g->bkc_on)
         gpu_accum_drop_3d(g);
     else
         gpu_accum_reset(g);
@@ -5144,12 +5856,15 @@ gpu_flush_body(rage128_t *dev, int cause)
     gpu_disp_t  disp[GPU_RUN_CAP];
     uint32_t    ndisp = 0, rows_used = 0, nbat = 0;
     uint64_t    prof_t = 0;
-    int         drain;
+    int         drain, carry;
 
     if (!g)
         return;
     drain = gpu_cause_drains(g, cause);
-    if (!g->nspans && !g->nfills) {
+    /* An open segment with carried cells always submits at its real end,
+       even with nothing new queued: the submit's mirror-back is what
+       brings those cells back to the import. */
+    if (!g->nspans && !g->nfills && !g->bkc_on) {
         if (drain)
             gpu_drain_all(g, cause);
         if (atomic_load_explicit(&g->pending, memory_order_acquire))
@@ -5326,18 +6041,40 @@ gpu_flush_body(rage128_t *dev, int cause)
     sl->cz_ref    = g->seg_czstaged;
     sl->mir_stg   = (atomic_load(&g->c_stg) ? 1u : 0u)
         | (atomic_load(&g->z_stg) ? 2u : 0u);
+    /* the row pairs and slot words written above, for the record upload */
+    sl->up_rows_b = rows_used * 2u * (uint32_t) sizeof(uint32_t);
+    sl->up_ord_b  = nbat * GPU_BATCH_SLOTS * (uint32_t) sizeof(uint32_t);
+    /* A cadence point only hands the GPU work early; nothing waits on
+       it. It therefore submits as a carry: the runs go out, but the
+       segment stays open. Its pending ranges and pending flag stay set,
+       so every host reader and writer still flushes the segment and
+       waits for its real end, and its store cells are carried to that
+       end, whose mirror-back copies the union once (gpu_dispatch). A
+       queued tail op writes the import after a mirror-back, which a
+       carry submit does not have, so it makes the point a real end, as
+       do the modes that check every segment. */
+    carry = cause == GF_CADENCE && ndisp && g->async && g->mirror_en
+        && g->bkc_cell && !g->verify && !g->verify2d && !dev->synctel
+        && !sl->mir_stg && !gpu_tail_mid_queued(g);
     if (g->verify)
         gpu_verify_segment(dev, g, disp, ndisp, clo, chi, zlo, zhi,
                            qlo, qhi, cause);
     else
         gpu_dispatch(g, sl, dev->vram_mask, disp, ndisp,
-                     clo, chi, zlo, zhi, qlo, qhi, rlo, rhi, flo, fhi);
+                     clo, chi, zlo, zhi, qlo, qhi, rlo, rhi, flo, fhi,
+                     carry);
 
     g->st_segments++;
     g->st_runs += ndisp;
     g->st_nruns += g->nruns; /* runs, not dispatches: like-for-like vs GPU_RUN_CAP */
     g->st_flush[cause]++;
-    gpu_accum_reset(g);
+    if (carry) {
+        gpu_bkc_take(g, clo, chi, zlo, zhi);
+        gpu_accum_drop_3d(g);
+        g->nmid = 0;
+        g->st_carry++;
+    } else
+        gpu_accum_reset(g);
 
     if (!g->verify) {
         uint32_t next = (g->build_slot + 1u) % GPU_RING_SLOTS;
@@ -5478,7 +6215,7 @@ gpu_verify_segment(rage128_t *dev, r128_gpu_t *g,
        queued-2D-write intervals are always empty here */
     gpu_dispatch(g, sl, dev->vram_mask, dp, nd,
                  clo, chi, zlo, zhi, qlo, qhi, 0xffffffffu, 0,
-                 0xffffffffu, 0);
+                 0xffffffffu, 0, 0);
     gpu_slot_retire(g, sl, cause);
 
     memcpy(snap, dev->svga.vram + clo, clen);
@@ -5501,6 +6238,10 @@ gpu_verify_segment(rage128_t *dev, r128_gpu_t *g,
                            &g->v_tris[i].v[0], &g->v_tris[i].v[1],
                            &g->v_tris[i].v[2], NULL);
     }
+    /* the import now holds the interpreter's bytes, the mirror the
+       kernels': mark the ranges so the next reader copies them down */
+    r128_vram_hnew(dev, clo, clen);
+    r128_vram_hnew(dev, zlo, zlen);
 
     g->st_verify_seg++;
     {
@@ -5616,7 +6357,7 @@ capture_tri_record(r128_gpu_t *g, rage128_t *dev, const r3d_texctx_t *tc,
     tt->e0dxi = tri->e0dxi;
     tt->e1dxi = tri->e1dxi;
     tt->e2dxi = tri->e2dxi;
-    memcpy(&tt->dZdx, &tri->dZdx, 8);
+    memcpy(&tt->dZdx, &tri->dzx, 8);
     tt->invs     = tri->invs;
     tt->lod_bias = d->lod_bias;
     tt->texw0    = d->texw0;
@@ -6154,7 +6895,7 @@ rage128_gpu_capture_row_cover(const r128_jit_tri_t *tri, int64_t e0,
 
 uint64_t
 rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
-                         int64_t e2, double zline, uint32_t drow, uint32_t zrow,
+                         int64_t e2, int64_t zline, uint32_t drow, uint32_t zrow,
                          int32_t py)
 {
     const r3d_texctx_t *tc  = (const r3d_texctx_t *) tri->texctx;
@@ -6184,8 +6925,7 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
     e0 += (int64_t) lo * tri->e0dxi;
     e1 += (int64_t) lo * tri->e1dxi;
     e2 += (int64_t) lo * tri->e2dxi;
-    for (int32_t q = 0; q < lo; q++)
-        zline += tri->dZdx;
+    zline += (int64_t) lo * tri->dzx;
 
     if (g->cur_tri < 0) {
         const rage128_draw_state_t *d  = &tc->rs->d;
@@ -6199,12 +6939,10 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
     }
 
     /* Split the row into chunks of at most 256 pixels, one per kernel
-       workgroup of 256 threads. Each chunk's z seed is reached by
-       adding dZdx once per pixel, in double precision, so it rounds the
-       same way as the interpreter's per-pixel walk and the ladder
-       kernel's. */
+       workgroup of 256 threads. Each chunk's depth seed is the
+       fixed-point plane value at its first pixel. */
     {
-        double  zc = zline;
+        int64_t zc = zline;
         int32_t cx = x0;
 
         g->st_px_total += (uint64_t) (x1 - x0 + 1);
@@ -6220,20 +6958,6 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
 
             if (cw > 256)
                 cw = 256;
-            /* b_lad holds exactly GPU_PX_CAP words and the ladder kernel
-               writes [px_base, px_base+cw*pxw) with no bound test, so
-               seg_px must never pass the cap. The span is cut to fit;
-               whatever does not fit is counted as dropped after the
-               loop. A table-fog span stores two ladder words per pixel
-               (the z rung and the fog fraction), so it counts at twice
-               its width. */
-            uint32_t pxw = (tc->rs->d.fog_en && tc->rs->d.fog_table_en) ? 2u : 1u;
-
-            if (g->seg_px + (uint32_t) cw * pxw > GPU_PX_CAP) {
-                cw = (int32_t) ((GPU_PX_CAP - g->seg_px) / pxw);
-                if (cw <= 0)
-                    break;
-            }
             sp = &((seg_span_t *) g->slot[g->build_slot].b_spans.map)[g->nspans];
             /* The clip above used the biased edge values, so coverage
                keeps the fill rule. The shader reads the recorded edges
@@ -6245,7 +6969,7 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
             sp->e0 = e0 + tri->e0b;
             sp->e1 = e1 + tri->e1b;
             sp->e2 = e2 + tri->e2b;
-            memcpy(&sp->zline, &zc, 8);
+            sp->zline = zc;
             sp->x0  = cx;
             sp->x1  = cx + cw - 1;
             sp->py  = py;
@@ -6266,13 +6990,31 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
                      : (zrow & dev->vram_mask);
             sp->drow    = kdrow;
             sp->zrow    = kzrow;
-            sp->px_base = g->seg_px;
+            /* The bytes this span can store, for the mirror's copy back:
+               color on a resident target, and depth where the kernel
+               writes the cell (depth write with the depth test on, or
+               stencil, which updates its byte whatever the tests say).
+               A staged target is an arena the kernels address directly
+               and is never copied. */
+            if (g->bk_cell) {
+                const rage128_draw_state_t *dd = &tc->rs->d;
+
+                if (!(kdrow & 0x80000000u))
+                    gpu_bk_mark(g, kdrow + (uint32_t) cx * (uint32_t) dd->bpp,
+                                (uint32_t) cw * (uint32_t) dd->bpp,
+                                dev->vram_mask);
+                if (((dd->z_en && dd->z_wr) || dd->sten_on)
+                    && !(kzrow & 0x80000000u))
+                    gpu_bk_mark(g, kzrow + (uint32_t) cx * (uint32_t) dd->zbpp,
+                                (uint32_t) cw * (uint32_t) dd->zbpp,
+                                dev->vram_mask);
+            }
+            sp->pad0    = 0;
             /* the 32-bit range test runs on the recorded values, which
                are what the shader steps */
             sp->pad1 = gpu_edge32_span(sp->e0, tri->e0dxi, cw)
                 && gpu_edge32_span(sp->e1, tri->e1dxi, cw)
                 && gpu_edge32_span(sp->e2, tri->e2dxi, cw);
-            g->seg_px += (uint32_t) cw * pxw;
             g->py_of[g->nspans] = (uint16_t) py;
             capture_span_class(g, g->nspans, &tc->rs->d, cx, cw, kdrow, kzrow,
                                dev->vram_mask);
@@ -6280,14 +7022,9 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
             g->st_spans++;
             capture_run_bounds(g, tc, py, cx, cw, drow, zrow);
 
-            /* Seed the next chunk only when one follows. The z walk is a
-               dependent double-add per pixel and nothing reads its result
-               past the last chunk; spans wider than one chunk (st_wide_spans)
-               are the only ones that need it, and there the sequential add
-               stays, matching the interpreter's and the ladder's rounding. */
+            /* Seed the next chunk only when one follows. */
             if (cx + cw <= x1) {
-                for (int q = 0; q < cw; q++)
-                    zc += tri->dZdx;
+                zc += (int64_t) cw * tri->dzx;
                 e0 += (int64_t) cw * tri->e0dxi;
                 e1 += (int64_t) cw * tri->e1dxi;
                 e2 += (int64_t) cw * tri->e2dxi;
@@ -6320,7 +7057,7 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
    functions must agree: a count that is too low drops pixels. */
 uint64_t
 rage128_gpu_count_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
-                       int64_t e2, double zline, uint32_t drow, uint32_t zrow,
+                       int64_t e2, int64_t zline, uint32_t drow, uint32_t zrow,
                        int32_t py)
 {
     const r3d_texctx_t *tc = (const r3d_texctx_t *) tri->texctx;
@@ -6386,6 +7123,27 @@ rage128_gpu_fallback_guard(rage128_t *dev, const rage128_raster_state_t *rs,
             }
 }
 
+/* The rows prim_ranges names cover every color and depth byte the CPU
+   path can store for the primitive (they are the fallback guard's
+   hazard ranges), so marking them keeps the mirror's map whole. The
+   mark may precede the stores: this is the submit thread, and no
+   recording can run between them. */
+void
+rage128_gpu_cpu_prim(rage128_t *dev, const rage128_raster_state_t *rs,
+                     const r3d_vtx_t *a, const r3d_vtx_t *b,
+                     const r3d_vtx_t *c)
+{
+    uint32_t clo, chi, zlo, zhi;
+
+    if (!dev->vram_hnew)
+        return;
+    prim_ranges(rs, dev->vram_mask, a, b, c, &clo, &chi, &zlo, &zhi);
+    if (chi > clo)
+        r128_vram_hnew(dev, clo, chi - clo);
+    if (zhi > zlo)
+        r128_vram_hnew(dev, zlo, zhi - zlo);
+}
+
 /* A point is split into the interpreter's own two triangles
    (r3d_point_tris) and each goes through the triangle path, so the GPU
    draws the same triangles the CPU lane would and matches it bit for
@@ -6402,6 +7160,8 @@ gpu_submit_prim_tris(rage128_t *dev, const rage128_raster_state_t *rs,
         if (!rage128_gpu_submit_tri(dev, rs, &v[t * 3], &v[t * 3 + 1],
                                     &v[t * 3 + 2])) {
             gpu = 0;
+            rage128_gpu_cpu_prim(dev, rs, &v[t * 3], &v[t * 3 + 1],
+                                 &v[t * 3 + 2]);
             rage128_3d_tri(dev, rs, 0, 0, &v[t * 3], &v[t * 3 + 1],
                            &v[t * 3 + 2], rage128_jit_get_block(dev, &rs->d));
         }
@@ -6482,12 +7242,8 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
        the same rasterizer, clip and chunking the capture uses, and is
        refused to the CPU path only if the exact count is still over.
        Only draws over a cap pay for the extra walk. */
-    /* ladder words, not pixels: a table-fog draw takes two per pixel */
-    uint64_t pxw = (rs->d.fog_en && rs->d.fog_table_en) ? 2u : 1u;
-
     gpu_tri_need(rs, a, b, c, &need_spans, &need_px);
-    need_px *= pxw;
-    if (need_spans > GPU_SPAN_CAP || need_px > GPU_PX_CAP) {
+    if (need_spans > GPU_SPAN_CAP) {
         g->dry_spans = 0;
         g->dry_px    = 0;
         if (line)
@@ -6496,8 +7252,8 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
             rage128_3d_tri(dev, rs, 0, 0, a, b, c, rage128_gpu_count_span);
         g->st_reprice++;
         need_spans = g->dry_spans;
-        need_px    = g->dry_px * pxw;
-        if (need_spans > GPU_SPAN_CAP || need_px > GPU_PX_CAP) {
+        need_px    = g->dry_px;
+        if (need_spans > GPU_SPAN_CAP) {
             g->st_toobig++;
             rage128_gpu_fallback_guard(dev, rs, a, b, gc);
             return 0;
@@ -6531,7 +7287,7 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
             }
         if (cz || rtt) {
             if (rs->c_staged || rs->z_staged || agp
-                || need_px / pxw > GPU_SERIAL_PX_CAP /* pixels, not words */
+                || need_px > GPU_SERIAL_PX_CAP
                 || !atomic_load_explicit(&g->serial_ready,
                                          memory_order_acquire)) {
                 g->st_alias_rej[cz ? 0 : 1]++;
@@ -6588,6 +7344,12 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
                         || rs->d.z_tiled != g->rt_ztiled))))
             gpu_flush_cause(dev, GF_RT);
     }
+    /* A staged target's stores never reach the mirror, and the segment's
+       mirror copies leave its hulls out for as long as the segment is
+       open. An open segment with carried cells therefore ends first, so
+       a staged target never shares a segment with them. */
+    if (g->bkc_on && (rs->c_staged || rs->z_staged))
+        gpu_flush_cause(dev, GF_RT);
     /* Soft submit cadence. The span cap is large enough to hold a whole
        frame, so without this a frame would reach the flip as one or two
        segments and the flip would wait for all of that GPU work.
@@ -6601,16 +7363,14 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
 
     {
         /* st_cap counts capacity flushes by the limit that was hit:
-           0 spans, 1 tri records (palettes included), 2 ladder words,
-           3 runs. */
+           0 spans, 1 tri records (palettes included), 3 runs; 2 is
+           unused. */
         int cap = -1;
 
         if (g->nspans + need_spans > GPU_SPAN_CAP)
             cap = 0;
         else if (g->ntris + 2 > GPU_TRI_CAP)
             cap = 1;
-        else if (g->seg_px + need_px > GPU_PX_CAP)
-            cap = 2;
         else if (g->nruns == GPU_RUN_CAP
                  && (g->run_break
                      || g->runs[g->nruns - 1].kernel != (uint32_t) kern
@@ -6638,10 +7398,10 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
         && (rng_hit(atomic_load(&g->c_lo), atomic_load(&g->c_hi), zlo, zhi)
             || rng_hit(atomic_load(&g->z_lo), atomic_load(&g->z_hi), clo, chi)))
         gpu_flush_cause(dev, GF_CZHAZ);
-    /* The draw stores over a queued mid fill. Mid fills are recorded
-       after the segment's mirror-back (gpu_disp_tail_fills), so the
-       fill would land on top of this draw. */
-    if (gpu_mid_range_hit(g, clo, chi) || gpu_mid_range_hit(g, zlo, zhi)) {
+    /* The draw stores over a queued mid op that writes the import after
+       the segment's mirror-back (gpu_disp_tail_fills), so that write
+       would land on top of this draw. */
+    if (gpu_mid_tail_hit(g, clo, chi) || gpu_mid_tail_hit(g, zlo, zhi)) {
         g->st_copy_mid_split++;
         gpu_flush_cause(dev, GF_2DQ);
     }
@@ -6721,7 +7481,6 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
     g->cur_serial = serial;
     {
         uint32_t sp0 = g->nspans;
-        uint32_t px0 = g->seg_px;
 
         if (g->prof) {
             uint64_t t0 = prof_now();
@@ -6743,16 +7502,12 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
         }
         /* A re-counted draw was accepted on the count-only walk's
            figures, and the capture repeats that walk, so it must use
-           exactly that many spans and ladder words. Log a mismatch. */
-        if (repriced
-            && ((uint64_t) (g->nspans - sp0) != need_spans
-                || (uint64_t) (g->seg_px - px0) != need_px)) {
+           exactly that many spans. Log a mismatch. */
+        if (repriced && (uint64_t) (g->nspans - sp0) != need_spans) {
             if (!g->st_reprice_miss)
-                gpu_err("RAGE128 GPU: reprice miss: predicted %llu/%llu spans/px,"
-                        " capture consumed %u/%u\n",
-                        (unsigned long long) need_spans,
-                        (unsigned long long) need_px,
-                        g->nspans - sp0, g->seg_px - px0);
+                gpu_err("RAGE128 GPU: reprice miss: predicted %llu spans,"
+                        " capture consumed %u\n",
+                        (unsigned long long) need_spans, g->nspans - sp0);
             g->st_reprice_miss++;
         }
     }
@@ -6889,41 +7644,37 @@ rage128_gpu_present_copy(rage128_t *dev, uint32_t src, uint32_t len)
         VkCommandBufferBeginInfo bi = {
             VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
         };
-        VkMemoryBarrier mb  = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
-        VkBufferCopy    rgn = { src, sn->dst, len };
-        VkSubmitInfo    si  = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
-        VkResult        vr;
+        VkBufferCopy rgn = { src, sn->dst, len };
+        int          xq  = g->tl_sem != VK_NULL_HANDLE;
+        VkResult     vr;
 
         vkResetFences(g->dev, 1, &sn->fence);
         vkBeginCommandBuffer(sn->cb, &bi);
         /* read after write: the frame's shader and fill stores must be
-           visible to the copy's read */
-        mb.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT
-            | VK_ACCESS_TRANSFER_WRITE_BIT;
-        mb.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-        vkCmdPipelineBarrier(sn->cb,
-                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
-                                 | VK_PIPELINE_STAGE_TRANSFER_BIT,
-                             VK_PIPELINE_STAGE_TRANSFER_BIT,
-                             0, 1, &mb, 0, NULL, 0, NULL);
+           visible to the copy's read (on the copy queue, the timeline
+           wait orders the kernels) */
+        gpu_cmd_barrier(sn->cb, xq,
+                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+                            | VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_ACCESS_SHADER_WRITE_BIT
+                            | VK_ACCESS_TRANSFER_WRITE_BIT,
+                        VK_ACCESS_TRANSFER_READ_BIT);
         vkCmdCopyBuffer(sn->cb, g->vram_buf, g->vram_buf, 1, &rgn);
         /* write after read: the next frame's draws must not overwrite
            the source while the copy still reads it. The barriers at the
            head of later submits cover compute work only and would not
            order against this transfer. */
-        mb.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        mb.dstAccessMask = VK_ACCESS_SHADER_READ_BIT
-            | VK_ACCESS_SHADER_WRITE_BIT
-            | VK_ACCESS_TRANSFER_WRITE_BIT;
-        vkCmdPipelineBarrier(sn->cb, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
-                                 | VK_PIPELINE_STAGE_TRANSFER_BIT,
-                             0, 1, &mb, 0, NULL, 0, NULL);
+        gpu_cmd_barrier(sn->cb, xq, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+                            | VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_ACCESS_TRANSFER_WRITE_BIT,
+                        VK_ACCESS_SHADER_READ_BIT
+                            | VK_ACCESS_SHADER_WRITE_BIT
+                            | VK_ACCESS_TRANSFER_WRITE_BIT);
         vkEndCommandBuffer(sn->cb);
-        si.commandBufferCount = 1;
-        si.pCommandBuffers    = &sn->cb;
         pthread_mutex_lock(&g->queue_mtx);
-        vr = vkQueueSubmit(g->queue, 1, &si, sn->fence);
+        vr = gpu_submit(g, xq ? g->xqueue : g->queue, sn->cb, sn->fence);
         pthread_mutex_unlock(&g->queue_mtx);
         if (vr != VK_SUCCESS)
             fatal("RAGE128 GPU: present copy submit failed (%d)\n", vr);
@@ -6933,6 +7684,7 @@ rage128_gpu_present_copy(rage128_t *dev, uint32_t src, uint32_t len)
         sn->len = len;
         atomic_store_explicit(&sn->used, 1, memory_order_relaxed);
         g->st_snap_copies++;
+        g->pr_snap_bytes += len;
     }
     pthread_mutex_unlock(&sn->mtx);
 }
@@ -7605,6 +8357,14 @@ rage128_gpu_2d_barrier(rage128_t *dev, uint32_t lo, uint32_t len, int writes)
     gpu_texq_op_begin(g);
     gpu_2d_barrier_wait(dev, g, lo, (uint32_t) hi, writes);
     gpu_texq_op_end(g);
+    /* The walk that follows stores into svga.vram only, so its window is
+       marked host-newer for the mirror. Marking after the wait keeps the
+       wait's own flush from consuming the mark ahead of the stores; a
+       later flush before the stores (another window's map) can still
+       consume it, which is why r128_surf_commit marks the window again
+       once the stores are done. */
+    if (writes)
+        r128_vram_hnew(dev, lo, len);
 }
 
 /* Queue a solid fill on the GPU instead of draining and filling on the
@@ -7752,18 +8512,35 @@ rage128_gpu_2d_fill(rage128_t *dev, uint32_t addr, uint32_t pitch,
     }
 
     /* Ordering: fills are recorded at the head of the next submit,
-       before that submit's draws, so a pending draw that overlaps this
-       range has to be submitted first; only a real byte overlap splits
-       the segment. A queued mid fill on these bytes splits it too, since
-       mid fills land after the draws. A full fill list is flushed the
-       same way to make room. */
-    if (gpu_mid_range_hit(g, addr, (uint32_t) end)) {
+       before that submit's draws. A fill over bytes the pending draws
+       store or sample is therefore ordered after them instead, as a mid
+       op written before the mirror-back (gpu_fill_t), when the mirror is
+       on: its pieces have no VRAM source, so stream order inside the
+       segment is all it needs. A pending mid op that writes the import
+       after the mirror-back on these bytes would land on top of it, so
+       that case splits the segment, as do verify, synctel and 2D verify,
+       which keep the head-only order. A head fill over a queued mid op's
+       bytes splits too, since mid ops land after the draws. A full fill
+       list is flushed to make room; that empties the segment, and the
+       fill then goes at the head. */
+    int pre = g->nspans && g->mirror_en && !g->verify2d && !dev->synctel
+        && gpu_pending_draw_hit(g, addr, (uint32_t) end, 1)
+        && !gpu_mid_tail_hit(g, addr, (uint32_t) end);
+    if (!pre && gpu_mid_range_hit(g, addr, (uint32_t) end)) {
         g->st_copy_mid_split++;
         gpu_flush_cause(dev, GF_2DQ);
     }
     if (g->nfills > GPU_FILL_CAP - nrec
-        || (g->nspans && gpu_pending_draw_hit(g, addr, (uint32_t) end, 1)))
+        || (!pre && gpu_seg_has_draws(g)
+            && gpu_pending_draw_hit(g, addr, (uint32_t) end, 1)))
         gpu_flush_cause(dev, GF_2DQ);
+    if (pre && !g->nspans)
+        pre = 0;
+    if (pre) {
+        g->run_break = 1;
+        g->nmid += (uint32_t) nrec;
+        g->st_fill_pre++;
+    }
 
     for (int i = 0; i < nrec; i++) {
         f         = &g->fills[g->nfills];
@@ -7776,7 +8553,8 @@ rage128_gpu_2d_fill(rage128_t *dev, uint32_t addr, uint32_t pitch,
         f->src    = rec[i].src;
         f->spitch = rec[i].spitch;
         f->bar    = gpu_fill_bar(g, f);
-        f->mid    = -1;
+        f->mid    = pre ? (int32_t) g->nruns : -1;
+        f->pre    = (uint8_t) pre;
         g->nfills++;
     }
     if (route == 1) {
@@ -7834,10 +8612,12 @@ gpu_tfill_rec(gpu_fill_t *rec, uint32_t *n, uint64_t addr, uint32_t pitch,
 {
     if (*n == GPU_FILL_CAP)
         return 0;
+    rec[*n].kind  = 0;
     rec[*n].addr  = (uint32_t) addr;
     rec[*n].pitch = pitch;
     rec[*n].len   = len;
     rec[*n].rows  = rows;
+    rec[*n].src   = 0;
     (*n)++;
     return 1;
 }
@@ -7867,13 +8647,20 @@ gpu_tfill_rec(gpu_fill_t *rec, uint32_t *n, uint64_t addr, uint32_t pitch,
    rows the rectangle touches: the bytes the transform can produce for
    rows [y0, y1], and the range the 2D barrier waited on for the walk.
 
+   A buffer fill needs its offset and size on a dword. Column starts are
+   multiples of 64, so only the rectangle's own left and right edges can
+   be off one, which at 16 bpp is any odd pixel. An edge column whose
+   byte range is off a dword is written as a staged copy instead: its
+   bytes of the color, at the phase its first byte has within a pixel,
+   are staged once and copied to every line of each band with a source
+   pitch of 0, the way the linear fill writes its unaligned ends. A
+   buffer copy has no alignment rule.
+
    Returns 0 when the fill does not qualify; the caller walks it on the
    CPU and counts it in st_tiled_cpu. That is the case for a right edge
    past the pitch (the walk spills into the next row), bpp 3 (the color
-   does not repeat every dword), a column edge not on a dword
-   (vkCmdFillBuffer granularity; column starts are multiples of 64, so
-   only the rectangle's own edges can be off), AGP memory or a range
-   above VRAM, or more pieces than the fill list holds. */
+   does not repeat every dword), AGP memory or a range above VRAM, no
+   room in the staging ring, or more pieces than the fill list holds. */
 int
 rage128_gpu_2d_fill_tiled(rage128_t *dev, uint32_t tbase, uint32_t tpitch,
                           uint32_t xb0, uint32_t xb1, uint32_t y0,
@@ -7885,17 +8672,18 @@ rage128_gpu_2d_fill_tiled(rage128_t *dev, uint32_t tbase, uint32_t tpitch,
     uint32_t    fc   = color;
     uint64_t    band, tlo, thi;
     uint32_t    c0, c1, cf0, cf1, t0, t1, ncol;
-    /* partial edge columns: tile column index and the byte range [a, b)
-       within the column that the rectangle covers */
+    /* partial edge columns: tile column index, the byte range [a, b)
+       within the column that the rectangle covers, and for a range off
+       a dword the staging offset of its color bytes */
     struct {
-        uint32_t col, a, b;
-    } part[2];
+        uint32_t col, a, b, src;
+    } part[2] = { { 0 } };
     uint32_t npart = 0;
 
     if (!g || g->verify)
         return 0;
     if (!r128_tiled_ok(1, tpitch) || xb0 >= xb1 || y0 > y1 || bpp == 3
-        || xb1 > tpitch || ((xb0 | xb1) & 3u))
+        || xb1 > tpitch)
         return 0;
     band = 16ull * tpitch;
     t0   = y0 >> 4;
@@ -7952,17 +8740,49 @@ rage128_gpu_2d_fill_tiled(rage128_t *dev, uint32_t tbase, uint32_t tpitch,
     }
     ncol = cf1 - cf0;
 
+    /* Stage the color bytes of every edge range that is off a dword, in
+       one reservation, so a ring wrap cannot fall between the two edges.
+       A column is 64 bytes, a whole number of pixels at 1, 2 and 4 bytes
+       per pixel, so the first byte of [a, b) is byte a % bpp of its
+       pixel. */
+    {
+        uint32_t sn = 0, soff = 0;
+        uint8_t *st;
+
+        for (uint32_t p = 0; p < npart; p++)
+            if ((part[p].a | part[p].b) & 3u)
+                sn += part[p].b - part[p].a;
+        if (sn) {
+            st = (uint8_t *) rage128_gpu_2d_stage(dev, sn, &soff);
+            if (!st)
+                return 0;
+            for (uint32_t p = 0; p < npart; p++) {
+                if (!((part[p].a | part[p].b) & 3u))
+                    continue;
+                part[p].src = soff;
+                for (uint32_t i = part[p].a; i < part[p].b; i++)
+                    *st++ = (uint8_t) (color >> ((i % (uint32_t) bpp) * 8));
+                soff += part[p].b - part[p].a;
+            }
+        }
+    }
+
     /* partial edge columns: one record per band each */
     for (uint32_t t = t0; t <= t1; t++) {
         uint32_t l0 = t == t0 ? (y0 & 15u) : 0;
         uint32_t l1 = t == t1 ? (y1 & 15u) : 15u;
 
-        for (uint32_t p = 0; p < npart; p++)
+        for (uint32_t p = 0; p < npart; p++) {
             if (!gpu_tfill_rec(rec, &nrec,
                                tlo + band * (t - t0) + (part[p].col << 10)
                                    + (l0 << 6) + part[p].a,
                                64u, part[p].b - part[p].a, l1 - l0 + 1u))
                 return 0;
+            if ((part[p].a | part[p].b) & 3u) {
+                rec[nrec - 1].kind = 1;
+                rec[nrec - 1].src  = part[p].src;
+            }
+        }
     }
     /* full columns: the line ranges in the first and last bands, then
        the run of bands whose 16 lines all lie inside the rectangle */
@@ -7993,32 +8813,43 @@ rage128_gpu_2d_fill_tiled(rage128_t *dev, uint32_t tbase, uint32_t tpitch,
         }
     }
 
-    /* Ordering as in rage128_gpu_2d_fill: the records land at the head
-       of the next submit, so a pending draw on the tile rows is
-       submitted first. Every test here uses the whole tile rows as the
-       range. */
-    if (gpu_mid_range_hit(g, (uint32_t) tlo, (uint32_t) thi)) {
+    /* Ordering as in rage128_gpu_2d_fill: a fill over bytes the pending
+       draws touch is ordered after them as a mid op written before the
+       mirror-back, and otherwise lands at the head of the next submit.
+       Every test here uses the whole tile rows as the range. */
+    int pre = g->nspans && g->mirror_en && !g->verify2d && !dev->synctel
+        && gpu_pending_draw_hit(g, (uint32_t) tlo, (uint32_t) thi, 1)
+        && !gpu_mid_tail_hit(g, (uint32_t) tlo, (uint32_t) thi);
+    if (!pre && gpu_mid_range_hit(g, (uint32_t) tlo, (uint32_t) thi)) {
         g->st_copy_mid_split++;
         gpu_flush_cause(dev, GF_2DQ);
     }
     if (g->nfills > GPU_FILL_CAP - nrec
-        || (g->nspans
+        || (!pre && gpu_seg_has_draws(g)
             && gpu_pending_draw_hit(g, (uint32_t) tlo, (uint32_t) thi, 1)))
         gpu_flush_cause(dev, GF_2DQ);
+    if (pre && !g->nspans)
+        pre = 0;
+    if (pre) {
+        g->run_break = 1;
+        g->nmid += nrec;
+        g->st_fill_pre++;
+    }
 
     for (uint32_t i = 0; i < nrec; i++) {
         gpu_fill_t *f = &g->fills[g->nfills];
 
-        f->kind   = 0;
+        f->kind   = rec[i].kind;
         f->addr   = rec[i].addr;
         f->pitch  = rec[i].pitch;
         f->len    = rec[i].len;
         f->rows   = rec[i].rows;
         f->color  = fc;
-        f->src    = 0;
+        f->src    = rec[i].src;
         f->spitch = 0;
         f->bar    = gpu_fill_bar(g, f);
-        f->mid    = -1;
+        f->mid    = pre ? (int32_t) g->nruns : -1;
+        f->pre    = (uint8_t) pre;
         g->nfills++;
     }
     g->st_fill_rects++;
@@ -8255,7 +9086,7 @@ rage128_gpu_2d_copy(rage128_t *dev, uint32_t addr, uint32_t pitch,
         gpu_flush_cause(dev, GF_2DQ);
     }
     if (g->nfills == GPU_FILL_CAP
-        || (mid < 0 && g->nspans
+        || (mid < 0 && gpu_seg_has_draws(g)
             && gpu_pending_draw_hit(g, addr, (uint32_t) end, 1)))
         gpu_flush_cause(dev, GF_2DQ);
     if (mid >= 0 && !g->nspans)
@@ -8276,6 +9107,7 @@ rage128_gpu_2d_copy(rage128_t *dev, uint32_t addr, uint32_t pitch,
     f->spitch = spitch;
     f->bar    = gpu_fill_bar(g, f);
     f->mid    = mid;
+    f->pre    = 0;
     g->nfills++;
     if (mid >= 0) {
         g->nmid++;
@@ -8375,7 +9207,8 @@ rage128_gpu_2d_rmw(rage128_t *dev, uint32_t addr, uint32_t pitch,
         gpu_flush_cause(dev, GF_2DQ);
     }
     if (g->nfills == GPU_FILL_CAP
-        || (g->nspans && gpu_pending_draw_hit(g, addr, (uint32_t) wend, 1)))
+        || (gpu_seg_has_draws(g)
+            && gpu_pending_draw_hit(g, addr, (uint32_t) wend, 1)))
         gpu_flush_cause(dev, GF_2DQ);
 
     f         = &g->fills[g->nfills];
@@ -8389,6 +9222,7 @@ rage128_gpu_2d_rmw(rage128_t *dev, uint32_t addr, uint32_t pitch,
     f->spitch = boff;
     f->bar    = gpu_fill_bar(g, f);
     f->mid    = -1;
+    f->pre    = 0;
     g->nfills++;
     g->st_q_runs[8]++;
     g->st_q_bytes[8] += (uint64_t) rows * len;
@@ -8472,7 +9306,7 @@ rage128_gpu_2d_blit(rage128_t *dev, uint32_t addr, uint32_t pitch,
         gpu_flush_cause(dev, GF_2DQ);
     }
     if (g->nfills >= GPU_FILL_CAP - 1
-        || (g->nspans
+        || (gpu_seg_has_draws(g)
             && (gpu_pending_draw_hit(g, addr, (uint32_t) dend, 1)
                 || gpu_pending_draw_hit(g, src, (uint32_t) send, 0))))
         gpu_flush_cause(dev, GF_2DQ);
@@ -8489,6 +9323,7 @@ rage128_gpu_2d_blit(rage128_t *dev, uint32_t addr, uint32_t pitch,
         f->spitch = spitch;
         f->bar    = gpu_fill_bar(g, f);
         f->mid    = -1;
+        f->pre    = 0;
         g->nfills++;
     } else {
         /* first copy: VRAM source -> staging, rows packed at stride len */
@@ -8503,6 +9338,7 @@ rage128_gpu_2d_blit(rage128_t *dev, uint32_t addr, uint32_t pitch,
         f->spitch = spitch;
         f->bar    = gpu_fill_bar(g, f);
         f->mid    = -1;
+        f->pre    = 0;
         g->nfills++;
         /* second copy: staging -> VRAM destination. bar is forced on:
            this copy reads the staging bytes the first one wrote, and
@@ -8518,6 +9354,7 @@ rage128_gpu_2d_blit(rage128_t *dev, uint32_t addr, uint32_t pitch,
         f->spitch = len;
         f->bar    = 1;
         f->mid    = -1;
+        f->pre    = 0;
         g->nfills++;
         g->st_blit_bounce++;
     }
@@ -8765,7 +9602,6 @@ rage128_gpu_ov0_compose(rage128_t *dev, const r128_ov0_frame_t *f)
             VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
         };
         VkMemoryBarrier mb = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
-        VkSubmitInfo    si = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
         VkResult        vr;
 
         vkResetFences(g->dev, 1, &g->ov0_fence);
@@ -8801,10 +9637,8 @@ rage128_gpu_ov0_compose(rage128_t *dev, const r128_ov0_frame_t *f)
                                  | VK_PIPELINE_STAGE_TRANSFER_BIT,
                              0, 1, &mb, 0, NULL, 0, NULL);
         vkEndCommandBuffer(g->ov0_cb);
-        si.commandBufferCount = 1;
-        si.pCommandBuffers    = &g->ov0_cb;
         pthread_mutex_lock(&g->queue_mtx);
-        vr = vkQueueSubmit(g->queue, 1, &si, g->ov0_fence);
+        vr = gpu_submit(g, g->queue, g->ov0_cb, g->ov0_fence);
         pthread_mutex_unlock(&g->queue_mtx);
         if (vr != VK_SUCCESS)
             fatal("RAGE128 GPU: OV0 submit failed (%d)\n", vr);
@@ -8844,6 +9678,7 @@ gpu_mk_buf(r128_gpu_t *g, r128_gpu_buf_t *b, VkDeviceSize sz,
 
     bci.size  = sz;
     bci.usage = usage;
+    gpu_bci_share(g, &bci);
     if (vkCreateBuffer(g->dev, &bci, NULL, &b->b) != VK_SUCCESS)
         return 0;
     vkGetBufferMemoryRequirements(g->dev, b->b, &mr);
@@ -8881,6 +9716,69 @@ gpu_mk_buf(r128_gpu_t *g, r128_gpu_buf_t *b, VkDeviceSize sz,
         return 0;
     if (vkMapMemory(g->dev, b->m, 0, VK_WHOLE_SIZE, 0, &b->map) != VK_SUCCESS)
         return 0;
+    return 1;
+}
+
+/* A device-local buffer the host never maps. A device-local type that is
+   not host-visible is taken first: on a discrete card that is video
+   memory outside the CPU's window, which the GPU reads fastest. On
+   failure it frees what it made and leaves b zeroed: a failed Vulkan
+   call leaves its output handle undefined, so only handles from calls
+   that succeeded are kept or freed. */
+static int
+gpu_mk_dbuf(r128_gpu_t *g, r128_gpu_buf_t *b, VkDeviceSize sz,
+            VkBufferUsageFlags usage)
+{
+    VkBufferCreateInfo               bci = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+    VkMemoryRequirements             mr;
+    VkPhysicalDeviceMemoryProperties mp;
+    VkMemoryAllocateInfo             mai = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+    uint32_t                         mti = ~0u;
+    VkBuffer                         buf;
+    VkDeviceMemory                   mem;
+
+    memset(b, 0, sizeof(*b));
+    bci.size  = sz;
+    bci.usage = usage;
+    gpu_bci_share(g, &bci);
+    if (vkCreateBuffer(g->dev, &bci, NULL, &buf) != VK_SUCCESS)
+        return 0;
+    vkGetBufferMemoryRequirements(g->dev, buf, &mr);
+    vkGetPhysicalDeviceMemoryProperties(g->phys, &mp);
+    for (int pass = 0; pass < 2 && mti == ~0u; pass++)
+        for (uint32_t i = 0; i < mp.memoryTypeCount; i++) {
+            VkMemoryPropertyFlags f = mp.memoryTypes[i].propertyFlags;
+
+            if (!(mr.memoryTypeBits & (1u << i))
+                || !(f & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
+                continue;
+            if (pass == 0 && (f & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+                continue;
+            mti = i;
+            break;
+        }
+    if (mti == ~0u) {
+        vkDestroyBuffer(g->dev, buf, NULL);
+        return 0;
+    }
+    if (!(g->mkbuf_logged & (1u << mti))) {
+        g->mkbuf_logged |= 1u << mti;
+        gpu_log("RAGE128 GPU: device record memory type %u flags 0x%x\n",
+                mti, (unsigned) mp.memoryTypes[mti].propertyFlags);
+    }
+    mai.allocationSize  = mr.size;
+    mai.memoryTypeIndex = mti;
+    if (vkAllocateMemory(g->dev, &mai, NULL, &mem) != VK_SUCCESS) {
+        vkDestroyBuffer(g->dev, buf, NULL);
+        return 0;
+    }
+    if (vkBindBufferMemory(g->dev, buf, mem, 0) != VK_SUCCESS) {
+        vkDestroyBuffer(g->dev, buf, NULL);
+        vkFreeMemory(g->dev, mem, NULL);
+        return 0;
+    }
+    b->b = buf;
+    b->m = mem;
     return 1;
 }
 
@@ -8922,6 +9820,7 @@ gpu_import_host(r128_gpu_t *g, void *ptr, VkDeviceSize bsz, VkDeviceSize asz,
     bci.usage         = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
         | VK_BUFFER_USAGE_TRANSFER_DST_BIT  /* 2D fills/copies in */
         | VK_BUFFER_USAGE_TRANSFER_SRC_BIT; /* present snapshot copies out */
+    gpu_bci_share(g, &bci);
     if (vkCreateBuffer(g->dev, &bci, NULL, buf) != VK_SUCCESS)
         return "buffer create failed";
     vkGetBufferMemoryRequirements(g->dev, *buf, &mr);
@@ -9636,12 +10535,36 @@ gpu_queue_pick(r128_gpu_t *g)
     qfp = (VkQueueFamilyProperties *) calloc(nqf, sizeof(*qfp));
     vkGetPhysicalDeviceQueueFamilyProperties(g->phys, &nqf, qfp);
     g->qfam = ~0u;
+    g->xfam = ~0u;
     for (uint32_t i = 0; i < nqf; i++)
         if (qfp[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
             g->qfam   = i;
             g->tqbits = qfp[i].timestampValidBits;
             break;
         }
+    if (g->qfam != ~0u) {
+        /* R128_GPU_TQ=0 keeps every copy on the kernels' queue;
+           R128_GPU_TQ=2 also accepts a family that can run kernels, which
+           is how the two-queue path is exercised on a host whose only
+           families are universal (Apple GPUs under MoltenVK expose four,
+           one queue each). */
+        const char *te   = getenv("R128_GPU_TQ");
+        int         mode = te && te[0] ? atoi(te) : 1;
+
+        for (uint32_t i = 0; mode && i < nqf; i++) {
+            VkQueueFlags f = qfp[i].queueFlags;
+
+            if (i == g->qfam || !qfp[i].queueCount
+                || !(f & VK_QUEUE_TRANSFER_BIT))
+                continue;
+            if (mode != 2
+                && (f & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)))
+                continue;
+            g->xfam    = i;
+            g->xtqbits = qfp[i].timestampValidBits;
+            break;
+        }
+    }
     free(qfp);
     if (g->qfam == ~0u)
         return "no compute queue";
@@ -9676,24 +10599,41 @@ gpu_device_create(r128_gpu_t *g)
         VkPhysicalDeviceVulkan11Features f11 = {
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES
         };
+        VkPhysicalDeviceVulkan12Features f12 = {
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES
+        };
         VkPhysicalDeviceFeatures2 f2   = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
         float                     prio = 1.0f;
-        VkDeviceQueueCreateInfo   qci  = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
-        VkDeviceCreateInfo        dci  = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
+        VkDeviceQueueCreateInfo   qci[2];
+        VkDeviceCreateInfo        dci = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
 
         /* The SPIR-V modules declare Int64 and StorageBuffer16BitAccess,
            so both features are required. Query them first and name the
            one that is missing: a bare vkCreateDevice failure on a new
-           host says nothing. */
+           host says nothing. The copy queue also needs timeline
+           semaphores, a Vulkan 1.2 feature; the 1.2 structure is only
+           chained on a 1.2 device, and without the feature the copy queue
+           is dropped rather than the device. */
         {
+            VkPhysicalDeviceProperties2 p2 = {
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2
+            };
             VkPhysicalDeviceVulkan11Features h11 = {
                 VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES
+            };
+            VkPhysicalDeviceVulkan12Features h12 = {
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES
             };
             VkPhysicalDeviceFeatures2 h2 = {
                 VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2
             };
 
+            vkGetPhysicalDeviceProperties2(g->phys, &p2);
+            if (p2.properties.apiVersion < VK_API_VERSION_1_2)
+                g->xfam = ~0u;
             h2.pNext = &h11;
+            if (g->xfam != ~0u)
+                h11.pNext = &h12;
             vkGetPhysicalDeviceFeatures2(g->phys, &h2);
             if (!h2.features.shaderInt64)
                 return "device lacks shaderInt64 (the kernel's 64-bit "
@@ -9701,23 +10641,144 @@ gpu_device_create(r128_gpu_t *g)
             if (!h11.storageBuffer16BitAccess)
                 return "device lacks storageBuffer16BitAccess (the u16 "
                        "vram view)";
+            if (g->xfam != ~0u && !h12.timelineSemaphore) {
+                gpu_log("RAGE128 GPU: copy queue family %u unused: no "
+                        "timeline semaphores\n",
+                        g->xfam);
+                g->xfam = ~0u;
+            }
         }
+        memset(qci, 0, sizeof(qci));
         f11.storageBuffer16BitAccess = VK_TRUE;
         f2.pNext                     = &f11;
         f2.features.shaderInt64      = VK_TRUE;
-        qci.queueFamilyIndex         = g->qfam;
-        qci.queueCount               = 1;
-        qci.pQueuePriorities         = &prio;
-        dci.pNext                    = &f2;
-        dci.queueCreateInfoCount     = 1;
-        dci.pQueueCreateInfos        = &qci;
-        dci.enabledExtensionCount    = ndext;
-        dci.ppEnabledExtensionNames  = dexts;
+        qci[0].sType                 = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        qci[0].queueFamilyIndex      = g->qfam;
+        qci[0].queueCount            = 1;
+        qci[0].pQueuePriorities      = &prio;
+        qci[1]                       = qci[0];
+        qci[1].queueFamilyIndex      = g->xfam;
+        if (g->xfam != ~0u) {
+            f12.timelineSemaphore = VK_TRUE;
+            f11.pNext             = &f12;
+        }
+        dci.pNext                   = &f2;
+        dci.queueCreateInfoCount    = g->xfam != ~0u ? 2 : 1;
+        dci.pQueueCreateInfos       = qci;
+        dci.enabledExtensionCount   = ndext;
+        dci.ppEnabledExtensionNames = dexts;
         if (vkCreateDevice(g->phys, &dci, NULL, &g->dev) != VK_SUCCESS)
             return "vkCreateDevice failed";
         vkGetDeviceQueue(g->dev, g->qfam, 0, &g->queue);
+        if (g->xfam != ~0u) {
+            VkSemaphoreTypeCreateInfo stci = {
+                VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO
+            };
+            VkSemaphoreCreateInfo sci = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+
+            stci.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+            sci.pNext          = &stci;
+            if (vkCreateSemaphore(g->dev, &sci, NULL, &g->tl_sem) != VK_SUCCESS) {
+                gpu_log("RAGE128 GPU: copy queue family %u unused: "
+                        "semaphore create failed\n",
+                        g->xfam);
+                g->tl_sem = VK_NULL_HANDLE;
+                g->xfam   = ~0u;
+            } else {
+                vkGetDeviceQueue(g->dev, g->xfam, 0, &g->xqueue);
+                g->fams[0] = g->qfam;
+                g->fams[1] = g->xfam;
+            }
+        }
+        if (g->xfam != ~0u)
+            gpu_log("RAGE128 GPU: copy queue family %u (timestamps %u bits) "
+                    "-- record uploads, mirror back and present copies leave the kernels' "
+                    "queue\n",
+                    g->xfam, g->xtqbits);
+        else
+            gpu_log("RAGE128 GPU: copy queue: none -- all copies on the "
+                    "kernels' queue\n");
     }
     return NULL;
+}
+
+/* Buffers that both queues touch are created concurrent over the two
+   families: an exclusive buffer used by a second family would need an
+   ownership transfer on every hand-over. */
+static void
+gpu_bci_share(const r128_gpu_t *g, VkBufferCreateInfo *bci)
+{
+    if (g->tl_sem == VK_NULL_HANDLE)
+        return;
+    bci->sharingMode           = VK_SHARING_MODE_CONCURRENT;
+    bci->queueFamilyIndexCount = 2;
+    bci->pQueueFamilyIndices   = g->fams;
+}
+
+/* Submit one command buffer in the backend's total order. queue_mtx
+   held. With a copy queue the batch first waits for the value the
+   previous batch signals, on either queue, then signals the next; the
+   wait stage is every command, so nothing in this batch starts before
+   the previous batch has completed and its writes are visible. Without
+   one, a plain submit on the single queue keeps the order. */
+static VkResult
+gpu_submit(r128_gpu_t *g, VkQueue q, VkCommandBuffer cb, VkFence f)
+{
+    VkSubmitInfo si = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+    VkResult     vr;
+
+    si.commandBufferCount = 1;
+    si.pCommandBuffers    = &cb;
+    if (g->tl_sem != VK_NULL_HANDLE) {
+        VkTimelineSemaphoreSubmitInfo ts = {
+            VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO
+        };
+        VkPipelineStageFlags ws = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+        uint64_t             wv = g->tl_val, sv = g->tl_val + 1u;
+
+        ts.waitSemaphoreValueCount   = 1;
+        ts.pWaitSemaphoreValues      = &wv;
+        ts.signalSemaphoreValueCount = 1;
+        ts.pSignalSemaphoreValues    = &sv;
+        si.pNext                     = &ts;
+        si.waitSemaphoreCount        = 1;
+        si.pWaitSemaphores           = &g->tl_sem;
+        si.pWaitDstStageMask         = &ws;
+        si.signalSemaphoreCount      = 1;
+        si.pSignalSemaphores         = &g->tl_sem;
+        vr = vkQueueSubmit(q, 1, &si, f);
+        if (vr == VK_SUCCESS)
+            g->tl_val = sv;
+        return vr;
+    }
+    return vkQueueSubmit(q, 1, &si, f);
+}
+
+/* A memory barrier recorded into either queue's command buffer. On the
+   copy queue the compute-shader stage and the shader access bits are not
+   allowed, so they are dropped; the timeline wait between batches
+   carries the dependency on kernel work. A barrier left with no source
+   or no destination stage is not recorded. */
+static void
+gpu_cmd_barrier(VkCommandBuffer cb, int xq, VkPipelineStageFlags ss,
+                VkPipelineStageFlags ds, VkAccessFlags sa, VkAccessFlags da)
+{
+    VkMemoryBarrier mb = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
+
+    if (xq) {
+        const VkAccessFlags shader = VK_ACCESS_SHADER_READ_BIT
+            | VK_ACCESS_SHADER_WRITE_BIT;
+
+        ss &= ~VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+        ds &= ~VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+        sa &= ~shader;
+        da &= ~shader;
+        if (!ss || !ds)
+            return;
+    }
+    mb.srcAccessMask = sa;
+    mb.dstAccessMask = da;
+    vkCmdPipelineBarrier(cb, ss, ds, 0, 1, &mb, 0, NULL, 0, NULL);
 }
 
 /* VRAM mirror: a device-local buffer covering the guest half of the
@@ -9745,6 +10806,7 @@ gpu_mirror_create(rage128_t *dev, r128_gpu_t *g)
     bci.usage     = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
         | VK_BUFFER_USAGE_TRANSFER_DST_BIT
         | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    gpu_bci_share(g, &bci);
     if (vkCreateBuffer(g->dev, &bci, NULL, &g->mirror_buf) != VK_SUCCESS)
         mwhy = "buffer create failed";
     else {
@@ -9776,7 +10838,35 @@ gpu_mirror_create(rage128_t *dev, r128_gpu_t *g)
                 mwhy = "bind failed";
         }
     }
+    if (!mwhy) {
+        /* host tables of the mirror copies; the back copy can need a
+           region per other cell, 8 per page, and the down copy of a page
+           holding carried cells up to 18 (each cell, split around the
+           two carried hulls), plus the guard */
+        g->bk_npages = dev->vram_size >> 12;
+        g->bk_cell   = (uint16_t *) calloc(g->bk_npages, sizeof(uint16_t));
+        g->bk_pg     = (uint64_t *) calloc((g->bk_npages + 63u) / 64u,
+                                           sizeof(uint64_t));
+        g->bkc_cell  = (uint16_t *) calloc(g->bk_npages, sizeof(uint16_t));
+        g->bkc_pg    = (uint64_t *) calloc((g->bk_npages + 63u) / 64u,
+                                           sizeof(uint64_t));
+        g->mir_rc    = (VkBufferCopy *) malloc(((size_t) g->bk_npages * 18u + 2u)
+                                               * sizeof(VkBufferCopy));
+        if (!dev->vram_hnew || !g->bk_cell || !g->bk_pg || !g->bkc_cell
+            || !g->bkc_pg || !g->mir_rc)
+            mwhy = "host tables";
+    }
     if (mwhy) {
+        free(g->bk_cell);
+        free(g->bk_pg);
+        free(g->bkc_cell);
+        free(g->bkc_pg);
+        free(g->mir_rc);
+        g->bk_cell  = NULL;
+        g->bk_pg    = NULL;
+        g->bkc_cell = NULL;
+        g->bkc_pg   = NULL;
+        g->mir_rc   = NULL;
         if (g->mirror_mem)
             vkFreeMemory(g->dev, g->mirror_mem, NULL);
         if (g->mirror_buf)
@@ -9787,7 +10877,17 @@ gpu_mirror_create(rage128_t *dev, r128_gpu_t *g)
         gpu_log("RAGE128 GPU: vram mirror unavailable: %s -- kernels address "
                 "the host import\n",
                 mwhy);
-    } else
+    } else {
+        const char *ae = getenv("R128_GPU_MIRROR_AUDIT");
+
+        if (ae && ae[0] == '1') {
+            g->mir_audit = gpu_mk_buf(g, &g->audit_buf, dev->vram_size,
+                                      VK_BUFFER_USAGE_TRANSFER_DST_BIT);
+            gpu_log("RAGE128 GPU: vram mirror audit %s\n",
+                    g->mir_audit ? "on" : "unavailable (buffer)");
+        }
+    }
+    if (!mwhy)
         gpu_log("RAGE128 GPU: vram mirror: %llu bytes, memory type %u "
                 "flags 0x%x -- %s\n",
                 (unsigned long long) g->mirror_cap, mti,
@@ -9850,26 +10950,55 @@ gpu_arenas_import(rage128_t *dev, r128_gpu_t *g)
 static const char *
 gpu_slot_bufs_create(r128_gpu_t *g)
 {
-    /* Each slot has its own mapped inputs and ladder buffer, kept until
-       its fence is retired; its descriptor set binds them with the
+    /* Each slot has its own mapped inputs, kept until its fence is
+       retired; its descriptor set binds them with the
        GPU_NBIND layout. */
+    const VkBufferUsageFlags hu = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+        | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    const VkBufferUsageFlags du = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+        | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
     for (unsigned i = 0; i < GPU_RING_SLOTS; i++) {
         gpu_slot_t *sl = &g->slot[i];
 
-        if (!gpu_mk_buf(g, &sl->b_rows, GPU_SPAN_CAP * 2 * sizeof(uint32_t),
-                        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
+        if (!gpu_mk_buf(g, &sl->b_rows, GPU_SPAN_CAP * 2 * sizeof(uint32_t), hu)
             || !gpu_mk_buf(g, &sl->b_order,
-                           GPU_SPAN_CAP * GPU_BATCH_SLOTS * sizeof(uint32_t),
-                           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
-            || !gpu_mk_buf(g, &sl->b_spans, GPU_SPAN_CAP * sizeof(seg_span_t),
-                           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
-            || !gpu_mk_buf(g, &sl->b_tris, GPU_TRI_CAP * sizeof(seg_tri_t),
-                           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
-            || !gpu_mk_buf(g, &sl->b_lad, GPU_PX_CAP * sizeof(uint32_t),
-                           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
+                           GPU_SPAN_CAP * GPU_BATCH_SLOTS * sizeof(uint32_t), hu)
+            || !gpu_mk_buf(g, &sl->b_spans, GPU_SPAN_CAP * sizeof(seg_span_t), hu)
+            || !gpu_mk_buf(g, &sl->b_tris, GPU_TRI_CAP * sizeof(seg_tri_t), hu)
             || !gpu_mk_buf(g, &sl->b_pal, GPU_PAL_CAP * 256 * sizeof(uint32_t),
                            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT))
             return "segment buffer allocation failed";
+    }
+    /* The device-local record copies, about 20 MB per slot. Not fatal:
+       on a device without the room the kernels read the host buffers. */
+    g->rec_dev = 1;
+    for (unsigned i = 0; g->rec_dev && i < GPU_RING_SLOTS; i++) {
+        gpu_slot_t *sl = &g->slot[i];
+
+        if (!gpu_mk_dbuf(g, &sl->d_rows, GPU_SPAN_CAP * 2 * sizeof(uint32_t), du)
+            || !gpu_mk_dbuf(g, &sl->d_order,
+                            GPU_SPAN_CAP * GPU_BATCH_SLOTS * sizeof(uint32_t), du)
+            || !gpu_mk_dbuf(g, &sl->d_spans, GPU_SPAN_CAP * sizeof(seg_span_t), du)
+            || !gpu_mk_dbuf(g, &sl->d_tris, GPU_TRI_CAP * sizeof(seg_tri_t), du))
+            g->rec_dev = 0;
+    }
+    if (!g->rec_dev) {
+        for (unsigned i = 0; i < GPU_RING_SLOTS; i++) {
+            gpu_slot_t     *sl     = &g->slot[i];
+            r128_gpu_buf_t *bfs[4] = { &sl->d_rows, &sl->d_order, &sl->d_spans,
+                                       &sl->d_tris };
+
+            for (int k = 0; k < 4; k++) {
+                if (bfs[k]->b)
+                    vkDestroyBuffer(g->dev, bfs[k]->b, NULL);
+                if (bfs[k]->m)
+                    vkFreeMemory(g->dev, bfs[k]->m, NULL);
+                memset(bfs[k], 0, sizeof(*bfs[k]));
+            }
+        }
+        gpu_log("RAGE128 GPU: device-local records unavailable -- kernels "
+                "read the host record buffers\n");
     }
 
     /* 2D staging ring: source bytes for queued mono-expand, host-data
@@ -9976,8 +11105,8 @@ gpu_pcache_load(r128_gpu_t *g)
 }
 
 /* Shader modules and pipelines: the segment uber kernel (module kept
-   alive for lazy folded compiles), the ladder, and the RMW and OV0
-   kernels with their own two-binding layouts. */
+   alive for lazy folded compiles), and the RMW and OV0 kernels with
+   their own two-binding layouts. */
 static const char *
 gpu_pipelines_create(r128_gpu_t *g)
 {
@@ -9998,25 +11127,13 @@ gpu_pipelines_create(r128_gpu_t *g)
     g->boot_total = gpu_boot_total(g);
     if (gpu_uber_build(g) != VK_SUCCESS)
         return "compute pipeline failed";
-    smci.codeSize = sizeof(r128_gpu_lad_spv);
-    smci.pCode    = (const uint32_t *) r128_gpu_lad_spv;
-    if (vkCreateShaderModule(g->dev, &smci, NULL, &sm) != VK_SUCCESS)
-        return "ladder shader module failed";
-    /* every field of cpi the driver reads is set here; no other code
+    /* every field of cpi the driver reads is set here, except the
+       module and layout, which each pipeline below sets; no other code
        fills this struct */
     cpi.stage.sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     cpi.stage.stage               = VK_SHADER_STAGE_COMPUTE_BIT;
-    cpi.stage.module              = sm;
     cpi.stage.pName               = "main";
     cpi.stage.pSpecializationInfo = NULL;
-    cpi.layout                    = g->plyt;
-    if (vkCreateComputePipelines(g->dev, g->pcache, 1, &cpi, NULL,
-                                 &g->lad_pipe)
-        != VK_SUCCESS) {
-        vkDestroyShaderModule(g->dev, sm, NULL);
-        return "ladder pipeline failed";
-    }
-    vkDestroyShaderModule(g->dev, sm, NULL);
     {
         VkDescriptorSetLayoutBinding    rdb[2];
         VkDescriptorSetLayoutCreateInfo rdslci = {
@@ -10207,14 +11324,22 @@ gpu_dsets_create(r128_gpu_t *g)
                gate refuses staged draws without stage_ok), but the set
                must stay valid */
             VkBuffer               vb            = g->mirror_en ? g->mirror_buf : g->vram_buf;
+            /* the kernels read the device-local record copies when the
+               backend has them */
+            const r128_gpu_buf_t  *rr            = g->rec_dev ? &sl->d_rows : &sl->b_rows;
+            const r128_gpu_buf_t  *ro            = g->rec_dev ? &sl->d_order : &sl->b_order;
+            const r128_gpu_buf_t  *rs            = g->rec_dev ? &sl->d_spans : &sl->b_spans;
+            const r128_gpu_buf_t  *rt            = g->rec_dev ? &sl->d_tris : &sl->b_tris;
             VkDescriptorBufferInfo bi[GPU_NBIND] = {
                 { vb,                                          0, VK_WHOLE_SIZE },
                 { vb,                                          0, VK_WHOLE_SIZE },
-                { sl->b_rows.b,                                0, VK_WHOLE_SIZE },
-                { sl->b_order.b,                               0, VK_WHOLE_SIZE },
-                { sl->b_spans.b,                               0, VK_WHOLE_SIZE },
-                { sl->b_tris.b,                                0, VK_WHOLE_SIZE },
-                { sl->b_lad.b,                                 0, VK_WHOLE_SIZE },
+                { rr->b,                                       0, VK_WHOLE_SIZE },
+                { ro->b,                                       0, VK_WHOLE_SIZE },
+                { rs->b,                                       0, VK_WHOLE_SIZE },
+                { rt->b,                                       0, VK_WHOLE_SIZE },
+                /* binding 6 is not read by any kernel; a valid buffer
+                   keeps the set complete without renumbering 7..12 */
+                { rt->b,                                       0, VK_WHOLE_SIZE },
                 { g->stage_ok ? g->stage_buf : g->vram_buf,    0, VK_WHOLE_SIZE },
                 { sl->b_pal.b,                                 0, VK_WHOLE_SIZE },
                 /* staged color and z arenas, a 16-bit view and a word
@@ -10333,9 +11458,31 @@ gpu_cmd_create(r128_gpu_t *g)
             pthread_mutex_init(&g->slot[s].fence_mtx, NULL);
         }
     }
+    if (g->tl_sem != VK_NULL_HANDLE) {
+        /* The copy queue's pool holds the slots' copy batches and the
+           present snapshots. Both record on the submit thread only, the
+           same rule that lets the slots and snapshots share one pool on
+           the single queue. */
+        VkCommandBuffer          xcbs[GPU_RING_SLOTS * 2];
+        VkCommandPoolCreateInfo  xpci = cpci;
+
+        xpci.queueFamilyIndex = g->xfam;
+        if (vkCreateCommandPool(g->dev, &xpci, NULL, &g->xpool) != VK_SUCCESS)
+            return "copy queue command pool failed";
+        cbai.commandPool        = g->xpool;
+        cbai.commandBufferCount = GPU_RING_SLOTS * 2;
+        if (vkAllocateCommandBuffers(g->dev, &cbai, xcbs) != VK_SUCCESS)
+            return "copy queue command buffer failed";
+        for (unsigned s = 0; s < GPU_RING_SLOTS; s++) {
+            g->slot[s].xcb = xcbs[s * 2];
+            g->slot[s].ucb = xcbs[s * 2 + 1];
+        }
+    }
     {
         VkCommandBuffer scbs[GPU_SNAPS];
 
+        cbai.commandPool        = g->tl_sem != VK_NULL_HANDLE ? g->xpool
+                                                              : g->pool;
         cbai.commandBufferCount = GPU_SNAPS;
         if (vkAllocateCommandBuffers(g->dev, &cbai, scbs) != VK_SUCCESS)
             return "snap command buffer failed";
@@ -10377,7 +11524,9 @@ gpu_cmd_create(r128_gpu_t *g)
         };
 
         qpci.queryType  = VK_QUERY_TYPE_TIMESTAMP;
-        qpci.queryCount = 5; /* 0-2 ladder/shade, 3-4 mirror copies */
+        /* 0-2 shading (0 -> 1 empty), 3 -> 0 mirror down, 5 -> 4 mirror
+           back and tail fills */
+        qpci.queryCount = 6;
         for (unsigned s = 0; s < GPU_RING_SLOTS; s++)
             if (vkCreateQueryPool(g->dev, &qpci, NULL, &g->slot[s].tqpool)
                 != VK_SUCCESS) {
@@ -10444,11 +11593,20 @@ gpu_init_abort(rage128_t *dev, r128_gpu_t *g, int ifn_ok, const char *why)
                 gpu_czstage_rollback(g, &dev->z_stage,
                                      &g->zstage_buf, &g->zstage_mem);
             }
+            if (g->xpool)
+                vkDestroyCommandPool(g->dev, g->xpool, NULL);
+            if (g->tl_sem)
+                vkDestroySemaphore(g->dev, g->tl_sem, NULL);
             vkDestroyDevice(g->dev, NULL);
         }
         if (g->inst)
             vkDestroyInstance(g->inst, NULL);
     }
+    free(g->bk_cell);
+    free(g->bk_pg);
+    free(g->bkc_cell);
+    free(g->bkc_pg);
+    free(g->mir_rc);
     free(g->learned);
     free(g->tuples);
     free(g);
@@ -10580,6 +11738,14 @@ rage128_gpu_init(rage128_t *dev)
             gpu_log("RAGE128 GPU: off (gpu_raster config is Off)\n");
         return;
     }
+    /* The host-newer map exists from device init on, before any guest
+       code runs, so no store can come before it and go unmarked. Every
+       page starts marked: the mirror holds nothing yet. */
+    dev->vram_hnew = (atomic_uchar *) malloc(dev->vram_size >> 12);
+    if (dev->vram_hnew)
+        for (uint32_t p = 0; p < (dev->vram_size >> 12); p++)
+            atomic_init(&dev->vram_hnew[p], 1);
+    atomic_init(&dev->vram_hnew_all, 0);
     if (de && !strcmp(de, "0")) {
         rage128_gpu_init_real(dev);
         return;
@@ -10649,6 +11815,10 @@ gpu_close_threads(r128_gpu_t *g)
 static void
 gpu_stats_core(rage128_t *dev, r128_gpu_t *g)
 {
+    gpu_log("RAGE128 GPU: records: %s, uploaded %llu bytes\n",
+            g->rec_dev ? "device-local" : "host", (unsigned long long) g->rec_up_bytes);
+    gpu_log("RAGE128 GPU: carry: submits=%llu\n",
+            (unsigned long long) g->st_carry);
     gpu_log("RAGE128 GPU: close: segments=%llu runs=%llu spans=%llu tris=%llu fallback_draws=%llu"
             " reprice=%llu reprice-miss=%llu toobig=%llu spandrop=%llu pxdrop=%llu cz-alias=%llu rtt-alias=%llu"
             " cz-serial=%llu rtt-serial=%llu line-fb=%llu point-fb=%llu"
@@ -10847,12 +12017,13 @@ gpu_stats_2d(r128_gpu_t *g)
         || g->st_fill_skip[1] || g->st_fill_skip[2] || g->st_fill_skip[3]
         || g->st_fill_skip[4])
         gpu_log("RAGE128 GPU: 2d fill: rects=%llu rows=%llu px=%llu tiled=%llu "
-                "cpu=%llu (dom=%llu stage=%llu) nb=%llu skip: "
+                "pre=%llu cpu=%llu (dom=%llu stage=%llu) nb=%llu skip: "
                 "rop=%llu wmask=%llu aux=%llu pat=%llu cca=%llu bad=%llu\n",
                 (unsigned long long) g->st_fill_rects,
                 (unsigned long long) g->st_fill_rows,
                 (unsigned long long) g->st_fill_px,
                 (unsigned long long) g->st_fill_tiled,
+                (unsigned long long) g->st_fill_pre,
                 (unsigned long long) g->st_fill_cpu,
                 (unsigned long long) g->st_fill_cpu_r[0],
                 (unsigned long long) g->st_fill_cpu_r[1],
@@ -11166,9 +12337,18 @@ gpu_stats_prof_pack(r128_gpu_t *g)
                 (unsigned long long) (g->pr_gpu_shade_ns / 1000000),
                 (unsigned long long) g->pr_gpu_seg, g->tqbits, g->max_wg_x);
         if (g->mirror_en)
-            gpu_log("RAGE128 GPU: vram mirror: copies=%llums bytes=%llu\n",
+            gpu_log("RAGE128 GPU: vram mirror: copies=%llums bytes=%llu "
+                    "down=%llu back=%llu\n",
                     (unsigned long long) (g->pr_gpu_mirror_ns / 1000000),
-                    (unsigned long long) g->pr_mirror_bytes);
+                    (unsigned long long) g->pr_mirror_bytes,
+                    (unsigned long long) g->pr_mir_dn_bytes,
+                    (unsigned long long) g->pr_mir_bk_bytes);
+        /* the other streams that cross the bus on a discrete card: queued
+           2D stores into the import, and present snapshots, each read and
+           written there */
+        gpu_log("RAGE128 GPU: bus: q2d=%llu snap=%llu\n",
+                (unsigned long long) g->pr_q2d_bytes,
+                (unsigned long long) g->pr_snap_bytes);
         gpu_log("RAGE128 GPU: fanout hist bins: <48 <120 <240 <480 <960 <1920 "
                 "<3840 <7680 >=7680 (pixel-weighted)\n");
         for (int v = 0; v < GPU_KERNELS; v++) {
@@ -11235,6 +12415,10 @@ gpu_close_vk(r128_gpu_t *g)
             pthread_mutex_destroy(&g->snaps[s].mtx);
         }
     vkDestroyCommandPool(g->dev, g->pool, NULL);
+    if (g->xpool)
+        vkDestroyCommandPool(g->dev, g->xpool, NULL);
+    if (g->tl_sem)
+        vkDestroySemaphore(g->dev, g->tl_sem, NULL);
     vkDestroyDescriptorPool(g->dev, g->dpool, NULL);
     for (int v = 0; v < GPU_KERNELS; v++)
         vkDestroyPipeline(g->dev, g->pipes[v], NULL);
@@ -11245,7 +12429,6 @@ gpu_close_vk(r128_gpu_t *g)
         for (int v = 0; v < GPU_KERNELS; v++)
             if (g->tuples[i].pipes[v])
                 vkDestroyPipeline(g->dev, g->tuples[i].pipes[v], NULL);
-    vkDestroyPipeline(g->dev, g->lad_pipe, NULL);
     vkDestroyPipeline(g->dev, g->rmw_pipe, NULL);
     vkDestroyPipelineLayout(g->dev, g->rmw_plyt, NULL);
     vkDestroyDescriptorSetLayout(g->dev, g->rmw_dsl, NULL);
@@ -11271,10 +12454,12 @@ gpu_close_vk(r128_gpu_t *g)
     vkDestroyDescriptorSetLayout(g->dev, g->dsl, NULL);
     for (unsigned s = 0; s < GPU_RING_SLOTS; s++) {
         gpu_slot_t     *sl      = &g->slot[s];
-        r128_gpu_buf_t *bufs[6] = { &sl->b_rows, &sl->b_order, &sl->b_spans,
-                                    &sl->b_tris, &sl->b_lad, &sl->b_pal };
+        r128_gpu_buf_t *bufs[9] = { &sl->b_rows, &sl->b_order, &sl->b_spans,
+                                    &sl->b_tris, &sl->b_pal, &sl->d_rows,
+                                    &sl->d_order, &sl->d_spans, &sl->d_tris };
 
-        for (int i = 0; i < 6; i++) {
+        /* the device-local copies are null handles without rec_dev */
+        for (int i = 0; i < 9; i++) {
             vkDestroyBuffer(g->dev, bufs[i]->b, NULL);
             vkFreeMemory(g->dev, bufs[i]->m, NULL);
         }
@@ -11289,6 +12474,15 @@ gpu_close_vk(r128_gpu_t *g)
         vkDestroyBuffer(g->dev, g->mirror_buf, NULL);
         vkFreeMemory(g->dev, g->mirror_mem, NULL);
     }
+    if (g->mir_audit) {
+        vkDestroyBuffer(g->dev, g->audit_buf.b, NULL);
+        vkFreeMemory(g->dev, g->audit_buf.m, NULL);
+    }
+    free(g->bk_cell);
+    free(g->bk_pg);
+    free(g->bkc_cell);
+    free(g->bkc_pg);
+    free(g->mir_rc);
     if (g->stage_ok) {
         vkDestroyBuffer(g->dev, g->stage_buf, NULL);
         vkFreeMemory(g->dev, g->stage_mem, NULL);
@@ -11315,6 +12509,8 @@ rage128_gpu_close(rage128_t *dev)
     if (!g) {
         gpu_vram_unseat(dev);
         gpu_tel_close();
+        free(dev->vram_hnew);
+        dev->vram_hnew = NULL;
         return;
     }
     dev->gpu = NULL;
@@ -11342,6 +12538,11 @@ rage128_gpu_close(rage128_t *dev)
             (unsigned long long) (g->st_live_ns / 1000000));
     gpu_stats_prof_pack(g);
 
+    if (g->mir_audit)
+        gpu_log("RAGE128 GPU: mirror audit: pages=%llu bytes=%llu bad=%llu\n",
+                (unsigned long long) g->st_audit_pages,
+                (unsigned long long) g->st_audit_bytes,
+                (unsigned long long) g->st_audit_bad);
     gpu_close_vk(g);
     /* With the imports destroyed the aligned host blocks can be freed.
        The arenas the backend moved are freed here, not by
@@ -11359,6 +12560,8 @@ rage128_gpu_close(rage128_t *dev)
     free(g->v_tris);
     free(g->v_save);
     free(g);
+    free(dev->vram_hnew);
+    dev->vram_hnew = NULL;
     gpu_tel_close();
 }
 
@@ -11633,6 +12836,17 @@ rage128_gpu_submit_point(rage128_t *dev, const rage128_raster_state_t *rs,
     return 0;
 }
 void
+rage128_gpu_cpu_prim(rage128_t *dev, const rage128_raster_state_t *rs,
+                     const r3d_vtx_t *a, const r3d_vtx_t *b,
+                     const r3d_vtx_t *c)
+{
+    (void) dev;
+    (void) rs;
+    (void) a;
+    (void) b;
+    (void) c;
+}
+void
 rage128_gpu_stage_quiesce(rage128_t *dev, int per_draw)
 {
     (void) dev;
@@ -11718,7 +12932,7 @@ rage128_gpu_2d_verify_bad(rage128_t *dev, int table, uint64_t bad)
 }
 uint64_t
 rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0,
-                         int64_t e1, int64_t e2, double zline,
+                         int64_t e1, int64_t e2, int64_t zline,
                          uint32_t drow, uint32_t zrow, int32_t py)
 {
     (void) tri;
@@ -11733,7 +12947,7 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0,
 }
 uint64_t
 rage128_gpu_count_span(const r128_jit_tri_t *tri, int64_t e0,
-                       int64_t e1, int64_t e2, double zline,
+                       int64_t e1, int64_t e2, int64_t zline,
                        uint32_t drow, uint32_t zrow, int32_t py)
 {
     (void) tri;

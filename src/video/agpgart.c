@@ -72,6 +72,11 @@ agpgart_set_gart(agpgart_t *dev, uint32_t base)
     dev->gart_base = base;
 }
 
+/* The live GART instances, so agpgart_bus_ptr can tell an aperture
+   mapping from plain memory. Boards carry one; the array leaves room. */
+#define AGPGART_MAX_INST 4
+static agpgart_t *agpgart_inst[AGPGART_MAX_INST];
+
 static uint32_t
 agpgart_translate(uint32_t addr, agpgart_t *dev)
 {
@@ -83,6 +88,37 @@ agpgart_translate(uint32_t addr, agpgart_t *dev)
 
     /* Return remapped address with the page offset. */
     return gart_ptr | (addr & 0x00000fff);
+}
+
+/* Host pointer for len bytes at bus address addr, all inside one 4 KB page,
+   or NULL when they must be read through the handlers. For an address
+   inside an enabled aperture the GART entry is read and the target page
+   resolved once, exactly as agpgart_translate does per access; for any
+   other address this is mem_phys_ptr. A pointer is valid until the memory
+   map or the GART entry changes, so a caller holds it for one transfer. */
+const uint8_t *
+agpgart_bus_ptr(uint32_t addr, uint32_t len)
+{
+    const mem_mapping_t *map = mem_read_mapping_at(addr);
+    const uint8_t       *entry;
+    uint32_t             gart_ptr;
+    uint32_t             off;
+
+    if (!len || (((addr & 0xfff) + len) > 0x1000))
+        return NULL;
+    for (int i = 0; i < AGPGART_MAX_INST; i++) {
+        agpgart_t *dev = agpgart_inst[i];
+
+        if ((dev == NULL) || (map != &dev->aperture_mapping))
+            continue;
+        off   = addr & dev->aperture_mask;
+        entry = mem_phys_ptr(dev->gart_base + ((off >> 10) & 0xfffffffc), 4);
+        if (entry == NULL)
+            return NULL;
+        memcpy(&gart_ptr, entry, 4);
+        return mem_phys_ptr((gart_ptr & 0xfffff000) | (off & 0x00000fff), len);
+    }
+    return mem_phys_ptr(addr, len);
 }
 
 static uint8_t
@@ -140,6 +176,12 @@ agpgart_init(UNUSED(const device_t *info))
                     agpgart_aperture_writeb, agpgart_aperture_writew, agpgart_aperture_writel,
                     NULL, MEM_MAPPING_EXTERNAL, dev);
 
+    for (int i = 0; i < AGPGART_MAX_INST; i++)
+        if (agpgart_inst[i] == NULL) {
+            agpgart_inst[i] = dev;
+            break;
+        }
+
     return dev;
 }
 
@@ -152,6 +194,10 @@ agpgart_close(void *priv)
 
     /* Disable aperture. */
     mem_mapping_disable(&dev->aperture_mapping);
+
+    for (int i = 0; i < AGPGART_MAX_INST; i++)
+        if (agpgart_inst[i] == dev)
+            agpgart_inst[i] = NULL;
 
     free(dev);
 }

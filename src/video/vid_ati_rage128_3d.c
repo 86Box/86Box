@@ -1965,35 +1965,31 @@ rage128_texstage_run(void *tcv, float w0, float w1, float w2, float *col)
    the piece. The block sees only a different x range and base.
 
    The split gives exactly the output of an unsplit walk: the edge seeds
-   are 64-bit integers, exact under multiplication, and the depth seed is
-   advanced by the same repeated add the block does per pixel, never by a
-   multiply. Returns the row's written column range, packed as the block
-   packs it. Exported because the JIT verify mode drives blocks through
-   this same walk.
+   and the fixed-point depth seed are 64-bit integers, so a piece's seeds
+   are the row's seeds plus k steps, the same values the block reaches
+   by stepping. Returns the row's written column range, packed as the
+   block packs it. Exported because the JIT verify mode drives blocks
+   through this same walk.
 
    The walked range is the triangle's (scissored) bounding box, so most
    pieces of a row hold no covered pixel. When the span is the GPU lane's
    capture, the row's covered columns [cl, ch] are known up front from the
    same exact integer edge clip the capture applies per piece, and the
    walk uses them: a row with none returns at once; a piece wholly left
-   of cl still advances the depth seed (the covered pieces' seeds depend
-   on those adds) but is not called, since its capture would reject it
-   with no effect; and the walk stops after the piece holding ch, since no
-   later piece is called and nothing reads the seed past it. Every piece
-   that is called receives the same seed from the same adds in the same
-   order, so the captured spans are unchanged. The JIT blocks report the
+   of cl is not called, since its capture would reject it with no
+   effect; and the walk stops after the piece holding ch, since no later
+   piece is called. The JIT blocks report the
    range they wrote (after the depth and alpha tests), not coverage, so
    for them the bounds stay the whole row. */
 uint64_t
 rage128_3d_jit_row(r128_jit_tri_t *jt, r128_jit_span_fn jfn, int64_t e0, int64_t e1,
-                   int64_t e2, double zline, uint32_t drow, uint32_t zrow, int32_t py,
+                   int64_t e2, int64_t zline, uint32_t drow, uint32_t zrow, int32_t py,
                    int c_tld, int z_tld, uint32_t bpp, uint32_t zbpp)
 {
     int32_t xs  = jt->x0;
     int32_t xe  = jt->x1;
     int32_t rx0 = -1, rx1 = -1;
     int32_t cl = xs, ch = xe; /* covered columns: whole row unless known */
-    double  zc = zline;
 
     if (!c_tld && !z_tld)
         return jfn(jt, e0, e1, e2, zline, drow, zrow, py);
@@ -2031,7 +2027,7 @@ rage128_3d_jit_row(r128_jit_tri_t *jt, r128_jit_span_fn jfn, int64_t e0, int64_t
             jt->x0 = xa;
             jt->x1 = xb;
             r      = jfn(jt, e0 + k * jt->e0dxi, e1 + k * jt->e1dxi, e2 + k * jt->e2dxi,
-                         zc, cb, zb, py);
+                         zline + k * jt->dzx, cb, zb, py);
             jr0    = (int32_t) (uint32_t) r;
             if (jr0 >= 0) {
                 if (rx0 < 0)
@@ -2040,16 +2036,9 @@ rage128_3d_jit_row(r128_jit_tri_t *jt, r128_jit_span_fn jfn, int64_t e0, int64_t
             }
         }
         /* nothing past the piece holding the last covered column is
-           called, so its seed is never read */
+           called */
         if (xb >= ch)
             break;
-        /* advance the depth DDA exactly as the block did, pixel by pixel
-           (a multiply here could differ in the last bit), but only when
-           another piece follows: nothing reads the seed past the last
-           piece, and most rows are a single piece */
-        if (xb < xe)
-            for (int32_t i = xa; i <= xb; i++)
-                zc += jt->dZdx;
         xa = xb + 1;
     }
     jt->x0 = xs;
@@ -2264,7 +2253,7 @@ typedef struct r3d_setup_t {
     int64_t e0dxi, e0dyi, e1dxi, e1dyi, e2dxi, e2dyi, e0ri, e1ri, e2ri;
     int     e0b, e1b, e2b; /* 1 where the fill rule biased that edge */
     float   invs;
-    double  zr_d, dZdx, dZdy;
+    int64_t z0fx, dzx, dzy; /* depth plane, fixed point (r128_zfx) */
     float   vca[4], vcb[4], vcc[4];
     float   spa[3], spb[3], spc[3];
     float   fga, fgb, fgc;
@@ -2620,16 +2609,19 @@ r3d_setup(rage128_t *dev, const rage128_raster_state_t *rs,
             tctx->dW2dx = inv * (tctx->a2rhw * e0dx + tctx->b2rhw * e1dx + tctx->c2rhw * e2dx);
             tctx->dW2dy = inv * (tctx->a2rhw * e0dy + tctx->b2rhw * e1dy + tctx->c2rhw * e2dy);
         }
-        /* Depth runs on its own double-precision DDA, not on the float
-           barycentric weights. Window z is linear in screen space, so a
-           plane DDA gives it exactly up to rounding, and stepping it in
-           double keeps the drift below 0.001 LSB of a 24-bit Z. dZdx and
+        /* Depth is its own plane, not the float barycentric weights.
+           Window z is linear in screen space, so the plane gives it
+           exactly up to the fixed-point rounding (see r128_zfx). dZdx and
            dZdy come from the exact integer edge gradients (the subpixel
            scale cancels against invd); the row seed zr_d was taken above
-           from the integer row seeds before the fill-rule bias. The chip's
-           depth precision is not documented. */
-        double dZdx = ((double) e0dxi * azd + (double) e1dxi * bzd + (double) e2dxi * czd) * invd;
-        double dZdy = ((double) e0dyi * azd + (double) e1dyi * bzd + (double) e2dyi * czd) * invd;
+           from the integer row seeds before the fill-rule bias. All three
+           are converted to fixed point once here, and every renderer
+           steps the converted values. */
+        double  dZdx = ((double) e0dxi * azd + (double) e1dxi * bzd + (double) e2dxi * czd) * invd;
+        double  dZdy = ((double) e0dyi * azd + (double) e1dyi * bzd + (double) e2dyi * czd) * invd;
+        int64_t z0fx = r128_zfx(zr_d, R128_ZFX_SEED_LIM);
+        int64_t dzx  = r128_zfx(dZdx, R128_ZFX_GRAD_LIM);
+        int64_t dzy  = r128_zfx(dZdy, R128_ZFX_GRAD_LIM);
         /* Gradients of the second coordinate set, for the secondary stage's
            LOD. They are computed only when that stage samples the second set
            (sec_sel); otherwise it uses the first set's gradients above. */
@@ -2700,7 +2692,7 @@ r3d_setup(rage128_t *dev, const rage128_raster_state_t *rs,
             jt->e0b       = e0b;
             jt->e1b       = e1b;
             jt->e2b       = e2b;
-            jt->dZdx      = dZdx;
+            jt->dzx       = dzx;
             memcpy(jt->vca, vca, sizeof(jt->vca));
             memcpy(jt->vcb, vcb, sizeof(jt->vcb));
             memcpy(jt->vcc, vcc, sizeof(jt->vcc));
@@ -2786,9 +2778,9 @@ r3d_setup(rage128_t *dev, const rage128_raster_state_t *rs,
         st->e1b      = e1b;
         st->e2b      = e2b;
         st->invs     = invs;
-        st->zr_d     = zr_d;
-        st->dZdx     = dZdx;
-        st->dZdy     = dZdy;
+        st->z0fx     = z0fx;
+        st->dzx      = dzx;
+        st->dzy      = dzy;
         memcpy(st->vca, vca, sizeof(vca));
         memcpy(st->vcb, vcb, sizeof(vcb));
         memcpy(st->vcc, vcc, sizeof(vcc));
@@ -2868,7 +2860,7 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
         int64_t      e1bias = st.e1b ? ((area2i > 0) ? -1 : 1) : 0;
         int64_t      e2bias = st.e2b ? ((area2i > 0) ? -1 : 1) : 0;
         float        invs   = st.invs;
-        double       zr_d = st.zr_d, dZdx = st.dZdx, dZdy = st.dZdy;
+        int64_t      zr_fx = st.z0fx, dzx = st.dzx, dzy = st.dzy;
         const float *vca = st.vca, *vcb = st.vcb, *vcc = st.vcc;
         const float *spa = st.spa, *spb = st.spb, *spc = st.spc;
         float        fga = st.fga, fgb = st.fgb, fgc = st.fgc;
@@ -2878,7 +2870,7 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
         uint64_t     js_rows = 0, js_px = 0, js_empty = 0;
         int32_t      lcur = st.lcur, lrem = st.lrem, lstep = st.lstep;
 
-        for (int py = y0; py <= y1; py++, e0ri += e0dyi, e1ri += e1dyi, e2ri += e2dyi, zr_d += dZdy) {
+        for (int py = y0; py <= y1; py++, e0ri += e0dyi, e1ri += e1dyi, e2ri += e2dyi, zr_fx += dzy) {
             /* Row ownership: a raster worker draws only the rows it owns.
                The edge and Z row values step in the loop increment either
                way, so the owned rows come out exactly as in a serial walk.
@@ -2886,7 +2878,7 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
             if (!r128_row_owned(py, thr_id, thr_mask))
                 continue;
             int64_t e0 = e0ri, e1 = e1ri, e2 = e2ri;
-            double  zline = zr_d;
+            int64_t zline = zr_fx;
             int     rxa = x0, rxb = x1; /* this row's column walk */
 
             if (ln) {
@@ -2919,15 +2911,15 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
                     rxb = x1;
                 if (rxa > rxb)
                     continue; /* scissored away */
-                /* Seed the run's first column: exact for the integer edges,
-                   and the same double depth seed every lane starts from. */
+                /* Seed the run's first column: exact for the integer
+                   edges and the fixed-point depth alike. */
                 {
                     int64_t k = rxa - x0;
 
                     e0 += k * e0dxi;
                     e1 += k * e1dxi;
                     e2 += k * e2dxi;
-                    zline = zr_d + (double) k * dZdx;
+                    zline = zr_fx + k * dzx;
                 }
                 jt.x0 = rxa;
                 jt.x1 = rxb;
@@ -2972,7 +2964,7 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
                                                   c_tld, z_tld);
             }
 
-            for (int px = rxa; px <= rxb; px++, e0 += e0dxi, e1 += e1dxi, e2 += e2dxi, zline += dZdx) {
+            for (int px = rxa; px <= rxb; px++, e0 += e0dxi, e1 += e1dxi, e2 += e2dxi, zline += dzx) {
                 float    w0, w1, w2;
                 float    col[4]; /* r,g,b,a 0..1 */
                 uint32_t zaddr = 0, zi = 0, zbuf;
@@ -3008,17 +3000,10 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
                 w1 = (float) (e1 - e1bias) * invs;
                 w2 = (float) (e2 - e2bias) * invs;
 
-                /* Depth comes from the double DDA (zline), not the float
-                   weights; see the dZdx / dZdy note in r3d_setup. zc is
-                   that value clamped to [0, 1]. */
-                double zc = zline;
-                if (!(zc > 0.0))
-                    zc = 0.0; /* written this way to catch NaN too,
-                                 which must not reach the fog-table
-                                 index or the z quantize: converting
-                                 NaN to an integer is undefined */
-                if (zc > 1.0)
-                    zc = 1.0;
+                /* Depth comes from the fixed-point plane (zline), not the
+                   float weights; see the depth note in r3d_setup. zc is
+                   that value clamped to [0, 1.0]. */
+                uint64_t zc = r128_zfx_clamp(zline);
 
                 /* Z and stencil tests. Stencil lives in the Z cell, and "if
                    the STENCIL_EN bit is set, Z reads will be done regardless
@@ -3034,18 +3019,7 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
                 uint32_t sbuf = 0;
 
                 if (z_en || sten_on) {
-                    /* Quantize in double: z * zmax + 0.5 is exact for zmax up
-                       to 0xffffffff, so z == 1.0 maps to exactly zmax. In
-                       float, 16777215.5 (the 24-bit case) is not representable
-                       and rounds up to zmax + 1, which would put far pixels one
-                       step past a buffer cleared to the far value, so they
-                       would fail a less-or-equal test. The clamp guards
-                       against z > 1. */
-                    double zq = zc * (double) zmax + 0.5;
-
-                    if (zq > (double) zmax)
-                        zq = (double) zmax;
-                    zi    = (uint32_t) zq;
+                    zi    = r128_zfx_quant(zc, zmax);
                     zaddr = zrow + (z_tld ? r128_tile_x((uint32_t) px * zbpp) : (uint32_t) px * zbpp);
                     /* Resolve the Z cell once. Staged Z is read in the arena
                        at zaddr - z_base, and an index outside the staged range
@@ -3131,13 +3105,13 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
                            Thief 2), which a plain lookup draws as nine flat
                            bands. */
                         /* The index and fraction come from one exact
-                           conversion: zc * 255 scaled by 2^32 and truncated
-                           gives the entry in the high word and a 32-bit
-                           fraction in the low word, which every lane (the
-                           JITs, the GPU path) reproduces exactly; the blend
-                           itself is float math. */
+                           integer step, r128_zfx_fogpos: the entry in the
+                           high word and a 32-bit fraction in the low word,
+                           which every lane (the JITs, the GPU path)
+                           reproduces exactly; the blend itself is float
+                           math. */
                         const uint8_t *ft = rs->t3d.fog_table;
-                        uint64_t       q  = (uint64_t) (zc * 255.0 * 4294967296.0);
+                        uint64_t       q  = r128_zfx_fogpos(zc);
                         uint32_t       i  = (uint32_t) (q >> 32);
                         uint32_t       i1 = i < 255 ? i + 1 : i;
                         float          t  = (float) (uint32_t) q * (1.0f / 4294967296.0f);
@@ -3411,13 +3385,14 @@ static int
 r3d_fetch_vertex(rage128_t *dev, uint32_t base, uint32_t stride,
                  uint32_t idx, uint32_t fmt, r3d_vtx_t *out)
 {
-    uint32_t vdw[20];
-    uint32_t j;
+    uint32_t        vdw[20];
+    uint32_t        j;
+    r128_bus_span_t sp = { 0 }; /* one vertex: one page, two when it straddles */
 
     if (stride == 0 || stride > 20)
         return 0;
     for (j = 0; j < stride; j++) {
-        if (!rage128_pm4_bus_read(dev, base + (idx * stride + j) * 4, &vdw[j]))
+        if (!rage128_pm4_span_read(dev, &sp, base + (idx * stride + j) * 4, &vdw[j]))
             return 0;
     }
     r3d_decode_vertex(fmt, vdw, out);

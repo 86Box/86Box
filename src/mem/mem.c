@@ -1769,6 +1769,15 @@ mem_phys_ptr(uint32_t addr, uint32_t len)
     return mem_phys_exec(map, addr, len);
 }
 
+/* The mapping a bus-master read of addr reaches, or NULL. Lets a device
+   that masters through another device's aperture (the AGP GART) ask that
+   device for a host pointer instead of reading through its handlers. */
+const mem_mapping_t *
+mem_read_mapping_at(uint32_t addr)
+{
+    return read_mapping_bus[addr >> MEM_GRANULARITY_BITS];
+}
+
 uint8_t
 mem_readb_phys(uint32_t addr)
 {
