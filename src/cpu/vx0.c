@@ -38,6 +38,7 @@
 #include <86box/ppi.h>
 #include <86box/timer.h>
 #include <86box/gdbstub.h>
+#include <86box/debugger.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 #include "x86_interrupt.h"
@@ -4837,5 +4838,7 @@ check_completed:
         if (gdbstub_instruction())
             return;
 #endif
+        if (DEBUGGER_INSTRUCTION())
+            return;
     }
 }

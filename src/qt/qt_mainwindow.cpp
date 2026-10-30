@@ -27,6 +27,9 @@
 #include "qt_soundgain.hpp"
 #include "qt_preferences.hpp"
 #include "qt_mcadevicelist.hpp"
+#include "qt_memoryviewer.hpp"
+
+#include <QPointer>
 
 #include "qt_rendererstack.hpp"
 #include "qt_renderercommon.hpp"
@@ -1695,6 +1698,13 @@ MainWindow::keyMatchesAccelerator(const QKeyEvent *ke, const char *name)
 bool
 MainWindow::eventFilter(QObject *receiver, QEvent *event)
 {
+    /* Keys typed into the memory viewer are its own, not the guest's. */
+    if ((event->type() == QEvent::KeyPress) || (event->type() == QEvent::KeyRelease) || (event->type() == QEvent::ShortcutOverride)) {
+        const auto *widget = qobject_cast<QWidget *>(receiver);
+        if (widget && qobject_cast<MemoryViewer *>(widget->window()))
+            return QMainWindow::eventFilter(receiver, event);
+    }
+
     if (event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease) {
         auto      *ke   = static_cast<QKeyEvent *>(event);
         const bool down = event->type() == QEvent::KeyPress;
@@ -2733,6 +2743,20 @@ MainWindow::on_actionMCA_devices_triggered()
 {
     if (const auto dlg = new MCADeviceList(this))
         dlg->exec();
+}
+
+void
+MainWindow::on_actionMemory_viewer_triggered()
+{
+    /* One viewer at a time: it owns the debugger while it is open. */
+    static QPointer<MemoryViewer> viewer;
+
+    if (!viewer) {
+        viewer = new MemoryViewer(this);
+        viewer->show();
+    }
+    viewer->raise();
+    viewer->activateWindow();
 }
 
 void

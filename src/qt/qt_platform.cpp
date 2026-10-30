@@ -25,6 +25,7 @@
 #include <cstdio>
 
 #include <mutex>
+#include <chrono>
 #include <thread>
 #include <memory>
 #include <algorithm>
@@ -880,6 +881,25 @@ startblit()
     }
 
     blitmx.lock();
+}
+
+/* startblit(), but giving up after timeout_ms; nonzero if the lock is held.
+   For the UI thread, which must not wait on an emulation thread that may
+   itself be waiting on the UI thread. */
+int
+startblit_timeout(int timeout_ms)
+{
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
+
+    blitmx_contention++;
+    do {
+        if (blitmx.try_lock())
+            return 1;
+        std::this_thread::yield();
+    } while (std::chrono::steady_clock::now() < deadline);
+    blitmx_contention--;
+
+    return 0;
 }
 
 void

@@ -29,6 +29,7 @@
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 #include <86box/gdbstub.h>
+#include <86box/debugger.h>
 #ifndef OPS_286_386
 #    define OPS_286_386
 #endif
@@ -429,6 +430,8 @@ exec386_2386(int32_t cycs)
             if (gdbstub_instruction())
                 return;
 #endif
+            if (DEBUGGER_INSTRUCTION())
+                return;
         }
     }
 }

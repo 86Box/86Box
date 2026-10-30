@@ -32,6 +32,7 @@
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 #include <86box/gdbstub.h>
+#include <86box/debugger.h>
 #ifdef USE_DYNAREC
 #    include "codegen.h"
 #    include "codegen_backend.h"
@@ -1152,6 +1153,8 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
             if (gdbstub_instruction())
                 return;
 #    endif
+            if (DEBUGGER_INSTRUCTION())
+                return;
         }
 
         cycles_main -= (cycles_start - cycles);
@@ -1591,6 +1594,8 @@ block_ended:
             if (gdbstub_instruction())
                 return;
 #endif
+            if (DEBUGGER_INSTRUCTION())
+                return;
         }
     }
 }
