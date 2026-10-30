@@ -63,6 +63,12 @@
         <file>qt/icons/rewind.ico</file>
         <file>qt/icons/sound.ico</file>
         <file>qt/icons/storage_controllers.ico</file>
+        <file>qt/icons/usb_hub_4port.ico</file>
+        <file>qt/icons/usb_keyboard.ico</file>
+        <file>qt/icons/usb_mouse.ico</file>
+        <file>qt/icons/usb_msd.ico</file>
+        <file>qt/icons/usb_speaker.ico</file>
+        <file>qt/icons/usb_tablet.ico</file>
         <file>qt/icons/zip.ico</file>
         <file>qt/icons/zip_image.ico</file>
         <file>qt/icons/active.ico</file>

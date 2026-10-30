@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-25 04:19+0000\n"
-"Last-Translator: OBattler <oubattler@gmail.com>\n"
+"PO-Revision-Date: 2026-10-26 21:52+0000\n"
+"Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
 "Language: pt-BR\n"
@@ -415,17 +415,35 @@ msgstr "MB"
 msgid "Memory:"
 msgstr "Memória:"
 
-msgid "Time synchronization"
-msgstr "Sincronização de horário"
+msgid "Synchronize with host clock"
+msgstr "Sincronizar com o relógio do hospedeiro"
 
-msgid "Disabled"
-msgstr "Desativar"
+msgid "Time zone:"
+msgstr "Fuso horário:"
 
-msgid "Enabled (local time)"
-msgstr "Ativar (hora local)"
+msgid "Local"
+msgstr "Local"
 
-msgid "Enabled (UTC)"
-msgstr "Ativar (UTC)"
+msgid "UTC"
+msgstr "UTC"
+
+msgid "Date:"
+msgstr "Data:"
+
+msgid "Match the host"
+msgstr "Igual ao hospedeiro"
+
+msgid "Offset the year by:"
+msgstr "Ajustar o ano em:"
+
+msgid "(currently %1)"
+msgstr "(atualmente %1)"
+
+msgid "Always use the year:"
+msgstr "Sempre usar o ano:"
+
+msgid "Do not synchronize the date"
+msgstr "Não sincronizar a data"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Usar o interpretador 486 para processadores 286 e 386"
@@ -3129,7 +3147,7 @@ msgid "Key bindings"
 msgstr "Atalhos"
 
 msgid "VM Manager"
-msgstr "Gestor de MV"
+msgstr "Gerenciador de MV"
 
 msgid "Action"
 msgstr "Ação"

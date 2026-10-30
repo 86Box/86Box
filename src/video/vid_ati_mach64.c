@@ -3776,11 +3776,6 @@ mach64gx_isa_available(void)
 {
     return rom_present(BIOS_ISA_ROM_PATH);
 }
-int
-mach64gx_xpression_vlb_available(void)
-{
-    return rom_present(BIOS_XPRESSION_VLB_27803_PATH);
-}
 
 int
 mach64gx_vlb_available(void)
@@ -3973,23 +3968,14 @@ static const device_config_t mach64gx_xpression_config[] = {
         .name           = "bios_ver",
         .description    = "BIOS Revision",
         .type           = CONFIG_BIOS,
-        .default_string = "113_27803_102",
+        .default_string = "113_27804_101",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "113-27803-102 (1995/03/16)",
-                .internal_name = "113_27803_102",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 32768,
-                .files         = { BIOS_XPRESSION_VLB_27803_PATH, "" }
-            },
-            {
-                .name          = "113-27804-101 (1995/01/20)",
+                .name          = "113-27804-101 (01/20/1995)",
                 .internal_name = "113_27804_101",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -3998,7 +3984,7 @@ static const device_config_t mach64gx_xpression_config[] = {
                 .files         = { BIOS_XPRESSION_VLB_27804_PATH, "" }
             },
             {
-                .name          = "113-27802-101 (1994/08/24)",
+                .name          = "113-27802-101 (08/24/1994)",
                 .internal_name = "113_27802_101",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -4143,7 +4129,7 @@ static const device_config_t mach64gtb_onboard_config[] = {
 // clang-format on
 
 const device_t mach64gx_isa_device = {
-    .name          = "ATI Mach64GX (Graphics Pro Turbo)",
+    .name          = "ATI Mach64GX (Graphics Pro Turbo) ISA",
     .internal_name = "mach64gx_isa",
     .flags         = DEVICE_ISA16,
     .local         = MACH64_GX,
@@ -4157,7 +4143,7 @@ const device_t mach64gx_isa_device = {
 };
 
 const device_t mach64gx_vlb_device = {
-    .name          = "ATI Mach64GX (Graphics Pro Turbo)",
+    .name          = "ATI Mach64GX (Graphics Pro Turbo) VLB",
     .internal_name = "mach64gx_vlb",
     .flags         = DEVICE_VLB,
     .local         = MACH64_GX,
@@ -4171,7 +4157,7 @@ const device_t mach64gx_vlb_device = {
 };
 
 const device_t mach64gx_vlb_onboard_device = {
-    .name          = "ATI Mach64GX VLB (On-Board)",
+    .name          = "ATI Mach64GX (On-Board) VLB",
     .internal_name = "mach64gx_vlb_onboard",
     .flags         = DEVICE_VLB,
     .local         = MACH64_GX | MACH64_FLAG_ONBOARD,
@@ -4185,14 +4171,14 @@ const device_t mach64gx_vlb_onboard_device = {
 };
 
 const device_t mach64gx_xpression_vlb_device = {
-    .name          = "ATI Graphics Xpression (Mach64GX) VLB",
+    .name          = "ATI Mach64GX (Graphics Xpression) VLB",
     .internal_name = "mach64gx_xpression_vlb",
     .flags         = DEVICE_VLB,
     .local         = MACH64_GX | MACH64_FLAG_DRAM,
     .init          = mach64gx_init,
     .close         = mach64_close,
     .reset         = mach64_reset,
-    .available     = mach64gx_xpression_vlb_available,
+    .available     = NULL,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64gx_xpression_config
@@ -4214,7 +4200,7 @@ const device_t mach64gx_pci_device = {
 };
 
 const device_t mach64gx_pci_onboard_device = {
-    .name          = "ATI Mach64GX PCI (On-Board)",
+    .name          = "ATI Mach64GX (On-Board) PCI",
     .internal_name = "mach64gx_pci_onboard",
     .flags         = DEVICE_PCI,
     .local         = MACH64_GX | MACH64_FLAG_DRAM | MACH64_FLAG_ONBOARD,

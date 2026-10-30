@@ -26,8 +26,12 @@ extern uint8_t  cpu_lapic_extint_live[];
 static inline int
 x86_external_interrupt_pending(void)
 {
-    if (!ioapic_irq_path_active)
+    if (!ioapic_irq_path_active) {
+        /* In cascade mode only the master's output reaches the CPU. */
+        if (cascade)
+            return !!pic.int_pending;
         return pic_any_pending();
+    }
 
     /* Nothing from the 8259, nothing in the processor's IRR (local APIC
        0's), no ExtINT: the full answer below would be no, whatever the

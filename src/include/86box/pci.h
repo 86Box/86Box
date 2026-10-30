@@ -292,6 +292,7 @@ extern void        pci_set_pmc(uint8_t pmc);
 
 extern void        pci_pic_reset(void);
 extern void        pci_reset(void);
+extern void        pci_system_reset(void);
 
 /* Needed for the io.c handling of configuration mechanism #2 ports C000-CFFF. */
 extern void        pci_write(uint16_t port, uint8_t val, void *priv);
@@ -300,6 +301,9 @@ extern void        pci_writel(uint16_t port, uint32_t val, void *priv);
 extern uint8_t     pci_read(uint16_t port, void *priv);
 extern uint16_t    pci_readw(uint16_t port, void *priv);
 extern uint32_t    pci_readl(uint16_t port, void *priv);
+
+extern int         pci_config_read(uint8_t bus, uint8_t dev, uint8_t func, uint8_t reg, int len, uint8_t *vals);
+extern int         pci_config_write(uint8_t bus, uint8_t dev, uint8_t func, uint8_t reg, int len, const uint8_t *vals);
 
 extern uint8_t     pci_register_bus(void);
 extern void        pci_remap_bus(uint8_t bus_index, uint8_t bus_number);

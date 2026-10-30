@@ -1004,11 +1004,14 @@ Preferences::reloadStrings()
     translatedstrings[STRING_CDROM_LOAD_MDSX_ERROR]     = QCoreApplication::translate("", "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support.").arg(LIB_NAME_MDSX).toUtf8();
     translatedstrings[STRING_CDROM_LOAD_AARU_ERROR]     = QCoreApplication::translate("", "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support.").arg(LIB_NAME_AARU).toUtf8();
     translatedstrings[STRING_CDROM_DVD_IN_CD_DRIVE]     = QCoreApplication::translate("", "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored.").toUtf8();
+    translatedstrings[STRING_CDROM_IMAGE_TOO_LARGE]     = QCoreApplication::translate("", "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored.").toUtf8();
     translatedstrings[STRING_CHARDEV_CONNECT_ERROR]     = QCoreApplication::translate("", "%s: Could not connect to %s: %s").toUtf8();
     translatedstrings[STRING_CHARDEV_CREATE_ERROR]      = QCoreApplication::translate("", "%s: Could not create %s: %s").toUtf8();
     translatedstrings[STRING_CHARDEV_ATTACHED]          = QCoreApplication::translate("", "%s: Attached to %s").toUtf8();
     translatedstrings[STRING_CHARDEV_VCON_IN_USE]       = QCoreApplication::translate("", "%s: Virtual console already in use by %s").toUtf8();
     translatedstrings[STRING_CHARDEV_TERMINAL_ERROR]    = QCoreApplication::translate("", "%s: Could not create terminal: %s").toUtf8();
+    translatedstrings[STRING_USB_NO_PORT]               = QCoreApplication::translate("", "%s was not connected: every USB port of this machine is in use.").toUtf8();
+    translatedstrings[STRING_USB_NO_CONTROLLER]         = QCoreApplication::translate("", "%s was not connected: this machine has no USB controller that can take devices.").toUtf8();
 #ifdef USE_VFIO
     translatedstrings[STRING_VFIO_NO_CONTAINER]         = QCoreApplication::translate("", "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded.").toUtf8();
     translatedstrings[STRING_VFIO_INVALID_LOCATION]     = QCoreApplication::translate("", "VFIO %s: Invalid device location.").toUtf8();

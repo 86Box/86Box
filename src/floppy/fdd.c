@@ -774,6 +774,8 @@ fdd_get_densel(void *priv)
     return drv->densel;
 }
 
+static __inline uint64_t fdd_byteperiod(void *priv);
+
 void
 fdd_load(void *priv, char *fn)
 {
@@ -846,6 +848,14 @@ fdd_load(void *priv, char *fn)
                 drv->empty = 0;
                 fdd_forced_seek(drv, 0);
                 drv->changed = 1;
+                /* The flux engine is driven by the drive poll timer, which the motor enable
+                   only starts on a 0 -> 1 transition. On boards without a DOR (the Tandy 2000
+                   keeps the motor on all the time) the motor is already spinning when the disk
+                   is inserted, so that transition never happens again and the drive would stay
+                   unpolled, leaving READ ID and every other command unanswered. Kick the timer
+                   here as well. */
+                if (drv->motoron)
+                    timer_set_delay_u64(&drv->poll_time, fdd_byteperiod(drv));
                 ui_sb_update_icon_wp(SB_FLOPPY | drv->id, drv->read_only);
                 return;
             }
@@ -1017,7 +1027,19 @@ fdd_reset(void)
         fdd_drive_t *drv = &drives[i];
 
         drives[i].id = i;
+        /* timer_add() only clears the struct, so re-adding a timer that is still
+           armed leaves the timer list pointing at a node whose links have just
+           been zeroed; the list is then truncated when that node is popped
+           and every other timer stops. Take the timer out first. */
+        timer_disable(&drv->poll_time);
         timer_add(&drv->poll_time, fdd_poll, &drives[i], 0);
+        /* The poll timer is the flux engine's clock: without it the drive never
+           advances and every command stalls. A system reset does not stop a spinning
+           motor - boards like the Tandy 2000 strap the motor lines on and have no DOR
+           to clear - so the 0 -> 1 edge never comes again in fdd_set_motor_enable().
+           Restart the engine for a drive that is still turning. */
+        if (drv->motoron)
+            timer_set_delay_u64(&drv->poll_time, fdd_byteperiod(drv));
 
         /* Clear any pending seek state */
         drv->seek_in_progress = 0;

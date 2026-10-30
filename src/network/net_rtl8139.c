@@ -3359,7 +3359,7 @@ nic_init(const device_t *info)
                     rtl8139_io_readb_mem, rtl8139_io_readw_mem, rtl8139_io_readl_mem,
                     rtl8139_io_writeb_mem, rtl8139_io_writew_mem, rtl8139_io_writel_mem,
                     NULL, MEM_MAPPING_EXTERNAL, s);
-    pci_add_card(PCI_ADD_NORMAL, rtl8139_pci_read, rtl8139_pci_write, s, &s->pci_slot);
+    pci_add_card(info->local ? PCI_ADD_NETWORK : PCI_ADD_NORMAL, rtl8139_pci_read, rtl8139_pci_write, s, &s->pci_slot);
     s->inst = device_get_instance();
 
     eep_data = (uint16_t *) s->eeprom_data;
@@ -3452,6 +3452,20 @@ const device_t rtl8139c_plus_device = {
     .internal_name = "rtl8139c+",
     .flags         = DEVICE_PCI,
     .local         = 0,
+    .init          = nic_init,
+    .close         = nic_close,
+    .reset         = rtl8139_pci_reset,
+    .available     = NULL,
+    .speed_changed = rtl8139_speed_changed,
+    .force_redraw  = NULL,
+    .config        = rtl8139c_config
+};
+
+const device_t rtl8139c_plus_onboard_device = {
+    .name          = "Realtek RTL8139C+ (On-Board)",
+    .internal_name = "rtl8139c+_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = 1,
     .init          = nic_init,
     .close         = nic_close,
     .reset         = rtl8139_pci_reset,

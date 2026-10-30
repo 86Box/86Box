@@ -63,6 +63,20 @@ io_t   *io_last[NPORTS];
 uint8_t io_turbo_map[NPORTS >> 3];
 int io_turbo_throttle = 0;
 
+/* Chipset claims (io_set_claim). Only a few ports are ever claimed (the
+   CS5530's DMA traps are the most, 48), so they live in a small table, and
+   a bitmap of claimed ports lets every other port skip the table lookup. */
+#define IO_CLAIMS 64
+
+typedef struct io_claim_t {
+    uint16_t port;
+    int    (*func)(uint16_t port, uint8_t write, uint8_t val, void *priv);
+    void    *priv;
+} io_claim_t;
+
+static io_claim_t io_claims[IO_CLAIMS];
+static uint8_t    io_claimed[NPORTS / 8];
+
 #ifdef ENABLE_IO_LOG
 uint8_t io_do_log = ENABLE_IO_LOG;
 
@@ -111,6 +125,54 @@ io_init(void)
         /* io[c] should be NULL. */
         io[c] = io_last[c] = NULL;
     }
+
+    memset(io_claims, 0x00, sizeof(io_claims));
+    memset(io_claimed, 0x00, sizeof(io_claimed));
+}
+
+void
+io_set_claim(uint16_t port, int (*claim)(uint16_t port, uint8_t write, uint8_t val, void *priv), void *priv)
+{
+    int i;
+
+    for (i = 0; i < IO_CLAIMS; i++) {
+        if ((io_claims[i].func != NULL) && (io_claims[i].port == port))
+            break;
+    }
+    if (i == IO_CLAIMS) {
+        if (claim == NULL)
+            return;
+        for (i = 0; i < IO_CLAIMS; i++) {
+            if (io_claims[i].func == NULL)
+                break;
+        }
+        if (i == IO_CLAIMS)
+            fatal("io_set_claim(%04X): no free claim slot\n", port);
+    }
+
+    io_claims[i].port = port;
+    io_claims[i].func = claim;
+    io_claims[i].priv = priv;
+
+    if (claim != NULL)
+        io_claimed[port >> 3] |= (1 << (port & 7));
+    else
+        io_claimed[port >> 3] &= ~(1 << (port & 7));
+}
+
+/* Returns 1 when the chipset keeps this byte cycle from the port's handlers. */
+static int
+io_claim_byte(uint16_t port, uint8_t write, uint8_t val)
+{
+    if (!(io_claimed[port >> 3] & (1 << (port & 7))))
+        return 0;
+
+    for (int i = 0; i < IO_CLAIMS; i++) {
+        if ((io_claims[i].func != NULL) && (io_claims[i].port == port))
+            return io_claims[i].func(port, write, val, io_claims[i].priv);
+    }
+
+    return 0;
 }
 
 void
@@ -351,6 +413,10 @@ inb(uint16_t port)
 #endif
 
     io_port = port;
+    io_cycle = 1;
+    io_cycle_smi = 0;
+    io_size = 1;
+    io_write = 0;
 
     if (cpu_dr_armed)
         io_debug_check_addr(port);
@@ -367,6 +433,8 @@ inb(uint16_t port)
 #ifdef ENABLE_IO_LOG
         qfound = 1;
 #endif
+    } else if (io_claim_byte(port, 0, 0)) {
+        found = 1;
     } else {
         p = io[port];
         while (p) {
@@ -400,6 +468,7 @@ inb(uint16_t port)
         ret = 0xfe;
 #endif
 
+    io_cycle = 0;
     io_log("[%04X:%08X] (%i, %i, %04i) in b(%04X) = %02X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
     if ((port & 0xfff8) == 0x0200)
@@ -419,6 +488,10 @@ outb(uint16_t port, uint8_t val)
 #endif
 
     io_port = port;
+    io_cycle = 1;
+    io_cycle_smi = 0;
+    io_size = 1;
+    io_write = 1;
     io_val  = val;
 
     if (cpu_dr_armed)
@@ -436,6 +509,8 @@ outb(uint16_t port, uint8_t val)
 #ifdef ENABLE_IO_LOG
         qfound = 1;
 #endif
+    } else if (io_claim_byte(port, 1, val)) {
+        found = 1;
     } else {
         p = io[port];
         while (p) {
@@ -459,6 +534,7 @@ outb(uint16_t port, uint8_t val)
 #endif
     }
 
+    io_cycle = 0;
     io_log("[%04X:%08X] (%i, %i, %04i) outb(%04X, %02X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
 
     if ((port & 0xfff8) == 0x0200)
@@ -478,6 +554,10 @@ inw(uint16_t port)
     uint8_t  ret8[2];
 
     io_port = port;
+    io_cycle = 1;
+    io_cycle_smi = 0;
+    io_size = 2;
+    io_write = 0;
 
     if (cpu_dr_armed)
         io_debug_check_addr(port);
@@ -511,6 +591,10 @@ inw(uint16_t port)
         ret8[0] = ret & 0xff;
         ret8[1] = (ret >> 8) & 0xff;
         for (uint8_t i = 0; i < 2; i++) {
+            if (io_claim_byte(port + i, 0, 0)) {
+                found |= 1;
+                continue;
+            }
             p = io[(port + i) & 0xffff];
             while (p) {
                 q = p->next;
@@ -539,6 +623,7 @@ inw(uint16_t port)
     if (!found || (machines[machine].init == machine_xt_ibm5550_init) || (machines[machine].init == machine_xt_ibm5535_init))
         cycles -= io_delay;
 
+    io_cycle = 0;
     io_log("[%04X:%08X] (%i, %i, %04i) in w(%04X) = %04X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
     if ((port & 0xfff8) == 0x0200)
@@ -558,6 +643,10 @@ outw(uint16_t port, uint16_t val)
 #endif
 
     io_port = port;
+    io_cycle = 1;
+    io_cycle_smi = 0;
+    io_size = 2;
+    io_write = 1;
     io_val  = val;
 
     if (cpu_dr_armed)
@@ -590,6 +679,10 @@ outw(uint16_t port, uint16_t val)
         }
 
         for (uint8_t i = 0; i < 2; i++) {
+            if (io_claim_byte(port + i, 1, val >> (i << 3))) {
+                found |= 1;
+                continue;
+            }
             p = io[(port + i) & 0xffff];
             while (p) {
                 q = p->next;
@@ -613,6 +706,7 @@ outw(uint16_t port, uint16_t val)
 #endif
     }
 
+    io_cycle = 0;
     io_log("[%04X:%08X] (%i, %i, %04i) outw(%04X, %04X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
 
     if ((port & 0xfff8) == 0x0200)
@@ -633,6 +727,10 @@ inl(uint16_t port)
 #endif
 
     io_port = port;
+    io_cycle = 1;
+    io_cycle_smi = 0;
+    io_size = 4;
+    io_write = 0;
 
     if (cpu_dr_armed)
         io_debug_check_addr(port);
@@ -697,6 +795,10 @@ inl(uint16_t port)
         ret8[2] = (ret >> 16) & 0xff;
         ret8[3] = (ret >> 24) & 0xff;
         for (uint8_t i = 0; i < 4; i++) {
+            if (io_claim_byte(port + i, 0, 0)) {
+                found |= 1;
+                continue;
+            }
             p = io[(port + i) & 0xffff];
             while (p) {
                 q = p->next;
@@ -725,6 +827,7 @@ inl(uint16_t port)
     if (!found || (machines[machine].init == machine_xt_ibm5550_init) || (machines[machine].init == machine_xt_ibm5535_init))
         cycles -= io_delay;
 
+    io_cycle = 0;
     io_log("[%04X:%08X] (%i, %i, %04i) in l(%04X) = %08X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
 
     if ((port & 0xfff8) == 0x0200)
@@ -744,6 +847,10 @@ outl(uint16_t port, uint32_t val)
 #endif
 
     io_port = port;
+    io_cycle = 1;
+    io_cycle_smi = 0;
+    io_size = 4;
+    io_write = 1;
     io_val  = val;
 
     if (cpu_dr_armed)
@@ -793,6 +900,10 @@ outl(uint16_t port, uint32_t val)
         }
 
         for (uint8_t i = 0; i < 4; i++) {
+            if (io_claim_byte(port + i, 1, val >> (i << 3))) {
+                found |= 1;
+                continue;
+            }
             p = io[(port + i) & 0xffff];
             while (p) {
                 q = p->next;
@@ -816,6 +927,7 @@ outl(uint16_t port, uint32_t val)
 #endif
     }
 
+    io_cycle = 0;
     io_log("[%04X:%08X] (%i, %i, %04i) outl(%04X, %08X)\n", CS, cpu_state.pc, in_smm, found, qfound, port, val);
 
     if ((port & 0xfff8) == 0x0200)
@@ -886,6 +998,11 @@ io_trap_remap(void *handle, uint8_t enable, uint16_t port, uint16_t size)
 {
     io_trap_t *trap = (io_trap_t *) handle;
     if (!trap)
+        return;
+
+    /* Nothing to do if the mapping is unchanged; chipsets recalculate their
+       traps on every power management register write. */
+    if ((trap->enable == !!enable) && (!enable || ((trap->base == port) && (trap->size == size))))
         return;
 
     io_log("I/O: Remapping trap from %04X-%04X (enable %d) to %04X-%04X (enable %d)\n",

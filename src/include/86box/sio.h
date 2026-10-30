@@ -119,6 +119,7 @@ extern const device_t pc87310_device;
 /* National Semiconductors */
 #define PCX7307_PC87307      0x000c0
 #define PCX7307_PC97307      0x000cf
+#define PCX7307_PC97317      0x000df    /* SID DFh, PC87317/PC97317 data sheet 2.4.2 */
 
 #define PC87309_PC87309      0x000e0
 
@@ -136,12 +137,16 @@ extern const device_t pc87310_device;
 #define PCX730X_BADDR        0x03000
 #define PCX730X_BADDR_SHIFT       12
 
+#define PCX7307_RTC          0x04000    /* The chip's RTC is the board's NVR (the PC97317's always is). */
+
 extern const device_t pc87306_device;
 
 extern const device_t pc873xx_device;
 
 /* National Semiconductors PC87307 / PC87309 */
 extern const device_t pc87307_device;
+extern const device_t pc97317_device;
+extern uint8_t        pc87307_gpio_pins(void *priv, int port);
 
 extern const device_t pc87309_device;
 
@@ -228,6 +233,7 @@ extern void w83877_in530_master_reset(void);
 
 #define W83977_UART_FORCE_SEC 0x01000000
 #define W83977_LPT_FORCE_SEC  0x02000000
+#define W83977_SECONDARY      0x04000000    /* Second Super I/O after another vendor's chip: no FDC, NVR or KBC. */
 
 extern const device_t w83977_device;
 

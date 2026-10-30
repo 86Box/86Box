@@ -5190,9 +5190,11 @@ es186x_pnp_write(uint16_t port, uint8_t val, void *priv)
                 case 1:
                     ess->es186x_confaddr = (val << 8) | ess->es186x_confaddr;
                     sb_log("ES186x PnP bypass, new control addr = %04X\n", ess->es186x_confaddr);
-                    ess->es186x_bypass_conf->activate = 1;
-                    ess->es186x_bypass_conf->io[0].base = ess->es186x_confaddr;
-                    ess_186x_pnp_config_changed(0, ess->es186x_bypass_conf, ess);
+                    /* The bypass key sets the configuration device's address register and
+                       activate bit, so later PnP accesses to logical device 0 see them. */
+                    isapnp_write_reg(ess->pnp_card, 0, 0x60, ess->es186x_confaddr >> 8);
+                    isapnp_write_reg(ess->pnp_card, 0, 0x61, ess->es186x_confaddr & 0xff);
+                    isapnp_write_reg(ess->pnp_card, 0, 0x30, 1);
                     ess->es186x_bypass_state = 0;
                     ess->es186x_bypass = 0;
                     break;
@@ -7030,7 +7032,6 @@ ess_186x_init(const device_t *info)
     ess->pnp_card = isapnp_add_card(pnp_rom, sizeof(ess->pnp_rom), ess_186x_pnp_config_changed,
                                     NULL, NULL, NULL, ess);
     io_sethandler(0x0279, 0x0001, NULL, NULL, NULL, es186x_pnp_write, NULL, NULL, ess);
-    ess->es186x_bypass_conf = (isapnp_device_config_t *) calloc(1, sizeof(isapnp_device_config_t));
 
     sb_dsp_setaddr(&ess->dsp, 0);
     sb_dsp_setirq(&ess->dsp, 0);
@@ -7175,6 +7176,32 @@ solo1_legacy_dma_writew(void *priv, uint16_t val)
  */
 extern void sb_doreset(sb_dsp_t *dsp);
 
+/* The Solo-1 legacy core's Audio 1 interrupt: on the Solo-1's INTA pin
+   when it is attached there, else on the Sound Blaster ISA IRQ. */
+static void
+ess_solo1_legacy_dsp_irq(void *priv, int set)
+{
+    const sb_t *ess = (const sb_t *) priv;
+
+    if (ess->solo1_irq_update != NULL)
+        ess->solo1_irq_update(ess->solo1_irq_priv, set);
+    else if (ess->dsp.sb_irqnum) {
+        if (set)
+            picint(1 << ess->dsp.sb_irqnum);
+        else
+            picintc(1 << ess->dsp.sb_irqnum);
+    }
+}
+
+static void
+ess_solo1_legacy_mpu_irq(void *priv, int set)
+{
+    const sb_t *ess = (const sb_t *) priv;
+
+    if (ess->solo1_irq_update != NULL)
+        ess->solo1_irq_update(ess->solo1_irq_priv, set);
+}
+
 void *
 ess_solo1_legacy_init(void)
 {
@@ -7193,6 +7220,7 @@ ess_solo1_legacy_init(void)
                       solo1_legacy_dma_writew,
                       ess);
     sb_dsp_setdma16_supported(&ess->dsp, 0);
+    sb_dsp_irq_attach(&ess->dsp, ess_solo1_legacy_dsp_irq, ess);
     ess_solo1_mixer_reset(ess);
 
     ess->mixer_ess.input_filter  = 1;
@@ -7439,6 +7467,54 @@ ess_solo1_legacy_audio2_gain(void *priv, int channel)
     master = channel ? mixer->master_r : mixer->master_l;
 
     return source * master;
+}
+
+/* Route the Audio 1 and MPU-401 interrupts to irq_update, the Solo-1's
+   INTA pin, or with NULL back to the ISA IRQ's ess_solo1_legacy_config()
+   was given (serial IRQ). */
+void
+ess_solo1_legacy_irq_attach(void *priv, void (*irq_update)(void *priv, int set), void *irq_priv)
+{
+    sb_t *ess = (sb_t *) priv;
+
+    if (ess == NULL)
+        return;
+
+    if ((ess->solo1_irq_update == irq_update) && (ess->solo1_irq_priv == irq_priv))
+        return;
+
+    /* Drop whatever the old route has asserted. */
+    if (ess->dsp.sb_irq8 || ess->dsp.sb_irq16)
+        ess_solo1_legacy_dsp_irq(ess, 0);
+    if ((ess->mpu != NULL) && (ess->mpu->irq > 0) && (ess->mpu->irq <= 15))
+        picint_common(1 << ess->mpu->irq, PIC_IRQ_EDGE, 0, NULL);
+
+    ess->solo1_irq_update = irq_update;
+    ess->solo1_irq_priv   = irq_priv;
+
+    if (ess->mpu != NULL)
+        mpu401_irq_attach(ess->mpu, (irq_update != NULL) ? ess_solo1_legacy_mpu_irq : NULL, NULL, ess);
+}
+
+/* The Audio 1 (SB) and MPU-401 halves of the Solo-1's IRQ status
+   (IOBase+7 bits 4 and 7): set while the source is requesting. The MPU-401
+   requests while it has data for the host, as MPU401_ReadRaiseIRQ() drives
+   its line; irq_pending is not cleared by reads in UART mode. */
+uint8_t
+ess_solo1_legacy_irq_status(void *priv)
+{
+    const sb_t *ess = (const sb_t *) priv;
+    uint8_t     ret = 0x00;
+
+    if (ess == NULL)
+        return ret;
+
+    if (ess->dsp.sb_irq8 || ess->dsp.sb_irq16)
+        ret |= 0x10;
+    if ((ess->mpu != NULL) && ess->mpu->queue_used)
+        ret |= 0x80;
+
+    return ret;
 }
 
 uint8_t

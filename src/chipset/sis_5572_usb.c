@@ -106,6 +106,79 @@ sis_5572_usb_unk_read(uint16_t addr, void *priv)
     return ret;
 }
 
+/* The ACPI USB power-management event: a rising edge of the enabled USB
+   function's interrupt or SMI output sets USB_STS (SiS 5581/5582 p. 54 /
+   PDF 54 and ACPI 14h bit 14, p. 163 / PDF 163; SiS 5595 GPE_STS bit 8,
+   p. 141 / PDF 147). */
+static void
+sis_5572_usb_pme(sis_5572_usb_t *dev)
+{
+    int level = dev->sis->usb_enabled && (dev->sis->usb_irq_level || dev->sis->usb_smi_level);
+
+    if (level && !dev->sis->usb_pme_level && (dev->sis->acpi != NULL))
+        acpi_sis_usb_event(dev->sis->acpi);
+    dev->sis->usb_pme_level = level;
+}
+
+/* USBIRQ reaches the 8259 through the PCI-to-ISA bridge's USBIRQ Remapping
+   Control register, which 86Box models as MIRQ3 (SiS 5571 p. 57 / PDF 61;
+   SiS 5581/5582 p. 150 / PDF 150; SiS 5595 p. 99 / PDF 105). It is a
+   shareable request, so it is driven as a level (SiS 5595 p. 60 /
+   PDF 66). */
+static void
+sis_5572_usb_irq(void *priv, int level)
+{
+    sis_5572_usb_t *dev = (sis_5572_usb_t *) priv;
+
+    dev->sis->usb_irq_level = !!level;
+    sis_5572_usb_pme(dev);
+    if (!dev->sis->usb_enabled)
+        return;
+    if (level)
+        pci_set_mirq(PCI_MIRQ3, 1, &dev->sis->usb_irq_state);
+    else
+        pci_clear_mirq(PCI_MIRQ3, 1, &dev->sis->usb_irq_state);
+}
+
+/* The OHCI's SMI output goes to the chipset's USB SMI# logic: 95h of the
+   5571 or 5581 host bridge, or ACPI LEG_STS bit 6 on the 5595. */
+static void
+sis_5572_usb_smi(void *priv, int level)
+{
+    sis_5572_usb_t *dev = (sis_5572_usb_t *) priv;
+
+    dev->sis->usb_smi_level = !!level;
+    if (dev->sis->usb_enabled && (dev->sis->usb_smi != NULL))
+        dev->sis->usb_smi(dev->sis->usb_smi_priv, level);
+    sis_5572_usb_pme(dev);
+}
+
+/* Clearing Integrated USB Enable hides the function's configuration space
+   and stops bus mastering, USBIRQ and the SMI output. The registers are
+   kept for when it comes back. The OHCI memory window still follows the
+   function's own 04h bit 1 and BAR: the Award BIOS on the Gigabyte
+   GA-5SG100 clears the enable at the end of POST and then resets the host
+   controller through the window, polling HcCommandStatus HCR. An active
+   USBIRQ or SMI output is dropped when the enable clears and driven again
+   when it sets, so the PIC and the SMI# logic see the edges. */
+void
+sis_5572_usb_apply_enable(void *priv)
+{
+    sis_5572_usb_t *dev = (sis_5572_usb_t *) priv;
+    int             on  = dev->sis->usb_enabled;
+
+    ohci_set_bus_master(dev->usb, on && (dev->pci_conf[0x04] & 0x04));
+    if (dev->sis->usb_irq_level) {
+        if (on)
+            pci_set_mirq(PCI_MIRQ3, 1, &dev->sis->usb_irq_state);
+        else
+            pci_clear_mirq(PCI_MIRQ3, 1, &dev->sis->usb_irq_state);
+    }
+    if (dev->sis->usb_smi_level && (dev->sis->usb_smi != NULL))
+        dev->sis->usb_smi(dev->sis->usb_smi_priv, on);
+    sis_5572_usb_pme(dev);
+}
+
 void
 sis_5572_usb_write(int addr, uint8_t val, void *priv)
 {
@@ -134,6 +207,9 @@ sis_5572_usb_write(int addr, uint8_t val, void *priv)
             ohci_update_mem_mapping(dev->usb,
                                     dev->pci_conf[0x11], dev->pci_conf[0x12],
                                     dev->pci_conf[0x13], dev->pci_conf[0x04] & 0x02);
+            /* Bus Master is bit 2 (SiS 5571 p. 66 / PDF 70; SiS 5581/5582
+               p. 191 / PDF 191). */
+            ohci_set_bus_master(dev->usb, dev->pci_conf[0x04] & 0x04);
             break;
 
         case 0x05: /* Command - High Byte */
@@ -238,6 +314,8 @@ sis_5572_usb_reset(void *priv)
     dev->pci_conf[0x3e] = 0x00;
     dev->pci_conf[0x3f] = 0x00;
 
+    ohci_set_bus_master(dev->usb, 0);
+
     if (dev->rev == 0xb0) {
         ohci_update_mem_mapping(dev->usb,
                                 dev->pci_conf[0x11], dev->pci_conf[0x12],
@@ -274,6 +352,10 @@ sis_5572_usb_init(UNUSED(const device_t *info))
 
     /* USB */
     dev->usb = device_add(&usb_device);
+    ohci_set_chip_flags(dev->usb, OHCI_CHIP_RWE_RO | OHCI_CHIP_UE_RW | OHCI_CHIP_POTPGT_RW);
+    ohci_set_irq_handler(dev->usb, sis_5572_usb_irq, dev);
+    ohci_set_smi_handler(dev->usb, sis_5572_usb_smi, dev);
+    dev->sis->usb_priv = dev;
 
     sis_5572_usb_reset(dev);
 

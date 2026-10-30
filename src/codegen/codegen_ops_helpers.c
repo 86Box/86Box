@@ -254,6 +254,9 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
         return 0;
 
     codegen_ir_set_unroll(max_unroll, start, first_instruction);
+    /*Each run goes round the loop several times: one run from block->data
+      pays for the compile (codeblock_t::runs_left).*/
+    block->runs_left = 1;
 
     return 1;
 }

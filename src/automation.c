@@ -70,9 +70,11 @@ typedef int sock_t;
 #include <86box/machine.h>
 #include <86box/sound.h>
 #include <86box/keyboard.h>
+#include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/mouse.h>
 #include <86box/path.h>
+#include <86box/pci.h>
 #include <86box/plat.h>
 #include <86box/thread.h>
 #include <86box/ui.h>
@@ -372,14 +374,93 @@ peek_phys(uint32_t addr)
     return val;
 }
 
-/* The same for a client's writes (memw). */
-static void
-poke_phys(uint32_t addr, uint8_t val)
+/* memr and memw's views: the mem_view_*() ones, and linear, the processor's
+   view through its page tables. */
+#define VIEW_LINEAR -1
+
+/* The words after memr's or memw's first two: a view and an access width
+   (1, 2 or 4), in either order. Returns 0 on a word that is neither. */
+static int
+mem_options(int argc, char **argv, int *view, int *width)
+{
+    static const struct {
+        const char *name;
+        int         view;
+    } views[] = {
+        { "bus", MEM_VIEW_BUS },
+        { "cpu", MEM_VIEW_CPU },
+        { "normal", MEM_VIEW_CPU_NORMAL },
+        { "smm", MEM_VIEW_CPU_SMM },
+        { "linear", VIEW_LINEAR },
+    };
+
+    *view  = MEM_VIEW_BUS;
+    *width = 1;
+    for (int i = 3; i < argc; i++) {
+        int known = 0;
+
+        if (!strcmp(argv[i], "1") || !strcmp(argv[i], "2") || !strcmp(argv[i], "4")) {
+            *width = atoi(argv[i]);
+            known  = 1;
+        }
+        for (size_t j = 0; !known && (j < (sizeof(views) / sizeof(views[0]))); j++) {
+            if (!strcmp(argv[i], views[j].name)) {
+                *view = views[j].view;
+                known = 1;
+            }
+        }
+        if (!known)
+            return 0;
+    }
+    return 1;
+}
+
+/* One access of width bytes for a client, not charged to the emulated CPU
+   (see peek_phys). A linear address is translated as the processor would,
+   but with supervisor rights, so a debugger reaches user and read-only pages
+   alike. Returns 0 if a linear address has no page. */
+static int
+mem_access(int view, uint32_t addr, int width, int write, uint32_t *val)
 {
     int saved = cycles;
 
-    mem_writeb_phys(addr, val);
+    if (view == VIEW_LINEAR) {
+        if (((addr & 0xfff) + width) > 0x1000) {
+            /* Across a page boundary: byte by byte, each through its page. */
+            uint32_t v = 0;
+
+            for (int i = 0; i < width; i++) {
+                uint32_t b = (*val >> (i << 3)) & 0xff;
+
+                if (!mem_access(view, addr + i, 1, write, &b))
+                    return 0;
+                v |= b << (i << 3);
+            }
+            if (!write)
+                *val = v;
+            return 1;
+        }
+        if (cr0 >> 31) {
+            int      saved_override = cpl_override;
+            uint64_t pa;
+
+            cpl_override = 1;
+            pa           = mmutranslate_noabrt(addr, write);
+            cpl_override = saved_override;
+            if (pa > 0xffffffffULL)
+                return 0;
+            addr = (uint32_t) pa;
+        }
+        addr &= rammask;
+        view = MEM_VIEW_CPU;
+    }
+
+    if (write)
+        mem_view_write(view, addr, *val, width);
+    else
+        *val = mem_view_read(view, addr, width);
     cycles = saved;
+    return 1;
 }
 
 static int
@@ -2171,34 +2252,138 @@ handle_request(char *line)
         cmd_info();
     } else if (!strcmp(argv[0], "text")) {
         cmd_text();
-    } else if (!strcmp(argv[0], "memr") && (argc == 3)) {
+    } else if (!strcmp(argv[0], "memr") && (argc >= 3) && (argc <= 5)) {
         uint32_t addr = strtoul(argv[1], NULL, 0);
         int      len  = atoi(argv[2]);
+        int      view;
+        int      width;
+        int      i;
         uint8_t *buf;
-        if ((len <= 0) || (len > MEM_MAX)) {
-            respond_error("length out of range");
+        if (!mem_options(argc, argv, &view, &width)) {
+            respond_error("options are a view (bus, cpu, normal, smm, linear) and a width (1, 2, 4)");
+        } else if ((len <= 0) || (len > MEM_MAX) || (len % width)) {
+            respond_error("length out of range, or not a multiple of the width");
         } else {
             buf = malloc(len);
-            for (int i = 0; i < len; i++)
-                buf[i] = peek_phys(addr + i);
-            resp.len = 0;
-            sb_printf(&resp, "{\"ok\":true,\"addr\":%u,\"data\":\"", addr);
-            sb_hex(&resp, buf, len);
-            sb_printf(&resp, "\"}");
+            for (i = 0; i < len; i += width) {
+                uint32_t val;
+                if (!mem_access(view, addr + i, width, 0, &val))
+                    break;
+                for (int j = 0; j < width; j++)
+                    buf[i + j] = val >> (j << 3);
+            }
+            if (i < len) {
+                char msg[64];
+                snprintf(msg, sizeof(msg), "no page at linear 0x%08X", addr + i);
+                respond_error(msg);
+            } else {
+                resp.len = 0;
+                sb_printf(&resp, "{\"ok\":true,\"addr\":%u,\"data\":\"", addr);
+                sb_hex(&resp, buf, len);
+                sb_printf(&resp, "\"}");
+            }
             free(buf);
         }
-    } else if (!strcmp(argv[0], "memw") && (argc == 3)) {
+    } else if (!strcmp(argv[0], "memw") && (argc >= 3) && (argc <= 5)) {
         uint32_t addr = strtoul(argv[1], NULL, 0);
         uint8_t *buf  = malloc(strlen(argv[2]) / 2 + 1);
         int      len  = parse_hex_bytes(argv[2], buf, strlen(argv[2]) / 2 + 1);
-        if (len <= 0) {
-            respond_error("bad hex bytes");
+        int      view;
+        int      width;
+        int      i;
+        if (!mem_options(argc, argv, &view, &width)) {
+            respond_error("options are a view (bus, cpu, normal, smm, linear) and a width (1, 2, 4)");
+        } else if ((len <= 0) || (len % width)) {
+            respond_error("bad hex bytes, or not a multiple of the width");
         } else {
-            for (int i = 0; i < len; i++)
-                poke_phys(addr + i, buf[i]);
-            respond_ok_time();
+            for (i = 0; i < len; i += width) {
+                uint32_t val = 0;
+                for (int j = 0; j < width; j++)
+                    val |= (uint32_t) buf[i + j] << (j << 3);
+                if (!mem_access(view, addr + i, width, 1, &val))
+                    break;
+            }
+            if (i < len) {
+                char msg[80];
+                snprintf(msg, sizeof(msg), "no page at linear 0x%08X; %d bytes written", addr + i, i);
+                respond_error(msg);
+            } else
+                respond_ok_time();
         }
         free(buf);
+    } else if (!strcmp(argv[0], "ior") && ((argc == 3) || (argc == 4))) {
+        uint32_t port  = strtoul(argv[1], NULL, 0);
+        int      width = atoi(argv[2]);
+        int      count = (argc == 4) ? atoi(argv[3]) : 1;
+        if ((port > 0xffff) || ((width != 1) && (width != 2) && (width != 4)) || (count <= 0) || ((count * width) > MEM_MAX)) {
+            respond_error("port, width (1, 2, 4) or count out of range");
+        } else {
+            int saved = cycles;
+            resp.len  = 0;
+            sb_printf(&resp, "{\"ok\":true,\"port\":%u,\"values\":[", port);
+            /* Successive ports, as INS with the direction flag clear. */
+            for (int i = 0; i < count; i++) {
+                uint16_t p = port + (i * width);
+                uint32_t v = (width == 4) ? inl(p) : ((width == 2) ? inw(p) : inb(p));
+                sb_printf(&resp, "%s%u", i ? "," : "", v);
+            }
+            sb_printf(&resp, "]}");
+            cycles = saved;
+        }
+    } else if (!strcmp(argv[0], "iow") && (argc >= 4)) {
+        uint32_t port  = strtoul(argv[1], NULL, 0);
+        int      width = atoi(argv[2]);
+        if ((port > 0xffff) || ((width != 1) && (width != 2) && (width != 4))) {
+            respond_error("port or width (1, 2, 4) out of range");
+        } else {
+            int saved = cycles;
+            /* Each value to the next port up, as OUTS would. A request
+               holds at most 13 values; send more requests for more. */
+            for (int i = 3; i < argc; i++) {
+                uint16_t p = port + ((i - 3) * width);
+                uint32_t v = strtoul(argv[i], NULL, 0);
+                if (width == 4)
+                    outl(p, v);
+                else if (width == 2)
+                    outw(p, v);
+                else
+                    outb(p, v);
+            }
+            cycles = saved;
+            respond_ok_time();
+        }
+    } else if ((!strcmp(argv[0], "pcir") && (argc >= 5) && (argc <= 7)) || (!strcmp(argv[0], "pciw") && ((argc == 6) || (argc == 7)))) {
+        int      write = !strcmp(argv[0], "pciw");
+        uint32_t bus   = strtoul(argv[1], NULL, 0);
+        uint32_t dev   = strtoul(argv[2], NULL, 0);
+        uint32_t func  = strtoul(argv[3], NULL, 0);
+        uint32_t reg   = strtoul(argv[4], NULL, 0);
+        uint8_t  buf[256];
+        int      len   = write ? parse_hex_bytes(argv[5], buf, sizeof(buf)) : ((argc >= 6) ? atoi(argv[5]) : 4);
+        int      width = (argc == 7) ? atoi(argv[6]) : 1;
+        int      present = 0;
+        if ((bus > 255) || (dev > 31) || (func > 7) || (reg > 255) || ((width != 1) && (width != 2) && (width != 4))) {
+            respond_error("bus, device, function, register or width (1, 2, 4) out of range");
+        } else if ((len <= 0) || ((reg + len) > 256) || (len % width)) {
+            respond_error("length past the 256-byte configuration space, or not a multiple of the width");
+        } else {
+            int saved = cycles;
+            for (int i = 0; i < len; i += width) {
+                if (write)
+                    present = pci_config_write(bus, dev, func, reg + i, width, buf + i);
+                else
+                    present = pci_config_read(bus, dev, func, reg + i, width, buf + i);
+            }
+            cycles = saved;
+            resp.len = 0;
+            sb_printf(&resp, "{\"ok\":true,\"present\":%s", present ? "true" : "false");
+            if (!write) {
+                sb_printf(&resp, ",\"data\":\"");
+                sb_hex(&resp, buf, len);
+                sb_printf(&resp, "\"");
+            }
+            sb_printf(&resp, "}");
+        }
     } else if (!strcmp(argv[0], "regs")) {
         static const char *names[8] = { "eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi" };
         resp.len                    = 0;

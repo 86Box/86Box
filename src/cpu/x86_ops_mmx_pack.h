@@ -19,7 +19,7 @@ opPUNPCKLDQ_a16(uint32_t fetchdat)
         CHECK_READ_EA(4);
         usrc = readmeml(easeg, cpu_state.eaaddr);
         if (cpu_state.abrt)
-            return 0;
+            return 1;
         dst->l[1] = usrc;
 
         CLOCK_CYCLES(2);
@@ -50,7 +50,7 @@ opPUNPCKLDQ_a32(uint32_t fetchdat)
         CHECK_READ_EA(4);
         usrc = readmeml(easeg, cpu_state.eaaddr);
         if (cpu_state.abrt)
-            return 0;
+            return 1;
         dst->l[1] = usrc;
 
         CLOCK_CYCLES(2);

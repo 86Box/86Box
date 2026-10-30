@@ -913,6 +913,7 @@ static void
 s3_virge_recalctimings(svga_t *svga)
 {
     virge_t *virge = (virge_t *) svga->priv;
+    int   enhanced_8bpp_modes = 0;
 
     svga->hdisp = svga->hdisp_old;
 
@@ -1021,13 +1022,23 @@ s3_virge_recalctimings(svga_t *svga)
 
         /* Also make sure vertical blanking starts on display end. */
         svga->vblankstart = svga->dispend;
+
+        svga->hblank_ext     = (svga->crtc[0x5d] & 0x08) ? 64 : 0;
+        svga->hsync_ext      = (svga->crtc[0x5d] & 0x20) ? 32 : 0;
+
         video_force_resize_set_monitor(1, svga->monitor_index);
     } else {
         svga->hblankstart = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2];
 
-        svga->hblank_end_val  = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
-                                (((svga->crtc[0x5d] & 0x08) >> 3) << 6);
-        svga->hblank_end_mask = 0x7f;
+        /*
+           What does does, is simple: extend by 64 or 32 cycles, but the comparison
+           is not affected.
+         */
+        svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5);
+
+        svga->hblank_ext     = (svga->crtc[0x5d] & 0x08) ? 64 : 0;
+        svga->hsync_ext      = (svga->crtc[0x5d] & 0x20) ? 32 : 0;
+
         video_force_resize_set_monitor(1, svga->monitor_index);
     }
 
@@ -1182,7 +1193,21 @@ s3_virge_recalctimings(svga_t *svga)
         svga->vram_display_mask = virge->vram_mask;
     }
 
-    svga->hoverride = 1;
+    enhanced_8bpp_modes = !!((svga->crtc[0x3a] & 0x10) && !svga->lowres);
+
+    const int is_vga_mode = ((svga->bpp <= 8) || ((svga->gdcreg[5] & 0x60) <= 0x20));
+    svga->hoverride = !is_vga_mode;
+
+    if (is_vga_mode) {
+        svga->hoverride = 0;
+        /* Preserve the first character when blanking ends at line rollover.
+           A zero end value can also match before rollover on longer lines. */
+        if (enhanced_8bpp_modes || ((svga->hblank_end_val == 0) &&
+                                   ((svga->hblankstart + 1) == svga->hdisp_time) &&
+                                   ((svga->hblankstart >> 6) == ((svga->htotal - 1) >> 6))))
+            svga->hoverride = 1;
+    } else
+        svga->hoverride = 1;
 
     if (svga->render == svga_render_2bpp_lowres)
         svga->render = svga_render_2bpp_s3_lowres;

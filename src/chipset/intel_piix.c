@@ -71,6 +71,10 @@ typedef struct _piix_ {
     uint16_t       nvr_io_base;
     uint16_t       acpi_io_base;
     uint16_t       irq_state;
+    uint8_t        usb_irq_level;
+    uint8_t        usb_irq_state;
+    uint8_t        usb_smi_level; /* legacy USB event sources last seen */
+    uint8_t        usb_a20;       /* LEGSUP A20GATE pass-through position */
     double         fast_off_period;
     sff8038i_t    *bm[2];
     smbus_piix4_t *smbus;
@@ -515,6 +519,139 @@ piix_extsmi_raise(void)
         smi_raise();
 }
 
+/* The UHCI interrupt shows in LEGSUP bit 12 (USBIRQS) and reaches PIRQD
+   only while LEGSUP bit 13 (USBPIRQDEN) is set (PIIX3 2.4.14, p. 59 / PDF 59;
+   PIIX4 6.1.12, p. 107 / PDF 107). The line is the chip's own PIRQD input,
+   not the board's slot entry for the south bridge. */
+static void
+piix_usb_update_irq(piix_t *dev)
+{
+    uint8_t *fregs = dev->regs[2];
+    uint8_t  sources;
+    uint8_t  smi;
+
+    if (dev->usb_irq_level)
+        fregs[0xc1] |= 0x10;
+    else
+        fregs[0xc1] &= ~0x10;
+
+    if (dev->usb_irq_level && (fregs[0xc1] & 0x20))
+        pci_set_iirq(PCI_INTD, &dev->usb_irq_state);
+    else
+        pci_clear_iirq(PCI_INTD, &dev->usb_irq_state);
+
+    /* A legacy USB event is the USB interrupt with USBSMIEN, an enabled
+       keyboard trap, or A20PTS with SMIEPTE; only a source that was not
+       already pending makes a new event. On the PIIX3, SMIEN bit 8 lets it set
+       SMIREQ bit 8 (RLUSB) and assert SMI# (PIIX3 2.2.19 and 2.2.22,
+       p. 44-46 / PDF 44-46). On the PIIX4 it sets GLBSTS LEGACY_USB_STS and
+       asserts SMI# whether or not GLBEN LEGACY_USB_EN is set, although the
+       datasheet makes that bit the enable (PIIX4 7.2.12, p. 144 / PDF 144):
+       the Award BIOS on the ABIT AB-BF6 runs USB legacy keyboard support from
+       this SMI and leaves the bit clear. No event is raised while an A20GATE
+       pass-through sequence runs (UHCI 1.1 s5.2.1 bit 5, p. 40 / PDF 46). */
+    sources = uhci_legsup_event(&fregs[0xc0], dev->usb_irq_level);
+    smi     = (sources & ~dev->usb_smi_level) && !(fregs[0xc0] & 0x40);
+    if (dev->type == 3) {
+        /* RLUSB also clears by itself once no enabled legacy source is
+           pending. The datasheet only names a software write of 0 (PIIX3
+           2.2.22, p. 46 / PDF 46), but the AMI SMI handlers on the Biostar
+           MB-8500TUC and FIC KN-6000 never write SMIREQ on the USB path and
+           end the SMI by toggling SMICNTL CSMIGATE. A sticky RLUSB would
+           re-raise SMI# on every reopen of the gate (see the 0xa0 write). */
+        if (smi) {
+            if (dev->regs[0][0xa3] & 0x01) {
+                dev->regs[0][0xab] |= 0x01;
+                if (dev->regs[0][0xa0] & 0x01)
+                    smi_raise();
+            }
+        } else if (!sources)
+            dev->regs[0][0xab] &= ~0x01;
+    } else if (dev->acpi != NULL) {
+        /* LEGACY_USB_STS can only be cleared by clearing its child statuses
+           in LEGSUP (PIIX4 7.2.10 bit 1, p. 143 / PDF 143), so it drops once
+           no enabled legacy source is pending. The LEGSUP enable bits pick
+           which child statuses count (6.1.12, p. 107-108 / PDF 107-108). */
+        if (smi)
+            dev->acpi->regs.glbsts |= 0x0002;
+        else if (!sources)
+            dev->acpi->regs.glbsts &= ~0x0002;
+        if (smi) {
+            /* With GLBCTL EOS (bit 16) clear, only the status is set; the
+               SMI# follows when the handler sets EOS again while the status
+               is still set (PIIX4 11.5.1, p. 262 / PDF 262). */
+            if (dev->acpi->regs.glbctl & 0x00010000)
+                acpi_raise_smi(dev->acpi, 1);
+        }
+    }
+    dev->usb_smi_level = sources;
+}
+
+/* LEGSUP keyboard controller traps: a trapped cycle at 60h/64h never
+   reaches the 8042, and the SMI handler stands in for it (UHCI 1.1 s5.2.2,
+   p. 41 / PDF 47). */
+static int
+piix_usb_kbc_claim(uint16_t port, uint8_t write, uint8_t val, void *priv)
+{
+    piix_t  *dev   = (piix_t *) priv;
+    uint8_t *fregs = dev->regs[2];
+    int      trapped;
+
+    trapped = uhci_legsup_kbc_cycle(&fregs[0xc0], &dev->usb_a20, port, write, val, 0);
+    piix_usb_update_irq(dev);
+
+    return trapped;
+}
+
+static void
+piix_usb_update_kbc_claim(piix_t *dev)
+{
+    int armed = uhci_legsup_kbc_armed(&dev->regs[2][0xc0], 0);
+
+    io_set_claim(0x60, armed ? piix_usb_kbc_claim : NULL, dev);
+    io_set_claim(0x64, armed ? piix_usb_kbc_claim : NULL, dev);
+}
+
+static void
+piix_usb_irq(void *priv, int level)
+{
+    piix_t *dev = (piix_t *) priv;
+
+    dev->usb_irq_level = !!level;
+    piix_usb_update_irq(dev);
+}
+
+/* The SLC90E66's OHCI interrupts on the chip's own nPIRQD, with no enable
+   of its own (SMSC SLC90E66 pin description, p. 24 / PDF 24). */
+static void
+slc90e66_usb_irq(void *priv, int level)
+{
+    piix_t *dev = (piix_t *) priv;
+
+    if (level)
+        pci_set_iirq(PCI_INTD, &dev->usb_irq_state);
+    else
+        pci_clear_iirq(PCI_INTD, &dev->usb_irq_state);
+}
+
+/* The OHCI's SMI output is the SLC90E66's legacy USB event. A rising edge
+   sets GLBSTS USB_STS (bit 1) and asserts nSMI when GLBEN USB_EN (bit 0)
+   and GLBCTL EOS are both set; with EOS clear, the nSMI follows when the
+   handler sets EOS (SMSC SLC90E66 7.3.10 and 7.3.12, p. 143-144 /
+   PDF 143-144; 11.4.1, p. 243-244 / PDF 243-244). */
+static void
+slc90e66_usb_smi(void *priv, int level)
+{
+    piix_t *dev = (piix_t *) priv;
+
+    if (level && !dev->usb_smi_level && (dev->acpi != NULL)) {
+        dev->acpi->regs.glbsts |= 0x0002;
+        if ((dev->acpi->regs.glben & 0x0001) && (dev->acpi->regs.glbctl & 0x00010000))
+            acpi_raise_smi(dev->acpi, 1);
+    }
+    dev->usb_smi_level = !!level;
+}
+
 static void
 piix_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
@@ -735,7 +872,7 @@ piix_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 
                     fregs[addr] = val & 0x1f;
                     apm_set_do_smi(dev->apm, !!(val & 0x01) && !!(fregs[0xa2] & 0x80));
-                    if ((val & 0x01) && !(old & 0x01) && fregs[0xaa])
+                    if ((val & 0x01) && !(old & 0x01) && (fregs[0xaa] || ((dev->type == 3) && (fregs[0xab] & 0x01))))
                         smi_raise();
                     switch ((val & 0x18) >> 3) {
                         case 0x00:
@@ -1022,9 +1159,11 @@ piix_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 if (dev->type > 4) {
                     fregs[0x04] = (val & 7);
                     ohci_update_mem_mapping(dev->usb, fregs[0x11], fregs[0x12], fregs[0x13], fregs[PCI_REG_COMMAND] & PCI_COMMAND_MEM);
+                    ohci_set_bus_master(dev->usb, fregs[PCI_REG_COMMAND] & PCI_COMMAND_L_BM);
                 } else {
                     fregs[0x04] = (val & 5);
                     uhci_update_io_mapping(dev->usb, fregs[0x20] & ~0x1f, fregs[0x21], fregs[PCI_REG_COMMAND] & PCI_COMMAND_IO);
+                    uhci_set_bus_master(dev->usb, fregs[PCI_REG_COMMAND] & PCI_COMMAND_L_BM);
                 }
                 break;
             case 0x07:
@@ -1099,12 +1238,17 @@ piix_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                     fregs[0x6a] = val & 0x01;
                 break;
             case 0xc0:
-                if (dev->type <= 4)
-                    fregs[0xc0] = (fregs[0xc0] & 0x40) | (val & 0xbf);
+                if (dev->type <= 4) {
+                    uhci_legsup_write_c0(&fregs[0xc0], val);
+                    piix_usb_update_kbc_claim(dev);
+                    piix_usb_update_irq(dev);
+                }
                 break;
             case 0xc1:
-                if (dev->type <= 4)
+                if (dev->type <= 4) {
                     fregs[0xc1] = (fregs[0xc1] & 0x9f & ~(val & 0x8f)) | (val & 0x20);
+                    piix_usb_update_irq(dev);
+                }
                 break;
             case 0xff:
                 if (dev->type == 4) {
@@ -1578,7 +1722,10 @@ piix_reset(void *priv)
             piix_write(2, 0x23, 1, 0x00, priv);
 
             piix_write(2, 0xc0, 1, 0x00, priv);
-            piix_write(2, 0xc1, 1, 0x20, priv);
+            /* LEGSUP resets to 2000h: the write-1-to-clear statuses cleared,
+               USBPIRQDEN set (PIIX3 2.4.14, p. 59 / PDF 59; PIIX4 6.1.12,
+               p. 107 / PDF 107). */
+            piix_write(2, 0xc1, 1, 0xaf, priv);
         }
     }
 
@@ -1649,6 +1796,11 @@ piix_close(void *priv)
     for (int i = 0; i < (sizeof(dev->io_traps) / sizeof(dev->io_traps[0])); i++)
         io_trap_remove(dev->io_traps[i].trap);
 
+    if (uhci_legsup_kbc_armed(&dev->regs[2][0xc0], 0)) {
+        io_set_claim(0x60, NULL, NULL);
+        io_set_claim(0x64, NULL, NULL);
+    }
+
     free(dev);
 }
 
@@ -1709,8 +1861,15 @@ piix_init(const device_t *info)
     else
         sff_set_irq_mode(dev->bm[1], IRQ_MODE_MIRQ_0);
 
-    if ((dev->type >= 3) && !dev->no_usb)
+    if ((dev->type >= 3) && !dev->no_usb) {
         dev->usb   = device_add(&usb_device);
+        if (dev->type <= 4)
+            uhci_set_irq_handler(dev->usb, piix_usb_irq, dev);
+        else {
+            ohci_set_irq_handler(dev->usb, slc90e66_usb_irq, dev);
+            ohci_set_smi_handler(dev->usb, slc90e66_usb_smi, dev);
+        }
+    }
 
     if (dev->type > 3) {
         if (info->local & PIIX4_NVR_AMI_1995J)
@@ -1735,6 +1894,8 @@ piix_init(const device_t *info)
         else
             acpi_set_gpireg2_default(dev->acpi, (dev->type > 4) ? 0xf1 : 0xdd);
         acpi_set_trap_update(dev->acpi, piix_trap_update, dev);
+        if (dev->type > 4)
+            acpi_set_usb_sts_w1c(dev->acpi, 1);
 
         dev->ddma = device_add(&ddma_device);
     } else

@@ -63,6 +63,8 @@ extern "C" {
 #include <86box/ui.h>
 #include <86box/thread.h>
 #include <86box/network.h>
+#include <86box/mem.h>
+#include <86box/usb.h>
 #include <86box/plat_floppy_ioctl.h>
 };
 
@@ -294,6 +296,22 @@ MediaMenu::refresh(QMenu *parentMenu)
         netMenus[i] = menu;
         nicUpdateMenu(i);
     });
+
+    /* One submenu per USB device the machine has. The plug or unplug is
+       made on the emulation thread, so the check mark is read again each
+       time the submenu opens: the request while it is pending, else the
+       device's state. */
+    usbMenus.clear();
+    for (int slot = 0; slot < USB_SLOTS; slot++) {
+        if (usb_slot_device(slot) == nullptr)
+            continue;
+        auto *menu   = parentMenu->addMenu("");
+        auto *action = menu->addAction(tr("&Connected"), [this, slot] { usbToggle(slot); });
+        action->setCheckable(true);
+        connect(menu, &QMenu::aboutToShow, this, [this, slot] { usbUpdateMenu(slot); });
+        usbMenus[slot] = menu;
+        usbUpdateMenu(slot);
+    }
     parentMenu->addAction(tr("Clear image &history"), [this]() { clearImageHistory(); });
 }
 
@@ -1520,6 +1538,32 @@ MediaMenu::nicUpdateMenu(int i)
 
     menu->setTitle(tr("&NIC %1 (%2) %3").arg(QString::number(i + 1), netType, devName));
     menu->setToolTip(tr("NIC %1 (%2) %3").arg(QString::number(i + 1), netType, devName));
+}
+
+void
+MediaMenu::usbToggle(int slot)
+{
+    usb_slot_want(slot, !usb_slot_requested(slot));
+    config_save();
+}
+
+void
+MediaMenu::usbUpdateMenu(int slot)
+{
+    if (!usbMenus.contains(slot))
+        return;
+
+    const device_t *dev = usb_slot_device(slot);
+    if (dev == nullptr)
+        return;
+
+    auto *menu            = usbMenus[slot];
+    auto *connectedAction = menu->actions().value(0);
+    if (connectedAction != nullptr)
+        connectedAction->setChecked(usb_slot_requested(slot));
+
+    menu->setTitle(DeviceConfig::DeviceName(dev, dev->internal_name, 0));
+    menu->setToolTip(DeviceConfig::DeviceName(dev, dev->internal_name, 0));
 }
 
 QString

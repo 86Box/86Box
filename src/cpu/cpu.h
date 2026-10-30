@@ -114,7 +114,9 @@ enum {
     CPU_PKG_SOCKET8          = (1 << 24),
     CPU_PKG_SLOT1            = (1 << 25),
     CPU_PKG_SLOT2            = (1 << 26),
-    CPU_PKG_SOCKET370        = (1 << 27)
+    CPU_PKG_SOCKET370        = (1 << 27),
+    CPU_PKG_GXM              = (1 << 29),
+    CPU_PKG_386EX            = (1 << 30)
 };
 
 #define CPU_SUPPORTS_DYNAREC 1
@@ -128,6 +130,9 @@ enum {
 
 #define CCR3_SMI_LOCK (1 << 0)
 #define CCR3_NMI_EN   (1 << 1)
+#define CCR3_MAPEN    (1 << 4) /* MediaGX: MAPEN is the one bit, 7:5 are LSS_x */
+
+#define CCR4_SMI_NEST (1 << 6) /* MediaGX */
 
 #if (defined __amd64__ || defined _M_X64)
 #    define LOOKUP_INV -1LL
@@ -554,6 +559,7 @@ extern int is186;
 extern int is286;
 extern int is386;
 extern int is6117;
+extern int is386ex;
 extern int is486;
 extern int is586;
 extern int is_am486;
@@ -871,6 +877,64 @@ extern int reset_on_hlt;
 extern int hlt_reset_pending;
 
 extern cyrix_t cyrix;
+
+/* The MediaGX's processor core extensions: the GCR, VGACTL and VGAM
+   configuration registers, the scratchpad RAM carved out of the L1 cache with
+   its BLT buffer registers, and the internal SMIs (MediaGX MMX data book,
+   3.3.2.2, 3.11, 4.1 and 5.2.3). */
+#define GCR_GX_BASE        0x03
+#define GCR_SP_SIZE        0x0c
+
+#define GXM_SMI_NONE       0
+#define GXM_SMI_IO         1 /* VGA I/O, trapped by the internal bus interface unit */
+#define GXM_SMI_MEM        2 /* VGA memory write, trapped in instruction decode */
+
+typedef struct gxm_t {
+    uint8_t  gcr;
+    uint8_t  vgactl;
+    uint8_t  pcr;
+    uint32_t vgam;
+
+    uint32_t bb_base[2]; /* L1_BBx_BASE */
+    uint32_t bb_ptr[2];  /* L1_BBx_POINTER */
+    uint32_t pm_base;
+    uint32_t pm_mask;
+
+    uint8_t  nested;     /* Nested SMI Status */
+    uint8_t  smi_int;    /* A pending internal SMI: GXM_SMI_* */
+    uint8_t  smi_ext;    /* A pending SMI# */
+    uint8_t  smi_write;
+    uint8_t  smi_size;
+    uint16_t smi_port;
+    uint32_t smi_addr;
+    uint32_t smi_data;
+
+    uint8_t  scratchpad[4096];
+
+    /* MSRs 70000001h-70000003h: the CPUID vendor string, four bytes each. */
+    uint32_t vendor_msr[3];
+
+    /* The integrated functions: the GCR moves them, CPU_READ/CPU_WRITE
+       reach the power management address decode. */
+    void   (*gcr_write)(void *priv);
+    /* RESET also resets them: they are part of the processor. */
+    void   (*reset)(void *priv);
+    void    *priv;
+    /* SMI#, as a level: an RSM with it still asserted is the next SMI
+       (3.11.3). */
+    int    (*smi_pin)(void);
+    /* PSERIAL: the serial packet, as the CS5530 receives it (6.6). */
+    void   (*serial_packet)(uint8_t packet);
+} gxm_t;
+
+extern gxm_t gxm;
+extern int   is_gxm;
+
+extern void cpu_gxm_reset(void);
+extern void cpu_gxm_smi_io(uint16_t port, int size, int write, uint32_t val);
+extern void cpu_gxm_smi_mem(uint32_t addr, int size, uint32_t val);
+extern void cpu_gxm_smi_pin_check(int was_enabled);
+extern int  cyrix_smi_enabled(void);
 
 extern int prefetch_prefixes;
 extern int cpu_use_exec;

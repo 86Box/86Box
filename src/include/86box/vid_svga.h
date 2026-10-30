@@ -336,6 +336,8 @@ typedef struct svga_t {
     int border_override;
     int border_left;
     int border_top;
+    int hsync_ext;
+    int hblank_ext;
 
     /* Return a 32 bpp color from a 15/16 bpp color. */
     uint32_t (*conv_16to32)(struct svga_t *svga, uint16_t color, uint8_t bpp);
@@ -580,6 +582,7 @@ extern const device_t sc11487_nors2_ramdac_device;
 extern const device_t sc1502x_ramdac_device;
 extern const device_t sc1502x_rs2_ramdac_device;
 extern const device_t sdac_ramdac_device;
+extern const device_t stg1700_ramdac_device;
 extern const device_t stg1702_ramdac_device;
 extern const device_t stg1703_ramdac_device;
 extern const device_t tkd8001_ramdac_device;

@@ -4077,8 +4077,15 @@ image_open(cdrom_t *dev, const char *path)
 
         if (ret > 0) {
             if (img->is_dvd == 2) {
-                uint32_t lb = image_get_last_block(img); /* Should be safer than previous way of doing it? */
-                img->is_dvd = (lb >= 524287);    /* Minimum 1 GB total capacity as threshold for DVD. */
+                uint32_t lb = image_get_last_block(img);
+                if (lb < CD_MAX_SECTORS) img->is_dvd = 0;
+                else if (lb < DVD_MAX_SECTORS) img->is_dvd = 1;
+                else {
+                    if (cdrom_drive_types[dev->type].hd_type == 1)
+                        img->is_dvd = 2;
+                    else
+                        img->is_dvd = 3;   /* Blu-ray */
+                }
             }
 
             dev->ops = &image_ops;

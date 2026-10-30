@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-25 04:19+0000\n"
+"PO-Revision-Date: 2026-10-26 18:48+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -414,17 +414,35 @@ msgstr "MB"
 msgid "Memory:"
 msgstr "Μνήμη:"
 
-msgid "Time synchronization"
-msgstr "Συγχρονισμός ώρας"
+msgid "Synchronize with host clock"
+msgstr "Συγχρονισμός με το ρολόι συστήματος οικοδεσπότη"
 
-msgid "Disabled"
-msgstr "Ανενεργό"
+msgid "Time zone:"
+msgstr "Ζώνη ώρας:"
 
-msgid "Enabled (local time)"
-msgstr "Ενεργό (τοπική ώρα)"
+msgid "Local"
+msgstr "Τοπική"
 
-msgid "Enabled (UTC)"
-msgstr "Ενεργό (UTC)"
+msgid "UTC"
+msgstr "UTC"
+
+msgid "Date:"
+msgstr "Ημερομηνία:"
+
+msgid "Match the host"
+msgstr "Αντιστοιχία με το σύστημα οικοδεσπότη"
+
+msgid "Offset the year by:"
+msgstr "Μετατόπιση έτους κατά:"
+
+msgid "(currently %1)"
+msgstr "(τρέχουσα τιμή: %1)"
+
+msgid "Always use the year:"
+msgstr "Πάντα χρήση του έτους:"
+
+msgid "Do not synchronize the date"
+msgstr "Χωρίς συγχρονισμό ημερομηνίας"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Χρησιμοποιήστε τον διερμηνέα 486 για επεξεργαστές 286 και 386"

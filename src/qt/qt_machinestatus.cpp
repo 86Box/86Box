@@ -37,9 +37,12 @@ extern "C" {
 #include <86box/machine.h>
 #include <86box/thread.h>
 #include <86box/network.h>
+#include <86box/mem.h>
+#include <86box/usb.h>
 #include <86box/ui.h>
 #include <86box/machine_status.h>
 #include <86box/config.h>
+#include <86box/board_led.h>
 
 extern volatile int fdcinited;
 extern bool         fast_forward;
@@ -52,6 +55,7 @@ extern int          is_dynarec_active(void);
 #include <QTimer>
 #include <QStatusBar>
 #include <QMenu>
+#include <QPainter>
 #include <QScreen>
 
 #include "qt_mediamenu.hpp"
@@ -120,6 +124,7 @@ struct Pixmaps {
     PixmapSetEmptyActive tape;
     PixmapSetActive      hd;
     PixmapSetEmptyActive net;
+    PixmapSetEmpty       usb[USB_SLOTS];
     PixmapSetDisabled    sound;
     PixmapSetDisabled    dynarec;
 };
@@ -321,11 +326,34 @@ PixmapSetEmptyActive::load(const QIcon &icon)
 }
 }
 
+/* A board LED: a lit or dark green lamp. */
+static QPixmap
+boardLedPixmap(bool on)
+{
+    QPixmap  pixmap(pixmap_size);
+    QPainter painter;
+
+    pixmap.fill(Qt::transparent);
+    painter.begin(&pixmap);
+    painter.setRenderHint(QPainter::Antialiasing);
+    painter.setPen(QPen(QColor(0x20, 0x20, 0x20), 1));
+    painter.setBrush(on ? QColor(0x40, 0xe0, 0x40) : QColor(0x20, 0x48, 0x20));
+    painter.drawEllipse(QRectF(3.5, 3.5, pixmap_size.width() - 7, pixmap_size.height() - 7));
+    painter.end();
+
+    return pixmap;
+}
+
 struct MachineStatus::States {
     Pixmaps pixmaps;
+    QPixmap board_led_on;
+    QPixmap board_led_off;
 
     States(QObject *parent)
     {
+        board_led_on  = boardLedPixmap(true);
+        board_led_off = boardLedPixmap(false);
+
         pixmaps.cartridge.load(QIcon(":/settings/qt/icons/cartridge.ico"));
         pixmaps.cassette.load(QIcon(":/settings/qt/icons/cassette.ico"));
         pixmaps.floppy_disabled.normal                  = QIcon(":/settings/qt/icons/floppy_disabled.ico").pixmap(pixmap_size);
@@ -354,6 +382,9 @@ struct MachineStatus::States {
         pixmaps.tape.load(QIcon(":/settings/qt/icons/tape.ico"));
         pixmaps.hd.load(QIcon(":/settings/qt/icons/hard_disk.ico"));
         pixmaps.net.load(QIcon(":/settings/qt/icons/network.ico"));
+        /* One icon per USB device kind, named after the device. */
+        for (int i = 0; i < USB_SLOTS; i++)
+            pixmaps.usb[i].load(QIcon(QString(":/settings/qt/icons/%1.ico").arg(usb_slot_internal_name(i))));
         pixmaps.sound.load(QIcon(":/settings/qt/icons/sound.ico"));
         pixmaps.dynarec.normal                          = QIcon(":/menuicons/qt/icons/recompiler.ico").pixmap(pixmap_size);
         pixmaps.dynarec.disabled                        = QIcon(":/menuicons/qt/icons/interpreter.ico").pixmap(pixmap_size);
@@ -382,6 +413,8 @@ struct MachineStatus::States {
         for (auto &n : net) {
             n.pixmaps = &pixmaps.net;
         }
+        for (int i = 0; i < USB_SLOTS; i++)
+            usb[i].pixmaps = &pixmaps.usb[i];
     }
 
     std::array<StateEmpty, 2>                  cartridge;
@@ -393,9 +426,13 @@ struct MachineStatus::States {
     std::array<StateEmptyActive, TAPE_NUM>     tape;
     std::array<StateActive, HDD_BUS_USB>       hdds;
     std::array<StateEmptyActive, NET_CARD_MAX> net;
+    std::array<StateEmpty, USB_SLOTS>          usb;
     std::unique_ptr<ClickableLabel>            sound;
     std::unique_ptr<ClickableLabel>            dynarec;
     std::unique_ptr<QLabel>                    text;
+
+    std::array<std::unique_ptr<QLabel>, BOARD_LED_MAX> board_leds;
+    std::array<int, BOARD_LED_MAX>                     board_led_shown;
 };
 
 MachineStatus::MachineStatus(QObject *parent)
@@ -622,6 +659,21 @@ MachineStatus::refreshIcons()
     if (d->sound)
         d->sound->setPixmapIfChanged((sound_muted || fast_forward) ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
 
+    /* A USB device is plugged or unplugged on the emulation thread, and a
+       plug can fail for want of a port, so its icon follows the device. It
+       is grayed whenever the device cannot reach the host, which includes
+       sitting in a hub that is itself unplugged. */
+    for (int i = 0; i < USB_SLOTS; i++)
+        d->usb[i].setEmpty(!usb_slot_online(i));
+
+    /* Board LEDs are part of the machine, so they always show its state. */
+    for (size_t i = 0; i < BOARD_LED_MAX; i++) {
+        if (d->board_leds[i] && (d->board_led_shown[i] != board_led_get(i))) {
+            d->board_led_shown[i] = board_led_get(i);
+            d->board_leds[i]->setPixmap(d->board_led_shown[i] ? d->board_led_on : d->board_led_off);
+        }
+    }
+
     if (d->dynarec) {
         d->dynarec->setVisible(cpu_use_dynarec);
         d->dynarec->setPixmapIfChanged(!is_dynarec_active() ? d->pixmaps.dynarec.disabled : d->pixmaps.dynarec.normal);
@@ -766,8 +818,16 @@ MachineStatus::refresh(QStatusBar *sbar)
     for (size_t i = 0; i < NET_CARD_MAX; i++) {
         sbar->removeWidget(d->net[i].label.get());
     }
+    for (size_t i = 0; i < USB_SLOTS; i++) {
+        sbar->removeWidget(d->usb[i].label.get());
+        d->usb[i].label.reset();
+    }
     sbar->removeWidget(d->dynarec.get());
     sbar->removeWidget(d->sound.get());
+    for (size_t i = 0; i < BOARD_LED_MAX; i++) {
+        sbar->removeWidget(d->board_leds[i].get());
+        d->board_leds[i].reset();
+    }
 
     if (cassette_enable) {
         d->cassette.label = std::make_unique<ClickableLabel>();
@@ -953,6 +1013,20 @@ MachineStatus::refresh(QStatusBar *sbar)
         sbar->addWidget(d->net[i].label.get());
     });
 
+    for (int i = 0; i < USB_SLOTS; i++) {
+        if (!MediaMenu::ptr->usbMenus.contains(i))
+            continue;
+        d->usb[i].label = std::make_unique<ClickableLabel>();
+        d->usb[i].empty = !usb_slot_online(i);
+        d->usb[i].refresh();
+        d->usb[i].label->setToolTip(MediaMenu::ptr->usbMenus[i]->toolTip());
+        connect((ClickableLabel *) d->usb[i].label.get(), &ClickableLabel::clicked, [i](QPoint pos) {
+            MediaMenu::ptr->usbUpdateMenu(i);
+            MediaMenu::ptr->usbMenus[i]->popup(pos - QPoint(0, MediaMenu::ptr->usbMenus[i]->sizeHint().height()));
+        });
+        sbar->addWidget(d->usb[i].label.get());
+    }
+
     auto hdc_name = QString(hdc_get_internal_name(hdc_current[0]));
     if ((has_mfm || (hdc_name.left(5) == QStringLiteral("st506"))) && (c_mfm > 0)) {
         d->hdds[HDD_BUS_MFM].label = std::make_unique<QLabel>();
@@ -1057,6 +1131,14 @@ MachineStatus::refresh(QStatusBar *sbar)
         }
         d->hdds[HDD_BUS_SCSI].label->setToolTip(tooltip);
         sbar->addWidget(d->hdds[HDD_BUS_SCSI].label.get());
+    }
+
+    for (int i = 0; i < board_led_count(); i++) {
+        d->board_leds[i]      = std::make_unique<QLabel>();
+        d->board_led_shown[i] = board_led_get(i);
+        d->board_leds[i]->setPixmap(d->board_led_shown[i] ? d->board_led_on : d->board_led_off);
+        d->board_leds[i]->setToolTip((board_led_count() > 1) ? tr("Board LED %1").arg(i + 1) : tr("Board LED"));
+        sbar->addWidget(d->board_leds[i].get());
     }
 
     d->sound = std::make_unique<ClickableLabel>();

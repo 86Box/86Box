@@ -55,6 +55,7 @@
 #include <86box/rom.h>
 #include <86box/sound.h>
 #include <86box/ui.h>
+#include <86box/usb.h>
 
 #define DEVICE_MAX 512 /* max # of devices */
 
@@ -608,11 +609,13 @@ device_close_all(void)
     }
 }
 
+/* Close the devices that have all of match_flags and were added as instance inst, or as any instance if inst is -1. */
 void
-device_close_by_flags(uint32_t match_flags)
+device_close_by_flags_inst(uint32_t match_flags, int inst)
 {
     for (int16_t c = (DEVICE_MAX - 1); c >= 0; c--) {
-        if ((devices[c] != NULL) && ((devices[c]->flags & match_flags) == match_flags)) {
+        if ((devices[c] != NULL) && ((devices[c]->flags & match_flags) == match_flags) &&
+            ((inst == -1) || (device_state[c].inst == inst))) {
 #ifdef ENABLE_DEVICE_LOG
             if (devices[c]->name)
                 device_log("Closing device: \"%s\"...\n", devices[c]->name);
@@ -624,6 +627,12 @@ device_close_by_flags(uint32_t match_flags)
             memset(&(device_state[c]), 0x00, sizeof(device_state_t));
         }
     }
+}
+
+void
+device_close_by_flags(uint32_t match_flags)
+{
+    device_close_by_flags_inst(match_flags, -1);
 }
 
 void
@@ -1253,6 +1262,10 @@ device_is_valid(const device_t *device, int mch)
             ret = 0;
         else
             ret = machine_has_bus(mch, device->flags & DEVICE_BUS);
+
+        /* A PCI USB card brings a USB bus to a board without one. */
+        if (!ret && (device->flags & DEVICE_USB))
+            ret = usb_card_has_bus(mch);
     }
 
     return ret;

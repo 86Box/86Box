@@ -159,6 +159,7 @@ extern void      serial_set_type(serial_t *dev, uint8_t type);
 extern void      serial_set_card_selected_feedback(serial_t *dev, uint8_t *reg_91);
 extern void      serial_reset_port(serial_t *dev);
 extern uint8_t   serial_read(uint16_t addr, void *priv);
+extern void      serial_write(uint16_t addr, uint8_t val, void *priv);
 extern void      serial_device_timeout(void *priv);
 extern void      serial_set_cts(serial_t *dev, uint8_t enabled);
 extern void      serial_set_dsr(serial_t *dev, uint8_t enabled);

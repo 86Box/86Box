@@ -71,6 +71,7 @@ sis_5571_host_to_pci_log(const char *fmt, ...)
 typedef struct sis_5571_host_to_pci_t {
     uint8_t            pci_conf[256];
     uint8_t            states[7];
+    uint8_t            usb_smi_level; /* last level of the OHCI's SMI output */
 
     sis_55xx_common_t *sis;
 
@@ -428,12 +429,29 @@ sis_5571_host_to_pci_close(void *priv)
     free(dev);
 }
 
+/* The OHCI's SMI output: with 95h bit 4 (USB SMI enable) set, its rising
+   edge sets 95h bit 3 (USB SMI request) and asserts SMI# (SiS 5571
+   p. 33 / PDF 37). */
+static void
+sis_5571_host_to_pci_usb_smi(void *priv, int level)
+{
+    sis_5571_host_to_pci_t *dev = (sis_5571_host_to_pci_t *) priv;
+
+    if (level && !dev->usb_smi_level && (dev->pci_conf[0x95] & 0x10)) {
+        dev->pci_conf[0x95] |= 0x08;
+        smi_raise();
+    }
+    dev->usb_smi_level = !!level;
+}
+
 static void *
 sis_5571_host_to_pci_init(UNUSED(const device_t *info))
 {
     sis_5571_host_to_pci_t *dev = (sis_5571_host_to_pci_t *) calloc(1, sizeof(sis_5571_host_to_pci_t));
 
     dev->sis = device_get_common_priv();
+    dev->sis->usb_smi      = sis_5571_host_to_pci_usb_smi;
+    dev->sis->usb_smi_priv = dev;
 
     /* SMRAM */
     dev->smram = smram_add();

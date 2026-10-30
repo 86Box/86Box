@@ -103,7 +103,13 @@ PagedDialog::pageStack() const
 void
 PagedDialog::showFirstPage()
 {
-    ui->listView->setCurrentIndex(ui->listView->model()->index(0, 0));
+    showPage(0);
+}
+
+void
+PagedDialog::showPage(int index)
+{
+    ui->listView->setCurrentIndex(ui->listView->model()->index(index, 0));
 }
 
 void

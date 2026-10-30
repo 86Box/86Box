@@ -540,6 +540,30 @@ static uint32_t shift_common_variable_8(ir_data_t *ir, uint32_t fetchdat, uint32
 static uint32_t shift_common_variable_16(ir_data_t *ir, uint32_t fetchdat, uint32_t op_pc, x86seg *target_seg, int count_reg);
 static uint32_t shxd_imm_ram(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, int is32, int is_shrd);
 
+/*A zero count preserves the destination and all lazy flags. Keep the join
+  independent of the count observed during compilation.*/
+static uint32_t
+shift_reg_cl(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_pc, int size)
+{
+    uint32_t new_pc;
+
+    codegen_mark_code_present(block, cs + op_pc, 1);
+    uop_AND_IMM(ir, IREG_temp2, REG_ECX, 0x1f);
+    int jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp2, 0);
+
+    if (size == 8)
+        new_pc = shift_common_variable_8(ir, fetchdat, op_pc, NULL, IREG_temp2);
+    else if (size == 16)
+        new_pc = shift_common_variable_16(ir, fetchdat, op_pc, NULL, IREG_temp2);
+    else
+        new_pc = shift_common_variable_32(ir, fetchdat, op_pc, NULL, IREG_temp2);
+
+    uop_NOP_BARRIER(ir);
+    uop_set_jump_dest(ir, jump_uop);
+    codegen_flags_changed = 0;
+    return new_pc;
+}
+
 /*A shift by an immediate read from RAM as the block runs
   (CODEBLOCK_NO_IMMEDIATES), the operand already in temp0 for a memory
   destination. A count of 0 at run time skips the shift and leaves the
@@ -823,6 +847,9 @@ ropD2(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchd
     if ((fetchdat & 0x30) == 0x10) /*RCL/RCR*/
         return 0;
 
+    if ((fetchdat & 0xc0) == 0xc0)
+        return shift_reg_cl(block, ir, fetchdat, op_pc, 8);
+
     if (!(CL & 0x1f) || !block->ins)
         return 0;
 
@@ -951,6 +978,9 @@ ropD3_w(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetc
     if ((fetchdat & 0x30) == 0x10) /*RCL/RCR*/
         return 0;
 
+    if ((fetchdat & 0xc0) == 0xc0)
+        return shift_reg_cl(block, ir, fetchdat, op_pc, 16);
+
     if (!(CL & 0x1f) || !block->ins)
         return 0;
 
@@ -973,6 +1003,9 @@ ropD3_l(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetc
 {
     if ((fetchdat & 0x30) == 0x10) /*RCL/RCR*/
         return 0;
+
+    if ((fetchdat & 0xc0) == 0xc0)
+        return shift_reg_cl(block, ir, fetchdat, op_pc, 32);
 
     if (!(CL & 0x1f) || !block->ins)
         return 0;

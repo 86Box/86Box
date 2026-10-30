@@ -22165,6 +22165,46 @@ vectors_tex_neighbors(rage128_t *dev)
     }
 }
 
+/* Texture datatype 13, which no guide lists, is modeled as alpha and
+   intensity 8:8: alpha in the high byte, the intensity in the low byte
+   copied to R, G and B (the layout captured Windows 98 OpenGL font
+   textures show). A one-color 256x256 map drawn through the copy
+   combine of the x64l context names the decoded texel in the pixel;
+   two colors with distinct bytes pin the byte order. With TEX_MAP_AEN
+   (SCALE_3D_CNTL bit 30) set the alpha is the high byte; with it clear
+   the alpha reads as 0xff, as for the other alpha-bearing datatypes.
+   Under the verify lanes the same draws are compared with the
+   interpreter. */
+static void
+vectors_tex_ai88(rage128_t *dev)
+{
+    static const uint16_t texels[] = { 0x80c4u, 0x3f11u };
+
+    x64l_context(dev);
+    wr(dev, RAGE128_PRIM_TEX_CNTL_C, (13u << 16) | (1u << 7));
+    for (int aen = 1; aen >= 0; aen--) {
+        wr(dev, RAGE128_SCALE_3D_CNTL, aen ? 1u << 30 : 0u);
+        for (int i = 0; i < 2; i++) {
+            uint32_t a    = aen ? (uint32_t) (texels[i] >> 8) : 0xffu;
+            uint32_t want = (a << 24) | ((uint32_t) (texels[i] & 0xffu) * 0x010101u);
+            uint32_t px;
+
+            for (uint32_t k = 0; k < 256u * 256u; k++)
+                ((uint16_t *) &dev->svga.vram[X64L_TEX])[k] = texels[i];
+            r128_texcache_dirty(dev, X64L_TEX, 256u * 256u * 2u);
+            *(uint32_t *) &dev->svga.vram[X64L_A + (1 * 64 + 2) * 4] = 0x11223344u;
+            x64l_tri(dev, 0.25f, 1.0f);
+            px = *(uint32_t *) &dev->svga.vram[X64L_A + (1 * 64 + 2) * 4];
+            printf("3d: datatype 13 aen=%d texel %04x -> pixel %08x (want %08x)\n",
+                   aen, texels[i], px, want);
+            check32(aen ? "3d: datatype 13 decodes as alpha:intensity 8:8"
+                        : "3d: datatype 13 alpha reads 0xff with TEX_MAP_AEN clear",
+                    px, want);
+        }
+    }
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0u);
+}
+
 static void
 run_x64legs(void)
 {
@@ -22175,6 +22215,7 @@ run_x64legs(void)
     vectors_x64legs(dev);
     vectors_bilinear_weight(dev);
     vectors_tex_neighbors(dev);
+    vectors_tex_ai88(dev);
     if (getenv("R128_LANEGAP_LOG"))
         harness_log_quiet = 0;
     close_dev(dev);

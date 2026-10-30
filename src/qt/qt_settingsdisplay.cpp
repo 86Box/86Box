@@ -355,12 +355,6 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
     secondaryRows.add(QObject::tr("None"), 0);
     scSecondary->addDevice(NULL, "None");
 
-    // TODO: Implement support for selecting non-MDA secondary cards properly when MDA cards are the primary ones.
-    if (video_card_get_flags(videoCard[0]) == VIDEO_FLAG_TYPE_MDA) {
-        secondaryRows.commit();
-        ui->comboBoxVideoSecondary->setCurrentIndex(0);
-        return;
-    }
     int selectedSecondaryRow = 0;
     /* The machine's own external display is not a card, so it is not part of the loop below, and
        it is only offered when the machine's fixed video can drive one. */
@@ -380,15 +374,13 @@ SettingsDisplay::on_comboBoxVideo_currentIndexChanged(int index)
         const device_t *video_dev = card.dev;
         const QString  &name      = card.name;
 
-        int secondaryFlags = video_card_get_flags(c);
-
         const device_t *primary_dev = video_card_getdevice(videoCard[0]);
         const bool primary_is_agp   = primary_dev && (primary_dev->flags & DEVICE_AGP);
         const bool secondary_is_agp = video_dev   && (video_dev->flags   & DEVICE_AGP);
 
-        if (card.available
-            && device_is_valid(video_dev, machineId)
-            && (secondaryFlags == VIDEO_FLAG_TYPE_SECONDARY)
+        /* Cards that cannot drive a second monitor are not offered here. */
+        if (card.available && device_is_valid(video_dev, machineId)
+            && video_card_is_secondary(machineId, videoCard[0], c)
             && !(primary_is_agp && secondary_is_agp)) {
             int row = secondaryRows.add(name, c);
             scSecondary->addDevice(video_dev, name);
