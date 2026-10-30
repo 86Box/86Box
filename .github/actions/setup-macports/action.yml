@@ -95,7 +95,8 @@ runs:
         portfile=$("$port" file qt5-qtbase)
         sudo sed -i '' -e 's/-no-feature-vulkan/-feature-vulkan/g' "$portfile"
         sudo sed -i '' -e 's/configure.env-append MAKE=/configure.env-append VULKAN_SDK=${prefix} MAKE=/g' "$portfile"
-        sudo "$port" -N install vulkan-headers depof:qt5-qtbase
+        # Qt's Cocoa plugin includes MoltenVK headers when Vulkan is enabled
+        sudo "$port" -N install vulkan-headers MoltenVK depof:qt5-qtbase
         if ! sudo "$port" -N -s install qt5-qtbase; then
           # The build output only goes to the MacPorts log
           log=$("$port" logfile qt5-qtbase)
