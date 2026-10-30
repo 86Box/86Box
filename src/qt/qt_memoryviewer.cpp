@@ -1295,7 +1295,10 @@ MemoryViewer::onDump(uint32_t start, uint32_t len)
     while (done < dumpLen) {
         const uint32_t n = (uint32_t) std::min<uint64_t>(chunk, dumpLen - done);
         if (!lock()) {
+            /* A reset is under way; it ends, or the dump can be cancelled. */
             QApplication::processEvents();
+            if (progress.wasCanceled())
+                break;
             continue;
         }
         debugger_mem_read(sp, addr + (uint32_t) done, n, data.data(), cls.data());

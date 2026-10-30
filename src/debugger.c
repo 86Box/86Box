@@ -131,6 +131,13 @@ debugger_instruction(int partial)
 {
     int n;
 
+    /* A hard reset (CF9) that the recompiler's loop would have taken; set
+       only with the recompiler on, which this runs in place of. */
+    if (cpu_init) {
+        cpu_init = 0;
+        resetx86();
+    }
+
     /* A pass through an instruction that is not done yet is not an
        instruction boundary for breakpoints or steps; a pause still stops
        there, or it could wait forever on a HLT. */
@@ -165,19 +172,17 @@ debugger_instruction(int partial)
 
 typedef void (*debugger_exec_t)(int32_t cycs);
 
-/* What runs while attached: the interpreter the machine would run with the
-   recompiler turned off (cpu_set() in cpu.c), which stops after every
-   instruction where recompiled blocks run many between checks. */
+/* What runs while attached: the recompiler's own interpreter, which stops
+   after every instruction where recompiled blocks run many between checks.
+   Not exec386_2386 even where the machine would run it with the recompiler
+   off: cpu_use_exec, set for the recompiler, picks exec386's interrupt,
+   task switch and memory helpers in the shared code. */
 static debugger_exec_t
 debugger_exec(void)
 {
 #ifdef USE_DYNAREC
-    if (debugger_attached && (cpu_exec == exec386_dynarec)) {
-        if ((cpu_s->cpu_type == CPU_IBM486SLC) || (cpu_s->cpu_type == CPU_IBM486BL) ||
-            cpu_iscyrix || (cpu_s->cpu_type > CPU_486DLC) || cpu_override_interpreter)
-            return exec386;
-        return exec386_2386;
-    }
+    if (debugger_attached && (cpu_exec == exec386_dynarec))
+        return exec386;
 #endif
 
     return cpu_exec;
@@ -585,10 +590,11 @@ debugger_mem_write(int space, uint32_t addr, uint8_t val)
         if (!p || (cls != DEBUGGER_MEM_RAM))
             return 0;
         *p = val;
-        /* Recompiled code made from this page must go. */
-        mem_invalidate_range(addr, addr);
     }
 
+    /* Recompiled code made from this page must go, video memory with an
+       exec pointer included. */
+    mem_invalidate_range(addr, addr);
     debugger_flush_queue(addr);
 
     return 1;

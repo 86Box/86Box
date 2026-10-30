@@ -389,6 +389,9 @@ mda_poll(void *priv)
 void
 mda_init(mda_t *mda)
 {
+    /* For the memory viewer; here, as machines with the card built in map
+       the same handlers. */
+    mem_debug_add(mda_read, mda_write, mda_debug_ptr);
 
     for (uint16_t attr = 0; attr < 256; attr++) {
         mda_attr_to_color_table[attr][0][0] = mda_attr_to_color_table[attr][1][0] = mda_attr_to_color_table[attr][1][1] = 16;
@@ -455,7 +458,6 @@ mda_standalone_init(UNUSED(const device_t *info))
                     mda_write, NULL, NULL,
                     NULL, MEM_MAPPING_EXTERNAL,
                     mda);
-    mem_debug_add(mda_read, mda_write, mda_debug_ptr);
 
     io_sethandler(0x03b0, 0x0010,
                   mda_in, NULL, NULL,

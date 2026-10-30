@@ -1493,13 +1493,6 @@ exec386_common(int32_t cycs, const int dbg)
                 cpu_end_block_after_ins--;
 
 block_ended:
-            /* A hard reset requested while the memory viewer runs this
-               interpreter in place of the recompiler. */
-            if (cpu_init) {
-                cpu_init = 0;
-                resetx86();
-            }
-
             if (cpu_state.abrt) {
 #ifdef ENABLE_386_LOG
                 uint8_t oop    = opcode;

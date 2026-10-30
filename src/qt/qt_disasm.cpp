@@ -73,7 +73,7 @@ public:
                 b = queue_[count_];
             else
                 debugger_mem_read(DEBUGGER_SPACE_LINEAR, addr(count_), 1, &b, &cls);
-            if ((cls != DEBUGGER_MEM_RAM) && (cls != DEBUGGER_MEM_ROM)) {
+            if ((cls != DEBUGGER_MEM_RAM) && (cls != DEBUGGER_MEM_ROM) && (cls != DEBUGGER_MEM_VIDEO)) {
                 failCls_ = cls;
                 return false;
             }
@@ -816,7 +816,7 @@ Disassembler::decode(uint32_t ip, bool current)
            processors may take it anywhere. Decode without it, then ask
            the processor. */
         View      unlocked = view;
-        const int pre      = (int) v.head.size(); /* the prefixes; F1 is F0 by now */
+        const int pre      = (int) unlocked.head.size(); /* the prefixes; F1 is F0 by now */
         bool      locked   = false;
         for (int i = 0; i < pre; i++) {
             if (unlocked.head[i] == 0xf0) {
@@ -929,6 +929,23 @@ Disassembler::decode(uint32_t ip, bool current)
                     return finish();
                 }
                 break;
+            case 0x62:
+            case 0xc4:
+            case 0xc5: {
+                /* BOUND, LES and LDS (the 8086 took 62 above). The library
+                   would take them as EVEX or VEX with a register operand. */
+                int mod;
+                if (!modrmReg(at + 1, &reg, &mod))
+                    return finish();
+                if (mod == 3) {
+                    static const char *const regs[8] = { "ax", "cx", "dx", "bx", "sp", "bp", "si", "di" };
+                    d.len  = at + 2;
+                    d.text = QStringLiteral("%1 %2, ?").arg((op == 0x62) ? QLatin1String("bound") : ((op == 0xc4) ? QLatin1String("les") : QLatin1String("lds")), QLatin1String(regs[reg]));
+                    d.note = QStringLiteral("Register operand: undefined");
+                    return finish();
+                }
+                break;
+            }
             case 0x8c:
             case 0x8e:
                 if (!modrmReg(at + 1, &reg, nullptr))
@@ -1019,6 +1036,18 @@ Disassembler::decode(uint32_t ip, bool current)
             return finish();
 
         const int kind = debugger_opcode_kind(1, op2, opsize);
+        /* MOV to and from the test registers, which the library lacks: the
+           ModR/M byte always names a register, as for CRn and DRn. */
+        if (((op2 == 0x24) || (op2 == 0x26)) && (kind != DEBUGGER_OP_ILLEGAL)) {
+            static const char *const regs[8] = { "eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi" };
+            uint8_t                  m;
+            if (!f.get(at + 2, &m))
+                return finish();
+            d.len  = at + 3;
+            d.text = (op2 == 0x24) ? QStringLiteral("mov %1, tr%2").arg(QLatin1String(regs[m & 7])).arg((m >> 3) & 7)
+                                   : QStringLiteral("mov tr%1, %2").arg((m >> 3) & 7).arg(QLatin1String(regs[m & 7]));
+            return finish();
+        }
         switch (kind) {
             case DEBUGGER_OP_ILLEGAL:
                 invalid(at + 2, QStringLiteral("Not an instruction on this processor: #UD"));

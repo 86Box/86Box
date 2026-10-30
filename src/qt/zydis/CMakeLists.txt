@@ -15,7 +15,8 @@
 #          encoder (Encoder.c, EncoderData.c, EncoderTables.inc,
 #          GetRelInfo.inc and their headers), Zycore's OS APIs, lists, bit
 #          sets and argument parser, and the tools, tests and examples.
-#          The sources are otherwise as released.
+#          The sources are otherwise as released; ZYDIS_VERSION in
+#          Zydis.h says 4.1.0, as it does in the v4.1.1 release.
 #
 
 add_library(zydis STATIC

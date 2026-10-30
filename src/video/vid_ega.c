@@ -1460,6 +1460,10 @@ ega_read(uint32_t addr, void *priv)
 void
 ega_init(ega_t *ega, int monitor_type, int is_mono)
 {
+    /* For the memory viewer; here, as machines with the card built in map
+       the same handlers. */
+    mem_debug_add(ega_read, ega_write, ega_debug_ptr);
+
     ega->vram     = calloc(1, 0x40000);
     ega->vrammask = 0x3ffff;
 
@@ -1680,7 +1684,6 @@ ega_standalone_init(const device_t *info)
     ega->vrammask   = ega->vram_limit - 1;
 
     mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
-    mem_debug_add(ega_read, ega_write, ega_debug_ptr);
     if (ega_type == EGA_TYPE_COMPAQ)
         mem_mapping_disable(&ega->mapping);
     uint16_t addr = 0x03a0;

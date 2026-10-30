@@ -993,6 +993,9 @@ cga_poll(void *priv)
 void
 cga_init(cga_t *cga)
 {
+    /* For the memory viewer; here, as machines with the card built in map
+       the same handlers. */
+    mem_debug_add(cga_read, cga_write, cga_debug_ptr);
     timer_add(&cga->timer, cga_poll, cga, 1);
     cga->composite = 0;
 }
@@ -1015,7 +1018,6 @@ cga_standalone_init(UNUSED(const device_t *info))
     cga_comp_init(cga->revision);
     timer_add(&cga->timer, cga_poll, cga, 1);
     mem_mapping_add(&cga->mapping, 0xb8000, 0x08000, cga_read, NULL, NULL, cga_write, NULL, NULL, NULL /*cga->vram*/, MEM_MAPPING_EXTERNAL, cga);
-    mem_debug_add(cga_read, cga_write, cga_debug_ptr);
     io_sethandler(0x03d0, 0x0010, cga_in, NULL, NULL, cga_out, NULL, NULL, cga);
 
     overscan_x = overscan_y = 16;

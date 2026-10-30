@@ -331,13 +331,6 @@ exec386_2386(int32_t cycs)
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;
 
-            /* A hard reset requested while the memory viewer runs this
-               interpreter in place of the recompiler. */
-            if (cpu_init) {
-                cpu_init = 0;
-                resetx86();
-            }
-
             if (cpu_state.abrt) {
                 flags_rebuild();
                 tempi          = cpu_state.abrt & ABRT_MASK;
