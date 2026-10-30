@@ -6,12 +6,12 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          NVIDIA GPU lanes -- the Vulkan plumbing of the RIVA 128's
- *          compute lane (nv_gpu_vk.h), kept apart from the lane itself
- *          so other NVIDIA cards can use it: run-time loading, instance
- *          and device (a discrete GPU first), buffers, VRAM imported as
- *          host memory, the compute pipeline, the slots' descriptor
- *          sets, command buffers, fences and timestamp queries.
+ *          NVIDIA GPU lanes -- the Vulkan plumbing the RIVA 128's and
+ *          the RIVA TNT's compute lanes share (nv_gpu_vk.h): run-time
+ *          loading, instance and device (a discrete GPU first), buffers,
+ *          VRAM imported as host memory, the compute pipeline, the
+ *          slots' descriptor sets, command buffers, fences and timestamp
+ *          queries.
  *
  * Authors: Marcos Alves, <xeon4d@gmail.com>
  *
@@ -111,7 +111,9 @@ gpu_tel_close(void)
 }
 
 static const char *const gpu_fb_name[NV_GPU_FB_COUNT] = {
-    "no rows", "rows past VRAM", "arena full", "no spans", "submit failed", "odd texture address"
+    "no rows", "rows past VRAM", "arena full", "no spans", "submit failed", "odd texture address",
+    "rows alias: serial kernel not ready", "rows alias: too many pieces or past VRAM",
+    "rows alias: a texture reads its pixels", "rows alias: color meets depth"
 };
 
 void
@@ -496,11 +498,10 @@ gpu_create(nv_gpu_vk_t *vk, const nv_gpu_vk_desc_t *d)
     {
         VkDescriptorSetLayoutBinding    lb[6];
         VkDescriptorSetLayoutCreateInfo lci = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO };
-        VkPushConstantRange             pcr = { VK_SHADER_STAGE_COMPUTE_BIT, 0, 8 };
+        VkPushConstantRange             pcr = { VK_SHADER_STAGE_COMPUTE_BIT, 0, d->push_size ? d->push_size : 8 };
         VkPipelineLayoutCreateInfo      pci = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
         VkShaderModuleCreateInfo        sci = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
         VkComputePipelineCreateInfo     cpi = { VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
-        VkShaderModule                  sm;
         VkDescriptorPoolSize            ps  = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 6 * NV_GPU_SLOTS };
         VkDescriptorPoolCreateInfo      dpi = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
         VkDescriptorSetAllocateInfo     dai = { VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO };
@@ -527,15 +528,14 @@ gpu_create(nv_gpu_vk_t *vk, const nv_gpu_vk_desc_t *d)
             return 0;
         sci.codeSize = d->spv_size;
         sci.pCode    = d->spv;
-        if (vk->vkCreateShaderModule(vk->dev, &sci, NULL, &sm) != VK_SUCCESS)
+        if (vk->vkCreateShaderModule(vk->dev, &sci, NULL, &vk->module) != VK_SUCCESS)
             return 0;
         cpi.stage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
         cpi.stage.stage  = VK_SHADER_STAGE_COMPUTE_BIT;
-        cpi.stage.module = sm;
+        cpi.stage.module = vk->module;
         cpi.stage.pName  = "main";
         cpi.layout       = vk->pl;
         res              = vk->vkCreateComputePipelines(vk->dev, VK_NULL_HANDLE, 1, &cpi, NULL, &vk->pipe);
-        vk->vkDestroyShaderModule(vk->dev, sm, NULL);
         if (res != VK_SUCCESS) {
             nv_gpu_log("%s: pipeline creation failed (%d)\n", vk->tag, res);
             return 0;
@@ -638,6 +638,8 @@ nv_gpu_vk_close(nv_gpu_vk_t *vk)
             vk->vkDestroyDescriptorPool(vk->dev, vk->dpool, NULL);
         if (vk->pipe)
             vk->vkDestroyPipeline(vk->dev, vk->pipe, NULL);
+        if (vk->module)
+            vk->vkDestroyShaderModule(vk->dev, vk->module, NULL);
         if (vk->pl)
             vk->vkDestroyPipelineLayout(vk->dev, vk->pl, NULL);
         if (vk->dsl)
@@ -662,6 +664,36 @@ nv_gpu_vk_close(nv_gpu_vk_t *vk)
     }
     memset(vk, 0, sizeof(*vk));
     gpu_tel_close();
+}
+
+VkPipeline
+nv_gpu_vk_pipeline(nv_gpu_vk_t *vk, const int32_t *spec, uint32_t n)
+{
+    VkSpecializationMapEntry    me[16];
+    VkSpecializationInfo        si  = { 0 };
+    VkComputePipelineCreateInfo cpi = { VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
+    VkPipeline                  p   = VK_NULL_HANDLE;
+
+    if (n > 16)
+        return VK_NULL_HANDLE;
+    for (uint32_t i = 0; i < n; i++) {
+        me[i].constantID = i;
+        me[i].offset     = i * 4;
+        me[i].size       = 4;
+    }
+    si.mapEntryCount           = n;
+    si.pMapEntries             = me;
+    si.dataSize                = n * 4;
+    si.pData                   = spec;
+    cpi.stage.sType            = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
+    cpi.stage.stage            = VK_SHADER_STAGE_COMPUTE_BIT;
+    cpi.stage.module           = vk->module;
+    cpi.stage.pName            = "main";
+    cpi.stage.pSpecializationInfo = &si;
+    cpi.layout                 = vk->pl;
+    if (vk->vkCreateComputePipelines(vk->dev, VK_NULL_HANDLE, 1, &cpi, NULL, &p) != VK_SUCCESS)
+        return VK_NULL_HANDLE;
+    return p;
 }
 
 void

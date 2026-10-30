@@ -6,9 +6,9 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          NVIDIA GPU lanes -- the Vulkan plumbing of the RIVA 128's
- *          compute lane (nv3_render_d3d_gpu.c), kept apart from it so
- *          other NVIDIA cards can use it.
+ *          NVIDIA GPU lanes -- the Vulkan plumbing the RIVA 128's
+ *          (nv3_render_d3d_gpu.c) and the RIVA TNT's
+ *          (nv4_pgraph_3d_gpu.c) compute lanes share.
  *
  *          Vulkan is opened at run time (no link), and one compute
  *          pipeline is made from a lane's SPIR-V: six storage buffers --
@@ -125,7 +125,11 @@ enum {
     NV_GPU_FB_ARENA,        /* its textures do not fit the arena */
     NV_GPU_FB_NOROWS,       /* no spans */
     NV_GPU_FB_SUBMIT,       /* vkQueueSubmit failed */
-    NV_GPU_FB_TEXODD,       /* a texture at an odd address */
+    NV_GPU_FB_TEXODD,       /* (NV3) a texture at an odd address */
+    NV_GPU_FB_ALIAS_WAIT,   /* (NV4) rows alias, the serial kernel not compiled yet */
+    NV_GPU_FB_ALIAS_PIECES, /* (NV4) rows alias over too many pieces or past VRAM */
+    NV_GPU_FB_ALIAS_TEX,    /* (NV4) rows alias and a texture reads bytes the batch writes */
+    NV_GPU_FB_ALIAS_ZCOL,   /* (NV4) rows alias and a state's color and depth bytes meet */
     NV_GPU_FB_COUNT
 };
 
@@ -144,7 +148,7 @@ typedef struct {
 } nv_gpu_vk_slot_t;
 
 typedef struct {
-    const char     *tag;      /* for the log: "NV3 GPU" */
+    const char     *tag;      /* for the log: "NV4 GPU" */
     const char     *app_name; /* the Vulkan instance's application name */
     uint32_t        vram_size;
     uint32_t        tex_arena;
@@ -153,6 +157,7 @@ typedef struct {
     size_t          spv_size;
     uint32_t        queries;    /* timestamps per slot, 0 for none */
     int             slots;      /* batches in flight, 0 for the default */
+    uint32_t        push_size;  /* push constant bytes, 0 for 8 */
     uint8_t       **vram;       /* &svga.vram: moved and imported when it can be (NULL: never) */
     size_t          vram_alloc; /* the bytes svga allocated there */
 } nv_gpu_vk_desc_t;
@@ -172,7 +177,8 @@ typedef struct {
     uint32_t              qfam;
     VkDescriptorSetLayout dsl;
     VkPipelineLayout      pl;
-    VkPipeline            pipe;
+    VkPipeline            pipe;   /* the shader's defaults */
+    VkShaderModule        module; /* kept for nv_gpu_vk_pipeline */
     VkDescriptorPool      dpool;
     VkCommandPool         cpool;
     nv_gpu_buf_t          b[NV_GPU_B_COUNT];
@@ -191,6 +197,10 @@ typedef struct {
    closed) when the lane cannot run. */
 extern int  nv_gpu_vk_open(nv_gpu_vk_t *vk, const nv_gpu_vk_desc_t *d);
 extern void nv_gpu_vk_close(nv_gpu_vk_t *vk);
+/* Another pipeline of the lane's shader, its specialization constants
+   0..n-1 set to <spec> (VK_NULL_HANDLE on failure). Any thread may make
+   one; the lane destroys it with vkDestroyPipeline before closing. */
+extern VkPipeline nv_gpu_vk_pipeline(nv_gpu_vk_t *vk, const int32_t *spec, uint32_t n);
 /* pclog, and the telemetry file (NV_GPU_TELEMETRY) */
 extern void nv_gpu_log(const char *fmt, ...);
 /* A batch left to the CPU, and why (NV_GPU_FB_*) */
