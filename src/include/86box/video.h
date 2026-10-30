@@ -329,6 +329,8 @@ extern void    video_pre_reset(int card);
 extern void    video_reset(int card);
 extern void    video_post_reset(void);
 extern void    video_voodoo_init(void);
+extern void    video_set_override_handler(void *priv, void (*set_override)(void *priv, int val));
+extern int     video_set_override(int val);
 extern uint8_t video_force_resize_get_monitor(int monitor_index);
 extern void    video_force_resize_set_monitor(uint8_t res, int monitor_index);
 extern void    video_update_timing(void);

@@ -504,6 +504,34 @@ voodoo_filterline_v2(voodoo_t *voodoo, uint8_t *fil, int column, uint16_t *src, 
     fil3[(column - 1) * 3 + 2] = voodoo->thefilter[fil[(column - 1) * 3 + 2]][((src[column] >> 11) & 31) << 3];
 }
 
+/* The frame on a primary display that is not an svga_t: the Voodoo sets the
+   monitor's size itself, and blits the lines voodoo_callback drew. */
+static void
+voodoo_doblit(voodoo_t *voodoo, int dirty)
+{
+    monitor_t *monitor = &monitors[voodoo->monitor_index];
+    int        x_add   = monitor->mon_overscan_x >> 1;
+    int        y_add   = monitor->mon_overscan_y >> 1;
+
+    if ((voodoo->h_disp <= 0) || (voodoo->v_disp <= 0))
+        return;
+
+    if ((voodoo->h_disp != monitor->mon_xsize) || (voodoo->v_disp != monitor->mon_ysize) ||
+        video_force_resize_get_monitor(voodoo->monitor_index)) {
+        monitor->mon_xsize = voodoo->h_disp;
+        monitor->mon_ysize = voodoo->v_disp;
+        set_screen_size_monitor(voodoo->h_disp, voodoo->v_disp, voodoo->monitor_index);
+        if (video_force_resize_get_monitor(voodoo->monitor_index))
+            video_force_resize_set_monitor(0, voodoo->monitor_index);
+        dirty = 1;
+    }
+
+    if (dirty)
+        video_blit_memtoscreen_monitor(x_add, y_add, voodoo->h_disp, voodoo->v_disp, voodoo->monitor_index);
+    else
+        monitor->mon_renderedframes++;
+}
+
 void
 voodoo_callback(void *priv)
 {
@@ -643,7 +671,10 @@ skip_draw:
             }
             thread_release_mutex(voodoo->force_blit_mutex);
 
-            if (voodoo->dirty_line_high > voodoo->dirty_line_low || force_blit)
+            if (!voodoo->svga) {
+                if (voodoo->override)
+                    voodoo_doblit(voodoo, voodoo->dirty_line_high > voodoo->dirty_line_low || force_blit);
+            } else if (voodoo->dirty_line_high > voodoo->dirty_line_low || force_blit)
                 svga_doblit(voodoo->h_disp, voodoo->v_disp - 1, voodoo->svga);
             else if (voodoo->svga->override)
                 voodoo->svga->monitor->mon_renderedframes++;

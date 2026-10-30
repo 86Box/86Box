@@ -400,6 +400,9 @@ vid_table_log(const char *fmt, ...)
 
 static pc_timer_t framerate_timer;
 
+static void *override_priv = NULL;
+static void (*override_callback)(void *priv, int val) = NULL;
+
 void* lightpen_priv = NULL;
 
 void (*lightpen_hsync_callback)(void*) = NULL;
@@ -428,6 +431,8 @@ video_reset_close(void)
 
     monitor_index_global = 0;
     video_inform(VIDEO_FLAG_TYPE_NONE, &timing_default);
+    override_priv     = NULL;
+    override_callback = NULL;
     was_reset = 0;
 }
 
@@ -438,6 +443,25 @@ video_lightpen_set_callbacks(void* priv, void (*lightpen_hsync)(void*), void (*l
     lightpen_hsync_callback = lightpen_hsync;
     lightpen_vsync_callback = lightpen_vsync;
     lightpen_check_trigger_strobe = lightpen_trigger_strobe;
+}
+
+/* For a primary display that is not an svga_t: a pass-through card (the
+   Voodoo) owns the monitor while the override is set. */
+void
+video_set_override_handler(void *priv, void (*set_override)(void *priv, int val))
+{
+    override_priv     = priv;
+    override_callback = set_override;
+}
+
+int
+video_set_override(int val)
+{
+    if (!override_callback)
+        return 0;
+
+    override_callback(override_priv, val);
+    return 1;
 }
 
 void

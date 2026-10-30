@@ -235,7 +235,8 @@ typedef struct gxm_video_t {
     uint32_t   ma;
     int        lineno; /* The frame buffer line, for line doubling */
     int        blink;
-    int        output;  /* This display is the one shown */
+    int        output;   /* This display is the one shown */
+    int        override; /* A pass-through card (the Voodoo) has the monitor */
 } gxm_video_t;
 
 void *gxm_video = NULL;
@@ -1307,7 +1308,7 @@ gxm_poll(void *priv)
         if (dev->displine < dev->vdisp) {
             if (dev->displine == 0)
                 video_wait_for_buffer();
-            if (dev->output)
+            if (dev->output && !dev->override)
                 gxm_render_line(dev, dev->displine);
 
             /* The next frame buffer line; line doubling scans each twice. */
@@ -1325,7 +1326,7 @@ gxm_poll(void *priv)
         if (dev->displine == dev->vdisp) {
             dev->dc[DC_TIMING_CFG] |= TC_VNA;
 
-            if (dev->output) {
+            if (dev->output && !dev->override) {
                 if ((dev->hdisp != xsize) || (dev->vdisp != ysize) || video_force_resize_get()) {
                     xsize = dev->hdisp;
                     ysize = dev->vdisp;
@@ -1596,6 +1597,8 @@ gxm_video_close(void *priv)
 {
     gxm_video_t *dev = (gxm_video_t *) priv;
 
+    if (dev->output)
+        video_set_override_handler(NULL, NULL);
     gxm_video = NULL;
     free(dev);
 }
@@ -1604,6 +1607,17 @@ static void
 gxm_video_speed_changed(void *priv)
 {
     gxm_recalctimings((gxm_video_t *) priv);
+}
+
+static void
+gxm_video_set_override(void *priv, int val)
+{
+    gxm_video_t *dev = (gxm_video_t *) priv;
+
+    /* Back from the Voodoo: the next frame sets the screen size again. */
+    if (dev->override && !val)
+        video_force_resize_set(1);
+    dev->override = val;
 }
 
 static void
@@ -1630,8 +1644,10 @@ gxm_video_init(UNUSED(const device_t *info))
 
     /* The display is the machine's own one, unless a card is used. */
     dev->output = (gfxcard[0] == VID_INTERNAL);
-    if (dev->output)
+    if (dev->output) {
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_gxm);
+        video_set_override_handler(dev, gxm_video_set_override);
+    }
 
     for (int i = 0; i < 256; i++)
         dev->gamma[i] = i * 0x010101;

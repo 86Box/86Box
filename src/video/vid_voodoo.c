@@ -664,6 +664,25 @@ voodoo_cmdfifo_write(voodoo_t *voodoo, uint32_t fifo_addr, uint32_t val)
     }
 }
 
+/* VGA pass-through: the Voodoo takes the monitor from the primary display.
+   That is an svga_t, or a display with an override handler of its own
+   (the MediaGX). */
+static void
+voodoo_set_override(voodoo_t *voodoo, int val)
+{
+    if (voodoo->svga) {
+        svga_set_override(voodoo->svga, val);
+        return;
+    }
+
+    if (voodoo->set->nr_cards == 2) {
+        voodoo->set->voodoos[0]->override = val;
+        voodoo->set->voodoos[1]->override = val;
+    } else
+        voodoo->override = val;
+    video_set_override(val);
+}
+
 static void
 voodoo_writel(uint32_t addr, uint32_t val, void *priv)
 {
@@ -784,9 +803,9 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
                         memset(voodoo->dirty_line, 1, sizeof(voodoo->dirty_line));
 
                     if (voodoo->set->nr_cards == 2)
-                        svga_set_override(voodoo->svga, (voodoo->set->voodoos[0]->fbiInit0 | voodoo->set->voodoos[1]->fbiInit0) & 1);
+                        voodoo_set_override(voodoo, (voodoo->set->voodoos[0]->fbiInit0 | voodoo->set->voodoos[1]->fbiInit0) & 1);
                     else
-                        svga_set_override(voodoo->svga, val & 1);
+                        voodoo_set_override(voodoo, val & 1);
                     if (val & FBIINIT0_GRAPHICS_RESET) {
                         /*Reset display/draw buffer selection. This may not actually
                           happen here on a real Voodoo*/
@@ -800,7 +819,8 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
                         voodoo_recalc(voodoo);
                         voodoo->front_offset = voodoo->params.front_offset;
                     }
-                    svga_recalctimings(voodoo->svga);
+                    if (voodoo->svga)
+                        svga_recalctimings(voodoo->svga);
                 }
                 break;
             case SST_fbiInit1:
