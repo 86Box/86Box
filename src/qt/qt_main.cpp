@@ -104,6 +104,7 @@ extern "C" {
 #include <86box/io.h>
 #include <86box/nvr.h>
 #include <86box/automation.h>
+#include <86box/debugger.h>
 extern int  qt_nvr_save(void);
 #ifndef Q_OS_MACOS
 extern void exit_pause(void);
@@ -537,8 +538,10 @@ main_thread_fn()
             /* Trigger a hard reset if one is pending. */
             if (hard_reset_pending) {
                 hard_reset_pending = 0;
+                debugger_reset_begin();
                 pc_reset_hard_close();
                 pc_reset_hard_init();
+                debugger_reset_end();
             }
 
             if (dopause)

@@ -195,6 +195,10 @@ extern void x86_setopcodes(const OpFn *opcodes, const OpFn *opcodes_0f);
 
 extern const OpFn *x86_opcodes;
 extern const OpFn *x86_opcodes_0f;
+extern const OpFn  x86_illegal_op;
+extern const OpFn  x86_2386_illegal_op;
+extern const OpFn  x86_fpu_illegal_op[2];
+extern const OpFn  x86_2386_fpu_illegal_op[2];
 extern const OpFn *x86_opcodes_d8_a16;
 extern const OpFn *x86_opcodes_d8_a32;
 extern const OpFn *x86_opcodes_d9_a16;

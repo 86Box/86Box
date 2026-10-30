@@ -475,6 +475,7 @@ void     mach64_write(uint32_t addr, uint8_t val, void *priv);
 void     mach64_writew(uint32_t addr, uint16_t val, void *priv);
 void     mach64_writel(uint32_t addr, uint32_t val, void *priv);
 uint8_t  mach64_read(uint32_t addr, void *priv);
+uint8_t *mach64_debug_ptr(uint32_t addr, int write, void *priv);
 uint16_t mach64_readw(uint32_t addr, void *priv);
 uint32_t mach64_readl(uint32_t addr, void *priv);
 void     mach64_updatemapping(mach64_t *mach64);

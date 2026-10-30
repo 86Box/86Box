@@ -54,6 +54,7 @@
 
 #include <86box/86box.h>
 #include <86box/gdbstub.h>
+#include <86box/debugger.h>
 #include <86box/io.h>
 #include <86box/machine.h>
 #include <86box/mem.h>
@@ -4962,6 +4963,8 @@ execx86_new(int cycs)
         if (gdbstub_instruction())
             break;
 #endif
+        if (DEBUGGER_INSTRUCTION())
+            break;
     }
 
     m808x_86box_export_arch_state(&m808x_cpu);

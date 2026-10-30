@@ -845,17 +845,18 @@ paradise_writew(uint32_t addr, uint16_t val, void *priv)
     svga_writew_linear(addr, val, svga);
 }
 
-static uint8_t
-paradise_read(uint32_t addr, void *priv)
+/* Where a read from addr goes in the card's memory, as svga_read_linear()
+   takes it; 0xffffffff if nowhere. */
+static uint32_t
+paradise_read_addr(paradise_t *paradise, uint32_t addr)
 {
-    paradise_t *paradise = (paradise_t *) priv;
-    svga_t     *svga     = &paradise->svga;
-    uint32_t    prev_addr;
-    uint32_t    prev_addr2;
+    svga_t  *svga = &paradise->svga;
+    uint32_t prev_addr;
+    uint32_t prev_addr2;
 
     addr = paradise_decode_addr(paradise, addr, 0);
     if (addr == 0xffffffff)
-        return 0xff;
+        return addr;
 
     /*Could be done in a better way but it works.*/
     if (!svga->lowres || (svga->attrregs[0x10] & 0x40)) {
@@ -877,7 +878,32 @@ paradise_read(uint32_t addr, void *priv)
             }
         }
     }
+    return addr;
+}
+
+static uint8_t
+paradise_read(uint32_t addr, void *priv)
+{
+    paradise_t *paradise = (paradise_t *) priv;
+    svga_t     *svga     = &paradise->svga;
+
+    addr = paradise_read_addr(paradise, addr);
+    if (addr == 0xffffffff)
+        return 0xff;
     return svga_read_linear(addr, svga);
+}
+
+/* For the memory viewer: the byte paradise_read() returns, without its side
+   effects. */
+static uint8_t *
+paradise_debug_ptr(uint32_t addr, int write, void *priv)
+{
+    paradise_t *paradise = (paradise_t *) priv;
+
+    addr = paradise_read_addr(paradise, addr);
+    if (addr == 0xffffffff)
+        return NULL;
+    return svga_debug_ptr_common(addr, 1, write, &paradise->svga);
 }
 
 static uint16_t
@@ -1001,6 +1027,7 @@ paradise_init_ex(const device_t *info, uint32_t memory, int speedstar24x, int at
     svga->writel = NULL;
     mem_mapping_set_handler(&svga->mapping, paradise_read, paradise_readw, NULL, paradise_write, paradise_writew, NULL);
     mem_mapping_set_p(&svga->mapping, paradise);
+    mem_debug_add(paradise_read, paradise_write, paradise_debug_ptr);
 
     io_sethandler(0x03a0, 0x0040, paradise_in, NULL, NULL, paradise_out, NULL, NULL, paradise);
 
