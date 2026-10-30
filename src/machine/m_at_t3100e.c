@@ -531,8 +531,8 @@ t3100e_config_get(void)
      */
     uint8_t value = 0x28; /* Start with bits 5 and 3 set. */
 
-    int type_a = fdd_get_type(0);
-    int type_b = fdd_get_type(1);
+    int type_a = fdd_get_type(&drives[0]);
+    int type_b = fdd_get_type(&drives[1]);
     int prt_switch; /* External drive type: 0=> none, 1=>A, 2=>B */
 
     /* Get display setting */

@@ -50,6 +50,9 @@ extern void x86_setopcodes(const OpFn *opcodes, const OpFn *opcodes_0f,
 
 extern const OpFn *x86_dynarec_opcodes;
 extern const OpFn *x86_dynarec_opcodes_0f;
+extern const OpFn  dynarec_op_illegal;
+extern const OpFn  dynarec_fpu_illegal_a16;
+extern const OpFn  dynarec_fpu_illegal_a32;
 extern const OpFn *x86_dynarec_opcodes_d8_a16;
 extern const OpFn *x86_dynarec_opcodes_d8_a32;
 extern const OpFn *x86_dynarec_opcodes_d9_a16;
@@ -93,6 +96,7 @@ extern const OpFn dynarec_ops_pentiummmx_0f[1024];
 extern const OpFn dynarec_ops_c6x86_0f[1024];
 extern const OpFn dynarec_ops_c6x86l_0f[1024];
 extern const OpFn dynarec_ops_c6x86mx_0f[1024];
+extern const OpFn dynarec_ops_gxm_0f[1024];
 
 extern const OpFn dynarec_ops_k6_0f[1024];
 extern const OpFn dynarec_ops_k62_0f[1024];
@@ -234,6 +238,7 @@ extern const OpFn ops_pentiummmx_0f[1024];
 extern const OpFn ops_c6x86_0f[1024];
 extern const OpFn ops_c6x86l_0f[1024];
 extern const OpFn ops_c6x86mx_0f[1024];
+extern const OpFn ops_gxm_0f[1024];
 
 extern const OpFn ops_k6_0f[1024];
 extern const OpFn ops_k62_0f[1024];

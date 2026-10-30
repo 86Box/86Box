@@ -1,10 +1,21 @@
-#ifdef USE_NEW_DYNAREC
+/* A push that faults after the new CS is loaded puts all of CS back:
+   selector, base, limits and the operand size, not the selector alone (a
+   V86 far call whose stack page is missing left the new base in place) */
+#    define CALL_FAR_RESTORE_CS()                                                                  \
+        do {                                                                                        \
+            cpu_state.seg_cs = old_cs_seg;                                                          \
+            use32            = old_use32;                                                           \
+            cpu_cur_status   = (cpu_cur_status & ~CPU_STATUS_USE32) | (old_status & CPU_STATUS_USE32); \
+        } while (0)
 #    define CALL_FAR_w(new_seg, new_pc)  \
         old_cs       = CS;               \
+        old_cs_seg   = cpu_state.seg_cs; \
+        old_use32    = use32;            \
+        old_status   = cpu_cur_status;   \
         old_pc       = cpu_state.pc;     \
         cpu_state.pc = new_pc;           \
         optype       = CALL;             \
-        cgate16 = cgate32 = 0;           \
+        cgate16 = cgate32 = cgate_task = 0; \
         if (msw & 1)                     \
             op_loadcscall(new_seg, old_pc); \
         else {                           \
@@ -17,17 +28,19 @@
             return 1;                    \
         }                                \
         oldss = ss;                      \
-        if (cgate32) {                   \
+        if (cgate_task) {                \
+            cgate_task = 0;              \
+        } else if (cgate32) {            \
             uint32_t old_esp = ESP;      \
             PUSH_L(old_cs);              \
             if (cpu_state.abrt) {        \
-                CS      = old_cs;        \
+                CALL_FAR_RESTORE_CS();    \
                 cgate16 = cgate32 = 0;   \
                 return 1;                \
             }                            \
             PUSH_L(old_pc);              \
             if (cpu_state.abrt) {        \
-                CS  = old_cs;            \
+                CALL_FAR_RESTORE_CS();    \
                 ESP = old_esp;           \
                 return 1;                \
             }                            \
@@ -35,13 +48,13 @@
             uint32_t old_esp = ESP;      \
             PUSH_W(old_cs);              \
             if (cpu_state.abrt) {        \
-                CS      = old_cs;        \
+                CALL_FAR_RESTORE_CS();    \
                 cgate16 = cgate32 = 0;   \
                 return 1;                \
             }                            \
             PUSH_W(old_pc);              \
             if (cpu_state.abrt) {        \
-                CS  = old_cs;            \
+                CALL_FAR_RESTORE_CS();    \
                 ESP = old_esp;           \
                 return 1;                \
             }                            \
@@ -49,10 +62,13 @@
 
 #    define CALL_FAR_l(new_seg, new_pc)  \
         old_cs       = CS;               \
+        old_cs_seg   = cpu_state.seg_cs; \
+        old_use32    = use32;            \
+        old_status   = cpu_cur_status;   \
         old_pc       = cpu_state.pc;     \
         cpu_state.pc = new_pc;           \
         optype       = CALL;             \
-        cgate16 = cgate32 = 0;           \
+        cgate16 = cgate32 = cgate_task = 0; \
         if (msw & 1)                     \
             op_loadcscall(new_seg, old_pc); \
         else {                           \
@@ -65,17 +81,19 @@
             return 1;                    \
         }                                \
         oldss = ss;                      \
-        if (cgate16) {                   \
+        if (cgate_task) {                \
+            cgate_task = 0;              \
+        } else if (cgate16) {            \
             uint32_t old_esp = ESP;      \
             PUSH_W(old_cs);              \
             if (cpu_state.abrt) {        \
-                CS      = old_cs;        \
+                CALL_FAR_RESTORE_CS();    \
                 cgate16 = cgate32 = 0;   \
                 return 1;                \
             }                            \
             PUSH_W(old_pc);              \
             if (cpu_state.abrt) {        \
-                CS  = old_cs;            \
+                CALL_FAR_RESTORE_CS();    \
                 ESP = old_esp;           \
                 return 1;                \
             }                            \
@@ -83,113 +101,25 @@
             uint32_t old_esp = ESP;      \
             PUSH_L(old_cs);              \
             if (cpu_state.abrt) {        \
-                CS      = old_cs;        \
+                CALL_FAR_RESTORE_CS();    \
                 cgate16 = cgate32 = 0;   \
                 return 1;                \
             }                            \
             PUSH_L(old_pc);              \
             if (cpu_state.abrt) {        \
-                CS  = old_cs;            \
+                CALL_FAR_RESTORE_CS();    \
                 ESP = old_esp;           \
                 return 1;                \
             }                            \
         }
-#else
-#    define CALL_FAR_w(new_seg, new_pc) \
-        old_cs       = CS;              \
-        old_pc       = cpu_state.pc;    \
-        oxpc         = cpu_state.pc;    \
-        cpu_state.pc = new_pc;          \
-        optype       = CALL;            \
-        cgate16 = cgate32 = 0;          \
-        if (msw & 1)                    \
-            op_loadcscall(new_seg);        \
-        else {                          \
-            op_loadcs(new_seg);          \
-            cycles -= timing_call_rm;   \
-        }                               \
-        optype = 0;                     \
-        if (cpu_state.abrt) {           \
-            cgate16 = cgate32 = 0;      \
-            return 1;                   \
-        }                               \
-        oldss = ss;                     \
-        if (cgate32) {                  \
-            uint32_t old_esp = ESP;     \
-            PUSH_L(old_cs);             \
-            if (cpu_state.abrt) {       \
-                cgate16 = cgate32 = 0;  \
-                return 1;               \
-            }                           \
-            PUSH_L(old_pc);             \
-            if (cpu_state.abrt) {       \
-                ESP = old_esp;          \
-                return 1;               \
-            }                           \
-        } else {                        \
-            uint32_t old_esp = ESP;     \
-            PUSH_W(old_cs);             \
-            if (cpu_state.abrt) {       \
-                cgate16 = cgate32 = 0;  \
-                return 1;               \
-            }                           \
-            PUSH_W(old_pc);             \
-            if (cpu_state.abrt) {       \
-                ESP = old_esp;          \
-                return 1;               \
-            }                           \
-        }
-
-#    define CALL_FAR_l(new_seg, new_pc) \
-        old_cs       = CS;              \
-        old_pc       = cpu_state.pc;    \
-        oxpc         = cpu_state.pc;    \
-        cpu_state.pc = new_pc;          \
-        optype       = CALL;            \
-        cgate16 = cgate32 = 0;          \
-        if (msw & 1)                    \
-            op_loadcscall(new_seg);        \
-        else {                          \
-            op_loadcs(new_seg);         \
-            cycles -= timing_call_rm;   \
-        }                               \
-        optype = 0;                     \
-        if (cpu_state.abrt) {           \
-            cgate16 = cgate32 = 0;      \
-            return 1;                   \
-        }                               \
-        oldss = ss;                     \
-        if (cgate16) {                  \
-            uint32_t old_esp = ESP;     \
-            PUSH_W(old_cs);             \
-            if (cpu_state.abrt) {       \
-                cgate16 = cgate32 = 0;  \
-                return 1;               \
-            }                           \
-            PUSH_W(old_pc);             \
-            if (cpu_state.abrt) {       \
-                ESP = old_esp;          \
-                return 1;               \
-            }                           \
-        } else {                        \
-            uint32_t old_esp = ESP;     \
-            PUSH_L(old_cs);             \
-            if (cpu_state.abrt) {       \
-                cgate16 = cgate32 = 0;  \
-                return 1;               \
-            }                           \
-            PUSH_L(old_pc);             \
-            if (cpu_state.abrt) {       \
-                ESP = old_esp;          \
-                return 1;               \
-            }                           \
-        }
-#endif
 
 static int
 opCALL_far_w(uint32_t fetchdat)
 {
     uint32_t old_cs;
+    x86seg   old_cs_seg;
+    uint32_t old_use32;
+    uint32_t old_status;
     uint32_t old_pc;
     uint16_t new_cs;
     uint16_t new_pc;
@@ -212,6 +142,9 @@ static int
 opCALL_far_l(UNUSED(uint32_t fetchdat))
 {
     uint32_t old_cs;
+    x86seg   old_cs_seg;
+    uint32_t old_use32;
+    uint32_t old_status;
     uint32_t old_pc;
     uint32_t new_cs;
     uint32_t new_pc;
@@ -234,6 +167,9 @@ opCALL_far_l(UNUSED(uint32_t fetchdat))
 static int
 opFF_w_a16(uint32_t fetchdat)
 {
+    x86seg   old_cs_seg;
+    uint32_t old_use32;
+    uint32_t old_status;
     uint16_t old_cs;
     uint16_t new_cs;
     uint32_t old_pc;
@@ -308,12 +244,11 @@ opFF_w_a16(uint32_t fetchdat)
             PREFETCH_FLUSH();
             break;
         case 0x18: /*CALL far*/
-            if (cpu_mod != 3) {
-                SEG_CHECK_READ(cpu_state.ea_seg);
-                if (cpu_state.abrt)
-                    return 1;
-                CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3UL);
-            }
+            ILLEGAL_ON(cpu_mod == 3);
+            SEG_CHECK_READ(cpu_state.ea_seg);
+            if (cpu_state.abrt)
+                return 1;
+            CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3UL);
             new_pc = readmemw(easeg, cpu_state.eaaddr);
             new_cs = readmemw(easeg, (cpu_state.eaaddr + 2));
             if (cpu_state.abrt)
@@ -345,27 +280,18 @@ opFF_w_a16(uint32_t fetchdat)
             PREFETCH_FLUSH();
             break;
         case 0x28: /*JMP far*/
-            if (cpu_mod != 3) {
-                SEG_CHECK_READ(cpu_state.ea_seg);
-                if (cpu_state.abrt)
-                    return 1;
-                CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3UL);
-            }
-#ifdef USE_NEW_DYNAREC
+            ILLEGAL_ON(cpu_mod == 3);
+            SEG_CHECK_READ(cpu_state.ea_seg);
+            if (cpu_state.abrt)
+                return 1;
+            CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3UL);
             old_pc = cpu_state.pc;
-#else
-            oxpc = cpu_state.pc;
-#endif
             new_pc = readmemw(easeg, cpu_state.eaaddr);
             new_cs = readmemw(easeg, cpu_state.eaaddr + 2);
             if (cpu_state.abrt)
                 return 1;
             cpu_state.pc = new_pc;
-#ifdef USE_NEW_DYNAREC
             op_loadcsjmp(new_cs, old_pc);
-#else
-            op_loadcsjmp(new_cs, oxpc);
-#endif
             if (cpu_state.abrt)
                 return 1;
             CPU_BLOCK_END();
@@ -396,6 +322,9 @@ opFF_w_a16(uint32_t fetchdat)
 static int
 opFF_w_a32(uint32_t fetchdat)
 {
+    x86seg   old_cs_seg;
+    uint32_t old_use32;
+    uint32_t old_status;
     uint16_t old_cs;
     uint16_t new_cs;
     uint32_t old_pc;
@@ -470,12 +399,11 @@ opFF_w_a32(uint32_t fetchdat)
             PREFETCH_FLUSH();
             break;
         case 0x18: /*CALL far*/
-            if (cpu_mod != 3) {
-                SEG_CHECK_READ(cpu_state.ea_seg);
-                if (cpu_state.abrt)
-                    return 1;
-                CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3UL);
-            }
+            ILLEGAL_ON(cpu_mod == 3);
+            SEG_CHECK_READ(cpu_state.ea_seg);
+            if (cpu_state.abrt)
+                return 1;
+            CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3UL);
             new_pc = readmemw(easeg, cpu_state.eaaddr);
             new_cs = readmemw(easeg, (cpu_state.eaaddr + 2));
             if (cpu_state.abrt)
@@ -507,27 +435,18 @@ opFF_w_a32(uint32_t fetchdat)
             PREFETCH_FLUSH();
             break;
         case 0x28: /*JMP far*/
-            if (cpu_mod != 3) {
-                SEG_CHECK_READ(cpu_state.ea_seg);
-                if (cpu_state.abrt)
-                    return 1;
-                CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3UL);
-            }
-#ifdef USE_NEW_DYNAREC
+            ILLEGAL_ON(cpu_mod == 3);
+            SEG_CHECK_READ(cpu_state.ea_seg);
+            if (cpu_state.abrt)
+                return 1;
+            CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3UL);
             old_pc = cpu_state.pc;
-#else
-            oxpc = cpu_state.pc;
-#endif
             new_pc = readmemw(easeg, cpu_state.eaaddr);
             new_cs = readmemw(easeg, cpu_state.eaaddr + 2);
             if (cpu_state.abrt)
                 return 1;
             cpu_state.pc = new_pc;
-#ifdef USE_NEW_DYNAREC
             op_loadcsjmp(new_cs, old_pc);
-#else
-            op_loadcsjmp(new_cs, oxpc);
-#endif
             if (cpu_state.abrt)
                 return 1;
             CPU_BLOCK_END();
@@ -559,6 +478,9 @@ opFF_w_a32(uint32_t fetchdat)
 static int
 opFF_l_a16(uint32_t fetchdat)
 {
+    x86seg   old_cs_seg;
+    uint32_t old_use32;
+    uint32_t old_status;
     uint16_t old_cs;
     uint16_t new_cs;
     uint32_t old_pc;
@@ -633,12 +555,11 @@ opFF_l_a16(uint32_t fetchdat)
             PREFETCH_FLUSH();
             break;
         case 0x18: /*CALL far*/
-            if (cpu_mod != 3) {
-                SEG_CHECK_READ(cpu_state.ea_seg);
-                if (cpu_state.abrt)
-                    return 1;
-                CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 5UL);
-            }
+            ILLEGAL_ON(cpu_mod == 3);
+            SEG_CHECK_READ(cpu_state.ea_seg);
+            if (cpu_state.abrt)
+                return 1;
+            CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 5UL);
             new_pc = readmeml(easeg, cpu_state.eaaddr);
             new_cs = readmemw(easeg, (cpu_state.eaaddr + 4));
             if (cpu_state.abrt)
@@ -670,27 +591,18 @@ opFF_l_a16(uint32_t fetchdat)
             PREFETCH_FLUSH();
             break;
         case 0x28: /*JMP far*/
-            if (cpu_mod != 3) {
-                SEG_CHECK_READ(cpu_state.ea_seg);
-                if (cpu_state.abrt)
-                    return 1;
-                CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 5UL);
-            }
-#ifdef USE_NEW_DYNAREC
+            ILLEGAL_ON(cpu_mod == 3);
+            SEG_CHECK_READ(cpu_state.ea_seg);
+            if (cpu_state.abrt)
+                return 1;
+            CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 5UL);
             old_pc = cpu_state.pc;
-#else
-            oxpc = cpu_state.pc;
-#endif
             new_pc = readmeml(easeg, cpu_state.eaaddr);
             new_cs = readmemw(easeg, cpu_state.eaaddr + 4);
             if (cpu_state.abrt)
                 return 1;
             cpu_state.pc = new_pc;
-#ifdef USE_NEW_DYNAREC
             op_loadcsjmp(new_cs, old_pc);
-#else
-            op_loadcsjmp(new_cs, oxpc);
-#endif
             if (cpu_state.abrt)
                 return 1;
             CPU_BLOCK_END();
@@ -721,6 +633,9 @@ opFF_l_a16(uint32_t fetchdat)
 static int
 opFF_l_a32(uint32_t fetchdat)
 {
+    x86seg   old_cs_seg;
+    uint32_t old_use32;
+    uint32_t old_status;
     uint16_t old_cs;
     uint16_t new_cs;
     uint32_t old_pc;
@@ -797,12 +712,11 @@ opFF_l_a32(uint32_t fetchdat)
             PREFETCH_FLUSH();
             break;
         case 0x18: /*CALL far*/
-            if (cpu_mod != 3) {
-                SEG_CHECK_READ(cpu_state.ea_seg);
-                if (cpu_state.abrt)
-                    return 1;
-                CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 5UL);
-            }
+            ILLEGAL_ON(cpu_mod == 3);
+            SEG_CHECK_READ(cpu_state.ea_seg);
+            if (cpu_state.abrt)
+                return 1;
+            CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 5UL);
             new_pc = readmeml(easeg, cpu_state.eaaddr);
             new_cs = readmemw(easeg, (cpu_state.eaaddr + 4));
             if (cpu_state.abrt)
@@ -834,27 +748,18 @@ opFF_l_a32(uint32_t fetchdat)
             PREFETCH_FLUSH();
             break;
         case 0x28: /*JMP far*/
-            if (cpu_mod != 3) {
-                SEG_CHECK_READ(cpu_state.ea_seg);
-                if (cpu_state.abrt)
-                    return 1;
-                CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 5UL);
-            }
-#ifdef USE_NEW_DYNAREC
+            ILLEGAL_ON(cpu_mod == 3);
+            SEG_CHECK_READ(cpu_state.ea_seg);
+            if (cpu_state.abrt)
+                return 1;
+            CHECK_READ(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 5UL);
             old_pc = cpu_state.pc;
-#else
-            oxpc = cpu_state.pc;
-#endif
             new_pc = readmeml(easeg, cpu_state.eaaddr);
             new_cs = readmemw(easeg, cpu_state.eaaddr + 4);
             if (cpu_state.abrt)
                 return 1;
             cpu_state.pc = new_pc;
-#ifdef USE_NEW_DYNAREC
             op_loadcsjmp(new_cs, old_pc);
-#else
-            op_loadcsjmp(new_cs, oxpc);
-#endif
             if (cpu_state.abrt)
                 return 1;
             CPU_BLOCK_END();

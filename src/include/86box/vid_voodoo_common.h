@@ -78,7 +78,7 @@ typedef union rgba_u {
 
 #define FIFO_ENTRIES    (voodoo->fifo_write_idx - voodoo->fifo_read_idx)
 #define FIFO_FULL       ((voodoo->fifo_write_idx - voodoo->fifo_read_idx) >= FIFO_SIZE - 4)
-#define FIFO_EMPTY      (voodoo->fifo_read_idx == voodoo->fifo_write_idx)
+#define FIFO_EMPTY      voodoo_fifo_empty(voodoo)
 
 #define VOODOO_BUF_FRONT   0
 #define VOODOO_BUF_BACK    1
@@ -86,6 +86,9 @@ typedef union rgba_u {
 #define VOODOO_BUF_UNKNOWN 3
 #define VOODOO_BUF_COUNT   4
 #define VOODOO_BUF_NONE    0xff
+
+#define VOODOO_PENDING_FB_WRITES(v, b) ((int) ((v)->queued_fb_writes_buf[b] - (v)->done_fb_writes_buf[b]))
+#define VOODOO_PENDING_DRAW_CMDS(v, b) ((int) ((v)->queued_draw_cmds_buf[b] - (v)->done_draw_cmds_buf[b]))
 
 #define FIFO_TYPE       0xff000000
 #define FIFO_ADDR       0x00ffffff
@@ -309,6 +312,7 @@ typedef struct voodoo_t {
     uint32_t fbiInit5;
     uint32_t fbiInit6;
     uint32_t fbiInit7; /*Voodoo 2*/
+    uint32_t intrCtrl;
 
     /*Voodoo 2 board ID straps, read back through fbiInit5 bits 8:5 and
       fbiInit7 bit 0; read-only, independent of fbiInit writes. OEM drivers
@@ -347,6 +351,7 @@ typedef struct voodoo_t {
 
     int rgb_sel;
 
+    uint32_t trexInit0[2];
     uint32_t trexInit1[2];
 
     uint32_t tmuConfig;
@@ -388,8 +393,10 @@ typedef struct voodoo_t {
     event_t  *wake_fifo_thread;
     event_t  *wake_main_thread;
     event_t  *fifo_not_full_event;
-    event_t  *fifo_empty_event;
-    ATOMIC_INT fifo_empty_signaled;
+    /* Held by whichever thread runs FIFO entries, so they run one thread at
+       a time and in order; the CPU thread takes it to drain the FIFO itself
+       when an access must see every queued write. */
+    mutex_t  *fifo_mutex;
     event_t  *render_not_full_event[4];
     event_t  *wake_render_thread[4];
 
@@ -442,8 +449,14 @@ typedef struct voodoo_t {
     ATOMIC_INT   cmd_written;
     ATOMIC_INT   cmd_written_fifo;
     ATOMIC_INT   cmd_written_fifo_2;
-    ATOMIC_INT   pending_fb_writes_buf[VOODOO_BUF_COUNT];
-    ATOMIC_INT   pending_draw_cmds_buf[VOODOO_BUF_COUNT];
+    /* LFB writes and draw commands queued for each buffer, and how many of
+       them have run. The CPU thread alone counts them in and whoever holds
+       fifo_mutex counts them out, so no update is lost; queued - done is
+       what is still pending. */
+    ATOMIC_UINT  queued_fb_writes_buf[VOODOO_BUF_COUNT];
+    ATOMIC_UINT  done_fb_writes_buf[VOODOO_BUF_COUNT];
+    ATOMIC_UINT  queued_draw_cmds_buf[VOODOO_BUF_COUNT];
+    ATOMIC_UINT  done_draw_cmds_buf[VOODOO_BUF_COUNT];
 
     voodoo_params_t params_buffer[PARAM_SIZE];
 #if (defined __aarch64__ || defined _M_ARM64)
@@ -750,6 +763,7 @@ typedef struct voodoo_t {
 
     int      force_blit_count;
     int      can_blit;
+    int      override; /* Pass-through on a primary display that is not an svga_t */
     mutex_t *force_blit_mutex;
 
     int   use_recompiler;
@@ -774,6 +788,19 @@ typedef struct voodoo_t {
     uint8_t monitor_index;
 } voodoo_t;
 
+static inline int
+voodoo_fifo_empty(const voodoo_t *voodoo)
+{
+    return voodoo->fifo_read_idx == voodoo->fifo_write_idx;
+}
+
+enum {
+    VOODOO_INTRCTRL_ENABLE_MASK            = 0x0030003f,
+    VOODOO_INTRCTRL_PENDING_MASK           = 0x800ff800,
+    VOODOO_INTRCTRL_READ_MASK              = 0x803ff83f,
+    VOODOO_INTRCTRL_INTERRUPT_ACTIVE       = 0x80000000
+};
+
 typedef struct voodoo_set_t {
     voodoo_t *voodoos[2];
 
@@ -786,6 +813,10 @@ extern rgba8_t rgb332[0x100];
 extern rgba8_t ai44[0x100];
 extern rgba8_t rgb565[0x10000];
 extern rgba8_t argb1555[0x10000];
+extern rgba8_t bgr565[0x10000];
+extern rgba8_t abgr1555[0x10000];
+extern rgba8_t rgba1555[0x10000];
+extern rgba8_t bgra1555[0x10000];
 extern rgba8_t argb4444[0x10000];
 extern rgba8_t ai88[0x10000];
 

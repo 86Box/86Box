@@ -55,6 +55,7 @@
 #include <86box/rom.h>
 #include <86box/sound.h>
 #include <86box/ui.h>
+#include <86box/usb.h>
 
 #define DEVICE_MAX 512 /* max # of devices */
 
@@ -233,26 +234,38 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Aztech Sound Galaxy Pro 16 (AZTPR16)", .new = "Aztech Sound Galaxy Pro 16" },
         { .old = "HP Multimedia Pro 16V-A (AZT2320)", .new = "HP Multimedia Pro 16V-A" },
         { .old = "IBM PS/2 ESDI Fixed Disk Adapter (MCA)", .new = "IBM ESDI Fixed Disk Adapter" },
-        { .old = "IBM Integrated Fixed Disk and Controller (MCA)", .new = "IBM Integrated Fixed Disk" },
         { .old = "IBM PS/2 ST506 Fixed Disk Adapter (MCA)", .new = "IBM ST506 Fixed Disk Adapter" },
         { .old = "Cirrus Logic GD5401 (ISA) (ACUMOS AVGA1)", .new = "Cirrus Logic GD5401 (ISA)" },
         { .old = "Cirrus Logic GD5401 (ISA) (ACUMOS AVGA1) (On-Board)", .new = "Cirrus Logic GD5401 (ISA) (On-Board)" },
         { .old = "Cirrus Logic GD5402 (ISA) (ACUMOS AVGA2)", .new = "Cirrus Logic GD5402 (ISA)" },
         { .old = "Cirrus Logic GD5402 (ISA) (ACUMOS AVGA2) (On-Board)", .new = "Cirrus Logic GD5402 (ISA) (On-Board)" },
         { .old = "Cirrus Logic GD5402 (ISA) (ACUMOS AVGA2) (On-Board) (Commodore)", .new = "Cirrus Logic GD5402 (ISA) (On-Board) (Commodore)" },
-        { .old = "Cirrus Logic GD5428 (MCA) (IBM SVGA Adapter/A)", .new = "Cirrus Logic GD5428 (MCA)" },
+        { .old = "Cirrus Logic GD5428 (MCA) (IBM SVGA Adapter/A)", .new = "Cirrus Logic GD5428 (MCA) (US/EMEA)" },
         { .old = "Cirrus Logic GD5426 (MCA) (Reply Video Adapter)", .new = "Cirrus Logic GD5426 (MCA)" },
         { .old = "3dfx Voodoo3 2000 (On-Board 8MB SGRAM)", .new = "3dfx Voodoo3 2000 (On-Board)" },
+        { .old = "SiS 6306 (5598/530/620) On-Board AGP", .new = "SiS 6306 (530/620) On-Board AGP" },
         { .old = "Gravis/Synergy Vipermax", .new = "Synergy ViperMAX" },
         { .old = "Colorplus", .new = "Plantronics Colorplus" },
-        { .old = "Sound Blaster PCI 128 (ES1373)", .new = "Creative Sound Blaster PCI 128 (ES1373)" },
-        { .old = "Sound Blaster PCI 128 (ES1373) (On-Board)", .new = "Creative Sound Blaster PCI 128 (ES1373) (On-Board)" },
-        { .old = "Sound Blaster PCI 4.1 (CT5880)", .new = "Creative Sound Blaster PCI 4.1 (CT5880)" },
-        { .old = "Sound Blaster PCI 4.1 (CT5880) (On-Board)", .new = "Creative Sound Blaster PCI 4.1 (CT5880) (On-Board)" },
+        { .old = "Creative Sound Blaster PCI 128 (ES1373)", .new = "Sound Blaster PCI 128 (ES1373)" },
+        { .old = "Creative Sound Blaster PCI 128 (ES1373) (On-Board)", .new = "Sound Blaster PCI 128 (ES1373) (On-Board)" },
+        { .old = "Creative Sound Blaster PCI 4.1 (CT5880)", .new = "Sound Blaster PCI 4.1 (CT5880)" },
+        { .old = "Creative Sound Blaster PCI 4.1 (CT5880) (On-Board)", .new = "Sound Blaster PCI 4.1 (CT5880) (On-Board)" },
         { .old = "Gravis UltraSound PnP (Old PnP ROM)", .new = "Gravis UltraSound PnP (Old)" },
         { .old = "Gravis UltraSound PnP (New PnP ROM)", .new = "Gravis UltraSound PnP (New)" },
         { .old = "Gravis UltraSound PnP (No CD-ROM)", .new = "Gravis UltraSound PnP (No CD)" },
         { .old = "Compaq/STB UltraSound 32", .new = "Compaq UltraSound 32" },
+        { .old = "IBM PS/2 Adapter/A for Ethernet Networks (WD8013WP/A, AUI/RJ-45, EFD4/92F0046)", .new = "IBM PS/2 Adapter/A (WD8013WP/A)" },
+        { .old = "IBM PS/2 Adapter/A for Ethernet Networks (WD8013EP/A, AUI/BNC, EFD5)", .new = "IBM PS/2 Adapter/A (WD8013EP/A)" },
+        { .old = "IBM PS/2 Adapter/A for Ethernet Networks (WD8003E/A, AUI/BNC, EFE5)", .new = "IBM PS/2 Adapter/A (WD8003E/A)" },
+        { .old = "Adaptec AHA-2940", .new = "Adaptec AHA-2940 (AIC-7870)" },
+        { .old = "Adaptec AHA-2940U", .new = "Adaptec AHA-2940 Ultra (AIC-7880)" },
+        { .old = "Adaptec AHA-2940 Ultra", .new = "Adaptec AHA-2940 Ultra (AIC-7880)" },
+        { .old = "Adaptec AHA-2944 Ultra Wide (differential)", .new = "Adaptec AHA-2944UW" },
+        { .old = "Cirrus Logic GD5428 (MCA)", .new = "Cirrus Logic GD5428 (MCA) (US/EMEA)" },
+        { .old = "ATI Mach64GX ISA", .new = "ATI Graphics Pro Turbo (Mach64GX) ISA" },
+        { .old = "ATI Mach64GX VLB", .new = "ATI Graphics Pro Turbo (Mach64GX) VLB" },
+        { .old = "ATI Rage Fury Pro AGP", .new = "ATI Rage 128 Pro (Fury Pro)" },
+        { .old = "ATI Xpert 128 PCI", .new = "ATI Rage 128 (Xpert 128)" },
         { 0 }
     };
 
@@ -598,11 +611,13 @@ device_close_all(void)
     }
 }
 
+/* Close the devices that have all of match_flags and were added as instance inst, or as any instance if inst is -1. */
 void
-device_close_by_flags(uint32_t match_flags)
+device_close_by_flags_inst(uint32_t match_flags, int inst)
 {
     for (int16_t c = (DEVICE_MAX - 1); c >= 0; c--) {
-        if ((devices[c] != NULL) && ((devices[c]->flags & match_flags) == match_flags)) {
+        if ((devices[c] != NULL) && ((devices[c]->flags & match_flags) == match_flags) &&
+            ((inst == -1) || (device_state[c].inst == inst))) {
 #ifdef ENABLE_DEVICE_LOG
             if (devices[c]->name)
                 device_log("Closing device: \"%s\"...\n", devices[c]->name);
@@ -617,11 +632,18 @@ device_close_by_flags(uint32_t match_flags)
 }
 
 void
+device_close_by_flags(uint32_t match_flags)
+{
+    device_close_by_flags_inst(match_flags, -1);
+}
+
+void
 device_reset_all(uint32_t match_flags)
 {
     for (uint16_t c = 0; c < DEVICE_MAX; c++) {
         if (devices[c] != NULL) {
-            if ((devices[c]->reset != NULL) && (devices[c]->flags & match_flags))
+            if ((devices[c]->reset != NULL) &&
+                ((match_flags == DEVICE_ALL) || (devices[c]->flags & match_flags)))
                 devices[c]->reset(device_priv[c]);
         }
     }
@@ -791,6 +813,8 @@ device_get_bus_name(const device_t *dev)
         sbus = "Sidecar";
     else if (dev->flags & DEVICE_XT_KBC)
         sbus = "XT KBC";
+    else if ((dev->flags & (DEVICE_ISA | DEVICE_ISA16)) == (DEVICE_ISA | DEVICE_ISA16))
+        sbus = "ISA/ISA16";
     else if (dev->flags & DEVICE_ISA16)
         sbus = "ISA16";
     else if (dev->flags & DEVICE_AT_KBC)
@@ -1240,6 +1264,10 @@ device_is_valid(const device_t *device, int mch)
             ret = 0;
         else
             ret = machine_has_bus(mch, device->flags & DEVICE_BUS);
+
+        /* A PCI USB card brings a USB bus to a board without one. */
+        if (!ret && (device->flags & DEVICE_USB))
+            ret = usb_card_has_bus(mch);
     }
 
     return ret;
@@ -1342,6 +1370,20 @@ const device_t device_none = {
 const device_t device_internal = {
     .name          = "Internal",
     .internal_name = "internal",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t device_external = {
+    .name          = "External",
+    .internal_name = "external",
     .flags         = 0,
     .local         = 0,
     .init          = NULL,

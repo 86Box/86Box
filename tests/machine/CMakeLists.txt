@@ -1,0 +1,6 @@
+if(BUILD_TESTING)
+    add_executable(vect486n_tests vect486n_test.cpp)
+    target_link_libraries(vect486n_tests PRIVATE GTest::gtest_main)
+    include(GoogleTest)
+    gtest_discover_tests(vect486n_tests)
+endif()

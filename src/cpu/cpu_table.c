@@ -1789,6 +1789,49 @@ const cpu_family_t cpu_families[] = {
         }
     },
     {
+        .package       = CPU_PKG_386EX,
+        .manufacturer  = "Intel",
+        .name          = "386EX",
+        .internal_name = "i386ex",
+        .cpus          = (const CPU[]) { /* 386EX uses the 386SX core; SMM and integrated peripherals not yet emulated. */
+            {
+                .name               = "25",
+                .cpu_type           = CPU_386SX,
+                .fpus               = fpus_80386,
+                .rspeed             = 25000000,
+                .multi              = 1,
+                .voltage            = 5000,
+                .edx_reset          = 0x2308,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0,
+                .cpu_flags          = 0,
+                .mem_read_cycles    = 6,
+                .mem_write_cycles   = 6,
+                .cache_read_cycles  = 3,
+                .cache_write_cycles = 3,
+                .atclk_div          = 3
+            },
+            {
+                .name               = "33",
+                .cpu_type           = CPU_386SX,
+                .fpus               = fpus_80386,
+                .rspeed             = 33333333,
+                .multi              = 1,
+                .voltage            = 5000,
+                .edx_reset          = 0x2308,
+                .cpuid_model        = 0,
+                .cyrix_id           = 0,
+                .cpu_flags          = 0,
+                .mem_read_cycles    = 6,
+                .mem_write_cycles   = 6,
+                .cache_read_cycles  = 3,
+                .cache_write_cycles = 3,
+                .atclk_div          = 4
+            },
+            { .name = "", 0 }
+        }
+    },
+    {
         .package       = CPU_PKG_386SLC_IBM,
         .manufacturer  = "IBM",
         .name          = "386SLC",
@@ -6582,6 +6625,103 @@ const cpu_family_t cpu_families[] = {
         }
     },
     {
+        /* DIR0 4xh, the low nibble the core multiplier (Table 3-11: 0001b
+           x6, 0100b x7, 0101b x8, 0111b x5, for DIR1 30h-4Fh); DIR1 34h,
+           revision 2.4; EDX at RESET 04h:DIR0 (Table 3-1). */
+        .package       = CPU_PKG_GXM,
+        .manufacturer  = "Cyrix",
+        .name          = "MediaGX MMX",
+        .internal_name = "mediagxm",
+        .cpus          = (const CPU[]) {
+            {
+                .name               = "166",
+                .cpu_type           = CPU_CxGX1,
+                .fpus               = fpus_internal,
+                .rspeed             = 166666666,
+                .multi              = 5.0,
+                .voltage            = 2900,
+                .edx_reset          = 0x447,
+                .cpuid_model        = 0x544,
+                .cyrix_id           = 0x3447,
+                .cpu_flags          = CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,
+                .mem_read_cycles    = 15,
+                .mem_write_cycles   = 15,
+                .cache_read_cycles  = 7,
+                .cache_write_cycles = 7,
+                .atclk_div          = 20
+            },
+            {
+                .name               = "180",
+                .cpu_type           = CPU_CxGX1,
+                .fpus               = fpus_internal,
+                .rspeed             = 180000000,
+                .multi              = 6.0,
+                .voltage            = 2900,
+                .edx_reset          = 0x441,
+                .cpuid_model        = 0x544,
+                .cyrix_id           = 0x3441,
+                .cpu_flags          = CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,
+                .mem_read_cycles    = 16,
+                .mem_write_cycles   = 16,
+                .cache_read_cycles  = 7,
+                .cache_write_cycles = 7,
+                .atclk_div          = 22
+            },
+            {
+                .name               = "200",
+                .cpu_type           = CPU_CxGX1,
+                .fpus               = fpus_internal,
+                .rspeed             = 200000000,
+                .multi              = 6.0,
+                .voltage            = 2900,
+                .edx_reset          = 0x441,
+                .cpuid_model        = 0x544,
+                .cyrix_id           = 0x3441,
+                .cpu_flags          = CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,
+                .mem_read_cycles    = 18,
+                .mem_write_cycles   = 18,
+                .cache_read_cycles  = 8,
+                .cache_write_cycles = 8,
+                .atclk_div          = 24
+            },
+            {
+                .name               = "233",
+                .cpu_type           = CPU_CxGX1,
+                .fpus               = fpus_internal,
+                .rspeed             = 233333333,
+                .multi              = 7.0,
+                .voltage            = 2900,
+                .edx_reset          = 0x444,
+                .cpuid_model        = 0x544,
+                .cyrix_id           = 0x3444,
+                .cpu_flags          = CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,
+                .mem_read_cycles    = 21,
+                .mem_write_cycles   = 21,
+                .cache_read_cycles  = 9,
+                .cache_write_cycles = 9,
+                .atclk_div          = 28
+            },
+            {
+                .name               = "266",
+                .cpu_type           = CPU_CxGX1,
+                .fpus               = fpus_internal,
+                .rspeed             = 266666666,
+                .multi              = 8.0,
+                .voltage            = 2900,
+                .edx_reset          = 0x445,
+                .cpuid_model        = 0x544,
+                .cyrix_id           = 0x3445,
+                .cpu_flags          = CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC,
+                .mem_read_cycles    = 24,
+                .mem_write_cycles   = 24,
+                .cache_read_cycles  = 10,
+                .cache_write_cycles = 10,
+                .atclk_div          = 32
+            },
+            { .name = "", 0 }
+        }
+    },
+    {
         .package       = CPU_PKG_SOCKET5_7,
         .manufacturer  = "Cyrix",
         .name          = "MII",
@@ -7956,6 +8096,23 @@ const cpu_family_t cpu_families[] = {
                 .cache_read_cycles  = 13,
                 .cache_write_cycles = 13,
                 .atclk_div          = 51
+            },
+            { /* out of spec */
+                .name               = "450A",
+                .cpu_type           = CPU_PENTIUM2D,
+                .fpus               = fpus_internal,
+                .rspeed             = 450000000,
+                .multi              = 4.5,
+                .voltage            = 2050,
+                .edx_reset          = 0x665,
+                .cpuid_model        = 0x665,
+                .cyrix_id           = 0,
+                .cpu_flags          = CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER,
+                .mem_read_cycles    = 41,
+                .mem_write_cycles   = 41,
+                .cache_read_cycles  = 14,
+                .cache_write_cycles = 14,
+                .atclk_div          = 54
             },
             {
                 .name               = "466",

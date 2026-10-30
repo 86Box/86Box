@@ -67,6 +67,8 @@ typedef struct quadcolor_t {
 
     int fullchange;
 
+    int monitor_index;
+
     uint8_t *vram;
     uint8_t *vram_2;
 

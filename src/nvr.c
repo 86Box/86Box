@@ -56,6 +56,7 @@
 #include <86box/timer.h>
 #include <86box/path.h>
 #include <86box/plat.h>
+#include <86box/rom.h>
 #include <86box/nvr.h>
 
 int nvr_dosave; /* NVR is dirty, needs saved */
@@ -169,13 +170,13 @@ nvr_init(nvr_t *nvr)
 
     /* Initialize the internal clock as needed. */
     memset(&intclk, 0x00, sizeof(intclk));
-    if (time_sync & TIME_SYNC_ENABLED) {
+    /* Reset the internal clock to 1980/01/01 00:00. When time sync keeps the
+       guest's own date, this is the date until the RTC supplies its own. */
+    intclk.tm_mday = 1;
+    intclk.tm_mon  = 1;
+    intclk.tm_year = 1980;
+    if (time_sync & TIME_SYNC_ENABLED)
         nvr_time_sync();
-    } else {
-        /* Reset the internal clock to 1980/01/01 00:00. */
-        intclk.tm_mon  = 1;
-        intclk.tm_year = 1980;
-    }
 
     /* Set up our timer. */
     timer_add(&nvr->onesec_time, onesec_timer, nvr, 1);
@@ -272,6 +273,42 @@ nvr_set_ven_save(void (*ven_save)(void))
     saved_nvr->ven_save = ven_save;
 }
 
+/*
+   For a machine whose BIOS does not set up a blank NVR the way the board
+   ships: if there was no saved NVR, load the contents from fn in the ROM set
+   instead, as if they had been saved. Returns whether it did.
+ */
+int
+nvr_load_default(nvr_t *nvr, const char *fn)
+{
+    uint8_t regs[NVR_MAXSIZE];
+    FILE   *fp;
+    size_t  len;
+
+    if (!nvr->is_new || (nvr->size == 0))
+        return 0;
+
+    fp = rom_fopen(fn, "rb");
+    if (fp == NULL)
+        return 0;
+    len = fread(regs, 1, nvr->size, fp);
+    (void) fclose(fp);
+
+    if (len != nvr->size) {
+        nvr_log("NVR: default '%s' is not %i bytes\n", fn, nvr->size);
+        return 0;
+    }
+
+    nvr_log("NVR: loading the default from '%s'\n", fn);
+    memcpy(nvr->regs, regs, nvr->size);
+    nvr->is_new = 0;
+
+    if (nvr->start != NULL)
+        nvr->start(nvr);
+
+    return 1;
+}
+
 /* Save the current NVR to a file. */
 int
 nvr_save(void)
@@ -330,6 +367,25 @@ nvr_time_sync(void)
         localtime_r(&now, &tm);
 #endif
 
+    /* Keeping the guest's own date takes precedence over the year settings,
+       and a fixed year over a year offset.
+       Feb 29 is clamped to Feb 28 when the target year is not a leap year. */
+    if (time_keep_date) {
+        tm.tm_mday = intclk.tm_mday;
+        tm.tm_mon  = intclk.tm_mon - 1;
+        tm.tm_year = intclk.tm_year - 1900;
+        tm.tm_wday = intclk.tm_wday;
+    } else if (time_fixed_year != 0) {
+        tm.tm_year = time_fixed_year - 1900;
+        if (tm.tm_mon == 1 && tm.tm_mday == 29 && !nvr_is_leap(time_fixed_year))
+            tm.tm_mday = 28;
+    } else if (time_offset_years != 0) {
+        int target_year = (tm.tm_year + 1900) + time_offset_years;
+        tm.tm_year += time_offset_years;
+        if (tm.tm_mon == 1 && tm.tm_mday == 29 && !nvr_is_leap(target_year))
+            tm.tm_mday = 28;
+    }
+
     nvr_time_set(&tm);
 }
 
@@ -373,6 +429,25 @@ nvr_time_set(void *priv)
     intclk.tm_mday = tm->tm_mday;
     intclk.tm_mon  = (tm->tm_mon + 1);
     intclk.tm_year = (tm->tm_year + 1900);
+}
+
+/* Set only the internal clock's date, keeping its time of day. Used when time
+   sync keeps the guest's own date: the RTC start hooks pass the date read from
+   the chip. A date that is not valid (new or cleared NVR) is ignored. */
+void
+nvr_time_set_date(void *priv)
+{
+    const struct tm *tm   = (const struct tm *) priv;
+    const int        year = tm->tm_year + 1900;
+
+    if ((year < 1980) || (year > 2099) || (tm->tm_mon < 0) || (tm->tm_mon > 11) ||
+        (tm->tm_mday < 1) || (tm->tm_mday > nvr_get_days(tm->tm_mon + 1, year)))
+        return;
+
+    intclk.tm_wday = tm->tm_wday;
+    intclk.tm_mday = tm->tm_mday;
+    intclk.tm_mon  = (tm->tm_mon + 1);
+    intclk.tm_year = year;
 }
 
 /* Open or create a file in the NVR area. */

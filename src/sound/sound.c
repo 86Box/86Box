@@ -36,6 +36,9 @@
 #include <86box/sound.h>
 #include <86box/fdd_audio.h>
 #include <86box/hdd_audio.h>
+#include <86box/mem.h>
+#include <86box/usb.h>
+#include <86box/automation.h>
 
 typedef struct {
     const device_t *device;
@@ -45,6 +48,11 @@ typedef struct {
     void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv);
     void *priv;
 } sound_handler_t;
+
+typedef struct {
+    void (*put_buffer)(int16_t *buffer, int len, void *priv);
+    void *priv;
+} sound_in_handler_t;
 
 int  sound_card_current[SOUND_CARD_MAX] = { 0, 0, 0, 0 };
 int  sound_pos_global                   = 0;
@@ -66,65 +74,78 @@ unsigned long long src_freqs[I_MAX] = {
 #define NUM_MUSIC_HANDLERS 16
 #define NUM_YM2151_HANDLERS 16
 #define NUM_WAVETABLE_HANDLERS 16
+#define NUM_SOUND_IN_HANDLERS 16
+#define SNDIN_OUTAGE_TICKS 5
+#define SNDIN_REOPEN_TICKS 10
+#define SNDIN_WEDGED_TICKS 500
+#define SNDIN_HEALTHY_TICKS 250
+#define SNDIN_MAX_WEDGE_ATTEMPTS 3
 
-static sound_handler_t sound_handlers[NUM_SOUND_HANDLERS];
-static sound_handler_t music_handlers[NUM_MUSIC_HANDLERS];
-static sound_handler_t ym2151_handlers[NUM_YM2151_HANDLERS];
-static sound_handler_t wavetable_handlers[NUM_WAVETABLE_HANDLERS];
+static sound_handler_t sound_handlers[NUM_SOUND_HANDLERS] = { 0 };
+static sound_in_handler_t sound_in_handlers[NUM_SOUND_IN_HANDLERS] = { 0 };
+static sound_handler_t music_handlers[NUM_MUSIC_HANDLERS] = { 0 };
+static sound_handler_t ym2151_handlers[NUM_YM2151_HANDLERS] = { 0 };
+static sound_handler_t wavetable_handlers[NUM_WAVETABLE_HANDLERS] = { 0 };
 
-static double     cd_audio_volume_lut[256];
+static double     cd_audio_volume_lut[256] = { 0.0 };
 
-static thread_t  *sound_cd_thread_h;
-static event_t   *sound_cd_event;
-static event_t   *sound_cd_start_event;
-static int32_t   *outbuffer;
-static float     *outbuffer_ex;
-static int16_t   *outbuffer_ex_int16;
-static int32_t   *outbuffer_m;
-static float     *outbuffer_m_ex;
-static int16_t   *outbuffer_m_ex_int16;
-static int32_t   *outbuffer_y;
-static float     *outbuffer_y_ex;
-static int16_t   *outbuffer_y_ex_int16;
-static int32_t   *outbuffer_w;
-static float     *outbuffer_w_ex;
-static int16_t   *outbuffer_w_ex_int16;
-static uint8_t    sound_handlers_num;
-static uint8_t    music_handlers_num;
-static uint8_t    ym2151_handlers_num;
-static uint8_t    wavetable_handlers_num;
-static pc_timer_t cd_poll_timer;
-static uint64_t   cd_poll_latch;
-static pc_timer_t midi_poll_timer;
-static uint64_t   midi_poll_latch;
-static pc_timer_t sound_poll_timer;
-static uint64_t   sound_poll_latch;
-static pc_timer_t music_poll_timer;
-static uint64_t   music_poll_latch;
-static pc_timer_t ym2151_poll_timer;
-static uint64_t   ym2151_poll_latch;
-static pc_timer_t wavetable_poll_timer;
-static uint64_t   wavetable_poll_latch;
+static thread_t  *sound_cd_thread_h = NULL;
+static event_t   *sound_cd_event = NULL;
+static event_t   *sound_cd_start_event = NULL;
+static int32_t   *outbuffer = NULL;
+static float     *outbuffer_ex = NULL;
+static int16_t   *outbuffer_ex_int16 = NULL;
+static int32_t   *outbuffer_m = NULL;
+static float     *outbuffer_m_ex = NULL;
+static int16_t   *outbuffer_m_ex_int16 = NULL;
+static int32_t   *outbuffer_y = NULL;
+static float     *outbuffer_y_ex = NULL;
+static int16_t   *outbuffer_y_ex_int16 = NULL;
+static int32_t   *outbuffer_w = NULL;
+static float     *outbuffer_w_ex = NULL;
+static int16_t   *outbuffer_w_ex_int16 = NULL;
+static uint8_t    sound_handlers_num = 0;
+static uint8_t    sound_in_handlers_num = 0;
+static uint8_t    sound_in_started_input = 0;
+static uint8_t    music_handlers_num = 0;
+static uint8_t    ym2151_handlers_num = 0;
+static uint8_t    wavetable_handlers_num = 0;
+static pc_timer_t cd_poll_timer = { 0 };
+static uint64_t   cd_poll_latch = 0ULL;
+static pc_timer_t midi_poll_timer = { 0 };
+static uint64_t   midi_poll_latch = 0ULL;
+static pc_timer_t sound_poll_timer = { 0 };
+static uint64_t   sound_poll_latch = 0ULL;
+static pc_timer_t music_poll_timer = { 0 };
+static uint64_t   music_poll_latch = 0ULL;
+static pc_timer_t ym2151_poll_timer = { 0 };
+static uint64_t   ym2151_poll_latch = 0ULL;
+static pc_timer_t wavetable_poll_timer = { 0 };
+static uint64_t   wavetable_poll_latch = 0ULL;
 
 static int16_t      cd_buffer[CDROM_NUM][CD_BUFLEN * 2];
 static float        cd_out_buffer[CD_BUFLEN * 2];
 static int16_t      cd_out_buffer_int16[CD_BUFLEN * 2];
-static unsigned int cd_vol_l;
-static unsigned int cd_vol_r;
 static volatile int cdaudioon        = 0;
 static int          cd_thread_enable = 0;
 
-static thread_t     *sound_fdd_thread_h;
-static event_t      *sound_fdd_event;
-static event_t      *sound_fdd_start_event;
-static volatile int fddaudioon = 0;
-static int          fdd_thread_enable = 0;
+static int sound_in_empty_reads = 0;
+static int sound_in_reopen_ticks = 0;
+static int sound_in_had_data = 0;
+static int sound_in_recover_attempts = 0;
+static int sound_in_good_ticks = 0;
+static int sound_in_wedge_attempts = 0;
+static int16_t      sound_input_buffer[SOUNDBUFLEN * 2];
 
-static thread_t     *sound_hdd_thread_h;
-static event_t      *sound_hdd_event;
-static event_t      *sound_hdd_start_event;
+static thread_t     *sound_fdd_thread_h = NULL;
+static event_t      *sound_fdd_event = NULL;
+static event_t      *sound_fdd_start_event = NULL;
+static volatile int fddaudioon = 0;
+
+static thread_t     *sound_hdd_thread_h = NULL;
+static event_t      *sound_hdd_event = NULL;
+static event_t      *sound_hdd_start_event = NULL;
 static volatile int hddaudioon = 0;
-static int          hdd_thread_enable = 0;
 
 static void (*filter_cd_audio)(int channel, double *buffer, void *priv) = NULL;
 static void *filter_cd_audio_p                                          = NULL;
@@ -239,17 +260,19 @@ static const SOUND_CARD sound_cards[] = {
     /* PCI */
     { &cmi8338_device               },
     { &cmi8738_device               },
-    { &es1373_device                },
-    { &ct5880_device                },
     { &es1370_device                },
     { &es1371_device                },
     { &ess_solo1_device             },
+    { &es1373_device                },
+    { &ct5880_device                },
     /* AC97 */
     { &ad1881_device                },
     { &cs4297a_device               },
 #ifdef USE_SOFTMODEM
     { &si3036_device                },
 #endif
+    /* USB */
+    { &usb_speaker_device           },
     { NULL                          }
     // clang-format on
 };
@@ -295,6 +318,14 @@ sound_card_has_config(int card)
     return device_has_config(sound_cards[card].device) ? 1 : 0;
 }
 
+int
+sound_card_has_input(int card)
+{
+    if (sound_cards[card].device == NULL)
+        return 0;
+    return (sound_cards[card].device->flags & DEVICE_AUDIO_IN) ? 1 : 0;
+}
+
 const char *
 sound_card_get_internal_name(int card)
 {
@@ -321,13 +352,6 @@ sound_card_init(void)
     for (uint8_t i = 0; i < SOUND_CARD_MAX; i++)
         if ((sound_card_current[i] > SOUND_INTERNAL) && (sound_cards[sound_card_current[i]].device))
             device_add_inst(sound_cards[sound_card_current[i]].device, i + 1);
-}
-
-void
-sound_set_cd_volume(unsigned int vol_l, unsigned int vol_r)
-{
-    cd_vol_l = vol_l;
-    cd_vol_r = vol_r;
 }
 
 static void
@@ -622,6 +646,48 @@ sound_init(void)
 }
 
 void
+sound_give(const void *buf, const uint8_t src, const int size)
+{
+    automation_audio(src, buf, size, sound_is_float);
+    givealbuffer_common(buf, src, size);
+}
+
+/* Frames a stream has ticked since its last block: the start of its next
+   block that is already in the past. 0 for streams fed by their own threads. */
+int
+sound_pending_frames(const uint8_t src)
+{
+    switch (src) {
+        case I_NORMAL:
+            return sound_pos_global;
+        case I_MUSIC:
+            return music_pos_global;
+        case I_YM2151:
+            return ym2151_pos_global;
+        case I_WT:
+            return wavetable_pos_global;
+        default:
+            return 0;
+    }
+}
+
+/* The sample rate a stream is generated at. */
+int
+sound_stream_rate(const uint8_t src)
+{
+    switch (src) {
+        case I_NORMAL:
+        case I_FDD:
+        case I_HDD:
+            return sound_sample_rate;
+        case I_MIDI:
+            return src_freqs[I_MIDI] ? (int) src_freqs[I_MIDI] : midi_freq;
+        default:
+            return (int) src_freqs[src];
+    }
+}
+
+void
 sound_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
 {
     if (sound_handlers_num >= NUM_SOUND_HANDLERS) {
@@ -671,6 +737,88 @@ wavetable_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *pr
     wavetable_handlers[wavetable_handlers_num].get_buffer = get_buffer;
     wavetable_handlers[wavetable_handlers_num].priv       = priv;
     wavetable_handlers_num++;
+}
+
+void
+sound_in_add_handler(void (*put_buffer)(int16_t *buffer, int len, void *priv), void *priv)
+{
+    if (sound_in_handlers_num >= NUM_SOUND_IN_HANDLERS) {
+        sound_log("sound_in_add_handler: handler table full, dropping registration\n");
+        return;
+    }
+
+    sound_in_handlers[sound_in_handlers_num].put_buffer = put_buffer;
+    sound_in_handlers[sound_in_handlers_num].priv        = priv;
+    sound_in_handlers_num++;
+}
+
+void
+sound_in_start_input(void)
+{
+    const uint8_t old = sound_in_started_input;
+
+    if (!old)
+        al_capture_open();
+
+    sound_in_started_input++;
+    if (!old && al_capture_available())
+        al_capture_start();
+}
+
+
+static int
+sound_capture_suspend(void)
+{
+    const int was_capturing = (sound_in_started_input > 0);
+
+    if (al_capture_available())
+        al_capture_stop();
+    al_capture_close();
+
+    return was_capturing;
+}
+
+static void
+sound_capture_resume(const int was_capturing)
+{
+    if (was_capturing && sound_input_enabled) {
+        sound_in_had_data = 0;
+        al_capture_open();
+        if (al_capture_available())
+            al_capture_start();
+        else
+            /* recovery retry on next tick */
+            sound_in_reopen_ticks = SNDIN_REOPEN_TICKS;
+    }
+}
+
+void
+sound_reopen_input(void)
+{
+    /* al_capture_open()/al_capture_close() mutex-guarded in sound_poll()*/
+    sound_capture_resume(sound_capture_suspend());
+}
+
+void
+sound_reopen_output(void)
+{
+    const int was_capturing = sound_capture_suspend();
+
+    closeal();
+    inital();
+
+    sound_capture_resume(was_capturing);
+}
+
+void
+sound_in_stop_input(void)
+{
+    const uint8_t old = sound_in_started_input;
+
+    if (sound_in_started_input)
+        sound_in_started_input--;
+    if (old && !sound_in_started_input && al_capture_available())
+        al_capture_stop();
 }
 
 void
@@ -731,6 +879,79 @@ sound_poll(UNUSED(void *priv))
             if (sound_handlers[c].get_buffer != NULL)
                 sound_handlers[c].get_buffer(outbuffer, sound_buf_len, sound_handlers[c].priv);
 
+        if (sound_in_started_input) {
+            size_t in_len = (size_t) SOUNDBUFLEN;
+
+            /* recover a failed device capture */
+            if (sound_input_enabled) {
+                const int dead = !al_capture_available();
+                const int wedged = !dead && sound_in_had_data
+                                && (sound_in_wedge_attempts < SNDIN_MAX_WEDGE_ATTEMPTS)
+                                && (sound_in_empty_reads >= SNDIN_WEDGED_TICKS);
+
+                if (dead || wedged) {
+                    const int shift = (sound_in_recover_attempts < 6) ? sound_in_recover_attempts : 6;
+                    const int wait  = SNDIN_REOPEN_TICKS << shift;
+
+                    if (++sound_in_reopen_ticks >= wait) {
+                        sound_in_reopen_ticks = 0;
+                        sound_in_empty_reads  = 0;
+                        sound_in_had_data     = 0;
+                        sound_in_good_ticks   = 0;
+                        sound_in_recover_attempts++;
+
+                        if (wedged) {
+                            sound_in_wedge_attempts++;
+                            al_capture_stop();
+                            al_capture_close();
+                        }
+
+                        al_capture_open();
+                        if (al_capture_available())
+                            al_capture_start();
+                    }
+                } else {
+                    sound_in_reopen_ticks = 0;
+                }
+            }
+
+            /* use SOUND_FREQ when device not open */
+            const int cap_rate = al_capture_get_rate();
+            const int fill_rate = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
+            size_t    want      = (size_t) fill_rate / 50;
+
+            if (want > (size_t) SOUNDBUFLEN)
+                want = (size_t) SOUNDBUFLEN;
+
+            al_capture_get_data(sound_input_buffer, &in_len);
+
+            if (in_len == 0) {
+                sound_in_empty_reads++;
+                sound_in_good_ticks = 0;
+                if (sound_in_empty_reads >= SNDIN_OUTAGE_TICKS) {
+                    memset(sound_input_buffer, 0x00,
+                           want * 2 * sizeof(int16_t));
+                    in_len = want;
+                }
+            } else {
+                sound_in_empty_reads = 0;
+                sound_in_had_data    = 1;
+
+                /* sustained delivery clears the backoff */
+                if (++sound_in_good_ticks >= SNDIN_HEALTHY_TICKS) {
+                    sound_in_recover_attempts = 0;
+                    sound_in_wedge_attempts   = 0;
+                    sound_in_good_ticks       = 0;
+                }
+            }
+
+            if (in_len > 0) {
+                for (uint8_t c = 0; c < sound_in_handlers_num; c++)
+                    if (sound_in_handlers[c].put_buffer != NULL)
+                        sound_in_handlers[c].put_buffer(sound_input_buffer, (int) in_len, sound_in_handlers[c].priv);
+            }
+        }
+
         for (uint32_t c = 0; c < (uint32_t) (sound_buf_len * 2); c++) {
             if (sound_is_float)
                 outbuffer_ex[c] = ((float) outbuffer[c]) / (float) 32768.0;
@@ -749,13 +970,6 @@ sound_poll(UNUSED(void *priv))
         else
             givealbuffer(outbuffer_ex_int16);
 
-        if (fdd_thread_enable) {
-            thread_set_event(sound_fdd_event);
-        }
-
-        if (hdd_thread_enable) {
-            thread_set_event(sound_hdd_event);
-        }
         sound_pos_global = 0;
     }
 }
@@ -912,6 +1126,10 @@ sound_reset(void)
     timer_add(&sound_poll_timer, sound_poll, NULL, 1);
     sound_handlers_num = 0;
     memset(sound_handlers, 0x00, NUM_SOUND_HANDLERS * sizeof(sound_handler_t));
+    sound_in_handlers_num = 0;
+    sound_in_started_input = 0;
+    memset(sound_in_handlers, 0x00, NUM_SOUND_IN_HANDLERS * sizeof(sound_in_handler_t));
+    al_capture_close();
 
     memset(&music_poll_timer, 0x00, sizeof(pc_timer_t));
     timer_add(&music_poll_timer, music_poll, NULL, 1);
@@ -936,8 +1154,6 @@ sound_reset(void)
 
     filter_midi   = NULL;
     filter_midi_p = NULL;
-
-    sound_set_cd_volume(65535, 65535);
 
     /* Reset the MPU-401 already loaded flag and the chain of input/output handlers. */
     midi_in_handlers_clear();
@@ -984,6 +1200,9 @@ sound_cd_thread_reset(void)
 {
     int available_cdrom_drives = 0;
 
+    if (cd_poll_timer.callback != NULL)
+        timer_stop(&cd_poll_timer);
+
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
         cdrom_stop(&(cdrom[i]));
 
@@ -1016,17 +1235,38 @@ static void
 sound_fdd_thread(UNUSED(void *param))
 {
     thread_set_event(sound_fdd_start_event);
-    while (fddaudioon) {
-        thread_wait_event(sound_fdd_event, -1);
-        thread_reset_event(sound_fdd_event);
+    uint32_t start_time      = plat_get_ticks();
+    uint64_t frames_rendered = 0;
 
-        if (!fddaudioon)
-            break;
+    while (fddaudioon) {
+        if (dopause) {
+            thread_wait_event(sound_fdd_event, 50);
+            thread_reset_event(sound_fdd_event);
+            start_time      = plat_get_ticks();
+            frames_rendered = 0;
+            continue;
+        }
 
         static float fdd_float_buffer[SOUNDBUFLEN * 2];
         memset(fdd_float_buffer, 0, sizeof(fdd_float_buffer));
-        fdd_audio_callback((int16_t*)fdd_float_buffer, SOUNDBUFLEN * 2);
+        fdd_audio_callback((int16_t *) fdd_float_buffer, SOUNDBUFLEN * 2);
         givealbuffer_fdd(fdd_float_buffer, SOUNDBUFLEN * 2);
+
+        frames_rendered += SOUNDBUFLEN;
+        uint32_t target_ms = start_time + (uint32_t) ((frames_rendered * 1000ULL) / sound_sample_rate);
+        uint32_t now       = plat_get_ticks();
+        int      wait_ms   = (int) (target_ms - now);
+
+        if (wait_ms > 0) {
+            thread_wait_event(sound_fdd_event, wait_ms);
+            thread_reset_event(sound_fdd_event);
+        } else if (wait_ms < -100) {
+            start_time      = plat_get_ticks();
+            frames_rendered = 0;
+        }
+
+        if (!fddaudioon)
+            break;
     }
 }
 
@@ -1035,7 +1275,6 @@ sound_fdd_thread_init(void)
 {
     if (!fddaudioon) {
         fddaudioon = 1;
-        fdd_thread_enable = 1;
 
         sound_fdd_start_event = thread_create_event();
         sound_fdd_event = thread_create_event();
@@ -1051,7 +1290,6 @@ sound_fdd_thread_end(void)
 {
     if (fddaudioon) {
         fddaudioon = 0;
-        fdd_thread_enable = 0;
 
         thread_set_event(sound_fdd_event);
         thread_wait(sound_fdd_thread_h);
@@ -1074,17 +1312,38 @@ static void
 sound_hdd_thread(UNUSED(void *param))
 {
     thread_set_event(sound_hdd_start_event);
-    while (hddaudioon) {
-        thread_wait_event(sound_hdd_event, -1);
-        thread_reset_event(sound_hdd_event);
+    uint32_t start_time      = plat_get_ticks();
+    uint64_t frames_rendered = 0;
 
-        if (!hddaudioon)
-            break;
+    while (hddaudioon) {
+        if (dopause) {
+            thread_wait_event(sound_hdd_event, 50);
+            thread_reset_event(sound_hdd_event);
+            start_time      = plat_get_ticks();
+            frames_rendered = 0;
+            continue;
+        }
 
         static float hdd_float_buffer[SOUNDBUFLEN * 2];
         memset(hdd_float_buffer, 0, sizeof(hdd_float_buffer));
-        hdd_audio_callback((int16_t*)hdd_float_buffer, SOUNDBUFLEN * 2);
+        hdd_audio_callback((int16_t *) hdd_float_buffer, SOUNDBUFLEN * 2);
         givealbuffer_hdd(hdd_float_buffer, SOUNDBUFLEN * 2);
+
+        frames_rendered += SOUNDBUFLEN;
+        uint32_t target_ms = start_time + (uint32_t) ((frames_rendered * 1000ULL) / sound_sample_rate);
+        uint32_t now       = plat_get_ticks();
+        int      wait_ms   = (int) (target_ms - now);
+
+        if (wait_ms > 0) {
+            thread_wait_event(sound_hdd_event, wait_ms);
+            thread_reset_event(sound_hdd_event);
+        } else if (wait_ms < -100) {
+            start_time      = plat_get_ticks();
+            frames_rendered = 0;
+        }
+
+        if (!hddaudioon)
+            break;
     }
 }
 
@@ -1093,7 +1352,6 @@ sound_hdd_thread_init(void)
 {
     if (!hddaudioon) {
         hddaudioon = 1;
-        hdd_thread_enable = 1;
         sound_hdd_start_event = thread_create_event();
         sound_hdd_event = thread_create_event();
         sound_hdd_thread_h = thread_create(sound_hdd_thread, NULL);
@@ -1108,7 +1366,6 @@ sound_hdd_thread_end(void)
 {
     if (hddaudioon) {
         hddaudioon = 0;
-        hdd_thread_enable = 0;
         thread_set_event(sound_hdd_event);
         thread_wait(sound_hdd_thread_h);
 
@@ -1148,6 +1405,9 @@ sound_close(void)
     timer_disable(&sound_poll_timer);
     sound_handlers_num = 0;
     memset(sound_handlers, 0x00, NUM_SOUND_HANDLERS * sizeof(sound_handler_t));
+    sound_in_handlers_num = 0;
+    sound_in_started_input = 0;
+    memset(sound_in_handlers, 0x00, NUM_SOUND_IN_HANDLERS * sizeof(sound_in_handler_t));
 
     timer_disable(&music_poll_timer);
     music_handlers_num = 0;

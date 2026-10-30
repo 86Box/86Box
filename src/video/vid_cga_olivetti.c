@@ -219,12 +219,18 @@ ogc_poll(void *priv)
     int      blink     = 0;
     int      underline = 0;
 
+    /* Bind the monitor macros to this card's own display. */
+    const int prev_monitor_index = monitor_index_global;
+
+    monitor_index_global = ogc->cga.monitor_used;
+
     // Composite color appears dark blue
 
     /* graphic mode and not mode 40h */
     if (!(ogc->ctrl_3de & 0x1 || !(ogc->cga.cgamode & CGA_MODE_FLAG_GRAPHICS))) {
         /* standard cga mode */
         cga_poll(&ogc->cga);
+        monitor_index_global = prev_monitor_index;
         return;
     } else {
         /* mode 40h or text mode */
@@ -539,6 +545,8 @@ ogc_poll(void *priv)
             }
         }
     }
+
+    monitor_index_global = prev_monitor_index;
 }
 
 void
@@ -597,6 +605,8 @@ ogc_init(UNUSED(const device_t *info))
     ogc_t *ogc = (ogc_t *) calloc(1, sizeof(ogc_t));
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_ogc);
+
+    ogc->cga.monitor_used = monitor_index_global;
 
     video_load_font("roms/video/ogc/ogc graphics board go380 258 pqbq.bin", FONT_FORMAT_PC200, LOAD_FONT_NO_OFFSET);
 

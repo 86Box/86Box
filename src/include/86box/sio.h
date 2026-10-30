@@ -21,7 +21,8 @@ extern const device_t acc3221_device;
 /* Acer / ALi */
 extern const device_t ali5113_device;
 
-#define ALI5123_370 0x00100
+#define ALI5123_370      0x00100
+#define ALI5123_NO_UART3 0x00200 /* M1543 (non-C): logical device 5 is UART2, no UART3 */
 
 extern const device_t ali5123_device;
 
@@ -63,6 +64,11 @@ extern const device_t fdc37c669_device;
 #define FDC37C93X_APM        0x00030
 #define FDC37C93X_CHIP_ID    0x000ff
 
+#define FDC37M60X            0x00047
+#define FDC37M70X            0x00042
+#define FDC37B80X            0x00042
+#define FDC37XXXX_CHIP_ID    0x000ff
+
 #define FDC37XXX1            0x00100    /* Compaq KBC firmware and configuration registers on GPIO ports. */
 #define FDC37XXX2            0x00200    /* AMI '5' Megakey KBC firmware. */
 #define FDC37XXX3            0x00300    /* IBM KBC firmware. */
@@ -75,7 +81,9 @@ extern const device_t fdc37c669_device;
 
 extern const device_t fdc37c93x_device;
 
-extern const device_t fdc37m60x_device;
+extern void    fdc37mx0x_watchdog_reset_ext(int origin);
+
+extern const device_t fdc37mx0x_device;
 
 extern const device_t fdc37c67x_device;
 
@@ -101,6 +109,7 @@ extern const device_t i82091aa_device;
 #define PCX73XX_IDE_SEC      0x00002
 
 #define PCX73XX_FDC_ON       0x10000
+#define PCX73XX_DENSEL_LOW   0x20000    /* IDENT strapped low: DENSEL active low at 500 kbps and 1 Mbps. */
 
 #define PC87310_ALI          0x00004
 #define PC87332              PC87310_ALI
@@ -110,6 +119,7 @@ extern const device_t pc87310_device;
 /* National Semiconductors */
 #define PCX7307_PC87307      0x000c0
 #define PCX7307_PC97307      0x000cf
+#define PCX7307_PC97317      0x000df    /* SID DFh, PC87317/PC97317 data sheet 2.4.2 */
 
 #define PC87309_PC87309      0x000e0
 
@@ -127,12 +137,16 @@ extern const device_t pc87310_device;
 #define PCX730X_BADDR        0x03000
 #define PCX730X_BADDR_SHIFT       12
 
+#define PCX7307_RTC          0x04000    /* The chip's RTC is the board's NVR (the PC97317's always is). */
+
 extern const device_t pc87306_device;
 
 extern const device_t pc873xx_device;
 
 /* National Semiconductors PC87307 / PC87309 */
 extern const device_t pc87307_device;
+extern const device_t pc97317_device;
+extern uint8_t        pc87307_gpio_pins(void *priv, int port);
 
 extern const device_t pc87309_device;
 
@@ -219,6 +233,7 @@ extern void w83877_in530_master_reset(void);
 
 #define W83977_UART_FORCE_SEC 0x01000000
 #define W83977_LPT_FORCE_SEC  0x02000000
+#define W83977_SECONDARY      0x04000000    /* Second Super I/O after another vendor's chip: no FDC, NVR or KBC. */
 
 extern const device_t w83977_device;
 

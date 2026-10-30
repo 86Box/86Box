@@ -24,6 +24,7 @@ extern "C" {
 }
 
 #include <QStandardItemModel>
+#include <QSignalBlocker>
 #include <QDialogButtonBox>
 #include <QFormLayout>
 #include <QLineEdit>
@@ -143,6 +144,7 @@ SettingsHarddisks::SettingsHarddisks(QWidget *parent)
     , ui(new Ui::SettingsHarddisks)
 {
     ui->setupUi(this);
+    Harddrives::widenPopup(ui->comboBoxChannel);
 
     scSpeed = new SettingsCompleter(ui->comboBoxSpeed, nullptr);
 
@@ -257,10 +259,24 @@ SettingsHarddisks::save(int soft)
     }
 }
 
+/* The machine, disk controllers and sound cards chosen on other pages
+   decide who has each IDE channel: bring the names up to date. */
+void
+SettingsHarddisks::showEvent(QShowEvent *event)
+{
+    Harddrives::refreshBusNames(ui->treeView->model());
+    reloadBusChannels();
+    QWidget::showEvent(event);
+}
+
 void
 SettingsHarddisks::reloadBusChannels()
 {
-    const auto selected = ui->comboBoxChannel->currentIndex();
+    /* The drive keeps its channel: refilling the list passes the selection
+       through the first row, which would move the drive there and back and
+       clear that channel's use by another drive. */
+    const QSignalBlocker blocker(ui->comboBoxChannel);
+    const auto           selected = ui->comboBoxChannel->currentIndex();
     Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass);
     ui->comboBoxChannel->setCurrentIndex(selected);
     enableCurrentlySelectedChannel();
@@ -272,18 +288,30 @@ SettingsHarddisks::on_comboBoxBus_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    buschangeinprogress = true;
-    auto idx            = ui->treeView->selectionModel()->currentIndex();
+    auto idx = ui->treeView->selectionModel()->currentIndex();
     if (idx.isValid()) {
         auto *model = ui->treeView->model();
         auto  col   = idx.siblingAtColumn(ColumnBus);
         model->setData(col, ui->comboBoxBus->currentData(Qt::UserRole), DataBus);
         model->setData(col, busChannelName(col), Qt::DisplayRole);
-        Harddrives::busTrackClass->device_track(0, DEV_HDD, model->data(col, DataBusPrevious).toInt(), model->data(col, DataBusChannelPrevious).toInt());
+        /* The drive gives up its channel on the old bus, and has none on the
+           new one until a channel is picked below. */
+        const uint8_t prevChannel = model->data(col, DataBusChannelPrevious).toUInt();
+        if (prevChannel != CHANNEL_NONE)
+            Harddrives::busTrackClass->device_track(0, DEV_HDD, model->data(col, DataBusPrevious).toInt(), prevChannel);
         model->setData(col, ui->comboBoxBus->currentData(Qt::UserRole), DataBusPrevious);
+        model->setData(col, CHANNEL_NONE, DataBusChannelPrevious);
     }
 
-    Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass);
+    {
+        /* Refilling the list selects its first row before the rows have
+           their data: the drive must not take that channel. Leave none
+           selected, so that picking the channel below always reaches
+           on_comboBoxChannel_currentIndexChanged(). */
+        const QSignalBlocker blocker(ui->comboBoxChannel);
+        Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass);
+        ui->comboBoxChannel->setCurrentIndex(-1);
+    }
     Harddrives::populateSpeeds(ui->comboBoxSpeed->model(), scSpeed, ui->comboBoxBus->currentData().toInt());
     int chanIdx = 0;
 
@@ -306,14 +334,8 @@ SettingsHarddisks::on_comboBoxBus_currentIndexChanged(int index)
             break;
     }
 
-    if (idx.isValid()) {
-        auto *model = ui->treeView->model();
-        auto  col   = idx.siblingAtColumn(ColumnBus);
-        model->setData(col, chanIdx, DataBusChannelPrevious);
-    }
     ui->comboBoxChannel->setCurrentIndex(chanIdx);
     ui->treeView->resizeColumnToContents(ColumnBus);
-    buschangeinprogress = false;
 }
 
 void
@@ -328,9 +350,14 @@ SettingsHarddisks::on_comboBoxChannel_currentIndexChanged(int index)
         auto  col   = idx.siblingAtColumn(ColumnBus);
         model->setData(col, ui->comboBoxChannel->currentData(Qt::UserRole), DataBusChannel);
         model->setData(col, busChannelName(col), Qt::DisplayRole);
-        if (!buschangeinprogress)
-            Harddrives::busTrackClass->device_track(0, DEV_HDD, model->data(col, DataBus).toInt(), model->data(col, DataBusChannelPrevious).toUInt());
-        Harddrives::busTrackClass->device_track(1, DEV_HDD, model->data(col, DataBus).toInt(), model->data(col, DataBusChannel).toUInt());
+        /* The drive holds one channel at a time: the one it had, if any,
+           goes before the new one is taken. */
+        const uint8_t prevChannel = model->data(col, DataBusChannelPrevious).toUInt();
+        const uint8_t channel     = model->data(col, DataBusChannel).toUInt();
+        if (prevChannel != CHANNEL_NONE)
+            Harddrives::busTrackClass->device_track(0, DEV_HDD, model->data(col, DataBus).toInt(), prevChannel);
+        if (channel != CHANNEL_NONE)
+            Harddrives::busTrackClass->device_track(1, DEV_HDD, model->data(col, DataBus).toInt(), channel);
         model->setData(col, ui->comboBoxChannel->currentData(Qt::UserRole), DataBusChannelPrevious);
         ui->treeView->resizeColumnToContents(ColumnBus);
         emit driveChannelChanged();
@@ -549,7 +576,9 @@ SettingsHarddisks::on_pushButtonRemove_clicked()
 
     auto      *model = ui->treeView->model();
     const auto col   = idx.siblingAtColumn(ColumnBus);
-    Harddrives::busTrackClass->device_track(0, DEV_HDD, model->data(col, DataBus).toInt(), model->data(col, DataBusChannel).toInt());
+    const uint8_t channel = model->data(col, DataBusChannelPrevious).toUInt();
+    if (channel != CHANNEL_NONE)
+        Harddrives::busTrackClass->device_track(0, DEV_HDD, model->data(col, DataBus).toInt(), channel);
     ic[idx.row()] = 0;
     ih[idx.row()] = 0;
     is[idx.row()] = 0;

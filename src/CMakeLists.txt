@@ -43,13 +43,22 @@ add_executable(86Box
     port_92.c
     ppi.c
     pci.c
+    eisa.c
     mca.c
     usb.c
+    usb_audio.c
+    usb_card.c
+    usb_card_via.c
+    usb_dev.c
+    usb_hid.c
+    usb_hub.c
+    usb_legacy.c
+    usb_msd.c
     device.c
     nvr.c
     nvr_at.c
     nvr_ps2.c
-    machine_status.c
+    machine_status.cpp
 )
 
 if(CMAKE_SYSTEM_NAME MATCHES "Linux")
@@ -65,8 +74,12 @@ if(GDBSTUB)
     target_sources(86Box PRIVATE gdbstub.c)
 endif()
 
-if(NEW_DYNAREC)
-    add_compile_definitions(USE_NEW_DYNAREC)
+if(AUTOMATION)
+    add_compile_definitions(USE_AUTOMATION)
+    target_sources(86Box PRIVATE automation.c)
+    if(WIN32)
+        target_link_libraries(86Box ws2_32)
+    endif()
 endif()
 
 if(RELEASE)
@@ -79,11 +92,6 @@ endif()
 
 if(DISCORD)
     add_compile_definitions(DISCORD)
-    target_sources(86Box PRIVATE discord.c)
-endif()
-
-if(DEBUGREGS486)
-    add_compile_definitions(USE_DEBUG_REGS_486)
 endif()
 
 if(SCREENSHOT_MODE)
@@ -196,9 +204,7 @@ configure_file(include/86box/version.h.in include/86box/version.h @ONLY)
 include_directories(${CMAKE_CURRENT_BINARY_DIR}/include)
 
 include_directories(include)
-if(NEW_DYNAREC)
-    include_directories(cpu codegen_new)
-elseif(DYNAREC)
+if(DYNAREC)
     include_directories(cpu codegen)
 else()
     include_directories(cpu)
@@ -209,9 +215,7 @@ add_subdirectory(char)
 add_subdirectory(chipset)
 
 add_subdirectory(cpu)
-if(NEW_DYNAREC)
-    add_subdirectory(codegen_new)
-elseif(DYNAREC)
+if(DYNAREC)
     add_subdirectory(codegen)
 endif()
 
@@ -247,6 +251,26 @@ if(CMAKE_SYSTEM_NAME MATCHES "Linux")
     # AppStream metadata
     install(FILES "${ASSETS_DIR}/net.86box.86Box.metainfo.xml"
         DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/metainfo")
+
+    # VFIO device preparation helper, and its polkit policy translated from the UI's .po files
+    if(VFIO AND VFIO_AVAILABLE)
+        install(PROGRAMS "${CMAKE_CURRENT_SOURCE_DIR}/device/vfio-setup.sh"
+            DESTINATION "${CMAKE_INSTALL_LIBEXECDIR}/86box" RENAME vfio-setup)
+
+        set(VFIO_POLICY "${CMAKE_CURRENT_BINARY_DIR}/net.86box.86Box.vfio-setup.policy")
+        file(GLOB VFIO_POLICY_PO "${CMAKE_CURRENT_SOURCE_DIR}/qt/languages/*.po")
+        add_custom_command(OUTPUT "${VFIO_POLICY}"
+            COMMAND "${CMAKE_COMMAND}" "-DIN=${ASSETS_DIR}/net.86box.86Box.vfio-setup.policy.in"
+                    "-DOUT=${VFIO_POLICY}" "-DPO_DIR=${CMAKE_CURRENT_SOURCE_DIR}/qt/languages"
+                    "-DHELPER=${CMAKE_INSTALL_FULL_LIBEXECDIR}/86box/vfio-setup"
+                    -P "${PROJECT_SOURCE_DIR}/cmake/PolkitPolicy.cmake"
+            DEPENDS "${ASSETS_DIR}/net.86box.86Box.vfio-setup.policy.in" ${VFIO_POLICY_PO}
+                    "${PROJECT_SOURCE_DIR}/cmake/PolkitPolicy.cmake"
+            COMMENT "Generating the VFIO polkit policy")
+        add_custom_target(vfio-policy ALL DEPENDS "${VFIO_POLICY}")
+        # polkit only reads policies from its own directory, usually under /usr.
+        install(FILES "${VFIO_POLICY}" DESTINATION "${CMAKE_INSTALL_DATAROOTDIR}/polkit-1/actions")
+    endif()
 endif()
 
 
@@ -318,4 +342,14 @@ endif()
 
 if(CMAKE_SYSTEM_NAME MATCHES "NetBSD")
     add_custom_command(TARGET 86Box POST_BUILD COMMAND paxctl ARGS +m $<TARGET_FILE:86Box> COMMENT "Disable PaX MPROTECT")
+endif()
+
+if(AUTOMATION)
+    # Frames sent over the automation connection are zstd-compressed. libchdr
+    # (CD images) already needs the system zstd, found by the same module.
+    if(NOT TARGET zstd::zstd)
+        list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_SOURCE_DIR}/cdrom/libchdr/cmake")
+        find_package(zstd MODULE REQUIRED)
+    endif()
+    target_link_libraries(86Box zstd::zstd)
 endif()

@@ -15,8 +15,6 @@
 
 #include "qt_vmmanager_protocol.hpp"
 
-extern QTimer discordupdate;
-
 class MediaMenu;
 class RendererStack;
 
@@ -41,6 +39,7 @@ public:
     void         reloadAllRenderers();
     QShortcut   *windowedShortcut;
     QKeySequence FindAcceleratorSeq(const char *name);
+    bool         keyMatchesAccelerator(const QKeyEvent *ke, const char *name);
 
     QString mouseStringUncaptured;
     QString mouseStringCaptured;
@@ -76,6 +75,8 @@ signals:
     void vmmGlobalConfigurationChanged();
 public slots:
     void emitVmmSignal();
+    void setVmmSupervised(bool supervised);
+    void applyGlobalPreferences();
     void showSettings();
     void hardReset();
     void togglePause();
@@ -83,6 +84,7 @@ public slots:
     void destroyRendererMonitorSlot(int monitor_index);
     void updateStatusEmptyIcons();
     void updateUiPauseState();
+    void updateUiFastForwardState();
 private slots:
     void on_actionForce_interpretation_triggered();
     void on_actionFullscreen_triggered();
@@ -112,6 +114,8 @@ private slots:
     void on_actionNearest_triggered();
     void on_actionFullScreen_int_triggered();
     void on_actionFullScreen_int43_triggered();
+    void on_actionFullScreen_center_triggered();
+    void on_actionFullScreen_center43_triggered();
     void on_actionFullScreen_keepRatio_triggered();
     void on_actionFullScreen_43_triggered();
     void on_actionFullScreen_stretch_triggered();
@@ -134,7 +138,6 @@ private slots:
     void on_actionMute_Unmute_triggered();
     void on_actionSound_gain_triggered();
     void on_actionPreferences_triggered();
-    void on_actionEnable_Discord_integration_triggered(bool checked);
     void on_actionRenderer_options_triggered();
     void on_actionFast_forward_triggered();
 
@@ -182,7 +185,9 @@ private:
     std::shared_ptr<MediaMenu>     mm;
     QMenu                         *dynarecMenu = nullptr;
 
+    bool hasKanaLock();
     void updateShortcuts();
+    void updatePowerOffAction();
     void refreshDisplayRatioActions();
     void processKeyboardInput(bool down, uint32_t keycode);
 #ifdef Q_OS_MACOS
@@ -206,9 +211,11 @@ private:
     /* Mouse capture state before showing fullscreen UI */
     bool mouse_was_captured = false;
 
+    /* Whether the built-in 86Box VM manager supervises this machine, as
+       opposed to another manager or none */
+    bool vmm_supervised = false;
+
     friend class SpecifyDimensions;
-    friend class Preferences;
-    friend class PreferencesEmulator;
     friend class RendererCommon;
     friend class RendererStack;         // For UI variable access by non-primary renderer windows.
     friend class WindowsRawInputFilter; // Needed to reload renderers on style sheet changes.

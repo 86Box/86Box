@@ -183,6 +183,8 @@ ps1snd_init(UNUSED(const device_t *info))
 
     sound_add_handler(ps1snd_get_buffer, ps1snd);
 
+    device_add(&ps1midi_device);
+
     return ps1snd;
 }
 

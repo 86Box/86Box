@@ -59,7 +59,7 @@ typedef struct flash_t {
 
     uint32_t program_addr;
 
-    mem_mapping_t mapping[4];
+    mem_mapping_t mapping[2];
     mem_mapping_t mapping_h[64];
 } flash_t;
 
@@ -95,6 +95,9 @@ flash_read(uint32_t addr, void *priv)
 {
     const flash_t *dev = (flash_t *) priv;
     uint8_t        ret;
+
+    if (!flash_bios_read_selected(addr))
+        return 0xff;
 
     addr = flash_calc_addr(dev, addr);
     if (addr == 0xffffffff)
@@ -138,6 +141,9 @@ static uint16_t
 flash_readw(uint32_t addr, void *priv)
 {
     const flash_t  *dev = (flash_t *) priv;
+
+    if (!flash_bios_read_selected(addr))
+        return 0xffff;
 
     addr = flash_calc_addr(dev, addr);
     if (addr == 0xffffffff)
@@ -188,6 +194,9 @@ flash_readl(uint32_t addr, void *priv)
 {
     const flash_t  *dev = (flash_t *) priv;
 
+    if (!flash_bios_read_selected(addr))
+        return 0xffffffff;
+
     addr = flash_calc_addr(dev, addr);
     if (addr == 0xffffffff)
         return 0xffffffff;
@@ -201,6 +210,9 @@ static void
 flash_write(uint32_t addr, uint8_t val, void *priv)
 {
     flash_t *      dev         = (flash_t *) priv;
+
+    if (!flash_bios_write_selected(addr))
+        return;
 
     addr = flash_calc_addr(dev, addr);
     if (addr == 0xffffffff)
@@ -285,6 +297,9 @@ static void
 flash_writew(uint32_t addr, uint16_t val, void *priv)
 {
     flash_t *      dev         = (flash_t *) priv;
+
+    if (!flash_bios_write_selected(addr))
+        return;
 
     addr = flash_calc_addr(dev, addr);
     if (addr == 0xffffffff)
@@ -433,8 +448,8 @@ flash_add_mappings(flash_t *dev)
 
         memcpy(&dev->array[fbase], &rom[base & biosmask], 0x10000);
 
-        if ((max == 2) || (i >= 2))
-            mem_mapping_add(&(dev->mapping[i]), base, 0x10000,
+        if ((max == 2) || (i >= (max - 2)))
+            mem_mapping_add(&(dev->mapping[i & 1]), base, 0x10000,
                             flash_read, flash_readw, flash_readl,
                             flash_write, flash_writew, flash_writel,
                             dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);

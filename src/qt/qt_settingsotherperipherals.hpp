@@ -2,10 +2,22 @@
 #define QT_SETTINGSOTHERPERIPHERALS_HPP
 
 #include <QWidget>
+#ifdef USE_VFIO
+#    include <tuple>
+
+#    include <QHash>
+#    include <QList>
+#    include <QString>
+#endif
 
 namespace Ui {
 class SettingsOtherPeripherals;
 }
+
+#ifdef USE_VFIO
+class QProcess;
+class VFIODeviceModel;
+#endif
 
 class SettingsOtherPeripherals : public QWidget {
     Q_OBJECT
@@ -69,6 +81,25 @@ private:
 
     SettingsCompleter            *scMemExpCard[4];
     SettingsCompleter            *scIsaRomCard[4];
+
+#ifdef USE_VFIO
+    /* Location, custom ROM enabled and custom ROM file of each device to pass through. */
+    using VFIODeviceList = QList<std::tuple<QString, bool, QString>>;
+
+    void           vfioEnumerate();
+    void           vfioRestore();
+    void           vfioRequestNames();
+    void           vfioSetNames(const QHash<QString, QString> &names);
+    void           vfioUpdateControls();
+    VFIODeviceList vfioSelectedDevices() const;
+    int            vfioChanged() const;
+    void           vfioSave();
+
+    VFIODeviceModel              *vfioModel;
+    QProcess                     *vfioLspci          = nullptr;
+    bool                          vfioUpdating       = false;
+    bool                          vfioNamesRequested = false;
+#endif
 };
 
 #endif // QT_SETTINGSOTHERPERIPHERALS_HPP

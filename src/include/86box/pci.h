@@ -165,6 +165,8 @@
 #define PCI_IRQS_NUM              16
 #define PCI_IRQ_MAX               (PCI_IRQS_NUM - 1)
 
+typedef struct ioapic_pci_intin_route_state_t ioapic_pci_intin_route_state_t;
+
 /* Legacy flags. */
 #define PCI_REG_COMMAND           PCI_REG_COMMAND_L
 
@@ -200,7 +202,7 @@
 #define pci_clear_iirq(pci_int, irq_state) \
         pci_irq(PCI_IIRQ_BASE | (pci_int), 0, 0, 0, irq_state)
 #define pci_clear_dirq(dirq, irq_state) \
-        pci_irq(PCI_DIRQ_BASE | (irq), 0, 1, 0, irq_state)
+        pci_irq(PCI_DIRQ_BASE | (dirq), 0, 1, 0, irq_state)
 #define pci_clear_irq(slot, pci_int, irq_state) \
         pci_irq(slot, pci_int, 0, 0, irq_state)
 
@@ -276,6 +278,7 @@ extern void        pci_set_mirq_level(int mirq, uint8_t irq);
 extern void        pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state);
 
 extern uint8_t     pci_get_int(uint8_t slot, uint8_t pci_int);
+extern uint8_t     pci_get_irq_line(uint8_t slot, uint8_t pci_int);
 
 /* Relocate a PCI device to a new slot, required for the configurable
    IDSEL's of ALi M1543(c). */
@@ -289,6 +292,7 @@ extern void        pci_set_pmc(uint8_t pmc);
 
 extern void        pci_pic_reset(void);
 extern void        pci_reset(void);
+extern void        pci_system_reset(void);
 
 /* Needed for the io.c handling of configuration mechanism #2 ports C000-CFFF. */
 extern void        pci_write(uint16_t port, uint8_t val, void *priv);
@@ -298,9 +302,19 @@ extern uint8_t     pci_read(uint16_t port, void *priv);
 extern uint16_t    pci_readw(uint16_t port, void *priv);
 extern uint32_t    pci_readl(uint16_t port, void *priv);
 
+extern int         pci_config_read(uint8_t bus, uint8_t dev, uint8_t func, uint8_t reg, int len, uint8_t *vals);
+extern int         pci_config_write(uint8_t bus, uint8_t dev, uint8_t func, uint8_t reg, int len, const uint8_t *vals);
+
 extern uint8_t     pci_register_bus(void);
 extern void        pci_remap_bus(uint8_t bus_index, uint8_t bus_number);
 extern void        pci_register_bus_slot(int bus, int card, int type, int inta, int intb, int intc, int intd);
+/* One more slot on the bus a slot of this type sits on, next device
+   number, INTA-D rotated (a two-IDSEL card such as the Rage Fury MAXX). */
+extern int         pci_register_sibling_slot(int type);
+extern void        pci_apic_set_intin_route(uint8_t bus, uint8_t device, uint8_t intpin, uint8_t intin);
+extern void        pci_apic_clear_intin_routes(void);
+extern uint16_t    pci_apic_save_intin_routes(ioapic_pci_intin_route_state_t *routes, uint16_t capacity);
+extern void        pci_apic_load_intin_routes(const ioapic_pci_intin_route_state_t *routes, uint16_t count);
 
 /* Add a PCI card. */
 extern void        pci_add_card(uint8_t add_type, uint8_t (*read)(int func, int addr, int len, void *priv),

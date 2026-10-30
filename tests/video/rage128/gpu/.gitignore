@@ -1,0 +1,6 @@
+# build.sh products and gputri's pipeline cache
+/gputri
+/fdivtest
+*.exe
+*.spv
+gputri.plcache

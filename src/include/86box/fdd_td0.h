@@ -17,8 +17,7 @@
 #ifndef EMU_FLOPPY_TD0_H
 #define EMU_FLOPPY_TD0_H
 
-extern void td0_init(void);
-extern void td0_load(int drive, char *fn);
-extern void td0_close(int drive);
+extern void td0_load(void *priv, char *fn);
+extern void td0_close(void *priv);
 
 #endif /*EMU_FLOPPY_TD0_H*/

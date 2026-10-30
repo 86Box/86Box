@@ -210,6 +210,24 @@ pci_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                                definition of the bits is identical to the other vendors' AGP bridges. */
             break;
 
+        case 0x35:
+        case 0x36:
+        case 0x37:
+            /* Reserved and read 0 on the ALi M5243 (35-3Bh). */
+            if (dev->local == AGP_BRIDGE_ALI_M5243)
+                return;
+            break;
+
+        case 0x38:
+        case 0x39:
+        case 0x3a:
+        case 0x3b:
+            /* The Intel AGP bridges and the ALi M5243 have no expansion ROM
+               base address: 38-3Bh are reserved and read 0. */
+            if (AGP_BRIDGE_INTEL(dev->local) || (dev->local == AGP_BRIDGE_ALI_M5243))
+                return;
+            break;
+
         case 0x3c:
             if (!(dev->ctl & 0x80))
                 return;
@@ -220,10 +238,8 @@ pci_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 val &= 0x0c;
             else if (AGP_BRIDGE_SIS(dev->local))
                 val &= 0x0e;
-            else if (dev->local == AGP_BRIDGE_ALI_M5247)
+            else if (AGP_BRIDGE_ALI(dev->local))
                 val &= 0x0f;
-            else if (dev->local == AGP_BRIDGE_ALI_M5243)
-                return;
             else if (AGP_BRIDGE(dev->local)) {
                 if ((dev->local == AGP_BRIDGE_INTEL_440BX) || (dev->local == AGP_BRIDGE_INTEL_440GX))
                     val &= 0xed;
@@ -518,7 +534,7 @@ pci_bridge_reset(void *priv)
 static void *
 pci_bridge_init(const device_t *info)
 {
-    uint8_t interrupts[4];
+    uint8_t interrupts[4] = { 0 };
     uint8_t interrupt_mask;
     uint8_t add_type;
     uint8_t slot_count;
@@ -532,13 +548,6 @@ pci_bridge_init(const device_t *info)
     pci_bridge_reset(dev);
 
     interrupt_mask = sizeof(interrupts) - 1;
-    if (dev->slot < 32) {
-        for (uint8_t i = 0; i <= interrupt_mask; i++)
-            interrupts[i] = pci_get_int(dev->slot, PCI_INTA + i);
-    }
-    pci_bridge_log("PCI Bridge %d: upstream bus %02X slot %02X interrupts %02X %02X %02X %02X\n",
-                   dev->bus_index, (dev->slot >> 5) & 0xff, dev->slot & 31, interrupts[0],
-                   interrupts[1], interrupts[2], interrupts[3]);
 
     if (info->local == PCI_BRIDGE_DEC_21150) {
         slot_count = 9; /* 9 bus masters */
@@ -552,6 +561,17 @@ pci_bridge_init(const device_t *info)
     }
 
     pci_add_bridge(add_type, pci_bridge_read, pci_bridge_write, dev, &dev->slot);
+
+    /* dev->slot is only valid after pci_add_bridge(); reading the upstream
+       INT routing earlier hits slot 0 (northbridge, all-zero routing) and
+       leaves every downstream slot's interrupts unroutable. */
+    if (dev->slot < 32) {
+        for (uint8_t i = 0; i <= interrupt_mask; i++)
+            interrupts[i] = pci_get_int(dev->slot, PCI_INTA + i);
+    }
+    pci_bridge_log("PCI Bridge %d: upstream bus %02X slot %02X interrupts %02X %02X %02X %02X\n",
+                   dev->bus_index, (dev->slot >> 5) & 0xff, dev->slot & 31, interrupts[0],
+                   interrupts[1], interrupts[2], interrupts[3]);
 
     for (uint8_t i = 0; i < slot_count; i++) {
         /* Interrupts for bridge slots are assigned in round-robin: ABCD, BCDA, CDAB and so on. */
@@ -728,7 +748,7 @@ const device_t via_vt8601_agp_device = {
 
 const device_t sis_5xxx_agp_device = {
     .name          = "SiS 5591/(5)600 AGP Bridge",
-    .internal_name = "via_5xxx_agp",
+    .internal_name = "sis_5xxx_agp",
     .flags         = DEVICE_PCI,
     .local         = AGP_BRIDGE_SIS_5XXX,
     .init          = pci_bridge_init,

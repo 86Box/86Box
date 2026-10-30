@@ -19,6 +19,8 @@
 #ifndef EMU_MEM_H
 #define EMU_MEM_H
 
+#include <stdint.h>
+
 #define MEM_MAP_TO_SHADOW_RAM_MASK 1
 #define MEM_MAP_TO_RAM_ADDR_MASK   2
 
@@ -116,6 +118,13 @@
 #define MEM_MAPPING_SMRAM     32 /* On internal bus (RAM) but SMRAM. */
 #define MEM_MAPPING_CACHE     64 /* Cache or MTRR - please avoid such mappings unless \
                                     stricly necessary (eg. for CoreBoot). */
+#define MEM_MAPPING_CACHE_ONLY 128 /* Lines held in the processor's cache: seen only where
+                                     the CPU's access state has ACCESS_CACHE, and never
+                                     by the bus (mem_set_cache_access). */
+#define MEM_MAPPING_CPU_ONLY  256 /* The processor's own: seen by its accesses and never
+                                     by a bus master's (mem_*_phys). */
+#define MEM_MAPPING_NO_CODEGEN 512 /* Code in it is interpreted: writes to its memory are
+                                      not tracked at its own address. */
 
 /* #define's for memory granularity, currently 4k, less does
    not work because of internal 4k pages. */
@@ -195,7 +204,6 @@ typedef struct _mem_mapping_ {
     void *priv; /* backpointer to device */
 } mem_mapping_t;
 
-#ifdef USE_NEW_DYNAREC
 extern uint64_t *byte_dirty_mask;
 extern uint64_t *byte_code_present_mask;
 
@@ -211,10 +219,10 @@ typedef struct page_t {
 
     uint8_t *mem;
 
-    uint16_t block, block_2;
+    uint32_t block, block_2;
 
     /*Head of codeblock tree associated with this page*/
-    uint16_t head;
+    uint32_t head;
 
     uint64_t code_present_mask;
     uint64_t dirty_mask;
@@ -234,24 +242,6 @@ page_in_evict_list(page_t *page)
 }
 void page_remove_from_evict_list(page_t *page);
 void page_add_to_evict_list(page_t *page);
-#else
-typedef struct _page_ {
-    void (*write_b)(uint32_t addr, uint8_t val, struct _page_ *page);
-    void (*write_w)(uint32_t addr, uint16_t val, struct _page_ *page);
-    void (*write_l)(uint32_t addr, uint32_t val, struct _page_ *page);
-
-    uint8_t *mem;
-
-    uint64_t code_present_mask[4];
-    uint64_t dirty_mask[4];
-
-    struct codeblock_t *block[4];
-    struct codeblock_t *block_2[4];
-
-    /*Head of codeblock tree associated with this page*/
-    struct codeblock_t *head;
-} page_t;
-#endif
 
 extern uint8_t *ram;
 extern uint32_t rammask;
@@ -306,6 +296,9 @@ extern int mem_a20_state;
 extern int mem_a20_alt;
 extern int mem_a20_chipset;
 extern int mem_a20_key;
+extern void (*mem_a20_trap)(int state, void *priv);
+extern void  *mem_a20_trap_priv;
+extern int    mem_a20_gate;
 
 extern int is_compare;
 
@@ -350,11 +343,16 @@ extern void     writememll_no_mmut_2386(uint32_t addr, uint32_t *a64, uint32_t v
 
 extern void     do_mmutranslate_2386(uint32_t addr, uint32_t *a64, int num, int write);
 
+extern uint32_t mem_readl_map(uint32_t addr);
+extern void     mem_writel_map(uint32_t addr, uint32_t val);
+
 extern uint8_t *getpccache(uint32_t a);
+extern int      cpu_fetch_device;
 extern uint64_t mmutranslatereal(uint32_t addr, int rw);
 extern uint32_t mmutranslatereal32(uint32_t addr, int rw);
 extern void     addreadlookup(uint32_t virt, uint32_t phys);
 extern void     addwritelookup(uint32_t virt, uint32_t phys);
+extern void     addwritelookup_remapped(uint32_t virt, uint32_t phys, uint32_t ram_addr);
 
 extern void mem_mapping_set(mem_mapping_t *,
                             uint32_t base,
@@ -407,15 +405,33 @@ extern void mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignor
 
 extern void mem_set_wp(uint64_t base, uint64_t size, uint8_t flags, uint8_t wp);
 extern void mem_set_access(uint8_t bitmap, int mode, uint32_t base, uint32_t size, uint16_t access);
+extern void mem_set_cache_access(uint32_t base, uint32_t size, int cached);
+extern int  mem_bus_unbacked(uint32_t base, uint32_t size);
+
+extern const uint8_t *mem_phys_ptr(uint32_t addr, uint32_t len);
+extern const mem_mapping_t *mem_read_mapping_at(uint32_t addr);
+extern uint32_t       mem_mapping_gen;
+extern size_t         mem_ram_size(void);
 
 extern uint8_t  mem_readb_phys(uint32_t addr);
 extern uint16_t mem_readw_phys(uint32_t addr);
 extern uint32_t mem_readl_phys(uint32_t addr);
 extern void     mem_read_phys(void *dest, uint32_t addr, int tranfer_size);
+extern uint32_t mem_read_phys_block(void *dest, uint32_t addr, uint32_t len);
 extern void     mem_writeb_phys(uint32_t addr, uint8_t val);
 extern void     mem_writew_phys(uint32_t addr, uint16_t val);
 extern void     mem_writel_phys(uint32_t addr, uint32_t val);
 extern void     mem_write_phys(void *src, uint32_t addr, int tranfer_size);
+
+/* Views of memory for mem_view_read() and mem_view_write(). */
+#define MEM_VIEW_BUS        0 /* DMA and bus masters, as mem_readb_phys() */
+#define MEM_VIEW_CPU        1 /* the processor, in or out of SMM as it is now */
+#define MEM_VIEW_CPU_NORMAL 2 /* the processor outside SMM */
+#define MEM_VIEW_CPU_SMM    3 /* the processor in SMM */
+
+extern uint32_t mem_view_read(int view, uint32_t addr, int width);
+extern void     mem_view_write(int view, uint32_t addr, uint32_t val, int width);
+extern uint32_t mem_write_phys_block(const void *src, uint32_t addr, uint32_t len);
 
 extern uint8_t  mem_read_ram(uint32_t addr, void *priv);
 extern uint16_t mem_read_ramw(uint32_t addr, void *priv);
@@ -429,6 +445,9 @@ extern int mem_addr_is_ram(uint32_t addr);
 extern uint64_t mmutranslate_noabrt(uint32_t addr, int rw);
 
 extern void mem_invalidate_range(uint32_t start_addr, uint32_t end_addr);
+extern int  mem_phys_has_code(uint32_t addr, uint32_t len);
+extern void mem_phys_written(uint32_t addr, uint32_t len);
+extern void mem_set_ram_alias(uint32_t base, uint32_t ram_addr, uint32_t size, int set);
 
 extern void mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page);
 extern void mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *page);
@@ -438,6 +457,9 @@ extern void mem_flush_write_page(uint32_t addr, uint32_t virt);
 extern void mem_reset_page_blocks(void);
 
 extern void flushmmucache(void);
+extern uint64_t pae_pdpte[4];
+extern int      pae_check_load(uint32_t cr3_val);
+extern void     pae_load_pdptes(void);
 extern void flushmmucache_write(void);
 extern void flushmmucache_pc(void);
 extern void flushmmucache_nopc(void);

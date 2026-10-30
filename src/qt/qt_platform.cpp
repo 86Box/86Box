@@ -153,9 +153,6 @@ extern "C" {
 #include <86box/hdc_ide.h>
 #include <86box/hdd.h>
 #include <86box/ui.h>
-#ifdef DISCORD
-#    include <86box/discord.h>
-#endif
 
 #include "../cpu/cpu.h"
 #include <86box/plat.h>
@@ -789,16 +786,21 @@ plat_pause(int p)
     QString pausedText = QObject::tr(" - PAUSED");
     emit main_window->setTitle(p ? title.append(pausedText) : title.left(title.indexOf(pausedText)));
 
-#ifdef DISCORD
-    discord_update_activity(dopause);
-#endif
-
     QTimer::singleShot(0, main_window, &MainWindow::updateUiPauseState);
 
 #ifdef Q_OS_WINDOWS
     if (source_hwnd)
         PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSTATUS, (WPARAM) !!p, (LPARAM) (HWND) main_window->winId());
 #endif
+}
+
+extern "C" bool fast_forward; /* qt_main.cpp */
+
+void
+plat_fast_forward(int on)
+{
+    fast_forward = !!on;
+    QTimer::singleShot(0, main_window, &MainWindow::updateUiFastForwardState);
 }
 
 void
@@ -964,6 +966,33 @@ Preferences::reloadStrings()
     translatedstrings[STRING_HW_NOT_AVAILABLE_VIDEO]    = QCoreApplication::translate("", "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card.").toUtf8();
     translatedstrings[STRING_HW_NOT_AVAILABLE_DEVICE]   = QCoreApplication::translate("", "Device \"%s\" is not available due to missing ROMs. Ignoring the device.").toUtf8();
     translatedstrings[STRING_HW_NOT_AVAILABLE_TITLE]    = QCoreApplication::translate("", "Hardware not available").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_TITLE] = QCoreApplication::translate("", "Unsupported Hardware").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_TEXT] = QCoreApplication::translate("", "Hardware in this machine profile is not supported by this current build of 86Box.").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_OTHERS] = QCoreApplication::translate("", "(and %i others)").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_REPLACE] = QCoreApplication::translate("", "Loading the configuration anyway will replace the machine and overwrite the existing configuration.").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_REMOVE] = QCoreApplication::translate("", "Loading the configuration anyway will remove these components and overwrite the existing configuration.").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_REPLACE_REMOVE] = QCoreApplication::translate("", "Loading the configuration anyway will replace the machine, remove the other components and overwrite the existing configuration.").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_CONTINUE] = QCoreApplication::translate("", "Do you want to continue?").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_MACHINE] = QCoreApplication::translate("", "Machine type \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_VIDEO] = QCoreApplication::translate("", "Video card \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_KEYBOARD] = QCoreApplication::translate("", "Keyboard \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_MOUSE] = QCoreApplication::translate("", "Mouse \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_TABLET] = QCoreApplication::translate("", "Tablet \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_JOYSTICK] = QCoreApplication::translate("", "Joystick \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_SOUND] = QCoreApplication::translate("", "Sound card \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_MIDI_OUT] = QCoreApplication::translate("", "MIDI output device \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_MIDI_IN] = QCoreApplication::translate("", "MIDI input device \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_NETWORK] = QCoreApplication::translate("", "Network card \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_SERIAL] = QCoreApplication::translate("", "Serial port device \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_PARALLEL] = QCoreApplication::translate("", "Parallel port device \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_GAMEPORT] = QCoreApplication::translate("", "Game port \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_SCSI] = QCoreApplication::translate("", "SCSI card \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_FDC] = QCoreApplication::translate("", "Floppy controller \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_HDC] = QCoreApplication::translate("", "Disk controller \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_CDROM_INTERFACE] = QCoreApplication::translate("", "CD-ROM interface \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_MEMORY] = QCoreApplication::translate("", "Memory expansion card \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_ROM] = QCoreApplication::translate("", "ROM expansion card \"%s\"").toUtf8();
+    translatedstrings[STRING_UNSUPPORTED_RTC] = QCoreApplication::translate("", "RTC card \"%s\"").toUtf8();
     translatedstrings[STRING_NET_ERROR]                 = QCoreApplication::translate("", "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver.").toUtf8();
     translatedstrings[STRING_ESCP_ERROR]                = QCoreApplication::translate("", "Unable to find Dot-Matrix fonts. TrueType fonts in the \"roms/printer/fonts\" directory are required for the emulation of the Generic ESC/P 2 Dot-Matrix Printer.").toUtf8();
     translatedstrings[STRING_EDID_READ_ERROR]           = QCoreApplication::translate("", "EDID file \"%s\" is invalid.").toUtf8();
@@ -975,11 +1004,33 @@ Preferences::reloadStrings()
     translatedstrings[STRING_CDROM_LOAD_MDSX_ERROR]     = QCoreApplication::translate("", "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support.").arg(LIB_NAME_MDSX).toUtf8();
     translatedstrings[STRING_CDROM_LOAD_AARU_ERROR]     = QCoreApplication::translate("", "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support.").arg(LIB_NAME_AARU).toUtf8();
     translatedstrings[STRING_CDROM_DVD_IN_CD_DRIVE]     = QCoreApplication::translate("", "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored.").toUtf8();
+    translatedstrings[STRING_CDROM_IMAGE_TOO_LARGE]     = QCoreApplication::translate("", "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored.").toUtf8();
     translatedstrings[STRING_CHARDEV_CONNECT_ERROR]     = QCoreApplication::translate("", "%s: Could not connect to %s: %s").toUtf8();
     translatedstrings[STRING_CHARDEV_CREATE_ERROR]      = QCoreApplication::translate("", "%s: Could not create %s: %s").toUtf8();
     translatedstrings[STRING_CHARDEV_ATTACHED]          = QCoreApplication::translate("", "%s: Attached to %s").toUtf8();
     translatedstrings[STRING_CHARDEV_VCON_IN_USE]       = QCoreApplication::translate("", "%s: Virtual console already in use by %s").toUtf8();
     translatedstrings[STRING_CHARDEV_TERMINAL_ERROR]    = QCoreApplication::translate("", "%s: Could not create terminal: %s").toUtf8();
+    translatedstrings[STRING_USB_NO_PORT]               = QCoreApplication::translate("", "%s was not connected: every USB port of this machine is in use.").toUtf8();
+    translatedstrings[STRING_USB_NO_CONTROLLER]         = QCoreApplication::translate("", "%s was not connected: this machine has no USB controller that can take devices.").toUtf8();
+#ifdef USE_VFIO
+    translatedstrings[STRING_VFIO_NO_CONTAINER]         = QCoreApplication::translate("", "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded.").toUtf8();
+    translatedstrings[STRING_VFIO_INVALID_LOCATION]     = QCoreApplication::translate("", "VFIO %s: Invalid device location.").toUtf8();
+    translatedstrings[STRING_VFIO_DEVICE_NOT_FOUND]     = QCoreApplication::translate("", "VFIO %s: Device not found.").toUtf8();
+    translatedstrings[STRING_VFIO_NO_IOMMU_GROUP]       = QCoreApplication::translate("", "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system.").toUtf8();
+    translatedstrings[STRING_VFIO_NOT_BOUND]            = QCoreApplication::translate("", "VFIO %s: Device is not bound to vfio-pci.").toUtf8();
+    translatedstrings[STRING_VFIO_GROUP_OPEN_ERROR]     = QCoreApplication::translate("", "VFIO %s: Could not open IOMMU group %d: %s").toUtf8();
+    translatedstrings[STRING_VFIO_GROUP_NOT_VIABLE]     = QCoreApplication::translate("", "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci.").toUtf8();
+    translatedstrings[STRING_VFIO_DMA_ERROR]            = QCoreApplication::translate("", "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low.").toUtf8();
+    translatedstrings[STRING_VFIO_ROM_FILE_FALLBACK]    = QCoreApplication::translate("", "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM.").toUtf8();
+    translatedstrings[STRING_VFIO_ROM_FILE_DISABLED]    = QCoreApplication::translate("", "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled.").toUtf8();
+    translatedstrings[STRING_VFIO_ROM_INVALID]          = QCoreApplication::translate("", "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings.").toUtf8();
+    translatedstrings[STRING_VFIO_SETUP_QUESTION]      = QCoreApplication::translate("", "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?").toUtf8();
+    translatedstrings[STRING_VFIO_SETUP_ACCESS]        = QCoreApplication::translate("", "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?").toUtf8();
+    translatedstrings[STRING_VFIO_SETUP_GROUP]         = QCoreApplication::translate("", "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:").toUtf8();
+    translatedstrings[STRING_VFIO_SETUP_REFUSED]       = QCoreApplication::translate("", "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci.").toUtf8();
+    translatedstrings[STRING_VFIO_SETUP_FAILED]        = QCoreApplication::translate("", "VFIO: Could not prepare the devices for passthrough:\n%s").toUtf8();
+    translatedstrings[STRING_VFIO_SETUP_MANUAL]        = QCoreApplication::translate("", "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s").toUtf8();
+#endif
 }
 
 char *

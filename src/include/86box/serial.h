@@ -78,6 +78,9 @@ typedef struct serial_s {
     uint8_t transmit_enabled;
     uint8_t fifo_enabled;
     uint8_t bits;
+
+    /* Divides the receive timer down for the modem status poll. */
+    uint8_t status_divider;
     uint8_t data_bits;
     uint8_t baud_cycles;
     uint8_t txsr;
@@ -156,6 +159,7 @@ extern void      serial_set_type(serial_t *dev, uint8_t type);
 extern void      serial_set_card_selected_feedback(serial_t *dev, uint8_t *reg_91);
 extern void      serial_reset_port(serial_t *dev);
 extern uint8_t   serial_read(uint16_t addr, void *priv);
+extern void      serial_write(uint16_t addr, uint8_t val, void *priv);
 extern void      serial_device_timeout(void *priv);
 extern void      serial_set_cts(serial_t *dev, uint8_t enabled);
 extern void      serial_set_dsr(serial_t *dev, uint8_t enabled);
@@ -164,6 +168,12 @@ extern void      serial_set_ri(serial_t *dev, uint8_t enabled);
 extern int       serial_get_ri(serial_t *dev);
 extern uint8_t   serial_get_shadow(serial_t *dev);
 
+extern uint8_t   i8251_read(uint16_t addr, void *priv);
+extern void      i8251_write(uint16_t addr, uint8_t val, void *priv);
+extern void      i8251_set_irq(void *priv, int irq_mask);
+extern void      i8251_set_clock(void *priv, double hz);
+
+extern const device_t i8251_device;
 extern const device_t ns8250_device;
 extern const device_t ns8250_pcjr_3f8_device;
 extern const device_t ns8250_pcjr_2f8_device;

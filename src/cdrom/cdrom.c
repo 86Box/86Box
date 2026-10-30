@@ -36,6 +36,10 @@
 #include <86box/cdrom_image_writable.h>
 #include <86box/cdrom_interface.h>
 #include <86box/cdrom_mitsumi.h>
+#include <86box/cdrom_hitachi.h>
+#include <86box/cdrom_philips.h>
+#include <86box/cdrom_sony.h>
+#include <86box/cdrom_cm153.h>
 #include <86box/cdrom_mke.h>
 #include <86box/crc.h>
 #include <86box/log.h>
@@ -141,9 +145,17 @@ static const struct {
 } controllers[] = {
     // clang-format off
     { &cdrom_interface_none_device  },
-    { &mitsumi_cdrom_device         },
+    { &hitachi_cdrom_isa_device     },
     { &mke_cdrom_noncreative_device },
     { &mke_cdrom_device             },
+    { &philips_cm153_device         },
+    { &philips_cm250_device         },
+    { &sony_cdu31a_device           },
+    { &sony_creative_device         },
+    { &teac_cdrom_device            },
+    { &mitsumi_cdrom_device         },
+    { &teac_cdrom_16bit_device      },
+    { &hitachi_cdrom_mca_device     },
     { NULL                          }
     // clang-format on
 };
@@ -186,11 +198,8 @@ cdrom_generate_name(const int type, char *name, const int internal)
 
     if (internal)
         sprintf(name, "%s_%s_%s", elements[0], elements[1], elements[2]);
-    else if (cdrom_drive_types[type].speed == -1)
-        sprintf(name, "%s %s %s", elements[0], elements[1], elements[2]);
     else
-        sprintf(name, "%s %s %s (%ix)", elements[0], elements[1],
-                elements[2], cdrom_drive_types[type].speed);
+        sprintf(name, "%s %s %s", elements[0], elements[1], elements[2]);
 }
 
 static double
@@ -437,6 +446,22 @@ cdrom_is_sector_good(cdrom_t *dev, const uint8_t *b, const uint8_t mode2, const 
     return ret;
 }
 
+static void
+add_edc_ecc(cdrom_t *dev)
+{
+    uint8_t *b = dev->raw_buffer[dev->cur_buf];
+
+    if (dev->edc_missing) {
+        const uint32_t crc = cdrom_crc32(0xffffffff, b, 2064) ^ 0xffffffff;
+
+        memcpy(&(b[2064]), &crc, 4);
+        cdrom_generate_ecc_data(dev, &(b[12]), 0);
+        memcpy(&(b[2076]), dev->p_parity, 172);
+        memcpy(&(b[2248]), dev->q_parity, 104);
+        dev->edc_missing = 0;
+    }
+}
+
 static int
 read_data(cdrom_t *dev, const uint32_t lba, int check)
 {
@@ -452,7 +477,11 @@ read_data(cdrom_t *dev, const uint32_t lba, int check)
         ret = dev->ops->read_sector(dev->local,
                                     dev->raw_buffer[dev->cur_buf ^ 1], lba);
 
-        cdrom_check_for_formed_mode2(dev, dev->raw_buffer[dev->cur_buf ^ 1]);
+        /* Sectors built by us are always good. */
+        dev->edc_missing = (ret == 2);
+
+        if (!dev->edc_missing)
+            cdrom_check_for_formed_mode2(dev, dev->raw_buffer[dev->cur_buf ^ 1]);
 
         if ((ret > 0) && check) {
             if (dev->mode2) {
@@ -475,7 +504,8 @@ read_data(cdrom_t *dev, const uint32_t lba, int check)
                             0x20) >> 5) + 1;
             }
 
-            if (!cdrom_is_sector_good(dev, dev->raw_buffer[dev->cur_buf ^ 1], dev->mode2, form))
+            if (!dev->edc_missing &&
+                !cdrom_is_sector_good(dev, dev->raw_buffer[dev->cur_buf ^ 1], dev->mode2, form))
                 ret = -1;
         }
 
@@ -709,6 +739,7 @@ read_toc_session(const cdrom_t *dev, unsigned char *b, const int msf)
     const raw_track_info_t *first      = NULL;
     int                     num        = 0;
     int                     len        = 4;
+    uint8_t                 ft         = 0;
 
     dev->ops->get_raw_track_info(dev->local, &num, rti);
 
@@ -720,54 +751,71 @@ read_toc_session(const cdrom_t *dev, unsigned char *b, const int msf)
 
     if (num != 0) {
         for (int i = 0; i < num; i++) {
-            if ((t[i].session == b[3]) && (t[i].point >= 0x01) && (t[i].point <= 0x63)) {
+            if ((t[i].session == b[3]) && (t[i].point == 0xa0)) {
                 first = &(t[i]);
                 break;
             }
         }
+
         if (first != NULL) {
             b[len++] = 0x00;
             b[len++] = first->adr_ctl;
-            if ((dev->is_bcd || dev->is_chinon) && (first->point >= 1) &&
-                (first->point <= 99))
-                b[len++] = bin2bcd(first->point);
+            ft = first->pm;
+            if ((dev->is_bcd || dev->is_chinon) && (ft >= 1) && (ft <= 99))
+                b[len++] = bin2bcd(ft);
             else
-                b[len++] = first->point;
+                b[len++] = ft;
             b[len++] = 0x00;
 
-            if (msf) {
-                b[len++] = 0x00;
+            first = NULL;
+            for (int i = 0; i < num; i++) {
+                if ((t[i].session == b[3]) && (t[i].point == ft)) {
+                    first = &(t[i]);
+                    break;
+                }
+            }
 
-                /* NEC CDR-260 speaks BCD. */
-                if (dev->is_bcd) {
-                    int m = first->pm;
-                    int s = first->ps;
-                    int f = first->pf;
+            if (first != NULL) {
+                if (msf) {
+                    b[len++] = 0x00;
 
-                    msf_to_bcd(&m, &s, &f);
+                    /* NEC CDR-260 speaks BCD. */
+                    if (dev->is_bcd) {
+                        int m = first->pm;
+                        int s = first->ps;
+                        int f = first->pf;
 
-                    b[len++] = m;
-                    b[len++] = s;
-                    b[len++] = f;
+                        msf_to_bcd(&m, &s, &f);
+
+                        b[len++] = m;
+                        b[len++] = s;
+                        b[len++] = f;
+                    } else {
+                        b[len++] = first->pm;
+                        b[len++] = first->ps;
+                        b[len++] = first->pf;
+                    }
                 } else {
-                    b[len++] = first->pm;
-                    b[len++] = first->ps;
-                    b[len++] = first->pf;
+                    const uint32_t temp = MSFtoLBA(first->pm, first->ps,
+                                                   first->pf) - 150;
+
+                    b[len++] = temp >> 24;
+                    b[len++] = temp >> 16;
+                    b[len++] = temp >> 8;
+                    b[len++] = temp;
                 }
             } else {
-                const uint32_t temp = MSFtoLBA(first->pm, first->ps,
-                                               first->pf) - 150;
-
-                b[len++] = temp >> 24;
-                b[len++] = temp >> 16;
-                b[len++] = temp >> 8;
-                b[len++] = temp;
+                memset(&(b[len]), 0x00, 4);
+                len += 4;
             }
+        } else {
+            memset(&(b[len]), 0x00, 8);
+            len += 8;
         }
+    } else {
+        memset(&(b[len]), 0x00, 8);
+        len += 8;
     }
-
-    if (len == 4)
-        memset(&(b[len += 8]), 0x00, 8);
 
     return len;
 }
@@ -791,16 +839,16 @@ read_toc_raw(const cdrom_t *dev, unsigned char *b, const unsigned char start_tra
 
     if (num != 0)  for (int i = 0; i < num; i++)
         if (t[i].session >= start_track) {
-            memcpy(&(b[len]), &(t[i]), 11);
+            unsigned char *e = &b[len];
+            memcpy(e, &(t[i]), 11);
 
-            if ((dev->is_bcd || dev->is_chinon) && (b[3] >= 1) && (b[3] <= 99))
-                b[3] = bin2bcd(b[3]);
+            if ((dev->is_bcd || dev->is_chinon) && (e[3] >= 1) && (e[3] <= 99))
+                e[3] = bin2bcd(e[3]);
 
-            for (int j = 0; j < 3; j++)
-                if (dev->is_bcd) {
-                    b[4 + j] = bin2bcd(b[4 + j]);
-                    b[8 + j] = bin2bcd(b[8 + j]);
-                }
+            if (dev->is_bcd)  for (int j = 0; j < 3; j++) {
+                e[4 + j] = bin2bcd(e[4 + j]);
+                e[8 + j] = bin2bcd(e[8 + j]);
+            }
 
             len += 11;
         }
@@ -918,6 +966,7 @@ process_mode1(cdrom_t *dev, const int cdrom_sector_flags, uint8_t *b)
     if (cdrom_sector_flags & 0x08) {
         /* EDC/ECC */
         cdrom_log(dev->log, "[Mode 1] EDC/ECC\n");
+        add_edc_ecc(dev);
         memcpy(b, dev->raw_buffer[dev->cur_buf] + 2064, (288 - ecc_diff));
         dev->cdrom_sector_size += (288 - ecc_diff);
     }
@@ -1180,6 +1229,13 @@ cdrom_toc_dump(cdrom_t *dev)
 void
 cdrom_interface_reset(void)
 {
+    /* On a Tandy VIS machine, add the Mitsumi controller; it has no ISA slots
+       for another one, and that one would clash with it at 0x310. */
+    if (machines[machine].init == machine_at_tandy_vis_init) {
+        device_add(&mitsumi_cdrom_vis_device);
+        return;
+    }
+
     /* If we have a valid controller, add its device. */
     if ((cdrom_interface_current > 0) &&
         controllers[cdrom_interface_current].device)
@@ -1314,6 +1370,40 @@ cdrom_get_speed(const int type)
 {
     return cdrom_drive_types[type].speed;
 }
+
+int
+cdrom_get_dvd_speed(const int type)
+{
+    return cdrom_drive_types[type].dvd_speed;
+}
+
+int
+cdrom_get_hd_speed(const int type)
+{
+    return cdrom_drive_types[type].hd_speed;
+}
+/* Returns the speed that should be used for transfer-rate calculations
+   given the currently inserted media. */
+int
+cdrom_get_active_speed(const cdrom_t *dev)
+{
+    if ((dev->cd_status == CD_STATUS_DVD) &&
+        (cdrom_drive_types[dev->type].dvd_speed != 0)) {
+        if (cdrom_drive_types[dev->type].dvd_speed == -1)
+            return (dev->dvd_speed > 0) ? dev->dvd_speed : dev->speed;
+        return cdrom_drive_types[dev->type].dvd_speed;
+    }
+    if (((dev->cd_status == CD_STATUS_HDDVD) || (dev->cd_status == CD_STATUS_BLURAY)) &&
+        (cdrom_drive_types[dev->type].hd_speed != 0)) {
+        if (cdrom_drive_types[dev->type].hd_speed == -1)
+            return (dev->hd_speed > 0) ? dev->hd_speed : 1;
+        return cdrom_drive_types[dev->type].hd_speed;
+    }
+    if (cdrom_drive_types[dev->type].speed == -1)
+        return dev->speed;
+    return cdrom_drive_types[dev->type].speed;
+}
+
 
 int
 cdrom_get_inquiry_len(const int type)
@@ -1615,6 +1705,7 @@ cdrom_audio_callback(cdrom_t *dev, int16_t *output, const int len)
             ret = dev->ops->read_sector(dev->local,
                                         dev->raw_buffer[dev->cur_buf ^ 1],
                                         dev->seek_pos);
+            dev->edc_missing = (ret == 2);
             if (!dev->sound_on)
                 memset(dev->raw_buffer[dev->cur_buf ^ 1], 0x00, 2352);
             dev->cur_buf ^= 1;
@@ -2043,6 +2134,7 @@ cdrom_get_current_status(const cdrom_t *dev)
 void
 cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
 {
+    const uint8_t       format    = b[0];
     const subchannel_t *subc      = &dev->cached_subc;
     int                 base      = 0;
     int                 diff      = 4;
@@ -2058,7 +2150,7 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
               dev->seek_pos, dev->cd_end);
 
     /* Format code. */
-    switch (b[0]) {
+    switch (format) {
         /*
            Mode 0 = Q subchannel mode, first 16 bytes are identical to mode 1 (current
                     position), the rest are stuff like ISRC etc., which can be all zeroes.
@@ -2112,21 +2204,25 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
                 b[10] = (dat >> 8) & 0xff;
                 b[11] = dat & 0xff;
             }
-            if (b[0] != 0x00)
+            if (format != 0x00)
                 break;
             base += 12;
             fallthrough;
         case 0x02:
-            /* UPC  - TODO: Finding and reporting the actual UPC data. */
+            /* Media Catalog Number, as ASCII digits (MMC format 2). */
             memset(&(b[base]), 0x00, 20 - diff);
             base += diff;
             memset(&(b[base + 1]), 0x30, 13);
+            b[base + 14] = 0x00;
+            if ((dev->ops != NULL) && (dev->ops->get_mcn != NULL) &&
+                dev->ops->get_mcn(dev->local, &(b[base + 1])))
+                b[base] = 0x80; /* MCVAL */
             /* NEC CDR-260 speaks BCD. */
             if (dev->is_bcd)
                 b[base + 15] = bin2bcd(subc->abs_f);
             else
                 b[base + 15] = subc->abs_f;
-            if (b[0] != 0x00)
+            if (format != 0x00)
                 break;
             base += 16;
             fallthrough;
@@ -2514,13 +2610,12 @@ cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
                          const uint8_t track, const int type)
 {
     uint8_t                 rti[65536]  = { 0 };
-    uint8_t                 prti[65536] = { 0 };
     const raw_track_info_t *trti        = (raw_track_info_t *) rti;
-    raw_track_info_t *      tprti       = (raw_track_info_t *) prti;
     int                     num         = 0;
     int                     first       = -1;
     int                     t           = -1;
     uint8_t                 ret         = 1;
+    int                     len         = 2;
     uint32_t                temp;
 
     cdrom_log(dev->log,"Read DISC Info TOC Type = %d, track = %d\n", type, track);
@@ -2580,7 +2675,7 @@ cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
             break;
         case 3:
             if (dev->is_nec) { /* Undocumented on NEC CD-ROM's, from information based on sr_vendor.c from the Linux kernel */
-                if (track == 0xb0) { /*TOC type session */
+                if ((track == 0xa0) || (track == 0xb0)) { /*TOC type session */
                     b[14] = 0x00;
 
                     if (num > 0)
@@ -2590,81 +2685,34 @@ cdrom_read_disc_info_toc(cdrom_t *dev, uint8_t *b,
                         ret = 0;
                     else {
                         temp  = MSFtoLBA(trti[first].pm, trti[first].ps, trti[first].pf) - 150;
-                        b[2]  = trti[first].adr_ctl;
+                        b[2]  = (trti[first].adr_ctl >> 4) | (trti[first].adr_ctl << 4);
                         b[15] = bin2bcd(temp >> 24);
                         b[16] = bin2bcd(temp >> 16);
                         b[17] = bin2bcd(temp >> 8);
                     }
                 } else {
-                    if (num > 0) {
-                        int j = 0;
+                    if (num != 0) {
                         for (int i = 0; i < num; i++) {
-                            if ((trti[i].point >= 0x01) && (trti[i].point <= 0x63)) {
-                                tprti[j] = trti[i];
-                                if (t == -1)
-                                    t = j;
+                            unsigned char *e = &(b[len]);
+                            unsigned char *a = ((unsigned char *) &(trti[i])) + 1;
 
-                                j++;
+                            memcpy(e, a, 10);
+
+                            if ((e[2] >= 1) && (e[2] <= 99))
+                                e[2] = bin2bcd(e[2]);
+
+                            for (int j = 0; j < 3; j++) {
+                                e[3 + j] = bin2bcd(e[3 + j]);
+                                e[7 + j] = bin2bcd(e[7 + j]);
                             }
+
+                            uint8_t adr_ctl = (uint8_t) ((e[0] >> 4) | (e[0] << 4));
+                            e[0] = adr_ctl;
+
+                            len += 10;
                         }
-
-                        /* Bytes 9 and 19 = Number of first and last tracks found before lead out */
-                        b[9] = bin2bcd(tprti[0].point);
-                        b[19] = bin2bcd(tprti[j - 1].point);
-
-                        for (int i = (num - 1); i >= 0; i--) {
-                            if (trti[i].point == 0xa2) {
-                                tprti[j] = trti[i];
-                                tprti[j].point = 0xaa;
-                                if (t == -1)
-                                    t = j;
-
-                                j++;
-                                break;
-                            }
-                        }
-
-                        if (t != -1) {
-                            int lead_out = 0;
-                            int lead_out_trk_num = -1;
-                            for (int i = t; i < j; i++) {
-                                int track = (tprti[i].point > 0x63) ? tprti[i].point : bin2bcd(tprti[i].point);
-                                if (track == 0xaa) {
-                                    lead_out = 1;
-                                    lead_out_trk_num = i;
-                                    break;
-                                } else {
-                                    int pm = tprti[i].pm;
-                                    int ps = tprti[i].ps;
-                                    int pf = tprti[i].pf;
-                                    b[(i * 10) + 32] = tprti[i].adr_ctl;
-                                    b[(i * 10) + 33] = 0x00;
-                                    b[(i * 10) + 34] = track;
-                                    msf_to_bcd(&pm, &ps, &pf);
-                                    b[(i * 10) + 38] = 0x00;
-                                    b[(i * 10) + 39] = pm;
-                                    b[(i * 10) + 40] = ps;
-                                    b[(i * 10) + 41] = pf;
-                                    cdrom_log(dev->log, "I=%d, pm=%d, ps=%d, pf=%d, adr_ctl=%02x, point=%d.\n", i, pm, ps, pf, tprti[i].adr_ctl, tprti[i].point);
-                                }
-                            }
-                            if (lead_out) {
-                                int pm = tprti[lead_out_trk_num].pm;
-                                int ps = tprti[lead_out_trk_num].ps;
-                                int pf = tprti[lead_out_trk_num].pf;
-                                b[22] = tprti[lead_out_trk_num].adr_ctl;
-                                b[23] = 0x00;
-                                b[24] = 0xaa;
-                                msf_to_bcd(&pm, &ps, &pf);
-                                b[28] = 0x00;
-                                b[29] = pm;
-                                b[30] = ps;
-                                b[31] = pf;
-                            }
-                        } else
-                            ret = 0;
                     } else
-                        b[9] = b[19] = 0x00;
+                        ret = 0;
                 }
             } else {
                 b[0] = trti[0].ps;    /* Disc type. */
@@ -2927,6 +2975,7 @@ cdrom_readsector_raw(cdrom_t *dev, uint8_t *buffer, const int sector, const int 
         } else {
             if (cdrom_sector_flags & CD_SECTOR_FLAG_SCRAMBLED) {
                 ret = read_data(dev, lba, 0);
+                add_edc_ecc(dev);
                 if (ret > 0 && !audio) {
                     for (int i = 0; i < 2352; i++) {
                         dev->raw_buffer[dev->cur_buf][i] ^= cdrom_scramble_table[i];
@@ -3054,7 +3103,7 @@ cdrom_read_dvd_structure(const cdrom_t *dev, const uint8_t layer, const uint8_t 
 
     if (ret == 0)  switch (format) {
         case 0x00:    /* Physical format information */
-            total_sectors = (uint64_t) dev->cdrom_capacity;
+            total_sectors = (uint64_t) dev->cdrom_capacity + 1;
 
             if (total_sectors > DVD_LAYER_0_SECTORS)
                 max_layer++;
@@ -3481,6 +3530,56 @@ cdrom_set_empty(cdrom_t *dev)
     dev->subc_sector    = -1;
 }
 
+
+/* Maximum sector count this drive type may accept when capacity is restricted. */
+static uint32_t
+cdrom_drive_max_sectors(const cdrom_t *dev)
+{
+    const struct cdrom_drive_types_s *dt = &cdrom_drive_types[dev->type];
+    if (dt->hd_speed != 0) {
+        /* HD-capable: limit by preferred high-def format. */
+        if (dt->hd_type == 1)
+            return HDDVD_MAX_SECTORS;
+        return BD_MAX_SECTORS;
+    }
+    if (dt->is_dvd)
+        return DVD_MAX_SECTORS;
+    return CD_MAX_SECTORS;
+}
+
+static uint32_t
+cdrom_clamp_capacity(cdrom_t *dev, int media)
+{
+    if (!dev->restricted_capacity)
+        return dev->cdrom_capacity;
+    uint32_t max = cdrom_drive_max_sectors(dev);
+    /* Also never report more than the media type itself allows. */
+    if (media == 0 && max > CD_MAX_SECTORS) max = CD_MAX_SECTORS;
+    else if (media == 1 && max > DVD_MAX_SECTORS) max = DVD_MAX_SECTORS;
+    else if (media == 2 && max > HDDVD_MAX_SECTORS) max = HDDVD_MAX_SECTORS;
+    else if (media == 3 && max > BD_MAX_SECTORS) max = BD_MAX_SECTORS;
+    if (dev->cdrom_capacity > max)
+        dev->cdrom_capacity = max;
+    return dev->cdrom_capacity;
+}
+
+/* Returns 1 if the media should be rejected under the current restriction policy. */
+static int
+cdrom_media_rejected(const cdrom_t *dev, int media, uint32_t capacity)
+{
+    if (!dev->restricted_capacity)
+        return 0;
+    /* Type incompatibility is always rejected. */
+    if (media == 1 && !cdrom_is_dvd(dev->type))
+        return 1;
+    if ((media == 2 || media == 3) && cdrom_drive_types[dev->type].hd_speed == 0)
+        return 1;
+    /* Size exceeds what this drive type is allowed to accept. */
+    if (capacity > cdrom_drive_max_sectors(dev))
+        return 1;
+    return 0;
+}
+
 void
 cdrom_update_status(cdrom_t *dev)
 {
@@ -3493,21 +3592,37 @@ cdrom_update_status(cdrom_t *dev)
     dev->seek_pos       = 0;
     dev->cd_buflen      = 0;
 
-    if (dev->ops->is_dvd(dev->local)) {
-        if (cdrom_is_dvd(dev->type))
-            dev->cd_status      = CD_STATUS_DVD;
+    int media = dev->ops->is_dvd(dev->local);
+    uint32_t capacity = dev->ops->get_last_block(dev->local);
+    dev->cdrom_capacity = capacity;
+
+    int rejected = cdrom_media_rejected(dev, media, capacity);
+
+    if (media == 1) { /* DVD */
+        dev->cd_status = rejected ? CD_STATUS_DVD_REJECTED : CD_STATUS_DVD;
+    } else if (media == 2) { /* HD DVD */
+        dev->cd_status = rejected ? CD_STATUS_HDDVD_REJECTED : CD_STATUS_HDDVD;
+    } else if (media == 3) { /* Blu-ray */
+        dev->cd_status = rejected ? CD_STATUS_BLURAY_REJECTED : CD_STATUS_BLURAY;
+    } else {
+        /* CD or unknown. Still reject if it somehow exceeds the drive max. */
+        if (rejected)
+            dev->cd_status = CD_STATUS_DVD_REJECTED; /* reuse closest rejection */
         else
-            dev->cd_status      = CD_STATUS_DVD_REJECTED;
-    } else
-        dev->cd_status      = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
-                                                                CD_STATUS_DATA_ONLY;
+            dev->cd_status = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
+                                                               CD_STATUS_DATA_ONLY;
+    }
+
+    if (!rejected)
+        cdrom_clamp_capacity(dev, media);
 
     dev->cached_sector  = -1;
     dev->subc_sector    = -1;
 
-    dev->cdrom_capacity = dev->ops->get_last_block(dev->local);
-
-    if ((dev->cd_status != CD_STATUS_EMPTY) && (dev->cd_status != CD_STATUS_DVD_REJECTED)) {
+    if ((dev->cd_status != CD_STATUS_EMPTY) &&
+        (dev->cd_status != CD_STATUS_DVD_REJECTED) &&
+        (dev->cd_status != CD_STATUS_HDDVD_REJECTED) &&
+        (dev->cd_status != CD_STATUS_BLURAY_REJECTED)) {
         /* Signal media change to the emulated machine. */
         cdrom_insert(dev->id);
 
@@ -3591,19 +3706,34 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
         dev->cd_buflen      = 0;
 
         if ((dev->ops->is_empty != NULL) && dev->ops->is_empty(dev->local))
-            dev->cd_status      = CD_STATUS_EMPTY;
-        else if (dev->ops->is_dvd(dev->local)) {
-            if (cdrom_is_dvd(dev->type))
-                dev->cd_status      = CD_STATUS_DVD;
-            else {
-                warning(plat_get_string(STRING_CDROM_DVD_IN_CD_DRIVE), fn);
-                dev->cd_status      = CD_STATUS_DVD_REJECTED;
-            }
-        } else
-            dev->cd_status      = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
-                                                                    CD_STATUS_DATA_ONLY;
+            dev->cd_status = CD_STATUS_EMPTY;
+        else {
+            int media = dev->ops->is_dvd(dev->local);
+            uint32_t capacity = dev->ops->get_last_block(dev->local);
+            dev->cdrom_capacity = capacity;
 
-        dev->cdrom_capacity = dev->ops->get_last_block(dev->local);
+            int rejected = cdrom_media_rejected(dev, media, capacity);
+
+            if (rejected)
+                warning(plat_get_string(STRING_CDROM_IMAGE_TOO_LARGE), fn);
+
+            if (media == 1) { /* DVD */
+                dev->cd_status = rejected ? CD_STATUS_DVD_REJECTED : CD_STATUS_DVD;
+            } else if (media == 2) { /* HD DVD */
+                dev->cd_status = rejected ? CD_STATUS_HDDVD_REJECTED : CD_STATUS_HDDVD;
+            } else if (media == 3) { /* Blu-ray */
+                dev->cd_status = rejected ? CD_STATUS_BLURAY_REJECTED : CD_STATUS_BLURAY;
+            } else {
+                if (rejected)
+                    dev->cd_status = CD_STATUS_DVD_REJECTED;
+                else
+                    dev->cd_status = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
+                                                                       CD_STATUS_DATA_ONLY;
+            }
+
+            if (!rejected)
+                cdrom_clamp_capacity(dev, media);
+        }
 
         cdrom_log(dev->log, "CD-ROM capacity: %i sectors (%" PRIi64 " bytes)\n",
                   dev->cdrom_capacity, ((uint64_t) dev->cdrom_capacity) << 11ULL);
@@ -3613,7 +3743,7 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
     cdrom_toc_dump(dev);
 #endif
 
-    if (!skip_insert && (dev->cd_status != CD_STATUS_EMPTY) && (dev->cd_status != CD_STATUS_DVD_REJECTED)) {
+    if (!skip_insert && (dev->cd_status != CD_STATUS_EMPTY) && (dev->cd_status != CD_STATUS_DVD_REJECTED) && (dev->cd_status != CD_STATUS_HDDVD_REJECTED) && (dev->cd_status != CD_STATUS_BLURAY_REJECTED)) {
         /* Signal media change to the emulated machine. */
         cdrom_insert(dev->id);
 
@@ -3648,6 +3778,40 @@ void
 cdrom_hard_reset(void)
 {
     cdrom_assigned_letters = 0;
+
+    if (machines[machine].init == machine_at_tandy_vis_init) {
+        bool mitsumi_bus_found = false;
+        /* Ensure there's at least one Mitsumi bus type used. */
+        for (uint8_t i = 0; i < CDROM_NUM; i++) {
+            if (cdrom[i].bus_type == CDROM_BUS_MITSUMI) {
+                mitsumi_bus_found = true;
+                break;
+            }
+        }
+        if (!mitsumi_bus_found) {
+            bool mitsumi_bus_enabled = false;
+            for (uint8_t i = 0; i < CDROM_NUM; i++) {
+                if (!cdrom[i].bus_type) {
+                    mitsumi_bus_enabled = true;
+                    cdrom[i].bus_type = CDROM_BUS_MITSUMI;
+                    break;
+                }
+            }
+            if (!mitsumi_bus_enabled) {                
+                cdrom[0].priv        = NULL;
+                cdrom[0].ops         = NULL;
+                cdrom[0].local       = NULL;
+                cdrom[0].insert      = NULL;
+                cdrom[0].close       = NULL;
+                cdrom[0].get_volume  = NULL;
+                cdrom[0].get_channel = NULL;
+                cdrom[0].bus_type    = CDROM_BUS_MITSUMI;
+                cdrom[0].res         = 0;
+                cdrom[0].speed       = 2;
+                cdrom[0].type        = 0;
+            }
+        }
+    }
 
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
         cdrom_t *dev = &cdrom[i];
@@ -3688,6 +3852,9 @@ cdrom_hard_reset(void)
             switch (dev->bus_type) {
                 case CDROM_BUS_ATAPI:
                 case CDROM_BUS_SCSI:
+                    scsi_cdrom_drive_reset(i);
+                    break;
+
                 case CDROM_BUS_LPT:
                     scsi_cdrom_drive_reset(i);
                     /*

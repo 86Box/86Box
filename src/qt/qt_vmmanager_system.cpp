@@ -98,6 +98,7 @@ VMManagerSystem::VMManagerSystem(const QString &sysconfig_file)
     setupVars();
 
     serverIsRunning = false;
+    settingsOnly    = false;
     window_obscured = false;
 
     find86BoxBinary();
@@ -164,9 +165,8 @@ VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
         progDialog.setLabelText(tr("Found %1").arg(QString::number(found)));
         QApplication::processEvents();
         QString filename = dir_iterator.next();
-        char *sd = search_directory.toUtf8().data();
         QString root_cfg;
-        if ((sd[strlen(sd) - 1] == '/') || (sd[strlen(sd) - 1] == '\\'))
+        if ((search_directory[search_directory.size() - 1] == '/') || (search_directory[search_directory.size() - 1] == '\\'))
             root_cfg = QString("%1%2").arg(search_directory, config_file_name);
         else
             root_cfg = QString("%1/%2").arg(search_directory, config_file_name);
@@ -382,6 +382,12 @@ VMManagerSystem::processId() const
     return process->processId();
 }
 
+bool
+VMManagerSystem::isSettingsOnly() const
+{
+    return settingsOnly;
+}
+
 QHash<QString, QString>
 VMManagerSystem::getCategory(const QString &category) const
 {
@@ -432,6 +438,7 @@ VMManagerSystem::launch86Box(bool settings)
     // Otherwise, launch the system
     setProcessEnvVars();
     window_obscured     = settings;
+    settingsOnly        = settings;
     QString     program = main_binary.filePath();
     QStringList args;
     args << "--vmpath" << config_dir;
@@ -600,7 +607,7 @@ VMManagerSystem::setupVars()
 
     if ((ci != -1) && (QString(video_internal_name) == "internal")) {
         auto internal_device = machine_get_vid_device(ci);
-        if (internal_device)
+        if (internal_device && device_available(internal_device))
             display_table[VMManager::Display::Name::Video].append(QString(" (%1)").arg(DeviceConfig::DeviceName(internal_device, internal_device->internal_name, 0)));
     }
 
@@ -626,6 +633,8 @@ VMManagerSystem::setupVars()
         display_table[VMManager::Display::Name::Video].append(tr("XGA Graphics").prepend(VMManagerDetailSection::sectionSeparator));
     if (video_config.contains("da2") && (video_config["da2"].toInt() != 0))
         display_table[VMManager::Display::Name::Video].append(tr("IBM PS/55 Display Adapter Graphics").prepend(VMManagerDetailSection::sectionSeparator));
+    if (video_config.contains("powervr") && (video_config["powervr"].toInt() != 0))
+        display_table[VMManager::Display::Name::Video].append(tr("PowerVR PCX1/PCX2 Graphics").prepend(VMManagerDetailSection::sectionSeparator));
 
     // Voodoo
     QString voodoo_name = "";
@@ -1134,6 +1143,7 @@ VMManagerSystem::startServer()
         connect(socket_server, &VMManagerServerSocket::configurationChanged, this, &VMManagerSystem::configurationChangeReceived);
         connect(socket_server, &VMManagerServerSocket::globalConfigurationChanged, this, &VMManagerSystem::globalConfigurationChanged);
         connect(socket_server, &VMManagerServerSocket::winIdReceived, this, [this](WId id) { this->id = id; });
+        connect(socket_server, &VMManagerServerSocket::windowActivated, this, &VMManagerSystem::windowActivated);
         return true;
     } else
         return false;
@@ -1211,6 +1221,7 @@ VMManagerSystem::processStatusChanged()
     } else if (process->state() == QProcess::ProcessState::NotRunning) {
         process_status  = VMManagerSystem::ProcessStatus::Stopped;
         window_obscured = false;
+        settingsOnly    = false;
     }
     emit itemDataChanged();
     emit clientProcessStatusChanged();

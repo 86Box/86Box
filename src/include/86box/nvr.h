@@ -83,6 +83,7 @@
 #define FLAG_AMI_1999J_HACK     0x1000
 #define FLAG_SPITFIRE_HACK      0x2000
 #define FLAG_BX6_HACK           0x4000
+#define FLAG_PC873XX_BANKS      0x8000
 
 #define NVR_CENTURY_AT          (RTC_CENTURY_AT << 16)
 #define NVR_CENTURY_PS          (RTC_CENTURY_PS << 16)
@@ -123,6 +124,8 @@
 #define NVR_PIIX4_AMI_1995J     (NVR_PIIX4 | FLAG_AMI_1999J_HACK)
 #define NVR_VIA                 (NVR_AT_STANDARD_MA | NVR_CENTURY_VIA)
 #define NVR_MARTIN              (NVR_AT_MB | FLAG_MARTIN_HACK)
+#define NVR_PC873XX             (NVR_AT_MB | FLAG_PC873XX_BANKS)
+#define NVR_PC87307             (NVR_AT | FLAG_PC873XX_BANKS)
 #define NVR_ELT                 (NVR_IRQ_NONE | NVR_ADDR_ELT | NVR_CENTURY_ELT)
 #define NVR_RTC8088             (NVR_IRQ_CONFIG | NVR_ADDR_CONFIG | \
                                  NVR_CENTURY_ALT | FLAG_NO_NMI | FLAG_FIXED_SIZE)
@@ -159,6 +162,7 @@ extern void rtc_tick(void);
 
 extern void  nvr_init(nvr_t *);
 extern int   nvr_load(void);
+extern int   nvr_load_default(nvr_t *nvr, const char *fn);
 extern void  nvr_close(void);
 extern void  nvr_set_ven_save(void (*ven_save)(void));
 extern int   nvr_save(void);
@@ -168,6 +172,7 @@ extern int  nvr_get_days(int month, int year);
 extern void nvr_time_sync(void);
 extern void nvr_time_get(void *priv);
 extern void nvr_time_set(void *priv);
+extern void nvr_time_set_date(void *priv);
 
 extern void nvr_reg_write(uint16_t reg, uint8_t val, void *priv);
 extern void nvr_at_handler(int set, uint16_t base, nvr_t *nvr);
@@ -181,6 +186,10 @@ extern void nvr_via_wp_set(int set, int reg, nvr_t *nvr);
 extern void nvr_bank_set(int base, uint8_t bank, nvr_t *nvr);
 extern void nvr_lock_set(int base, int size, int lock, nvr_t *nvr);
 extern void nvr_irq_set(int irq, nvr_t *nvr);
+extern void nvr_at_set_pc873xx_banks(nvr_t *nvr,
+                                     uint8_t (*read)(int bank, uint8_t reg, void *priv),
+                                     void (*write)(int bank, uint8_t reg, uint8_t val, void *priv),
+                                     int (*alarm)(void *priv), void *priv);
 extern void nvr_smi_enable(int enable, nvr_t *nvr);
 extern uint8_t nvr_smi_status(nvr_t *nvr);
 extern void nvr_smi_status_clear(nvr_t *nvr);

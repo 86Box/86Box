@@ -1,5 +1,14 @@
+/* When a protection fault interrupts a repeated string instruction, the 80286
+   leaves SI/DI already stepped past the faulting element and CX decremented
+   ahead of the retired count; the #GP/#SS handler is expected to back them out
+   before restarting ("Undocumented iAPX 286 Test Instruction", pp. 13-14):
+   MOVS/CMPS/INS take CX + 1 (+ 2 if the second operand was also stepped),
+   STOS/OUTS take CX + 2. The loops below step the pointers the same way but
+   decrement CX once per retired element, so the *_286 wrappers subtract the
+   extra one on a fault. LODS and SCAS already match what 286 software expects.
+   Above Disc's 286 LOADALL-based EMS emulator relies on this. */
 #define REP_OPS_286(size, CNT_REG, SRC_REG, DEST_REG)                                                             \
-    static int opREP_INSB_286_##size(UNUSED(uint32_t fetchdat))                                                   \
+    static int opREP_INSB_286_ex_##size(UNUSED(uint32_t fetchdat))                                                \
     {                                                                                                             \
         int reads = 0, writes = 0, total_cycles = 0;                                                              \
         uint16_t ins_addr;                                                                                        \
@@ -42,7 +51,16 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_INSW_286_##size(UNUSED(uint32_t fetchdat))                                                   \
+    static int opREP_INSB_286_##size(uint32_t fetchdat)                                                           \
+    {                                                                                                             \
+        int ret = opREP_INSB_286_ex_##size(fetchdat);                                                             \
+                                                                                                                  \
+        if (cpu_state.abrt)                                                                                       \
+            CNT_REG--;                                                                                            \
+                                                                                                                  \
+        return ret;                                                                                               \
+    }                                                                                                             \
+    static int opREP_INSW_286_ex_##size(UNUSED(uint32_t fetchdat))                                                \
     {                                                                                                             \
         int reads = 0, writes = 0, total_cycles = 0;                                                              \
         uint16_t ins_addr;                                                                                        \
@@ -72,10 +90,10 @@
             temp = inw(DX);                                                                                       \
             writememw_n(es, ins_addr, addr64a, temp);                                                             \
                                                                                                                   \
-            cycles -= 15;                                                                                         \
+            cycles -= IO_STR_CYCLES(DX, 15);                                                                      \
             reads++;                                                                                              \
             writes++;                                                                                             \
-            total_cycles += 15;                                                                                   \
+            total_cycles += IO_STR_CYCLES(DX, 15);                                                                \
         }                                                                                                         \
         PREFETCH_RUN(total_cycles, 1, -1, reads, 0, writes, 0, 0);                                                \
         if (CNT_REG > 0) {                                                                                        \
@@ -85,8 +103,17 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
+    static int opREP_INSW_286_##size(uint32_t fetchdat)                                                           \
+    {                                                                                                             \
+        int ret = opREP_INSW_286_ex_##size(fetchdat);                                                             \
                                                                                                                   \
-    static int opREP_OUTSB_286_##size(UNUSED(uint32_t fetchdat))                                                  \
+        if (cpu_state.abrt)                                                                                       \
+            CNT_REG--;                                                                                            \
+                                                                                                                  \
+        return ret;                                                                                               \
+    }                                                                                                             \
+                                                                                                                  \
+    static int opREP_OUTSB_286_ex_##size(UNUSED(uint32_t fetchdat))                                               \
     {                                                                                                             \
         int reads = 0, writes = 0, total_cycles = 0;                                                              \
         uint16_t ins_addr;                                                                                        \
@@ -127,7 +154,16 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_OUTSW_286_##size(UNUSED(uint32_t fetchdat))                                                  \
+    static int opREP_OUTSB_286_##size(uint32_t fetchdat)                                                          \
+    {                                                                                                             \
+        int ret = opREP_OUTSB_286_ex_##size(fetchdat);                                                            \
+                                                                                                                  \
+        if (cpu_state.abrt)                                                                                       \
+            CNT_REG--;                                                                                            \
+                                                                                                                  \
+        return ret;                                                                                               \
+    }                                                                                                             \
+    static int opREP_OUTSW_286_ex_##size(UNUSED(uint32_t fetchdat))                                               \
     {                                                                                                             \
         int reads = 0, writes = 0, total_cycles = 0;                                                              \
         uint16_t ins_addr;                                                                                        \
@@ -155,10 +191,10 @@
             temp = readmemw_n(cpu_state.ea_seg->base, ins_addr, addr64a);                                         \
             outw(DX, temp);                                                                                       \
                                                                                                                   \
-            cycles -= 14;                                                                                         \
+            cycles -= IO_STR_CYCLES(DX, 14);                                                                      \
             reads++;                                                                                              \
             writes++;                                                                                             \
-            total_cycles += 14;                                                                                   \
+            total_cycles += IO_STR_CYCLES(DX, 14);                                                                \
         }                                                                                                         \
         PREFETCH_RUN(total_cycles, 1, -1, reads, 0, writes, 0, 0);                                                \
         if (CNT_REG > 0) {                                                                                        \
@@ -168,8 +204,17 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
+    static int opREP_OUTSW_286_##size(uint32_t fetchdat)                                                          \
+    {                                                                                                             \
+        int ret = opREP_OUTSW_286_ex_##size(fetchdat);                                                            \
                                                                                                                   \
-    static int opREP_MOVSB_286_##size(UNUSED(uint32_t fetchdat))                                                  \
+        if (cpu_state.abrt)                                                                                       \
+            CNT_REG--;                                                                                            \
+                                                                                                                  \
+        return ret;                                                                                               \
+    }                                                                                                             \
+                                                                                                                  \
+    static int opREP_MOVSB_286_ex_##size(UNUSED(uint32_t fetchdat))                                               \
     {                                                                                                             \
         int reads = 0, writes = 0, total_cycles = 0;                                                              \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);                                      \
@@ -214,7 +259,7 @@
             reads++;                                                                                              \
             writes++;                                                                                             \
             total_cycles += is486 ? 3 : 4;                                                                        \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         PREFETCH_RUN(total_cycles, 1, -1, reads, 0, writes, 0, 0);                                                \
@@ -225,7 +270,16 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_MOVSW_286_##size(UNUSED(uint32_t fetchdat))                                                  \
+    static int opREP_MOVSB_286_##size(uint32_t fetchdat)                                                          \
+    {                                                                                                             \
+        int ret = opREP_MOVSB_286_ex_##size(fetchdat);                                                            \
+                                                                                                                  \
+        if (cpu_state.abrt)                                                                                       \
+            CNT_REG--;                                                                                            \
+                                                                                                                  \
+        return ret;                                                                                               \
+    }                                                                                                             \
+    static int opREP_MOVSW_286_ex_##size(UNUSED(uint32_t fetchdat))                                               \
     {                                                                                                             \
         int reads = 0, writes = 0, total_cycles = 0;                                                              \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);                                      \
@@ -271,7 +325,7 @@
             reads++;                                                                                              \
             writes++;                                                                                             \
             total_cycles += is486 ? 3 : 4;                                                                        \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         PREFETCH_RUN(total_cycles, 1, -1, reads, 0, writes, 0, 0);                                                \
@@ -282,8 +336,17 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
+    static int opREP_MOVSW_286_##size(uint32_t fetchdat)                                                          \
+    {                                                                                                             \
+        int ret = opREP_MOVSW_286_ex_##size(fetchdat);                                                            \
                                                                                                                   \
-    static int opREP_STOSB_286_##size(UNUSED(uint32_t fetchdat))                                                  \
+        if (cpu_state.abrt)                                                                                       \
+            CNT_REG--;                                                                                            \
+                                                                                                                  \
+        return ret;                                                                                               \
+    }                                                                                                             \
+                                                                                                                  \
+    static int opREP_STOSB_286_ex_##size(UNUSED(uint32_t fetchdat))                                               \
     {                                                                                                             \
         int writes = 0, total_cycles = 0;                                                                         \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);                                      \
@@ -307,7 +370,7 @@
             cycles -= is486 ? 4 : 5;                                                                              \
             writes++;                                                                                             \
             total_cycles += is486 ? 4 : 5;                                                                        \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         PREFETCH_RUN(total_cycles, 1, -1, 0, 0, writes, 0, 0);                                                    \
@@ -318,7 +381,16 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_STOSW_286_##size(UNUSED(uint32_t fetchdat))                                                  \
+    static int opREP_STOSB_286_##size(uint32_t fetchdat)                                                          \
+    {                                                                                                             \
+        int ret = opREP_STOSB_286_ex_##size(fetchdat);                                                            \
+                                                                                                                  \
+        if (cpu_state.abrt)                                                                                       \
+            CNT_REG--;                                                                                            \
+                                                                                                                  \
+        return ret;                                                                                               \
+    }                                                                                                             \
+    static int opREP_STOSW_286_ex_##size(UNUSED(uint32_t fetchdat))                                               \
     {                                                                                                             \
         int writes = 0, total_cycles = 0;                                                                         \
         int cycles_end = cycles - ((is386 && cpu_use_dynarec) ? 1000 : 100);                                      \
@@ -342,7 +414,7 @@
             cycles -= is486 ? 4 : 5;                                                                              \
             writes++;                                                                                             \
             total_cycles += is486 ? 4 : 5;                                                                        \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         PREFETCH_RUN(total_cycles, 1, -1, 0, 0, writes, 0, 0);                                                    \
@@ -352,6 +424,15 @@
             return 1;                                                                                             \
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
+    }                                                                                                             \
+    static int opREP_STOSW_286_##size(uint32_t fetchdat)                                                          \
+    {                                                                                                             \
+        int ret = opREP_STOSW_286_ex_##size(fetchdat);                                                            \
+                                                                                                                  \
+        if (cpu_state.abrt)                                                                                       \
+            CNT_REG--;                                                                                            \
+                                                                                                                  \
+        return ret;                                                                                               \
     }                                                                                                             \
                                                                                                                   \
     static int opREP_LODSB_286_##size(UNUSED(uint32_t fetchdat))                                                  \
@@ -380,7 +461,7 @@
             cycles -= is486 ? 4 : 5;                                                                              \
             reads++;                                                                                              \
             total_cycles += is486 ? 4 : 5;                                                                        \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         PREFETCH_RUN(total_cycles, 1, -1, reads, 0, 0, 0, 0);                                                     \
@@ -417,7 +498,7 @@
             cycles -= is486 ? 4 : 5;                                                                              \
             reads++;                                                                                              \
             total_cycles += is486 ? 4 : 5;                                                                        \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         PREFETCH_RUN(total_cycles, 1, -1, reads, 0, 0, 0, 0);                                                     \
@@ -430,7 +511,7 @@
     }                                                                                                             \
 
 #define REP_OPS_CMPS_SCAS_286(size, CNT_REG, SRC_REG, DEST_REG, FV)                                               \
-    static int opREP_CMPSB_286_##size(UNUSED(uint32_t fetchdat))                                                  \
+    static int opREP_CMPSB_286_ex_##size(UNUSED(uint32_t fetchdat))                                               \
     {                                                                                                             \
         int reads = 0, total_cycles = 0, tempz;                                                                   \
         uint16_t ins_addr, ins_addr_2;                                                                            \
@@ -486,7 +567,16 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
-    static int opREP_CMPSW_286_##size(UNUSED(uint32_t fetchdat))                                                  \
+    static int opREP_CMPSB_286_##size(uint32_t fetchdat)                                                          \
+    {                                                                                                             \
+        int ret = opREP_CMPSB_286_ex_##size(fetchdat);                                                            \
+                                                                                                                  \
+        if (cpu_state.abrt)                                                                                       \
+            CNT_REG--;                                                                                            \
+                                                                                                                  \
+        return ret;                                                                                               \
+    }                                                                                                             \
+    static int opREP_CMPSW_286_ex_##size(UNUSED(uint32_t fetchdat))                                               \
     {                                                                                                             \
         int reads = 0, total_cycles = 0, tempz;                                                                   \
         uint16_t ins_addr, ins_addr_2;                                                                            \
@@ -543,6 +633,15 @@
         }                                                                                                         \
         return cpu_state.abrt;                                                                                    \
     }                                                                                                             \
+    static int opREP_CMPSW_286_##size(uint32_t fetchdat)                                                          \
+    {                                                                                                             \
+        int ret = opREP_CMPSW_286_ex_##size(fetchdat);                                                            \
+                                                                                                                  \
+        if (cpu_state.abrt)                                                                                       \
+            CNT_REG--;                                                                                            \
+                                                                                                                  \
+        return ret;                                                                                               \
+    }                                                                                                             \
                                                                                                                   \
     static int opREP_SCASB_286_##size(UNUSED(uint32_t fetchdat))                                                  \
     {                                                                                                             \
@@ -571,7 +670,7 @@
             cycles -= is486 ? 5 : 8;                                                                              \
             reads++;                                                                                              \
             total_cycles += is486 ? 5 : 8;                                                                        \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         PREFETCH_RUN(total_cycles, 1, -1, reads, 0, 0, 0, 0);                                                     \
@@ -609,7 +708,7 @@
             cycles -= is486 ? 5 : 8;                                                                              \
             reads++;                                                                                              \
             total_cycles += is486 ? 5 : 8;                                                                        \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         PREFETCH_RUN(total_cycles, 1, -1, reads, 0, 0, 0, 0);                                                     \

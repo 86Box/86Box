@@ -1,3 +1,5 @@
+#include "x86_interrupt.h"
+
 static int
 opCBW(UNUSED(uint32_t fetchdat))
 {
@@ -164,6 +166,7 @@ opF6_a16(uint32_t fetchdat)
 
         default:
             x86illegal();
+            return 1;
     }
     return 0;
 }
@@ -281,6 +284,7 @@ opF6_a32(uint32_t fetchdat)
 
         default:
             x86illegal();
+            return 1;
     }
     return 0;
 }
@@ -290,9 +294,8 @@ opF7_w_a16(uint32_t fetchdat)
 {
     uint32_t templ;
     uint32_t templ2 = 0;
-    int      tempws;
-    int      tempws2 = 0;
-    int16_t  temps16;
+    int32_t  tempws;
+    int64_t  tempws2 = 0;
     uint16_t src;
     uint16_t dst;
 
@@ -376,11 +379,12 @@ opF7_w_a16(uint32_t fetchdat)
             PREFETCH_RUN((is486 && !cpu_iscyrix) ? 24 : 22, 2, rmdat, (cpu_mod == 3) ? 0 : 1, 0, 0, 0, 0);
             break;
         case 0x38: /*IDIV AX,w*/
-            tempws = (int) ((DX << 16) | AX);
+            tempws = (int32_t) (((uint32_t) DX << 16) | AX);
             if (dst)
-                tempws2 = tempws / (int) ((int16_t) dst);
-            temps16 = tempws2 & 0xffff;
-            if ((dst != 0) && ((int) temps16 == tempws2)) {
+                tempws2 = (int64_t) tempws / (int16_t) dst;
+            /* Keep the quotient wide until the architectural range check:
+               80000000h / -1 must #DE, without overflowing host arithmetic. */
+            if ((dst != 0) && (tempws2 >= -32768) && (tempws2 <= 32767)) {
                 DX = tempws % (int) ((int16_t) dst);
                 AX = tempws2 & 0xffff;
                 if (!cpu_iscyrix && !is6117)
@@ -395,6 +399,7 @@ opF7_w_a16(uint32_t fetchdat)
 
         default:
             x86illegal();
+            return 1;
     }
     return 0;
 }
@@ -403,9 +408,8 @@ opF7_w_a32(uint32_t fetchdat)
 {
     uint32_t templ;
     uint32_t templ2 = 0;
-    int      tempws;
-    int      tempws2 = 1;
-    int16_t  temps16;
+    int32_t  tempws;
+    int64_t  tempws2 = 0;
     uint16_t src;
     uint16_t dst;
 
@@ -490,11 +494,12 @@ opF7_w_a32(uint32_t fetchdat)
             PREFETCH_RUN((is486 && !cpu_iscyrix) ? 24 : 22, 2, rmdat, (cpu_mod == 3) ? 0 : 1, 0, 0, 0, 1);
             break;
         case 0x38: /*IDIV AX,w*/
-            tempws = (int) ((DX << 16) | AX);
+            tempws = (int32_t) (((uint32_t) DX << 16) | AX);
             if (dst)
-                tempws2 = tempws / (int) ((int16_t) dst);
-            temps16 = tempws2 & 0xffff;
-            if ((dst != 0) && ((int) temps16 == tempws2)) {
+                tempws2 = (int64_t) tempws / (int16_t) dst;
+            /* Keep the quotient wide until the architectural range check:
+               80000000h / -1 must #DE, without overflowing host arithmetic. */
+            if ((dst != 0) && (tempws2 >= -32768) && (tempws2 <= 32767)) {
                 DX = tempws % (int) ((int16_t) dst);
                 AX = tempws2 & 0xffff;
                 if (!cpu_iscyrix && !is6117)
@@ -509,6 +514,7 @@ opF7_w_a32(uint32_t fetchdat)
 
         default:
             x86illegal();
+            return 1;
     }
     return 0;
 }
@@ -603,6 +609,7 @@ opF7_l_a16(uint32_t fetchdat)
 
         default:
             x86illegal();
+            return 1;
     }
     return 0;
 }
@@ -696,6 +703,7 @@ opF7_l_a32(uint32_t fetchdat)
 
         default:
             x86illegal();
+            return 1;
     }
     return 0;
 }
@@ -709,10 +717,12 @@ opHLT(UNUSED(uint32_t fetchdat))
     }
     if (smi_line)
         enter_smm_check(1);
-    else if (!((cpu_state.flags & I_FLAG) && pic.int_pending)) {
+    else if (!((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending())) {
         CLOCK_CYCLES_ALWAYS(100);
-        if (!((cpu_state.flags & I_FLAG) && pic.int_pending))
+        if (!((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending())) {
             cpu_state.pc--;
+            cpu_halted = 1; /* an interrupt taken here returns past the HLT */
+        }
     } else {
         CLOCK_CYCLES(5);
     }
@@ -740,6 +750,15 @@ opLOCK(uint32_t fetchdat)
 
     ILLEGAL_ON(legal == 0);
 
+    /* The 80286 locks any instruction, but in protected mode only at a
+       CPL no greater than IOPL: "#GP(0) if the current privilege level is
+       bigger (less privileged) than the I/O privilege level" (80286 PRM,
+       LOCK) */
+    if (!is386 && (msw & 1) && (CPL > ((cpu_state.flags >> 12) & 3))) {
+        x86gpf(NULL, 0);
+        return 1;
+    }
+
     CLOCK_CYCLES(4);
     PREFETCH_PREFIX();
     return x86_2386_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
@@ -748,12 +767,39 @@ opLOCK(uint32_t fetchdat)
 static int
 opLOCK(uint32_t fetchdat)
 {
+    uint32_t pc = cpu_state.pc;
+    uint8_t  opcode;
+    int      is_0f = 0;
+    int      legal = 0;
+
     fetchdat = fastreadl(cs + cpu_state.pc);
     if (cpu_state.abrt)
         return 0;
+
+    /* Past any prefixes after the LOCK to the opcode it applies to */
+    opcode = fetchdat & 0xff;
+    while ((pc - cpu_state.pc) < 14) {
+        if ((opcode != 0x26) && (opcode != 0x2e) && (opcode != 0x36) && (opcode != 0x3e) && (opcode != 0x64) &&
+            (opcode != 0x65) && (opcode != 0x66) && (opcode != 0x67) && (opcode != 0xf0) && (opcode != 0xf2) && (opcode != 0xf3))
+            break;
+        opcode = fastreadb(cs + ++pc);
+        if (cpu_state.abrt)
+            return 0;
+    }
+    if (opcode == 0x0f) {
+        is_0f  = 1;
+        opcode = fastreadb(cs + ++pc);
+        if (cpu_state.abrt)
+            return 0;
+    }
+    if (x86_lock_opcode(is_0f, opcode)) {
+        legal = x86_lock_legal(is_0f, opcode, fastreadb(cs + pc + 1));
+        if (cpu_state.abrt)
+            return 0;
+    }
     cpu_state.pc++;
 
-    ILLEGAL_ON(((fetchdat & 0xff) == 0x90) || ((fetchdat & 0xff) == 0xec));
+    ILLEGAL_ON(!legal);
 
     CLOCK_CYCLES(4);
     PREFETCH_PREFIX();
@@ -770,6 +816,7 @@ opBOUND_w_a16(uint32_t fetchdat)
     fetch_ea_16(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
     SEG_CHECK_READ(cpu_state.ea_seg);
+    CHECK_READ_EA(4);
     low  = geteaw();
     high = readmemw(easeg, cpu_state.eaaddr + 2);
     if (cpu_state.abrt)
@@ -793,6 +840,7 @@ opBOUND_w_a32(uint32_t fetchdat)
     fetch_ea_32(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
     SEG_CHECK_READ(cpu_state.ea_seg);
+    CHECK_READ_EA(4);
     low  = geteaw();
     high = readmemw(easeg, cpu_state.eaaddr + 2);
     if (cpu_state.abrt)
@@ -817,6 +865,7 @@ opBOUND_l_a16(uint32_t fetchdat)
     fetch_ea_16(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
     SEG_CHECK_READ(cpu_state.ea_seg);
+    CHECK_READ_EA(8);
     low  = geteal();
     high = readmeml(easeg, cpu_state.eaaddr + 4);
     if (cpu_state.abrt)
@@ -840,6 +889,7 @@ opBOUND_l_a32(uint32_t fetchdat)
     fetch_ea_32(fetchdat);
     ILLEGAL_ON(cpu_mod == 3);
     SEG_CHECK_READ(cpu_state.ea_seg);
+    CHECK_READ_EA(8);
     low  = geteal();
     high = readmeml(easeg, cpu_state.eaaddr + 4);
     if (cpu_state.abrt)
@@ -871,6 +921,11 @@ opCLTS(UNUSED(uint32_t fetchdat))
 static int
 opINVD(UNUSED(uint32_t fetchdat))
 {
+    if ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
+        x86gpf(NULL, 0);
+        return 1;
+    }
+    cpu_car_invalidate();
     CLOCK_CYCLES(1000);
     CPU_BLOCK_END();
     return 0;
@@ -882,6 +937,7 @@ opWBINVD(UNUSED(uint32_t fetchdat))
         x86gpf(NULL, 0);
         return 1;
     }
+    cpu_car_invalidate();
     CLOCK_CYCLES(10000);
     CPU_BLOCK_END();
     return 0;
@@ -909,6 +965,15 @@ loadall_load_segment(uint32_t addr, x86seg *s)
     s->access        = segdat2 >> 24;
     s->ar_high       = 0x00;
     s->limit         = readmemw(0, addr + 4);
+    s->checked       = 0;
+#ifdef USE_DYNAREC
+    if (s == &cpu_state.seg_ds)
+        codegen_flat_ds = 0;
+    if (s == &cpu_state.seg_ss)
+        codegen_flat_ss = 0;
+    if (s == &cpu_state.seg_es)
+        codegen_flat_es = 0;
+#endif
 
     set_segment_limit(s, 0x00);
 
@@ -917,6 +982,12 @@ loadall_load_segment(uint32_t addr, x86seg *s)
             cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+    }
+    if (s == &cpu_state.seg_es) {
+        if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
+            cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
+        else
+            cpu_cur_status |= CPU_STATUS_NOTFLATES;
     }
     if (s == &cpu_state.seg_ss) {
         if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
@@ -973,6 +1044,15 @@ loadall386_load_segment(uint32_t addr, x86seg *s)
     s->ar_high       = segdat3;
     s->base          = readmeml(0, addr + 4);
     s->limit         = readmeml(0, addr + 8);
+    s->checked       = 0;
+#ifdef USE_DYNAREC
+    if (s == &cpu_state.seg_ds)
+        codegen_flat_ds = 0;
+    if (s == &cpu_state.seg_ss)
+        codegen_flat_ss = 0;
+    if (s == &cpu_state.seg_es)
+        codegen_flat_es = 0;
+#endif
 
     if (s == &cpu_state.seg_cs)
         use32 = (segdat3 & 0x40) ? 0x300 : 0;
@@ -992,6 +1072,12 @@ loadall386_load_segment(uint32_t addr, x86seg *s)
             cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+    }
+    if (s == &cpu_state.seg_es) {
+        if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
+            cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
+        else
+            cpu_cur_status |= CPU_STATUS_NOTFLATES;
     }
     if (s == &cpu_state.seg_ss) {
         if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
@@ -1021,6 +1107,7 @@ opLOADALL386(UNUSED(uint32_t fetchdat))
     EAX          = readmeml(0, la_addr + 0x28);
     dr[6]        = readmeml(0, la_addr + 0x2C);
     dr[7]        = readmeml(0, la_addr + 0x30);
+    cpu_dr7_update();
     tr.seg       = readmemw(0, la_addr + 0x34);
     ldt.seg      = readmemw(0, la_addr + 0x38);
     GS           = readmemw(0, la_addr + 0x3C);
@@ -1041,8 +1128,9 @@ opLOADALL386(UNUSED(uint32_t fetchdat))
     loadall386_load_segment(la_addr + 0xb4, &cpu_state.seg_cs);
     loadall386_load_segment(la_addr + 0xc0, &cpu_state.seg_es);
 
-    if (CPL == 3 && oldcpl != 3)
-        flushmmucache_nopc();
+    /* CR0 and the debug registers were loaded outright: the processor's
+       lookups go. */
+    flushmmucache();
     oldcpl = CPL;
 
     CLOCK_CYCLES(350);

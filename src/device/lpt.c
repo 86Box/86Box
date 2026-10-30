@@ -213,9 +213,12 @@ lpt_char_callback(void *priv)
                 if (~prev & masked)
                     lpt_irq(dev, 1);
 #ifdef DROP_EMULATION_SPEED_INSTEAD
-                if (dev->enable_irq)
-#endif
+                if (dev->enable_irq) {
                     latch = TIMER_USEC * 2;
+                }
+#else
+                latch = TIMER_USEC * 2;
+#endif
             }
             dev->char_read = buf[read - 1];
         }
@@ -414,7 +417,13 @@ lpt_devices_close(int hotplug)
 void
 lpt_devices_reset(void)
 {
-    device_close_by_flags(DEVICE_LPT | DEVICE_HOTPLUG_OUT);
+    /* Only close the dropdown devices of the ports that lpt_devices_close() and lpt_devices_init()
+       will go through. A port where another device also asked for the port, such as a tape drive's
+       Ditto, is left alone by them, and closing its device would leave the port calling into it. */
+    for (uint8_t i = 0; i < PARALLEL_MAX; i++) {
+        if (lpt_ports[i].hotunplug < CHAR_PORT_NOHOTUNPLUG)
+            device_close_by_flags_inst(DEVICE_LPT | DEVICE_HOTPLUG_OUT, i + 1);
+    }
 
     lpt_devices_close(1);
 
@@ -1208,17 +1217,29 @@ lpt_speed_changed(void *priv)
     }
 }
 
+/* Copy the state that belongs to the emulator rather than to the port registers: the FIFO,
+   the timers (which can be on the active timer list) and the attached character device,
+   whose timer keeps calling into it. */
+static void
+lpt_copy_host_state(lpt_t *dst, const lpt_t *src)
+{
+    dst->id             = src->id;
+    dst->dt             = src->dt;
+    dst->fifo           = src->fifo;
+    dst->char_read      = src->char_read;
+    dst->char_control   = src->char_control;
+    dst->char_port      = src->char_port;
+    dst->fifo_out_timer = src->fifo_out_timer;
+    dst->char_timer     = src->char_timer;
+}
+
 void
 lpt_port_zero(lpt_t *dev)
 {
     lpt_t temp = { 0 };
 
-    temp.irq            = dev->irq;
-    temp.id             = dev->id;
-    temp.dt             = dev->dt;
-    temp.fifo           = dev->fifo;
-    temp.fifo_out_timer = dev->fifo_out_timer;
-    temp.char_timer     = dev->char_timer;
+    temp.irq = dev->irq;
+    lpt_copy_host_state(&temp, dev);
 
     if (lpt_ports[dev->id].enabled)
         lpt_port_remove(dev);
@@ -1228,11 +1249,7 @@ lpt_port_zero(lpt_t *dev)
     dev->addr           = 0xffff;
     dev->output_enabled = 1;
     dev->irq            = temp.irq;
-    dev->id             = temp.id;
-    dev->dt             = temp.dt;
-    dev->fifo           = temp.fifo;
-    dev->fifo_out_timer = temp.fifo_out_timer;
-    dev->char_timer     = temp.char_timer;
+    lpt_copy_host_state(dev, &temp);
 
     if (machine_has_bus(machine, MACHINE_BUS_MCA))
         dev->ext = 1;
@@ -1249,6 +1266,11 @@ lpt_close(void *priv)
 
         timer_disable(&dev->fifo_out_timer);
         timer_disable(&dev->char_timer);
+    }
+
+    if (lpt_ports[dev->id].lpt_init != NULL) {
+        free(lpt_ports[dev->id].lpt_init);
+        lpt_ports[dev->id].lpt_init = NULL;
     }
 
     if (lpt1 == dev)
@@ -1278,21 +1300,36 @@ lpt_reset(void *priv)
             }
         }
 
-        dev->enable_irq       = 0x00;
-        dev->cfg_regs_enabled = 0;
-        dev->ext              = !!(machine_has_bus(machine, MACHINE_BUS_MCA));
-        dev->epp              = 0;
-        dev->ecp              = 0;
-        dev->ecr              = 0x15;
-        dev->ret_ecr          = 0x15;
-        dev->dat              = 0xff;
-        dev->fifo_stat        = 0x00;
-        dev->dma_stat         = 0x00;
+        if (lpt_ports[dev->id].lpt_init == NULL) {
+            dev->enable_irq       = 0x00;
+            dev->cfg_regs_enabled = 0;
+            dev->ext              = !!(machine_has_bus(machine, MACHINE_BUS_MCA));
+            dev->epp              = 0;
+            dev->ecp              = 0;
+            dev->ecr              = 0x15;
+            dev->ret_ecr          = 0x15;
+            dev->dat              = 0xff;
+            dev->fifo_stat        = 0x00;
+            dev->dma_stat         = 0x00;
 
-        memset(dev->ext_regs, 0x00, 8);
-        dev->ext_regs[0x02]   = 0x80;
-        dev->ext_regs[0x04]   = 0x07;
-        dev->cnfga_readout   &= 0xf7;
+            memset(dev->ext_regs, 0x00, 8);
+            dev->ext_regs[0x02]   = 0x80;
+            dev->ext_regs[0x04]   = 0x07;
+            dev->cnfga_readout   &= 0xf7;
+        }
+    }
+
+    const lpt_t *init = lpt_ports[dev->id].lpt_init;
+    if (init != NULL) {
+        /* Go back to the registers the port had after init, and to its I/O handlers,
+           which lpt_port_zero() removed. */
+        lpt_t temp = *dev;
+
+        memcpy(dev, init, sizeof(lpt_t));
+        lpt_copy_host_state(dev, &temp);
+
+        dev->addr = 0xffff;
+        lpt_port_setup(dev, init->addr);
     }
 }
 
@@ -1370,7 +1407,11 @@ lpt_init(const device_t *info)
             timer_add(&dev->fifo_out_timer, lpt_fifo_out_callback, dev, 0);
             timer_add(&dev->char_timer, lpt_char_callback, dev, 0);
         }
-    }
+
+        lpt_ports[dev->id].lpt_init = (lpt_t *) calloc(1, sizeof(lpt_t));
+        memcpy(lpt_ports[dev->id].lpt_init, dev, sizeof(lpt_t));
+    } else
+        lpt_ports[dev->id].lpt_init = NULL;
 
     if (!(info->local & 0xfff00000))
         next_inst++;

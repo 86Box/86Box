@@ -81,6 +81,22 @@ else()
     include_directories(${Qt5Gui_PRIVATE_INCLUDE_DIRS})
 endif()
 
+# The MSYS2 static Qt 6 finds its third-party libraries through CMake
+# modules that don't know about their static dependencies, so append
+# those to the imported targets to keep them after the library itself
+# on the link line.
+if(QT_STATIC AND MINGW AND USE_QT6)
+    find_package(PkgConfig REQUIRED)
+    if(TARGET TIFF::TIFF)
+        pkg_check_modules(LIBTIFF libtiff-4)
+        set_property(TARGET TIFF::TIFF APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${LIBTIFF_STATIC_LIBRARIES})
+    endif()
+    if(TARGET OpenSSL::Crypto)
+        pkg_check_modules(LIBCRYPTO libcrypto)
+        set_property(TARGET OpenSSL::Crypto APPEND PROPERTY INTERFACE_LINK_LIBRARIES ${LIBCRYPTO_STATIC_LIBRARIES})
+    endif()
+endif()
+
 # TODO: Is this the correct way to do this, and is it required on any
 # other platforms or with Qt 5?
 if(APPLE AND USE_QT6 AND VCPKG_TOOLCHAIN)
@@ -139,10 +155,16 @@ add_library(ui STATIC
     qt_about.cpp
     qt_about.hpp
 
+    qt_pageddialog.cpp
+    qt_pageddialog.hpp
+    qt_pageddialog.ui
+
     qt_preferences.cpp
     qt_preferences.hpp
-    qt_preferences.ui
 
+    qt_preferencesgeneral.cpp
+    qt_preferencesgeneral.hpp
+    qt_preferencesgeneral.ui
     qt_preferencesemulator.cpp
     qt_preferencesemulator.hpp
     qt_preferencesemulator.ui
@@ -152,10 +174,12 @@ add_library(ui STATIC
     qt_preferenceskeybindings.cpp
     qt_preferenceskeybindings.hpp
     qt_preferenceskeybindings.ui
+    qt_preferencesmanager.cpp
+    qt_preferencesmanager.hpp
+    qt_preferencesmanager.ui
 
     qt_settings.cpp
     qt_settings.hpp
-    qt_settings.ui
 
     qt_settingsmachine.cpp
     qt_settingsmachine.hpp
@@ -266,9 +290,6 @@ add_library(ui STATIC
     qt_vmmanager_detailsection.ui
     qt_vmmanager_listviewdelegate.hpp
     qt_vmmanager_listviewdelegate.cpp
-    qt_vmmanager_preferences.cpp
-    qt_vmmanager_preferences.hpp
-    qt_vmmanager_preferences.ui
     qt_vmmanager_main.hpp
     qt_vmmanager_main.cpp
     qt_vmmanager_main.ui
@@ -312,15 +333,22 @@ add_library(ui STATIC
 
 # Build the Qt ImGui backend separately so AUTOMOC skips it.
 set(OSD_DIR ${CMAKE_SOURCE_DIR}/src/osd)
+
+find_path(Vulkan_INCLUDE_DIRS NAMES vulkan/vulkan.h)
+if(NOT Vulkan_INCLUDE_DIRS)
+    message(FATAL_ERROR "Vulkan headers (vulkan/vulkan.h) not found")
+endif()
+
 add_library(osd_backend OBJECT ${OSD_DIR}/imgui/imgui_impl_opengl3.cpp ${OSD_DIR}/imgui/imgui_impl_vulkan.cpp)
 set_target_properties(osd_backend PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF)
-target_include_directories(osd_backend PRIVATE ${OSD_DIR}/imgui)
+target_include_directories(osd_backend PRIVATE ${OSD_DIR}/imgui ${Vulkan_INCLUDE_DIRS})
 target_link_libraries(86Box osd_backend)
 
 target_sources(ui PRIVATE qt_osd.cpp qt_osd.hpp qt_osd_raster.cpp qt_osd_raster.hpp)
 target_include_directories(ui PRIVATE ${OSD_DIR} ${OSD_DIR}/imgui)
 
 if(EMU_BUILD_NUM)
+    add_compile_definitions(UPDATE_CHECK)
     target_sources(ui PRIVATE
         qt_updatecheck.cpp
         qt_updatecheck.hpp
@@ -330,6 +358,15 @@ if(EMU_BUILD_NUM)
         qt_updatedetails.cpp
         qt_updatedetails.hpp
         qt_updatedetails.ui
+    )
+endif()
+
+if(DISCORD)
+    target_sources(ui PRIVATE
+        qt_vmmanager_discord.cpp
+        qt_vmmanager_discord.hpp
+        qt_vmmanager_discordclient.cpp
+        qt_vmmanager_discordclient.hpp
     )
 endif()
 
@@ -345,7 +382,8 @@ if(WIN32)
     enable_language(RC)
     target_sources(86Box PUBLIC 86Box-qt.rc)
     target_sources(plat PRIVATE win_dynld.c)
-    target_link_libraries(86Box dwmapi SetupAPI)
+    # winmm: qt_main.cpp sets the timer resolution with timeBeginPeriod; RtMidi used to bring it in.
+    target_link_libraries(86Box dwmapi SetupAPI winmm)
 
     # CMake 3.22 messed this up for clang/clang++
     # See https://gitlab.kitware.com/cmake/cmake/-/issues/22611
@@ -378,7 +416,7 @@ else()
         else()
             target_link_libraries(86Box ${SDL2_LIBRARIES})
         endif()
-        add_compile_definitions(-DUSE_SDL2_LIB=1)
+        add_compile_definitions(USE_SDL2_LIB=1)
     else()
         find_package(SDL3 REQUIRED)
         include_directories(${SDL3_INCLUDE_DIRS})
@@ -486,7 +524,13 @@ endif()
 if(WIN32)
     if(STATIC_BUILD)
         # needed for static builds
-        qt_import_plugins(plat INCLUDE Qt${QT_MAJOR}::QWindowsIntegrationPlugin Qt${QT_MAJOR}::QICOPlugin Qt${QT_MAJOR}::QWindowsVistaStylePlugin)
+        if(TARGET Qt${QT_MAJOR}::QModernWindowsStylePlugin)
+            # Qt 6.7 renamed the windowsvista style plugin
+            set(QT_WINDOWS_STYLE_PLUGIN Qt${QT_MAJOR}::QModernWindowsStylePlugin)
+        else()
+            set(QT_WINDOWS_STYLE_PLUGIN Qt${QT_MAJOR}::QWindowsVistaStylePlugin)
+        endif()
+        qt_import_plugins(plat INCLUDE Qt${QT_MAJOR}::QWindowsIntegrationPlugin Qt${QT_MAJOR}::QICOPlugin ${QT_WINDOWS_STYLE_PLUGIN})
     else()
         if(USE_QT6)
             install(CODE "
@@ -601,7 +645,7 @@ if (UNIX AND NOT APPLE AND NOT HAIKU)
     target_sources(ui PRIVATE evdev_keyboard.cpp xinput2_mouse.cpp)
     find_package(PkgConfig REQUIRED)
     pkg_check_modules(LIBEVDEV IMPORTED_TARGET libevdev)
-    if (LIBEVDEV_FOUND)
+    if (LIBEVDEV_FOUND AND CMAKE_SYSTEM_NAME STREQUAL "Linux")
         target_compile_definitions(ui PRIVATE EVDEV_INPUT)
         target_link_libraries(ui PUBLIC PkgConfig::LIBEVDEV)
         target_sources(ui PRIVATE evdev_mouse.cpp)

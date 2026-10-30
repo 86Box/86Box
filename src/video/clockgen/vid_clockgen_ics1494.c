@@ -96,19 +96,7 @@ ics1494_init(const device_t *info)
             ics1494->freq[0x1c] = 38400000.0;
             ics1494->freq[0x1d] = 43200000.0;
             ics1494->freq[0x1e] = 61440000.0;
-            ics1494->freq[0x1f] = 0.0;
-            break;
-
-        case 541:
-            /* ICS1494(M)-540 for Radius HT209 */
-            ics1494->freq[0x00] = 25175000.0;
-            ics1494->freq[0x01] = 28322000.0;
-            ics1494->freq[0x02] = 61440000.0; /*FCLK*/
-            ics1494->freq[0x03] = 74000000.0; /*XRESM*/
-            ics1494->freq[0x04] = 50350000.0;
-            ics1494->freq[0x05] = 65000000.0;
-            ics1494->freq[0x06] = 37575000.0; /*FCLK*/
-            ics1494->freq[0x07] = 40000000.0;
+            ics1494->freq[0x1f] = 14318184.0;
             break;
 
         default:
@@ -128,24 +116,10 @@ ics1494_close(void *priv)
 }
 
 const device_t ics1494m_540_device = {
-    .name          = "ICS2494M-540 Clock Generator",
+    .name          = "ICS1494M-540 Clock Generator",
     .internal_name = "ics1494m_540",
     .flags         = 0,
     .local         = 540,
-    .init          = ics1494_init,
-    .close         = ics1494_close,
-    .reset         = NULL,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t ics1494m_540_radius_ht209_device = {
-    .name          = "ICS2494M-540 (Radius HT209) Clock Generator",
-    .internal_name = "ics1494m_540_radius_ht209",
-    .flags         = 0,
-    .local         = 541,
     .init          = ics1494_init,
     .close         = ics1494_close,
     .reset         = NULL,

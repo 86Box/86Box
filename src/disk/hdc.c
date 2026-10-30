@@ -87,7 +87,6 @@ static const struct {
     /* MCA */
     { &esdi_ps2_device                      },
     { &st506_ps2_device                     },  
-    { &esdi_integrated_device               },
     { &mcide_device                         },
     /* VLB */
 #if 0
@@ -105,6 +104,7 @@ static const struct {
     { &ide_cmd649_ter_qua_device            },
     { &ide_pci_device                       },
     { &ide_pci_2ch_device                   },
+    { &pdc20269_device                      },
     { &ide_w83769f_pci_device               }, /* PCI variant? TODO: to add implement W83759 IDE controller */
     { NULL                                  }
     // clang-format on

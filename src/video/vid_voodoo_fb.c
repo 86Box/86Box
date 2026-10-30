@@ -29,6 +29,7 @@
 #include <86box/timer.h>
 #include <86box/device.h>
 #include <86box/plat.h>
+#include <86box/bswap.h>
 #include <86box/thread.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
@@ -56,6 +57,29 @@ voodoo_fb_log(const char *fmt, ...)
 #    define voodoo_fb_log(fmt, ...)
 #endif
 
+/* The row an LFB read reaches: reads take the Y origin from lfbMode alone,
+   whatever the pixel pipeline setting (SST-1 and Voodoo2 specs, lfbMode
+   bit 13); writes flip in lfb_y_origin_flip. Negative when the row is
+   above the origin. */
+int
+voodoo_fb_read_y(const voodoo_t *voodoo, int y)
+{
+    if (voodoo->lfbMode & LFB_Y_ORIGIN)
+        return ((voodoo->type >= VOODOO_BANSHEE) ? voodoo->y_origin_swap : (voodoo->v_disp - 1)) - y;
+    return y;
+}
+
+/* lfbMode's read swaps, on the 32 bits read: words, then bytes. */
+static inline uint32_t
+lfb_read_swap(const voodoo_t *voodoo, uint32_t val)
+{
+    if (voodoo->lfbMode & LFB_READ_WORD_SWAP)
+        val = (val << 16) | (val >> 16);
+    if (voodoo->lfbMode & LFB_READ_BYTE_SWIZZLE)
+        val = bswap32(val);
+    return val;
+}
+
 uint16_t
 voodoo_fb_readw(uint32_t addr, void *priv)
 {
@@ -72,6 +96,10 @@ voodoo_fb_readw(uint32_t addr, void *priv)
         x = addr & 0x7fe;
         y = (addr >> 11) & 0x3ff;
     }
+
+    y = voodoo_fb_read_y(voodoo, y);
+    if (y < 0)
+        return 0xffff;
 
     if (SLI_ENABLED) {
         const voodoo_set_t *set = voodoo->set;
@@ -91,6 +119,13 @@ voodoo_fb_readw(uint32_t addr, void *priv)
 
     if (read_addr > voodoo->fb_mask)
         return 0xffff;
+
+    if (voodoo->lfbMode & (LFB_READ_WORD_SWAP | LFB_READ_BYTE_SWIZZLE)) {
+        /* The swaps work on the 32 bits holding the pixel; this is half */
+        uint32_t val = lfb_read_swap(voodoo, *(uint32_t *) (&voodoo->fb_mem[read_addr & ~3 & voodoo->fb_mask]));
+
+        return (read_addr & 2) ? (val >> 16) : (val & 0xffff);
+    }
 
     temp = *(uint16_t *) (&voodoo->fb_mem[read_addr & voodoo->fb_mask]);
 
@@ -114,6 +149,10 @@ voodoo_fb_readl(uint32_t addr, void *priv)
         y = (addr >> 11) & 0x3ff;
     }
 
+    y = voodoo_fb_read_y(voodoo, y);
+    if (y < 0)
+        return 0xffffffff;
+
     if (SLI_ENABLED) {
         const voodoo_set_t *set = voodoo->set;
 
@@ -133,7 +172,7 @@ voodoo_fb_readl(uint32_t addr, void *priv)
     if (read_addr > voodoo->fb_mask)
         return 0xffffffff;
 
-    temp = *(uint32_t *) (&voodoo->fb_mem[read_addr & voodoo->fb_mask]);
+    temp = lfb_read_swap(voodoo, *(uint32_t *) (&voodoo->fb_mem[read_addr & voodoo->fb_mask]));
 
     //        voodoo_fb_log("voodoo_fb_readl : %08X %08x %08X  x=%i y=%i  %08X %08X  %08x:%08x %i ro=%08x rw=%i\n", addr, read_addr, temp, x, y, read_addr, *(uint32_t *)(&voodoo->fb_mem[4]), cs, pc, fb_reads++, voodoo->fb_read_offset, voodoo->row_width);
     return temp;
@@ -165,6 +204,258 @@ do_dither(voodoo_params_t *params, rgba8_t col, int x, int y)
     return b | (g << 5) | (r << 11);
 }
 
+static inline rgba8_t
+lfb_decode_565(const voodoo_t *voodoo, uint16_t val)
+{
+    /*RGB565 has no alpha, so ABGR/BGRA and ARGB/RGBA only differ in R/B order*/
+    if (voodoo->lfbMode & LFB_RGBCHANNEL_ABGR)
+        return bgr565[val];
+    return rgb565[val];
+}
+
+static inline rgba8_t
+lfb_decode_1555(const voodoo_t *voodoo, uint16_t val)
+{
+    switch (voodoo->lfbMode & LFB_RGBCHANNEL_MASK) {
+        default:
+        case LFB_RGBCHANNEL_ARGB:
+            return argb1555[val];
+        case LFB_RGBCHANNEL_ABGR:
+            return abgr1555[val];
+        case LFB_RGBCHANNEL_RGBA:
+            return rgba1555[val];
+        case LFB_RGBCHANNEL_BGRA:
+            return bgra1555[val];
+    }
+}
+
+static inline void
+lfb_decode_8888(const voodoo_t *voodoo, uint32_t val, rgba8_t *col, uint8_t *alpha)
+{
+    switch (voodoo->lfbMode & LFB_RGBCHANNEL_MASK) {
+        default:
+        case LFB_RGBCHANNEL_ARGB:
+            col->b = val & 0xff;
+            col->g = (val >> 8) & 0xff;
+            col->r = (val >> 16) & 0xff;
+            *alpha = (val >> 24) & 0xff;
+            break;
+        case LFB_RGBCHANNEL_ABGR:
+            col->r = val & 0xff;
+            col->g = (val >> 8) & 0xff;
+            col->b = (val >> 16) & 0xff;
+            *alpha = (val >> 24) & 0xff;
+            break;
+        case LFB_RGBCHANNEL_RGBA:
+            *alpha = val & 0xff;
+            col->b = (val >> 8) & 0xff;
+            col->g = (val >> 16) & 0xff;
+            col->r = (val >> 24) & 0xff;
+            break;
+        case LFB_RGBCHANNEL_BGRA:
+            *alpha = val & 0xff;
+            col->r = (val >> 8) & 0xff;
+            col->g = (val >> 16) & 0xff;
+            col->b = (val >> 24) & 0xff;
+            break;
+    }
+}
+
+static inline int
+lfb_y_origin_flip(const voodoo_t *voodoo, int y)
+{
+    int y_origin = (voodoo->type >= VOODOO_BANSHEE) ? voodoo->y_origin_swap : (voodoo->v_disp - 1);
+
+    if ((!(voodoo->lfbMode & 0x100) && (voodoo->lfbMode & (1 << 13))) || ((voodoo->lfbMode & 0x100) && (voodoo->params.fbzMode & (1 << 17))))
+        return y_origin - y;
+    return y;
+}
+
+/*Colour combine for LFB writes with the pixel pipeline enabled. This isn't
+  obviously documented in any 3dfx/Glide documentation, but has been verified
+  on hardware. It functions as in normal rendering, except the written colour
+  data is unconditionally used as Cother/Aother.*/
+static inline void
+voodoo_fb_cca_process(const voodoo_params_t *params, rgba8_t *write_data, uint16_t new_depth)
+{
+    int     src_r;
+    int     src_g;
+    int     src_b;
+    int     src_a;
+    int     msel_r;
+    int     msel_g;
+    int     msel_b;
+    int     msel_a;
+    uint8_t clocal_r;
+    uint8_t clocal_g;
+    uint8_t clocal_b;
+    uint8_t alocal;
+    uint8_t cother_r = write_data->r;
+    uint8_t cother_g = write_data->g;
+    uint8_t cother_b = write_data->b;
+    uint8_t aother   = write_data->a;
+    int     sel;
+
+    if (cc_localselect_override)
+        sel = (aother & 0x80) ? 1 : 0;
+    else
+        sel = cc_localselect;
+
+    if (sel) {
+        clocal_r = (params->color0 >> 16) & 0xff;
+        clocal_g = (params->color0 >> 8) & 0xff;
+        clocal_b = params->color0 & 0xff;
+    } else {
+        clocal_r = 0; /*FIXME*/
+        clocal_g = 0;
+        clocal_b = 0;
+    }
+
+    switch (cca_localselect) {
+        case CCA_LOCALSELECT_ITER_A:
+            alocal = 0; /*FIXME*/
+            break;
+        case CCA_LOCALSELECT_COLOR0:
+            alocal = (params->color0 >> 24) & 0xff;
+            break;
+        case CCA_LOCALSELECT_ITER_Z:
+            alocal = new_depth >> 8; /*FIXME*/
+            break;
+        default:
+            fatal("Bad cca_localselect %i\n", cca_localselect);
+            alocal = 0xff;
+            break;
+    }
+
+    if (cc_zero_other) {
+        src_r = 0;
+        src_g = 0;
+        src_b = 0;
+    } else {
+        src_r = cother_r;
+        src_g = cother_g;
+        src_b = cother_b;
+    }
+
+    if (cca_zero_other)
+        src_a = 0;
+    else
+        src_a = aother;
+
+    if (cc_sub_clocal) {
+        src_r -= clocal_r;
+        src_g -= clocal_g;
+        src_b -= clocal_b;
+    }
+
+    if (cca_sub_clocal)
+        src_a -= alocal;
+
+    switch (cc_mselect) {
+        case CC_MSELECT_ZERO:
+            msel_r = 0;
+            msel_g = 0;
+            msel_b = 0;
+            break;
+        case CC_MSELECT_CLOCAL:
+            msel_r = clocal_r;
+            msel_g = clocal_g;
+            msel_b = clocal_b;
+            break;
+        case CC_MSELECT_AOTHER:
+        case CC_MSELECT_TEX:
+            msel_r = aother;
+            msel_g = aother;
+            msel_b = aother;
+            break;
+        case CC_MSELECT_ALOCAL:
+            msel_r = alocal;
+            msel_g = alocal;
+            msel_b = alocal;
+            break;
+        case CC_MSELECT_TEXRGB:
+            msel_r = cother_r;
+            msel_g = cother_g;
+            msel_b = cother_b;
+            break;
+        default:
+            fatal("Bad cc_mselect %i\n", cc_mselect);
+            msel_r = 0;
+            msel_g = 0;
+            msel_b = 0;
+            break;
+    }
+
+    switch (cca_mselect) {
+        case CCA_MSELECT_ZERO:
+            msel_a = 0;
+            break;
+        case CCA_MSELECT_ALOCAL:
+        case CCA_MSELECT_ALOCAL2:
+            msel_a = alocal;
+            break;
+        case CCA_MSELECT_AOTHER:
+        case CCA_MSELECT_TEX:
+            msel_a = aother;
+            break;
+        default:
+            fatal("Bad cca_mselect %i\n", cca_mselect);
+            msel_a = 0;
+            break;
+    }
+
+    if (!cc_reverse_blend) {
+        msel_r ^= 0xff;
+        msel_g ^= 0xff;
+        msel_b ^= 0xff;
+    }
+    msel_r++;
+    msel_g++;
+    msel_b++;
+
+    if (!cca_reverse_blend)
+        msel_a ^= 0xff;
+    msel_a++;
+
+    src_r = (src_r * msel_r) >> 8;
+    src_g = (src_g * msel_g) >> 8;
+    src_b = (src_b * msel_b) >> 8;
+    src_a = (src_a * msel_a) >> 8;
+
+    switch (cc_add) {
+        case CC_ADD_CLOCAL:
+            src_r += clocal_r;
+            src_g += clocal_g;
+            src_b += clocal_b;
+            break;
+        case CC_ADD_ALOCAL:
+            src_r += alocal;
+            src_g += alocal;
+            src_b += alocal;
+            break;
+        case 0:
+            break;
+        default:
+            fatal("Bad cc_add %i\n", cc_add);
+    }
+
+    if (cca_add)
+        src_a += alocal;
+
+    write_data->r = CLAMP(src_r);
+    write_data->g = CLAMP(src_g);
+    write_data->b = CLAMP(src_b);
+    write_data->a = CLAMP(src_a);
+
+    if (cc_invert_output) {
+        write_data->r ^= 0xff;
+        write_data->g ^= 0xff;
+        write_data->b ^= 0xff;
+    }
+    if (cca_invert_output)
+        write_data->a ^= 0xff;
+}
+
 void
 voodoo_fb_writew(uint32_t addr, uint16_t val, void *priv)
 {
@@ -174,6 +465,7 @@ voodoo_fb_writew(uint32_t addr, uint16_t val, void *priv)
     int                    y;
     uint32_t               write_addr;
     uint32_t               write_addr_aux;
+    uint32_t               lfb_addr = addr;
     rgba8_t                colour_data;
     uint16_t               depth_data;
     uint8_t                alpha_data;
@@ -195,17 +487,17 @@ voodoo_fb_writew(uint32_t addr, uint16_t val, void *priv)
 
     switch (voodoo->lfbMode & LFB_FORMAT_MASK) {
         case LFB_FORMAT_RGB565:
-            colour_data = rgb565[val];
+            colour_data = lfb_decode_565(voodoo, val);
             alpha_data  = 0xff;
             write_mask  = LFB_WRITE_COLOUR;
             break;
         case LFB_FORMAT_RGB555:
-            colour_data = argb1555[val];
+            colour_data = lfb_decode_1555(voodoo, val);
             alpha_data  = 0xff;
             write_mask  = LFB_WRITE_COLOUR;
             break;
         case LFB_FORMAT_ARGB1555:
-            colour_data = argb1555[val];
+            colour_data = lfb_decode_1555(voodoo, val);
             alpha_data  = colour_data.a;
             write_mask  = LFB_WRITE_COLOUR;
             break;
@@ -214,17 +506,54 @@ voodoo_fb_writew(uint32_t addr, uint16_t val, void *priv)
             write_mask = LFB_WRITE_DEPTH;
             break;
 
+        case LFB_FORMAT_DEPTH_RGB565:
+            lfb_addr >>= 1;
+            if (lfb_addr & 1) {
+                depth_data = val;
+                write_mask = LFB_WRITE_DEPTH;
+            } else {
+                colour_data = lfb_decode_565(voodoo, val);
+                write_mask  = LFB_WRITE_COLOUR;
+            }
+            break;
+        case LFB_FORMAT_DEPTH_RGB555:
+            lfb_addr >>= 1;
+            if (lfb_addr & 1) {
+                depth_data = val;
+                write_mask = LFB_WRITE_DEPTH;
+            } else {
+                colour_data = lfb_decode_1555(voodoo, val);
+                alpha_data  = 0xff;
+                write_mask  = LFB_WRITE_COLOUR;
+            }
+            break;
+        case LFB_FORMAT_DEPTH_ARGB1555:
+            lfb_addr >>= 1;
+            if (lfb_addr & 1) {
+                depth_data = val;
+                write_mask = LFB_WRITE_DEPTH;
+            } else {
+                colour_data = lfb_decode_1555(voodoo, val);
+                alpha_data  = colour_data.a;
+                write_mask  = LFB_WRITE_COLOUR;
+            }
+            break;
+
         default:
             fatal("voodoo_fb_writew : bad LFB format %08X\n", voodoo->lfbMode);
     }
 
     if (voodoo->type >= VOODOO_BANSHEE) {
-        x = addr & 0xffe;
-        y = (addr >> 12) & 0x3ff;
+        x = lfb_addr & 0xffe;
+        y = (lfb_addr >> 12) & 0x3ff;
     } else {
-        x = addr & 0x7fe;
-        y = (addr >> 11) & 0x3ff;
+        x = lfb_addr & 0x7fe;
+        y = (lfb_addr >> 11) & 0x3ff;
     }
+
+    y = lfb_y_origin_flip(voodoo, y);
+    if (y < 0)
+        return;
 
     if (SLI_ENABLED) {
         if ((!(voodoo->initEnable & INITENABLE_SLI_MASTER_SLAVE) && (y & 1)) || ((voodoo->initEnable & INITENABLE_SLI_MASTER_SLAVE) && !(y & 1)))
@@ -254,6 +583,8 @@ voodoo_fb_writew(uint32_t addr, uint16_t val, void *priv)
             int      colbfog_g  = 0;
             int      colbfog_b  = 0;
 
+            write_data.a = alpha_data;
+
             if (params->fbzMode & FBZ_STIPPLE) {
                 if (params->fbzMode & FBZ_STIPPLE_PATT) {
                     int index = ((y & 3) << 3) | (~x & 7);
@@ -276,6 +607,8 @@ voodoo_fb_writew(uint32_t addr, uint16_t val, void *priv)
             if ((params->fbzMode & FBZ_CHROMAKEY) && write_data.r == params->chromaKey_r && write_data.g == params->chromaKey_g && write_data.b == params->chromaKey_b)
                 goto skip_pixel;
 
+            voodoo_fb_cca_process(params, &write_data, new_depth);
+
             colbfog_r = write_data.r;
             colbfog_g = write_data.g;
             colbfog_b = write_data.b;
@@ -283,13 +616,13 @@ voodoo_fb_writew(uint32_t addr, uint16_t val, void *priv)
             if (params->fogMode & FOG_ENABLE) {
                 int32_t z       = new_depth << 12;
                 int64_t w_depth = (int64_t) (int32_t) new_depth;
-                int32_t ia      = alpha_data << 12;
+                int32_t ia      = write_data.a << 12;
 
                 APPLY_FOG(write_data.r, write_data.g, write_data.b, z, ia, w_depth);
             }
 
             if (params->alphaMode & 1)
-                ALPHA_TEST(alpha_data);
+                ALPHA_TEST(write_data.a);
 
             if (params->alphaMode & (1 << 4)) {
                 uint16_t dat = *(uint16_t *) (&voodoo->fb_mem[write_addr & voodoo->fb_mask]);
@@ -297,6 +630,9 @@ voodoo_fb_writew(uint32_t addr, uint16_t val, void *priv)
                 int      dest_g;
                 int      dest_b;
                 int      dest_a;
+                int      src_r = write_data.r;
+                int      src_g = write_data.g;
+                int      src_b = write_data.b;
 
                 dest_r = (dat >> 8) & 0xf8;
                 dest_g = (dat >> 3) & 0xfc;
@@ -306,7 +642,10 @@ voodoo_fb_writew(uint32_t addr, uint16_t val, void *priv)
                 dest_b |= (dest_b >> 5);
                 dest_a = 0xff;
 
-                ALPHA_BLEND(write_data.r, write_data.g, write_data.b, alpha_data);
+                ALPHA_BLEND(src_r, src_g, src_b, write_data.a);
+                write_data.r = src_r;
+                write_data.g = src_g;
+                write_data.b = src_b;
             }
 
             if (params->fbzMode & FBZ_RGB_WMASK)
@@ -353,59 +692,57 @@ voodoo_fb_writel(uint32_t addr, uint32_t val, void *priv)
 
     switch (voodoo->lfbMode & LFB_FORMAT_MASK) {
         case LFB_FORMAT_RGB565:
-            colour_data[0] = rgb565[val & 0xffff];
-            colour_data[1] = rgb565[val >> 16];
+            colour_data[0] = lfb_decode_565(voodoo, val & 0xffff);
+            colour_data[1] = lfb_decode_565(voodoo, val >> 16);
             write_mask     = LFB_WRITE_COLOUR;
             count          = 2;
             break;
         case LFB_FORMAT_RGB555:
-            colour_data[0] = argb1555[val & 0xffff];
-            colour_data[1] = argb1555[val >> 16];
+            colour_data[0] = lfb_decode_1555(voodoo, val & 0xffff);
+            colour_data[1] = lfb_decode_1555(voodoo, val >> 16);
             write_mask     = LFB_WRITE_COLOUR;
             count          = 2;
             break;
         case LFB_FORMAT_ARGB1555:
-            colour_data[0] = argb1555[val & 0xffff];
+            colour_data[0] = lfb_decode_1555(voodoo, val & 0xffff);
             alpha_data[0]  = colour_data[0].a;
-            colour_data[1] = argb1555[val >> 16];
+            colour_data[1] = lfb_decode_1555(voodoo, val >> 16);
             alpha_data[1]  = colour_data[1].a;
             write_mask     = LFB_WRITE_COLOUR;
             count          = 2;
             break;
 
         case LFB_FORMAT_ARGB8888:
-            colour_data[0].b = val & 0xff;
-            colour_data[0].g = (val >> 8) & 0xff;
-            colour_data[0].r = (val >> 16) & 0xff;
-            alpha_data[0]    = (val >> 24) & 0xff;
-            write_mask       = LFB_WRITE_COLOUR;
+            lfb_decode_8888(voodoo, val, &colour_data[0], &alpha_data[0]);
+            write_mask = LFB_WRITE_COLOUR;
             addr >>= 1;
             break;
 
-        case LFB_FORMAT_XRGB8888:
-            colour_data[0].b = val & 0xff;
-            colour_data[0].g = (val >> 8) & 0xff;
-            colour_data[0].r = (val >> 16) & 0xff;
-            write_mask       = LFB_WRITE_COLOUR;
+        case LFB_FORMAT_XRGB8888: {
+            uint8_t unused_alpha;
+
+            lfb_decode_8888(voodoo, val, &colour_data[0], &unused_alpha);
+            write_mask = LFB_WRITE_COLOUR;
             addr >>= 1;
             break;
+        }
 
         case LFB_FORMAT_DEPTH_RGB565:
-            colour_data[0] = rgb565[val & 0xffff];
+            colour_data[0] = lfb_decode_565(voodoo, val & 0xffff);
             depth_data[0]  = val >> 16;
             write_mask     = LFB_WRITE_BOTH;
             count          = 1;
             addr >>= 1;
             break;
         case LFB_FORMAT_DEPTH_RGB555:
-            colour_data[0] = argb1555[val & 0xffff];
+            colour_data[0] = lfb_decode_1555(voodoo, val & 0xffff);
             depth_data[0]  = val >> 16;
             write_mask     = LFB_WRITE_BOTH;
             count          = 1;
             addr >>= 1;
             break;
         case LFB_FORMAT_DEPTH_ARGB1555:
-            colour_data[0] = argb1555[val & 0xffff];
+            colour_data[0] = lfb_decode_1555(voodoo, val & 0xffff);
             alpha_data[0]  = colour_data[0].a;
             depth_data[0]  = val >> 16;
             write_mask     = LFB_WRITE_BOTH;
@@ -431,6 +768,10 @@ voodoo_fb_writel(uint32_t addr, uint32_t val, void *priv)
         x = addr & 0x7fe;
         y = (addr >> 11) & 0x3ff;
     }
+
+    y = lfb_y_origin_flip(voodoo, y);
+    if (y < 0)
+        return;
 
     if (SLI_ENABLED) {
         if ((!(voodoo->initEnable & INITENABLE_SLI_MASTER_SLAVE) && (y & 1)) || ((voodoo->initEnable & INITENABLE_SLI_MASTER_SLAVE) && !(y & 1)))
@@ -462,6 +803,8 @@ voodoo_fb_writel(uint32_t addr, uint32_t val, void *priv)
             int      colbfog_g  = 0;
             int      colbfog_b  = 0;
 
+            write_data.a = alpha_data[c];
+
             if (params->fbzMode & FBZ_STIPPLE) {
                 if (params->fbzMode & FBZ_STIPPLE_PATT) {
                     int index = ((y & 3) << 3) | (~(x + c) & 7);
@@ -484,6 +827,8 @@ voodoo_fb_writel(uint32_t addr, uint32_t val, void *priv)
             if ((params->fbzMode & FBZ_CHROMAKEY) && write_data.r == params->chromaKey_r && write_data.g == params->chromaKey_g && write_data.b == params->chromaKey_b)
                 goto skip_pixel;
 
+            voodoo_fb_cca_process(params, &write_data, new_depth);
+
             colbfog_r = write_data.r;
             colbfog_g = write_data.g;
             colbfog_b = write_data.b;
@@ -491,13 +836,13 @@ voodoo_fb_writel(uint32_t addr, uint32_t val, void *priv)
             if (params->fogMode & FOG_ENABLE) {
                 int32_t z       = new_depth << 12;
                 int64_t w_depth = new_depth;
-                int32_t ia      = alpha_data[c] << 12;
+                int32_t ia      = write_data.a << 12;
 
                 APPLY_FOG(write_data.r, write_data.g, write_data.b, z, ia, w_depth);
             }
 
             if (params->alphaMode & 1)
-                ALPHA_TEST(alpha_data[c]);
+                ALPHA_TEST(write_data.a);
 
             if (params->alphaMode & (1 << 4)) {
                 uint16_t dat = *(uint16_t *) (&voodoo->fb_mem[write_addr & voodoo->fb_mask]);
@@ -505,6 +850,9 @@ voodoo_fb_writel(uint32_t addr, uint32_t val, void *priv)
                 int      dest_g;
                 int      dest_b;
                 int      dest_a;
+                int      src_r = write_data.r;
+                int      src_g = write_data.g;
+                int      src_b = write_data.b;
 
                 dest_r = (dat >> 8) & 0xf8;
                 dest_g = (dat >> 3) & 0xfc;
@@ -514,7 +862,10 @@ voodoo_fb_writel(uint32_t addr, uint32_t val, void *priv)
                 dest_b |= (dest_b >> 5);
                 dest_a = 0xff;
 
-                ALPHA_BLEND(write_data.r, write_data.g, write_data.b, alpha_data[c]);
+                ALPHA_BLEND(src_r, src_g, src_b, write_data.a);
+                write_data.r = src_r;
+                write_data.g = src_g;
+                write_data.b = src_b;
             }
 
             if (params->fbzMode & FBZ_RGB_WMASK)

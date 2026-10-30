@@ -4,6 +4,7 @@
 #include <SDL3/SDL.h>
 #endif
 
+#include <stdbool.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -114,6 +115,60 @@ plat_get_string(int i)
             return "Device \"%s\" is not available due to missing ROMs. Ignoring the device.";
         case STRING_HW_NOT_AVAILABLE_TITLE:
             return "Hardware not available";
+        case STRING_UNSUPPORTED_TITLE:
+            return "Unsupported Hardware";
+        case STRING_UNSUPPORTED_TEXT:
+            return "Hardware in this machine profile is not supported by this current build of 86Box.";
+        case STRING_UNSUPPORTED_OTHERS:
+            return "(and %i others)";
+        case STRING_UNSUPPORTED_REPLACE:
+            return "Loading the configuration anyway will replace the machine and overwrite the existing configuration.";
+        case STRING_UNSUPPORTED_REMOVE:
+            return "Loading the configuration anyway will remove these components and overwrite the existing configuration.";
+        case STRING_UNSUPPORTED_REPLACE_REMOVE:
+            return "Loading the configuration anyway will replace the machine, remove the other components and overwrite the existing configuration.";
+        case STRING_UNSUPPORTED_CONTINUE:
+            return "Do you want to continue?";
+        case STRING_UNSUPPORTED_MACHINE:
+            return "Machine type \"%s\"";
+        case STRING_UNSUPPORTED_VIDEO:
+            return "Video card \"%s\"";
+        case STRING_UNSUPPORTED_KEYBOARD:
+            return "Keyboard \"%s\"";
+        case STRING_UNSUPPORTED_MOUSE:
+            return "Mouse \"%s\"";
+        case STRING_UNSUPPORTED_TABLET:
+            return "Tablet \"%s\"";
+        case STRING_UNSUPPORTED_JOYSTICK:
+            return "Joystick \"%s\"";
+        case STRING_UNSUPPORTED_SOUND:
+            return "Sound card \"%s\"";
+        case STRING_UNSUPPORTED_MIDI_OUT:
+            return "MIDI output device \"%s\"";
+        case STRING_UNSUPPORTED_MIDI_IN:
+            return "MIDI input device \"%s\"";
+        case STRING_UNSUPPORTED_NETWORK:
+            return "Network card \"%s\"";
+        case STRING_UNSUPPORTED_SERIAL:
+            return "Serial port device \"%s\"";
+        case STRING_UNSUPPORTED_PARALLEL:
+            return "Parallel port device \"%s\"";
+        case STRING_UNSUPPORTED_GAMEPORT:
+            return "Game port \"%s\"";
+        case STRING_UNSUPPORTED_SCSI:
+            return "SCSI card \"%s\"";
+        case STRING_UNSUPPORTED_FDC:
+            return "Floppy controller \"%s\"";
+        case STRING_UNSUPPORTED_HDC:
+            return "Disk controller \"%s\"";
+        case STRING_UNSUPPORTED_CDROM_INTERFACE:
+            return "CD-ROM interface \"%s\"";
+        case STRING_UNSUPPORTED_MEMORY:
+            return "Memory expansion card \"%s\"";
+        case STRING_UNSUPPORTED_ROM:
+            return "ROM expansion card \"%s\"";
+        case STRING_UNSUPPORTED_RTC:
+            return "RTC card \"%s\"";
         case STRING_NET_ERROR:
             return "Failed to initialize network driver:\n\n%s\n\nThe network configuration will be switched to the null driver.";
         case STRING_ESCP_ERROR:
@@ -136,6 +191,8 @@ plat_get_string(int i)
             return "Unable to load image \"%s\": libaaruformat.so is missing, which is required for Aaru format image support.";
         case STRING_CDROM_DVD_IN_CD_DRIVE:
             return "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored.";
+        case STRING_CDROM_IMAGE_TOO_LARGE:
+            return "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored.";
         case STRING_CHARDEV_CONNECT_ERROR:
             return "%s: Could not connect to %s: %s";
         case STRING_CHARDEV_CREATE_ERROR:
@@ -146,6 +203,46 @@ plat_get_string(int i)
             return "%s: Virtual console already in use by %s";
         case STRING_CHARDEV_TERMINAL_ERROR:
             return "%s: Could not create terminal: %s";
+        case STRING_USB_NO_PORT:
+            return "%s was not connected: every USB port of this machine is in use.";
+        case STRING_USB_NO_CONTROLLER:
+            return "%s was not connected: this machine has no USB controller that can take devices.";
+#ifdef USE_VFIO
+        case STRING_VFIO_NO_CONTAINER:
+            return "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded.";
+        case STRING_VFIO_INVALID_LOCATION:
+            return "VFIO %s: Invalid device location.";
+        case STRING_VFIO_DEVICE_NOT_FOUND:
+            return "VFIO %s: Device not found.";
+        case STRING_VFIO_NO_IOMMU_GROUP:
+            return "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system.";
+        case STRING_VFIO_NOT_BOUND:
+            return "VFIO %s: Device is not bound to vfio-pci.";
+        case STRING_VFIO_GROUP_OPEN_ERROR:
+            return "VFIO %s: Could not open IOMMU group %d: %s";
+        case STRING_VFIO_GROUP_NOT_VIABLE:
+            return "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci.";
+        case STRING_VFIO_DMA_ERROR:
+            return "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low.";
+        case STRING_VFIO_ROM_FILE_FALLBACK:
+            return "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM.";
+        case STRING_VFIO_ROM_FILE_DISABLED:
+            return "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled.";
+        case STRING_VFIO_ROM_INVALID:
+            return "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings.";
+        case STRING_VFIO_SETUP_QUESTION:
+            return "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?";
+        case STRING_VFIO_SETUP_ACCESS:
+            return "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?";
+        case STRING_VFIO_SETUP_GROUP:
+            return "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:";
+        case STRING_VFIO_SETUP_REFUSED:
+            return "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci.";
+        case STRING_VFIO_SETUP_FAILED:
+            return "VFIO: Could not prepare the devices for passthrough:\n%s";
+        case STRING_VFIO_SETUP_MANUAL:
+            return "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s";
+#endif
     }
     return "";
 }
@@ -351,6 +448,14 @@ plat_power_off(void)
     cycles -= 99999999;
 
     cpu_thread_run = 0;
+}
+
+extern bool fast_forward; /* sdl_main.c */
+
+void
+plat_fast_forward(int on)
+{
+    fast_forward = !!on;
 }
 
 void

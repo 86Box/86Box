@@ -41,6 +41,7 @@
 #define AC97_CENTER_6B  (1 << 17) /* register 36 bit 5 (CNT5) */
 #define AC97_SURR_6B    (1 << 18) /* register 38 bits [13,5] (LSR5/RSR5) */
 #define AC97_GAIN_3B    (1 << 19) /* registers [1C:1E] (audio) or [46:4A] (modem) bits [8,0] are always 0 (spec violation?) if this is set */
+#define AC97_AD_SRG     (1 << 20) /* Analog Devices sample rate generators: registers 78/7A, selected by 76 */
 
 /* Reset bits (reset_flags), register 00. */
 #define AC97_MICPCM    (1 << 0)
@@ -144,6 +145,7 @@ extern void            ac97_codec_setgpo(void *priv, uint16_t gpo);
 extern const device_t *ac97_codec_get(uint32_t id);
 
 extern void    ac97_via_set_slot(void *priv, int slot, int irq_pin);
+extern void    ac97_via_set_irq_hook(void *priv, void (*hook)(void *priv, int modem, int set), void *hook_priv);
 extern uint8_t ac97_via_read_status(void *priv);
 extern void    ac97_via_write_control(void *priv, uint8_t val);
 extern void    ac97_via_remap_audio_sgd(void *priv, uint16_t new_io_base, uint8_t enable);

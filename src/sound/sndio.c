@@ -29,6 +29,51 @@ extern bool            fast_forward;
 static struct sio_hdl* audio[I_MAX] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 static struct sio_par  info[I_MAX];
 
+int
+al_capture_get_rate(void)
+{
+    return 0;
+}
+
+const char *
+sound_get_input_devices(void)
+{
+    return NULL; /* sndio: capture device enumeration not implemented */
+}
+
+int
+al_capture_available(void)
+{
+    return 0;
+}
+
+void
+al_capture_open(void)
+{
+}
+
+void
+al_capture_close(void)
+{
+}
+
+void
+al_capture_start(void)
+{
+}
+
+void
+al_capture_stop(void)
+{
+}
+
+void
+al_capture_get_data(int16_t *buf, size_t *len)
+{
+    if (len)
+        *len = 0;
+}
+
 const char *
 sound_get_output_devices(void)
 {

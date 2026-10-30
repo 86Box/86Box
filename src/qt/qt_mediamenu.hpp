@@ -80,6 +80,9 @@ public:
     void nicDisconnect(int i);
     void nicUpdateMenu(int i);
 
+    void usbToggle(int slot);
+    void usbUpdateMenu(int slot);
+
 public slots:
     void cdromUpdateUi(int i);
 
@@ -97,6 +100,7 @@ private:
     QMap<int, QMenu *> moMenus;
     QMap<int, QMenu *> tapeMenus;
     QMap<int, QMenu *> netMenus;
+    QMap<int, QMenu *> usbMenus;
 
     QString                 getMediaOpenDirectory();
     ui::MediaHistoryManager mhm;

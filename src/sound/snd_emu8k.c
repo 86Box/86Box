@@ -1535,7 +1535,7 @@ emu8k_inb(uint16_t addr, void *priv)
     /* Reading a single byte is a feature that at least Impulse tracker uses,
      * but only on detection code and not for odd addresses.*/
     if (addr & 1)
-        return emu8k_inw(addr & ~1, priv) >> 1;
+        return emu8k_inw(addr & ~1, priv) >> 8;
     return emu8k_inw(addr, priv) & 0xff;
 }
 

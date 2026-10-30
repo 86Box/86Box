@@ -51,8 +51,6 @@
     #undef CLAMP
 #endif
 
-static uint64_t virge_time = 0;
-
 static int dither[4][4] = {
     { 0, 4, 1, 5 },
     { 6, 2, 7, 3 },
@@ -913,6 +911,7 @@ static void
 s3_virge_recalctimings(svga_t *svga)
 {
     virge_t *virge = (virge_t *) svga->priv;
+    int   enhanced_8bpp_modes = 0;
 
     svga->hdisp = svga->hdisp_old;
 
@@ -1021,13 +1020,23 @@ s3_virge_recalctimings(svga_t *svga)
 
         /* Also make sure vertical blanking starts on display end. */
         svga->vblankstart = svga->dispend;
+
+        svga->hblank_ext     = (svga->crtc[0x5d] & 0x08) ? 64 : 0;
+        svga->hsync_ext      = (svga->crtc[0x5d] & 0x20) ? 32 : 0;
+
         video_force_resize_set_monitor(1, svga->monitor_index);
     } else {
         svga->hblankstart = (((svga->crtc[0x5d] & 0x04) >> 2) << 8) + svga->crtc[2];
 
-        svga->hblank_end_val  = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5) |
-                                (((svga->crtc[0x5d] & 0x08) >> 3) << 6);
-        svga->hblank_end_mask = 0x7f;
+        /*
+           What does does, is simple: extend by 64 or 32 cycles, but the comparison
+           is not affected.
+         */
+        svga->hblank_end_val = (svga->crtc[3] & 0x1f) | (((svga->crtc[5] & 0x80) >> 7) << 5);
+
+        svga->hblank_ext     = (svga->crtc[0x5d] & 0x08) ? 64 : 0;
+        svga->hsync_ext      = (svga->crtc[0x5d] & 0x20) ? 32 : 0;
+
         video_force_resize_set_monitor(1, svga->monitor_index);
     }
 
@@ -1182,7 +1191,21 @@ s3_virge_recalctimings(svga_t *svga)
         svga->vram_display_mask = virge->vram_mask;
     }
 
-    svga->hoverride = 1;
+    enhanced_8bpp_modes = !!((svga->crtc[0x3a] & 0x10) && !svga->lowres);
+
+    const int is_vga_mode = ((svga->bpp <= 8) || ((svga->gdcreg[5] & 0x60) <= 0x20));
+    svga->hoverride = !is_vga_mode;
+
+    if (is_vga_mode) {
+        svga->hoverride = 0;
+        /* Preserve the first character when blanking ends at line rollover.
+           A zero end value can also match before rollover on longer lines. */
+        if (enhanced_8bpp_modes || ((svga->hblank_end_val == 0) &&
+                                   ((svga->hblankstart + 1) == svga->hdisp_time) &&
+                                   ((svga->hblankstart >> 6) == ((svga->htotal - 1) >> 6))))
+            svga->hoverride = 1;
+    } else
+        svga->hoverride = 1;
 
     if (svga->render == svga_render_2bpp_lowres)
         svga->render = svga_render_2bpp_s3_lowres;
@@ -1964,8 +1987,6 @@ mach64_fifo_thread(void *param)
         thread_reset_event(virge->wake_fifo_thread);
         virge->virge_busy = 1;
         while (!FIFO_EMPTY) {
-            uint64_t      start_time = plat_timer_read();
-            uint64_t      end_time;
             fifo_entry_t *fifo = &virge->fifo[virge->fifo_read_idx & FIFO_MASK];
             uint32_t      val  = fifo->val;
 
@@ -2000,9 +2021,6 @@ mach64_fifo_thread(void *param)
 
             if (FIFO_ENTRIES > 0xe000)
                 thread_set_event(virge->fifo_not_full_event);
-
-            end_time = plat_timer_read();
-            virge_time += end_time - start_time;
         }
         virge->virge_busy = 0;
         virge->subsys_stat |= (INT_FIFO_EMP | INT_3DF_EMP);
@@ -4726,9 +4744,6 @@ s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri, int render_lane, int render_la
     uint32_t tex_base;
     int      c;
 
-    uint64_t start_time = plat_timer_read();
-    uint64_t end_time;
-
     state.pixel_count = 0;
 
     state.tbu = s3d_tri->tbu << 11;
@@ -4863,11 +4878,6 @@ s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri, int render_lane, int render_la
     virge->pixel_count[render_lane] += state.pixel_count;
     if (render_lane == 0)
         virge->tri_count++;
-
-    end_time = plat_timer_read();
-
-    if (render_lane == 0)
-        virge_time += end_time - start_time;
 }
 
 static int

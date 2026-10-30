@@ -30,18 +30,29 @@ opAAD(uint32_t fetchdat)
     return 0;
 }
 
+/* 18 clocks on the P5 core, as the recompiler's Pentium timing charges. A
+   block's first passes run here: a different count makes AAM timing loops,
+   such as MR BIOS's CPU clock measurement, disagree with themselves. */
+#define AAM_CYCLES (((cpu_s->cpu_type == CPU_P24T) || (cpu_s->cpu_type == CPU_PENTIUM) || \
+                     (cpu_s->cpu_type == CPU_PENTIUMMMX)) ? 18 : (is486 ? 15 : 17))
+
 static int
 opAAM(uint32_t fetchdat)
 {
     int base = getbytef();
 
-    if (!base || !cpu_isintel)
+    if (!cpu_isintel)
         base = 10;
+    else if (!base) {
+        /* A division by zero, like DIV: #DE. */
+        x86_int(0);
+        return 1;
+    }
     AH = AL / base;
     AL %= base;
     setznp8(AL);
-    CLOCK_CYCLES((is486) ? 15 : 17);
-    PREFETCH_RUN(is486 ? 15 : 17, 2, -1, 0, 0, 0, 0, 0);
+    CLOCK_CYCLES(AAM_CYCLES);
+    PREFETCH_RUN(AAM_CYCLES, 2, -1, 0, 0, 0, 0, 0);
     return 0;
 }
 
@@ -68,9 +79,11 @@ opDAA(UNUSED(uint32_t fetchdat))
     uint16_t tempw;
     uint16_t old_AL;
     uint16_t old_CF;
+    uint16_t old_OF;
 
     flags_rebuild();
     old_AL = AL;
+    old_OF = cpu_state.flags & V_FLAG;
     old_CF = cpu_state.flags & C_FLAG;
     cpu_state.flags &= ~C_FLAG;
 
@@ -93,6 +106,9 @@ opDAA(UNUSED(uint32_t fetchdat))
     setznp8(AL);
     flags_rebuild();
     cpu_state.flags = (cpu_state.flags & ~(C_FLAG | A_FLAG)) | tempw;
+    /* Cyrix books: OF is unchanged (Intel: undefined) */
+    if (cpu_iscyrix)
+        cpu_state.flags = (cpu_state.flags & ~V_FLAG) | old_OF;
     CLOCK_CYCLES(4);
     PREFETCH_RUN(4, 1, -1, 0, 0, 0, 0, 0);
 
@@ -105,9 +121,11 @@ opDAS(UNUSED(uint32_t fetchdat))
     uint16_t tempw;
     uint16_t old_AL;
     uint16_t old_CF;
+    uint16_t old_OF;
 
     flags_rebuild();
     old_AL = AL;
+    old_OF = cpu_state.flags & V_FLAG;
     old_CF = cpu_state.flags & C_FLAG;
     cpu_state.flags &= ~C_FLAG;
 
@@ -129,6 +147,9 @@ opDAS(UNUSED(uint32_t fetchdat))
     setznp8(AL);
     flags_rebuild();
     cpu_state.flags = (cpu_state.flags & ~(C_FLAG | A_FLAG)) | tempw;
+    /* Cyrix books: OF is unchanged (Intel: undefined) */
+    if (cpu_iscyrix)
+        cpu_state.flags = (cpu_state.flags & ~V_FLAG) | old_OF;
     CLOCK_CYCLES(4);
     PREFETCH_RUN(4, 1, -1, 0, 0, 0, 0, 0);
 

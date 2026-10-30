@@ -863,7 +863,8 @@ static const cdrom_ops_t ioctl_ops = {
     NULL,
     NULL,
     ioctl_close,
-    ioctl_load
+    ioctl_load,
+    NULL
 };
 
 /* Public functions. */

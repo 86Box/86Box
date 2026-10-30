@@ -40,6 +40,7 @@
 #include <86box/nmi.h>
 #include <86box/pic.h>
 #include <86box/pci.h>
+#include <86box/chipset.h>
 #include <86box/smram.h>
 #include <86box/timer.h>
 #include <86box/gdbstub.h>
@@ -79,11 +80,19 @@ enum {
 #define CPUID_3DNOWE (1UL << 30UL) /* Extended 3DNow! instructions */
 #define CPUID_3DNOW  (1UL << 31UL) /* 3DNow! instructions */
 
-/* Remove the Debugging Extensions CPUID flag if not compiled
-   with debug register support for 486 and later CPUs. */
-#ifndef USE_DEBUG_REGS_486
-#    define CPUID_DE 0
-#endif
+/* APIC CPUID visibility is gated by both the CPU model and board policy. */
+static uint32_t
+cpu_cpuid_apic_probe_flags(uint32_t edx)
+{
+    if (cpu_apic_feature_enabled())
+        edx |= CPUID_APIC;
+
+    return edx;
+}
+
+/* Report the Debugging Extensions CPUID flag only with debug register
+   operation on 486 and later CPUs enabled. */
+#define CPUID_DE (cpu_debug_regs_486 ? (1 << 2) : 0)
 
 /* Make sure this is as low as possible. */
 cpu_state_t cpu_state;
@@ -207,6 +216,7 @@ int cpu_agp_speed;
 int cpu_alt_reset;
 
 int cpu_dyn_accurate_fpu_env;
+int cpu_dyn_block_link = 1;
 int cpu_override;
 int cpu_effective;
 int cpu_multi;
@@ -234,6 +244,7 @@ int is_nec;
 int is286;
 int is386;
 int is6117;
+int is386ex;
 int is486 = 1;
 int is586 = 0;
 int cpu_isintel;
@@ -250,6 +261,8 @@ int is_k6;
 int is_p6;
 int is_cxsmm;
 int is_cx6x86;
+int is_gxm;
+gxm_t gxm;
 int hasfpu;
 
 int timing_rr;
@@ -285,11 +298,36 @@ int timing_misaligned;
 uint32_t cpu_features;
 uint32_t cpu_fast_off_flags;
 
-uint32_t _tr[8]      = { 0, 0, 0, 0, 0, 0, 0, 0 };
-uint32_t cache_index = 0;
-uint8_t  _cache[2048];
+uint32_t _tr[8] = { 0, 0, 0, 0, 0, 0, 0, 0 };
+
+/* 486 on-chip cache, shared with the TR3-TR5 cache test registers. */
+static uint32_t tr_cache_tag[256][4];     /* Tag (bits 31-11) and valid bit (bit 10). */
+static uint32_t tr_cache_data[256][4][4];
+static uint32_t tr_cache_fill_buf[4];
+static uint32_t tr_cache_read_buf[4];
+
+/* An 8087's or 80187's error output, when the board routes it to a 8259 */
+void (*fpu_int_line)(int level) = NULL;
 
 uint64_t cpu_CR4_mask;
+/* CR4 bits a write may set without #GP, but which always read 0 */
+uint64_t cpu_CR4_ignore;
+/* IGNNE#, asserted by a write to port F0h while FERR# is active */
+int fpu_ignne;
+/* When an unmasked x87 exception asserts FERR# (FPU_FERR_*) */
+int fpu_ferr_timing;
+/* FERR# asserted for the error ES holds (x87_ferr_assert) */
+int fpu_ferr;
+
+void
+fpu_int_set(int level)
+{
+    if (fpu_int_line != NULL)
+        fpu_int_line(level);
+    else
+        nmi = level;
+}
+
 uint64_t tsc = 0;
 
 double cpu_dmulti;
@@ -368,11 +406,24 @@ cpu_dynamic_switch(int new_cpu)
     cpu = c;
 }
 
+/* Whether a soft reset (the INIT pin) leaves the FPU, the MSRs and the
+   caches as they were: the P54C and P55C (Pentium Vol. 3, 16.2), and the
+   P6 family, "during an INIT, the internal caches, MSRs, MTRRs, and FPU
+   state are left unchanged" (SDM 1999 vol. 3, 8.1). */
+int
+cpu_init_keeps_state(void)
+{
+    return cpu_is_p5() || (cpu_isintel && is_p6);
+}
+
 void
 cpu_set_edx(void)
 {
     EDX = cpu_s->edx_reset;
-    if (fpu_softfloat)
+    /* Its callers are soft resets, the INIT pin: a processor that has one
+       (the P54C and P55C) resets "without altering the FPU state"
+       (Pentium Vol. 3, 16.2). */
+    if (fpu_softfloat && !cpu_init_keeps_state())
         SF_FPU_reset();
 }
 
@@ -427,6 +478,10 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
     if ((machine_s->init == machine_at_cobalt3k_init) && (cpu_s->multi != machine_s->cpu.min_multi) && (cpu_s->multi != machine_s->cpu.max_multi))
         return 0;
 
+    /* Tandy VIS only shipped with 12 MHz 286. */
+    if ((machine_s->init == machine_at_tandy_vis_init) && (cpu_s->rspeed != 12500000))
+        return 0;
+
     /* Check CPU blocklist. */
     if (machine_s->cpu.block) {
         i = 0;
@@ -438,10 +493,6 @@ cpu_is_eligible(const cpu_family_t *cpu_family, int cpu, int machine)
     }
 
     bus_speed = cpu_s->rspeed / cpu_s->multi;
-
-    /* The IBM PC 700 firmware has no speed entry for the 50 MHz / 2x setting. */
-    if ((machine_s->init == machine_at_ibm_pc700_init) && (bus_speed == 50000000) && (cpu_s->multi == 2.0))
-        return 0;
 
     /* Minimum bus speed with ~0.84 MHz (for 8086) tolerance. */
     if (machine_s->cpu.min_bus && (bus_speed < (machine_s->cpu.min_bus - 840907)))
@@ -534,10 +585,10 @@ void
 SF_FPU_reset(void)
 {
     if (fpu_type != FPU_NONE) {
+        fpu_state.tag = 0x5555;
         fpu_state.cwd = 0x0040;
         fpu_state.swd = 0;
         fpu_state.tos = 0;
-        fpu_state.tag = 0x5555;
         fpu_state.foo = 0;
         fpu_state.fip = 0;
         fpu_state.fcs = 0;
@@ -554,13 +605,15 @@ cpu_set(void)
         return;
 
     cpu_inited = 1;
+    cpu_lapic_reset_all();
+    /* Register callbacks after CPU-owned reset so LAPIC sees a coherent owner. */
+    lapic_set_index_source(cpu_lapic_index_source);
+
+    /* A previous machine's routing must not outlive it. */
+    fpu_int_line = NULL;
 
     cpu_effective = cpu;
     cpu_s         = (CPU *) &cpu_f->cpus[cpu_effective];
-
-#ifdef USE_ACYCS
-    acycs = 0;
-#endif /* USE_ACYCS */
 
     soft_reset_pci    = 0;
     cpu_init          = 0;
@@ -582,7 +635,8 @@ cpu_set(void)
     is_am486    = (cpu_s->cpu_type == CPU_ENH_Am486DX);
     is_am486dxl = (cpu_s->cpu_type == CPU_Am486DXL);
 
-    is6117 = !strcmp(cpu_f->manufacturer, "ALi");
+    is6117  = !strcmp(cpu_f->manufacturer, "ALi");
+    is386ex = (cpu_f->package == CPU_PKG_386EX);
 
     cpu_isintel = !strcmp(cpu_f->manufacturer, "Intel");
     cpu_iscyrix = !strcmp(cpu_f->manufacturer, "Cyrix") || !strcmp(cpu_f->manufacturer, "ST");
@@ -596,6 +650,32 @@ cpu_set(void)
     is_p6     = (cpu_isintel && (cpu_s->cpu_type >= CPU_PENTIUMPRO)) || !strcmp(cpu_f->manufacturer, "VIA");
     is_cxsmm  = (!strcmp(cpu_f->manufacturer, "Cyrix") || !strcmp(cpu_f->manufacturer, "ST")) && (cpu_s->cpu_type >= CPU_Cx486S);
     is_cx6x86 = (cpu_s->cpu_type >= CPU_Cx6x86) && (cpu_s->cpu_type <= CPU_Cx6x86L);
+    is_gxm    = (cpu_s->cpu_type == CPU_CxGX1);
+
+    /* When an unmasked x87 exception asserts FERR# with CR0.NE clear. A
+       coprocessor's ERROR# and the P6 family's FERR#: at the end of the
+       faulting instruction (SDM 1999 vol. 3, 18.12.6.7). The Cyrix FPUs as
+       well: "during execution of the FPU instruction that caused the error"
+       (6x86, 6x86MX and MII data books), and the MediaGX, on the 5x86's
+       core, drives IRQ13 as ES sets (GXm data book, 4.2.1). Centaur's too
+       (VIA Cyrix III datasheet, FERR#), whose core follows the WinChip's.
+       The 486 and the Pentium by the instruction and the exception, each by
+       its own books' lists, which differ (Intel486 databook 1995 and the
+       Embedded Intel486 manual, FERR#; Pentium vol. 1, 5.1.21), the Am486
+       and Am5x86 as the 486, the Pentium OverDrive as the Pentium. AMD's K5
+       and K6 at the next waiting instruction: "FERR is not asserted at the
+       time the exception occurs" (K5 technical reference; K6, K6-2 data
+       sheets). */
+    if ((fpu_type != FPU_INTERNAL) && (fpu_type != FPU_487SX))
+        fpu_ferr_timing = FPU_FERR_AT_FAULT;
+    else if (is_k5 || is_k6)
+        fpu_ferr_timing = FPU_FERR_DEFERRED;
+    else if (is_p6 || cpu_iscyrix || !strcmp(cpu_f->manufacturer, "IDT"))
+        fpu_ferr_timing = FPU_FERR_AT_FAULT;
+    else if (cpu_isintel && ((cpu_s->cpu_type == CPU_PENTIUM) || (cpu_s->cpu_type == CPU_PENTIUMMMX) || (cpu_s->cpu_type == CPU_P24T)))
+        fpu_ferr_timing = FPU_FERR_P5;
+    else
+        fpu_ferr_timing = FPU_FERR_486;
 
     cpu_isintel = cpu_isintel || !strcmp(cpu_f->manufacturer, "AMD");
 
@@ -622,8 +702,10 @@ cpu_set(void)
 
     if (cpu_s->rspeed <= 8000000)
         cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
+    else if (is486)
+        cpu_rom_prefetch_cycles =  (int) (6.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
     else
-        cpu_rom_prefetch_cycles = cpu_s->rspeed / 1000000;
+        cpu_rom_prefetch_cycles =  (int) (8.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
 
     cpu_set_isa_pci_div(0);
     cpu_set_pci_speed(0);
@@ -822,6 +904,7 @@ cpu_set(void)
     cpu_cyrix_alignment = 0;
     cpu_cpurst_on_sr    = 0;
     cpu_CR4_mask        = 0;
+    cpu_CR4_ignore      = 0;
     cpu_features        = 0;
 
     switch (cpu_s->cpu_type) {
@@ -1419,6 +1502,8 @@ cpu_set(void)
             if (cpu_s->cpu_type == CPU_WINCHIP2)
                 msr.fcr |= (1 << 18) | (1 << 20);
             cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE;
+            /* VME, PVI and PSE are always 0, and setting them is no #GP */
+            cpu_CR4_ignore = CR4_VME | CR4_PVI | CR4_PSE;
 
 #ifdef USE_DYNAREC
             if (cpu_s->cpu_type == CPU_WINCHIP2)
@@ -1481,7 +1566,16 @@ cpu_set(void)
             cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME;
             if (cpu_s->cpu_type == CPU_PENTIUMMMX)
                 cpu_features |= CPU_FEATURE_MMX;
-            cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PCE;
+            cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE;
+            /* The Pentium OverDrive has no machine check: CR4.MCE is forced
+               to 0, and setting it is no #GP (290436-006) */
+            if (cpu_s->cpu_type == CPU_P24T) {
+                cpu_CR4_mask &= ~CR4_MCE;
+                cpu_CR4_ignore = CR4_MCE;
+            }
+            /* RDPMC and CR4.PCE came with the Pentium MMX (SDM 1999, RDPMC) */
+            if (cpu_s->cpu_type == CPU_PENTIUMMMX)
+                cpu_CR4_mask |= CR4_PCE;
 #ifdef USE_DYNAREC
             codegen_timing_set(&codegen_timing_pentium);
 #endif /* USE_DYNAREC */
@@ -1532,11 +1626,27 @@ cpu_set(void)
                     x86_opcodes_df_a16 = ops_fpu_cyrix_686_df_a16;
                     x86_opcodes_df_a32 = ops_fpu_cyrix_686_df_a32;
                 }
+            } else if (cpu_s->cpu_type == CPU_CxGX1) {
+                /* The MediaGX has the Cyrix FTSTP and FNSTSG forms, but no
+                   FCMOVcc or FCOMI (CPUID 8000_0001h, EDX[16] = 0). */
+                if (fpu_softfloat) {
+                    x86_opcodes_d9_a16 = ops_sf_fpu_cyrix_d9_a16;
+                    x86_opcodes_d9_a32 = ops_sf_fpu_cyrix_d9_a32;
+                    x86_opcodes_dd_a16 = ops_sf_fpu_cyrix_dd_a16;
+                    x86_opcodes_dd_a32 = ops_sf_fpu_cyrix_dd_a32;
+                } else {
+                    x86_opcodes_d9_a16 = ops_fpu_cyrix_d9_a16;
+                    x86_opcodes_d9_a32 = ops_fpu_cyrix_d9_a32;
+                    x86_opcodes_dd_a16 = ops_fpu_cyrix_dd_a16;
+                    x86_opcodes_dd_a32 = ops_fpu_cyrix_dd_a32;
+                }
             }
 
 #    ifdef USE_DYNAREC
             if (cpu_s->cpu_type == CPU_Cx6x86MX)
                 x86_setopcodes(ops_386, ops_c6x86mx_0f, dynarec_ops_386, dynarec_ops_c6x86mx_0f);
+            else if (cpu_s->cpu_type == CPU_CxGX1)
+                x86_setopcodes(ops_386, ops_gxm_0f, dynarec_ops_386, dynarec_ops_gxm_0f);
             else if (cpu_s->cpu_type == CPU_Cx6x86L)
                 x86_setopcodes(ops_386, ops_c6x86l_0f, dynarec_ops_386, dynarec_ops_c6x86l_0f);
             else
@@ -1544,6 +1654,8 @@ cpu_set(void)
 #    else
             if (cpu_s->cpu_type == CPU_Cx6x86MX)
                 x86_setopcodes(ops_386, ops_c6x86mx_0f);
+            else if (cpu_s->cpu_type == CPU_CxGX1)
+                x86_setopcodes(ops_386, ops_gxm_0f);
             else if (cpu_s->cpu_type == CPU_Cx6x86L)
                 x86_setopcodes(ops_386, ops_c6x86l_0f);
             else
@@ -1591,12 +1703,20 @@ cpu_set(void)
             cpu_cyrix_alignment = 1;
 
             cpu_features = CPU_FEATURE_RDTSC;
-            if (cpu_s->cpu_type >= CPU_CxGX1)
-                cpu_features |= CPU_FEATURE_MSR | CPU_FEATURE_CR4;
             if (cpu_s->cpu_type == CPU_Cx6x86MX)
-                cpu_features |= CPU_FEATURE_MMX | CPU_FEATURE_CR4;
-            if ((cpu_s->cpu_type >= CPU_CxGX1) || (cpu_s->cpu_type == CPU_Cx6x86MX))
+                cpu_features |= CPU_FEATURE_MSR | CPU_FEATURE_MMX | CPU_FEATURE_CR4;
+            if (cpu_s->cpu_type == CPU_Cx6x86MX)
                 cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_PCE | CR4_PGE;
+            /* The MediaGX MMX's CR4 has TSC (bit 2) alone (Table 3-7). */
+            if (cpu_s->cpu_type == CPU_CxGX1) {
+                cpu_features |= CPU_FEATURE_MSR | CPU_FEATURE_MMX | CPU_FEATURE_CR4;
+                cpu_CR4_mask = CR4_TSD;
+            }
+            /* The 6x86L has MOV CR4, with DE its only bit (AN106) */
+            if (cpu_s->cpu_type == CPU_Cx6x86L) {
+                cpu_features |= CPU_FEATURE_CR4;
+                cpu_CR4_mask = CR4_DE;
+            }
 
 #    ifdef USE_DYNAREC
             codegen_timing_set(&codegen_timing_686);
@@ -1611,10 +1731,12 @@ cpu_set(void)
 #ifdef USE_AMD_K5
         case CPU_K5:
         case CPU_5K86:
+            /* No MMX on any K5 (AMD Processor Recognition, table 30): the
+               Pentium's table */
 #ifdef USE_DYNAREC
-            x86_setopcodes(ops_386, ops_pentiummmx_0f, dynarec_ops_386, dynarec_ops_pentiummmx_0f);
+            x86_setopcodes(ops_386, ops_pentium_0f, dynarec_ops_386, dynarec_ops_pentium_0f);
 #else
-            x86_setopcodes(ops_386, ops_pentiummmx_0f);
+            x86_setopcodes(ops_386, ops_pentium_0f);
 #endif /* USE_DYNAREC */
 
             timing_rr  = 1; /* register dest - register src */
@@ -1649,8 +1771,9 @@ cpu_set(void)
 
             timing_misaligned = 3;
 
-            cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME | CPU_FEATURE_MMX;
-            cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PGE;
+            cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_VME;
+            /* The K5 Technical Reference, table 3-1 */
+            cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_TSD | CR4_DE | CR4_PSE | CR4_MCE | CR4_PGE;
 
 #ifdef USE_DYNAREC
             codegen_timing_set(&codegen_timing_k5);
@@ -1866,6 +1989,8 @@ cpu_set(void)
             cpu_features = CPU_FEATURE_RDTSC | CPU_FEATURE_MMX | CPU_FEATURE_MSR | CPU_FEATURE_CR4 | CPU_FEATURE_3DNOW;
             msr.fcr      = (1 << 7) | (1 << 8) | (1 << 9) | (1 << 12) | (1 << 16) | (1 << 18) | (1 << 19) | (1 << 20) | (1 << 21);
             cpu_CR4_mask = CR4_TSD | CR4_DE | CR4_MCE | CR4_PCE | CR4_PGE;
+            /* VME, PVI and PSE are always 0, and setting them is no #GP */
+            cpu_CR4_ignore = CR4_VME | CR4_PVI | CR4_PSE;
 
             cpu_cyrix_alignment = 1;
 
@@ -1927,10 +2052,20 @@ cpu_set(void)
     gdbstub_cpu_init();
 }
 
+/* The P54C or P55C, the Pentiums with an INIT pin and an on-chip APIC. */
+int
+cpu_is_p5(void)
+{
+    return (cpu_s != NULL) && ((cpu_s->cpu_type == CPU_PENTIUM) || (cpu_s->cpu_type == CPU_PENTIUMMMX));
+}
+
 void
 cpu_close(void)
 {
     cpu_inited = 0;
+    cpu_lapic_reset_all();
+    /* Drop callbacks on teardown so LAPIC does not retain stale CPU hooks. */
+    lapic_set_index_source(NULL);
 }
 
 void
@@ -1942,6 +2077,13 @@ cpu_set_isa_speed(int speed)
         cpu_isa_speed = 8000000;
     else
         cpu_isa_speed = cpu_busspeed;
+
+    if (cpu_s->rspeed <= 8000000)
+        cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
+    else if (is486)
+        cpu_rom_prefetch_cycles =  (int) (6.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
+    else
+        cpu_rom_prefetch_cycles =  (int) (8.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
 
     pc_speed_changed();
 
@@ -2034,6 +2176,22 @@ cpu_current_pc(char *bufp)
     return bufp;
 }
 
+/* Part (0-2) of a 48-byte processor name string, NUL padded, as CPUID
+   8000_0002h-8000_0004h return it in EAX, EBX, ECX and EDX. */
+static void
+cpu_cpuid_name(const char *name, int part)
+{
+    char     str[48] = { 0 };
+    uint32_t regs[4];
+
+    strncpy(str, name, sizeof(str));
+    memcpy(regs, &str[part << 4], sizeof(regs));
+    EAX = regs[0];
+    EBX = regs[1];
+    ECX = regs[2];
+    EDX = regs[3];
+}
+
 void
 cpu_CPUID(void)
 {
@@ -2103,11 +2261,21 @@ cpu_CPUID(void)
                     EDX |= CPUID_CMPXCHG8B;
                 if (msr.fcr & (1 << 9))
                     EDX |= CPUID_MMX;
+                /* MCE reports the FCR enable: set unless DMCE (bit 4) */
+                if (!(msr.fcr & (1 << 4)))
+                    EDX |= CPUID_MCE;
+            } else if (EAX == 0xc0000000) {
+                /* EAX is left as C0000000h: the machine-specific features
+                   are there */
+                EBX = ECX = EDX = 0;
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
 
         case CPU_WINCHIP2:
+            /* C0000000h to C0000005h alias 80000000h to 80000005h */
+            if ((EAX >= 0xc0000000) && (EAX <= 0xc0000005))
+                EAX = (EAX & 0x0000000f) | 0x80000000;
             switch (EAX) {
                 case 0:
                     EAX = 0x00000001;
@@ -2129,6 +2297,8 @@ cpu_CPUID(void)
                         EDX |= CPUID_CMPXCHG8B;
                     if (msr.fcr & (1 << 9))
                         EDX |= CPUID_MMX;
+                    if (!(msr.fcr & (1 << 4)))
+                        EDX |= CPUID_MCE;
                     break;
                 case 0x80000000:
                     EAX = 0x80000005;
@@ -2142,13 +2312,16 @@ cpu_CPUID(void)
                         EDX |= CPUID_MMX;
                     if (cpu_has_feature(CPU_FEATURE_3DNOW))
                         EDX |= CPUID_3DNOW;
+                    if (!(msr.fcr & (1 << 4)))
+                        EDX |= CPUID_MCE;
                     break;
 
-                case 0x80000002:      /* Processor name string */
-                    EAX = 0x20544449; /* IDT WinChip 2-3D */
+                case 0x80000002: /* Processor name string */
+                    EAX = 0x20544449; /* IDT WinChip 2 */
                     EBX = 0x436e6957;
                     ECX = 0x20706968;
-                    EDX = 0x44332d32;
+                    /* "-3D" only while 3DNow! is enabled (FCR bit 20) */
+                    EDX = (msr.fcr & (1 << 20)) ? 0x44332d32 : 0x00000032;
                     break;
 
                 case 0x80000005:      /*Cache information*/
@@ -2176,6 +2349,8 @@ cpu_CPUID(void)
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B;
                 if (cpu_s->cpu_type != CPU_P24T)
                     EDX |= CPUID_MCE;
+                if (cpu_s->cpu_type == CPU_PENTIUM)
+                    EDX = cpu_cpuid_apic_probe_flags(EDX);
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
@@ -2190,7 +2365,7 @@ cpu_CPUID(void)
             } else if (EAX == 1) {
                 EAX = CPUID;
                 EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_DE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_AMDPGE;
+                EDX       = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_AMDPGE; /* 3BFh */
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
@@ -2206,7 +2381,7 @@ cpu_CPUID(void)
                 case 1:
                     EAX = CPUID;
                     EBX = ECX = 0;
-                    EDX       = CPUID_FPU | CPUID_DE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_PGE;
+                    EDX       = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_PGE; /* 21BFh */
                     break;
                 case 0x80000000:
                     EAX = 0x80000005;
@@ -2215,7 +2390,7 @@ cpu_CPUID(void)
                 case 0x80000001:
                     EAX = CPUID;
                     EBX = ECX = 0;
-                    EDX       = CPUID_FPU | CPUID_DE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_PGE;
+                    EDX       = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_PGE; /* 21BFh */
                     break;
                 case 0x80000002:      /* Processor name string */
                     EAX = 0x2D444D41; /* AMD-K5(tm) Proce */
@@ -2465,6 +2640,7 @@ cpu_CPUID(void)
                 EAX = CPUID;
                 EBX = ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX;
+                EDX       = cpu_cpuid_apic_probe_flags(EDX);
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
@@ -2492,23 +2668,56 @@ cpu_CPUID(void)
             } else if (EAX == 1) {
                 EAX = CPUID;
                 EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_CMPXCHG8B;
+                /* The 6x86L adds debug extensions and MOV CR4 (AN106) */
+                EDX       = CPUID_FPU | CPUID_DE | CPUID_CMPXCHG8B;
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
 
         case CPU_CxGX1:
-            if (!EAX) {
-                EAX = 0x00000001;
-                EBX = 0x69727943; /* CyrixInstead */
-                EDX = 0x736e4978;
-                ECX = 0x64616574;
-            } else if (EAX == 1) {
-                EAX = CPUID;
-                EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_DE | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_PGE;
-            } else
-                EAX = EBX = ECX = EDX = 0;
+            /* MediaGX MMX data book, 9.2: two standard levels and five
+               extended ones. */
+            switch (EAX) {
+                case 0x00000000:
+                    EAX = 0x00000002;
+                    EBX = 0x69727943; /* CyrixInstead */
+                    EDX = 0x736e4978;
+                    ECX = 0x64616574;
+                    break;
+                case 0x00000001:
+                    EAX = CPUID;
+                    EBX = ECX = 0;
+                    EDX       = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_CMOV | CPUID_MMX;
+                    break;
+                case 0x00000002:
+                    /* A 32-entry 4-way TLB of 4 KB pages, and a 16 KB 4-way
+                       L1 cache of 16-byte lines; one execution is enough. */
+                    EAX = 0x00007001;
+                    EBX = ECX = 0;
+                    EDX       = 0x00000080;
+                    break;
+                case 0x80000000:
+                    EAX = 0x80000005;
+                    EBX = ECX = EDX = 0;
+                    break;
+                case 0x80000001:
+                    EAX = CPUID;
+                    EBX = ECX = 0;
+                    /* Bit 24: the 6x86MX multimedia extensions. */
+                    EDX = CPUID_FPU | CPUID_TSC | CPUID_MSR | CPUID_CMPXCHG8B | CPUID_CMOV | CPUID_MMX | (1 << 24);
+                    break;
+                case 0x80000002 ... 0x80000004:
+                    cpu_cpuid_name("Cyrix MediaGXtm MMXtm Enhanced", EAX - 0x80000002);
+                    break;
+                case 0x80000005:
+                    EAX = EDX = 0;
+                    EBX       = 0x00007001;
+                    ECX       = 0x00000080;
+                    break;
+                default:
+                    EAX = EBX = ECX = EDX = 0;
+                    break;
+            }
             break;
 
         case CPU_Cx6x86MX:
@@ -2533,8 +2742,10 @@ cpu_CPUID(void)
                 ECX = 0x6c65746e;
             } else if (EAX == 1) {
                 EAX = CPUID;
-                EBX = ECX = 0;
+                EBX = cpu_cpuid_apic_id_ebx();
+                ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
+                EDX       = cpu_cpuid_apic_probe_flags(EDX);
                 /*
                    Return anything non-zero in bits 32-63 of the BIOS signature MSR
                    to indicate there has been an update.
@@ -2561,8 +2772,10 @@ cpu_CPUID(void)
                 ECX = 0x6c65746e;
             } else if (EAX == 1) {
                 EAX = CPUID;
-                EBX = ECX = 0;
+                EBX = cpu_cpuid_apic_id_ebx();
+                ECX = 0;
                 EDX       = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_CMOV;
+                EDX       = cpu_cpuid_apic_probe_flags(EDX);
                 /*
                    Return anything non-zero in bits 32-63 of the BIOS signature MSR
                    to indicate there has been an update.
@@ -2589,8 +2802,10 @@ cpu_CPUID(void)
                 ECX = 0x6c65746e;
             } else if (EAX == 1) {
                 EAX = CPUID;
-                EBX = ECX = 0;
-                EDX       = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_FXSR | CPUID_CMOV | CPUID_PSE36;
+                EBX = cpu_cpuid_apic_id_ebx();
+                ECX = 0;
+                EDX       = CPUID_FPU | CPUID_VME | CPUID_DE | CPUID_PSE | CPUID_TSC | CPUID_MSR | CPUID_PAE | CPUID_MCE | CPUID_CMPXCHG8B | CPUID_MMX | CPUID_MTRR | CPUID_PGE | CPUID_MCA | CPUID_SEP | CPUID_FXSR | CPUID_CMOV | CPUID_PAT | CPUID_PSE36;
+                EDX       = cpu_cpuid_apic_probe_flags(EDX);
                 /*
                    Return anything non-zero in bits 32-63 of the BIOS signature MSR
                    to indicate there has been an update.
@@ -2660,7 +2875,7 @@ cpu_CPUID(void)
                 case 0x80000005:      /* Cache information */
                     EBX = 0x08800880; /* TLBs */
                     ECX = 0x40040120; /* L1 data cache */
-                    EDX = 0x40020120; /* L1 instruction cache */
+                    EDX = 0x40040120; /* L1 instruction cache: 64 KB, 4-way (Table 3-5) */
                     break;
                 default:
                     EAX = EBX = ECX = EDX = 0;
@@ -2670,10 +2885,33 @@ cpu_CPUID(void)
     }
 }
 
+/* The BF[2:0] pins for the multiplier (21329, Table 13) */
+static uint64_t
+amd_k6_bf(void)
+{
+    if (cpu_dmulti == 3.0)
+        return 5;
+    if (cpu_dmulti == 6.0)
+        return 6;
+    if (cpu_dmulti == 3.5)
+        return 7;
+    if (cpu_dmulti == 4.5)
+        return 0;
+    if (cpu_dmulti == 5.0)
+        return 1;
+    if (cpu_dmulti == 4.0)
+        return 2;
+    if (cpu_dmulti == 5.5)
+        return 3;
+    return 4; /* 2.5x */
+}
+
 void
 cpu_ven_reset(void)
 {
     memset(&msr, 0, sizeof(msr));
+    /* Vendor reset resyncs CPU-owned LAPIC mirrors before model-specific MSRs. */
+    cpu_lapic_ven_reset();
 
     switch (cpu_s->cpu_type) {
         case CPU_WINCHIP:
@@ -2690,7 +2928,9 @@ cpu_ven_reset(void)
         case CPU_K6_3P:
         case CPU_K6_3:
         case CPU_K6_2C:
-            msr.amd_psor = (cpu_s->cpu_type >= CPU_K6_3) ? 0x008cULL : 0x018cULL;
+            /* PSOR: NOL2 (no L2 on the K6-2 CXT), the stepping in bits 7-4,
+               bit 3 clear and the BF pins in bits 2-0 (21329, Table 13) */
+            msr.amd_psor = ((cpu_s->cpu_type >= CPU_K6_3) ? 0x000ULL : 0x100ULL) | ((CPUID & 0xf) << 4) | amd_k6_bf();
             fallthrough;
         case CPU_K6_2:
 #ifdef USE_AMD_K5
@@ -2722,6 +2962,7 @@ cpu_ven_reset(void)
         case CPU_PENTIUM2:
         case CPU_PENTIUM2D:
             msr.mtrr_cap = 0x00000508ULL;
+            msr.ebl_cr_poweron = 0x04000000; /* Low Power Mode Enable */
 
             /* 4 GB cacheable space on Deschutes 651h and later (including the 1632h
                Overdrive) according to the Pentium II Processor Specification Update.
@@ -2740,6 +2981,12 @@ cpu_ven_reset(void)
 void
 cpu_RDMSR(void)
 {
+    const uint32_t old_eax = EAX;
+    const uint32_t old_edx = EDX;
+    /* P6: the top 18 bits of the number are ignored (see below); every
+       lookup on that path uses this, never the raw ECX */
+    uint32_t p6_msr = ECX & 0x00003fff;
+
     if ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1))
         x86gpf(NULL, 0);
     else  switch (cpu_s->cpu_type) {
@@ -2967,8 +3214,10 @@ cpu_RDMSR(void)
                     EAX = msr.mctr & 0xffffffff;
                     EDX = msr.mctr >> 32;
                     break;
-                /* Test Register 12 */
+                /* Test Register 12 (not on the K5) */
                 case 0x0000000e:
+                    if (cpu_s->cpu_type <= CPU_5K86)
+                        goto amd_k_invalid_rdmsr;
                     EAX = msr.tr12;
                     break;
                 /* Time Stamp Counter */
@@ -2983,27 +3232,33 @@ cpu_RDMSR(void)
                     EAX = msr.amd_aar & 0xffffffff;
                     /* EDX is left unchanged! */
                     break;
-                /* Hardware Configuration Register */
+                /* Hardware Configuration Register (the K5 only) */
                 case 0x00000083:
+                    if (cpu_s->cpu_type > CPU_5K86)
+                        goto amd_k_invalid_rdmsr;
                     EAX = msr.amd_hwcr & 0xffffffff;
                     EDX = msr.amd_hwcr >> 32;
                     break;
                 /* Write Allocate Top-of-Memory and Control Register */
                 case 0x00000085:
-                    if (cpu_s->cpu_type != CPU_5K86)
+                    /* Models 1 to 3 from stepping 4 */
+                    if ((cpu_s->cpu_type != CPU_5K86) || ((CPUID & 0xf) < 4))
                         goto amd_k_invalid_rdmsr;
                     EAX = msr.amd_watmcr & 0xffffffff;
                     EDX = msr.amd_watmcr >> 32;
                     break;
                 /* Write Allocate Programmable Memory Range Register */
                 case 0x00000086:
-                    if (cpu_s->cpu_type != CPU_5K86)
+                    /* Models 1 to 3 from stepping 4 */
+                    if ((cpu_s->cpu_type != CPU_5K86) || ((CPUID & 0xf) < 4))
                         goto amd_k_invalid_rdmsr;
                     EAX = msr.amd_wapmrr & 0xffffffff;
                     EDX = msr.amd_wapmrr >> 32;
                     break;
-                /* Extended Feature Enable Register */
+                /* Extended Feature Enable Register (not on the K5) */
                 case 0xc0000080:
+                    if (cpu_s->cpu_type <= CPU_5K86)
+                        goto amd_k_invalid_rdmsr;
                     EAX = msr.amd_efer & 0xffffffff;
                     EDX = msr.amd_efer >> 32;
                     break;
@@ -3015,8 +3270,10 @@ cpu_RDMSR(void)
                     EAX = msr.amd_star & 0xffffffff;
                     EDX = msr.amd_star >> 32;
                     break;
-                /* Write-Handling Control Register */
+                /* Write-Handling Control Register (not on the K5) */
                 case 0xc0000082:
+                    if (cpu_s->cpu_type <= CPU_5K86)
+                        goto amd_k_invalid_rdmsr;
                     EAX = msr.amd_whcr & 0xffffffff;
                     EDX = msr.amd_whcr >> 32;
                     break;
@@ -3228,9 +3485,24 @@ pentium_invalid_rdmsr:
             cpu_log("RDMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
             break;
 
+        case CPU_CxGX1:
+            /* The MediaGX MMX has the Time Stamp Counter (3.3.3). The AEWIN
+               AW-H602's Award BIOS reads 70000001h at POST with no #GP
+               handler, looking for "Geod": National's GX1 keeps its CPUID
+               vendor string in 70000001h-70000003h, and the BIOS then writes
+               "CyrixInstead" there. Other MSRs do not fault. */
+            if (ECX == 0x10) {
+                EAX = tsc & 0xffffffff;
+                EDX = tsc >> 32;
+            } else if ((ECX >= 0x70000001) && (ECX <= 0x70000003)) {
+                EAX = gxm.vendor_msr[ECX - 0x70000001];
+                EDX = 0x00000000;
+            } else
+                EAX = EDX = 0x00000000;
+            break;
+
         case CPU_Cx6x86:
         case CPU_Cx6x86L:
-        case CPU_CxGX1:
         case CPU_Cx6x86MX:
             switch (ECX) {
                 /* Test Data */
@@ -3274,7 +3546,7 @@ pentium_invalid_rdmsr:
             EAX = EDX = 0;
             /* Per RichardG's probing of a real Deschutes using my RDMSR tool,
                we have discovered that the top 18 bits are filtered out. */
-            switch (ECX & 0x00003fff) {
+            switch (p6_msr) {
                 /* Machine Check Exception Address */
                 case 0x00:
                 /* Machine Check Exception Type */
@@ -3300,8 +3572,16 @@ pentium_invalid_rdmsr:
                     break;
                 /* IA32_APIC_BASE - APIC Base Address */
                 case 0x1B:
-                    EAX = msr.apic_base & 0xffffffff;
-                    EDX = msr.apic_base >> 32;
+                    if (cpu_apic_feature_enabled()) {
+                        /* Active APIC model reads IA32_APIC_BASE from per-LAPIC CPU state. */
+                        uint64_t apic_base_msr = cpu_apic_base_msr_read_current();
+
+                        EAX = apic_base_msr & 0xffffffff;
+                        EDX = apic_base_msr >> 32;
+                    } else {
+                        EAX = msr.apic_base & 0xffffffff;
+                        EDX = msr.apic_base >> 32;
+                    }
                     cpu_log("APIC_BASE read : %08X%08X\n", EDX, EAX);
                     break;
                 /* Unknown (undocumented?) MSR used by the Hyper-V BIOS */
@@ -3316,7 +3596,8 @@ pentium_invalid_rdmsr:
                     break;
                 /* EBL_CR_POWERON - Processor Hard Power-On Configuration */
                 case 0x2a:
-                    EAX = 0xc4000000;
+                    /* Bits 1-4, 6, 7 and 26 read back what was written */
+                    EAX = (0xc4000000 & ~0x040000de) | msr.ebl_cr_poweron;
                     EDX = 0;
                     if (cpu_dmulti == 2.5)
                         EAX |= ((0 << 25) | (1 << 24) | (1 << 23) | (1 << 22));
@@ -3372,8 +3653,8 @@ pentium_invalid_rdmsr:
                 /* BBL_CR_D0 ... BBL_CR_D3 - Chunk 0..3 Data Register
                    8Bh: BIOS_SIGN - BIOS Update Signature */
                 case 0x88 ... 0x8b:
-                    EAX = msr.bbl_cr_dx[ECX - 0x88] & 0xffffffff;
-                    EDX = msr.bbl_cr_dx[ECX - 0x88] >> 32;
+                    EAX = msr.bbl_cr_dx[p6_msr - 0x88] & 0xffffffff;
+                    EDX = msr.bbl_cr_dx[p6_msr - 0x88] >> 32;
                     break;
                 /* Unknown */
                 case 0xae:
@@ -3382,8 +3663,8 @@ pentium_invalid_rdmsr:
                 case 0xc1:
                 /* PERFCTR1 - Performance Counter Register 1 */
                 case 0xc2:
-                    EAX = msr.perfctr[ECX - 0xC1] & 0xffffffff;
-                    EDX = msr.perfctr[ECX - 0xC1] >> 32;
+                    EAX = msr.perfctr[p6_msr - 0xC1] & 0xffffffff;
+                    EDX = msr.perfctr[p6_msr - 0xC1] >> 32;
                     break;
                 /* MTRRcap */
                 case 0xfe:
@@ -3450,6 +3731,7 @@ pentium_invalid_rdmsr:
                     break;
                 /* MCG_STATUS - Machine Check Global Status */
                 case 0x17a:
+                    EAX = msr.mcg_status;
                     break;
                 /* MCG_CTL - Machine Check Global Control */
                 case 0x17b:
@@ -3460,8 +3742,8 @@ pentium_invalid_rdmsr:
                 case 0x186:
                 /* EVNTSEL1 - Performance Counter Event Select 1 */
                 case 0x187:
-                    EAX = msr.evntsel[ECX - 0x186] & 0xffffffff;
-                    EDX = msr.evntsel[ECX - 0x186] >> 32;
+                    EAX = msr.evntsel[p6_msr - 0x186] & 0xffffffff;
+                    EDX = msr.evntsel[p6_msr - 0x186] >> 32;
                     break;
                 /* Unknown */
                 case 0x1d3:
@@ -3486,12 +3768,12 @@ pentium_invalid_rdmsr:
                 /* ECX & 0: MTRRphysBase0 ... MTRRphysBase7
                    ECX & 1: MTRRphysMask0 ... MTRRphysMask7 */
                 case 0x200 ... 0x20f:
-                    if (ECX & 1) {
-                        EAX = msr.mtrr_physmask[(ECX - 0x200) >> 1] & 0xffffffff;
-                        EDX = msr.mtrr_physmask[(ECX - 0x200) >> 1] >> 32;
+                    if (p6_msr & 1) {
+                        EAX = msr.mtrr_physmask[(p6_msr - 0x200) >> 1] & 0xffffffff;
+                        EDX = msr.mtrr_physmask[(p6_msr - 0x200) >> 1] >> 32;
                     } else {
-                        EAX = msr.mtrr_physbase[(ECX - 0x200) >> 1] & 0xffffffff;
-                        EDX = msr.mtrr_physbase[(ECX - 0x200) >> 1] >> 32;
+                        EAX = msr.mtrr_physbase[(p6_msr - 0x200) >> 1] & 0xffffffff;
+                        EDX = msr.mtrr_physbase[(p6_msr - 0x200) >> 1] >> 32;
                     }
                     break;
                 /* MTRRfix64K_00000 */
@@ -3511,8 +3793,8 @@ pentium_invalid_rdmsr:
                     break;
                 /* MTRRfix4K_C0000 ... MTRRfix4K_F8000 */
                 case 0x268 ... 0x26f:
-                    EAX = msr.mtrr_fix4k[ECX - 0x268] & 0xffffffff;
-                    EDX = msr.mtrr_fix4k[ECX - 0x268] >> 32;
+                    EAX = msr.mtrr_fix4k[p6_msr - 0x268] & 0xffffffff;
+                    EDX = msr.mtrr_fix4k[p6_msr - 0x268] >> 32;
                     break;
                 /* Page Attribute Table */
                 case 0x277:
@@ -3541,8 +3823,8 @@ pentium_invalid_rdmsr:
                 case 0x40c:
                 /* MC3_CTL - Machine Check 3 Control */
                 case 0x410:
-                    EAX = msr.mca_ctl[(ECX - 0x400) >> 2] & 0xffffffff;
-                    EDX = msr.mca_ctl[(ECX - 0x400) >> 2] >> 32;
+                    EAX = msr.mca_ctl[(p6_msr - 0x400) >> 2] & 0xffffffff;
+                    EDX = msr.mca_ctl[(p6_msr - 0x400) >> 2] >> 32;
                     break;
                 /* MC0_STATUS - Machine Check 0 Status */
                 case 0x401:
@@ -3558,8 +3840,6 @@ pentium_invalid_rdmsr:
                 case 0x40a:
                 /* MC4_STATUS - Machine Check 4 Status */
                 case 0x40d:
-                /* MC4_ADDR - Machine Check 4 Address */
-                case 0x40e:
                 /* MC3_STATUS - Machine Check 3 Status */
                 case 0x411:
                 /* MC3_ADDR - Machine Check 3 Address */
@@ -3585,13 +3865,40 @@ i686_invalid_rdmsr:
             break;
     }
 
+    /* A rejected MSR is a fault: its destination registers have not been
+       written, including on model paths that initialize them to zero. */
+    if (cpu_state.abrt) {
+        EAX = old_eax;
+        EDX = old_edx;
+    }
     cpu_log("RDMSR %08X %08X%08X\n", ECX, EDX, EAX);
+}
+
+/* P6 MTRR memory types: UC, WC, WT, WP and WB; the rest are #GP */
+static int
+mtrr_type_valid(uint8_t type)
+{
+    return (type <= 1) || ((type >= 4) && (type <= 6));
+}
+
+/* A fixed-range MTRR holds eight type bytes */
+static int
+mtrr_fixed_valid(uint32_t lo, uint32_t hi)
+{
+    for (int i = 0; i < 4; i++) {
+        if (!mtrr_type_valid((lo >> (i << 3)) & 0xff) || !mtrr_type_valid((hi >> (i << 3)) & 0xff))
+            return 0;
+    }
+    return 1;
 }
 
 void
 cpu_WRMSR(void)
 {
     uint64_t temp;
+    /* P6: the top 18 bits of the number are ignored (see below); every
+       lookup on that path uses this, never the raw ECX */
+    uint32_t p6_msr = ECX & 0x00003fff;
 
     cpu_log("WRMSR %08X %08X%08X\n", ECX, EDX, EAX);
 
@@ -3713,14 +4020,15 @@ cpu_WRMSR(void)
                     break;
                 /* Time Stamp Counter */
                 case 0x10:
-                    timer_set_new_tsc(EAX | ((uint64_t) EDX << 32));
+                    /* A write clears the upper 32 bits (datasheet 5.9) */
+                    timer_set_new_tsc(EAX);
                     break;
                 /* PERFCTR0 - Performance Counter Register 0 - aliased to TSC */
                 case 0xc1:
                     break;
-                /* PERFCTR0 - Performance Counter Register 1 */
+                /* PERFCTR1 - Performance Counter Register 1: 32 bits, EDX is 0 */
                 case 0xc2:
-                    msr.perfctr[1] = EAX | ((uint64_t) EDX << 32);
+                    msr.perfctr[1] = EAX;
                     break;
                 /* BBL_CR_CTL3 - L2 Cache Control Register 3 */
                 case 0x11e:
@@ -3738,10 +4046,18 @@ cpu_WRMSR(void)
                         cpu_features |= CPU_FEATURE_CX8;
                     else
                         cpu_features &= ~CPU_FEATURE_CX8;
-                    if (EAX & (1 << 7))
+                    /* EPGE: with it clear, setting CR4.PGE is ignored */
+                    if (EAX & (1 << 7)) {
                         cpu_CR4_mask |= CR4_PGE;
-                    else
+                        cpu_CR4_ignore &= ~CR4_PGE;
+                    } else {
                         cpu_CR4_mask &= ~CR4_PGE;
+                        cpu_CR4_ignore |= CR4_PGE;
+                        if (cr4 & CR4_PGE) {
+                            cr4 &= ~CR4_PGE;
+                            flushmmucache();
+                        }
+                    }
                     break;
                 /* Feature Control Register 2 */
                 case 0x1108:
@@ -3758,6 +4074,7 @@ cpu_WRMSR(void)
                         msr.mtrr_physmask[(ECX - 0x200) >> 1] = EAX | ((uint64_t) EDX << 32);
                     else
                         msr.mtrr_physbase[(ECX - 0x200) >> 1] = EAX | ((uint64_t) EDX << 32);
+                    cpu_car_update();
                     break;
                 /* MTRRfix64K_00000 */
                 case 0x250:
@@ -3778,6 +4095,7 @@ cpu_WRMSR(void)
                 /* MTRRdefType */
                 case 0x2ff:
                     msr.mtrr_deftype = EAX | ((uint64_t) EDX << 32);
+                    cpu_car_update();
                     break;
             }
             break;
@@ -3803,8 +4121,10 @@ cpu_WRMSR(void)
                     if (cpu_s->cpu_type > CPU_5K86)
                         msr.mctr = EAX | ((uint64_t) EDX << 32);
                     break;
-                /* Test Register 12 */
+                /* Test Register 12 (not on the K5) */
                 case 0x0000000e:
+                    if (cpu_s->cpu_type <= CPU_5K86)
+                        goto amd_k_invalid_wrmsr;
                     msr.tr12 = EAX & 0x8;
                     break;
                 /* Time Stamp Counter */
@@ -3817,26 +4137,35 @@ cpu_WRMSR(void)
                         goto amd_k_invalid_wrmsr;
                     msr.amd_aar = EAX | ((uint64_t) EDX << 32);
                     break;
-                /* Hardware Configuration Register */
+                /* Hardware Configuration Register (the K5 only) */
                 case 0x00000083:
+                    if (cpu_s->cpu_type > CPU_5K86)
+                        goto amd_k_invalid_wrmsr;
                     msr.amd_hwcr = EAX | ((uint64_t) EDX << 32);
                     break;
                 /* Write Allocate Top-of-Memory and Control Register */
                 case 0x00000085:
-                    if (cpu_s->cpu_type != CPU_5K86)
+                    /* Models 1 to 3 from stepping 4 */
+                    if ((cpu_s->cpu_type != CPU_5K86) || ((CPUID & 0xf) < 4))
                         goto amd_k_invalid_wrmsr;
                     msr.amd_watmcr = EAX | ((uint64_t) EDX << 32);
                     break;
                 /* Write Allocate Programmable Memory Range Register */
                 case 0x00000086:
-                    if (cpu_s->cpu_type != CPU_5K86)
+                    /* Models 1 to 3 from stepping 4 */
+                    if ((cpu_s->cpu_type != CPU_5K86) || ((CPUID & 0xf) < 4))
                         goto amd_k_invalid_wrmsr;
                     msr.amd_wapmrr = EAX | ((uint64_t) EDX << 32);
                     break;
                 /* Extended Feature Enable Register */
                 case 0xc0000080:
+                    if (cpu_s->cpu_type <= CPU_5K86)
+                        goto amd_k_invalid_wrmsr;
                     temp = EAX | ((uint64_t) EDX << 32);
-                    if (temp & ~0x1fULL)
+                    if (cpu_s->cpu_type <= CPU_K6_2) {
+                        /* K6 and K6-2 8/[7:0]: only SCE, the rest read-only 0 */
+                        msr.amd_efer = temp & 0x1ULL;
+                    } else if (temp & ~((cpu_s->cpu_type == CPU_K6_2C) ? 0xfULL : 0x1fULL))
                         x86gpf(NULL, 0);
                     else
                         msr.amd_efer = temp;
@@ -3848,8 +4177,10 @@ cpu_WRMSR(void)
 
                     msr.amd_star = EAX | ((uint64_t) EDX << 32);
                     break;
-                /* Write-Handling Control Register */
+                /* Write-Handling Control Register (not on the K5) */
                 case 0xc0000082:
+                    if (cpu_s->cpu_type <= CPU_5K86)
+                        goto amd_k_invalid_wrmsr;
                     msr.amd_whcr = EAX | ((uint64_t) EDX << 32);
                     break;
                 /* UC/WC Cacheability Control Register */
@@ -3870,8 +4201,7 @@ cpu_WRMSR(void)
                 case 0xc0000087:
                     if (cpu_s->cpu_type < CPU_K6_2C)
                         goto amd_k_invalid_wrmsr;
-
-                    msr.amd_psor = EAX | ((uint64_t) EDX << 32);
+                    /* NOL2, STEP and BF are read-only; bit 3 is 0 */
                     break;
                 /* Page Flush/Invalidate Register */
                 case 0xc0000088:
@@ -4046,9 +4376,16 @@ pentium_invalid_wrmsr:
             }
             break;
 
+        case CPU_CxGX1:
+            cpu_log("WRMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
+            if (ECX == 0x10)
+                timer_set_new_tsc(EAX | ((uint64_t) EDX << 32));
+            else if ((ECX >= 0x70000001) && (ECX <= 0x70000003))
+                gxm.vendor_msr[ECX - 0x70000001] = EAX;
+            break;
+
         case CPU_Cx6x86:
         case CPU_Cx6x86L:
-        case CPU_CxGX1:
         case CPU_Cx6x86MX:
             cpu_log("WRMSR: ECX = %08X, val = %08X%08X\n", ECX, EDX, EAX);
             switch (ECX) {
@@ -4088,7 +4425,7 @@ pentium_invalid_wrmsr:
         case CPU_PENTIUM2D:
             /* Per RichardG's probing of a real Deschutes using my RDMSR tool,
                we have discovered that the top 18 bits are filtered out. */
-            switch (ECX & 0x00003fff) {
+            switch (p6_msr) {
                 /* Machine Check Exception Address */
                 case 0x00:
                 /* Machine Check Exception Type */
@@ -4097,8 +4434,8 @@ pentium_invalid_wrmsr:
                         x86gpf(NULL, 0);
                     break;
                 /* Time Stamp Counter */
-                case 0x10:
-                    timer_set_new_tsc(EAX | ((uint64_t) EDX << 32));
+                case 0x10: /* Only the low 32 bits are written; the high 32 clear (Pentium Pro vol. 3) */
+                    timer_set_new_tsc(EAX);
                     break;
                 /* Unknown */
                 case 0x18:
@@ -4106,8 +4443,12 @@ pentium_invalid_wrmsr:
                 /* IA32_APIC_BASE - APIC Base Address */
                 case 0x1b:
                     cpu_log("APIC_BASE write: %08X%08X\n", EDX, EAX);
+                    /* Active APIC model writes IA32_APIC_BASE through the CPU mirror. */
+                    if (cpu_apic_feature_enabled())
+                        cpu_apic_base_msr_write_current(EAX | ((uint64_t) EDX << 32));
 #if 0
-                    msr.apic_base = EAX | ((uint64_t) EDX << 32);
+                    else
+                        msr.apic_base = EAX | ((uint64_t) EDX << 32);
 #endif
                     break;
                 /* Unknown (undocumented?) MSR used by the Hyper-V BIOS */
@@ -4121,6 +4462,7 @@ pentium_invalid_wrmsr:
                     break;
                 /* EBL_CR_POWERON - Processor Hard Power-On Configuration */
                 case 0x2a:
+                    msr.ebl_cr_poweron = EAX & 0x040000de;
                     break;
                 /* Unknown */
                 case 0x32:
@@ -4144,7 +4486,7 @@ pentium_invalid_wrmsr:
                 /* BBL_CR_D0 ... BBL_CR_D3 - Chunk 0..3 Data Register
                    8Bh: BIOS_SIGN - BIOS Update Signature */
                 case 0x88 ... 0x8b:
-                    msr.bbl_cr_dx[ECX - 0x88] = EAX | ((uint64_t) EDX << 32);
+                    msr.bbl_cr_dx[p6_msr - 0x88] = EAX | ((uint64_t) EDX << 32);
                     break;
                 /* Unknown */
                 case 0xae:
@@ -4153,12 +4495,12 @@ pentium_invalid_wrmsr:
                 case 0xc1:
                 /* PERFCTR1 - Performance Counter Register 1 */
                 case 0xc2:
-                    msr.perfctr[ECX - 0xC1] = EAX | ((uint64_t) EDX << 32);
+                    /* The low 32 bits are written; bits 39:32 copy bit 31 */
+                    msr.perfctr[p6_msr - 0xC1] = EAX | ((EAX & 0x80000000) ? 0xff00000000ULL : 0ULL);
                     break;
-                /* MTRRcap */
+                /* MTRRcap: read-only, a write is #GP */
                 case 0xfe:
-                    msr.mtrr_cap = EAX | ((uint64_t) EDX << 32);
-                    break;
+                    goto i686_invalid_wrmsr;
                 /* BBL_CR_ADDR - L2 Cache Address Register */
                 case 0x116:
                     msr.bbl_cr_addr = EAX | ((uint64_t) EDX << 32);
@@ -4207,8 +4549,11 @@ pentium_invalid_wrmsr:
                     break;
                 /* MCG_STATUS - Machine Check Global Status */
                 case 0x17a:
-                    if (EAX || EDX)
+                    /* Software may set or clear MCIP (bit 2) */
+                    if ((EAX & ~4) || EDX)
                         x86gpf(NULL, 0);
+                    else
+                        msr.mcg_status = EAX;
                     break;
                 /* MCG_CTL - Machine Check Global Control */
                 case 0x17b:
@@ -4218,7 +4563,7 @@ pentium_invalid_wrmsr:
                 case 0x186:
                 /* EVNTSEL1 - Performance Counter Event Select 1 */
                 case 0x187:
-                    msr.evntsel[ECX - 0x186] = EAX | ((uint64_t) EDX << 32);
+                    msr.evntsel[p6_msr - 0x186] = EAX | ((uint64_t) EDX << 32);
                     break;
                 case 0x1d3:
                     break;
@@ -4233,26 +4578,42 @@ pentium_invalid_wrmsr:
                 /* ECX & 0: MTRRphysBase0 ... MTRRphysBase7
                    ECX & 1: MTRRphysMask0 ... MTRRphysMask7 */
                 case 0x200 ... 0x20f:
-                    if (ECX & 1)
-                        msr.mtrr_physmask[(ECX - 0x200) >> 1] = EAX | ((uint64_t) EDX << 32);
-                    else
-                        msr.mtrr_physbase[(ECX - 0x200) >> 1] = EAX | ((uint64_t) EDX << 32);
+                    /* Reserved bits and memory types are #GP: base bits
+                       8-11 and 36-63, mask bits 0-10 and 36-63 */
+                    if (p6_msr & 1) {
+                        if ((EAX & 0x000007ff) || (EDX & ~0x0000000f))
+                            goto i686_invalid_wrmsr;
+                        msr.mtrr_physmask[(p6_msr - 0x200) >> 1] = EAX | ((uint64_t) EDX << 32);
+                    } else {
+                        if ((EAX & 0x00000f00) || (EDX & ~0x0000000f) || !mtrr_type_valid(EAX & 0xff))
+                            goto i686_invalid_wrmsr;
+                        msr.mtrr_physbase[(p6_msr - 0x200) >> 1] = EAX | ((uint64_t) EDX << 32);
+                    }
+                    cpu_car_update();
                     break;
                 /* MTRRfix64K_00000 */
                 case 0x250:
+                    if (!mtrr_fixed_valid(EAX, EDX))
+                        goto i686_invalid_wrmsr;
                     msr.mtrr_fix64k_8000 = EAX | ((uint64_t) EDX << 32);
                     break;
                 /* MTRRfix16K_80000 */
                 case 0x258:
+                    if (!mtrr_fixed_valid(EAX, EDX))
+                        goto i686_invalid_wrmsr;
                     msr.mtrr_fix16k_8000 = EAX | ((uint64_t) EDX << 32);
                     break;
                 /* MTRRfix16K_A0000 */
                 case 0x259:
+                    if (!mtrr_fixed_valid(EAX, EDX))
+                        goto i686_invalid_wrmsr;
                     msr.mtrr_fix16k_a000 = EAX | ((uint64_t) EDX << 32);
                     break;
                 /* MTRRfix4K_C0000 ... MTRRfix4K_F8000 */
                 case 0x268 ... 0x26f:
-                    msr.mtrr_fix4k[ECX - 0x268] = EAX | ((uint64_t) EDX << 32);
+                    if (!mtrr_fixed_valid(EAX, EDX))
+                        goto i686_invalid_wrmsr;
+                    msr.mtrr_fix4k[p6_msr - 0x268] = EAX | ((uint64_t) EDX << 32);
                     break;
                 /* Page Attribute Table */
                 case 0x277:
@@ -4265,9 +4626,12 @@ pentium_invalid_wrmsr:
                     if (cpu_s->cpu_type == CPU_PENTIUMPRO)
                         goto i686_invalid_wrmsr;
                     break;
-                /* MTRRdefType */
+                /* MTRRdefType: bits 8, 9 and 12-63 reserved */
                 case 0x2ff:
+                    if ((EAX & ~0x00000cff) || EDX || !mtrr_type_valid(EAX & 0xff))
+                        goto i686_invalid_wrmsr;
                     msr.mtrr_deftype = EAX | ((uint64_t) EDX << 32);
+                    cpu_car_update();
                     break;
                 /* MC0_CTL - Machine Check 0 Control */
                 case 0x400:
@@ -4279,7 +4643,7 @@ pentium_invalid_wrmsr:
                 case 0x40c:
                 /* MC3_CTL - Machine Check 3 Control */
                 case 0x410:
-                    msr.mca_ctl[(ECX - 0x400) >> 2] = EAX | ((uint64_t) EDX << 32);
+                    msr.mca_ctl[(p6_msr - 0x400) >> 2] = EAX | ((uint64_t) EDX << 32);
                     break;
                 /* MC0_STATUS - Machine Check 0 Status */
                 case 0x401:
@@ -4295,8 +4659,6 @@ pentium_invalid_wrmsr:
                 case 0x40a:
                 /* MC4_STATUS - Machine Check 4 Status */
                 case 0x40d:
-                /* MC4_ADDR - Machine Check 4 Address */
-                case 0x40e:
                 /* MC3_STATUS - Machine Check 3 Status */
                 case 0x411:
                 /* MC3_ADDR - Machine Check 3 Address */
@@ -4324,21 +4686,236 @@ i686_invalid_wrmsr:
     }
 }
 
+/* The MediaGX's configuration registers (MediaGX MMX data book, Table 3-9,
+   with the corrections of its addendum). With MAPEN clear only C1h-CFh, FEh
+   and FFh can be reached; the other indexes go off-chip and read as the bus
+   floats. */
+static void
+gxm_smar_update(void)
+{
+    uint8_t code = arr[0xcf - 0xc4] & 0x0f;
+
+    cyrix.arr[3].base = (arr[0xcd - 0xc4] << 24) | (arr[0xce - 0xc4] << 16) | ((arr[0xcf - 0xc4] & 0xf0) << 8);
+    /* 1111b is 4 KB, as 0001b is. */
+    if (code == 0x0f)
+        code = 0x01;
+    cyrix.arr[3].size = code ? (2048 << code) : 0;
+
+    /* A write to SMAR also sets the header address, at the top of the region
+       (3.11.4). */
+    cyrix.smhr = (uint32_t) (cyrix.arr[3].base + cyrix.arr[3].size) | SMHR_VALID;
+}
+
+/* SMAR, GCR and VGACTL are 00h out of RESET (Table 3-9): no SMM region, and
+   the integrated functions unmapped. The scratchpad and the BLT buffer
+   registers have no defined value. */
+void
+cpu_gxm_reset(void)
+{
+    arr[0xcd - 0xc4] = arr[0xce - 0xc4] = arr[0xcf - 0xc4] = 0x00;
+    cyrix.arr[3].base = 0x00000000;
+    cyrix.arr[3].size = 0;
+    cyrix.smhr        = 0x00000000;
+    gxm.gcr           = 0x00;
+    gxm.vgactl        = 0x00;
+    gxm.pcr           = 0x07;
+    gxm.nested        = 0;
+    gxm.smi_int       = GXM_SMI_NONE;
+    gxm.smi_ext       = 0;
+    gxm.vendor_msr[0] = 0x69727943; /* "Cyri" */
+    gxm.vendor_msr[1] = 0x736e4978; /* "xIns" */
+    gxm.vendor_msr[2] = 0x64616574; /* "tead" */
+    if (gxm.reset)
+        gxm.reset(gxm.priv);
+    if (gxm.gcr_write)
+        gxm.gcr_write(gxm.priv);
+}
+
+static void
+gxm_cfg_write(uint8_t index, uint8_t val)
+{
+    const int mapen   = !!(ccr3 & CCR3_MAPEN);
+    const int smi_ok  = !(ccr3 & CCR3_SMI_LOCK) || in_smm;
+    const int smi_was = cyrix_smi_enabled();
+    uint8_t   old;
+
+
+    switch (index) {
+        case 0x20: /* PCR */
+            if (mapen)
+                gxm.pcr = val & 0x80;
+            break;
+
+        case 0xb0 ... 0xb3: /* SMHR */
+            if (mapen) {
+                const int shift = (index - 0xb0) << 3;
+
+                cyrix.smhr = (cyrix.smhr & ~(0xff << shift)) | (val << shift);
+                cyrix.smhr |= SMHR_VALID;
+            }
+            break;
+
+        case 0xb8: /* GCR */
+            if (mapen) {
+                gxm.gcr = val & 0x0f;
+                if (gxm.gcr_write)
+                    gxm.gcr_write(gxm.priv);
+            }
+            break;
+        case 0xb9: /* VGACTL */
+            if (mapen)
+                gxm.vgactl = val & 0x07;
+            break;
+        case 0xba ... 0xbd: /* VGAM */
+            if (mapen) {
+                const int shift = (index - 0xba) << 3;
+
+                gxm.vgam = (gxm.vgam & ~(0xff << shift)) | (val << shift);
+            }
+            break;
+
+        case 0xc1: /* CCR1 */
+            old = ccr1;
+            if (!smi_ok)
+                val = (val & ~(CCR1_USE_SMI | CCR1_SMAC)) | (ccr1 & (CCR1_USE_SMI | CCR1_SMAC));
+            ccr1 = val & (CCR1_USE_SMI | CCR1_SMAC);
+            if ((old ^ ccr1) & CCR1_SMAC) {
+                if (ccr1 & CCR1_SMAC)
+                    smram_backup_all();
+                smram_recalc_all(!(ccr1 & CCR1_SMAC));
+            }
+            break;
+        case 0xc2: /* CCR2 */
+            ccr2 = val & 0xdc;
+            break;
+        case 0xc3: /* CCR3 */
+            /* SMI_LOCK, once set, is cleared by RESET alone. */
+            if (!smi_ok)
+                val = (val & ~CCR3_NMI_EN) | (ccr3 & CCR3_NMI_EN);
+            ccr3 = (val & 0xfb) | (ccr3 & CCR3_SMI_LOCK);
+            break;
+
+        case 0xcd ... 0xcf: /* SMAR */
+            if (smi_ok) {
+                arr[index - 0xc4] = val;
+                gxm_smar_update();
+            }
+            break;
+
+        case 0xe8: /* CCR4 */
+            if (mapen) {
+                ccr4 = val;
+                CPUID = (val & 0x80) ? cpu_s->cpuid_model : 0;
+                /* An SMI# held off in SMM is taken, nested, once the
+                   handler sets SMI_NEST. */
+                if (in_smm && (ccr4 & CCR4_SMI_NEST) && smi_latched)
+                    smi_line = 1;
+            }
+            break;
+        case 0xeb: /* CCR7 */
+            old  = ccr7;
+            ccr7 = val & 0x05;
+            /* NMI: an NMI on each 0 to 1 (addendum, item 11). */
+            if ((ccr7 & ~old) & 0x04)
+                nmi_raise();
+            break;
+
+        default:
+            break;
+    }
+
+    cpu_gxm_smi_pin_check(smi_was);
+}
+
+static uint8_t
+gxm_cfg_read(uint8_t index)
+{
+    const int mapen = !!(ccr3 & CCR3_MAPEN);
+    uint8_t   ret   = 0xff;
+
+    switch (index) {
+        case 0x20:
+            if (mapen)
+                ret = gxm.pcr;
+            break;
+
+        case 0xb0 ... 0xb3:
+            if (mapen)
+                ret = (cyrix.smhr & SMHR_ADDR_MASK) >> ((index - 0xb0) << 3);
+            break;
+
+        case 0xb8:
+            if (mapen)
+                ret = gxm.gcr;
+            break;
+        case 0xb9:
+            if (mapen)
+                ret = gxm.vgactl;
+            break;
+        case 0xba ... 0xbd:
+            if (mapen)
+                ret = gxm.vgam >> ((index - 0xba) << 3);
+            break;
+
+        case 0xc1:
+            ret = ccr1;
+            break;
+        case 0xc2:
+            ret = ccr2;
+            break;
+        case 0xc3:
+            ret = ccr3;
+            break;
+
+        case 0xcd ... 0xcf:
+            ret = arr[index - 0xc4];
+            break;
+
+        case 0xe8:
+            if (mapen)
+                ret = ccr4;
+            break;
+        case 0xeb:
+            ret = ccr7;
+            break;
+
+        case 0xfe:
+            ret = cpu_s->cyrix_id & 0xff;
+            break;
+        case 0xff:
+            ret = cpu_s->cyrix_id >> 8;
+            break;
+
+        default:
+            break;
+    }
+
+    return ret;
+}
+
 static void
 cpu_write(uint16_t addr, uint8_t val, UNUSED(void *priv))
 {
     if (addr == 0xf0) {
         /* Writes to F0 clear FPU error and deassert the interrupt. */
-        if (is286)
+        if (is286) {
             picintc(1 << 13);
-        else
+            /* The board's IGNNE# latch: set only while FERR# is up, which
+               clears it as it goes down (x87_ferr_clear) */
+            if (fpu_ferr)
+                fpu_ignne = 1;
+        } else
             nmi = 0;
     } else if ((addr < 0xf1) && !(addr & 1))
         cyrix_addr = val;
+    else if ((addr < 0xf1) && is_gxm)
+        gxm_cfg_write(cyrix_addr, val);
     else if (addr < 0xf1)  switch (cyrix_addr) {
         default:
+            /* An index this model doesn't have: ignored, as below C0h (a guest
+               can reach this, so no fatal()) */
             if ((cyrix_addr >= 0xc0) && (cyrix_addr != 0xff) && (cyrix_addr != 0xf2))
-                fatal("Writing unimplemented Cyrix register %02X\n", cyrix_addr);
+                cpu_log("Writing unimplemented Cyrix register %02X\n", cyrix_addr);
             break;
 
         case 0x30: /* ???? */
@@ -4445,10 +5022,14 @@ cpu_read(uint16_t addr, UNUSED(void *priv))
 
     if (addr == 0xf007)
         ret = 0x7f;
+    else if ((addr < 0xf0) && (addr & 1) && is_gxm)
+        ret = gxm_cfg_read(cyrix_addr);
     else if ((addr < 0xf0) && (addr & 1))  switch (cyrix_addr) {
         default:
+            /* An index this model doesn't have: FFh, as below C0h (a guest can
+               reach this, so no fatal()) */
             if (cyrix_addr >= 0xc0)
-                fatal("Reading unimplemented Cyrix register %02X\n", cyrix_addr);
+                cpu_log("Reading unimplemented Cyrix register %02X\n", cyrix_addr);
             break;
 
         case 0x30: /* ???? */
@@ -4584,5 +5165,113 @@ cpu_update_waitstates(void)
 
         if (cpu_s->rspeed <= 8000000)
             cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
+    }
+}
+
+void
+cpu_tr_reset(void)
+{
+    memset(_tr, 0x00, sizeof(_tr));
+    memset(tr_cache_tag, 0x00, sizeof(tr_cache_tag));
+    memset(tr_cache_data, 0x00, sizeof(tr_cache_data));
+    memset(tr_cache_fill_buf, 0x00, sizeof(tr_cache_fill_buf));
+    memset(tr_cache_read_buf, 0x00, sizeof(tr_cache_read_buf));
+}
+
+/* TR5 bits 1-0 = CTL, bits 3-2 = ENT, bits 10-4 = SET (bits 11-4 on the
+   16 kB cache of the IntelDX4). */
+static uint32_t
+cpu_tr_cache_set_mask(void)
+{
+    /* 256 lines on the MediaGX (TR5[11:4], Table 3-16), as on the IDT's. */
+    return (is_gxm || !strcmp(cpu_f->internal_name, "idx4")) ? 0xff0 : 0x7f0;
+}
+
+uint32_t
+cpu_tr_read(int reg)
+{
+    if (reg == 3)
+        _tr[3] = tr_cache_read_buf[(_tr[5] >> 2) & 3];
+
+    return _tr[reg];
+}
+
+void
+cpu_tr_write(int reg, uint32_t val)
+{
+    uint32_t set_mask;
+    uint32_t addr;
+    int      set;
+    int      ent;
+    uint8_t  valid = 0x00;
+
+    _tr[reg] = val;
+
+    switch (reg) {
+        default:
+            break;
+
+
+        case 3:
+            /* Writes go to the cache fill buffer, ENT selects the doubleword. */
+            tr_cache_fill_buf[(_tr[5] >> 2) & 3] = val;
+            break;
+
+        case 5:
+            if (_tr[5] & (1 << 19))
+                break;
+
+            set_mask = cpu_tr_cache_set_mask();
+            set      = (_tr[5] & set_mask) >> 4;
+            ent      = (_tr[5] >> 2) & 3;
+
+            switch (_tr[5] & 3) {
+                default:
+                    /* 00 = TR3 data access, ENT selects the doubleword. */
+                    break;
+
+                case 1:
+                    /* Cache write: fill buffer and TR4 tag/valid into the entry. */
+                    /* The MediaGX keeps the four dirty bits too (TR4[6:3]),
+                       written as they are given. */
+                    tr_cache_tag[set][ent] = _tr[4] & (is_gxm ? 0xfffff478 : 0xfffffc00);
+                    memcpy(tr_cache_data[set][ent], tr_cache_fill_buf, sizeof(tr_cache_fill_buf));
+
+                    /* A valid line is returned on reads of its address, which
+                       BIOSes use as cache-as-RAM (the J-Bond PCI400C-A Phoenix
+                       BIOS runs its CPU clock measurement that way). The on-chip
+                       cache is not otherwise emulated, so put the line in memory.
+                       Invalid lines (as written by cache tests) are never seen. */
+                    if (_tr[4] & (1 << 10)) {
+                        addr = (_tr[4] & ~(set_mask | 0x7ff)) | (set << 4);
+                        for (int i = 0; i < 4; i++)
+                            mem_writel_phys(addr + (i << 2), tr_cache_fill_buf[i]);
+                    }
+                    break;
+
+                case 2:
+                     /* Cache read: the entry into the read buffer, and its tag, its0
+                       valid bit, and the valid bits of the whole set into TR4.
+                       The LRU bits (9-7) are not modelled and read as 0. */
+                    if (is_gxm)
+                        /* Tag, valid and dirty bits of the entry; the LRU
+                           bits (9-7) read as 0, as above. */
+                        _tr[4] = tr_cache_tag[set][ent];
+                    else {
+                        for (int i = 0; i < 4; i++)
+                            valid |= ((tr_cache_tag[set][i] >> 10) & 1) << i;
+                        _tr[4] = tr_cache_tag[set][ent] | (valid << 3);
+                    }
+                    memcpy(tr_cache_read_buf, tr_cache_data[set][ent], sizeof(tr_cache_read_buf));
+                    break;
+
+                case 3:
+                    /* Cache flush: invalidate every entry. */
+                    for (int i = 0; i < 256; i++)
+                        for (int j = 0; j < 4; j++)
+                            tr_cache_tag[i][j] &= ~(1 << 10);
+                    break;
+            }
+            break;
     }
 }

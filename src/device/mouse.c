@@ -48,6 +48,9 @@ int mouse_type = 0;
 int tablet_type = 0;
 int mouse_input_mode;
 int mouse_timed = 1;
+/* Set by the automation socket: let injected input reach the emulated mouse
+   without the host UI capturing the pointer. */
+int mouse_automation          = 0;
 int mouse_tablet_in_proximity = 0;
 int tablet_tool_type          = 1; /* 0 = Puck/Cursor, 1 = Pen */
 
@@ -119,6 +122,7 @@ static mouse_t mouse_devices[] = {
     { &mouse_msserial_ballpoint_device },
     { &mouse_ltserial_device           },
     { &mouse_ps2_device                },
+    { &mouse_usb_device                },
 #ifdef USE_STANDALONE_QUICKPORT
     { &mouse_upc_standalone_device     },
 #endif
@@ -137,6 +141,7 @@ static mouse_t tablet_devices[] = {
     { &mouse_ibm7690_touch_device        },
     { &mouse_cga_lightpen_device        },
     { &mouse_pxl_380_device             },
+    { &tablet_usb_device                },
     { NULL                              }
 };
 
@@ -146,6 +151,7 @@ static ATOMIC_INT      mouse_z;
 static ATOMIC_INT      mouse_w;
 static ATOMIC_INT      mouse_buttons;
 static ATOMIC_INT      tablet_buttons;
+static ATOMIC_INT      tablet_pressed; /* buttons pressed since the last tablet_take_pressed() */
 
 static int             mouse_delta_b;
 static int             mouse_old_b;
@@ -631,6 +637,8 @@ mouse_subtract_w(int *delta_w, int min, int max, int invert)
 void
 mouse_set_buttons_ex(int b)
 {
+    if (mouse_input_mode >= 1)
+        ATOMIC_STORE(tablet_pressed, ATOMIC_LOAD(tablet_pressed) | (b & ~ATOMIC_LOAD(tablet_buttons)));
     ATOMIC_STORE(*(mouse_input_mode >= 1 ? &tablet_buttons : &mouse_buttons), b);
     ATOMIC_STORE(*(mouse_input_mode >= 1 ? &mouse_buttons : &tablet_buttons), 0);
 }
@@ -645,6 +653,17 @@ int
 tablet_get_buttons_ex(void)
 {
     return ATOMIC_LOAD(tablet_buttons);
+}
+
+/* The buttons pressed since the last call, even if already released
+   -- a quick tap can go down and up between two polls of a touch screen. */
+int
+tablet_take_pressed(void)
+{
+    int b = ATOMIC_LOAD(tablet_pressed);
+
+    ATOMIC_STORE(tablet_pressed, 0);
+    return b;
 }
 
 void
@@ -840,12 +859,7 @@ tablet_reset(void)
     /* Poll at 100 Hz. */
     tablet_set_sample_rate(100.0);
 
-    /* The internal slot is the machine's to fill, as the internal mouse is; a
-       machine that supplies none falls back to the slot's own device. */
-    if (tablet_type == TABLET_TYPE_INTERNAL) {
-        if (machine_get_tablet_device(machine) == NULL)
-            mouse_ex_priv = device_add(tablet_devices[TABLET_TYPE_INTERNAL].device);
-    } else if (tablet_devices[tablet_type].device != NULL)
+    if ((tablet_type > 1) && (tablet_devices[tablet_type].device != NULL))
         mouse_ex_priv = device_add(tablet_devices[tablet_type].device);
 
     if (!mouse_both_enabled()) {

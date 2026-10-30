@@ -42,13 +42,15 @@ extern const device_t st506_at_wd1003_device;             /* st506_at_wd1003 */
 extern const device_t st506_xt_wd1004a_wx1_device;        /* st506_xt_wd1004a_wx1 */
 extern const device_t st506_xt_wd1004_27x_device;         /* st506_xt_wd1004_27x */
 extern const device_t st506_xt_wd1004a_27x_device;        /* st506_xt_wd1004a_27x */
+extern const device_t st506_tandy2k_wd1010_device;        /* st506_tandy2k_wd1010 */
 extern const device_t st506_xt_victor_v86p_device;        /* st506_xt_victor_v86p */
 extern const device_t st506_xt_toshiba_t1200_device;      /* st506_xt_toshiba_t1200 */
 extern const device_t st506_ps2_device;                   /* st506_mca */
 
 extern const device_t esdi_at_wd1007vse1_device; /* esdi_at */
+extern const device_t esdi_integrated_device;    /* esdi_mca */
+extern const device_t esdi_upgrade_device;       /* esdi_mca */
 extern const device_t esdi_ps2_device;           /* esdi_mca */
-extern const device_t esdi_integrated_device;           /* esdi_mca */
 
 extern const device_t ide_isa_device;         /* isa_ide */
 extern const device_t ide_isa_sec_device;     /* isa_ide sec*/
@@ -80,6 +82,7 @@ extern const device_t ide_cmd646_device;                        /* CMD PCI-646 *
 extern const device_t ide_cmd646_legacy_only_device;            /* CMD PCI-646 (Legacy Mode Only) */
 extern const device_t ide_cmd646_single_channel_device;         /* CMD PCI-646 (Only primary channel) */
 extern const device_t ide_cmd646_ter_qua_device;                /* CMD PCI-646 (Tertiary and quaternary channels) */
+extern const device_t pdc20269_device;                          /* Promise Ultra133 TX2 */
 extern const device_t ide_cmd648_ter_qua_device;                /* CMD PCI-648 (Tertiary and quaternary channels) */
 extern const device_t ide_cmd648_ter_qua_onboard_device;        /* CMD PCI-648 (Tertiary and quaternary channels, on-board) */
 extern const device_t ide_cmd649_ter_qua_device;                /* CMD PCI-649 (Tertiary and quaternary channels) */

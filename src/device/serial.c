@@ -163,6 +163,28 @@ serial_clear_timeout(serial_t *dev)
     serial_update_ints(dev);
 }
 
+/*
+   The receive timer polls the host character device, so it should run once
+   per character, not once per bit: at 115200 baud that is the difference
+   between 11520 and 115200 callbacks per second on the emulation thread.
+
+   bits is 0 until the guest programs the LCR, and arming a timer with 0 is
+   presumably why the multiplication was commented out, so assume a full
+   10-bit frame until the guest says otherwise.
+
+   Note by OBattler: I originally wrote the receive timer and the per-bit
+   polling is intentional because the NT 3.x Logitech serial mouse driver
+   likes writing the next byte at a very tight timing after the previous
+   byte - changing it to per-byte timing delays the byte movement so much
+   that it goes way out of specification, even breaking the Windows 9x
+   modem detection.
+ */
+static double
+serial_receive_period(const serial_t *dev)
+{
+    return (double) /* (dev->bits ? dev->bits : 10) * */ dev->transmit_period;
+}
+
 static void
 serial_receive_timer(void *priv)
 {
@@ -170,14 +192,21 @@ serial_receive_timer(void *priv)
 
     serial_log("serial_receive_timer()\n");
 
-    timer_on_auto(&dev->receive_timer, /* dev->bits * */ dev->transmit_period);
+    timer_on_auto(&dev->receive_timer, serial_receive_period(dev));
 
-    if (dev->char_port.chardev.read) {
+    /* Only read when the receive shift register is free: it still holds the
+       previous byte until the code below moves it into the FIFO, so reading
+       unconditionally can overwrite input that was never delivered. */
+    if (dev->char_port.chardev.read && (dev->out_new == 0xffff)) {
         uint8_t val;
         if (dev->char_port.chardev.read(&val, sizeof(val), dev->char_port.chardev.priv) > 0)
             serial_write_fifo(dev, val);
     }
-    if (dev->char_port.chardev.status) {
+
+    /* The modem status lines do not change thousands of times a second, and
+       querying them is not free on every host. */
+    dev->status_divider++;
+    if (dev->char_port.chardev.status && !(dev->status_divider & 0x3f)) {
         uint8_t prev_msr = dev->msr;
         uint32_t flags = dev->char_port.chardev.status(dev->char_port.chardev.priv);
         uint8_t mask = CHAR_COM_CTS | CHAR_COM_DSR | CHAR_COM_RI | CHAR_COM_DCD;
@@ -408,7 +437,7 @@ static void
 serial_update_speed(serial_t *dev)
 {
     serial_log("serial_update_speed(%lf)\n", dev->transmit_period);
-    timer_on_auto(&dev->receive_timer, /* dev->bits * */ dev->transmit_period);
+    timer_on_auto(&dev->receive_timer, serial_receive_period(dev));
 
     if (dev->transmit_enabled & 3)
         timer_on_auto(&dev->transmit_timer, dev->transmit_period);
@@ -423,7 +452,8 @@ serial_reset_fifo(serial_t *dev)
     fifo_reset_evt(dev->xmit_fifo);
     fifo_reset_evt(dev->rcvr_fifo);
 
-    serial_update_ints(dev);
+    /* Nothing left in the receiver FIFO to time out. */
+    serial_clear_timeout(dev);
 }
 
 void
@@ -600,6 +630,9 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                         fifo_reset_evt(dev->rcvr_fifo);
                     else
                         fifo_reset(dev->rcvr_fifo);
+                    /* The 16550 only signals a character timeout while
+                       the receiver FIFO holds data. */
+                    serial_clear_timeout(dev);
                 }
                 if (val & 0x04) {
                     if (dev->fifo_enabled)
@@ -1032,7 +1065,13 @@ serial_devices_close(int hotplug)
 void
 serial_devices_reset(void)
 {
-    device_close_by_flags(DEVICE_COM | DEVICE_HOTPLUG_OUT);
+    /* Only close the dropdown devices of the ports that serial_devices_close() and serial_devices_init()
+       will go through. A port where another device also asked for the port, such as a serial mouse,
+       is left alone by them, and closing its device would leave the port calling into it. */
+    for (uint8_t i = 0; i < SERIAL_MAX; i++) {
+        if (com_ports[i].hotunplug < CHAR_PORT_NOHOTUNPLUG)
+            device_close_by_flags_inst(DEVICE_COM | DEVICE_HOTPLUG_OUT, i + 1);
+    }
 
     serial_devices_close(1);
 
@@ -1057,6 +1096,12 @@ serial_close(void *priv)
             memset(dev->sd, 0, sizeof(serial_device_t));
         fifo_close(dev->rcvr_fifo);
     }
+
+    /*
+       Needed to avoid a segmentation fault at serial_devices_init() for any serial port
+       that used be enabled and was then disabled.
+     */
+    com_ports[dev->inst].serial = NULL;
 
     free(dev);
 }

@@ -577,7 +577,9 @@ const device_t ide_cmd640_vlb_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "CMD 640",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_cmd640_vlb_178_device = {
@@ -591,7 +593,9 @@ const device_t ide_cmd640_vlb_178_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "CMD 640",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_cmd640_vlb_pri_device = {
@@ -605,7 +609,9 @@ const device_t ide_cmd640_vlb_pri_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "CMD 640",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_cmd640_vlb_pri_178_device = {
@@ -619,7 +625,9 @@ const device_t ide_cmd640_vlb_pri_178_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "CMD 640",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_cmd640_vlb_sec_device = {
@@ -633,7 +641,9 @@ const device_t ide_cmd640_vlb_sec_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "CMD 640",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_cmd640_vlb_sec_178_device = {
@@ -647,7 +657,9 @@ const device_t ide_cmd640_vlb_sec_178_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "CMD 640",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_cmd640_pci_device = {
@@ -661,7 +673,9 @@ const device_t ide_cmd640_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "CMD 640",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_cmd640_pci_legacy_only_device = {
@@ -675,7 +689,9 @@ const device_t ide_cmd640_pci_legacy_only_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "CMD 640",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_cmd640_pci_single_channel_device = {
@@ -689,7 +705,9 @@ const device_t ide_cmd640_pci_single_channel_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "CMD 640",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_cmd640_pci_single_channel_sec_device = {
@@ -703,7 +721,9 @@ const device_t ide_cmd640_pci_single_channel_sec_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "CMD 640",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_cmd640_pci_single_channel_legacy_only_device = {
@@ -717,6 +737,8 @@ const device_t ide_cmd640_pci_single_channel_legacy_only_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "CMD 640",
+    .ide_boards    = ide_boards_pri_sec
 };
 

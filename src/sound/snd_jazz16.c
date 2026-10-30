@@ -175,6 +175,9 @@ jazz16_init(UNUSED(const device_t *info))
                   sb->opl.write, NULL, NULL, sb->opl.priv);
 
     sound_add_handler(sb_get_buffer_sbpro, sb);
+    sb->dsp.sbleftrighti = 0;
+    sound_in_add_handler(sb_put_buffer_sbpro, sb);
+    sound_in_start_input();
     music_add_handler(sb_get_music_buffer_sbpro, sb);
     sound_set_cd_audio_filter(sbpro_filter_cd_audio, sb);
 
@@ -216,7 +219,7 @@ static const device_config_t jazz16_config[] = {
 const device_t jazz16_device = {
     .name          = "Media Vision Pro Sonic 16",
     .internal_name = "jazz16",
-    .flags         = DEVICE_ISA16,
+    .flags         = DEVICE_ISA16 | DEVICE_AUDIO_IN,
     .local         = 0,
     .init          = jazz16_init,
     .close         = sb_close,

@@ -95,7 +95,6 @@ typedef struct xtkbd_t {
 static uint8_t key_queue[16];
 static int     key_queue_start = 0;
 static int     key_queue_end   = 0;
-static int     is_tandy = 0;
 static int     is_t1x00 = 0;
 static int     is_amstrad = 0;
 
@@ -124,8 +123,8 @@ get_fdd_switch_settings(void)
 {
     uint8_t fdd_count = 0;
 
-    for (uint8_t i = 0; i < FDD_NUM; i++) {
-        if (fdd_get_flags(i))
+    for (uint8_t i = 0; i < 4; i++) {
+        if (fdd_get_flags(&drives[i]))
             fdd_count++;
     }
 
@@ -381,6 +380,22 @@ kbd_adddata_ex(uint16_t val)
     kbd_adddata_process(val, kbd_adddata);
 }
 
+/* FE2010A configuration bits 7-6 pick a 9.54, 7.16 or 4.77 MHz clock; the
+   selected CPU speed stands in for the crystal and caps it. */
+static void
+kbd_fe2010_set_speed(const xtkbd_t *kbd)
+{
+    uint32_t speed   = (kbd->cfg & 0x80) ? 9545456 : ((kbd->cfg & 0x40) ? 7159092 : 4772728);
+    int      new_cpu = 0;
+
+    for (int i = 0; (i <= cpu) && cpu_f->cpus[i].cpu_type; i++) {
+        if (cpu_is_eligible(cpu_f, i, machine) && (cpu_f->cpus[i].rspeed <= speed))
+            new_cpu = i;
+    }
+
+    cpu_dynamic_switch(new_cpu);
+}
+
 static void
 kbd_write(uint16_t port, uint8_t val, void *priv)
 {
@@ -450,8 +465,12 @@ kbd_write(uint16_t port, uint8_t val, void *priv)
         case 0x63:
             if (kbd->type == KBD_TYPE_FE2010) {
                 kbd_log("XTkbd: Configuration register in is %02X\n", val);
-                if (!(kbd->cfg & 0x08))
+                /* The lock bit only protects bits 0-4. */
+                if (kbd->cfg & 0x08)
+                    kbd->cfg = (kbd->cfg & 0x1f) | (val & 0xe0);
+                else
                     kbd->cfg = val;
+                kbd_fe2010_set_speed(kbd);
             }
             break;
 
@@ -792,7 +811,6 @@ kbd_init(const device_t *info)
 
     timer_add(&kbd->send_delay_timer, kbd_poll, kbd, 1);
 
-    is_tandy = (kbd->type == KBD_TYPE_TANDY);
     is_t1x00 = (kbd->type == KBD_TYPE_TOSHIBA);
 
     if (keyboard_type == KEYBOARD_TYPE_INTERNAL)

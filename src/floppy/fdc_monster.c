@@ -68,10 +68,8 @@ monster_fdc_init(UNUSED(const device_t *info))
 
     dev = (monster_fdc_t *) calloc(1, sizeof(monster_fdc_t));
 
-#if 0
     uint8_t sec_irq = device_get_config_int("sec_irq");
     uint8_t sec_dma = device_get_config_int("sec_dma");
-#endif
 
     if (BIOS_ADDR != 0)
         rom_init(&dev->bios_rom, ROM_MONSTER_FDC, BIOS_ADDR, 0x2000, 0x1ffff, 0, MEM_MAPPING_EXTERNAL);
@@ -79,14 +77,13 @@ monster_fdc_init(UNUSED(const device_t *info))
     // Primary FDC
     dev->fdc_pri = device_add(&fdc_at_device);
 
-#if 0
     // Secondary FDC
     uint8_t sec_enabled = device_get_config_int("sec_enabled");
-    if (sec_enabled)
-        dev->fdc_sec = device_add(&fdc_at_sec_device);
+    if (sec_enabled) {
+        dev->fdc_sec = device_add_inst(&fdc_at_sec_device, 1);
         fdc_set_irq(dev->fdc_sec, sec_irq);
         fdc_set_dma_ch(dev->fdc_sec, sec_dma);
-#endif
+    }
 
     uint8_t rom_writes_enabled = device_get_config_int("rom_writes_enabled");
     if (rom_writes_enabled) {
@@ -110,7 +107,6 @@ monster_fdc_available(void)
 
 static const device_config_t monster_fdc_config[] = {
   // clang-format off
-#if 0
     {
         .name           = "sec_enabled",
         .description    = "Enable Secondary Controller",
@@ -157,7 +153,6 @@ static const device_config_t monster_fdc_config[] = {
         },
         .bios           = { { 0 } }
     },
-#endif
     {
         .name           = "bios_addr",
         .description    = "BIOS address",
