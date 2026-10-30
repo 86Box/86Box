@@ -593,6 +593,34 @@ harness_gpu_fab_tiled(void *g)
 }
 
 uint64_t
+harness_gpu_carry_submits(void *g)
+{
+    return ((r128_gpu_t *) g)->st_carry;
+}
+
+int
+harness_gpu_carry_open(void *g)
+{
+    return ((r128_gpu_t *) g)->bkc_on;
+}
+
+int
+harness_gpu_async(void *g)
+{
+    return ((r128_gpu_t *) g)->async;
+}
+
+void
+harness_gpu_wait_submitted(void *gp)
+{
+    r128_gpu_t *g = (r128_gpu_t *) gp;
+
+    for (unsigned i = 0; i < GPU_RING_SLOTS; i++)
+        if (atomic_load_explicit(&g->slot[i].submitted, memory_order_acquire))
+            vkWaitForFences(g->dev, 1, &g->slot[i].fence, VK_TRUE, UINT64_MAX);
+}
+
+uint64_t
 harness_gpu_fab_fill_rects(void *g)
 {
     return ((r128_gpu_t *) g)->st_fill_rects;
@@ -1334,6 +1362,33 @@ harness_gpu_fab_tiled(void *g)
 {
     (void) g;
     return 0;
+}
+
+uint64_t
+harness_gpu_carry_submits(void *g)
+{
+    (void) g;
+    return 0;
+}
+
+int
+harness_gpu_carry_open(void *g)
+{
+    (void) g;
+    return 0;
+}
+
+int
+harness_gpu_async(void *g)
+{
+    (void) g;
+    return 0;
+}
+
+void
+harness_gpu_wait_submitted(void *g)
+{
+    (void) g;
 }
 
 uint64_t

@@ -22086,6 +22086,196 @@ run_gpu2d_verify(void)
         setenv("R128_GPU", gprev, 1);
 }
 
+/* A cadence point in the async GPU lane submits the draws so far but
+   leaves the segment open: the cells they stored are carried to the
+   segment's real end, whose mirror-back copies them to the import once.
+   The claim is that a host read of a carried cell still sees the drawn
+   bytes, because the read finds the bytes in the open segment's ranges
+   and ends the segment before it reads. The draws: 1000 triangles of
+   color A over rows 8..31 of a 64x32 target, short of the 32768-span
+   cadence, then small triangles of color B over rows 0..3 until one
+   crosses it and the submit carries, and one more, which keeps the
+   segment open with only rows 0..3 drawn since. This state stores the same
+   value whatever the vertex color, so the rows compare against what a
+   draw that is never carried stores there, and against the seeded
+   marker: row 20 is drawn only by the A triangles, so it holds that
+   value only if the carried cells came back, and the marker if they did
+   not. */
+#define GC_A    0xff00ff00u
+#define GC_B    0xff0000ffu
+#define GC_FILL 0x5a5a5a5au
+#define GC_DST    0x00500000u /* scratch outside every range the draws touch */
+#define GC_NARROW 0x00490000u /* 8 px ARGB8888 target, 32 B/row          */
+
+/* A triangles stay under the cadence (about 31 spans each); the small B
+   triangles over rows 0..3 then cross it, so the carry submit holds every
+   A triangle and the submit left open draws only rows 0..3. Returns the
+   carry count before the run, so the caller can tell a new carry. */
+static uint64_t
+gc_carry_open(rage128_t *dev)
+{
+    uint64_t c0 = harness_gpu_carry_submits(dev->gpu);
+
+    for (int i = 0; i < 1000; i++)
+        hz_draw(dev, 8.0f, 31.0f, GC_A);
+    for (int i = 0; i < 4000 && harness_gpu_carry_submits(dev->gpu) == c0; i++)
+        hz_draw(dev, 0.0f, 3.0f, GC_B);
+    hz_draw(dev, 0.0f, 3.0f, GC_B);
+    return c0;
+}
+
+static void
+vectors_gpu_carry(rage128_t *dev)
+{
+    uint32_t px20 = HZ_A + (20u * 64u + 2u) * 4u;
+    uint32_t px2  = HZ_A + (2u * 64u + 2u) * 4u;
+    uint32_t v20, v2;
+
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0x00000000);
+    wr(dev, 0x16f0, 0x001f003f);
+    wr(dev, 0x16c0, 0x00000003);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0x00000000);
+    wr(dev, 0x16c4, 0x00000006);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000 | (HZ_A >> 5));
+    wr(dev, RAGE128_Z_OFFSET_C, HZ_Z);
+    wr(dev, RAGE128_Z_PITCH_C, 0x00000008);
+    wr(dev, RAGE128_Z_STEN_CNTL_C, 0x00000070); /* 16-bit Z, fn ALWAYS */
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_SETUP_CNTL, 0x00000020);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+    hz_seed(dev, 0, 0);
+
+    /* the backend starts at the first accelerated draw */
+    hz_draw(dev, 0.0f, 31.0f, GC_A);
+    gpu_sync(dev);
+    if (!dev->gpu || !harness_gpu_async(dev->gpu)) {
+        printf("SKIP gpu carry: no async GPU backend on this host\n");
+        return;
+    }
+    v20 = *(uint32_t *) &dev->svga.vram[px20];
+    v2  = *(uint32_t *) &dev->svga.vram[px2];
+    check_true("gpu carry: an uncarried draw lands",
+               v20 != HZ_MARK && v2 != HZ_MARK);
+    hz_seed(dev, 0, 0);
+
+    gc_carry_open(dev);
+    check_true("gpu carry: a cadence point carried the segment",
+               harness_gpu_carry_submits(dev->gpu) >= 1);
+    check_true("gpu carry: the segment is open with carried cells",
+               harness_gpu_carry_open(dev->gpu));
+    /* the guest's aperture read of a carried cell */
+    rage128_gpu_cpu_barrier(dev, px20, 4, 0);
+    check_true("gpu carry: the read ends the open segment",
+               !harness_gpu_carry_open(dev->gpu));
+    check32("gpu carry: the read sees the carried cell's bytes",
+            *(uint32_t *) &dev->svga.vram[px20], v20);
+    gpu_sync(dev);
+    check32("gpu carry: the last draw lands over the carried cells",
+            *(uint32_t *) &dev->svga.vram[px2], v2);
+
+    /* A queued 2D op over carried cells with no spans since the carry
+       (SOFT_RESET_GUI dropped them): the cells still sit in the mirror
+       only, so a blit from row 20 must end the segment first. Recorded
+       at the head of the next submit without that, it copies the
+       import's seeded marker. */
+    hz_seed(dev, 0, 0);
+    for (uint32_t i = 0; i < 32u; i += 4u)
+        *(uint32_t *) &dev->svga.vram[GC_DST + i] = HZ_MARK;
+    gc_carry_open(dev);
+    rage128_gpu_abandon(dev);
+    check_true("gpu carry: a reset keeps the carried cells",
+               harness_gpu_carry_open(dev->gpu));
+    check_true("gpu carry: a blit from carried cells queues",
+               rage128_gpu_2d_blit(dev, GC_DST, 32u, HZ_A + 20u * 256u, 32u,
+                                   32u, 1u) == 1);
+    gpu_sync(dev);
+    check32("gpu carry: a blit from carried cells copies the drawn bytes",
+            *(uint32_t *) &dev->svga.vram[GC_DST + 8u], v20);
+
+    /* A solid fill over carried cells queued while new draws are pending
+       goes after the runs, before the mirror-back. SOFT_RESET_GUI then
+       drops the new draws, so the real end has no runs but still copies
+       the carried cells back: the fill must reach the mirror too, or
+       that copy lays the older drawn bytes over it. */
+    hz_seed(dev, 0, 0);
+    gc_carry_open(dev);
+    check_true("gpu carry: a fill over carried cells queues",
+               rage128_gpu_2d_fill(dev, HZ_A + 20u * 256u, 256u, 16u, 1u,
+                                   GC_FILL, 4, 0) == 1);
+    rage128_gpu_abandon(dev);
+    gpu_sync(dev);
+    check32("gpu carry: a fill over carried cells survives the real end",
+            *(uint32_t *) &dev->svga.vram[px20], GC_FILL);
+
+    /* On an 8-pixel-wide target (32-byte rows) one 256-byte cell holds
+       eight rows, so a hull can end inside a cell. Draws over rows 0..5
+       carry with the color hull ending at row 6, inside the first cell.
+       A host store into row 7 lies outside the hull and lands in the
+       import without waiting. A draw over rows 7..9 then widens the hull
+       over it, and SOFT_RESET_GUI drops that draw: the real end's copy of
+       the carried cell must stay inside the carried hull and leave the
+       host store alone. */
+    {
+        uint32_t t  = GC_NARROW;
+        uint32_t ph = t + 7u * 32u;
+        uint64_t c0;
+
+        for (uint32_t i = 0; i < 64u; i++)
+            *(uint32_t *) &dev->svga.vram[t + i * 4u] = HZ_MARK;
+        wr(dev, 0x16f0, 0x001f0007); /* SC_BOTTOM_RIGHT: x 0..7 */
+        wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x00200000 | (t >> 5));
+        wr(dev, RAGE128_Z_PITCH_C, 0x00000001);
+        c0 = harness_gpu_carry_submits(dev->gpu);
+        for (int i = 0; i < 20000 && harness_gpu_carry_submits(dev->gpu) == c0; i++)
+            hz_draw(dev, 0.0f, 5.0f, GC_A);
+        hz_draw(dev, 0.0f, 5.0f, GC_A);
+        check_true("gpu carry: narrow target carried with its hull inside a cell",
+                   harness_gpu_carry_open(dev->gpu));
+        /* the carry submit's copy-down must be done before the store, or
+           it may pick the store up and hide the copy-back */
+        harness_gpu_wait_submitted(dev->gpu);
+        rage128_gpu_cpu_barrier(dev, ph, 4, 1);
+        check_true("gpu carry: a store past the hull does not end the segment",
+                   harness_gpu_carry_open(dev->gpu));
+        *(uint32_t *) &dev->svga.vram[ph] = GC_FILL;
+        r128_vram_hnew(dev, ph, 4);
+        hz_draw(dev, 7.0f, 9.0f, GC_B);
+        rage128_gpu_abandon(dev);
+        gpu_sync(dev);
+        check32("gpu carry: a host store beside a carried cell survives a reset",
+                *(uint32_t *) &dev->svga.vram[ph], GC_FILL);
+        wr(dev, 0x16f0, 0x001f003f);
+        wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000 | (HZ_A >> 5));
+        wr(dev, RAGE128_Z_PITCH_C, 0x00000008);
+    }
+}
+
+static void
+run_gpu_carry(void)
+{
+    rage128_t  *dev;
+    const char *genv = getenv("R128_GPU");
+    char        gprev[32] = "";
+
+    if (!harness_gpu_available()) {
+        printf("SKIP gpu carry: built without Vulkan headers\n");
+        return;
+    }
+    if (genv)
+        snprintf(gprev, sizeof(gprev), "%s", genv);
+    harness_cfg_memory_mb = 32;
+    setenv("R128_GPU", "1", 1);
+    dev = rage128_init(&ati_rage128_pro_device);
+    vectors_gpu_carry(dev);
+    close_dev(dev);
+    setenv("R128_GPU", gprev, 1);
+}
+
 static void
 run_lanegap(void)
 {
@@ -23972,7 +24162,7 @@ static const char *const shard_units[] = {
     "maxx", "vga-decode", "lanegap", "lanegap-16mb", "gpu2d-verify",
     "x64legs", "synctel", "yuv-border", "texture-alpha", "dither-init",
     "sec-persp", "sec-only", "dst-1555-4444", "zoff-tfog",
-    "stipple-fast", "lanegap-expectedfail"
+    "stipple-fast", "lanegap-expectedfail", "gpu-carry"
 };
 static char *selected_units;
 
@@ -24587,6 +24777,8 @@ main(int argc, char **argv)
         run_lanegap_16mb();
     if (unit_selected("gpu2d-verify"))
         run_gpu2d_verify();
+    if (unit_selected("gpu-carry"))
+        run_gpu_carry();
     if (unit_selected("x64legs"))
         run_x64legs();
     if (unit_selected("synctel"))

@@ -246,6 +246,15 @@ uint64_t harness_gpu_fab_qskip(void *g, int t, int b);
 uint64_t harness_gpu_fab_qnb(void *g, int t);
 uint64_t harness_gpu_fab_fill_skip(void *g, int b);
 uint64_t harness_gpu_fab_tiled(void *g);
+/* Real-backend probes for the carry vector: submits that ended at a
+   cadence point and left the segment open, whether cells are carried
+   right now, and whether the backend runs async; the last waits for
+   every submitted slot's fence without retiring it or touching the open
+   segment, so a vector can order a host store after work in flight. */
+uint64_t harness_gpu_carry_submits(void *g);
+int      harness_gpu_carry_open(void *g);
+int      harness_gpu_async(void *g);
+void     harness_gpu_wait_submitted(void *g);
 uint64_t harness_gpu_fab_fill_rects(void *g);
 uint64_t harness_gpu_fab_fill_cpu(void *g);
 /* Tiled-fill probe. q_reset empties the fabricated backend's
