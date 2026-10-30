@@ -7,9 +7,9 @@ name: Pull request builds
 # The label name is also used in the concurrency group below, so keep both
 # in sync when renaming it.
 #
-# Outside of pull requests, this workflow refreshes the cached MacPorts
-# installations used by the macOS builds. Only caches saved on master are
-# available to all pull requests, so pull request builds never save one.
+# The macOS builds use the MacPorts installations cached by the MacPorts
+# cache workflow. Links to the builds are posted by the pull request build
+# links workflow, which can comment on pull requests from forks.
 
 on:
 
@@ -30,21 +30,9 @@ on:
       - vcpkg.json
       - "!**/Makefile*"
 
-  push:
-    branches:
-      - master
-    paths:
-      - .ci/dependencies_macports.txt
-      - .github/actions/setup-macports/**
-
-  schedule:
-    - cron: "0 3 1 * *"
-
-  workflow_dispatch:
-
 # Cancel superseded runs for the same pull request. Adding any label other
 # than the dev branch one does not build anything, so it gets a unique group
-# so as to not cancel a build in progress, as do other events.
+# so as to not cancel a build in progress.
 concurrency:
   group: ${{ github.workflow }}-${{ (github.event.action != 'labeled' || github.event.label.name == 'dev branch') && github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
@@ -60,9 +48,7 @@ jobs:
 
     name: Prepare build ID
 
-    if: >-
-      github.event_name == 'pull_request' &&
-      (github.event.action != 'labeled' || github.event.label.name == 'dev branch')
+    if: github.event.action != 'labeled' || github.event.label.name == 'dev branch'
 
     runs-on: ubuntu-latest
 
@@ -114,7 +100,7 @@ jobs:
           # Jenkins makes a single universal build, which requires both a
           # native and an Intel MacPorts installation on one machine. Build
           # each architecture on its own runner instead. Keep these in sync
-          # with the MacPorts cache job below.
+          # with the MacPorts cache workflow.
           - os: macOS
             arch: x86_64
             runner: macos-15-intel
@@ -203,65 +189,3 @@ jobs:
           path: _output/${{ steps.build.outputs.package }}.*
           archive: false
           if-no-files-found: error
-
-  # Set up MacPorts from scratch and make a regular build, which installs all
-  # dependencies listed for build.sh, then save the installation for the
-  # macOS pull request builds
-  macports-cache:
-
-    name: "MacPorts cache, macOS ${{ matrix.arch }}"
-
-    if: github.event_name != 'pull_request'
-
-    runs-on: ${{ matrix.runner }}
-
-    strategy:
-      fail-fast: false
-      matrix:
-        include:
-          - arch: x86_64
-            runner: macos-15-intel
-          - arch: arm64
-            runner: macos-15
-
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-
-      - name: Set up MacPorts
-        id: macports
-        uses: ./.github/actions/setup-macports
-        with:
-          arch: ${{ matrix.arch }}
-          restore: false
-
-      - name: Build
-        env:
-          ARCH: ${{ matrix.arch }}
-        run: |
-          mkdir -p _output
-          cd _output
-          status=0
-          sh ../.ci/build.sh -b "86Box-macOS-$ARCH-cache" "$ARCH" -t --preset=regular -D CMAKE_BUILD_TYPE=Release \
-            -D DYNAREC=ON -D QT=ON -D BUILD_TYPE=alpha || status=$?
-          if [ $status -ne 0 ] && [ $status -ne 50 ]; then
-            exit $status
-          fi
-
-      - name: Pack installation
-        env:
-          TARBALL: ${{ steps.macports.outputs.tarball }}
-        run: >-
-          sudo tar -C / -cf "$TARBALL"
-          --exclude opt/local/var/macports/build
-          --exclude opt/local/var/macports/distfiles
-          --exclude opt/local/var/macports/logs
-          opt/local
-
-      - name: Save installation
-        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
-        with:
-          path: ${{ steps.macports.outputs.tarball }}
-          key: ${{ steps.macports.outputs.cache-key-prefix }}${{ github.run_id }}

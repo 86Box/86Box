@@ -1,7 +1,7 @@
 name: Set up MacPorts
 description: >-
   Installs MacPorts as expected by .ci/build.sh, restoring the installation
-  saved by the MacPorts cache job of the pull request builds workflow when
+  saved by the MacPorts cache workflow when
   available, or installing it with Qt built with Vulkan support otherwise.
 
 inputs:
