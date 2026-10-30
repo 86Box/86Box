@@ -409,6 +409,7 @@ extern void mem_set_cache_access(uint32_t base, uint32_t size, int cached);
 extern int  mem_bus_unbacked(uint32_t base, uint32_t size);
 
 extern const uint8_t *mem_phys_ptr(uint32_t addr, uint32_t len);
+extern const mem_mapping_t *mem_read_mapping_at(uint32_t addr);
 extern uint32_t       mem_mapping_gen;
 extern size_t         mem_ram_size(void);
 

@@ -3411,13 +3411,14 @@ static int
 r3d_fetch_vertex(rage128_t *dev, uint32_t base, uint32_t stride,
                  uint32_t idx, uint32_t fmt, r3d_vtx_t *out)
 {
-    uint32_t vdw[20];
-    uint32_t j;
+    uint32_t        vdw[20];
+    uint32_t        j;
+    r128_bus_span_t sp = { 0 }; /* one vertex: one page, two when it straddles */
 
     if (stride == 0 || stride > 20)
         return 0;
     for (j = 0; j < stride; j++) {
-        if (!rage128_pm4_bus_read(dev, base + (idx * stride + j) * 4, &vdw[j]))
+        if (!rage128_pm4_span_read(dev, &sp, base + (idx * stride + j) * 4, &vdw[j]))
             return 0;
     }
     r3d_decode_vertex(fmt, vdw, out);

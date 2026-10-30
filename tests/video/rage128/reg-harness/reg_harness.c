@@ -12780,6 +12780,153 @@ vectors_next_vertex_bundle(rage128_t *dev)
 }
 
 /* ------------------------------------------------------------------ */
+/* Vertex fetch across a page boundary. The vertex walk resolves the   */
+/* bus translation once per 4 KB page and reads the page's dwords from */
+/* it, so the cases that force a second resolve inside one vertex, or  */
+/* the per-dword fallback, must decode the same vertex as a dword-by-  */
+/* dword read: (A) a buffer that starts 8 bytes before the end of an   */
+/* on-chip table page whose next entry points at a non-adjacent        */
+/* physical page, so vertex 0 straddles the two pages; (B) the same    */
+/* layout with the second entry pointing past guest RAM, the fallback  */
+/* the dual-chip board's second chip takes, which the harness answers  */
+/* with 0xff bytes and a stray count, so the draw lands no pixel; (C)  */
+/* the same straddle through the AGP aperture with the table off; (D)  */
+/* a buffer whose base is not dword aligned, the one-dword-span path.  */
+/* Same 64-px 8888 target and diffuse-only state as the bundle vector. */
+/* ------------------------------------------------------------------ */
+#define VPS_CARD_VB  0x02090000u /* card page, bit 25 = AGP half */
+#define VPS_PHYS_P0  0x00206000u /* first page's physical page   */
+#define VPS_PHYS_P1  0x0020a000u /* second page, not adjacent    */
+#define VPS_PAST_RAM 0x00900000u /* beyond the 8 MB the harness has */
+
+static void
+vps_write_vertices(uint8_t *p0_last8, uint8_t *p1, const float xy[3][2])
+{
+    /* vertex v: x y z color at 16 bytes each, v0 split 8 + 8 */
+    uint32_t v0[4] = { f2u(xy[0][0]), f2u(xy[0][1]), 0x3e800000, 0xff00ff00 };
+
+    memcpy(p0_last8, v0, 8);
+    memcpy(p1, &v0[2], 8);
+    for (int v = 1; v < 3; v++) {
+        uint32_t d[4] = { f2u(xy[v][0]), f2u(xy[v][1]), 0x3e800000, 0xff00ff00 };
+
+        memcpy(p1 + 8 + (v - 1) * 16, d, 16);
+    }
+}
+
+static void
+vps_draw(rage128_t *dev, uint32_t *ring, int *n, uint32_t vb_card)
+{
+    memset(&dev->svga.vram[0x00300000u], 0, 64 * 24 * 4);
+    ring[(*n)++] = 0xc0052300; /* 3D_RNDR_GEN_INDX_PRIM, 6 dwords */
+    ring[(*n)++] = vb_card;
+    ring[(*n)++] = 3;
+    ring[(*n)++] = 0x00000008; /* VC_FORMAT: DIFFUSE_ARGB */
+    ring[(*n)++] = 0x00030014; /* tri list, indexed walk, NUM 3 */
+    ring[(*n)++] = 0x00010000; /* [1|0] */
+    ring[(*n)++] = 0x00000002; /* [-|2] */
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, (uint32_t) *n);
+    drain_sync(dev);
+}
+
+static void
+vectors_vertex_page_straddle(rage128_t *dev)
+{
+    uint32_t *tbl  = (uint32_t *) (ram + GART_TABLE_PHYS);
+    uint32_t *ring = (uint32_t *) (ram + RING_PHYS);
+    int       n    = 0;
+    /* upper-left tri: covers (2,2), leaves (21,21) */
+    static const float xy[3][2] = {
+        { 0.0f, 0.0f }, { 16.0f, 0.0f }, { 0.0f, 16.0f },
+    };
+
+    harness_ram_alloc();
+    harness_sysmem_stray = 0;
+    memset(ram + GART_TABLE_PHYS, 0, 0x2000);
+    tbl[RING_CARD_ADDR >> 12]                  = RING_PHYS;
+    tbl[(VPS_CARD_VB & 0x01ffffff) >> 12]      = VPS_PHYS_P0;
+    tbl[((VPS_CARD_VB & 0x01ffffff) >> 12) + 1] = VPS_PHYS_P1;
+
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL,
+       rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    gart_table_on(dev, GART_TABLE_PHYS);
+    wr(dev, RAGE128_AGP_BASE, 0);
+
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0x00000000);
+    wr(dev, 0x16f0, 0x1fff1fff);
+    wr(dev, 0x16c0, 0x00000003);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0x00000000);
+    wr(dev, 0x16c4, 0x00000006);
+    wr(dev, 0x1c80, 0x01018000);
+    wr(dev, 0x1c90, 0x00340000);
+    wr(dev, 0x1c94, 0x00000008);
+    wr(dev, 0x1c98, 0x00000070);
+    wr(dev, 0x1c9c, 0x00000000);
+    wr(dev, 0x1ca0, 0x00000000);
+    wr(dev, 0x1d44, 0xffffffff);
+    wr(dev, RAGE128_PM4_VC_FPU_SETUP,
+       RAGE128_FPU_BACKFACE_SOLID | RAGE128_FPU_FRONTFACE_SOLID | RAGE128_FPU_COLOR_GOURAUD);
+    wr(dev, 0x1bc4, 0x00080000);
+    wr(dev, 0x1bcc, 0x00000000);
+    wr(dev, 0x1a00, 0x00000000);
+
+    wr(dev, RAGE128_PM4_BUFFER_OFFSET, RING_CARD_ADDR);
+    wr(dev, RAGE128_PM4_BUFFER_DL_RPTR, 0);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 0);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000a);
+
+    /* A: on-chip table, vertex 0 straddles into a non-adjacent page */
+    vps_write_vertices(ram + VPS_PHYS_P0 + 0xff8, ram + VPS_PHYS_P1, xy);
+    vps_draw(dev, ring, &n, VPS_CARD_VB + 0xff8);
+    check32("vertex page straddle: table, split v0: (2,2) drawn", NVB_PIX(2, 2), 0xff00ff00);
+    check32("vertex page straddle: table, split v0: (21,21) untouched", NVB_PIX(21, 21), 0);
+    check_true("vertex page straddle: table: no stray bus-master access", harness_sysmem_stray == 0);
+
+    /* B: second entry past RAM: the aperture fallback, which the harness
+       cannot back; the vertex bytes come back 0xff and nothing is drawn */
+    tbl[((VPS_CARD_VB & 0x01ffffff) >> 12) + 1] = VPS_PAST_RAM;
+    vps_draw(dev, ring, &n, VPS_CARD_VB + 0xff8);
+    check_true("vertex page straddle: entry past RAM: read as stray", harness_sysmem_stray > 0);
+    check32("vertex page straddle: entry past RAM: nothing drawn", NVB_PIX(2, 2), 0);
+    tbl[((VPS_CARD_VB & 0x01ffffff) >> 12) + 1] = VPS_PHYS_P1;
+    harness_sysmem_stray                        = 0;
+
+    /* D: misaligned base, table mode: every dword is its own span */
+    memset(ram + VPS_PHYS_P0 + 0xfe0, 0, 0x20);
+    memset(ram + VPS_PHYS_P1, 0, 0x40);
+    vps_write_vertices(ram + VPS_PHYS_P0 + 0xffa, ram + VPS_PHYS_P1 + 2, xy);
+    vps_draw(dev, ring, &n, VPS_CARD_VB + 0xffa);
+    check32("vertex page straddle: misaligned base: (2,2) drawn", NVB_PIX(2, 2), 0xff00ff00);
+    check_true("vertex page straddle: misaligned: no stray bus-master access", harness_sysmem_stray == 0);
+
+    /* C: table off, AGP aperture at 0x400000: the same straddle through
+       agpgart_bus_ptr; the harness aperture is plain RAM, so the two
+       pages are adjacent there */
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+    wr(dev, RAGE128_PCI_GART_PAGE, 1);
+    wr(dev, RAGE128_AGP_BASE, 0x00400000);
+    memcpy(ram + 0x00400000 + (RING_CARD_ADDR & 0x01ffffff), ring, (size_t) n * 4);
+    ring = (uint32_t *) (ram + 0x00400000 + (RING_CARD_ADDR & 0x01ffffff));
+    wr(dev, RAGE128_PM4_BUFFER_OFFSET, RING_CARD_ADDR);
+    wr(dev, RAGE128_PM4_BUFFER_DL_RPTR, 0);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 0);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000a);
+    n = 0;
+    vps_write_vertices(ram + 0x00400000 + (VPS_CARD_VB & 0x01ffffff) + 0xff8,
+                       ram + 0x00400000 + (VPS_CARD_VB & 0x01ffffff) + 0x1000, xy);
+    vps_draw(dev, ring, &n, VPS_CARD_VB + 0xff8);
+    check32("vertex page straddle: aperture, split v0: (2,2) drawn", NVB_PIX(2, 2), 0xff00ff00);
+    check32("vertex page straddle: aperture, split v0: (21,21) untouched", NVB_PIX(21, 21), 0);
+    check_true("vertex page straddle: aperture: no stray bus-master access", harness_sysmem_stray == 0);
+
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+    wr(dev, RAGE128_AGP_BASE, 0);
+}
+
+/* ------------------------------------------------------------------ */
 /* ------------------------------------------------------------------ */
 /* 3D LINE walk: one pixel per major-axis step over the snapped        */
 /* endpoints (the datapath's Bresenham line mode), with the last pixel */
@@ -13211,6 +13358,7 @@ run_agp_32mb(void)
     vectors_pm4_stat_fifocnt(dev);
     vectors_agp_dead_staging(dev);
     vectors_next_vertex_bundle(dev);
+    vectors_vertex_page_straddle(dev);
     vectors_rt_geom_key(dev, 0); /* serial reference for the threaded run */
     vectors_mpeg_mb(dev);
     vectors_3d_line_bresenham(dev);

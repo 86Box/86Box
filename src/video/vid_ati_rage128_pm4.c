@@ -62,6 +62,7 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/mem.h>
+#include <86box/agpgart.h>
 #include <86box/dma.h>
 #include <86box/pci.h>
 #include <86box/timer.h>
@@ -311,12 +312,137 @@ rage128_pm4_bus_read(rage128_t *dev, uint32_t bus_addr, uint32_t *val)
     return 1;
 }
 
+/* Page-granular form of rage128_pm4_bus_read. A stream reader (the ring
+   pump, the indirect-buffer splice, the vertex walk, the block reader)
+   consumes consecutive dwords, and every dword of one 4 KB page shares
+   the same translation: the bus-master and table-mode tests, the on-chip
+   table entry, or the chipset GART entry behind the AGP aperture. The
+   resolve does that work once per page and records either a host pointer
+   into the page or the per-dword fallback rage128_pm4_bus_read would
+   take, so the dwords of the page cost a load each. The bytes themselves
+   are never cached: each dword is loaded from guest memory when it is
+   consumed.
+
+   A resolved span is kept only for one transfer and is dropped across
+   anything that can wait for the executor, because a packet can move
+   PCI_GART_PAGE, AGP_BASE or BUS_CNTL. A translation changed by another
+   thread mid-page is therefore seen at the next page or transfer, where
+   the dword-by-dword chain sees it at the next dword; neither order is
+   guaranteed to the guest, since that chain already reads the entry and
+   the data as two separate loads.
+
+   The failure conditions (bus mastering off, no aperture base, an entry
+   past guest RAM) hold for a whole page, so the first dword that fails
+   here is the dword that fails per dword. A misaligned stream is served
+   dword by dword: its last dword in a page straddles into the next one. */
+static int
+rage128_pm4_span_resolve(rage128_t *dev, uint32_t bus_addr, r128_bus_span_t *sp)
+{
+    uint32_t left = (0x1000u - (bus_addr & 0xfffu)) >> 2;
+
+    sp->next = bus_addr;
+    sp->p    = NULL;
+    sp->phys = 0;
+    if (bus_addr & 3u) {
+        sp->mode = 2;
+        sp->n    = 1;
+        return 1;
+    }
+    if (!rage128_pm4_bus_master_ok(dev))
+        return 0;
+    if (!rage128_gart_walk(dev)) {
+        if (!dev->agp_base)
+            return 0;
+        sp->mode = 0;
+        sp->p    = agpgart_bus_ptr(bus_addr, left << 2);
+        sp->n    = left;
+        return 1;
+    }
+    {
+        uint32_t table = dev->pci_gart_page & 0xfffff000;
+        uint32_t pte;
+
+        if (!rage128_guest_ram_readl(table + ((bus_addr >> 12) & 0x1fff) * 4, &pte))
+            return 0;
+        sp->phys = (pte & 0xfffff000) | (bus_addr & 0xfff);
+        sp->mode = 1;
+        /* Only a page wholly inside guest RAM is read through the
+           pointer; one past the end, or straddling it, keeps the
+           per-dword path with its bound test and aperture fallback. */
+        if ((uint64_t) (pte & 0xfffff000) + 0x1000u <= ((uint64_t) mem_size << 10))
+            sp->p = &ram[sp->phys];
+        sp->n = left;
+        return 1;
+    }
+}
+
+int
+rage128_pm4_span_read(rage128_t *dev, r128_bus_span_t *sp, uint32_t bus_addr, uint32_t *val)
+{
+    if (!sp->n || sp->next != bus_addr) {
+        if (!rage128_pm4_span_resolve(dev, bus_addr, sp)) {
+            sp->n = 0;
+            return 0;
+        }
+    }
+    if (sp->mode == 2) {
+        sp->n = 0;
+        return rage128_pm4_bus_read(dev, bus_addr, val);
+    }
+    if (sp->p) {
+        memcpy(val, sp->p, 4);
+        sp->p += 4;
+    } else if (sp->mode == 0)
+        dma_bm_read(bus_addr, (uint8_t *) val, 4, 4);
+    else if (!rage128_guest_ram_readl(sp->phys, val))
+        dma_bm_read(sp->phys, (uint8_t *) val, 4, 4);
+    sp->phys += 4;
+    sp->next += 4;
+    sp->n--;
+    rage128_cap_bus_read(dev, bus_addr, *val);
+    return 1;
+}
+
+/* AGP aperture block read. A dword-aligned block of whole dwords is
+   copied page by page from host bytes; any page without them sends the
+   whole block through one dma_bm_read, the call the replay rig serves
+   against its recorded B record, so the call shape never depends on the
+   resolution, and a page that was copied before the miss is simply read
+   again. A misaligned or partial-dword block, or an empty one, keeps its
+   one dma_bm_read: that call reads whole dwords, so a partial tail also
+   touches the bytes after the block, which a handler-backed page would
+   observe, and the empty call is one the replay counts. */
+static void
+rage128_pm4_agp_block_read(uint32_t bus, uint8_t *dst, uint32_t len)
+{
+    uint32_t o = 0;
+
+    if (!len || ((bus | len) & 3u)) {
+        dma_bm_read(bus, dst, len, 4);
+        return;
+    }
+    while (o < len) {
+        uint32_t       chunk = 0x1000u - ((bus + o) & 0xfffu);
+        const uint8_t *p;
+
+        if (chunk > len - o)
+            chunk = len - o;
+        p = agpgart_bus_ptr(bus + o, chunk);
+        if (p == NULL) {
+            dma_bm_read(bus, dst, len, 4);
+            return;
+        }
+        memcpy(dst + o, p, chunk);
+        o += chunk;
+    }
+}
+
 /* Copy `len` bytes from card address `vm` into `dst`. Bit 25 of a card
    address selects the upper 32 MB, which maps to the AGP aperture (RRG:
    DST_OFFSET, p. 3-137 / PDF 155). Without the on-chip table this is
-   one dma_bm_read over the contiguous aperture range; with it, the
-   copy goes dword by dword through rage128_pm4_bus_read so every page
-   is looked up exactly as a single read would be. Called only on the
+   one read over the contiguous aperture range (rage128_pm4_agp_block_read);
+   with it, the copy goes page by page through the span reader, so every
+   page is looked up exactly as a single read would be. Called only on the
    thread executing packets, never from a render worker. Returns 1 when
    the whole block was read, 0 on any failed read. */
 int
@@ -327,7 +453,7 @@ rage128_pm4_bus_read_block(rage128_t *dev, uint32_t vm, uint8_t *dst, uint32_t l
     if (!rage128_gart_walk(dev)) { /* AGP: aperture is linear in bus space */
         if (!dev->agp_base)
             return 0;
-        dma_bm_read(rage128_pm4_vm_addr(dev, vm), dst, len, 4);
+        rage128_pm4_agp_block_read(rage128_pm4_vm_addr(dev, vm), dst, len);
         rage128_cap_bus_block(dev, rage128_pm4_vm_addr(dev, vm), dst, len);
         return 1;
     }
@@ -348,19 +474,23 @@ rage128_pm4_bus_read_block(rage128_t *dev, uint32_t vm, uint8_t *dst, uint32_t l
        r128_cce.c r128_cce_init_ring_buffer), but ring and command reads
        do not come through here. */
     if ((vm & 0x02000000u) && dev->agp_base) {
-        dma_bm_read(dev->agp_base + (vm & 0x01ffffffu), dst, len, 4);
+        rage128_pm4_agp_block_read(dev->agp_base + (vm & 0x01ffffffu), dst, len);
         rage128_cap_bus_block(dev, dev->agp_base + (vm & 0x01ffffffu), dst, len);
         return 1;
     }
     rage128_cap_in_block = 1;
-    for (uint32_t o = 0; o < len; o += 4) { /* PCI GART: pages are scattered */
-        uint32_t v;
+    {
+        r128_bus_span_t sp = { 0 };
 
-        if (!rage128_pm4_bus_read(dev, vm + o, &v)) {
-            rage128_cap_in_block = 0;
-            return 0;
+        for (uint32_t o = 0; o < len; o += 4) { /* PCI GART: pages are scattered */
+            uint32_t v;
+
+            if (!rage128_pm4_span_read(dev, &sp, vm + o, &v)) {
+                rage128_cap_in_block = 0;
+                return 0;
+            }
+            memcpy(dst + o, &v, (len - o >= 4) ? 4u : (len - o));
         }
-        memcpy(dst + o, &v, (len - o >= 4) ? 4u : (len - o));
     }
     rage128_cap_in_block = 0;
     rage128_cap_bus_block(dev, vm, dst, len);
@@ -589,10 +719,13 @@ rage128_pm4_splice_ib(rage128_t *dev, uint32_t wr, uint32_t off, uint32_t n,
        when it pops it, which keeps the capture in execution order. */
     prev_fetch         = rage128_ring_fetch;
     rage128_ring_fetch = 1;
+    /* The span lives after the reserve wait above; nothing in the loop
+       can wait, so one resolve per page covers the body. */
+    r128_bus_span_t sp = { 0 };
     for (uint32_t i = 0; i < n; i++) {
         uint32_t v;
 
-        if (!rage128_pm4_bus_read(dev, rage128_pm4_vm_addr(dev, off + i * 4), &v)) {
+        if (!rage128_pm4_span_read(dev, &sp, rage128_pm4_vm_addr(dev, off + i * 4), &v)) {
             pclog("[r128 pm4] IB splice dead bus: off=%08x n=%u at=%u\n", off, n, i);
             rage128_ring_fetch = prev_fetch;
             return wr - i; /* nothing is published yet: drop the partial body */
@@ -625,6 +758,11 @@ rage128_pm4_pump(rage128_t *dev)
     int      copied = 0;
     int      result = 1;
     int      prev_fetch;
+    /* The ring's resolved page. Dropped after every wait for the
+       executor below (the FIFO reserve and the splice), since a packet
+       run meanwhile can move the translation registers; a ring wrap
+       changes the address and resolves again on its own. */
+    r128_bus_span_t sp = { 0 };
 
     /* Fetch only in a bus-master mode (rage128_pm4_ring_bm in
        vid_ati_rage128.h, which explains why). In a PIO mode the packets
@@ -672,14 +810,15 @@ rage128_pm4_pump(rage128_t *dev)
                 rage128_log("[r128 pm4] ring fetch stalled on FIFO space (guest held)\n");
             }
             rage128_cce_fifo_reserve(dev, wr, need);
+            sp.n = 0;
             if (rage128_cce_fifo_space(dev, wr) < need) {
                 result = 0;
                 break;
             }
         }
-        if (!rage128_pm4_bus_read(dev,
-                                  rage128_pm4_vm_addr(dev, dev->pm4_buffer_offset + dev->pm4_rptr * 4),
-                                  &v)) {
+        if (!rage128_pm4_span_read(dev, &sp,
+                                   rage128_pm4_vm_addr(dev, dev->pm4_buffer_offset + dev->pm4_rptr * 4),
+                                   &v)) {
             result = -1;
             break;
         }
@@ -706,6 +845,7 @@ rage128_pm4_pump(rage128_t *dev)
                    splice and the walk agree on the length */
                 wr = rage128_pm4_splice_ib(dev, wr, dev->pump_ib_addr,
                                            v & RAGE128_PM4_IW_INDSIZE_MASK, dev->pm4_rptr);
+                sp.n = 0;
             }
         } else {
             switch (RAGE128_PM4_TYPE(v)) {

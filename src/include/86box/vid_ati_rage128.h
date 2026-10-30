@@ -2045,6 +2045,20 @@ extern void rage128_2d_reset(rage128_t *dev);
 extern int  rage128_pm4_reg_read(rage128_t *dev, uint32_t off, uint32_t *val);
 extern int  rage128_pm4_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask);
 extern int  rage128_pm4_bus_read(rage128_t *dev, uint32_t bus_addr, uint32_t *val);
+
+/* One resolved page of a bus-mastered stream: the translation every
+   dword of a 4 KB page shares, held in a caller's local variable for one
+   transfer. n is 0 until the first read resolves it; a caller sets n to
+   0 to drop it. rage128_pm4_span_read reads the next dword from it, or
+   resolves again when the address is not the one the span expects. */
+typedef struct r128_bus_span {
+    uint32_t       next; /* bus address of the next dword               */
+    uint32_t       n;    /* dwords left in the page from next, 0 = none */
+    const uint8_t *p;    /* host bytes at next, NULL = read per dword   */
+    uint32_t       phys; /* table mode: physical address of next        */
+    int            mode; /* 0 aperture, 1 on-chip table, 2 misaligned   */
+} r128_bus_span_t;
+extern int  rage128_pm4_span_read(rage128_t *dev, r128_bus_span_t *sp, uint32_t bus_addr, uint32_t *val);
 extern void rage128_pm4_reset(rage128_t *dev);
 extern void rage128_pm4_thread_init(rage128_t *dev);
 extern void rage128_pm4_thread_close(rage128_t *dev);
