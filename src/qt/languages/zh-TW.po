@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-27 06:02+0000\n"
+"PO-Revision-Date: 2026-10-30 04:21+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -2207,7 +2207,7 @@ msgid "Enable backlight"
 msgstr "啟用背光"
 
 msgid "Invert colors"
-msgstr "反轉顏色"
+msgstr "反轉色彩"
 
 msgid "BIOS size"
 msgstr "BIOS 大小"
@@ -2519,7 +2519,7 @@ msgid "Dithering"
 msgstr "抖動"
 
 msgid "Enable NMI for CGA emulation"
-msgstr "啟用 CGA 模擬的 NMI"
+msgstr "為 CGA 模擬啟用 NMI"
 
 msgid "Voodoo type"
 msgstr "Voodoo 類型"
@@ -2732,7 +2732,7 @@ msgid "Composite"
 msgstr "複合視訊"
 
 msgid "True color"
-msgstr "真實色彩"
+msgstr "全彩"
 
 msgid "Old"
 msgstr "舊"
@@ -2825,7 +2825,7 @@ msgid "Grayscale"
 msgstr "灰階"
 
 msgid "Color"
-msgstr "顏色"
+msgstr "彩色"
 
 msgid "Scandinavian"
 msgstr "斯堪地那維亞語"
