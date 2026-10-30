@@ -27,6 +27,9 @@
 #include "qt_soundgain.hpp"
 #include "qt_preferences.hpp"
 #include "qt_mcadevicelist.hpp"
+#include "qt_memoryviewer.hpp"
+
+#include <QPointer>
 
 #include "qt_rendererstack.hpp"
 #include "qt_renderercommon.hpp"
@@ -473,6 +476,15 @@ MainWindow::MainWindow(QWidget *parent)
                 plat_pause(1);
             }
         }
+    });
+
+    /* Keys go to the guest only while the main window or a renderer is
+       active (keyReleaseEvent), so one held down as another of our windows
+       takes over, such as the memory viewer stopping at a breakpoint, would
+       never be released. Leaving the application is handled above. */
+    connect(qApp, &QGuiApplication::focusWindowChanged, this, [this](QWindow *window) {
+        if (window && !isMainWindowOrRendererActive())
+            keyboard_all_up();
     });
 
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
@@ -1695,6 +1707,13 @@ MainWindow::keyMatchesAccelerator(const QKeyEvent *ke, const char *name)
 bool
 MainWindow::eventFilter(QObject *receiver, QEvent *event)
 {
+    /* Keys typed into the memory viewer are its own, not the guest's. */
+    if ((event->type() == QEvent::KeyPress) || (event->type() == QEvent::KeyRelease) || (event->type() == QEvent::ShortcutOverride)) {
+        auto *widget = qobject_cast<QWidget *>(receiver);
+        if (widget && qobject_cast<MemoryViewer *>(widget->window()))
+            return QMainWindow::eventFilter(receiver, event);
+    }
+
     if (event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease) {
         auto      *ke   = static_cast<QKeyEvent *>(event);
         const bool down = event->type() == QEvent::KeyPress;
@@ -1790,7 +1809,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         }
     }
 
-    if (!main_window_blocked && !dopause && (!kbd_req_capture || mouse_capture)) {
+    if (!main_window_blocked && !dopause && (!kbd_req_capture || mouse_capture) && isMainWindowOrRendererActive()) {
 #if 0
         if (event->type() == QEvent::Shortcut) {
             auto shortcutEvent = (QShortcutEvent *) event;
@@ -1974,6 +1993,8 @@ MainWindow::showMessage_(int flags, const QString &header, const QString &messag
 void
 MainWindow::keyPressEvent(QKeyEvent *event)
 {
+    if (!isMainWindowOrRendererActive())
+        return;
     if (send_keyboard_input) {
 #ifdef Q_OS_MACOS
         processMacKeyboardInput(true, event);
@@ -1983,6 +2004,20 @@ MainWindow::keyPressEvent(QKeyEvent *event)
     }
 
     event->accept();
+}
+
+bool
+MainWindow::isMainWindowOrRendererActive() const
+{
+    if (QMainWindow::isActiveWindow())
+        return true;
+
+    for (const auto &renderer : renderers) {
+        if (renderer && renderer->isActiveWindow())
+            return true;
+    }
+
+    return false;
 }
 
 void
@@ -2000,6 +2035,8 @@ MainWindow::blitToWidget(int x, int y, int w, int h, int monitor_index)
 void
 MainWindow::keyReleaseEvent(QKeyEvent *event)
 {
+    if (!isMainWindowOrRendererActive())
+        return;
     if (event->key() == Qt::Key_Pause) {
         if (keyboard_recv_ui(0x38) && keyboard_recv_ui(0x138)) {
             plat_pause(dopause ^ 1);
@@ -2733,6 +2770,20 @@ MainWindow::on_actionMCA_devices_triggered()
 {
     if (const auto dlg = new MCADeviceList(this))
         dlg->exec();
+}
+
+void
+MainWindow::on_actionMemory_viewer_triggered()
+{
+    /* One viewer at a time: it owns the debugger while it is open. */
+    static QPointer<MemoryViewer> viewer;
+
+    if (!viewer) {
+        viewer = new MemoryViewer(this);
+        viewer->show();
+    }
+    viewer->raise();
+    viewer->activateWindow();
 }
 
 void

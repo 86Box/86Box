@@ -25,6 +25,7 @@
 #include <cstdio>
 
 #include <mutex>
+#include <chrono>
 #include <thread>
 #include <memory>
 #include <algorithm>
@@ -742,6 +743,45 @@ exit_pause(void)
 }
 #endif
 
+#ifdef Q_OS_LINUX
+/* libgamemode up to 1.8.1 aborts the process (dbus_connection_unref(NULL) is
+   fatal in libdbus) if it cannot connect to the session bus, which is the case
+   under sudo, so only use it if a session bus can be found like libdbus would. */
+static bool
+gamemode_session_bus_available(void)
+{
+    struct stat st;
+    char        path[4096];
+
+    /* sudo/su: the session bus belongs to another user */
+    if ((geteuid() == 0) || (geteuid() != getuid()))
+        return false;
+
+    const char *addr = getenv("DBUS_SESSION_BUS_ADDRESS");
+    if (addr && addr[0]) {
+        /* A unix:path= address must point to an existing socket. Other
+           transports (abstract sockets, TCP) cannot be checked cheaply. */
+        const char *addr_path = strstr(addr, "unix:path=");
+        if (!addr_path)
+            return true;
+        addr_path += 10;
+        size_t len = strcspn(addr_path, ",;");
+        if (len >= sizeof(path))
+            return false;
+        memcpy(path, addr_path, len);
+        path[len] = '\0';
+        return (stat(path, &st) == 0) && S_ISSOCK(st.st_mode);
+    }
+
+    /* Without an address, libdbus looks for $XDG_RUNTIME_DIR/bus owned by us. */
+    const char *runtime_dir = getenv("XDG_RUNTIME_DIR");
+    if (!runtime_dir || !runtime_dir[0])
+        return false;
+    snprintf(path, sizeof(path), "%s/bus", runtime_dir);
+    return (lstat(path, &st) == 0) && S_ISSOCK(st.st_mode) && (st.st_uid == getuid());
+}
+#endif
+
 void
 plat_pause(int p)
 {
@@ -770,10 +810,13 @@ plat_pause(int p)
 #endif
 
 #ifdef Q_OS_LINUX
-    if (p)
-        gamemode_request_end();
-    else
-        gamemode_request_start();
+    static const bool gamemode_available = gamemode_session_bus_available();
+    if (gamemode_available) {
+        if (p)
+            gamemode_request_end();
+        else
+            gamemode_request_start();
+    }
 #endif
 
     do_pause(p);
@@ -880,6 +923,25 @@ startblit()
     }
 
     blitmx.lock();
+}
+
+/* startblit(), but giving up after timeout_ms; nonzero if the lock is held.
+   For the UI thread, which must not wait on an emulation thread that may
+   itself be waiting on the UI thread. */
+int
+startblit_timeout(int timeout_ms)
+{
+    const auto deadline = std::chrono::steady_clock::now() + std::chrono::milliseconds(timeout_ms);
+
+    blitmx_contention++;
+    do {
+        if (blitmx.try_lock())
+            return 1;
+        std::this_thread::yield();
+    } while (std::chrono::steady_clock::now() < deadline);
+    blitmx_contention--;
+
+    return 0;
 }
 
 void

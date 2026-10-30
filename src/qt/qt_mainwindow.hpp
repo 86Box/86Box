@@ -145,6 +145,7 @@ private slots:
     void showMessage_(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool *done = nullptr);
 
     void on_actionMCA_devices_triggered();
+    void on_actionMemory_viewer_triggered();
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;
@@ -189,6 +190,7 @@ private:
     void updateShortcuts();
     void updatePowerOffAction();
     void refreshDisplayRatioActions();
+    bool isMainWindowOrRendererActive() const;
     void processKeyboardInput(bool down, uint32_t keycode);
 #ifdef Q_OS_MACOS
     uint32_t last_modifiers = 0;

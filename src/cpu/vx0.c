@@ -38,6 +38,7 @@
 #include <86box/ppi.h>
 #include <86box/timer.h>
 #include <86box/gdbstub.h>
+#include <86box/debugger.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 #include "x86_interrupt.h"
@@ -200,8 +201,9 @@ const uint8_t opf_0f[256]  = {      0,      0,      0,      0,      0,      0,  
                                OP_MRM, OP_MRM, OP_MRM, OP_MRM, OP_MRM, OP_MRM, OP_MRM, OP_MRM,   /* 18 */
                                     0,      0,      0,      0,      0,      0,      0,      0,   /* 20 */
                                OP_MRM,      0, OP_MRM,      0,      0,      0,      0,      0,   /* 28 */
-                               OP_MRM,      0, OP_MRM,      0,      0,      0,      0,      0,   /* 30 */
-                               OP_MRM,      0, OP_MRM,      0,      0,      0,      0,      0,   /* 38 */
+                               /* INS/EXT live at 31/33 (reg8, reg8) and 39/3B (reg8, imm4). */
+                                    0, OP_MRM,      0, OP_MRM,      0,      0,      0,      0,   /* 30 */
+                                    0, OP_MRM,      0, OP_MRM,      0,      0,      0,      0,   /* 38 */
                                     0,      0,      0,      0,      0,      0,      0,      0,   /* 40 */
                                     0,      0,      0,      0,      0,      0,      0,      0,   /* 48 */
                                     0,      0,      0,      0,      0,      0,      0,      0,   /* 50 */
@@ -373,6 +375,35 @@ sync_from_i8080(void)
     cpu_state.flags |= 1 << 1;
     cpu_state.flags |= emulated_processor.cf << 0;
     set_if(emulated_processor.iff);
+}
+
+/* Whether the V20/V30 is in 8080 emulation mode, and if so its 8080
+   registers as they are now (the x86 ones are only synced on the way out):
+   r gets A, B, C, D, E, H, L. For debuggers; changes nothing. */
+int
+vx0_i8080_state(uint16_t *pc, uint16_t *sp, uint8_t *r, uint8_t *flags)
+{
+    if (!is_nec || (cpu_state.flags & MD_FLAG))
+        return 0;
+
+    if (pc)
+        *pc = emulated_processor.pc;
+    if (sp)
+        *sp = emulated_processor.sp;
+    if (r) {
+        r[0] = emulated_processor.a;
+        r[1] = emulated_processor.b;
+        r[2] = emulated_processor.c;
+        r[3] = emulated_processor.d;
+        r[4] = emulated_processor.e;
+        r[5] = emulated_processor.h;
+        r[6] = emulated_processor.l;
+    }
+    if (flags)
+        *flags = (emulated_processor.sf << 7) | (emulated_processor.zf << 6) | (emulated_processor.hf << 4) |
+                 (emulated_processor.pf << 2) | 0x02 | emulated_processor.cf;
+
+    return 1;
 }
 
 void
@@ -4837,5 +4868,7 @@ check_completed:
         if (gdbstub_instruction())
             return;
 #endif
+        if (DEBUGGER_INSTRUCTION_PASS(completed))
+            return;
     }
 }

@@ -1233,6 +1233,22 @@ pfq_write(void)
         pfq_pos = pfq_size;
 }
 
+/* The bytes the BIU holds for the next instruction, oldest first: an opcode
+   already taken from the queue, then the queue. Changes nothing; for
+   debuggers, as the processor runs these bytes rather than memory's. */
+int
+biu_pfq_peek(uint8_t *buf, int max)
+{
+    int n = 0;
+
+    if (biu_queue_preload && (n < max))
+        buf[n++] = biu_preload_byte;
+    for (int i = 0; (i < pfq_pos) && (n < max); i++)
+        buf[n++] = pfq[i];
+
+    return n;
+}
+
 uint8_t
 biu_pfq_read(void)
 {

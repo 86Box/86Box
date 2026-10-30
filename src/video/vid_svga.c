@@ -1911,6 +1911,7 @@ svga_init(const device_t *info, svga_t *svga, void *priv, int memsize,
                         svga_write, NULL, NULL,
                         NULL, MEM_MAPPING_EXTERNAL, svga);
     }
+    svga_debug_add();
 
     timer_add(&svga->timer, svga_poll, svga, 1);
 
@@ -2301,6 +2302,100 @@ uint8_t
 svga_read_linear(uint32_t addr, void *priv)
 {
     return svga_read_common(addr, 1, priv);
+}
+
+/* For the memory viewer: the byte svga_read_common() returns in read mode 0,
+   found the same way but without loading the latches, taking wait states or
+   answering the XGA's memory probes. In read mode 1 the byte of the plane
+   read mode 0 would read is given instead of the colour compare. Cards whose
+   handlers bank and then call svga_read_linear() call this with linear set. */
+uint8_t *
+svga_debug_ptr_common(uint32_t addr, uint8_t linear, int write, svga_t *svga)
+{
+    int readplane = svga->readplane;
+
+    if (svga->adv_flags & FLAG_ADDR_BY8)
+        readplane = svga->gdcreg[4] & 7;
+
+    if (!linear) {
+        addr = svga_decode_addr(svga, addr, 0);
+        if (addr == 0xffffffff)
+            return NULL;
+    }
+
+    if (svga->adv_flags & FLAG_ADDR_BY16)
+        addr <<= 4;
+    else if (svga->adv_flags & FLAG_ADDR_BY8)
+        addr <<= 3;
+    else if ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) {
+        readplane = 0;
+    } else if (svga->chain4 && !svga->force_old_addr) {
+        readplane = addr & 3;
+        addr      = ((addr & 0xfffc) << 2) | ((addr & 0x30000) >> 14) | (addr & ~0x3ffff);
+    } else if (svga->chain2_read) {
+        readplane = (readplane & 2) | (addr & 1);
+        addr &= ~1;
+        addr <<= 2;
+    } else
+        addr <<= 2;
+
+    addr &= svga->decode_mask;
+    if (svga->translate_address)
+        addr = svga->translate_address(addr, svga);
+    if (addr >= svga->vram_max)
+        return NULL;
+    addr = (addr & svga->vram_mask) | readplane;
+
+    if (write) {
+        svga->changedvram[(addr & svga->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
+        svga->fullchange = 2;
+    }
+
+    return &svga->vram[addr & svga->vram_mask];
+}
+
+static uint8_t *
+svga_debug_ptr(uint32_t addr, int write, void *priv)
+{
+    return svga_debug_ptr_common(addr, 0, write, (svga_t *) priv);
+}
+
+static uint8_t *
+svga_debug_ptr_linear(uint32_t addr, int write, void *priv)
+{
+    return svga_debug_ptr_common(addr, 1, write, (svga_t *) priv);
+}
+
+/* As svga_readb_linear(). */
+static uint8_t *
+svga_debug_ptr_linear_fast(uint32_t addr, int write, void *priv)
+{
+    svga_t *svga = (svga_t *) priv;
+
+    if (!svga->fast)
+        return svga_debug_ptr_common(addr, 1, write, svga);
+
+    addr &= svga->decode_mask;
+    if (addr >= svga->vram_max)
+        return NULL;
+    addr &= svga->vram_mask;
+
+    if (write) {
+        svga->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
+        svga->fullchange = 2;
+    }
+
+    return &svga->vram[addr];
+}
+
+/* The memory viewer's way in through this file's handlers, on svga->mapping
+   and on the linear frame buffers that have the svga_t as their priv. */
+void
+svga_debug_add(void)
+{
+    mem_debug_add(svga_read, svga_write, svga_debug_ptr);
+    mem_debug_add(svga_read_linear, svga_write_linear, svga_debug_ptr_linear);
+    mem_debug_add(svga_readb_linear, svga_writeb_linear, svga_debug_ptr_linear_fast);
 }
 
 void

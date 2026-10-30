@@ -246,6 +246,15 @@ cga_write(uint32_t addr, uint8_t val, void *priv)
     cga_waitstates(cga);
 }
 
+/* For the memory viewer: no wait states, and no snow. */
+static uint8_t *
+cga_debug_ptr(uint32_t addr, UNUSED(int write), void *priv)
+{
+    cga_t *cga = (cga_t *) priv;
+
+    return &cga->vram[addr & DEVICE_VRAM_MASK];
+}
+
 uint8_t
 cga_read(uint32_t addr, void *priv)
 {
@@ -984,6 +993,9 @@ cga_poll(void *priv)
 void
 cga_init(cga_t *cga)
 {
+    /* For the memory viewer; here, as machines with the card built in map
+       the same handlers. */
+    mem_debug_add(cga_read, cga_write, cga_debug_ptr);
     timer_add(&cga->timer, cga_poll, cga, 1);
     cga->composite = 0;
 }

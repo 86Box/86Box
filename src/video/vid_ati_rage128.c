@@ -2840,7 +2840,7 @@ const device_t ati_rage128_pro_device = {
    Windows 98 and Windows 2000 INFs list as "Xpert 128" (see
    RAGE128_PCI_VENDOR in vid_ati_rage128_regs.h). */
 const device_t ati_xpert128_pci_device = {
-    .name          = "ATI Rage 128 (Xpert 128)",
+    .name          = "ATI Rage 128 GL PCI (Xpert 128)",
     .internal_name = "ati_xpert128_pci",
     .flags         = DEVICE_PCI,
     .local         = 0,
