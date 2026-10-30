@@ -6,6 +6,10 @@ name: Pull request builds
 #
 # The label name is also used in the concurrency group below, so keep both
 # in sync when renaming it.
+#
+# The macOS builds use the MacPorts installations cached by the MacPorts
+# cache workflow. Links to the builds are posted by the pull request build
+# links workflow, which can comment on pull requests from forks.
 
 on:
 
@@ -21,6 +25,7 @@ on:
       - "**/CMakeLists.txt"
       - "CMakePresets.json"
       - .ci/**
+      - .github/actions/setup-macports/**
       - .github/workflows/pr_builds.yml
       - vcpkg.json
       - "!**/Makefile*"
@@ -37,11 +42,31 @@ permissions:
 
 jobs:
 
+  # Determine the build ID once, so that it is the same across all builds of
+  # this run (including re-runs of failed builds, which reuse this output)
+  prepare:
+
+    name: Prepare build ID
+
+    if: github.event.action != 'labeled' || github.event.label.name == 'dev branch'
+
+    runs-on: ubuntu-latest
+
+    outputs:
+      build_id: ${{ steps.build_id.outputs.build_id }}
+
+    steps:
+      - name: Determine build ID
+        id: build_id
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: echo "build_id=pr$PR_NUMBER.$(date -u +%Y%m%d-%H%M)" >> "$GITHUB_OUTPUT"
+
   build:
 
     name: "${{ matrix.target.os }} ${{ matrix.target.arch }} ${{ matrix.preset }}"
 
-    if: github.event.action != 'labeled' || github.event.label.name == 'dev branch'
+    needs: prepare
 
     runs-on: ${{ matrix.target.runner }}
 
@@ -74,7 +99,8 @@ jobs:
             shell: bash
           # Jenkins makes a single universal build, which requires both a
           # native and an Intel MacPorts installation on one machine. Build
-          # each architecture on its own runner instead.
+          # each architecture on its own runner instead. Keep these in sync
+          # with the MacPorts cache workflow.
           - os: macOS
             arch: x86_64
             runner: macos-15-intel
@@ -85,6 +111,12 @@ jobs:
             shell: bash
 
     steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
       - name: Prepare MSYS2 environment
         if: matrix.target.os == 'Windows'
         uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 #v2.32.0
@@ -105,41 +137,23 @@ jobs:
             choco install 7zip -y --no-progress
           }
 
-      # build.sh expects a MacPorts installation. Unlike on Jenkins, binary
-      # archives are allowed (no "buildfromsource always" and no deployment
-      # target override) so that dependencies don't have to be built from
-      # source on every run.
-      - name: Install MacPorts
+      - name: Set up MacPorts
         if: matrix.target.os == 'macOS'
-        env:
-          MACPORTS_VERSION: 2.12.7
-          ARCH: ${{ matrix.target.arch }}
-        run: |
-          pkg="MacPorts-$MACPORTS_VERSION-15-Sequoia.pkg"
-          curl -fsSLO "https://github.com/macports/macports-base/releases/download/v$MACPORTS_VERSION/$pkg"
-          sudo installer -pkg "$pkg" -target /
-          rm -f "$pkg"
-          printf 'build_arch %s\nuniversal_archs\nui_interactive no\n' "$ARCH" | sudo tee -a /opt/local/etc/macports/macports.conf
-
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        uses: ./.github/actions/setup-macports
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          persist-credentials: false
+          arch: ${{ matrix.target.arch }}
 
-      # Only fixed strings, the pull request number and the commit hash end up
-      # in the build.sh arguments, as it evaluates its CMake flags with eval.
+      # Only fixed strings and the build ID (made of the pull request number
+      # and a timestamp) end up in the build.sh arguments, as it evaluates its
+      # CMake flags with eval.
       - name: Build
         id: build
         env:
           OS: ${{ matrix.target.os }}
           ARCH: ${{ matrix.target.arch }}
           PRESET: ${{ matrix.preset }}
-          PR_NUMBER: ${{ github.event.pull_request.number }}
-          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+          BUILD_ID: ${{ needs.prepare.outputs.build_id }}
         run: |
-          commit=$(printf '%s' "$HEAD_SHA" | cut -c 1-8)
-
           case $PRESET in
             Regular)
               slug=
@@ -151,7 +165,7 @@ jobs:
               ;;
           esac
 
-          package="86Box$slug-$OS-$ARCH-PR$PR_NUMBER-$commit"
+          package="86Box$slug-$OS-$ARCH-$BUILD_ID"
           echo "package=$package" >> "$GITHUB_OUTPUT"
 
           mkdir -p _output
@@ -159,7 +173,7 @@ jobs:
           status=0
           sh ../.ci/build.sh -b "$package" "$ARCH" $preset_flags \
             -D DYNAREC=ON -D QT=ON \
-            -D BUILD_TYPE=alpha -D "EMU_BUILD=PR #$PR_NUMBER ($commit)" || status=$?
+            -D BUILD_TYPE=alpha -D "EMU_BUILD=GitHub build $BUILD_ID" || status=$?
 
           # Like on Jenkins, status 50 means the macOS build succeeded but
           # could not be notarized

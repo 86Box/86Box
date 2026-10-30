@@ -1,0 +1,88 @@
+name: MacPorts cache
+
+# Refreshes the cached MacPorts installations used by the macOS builds of
+# the pull request builds workflow. Only caches saved on master are
+# available to all pull requests, so pull request builds never save one.
+
+on:
+
+  push:
+    branches:
+      - master
+    paths:
+      - .ci/dependencies_macports.txt
+      - .github/actions/setup-macports/**
+      - .github/workflows/macports_cache.yml
+
+  schedule:
+    - cron: "0 3 1 * *"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+
+  # Set up MacPorts from scratch and make a regular build, which installs all
+  # dependencies listed for build.sh, then save the installation
+  cache:
+
+    name: "macOS ${{ matrix.arch }}"
+
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep these in sync with the macOS targets of the pull request
+        # builds workflow
+        include:
+          - arch: x86_64
+            runner: macos-15-intel
+          - arch: arm64
+            runner: macos-15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up MacPorts
+        id: macports
+        uses: ./.github/actions/setup-macports
+        with:
+          arch: ${{ matrix.arch }}
+          restore: false
+
+      - name: Build
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          mkdir -p _output
+          cd _output
+          status=0
+          sh ../.ci/build.sh -b "86Box-macOS-$ARCH-cache" "$ARCH" -t --preset=regular -D CMAKE_BUILD_TYPE=Release \
+            -D DYNAREC=ON -D QT=ON -D BUILD_TYPE=alpha || status=$?
+
+          # Status 50 means the build succeeded but could not be notarized
+          if [ $status -ne 0 ] && [ $status -ne 50 ]; then
+            exit $status
+          fi
+
+      - name: Pack installation
+        env:
+          TARBALL: ${{ steps.macports.outputs.tarball }}
+        run: >-
+          sudo tar -C / -cf "$TARBALL"
+          --exclude opt/local/var/macports/build
+          --exclude opt/local/var/macports/distfiles
+          --exclude opt/local/var/macports/logs
+          opt/local
+
+      - name: Save installation
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.macports.outputs.tarball }}
+          key: ${{ steps.macports.outputs.cache-key-prefix }}${{ github.run_id }}
