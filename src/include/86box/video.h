@@ -688,6 +688,18 @@ enum {
     HD44780_COLOR_MAX
 };
 
+/* Nvidia */
+extern const device_t nv3_device_pci;
+extern const device_t nv3_device_agp;
+extern const device_t nv3t_device_pci;
+extern const device_t nv3t_device_agp;
+extern const device_t nv4_tnt_pci_device;
+extern const device_t nv4_tnt_agp_device;
+extern const device_t nv5_tnt2_pci_device;
+extern const device_t nv5_tnt2_agp_device;
+extern const device_t nv5_tnt2_ultra_pci_device;
+extern const device_t nv5_tnt2_ultra_agp_device;
+
 #endif
 
 #endif /*EMU_VIDEO_H*/

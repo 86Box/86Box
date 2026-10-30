@@ -1,0 +1,909 @@
+/*
+ * 86Box    A hypervisor and IBM PC system emulator that specializes in
+ *          running old operating systems and software designed for IBM
+ *          PC systems and compatibles from 1981 through fairly recent
+ *          system designs based on the PCI bus.
+ *
+ *          This file is part of the 86Box distribution.
+ *
+ *          NVIDIA RIVA TNT / TNT2 -- GPU lane span shader.
+ *
+ *          The kernel side of nv4_pgraph_3d_gpu.c: the CPU span shader
+ *          of nv4_pgraph_3d.c (nv4_3d_span and its helpers), ported
+ *          operation for operation so the bytes it writes are the
+ *          CPU's. Floats are `precise` (no contraction, as the CPU file
+ *          is built with -ffp-contract=off), the one divide is the
+ *          correctly rounded fdiv_cr, and float-to-int conversions go
+ *          through f2i, which both sides define the same way for
+ *          values out of range.
+ *
+ *          A workgroup covers 64 pixels of one framebuffer row; each
+ *          invocation owns one pixel and walks the row's spans in
+ *          submission order, shading the ones that cover it, so
+ *          overlapping triangles land in draw order with no barriers.
+ *          Bytes are written with atomics: neighbouring 16-bit pixels
+ *          share a word. A batch whose rows alias (V_SERIAL) is one
+ *          workgroup walking every span in submission order, its
+ *          invocations taking a span's pixels, with a barrier after each
+ *          span.
+ *
+ *          Specialization constants (V_*) compile out what a run of
+ *          spans does not use (nv4_pgraph_3d_gpu.c picks the variant
+ *          from its draw states); the defaults are the generic
+ *          pipeline, which does everything.
+ *
+ *          Regenerate the SPIR-V header with
+ *          scripts/regen-nv4-gpu-spv.sh after changing this file.
+ *
+ * Authors: Marcos Alves, <xeon4d@gmail.com>
+ *
+ *          Copyright 2026 Marcos Alves
+ */
+#version 450
+#extension GL_GOOGLE_include_directive : require
+
+layout(local_size_x = 64) in;
+
+layout(constant_id = 0) const int V_TEX    = 2; /* texture stages a state may use: 0, 1 or 2 */
+layout(constant_id = 1) const int V_DX6    = 1; /* combiners (the DX6 class) */
+layout(constant_id = 2) const int V_DST    = 1; /* blending or write masks read the destination */
+layout(constant_id = 3) const int V_Z      = 1; /* depth test, depth buffer or stencil */
+layout(constant_id = 4) const int V_SERIAL = 0; /* one workgroup, every span in order */
+
+#include "../../../vid_ati_rage128_gpu_fdiv.glsl"
+
+/* Records: nv4_gpu_tex_t, nv4_gpu_state_t, nv4_3d_tri_t in
+   nv4_pgraph_3d_gpu.c, every field 4 bytes, same order. */
+struct tex_t {
+    int   on, fmt, bpp, wlog, hlog, levels, wrap_u, wrap_v, min_f, mag_f;
+    float lod_bias;
+    int   center, ckey;
+    uint  base;
+    uint  level_off[12];
+};
+
+struct state_t {
+    uint  col_base, z_base, col_pitch, z_pitch, col_lim, z_lim;
+    int   col_fmt, bpp, z_on, dx6;
+    float origin;
+    uint  color_key;
+    int   texblend;
+    uint  comb_a0, comb_a1, comb_c0, comb_c1, factor;
+    int   flat_, persp, spec, fog, ablend, sblend, dblend;
+    uint  fog_color;
+    int   atest, afunc, aref, zen, zfunc, zwrite, zfloat, dither;
+    int   wr_a, wr_r, wr_g, wr_b;
+    int   sten, sfunc, sref, smask_r, smask_w, sop_fail, sop_zfail, sop_zpass, swrite;
+    int   fill;     /* 2D rectangle fills: the triangle's c[] (nv4_3d_fill_words) */
+    int   swz, swz_wl, swz_hl; /* a swizzled target, 2^wl by 2^hl */
+    tex_t tex[2];
+};
+
+#define AT_Z   0
+#define AT_Q   1
+#define AT_U0  2
+#define AT_V0  3
+#define AT_U1  4
+#define AT_V1  5
+#define AT_R   6
+#define AT_G   7
+#define AT_B   8
+#define AT_A   9
+#define AT_SR  10
+#define AT_SG  11
+#define AT_SB  12
+#define AT_FOG 13
+
+struct tri_t {
+    int   state;
+    float x0, y0;
+    float c[14], dx[14], dy[14];
+};
+
+layout(std430, binding = 0) buffer Vram { uint vram[]; };
+layout(std430, binding = 1) readonly buffer Texm { uint texm[]; };
+layout(std430, binding = 2) readonly buffer States { state_t st[]; };
+layout(std430, binding = 3) readonly buffer Tris { tri_t tris[]; };
+layout(std430, binding = 4) readonly buffer Spans { ivec4 spans[]; }; /* y, x0, x1, tri */
+layout(std430, binding = 5) readonly buffer Rows { uvec2 rows[]; };   /* first span, count */
+
+layout(push_constant) uniform PC {
+    uint nrows;     /* rows of this run (V_SERIAL: spans) */
+    uint vram_mask;
+    uint first;     /* its first row (V_SERIAL: span) */
+} pc;
+
+uint g_si; /* state of the span being shaded */
+uint g_ti; /* its triangle */
+#define S st[g_si]
+#define T tris[g_ti]
+
+/* ---- memory ---- */
+uint
+vbyte(uint a)
+{
+    a &= pc.vram_mask;
+    return (vram[a >> 2] >> ((a & 3u) * 8u)) & 0xffu;
+}
+
+/* n bytes at a, little-endian; one load when they share a word */
+uint
+vread(uint a, int n)
+{
+    uint r = 0u;
+
+    a &= pc.vram_mask;
+    if ((n == 2) && ((a & 3u) != 3u))
+        return (vram[a >> 2] >> ((a & 3u) * 8u)) & 0xffffu;
+    if ((n == 4) && ((a & 3u) == 0u))
+        return vram[a >> 2];
+    for (int i = 0; i < n; i++)
+        r |= vbyte(a + uint(i)) << (8 * i);
+    return r;
+}
+
+/* Other invocations write the other bytes of a word: merge with
+   atomics, or store a word this pixel owns whole. */
+void
+vwrite(uint a, int n, uint v)
+{
+    a &= pc.vram_mask;
+    if ((n == 2) && ((a & 3u) != 3u)) {
+        uint sh = (a & 3u) * 8u;
+
+        atomicAnd(vram[a >> 2], ~(0xffffu << sh));
+        atomicOr(vram[a >> 2], (v & 0xffffu) << sh);
+        return;
+    }
+    if ((n == 4) && ((a & 3u) == 0u)) {
+        vram[a >> 2] = v;
+        return;
+    }
+    for (int i = 0; i < n; i++) {
+        uint b  = (a + uint(i)) & pc.vram_mask;
+        uint sh = (b & 3u) * 8u;
+
+        atomicAnd(vram[b >> 2], ~(0xffu << sh));
+        atomicOr(vram[b >> 2], ((v >> (8 * i)) & 0xffu) << sh);
+    }
+}
+
+uint
+tread(uint a, int n)
+{
+    uint r = 0u;
+
+    if (n == 1)
+        return (texm[a >> 2] >> ((a & 3u) * 8u)) & 0xffu;
+    if ((n == 2) && ((a & 3u) != 3u))
+        return (texm[a >> 2] >> ((a & 3u) * 8u)) & 0xffffu;
+    if ((n == 4) && ((a & 3u) == 0u))
+        return texm[a >> 2];
+    for (int i = 0; i < n; i++) {
+        uint b = a + uint(i);
+
+        r |= ((texm[b >> 2] >> ((b & 3u) * 8u)) & 0xffu) << (8 * i);
+    }
+    return r;
+}
+
+/* ---- small helpers, as nv4_pgraph_3d.c ---- */
+int
+f2i(float f)
+{
+    return ((f > -2147483648.0) && (f < 2147483648.0)) ? int(f) : int(0x80000000u);
+}
+
+int
+clamp255(int v)
+{
+    return (v < 0) ? 0 : ((v > 255) ? 255 : v);
+}
+
+int
+mul8(int a, int b)
+{
+    int t = a * b + 0x80;
+
+    return (t + (t >> 8)) >> 8;
+}
+
+ivec4 /* r, g, b, a */
+rgba(uint c)
+{
+    return ivec4(int((c >> 16) & 0xffu), int((c >> 8) & 0xffu), int(c & 0xffu), int(c >> 24));
+}
+
+/* ---- texturing ---- */
+uint
+part1by1(uint x)
+{
+    x &= 0x0000ffffu;
+    x = (x | (x << 8)) & 0x00ff00ffu;
+    x = (x | (x << 4)) & 0x0f0f0f0fu;
+    x = (x | (x << 2)) & 0x33333333u;
+    x = (x | (x << 1)) & 0x55555555u;
+    return x;
+}
+
+/* nv4_swizzle: u and v bits interleave, u first, while both have bits;
+   the larger dimension's remaining bits follow. u < 2^wl, v < 2^hl. */
+uint
+swizzle(uint u, uint v, int wl, int hl)
+{
+    int  m  = min(wl, hl);
+    uint mk = (1u << m) - 1u;
+    uint hi = (wl > hl) ? (u >> m) : (v >> m);
+
+    return part1by1(u & mk) | (part1by1(v & mk) << 1) | (hi << (2 * m));
+}
+
+uint
+texel_argb(uint v, int fmt)
+{
+    uint r, g, b, a;
+
+    switch (fmt) {
+        case 1:
+            return (v << 24) | (v * 0x010101u);
+        case 2:
+        case 3:
+            r = (v >> 10) & 0x1fu;
+            g = (v >> 5) & 0x1fu;
+            b = v & 0x1fu;
+            a = ((fmt == 3) || ((v & 0x8000u) != 0u)) ? 0xffu : 0u;
+            return (a << 24) | (((r << 3) | (r >> 2)) << 16) | (((g << 3) | (g >> 2)) << 8) | ((b << 3) | (b >> 2));
+        case 4:
+            return (((v >> 12) * 0x11u) << 24) | ((((v >> 8) & 0xfu) * 0x11u) << 16) | ((((v >> 4) & 0xfu) * 0x11u) << 8)
+                | ((v & 0xfu) * 0x11u);
+        case 5:
+            r = (v >> 11) & 0x1fu;
+            g = (v >> 5) & 0x3fu;
+            b = v & 0x1fu;
+            return 0xff000000u | (((r << 3) | (r >> 2)) << 16) | (((g << 2) | (g >> 4)) << 8) | ((b << 3) | (b >> 2));
+        case 6:
+            return v;
+        default:
+            return v | 0xff000000u;
+    }
+}
+
+int
+wrap(int i, int n, int mode, inout bool border)
+{
+    switch (mode) {
+        case 2:
+            i &= 2 * n - 1;
+            return (i >= n) ? (2 * n - 1 - i) : i;
+        case 3:
+            return (i < 0) ? 0 : ((i >= n) ? n - 1 : i);
+        case 4:
+            if ((i < 0) || (i >= n))
+                border = true;
+            return (i < 0) ? 0 : ((i >= n) ? n - 1 : i);
+        default:
+            return i & (n - 1);
+    }
+}
+
+uint
+texel(int n, int l, int iu, int iv, uint key, inout bool killed, bool cankill)
+{
+    int  wl     = (S.tex[n].wlog - l > 0) ? S.tex[n].wlog - l : 0;
+    int  hl     = (S.tex[n].hlog - l > 0) ? S.tex[n].hlog - l : 0;
+    int  bpp    = S.tex[n].bpp;
+    bool border = false;
+    uint raw;
+
+    iu = wrap(iu, 1 << wl, S.tex[n].wrap_u, border);
+    iv = wrap(iv, 1 << hl, S.tex[n].wrap_v, border);
+    if (border)
+        return 0u;
+    raw = tread(S.tex[n].base + S.tex[n].level_off[l] + swizzle(uint(iu), uint(iv), wl, hl) * uint(bpp), bpp);
+    if ((S.tex[n].ckey != 0) && cankill && (raw == (key & ((bpp == 4) ? 0xffffffffu : ((bpp == 2) ? 0xffffu : 0xffu)))))
+        killed = true;
+    return texel_argb(raw, S.tex[n].fmt);
+}
+
+uint
+lerp4(uint a, uint b, int f)
+{
+    uint r = 0u;
+
+    for (int s = 0; s < 32; s += 8) {
+        int ca = int((a >> s) & 0xffu);
+        int cb = int((b >> s) & 0xffu);
+
+        r |= uint((ca * (256 - f) + cb * f) >> 8) << s;
+    }
+    return r;
+}
+
+uint
+sample_level(int n, int l, float u, float v, bool linear, uint key, inout bool killed, bool cankill)
+{
+    int           wl = (S.tex[n].wlog - l > 0) ? S.tex[n].wlog - l : 0;
+    int           hl = (S.tex[n].hlog - l > 0) ? S.tex[n].hlog - l : 0;
+    precise float fu = u * float(1 << wl);
+    precise float fv = v * float(1 << hl);
+
+    if (!linear)
+        return texel(n, l, f2i(floor(fu)), f2i(floor(fv)), key, killed, cankill);
+    if (S.tex[n].center != 0) {
+        fu = fu - 0.5;
+        fv = fv - 0.5;
+    }
+    {
+        int           iu = f2i(floor(fu));
+        int           iv = f2i(floor(fv));
+        precise float ru = (fu - float(iu)) * 256.0;
+        precise float rv = (fv - float(iv)) * 256.0;
+        int           au = f2i(ru);
+        int           av = f2i(rv);
+        uint          t00 = texel(n, l, iu, iv, key, killed, cankill);
+        uint          t10 = texel(n, l, iu + 1, iv, key, killed, false);
+        uint          t01 = texel(n, l, iu, iv + 1, key, killed, false);
+        uint          t11 = texel(n, l, iu + 1, iv + 1, key, killed, false);
+
+        return lerp4(lerp4(t00, t10, au), lerp4(t01, t11, au), av);
+    }
+}
+
+uint
+sample_tex(int n, float u, float v, float lod_in, uint key, inout bool killed)
+{
+    precise float lod = lod_in + S.tex[n].lod_bias;
+    int           filt;
+
+    if ((lod <= 0.0) || (S.tex[n].levels == 1)) {
+        int f = (lod <= 0.0) ? S.tex[n].mag_f : S.tex[n].min_f;
+
+        return sample_level(n, 0, u, v, (f != 1) && (f != 3), key, killed, true);
+    }
+    filt = S.tex[n].min_f;
+    if ((filt == 3) || (filt == 5)) {
+        precise float lh = lod + 0.5;
+        int           l  = f2i(lh);
+
+        if (l >= S.tex[n].levels)
+            l = S.tex[n].levels - 1;
+        return sample_level(n, l, u, v, filt == 5, key, killed, true);
+    }
+    if ((filt == 4) || (filt == 6)) {
+        int           l  = f2i(lod);
+        precise float fr = (lod - float(l)) * 256.0;
+        int           f  = f2i(fr);
+
+        if (l >= S.tex[n].levels - 1)
+            return sample_level(n, S.tex[n].levels - 1, u, v, filt == 6, key, killed, true);
+        {
+            uint a = sample_level(n, l, u, v, filt == 6, key, killed, true);
+            uint b = sample_level(n, l + 1, u, v, filt == 6, key, killed, false);
+
+            return lerp4(a, b, f);
+        }
+    }
+    return sample_level(n, 0, u, v, filt == 2, key, killed, true);
+}
+
+float
+log2_bits(float r)
+{
+    uint u = floatBitsToUint(r);
+
+    precise float e = float(int(u >> 23) - 127);
+    precise float m = float(u & 0x7fffffu) * (1.0 / 8388608.0);
+
+    return e + m;
+}
+
+/* nv4_lod; iq is 1/q, worked out once per pixel */
+float
+lod_of(int au, int av, float q, float iq, float uq, float vq, int wl, int hl)
+{
+    precise float iq2  = iq * iq;
+    precise float dudx = (T.dx[au] * q - uq * T.dx[AT_Q]) * iq2 * float(1 << wl);
+    precise float dvdx = (T.dx[av] * q - vq * T.dx[AT_Q]) * iq2 * float(1 << hl);
+    precise float dudy = (T.dy[au] * q - uq * T.dy[AT_Q]) * iq2 * float(1 << wl);
+    precise float dvdy = (T.dy[av] * q - vq * T.dy[AT_Q]) * iq2 * float(1 << hl);
+    precise float rx   = dudx * dudx + dvdx * dvdx;
+    precise float ry   = dudy * dudy + dvdy * dvdy;
+    precise float r    = (rx > ry) ? rx : ry;
+    precise float h;
+
+    if (!(r > 0.0))
+        return -16.0;
+    h = 0.5 * log2_bits(r);
+    return h;
+}
+
+/* ---- combining ---- */
+ivec4
+texblend(int mode, ivec4 t, ivec4 d, bool tex_alpha)
+{
+    ivec4 o = d;
+
+    switch (mode) {
+        case 1:
+        case 7:
+            o = t;
+            break;
+        case 2:
+            o.r = mul8(t.r, d.r);
+            o.g = mul8(t.g, d.g);
+            o.b = mul8(t.b, d.b);
+            o.a = tex_alpha ? t.a : d.a;
+            break;
+        case 3:
+            o.r = mul8(t.r, t.a) + mul8(d.r, 255 - t.a);
+            o.g = mul8(t.g, t.a) + mul8(d.g, 255 - t.a);
+            o.b = mul8(t.b, t.a) + mul8(d.b, 255 - t.a);
+            o.a = d.a;
+            break;
+        case 4:
+            o.r = mul8(t.r, d.r);
+            o.g = mul8(t.g, d.g);
+            o.b = mul8(t.b, d.b);
+            o.a = mul8(t.a, d.a);
+            break;
+        case 5:
+            if ((t.a & 0x80) != 0) {
+                o.r = t.r;
+                o.g = t.g;
+                o.b = t.b;
+            }
+            break;
+        case 6:
+            if ((t.a & 0x80) != 0) {
+                o.r = mul8(t.r, d.r);
+                o.g = mul8(t.g, d.g);
+                o.b = mul8(t.b, d.b);
+            }
+            break;
+        case 8:
+            o.r = clamp255(t.r + d.r);
+            o.g = clamp255(t.g + d.g);
+            o.b = clamp255(t.b + d.b);
+            break;
+        default:
+            break;
+    }
+    return o;
+}
+
+ivec3
+combine(uint ctl, bool alpha, ivec4 src[8])
+{
+    ivec3 v[4];
+    ivec3 o;
+
+    for (int a = 0; a < 4; a++) {
+        int   sel = int((ctl >> (a * 8 + 2)) & ((a == 3) ? 7u : 0x3fu));
+        bool  inv = ((ctl >> (a * 8)) & 1u) != 0u;
+        bool  rep = (((ctl >> (a * 8 + 1)) & 1u) != 0u) || alpha;
+        ivec4 s   = ((sel >= 1) && (sel <= 7)) ? src[sel] : src[1];
+
+        v[a] = rep ? ivec3(s.a) : s.rgb;
+        if (inv)
+            v[a] = ivec3(255) - v[a];
+    }
+    for (int c = 0; c < 3; c++) {
+        int p0  = mul8(v[0][c], v[1][c]);
+        int p1  = mul8(v[2][c], v[3][c]);
+        int sum = p0 + p1;
+
+        switch (ctl >> 29) {
+            case 2u:
+                sum *= 2;
+                break;
+            case 3u:
+                sum *= 4;
+                break;
+            case 4u:
+                sum -= 128;
+                break;
+            case 5u:
+                sum = ((src[4].a & 0x80) != 0) ? p1 : p0;
+                break;
+            case 6u:
+                sum = 255 - sum;
+                break;
+            case 7u:
+                sum = (sum - 128) * 2;
+                break;
+            default:
+                break;
+        }
+        o[c] = clamp255(sum);
+    }
+    return o;
+}
+
+bool
+cmpf(int func, uint a, uint ref)
+{
+    switch (func) {
+        case 1:
+            return false;
+        case 2:
+            return a < ref;
+        case 3:
+            return a == ref;
+        case 4:
+            return a <= ref;
+        case 5:
+            return a > ref;
+        case 6:
+            return a != ref;
+        case 7:
+            return a >= ref;
+        default:
+            return true;
+    }
+}
+
+int
+blend_factor(int f, int sa, int da, int sc, int dc, bool is_alpha)
+{
+    switch (f) {
+        case 1:
+            return 0;
+        case 3:
+            return sc;
+        case 4:
+            return 255 - sc;
+        case 5:
+            return sa;
+        case 6:
+            return 255 - sa;
+        case 7:
+            return da;
+        case 8:
+            return 255 - da;
+        case 9:
+            return dc;
+        case 10:
+            return 255 - dc;
+        case 11:
+            return is_alpha ? 255 : ((sa < 255 - da) ? sa : 255 - da);
+        default:
+            return 255;
+    }
+}
+
+int
+stencil_op(int op, int s, int ref)
+{
+    switch (op) {
+        case 2:
+            return 0;
+        case 3:
+            return ref;
+        case 4:
+            return (s < 255) ? s + 1 : 255;
+        case 5:
+            return (s > 0) ? s - 1 : 0;
+        case 6:
+            return ~s & 0xff;
+        case 7:
+            return (s + 1) & 0xff;
+        case 8:
+            return (s - 1) & 0xff;
+        default:
+            return s;
+    }
+}
+
+const int dither4[16] = int[16](0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5);
+
+uint
+pack_color(ivec4 c, int x, int y)
+{
+    int fmt = S.col_fmt;
+
+    if ((S.bpp == 2) && (S.dither != 0)) {
+        int d = dither4[(y & 3) * 4 + (x & 3)] >> 1;
+
+        c.r = clamp255(c.r + d - 4);
+        c.g = clamp255(c.g + ((fmt == 5) ? (d >> 1) - 2 : d - 4));
+        c.b = clamp255(c.b + d - 4);
+    }
+    switch (fmt) {
+        case 2:
+        case 3:
+            return uint(((c.r >> 3) << 10) | ((c.g >> 3) << 5) | (c.b >> 3)) | ((fmt == 3) ? 0x8000u : 0u);
+        case 4:
+            return uint(((c.r >> 3) << 10) | ((c.g >> 3) << 5) | (c.b >> 3) | ((c.a & 0x80) << 8));
+        case 5:
+            return uint(((c.r >> 3) << 11) | ((c.g >> 2) << 5) | (c.b >> 3));
+        case 9:
+        case 10:
+            return (uint(c.a >> 1) << 24) | uint((c.r << 16) | (c.g << 8) | c.b) | ((fmt == 10) ? 0x80000000u : 0u);
+        case 12:
+            return (uint(c.a) << 24) | uint((c.r << 16) | (c.g << 8) | c.b);
+        case 11:
+            return 0xff000000u | uint((c.r << 16) | (c.g << 8) | c.b);
+        default:
+            return uint((c.r << 16) | (c.g << 8) | c.b);
+    }
+}
+
+ivec4
+unpack_color(uint v)
+{
+    ivec4 c;
+    int   fmt = S.col_fmt;
+
+    switch (fmt) {
+        case 2:
+        case 3:
+        case 4:
+            c.r = int((((v >> 10) & 0x1fu) * 0x21u) >> 2);
+            c.g = int((((v >> 5) & 0x1fu) * 0x21u) >> 2);
+            c.b = int(((v & 0x1fu) * 0x21u) >> 2);
+            c.a = (fmt == 4) ? (((v & 0x8000u) != 0u) ? 255 : 0) : 255;
+            break;
+        case 5:
+            c.r = int((((v >> 11) & 0x1fu) * 0x21u) >> 2);
+            c.g = int((((v >> 5) & 0x3fu) * 0x41u) >> 4);
+            c.b = int(((v & 0x1fu) * 0x21u) >> 2);
+            c.a = 255;
+            break;
+        default:
+            c = rgba(v);
+            if ((fmt == 9) || (fmt == 10))
+                c.a = int((((v >> 24) & 0x7fu) << 1) | ((v >> 30) & 1u));
+            else if (fmt != 12)
+                c.a = 255;
+            break;
+    }
+    return c;
+}
+
+/* One texture stage; white when off. */
+ivec4
+tex_stage(int n, int au, int av, float q, float iq, float uq, float vq, inout bool killed)
+{
+    if ((n >= V_TEX) || (S.tex[n].on == 0))
+        return ivec4(255);
+    {
+        precise float u   = uq * iq;
+        precise float v   = vq * iq;
+        float         lod = lod_of(au, av, (S.persp != 0) ? q : 1.0, iq, uq, vq, S.tex[n].wlog, S.tex[n].hlog);
+
+        return rgba(sample_tex(n, u, v, lod, S.color_key, killed));
+    }
+}
+
+/* nv4_3d_pix: pixel x,y of a surface of <pitch>, or of the swizzled
+   target (nv4_swizzle keeps the bits below wl and hl) */
+uint
+pix(uint pitch, int x, int y)
+{
+    if (S.swz != 0)
+        return swizzle(uint(x) & ((1u << S.swz_wl) - 1u), uint(y) & ((1u << S.swz_hl) - 1u), S.swz_wl, S.swz_hl) * uint(S.bpp);
+    return uint(y) * pitch + uint(x) * uint(S.bpp);
+}
+
+/* ---- one pixel: nv4_3d_span's loop body ---- */
+void
+shade(int x, int y)
+{
+    precise float px = float(x) + S.origin - T.x0;
+    precise float py = float(y) + S.origin - T.y0;
+    precise float at[14];
+    int           bpp  = S.bpp;
+    uint          ca   = S.col_base + pix(S.col_pitch, x, y);
+    uint          za   = S.z_base + pix(S.z_pitch, x, y);
+    uint          zold = 0u, znew = 0u, depth = 0u;
+    int           sten = 0;
+    bool          killed = false;
+    ivec4         d, spec, outc, src[8];
+
+    if (ca + uint(bpp) - 1u > S.col_lim)
+        return;
+    if (S.fill != 0) {
+        uint fv = floatBitsToUint(T.c[0]);
+
+        /* NV4_FILL_ROP (c[13]): (d & A) | (~d & B), A and B by the
+           pattern bit (NV4_ROPFILL_*) */
+        if (floatBitsToUint(T.c[13]) == 1u) {
+            uint fl = floatBitsToUint(T.c[6]);
+            uint k  = 0u;
+            uint dv;
+
+            if ((fl & 0x10u) != 0u) {
+                uint sh = fl & 3u;
+                uint pi = (sh == 1u) ? (uint(x) & 63u) : ((sh == 2u) ? (uint(y) & 63u) : (((uint(y) & 7u) << 3) | (uint(x) & 7u)));
+
+                k = (floatBitsToUint(T.c[4u + (pi >> 5)]) >> (pi & 31u)) & 1u;
+                if ((fl & ((k != 0u) ? 0x08u : 0x04u)) != 0u)
+                    return;
+            }
+            dv = vread(ca, bpp);
+            fv = (dv & floatBitsToUint(T.c[k * 2u])) | (~dv & floatBitsToUint(T.c[k * 2u + 1u]));
+        }
+        vwrite(ca, bpp, fv);
+        return;
+    }
+    for (int i = 0; i < 14; i++)
+        at[i] = T.c[i] + T.dx[i] * px + T.dy[i] * py;
+    if (at[AT_Q] <= 0.0)
+        at[AT_Q] = 1e-6;
+
+    /* depth (none of it without V_Z: no depth buffer, test or stencil) */
+    if (V_Z != 0) {
+        precise float w = (S.zfloat != 0) ? (1.0 - at[AT_Q]) : at[AT_Z];
+        precise float sc;
+
+        w     = (w < 0.0) ? 0.0 : ((w > 1.0) ? 1.0 : w);
+        sc    = w * ((bpp == 2) ? 65535.0 : 16777215.0);
+        depth = uint(sc);
+    }
+    if ((V_Z != 0) && (S.z_on != 0) && (za + uint(bpp) - 1u <= S.z_lim))
+        zold = vread(za, bpp);
+    sten = (bpp == 4) ? int(zold >> 24) : 0;
+
+    /* colors */
+    d    = ivec4(clamp255(f2i(at[AT_R])), clamp255(f2i(at[AT_G])), clamp255(f2i(at[AT_B])), clamp255(f2i(at[AT_A])));
+    spec = ivec4(clamp255(f2i(at[AT_SR])), clamp255(f2i(at[AT_SG])), clamp255(f2i(at[AT_SB])), clamp255(f2i(at[AT_FOG])));
+
+    /* textures, one call per stage so every index is a constant */
+    {
+        /* 1/q, which the CPU works out per stage and again per LOD: the
+           same correctly rounded quotient every time, so once here
+           (1/1 is 1 without perspective) */
+        precise float iq = 1.0;
+
+        if ((V_TEX > 0) && (S.persp != 0) && ((S.tex[0].on != 0) || (S.tex[1].on != 0)))
+            iq = fdiv_cr(1.0, at[AT_Q]);
+        src[5] = tex_stage(0, AT_U0, AT_V0, at[AT_Q], iq, at[AT_U0], at[AT_V0], killed);
+        src[6] = tex_stage(1, AT_U1, AT_V1, at[AT_Q], iq, at[AT_U1], at[AT_V1], killed);
+    }
+    if (killed)
+        return;
+
+    if ((V_DX6 != 0) && (S.dx6 != 0)) {
+        ivec4 inp = d;
+        ivec3 co, ao;
+
+        src[0] = ivec4(0);
+        src[1] = ivec4(0);
+        src[2] = rgba(S.factor);
+        src[3] = d;
+        src[7] = ivec4(0);
+        for (int stg = 0; stg < 2; stg++) {
+            src[4] = inp;
+            co     = combine((stg != 0) ? S.comb_c1 : S.comb_c0, false, src);
+            ao     = combine((stg != 0) ? S.comb_a1 : S.comb_a0, true, src);
+            inp    = ivec4(co, ao.x);
+        }
+        outc = inp;
+    } else if ((V_TEX > 0) && (S.tex[0].on != 0)) {
+        int f = S.tex[0].fmt;
+
+        outc = texblend(S.texblend, src[5], d, (f == 2) || (f == 4) || (f == 6) || (f == 1));
+    } else
+        outc = d;
+
+    if (S.spec != 0) {
+        outc.r = clamp255(outc.r + spec.r);
+        outc.g = clamp255(outc.g + spec.g);
+        outc.b = clamp255(outc.b + spec.b);
+    }
+    if (S.fog != 0) {
+        ivec4 fc = rgba(S.fog_color);
+        int   f  = spec.a;
+
+        outc.r = mul8(outc.r, f) + mul8(fc.r, 255 - f);
+        outc.g = mul8(outc.g, f) + mul8(fc.g, 255 - f);
+        outc.b = mul8(outc.b, f) + mul8(fc.b, 255 - f);
+    }
+
+    if ((S.atest != 0) && !cmpf(S.afunc, uint(outc.a), uint(S.aref)))
+        return;
+
+    /* stencil and depth */
+    if ((V_Z != 0) && (S.sten != 0)) {
+        bool pass = cmpf(S.sfunc, uint(S.sref & S.smask_r), uint(sten & S.smask_r));
+
+        if (!pass) {
+            if (S.swrite != 0) {
+                int ns = stencil_op(S.sop_fail, sten, S.sref);
+
+                sten = (sten & ~S.smask_w) | (ns & S.smask_w);
+                zold = (zold & 0x00ffffffu) | (uint(sten) << 24);
+                vwrite(za, 4, zold);
+            }
+            return;
+        }
+    }
+    if (V_Z != 0) {
+        uint zcur  = (bpp == 2) ? zold : (zold & 0xffffffu);
+        bool zpass = (S.zen == 0) || cmpf(S.zfunc, depth, zcur);
+
+        if ((S.sten != 0) && (S.swrite != 0)) {
+            int ns = stencil_op(zpass ? S.sop_zpass : S.sop_zfail, sten, S.sref);
+
+            sten = (sten & ~S.smask_w) | (ns & S.smask_w);
+        }
+        znew = (bpp == 2) ? depth : ((depth & 0xffffffu) | (uint(sten) << 24));
+        if (!zpass) {
+            if ((S.sten != 0) && (S.swrite != 0))
+                vwrite(za, 4, (zold & 0xffffffu) | (uint(sten) << 24));
+            return;
+        }
+        if ((S.z_on != 0) && ((S.zwrite != 0) || ((S.sten != 0) && (S.swrite != 0))) && (za + uint(bpp) - 1u <= S.z_lim)) {
+            if (S.zwrite == 0)
+                znew = (bpp == 2) ? zold : ((zold & 0xffffffu) | (uint(sten) << 24));
+            vwrite(za, bpp, znew);
+        }
+    }
+
+    /* framebuffer */
+    {
+        ivec4 dst = ivec4(0);
+
+        if ((V_DST != 0) && ((S.ablend != 0) || !((S.wr_r != 0) && (S.wr_g != 0) && (S.wr_b != 0) && (S.wr_a != 0))))
+            dst = unpack_color(vread(ca, bpp));
+        if ((V_DST != 0) && (S.ablend != 0)) {
+            int sfr = blend_factor(S.sblend, outc.a, dst.a, outc.r, dst.r, false);
+            int sfg = blend_factor(S.sblend, outc.a, dst.a, outc.g, dst.g, false);
+            int sfb = blend_factor(S.sblend, outc.a, dst.a, outc.b, dst.b, false);
+            int sfa = blend_factor(S.sblend, outc.a, dst.a, outc.a, dst.a, true);
+            int dfr = blend_factor(S.dblend, outc.a, dst.a, outc.r, dst.r, false);
+            int dfg = blend_factor(S.dblend, outc.a, dst.a, outc.g, dst.g, false);
+            int dfb = blend_factor(S.dblend, outc.a, dst.a, outc.b, dst.b, false);
+            int dfa = blend_factor(S.dblend, outc.a, dst.a, outc.a, dst.a, true);
+
+            outc.r = clamp255(mul8(outc.r, sfr) + mul8(dst.r, dfr));
+            outc.g = clamp255(mul8(outc.g, sfg) + mul8(dst.g, dfg));
+            outc.b = clamp255(mul8(outc.b, sfb) + mul8(dst.b, dfb));
+            outc.a = clamp255(mul8(outc.a, sfa) + mul8(dst.a, dfa));
+        }
+        if (V_DST != 0) {
+            if (S.wr_r == 0)
+                outc.r = dst.r;
+            if (S.wr_g == 0)
+                outc.g = dst.g;
+            if (S.wr_b == 0)
+                outc.b = dst.b;
+            if (S.wr_a == 0)
+                outc.a = dst.a;
+        }
+        vwrite(ca, bpp, pack_color(outc, x, y));
+    }
+}
+
+void
+main()
+{
+    uvec2 row;
+    int   x;
+
+    if (V_SERIAL != 0) {
+        for (uint k = 0u; k < pc.nrows; k++) {
+            ivec4 sp = spans[pc.first + k];
+
+            g_ti = uint(sp.w);
+            g_si = uint(tris[g_ti].state);
+            for (int px = sp.y + int(gl_LocalInvocationID.x); px < sp.z; px += 64)
+                shade(px, sp.x);
+            memoryBarrierBuffer();
+            barrier();
+        }
+        return;
+    }
+    row = rows[pc.first + gl_WorkGroupID.x];
+    x   = int(gl_WorkGroupID.y) * 64 + int(gl_LocalInvocationID.x);
+
+    for (uint k = 0u; k < row.y; k++) {
+        ivec4 sp = spans[row.x + k];
+
+        if ((x < sp.y) || (x >= sp.z))
+            continue;
+        g_ti = uint(sp.w);
+        g_si = uint(tris[g_ti].state);
+        shade(x, sp.x);
+    }
+}
