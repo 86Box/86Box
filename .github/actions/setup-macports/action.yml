@@ -53,20 +53,14 @@ runs:
         key: ${{ steps.key.outputs.prefix }}${{ github.run_id }}
         restore-keys: ${{ steps.key.outputs.prefix }}
 
-    - name: Extract cached installation
-      if: steps.restore.outputs.cache-matched-key != ''
-      shell: bash
-      env:
-        TARBALL: ${{ runner.temp }}/macports.tar
-      run: |
-        sudo tar -C / -xpf "$TARBALL"
-        rm -f "$TARBALL"
-
     # Unlike on Jenkins, binary archives are allowed (no "buildfromsource
     # always" and no deployment target override) so that dependencies don't
     # have to be built from source.
+    #
+    # This also runs on a cache hit, as the installer creates the macports
+    # user that MacPorts drops privileges to, which the cached installation
+    # does not include.
     - name: Install MacPorts
-      if: steps.restore.outputs.cache-matched-key == ''
       shell: bash
       env:
         GH_TOKEN: ${{ github.token }}
@@ -81,6 +75,16 @@ runs:
         sudo installer -pkg "$RUNNER_TEMP/macports.pkg" -target /
         rm -f "$RUNNER_TEMP/macports.pkg"
         printf 'build_arch %s\nuniversal_archs\nui_interactive no\n' "$ARCH" | sudo tee -a /opt/local/etc/macports/macports.conf
+
+    # Extract over the fresh installation, replacing it
+    - name: Extract cached installation
+      if: steps.restore.outputs.cache-matched-key != ''
+      shell: bash
+      env:
+        TARBALL: ${{ runner.temp }}/macports.tar
+      run: |
+        sudo tar -C / -xpf "$TARBALL"
+        rm -f "$TARBALL"
 
     # build.sh patches Qt to enable Vulkan support, which MoltenVK requires,
     # but that only takes effect when Qt is built from source. Build qtbase
