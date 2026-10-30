@@ -584,10 +584,15 @@ prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int
         }
     }
 
+    int pc = cpu_prefetch_cycles;
+    if (cpu_prefetch_cycles == cpu_rom_prefetch_cycles &&
+        (!is486 || !cpu_cache_int_enabled || (is_p6 && !(msr.mtrr_deftype & 0x800))))
+        pc *= cpu_prefetch_width;
+
     /* Fill up prefetch queue */
     while (prefetch_bytes < 0) {
         prefetch_bytes += cpu_prefetch_width;
-        cycles -= cpu_prefetch_cycles;
+        cycles -= pc;
     }
 
     /* Subtract cycles used for memory access by instruction */
@@ -595,7 +600,7 @@ prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int
 
     while (instr_cycles >= cpu_prefetch_cycles) {
         prefetch_bytes += cpu_prefetch_width;
-        instr_cycles -= cpu_prefetch_cycles;
+        instr_cycles -= pc;
     }
 
     prefetch_prefixes = 0;

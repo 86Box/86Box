@@ -702,8 +702,10 @@ cpu_set(void)
 
     if (cpu_s->rspeed <= 8000000)
         cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
+    else if (is486)
+        cpu_rom_prefetch_cycles =  (int) (6.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
     else
-        cpu_rom_prefetch_cycles = cpu_s->rspeed / 1000000;
+        cpu_rom_prefetch_cycles =  (int) (8.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
 
     cpu_set_isa_pci_div(0);
     cpu_set_pci_speed(0);
@@ -2075,6 +2077,13 @@ cpu_set_isa_speed(int speed)
         cpu_isa_speed = 8000000;
     else
         cpu_isa_speed = cpu_busspeed;
+
+    if (cpu_s->rspeed <= 8000000)
+        cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
+    else if (is486)
+        cpu_rom_prefetch_cycles =  (int) (6.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
+    else
+        cpu_rom_prefetch_cycles =  (int) (8.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
 
     pc_speed_changed();
 
