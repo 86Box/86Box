@@ -2523,6 +2523,22 @@ rdisk_sparq_identify(const ide_t *ide, const int ide_has_dma)
     }
 }
 
+/* DMA section copied from the generic identify in order to keep any compatibility/features */
+static void
+rdisk_superdisk_120_identify(const ide_t *ide, const int ide_has_dma)
+{
+    /* Firmware */
+    ide_padstr((char *) (ide->buffer + 23), "0512C105", 8);
+    /* Model */
+    ide_padstr((char *) (ide->buffer + 27), "LS-120 CSMO   05              UHD Floppy", 40);
+
+    if (ide_has_dma) {
+        ide->buffer[80] = 0x70;    /* Supported ATA versions : ATA/ATAPI-4 ATA/ATAPI-6 */
+        /* Maximum ATA revision supported : ATA/ATAPI-6 T13 1410D revision 3a */
+        ide->buffer[81] = 0x19;
+    }
+}
+
 static void
 rdisk_identify(const ide_t *ide, const int ide_has_dma)
 {
@@ -2552,6 +2568,8 @@ rdisk_identify(const ide_t *ide, const int ide_has_dma)
         rdisk_syjet_identify(ide, ide_has_dma);
     else if (rdisk_drives[rdisk->id].type == RDISK_TYPE_SPARQ_1GB)
         rdisk_sparq_identify(ide, ide_has_dma);
+    else if (rdisk_drives[rdisk->id].type == RDISK_TYPE_SUPERDISK_120)
+        rdisk_superdisk_120_identify(ide, ide_has_dma);
     else
         rdisk_generic_identify(ide, ide_has_dma, rdisk);
 }
