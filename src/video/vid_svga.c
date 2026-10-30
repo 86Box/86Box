@@ -1940,6 +1940,13 @@ svga_decode_addr(svga_t *svga, uint32_t addr, int write)
 {
     int memory_map_mode = (svga->gdcreg[6] >> 2) & 3;
 
+    /* Misc Output bit 1 (RAM Enable) clear: the card does not decode its
+       display memory window. Windows 98 multi-monitor support relies on this
+       to verify a secondary VGA card's legacy memory is off before it lets
+       the card decode its PCI memory. */
+    if (!(svga->miscout & 0x02))
+        return 0xffffffff;
+
     addr &= 0x1ffff;
 
     switch (memory_map_mode) {
