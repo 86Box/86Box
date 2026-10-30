@@ -200,8 +200,9 @@ const uint8_t opf_0f[256]  = {      0,      0,      0,      0,      0,      0,  
                                OP_MRM, OP_MRM, OP_MRM, OP_MRM, OP_MRM, OP_MRM, OP_MRM, OP_MRM,   /* 18 */
                                     0,      0,      0,      0,      0,      0,      0,      0,   /* 20 */
                                OP_MRM,      0, OP_MRM,      0,      0,      0,      0,      0,   /* 28 */
-                               OP_MRM,      0, OP_MRM,      0,      0,      0,      0,      0,   /* 30 */
-                               OP_MRM,      0, OP_MRM,      0,      0,      0,      0,      0,   /* 38 */
+                               /* INS/EXT live at 31/33 (reg8, reg8) and 39/3B (reg8, imm4). */
+                                    0, OP_MRM,      0, OP_MRM,      0,      0,      0,      0,   /* 30 */
+                                    0, OP_MRM,      0, OP_MRM,      0,      0,      0,      0,   /* 38 */
                                     0,      0,      0,      0,      0,      0,      0,      0,   /* 40 */
                                     0,      0,      0,      0,      0,      0,      0,      0,   /* 48 */
                                     0,      0,      0,      0,      0,      0,      0,      0,   /* 50 */
