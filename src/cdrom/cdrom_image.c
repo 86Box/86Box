@@ -2912,6 +2912,10 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
     }
 
     image_log(img->log, "mds_decrypt_track_data(): Decrypting MDS...\n");
+
+    fseeko64(*fp, 0, SEEK_END);
+    const uint64_t file_size = ftello64(*fp);
+
     /*
        If we are here, them we have already determined in
        image_load_mds() that the version is 2.x.
@@ -2939,9 +2943,13 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
 
         image_log(img->log, "mds_decrypt_track_data(): MDX footer is %" PRIi64 " bytes at offset %016" PRIX64 "\n", mdx_size_1, mdx_offset);
 
+        if ((mdx_size_1 < 0x40) || (mdx_size_1 > file_size) || (mdx_offset > (file_size - mdx_size_1)))
+            return mds_decrypt_error(img, mdsfile, fp);
+
         offset = mdx_offset + (mdx_size_1 - 0x40);
         image_log(img->log, "mds_decrypt_track_data(): MDX offset is %016" PRIX64 "\n", offset);
-    }
+    } else if ((offset <= 0x30) || (offset > file_size))
+        return mds_decrypt_error(img, mdsfile, fp);
 
     fseek(*fp, offset, SEEK_SET);
 
@@ -2952,8 +2960,9 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
         return mds_decrypt_error(img, mdsfile, fp);
     image_log(img->log, "mds_decrypt_track_data(): Read the first data buffer\n");
 
-    PCRYPTO_INFO ci;
-    decode1(data1, NULL, &ci);
+    PCRYPTO_INFO ci = NULL;
+    if ((decode1(data1, NULL, &ci) != 0) || (ci == NULL))
+        return mds_decrypt_error(img, mdsfile, fp);
     image_log(img->log, "data1: %02X %02X %02X %02X\n", data1[0], data1[1], data1[2], data1[3]);
     image_log(img->log, "mds_decrypt_track_data(): Decoded the first data buffer\n");
 
@@ -2973,15 +2982,23 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
     fseek(*fp, data2Offset, SEEK_SET);
 
     u8 *data2 = (u8 *) calloc(1, data2Size);
-    ret = fread(data2, 1, data2Size, *fp);
-    if (ret != data2Size)
+    if (data2 == NULL)
         return mds_decrypt_error(img, mdsfile, fp);
+    ret = fread(data2, 1, data2Size, *fp);
+    if (ret != data2Size) {
+        free(data2);
+        return mds_decrypt_error(img, mdsfile, fp);
+    }
     image_log(img->log, "mds_decrypt_track_data(): Read the second data buffer\n");
 
     DecryptBlock(data2, data2Size, 0, 0, 4, ci);
     image_log(img->log, "mds_decrypt_track_data(): Decoded the second data buffer\n");
 
-    u8 *mdxHeader = (u8 *) calloc(1, decSize + 0x12);
+    u8 *mdxHeader = (u8 *) calloc(1, (size_t) decSize + 0x12);
+    if (mdxHeader == NULL) {
+        free(data2);
+        return mds_decrypt_error(img, mdsfile, fp);
+    }
 
     z_stream infstream;
     infstream.zalloc = Z_NULL;
@@ -2996,11 +3013,14 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
 
     inflate(&infstream, Z_NO_FLUSH);
     inflateEnd(&infstream);
+    free(data2);
 
     fseek(*fp, 0, SEEK_SET);
     ret = fread(mdxHeader, 1, 0x12, *fp);
-    if (ret != 0x12)
+    if (ret != 0x12) {
+        free(mdxHeader);
         return mds_decrypt_error(img, mdsfile, fp);
+    }
 
     u8 medium_type = getU8(mdxHeader + offsetof(MDX_Header, medium_type));
     int isDVD = 1;
@@ -3013,6 +3033,12 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
     encryptInfo.ctr = 1;
 
     u32 keyBlockOff = getU32(mdxHeader + offsetof(MDX_Header, encryption_block_offset));
+
+    /* decode1() works on a 512-byte block. */
+    if (keyBlockOff && (((uint64_t) keyBlockOff + 0x200) > ((uint64_t) decSize + 0x12))) {
+        free(mdxHeader);
+        return mds_decrypt_error(img, mdsfile, fp);
+    }
 
     if (keyBlockOff) {
         image_log(img->log, "Encryption detected\n");
@@ -3054,6 +3080,7 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
             *fp = NULL;
 #endif
 
+            free(mdxHeader);
             return 0;
         }
 
@@ -3078,7 +3105,12 @@ mds_decrypt_track_data(cd_image_t *img, const char *mdsfile, FILE **fp)
     image_log(img->log, "\nDumping header into %s... ", nvr_path(temp_file));
 
     *fp = plat_fopen64(nvr_path(temp_file), "wb");
-    fwrite(mdxHeader, 1, decSize + 0x12, *fp);
+    if (*fp == NULL) {
+        free(mdxHeader);
+        return 0;
+    }
+    fwrite(mdxHeader, 1, (size_t) decSize + 0x12, *fp);
+    free(mdxHeader);
 
     fclose(*fp);
     *fp = NULL;
