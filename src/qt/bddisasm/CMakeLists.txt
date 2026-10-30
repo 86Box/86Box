@@ -25,5 +25,9 @@ set_target_properties(bddisasm PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF C_
 target_compile_definitions(bddisasm PUBLIC BDDISASM_HAS_VSNPRINTF BDDISASM_HAS_MEMSET)
 target_include_directories(bddisasm PRIVATE bddisasm/include)
 target_include_directories(bddisasm SYSTEM PUBLIC inc)
-# Upstream code, left as it is.
-target_compile_options(bddisasm PRIVATE $<$<C_COMPILER_ID:Clang,AppleClang>:-Wno-incompatible-pointer-types-discards-qualifiers>)
+# Upstream code, left as it is: bdx86_decoder.c passes an ND_IDBE ** where a
+# const ND_IDBE ** is expected, a warning on Clang and an error on GCC 14+.
+target_compile_options(bddisasm PRIVATE
+    $<$<C_COMPILER_ID:Clang,AppleClang>:-Wno-incompatible-pointer-types-discards-qualifiers>
+    $<$<C_COMPILER_ID:GNU>:-Wno-incompatible-pointer-types>
+)
