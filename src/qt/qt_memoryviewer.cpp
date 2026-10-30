@@ -15,6 +15,8 @@
  */
 #include "qt_memoryviewer.hpp"
 
+#include <algorithm>
+
 #include <QApplication>
 #include <QCheckBox>
 #include <QClipboard>
@@ -141,7 +143,7 @@ MemoryHexView::goTo(uint32_t addr)
     const uint32_t row = addr / BYTES_PER_ROW;
     /* Put the address a few rows down from the top, for context. */
     int64_t top = (int64_t) row - 2;
-    verticalScrollBar()->setValue((int) qBound<int64_t>(0, top, verticalScrollBar()->maximum()));
+    verticalScrollBar()->setValue((int) std::clamp<int64_t>(top, 0, verticalScrollBar()->maximum()));
     refresh();
 }
 
@@ -153,14 +155,14 @@ MemoryHexView::ensureVisible(uint32_t addr)
     if (row < top)
         verticalScrollBar()->setValue((int) row);
     else if (row >= (top + visibleRows()))
-        verticalScrollBar()->setValue((int) qMin<int64_t>(row - visibleRows() + 1, verticalScrollBar()->maximum()));
+        verticalScrollBar()->setValue((int) std::min<int64_t>(row - visibleRows() + 1, verticalScrollBar()->maximum()));
 }
 
 void
 MemoryHexView::refresh()
 {
     const uint32_t start = topAddr();
-    const uint32_t len   = (uint32_t) qMin<uint64_t>((uint64_t) visibleRows() * BYTES_PER_ROW, 0x100000000ULL - start);
+    const uint32_t len   = (uint32_t) std::min<uint64_t>((uint64_t) visibleRows() * BYTES_PER_ROW, 0x100000000ULL - start);
 
     QVector<uint8_t> data(len);
     QVector<uint8_t> cls(len);
@@ -317,7 +319,7 @@ MemoryHexView::mousePressEvent(QMouseEvent *event)
 void
 MemoryHexView::moveSelection(int64_t delta)
 {
-    const int64_t a = qBound<int64_t>(0, (int64_t) sel_ + delta, 0xffffffffLL);
+    const int64_t a = std::clamp<int64_t>((int64_t) sel_ + delta, 0, 0xffffffffLL);
     sel_            = (uint32_t) a;
     nibble_         = 0;
     ensureVisible(sel_);
@@ -1067,7 +1069,7 @@ MemoryViewer::onDump(uint32_t start)
     progress.setMinimumDuration(500);
 
     while (done < len) {
-        const uint32_t n = (uint32_t) qMin<uint64_t>(chunk, len - done);
+        const uint32_t n = (uint32_t) std::min<uint64_t>(chunk, len - done);
         if (!lock()) {
             QApplication::processEvents();
             continue;
