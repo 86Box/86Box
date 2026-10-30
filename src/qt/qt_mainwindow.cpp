@@ -1984,6 +1984,8 @@ MainWindow::showMessage_(int flags, const QString &header, const QString &messag
 void
 MainWindow::keyPressEvent(QKeyEvent *event)
 {
+    if (!isActiveWindow())
+        return;
     if (send_keyboard_input) {
 #ifdef Q_OS_MACOS
         processMacKeyboardInput(true, event);
@@ -2010,6 +2012,8 @@ MainWindow::blitToWidget(int x, int y, int w, int h, int monitor_index)
 void
 MainWindow::keyReleaseEvent(QKeyEvent *event)
 {
+    if (!isActiveWindow())
+        return;
     if (event->key() == Qt::Key_Pause) {
         if (keyboard_recv_ui(0x38) && keyboard_recv_ui(0x138)) {
             plat_pause(dopause ^ 1);
