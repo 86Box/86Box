@@ -1,0 +1,177 @@
+name: Pull request builds
+
+# Builds pull requests for all platforms with the same build script as
+# Jenkins (.ci/build.sh). Dev branch builds are only made for pull requests
+# with the "dev branch" label.
+#
+# The label name is also used in the concurrency group below, so keep both
+# in sync when renaming it.
+
+on:
+
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - labeled
+    paths:
+      - src/**
+      - cmake/**
+      - "**/CMakeLists.txt"
+      - "CMakePresets.json"
+      - .ci/**
+      - .github/workflows/pr_builds.yml
+      - vcpkg.json
+      - "!**/Makefile*"
+
+# Cancel superseded runs for the same pull request. Adding any label other
+# than the dev branch one does not build anything, so it gets a unique group
+# so as to not cancel a build in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ (github.event.action != 'labeled' || github.event.label.name == 'dev branch') && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+
+  build:
+
+    name: "${{ matrix.target.os }} ${{ matrix.target.arch }} ${{ matrix.preset }}"
+
+    if: github.event.action != 'labeled' || github.event.label.name == 'dev branch'
+
+    runs-on: ${{ matrix.target.runner }}
+
+    defaults:
+      run:
+        shell: ${{ matrix.target.shell }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: ${{ fromJSON(contains(github.event.pull_request.labels.*.name, 'dev branch') && '["Regular", "Dev"]' || '["Regular"]') }}
+        target:
+          - os: Windows
+            arch: "64"
+            msystem: UCRT64
+            runner: windows-2022
+            shell: msys2 {0}
+          - os: Windows
+            arch: ARM64
+            msystem: CLANGARM64
+            runner: windows-11-arm
+            shell: msys2 {0}
+          - os: Linux
+            arch: x86_64
+            runner: ubuntu-26.04
+            shell: bash
+          - os: Linux
+            arch: arm64
+            runner: ubuntu-26.04-arm
+            shell: bash
+          # Jenkins makes a single universal build, which requires both a
+          # native and an Intel MacPorts installation on one machine. Build
+          # each architecture on its own runner instead.
+          - os: macOS
+            arch: x86_64
+            runner: macos-15-intel
+            shell: bash
+          - os: macOS
+            arch: arm64
+            runner: macos-15
+            shell: bash
+
+    steps:
+      - name: Prepare MSYS2 environment
+        if: matrix.target.os == 'Windows'
+        uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 #v2.32.0
+        with:
+          release: true
+          update: true
+          msystem: ${{ matrix.target.msystem }}
+          install: >-
+            git
+            make
+
+      # build.sh packages Windows builds with the 7-Zip from Program Files
+      - name: Install 7-Zip
+        if: matrix.target.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "C:\Program Files\7-Zip\7z.exe")) {
+            choco install 7zip -y --no-progress
+          }
+
+      # build.sh expects a MacPorts installation. Unlike on Jenkins, binary
+      # archives are allowed (no "buildfromsource always" and no deployment
+      # target override) so that dependencies don't have to be built from
+      # source on every run.
+      - name: Install MacPorts
+        if: matrix.target.os == 'macOS'
+        env:
+          MACPORTS_VERSION: 2.12.7
+          ARCH: ${{ matrix.target.arch }}
+        run: |
+          pkg="MacPorts-$MACPORTS_VERSION-15-Sequoia.pkg"
+          curl -fsSLO "https://github.com/macports/macports-base/releases/download/v$MACPORTS_VERSION/$pkg"
+          sudo installer -pkg "$pkg" -target /
+          rm -f "$pkg"
+          printf 'build_arch %s\nuniversal_archs\nui_interactive no\n' "$ARCH" | sudo tee -a /opt/local/etc/macports/macports.conf
+
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      # Only fixed strings, the pull request number and the commit hash end up
+      # in the build.sh arguments, as it evaluates its CMake flags with eval.
+      - name: Build
+        id: build
+        env:
+          OS: ${{ matrix.target.os }}
+          ARCH: ${{ matrix.target.arch }}
+          PRESET: ${{ matrix.preset }}
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          HEAD_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          commit=$(printf '%s' "$HEAD_SHA" | cut -c 1-8)
+
+          case $PRESET in
+            Regular)
+              slug=
+              preset_flags="-t --preset=regular -D CMAKE_BUILD_TYPE=Release"
+              ;;
+            Dev)
+              slug=-Dev
+              preset_flags="-t --preset=development -D CMAKE_BUILD_TYPE=Release"
+              ;;
+          esac
+
+          package="86Box$slug-$OS-$ARCH-PR$PR_NUMBER-$commit"
+          echo "package=$package" >> "$GITHUB_OUTPUT"
+
+          mkdir -p _output
+          cd _output
+          status=0
+          sh ../.ci/build.sh -b "$package" "$ARCH" $preset_flags \
+            -D DYNAREC=ON -D QT=ON \
+            -D BUILD_TYPE=alpha -D "EMU_BUILD=PR #$PR_NUMBER ($commit)" || status=$?
+
+          # Like on Jenkins, status 50 means the macOS build succeeded but
+          # could not be notarized
+          if [ $status -eq 50 ]; then
+            echo "::warning::The macOS build was not notarized."
+          elif [ $status -ne 0 ]; then
+            exit $status
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          path: _output/${{ steps.build.outputs.package }}.*
+          archive: false
+          if-no-files-found: error
