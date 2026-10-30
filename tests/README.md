@@ -17,6 +17,44 @@ Try to match your code's filename and append the type of test it is.
 
 ## Summary of current tests
 
+# CPU external interrupt polling
+
+Build `cpu_interrupt_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^CpuInterrupt\.' --output-on-failure`.
+The tests compare CPU-facing PIC polling with the real controller's pending
+predicate across cascaded, non-cascaded and 8018x configurations, and check
+APIC live-source and legacy-fallback arbitration with local APIC stubs.
+They do not emulate interrupt delivery or measure host performance.
+
+# Dynarec SMC reuse tracking
+
+Build `codegen_reuse_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^CodegenReuse\.' --output-on-failure`.
+The tests check that the byte-sized reuse mask requires exactly the configured
+number of right shifts, stays zero after payment, and preserves the restored
+and unrolled block thresholds. They do not execute generated code or measure
+host performance.
+
+# Dynarec register shifts by CL
+
+Build `codegen_shift_cl_tests` with `BUILD_TESTING=ON` and `DYNAREC=ON`, then run
+`ctest --test-dir build -R '^CodegenShiftCl\.' --output-on-failure`.
+The tests use the production translators for all register operands and
+supported shift/rotate encodings at 8, 16 and 32 bits. They check translation
+with zero and nonzero compile-time counts, including the first instruction
+in a block, and verify a local zero-count branch and conservative lazy-flag
+state at the join. Carry rotates retain their existing fallback.
+These are IR-generation checks, not generated-code execution tests.
+
+# MMU page translation
+
+Build `mmu_translation_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^PagingModes/MmuTranslationTest\.' --output-on-failure`.
+The tests link the production memory implementation and exercise ordinary and
+PAE page walks, accessed/dirty updates, missing entries, supervisor write
+protection, user permissions, large pages and preservation of prior aborts.
+These are translation/state checks, not host-performance measurements.
+
 # Network packet buffering
 
 Build `network_queue_tests` with `BUILD_TESTING=ON`, then run

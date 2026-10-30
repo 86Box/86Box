@@ -1423,6 +1423,8 @@ build_link_routine(codeblock_t *block)
     lx_abs(block, 0, 0, 0x89, REG_RCX, &cpu_fetch_device);
     rx_rr(block, 0, 0, 0xff, 0, REG_RCX);                       /*INC ECX*/
     rx_rm(block, 0, 0, 0x88, REG_RCX, REG_RDI, LINK_BLOCK(used)); /*MOV block->used, CL*/
+    /*Linked entries bypass the dispatcher's SMC reuse countdown.*/
+    rx_rm(block, 0, 0, 0xd0, 5, REG_RDI, LINK_BLOCK(runs_left)); /*SHR byte, 1*/
     rx_bytes(block, jmp_r15, 3);
 
     /*Miss: the block's own epilogue, RAX still the slots*/
