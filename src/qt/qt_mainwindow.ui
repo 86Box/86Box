@@ -817,7 +817,7 @@
   </action>
   <action name="actionMemory_viewer">
    <property name="text">
-    <string>Memory &amp;viewer…</string>
+    <string>Memory &amp;viewer</string>
    </property>
   </action>
   <action name="actionShow_non_primary_monitors">
