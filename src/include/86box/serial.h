@@ -153,6 +153,7 @@ typedef struct serial_s {
     uint8_t txsr_empty;
     uint8_t msr_set;
     uint8_t irq_state;
+    uint8_t irq_direct; /* The interrupt output goes straight to the IRQ, not through OUT2. */
 
     uint16_t dlab;
     uint16_t base_address;
@@ -254,6 +255,7 @@ extern void      serial_devices_reset(void);
 extern void      serial_remove(serial_t *dev);
 extern void      serial_setup(serial_t *dev, uint16_t addr, uint8_t irq);
 extern void      serial_irq(serial_t *dev, uint8_t irq);
+extern void      serial_set_irq_direct(serial_t *dev, int direct);
 extern void      serial_write_fifo(serial_t *dev, uint8_t dat);
 extern void      serial_set_next_inst(int ni);
 extern void      serial_standalone_init(void);

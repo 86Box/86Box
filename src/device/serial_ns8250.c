@@ -144,7 +144,20 @@ serial_update_ints(serial_t *dev)
         }
     }
 
-    serial_do_irq(dev, !(dev->iir & 0x01) && ((dev->mctrl & 8) || ((dev->type == SERIAL_8250_PCJR_3F8) || (dev->type == SERIAL_8250_PCJR_2F8))));
+    serial_do_irq(dev, !(dev->iir & 0x01) && ((dev->mctrl & 8) || dev->irq_direct));
+}
+
+/*
+   Whether the interrupt output goes straight to the IRQ, as on the PCjr or
+   where a chip connects the UART itself, rather than through OUT2, which on
+   a PC's serial port is the IRQ enable. A direct interrupt does not depend
+   on OUT2.
+ */
+void
+serial_set_irq_direct(serial_t *dev, int direct)
+{
+    dev->irq_direct = !!direct;
+    serial_update_ints(dev);
 }
 
 static void
@@ -686,7 +699,7 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                     dev->be->rcr(dev->be->priv);
                 }
             }
-            if (!(val & 8) && (dev->mctrl & 8))
+            if (!(val & 8) && (dev->mctrl & 8) && !dev->irq_direct)
                 serial_do_irq(dev, 0);
             if ((dev->be != NULL) && (dev->be->dtr != NULL) && ((val ^ dev->mctrl) & 1))
                 dev->be->dtr(dev->be->priv, val & 1);
@@ -1164,10 +1177,14 @@ serial_init(const device_t *info)
         /* Default to 1200,N,7. */
         dev->dlab = 96;
         dev->fcr  = 0x06;
-        if ((info->local == SERIAL_8250_PCJR_3F8) || (info->local == SERIAL_8250_PCJR_2F8))
-            dev->clock_src = 1789500.0;
-        else
-            dev->clock_src = 1843200.0;
+        /* The PCjr's UART is wired straight to its IRQ. */
+        if ((info->local == SERIAL_8250_PCJR_3F8) || (info->local == SERIAL_8250_PCJR_2F8)) {
+            dev->clock_src  = 1789500.0;
+            dev->irq_direct = 1;
+        } else {
+            dev->clock_src  = 1843200.0;
+            dev->irq_direct = 0;
+        }
         timer_add(&dev->transmit_timer, serial_transmit_timer, dev, 0);
         timer_add(&dev->timeout_timer, serial_timeout_timer, dev, 0);
         timer_add(&dev->receive_timer, serial_receive_timer, dev, 0);
