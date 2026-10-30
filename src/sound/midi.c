@@ -26,10 +26,30 @@
 #include <86box/device.h>
 #include <86box/midi.h>
 #include <86box/sound.h>
+#include <86box/timer.h>
+#include <86box/thread.h>
 #include <86box/plat.h>
 
-#define MIDI_SYSEX_MAX_ITERATIONS 1000
 #define MIDI_SYSEX_TIMEOUT_MS 5000
+
+/* MIDI input arrives on the host MIDI API's thread, but the handlers raise
+   IRQ's and change device state, so it is queued here and delivered by a
+   timer on the emulation thread. */
+#define MIDI_IN_QUEUE_SIZE 256
+#define MIDI_IN_POLL_US    320.0 /* one byte at 31250 baud */
+
+typedef struct midi_in_queue_entry_t {
+    uint8_t *data;
+    uint32_t len;
+} midi_in_queue_entry_t;
+
+static midi_in_queue_entry_t midi_in_queue[MIDI_IN_QUEUE_SIZE];
+static int                   midi_in_queue_head        = 0;
+static int                   midi_in_queue_used        = 0;
+static mutex_t              *midi_in_mutex             = NULL;
+static pc_timer_t            midi_in_timer;
+static int                   midi_in_sysex_active      = 0;
+static uint32_t              midi_in_sysex_start_time  = 0;
 
 int        midi_output_device_current = 0;
 int        midi_input_device_current  = 0;
@@ -169,12 +189,38 @@ midi_out_init(midi_device_t *device)
     midi_out->m_out_device = device;
 }
 
+static void midi_in_poll(void *priv);
+
 void
 midi_in_init(midi_device_t *device, midi_t **mididev)
 {
     *mididev = (midi_t *) calloc(1, sizeof(midi_t));
 
     (*mididev)->m_in_device = device;
+
+    if (midi_in_mutex == NULL)
+        midi_in_mutex = thread_create_mutex();
+
+    timer_add(&midi_in_timer, midi_in_poll, NULL, 0);
+    timer_on_auto(&midi_in_timer, MIDI_IN_POLL_US);
+}
+
+static void
+midi_in_queue_clear(void)
+{
+    if (midi_in_mutex == NULL)
+        return;
+
+    thread_wait_mutex(midi_in_mutex);
+    while (midi_in_queue_used > 0) {
+        free(midi_in_queue[midi_in_queue_head].data);
+        midi_in_queue[midi_in_queue_head].data = NULL;
+        midi_in_queue_head = (midi_in_queue_head + 1) % MIDI_IN_QUEUE_SIZE;
+        midi_in_queue_used--;
+    }
+    midi_in_queue_head   = 0;
+    midi_in_sysex_active = 0;
+    thread_release_mutex(midi_in_mutex);
 }
 
 void
@@ -194,6 +240,9 @@ midi_out_close(void)
 void
 midi_in_close(void)
 {
+    timer_disable(&midi_in_timer);
+    midi_in_queue_clear();
+
     if (midi_in && midi_in->m_in_device) {
         free(midi_in->m_in_device);
         midi_in->m_in_device = NULL;
@@ -499,28 +548,66 @@ midi_in_handlers_clear(void)
     mih_first = mih_last = NULL;
 }
 
+/* Called on the host MIDI API's thread. */
+static void
+midi_in_queue_add(uint8_t *data, uint32_t len)
+{
+    uint32_t start_time = plat_get_ticks();
+    uint8_t *copy;
+
+    if ((data == NULL) || (len == 0) || (midi_in_mutex == NULL))
+        return;
+
+    copy = (uint8_t *) malloc(len);
+    memcpy(copy, data, len);
+
+    /* Wait for the emulation thread to make room, giving up after a while
+       so a paused or stuck guest cannot hang the host MIDI API's thread. */
+    while (1) {
+        thread_wait_mutex(midi_in_mutex);
+        if (midi_in_queue_used < MIDI_IN_QUEUE_SIZE) {
+            midi_in_queue_entry_t *entry = &midi_in_queue[(midi_in_queue_head + midi_in_queue_used) % MIDI_IN_QUEUE_SIZE];
+
+            entry->data = copy;
+            entry->len  = len;
+            midi_in_queue_used++;
+            thread_release_mutex(midi_in_mutex);
+            return;
+        }
+        thread_release_mutex(midi_in_mutex);
+
+        if ((plat_get_ticks() - start_time) > MIDI_SYSEX_TIMEOUT_MS) {
+            free(copy);
+            return;
+        }
+
+        plat_delay_ms(1); /* msec */
+    }
+}
+
 void
 midi_in_msg(uint8_t *msg, uint32_t len)
 {
-    midi_in_handler_t *temp = mih_first;
+    midi_in_queue_add(msg, len);
+}
 
-    while (1) {
-        if (temp == NULL)
-            break;
+static int
+midi_in_handlers_have_room(uint32_t len)
+{
+    for (midi_in_handler_t *temp = mih_first; temp != NULL; temp = temp->next) {
+        if (temp->msg && temp->remain && (temp->remain(temp->priv) < (len + 1)))
+            return 0;
+    }
 
-        if (temp->msg) {
-            while ((temp->remain == NULL) ||
-                   (temp->remain(temp->priv) < (len + 1))) {
-                plat_delay_ms(1); /* msec */
-            }
+    return 1;
+}
 
+static void
+midi_in_deliver_msg(uint8_t *msg, uint32_t len)
+{
+    for (midi_in_handler_t *temp = mih_first; temp != NULL; temp = temp->next) {
+        if (temp->msg)
             temp->msg(temp->priv, msg, len);
-        }
-
-        temp = temp->next;
-
-        if (temp == NULL)
-            break;
     }
 }
 
@@ -615,49 +702,66 @@ midi_do_sysex(void)
 void
 midi_in_sysex(uint8_t *buffer, uint32_t len)
 {
-    int max_iterations = MIDI_SYSEX_MAX_ITERATIONS;
-    int iteration_count = 0;
-    uint32_t start_time = plat_get_ticks();
-    uint32_t max_timeout_ms = MIDI_SYSEX_TIMEOUT_MS;
+    midi_in_queue_add(buffer, len);
+}
 
-    /* Input validation */
-    if (!buffer || len == 0) {
-        return;
+/* Returns 1 once the SysEx message has been delivered or abandoned. */
+static int
+midi_in_deliver_sysex(uint8_t *buffer, uint32_t len)
+{
+    if (!midi_in_sysex_active) {
+        midi_start_sysex(buffer, len);
+        midi_in_sysex_active     = 1;
+        midi_in_sysex_start_time = plat_get_ticks();
     }
 
-    midi_start_sysex(buffer, len);
+    /* This will return 0 if all the handlers have either
+       timed out or otherwise indicated it is time to stop. */
+    if (midi_do_sysex()) {
+        if ((plat_get_ticks() - midi_in_sysex_start_time) <= MIDI_SYSEX_TIMEOUT_MS)
+            return 0; /* try again on the next poll */
 
-    while (iteration_count < max_iterations) {
-        /* Check for timeout */
-        uint32_t elapsed_time = plat_get_ticks() - start_time;
-        if (elapsed_time > max_timeout_ms) {
-            /* Force abort all handlers on timeout */
-            midi_in_handler_t *temp = mih_first;
-            while (temp != NULL) {
-                while ((temp->remain == NULL) ||
-                       (temp->remain(temp->priv) < (len + 1))) {
-                    plat_delay_ms(1); /* msec */
-                }
-                if (temp->sysex) {
-                    temp->sysex(temp->priv, NULL, 0, 1); /* Call with abort=1 */
-                }
-                temp->cnt = 0;
-                temp->len = 0;
-                temp = temp->next;
-            }
-            /* pclog("MIDI: SYSEX processing timed out after %d ms\n", elapsed_time); */
-            break;
+        /* Force abort all handlers on timeout */
+        for (midi_in_handler_t *temp = mih_first; temp != NULL; temp = temp->next) {
+            if (temp->sysex)
+                temp->sysex(temp->priv, NULL, 0, 1); /* Call with abort=1 */
+            temp->cnt = 0;
+            temp->len = 0;
         }
+    }
 
-        /* This will return 0 if all the handlers have either
-           timed out or otherwise indicated it is time to stop. */
-        if (midi_do_sysex()) {
-            plat_delay_ms(5); /* msec */
-            iteration_count++;
+    midi_in_sysex_active = 0;
+    return 1;
+}
+
+static void
+midi_in_poll(UNUSED(void *priv))
+{
+    timer_advance_u64(&midi_in_timer, (uint64_t) (MIDI_IN_POLL_US * TIMER_USEC));
+
+    thread_wait_mutex(midi_in_mutex);
+    while (midi_in_queue_used > 0) {
+        /* The host thread only ever writes past the used entries, so this one
+           can be handled without holding the lock. */
+        midi_in_queue_entry_t *entry = &midi_in_queue[midi_in_queue_head];
+        thread_release_mutex(midi_in_mutex);
+
+        if (entry->data[0] == 0xf0) {
+            if (!midi_in_deliver_sysex(entry->data, entry->len))
+                return;
         } else {
-            break;
+            if (!midi_in_handlers_have_room(entry->len))
+                return;
+            midi_in_deliver_msg(entry->data, entry->len);
         }
+
+        thread_wait_mutex(midi_in_mutex);
+        free(entry->data);
+        entry->data        = NULL;
+        midi_in_queue_head = (midi_in_queue_head + 1) % MIDI_IN_QUEUE_SIZE;
+        midi_in_queue_used--;
     }
+    thread_release_mutex(midi_in_mutex);
 }
 
 void
