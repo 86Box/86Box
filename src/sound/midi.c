@@ -16,6 +16,7 @@
  *          Copyright 2016-2020 Bit.
  *          Copyright 2008-2020 DOSBox Team.
  */
+#include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -27,14 +28,17 @@
 #include <86box/midi.h>
 #include <86box/sound.h>
 #include <86box/timer.h>
-#include <86box/thread.h>
 #include <86box/plat.h>
 
 #define MIDI_SYSEX_TIMEOUT_MS 5000
 
 /* MIDI input arrives on the host MIDI API's thread, but the handlers raise
    IRQ's and change device state, so it is queued here and delivered by a
-   timer on the emulation thread. */
+   timer on the emulation thread. The queue has a single producer (the host
+   thread) and a single consumer (the timer), so each side owns one index:
+   the producer advances the tail and the consumer advances the head. Both
+   count up freely and are reduced modulo the queue size, which must be a
+   power of 2 for that to survive the counters wrapping around. */
 #define MIDI_IN_QUEUE_SIZE 256
 #define MIDI_IN_POLL_US    320.0 /* one byte at 31250 baud */
 
@@ -44,9 +48,8 @@ typedef struct midi_in_queue_entry_t {
 } midi_in_queue_entry_t;
 
 static midi_in_queue_entry_t midi_in_queue[MIDI_IN_QUEUE_SIZE];
-static int                   midi_in_queue_head        = 0;
-static int                   midi_in_queue_used        = 0;
-static mutex_t              *midi_in_mutex             = NULL;
+static atomic_uint           midi_in_queue_head        = 0;
+static atomic_uint           midi_in_queue_tail        = 0;
 static pc_timer_t            midi_in_timer;
 static int                   midi_in_sysex_active      = 0;
 static uint32_t              midi_in_sysex_start_time  = 0;
@@ -198,29 +201,25 @@ midi_in_init(midi_device_t *device, midi_t **mididev)
 
     (*mididev)->m_in_device = device;
 
-    if (midi_in_mutex == NULL)
-        midi_in_mutex = thread_create_mutex();
-
+    /* Do not reset the queue here: the host MIDI API may already be
+       delivering input. */
     timer_add(&midi_in_timer, midi_in_poll, NULL, 0);
     timer_on_auto(&midi_in_timer, MIDI_IN_POLL_US);
 }
 
+/* Only called once the MIDI input device is closed, so nothing is producing. */
 static void
 midi_in_queue_clear(void)
 {
-    if (midi_in_mutex == NULL)
-        return;
+    unsigned int head = atomic_load_explicit(&midi_in_queue_head, memory_order_relaxed);
+    unsigned int tail = atomic_load_explicit(&midi_in_queue_tail, memory_order_acquire);
 
-    thread_wait_mutex(midi_in_mutex);
-    while (midi_in_queue_used > 0) {
-        free(midi_in_queue[midi_in_queue_head].data);
-        midi_in_queue[midi_in_queue_head].data = NULL;
-        midi_in_queue_head = (midi_in_queue_head + 1) % MIDI_IN_QUEUE_SIZE;
-        midi_in_queue_used--;
+    for (; head != tail; head++) {
+        free(midi_in_queue[head % MIDI_IN_QUEUE_SIZE].data);
+        midi_in_queue[head % MIDI_IN_QUEUE_SIZE].data = NULL;
     }
-    midi_in_queue_head   = 0;
+    atomic_store_explicit(&midi_in_queue_head, head, memory_order_release);
     midi_in_sysex_active = 0;
-    thread_release_mutex(midi_in_mutex);
 }
 
 void
@@ -552,37 +551,33 @@ midi_in_handlers_clear(void)
 static void
 midi_in_queue_add(uint8_t *data, uint32_t len)
 {
-    uint32_t start_time = plat_get_ticks();
-    uint8_t *copy;
+    uint32_t     start_time = plat_get_ticks();
+    unsigned int tail;
 
-    if ((data == NULL) || (len == 0) || (midi_in_mutex == NULL))
+    if ((data == NULL) || (len == 0))
         return;
 
-    copy = (uint8_t *) malloc(len);
-    memcpy(copy, data, len);
+    tail = atomic_load_explicit(&midi_in_queue_tail, memory_order_relaxed);
 
     /* Wait for the emulation thread to make room, giving up after a while
-       so a paused or stuck guest cannot hang the host MIDI API's thread. */
-    while (1) {
-        thread_wait_mutex(midi_in_mutex);
-        if (midi_in_queue_used < MIDI_IN_QUEUE_SIZE) {
-            midi_in_queue_entry_t *entry = &midi_in_queue[(midi_in_queue_head + midi_in_queue_used) % MIDI_IN_QUEUE_SIZE];
-
-            entry->data = copy;
-            entry->len  = len;
-            midi_in_queue_used++;
-            thread_release_mutex(midi_in_mutex);
+       so a paused or stuck guest cannot hang the host MIDI API's thread.
+       Acquire pairs with the release in midi_in_poll(), so the consumer is
+       done with the entry before it is reused. */
+    while ((tail - atomic_load_explicit(&midi_in_queue_head, memory_order_acquire)) >= MIDI_IN_QUEUE_SIZE) {
+        if ((plat_get_ticks() - start_time) > MIDI_SYSEX_TIMEOUT_MS)
             return;
-        }
-        thread_release_mutex(midi_in_mutex);
-
-        if ((plat_get_ticks() - start_time) > MIDI_SYSEX_TIMEOUT_MS) {
-            free(copy);
-            return;
-        }
 
         plat_delay_ms(1); /* msec */
     }
+
+    midi_in_queue_entry_t *entry = &midi_in_queue[tail % MIDI_IN_QUEUE_SIZE];
+
+    entry->data = (uint8_t *) malloc(len);
+    memcpy(entry->data, data, len);
+    entry->len = len;
+
+    /* Release publishes the entry's contents together with the new tail. */
+    atomic_store_explicit(&midi_in_queue_tail, tail + 1, memory_order_release);
 }
 
 void
@@ -737,14 +732,14 @@ midi_in_deliver_sysex(uint8_t *buffer, uint32_t len)
 static void
 midi_in_poll(UNUSED(void *priv))
 {
+    unsigned int head = atomic_load_explicit(&midi_in_queue_head, memory_order_relaxed);
+
     timer_advance_u64(&midi_in_timer, (uint64_t) (MIDI_IN_POLL_US * TIMER_USEC));
 
-    thread_wait_mutex(midi_in_mutex);
-    while (midi_in_queue_used > 0) {
-        /* The host thread only ever writes past the used entries, so this one
-           can be handled without holding the lock. */
-        midi_in_queue_entry_t *entry = &midi_in_queue[midi_in_queue_head];
-        thread_release_mutex(midi_in_mutex);
+    /* Acquire pairs with the release in midi_in_queue_add(), so the entry's
+       contents are visible before it is read. */
+    while (head != atomic_load_explicit(&midi_in_queue_tail, memory_order_acquire)) {
+        midi_in_queue_entry_t *entry = &midi_in_queue[head % MIDI_IN_QUEUE_SIZE];
 
         if (entry->data[0] == 0xf0) {
             if (!midi_in_deliver_sysex(entry->data, entry->len))
@@ -755,13 +750,10 @@ midi_in_poll(UNUSED(void *priv))
             midi_in_deliver_msg(entry->data, entry->len);
         }
 
-        thread_wait_mutex(midi_in_mutex);
         free(entry->data);
-        entry->data        = NULL;
-        midi_in_queue_head = (midi_in_queue_head + 1) % MIDI_IN_QUEUE_SIZE;
-        midi_in_queue_used--;
+        entry->data = NULL;
+        atomic_store_explicit(&midi_in_queue_head, ++head, memory_order_release);
     }
-    thread_release_mutex(midi_in_mutex);
 }
 
 void
