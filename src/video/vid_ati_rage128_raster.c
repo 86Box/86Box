@@ -844,6 +844,8 @@ rage128_raster_submit_tri(rage128_t *dev, const rage128_raster_state_t *rs,
        rather than batched. */
     if (dev->gpu && rage128_gpu_submit_tri(dev, rs, a, b, c))
         return;
+    if (dev->gpu)
+        rage128_gpu_cpu_prim(dev, rs, a, b, c);
 
     if (!rb || rb->nthreads <= 1) {
         rage128_3d_tri(dev, rs, 0, 0, a, b, c, rage128_jit_get_block(dev, &rs->d));
@@ -879,6 +881,8 @@ rage128_raster_submit_line(rage128_t *dev, const rage128_raster_state_t *rs,
 
     if (dev->gpu && rage128_gpu_submit_line(dev, rs, a, b))
         return;
+    if (dev->gpu)
+        rage128_gpu_cpu_prim(dev, rs, a, b, NULL);
 
     if (!rb || rb->nthreads <= 1) {
         rage128_3d_line(dev, rs, 0, 0, a, b, rage128_jit_get_block(dev, &rs->d));
@@ -911,6 +915,8 @@ rage128_raster_submit_point(rage128_t *dev, const rage128_raster_state_t *rs,
 
     if (dev->gpu && rage128_gpu_submit_point(dev, rs, v))
         return;
+    if (dev->gpu)
+        rage128_gpu_cpu_prim(dev, rs, v, NULL, NULL);
 
     if (!rb || rb->nthreads <= 1) {
         rage128_3d_point(dev, rs, 0, 0, v, rage128_jit_get_block(dev, &rs->d));

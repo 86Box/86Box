@@ -264,6 +264,9 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Cirrus Logic GD5428 (MCA)", .new = "Cirrus Logic GD5428 (MCA) (US/EMEA)" },
         { .old = "ATI Mach64GX ISA", .new = "ATI Graphics Pro Turbo (Mach64GX) ISA" },
         { .old = "ATI Mach64GX VLB", .new = "ATI Graphics Pro Turbo (Mach64GX) VLB" },
+        { .old = "ATI Rage Fury Pro AGP", .new = "ATI Rage 128 Pro (Fury Pro)" },
+        { .old = "ATI Xpert 128 PCI", .new = "ATI Rage 128 (Xpert 128)" }, // pre-7.0
+        { .old = "ATI Rage 128 (Xpert 128)", .new = "ATI Rage 128 GL PCI (Xpert 128)" },
         { 0 }
     };
 

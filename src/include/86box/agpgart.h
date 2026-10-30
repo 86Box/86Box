@@ -26,6 +26,7 @@ typedef struct agpgart_s {
 
 extern void agpgart_set_aperture(agpgart_t *dev, uint32_t base, uint32_t size, int enable);
 extern void agpgart_set_gart(agpgart_t *dev, uint32_t base);
+extern const uint8_t *agpgart_bus_ptr(uint32_t addr, uint32_t len);
 
 #ifdef EMU_DEVICE_H
 /* AGP GART */

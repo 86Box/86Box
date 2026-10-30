@@ -112,6 +112,12 @@ static void
 wr(rage128_t *dev, uint32_t off, uint32_t val)
 {
     rage128_reg_write(dev, off, val, 0xffffffffu);
+    /* Tests store textures and surfaces straight into svga.vram, which no
+       guest can do: every device-side store marks its pages host-newer
+       for the GPU backend's VRAM mirror itself. So every register write
+       a test makes marks all of VRAM, the way a device store would mark
+       the bytes the test poked before it. */
+    r128_vram_hnew_all(dev);
 }
 
 static void
@@ -2600,6 +2606,9 @@ drain_sync(rage128_t *dev)
 static void
 flush_sync(rage128_t *dev)
 {
+    /* tests poke svga.vram between a draw's capture and this flush, which
+       records it: mark those stores for the GPU mirror, as wr() does */
+    r128_vram_hnew_all(dev);
     rage128_raster_flush(dev);
     gpu_sync(dev);
 }
@@ -8771,20 +8780,97 @@ gt_capture_leg(rage128_t *dev, const rage128_raster_state_t *rs,
     check_true(nm, cap.zlo <= blo && cap.zhi >= bhi);
 }
 
+static void
+check64(const char *what, uint64_t got, uint64_t want)
+{
+    if (got == want) {
+        g_pass++;
+    } else {
+        g_fail++;
+        printf("FAIL %-44s got %016llx want %016llx\n", what,
+               (unsigned long long) got, (unsigned long long) want);
+    }
+}
+
+/* The fixed-point depth helpers every lane shares, against values worked
+   out by hand from the format (depth times 2^39, rounded to nearest with
+   halves away from zero). The lane tests compare the lanes with each
+   other through these helpers, so this is the check that the helpers
+   themselves round, clamp, quantize and split the fog position as
+   specified. The quantize and fog rows also pin the raw fog fraction,
+   whose low bits a pixel comparison cannot always see. */
+static void
+vectors_zfx_helpers(void)
+{
+    const int64_t S = R128_ZFX_SEED_LIM, G = R128_ZFX_GRAD_LIM;
+    const int64_t one = R128_ZFX_ONE;
+    volatile double zero = 0.0;
+
+    check64("zfx: 0.5 is 2^38", (uint64_t) r128_zfx(0.5, S), 1ull << 38);
+    check64("zfx: 1.0 is 2^39", (uint64_t) r128_zfx(1.0, G), 1ull << 39);
+    check64("zfx: 2^-40 (half a unit) rounds up to 1",
+            (uint64_t) r128_zfx(1.0 / (double) (1ll << 40), S), 1);
+    check64("zfx: -2^-40 rounds away from zero to -1",
+            (uint64_t) r128_zfx(-1.0 / (double) (1ll << 40), S), (uint64_t) -1ll);
+    check64("zfx: 2^-41 (a quarter unit) rounds to 0",
+            (uint64_t) r128_zfx(1.0 / (double) (1ll << 41), S), 0);
+    check64("zfx: 3 * 2^-41 rounds to 1",
+            (uint64_t) r128_zfx(3.0 / (double) (1ll << 41), S), 1);
+    check64("zfx: -2^-41 rounds to 0",
+            (uint64_t) r128_zfx(-1.0 / (double) (1ll << 41), S), 0);
+    check64("zfx: -3 * 2^-41 rounds to -1",
+            (uint64_t) r128_zfx(-3.0 / (double) (1ll << 41), S), (uint64_t) -1ll);
+    check64("zfx: -0.0 is 0", (uint64_t) r128_zfx(-zero, S), 0);
+    check64("zfx: NaN is 0", (uint64_t) r128_zfx(zero / zero, S), 0);
+    check64("zfx: +inf clamps to the limit",
+            (uint64_t) r128_zfx(1.0 / zero, S), (uint64_t) S);
+    check64("zfx: -inf clamps to minus the limit",
+            (uint64_t) r128_zfx(-1.0 / zero, S), (uint64_t) -S);
+    check64("zfx: 512.0 as a gradient clamps to 2^47",
+            (uint64_t) r128_zfx(512.0, G), 1ull << 47);
+    check64("zfx: 1e300 as a seed clamps to 2^60",
+            (uint64_t) r128_zfx(1e300, S), 1ull << 60);
+
+    check64("zfx clamp: negative is 0", r128_zfx_clamp(-5), 0);
+    check64("zfx clamp: past 1.0 is 1.0", r128_zfx_clamp(one + 1), (uint64_t) one);
+    check64("zfx clamp: in range is unchanged", r128_zfx_clamp(7), 7);
+
+    /* (2^38 * (2^16 - 1) + 2^38) >> 39 = 2^54 >> 39 = 2^15, and the same
+       with 2^24 - 1 gives 2^23; 1.0 gives zmax exactly. */
+    check32("zfx quant: 0.5 at 16 bits", r128_zfx_quant(1ull << 38, 0xffffu), 0x8000u);
+    check32("zfx quant: 0.5 at 24 bits", r128_zfx_quant(1ull << 38, 0xffffffu), 0x800000u);
+    check32("zfx quant: 1.0 at 16 bits", r128_zfx_quant((uint64_t) one, 0xffffu), 0xffffu);
+    check32("zfx quant: 1.0 at 24 bits", r128_zfx_quant((uint64_t) one, 0xffffffu), 0xffffffu);
+    check32("zfx quant: one unit at 24 bits rounds to 0", r128_zfx_quant(1, 0xffffffu), 0);
+    /* 0.75 * (2^16 - 1) = 49151.25 and 0.75 * (2^24 - 1) = 12582911.25
+       round down; a multiplier of zmax + 1 would give 49152 and
+       12582912, which the rows above cannot tell apart. */
+    check32("zfx quant: 0.75 at 16 bits", r128_zfx_quant(3ull << 37, 0xffffu), 0xbfffu);
+    check32("zfx quant: 0.75 at 24 bits", r128_zfx_quant(3ull << 37, 0xffffffu), 0xbfffffu);
+
+    /* zc * 255 >> 7: 1.0 gives index 255, fraction 0; 0.5 gives 127.5,
+       index 127 and fraction 2^31; one unit gives 255 >> 7 = 1 and 2^7
+       units give 255 in the low word. */
+    check64("zfx fog: 1.0 is entry 255", r128_zfx_fogpos((uint64_t) one), 255ull << 32);
+    check64("zfx fog: 0.5 is entry 127, fraction 2^31",
+            r128_zfx_fogpos(1ull << 38), (127ull << 32) | 0x80000000ull);
+    check64("zfx fog: one unit is fraction 1", r128_zfx_fogpos(1), 1);
+    check64("zfx fog: 2^7 units is fraction 255", r128_zfx_fogpos(1ull << 7), 255);
+}
+
 /* Seeds of rows whose coverage starts and ends inside the triangle's
    bounding box. The tiled row walk does not call the capture on the
-   tile-column pieces left of a row's covered columns, but it must still
-   step the depth seed across them pixel by pixel, and it stops after the
-   piece holding the last covered column. The reference is the same
-   triangle on a linear target: one span per row (the target is narrower
-   than a 256-px chunk), seeded by the capture's own clip walk. Every
-   tiled piece of that row must then (a) partition the linear span's
-   columns exactly, (b) carry the linear edge values stepped by k * step
-   (exact integer math), and (c) carry the linear depth seed stepped by k
-   sequential double adds of the per-pixel step -- the same adds in the
-   same order from the same row seed, so the bits must be equal. A walk
-   that skipped the seed adds over the uncalled pieces, or used a
-   multiply, fails (c); one that stopped early fails (a). A walk that
+   tile-column pieces left of a row's covered columns, but each piece's
+   depth seed must still account for the columns before it, and the walk
+   stops after the piece holding the last covered column. The reference
+   is the same triangle on a linear target: one span per row (the target
+   is narrower than a 256-px chunk), seeded by the capture's own clip
+   walk. Every tiled piece of that row must then (a) partition the linear
+   span's columns exactly, (b) carry the linear edge values stepped by
+   k * step, and (c) carry the linear fixed-point depth seed plus k times
+   the per-pixel step. All three are exact integer math, so the values
+   must be equal. A walk that seeded a piece without the k columns before
+   it fails (c); one that stopped early fails (a). A walk that
    still called the empty pieces would pass: the capture emits nothing
    for them, so only a call count (not a span record) can see it. */
 static void
@@ -8796,7 +8882,7 @@ gt_seed_leg(rage128_t *dev, const rage128_raster_state_t *trs,
     r3d_vtx_t                 v[3];
     uint32_t                  bad_part = 0, bad_e = 0, bad_z = 0;
     uint32_t                  skipped = 0, stopped = 0, ti = 0;
-    double                    dz;
+    int64_t                   dz;
 
     /* Apex at the top middle, base across the bottom: the top rows cover
        a few columns around x = 32, inside the bbox [1, 63], so the
@@ -8821,7 +8907,7 @@ gt_seed_leg(rage128_t *dev, const rage128_raster_state_t *trs,
                    && lc.nspans > 0 && lc.got == lc.nspans);
     check_true("gpu tiled seeds: inset depth step is non-zero and the same on both",
                lc.dzdx != 0 && lc.dzdx == tc.dzdx);
-    memcpy(&dz, &lc.dzdx, 8);
+    dz = lc.dzdx;
 
     for (uint32_t li = 0; li < lc.got; li++) {
         const harness_gpu_span_t *L = &ls[li];
@@ -8834,8 +8920,6 @@ gt_seed_leg(rage128_t *dev, const rage128_raster_state_t *trs,
         for (; ti < tc.got && ts[ti].py == L->py; ti++) {
             const harness_gpu_span_t *P = &ts[ti];
             int64_t                   k = (int64_t) P->x0 - L->x0;
-            double                    z;
-            uint64_t                  zb;
 
             if (P->x0 != next || P->x1 < P->x0 || P->x1 > L->x1)
                 bad_part++;
@@ -8844,11 +8928,7 @@ gt_seed_leg(rage128_t *dev, const rage128_raster_state_t *trs,
                 || P->e1 != L->e1 + k * tc.edx[1]
                 || P->e2 != L->e2 + k * tc.edx[2])
                 bad_e++;
-            memcpy(&z, &L->zline, 8);
-            for (int64_t q = 0; q < k; q++)
-                z += dz;
-            memcpy(&zb, &z, 8);
-            if (zb != P->zline)
+            if (P->zline != L->zline + k * dz)
                 bad_z++;
         }
         if (next != L->x1 + 1)
@@ -11106,6 +11186,75 @@ vectors_gpu_tiled_fill(rage128_t *dev)
                 *(uint32_t *) &dev->svga.vram[TF_DST + tl_off(0, 1, TF_PITCH)],
                 TF_COLOR);
     }
+
+    /* 16 bpp edges off a dword. At two bytes per pixel an odd pixel
+       starts or ends on a half dword, which a buffer fill cannot write,
+       so such an edge column is queued as a staged copy of its color
+       bytes. Star Trek: Armada clears a 181-pixel-wide panel at x = 643
+       this way every frame. The same surface is addressed as RGB565 at
+       128 px, which keeps the 256-byte row. Pieces count the staged
+       edge records with the fills. */
+    {
+        static const struct {
+            int         x, y, w, h;
+            uint32_t    pieces;
+            const char *nm;
+        } leg16[] = {
+            { 1, 3, 40, 30, 6, "16 bpp, both edges odd" },
+            { 3, 0, 1, 1, 1, "16 bpp, one odd pixel" },
+            { 67, 10, 45, 40, 8, "16 bpp, odd left edge, two columns" },
+            { 2, 0, 30, 16, 1, "16 bpp, edges on a dword" },
+        };
+
+        wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+           (13u << 4) | (4u << 8) | (0xf0u << 16)
+               | (1u << 28) | (1u << 29) | (1u << 30));
+        wr(dev, RAGE128_DST_PITCH, (1u << 16) | 16u);
+        harness_gpu_fab_q_reset(fab);
+        for (size_t i = 0; i < sizeof(leg16) / sizeof(leg16[0]); i++) {
+            uint64_t rects0 = harness_gpu_fab_fill_rects(fab);
+            uint64_t tiled0 = harness_gpu_fab_tiled(fab);
+            uint32_t y0     = (uint32_t) leg16[i].y;
+            uint32_t y1     = (uint32_t) (leg16[i].y + leg16[i].h - 1);
+            uint32_t xb0    = (uint32_t) leg16[i].x * 2u;
+            uint32_t xb1    = (uint32_t) (leg16[i].x + leg16[i].w) * 2u;
+            uint32_t flo    = 0, fhi = 0;
+            int      n;
+
+            memcpy(&dev->svga.vram[TF_DST], seed, TF_BYTES);
+            memcpy(ref, seed, TF_BYTES);
+            for (uint32_t y = y0; y <= y1; y++)
+                for (uint32_t xb = xb0; xb < xb1; xb++)
+                    ref[tl_off(xb, y, TF_PITCH)]
+                        = (uint8_t) (TF_COLOR >> ((xb % 2u) * 8));
+            wr(dev, RAGE128_DST_Y_X,
+               ((uint32_t) leg16[i].y << 16) | (uint32_t) leg16[i].x);
+            wr(dev, RAGE128_DST_HEIGHT_WIDTH,
+               ((uint32_t) leg16[i].h << 16) | (uint32_t) leg16[i].w);
+            snprintf(nm, sizeof(nm), "gpu tiled fill: %s queues, no tiled bounce",
+                     leg16[i].nm);
+            check_true(nm, harness_gpu_fab_fill_rects(fab) == rects0 + 1
+                               && harness_gpu_fab_tiled(fab) == tiled0);
+            snprintf(nm, sizeof(nm), "gpu tiled fill: %s lands nothing CPU-side",
+                     leg16[i].nm);
+            check_true(nm, !memcmp(&dev->svga.vram[TF_DST], seed, TF_BYTES));
+            n = harness_gpu_fab_fill_exec(fab, dev->svga.vram, dev->vram_size,
+                                          &flo, &fhi);
+            snprintf(nm, sizeof(nm), "gpu tiled fill: %s is %u piece(s)", leg16[i].nm,
+                     leg16[i].pieces);
+            check32(nm, (uint32_t) n, leg16[i].pieces);
+            snprintf(nm, sizeof(nm), "gpu tiled fill: %s lands the walk's bytes, no other",
+                     leg16[i].nm);
+            check_true(nm, !memcmp(&dev->svga.vram[TF_DST], ref, TF_BYTES));
+            snprintf(nm, sizeof(nm), "gpu tiled fill: %s hull is the whole tile rows",
+                     leg16[i].nm);
+            check_true(nm, flo == TF_DST + 16u * TF_PITCH * (y0 / 16u)
+                               && fhi == TF_DST + 16u * TF_PITCH * (y1 / 16u + 1u));
+        }
+        wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+           (13u << 4) | (6u << 8) | (0xf0u << 16)
+               | (1u << 28) | (1u << 29) | (1u << 30));
+    }
     fab_out(dev);
     harness_gpu_fab_free(fab);
     wr(dev, RAGE128_DST_PITCH, 8u);
@@ -12780,6 +12929,153 @@ vectors_next_vertex_bundle(rage128_t *dev)
 }
 
 /* ------------------------------------------------------------------ */
+/* Vertex fetch across a page boundary. The vertex walk resolves the   */
+/* bus translation once per 4 KB page and reads the page's dwords from */
+/* it, so the cases that force a second resolve inside one vertex, or  */
+/* the per-dword fallback, must decode the same vertex as a dword-by-  */
+/* dword read: (A) a buffer that starts 8 bytes before the end of an   */
+/* on-chip table page whose next entry points at a non-adjacent        */
+/* physical page, so vertex 0 straddles the two pages; (B) the same    */
+/* layout with the second entry pointing past guest RAM, the fallback  */
+/* the dual-chip board's second chip takes, which the harness answers  */
+/* with 0xff bytes and a stray count, so the draw lands no pixel; (C)  */
+/* the same straddle through the AGP aperture with the table off; (D)  */
+/* a buffer whose base is not dword aligned, the one-dword-span path.  */
+/* Same 64-px 8888 target and diffuse-only state as the bundle vector. */
+/* ------------------------------------------------------------------ */
+#define VPS_CARD_VB  0x02090000u /* card page, bit 25 = AGP half */
+#define VPS_PHYS_P0  0x00206000u /* first page's physical page   */
+#define VPS_PHYS_P1  0x0020a000u /* second page, not adjacent    */
+#define VPS_PAST_RAM 0x00900000u /* beyond the 8 MB the harness has */
+
+static void
+vps_write_vertices(uint8_t *p0_last8, uint8_t *p1, const float xy[3][2])
+{
+    /* vertex v: x y z color at 16 bytes each, v0 split 8 + 8 */
+    uint32_t v0[4] = { f2u(xy[0][0]), f2u(xy[0][1]), 0x3e800000, 0xff00ff00 };
+
+    memcpy(p0_last8, v0, 8);
+    memcpy(p1, &v0[2], 8);
+    for (int v = 1; v < 3; v++) {
+        uint32_t d[4] = { f2u(xy[v][0]), f2u(xy[v][1]), 0x3e800000, 0xff00ff00 };
+
+        memcpy(p1 + 8 + (v - 1) * 16, d, 16);
+    }
+}
+
+static void
+vps_draw(rage128_t *dev, uint32_t *ring, int *n, uint32_t vb_card)
+{
+    memset(&dev->svga.vram[0x00300000u], 0, 64 * 24 * 4);
+    ring[(*n)++] = 0xc0052300; /* 3D_RNDR_GEN_INDX_PRIM, 6 dwords */
+    ring[(*n)++] = vb_card;
+    ring[(*n)++] = 3;
+    ring[(*n)++] = 0x00000008; /* VC_FORMAT: DIFFUSE_ARGB */
+    ring[(*n)++] = 0x00030014; /* tri list, indexed walk, NUM 3 */
+    ring[(*n)++] = 0x00010000; /* [1|0] */
+    ring[(*n)++] = 0x00000002; /* [-|2] */
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, (uint32_t) *n);
+    drain_sync(dev);
+}
+
+static void
+vectors_vertex_page_straddle(rage128_t *dev)
+{
+    uint32_t *tbl  = (uint32_t *) (ram + GART_TABLE_PHYS);
+    uint32_t *ring = (uint32_t *) (ram + RING_PHYS);
+    int       n    = 0;
+    /* upper-left tri: covers (2,2), leaves (21,21) */
+    static const float xy[3][2] = {
+        { 0.0f, 0.0f }, { 16.0f, 0.0f }, { 0.0f, 16.0f },
+    };
+
+    harness_ram_alloc();
+    harness_sysmem_stray = 0;
+    memset(ram + GART_TABLE_PHYS, 0, 0x2000);
+    tbl[RING_CARD_ADDR >> 12]                  = RING_PHYS;
+    tbl[(VPS_CARD_VB & 0x01ffffff) >> 12]      = VPS_PHYS_P0;
+    tbl[((VPS_CARD_VB & 0x01ffffff) >> 12) + 1] = VPS_PHYS_P1;
+
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL,
+       rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    gart_table_on(dev, GART_TABLE_PHYS);
+    wr(dev, RAGE128_AGP_BASE, 0);
+
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0x00000000);
+    wr(dev, 0x16f0, 0x1fff1fff);
+    wr(dev, 0x16c0, 0x00000003);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0x00000000);
+    wr(dev, 0x16c4, 0x00000006);
+    wr(dev, 0x1c80, 0x01018000);
+    wr(dev, 0x1c90, 0x00340000);
+    wr(dev, 0x1c94, 0x00000008);
+    wr(dev, 0x1c98, 0x00000070);
+    wr(dev, 0x1c9c, 0x00000000);
+    wr(dev, 0x1ca0, 0x00000000);
+    wr(dev, 0x1d44, 0xffffffff);
+    wr(dev, RAGE128_PM4_VC_FPU_SETUP,
+       RAGE128_FPU_BACKFACE_SOLID | RAGE128_FPU_FRONTFACE_SOLID | RAGE128_FPU_COLOR_GOURAUD);
+    wr(dev, 0x1bc4, 0x00080000);
+    wr(dev, 0x1bcc, 0x00000000);
+    wr(dev, 0x1a00, 0x00000000);
+
+    wr(dev, RAGE128_PM4_BUFFER_OFFSET, RING_CARD_ADDR);
+    wr(dev, RAGE128_PM4_BUFFER_DL_RPTR, 0);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 0);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000a);
+
+    /* A: on-chip table, vertex 0 straddles into a non-adjacent page */
+    vps_write_vertices(ram + VPS_PHYS_P0 + 0xff8, ram + VPS_PHYS_P1, xy);
+    vps_draw(dev, ring, &n, VPS_CARD_VB + 0xff8);
+    check32("vertex page straddle: table, split v0: (2,2) drawn", NVB_PIX(2, 2), 0xff00ff00);
+    check32("vertex page straddle: table, split v0: (21,21) untouched", NVB_PIX(21, 21), 0);
+    check_true("vertex page straddle: table: no stray bus-master access", harness_sysmem_stray == 0);
+
+    /* B: second entry past RAM: the aperture fallback, which the harness
+       cannot back; the vertex bytes come back 0xff and nothing is drawn */
+    tbl[((VPS_CARD_VB & 0x01ffffff) >> 12) + 1] = VPS_PAST_RAM;
+    vps_draw(dev, ring, &n, VPS_CARD_VB + 0xff8);
+    check_true("vertex page straddle: entry past RAM: read as stray", harness_sysmem_stray > 0);
+    check32("vertex page straddle: entry past RAM: nothing drawn", NVB_PIX(2, 2), 0);
+    tbl[((VPS_CARD_VB & 0x01ffffff) >> 12) + 1] = VPS_PHYS_P1;
+    harness_sysmem_stray                        = 0;
+
+    /* D: misaligned base, table mode: every dword is its own span */
+    memset(ram + VPS_PHYS_P0 + 0xfe0, 0, 0x20);
+    memset(ram + VPS_PHYS_P1, 0, 0x40);
+    vps_write_vertices(ram + VPS_PHYS_P0 + 0xffa, ram + VPS_PHYS_P1 + 2, xy);
+    vps_draw(dev, ring, &n, VPS_CARD_VB + 0xffa);
+    check32("vertex page straddle: misaligned base: (2,2) drawn", NVB_PIX(2, 2), 0xff00ff00);
+    check_true("vertex page straddle: misaligned: no stray bus-master access", harness_sysmem_stray == 0);
+
+    /* C: table off, AGP aperture at 0x400000: the same straddle through
+       agpgart_bus_ptr; the harness aperture is plain RAM, so the two
+       pages are adjacent there */
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+    wr(dev, RAGE128_PCI_GART_PAGE, 1);
+    wr(dev, RAGE128_AGP_BASE, 0x00400000);
+    memcpy(ram + 0x00400000 + (RING_CARD_ADDR & 0x01ffffff), ring, (size_t) n * 4);
+    ring = (uint32_t *) (ram + 0x00400000 + (RING_CARD_ADDR & 0x01ffffff));
+    wr(dev, RAGE128_PM4_BUFFER_OFFSET, RING_CARD_ADDR);
+    wr(dev, RAGE128_PM4_BUFFER_DL_RPTR, 0);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 0);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000a);
+    n = 0;
+    vps_write_vertices(ram + 0x00400000 + (VPS_CARD_VB & 0x01ffffff) + 0xff8,
+                       ram + 0x00400000 + (VPS_CARD_VB & 0x01ffffff) + 0x1000, xy);
+    vps_draw(dev, ring, &n, VPS_CARD_VB + 0xff8);
+    check32("vertex page straddle: aperture, split v0: (2,2) drawn", NVB_PIX(2, 2), 0xff00ff00);
+    check32("vertex page straddle: aperture, split v0: (21,21) untouched", NVB_PIX(21, 21), 0);
+    check_true("vertex page straddle: aperture: no stray bus-master access", harness_sysmem_stray == 0);
+
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+    wr(dev, RAGE128_AGP_BASE, 0);
+}
+
+/* ------------------------------------------------------------------ */
 /* ------------------------------------------------------------------ */
 /* 3D LINE walk: one pixel per major-axis step over the snapped        */
 /* endpoints (the datapath's Bresenham line mode), with the last pixel */
@@ -13146,6 +13442,7 @@ run_agp_32mb(void)
     vectors_apertures(dev);
     vectors_aper_endian(dev);
     vectors_agp_image(dev);
+    vectors_zfx_helpers();
     vectors_dac_mask(dev);
     vectors_dpms(dev);
     vectors_ppll_atomic(dev);
@@ -13211,6 +13508,7 @@ run_agp_32mb(void)
     vectors_pm4_stat_fifocnt(dev);
     vectors_agp_dead_staging(dev);
     vectors_next_vertex_bundle(dev);
+    vectors_vertex_page_straddle(dev);
     vectors_rt_geom_key(dev, 0); /* serial reference for the threaded run */
     vectors_mpeg_mb(dev);
     vectors_3d_line_bresenham(dev);
@@ -16627,8 +16925,8 @@ vectors_lanegap_vga_barrier(rage128_t *dev)
 
 /* The modeled GPU accept price includes WINDOW_XY_OFFSET, matching the
    raster walk and hazard ranges. Shifted raw coordinates must not reduce
-   the bound below captured work. The ladder also respects GPU_PX_CAP
-   within one draw, including when raw coordinates lie off screen. */
+   the bound below captured work, including when raw coordinates lie off
+   screen. */
 static void
 vectors_lanegap_gpu_pricing(rage128_t *dev)
 {
@@ -16695,7 +16993,7 @@ vectors_lanegap_gpu_pricing(rage128_t *dev)
            (unsigned long long) sub.bound_px, sub.nspans, sub.seg_px);
 
     /* price collapses, walk covers the screen; seg_px must
-       stay inside the bound and the GPU_PX_CAP ladder allocation */
+       stay inside the bound */
     wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x7fff7fffu);
     rage128_raster_state_capture(dev, &rs);
     v[0].x = -8190.0f; v[0].y = -8190.0f;
@@ -16703,16 +17001,14 @@ vectors_lanegap_gpu_pricing(rage128_t *dev)
     v[2].x = -8190.0f; v[2].y = -1.0f;
     check_true("gpu pricing: probe ran",
                harness_gpu_submit_probe(dev, &rs, &v[0], &v[1], &v[2], &sub));
-    /* This window shift prices about 67 million pixels, beyond the cap.
-       Exact repricing or CPU fallback is valid; captured pixels must
-       stay within the bound and the tripwire must remain silent. */
+    /* This window shift prices far beyond the span cap. Exact repricing
+       or CPU fallback is valid; captured pixels must stay within the
+       bound and the tripwire must remain silent. */
     check_true("gpu pricing: oversized draw routes out with no silent miss",
                sub.miss == 0
                    && (sub.accepted == 0 || sub.seg_px <= sub.bound_px));
     check_true("gpu pricing: seg_px inside the accept bound",
                sub.seg_px <= sub.bound_px);
-    check_true("gpu pricing: seg_px inside GPU_PX_CAP",
-               sub.seg_px <= (8u << 20));
     printf("gpu pricing: data: bound_spans=%llu bound_px=%llu nspans=%u seg_px=%u\n",
            (unsigned long long) sub.bound_spans,
            (unsigned long long) sub.bound_px, sub.nspans, sub.seg_px);
@@ -16723,8 +17019,8 @@ vectors_lanegap_gpu_pricing(rage128_t *dev)
     v[2].x = -8190.0f; v[2].y = -8190.0f;
     check_true("gpu pricing: flip: probe ran",
                harness_gpu_submit_probe(dev, &rs, &v[0], &v[1], &v[2], &sub));
-    check_true("gpu pricing: flip: seg_px inside GPU_PX_CAP",
-               sub.seg_px <= (8u << 20));
+    check_true("gpu pricing: flip: seg_px inside the accept bound",
+               sub.miss == 0 && sub.seg_px <= sub.bound_px);
     printf("gpu pricing: flip data: bound_px=%llu nspans=%u seg_px=%u\n",
            (unsigned long long) sub.bound_px, sub.nspans, sub.seg_px);
     wr(dev, RAGE128_WINDOW_XY_OFFSET, 0);
@@ -21790,6 +22086,196 @@ run_gpu2d_verify(void)
         setenv("R128_GPU", gprev, 1);
 }
 
+/* A cadence point in the async GPU lane submits the draws so far but
+   leaves the segment open: the cells they stored are carried to the
+   segment's real end, whose mirror-back copies them to the import once.
+   The claim is that a host read of a carried cell still sees the drawn
+   bytes, because the read finds the bytes in the open segment's ranges
+   and ends the segment before it reads. The draws: 1000 triangles of
+   color A over rows 8..31 of a 64x32 target, short of the 32768-span
+   cadence, then small triangles of color B over rows 0..3 until one
+   crosses it and the submit carries, and one more, which keeps the
+   segment open with only rows 0..3 drawn since. This state stores the same
+   value whatever the vertex color, so the rows compare against what a
+   draw that is never carried stores there, and against the seeded
+   marker: row 20 is drawn only by the A triangles, so it holds that
+   value only if the carried cells came back, and the marker if they did
+   not. */
+#define GC_A    0xff00ff00u
+#define GC_B    0xff0000ffu
+#define GC_FILL 0x5a5a5a5au
+#define GC_DST    0x00500000u /* scratch outside every range the draws touch */
+#define GC_NARROW 0x00490000u /* 8 px ARGB8888 target, 32 B/row          */
+
+/* A triangles stay under the cadence (about 31 spans each); the small B
+   triangles over rows 0..3 then cross it, so the carry submit holds every
+   A triangle and the submit left open draws only rows 0..3. Returns the
+   carry count before the run, so the caller can tell a new carry. */
+static uint64_t
+gc_carry_open(rage128_t *dev)
+{
+    uint64_t c0 = harness_gpu_carry_submits(dev->gpu);
+
+    for (int i = 0; i < 1000; i++)
+        hz_draw(dev, 8.0f, 31.0f, GC_A);
+    for (int i = 0; i < 4000 && harness_gpu_carry_submits(dev->gpu) == c0; i++)
+        hz_draw(dev, 0.0f, 3.0f, GC_B);
+    hz_draw(dev, 0.0f, 3.0f, GC_B);
+    return c0;
+}
+
+static void
+vectors_gpu_carry(rage128_t *dev)
+{
+    uint32_t px20 = HZ_A + (20u * 64u + 2u) * 4u;
+    uint32_t px2  = HZ_A + (2u * 64u + 2u) * 4u;
+    uint32_t v20, v2;
+
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0x00000000);
+    wr(dev, 0x16f0, 0x001f003f);
+    wr(dev, 0x16c0, 0x00000003);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0x00000000);
+    wr(dev, 0x16c4, 0x00000006);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000 | (HZ_A >> 5));
+    wr(dev, RAGE128_Z_OFFSET_C, HZ_Z);
+    wr(dev, RAGE128_Z_PITCH_C, 0x00000008);
+    wr(dev, RAGE128_Z_STEN_CNTL_C, 0x00000070); /* 16-bit Z, fn ALWAYS */
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_SETUP_CNTL, 0x00000020);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+    hz_seed(dev, 0, 0);
+
+    /* the backend starts at the first accelerated draw */
+    hz_draw(dev, 0.0f, 31.0f, GC_A);
+    gpu_sync(dev);
+    if (!dev->gpu || !harness_gpu_async(dev->gpu)) {
+        printf("SKIP gpu carry: no async GPU backend on this host\n");
+        return;
+    }
+    v20 = *(uint32_t *) &dev->svga.vram[px20];
+    v2  = *(uint32_t *) &dev->svga.vram[px2];
+    check_true("gpu carry: an uncarried draw lands",
+               v20 != HZ_MARK && v2 != HZ_MARK);
+    hz_seed(dev, 0, 0);
+
+    gc_carry_open(dev);
+    check_true("gpu carry: a cadence point carried the segment",
+               harness_gpu_carry_submits(dev->gpu) >= 1);
+    check_true("gpu carry: the segment is open with carried cells",
+               harness_gpu_carry_open(dev->gpu));
+    /* the guest's aperture read of a carried cell */
+    rage128_gpu_cpu_barrier(dev, px20, 4, 0);
+    check_true("gpu carry: the read ends the open segment",
+               !harness_gpu_carry_open(dev->gpu));
+    check32("gpu carry: the read sees the carried cell's bytes",
+            *(uint32_t *) &dev->svga.vram[px20], v20);
+    gpu_sync(dev);
+    check32("gpu carry: the last draw lands over the carried cells",
+            *(uint32_t *) &dev->svga.vram[px2], v2);
+
+    /* A queued 2D op over carried cells with no spans since the carry
+       (SOFT_RESET_GUI dropped them): the cells still sit in the mirror
+       only, so a blit from row 20 must end the segment first. Recorded
+       at the head of the next submit without that, it copies the
+       import's seeded marker. */
+    hz_seed(dev, 0, 0);
+    for (uint32_t i = 0; i < 32u; i += 4u)
+        *(uint32_t *) &dev->svga.vram[GC_DST + i] = HZ_MARK;
+    gc_carry_open(dev);
+    rage128_gpu_abandon(dev);
+    check_true("gpu carry: a reset keeps the carried cells",
+               harness_gpu_carry_open(dev->gpu));
+    check_true("gpu carry: a blit from carried cells queues",
+               rage128_gpu_2d_blit(dev, GC_DST, 32u, HZ_A + 20u * 256u, 32u,
+                                   32u, 1u) == 1);
+    gpu_sync(dev);
+    check32("gpu carry: a blit from carried cells copies the drawn bytes",
+            *(uint32_t *) &dev->svga.vram[GC_DST + 8u], v20);
+
+    /* A solid fill over carried cells queued while new draws are pending
+       goes after the runs, before the mirror-back. SOFT_RESET_GUI then
+       drops the new draws, so the real end has no runs but still copies
+       the carried cells back: the fill must reach the mirror too, or
+       that copy lays the older drawn bytes over it. */
+    hz_seed(dev, 0, 0);
+    gc_carry_open(dev);
+    check_true("gpu carry: a fill over carried cells queues",
+               rage128_gpu_2d_fill(dev, HZ_A + 20u * 256u, 256u, 16u, 1u,
+                                   GC_FILL, 4, 0) == 1);
+    rage128_gpu_abandon(dev);
+    gpu_sync(dev);
+    check32("gpu carry: a fill over carried cells survives the real end",
+            *(uint32_t *) &dev->svga.vram[px20], GC_FILL);
+
+    /* On an 8-pixel-wide target (32-byte rows) one 256-byte cell holds
+       eight rows, so a hull can end inside a cell. Draws over rows 0..5
+       carry with the color hull ending at row 6, inside the first cell.
+       A host store into row 7 lies outside the hull and lands in the
+       import without waiting. A draw over rows 7..9 then widens the hull
+       over it, and SOFT_RESET_GUI drops that draw: the real end's copy of
+       the carried cell must stay inside the carried hull and leave the
+       host store alone. */
+    {
+        uint32_t t  = GC_NARROW;
+        uint32_t ph = t + 7u * 32u;
+        uint64_t c0;
+
+        for (uint32_t i = 0; i < 64u; i++)
+            *(uint32_t *) &dev->svga.vram[t + i * 4u] = HZ_MARK;
+        wr(dev, 0x16f0, 0x001f0007); /* SC_BOTTOM_RIGHT: x 0..7 */
+        wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x00200000 | (t >> 5));
+        wr(dev, RAGE128_Z_PITCH_C, 0x00000001);
+        c0 = harness_gpu_carry_submits(dev->gpu);
+        for (int i = 0; i < 20000 && harness_gpu_carry_submits(dev->gpu) == c0; i++)
+            hz_draw(dev, 0.0f, 5.0f, GC_A);
+        hz_draw(dev, 0.0f, 5.0f, GC_A);
+        check_true("gpu carry: narrow target carried with its hull inside a cell",
+                   harness_gpu_carry_open(dev->gpu));
+        /* the carry submit's copy-down must be done before the store, or
+           it may pick the store up and hide the copy-back */
+        harness_gpu_wait_submitted(dev->gpu);
+        rage128_gpu_cpu_barrier(dev, ph, 4, 1);
+        check_true("gpu carry: a store past the hull does not end the segment",
+                   harness_gpu_carry_open(dev->gpu));
+        *(uint32_t *) &dev->svga.vram[ph] = GC_FILL;
+        r128_vram_hnew(dev, ph, 4);
+        hz_draw(dev, 7.0f, 9.0f, GC_B);
+        rage128_gpu_abandon(dev);
+        gpu_sync(dev);
+        check32("gpu carry: a host store beside a carried cell survives a reset",
+                *(uint32_t *) &dev->svga.vram[ph], GC_FILL);
+        wr(dev, 0x16f0, 0x001f003f);
+        wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000 | (HZ_A >> 5));
+        wr(dev, RAGE128_Z_PITCH_C, 0x00000008);
+    }
+}
+
+static void
+run_gpu_carry(void)
+{
+    rage128_t  *dev;
+    const char *genv = getenv("R128_GPU");
+    char        gprev[32] = "";
+
+    if (!harness_gpu_available()) {
+        printf("SKIP gpu carry: built without Vulkan headers\n");
+        return;
+    }
+    if (genv)
+        snprintf(gprev, sizeof(gprev), "%s", genv);
+    harness_cfg_memory_mb = 32;
+    setenv("R128_GPU", "1", 1);
+    dev = rage128_init(&ati_rage128_pro_device);
+    vectors_gpu_carry(dev);
+    close_dev(dev);
+    setenv("R128_GPU", gprev, 1);
+}
+
 static void
 run_lanegap(void)
 {
@@ -23676,7 +24162,7 @@ static const char *const shard_units[] = {
     "maxx", "vga-decode", "lanegap", "lanegap-16mb", "gpu2d-verify",
     "x64legs", "synctel", "yuv-border", "texture-alpha", "dither-init",
     "sec-persp", "sec-only", "dst-1555-4444", "zoff-tfog",
-    "stipple-fast", "lanegap-expectedfail"
+    "stipple-fast", "lanegap-expectedfail", "gpu-carry"
 };
 static char *selected_units;
 
@@ -24291,6 +24777,8 @@ main(int argc, char **argv)
         run_lanegap_16mb();
     if (unit_selected("gpu2d-verify"))
         run_gpu2d_verify();
+    if (unit_selected("gpu-carry"))
+        run_gpu_carry();
     if (unit_selected("x64legs"))
         run_x64legs();
     if (unit_selected("synctel"))

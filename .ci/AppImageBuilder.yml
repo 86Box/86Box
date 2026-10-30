@@ -47,10 +47,22 @@ AppDir:
       [ -z "$args" ] || patchelf $args "$file"
     done
   after_runtime: |
-    mkdir -p "./archive_tmp/runtime/compat/lib64"
-    ln -sf ../usr/lib64/ld-linux-x86-64.so.2 "./archive_tmp/runtime/compat/lib64/ld-linux-x86-64.so.2"
-    mkdir -p "./archive_tmp/runtime/compat/lib"
-    ln -sf ../usr/lib/ld-linux-aarch64.so.1 "./archive_tmp/runtime/compat/lib/ld-linux-aarch64.so.1"
+    case "$arch_appimage" in
+      x86_64)
+        mkdir -p archive_tmp/runtime/compat/lib64
+        ln -sf ../usr/lib64/ld-linux-x86-64.so.2 archive_tmp/runtime/compat/lib64/ld-linux-x86-64.so.2
+        ;;
+      aarch64)
+        mkdir -p archive_tmp/runtime/compat/lib
+        ln -sf ../usr/lib/ld-linux-aarch64.so.1 archive_tmp/runtime/compat/lib/ld-linux-aarch64.so.1
+        ;;
+    esac
+    ln -sf /usr/lib/libvulkan.so.1 archive_tmp/usr/lib/libvulkan.so
+    ln -sf "/usr/lib/$libdir/libvulkan.so.1" "archive_tmp/usr/lib/$libdir/libvulkan.so"
+    ln -sf /usr/lib64/libvulkan.so.1 "archive_tmp/lib/$arch_appimage/libvulkan.so"
+  runtime:
+    path_mappings:
+    - /usr/share/ghostscript:$APPDIR/usr/share/ghostscript
   apt:
     arch: !ENV '${arch_deb}'
     sources:
@@ -112,10 +124,22 @@ AppDir:
     - usr/lib/*/systemd # systemd private libraries
     - usr/lib/*.a # produced by library compilation
     - usr/s[!h]* # s* except share
-    - usr/share/[!aim]* # * except applications, icons, metainfo
+    - usr/share/[!acfgim]* # * except applications, color, fonts, ghostscript, icons, metainfo
     - usr/share/a[!p]* # a* except applications
     - usr/share/ap[!p]* # ap* except applications
     - usr/share/app[!l]* # app* except applications
+    - usr/share/c[!o]* # c* except color
+    - usr/share/co[!l]* # co* except color
+    - usr/share/color/icc/[!g]* # ICC profiles except ghostscript
+    - usr/share/f[!o]* # f* except fonts
+    - usr/share/font[!s]* # font* except fonts
+    - usr/share/fonts/[!t]* # fonts except type1
+    - usr/share/fonts/type1/[!u]* # type1 except urw-base35
+    - usr/share/fonts/type1/urw-base35/*.afm # font metrics not used by Ghostscript
+    - usr/share/g[!h]* # g* except ghostscript
+    - usr/share/ghostscript/[!0-9]* # Ghostscript data except the versioned directory
+    - usr/share/ghostscript/*/lib # Ghostscript printer driver configuration
+    - usr/share/ghostscript/*/Resource/[!DFI]* # Ghostscript resources except Decoding, Font, Init
     - usr/share/i[!c]* # i* except icons
     - usr/share/icons/[!h]* # * except hicolor
     - usr/share/icons/h[!i]* # h* except hicolor
