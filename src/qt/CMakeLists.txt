@@ -347,31 +347,9 @@ set_target_properties(osd_backend PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF
 target_include_directories(osd_backend PRIVATE ${OSD_DIR}/imgui ${Vulkan_INCLUDE_DIRS})
 target_link_libraries(86Box osd_backend)
 
-# The memory viewer's disassembler: bddisasm, built here from its sources
-# alone (its own project would build tools and install rules we do not want).
-# Point FETCHCONTENT_SOURCE_DIR_BDDISASM at a checkout to build offline.
+# The memory viewer's disassembler, bddisasm, from its copy in bddisasm/.
 if(DISASM)
-    include(FetchContent)
-    FetchContent_Declare(bddisasm
-        GIT_REPOSITORY https://github.com/bitdefender/bddisasm.git
-        GIT_TAG        f0c0e90497d8905d81b7ed650646ea4dbf40bf65 # v3.1.0
-        SOURCE_SUBDIR  do-not-add
-    )
-    FetchContent_MakeAvailable(bddisasm)
-
-    add_library(bddisasm STATIC
-        ${bddisasm_SOURCE_DIR}/bddisasm/bddisasm_crt.c
-        ${bddisasm_SOURCE_DIR}/bddisasm/bdx86_decoder.c
-        ${bddisasm_SOURCE_DIR}/bddisasm/bdx86_formatter.c
-        ${bddisasm_SOURCE_DIR}/bddisasm/bdx86_helpers.c
-        ${bddisasm_SOURCE_DIR}/bddisasm/bdx86_idbe.c
-        ${bddisasm_SOURCE_DIR}/bddisasm/bdx86_operand.c
-    )
-    set_target_properties(bddisasm PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF C_STANDARD 11)
-    target_compile_definitions(bddisasm PUBLIC BDDISASM_HAS_VSNPRINTF BDDISASM_HAS_MEMSET)
-    target_include_directories(bddisasm PRIVATE ${bddisasm_SOURCE_DIR}/bddisasm/include)
-    target_include_directories(bddisasm SYSTEM PUBLIC ${bddisasm_SOURCE_DIR}/inc)
-
+    add_subdirectory(bddisasm)
     target_compile_definitions(ui PRIVATE USE_BDDISASM)
     target_link_libraries(ui PRIVATE bddisasm)
 endif()
