@@ -28,6 +28,7 @@ signals:
 
 private slots:
     void on_pushButtonConfigure_clicked();
+    void on_pushButtonAdvancedSearch_clicked();
     void on_comboBoxFPU_currentIndexChanged(int index);
     void on_comboBoxSpeed_currentIndexChanged(int index);
     void on_comboBoxCPU_currentIndexChanged(int index);
