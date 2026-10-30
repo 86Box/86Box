@@ -141,6 +141,21 @@ jobs:
           rm -f "$pkg"
           printf 'build_arch %s\nuniversal_archs\nui_interactive no\n' "$ARCH" | sudo tee -a /opt/local/etc/macports/macports.conf
 
+      # build.sh patches Qt to enable Vulkan support, which MoltenVK requires,
+      # but that only takes effect when Qt is built from source. Build qtbase
+      # from source with the same patch, using binary archives for everything
+      # else.
+      - name: Build Qt with Vulkan support
+        if: matrix.target.os == 'macOS'
+        run: |
+          port=/opt/local/bin/port
+          sudo "$port" -N selfupdate
+          portfile=$("$port" file qt5-qtbase)
+          sudo sed -i '' -e 's/-no-feature-vulkan/-feature-vulkan/g' "$portfile"
+          sudo sed -i '' -e 's/configure.env-append MAKE=/configure.env-append VULKAN_SDK=${prefix} MAKE=/g' "$portfile"
+          sudo "$port" -N install vulkan-headers depof:qt5-qtbase
+          sudo "$port" -N -s install qt5-qtbase
+
       - name: Checkout repository
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
