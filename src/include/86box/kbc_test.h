@@ -1,6 +1,6 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
-#ifndef KBC_AT_VECTRA_H
-#define KBC_AT_VECTRA_H
+#ifndef KBC_TEST_H
+#define KBC_TEST_H
 
 #include <stdint.h>
 
