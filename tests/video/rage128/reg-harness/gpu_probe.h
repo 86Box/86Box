@@ -250,13 +250,14 @@ uint64_t harness_gpu_fab_fill_rects(void *g);
 uint64_t harness_gpu_fab_fill_cpu(void *g);
 /* Tiled-fill probe. q_reset empties the fabricated backend's
    queued-2D accumulation (fill list, write hull, pending flag) so a leg
-   starts from nothing queued. fill_exec executes the queued solid-fill
-   records on host memory the way gpu_disp_fills hands them to
-   vkCmdFillBuffer (the dword-replicated color at every byte, phase by
-   address; dword offset and size), reports the queued-write hull
-   [f_lo, f_hi) as the records left it, empties the accumulation again,
-   and returns the record count; -1 = a record is not a solid fill, is
-   off a dword, or runs past size. */
+   starts from nothing queued. fill_exec executes the queued records on
+   host memory the way the GPU executes them: a solid fill as a buffer
+   fill (the dword-replicated color at every byte, phase by address;
+   dword offset and size), a staged copy as a buffer copy (the staged
+   bytes per row from the staging ring, any alignment). It reports the
+   queued-write hull [f_lo, f_hi) as the records left it, empties the
+   accumulation again, and returns the record count; -1 = a record is
+   another kind, a solid fill off a dword, or a range past its buffer. */
 void harness_gpu_fab_q_reset(void *g);
 int  harness_gpu_fab_fill_exec(void *g, uint8_t *mem, uint32_t size,
                                uint32_t *flo, uint32_t *fhi);

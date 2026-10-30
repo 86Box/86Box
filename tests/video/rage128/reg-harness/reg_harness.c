@@ -11186,6 +11186,75 @@ vectors_gpu_tiled_fill(rage128_t *dev)
                 *(uint32_t *) &dev->svga.vram[TF_DST + tl_off(0, 1, TF_PITCH)],
                 TF_COLOR);
     }
+
+    /* 16 bpp edges off a dword. At two bytes per pixel an odd pixel
+       starts or ends on a half dword, which a buffer fill cannot write,
+       so such an edge column is queued as a staged copy of its color
+       bytes. Star Trek: Armada clears a 181-pixel-wide panel at x = 643
+       this way every frame. The same surface is addressed as RGB565 at
+       128 px, which keeps the 256-byte row. Pieces count the staged
+       edge records with the fills. */
+    {
+        static const struct {
+            int         x, y, w, h;
+            uint32_t    pieces;
+            const char *nm;
+        } leg16[] = {
+            { 1, 3, 40, 30, 6, "16 bpp, both edges odd" },
+            { 3, 0, 1, 1, 1, "16 bpp, one odd pixel" },
+            { 67, 10, 45, 40, 8, "16 bpp, odd left edge, two columns" },
+            { 2, 0, 30, 16, 1, "16 bpp, edges on a dword" },
+        };
+
+        wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+           (13u << 4) | (4u << 8) | (0xf0u << 16)
+               | (1u << 28) | (1u << 29) | (1u << 30));
+        wr(dev, RAGE128_DST_PITCH, (1u << 16) | 16u);
+        harness_gpu_fab_q_reset(fab);
+        for (size_t i = 0; i < sizeof(leg16) / sizeof(leg16[0]); i++) {
+            uint64_t rects0 = harness_gpu_fab_fill_rects(fab);
+            uint64_t tiled0 = harness_gpu_fab_tiled(fab);
+            uint32_t y0     = (uint32_t) leg16[i].y;
+            uint32_t y1     = (uint32_t) (leg16[i].y + leg16[i].h - 1);
+            uint32_t xb0    = (uint32_t) leg16[i].x * 2u;
+            uint32_t xb1    = (uint32_t) (leg16[i].x + leg16[i].w) * 2u;
+            uint32_t flo    = 0, fhi = 0;
+            int      n;
+
+            memcpy(&dev->svga.vram[TF_DST], seed, TF_BYTES);
+            memcpy(ref, seed, TF_BYTES);
+            for (uint32_t y = y0; y <= y1; y++)
+                for (uint32_t xb = xb0; xb < xb1; xb++)
+                    ref[tl_off(xb, y, TF_PITCH)]
+                        = (uint8_t) (TF_COLOR >> ((xb % 2u) * 8));
+            wr(dev, RAGE128_DST_Y_X,
+               ((uint32_t) leg16[i].y << 16) | (uint32_t) leg16[i].x);
+            wr(dev, RAGE128_DST_HEIGHT_WIDTH,
+               ((uint32_t) leg16[i].h << 16) | (uint32_t) leg16[i].w);
+            snprintf(nm, sizeof(nm), "gpu tiled fill: %s queues, no tiled bounce",
+                     leg16[i].nm);
+            check_true(nm, harness_gpu_fab_fill_rects(fab) == rects0 + 1
+                               && harness_gpu_fab_tiled(fab) == tiled0);
+            snprintf(nm, sizeof(nm), "gpu tiled fill: %s lands nothing CPU-side",
+                     leg16[i].nm);
+            check_true(nm, !memcmp(&dev->svga.vram[TF_DST], seed, TF_BYTES));
+            n = harness_gpu_fab_fill_exec(fab, dev->svga.vram, dev->vram_size,
+                                          &flo, &fhi);
+            snprintf(nm, sizeof(nm), "gpu tiled fill: %s is %u piece(s)", leg16[i].nm,
+                     leg16[i].pieces);
+            check32(nm, (uint32_t) n, leg16[i].pieces);
+            snprintf(nm, sizeof(nm), "gpu tiled fill: %s lands the walk's bytes, no other",
+                     leg16[i].nm);
+            check_true(nm, !memcmp(&dev->svga.vram[TF_DST], ref, TF_BYTES));
+            snprintf(nm, sizeof(nm), "gpu tiled fill: %s hull is the whole tile rows",
+                     leg16[i].nm);
+            check_true(nm, flo == TF_DST + 16u * TF_PITCH * (y0 / 16u)
+                               && fhi == TF_DST + 16u * TF_PITCH * (y1 / 16u + 1u));
+        }
+        wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+           (13u << 4) | (6u << 8) | (0xf0u << 16)
+               | (1u << 28) | (1u << 29) | (1u << 30));
+    }
     fab_out(dev);
     harness_gpu_fab_free(fab);
     wr(dev, RAGE128_DST_PITCH, 8u);

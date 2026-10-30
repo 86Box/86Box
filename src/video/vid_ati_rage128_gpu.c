@@ -8306,10 +8306,12 @@ gpu_tfill_rec(gpu_fill_t *rec, uint32_t *n, uint64_t addr, uint32_t pitch,
 {
     if (*n == GPU_FILL_CAP)
         return 0;
+    rec[*n].kind  = 0;
     rec[*n].addr  = (uint32_t) addr;
     rec[*n].pitch = pitch;
     rec[*n].len   = len;
     rec[*n].rows  = rows;
+    rec[*n].src   = 0;
     (*n)++;
     return 1;
 }
@@ -8339,13 +8341,20 @@ gpu_tfill_rec(gpu_fill_t *rec, uint32_t *n, uint64_t addr, uint32_t pitch,
    rows the rectangle touches: the bytes the transform can produce for
    rows [y0, y1], and the range the 2D barrier waited on for the walk.
 
+   A buffer fill needs its offset and size on a dword. Column starts are
+   multiples of 64, so only the rectangle's own left and right edges can
+   be off one, which at 16 bpp is any odd pixel. An edge column whose
+   byte range is off a dword is written as a staged copy instead: its
+   bytes of the color, at the phase its first byte has within a pixel,
+   are staged once and copied to every line of each band with a source
+   pitch of 0, the way the linear fill writes its unaligned ends. A
+   buffer copy has no alignment rule.
+
    Returns 0 when the fill does not qualify; the caller walks it on the
    CPU and counts it in st_tiled_cpu. That is the case for a right edge
    past the pitch (the walk spills into the next row), bpp 3 (the color
-   does not repeat every dword), a column edge not on a dword
-   (vkCmdFillBuffer granularity; column starts are multiples of 64, so
-   only the rectangle's own edges can be off), AGP memory or a range
-   above VRAM, or more pieces than the fill list holds. */
+   does not repeat every dword), AGP memory or a range above VRAM, no
+   room in the staging ring, or more pieces than the fill list holds. */
 int
 rage128_gpu_2d_fill_tiled(rage128_t *dev, uint32_t tbase, uint32_t tpitch,
                           uint32_t xb0, uint32_t xb1, uint32_t y0,
@@ -8357,17 +8366,18 @@ rage128_gpu_2d_fill_tiled(rage128_t *dev, uint32_t tbase, uint32_t tpitch,
     uint32_t    fc   = color;
     uint64_t    band, tlo, thi;
     uint32_t    c0, c1, cf0, cf1, t0, t1, ncol;
-    /* partial edge columns: tile column index and the byte range [a, b)
-       within the column that the rectangle covers */
+    /* partial edge columns: tile column index, the byte range [a, b)
+       within the column that the rectangle covers, and for a range off
+       a dword the staging offset of its color bytes */
     struct {
-        uint32_t col, a, b;
-    } part[2];
+        uint32_t col, a, b, src;
+    } part[2] = { { 0 } };
     uint32_t npart = 0;
 
     if (!g || g->verify)
         return 0;
     if (!r128_tiled_ok(1, tpitch) || xb0 >= xb1 || y0 > y1 || bpp == 3
-        || xb1 > tpitch || ((xb0 | xb1) & 3u))
+        || xb1 > tpitch)
         return 0;
     band = 16ull * tpitch;
     t0   = y0 >> 4;
@@ -8424,17 +8434,49 @@ rage128_gpu_2d_fill_tiled(rage128_t *dev, uint32_t tbase, uint32_t tpitch,
     }
     ncol = cf1 - cf0;
 
+    /* Stage the color bytes of every edge range that is off a dword, in
+       one reservation, so a ring wrap cannot fall between the two edges.
+       A column is 64 bytes, a whole number of pixels at 1, 2 and 4 bytes
+       per pixel, so the first byte of [a, b) is byte a % bpp of its
+       pixel. */
+    {
+        uint32_t sn = 0, soff = 0;
+        uint8_t *st;
+
+        for (uint32_t p = 0; p < npart; p++)
+            if ((part[p].a | part[p].b) & 3u)
+                sn += part[p].b - part[p].a;
+        if (sn) {
+            st = (uint8_t *) rage128_gpu_2d_stage(dev, sn, &soff);
+            if (!st)
+                return 0;
+            for (uint32_t p = 0; p < npart; p++) {
+                if (!((part[p].a | part[p].b) & 3u))
+                    continue;
+                part[p].src = soff;
+                for (uint32_t i = part[p].a; i < part[p].b; i++)
+                    *st++ = (uint8_t) (color >> ((i % (uint32_t) bpp) * 8));
+                soff += part[p].b - part[p].a;
+            }
+        }
+    }
+
     /* partial edge columns: one record per band each */
     for (uint32_t t = t0; t <= t1; t++) {
         uint32_t l0 = t == t0 ? (y0 & 15u) : 0;
         uint32_t l1 = t == t1 ? (y1 & 15u) : 15u;
 
-        for (uint32_t p = 0; p < npart; p++)
+        for (uint32_t p = 0; p < npart; p++) {
             if (!gpu_tfill_rec(rec, &nrec,
                                tlo + band * (t - t0) + (part[p].col << 10)
                                    + (l0 << 6) + part[p].a,
                                64u, part[p].b - part[p].a, l1 - l0 + 1u))
                 return 0;
+            if ((part[p].a | part[p].b) & 3u) {
+                rec[nrec - 1].kind = 1;
+                rec[nrec - 1].src  = part[p].src;
+            }
+        }
     }
     /* full columns: the line ranges in the first and last bands, then
        the run of bands whose 16 lines all lie inside the rectangle */
@@ -8481,13 +8523,13 @@ rage128_gpu_2d_fill_tiled(rage128_t *dev, uint32_t tbase, uint32_t tpitch,
     for (uint32_t i = 0; i < nrec; i++) {
         gpu_fill_t *f = &g->fills[g->nfills];
 
-        f->kind   = 0;
+        f->kind   = rec[i].kind;
         f->addr   = rec[i].addr;
         f->pitch  = rec[i].pitch;
         f->len    = rec[i].len;
         f->rows   = rec[i].rows;
         f->color  = fc;
-        f->src    = 0;
+        f->src    = rec[i].src;
         f->spitch = 0;
         f->bar    = gpu_fill_bar(g, f);
         f->mid    = -1;

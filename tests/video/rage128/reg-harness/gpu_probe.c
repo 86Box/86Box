@@ -625,6 +625,24 @@ harness_gpu_fab_fill_exec(void *gp, uint8_t *mem, uint32_t size,
     for (uint32_t i = 0; i < g->nfills; i++) {
         const gpu_fill_t *f = &g->fills[i];
 
+        /* A staged copy runs as a buffer copy does: len bytes per row
+           from the staging ring at src + row * spitch, with no alignment
+           rule. */
+        if (f->kind == 1 && f->mid < 0) {
+            const uint8_t *sp = (const uint8_t *) g->stage2d.map;
+
+            if (!sp)
+                return -1;
+            for (uint32_t r = 0; r < f->rows; r++) {
+                uint64_t a = (uint64_t) f->addr + (uint64_t) r * f->pitch;
+                uint64_t s = (uint64_t) f->src + (uint64_t) r * f->spitch;
+
+                if (a + f->len > size || s + f->len > GPU_2DSTAGE_SIZE)
+                    return -1;
+                memcpy(&mem[a], &sp[s], f->len);
+            }
+            continue;
+        }
         if (f->kind != 0 || f->mid >= 0 || (f->len & 3u))
             return -1;
         for (uint32_t r = 0; r < f->rows; r++) {
