@@ -137,9 +137,20 @@ jobs:
             choco install 7zip -y --no-progress
           }
 
+      # Local actions are loaded from the checked out pull request, which may
+      # be based on a commit without them. Check them out from the merge
+      # commit this workflow runs from instead, so that they always match it.
+      - name: Checkout actions
+        if: matrix.target.os == 'macOS'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: _workflow
+          sparse-checkout: .github/actions
+          persist-credentials: false
+
       - name: Set up MacPorts
         if: matrix.target.os == 'macOS'
-        uses: ./.github/actions/setup-macports
+        uses: ./_workflow/.github/actions/setup-macports
         with:
           arch: ${{ matrix.target.arch }}
 
