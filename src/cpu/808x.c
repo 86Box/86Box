@@ -38,6 +38,7 @@
 #include <86box/ppi.h>
 #include <86box/timer.h>
 #include <86box/gdbstub.h>
+#include <86box/debugger.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 #include "x86_interrupt.h"
@@ -810,6 +811,23 @@ flush_prefetch_808x(void)
         pfq_clear();
         set_ip(cpu_state.pc);
     }
+}
+
+/* The bytes the prefetch queue holds for the next instruction, oldest
+   first, without changing anything. The processor runs these rather than
+   what is in memory now. */
+int
+queue_peek_808x(uint8_t *buf, int max)
+{
+    int n = 0;
+
+    if (is_new_biu)
+        return biu_pfq_peek(buf, max);
+
+    for (int i = 0; (i < pfq_pos) && (n < max); i++)
+        buf[n++] = pfq[i];
+
+    return n;
 }
 
 /* Move to new_ip from outside the instruction stream (a debugger). */
@@ -3524,5 +3542,7 @@ execx86(int cycs)
         if (gdbstub_instruction())
             return;
 #endif
+        if (DEBUGGER_INSTRUCTION_PASS(completed))
+            return;
     }
 }

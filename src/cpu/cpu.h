@@ -956,10 +956,12 @@ extern void SF_FPU_reset(void);
 extern void reset_808x(int hard);
 extern uint16_t ip_808x(void);
 extern void     flush_prefetch_808x(void);
+extern int      queue_peek_808x(uint8_t *buf, int max);
 extern void     set_ip_808x(uint16_t new_ip);
 extern void interrupt_808x(uint16_t addr);
 
 extern void reset_vx0(int hard);
+extern int  vx0_i8080_state(uint16_t *pc, uint16_t *sp, uint8_t *r, uint8_t *flags);
 
 /*
  * CPU-owned LAPIC API: LAPIC/IOAPIC code routes through these helpers instead

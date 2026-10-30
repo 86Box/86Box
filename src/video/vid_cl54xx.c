@@ -3070,6 +3070,26 @@ gd54xx_read(uint32_t addr, void *priv)
     return svga_read_linear(addr, svga);
 }
 
+/* For the memory viewer: the byte gd54xx_read() returns, without its side
+   effects; none while the processor would read the blitter's results. */
+static uint8_t *
+gd54xx_debug_ptr(uint32_t addr, int write, void *priv)
+{
+    svga_t         *svga   = (svga_t *) priv;
+    const gd54xx_t *gd54xx = (gd54xx_t *) svga->local;
+
+    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) && (((svga->gdcreg[6] >> 2) & 0x03) != 0x01))
+        return svga_debug_ptr_common(addr, 0, write, svga);
+
+    if (gd54xx->countminusone && gd54xx->blt.ms_is_dest &&
+        !(gd54xx->blt.status & CIRRUS_BLT_PAUSED))
+        return NULL;
+
+    addr &= svga->banked_mask;
+    addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
+    return svga_debug_ptr_common(addr, 1, write, svga);
+}
+
 static uint16_t
 gd54xx_readw(uint32_t addr, void *priv)
 {
@@ -5330,6 +5350,7 @@ gd54xx_init(const device_t *info)
     svga->readw = gd54xx_readw;
     svga->write = gd54xx_write;
     svga->writew = gd54xx_writew;
+    mem_debug_add(gd54xx_read, gd54xx_write, gd54xx_debug_ptr);
     if (gd54xx->bit32) {
         svga->readl = gd54xx_readl;
         svga->writel = gd54xx_writel;

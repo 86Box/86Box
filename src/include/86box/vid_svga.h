@@ -411,6 +411,8 @@ void     svga_writew(uint32_t addr, uint16_t val, void *priv);
 void     svga_writel(uint32_t addr, uint32_t val, void *priv);
 uint8_t  svga_read_linear(uint32_t addr, void *priv);
 uint8_t  svga_readb_linear(uint32_t addr, void *priv);
+uint8_t *svga_debug_ptr_common(uint32_t addr, uint8_t linear, int write, svga_t *svga);
+void     svga_debug_add(void);
 uint16_t svga_readw_linear(uint32_t addr, void *priv);
 uint32_t svga_readl_linear(uint32_t addr, void *priv);
 void     svga_write_linear(uint32_t addr, uint8_t val, void *priv);
