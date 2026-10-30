@@ -96,4 +96,14 @@ runs:
         sudo sed -i '' -e 's/-no-feature-vulkan/-feature-vulkan/g' "$portfile"
         sudo sed -i '' -e 's/configure.env-append MAKE=/configure.env-append VULKAN_SDK=${prefix} MAKE=/g' "$portfile"
         sudo "$port" -N install vulkan-headers depof:qt5-qtbase
-        sudo "$port" -N -s install qt5-qtbase
+        if ! sudo "$port" -N -s install qt5-qtbase; then
+          # The build output only goes to the MacPorts log
+          log=$("$port" logfile qt5-qtbase)
+          echo "::group::Errors in $log"
+          grep -E -B 5 -A 10 'error:|Error [0-9]|\*\*\*' "$log" | head -n 300
+          echo "::endgroup::"
+          echo "::group::End of $log"
+          tail -n 100 "$log"
+          echo "::endgroup::"
+          exit 1
+        fi
