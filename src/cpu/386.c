@@ -225,6 +225,8 @@ fetch_ea_16_long(uint32_t rmdat)
 /* What the tables above hold for an opcode the processor does not have, so
    that a debugger can tell. */
 const OpFn x86_2386_illegal_op = ILLEGAL;
+/* And for the x87 opcodes, 16- and 32-bit addressing. */
+const OpFn x86_2386_fpu_illegal_op[2] = { FPU_ILLEGAL_a16, FPU_ILLEGAL_a32 };
 
 void
 exec386_2386(int32_t cycs)
@@ -328,6 +330,13 @@ exec386_2386(int32_t cycs)
 
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;
+
+            /* A hard reset requested while the memory viewer runs this
+               interpreter in place of the recompiler. */
+            if (cpu_init) {
+                cpu_init = 0;
+                resetx86();
+            }
 
             if (cpu_state.abrt) {
                 flags_rebuild();

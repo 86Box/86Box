@@ -122,6 +122,15 @@ mda_read(uint32_t addr, void *priv)
     return mda->vram[addr & 0xfff];
 }
 
+/* For the memory viewer. */
+static uint8_t *
+mda_debug_ptr(uint32_t addr, UNUSED(int write), void *priv)
+{
+    mda_t *mda = (mda_t *) priv;
+
+    return &mda->vram[addr & 0xfff];
+}
+
 void
 mda_recalctimings(mda_t *mda)
 {
@@ -446,6 +455,7 @@ mda_standalone_init(UNUSED(const device_t *info))
                     mda_write, NULL, NULL,
                     NULL, MEM_MAPPING_EXTERNAL,
                     mda);
+    mem_debug_add(mda_read, mda_write, mda_debug_ptr);
 
     io_sethandler(0x03b0, 0x0010,
                   mda_in, NULL, NULL,

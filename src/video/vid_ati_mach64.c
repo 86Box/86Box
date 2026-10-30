@@ -774,6 +774,7 @@ mach64_updatemapping(mach64_t *mach64)
      */
     if (mach64->config_cntl & 4) {
         if ((svga->mapping.read_b != mach64_read) || (svga->mapping.priv != mach64)) {
+            mem_debug_add(mach64_read, mach64_write, mach64_debug_ptr);
             mem_mapping_set_handler(&svga->mapping, mach64_read, mach64->isa_8bit ? NULL : mach64_readw, mach64->isa_8bit ? NULL : mach64_readl,
                                     mach64_write, mach64->isa_8bit ? NULL : mach64_writew, mach64->isa_8bit ? NULL : mach64_writel);
             mem_mapping_set_p(&svga->mapping, mach64);
@@ -2780,6 +2781,18 @@ mach64_read(uint32_t addr, void *priv)
     if (addr != 0xffffffff)
         ret  = svga_read_linear(addr, svga);
     return ret;
+}
+/* For the memory viewer: the byte mach64_read() returns, without its side
+   effects. */
+uint8_t *
+mach64_debug_ptr(uint32_t addr, int write, void *priv)
+{
+    mach64_t *mach64 = (mach64_t *) priv;
+
+    addr = mach64_decode_addr(mach64, addr, 0);
+    if (addr == 0xffffffff)
+        return NULL;
+    return svga_debug_ptr_common(addr, 1, write, &mach64->svga);
 }
 uint16_t
 mach64_readw(uint32_t addr, void *priv)

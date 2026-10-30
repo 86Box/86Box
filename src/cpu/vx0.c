@@ -4867,7 +4867,7 @@ check_completed:
         if (gdbstub_instruction())
             return;
 #endif
-        if (DEBUGGER_INSTRUCTION())
+        if (DEBUGGER_INSTRUCTION_PASS(completed))
             return;
     }
 }

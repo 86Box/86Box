@@ -33,6 +33,7 @@
 #include <86box/video.h>
 #include <86box/vid_ati_eeprom.h>
 #include <86box/vid_ega.h>
+#include <86box/plat_unused.h>
 
 void ega_doblit(int wx, int wy, ega_t *ega);
 
@@ -1388,6 +1389,26 @@ ega_write(uint32_t addr, uint8_t val, void *priv)
     }
 }
 
+/* For the memory viewer: the byte ega_read() returns in read mode 0, found
+   without loading the latches or taking wait states. */
+static uint8_t *
+ega_debug_ptr(uint32_t addr, UNUSED(int write), void *priv)
+{
+    ega_t *ega       = (ega_t *) priv;
+    int    readplane = ega->readplane;
+
+    if (ega->chain2_read)
+        readplane = (readplane & 2) | (addr & 1);
+
+    addr = ega_remap_cpu_addr(addr, ega) << 2;
+    if (addr >= ega->vram_limit)
+        return NULL;
+    if ((ega_type == EGA_TYPE_COMPAQ) && (ega->gdcreg[4] & 0x04))
+        return NULL;
+
+    return &ega->vram[addr | readplane];
+}
+
 uint8_t
 ega_read(uint32_t addr, void *priv)
 {
@@ -1659,6 +1680,7 @@ ega_standalone_init(const device_t *info)
     ega->vrammask   = ega->vram_limit - 1;
 
     mem_mapping_add(&ega->mapping, 0xa0000, 0x20000, ega_read, NULL, NULL, ega_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, ega);
+    mem_debug_add(ega_read, ega_write, ega_debug_ptr);
     if (ega_type == EGA_TYPE_COMPAQ)
         mem_mapping_disable(&ega->mapping);
     uint16_t addr = 0x03a0;

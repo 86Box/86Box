@@ -204,6 +204,13 @@ typedef struct _mem_mapping_ {
     void *priv; /* backpointer to device */
 } mem_mapping_t;
 
+/* For the memory viewer, on a video card's memory: where the byte the
+   processor would read at addr is in the card's memory, found without the
+   read handler's side effects (latches, wait states, blitter data); NULL
+   where no such byte is. priv is the mapping's. write: the viewer will
+   write the byte, so the card redraws it. */
+typedef uint8_t *(*mem_debug_ptr_t)(uint32_t addr, int write, void *priv);
+
 extern uint64_t *byte_dirty_mask;
 extern uint64_t *byte_code_present_mask;
 
@@ -393,6 +400,14 @@ extern void mem_mapping_set_write_handler(mem_mapping_t *,
                                           void (*write_l)(uint32_t addr, uint32_t val, void *priv));
 
 extern void mem_mapping_set_p(mem_mapping_t *, void *priv);
+/* Let the memory viewer at the video memory behind any mapping whose byte
+   read handler is read_b, through debug_ptr; and write it where the write
+   handler is write_b. Cards register their handlers once, at init. */
+extern void            mem_debug_add(uint8_t (*read_b)(uint32_t addr, void *priv),
+                                     void (*write_b)(uint32_t addr, uint8_t val, void *priv),
+                                     mem_debug_ptr_t debug_ptr);
+/* The debug_ptr for the mapping's handlers as they are now, or NULL. */
+extern mem_debug_ptr_t mem_debug_find(const mem_mapping_t *map, int write);
 
 extern void mem_mapping_set_addr(mem_mapping_t *,
                                  uint32_t base, uint32_t size);

@@ -36,7 +36,8 @@ enum {
     DEBUGGER_MEM_UNMAPPED     = 0, /* nothing answers there */
     DEBUGGER_MEM_RAM          = 1, /* system RAM */
     DEBUGGER_MEM_ROM          = 2, /* mapped, not RAM (ROM and the like), read straight from its backing */
-    DEBUGGER_MEM_INACCESSIBLE = 3  /* only a device's handlers reach it, or the linear page is absent */
+    DEBUGGER_MEM_INACCESSIBLE = 3, /* only a device's handlers reach it, or the linear page is absent */
+    DEBUGGER_MEM_VIDEO        = 4  /* a video card's memory, reached without its handlers' side effects */
 };
 
 /* Address spaces. */
@@ -48,19 +49,30 @@ enum {
 #define DEBUGGER_MAX_BREAKPOINTS 32
 
 extern volatile int debugger_attached;
-extern volatile int debugger_state;
 
-/* Called by the instruction loops after each instruction while attached;
-   nonzero makes the loop return. */
-extern int debugger_instruction(void);
+/* Called by the instruction loops after each pass while attached; nonzero
+   makes the loop return. partial: the pass did not finish the instruction
+   (the 8086 and V30 loops run REP and HLT one pass at a time). */
+extern int debugger_instruction(int partial);
 
-#define DEBUGGER_INSTRUCTION() (debugger_attached && debugger_instruction())
+#define DEBUGGER_INSTRUCTION()          (debugger_attached && debugger_instruction(0))
+#define DEBUGGER_INSTRUCTION_PASS(done) (debugger_attached && debugger_instruction(!(done)))
 
 /* Run a block of the processor's cycles, as cpu_exec() would, but stopped
    while the debugger holds it, and through the interpreter while attached. */
 extern void debugger_cpu_exec(int32_t cycs);
 
 extern void debugger_attach(int attach);
+extern int  debugger_get_state(void);
+/* Attached and holding the processor. */
+extern int  debugger_stopped(void);
+/* The processor stopped in the middle of a REP string instruction or HLT. */
+extern int  debugger_stopped_partial(void);
+/* Around a hard reset, which frees the memory the viewer reads: the viewer
+   leaves memory alone while debugger_resetting() says so. */
+extern void debugger_reset_begin(void);
+extern void debugger_reset_end(void);
+extern int  debugger_resetting(void);
 extern void debugger_pause(void);
 extern void debugger_continue(void);
 extern void debugger_step(int count);
@@ -78,7 +90,7 @@ extern void debugger_breakpoints_clear(void);
    the len bytes asked for are touched (and, for linear addresses, the page
    table entries that map them). cls may be NULL. */
 extern void debugger_mem_read(int space, uint32_t addr, uint32_t len, uint8_t *data, uint8_t *cls);
-/* Write one byte, to RAM only; returns nonzero on success. */
+/* Write one byte, to RAM or video memory only; returns nonzero on success. */
 extern int debugger_mem_write(int space, uint32_t addr, uint8_t val);
 /* Linear to physical, by a side-effect-free page walk; nonzero on success. */
 extern int debugger_translate(uint32_t linear, uint32_t *phys);
@@ -124,6 +136,7 @@ typedef struct debugger_decode_info_t {
     int wrap16;   /* instruction fetches wrap at 64 KB within CS */
     int fpu_trap; /* CR0.EM or TS set: x87 opcodes raise #NM */
     int vpc;      /* Virtual PC extensions (0F 3F) are on */
+    int fpu_ud;   /* an x87 opcode the coprocessor lacks raises #UD (the 486 and later) */
 } debugger_decode_info_t;
 
 extern void debugger_decode_info(debugger_decode_info_t *info);
@@ -156,6 +169,9 @@ enum {
 };
 
 extern int debugger_opcode_kind(int map, uint8_t op, int opsize);
+/* The same for an x87 escape (D8-DF) and its ModR/M byte, on the 286 and
+   later with a coprocessor: DEBUGGER_OP_ILLEGAL or DEBUGGER_OP_NORMAL. */
+extern int debugger_fpu_kind(uint8_t op, uint8_t modrm, int addr32);
 /* Whether the processor takes a LOCK prefix on the instruction whose opcode
    and next two bytes these are (zeros where the instruction has none). */
 extern int debugger_lock_legal(uint8_t op, uint8_t b1, uint8_t b2);

@@ -2221,8 +2221,10 @@ pc_run(void)
     if (hard_reset_pending) {
         hard_reset_pending = 0;
         ibm5140_power_hard_off();
+        debugger_reset_begin();
         pc_reset_hard_close();
         pc_reset_hard_init();
+        debugger_reset_end();
     }
 
     /* USB devices the user plugged in or unplugged since the last block. It
@@ -2241,7 +2243,8 @@ pc_run(void)
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     if (gdbstub_step == GDBSTUB_EXEC) {
 #endif
-        if (!mouse_timed)
+        /* Likewise while the memory viewer holds the processor. */
+        if (!mouse_timed && !debugger_stopped())
             mouse_process();
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     }

@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          The memory viewer's disassembler: bddisasm, with what 86Box's
+ *          The memory viewer's disassembler: Zydis, with what 86Box's
  *          processors do differently from the modern instruction set it
  *          decodes worked around here, outside the library.
  *
@@ -27,8 +27,10 @@
  *            0F 3F), not what they mean now (SYSCALL, SSE, VMX, three-byte
  *            opcode maps). VEX, EVEX and XOP are LES, LDS, BOUND and POP
  *            with a register operand, which raise #UD.
- *          - Some prefixes are printed by the library as hints that came
- *            later (BND, branch hints), which these processors ignore.
+ *          - The library's decoder modes for extensions that reuse old
+ *            encodings (MPX, CET, LZCNT/TZCNT, WBNOINVD, CLDEMOTE,
+ *            instruction prefetch hints) are off: these processors have
+ *            none of them.
  *
  *          Each byte is read once, and only bytes of the instruction being
  *          decoded are read.
@@ -40,8 +42,8 @@
 #include <QRegularExpression>
 #include <QStringList>
 
-#ifdef USE_BDDISASM
-#    include <bddisasm.h>
+#ifdef USE_DISASM
+#    include <Zydis/Zydis.h>
 #endif
 
 namespace {
@@ -128,27 +130,6 @@ isPrefixWord(const QString &w)
     return false;
 }
 
-/* Lower case, without the hint prefixes these processors do not have. */
-QString
-tidy(const char *text)
-{
-    QStringList words = QString::fromLatin1(text).toLower().split(QLatin1Char(' '), Qt::SkipEmptyParts);
-    QStringList out;
-    bool        mnemonicSeen = false;
-
-    for (const QString &w : words) {
-        if (!mnemonicSeen && ((w == QLatin1String("bnd")) || (w == QLatin1String("bht")) || (w == QLatin1String("bhnt")) || (w == QLatin1String("notrack"))))
-            continue;
-        if (!mnemonicSeen && !isPrefixWord(w))
-            mnemonicSeen = true;
-        out.append(w);
-    }
-    /* Operands were separated by ", ", which the split took apart. */
-    QString s = out.join(QLatin1Char(' '));
-    s.replace(QLatin1String(" ,"), QLatin1String(","));
-    return s;
-}
-
 /* text with its mnemonic replaced. */
 QString
 renameMnemonic(const QString &text, const QString &name)
@@ -212,30 +193,69 @@ modrmExtra(Fetcher &f, int modrmAt, bool addr32, int *extra)
     return true;
 }
 
-#ifdef USE_BDDISASM
+#ifdef USE_DISASM
+/* Lower case, with single spaces, and RETF as it is usually written
+   (the library has "ret far"). */
+QString
+tidy(const char *text)
+{
+    const QStringList words = QString::fromLatin1(text).toLower().split(QLatin1Char(' '));
+    QStringList       out;
+
+    for (const QString &w : words) {
+        if (!w.isEmpty())
+            out.append(w);
+    }
+    for (int i = 0; (i + 1) < out.size(); i++) {
+        if (!isPrefixWord(out[i])) {
+            if ((out[i] == QLatin1String("ret")) && (out[i + 1] == QLatin1String("far"))) {
+                out[i] = QStringLiteral("retf");
+                out.removeAt(i + 1);
+            }
+            break;
+        }
+    }
+    return out.join(QLatin1Char(' '));
+}
+
 /* Decodes the view with the library, feeding it one byte at a time so that
    no byte past the instruction's end is read. */
 Result
 libDecode(Fetcher &f, const View &v, const debugger_decode_info_t &info, bool code32, uint32_t ip)
 {
-    Result     r;
-    ND_CONTEXT ctx;
-    INSTRUX    ix;
-    uint8_t    buf[ND_MAX_INSTRUCTION_LENGTH];
-    char       text[ND_MIN_BUF_SIZE];
-    const int  headLen = (int) v.head.size();
+    /* Extensions that give old encodings new meanings, which none of these
+       processors have: BND and NOTRACK prefixes, LZCNT/TZCNT for REP
+       BSR/BSF, WBNOINVD for REP WBINVD, and the NOP space hints. */
+    static const ZydisDecoderMode modesOff[] = {
+        ZYDIS_DECODER_MODE_MPX, ZYDIS_DECODER_MODE_CET, ZYDIS_DECODER_MODE_LZCNT, ZYDIS_DECODER_MODE_TZCNT,
+        ZYDIS_DECODER_MODE_WBNOINVD, ZYDIS_DECODER_MODE_CLDEMOTE, ZYDIS_DECODER_MODE_IPREFETCH
+    };
+    Result                  r;
+    ZydisDecoder            dec;
+    ZydisFormatter          fmt;
+    ZydisDecodedInstruction ix;
+    ZydisDecodedOperand     ops[ZYDIS_MAX_OPERAND_COUNT];
+    uint8_t                 buf[ZYDIS_MAX_INSTRUCTION_LENGTH];
+    char                    text[256];
+    const int               headLen = (int) v.head.size();
 
-    NdInitContext(&ctx);
-    ctx.DefCode  = code32 ? ND_CODE_32 : ND_CODE_16;
-    ctx.DefData  = code32 ? ND_DATA_32 : ND_DATA_16;
-    ctx.DefStack = info.stack32 ? ND_STACK_32 : ND_STACK_16;
-    ctx.VendMode = ND_VEND_ANY;
-    ctx.FeatMode = ND_FEAT_NONE;
+    if (!ZYAN_SUCCESS(ZydisDecoderInit(&dec, code32 ? ZYDIS_MACHINE_MODE_LEGACY_32 : ZYDIS_MACHINE_MODE_LEGACY_16,
+                                       info.stack32 ? ZYDIS_STACK_WIDTH_32 : ZYDIS_STACK_WIDTH_16)))
+        return r;
+    for (const ZydisDecoderMode m : modesOff)
+        ZydisDecoderEnableMode(&dec, m, ZYAN_FALSE);
+    if (!ZYAN_SUCCESS(ZydisFormatterInit(&fmt, ZYDIS_FORMATTER_STYLE_INTEL)))
+        return r;
+    /* Memory operand sizes always, which the Cyrix and UMOV rewrites use,
+       and 16-bit addresses as written ([bx+si], not [bx+si*1]). */
+    ZydisFormatterSetProperty(&fmt, ZYDIS_FORMATTER_PROP_FORCE_SIZE, ZYAN_TRUE);
+    ZydisFormatterSetProperty(&fmt, ZYDIS_FORMATTER_PROP_FORCE_SCALE_ONE, ZYAN_FALSE);
+    ZydisFormatterSetProperty(&fmt, ZYDIS_FORMATTER_PROP_ADDR_PADDING_ABSOLUTE, ZYDIS_PADDING_DISABLED);
 
-    for (int i = 0; (i < headLen) && (i < ND_MAX_INSTRUCTION_LENGTH); i++)
+    for (int i = 0; (i < headLen) && (i < ZYDIS_MAX_INSTRUCTION_LENGTH); i++)
         buf[i] = v.head[i];
 
-    for (int n = (headLen ? headLen : 1); n <= ND_MAX_INSTRUCTION_LENGTH; n++) {
+    for (int n = (headLen ? headLen : 1); n <= ZYDIS_MAX_INSTRUCTION_LENGTH; n++) {
         if (n > headLen) {
             const int orig = v.resume + (n - 1 - headLen);
             uint8_t   b;
@@ -246,17 +266,17 @@ libDecode(Fetcher &f, const View &v, const debugger_decode_info_t &info, bool co
             buf[n - 1] = b;
         }
 
-        const NDSTATUS st = NdDecodeWithContext(&ix, buf, n, &ctx);
-        if (st == ND_STATUS_BUFFER_TOO_SMALL)
+        const ZyanStatus st = ZydisDecoderDecodeFull(&dec, buf, (ZyanUSize) n, &ix, ops);
+        if (st == ZYDIS_STATUS_NO_MORE_DATA)
             continue;
-        if (!ND_SUCCESS(st))
+        if (!ZYAN_SUCCESS(st))
             return r;
 
         const uint64_t rip = code32 ? ip : (ip & 0xffff);
-        if (!ND_SUCCESS(NdToText(&ix, rip, sizeof(text), text)))
+        if (!ZYAN_SUCCESS(ZydisFormatterFormatInstruction(&fmt, &ix, ops, ix.operand_count_visible, text, sizeof(text), rip, ZYAN_NULL)))
             qstrncpy(text, "?", sizeof(text));
         r.ok   = true;
-        r.len  = v.resume + (ix.Length - headLen);
+        r.len  = v.resume + (ix.length - headLen);
         r.text = tidy(text);
         return r;
     }
@@ -277,8 +297,8 @@ prefixHead(Fetcher &f, int at, bool nec)
 {
     std::vector<uint8_t> head;
     for (int i = 0; i < at; i++) {
-        uint8_t b;
-        f.get(i, &b);
+        uint8_t b = 0;
+        f.get(i, &b); /* already fetched, so never fails */
         if (b == 0xf1)
             b = 0xf0; /* the LOCK alias */
         else if (nec && ((b == 0x64) || (b == 0x65) || (b == 0x0f)))
@@ -294,8 +314,8 @@ necRepPrefix(Fetcher &f, int at)
 {
     QString s;
     for (int i = 0; i < at; i++) {
-        uint8_t b;
-        f.get(i, &b);
+        uint8_t b = 0;
+        f.get(i, &b); /* already fetched, so never fails */
         if (b == 0x64)
             s += QStringLiteral("repnc ");
         else if (b == 0x65)
@@ -1079,10 +1099,29 @@ Disassembler::decode(uint32_t ip, bool current)
                     d.text = renameMnemonic(d.text, QStringLiteral("nop"));
                 d.note = QStringLiteral("Hint NOP on this processor");
                 return finish();
-            default:
-                if (!lib(withOp(0x0f, at + 1)))
+            default: {
+                /* 86Box has no SSE: 66 only picks the operand size half of
+                   the tables, and REP before 0F runs the 0F opcode as if it
+                   were not there (opREPE/opREPNE), so these are the MMX
+                   instructions, where the library would decode SSE ones. */
+                View       w        = withOp(0x0f, at + 1);
+                const bool sseSpace = ((op2 >= 0x50) && (op2 <= 0x7f)) || ((op2 >= 0xc2) && (op2 <= 0xc6)) || (op2 >= 0xd0);
+                bool       dropped  = false;
+                if (sseSpace) {
+                    for (size_t i = 0; i + 1 < w.head.size();) {
+                        if ((w.head[i] == 0x66) || (w.head[i] == 0xf2) || (w.head[i] == 0xf3)) {
+                            w.head.erase(w.head.begin() + (ptrdiff_t) i);
+                            dropped = true;
+                        } else
+                            i++;
+                    }
+                }
+                if (!lib(w))
                     invalid(at + 2, QStringLiteral("In the opcode tables, but not decodable"));
+                else if (dropped)
+                    d.note = QStringLiteral("No SSE: the 66/F2/F3 prefix does not make this an SSE instruction");
                 return finish();
+            }
         }
     }
 
@@ -1121,7 +1160,10 @@ Disassembler::decode(uint32_t ip, bool current)
                 return finish();
             }
             break;
-        case 0xd8 ... 0xdf:
+        case 0xd8 ... 0xdf: {
+            uint8_t m;
+            if (!f.get(at + 1, &m))
+                return finish();
             if (!lib(withOp(op, at + 1))) {
                 int extra;
                 if (!modrmExtra(f, at + 1, addr32, &extra))
@@ -1130,9 +1172,19 @@ Disassembler::decode(uint32_t ip, bool current)
                 d.text = QStringLiteral("esc %1").arg(op & 7);
             }
             fpuOverride(f, at, info_, d);
+            /* The coprocessor's own tables say which it has: the library
+               knows the later ones (FCMOVcc, FCOMI, FUCOMI and the like). */
+            if ((info_.fpu != DEBUGGER_FPU_NONE) && (debugger_fpu_kind(op, m, addr32) == DEBUGGER_OP_ILLEGAL)) {
+                if (info_.fpu_ud) {
+                    invalid(d.len, QStringLiteral("Not on this coprocessor: #UD"));
+                    return finish();
+                }
+                d.note = QStringLiteral("Not on this coprocessor: reads the operand and does nothing");
+            }
             if (d.note.isEmpty())
                 d.note = fpuNote(info_);
             return finish();
+        }
         default:
             break;
     }

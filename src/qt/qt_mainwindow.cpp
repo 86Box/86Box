@@ -478,6 +478,15 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
 
+    /* Keys go to the guest only while the main window or a renderer is
+       active (keyReleaseEvent), so one held down as another of our windows
+       takes over, such as the memory viewer stopping at a breakpoint, would
+       never be released. Leaving the application is handled above. */
+    connect(qApp, &QGuiApplication::focusWindowChanged, this, [this](QWindow *window) {
+        if (window && !isMainWindowOrRendererActive())
+            keyboard_all_up();
+    });
+
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
         if (shownonce) {
             if (resizableonce == false)
@@ -1701,7 +1710,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
     /* Keys typed into the memory viewer are its own, not the guest's. */
     if ((event->type() == QEvent::KeyPress) || (event->type() == QEvent::KeyRelease) || (event->type() == QEvent::ShortcutOverride)) {
         auto *widget = qobject_cast<QWidget *>(receiver);
-        if (widget && qobject_cast<MemoryViewer *>(widget))
+        if (widget && qobject_cast<MemoryViewer *>(widget->window()))
             return QMainWindow::eventFilter(receiver, event);
     }
 

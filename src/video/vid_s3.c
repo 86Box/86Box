@@ -3815,6 +3815,21 @@ s3_read(uint32_t addr, void *priv)
     return svga_read_linear(addr, svga);
 }
 
+/* For the memory viewer: the byte s3_read() returns, without its side
+   effects. */
+static uint8_t *
+s3_debug_ptr(uint32_t addr, int write, void *priv)
+{
+    s3_t   *s3   = (s3_t *) priv;
+    svga_t *svga = &s3->svga;
+
+    addr = s3_decode_addr(svga, addr, 0);
+    if (addr == 0xffffffff)
+        return NULL;
+
+    return svga_debug_ptr_common(addr, 1, write, svga);
+}
+
 static uint16_t
 s3_readw(uint32_t addr, void *priv)
 {
@@ -10907,6 +10922,7 @@ s3_init(const device_t *info)
     svga->writew = s3_writew;
     svga->writel = s3_writel;
     mem_mapping_set_handler(&svga->mapping, s3_read, s3_readw, s3_readl, s3_write, s3_writew, s3_writel);
+    mem_debug_add(s3_read, s3_write, s3_debug_ptr);
     mem_mapping_set_p(&svga->mapping, s3);
 
     svga->hwcursor.cur_ysize = 64;

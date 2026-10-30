@@ -67,12 +67,21 @@ static const QColor unmappedFg(0x90, 0x90, 0x90);
 static const QColor inaccessibleBg(0xc0, 0x00, 0x00);
 static const QColor inaccessibleFg(0xff, 0xff, 0xff);
 
+#ifdef USE_DISASM
 static constexpr int DISASM_LINES = 32;
+#endif
 
 static bool
 readable(uint8_t cls)
 {
-    return (cls == DEBUGGER_MEM_RAM) || (cls == DEBUGGER_MEM_ROM);
+    return (cls == DEBUGGER_MEM_RAM) || (cls == DEBUGGER_MEM_ROM) || (cls == DEBUGGER_MEM_VIDEO);
+}
+
+/* What the viewer may write: RAM, and video memory (debugger_mem_write()). */
+static bool
+writable(uint8_t cls)
+{
+    return (cls == DEBUGGER_MEM_RAM) || (cls == DEBUGGER_MEM_VIDEO);
 }
 
 static QFont
@@ -195,7 +204,7 @@ MemoryHexView::selectionText() const
 {
     if (sel_ == anchor_)
         return QString::asprintf("%08X", sel_);
-    return QString::asprintf("%08X-%08X (%llu bytes)", selectionStart(), selectionEnd(), selectionLen());
+    return QString::asprintf("%08X-%08X (%llu bytes)", selectionStart(), selectionEnd(), (unsigned long long) selectionLen());
 }
 
 void
@@ -264,9 +273,11 @@ MemoryHexView::paintEvent(QPaintEvent *)
             switch (cls) {
                 case DEBUGGER_MEM_RAM:
                 case DEBUGGER_MEM_ROM:
+                case DEBUGGER_MEM_VIDEO:
                     hexText = QString::asprintf("%02X", val);
                     ascChar = ((val >= 0x20) && (val < 0x7f)) ? QChar(val) : QChar('.');
-                    if (cls == DEBUGGER_MEM_ROM) {
+                    /* Video memory is mapped, not RAM: yellow as well. */
+                    if (cls != DEBUGGER_MEM_RAM) {
                         p.fillRect(hexRect.adjusted(0, 0, (i == 7) ? charW_ * 2 : charW_, 0), romBg);
                         p.fillRect(ascRect, romBg);
                         fg = romFg;
@@ -437,11 +448,12 @@ MemoryHexView::keyPressEvent(QKeyEvent *event)
         return;
     }
 
-    /* Only RAM can be written; the cached class is what is on screen. */
+    /* Only RAM and video memory can be written; the cached class is what
+       is on screen. */
     const uint32_t idx = sel_ - cacheAddr_;
-    if ((idx >= (uint32_t) cls_.size()) || (cls_[idx] != DEBUGGER_MEM_RAM)) {
+    if ((idx >= (uint32_t) cls_.size()) || !writable(cls_[idx])) {
         QApplication::beep();
-        emit status(tr("Only RAM can be written."));
+        emit status(tr("Only RAM and video memory can be written."));
         return;
     }
 
@@ -468,26 +480,34 @@ MemoryHexView::writeByte(uint32_t addr, uint8_t val)
     }
     if (!written) {
         QApplication::beep();
-        emit status(QString::asprintf("%08X: ", addr) + tr("not written (not writable RAM, or the emulator is busy)."));
+        emit status(QString::asprintf("%08X: ", addr) + tr("not written (not writable RAM or video memory, or the emulator is busy)."));
     } else
         emit memoryWritten();
     refresh();
     return written != 0;
 }
 
-/* Write a byte over a range; returns how many made it through. */
+/* Write a byte over a range; returns how many made it through. A page at a
+   time, letting the emulator run in between, so a large fill does not
+   hold it up for long. */
 uint64_t
 MemoryHexView::writeRange(uint32_t start, uint64_t len, uint8_t val)
 {
     uint64_t written = 0;
-    if (!MemoryViewer::lock()) {
-        QApplication::beep();
-        emit status(tr("The emulator is busy; try again."));
-        return 0;
+    uint64_t done    = 0;
+    while (done < len) {
+        const uint64_t addr = (uint64_t) start + done;
+        const uint64_t n    = std::min<uint64_t>(len - done, 0x1000 - (addr & 0xfff));
+        if (!MemoryViewer::lock()) {
+            QApplication::beep();
+            emit status(tr("The emulator is busy; try again."));
+            break;
+        }
+        for (uint64_t i = 0; i < n; i++)
+            written += debugger_mem_write(space_, (uint32_t) (addr + i), val);
+        MemoryViewer::unlock();
+        done += n;
     }
-    for (uint64_t i = 0; i < len; i++)
-        written += debugger_mem_write(space_, (uint32_t) ((uint64_t) start + i), val);
-    MemoryViewer::unlock();
     if (written > 0)
         emit memoryWritten();
     refresh();
@@ -505,18 +525,19 @@ MemoryHexView::copySelection(bool ascii)
     QString        text;
     uint64_t       unreadable = 0;
 
-    if (!MemoryViewer::lock()) {
-        emit status(tr("The emulator is busy; try again."));
-        return;
-    }
-
+    /* A chunk at a time, letting the emulator run in between. */
     constexpr uint32_t chunk = 0x10000;
     QVector<uint8_t>   data(chunk);
     QVector<uint8_t>   cls(chunk);
     uint64_t           done = 0;
     while (done < count) {
         const uint32_t n = (uint32_t) std::min<uint64_t>(chunk, count - done);
+        if (!MemoryViewer::lock()) {
+            emit status(tr("The emulator is busy; try again."));
+            return;
+        }
         debugger_mem_read(space_, (uint32_t) (start + done), n, data.data(), cls.data());
+        MemoryViewer::unlock();
         for (uint32_t i = 0; i < n; i++) {
             const uint8_t c = cls[i];
             if (ascii) {
@@ -532,7 +553,6 @@ MemoryHexView::copySelection(bool ascii)
         }
         done += n;
     }
-    MemoryViewer::unlock();
 
     if (!ascii && text.endsWith(QLatin1Char(' ')))
         text.chop(1);
@@ -569,7 +589,7 @@ MemoryHexView::fillSelection()
     }
 
     const uint64_t written = writeRange(start, count, (uint8_t) val);
-    QString        msg = tr("Filled %1 of %2 bytes with %3 (%4 were not writable RAM).")
+    QString        msg = tr("Filled %1 of %2 bytes with %3 (%4 were not writable RAM or video memory).")
                           .arg(written)
                           .arg(count)
                           .arg(QString::asprintf("%02X", val))
@@ -588,9 +608,9 @@ MemoryHexView::mouseDoubleClickEvent(QMouseEvent *event)
     setSelection(addr, false);
 
     const uint32_t idx = addr - cacheAddr_;
-    if ((idx >= (uint32_t) cls_.size()) || (cls_[idx] != DEBUGGER_MEM_RAM)) {
+    if ((idx >= (uint32_t) cls_.size()) || !writable(cls_[idx])) {
         QApplication::beep();
-        emit status(tr("Only RAM can be written."));
+        emit status(tr("Only RAM and video memory can be written."));
         return;
     }
 
@@ -642,16 +662,33 @@ MemoryHexView::contextMenuEvent(QContextMenuEvent *event)
 
 /* ---- MemoryViewer ---- */
 
+/* Nested locks only count: a refresh takes the lock once for all its
+   parts, so it waits for the emulator at most once. */
+static int lockDepth = 0;
+
 bool
 MemoryViewer::lock()
 {
-    return startblit_timeout(250) != 0;
+    if (lockDepth > 0) {
+        lockDepth++;
+        return true;
+    }
+    if (!startblit_timeout(250))
+        return false;
+    /* A hard reset is freeing the memory this would read. */
+    if (debugger_resetting()) {
+        endblit();
+        return false;
+    }
+    lockDepth = 1;
+    return true;
 }
 
 void
 MemoryViewer::unlock()
 {
-    endblit();
+    if (--lockDepth == 0)
+        endblit();
 }
 
 MemoryViewer::MemoryViewer(QWidget *parent)
@@ -671,6 +708,9 @@ MemoryViewer::MemoryViewer(QWidget *parent)
     stepBtn->setShortcut(QKeySequence(Qt::Key_F11));
     pauseBtn_->setToolTip(tr("Stop the processor at the next instruction (F6)"));
     continueBtn_->setToolTip(tr("Let the processor run (F5)"));
+    /* Icons only: the names are for screen readers. */
+    pauseBtn_->setAccessibleName(tr("Pause"));
+    continueBtn_->setAccessibleName(tr("Continue"));
     /* Checkable, in a mutually exclusive group, like the state they show. */
     pauseBtn_->setCheckable(true);
     continueBtn_->setCheckable(true);
@@ -760,7 +800,7 @@ MemoryViewer::MemoryViewer(QWidget *parent)
     disBar->addWidget(followBox_);
     disLayout->addLayout(disBar);
     disLayout->addWidget(disasm_, 1);
-#ifndef USE_BDDISASM
+#ifndef USE_DISASM
     disBox->setEnabled(false);
     disBox->setTitle(tr("Disassembly (not available in this build)"));
 #endif
@@ -860,7 +900,7 @@ MemoryViewer::onStep()
 void
 MemoryViewer::updateRunButtons()
 {
-    const bool stopped = (debugger_state == DEBUGGER_BREAK);
+    const bool stopped = (debugger_get_state() == DEBUGGER_BREAK);
     pauseBtn_->setChecked(stopped);
     continueBtn_->setChecked(!stopped);
 }
@@ -911,7 +951,7 @@ MemoryViewer::onDisasmItemActivated(QTreeWidgetItem *item, int)
 void
 MemoryViewer::onPoll()
 {
-    const int      state = debugger_state;
+    const int      state = debugger_get_state();
     const uint32_t stops = debugger_stop_count();
 
     if ((state != lastState_) || (stops != lastStops_)) {
@@ -938,9 +978,14 @@ MemoryViewer::onPoll()
 void
 MemoryViewer::refreshAll()
 {
+    if (!lock()) {
+        statusLabel_->setText(tr("The emulator is busy; the view was not updated."));
+        return;
+    }
     hex_->refresh();
     refreshCpu();
     refreshDisasm();
+    unlock();
     updateStatus();
 }
 
@@ -949,7 +994,7 @@ MemoryViewer::updateStatus()
 {
     QString text;
 
-    switch (debugger_state) {
+    switch (debugger_get_state()) {
         case DEBUGGER_BREAK:
             switch (debugger_stop_reason()) {
                 case DEBUGGER_STOP_BREAKPOINT:
@@ -996,7 +1041,7 @@ MemoryViewer::refreshCpu()
 void
 MemoryViewer::refreshDisasm()
 {
-#ifdef USE_BDDISASM
+#ifdef USE_DISASM
     debugger_cpu_info_t info;
     QVector<DisasmInsn> lines;
     QVector<bool>       bps;
@@ -1029,12 +1074,23 @@ MemoryViewer::refreshDisasm()
     if (followBox_->isChecked())
         disasmEdit_->setText(QString::asprintf("%04X:%0*X", info.cs_sel, info.code32 ? 8 : 4, info.ip));
 
-    disasm_->clear();
+    /* The rows are kept and rewritten, not made anew: a live update between
+       the two clicks of a double-click (a breakpoint) would otherwise take
+       the row it started on away, and the double-click with it. */
+    while (disasm_->topLevelItemCount() > lines.size())
+        delete disasm_->takeTopLevelItem(disasm_->topLevelItemCount() - 1);
+    while (disasm_->topLevelItemCount() < lines.size())
+        new QTreeWidgetItem(disasm_);
+
     QTreeWidgetItem *current = nullptr;
     for (int n = 0; n < lines.size(); n++) {
         const DisasmInsn &l    = lines[n];
-        auto             *item = new QTreeWidgetItem(disasm_);
+        QTreeWidgetItem  *item = disasm_->topLevelItem(n);
         QString           bytes;
+        for (int c = 0; c < 5; c++) {
+            item->setBackground(c, QBrush());
+            item->setForeground(c, QBrush());
+        }
         for (int i = 0; (i < l.len) && (i < 16); i++)
             bytes += QString::asprintf("%02X", l.bytes[i]);
 
@@ -1232,7 +1288,7 @@ MemoryViewer::onDump(uint32_t start, uint32_t len)
     QVector<uint8_t>   cls(chunk);
     uint64_t           unreadable = 0;
     uint64_t           done       = 0;
-    QProgressDialog    progress(tr("Dumping memory..."), tr("Cancel"), 0, (int) ((dumpLen + chunk - 1) / chunk), this);
+    QProgressDialog    progress(tr("Dumping memory..."), tr("Cancel"), 0, (int) (((uint64_t) dumpLen + chunk - 1) / chunk), this);
     progress.setWindowModality(Qt::WindowModal);
     progress.setMinimumDuration(500);
 

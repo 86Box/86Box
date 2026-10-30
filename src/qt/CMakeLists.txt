@@ -349,11 +349,11 @@ set_target_properties(osd_backend PROPERTIES AUTOMOC OFF AUTOUIC OFF AUTORCC OFF
 target_include_directories(osd_backend PRIVATE ${OSD_DIR}/imgui ${Vulkan_INCLUDE_DIRS})
 target_link_libraries(86Box osd_backend)
 
-# The memory viewer's disassembler, bddisasm, from its copy in bddisasm/.
+# The memory viewer's disassembler, Zydis, from its copy in zydis/.
 if(DISASM)
-    add_subdirectory(bddisasm)
-    target_compile_definitions(ui PRIVATE USE_BDDISASM)
-    target_link_libraries(ui PRIVATE bddisasm)
+    add_subdirectory(zydis)
+    target_compile_definitions(ui PRIVATE USE_DISASM)
+    target_link_libraries(ui PRIVATE zydis)
 endif()
 
 target_sources(ui PRIVATE qt_osd.cpp qt_osd.hpp qt_osd_raster.cpp qt_osd_raster.hpp)

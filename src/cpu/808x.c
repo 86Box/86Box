@@ -3542,7 +3542,7 @@ execx86(int cycs)
         if (gdbstub_instruction())
             return;
 #endif
-        if (DEBUGGER_INSTRUCTION())
+        if (DEBUGGER_INSTRUCTION_PASS(completed))
             return;
     }
 }

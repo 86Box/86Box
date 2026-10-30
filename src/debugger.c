@@ -27,21 +27,31 @@
 #include "x86.h"
 #include "x86_ops.h"
 #include <86box/mem.h>
+#include <86box/plat.h>
 #include <86box/debugger.h>
 
 extern void cpu_386_flags_rebuild(void);
 extern const uint8_t opf_0f[256];
 
 volatile int debugger_attached = 0;
-volatile int debugger_state    = DEBUGGER_RUN;
 
-static volatile int debugger_steps       = 0;
-static volatile int debugger_reason      = DEBUGGER_STOP_NONE;
+/* Written by the viewer and read by the processor's thread, and the other
+   way around: the ATOMIC_ accesses order them on hosts that need it. The
+   breakpoint list is written before its count, so the processor's thread
+   never sees an entry that is not filled in yet. */
+static ATOMIC_INT  debugger_state;
+static ATOMIC_INT  debugger_steps;
+static ATOMIC_INT  debugger_reason;
 /* Counts the stops, for a viewer that polls: a step can start and end
-   between two looks at debugger_state. */
-static volatile uint32_t debugger_stops  = 0;
-static uint32_t     debugger_bp[DEBUGGER_MAX_BREAKPOINTS];
-static volatile int debugger_bp_num      = 0;
+   between two looks at the state. */
+static ATOMIC_UINT debugger_stops;
+static ATOMIC_UINT debugger_bp[DEBUGGER_MAX_BREAKPOINTS];
+static ATOMIC_INT  debugger_bp_num;
+/* Set while a hard reset tears down and rebuilds the machine. */
+static ATOMIC_INT  debugger_reset_busy;
+/* The processor was stopped in the middle of an instruction that runs in
+   several passes (a REP string instruction, HLT). */
+static int         debugger_partial;
 
 static uint32_t
 debugger_ip(void)
@@ -62,61 +72,134 @@ debugger_pc(void)
     return cs + debugger_ip();
 }
 
-int
-debugger_instruction(void)
+/* On the 286 and later, a REP string instruction runs in chunks, and HLT
+   with no interrupt to take, by going back to the instruction's start
+   (x86_ops_rep.h, opHLT): the instruction at CS:IP is the one that just
+   ran. A jump to itself also does that, but is not REP or HLT. */
+static int
+debugger_insn_repeats(void)
 {
-    int n = debugger_bp_num;
+    uint8_t b[15];
+    uint8_t cls[15];
+    int     rep = 0;
 
+    if ((cpu_state.pc != cpu_state.oldpc) || (CS != oldcs))
+        return 0;
+
+    debugger_mem_read(DEBUGGER_SPACE_LINEAR, debugger_pc(), sizeof(b), b, cls);
+    for (int i = 0; i < (int) sizeof(b); i++) {
+        if ((cls[i] != DEBUGGER_MEM_RAM) && (cls[i] != DEBUGGER_MEM_ROM) && (cls[i] != DEBUGGER_MEM_VIDEO))
+            return 0;
+        switch (b[i]) {
+            case 0xf2:
+            case 0xf3:
+                rep = 1;
+                break;
+            case 0x26:
+            case 0x2e:
+            case 0x36:
+            case 0x3e:
+            case 0x64 ... 0x67:
+            case 0xf0:
+                break;
+            case 0xf4:
+                return 1;
+            case 0x6c ... 0x6f:
+            case 0xa4 ... 0xa7:
+            case 0xaa ... 0xaf:
+                return rep;
+            default:
+                return 0;
+        }
+    }
+
+    return 0;
+}
+
+static int
+debugger_stop(int reason)
+{
+    ATOMIC_STORE(debugger_reason, reason);
+    ATOMIC_STORE(debugger_state, DEBUGGER_BREAK);
+    ATOMIC_INC(debugger_stops);
+
+    return 1;
+}
+
+int
+debugger_instruction(int partial)
+{
+    int n;
+
+    /* A pass through an instruction that is not done yet is not an
+       instruction boundary for breakpoints or steps; a pause still stops
+       there, or it could wait forever on a HLT. */
+    if (!partial && is286)
+        partial = debugger_insn_repeats();
+    debugger_partial = partial;
+
+    if (ATOMIC_LOAD(debugger_state) == DEBUGGER_BREAK)
+        return 1;
+    if (partial)
+        return 0;
+
+    n = ATOMIC_LOAD(debugger_bp_num);
     if (n) {
         uint32_t pc = debugger_pc();
 
         for (int i = 0; i < n; i++) {
-            if (debugger_bp[i] == pc) {
-                debugger_reason = DEBUGGER_STOP_BREAKPOINT;
-                debugger_state  = DEBUGGER_BREAK;
-                debugger_stops++;
-                return 1;
-            }
+            if (ATOMIC_LOAD(debugger_bp[i]) == pc)
+                return debugger_stop(DEBUGGER_STOP_BREAKPOINT);
         }
     }
 
-    switch (debugger_state) {
-        case DEBUGGER_STEP:
-            if (--debugger_steps > 0)
-                return 0;
-            debugger_reason = DEBUGGER_STOP_STEP;
-            debugger_state  = DEBUGGER_BREAK;
-            debugger_stops++;
-            return 1;
-        case DEBUGGER_BREAK:
-            return 1;
-        default:
-            return 0;
+    if (ATOMIC_LOAD(debugger_state) == DEBUGGER_STEP) {
+        n = ATOMIC_LOAD(debugger_steps) - 1;
+        ATOMIC_STORE(debugger_steps, n);
+        if (n <= 0)
+            return debugger_stop(DEBUGGER_STOP_STEP);
     }
+
+    return 0;
+}
+
+typedef void (*debugger_exec_t)(int32_t cycs);
+
+/* What runs while attached: the interpreter the machine would run with the
+   recompiler turned off (cpu_set() in cpu.c), which stops after every
+   instruction where recompiled blocks run many between checks. */
+static debugger_exec_t
+debugger_exec(void)
+{
+#ifdef USE_DYNAREC
+    if (debugger_attached && (cpu_exec == exec386_dynarec)) {
+        if ((cpu_s->cpu_type == CPU_IBM486SLC) || (cpu_s->cpu_type == CPU_IBM486BL) ||
+            cpu_iscyrix || (cpu_s->cpu_type > CPU_486DLC) || cpu_override_interpreter)
+            return exec386;
+        return exec386_2386;
+    }
+#endif
+
+    return cpu_exec;
 }
 
 void
 debugger_cpu_exec(int32_t cycs)
 {
-    void (*exec)(int32_t cycs) = cpu_exec;
+    debugger_exec_t exec;
 
     if (!debugger_attached) {
-        exec(cycs);
+        cpu_exec(cycs);
         return;
     }
 
-    if (debugger_state == DEBUGGER_BREAK)
+    if (ATOMIC_LOAD(debugger_state) == DEBUGGER_BREAK)
         return;
 
-#ifdef USE_DYNAREC
-    /* The recompiled blocks run many instructions between checks; the
-       interpreter that shares their opcode tables stops after each one. */
-    if (exec == exec386_dynarec)
-        exec = exec386;
-#endif
+    exec = debugger_exec();
 
     /* Make sure a step gets to run at least one instruction. */
-    if ((debugger_state == DEBUGGER_STEP) && ((cycles + cycs) <= 0))
+    if ((ATOMIC_LOAD(debugger_state) == DEBUGGER_STEP) && ((cycles + cycs) <= 0))
         cycs += -(cycles + cycs) + 1;
 
     exec(cycs);
@@ -126,31 +209,41 @@ void
 debugger_attach(int attach)
 {
     if (attach) {
-        debugger_reason   = DEBUGGER_STOP_NONE;
-        debugger_state    = DEBUGGER_RUN;
+        ATOMIC_STORE(debugger_reason, DEBUGGER_STOP_NONE);
+        ATOMIC_STORE(debugger_state, DEBUGGER_RUN);
+        debugger_partial  = 0;
         debugger_attached = 1;
     } else {
         debugger_attached = 0;
-        debugger_bp_num   = 0;
-        debugger_state    = DEBUGGER_RUN;
+        ATOMIC_STORE(debugger_bp_num, 0);
+        ATOMIC_STORE(debugger_state, DEBUGGER_RUN);
     }
+}
+
+int
+debugger_get_state(void)
+{
+    return ATOMIC_LOAD(debugger_state);
+}
+
+int
+debugger_stopped(void)
+{
+    return debugger_attached && (ATOMIC_LOAD(debugger_state) == DEBUGGER_BREAK);
 }
 
 void
 debugger_pause(void)
 {
-    if (debugger_state != DEBUGGER_BREAK) {
-        debugger_reason = DEBUGGER_STOP_PAUSE;
-        debugger_state  = DEBUGGER_BREAK;
-        debugger_stops++;
-    }
+    if (ATOMIC_LOAD(debugger_state) != DEBUGGER_BREAK)
+        debugger_stop(DEBUGGER_STOP_PAUSE);
 }
 
 void
 debugger_continue(void)
 {
-    debugger_reason = DEBUGGER_STOP_NONE;
-    debugger_state  = DEBUGGER_RUN;
+    ATOMIC_STORE(debugger_reason, DEBUGGER_STOP_NONE);
+    ATOMIC_STORE(debugger_state, DEBUGGER_RUN);
 }
 
 void
@@ -158,28 +251,59 @@ debugger_step(int count)
 {
     if (count < 1)
         count = 1;
-    debugger_reason = DEBUGGER_STOP_NONE;
-    debugger_steps  = count;
-    debugger_state  = DEBUGGER_STEP;
+    ATOMIC_STORE(debugger_reason, DEBUGGER_STOP_NONE);
+    ATOMIC_STORE(debugger_steps, count);
+    ATOMIC_STORE(debugger_state, DEBUGGER_STEP);
 }
 
 int
 debugger_stop_reason(void)
 {
-    return debugger_reason;
+    return ATOMIC_LOAD(debugger_reason);
 }
 
 uint32_t
 debugger_stop_count(void)
 {
-    return debugger_stops;
+    return ATOMIC_LOAD(debugger_stops);
+}
+
+int
+debugger_stopped_partial(void)
+{
+    return debugger_partial;
+}
+
+/* A hard reset frees and reallocates memory the viewer reads: the viewer
+   checks debugger_resetting() with the blit lock held, and taking the lock
+   here waits out a viewer that got it before the flag was set. */
+void
+debugger_reset_begin(void)
+{
+    ATOMIC_STORE(debugger_reset_busy, 1);
+    startblit();
+    endblit();
+}
+
+void
+debugger_reset_end(void)
+{
+    ATOMIC_STORE(debugger_reset_busy, 0);
+}
+
+int
+debugger_resetting(void)
+{
+    return ATOMIC_LOAD(debugger_reset_busy);
 }
 
 int
 debugger_breakpoint_present(uint32_t linear)
 {
-    for (int i = 0; i < debugger_bp_num; i++) {
-        if (debugger_bp[i] == linear)
+    const int n = ATOMIC_LOAD(debugger_bp_num);
+
+    for (int i = 0; i < n; i++) {
+        if (ATOMIC_LOAD(debugger_bp[i]) == linear)
             return 1;
     }
 
@@ -193,12 +317,12 @@ debugger_breakpoint_present(uint32_t linear)
 int
 debugger_breakpoint_toggle(uint32_t linear)
 {
-    int n = debugger_bp_num;
+    const int n = ATOMIC_LOAD(debugger_bp_num);
 
     for (int i = 0; i < n; i++) {
-        if (debugger_bp[i] == linear) {
-            debugger_bp[i]  = debugger_bp[n - 1];
-            debugger_bp_num = n - 1;
+        if (ATOMIC_LOAD(debugger_bp[i]) == linear) {
+            ATOMIC_STORE(debugger_bp[i], ATOMIC_LOAD(debugger_bp[n - 1]));
+            ATOMIC_STORE(debugger_bp_num, n - 1);
             return 0;
         }
     }
@@ -206,19 +330,20 @@ debugger_breakpoint_toggle(uint32_t linear)
     if (n >= DEBUGGER_MAX_BREAKPOINTS)
         return -1;
 
-    debugger_bp[n]  = linear;
-    debugger_bp_num = n + 1;
+    ATOMIC_STORE(debugger_bp[n], linear);
+    ATOMIC_STORE(debugger_bp_num, n + 1);
     return 1;
 }
 
 int
 debugger_breakpoints(uint32_t *list, int max)
 {
-    int n = debugger_bp_num;
+    int n = ATOMIC_LOAD(debugger_bp_num);
 
     if (n > max)
         n = max;
-    memcpy(list, debugger_bp, n * sizeof(uint32_t));
+    for (int i = 0; i < n; i++)
+        list[i] = ATOMIC_LOAD(debugger_bp[i]);
 
     return n;
 }
@@ -226,7 +351,7 @@ debugger_breakpoints(uint32_t *list, int max)
 void
 debugger_breakpoints_clear(void)
 {
-    debugger_bp_num = 0;
+    ATOMIC_STORE(debugger_bp_num, 0);
 }
 
 /* Where the byte at physical address addr is, as the processor sees memory
@@ -234,6 +359,18 @@ debugger_breakpoints_clear(void)
    pointer is used: it is set for a granule exactly when the granule is
    plain memory behind a mapping with a backing (mem_mapping_exec_granule()),
    so reading through it is what the processor's own fetches do. */
+/* Video memory is the one exception to reading only through the direct
+   pointers: for the handlers a card registered (mem_debug_add()), it says
+   where in its memory a byte is, without the handlers' latches, wait states
+   or blitter data. Handlers nothing was registered for stay out of reach. */
+static uint8_t *
+debugger_video_ptr(const mem_mapping_t *map, uint32_t addr, int write)
+{
+    const mem_debug_ptr_t debug_ptr = mem_debug_find(map, write);
+
+    return debug_ptr ? debug_ptr(addr, write, map->priv) : NULL;
+}
+
 static uint8_t *
 debugger_phys_ptr(uint32_t addr, uint8_t *cls)
 {
@@ -249,8 +386,9 @@ debugger_phys_ptr(uint32_t addr, uint8_t *cls)
     /* The direct pointer must belong to the mapping reads go to: one can
        be executable from one place and read from another. */
     if (!_mem_exec[g] || !rmap->exec) {
-        *cls = DEBUGGER_MEM_INACCESSIBLE;
-        return NULL;
+        p    = debugger_video_ptr(rmap, addr, 0);
+        *cls = p ? DEBUGGER_MEM_VIDEO : DEBUGGER_MEM_INACCESSIBLE;
+        return p;
     }
     p = &_mem_exec[g][addr & MEM_GRANULARITY_MASK];
     if (((uintptr_t) p < (uintptr_t) rmap->exec) ||
@@ -267,42 +405,36 @@ debugger_phys_ptr(uint32_t addr, uint8_t *cls)
     return p;
 }
 
-static int
-debugger_phys_read32(uint32_t addr, uint32_t *val)
+/* A page table entry, read the way the processor's page walk reads it
+   (rammap() in mem.c): through the direct pointer whatever the mapping, and
+   all ones where there is none. Entries are aligned, so never split. */
+static uint32_t
+debugger_pt_read32(uint32_t addr)
 {
-    uint8_t cls;
-    uint8_t b[4];
+    const uint8_t *page = _mem_exec[addr >> MEM_GRANULARITY_BITS];
+    const uint8_t *p;
 
-    for (int i = 0; i < 4; i++) {
-        const uint8_t *p = debugger_phys_ptr(addr + i, &cls);
-        if (!p)
-            return 0;
-        b[i] = *p;
-    }
-    *val = b[0] | (b[1] << 8) | (b[2] << 16) | ((uint32_t) b[3] << 24);
+    if (!page)
+        return 0xffffffff;
+    p = &page[addr & MEM_GRANULARITY_MASK & ~3];
 
-    return 1;
+    return p[0] | (p[1] << 8) | (p[2] << 16) | ((uint32_t) p[3] << 24);
 }
 
-static int
-debugger_phys_read64(uint64_t addr, uint64_t *val)
+static uint64_t
+debugger_pt_read64(uint64_t addr)
 {
-    uint32_t lo;
-    uint32_t hi;
-
-    if ((addr + 7) > 0xffffffffULL)
-        return 0;
-    if (!debugger_phys_read32((uint32_t) addr, &lo) || !debugger_phys_read32((uint32_t) addr + 4, &hi))
-        return 0;
-    *val = ((uint64_t) hi << 32) | lo;
-
-    return 1;
+    /* The processor truncates the address to 32 bits. */
+    addr &= ~7ULL;
+    return debugger_pt_read32((uint32_t) addr) | ((uint64_t) debugger_pt_read32((uint32_t) addr + 4) << 32);
 }
 
+/* SMM entry makes rammask the unmasked one and keeps the guest's in
+   old_rammask for RSM to restore: rammask is what accesses use either way. */
 static uint32_t
 debugger_a20_mask(void)
 {
-    return (in_smm && unmask_a20_in_smm) ? old_rammask : rammask;
+    return rammask;
 }
 
 /* As mmutranslatereal(), less the permission checks and the accessed and
@@ -324,13 +456,15 @@ debugger_translate(uint32_t linear, uint32_t *phys)
 
         if (!(pdpte & 1))
             return 0;
-        if (!debugger_phys_read64((pdpte & ~0xfffULL) + ((linear >> 18) & 0xff8), &pde) || !(pde & 1))
+        pde = debugger_pt_read64((pdpte & ~0xfffULL) + ((linear >> 18) & 0xff8));
+        if (!(pde & 1))
             return 0;
         pde &= 0x000000ffffffffffULL;
         if (pde & 0x80)
             p = (pde & ~0x1fffffULL) + (linear & 0x1fffff);
         else {
-            if (!debugger_phys_read64((pde & ~0xfffULL) + ((linear >> 9) & 0xff8), &pte) || !(pte & 1))
+            pte = debugger_pt_read64((pde & ~0xfffULL) + ((linear >> 9) & 0xff8));
+            if (!(pte & 1))
                 return 0;
             p = (pte & 0x000000fffffff000ULL) + (linear & 0xfff);
         }
@@ -338,7 +472,8 @@ debugger_translate(uint32_t linear, uint32_t *phys)
         uint32_t pde;
         uint32_t pte;
 
-        if (!debugger_phys_read32((cr3 & ~0xfff) + ((linear >> 20) & 0xffc), &pde) || !(pde & 1))
+        pde = debugger_pt_read32((cr3 & ~0xfff) + ((linear >> 20) & 0xffc));
+        if (!(pde & 1))
             return 0;
         if ((pde & 0x80) && (cr4 & CR4_PSE)) {
             p = pde & ~0x3fffff;
@@ -346,7 +481,8 @@ debugger_translate(uint32_t linear, uint32_t *phys)
                 p |= (uint64_t) (pde & 0x1e000) << 19;
             p += linear & 0x3fffff;
         } else {
-            if (!debugger_phys_read32((pde & ~0xfff) + ((linear >> 10) & 0xffc), &pte) || !(pte & 1))
+            pte = debugger_pt_read32((pde & ~0xfff) + ((linear >> 10) & 0xffc));
+            if (!(pte & 1))
                 return 0;
             p = (pte & ~0xfff) + (linear & 0xfff);
         }
@@ -401,30 +537,59 @@ done:
     }
 }
 
+/* The 8086 and 80186 may already hold the byte at addr in their prefetch
+   queue: the next bytes from CS:IP on, wrapping within CS as fetches do. */
+static void
+debugger_flush_queue(uint32_t addr)
+{
+    const uint32_t ip = debugger_ip();
+
+    if (is286)
+        return;
+
+    for (uint32_t i = 0; i < 8; i++) {
+        if (((cs + ((ip + i) & 0xffff)) & debugger_a20_mask()) == addr) {
+            flush_prefetch_808x();
+            return;
+        }
+    }
+}
+
 int
 debugger_mem_write(int space, uint32_t addr, uint8_t val)
 {
-    uint8_t  cls;
-    uint8_t *p;
+    const mem_mapping_t *rmap;
+    uint8_t              cls;
+    uint8_t             *p;
 
     if (space == DEBUGGER_SPACE_LINEAR) {
         if (!debugger_translate(addr, &addr))
             return 0;
     }
 
-    p = debugger_phys_ptr(addr, &cls);
-    /* RAM only, and only where writes go to the same place reads come
-       from: shadow RAM that is read-only, or reads ROM and writes RAM,
-       is left alone. */
-    if (!p || (cls != DEBUGGER_MEM_RAM) || (write_mapping[addr >> MEM_GRANULARITY_BITS] != read_mapping[addr >> MEM_GRANULARITY_BITS]))
+    /* Only where writes go to the same place reads come from: shadow RAM
+       that is read-only, or reads ROM and writes RAM, is left alone. */
+    rmap = read_mapping[addr >> MEM_GRANULARITY_BITS];
+    if (!rmap || (write_mapping[addr >> MEM_GRANULARITY_BITS] != rmap))
         return 0;
 
-    *p = val;
-    /* Recompiled code made from this page must go. */
-    mem_invalidate_range(addr, addr);
-    /* The 8086 and 80186 may already hold this byte in their prefetch queue. */
-    if (!is286 && ((addr - ((cs + debugger_ip()) & debugger_a20_mask())) < 8))
-        flush_prefetch_808x();
+    p = debugger_phys_ptr(addr, &cls);
+    if (cls == DEBUGGER_MEM_VIDEO) {
+        /* Video memory, the one other thing that can be written, where the
+           write handler is the one registered with the read handler. */
+        p = debugger_video_ptr(rmap, addr, 1);
+        if (!p)
+            return 0;
+        *p = val;
+    } else {
+        if (!p || (cls != DEBUGGER_MEM_RAM))
+            return 0;
+        *p = val;
+        /* Recompiled code made from this page must go. */
+        mem_invalidate_range(addr, addr);
+    }
+
+    debugger_flush_queue(addr);
 
     return 1;
 }
@@ -493,6 +658,7 @@ debugger_decode_info(debugger_decode_info_t *info)
     info->wrap16   = !is386;
     info->fpu_trap = is286 && !!(cr0 & 0x0c);
     info->vpc      = !!is_vpc;
+    info->fpu_ud   = is486 || isibm486;
 }
 
 /* The tables the running interpreter dispatches through, and what they hold
@@ -501,13 +667,57 @@ debugger_decode_info(debugger_decode_info_t *info)
 static const OpFn *
 debugger_op_table(int map, OpFn *illegal)
 {
-    if (cpu_exec == exec386_2386) {
+    if (debugger_exec() == exec386_2386) {
         *illegal = x86_2386_illegal_op;
         return map ? x86_2386_opcodes_0f : x86_2386_opcodes;
     }
 
     *illegal = x86_illegal_op;
     return map ? x86_opcodes_0f : x86_opcodes;
+}
+
+/* Whether the x87 tables the running interpreter dispatches through have
+   the ESC opcode op (D8-DF) with ModR/M byte modrm: DEBUGGER_OP_ILLEGAL
+   where they hold FPU_ILLEGAL, which is #UD on the 486 and later and reads
+   the operand and does nothing before (x87_ops.h). */
+int
+debugger_fpu_kind(uint8_t op, uint8_t modrm, int addr32)
+{
+    const OpFn *const *tables;
+    const OpFn        *t;
+    OpFn               illegal;
+    static const OpFn *const *const normal[2][8] = {
+        { &x86_opcodes_d8_a16, &x86_opcodes_d9_a16, &x86_opcodes_da_a16, &x86_opcodes_db_a16,
+          &x86_opcodes_dc_a16, &x86_opcodes_dd_a16, &x86_opcodes_de_a16, &x86_opcodes_df_a16 },
+        { &x86_opcodes_d8_a32, &x86_opcodes_d9_a32, &x86_opcodes_da_a32, &x86_opcodes_db_a32,
+          &x86_opcodes_dc_a32, &x86_opcodes_dd_a32, &x86_opcodes_de_a32, &x86_opcodes_df_a32 }
+    };
+    static const OpFn *const *const t2386[2][8] = {
+        { &x86_2386_opcodes_d8_a16, &x86_2386_opcodes_d9_a16, &x86_2386_opcodes_da_a16, &x86_2386_opcodes_db_a16,
+          &x86_2386_opcodes_dc_a16, &x86_2386_opcodes_dd_a16, &x86_2386_opcodes_de_a16, &x86_2386_opcodes_df_a16 },
+        { &x86_2386_opcodes_d8_a32, &x86_2386_opcodes_d9_a32, &x86_2386_opcodes_da_a32, &x86_2386_opcodes_db_a32,
+          &x86_2386_opcodes_dc_a32, &x86_2386_opcodes_dd_a32, &x86_2386_opcodes_de_a32, &x86_2386_opcodes_df_a32 }
+    };
+
+    if (!is286 || (op < 0xd8) || (op > 0xdf))
+        return DEBUGGER_OP_NORMAL;
+    addr32 = !!addr32;
+
+    if (debugger_exec() == exec386_2386) {
+        tables  = t2386[addr32][op - 0xd8];
+        illegal = x86_2386_fpu_illegal_op[addr32];
+    } else {
+        tables  = normal[addr32][op - 0xd8];
+        illegal = x86_fpu_illegal_op[addr32];
+    }
+    t = *tables;
+    if (!t)
+        return DEBUGGER_OP_NORMAL;
+
+    /* Indexed as x86_ops_fpu.h does: D8 and DC by reg and mod only. */
+    if ((op == 0xd8) || (op == 0xdc))
+        return (t[(modrm >> 3) & 0x1f] == illegal) ? DEBUGGER_OP_ILLEGAL : DEBUGGER_OP_NORMAL;
+    return (t[modrm] == illegal) ? DEBUGGER_OP_ILLEGAL : DEBUGGER_OP_NORMAL;
 }
 
 int
@@ -691,8 +901,12 @@ debugger_cpu_format(char *buf, int size)
         }
     }
 
-    APPEND("CPU 0: %s mode%s%s%s, CPL %d\n", mode, (is386 && use32) ? ", 32-bit code" : ((is286 && (msw & 1)) ? ", 16-bit code" : ""),
-           in_smm ? ", SMM" : "", cpu_halted ? ", halted" : "", (is286 && (msw & 1)) ? CPL : 0);
+    /* Not cpu_halted: only the recompiler's loop keeps that up to date, and
+       this runs the interpreter; a stop in a HLT is told of below. */
+    APPEND("CPU 0: %s mode%s%s, CPL %d\n", mode, (is386 && use32) ? ", 32-bit code" : ((is286 && (msw & 1)) ? ", 16-bit code" : ""),
+           in_smm ? ", SMM" : "", (is286 && (msw & 1)) ? CPL : 0);
+    if (debugger_stopped() && debugger_partial)
+        APPEND("Paused partway through a REP string instruction or HLT: it carries on\nwhen the processor runs again.%s\n", is286 ? "" : " On this processor IP already\npoints past it.");
     APPEND("\n");
 
     for (int i = 0; i < 8; i++) {
