@@ -49,7 +49,6 @@ static int             active             = 0;
 uint32_t               pallook16[256];
 uint32_t               pallook64[256];
 static int             ega_type           = EGA_TYPE_IBM;
-static int             old_overscan_color = 0;
 
 /* 3C2 controls default mode on EGA. On VGA, it determines monitor type (mono or colour):
     7=CGA mode (200 lines), 9=EGA mode (350 lines), 8=EGA mode (200 lines). */
@@ -1545,8 +1544,6 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
 
     ega->vram_limit = 256 * 1024;
     ega->vrammask   = ega->vram_limit - 1;
-
-    old_overscan_color = 0;
 
     /* Color Plane Enable defaults to all four planes enabled. */
     ega->attrregs[0x12] = 0x0f;

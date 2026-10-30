@@ -32,9 +32,7 @@
 #define MIDI_SYSEX_TIMEOUT_MS 5000
 
 int        midi_output_device_current = 0;
-static int midi_output_device_last    = 0;
 int        midi_input_device_current  = 0;
-static int midi_input_device_last     = 0;
 
 midi_t *midi_out = NULL;
 midi_t *midi_in  = NULL;
@@ -161,7 +159,6 @@ midi_out_device_init(void)
         midi_out_device = midi_out_devices[midi_output_device_current].device;
         device_add(midi_out_device);
     }
-    midi_output_device_last = midi_output_device_current;
 }
 
 void
@@ -279,7 +276,6 @@ midi_in_device_init(void)
         midi_in_device = midi_in_devices[midi_input_device_current].device;
         device_add(midi_in_device);
     }
-    midi_input_device_last = midi_input_device_current;
 }
 
 void

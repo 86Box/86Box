@@ -400,7 +400,6 @@ static uint32_t opcode_timings_winchip2_81_mod3[8] = {
     // clang-format on
 };
 
-static int      timing_count;
 static uint8_t  last_prefix;
 static uint32_t regmask_modified;
 static int      decode_delay;
@@ -584,7 +583,6 @@ codegen_timing_winchip2_block_start(void)
 static void
 codegen_timing_winchip2_start(void)
 {
-    timing_count = 0;
     last_prefix  = 0;
 }
 

@@ -69,7 +69,7 @@
 
 #define FIFO_ENTRIES      (mach64->fifo_write_idx - mach64->fifo_read_idx)
 #define FIFO_FULL         ((mach64->fifo_write_idx - mach64->fifo_read_idx) >= FIFO_SIZE)
-#define FIFO_EMPTY        (mach64->fifo_read_idx == mach64->fifo_write_idx)
+#define FIFO_EMPTY        mach64_fifo_empty(mach64)
 
 #define FIFO_TYPE         0xff000000
 #define FIFO_ADDR         0x00ffffff
@@ -391,6 +391,12 @@ typedef struct mach64_t {
     uint8_t          genena;        /* 46E8h */
     uint8_t          genvs;         /* 102h */
 } mach64_t;
+
+static inline int
+mach64_fifo_empty(const mach64_t *mach64)
+{
+    return mach64->fifo_read_idx == mach64->fifo_write_idx;
+}
 
 extern video_timings_t timing_mach64_isa;
 extern video_timings_t timing_mach64_vlb;

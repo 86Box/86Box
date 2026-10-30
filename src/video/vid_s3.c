@@ -7274,7 +7274,6 @@ polygon_setup(s3_t *s3)
                 dest_dat = ~0;                                                                    \
                 break;                                                                            \
             case 0x3:                                                                             \
-                dest_dat = dest_dat;                                                              \
                 break;                                                                            \
             case 0x4:                                                                             \
                 dest_dat = ~src_dat;                                                              \

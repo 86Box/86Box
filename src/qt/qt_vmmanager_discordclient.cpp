@@ -13,6 +13,7 @@
  *          Copyright 2026 David Hrdlička.
  */
 #include <QCoreApplication>
+#include <QDataStream>
 #include <QDebug>
 #include <QFileInfo>
 #include <QJsonDocument>
@@ -191,8 +192,10 @@ VMManagerDiscordClient::readFrames()
 
     // Each frame is a little endian opcode and length followed by a JSON payload
     while (read_buffer.size() >= 8) {
-        const auto opcode = qFromLittleEndian<quint32>(read_buffer.constData());
-        const auto length = qFromLittleEndian<quint32>(read_buffer.constData() + 4);
+        QDataStream header(read_buffer.left(8));
+        header.setByteOrder(QDataStream::LittleEndian);
+        quint32 opcode, length;
+        header >> opcode >> length;
         if (length > kMaxFrameSize) {
             qWarning("Discord: invalid frame of %u bytes received", length);
             connectionLost();

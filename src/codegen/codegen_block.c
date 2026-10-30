@@ -48,12 +48,6 @@ int        block_pos;
 uint32_t codegen_endpc;
 
 int        codegen_block_cycles;
-static int codegen_block_ins;
-static int codegen_block_full_ins;
-
-static uint32_t last_op32;
-static x86seg  *last_ea_seg;
-static int      last_ssegs;
 
 #ifdef DEBUG_EXTRA
 uint32_t instr_counts[256 * 256];
@@ -963,15 +957,8 @@ codegen_block_start_recompile(codeblock_t *block)
 
     cpu_block_end = 0;
 
-    last_op32   = -1;
-    last_ea_seg = NULL;
-    last_ssegs  = -1;
-
     codegen_block_cycles = 0;
     codegen_timing_block_start();
-
-    codegen_block_ins      = 0;
-    codegen_block_full_ins = 0;
 
     recomp_page = block->phys & ~0xfff;
 

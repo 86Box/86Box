@@ -2366,11 +2366,11 @@ banshee_hwcursor_draw(svga_t *svga, int displine)
         }                                                                                                      \
     } while (0)
 
-#define DECODE_RGB565_TILED(buf)                                                                                        \
+#define DECODE_RGB565_TILED(buf, addr)                                                                                  \
     do {                                                                                                                \
         int      c;                                                                                                     \
         int      wp        = 0;                                                                                         \
-        uint32_t base_addr = (buf == banshee->overlay_buffer[1]) ? src_addr2 : src_addr;                                \
+        uint32_t base_addr = (addr);                                                                                   \
                                                                                                                         \
         for (c = 0; c < voodoo->overlay.overlay_bytes; c += 2) {                                                        \
             uint16_t data = *(uint16_t *) &svga->vram[(base_addr + (c & 127) + (c >> 7) * 128 * 32) & svga->vram_mask]; \
@@ -2463,7 +2463,7 @@ banshee_hwcursor_draw(svga_t *svga, int displine)
         }                                                        \
     } while (0)
 
-#define OVERLAY_SAMPLE(buf)                                                      \
+#define OVERLAY_SAMPLE(buf, addr)                                                \
     do {                                                                         \
         switch (banshee->overlay_pix_fmt) {                                      \
             case 0:                                                              \
@@ -2480,7 +2480,7 @@ banshee_hwcursor_draw(svga_t *svga, int displine)
             case OVERLAY_FMT_565:                                                \
             case OVERLAY_FMT_565_DITHER:                                         \
                 if (banshee->vidProcCfg & VIDPROCCFG_OVERLAY_TILE)               \
-                    DECODE_RGB565_TILED(buf);                                    \
+                    DECODE_RGB565_TILED(buf, addr);                              \
                 else                                                             \
                     DECODE_RGB565(buf);                                          \
                 break;                                                           \
@@ -2753,14 +2753,14 @@ banshee_overlay_draw(svga_t *svga, int displine)
     if (skip_filtering) {
         /*No scaling or filtering required, just write straight to output buffer*/
         if (chroma_test_passed)
-            OVERLAY_SAMPLE(p);
+            OVERLAY_SAMPLE(p, src_addr);
     } else {
-        OVERLAY_SAMPLE(banshee->overlay_buffer[0]);
+        OVERLAY_SAMPLE(banshee->overlay_buffer[0], src_addr);
 
         switch (banshee->vidProcCfg & VIDPROCCFG_FILTER_MODE_MASK) {
             case VIDPROCCFG_FILTER_MODE_BILINEAR:
                 src = &svga->vram[src_addr2 & svga->vram_mask];
-                OVERLAY_SAMPLE(banshee->overlay_buffer[1]);
+                OVERLAY_SAMPLE(banshee->overlay_buffer[1], src_addr2);
                 if (banshee->vidProcCfg & VIDPROCCFG_H_SCALE_ENABLE) {
                     for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
                         unsigned int x_coeff   = (src_x & 0xfffff) >> 4;
@@ -2889,7 +2889,7 @@ banshee_overlay_draw(svga_t *svga, int displine)
                     uint8_t samp4[2048 * 3];
 
                     src = &svga->vram[src_addr2 & svga->vram_mask];
-                    OVERLAY_SAMPLE(banshee->overlay_buffer[1]);
+                    OVERLAY_SAMPLE(banshee->overlay_buffer[1], src_addr2);
                     for (x = 0; x < svga->overlay_latch.cur_xsize; x++) {
                         samp1[x * 3]     = (banshee->overlay_buffer[0][x]);
                         samp1[x * 3 + 1] = (banshee->overlay_buffer[0][x] >> 8);

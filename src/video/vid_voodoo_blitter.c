@@ -127,7 +127,6 @@ voodooblt_log(const char *fmt, ...)
             dst_dat = ~(src_dat ^ dst_dat); \
             break;                          \
         case 0xa:                           \
-            dst_dat = dst_dat;              \
             break;                          \
         case 0xb:                           \
             dst_dat = ~src_dat | dst_dat;   \

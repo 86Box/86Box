@@ -213,9 +213,12 @@ lpt_char_callback(void *priv)
                 if (~prev & masked)
                     lpt_irq(dev, 1);
 #ifdef DROP_EMULATION_SPEED_INSTEAD
-                if (dev->enable_irq)
-#endif
+                if (dev->enable_irq) {
                     latch = TIMER_USEC * 2;
+                }
+#else
+                latch = TIMER_USEC * 2;
+#endif
             }
             dev->char_read = buf[read - 1];
         }

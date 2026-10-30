@@ -42,7 +42,7 @@
 
 #define ILLEGAL_ON(cond)                    \
     do {                                    \
-        if ((cond)) {                       \
+        if (cond) {                         \
             cpu_state.pc = cpu_state.oldpc; \
             x86illegal();                   \
             return 1;                       \

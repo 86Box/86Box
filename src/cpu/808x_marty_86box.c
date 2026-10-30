@@ -828,7 +828,9 @@ static m808x_dma_state_t m808x_dma_state = M808X_DMA_IDLE;
 static bool m808x_dma_req = false;
 static bool m808x_dma_holda = false;
 static bool m808x_dma_ack = false;
+#ifdef M808X_86BOX_TESTING
 static bool m808x_dma_aen = false;
+#endif
 static unsigned m808x_dma_operating_cycle = 0u;
 static unsigned m808x_dma_wait_states = 0u;
 static unsigned m808x_dma_wait_target = 4u;
@@ -867,7 +869,9 @@ m808x_dma_tick(m808x_cpu_t *icpu)
         case M808X_DMA_HOLDA:
             /* One clock of hold acknowledge precedes 8237 S1/AEN. */
             if (b->wait_remaining < 2u) {
+#ifdef M808X_86BOX_TESTING
                 m808x_dma_aen = true;
+#endif
                 m808x_dma_operating_cycle = 0u;
                 m808x_dma_state = M808X_DMA_OPERATING;
             }
@@ -899,7 +903,9 @@ m808x_dma_tick(m808x_cpu_t *icpu)
                     m808x_dma_holda = false;
                     break;
                 case 5u:
+#ifdef M808X_86BOX_TESTING
                     m808x_dma_aen = false;
+#endif
                     m808x_dma_ack = false;
                     m808x_dma_operating_cycle = 0u;
                     m808x_dma_state = M808X_DMA_IDLE;
@@ -4739,7 +4745,9 @@ m808x_86box_reset(UNUSED(int hard))
     m808x_dma_req = false;
     m808x_dma_holda = false;
     m808x_dma_ack = false;
+#ifdef M808X_86BOX_TESTING
     m808x_dma_aen = false;
+#endif
     m808x_dma_operating_cycle = 0u;
     m808x_dma_wait_states = 0u;
     m808x_dma_wait_target = 4u;
