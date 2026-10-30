@@ -94,6 +94,7 @@ MemoryHexView::MemoryHexView(QWidget *parent)
     setFocusPolicy(Qt::StrongFocus);
     setHorizontalScrollBarPolicy(Qt::ScrollBarAsNeeded);
     setVerticalScrollBarPolicy(Qt::ScrollBarAlwaysOn);
+    viewport()->setMouseTracking(true); /* for drag selection */
     /* address, 16 bytes with a gap after 8, the characters */
     setMinimumWidth(charW_ * (10 + (BYTES_PER_ROW * 3) + 1 + 1 + BYTES_PER_ROW + 2) + verticalScrollBar()->sizeHint().width());
     updateScrollBar();
@@ -137,6 +138,7 @@ void
 MemoryHexView::goTo(uint32_t addr)
 {
     sel_    = addr;
+    anchor_ = addr;
     nibble_ = 0;
     const uint32_t row = addr / BYTES_PER_ROW;
     /* Put the address a few rows down from the top, for context. */
@@ -175,6 +177,33 @@ MemoryHexView::refresh()
     cacheAddr_ = start;
     data_      = data;
     cls_       = cls;
+    viewport()->update();
+}
+
+/* Length of the multi-cell selection, from the anchor to the cursor. */
+uint64_t
+MemoryHexView::selectionLen() const
+{
+    return (uint64_t) selectionEnd() - (uint64_t) selectionStart() + 1ULL;
+}
+
+/* The selection, for the status bar. */
+QString
+MemoryHexView::selectionText() const
+{
+    if (sel_ == anchor_)
+        return QString::asprintf("%08X", sel_);
+    return QString::asprintf("%08X-%08X (%llu bytes)", selectionStart(), selectionEnd(), selectionLen());
+}
+
+void
+MemoryHexView::setSelection(uint32_t addr, bool extend)
+{
+    if (!extend)
+        anchor_ = addr;
+    sel_    = addr;
+    nibble_ = 0;
+    emit status(selectionText());
     viewport()->update();
 }
 
@@ -256,6 +285,13 @@ MemoryHexView::paintEvent(QPaintEvent *)
             }
 
             const uint32_t addr = (uint32_t) rowAddr + i;
+            if (addr >= selectionStart() && addr <= selectionEnd()) {
+                /* A translucent highlight, over whatever class was drawn. */
+                QColor selBg = pal.color(QPalette::Highlight);
+                selBg.setAlpha(120);
+                p.fillRect(hexRect.adjusted(0, 0, (i == 7) ? charW_ * 2 : charW_, 0), selBg);
+                p.fillRect(ascRect, selBg);
+            }
             if (addr == sel_) {
                 QPen pen(pal.color(QPalette::Highlight));
                 pen.setWidth(2);
@@ -305,56 +341,85 @@ MemoryHexView::mousePressEvent(QMouseEvent *event)
 {
     uint32_t addr;
     setFocus(Qt::MouseFocusReason);
-    if (hitTest(event->pos(), &addr)) {
-        sel_    = addr;
-        nibble_ = 0;
-        emit status(QString::asprintf("%08X", addr));
-        viewport()->update();
+    if (event->button() == Qt::LeftButton && hitTest(event->pos(), &addr)) {
+        dragging_ = true;
+        setSelection(addr, event->modifiers().testFlag(Qt::ShiftModifier));
     }
     QAbstractScrollArea::mousePressEvent(event);
 }
 
 void
-MemoryHexView::moveSelection(int64_t delta)
+MemoryHexView::mouseMoveEvent(QMouseEvent *event)
+{
+    /* Extend the selection while the left button is held. */
+    if (dragging_ && (event->buttons() & Qt::LeftButton)) {
+        uint32_t addr;
+        if (hitTest(event->pos(), &addr) && (addr != sel_))
+            setSelection(addr, true);
+    }
+    QAbstractScrollArea::mouseMoveEvent(event);
+}
+
+void
+MemoryHexView::mouseReleaseEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton)
+        dragging_ = false;
+    QAbstractScrollArea::mouseReleaseEvent(event);
+}
+
+void
+MemoryHexView::moveSelection(int64_t delta, bool extend)
 {
     const int64_t a = std::clamp<int64_t>((int64_t) sel_ + delta, 0, 0xffffffffLL);
-    sel_            = (uint32_t) a;
-    nibble_         = 0;
+    setSelection((uint32_t) a, extend);
     ensureVisible(sel_);
-    viewport()->update();
 }
 
 void
 MemoryHexView::keyPressEvent(QKeyEvent *event)
 {
+    const bool extend = event->modifiers().testFlag(Qt::ShiftModifier);
     switch (event->key()) {
         case Qt::Key_Left:
-            moveSelection(-1);
+            moveSelection(-1, extend);
             return;
         case Qt::Key_Right:
-            moveSelection(1);
+            moveSelection(1, extend);
             return;
         case Qt::Key_Up:
-            moveSelection(-BYTES_PER_ROW);
+            moveSelection(-BYTES_PER_ROW, extend);
             return;
         case Qt::Key_Down:
-            moveSelection(BYTES_PER_ROW);
+            moveSelection(BYTES_PER_ROW, extend);
             return;
         case Qt::Key_PageUp:
-            moveSelection(-(int64_t) visibleRows() * BYTES_PER_ROW);
+            moveSelection(-(int64_t) visibleRows() * BYTES_PER_ROW, extend);
             return;
         case Qt::Key_PageDown:
-            moveSelection((int64_t) visibleRows() * BYTES_PER_ROW);
+            moveSelection((int64_t) visibleRows() * BYTES_PER_ROW, extend);
             return;
         case Qt::Key_Home:
-            moveSelection(-(int64_t) (sel_ % BYTES_PER_ROW));
+            moveSelection(-(int64_t) (sel_ % BYTES_PER_ROW), extend);
             return;
         case Qt::Key_End:
-            moveSelection(BYTES_PER_ROW - 1 - (sel_ % BYTES_PER_ROW));
+            moveSelection(BYTES_PER_ROW - 1 - (sel_ % BYTES_PER_ROW), extend);
             return;
+        case Qt::Key_C:
+            if (event->modifiers() & Qt::ControlModifier) {
+                copySelection(event->modifiers() & Qt::ShiftModifier);
+                return;
+            }
+            break;
         case Qt::Key_Escape:
             if (nibble_) {
                 nibble_ = 0;
+                viewport()->update();
+                return;
+            }
+            if (sel_ != anchor_) {
+                anchor_ = sel_;
+                emit status(selectionText());
                 viewport()->update();
                 return;
             }
@@ -388,7 +453,7 @@ MemoryHexView::keyPressEvent(QKeyEvent *event)
     editVal_ |= (uint8_t) digit;
     nibble_ = 0;
     if (writeByte(sel_, editVal_))
-        moveSelection(1);
+        moveSelection(1, false);
 }
 
 bool
@@ -408,15 +473,117 @@ MemoryHexView::writeByte(uint32_t addr, uint8_t val)
     return written != 0;
 }
 
+/* Write a byte over a range; returns how many made it through. */
+uint64_t
+MemoryHexView::writeRange(uint32_t start, uint64_t len, uint8_t val)
+{
+    uint64_t written = 0;
+    if (!MemoryViewer::lock()) {
+        QApplication::beep();
+        emit status(tr("The emulator is busy; try again."));
+        return 0;
+    }
+    for (uint64_t i = 0; i < len; i++)
+        written += debugger_mem_write(space_, (uint32_t) ((uint64_t) start + i), val);
+    MemoryViewer::unlock();
+    if (written > 0)
+        emit memoryWritten();
+    refresh();
+    return written;
+}
+
+/* Copy the selected bytes to the clipboard, as hex or ASCII. */
+void
+MemoryHexView::copySelection(bool ascii)
+{
+    /* A selection the whole address space would not fit; cap the copy. */
+    const uint64_t selLen = selectionLen();
+    const uint64_t count  = std::min<uint64_t>(selLen, 0x1000000ULL);
+    const uint64_t start  = selectionStart();
+    QString        text;
+    uint64_t       unreadable = 0;
+
+    if (!MemoryViewer::lock()) {
+        emit status(tr("The emulator is busy; try again."));
+        return;
+    }
+
+    constexpr uint32_t chunk = 0x10000;
+    QVector<uint8_t>   data(chunk);
+    QVector<uint8_t>   cls(chunk);
+    uint64_t           done = 0;
+    while (done < count) {
+        const uint32_t n = (uint32_t) std::min<uint64_t>(chunk, count - done);
+        debugger_mem_read(space_, (uint32_t) (start + done), n, data.data(), cls.data());
+        for (uint32_t i = 0; i < n; i++) {
+            const uint8_t c = cls[i];
+            if (ascii) {
+                const uint8_t v = data[i];
+                text += (readable(c) && (v >= 0x20) && (v < 0x7f)) ? QChar(v) : QChar('.');
+                if (!readable(c))
+                    unreadable++;
+            } else {
+                text += readable(c) ? QString::asprintf("%02X ", data[i]) : QStringLiteral("-- ");
+                if (!readable(c))
+                    unreadable++;
+            }
+        }
+        done += n;
+    }
+    MemoryViewer::unlock();
+
+    if (!ascii && text.endsWith(QLatin1Char(' ')))
+        text.chop(1);
+    QApplication::clipboard()->setText(text);
+
+    QString msg = tr("Copied %1 bytes from %2 to the clipboard").arg(count).arg(QString::asprintf("%08X", (uint32_t) start));
+    if (unreadable)
+        msg += tr(" (%1 could not be read)").arg(unreadable);
+    if (count < selLen)
+        msg += tr(" of a %1 byte selection").arg(selLen);
+    emit status(msg + QLatin1Char('.'));
+}
+
+/* Fill the selected bytes with one value. */
+void
+MemoryHexView::fillSelection()
+{
+    const uint64_t selLen = selectionLen();
+    const uint64_t count  = std::min<uint64_t>(selLen, 0x1000000ULL);
+    const uint32_t start  = selectionStart();
+
+    bool          ok   = false;
+    const QString text = QInputDialog::getText(this, tr("Fill selection"),
+                                               tr("Fill %1 bytes from %2 with (hex):")
+                                                   .arg(count)
+                                                   .arg(QString::asprintf("%08X", start)),
+                                               QLineEdit::Normal, QStringLiteral("00"), &ok);
+    if (!ok)
+        return;
+    const uint32_t val = text.trimmed().toUInt(&ok, 16);
+    if (!ok || (val > 0xff)) {
+        emit status(tr("Enter a hex byte from 00 to FF."));
+        return;
+    }
+
+    const uint64_t written = writeRange(start, count, (uint8_t) val);
+    QString        msg = tr("Filled %1 of %2 bytes with %3 (%4 were not writable RAM).")
+                          .arg(written)
+                          .arg(count)
+                          .arg(QString::asprintf("%02X", val))
+                          .arg(count - written);
+    if (count < selLen)
+        msg += tr(" Selected: %1 bytes (%2 were skipped).").arg(selLen).arg(selLen - count);
+    emit status(msg + QLatin1Char('.'));
+}
+
 void
 MemoryHexView::mouseDoubleClickEvent(QMouseEvent *event)
 {
     uint32_t addr;
     if (!hitTest(event->pos(), &addr))
         return;
-    sel_    = addr;
-    nibble_ = 0;
-    viewport()->update();
+    setSelection(addr, false);
 
     const uint32_t idx = addr - cacheAddr_;
     if ((idx >= (uint32_t) cls_.size()) || (cls_[idx] != DEBUGGER_MEM_RAM)) {
@@ -442,25 +609,33 @@ void
 MemoryHexView::contextMenuEvent(QContextMenuEvent *event)
 {
     uint32_t addr;
-    if (hitTest(event->pos(), &addr)) {
-        sel_    = addr;
-        nibble_ = 0;
-        viewport()->update();
-    }
+    /* Clicking outside the selection starts a new one; inside keeps it. */
+    if (hitTest(event->pos(), &addr) && ((addr < selectionStart()) || (addr > selectionEnd())))
+        setSelection(addr, false);
 
     QMenu    menu(this);
-    QAction *copy   = menu.addAction(tr("Copy address"));
-    QAction *dis    = menu.addAction(tr("Disassemble here"));
-    QAction *dump   = menu.addAction(tr("Dump memory from here..."));
+    QAction *copy    = menu.addAction(tr("Copy selection (hex)"));
+    QAction *copyAsc = menu.addAction(tr("Copy selection (ASCII)"));
+    QAction *fill = menu.addAction(tr("Fill selection..."));
+    menu.addSeparator();
+    QAction *addrAct = menu.addAction(tr("Copy address"));
+    QAction *dis     = menu.addAction(tr("Disassemble here"));
+    QAction *dump    = menu.addAction(tr("Dump memory from here..."));
     dis->setEnabled(space_ == DEBUGGER_SPACE_LINEAR);
 
     QAction *chosen = menu.exec(event->globalPos());
     if (chosen == copy)
+        copySelection(false);
+    else if (chosen == copyAsc)
+        copySelection(true);
+    else if (chosen == fill)
+        fillSelection();
+    else if (chosen == addrAct)
         QApplication::clipboard()->setText(QString::asprintf("%08X", sel_));
     else if (chosen == dis)
         emit disassembleRequested(sel_);
     else if (chosen == dump)
-        emit dumpRequested(sel_);
+        emit dumpRequested(selectionStart(), (uint32_t) std::min<uint64_t>(selectionLen(), 0xffffffffULL));
 }
 
 /* ---- MemoryViewer ---- */
@@ -607,7 +782,7 @@ MemoryViewer::MemoryViewer(QWidget *parent)
     connect(goBtn, &QPushButton::clicked, this, &MemoryViewer::onGo);
     connect(addrEdit_, &QLineEdit::returnPressed, this, &MemoryViewer::onGo);
     connect(spaceBox_, QOverload<int>::of(&QComboBox::currentIndexChanged), this, &MemoryViewer::onSpaceChanged);
-    connect(dumpBtn, &QPushButton::clicked, this, [this]() { onDump(hex_->selection()); });
+    connect(dumpBtn, &QPushButton::clicked, this, [this]() { onDump(hex_->selection(), (uint32_t) hex_->selectionLen()); });
     connect(disGo, &QPushButton::clicked, this, &MemoryViewer::onDisasmGo);
     connect(disasmEdit_, &QLineEdit::returnPressed, this, &MemoryViewer::onDisasmGo);
     connect(followBox_, &QCheckBox::toggled, this, [this](bool) { refreshDisasm(); });
@@ -948,13 +1123,13 @@ MemoryViewer::parseAddress(const QString &text, int space, uint32_t *addr, QStri
 }
 
 void
-MemoryViewer::onDump(uint32_t start)
+MemoryViewer::onDump(uint32_t start, uint32_t len)
 {
     QDialog dlg(this);
     dlg.setWindowTitle(tr("Dump memory"));
 
     auto *startEdit = new QLineEdit(QString::asprintf("%08X", start), &dlg);
-    auto *lenEdit   = new QLineEdit(QStringLiteral("10000"), &dlg);
+    auto *lenEdit   = new QLineEdit(len ? QString::asprintf("%X", len) : QStringLiteral("10000"), &dlg);
     auto *space     = new QComboBox(&dlg);
     space->addItem(tr("Physical"), DEBUGGER_SPACE_PHYSICAL);
     space->addItem(tr("Linear"), DEBUGGER_SPACE_LINEAR);
@@ -991,7 +1166,7 @@ MemoryViewer::onDump(uint32_t start)
     connect(buttons, &QDialogButtonBox::rejected, &dlg, &QDialog::reject);
 
     uint32_t addr;
-    uint32_t len;
+    uint32_t dumpLen;
     uint32_t fill;
     int      sp;
     for (;;) {
@@ -1004,7 +1179,7 @@ MemoryViewer::onDump(uint32_t start)
             QMessageBox::warning(&dlg, tr("Dump memory"), err);
             continue;
         }
-        if (!parseHex(lenEdit->text(), &len) || !len) {
+        if (!parseHex(lenEdit->text(), &dumpLen) || !dumpLen) {
             QMessageBox::warning(&dlg, tr("Dump memory"), tr("The length must be a hex number above 0."));
             continue;
         }
@@ -1012,8 +1187,8 @@ MemoryViewer::onDump(uint32_t start)
             QMessageBox::warning(&dlg, tr("Dump memory"), tr("The fill byte must be a hex number from 00 to FF."));
             continue;
         }
-        if (((uint64_t) addr + len) > 0x100000000ULL)
-            len = (uint32_t) (0x100000000ULL - addr);
+        if (((uint64_t) addr + dumpLen) > 0x100000000ULL)
+            dumpLen = (uint32_t) (0x100000000ULL - addr);
         if (fileEdit->text().isEmpty()) {
             const QString name = QFileDialog::getSaveFileName(&dlg, tr("Dump memory"), QString::asprintf("mem_%08X.bin", addr), tr("Binary files (*.bin);;All files (*)"));
             if (name.isEmpty())
@@ -1034,12 +1209,12 @@ MemoryViewer::onDump(uint32_t start)
     QVector<uint8_t>   cls(chunk);
     uint64_t           unreadable = 0;
     uint64_t           done       = 0;
-    QProgressDialog    progress(tr("Dumping memory..."), tr("Cancel"), 0, (int) ((len + chunk - 1) / chunk), this);
+    QProgressDialog    progress(tr("Dumping memory..."), tr("Cancel"), 0, (int) ((dumpLen + chunk - 1) / chunk), this);
     progress.setWindowModality(Qt::WindowModal);
     progress.setMinimumDuration(500);
 
-    while (done < len) {
-        const uint32_t n = (uint32_t) std::min<uint64_t>(chunk, len - done);
+    while (done < dumpLen) {
+        const uint32_t n = (uint32_t) std::min<uint64_t>(chunk, dumpLen - done);
         if (!lock()) {
             QApplication::processEvents();
             continue;

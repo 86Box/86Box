@@ -26,11 +26,14 @@ public:
     int      space() const { return space_; }
     void     goTo(uint32_t addr);
     uint32_t selection() const { return sel_; }
+    uint32_t selectionStart() const { return qMin(sel_, anchor_); }
+    uint32_t selectionEnd() const { return qMax(sel_, anchor_); }
+    uint64_t selectionLen() const;
     void     refresh();
 
 signals:
     void status(const QString &msg);
-    void dumpRequested(uint32_t start);
+    void dumpRequested(uint32_t start, uint32_t len);
     void disassembleRequested(uint32_t addr);
     void memoryWritten();
 
@@ -38,6 +41,8 @@ protected:
     void paintEvent(QPaintEvent *event) override;
     void resizeEvent(QResizeEvent *event) override;
     void mousePressEvent(QMouseEvent *event) override;
+    void mouseMoveEvent(QMouseEvent *event) override;
+    void mouseReleaseEvent(QMouseEvent *event) override;
     void mouseDoubleClickEvent(QMouseEvent *event) override;
     void keyPressEvent(QKeyEvent *event) override;
     void contextMenuEvent(QContextMenuEvent *event) override;
@@ -50,18 +55,26 @@ private:
     int      visibleRows() const;
     void     updateScrollBar();
     void     ensureVisible(uint32_t addr);
-    void     moveSelection(int64_t delta);
+    void     setSelection(uint32_t addr, bool extend);
+    void     moveSelection(int64_t delta, bool extend);
     int      hitTest(const QPoint &pos, uint32_t *addr) const;
     bool     writeByte(uint32_t addr, uint8_t val);
+    uint64_t writeRange(uint32_t start, uint64_t len, uint8_t val);
+    void     copySelection(bool ascii);
+    void     fillSelection();
+    QString  selectionText() const;
 
     int      space_ = 0;
-    uint32_t sel_   = 0;
+    uint32_t sel_    = 0;
+    uint32_t anchor_ = 0; /* the other end of the selection */
     int      nibble_ = 0; /* 1 after the high nibble of an edit was typed */
     uint8_t  editVal_ = 0;
 
     uint32_t         cacheAddr_ = 0;
     QVector<uint8_t> data_;
     QVector<uint8_t> cls_;
+
+    bool dragging_ = false;
 
     int charW_ = 8;
     int lineH_ = 16;
@@ -93,7 +106,7 @@ private slots:
     void onPoll();
     void onDisasmGo();
     void onDisasmItemActivated(QTreeWidgetItem *item, int column);
-    void onDump(uint32_t start);
+    void onDump(uint32_t start, uint32_t len);
     void refreshAll();
 
 private:
