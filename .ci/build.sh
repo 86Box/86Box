@@ -1282,7 +1282,7 @@ EOF
 	# --appdir is a workaround for appimage-builder issue 270 reported by us.
 	for retry in 1 2 3 4 5
 	do
-		project="$project" project_id="$project_id" project_version="$project_version" project_icon="$project_icon" arch_deb="$arch_deb" \
+		project="$project" project_id="$project_id" project_version="$project_version" project_icon="$project_icon" libdir="$libdir" arch_deb="$arch_deb" \
 			arch_appimage="$arch_appimage" appimage_path="$cwd/$package_name.AppImage" "$appimage_builder_dir/bin/appimage-builder" \
 			--recipe AppImageBuilder-generated.yml --appdir "$(grep -oP '^\s+path: \K(.+)' AppImageBuilder-generated.yml)"
 		status=$?
