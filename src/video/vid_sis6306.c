@@ -97,10 +97,15 @@ typedef struct sis6306_3d_prepared_t {
     int blend_en;
     int tex_en;
     int persp_en;
+    int tex_transparency_en;
+    uint32_t tex_key_low;
+    uint32_t tex_key_high;
 
     unsigned tex_fmt;
     unsigned tex_min;
     int tex_mag_linear;
+    int tex_wrap_u;
+    int tex_wrap_v;
     unsigned tex_blend;
     unsigned tex_alpha_blend;
     unsigned blend_dst;
@@ -1343,6 +1348,44 @@ sis6306_overlay_scanline(svga_t *svga)
 }
 
 static void
+sis6306_render_16bpp_halfdot(svga_t *svga)
+{
+    const uint32_t display_mask = svga->vram_display_mask;
+    const uint32_t ma = svga->memaddr;
+    const uint32_t start_addr = svga->force_old_addr ? ma :
+                                svga->remap_func(svga, ma);
+    const uint32_t changed_page = (start_addr & display_mask) >> 12;
+    const unsigned output_pixels = (unsigned) svga->hdisp +
+                                   (unsigned) svga->scrollcache + 1;
+
+    if (!svga->fullchange && !svga->changedvram[changed_page] &&
+        !svga->changedvram[changed_page + 1])
+        return;
+
+    uint32_t *out = &svga->monitor->target_buffer->line[
+                      svga->displine + svga->y_add][svga->x_add];
+    if (svga->firstline_draw == 2000)
+        svga->firstline_draw = svga->displine;
+    svga->lastline_draw = svga->displine;
+
+    for (unsigned x = 0; x < output_pixels; x += 2) {
+        const uint32_t source_offset = x; /* (x / 2) pixels * two bytes */
+        const uint32_t raw_addr = ma + source_offset;
+        const uint32_t src_addr = (svga->force_old_addr || !svga->remap_required) ?
+                                  raw_addr : svga->remap_func(svga, raw_addr);
+        const uint32_t addr = src_addr & display_mask;
+        const uint16_t pixel = (uint16_t) svga->vram[addr] |
+                               ((uint16_t) svga->vram[(addr + 1) & display_mask] << 8);
+        const uint32_t rgb = svga->conv_16to32(svga, pixel, 16);
+        out[x] = rgb;
+        if (x + 1 < output_pixels)
+            out[x + 1] = rgb;
+    }
+
+    svga->memaddr = (ma + ((output_pixels + 1) / 2) * 2) & display_mask;
+}
+
+static void
 sis6306_render_packed_base(svga_t *svga)
 {
     if (sis6306_packed_scanout_unsafe(svga))
@@ -1362,7 +1405,10 @@ sis6306_render_packed_base(svga_t *svga)
             svga_render_24bpp_highres(svga);
             break;
         case 16:
-            svga_render_16bpp_highres(svga);
+            if (svga->seqregs[0x01] & 0x08)
+                sis6306_render_16bpp_halfdot(svga);
+            else
+                svga_render_16bpp_highres(svga);
             break;
         case 15:
             svga_render_15bpp_highres(svga);
@@ -1614,6 +1660,9 @@ sis6306_recalctimings(svga_t *svga)
         svga->bpp        = 8;
         svga->plane_mask = svga->attrregs[0x12] & 0x0f;
     }
+
+    if (packed)
+        svga->rowcount = svga->crtc[0x09] & 0x1f;
 
     /* Restore SiS extended/fast page-flip start bits after generic timing recalc. */
     sis6306_update_display_start(dev);
@@ -3198,6 +3247,19 @@ sis6306_3d_ztest(unsigned mode, uint16_t znew, uint16_t zdst)
     }
 }
 
+/* TenTXTR discards sampled texels inside the inclusive RGB colour-key
+ * range.  Compare the sampled texture colour before vertex modulation, fog,
+ * alpha testing or depth writes; these must not change the keyed colour.
+ */
+static inline int
+sis6306_3d_texture_key_match(uint32_t lo, uint32_t hi,
+                             uint8_t r, uint8_t g, uint8_t b)
+{
+    return (r >= ((lo >> 16) & 0xffU)) && (r <= ((hi >> 16) & 0xffU)) &&
+           (g >= ((lo >> 8) & 0xffU)) && (g <= ((hi >> 8) & 0xffU)) &&
+           (b >= (lo & 0xffU)) && (b <= (hi & 0xffU));
+}
+
 /* Documented SiS530 alpha-test compare modes.  TAREF and Anew are
  * both A8 values; Anew is the post-texture-combine alpha value. */
 static inline int
@@ -3947,6 +4009,7 @@ sis6306_3d_prepare(sis6306_t *dev, sis6306_3d_prepared_t *out)
     const uint32_t misc2     = sis6306_3d_reg32(dev, 0x8a28);
     const uint32_t tex1      = sis6306_3d_reg32(dev, 0x8a38);
     const uint32_t tex2      = sis6306_3d_reg32(dev, 0x8a3c);
+    const uint32_t tex3      = sis6306_3d_reg32(dev, 0x8a40);
     const uint32_t tex0base  = sis6306_3d_reg32(dev, 0x8a44);
     const uint32_t texp01    = sis6306_3d_reg32(dev, 0x8a6c);
     const uint32_t texsize   = sis6306_3d_reg32(dev, 0x8a80);
@@ -3968,8 +4031,19 @@ sis6306_3d_prepare(sis6306_t *dev, sis6306_3d_prepared_t *out)
     const int blend_en       = !!(enable & (1U << 2));
     const int tex_en         = !!(enable & (1U << 10));
     const int persp_en       = !!(enable & (1U << 9));
+    const int tex_transparency_en = !!(enable & (1U << 8));
     const unsigned tex_fmt   = (tex1 >> 24) & 0xff;
     const unsigned tex_map   = (tex1 >> 16) & 0xff;
+    /* TTXMPMD: wrap overrides mirror/clamp on each axis. Mirror-only
+     * addressing is not yet implemented, so never substitute clamping. */
+    const int tex_wrap_u = !!(tex_map & 0x01);
+    const int tex_wrap_v = !!(tex_map & 0x02);
+    const int tex_clamp_u = !!(tex_map & 0x10);
+    const int tex_clamp_v = !!(tex_map & 0x20);
+    const int tex_map_supported =
+        (tex_wrap_u || (tex_clamp_u && !(tex_map & 0x04))) &&
+        (tex_wrap_v || (tex_clamp_v && !(tex_map & 0x08))) &&
+        !(tex_map & 0xc0); /* Border-colour modes remain unsupported. */
     const unsigned tex_min   = tex1 & 7U;
     const int tex_mag_linear = !!(tex1 & 8);
     const int tex_sysmem     = !!(tex1 & (1U << 5));
@@ -4007,8 +4081,7 @@ sis6306_3d_prepare(sis6306_t *dev, sis6306_3d_prepared_t *out)
 
 
     if ((draw != 2) || !(enable & (1U << 11)) ||
-        (enable & ((1U << 18) | (1U << 16) |
-                   (1U << 8) | (1U << 1))) ||
+        (enable & ((1U << 18) | (1U << 16) | (1U << 1))) ||
         (rop != 0x0c) || !pitch) {
         return 0;
     }
@@ -4026,6 +4099,7 @@ sis6306_3d_prepare(sis6306_t *dev, sis6306_3d_prepared_t *out)
                       ((blend_dst == 1) && (blend_src == 4)) ||
                       ((blend_dst == 5) && (blend_src == 4)) ||
                       ((blend_dst == 0) && (blend_src == 8)) ||
+                      ((blend_dst == 0) && (blend_src == 1)) || /* ZERO/ONE */
                       ((blend_dst == 2) && (blend_src == 0)) ||
                       ((blend_dst == 2) && (blend_src == 8)))) {
         return 0;
@@ -4040,10 +4114,11 @@ sis6306_3d_prepare(sis6306_t *dev, sis6306_3d_prepared_t *out)
                                        (tex_alpha_blend <= 2);
         const int tex555_ok = tex555_replace_ok || tex555_passthrough_ok ||
                               tex555_modulate_ok;
+        /* For RGB565, all documented TTXBLAMD modes 0/1/2 use Apix. */
         const int tex565_replace_ok = (tex_fmt == 0x51) && (tex_blend == 0) &&
-                                      ((tex_alpha_blend == 0) || (tex_alpha_blend == 1));
+                                      (tex_alpha_blend <= 2);
         const int tex565_modulate_ok = (tex_fmt == 0x51) && (tex_blend == 2) &&
-                                       ((tex_alpha_blend == 0) || (tex_alpha_blend == 1));
+                                       (tex_alpha_blend <= 2);
         const int tex565_ok = tex565_replace_ok || tex565_modulate_ok;
         const int tex1555_replace_ok = (tex_fmt == 0x52) && (tex_blend == 0) &&
                                        (tex_alpha_blend <= 2);
@@ -4072,7 +4147,7 @@ sis6306_3d_prepare(sis6306_t *dev, sis6306_3d_prepared_t *out)
                             tex4444_ok || tex8888_ok) ||
             !tex_pitch0 || (tex0base >= mem_size) ||
             (tex_w > 512) || (tex_h > 512) ||
-            ((tex_map & 0x03) != 0x03)) {
+            !tex_map_supported) {
             return 0;
         }
     } else if (persp_en) {
@@ -4227,7 +4302,7 @@ sis6306_3d_prepare(sis6306_t *dev, sis6306_3d_prepared_t *out)
                                       (dst_bytespp == 2) && !bgr &&
                                       ztest_en && zwrite_en && (zmode == 3) && (zfmt == 1) &&
                                       fog_en && !blend_en && !alpha_test_en &&
-                                      tex_en && persp_en && (shade == 4) &&
+                                      tex_en && persp_en && !tex_transparency_en && (shade == 4) &&
                                       (tex_fmt == 0x51) && (tex_min == 5) && tex_mag_linear &&
                                       (tex_blend == 2) && (tex_alpha_blend == 1) &&
                                       !tex_sysmem && (rop == 0x0c) && (tex_map == 0x03);
@@ -4280,9 +4355,15 @@ sis6306_3d_prepare(sis6306_t *dev, sis6306_3d_prepared_t *out)
     out->blend_en = blend_en;
     out->tex_en = tex_en;
     out->persp_en = persp_en;
+    out->tex_transparency_en = tex_transparency_en;
+    /* TTXTRSL (8A3C) / TTXTRSH (8A40), RGB888 range. */
+    out->tex_key_low = tex2 & 0x00ffffffU;
+    out->tex_key_high = tex3 & 0x00ffffffU;
     out->tex_fmt = tex_fmt;
     out->tex_min = tex_min;
     out->tex_mag_linear = tex_mag_linear;
+    out->tex_wrap_u = tex_wrap_u;
+    out->tex_wrap_v = tex_wrap_v;
     out->tex_blend = tex_blend;
     out->tex_alpha_blend = tex_alpha_blend;
     out->blend_dst = blend_dst;
@@ -4365,9 +4446,14 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
     const int blend_en = p->blend_en;
     const int tex_en = p->tex_en;
     const int persp_en = p->persp_en;
+    const int tex_transparency_en = p->tex_transparency_en;
+    const uint32_t tex_key_low = p->tex_key_low;
+    const uint32_t tex_key_high = p->tex_key_high;
     const unsigned tex_fmt = p->tex_fmt;
     const unsigned tex_min = p->tex_min;
     const int tex_mag_linear = p->tex_mag_linear;
+    const int tex_wrap_u = p->tex_wrap_u;
+    const int tex_wrap_v = p->tex_wrap_v;
     const unsigned tex_blend = p->tex_blend;
     const unsigned tex_alpha_blend = p->tex_alpha_blend;
     const unsigned blend_dst = p->blend_dst;
@@ -4922,7 +5008,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                     sampled = sis6306_3d_sample_texture555x(dev, mem_size, tex_level_base[level0],
                                                            tex_level_pitch[level0],
                                                            tex_level_w[level0], tex_level_h[level0],
-                                                           tu, tv, 1, 1, linear0, 0,
+                                                           tu, tv, tex_wrap_u, tex_wrap_v, linear0, 0,
                                                            &a0s, &r0s, &g0s, &b0s);
                     if (sampled && (level1 != level0) && (level_frac > 0.0f)) {
                         float a1s, r1s, g1s, b1s;
@@ -4931,7 +5017,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                             !sis6306_3d_sample_texture555x(dev, mem_size, tex_level_base[level1],
                                                           tex_level_pitch[level1],
                                                           tex_level_w[level1], tex_level_h[level1],
-                                                          tu, tv, 1, 1, linear1, 0,
+                                                          tu, tv, tex_wrap_u, tex_wrap_v, linear1, 0,
                                                           &a1s, &r1s, &g1s, &b1s))
                             sampled = 0;
                         else {
@@ -4946,7 +5032,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                     sampled = sis6306_3d_sample_texture565(dev, mem_size, tex_level_base[level0],
                                                           tex_level_pitch[level0],
                                                           tex_level_w[level0], tex_level_h[level0],
-                                                          tu, tv, 1, 1, linear0, 0,
+                                                          tu, tv, tex_wrap_u, tex_wrap_v, linear0, 0,
                                                           &r0s, &g0s, &b0s);
                     if (sampled && (level1 != level0) && (level_frac > 0.0f)) {
                         float r1s, g1s, b1s;
@@ -4955,7 +5041,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                             !sis6306_3d_sample_texture565(dev, mem_size, tex_level_base[level1],
                                                          tex_level_pitch[level1],
                                                          tex_level_w[level1], tex_level_h[level1],
-                                                         tu, tv, 1, 1, linear1, 0,
+                                                         tu, tv, tex_wrap_u, tex_wrap_v, linear1, 0,
                                                          &r1s, &g1s, &b1s))
                             sampled = 0;
                         else {
@@ -4970,7 +5056,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                     sampled = sis6306_3d_sample_texture555x(dev, mem_size, tex_level_base[level0],
                                                            tex_level_pitch[level0],
                                                            tex_level_w[level0], tex_level_h[level0],
-                                                           tu, tv, 1, 1, linear0, 1,
+                                                           tu, tv, tex_wrap_u, tex_wrap_v, linear0, 1,
                                                            &a0s, &r0s, &g0s, &b0s);
                     if (sampled && (level1 != level0) && (level_frac > 0.0f)) {
                         float a1s, r1s, g1s, b1s;
@@ -4979,7 +5065,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                             !sis6306_3d_sample_texture555x(dev, mem_size, tex_level_base[level1],
                                                           tex_level_pitch[level1],
                                                           tex_level_w[level1], tex_level_h[level1],
-                                                          tu, tv, 1, 1, linear1, 1,
+                                                          tu, tv, tex_wrap_u, tex_wrap_v, linear1, 1,
                                                           &a1s, &r1s, &g1s, &b1s))
                             sampled = 0;
                         else {
@@ -4995,7 +5081,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                     sampled = sis6306_3d_sample_texture4444(dev, mem_size, tex_level_base[level0],
                                                            tex_level_pitch[level0],
                                                            tex_level_w[level0], tex_level_h[level0],
-                                                           tu, tv, 1, 1, linear0,
+                                                           tu, tv, tex_wrap_u, tex_wrap_v, linear0,
                                                            &a0s, &r0s, &g0s, &b0s);
                     if (sampled && (level1 != level0) && (level_frac > 0.0f)) {
                         float a1s, r1s, g1s, b1s;
@@ -5004,7 +5090,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                             !sis6306_3d_sample_texture4444(dev, mem_size, tex_level_base[level1],
                                                           tex_level_pitch[level1],
                                                           tex_level_w[level1], tex_level_h[level1],
-                                                          tu, tv, 1, 1, linear1,
+                                                          tu, tv, tex_wrap_u, tex_wrap_v, linear1,
                                                           &a1s, &r1s, &g1s, &b1s))
                             sampled = 0;
                         else {
@@ -5020,7 +5106,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                     sampled = sis6306_3d_sample_texture8888(dev, mem_size, tex_level_base[level0],
                                                            tex_level_pitch[level0],
                                                            tex_level_w[level0], tex_level_h[level0],
-                                                           tu, tv, 1, 1, linear0,
+                                                           tu, tv, tex_wrap_u, tex_wrap_v, linear0,
                                                            &a0s, &r0s, &g0s, &b0s);
                     if (sampled && (level1 != level0) && (level_frac > 0.0f)) {
                         float a1s, r1s, g1s, b1s;
@@ -5029,7 +5115,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                             !sis6306_3d_sample_texture8888(dev, mem_size, tex_level_base[level1],
                                                           tex_level_pitch[level1],
                                                           tex_level_w[level1], tex_level_h[level1],
-                                                          tu, tv, 1, 1, linear1,
+                                                          tu, tv, tex_wrap_u, tex_wrap_v, linear1,
                                                           &a1s, &r1s, &g1s, &b1s))
                             sampled = 0;
                         else {
@@ -5045,6 +5131,17 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                     continue;
                 }
 
+                /* TenTXTR (Enable[8]) rejects the texture's programmed RGB
+                 * key range without modifying destination colour or Z.
+                 * This must occur before texturing combines Ctex with Cpix.
+                 */
+                if (tex_transparency_en &&
+                    sis6306_3d_texture_key_match(tex_key_low, tex_key_high,
+                                                 sis6306_3d_clamp8(tr),
+                                                 sis6306_3d_clamp8(tg),
+                                                 sis6306_3d_clamp8(tb))) {
+                    continue;
+                }
 
                 if (tex_fmt == 0x50) {
                     if (tex_blend == 0) {
@@ -5186,8 +5283,9 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
             {
                 const uint64_t dst64 = dst64_step;
                 if (row_dst_in_bounds || (dst64 + dst_bytespp <= mem_size)) {
-
-                    if (blend_en) {
+                    /* TBLDST=ZERO, TBLSRC=ONE: output the source as-is,
+                     * with no destination sample (or extra blend arithmetic). */
+                    if (blend_en && !((blend_dst == 0) && (blend_src == 1))) {
                         float dr, dg, db;
                         sis6306_3d_read_dst_pixel_fast(dev, (uint32_t) dst64,
                                                       dst_bytespp, bgr,
@@ -5241,6 +5339,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                     if (ztest_en && zwrite_en) {
                         sis6306_3d_write16(dev, zaddr, znew);
                     }
+                } else {
                 }
             }
         }
