@@ -1700,8 +1700,8 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
 {
     /* Keys typed into the memory viewer are its own, not the guest's. */
     if ((event->type() == QEvent::KeyPress) || (event->type() == QEvent::KeyRelease) || (event->type() == QEvent::ShortcutOverride)) {
-        const auto *widget = qobject_cast<QWidget *>(receiver);
-        if (widget && qobject_cast<MemoryViewer *>(widget->window()))
+        auto *widget = qobject_cast<QWidget *>(receiver);
+        if (widget && qobject_cast<MemoryViewer *>(widget))
             return QMainWindow::eventFilter(receiver, event);
     }
 
@@ -1800,7 +1800,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         }
     }
 
-    if (!main_window_blocked && !dopause && (!kbd_req_capture || mouse_capture)) {
+    if (!main_window_blocked && !dopause && (!kbd_req_capture || mouse_capture) && isActiveWindow()) {
 #if 0
         if (event->type() == QEvent::Shortcut) {
             auto shortcutEvent = (QShortcutEvent *) event;
