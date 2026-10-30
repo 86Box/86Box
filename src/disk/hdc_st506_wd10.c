@@ -73,25 +73,25 @@
 #define STATE_FORMAT_SEEK 3
 #define STATE_FORMAT_SEND 4
 
-#ifdef ENABLE_TANDY2K_HDC_LOG
-int tandy2k_hdc_do_log = ENABLE_TANDY2K_HDC_LOG;
+#ifdef ENABLE_WD10_HDC_LOG
+int wd10_hdc_do_log = ENABLE_WD10_HDC_LOG;
 
 static void
-tandy2k_hdc_log(const char *fmt, ...)
+wd10_hdc_log(const char *fmt, ...)
 {
     va_list ap;
 
-    if (tandy2k_hdc_do_log) {
+    if (wd10_hdc_do_log) {
         va_start(ap, fmt);
         pclog_ex(fmt, ap);
         va_end(ap);
     }
 }
 #else
-#    define tandy2k_hdc_log(fmt, ...)
+#    define wd10_hdc_log(fmt, ...)
 #endif
 
-typedef struct tandy2k_hdc_t {
+typedef struct wd10_hdc_t {
     uint8_t  buf[SECTOR_SIZE];
     uint16_t buf_ptr;
 
@@ -117,24 +117,24 @@ typedef struct tandy2k_hdc_t {
     uint32_t   sectors;
     int        state;
     pc_timer_t timer;
-} tandy2k_hdc_t;
+} wd10_hdc_t;
 
 static void
-tandy2k_hdc_led_off(void)
+wd10_hdc_led_off(void)
 {
     ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
     ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, 0);
 }
 
 static void
-tandy2k_hdc_led(tandy2k_hdc_t *dev, int write)
+wd10_hdc_led(wd10_hdc_t *dev, int write)
 {
     ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, !write);
     ui_sb_update_icon_write(SB_HDD | HDD_BUS_MFM, write);
 }
 
 static void
-tandy2k_hdc_reset_state(tandy2k_hdc_t *dev)
+wd10_hdc_reset_state(wd10_hdc_t *dev)
 {
     timer_disable(&dev->timer);
 
@@ -158,7 +158,7 @@ tandy2k_hdc_reset_state(tandy2k_hdc_t *dev)
 /* Turn the task file's CHS into a linear sector number, checking it
    against the geometry of the drive the SDH register selected. */
 static int
-tandy2k_hdc_lba(tandy2k_hdc_t *dev, uint32_t *lba)
+wd10_hdc_lba(wd10_hdc_t *dev, uint32_t *lba)
 {
     uint32_t cyl;
     uint32_t head;
@@ -182,7 +182,7 @@ tandy2k_hdc_lba(tandy2k_hdc_t *dev, uint32_t *lba)
 }
 
 static void
-tandy2k_hdc_command(tandy2k_hdc_t *dev, uint8_t command)
+wd10_hdc_command(wd10_hdc_t *dev, uint8_t command)
 {
     uint32_t lba;
 
@@ -190,9 +190,9 @@ tandy2k_hdc_command(tandy2k_hdc_t *dev, uint8_t command)
     dev->errors  = 0x00;
     dev->status  = ST_RDY | ST_SC;
 
-    tandy2k_hdc_log("TANDY2K HDC: command %02X, unit %i, %i/%i/%i, count %i\n",
-                    command, dev->unit, ((uint32_t) dev->cyl_hi << 8) | dev->cyl_lo,
-                    dev->head, dev->sector, dev->count);
+    wd10_hdc_log("WD10 HDC: command %02X, unit %i, %i/%i/%i, count %i\n",
+                 command, dev->unit, ((uint32_t) dev->cyl_hi << 8) | dev->cyl_lo,
+                 dev->head, dev->sector, dev->count);
 
     if (!dev->present[dev->unit]) {
         /* Nothing on that unit: stay not ready so the host gives up instead of
@@ -214,7 +214,7 @@ tandy2k_hdc_command(tandy2k_hdc_t *dev, uint8_t command)
 
         case CMD_READ_SECTOR:
         case CMD_WRITE_SECTOR:
-            if (!tandy2k_hdc_lba(dev, &lba)) {
+            if (!wd10_hdc_lba(dev, &lba)) {
                 dev->status |= ST_ERR;
                 dev->errors  = ERR_ID;
                 break;
@@ -224,7 +224,7 @@ tandy2k_hdc_command(tandy2k_hdc_t *dev, uint8_t command)
             dev->status |= ST_BUSY;
             dev->state   = ((command & 0xf0) == CMD_READ_SECTOR) ? STATE_READ_WAIT : STATE_WRITE_WAIT;
 
-            tandy2k_hdc_led(dev, dev->state == STATE_WRITE_WAIT);
+            wd10_hdc_led(dev, dev->state == STATE_WRITE_WAIT);
 
             timer_set_delay_u64(&dev->timer, ACCESS_TIME);
             break;
@@ -252,7 +252,7 @@ tandy2k_hdc_command(tandy2k_hdc_t *dev, uint8_t command)
             dev->status   |= ST_BUSY;
             dev->state     = STATE_FORMAT_SEEK;
 
-            tandy2k_hdc_led(dev, 1);
+            wd10_hdc_led(dev, 1);
 
             /* A seek, and then the host supplies one four byte ID per sector
                through the data register while DRQ is up. */
@@ -271,7 +271,7 @@ tandy2k_hdc_command(tandy2k_hdc_t *dev, uint8_t command)
 /* Fills the track the format command selected with the E5 pattern the chip
    writes into data fields it is not given contents for. */
 static void
-tandy2k_hdc_finish_format(tandy2k_hdc_t *dev)
+wd10_hdc_finish_format(wd10_hdc_t *dev)
 {
     dev->fmt_bytes = 0;
     dev->state    = STATE_IDLE;
@@ -286,15 +286,15 @@ tandy2k_hdc_finish_format(tandy2k_hdc_t *dev)
             break;
         }
     }
-    tandy2k_hdc_led_off();
+    wd10_hdc_led_off();
 }
 
 /* Runs when the mechanism has finished moving the data; only then does the
    board release the host with DRQ (or with the error the drive reported). */
 static void
-tandy2k_hdc_callback(void *priv)
+wd10_hdc_callback(void *priv)
 {
-    tandy2k_hdc_t *dev = (tandy2k_hdc_t *) priv;
+    wd10_hdc_t *dev = (wd10_hdc_t *) priv;
 
     switch (dev->state) {
         case STATE_READ_WAIT:
@@ -304,7 +304,7 @@ tandy2k_hdc_callback(void *priv)
             if (hdd_image_read(dev->hdd_num[dev->unit], dev->lba_prev, 1, dev->buf) < 0) {
                 dev->status |= ST_ERR;
                 dev->errors  = ERR_BB;
-                tandy2k_hdc_led_off();
+                wd10_hdc_led_off();
                 break;
             }
 
@@ -331,18 +331,18 @@ tandy2k_hdc_callback(void *priv)
 
         case STATE_FORMAT_SEND:
             /* The host never supplied the IDs, so give it sequential ones. */
-            tandy2k_hdc_finish_format(dev);
+            wd10_hdc_finish_format(dev);
             break;
 
         default:
             break;
     }
 
-    tandy2k_hdc_log("TANDY2K HDC: done, status %02X, error %02X\n", dev->status, dev->errors);
+    wd10_hdc_log("WD10 HDC: done, status %02X, error %02X\n", dev->status, dev->errors);
 }
 
 static uint8_t
-tandy2k_hdc_read_data(tandy2k_hdc_t *dev)
+wd10_hdc_read_data(wd10_hdc_t *dev)
 {
     uint8_t ret = dev->buf[dev->buf_ptr];
 
@@ -350,14 +350,14 @@ tandy2k_hdc_read_data(tandy2k_hdc_t *dev)
     if (dev->buf_ptr >= SECTOR_SIZE) {
         dev->buf_ptr = 0;
         dev->status &= ~ST_DRQ;
-        tandy2k_hdc_led_off();
+        wd10_hdc_led_off();
     }
 
     return ret;
 }
 
 static void
-tandy2k_hdc_write_data(tandy2k_hdc_t *dev, uint8_t val)
+wd10_hdc_write_data(wd10_hdc_t *dev, uint8_t val)
 {
     if (dev->state == STATE_FORMAT_SEND) {
         /* Four ID bytes per sector arrive in one burst; the IDs themselves
@@ -366,7 +366,7 @@ tandy2k_hdc_write_data(tandy2k_hdc_t *dev, uint8_t val)
 
         if (dev->fmt_bytes >= (dev->sectors << 2)) {
             timer_disable(&dev->timer);
-            tandy2k_hdc_finish_format(dev);
+            wd10_hdc_finish_format(dev);
         }
 
         return;
@@ -381,7 +381,7 @@ tandy2k_hdc_write_data(tandy2k_hdc_t *dev, uint8_t val)
     if (dev->buf_ptr >= SECTOR_SIZE) {
         dev->buf_ptr = 0;
         dev->status &= ~ST_DRQ;
-        tandy2k_hdc_led_off();
+        wd10_hdc_led_off();
 
         if (hdd_image_write(dev->hdd_num[dev->unit], dev->lba_prev, 1, dev->buf) < 0) {
             dev->status |= ST_ERR;
@@ -391,13 +391,13 @@ tandy2k_hdc_write_data(tandy2k_hdc_t *dev, uint8_t val)
 }
 
 static uint8_t
-tandy2k_hdc_read(UNUSED(uint16_t addr), void *priv)
+wd10_hdc_read(UNUSED(uint16_t addr), void *priv)
 {
-    tandy2k_hdc_t *dev = (tandy2k_hdc_t *) priv;
+    wd10_hdc_t *dev = (wd10_hdc_t *) priv;
 
     switch ((addr & 0x000f) >> 1) {
         case REG_DATA:
-            return tandy2k_hdc_read_data(dev);
+            return wd10_hdc_read_data(dev);
         case REG_STATUS:
             return dev->status;
         case REG_SECTOR:
@@ -420,13 +420,13 @@ tandy2k_hdc_read(UNUSED(uint16_t addr), void *priv)
 }
 
 static void
-tandy2k_hdc_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
+wd10_hdc_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 {
-    tandy2k_hdc_t *dev = (tandy2k_hdc_t *) priv;
+    wd10_hdc_t *dev = (wd10_hdc_t *) priv;
 
     switch ((addr & 0x000f) >> 1) {
         case REG_DATA:
-            tandy2k_hdc_write_data(dev, val);
+            wd10_hdc_write_data(dev, val);
             break;
         case REG_ERROR:
             /* Write only: write precompensation, not modelled. */
@@ -450,7 +450,7 @@ tandy2k_hdc_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 
             /* Selecting a drive clears a transfer that was left pending. */
             if (dev->status & ST_DRQ)
-                tandy2k_hdc_led_off();
+                wd10_hdc_led_off();
 
             dev->status &= ~ST_DRQ;
             break;
@@ -458,7 +458,7 @@ tandy2k_hdc_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
             /* The chip ignores a new command while it is still busy with the
                previous one. */
             if (!(dev->status & ST_BUSY))
-                tandy2k_hdc_command(dev, val);
+                wd10_hdc_command(dev, val);
             break;
         default:
             break;
@@ -468,33 +468,33 @@ tandy2k_hdc_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
 /* The board's reset port answers reads and takes writes; either one resets the
    controller, which is how the BIOS probes for the card. */
 static uint8_t
-tandy2k_hdc_reset_r(UNUSED(uint16_t addr), void *priv)
+wd10_hdc_reset_r(UNUSED(uint16_t addr), void *priv)
 {
-    tandy2k_hdc_reset_state((tandy2k_hdc_t *) priv);
+    wd10_hdc_reset_state((wd10_hdc_t *) priv);
 
     return 0xff;
 }
 
 static void
-tandy2k_hdc_reset_w(UNUSED(uint16_t addr), UNUSED(uint8_t val), void *priv)
+wd10_hdc_reset_w(UNUSED(uint16_t addr), UNUSED(uint8_t val), void *priv)
 {
-    tandy2k_hdc_reset_state((tandy2k_hdc_t *) priv);
+    wd10_hdc_reset_state((wd10_hdc_t *) priv);
 }
 
 static void
-tandy2k_hdc_reset(void *priv)
+wd10_hdc_reset(void *priv)
 {
-    tandy2k_hdc_t *dev = (tandy2k_hdc_t *) priv;
+    wd10_hdc_t *dev = (wd10_hdc_t *) priv;
 
-    tandy2k_hdc_led_off();
+    wd10_hdc_led_off();
 
-    tandy2k_hdc_reset_state(dev);
+    wd10_hdc_reset_state(dev);
 }
 
 static void *
-tandy2k_hdc_init(UNUSED(const device_t *info))
+wd10_hdc_init(UNUSED(const device_t *info))
 {
-    tandy2k_hdc_t *dev = (tandy2k_hdc_t *) calloc(1, sizeof(tandy2k_hdc_t));
+    wd10_hdc_t *dev = (wd10_hdc_t *) calloc(1, sizeof(wd10_hdc_t));
 
     for (uint8_t i = 0; i < HDD_NUM; i++) {
         if ((hdd[i].bus_type != HDD_BUS_MFM) || (hdd[i].mfm_channel >= MFM_NUM))
@@ -510,22 +510,22 @@ tandy2k_hdc_init(UNUSED(const device_t *info))
         dev->tracks[hdd[i].mfm_channel]  = hdd[i].tracks;
     }
 
-    io_sethandler(0x026c, 0x0002, tandy2k_hdc_reset_r, NULL, NULL,
-                  tandy2k_hdc_reset_w, NULL, NULL, dev);
-    io_sethandler(0x0270, 0x0010, tandy2k_hdc_read, NULL, NULL,
-                  tandy2k_hdc_write, NULL, NULL, dev);
+    io_sethandler(0x026c, 0x0002, wd10_hdc_reset_r, NULL, NULL,
+                  wd10_hdc_reset_w, NULL, NULL, dev);
+    io_sethandler(0x0270, 0x0010, wd10_hdc_read, NULL, NULL,
+                  wd10_hdc_write, NULL, NULL, dev);
 
-    timer_add(&dev->timer, tandy2k_hdc_callback, dev, 0);
+    timer_add(&dev->timer, wd10_hdc_callback, dev, 0);
 
-    tandy2k_hdc_reset_state(dev);
+    wd10_hdc_reset_state(dev);
 
     return dev;
 }
 
 static void
-tandy2k_hdc_close(void *priv)
+wd10_hdc_close(void *priv)
 {
-    tandy2k_hdc_t *dev = (tandy2k_hdc_t *) priv;
+    wd10_hdc_t *dev = (wd10_hdc_t *) priv;
 
     for (uint8_t i = 0; i < MFM_NUM; i++) {
         if (dev->present[i])
@@ -535,14 +535,14 @@ tandy2k_hdc_close(void *priv)
     free(dev);
 }
 
-const device_t st506_tandy2k_wd1010_device = {
-    .name          = "Tandy 2000 Hard Disk Controller",
-    .internal_name = "st506_tandy2k_wd1010",
+const device_t st506_wd1010_device = {
+    .name          = "WD1010 Hard Disk Controller",
+    .internal_name = "st506_wd1010",
     .flags         = 0,
     .local         = 0,
-    .init          = tandy2k_hdc_init,
-    .close         = tandy2k_hdc_close,
-    .reset         = tandy2k_hdc_reset,
+    .init          = wd10_hdc_init,
+    .close         = wd10_hdc_close,
+    .reset         = wd10_hdc_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
