@@ -826,10 +826,18 @@ typedef struct gpu_fill_t {
     uint32_t addr, pitch, len, rows, color;
     uint32_t src, spitch;
     uint8_t  kind, bar;
-    /* mid: -1 = head-of-segment op. >= 0 = a host-data store into bytes
-       the segment's earlier draws sample: recorded into the mirror
-       between run mid-1 and run mid (stream order, no split) and into
-       the import after the mirror-back. kind 1, mirror on only. */
+    /* pre: with mid >= 0, the op writes the import before the
+       mirror-back instead of after it (see mid). */
+    uint8_t pre;
+    /* mid: -1 = head-of-segment op. >= 0 = an op ordered after the
+       segment's earlier draws, mirror on only: recorded into the mirror
+       between run mid-1 and run mid (stream order, no split). With pre
+       clear it is a host-data store into bytes those draws only sample
+       (kind 1), written into the import after the mirror-back. With pre
+       set it is a solid fill or a broadcast of staged fill bytes (kind 0
+       or 1) into bytes those draws may also store, written into the
+       import after the mirror-down and before the mirror-back, so the
+       mirror-back's copy of every drawn cell carries the final bytes. */
     int32_t mid;
 } gpu_fill_t;
 
@@ -1624,9 +1632,10 @@ typedef struct r128_gpu_t {
        bounced to the CPU walk (AGP or wrapped range, or no staging
        space for the resolved bytes), bad = verify2d
        bytes that did not match the broadcast color; tiled = rects of
-       those queued over a tiled dst as tile-layout pieces */
+       those queued over a tiled dst as tile-layout pieces; pre = rects
+       ordered after the pending draws instead of splitting the segment */
     uint64_t st_fill_rects, st_fill_rows, st_fill_px, st_fill_cpu, st_fill_bad,
-        st_fill_tiled;
+        st_fill_tiled, st_fill_pre;
     uint64_t st_fill_cpu_r[2]; /* 0 AGP or wrap, 1 staging is NULL */
     uint64_t st_fill_skip[5];  /* rop, wmask, aux, pattern, cca */
     /* mono-expand queue: runs = leave-alone set-bit run fills, orects =
@@ -3020,6 +3029,32 @@ gpu_mid_range_hit(const r128_gpu_t *g, uint32_t lo, uint32_t hi)
         uint64_t olo, ohi;
 
         if (g->fills[i].mid < 0)
+            continue;
+        olo = g->fills[i].addr;
+        ohi = (uint64_t) g->fills[i].addr
+            + (uint64_t) (g->fills[i].rows - 1) * g->fills[i].pitch
+            + g->fills[i].len;
+        if (lo < ohi && hi > olo)
+            return 1;
+    }
+    return 0;
+}
+
+/* Does [lo,hi) touch a queued mid op that writes the import after the
+   mirror-back? A later draw storing there, or a later fill ordered
+   before the mirror-back, would have its bytes overwritten by that
+   late write, so either one splits the segment. A mid op written before
+   the mirror-back does not count: the mirror-back copies the final
+   bytes of every drawn cell over it. */
+static int
+gpu_mid_tail_hit(const r128_gpu_t *g, uint32_t lo, uint32_t hi)
+{
+    if (!g->nmid || lo >= hi)
+        return 0;
+    for (uint32_t i = 0; i < g->nfills; i++) {
+        uint64_t olo, ohi;
+
+        if (g->fills[i].mid < 0 || g->fills[i].pre)
             continue;
         olo = g->fills[i].addr;
         ohi = (uint64_t) g->fills[i].addr
@@ -4784,10 +4819,11 @@ gpu_q2d_mark(r128_gpu_t *g, const gpu_fill_t *f)
     r128_vram_hnew(g->owner, lo, (uint32_t) (hi - lo));
 }
 
-/* Order a mid fill's copy against everything recorded before it (the
-   runs that sample the old bytes, earlier copies on the same bytes)
-   and make its bytes visible to what follows. xq: cb is a copy-queue
-   batch (gpu_cmd_barrier). */
+/* Order a mid op against everything recorded before it (the runs that
+   sample or store the old bytes, earlier ops on the same bytes) and make
+   its bytes visible to what follows. A solid fill is a buffer fill; a
+   staged op copies from the staging ring. xq: cb is a copy-queue batch
+   (gpu_cmd_barrier). */
 static void
 gpu_mid_copy_cmd(VkCommandBuffer cb, int xq, VkBuffer sb, VkBuffer db,
                  const gpu_fill_t *f, VkAccessFlags dst_access,
@@ -4800,7 +4836,10 @@ gpu_mid_copy_cmd(VkCommandBuffer cb, int xq, VkBuffer sb, VkBuffer db,
                         | VK_ACCESS_TRANSFER_READ_BIT
                         | VK_ACCESS_TRANSFER_WRITE_BIT,
                     VK_ACCESS_TRANSFER_WRITE_BIT);
-    gpu_fill_copy_cmd(cb, sb, db, f);
+    if (f->kind == 0)
+        gpu_fill_cmd(cb, db, f);
+    else
+        gpu_fill_copy_cmd(cb, sb, db, f);
     gpu_cmd_barrier(cb, xq, VK_PIPELINE_STAGE_TRANSFER_BIT, dst_stage,
                     VK_ACCESS_TRANSFER_WRITE_BIT, dst_access);
 }
@@ -5211,6 +5250,48 @@ gpu_disp_mirror_back(r128_gpu_t *g, gpu_slot_t *sl, VkCommandBuffer cb, int xq,
     return n;
 }
 
+/* Mid ops that write the import before the mirror-back, in stream
+   order. back is set when the mirror-back follows (mirror on and runs
+   recorded). An op ordered after the last run was not recorded into the
+   mirror between the runs, so it goes into the mirror here first: the
+   mirror-back copies whole drawn cells from the mirror, and a drawn cell
+   holding the op's bytes must carry them. Without a mirror-back the op
+   goes into the import only and its pages are marked host-newer, so the
+   next segment that reads them copies them down. Recorded into cb with
+   the mirror back (the copy queue's batch when xq is set); returns the
+   number recorded. */
+static unsigned
+gpu_disp_pre_fills(r128_gpu_t *g, VkCommandBuffer cb, int xq, int back)
+{
+    unsigned n = 0;
+
+    for (uint32_t i = 0; g->nmid && i < g->nfills; i++) {
+        const gpu_fill_t *f = &g->fills[i];
+
+        if (f->mid < 0 || !f->pre)
+            continue;
+        if (back && i >= g->mid_mirrored)
+            gpu_mid_copy_cmd(cb, xq, g->stage2d.b, g->mirror_buf, f,
+                             VK_ACCESS_TRANSFER_READ_BIT
+                                 | VK_ACCESS_TRANSFER_WRITE_BIT,
+                             VK_PIPELINE_STAGE_TRANSFER_BIT);
+        if (!back)
+            gpu_q2d_mark(g, f);
+        g->pr_q2d_bytes += (uint64_t) f->rows * f->len;
+        n++;
+        gpu_mid_copy_cmd(cb, xq, g->stage2d.b, g->vram_buf, f,
+                         VK_ACCESS_TRANSFER_READ_BIT
+                             | VK_ACCESS_TRANSFER_WRITE_BIT
+                             | VK_ACCESS_SHADER_READ_BIT
+                             | VK_ACCESS_SHADER_WRITE_BIT
+                             | VK_ACCESS_HOST_READ_BIT,
+                         VK_PIPELINE_STAGE_TRANSFER_BIT
+                             | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+                             | VK_PIPELINE_STAGE_HOST_BIT);
+    }
+    return n;
+}
+
 /* Mid fills into the import, recorded after the mirror-back so the fill
    lands last; no draw in the segment stores to those bytes, since such
    a draw splits the segment (gpu_mid_range_hit). Same visibility scope
@@ -5223,7 +5304,7 @@ gpu_disp_tail_fills(r128_gpu_t *g, VkCommandBuffer cb, int xq)
     unsigned n = 0;
 
     for (uint32_t i = 0; g->nmid && i < g->nfills; i++) {
-        if (g->fills[i].mid < 0)
+        if (g->fills[i].mid < 0 || g->fills[i].pre)
             continue;
         /* a mid fill ordered after the segment's last run, or one whose
            runs were dropped, was never recorded into the mirror: mark it */
@@ -5409,13 +5490,15 @@ gpu_dispatch(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
     if (use_tq)
         vkCmdWriteTimestamp(sl->cb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                             sl->tqpool, 2);
-    /* Stamps 5 and 4 bracket the mirror back and tail fills, both on the
-       queue that runs them: timestamps from two queues are not compared. */
+    /* Stamps 5 and 4 bracket the pre-back fills, mirror back and tail
+       fills, all on the queue that runs them: timestamps from two queues
+       are not compared. */
     if (xq)
         vkBeginCommandBuffer(tcb, &bi);
     if (use_tq)
         vkCmdWriteTimestamp(tcb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                             sl->tqpool, 5);
+    tail += gpu_disp_pre_fills(g, tcb, xq, g->mirror_en && nd);
     if (g->mirror_en && nd)
         tail += gpu_disp_mirror_back(g, sl, tcb, xq, vram_mask, clo, chi,
                                      zlo, zhi);
@@ -7110,10 +7193,10 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
         && (rng_hit(atomic_load(&g->c_lo), atomic_load(&g->c_hi), zlo, zhi)
             || rng_hit(atomic_load(&g->z_lo), atomic_load(&g->z_hi), clo, chi)))
         gpu_flush_cause(dev, GF_CZHAZ);
-    /* The draw stores over a queued mid fill. Mid fills are recorded
-       after the segment's mirror-back (gpu_disp_tail_fills), so the
-       fill would land on top of this draw. */
-    if (gpu_mid_range_hit(g, clo, chi) || gpu_mid_range_hit(g, zlo, zhi)) {
+    /* The draw stores over a queued mid op that writes the import after
+       the segment's mirror-back (gpu_disp_tail_fills), so that write
+       would land on top of this draw. */
+    if (gpu_mid_tail_hit(g, clo, chi) || gpu_mid_tail_hit(g, zlo, zhi)) {
         g->st_copy_mid_split++;
         gpu_flush_cause(dev, GF_2DQ);
     }
@@ -8224,18 +8307,35 @@ rage128_gpu_2d_fill(rage128_t *dev, uint32_t addr, uint32_t pitch,
     }
 
     /* Ordering: fills are recorded at the head of the next submit,
-       before that submit's draws, so a pending draw that overlaps this
-       range has to be submitted first; only a real byte overlap splits
-       the segment. A queued mid fill on these bytes splits it too, since
-       mid fills land after the draws. A full fill list is flushed the
-       same way to make room. */
-    if (gpu_mid_range_hit(g, addr, (uint32_t) end)) {
+       before that submit's draws. A fill over bytes the pending draws
+       store or sample is therefore ordered after them instead, as a mid
+       op written before the mirror-back (gpu_fill_t), when the mirror is
+       on: its pieces have no VRAM source, so stream order inside the
+       segment is all it needs. A pending mid op that writes the import
+       after the mirror-back on these bytes would land on top of it, so
+       that case splits the segment, as do verify, synctel and 2D verify,
+       which keep the head-only order. A head fill over a queued mid op's
+       bytes splits too, since mid ops land after the draws. A full fill
+       list is flushed to make room; that empties the segment, and the
+       fill then goes at the head. */
+    int pre = g->nspans && g->mirror_en && !g->verify2d && !dev->synctel
+        && gpu_pending_draw_hit(g, addr, (uint32_t) end, 1)
+        && !gpu_mid_tail_hit(g, addr, (uint32_t) end);
+    if (!pre && gpu_mid_range_hit(g, addr, (uint32_t) end)) {
         g->st_copy_mid_split++;
         gpu_flush_cause(dev, GF_2DQ);
     }
     if (g->nfills > GPU_FILL_CAP - nrec
-        || (g->nspans && gpu_pending_draw_hit(g, addr, (uint32_t) end, 1)))
+        || (!pre && g->nspans
+            && gpu_pending_draw_hit(g, addr, (uint32_t) end, 1)))
         gpu_flush_cause(dev, GF_2DQ);
+    if (pre && !g->nspans)
+        pre = 0;
+    if (pre) {
+        g->run_break = 1;
+        g->nmid += (uint32_t) nrec;
+        g->st_fill_pre++;
+    }
 
     for (int i = 0; i < nrec; i++) {
         f         = &g->fills[g->nfills];
@@ -8248,7 +8348,8 @@ rage128_gpu_2d_fill(rage128_t *dev, uint32_t addr, uint32_t pitch,
         f->src    = rec[i].src;
         f->spitch = rec[i].spitch;
         f->bar    = gpu_fill_bar(g, f);
-        f->mid    = -1;
+        f->mid    = pre ? (int32_t) g->nruns : -1;
+        f->pre    = (uint8_t) pre;
         g->nfills++;
     }
     if (route == 1) {
@@ -8507,18 +8608,28 @@ rage128_gpu_2d_fill_tiled(rage128_t *dev, uint32_t tbase, uint32_t tpitch,
         }
     }
 
-    /* Ordering as in rage128_gpu_2d_fill: the records land at the head
-       of the next submit, so a pending draw on the tile rows is
-       submitted first. Every test here uses the whole tile rows as the
-       range. */
-    if (gpu_mid_range_hit(g, (uint32_t) tlo, (uint32_t) thi)) {
+    /* Ordering as in rage128_gpu_2d_fill: a fill over bytes the pending
+       draws touch is ordered after them as a mid op written before the
+       mirror-back, and otherwise lands at the head of the next submit.
+       Every test here uses the whole tile rows as the range. */
+    int pre = g->nspans && g->mirror_en && !g->verify2d && !dev->synctel
+        && gpu_pending_draw_hit(g, (uint32_t) tlo, (uint32_t) thi, 1)
+        && !gpu_mid_tail_hit(g, (uint32_t) tlo, (uint32_t) thi);
+    if (!pre && gpu_mid_range_hit(g, (uint32_t) tlo, (uint32_t) thi)) {
         g->st_copy_mid_split++;
         gpu_flush_cause(dev, GF_2DQ);
     }
     if (g->nfills > GPU_FILL_CAP - nrec
-        || (g->nspans
+        || (!pre && g->nspans
             && gpu_pending_draw_hit(g, (uint32_t) tlo, (uint32_t) thi, 1)))
         gpu_flush_cause(dev, GF_2DQ);
+    if (pre && !g->nspans)
+        pre = 0;
+    if (pre) {
+        g->run_break = 1;
+        g->nmid += nrec;
+        g->st_fill_pre++;
+    }
 
     for (uint32_t i = 0; i < nrec; i++) {
         gpu_fill_t *f = &g->fills[g->nfills];
@@ -8532,7 +8643,8 @@ rage128_gpu_2d_fill_tiled(rage128_t *dev, uint32_t tbase, uint32_t tpitch,
         f->src    = rec[i].src;
         f->spitch = 0;
         f->bar    = gpu_fill_bar(g, f);
-        f->mid    = -1;
+        f->mid    = pre ? (int32_t) g->nruns : -1;
+        f->pre    = (uint8_t) pre;
         g->nfills++;
     }
     g->st_fill_rects++;
@@ -8790,6 +8902,7 @@ rage128_gpu_2d_copy(rage128_t *dev, uint32_t addr, uint32_t pitch,
     f->spitch = spitch;
     f->bar    = gpu_fill_bar(g, f);
     f->mid    = mid;
+    f->pre    = 0;
     g->nfills++;
     if (mid >= 0) {
         g->nmid++;
@@ -8903,6 +9016,7 @@ rage128_gpu_2d_rmw(rage128_t *dev, uint32_t addr, uint32_t pitch,
     f->spitch = boff;
     f->bar    = gpu_fill_bar(g, f);
     f->mid    = -1;
+    f->pre    = 0;
     g->nfills++;
     g->st_q_runs[8]++;
     g->st_q_bytes[8] += (uint64_t) rows * len;
@@ -9003,6 +9117,7 @@ rage128_gpu_2d_blit(rage128_t *dev, uint32_t addr, uint32_t pitch,
         f->spitch = spitch;
         f->bar    = gpu_fill_bar(g, f);
         f->mid    = -1;
+        f->pre    = 0;
         g->nfills++;
     } else {
         /* first copy: VRAM source -> staging, rows packed at stride len */
@@ -9017,6 +9132,7 @@ rage128_gpu_2d_blit(rage128_t *dev, uint32_t addr, uint32_t pitch,
         f->spitch = spitch;
         f->bar    = gpu_fill_bar(g, f);
         f->mid    = -1;
+        f->pre    = 0;
         g->nfills++;
         /* second copy: staging -> VRAM destination. bar is forced on:
            this copy reads the staging bytes the first one wrote, and
@@ -9032,6 +9148,7 @@ rage128_gpu_2d_blit(rage128_t *dev, uint32_t addr, uint32_t pitch,
         f->spitch = len;
         f->bar    = 1;
         f->mid    = -1;
+        f->pre    = 0;
         g->nfills++;
         g->st_blit_bounce++;
     }
@@ -11680,12 +11797,13 @@ gpu_stats_2d(r128_gpu_t *g)
         || g->st_fill_skip[1] || g->st_fill_skip[2] || g->st_fill_skip[3]
         || g->st_fill_skip[4])
         gpu_log("RAGE128 GPU: 2d fill: rects=%llu rows=%llu px=%llu tiled=%llu "
-                "cpu=%llu (dom=%llu stage=%llu) nb=%llu skip: "
+                "pre=%llu cpu=%llu (dom=%llu stage=%llu) nb=%llu skip: "
                 "rop=%llu wmask=%llu aux=%llu pat=%llu cca=%llu bad=%llu\n",
                 (unsigned long long) g->st_fill_rects,
                 (unsigned long long) g->st_fill_rows,
                 (unsigned long long) g->st_fill_px,
                 (unsigned long long) g->st_fill_tiled,
+                (unsigned long long) g->st_fill_pre,
                 (unsigned long long) g->st_fill_cpu,
                 (unsigned long long) g->st_fill_cpu_r[0],
                 (unsigned long long) g->st_fill_cpu_r[1],
