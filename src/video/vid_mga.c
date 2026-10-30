@@ -54,7 +54,7 @@
 
 #define FIFO_ENTRIES     (mystique->fifo_write_idx - mystique->fifo_read_idx)
 #define FIFO_FULL        ((mystique->fifo_write_idx - mystique->fifo_read_idx) >= (FIFO_SIZE - 1))
-#define FIFO_EMPTY       (mystique->fifo_read_idx == mystique->fifo_write_idx)
+#define FIFO_EMPTY       mystique_fifo_empty(mystique)
 
 #define FIFO_TYPE        0xff000000
 #define FIFO_ADDR        0x00ffffff
@@ -554,6 +554,12 @@ typedef struct mystique_t {
 
     void *i2c, *i2c_ddc, *ddc;
 } mystique_t;
+
+static inline int
+mystique_fifo_empty(const mystique_t *mystique)
+{
+    return mystique->fifo_read_idx == mystique->fifo_write_idx;
+}
 
 static const uint8_t trans_masks[16][16] = {
   // clang-format off

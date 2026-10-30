@@ -51,8 +51,6 @@
     #undef CLAMP
 #endif
 
-static uint64_t virge_time = 0;
-
 static int dither[4][4] = {
     { 0, 4, 1, 5 },
     { 6, 2, 7, 3 },
@@ -1989,8 +1987,6 @@ mach64_fifo_thread(void *param)
         thread_reset_event(virge->wake_fifo_thread);
         virge->virge_busy = 1;
         while (!FIFO_EMPTY) {
-            uint64_t      start_time = plat_timer_read();
-            uint64_t      end_time;
             fifo_entry_t *fifo = &virge->fifo[virge->fifo_read_idx & FIFO_MASK];
             uint32_t      val  = fifo->val;
 
@@ -2025,9 +2021,6 @@ mach64_fifo_thread(void *param)
 
             if (FIFO_ENTRIES > 0xe000)
                 thread_set_event(virge->fifo_not_full_event);
-
-            end_time = plat_timer_read();
-            virge_time += end_time - start_time;
         }
         virge->virge_busy = 0;
         virge->subsys_stat |= (INT_FIFO_EMP | INT_3DF_EMP);
@@ -4751,9 +4744,6 @@ s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri, int render_lane, int render_la
     uint32_t tex_base;
     int      c;
 
-    uint64_t start_time = plat_timer_read();
-    uint64_t end_time;
-
     state.pixel_count = 0;
 
     state.tbu = s3d_tri->tbu << 11;
@@ -4888,11 +4878,6 @@ s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri, int render_lane, int render_la
     virge->pixel_count[render_lane] += state.pixel_count;
     if (render_lane == 0)
         virge->tri_count++;
-
-    end_time = plat_timer_read();
-
-    if (render_lane == 0)
-        virge_time += end_time - start_time;
 }
 
 static int

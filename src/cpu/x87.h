@@ -111,7 +111,11 @@ void     x87_settag(uint16_t new_tag);
 /* ST(i) empty: an empty register's tag is TAG_EMPTY, any other's has
    TAG_VALID set (TAG_VALID, or TAG_VALID | TAG_UINT64), which the
    recompiler's stack-fault check tests alone (codegen_fpu_guard_stack) */
-#define X87_ST_EMPTY(i) (cpu_state.tag[(cpu_state.TOP + (i)) & 7] == TAG_EMPTY)
+static inline int
+X87_ST_EMPTY(int i)
+{
+    return cpu_state.tag[(cpu_state.TOP + i) & 7] == TAG_EMPTY;
+}
 
 #define X87_ROUNDING_NEAREST 0
 #define X87_ROUNDING_DOWN    1

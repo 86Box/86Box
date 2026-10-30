@@ -1338,56 +1338,58 @@ void fm_engine_base<RegisterType>::output(output_data &output, uint32_t rshift, 
 
 	// handle the rhythm case, where some of the operators are dedicated
 	// to percussion (this is an OPL-specific feature)
-	if (m_regs.rhythm_enable())
+	if constexpr (OPERATORS >= 18)
 	{
-		// we don't support the OPM noise channel here; ensure it is off
-		assert(m_regs.noise_enable() == 0);
+		if (m_regs.rhythm_enable())
+		{
+			// we don't support the OPM noise channel here; ensure it is off
+			assert(m_regs.noise_enable() == 0);
 
-		// precompute the operator 13+17 phase selection value
-		uint32_t op13phase = m_operator[13]->phase();
-		uint32_t op17phase = m_operator[17]->phase();
-		uint32_t phase_select = (bitfield(op13phase, 2) ^ bitfield(op13phase, 7)) | bitfield(op13phase, 3) | (bitfield(op17phase, 5) ^ bitfield(op17phase, 3));
+			// precompute the operator 13+17 phase selection value
+			uint32_t op13phase = m_operator[13]->phase();
+			uint32_t op17phase = m_operator[17]->phase();
+			uint32_t phase_select = (bitfield(op13phase, 2) ^ bitfield(op13phase, 7)) | bitfield(op13phase, 3) | (bitfield(op17phase, 5) ^ bitfield(op17phase, 3));
 
-		// sum over all the desired channels
-		for (uint32_t chnum = 0; chnum < CHANNELS; chnum++)
-			if (bitfield(chanmask, chnum))
-			{
+			// sum over all the desired channels
+			for (uint32_t chnum = 0; chnum < CHANNELS; chnum++)
+				if (bitfield(chanmask, chnum))
+				{
 #if (YMFM_DEBUG_LOG_WAVFILES)
-				auto reference = output;
+					auto reference = output;
 #endif
-				if (chnum == 6)
-					m_channel[chnum]->output_rhythm_ch6(output, rshift, clipmax);
-				else if (chnum == 7)
-					m_channel[chnum]->output_rhythm_ch7(phase_select, output, rshift, clipmax);
-				else if (chnum == 8)
-					m_channel[chnum]->output_rhythm_ch8(phase_select, output, rshift, clipmax);
-				else if (m_channel[chnum]->is4op())
-					m_channel[chnum]->output_4op(output, rshift, clipmax);
-				else
-					m_channel[chnum]->output_2op(output, rshift, clipmax);
+					if (chnum == 6)
+						m_channel[chnum]->output_rhythm_ch6(output, rshift, clipmax);
+					else if (chnum == 7)
+						m_channel[chnum]->output_rhythm_ch7(phase_select, output, rshift, clipmax);
+					else if (chnum == 8)
+						m_channel[chnum]->output_rhythm_ch8(phase_select, output, rshift, clipmax);
+					else if (m_channel[chnum]->is4op())
+						m_channel[chnum]->output_4op(output, rshift, clipmax);
+					else
+						m_channel[chnum]->output_2op(output, rshift, clipmax);
 #if (YMFM_DEBUG_LOG_WAVFILES)
-				m_wavfile[chnum].add(output, reference);
+					m_wavfile[chnum].add(output, reference);
 #endif
-			}
+				}
+			return;
+		}
 	}
-	else
-	{
-		// sum over all the desired channels
-		for (uint32_t chnum = 0; chnum < CHANNELS; chnum++)
-			if (bitfield(chanmask, chnum))
-			{
+
+	// sum over all the desired channels
+	for (uint32_t chnum = 0; chnum < CHANNELS; chnum++)
+		if (bitfield(chanmask, chnum))
+		{
 #if (YMFM_DEBUG_LOG_WAVFILES)
-				auto reference = output;
+			auto reference = output;
 #endif
-				if (m_channel[chnum]->is4op())
-					m_channel[chnum]->output_4op(output, rshift, clipmax);
-				else
-					m_channel[chnum]->output_2op(output, rshift, clipmax);
+			if (m_channel[chnum]->is4op())
+				m_channel[chnum]->output_4op(output, rshift, clipmax);
+			else
+				m_channel[chnum]->output_2op(output, rshift, clipmax);
 #if (YMFM_DEBUG_LOG_WAVFILES)
-				m_wavfile[chnum].add(output, reference);
+			m_wavfile[chnum].add(output, reference);
 #endif
-			}
-	}
+		}
 }
 
 

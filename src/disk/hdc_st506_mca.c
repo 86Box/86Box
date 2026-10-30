@@ -672,13 +672,16 @@ do_format(mfm_t *dev, drive_t *drive, ccb_t *ccb)
             if (dev->buf_len & 1)
                 dev->buf_len++; /* must be even */
 
-                /* Enable for PIO or DMA, as needed. */
+            /* Enable for PIO or DMA, as needed. */
 #if NOT_USED
-            if (dev->ctrl & ACR_DMA_EN)
+            if (dev->ctrl & ACR_DMA_EN) {
                 timer_advance_u64(&dev->timer, MFM_TIME);
-            else
-#endif
+            } else {
                 dev->status |= ASR_DATA_REQ;
+            }
+#else
+            dev->status |= ASR_DATA_REQ;
+#endif
             break;
 
         case STATE_RDATA:

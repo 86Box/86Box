@@ -38,12 +38,27 @@ host_reg_get(int reg)
 }
 #    define HOST_REG_GET(reg) host_reg_get(reg)
 
-#    define REG_IS_L(size)    (size == IREG_SIZE_L)
-#    define REG_IS_W(size)    (size == IREG_SIZE_W)
 #    define REG_IS_B(size)    (size == IREG_SIZE_B || size == IREG_SIZE_BH)
 #    define REG_IS_BH(size)   (size == IREG_SIZE_BH)
 #    define REG_IS_D(size)    (size == IREG_SIZE_D)
-#    define REG_IS_Q(size)    (size == IREG_SIZE_Q)
+
+static inline int
+REG_IS_L(int size)
+{
+    return size == IREG_SIZE_L;
+}
+
+static inline int
+REG_IS_W(int size)
+{
+    return size == IREG_SIZE_W;
+}
+
+static inline int
+REG_IS_Q(int size)
+{
+    return size == IREG_SIZE_Q;
+}
 
 static int
 codegen_ADD(codeblock_t *block, uop_t *uop)

@@ -1293,7 +1293,6 @@ mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
             dest_dat = 0xffffffff;                               \
             break;                                               \
         case 0x3:                                                \
-            dest_dat = dest_dat;                                 \
             break;                                               \
         case 0x4:                                                \
             dest_dat = ~src_dat;                                 \

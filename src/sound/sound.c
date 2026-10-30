@@ -126,8 +126,6 @@ static uint64_t   wavetable_poll_latch = 0ULL;
 static int16_t      cd_buffer[CDROM_NUM][CD_BUFLEN * 2];
 static float        cd_out_buffer[CD_BUFLEN * 2];
 static int16_t      cd_out_buffer_int16[CD_BUFLEN * 2];
-static unsigned int cd_vol_l         = 0;
-static unsigned int cd_vol_r         = 0;
 static volatile int cdaudioon        = 0;
 static int          cd_thread_enable = 0;
 
@@ -143,13 +141,11 @@ static thread_t     *sound_fdd_thread_h = NULL;
 static event_t      *sound_fdd_event = NULL;
 static event_t      *sound_fdd_start_event = NULL;
 static volatile int fddaudioon = 0;
-static int          fdd_thread_enable = 0;
 
 static thread_t     *sound_hdd_thread_h = NULL;
 static event_t      *sound_hdd_event = NULL;
 static event_t      *sound_hdd_start_event = NULL;
 static volatile int hddaudioon = 0;
-static int          hdd_thread_enable = 0;
 
 static void (*filter_cd_audio)(int channel, double *buffer, void *priv) = NULL;
 static void *filter_cd_audio_p                                          = NULL;
@@ -356,13 +352,6 @@ sound_card_init(void)
     for (uint8_t i = 0; i < SOUND_CARD_MAX; i++)
         if ((sound_card_current[i] > SOUND_INTERNAL) && (sound_cards[sound_card_current[i]].device))
             device_add_inst(sound_cards[sound_card_current[i]].device, i + 1);
-}
-
-void
-sound_set_cd_volume(unsigned int vol_l, unsigned int vol_r)
-{
-    cd_vol_l = vol_l;
-    cd_vol_r = vol_r;
 }
 
 static void
@@ -1166,8 +1155,6 @@ sound_reset(void)
     filter_midi   = NULL;
     filter_midi_p = NULL;
 
-    sound_set_cd_volume(65535, 65535);
-
     /* Reset the MPU-401 already loaded flag and the chain of input/output handlers. */
     midi_in_handlers_clear();
 }
@@ -1288,7 +1275,6 @@ sound_fdd_thread_init(void)
 {
     if (!fddaudioon) {
         fddaudioon = 1;
-        fdd_thread_enable = 1;
 
         sound_fdd_start_event = thread_create_event();
         sound_fdd_event = thread_create_event();
@@ -1304,7 +1290,6 @@ sound_fdd_thread_end(void)
 {
     if (fddaudioon) {
         fddaudioon = 0;
-        fdd_thread_enable = 0;
 
         thread_set_event(sound_fdd_event);
         thread_wait(sound_fdd_thread_h);
@@ -1367,7 +1352,6 @@ sound_hdd_thread_init(void)
 {
     if (!hddaudioon) {
         hddaudioon = 1;
-        hdd_thread_enable = 1;
         sound_hdd_start_event = thread_create_event();
         sound_hdd_event = thread_create_event();
         sound_hdd_thread_h = thread_create(sound_hdd_thread, NULL);
@@ -1382,7 +1366,6 @@ sound_hdd_thread_end(void)
 {
     if (hddaudioon) {
         hddaudioon = 0;
-        hdd_thread_enable = 0;
         thread_set_event(sound_hdd_event);
         thread_wait(sound_hdd_thread_h);
 

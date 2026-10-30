@@ -95,7 +95,6 @@ typedef struct xtkbd_t {
 static uint8_t key_queue[16];
 static int     key_queue_start = 0;
 static int     key_queue_end   = 0;
-static int     is_tandy = 0;
 static int     is_t1x00 = 0;
 static int     is_amstrad = 0;
 
@@ -812,7 +811,6 @@ kbd_init(const device_t *info)
 
     timer_add(&kbd->send_delay_timer, kbd_poll, kbd, 1);
 
-    is_tandy = (kbd->type == KBD_TYPE_TANDY);
     is_t1x00 = (kbd->type == KBD_TYPE_TOSHIBA);
 
     if (keyboard_type == KEYBOARD_TYPE_INTERNAL)
