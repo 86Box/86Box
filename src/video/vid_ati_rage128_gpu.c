@@ -608,12 +608,6 @@ r128_vk_load_instance(VkInstance inst)
 /* format fields only: this stage's texel format stays a runtime
    selector in the folded pipeline (off/dead stages, seed tuples) */
 #    define GPU_TUPLE_FMT_ANY 0xffffffffu
-/* z-ladder words per segment (u32 each; a table-fog pixel takes two: the
-   rung and the fog fraction). Raising this together with GPU_SPAN_CAP
-   lets segments grow, but the host-side leveling in gpu_batch_row is
-   quadratic in spans per row, so its cost grows faster than the GPU
-   wait shrinks. */
-#    define GPU_PX_CAP (8u << 20)
 /* Serial (self-aliasing) draws run one lane in one workgroup, measured
    at about 17 us per pixel on an Apple M1 Pro, so this cap holds one
    such draw to about a quarter second of GPU time. A larger alias draw
@@ -630,14 +624,14 @@ r128_vk_load_instance(VkInstance inst)
    in stage 1. */
 typedef struct seg_span_t {
     int64_t  e0, e1, e2;
-    uint64_t zline;
+    int64_t  zline; /* fixed-point depth at x0 (r128_zfx) */
     int32_t  x0, x1, py, tri;
-    uint32_t drow, zrow, px_base, pad1;
+    uint32_t drow, zrow, pad0, pad1;
 } seg_span_t;
 
 typedef struct seg_tri_t {
     int64_t  e0dxi, e1dxi, e2dxi;
-    uint64_t dZdx;
+    int64_t  dZdx; /* per-pixel step of zline */
     float    invs, lod_bias;
     float    texw0, texh0, texw1, texh1;
     uint32_t zfn, z_wr;
@@ -951,7 +945,7 @@ typedef struct gpu_slot_t {
     atomic_int      fence_seen;
     VkQueryPool     tqpool;
     VkDescriptorSet dset;
-    r128_gpu_buf_t  b_rows, b_order, b_spans, b_tris, b_lad, b_pal;
+    r128_gpu_buf_t  b_rows, b_order, b_spans, b_tris, b_pal;
     uint32_t        c_lo, c_hi, z_lo, z_hi, q_lo, q_hi, r_lo, r_hi,
         f_lo, f_hi;
     /* the exact texture ranges behind q_lo/q_hi (the exact texture range
@@ -1011,7 +1005,7 @@ typedef struct r128_gpu_t {
     /* VRAM mirror: the seg kernels address a device-local copy of VRAM
        instead of the host-pointer import. Each segment copies its
        touched color/z/texture byte ranges down before the dispatches
-       and the color/z ranges back after, outside the ladder/shade
+       and the color/z ranges back after, outside the shading
        timestamps, so the import stays the only authoritative copy for
        every other consumer. The reason is shader speed: measured on an
        NVIDIA RTX 5070 under Windows, shading from the imported host
@@ -1040,7 +1034,6 @@ typedef struct r128_gpu_t {
        an aliasing draw takes the CPU fallback (counted, correct). */
     VkPipeline pipes_serial[GPU_KERNELS];
     atomic_int serial_ready;
-    VkPipeline lad_pipe; /* z-ladder pre-pass */
     /* generic 2D RMW op: own 2-binding layout + 28-byte push range so
        the shared seg ABI (and its warm Metal cache) is untouched */
     VkPipeline            rmw_pipe;
@@ -1101,7 +1094,7 @@ typedef struct r128_gpu_t {
     _Atomic uint64_t flip_seq;
 
     /* segment accumulation (CCE/submit thread) */
-    uint32_t nspans, ntris, seg_px;
+    uint32_t nspans, ntris;
     /* deferred 2D solid fills, always recorded ahead of this segment's
        dispatches (a fill arriving with spans pending splits the segment
        first, so within any one submit every fill precedes every span) */
@@ -1465,9 +1458,10 @@ typedef struct r128_gpu_t {
     uint64_t pr_2d_tag_ns[GPU_2D_TAGS], pr_int_2d_tag_ns[GPU_2D_TAGS];
     uint64_t pr_int_submits, pr_int_chained;
     uint64_t pr_int_tsc, pr_int_polls, pr_int_cce_ns;
-    /* per-segment cost split at interval start: GPU ladder vs mirror
-       copies, host capture/sort/record -- names which side saturates
-       when submits/s spike */
+    /* per-segment cost split at interval start: GPU timestamps 0 -> 1
+       (an empty interval; the lad= field) vs mirror copies, host
+       capture/sort/record -- names which side saturates when submits/s
+       spike */
     uint64_t pr_int_lad_ns, pr_int_mir_ns, pr_int_mir_bytes;
     uint64_t pr_int_cap_ns, pr_int_sort_ns, pr_int_rec_ns;
     uint32_t pr_int_max_inflight;
@@ -3145,7 +3139,7 @@ prim_ranges(const rage128_raster_state_t *rs, uint32_t vram_mask,
 }
 
 /* Worst-case capture cost of one triangle: rows x 256 px chunks (spans)
-   and rows x width (ladder rungs), from the vertex extents with the
+   and rows x width (pixels), from the vertex extents with the
    same subpixel slack prim_ranges uses. It can only overestimate: the
    raster walk clips to the bounding box and the scissor, so the real
    capture never exceeds it. Out-of-range float coordinates price as the
@@ -4195,8 +4189,9 @@ gpu_prof_interval(r128_gpu_t *g, int force)
         }
         memcpy(g->pr_int_reads, g->owner->tel_reads, sizeof(g->pr_int_reads));
 
-        /* lad/mir split the GPU side (ladder+shade vs mirror copies,
-           mir bytes in MB); cap/sort/rec split the host side per second */
+        /* lad/mir split the GPU side (the empty stamp 0 -> 1 interval,
+           kept so the line's fields stay in place, vs mirror copies, mir
+           bytes in MB); cap/sort/rec split the host side per second */
         gpu_log("RAGE128 GPU: interval: t=%llums dt=%llums emu=%u%% gpu=%llums "
                 "reuse=%llums present=%llums 2d=%llums op=%03x/%s opwait=%llums "
                 "submits=%llu chained=%llu max=%u in=%u cap=%u "
@@ -4737,28 +4732,6 @@ gpu_disp_mirror_down(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
                          1, &mb, 0, NULL, 0, NULL);
 }
 
-/* The ladder dispatch over every span, its results fenced for the runs. */
-static void
-gpu_disp_ladder(r128_gpu_t *g, gpu_slot_t *sl, int use_tq)
-{
-    uint32_t        pcv[2] = { g->nspans, 0 };
-    VkMemoryBarrier mb     = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
-
-    vkCmdBindPipeline(sl->cb, VK_PIPELINE_BIND_POINT_COMPUTE, g->lad_pipe);
-    vkCmdPushConstants(sl->cb, g->plyt, VK_SHADER_STAGE_COMPUTE_BIT, 0, 8,
-                       pcv);
-    /* 32 lanes per span (closed-form ladder), 8 spans per workgroup */
-    vkCmdDispatch(sl->cb, (g->nspans + 7u) / 8u, 1, 1);
-    mb.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    mb.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    vkCmdPipelineBarrier(sl->cb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
-                         1, &mb, 0, NULL, 0, NULL);
-    if (use_tq)
-        vkCmdWriteTimestamp(sl->cb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
-                            sl->tqpool, 1);
-}
-
 /* One dispatch per run, mid fills ordered in before the run they
    precede, a barrier only where the row / texture hazard chain says so. */
 static void
@@ -4987,7 +4960,9 @@ gpu_dispatch(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
     /* Stamps 3 and 0 bracket the mirror-down at the bottom-of-pipe
        stage: a top-of-pipe stamp is taken when the command is reached,
        not when the copies (or the fills before them) have finished, and
-       would charge their tail to the ladder interval 0 -> 1. */
+       would charge their tail to the shading interval. Stamp 1 follows
+       stamp 0 directly: the interval 0 -> 1 has no work of its own, and
+       1 -> 2 is the shading. */
     if (use_tq)
         vkCmdWriteTimestamp(sl->cb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                             sl->tqpool, 3);
@@ -4998,7 +4973,9 @@ gpu_dispatch(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
                             sl->tqpool, 0);
     vkCmdBindDescriptorSets(sl->cb, VK_PIPELINE_BIND_POINT_COMPUTE, g->plyt,
                             0, 1, &sl->dset, 0, NULL);
-    gpu_disp_ladder(g, sl, use_tq);
+    if (use_tq)
+        vkCmdWriteTimestamp(sl->cb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                            sl->tqpool, 1);
     gpu_disp_runs(g, sl, vram_mask, dp, nd);
     if (use_tq)
         vkCmdWriteTimestamp(sl->cb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
@@ -5075,7 +5052,6 @@ gpu_accum_drop_3d(r128_gpu_t *g)
 {
     g->nspans          = 0;
     g->ntris           = 0;
-    g->seg_px          = 0;
     g->nruns           = 0;
     g->ntexq           = 0;
     g->texq_ovf        = 0;
@@ -5616,7 +5592,7 @@ capture_tri_record(r128_gpu_t *g, rage128_t *dev, const r3d_texctx_t *tc,
     tt->e0dxi = tri->e0dxi;
     tt->e1dxi = tri->e1dxi;
     tt->e2dxi = tri->e2dxi;
-    memcpy(&tt->dZdx, &tri->dZdx, 8);
+    memcpy(&tt->dZdx, &tri->dzx, 8);
     tt->invs     = tri->invs;
     tt->lod_bias = d->lod_bias;
     tt->texw0    = d->texw0;
@@ -6154,7 +6130,7 @@ rage128_gpu_capture_row_cover(const r128_jit_tri_t *tri, int64_t e0,
 
 uint64_t
 rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
-                         int64_t e2, double zline, uint32_t drow, uint32_t zrow,
+                         int64_t e2, int64_t zline, uint32_t drow, uint32_t zrow,
                          int32_t py)
 {
     const r3d_texctx_t *tc  = (const r3d_texctx_t *) tri->texctx;
@@ -6184,8 +6160,7 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
     e0 += (int64_t) lo * tri->e0dxi;
     e1 += (int64_t) lo * tri->e1dxi;
     e2 += (int64_t) lo * tri->e2dxi;
-    for (int32_t q = 0; q < lo; q++)
-        zline += tri->dZdx;
+    zline += (int64_t) lo * tri->dzx;
 
     if (g->cur_tri < 0) {
         const rage128_draw_state_t *d  = &tc->rs->d;
@@ -6199,12 +6174,10 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
     }
 
     /* Split the row into chunks of at most 256 pixels, one per kernel
-       workgroup of 256 threads. Each chunk's z seed is reached by
-       adding dZdx once per pixel, in double precision, so it rounds the
-       same way as the interpreter's per-pixel walk and the ladder
-       kernel's. */
+       workgroup of 256 threads. Each chunk's depth seed is the
+       fixed-point plane value at its first pixel. */
     {
-        double  zc = zline;
+        int64_t zc = zline;
         int32_t cx = x0;
 
         g->st_px_total += (uint64_t) (x1 - x0 + 1);
@@ -6220,20 +6193,6 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
 
             if (cw > 256)
                 cw = 256;
-            /* b_lad holds exactly GPU_PX_CAP words and the ladder kernel
-               writes [px_base, px_base+cw*pxw) with no bound test, so
-               seg_px must never pass the cap. The span is cut to fit;
-               whatever does not fit is counted as dropped after the
-               loop. A table-fog span stores two ladder words per pixel
-               (the z rung and the fog fraction), so it counts at twice
-               its width. */
-            uint32_t pxw = (tc->rs->d.fog_en && tc->rs->d.fog_table_en) ? 2u : 1u;
-
-            if (g->seg_px + (uint32_t) cw * pxw > GPU_PX_CAP) {
-                cw = (int32_t) ((GPU_PX_CAP - g->seg_px) / pxw);
-                if (cw <= 0)
-                    break;
-            }
             sp = &((seg_span_t *) g->slot[g->build_slot].b_spans.map)[g->nspans];
             /* The clip above used the biased edge values, so coverage
                keeps the fill rule. The shader reads the recorded edges
@@ -6245,7 +6204,7 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
             sp->e0 = e0 + tri->e0b;
             sp->e1 = e1 + tri->e1b;
             sp->e2 = e2 + tri->e2b;
-            memcpy(&sp->zline, &zc, 8);
+            sp->zline = zc;
             sp->x0  = cx;
             sp->x1  = cx + cw - 1;
             sp->py  = py;
@@ -6266,13 +6225,12 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
                      : (zrow & dev->vram_mask);
             sp->drow    = kdrow;
             sp->zrow    = kzrow;
-            sp->px_base = g->seg_px;
+            sp->pad0    = 0;
             /* the 32-bit range test runs on the recorded values, which
                are what the shader steps */
             sp->pad1 = gpu_edge32_span(sp->e0, tri->e0dxi, cw)
                 && gpu_edge32_span(sp->e1, tri->e1dxi, cw)
                 && gpu_edge32_span(sp->e2, tri->e2dxi, cw);
-            g->seg_px += (uint32_t) cw * pxw;
             g->py_of[g->nspans] = (uint16_t) py;
             capture_span_class(g, g->nspans, &tc->rs->d, cx, cw, kdrow, kzrow,
                                dev->vram_mask);
@@ -6280,14 +6238,9 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
             g->st_spans++;
             capture_run_bounds(g, tc, py, cx, cw, drow, zrow);
 
-            /* Seed the next chunk only when one follows. The z walk is a
-               dependent double-add per pixel and nothing reads its result
-               past the last chunk; spans wider than one chunk (st_wide_spans)
-               are the only ones that need it, and there the sequential add
-               stays, matching the interpreter's and the ladder's rounding. */
+            /* Seed the next chunk only when one follows. */
             if (cx + cw <= x1) {
-                for (int q = 0; q < cw; q++)
-                    zc += tri->dZdx;
+                zc += (int64_t) cw * tri->dzx;
                 e0 += (int64_t) cw * tri->e0dxi;
                 e1 += (int64_t) cw * tri->e1dxi;
                 e2 += (int64_t) cw * tri->e2dxi;
@@ -6320,7 +6273,7 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
    functions must agree: a count that is too low drops pixels. */
 uint64_t
 rage128_gpu_count_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
-                       int64_t e2, double zline, uint32_t drow, uint32_t zrow,
+                       int64_t e2, int64_t zline, uint32_t drow, uint32_t zrow,
                        int32_t py)
 {
     const r3d_texctx_t *tc = (const r3d_texctx_t *) tri->texctx;
@@ -6482,12 +6435,8 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
        the same rasterizer, clip and chunking the capture uses, and is
        refused to the CPU path only if the exact count is still over.
        Only draws over a cap pay for the extra walk. */
-    /* ladder words, not pixels: a table-fog draw takes two per pixel */
-    uint64_t pxw = (rs->d.fog_en && rs->d.fog_table_en) ? 2u : 1u;
-
     gpu_tri_need(rs, a, b, c, &need_spans, &need_px);
-    need_px *= pxw;
-    if (need_spans > GPU_SPAN_CAP || need_px > GPU_PX_CAP) {
+    if (need_spans > GPU_SPAN_CAP) {
         g->dry_spans = 0;
         g->dry_px    = 0;
         if (line)
@@ -6496,8 +6445,8 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
             rage128_3d_tri(dev, rs, 0, 0, a, b, c, rage128_gpu_count_span);
         g->st_reprice++;
         need_spans = g->dry_spans;
-        need_px    = g->dry_px * pxw;
-        if (need_spans > GPU_SPAN_CAP || need_px > GPU_PX_CAP) {
+        need_px    = g->dry_px;
+        if (need_spans > GPU_SPAN_CAP) {
             g->st_toobig++;
             rage128_gpu_fallback_guard(dev, rs, a, b, gc);
             return 0;
@@ -6531,7 +6480,7 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
             }
         if (cz || rtt) {
             if (rs->c_staged || rs->z_staged || agp
-                || need_px / pxw > GPU_SERIAL_PX_CAP /* pixels, not words */
+                || need_px > GPU_SERIAL_PX_CAP
                 || !atomic_load_explicit(&g->serial_ready,
                                          memory_order_acquire)) {
                 g->st_alias_rej[cz ? 0 : 1]++;
@@ -6601,16 +6550,14 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
 
     {
         /* st_cap counts capacity flushes by the limit that was hit:
-           0 spans, 1 tri records (palettes included), 2 ladder words,
-           3 runs. */
+           0 spans, 1 tri records (palettes included), 3 runs; 2 is
+           unused. */
         int cap = -1;
 
         if (g->nspans + need_spans > GPU_SPAN_CAP)
             cap = 0;
         else if (g->ntris + 2 > GPU_TRI_CAP)
             cap = 1;
-        else if (g->seg_px + need_px > GPU_PX_CAP)
-            cap = 2;
         else if (g->nruns == GPU_RUN_CAP
                  && (g->run_break
                      || g->runs[g->nruns - 1].kernel != (uint32_t) kern
@@ -6721,7 +6668,6 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
     g->cur_serial = serial;
     {
         uint32_t sp0 = g->nspans;
-        uint32_t px0 = g->seg_px;
 
         if (g->prof) {
             uint64_t t0 = prof_now();
@@ -6743,16 +6689,12 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
         }
         /* A re-counted draw was accepted on the count-only walk's
            figures, and the capture repeats that walk, so it must use
-           exactly that many spans and ladder words. Log a mismatch. */
-        if (repriced
-            && ((uint64_t) (g->nspans - sp0) != need_spans
-                || (uint64_t) (g->seg_px - px0) != need_px)) {
+           exactly that many spans. Log a mismatch. */
+        if (repriced && (uint64_t) (g->nspans - sp0) != need_spans) {
             if (!g->st_reprice_miss)
-                gpu_err("RAGE128 GPU: reprice miss: predicted %llu/%llu spans/px,"
-                        " capture consumed %u/%u\n",
-                        (unsigned long long) need_spans,
-                        (unsigned long long) need_px,
-                        g->nspans - sp0, g->seg_px - px0);
+                gpu_err("RAGE128 GPU: reprice miss: predicted %llu spans,"
+                        " capture consumed %u\n",
+                        (unsigned long long) need_spans, g->nspans - sp0);
             g->st_reprice_miss++;
         }
     }
@@ -9850,8 +9792,8 @@ gpu_arenas_import(rage128_t *dev, r128_gpu_t *g)
 static const char *
 gpu_slot_bufs_create(r128_gpu_t *g)
 {
-    /* Each slot has its own mapped inputs and ladder buffer, kept until
-       its fence is retired; its descriptor set binds them with the
+    /* Each slot has its own mapped inputs, kept until its fence is
+       retired; its descriptor set binds them with the
        GPU_NBIND layout. */
     for (unsigned i = 0; i < GPU_RING_SLOTS; i++) {
         gpu_slot_t *sl = &g->slot[i];
@@ -9864,8 +9806,6 @@ gpu_slot_bufs_create(r128_gpu_t *g)
             || !gpu_mk_buf(g, &sl->b_spans, GPU_SPAN_CAP * sizeof(seg_span_t),
                            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
             || !gpu_mk_buf(g, &sl->b_tris, GPU_TRI_CAP * sizeof(seg_tri_t),
-                           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
-            || !gpu_mk_buf(g, &sl->b_lad, GPU_PX_CAP * sizeof(uint32_t),
                            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
             || !gpu_mk_buf(g, &sl->b_pal, GPU_PAL_CAP * 256 * sizeof(uint32_t),
                            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT))
@@ -9976,8 +9916,8 @@ gpu_pcache_load(r128_gpu_t *g)
 }
 
 /* Shader modules and pipelines: the segment uber kernel (module kept
-   alive for lazy folded compiles), the ladder, and the RMW and OV0
-   kernels with their own two-binding layouts. */
+   alive for lazy folded compiles), and the RMW and OV0 kernels with
+   their own two-binding layouts. */
 static const char *
 gpu_pipelines_create(r128_gpu_t *g)
 {
@@ -9998,25 +9938,13 @@ gpu_pipelines_create(r128_gpu_t *g)
     g->boot_total = gpu_boot_total(g);
     if (gpu_uber_build(g) != VK_SUCCESS)
         return "compute pipeline failed";
-    smci.codeSize = sizeof(r128_gpu_lad_spv);
-    smci.pCode    = (const uint32_t *) r128_gpu_lad_spv;
-    if (vkCreateShaderModule(g->dev, &smci, NULL, &sm) != VK_SUCCESS)
-        return "ladder shader module failed";
-    /* every field of cpi the driver reads is set here; no other code
+    /* every field of cpi the driver reads is set here, except the
+       module and layout, which each pipeline below sets; no other code
        fills this struct */
     cpi.stage.sType               = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
     cpi.stage.stage               = VK_SHADER_STAGE_COMPUTE_BIT;
-    cpi.stage.module              = sm;
     cpi.stage.pName               = "main";
     cpi.stage.pSpecializationInfo = NULL;
-    cpi.layout                    = g->plyt;
-    if (vkCreateComputePipelines(g->dev, g->pcache, 1, &cpi, NULL,
-                                 &g->lad_pipe)
-        != VK_SUCCESS) {
-        vkDestroyShaderModule(g->dev, sm, NULL);
-        return "ladder pipeline failed";
-    }
-    vkDestroyShaderModule(g->dev, sm, NULL);
     {
         VkDescriptorSetLayoutBinding    rdb[2];
         VkDescriptorSetLayoutCreateInfo rdslci = {
@@ -10214,7 +10142,9 @@ gpu_dsets_create(r128_gpu_t *g)
                 { sl->b_order.b,                               0, VK_WHOLE_SIZE },
                 { sl->b_spans.b,                               0, VK_WHOLE_SIZE },
                 { sl->b_tris.b,                                0, VK_WHOLE_SIZE },
-                { sl->b_lad.b,                                 0, VK_WHOLE_SIZE },
+                /* binding 6 is not read by any kernel; a valid buffer
+                   keeps the set complete without renumbering 7..12 */
+                { sl->b_tris.b,                                0, VK_WHOLE_SIZE },
                 { g->stage_ok ? g->stage_buf : g->vram_buf,    0, VK_WHOLE_SIZE },
                 { sl->b_pal.b,                                 0, VK_WHOLE_SIZE },
                 /* staged color and z arenas, a 16-bit view and a word
@@ -10377,7 +10307,7 @@ gpu_cmd_create(r128_gpu_t *g)
         };
 
         qpci.queryType  = VK_QUERY_TYPE_TIMESTAMP;
-        qpci.queryCount = 5; /* 0-2 ladder/shade, 3-4 mirror copies */
+        qpci.queryCount = 5; /* 0-2 shading (0 -> 1 empty), 3-4 mirror copies */
         for (unsigned s = 0; s < GPU_RING_SLOTS; s++)
             if (vkCreateQueryPool(g->dev, &qpci, NULL, &g->slot[s].tqpool)
                 != VK_SUCCESS) {
@@ -11245,7 +11175,6 @@ gpu_close_vk(r128_gpu_t *g)
         for (int v = 0; v < GPU_KERNELS; v++)
             if (g->tuples[i].pipes[v])
                 vkDestroyPipeline(g->dev, g->tuples[i].pipes[v], NULL);
-    vkDestroyPipeline(g->dev, g->lad_pipe, NULL);
     vkDestroyPipeline(g->dev, g->rmw_pipe, NULL);
     vkDestroyPipelineLayout(g->dev, g->rmw_plyt, NULL);
     vkDestroyDescriptorSetLayout(g->dev, g->rmw_dsl, NULL);
@@ -11271,10 +11200,10 @@ gpu_close_vk(r128_gpu_t *g)
     vkDestroyDescriptorSetLayout(g->dev, g->dsl, NULL);
     for (unsigned s = 0; s < GPU_RING_SLOTS; s++) {
         gpu_slot_t     *sl      = &g->slot[s];
-        r128_gpu_buf_t *bufs[6] = { &sl->b_rows, &sl->b_order, &sl->b_spans,
-                                    &sl->b_tris, &sl->b_lad, &sl->b_pal };
+        r128_gpu_buf_t *bufs[5] = { &sl->b_rows, &sl->b_order, &sl->b_spans,
+                                    &sl->b_tris, &sl->b_pal };
 
-        for (int i = 0; i < 6; i++) {
+        for (int i = 0; i < 5; i++) {
             vkDestroyBuffer(g->dev, bufs[i]->b, NULL);
             vkFreeMemory(g->dev, bufs[i]->m, NULL);
         }
@@ -11718,7 +11647,7 @@ rage128_gpu_2d_verify_bad(rage128_t *dev, int table, uint64_t bad)
 }
 uint64_t
 rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0,
-                         int64_t e1, int64_t e2, double zline,
+                         int64_t e1, int64_t e2, int64_t zline,
                          uint32_t drow, uint32_t zrow, int32_t py)
 {
     (void) tri;
@@ -11733,7 +11662,7 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0,
 }
 uint64_t
 rage128_gpu_count_span(const r128_jit_tri_t *tri, int64_t e0,
-                       int64_t e1, int64_t e2, double zline,
+                       int64_t e1, int64_t e2, int64_t zline,
                        uint32_t drow, uint32_t zrow, int32_t py)
 {
     (void) tri;

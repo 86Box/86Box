@@ -211,7 +211,9 @@ r128_jit_state_can(const rage128_draw_state_t *ds)
             if (ds->zmax != 0xffff)
                 return 0;
         } else if (ds->zbpp == 4) {
-            if (ds->zshift > 31)
+            /* the depth quantize (r128_zfx_quant) covers the two depth
+               widths the draw state sets, 16 and 24 bits */
+            if (ds->zshift > 31 || (ds->zmax != 0xffff && ds->zmax != 0xffffff))
                 return 0;
         } else
             return 0;

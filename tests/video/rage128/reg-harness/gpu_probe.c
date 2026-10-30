@@ -351,7 +351,11 @@ harness_gpu_submit_probe(rage128_t *dev, const rage128_raster_state_t *rs,
     res->toobig  = g->st_toobig;
     res->miss    = g->st_reprice_miss;
     res->nspans  = g->nspans;
-    res->seg_px  = g->seg_px;
+    for (uint32_t i = 0; i < g->nspans; i++) {
+        const seg_span_t *sp = &((const seg_span_t *) g->slot[0].b_spans.map)[i];
+
+        res->seg_px += (uint32_t) (sp->x1 - sp->x0 + 1);
+    }
     free(g->slot[0].b_spans.map);
     free(g->slot[0].b_tris.map);
     free(g->slot[0].b_pal.map);

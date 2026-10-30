@@ -1851,6 +1851,79 @@ extern void rage128_pm4_scratch_drop(rage128_t *dev);
    (vid_ati_rage128_pm4.c). SUBMIT-THREAD ONLY. */
 extern int rage128_pm4_bus_write_block(rage128_t *dev, uint32_t vm, const uint8_t *src, uint32_t len);
 
+/* ---- Depth plane, fixed point ----
+   Interpolated depth is modeled as an exact fixed-point plane: normalized
+   depth (0.0 near, 1.0 far) times 2^39 in a signed 64-bit integer. The
+   chip's depth iterator precision is not documented. Fixed point is
+   modeled because a pixel's value is then the closed form
+   start + k * step in every renderer: the interpreter, the span JITs and
+   the GPU kernels step or multiply as suits them and get the same bits.
+   One unit is 2^-15 of a 24-bit depth step, so the rounding of the
+   per-pixel gradient, accumulated over a 2048-pixel row, moves a value by
+   at most 2^-5 of a step.
+
+   The triangle setup forms the plane in double and converts it once.
+   The seed is clamped to +-2^60 and each gradient to +-2^47 (256 full
+   depth ranges per pixel), so a seed plus 2^11 steps in x and in y stays
+   under 2^62. Only a sliver whose depth crosses more than 256 ranges per
+   pixel meets the gradient clamp; its value is then modeled, not the
+   exact plane. A NaN converts to 0. */
+#define R128_ZFX_BITS     39
+#define R128_ZFX_ONE      (1ll << R128_ZFX_BITS)
+#define R128_ZFX_SEED_LIM (1ll << 60)
+#define R128_ZFX_GRAD_LIM (1ll << 47)
+
+/* v * 2^39 rounded to nearest, halves away from zero, clamped to
+   [-lim, lim]. Written without libm so every file that includes this
+   header gets the same conversion. */
+static inline int64_t
+r128_zfx(double v, int64_t lim)
+{
+    double  s = v * (double) R128_ZFX_ONE;
+    int64_t t;
+    double  f;
+
+    if (!(s == s))
+        return 0;
+    if (s >= (double) lim)
+        return lim;
+    if (s <= -(double) lim)
+        return -lim;
+    t = (int64_t) s; /* truncates toward zero; |s| < 2^63 */
+    f = s - (double) t;
+    if (f >= 0.5)
+        t++;
+    else if (f <= -0.5)
+        t--;
+    return t;
+}
+
+/* A plane value clamped to [0, 1.0]. */
+static inline uint64_t
+r128_zfx_clamp(int64_t z)
+{
+    return (z < 0) ? 0 : ((z > R128_ZFX_ONE) ? (uint64_t) R128_ZFX_ONE : (uint64_t) z);
+}
+
+/* Depth cell value of a clamped plane value: z * zmax rounded to nearest.
+   zc * zmax is below 2^63 for zmax up to 2^24 - 1, and zc = 1.0 gives
+   exactly zmax, so a far pixel matches a buffer cleared to the far
+   value. */
+static inline uint32_t
+r128_zfx_quant(uint64_t zc, uint32_t zmax)
+{
+    return (uint32_t) ((zc * zmax + (1ull << (R128_ZFX_BITS - 1))) >> R128_ZFX_BITS);
+}
+
+/* Table-fog position of a clamped plane value: z * 255 with 32 fraction
+   bits, so the entry index is the high word (0..255) and the blend
+   fraction the low word. */
+static inline uint64_t
+r128_zfx_fogpos(uint64_t zc)
+{
+    return (zc * 255u) >> (R128_ZFX_BITS - 32);
+}
+
 /* ---- Span JIT (vid_ati_rage128_jit.c; per-architecture backends in
    vid_ati_rage128_codegen_<arch>.h, ARM64 and x86-64) ----
    A compiled block rasterizes whole scanlines for one
@@ -1871,7 +1944,7 @@ typedef struct r128_jit_tri_t {
     int32_t  x0, x1;                 /* inclusive column walk range                 */
     int64_t  e0dxi, e1dxi, e2dxi;    /* winding-normalized edge x-steps      */
     float    invs;                   /* winding-normalized barycentric scale        */
-    double   dZdx;                   /* depth plane x-gradient (double DDA)         */
+    int64_t  dzx;                    /* depth plane x-gradient, fixed point (r128_zfx) */
     float    vca[4], vcb[4], vcc[4]; /* vertex RGBA, flat fold applied    */
     /* Per-triangle texture-stage context, an r3d_texctx_t (defined above)
        held as a plain pointer: blocks that call helpers pass it back to
@@ -1897,12 +1970,13 @@ typedef struct r128_jit_tri_t {
 extern int rage128_texstage_run(void *tc, float w0, float w1, float w2, float *col);
 
 /* Rasterize one owned row. e0/e1/e2 are the winding-normalized row seeds,
-   zline the row's depth DDA seed, drow/zrow the row base VRAM addresses.
+   zline the depth plane value (r128_zfx) at the row's first column,
+   drow/zrow the row base VRAM addresses.
    Returns (rx1 << 32) | rx0 -- the written-pixel column range for dirty
    marking; rx0 == 0xffffffff means the row wrote nothing. */
 typedef uint64_t (*r128_jit_span_fn)(const r128_jit_tri_t *tri,
                                      int64_t e0, int64_t e1, int64_t e2,
-                                     double zline, uint32_t drow, uint32_t zrow,
+                                     int64_t zline, uint32_t drow, uint32_t zrow,
                                      int32_t py);
 
 /* Which span-JIT emitter this build has, if any. Shared with
@@ -1943,7 +2017,7 @@ extern void rage128_jit_stat_rows(rage128_t *dev, int count_tri,
    render path uses and drive the JIT through rage128_3d_jit_row. */
 extern int  rage128_jit_verify_pre(rage128_t *dev, r128_jit_tri_t *tri,
                                    const rage128_draw_state_t *dstate, r128_jit_span_fn fn,
-                                   int64_t e0, int64_t e1, int64_t e2, double zline,
+                                   int64_t e0, int64_t e1, int64_t e2, int64_t zline,
                                    uint32_t drow, uint32_t zrow, int32_t py,
                                    int c_tld, int z_tld);
 extern void rage128_jit_verify_post(rage128_t *dev, const r128_jit_tri_t *tri,
@@ -2300,7 +2374,7 @@ r128_row_owned(int32_t y, int thr_id, int thr_mask)
    must run the JIT through the same walk it checks. */
 extern uint64_t rage128_3d_jit_row(r128_jit_tri_t *jt, r128_jit_span_fn jfn,
                                    int64_t e0, int64_t e1, int64_t e2,
-                                   double zline, uint32_t drow, uint32_t zrow,
+                                   int64_t zline, uint32_t drow, uint32_t zrow,
                                    int32_t py, int c_tld, int z_tld,
                                    uint32_t bpp, uint32_t zbpp);
 extern void     rage128_3d_tri(rage128_t *dev, const rage128_raster_state_t *rs,
@@ -2517,7 +2591,7 @@ extern void rage128_gpu_2d_verify_bad(rage128_t *dev, int table,
    this is the jfn -- the JIT's tex-inline predicate does not cover it. */
 extern uint64_t rage128_gpu_capture_span(const r128_jit_tri_t *tri,
                                          int64_t e0, int64_t e1, int64_t e2,
-                                         double zline, uint32_t drow,
+                                         int64_t zline, uint32_t drow,
                                          uint32_t zrow, int32_t py);
 /* Covered columns [*cx0, *cx1] of one whole row under the capture's own
    edge clip; 0 when the row has none. Lets the tiled row walk skip the
@@ -2532,7 +2606,7 @@ extern int rage128_gpu_capture_row_cover(const r128_jit_tri_t *tri,
    since it only measures and does not draw. */
 extern uint64_t rage128_gpu_count_span(const r128_jit_tri_t *tri,
                                        int64_t e0, int64_t e1, int64_t e2,
-                                       double zline, uint32_t drow,
+                                       int64_t zline, uint32_t drow,
                                        uint32_t zrow, int32_t py);
 /* Scanout base latched: submit every outstanding slot and wait for it. */
 extern void rage128_gpu_present(rage128_t *dev);

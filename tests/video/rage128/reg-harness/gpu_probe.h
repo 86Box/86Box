@@ -78,12 +78,12 @@ int harness_gpu_gate(rage128_t *dev, const rage128_raster_state_t *rs);
 
 /* One captured span record, as the kernel reads it: the column range and
    row bases, plus the seeds the kernel starts the span from (the three
-   integer edge values and the depth seed's double bits at x0). */
+   integer edge values and the fixed-point depth seed at x0). */
 typedef struct harness_gpu_span_t {
     int32_t  x0, x1, py;
     uint32_t drow, zrow;
     int64_t  e0, e1, e2;
-    uint64_t zline;
+    int64_t  zline;
     uint32_t group; /* the workgroup group the flush puts it in */
     uint32_t rank;  /* its position in that group's order */
     uint32_t level; /* the leveler's pass for it: a span that shares a
@@ -98,7 +98,7 @@ typedef struct harness_gpu_cap_t {
     uint64_t need_px;
     uint32_t clo, chi;   /* prim_ranges color hazard interval             */
     uint32_t zlo, zhi;   /* ... and z                                      */
-    uint64_t dzdx;       /* the tri record's per-pixel depth step (bits)   */
+    int64_t  dzdx;       /* the tri record's per-pixel depth step (r128_zfx) */
     int64_t  edx[3];     /* ... and its per-pixel edge steps               */
     int      rowalias;   /* the run was flagged row-alias                  */
     uint32_t ngroups;    /* groups the flush splits the run into           */
@@ -138,7 +138,7 @@ typedef struct harness_gpu_sub_t {
     uint64_t toobig;      /* draws rejected after the exact count       */
     uint64_t miss;        /* reprice-consumption tripwire, must be 0    */
     uint32_t nspans;      /* span records the capture consumed          */
-    uint32_t seg_px;      /* pixels the capture consumed                */
+    uint32_t seg_px;      /* pixels in the span records the capture wrote */
 } harness_gpu_sub_t;
 
 /* Run one triangle through the production submit entry against a

@@ -8771,20 +8771,97 @@ gt_capture_leg(rage128_t *dev, const rage128_raster_state_t *rs,
     check_true(nm, cap.zlo <= blo && cap.zhi >= bhi);
 }
 
+static void
+check64(const char *what, uint64_t got, uint64_t want)
+{
+    if (got == want) {
+        g_pass++;
+    } else {
+        g_fail++;
+        printf("FAIL %-44s got %016llx want %016llx\n", what,
+               (unsigned long long) got, (unsigned long long) want);
+    }
+}
+
+/* The fixed-point depth helpers every lane shares, against values worked
+   out by hand from the format (depth times 2^39, rounded to nearest with
+   halves away from zero). The lane tests compare the lanes with each
+   other through these helpers, so this is the check that the helpers
+   themselves round, clamp, quantize and split the fog position as
+   specified. The quantize and fog rows also pin the raw fog fraction,
+   whose low bits a pixel comparison cannot always see. */
+static void
+vectors_zfx_helpers(void)
+{
+    const int64_t S = R128_ZFX_SEED_LIM, G = R128_ZFX_GRAD_LIM;
+    const int64_t one = R128_ZFX_ONE;
+    volatile double zero = 0.0;
+
+    check64("zfx: 0.5 is 2^38", (uint64_t) r128_zfx(0.5, S), 1ull << 38);
+    check64("zfx: 1.0 is 2^39", (uint64_t) r128_zfx(1.0, G), 1ull << 39);
+    check64("zfx: 2^-40 (half a unit) rounds up to 1",
+            (uint64_t) r128_zfx(1.0 / (double) (1ll << 40), S), 1);
+    check64("zfx: -2^-40 rounds away from zero to -1",
+            (uint64_t) r128_zfx(-1.0 / (double) (1ll << 40), S), (uint64_t) -1ll);
+    check64("zfx: 2^-41 (a quarter unit) rounds to 0",
+            (uint64_t) r128_zfx(1.0 / (double) (1ll << 41), S), 0);
+    check64("zfx: 3 * 2^-41 rounds to 1",
+            (uint64_t) r128_zfx(3.0 / (double) (1ll << 41), S), 1);
+    check64("zfx: -2^-41 rounds to 0",
+            (uint64_t) r128_zfx(-1.0 / (double) (1ll << 41), S), 0);
+    check64("zfx: -3 * 2^-41 rounds to -1",
+            (uint64_t) r128_zfx(-3.0 / (double) (1ll << 41), S), (uint64_t) -1ll);
+    check64("zfx: -0.0 is 0", (uint64_t) r128_zfx(-zero, S), 0);
+    check64("zfx: NaN is 0", (uint64_t) r128_zfx(zero / zero, S), 0);
+    check64("zfx: +inf clamps to the limit",
+            (uint64_t) r128_zfx(1.0 / zero, S), (uint64_t) S);
+    check64("zfx: -inf clamps to minus the limit",
+            (uint64_t) r128_zfx(-1.0 / zero, S), (uint64_t) -S);
+    check64("zfx: 512.0 as a gradient clamps to 2^47",
+            (uint64_t) r128_zfx(512.0, G), 1ull << 47);
+    check64("zfx: 1e300 as a seed clamps to 2^60",
+            (uint64_t) r128_zfx(1e300, S), 1ull << 60);
+
+    check64("zfx clamp: negative is 0", r128_zfx_clamp(-5), 0);
+    check64("zfx clamp: past 1.0 is 1.0", r128_zfx_clamp(one + 1), (uint64_t) one);
+    check64("zfx clamp: in range is unchanged", r128_zfx_clamp(7), 7);
+
+    /* (2^38 * (2^16 - 1) + 2^38) >> 39 = 2^54 >> 39 = 2^15, and the same
+       with 2^24 - 1 gives 2^23; 1.0 gives zmax exactly. */
+    check32("zfx quant: 0.5 at 16 bits", r128_zfx_quant(1ull << 38, 0xffffu), 0x8000u);
+    check32("zfx quant: 0.5 at 24 bits", r128_zfx_quant(1ull << 38, 0xffffffu), 0x800000u);
+    check32("zfx quant: 1.0 at 16 bits", r128_zfx_quant((uint64_t) one, 0xffffu), 0xffffu);
+    check32("zfx quant: 1.0 at 24 bits", r128_zfx_quant((uint64_t) one, 0xffffffu), 0xffffffu);
+    check32("zfx quant: one unit at 24 bits rounds to 0", r128_zfx_quant(1, 0xffffffu), 0);
+    /* 0.75 * (2^16 - 1) = 49151.25 and 0.75 * (2^24 - 1) = 12582911.25
+       round down; a multiplier of zmax + 1 would give 49152 and
+       12582912, which the rows above cannot tell apart. */
+    check32("zfx quant: 0.75 at 16 bits", r128_zfx_quant(3ull << 37, 0xffffu), 0xbfffu);
+    check32("zfx quant: 0.75 at 24 bits", r128_zfx_quant(3ull << 37, 0xffffffu), 0xbfffffu);
+
+    /* zc * 255 >> 7: 1.0 gives index 255, fraction 0; 0.5 gives 127.5,
+       index 127 and fraction 2^31; one unit gives 255 >> 7 = 1 and 2^7
+       units give 255 in the low word. */
+    check64("zfx fog: 1.0 is entry 255", r128_zfx_fogpos((uint64_t) one), 255ull << 32);
+    check64("zfx fog: 0.5 is entry 127, fraction 2^31",
+            r128_zfx_fogpos(1ull << 38), (127ull << 32) | 0x80000000ull);
+    check64("zfx fog: one unit is fraction 1", r128_zfx_fogpos(1), 1);
+    check64("zfx fog: 2^7 units is fraction 255", r128_zfx_fogpos(1ull << 7), 255);
+}
+
 /* Seeds of rows whose coverage starts and ends inside the triangle's
    bounding box. The tiled row walk does not call the capture on the
-   tile-column pieces left of a row's covered columns, but it must still
-   step the depth seed across them pixel by pixel, and it stops after the
-   piece holding the last covered column. The reference is the same
-   triangle on a linear target: one span per row (the target is narrower
-   than a 256-px chunk), seeded by the capture's own clip walk. Every
-   tiled piece of that row must then (a) partition the linear span's
-   columns exactly, (b) carry the linear edge values stepped by k * step
-   (exact integer math), and (c) carry the linear depth seed stepped by k
-   sequential double adds of the per-pixel step -- the same adds in the
-   same order from the same row seed, so the bits must be equal. A walk
-   that skipped the seed adds over the uncalled pieces, or used a
-   multiply, fails (c); one that stopped early fails (a). A walk that
+   tile-column pieces left of a row's covered columns, but each piece's
+   depth seed must still account for the columns before it, and the walk
+   stops after the piece holding the last covered column. The reference
+   is the same triangle on a linear target: one span per row (the target
+   is narrower than a 256-px chunk), seeded by the capture's own clip
+   walk. Every tiled piece of that row must then (a) partition the linear
+   span's columns exactly, (b) carry the linear edge values stepped by
+   k * step, and (c) carry the linear fixed-point depth seed plus k times
+   the per-pixel step. All three are exact integer math, so the values
+   must be equal. A walk that seeded a piece without the k columns before
+   it fails (c); one that stopped early fails (a). A walk that
    still called the empty pieces would pass: the capture emits nothing
    for them, so only a call count (not a span record) can see it. */
 static void
@@ -8796,7 +8873,7 @@ gt_seed_leg(rage128_t *dev, const rage128_raster_state_t *trs,
     r3d_vtx_t                 v[3];
     uint32_t                  bad_part = 0, bad_e = 0, bad_z = 0;
     uint32_t                  skipped = 0, stopped = 0, ti = 0;
-    double                    dz;
+    int64_t                   dz;
 
     /* Apex at the top middle, base across the bottom: the top rows cover
        a few columns around x = 32, inside the bbox [1, 63], so the
@@ -8821,7 +8898,7 @@ gt_seed_leg(rage128_t *dev, const rage128_raster_state_t *trs,
                    && lc.nspans > 0 && lc.got == lc.nspans);
     check_true("gpu tiled seeds: inset depth step is non-zero and the same on both",
                lc.dzdx != 0 && lc.dzdx == tc.dzdx);
-    memcpy(&dz, &lc.dzdx, 8);
+    dz = lc.dzdx;
 
     for (uint32_t li = 0; li < lc.got; li++) {
         const harness_gpu_span_t *L = &ls[li];
@@ -8834,8 +8911,6 @@ gt_seed_leg(rage128_t *dev, const rage128_raster_state_t *trs,
         for (; ti < tc.got && ts[ti].py == L->py; ti++) {
             const harness_gpu_span_t *P = &ts[ti];
             int64_t                   k = (int64_t) P->x0 - L->x0;
-            double                    z;
-            uint64_t                  zb;
 
             if (P->x0 != next || P->x1 < P->x0 || P->x1 > L->x1)
                 bad_part++;
@@ -8844,11 +8919,7 @@ gt_seed_leg(rage128_t *dev, const rage128_raster_state_t *trs,
                 || P->e1 != L->e1 + k * tc.edx[1]
                 || P->e2 != L->e2 + k * tc.edx[2])
                 bad_e++;
-            memcpy(&z, &L->zline, 8);
-            for (int64_t q = 0; q < k; q++)
-                z += dz;
-            memcpy(&zb, &z, 8);
-            if (zb != P->zline)
+            if (P->zline != L->zline + k * dz)
                 bad_z++;
         }
         if (next != L->x1 + 1)
@@ -13293,6 +13364,7 @@ run_agp_32mb(void)
     vectors_apertures(dev);
     vectors_aper_endian(dev);
     vectors_agp_image(dev);
+    vectors_zfx_helpers();
     vectors_dac_mask(dev);
     vectors_dpms(dev);
     vectors_ppll_atomic(dev);
@@ -16775,8 +16847,8 @@ vectors_lanegap_vga_barrier(rage128_t *dev)
 
 /* The modeled GPU accept price includes WINDOW_XY_OFFSET, matching the
    raster walk and hazard ranges. Shifted raw coordinates must not reduce
-   the bound below captured work. The ladder also respects GPU_PX_CAP
-   within one draw, including when raw coordinates lie off screen. */
+   the bound below captured work, including when raw coordinates lie off
+   screen. */
 static void
 vectors_lanegap_gpu_pricing(rage128_t *dev)
 {
@@ -16843,7 +16915,7 @@ vectors_lanegap_gpu_pricing(rage128_t *dev)
            (unsigned long long) sub.bound_px, sub.nspans, sub.seg_px);
 
     /* price collapses, walk covers the screen; seg_px must
-       stay inside the bound and the GPU_PX_CAP ladder allocation */
+       stay inside the bound */
     wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x7fff7fffu);
     rage128_raster_state_capture(dev, &rs);
     v[0].x = -8190.0f; v[0].y = -8190.0f;
@@ -16851,16 +16923,14 @@ vectors_lanegap_gpu_pricing(rage128_t *dev)
     v[2].x = -8190.0f; v[2].y = -1.0f;
     check_true("gpu pricing: probe ran",
                harness_gpu_submit_probe(dev, &rs, &v[0], &v[1], &v[2], &sub));
-    /* This window shift prices about 67 million pixels, beyond the cap.
-       Exact repricing or CPU fallback is valid; captured pixels must
-       stay within the bound and the tripwire must remain silent. */
+    /* This window shift prices far beyond the span cap. Exact repricing
+       or CPU fallback is valid; captured pixels must stay within the
+       bound and the tripwire must remain silent. */
     check_true("gpu pricing: oversized draw routes out with no silent miss",
                sub.miss == 0
                    && (sub.accepted == 0 || sub.seg_px <= sub.bound_px));
     check_true("gpu pricing: seg_px inside the accept bound",
                sub.seg_px <= sub.bound_px);
-    check_true("gpu pricing: seg_px inside GPU_PX_CAP",
-               sub.seg_px <= (8u << 20));
     printf("gpu pricing: data: bound_spans=%llu bound_px=%llu nspans=%u seg_px=%u\n",
            (unsigned long long) sub.bound_spans,
            (unsigned long long) sub.bound_px, sub.nspans, sub.seg_px);
@@ -16871,8 +16941,8 @@ vectors_lanegap_gpu_pricing(rage128_t *dev)
     v[2].x = -8190.0f; v[2].y = -8190.0f;
     check_true("gpu pricing: flip: probe ran",
                harness_gpu_submit_probe(dev, &rs, &v[0], &v[1], &v[2], &sub));
-    check_true("gpu pricing: flip: seg_px inside GPU_PX_CAP",
-               sub.seg_px <= (8u << 20));
+    check_true("gpu pricing: flip: seg_px inside the accept bound",
+               sub.miss == 0 && sub.seg_px <= sub.bound_px);
     printf("gpu pricing: flip data: bound_px=%llu nspans=%u seg_px=%u\n",
            (unsigned long long) sub.bound_px, sub.nspans, sub.seg_px);
     wr(dev, RAGE128_WINDOW_XY_OFFSET, 0);
