@@ -1,7 +1,7 @@
 // SPDX-License-Identifier: GPL-2.0-or-later
 #include <cstdint>
 #include <gtest/gtest.h>
-#include "../../src/device/kbc_at_vectra.h"
+#include "../../src/include/86box/kbc_test.h"
 
 TEST(VectraKbcTest, ExtendedSubcommandsHaveNoTrailingPayload)
 {
