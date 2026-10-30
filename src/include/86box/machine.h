@@ -1206,6 +1206,15 @@ extern int             machine_at_ms5124_init(const machine_t *);
 /* VLSI Wildcat */
 extern int             machine_at_zeoswildcat_init(const machine_t *);
 
+/* m_at_ibm_pc700.c */
+extern uint32_t        machine_at_ibm_pc700_gpio_handler(uint8_t write, uint32_t val);
+extern int             machine_at_ibm_pc700_init(const machine_t *);
+
+/* m_at_ibm_pc700_power.c */
+#ifdef EMU_DEVICE_H
+extern const device_t  ibm_pc700_power_device;
+#endif
+
 /* m_at_eisa_pci.c */
 /* i430HX */
 extern int             machine_at_54tdp_init(const machine_t *);
