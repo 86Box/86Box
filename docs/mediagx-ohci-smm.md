@@ -2,9 +2,8 @@
 
 Notes for people and agents working on the Cyrix MediaGX MMX + CS5530
 emulation (machine `p5gxm`, ECS P5GX-M, Award BIOS 09/25/1998, VSA
-`GXM55303`). Gathered on 2026-10-29 with the Windows 98 SE test VM
-(`build/src/p5gxm-98se`) and a USB keyboard and mouse
-(`keyboard_type = usb_keyboard`, `mouse_type = usb_mouse`).
+`GXM55303`). Gathered with a Windows 98 SE VM and a USB keyboard and
+mouse (`keyboard_type = usb_keyboard`, `mouse_type = usb_mouse`).
 
 ## Setup
 
@@ -33,8 +32,8 @@ emulation (machine `p5gxm`, ECS P5GX-M, Award BIOS 09/25/1998, VSA
   (write keyboard output buffer) to 64h and a **set 1** scan code to 60h;
   the KBC (command byte 67h) raises IRQ1 and INT 9 reads it as usual.
 - Because of the 16 ms poll, a key held for less than about 16-25 ms can be
-  missed entirely (box86mcp `type_text` at its default 50 ms per key
-  drops about one key in three in DOS; 160 ms per key drops none). Real
+  missed entirely (automated typing at 50 ms per key drops about one key
+  in three in DOS; 160 ms per key drops none). Real
   hardware behaves the same, since the HID device only reports its current
   state when polled.
 - Windows 98 SE loads its own OpenHCI driver early and takes the
@@ -55,8 +54,10 @@ emulation (machine `p5gxm`, ECS P5GX-M, Award BIOS 09/25/1998, VSA
   a **level**. Bit 6 routes it to the top-level status (F1BAR+00h/02h bit
   14). The handler (VSA) dispatches on the top-level status.
 - The model: `usb_smi_level` follows the OHCI SMI output; SMI# is low while
-  the top-level status has a bit set or while `usb_smi_level && 42h[7]`.
-  TOP_USB latches when the USB SMI asserts (42h bits 7 or 6, as before).
+  the top-level status has a bit other than TOP_USB set or while
+  `usb_smi_level && 42h[7]`. TOP_USB latches when the USB SMI asserts with
+  42h[6] (CS5530 data book rev 4.1, Table 4-14), and only drives SMI#
+  through 42h[7].
 - Do **not** re-latch TOP_USB when the top-level status is read while the
   USB SMI is still asserted. VSA reads F1BAR+02h/03h in a loop until it
   reads zero, so re-latching on read keeps it spinning inside one SMI and
@@ -75,14 +76,16 @@ OHCI board's BIOS):
 
 - With EmulationEnable set, the HC positively decodes 60h/64h (a chipset
   claim, `io_set_claim`, would need a way to return read data). Reading 60h
-  returns HceOutput and clears OutputFull (and AuxOutputFull). Reading 64h
+  returns HceOutput and clears OutputFull; AuxOutputFull is left as it is
+  (Table B-6). Reading 64h
   returns HceStatus. Writing either fills HceInput, sets InputFull, and
   sets CmdData (0 for 60h, 1 for 64h).
 - Gate A20 sequence (OpenHCI 1.0a p. 139): D1h to 64h sets GateA20Sequence
   and is captured **without** InputFull. The next byte to 60h sets
-  InputFull only if its bit 1 differs from A20State. FFh to 64h while the
-  sequence is active clears it without InputFull. Any other 64h write
-  clears it and sets InputFull.
+  InputFull only if its bit 1 differs from A20State. While the sequence is
+  active, a further D1h to 64h keeps it, again without InputFull, and FFh
+  to 64h clears it without InputFull. Any other 64h write clears it and
+  sets InputFull.
 - IRQEn: IRQ1 while OutputFull (IRQ12 when AuxOutputFull too).
 - Emulation interrupts follow HcControl.InterruptRouting (SMI or the normal
   HC interrupt) and are held off without PCI Memory Access. The

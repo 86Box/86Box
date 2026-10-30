@@ -234,15 +234,15 @@ extern double cpuclock;
 static void cs5530_pm_traps_recalc(cs5530_t *dev);
 
 /* ----------------------------------------------------------------------
-   SMI#. It is low while the top level status has a bit set, or while the
-   USB controller's SMI is asserted with 42h[7] routing it to the pin (Table
-   4-2, F0 Index 42h); an RSM with it still low is the next SMI (MediaGX
-   data book, 3.11.3).
+   SMI#. It is low while the top level status has a bit set other than the
+   USB one, or while the USB controller's SMI is asserted with 42h[7]
+   routing it to the pin (CS5530 data book, Table 4-14, F0 Index 42h); an
+   RSM with it still low is the next SMI (MediaGX data book, 3.11.3).
    ---------------------------------------------------------------------- */
 static void
 cs5530_smi_update(cs5530_t *dev)
 {
-    const int level = !!(dev->top_smi & ~TOP_SUSP_MOD) ||
+    const int level = !!(dev->top_smi & ~(TOP_SUSP_MOD | TOP_USB)) ||
                       (dev->usb_smi_level && (dev->pci_conf[0][0x42] & 0x80));
 
     if (level && !dev->smi_level)
@@ -586,6 +586,8 @@ cs5530_acpi_port_readl(UNUSED(uint16_t port), UNUSED(void *priv))
    ---------------------------------------------------------------------- */
 static void cs5530_f0_write(cs5530_t *dev, int addr, uint8_t val);
 
+static uint8_t cs5530_f0_read(cs5530_t *dev, int addr);
+
 static uint8_t
 cs5530_f1_read(uint32_t addr, void *priv)
 {
@@ -622,7 +624,8 @@ cs5530_f1_read(uint32_t addr, void *priv)
             ret = cs5530_acpi_count() >> ((addr & 3) << 3);
             break;
         case 0x50 ... 0xff:
-            ret = dev->pci_conf[0][addr];
+            /* F0's registers, the live and read-to-clear ones included */
+            ret = cs5530_f0_read(dev, addr);
             break;
 
         default:
@@ -1698,10 +1701,11 @@ cs5530_f0_write(cs5530_t *dev, int addr, uint8_t val)
         case 0x52:
             conf[addr] = val;
             port_92_set_features(dev->port_92, !!(val & 0x08), !!(val & 0x08));
+            /* port_92_add() does not check for the handler being there, and
+               each removal takes off one */
+            port_92_remove(dev->port_92);
             if (val & 0x08)
                 port_92_add(dev->port_92);
-            else
-                port_92_remove(dev->port_92);
             break;
         case 0x53:
             conf[addr] = (val & 0x7f) | 0x02;
@@ -1959,15 +1963,16 @@ cs5530_usb_irq(void *priv, int level)
 }
 
 /* Its SMI, a level: it holds SMI# low with 42h[7], so an RSM before the
-   handler clears the condition is the next SMI. The top level status (which
-   VSA dispatches on) latches it as it asserts, with either bit. */
+   handler clears the condition is the next SMI. The top level status bit 14
+   (which VSA dispatches on) latches it as it asserts with 42h[6]: the two
+   bits route it separately (Table 4-14). */
 static void
 cs5530_usb_smi(void *priv, int level)
 {
     cs5530_t *dev = (cs5530_t *) priv;
 
     dev->usb_smi_level = level;
-    if (level && (dev->pci_conf[0][0x42] & 0xc0))
+    if (level && (dev->pci_conf[0][0x42] & 0x40))
         dev->top_smi |= TOP_USB;
     cs5530_smi_update(dev);
 }
@@ -2129,6 +2134,7 @@ cs5530_reset(void *priv)
     timer_disable(&dev->vga_timer);
 
     port_92_set_features(dev->port_92, 1, 1);
+    port_92_remove(dev->port_92);
     port_92_add(dev->port_92);
 }
 

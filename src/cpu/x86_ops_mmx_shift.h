@@ -29,7 +29,7 @@ opPSxxW_imm(uint32_t fetchdat)
     if ((fetchdat & 0xc0) != 0xc0 || (op != 0x10 && op != 0x20 && op != 0x30)) {
         cpu_state.pc = cpu_state.oldpc;
         x86illegal();
-        return 0;
+        return 1;
     }
 
     cpu_state.pc += 2;
@@ -68,7 +68,7 @@ opPSxxW_imm(uint32_t fetchdat)
         default:
             cpu_state.pc = cpu_state.oldpc;
             x86illegal();
-            return 0;
+            return 1;
     }
 
     MMX_SETEXP(reg);
@@ -252,7 +252,7 @@ opPSxxD_imm(uint32_t fetchdat)
     if ((fetchdat & 0xc0) != 0xc0 || (op != 0x10 && op != 0x20 && op != 0x30)) {
         cpu_state.pc = cpu_state.oldpc;
         x86illegal();
-        return 0;
+        return 1;
     }
 
     cpu_state.pc += 2;
@@ -286,7 +286,7 @@ opPSxxD_imm(uint32_t fetchdat)
         default:
             cpu_state.pc = cpu_state.oldpc;
             x86illegal();
-            return 0;
+            return 1;
     }
 
     MMX_SETEXP(reg);
@@ -458,7 +458,7 @@ opPSxxQ_imm(uint32_t fetchdat)
     if ((fetchdat & 0xc0) != 0xc0 || (op != 0x10 && op != 0x30)) {
         cpu_state.pc = cpu_state.oldpc;
         x86illegal();
-        return 0;
+        return 1;
     }
 
     cpu_state.pc += 2;
@@ -484,7 +484,7 @@ opPSxxQ_imm(uint32_t fetchdat)
         default:
             cpu_state.pc = cpu_state.oldpc;
             x86illegal();
-            return 0;
+            return 1;
     }
 
     MMX_SETEXP(reg);

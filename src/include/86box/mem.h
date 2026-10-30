@@ -123,6 +123,8 @@
                                      by the bus (mem_set_cache_access). */
 #define MEM_MAPPING_CPU_ONLY  256 /* The processor's own: seen by its accesses and never
                                      by a bus master's (mem_*_phys). */
+#define MEM_MAPPING_NO_CODEGEN 512 /* Code in it is interpreted: writes to its memory are
+                                      not tracked at its own address. */
 
 /* #define's for memory granularity, currently 4k, less does
    not work because of internal 4k pages. */
@@ -439,6 +441,8 @@ extern int mem_addr_is_ram(uint32_t addr);
 extern uint64_t mmutranslate_noabrt(uint32_t addr, int rw);
 
 extern void mem_invalidate_range(uint32_t start_addr, uint32_t end_addr);
+extern int  mem_phys_has_code(uint32_t addr, uint32_t len);
+extern void mem_phys_written(uint32_t addr, uint32_t len);
 extern void mem_set_ram_alias(uint32_t base, uint32_t ram_addr, uint32_t size, int set);
 
 extern void mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page);

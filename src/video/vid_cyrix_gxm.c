@@ -235,7 +235,8 @@ typedef struct gxm_video_t {
     uint32_t   ma;
     int        lineno; /* The frame buffer line, for line doubling */
     int        blink;
-    int        output;  /* This display is the one shown */
+    int        output;   /* This display is the one shown */
+    int        override; /* A pass-through card (the Voodoo) has the monitor */
 } gxm_video_t;
 
 void *gxm_video = NULL;
@@ -265,6 +266,17 @@ gxm_gmem(gxm_video_t *dev, uint32_t offset)
     }
 
     return &ram[dev->gmem_base + offset];
+}
+
+/* The graphics pipeline and the VGA path wrote len bytes of graphics memory
+   straight to RAM: invalidate any code compiled from them, as the aperture
+   writes do (gxm_gmem_has_code). */
+static inline void
+gxm_gmem_written(gxm_video_t *dev, uint32_t offset, uint32_t len)
+{
+    offset &= 0x003fffff;
+    if (cpu_use_exec && ((offset + 4) <= dev->gmem_size) && mem_phys_has_code(dev->gmem_base + offset, len))
+        mem_phys_written(dev->gmem_base + offset, len);
 }
 
 void
@@ -428,11 +440,13 @@ gxm_vga_writeb_internal(gxm_video_t *dev, uint32_t off, uint8_t val)
     out   = gxm_rop(dev->raster_mode & 0xff, pmask, data, dev->vga_latch);
 
     planes &= (wr >> 24) & 0x0f;
-    p = gxm_gmem(dev, gxm_vga_mem_offset(dev, addr));
+    addr = gxm_vga_mem_offset(dev, addr);
+    p    = gxm_gmem(dev, addr);
     for (int i = 0; i < 4; i++) {
         if (planes & (1 << i))
             p[i] = out >> (i << 3);
     }
+    gxm_gmem_written(dev, addr, 4);
 }
 
 /* The SMI on a write to displayed VGA memory: in the decode stage, for the
@@ -564,12 +578,14 @@ gxm_gp_fb_read(gxm_video_t *dev, int x, int y)
 static void
 gxm_gp_fb_write(gxm_video_t *dev, int x, int y, uint32_t val)
 {
-    uint8_t *p = gxm_gmem(dev, gxm_gp_fb_offset(dev, x, y));
+    const uint32_t offset = gxm_gp_fb_offset(dev, x, y);
+    uint8_t       *p      = gxm_gmem(dev, offset);
 
     if (gxm_gp_bpp(dev) == 2)
         *(uint16_t *) p = val;
     else
         *p = val;
+    gxm_gmem_written(dev, offset, gxm_gp_bpp(dev));
 }
 
 static inline uint8_t
@@ -647,8 +663,12 @@ gxm_gp_blt(gxm_video_t *dev)
     const int      yrev     = !!(dev->blt_mode & BM_YREV);
     const int      dst_x    = (int16_t) (dev->dst_xy & 0xffff);
     const int      dst_y    = (int16_t) (dev->dst_xy >> 16);
-    const int      width    = dev->wh & 0xffff;
-    const int      height   = dev->wh >> 16;
+    /* Bounded to what the frame buffer holds: a line of GXM_BLT_LINE_MAX
+       pixels, and as many lines as the 22-bit graphics memory offset
+       (gxm_gmem) reaches at the pitch, so one BLT_MODE write cannot run
+       65535 x 65535 pixels */
+    const int      width    = MIN(dev->wh & 0xffff, GXM_BLT_LINE_MAX);
+    const int      height   = MIN(dev->wh >> 16, 0x00400000 / ((dev->blt_status & BS_W2048) ? 2048 : 1024));
     const int      src_x    = (int16_t) (dev->src_xy & 0xffff);
     const int      src_y    = (int16_t) (dev->src_xy >> 16);
     const int      mono     = (sm == 1) || (sm == 3);
@@ -1288,7 +1308,7 @@ gxm_poll(void *priv)
         if (dev->displine < dev->vdisp) {
             if (dev->displine == 0)
                 video_wait_for_buffer();
-            if (dev->output)
+            if (dev->output && !dev->override)
                 gxm_render_line(dev, dev->displine);
 
             /* The next frame buffer line; line doubling scans each twice. */
@@ -1306,7 +1326,7 @@ gxm_poll(void *priv)
         if (dev->displine == dev->vdisp) {
             dev->dc[DC_TIMING_CFG] |= TC_VNA;
 
-            if (dev->output) {
+            if (dev->output && !dev->override) {
                 if ((dev->hdisp != xsize) || (dev->vdisp != ysize) || video_force_resize_get()) {
                     xsize = dev->hdisp;
                     ysize = dev->vdisp;
@@ -1423,7 +1443,9 @@ gxm_dc_read(uint32_t addr, void *priv)
             ret = dev->displine & 0x7ff;
             break;
         case DC_PAL_DATA:
-            ret = dev->palette[dev->dc[DC_PAL_ADDRESS] & 0x1ff];
+            /* PAL_ADDRESS takes up to 1FFh; past the 105h entries there is
+               nothing to read */
+            ret = ((dev->dc[DC_PAL_ADDRESS] & 0x1ff) < 0x105) ? dev->palette[dev->dc[DC_PAL_ADDRESS] & 0x1ff] : 0x00000000;
             if ((dev->dc[DC_PAL_ADDRESS] & 0x1ff) < 0x104)
                 dev->dc[DC_PAL_ADDRESS]++;
             break;
@@ -1575,6 +1597,8 @@ gxm_video_close(void *priv)
 {
     gxm_video_t *dev = (gxm_video_t *) priv;
 
+    if (dev->output)
+        video_set_override_handler(NULL, NULL);
     gxm_video = NULL;
     free(dev);
 }
@@ -1583,6 +1607,17 @@ static void
 gxm_video_speed_changed(void *priv)
 {
     gxm_recalctimings((gxm_video_t *) priv);
+}
+
+static void
+gxm_video_set_override(void *priv, int val)
+{
+    gxm_video_t *dev = (gxm_video_t *) priv;
+
+    /* Back from the Voodoo: the next frame sets the screen size again. */
+    if (dev->override && !val)
+        video_force_resize_set(1);
+    dev->override = val;
 }
 
 static void
@@ -1609,8 +1644,10 @@ gxm_video_init(UNUSED(const device_t *info))
 
     /* The display is the machine's own one, unless a card is used. */
     dev->output = (gfxcard[0] == VID_INTERNAL);
-    if (dev->output)
+    if (dev->output) {
         video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_gxm);
+        video_set_override_handler(dev, gxm_video_set_override);
+    }
 
     for (int i = 0; i < 256; i++)
         dev->gamma[i] = i * 0x010101;

@@ -450,6 +450,16 @@ gxm_gmem_readl(uint32_t addr, void *priv)
     return *(uint32_t *) &ram[dev->gmem_base + addr];
 }
 
+/* Graphics memory is RAM. A write through the aperture to bytes that
+   compiled code was built from (graphics memory placed where the OS keeps
+   code), in blocks tracked by word or by byte, goes through the RAM write
+   path, which invalidates it; frame buffer writes otherwise stay direct. */
+static inline int
+gxm_gmem_has_code(uint32_t a, int len)
+{
+    return cpu_use_exec && mem_phys_has_code(a, len);
+}
+
 static void
 gxm_gmem_write(uint32_t addr, uint8_t val, void *priv)
 {
@@ -457,7 +467,12 @@ gxm_gmem_write(uint32_t addr, uint8_t val, void *priv)
 
     addr &= (GMEM_SIZE - 1);
     if (addr < dev->gmem_size) {
-        ram[dev->gmem_base + addr] = val;
+        const uint32_t a = dev->gmem_base + addr;
+
+        if (gxm_gmem_has_code(a, 1))
+            mem_write_ramb_page(a, val, &pages[a >> 12]);
+        else
+            ram[a] = val;
         gxm_video_gmem_written(gxm_video, addr, 1);
     }
 }
@@ -468,7 +483,7 @@ gxm_gmem_writew(uint32_t addr, uint16_t val, void *priv)
     const cyrix_gxm_t *dev = (cyrix_gxm_t *) priv;
 
     addr &= (GMEM_SIZE - 1);
-    if ((addr + 2) > dev->gmem_size) {
+    if (((addr + 2) > dev->gmem_size) || gxm_gmem_has_code(dev->gmem_base + addr, 2)) {
         gxm_gmem_write(addr, val & 0xff, priv);
         gxm_gmem_write(addr + 1, val >> 8, priv);
     } else {
@@ -483,7 +498,7 @@ gxm_gmem_writel(uint32_t addr, uint32_t val, void *priv)
     const cyrix_gxm_t *dev = (cyrix_gxm_t *) priv;
 
     addr &= (GMEM_SIZE - 1);
-    if ((addr + 4) > dev->gmem_size) {
+    if (((addr + 4) > dev->gmem_size) || gxm_gmem_has_code(dev->gmem_base + addr, 4)) {
         gxm_gmem_writew(addr, val & 0xffff, priv);
         gxm_gmem_writew(addr + 2, val >> 16, priv);
     } else {

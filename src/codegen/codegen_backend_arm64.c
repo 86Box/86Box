@@ -615,7 +615,8 @@ rep_step_offset(codeblock_t *block, int off_reg, int delta_reg, int a32)
   In  - W0 = source segment offset in cpu_state (bits 0-11), cycle limit
              (bits 12-23), cycles per element (bits 24-31)
   Out - W0 = 0 to carry on with the block, non-zero to leave it with
-             cpu_state.pc set back to the instruction
+             cpu_state.pc set back to the instruction, or left at the next
+             one, which the caller sets, after an SMI on the last element
 
   Does what the interpreter's REP handlers in x86_ops_rep_dyn.h do: the same
   cycles per element, and the block ends at the same element when the string
@@ -635,11 +636,13 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*ele
     uint32_t *to_done;
     uint32_t *to_break[2];
     uint32_t *to_abort;
+    uint32_t *to_smi;
     uint32_t *branch;
     uint32_t *branch2;
     uint8_t  *loop;
     uint8_t  *target;
     uint8_t  *done_ret;
+    uint8_t  *set_pc;
 
     /*Unpack the parameters*/
     host_arm64_UBFX(block, REG_W1, REG_W0, 12, 12);
@@ -919,6 +922,12 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*ele
     rep_step_offset(block, REP_DST, REP_STEP, a32);
     host_arm64_SUB_IMM(block, REP_CNT, REP_CNT, 1);
     host_arm64_SUB_REG(block, REP_CYCLES, REP_CYCLES, REP_ELEMCYC, 0);
+    /*An element that raised an SMI (a trapped write) ends the instruction,
+      as the interpreter's loop does. Only these elements can: the runs copy
+      RAM through direct lookups, which nothing traps.*/
+    host_arm64_LDRB_IMM_W(block, REG_W0, REG_CPUSTATE, rep_state_offset(&cpu_state._smi_line));
+    host_arm64_CMP_IMM(block, REG_W0, 0);
+    to_smi = host_arm64_BNE_(block);
     host_arm64_CMP_REG(block, REP_CYCLES, REP_END);
     to_break[1] = host_arm64_BLT_(block);
     host_arm64_B(block, loop);
@@ -944,8 +953,19 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*ele
     rep_writeback(block, is_stos, a32);
 
     host_arm64_branch_set_offset(branch, &block_write_data[block_pos]);
+    set_pc = &block_write_data[block_pos];
     host_arm64_LDR_IMM_W(block, REG_W1, REG_CPUSTATE, rep_state_offset(&cpu_state.oldpc));
     host_arm64_STR_IMM_W(block, REG_W1, REG_CPUSTATE, rep_state_offset(&cpu_state.pc));
+    host_arm64_mov_imm(block, REG_W0, 1);
+    host_arm64_RET(block, REG_X30);
+
+    /*SMI: leave the block for it, restarting the instruction if elements are
+      left, otherwise after it, where the caller has set cpu_state.pc*/
+    host_arm64_branch_set_offset(to_smi, &block_write_data[block_pos]);
+    rep_writeback(block, is_stos, a32);
+    host_arm64_CMP_IMM(block, REP_CNT, 0);
+    branch = host_arm64_BNE_(block);
+    host_arm64_branch_set_offset(branch, set_pc);
     host_arm64_mov_imm(block, REG_W0, 1);
     host_arm64_RET(block, REG_X30);
 

@@ -854,7 +854,8 @@ codegen_check_flush(page_t *page, UNUSED(uint64_t mask), UNUSED(uint32_t phys_ad
     page->code_present_mask &= ~page->dirty_mask;
     page->dirty_mask = 0;
 
-    for (uint8_t c = 0; c < 64; c++) {
+    /* A page with no RAM behind it has no byte masks of its own */
+    for (uint8_t c = 0; (c < 64) && (page->mem != page_ff); c++) {
         if (page->byte_code_present_mask[c] & page->byte_dirty_mask[c])
             remove_from_evict_list = 0;
         page->byte_code_present_mask[c] &= ~page->byte_dirty_mask[c];

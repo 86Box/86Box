@@ -763,6 +763,7 @@ typedef struct voodoo_t {
 
     int      force_blit_count;
     int      can_blit;
+    int      override; /* Pass-through on a primary display that is not an svga_t */
     mutex_t *force_blit_mutex;
 
     int   use_recompiler;
