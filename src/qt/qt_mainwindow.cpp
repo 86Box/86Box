@@ -1800,7 +1800,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         }
     }
 
-    if (!main_window_blocked && !dopause && (!kbd_req_capture || mouse_capture) && isActiveWindow()) {
+    if (!main_window_blocked && !dopause && (!kbd_req_capture || mouse_capture) && isMainWindowOrRendererActive()) {
 #if 0
         if (event->type() == QEvent::Shortcut) {
             auto shortcutEvent = (QShortcutEvent *) event;
@@ -1984,7 +1984,7 @@ MainWindow::showMessage_(int flags, const QString &header, const QString &messag
 void
 MainWindow::keyPressEvent(QKeyEvent *event)
 {
-    if (!isActiveWindow())
+    if (!isMainWindowOrRendererActive())
         return;
     if (send_keyboard_input) {
 #ifdef Q_OS_MACOS
@@ -1995,6 +1995,20 @@ MainWindow::keyPressEvent(QKeyEvent *event)
     }
 
     event->accept();
+}
+
+bool
+MainWindow::isMainWindowOrRendererActive() const
+{
+    if (QMainWindow::isActiveWindow())
+        return true;
+
+    for (const auto &renderer : renderers) {
+        if (renderer && renderer->isActiveWindow())
+            return true;
+    }
+
+    return false;
 }
 
 void
@@ -2012,7 +2026,7 @@ MainWindow::blitToWidget(int x, int y, int w, int h, int monitor_index)
 void
 MainWindow::keyReleaseEvent(QKeyEvent *event)
 {
-    if (!isActiveWindow())
+    if (!isMainWindowOrRendererActive())
         return;
     if (event->key() == Qt::Key_Pause) {
         if (keyboard_recv_ui(0x38) && keyboard_recv_ui(0x138)) {
