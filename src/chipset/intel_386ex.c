@@ -43,12 +43,11 @@
  *
  *          SIOCFG picks the UART baud-rate clocks, from SERCLK or the COMCLK
  *          pin, which the board drives. SIO0 interrupts on the master's IR4
- *          and SIO1 on its IR3 while INTCFG's IR4 or IR3 bit is clear. While
- *          the bit is set, the UART's MCR OUT2 bit picks between it and the
- *          INT9 or INT8 pin (Tables 5-1 and 5-2), which are not emulated, so
- *          the UART is only connected while OUT2 is set. The UARTs gate their
- *          interrupts with OUT2 as on a PC, which the real chip does not do
- *          while the INTCFG bit is clear.
+ *          and SIO1 on its IR3 (Tables 5-2 and 5-1). While INTCFG's IR4 or
+ *          IR3 bit is clear, the UART is connected to the IR whatever its MCR
+ *          OUT2 bit is. While the bit is set, OUT2 picks between the UART
+ *          (OUT2 set) and the INT9 or INT8 pin (OUT2 clear), so the UART's
+ *          interrupt is gated by OUT2 as on a PC; the pins are not emulated.
  *
  * Authors: Nathan Lewis, <git@nrlewis.dev>
  *
@@ -81,15 +80,11 @@
 #define TMR0_PC       0x0040
 #define RBR0_PC       0x03f8
 #define RBR1_PC       0x02f8
-#define MCR0_PC       0x03fc
-#define MCR1_PC       0x02fc
 #define ICW1M         0xf020
 #define ICW1S         0xf0a0
 #define TMR0          0xf040
 #define RBR0          0xf4f8
 #define RBR1          0xf8f8
-#define MCR0          0xf4fc
-#define MCR1          0xf8fc
 #define PWRCON        0xf800
 #define CLKPRS        0xf804
 #define P1CFG         0xf820
@@ -113,8 +108,6 @@
 
 #define SIOCFG_S1BSRC 0x02
 #define SIOCFG_S0BSRC 0x01
-
-#define MCR_OUT2      0x08
 
 #define PORTS         3
 
@@ -180,8 +173,6 @@ i386ex_log(const char *fmt, ...)
 static const uint16_t uart_base[2]   = { RBR0_PC, RBR1_PC };
 static const uint16_t uart_ex[2]     = { RBR0, RBR1 };
 static const uint16_t uart_remap[2]  = { REMAP_S0R, REMAP_S1R };
-static const uint16_t uart_mcr[2]    = { MCR0_PC, MCR1_PC };
-static const uint16_t uart_mcr_ex[2] = { MCR0, MCR1 };
 static const uint8_t  uart_irq[2]    = { 4, 3 };
 static const uint8_t  uart_intcfg[2] = { INTCFG_IR4, INTCFG_IR3 };
 
@@ -313,35 +304,17 @@ i386ex_uart_clock(i386ex_t *dev)
 }
 
 /*
-   A UART's IRQ: its IR while INTCFG's bit for the IR is clear or the UART's
-   OUT2 is set, and none otherwise (Tables 5-1 and 5-2).
+   The UARTs' interrupts reach their IRs whatever OUT2 is while INTCFG's bit
+   for the IR is clear, and only while OUT2 is set otherwise (Tables 5-1 and
+   5-2).
  */
-static uint8_t
-i386ex_uart_irq(const i386ex_t *dev, int n)
-{
-    if (!(dev->intcfg & uart_intcfg[n]) || (dev->uart[n]->mctrl & MCR_OUT2))
-        return uart_irq[n];
-
-    return 0xff;
-}
-
 static void
 i386ex_uart_connect(const i386ex_t *dev)
 {
     for (int n = 0; n < 2; n++) {
         if (i386ex_uart_present(dev, n))
-            serial_irq(dev->uart[n], i386ex_uart_irq(dev, n));
+            serial_set_irq_direct(dev->uart[n], !(dev->intcfg & uart_intcfg[n]));
     }
-}
-
-/*
-   Follows the MCR writes, which the UART takes itself, for OUT2. This handler
-   is added after the UART's, so it runs after the UART has stored the value.
- */
-static void
-i386ex_uart_mcr_write(UNUSED(uint16_t port), UNUSED(uint8_t val), void *priv)
-{
-    i386ex_uart_connect((i386ex_t *) priv);
 }
 
 /* PSCLK, which clocks the timer, is the internal clock divided by CLKPRS + 2. */
@@ -394,14 +367,11 @@ i386ex_map_peripherals(i386ex_t *dev, int set, int expanded, uint16_t mask)
         if (!expanded) {
             /* Through serial_setup(), so that the UART knows its own address. */
             if (set)
-                serial_setup(dev->uart[n], uart_base[n], i386ex_uart_irq(dev, n));
+                serial_setup(dev->uart[n], uart_base[n], uart_irq[n]);
             else
                 serial_remove(dev->uart[n]);
         } else
             io_handler(set, uart_ex[n], 8, serial_read, NULL, NULL, serial_write, NULL, NULL, dev->uart[n]);
-
-        io_handler(set, expanded ? uart_mcr_ex[n] : uart_mcr[n], 1,
-                   NULL, NULL, NULL, i386ex_uart_mcr_write, NULL, NULL, dev);
     }
 }
 
@@ -663,6 +633,7 @@ i386ex_init(const device_t *info)
         dev->uart[1] = device_add_inst(&ns16450_device, 2);
 
     i386ex_map_peripherals(dev, 1, 0, REMAP_S0R | REMAP_S1R);
+    i386ex_uart_connect(dev);
     i386ex_uart_clock(dev);
     i386ex_timer_clock(dev);
 
