@@ -162,6 +162,7 @@ extern void rtc_tick(void);
 
 extern void  nvr_init(nvr_t *);
 extern int   nvr_load(void);
+extern int   nvr_load_default(nvr_t *nvr, const char *fn);
 extern void  nvr_close(void);
 extern void  nvr_set_ven_save(void (*ven_save)(void));
 extern int   nvr_save(void);

@@ -666,6 +666,16 @@ extern int             machine_at_kmxc02_init(const machine_t *);
 /* WD76C10 */
 extern int             machine_at_wd76c10_init(const machine_t *);
 
+/* m_at_386ex.c */
+/* Intel 386EX-based embedded systems */
+#ifdef EMU_DEVICE_H
+extern const device_t  ts3x00_device;
+#endif
+extern uint32_t        machine_at_ts3x00_gpio_handler(uint8_t write, uint32_t val);
+extern int             machine_at_ts3100_init(const machine_t *);
+extern int             machine_at_ts3200_init(const machine_t *);
+extern int             machine_at_ts3400_init(const machine_t *);
+
 /* m_at_m6117.c */
 /* ALi M6117D */
 extern int             machine_at_pja511m_init(const machine_t *);
