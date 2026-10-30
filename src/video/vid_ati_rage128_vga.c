@@ -53,7 +53,10 @@
    a handler only picks the half, adds its bank and takes the svga
    core's linear path -- the split-bank shape of vid_ati_mach64.c. The
    GPU barrier orders the access against the optional GPU backend's
-   pending work on those bytes; synctel is the optional access record.  */
+   pending work on those bytes; synctel is the optional access record.
+   A store marks every page host-newer for the GPU backend's VRAM
+   mirror: the core's linear path still applies the chain and plane
+   modes, so the byte it stores is not known here. */
 /* ------------------------------------------------------------------ */
 static uint8_t
 rage128_aper_read(uint32_t addr, void *priv)
@@ -105,6 +108,7 @@ rage128_aper_write(uint32_t addr, uint8_t val, void *priv)
     if (dev->gpu)
         rage128_gpu_cpu_barrier(dev, addr, 1, 1);
     svga_write_linear(addr, val, &dev->svga);
+    r128_vram_hnew_all(dev);
 }
 
 static void
@@ -118,6 +122,7 @@ rage128_aper_writew(uint32_t addr, uint16_t val, void *priv)
     if (dev->gpu)
         rage128_gpu_cpu_barrier(dev, addr, 2, 1);
     svga_writew_linear(addr, val, &dev->svga);
+    r128_vram_hnew_all(dev);
 }
 
 static void
@@ -131,6 +136,7 @@ rage128_aper_writel(uint32_t addr, uint32_t val, void *priv)
     if (dev->gpu)
         rage128_gpu_cpu_barrier(dev, addr, 4, 1);
     svga_writel_linear(addr, val, &dev->svga);
+    r128_vram_hnew_all(dev);
 }
 
 /* B0000 / B8000 windows. The svga core resolves these through its
@@ -139,7 +145,8 @@ rage128_aper_writel(uint32_t addr, uint32_t val, void *priv)
    idle engine and an empty texture cache that is two compares; a cached
    texture level that overlaps a text-window store is exactly the case
    the barrier's invalidate exists for. synctel is skipped: its record
-   wants the resolved address, which only the core computes. */
+   wants the resolved address, which only the core computes, and a store
+   marks every page host-newer for the same reason. */
 static uint8_t
 rage128_bwin_read(uint32_t addr, void *priv)
 {
@@ -178,6 +185,7 @@ rage128_bwin_write(uint32_t addr, uint8_t val, void *priv)
     if (dev->gpu)
         rage128_gpu_cpu_barrier(dev, 0, dev->vram_mask + 1u, 1);
     svga_write(addr, val, &dev->svga);
+    r128_vram_hnew_all(dev);
 }
 
 static void
@@ -188,6 +196,7 @@ rage128_bwin_writew(uint32_t addr, uint16_t val, void *priv)
     if (dev->gpu)
         rage128_gpu_cpu_barrier(dev, 0, dev->vram_mask + 1u, 1);
     svga_writew(addr, val, &dev->svga);
+    r128_vram_hnew_all(dev);
 }
 
 static void
@@ -198,6 +207,7 @@ rage128_bwin_writel(uint32_t addr, uint32_t val, void *priv)
     if (dev->gpu)
         rage128_gpu_cpu_barrier(dev, 0, dev->vram_mask + 1u, 1);
     svga_writel(addr, val, &dev->svga);
+    r128_vram_hnew_all(dev);
 }
 
 /* Legacy window placement from VGA graphics controller register 6 bits

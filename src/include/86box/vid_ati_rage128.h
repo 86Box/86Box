@@ -1030,6 +1030,17 @@ typedef struct rage128_t {
                                   aligned allocator, which is not free()-
                                   compatible on every host; rage128_gpu_close
                                   owns the release, svga_close must not see it */
+    /* Host-newer page map of the GPU backend's device-local VRAM mirror,
+       one byte per 4 KB page of local memory; NULL with the backend off.
+       A 1 means svga.vram may hold bytes in that page that the mirror
+       lacks. Every writer of svga.vram other than a command the backend
+       also applies to the mirror sets it after its store
+       (r128_vram_hnew); only the submit thread clears it, as it records
+       the copy of that page into the mirror. hnew_all is the same mark
+       for every page at once, set by writers whose resolved address is
+       not known here. */
+    atomic_uchar *vram_hnew;
+    atomic_uchar  vram_hnew_all;
 
     /* Staging for texture levels the workers do not read straight from
        VRAM. The 3D texel sampler runs on the raster workers, and the AGP
@@ -1397,6 +1408,10 @@ typedef struct r128_surf_t {
     uint32_t                   rel;  /* card address of base[0]              */
     uint32_t                   mask; /* wrap bound applied to (addr - rel)   */
     struct rage128_span_stage *st;   /* staged backing store, NULL = local   */
+    /* a local window's VRAM bytes, [wlo, wlo + wlen), marked host-newer
+       for the GPU backend's mirror when a read-write window is committed;
+       wlen 0 for a staged window, whose write-back marks its own stores */
+    uint32_t wlo, wlen;
 } r128_surf_t;
 
 static inline uint8_t *
@@ -2496,6 +2511,12 @@ extern int rage128_gpu_submit_line(rage128_t *dev, const rage128_raster_state_t 
                                    const r3d_vtx_t *a, const r3d_vtx_t *b);
 extern int rage128_gpu_submit_point(rage128_t *dev, const rage128_raster_state_t *rs,
                                     const r3d_vtx_t *v);
+/* A primitive the backend refused is about to be drawn on the CPU into
+   svga.vram: mark its color and depth rows host-newer for the mirror.
+   Submit thread; b and c may be NULL (a point, a line). */
+extern void rage128_gpu_cpu_prim(rage128_t *dev, const rage128_raster_state_t *rs,
+                                 const r3d_vtx_t *a, const r3d_vtx_t *b,
+                                 const r3d_vtx_t *c);
 #define R128_GPU_2D_REG_GUI  0x100u
 #define R128_GPU_2D_REG_BRES 0x101u
 /* Ordering point for a 2D operation: submit the pending segment so the
@@ -2714,6 +2735,41 @@ r128_texcache_dirty(rage128_t *dev, uint32_t lo, uint32_t len)
         ts->n_kill++;
     }
     r128_texcache_unlock(ts);
+}
+/* Local bytes [lo, lo+len) of svga.vram have been stored to, so the GPU
+   backend's mirror may lack them: mark their pages host-newer. Called
+   after the store. The release store orders the bytes before the mark,
+   and the submit thread clears the mark with an acquire exchange before
+   it records the page's copy, so the copy sees every store whose mark it
+   cleared; a store that lands after the clear sets the mark again and is
+   copied by the next segment that reads the page. A store and its mark
+   on the submit thread itself cannot be split by a recording, so a
+   submit-thread writer may also mark before it stores. len wraps
+   through vram_mask by pages, as the changedvram walks do. */
+static inline void
+r128_vram_hnew(rage128_t *dev, uint32_t lo, uint32_t len)
+{
+    atomic_uchar *h = dev->vram_hnew;
+    uint32_t      m = dev->vram_mask;
+
+    if (!h || !len)
+        return;
+    if (len > m) {
+        atomic_store_explicit(&dev->vram_hnew_all, 1, memory_order_release);
+        return;
+    }
+    for (uint32_t o = 0; o < len; o += 0x1000u)
+        atomic_store_explicit(&h[((lo + o) & m) >> 12], 1, memory_order_release);
+    atomic_store_explicit(&h[((lo + len - 1u) & m) >> 12], 1, memory_order_release);
+}
+
+/* Every page host-newer: for a store whose resolved address is not known
+   to the device (the svga core's planar and banked paths). */
+static inline void
+r128_vram_hnew_all(rage128_t *dev)
+{
+    if (dev->vram_hnew)
+        atomic_store_explicit(&dev->vram_hnew_all, 1, memory_order_release);
 }
 extern int rage128_gpu_stage_grow(rage128_t *dev, uint32_t need);
 /* Staged color and Z targets and the GPU: the c_stage and z_stage

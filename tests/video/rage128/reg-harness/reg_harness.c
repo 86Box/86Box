@@ -112,6 +112,12 @@ static void
 wr(rage128_t *dev, uint32_t off, uint32_t val)
 {
     rage128_reg_write(dev, off, val, 0xffffffffu);
+    /* Tests store textures and surfaces straight into svga.vram, which no
+       guest can do: every device-side store marks its pages host-newer
+       for the GPU backend's VRAM mirror itself. So every register write
+       a test makes marks all of VRAM, the way a device store would mark
+       the bytes the test poked before it. */
+    r128_vram_hnew_all(dev);
 }
 
 static void
@@ -2600,6 +2606,9 @@ drain_sync(rage128_t *dev)
 static void
 flush_sync(rage128_t *dev)
 {
+    /* tests poke svga.vram between a draw's capture and this flush, which
+       records it: mark those stores for the GPU mirror, as wr() does */
+    r128_vram_hnew_all(dev);
     rage128_raster_flush(dev);
     gpu_sync(dev);
 }

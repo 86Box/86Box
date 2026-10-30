@@ -365,6 +365,7 @@ rage128_lfb_writeb(uint32_t addr, uint8_t val, void *priv)
         t2 = rage128_now_ns();
     svga->vram[addr]              = val;
     svga->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
+    r128_vram_hnew(dev, addr, 1);
     if (t0)
         rage128_lfbt_leave(dev, t0, t1, t2, rage128_now_ns());
 }
@@ -408,6 +409,7 @@ rage128_lfb_write_n(uint32_t addr, uint32_t val, void *priv, uint32_t len)
     else
         *(uint32_t *) &svga->vram[addr] = val;
     svga->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
+    r128_vram_hnew(dev, addr, len);
     if (t0)
         rage128_lfbt_leave(dev, t0, t1, t2, rage128_now_ns());
 }
@@ -1238,6 +1240,7 @@ rage128_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
                     rage128_gpu_cpu_barrier(dev, a, 4, 1);
                 *p                             = (*p & ~mask) | (val & mask);
                 dev->svga.changedvram[a >> 12] = dev->svga.monitor->mon_changeframecount;
+                r128_vram_hnew(dev, a, 4);
                 rage128_cap_early_reg(dev, off, val, mask);
                 return;
             }

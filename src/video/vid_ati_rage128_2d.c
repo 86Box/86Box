@@ -696,6 +696,8 @@ rage128_2d_map_span(rage128_t *dev, r128_surf_t *s, struct rage128_span_stage *s
         s->rel  = 0;
         s->mask = dev->vram_mask;
         s->st   = NULL;
+        s->wlo  = 0;
+        s->wlen = 0;
         return 1;
     }
     start = (int64_t) y0 * pb + (int64_t) (x0 < 0 ? x0 : 0) * bpp;
@@ -717,6 +719,8 @@ rage128_2d_map_span(rage128_t *dev, r128_surf_t *s, struct rage128_span_stage *s
         s->rel  = 0;
         s->mask = dev->vram_mask;
         s->st   = NULL;
+        s->wlo  = 0;
+        s->wlen = dev->vram_size;
         return 1;
     }
     lo = surf_base + (uint32_t) start;
