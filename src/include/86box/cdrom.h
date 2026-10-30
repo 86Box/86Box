@@ -216,6 +216,7 @@ static const struct cdrom_drive_types_s {
     { "HL-DT-ST", "DVDRAM GSA-H42L",  "SL01", "",          "hldtst_h42l",    BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  6 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD-ROM (Super Multi series) */
     { "HL-DT-ST", "DVDROM GDR-8082N", "0002", "",          "hldtst_8082",    BUS_TYPE_IDE,  0, 24, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 8 }, /* heuristic: 8x DVD (early HL-DT-ST; model number suggests ~8x) */
     { "HL-DT-ST", "DVDROM GDR-8163B", "0L23", "",          "hldtst_8163",    BUS_TYPE_IDE,  0, 52, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD / 48x+ CD (HL Data Storage) */
+    { "HL-DT-ST", "BD-RE  GBW-H10N",  "GL02", "",          "hldtst_h10n",    BUS_TYPE_IDE,  0, 40, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16, 4, 0 },
     { "HP",       "7200e",            "1.34", "",          "hp_7200",        BUS_TYPE_IDE,  0,  6, 36, 0, 0, {  3,  1,  1,  3 } , 0 , 0 },
     { "HP",       "DVD1040i",         "4H13", "",          "hp_1040i",       BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 16 }, /* verified: 16x DVD / 48x CD */
     { "KENWOOD",  "CD-ROM UCR-421",   "208E", "",          "kenwood_421",    BUS_TYPE_IDE,  0, 72, 36, 0, 0, {  4,  2,  2,  4 } , 0 , 0 },
@@ -331,6 +332,7 @@ static const struct cdrom_drive_types_s {
     { "PLEXTOR",  "CD-ROM PX-43CH",   "0204", "",          "plextor_43ch",   BUS_TYPE_SCSI, 2,  4, 36, 1, 0, { -1, -1, -1, -1 } }, /* Caddy. */
     { "PLEXTOR",  "CD-ROM PX-83CS",   "1.01", "",          "plextor_83cs",   BUS_TYPE_SCSI, 2,  8, 36, 1, 0, { -1, -1, -1, -1 } }, /* Caddy. */
     { "PLEXTOR",  "DVD-ROM PX-800A",  "81HA", "",          "pioneer_800a",   BUS_TYPE_IDE,  0, 48, 36, 0, 1, {  4,  2,  2 , 4 } , NULL, NULL, NULL, 16 }, /* heuristic: 16x DVD (Plextor) */
+    { "PLEXTOR",  "BD-R PX-B900A",    "1.00", "",          "plextor_b900a",  BUS_TYPE_IDE,  0, 32, 36, 0, 1, {  4,  2,  2,  4 } , NULL, NULL, NULL, 8, 2, 0 },
     { "RICOH",    "MP7040A",          "1.60", "",          "ricoh_7040",     BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2,  4 } , 0 , 0 },
     { "SAMSUNG",  "CD-ROM SC-140",    "BS14", "",          "samsung_140",    BUS_TYPE_IDE,  0, 40, 36, 0, 0, {  4,  2,  2,  4 } , 0 , 0 },
     { "SAMSUNG",  "CD-ROM SC-148F",   "PS07", "",          "samsung_148f",   BUS_TYPE_IDE,  0, 48, 36, 0, 0, {  4,  2,  2,  4 } , 0 , 0 },
