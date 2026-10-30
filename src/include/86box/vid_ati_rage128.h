@@ -1754,7 +1754,7 @@ static inline int
 r128_prim_past_pitch(uint32_t base, uint32_t stride, int tiled, int ylast,
                      int xmax, uint32_t bpp, uint32_t *hi)
 {
-    uint64_t xbe, far;
+    uint64_t xbe, last;
     uint32_t h;
 
     if (xmax < 0 || ylast < 0)
@@ -1763,11 +1763,11 @@ r128_prim_past_pitch(uint32_t base, uint32_t stride, int tiled, int ylast,
     if (xbe <= stride)
         return 0;
     if (tiled)
-        far = 16ull * stride * ((uint32_t) ylast >> 4) + 15u * 64u
+        last = 16ull * stride * ((uint32_t) ylast >> 4) + 15u * 64u
             + r128_tile_x((uint32_t) (xbe - 1));
     else
-        far = (uint64_t) (uint32_t) ylast * stride + xbe - 1;
-    h = (uint32_t) ((uint64_t) base + far + 1);
+        last = (uint64_t) (uint32_t) ylast * stride + xbe - 1;
+    h = (uint32_t) ((uint64_t) base + last + 1);
     if (h > *hi)
         *hi = h;
     return 1;
