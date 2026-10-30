@@ -24,19 +24,24 @@
 struct _mem_mapping_;
 
 /*
- * A JEDEC flash chip (SST, Winbond, AMD) that is not tied to the boot BIOS,
- * for machines that map their own chips. The model is one of the
- * sst_flash_*, winbond_flash_* or amd_flash_* descriptors below, which is
- * only used to describe the chip and is not added as a device.
+ * The flash chips can be used apart from the boot BIOS, by machines that
+ * map their own chips. Each family has the same calls: create a chip from
+ * one of its descriptors below, which then only describes the chip and is
+ * not added as a device, map windows of it, and destroy it, which saves it
+ * to its backing file. A window bigger than the chip repeats the chip, and
+ * starts on a multiple of the chip's size.
  */
-typedef struct sst_t sst_t;
-
-typedef struct sst_flash_cfg_t {
+typedef struct flash_cfg_t {
     const char    *nvr_name; /* Backing file name without ".bin", NULL for none. */
     const uint8_t *image;    /* Initial contents, overridden by the backing file. */
     uint32_t       image_len;
     uint32_t       size; /* Decoded size if smaller than the chip, 0 for all of it. */
-} sst_flash_cfg_t;
+} flash_cfg_t;
+
+/* JEDEC chips (SST, Winbond, AMD): the sst_flash_*, winbond_flash_* and amd_flash_29f* descriptors. */
+typedef struct sst_t sst_t;
+
+typedef flash_cfg_t sst_flash_cfg_t;
 
 extern sst_t   *sst_flash_create(const device_t *model, const sst_flash_cfg_t *cfg);
 extern void     sst_flash_destroy(sst_t *dev);
