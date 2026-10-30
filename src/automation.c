@@ -828,10 +828,10 @@ cmd_info(void)
             continue;
         sb_printf(&resp, "%s{\"port\":%d,\"device\":", first ? "" : ",", i + 1);
         sb_json_string(&resp, com_ports[i].device ? char_get_device(com_ports[i].device)->internal_name : "none");
-        if (com_ports[i].serial && com_ports[i].serial->char_port.attached)
+        if (com_ports[i].char_port.attached)
             sb_printf(&resp, ",\"baud\":%u,\"data_bits\":%u,\"parity\":%u,\"stop_bits\":%u",
-                      com_ports[i].serial->char_port.com.baud, com_ports[i].serial->char_port.com.data_bits,
-                      com_ports[i].serial->char_port.com.parity, com_ports[i].serial->char_port.com.stop_bits);
+                      com_ports[i].char_port.com.baud, com_ports[i].char_port.com.data_bits,
+                      com_ports[i].char_port.com.parity, com_ports[i].char_port.com.stop_bits);
         if (s) {
             sb_printf(&resp, ",\"pos\":%llu,\"oldest\":%llu,\"last_ms\":%llu,\"pending\":%d",
                       (unsigned long long) s->out_pos, (unsigned long long) serial_oldest(s),
