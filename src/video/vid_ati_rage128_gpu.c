@@ -955,6 +955,18 @@ typedef struct gpu_slot_t {
     VkQueryPool     tqpool;
     VkDescriptorSet dset;
     r128_gpu_buf_t  b_rows, b_order, b_spans, b_tris, b_pal;
+    /* Device-local copies of the four record buffers, which the kernels
+       read when the backend has them (rec_dev). The CPU builds and reads
+       records in the host buffers above; each submit copies the bytes
+       its segment used across (up_rows_b and up_ord_b: the row pairs and
+       slot words written; spans and triangles are counted in nspans and
+       ntris). Every lane of a workgroup reads its slot word, span and
+       triangle fields, so reading them over the bus from host memory
+       would cross it once per lane group instead of once per submit. */
+    r128_gpu_buf_t  d_rows, d_order, d_spans, d_tris;
+    uint32_t        up_rows_b, up_ord_b;
+    /* the copy-queue batch that uploads them, ahead of the kernels */
+    VkCommandBuffer ucb;
     uint32_t        c_lo, c_hi, z_lo, z_hi, q_lo, q_hi, r_lo, r_hi,
         f_lo, f_hi;
     /* the exact texture ranges behind q_lo/q_hi (the exact texture range
@@ -1068,8 +1080,8 @@ typedef struct r128_gpu_t {
        the import cross the bus, and on the kernels' queue they keep the
        host's 3D engine busy while they do. A family that offers transfer
        but neither graphics nor compute is a separate copy engine (a DMA
-       engine), so the mirror back, the tail fills and the present
-       snapshots go there. xfam is ~0u when there is no such family or
+       engine), so the record uploads, the mirror back, the tail fills
+       and the present snapshots go there. xfam is ~0u when there is no such family or
        no timeline semaphore support, and then everything stays on queue.
        fams[] lists the two families for buffers shared between them.
 
@@ -1085,6 +1097,11 @@ typedef struct r128_gpu_t {
     VkCommandPool         xpool;
     VkSemaphore           tl_sem;
     uint64_t              tl_val;
+    /* the kernels read the slots' device-local record copies; 0 when
+       they could not be allocated, and the kernels read the host
+       buffers instead. rec_up_bytes: bytes uploaded, for the close log */
+    int                   rec_dev;
+    uint64_t              rec_up_bytes;
     uint32_t              tqbits, max_wg_x;
     float                 tqperiod;
     VkDescriptorPool      dpool;
@@ -5286,6 +5303,51 @@ gpu_audit_check(r128_gpu_t *g, gpu_slot_t *sl)
     }
 }
 
+/* Record upload: copy the bytes this segment's records use from the host
+   buffers into the slot's device-local copies, which the kernels read.
+   The submit makes the host's writes visible to the copy. With a copy
+   queue the copies are their own batch, submitted here, before the
+   kernels' batch, which then waits for it on the timeline; without one
+   they open the kernels' command buffer, followed by a barrier. The
+   slot's previous kernels finished reading the copies before its fence
+   signaled, and the slot is reused only after that. queue_mtx held. */
+static void
+gpu_disp_rec_upload(r128_gpu_t *g, gpu_slot_t *sl, int xq,
+                    const VkCommandBufferBeginInfo *bi)
+{
+    const VkDeviceSize    sz[4] = { sl->up_rows_b, sl->up_ord_b,
+                                    (VkDeviceSize) g->nspans * sizeof(seg_span_t),
+                                    (VkDeviceSize) g->ntris * sizeof(seg_tri_t) };
+    const r128_gpu_buf_t *hs[4] = { &sl->b_rows, &sl->b_order, &sl->b_spans,
+                                    &sl->b_tris };
+    const r128_gpu_buf_t *ds[4] = { &sl->d_rows, &sl->d_order, &sl->d_spans,
+                                    &sl->d_tris };
+    VkCommandBuffer       cb    = xq ? sl->ucb : sl->cb;
+    int                   any   = 0;
+
+    for (int i = 0; i < 4; i++) {
+        VkBufferCopy c = { 0, 0, sz[i] };
+
+        if (!sz[i])
+            continue;
+        if (!any && xq)
+            vkBeginCommandBuffer(cb, bi);
+        vkCmdCopyBuffer(cb, hs[i]->b, ds[i]->b, 1, &c);
+        g->rec_up_bytes += sz[i];
+        any = 1;
+    }
+    if (!any)
+        return;
+    if (xq) {
+        vkEndCommandBuffer(cb);
+        if (gpu_submit(g, g->xqueue, cb, VK_NULL_HANDLE) != VK_SUCCESS)
+            fatal("RAGE128 GPU: record upload submit failed\n");
+    } else
+        gpu_cmd_barrier(cb, 0, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                        VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT);
+}
+
 /* Record and submit one slot. A head barrier orders shared VRAM against
    an older segment still in flight; the host does not wait here. */
 static void
@@ -5317,6 +5379,8 @@ gpu_dispatch(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
     vkBeginCommandBuffer(sl->cb, &bi);
     if (use_tq)
         vkCmdResetQueryPool(sl->cb, sl->tqpool, 0, 6);
+    if (g->rec_dev)
+        gpu_disp_rec_upload(g, sl, xq, &bi);
     if (prior)
         gpu_disp_head_barrier(g, sl);
     if (g->nfills > g->nmid)
@@ -5714,6 +5778,9 @@ gpu_flush_body(rage128_t *dev, int cause)
     sl->cz_ref    = g->seg_czstaged;
     sl->mir_stg   = (atomic_load(&g->c_stg) ? 1u : 0u)
         | (atomic_load(&g->z_stg) ? 2u : 0u);
+    /* the row pairs and slot words written above, for the record upload */
+    sl->up_rows_b = rows_used * 2u * (uint32_t) sizeof(uint32_t);
+    sl->up_ord_b  = nbat * GPU_BATCH_SLOTS * (uint32_t) sizeof(uint32_t);
     if (g->verify)
         gpu_verify_segment(dev, g, disp, ndisp, clo, chi, zlo, zhi,
                            qlo, qhi, cause);
@@ -9287,6 +9354,69 @@ gpu_mk_buf(r128_gpu_t *g, r128_gpu_buf_t *b, VkDeviceSize sz,
     return 1;
 }
 
+/* A device-local buffer the host never maps. A device-local type that is
+   not host-visible is taken first: on a discrete card that is video
+   memory outside the CPU's window, which the GPU reads fastest. On
+   failure it frees what it made and leaves b zeroed: a failed Vulkan
+   call leaves its output handle undefined, so only handles from calls
+   that succeeded are kept or freed. */
+static int
+gpu_mk_dbuf(r128_gpu_t *g, r128_gpu_buf_t *b, VkDeviceSize sz,
+            VkBufferUsageFlags usage)
+{
+    VkBufferCreateInfo               bci = { VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO };
+    VkMemoryRequirements             mr;
+    VkPhysicalDeviceMemoryProperties mp;
+    VkMemoryAllocateInfo             mai = { VK_STRUCTURE_TYPE_MEMORY_ALLOCATE_INFO };
+    uint32_t                         mti = ~0u;
+    VkBuffer                         buf;
+    VkDeviceMemory                   mem;
+
+    memset(b, 0, sizeof(*b));
+    bci.size  = sz;
+    bci.usage = usage;
+    gpu_bci_share(g, &bci);
+    if (vkCreateBuffer(g->dev, &bci, NULL, &buf) != VK_SUCCESS)
+        return 0;
+    vkGetBufferMemoryRequirements(g->dev, buf, &mr);
+    vkGetPhysicalDeviceMemoryProperties(g->phys, &mp);
+    for (int pass = 0; pass < 2 && mti == ~0u; pass++)
+        for (uint32_t i = 0; i < mp.memoryTypeCount; i++) {
+            VkMemoryPropertyFlags f = mp.memoryTypes[i].propertyFlags;
+
+            if (!(mr.memoryTypeBits & (1u << i))
+                || !(f & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT))
+                continue;
+            if (pass == 0 && (f & VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT))
+                continue;
+            mti = i;
+            break;
+        }
+    if (mti == ~0u) {
+        vkDestroyBuffer(g->dev, buf, NULL);
+        return 0;
+    }
+    if (!(g->mkbuf_logged & (1u << mti))) {
+        g->mkbuf_logged |= 1u << mti;
+        gpu_log("RAGE128 GPU: device record memory type %u flags 0x%x\n",
+                mti, (unsigned) mp.memoryTypes[mti].propertyFlags);
+    }
+    mai.allocationSize  = mr.size;
+    mai.memoryTypeIndex = mti;
+    if (vkAllocateMemory(g->dev, &mai, NULL, &mem) != VK_SUCCESS) {
+        vkDestroyBuffer(g->dev, buf, NULL);
+        return 0;
+    }
+    if (vkBindBufferMemory(g->dev, buf, mem, 0) != VK_SUCCESS) {
+        vkDestroyBuffer(g->dev, buf, NULL);
+        vkFreeMemory(g->dev, mem, NULL);
+        return 0;
+    }
+    b->b = buf;
+    b->m = mem;
+    return 1;
+}
+
 /* Import a 16 KB aligned host block as a storage buffer without a copy
    (VK_EXT_external_memory_host). bsz is the size of the buffer, asz the
    size of the imported memory; asz must be a multiple of the import
@@ -10197,7 +10327,7 @@ gpu_device_create(r128_gpu_t *g)
         }
         if (g->xfam != ~0u)
             gpu_log("RAGE128 GPU: copy queue family %u (timestamps %u bits) "
-                    "-- mirror back and present copies leave the kernels' "
+                    "-- record uploads, mirror back and present copies leave the kernels' "
                     "queue\n",
                     g->xfam, g->xtqbits);
         else
@@ -10448,21 +10578,52 @@ gpu_slot_bufs_create(r128_gpu_t *g)
     /* Each slot has its own mapped inputs, kept until its fence is
        retired; its descriptor set binds them with the
        GPU_NBIND layout. */
+    const VkBufferUsageFlags hu = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+        | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    const VkBufferUsageFlags du = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
+        | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
+
     for (unsigned i = 0; i < GPU_RING_SLOTS; i++) {
         gpu_slot_t *sl = &g->slot[i];
 
-        if (!gpu_mk_buf(g, &sl->b_rows, GPU_SPAN_CAP * 2 * sizeof(uint32_t),
-                        VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
+        if (!gpu_mk_buf(g, &sl->b_rows, GPU_SPAN_CAP * 2 * sizeof(uint32_t), hu)
             || !gpu_mk_buf(g, &sl->b_order,
-                           GPU_SPAN_CAP * GPU_BATCH_SLOTS * sizeof(uint32_t),
-                           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
-            || !gpu_mk_buf(g, &sl->b_spans, GPU_SPAN_CAP * sizeof(seg_span_t),
-                           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
-            || !gpu_mk_buf(g, &sl->b_tris, GPU_TRI_CAP * sizeof(seg_tri_t),
-                           VK_BUFFER_USAGE_STORAGE_BUFFER_BIT)
+                           GPU_SPAN_CAP * GPU_BATCH_SLOTS * sizeof(uint32_t), hu)
+            || !gpu_mk_buf(g, &sl->b_spans, GPU_SPAN_CAP * sizeof(seg_span_t), hu)
+            || !gpu_mk_buf(g, &sl->b_tris, GPU_TRI_CAP * sizeof(seg_tri_t), hu)
             || !gpu_mk_buf(g, &sl->b_pal, GPU_PAL_CAP * 256 * sizeof(uint32_t),
                            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT))
             return "segment buffer allocation failed";
+    }
+    /* The device-local record copies, about 20 MB per slot. Not fatal:
+       on a device without the room the kernels read the host buffers. */
+    g->rec_dev = 1;
+    for (unsigned i = 0; g->rec_dev && i < GPU_RING_SLOTS; i++) {
+        gpu_slot_t *sl = &g->slot[i];
+
+        if (!gpu_mk_dbuf(g, &sl->d_rows, GPU_SPAN_CAP * 2 * sizeof(uint32_t), du)
+            || !gpu_mk_dbuf(g, &sl->d_order,
+                            GPU_SPAN_CAP * GPU_BATCH_SLOTS * sizeof(uint32_t), du)
+            || !gpu_mk_dbuf(g, &sl->d_spans, GPU_SPAN_CAP * sizeof(seg_span_t), du)
+            || !gpu_mk_dbuf(g, &sl->d_tris, GPU_TRI_CAP * sizeof(seg_tri_t), du))
+            g->rec_dev = 0;
+    }
+    if (!g->rec_dev) {
+        for (unsigned i = 0; i < GPU_RING_SLOTS; i++) {
+            gpu_slot_t     *sl     = &g->slot[i];
+            r128_gpu_buf_t *bfs[4] = { &sl->d_rows, &sl->d_order, &sl->d_spans,
+                                       &sl->d_tris };
+
+            for (int k = 0; k < 4; k++) {
+                if (bfs[k]->b)
+                    vkDestroyBuffer(g->dev, bfs[k]->b, NULL);
+                if (bfs[k]->m)
+                    vkFreeMemory(g->dev, bfs[k]->m, NULL);
+                memset(bfs[k], 0, sizeof(*bfs[k]));
+            }
+        }
+        gpu_log("RAGE128 GPU: device-local records unavailable -- kernels "
+                "read the host record buffers\n");
     }
 
     /* 2D staging ring: source bytes for queued mono-expand, host-data
@@ -10788,16 +10949,22 @@ gpu_dsets_create(r128_gpu_t *g)
                gate refuses staged draws without stage_ok), but the set
                must stay valid */
             VkBuffer               vb            = g->mirror_en ? g->mirror_buf : g->vram_buf;
+            /* the kernels read the device-local record copies when the
+               backend has them */
+            const r128_gpu_buf_t  *rr            = g->rec_dev ? &sl->d_rows : &sl->b_rows;
+            const r128_gpu_buf_t  *ro            = g->rec_dev ? &sl->d_order : &sl->b_order;
+            const r128_gpu_buf_t  *rs            = g->rec_dev ? &sl->d_spans : &sl->b_spans;
+            const r128_gpu_buf_t  *rt            = g->rec_dev ? &sl->d_tris : &sl->b_tris;
             VkDescriptorBufferInfo bi[GPU_NBIND] = {
                 { vb,                                          0, VK_WHOLE_SIZE },
                 { vb,                                          0, VK_WHOLE_SIZE },
-                { sl->b_rows.b,                                0, VK_WHOLE_SIZE },
-                { sl->b_order.b,                               0, VK_WHOLE_SIZE },
-                { sl->b_spans.b,                               0, VK_WHOLE_SIZE },
-                { sl->b_tris.b,                                0, VK_WHOLE_SIZE },
+                { rr->b,                                       0, VK_WHOLE_SIZE },
+                { ro->b,                                       0, VK_WHOLE_SIZE },
+                { rs->b,                                       0, VK_WHOLE_SIZE },
+                { rt->b,                                       0, VK_WHOLE_SIZE },
                 /* binding 6 is not read by any kernel; a valid buffer
                    keeps the set complete without renumbering 7..12 */
-                { sl->b_tris.b,                                0, VK_WHOLE_SIZE },
+                { rt->b,                                       0, VK_WHOLE_SIZE },
                 { g->stage_ok ? g->stage_buf : g->vram_buf,    0, VK_WHOLE_SIZE },
                 { sl->b_pal.b,                                 0, VK_WHOLE_SIZE },
                 /* staged color and z arenas, a 16-bit view and a word
@@ -10921,18 +11088,20 @@ gpu_cmd_create(r128_gpu_t *g)
            present snapshots. Both record on the submit thread only, the
            same rule that lets the slots and snapshots share one pool on
            the single queue. */
-        VkCommandBuffer          xcbs[GPU_RING_SLOTS];
+        VkCommandBuffer          xcbs[GPU_RING_SLOTS * 2];
         VkCommandPoolCreateInfo  xpci = cpci;
 
         xpci.queueFamilyIndex = g->xfam;
         if (vkCreateCommandPool(g->dev, &xpci, NULL, &g->xpool) != VK_SUCCESS)
             return "copy queue command pool failed";
         cbai.commandPool        = g->xpool;
-        cbai.commandBufferCount = GPU_RING_SLOTS;
+        cbai.commandBufferCount = GPU_RING_SLOTS * 2;
         if (vkAllocateCommandBuffers(g->dev, &cbai, xcbs) != VK_SUCCESS)
             return "copy queue command buffer failed";
-        for (unsigned s = 0; s < GPU_RING_SLOTS; s++)
-            g->slot[s].xcb = xcbs[s];
+        for (unsigned s = 0; s < GPU_RING_SLOTS; s++) {
+            g->slot[s].xcb = xcbs[s * 2];
+            g->slot[s].ucb = xcbs[s * 2 + 1];
+        }
     }
     {
         VkCommandBuffer scbs[GPU_SNAPS];
@@ -11269,6 +11438,8 @@ gpu_close_threads(r128_gpu_t *g)
 static void
 gpu_stats_core(rage128_t *dev, r128_gpu_t *g)
 {
+    gpu_log("RAGE128 GPU: records: %s, uploaded %llu bytes\n",
+            g->rec_dev ? "device-local" : "host", (unsigned long long) g->rec_up_bytes);
     gpu_log("RAGE128 GPU: close: segments=%llu runs=%llu spans=%llu tris=%llu fallback_draws=%llu"
             " reprice=%llu reprice-miss=%llu toobig=%llu spandrop=%llu pxdrop=%llu cz-alias=%llu rtt-alias=%llu"
             " cz-serial=%llu rtt-serial=%llu line-fb=%llu point-fb=%llu"
@@ -11903,10 +12074,12 @@ gpu_close_vk(r128_gpu_t *g)
     vkDestroyDescriptorSetLayout(g->dev, g->dsl, NULL);
     for (unsigned s = 0; s < GPU_RING_SLOTS; s++) {
         gpu_slot_t     *sl      = &g->slot[s];
-        r128_gpu_buf_t *bufs[5] = { &sl->b_rows, &sl->b_order, &sl->b_spans,
-                                    &sl->b_tris, &sl->b_pal };
+        r128_gpu_buf_t *bufs[9] = { &sl->b_rows, &sl->b_order, &sl->b_spans,
+                                    &sl->b_tris, &sl->b_pal, &sl->d_rows,
+                                    &sl->d_order, &sl->d_spans, &sl->d_tris };
 
-        for (int i = 0; i < 5; i++) {
+        /* the device-local copies are null handles without rec_dev */
+        for (int i = 0; i < 9; i++) {
             vkDestroyBuffer(g->dev, bufs[i]->b, NULL);
             vkFreeMemory(g->dev, bufs[i]->m, NULL);
         }
