@@ -368,6 +368,7 @@ r128_unsetenv(const char *key)
         X(vkCreateCommandPool)                      \
         X(vkAllocateCommandBuffers)                 \
         X(vkCreateFence)                            \
+        X(vkCreateSemaphore)                        \
         X(vkCreateQueryPool)                        \
         X(vkBeginCommandBuffer)                     \
         X(vkCmdResetQueryPool)                      \
@@ -388,6 +389,7 @@ r128_unsetenv(const char *key)
         X(vkDeviceWaitIdle)                         \
         X(vkDestroyQueryPool)                       \
         X(vkDestroyFence)                           \
+        X(vkDestroySemaphore)                       \
         X(vkDestroyCommandPool)                     \
         X(vkDestroyDescriptorPool)                  \
         X(vkDestroyPipeline)                        \
@@ -524,6 +526,7 @@ r128_vk_load_instance(VkInstance inst)
 #    define vkCreateCommandPool                      r128_vk.vkCreateCommandPool
 #    define vkAllocateCommandBuffers                 r128_vk.vkAllocateCommandBuffers
 #    define vkCreateFence                            r128_vk.vkCreateFence
+#    define vkCreateSemaphore                        r128_vk.vkCreateSemaphore
 #    define vkCreateQueryPool                        r128_vk.vkCreateQueryPool
 #    define vkBeginCommandBuffer                     r128_vk.vkBeginCommandBuffer
 #    define vkCmdResetQueryPool                      r128_vk.vkCmdResetQueryPool
@@ -544,6 +547,7 @@ r128_vk_load_instance(VkInstance inst)
 #    define vkDeviceWaitIdle                         r128_vk.vkDeviceWaitIdle
 #    define vkDestroyQueryPool                       r128_vk.vkDestroyQueryPool
 #    define vkDestroyFence                           r128_vk.vkDestroyFence
+#    define vkDestroySemaphore                       r128_vk.vkDestroySemaphore
 #    define vkDestroyCommandPool                     r128_vk.vkDestroyCommandPool
 #    define vkDestroyDescriptorPool                  r128_vk.vkDestroyDescriptorPool
 #    define vkDestroyPipeline                        r128_vk.vkDestroyPipeline
@@ -934,6 +938,11 @@ typedef struct r128_gpu_buf_t {
 
 typedef struct gpu_slot_t {
     VkCommandBuffer cb;
+    /* the slot's copy-queue batch (mirror back, tail fills, audit copy)
+       when the backend has a copy queue; VK_NULL_HANDLE otherwise */
+    VkCommandBuffer xcb;
+    /* signals when the slot's last submitted batch completes; with a copy
+       queue that batch waits for the other, so one fence covers both */
     VkFence         fence;
     /* guards vkWaitForFences/vkResetFences on this fence: retirement
        (submit thread) vs the read-path fence wait (CPU thread) */
@@ -962,6 +971,8 @@ typedef struct gpu_slot_t {
     int      fq_ovf;
     uint64_t seq;
     int      timestamped;
+    /* valid timestamp bits of the queue that wrote stamps 5 and 4 */
+    uint32_t tq_bk_bits;
     /* segment samples staged texels: the arena must not recycle or move
        until this slot retires (submit thread only, like build_slot) */
     int stage_ref;
@@ -1053,6 +1064,27 @@ typedef struct r128_gpu_t {
     VkQueue               queue;
     uint32_t              qfam;
     VkCommandPool         pool;
+    /* Copy queue. On a discrete card the copies between the mirror and
+       the import cross the bus, and on the kernels' queue they keep the
+       host's 3D engine busy while they do. A family that offers transfer
+       but neither graphics nor compute is a separate copy engine (a DMA
+       engine), so the mirror back, the tail fills and the present
+       snapshots go there. xfam is ~0u when there is no such family or
+       no timeline semaphore support, and then everything stays on queue.
+       fams[] lists the two families for buffers shared between them.
+
+       Order: every batch on either queue waits for the timeline value
+       the batch submitted before it signaled, and signals the next one,
+       so the batches run in submission order, which queue_mtx already
+       serializes. The wait carries the memory dependency between queues
+       that a pipeline barrier cannot. tl_val is the last value signaled;
+       queue_mtx guards it. */
+    VkQueue               xqueue;
+    uint32_t              xfam, xtqbits;
+    uint32_t              fams[2];
+    VkCommandPool         xpool;
+    VkSemaphore           tl_sem;
+    uint64_t              tl_val;
     uint32_t              tqbits, max_wg_x;
     float                 tqperiod;
     VkDescriptorPool      dpool;
@@ -1688,12 +1720,14 @@ prof_lv_bin(uint32_t n)
     return b;
 }
 
+/* b - a for two timestamps written on one queue, whose family counts
+   with bits valid bits and wraps there. */
 static uint64_t
-gpu_ts_delta(const r128_gpu_t *g, uint64_t a, uint64_t b)
+gpu_ts_delta(uint32_t bits, uint64_t a, uint64_t b)
 {
-    if (g->tqbits >= 64)
+    if (bits >= 64)
         return b - a;
-    return (b - a) & ((1ull << g->tqbits) - 1ull);
+    return (b - a) & ((1ull << bits) - 1ull);
 }
 
 /* ------------------------------------------------------------------ */
@@ -4365,19 +4399,20 @@ gpu_slot_retire(r128_gpu_t *g, gpu_slot_t *sl, int cause)
     }
 
     if (sl->timestamped) {
-        uint64_t tq[5];
+        uint64_t tq[6];
 
-        if (vkGetQueryPoolResults(g->dev, sl->tqpool, 0, 5, sizeof(tq), tq,
+        if (vkGetQueryPoolResults(g->dev, sl->tqpool, 0, 6, sizeof(tq), tq,
                                   sizeof(tq[0]), VK_QUERY_RESULT_64_BIT)
             == VK_SUCCESS) {
-            uint64_t lad_ns   = (uint64_t) ((double) gpu_ts_delta(g, tq[0], tq[1])
+            uint64_t lad_ns   = (uint64_t) ((double) gpu_ts_delta(g->tqbits, tq[0], tq[1])
                                           * g->tqperiod);
-            uint64_t shade_ns = (uint64_t) ((double) gpu_ts_delta(g, tq[1], tq[2])
+            uint64_t shade_ns = (uint64_t) ((double) gpu_ts_delta(g->tqbits, tq[1], tq[2])
                                             * g->tqperiod);
-            /* mirror copies: 3 -> 0 down, 2 -> 4 back (both ~0 when the
-               mirror is unavailable) */
-            uint64_t mir_ns = (uint64_t) ((double) (gpu_ts_delta(g, tq[3], tq[0])
-                                                    + gpu_ts_delta(g, tq[2], tq[4]))
+            /* mirror copies: 3 -> 0 down, 5 -> 4 back (both ~0 when the
+               mirror is unavailable); each pair is written on one queue,
+               and 5 -> 4 wraps at the width of the queue that wrote it */
+            uint64_t mir_ns = (uint64_t) ((double) (gpu_ts_delta(g->tqbits, tq[3], tq[0])
+                                                    + gpu_ts_delta(sl->tq_bk_bits, tq[5], tq[4]))
                                           * g->tqperiod);
 
             g->pr_gpu_lad_ns += lad_ns;
@@ -4545,6 +4580,13 @@ gpu_mirror_plan(uint32_t vram_mask, const gpu_rng_t *in, unsigned nin,
     return m;
 }
 
+static void     gpu_bci_share(const r128_gpu_t *g, VkBufferCreateInfo *bci);
+static VkResult gpu_submit(r128_gpu_t *g, VkQueue q, VkCommandBuffer cb,
+                           VkFence f);
+static void     gpu_cmd_barrier(VkCommandBuffer cb, int xq,
+                                VkPipelineStageFlags ss, VkPipelineStageFlags ds,
+                                VkAccessFlags sa, VkAccessFlags da);
+
 /* Append [lo, hi) to a mirror copy's region list, extending the last
    region when the two touch. Callers append in ascending address order,
    so the list stays sorted and disjoint: separate regions of one copy
@@ -4582,7 +4624,7 @@ gpu_rc_add_clip(VkBufferCopy *rc, unsigned n, uint32_t lo, uint32_t hi,
 /* Record a region list as copy commands, 512 regions per command, and
    count its bytes into the total and into one direction's counter. */
 static void
-gpu_rc_record(r128_gpu_t *g, gpu_slot_t *sl, VkBuffer src, VkBuffer dst,
+gpu_rc_record(r128_gpu_t *g, VkCommandBuffer cb, VkBuffer src, VkBuffer dst,
               unsigned n, uint64_t *dir_bytes)
 {
     for (unsigned i = 0; i < n; i++) {
@@ -4590,7 +4632,7 @@ gpu_rc_record(r128_gpu_t *g, gpu_slot_t *sl, VkBuffer src, VkBuffer dst,
         *dir_bytes += g->mir_rc[i].size;
     }
     for (unsigned d = 0; d < n; d += 512u)
-        vkCmdCopyBuffer(sl->cb, src, dst, n - d < 512u ? n - d : 512u,
+        vkCmdCopyBuffer(cb, src, dst, n - d < 512u ? n - d : 512u,
                         g->mir_rc + d);
 }
 
@@ -4727,25 +4769,23 @@ gpu_q2d_mark(r128_gpu_t *g, const gpu_fill_t *f)
 
 /* Order a mid fill's copy against everything recorded before it (the
    runs that sample the old bytes, earlier copies on the same bytes)
-   and make its bytes visible to what follows. */
+   and make its bytes visible to what follows. xq: cb is a copy-queue
+   batch (gpu_cmd_barrier). */
 static void
-gpu_mid_copy_cmd(VkCommandBuffer cb, VkBuffer sb, VkBuffer db,
+gpu_mid_copy_cmd(VkCommandBuffer cb, int xq, VkBuffer sb, VkBuffer db,
                  const gpu_fill_t *f, VkAccessFlags dst_access,
                  VkPipelineStageFlags dst_stage)
 {
-    VkMemoryBarrier mb = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
-
-    mb.srcAccessMask = VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT
-        | VK_ACCESS_TRANSFER_READ_BIT | VK_ACCESS_TRANSFER_WRITE_BIT;
-    mb.dstAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 1, &mb, 0, NULL,
-                         0, NULL);
+    gpu_cmd_barrier(cb, xq,
+                    VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT | VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_ACCESS_SHADER_READ_BIT | VK_ACCESS_SHADER_WRITE_BIT
+                        | VK_ACCESS_TRANSFER_READ_BIT
+                        | VK_ACCESS_TRANSFER_WRITE_BIT,
+                    VK_ACCESS_TRANSFER_WRITE_BIT);
     gpu_fill_copy_cmd(cb, sb, db, f);
-    mb.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    mb.dstAccessMask = dst_access;
-    vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_TRANSFER_BIT, dst_stage, 0, 1,
-                         &mb, 0, NULL, 0, NULL);
+    gpu_cmd_barrier(cb, xq, VK_PIPELINE_STAGE_TRANSFER_BIT, dst_stage,
+                    VK_ACCESS_TRANSFER_WRITE_BIT, dst_access);
 }
 
 /* Head barrier against an in-flight slot. The source scope must include
@@ -4938,7 +4978,7 @@ gpu_disp_mirror_down(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
                 n = gpu_rc_add(g->mir_rc, n, size, size + GPU_MIRROR_GUARD);
         }
     }
-    gpu_rc_record(g, sl, g->vram_buf, g->mirror_buf, n, &g->pr_mir_dn_bytes);
+    gpu_rc_record(g, sl->cb, g->vram_buf, g->mirror_buf, n, &g->pr_mir_dn_bytes);
     mb.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
     mb.dstAccessMask = VK_ACCESS_SHADER_READ_BIT
         | VK_ACCESS_SHADER_WRITE_BIT;
@@ -4977,7 +5017,7 @@ gpu_disp_runs(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
                 continue;
             if ((uint32_t) f->mid > dp[i].run)
                 break;
-            gpu_mid_copy_cmd(sl->cb, g->stage2d.b, g->mirror_buf, f,
+            gpu_mid_copy_cmd(sl->cb, 0, g->stage2d.b, g->mirror_buf, f,
                              VK_ACCESS_SHADER_READ_BIT
                                  | VK_ACCESS_SHADER_WRITE_BIT,
                              VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT);
@@ -5086,12 +5126,14 @@ gpu_disp_runs(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
    store are copied (gpu_bk_mark, from the span capture), in address
    order, so after the fence the import holds every stored byte and the
    rest of each range was never changed in the mirror. The destination
-   scope covers every later consumer. */
-static void
-gpu_disp_mirror_back(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
-                     uint32_t clo, uint32_t chi, uint32_t zlo, uint32_t zhi)
+   scope covers every later consumer. Recorded into cb, the slot's
+   command buffer or, with xq set, its copy-queue batch. Returns the
+   number of regions copied. */
+static unsigned
+gpu_disp_mirror_back(r128_gpu_t *g, gpu_slot_t *sl, VkCommandBuffer cb, int xq,
+                     uint32_t vram_mask, uint32_t clo, uint32_t chi,
+                     uint32_t zlo, uint32_t zhi)
 {
-    VkMemoryBarrier mb   = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
     uint32_t        size = vram_mask + 1u;
     unsigned        n    = 0;
     gpu_rng_t       in[2] = {
@@ -5112,11 +5154,9 @@ gpu_disp_mirror_back(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
         in[1].hi = 0;
     np = gpu_mirror_plan(vram_mask, in, 2, pc);
 
-    mb.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    mb.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-    vkCmdPipelineBarrier(sl->cb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0,
-                         1, &mb, 0, NULL, 0, NULL);
+    gpu_cmd_barrier(cb, xq, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_ACCESS_SHADER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT);
     for (uint32_t w = 0; w < (g->bk_npages + 63u) / 64u; w++) {
         uint64_t bits = g->bk_pg[w];
 
@@ -5140,28 +5180,31 @@ gpu_disp_mirror_back(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
     }
     if (g->bk_guard)
         n = gpu_rc_add_clip(g->mir_rc, n, size, size + GPU_MIRROR_GUARD, pc, np);
-    gpu_rc_record(g, sl, g->mirror_buf, g->vram_buf, n, &g->pr_mir_bk_bytes);
-    mb.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    mb.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT
-        | VK_ACCESS_TRANSFER_WRITE_BIT
-        | VK_ACCESS_SHADER_READ_BIT
-        | VK_ACCESS_SHADER_WRITE_BIT
-        | VK_ACCESS_HOST_READ_BIT;
-    vkCmdPipelineBarrier(sl->cb, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT
-                             | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
-                             | VK_PIPELINE_STAGE_HOST_BIT,
-                         0, 1, &mb, 0, NULL, 0, NULL);
+    gpu_rc_record(g, cb, g->mirror_buf, g->vram_buf, n, &g->pr_mir_bk_bytes);
+    gpu_cmd_barrier(cb, xq, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT
+                        | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+                        | VK_PIPELINE_STAGE_HOST_BIT,
+                    VK_ACCESS_TRANSFER_WRITE_BIT,
+                    VK_ACCESS_TRANSFER_READ_BIT
+                        | VK_ACCESS_TRANSFER_WRITE_BIT
+                        | VK_ACCESS_SHADER_READ_BIT
+                        | VK_ACCESS_SHADER_WRITE_BIT
+                        | VK_ACCESS_HOST_READ_BIT);
+    return n;
 }
 
 /* Mid fills into the import, recorded after the mirror-back so the fill
    lands last; no draw in the segment stores to those bytes, since such
    a draw splits the segment (gpu_mid_range_hit). Same visibility scope
    as the mirror-back: the host reads these bytes after the fence, and
-   the next segment mirrors them down. */
-static void
-gpu_disp_tail_fills(r128_gpu_t *g, gpu_slot_t *sl)
+   the next segment mirrors them down. Recorded into cb as for the
+   mirror back; returns the number recorded. */
+static unsigned
+gpu_disp_tail_fills(r128_gpu_t *g, VkCommandBuffer cb, int xq)
 {
+    unsigned n = 0;
+
     for (uint32_t i = 0; g->nmid && i < g->nfills; i++) {
         if (g->fills[i].mid < 0)
             continue;
@@ -5170,7 +5213,7 @@ gpu_disp_tail_fills(r128_gpu_t *g, gpu_slot_t *sl)
         if (i >= g->mid_mirrored)
             gpu_q2d_mark(g, &g->fills[i]);
         g->pr_q2d_bytes += (uint64_t) g->fills[i].rows * g->fills[i].len;
-        gpu_mid_copy_cmd(sl->cb, g->stage2d.b, g->vram_buf, &g->fills[i],
+        gpu_mid_copy_cmd(cb, xq, g->stage2d.b, g->vram_buf, &g->fills[i],
                          VK_ACCESS_TRANSFER_READ_BIT
                              | VK_ACCESS_TRANSFER_WRITE_BIT
                              | VK_ACCESS_SHADER_READ_BIT
@@ -5179,29 +5222,28 @@ gpu_disp_tail_fills(r128_gpu_t *g, gpu_slot_t *sl)
                          VK_PIPELINE_STAGE_TRANSFER_BIT
                              | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
                              | VK_PIPELINE_STAGE_HOST_BIT);
+        n++;
     }
+    return n;
 }
 
 /* Mirror audit, recording half: after everything else in the slot,
    copy the whole guest range of the mirror into the host-visible audit
-   buffer. */
+   buffer. Recorded into cb as for the mirror back. */
 static void
-gpu_audit_record(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask)
+gpu_audit_record(r128_gpu_t *g, VkCommandBuffer cb, int xq, uint32_t vram_mask)
 {
-    VkMemoryBarrier mb = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
-    VkBufferCopy    rc = { 0, 0, (VkDeviceSize) vram_mask + 1u };
+    VkBufferCopy rc = { 0, 0, (VkDeviceSize) vram_mask + 1u };
 
-    mb.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_SHADER_WRITE_BIT;
-    mb.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-    vkCmdPipelineBarrier(sl->cb, VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 1, &mb, 0, NULL,
-                         0, NULL);
-    vkCmdCopyBuffer(sl->cb, g->mirror_buf, g->audit_buf.b, 1, &rc);
-    mb.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-    mb.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
-    vkCmdPipelineBarrier(sl->cb, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                         VK_PIPELINE_STAGE_HOST_BIT, 0, 1, &mb, 0, NULL, 0,
-                         NULL);
+    gpu_cmd_barrier(cb, xq,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_ACCESS_TRANSFER_WRITE_BIT | VK_ACCESS_SHADER_WRITE_BIT,
+                    VK_ACCESS_TRANSFER_READ_BIT);
+    vkCmdCopyBuffer(cb, g->mirror_buf, g->audit_buf.b, 1, &rc);
+    gpu_cmd_barrier(cb, xq, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_HOST_BIT, VK_ACCESS_TRANSFER_WRITE_BIT,
+                    VK_ACCESS_HOST_READ_BIT);
 }
 
 /* Mirror audit, checking half: wait for the slot, then compare the
@@ -5254,10 +5296,14 @@ gpu_dispatch(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
              uint32_t flo, uint32_t fhi)
 {
     VkCommandBufferBeginInfo bi = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-    VkSubmitInfo             si = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
     uint64_t                 t0;
-    int                      use_tq = g->prof && g->tqbits
+    /* xq: the mirror back, the tail fills and the audit copy go into
+       the slot's copy-queue batch, submitted after the kernels' batch */
+    int      xq     = g->tl_sem != VK_NULL_HANDLE;
+    int      use_tq = g->prof && g->tqbits && (!xq || g->xtqbits)
         && sl->tqpool != VK_NULL_HANDLE;
+    VkCommandBuffer tcb  = xq ? sl->xcb : sl->cb;
+    unsigned        tail = 0;
     unsigned prior = gpu_inflight_count(g);
 
     gpu_prof_interval(g, 0);
@@ -5270,7 +5316,7 @@ gpu_dispatch(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
     pthread_mutex_lock(&g->queue_mtx);
     vkBeginCommandBuffer(sl->cb, &bi);
     if (use_tq)
-        vkCmdResetQueryPool(sl->cb, sl->tqpool, 0, 5);
+        vkCmdResetQueryPool(sl->cb, sl->tqpool, 0, 6);
     if (prior)
         gpu_disp_head_barrier(g, sl);
     if (g->nfills > g->nmid)
@@ -5299,20 +5345,61 @@ gpu_dispatch(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
     if (use_tq)
         vkCmdWriteTimestamp(sl->cb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                             sl->tqpool, 2);
+    /* Stamps 5 and 4 bracket the mirror back and tail fills, both on the
+       queue that runs them: timestamps from two queues are not compared. */
+    if (xq)
+        vkBeginCommandBuffer(tcb, &bi);
+    if (use_tq)
+        vkCmdWriteTimestamp(tcb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                            sl->tqpool, 5);
     if (g->mirror_en && nd)
-        gpu_disp_mirror_back(g, sl, vram_mask, clo, chi, zlo, zhi);
-    gpu_disp_tail_fills(g, sl);
-    if (g->mir_audit)
-        gpu_audit_record(g, sl, vram_mask);
+        tail += gpu_disp_mirror_back(g, sl, tcb, xq, vram_mask, clo, chi,
+                                     zlo, zhi);
+    tail += gpu_disp_tail_fills(g, tcb, xq);
+    if (g->mir_audit) {
+        gpu_audit_record(g, tcb, xq, vram_mask);
+        tail++;
+    }
     g->nfills = 0;
     g->nmid   = 0;
     if (use_tq)
-        vkCmdWriteTimestamp(sl->cb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+        vkCmdWriteTimestamp(tcb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
                             sl->tqpool, 4);
+    if (xq && !tail) {
+        /* Nothing to copy back, so the copy batch is not submitted. Its
+           closing barrier, the one the single queue records after an
+           empty mirror back, goes into the kernels' batch instead, and
+           so do its stamps, as an empty interval. */
+        if (g->mirror_en && nd)
+            gpu_cmd_barrier(sl->cb, 0,
+                            VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+                                | VK_PIPELINE_STAGE_TRANSFER_BIT,
+                            VK_PIPELINE_STAGE_TRANSFER_BIT
+                                | VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+                                | VK_PIPELINE_STAGE_HOST_BIT,
+                            VK_ACCESS_SHADER_WRITE_BIT
+                                | VK_ACCESS_TRANSFER_WRITE_BIT,
+                            VK_ACCESS_TRANSFER_READ_BIT
+                                | VK_ACCESS_TRANSFER_WRITE_BIT
+                                | VK_ACCESS_SHADER_READ_BIT
+                                | VK_ACCESS_SHADER_WRITE_BIT
+                                | VK_ACCESS_HOST_READ_BIT);
+        if (use_tq) {
+            vkCmdWriteTimestamp(sl->cb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                                sl->tqpool, 5);
+            vkCmdWriteTimestamp(sl->cb, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT,
+                                sl->tqpool, 4);
+        }
+    }
     vkEndCommandBuffer(sl->cb);
-    si.commandBufferCount = 1;
-    si.pCommandBuffers    = &sl->cb;
-    if (vkQueueSubmit(g->queue, 1, &si, sl->fence) != VK_SUCCESS)
+    if (xq)
+        vkEndCommandBuffer(tcb);
+    /* the fence goes on the last batch submitted; the copy batch waits
+       for the kernels' batch, so its fence covers both */
+    if (gpu_submit(g, g->queue, sl->cb, xq && tail ? VK_NULL_HANDLE : sl->fence)
+            != VK_SUCCESS
+        || (xq && tail
+            && gpu_submit(g, g->xqueue, tcb, sl->fence) != VK_SUCCESS))
         fatal("RAGE128 GPU: queue submit failed\n");
     pthread_mutex_unlock(&g->queue_mtx);
     if (g->mir_audit)
@@ -5352,6 +5439,7 @@ gpu_dispatch(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
         sl->pb_kmask |= 1u << dp[k].kernel;
     }
     sl->timestamped = use_tq;
+    sl->tq_bk_bits  = xq && tail ? g->xtqbits : g->tqbits;
     atomic_store_explicit(&sl->fence_seen, 0, memory_order_relaxed);
     atomic_fetch_add_explicit(&g->inflight, 1, memory_order_acq_rel);
     atomic_store_explicit(&sl->submitted, 1, memory_order_release);
@@ -7201,41 +7289,37 @@ rage128_gpu_present_copy(rage128_t *dev, uint32_t src, uint32_t len)
         VkCommandBufferBeginInfo bi = {
             VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
         };
-        VkMemoryBarrier mb  = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
-        VkBufferCopy    rgn = { src, sn->dst, len };
-        VkSubmitInfo    si  = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
-        VkResult        vr;
+        VkBufferCopy rgn = { src, sn->dst, len };
+        int          xq  = g->tl_sem != VK_NULL_HANDLE;
+        VkResult     vr;
 
         vkResetFences(g->dev, 1, &sn->fence);
         vkBeginCommandBuffer(sn->cb, &bi);
         /* read after write: the frame's shader and fill stores must be
-           visible to the copy's read */
-        mb.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT
-            | VK_ACCESS_TRANSFER_WRITE_BIT;
-        mb.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
-        vkCmdPipelineBarrier(sn->cb,
-                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
-                                 | VK_PIPELINE_STAGE_TRANSFER_BIT,
-                             VK_PIPELINE_STAGE_TRANSFER_BIT,
-                             0, 1, &mb, 0, NULL, 0, NULL);
+           visible to the copy's read (on the copy queue, the timeline
+           wait orders the kernels) */
+        gpu_cmd_barrier(sn->cb, xq,
+                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+                            | VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_ACCESS_SHADER_WRITE_BIT
+                            | VK_ACCESS_TRANSFER_WRITE_BIT,
+                        VK_ACCESS_TRANSFER_READ_BIT);
         vkCmdCopyBuffer(sn->cb, g->vram_buf, g->vram_buf, 1, &rgn);
         /* write after read: the next frame's draws must not overwrite
            the source while the copy still reads it. The barriers at the
            head of later submits cover compute work only and would not
            order against this transfer. */
-        mb.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
-        mb.dstAccessMask = VK_ACCESS_SHADER_READ_BIT
-            | VK_ACCESS_SHADER_WRITE_BIT
-            | VK_ACCESS_TRANSFER_WRITE_BIT;
-        vkCmdPipelineBarrier(sn->cb, VK_PIPELINE_STAGE_TRANSFER_BIT,
-                             VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
-                                 | VK_PIPELINE_STAGE_TRANSFER_BIT,
-                             0, 1, &mb, 0, NULL, 0, NULL);
+        gpu_cmd_barrier(sn->cb, xq, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT
+                            | VK_PIPELINE_STAGE_TRANSFER_BIT,
+                        VK_ACCESS_TRANSFER_WRITE_BIT,
+                        VK_ACCESS_SHADER_READ_BIT
+                            | VK_ACCESS_SHADER_WRITE_BIT
+                            | VK_ACCESS_TRANSFER_WRITE_BIT);
         vkEndCommandBuffer(sn->cb);
-        si.commandBufferCount = 1;
-        si.pCommandBuffers    = &sn->cb;
         pthread_mutex_lock(&g->queue_mtx);
-        vr = vkQueueSubmit(g->queue, 1, &si, sn->fence);
+        vr = gpu_submit(g, xq ? g->xqueue : g->queue, sn->cb, sn->fence);
         pthread_mutex_unlock(&g->queue_mtx);
         if (vr != VK_SUCCESS)
             fatal("RAGE128 GPU: present copy submit failed (%d)\n", vr);
@@ -9086,7 +9170,6 @@ rage128_gpu_ov0_compose(rage128_t *dev, const r128_ov0_frame_t *f)
             VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO
         };
         VkMemoryBarrier mb = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
-        VkSubmitInfo    si = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
         VkResult        vr;
 
         vkResetFences(g->dev, 1, &g->ov0_fence);
@@ -9122,10 +9205,8 @@ rage128_gpu_ov0_compose(rage128_t *dev, const r128_ov0_frame_t *f)
                                  | VK_PIPELINE_STAGE_TRANSFER_BIT,
                              0, 1, &mb, 0, NULL, 0, NULL);
         vkEndCommandBuffer(g->ov0_cb);
-        si.commandBufferCount = 1;
-        si.pCommandBuffers    = &g->ov0_cb;
         pthread_mutex_lock(&g->queue_mtx);
-        vr = vkQueueSubmit(g->queue, 1, &si, g->ov0_fence);
+        vr = gpu_submit(g, g->queue, g->ov0_cb, g->ov0_fence);
         pthread_mutex_unlock(&g->queue_mtx);
         if (vr != VK_SUCCESS)
             fatal("RAGE128 GPU: OV0 submit failed (%d)\n", vr);
@@ -9165,6 +9246,7 @@ gpu_mk_buf(r128_gpu_t *g, r128_gpu_buf_t *b, VkDeviceSize sz,
 
     bci.size  = sz;
     bci.usage = usage;
+    gpu_bci_share(g, &bci);
     if (vkCreateBuffer(g->dev, &bci, NULL, &b->b) != VK_SUCCESS)
         return 0;
     vkGetBufferMemoryRequirements(g->dev, b->b, &mr);
@@ -9243,6 +9325,7 @@ gpu_import_host(r128_gpu_t *g, void *ptr, VkDeviceSize bsz, VkDeviceSize asz,
     bci.usage         = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
         | VK_BUFFER_USAGE_TRANSFER_DST_BIT  /* 2D fills/copies in */
         | VK_BUFFER_USAGE_TRANSFER_SRC_BIT; /* present snapshot copies out */
+    gpu_bci_share(g, &bci);
     if (vkCreateBuffer(g->dev, &bci, NULL, buf) != VK_SUCCESS)
         return "buffer create failed";
     vkGetBufferMemoryRequirements(g->dev, *buf, &mr);
@@ -9957,12 +10040,36 @@ gpu_queue_pick(r128_gpu_t *g)
     qfp = (VkQueueFamilyProperties *) calloc(nqf, sizeof(*qfp));
     vkGetPhysicalDeviceQueueFamilyProperties(g->phys, &nqf, qfp);
     g->qfam = ~0u;
+    g->xfam = ~0u;
     for (uint32_t i = 0; i < nqf; i++)
         if (qfp[i].queueFlags & VK_QUEUE_COMPUTE_BIT) {
             g->qfam   = i;
             g->tqbits = qfp[i].timestampValidBits;
             break;
         }
+    if (g->qfam != ~0u) {
+        /* R128_GPU_TQ=0 keeps every copy on the kernels' queue;
+           R128_GPU_TQ=2 also accepts a family that can run kernels, which
+           is how the two-queue path is exercised on a host whose only
+           families are universal (Apple GPUs under MoltenVK expose four,
+           one queue each). */
+        const char *te   = getenv("R128_GPU_TQ");
+        int         mode = te && te[0] ? atoi(te) : 1;
+
+        for (uint32_t i = 0; mode && i < nqf; i++) {
+            VkQueueFlags f = qfp[i].queueFlags;
+
+            if (i == g->qfam || !qfp[i].queueCount
+                || !(f & VK_QUEUE_TRANSFER_BIT))
+                continue;
+            if (mode != 2
+                && (f & (VK_QUEUE_GRAPHICS_BIT | VK_QUEUE_COMPUTE_BIT)))
+                continue;
+            g->xfam    = i;
+            g->xtqbits = qfp[i].timestampValidBits;
+            break;
+        }
+    }
     free(qfp);
     if (g->qfam == ~0u)
         return "no compute queue";
@@ -9997,24 +10104,41 @@ gpu_device_create(r128_gpu_t *g)
         VkPhysicalDeviceVulkan11Features f11 = {
             VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES
         };
+        VkPhysicalDeviceVulkan12Features f12 = {
+            VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES
+        };
         VkPhysicalDeviceFeatures2 f2   = { VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2 };
         float                     prio = 1.0f;
-        VkDeviceQueueCreateInfo   qci  = { VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO };
-        VkDeviceCreateInfo        dci  = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
+        VkDeviceQueueCreateInfo   qci[2];
+        VkDeviceCreateInfo        dci = { VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO };
 
         /* The SPIR-V modules declare Int64 and StorageBuffer16BitAccess,
            so both features are required. Query them first and name the
            one that is missing: a bare vkCreateDevice failure on a new
-           host says nothing. */
+           host says nothing. The copy queue also needs timeline
+           semaphores, a Vulkan 1.2 feature; the 1.2 structure is only
+           chained on a 1.2 device, and without the feature the copy queue
+           is dropped rather than the device. */
         {
+            VkPhysicalDeviceProperties2 p2 = {
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_PROPERTIES_2
+            };
             VkPhysicalDeviceVulkan11Features h11 = {
                 VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_1_FEATURES
+            };
+            VkPhysicalDeviceVulkan12Features h12 = {
+                VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_VULKAN_1_2_FEATURES
             };
             VkPhysicalDeviceFeatures2 h2 = {
                 VK_STRUCTURE_TYPE_PHYSICAL_DEVICE_FEATURES_2
             };
 
+            vkGetPhysicalDeviceProperties2(g->phys, &p2);
+            if (p2.properties.apiVersion < VK_API_VERSION_1_2)
+                g->xfam = ~0u;
             h2.pNext = &h11;
+            if (g->xfam != ~0u)
+                h11.pNext = &h12;
             vkGetPhysicalDeviceFeatures2(g->phys, &h2);
             if (!h2.features.shaderInt64)
                 return "device lacks shaderInt64 (the kernel's 64-bit "
@@ -10022,23 +10146,144 @@ gpu_device_create(r128_gpu_t *g)
             if (!h11.storageBuffer16BitAccess)
                 return "device lacks storageBuffer16BitAccess (the u16 "
                        "vram view)";
+            if (g->xfam != ~0u && !h12.timelineSemaphore) {
+                gpu_log("RAGE128 GPU: copy queue family %u unused: no "
+                        "timeline semaphores\n",
+                        g->xfam);
+                g->xfam = ~0u;
+            }
         }
+        memset(qci, 0, sizeof(qci));
         f11.storageBuffer16BitAccess = VK_TRUE;
         f2.pNext                     = &f11;
         f2.features.shaderInt64      = VK_TRUE;
-        qci.queueFamilyIndex         = g->qfam;
-        qci.queueCount               = 1;
-        qci.pQueuePriorities         = &prio;
-        dci.pNext                    = &f2;
-        dci.queueCreateInfoCount     = 1;
-        dci.pQueueCreateInfos        = &qci;
-        dci.enabledExtensionCount    = ndext;
-        dci.ppEnabledExtensionNames  = dexts;
+        qci[0].sType                 = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        qci[0].queueFamilyIndex      = g->qfam;
+        qci[0].queueCount            = 1;
+        qci[0].pQueuePriorities      = &prio;
+        qci[1]                       = qci[0];
+        qci[1].queueFamilyIndex      = g->xfam;
+        if (g->xfam != ~0u) {
+            f12.timelineSemaphore = VK_TRUE;
+            f11.pNext             = &f12;
+        }
+        dci.pNext                   = &f2;
+        dci.queueCreateInfoCount    = g->xfam != ~0u ? 2 : 1;
+        dci.pQueueCreateInfos       = qci;
+        dci.enabledExtensionCount   = ndext;
+        dci.ppEnabledExtensionNames = dexts;
         if (vkCreateDevice(g->phys, &dci, NULL, &g->dev) != VK_SUCCESS)
             return "vkCreateDevice failed";
         vkGetDeviceQueue(g->dev, g->qfam, 0, &g->queue);
+        if (g->xfam != ~0u) {
+            VkSemaphoreTypeCreateInfo stci = {
+                VK_STRUCTURE_TYPE_SEMAPHORE_TYPE_CREATE_INFO
+            };
+            VkSemaphoreCreateInfo sci = { VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO };
+
+            stci.semaphoreType = VK_SEMAPHORE_TYPE_TIMELINE;
+            sci.pNext          = &stci;
+            if (vkCreateSemaphore(g->dev, &sci, NULL, &g->tl_sem) != VK_SUCCESS) {
+                gpu_log("RAGE128 GPU: copy queue family %u unused: "
+                        "semaphore create failed\n",
+                        g->xfam);
+                g->tl_sem = VK_NULL_HANDLE;
+                g->xfam   = ~0u;
+            } else {
+                vkGetDeviceQueue(g->dev, g->xfam, 0, &g->xqueue);
+                g->fams[0] = g->qfam;
+                g->fams[1] = g->xfam;
+            }
+        }
+        if (g->xfam != ~0u)
+            gpu_log("RAGE128 GPU: copy queue family %u (timestamps %u bits) "
+                    "-- mirror back and present copies leave the kernels' "
+                    "queue\n",
+                    g->xfam, g->xtqbits);
+        else
+            gpu_log("RAGE128 GPU: copy queue: none -- all copies on the "
+                    "kernels' queue\n");
     }
     return NULL;
+}
+
+/* Buffers that both queues touch are created concurrent over the two
+   families: an exclusive buffer used by a second family would need an
+   ownership transfer on every hand-over. */
+static void
+gpu_bci_share(const r128_gpu_t *g, VkBufferCreateInfo *bci)
+{
+    if (g->tl_sem == VK_NULL_HANDLE)
+        return;
+    bci->sharingMode           = VK_SHARING_MODE_CONCURRENT;
+    bci->queueFamilyIndexCount = 2;
+    bci->pQueueFamilyIndices   = g->fams;
+}
+
+/* Submit one command buffer in the backend's total order. queue_mtx
+   held. With a copy queue the batch first waits for the value the
+   previous batch signals, on either queue, then signals the next; the
+   wait stage is every command, so nothing in this batch starts before
+   the previous batch has completed and its writes are visible. Without
+   one, a plain submit on the single queue keeps the order. */
+static VkResult
+gpu_submit(r128_gpu_t *g, VkQueue q, VkCommandBuffer cb, VkFence f)
+{
+    VkSubmitInfo si = { VK_STRUCTURE_TYPE_SUBMIT_INFO };
+    VkResult     vr;
+
+    si.commandBufferCount = 1;
+    si.pCommandBuffers    = &cb;
+    if (g->tl_sem != VK_NULL_HANDLE) {
+        VkTimelineSemaphoreSubmitInfo ts = {
+            VK_STRUCTURE_TYPE_TIMELINE_SEMAPHORE_SUBMIT_INFO
+        };
+        VkPipelineStageFlags ws = VK_PIPELINE_STAGE_ALL_COMMANDS_BIT;
+        uint64_t             wv = g->tl_val, sv = g->tl_val + 1u;
+
+        ts.waitSemaphoreValueCount   = 1;
+        ts.pWaitSemaphoreValues      = &wv;
+        ts.signalSemaphoreValueCount = 1;
+        ts.pSignalSemaphoreValues    = &sv;
+        si.pNext                     = &ts;
+        si.waitSemaphoreCount        = 1;
+        si.pWaitSemaphores           = &g->tl_sem;
+        si.pWaitDstStageMask         = &ws;
+        si.signalSemaphoreCount      = 1;
+        si.pSignalSemaphores         = &g->tl_sem;
+        vr = vkQueueSubmit(q, 1, &si, f);
+        if (vr == VK_SUCCESS)
+            g->tl_val = sv;
+        return vr;
+    }
+    return vkQueueSubmit(q, 1, &si, f);
+}
+
+/* A memory barrier recorded into either queue's command buffer. On the
+   copy queue the compute-shader stage and the shader access bits are not
+   allowed, so they are dropped; the timeline wait between batches
+   carries the dependency on kernel work. A barrier left with no source
+   or no destination stage is not recorded. */
+static void
+gpu_cmd_barrier(VkCommandBuffer cb, int xq, VkPipelineStageFlags ss,
+                VkPipelineStageFlags ds, VkAccessFlags sa, VkAccessFlags da)
+{
+    VkMemoryBarrier mb = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
+
+    if (xq) {
+        const VkAccessFlags shader = VK_ACCESS_SHADER_READ_BIT
+            | VK_ACCESS_SHADER_WRITE_BIT;
+
+        ss &= ~VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+        ds &= ~VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT;
+        sa &= ~shader;
+        da &= ~shader;
+        if (!ss || !ds)
+            return;
+    }
+    mb.srcAccessMask = sa;
+    mb.dstAccessMask = da;
+    vkCmdPipelineBarrier(cb, ss, ds, 0, 1, &mb, 0, NULL, 0, NULL);
 }
 
 /* VRAM mirror: a device-local buffer covering the guest half of the
@@ -10066,6 +10311,7 @@ gpu_mirror_create(rage128_t *dev, r128_gpu_t *g)
     bci.usage     = VK_BUFFER_USAGE_STORAGE_BUFFER_BIT
         | VK_BUFFER_USAGE_TRANSFER_DST_BIT
         | VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
+    gpu_bci_share(g, &bci);
     if (vkCreateBuffer(g->dev, &bci, NULL, &g->mirror_buf) != VK_SUCCESS)
         mwhy = "buffer create failed";
     else {
@@ -10670,9 +10916,29 @@ gpu_cmd_create(r128_gpu_t *g)
             pthread_mutex_init(&g->slot[s].fence_mtx, NULL);
         }
     }
+    if (g->tl_sem != VK_NULL_HANDLE) {
+        /* The copy queue's pool holds the slots' copy batches and the
+           present snapshots. Both record on the submit thread only, the
+           same rule that lets the slots and snapshots share one pool on
+           the single queue. */
+        VkCommandBuffer          xcbs[GPU_RING_SLOTS];
+        VkCommandPoolCreateInfo  xpci = cpci;
+
+        xpci.queueFamilyIndex = g->xfam;
+        if (vkCreateCommandPool(g->dev, &xpci, NULL, &g->xpool) != VK_SUCCESS)
+            return "copy queue command pool failed";
+        cbai.commandPool        = g->xpool;
+        cbai.commandBufferCount = GPU_RING_SLOTS;
+        if (vkAllocateCommandBuffers(g->dev, &cbai, xcbs) != VK_SUCCESS)
+            return "copy queue command buffer failed";
+        for (unsigned s = 0; s < GPU_RING_SLOTS; s++)
+            g->slot[s].xcb = xcbs[s];
+    }
     {
         VkCommandBuffer scbs[GPU_SNAPS];
 
+        cbai.commandPool        = g->tl_sem != VK_NULL_HANDLE ? g->xpool
+                                                              : g->pool;
         cbai.commandBufferCount = GPU_SNAPS;
         if (vkAllocateCommandBuffers(g->dev, &cbai, scbs) != VK_SUCCESS)
             return "snap command buffer failed";
@@ -10714,7 +10980,9 @@ gpu_cmd_create(r128_gpu_t *g)
         };
 
         qpci.queryType  = VK_QUERY_TYPE_TIMESTAMP;
-        qpci.queryCount = 5; /* 0-2 shading (0 -> 1 empty), 3-4 mirror copies */
+        /* 0-2 shading (0 -> 1 empty), 3 -> 0 mirror down, 5 -> 4 mirror
+           back and tail fills */
+        qpci.queryCount = 6;
         for (unsigned s = 0; s < GPU_RING_SLOTS; s++)
             if (vkCreateQueryPool(g->dev, &qpci, NULL, &g->slot[s].tqpool)
                 != VK_SUCCESS) {
@@ -10781,6 +11049,10 @@ gpu_init_abort(rage128_t *dev, r128_gpu_t *g, int ifn_ok, const char *why)
                 gpu_czstage_rollback(g, &dev->z_stage,
                                      &g->zstage_buf, &g->zstage_mem);
             }
+            if (g->xpool)
+                vkDestroyCommandPool(g->dev, g->xpool, NULL);
+            if (g->tl_sem)
+                vkDestroySemaphore(g->dev, g->tl_sem, NULL);
             vkDestroyDevice(g->dev, NULL);
         }
         if (g->inst)
@@ -11592,6 +11864,10 @@ gpu_close_vk(r128_gpu_t *g)
             pthread_mutex_destroy(&g->snaps[s].mtx);
         }
     vkDestroyCommandPool(g->dev, g->pool, NULL);
+    if (g->xpool)
+        vkDestroyCommandPool(g->dev, g->xpool, NULL);
+    if (g->tl_sem)
+        vkDestroySemaphore(g->dev, g->tl_sem, NULL);
     vkDestroyDescriptorPool(g->dev, g->dpool, NULL);
     for (int v = 0; v < GPU_KERNELS; v++)
         vkDestroyPipeline(g->dev, g->pipes[v], NULL);
