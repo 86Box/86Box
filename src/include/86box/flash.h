@@ -85,6 +85,22 @@ extern const device_t amd_flash_am29f016d_device;
 extern const device_t amd_am28f010_flash_device;
 extern const device_t catalyst_flash_device;
 
+/*
+ * Intel 28F001BX/28F002BX/28F004BX boot block chips and their Micron
+ * equivalents: the intel_flash_* and micron_flash_* descriptors. One
+ * descriptor covers the 128k, 256k and 512k parts, so the size is required.
+ * On the AMI part A16 is inverted; its image is what the CPU sees.
+ */
+typedef struct intel_flash_t intel_flash_t;
+
+extern intel_flash_t *intel_flash_create(const device_t *model, const flash_cfg_t *cfg);
+extern void           intel_flash_destroy(intel_flash_t *dev);
+extern void           intel_flash_reset(intel_flash_t *dev);
+extern void           intel_flash_map(intel_flash_t *dev, struct _mem_mapping_ *mapping, uint32_t base, uint32_t size);
+extern void           intel_flash_remap(intel_flash_t *dev, struct _mem_mapping_ *mapping, uint32_t base, uint32_t size);
+extern void           intel_flash_set_write_protect(intel_flash_t *dev, int protect);
+extern uint32_t       intel_flash_get_size(const intel_flash_t *dev);
+
 extern const device_t intel_flash_bxt_ami_device;
 extern const device_t intel_flash_bxt_device;
 extern const device_t intel_flash_bxb_device;
