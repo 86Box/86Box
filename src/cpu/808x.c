@@ -788,6 +788,39 @@ set_ip(uint16_t new_ip)
     }
 }
 
+/* The IP of the next instruction. Between instructions the new BIU already
+   holds that instruction's opcode (finalize()), and IP has moved past it. */
+uint16_t
+ip_808x(void)
+{
+    return (cpu_state.pc - (is_new_biu && biu_queue_preload)) & 0xffff;
+}
+
+/* Refill the prefetch queue from CS:IP, as a jump does, after something
+   outside the instruction stream (a debugger) changed either of them or
+   the memory there. */
+void
+flush_prefetch_808x(void)
+{
+    if (is_new_biu) {
+        cpu_state.pc = ip_808x();
+        biu_suspend_fetch();
+        biu_queue_flush();
+    } else {
+        pfq_clear();
+        set_ip(cpu_state.pc);
+    }
+}
+
+/* Move to new_ip from outside the instruction stream (a debugger). */
+void
+set_ip_808x(uint16_t new_ip)
+{
+    biu_queue_preload = 0;
+    cpu_state.pc      = new_ip;
+    flush_prefetch_808x();
+}
+
 /* Memory refresh read - called by reads and writes on DMA channel 0. */
 void
 refreshread(void)
@@ -2878,6 +2911,14 @@ execx86_instruction(void)
                 break;
 
             case 0xcc:             /* INT 3 */
+#ifdef USE_GDBSTUB
+                /* A debugger breakpoint: stop on it, and fetch from it
+                   again once the original byte is back. */
+                if (gdbstub_int3()) {
+                    flush_prefetch_808x();
+                    break;
+                }
+#endif
                 interrupt(3);
                 break;
             case 0xcd:             /* INT */

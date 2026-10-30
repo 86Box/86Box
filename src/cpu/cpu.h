@@ -954,6 +954,9 @@ extern uint8_t do_translate2;
 extern void SF_FPU_reset(void);
 
 extern void reset_808x(int hard);
+extern uint16_t ip_808x(void);
+extern void     flush_prefetch_808x(void);
+extern void     set_ip_808x(uint16_t new_ip);
 extern void interrupt_808x(uint16_t addr);
 
 extern void reset_vx0(int hard);

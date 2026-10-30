@@ -343,6 +343,9 @@ extern void     writememll_no_mmut_2386(uint32_t addr, uint32_t *a64, uint32_t v
 
 extern void     do_mmutranslate_2386(uint32_t addr, uint32_t *a64, int num, int write);
 
+extern uint32_t mem_readl_map(uint32_t addr);
+extern void     mem_writel_map(uint32_t addr, uint32_t val);
+
 extern uint8_t *getpccache(uint32_t a);
 extern int      cpu_fetch_device;
 extern uint64_t mmutranslatereal(uint32_t addr, int rw);
