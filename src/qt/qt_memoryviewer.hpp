@@ -5,11 +5,13 @@
 #include <QDialog>
 #include <QVector>
 
+class QButtonGroup;
 class QCheckBox;
 class QComboBox;
 class QLabel;
 class QLineEdit;
 class QPlainTextEdit;
+class QPushButton;
 class QSpinBox;
 class QTimer;
 class QTreeWidget;
@@ -113,8 +115,12 @@ private:
     void refreshCpu();
     void refreshDisasm();
     void updateStatus();
+    void updateRunButtons();
 
     MemoryHexView  *hex_;
+    QButtonGroup   *runGroup_;
+    QPushButton    *pauseBtn_;
+    QPushButton    *continueBtn_;
     QComboBox      *spaceBox_;
     QLineEdit      *addrEdit_;
     QCheckBox      *liveBox_;
