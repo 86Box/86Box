@@ -25,10 +25,12 @@
 #include <86box/86box.h>
 #include "cpu.h"
 #include "x86.h"
+#include "x86_ops.h"
 #include <86box/mem.h>
 #include <86box/debugger.h>
 
 extern void cpu_386_flags_rebuild(void);
+extern const uint8_t opf_0f[256];
 
 volatile int debugger_attached = 0;
 volatile int debugger_state    = DEBUGGER_RUN;
@@ -44,7 +46,14 @@ static volatile int debugger_bp_num      = 0;
 static uint32_t
 debugger_ip(void)
 {
-    return is286 ? cpu_state.pc : ip_808x();
+    uint16_t pc;
+
+    if (is286)
+        return cpu_state.pc;
+    /* In 8080 emulation mode the 8080's PC is the live one. */
+    if (vx0_i8080_state(&pc, NULL, NULL, NULL))
+        return pc;
+    return ip_808x();
 }
 
 static uint32_t
@@ -452,6 +461,135 @@ debugger_selector_base(uint16_t sel, uint32_t *base)
 }
 
 void
+debugger_decode_info(debugger_decode_info_t *info)
+{
+    if (!is286) {
+        if (is_nec)
+            info->isa = vx0_i8080_state(NULL, NULL, NULL, NULL) ? DEBUGGER_ISA_I8080 : DEBUGGER_ISA_V30;
+        else
+            info->isa = is186 ? DEBUGGER_ISA_80186 : DEBUGGER_ISA_8086;
+    } else
+        info->isa = is386 ? DEBUGGER_ISA_386 : DEBUGGER_ISA_286;
+
+    switch (fpu_type) {
+        case FPU_NONE:
+            info->fpu = DEBUGGER_FPU_NONE;
+            break;
+        case FPU_8087:
+        case FPU_80187:
+            info->fpu = DEBUGGER_FPU_8087;
+            break;
+        case FPU_287:
+        case FPU_287XL:
+            info->fpu = DEBUGGER_FPU_287;
+            break;
+        default:
+            info->fpu = DEBUGGER_FPU_387;
+            break;
+    }
+
+    info->code32   = is386 && !!use32;
+    info->stack32  = is386 && !!stack32;
+    info->wrap16   = !is386;
+    info->fpu_trap = is286 && !!(cr0 & 0x0c);
+    info->vpc      = !!is_vpc;
+}
+
+/* The tables the running interpreter dispatches through, and what they hold
+   for an opcode the processor does not have: the 286 and 386 interpreter
+   (386.c) and the 486 and later one (386_dynarec.c) each have their own. */
+static const OpFn *
+debugger_op_table(int map, OpFn *illegal)
+{
+    if (cpu_exec == exec386_2386) {
+        *illegal = x86_2386_illegal_op;
+        return map ? x86_2386_opcodes_0f : x86_2386_opcodes;
+    }
+
+    *illegal = x86_illegal_op;
+    return map ? x86_opcodes_0f : x86_opcodes;
+}
+
+int
+debugger_opcode_kind(int map, uint8_t op, int opsize)
+{
+    OpFn        illegal;
+    const OpFn *t = debugger_op_table(map, &illegal);
+
+    if (!is286 || !t || (t[(op | opsize) & 0x3ff] == illegal))
+        return DEBUGGER_OP_ILLEGAL;
+
+    if (!map)
+        return ((op == 0xf1) && !is386) ? DEBUGGER_OP_LOCK : DEBUGGER_OP_NORMAL;
+
+    /* These are only in the tables of the processors that have them; where
+       one opcode is different things on different processors, which table
+       this is tells. */
+    switch (op) {
+        case 0x05:
+            return ((t == ops_286_0f) || (t == ops_2386_286_0f)) ? DEBUGGER_OP_LOADALL : DEBUGGER_OP_NORMAL;
+        case 0x07:
+            return ((t == ops_386_0f) || (t == ops_486_0f) || (t == ops_c486_0f) || (t == ops_stpc_0f) || (t == ops_ibm486_0f) ||
+                    (t == ops_2386_386_0f) || (t == ops_2386_486_0f) || (t == ops_2386_ibm486_0f)) ?
+                       DEBUGGER_OP_LOADALL386 : DEBUGGER_OP_NORMAL;
+        case 0x0d:
+        case 0x18 ... 0x1f:
+            return ((t == ops_pentiumpro_0f) || (t == ops_pentium2_0f) || (t == ops_pentium2d_0f)) ? DEBUGGER_OP_HINT_NOP :
+                                                                                                    DEBUGGER_OP_NORMAL;
+        case 0x10 ... 0x13:
+            return DEBUGGER_OP_UMOV;
+        case 0x36:
+            return DEBUGGER_OP_RDSHR;
+        case 0x37:
+            return DEBUGGER_OP_WRSHR;
+        case 0x38:
+            return DEBUGGER_OP_SMINT;
+        case 0x3a:
+            return DEBUGGER_OP_BB0_RESET;
+        case 0x3b:
+            return DEBUGGER_OP_BB1_RESET;
+        case 0x3c:
+            return DEBUGGER_OP_CPU_WRITE;
+        case 0x3d:
+            return DEBUGGER_OP_CPU_READ;
+        case 0x3f:
+            return DEBUGGER_OP_VPCEXT;
+        case 0x78 ... 0x7d:
+            return DEBUGGER_OP_SVDC + (op - 0x78);
+        case 0x7e:
+            return ((t == ops_c486_0f) || (t == ops_stpc_0f) || (t == ops_c6x86_0f) || (t == ops_c6x86l_0f)) ? DEBUGGER_OP_SMINT :
+                                                                                                             DEBUGGER_OP_NORMAL;
+        default:
+            return DEBUGGER_OP_NORMAL;
+    }
+}
+
+int
+debugger_lock_legal(uint8_t op, uint8_t b1, uint8_t b2)
+{
+    /* The 8086, 80186 and 286 lock any instruction. */
+    if (!is386)
+        return 1;
+
+    return is_lock_legal(op | (b1 << 8) | ((uint32_t) b2 << 16));
+}
+
+int
+debugger_nec_0f_modrm(uint8_t op)
+{
+    return opf_0f[op] & 1; /* OP_MRM */
+}
+
+int
+debugger_prefetch_queue(uint8_t *buf, int max)
+{
+    if (is286 || vx0_i8080_state(NULL, NULL, NULL, NULL))
+        return 0;
+
+    return queue_peek_808x(buf, max);
+}
+
+void
 debugger_cpu_info(debugger_cpu_info_t *info)
 {
     info->ip             = debugger_ip();
@@ -537,6 +675,21 @@ debugger_cpu_format(char *buf, int size)
         mode = "virtual-8086";
     else
         mode = "protected";
+
+    {
+        uint16_t pc8;
+        uint16_t sp8;
+        uint8_t  r8[7];
+        uint8_t  f8;
+
+        if (vx0_i8080_state(&pc8, &sp8, r8, &f8)) {
+            APPEND("CPU 0: 8080 emulation mode\n\n");
+            APPEND("A %02X   B %02X  C %02X   D %02X  E %02X   H %02X  L %02X\n", r8[0], r8[1], r8[2], r8[3], r8[4], r8[5], r8[6]);
+            APPEND("PC %04X  SP %04X  F %02X  %s %s %s %s %s\n\n", pc8, sp8, f8, (f8 & 0x80) ? "S" : "-", (f8 & 0x40) ? "Z" : "-",
+                   (f8 & 0x10) ? "AC" : "--", (f8 & 0x04) ? "P" : "-", (f8 & 0x01) ? "CY" : "--");
+            APPEND("Native registers, as on entering 8080 mode (IP is the 8080 PC):\n");
+        }
+    }
 
     APPEND("CPU 0: %s mode%s%s%s, CPL %d\n", mode, (is386 && use32) ? ", 32-bit code" : ((is286 && (msw & 1)) ? ", 16-bit code" : ""),
            in_smm ? ", SMM" : "", cpu_halted ? ", halted" : "", (is286 && (msw & 1)) ? CPL : 0);

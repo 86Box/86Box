@@ -813,6 +813,23 @@ flush_prefetch_808x(void)
     }
 }
 
+/* The bytes the prefetch queue holds for the next instruction, oldest
+   first, without changing anything. The processor runs these rather than
+   what is in memory now. */
+int
+queue_peek_808x(uint8_t *buf, int max)
+{
+    int n = 0;
+
+    if (is_new_biu)
+        return biu_pfq_peek(buf, max);
+
+    for (int i = 0; (i < pfq_pos) && (n < max); i++)
+        buf[n++] = pfq[i];
+
+    return n;
+}
+
 /* Move to new_ip from outside the instruction stream (a debugger). */
 void
 set_ip_808x(uint16_t new_ip)

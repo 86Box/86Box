@@ -98,6 +98,73 @@ typedef struct debugger_cpu_info_t {
 } debugger_cpu_info_t;
 
 extern void debugger_cpu_info(debugger_cpu_info_t *info);
+
+/* What the disassembler needs to decode as the emulated processor does. */
+enum {
+    DEBUGGER_ISA_8086 = 0,
+    DEBUGGER_ISA_80186,
+    DEBUGGER_ISA_V30,   /* NEC V20/V30 in native mode */
+    DEBUGGER_ISA_I8080, /* NEC V20/V30 in 8080 emulation mode */
+    DEBUGGER_ISA_286,
+    DEBUGGER_ISA_386    /* the 386 and later */
+};
+
+enum {
+    DEBUGGER_FPU_NONE = 0,
+    DEBUGGER_FPU_8087,
+    DEBUGGER_FPU_287,
+    DEBUGGER_FPU_387 /* the 387 and later, and on-chip FPUs */
+};
+
+typedef struct debugger_decode_info_t {
+    int isa;
+    int fpu;
+    int code32;   /* CS is a 32-bit code segment */
+    int stack32;  /* SS is a 32-bit stack segment */
+    int wrap16;   /* instruction fetches wrap at 64 KB within CS */
+    int fpu_trap; /* CR0.EM or TS set: x87 opcodes raise #NM */
+    int vpc;      /* Virtual PC extensions (0F 3F) are on */
+} debugger_decode_info_t;
+
+extern void debugger_decode_info(debugger_decode_info_t *info);
+
+/* What the 286 and later's opcode tables run for an opcode (map 0: one byte,
+   map 1: after 0F), with opsize holding 0x100 for 32-bit operands and 0x200
+   for 32-bit addresses, as the tables are indexed. */
+enum {
+    DEBUGGER_OP_ILLEGAL = 0, /* #UD */
+    DEBUGGER_OP_NORMAL,      /* as documented for the instruction set */
+    DEBUGGER_OP_LOCK,        /* F1 on the 286: LOCK */
+    DEBUGGER_OP_LOADALL,     /* 0F 05 on the 286 */
+    DEBUGGER_OP_LOADALL386,  /* 0F 07 on the 386 and 486 */
+    DEBUGGER_OP_UMOV,        /* 0F 10-13 */
+    DEBUGGER_OP_RDSHR,       /* Cyrix 0F 36 */
+    DEBUGGER_OP_WRSHR,       /* Cyrix 0F 37 */
+    DEBUGGER_OP_SVDC,        /* Cyrix 0F 78 */
+    DEBUGGER_OP_RSDC,        /* Cyrix 0F 79 */
+    DEBUGGER_OP_SVLDT,       /* Cyrix 0F 7A */
+    DEBUGGER_OP_RSLDT,       /* Cyrix 0F 7B */
+    DEBUGGER_OP_SVTS,        /* Cyrix 0F 7C */
+    DEBUGGER_OP_RSTS,        /* Cyrix 0F 7D */
+    DEBUGGER_OP_SMINT,       /* Cyrix 0F 7E, MediaGX 0F 38 */
+    DEBUGGER_OP_BB0_RESET,   /* MediaGX 0F 3A */
+    DEBUGGER_OP_BB1_RESET,   /* MediaGX 0F 3B */
+    DEBUGGER_OP_CPU_WRITE,   /* MediaGX 0F 3C */
+    DEBUGGER_OP_CPU_READ,    /* MediaGX 0F 3D */
+    DEBUGGER_OP_VPCEXT,      /* Virtual PC 0F 3F */
+    DEBUGGER_OP_HINT_NOP     /* P6 0F 0D, 0F 18-1F */
+};
+
+extern int debugger_opcode_kind(int map, uint8_t op, int opsize);
+/* Whether the processor takes a LOCK prefix on the instruction whose opcode
+   and next two bytes these are (zeros where the instruction has none). */
+extern int debugger_lock_legal(uint8_t op, uint8_t b1, uint8_t b2);
+/* Whether the V20/V30 core decodes a ModR/M byte for opcode 0F op. */
+extern int debugger_nec_0f_modrm(uint8_t op);
+/* The bytes the 8086-class prefetch queue already holds for the instruction
+   at CS:IP, which the processor runs instead of memory's (0 on the 286 and
+   later). */
+extern int debugger_prefetch_queue(uint8_t *buf, int max);
 /* A textual dump of the processor's registers. */
 extern void debugger_cpu_format(char *buf, int size);
 /* A register's value by name ("eax", "ip", "cs" (selector), ...); nonzero

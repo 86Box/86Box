@@ -222,6 +222,10 @@ fetch_ea_16_long(uint32_t rmdat)
 
 #include "386_ops.h"
 
+/* What the tables above hold for an opcode the processor does not have, so
+   that a debugger can tell. */
+const OpFn x86_2386_illegal_op = ILLEGAL;
+
 void
 exec386_2386(int32_t cycs)
 {

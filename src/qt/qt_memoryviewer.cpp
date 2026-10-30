@@ -56,9 +56,7 @@ extern "C" {
 int startblit_timeout(int timeout_ms);
 }
 
-#ifdef USE_BDDISASM
-#    include <bddisasm.h>
-#endif
+#include "qt_disasm.hpp"
 
 /* Colours for the classes of memory. */
 static const QColor romBg(0xff, 0xe0, 0x60);
@@ -561,8 +559,8 @@ MemoryViewer::MemoryViewer(QWidget *parent)
     followBox_->setChecked(true);
     auto *disGo = new QPushButton(tr("Go"), this);
     disasm_     = new QTreeWidget(this);
-    disasm_->setColumnCount(4);
-    disasm_->setHeaderLabels({ QString(), tr("Address"), tr("Bytes"), tr("Instruction") });
+    disasm_->setColumnCount(5);
+    disasm_->setHeaderLabels({ QString(), tr("Address"), tr("Bytes"), tr("Instruction"), tr("Note") });
     disasm_->setRootIsDecorated(false);
     disasm_->setUniformRowHeights(true);
     disasm_->setFont(monoFont());
@@ -797,74 +795,36 @@ MemoryViewer::refreshCpu()
     cpuText_->verticalScrollBar()->setValue(pos);
 }
 
-#ifdef USE_BDDISASM
-/* Decode one instruction at a linear address, reading its bytes one at a
-   time so that no byte past its end is read. Returns its length (0 if its
-   first byte cannot be read), the bytes read and the text. */
-static int
-decodeOne(uint32_t lin, uint32_t ip, bool code32, uint8_t *bytes, QString *text)
-{
-    INSTRUX ix;
-    char    buf[ND_MIN_BUF_SIZE];
-
-    for (int n = 1; n <= ND_MAX_INSTRUCTION_LENGTH; n++) {
-        uint8_t cls;
-        debugger_mem_read(DEBUGGER_SPACE_LINEAR, lin + n - 1, 1, &bytes[n - 1], &cls);
-        if (!readable(cls)) {
-            if (n == 1) {
-                *text = (cls == DEBUGGER_MEM_UNMAPPED) ? QObject::tr("(unmapped)") : QObject::tr("(inaccessible)");
-                return 0;
-            }
-            *text = QObject::tr("(instruction runs into memory that cannot be read)");
-            return n - 1;
-        }
-
-        const NDSTATUS st = NdDecodeEx(&ix, bytes, n, code32 ? ND_CODE_32 : ND_CODE_16, code32 ? ND_DATA_32 : ND_DATA_16);
-        if (st == ND_STATUS_BUFFER_TOO_SMALL)
-            continue;
-        if (!ND_SUCCESS(st)) {
-            *text = QString::asprintf("db %02Xh", bytes[0]);
-            return 1;
-        }
-        if (!ND_SUCCESS(NdToText(&ix, code32 ? ip : (ip & 0xffff), sizeof(buf), buf)))
-            qstrncpy(buf, "?", sizeof(buf));
-        *text = QString::fromLatin1(buf).toLower();
-        return ix.Length;
-    }
-
-    *text = QString::asprintf("db %02Xh", bytes[0]);
-    return 1;
-}
-#endif
-
 void
 MemoryViewer::refreshDisasm()
 {
 #ifdef USE_BDDISASM
     debugger_cpu_info_t info;
-    struct Line {
-        uint32_t lin;
-        uint32_t ip;
-        int      len;
-        uint8_t  bytes[ND_MAX_INSTRUCTION_LENGTH];
-        QString  text;
-        bool     bp;
-    };
-    QVector<Line> lines;
+    QVector<DisasmInsn> lines;
+    QVector<bool>       bps;
+    uint32_t            segBase = 0;
 
     if (!lock())
         return;
     debugger_cpu_info(&info);
-    uint32_t lin = followBox_->isChecked() ? info.pc_linear : disasmAddr_;
-    for (int i = 0; i < DISASM_LINES; i++) {
-        Line l;
-        l.lin = lin;
-        l.ip  = lin - info.cs_base;
-        l.len = decodeOne(lin, l.ip, info.code32, l.bytes, &l.text);
-        l.bp  = debugger_breakpoint_present(lin);
-        lines.append(l);
-        /* Past something unreadable, go on at the next byte. */
-        lin += (l.len > 0) ? l.len : 1;
+    {
+        Disassembler dis;
+        uint32_t     ip = followBox_->isChecked() ? info.ip : (disasmAddr_ - dis.csBase());
+        if (!followBox_->isChecked() && dis.wraps() && (ip > 0xffff)) {
+            /* Out of CS's reach where IP wraps at 64 KB: decode in the
+               segment the address starts. */
+            dis.setBase(disasmAddr_ & ~0x0f);
+            ip = disasmAddr_ & 0x0f;
+        }
+        segBase = dis.csBase();
+        for (int i = 0; i < DISASM_LINES; i++) {
+            /* The instruction at CS:IP may already be in the prefetch queue. */
+            DisasmInsn d = dis.decode(ip, (dis.csBase() == info.cs_base) && (ip == info.ip));
+            bps.append(debugger_breakpoint_present(d.lin));
+            lines.append(d);
+            /* Past something unreadable, go on at the next byte. */
+            ip = dis.next(ip, d.len);
+        }
     }
     unlock();
 
@@ -873,23 +833,33 @@ MemoryViewer::refreshDisasm()
 
     disasm_->clear();
     QTreeWidgetItem *current = nullptr;
-    for (const Line &l : lines) {
-        auto   *item = new QTreeWidgetItem(disasm_);
-        QString bytes;
-        for (int i = 0; i < l.len; i++)
+    for (int n = 0; n < lines.size(); n++) {
+        const DisasmInsn &l    = lines[n];
+        auto             *item = new QTreeWidgetItem(disasm_);
+        QString           bytes;
+        for (int i = 0; (i < l.len) && (i < 16); i++)
             bytes += QString::asprintf("%02X", l.bytes[i]);
 
-        item->setText(0, l.bp ? QStringLiteral("●") : QString());
+        item->setText(0, bps[n] ? QStringLiteral("\u25cf") : QString());
         item->setForeground(0, QBrush(Qt::red));
-        item->setText(1, QString::asprintf("%08X  %04X:%0*X", l.lin, info.cs_sel, info.code32 ? 8 : 4, info.code32 ? l.ip : (l.ip & 0xffff)));
+        if (segBase == info.cs_base)
+            item->setText(1, QString::asprintf("%08X  %04X:%0*X", l.lin, info.cs_sel, info.code32 ? 8 : 4, info.code32 ? l.ip : (l.ip & 0xffff)));
+        else if (!info.protected_mode)
+            item->setText(1, QString::asprintf("%08X  %04X:%04X", l.lin, segBase >> 4, l.ip & 0xffff));
+        else
+            item->setText(1, QString::asprintf("%08X", l.lin));
         item->setData(1, Qt::UserRole, l.lin);
         item->setText(2, bytes);
         item->setText(3, l.text);
-        if (l.len <= 0) {
+        item->setText(4, l.note);
+        item->setToolTip(3, l.note);
+        item->setToolTip(4, l.note);
+        if (l.len <= 0)
             item->setForeground(3, QBrush(unmappedFg));
-        }
+        else if (l.invalid)
+            item->setForeground(3, QBrush(inaccessibleBg));
         if (l.lin == info.pc_linear) {
-            for (int c = 1; c < 4; c++) {
+            for (int c = 1; c < 5; c++) {
                 item->setBackground(c, palette().brush(QPalette::Highlight));
                 item->setForeground(c, palette().brush(QPalette::HighlightedText));
             }

@@ -231,6 +231,10 @@ fetch_ea_16_long(uint32_t rmdat)
 
 #include "386_ops.h"
 
+/* What the tables above hold for an opcode the processor does not have, so
+   that a debugger can tell. */
+const OpFn x86_illegal_op = ILLEGAL;
+
 /* ES flat at the block's start, while no ES load has been compiled: its
    limit checks are left out (both recompilers) */
 int codegen_flat_es;

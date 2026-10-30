@@ -270,6 +270,8 @@ add_library(ui STATIC
 
     qt_memoryviewer.hpp
     qt_memoryviewer.cpp
+    qt_disasm.hpp
+    qt_disasm.cpp
 
     qt_mediahistorymanager.cpp
     qt_mediahistorymanager.hpp

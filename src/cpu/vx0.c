@@ -376,6 +376,35 @@ sync_from_i8080(void)
     set_if(emulated_processor.iff);
 }
 
+/* Whether the V20/V30 is in 8080 emulation mode, and if so its 8080
+   registers as they are now (the x86 ones are only synced on the way out):
+   r gets A, B, C, D, E, H, L. For debuggers; changes nothing. */
+int
+vx0_i8080_state(uint16_t *pc, uint16_t *sp, uint8_t *r, uint8_t *flags)
+{
+    if (!is_nec || (cpu_state.flags & MD_FLAG))
+        return 0;
+
+    if (pc)
+        *pc = emulated_processor.pc;
+    if (sp)
+        *sp = emulated_processor.sp;
+    if (r) {
+        r[0] = emulated_processor.a;
+        r[1] = emulated_processor.b;
+        r[2] = emulated_processor.c;
+        r[3] = emulated_processor.d;
+        r[4] = emulated_processor.e;
+        r[5] = emulated_processor.h;
+        r[6] = emulated_processor.l;
+    }
+    if (flags)
+        *flags = (emulated_processor.sf << 7) | (emulated_processor.zf << 6) | (emulated_processor.hf << 4) |
+                 (emulated_processor.pf << 2) | 0x02 | emulated_processor.cf;
+
+    return 1;
+}
+
 void
 sync_to_i8080(void)
 {
