@@ -8097,6 +8097,23 @@ const cpu_family_t cpu_families[] = {
                 .cache_write_cycles = 13,
                 .atclk_div          = 51
             },
+            { /* out of spec */
+                .name               = "450A",
+                .cpu_type           = CPU_PENTIUM2D,
+                .fpus               = fpus_internal,
+                .rspeed             = 450000000,
+                .multi              = 4.5,
+                .voltage            = 2050,
+                .edx_reset          = 0x665,
+                .cpuid_model        = 0x665,
+                .cyrix_id           = 0,
+                .cpu_flags          = CPU_SUPPORTS_DYNAREC | CPU_REQUIRES_DYNAREC | CPU_FIXED_MULTIPLIER,
+                .mem_read_cycles    = 41,
+                .mem_write_cycles   = 41,
+                .cache_read_cycles  = 14,
+                .cache_write_cycles = 14,
+                .atclk_div          = 54
+            },
             {
                 .name               = "466",
                 .cpu_type           = CPU_PENTIUM2D,
