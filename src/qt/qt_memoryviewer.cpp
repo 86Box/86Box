@@ -18,7 +18,6 @@
 #include <algorithm>
 
 #include <QApplication>
-#include <QButtonGroup>
 #include <QCheckBox>
 #include <QClipboard>
 #include <QCloseEvent>
@@ -698,26 +697,19 @@ MemoryViewer::MemoryViewer(QWidget *parent)
     setWindowFlags(windowFlags() | Qt::WindowMinMaxButtonsHint);
     setAttribute(Qt::WA_DeleteOnClose);
 
-    /* The two run buttons are icons that rule each other out: one of
-       them is checked at all times, mirroring the debugger's state. */
-    pauseBtn_    = new QPushButton(QIcon(":/menuicons/qt/icons/pause.ico"), QString(), this);
-    continueBtn_ = new QPushButton(QIcon(":/menuicons/qt/icons/run.ico"), QString(), this);
-    auto *stepBtn = new QPushButton(tr("Step"), this);
-    pauseBtn_->setShortcut(QKeySequence(Qt::Key_F6));
-    continueBtn_->setShortcut(QKeySequence(Qt::Key_F5));
+    /* A single toggle button, matching the main toolbar: raised with the
+       pause icon while the guest is running, depressed with the play
+       (run) icon while it is paused. */
+    runBtn_ = new QPushButton(this);
+    runBtn_->setCheckable(true);
+    runBtn_->setShortcut(QKeySequence(Qt::Key_F5));
+    runBtn_->setAccessibleName(tr("Pause / Resume"));
+    /* Icon and tooltip are set from the state in updateRunButton(). */
+
+    auto *stepBtn = new QPushButton(this);
+    stepBtn->setIcon(QIcon(":/settings/qt/icons/fast_forward.ico"));
+    stepBtn->setAccessibleName(tr("Step"));
     stepBtn->setShortcut(QKeySequence(Qt::Key_F11));
-    pauseBtn_->setToolTip(tr("Stop the processor at the next instruction (F6)"));
-    continueBtn_->setToolTip(tr("Let the processor run (F5)"));
-    /* Icons only: the names are for screen readers. */
-    pauseBtn_->setAccessibleName(tr("Pause"));
-    continueBtn_->setAccessibleName(tr("Continue"));
-    /* Checkable, in a mutually exclusive group, like the state they show. */
-    pauseBtn_->setCheckable(true);
-    continueBtn_->setCheckable(true);
-    runGroup_ = new QButtonGroup(this);
-    runGroup_->addButton(pauseBtn_);
-    runGroup_->addButton(continueBtn_);
-    runGroup_->setExclusive(true);
     stepBtn->setToolTip(tr("Run the given number of instructions (F11)"));
     stepCount_ = new QSpinBox(this);
     stepCount_->setRange(1, 1000000);
@@ -735,8 +727,7 @@ MemoryViewer::MemoryViewer(QWidget *parent)
     auto *dumpBtn = new QPushButton(tr("Dump..."), this);
 
     auto *bar = new QHBoxLayout;
-    bar->addWidget(pauseBtn_);
-    bar->addWidget(continueBtn_);
+    bar->addWidget(runBtn_);
     bar->addWidget(stepBtn);
     bar->addWidget(stepCount_);
     bar->addSpacing(12);
@@ -827,8 +818,7 @@ MemoryViewer::MemoryViewer(QWidget *parent)
 
     resize(1400, 820);
 
-    connect(pauseBtn_, &QPushButton::clicked, this, &MemoryViewer::onPause);
-    connect(continueBtn_, &QPushButton::clicked, this, &MemoryViewer::onContinue);
+    connect(runBtn_, &QPushButton::clicked, this, &MemoryViewer::onRunToggle);
     connect(stepBtn, &QPushButton::clicked, this, &MemoryViewer::onStep);
     connect(goBtn, &QPushButton::clicked, this, &MemoryViewer::onGo);
     connect(addrEdit_, &QLineEdit::returnPressed, this, &MemoryViewer::onGo);
@@ -874,16 +864,14 @@ MemoryViewer::closeEvent(QCloseEvent *event)
 }
 
 void
-MemoryViewer::onPause()
+MemoryViewer::onRunToggle()
 {
-    debugger_pause();
-    updateStatus();
-}
-
-void
-MemoryViewer::onContinue()
-{
-    debugger_continue();
+    /* Toggle based on the current debugger state, not the button's
+       checked property (which the click has already flipped). */
+    if (debugger_get_state() == DEBUGGER_BREAK)
+        debugger_continue();
+    else
+        debugger_pause();
     updateStatus();
 }
 
@@ -894,15 +882,20 @@ MemoryViewer::onStep()
     updateStatus();
 }
 
-/* One of the two run buttons is always checked: the state the debugger
-   is in. The exclusive group unchecks the other on a click; this sets
-   both where the state goes another way (a step, a breakpoint). */
+/* Raised with the pause icon while running; depressed with the play
+   icon while paused, matching the main window toolbar. */
 void
-MemoryViewer::updateRunButtons()
+MemoryViewer::updateRunButton()
 {
     const bool stopped = (debugger_get_state() == DEBUGGER_BREAK);
-    pauseBtn_->setChecked(stopped);
-    continueBtn_->setChecked(!stopped);
+    runBtn_->setChecked(stopped);
+    if (stopped) {
+        runBtn_->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
+        runBtn_->setToolTip(tr("Let the processor run (F5)"));
+    } else {
+        runBtn_->setIcon(QIcon(":/menuicons/qt/icons/pause.ico"));
+        runBtn_->setToolTip(tr("Stop the processor at the next instruction (F5)"));
+    }
 }
 
 void
@@ -1020,7 +1013,7 @@ MemoryViewer::updateStatus()
         text += QStringLiteral(" ") + tr("The emulator is paused; resume it to run or step.");
     text += QStringLiteral(" ") + tr("The dynamic recompiler is off while this window is open.");
     statusLabel_->setText(text);
-    updateRunButtons();
+    updateRunButton();
 }
 
 void
