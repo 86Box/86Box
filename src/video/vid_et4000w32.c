@@ -748,6 +748,31 @@ et4000w32p_recalcmapping(et4000w32p_t *et4000)
         mem_mapping_disable(&svga->mapping);
 }
 
+/* Start the operation set up in the queued registers. */
+static void
+et4000w32p_accel_start(et4000w32p_t *et4000)
+{
+    et4000->acl.internal = et4000->acl.queued;
+    if (et4000->rev >= ET4000W32P_REVB) {
+        et4000w32p_blit_start(et4000);
+        et4000w32_log("Destination Address write and start XY Block, xcnt = %i, ycnt = %i\n", et4000->acl.x_count + 1, et4000->acl.y_count + 1);
+        if (!(et4000->acl.queued.ctrl_routing & 0x43)) {
+            et4000w32p_blit(-1, 0xffffffff, 0, 0, et4000);
+        }
+        if ((et4000->acl.queued.ctrl_routing & 0x40) && !(et4000->acl.internal.ctrl_routing & 3)) {
+            et4000w32p_blit(4, 0xffffffff, 0, 0, et4000);
+        }
+    } else {
+        et4000w32_blit_start(et4000);
+        et4000->acl.cpu_input_num = 0;
+        if (!(et4000->acl.queued.ctrl_routing & 0x37)) {
+            et4000->acl.mmu_start = 1;
+            et4000w32_blit(-1, 0, 0, 0xffffffff, et4000);
+        } else
+            et4000->acl.mmu_start = 0;
+    }
+}
+
 static void
 et4000w32p_accel_write_fifo(et4000w32p_t *et4000, uint32_t addr, uint8_t val)
 {
@@ -851,25 +876,10 @@ et4000w32p_accel_write_fifo(et4000w32p_t *et4000, uint32_t addr, uint8_t val)
             break;
         case 0xa3:
             et4000->acl.queued.dest_addr = (et4000->acl.queued.dest_addr & 0x00ffffff) | (val << 24);
-            et4000->acl.internal = et4000->acl.queued;
-            if (et4000->rev >= ET4000W32P_REVB) {
-                et4000w32p_blit_start(et4000);
-                et4000w32_log("Destination Address write and start XY Block, xcnt = %i, ycnt = %i\n", et4000->acl.x_count + 1, et4000->acl.y_count + 1);
-                if (!(et4000->acl.queued.ctrl_routing & 0x43)) {
-                    et4000w32p_blit(-1, 0xffffffff, 0, 0, et4000);
-                }
-                if ((et4000->acl.queued.ctrl_routing & 0x40) && !(et4000->acl.internal.ctrl_routing & 3)) {
-                    et4000w32p_blit(4, 0xffffffff, 0, 0, et4000);
-                }
-            } else {
-                et4000w32_blit_start(et4000);
-                et4000->acl.cpu_input_num = 0;
-                if (!(et4000->acl.queued.ctrl_routing & 0x37)) {
-                    et4000->acl.mmu_start = 1;
-                    et4000w32_blit(-1, 0, 0, 0xffffffff, et4000);
-                } else
-                    et4000->acl.mmu_start = 0;
-            }
+            /* The W32 and W32i start from the operation state register, the
+               W32p here too when bit 4 of that is set. */
+            if ((et4000->rev >= ET4000W32P_REVB) && (et4000->acl.osr & 0x10))
+                et4000w32p_accel_start(et4000);
             break;
         case 0xa4:
             et4000->acl.queued.mix_addr = (et4000->acl.queued.mix_addr & 0xFFFFFF00) | val;
@@ -1047,6 +1057,8 @@ et4000w32p_mmu_write(uint32_t addr, uint8_t val, void *priv)
                         break;
                     case 0x31:
                         et4000->acl.osr = val;
+                        if (val & 1)
+                            et4000w32p_accel_start(et4000);
                         break;
 
                     default:
