@@ -926,6 +926,11 @@ typedef struct {
 } cyrix_t;
 
 #define x87_op cpu_state.x87_op
+/* Or'd into x87_op by an x87 instruction left unexecuted (#NM, a pending
+   exception reported at it, an undefined escape's #UD): its escape wrapper
+   then leaves the FPU pointers as they were. Every escape stores x87_op
+   afresh, and its readers take the low 11 bits. */
+#define X87_OP_NOT_EXECUTED 0x80000000
 
 extern uint32_t addr64;
 extern uint32_t addr64_2;
