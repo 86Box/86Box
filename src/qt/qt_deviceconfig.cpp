@@ -399,11 +399,15 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     }
 
                     bios_rows = rows;
-                    if (rows > 1)
-                        this->ui->formLayout->addRow(tr(config->description).append(colon), cbox);
-
                     bios = currentIndex;
                     cbox->setCurrentIndex(currentIndex);
+                    if (rows > 0) {
+                        this->ui->formLayout->addRow(tr(config->description).append(colon), cbox);
+                        cbox->setEnabled(rows > 1);
+                    } else {
+                        delete cbox;
+                        cbox = nullptr;
+                    }
 
                     cbox_bios = cbox;
                     cfg_bios  = config;
