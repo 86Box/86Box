@@ -519,10 +519,17 @@ enum {
 static void
 s3_virge_update_irqs(virge_t *virge)
 {
-    if ((virge->svga.crtc[0x32] & 0x10) && (virge->subsys_stat & virge->subsys_cntl & INT_MASK))
+    if ((virge->svga.crtc[0x32] & 0x10) &&
+        ((virge->subsys_stat & virge->subsys_cntl & INT_MASK) || svga_vert_int_active(&virge->svga)))
         pci_set_irq(virge->pci_slot, PCI_INTA, &virge->irq_state);
     else
         pci_clear_irq(virge->pci_slot, PCI_INTA, &virge->irq_state);
+}
+
+static void
+s3_virge_vert_int_update(svga_t *svga)
+{
+    s3_virge_update_irqs((virge_t *) svga->priv);
 }
 
 static void
@@ -617,6 +624,12 @@ s3_virge_out(uint16_t addr, uint8_t val, void *priv)
             svga->crtc[svga->crtcreg] = val;
 
             switch (svga->crtcreg) {
+                case 0x11:
+                    svga_vert_int_crtc_write(svga);
+                    /* The interrupt bits don't affect the timings */
+                    if ((val & ~0x30) == (old & ~0x30))
+                        old = val;
+                    break;
                 case 0x31:
                     virge->ma_ext = (virge->ma_ext & 0x1c) | ((val & 0x30) >> 4);
                     break;
@@ -813,6 +826,8 @@ s3_virge_in(uint16_t addr, void *priv)
                 else
                     ret = 0x10;
             }
+            if (svga->vert_int)
+                ret |= 0x80;
             break;
 
         case 0x3c5:
@@ -6092,7 +6107,6 @@ s3_virge_init(const device_t *info)
             virge->virge_id_low      = 0x10;
             virge->svga.crtc[0x6c]   = 1;
             virge->svga.crtc[0x59]   = 0x70;
-            virge->svga.vblank_start = s3_virge_vblank_start;
             virge->chip              = S3_VIRGEGX2;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, virge->is_agp ? &timing_virge_agp : &timing_virge_dx_pci);
             break;
@@ -6105,7 +6119,6 @@ s3_virge_init(const device_t *info)
             virge->virge_rev         = 0x01;
             virge->svga.crtc[0x6c]   = 1;
             virge->svga.crtc[0x59]   = 0x70;
-            virge->svga.vblank_start = s3_virge_vblank_start;
             virge->chip              = S3_TRIO3D2X;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, virge->is_agp ? &timing_virge_agp : &timing_virge_dx_pci);
             break;
@@ -6121,11 +6134,13 @@ s3_virge_init(const device_t *info)
             virge->virge_id_low      = 0x01;
             virge->svga.crtc[0x6c]   = 1;
             virge->svga.crtc[0x59]   = 0x70;
-            virge->svga.vblank_start = s3_virge_vblank_start;
             virge->chip              = S3_VIRGEDX;
             video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_virge_dx_pci);
             break;
     }
+
+    virge->svga.vblank_start    = s3_virge_vblank_start;
+    virge->svga.vert_int_update = s3_virge_vert_int_update;
 
     if (virge->chip == S3_VIRGEGX2) {
         virge->vram_mask       = (4 << 20) - 1;
