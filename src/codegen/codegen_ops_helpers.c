@@ -514,3 +514,57 @@ codegen_ud(ir_data_t *ir)
 
     return -1;
 }
+
+/*The largest value the 32-bit addr_reg can hold at this point, from the uop
+  that wrote it: a constant (*is_const set), an AND with a mask below 64K, or
+  a zero extension of a byte or word. That uop must belong to the instruction
+  being recompiled, so that an unrolled copy repeats it, and no jump may land
+  between it and here. Returns 0 when nothing is known*/
+int
+codegen_addr_bound(ir_data_t *ir, int addr_reg, uint32_t *bound, int *is_const)
+{
+    const int reg     = IREG_GET_REG(addr_reg);
+    const int version = reg_last_version[reg];
+    int       parent;
+    uop_t    *uop;
+
+    if ((IREG_GET_SIZE(addr_reg) != IREG_SIZE_L) || !version)
+        return 0;
+    parent = reg_version[reg][version].parent_uop;
+    if ((parent < codegen_instr_first_uop) || (parent >= ir->wr_pos))
+        return 0;
+    uop = &ir->uops[parent];
+    if ((IREG_GET_REG(uop->dest_reg_a.reg) != reg) || (IREG_GET_SIZE(uop->dest_reg_a.reg) != IREG_SIZE_L) || (uop->dest_reg_a.version != version))
+        return 0;
+    for (int c = 0; c < ir->wr_pos; c++) {
+        if ((ir->uops[c].type & UOP_TYPE_JUMP) && (ir->uops[c].jump_dest_uop > parent) && (ir->uops[c].jump_dest_uop <= ir->wr_pos))
+            return 0;
+    }
+
+    *is_const = 0;
+    switch (uop->type & UOP_MASK) {
+        case UOP_MOV_IMM & UOP_MASK:
+            *bound    = (uint32_t) uop->imm_data;
+            *is_const = 1;
+            return 1;
+        case UOP_AND_IMM & UOP_MASK:
+            if ((uint32_t) uop->imm_data > 0xffff)
+                return 0;
+            *bound = (uint32_t) uop->imm_data;
+            return 1;
+        case UOP_MOVZX & UOP_MASK:
+            switch (IREG_GET_SIZE(uop->src_reg_a.reg)) {
+                case IREG_SIZE_W:
+                    *bound = 0xffff;
+                    return 1;
+                case IREG_SIZE_B:
+                case IREG_SIZE_BH:
+                    *bound = 0xff;
+                    return 1;
+                default:
+                    return 0;
+            }
+        default:
+            return 0;
+    }
+}

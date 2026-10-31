@@ -988,6 +988,7 @@ codegen_fpu_guard_cw_unmasks(ir_data_t *ir, uint32_t next_pc, int cw_reg)
    left to the interpreter. */
 int             codegen_fpu_class_dirty;
 static uint32_t codegen_instr_pc;
+int             codegen_instr_first_uop;
 
 int
 codegen_fpu_rc_nearest(ir_data_t *ir)
@@ -1626,6 +1627,7 @@ generate_call:
         codegen_instr_pc              = old_pc;
         codegen_fetch_walk_fpu        = is_fpu;
         const int first_uop           = ir->wr_pos;
+        codegen_instr_first_uop       = first_uop;
         new_pc = recomp_op_table[(opcode | op_32) & recomp_opcode_mask](block, ir, opcode, fetchdat, op_32, op_pc);
         codegen_fetch_walk_fpu = 0;
         /* The FPU's pointers for a compiled instruction, unless its handler
@@ -1658,6 +1660,8 @@ generate_call:
     }
 
 codegen_skip:
+
+    codegen_v86_64k = 0;
 
     if (lock_illegal)
         op = dynarec_op_illegal;

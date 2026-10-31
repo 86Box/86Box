@@ -75,6 +75,8 @@ fpu_PUSH(codeblock_t *block, ir_data_t *ir)
         uop_SUB_IMM(ir, IREG_FPU_TOP, IREG_FPU_TOP, 1);
 }
 
+int codegen_addr_bound(ir_data_t *ir, int addr_reg, uint32_t *bound, int *is_const);
+
 static inline void
 CHECK_SEG_LIMITS(UNUSED(codeblock_t *block), ir_data_t *ir, x86seg *seg, int addr_reg, int end_offset)
 {
@@ -90,6 +92,27 @@ CHECK_SEG_LIMITS(UNUSED(codeblock_t *block), ir_data_t *ir, x86seg *seg, int add
         uop_CMP_JB(ir, addr_reg, ireg_seg_limit_low(seg), rout);
         return;
     }
+
+#ifdef CODEGEN_BACKEND_HAS_STACK_LIMIT_UOPS
+    /*Limits 0..0xffff (codegen_v86_64k): an address known to be at most
+      0xffff faults only when its end passes 0xffff, which no 32-bit wrap can
+      hide, and that is the carry out of addr_reg + 0xffff0000 + end_offset.
+      Any other address keeps the full test, whose 32-bit end wraps as the
+      interpreter's does*/
+    if (codegen_v86_64k && !(cpu_cur_status & CPU_STATUS_NOT64K)) {
+        uint32_t bound;
+        int      is_const;
+
+        if (codegen_addr_bound(ir, addr_reg, &bound, &is_const) && (bound <= 0xffff)) {
+            if ((bound + end_offset) <= 0xffff)
+                return;
+            if (!is_const) {
+                uop_CMN_IMM_JC(ir, addr_reg, 0xffff0000 + end_offset, rout);
+                return;
+            }
+        }
+    }
+#endif
 
 #if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
     uop_CMP_JNWITHIN(ir, addr_reg, ireg_seg_limit_low(seg), ireg_seg_limit_high(seg), end_offset, rout);

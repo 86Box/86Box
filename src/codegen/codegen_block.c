@@ -32,6 +32,7 @@ int      codegen_flat_ds;
 int      codegen_flat_ss;
 int      codegen_wide_ds;
 int      codegen_wide_ss;
+int      codegen_v86_64k;
 int      mmx_ebx_ecx_loaded;
 int      codegen_flags_changed = 0;
 int      codegen_fpu_entered   = 0;
@@ -1080,6 +1081,7 @@ codegen_block_start_recompile(codeblock_t *block)
     codegen_flat_es = !(block->status & CPU_STATUS_NOTFLATES);
     codegen_wide_ds = !(block->status & CPU_STATUS_NOTWIDEDS);
     codegen_wide_ss = !(block->status & CPU_STATUS_NOTWIDESS);
+    codegen_v86_64k = (block->status & CPU_STATUS_V86) && !(block->status & CPU_STATUS_NOT64K);
 
     if (block->flags & CODEBLOCK_BYTE_MASK) {
         block->dirty_mask  = &page->byte_dirty_mask[(block->phys >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK];

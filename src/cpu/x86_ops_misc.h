@@ -954,6 +954,7 @@ set_segment_limit(x86seg *s, uint8_t segdat3)
         s->limit_high = (segdat3 & 0x40) ? 0xffffffff : 0xffff;
         s->limit_low  = s->limit + 1;
     }
+    cpu_mark_64k_status(s);
 }
 
 static void

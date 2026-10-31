@@ -457,6 +457,13 @@ extern int codegen_flags_changed;
 /*Forgets the block's inline flags rebuilds (codegen_ops_helpers.c)*/
 extern void codegen_flags_known_reset(void);
 
+/*Set while the block being recompiled is a V86 block entered with every
+  segment limit 0..0xffff (CPU_STATUS_NOT64K clear): V86 segment loads keep
+  them so, an instruction run by the interpreter may not*/
+extern int codegen_v86_64k;
+/*The first uop of the instruction being recompiled*/
+extern int codegen_instr_first_uop;
+
 extern int codegen_fpu_entered;
 /*Set when a compiled instruction since the block's last pending exception
   check can have set ES and gone on: the next waiting x87 instruction checks

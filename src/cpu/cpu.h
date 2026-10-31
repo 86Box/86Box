@@ -496,6 +496,11 @@ typedef struct {
    writable check (CHECK_SEG_LIMITS, codegen_check_seg_read/write). */
 #define CPU_STATUS_NOTWIDEDS (1 << 11)
 #define CPU_STATUS_NOTWIDESS (1 << 12)
+/* Some segment register (CS, DS, ES, SS, FS or GS) has limits other than
+   0..0xffff. Clear, a V86 block leaves out the limit checks of accesses
+   that can't pass 0xffff (CHECK_SEG_LIMITS). Every write of other limits
+   sets it (cpu_mark_64k_status); only cpu_update_64k_status clears it. */
+#define CPU_STATUS_NOT64K    (1 << 13)
 #define CPU_STATUS_MASK      0xff00
 
 
@@ -636,6 +641,26 @@ cpu_set_wide_status(const x86seg *s)
         else
             cpu_cur_status |= CPU_STATUS_NOTWIDESS;
     }
+}
+
+/* A segment's limits were just written: other than 0..0xffff, NOT64K is
+   set. Any descriptor may be passed; one that is not a segment register
+   only sets the bit when it needn't */
+static inline void
+cpu_mark_64k_status(const x86seg *s)
+{
+    if (s->limit_low || (s->limit_high != 0xffff))
+        cpu_cur_status |= CPU_STATUS_NOT64K;
+}
+
+/* NOT64K from the six segment registers themselves */
+static inline void
+cpu_update_64k_status(void)
+{
+    if (cpu_state.seg_cs.limit_low || (cpu_state.seg_cs.limit_high != 0xffff) || cpu_state.seg_ds.limit_low || (cpu_state.seg_ds.limit_high != 0xffff) || cpu_state.seg_es.limit_low || (cpu_state.seg_es.limit_high != 0xffff) || cpu_state.seg_ss.limit_low || (cpu_state.seg_ss.limit_high != 0xffff) || cpu_state.seg_fs.limit_low || (cpu_state.seg_fs.limit_high != 0xffff) || cpu_state.seg_gs.limit_low || (cpu_state.seg_gs.limit_high != 0xffff))
+        cpu_cur_status |= CPU_STATUS_NOT64K;
+    else
+        cpu_cur_status &= ~CPU_STATUS_NOT64K;
 }
 
 extern uint64_t cpu_CR4_mask;

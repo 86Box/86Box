@@ -317,6 +317,7 @@ do_seg_load(x86seg *s, uint16_t *segdat)
             cpu_cur_status |= CPU_STATUS_NOTFLATSS;
     }
     cpu_set_wide_status(s);
+    cpu_mark_64k_status(s);
 }
 #endif
 
@@ -2138,6 +2139,7 @@ pmodeiret(int is32)
             op_loadseg(newss, &cpu_state.seg_ss);
             do_seg_v86_init(&cpu_state.seg_ss);
             cpu_cur_status |= CPU_STATUS_NOTFLATSS | CPU_STATUS_NOTWIDESS;
+            cpu_update_64k_status();
             use32 = 0;
             cpu_cur_status &= ~CPU_STATUS_USE32;
             cpu_state.flags = (tempflags & 0xffd5) | 2;
@@ -2895,6 +2897,7 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
 
     if (is386 ? !task_checks_386(&img, cpl, ext) : !task_checks_286(&img, cpl, ext))
         return;
+    cpu_update_64k_status();
 
     if (cpu_debug_regs_486 || !cpu_use_exec)
         rf_flag_no_clear = 1;

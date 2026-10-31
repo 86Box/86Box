@@ -424,6 +424,7 @@ reset_common(int hard)
         cpu_set_edx();
     }
     x86seg_reset();
+    cpu_update_64k_status();
 #ifdef USE_DYNAREC
     /* The data segments come out of reset with a 64K limit: not flat, so
        the recompiler keeps their limit checks */
