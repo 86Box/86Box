@@ -74,11 +74,25 @@ jobs:
           - name: Dev
             preset: development
             slug: -Dev
+        # Entries marked manual are only built on manual runs
         ui:
           - name: Qt 5 GUI
             qt: on
+            qt6: off
             slug: -Qt5
             static: on
+          - name: Qt 6 GUI
+            qt: on
+            qt6: on
+            slug: -Qt6
+            static: on
+            manual: true
+          - name: SDL GUI
+            qt: off
+            qt6: off
+            slug: -SDL
+            static: on
+            manual: true
         environment:
 #          - msystem: MSYS
 #            slug: "-MSYS64"
@@ -97,9 +111,12 @@ jobs:
           - msystem: CLANGARM64
             slug: -arm64
             runner: windows-11-arm
-        # Built by the CodeQL workflow (though with a shared Qt)
+        # UCRT64 Debug is built by the CodeQL workflow (though with a shared
+        # Qt), and the manual entries are left out of all other runs
         exclude: >-
-          ${{ fromJSON((github.event_name == 'schedule' || inputs.full_matrix) && '[]' || '[{"build": {"name": "Debug"}, "environment": {"msystem": "UCRT64"}}]') }}
+          ${{ fromJSON(github.event_name == 'workflow_dispatch' && (inputs.full_matrix && '[]' || '[{"build": {"name": "Debug"}, "environment": {"msystem": "UCRT64"}}]')
+          || github.event_name == 'schedule' && '[{"ui": {"manual": true}}]'
+          || '[{"build": {"name": "Debug"}, "environment": {"msystem": "UCRT64"}}, {"ui": {"manual": true}}]') }}
 
     steps:
       - name: Checkout repository
@@ -111,11 +128,13 @@ jobs:
         uses: ./.github/actions/setup-msys2
         with:
           msystem: ${{ matrix.environment.msystem }}
+          qt6: ${{ matrix.ui.qt6 == 'on' }}
 
       - name: Configure CMake
         run: >-
           cmake -S . -B build --preset ${{ matrix.build.preset }}
           -D QT=${{ matrix.ui.qt }}
+          -D USE_QT6=${{ matrix.ui.qt6 }}
 
       - name: Build
         run: cmake --build build

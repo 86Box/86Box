@@ -15,6 +15,12 @@ inputs:
     description: MSYS2 environment to set by default (UCRT64, CLANGARM64, ...).
     required: true
 
+  qt6:
+    description: >-
+      Whether to also install the static Qt 6 ("true" or "false"). As that
+      would change the cached packages, the package cache isn't used then.
+    default: "false"
+
 outputs:
 
   msys2-location:
@@ -32,8 +38,10 @@ runs:
       with:
         release: true
         update: true
+        cache: ${{ inputs.qt6 != 'true' }}
         msystem: ${{ inputs.msystem }}
         pacboy: >-
+          ${{ inputs.qt6 == 'true' && 'qt6-static:p' || '' }}
           ninja:p
           cmake:p
           gcc:p
