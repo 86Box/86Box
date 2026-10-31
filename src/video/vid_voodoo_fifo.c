@@ -612,12 +612,15 @@ voodoo_fifo_thread(void *param)
                     if (voodoo->type < VOODOO_2)
                         fatal("CMDFIFO2: Not Voodoo 2\n");
                     mask = (header >> 3);
-                    addr = 8;
+                    addr = (voodoo->type >= VOODOO_BANSHEE) ? 8 : SST_bltSrcBaseAddr;
                     while (mask) {
                         if (mask & 1) {
                             uint32_t val = cmdfifo_get(voodoo);
 
-                            voodoo_2d_reg_writel(voodoo, addr, val);
+                            if (voodoo->type >= VOODOO_BANSHEE)
+                                voodoo_2d_reg_writel(voodoo, addr, val);
+                            else
+                                voodoo_cmdfifo_reg_writel(voodoo, addr, val);
                         }
 
                         addr += 4;
