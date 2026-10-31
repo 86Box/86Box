@@ -1560,6 +1560,8 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
 
         case 0xbd48:
         case 0xbee8:
+        /* A long write to BEE8 carries two MULTIFUNC_CNTL values */
+        case 0xbeea:
             if ((s3->accel.multifunc_cntl >> 12) == 0x00) {
                 s3->accel.multifunc_phase = 1;
                 s3->accel.height = s3->accel.multifunc[0];
@@ -1568,6 +1570,7 @@ s3_accel_out_fifo(s3_t *s3, uint16_t port, uint8_t val)
             break;
         case 0xbd49:
         case 0xbee9:
+        case 0xbeeb:
             s3->accel.multifunc_cntl = (s3->accel.multifunc_cntl & 0xff) | (val << 8);
             if ((val >> 4) == 0x0f) {
                 s3->accel.read_sel_reg = s3->accel.multifunc_cntl & 0xfff;
