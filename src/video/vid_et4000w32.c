@@ -995,6 +995,10 @@ et4000w32p_mmu_write(uint32_t addr, uint8_t val, void *priv)
             }
             break;
         case 0x6000:
+            /* The registers are only in the last 256 bytes */
+            if ((addr & 0xff00) != 0xff00)
+                break;
+
             if ((addr & 0xff) >= 0x80)
                 et4000w32p_accel_write_fifo(et4000, addr & 0x7fff, val);
             else {
@@ -1088,6 +1092,10 @@ et4000w32p_mmu_read(uint32_t addr, void *priv)
             return svga->vram[(addr & 0x1fff) + et4000->mmu.base[et4000->bank]];
 
         case 0x6000:
+            /* The registers are only in the last 256 bytes */
+            if ((addr & 0xff00) != 0xff00)
+                break;
+
             switch (addr & 0xff) {
                 case 0x00:
                     return et4000->mmu.base[0] & 0xff;
