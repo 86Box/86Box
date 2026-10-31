@@ -3460,6 +3460,16 @@ d86f_readsector(void *priv, const int sector, const int track, const int side,
 
         if (fdd_get_turbo(drv))
             dev->track_pos = 0;
+    } else if (fdc_is_mfm(drv->fdc) != d86f_is_mfm(drv)) {
+        /* The controller is asking for sectors in the other encoding than the
+           one this track was written with. No address mark of that kind can
+           exist, so say so once instead of scanning: an FM search over an
+           MFM track happily latches onto pseudo sync pattern in the data
+           and restarts the scan for ever, which leaves the command busy
+           until the guest gives up. */
+        dev->state       = STATE_IDLE;
+        dev->index_count = 0;
+        fdc_noidam(drv->fdc);
     } else if (sector == SECTOR_FIRST)
         dev->state = STATE_02_SPIN_TO_INDEX;
     else if (sector == SECTOR_NEXT)
