@@ -563,7 +563,7 @@ voodoo_callback(void *priv)
 
             if (draw_voodoo->dirty_line[draw_line]) {
                 uint32_t *p   = &monitor->target_buffer->line[voodoo->line + v_y_add][v_x_add];
-                uint16_t *src = (uint16_t *) &draw_voodoo->fb_mem[draw_voodoo->front_offset + draw_line * draw_voodoo->row_width];
+                uint16_t *src = (uint16_t *) &draw_voodoo->fb_mem[(draw_voodoo->front_offset + draw_line * draw_voodoo->row_width) & draw_voodoo->fb_mask];
                 int       x;
 
                 draw_voodoo->dirty_line[draw_line] = 0;

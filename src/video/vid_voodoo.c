@@ -784,6 +784,11 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
                 if ((voodoo->v_disp == 386) || (voodoo->v_disp == 402) ||
                     (voodoo->v_disp == 482) || (voodoo->v_disp == 602))
                     voodoo->v_disp     -= 2;
+                /*12 bits each way, but target_buffer is 2048x2048 and has to fit the overscan too*/
+                if (voodoo->h_disp > 1984)
+                    voodoo->h_disp = 1984;
+                if (voodoo->v_disp > 2016)
+                    voodoo->v_disp = 2016;
                 break;
             case SST_fbiInit0:
                 if (voodoo->initEnable & 0x01) {
@@ -1291,7 +1296,8 @@ voodoo_card_init(const device_t *info)
 
     mem_mapping_add(&voodoo->mapping, 0, 0, NULL, voodoo_readw, voodoo_readl, NULL, voodoo_writew, voodoo_writel, NULL, MEM_MAPPING_EXTERNAL, voodoo);
 
-    voodoo->fb_mem     = calloc(1, 4 * 1024 * 1024);
+    /*Accesses mask the start of a row, the extra 8 KB hold the 4096 pixels after the last one*/
+    voodoo->fb_mem     = calloc(1, 4 * 1024 * 1024 + 8192);
     voodoo->tex_mem[0] = calloc(1, voodoo->texture_size * 1024 * 1024);
     if (voodoo->dual_tmus)
         voodoo->tex_mem[1] = calloc(1, voodoo->texture_size * 1024 * 1024);
