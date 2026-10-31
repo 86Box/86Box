@@ -909,7 +909,8 @@ cpu_cr0_invalid(uint32_t value)
         (cpu_s->cpu_type == CPU_Cx6x86) ||
         (cpu_s->cpu_type == CPU_Cx6x86L) ||
         (cpu_s->cpu_type == CPU_Cx6x86MX) ||
-        (cpu_s->cpu_type == CPU_CxGX1))
+        (cpu_s->cpu_type == CPU_CxGX1) ||
+        (cpu_s->cpu_type == CPU_STPC))
         return 0;
 
     return (cpu_s->cpu_type >= CPU_i486SX) &&
