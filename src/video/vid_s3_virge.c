@@ -2188,17 +2188,19 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
                 svga->fullchange = changeframecount;
                 break;
             case 0x81d0:
-                virge->streams.sec_fb0 = val;
+                virge->streams.sec_fb0 = ((virge->memory_size == 8) ?
+                                          (val & 0x7fffff) : (val & 0x3fffff));
                 svga_recalctimings(svga);
                 svga->fullchange = changeframecount;
                 break;
             case 0x81d4:
-                virge->streams.sec_fb1 = val;
+                virge->streams.sec_fb1 = ((virge->memory_size == 8) ?
+                                          (val & 0x7fffff) : (val & 0x3fffff));
                 svga_recalctimings(svga);
                 svga->fullchange = changeframecount;
                 break;
             case 0x81d8:
-                virge->streams.sec_stride = val;
+                virge->streams.sec_stride = val & 0xfff;
                 svga_recalctimings(svga);
                 svga->fullchange = changeframecount;
                 break;
@@ -5557,7 +5559,7 @@ s3_virge_overlay_draw(svga_t *svga, int displine)
     int       x_write = 4;
     int       x;
     uint32_t *p;
-    uint8_t  *src = &svga->vram[svga->overlay_latch.addr];
+    uint8_t  *src = &svga->vram[svga->overlay_latch.addr & virge->vram_mask];
 
     if (virge->chip < S3_VIRGEGX2)
         offset = (virge->streams.sec_x - virge->streams.pri_x) + 1;
