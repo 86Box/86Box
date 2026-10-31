@@ -1726,10 +1726,14 @@ voodoo_render_log("voodoo_triangle %i %i %i : vA %f, %f  vB %f, %f  vC %f, %f f 
 
     state.lod_min[0] = (params->tLOD[0] & 0x3f) << 6;
     state.lod_max[0] = ((params->tLOD[0] >> 6) & 0x3f) << 6;
+    if (state.lod_min[0] > 0x800)
+        state.lod_min[0] = 0x800;
     if (state.lod_max[0] > 0x800)
         state.lod_max[0] = 0x800;
     state.lod_min[1] = (params->tLOD[1] & 0x3f) << 6;
     state.lod_max[1] = ((params->tLOD[1] >> 6) & 0x3f) << 6;
+    if (state.lod_min[1] > 0x800)
+        state.lod_min[1] = 0x800;
     if (state.lod_max[1] > 0x800)
         state.lod_max[1] = 0x800;
 
