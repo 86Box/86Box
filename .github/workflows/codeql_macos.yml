@@ -117,6 +117,9 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           config-file: ./.github/codeql/codeql-config.yml
+          # TRAP caches of C++ take up much of the repository's cache space
+          # for little benefit, so don't use them
+          trap-caching: false
 
       - name: Configure CMake
         run: >-

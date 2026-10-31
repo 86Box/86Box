@@ -81,11 +81,6 @@ jobs:
             qt: on
             slug: -Qt5
             static: off
-            packages: >-
-              qt5-base:p
-              qt5-tools:p
-              vulkan-headers:p
-#              qt5-static:p
         environment:
 #          - msystem: MSYS
 #            slug: "-MSYS64"
@@ -111,28 +106,10 @@ jobs:
         with:
           fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
-      # Caches the MSYS2 packages on master only, see the action
       - name: Prepare MSYS2 environment
         uses: ./.github/actions/setup-msys2
         with:
           msystem: ${{ matrix.environment.msystem }}
-          pacboy: >-
-            ninja:p
-            cmake:p
-            gcc:p
-            pkgconf:p
-            freetype:p
-            sdl3:p
-            zlib:p
-            libpng:p
-            openal:p
-            rtmidi:p
-            libslirp:p
-            fluidsynth:p
-            libserialport:p
-            ${{ matrix.ui.packages }}
-            llvm-openmp:p
-            zstd:p
 
 #      - name: Install Build Wrapper
 #        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@22918119ff8e1ca75a623e15c8296b6ea4fbe28f #v8.2.1
@@ -142,6 +119,9 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           config-file: ./.github/codeql/codeql-config.yml
+          # TRAP caches of C++ take up much of the repository's cache space
+          # for little benefit, so don't use them
+          trap-caching: false
 
       - name: Configure CMake
         run: >-
