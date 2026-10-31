@@ -390,6 +390,8 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                             const int row = Models::AddEntry(model, tr(bios->name), q);
                             if (!strcmp(selected.toUtf8().constData(), bios->internal_name))
                                 currentIndex = row;
+                            else if (currentIndex == -1)
+                                currentIndex = row;
 
                             rows++;
                         }
@@ -655,12 +657,14 @@ DeviceConfig::ConfigureDevice(const _device_ *device, int instance, Settings *se
                     }
                 case CONFIG_BIOS:
                     {
-                        if (bios_rows > 1) {
+                        if (bios_rows > 0) {
                             auto *cbox = dc.findChild<QComboBox *>(config->name);
-                            int   idx  = cbox->currentData().toInt();
-                            if (strcmp(selected.toUtf8(), const_cast<char *>(config->bios[idx].internal_name))) {
-                                config_set_string(device_context.name, const_cast<char *>(config->name), const_cast<char *>(config->bios[idx].internal_name));
-                                has_changed |= 1;
+                            if (cbox->currentIndex() >= 0) {
+                                int idx = cbox->currentData().toInt();
+                                if (strcmp(selected.toUtf8(), const_cast<char *>(config->bios[idx].internal_name))) {
+                                    config_set_string(device_context.name, const_cast<char *>(config->name), const_cast<char *>(config->bios[idx].internal_name));
+                                    has_changed |= 1;
+                                }
                             }
                         }
                         break;
@@ -798,13 +802,17 @@ DeviceConfig::DeviceName(const _device_ *device, const char *internalName, const
 }
 
 void
-DeviceConfig::on_comboIndexChanged(int index)
+DeviceConfig::on_comboIndexChanged(int)
 {
+    if ((cbox_bios == nullptr) || (cfg_bios == nullptr) || (cbox_bios->currentIndex() < 0))
+        return;
+
+    const int bios_idx = cbox_bios->currentData().toInt();
+
     if ((cbox_memory != nullptr) && (cbox_bios != nullptr) &&
         (cfg_memory != nullptr)  && (cfg_bios != nullptr)) {
-        int      idx        = index; /* cbox_bios->currentData().toInt(); */
         int      mem        = cbox_memory->currentData().toInt();
-        char *   bios_name  = const_cast<char *>(cfg_bios->bios[idx].internal_name);
+        char *   bios_name  = const_cast<char *>(cfg_bios->bios[bios_idx].internal_name);
         uint64_t bios_flags = device_get_bios_flags(cfg_dev, bios_name);
         uint16_t min_mem    = 0;
         uint16_t max_mem    = 65535;
@@ -852,9 +860,8 @@ DeviceConfig::on_comboIndexChanged(int index)
 
     if ((cbox_memory_2 != nullptr) && (cbox_bios != nullptr) &&
         (cfg_memory_2 != nullptr)  && (cfg_bios != nullptr)) {
-        int      idx        = index; /* cbox_bios->currentData().toInt(); */
         int      mem        = cbox_memory_2->currentData().toInt();
-        char *   bios_name  = const_cast<char *>(cfg_bios->bios[idx].internal_name);
+        char *   bios_name  = const_cast<char *>(cfg_bios->bios[bios_idx].internal_name);
         uint64_t bios_flags = device_get_bios_flags(cfg_dev, bios_name);
         uint16_t min_mem    = 0;
         uint16_t max_mem    = 65535;
