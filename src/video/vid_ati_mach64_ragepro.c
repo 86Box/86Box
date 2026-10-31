@@ -30,7 +30,6 @@
 
 #include "vid_ati_mach64.h"
 #include <86box/dma.h>
-#include <86box/debug_cmd.h>
 
 /* Block 1 (byte offsets in the 1K block below block 0). */
 #define RP1_AGP_BASE           0x148
@@ -446,7 +445,7 @@ mach64_ragepro_gui_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t
     }
 }
 
-/* debug_cmd "dev": the bus master and the setup engine. */
+/* The bus master and the setup engine, to the log. */
 void
 mach64_ragepro_dump(mach64_t *mach64)
 {
@@ -466,33 +465,3 @@ mach64_ragepro_dump(mach64_t *mach64)
     mach64_3d_ragepro_dump(mach64);
 }
 
-static mach64_t *mach64_ragepro_debug_dev;
-
-static void
-mach64_ragepro_debug_hook(const char *args)
-{
-    if (!mach64_ragepro_debug_dev)
-        return;
-    if (args && !strncmp(args, "wlog", 4)) {
-        mach64_ragepro_debug_dev->rp.wlog = atoi(args + 4);
-        return;
-    }
-    if (args && !strncmp(args, "tris", 4)) {
-        mach64_ragepro_debug_dev->rp.trace = atoi(args + 4);
-        return;
-    }
-    mach64_ragepro_dump(mach64_ragepro_debug_dev);
-}
-
-/* The card answers debug_cmd's "dev" while it is in. */
-void
-mach64_ragepro_debug_attach(mach64_t *mach64, int attach)
-{
-    if (attach) {
-        mach64_ragepro_debug_dev = mach64;
-        debug_cmd_set_device_hook(mach64_ragepro_debug_hook);
-    } else if (mach64_ragepro_debug_dev == mach64) {
-        mach64_ragepro_debug_dev = NULL;
-        debug_cmd_set_device_hook(NULL);
-    }
-}
