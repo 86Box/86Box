@@ -3561,8 +3561,9 @@ skip_line:
             break;
 
         default:
-            fatal("s3_virge_bitblt : blit command %i %08x\n",
-                  (virge->s3d.cmd_set >> 27) & 0xf, virge->s3d.cmd_set);
+            /* A guest can write any of these, NetBSD on the Amiga writes 0111
+               for a NOP (1111). */
+            break;
     }
 }
 
