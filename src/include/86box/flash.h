@@ -97,6 +97,17 @@ extern void flash_e28f0xx_cobalt3k_update(uint8_t val);
 
 extern const device_t amd_flash_am29f016d_device;
 
+/* Catalyst 28F010 and AMD Am28F010 chips: catalyst_flash_device and amd_am28f010_flash_device. */
+typedef struct catalyst_t catalyst_t;
+
+extern catalyst_t *catalyst_flash_create(const device_t *model, const flash_cfg_t *cfg);
+extern void        catalyst_flash_destroy(catalyst_t *dev);
+extern void        catalyst_flash_reset(catalyst_t *dev);
+extern void        catalyst_flash_map(catalyst_t *dev, struct _mem_mapping_ *mapping, uint32_t base, uint32_t size);
+extern void        catalyst_flash_remap(catalyst_t *dev, struct _mem_mapping_ *mapping, uint32_t base, uint32_t size);
+extern void        catalyst_flash_set_write_protect(catalyst_t *dev, int protect);
+extern uint32_t    catalyst_flash_get_size(const catalyst_t *dev);
+
 extern const device_t amd_am28f010_flash_device;
 extern const device_t catalyst_flash_device;
 
