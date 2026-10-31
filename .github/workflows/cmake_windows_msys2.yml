@@ -5,7 +5,7 @@ name: CMake (Windows)
 #
 # The build types and user interfaces marked manual are only built on manual
 # runs. Manual runs without the full matrix option also leave out the UCRT64
-# Debug build, which the CodeQL workflow already makes (though with a shared
+# Dev Debug build, which the CodeQL workflow already makes (though with a shared
 # Qt).
 
 on:
@@ -40,7 +40,7 @@ on:
   workflow_dispatch:
     inputs:
       full_matrix:
-        description: Build every configuration, including the UCRT64 Debug build the CodeQL workflow already makes
+        description: Build every configuration, including the UCRT64 Dev Debug build the CodeQL workflow already makes
         type: boolean
         default: true
 
@@ -70,7 +70,7 @@ jobs:
         build:
 #          - name: Regular
 #            preset: regular
-          - name: Debug
+          - name: Dev Debug
             preset: dev_debug
             slug: -Dev-Debug
             manual: true
@@ -81,7 +81,7 @@ jobs:
           - name: Qt 5 GUI
             qt: on
             qt6: off
-            slug: -Qt5
+            slug: ""
             static: on
           - name: Qt 6 GUI
             qt: on
@@ -115,7 +115,7 @@ jobs:
             runner: windows-11-arm
         exclude: >-
           ${{ fromJSON(github.event_name != 'workflow_dispatch' && '[{"build": {"manual": true}}, {"ui": {"manual": true}}]'
-          || !inputs.full_matrix && '[{"build": {"name": "Debug"}, "environment": {"msystem": "UCRT64"}}]'
+          || !inputs.full_matrix && '[{"build": {"name": "Dev Debug"}, "environment": {"msystem": "UCRT64"}}]'
           || '[]') }}
 
     steps:
@@ -145,5 +145,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: '86Box${{ matrix.build.slug }}-Windows${{ matrix.environment.slug }}-gha${{ github.run_number }}'
+          name: '86Box${{ matrix.build.slug }}${{ matrix.ui.slug }}-Windows${{ matrix.environment.slug }}-gha${{ github.run_number }}'
           path: build/artifacts/**
