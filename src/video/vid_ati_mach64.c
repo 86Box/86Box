@@ -1286,6 +1286,8 @@ mach64_gtb_readb(mach64_t *mach64, uint32_t addr, uint8_t *val)
         *val = dword >> ((addr & 3) * 8);
     } else if ((reg & 0xfc) == 0x78)
         *val = mach64_gtb_gp_io_read(mach64, addr);
+    else if (mach64->ragepro && (((reg & 0xfc) == 0x3c) || ((reg & 0xfc) == 0xbc)))
+        *val = mach64_ragepro_i2c_readb(mach64, reg);
     else if (mach64_gtb_latched(reg))
         *val = mach64->gtb_regs[reg];
     else
@@ -1301,7 +1303,9 @@ mach64_gtb_writeb(mach64_t *mach64, uint32_t addr, uint8_t val)
     if ((reg & 0xfc) == 0x78) {
         WRITE8(addr, mach64->gp_io, val);
         mach64_gtb_gp_io_drive(mach64);
-    } else if (mach64_gtb_latched(reg))
+    } else if (mach64->ragepro && (((reg & 0xfc) == 0x3c) || ((reg & 0xfc) == 0xbc)))
+        mach64_ragepro_i2c_writeb(mach64, reg, val);
+    else if (mach64_gtb_latched(reg))
         mach64->gtb_regs[reg] = val;
     else
         return 0;

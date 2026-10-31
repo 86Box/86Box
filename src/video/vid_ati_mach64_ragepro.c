@@ -98,6 +98,114 @@ mach64_ragepro_reset(mach64_t *mach64)
     memset(&mach64->rp, 0, sizeof(mach64->rp));
 }
 
+/*
+ * The Rage Pro's I2C engine: I2C_CNTL_0 (block 0, 3Ch) and I2C_CNTL_1 (BCh),
+ * bits as atiregs.h names them. Bytes written to I2C_CNTL_1's 7:0 go into a
+ * FIFO. A write of I2C_CNTL_0's control byte (15:8) with START (8), STOP
+ * (9), GO (10) or RECEIVE (11) runs a step of a transfer: START sends a start
+ * and the FIFO's first byte as the slave's address and read bit, then the
+ * rest of the ADDR_COUNT (18:16) address bytes go out, then DATA_COUNT
+ * (15:8) bytes are written from the FIFO or, with RECEIVE, read into it;
+ * STOP ends it. Without START the step goes on with the slave addressed
+ * last. It sets DONE (0), or NACK (1) for a byte nobody acknowledged. SEL
+ * (22) picks the bus: the monitor's DDC lines, or the GP_IO lines of the
+ * TV-out's I2C.
+ *
+ * ATI's Windows 9x driver (macxw4.vxd 5.30) sets bit 4 (an enable), resets
+ * the FIFO with HPTR_RST, pushes 71h with DATA_COUNT 1 and ADDR_COUNT 0 and
+ * writes START alone to probe for a TV encoder at 38h, then waits on the
+ * status nibble with no time limit.
+ */
+#define I2C_STAT       0x0000000f
+#define I2C_DONE       0x00000001
+#define I2C_NACK       0x00000002
+#define I2C_HPTR_RST   0x00000020
+#define I2C_START      0x00000100
+#define I2C_STOP       0x00000200
+#define I2C_GO         0x00000400
+#define I2C_RECEIVE    0x00000800
+#define I2C_ABORT      0x00001000
+#define I2C_DATA_COUNT(c1) (((c1) >> 8) & 0xff)
+#define I2C_ADDR_COUNT(c1) (((c1) >> 16) & 7)
+#define I2C_SEL        0x00400000
+
+static void
+mach64_ragepro_i2c_step(mach64_t *mach64)
+{
+    void    *bus     = i2c_gpio_get_bus((mach64->rp.i2c_cntl1 & I2C_SEL) ? mach64->i2c_tv : mach64->i2c);
+    uint32_t cntl0   = mach64->rp.i2c_cntl0;
+    int      receive = !!(cntl0 & I2C_RECEIVE);
+    int      naddr   = I2C_ADDR_COUNT(mach64->rp.i2c_cntl1);
+    int      ndata   = I2C_DATA_COUNT(mach64->rp.i2c_cntl1);
+    int      nout    = naddr + (receive ? 0 : ndata);
+    int      ack     = 1;
+    int      p       = 0;
+
+    if (cntl0 & I2C_START) {
+        mach64->rp.i2c_slave = mach64->rp.i2c_fifo[0];
+        ack                  = i2c_start(bus, mach64->rp.i2c_slave >> 1, mach64->rp.i2c_slave & 1);
+        p                    = 1;
+    }
+    for (; ack && (p < nout); p++)
+        ack = i2c_write(bus, mach64->rp.i2c_slave >> 1, mach64->rp.i2c_fifo[p & 15]);
+    mach64->rp.i2c_rptr = 0;
+    if (receive) {
+        mach64->rp.i2c_wptr = 0;
+        for (int i = 0; ack && (i < ndata); i++)
+            mach64->rp.i2c_fifo[mach64->rp.i2c_wptr++ & 15] = i2c_read(bus, mach64->rp.i2c_slave >> 1);
+    }
+    if ((cntl0 & I2C_STOP) || !ack)
+        i2c_stop(bus, mach64->rp.i2c_slave >> 1);
+
+    mach64->rp.i2c_cntl0 = (cntl0 & ~(I2C_GO | I2C_STAT)) | (ack ? I2C_DONE : I2C_NACK);
+    mach64_log("Rage Pro I2C: bus %d slave %02X%s%s%s, %d out, %d in: %s\n", !!(mach64->rp.i2c_cntl1 & I2C_SEL), mach64->rp.i2c_slave,
+               (cntl0 & I2C_START) ? " start" : "", receive ? " receive" : "", (cntl0 & I2C_STOP) ? " stop" : "", nout,
+               receive ? ndata : 0, ack ? "done" : "no acknowledge");
+}
+
+/* reg is the byte's offset in block 0, 3Ch-3Fh or BCh-BFh. */
+uint8_t
+mach64_ragepro_i2c_readb(mach64_t *mach64, uint32_t reg)
+{
+    if ((reg & 0xfc) == 0x3c)
+        return mach64->rp.i2c_cntl0 >> ((reg & 3) * 8);
+    if (!(reg & 3))
+        return mach64->rp.i2c_fifo[mach64->rp.i2c_rptr++ & 15];
+    return mach64->rp.i2c_cntl1 >> ((reg & 3) * 8);
+}
+
+void
+mach64_ragepro_i2c_writeb(mach64_t *mach64, uint32_t reg, uint8_t val)
+{
+    const int shift = (reg & 3) * 8;
+
+    if ((reg & 0xfc) == 0xbc) {
+        if (!shift)
+            mach64->rp.i2c_fifo[mach64->rp.i2c_wptr++ & 15] = val;
+        else
+            mach64->rp.i2c_cntl1 = (mach64->rp.i2c_cntl1 & ~(0xffu << shift)) | ((uint32_t) val << shift);
+        return;
+    }
+
+    if (!shift) {
+        /* The status bits clear where a 1 is written; HPTR_RST resets the
+           FIFO's pointers and does not stay set. */
+        mach64->rp.i2c_cntl0 = (mach64->rp.i2c_cntl0 & ~0xffu & ~(uint32_t) (val & I2C_STAT)) |
+                               (mach64->rp.i2c_cntl0 & I2C_STAT & ~(uint32_t) val) | (val & ~(I2C_STAT | I2C_HPTR_RST));
+        if (val & I2C_HPTR_RST)
+            mach64->rp.i2c_wptr = mach64->rp.i2c_rptr = 0;
+        return;
+    }
+    mach64->rp.i2c_cntl0 = (mach64->rp.i2c_cntl0 & ~(0xffu << shift)) | ((uint32_t) val << shift);
+    if (shift != 8)
+        return;
+    if (val & (I2C_ABORT >> 8)) {
+        i2c_stop(i2c_gpio_get_bus((mach64->rp.i2c_cntl1 & I2C_SEL) ? mach64->i2c_tv : mach64->i2c), mach64->rp.i2c_slave >> 1);
+        mach64->rp.i2c_cntl0 &= ~(I2C_GO | I2C_ABORT | I2C_START | I2C_STOP | I2C_RECEIVE | I2C_STAT);
+    } else if (val & ((I2C_START | I2C_STOP | I2C_GO | I2C_RECEIVE) >> 8))
+        mach64_ragepro_i2c_step(mach64);
+}
+
 /* A register write from the bus master: idx is ATI's MM index, block 0 in
    00h-FFh, block 1 in 100h-1FFh. It goes in as the CPU's would. */
 static void

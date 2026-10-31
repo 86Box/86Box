@@ -435,6 +435,12 @@ typedef struct mach64_t {
         int      wlog;          /* log the next N GUI register writes */
         uint32_t last_dst;      /* the last triangle's destination base and pitch, bytes */
         uint32_t last_pitch;
+        uint32_t i2c_cntl0;     /* I2C_CNTL_0 but for GO, which the engine clears */
+        uint32_t i2c_cntl1;     /* I2C_CNTL_1; its 7:0 are the data FIFO's port */
+        uint8_t  i2c_fifo[16];  /* the I2C engine's data FIFO */
+        int      i2c_wptr;      /* where the next byte written goes */
+        int      i2c_rptr;      /* and where the next one read comes from */
+        uint8_t  i2c_slave;     /* the address byte of the transfer's last start */
     } rp;
 } mach64_t;
 
@@ -553,6 +559,8 @@ int      mach64_ragepro_blk1_read(mach64_t *mach64, uint32_t addr, uint32_t *val
 int      mach64_ragepro_gui_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type);
 void     mach64_ragepro_bm_eol(mach64_t *mach64);   /* in vid_ati_mach64.c: BUSMASTER_EOL_INT */
 void     mach64_ragepro_dump(mach64_t *mach64);
+uint8_t  mach64_ragepro_i2c_readb(mach64_t *mach64, uint32_t reg);
+void     mach64_ragepro_i2c_writeb(mach64_t *mach64, uint32_t reg, uint8_t val);
 void     mach64_timing_dump(mach64_t *mach64);
 
 /* The setup engine, in vid_ati_mach64_3d.c. reg is the dword index of the
