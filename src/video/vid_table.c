@@ -177,6 +177,7 @@ video_cards[] = {
     { .device = &mach64rage2_device, .flags = VIDEO_FLAG_TYPE_SEC },
     { .device = &mach64gtb_device,                              .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &mach64gtc_device,                              .flags = VIDEO_FLAG_TYPE_SEC       },
+    { .device = &mach64ragepro_pci_device,                      .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &mach32_pci_device,                             .flags = VIDEO_FLAG_TYPE_8514      },
     { .device = &mach64gx_pci_device,                           .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &mach64ct_device,                               .flags = VIDEO_FLAG_TYPE_NONE      },
