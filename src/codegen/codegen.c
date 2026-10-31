@@ -1194,7 +1194,12 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     int          fpu_mem_record     = 0;
     uint32_t     fetchdat_pc;
     uint32_t     fetch_walk         = 0;
-    int          fetch_walk_valid   = codegen_fetch_reach(block, cs + old_pc, (opcode_length[opcode] > 2) ? 4 : opcode_length[opcode], &fetch_walk);
+    /*The instruction after a compiled MOV SS is fetched by the MOV SS's op
+      with a plain fastreadl, four bytes wherever it starts. The MOV SS comes
+      earlier in the same block, so a mark left over from a compile that
+      faulted is never matched by a block's first instruction*/
+    const int    mov_ss_pair        = block->ins && codegen_mov_ss_pair_valid && (codegen_mov_ss_pair_pc == cs + old_pc);
+    int          fetch_walk_valid   = codegen_fetch_reach(block, cs + old_pc, (mov_ss_pair || (opcode_length[opcode] > 2)) ? 4 : opcode_length[opcode], &fetch_walk);
     const int    first_fetch_walk   = fetch_walk_valid;
     int          walk_cycles        = 0;
     uint32_t     lock_pc            = 0;
