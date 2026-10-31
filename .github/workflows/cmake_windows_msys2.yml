@@ -124,11 +124,13 @@ jobs:
           - msystem: CLANGARM64
             slug: -arm64
             runner: windows-11-arm
+        # A missing manual key matches false, so full matrix runs exclude
+        # 'never', which no entry has, instead
         exclude:
           - build:
-              manual: ${{ !inputs.full_matrix }}
+              manual: ${{ !inputs.full_matrix || 'never' }}
           - ui:
-              manual: ${{ !inputs.full_matrix }}
+              manual: ${{ !inputs.full_matrix || 'never' }}
 
     steps:
       - name: Checkout repository

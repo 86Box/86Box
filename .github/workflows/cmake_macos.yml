@@ -111,13 +111,15 @@ jobs:
           - arch: arm64
             slug: -arm64
             runner: macos-15
+        # A missing manual key matches false, so full matrix runs exclude
+        # 'never', which no entry has, instead
         exclude:
           - build:
-              manual: ${{ !inputs.full_matrix }}
+              manual: ${{ !inputs.full_matrix || 'never' }}
           - ui:
-              manual: ${{ !inputs.full_matrix }}
+              manual: ${{ !inputs.full_matrix || 'never' }}
           - environment:
-              manual: ${{ !inputs.full_matrix }}
+              manual: ${{ !inputs.full_matrix || 'never' }}
 
     steps:
       - name: Install dependencies

@@ -119,9 +119,11 @@ jobs:
             runner: ubuntu-26.04
           - arch: arm64
             runner: ubuntu-26.04-arm
+        # A missing manual key matches false, so full matrix runs exclude
+        # 'never', which no entry has, instead
         exclude:
           - build:
-              manual: ${{ !inputs.full_matrix }}
+              manual: ${{ !inputs.full_matrix || 'never' }}
 
     steps:
       - name: Install dependencies
