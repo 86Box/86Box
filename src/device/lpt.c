@@ -1233,6 +1233,21 @@ lpt_copy_host_state(lpt_t *dst, const lpt_t *src)
     dst->char_timer     = src->char_timer;
 }
 
+/* Copy what the Super I/O or the machine sets up through lpt_port_setup(), lpt_port_irq(),
+   lpt_port_dma() and the lpt_set_*() calls, except the address, which needs its I/O handlers. */
+static void
+lpt_copy_config_state(lpt_t *dst, const lpt_t *src)
+{
+    dst->irq              = src->irq;
+    dst->dma              = src->dma;
+    dst->ext              = src->ext;
+    dst->epp              = src->epp;
+    dst->ecp              = src->ecp;
+    dst->lv2              = src->lv2;
+    dst->output_enabled   = src->output_enabled;
+    dst->cfg_regs_enabled = src->cfg_regs_enabled;
+}
+
 void
 lpt_port_zero(lpt_t *dev)
 {
@@ -1282,7 +1297,8 @@ lpt_close(void *priv)
 static void
 lpt_reset(void *priv)
 {
-    lpt_t *dev = (lpt_t *) priv;
+    lpt_t      *dev = (lpt_t *) priv;
+    const lpt_t cfg = *dev;
 
     if (lpt_ports[dev->id].enabled)
         if (timer_is_enabled(&dev->fifo_out_timer))
@@ -1321,15 +1337,19 @@ lpt_reset(void *priv)
 
     const lpt_t *init = lpt_ports[dev->id].lpt_init;
     if (init != NULL) {
-        /* Go back to the registers the port had after init, and to its I/O handlers,
-           which lpt_port_zero() removed. */
+        /* Go back to the registers the port had after init. Keep the address, IRQ, DMA and
+           modes it had before the reset, and set its I/O handlers up again, which
+           lpt_port_zero() removed. Those belong to the Super I/O, which resets them itself if
+           it has a reset. One that has none would otherwise find a port that it disabled
+           decoding the init address again. */
         lpt_t temp = *dev;
 
         memcpy(dev, init, sizeof(lpt_t));
         lpt_copy_host_state(dev, &temp);
+        lpt_copy_config_state(dev, &cfg);
 
         dev->addr = 0xffff;
-        lpt_port_setup(dev, init->addr);
+        lpt_port_setup(dev, cfg.addr);
     }
 }
 
