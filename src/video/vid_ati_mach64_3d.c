@@ -3552,58 +3552,72 @@ typedef struct mach64_rp_map_t {
  * out, so a narrow map's remaining y bits (or a short one's x bits) come
  * last; and x5's bit holds x5 XOR y5, which turns every other 32-row band
  * of 32-texel blocks about (a bank swizzle). Checked on the font, the HUD
- * and the wall textures of 3DMark 99 against their source images. Only
- * 16 bpp textures were seen tiled.
+ * and the wall textures of 3DMark 99 against their source images.
  *
- * mach64_rp_tile[l2w][l2h] holds, for a 2^l2w x 2^l2h map, each u's and
- * each v's share of the texel index, to be XORed: 1024 entries for u, then
- * 1024 for v.
+ * 32 bpp textures (3DMark 99 on a 32 bpp desktop) are tiled otherwise: the
+ * texels wholly in Morton order, X first (x0 y0 x1 y1 and on), with y4
+ * holding y4 XOR x5. That is the same byte address bit as the 16 bpp x5,
+ * the swizzle being of memory, not of texels. Found by de-tiling 3DMark
+ * 99's 64x64 to 256x256 maps every way and keeping the smoothest, then
+ * telling it from its transpose by the HUD's lettering; 8 bpp maps are
+ * taken to be laid out as 16 bpp ones.
+ *
+ * mach64_rp_tile[bpp32][l2w][l2h] holds, for a 2^l2w x 2^l2h map, each u's
+ * and each v's share of the texel index, to be XORed: 1024 entries for u,
+ * then 1024 for v.
  */
-static uint32_t *mach64_rp_tile[11][11];
+static uint32_t *mach64_rp_tile[2][11][11];
 
 static void
 mach64_rp_tile_init(void)
 {
-    if (mach64_rp_tile[0][0])
+    if (mach64_rp_tile[0][0][0])
         return;
-    for (int l2w = 0; l2w <= 10; l2w++)
-        for (int l2h = 0; l2h <= 10; l2h++) {
-            uint32_t *t = calloc(2048, sizeof(uint32_t));
-            int       xbit[10];
-            int       ybit[10];
-            int       pos = 0;
+    for (int bpp32 = 0; bpp32 < 2; bpp32++)
+        for (int l2w = 0; l2w <= 10; l2w++)
+            for (int l2h = 0; l2h <= 10; l2h++) {
+                uint32_t *t     = calloc(2048, sizeof(uint32_t));
+                int       first = bpp32 ? 0 : 2; /* x and y bits below this go in pairs, x0 x1 y0 y1 */
+                int       xbit[10];
+                int       ybit[10];
+                int       pos = 0;
 
-            for (int i = 0; i < 2; i++)
-                if (i < l2w)
-                    xbit[i] = pos++;
-            for (int i = 0; i < 2; i++)
-                if (i < l2h)
-                    ybit[i] = pos++;
-            for (int i = 2; i < 10; i++) {
-                if (i < l2w)
-                    xbit[i] = pos++;
-                if (i < l2h)
-                    ybit[i] = pos++;
-            }
-            for (int c = 0; c < 1024; c++)
-                for (int i = 0; i < 10; i++) {
-                    if ((i < l2w) && ((c >> i) & 1))
-                        t[c] |= 1u << xbit[i];
-                    if ((i < l2h) && ((c >> i) & 1))
-                        t[1024 + c] |= 1u << ybit[i];
+                for (int i = 0; i < first; i++)
+                    if (i < l2w)
+                        xbit[i] = pos++;
+                for (int i = 0; i < first; i++)
+                    if (i < l2h)
+                        ybit[i] = pos++;
+                for (int i = first; i < 10; i++) {
+                    if (i < l2w)
+                        xbit[i] = pos++;
+                    if (i < l2h)
+                        ybit[i] = pos++;
                 }
-            if ((l2w > 5) && (l2h > 5))
                 for (int c = 0; c < 1024; c++)
-                    if ((c >> 5) & 1)
-                        t[1024 + c] ^= 1u << xbit[5];
-            mach64_rp_tile[l2w][l2h] = t;
-        }
+                    for (int i = 0; i < 10; i++) {
+                        if ((i < l2w) && ((c >> i) & 1))
+                            t[c] |= 1u << xbit[i];
+                        if ((i < l2h) && ((c >> i) & 1))
+                            t[1024 + c] |= 1u << ybit[i];
+                    }
+                /* The bank swizzle: x5 ^= y5 at 16 bpp, y4 ^= x5 at 32 */
+                if (!bpp32 && (l2w > 5) && (l2h > 5))
+                    for (int c = 0; c < 1024; c++)
+                        if ((c >> 5) & 1)
+                            t[1024 + c] ^= 1u << xbit[5];
+                if (bpp32 && (l2w > 5) && (l2h > 4))
+                    for (int c = 0; c < 1024; c++)
+                        if ((c >> 5) & 1)
+                            t[c] ^= 1u << ybit[4];
+                mach64_rp_tile[bpp32][l2w][l2h] = t;
+            }
 }
 
 static void
 mach64_rp_map_tiled(mach64_rp_map_t *map)
 {
-    const uint32_t *t = mach64_rp_tile[log2i(map->w)][log2i(map->h)];
+    const uint32_t *t = mach64_rp_tile[map->tex.bpp == 4][log2i(map->w)][log2i(map->h)];
 
     map->tile_u = t;
     map->tile_v = t + 1024;
