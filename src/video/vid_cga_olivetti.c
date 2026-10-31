@@ -331,8 +331,9 @@ ogc_poll(void *priv)
 
     // Composite color appears dark blue
 
-    /* graphic mode and not mode 40h */
-    if (!(ogc->ctrl_3de & 0x1 || !(ogc->cga.cgamode & CGA_MODE_FLAG_GRAPHICS))) {
+    /* graphic mode and not mode 40h; under the DEB's LUT, 640x200 stays here, line-doubled */
+    if ((ogc->cga.cgamode & CGA_MODE_FLAG_GRAPHICS) && !(ogc->ctrl_3de & 0x1) &&
+        !(ogc->deb_vram && (ogc->deb_mode & DEB_MODE_LUTOUT) && (ogc->cga.cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS))) {
         /* standard cga mode */
         cga_poll(&ogc->cga);
         monitor_index_global = prev_monitor_index;
@@ -460,7 +461,8 @@ ogc_poll(void *priv)
                         cols[0] = 0;
                         cols[1] = 15 + 16;
                     } else {
-                        dat2    = (ogc->cga.scanline & 1) * 0x2000;
+                        /* PAGESEL moves both the VDC and the DEB to the second 16K */
+                        dat2    = ((ogc->cga.scanline & 1) * 0x2000) + ogc->base;
                         cols[0] = 0;
                         cols[1] = (ogc->cga.cgacol & 15) + 16;
                     }
@@ -706,7 +708,6 @@ ogc_mdaattr_rebuild(void)
 /*
  * Missing features
  * - Composite video mode not working
- * - DEB (EGC) expansion board: the 200-line modes drawn by cga_poll() bypass its LUT
  */
 void *
 ogc_init(UNUSED(const device_t *info))

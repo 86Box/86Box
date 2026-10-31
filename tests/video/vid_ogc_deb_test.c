@@ -118,6 +118,21 @@ draw(ogc_t *ogc, int y, uint8_t vdc)
     deb_line(ogc, 640);
 }
 
+/* One raster line drawn by ogc_poll(), R9 = 1 and memaddr at its 6845 row. */
+static void
+poll_line(ogc_t *ogc, int y)
+{
+    ogc->cga.vc       = y >> 2;
+    ogc->cga.scanline = (y >> 1) & 1;
+    ogc->lineff       = y & 1;
+    ogc->cga.memaddr  = ogc->cga.vc * 40;
+    ogc->cga.linepos  = 0;
+    ogc->cga.displine = 0;
+    for (int x = 0; x < 656; x++)
+        pixels[0][x] = 0xff;
+    ogc_poll(ogc);
+}
+
 static uint8_t
 irgb(int x)
 {
@@ -134,6 +149,7 @@ main(void)
     for (int i = 0; i < 4; i++)
         screen.line[i] = pixels[i];
 
+    ogc->ctrl_addr                           = 0x3de;
     ogc->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] = 1;
     ogc->deb_vram                            = (uint8_t *) calloc(1, 0x18000);
 
@@ -190,6 +206,37 @@ main(void)
     set_mode(ogc, 0x33);
     draw(ogc, 0, 15);
     CHECK(irgb(1) == 0, "EVIDE clear drew %d, want black", irgb(1));
+
+    /* 640x200 (mode 6) through ogc_poll itself: 16-colour 200-line, 10010011b. */
+    for (int i = 0; i < 256; i++)
+        lut[i] = i & 0x0f;
+    load_lut(ogc, lut);
+    memset(ogc->deb_vram, 0, 0x18000);
+    ogc->cga.vram                 = (uint8_t *) calloc(1, 0x8000);
+    ogc->cga.cgamode              = CGA_MODE_FLAG_GRAPHICS | CGA_MODE_FLAG_HIGHRES_GRAPHICS | CGA_MODE_FLAG_VIDEO_ENABLE;
+    ogc->cga.cgacol               = 15;
+    ogc->cga.crtc[CGA_CRTC_HDISP] = 40;
+    ogc->cga.cgadispon            = 1;
+
+    /* 200-line row 3 is CGA bank 1, row 1, on both boards; raster lines 6 and 7 show it. */
+    ogc->cga.vram[0x2000 + 80] = 0x40;       /* VDC pixel 1 */
+    deb_write(0xb0000 + 0x2000 + 80, 0x80, ogc); /* plane 2, pixel 0 */
+    set_mode(ogc, 0);
+    poll_line(ogc, 6);
+    CHECK(pixels[0][8] == 0xff, "a transparent DEB must leave 640x200 to cga_poll()");
+    set_mode(ogc, 0x93);
+    poll_line(ogc, 6);
+    CHECK(irgb(0) == 2, "640x200 plane 2 drew %d, want 2 (green)", irgb(0));
+    CHECK(irgb(1) == 8, "640x200 VDC pixel drew %d, want 8 (H)", irgb(1));
+    poll_line(ogc, 7);
+    CHECK(irgb(0) == 2, "the paired line drew %d, want 2", irgb(0));
+
+    /* PAGESEL: both boards read the second 16K. */
+    ogc_out(0x3de, 0x08, ogc);
+    deb_write(0xa0000 + 0x6000 + 80, 0x40, ogc); /* plane 0, pixel 1 */
+    poll_line(ogc, 6);
+    CHECK(irgb(0) == 0, "PAGESEL drew %d at pixel 0, want 0", irgb(0));
+    CHECK(irgb(1) == 1, "PAGESEL drew %d at pixel 1, want 1 (blue)", irgb(1));
 
     if (failures)
         fprintf(stderr, "%d failure(s)\n", failures);
