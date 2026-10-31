@@ -5,8 +5,9 @@ name: CMake (Windows)
 #
 # Pull requests and pushes build a reduced matrix, leaving out the UCRT64
 # Debug build, which the CodeQL workflow already makes (though with a shared
-# Qt). Manual runs (with the full matrix option) and the weekly scheduled run
-# build every configuration.
+# Qt). The weekly scheduled run builds every configuration except the build
+# types and user interfaces marked manual, which only manual runs build.
+# Manual runs with the full matrix option build every configuration.
 
 on:
 
@@ -65,16 +66,19 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
+        # Build types and user interfaces marked manual are only built on
+        # manual runs
         build:
-#          - name: Regular
-#            preset: regular
+          - name: Regular
+            preset: regular
+            slug: ""
+            manual: true
           - name: Debug
             preset: dev_debug
             slug: -Debug
           - name: Dev
             preset: development
             slug: -Dev
-        # Entries marked manual are only built on manual runs
         ui:
           - name: Qt 5 GUI
             qt: on
@@ -115,8 +119,8 @@ jobs:
         # Qt), and the manual entries are left out of all other runs
         exclude: >-
           ${{ fromJSON(github.event_name == 'workflow_dispatch' && (inputs.full_matrix && '[]' || '[{"build": {"name": "Debug"}, "environment": {"msystem": "UCRT64"}}]')
-          || github.event_name == 'schedule' && '[{"ui": {"manual": true}}]'
-          || '[{"build": {"name": "Debug"}, "environment": {"msystem": "UCRT64"}}, {"ui": {"manual": true}}]') }}
+          || github.event_name == 'schedule' && '[{"build": {"manual": true}}, {"ui": {"manual": true}}]'
+          || '[{"build": {"name": "Debug"}, "environment": {"msystem": "UCRT64"}}, {"build": {"manual": true}}, {"ui": {"manual": true}}]') }}
 
     steps:
       - name: Checkout repository
