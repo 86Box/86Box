@@ -61,6 +61,9 @@ AppDir:
     ln -sf "/usr/lib/$libdir/libvulkan.so.1" "archive_tmp/usr/lib/$libdir/libvulkan.so"
     ln -sf /usr/lib64/libvulkan.so.1 "archive_tmp/lib/$arch_appimage/libvulkan.so"
   runtime:
+    env:
+      XDG_DATA_DIRS: '$APPDIR/usr/local/share:$APPDIR/usr/share:$XDG_DATA_DIRS:/usr/local/share:/usr/share'
+      XDG_CONFIG_DIRS: '$APPDIR/etc/xdg:$XDG_CONFIG_DIRS:/etc/xdg'
     path_mappings:
     - /usr/share/ghostscript:$APPDIR/usr/share/ghostscript
   apt:
