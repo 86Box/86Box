@@ -1,5 +1,13 @@
 name: CMake (Linux)
 
+# Compile checks for the configurations the pull request builds (made with
+# .ci/build.sh) don't cover.
+#
+# Pull requests and pushes build a reduced matrix, leaving out the x86_64
+# SDL and Qt 5 Debug builds, which the CodeQL workflow already makes. Manual
+# runs (with the full matrix option) and the weekly scheduled run build every
+# configuration.
+
 on:
 
   push:
@@ -23,6 +31,16 @@ on:
       - .github/workflows/cmake_linux.yml
       - vcpkg.json
       - "!**/Makefile*"
+
+  schedule:
+    - cron: "0 5 * * 0"
+
+  workflow_dispatch:
+    inputs:
+      full_matrix:
+        description: Build every configuration instead of the reduced pull request matrix
+        type: boolean
+        default: true
 
 # Cancel superseded runs for the same pull request. Other events get a
 # unique group so that they are never cancelled or held back.
@@ -91,6 +109,9 @@ jobs:
           - arch: arm64
             slug: -arm64
             runner: ubuntu-26.04-arm
+        # Built by the CodeQL workflow
+        exclude: >-
+          ${{ fromJSON((github.event_name == 'schedule' || inputs.full_matrix) && '[]' || '[{"build": {"name": "Debug"}, "ui": {"name": "SDL GUI"}, "environment": {"arch": "x86_64"}}, {"build": {"name": "Debug"}, "ui": {"name": "Qt 5 GUI"}, "environment": {"arch": "x86_64"}}]') }}
 
     steps:
       - name: Install dependencies
@@ -132,8 +153,12 @@ jobs:
         run: |
           cmake --install build
 
+      # Only manual runs upload their builds, as the pull request builds
+      # workflow provides builds for pull requests
       - name: Upload artifact
+        if: github.event_name == 'workflow_dispatch'
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: '86Box${{ matrix.ui.slug }}${{ matrix.build.slug }}-UbuntuJammy${{ matrix.environment.slug }}-gha${{ github.run_number }}'
           path: build/artifacts/**
+          retention-days: 7
