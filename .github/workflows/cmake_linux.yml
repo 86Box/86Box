@@ -1,10 +1,12 @@
 name: CMake (Linux)
 
 # Compile checks for the configurations the pull request builds (made with
-# .ci/build.sh) don't cover. The builds aren't uploaded, as Linux installs
-# don't bundle any libraries, so they would only run on a system matching the
-# runner's Ubuntu release with all the build dependencies installed. The pull
-# request builds provide usable Linux builds instead.
+# .ci/build.sh) don't cover. Each build is packaged as an AppImage with
+# linuxdeploy, independently of build.sh, bundling the libraries it links to
+# (and for Qt builds, the Qt plugins). They don't bundle glibc, so they need a
+# host at least as new as the runner's Ubuntu release, and they leave out the
+# extras build.sh adds (librashader, MDSX, Aaru, Ghostscript). The pull request
+# builds remain the more portable Linux builds.
 #
 # The build types marked manual are only built on manual runs with the full
 # matrix option. Among them are the x86_64 SDL and Qt 5 Dev Debug builds, which
@@ -79,20 +81,25 @@ jobs:
 #          - name: Regular
 #            preset: regular
           - name: Dev Debug
+            slug: Dev-Debug
             preset: dev_debug
             manual: true
           - name: Dev
+            slug: Dev
             preset: development
         ui:
           - name: SDL GUI
+            slug: SDL
             qt: off
             qt6: off
             sdl_shader: on
             static: on
           - name: Qt 5 GUI
+            slug: Qt5
             qt: on
             qt6: off
             sdl_shader: off
+            qmake: /usr/lib/qt5/bin/qmake
             packages: >-
               qtbase5-dev
               qtbase5-private-dev
@@ -101,9 +108,11 @@ jobs:
               libevdev-dev
               libxkbcommon-x11-dev
           - name: Qt 6 GUI
+            slug: Qt6
             qt: on
             qt6: on
             sdl_shader: off
+            qmake: /usr/lib/qt6/bin/qmake
             packages: >-
               qt6-base-dev
               qt6-base-private-dev
@@ -116,8 +125,10 @@ jobs:
               libvulkan-dev
         environment:
           - arch: x86_64
+            appimage_arch: x86_64
             runner: ubuntu-26.04
           - arch: arm64
+            appimage_arch: aarch64
             runner: ubuntu-26.04-arm
         # A missing manual key matches false, so full matrix runs exclude
         # 'never', which no entry has, instead
@@ -160,3 +171,58 @@ jobs:
       - name: Build
         run: |
           cmake --build build
+
+      # Pinned releases, checked against their SHA-256 digests. They are
+      # AppImages themselves, extracted instead of mounted, as the runners
+      # don't have FUSE.
+      - name: Download linuxdeploy
+        env:
+          ARCH: ${{ matrix.environment.appimage_arch }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/linuxdeploy"
+          cd "$RUNNER_TEMP/linuxdeploy"
+          curl -fsSLO "https://github.com/linuxdeploy/linuxdeploy/releases/download/1-alpha-20251107-1/linuxdeploy-$ARCH.AppImage"
+          curl -fsSLO "https://github.com/linuxdeploy/linuxdeploy-plugin-qt/releases/download/1-alpha-20250213-1/linuxdeploy-plugin-qt-$ARCH.AppImage"
+          sha256sum --check --ignore-missing <<'EOF'
+          c20cd71e3a4e3b80c3483cef793cda3f4e990aca14014d23c544ca3ce1270b4d  linuxdeploy-x86_64.AppImage
+          620095110d693282b8ebeb244a95b5e911cf8f65f76c88b4b47d16ae6346fcff  linuxdeploy-aarch64.AppImage
+          15106be885c1c48a021198e7e1e9a48ce9d02a86dd0a1848f00bdbf3c1c92724  linuxdeploy-plugin-qt-x86_64.AppImage
+          bf1c24aff6d749b5cf423afad6f15abd4440f81dec1aab95706b25f6667cdcf1  linuxdeploy-plugin-qt-aarch64.AppImage
+          EOF
+          chmod +x *.AppImage
+          echo "$RUNNER_TEMP/linuxdeploy" >> "$GITHUB_PATH"
+
+      # libvdeplug and libpng are loaded at runtime instead of linked, so
+      # linuxdeploy can't find them on its own. Copy them under the names
+      # 86Box loads them by, and linuxdeploy bundles their dependencies.
+      - name: Make AppImage
+        id: appimage
+        env:
+          APPIMAGE_EXTRACT_AND_RUN: 1
+          ARCH: ${{ matrix.environment.appimage_arch }}
+          QMAKE: ${{ matrix.ui.qmake }}
+          NO_STRIP: ${{ matrix.build.preset == 'dev_debug' && '1' || '' }}
+          PACKAGE: 86Box-${{ matrix.ui.slug }}-${{ matrix.build.slug }}-Linux-${{ matrix.environment.arch }}
+        run: |
+          PACKAGE="$PACKAGE-$(git rev-parse --short HEAD)"
+
+          DESTDIR="$PWD/AppDir" cmake --install build --prefix /usr
+
+          libdir=$(dpkg-architecture -qDEB_HOST_MULTIARCH)
+          mkdir -p AppDir/usr/lib
+          cp -L "/usr/lib/$libdir/libvdeplug.so" "/usr/lib/$libdir/libpng16.so" AppDir/usr/lib/
+
+          plugin=
+          [ -n "$QMAKE" ] && plugin="--plugin qt"
+          LDAI_OUTPUT="$PACKAGE.AppImage" linuxdeploy-$ARCH.AppImage --appdir AppDir $plugin --output appimage \
+            --desktop-file AppDir/usr/share/applications/net.86box.86Box.desktop \
+            --icon-file AppDir/usr/share/icons/hicolor/256x256/apps/net.86box.86Box.png
+
+          echo "package=$PACKAGE" >> "$GITHUB_OUTPUT"
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          path: ${{ steps.appimage.outputs.package }}.AppImage
+          archive: false
+          if-no-files-found: error
