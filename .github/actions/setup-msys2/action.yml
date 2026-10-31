@@ -1,0 +1,112 @@
+name: Set up MSYS2
+description: >-
+  Installs MSYS2 with msys2/setup-msys2 and the given pacboy packages,
+  restoring the pacman package cache from the newest cache available, but
+  only saving it on the default branch.
+
+# setup-msys2 always saves its package cache when the packages changed, which
+# on pull requests saves a copy only that pull request can use. It has no
+# restore-only mode, so the cache is handled here instead, and with it the
+# update and package installation, which have to come after the restore.
+
+inputs:
+
+  msystem:
+    description: MSYS2 environment to set by default (UCRT64, CLANGARM64, ...).
+    required: true
+
+  pacboy:
+    description: Packages to install through pacboy.
+    default: ""
+
+outputs:
+
+  msys2-location:
+    description: The absolute path of the MSYS2 installation.
+    value: ${{ steps.msys2.outputs.msys2-location }}
+
+runs:
+
+  using: composite
+
+  steps:
+    - name: Install MSYS2
+      id: msys2
+      uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2.32.0
+      with:
+        release: true
+        update: false
+        cache: false
+        msystem: ${{ inputs.msystem }}
+
+    # The prefix is specific to the package list, so that environments with
+    # different packages don't replace each other's caches
+    - name: Determine cache key
+      id: key
+      shell: bash
+      env:
+        MSYSTEM: ${{ inputs.msystem }}
+        PACBOY: ${{ inputs.pacboy }}
+      run: |
+        packages=$(printf '%s\n' $PACBOY | sort | sha256sum | cut -c1-8)
+        echo "msystem-prefix=msys2-$MSYSTEM-" >> "$GITHUB_OUTPUT"
+        echo "prefix=msys2-$MSYSTEM-$packages-" >> "$GITHUB_OUTPUT"
+
+    # Caches are saved with a hash of their contents as a suffix, so restore
+    # the newest one, or the newest one of another package list
+    - name: Restore package cache
+      id: restore
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.msys2.outputs.msys2-location }}\var\cache\pacman\pkg
+        key: ${{ steps.key.outputs.prefix }}${{ github.run_id }}
+        restore-keys: |
+          ${{ steps.key.outputs.prefix }}
+          ${{ steps.key.outputs.msystem-prefix }}
+
+    # The same update procedure as setup-msys2's: the first upgrade may
+    # update the MSYS2 runtime itself, so processes still using the old one
+    # are killed before the final upgrade
+    - name: Update packages
+      shell: msys2 {0}
+      run: |
+        pacman --noconfirm -Syuu --overwrite '*' || true
+        mv -f /etc/pacman.conf.pacnew /etc/pacman.conf 2> /dev/null || true
+
+    - name: Kill remaining tasks
+      shell: pwsh
+      run: taskkill /F /FI "MODULES eq msys-2.0.dll"
+
+    - name: Final system upgrade
+      shell: msys2 {0}
+      run: pacman --noconfirm -Syuu --overwrite '*'
+
+    - name: Install packages
+      if: inputs.pacboy != ''
+      shell: msys2 {0}
+      env:
+        PACBOY: ${{ inputs.pacboy }}
+      run: |
+        pacman --noconfirm -S --needed --overwrite '*' pactoys
+        pacboy --noconfirm -S --needed $PACBOY
+
+    # Only caches saved on the default branch are available to all pull
+    # requests. Keep only the installed version of each package, so that the
+    # contents only change when a package was updated or added.
+    - name: Prune package cache
+      id: prune
+      if: github.ref == format('refs/heads/{0}', github.event.repository.default_branch)
+      shell: msys2 {0}
+      run: |
+        paccache -r -f -u -k0
+        paccache -r -f -k1
+        echo "hash=$(ls -1 /var/cache/pacman/pkg | sha256sum | cut -c1-16)" >> "$GITHUB_OUTPUT"
+
+    - name: Save package cache
+      if: >-
+        steps.prune.outputs.hash != '' &&
+        steps.restore.outputs.cache-matched-key != format('{0}{1}', steps.key.outputs.prefix, steps.prune.outputs.hash)
+      uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ steps.msys2.outputs.msys2-location }}\var\cache\pacman\pkg
+        key: ${{ steps.key.outputs.prefix }}${{ steps.prune.outputs.hash }}

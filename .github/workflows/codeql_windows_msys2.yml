@@ -15,6 +15,7 @@ on:
       - "**/CMakeLists.txt"
       - "CMakePresets.json"
       - "!.github/workflows/**"
+      - .github/actions/setup-msys2/**
       - .github/workflows/codeql_windows_msys2.yml
       - vcpkg.json
       - "!**/Makefile*"
@@ -27,6 +28,7 @@ on:
       - "**/CMakeLists.txt"
       - "CMakePresets.json"
       - "!.github/workflows/**"
+      - .github/actions/setup-msys2/**
       - .github/workflows/codeql_windows_msys2.yml
       - vcpkg.json
       - "!**/Makefile*"
@@ -104,11 +106,15 @@ jobs:
 #            runner: windows-11-arm
 
     steps:
-      - name: Prepare MSYS2 environment
-        uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 # v2.32.0
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
-          release: true
-          update: true
+          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
+
+      # Caches the MSYS2 packages on master only, see the action
+      - name: Prepare MSYS2 environment
+        uses: ./.github/actions/setup-msys2
+        with:
           msystem: ${{ matrix.environment.msystem }}
           pacboy: >-
             ninja:p
@@ -127,11 +133,6 @@ jobs:
             ${{ matrix.ui.packages }}
             llvm-openmp:p
             zstd:p
-
-      - name: Checkout repository
-        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          fetch-depth: 0  # Shallow clones should be disabled for a better relevancy of analysis
 
 #      - name: Install Build Wrapper
 #        uses: SonarSource/sonarqube-scan-action/install-build-wrapper@22918119ff8e1ca75a623e15c8296b6ea4fbe28f #v8.2.1

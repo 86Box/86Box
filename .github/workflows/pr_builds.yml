@@ -136,12 +136,15 @@ jobs:
           ref: ${{ github.event.pull_request.head.sha }}
           persist-credentials: false
 
+      # Pull requests can't save caches for other pull requests, and the few
+      # packages installed here are quick to download, so don't cache them
       - name: Prepare MSYS2 environment
         if: matrix.target.os == 'Windows'
         uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 #v2.32.0
         with:
           release: true
           update: true
+          cache: false
           msystem: ${{ matrix.target.msystem }}
           install: >-
             git
