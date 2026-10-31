@@ -41,6 +41,10 @@
    power of 2 for that to survive the counters wrapping around. */
 #define MIDI_IN_QUEUE_SIZE 256
 #define MIDI_IN_POLL_US    320.0 /* one byte at 31250 baud */
+/* Polls a SysEx message may go without any handler taking a byte before the
+   handlers still waiting for room are aborted: MIDI_SYSEX_TIMEOUT_MS of
+   emulated time. */
+#define MIDI_IN_SYSEX_STALL_POLLS ((uint32_t) (MIDI_SYSEX_TIMEOUT_MS * 1000.0 / MIDI_IN_POLL_US))
 
 typedef struct midi_in_queue_entry_t {
     uint8_t *data;
@@ -52,7 +56,7 @@ static atomic_uint           midi_in_queue_head        = 0;
 static atomic_uint           midi_in_queue_tail        = 0;
 static pc_timer_t            midi_in_timer;
 static int                   midi_in_sysex_active      = 0;
-static uint32_t              midi_in_sysex_start_time  = 0;
+static uint32_t              midi_in_sysex_stall       = 0;
 
 int        midi_output_device_current = 0;
 int        midi_input_device_current  = 0;
@@ -609,89 +613,41 @@ midi_in_deliver_msg(uint8_t *msg, uint32_t len)
 static void
 midi_start_sysex(uint8_t *buffer, uint32_t len)
 {
-    midi_in_handler_t *temp = mih_first;
-
-    while (1) {
-        if (temp == NULL)
-            break;
-
-        temp->cnt = 5;
+    for (midi_in_handler_t *temp = mih_first; temp != NULL; temp = temp->next) {
         temp->buf = buffer;
         temp->len = len;
-
-        temp = temp->next;
-
-        if (temp == NULL)
-            break;
     }
 }
 
-/* Returns:
-    0 = All handlers have returnd 0;
+/* Offer each handler that hasn't taken the whole message yet its next byte,
+   one byte per poll as it would arrive on the wire. A handler returns how
+   many of the bytes it was given it didn't take, as there was no room for
+   them. Sets *progress if any handler took its byte.
+   Returns:
+    0 = All handlers have taken the whole message;
     1 = There are still handlers to go. */
 static int
-midi_do_sysex(void)
+midi_do_sysex(int *progress)
 {
-    midi_in_handler_t *temp = mih_first;
-    int                ret;
-    int                cnt_acc = 0;
+    int pending = 0;
 
-    while (1) {
-        if (temp == NULL)
-            break;
+    for (midi_in_handler_t *temp = mih_first; temp != NULL; temp = temp->next) {
+        if (temp->len == 0)
+            continue;
 
-        /* Do nothing if the handler has a zero count. */
-        if ((temp->cnt > 0) || (temp->len > 0)) {
-            ret = 0;
-            if (temp->sysex) {
-                if (temp->cnt == 0)
-                    ret = temp->sysex(temp->priv, temp->buf, 0, 0);
-                else
-                    ret = temp->sysex(temp->priv, temp->buf, temp->len, 0);
-            }
-
-            /* If count is 0 and length is 0, then this is just a finishing
-               call to temp->sysex(), so skip this entire block. */
-            if (temp->cnt > 0) {
-                if (ret) {
-                    /* Decrease or reset the counter. */
-                    if (temp->len == ret)
-                        temp->cnt--;
-                    else
-                        temp->cnt = 5;
-
-                    /* Advance the buffer pointer and remember the
-                       remaining length. */
-                    temp->buf += (temp->len - ret);
-                    temp->len = ret;
-                } else {
-                    /* Set count to 0 so that this handler will be
-                       ignored on the next interation. */
-                    temp->cnt = 0;
-
-                    /* Reset the buffer pointer and length. */
-                    temp->buf = NULL;
-                    temp->len = 0;
-                }
-
-                /* If the remaining count is above zero, add it to the
-                   accumulator. */
-                if (temp->cnt > 0)
-                    cnt_acc |= temp->cnt;
-            }
+        if (!temp->sysex || !temp->sysex(temp->priv, temp->buf, 1, 0)) {
+            temp->buf++;
+            temp->len--;
+            *progress = 1;
         }
 
-        temp = temp->next;
-
-        if (temp == NULL)
-            break;
+        if (temp->len > 0)
+            pending = 1;
+        else
+            temp->buf = NULL;
     }
 
-    /* Return 0 if all handlers have returned 0 or all the counts are otherwise 0. */
-    if (cnt_acc == 0)
-        return 0;
-    else
-        return 1;
+    return pending;
 }
 
 void
@@ -704,23 +660,30 @@ midi_in_sysex(uint8_t *buffer, uint32_t len)
 static int
 midi_in_deliver_sysex(uint8_t *buffer, uint32_t len)
 {
+    int progress = 0;
+
     if (!midi_in_sysex_active) {
         midi_start_sysex(buffer, len);
-        midi_in_sysex_active     = 1;
-        midi_in_sysex_start_time = plat_get_ticks();
+        midi_in_sysex_active = 1;
+        midi_in_sysex_stall  = 0;
     }
 
-    /* This will return 0 if all the handlers have either
-       timed out or otherwise indicated it is time to stop. */
-    if (midi_do_sysex()) {
-        if ((plat_get_ticks() - midi_in_sysex_start_time) <= MIDI_SYSEX_TIMEOUT_MS)
+    if (midi_do_sysex(&progress)) {
+        /* A long message takes a while at wire speed, so only give up once
+           no handler has taken a byte for a while, not after a fixed time
+           from the start. */
+        if (progress)
+            midi_in_sysex_stall = 0;
+        if (++midi_in_sysex_stall <= MIDI_IN_SYSEX_STALL_POLLS)
             return 0; /* try again on the next poll */
 
-        /* Force abort all handlers on timeout */
+        /* Abort the handlers that are still waiting for room. */
         for (midi_in_handler_t *temp = mih_first; temp != NULL; temp = temp->next) {
+            if (temp->len == 0)
+                continue;
             if (temp->sysex)
                 temp->sysex(temp->priv, NULL, 0, 1); /* Call with abort=1 */
-            temp->cnt = 0;
+            temp->buf = NULL;
             temp->len = 0;
         }
     }
