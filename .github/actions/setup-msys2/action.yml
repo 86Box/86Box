@@ -65,17 +65,17 @@ runs:
           ${{ steps.key.outputs.msystem-prefix }}
 
     # The same update procedure as setup-msys2's: the first upgrade may
-    # update the MSYS2 runtime itself, so processes still using the old one
-    # are killed before the final upgrade
+    # update the MSYS2 runtime itself, which closes all MSYS2 processes,
+    # including the shell running it. So it's run from outside MSYS2,
+    # ignoring its exit status, and processes still using the old runtime
+    # are killed before the final upgrade.
     - name: Update packages
-      shell: msys2 {0}
-      run: |
-        pacman --noconfirm -Syuu --overwrite '*' || true
-        mv -f /etc/pacman.conf.pacnew /etc/pacman.conf 2> /dev/null || true
-
-    - name: Kill remaining tasks
       shell: pwsh
-      run: taskkill /F /FI "MODULES eq msys-2.0.dll"
+      run: |
+        msys2 -c "pacman --noconfirm -Syuu --overwrite '*'"
+        msys2 -c "mv -f /etc/pacman.conf.pacnew /etc/pacman.conf 2> /dev/null"
+        taskkill /F /FI "MODULES eq msys-2.0.dll"
+        exit 0
 
     - name: Final system upgrade
       shell: msys2 {0}
