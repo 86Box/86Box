@@ -2913,6 +2913,18 @@ mach64_int_hwcursor_draw(svga_t *svga, int displine)
 }
 
 
+/* 86Box-Next: the block I/O base in use. With a fixed base (for software that
+   hard-codes it), whatever address is assigned decodes and reads back as that
+   base; the register itself keeps what was written, so a sizing probe (all
+   ones) still reads back the size mask. */
+static uint32_t
+mach64_block_io(const mach64_t *mach64)
+{
+    if (mach64->fixed_io && ((mach64->block_decoded_io & 0xff00) != 0xff00))
+        return mach64->fixed_io;
+    return mach64->block_decoded_io;
+}
+
 static void
 mach64_io_unmap(mach64_t *mach64)
 {
@@ -2943,8 +2955,8 @@ mach64_io_unmap(mach64_t *mach64)
     if (mach64->type == MACH64_GX)
         io_removehandler(0x01ce, 0x0002, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
 
-    if (mach64->block_decoded_io && mach64->block_decoded_io < 0x10000)
-        io_removehandler(mach64->block_decoded_io, 0x0100, mach64_block_inb, mach64_block_inw, mach64_block_inl, mach64_block_outb, mach64_block_outw, mach64_block_outl, mach64);
+    if (mach64_block_io(mach64) && mach64_block_io(mach64) < 0x10000)
+        io_removehandler(mach64_block_io(mach64), 0x0100, mach64_block_inb, mach64_block_inw, mach64_block_inl, mach64_block_outb, mach64_block_outw, mach64_block_outl, mach64);
 }
 
 static void
@@ -2987,8 +2999,8 @@ mach64_io_map(mach64_t *mach64)
     if (mach64->type == MACH64_GX)
         io_sethandler(0x01ce, 0x0002, mach64_in, NULL, NULL, mach64_out, NULL, NULL, mach64);
 
-    if (mach64->use_block_decoded_io && mach64->block_decoded_io && mach64->block_decoded_io < 0x10000)
-        io_sethandler(mach64->block_decoded_io, 0x0100, mach64_block_inb, mach64_block_inw, mach64_block_inl, mach64_block_outb, mach64_block_outw, mach64_block_outl, mach64);
+    if (mach64->use_block_decoded_io && mach64_block_io(mach64) && mach64_block_io(mach64) < 0x10000)
+        io_sethandler(mach64_block_io(mach64), 0x0100, mach64_block_inb, mach64_block_inw, mach64_block_inl, mach64_block_outb, mach64_block_outw, mach64_block_outl, mach64);
 }
 
 static uint8_t
@@ -3239,15 +3251,15 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
             return 0x00;
         case PCI_REG_BAR1_BYTE1:
             if (mach64->type >= MACH64_CT)
-                return mach64->block_decoded_io >> 8;
+                return mach64_block_io(mach64) >> 8;
             return 0x00;
         case PCI_REG_BAR1_BYTE2:
             if (mach64->type >= MACH64_CT)
-                return mach64->block_decoded_io >> 16;
+                return mach64_block_io(mach64) >> 16;
             return 0x00;
         case PCI_REG_BAR1_BYTE3:
             if (mach64->type >= MACH64_CT)
-                return mach64->block_decoded_io >> 24;
+                return mach64_block_io(mach64) >> 24;
             return 0x00;
         case PCI_REG_BAR2_BYTE0 ... PCI_REG_BAR2_BYTE3:
             /* The GT-B's register aperture, 4K (mach64_updatemapping). */
@@ -3713,6 +3725,13 @@ mach64gtb_init(const device_t *info)
     mach64->vlb                           = 0;
     mach64->pci_id                        = 0x4755;
     mach64->config_chip_id                = 0x9a004755;   /* "GU", ASIC ID 9Ah (VT/RAGE RRG 4-17) */
+    if (info->local & MACH64_FLAG_RAGE2C) {
+        /* 86Box-Next: the 3D Rage IIC (PCI PQFP), "GV". Midway TouchMaster II's
+           kernel only attaches to this ID, and hard-codes the block I/O at D800h. */
+        mach64->pci_id         = 0x4756;
+        mach64->config_chip_id = 0x9a004756;
+        mach64->fixed_io       = device_get_config_hex16("fixed_io") & 0xff00;
+    }
     mach64->dac_cntl                      = 1 << 16;      /*Internal 24-bit DAC*/
     mach64->config_stat0                  = 5 | (1 << 4); /* CFG_MEM_TYPE 5, SGRAM on the GT-B, and the CFG_VGA_EN strap */
     mach64->mem_cntl                      = 7;            /* MEM_SIZE, 4 bits from the VT-B on: 4 MB */
@@ -3733,6 +3752,20 @@ mach64gtb_init(const device_t *info)
         ati_eeprom_load(&mach64->eeprom, "mach64rage2p_ars2d.nvr", 1);
         /* ARS2D is 36K, 48h blocks of 512 bytes by its PCI data structure. */
         rom_init(&mach64->bios_rom, BIOS_ROMGTB_PATH, 0xc0000, 0x9000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+        if ((info->local & MACH64_FLAG_RAGE2C) && mach64->bios_rom.rom) {
+            /* 86Box-Next: no Rage IIC dump; give ARS2D's PCI data structure the
+               IIC's device ID, as on the real card, and keep the image summing to 0. */
+            uint8_t *rom  = mach64->bios_rom.rom;
+            uint16_t pcir = rom[0x18] | (rom[0x19] << 8);
+
+            if ((pcir < 0x8ff8) && !memcmp(&rom[pcir], "PCIR", 4)) {
+                uint8_t old = rom[pcir + 6];
+
+                rom[pcir + 6] = 0x56;
+                rom[pcir + 7] = 0x47;
+                rom[0x8fff] -= (uint8_t) (rom[pcir + 6] - old);
+            }
+        }
     }
     mem_mapping_disable(&mach64->bios_rom.mapping);
 
@@ -4108,6 +4141,58 @@ static const device_config_t mach64gtb_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+/* 86Box-Next: the Rage IIC's, the GT-B's plus a fixed block I/O base. */
+static const device_config_t mach64gtc_config[] = {
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 4,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "render_threads",
+        .description    = "Render threads",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "4", .value = 4 },
+            { .description = ""              }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "fixed_io",
+        .description    = "I/O base",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Assigned by the BIOS",          .value = 0x0000 },
+            { .description = "D800h (Midway TouchMaster II)", .value = 0xd800 },
+            { .description = ""                                               }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 static const device_config_t mach64gtb_onboard_config[] = {
     {
         .name           = "memory",
@@ -4299,6 +4384,21 @@ const device_t mach64gtb_device = {
     .force_redraw  = mach64_force_redraw,
     .config        = mach64gtb_config,
     .alias         = "ATI 3D Charger"
+};
+
+/* 86Box-Next: the 3D Rage IIC (PCI). */
+const device_t mach64gtc_device = {
+    .name          = "ATI 3D Rage IIC",
+    .internal_name = "mach64_rage2c",
+    .flags         = DEVICE_PCI,
+    .local         = MACH64_GTB | MACH64_FLAG_RAGE2C,
+    .init          = mach64gtb_init,
+    .close         = mach64_close,
+    .reset         = mach64_reset,
+    .available     = mach64gtb_available,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = mach64gtc_config
 };
 
 const device_t mach64gtb_onboard_device = {

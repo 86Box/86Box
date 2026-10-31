@@ -105,6 +105,7 @@ enum {
 
 #define MACH64_FLAG_ONBOARD (1 << 19)
 #define MACH64_FLAG_DRAM    (1 << 17) /* the board's memory is DRAM (256Kx16), not VRAM */
+#define MACH64_FLAG_RAGE2C  (1 << 20) /* 86Box-Next: 3D Rage IIC, the GT-B under PCI ID GV (4756h) */
 #define MACH64_PCI_IOCONFIG 0x40        // "User Defined Configuration"
 
 typedef struct mach64_3d_t     mach64_3d_t;
@@ -331,6 +332,7 @@ typedef struct mach64_t {
     uint32_t config_chip_id;
     uint32_t block_decoded_io;
     int      use_block_decoded_io;
+    uint16_t fixed_io; /* 86Box-Next: block I/O base pinned for software that hard-codes it (0 = BIOS) */
 
     int     pll_addr;
     uint8_t pll_regs[64];
