@@ -3726,17 +3726,42 @@ mach64_rp_composite_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
     uint32_t  tex_cntl = ctx->regs[RP_TEX_CNTL >> 2];
     uint32_t  tsp      = ctx->regs[TEX_SIZE_PITCH >> 2];
     int       format   = (mach64->dp_pix_width >> 4) & 15;
+    int       l2w      = (tsp >> 16) & 15;
+    int       size     = (tsp >> 20) & 15;
+    int       l2h      = (tsp >> 24) & 15;
+    int       lowest   = (tsp >> 12) & 15;
+    uint32_t  base     = ctx->regs[RP_SECONDARY_TEX_OFF >> 2];
 
     if (!mach64_3d_bytes_per_pixel(format))
         return 0;
-    tx->levels = 1;
-    mach64_rp_map_level(ctx, &tx->maps[0], format, ctx->regs[RP_SECONDARY_TEX_OFF >> 2], (tsp >> 16) & 15, (tsp >> 24) & 15,
-                        !!(tex_cntl & RP_SEC_TEX_CLAMP_S), !!(tex_cntl & RP_SEC_TEX_CLAMP_T));
-    tx->maps[0].agp = !!(tex_cntl & RP_TEX_SRC_AGP); /* both textures are local or both AGP */
-    if (tex_cntl & RP_COMPOSITE_TEX_TILING)
-        mach64_rp_map_tiled(&tx->maps[0]);
-    if (tx->maps[0].w > 1024 || tx->maps[0].h > 1024)
+    if (l2w > 10 || l2h > 10)
         return 0;
+    if (size > 10)
+        size = 10;
+    if (size < l2w)
+        size = l2w;
+    if (size < l2h)
+        size = l2h;
+
+    /* Its mip maps have no TEX_n_OFF of their own: they follow the largest
+       one in memory, each straight after the one above, which is how ATI's
+       Windows 9x driver lays out every mip-mapped texture (3DMark 99's
+       texture filtering tunnel draws its checkerboard as the composite).
+       The smallest is the one TEX_SIZE_PITCH 15:12 names, as for the
+       primary texture; the driver fills nothing below it. */
+    if (ctx->regs[SCALE_3D_CNTL >> 2] & MIP_MAP_DISABLE)
+        lowest = size;
+    else if (lowest > size)
+        lowest = size;
+    tx->levels = size - lowest + 1;
+    for (int n = 0; n < tx->levels; n++) {
+        mach64_rp_map_level(ctx, &tx->maps[n], format, base, l2w - n, l2h - n, !!(tex_cntl & RP_SEC_TEX_CLAMP_S),
+                            !!(tex_cntl & RP_SEC_TEX_CLAMP_T));
+        tx->maps[n].agp = !!(tex_cntl & RP_TEX_SRC_AGP); /* both textures are local or both AGP */
+        if (tex_cntl & RP_COMPOSITE_TEX_TILING)
+            mach64_rp_map_tiled(&tx->maps[n]);
+        base += tx->maps[n].w * tx->maps[n].h * tx->maps[n].tex.bpp;
+    }
     tx->bilinear_mag = !!(tex_cntl & RP_COMP_FILTER_BILIN);
     tx->blend_fcn    = (tex_cntl & RP_COMP_BLEND_BILINEAR) ? 2 : 0;
     tx->lod_bias     = 0.0;
@@ -4076,6 +4101,24 @@ mach64_rp_at8(const mach64_rp_plane_t *p, double x, double y)
     return mach64_3d_clamp8((int) floor(mach64_rp_at(p, x, y) + 0.5));
 }
 
+/* The level of detail at s, t: log2 of the texels of the largest map a
+   pixel steps across, along the screen axis that steps across more.
+   d(S/W)/dx = (dS/dx - s dW/dx) / W. */
+static double
+mach64_rp_lod(const mach64_rp_plane_t *ps, const mach64_rp_plane_t *pt, const mach64_rp_plane_t *pw, double s, double t, double rw,
+              const mach64_rp_map_t *largest)
+{
+    double dsdx = (ps->dx - s * pw->dx) * rw * largest->w;
+    double dtdx = (pt->dx - t * pw->dx) * rw * largest->h;
+    double dsdy = (ps->dy - s * pw->dy) * rw * largest->w;
+    double dtdy = (pt->dy - t * pw->dy) * rw * largest->h;
+    double rx   = dsdx * dsdx + dtdx * dtdx;
+    double ry   = dsdy * dsdy + dtdy * dtdy;
+    double rho2 = (rx > ry) ? rx : ry;
+
+    return (rho2 > 0.0) ? (0.5 * log2(rho2)) : -1.0;
+}
+
 /* A pixel of a triangle, through the whole pipeline, sampled at its centre. */
 static void
 mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t *dither, int x, int y, uint32_t addr, uint32_t z_addr)
@@ -4113,15 +4156,7 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
         double   rw   = (w != 0.0) ? (1.0 / w) : 1.0;
         double   s    = mach64_rp_at(&tri->pl[RPP_S], fx, fy) * rw;
         double   t    = mach64_rp_at(&tri->pl[RPP_T], fx, fy) * rw;
-        /* d(S/W)/dx = (dS/dx - s dW/dx) / W, in texels of the largest map. */
-        double   dsdx = (tri->pl[RPP_S].dx - s * tri->pl[RPP_W].dx) * rw * tri->tex.maps[0].w;
-        double   dtdx = (tri->pl[RPP_T].dx - t * tri->pl[RPP_W].dx) * rw * tri->tex.maps[0].h;
-        double   dsdy = (tri->pl[RPP_S].dy - s * tri->pl[RPP_W].dy) * rw * tri->tex.maps[0].w;
-        double   dtdy = (tri->pl[RPP_T].dy - t * tri->pl[RPP_W].dy) * rw * tri->tex.maps[0].h;
-        double   rx   = dsdx * dsdx + dtdx * dtdx;
-        double   ry   = dsdy * dsdy + dtdy * dtdy;
-        double   rho2 = (rx > ry) ? rx : ry;
-        double   lod  = (rho2 > 0.0) ? (0.5 * log2(rho2)) : -1.0;
+        double   lod  = mach64_rp_lod(&tri->pl[RPP_S], &tri->pl[RPP_T], &tri->pl[RPP_W], s, t, rw, &tri->tex.maps[0]);
         uint32_t argb = mach64_rp_sample(ctx, &tri->tex, s, t, lod, &inhibit);
         rgba_t   texel;
 
@@ -4134,11 +4169,9 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
             double   rw2 = (w2 != 0.0) ? (1.0 / w2) : 1.0;
             double   s2  = mach64_rp_at(&tri->pl[RPP_S2], fx, fy) * rw2;
             double   t2  = mach64_rp_at(&tri->pl[RPP_T2], fx, fy) * rw2;
-            double   d2x = (tri->pl[RPP_S2].dx - s2 * tri->pl[RPP_W2].dx) * rw2 * tri->tex2.maps[0].w;
-            double   d2y = (tri->pl[RPP_T2].dy - t2 * tri->pl[RPP_W2].dy) * rw2 * tri->tex2.maps[0].h;
-            double   l2  = fabs(d2x) > fabs(d2y) ? fabs(d2x) : fabs(d2y);
+            double   l2  = mach64_rp_lod(&tri->pl[RPP_S2], &tri->pl[RPP_T2], &tri->pl[RPP_W2], s2, t2, rw2, &tri->tex2.maps[0]);
             int      inh2;
-            uint32_t c2  = mach64_rp_sample(ctx, &tri->tex2, s2, t2, (l2 > 0.0) ? log2(l2) : -1.0, &inh2);
+            uint32_t c2  = mach64_rp_sample(ctx, &tri->tex2, s2, t2, l2, &inh2);
             rgba_t   sec = mach64_3d_argb_rgba(c2);
             int      f;
 
