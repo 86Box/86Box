@@ -75,6 +75,21 @@ extern void   flash_bios_set_decode_hook(void (*hook)(void *priv), void *priv);
 extern void   flash_bios_decode_changed(void);
 extern void   flash_bios_mapping_update(mem_mapping_t *map, uint8_t *exec);
 
+/*
+ * Intel 28F004S5/28F008S5/28F016S5 Smart Flash chips: the
+ * intel_flash_e28f0xx descriptors. The size picks the part, so it is
+ * required.
+ */
+typedef struct e28f0xx_t e28f0xx_t;
+
+extern e28f0xx_t *e28f0xx_create(const device_t *model, const flash_cfg_t *cfg);
+extern void       e28f0xx_destroy(e28f0xx_t *dev);
+extern void       e28f0xx_reset(e28f0xx_t *dev);
+extern void       e28f0xx_map(e28f0xx_t *dev, struct _mem_mapping_ *mapping, uint32_t base, uint32_t size);
+extern void       e28f0xx_remap(e28f0xx_t *dev, struct _mem_mapping_ *mapping, uint32_t base, uint32_t size);
+extern void       e28f0xx_set_write_protect(e28f0xx_t *dev, int protect);
+extern uint32_t   e28f0xx_get_size(const e28f0xx_t *dev);
+
 extern const device_t intel_flash_e28f0xx_device;
 extern const device_t intel_flash_e28f0xx_cobalt3k_device;
 
