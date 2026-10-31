@@ -27,6 +27,7 @@
 #include <math.h>
 #include "vid_ati_mach64.h"
 #include <86box/dma.h>
+#include <86box/agpgart.h>
 
 /* GUI registers, byte offsets in the register block. */
 #define DST_BRES_LNTH  0x120 /* also LEAD_BRES_LNTH */
@@ -234,6 +235,7 @@ typedef struct mach64_3d_row_t {
 
 #define MACH64_3D_ROWS    128 /* rows walked before they are drawn */
 #define MACH64_3D_THREADS 4   /* the emulation thread and up to three helpers */
+#define MACH64_RP_AGP_PAGES 64
 
 typedef struct mach64_3d_rows_job_t mach64_3d_rows_job_t;
 
@@ -296,6 +298,13 @@ struct mach64_3d_t {
        steps it, else it takes the GT-B's index in bits 31:24. */
     int      palette_indexed;
     uint32_t palette_index;
+
+    /* The AGP pages a triangle's texels have come from, direct mapped by
+       page number: the page's bus address with bit 0 set, and where it is
+       in host memory, NULL for a page read through the handlers. The
+       guest runs only between triangles, so they hold for one. */
+    uint32_t       agp_tag[MACH64_RP_AGP_PAGES];
+    const uint8_t *agp_ptr[MACH64_RP_AGP_PAGES];
 };
 
 static int
@@ -3777,8 +3786,29 @@ mach64_rp_wrap(int i, int size, int clamp)
     return i & (size - 1);
 }
 
-/* A texel of a map in AGP memory, decoded as mach64_3d_texel_at does. The
-   chipset's aperture (agpgart.c) takes the read to system memory. */
+/* len bytes of AGP memory at bus address addr. The chipset's aperture
+   (agpgart.c) takes the read to system memory; a page that is plain memory
+   there is looked up once a triangle and read in place. */
+static inline void
+mach64_rp_agp_read(mach64_3d_t *ctx, uint32_t addr, void *dst, unsigned len)
+{
+    uint32_t page = addr & ~0xfffu;
+    unsigned slot = (page >> 12) & (MACH64_RP_AGP_PAGES - 1);
+
+    if (((addr & 0xfff) + len) <= 0x1000) {
+        if (ctx->agp_tag[slot] != (page | 1)) {
+            ctx->agp_tag[slot] = page | 1;
+            ctx->agp_ptr[slot] = agpgart_bus_ptr(page, 0x1000);
+        }
+        if (ctx->agp_ptr[slot]) {
+            memcpy(dst, ctx->agp_ptr[slot] + (addr & 0xfff), len);
+            return;
+        }
+    }
+    dma_bm_read(addr, (uint8_t *) dst, len, len);
+}
+
+/* A texel of a map in AGP memory, decoded as mach64_3d_texel_at does. */
 static uint32_t
 mach64_rp_texel_agp(mach64_3d_t *ctx, const mach64_3d_texture_t *map, int u, int v, int *inhibits)
 {
@@ -3789,27 +3819,27 @@ mach64_rp_texel_agp(mach64_3d_t *ctx, const mach64_3d_texture_t *map, int u, int
 
     switch (map->format) {
         case 3:
-            dma_bm_read(addr, (uint8_t *) &raw, 2, 2);
+            mach64_rp_agp_read(ctx, addr, &raw, 2);
             argb = mach64_3d_argb1555(raw, map->dynamic_range);
             break;
         case 4:
-            dma_bm_read(addr, (uint8_t *) &raw, 2, 2);
+            mach64_rp_agp_read(ctx, addr, &raw, 2);
             argb = mach64_3d_argb565(raw, map->dynamic_range);
             break;
         case 6:
-            dma_bm_read(addr, (uint8_t *) &raw, 4, 4);
+            mach64_rp_agp_read(ctx, addr, &raw, 4);
             argb = raw;
             break;
         case 15:
-            dma_bm_read(addr, (uint8_t *) &raw, 2, 2);
+            mach64_rp_agp_read(ctx, addr, &raw, 2);
             argb = mach64_3d_argb4444(raw, map->dynamic_range);
             break;
         case 11:
-            dma_bm_read(mach64->rp.agp_base + map->base + (v * map->width + (u & ~1)) * 2, (uint8_t *) &raw, 4, 4);
+            mach64_rp_agp_read(ctx, mach64->rp.agp_base + map->base + (v * map->width + (u & ~1)) * 2, &raw, 4);
             argb = mach64_3d_rgba_argb(mach64_3d_yuv_to_rgba(ctx, mach64_yuyv_y(raw, u), mach64_yuyv_u(raw), mach64_yuyv_v(raw), 255));
             break;
         default:
-            dma_bm_read(addr, (uint8_t *) &raw, map->bpp, map->bpp);
+            mach64_rp_agp_read(ctx, addr, &raw, map->bpp);
             argb = mach64_3d_unpack_argb(ctx, map->format, raw, 1);
             if (map->format == 2) {
                 *inhibits = mach64_3d_texel_key_inhibits(map, mach64_3d_texture_palette_texel_index(mach64->dp_pix_width, raw));
@@ -4351,6 +4381,8 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
         if (!mach64_rp_texture_init(ctx, &tri.tex))
             return;
         tri.composite = (tri.tex_cntl & RP_TEXTURE_COMPOSITE) && mach64_rp_composite_init(ctx, &tri.tex2);
+        if (tri.tex_cntl & RP_TEX_SRC_AGP)
+            memset(ctx->agp_tag, 0, sizeof(ctx->agp_tag));
     }
 
     /* The vertices' values; FLAT_SHADE_VERTEX_n gives every vertex the
