@@ -1598,10 +1598,12 @@ codegen_LOAD_FUNC_ARG1_IMM(codeblock_t *block, uop_t *uop)
     return 0;
 }
 static int
-codegen_LOAD_FUNC_ARG2_IMM(UNUSED(codeblock_t *block), UNUSED(uop_t *uop))
+codegen_LOAD_FUNC_ARG2_IMM(codeblock_t *block, uop_t *uop)
 {
-#    ifdef RECOMPILER_DEBUG
-    fatal("codegen_LOAD_FUNC_ARG2_IMM\n");
+#    if _WIN64
+    host_x86_MOV32_REG_IMM(block, REG_R8, uop->imm_data);
+#    else
+    host_x86_MOV32_REG_IMM(block, REG_EDX, uop->imm_data);
 #    endif
     return 0;
 }
