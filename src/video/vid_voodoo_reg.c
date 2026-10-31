@@ -1381,7 +1381,7 @@ voodoo_reg_writel(uint32_t addr, uint32_t val, void *priv)
             break;
 
         case SST_userIntrCMD:
-            fatal("userIntrCMD write %08x from FIFO\n", val);
+            voodoo_reg_log("userIntrCMD write %08x from FIFO\n", val);
             break;
 
         case SST_leftOverlayBuf:

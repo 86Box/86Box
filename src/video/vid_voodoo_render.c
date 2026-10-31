@@ -1313,7 +1313,7 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                             break;
 
                         default:
-                            fatal("Bad cca_localselect %i\n", cca_localselect);
+                            voodoo_render_log("Bad cca_localselect %i\n", cca_localselect);
                             alocal = 0xff;
                             break;
                     }
@@ -1329,7 +1329,7 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                             aother = (params->color1 >> 24) & 0xff;
                             break;
                         default:
-                            fatal("Bad a_sel %i\n", a_sel);
+                            voodoo_render_log("Bad a_sel %i\n", a_sel);
                             aother = 0;
                             break;
                     }
@@ -1395,7 +1395,7 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                             break;
 
                         default:
-                            fatal("Bad cc_mselect %i\n", cc_mselect);
+                            voodoo_render_log("Bad cc_mselect %i\n", cc_mselect);
                             msel_r = 0;
                             msel_g = 0;
                             msel_b = 0;
@@ -1420,7 +1420,7 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                             break;
 
                         default:
-                            fatal("Bad cca_mselect %i\n", cca_mselect);
+                            voodoo_render_log("Bad cca_mselect %i\n", cca_mselect);
                             msel_a = 0;
                             break;
                     }
@@ -1457,7 +1457,7 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                         case 0:
                             break;
                         default:
-                            fatal("Bad cc_add %i\n", cc_add);
+                            voodoo_render_log("Bad cc_add %i\n", cc_add);
                     }
 
                     if (cca_add)
