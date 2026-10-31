@@ -2203,17 +2203,19 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
                 svga->fullchange = changeframecount;
                 break;
             case 0x81d0:
-                virge->streams.sec_fb0 = val;
+                virge->streams.sec_fb0 = ((virge->memory_size == 8) ?
+                                          (val & 0x7fffff) : (val & 0x3fffff));
                 svga_recalctimings(svga);
                 svga->fullchange = changeframecount;
                 break;
             case 0x81d4:
-                virge->streams.sec_fb1 = val;
+                virge->streams.sec_fb1 = ((virge->memory_size == 8) ?
+                                          (val & 0x7fffff) : (val & 0x3fffff));
                 svga_recalctimings(svga);
                 svga->fullchange = changeframecount;
                 break;
             case 0x81d8:
-                virge->streams.sec_stride = val;
+                virge->streams.sec_stride = val & 0xfff;
                 svga_recalctimings(svga);
                 svga->fullchange = changeframecount;
                 break;
@@ -3425,7 +3427,7 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
 
             while (count && virge->s3d.h) {
                 uint32_t dest_addr = virge->s3d.dest_base + (virge->s3d.dest_x * x_mul) + (virge->s3d.dest_y * virge->s3d.dest_str);
-                uint32_t source    = 0;
+                uint32_t source    = virge->s3d.pat_fg_clr;
                 uint32_t dest      = 0;
                 uint32_t pattern   = virge->s3d.pat_fg_clr;
                 uint32_t out       = 0;
@@ -3510,7 +3512,7 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
 
                     if (update) {
                         READ(dest_addr, dest);
-                        pattern = virge->s3d.pat_fg_clr;
+                        source = pattern = virge->s3d.pat_fg_clr;
 
                         MIX();
 
@@ -3556,7 +3558,7 @@ skip_line:
 
                     if (update) {
                         READ(dest_addr, dest);
-                        pattern = pattern_data[(y & 7) * 8 + (x & 7)];
+                        source = pattern = pattern_data[(y & 7) * 8 + (x & 7)];
 
                         MIX();
 
@@ -3574,8 +3576,9 @@ skip_line:
             break;
 
         default:
-            fatal("s3_virge_bitblt : blit command %i %08x\n",
-                  (virge->s3d.cmd_set >> 27) & 0xf, virge->s3d.cmd_set);
+            /* A guest can write any of these, NetBSD on the Amiga writes 0111
+               for a NOP (1111). */
+            break;
     }
 }
 
@@ -4322,8 +4325,8 @@ tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int32_t dx1, int
             state->x1 += (dx1 * diff_y);
             state->x2 += (dx2 * diff_y);
             state->y -= diff_y;
-            dest_offset -= s3d_tri->dest_str;
-            z_offset -= s3d_tri->z_str;
+            dest_offset -= s3d_tri->dest_str * diff_y;
+            z_offset -= s3d_tri->z_str * diff_y;
             y_count -= diff_y;
         }
         if ((state->y - y_count) < s3d_tri->clip_t)
@@ -5572,7 +5575,7 @@ s3_virge_overlay_draw(svga_t *svga, int displine)
     int       x_write = 4;
     int       x;
     uint32_t *p;
-    uint8_t  *src = &svga->vram[svga->overlay_latch.addr];
+    uint8_t  *src = &svga->vram[svga->overlay_latch.addr & virge->vram_mask];
 
     if (virge->chip < S3_VIRGEGX2)
         offset = (virge->streams.sec_x - virge->streams.pri_x) + 1;
