@@ -2702,7 +2702,7 @@ pas16_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
     }
     pas16->sysex = 1;
     for (uint32_t i = 0; i < len; i++) {
-        if (pas16->midi_r == pas16->midi_w)
+        if (pas16->midi_used >= 255)
             return (int) (len - i);
         pas16->midi_queue[pas16->midi_w++] = buffer[i];
         pas16->midi_w &= 0xff;

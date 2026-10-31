@@ -2604,7 +2604,7 @@ sb_dsp_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
     dsp->midi_in_sysex = 1;
 
     for (uint32_t i = 0; i < len; i++) {
-        if (dsp->sb_read_rp == dsp->sb_read_wp) {
+        if (dsp->sb_read_used >= 255) {
             sb_dsp_log("Length sysex SB = %d\n", len - i);
             return (int) (len - i);
         }
