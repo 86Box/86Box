@@ -500,7 +500,7 @@ static x86seg *codegen_ea_target_seg;
    leaves with the escape wrapper's record (codegen_generate_ea) */
 static int codegen_fetch_walk_fpu;
 
-static int codegen_fpu_emit_record(ir_data_t *ir, x86seg *seg, int entry);
+static int codegen_fpu_emit_record(ir_data_t *ir, x86seg *seg);
 
 x86seg *
 codegen_generate_ea(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat, int op_ssegs, uint32_t *op_pc, uint32_t op_32, int stack_offset)
@@ -538,7 +538,7 @@ codegen_generate_ea(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat, int op_
             uop_SUB_IMM(ir, IREG_eaaddr, IREG_eaaddr, part);
             if (!(op_32 & 0x200))
                 uop_AND_IMM(ir, IREG_eaaddr, IREG_eaaddr, 0xffff);
-            codegen_fpu_emit_record(ir, codegen_ea_target_seg, 0);
+            codegen_fpu_emit_record(ir, codegen_ea_target_seg);
             uop_MOV_IMM(ir, IREG_temp3, 1);
             codegen_exit_on_one(ir, IREG_temp3);
             uop_NOP_BARRIER(ir);
@@ -554,41 +554,33 @@ codegen_generate_ea(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat, int op_
    own record out */
 static int codegen_fpu_pointers_recorded;
 
-/* An interpreted x87 instruction with a memory operand, whose pointers are
-   recorded before its op is called: an op that takes #NM at its FP_ENTER
-   does so before it forms its address, and the escape wrapper's record then
-   holds the eaaddr it found and the segment of the instruction's prefix
-   (the interpreter's form). Called before the block forms the address, with
-   that segment's number in codegen_fpu_segs. */
-static x86seg *const codegen_fpu_segs[6] = { &cpu_state.seg_es, &cpu_state.seg_cs, &cpu_state.seg_ss,
-                                             &cpu_state.seg_ds, &cpu_state.seg_fs, &cpu_state.seg_gs };
-
+/* The record of an interpreted x87 instruction with a memory operand, made
+   before its op is called (the call leaves the block on a nonzero answer),
+   its address and segment set. None when the op will leave it unexecuted,
+   where the escape wrapper sees X87_OP_NOT_EXECUTED: #NM at its FP_ENTER,
+   or, for a softfloat op that checks (bit 17), a pending exception
+   reported at it (FPU_check_pending_exceptions). Bits 0-15 are temp_CS. */
 static void
-codegen_fpu_record_entry(uint32_t seg_nr)
+codegen_fpu_record_interp(uint32_t cs_flags, uint32_t cs_base, uint32_t pc)
 {
-    if (cr0 & 0xc) {
-        cpu_state.fpu_DS = codegen_fpu_segs[seg_nr]->seg;
-        cpu_state.fpu_ds = codegen_fpu_segs[seg_nr]->base;
-        cpu_state.fpu_ea = cpu_state.eaaddr;
-    }
-}
-
-/* fpu_postamble, unless the op will take #NM: codegen_fpu_record_entry
-   recorded its data pointer then */
-static void
-codegen_fpu_postamble_entry(void)
-{
-    if (!(cr0 & 0xc))
-        fpu_postamble();
+    if (cr0 & 0xc)
+        return;
+    if ((cs_flags & (1 << 17)) && (fpu_state.swd & FPU_SW_Summary) && ((cr0 & 0x20) || !fpu_ignne))
+        return;
+    cpu_state.fpu_op = x87_op;
+    cpu_state.fpu_CS = cs_flags & 0xffff;
+    cpu_state.fpu_cs = cs_base;
+    cpu_state.fpu_pc = pc;
+    fpu_postamble();
 }
 
 /* The FPU's instruction and data pointers and opcode as the escape wrapper
    records them: not in the fast environment, and not for a control
    instruction (FNSTSW AX here), which leaves the last one's. For a memory
    operand, IREG_ea_seg is set to seg first when seg is given (the answer
-   says so); entry: codegen_fpu_record_entry ran for this instruction */
+   says so) */
 static int
-codegen_fpu_emit_record(ir_data_t *ir, x86seg *seg, int entry)
+codegen_fpu_emit_record(ir_data_t *ir, x86seg *seg)
 {
     if (!cpu_dyn_accurate_fpu_env || x87_op_is_control(x87_op))
         return 0;
@@ -600,8 +592,61 @@ codegen_fpu_emit_record(ir_data_t *ir, x86seg *seg, int entry)
         return 0;
     if (seg != NULL)
         uop_MOV_PTR(ir, IREG_ea_seg, (void *) seg);
-    uop_CALL_FUNC(ir, entry ? codegen_fpu_postamble_entry : fpu_postamble);
+    uop_CALL_FUNC(ir, fpu_postamble);
     return seg != NULL;
+}
+
+/* An undefined escape on the 486 and later: past FP_ENTER it is always #UD,
+   which leaves it unexecuted (FPU_ILLEGAL), so it records nothing */
+static int
+codegen_fpu_undefined_ud(OpFn op)
+{
+    return ((op == dynarec_fpu_illegal_a16) || (op == dynarec_fpu_illegal_a32)) && (is486 || isibm486);
+}
+
+/* The record of an interpreted x87 instruction, before its op is called:
+   none for an op that leaves it unexecuted (codegen_fpu_record_interp).
+   pending_check: a softfloat op that checks for a pending exception. A
+   register form tests that in the block, around its four constants:
+   fpu_ignne is 0 or 1. */
+static void
+codegen_fpu_emit_record_interp(ir_data_t *ir, int mem, int pending_check)
+{
+    int jump_nm;
+    int jump_pending = -1;
+
+    if (!cpu_dyn_accurate_fpu_env || x87_op_is_control(x87_op))
+        return;
+    if (mem) {
+        uop_LOAD_FUNC_ARG_IMM(ir, 0, cpu_state.temp_CS | (pending_check ? (1 << 17) : 0));
+        uop_LOAD_FUNC_ARG_IMM(ir, 1, cpu_state.temp_cs);
+        uop_LOAD_FUNC_ARG_IMM(ir, 2, cpu_state.temp_pc);
+        uop_CALL_FUNC(ir, codegen_fpu_record_interp);
+        return;
+    }
+    uop_MOV_REG_PTR(ir, IREG_temp0, &cr0);
+    uop_AND_IMM(ir, IREG_temp1, IREG_temp0, 0xc);
+    jump_nm = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp1, 0);
+    if (pending_check) {
+        /* ES and (CR0.NE or not IGNNE#) */
+        uop_SHR_IMM(ir, IREG_temp0, IREG_temp0, 5);
+        uop_MOV_REG_PTR(ir, IREG_temp1, &fpu_ignne);
+        uop_XOR_IMM(ir, IREG_temp1, IREG_temp1, 1);
+        uop_OR(ir, IREG_temp0, IREG_temp0, IREG_temp1);
+        uop_MOVZX_REG_PTR_16(ir, IREG_temp1, &fpu_state.swd);
+        uop_SHR_IMM(ir, IREG_temp1, IREG_temp1, 7);
+        uop_AND(ir, IREG_temp0, IREG_temp0, IREG_temp1);
+        uop_AND_IMM(ir, IREG_temp0, IREG_temp0, 1);
+        jump_pending = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp0, 0);
+    }
+    uop_MOV_IMM(ir, IREG_fpu_op, x87_op);
+    uop_MOV_IMM(ir, IREG_fpu_CS, cpu_state.temp_CS);
+    uop_MOV_IMM(ir, IREG_fpu_cs, cpu_state.temp_cs);
+    uop_MOV_IMM(ir, IREG_fpu_pc, cpu_state.temp_pc);
+    uop_NOP_BARRIER(ir);
+    uop_set_jump_dest(ir, jump_nm);
+    if (jump_pending != -1)
+        uop_set_jump_dest(ir, jump_pending);
 }
 
 /* The record for a compiled instruction. The data pointer's segment is the
@@ -612,7 +657,7 @@ void
 codegen_fpu_record_pointers(ir_data_t *ir)
 {
     codegen_fpu_pointers_recorded = 1;
-    if (codegen_fpu_emit_record(ir, codegen_ea_target_seg, 0))
+    if (codegen_fpu_emit_record(ir, codegen_ea_target_seg))
         last_op_ea_seg = codegen_ea_target_seg;
 }
 
@@ -789,7 +834,7 @@ codegen_fpu_handover(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t 
        answered: recorded before the call, which leaves the block on a fault.
        The function changes none of them, nor eaaddr or ea_seg, and cannot
        take #NM here (the handler's FP_ENTER came first). */
-    codegen_fpu_emit_record(ir, NULL, 0);
+    codegen_fpu_emit_record(ir, NULL);
     uop_CALL_INSTRUCTION_FUNC(ir, codegen_fpu_handler, fetchdat);
     if (cpu_debug_regs_486)
         uop_CALL_FUNC(ir, dynarec_rf_after_op);
@@ -1146,7 +1191,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     uint32_t     next_pc            = 0;
     uint16_t     op87               = 0x0000;
     int          held_cycles        = 0;
-    int          fpu_entry          = 0;
+    int          fpu_mem_record     = 0;
     uint32_t     fetchdat_pc;
     uint32_t     fetch_walk         = 0;
     int          fetch_walk_valid   = codegen_fetch_reach(block, cs + old_pc, (opcode_length[opcode] > 2) ? 4 : opcode_length[opcode], &fetch_walk);
@@ -1680,17 +1725,9 @@ codegen_skip:
 
         uop_MOV_IMM(ir, IREG_rm_mod_reg, cpu_rm | (cpu_mod << 8) | (cpu_reg << 16));
 
-        /*The data pointer an x87 op that takes #NM records, before the
-          address below replaces eaaddr (codegen_fpu_record_entry)*/
-        if (is_fpu && !lock_illegal && (cpu_mod != 3) && cpu_dyn_accurate_fpu_env && !x87_op_is_control(x87_op)) {
-            int seg_nr = 0;
-
-            while ((seg_nr < 5) && (codegen_fpu_segs[seg_nr] != op_ea_seg))
-                seg_nr++;
-            uop_LOAD_FUNC_ARG_IMM(ir, 0, seg_nr);
-            uop_CALL_FUNC(ir, codegen_fpu_record_entry);
-            fpu_entry = 1;
-        }
+        /*An x87 op whose data pointer is recorded ahead of its call
+          (codegen_fpu_emit_record_interp)*/
+        fpu_mem_record = is_fpu && !lock_illegal && (cpu_mod != 3) && cpu_dyn_accurate_fpu_env && !x87_op_is_control(x87_op) && !codegen_fpu_undefined_ud(op);
 
         /*The op reads the displacement in its fetch_ea, after its own
           checks (MMX_ENTER, FP_ENTER, ILLEGAL_ON; a LOCK it can't take is
@@ -1709,13 +1746,14 @@ codegen_skip:
         }
         op_pc -= pc_off;
         codegen_fetch_walk_defer = 0;
-        /*With the deferred address, bit 1 when the record above holds the
-          full address as the data pointer, which the walk's #PF replaces
-          with what the interpreter's fetch_ea left; and what that leaves out
-          of the address (dynarec_handover_walk)*/
+        /*With the deferred address, bit 1 when the record before the call
+          holds the full address as the data pointer, which the walk's #PF
+          (after the op's FP_ENTER and pending check, so that record was
+          made) replaces with what the interpreter's fetch_ea left; and what
+          that leaves out of the address (dynarec_handover_walk)*/
         if (codegen_fetch_walk_deferred) {
             uop_STORE_PTR_IMM(ir, &cpu_state.handover_walk_part, codegen_ea_disp_part(block, fetchdat, modrm_pc, op_32 & 0x200));
-            uop_STORE_PTR_IMM(ir, &cpu_state.handover_walk, codegen_fetch_walk_deferred | (fpu_entry ? 2 : 0));
+            uop_STORE_PTR_IMM(ir, &cpu_state.handover_walk, codegen_fetch_walk_deferred | (fpu_mem_record ? 2 : 0));
         } else if (cpu_mod != 3)
             uop_STORE_PTR_IMM(ir, &cpu_state.handover_walk, 0);
     }
@@ -1749,12 +1787,14 @@ codegen_skip:
     if (op_ssegs != last_op_ssegs)
         uop_MOV_IMM(ir, IREG_ssegs, op_ssegs);
     /*The escape wrapper records an x87 instruction's pointers after its op
-      whatever the op answered: recorded before the call, which leaves the
-      block on a nonzero answer. The op changes none of them, nor eaaddr or
-      ea_seg, which hold its operand's address here. A LOCK prefix is #UD
-      before the wrapper.*/
-    if (is_fpu && !lock_illegal)
-        codegen_fpu_emit_record(ir, NULL, fpu_entry);
+      whatever the op answered, unless it left the instruction unexecuted:
+      recorded before the call, which leaves the block on a nonzero answer.
+      The op changes none of them, nor eaaddr or ea_seg, which hold its
+      operand's address here. A LOCK prefix is #UD before the wrapper. An
+      undefined escape and the no-FPU ops check for no pending exception.*/
+    if (is_fpu && !lock_illegal && !codegen_fpu_undefined_ud(op))
+        codegen_fpu_emit_record_interp(ir, (x87_op & 0xff) < 0xc0,
+                                       fpu_softfloat && hasfpu && (op != dynarec_fpu_illegal_a16) && (op != dynarec_fpu_illegal_a32));
     if (held_cycles)
         codegen_accumulate(ir, ACCREG_cycles, held_cycles);
     uop_CALL_INSTRUCTION_FUNC(ir, op, fetchdat);
