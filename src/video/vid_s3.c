@@ -545,10 +545,17 @@ s3_update_irqs(s3_t *s3)
     if (!s3->pci)
         return;
 
-    if (s3->subsys_cntl & s3->subsys_stat & INT_MASK)
+    if ((s3->subsys_cntl & s3->subsys_stat & INT_MASK) ||
+        ((s3->svga.crtc[0x32] & 0x10) && svga_vert_int_active(&s3->svga)))
         pci_set_irq(s3->pci_slot, PCI_INTA, &s3->irq_state);
     else
         pci_clear_irq(s3->pci_slot, PCI_INTA, &s3->irq_state);
+}
+
+static void
+s3_vert_int_update(svga_t *svga)
+{
+    s3_update_irqs((s3_t *) svga->priv);
 }
 
 #define WRITE8(addr, var, val)                        \
@@ -3219,6 +3226,15 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
             svga->crtc[svga->crtcreg] = val;
 
             switch (svga->crtcreg) {
+                case 0x11:
+                    svga_vert_int_crtc_write(svga);
+                    /* The interrupt bits don't affect the timings */
+                    if ((val & ~0x30) == (old & ~0x30))
+                        old = val;
+                    break;
+                case 0x32:
+                    s3_update_irqs(s3);
+                    break;
                 case 0x31:
                     s3->ma_ext             = (s3->ma_ext & 0x1c) | ((val & 0x30) >> 4);
                     svga->force_dword_mode = !!(val & 0x08);
@@ -11008,6 +11024,7 @@ s3_init(const device_t *info)
         svga->crtc[0x37] |= 0x04;
 
     svga->vblank_start = s3_vblank_start;
+    svga->vert_int_update = s3_vert_int_update;
 
     s3_io_set(s3);
 

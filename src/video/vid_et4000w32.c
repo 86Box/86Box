@@ -88,7 +88,7 @@ typedef struct et4000w32p_t {
 
     svga_t svga;
 
-    uint8_t banking, banking2, adjust_cursor, rev, pci_slot;
+    uint8_t banking, banking2, adjust_cursor, rev, pci_slot, irq_state;
     uint8_t adjust_cursor_x;
 
     uint8_t regs[256], pci_regs[256];
@@ -165,6 +165,17 @@ static void    et4000w32_blit(int count, int cpu_input, uint32_t src_dat, uint32
 static void    et4000w32p_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et4000w32p_t *et4000);
 static void    et4000w32p_out(uint16_t addr, uint8_t val, void *priv);
 static uint8_t et4000w32p_in(uint16_t addr, void *priv);
+
+static void
+et4000w32p_vert_int_update(svga_t *svga)
+{
+    et4000w32p_t *et4000 = (et4000w32p_t *) svga->priv;
+
+    if (svga_vert_int_active(svga))
+        pci_set_irq(et4000->pci_slot, PCI_INTA, &et4000->irq_state);
+    else
+        pci_clear_irq(et4000->pci_slot, PCI_INTA, &et4000->irq_state);
+}
 
 #ifdef ENABLE_ET4000W32_LOG
 int et4000w32_do_log = ENABLE_ET4000W32_LOG;
@@ -264,6 +275,12 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *priv)
                 val = (svga->crtc[7] & ~0x10) | (val & 0x10);
             old                       = svga->crtc[svga->crtcreg];
             svga->crtc[svga->crtcreg] = val;
+            if (svga->crtcreg == 0x11) {
+                svga_vert_int_crtc_write(svga);
+                /* The interrupt bits don't affect the timings */
+                if ((val & ~0x30) == (old & ~0x30))
+                    old = val;
+            }
             if (svga->crtcreg == 0x36) {
                 if (!(val & 0x10) && !(svga->gdcreg[6] & 0x08)) {
                     svga->write_bank = ((et4000->banking2 & 1) << 20) | ((et4000->banking & 0xf) * 65536);
@@ -2954,6 +2971,12 @@ et4000w32p_init(const device_t *info)
     mem_mapping_add(&et4000->mmu_mapping, 0, 0, et4000w32p_mmu_read, NULL, NULL, et4000w32p_mmu_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, et4000);
 
     et4000w32p_io_set(et4000);
+
+    if (info->flags & DEVICE_PCI) {
+        /* Disabled at reset */
+        et4000->svga.vert_int_update = et4000w32p_vert_int_update;
+        et4000->svga.crtc[0x11] |= 0x20;
+    }
 
     if (info->flags & DEVICE_PCI)
         pci_add_card(et4000->onboard_vid ? PCI_ADD_VIDEO : PCI_ADD_NORMAL, et4000w32p_pci_read, et4000w32p_pci_write, et4000, &et4000->pci_slot);
