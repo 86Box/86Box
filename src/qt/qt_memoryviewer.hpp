@@ -5,7 +5,6 @@
 #include <QDialog>
 #include <QVector>
 
-class QButtonGroup;
 class QCheckBox;
 class QComboBox;
 class QLabel;
@@ -100,8 +99,7 @@ protected:
     void closeEvent(QCloseEvent *event) override;
 
 private slots:
-    void onPause();
-    void onContinue();
+    void onRunToggle();
     void onStep();
     void onGo();
     void onSpaceChanged(int index);
@@ -115,12 +113,10 @@ private:
     void refreshCpu();
     void refreshDisasm();
     void updateStatus();
-    void updateRunButtons();
+    void updateRunButton();
 
     MemoryHexView  *hex_;
-    QButtonGroup   *runGroup_;
-    QPushButton    *pauseBtn_;
-    QPushButton    *continueBtn_;
+    QPushButton    *runBtn_;
     QComboBox      *spaceBox_;
     QLineEdit      *addrEdit_;
     QCheckBox      *liveBox_;
