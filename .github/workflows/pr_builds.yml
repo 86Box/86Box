@@ -10,6 +10,9 @@ name: Pull request builds
 # The macOS builds use the MacPorts installations cached by the MacPorts
 # cache workflow. Links to the builds are posted by the pull request build
 # links workflow, which can comment on pull requests from forks.
+#
+# Branches without a pull request can be built with a manual run, whose
+# builds are only available from the run's page.
 
 on:
 
@@ -30,9 +33,16 @@ on:
       - vcpkg.json
       - "!**/Makefile*"
 
+  workflow_dispatch:
+    inputs:
+      dev:
+        description: Also make dev branch builds
+        type: boolean
+        default: false
+
 # Cancel superseded runs for the same pull request. Adding any label other
 # than the dev branch one does not build anything, so it gets a unique group
-# so as to not cancel a build in progress.
+# so as to not cancel a build in progress, as do manual runs.
 concurrency:
   group: ${{ github.workflow }}-${{ (github.event.action != 'labeled' || github.event.label.name == 'dev branch') && github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
@@ -56,11 +66,20 @@ jobs:
       build_id: ${{ steps.build_id.outputs.build_id }}
 
     steps:
+      # Manual runs are named after the branch, reduced to characters that
+      # are safe in file names and in the build.sh arguments
       - name: Determine build ID
         id: build_id
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
-        run: echo "build_id=pr$PR_NUMBER.$(date -u +%Y%m%d-%H%M)" >> "$GITHUB_OUTPUT"
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if [ -n "$PR_NUMBER" ]; then
+            name="pr$PR_NUMBER"
+          else
+            name=$(printf '%s' "$BRANCH" | tr -c 'A-Za-z0-9._-' '-')
+          fi
+          echo "build_id=$name.$(date -u +%Y%m%d-%H%M)" >> "$GITHUB_OUTPUT"
 
   build:
 
@@ -77,7 +96,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        preset: ${{ fromJSON(contains(github.event.pull_request.labels.*.name, 'dev branch') && '["Regular", "Dev"]' || '["Regular"]') }}
+        preset: ${{ fromJSON((contains(github.event.pull_request.labels.*.name, 'dev branch') || inputs.dev) && '["Regular", "Dev"]' || '["Regular"]') }}
         target:
           - os: Windows
             arch: "64"
@@ -138,8 +157,9 @@ jobs:
           }
 
       # Local actions are loaded from the checked out pull request, which may
-      # be based on a commit without them. Check them out from the merge
-      # commit this workflow runs from instead, so that they always match it.
+      # be based on a commit without them. Check them out from the commit this
+      # workflow runs from instead (the merge commit for pull requests), so
+      # that they always match it.
       - name: Checkout actions
         if: matrix.target.os == 'macOS'
         uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -155,8 +175,8 @@ jobs:
           arch: ${{ matrix.target.arch }}
 
       # Only fixed strings and the build ID (made of the pull request number
-      # and a timestamp) end up in the build.sh arguments, as it evaluates its
-      # CMake flags with eval.
+      # or the sanitized branch name, and a timestamp) end up in the build.sh
+      # arguments, as it evaluates its CMake flags with eval.
       - name: Build
         id: build
         env:
