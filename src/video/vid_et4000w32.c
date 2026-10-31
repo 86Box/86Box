@@ -146,8 +146,10 @@ typedef struct et4000w32p_t {
 
 static int et4000w32_vbus[4] = { 1, 2, 4, 4 };
 
-static int et4000w32_max_x[8]  = { 0, 0, 4, 8, 0x10, 0x20, 0x40, 0x70000000 };
-static int et4000w32_wrap_x[8] = { 0, 0, 3, 7, 0x0f, 0x1f, 0x3f, ~0 };
+/* Horizontal wrap 0 is documented as reserved, but at least on the W32 it
+   works like 1. */
+static int et4000w32_max_x[8]  = { 1, 1, 4, 8, 0x10, 0x20, 0x40, 0x70000000 };
+static int et4000w32_wrap_x[8] = { 1, 1, 3, 7, 0x0f, 0x1f, 0x3f, ~0 };
 static int et4000w32_wrap_y[8] = { 1, 2, 4, 8, ~0, ~0, ~0, ~0 };
 
 static video_timings_t timing_et4000w32_vlb = { .type = VIDEO_BUS, .write_b = 4, .write_w = 4, .write_l = 4, .read_b = 10, .read_w = 10, .read_l = 10 };
