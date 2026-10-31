@@ -2010,7 +2010,6 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
         } else {
             addbyte(0xf6); /*TEST state->tex_a, 0x80*/
             addbyte(0x87);
-            addbyte(0x23);
             addlong(offsetof(voodoo_state_t, tex_a));
             addbyte(0x80);
             addbyte(0x74); /*JZ !cc_localselect*/
