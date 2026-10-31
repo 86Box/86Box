@@ -255,16 +255,112 @@ codegen_exit_arm(codeblock_t *block, int add, void *route)
     host_x86_JMP(block, route);
 }
 
+/*A lazy site's exit (codegen_lazy_site): its branches go to a stub after the
+  block that makes the site's stores, then leaves as the exit would.
+  Identical stubs are emitted once.*/
+#    define LAZY_STUB_PATCHES 2
+typedef struct lazy_stub_t {
+    uint32_t                  *patch[LAZY_STUB_PATCHES];
+    int                        nr_patches;
+    const codegen_lazy_list_t *list;
+    void                      *route;
+    int                        add;
+    void                      *addr;
+} lazy_stub_t;
+
+static lazy_stub_t lazy_stubs[CODEGEN_LAZY_SITES_MAX];
+static int         nr_lazy_stubs;
+
+static void
+codegen_lazy_exit(uop_t *uop, uint32_t *patch, void *route)
+{
+    lazy_stub_t *stub;
+
+    /*One exit per lazy uop, and no more lazy uops with stores than lists*/
+    if (nr_lazy_stubs == CODEGEN_LAZY_SITES_MAX)
+        fatal("codegen_lazy_exit - out of stubs\n");
+    stub             = &lazy_stubs[nr_lazy_stubs++];
+    stub->patch[0]   = patch;
+    stub->nr_patches = 1;
+    stub->list       = codegen_lazy_site;
+    stub->route      = route;
+    stub->add        = uop->imm_data2;
+}
+
+/*Another branch, its rel32 at patch, to the exit codegen_lazy_exit just
+  recorded*/
+static void
+codegen_lazy_exit_also(uint32_t *patch)
+{
+    lazy_stub_t *stub = &lazy_stubs[nr_lazy_stubs - 1];
+
+    if (stub->nr_patches == LAZY_STUB_PATCHES)
+        fatal("codegen_lazy_exit_also - too many branches\n");
+    stub->patch[stub->nr_patches++] = patch;
+}
+
+static int
+lazy_stubs_match(const lazy_stub_t *a, const lazy_stub_t *b)
+{
+    if ((a->route != b->route) || (a->add != b->add) || (a->list->nr != b->list->nr))
+        return 0;
+    for (int i = 0; i < a->list->nr; i++) {
+        const codegen_lazy_store_t *sa = &a->list->stores[i];
+        const codegen_lazy_store_t *sb = &b->list->stores[i];
+
+        if ((sa->ireg != sb->ireg) || (sa->host_reg != sb->host_reg) || (sa->imm != sb->imm))
+            return 0;
+    }
+    return 1;
+}
+
+void
+codegen_lazy_stubs_emit(codeblock_t *block)
+{
+    for (int i = 0; i < nr_lazy_stubs; i++) {
+        lazy_stub_t *stub = &lazy_stubs[i];
+        int          j;
+
+        for (j = 0; j < i; j++) {
+            if (lazy_stubs_match(stub, &lazy_stubs[j]))
+                break;
+        }
+        if (j < i)
+            stub->addr = lazy_stubs[j].addr;
+        else {
+            void *dest = codegen_exit_dest(stub->route, stub->add);
+
+            codegen_alloc(block, 16);
+            stub->addr = &block_write_data[block_pos];
+            codegen_reg_lazy_stores(block, stub->list);
+            if (dest)
+                host_x86_JMP(block, dest);
+            else {
+                codegen_alloc(block, EXIT_ARM_SIZE);
+                codegen_exit_arm(block, stub->add, stub->route);
+            }
+        }
+        for (j = 0; j < stub->nr_patches; j++)
+            *stub->patch[j] = (uintptr_t) stub->addr - ((uintptr_t) stub->patch[j] + 4);
+    }
+    nr_lazy_stubs = 0;
+}
+
 /*A conditional branch to route from branch (host_x86_JNZ_long and the like),
   charging what uop->imm_data2 adds on the way. Without an entry the branch
   with the opposite condition, inverse, jumps over the arm. Returns where the
-  exit starts, for another branch to the same exit.*/
+  exit starts, for another branch to the same exit, or NULL for a lazy site's
+  exit, which takes the other branch with codegen_lazy_exit_also.*/
 static void *
 codegen_exit_Jcc(codeblock_t *block, uop_t *uop, void *route, uint32_t *(*branch)(codeblock_t *block), uint32_t *(*inverse)(codeblock_t *block))
 {
     void     *dest = codegen_exit_dest(route, uop->imm_data2);
     uint32_t *jump_p;
 
+    if (codegen_lazy_site && codegen_lazy_site->nr) {
+        codegen_lazy_exit(uop, branch(block), route);
+        return NULL;
+    }
     if (dest) {
         jump_p  = branch(block);
         *jump_p = (uintptr_t) dest - ((uintptr_t) jump_p + 4);
@@ -535,8 +631,11 @@ codegen_CMP_JNWITHIN(codeblock_t *block, uop_t *uop)
             host_x86_CMP32_REG_REG(block, src_reg, hi_reg);
         /*Both branches leave through one exit, the second one's arm when it
           has one*/
-        exit_p  = codegen_exit_Jcc(block, uop, uop->p, host_x86_JNBE_long, host_x86_JBE_long);
-        *jump_p = (uintptr_t) exit_p - ((uintptr_t) jump_p + 4);
+        exit_p = codegen_exit_Jcc(block, uop, uop->p, host_x86_JNBE_long, host_x86_JBE_long);
+        if (exit_p)
+            *jump_p = (uintptr_t) exit_p - ((uintptr_t) jump_p + 4);
+        else
+            codegen_lazy_exit_also(jump_p);
     }
 #    ifdef RECOMPILER_DEBUG
     else

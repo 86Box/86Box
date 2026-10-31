@@ -43,6 +43,13 @@
    flat or wide 32-bit stack with the carry of its end. A backend without
    them makes those tests with an add and a compare (CHECK_STACK_LIMITS). */
 #define CODEGEN_BACKEND_HAS_STACK_LIMIT_UOPS
+/* The accesses and checks whose only way out of the block is a fault
+   (codegen_uop_is_lazy) leave the dirty integer registers and the pending
+   immediates in place and store them on that way out only, in a stub after
+   the block (codegen_lazy_stubs_emit). A backend without it writes them
+   back before each of those uops. */
+#define CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+void codegen_lazy_stubs_emit(codeblock_t *block);
 
 /* Blocks jump straight to their successor when nothing between them needs
    the C loop (codegen_link.h). The option below adds work to every loop

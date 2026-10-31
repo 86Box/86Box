@@ -1862,6 +1862,7 @@ codegen_backend_epilogue(codeblock_t *block)
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
     if (codegen_block_link) {
         codegen_link_exit(block);
+        codegen_lazy_stubs_emit(block);
         return;
     }
 #    endif
@@ -1885,5 +1886,6 @@ codegen_backend_epilogue(codeblock_t *block)
     host_x86_POP(block, REG_RBP);
     host_x86_POP(block, REG_RBX);
     host_x86_RET(block);
+    codegen_lazy_stubs_emit(block);
 }
 #endif

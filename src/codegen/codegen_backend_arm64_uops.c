@@ -229,6 +229,81 @@ codegen_exit_arm(codeblock_t *block, int add, void *route)
     host_arm64_jump(block, (uintptr_t) route);
 }
 
+/*A lazy site's exit (codegen_lazy_site): the branch goes to a stub after the
+  block that makes the site's stores, then leaves as the exit would.
+  Identical stubs are emitted once.*/
+typedef struct lazy_stub_t {
+    uint32_t                  *patch;
+    const codegen_lazy_list_t *list;
+    void                      *route;
+    int                        add;
+    void                      *addr;
+} lazy_stub_t;
+
+static lazy_stub_t lazy_stubs[CODEGEN_LAZY_SITES_MAX];
+static int         nr_lazy_stubs;
+
+static void
+codegen_lazy_exit(uop_t *uop, uint32_t *patch, void *route)
+{
+    lazy_stub_t *stub;
+
+    /*One exit per lazy uop, and no more lazy uops with stores than lists*/
+    if (nr_lazy_stubs == CODEGEN_LAZY_SITES_MAX)
+        fatal("codegen_lazy_exit - out of stubs\n");
+    stub        = &lazy_stubs[nr_lazy_stubs++];
+    stub->patch = patch;
+    stub->list  = codegen_lazy_site;
+    stub->route = route;
+    stub->add   = uop->imm_data2;
+}
+
+static int
+lazy_stubs_match(const lazy_stub_t *a, const lazy_stub_t *b)
+{
+    if ((a->route != b->route) || (a->add != b->add) || (a->list->nr != b->list->nr))
+        return 0;
+    for (int i = 0; i < a->list->nr; i++) {
+        const codegen_lazy_store_t *sa = &a->list->stores[i];
+        const codegen_lazy_store_t *sb = &b->list->stores[i];
+
+        if ((sa->ireg != sb->ireg) || (sa->host_reg != sb->host_reg) || (sa->imm != sb->imm))
+            return 0;
+    }
+    return 1;
+}
+
+void
+codegen_lazy_stubs_emit(codeblock_t *block)
+{
+    for (int i = 0; i < nr_lazy_stubs; i++) {
+        lazy_stub_t *stub = &lazy_stubs[i];
+        int          j;
+
+        for (j = 0; j < i; j++) {
+            if (lazy_stubs_match(stub, &lazy_stubs[j]))
+                break;
+        }
+        if (j < i)
+            stub->addr = lazy_stubs[j].addr;
+        else {
+            void *dest = codegen_exit_dest(stub->route, stub->add);
+
+            codegen_alloc(block, 4);
+            stub->addr = &block_write_data[block_pos];
+            codegen_reg_lazy_stores(block, stub->list);
+            if (dest)
+                host_arm64_jump(block, (uintptr_t) dest);
+            else {
+                codegen_alloc(block, EXIT_ARM_SIZE);
+                codegen_exit_arm(block, stub->add, stub->route);
+            }
+        }
+        host_arm64_branch_set_offset(stub->patch, stub->addr);
+    }
+    nr_lazy_stubs = 0;
+}
+
 /*CBNZ reg to route, charging what uop->imm_data2 adds on the way*/
 static void
 codegen_exit_CBNZ(codeblock_t *block, uop_t *uop, int reg, void *route)
@@ -236,6 +311,10 @@ codegen_exit_CBNZ(codeblock_t *block, uop_t *uop, int reg, void *route)
     void     *dest = codegen_exit_dest(route, uop->imm_data2);
     uint32_t *skip;
 
+    if (codegen_lazy_site && codegen_lazy_site->nr) {
+        codegen_lazy_exit(uop, host_arm64_CBNZ_(block, reg), route);
+        return;
+    }
     if (dest) {
         host_arm64_CBNZ(block, reg, (uintptr_t) dest);
         return;
@@ -253,6 +332,10 @@ codegen_exit_BEQ(codeblock_t *block, uop_t *uop)
     void     *dest = codegen_exit_dest(uop->p, uop->imm_data2);
     uint32_t *skip;
 
+    if (codegen_lazy_site && codegen_lazy_site->nr) {
+        codegen_lazy_exit(uop, host_arm64_BEQ_(block), uop->p);
+        return;
+    }
     if (dest) {
         host_arm64_BEQ(block, dest);
         return;
@@ -275,6 +358,10 @@ codegen_exit_Bcond(codeblock_t *block, uop_t *uop, uint32_t *(*branch)(codeblock
     uint32_t *skip;
     void     *arm;
 
+    if (codegen_lazy_site && codegen_lazy_site->nr) {
+        codegen_lazy_exit(uop, branch(block), uop->p);
+        return;
+    }
     if (dest) {
         jump_p = branch(block);
         host_arm64_branch_set_offset(jump_p, dest);
@@ -469,7 +556,7 @@ codegen_exit_BCS(codeblock_t *block, uop_t *uop)
 {
     void *dest = codegen_exit_dest(uop->p, uop->imm_data2);
 
-    if (dest && host_arm64_BCS_near(block, dest))
+    if (!(codegen_lazy_site && codegen_lazy_site->nr) && dest && host_arm64_BCS_near(block, dest))
         return;
     codegen_exit_Bcond(block, uop, host_arm64_BCS_);
 }

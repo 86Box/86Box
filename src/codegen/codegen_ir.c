@@ -75,6 +75,43 @@ duplicate_uop(ir_data_t *ir, uop_t *uop, int offset)
     }
 }
 
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+/*An order barrier whose C, if any, reads none of the guest's state on the
+  way on, and whose only branch leaves the block for a fault: an access, or
+  a check that branches to a fault route. Everything else that orders (the
+  ordered calls, the REP routine, the SMI and x87 exits, the jumps whose
+  join expects memory current) keeps the full flush.*/
+static int
+codegen_uop_is_lazy(const uop_t *uop)
+{
+    switch (uop->type & UOP_MASK) {
+        case UOP_MEM_LOAD_ABS & UOP_MASK:
+        case UOP_MEM_LOAD_REG & UOP_MASK:
+        case UOP_MEM_LOAD_REG_EA & UOP_MASK:
+        case UOP_MEM_LOAD_SINGLE & UOP_MASK:
+        case UOP_MEM_LOAD_DOUBLE & UOP_MASK:
+        case UOP_MEM_STORE_ABS & UOP_MASK:
+        case UOP_MEM_STORE_REG & UOP_MASK:
+        case UOP_MEM_STORE_IMM_8 & UOP_MASK:
+        case UOP_MEM_STORE_IMM_16 & UOP_MASK:
+        case UOP_MEM_STORE_IMM_32 & UOP_MASK:
+        case UOP_MEM_STORE_SINGLE & UOP_MASK:
+        case UOP_MEM_STORE_DOUBLE & UOP_MASK:
+            return 1;
+
+        case UOP_CMP_JNWITHIN & UOP_MASK:
+        case UOP_CMP_IMM_JZ & UOP_MASK:
+        case UOP_CMP_JB & UOP_MASK:
+        case UOP_CMP_JNBE & UOP_MASK:
+        case UOP_CMN_IMM_JC & UOP_MASK:
+            return (uop->p == codegen_gpf_rout) || (uop->p == codegen_ss_rout) || (uop->p == codegen_exit_rout);
+
+        default:
+            return 0;
+    }
+}
+#endif
+
 void
 codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
 {
@@ -115,6 +152,12 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
 
         if (uop->type & UOP_TYPE_BARRIER)
             codegen_reg_flush_invalidate(ir, block);
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+        /*The jumps left memory current: what the path that falls through
+          holds back since then is stored on that path, before the join*/
+        else if (uop->type & UOP_TYPE_JUMP_DEST)
+            codegen_reg_flush(ir, block);
+#endif
 
         if (uop->type & UOP_TYPE_JUMP_DEST) {
             uop_t *uop_dest = uop;
@@ -132,7 +175,11 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
         if ((uop->type & UOP_MASK) == (UOP_MOV_IMM & UOP_MASK) && reg_is_native_size(uop->dest_reg_a) && !codegen_reg_is_loaded(uop->dest_reg_a) && reg_version[IREG_GET_REG(uop->dest_reg_a.reg)][uop->dest_reg_a.version].refcount <= 0) {
             /*Special case for UOP_MOV_IMM - if destination not already in host register
               and won't be used again then just store directly to memory*/
+#    ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+            codegen_reg_defer_imm(block, uop->dest_reg_a, uop->imm_data);
+#    else
             codegen_reg_write_imm(block, uop->dest_reg_a, uop->imm_data);
+#    endif
         } else
 #endif
             if ((uop->type & UOP_MASK) == (UOP_MOV & UOP_MASK) && reg_version[IREG_GET_REG(uop->src_reg_a.reg)][uop->src_reg_a.version].refcount <= 1 && reg_is_native_size(uop->src_reg_a) && reg_is_native_size(uop->dest_reg_a) && (ireg_is_byte_accessed(IREG_GET_REG(uop->src_reg_a.reg)) || !ireg_is_byte_accessed(IREG_GET_REG(uop->dest_reg_a.reg)))) {
@@ -158,8 +205,14 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
                 }
             }
 
-            if (uop->type & UOP_TYPE_ORDER_BARRIER)
-                codegen_reg_flush(ir, block);
+            if (uop->type & UOP_TYPE_ORDER_BARRIER) {
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+                if (codegen_uop_is_lazy(uop))
+                    codegen_reg_flush_lazy(ir, block);
+                else
+#endif
+                    codegen_reg_flush(ir, block);
+            }
 
             if (uop->type & UOP_TYPE_PARAMS_REGS) {
                 if (uop->dest_reg_a.reg != IREG_INVALID) {
@@ -171,6 +224,9 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
                 fatal("!uop_handlers[uop->type & UOP_MASK] %08x\n", uop->type);
 #endif
             uop_handlers[uop->type & UOP_MASK](block, uop);
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+            codegen_lazy_site = NULL;
+#endif
             if (uop->type & UOP_TYPE_ORDER_BARRIER)
                 codegen_reg_drop_cycles();
         }

@@ -471,6 +471,43 @@ int  codegen_reg_is_loaded(ir_reg_t ir_reg);
 void codegen_reg_write_imm(codeblock_t *block, ir_reg_t ir_reg, uint32_t imm_data);
 #endif
 
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+/*At most this many immediates wait for their store at once; one more stores
+  the oldest*/
+#    define CODEGEN_LAZY_PENDING_MAX 8
+#    define CODEGEN_LAZY_STORES_MAX  (CODEGEN_HOST_REGS + CODEGEN_LAZY_PENDING_MAX)
+/*Lazy sites a block may have; past them a site writes back as before*/
+#    define CODEGEN_LAZY_SITES_MAX 256
+/*host_reg for an immediate store*/
+#    define CODEGEN_LAZY_IMM 0xff
+
+typedef struct codegen_lazy_store_t {
+    uint32_t imm;
+    uint8_t  ireg;
+    uint8_t  host_reg;
+} codegen_lazy_store_t;
+
+/*The stores a fault at a lazy site makes before it leaves, in order:
+  the pending immediates, then the dirty registers*/
+typedef struct codegen_lazy_list_t {
+    int                  nr;
+    codegen_lazy_store_t stores[CODEGEN_LAZY_STORES_MAX];
+} codegen_lazy_list_t;
+
+/*The list of the lazy uop being compiled, NULL when it has no stores (its
+  exit is then emitted as for any other uop)*/
+extern codegen_lazy_list_t *codegen_lazy_site;
+
+/*Hold an immediate for a register not in a host register, in place of
+  storing it now*/
+void codegen_reg_defer_imm(codeblock_t *block, ir_reg_t ir_reg, uint32_t imm_data);
+/*codegen_reg_flush for a lazy uop: the integer registers that a fault stub
+  can store stay dirty, and go on its list with the pending immediates*/
+void codegen_reg_flush_lazy(struct ir_data_t *ir, codeblock_t *block);
+/*Emit the stores of list*/
+void codegen_reg_lazy_stores(codeblock_t *block, const codegen_lazy_list_t *list);
+#endif
+
 ir_host_reg_t codegen_reg_alloc_read_reg(codeblock_t *block, ir_reg_t ir_reg, int *host_reg_idx);
 ir_host_reg_t codegen_reg_alloc_write_reg(codeblock_t *block, ir_reg_t ir_reg);
 

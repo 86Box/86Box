@@ -1774,6 +1774,7 @@ codegen_backend_epilogue(codeblock_t *block)
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
     if (codegen_block_link) {
         codegen_link_exit(block);
+        codegen_lazy_stubs_emit(block);
         codegen_allocator_clean_blocks(block->head_mem_block);
         return;
     }
@@ -1786,6 +1787,7 @@ codegen_backend_epilogue(codeblock_t *block)
     host_arm64_LDP_POSTIDX_X(block, REG_X29, REG_X30, REG_XSP, 16);
     host_arm64_RET(block, REG_X30);
 
+    codegen_lazy_stubs_emit(block);
     codegen_allocator_clean_blocks(block->head_mem_block);
 }
 

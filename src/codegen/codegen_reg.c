@@ -36,6 +36,21 @@ static host_reg_set_t host_fp_reg_set;
 
 uint64_t dirty_ir_regs[2] = { 0, 0 };
 
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+/*Immediates not stored yet, oldest first. Each is stored before anything
+  loads or stores memory it overlaps, and at every full flush, so cpu_state
+  takes the stores in the order it does without them*/
+static struct {
+    uint32_t imm;
+    uint8_t  ireg;
+} lazy_pending[CODEGEN_LAZY_PENDING_MAX];
+static int nr_lazy_pending;
+
+static codegen_lazy_list_t lazy_lists[CODEGEN_LAZY_SITES_MAX];
+static int                 nr_lazy_lists;
+codegen_lazy_list_t       *codegen_lazy_site;
+#endif
+
 enum {
     REG_BYTE,
     REG_WORD,
@@ -334,6 +349,12 @@ codegen_reg_reset(void)
 
     reg_dead_list        = 0;
     max_version_refcount = 0;
+
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    nr_lazy_pending   = 0;
+    nr_lazy_lists     = 0;
+    codegen_lazy_site = NULL;
+#endif
 }
 
 static inline int
@@ -351,9 +372,18 @@ get_reg_set(ir_reg_t ir_reg)
         return &host_fp_reg_set;
 }
 
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+static void lazy_pending_store_overlapping(codeblock_t *block, int ireg);
+static void lazy_pending_store_all(codeblock_t *block);
+static void lazy_pending_drop(int ireg);
+#endif
+
 static void
 codegen_reg_load(host_reg_set_t *reg_set, codeblock_t *block, int c, ir_reg_t ir_reg)
 {
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    lazy_pending_store_overlapping(block, IREG_GET_REG(ir_reg.reg));
+#endif
     switch (ireg_data[IREG_GET_REG(ir_reg.reg)].native_size) {
         case REG_WORD:
 #ifndef RELEASE_BUILD
@@ -459,6 +489,25 @@ codegen_reg_writeback(host_reg_set_t *reg_set, codeblock_t *block, int c, int in
     if (!reg_version[ir_reg][reg_set->regs[c].version].refcount && ireg_data[ir_reg].is_volatile)
         return;
 
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    lazy_pending_store_overlapping(block, ir_reg);
+    /*The lazy uop's dest allocation evicting a register on its list: it is
+      in memory now, and its host register may be loaded with another before
+      the uop's exit branch*/
+    if (codegen_lazy_site && (reg_set == &host_reg_set)) {
+        codegen_lazy_list_t *list = codegen_lazy_site;
+        int                  i    = 0;
+
+        while (i < list->nr) {
+            if (list->stores[i].host_reg == reg_set->reg_list[c].reg) {
+                list->nr--;
+                for (int j = i; j < list->nr; j++)
+                    list->stores[j] = list->stores[j + 1];
+            } else
+                i++;
+        }
+    }
+#endif
     switch (ireg_data[ir_reg].native_size) {
         case REG_BYTE:
 #ifndef RELEASE_BUILD
@@ -604,6 +653,152 @@ codegen_reg_write_imm(codeblock_t *block, ir_reg_t ir_reg, uint32_t imm_data)
         case REG_FPU_ST_DOUBLE:
         default:
             fatal("codegen_reg_write_imm - native_size=%i\n", ireg_data[reg_idx].native_size);
+    }
+}
+#endif
+
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+static int
+ireg_mem_size(int ireg)
+{
+    switch (ireg_data[ireg].native_size) {
+        case REG_BYTE:
+            return 1;
+        case REG_WORD:
+            return 2;
+        case REG_DWORD:
+            return 4;
+        case REG_POINTER:
+            return sizeof(void *);
+        case REG_FPU_ST_BYTE:
+            return 8;
+        case REG_FPU_ST_QWORD:
+        case REG_FPU_ST_DOUBLE:
+            return 64;
+        default:
+            return 8;
+    }
+}
+
+static int
+ireg_mem_overlaps(int ireg_a, int ireg_b)
+{
+    uintptr_t a = (uintptr_t) ireg_data[ireg_a].p;
+    uintptr_t b = (uintptr_t) ireg_data[ireg_b].p;
+
+    if (a < 256 || b < 256)
+        return 0;
+    return (a < (b + ireg_mem_size(ireg_b))) && (b < (a + ireg_mem_size(ireg_a)));
+}
+
+static void
+lazy_pending_remove(int i)
+{
+    nr_lazy_pending--;
+    for (; i < nr_lazy_pending; i++)
+        lazy_pending[i] = lazy_pending[i + 1];
+}
+
+static void
+lazy_pending_store(codeblock_t *block, int i)
+{
+    ir_reg_t ir_reg;
+
+    ir_reg.reg     = lazy_pending[i].ireg;
+    ir_reg.version = 0;
+    codegen_reg_write_imm(block, ir_reg, lazy_pending[i].imm);
+    lazy_pending_remove(i);
+}
+
+static void
+lazy_pending_store_all(codeblock_t *block)
+{
+    while (nr_lazy_pending)
+        lazy_pending_store(block, 0);
+}
+
+/*Store the pending immediates whose memory overlaps ireg's, before ireg is
+  loaded from or stored to it*/
+static void
+lazy_pending_store_overlapping(codeblock_t *block, int ireg)
+{
+    int i = 0;
+
+    while (i < nr_lazy_pending) {
+        if (ireg_mem_overlaps(lazy_pending[i].ireg, ireg))
+            lazy_pending_store(block, i);
+        else
+            i++;
+    }
+}
+
+/*ireg gets a whole new value in a host register, which supersedes its
+  pending immediate*/
+static void
+lazy_pending_drop(int ireg)
+{
+    for (int i = 0; i < nr_lazy_pending; i++) {
+        if (lazy_pending[i].ireg == ireg) {
+            lazy_pending_remove(i);
+            return;
+        }
+    }
+}
+
+void
+codegen_reg_defer_imm(codeblock_t *block, ir_reg_t ir_reg, uint32_t imm_data)
+{
+    int ireg = IREG_GET_REG(ir_reg.reg);
+
+    if (ireg_data[ireg].is_volatile || ((uintptr_t) ireg_data[ireg].p < 256)) {
+        codegen_reg_write_imm(block, ir_reg, imm_data);
+        return;
+    }
+    lazy_pending_drop(ireg);
+    if (nr_lazy_pending == CODEGEN_LAZY_PENDING_MAX)
+        lazy_pending_store(block, 0);
+    lazy_pending[nr_lazy_pending].ireg = ireg;
+    lazy_pending[nr_lazy_pending].imm  = imm_data;
+    nr_lazy_pending++;
+}
+
+static void
+lazy_store_host(codeblock_t *block, int ireg, int host_reg)
+{
+    void *p = ireg_data[ireg].p;
+
+    switch (ireg_data[ireg].native_size) {
+        case REG_BYTE:
+            codegen_direct_write_8(block, p, host_reg);
+            break;
+        case REG_WORD:
+            codegen_direct_write_16(block, p, host_reg);
+            break;
+        case REG_DWORD:
+            codegen_direct_write_32(block, p, host_reg);
+            break;
+        case REG_POINTER:
+            codegen_direct_write_ptr(block, p, host_reg);
+            break;
+        default:
+            fatal("lazy_store_host - native_size=%i\n", ireg_data[ireg].native_size);
+    }
+}
+
+void
+codegen_reg_lazy_stores(codeblock_t *block, const codegen_lazy_list_t *list)
+{
+    for (int i = 0; i < list->nr; i++) {
+        const codegen_lazy_store_t *store = &list->stores[i];
+
+        if (store->host_reg == CODEGEN_LAZY_IMM) {
+            ir_reg_t ir_reg;
+
+            ir_reg.reg     = store->ireg;
+            ir_reg.version = 0;
+            codegen_reg_write_imm(block, ir_reg, store->imm);
+        } else
+            lazy_store_host(block, store->ireg, store->host_reg);
     }
 }
 #endif
@@ -811,6 +1006,9 @@ codegen_reg_alloc_write_reg(codeblock_t *block, ir_reg_t ir_reg)
         }
     }
 
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    lazy_pending_drop(IREG_GET_REG(ir_reg.reg));
+#endif
     reg_set->regs[c].reg     = ir_reg.reg;
     reg_set->regs[c].version = ir_reg.version;
     reg_set->dirty[c]        = 1;
@@ -862,6 +1060,9 @@ codegen_reg_rename(codeblock_t *block, ir_reg_t src, ir_reg_t dst)
     target = c;
     if (reg_set->dirty[target])
         codegen_reg_writeback(reg_set, block, target, 0);
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    lazy_pending_drop(IREG_GET_REG(dst.reg));
+#endif
     reg_set->regs[target]  = dst;
     reg_set->dirty[target] = 1;
 #if 0
@@ -900,6 +1101,9 @@ codegen_reg_flush(UNUSED(ir_data_t *ir), codeblock_t *block)
     host_reg_set_t *reg_set;
     int             c;
 
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    lazy_pending_store_all(block);
+#endif
     reg_set = &host_reg_set;
     for (c = 0; c < reg_set->nr_regs; c++) {
         if (!ir_reg_is_invalid(reg_set->regs[c]) && reg_set->dirty[c]) {
@@ -927,12 +1131,98 @@ codegen_reg_flush(UNUSED(ir_data_t *ir), codeblock_t *block)
     }
 }
 
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+/*A register of the guest's state that a stub can store from the host
+  register it is in: no C reached from a lazy uop on its way on reads one,
+  and the uop leaves its host register alone until its exit branch*/
+static int
+lazy_can_defer(const host_reg_set_t *reg_set, int c)
+{
+    int ireg = IREG_GET_REG(reg_set->regs[c].reg);
+
+    if ((reg_set->reg_list[c].flags & HOST_REG_FLAG_VOLATILE) || (ireg == IREG_cycles) || ireg_data[ireg].is_volatile)
+        return 0;
+    switch (ireg_data[ireg].native_size) {
+        case REG_BYTE:
+        case REG_WORD:
+        case REG_DWORD:
+        case REG_POINTER:
+            return (uintptr_t) ireg_data[ireg].p >= 256;
+        default:
+            return 0;
+    }
+}
+
+void
+codegen_reg_flush_lazy(ir_data_t *ir, codeblock_t *block)
+{
+    host_reg_set_t      *reg_set;
+    codegen_lazy_list_t *list;
+    int                  c;
+
+    codegen_lazy_site = NULL;
+    if (nr_lazy_lists == CODEGEN_LAZY_SITES_MAX) {
+        codegen_reg_flush(ir, block);
+        return;
+    }
+
+    /*What is not deferred goes first, as codegen_reg_flush does it, so the
+      pending immediates it stores are off the list*/
+    reg_set = &host_reg_set;
+    for (c = 0; c < reg_set->nr_regs; c++) {
+        if (!ir_reg_is_invalid(reg_set->regs[c]) && reg_set->dirty[c] && !lazy_can_defer(reg_set, c))
+            codegen_reg_writeback(reg_set, block, c, 0);
+        if ((reg_set->reg_list[c].flags & HOST_REG_FLAG_VOLATILE) ||
+            (!ir_reg_is_invalid(reg_set->regs[c]) && (IREG_GET_REG(reg_set->regs[c].reg) == IREG_cycles))) {
+            reg_set->regs[c]  = invalid_ir_reg;
+            reg_set->dirty[c] = 0;
+        }
+    }
+
+    reg_set = &host_fp_reg_set;
+    for (c = 0; c < reg_set->nr_regs; c++) {
+        if (!ir_reg_is_invalid(reg_set->regs[c]) && reg_set->dirty[c]) {
+            codegen_reg_writeback(reg_set, block, c, 0);
+        }
+        if (reg_set->reg_list[c].flags & HOST_REG_FLAG_VOLATILE) {
+            reg_set->regs[c]  = invalid_ir_reg;
+            reg_set->dirty[c] = 0;
+        }
+    }
+
+    list     = &lazy_lists[nr_lazy_lists];
+    list->nr = 0;
+    for (c = 0; c < nr_lazy_pending; c++) {
+        list->stores[list->nr].ireg     = lazy_pending[c].ireg;
+        list->stores[list->nr].host_reg = CODEGEN_LAZY_IMM;
+        list->stores[list->nr].imm      = lazy_pending[c].imm;
+        list->nr++;
+    }
+    reg_set = &host_reg_set;
+    for (c = 0; c < reg_set->nr_regs; c++) {
+        if (!ir_reg_is_invalid(reg_set->regs[c]) && reg_set->dirty[c] && lazy_can_defer(reg_set, c)) {
+            list->stores[list->nr].ireg     = IREG_GET_REG(reg_set->regs[c].reg);
+            list->stores[list->nr].host_reg = reg_set->reg_list[c].reg;
+            list->stores[list->nr].imm      = 0;
+            list->nr++;
+        }
+    }
+    if (list->nr) {
+        nr_lazy_lists++;
+        codegen_lazy_site = list;
+    }
+}
+#endif
+
 void
 codegen_reg_flush_invalidate(UNUSED(ir_data_t *ir), codeblock_t *block)
 {
     host_reg_set_t *reg_set;
     int             c;
 
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    lazy_pending_store_all(block);
+#endif
     reg_set = &host_reg_set;
     for (c = 0; c < reg_set->nr_regs; c++) {
         if (!ir_reg_is_invalid(reg_set->regs[c]) && reg_set->dirty[c]) {

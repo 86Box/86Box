@@ -666,6 +666,15 @@ host_arm64_BVS_(codeblock_t *block)
     codegen_addlong(block, OPCODE_B);
     return (uint32_t *) &block_write_data[block_pos - 4];
 }
+/*CBNZ Xreg in the same template: a CBZ over the B*/
+uint32_t *
+host_arm64_CBNZ_(codeblock_t *block, int reg)
+{
+    codegen_alloc(block, 12);
+    codegen_addlong(block, OPCODE_CBZ | OFFSET19(8) | Rt(reg));
+    codegen_addlong(block, OPCODE_B);
+    return (uint32_t *) &block_write_data[block_pos - 4];
+}
 
 void
 host_arm64_branch_set_offset(uint32_t *opcode, void *dest)
@@ -721,6 +730,22 @@ host_arm64_branch_set_offset(uint32_t *opcode, void *dest)
             int      offset14 = (int) ((uintptr_t) dest - (uintptr_t) cond_opcode);
 
             *cond_opcode = (flipped & ~0x0007ffe0u) | OFFSET14(offset14);
+            *opcode      = OPCODE_NOP;
+            return;
+        }
+    }
+
+    /* And to the CBZ/CBNZ skip+branch form of host_arm64_CBNZ_(). */
+    if (((branch_insn & 0xfc000000u) == OPCODE_B) &&
+        ((cond_insn & 0xfe000000u) == OPCODE_CBZ) &&
+        (bcond_offset_bytes(cond_insn) == 8)) {
+        uint8_t *cond_src = (uint8_t *) cond_opcode;
+
+        if (codegen_allocator_can_branch_imm19(cond_src, dest)) {
+            uint32_t flipped  = cond_insn ^ (1u << 24);
+            int      offset19 = (int) ((uintptr_t) dest - (uintptr_t) cond_opcode);
+
+            *cond_opcode = (flipped & ~0x00ffffe0u) | OFFSET19(offset19);
             *opcode      = OPCODE_NOP;
             return;
         }
