@@ -3412,7 +3412,7 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
 
             while (count && virge->s3d.h) {
                 uint32_t dest_addr = virge->s3d.dest_base + (virge->s3d.dest_x * x_mul) + (virge->s3d.dest_y * virge->s3d.dest_str);
-                uint32_t source    = 0;
+                uint32_t source    = virge->s3d.pat_fg_clr;
                 uint32_t dest      = 0;
                 uint32_t pattern   = virge->s3d.pat_fg_clr;
                 uint32_t out       = 0;
@@ -3497,7 +3497,7 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
 
                     if (update) {
                         READ(dest_addr, dest);
-                        pattern = virge->s3d.pat_fg_clr;
+                        source = pattern = virge->s3d.pat_fg_clr;
 
                         MIX();
 
@@ -3543,7 +3543,7 @@ skip_line:
 
                     if (update) {
                         READ(dest_addr, dest);
-                        pattern = pattern_data[(y & 7) * 8 + (x & 7)];
+                        source = pattern = pattern_data[(y & 7) * 8 + (x & 7)];
 
                         MIX();
 
