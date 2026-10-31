@@ -238,16 +238,35 @@ typedef struct mach64_3d_row_t {
 #define MACH64_RP_AGP_PAGES 64
 
 typedef struct mach64_3d_rows_job_t mach64_3d_rows_job_t;
+typedef struct mach64_rp_tri_t      mach64_rp_tri_t;
+
+/* The AGP pages a triangle's texels have come from, direct mapped by page
+   number: the page's bus address with bit 0 set, and where it is in host
+   memory, NULL for a page read through the handlers. The guest runs only
+   between triangles, so they hold for one. Each drawing thread has its
+   own. */
+typedef struct mach64_rp_agp_cache_t {
+    uint32_t       tag[MACH64_RP_AGP_PAGES];
+    const uint8_t *ptr[MACH64_RP_AGP_PAGES];
+} mach64_rp_agp_cache_t;
+
+/* A row of a Rage Pro triangle: its pixels first to last, inclusive. */
+typedef struct mach64_rp_span_t {
+    int y;
+    int first;
+    int last;
+} mach64_rp_span_t;
 
 /* A helper thread, drawing every threads-th row from its index on. */
 typedef struct mach64_3d_helper_t {
-    struct mach64_3d_t *ctx;
-    int                 index;
-    thread_t           *thread;
-    event_t            *go;
-    atomic_int          sleeping;
-    unsigned            seen; /* the last batch it took, from its making on */
-    mach64_3d_dither_t  dither;
+    struct mach64_3d_t   *ctx;
+    int                   index;
+    thread_t             *thread;
+    event_t              *go;
+    atomic_int            sleeping;
+    unsigned              seen; /* the last batch it took, from its making on */
+    mach64_3d_dither_t    dither;
+    mach64_rp_agp_cache_t agp;
 } mach64_3d_helper_t;
 
 struct mach64_3d_t {
@@ -282,6 +301,7 @@ struct mach64_3d_t {
     int                         helpers_quit;
     mach64_3d_helper_t          helpers[MACH64_3D_THREADS - 1];
     const mach64_3d_rows_job_t *job;
+    const mach64_rp_tri_t      *rp_job; /* a Rage Pro triangle's spans instead */
     int                         job_threads;
     atomic_uint                 job_gen;
     atomic_int                  job_left;
@@ -299,13 +319,15 @@ struct mach64_3d_t {
     int      palette_indexed;
     uint32_t palette_index;
 
-    /* The AGP pages a triangle's texels have come from, direct mapped by
-       page number: the page's bus address with bit 0 set, and where it is
-       in host memory, NULL for a page read through the handlers. The
-       guest runs only between triangles, so they hold for one. */
-    uint32_t       agp_tag[MACH64_RP_AGP_PAGES];
-    const uint8_t *agp_ptr[MACH64_RP_AGP_PAGES];
+    /* The emulation thread's AGP pages, and the rows of a triangle found
+       and not yet drawn. */
+    mach64_rp_agp_cache_t agp;
+    mach64_rp_span_t      rp_spans[MACH64_3D_ROWS];
+    int                   rp_nspans;
 };
+
+static void mach64_rp_draw_spans(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, int first, int step, mach64_3d_dither_t *dither,
+                                 mach64_rp_agp_cache_t *agp);
 
 static int
 mach64_3d_clamp8(int v)
@@ -514,9 +536,18 @@ mach64_3d_vram_write(mach64_t *mach64, uint32_t addr, uint32_t val, int bpp)
 {
     uint32_t mask = mach64->vram_mask;
     uint8_t *vram = mach64->svga.vram;
+    uint32_t a    = addr & mask;
 
-    for (int i = 0; i < bpp; i++)
-        vram[(addr + i) & mask] = val >> (i * 8);
+    if ((bpp == 2) && (a < mask)) {
+        uint16_t v = val;
+
+        memcpy(&vram[a], &v, 2); /* little endian, as the loop stores it */
+    } else if ((bpp == 4) && (a < (mask - 2)))
+        memcpy(&vram[a], &val, 4);
+    else {
+        for (int i = 0; i < bpp; i++)
+            vram[(addr + i) & mask] = val >> (i * 8);
+    }
     mach64_3d_vram_changed(mach64, addr, bpp);
 }
 
@@ -2262,8 +2293,12 @@ mach64_3d_helper_thread(void *param)
         seen = atomic_load(&ctx->job_gen);
         if (ctx->helpers_quit)
             break;
-        for (int i = helper->index; i < ctx->job->nrows; i += ctx->job_threads)
-            mach64_3d_draw_row(ctx, ctx->job, &ctx->rows[i], &helper->dither);
+        if (ctx->rp_job)
+            mach64_rp_draw_spans(ctx, ctx->rp_job, helper->index, ctx->job_threads, &helper->dither, &helper->agp);
+        else {
+            for (int i = helper->index; i < ctx->job->nrows; i += ctx->job_threads)
+                mach64_3d_draw_row(ctx, ctx->job, &ctx->rows[i], &helper->dither);
+        }
         atomic_fetch_sub(&ctx->job_left, 1);
     }
 }
@@ -2333,6 +2368,7 @@ mach64_3d_draw_rows(mach64_3d_t *ctx, const mach64_3d_rows_job_t *job, uint32_t 
     if (!ctx->helpers_made)
         mach64_3d_helpers_make(ctx);
     ctx->job         = job;
+    ctx->rp_job      = NULL;
     ctx->job_threads = threads;
     for (int i = 0; i < (threads - 1); i++)
         ctx->helpers[i].dither = ctx->dither;
@@ -3638,6 +3674,7 @@ typedef struct mach64_rp_texture_t {
     int             bilinear_mag;
     int             blend_fcn; /* TEX_BLEND_FCN, or the composite's 2 or 0 */
     double          lod_bias;  /* log2 of the threshold stride */
+    int             lod_used;  /* there are levels, or the filters differ */
 } mach64_rp_texture_t;
 
 static void
@@ -3723,6 +3760,7 @@ mach64_rp_texture_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
     tx->bilinear_mag = !!(cntl & BILINEAR_TEX_EN);
     tx->blend_fcn    = (cntl >> TEX_BLEND_FCN) & 3;
     tx->lod_bias     = log2(1.0 + bias / 16.0);
+    tx->lod_used     = (tx->levels > 1) || (tx->bilinear_mag != (tx->blend_fcn >= 2));
     return 1;
 }
 
@@ -3774,6 +3812,7 @@ mach64_rp_composite_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
     tx->bilinear_mag = !!(tex_cntl & RP_COMP_FILTER_BILIN);
     tx->blend_fcn    = (tex_cntl & RP_COMP_BLEND_BILINEAR) ? 2 : 0;
     tx->lod_bias     = 0.0;
+    tx->lod_used     = (tx->levels > 1) || (tx->bilinear_mag != (tx->blend_fcn >= 2));
     return 1;
 }
 
@@ -3790,18 +3829,18 @@ mach64_rp_wrap(int i, int size, int clamp)
    (agpgart.c) takes the read to system memory; a page that is plain memory
    there is looked up once a triangle and read in place. */
 static inline void
-mach64_rp_agp_read(mach64_3d_t *ctx, uint32_t addr, void *dst, unsigned len)
+mach64_rp_agp_read(mach64_rp_agp_cache_t *agp, uint32_t addr, void *dst, unsigned len)
 {
     uint32_t page = addr & ~0xfffu;
     unsigned slot = (page >> 12) & (MACH64_RP_AGP_PAGES - 1);
 
     if (((addr & 0xfff) + len) <= 0x1000) {
-        if (ctx->agp_tag[slot] != (page | 1)) {
-            ctx->agp_tag[slot] = page | 1;
-            ctx->agp_ptr[slot] = agpgart_bus_ptr(page, 0x1000);
+        if (agp->tag[slot] != (page | 1)) {
+            agp->tag[slot] = page | 1;
+            agp->ptr[slot] = agpgart_bus_ptr(page, 0x1000);
         }
-        if (ctx->agp_ptr[slot]) {
-            memcpy(dst, ctx->agp_ptr[slot] + (addr & 0xfff), len);
+        if (agp->ptr[slot]) {
+            memcpy(dst, agp->ptr[slot] + (addr & 0xfff), len);
             return;
         }
     }
@@ -3810,7 +3849,7 @@ mach64_rp_agp_read(mach64_3d_t *ctx, uint32_t addr, void *dst, unsigned len)
 
 /* A texel of a map in AGP memory, decoded as mach64_3d_texel_at does. */
 static uint32_t
-mach64_rp_texel_agp(mach64_3d_t *ctx, const mach64_3d_texture_t *map, int u, int v, int *inhibits)
+mach64_rp_texel_agp(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_3d_texture_t *map, int u, int v, int *inhibits)
 {
     mach64_t *mach64 = ctx->mach64;
     uint32_t  addr   = mach64->rp.agp_base + map->base + (v * map->width + u) * map->bpp;
@@ -3819,27 +3858,27 @@ mach64_rp_texel_agp(mach64_3d_t *ctx, const mach64_3d_texture_t *map, int u, int
 
     switch (map->format) {
         case 3:
-            mach64_rp_agp_read(ctx, addr, &raw, 2);
+            mach64_rp_agp_read(agp, addr, &raw, 2);
             argb = mach64_3d_argb1555(raw, map->dynamic_range);
             break;
         case 4:
-            mach64_rp_agp_read(ctx, addr, &raw, 2);
+            mach64_rp_agp_read(agp, addr, &raw, 2);
             argb = mach64_3d_argb565(raw, map->dynamic_range);
             break;
         case 6:
-            mach64_rp_agp_read(ctx, addr, &raw, 4);
+            mach64_rp_agp_read(agp, addr, &raw, 4);
             argb = raw;
             break;
         case 15:
-            mach64_rp_agp_read(ctx, addr, &raw, 2);
+            mach64_rp_agp_read(agp, addr, &raw, 2);
             argb = mach64_3d_argb4444(raw, map->dynamic_range);
             break;
         case 11:
-            mach64_rp_agp_read(ctx, mach64->rp.agp_base + map->base + (v * map->width + (u & ~1)) * 2, &raw, 4);
+            mach64_rp_agp_read(agp, mach64->rp.agp_base + map->base + (v * map->width + (u & ~1)) * 2, &raw, 4);
             argb = mach64_3d_rgba_argb(mach64_3d_yuv_to_rgba(ctx, mach64_yuyv_y(raw, u), mach64_yuyv_u(raw), mach64_yuyv_v(raw), 255));
             break;
         default:
-            mach64_rp_agp_read(ctx, addr, &raw, map->bpp);
+            mach64_rp_agp_read(agp, addr, &raw, map->bpp);
             argb = mach64_3d_unpack_argb(ctx, map->format, raw, 1);
             if (map->format == 2) {
                 *inhibits = mach64_3d_texel_key_inhibits(map, mach64_3d_texture_palette_texel_index(mach64->dp_pix_width, raw));
@@ -3852,7 +3891,7 @@ mach64_rp_texel_agp(mach64_3d_t *ctx, const mach64_3d_texture_t *map, int u, int
 }
 
 static inline uint32_t
-mach64_rp_texel(mach64_3d_t *ctx, const mach64_rp_map_t *map, int u, int v, int *inhibits)
+mach64_rp_texel(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_map_t *map, int u, int v, int *inhibits)
 {
     u = mach64_rp_wrap(u, map->w, map->clamp_s);
     v = mach64_rp_wrap(v, map->h, map->clamp_t);
@@ -3863,14 +3902,28 @@ mach64_rp_texel(mach64_3d_t *ctx, const mach64_rp_map_t *map, int u, int v, int 
         v = i / map->w;
     }
     if (map->agp)
-        return mach64_rp_texel_agp(ctx, &map->tex, u, v, inhibits);
+        return mach64_rp_texel_agp(ctx, agp, &map->tex, u, v, inhibits);
     return mach64_3d_texel_at(ctx, &map->tex, u, v, inhibits);
+}
+
+/* floor() of a sample coordinate, without the library call: exact for any
+   value whose integer part an int64_t holds, the others go to floor(). */
+static inline double
+mach64_rp_floor(double v)
+{
+    if ((v > -9.0e15) && (v < 9.0e15)) {
+        double t = (double) (int64_t) v;
+
+        return (t > v) ? (t - 1.0) : t;
+    }
+    return floor(v);
 }
 
 /* One map at s, t (0-1 across it): the nearest texel, or the 2x2 filter of
    the four whose centers surround the point. */
 static uint32_t
-mach64_rp_sample_map(mach64_3d_t *ctx, const mach64_rp_map_t *map, int bilinear, double s, double t, int *inhibits)
+mach64_rp_sample_map(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_map_t *map, int bilinear, double s, double t,
+                     int *inhibits)
 {
     double   fs = s * map->w;
     double   ft = t * map->h;
@@ -3895,9 +3948,9 @@ mach64_rp_sample_map(mach64_3d_t *ctx, const mach64_rp_map_t *map, int bilinear,
             fs = 0.0;
         if (ft > 1.0e9 || ft < -1.0e9)
             ft = 0.0;
-        fs = floor(fs * 65536.0 + 0.5) / 65536.0;
-        ft = floor(ft * 65536.0 + 0.5) / 65536.0;
-        return mach64_rp_texel(ctx, map, (int) floor(fs * k), (int) floor(ft * k), inhibits);
+        fs = mach64_rp_floor(fs * 65536.0 + 0.5) / 65536.0;
+        ft = mach64_rp_floor(ft * 65536.0 + 0.5) / 65536.0;
+        return mach64_rp_texel(ctx, agp, map, (int) mach64_rp_floor(fs * k), (int) mach64_rp_floor(ft * k), inhibits);
     }
 
     fs -= 0.5;
@@ -3906,16 +3959,16 @@ mach64_rp_sample_map(mach64_3d_t *ctx, const mach64_rp_map_t *map, int bilinear,
         fs = 0.0;
     if (ft > 1.0e9 || ft < -1.0e9)
         ft = 0.0;
-    u   = (int) floor(fs);
-    v   = (int) floor(ft);
+    u   = (int) mach64_rp_floor(fs);
+    v   = (int) mach64_rp_floor(ft);
     fu  = (unsigned) ((fs - u) * 256.0);
     fv  = (unsigned) ((ft - v) * 256.0);
     fu  = (fu > 255) ? 255 : fu;
     fv  = (fv > 255) ? 255 : fv;
-    c00 = mach64_rp_texel(ctx, map, u, v, &i00);
-    c10 = mach64_rp_texel(ctx, map, u + 1, v, &i10);
-    c01 = mach64_rp_texel(ctx, map, u, v + 1, &i01);
-    c11 = mach64_rp_texel(ctx, map, u + 1, v + 1, &i11);
+    c00 = mach64_rp_texel(ctx, agp, map, u, v, &i00);
+    c10 = mach64_rp_texel(ctx, agp, map, u + 1, v, &i10);
+    c01 = mach64_rp_texel(ctx, agp, map, u, v + 1, &i01);
+    c11 = mach64_rp_texel(ctx, agp, map, u + 1, v + 1, &i11);
     if (fv >= 128)
         *inhibits = (fu >= 128) ? i11 : i01;
     else
@@ -3938,7 +3991,8 @@ mach64_rp_sample_map(mach64_3d_t *ctx, const mach64_rp_map_t *map, int bilinear,
  * alphabox's Rage Pro matched it with, pixel for pixel.
  */
 static uint32_t
-mach64_rp_sample(mach64_3d_t *ctx, const mach64_rp_texture_t *tx, double s, double t, double lod, int *inhibits)
+mach64_rp_sample(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_texture_t *tx, double s, double t, double lod,
+                 int *inhibits)
 {
     int      top = tx->levels - 1;
     int      level;
@@ -3950,7 +4004,7 @@ mach64_rp_sample(mach64_3d_t *ctx, const mach64_rp_texture_t *tx, double s, doub
 
     lod -= tx->lod_bias;
     if ((lod <= 0.0) || !top)
-        return mach64_rp_sample_map(ctx, &tx->maps[0], (lod <= 0.0) ? tx->bilinear_mag : (tx->blend_fcn >= 2), s, t, inhibits);
+        return mach64_rp_sample_map(ctx, agp, &tx->maps[0], (lod <= 0.0) ? tx->bilinear_mag : (tx->blend_fcn >= 2), s, t, inhibits);
 
     if (lod > top)
         lod = top;
@@ -3963,15 +4017,15 @@ mach64_rp_sample(mach64_3d_t *ctx, const mach64_rp_texture_t *tx, double s, doub
         case 1:
         case 3:
             if (level >= top)
-                return mach64_rp_sample_map(ctx, &tx->maps[top], tx->blend_fcn == 3, s, t, inhibits);
-            a = mach64_rp_sample_map(ctx, &tx->maps[level], tx->blend_fcn == 3, s, t, &ia);
-            b = mach64_rp_sample_map(ctx, &tx->maps[level + 1], tx->blend_fcn == 3, s, t, &ib);
+                return mach64_rp_sample_map(ctx, agp, &tx->maps[top], tx->blend_fcn == 3, s, t, inhibits);
+            a = mach64_rp_sample_map(ctx, agp, &tx->maps[level], tx->blend_fcn == 3, s, t, &ia);
+            b = mach64_rp_sample_map(ctx, agp, &tx->maps[level + 1], tx->blend_fcn == 3, s, t, &ib);
             *inhibits = (frac >= 128) ? ib : ia;
             return mach64_3d_lerp_texel(a, b, frac);
         case 2:
-            return mach64_rp_sample_map(ctx, &tx->maps[level], 1, s, t, inhibits);
+            return mach64_rp_sample_map(ctx, agp, &tx->maps[level], 1, s, t, inhibits);
         default:
-            return mach64_rp_sample_map(ctx, &tx->maps[level], 0, s, t, inhibits);
+            return mach64_rp_sample_map(ctx, agp, &tx->maps[level], 0, s, t, inhibits);
     }
 }
 
@@ -4092,7 +4146,7 @@ mach64_rp_edge_top_left(int64_t nx, int64_t ny)
 }
 
 /* What a triangle draw shares. */
-typedef struct mach64_rp_tri_t {
+struct mach64_rp_tri_t {
     mach64_3d_dst_t     dst;
     uint32_t            cntl;
     uint32_t            tex_cntl;
@@ -4112,7 +4166,7 @@ typedef struct mach64_rp_tri_t {
     mach64_rp_plane_t   pl[RPP_COUNT];
     mach64_rp_texture_t tex;
     mach64_rp_texture_t tex2;
-} mach64_rp_tri_t;
+};
 
 /* The plane through the three values a0, a1, a2 at the vertices, from the
    triangle's 1/area as the driver gave it, X and Y in pixels. */
@@ -4124,11 +4178,15 @@ mach64_rp_plane(mach64_rp_plane_t *p, const double *vx, const double *vy, double
     p->c  = a2 - p->dx * vx[2] - p->dy * vy[2];
 }
 
-/* An 8-bit plane at x, y, rounded. */
+/* An 8-bit plane at x, y, rounded and clamped; NaN is 0. */
 static inline int
 mach64_rp_at8(const mach64_rp_plane_t *p, double x, double y)
 {
-    return mach64_3d_clamp8((int) floor(mach64_rp_at(p, x, y) + 0.5));
+    double v = mach64_rp_at(p, x, y) + 0.5;
+
+    if (!(v >= 0.0))
+        return 0;
+    return (v >= 255.0) ? 255 : (int) v;
 }
 
 /* The level of detail at s, t: log2 of the texels of the largest map a
@@ -4151,7 +4209,8 @@ mach64_rp_lod(const mach64_rp_plane_t *ps, const mach64_rp_plane_t *pt, const ma
 
 /* A pixel of a triangle, through the whole pipeline, sampled at its centre. */
 static void
-mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t *dither, int x, int y, uint32_t addr, uint32_t z_addr)
+mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t *dither, mach64_rp_agp_cache_t *agp, int x, int y,
+                uint32_t addr, uint32_t z_addr)
 {
     mach64_t *mach64 = ctx->mach64;
     double    fx     = x + 0.5;
@@ -4186,8 +4245,8 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
         double   rw   = (w != 0.0) ? (1.0 / w) : 1.0;
         double   s    = mach64_rp_at(&tri->pl[RPP_S], fx, fy) * rw;
         double   t    = mach64_rp_at(&tri->pl[RPP_T], fx, fy) * rw;
-        double   lod  = mach64_rp_lod(&tri->pl[RPP_S], &tri->pl[RPP_T], &tri->pl[RPP_W], s, t, rw, &tri->tex.maps[0]);
-        uint32_t argb = mach64_rp_sample(ctx, &tri->tex, s, t, lod, &inhibit);
+        double   lod  = tri->tex.lod_used ? mach64_rp_lod(&tri->pl[RPP_S], &tri->pl[RPP_T], &tri->pl[RPP_W], s, t, rw, &tri->tex.maps[0]) : 0.0;
+        uint32_t argb = mach64_rp_sample(ctx, agp, &tri->tex, s, t, lod, &inhibit);
         rgba_t   texel;
 
         if (inhibit)
@@ -4199,9 +4258,9 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
             double   rw2 = (w2 != 0.0) ? (1.0 / w2) : 1.0;
             double   s2  = mach64_rp_at(&tri->pl[RPP_S2], fx, fy) * rw2;
             double   t2  = mach64_rp_at(&tri->pl[RPP_T2], fx, fy) * rw2;
-            double   l2  = mach64_rp_lod(&tri->pl[RPP_S2], &tri->pl[RPP_T2], &tri->pl[RPP_W2], s2, t2, rw2, &tri->tex2.maps[0]);
+            double   l2  = tri->tex2.lod_used ? mach64_rp_lod(&tri->pl[RPP_S2], &tri->pl[RPP_T2], &tri->pl[RPP_W2], s2, t2, rw2, &tri->tex2.maps[0]) : 0.0;
             int      inh2;
-            uint32_t c2  = mach64_rp_sample(ctx, &tri->tex2, s2, t2, l2, &inh2);
+            uint32_t c2  = mach64_rp_sample(ctx, agp, &tri->tex2, s2, t2, l2, &inh2);
             rgba_t   sec = mach64_3d_argb_rgba(c2);
             int      f;
 
@@ -4314,6 +4373,144 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
         mach64_3d_vram_write(mach64, z_addr, depth, 2);
 }
 
+/* n / d and its ceiling, d > 0, rounding towards minus and plus infinity. */
+static inline int64_t
+mach64_rp_div_floor(int64_t n, int64_t d)
+{
+    int64_t q = n / d;
+
+    return ((n % d) && (n < 0)) ? (q - 1) : q;
+}
+
+static inline int64_t
+mach64_rp_div_ceil(int64_t n, int64_t d)
+{
+    int64_t q = n / d;
+
+    return ((n % d) && (n > 0)) ? (q + 1) : q;
+}
+
+/* Every step-th span found, from the first-th on. */
+static void
+mach64_rp_draw_spans(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, int first, int step, mach64_3d_dither_t *dither,
+                     mach64_rp_agp_cache_t *agp)
+{
+    for (int i = first; i < ctx->rp_nspans; i += step) {
+        const mach64_rp_span_t *sp     = &ctx->rp_spans[i];
+        uint32_t                addr   = tri->dst.base + (sp->y * tri->dst.pitch + sp->first) * tri->dst.bpp;
+        uint32_t                z_addr = tri->z_on ? (tri->z_base + (sp->y * tri->z_pitch + sp->first) * 2) : 0;
+
+        for (int x = sp->first; x <= sp->last; x++) {
+            mach64_rp_pixel(ctx, tri, dither, agp, x, sp->y, addr, z_addr);
+            addr += tri->dst.bpp;
+            if (tri->z_on)
+                z_addr += 2;
+        }
+    }
+}
+
+/*
+ * Whether the spans may be drawn by several threads at once, which needs no
+ * pixel to read what another thread writes: as for a trapezoid's rows
+ * (mach64_3d_rows_shared), with the composite texture besides. A texture
+ * in AGP memory is in system memory, which the draw never writes.
+ */
+static int
+mach64_rp_spans_shared(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, uint32_t pixels)
+{
+    uint64_t size  = (uint64_t) ctx->mach64->vram_mask + 1;
+    int      y_min = ctx->rp_spans[0].y;
+    int      y_max = ctx->rp_spans[ctx->rp_nspans - 1].y;
+    int      x_min = ctx->rp_spans[0].first;
+    int      x_max = ctx->rp_spans[0].last + 1;
+    uint64_t dst_start;
+    uint64_t dst_len;
+    uint64_t z_start = 0;
+    uint64_t z_len   = 0;
+
+    if ((ctx->threads < 2) || (ctx->rp_nspans < 2) || (pixels < MACH64_3D_SHARED_PIXELS))
+        return 0;
+    if ((tri->cntl & DITHER_EN) && !(tri->cntl & SCALE_DITHER))
+        return 0;
+
+    for (int i = 1; i < ctx->rp_nspans; i++) {
+        const mach64_rp_span_t *sp = &ctx->rp_spans[i];
+
+        x_min = (sp->first < x_min) ? sp->first : x_min;
+        x_max = ((sp->last + 1) > x_max) ? (sp->last + 1) : x_max;
+    }
+
+    /* Rows of the destination or the Z buffer meet when a span is wider
+       than the pitch, or they wrap around video memory. */
+    if ((x_max - x_min) > tri->dst.pitch)
+        return 0;
+    dst_start = tri->dst.base + ((uint64_t) y_min * tri->dst.pitch + x_min) * tri->dst.bpp;
+    dst_len   = ((uint64_t) (y_max - y_min) * tri->dst.pitch + (x_max - x_min)) * tri->dst.bpp;
+    if (dst_len >= size)
+        return 0;
+    if (tri->z_on) {
+        if ((x_max - x_min) > tri->z_pitch)
+            return 0;
+        z_start = tri->z_base + ((uint64_t) y_min * tri->z_pitch + x_min) * 2;
+        z_len   = ((uint64_t) (y_max - y_min) * tri->z_pitch + (x_max - x_min)) * 2;
+        if ((z_len >= size) || mach64_3d_ranges_overlap(dst_start, dst_len, z_start, z_len, size))
+            return 0;
+    }
+    for (int n = 0; n < 2; n++) {
+        const mach64_rp_texture_t *tx = n ? &tri->tex2 : &tri->tex;
+
+        if (!tri->textured || (n && !tri->composite))
+            break;
+        for (int level = 0; level < tx->levels; level++) {
+            const mach64_rp_map_t *map = &tx->maps[level];
+            uint64_t               len = (uint64_t) map->w * map->h * map->tex.bpp + 4;
+
+            if (map->agp)
+                continue;
+            if ((len >= size) || mach64_3d_ranges_overlap(map->tex.base, len, dst_start, dst_len, size) ||
+                (tri->z_write && mach64_3d_ranges_overlap(map->tex.base, len, z_start, z_len, size)))
+                return 0;
+        }
+    }
+    return 1;
+}
+
+/* Draws the spans found so far, on the helpers as well when they may, as
+   mach64_3d_draw_rows does a trapezoid's rows. */
+static void
+mach64_rp_draw_batch(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, uint32_t pixels)
+{
+    mach64_3d_dither_t own;
+    int                threads = ctx->threads;
+
+    if (!mach64_rp_spans_shared(ctx, tri, pixels)) {
+        mach64_rp_draw_spans(ctx, tri, 0, 1, &ctx->dither, &ctx->agp);
+        ctx->rp_nspans = 0;
+        return;
+    }
+
+    if (!ctx->helpers_made)
+        mach64_3d_helpers_make(ctx);
+    ctx->job         = NULL;
+    ctx->rp_job      = tri;
+    ctx->job_threads = threads;
+    for (int i = 0; i < (threads - 1); i++)
+        ctx->helpers[i].dither = ctx->dither;
+    mach64_3d_helpers_start(ctx);
+
+    own = ctx->dither;
+    mach64_rp_draw_spans(ctx, tri, 0, threads, &own, &ctx->agp);
+    while (atomic_load(&ctx->job_left))
+        mach64_3d_pause();
+
+    for (int i = 0; i < (threads - 1); i++) {
+        if (!ctx->helpers[i].dither.valid)
+            own.valid = 0;
+    }
+    ctx->dither.valid = own.valid;
+    ctx->rp_nspans    = 0;
+}
+
 /* The triangle of the three vertices, ONE_OVER_AREA = ooa. */
 static void
 mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
@@ -4334,6 +4531,7 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
     int             flat;
     int             x0, x1, y0, y1;
     uint32_t        pixels = 0;
+    uint32_t        batch  = 0;
     uint32_t        rows   = 0;
     double          a[RPP_COUNT][3];
 
@@ -4381,8 +4579,11 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
         if (!mach64_rp_texture_init(ctx, &tri.tex))
             return;
         tri.composite = (tri.tex_cntl & RP_TEXTURE_COMPOSITE) && mach64_rp_composite_init(ctx, &tri.tex2);
-        if (tri.tex_cntl & RP_TEX_SRC_AGP)
-            memset(ctx->agp_tag, 0, sizeof(ctx->agp_tag));
+        if (tri.tex_cntl & RP_TEX_SRC_AGP) {
+            memset(ctx->agp.tag, 0, sizeof(ctx->agp.tag));
+            for (int i = 0; i < (MACH64_3D_THREADS - 1); i++)
+                memset(ctx->helpers[i].agp.tag, 0, sizeof(ctx->helpers[i].agp.tag));
+        }
     }
 
     /* The vertices' values; FLAT_SHADE_VERTEX_n gives every vertex the
@@ -4478,27 +4679,48 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
     if ((x0 > x1) || (y0 > y1))
         return;
 
+    /* Each row's span: edge k is in where a x + b >= 0, a = 4 nx, b the
+       rest of nx (4x + 2) + ny (4y + 2) + ec + bias. */
+    ctx->rp_nspans = 0;
     for (int y = y0; y <= y1; y++) {
-        int64_t e[3];
-        int     row_pixels = 0;
+        int first = x0;
+        int last  = x1;
 
-        for (int k = 0; k < 3; k++)
-            e[k] = nx[k] * ((int64_t) x0 * 4 + 2) + ny[k] * ((int64_t) y * 4 + 2) + ec[k];
-        for (int x = x0; x <= x1; x++) {
-            if (((e[0] + bias[0]) >= 0) && ((e[1] + bias[1]) >= 0) && ((e[2] + bias[2]) >= 0)) {
-                uint32_t addr   = tri.dst.base + (y * tri.dst.pitch + x) * tri.dst.bpp;
-                uint32_t z_addr = tri.z_on ? (tri.z_base + (y * tri.z_pitch + x) * 2) : 0;
+        for (int k = 0; (k < 3) && (first <= last); k++) {
+            int64_t a = nx[k] * 4;
+            int64_t b = nx[k] * 2 + ny[k] * ((int64_t) y * 4 + 2) + ec[k] + bias[k];
 
-                mach64_rp_pixel(ctx, &tri, &ctx->dither, x, y, addr, z_addr);
-                row_pixels++;
-            }
-            for (int k = 0; k < 3; k++)
-                e[k] += nx[k] * 4;
+            if (a > 0) {
+                int64_t lo = mach64_rp_div_ceil(-b, a);
+
+                if (lo > first)
+                    first = (lo > last) ? (last + 1) : (int) lo;
+            } else if (a < 0) {
+                int64_t hi = mach64_rp_div_floor(b, -a);
+
+                if (hi < last)
+                    last = (hi < first) ? (first - 1) : (int) hi;
+            } else if (b < 0)
+                last = first - 1;
         }
-        if (row_pixels) {
-            pixels += row_pixels;
-            rows++;
+        if (first > last)
+            continue;
+
+        ctx->rp_spans[ctx->rp_nspans].y     = y;
+        ctx->rp_spans[ctx->rp_nspans].first = first;
+        ctx->rp_spans[ctx->rp_nspans].last  = last;
+        ctx->rp_nspans++;
+        batch += last - first + 1;
+        rows++;
+        if (ctx->rp_nspans == MACH64_3D_ROWS) {
+            mach64_rp_draw_batch(ctx, &tri, batch);
+            pixels += batch;
+            batch = 0;
         }
+    }
+    if (ctx->rp_nspans) {
+        mach64_rp_draw_batch(ctx, &tri, batch);
+        pixels += batch;
     }
 
     if (mach64->rp.trace > 0) {
