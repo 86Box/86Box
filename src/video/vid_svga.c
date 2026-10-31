@@ -561,6 +561,8 @@ svga_in(uint16_t addr, void *priv)
                 else
                     ret = 0x10;
             }
+            if (svga->vert_int)
+                ret |= 0x80;
             break;
         case 0x3c3:
             ret = 0x01;
@@ -765,6 +767,28 @@ svga_set_ramdac_type(svga_t *svga, int type)
                                              (svga->vgapal[c].b & 0x3f) * 4);
         }
     }
+}
+
+/* To be called after a write to CRTC register 11. Bit 4 clear clears the
+   vertical retrace interrupt and holds it clear. */
+void
+svga_vert_int_crtc_write(svga_t *svga)
+{
+    if (!svga->vert_int_update)
+        return;
+
+    if (!(svga->crtc[0x11] & 0x10))
+        svga->vert_int = 0;
+
+    svga->vert_int_update(svga);
+}
+
+/* Whether the vertical retrace interrupt is pending and enabled (CRTC 11 bit 5
+   clear). */
+int
+svga_vert_int_active(const svga_t *svga)
+{
+    return svga->vert_int && !(svga->crtc[0x11] & 0x20);
 }
 
 void
@@ -1672,6 +1696,11 @@ svga_poll(void *priv)
             }
         }
         if (svga->vc == svga->dispend) {
+            if (svga->vert_int_update && (svga->crtc[0x11] & 0x10)) {
+                svga->vert_int = 1;
+                svga->vert_int_update(svga);
+            }
+
             if (svga->vblank_start)
                 svga->vblank_start(svga);
 
