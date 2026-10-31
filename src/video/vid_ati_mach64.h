@@ -85,6 +85,7 @@
 
 #define FIFO_TYPE         0xff000000
 #define FIFO_ADDR         0x00ffffff
+#define FIFO_ADDR_SETUP   0x00000800 /* a dword of the Rage Pro's setup engine, block 1 */
 
 enum {
     FIFO_INVALID     = (0x00 << 24),

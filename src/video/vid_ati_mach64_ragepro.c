@@ -412,7 +412,7 @@ mach64_ragepro_blk1_write(mach64_t *mach64, uint32_t addr, uint32_t val, int byt
         return 1;
 
     if ((reg >= RP1_SETUP_FIRST) && (reg <= RP1_SETUP_LAST)) {
-        mach64_3d_setup_write(mach64, reg >> 2, v);
+        mach64_queue(mach64, FIFO_ADDR_SETUP | reg, v, FIFO_WRITE_DWORD);
         return 1;
     }
 
@@ -449,6 +449,7 @@ mach64_ragepro_blk1_read(mach64_t *mach64, uint32_t addr, uint32_t *val)
         return 0;
 
     if ((reg >= RP1_SETUP_FIRST) && (reg <= RP1_SETUP_LAST)) {
+        mach64_wait_fifo_idle(mach64);
         if (!mach64_3d_setup_read(mach64, reg >> 2, val))
             *val = mach64->rp.blk1[reg >> 2];
         return 1;

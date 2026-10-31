@@ -278,9 +278,6 @@ struct mach64_3d_t {
     int trail_x;
     int trail_valid;
 
-    /* A write went to the draw engine FIFO since the last 3D one. */
-    int fifo_pending;
-
     /* TEX_HIDDEN_*: the S/T registers whose value is the live accumulator,
        wider than the register, until the guest writes them again. */
     uint8_t tex_hidden;
@@ -3241,17 +3238,15 @@ mach64_3d_alias(uint32_t reg)
 }
 
 /*
- * The 3D registers are written at once, ahead of the 2D FIFO. Before one of
- * them after a write that went to the FIFO, the FIFO runs out, so a 3D draw
- * sees the 2D state written before it.
+ * The 3D registers, the setup engine's among them, are written through the
+ * FIFO in turn with the 2D ones, and a draw runs on the engine thread with
+ * the write that starts it. A read of one from the CPU waits for the FIFO
+ * to run out.
  */
 static void
 mach64_3d_sync(mach64_3d_t *ctx)
 {
-    if (!ctx->fifo_pending)
-        return;
     mach64_wait_fifo_idle(ctx->mach64);
-    ctx->fifo_pending = 0;
 }
 
 /*
@@ -3332,9 +3327,9 @@ mach64_3d_read(mach64_t *mach64, uint32_t addr, uint32_t *val)
             return 1;
         case DST_BRES_LNTH:
             /* The 2D line length, unless the last command was a 3D one. */
+            mach64_3d_sync(ctx);
             if (!(ctx->regs[DST_BRES_LNTH >> 2] & DRAW_TRAP))
                 return 0;
-            mach64_3d_sync(ctx);
             *val = ctx->regs[DST_BRES_LNTH >> 2];
             return 1;
         case LEAD_BRES_LNTH:
@@ -3366,15 +3361,9 @@ mach64_3d_write_length(mach64_3d_t *ctx, uint32_t addr, uint32_t val, uint32_t t
 {
     mach64_t *mach64   = ctx->mach64;
     uint32_t  cmd      = mach64_3d_merge_write(ctx->regs[DST_BRES_LNTH >> 2], addr, val, type);
-    unsigned  fcn      = (ctx->regs[SCALE_3D_CNTL >> 2] >> SCALE_3D_FCN_SHIFT) & 3;
     int       complete = mach64_3d_write_complete(addr, type);
 
     if (complete) {
-        /* Whether the line is a 3D one depends on DP_SRC and DST_CNTL,
-           which may still be in the FIFO. */
-        if (!(cmd & (DRAW_TRAP | LINE_DIS)) && ((fcn == FCN_TEXTURE) || (fcn == FCN_SHADE)))
-            mach64_3d_sync(ctx);
-
         /* A line command loads TRAIL_X, LINE_DIS ones included; a trapezoid
            keeps it unless bit 31 is set (VT/RAGE RRG 4-46). */
         if (!(cmd & DRAW_TRAP) || (cmd & LINE_DIS)) {
@@ -3385,26 +3374,22 @@ mach64_3d_write_length(mach64_3d_t *ctx, uint32_t addr, uint32_t val, uint32_t t
         if (mach64_3d_is_line(ctx, cmd)) {
             ctx->regs[DST_BRES_LNTH >> 2] = cmd;
             mach64->dst_bres_lnth         = mach64_3d_merge_write(mach64->dst_bres_lnth, addr, val, type);
-            mach64_3d_sync(ctx);
             mach64_3d_draw_line(ctx, cmd);
             return 1;
         }
     }
 
     ctx->regs[DST_BRES_LNTH >> 2] = cmd;
-    if (!(cmd & DRAW_TRAP) && ((addr & ~3) != LEAD_BRES_LNTH)) {
-        ctx->fifo_pending = 1;
+    if (!(cmd & DRAW_TRAP) && ((addr & ~3) != LEAD_BRES_LNTH))
         return 0;
-    }
-    mach64_3d_sync(ctx);
     if ((cmd & DRAW_TRAP) && complete)
         mach64_3d_draw_trapezoid(ctx, cmd);
     return 1;
 }
 
 /*
- * Writes the GUI register at addr for the GT-B. Returns 0 for a register of
- * the 2D engine, which the caller queues.
+ * Writes the GUI register at addr for the GT-B, as the FIFO takes it.
+ * Returns 0 for a register of the 2D engine, which takes it then.
  */
 int
 mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
@@ -3416,13 +3401,10 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
     addr &= 0x3ff;
     reg = addr & ~3;
 
-    /* The Rage Pro's own block 0 registers, and its bus master
-       (vid_ati_mach64_ragepro.c), which a DST_HEIGHT_WIDTH write starts. */
+    /* The Rage Pro's own block 0 registers; its bus master's
+       (vid_ati_mach64_ragepro.c) have been seen before the FIFO. */
     if (mach64->ragepro) {
-        if (mach64_ragepro_gui_write(mach64, addr, val, type))
-            return 1;
         if (reg == RP_TEX_PALETTE_INDEX) {
-            mach64_3d_sync(ctx);
             ctx->regs[reg >> 2]  = mach64_3d_merge_write(ctx->regs[reg >> 2], addr, val, type);
             ctx->palette_indexed = 1;
             ctx->palette_index   = ctx->regs[reg >> 2] & 0xff;
@@ -3430,7 +3412,6 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
         }
         if ((reg == TEX_PALETTE) && ctx->palette_indexed) {
             /* With an index set the entries are stored in turn. */
-            mach64_3d_sync(ctx);
             ctx->regs[reg >> 2] = mach64_3d_merge_write(ctx->regs[reg >> 2], addr, val, type);
             if (mach64_3d_write_complete(addr, type)) {
                 ctx->texture_palette[ctx->palette_index & 0xff] = ctx->regs[reg >> 2] & 0x00ffffff;
@@ -3439,7 +3420,6 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
             return 1;
         }
         if (mach64_3d_ragepro_register(reg)) {
-            mach64_3d_sync(ctx);
             ctx->regs[reg >> 2] = mach64_3d_merge_write(ctx->regs[reg >> 2], addr, val, type);
             return 1;
         }
@@ -3447,7 +3427,6 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
 
     /* A scaled rectangle, started from the destination's size. */
     if (mach64_scaler_start(addr, val, type) && (((ctx->regs[SCALE_3D_CNTL >> 2] >> SCALE_3D_FCN_SHIFT) & 3) == FCN_SCALE)) {
-        mach64_3d_sync(ctx);
         if (!(ctx->regs[SCALE_3D_CNTL >> 2] & SRC_3D_SEL) && (((mach64->dp_src >> 8) & 7) == SRC_3D)) {
             mach64_scaler_write_dst(mach64, addr, val, type);
             mach64_scaler_draw(ctx);
@@ -3458,14 +3437,12 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
     switch (reg) {
         case DST_Y_X_ALIAS:
             /* A write-only DST_Y_X; the HAL sets trapezoids up through it. */
-            mach64_3d_sync(ctx);
             mach64->dst_y_x = mach64_3d_merge_write(mach64->dst_y_x, addr, val, type);
             return 1;
         case DST_BRES_LNTH:
         case LEAD_BRES_LNTH:
             return mach64_3d_write_length(ctx, addr, val, type);
         case TEX_PALETTE:
-            mach64_3d_sync(ctx);
             ctx->regs[reg >> 2] = mach64_3d_merge_write(ctx->regs[reg >> 2], addr, val, type);
             if (mach64_3d_write_complete(addr, type))
                 mach64_3d_texture_palette_store(ctx->texture_palette, ctx->regs[reg >> 2]);
@@ -3474,13 +3451,10 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
             break;
     }
 
-    if (!mach64_3d_register(reg)) {
-        ctx->fifo_pending = 1;
+    if (!mach64_3d_register(reg))
         return 0;
-    }
 
     /* The register keeps only its own field, after every partial write. */
-    mach64_3d_sync(ctx);
     ctx->regs[reg >> 2] = mach64_3d_visible_reg(reg, mach64_3d_merge_write(ctx->regs[reg >> 2], addr, val, type));
     ctx->tex_hidden &= ~mach64_3d_tex_hidden_bit(reg);
     alias = mach64_3d_alias(reg);
@@ -4758,7 +4732,6 @@ mach64_3d_setup_write(mach64_t *mach64, int reg, uint32_t val)
         if (k == 7) {
             ctx->one_over_area = val;
             if (!(ctx->setup_cntl & (RP_DONT_START_TRI | RP_DONT_START_ANY))) {
-                mach64_3d_sync(ctx);
                 mach64_3d_ragepro_triangle(ctx, val);
             }
         } else
@@ -4782,7 +4755,6 @@ mach64_3d_setup_write(mach64_t *mach64, int reg, uint32_t val)
            ATI3DCIF sets DONT_START_ANY (44h) and draws every triangle
            with it. */
         ctx->one_over_area = val;
-        mach64_3d_sync(ctx);
         mach64_3d_ragepro_triangle(ctx, val);
         return 1;
     }

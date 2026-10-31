@@ -515,25 +515,60 @@ mach64_fifo_run_one(mach64_t *mach64)
     uint64_t      start_time = plat_timer_read();
     fifo_entry_t *fifo       = &mach64->fifo[mach64->fifo_read_idx & FIFO_MASK];
     uint32_t      val        = fifo->val;
+    uint32_t      addr       = fifo->addr_type & FIFO_ADDR;
+    uint32_t      type       = fifo->addr_type & FIFO_TYPE;
 
-    switch (fifo->addr_type & FIFO_TYPE) {
-        case FIFO_WRITE_BYTE:
-            mach64_accel_write_fifo(mach64, fifo->addr_type & FIFO_ADDR, val);
-            break;
-        case FIFO_WRITE_WORD:
-            mach64_accel_write_fifo_w(mach64, fifo->addr_type & FIFO_ADDR, val);
-            break;
-        case FIFO_WRITE_DWORD:
-            mach64_accel_write_fifo_l(mach64, fifo->addr_type & FIFO_ADDR, val);
-            break;
-        default:
-            break;
+    /* The 3D engine's registers, the setup engine's among them, are taken
+       here in turn with the 2D ones: a triangle is drawn by whichever thread
+       runs the write that starts it. */
+    if (mach64->gt3d && (addr & FIFO_ADDR_SETUP))
+        mach64_3d_setup_write(mach64, (addr & 0x3fc) >> 2, val);
+    else if (!mach64->gt3d || (type == FIFO_INVALID) || !mach64_3d_write(mach64, addr, val, type)) {
+        switch (type) {
+            case FIFO_WRITE_BYTE:
+                mach64_accel_write_fifo(mach64, addr, val);
+                break;
+            case FIFO_WRITE_WORD:
+                mach64_accel_write_fifo_w(mach64, addr, val);
+                break;
+            case FIFO_WRITE_DWORD:
+                mach64_accel_write_fifo_l(mach64, addr, val);
+                break;
+            default:
+                break;
+        }
     }
 
     fifo->addr_type = FIFO_INVALID;
     mach64->fifo_read_idx++;
 
     mach64->blitter_time += plat_timer_read() - start_time;
+}
+
+/* A short wait in a spin loop. */
+static inline void
+mach64_pause(void)
+{
+#if defined(__i386__) || defined(__x86_64__)
+    __builtin_ia32_pause();
+#elif defined(__aarch64__)
+    __asm__ __volatile__("yield");
+#endif
+}
+
+/*
+ * Waits until the engine thread has run FIFO entry idx, or the FIFO has
+ * emptied under it, running nothing itself: the CPU needs only that entry
+ * done, and the engine thread goes on with those after it while the CPU
+ * runs again.
+ */
+static void
+mach64_wait_fifo_entry(mach64_t *mach64, int idx)
+{
+    while (!FIFO_EMPTY && ((int) ((unsigned) mach64->fifo_read_idx - (unsigned) idx) <= 0)) {
+        mach64_wake_fifo_thread(mach64);
+        mach64_pause();
+    }
 }
 
 /* The emulated CPU needs the engine to have taken every queued write (a
@@ -651,7 +686,6 @@ struct mach64_timing_t {
     uint32_t               tail;
     uint64_t               free_at;              /* the engine is busy until then */
     double                 fifo_ns[TIMING_RING]; /* by draw engine FIFO index */
-    double                 pending_ns;           /* 3D drawn by this write */
     uint64_t               floor;                /* time already charged */
     uint32_t               clock_key;
     mach64_timing_clocks_t clocks;
@@ -1016,7 +1050,7 @@ mach64_timing_before_write(mach64_t *mach64)
         if (timing->head == timing->fold) {
             /* The oldest entry's cost is known only once the engine thread
                has run it. */
-            mach64_wait_fifo_idle(mach64);
+            mach64_wait_fifo_entry(mach64, timing->ring[timing->head & TIMING_RING_MASK].fifo_idx);
             mach64_timing_fold(mach64);
             if (timing->head == timing->fold) {
                 /* The 2D FIFO was reset under these entries. */
@@ -1029,8 +1063,8 @@ mach64_timing_before_write(mach64_t *mach64)
     }
 }
 
-/* After it: the write as an entry. A 3D one costs the engine a clock to
-   take it and the time of anything it drew. */
+/* After it: the write as an entry. One the engine never sees, a bus master
+   setting, costs it a clock; a queued one's cost is known once it has run. */
 static void
 mach64_timing_after_write(mach64_t *mach64, int queued, int fifo_idx)
 {
@@ -1040,10 +1074,9 @@ mach64_timing_after_write(mach64_t *mach64, int queued, int fifo_idx)
 
     e->arrival         = mach64_timing_now(timing);
     e->start           = 0;
-    e->cost            = queued ? 0 : mach64_timing_ticks(take_ns + timing->pending_ns);
+    e->cost            = queued ? 0 : mach64_timing_ticks(take_ns);
     e->fifo_idx        = fifo_idx;
     e->queued          = queued;
-    timing->pending_ns = 0.0;
     timing->tail++;
 }
 
@@ -1118,13 +1151,18 @@ mach64_timing_op(mach64_t *mach64, int op)
     timing->fifo_ns[mach64->fifo_read_idx & TIMING_RING_MASK] += mach64_timing_seconds(&work, &clocks) * 1000000000.0;
 }
 
-/* A 3D draw, done at once on the CPU thread. */
+/* The cost of a 3D draw, added to the FIFO entry that started it, as a 2D
+   operation's is. */
 void
 mach64_timing_3d(mach64_t *mach64, const mach64_3d_work_t *work)
 {
-    mach64_timing_work_t engine = mach64_timing_3d_work(work);
+    mach64_timing_work_t   engine = mach64_timing_3d_work(work);
+    mach64_timing_clocks_t clocks;
 
-    mach64->timing->pending_ns += mach64_timing_seconds(&engine, mach64_timing_clocks(mach64)) * 1000000000.0;
+    if (!mach64->timing)
+        return;
+    clocks = mach64_timing_measure(mach64);
+    mach64->timing->fifo_ns[mach64->fifo_read_idx & TIMING_RING_MASK] += mach64_timing_seconds(&engine, &clocks) * 1000000000.0;
 }
 
 /* The modeled FIFO's entries in use and whether the engine is busy, for
@@ -1182,7 +1220,6 @@ mach64_reset_engine(mach64_t *mach64)
 
         timing->head = timing->fold = timing->tail;
         timing->free_at    = mach64_timing_now(timing);
-        timing->pending_ns = 0.0;
     }
 }
 
@@ -1243,22 +1280,27 @@ mach64_queue_fifo(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
         mach64_wake_fifo_thread(mach64);
 }
 
-/* A register write to the draw engine. The 3D Rage II+'s 3D and scaler
-   registers go to its 3D engine at once, the rest through the FIFO; its
-   timing model sees each as an entry of the chip's own FIFO. */
+/*
+ * A register write to the draw engine, through the FIFO: the 2D and 3D
+ * registers alike, and with FIFO_ADDR_SETUP a dword of the Rage Pro's setup
+ * engine. The Rage Pro's bus master settings are followed here, ahead of
+ * the FIFO, and a GUI master operation starts here
+ * (mach64_ragepro_gui_write). The timing model sees each write as an entry
+ * of the chip's own FIFO.
+ */
 void
 mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
 {
     int idx;
 
     if (!mach64->timing) {
-        if (!mach64->gt3d || !mach64_3d_write(mach64, addr, val, type))
+        if (!mach64->ragepro || (addr & FIFO_ADDR_SETUP) || !mach64_ragepro_gui_write(mach64, addr, val, type))
             mach64_queue_fifo(mach64, addr, val, type);
         return;
     }
 
     mach64_timing_before_write(mach64);
-    if (mach64->gt3d && mach64_3d_write(mach64, addr, val, type)) {
+    if (mach64->ragepro && !(addr & FIFO_ADDR_SETUP) && mach64_ragepro_gui_write(mach64, addr, val, type)) {
         mach64_timing_after_write(mach64, 0, 0);
         return;
     }
