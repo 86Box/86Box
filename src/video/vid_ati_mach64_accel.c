@@ -2589,7 +2589,7 @@ mach64_overlay_draw(svga_t *svga, int displine)
     mach64->overlay_cur_y += y_diff;
 }
 
-/* The timing model's state, for debug_cmd "dev". */
+/* The timing model's state, to the log. */
 void
 mach64_timing_dump(mach64_t *mach64)
 {

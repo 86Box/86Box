@@ -3842,7 +3842,6 @@ mach64gtb_init(const device_t *info)
         else
             mach64->config_stat0 = 4 | (1 << 4);
         mach64_ragepro_reset(mach64);
-        mach64_ragepro_debug_attach(mach64, 1);
     }
     mach64->use_block_decoded_io          = 4;
     mach64->pci_regs[MACH64_PCI_IOCONFIG] = 4;
@@ -3964,8 +3963,6 @@ mach64_close(void *priv)
 {
     mach64_t *mach64 = (mach64_t *) priv;
 
-    if (mach64->ragepro)
-        mach64_ragepro_debug_attach(mach64, 0);
 #ifdef DMA_BM
     mach64->dma.state = 0;
 #endif

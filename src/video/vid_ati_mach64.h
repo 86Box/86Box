@@ -431,8 +431,8 @@ typedef struct mach64_t {
         uint64_t descriptors;   /* run since reset, for the debug dump */
         uint64_t triangles;     /* setup engine triangles drawn */
         uint64_t pixels;        /* and their pixels */
-        int      trace;         /* debug_cmd "dev tris N": log the next N triangles */
-        int      wlog;          /* debug_cmd "dev wlog N": log the next N GUI register writes */
+        int      trace;         /* log the next N triangles */
+        int      wlog;          /* log the next N GUI register writes */
         uint32_t last_dst;      /* the last triangle's destination base and pitch, bytes */
         uint32_t last_pitch;
     } rp;
@@ -553,7 +553,6 @@ int      mach64_ragepro_blk1_read(mach64_t *mach64, uint32_t addr, uint32_t *val
 int      mach64_ragepro_gui_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type);
 void     mach64_ragepro_bm_eol(mach64_t *mach64);   /* in vid_ati_mach64.c: BUSMASTER_EOL_INT */
 void     mach64_ragepro_dump(mach64_t *mach64);
-void     mach64_ragepro_debug_attach(mach64_t *mach64, int attach);
 void     mach64_timing_dump(mach64_t *mach64);
 
 /* The setup engine, in vid_ati_mach64_3d.c. reg is the dword index of the
