@@ -3473,10 +3473,13 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
  * half by rewriting vertex 1 only. MM 1ABh-1BFh hold the same registers again
  * grouped by kind (all S, all T ... all X_Y), for packed DMA writes.
  *
- * The pixels are sampled at their integer coordinates with the top-left rule,
- * as Direct3D has it, and every value is interpolated in the plane its three
- * vertices give it; S/W, T/W and W in screen space, then divided, which is
- * the chip's perspective correction. A pixel then goes through the texture
+ * The pixels are sampled at their centres with the top-left rule, and every
+ * value is interpolated in the plane its three vertices give it, colours
+ * rounded; S/W, T/W and W in screen space, then divided, which is the chip's
+ * perspective correction. (ATI's Windows 2000 driver, atidrab, adds half a
+ * pixel to Direct3D's coordinates: alphabox, sampling at the centres of
+ * those, matched Direct3D's software rasteriser pixel for pixel.) A pixel
+ * then goes through the texture
  * (primary and, with TEX_CNTL TEXTURE_COMPOSITE, the composite one), the
  * texture lighting, specular addition, fog, the alpha test, Z, blending and
  * the dither of the GT-B's pipeline above.
@@ -3671,7 +3674,21 @@ mach64_rp_texture_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
     for (int level = 0; level <= 10; level++)
         offsets[level] = ctx->regs[(TEX_0_OFF + (level << 2)) >> 2];
 
-    lowest = (cntl & MIP_MAP_DISABLE) ? size : mach64_3d_mip_lowest_populated_level(offsets, size);
+    /* The smallest map is the one TEX_SIZE_PITCH 15:12 names (alphabox's
+       reading, checked against Direct3D's software rasteriser), and never
+       one past a TEX_n_OFF left at 0: ATI's Windows 9x driver gives maps
+       down to 8x8 only and leaves TEX_0_OFF..TEX_2_OFF at 0, which read as
+       maps of their own made the far end of 3DMark 99's mip-mapped tunnel
+       sample the start of AGP memory. */
+    if (cntl & MIP_MAP_DISABLE)
+        lowest = size;
+    else {
+        lowest = mach64_3d_mip_lowest_populated_level(offsets, size);
+        while ((lowest < size) && !offsets[lowest])
+            lowest++;
+        if (lowest < ((tsp >> 12) & 15))
+            lowest = (((tsp >> 12) & 15) < size) ? ((tsp >> 12) & 15) : size;
+    }
     tx->levels = size - lowest + 1;
     for (int n = 0; n < tx->levels; n++) {
         mach64_rp_map_level(ctx, &tx->maps[n], format, offsets[size - n], l2w - n, l2h - n, !!(tex_cntl & RP_TEXTURE_CLAMP_S),
@@ -3798,12 +3815,20 @@ mach64_rp_sample_map(mach64_3d_t *ctx, const mach64_rp_map_t *map, int bilinear,
     if (map->clamp_t)
         ft = (ft < 0.0) ? 0.0 : ((ft > map->h) ? map->h : ft);
     if (!bilinear) {
-        /* Out of range coordinates still wrap in integers. */
+        /* Out of range coordinates still wrap in integers. The texel
+           coordinates are carried in fixed point with 16 fraction bits and
+           truncated a hair towards zero before rounding down, so a sample
+           exactly on a texel edge takes the texel below it (4.0 picks
+           texel 3, 0.0 texel 0), as Direct3D's software rasteriser does. */
+        const double k = 1.0 - 1.0 / (1 << 20);
+
         if (fs > 1.0e9 || fs < -1.0e9)
             fs = 0.0;
         if (ft > 1.0e9 || ft < -1.0e9)
             ft = 0.0;
-        return mach64_rp_texel(ctx, map, (int) floor(fs), (int) floor(ft), inhibits);
+        fs = floor(fs * 65536.0 + 0.5) / 65536.0;
+        ft = floor(ft * 65536.0 + 0.5) / 65536.0;
+        return mach64_rp_texel(ctx, map, (int) floor(fs * k), (int) floor(ft * k), inhibits);
     }
 
     fs -= 0.5;
@@ -3835,6 +3860,13 @@ mach64_rp_sample_map(mach64_3d_t *ctx, const mach64_rp_map_t *map, int bilinear,
  * texel of the nearest map, 1 the nearest texels of the two maps either side,
  * blended, 2 the 2x2 filter of the nearest map, 3 trilinear; BILINEAR_TEX_EN
  * filters a magnified one. The level steps where lod reaches the bias.
+ *
+ * The map is the one whose detail the sample has reached, lod truncated,
+ * not the nearest; and two maps are blended linearly in texels per pixel,
+ * not in its log (halfway from level 1, 2 texels a pixel, to level 2, 4, is
+ * 3), as a level read from a floating point exponent and mantissa would
+ * be. Both are what Direct3D's software rasteriser does, and what
+ * alphabox's Rage Pro matched it with, pixel for pixel.
  */
 static uint32_t
 mach64_rp_sample(mach64_3d_t *ctx, const mach64_rp_texture_t *tx, double s, double t, double lod, int *inhibits)
@@ -3854,7 +3886,7 @@ mach64_rp_sample(mach64_3d_t *ctx, const mach64_rp_texture_t *tx, double s, doub
     if (lod > top)
         lod = top;
     level = (int) lod;
-    frac  = (unsigned) ((lod - level) * 256.0);
+    frac  = (unsigned) ((exp2(lod - level) - 1.0) * 256.0);
     if (frac > 255)
         frac = 255;
 
@@ -3868,9 +3900,9 @@ mach64_rp_sample(mach64_3d_t *ctx, const mach64_rp_texture_t *tx, double s, doub
             *inhibits = (frac >= 128) ? ib : ia;
             return mach64_3d_lerp_texel(a, b, frac);
         case 2:
-            return mach64_rp_sample_map(ctx, &tx->maps[(frac >= 128 && level < top) ? (level + 1) : level], 1, s, t, inhibits);
+            return mach64_rp_sample_map(ctx, &tx->maps[level], 1, s, t, inhibits);
         default:
-            return mach64_rp_sample_map(ctx, &tx->maps[(frac >= 128 && level < top) ? (level + 1) : level], 0, s, t, inhibits);
+            return mach64_rp_sample_map(ctx, &tx->maps[level], 0, s, t, inhibits);
     }
 }
 
@@ -4023,13 +4055,20 @@ mach64_rp_plane(mach64_rp_plane_t *p, const double *vx, const double *vy, double
     p->c  = a2 - p->dx * vx[2] - p->dy * vy[2];
 }
 
-/* A pixel of a triangle, through the whole pipeline. */
+/* An 8-bit plane at x, y, rounded. */
+static inline int
+mach64_rp_at8(const mach64_rp_plane_t *p, double x, double y)
+{
+    return mach64_3d_clamp8((int) floor(mach64_rp_at(p, x, y) + 0.5));
+}
+
+/* A pixel of a triangle, through the whole pipeline, sampled at its centre. */
 static void
 mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t *dither, int x, int y, uint32_t addr, uint32_t z_addr)
 {
     mach64_t *mach64 = ctx->mach64;
-    double    fx     = x;
-    double    fy     = y;
+    double    fx     = x + 0.5;
+    double    fy     = y + 0.5;
     rgba_t    shade;
     rgba_t    src;
     rgba_t    dst;
@@ -4041,10 +4080,10 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
     int       spec_b = 0;
     int       fog_f  = 255;
 
-    shade.r = mach64_3d_clamp8((int) mach64_rp_at(&tri->pl[RPP_R], fx, fy));
-    shade.g = mach64_3d_clamp8((int) mach64_rp_at(&tri->pl[RPP_G], fx, fy));
-    shade.b = mach64_3d_clamp8((int) mach64_rp_at(&tri->pl[RPP_B], fx, fy));
-    shade.a = mach64_3d_clamp8((int) mach64_rp_at(&tri->pl[RPP_A], fx, fy));
+    shade.r = mach64_rp_at8(&tri->pl[RPP_R], fx, fy);
+    shade.g = mach64_rp_at8(&tri->pl[RPP_G], fx, fy);
+    shade.b = mach64_rp_at8(&tri->pl[RPP_B], fx, fy);
+    shade.a = mach64_rp_at8(&tri->pl[RPP_A], fx, fy);
 
     if (tri->z_on) {
         double z = mach64_rp_at(&tri->pl[RPP_Z], fx, fy);
@@ -4144,9 +4183,9 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
     }
 
     if (tri->alpha_tst & RP_SPECULAR_LIGHT_EN) {
-        spec_r = mach64_3d_clamp8((int) mach64_rp_at(&tri->pl[RPP_SR], fx, fy));
-        spec_g = mach64_3d_clamp8((int) mach64_rp_at(&tri->pl[RPP_SG], fx, fy));
-        spec_b = mach64_3d_clamp8((int) mach64_rp_at(&tri->pl[RPP_SB], fx, fy));
+        spec_r = mach64_rp_at8(&tri->pl[RPP_SR], fx, fy);
+        spec_g = mach64_rp_at8(&tri->pl[RPP_SG], fx, fy);
+        spec_b = mach64_rp_at8(&tri->pl[RPP_SB], fx, fy);
         src.r  = mach64_3d_clamp8(src.r + spec_r);
         src.g  = mach64_3d_clamp8(src.g + spec_g);
         src.b  = mach64_3d_clamp8(src.b + spec_b);
@@ -4155,7 +4194,7 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
     if (tri->alpha_fog == ALPHA_FOG_FOG) {
         int a = src.a;
 
-        fog_f = mach64_3d_clamp8((int) mach64_rp_at(&tri->pl[RPP_FOG], fx, fy));
+        fog_f = mach64_rp_at8(&tri->pl[RPP_FOG], fx, fy);
         src   = mach64_3d_lerp(tri->fog, src, fog_f);
         src.a = a;
     }
@@ -4365,7 +4404,7 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
         int     row_pixels = 0;
 
         for (int k = 0; k < 3; k++)
-            e[k] = nx[k] * ((int64_t) x0 * 4) + ny[k] * ((int64_t) y * 4) + ec[k];
+            e[k] = nx[k] * ((int64_t) x0 * 4 + 2) + ny[k] * ((int64_t) y * 4 + 2) + ec[k];
         for (int x = x0; x <= x1; x++) {
             if (((e[0] + bias[0]) >= 0) && ((e[1] + bias[1]) >= 0) && ((e[2] + bias[2]) >= 0)) {
                 uint32_t addr   = tri.dst.base + (y * tri.dst.pitch + x) * tri.dst.bpp;
