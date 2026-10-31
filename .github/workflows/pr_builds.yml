@@ -183,7 +183,7 @@ jobs:
       - name: Build
         id: build
         env:
-          OS: ${{ matrix.target.os }}
+          TARGET_OS: ${{ matrix.target.os }}
           ARCH: ${{ matrix.target.arch }}
           PRESET: ${{ matrix.preset }}
           BUILD_ID: ${{ needs.prepare.outputs.build_id }}
@@ -199,7 +199,7 @@ jobs:
               ;;
           esac
 
-          package="86Box$slug-$OS-$ARCH-$BUILD_ID"
+          package="86Box$slug-$TARGET_OS-$ARCH-$BUILD_ID"
           echo "package=$package" >> "$GITHUB_OUTPUT"
 
           mkdir -p _output
