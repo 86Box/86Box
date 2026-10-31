@@ -42,10 +42,12 @@ on:
         type: boolean
         default: true
 
-# Cancel superseded runs for the same pull request. Other events get a
-# unique group so that they are never cancelled or held back.
+# Cancel superseded runs for the same pull request. Pushes to master share
+# a group too, so that while one is building, only the newest of the pushes
+# after it waits instead of all of them. Other events get a unique group so
+# that they are never cancelled or held back.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || (github.ref == 'refs/heads/master' && github.event_name == 'push' && 'master') || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
