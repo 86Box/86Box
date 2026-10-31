@@ -52,6 +52,8 @@ void codegen_fetch_walk(uint32_t) { }
 int codegen_fetch_walk_off;
 int codegen_page2_walked;
 int codegen_wide_ds, codegen_wide_ss;
+int codegen_v86_64k;
+int codegen_addr_bound(ir_data_t *, int, uint32_t *, int *) { return 0; }
 uint8_t codegen_fpu_tag_valid, codegen_fpu_tag_empty;
 uint8_t *getpccache(uint32_t) { std::abort(); }
 uint8_t readmembl(uint32_t) { std::abort(); }
