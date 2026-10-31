@@ -732,28 +732,39 @@ midi_in_deliver_sysex(uint8_t *buffer, uint32_t len)
 static void
 midi_in_poll(UNUSED(void *priv))
 {
-    unsigned int head = atomic_load_explicit(&midi_in_queue_head, memory_order_relaxed);
-
-    timer_advance_u64(&midi_in_timer, (uint64_t) (MIDI_IN_POLL_US * TIMER_USEC));
+    unsigned int head  = atomic_load_explicit(&midi_in_queue_head, memory_order_relaxed);
+    uint32_t     bytes = 1;
 
     /* Acquire pairs with the release in midi_in_queue_add(), so the entry's
        contents are visible before it is read. */
-    while (head != atomic_load_explicit(&midi_in_queue_tail, memory_order_acquire)) {
+    if (head != atomic_load_explicit(&midi_in_queue_tail, memory_order_acquire)) {
         midi_in_queue_entry_t *entry = &midi_in_queue[head % MIDI_IN_QUEUE_SIZE];
 
         if (entry->data[0] == 0xf0) {
             if (!midi_in_deliver_sysex(entry->data, entry->len))
-                return;
+                goto next;
         } else {
             if (!midi_in_handlers_have_room(entry->len))
-                return;
+                goto next;
             midi_in_deliver_msg(entry->data, entry->len);
+            /* Hold the next message back for as long as this one takes on
+               the wire. The host MIDI API hands over a chord or a burst all
+               at once, and handing it to the device as fast as it arrives
+               lets the device's queue fill faster than any real MIDI port
+               could. A handler that services one byte per interrupt and
+               re-enables interrupts before returning then nests once per
+               queued byte, which overflowed MIDIMAN's MIDI TOOLS viewer's
+               stack on IRQ 2. */
+            bytes = entry->len;
         }
 
         free(entry->data);
         entry->data = NULL;
-        atomic_store_explicit(&midi_in_queue_head, ++head, memory_order_release);
+        atomic_store_explicit(&midi_in_queue_head, head + 1, memory_order_release);
     }
+
+next:
+    timer_advance_u64(&midi_in_timer, (uint64_t) (bytes * MIDI_IN_POLL_US * TIMER_USEC));
 }
 
 void
