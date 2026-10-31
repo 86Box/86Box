@@ -40,9 +40,9 @@ runs:
         update: true
         cache: ${{ inputs.qt6 != 'true' }}
         msystem: ${{ inputs.msystem }}
+        # The static Qt 6's image format plugins need libwebp and libtiff, but
+        # its package doesn't install them
         pacboy: >-
-          # The static Qt 6's image format plugins need these, but the package
-          # doesn't install them
           ${{ inputs.qt6 == 'true' && 'qt6-static:p libwebp:p libtiff:p' || '' }}
           ninja:p
           cmake:p
