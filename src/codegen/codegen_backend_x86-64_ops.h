@@ -94,6 +94,8 @@ void host_x86_MOV16_REG_BASE_INDEX(codeblock_t *block, int dst_reg, int base_reg
 void host_x86_MOV32_REG_BASE_INDEX(codeblock_t *block, int dst_reg, int base_reg, int index_reg);
 
 void host_x86_MOV64_REG_BASE_INDEX_SHIFT(codeblock_t *block, int dst_reg, int base_reg, int index_reg, int scale);
+void host_x86_MOV64_REG_TABLE_INDEX(codeblock_t *block, int dst_reg, int tmp_reg, void *table, int index_reg);
+void host_x86_MOV64_REG_ADDR(codeblock_t *block, int reg, void *p);
 
 void host_x86_MOV16_REG_BASE_OFFSET(codeblock_t *block, int dst_reg, int base_reg, int offset);
 void host_x86_MOV32_REG_BASE_OFFSET(codeblock_t *block, int dst_reg, int base_reg, int offset);
@@ -212,6 +214,7 @@ void host_x86_TEST16_REG(codeblock_t *block, int src_host_reg, int dst_host_reg)
 void host_x86_TEST32_REG(codeblock_t *block, int src_reg, int dst_reg);
 void host_x86_TEST64_REG(codeblock_t *block, int src_reg, int dst_reg);
 void host_x86_TEST32_REG_IMM(codeblock_t *block, int dst_reg, uint32_t imm_data);
+void host_x86_TEST8_REG_IMM(codeblock_t *block, int dst_reg, uint8_t imm_data);
 
 void host_x86_XOR8_REG_IMM(codeblock_t *block, int dst_reg, uint8_t imm_data);
 void host_x86_XOR16_REG_IMM(codeblock_t *block, int dst_reg, uint16_t imm_data);

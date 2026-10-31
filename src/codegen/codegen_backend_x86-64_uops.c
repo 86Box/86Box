@@ -272,7 +272,7 @@ static lazy_stub_t lazy_stubs[CODEGEN_LAZY_SITES_MAX];
 static int         nr_lazy_stubs;
 
 static void
-codegen_lazy_exit(uop_t *uop, uint32_t *patch, void *route)
+codegen_lazy_exit(int add, uint32_t *patch, void *route)
 {
     lazy_stub_t *stub;
 
@@ -284,7 +284,7 @@ codegen_lazy_exit(uop_t *uop, uint32_t *patch, void *route)
     stub->nr_patches = 1;
     stub->list       = codegen_lazy_site;
     stub->route      = route;
-    stub->add        = uop->imm_data2;
+    stub->add        = add;
 }
 
 /*Another branch, its rel32 at patch, to the exit codegen_lazy_exit just
@@ -347,18 +347,18 @@ codegen_lazy_stubs_emit(codeblock_t *block)
 }
 
 /*A conditional branch to route from branch (host_x86_JNZ_long and the like),
-  charging what uop->imm_data2 adds on the way. Without an entry the branch
-  with the opposite condition, inverse, jumps over the arm. Returns where the
-  exit starts, for another branch to the same exit, or NULL for a lazy site's
+  charging what add adds on the way. Without an entry the branch with the
+  opposite condition, inverse, jumps over the arm. Returns where the exit
+  starts, for another branch to the same exit, or NULL for a lazy site's
   exit, which takes the other branch with codegen_lazy_exit_also.*/
 static void *
-codegen_exit_Jcc(codeblock_t *block, uop_t *uop, void *route, uint32_t *(*branch)(codeblock_t *block), uint32_t *(*inverse)(codeblock_t *block))
+codegen_exit_Jcc_add(codeblock_t *block, int add, void *route, uint32_t *(*branch)(codeblock_t *block), uint32_t *(*inverse)(codeblock_t *block))
 {
-    void     *dest = codegen_exit_dest(route, uop->imm_data2);
+    void     *dest = codegen_exit_dest(route, add);
     uint32_t *jump_p;
 
     if (codegen_lazy_site && codegen_lazy_site->nr) {
-        codegen_lazy_exit(uop, branch(block), route);
+        codegen_lazy_exit(add, branch(block), route);
         return NULL;
     }
     if (dest) {
@@ -369,10 +369,17 @@ codegen_exit_Jcc(codeblock_t *block, uop_t *uop, void *route, uint32_t *(*branch
     codegen_alloc(block, EXIT_ARM_SIZE);
     jump_p = inverse(block);
     dest   = &block_write_data[block_pos];
-    codegen_exit_arm(block, uop->imm_data2, route);
+    codegen_exit_arm(block, add, route);
     *jump_p = (uintptr_t) &block_write_data[block_pos] - ((uintptr_t) jump_p + 4);
 
     return dest;
+}
+
+/*The same, charging what uop->imm_data2 adds*/
+static void *
+codegen_exit_Jcc(codeblock_t *block, uop_t *uop, void *route, uint32_t *(*branch)(codeblock_t *block), uint32_t *(*inverse)(codeblock_t *block))
+{
+    return codegen_exit_Jcc_add(block, uop->imm_data2, route, branch, inverse);
 }
 
 static int
@@ -1740,19 +1747,114 @@ codegen_FCOM_CHKCOP(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*The slow path of an inline load or store (misaligned, or no lookup entry):
+  the routine call and the abort exit. It is emitted behind the block, after
+  its last exit, so the fast paths take fewer code lines; it comes back with
+  a jump. Its abort exit is the access's lazy site exit as it would be
+  inline: the host registers hold the same values there. A block with more
+  accesses than slots keeps the rest inline.*/
+#    define MEM_SLOW_MAX 256
+
+typedef struct mem_slow_t {
+    uint32_t            *misaligned_p;
+    uint32_t            *miss_p;
+    void                *ret;
+    void                *rout;
+    codegen_lazy_list_t *lazy;
+    int                  kind;
+    int                  dest_reg;
+    int                  store;
+    int                  add;
+} mem_slow_t;
+
+static mem_slow_t mem_slow[MEM_SLOW_MAX];
+static int        nr_mem_slow;
+
+static void
+codegen_mem_slow(codeblock_t *block, const mem_slow_t *slow)
+{
+    if (slow->misaligned_p)
+        jump_here(slow->misaligned_p);
+    jump_here(slow->miss_p);
+    host_x86_MOV32_REG_REG(block, REG_ESI, slow->store ? REG_EDI : REG_ECX);
+    host_x86_CALL(block, slow->rout);
+    host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
+    codegen_exit_Jcc_add(block, slow->add, codegen_exit_rout, host_x86_JNZ_long, host_x86_JZ_long);
+    if (!slow->store) {
+        switch (slow->kind) {
+            case MEM_B:
+                host_x86_MOV8_REG_REG(block, slow->dest_reg, REG_ECX);
+                break;
+            case MEM_W:
+                host_x86_MOV16_REG_REG(block, slow->dest_reg, REG_ECX);
+                break;
+            case MEM_L:
+                host_x86_MOV32_REG_REG(block, slow->dest_reg, REG_ECX);
+                break;
+            default:
+                host_x86_MOVQ_XREG_XREG(block, slow->dest_reg, REG_XMM_TEMP);
+                break;
+        }
+    }
+}
+
+/*The fast path ends here: the slow path goes behind the block, or inline
+  with a jump over it*/
+static void
+codegen_mem_slow_add(codeblock_t *block, uop_t *uop, uint32_t *misaligned_p, uint32_t *miss_p, int kind, int dest_reg, int store, void *rout)
+{
+    mem_slow_t  inline_slow;
+    mem_slow_t *slow = (nr_mem_slow < MEM_SLOW_MAX) ? &mem_slow[nr_mem_slow++] : &inline_slow;
+    uint32_t   *done_p;
+
+    slow->misaligned_p = misaligned_p;
+    slow->miss_p       = miss_p;
+    slow->rout         = rout;
+    slow->lazy         = codegen_lazy_site;
+    slow->kind         = kind;
+    slow->dest_reg     = dest_reg;
+    slow->store        = store;
+    slow->add          = uop->imm_data2;
+    if (slow != &inline_slow) {
+        slow->ret = &block_write_data[block_pos];
+        return;
+    }
+    done_p = host_x86_JMP_long(block);
+    codegen_mem_slow(block, slow);
+    jump_here(done_p);
+}
+
+void
+codegen_mem_slow_reset(void)
+{
+    nr_mem_slow = 0;
+}
+
+/*After the block's last exit, and before the lazy stubs, which the abort
+  exits add to*/
+void
+codegen_mem_slow_emit(codeblock_t *block)
+{
+    for (int c = 0; c < nr_mem_slow; c++) {
+        codegen_lazy_site = mem_slow[c].lazy;
+        codegen_mem_slow(block, &mem_slow[c]);
+        host_x86_JMP(block, mem_slow[c].ret);
+    }
+    codegen_lazy_site = NULL;
+    nr_mem_slow       = 0;
+}
+
 static void
 codegen_mem_load(codeblock_t *block, uop_t *uop, int kind, int dest_reg, void *rout)
 {
     uint32_t *misaligned_p = NULL;
     uint32_t *miss_p;
-    uint32_t *done_p;
 
     host_x86_MOV32_REG_REG(block, REG_ECX, REG_ESI);
     host_x86_SHR32_IMM(block, REG_ESI, 12);
-    host_x86_MOV64_REG_IMM(block, REG_RDI, (uint64_t) (uintptr_t) readlookup2);
-    host_x86_MOV64_REG_BASE_INDEX_SHIFT(block, REG_RSI, REG_RDI, REG_RSI, 3);
+    host_x86_MOV64_REG_TABLE_INDEX(block, REG_RSI, REG_RDI, readlookup2, REG_RSI);
     if (mem_access_size(kind) != 1) {
-        host_x86_TEST32_REG_IMM(block, REG_ECX, mem_access_size(kind) - 1);
+        host_x86_TEST8_REG_IMM(block, REG_ECX, mem_access_size(kind) - 1);
         misaligned_p = host_x86_JNZ_long(block);
     }
     host_x86_CMP64_REG_IMM(block, REG_RSI, (uint32_t) -1);
@@ -1774,30 +1876,7 @@ codegen_mem_load(codeblock_t *block, uop_t *uop, int kind, int dest_reg, void *r
             host_x86_MOVQ_XREG_BASE_INDEX(block, dest_reg, REG_RSI, REG_RCX);
             break;
     }
-    done_p = host_x86_JMP_long(block);
-
-    if (misaligned_p)
-        jump_here(misaligned_p);
-    jump_here(miss_p);
-    host_x86_MOV32_REG_REG(block, REG_ESI, REG_ECX);
-    host_x86_CALL(block, rout);
-    host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
-    codegen_exit_Jcc(block, uop, codegen_exit_rout, host_x86_JNZ_long, host_x86_JZ_long);
-    switch (kind) {
-        case MEM_B:
-            host_x86_MOV8_REG_REG(block, dest_reg, REG_ECX);
-            break;
-        case MEM_W:
-            host_x86_MOV16_REG_REG(block, dest_reg, REG_ECX);
-            break;
-        case MEM_L:
-            host_x86_MOV32_REG_REG(block, dest_reg, REG_ECX);
-            break;
-        default:
-            host_x86_MOVQ_XREG_XREG(block, dest_reg, REG_XMM_TEMP);
-            break;
-    }
-    jump_here(done_p);
+    codegen_mem_slow_add(block, uop, misaligned_p, miss_p, kind, dest_reg, 0, rout);
 }
 
 static void
@@ -1805,14 +1884,12 @@ codegen_mem_store(codeblock_t *block, uop_t *uop, int kind, void *rout)
 {
     uint32_t *misaligned_p = NULL;
     uint32_t *miss_p;
-    uint32_t *done_p;
 
     host_x86_MOV32_REG_REG(block, REG_EDI, REG_ESI);
     host_x86_SHR32_IMM(block, REG_ESI, 12);
-    host_x86_MOV64_REG_IMM(block, REG_R8, (uint64_t) (uintptr_t) writelookup2);
-    host_x86_MOV64_REG_BASE_INDEX_SHIFT(block, REG_RSI, REG_R8, REG_RSI, 3);
+    host_x86_MOV64_REG_TABLE_INDEX(block, REG_RSI, REG_R8, writelookup2, REG_RSI);
     if (mem_access_size(kind) != 1) {
-        host_x86_TEST32_REG_IMM(block, REG_EDI, mem_access_size(kind) - 1);
+        host_x86_TEST8_REG_IMM(block, REG_EDI, mem_access_size(kind) - 1);
         misaligned_p = host_x86_JNZ_long(block);
     }
     host_x86_CMP64_REG_IMM(block, REG_RSI, (uint32_t) -1);
@@ -1834,16 +1911,7 @@ codegen_mem_store(codeblock_t *block, uop_t *uop, int kind, void *rout)
             host_x86_MOVQ_BASE_INDEX_XREG(block, REG_RSI, REG_RDI, REG_XMM_TEMP);
             break;
     }
-    done_p = host_x86_JMP_long(block);
-
-    if (misaligned_p)
-        jump_here(misaligned_p);
-    jump_here(miss_p);
-    host_x86_MOV32_REG_REG(block, REG_ESI, REG_EDI);
-    host_x86_CALL(block, rout);
-    host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
-    codegen_exit_Jcc(block, uop, codegen_exit_rout, host_x86_JNZ_long, host_x86_JZ_long);
-    jump_here(done_p);
+    codegen_mem_slow_add(block, uop, misaligned_p, miss_p, kind, -1, 1, rout);
 }
 
 static int
@@ -2007,7 +2075,7 @@ codegen_MEM_STORE_IMM_16(codeblock_t *block, uop_t *uop)
     int addr_reg = HOST_REG_GET(uop->src_reg_b_real);
 
     host_x86_LEA_REG_REG(block, REG_ESI, seg_reg, addr_reg);
-    host_x86_MOV16_REG_IMM(block, REG_ECX, uop->imm_data);
+    host_x86_MOV32_REG_IMM(block, REG_ECX, uop->imm_data & 0xffff); /*only CX is stored*/
     codegen_mem_store(block, uop, MEM_W, codegen_mem_store_word);
 
     return 0;

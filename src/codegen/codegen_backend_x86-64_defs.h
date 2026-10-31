@@ -72,5 +72,9 @@ extern void *codegen_exit_rout;
   add (uop->imm_data2, negative for a charge) to cycles: the routine itself
   for 0, an entry that charges it on the way, or NULL when there is none*/
 void *codegen_exit_dest(void *route, int add);
+/*The slow paths of the block's inline loads and stores: forgotten when a
+  block starts, emitted after its last exit*/
+void codegen_mem_slow_reset(void);
+void codegen_mem_slow_emit(codeblock_t *block);
 /*REP MOVS/STOS routines, indexed by [STOS][log2 element size][32-bit addressing]*/
 extern void *codegen_rep_rout[2][3][2];

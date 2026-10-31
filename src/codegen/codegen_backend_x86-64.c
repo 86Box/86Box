@@ -1826,6 +1826,7 @@ void
 codegen_backend_prologue(codeblock_t *block)
 {
     block_pos = BLOCK_START; /*Entry code*/
+    codegen_mem_slow_reset();
     host_x86_PUSH(block, REG_RBX);
     host_x86_PUSH(block, REG_RBP);
 #ifdef _WIN64
@@ -1880,7 +1881,7 @@ codegen_link_exit(codeblock_t *block)
 {
     codegen_link_slot_t *slot = &codegen_link_slots[get_block_nr(block)][link_site++ % CODEGEN_LINK_SLOTS];
 
-    host_x86_MOV64_REG_IMM(block, REG_RAX, (uint64_t) (uintptr_t) slot);
+    host_x86_MOV64_REG_ADDR(block, REG_RAX, slot);
     host_x86_JMP(block, codegen_link_rout);
 }
 #    endif
@@ -1891,6 +1892,7 @@ codegen_backend_epilogue(codeblock_t *block)
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
     if (codegen_block_link) {
         codegen_link_exit(block);
+        codegen_mem_slow_emit(block);
         codegen_lazy_stubs_emit(block);
         return;
     }
@@ -1915,6 +1917,7 @@ codegen_backend_epilogue(codeblock_t *block)
     host_x86_POP(block, REG_RBP);
     host_x86_POP(block, REG_RBX);
     host_x86_RET(block);
+    codegen_mem_slow_emit(block);
     codegen_lazy_stubs_emit(block);
 }
 #endif

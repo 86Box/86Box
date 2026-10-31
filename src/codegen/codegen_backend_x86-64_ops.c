@@ -85,17 +85,6 @@ emit_alu8_imm(codeblock_t *block, uint8_t eax_op, int ext, int dst_reg, uint8_t 
         emit_ext(block, 0, 0, 1, 1, 0x80, ext, dst_reg, 1, imm_data);
 }
 static void
-emit_alu16_imm(codeblock_t *block, uint8_t eax_op, int ext, int dst_reg, uint16_t imm_data)
-{
-    if (is_imm8(imm_data))
-        emit_ext(block, 0x66, 0, 0, 1, 0x83, ext, dst_reg, 1, imm_data & 0xff);
-    else if (dst_reg == REG_EAX) {
-        emit_head(block, 0x66, 0, 1, eax_op, 2);
-        codegen_addword(block, imm_data);
-    } else
-        emit_ext(block, 0x66, 0, 0, 1, 0x81, ext, dst_reg, 2, imm_data);
-}
-static void
 emit_alu32_imm(codeblock_t *block, uint8_t eax_op, int ext, int dst_reg, uint32_t imm_data)
 {
     if (is_imm8(imm_data))
@@ -105,6 +94,27 @@ emit_alu32_imm(codeblock_t *block, uint8_t eax_op, int ext, int dst_reg, uint32_
         codegen_addlong(block, imm_data);
     } else
         emit_ext(block, 0, 0, 0, 1, 0x81, ext, dst_reg, 4, imm_data);
+}
+/*The 66h prefix with a 16-bit immediate changes the instruction's length,
+  which stalls the legacy decoders, so it is avoided: the imm8 form where
+  the immediate sign-extends from 8 bits; AND, OR and XOR as 32-bit
+  operations that leave bits 16-31 as they are (no emitter reads the host
+  flags of an earlier uop); the others from ECX, which no caller holds
+  across these.*/
+static void
+emit_alu16_imm(codeblock_t *block, uint8_t eax_op, int ext, int dst_reg, uint16_t imm_data)
+{
+    if (is_imm8((uint32_t) (int32_t) (int16_t) imm_data))
+        emit_ext(block, 0x66, 0, 0, 1, 0x83, ext, dst_reg, 1, imm_data & 0xff);
+    else if (ext == RM_OP_AND)
+        emit_alu32_imm(block, eax_op, ext, dst_reg, 0xffff0000 | imm_data);
+    else if ((ext == RM_OP_OR) || (ext == RM_OP_XOR))
+        emit_alu32_imm(block, eax_op, ext, dst_reg, imm_data);
+    else if (dst_reg != REG_ECX) {
+        host_x86_MOV32_REG_IMM(block, REG_ECX, imm_data);
+        emit_rr(block, 0x66, 0, 0, 1, ext | 0x01, REG_ECX, dst_reg); /*op dst_reg, CX*/
+    } else
+        emit_ext(block, 0x66, 0, 0, 1, 0x81, ext, dst_reg, 2, imm_data);
 }
 
 /*[RBP + offset] addresses cpu_state; see codegen_backend_prologue(). Other
@@ -678,6 +688,32 @@ host_x86_MOV64_REG_BASE_INDEX_SHIFT(codeblock_t *block, int dst_reg, int base_re
 {
     emit_mem(block, 0, 1, 0, 1, 0x8b, dst_reg, base_reg, index_reg, scale, 0, DISP_AUTO, 0, 0); /*MOV dst_reg, Q[base_reg + index_reg << scale]*/
 }
+/*dst_reg = table[index_reg], a table of 64-bit entries in the executable:
+  one load relative to RBP when the table is in reach, else its address in
+  tmp_reg first*/
+void
+host_x86_MOV64_REG_TABLE_INDEX(codeblock_t *block, int dst_reg, int tmp_reg, void *table, int index_reg)
+{
+    int64_t offset = rbp_offset(table);
+
+    if (fits_disp32(offset))
+        emit_mem(block, 0, 1, 0, 1, 0x8b, dst_reg, REG_RBP, index_reg, 3, offset, DISP_32, 0, 0); /*MOV dst_reg, Q[RBP + index_reg * 8 + offset]*/
+    else {
+        host_x86_MOV64_REG_IMM(block, tmp_reg, (uint64_t) (uintptr_t) table);
+        host_x86_MOV64_REG_BASE_INDEX_SHIFT(block, dst_reg, tmp_reg, index_reg, 3);
+    }
+}
+/*reg = p, from RBP when p is in reach*/
+void
+host_x86_MOV64_REG_ADDR(codeblock_t *block, int reg, void *p)
+{
+    int64_t offset = rbp_offset(p);
+
+    if (fits_disp32(offset))
+        emit_mem(block, 0, 1, 0, 1, 0x8d, reg, REG_RBP, NO_INDEX, 0, offset, DISP_32, 0, 0); /*LEA reg, [RBP + offset]*/
+    else
+        host_x86_MOV64_REG_IMM(block, reg, (uint64_t) (uintptr_t) p);
+}
 
 void
 host_x86_MOV16_REG_BASE_OFFSET(codeblock_t *block, int dst_reg, int base_reg, int offset)
@@ -745,7 +781,13 @@ host_x86_MOV8_REG_IMM(codeblock_t *block, int reg, uint16_t imm_data)
 void
 host_x86_MOV16_REG_IMM(codeblock_t *block, int reg, uint16_t imm_data)
 {
-    emit_opreg(block, 0x66, 0, 0, 0xb8, reg, 2, imm_data); /*MOV reg, imm_data*/
+    /*Through ECX, without the length-changing 66h and imm16; see
+      emit_alu16_imm()*/
+    if (reg != REG_ECX) {
+        emit_opreg(block, 0, 0, 0, 0xb8, REG_ECX, 4, imm_data); /*MOV ECX, imm_data*/
+        emit_rr(block, 0x66, 0, 0, 1, 0x89, REG_ECX, reg);       /*MOV reg, CX*/
+    } else
+        emit_opreg(block, 0x66, 0, 0, 0xb8, reg, 2, imm_data); /*MOV reg, imm_data*/
 }
 void
 host_x86_MOV32_REG_IMM(codeblock_t *block, int reg, uint32_t imm_data)
@@ -1284,6 +1326,19 @@ host_x86_TEST32_REG_IMM(codeblock_t *block, int dst_reg, uint32_t imm_data)
         codegen_addlong(block, imm_data);
     } else
         emit_ext(block, 0, 0, 0, 1, 0xf7, 0, dst_reg, 4, imm_data); /*TEST dst_reg, imm_data*/
+}
+/*TEST on the low byte of any register: SPL-DIL need a REX prefix, without
+  one 4-7 would be AH-BH*/
+void
+host_x86_TEST8_REG_IMM(codeblock_t *block, int dst_reg, uint8_t imm_data)
+{
+    uint8_t rex = rex_prefix(0, 0, 0, dst_reg);
+
+    if ((dst_reg >= 4) && (dst_reg < 8))
+        rex = 0x40;
+    emit_head(block, 0, rex, 1, 0xf6, 2);
+    codegen_addbyte(block, 0xc0 | (dst_reg & 7)); /*TEST dst_reg, imm_data*/
+    codegen_addbyte(block, imm_data);
 }
 
 void
