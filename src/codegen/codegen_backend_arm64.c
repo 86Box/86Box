@@ -190,19 +190,33 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
 }
 
 #    if !defined(USE_GDBSTUB)
-/*An aligned dword store to a RAM page whose writes are tracked (page_lookup):
-  what writememll() and mem_write_raml_page() do, without the two calls. The
-  dword never reaches the next 64-byte chunk, so only one dirty bit and one
-  byte-mask word change. writememll()'s addr64a[] is left alone: every user
-  fills it before reading it. Anything else returns through to_c[] to the C
-  path.
+/*An aligned byte, word or dword store to a RAM page whose writes are tracked
+  (page_lookup): what writemem*l() and mem_write_ram*_page() do, without the
+  two calls. The store never reaches the next 64-byte chunk, so only one dirty
+  bit and one byte-mask word change. writemem*l()'s addr64 and addr64a[] are
+  left alone: every user fills them before reading them. Anything else returns
+  through to_c[] to the C path.
   In - W0 = address, W1 = data. Returns the number of to_c[] branches.*/
 static int
-build_store_long_tracked(codeblock_t *block, uint32_t **to_c)
+build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
 {
     uint32_t *done[3];
     uint32_t *add_evict;
-    int       nr_to_c = 0;
+    int       nr_to_c   = 0;
+    int       byte_mask = (1 << size) - 1;
+    void     *write_fn;
+    int       write_offset;
+
+    if (size == 1) {
+        write_fn     = (void *) mem_write_ramb_page;
+        write_offset = offsetof(page_t, write_b);
+    } else if (size == 2) {
+        write_fn     = (void *) mem_write_ramw_page;
+        write_offset = offsetof(page_t, write_w);
+    } else {
+        write_fn     = (void *) mem_write_raml_page;
+        write_offset = offsetof(page_t, write_l);
+    }
 
     host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) &codegen_in_recompile);
     host_arm64_LDR_IMM_W(block, REG_W3, REG_X3, 0);
@@ -220,8 +234,8 @@ build_store_long_tracked(codeblock_t *block, uint32_t **to_c)
     host_arm64_LDRX_REG_LSL3(block, REG_X4, REG_X3, REG_X2);
     host_arm64_CMPX_IMM(block, REG_X4, 0);
     to_c[nr_to_c++] = host_arm64_BEQ_(block);
-    host_arm64_LDR_IMM_X(block, REG_X5, REG_X4, offsetof(page_t, write_l));
-    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) mem_write_raml_page);
+    host_arm64_LDR_IMM_X(block, REG_X5, REG_X4, write_offset);
+    host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) write_fn);
     host_arm64_CMPX_REG(block, REG_X5, REG_X6);
     to_c[nr_to_c++] = host_arm64_BNE_(block);
 
@@ -238,12 +252,25 @@ build_store_long_tracked(codeblock_t *block, uint32_t **to_c)
     host_arm64_MOVX_IMM(block, REG_X6, (uint64_t) &high_page);
     host_arm64_STRB_IMM(block, REG_WZR, REG_X6, 0);
 
-    /*Unchanged data: no store and no dirty bits*/
+    /*Unchanged data: no store and no dirty bits. The C functions take the
+      data as uint8_t or uint16_t, so only its low bits count.*/
     host_arm64_AND_IMM(block, REG_W6, REG_W0, 0xfff);
-    host_arm64_LDR_REG(block, REG_W7, REG_X5, REG_X6);
+    if (size == 1) {
+        host_arm64_AND_IMM(block, REG_W1, REG_W1, 0xff);
+        host_arm64_LDRB_REG(block, REG_W7, REG_X5, REG_X6);
+    } else if (size == 2) {
+        host_arm64_AND_IMM(block, REG_W1, REG_W1, 0xffff);
+        host_arm64_LDRH_REG(block, REG_W7, REG_X5, REG_X6);
+    } else
+        host_arm64_LDR_REG(block, REG_W7, REG_X5, REG_X6);
     host_arm64_CMP_REG(block, REG_W7, REG_W1);
     done[0] = host_arm64_BEQ_(block);
-    host_arm64_STR_REG(block, REG_W1, REG_X5, REG_X6);
+    if (size == 1)
+        host_arm64_STRB_REG(block, REG_W1, REG_X5, REG_X6);
+    else if (size == 2)
+        host_arm64_STRH_REG(block, REG_W1, REG_X5, REG_X6);
+    else
+        host_arm64_STR_REG(block, REG_W1, REG_X5, REG_X6);
 
     /*W6 = 64-byte chunk, X7 = its dirty_mask bit*/
     host_arm64_UBFX(block, REG_W6, REG_W0, 6, 6);
@@ -255,7 +282,7 @@ build_store_long_tracked(codeblock_t *block, uint32_t **to_c)
 
     /*W9 = byte in chunk, X10 = byte_mask, W13 = chunk word offset*/
     host_arm64_AND_IMM(block, REG_W9, REG_W0, 63);
-    host_arm64_MOVZ_IMM(block, REG_X10, 0xf);
+    host_arm64_MOVZ_IMM(block, REG_X10, byte_mask);
     host_arm64_LSLX(block, REG_X10, REG_X10, REG_X9);
     host_arm64_MOV_REG(block, REG_W13, REG_W6, 3);
     host_arm64_LDR_IMM_X(block, REG_X11, REG_X4, offsetof(page_t, byte_dirty_mask));
@@ -275,7 +302,7 @@ build_store_long_tracked(codeblock_t *block, uint32_t **to_c)
     host_arm64_LDR_IMM_X(block, REG_X12, REG_X4, offsetof(page_t, byte_code_present_mask));
     host_arm64_LDR_REG_X(block, REG_X12, REG_X12, REG_X13);
     host_arm64_LSRX(block, REG_X12, REG_X12, REG_X9);
-    host_arm64_TST_IMM(block, REG_W12, 0xf);
+    host_arm64_TST_IMM(block, REG_W12, byte_mask);
     done[2] = host_arm64_BEQ_(block);
     host_arm64_branch_set_offset(add_evict, &block_write_data[block_pos]);
     host_arm64_STP_PREIDX_X(block, REG_X29, REG_X30, REG_XSP, -16);
@@ -339,9 +366,9 @@ build_store_routine(codeblock_t *block, int size, int is_float)
 
     host_arm64_branch_set_offset(branch_offset, &block_write_data[block_pos]);
 #    if !defined(USE_GDBSTUB)
-    if (size == 4 && !is_float) {
+    if (size <= 4 && !is_float) {
         uint32_t *to_c[6];
-        int       nr_to_c = build_store_long_tracked(block, to_c);
+        int       nr_to_c = build_store_tracked(block, size, to_c);
 
         for (int c = 0; c < nr_to_c; c++)
             host_arm64_branch_set_offset(to_c[c], &block_write_data[block_pos]);
