@@ -1,12 +1,14 @@
 name: CMake (Linux)
 
 # Compile checks for the configurations the pull request builds (made with
-# .ci/build.sh) don't cover.
+# .ci/build.sh) don't cover. The builds aren't uploaded, as Linux installs
+# don't bundle any libraries, so they would only run on a system matching the
+# runner's Ubuntu release with all the build dependencies installed. The pull
+# request builds provide usable Linux builds instead.
 #
-# Pull requests and pushes build a reduced matrix, leaving out the x86_64
-# SDL and Qt 5 Debug builds, which the CodeQL workflow already makes. Manual
-# runs (with the full matrix option) and the weekly scheduled run build every
-# configuration.
+# The build types marked manual are only built on manual runs with the full
+# matrix option. Among them are the x86_64 SDL and Qt 5 Dev Debug builds, which
+# the CodeQL workflow already makes.
 
 on:
 
@@ -46,7 +48,7 @@ on:
   workflow_dispatch:
     inputs:
       full_matrix:
-        description: Build every configuration instead of the reduced pull request matrix
+        description: Build every configuration, including the build types marked manual
         type: boolean
         default: true
 
@@ -71,27 +73,26 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
+        # Build types marked manual are only built on manual runs with the
+        # full matrix option
         build:
 #          - name: Regular
 #            preset: regular
-          - name: Debug
+          - name: Dev Debug
             preset: dev_debug
-            slug: -Debug
+            manual: true
           - name: Dev
             preset: development
-            slug: -Dev
         ui:
           - name: SDL GUI
             qt: off
             qt6: off
             sdl_shader: on
-            slug: -SDL
             static: on
           - name: Qt 5 GUI
             qt: on
             qt6: off
             sdl_shader: off
-            slug: -Qt5
             packages: >-
               qtbase5-dev
               qtbase5-private-dev
@@ -103,7 +104,6 @@ jobs:
             qt: on
             qt6: on
             sdl_shader: off
-            slug: -Qt6
             packages: >-
               qt6-base-dev
               qt6-base-private-dev
@@ -116,14 +116,12 @@ jobs:
               libvulkan-dev
         environment:
           - arch: x86_64
-            slug: "-x86_64"
             runner: ubuntu-26.04
           - arch: arm64
-            slug: -arm64
             runner: ubuntu-26.04-arm
-        # Built by the CodeQL workflow
-        exclude: >-
-          ${{ fromJSON((github.event_name == 'schedule' || inputs.full_matrix) && '[]' || '[{"build": {"name": "Debug"}, "ui": {"name": "SDL GUI"}, "environment": {"arch": "x86_64"}}, {"build": {"name": "Debug"}, "ui": {"name": "Qt 5 GUI"}, "environment": {"arch": "x86_64"}}]') }}
+        exclude:
+          - build:
+              manual: ${{ !inputs.full_matrix }}
 
     steps:
       - name: Install dependencies
@@ -160,13 +158,3 @@ jobs:
       - name: Build
         run: |
           cmake --build build
-
-      - name: Generate package
-        run: |
-          cmake --install build
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: '86Box${{ matrix.ui.slug }}${{ matrix.build.slug }}-UbuntuJammy${{ matrix.environment.slug }}-gha${{ github.run_number }}'
-          path: build/artifacts/**

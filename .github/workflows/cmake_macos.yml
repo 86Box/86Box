@@ -3,9 +3,10 @@ name: CMake (macos)
 # Compile checks for the configurations the pull request builds (made with
 # .ci/build.sh) don't cover.
 #
-# Pull requests and pushes build a reduced matrix, only building Qt 5 on
-# arm64, as macOS runners are scarce. Manual runs (with the full matrix
-# option) and the weekly scheduled run build every configuration.
+# The build types, user interfaces and architectures marked manual are only
+# built on manual runs with the full matrix option, as macOS runners are
+# scarce. Among them is the x86_64 Qt 5 Dev Debug build, which the CodeQL
+# workflow already makes.
 
 on:
 
@@ -45,7 +46,7 @@ on:
   workflow_dispatch:
     inputs:
       full_matrix:
-        description: Build every configuration instead of the reduced pull request matrix
+        description: Build every configuration, including the build types, user interfaces and architectures marked manual
         type: boolean
         default: true
 
@@ -70,36 +71,53 @@ jobs:
     strategy:
       fail-fast: true
       matrix:
+        # Build types, user interfaces and architectures marked manual are
+        # only built on manual runs with the full matrix option
         build:
 #          - name: Regular
 #            preset: regular
-          - name: Debug
+          - name: Dev Debug
             preset: dev_debug
-            slug: -Debug
+            slug: -Dev-Debug
+            manual: true
           - name: Dev
             preset: development
             slug: -Dev
         ui:
-          - name: SDL GUI
-            qt: off
-            slug: -SDL
-            static: on
           - name: Qt 5 GUI
             qt: on
-            slug: -Qt5
+            qt6: off
+            slug: ""
             packages: >-
               qt@5
+          - name: Qt 6 GUI
+            qt: on
+            qt6: on
+            slug: -Qt6
+            packages: >-
+              qt
+            manual: true
+          - name: SDL GUI
+            qt: off
+            qt6: off
+            slug: -SDL
+            static: on
+            manual: true
         environment:
           - arch: x86_64
             slug: -x86_64
             runner: macos-15-intel
+            manual: true
           - arch: arm64
             slug: -arm64
             runner: macos-15
-        # Only build Qt 5 on arm64, as macOS runners are scarce. The CodeQL
-        # workflow builds Qt 5 Debug on x86_64.
-        exclude: >-
-          ${{ fromJSON((github.event_name == 'schedule' || inputs.full_matrix) && '[]' || '[{"environment": {"arch": "x86_64"}}, {"ui": {"name": "SDL GUI"}}]') }}
+        exclude:
+          - build:
+              manual: ${{ !inputs.full_matrix }}
+          - ui:
+              manual: ${{ !inputs.full_matrix }}
+          - environment:
+              manual: ${{ !inputs.full_matrix }}
 
     steps:
       - name: Install dependencies
@@ -125,8 +143,11 @@ jobs:
         run: >-
           cmake -S . -B build --preset ${{ matrix.build.preset }}
           -D QT=${{ matrix.ui.qt }}
+          -D USE_QT6=${{ matrix.ui.qt6 }}
           -D Qt5_ROOT=$(brew --prefix qt@5)
           -D Qt5LinguistTools_ROOT=$(brew --prefix qt@5)
+          -D Qt6_ROOT=$(brew --prefix qt)
+          -D Qt6LinguistTools_ROOT=$(brew --prefix qt)
           -D OpenAL_ROOT=$(brew --prefix openal-soft)
           -D LIBSERIALPORT_ROOT=$(brew --prefix libserialport)
 
@@ -139,5 +160,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: '86Box${{ matrix.ui.slug }}${{ matrix.build.slug }}-macOS${{ matrix.environment.slug }}-gha${{ github.run_number }}'
+          name: '86Box${{ matrix.build.slug }}${{ matrix.ui.slug }}-macOS${{ matrix.environment.slug }}-gha${{ github.run_number }}'
           path: build/artifacts/**
