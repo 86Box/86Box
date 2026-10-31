@@ -128,10 +128,18 @@ private slots:
     void refreshAll();
 
 private:
-    void refreshCpu();
-    void refreshDisasm();
-    void updateStatus();
-    void updateRunButton();
+    struct DisasmView;
+
+    /* The read parts take the lock; the show parts only touch widgets, so
+       a refresh can update them after letting the emulator go again. */
+    bool    readCpu(QString *text);
+    void    showCpu(const QString &text);
+    bool    readDisasm(DisasmView *view);
+    void    showDisasm(const DisasmView &view);
+    void    refreshCpu();
+    void    refreshDisasm();
+    void    updateStatus();
+    void    updateRunButton();
 
     MemoryHexView  *hex_;
     QPushButton    *runBtn_;

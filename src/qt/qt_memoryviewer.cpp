@@ -947,7 +947,6 @@ MemoryViewer::MemoryViewer(QWidget *parent)
     disasm_->setRootIsDecorated(false);
     disasm_->setUniformRowHeights(true);
     disasm_->setFont(monoFont());
-    disasm_->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
     disasm_->setToolTip(tr("Double-click a line to set or clear a breakpoint there"));
     auto *disBox    = new QGroupBox(tr("Disassembly"), this);
     auto *disLayout = new QVBoxLayout(disBox);
@@ -1137,17 +1136,38 @@ MemoryViewer::onPoll()
     }
 }
 
+/* What the disassembly shows, read under the lock. */
+struct MemoryViewer::DisasmView {
+    debugger_cpu_info_t info {};
+    QVector<DisasmInsn> lines;
+    QVector<bool>       bps;
+    uint32_t            segBase = 0;
+};
+
 void
 MemoryViewer::refreshAll()
 {
+    QString    cpu;
+    DisasmView view;
+    bool       haveCpu;
+    bool       haveDisasm;
+
+    /* One lock for every part, so they agree with each other; the widgets
+       are updated after it, as the emulator waits for as long as it is
+       held. */
     if (!lock()) {
         statusLabel_->setText(tr("The emulator is busy; the view was not updated."));
         return;
     }
     hex_->refresh();
-    refreshCpu();
-    refreshDisasm();
+    haveCpu    = readCpu(&cpu);
+    haveDisasm = readDisasm(&view);
     unlock();
+
+    if (haveCpu)
+        showCpu(cpu);
+    if (haveDisasm)
+        showDisasm(view);
     updateStatus();
 }
 
@@ -1185,83 +1205,105 @@ MemoryViewer::updateStatus()
     updateRunButton();
 }
 
-void
-MemoryViewer::refreshCpu()
+bool
+MemoryViewer::readCpu(QString *text)
 {
     QByteArray buf(4096, '\0');
 
     if (!lock())
-        return;
+        return false;
     debugger_cpu_format(buf.data(), buf.size());
     unlock();
 
+    *text = QString::fromLatin1(buf.constData());
+    return true;
+}
+
+void
+MemoryViewer::showCpu(const QString &text)
+{
     const int pos = cpuText_->verticalScrollBar()->value();
-    cpuText_->setPlainText(QString::fromLatin1(buf.constData()));
+    cpuText_->setPlainText(text);
     cpuText_->verticalScrollBar()->setValue(pos);
 }
 
 void
-MemoryViewer::refreshDisasm()
+MemoryViewer::refreshCpu()
+{
+    QString text;
+
+    if (readCpu(&text))
+        showCpu(text);
+}
+
+bool
+MemoryViewer::readDisasm(DisasmView *view)
 {
 #ifdef USE_DISASM
-    debugger_cpu_info_t info;
-    QVector<DisasmInsn> lines;
-    QVector<bool>       bps;
-    uint32_t            segBase = 0;
-
     if (!lock())
-        return;
-    debugger_cpu_info(&info);
+        return false;
+    debugger_cpu_info(&view->info);
     {
         Disassembler dis;
-        uint32_t     ip = followBox_->isChecked() ? info.ip : (disasmAddr_ - dis.csBase());
+        uint32_t     ip = followBox_->isChecked() ? view->info.ip : (disasmAddr_ - dis.csBase());
         if (!followBox_->isChecked() && dis.wraps() && (ip > 0xffff)) {
             /* Out of CS's reach where IP wraps at 64 KB: decode in the
                segment the address starts. */
             dis.setBase(disasmAddr_ & ~0x0f);
             ip = disasmAddr_ & 0x0f;
         }
-        segBase = dis.csBase();
+        view->segBase = dis.csBase();
         for (int i = 0; i < DISASM_LINES; i++) {
             /* The instruction at CS:IP may already be in the prefetch queue. */
-            DisasmInsn d = dis.decode(ip, (dis.csBase() == info.cs_base) && (ip == info.ip));
-            bps.append(debugger_breakpoint_present(d.lin));
-            lines.append(d);
+            DisasmInsn d = dis.decode(ip, (dis.csBase() == view->info.cs_base) && (ip == view->info.ip));
+            view->bps.append(debugger_breakpoint_present(d.lin));
+            view->lines.append(d);
             /* Past something unreadable, go on at the next byte. */
             ip = dis.next(ip, d.len);
         }
     }
     unlock();
+    return true;
+#else
+    (void) view;
+    return false;
+#endif
+}
+
+void
+MemoryViewer::showDisasm(const DisasmView &view)
+{
+    const debugger_cpu_info_t &info = view.info;
 
     if (followBox_->isChecked())
         disasmEdit_->setText(QString::asprintf("%04X:%0*X", info.cs_sel, info.code32 ? 8 : 4, info.ip));
 
     /* The rows are kept and rewritten, not made anew: a live update between
        the two clicks of a double-click (a breakpoint) would otherwise take
-       the row it started on away, and the double-click with it. */
-    while (disasm_->topLevelItemCount() > lines.size())
+       the row it started on away, and the double-click with it. Each cell
+       is set once, to what it shows: an unchanged value is not set again,
+       and so neither repaints nor resizes anything. */
+    while (disasm_->topLevelItemCount() > view.lines.size())
         delete disasm_->takeTopLevelItem(disasm_->topLevelItemCount() - 1);
-    while (disasm_->topLevelItemCount() < lines.size())
+    while (disasm_->topLevelItemCount() < view.lines.size())
         new QTreeWidgetItem(disasm_);
 
     QTreeWidgetItem *current = nullptr;
-    for (int n = 0; n < lines.size(); n++) {
-        const DisasmInsn &l    = lines[n];
-        QTreeWidgetItem  *item = disasm_->topLevelItem(n);
+    for (int n = 0; n < view.lines.size(); n++) {
+        const DisasmInsn &l         = view.lines[n];
+        QTreeWidgetItem  *item      = disasm_->topLevelItem(n);
+        const bool        isCurrent = (l.lin == info.pc_linear);
         QString           bytes;
-        for (int c = 0; c < 5; c++) {
-            item->setBackground(c, QBrush());
-            item->setForeground(c, QBrush());
-        }
         for (int i = 0; (i < l.len) && (i < 16); i++)
             bytes += QString::asprintf("%02X", l.bytes[i]);
 
-        item->setText(0, bps[n] ? QStringLiteral("\u25cf") : QString());
+        item->setText(0, view.bps[n] ? QStringLiteral("\u25cf") : QString());
         item->setForeground(0, QBrush(Qt::red));
-        if (segBase == info.cs_base)
+        item->setBackground(0, QBrush());
+        if (view.segBase == info.cs_base)
             item->setText(1, QString::asprintf("%08X  %04X:%0*X", l.lin, info.cs_sel, info.code32 ? 8 : 4, info.code32 ? l.ip : (l.ip & 0xffff)));
         else if (!info.protected_mode)
-            item->setText(1, QString::asprintf("%08X  %04X:%04X", l.lin, segBase >> 4, l.ip & 0xffff));
+            item->setText(1, QString::asprintf("%08X  %04X:%04X", l.lin, view.segBase >> 4, l.ip & 0xffff));
         else
             item->setText(1, QString::asprintf("%08X", l.lin));
         item->setData(1, Qt::UserRole, l.lin);
@@ -1270,21 +1312,37 @@ MemoryViewer::refreshDisasm()
         item->setText(4, l.note);
         item->setToolTip(3, l.note);
         item->setToolTip(4, l.note);
-        if (l.len <= 0)
-            item->setForeground(3, QBrush(unmappedFg));
-        else if (l.invalid)
-            item->setForeground(3, QBrush(inaccessibleBg));
-        if (l.lin == info.pc_linear) {
-            for (int c = 1; c < 5; c++) {
-                item->setBackground(c, palette().brush(QPalette::Highlight));
-                item->setForeground(c, palette().brush(QPalette::HighlightedText));
-            }
-            current = item;
+        for (int c = 1; c < 5; c++) {
+            QBrush fg;
+            if (isCurrent)
+                fg = palette().brush(QPalette::HighlightedText);
+            else if ((c == 3) && (l.len <= 0))
+                fg = QBrush(unmappedFg);
+            else if ((c == 3) && l.invalid)
+                fg = QBrush(inaccessibleBg);
+            item->setForeground(c, fg);
+            item->setBackground(c, isCurrent ? palette().brush(QPalette::Highlight) : QBrush());
         }
+        if (isCurrent)
+            current = item;
     }
+
+    /* Fitted once here, not by the header resizing to the contents: that
+       measures each column over all the rows again for every cell set
+       above, and took most of a second. */
+    for (int c = 0; c < disasm_->columnCount(); c++)
+        disasm_->resizeColumnToContents(c);
     if (current)
         disasm_->scrollToItem(current);
-#endif
+}
+
+void
+MemoryViewer::refreshDisasm()
+{
+    DisasmView view;
+
+    if (readDisasm(&view))
+        showDisasm(view);
 }
 
 /* Hex number, with an optional 0x prefix or h suffix. */
