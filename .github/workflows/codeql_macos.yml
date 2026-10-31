@@ -1,5 +1,10 @@
 name: CodeQL Analysis (macos)
 
+# Each analysis uploads its results under its own category, so that analyses
+# of different platforms and configurations don't replace each other's
+# results. These Debug builds double as compile checks, which is why the
+# CMake workflows leave them out of their reduced matrix.
+
 on:
 
   push:
@@ -66,10 +71,12 @@ jobs:
 #            slug: -Dev
         ui:
 #          - name: SDL GUI
+#            id: sdl
 #            qt: off
 #            slug: -SDL
 #            static: on
           - name: Qt 5 GUI
+            id: qt5
             qt: on
             slug: -Qt5
             packages: >-
@@ -127,7 +134,7 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 # v4.38
         with:
-          category: "/language:${{matrix.language}}"
+          category: "/language:${{ matrix.language }}/os:macos/ui:${{ matrix.ui.id }}"
 
       - name: SonarQube Scan
 #        if: matrix.build.preset == 'dev_debug' && matrix.ui.qt == 'on' && env.SONAR_TOKEN != ''
