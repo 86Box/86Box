@@ -1309,6 +1309,19 @@ pic_i86_mode(pic_t *dev)
     return (dev->flags & PIC_IBM5140) || (dev->icw4 & 1);
 }
 
+/* The master puts the input the slave is on onto CAS0-2, and a slave in
+   cascade mode only answers INTA if that is the ID in its ICW3 - otherwise,
+   nothing drives the bus. An uninitialized slave's ICW3 is 0, so it doesn't
+   answer for the input it is wired to. */
+static uint8_t
+pic_slave_ack_read(pic_t *slave, uint8_t cascade_id, int phase)
+{
+    if (pic_cascade_mode(slave) && ((slave->icw3 & 0x07) != cascade_id))
+        return 0xff;
+
+    return pic_irq_ack_read(slave, phase);
+}
+
 static uint8_t
 pic_irq_ack_read(pic_t *dev, int phase)
 {
@@ -1323,13 +1336,13 @@ pic_irq_ack_read(pic_t *dev, int phase)
                                        override the one currently being processed. */
             pic_acknowledge(dev);
             if (slave)
-                dev->data_bus = pic_irq_ack_read(dev->slaves[intr], phase);
+                dev->data_bus = pic_slave_ack_read(dev->slaves[intr], intr, phase);
             else
                 dev->data_bus = pic_i86_mode(dev) ? 0xff : 0xcd;
         } else if (pic_i86_mode(dev)) {
             dev->int_pending = 0;
             if (slave)
-                dev->data_bus = pic_irq_ack_read(dev->slaves[intr], phase);
+                dev->data_bus = pic_slave_ack_read(dev->slaves[intr], intr, phase);
             else if ((dev == &pic) && (irq_vector_override[intr] >= 0))
                 dev->data_bus = irq_vector_override[intr];
             else
@@ -1337,7 +1350,7 @@ pic_irq_ack_read(pic_t *dev, int phase)
             pic_auto_non_specific_eoi(dev);
         } else if (phase == 1) {
             if (slave)
-                dev->data_bus = pic_irq_ack_read(dev->slaves[intr], phase);
+                dev->data_bus = pic_slave_ack_read(dev->slaves[intr], intr, phase);
             else if (dev->icw1 & 0x04)
                 dev->data_bus = (intr << 2) + (dev->icw1 & 0xe0);
             else
@@ -1345,7 +1358,7 @@ pic_irq_ack_read(pic_t *dev, int phase)
         } else if (phase == 2) {
             dev->int_pending = 0;
             if (slave)
-                dev->data_bus = pic_irq_ack_read(dev->slaves[intr], phase);
+                dev->data_bus = pic_slave_ack_read(dev->slaves[intr], intr, phase);
             else
                 dev->data_bus = dev->icw2;
             pic_auto_non_specific_eoi(dev);
