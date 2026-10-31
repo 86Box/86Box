@@ -16,7 +16,14 @@ class QTimer;
 class QTreeWidget;
 class QTreeWidgetItem;
 
-/* A hex view of one address space that reads only the rows it shows. */
+/* A contiguous range of mapped addresses. */
+struct MappedRange {
+    uint32_t start;
+    uint32_t length; /* in bytes, multiple of BYTES_PER_ROW for simplicity, or just page aligned */
+};
+
+/* A hex view of one address space that reads only the rows it shows,
+   omitting addresses that are not mapped. */
 class MemoryHexView : public QAbstractScrollArea {
     Q_OBJECT
 
@@ -65,6 +72,13 @@ private:
     void     fillSelection();
     QString  selectionText() const;
 
+    /* Build the list of mapped ranges for the current space. */
+    void     rebuildMappedRanges();
+    /* Map a virtual row (in the dense view) to a real address. */
+    uint32_t virtualRowToAddr(int64_t virtualRow) const;
+    /* Map a real address to its virtual row, or -1 if unmapped. */
+    int64_t  addrToVirtualRow(uint32_t addr) const;
+
     int      space_ = 0;
     uint32_t sel_    = 0;
     uint32_t anchor_ = 0; /* the other end of the selection */
@@ -79,6 +93,10 @@ private:
 
     int charW_ = 8;
     int lineH_ = 16;
+
+    /* Dense view of only mapped memory. */
+    QVector<MappedRange> mappedRanges_;
+    uint64_t             totalMappedBytes_ = 0;
 };
 
 class MemoryViewer : public QDialog {
