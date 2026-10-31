@@ -1084,6 +1084,11 @@ mach64_vblank_start(svga_t *svga)
     int       overlay_cmp_mix = (mach64->overlay_key_cntl >> 8) & 0xf;
 
     mach64->crtc_int_cntl |= 4;
+    /* The Rage Pro's second vertical blank flag, CRTC_VBLANK_BIT2_INT (31),
+       which ATI's DirectDraw driver for it waits on after a flip instead of
+       CRTC_VBLANK_INT. */
+    if (mach64->ragepro)
+        mach64->crtc_int_cntl |= 0x80000000;
     mach64_update_irqs(mach64);
     mach64_update_overscan(mach64);
 
@@ -2114,6 +2119,8 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
 
                     mach64->crtc_int_cntl = (mach64->crtc_int_cntl & ~(en & lane)) | (v & en);
                     mach64->crtc_int_cntl &= ~(v & (en << 1)); /* the acknowledges */
+                    if (mach64->ragepro)
+                        mach64->crtc_int_cntl &= ~(v & 0x80000000); /* CRTC_VBLANK_BIT2_INT */
                     mach64_update_irqs(mach64);
                     break;
                 }
