@@ -194,12 +194,9 @@ voodoo_recalc(voodoo_t *voodoo)
             voodoo->fb_draw_buffer     = voodoo->disp_buffer;
             break;
         case FBZ_DRAW_BACK:
+        default: /*Reserved selects go to the back buffer, as in voodoo_update_queued_buffers()*/
             voodoo->params.draw_offset = voodoo->back_offset;
             voodoo->fb_draw_buffer     = voodoo->draw_buffer;
-            break;
-
-        default:
-            fatal("voodoo_recalc : unknown draw buffer\n");
             break;
     }
 
@@ -721,7 +718,7 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
                 break;
             
             case SST_userIntrCMD:
-                fatal("userIntrCMD write %08x\n", val);
+                voodoo_log("userIntrCMD write %08x\n", val);
                 break;
 
             case SST_swapbufferCMD:
