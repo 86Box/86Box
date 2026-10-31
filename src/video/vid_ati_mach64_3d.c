@@ -175,6 +175,8 @@
 #define RP_COMP_BLEND_BILINEAR (1u << 11)
 #define RP_COMP_FILTER_BILIN   (1u << 12)
 #define RP_COMP_ALPHA          (1u << 13)
+#define RP_TEXTURE_TILING      (1u << 14)
+#define RP_COMPOSITE_TEX_TILING (1u << 15)
 #define RP_TEXTURE_CLAMP_S     (1u << 17)
 #define RP_TEXTURE_CLAMP_T     (1u << 18)
 #define RP_TEX_ST_DIRECT       (1u << 19)
@@ -3533,7 +3535,76 @@ typedef struct mach64_rp_map_t {
     int                 clamp_s;
     int                 clamp_t;
     int                 agp; /* TEX_SRC_AGP: in system memory, AGP_BASE + the offset */
+    const uint32_t     *tile_u; /* TEXTURE_TILING: where texel u, v of the map is, */
+    const uint32_t     *tile_v; /* as tile_u[u] ^ tile_v[v]; NULL when it is linear */
 } mach64_rp_map_t;
+
+/*
+ * Tiled textures (TEX_CNTL TEXTURE_TILING, and COMPOSITE_TEX_TILING for the
+ * composite one). No document we have describes the layout; this is what
+ * ATI's Windows 9x driver (macxw4 5.30) leaves in AGP memory, worked out
+ * from 3DMark 99's textures: 4x4 texel tiles, their texels in rows, and
+ * the tiles in Morton order, X first. As texel address bits, from the
+ * lowest: x0 x1 y0 y1, then x2 y2 x3 y3 and on, a map's missing bits left
+ * out, so a narrow map's remaining y bits (or a short one's x bits) come
+ * last; and x5's bit holds x5 XOR y5, which turns every other 32-row band
+ * of 32-texel blocks about (a bank swizzle). Checked on the font, the HUD
+ * and the wall textures of 3DMark 99 against their source images. Only
+ * 16 bpp textures were seen tiled.
+ *
+ * mach64_rp_tile[l2w][l2h] holds, for a 2^l2w x 2^l2h map, each u's and
+ * each v's share of the texel index, to be XORed: 1024 entries for u, then
+ * 1024 for v.
+ */
+static uint32_t *mach64_rp_tile[11][11];
+
+static void
+mach64_rp_tile_init(void)
+{
+    if (mach64_rp_tile[0][0])
+        return;
+    for (int l2w = 0; l2w <= 10; l2w++)
+        for (int l2h = 0; l2h <= 10; l2h++) {
+            uint32_t *t = calloc(2048, sizeof(uint32_t));
+            int       xbit[10];
+            int       ybit[10];
+            int       pos = 0;
+
+            for (int i = 0; i < 2; i++)
+                if (i < l2w)
+                    xbit[i] = pos++;
+            for (int i = 0; i < 2; i++)
+                if (i < l2h)
+                    ybit[i] = pos++;
+            for (int i = 2; i < 10; i++) {
+                if (i < l2w)
+                    xbit[i] = pos++;
+                if (i < l2h)
+                    ybit[i] = pos++;
+            }
+            for (int c = 0; c < 1024; c++)
+                for (int i = 0; i < 10; i++) {
+                    if ((i < l2w) && ((c >> i) & 1))
+                        t[c] |= 1u << xbit[i];
+                    if ((i < l2h) && ((c >> i) & 1))
+                        t[1024 + c] |= 1u << ybit[i];
+                }
+            if ((l2w > 5) && (l2h > 5))
+                for (int c = 0; c < 1024; c++)
+                    if ((c >> 5) & 1)
+                        t[1024 + c] ^= 1u << xbit[5];
+            mach64_rp_tile[l2w][l2h] = t;
+        }
+}
+
+static void
+mach64_rp_map_tiled(mach64_rp_map_t *map)
+{
+    const uint32_t *t = mach64_rp_tile[log2i(map->w)][log2i(map->h)];
+
+    map->tile_u = t;
+    map->tile_v = t + 1024;
+}
 
 typedef struct mach64_rp_texture_t {
     int             levels; /* maps[0] the largest */
@@ -3606,6 +3677,8 @@ mach64_rp_texture_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
         mach64_rp_map_level(ctx, &tx->maps[n], format, offsets[size - n], l2w - n, l2h - n, !!(tex_cntl & RP_TEXTURE_CLAMP_S),
                             !!(tex_cntl & RP_TEXTURE_CLAMP_T));
         tx->maps[n].agp = !!(tex_cntl & RP_TEX_SRC_AGP);
+        if (tex_cntl & RP_TEXTURE_TILING)
+            mach64_rp_map_tiled(&tx->maps[n]);
     }
     tx->bilinear_mag = !!(cntl & BILINEAR_TEX_EN);
     tx->blend_fcn    = (cntl >> TEX_BLEND_FCN) & 3;
@@ -3629,6 +3702,8 @@ mach64_rp_composite_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
     mach64_rp_map_level(ctx, &tx->maps[0], format, ctx->regs[RP_SECONDARY_TEX_OFF >> 2], (tsp >> 16) & 15, (tsp >> 24) & 15,
                         !!(tex_cntl & RP_SEC_TEX_CLAMP_S), !!(tex_cntl & RP_SEC_TEX_CLAMP_T));
     tx->maps[0].agp = !!(tex_cntl & RP_TEX_SRC_AGP); /* both textures are local or both AGP */
+    if (tex_cntl & RP_COMPOSITE_TEX_TILING)
+        mach64_rp_map_tiled(&tx->maps[0]);
     if (tx->maps[0].w > 1024 || tx->maps[0].h > 1024)
         return 0;
     tx->bilinear_mag = !!(tex_cntl & RP_COMP_FILTER_BILIN);
@@ -3695,6 +3770,12 @@ mach64_rp_texel(mach64_3d_t *ctx, const mach64_rp_map_t *map, int u, int v, int 
 {
     u = mach64_rp_wrap(u, map->w, map->clamp_s);
     v = mach64_rp_wrap(v, map->h, map->clamp_t);
+    if (map->tile_u) {
+        uint32_t i = map->tile_u[u] ^ map->tile_v[v];
+
+        u = i & (map->w - 1);
+        v = i / map->w;
+    }
     if (map->agp)
         return mach64_rp_texel_agp(ctx, &map->tex, u, v, inhibits);
     return mach64_3d_texel_at(ctx, &map->tex, u, v, inhibits);
@@ -4444,6 +4525,7 @@ mach64_3d_init(mach64_t *mach64)
 
     mach64_3d_expand_table_init();
     mach64_3d_dither_table_init();
+    mach64_rp_tile_init();
     ctx->mach64  = mach64;
     ctx->threads = ((mach64->render_threads == 2) || (mach64->render_threads == 4)) ? mach64->render_threads : 1;
     return ctx;
