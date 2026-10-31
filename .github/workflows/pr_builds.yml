@@ -22,6 +22,7 @@ on:
       - reopened
       - synchronize
       - labeled
+      - closed
     paths:
       - src/**
       - cmake/**
@@ -42,7 +43,9 @@ on:
 
 # Cancel superseded runs for the same pull request. Adding any label other
 # than the dev branch one does not build anything, so it gets a unique group
-# so as to not cancel a build in progress, as do manual runs.
+# so as to not cancel a build in progress, as do manual runs. Closing a pull
+# request (including merging it) builds nothing either, but only cancels the
+# build in progress.
 concurrency:
   group: ${{ github.workflow }}-${{ (github.event.action != 'labeled' || github.event.label.name == 'dev branch') && github.event.pull_request.number || github.run_id }}
   cancel-in-progress: true
@@ -58,7 +61,7 @@ jobs:
 
     name: Prepare build ID
 
-    if: github.event.action != 'labeled' || github.event.label.name == 'dev branch'
+    if: github.event.action != 'closed' && (github.event.action != 'labeled' || github.event.label.name == 'dev branch')
 
     runs-on: ubuntu-latest
 

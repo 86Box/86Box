@@ -19,7 +19,15 @@ on:
       - vcpkg.json
       - "!**/Makefile*"
 
+  # Closing a pull request (including merging it) starts a run that builds
+  # nothing, only cancelling the run in progress through the concurrency
+  # group below
   pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - closed
     branches: [ "master" ]
     paths:
       - src/**
@@ -47,6 +55,8 @@ jobs:
   analyze-linux:
 
     name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.environment.arch }}"
+
+    if: github.event.action != 'closed'
 
     runs-on: ubuntu-26.04
 
