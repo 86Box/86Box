@@ -852,7 +852,7 @@ pe2_init(const device_t *info)
     dev->dp8390            = device_add_inst(&dp8390_device, dp3890_inst++);
     dev->dp8390->priv      = dev;
     dev->dp8390->interrupt = pe2_interrupt;
-    dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CHECK_CR | DP8390_FLAG_CLEAR_IRQ | DP8390_FLAG_LOOP_TSR);
+    dp8390_set_defaults(dev->dp8390, DP8390_FLAG_CHECK_CR | DP8390_FLAG_CLEAR_IRQ);
     dp8390_mem_alloc(dev->dp8390, 0x2000, 0x8000); /* memory test walks 2000 onwards */
 
     dev->card         = network_attach(dev->dp8390, dev->mac, dp8390_rx, NULL);
