@@ -30,6 +30,8 @@
  *            forms of the groups (0F 00, 0F 01, 0F AE, 0F C7 and so on),
  *            which the library takes as later instructions (MONITOR,
  *            RDTSCP, LFENCE, RDRAND), raise #UD as 86Box's handlers do.
+ *            A 3DNow! suffix is looked up in the processor's own table:
+ *            the K6-2 and WinChip 2 lack the K6-2+ and K6-III+'s additions.
  *          - The library's decoder modes for extensions that reuse old
  *            encodings (MPX, CET, LZCNT/TZCNT, WBNOINVD, CLDEMOTE,
  *            instruction prefetch hints) are off: these processors have
@@ -1151,6 +1153,17 @@ Disassembler::decode(uint32_t ip, bool current)
         /* The ModR/M forms of these that the processor refuses, as 86Box's
            handlers do: the library takes some of them as later
            instructions (MONITOR, SERIALIZE, RDTSCP, LFENCE, RDRAND). */
+        /* 3DNow!: the suffix after the operand picks the instruction. */
+        if ((kind == DEBUGGER_OP_NORMAL) && (op2 == 0x0f)) {
+            int     extra;
+            uint8_t suffix;
+            if (!modrmExtra(f, at + 2, addr32, &extra) || !f.get(at + 3 + extra, &suffix))
+                return finish();
+            if (debugger_3dnow_kind(suffix) == DEBUGGER_OP_ILLEGAL) {
+                invalid(at + 4 + extra, QString::asprintf("3DNow! opcode %02Xh is not on this processor: #UD", suffix));
+                return finish();
+            }
+        }
         if (kind == DEBUGGER_OP_NORMAL) {
             int           reg;
             int           mod;

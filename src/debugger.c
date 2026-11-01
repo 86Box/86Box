@@ -792,6 +792,16 @@ debugger_lock_legal(uint8_t op, uint8_t b1, uint8_t b2)
 }
 
 int
+debugger_3dnow_kind(uint8_t suffix)
+{
+    /* Only the 486 and later interpreter (386_dynarec.c) has 3DNow!. */
+    if (!x86_opcodes_3DNOW || (x86_opcodes_3DNOW[suffix] == x86_illegal_op))
+        return DEBUGGER_OP_ILLEGAL;
+
+    return DEBUGGER_OP_NORMAL;
+}
+
+int
 debugger_nec_0f_modrm(uint8_t op)
 {
     return opf_0f[op] & 1; /* OP_MRM */

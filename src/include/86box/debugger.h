@@ -178,6 +178,10 @@ extern int debugger_fpu_kind(uint8_t op, uint8_t modrm, int addr32);
 extern int debugger_lock_legal(uint8_t op, uint8_t b1, uint8_t b2);
 /* Whether the V20/V30 core decodes a ModR/M byte for opcode 0F op. */
 extern int debugger_nec_0f_modrm(uint8_t op);
+/* What the processor's 3DNow! table holds for the suffix opcode of 0F 0F:
+   DEBUGGER_OP_ILLEGAL or DEBUGGER_OP_NORMAL. The K6-2 and WinChip 2 lack
+   the K6-2+ and K6-III+'s additions (PI2FW, PF2IW, PFNACC, PFPNACC, PSWAPD). */
+extern int debugger_3dnow_kind(uint8_t suffix);
 /* The bytes the 8086-class prefetch queue already holds for the instruction
    at CS:IP, which the processor runs instead of memory's (0 on the 286 and
    later). */
