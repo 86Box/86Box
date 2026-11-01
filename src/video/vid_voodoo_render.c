@@ -565,12 +565,13 @@ voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *params, voodoo_sta
 
     voodoo_tmu_fetch(voodoo, params, state, 1, x);
 
+    /*TMU1 blends with its own reverse blend bits*/
     if ((params->textureMode[1] & TEXTUREMODE_TRILINEAR) && (state->lod & 1)) {
-        c_reverse = tc_reverse_blend;
-        a_reverse = tca_reverse_blend;
+        c_reverse = tc_reverse_blend_1;
+        a_reverse = tca_reverse_blend_1;
     } else {
-        c_reverse = !tc_reverse_blend;
-        a_reverse = !tca_reverse_blend;
+        c_reverse = !tc_reverse_blend_1;
+        a_reverse = !tca_reverse_blend_1;
     }
 #if 0
     c_reverse1 = c_reverse;
@@ -654,9 +655,9 @@ voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *params, voodoo_sta
                 break;
         }
         if (!a_reverse)
-            a = (-state->tex_a[1] * ((factor_a ^ 0xff) + 1)) >> 8;
-        else
             a = (-state->tex_a[1] * (factor_a + 1)) >> 8;
+        else
+            a = (-state->tex_a[1] * ((factor_a ^ 0xff) + 1)) >> 8;
         if (tca_add_clocal_1 || tca_add_alocal_1)
             a += state->tex_a[1];
         state->tex_a[1] = CLAMP(a);
