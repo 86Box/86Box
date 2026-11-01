@@ -952,8 +952,8 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             stipple_skip_pos = block_pos;
             addlong(0);
         } else {
-            addbyte(0xd1); /* ROR state->stipple[EDI], 1*/
-            addbyte(0x8f);
+            addbyte(0xd1); /* ROL state->stipple[EDI], 1*/
+            addbyte(0x87);
             addlong(offsetof(voodoo_state_t, stipple));
 
             addbyte(0xf7); /* TEST state->stipple[EDI], 0x80000000 */

@@ -93,7 +93,7 @@ typedef struct voodoo_state_t {
 
     int lod_frac[2];
 
-    int stipple;
+    uint32_t stipple;
 } voodoo_state_t;
 
 #ifdef ENABLE_VOODOO_RENDER_LOG
@@ -1191,7 +1191,7 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                         if (params->fbzMode & FBZ_STIPPLE_PATT) {
                             int index = ((real_y & 3) << 3) | (~x & 7);
 
-                            if (!(state->stipple & (1 << index)))
+                            if (!(state->stipple & (1U << index)))
                                 goto skip_pixel;
                         } else {
                             state->stipple = (state->stipple << 1) | (state->stipple >> 31);
