@@ -1265,8 +1265,12 @@ svga_recalctimings(svga_t *svga)
         }
     }
 
+#ifdef USE_HEXT
     _dispofftime = disptime - _dispontime +
                    (double) svga->hblank_ext + (double) svga->hsync_ext;
+#else
+    _dispofftime = disptime - _dispontime;
+#endif
     _dispontime *= crtcconst;
     _dispofftime *= crtcconst;
 
