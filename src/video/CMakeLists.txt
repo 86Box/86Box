@@ -126,6 +126,7 @@ add_library(vid OBJECT
     vid_ati_mach64.c
     vid_ati_mach64_accel.c
     vid_ati_mach64_3d.c
+    vid_ati_mach64_ragepro.c
     vid_ati_rage128.c
     vid_ati_rage128_vga.c
     vid_ati_rage128_display.c

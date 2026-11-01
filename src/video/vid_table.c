@@ -174,6 +174,8 @@ video_cards[] = {
     { .device = &voodoo_3_2000_device,                          .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &voodoo_3_3000_device,                          .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &mach64gtb_device,                              .flags = VIDEO_FLAG_TYPE_SEC       },
+    { .device = &mach64gtc_device,                              .flags = VIDEO_FLAG_TYPE_SEC       },
+    { .device = &mach64ragepro_pci_device,                      .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &mach32_pci_device,                             .flags = VIDEO_FLAG_TYPE_8514      },
     { .device = &mach64gx_pci_device,                           .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &mach64ct_device,                               .flags = VIDEO_FLAG_TYPE_NONE      },
@@ -214,6 +216,7 @@ video_cards[] = {
     { .device = &p9100_viper_se_pci_device,                     .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &p9100_papilio_pci_device,                      .flags = VIDEO_FLAG_TYPE_NONE      },
     /* AGP */
+    { .device = &mach64ragepro_device,                          .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &voodoo_banshee_agp_device,                     .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &velocity_100_agp_device,                       .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &velocity_200_agp_device,                       .flags = VIDEO_FLAG_TYPE_SEC       },
