@@ -509,6 +509,49 @@ level_addr(const level_t *l, int32_t u, int32_t v)
     return l->base + twid(u >> l->which, v >> l->which);
 }
 
+/* level_addr() with the row already chosen (and mirrored) by the caller,
+   in this level's texels. */
+PCXR_INLINE uint32_t
+level_addr_row(const level_t *l, int32_t u, int32_t row)
+{
+    if (l->flip_u && (u & l->fbit))
+        u = ~u;
+    u &= l->mask;
+    if (!l->mip)
+        return l->base + (l->cdepth ? twid(u, row) : twid(u >> 1, row));
+    if (l->last)
+        return l->base;
+    return l->base + twid(u >> l->which, row);
+}
+
+/* The two texture rows the bilinear filter blends for row v of a texture
+   mirrored in v (fbit: the bit that selects the mirrored half; mask: the
+   texture's last row). Returns 1 if the weight is inverted.
+
+   Measured on the m3D with a stripe test texture whose colours show the
+   rows and weight used, every row of a 64-row texture decoded. The chip
+   handles rows in pairs (v / 2) and treats the pair number and the low
+   bit separately. The pair number is mirrored by its own half, as plain
+   mirroring does; the low bit, and with it the weight, is flipped
+   according to the half the next pair (v + 2) lies in. The second row is
+   v + 1 counted with that low bit flipped (flip, add 1, flip back), so in
+   the middle of the mirrored half an odd row pairs with the row below and
+   an even row with the row three above, and the last pair before each
+   seam already behaves like the half after it. */
+PCXR_INLINE int
+vmir_rows(int32_t v, int32_t fbit, int32_t mask, int32_t *r0, int32_t *r1)
+{
+    int     lo = ((v + 2) & fbit) != 0;
+    int32_t s  = ((v ^ lo) + 1) ^ lo;
+    int32_t p;
+
+    p   = (v & fbit) ? ~(v >> 1) : (v >> 1);
+    *r0 = ((p << 1) | ((v & 1) ^ lo)) & mask;
+    p   = (s & fbit) ? ~(s >> 1) : (s >> 1);
+    *r1 = ((p << 1) | ((s & 1) ^ lo)) & mask;
+    return lo;
+}
+
 PCXR_INLINE uint16_t
 fetch_pixel(const ctx_t *c, uint32_t address)
 {
@@ -629,8 +672,8 @@ texture_pixel(const ctx_t *c, int x, int y, int a, int b, int cc, int d, int e, 
     /* A texture mirrored in u (flip bit 12) on a mirrored repeat also
        mirrors the bilinear weight: the fraction is inverted while each
        sample's address is mirrored as usual. Measured on the m3D with
-       edited frames, where it makes every u-mirrored pixel match. The v
-       direction does not follow the same rule and is not yet modelled. */
+       edited frames, where it makes every u-mirrored pixel match. Mirrored
+       in v (flip bit 11) the chip works differently; see vmir_rows(). */
     if (flip_uv & 2) {
         static const int32_t raw_mask[] = { 0x1f, 0x3f, 0x7f, 0xff };
         int32_t              bit        = (map_size == 3) ? 128 : raw_mask[map_size] + 1;
@@ -683,12 +726,26 @@ texture_pixel(const ctx_t *c, int x, int y, int a, int b, int cc, int d, int e, 
         } else {
             uf &= 31;
             vf &= 31;
-            u1   = colour_convert(fetch_pixel(c, level_addr(&lv0, (u + 1) & 255, v)),
-                                  colour_depth, (u + 1) & 1, col4444);
-            v1   = colour_convert(fetch_pixel(c, level_addr(&lv0, u, (v + 1) & 255)),
-                                  colour_depth, u & 1, col4444);
-            u1v1 = colour_convert(fetch_pixel(c, level_addr(&lv0, (u + 1) & 255, (v + 1) & 255)),
-                                  colour_depth, (u + 1) & 1, col4444);
+            if (lv0.flip_v) {
+                int32_t r0, r1;
+                if (vmir_rows(v, lv0.fbit, lv0.mask, &r0, &r1))
+                    vf = ~vf & 31;
+                tcol = colour_convert(fetch_pixel(c, level_addr_row(&lv0, u, r0)),
+                                      colour_depth, u & 1, col4444);
+                u1   = colour_convert(fetch_pixel(c, level_addr_row(&lv0, (u + 1) & 255, r0)),
+                                      colour_depth, (u + 1) & 1, col4444);
+                v1   = colour_convert(fetch_pixel(c, level_addr_row(&lv0, u, r1)),
+                                      colour_depth, u & 1, col4444);
+                u1v1 = colour_convert(fetch_pixel(c, level_addr_row(&lv0, (u + 1) & 255, r1)),
+                                      colour_depth, (u + 1) & 1, col4444);
+            } else {
+                u1   = colour_convert(fetch_pixel(c, level_addr(&lv0, (u + 1) & 255, v)),
+                                      colour_depth, (u + 1) & 1, col4444);
+                v1   = colour_convert(fetch_pixel(c, level_addr(&lv0, u, (v + 1) & 255)),
+                                      colour_depth, u & 1, col4444);
+                u1v1 = colour_convert(fetch_pixel(c, level_addr(&lv0, (u + 1) & 255, (v + 1) & 255)),
+                                      colour_depth, (u + 1) & 1, col4444);
+            }
             tcol = bilerp(tcol, u1, v1, u1v1, uf, vf);
         }
     } else if (map_size + bot.e > 8) {
@@ -725,12 +782,27 @@ texture_pixel(const ctx_t *c, int x, int y, int a, int b, int cc, int d, int e, 
         {
             uf = (uf >> compress) & 31;
             vf = (vf >> compress) & 31;
-            u1   = colour_convert(fetch_pixel(c, level_addr(&lvc, (u + binc) & 255, v)),
-                                  colour_depth, u & 1, col4444);
-            v1   = colour_convert(fetch_pixel(c, level_addr(&lvc, u, (v + binc) & 255)),
-                                  colour_depth, u & 1, col4444);
-            u1v1 = colour_convert(fetch_pixel(c, level_addr(&lvc, (u + binc) & 255, (v + binc) & 255)),
-                                  colour_depth, u & 1, col4444);
+            if (lvc.flip_v) {
+                /* The same, in this level's texels. */
+                int32_t r0, r1;
+                if (vmir_rows(v >> compress, lvc.fbit >> compress, lvc.mask >> compress, &r0, &r1))
+                    vf = ~vf & 31;
+                tcol = colour_convert(fetch_pixel(c, level_addr_row(&lvc, u, r0)),
+                                      colour_depth, u & 1, col4444);
+                u1   = colour_convert(fetch_pixel(c, level_addr_row(&lvc, (u + binc) & 255, r0)),
+                                      colour_depth, u & 1, col4444);
+                v1   = colour_convert(fetch_pixel(c, level_addr_row(&lvc, u, r1)),
+                                      colour_depth, u & 1, col4444);
+                u1v1 = colour_convert(fetch_pixel(c, level_addr_row(&lvc, (u + binc) & 255, r1)),
+                                      colour_depth, u & 1, col4444);
+            } else {
+                u1   = colour_convert(fetch_pixel(c, level_addr(&lvc, (u + binc) & 255, v)),
+                                      colour_depth, u & 1, col4444);
+                v1   = colour_convert(fetch_pixel(c, level_addr(&lvc, u, (v + binc) & 255)),
+                                      colour_depth, u & 1, col4444);
+                u1v1 = colour_convert(fetch_pixel(c, level_addr(&lvc, (u + binc) & 255, (v + binc) & 255)),
+                                      colour_depth, u & 1, col4444);
+            }
             tcol = bilerp(tcol, u1, v1, u1v1, uf, vf);
         }
     }
