@@ -910,7 +910,7 @@ svga_render_indexed_gfx(svga_t *svga, bool highres, bool combine8bits)
         incr_counter += 1;
         if (incr_counter >= incevery) {
             incr_counter = 0;
-            svga->memaddr += (svga->chain2_write || svga->chain2_read) ? 8 : 4;
+            svga->memaddr += 4;
             /* DISCREPANCY TODO FIXME 2/4bpp used vram_mask, 8bpp used vram_display_mask --GM */
             svga->memaddr &= svga->vram_display_mask;
         }
