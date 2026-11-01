@@ -1305,6 +1305,10 @@ cpu_set(void)
         case CPU_i486DX_SLENH:
             cpu_features = CPU_FEATURE_CR4 | CPU_FEATURE_VME;
             cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_VME;
+            /* The Intel486 data books give CR4 only VME and PVI and no #GP for
+               its other bits, so a write to them is dropped: Windows XP sets
+               DE on any processor with VME. */
+            cpu_CR4_ignore = ~cpu_CR4_mask & 0xffffffff;
             fallthrough;
         case CPU_RAPIDCAD:
         case CPU_i486SX:
