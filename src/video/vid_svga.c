@@ -2538,6 +2538,25 @@ svga_writeb_linear(uint32_t addr, uint8_t val, void *priv)
     svga->vram[addr]              = val;
 }
 
+/* The bus charge of a word/dword access on the slow (planar, latched or
+   raster-op) path. On an ISA or MCA card it crosses the bus once at the
+   card's word/dword timing even though the card splits it into byte
+   operations (a 32-bit write to a 16-bit card is two 16-bit bus cycles, not
+   four byte ones). On the other buses a card's word/dword timing can be
+   below its byte timing (Rage 128 and Banshee: write_b 2, write_l 1), where
+   a single charge would make a dword cheaper than one byte, so the slow
+   path keeps one byte charge per byte. */
+static __inline int
+svga_slow_charge(const svga_t *svga, int timing, int timing_b, int nbytes)
+{
+    const video_timings_t *t = svga->monitor->mon_vid_timings;
+
+    if (t && ((t->type == VIDEO_ISA) || (t->type == VIDEO_MCA)))
+        return timing;
+
+    return timing_b * nbytes;
+}
+
 /* A word or dword in write modes 0-3 with the standard four-plane
    addressing: the same VRAM, changedvram and fullchange results as one
    svga_write_common() call per byte, lowest byte first, with the register
@@ -2680,12 +2699,8 @@ svga_writew_common(uint32_t addr, uint16_t val, uint8_t linear, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
-        /* A word/dword access crosses the bus once even when planar or latched
-           modes split it into byte operations inside the card (a 32-bit write
-           to a 16-bit ISA card is two 16-bit bus cycles, not four byte ones).
-           Keep the byte-wise VRAM behavior but charge the bus timing once. */
     if (!svga->fast) {
-        int bus_cycles = cycles - svga->monitor->mon_video_timing_write_w;
+        int bus_cycles = cycles - svga_slow_charge(svga, svga->monitor->mon_video_timing_write_w, svga->monitor->mon_video_timing_write_b, 2);
         if ((svga->writemode < 4) && !(svga->adv_flags & (FLAG_ADDR_BY8 | FLAG_ADDR_BY16 | FLAG_LATCH8 | FLAG_EXT_WRITE)))
             svga_write_planar(svga, addr, val, 2, linear);
         else {
@@ -2746,12 +2761,8 @@ svga_writel_common(uint32_t addr, uint32_t val, uint8_t linear, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
-        /* A word/dword access crosses the bus once even when planar or latched
-           modes split it into byte operations inside the card (a 32-bit write
-           to a 16-bit ISA card is two 16-bit bus cycles, not four byte ones).
-           Keep the byte-wise VRAM behavior but charge the bus timing once. */
     if (!svga->fast) {
-        int bus_cycles = cycles - svga->monitor->mon_video_timing_write_l;
+        int bus_cycles = cycles - svga_slow_charge(svga, svga->monitor->mon_video_timing_write_l, svga->monitor->mon_video_timing_write_b, 4);
         if ((svga->writemode < 4) && !(svga->adv_flags & (FLAG_ADDR_BY8 | FLAG_ADDR_BY16 | FLAG_LATCH8 | FLAG_EXT_WRITE)))
             svga_write_planar(svga, addr, val, 4, linear);
         else {
@@ -2842,12 +2853,8 @@ svga_readw_common(uint32_t addr, uint8_t linear, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
-        /* A word/dword access crosses the bus once even when planar or latched
-           modes split it into byte operations inside the card (a 32-bit write
-           to a 16-bit ISA card is two 16-bit bus cycles, not four byte ones).
-           Keep the byte-wise VRAM behavior but charge the bus timing once. */
     if (!svga->fast) {
-        int      bus_cycles = cycles - svga->monitor->mon_video_timing_read_w;
+        int      bus_cycles = cycles - svga_slow_charge(svga, svga->monitor->mon_video_timing_read_w, svga->monitor->mon_video_timing_read_b, 2);
         uint16_t ret        = svga_read_common(addr, linear, priv) | (svga_read_common(addr + 1, linear, priv) << 8);
         cycles              = bus_cycles;
         return ret;
@@ -2898,12 +2905,8 @@ svga_readl_common(uint32_t addr, uint8_t linear, void *priv)
 {
     svga_t *svga = (svga_t *) priv;
 
-        /* A word/dword access crosses the bus once even when planar or latched
-           modes split it into byte operations inside the card (a 32-bit write
-           to a 16-bit ISA card is two 16-bit bus cycles, not four byte ones).
-           Keep the byte-wise VRAM behavior but charge the bus timing once. */
     if (!svga->fast) {
-        int      bus_cycles = cycles - svga->monitor->mon_video_timing_read_l;
+        int      bus_cycles = cycles - svga_slow_charge(svga, svga->monitor->mon_video_timing_read_l, svga->monitor->mon_video_timing_read_b, 4);
         uint32_t ret        = svga_read_common(addr, linear, priv) | (svga_read_common(addr + 1, linear, priv) << 8) | (svga_read_common(addr + 2, linear, priv) << 16) | (svga_read_common(addr + 3, linear, priv) << 24);
         cycles              = bus_cycles;
         return ret;
