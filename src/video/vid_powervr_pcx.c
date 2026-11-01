@@ -661,6 +661,7 @@ pcx_render_frame(pcx_t *pcx)
     pcx->job.camera        = pcx->regs[PCX_CAMERA];
     pcx->job.xclip         = pcx->regs[PCX_XCLIP];
     pcx->job.bilinear      = pcx->regs[PCX_BILINEAR];
+    pcx->job.fastfog       = pcx->regs[PCX_FASTFOG];
     pcx->job.fog_table     = pcx->job_fog;
     pcx->job_sofaddr       = pcx->regs[PCX_SOFADDR];
     pcx->job_stride        = pcx->regs[PCX_LSTRIDE];

@@ -635,9 +635,10 @@ texture_pixel(const ctx_t *c, int x, int y, int a, int b, int cc, int d, int e, 
     int      shift, power_two;
     pfloat   top, bot;
     int32_t  scale  = (int32_t) (c->f->camera & 0xffff);
-    /* BILINEAR[1:0]: 0 bilinear, 1 adaptive bilinear (see below), 3 linear
-       mip-mapping (no bilinear filter). */
-    int      bilin  = ((c->f->bilinear & 3) != 3);
+    /* BILINEAR[1:0]: 0 bilinear, 1 adaptive bilinear (see below), 2 and 3
+       linear mip-mapping (no bilinear filter; 2 measured on the m3D,
+       identical to 3). */
+    int      bilin  = !(c->f->bilinear & 2);
 
     abc = (int32_t) ((uint32_t) a * x + (uint32_t) b * y + (uint32_t) cc * scale);
     def = (int32_t) ((uint32_t) d * x + (uint32_t) e * y + (uint32_t) f * scale);
@@ -844,6 +845,19 @@ texas(ctx_t *c, int x, int y, uint32_t address, int shadow, int fog)
     if (address == MASKING_PLANE_ADDR)
         return;
     dst = &c->rgb[y * PCXR_MAX_W + x];
+    /* PCX2 fast fog (FASTFOG bit 8): an opaque pixel whose fog factor is at
+       least FASTFOG[7:0] is written as the fog colour, untextured and
+       unshaded. It ignores both the polygon's fog-off flag and FOGCOL bit
+       24; translucent polygons are shaded as normal. Measured on the m3D
+       (2026-10-28) at thresholds 0, 0x40, 0x80 and 0xFF. */
+    if ((c->f->fastfog & 0x100) && fog >= (int) (c->f->fastfog & 0xff)) {
+        uint32_t fw0 = (address == c->tsp_addr) ? c->tsp[0] : tsp_word(c, address);
+        if (!(fw0 & MASK_TRANS)) {
+            *dst = PCXR_WRITTEN | ((uint32_t) c->fog_r << 16) | ((uint32_t) c->fog_g << 8) | c->fog_b;
+            c->res->pixels_shaded++;
+            return;
+        }
+    }
     if (address != c->tsp_addr) {
         for (int i = 0; i < 13; i++)
             c->tsp[i] = tsp_word(c, address + i);
