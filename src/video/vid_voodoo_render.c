@@ -93,7 +93,7 @@ typedef struct voodoo_state_t {
 
     int lod_frac[2];
 
-    int stipple;
+    uint32_t stipple;
 } voodoo_state_t;
 
 #ifdef ENABLE_VOODOO_RENDER_LOG
@@ -565,12 +565,13 @@ voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *params, voodoo_sta
 
     voodoo_tmu_fetch(voodoo, params, state, 1, x);
 
+    /*TMU1 blends with its own reverse blend bits*/
     if ((params->textureMode[1] & TEXTUREMODE_TRILINEAR) && (state->lod & 1)) {
-        c_reverse = tc_reverse_blend;
-        a_reverse = tca_reverse_blend;
+        c_reverse = tc_reverse_blend_1;
+        a_reverse = tca_reverse_blend_1;
     } else {
-        c_reverse = !tc_reverse_blend;
-        a_reverse = !tca_reverse_blend;
+        c_reverse = !tc_reverse_blend_1;
+        a_reverse = !tca_reverse_blend_1;
     }
 #if 0
     c_reverse1 = c_reverse;
@@ -654,9 +655,9 @@ voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *params, voodoo_sta
                 break;
         }
         if (!a_reverse)
-            a = (-state->tex_a[1] * ((factor_a ^ 0xff) + 1)) >> 8;
-        else
             a = (-state->tex_a[1] * (factor_a + 1)) >> 8;
+        else
+            a = (-state->tex_a[1] * ((factor_a ^ 0xff) + 1)) >> 8;
         if (tca_add_clocal_1 || tca_add_alocal_1)
             a += state->tex_a[1];
         state->tex_a[1] = CLAMP(a);
@@ -1190,7 +1191,7 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                         if (params->fbzMode & FBZ_STIPPLE_PATT) {
                             int index = ((real_y & 3) << 3) | (~x & 7);
 
-                            if (!(state->stipple & (1 << index)))
+                            if (!(state->stipple & (1U << index)))
                                 goto skip_pixel;
                         } else {
                             state->stipple = (state->stipple << 1) | (state->stipple >> 31);
