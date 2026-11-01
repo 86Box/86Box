@@ -1050,6 +1050,30 @@ seteaq(uint64_t val)
 #undef tempc
 #undef FPU_8087
 
+/* For the debugger: whether the 8087 tables hold nothing for ESC op (D8-DF)
+   with ModR/M byte modrm. vx0.c and 808x_marty_86box.c dispatch through
+   their own copies of the same tables. */
+int
+fpu_8087_op_illegal(uint8_t op, uint8_t modrm)
+{
+    static const OpFn *const tables[2][8] = {
+        { ops_fpu_8087_d8, ops_fpu_8087_d9, ops_fpu_8087_da, ops_fpu_8087_db,
+          ops_fpu_8087_dc, ops_fpu_8087_dd, ops_fpu_8087_de, ops_fpu_8087_df },
+        { ops_sf_fpu_8087_d8, ops_sf_fpu_8087_d9, ops_sf_fpu_8087_da, ops_sf_fpu_8087_db,
+          ops_sf_fpu_8087_dc, ops_sf_fpu_8087_dd, ops_sf_fpu_8087_de, ops_sf_fpu_8087_df }
+    };
+    const OpFn *t;
+
+    if ((op < 0xd8) || (op > 0xdf))
+        return 0;
+
+    t = tables[!!fpu_softfloat][op - 0xd8];
+    /* Indexed as the cores do: D8 and DC by reg and mod only. */
+    if ((op == 0xd8) || (op == 0xdc))
+        return t[(modrm >> 3) & 0x1f] == FPU_ILLEGAL_a16;
+    return t[modrm] == FPU_ILLEGAL_a16;
+}
+
 /* Pushes a word to the stack. */
 static void
 push(uint16_t *val)

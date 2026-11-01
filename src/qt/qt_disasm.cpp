@@ -23,10 +23,18 @@
  *          - The 286 and later run what their opcode tables hold: an
  *            opcode a processor does not have raises #UD, and some mean
  *            what they did on that processor (LOADALL, UMOV, the Cyrix
- *            and MediaGX system management instructions, Virtual PC's
- *            0F 3F), not what they mean now (SYSCALL, SSE, VMX, three-byte
- *            opcode maps). VEX, EVEX and XOP are LES, LDS, BOUND and POP
- *            with a register operand, which raise #UD.
+ *            and MediaGX system management instructions, the Cyrix EMMI
+ *            in 0F 50-5E, Virtual PC's 0F 3F), not what they mean now
+ *            (SYSCALL, SSE, VMX, three-byte opcode maps). VEX, EVEX and XOP are LES, LDS, BOUND and POP
+ *            with a register operand, which raise #UD. The spare ModR/M
+ *            forms of the groups (0F 00, 0F 01, 0F AE, 0F C7 and so on),
+ *            which the library takes as later instructions (MONITOR,
+ *            RDTSCP, LFENCE, RDRAND), raise #UD as 86Box's handlers do.
+ *            A 3DNow! suffix is looked up in the processor's own table:
+ *            the K6-2 and WinChip 2 lack the K6-2+ and K6-III+'s additions.
+ *          - The x87 opcodes are checked against the coprocessor's own
+ *            tables (the 8087's on the 8086 class), and the undocumented
+ *            register forms that repeat others are said to.
  *          - The library's decoder modes for extensions that reuse old
  *            encodings (MPX, CET, LZCNT/TZCNT, WBNOINVD, CLDEMOTE,
  *            instruction prefetch hints) are off: these processors have
@@ -191,6 +199,85 @@ modrmExtra(Fetcher &f, int modrmAt, bool addr32, int *extra)
         n += 4;
     *extra = n;
     return true;
+}
+
+/* Whether opcode op, of map 0 (one byte) or 1 (after 0F), takes a ModR/M
+   byte wherever it is defined, and the bytes of immediate after it (reg:
+   the ModR/M byte's reg field, for F6 and F7; o32: 32-bit operands). An
+   encoding the processor refuses is then shown with all its bytes, so that
+   the instructions after it are decoded from where they start. */
+bool
+modrmLayout(int map, uint8_t op, int reg, bool o32, int *imm)
+{
+    *imm = 0;
+    if (!map) {
+        switch (op) {
+            case 0x00 ... 0x03:
+            case 0x08 ... 0x0b:
+            case 0x10 ... 0x13:
+            case 0x18 ... 0x1b:
+            case 0x20 ... 0x23:
+            case 0x28 ... 0x2b:
+            case 0x30 ... 0x33:
+            case 0x38 ... 0x3b:
+            case 0x62:
+            case 0x63:
+            case 0x84 ... 0x8f:
+            case 0xc4:
+            case 0xc5:
+            case 0xd0 ... 0xd3:
+            case 0xd8 ... 0xdf:
+            case 0xfe:
+            case 0xff:
+                return true;
+            case 0x69:
+            case 0x81:
+            case 0xc7:
+                *imm = o32 ? 4 : 2;
+                return true;
+            case 0x6b:
+            case 0x80:
+            case 0x82:
+            case 0x83:
+            case 0xc0:
+            case 0xc1:
+            case 0xc6:
+                *imm = 1;
+                return true;
+            case 0xf6:
+                *imm = (reg < 2) ? 1 : 0;
+                return true;
+            case 0xf7:
+                *imm = (reg < 2) ? (o32 ? 4 : 2) : 0;
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    switch (op) {
+        case 0x04 ... 0x0b:
+        case 0x0e:
+        case 0x30 ... 0x3f:
+        case 0x77:
+        case 0x80 ... 0x8f:
+        case 0xa0 ... 0xa2:
+        case 0xa8 ... 0xaa:
+        case 0xc8 ... 0xcf:
+        case 0xff: /* UD0, which only took one later */
+            return false;
+        case 0x0f: /* 3DNow!: the suffix opcode */
+        case 0x70 ... 0x73:
+        case 0xa4:
+        case 0xac:
+        case 0xba:
+        case 0xc2:
+        case 0xc4 ... 0xc6:
+            *imm = 1;
+            return true;
+        default:
+            return true;
+    }
 }
 
 #ifdef USE_DISASM
@@ -681,6 +768,59 @@ fpuOverride(Fetcher &f, int at, const debugger_decode_info_t &info, DisasmInsn &
     }
 }
 
+/* The register forms of the x87 opcodes that repeat others, which the
+   coprocessor's tables have (FSTP1, FXCH4, FCOM2 and the like), and the
+   Cyrix FTSTP, which the library lacks; for an opcode the coprocessor has. */
+void
+fpuAlias(Fetcher &f, int at, DisasmInsn &d)
+{
+    uint8_t op;
+    uint8_t m;
+
+    if (!f.get(at, &op) || !f.get(at + 1, &m) || (m < 0xc0) || !d.note.isEmpty())
+        return;
+
+    const int rg = (m >> 3) & 7;
+    QString   of;
+    switch (op) {
+        case 0xd9:
+            if (rg == 3) { /* the library has FSTPNCE */
+                d.text = renameMnemonic(d.text, QStringLiteral("fstp"));
+                of     = QStringLiteral("FSTP (DD D8+i)");
+            } else if (m == 0xe6) {
+                d.text = QStringLiteral("ftstp");
+                d.note = QStringLiteral("Cyrix: FTST, then pop");
+            }
+            break;
+        case 0xdc:
+            if (rg == 2)
+                of = QStringLiteral("FCOM (D8 D0+i)");
+            else if (rg == 3)
+                of = QStringLiteral("FCOMP (D8 D8+i)");
+            break;
+        case 0xdd:
+            if (rg == 1)
+                of = QStringLiteral("FXCH (D9 C8+i)");
+            break;
+        case 0xde:
+            if (rg == 2)
+                of = QStringLiteral("FCOMP (D8 D8+i)");
+            break;
+        case 0xdf:
+            if (rg == 0)
+                d.note = QStringLiteral("FFREE, then pop (undocumented by Intel)");
+            else if (rg == 1)
+                of = QStringLiteral("FXCH (D9 C8+i)");
+            else if ((rg == 2) || (rg == 3))
+                of = QStringLiteral("FSTP (DD D8+i)");
+            break;
+        default:
+            break;
+    }
+    if (!of.isEmpty())
+        d.note = QStringLiteral("Undocumented alias of %1").arg(of);
+}
+
 } // namespace
 
 Disassembler::Disassembler()
@@ -860,6 +1000,24 @@ Disassembler::decode(uint32_t ip, bool current)
             *mod = m >> 6;
         return true;
     };
+    /* An encoding the processor refuses, with its ModR/M byte at modrmAt
+       and imm bytes of immediate: all its bytes, where they can be read. */
+    auto invalidModrm = [&](int modrmAt, int imm, const QString &why) {
+        int     extra;
+        uint8_t b;
+        if (!modrmExtra(f, modrmAt, addr32, &extra) || !f.get(modrmAt + extra + imm, &b))
+            return;
+        invalid(modrmAt + 1 + extra + imm, why);
+    };
+    /* Opcode op of map, at index opAt, refused: as long as it would be.
+       (F6 and F7, whose immediate depends on the reg field, are never.) */
+    auto invalidOp = [&](int opMap, uint8_t opc, int opAt, const QString &why) {
+        int imm;
+        if (modrmLayout(opMap, opc, 0, !!(opsize & 0x100), &imm))
+            invalidModrm(opAt + 1, imm, why);
+        else
+            invalid(opAt + 1, why);
+    };
 
     /* ---- the 8086, 80186 and NEC V20/V30 ---- */
     if (x86_86) {
@@ -1016,6 +1174,13 @@ Disassembler::decode(uint32_t ip, bool current)
                     d.text = QStringLiteral("esc %1").arg(op & 7);
                 }
                 fpuOverride(f, at, info_, d);
+                if (info_.fpu != DEBUGGER_FPU_NONE) {
+                    uint8_t m;
+                    if (f.get(at + 1, &m) && (debugger_fpu_kind(op, m, 0) == DEBUGGER_OP_ILLEGAL))
+                        d.note = QStringLiteral("Not on this coprocessor: reads the operand and does nothing");
+                    else
+                        fpuAlias(f, at, d);
+                }
                 if (d.note.isEmpty())
                     d.note = fpuNote(info_);
                 return finish();
@@ -1048,9 +1213,106 @@ Disassembler::decode(uint32_t ip, bool current)
                                    : QStringLiteral("mov tr%1, %2").arg((m >> 3) & 7).arg(QLatin1String(regs[m & 7]));
             return finish();
         }
+        /* The ModR/M forms of these that the processor refuses, as 86Box's
+           handlers do: the library takes some of them as later
+           instructions (MONITOR, SERIALIZE, RDTSCP, LFENCE, RDRAND). */
+        /* 3DNow!: the suffix after the operand picks the instruction. */
+        if ((kind == DEBUGGER_OP_NORMAL) && (op2 == 0x0f)) {
+            int     extra;
+            uint8_t suffix;
+            if (!modrmExtra(f, at + 2, addr32, &extra) || !f.get(at + 3 + extra, &suffix))
+                return finish();
+            if (debugger_3dnow_kind(suffix) == DEBUGGER_OP_ILLEGAL) {
+                invalid(at + 4 + extra, QString::asprintf("3DNow! opcode %02Xh is not on this processor: #UD", suffix));
+                return finish();
+            }
+        }
+        if (kind == DEBUGGER_OP_NORMAL) {
+            int           reg;
+            int           mod;
+            QString       refused;
+            const QString badReg = QStringLiteral("ModR/M reg %1: #UD");
+            const QString regOp  = QStringLiteral("Register operand: #UD");
+            switch (op2) {
+                case 0x00:
+                case 0x01:
+                case 0x0d:
+                case 0x71 ... 0x73:
+                case 0xae:
+                case 0xba:
+                case 0xc7:
+                    if (!modrmReg(at + 2, &reg, &mod))
+                        return finish();
+                    break;
+                default:
+                    reg = mod = -1;
+                    break;
+            }
+            switch (op2) {
+                case 0x00: /* SLDT, STR, LLDT, LTR, VERR, VERW */
+                    if (reg >= 6)
+                        refused = badReg;
+                    break;
+                case 0x01: /* SGDT, SIDT, LGDT, LIDT and INVLPG take memory; no /5 */
+                    if (reg == 5)
+                        refused = badReg;
+                    else if ((reg == 7) && !info_.invlpg)
+                        refused = QStringLiteral("No INVLPG on this processor: #UD");
+                    else if ((mod == 3) && ((reg <= 3) || (reg == 7)))
+                        refused = regOp;
+                    break;
+                case 0x0d: /* PREFETCH (the P6 hint NOPs are their own kind) */
+                    if (mod == 3)
+                        refused = regOp;
+                    break;
+                case 0x71 ... 0x73: /* PSRLx, PSRAx, PSLLx, on a register */
+                    if ((reg != 2) && (reg != 6) && ((reg != 4) || (op2 == 0x73)))
+                        refused = badReg;
+                    else if (mod != 3)
+                        refused = QStringLiteral("Memory operand: #UD");
+                    break;
+                case 0xae: /* FXSAVE, FXRSTOR */
+                    if (reg > 1)
+                        refused = badReg;
+                    else if (mod == 3)
+                        refused = regOp;
+                    break;
+                case 0xba: /* BT, BTS, BTR, BTC */
+                    if (reg < 4)
+                        refused = badReg;
+                    break;
+                case 0xc7: /* CMPXCHG8B */
+                    if ((mod == 3) && info_.vpc) {
+                        d.len  = at + 3;
+                        d.text = dbText(f, d.len);
+                        d.note = QStringLiteral("Virtual PC: CMPXCHG8B on a register is a no-op (the BIOS's host call)");
+                        return finish();
+                    }
+                    if (reg != 1)
+                        refused = badReg;
+                    else if (mod == 3)
+                        refused = regOp;
+                    break;
+                default:
+                    break;
+            }
+            if (!refused.isEmpty()) {
+                invalidOp(1, op2, at + 1, refused.contains(QLatin1String("%1")) ? refused.arg(reg) : refused);
+                return finish();
+            }
+            if (op2 == 0x0d) {
+                /* The library has /2 as PREFETCHWT1; all but /1 are PREFETCH. */
+                if (lib(withOp(0x0f, at + 1))) {
+                    d.text = renameMnemonic(d.text, (reg == 1) ? QStringLiteral("prefetchw") : QStringLiteral("prefetch"));
+                    if (reg > 1)
+                        d.note = QStringLiteral("0F 0D /%1 is an alias of PREFETCH (0F 0D /0)").arg(reg);
+                }
+                return finish();
+            }
+        }
         switch (kind) {
             case DEBUGGER_OP_ILLEGAL:
-                invalid(at + 2, QStringLiteral("Not an instruction on this processor: #UD"));
+                invalidOp(1, op2, at + 1, QStringLiteral("Not an instruction on this processor: #UD"));
                 return finish();
             case DEBUGGER_OP_LOADALL:
             case DEBUGGER_OP_LOADALL386:
@@ -1123,6 +1385,67 @@ Disassembler::decode(uint32_t ip, bool current)
                 }
                 return finish();
             }
+            case DEBUGGER_OP_EMMI: {
+                /* mm, mm/m64 as the MMX instructions have them (PADDB, which
+                   the library decodes, stands in), without the prefixes
+                   that would make that SSE. */
+                static const char *const names[16] = { "paveb", "paddsiw", "pmagw", nullptr, "pdistib", "psubsiw", nullptr, nullptr,
+                                                       "pmvzb", "pmulhrwc", "pmvnzb", "pmvlzb", "pmvgezb", "pmulhriw", "pmachriw", nullptr };
+                const char              *name      = names[op2 & 15];
+                int                      reg;
+                int                      mod;
+                if (!modrmReg(at + 2, &reg, &mod))
+                    return finish();
+                if (!name) {
+                    invalidOp(1, op2, at + 1, QStringLiteral("Not an instruction on this processor: #UD"));
+                    return finish();
+                }
+                /* Memory only: PDISTIB, PMACHRIW and the conditional moves. */
+                if ((mod == 3) && ((op2 == 0x54) || (op2 == 0x58) || ((op2 >= 0x5a) && (op2 != 0x5d)))) {
+                    invalidOp(1, op2, at + 1, QStringLiteral("Register operand: #UD"));
+                    return finish();
+                }
+                View w = v;
+                for (size_t i = 0; i < w.head.size();) {
+                    if ((w.head[i] == 0x66) || (w.head[i] == 0xf2) || (w.head[i] == 0xf3))
+                        w.head.erase(w.head.begin() + (ptrdiff_t) i);
+                    else
+                        i++;
+                }
+                w.head.push_back(0x0f);
+                w.head.push_back(0xfc);
+                w.resume = at + 2;
+                if (!lib(w))
+                    return finish();
+                d.text = renameMnemonic(d.text, QString::fromLatin1(name));
+                /* Some write, or test, the other register of the pair. */
+                switch (op2) {
+                    case 0x51:
+                    case 0x54:
+                    case 0x55:
+                    case 0x5d:
+                    case 0x5e:
+                        d.note = QStringLiteral("Cyrix EMMI: the result goes to mm%1").arg(reg ^ 1);
+                        break;
+                    case 0x58:
+                    case 0x5a:
+                    case 0x5b:
+                    case 0x5c: {
+                        static const char *const conds[4] = { "are zero", "are not zero", "are negative", "are not negative" };
+                        const int                c        = (op2 == 0x58) ? 0 : (op2 - 0x59);
+                        d.note                            = QStringLiteral("Cyrix EMMI: moves the bytes where those of mm%1 %2").arg(reg ^ 1).arg(QLatin1String(conds[c]));
+                        break;
+                    }
+                    default:
+                        d.note = QStringLiteral("Cyrix EMMI");
+                        break;
+                }
+                if (!info_.emmi) {
+                    d.invalid = true;
+                    d.note    = QStringLiteral("Cyrix EMMI, which is off (CCR7 bit 0): #UD");
+                }
+                return finish();
+            }
             case DEBUGGER_OP_HINT_NOP:
                 if (lib(withOp(0x0f, at + 1)) && !d.text.startsWith(QLatin1String("nop")))
                     d.text = renameMnemonic(d.text, QStringLiteral("nop"));
@@ -1146,7 +1469,7 @@ Disassembler::decode(uint32_t ip, bool current)
                     }
                 }
                 if (!lib(w))
-                    invalid(at + 2, QStringLiteral("In the opcode tables, but not decodable"));
+                    invalidOp(1, op2, at + 1, QStringLiteral("In the opcode tables, but not decodable"));
                 else if (dropped)
                     d.note = QStringLiteral("No SSE: the 66/F2/F3 prefix does not make this an SSE instruction");
                 return finish();
@@ -1176,7 +1499,17 @@ Disassembler::decode(uint32_t ip, bool current)
             if (!modrmReg(at + 1, &reg, nullptr))
                 return finish();
             if (reg) {
-                invalid(at + 2, QStringLiteral("ModR/M reg %1: #UD").arg(reg));
+                invalidOp(0, op, at, QStringLiteral("ModR/M reg %1: #UD").arg(reg));
+                return finish();
+            }
+            break;
+        case 0xfe:
+        case 0xff:
+            /* INC and DEC only on a byte; no FF /7. */
+            if (!modrmReg(at + 1, &reg, nullptr))
+                return finish();
+            if ((op == 0xfe) ? (reg >= 2) : (reg == 7)) {
+                invalidOp(0, op, at, QStringLiteral("ModR/M reg %1: #UD").arg(reg));
                 return finish();
             }
             break;
@@ -1185,7 +1518,7 @@ Disassembler::decode(uint32_t ip, bool current)
             if (!modrmReg(at + 1, &reg, nullptr))
                 return finish();
             if ((reg >= ((info_.isa == DEBUGGER_ISA_386) ? 6 : 4)) || ((op == 0x8e) && (reg == 1))) {
-                invalid(at + 2, QStringLiteral("No such segment register here: #UD"));
+                invalidOp(0, op, at, QStringLiteral("No such segment register here: #UD"));
                 return finish();
             }
             break;
@@ -1209,7 +1542,8 @@ Disassembler::decode(uint32_t ip, bool current)
                     return finish();
                 }
                 d.note = QStringLiteral("Not on this coprocessor: reads the operand and does nothing");
-            }
+            } else if (info_.fpu != DEBUGGER_FPU_NONE)
+                fpuAlias(f, at, d);
             if (d.note.isEmpty())
                 d.note = fpuNote(info_);
             return finish();
@@ -1219,6 +1553,6 @@ Disassembler::decode(uint32_t ip, bool current)
     }
 
     if (!lib(withOp(op, at + 1)))
-        invalid(at + 1, QStringLiteral("In the opcode tables, but not decodable"));
+        invalidOp(0, op, at, QStringLiteral("In the opcode tables, but not decodable"));
     return finish();
 }

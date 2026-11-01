@@ -665,6 +665,8 @@ debugger_decode_info(debugger_decode_info_t *info)
     info->fpu_trap = is286 && !!(cr0 & 0x0c);
     info->vpc      = !!is_vpc;
     info->fpu_ud   = is486 || isibm486;
+    info->invlpg   = is486 || isibm486;
+    info->emmi     = !!(ccr7 & 1);
 }
 
 /* The tables the running interpreter dispatches through, and what they hold
@@ -705,8 +707,12 @@ debugger_fpu_kind(uint8_t op, uint8_t modrm, int addr32)
           &x86_2386_opcodes_dc_a32, &x86_2386_opcodes_dd_a32, &x86_2386_opcodes_de_a32, &x86_2386_opcodes_df_a32 }
     };
 
-    if (!is286 || (op < 0xd8) || (op > 0xdf))
+    if ((op < 0xd8) || (op > 0xdf))
         return DEBUGGER_OP_NORMAL;
+    /* The 8086 class: the 8087 tables, for which an undefined opcode reads
+       the operand and does nothing. */
+    if (!is286)
+        return (hasfpu && fpu_8087_op_illegal(op, modrm)) ? DEBUGGER_OP_ILLEGAL : DEBUGGER_OP_NORMAL;
     addr32 = !!addr32;
 
     if (debugger_exec() == exec386_2386) {
@@ -754,6 +760,8 @@ debugger_opcode_kind(int map, uint8_t op, int opsize)
                                                                                                     DEBUGGER_OP_NORMAL;
         case 0x10 ... 0x13:
             return DEBUGGER_OP_UMOV;
+        case 0x50 ... 0x5f: /* 86Box has no SSE */
+            return DEBUGGER_OP_EMMI;
         case 0x36:
             return DEBUGGER_OP_RDSHR;
         case 0x37:
@@ -788,6 +796,16 @@ debugger_lock_legal(uint8_t op, uint8_t b1, uint8_t b2)
         return 1;
 
     return is_lock_legal(op | (b1 << 8) | ((uint32_t) b2 << 16));
+}
+
+int
+debugger_3dnow_kind(uint8_t suffix)
+{
+    /* Only the 486 and later interpreter (386_dynarec.c) has 3DNow!. */
+    if (!x86_opcodes_3DNOW || (x86_opcodes_3DNOW[suffix] == x86_illegal_op))
+        return DEBUGGER_OP_ILLEGAL;
+
+    return DEBUGGER_OP_NORMAL;
 }
 
 int

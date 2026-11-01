@@ -137,6 +137,8 @@ typedef struct debugger_decode_info_t {
     int fpu_trap; /* CR0.EM or TS set: x87 opcodes raise #NM */
     int vpc;      /* Virtual PC extensions (0F 3F) are on */
     int fpu_ud;   /* an x87 opcode the coprocessor lacks raises #UD (the 486 and later) */
+    int invlpg;   /* INVLPG (0F 01 /7) exists: the 486 and later, and IBM's 386SLC and 486 */
+    int emmi;     /* the Cyrix EMMI instructions are on (CCR7 bit 0); off, they raise #UD */
 } debugger_decode_info_t;
 
 extern void debugger_decode_info(debugger_decode_info_t *info);
@@ -165,18 +167,24 @@ enum {
     DEBUGGER_OP_CPU_WRITE,   /* MediaGX 0F 3C */
     DEBUGGER_OP_CPU_READ,    /* MediaGX 0F 3D */
     DEBUGGER_OP_VPCEXT,      /* Virtual PC 0F 3F */
-    DEBUGGER_OP_HINT_NOP     /* P6 0F 0D, 0F 18-1F */
+    DEBUGGER_OP_HINT_NOP,    /* P6 0F 0D, 0F 18-1F */
+    DEBUGGER_OP_EMMI         /* Cyrix 0F 50-5E (6x86MX, MediaGX) */
 };
 
 extern int debugger_opcode_kind(int map, uint8_t op, int opsize);
-/* The same for an x87 escape (D8-DF) and its ModR/M byte, on the 286 and
-   later with a coprocessor: DEBUGGER_OP_ILLEGAL or DEBUGGER_OP_NORMAL. */
+/* The same for an x87 escape (D8-DF) and its ModR/M byte, with a
+   coprocessor (the 8087 tables on the 8086 class): DEBUGGER_OP_ILLEGAL or
+   DEBUGGER_OP_NORMAL. */
 extern int debugger_fpu_kind(uint8_t op, uint8_t modrm, int addr32);
 /* Whether the processor takes a LOCK prefix on the instruction whose opcode
    and next two bytes these are (zeros where the instruction has none). */
 extern int debugger_lock_legal(uint8_t op, uint8_t b1, uint8_t b2);
 /* Whether the V20/V30 core decodes a ModR/M byte for opcode 0F op. */
 extern int debugger_nec_0f_modrm(uint8_t op);
+/* What the processor's 3DNow! table holds for the suffix opcode of 0F 0F:
+   DEBUGGER_OP_ILLEGAL or DEBUGGER_OP_NORMAL. The K6-2 and WinChip 2 lack
+   the K6-2+ and K6-III+'s additions (PI2FW, PF2IW, PFNACC, PFPNACC, PSWAPD). */
+extern int debugger_3dnow_kind(uint8_t suffix);
 /* The bytes the 8086-class prefetch queue already holds for the instruction
    at CS:IP, which the processor runs instead of memory's (0 on the 286 and
    later). */
