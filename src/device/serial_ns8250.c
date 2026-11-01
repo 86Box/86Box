@@ -961,6 +961,80 @@ serial_speed_changed(void *priv)
     serial_update_speed(dev);
 }
 
+/* ---- device side: what an in-machine device can do to this chip --------- */
+
+static void
+serial_chip_receive(void *chip, uint8_t byte)
+{
+    serial_write_fifo((serial_t *) chip, byte);
+}
+
+static int
+serial_chip_can_receive(void *chip)
+{
+    serial_t *dev = (serial_t *) chip;
+
+    if ((dev->type >= SERIAL_16550) && dev->fifo_enabled) {
+        if (fifo_get_full(dev->rcvr_fifo))
+            return 0;
+    } else if (dev->lsr & 1) {
+        return 0;
+    }
+
+    return dev->out_new == 0xffff;
+}
+
+static void
+serial_chip_set_line(void *chip, uint32_t line, int on)
+{
+    serial_t *dev = (serial_t *) chip;
+
+    switch (line) {
+        case CHAR_COM_CTS:
+            serial_set_cts(dev, on);
+            break;
+        case CHAR_COM_DSR:
+            serial_set_dsr(dev, on);
+            break;
+        case CHAR_COM_DCD:
+            serial_set_dcd(dev, on);
+            break;
+        case CHAR_COM_RI:
+            serial_set_ri(dev, on);
+            break;
+        default:
+            break;
+    }
+}
+
+static int
+serial_chip_get_line(void *chip, uint32_t line)
+{
+    serial_t *dev = (serial_t *) chip;
+
+    if (line == CHAR_COM_DTR)
+        return (dev->mctrl & 0x01) ? 1 : 0;
+    if (line == CHAR_COM_RTS)
+        return (dev->mctrl & 0x02) ? 1 : 0;
+
+    return (dev->msr & line) ? 1 : 0;
+}
+
+static const serial_port_ops_t serial_chip_ops = {
+    .can_receive = serial_chip_can_receive,
+    .set_line    = serial_chip_set_line,
+    .get_line    = serial_chip_get_line,
+    .receive     = serial_chip_receive
+};
+
+static void
+serial_set_device_backend(void *priv, serial_device_t *sd)
+{
+    serial_t *dev = (serial_t *) priv;
+
+    dev->be = serial_backend_from_device(dev, sd, &dev->be_store);
+}
+
 /* The host layer hands the port's chardev over, or NULL when it is released;
    the backend storage stays in this chip. */
 static void
@@ -987,8 +1061,10 @@ serial_close(void *priv)
     }
 
     if ((dev->inst < SERIAL_MAX) && (com_ports[dev->inst].chip == dev)) {
-        com_ports[dev->inst].chip             = NULL;
-        com_ports[dev->inst].set_host_backend = NULL;
+        com_ports[dev->inst].chip               = NULL;
+        com_ports[dev->inst].ops                = NULL;
+        com_ports[dev->inst].set_host_backend   = NULL;
+        com_ports[dev->inst].set_device_backend = NULL;
     }
 
     /*
@@ -1048,12 +1124,17 @@ serial_init(const device_t *info)
     if (com_ports[next_inst].enabled || (info->local & 0xFFF00000)) {
         serial_log("Adding serial port %i...\n", next_inst);
         dev->type = info->local;
-        serial_device_attach(dev, next_inst);
 
-        com_ports[next_inst].serial           = dev;
-        com_ports[next_inst].chip             = dev;
-        com_ports[next_inst].hotunplug        = CHAR_PORT_DETACHED;
-        com_ports[next_inst].set_host_backend = serial_set_host_backend;
+        com_ports[next_inst].serial             = dev;
+        com_ports[next_inst].chip               = dev;
+        com_ports[next_inst].ops                = &serial_chip_ops;
+        com_ports[next_inst].hotunplug          = CHAR_PORT_DETACHED;
+        com_ports[next_inst].set_host_backend   = serial_set_host_backend;
+        com_ports[next_inst].set_device_backend = serial_set_device_backend;
+
+        /* A device that asked for this port before the chip existed gets its
+           backend built now. */
+        serial_device_attach(next_inst);
 
         if (info->local & 0xfff00000) {
             dev->base_address = info->local >> 20;

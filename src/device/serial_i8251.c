@@ -76,6 +76,9 @@ typedef struct i8251_t {
     /* Storage for `be`; owned by this chip, so it goes away with the chip. */
     serial_backend_store_t  be_store;
 
+    uint32_t modem;     /* modem lines driven by an in-machine device */
+    uint8_t  modem_set; /* set once a device drives them */
+
     pc_timer_t rx_timer;
     pc_timer_t tx_timer;
     pc_timer_t tx_done_timer;
@@ -182,6 +185,68 @@ i8251_set_host_backend(void *priv, char_port_t *port)
     dev->be = (port != NULL) ? serial_backend_from_chardev(port, &dev->be_store) : NULL;
 }
 
+/* ---- device side: what an in-machine device can do to this chip --------- */
+
+static void
+i8251_chip_receive(void *priv, uint8_t byte)
+{
+    i8251_t *dev = (i8251_t *) priv;
+
+    if (dev->rx_ready)
+        return;
+
+    dev->rx_data  = byte;
+    dev->rx_ready = 1;
+    i8251_update_irq(dev);
+}
+
+static int
+i8251_chip_can_receive(void *priv)
+{
+    return !((i8251_t *) priv)->rx_ready;
+}
+
+static void
+i8251_chip_set_line(void *priv, uint32_t line, int on)
+{
+    i8251_t *dev = (i8251_t *) priv;
+
+    dev->modem_set = 1;
+
+    if (on)
+        dev->modem |= line;
+    else
+        dev->modem &= ~line;
+}
+
+static int
+i8251_chip_get_line(void *priv, uint32_t line)
+{
+    i8251_t *dev = (i8251_t *) priv;
+
+    if (line == CHAR_COM_RTS)
+        return (dev->command & 0x20) ? 1 : 0;
+    if (line == CHAR_COM_DTR)
+        return (dev->command & 0x02) ? 1 : 0;
+
+    return (dev->modem & line) ? 1 : 0;
+}
+
+static const serial_port_ops_t i8251_chip_ops = {
+    .can_receive = i8251_chip_can_receive,
+    .set_line    = i8251_chip_set_line,
+    .get_line    = i8251_chip_get_line,
+    .receive     = i8251_chip_receive
+};
+
+static void
+i8251_set_device_backend(void *priv, serial_device_t *sd)
+{
+    i8251_t *dev = (i8251_t *) priv;
+
+    dev->be = serial_backend_from_device(NULL, sd, &dev->be_store);
+}
+
 static void
 i8251_update_lines(i8251_t *dev)
 {
@@ -276,9 +341,13 @@ i8251_read(uint16_t addr, void *priv)
               (dev->txrdy ? 0x01 : 0x00) |
               (dev->txe ? 0x04 : 0x00);
 
-        /* With no backend attached the modem inputs float high. */
-        if ((dev->be == NULL) || (dev->be->status == NULL) ||
-            (dev->be->status(dev->be->priv) & CHAR_COM_DSR))
+        /* A device driving the modem lines wins over the host backend; with
+           nothing attached the inputs float high. */
+        if (dev->modem_set) {
+            if (dev->modem & CHAR_COM_DSR)
+                ret |= 0x80;
+        } else if ((dev->be == NULL) || (dev->be->status == NULL) ||
+                   (dev->be->status(dev->be->priv) & CHAR_COM_DSR))
             ret |= 0x80;
     } else {
         ret           = dev->rx_data;
@@ -378,8 +447,11 @@ i8251_init(const device_t *info)
     /* The port table drives the chardev; the 16550 path does the same through
        serial_t, this chip has no serial_t to register. */
     if ((port < SERIAL_MAX) && com_ports[port].enabled) {
-        com_ports[port].chip             = dev;
-        com_ports[port].set_host_backend = i8251_set_host_backend;
+        com_ports[port].chip               = dev;
+        com_ports[port].ops                = &i8251_chip_ops;
+        com_ports[port].set_host_backend   = i8251_set_host_backend;
+        com_ports[port].set_device_backend = i8251_set_device_backend;
+
     }
 
     return dev;
@@ -400,8 +472,10 @@ i8251_close(void *priv)
     dev->be = NULL;
 
     if ((dev->port < SERIAL_MAX) && (com_ports[dev->port].chip == dev)) {
-        com_ports[dev->port].chip             = NULL;
-        com_ports[dev->port].set_host_backend = NULL;
+        com_ports[dev->port].chip               = NULL;
+        com_ports[dev->port].ops                = NULL;
+        com_ports[dev->port].set_host_backend   = NULL;
+        com_ports[dev->port].set_device_backend = NULL;
     }
 
     free(dev);

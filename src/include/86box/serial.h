@@ -179,43 +179,56 @@ typedef struct serial_s {
 } serial_t;
 
 /* ------------------------------------------------------------------------ */
+/* Device side interface: what an in-machine device can do to the chip      */
+/* ------------------------------------------------------------------------ */
+
+typedef struct serial_port_ops_s {
+    void (*receive)(void *chip, uint8_t byte);           /* queue a byte for the guest */
+    int  (*can_receive)(void *chip);                     /* room for one more byte? */
+    void (*set_line)(void *chip, uint32_t line, int on); /* CTS/DSR/RI/DCD or DTR/RTS */
+    int  (*get_line)(void *chip, uint32_t line);
+} serial_port_ops_t;
+
+/* ------------------------------------------------------------------------ */
 /* Port table (host side policy)                                            */
 /* ------------------------------------------------------------------------ */
 
-typedef struct serial_port_s {
+typedef struct ser_port_s {
     uint8_t enabled;
     uint8_t hotunplug;
     int     device;
 
-    /* Set by chips that do not keep a serial_t: the host layer calls this to
-       hand the chip a freshly initialised chardev, or NULL when the port is
-       released. Chips that use serial_t leave both fields alone. */
+    /* Set by every chip that owns this port: the host layer uses them to hand
+       the chip a freshly initialised chardev or device backend, or NULL when
+       the port is released, and to reach the device side interface. */
     void  *chip;
     void (*set_host_backend)(void *chip, char_port_t *port);
+    void (*set_device_backend)(void *chip, struct serial_device_s *sd);
+    const serial_port_ops_t *ops;
 
     /* The host-side backend lives with the port, not with the chip. */
     char_port_t char_port;
 
     serial_t *serial;
-} serial_port_t;
+} ser_port_t;
 
-extern serial_port_t com_ports[SERIAL_MAX];
+extern ser_port_t com_ports[SERIAL_MAX];
 
 /* Storage for an in-machine device's callbacks; owned by serial_host.c. */
-extern void serial_device_attach(serial_t *serial, int port);
+extern void serial_device_attach(int port);
 
 /* ------------------------------------------------------------------------ */
 /* Attach API                                                               */
 /* ------------------------------------------------------------------------ */
 
-extern serial_t *serial_attach_ex(int port,
+extern ser_port_t *serial_attach_ex(int port,
                                   void (*rcr_callback)(struct serial_s *serial, void *priv),
                                   void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data),
                                   void (*transmit_period_callback)(struct serial_s *serial, void *priv, double transmit_period),
                                   void (*lcr_callback)(struct serial_s *serial, void *priv, uint8_t data_bits),
                                   void *priv);
 
-extern serial_t *serial_attach_ex_2(int port,
+extern ser_port_t *serial_attach_ex_2(int port,
                                   void (*rcr_callback)(struct serial_s *serial, void *priv),
                                   void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data),
                                   void (*dtr_callback)(struct serial_s *serial, int status, void *priv),
@@ -223,6 +236,13 @@ extern serial_t *serial_attach_ex_2(int port,
 
 #define serial_attach(port, rcr_callback, dev_write, priv) \
         serial_attach_ex(port, rcr_callback, dev_write, NULL, NULL, priv);
+
+/* Device side: what an in-machine device can do to the chip on its port. */
+extern void serial_port_receive(ser_port_t *port, uint8_t byte);
+extern int  serial_port_can_receive(ser_port_t *port);
+extern void serial_port_set_line(ser_port_t *port, uint32_t line, int on);
+extern int  serial_port_get_line(ser_port_t *port, uint32_t line);
+extern void serial_port_detach(ser_port_t *port);
 
 /* ------------------------------------------------------------------------ */
 /* UART driver API                                                          */
@@ -234,7 +254,6 @@ extern void      serial_devices_reset(void);
 extern void      serial_remove(serial_t *dev);
 extern void      serial_setup(serial_t *dev, uint16_t addr, uint8_t irq);
 extern void      serial_irq(serial_t *dev, uint8_t irq);
-extern void      serial_clear_fifo(serial_t *dev);
 extern void      serial_write_fifo(serial_t *dev, uint8_t dat);
 extern void      serial_set_next_inst(int ni);
 extern void      serial_standalone_init(void);

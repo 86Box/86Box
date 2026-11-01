@@ -28,7 +28,7 @@
 #include <86box/char.h>
 #include <86box/serial.h>
 
-serial_port_t com_ports[SERIAL_MAX] = { 0 };
+ser_port_t com_ports[SERIAL_MAX] = { 0 };
 
 static serial_device_t serial_devices[SERIAL_MAX];
 
@@ -36,26 +36,28 @@ static serial_device_t serial_devices[SERIAL_MAX];
    port before the chip existed, build the backend now. Both sides call
    this, so the order of attach and chip init no longer matters. */
 void
-serial_device_attach(serial_t *serial, int port)
+serial_device_attach(int port)
 {
     serial_device_t *sd;
 
-    if ((serial == NULL) || (port < 0) || (port >= SERIAL_MAX))
+    if ((port < 0) || (port >= SERIAL_MAX))
         return;
 
     sd = &serial_devices[port];
 
-    serial->sd = sd;
+    if (com_ports[port].serial != NULL)
+        com_ports[port].serial->sd = sd;
 
     if ((sd->rcr_callback == NULL) && (sd->dev_write == NULL) &&
         (sd->dtr_callback == NULL) && (sd->lcr_callback == NULL) &&
         (sd->transmit_period_callback == NULL))
         return;
 
-    serial->be = serial_backend_from_device(serial, sd, &serial->be_store);
+    if (com_ports[port].set_device_backend != NULL)
+        com_ports[port].set_device_backend(com_ports[port].chip, sd);
 }
 
-serial_t *
+ser_port_t *
 serial_attach_ex(int port,
                  void (*rcr_callback)(struct serial_s *serial, void *priv),
                  void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data),
@@ -78,12 +80,12 @@ serial_attach_ex(int port,
     sd->lcr_callback             = lcr_callback;
     sd->priv                     = priv;
 
-    serial_device_attach(com_ports[port].serial, port);
+    serial_device_attach(port);
 
-    return com_ports[port].serial;
+    return (com_ports[port].chip != NULL) ? &com_ports[port] : NULL;
 }
 
-serial_t *
+ser_port_t *
 serial_attach_ex_2(int port,
                    void (*rcr_callback)(struct serial_s *serial, void *priv),
                    void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data),
@@ -106,9 +108,9 @@ serial_attach_ex_2(int port,
     sd->lcr_callback             = NULL;
     sd->priv                     = priv;
 
-    serial_device_attach(com_ports[port].serial, port);
+    serial_device_attach(port);
 
-    return com_ports[port].serial;
+    return (com_ports[port].chip != NULL) ? &com_ports[port] : NULL;
 }
 
 void
@@ -175,4 +177,54 @@ serial_devices_reset(void)
 
     serial_devices_close(1);
     serial_devices_init();
+}
+
+/* ---- device side: what an in-machine device can do to the chip ---------- */
+
+void
+serial_port_receive(ser_port_t *port, uint8_t byte)
+{
+    if ((port != NULL) && (port->ops != NULL) && (port->ops->receive != NULL))
+        port->ops->receive(port->chip, byte);
+}
+
+int
+serial_port_can_receive(ser_port_t *port)
+{
+    if ((port == NULL) || (port->ops == NULL) || (port->ops->can_receive == NULL))
+        return 0;
+
+    return port->ops->can_receive(port->chip);
+}
+
+void
+serial_port_set_line(ser_port_t *port, uint32_t line, int on)
+{
+    if ((port != NULL) && (port->ops != NULL) && (port->ops->set_line != NULL))
+        port->ops->set_line(port->chip, line, on);
+}
+
+int
+serial_port_get_line(ser_port_t *port, uint32_t line)
+{
+    if ((port == NULL) || (port->ops == NULL) || (port->ops->get_line == NULL))
+        return 0;
+
+    return port->ops->get_line(port->chip, line);
+}
+
+void
+serial_port_detach(ser_port_t *port)
+{
+    int i;
+
+    if ((port == NULL) || (port->set_host_backend == NULL))
+        return;
+
+    i = (int) (port - com_ports);
+    if ((i < 0) || (i >= SERIAL_MAX))
+        return;
+
+    port->set_host_backend(port->chip, NULL);
+    memset(&serial_devices[i], 0, sizeof(serial_device_t));
 }

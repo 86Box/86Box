@@ -149,7 +149,9 @@ device_transmit_period(void *priv, double period)
 const serial_backend_t *
 serial_backend_from_device(serial_t *serial, serial_device_t *sd, serial_backend_store_t *store)
 {
-    if ((serial == NULL) || (sd == NULL) || (store == NULL))
+    /* `serial` may be NULL: the 8251 has no serial_t, and the device
+       callbacks ignore that argument. */
+    if ((sd == NULL) || (store == NULL))
         return NULL;
 
     memset(store, 0, sizeof(*store));
