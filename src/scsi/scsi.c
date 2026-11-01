@@ -59,6 +59,7 @@ typedef const struct {
 static SCSI_CARD scsi_cards[] = {
     // clang-format off
     { &device_none,              },
+    { &device_internal,          },
     /* ISA */
     { &scsi_lcs6821n_device,     },
     { &scsi_rt1000b_device,      },
@@ -100,6 +101,7 @@ static SCSI_CARD scsi_cards[] = {
     { &aha2940_pci_device,       },
     { &aha2940u_pci_device,      },
     { &aha2944uw_pci_device,     },
+    { &aha2940u2w_pci_device,    },
     { &am53c974_pci_device,      },
     { &am53c974a_pci_device,     },
     { &buslogic_958d_pci_device, },
@@ -192,7 +194,7 @@ scsi_card_init(void)
            bus left. */
     if (max > 0) {
         for (int i = 0; i < max; i++) {
-            if ((scsi_card_current[i] > 0) && scsi_cards[scsi_card_current[i]].device)
+            if ((scsi_card_current[i] > SCSI_CARD_INTERNAL) && scsi_cards[scsi_card_current[i]].device)
                 device_add_inst(scsi_cards[scsi_card_current[i]].device, i + 1);
         }
     }
@@ -246,8 +248,10 @@ scsi_plan(bus_owner_t owners[SCSI_BUS_MAX], int mach, const int snd[], const int
 
     /* In the order they start, each taking the next bus: the machine's own
        SCSI, its sound, the sound cards, the SCSI cards, then the USB mass
-       storage device, which bridges one bus. */
-    scsi_plan_take(owners, &next, scsi_plan_buses(m->scsi_device, 1, 1), m->scsi_device, 1, 1);
+       storage device, which bridges one bus. The machine's own SCSI is only
+       there when the Internal entry is chosen for the first card. */
+    if ((scsi[0] == SCSI_CARD_INTERNAL) && (m->scsi_device != NULL))
+      scsi_plan_take(owners, &next, scsi_plan_buses(m->scsi_device, 1, 1), m->scsi_device, 1, 1);
     if ((snd[0] == SOUND_INTERNAL) && (m->snd_device != NULL))
         scsi_plan_take(owners, &next, scsi_plan_buses(m->snd_device, 1, 0), m->snd_device, 1, 1);
     for (int i = 0; i < SOUND_CARD_MAX; i++) {
@@ -258,7 +262,7 @@ scsi_plan(bus_owner_t owners[SCSI_BUS_MAX], int mach, const int snd[], const int
         }
     }
     for (int i = 0; i < SCSI_CARD_MAX; i++) {
-        if (scsi[i] > 0) {
+        if (scsi[i] > SCSI_CARD_INTERNAL) {
             const device_t *dev = scsi_card_getdevice(scsi[i]);
 
             scsi_plan_take(owners, &next, scsi_plan_buses(dev, i + 1, 1), dev, i + 1, 0);
