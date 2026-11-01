@@ -707,8 +707,12 @@ debugger_fpu_kind(uint8_t op, uint8_t modrm, int addr32)
           &x86_2386_opcodes_dc_a32, &x86_2386_opcodes_dd_a32, &x86_2386_opcodes_de_a32, &x86_2386_opcodes_df_a32 }
     };
 
-    if (!is286 || (op < 0xd8) || (op > 0xdf))
+    if ((op < 0xd8) || (op > 0xdf))
         return DEBUGGER_OP_NORMAL;
+    /* The 8086 class: the 8087 tables, for which an undefined opcode reads
+       the operand and does nothing. */
+    if (!is286)
+        return (hasfpu && fpu_8087_op_illegal(op, modrm)) ? DEBUGGER_OP_ILLEGAL : DEBUGGER_OP_NORMAL;
     addr32 = !!addr32;
 
     if (debugger_exec() == exec386_2386) {

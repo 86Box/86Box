@@ -32,6 +32,9 @@
  *            RDTSCP, LFENCE, RDRAND), raise #UD as 86Box's handlers do.
  *            A 3DNow! suffix is looked up in the processor's own table:
  *            the K6-2 and WinChip 2 lack the K6-2+ and K6-III+'s additions.
+ *          - The x87 opcodes are checked against the coprocessor's own
+ *            tables (the 8087's on the 8086 class), and the undocumented
+ *            register forms that repeat others are said to.
  *          - The library's decoder modes for extensions that reuse old
  *            encodings (MPX, CET, LZCNT/TZCNT, WBNOINVD, CLDEMOTE,
  *            instruction prefetch hints) are off: these processors have
@@ -765,6 +768,59 @@ fpuOverride(Fetcher &f, int at, const debugger_decode_info_t &info, DisasmInsn &
     }
 }
 
+/* The register forms of the x87 opcodes that repeat others, which the
+   coprocessor's tables have (FSTP1, FXCH4, FCOM2 and the like), and the
+   Cyrix FTSTP, which the library lacks; for an opcode the coprocessor has. */
+void
+fpuAlias(Fetcher &f, int at, DisasmInsn &d)
+{
+    uint8_t op;
+    uint8_t m;
+
+    if (!f.get(at, &op) || !f.get(at + 1, &m) || (m < 0xc0) || !d.note.isEmpty())
+        return;
+
+    const int rg = (m >> 3) & 7;
+    QString   of;
+    switch (op) {
+        case 0xd9:
+            if (rg == 3) { /* the library has FSTPNCE */
+                d.text = renameMnemonic(d.text, QStringLiteral("fstp"));
+                of     = QStringLiteral("FSTP (DD D8+i)");
+            } else if (m == 0xe6) {
+                d.text = QStringLiteral("ftstp");
+                d.note = QStringLiteral("Cyrix: FTST, then pop");
+            }
+            break;
+        case 0xdc:
+            if (rg == 2)
+                of = QStringLiteral("FCOM (D8 D0+i)");
+            else if (rg == 3)
+                of = QStringLiteral("FCOMP (D8 D8+i)");
+            break;
+        case 0xdd:
+            if (rg == 1)
+                of = QStringLiteral("FXCH (D9 C8+i)");
+            break;
+        case 0xde:
+            if (rg == 2)
+                of = QStringLiteral("FCOMP (D8 D8+i)");
+            break;
+        case 0xdf:
+            if (rg == 0)
+                d.note = QStringLiteral("FFREE, then pop (undocumented by Intel)");
+            else if (rg == 1)
+                of = QStringLiteral("FXCH (D9 C8+i)");
+            else if ((rg == 2) || (rg == 3))
+                of = QStringLiteral("FSTP (DD D8+i)");
+            break;
+        default:
+            break;
+    }
+    if (!of.isEmpty())
+        d.note = QStringLiteral("Undocumented alias of %1").arg(of);
+}
+
 } // namespace
 
 Disassembler::Disassembler()
@@ -1118,6 +1174,13 @@ Disassembler::decode(uint32_t ip, bool current)
                     d.text = QStringLiteral("esc %1").arg(op & 7);
                 }
                 fpuOverride(f, at, info_, d);
+                if (info_.fpu != DEBUGGER_FPU_NONE) {
+                    uint8_t m;
+                    if (f.get(at + 1, &m) && (debugger_fpu_kind(op, m, 0) == DEBUGGER_OP_ILLEGAL))
+                        d.note = QStringLiteral("Not on this coprocessor: reads the operand and does nothing");
+                    else
+                        fpuAlias(f, at, d);
+                }
                 if (d.note.isEmpty())
                     d.note = fpuNote(info_);
                 return finish();
@@ -1479,7 +1542,8 @@ Disassembler::decode(uint32_t ip, bool current)
                     return finish();
                 }
                 d.note = QStringLiteral("Not on this coprocessor: reads the operand and does nothing");
-            }
+            } else if (info_.fpu != DEBUGGER_FPU_NONE)
+                fpuAlias(f, at, d);
             if (d.note.isEmpty())
                 d.note = fpuNote(info_);
             return finish();

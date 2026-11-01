@@ -172,8 +172,9 @@ enum {
 };
 
 extern int debugger_opcode_kind(int map, uint8_t op, int opsize);
-/* The same for an x87 escape (D8-DF) and its ModR/M byte, on the 286 and
-   later with a coprocessor: DEBUGGER_OP_ILLEGAL or DEBUGGER_OP_NORMAL. */
+/* The same for an x87 escape (D8-DF) and its ModR/M byte, with a
+   coprocessor (the 8087 tables on the 8086 class): DEBUGGER_OP_ILLEGAL or
+   DEBUGGER_OP_NORMAL. */
 extern int debugger_fpu_kind(uint8_t op, uint8_t modrm, int addr32);
 /* Whether the processor takes a LOCK prefix on the instruction whose opcode
    and next two bytes these are (zeros where the instruction has none). */
