@@ -301,15 +301,14 @@ codegen_texture_fetch(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *pa
         addbyte(0xc1);
         addbyte(0xe9);
         addbyte(28);
-        addbyte(0x48); /*MOV state->tex_s, RAX*/
-        addbyte(0x89);
+        /*tex_s and tex_t are 32-bit, a 64-bit store of tex_t would overwrite clamp_s[0]*/
+        addbyte(0x89); /*MOV state->tex_s, EAX*/
         addbyte(0x87);
         addlong(offsetof(voodoo_state_t, tex_s));
         addbyte(0xc1); /*SHR EBX, 8*/
         addbyte(0xeb);
         addbyte(8);
-        addbyte(0x48); /*MOV state->tex_t, RCX*/
-        addbyte(0x89);
+        addbyte(0x89); /*MOV state->tex_t, ECX*/
         addbyte(0x8f);
         addlong(offsetof(voodoo_state_t, tex_t));
         addbyte(0x89); /*MOV state->lod, EBX*/
