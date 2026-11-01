@@ -688,6 +688,28 @@ codegen_ir_stores(ir_data_t *ir, int first_uop)
     return 0;
 }
 
+/* The four bytes from addr, as fastreadl reads them, but no page fault for
+   those on the next page if it isn't mapped: the instruction may end before
+   them. They read as 0 then; one that does reach them faults when the
+   interpreter fetches them, and the block is discarded. */
+static uint32_t
+codegen_fetchl_lookahead(uint32_t addr)
+{
+    uint32_t val = 0;
+
+    if ((addr & 0xfff) <= 0xffc)
+        return fastreadl(addr);
+
+    for (int c = 0; c < 4; c++) {
+        if (!((addr + c) & 0xfff) && (get_phys_noabrt(addr + c) == 0xffffffff))
+            break;
+        val |= (uint32_t) fastreadb(addr + c) << (c * 8);
+        if (cpu_state.abrt)
+            break;
+    }
+    return val;
+}
+
 void
 codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_pc, uint32_t old_pc)
 {
@@ -909,7 +931,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
             default:
                 goto generate_call;
         }
-        fetchdat = fastreadl(cs + op_pc);
+        fetchdat = codegen_fetchl_lookahead(cs + op_pc);
         codegen_timing_prefix(opcode, fetchdat);
         if (cpu_state.abrt)
             return;

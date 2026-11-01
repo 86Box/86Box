@@ -588,6 +588,7 @@ add_to_block_list(codeblock_t *block)
         block->next                    = BLOCK_INVALID;
         pages[block->phys >> 12].block = block_nr;
     }
+    block->flags |= CODEBLOCK_IN_PAGE_LIST;
 
     if (block->next) {
 #ifndef RELEASE_BUILD
@@ -615,8 +616,12 @@ add_to_block_list(codeblock_t *block)
 static void
 remove_from_block_list(codeblock_t *block, UNUSED(uint32_t pc))
 {
-    if (!block->page_mask)
+    /* Not page_mask: a recompile clears that while the block stays listed,
+       and a block given up before its first instruction is marked would be
+       freed still on the list, which then loops when it is listed again */
+    if (!(block->flags & CODEBLOCK_IN_PAGE_LIST))
         return;
+    block->flags &= ~CODEBLOCK_IN_PAGE_LIST;
 #ifndef RELEASE_BUILD
     if (block->flags & CODEBLOCK_IN_DIRTY_LIST)
         fatal("remove_from_block_list: in dirty list\n");
