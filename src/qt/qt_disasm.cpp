@@ -193,6 +193,85 @@ modrmExtra(Fetcher &f, int modrmAt, bool addr32, int *extra)
     return true;
 }
 
+/* Whether opcode op, of map 0 (one byte) or 1 (after 0F), takes a ModR/M
+   byte wherever it is defined, and the bytes of immediate after it (reg:
+   the ModR/M byte's reg field, for F6 and F7; o32: 32-bit operands). An
+   encoding the processor refuses is then shown with all its bytes, so that
+   the instructions after it are decoded from where they start. */
+bool
+modrmLayout(int map, uint8_t op, int reg, bool o32, int *imm)
+{
+    *imm = 0;
+    if (!map) {
+        switch (op) {
+            case 0x00 ... 0x03:
+            case 0x08 ... 0x0b:
+            case 0x10 ... 0x13:
+            case 0x18 ... 0x1b:
+            case 0x20 ... 0x23:
+            case 0x28 ... 0x2b:
+            case 0x30 ... 0x33:
+            case 0x38 ... 0x3b:
+            case 0x62:
+            case 0x63:
+            case 0x84 ... 0x8f:
+            case 0xc4:
+            case 0xc5:
+            case 0xd0 ... 0xd3:
+            case 0xd8 ... 0xdf:
+            case 0xfe:
+            case 0xff:
+                return true;
+            case 0x69:
+            case 0x81:
+            case 0xc7:
+                *imm = o32 ? 4 : 2;
+                return true;
+            case 0x6b:
+            case 0x80:
+            case 0x82:
+            case 0x83:
+            case 0xc0:
+            case 0xc1:
+            case 0xc6:
+                *imm = 1;
+                return true;
+            case 0xf6:
+                *imm = (reg < 2) ? 1 : 0;
+                return true;
+            case 0xf7:
+                *imm = (reg < 2) ? (o32 ? 4 : 2) : 0;
+                return true;
+            default:
+                return false;
+        }
+    }
+
+    switch (op) {
+        case 0x04 ... 0x0b:
+        case 0x0e:
+        case 0x30 ... 0x3f:
+        case 0x77:
+        case 0x80 ... 0x8f:
+        case 0xa0 ... 0xa2:
+        case 0xa8 ... 0xaa:
+        case 0xc8 ... 0xcf:
+        case 0xff: /* UD0, which only took one later */
+            return false;
+        case 0x0f: /* 3DNow!: the suffix opcode */
+        case 0x70 ... 0x73:
+        case 0xa4:
+        case 0xac:
+        case 0xba:
+        case 0xc2:
+        case 0xc4 ... 0xc6:
+            *imm = 1;
+            return true;
+        default:
+            return true;
+    }
+}
+
 #ifdef USE_DISASM
 /* Lower case, with single spaces, and RETF as it is usually written
    (the library has "ret far"). */
@@ -860,6 +939,24 @@ Disassembler::decode(uint32_t ip, bool current)
             *mod = m >> 6;
         return true;
     };
+    /* An encoding the processor refuses, with its ModR/M byte at modrmAt
+       and imm bytes of immediate: all its bytes, where they can be read. */
+    auto invalidModrm = [&](int modrmAt, int imm, const QString &why) {
+        int     extra;
+        uint8_t b;
+        if (!modrmExtra(f, modrmAt, addr32, &extra) || !f.get(modrmAt + extra + imm, &b))
+            return;
+        invalid(modrmAt + 1 + extra + imm, why);
+    };
+    /* Opcode op of map, at index opAt, refused: as long as it would be.
+       (F6 and F7, whose immediate depends on the reg field, are never.) */
+    auto invalidOp = [&](int opMap, uint8_t opc, int opAt, const QString &why) {
+        int imm;
+        if (modrmLayout(opMap, opc, 0, !!(opsize & 0x100), &imm))
+            invalidModrm(opAt + 1, imm, why);
+        else
+            invalid(opAt + 1, why);
+    };
 
     /* ---- the 8086, 80186 and NEC V20/V30 ---- */
     if (x86_86) {
@@ -1050,7 +1147,7 @@ Disassembler::decode(uint32_t ip, bool current)
         }
         switch (kind) {
             case DEBUGGER_OP_ILLEGAL:
-                invalid(at + 2, QStringLiteral("Not an instruction on this processor: #UD"));
+                invalidOp(1, op2, at + 1, QStringLiteral("Not an instruction on this processor: #UD"));
                 return finish();
             case DEBUGGER_OP_LOADALL:
             case DEBUGGER_OP_LOADALL386:
@@ -1146,7 +1243,7 @@ Disassembler::decode(uint32_t ip, bool current)
                     }
                 }
                 if (!lib(w))
-                    invalid(at + 2, QStringLiteral("In the opcode tables, but not decodable"));
+                    invalidOp(1, op2, at + 1, QStringLiteral("In the opcode tables, but not decodable"));
                 else if (dropped)
                     d.note = QStringLiteral("No SSE: the 66/F2/F3 prefix does not make this an SSE instruction");
                 return finish();
@@ -1176,7 +1273,17 @@ Disassembler::decode(uint32_t ip, bool current)
             if (!modrmReg(at + 1, &reg, nullptr))
                 return finish();
             if (reg) {
-                invalid(at + 2, QStringLiteral("ModR/M reg %1: #UD").arg(reg));
+                invalidOp(0, op, at, QStringLiteral("ModR/M reg %1: #UD").arg(reg));
+                return finish();
+            }
+            break;
+        case 0xfe:
+        case 0xff:
+            /* INC and DEC only on a byte; no FF /7. */
+            if (!modrmReg(at + 1, &reg, nullptr))
+                return finish();
+            if ((op == 0xfe) ? (reg >= 2) : (reg == 7)) {
+                invalidOp(0, op, at, QStringLiteral("ModR/M reg %1: #UD").arg(reg));
                 return finish();
             }
             break;
@@ -1185,7 +1292,7 @@ Disassembler::decode(uint32_t ip, bool current)
             if (!modrmReg(at + 1, &reg, nullptr))
                 return finish();
             if ((reg >= ((info_.isa == DEBUGGER_ISA_386) ? 6 : 4)) || ((op == 0x8e) && (reg == 1))) {
-                invalid(at + 2, QStringLiteral("No such segment register here: #UD"));
+                invalidOp(0, op, at, QStringLiteral("No such segment register here: #UD"));
                 return finish();
             }
             break;
@@ -1219,6 +1326,6 @@ Disassembler::decode(uint32_t ip, bool current)
     }
 
     if (!lib(withOp(op, at + 1)))
-        invalid(at + 1, QStringLiteral("In the opcode tables, but not decodable"));
+        invalidOp(0, op, at, QStringLiteral("In the opcode tables, but not decodable"));
     return finish();
 }
