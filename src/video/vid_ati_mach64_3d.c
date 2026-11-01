@@ -3880,6 +3880,90 @@ mach64_rp_texel(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_ma
     return mach64_3d_texel_at(ctx, &map->tex, u, v, inhibits);
 }
 
+/*
+ * The 2x2 filter's texels at u, v to u + 1, v + 1, as mach64_rp_texel gives
+ * them, in the order 00, 10, 01, 11: for the 16 and 32-bit types the
+ * coordinates are wrapped, the type decoded and the key looked at once for
+ * the four. A texel's index in the map is v * w + u, or tile_u[u] ^
+ * tile_v[v] tiled.
+ */
+static inline void
+mach64_rp_texels_2x2(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_map_t *map, int u, int v, uint32_t *c, int *inh)
+{
+    mach64_t                  *mach64 = ctx->mach64;
+    const mach64_3d_texture_t *tex    = &map->tex;
+    int                        bpp    = tex->bpp;
+    int                        u0;
+    int                        u1;
+    int                        v0;
+    int                        v1;
+    uint32_t                   idx[4];
+    uint32_t                   raw[4] = { 0, 0, 0, 0 };
+
+    if ((tex->format != 3) && (tex->format != 4) && (tex->format != 6) && (tex->format != 15)) {
+        c[0] = mach64_rp_texel(ctx, agp, map, u, v, &inh[0]);
+        c[1] = mach64_rp_texel(ctx, agp, map, u + 1, v, &inh[1]);
+        c[2] = mach64_rp_texel(ctx, agp, map, u, v + 1, &inh[2]);
+        c[3] = mach64_rp_texel(ctx, agp, map, u + 1, v + 1, &inh[3]);
+        return;
+    }
+
+    u0 = mach64_rp_wrap(u, map->w, map->clamp_s);
+    u1 = mach64_rp_wrap(u + 1, map->w, map->clamp_s);
+    v0 = mach64_rp_wrap(v, map->h, map->clamp_t);
+    v1 = mach64_rp_wrap(v + 1, map->h, map->clamp_t);
+    if (map->tile_u) {
+        idx[0] = map->tile_u[u0] ^ map->tile_v[v0];
+        idx[1] = map->tile_u[u1] ^ map->tile_v[v0];
+        idx[2] = map->tile_u[u0] ^ map->tile_v[v1];
+        idx[3] = map->tile_u[u1] ^ map->tile_v[v1];
+    } else {
+        idx[0] = v0 * map->w + u0;
+        idx[1] = v0 * map->w + u1;
+        idx[2] = v1 * map->w + u0;
+        idx[3] = v1 * map->w + u1;
+    }
+
+    if (map->agp) {
+        uint32_t base = mach64->rp.agp_base + tex->base;
+
+        for (int i = 0; i < 4; i++)
+            mach64_rp_agp_read(agp, base + idx[i] * bpp, &raw[i], bpp);
+    } else if (bpp == 4) {
+        for (int i = 0; i < 4; i++)
+            raw[i] = mach64_3d_vram_read32(mach64, tex->base + idx[i] * 4);
+    } else {
+        for (int i = 0; i < 4; i++)
+            raw[i] = mach64_3d_vram_read16(mach64, tex->base + idx[i] * 2);
+    }
+
+    switch (tex->format) {
+        case 3:
+            for (int i = 0; i < 4; i++)
+                c[i] = mach64_3d_argb1555(raw[i], tex->dynamic_range);
+            break;
+        case 4:
+            for (int i = 0; i < 4; i++)
+                c[i] = mach64_3d_argb565(raw[i], tex->dynamic_range);
+            break;
+        case 6:
+            for (int i = 0; i < 4; i++)
+                c[i] = raw[i];
+            break;
+        default:
+            for (int i = 0; i < 4; i++)
+                c[i] = mach64_3d_argb4444(raw[i], tex->dynamic_range);
+            break;
+    }
+
+    if (!tex->key_fcn)
+        inh[0] = inh[1] = inh[2] = inh[3] = 0;
+    else {
+        for (int i = 0; i < 4; i++)
+            inh[i] = mach64_3d_texel_key_inhibits(tex, c[i] & 0x00ffffff);
+    }
+}
+
 /* floor() of a sample coordinate, without the library call: exact for any
    value whose integer part an int64_t holds, the others go to floor(). */
 static inline double
@@ -3901,8 +3985,8 @@ mach64_rp_sample_map(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_
 {
     double   fs = s * map->w;
     double   ft = t * map->h;
-    int      i00, i10, i01, i11;
-    uint32_t c00, c10, c01, c11;
+    int      inh[4];
+    uint32_t c[4];
     int      u, v;
     unsigned fu, fv;
 
@@ -3939,15 +4023,9 @@ mach64_rp_sample_map(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_
     fv  = (unsigned) ((ft - v) * 256.0);
     fu  = (fu > 255) ? 255 : fu;
     fv  = (fv > 255) ? 255 : fv;
-    c00 = mach64_rp_texel(ctx, agp, map, u, v, &i00);
-    c10 = mach64_rp_texel(ctx, agp, map, u + 1, v, &i10);
-    c01 = mach64_rp_texel(ctx, agp, map, u, v + 1, &i01);
-    c11 = mach64_rp_texel(ctx, agp, map, u + 1, v + 1, &i11);
-    if (fv >= 128)
-        *inhibits = (fu >= 128) ? i11 : i01;
-    else
-        *inhibits = (fu >= 128) ? i10 : i00;
-    return mach64_3d_lerp_texel(mach64_3d_lerp_texel(c00, c10, fu), mach64_3d_lerp_texel(c01, c11, fu), fv);
+    mach64_rp_texels_2x2(ctx, agp, map, u, v, c, inh);
+    *inhibits = inh[((fv >= 128) ? 2 : 0) + ((fu >= 128) ? 1 : 0)];
+    return mach64_3d_lerp_texel(mach64_3d_lerp_texel(c[0], c[1], fu), mach64_3d_lerp_texel(c[2], c[3], fu), fv);
 }
 
 /*
