@@ -511,7 +511,7 @@ iret_real(ir_data_t *ir, int is32)
 }
 
 static uint32_t
-iret_common(ir_data_t *ir, int is32)
+iret_common(ir_data_t *ir, int is32, uint32_t op_pc)
 {
     const int pmode = !!(msw & 1);
     const int v86   = !!(cpu_state.eflags & VM_FLAG);
@@ -537,9 +537,12 @@ iret_common(ir_data_t *ir, int is32)
 
     if (v86)
         iret_v86(ir, is32);
-    else if (pmode)
+    else if (pmode) {
+        /*A return to a nested task saves the PC as the outgoing task's EIP,
+          which is past the instruction, as in the interpreter*/
+        uop_MOV_IMM(ir, IREG_pc, op_pc);
         iret_pm(ir, is32);
-    else
+    } else
         iret_real(ir, is32);
 
     codegen_flags_changed = 0;
@@ -547,12 +550,12 @@ iret_common(ir_data_t *ir, int is32)
 }
 
 uint32_t
-ropIRET_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc))
+ropIRET_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    return iret_common(ir, 0);
+    return iret_common(ir, 0, op_pc);
 }
 uint32_t
-ropIRET_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc))
+ropIRET_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
-    return iret_common(ir, 1);
+    return iret_common(ir, 1, op_pc);
 }
