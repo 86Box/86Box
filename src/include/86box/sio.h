@@ -54,6 +54,7 @@ extern const device_t pc87310_device;
 #define FDC37C6XX_IDE_SEC    0x00200
 
 #define FDC37C6XX_370        0x00400
+#define CT721                0x00800
 
 extern const device_t fdc37c6xx_device;
 

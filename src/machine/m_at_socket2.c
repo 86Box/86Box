@@ -541,7 +541,7 @@ machine_at_sensation2_init(const machine_t *model)
     device_add(&vl82c486_device);
     device_add(&vl82c113_device);
 
-    device_add_params(&fdc37c6xx_device, (void *) (FDC37C651 | FDC37C6XX_IDE_PRI));
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C651 | FDC37C6XX_IDE_PRI | CT721));
 
     if (gfxcard[0] == VID_INTERNAL)
         device_add(machine_get_vid_device(machine));
