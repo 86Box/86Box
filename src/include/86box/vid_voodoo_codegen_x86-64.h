@@ -3352,7 +3352,7 @@ voodoo_generate(uint8_t *code_block, voodoo_t *voodoo, voodoo_params_t *params, 
             }
             addbyte(0x8b); /*MOV EDX, state->x[EDI]*/
             addbyte(0x97);
-            if (voodoo->col_tiled)
+            if (params->col_tiled)
                 addlong(offsetof(voodoo_state_t, x_tiled));
             else
                 addlong(offsetof(voodoo_state_t, x));
