@@ -109,7 +109,7 @@ cga_out(uint16_t addr, uint8_t val, void *priv)
                 // Recalc the timings if we are writing any invalid CRTC register or a valid CRTC register 
                 // except the CURSOR and LIGHT PEN registers
                 if ((cga->crtcreg < 0xe) || (cga->crtcreg > 0x11)) {
-                    cga->fullchange = changeframecount;
+                    cga->fullchange = monitors[cga->monitor_used].mon_changeframecount;
                     cga_recalctimings(cga);
 
                     if (cga->crtcreg == 3)
@@ -244,6 +244,15 @@ cga_write(uint32_t addr, uint8_t val, void *priv)
         cga->charbuffer[offset | 1] = cga->vram[addr & DEVICE_VRAM_MASK];
     }
     cga_waitstates(cga);
+}
+
+/* For the memory viewer: no wait states, and no snow. */
+static uint8_t *
+cga_debug_ptr(uint32_t addr, UNUSED(int write), void *priv)
+{
+    cga_t *cga = (cga_t *) priv;
+
+    return &cga->vram[addr & DEVICE_VRAM_MASK];
 }
 
 uint8_t
@@ -762,6 +771,12 @@ cga_poll(void *priv)
     int      ys_temp;
     int      old_ma;
 
+    /* This instance may be the secondary display; every blit and size macro used
+       below resolves through monitor_index_global, so bind it to this card. */
+    const int prev_monitor_index = monitor_index_global;
+
+    monitor_index_global = cga->monitor_used;
+
     if (!cga->linepos) {
         timer_advance_u64(&cga->timer, cga->dispofftime);
         cga->cgastat |= 1;
@@ -971,11 +986,16 @@ cga_poll(void *priv)
                 cga->charbuffer[x] = cga->vram[((cga->memaddr << 1) + x) & DEVICE_VRAM_MASK];
         }
     }
+
+    monitor_index_global = prev_monitor_index;
 }
 
 void
 cga_init(cga_t *cga)
 {
+    /* For the memory viewer; here, as machines with the card built in map
+       the same handlers. */
+    mem_debug_add(cga_read, cga_write, cga_debug_ptr);
     timer_add(&cga->timer, cga_poll, cga, 1);
     cga->composite = 0;
 }

@@ -103,6 +103,7 @@
 #include <86box/plat_dir.h>
 #include <86box/version.h>
 #include <86box/gdbstub.h>
+#include <86box/debugger.h>
 #include <86box/automation.h>
 #include <86box/pc_block.h>
 #ifdef USE_AUTOMATION
@@ -1685,6 +1686,19 @@ pc_init_modules(void)
         }
     }
 
+    /* A card that cannot drive a second monitor must not be initialised in a secondary
+       slot, even when an older configuration file still names one. */
+    for (uint8_t i = 1; i < GFXCARD_MAX; i++) {
+        if ((gfxcard[i] == VID_NONE) || (gfxcard[i] == VID_INTERNAL) || (gfxcard[i] == VID_EXTERNAL))
+            continue;
+        if (!video_card_is_secondary(machine, gfxcard[0], gfxcard[i])) {
+            memset(tempc, 0, sizeof(tempc));
+            device_get_name(video_card_getdevice(gfxcard[i]), 0, tempc);
+            pclog("Video card #%i \"%s\" cannot drive a secondary display, disabling it.\n", i + 1, tempc);
+            gfxcard[i] = VID_NONE;
+        }
+    }
+
     atfullspeed = 0;
 
     random_init();
@@ -2207,8 +2221,10 @@ pc_run(void)
     if (hard_reset_pending) {
         hard_reset_pending = 0;
         ibm5140_power_hard_off();
+        debugger_reset_begin();
         pc_reset_hard_close();
         pc_reset_hard_init();
+        debugger_reset_end();
     }
 
     /* USB devices the user plugged in or unplugged since the last block. It
@@ -2222,12 +2238,13 @@ pc_run(void)
     /* Run a block of code: a millisecond (or ten) of the CPU's cycles, the
        remainder carried over (pc_block.h). */
     startblit();
-    cpu_exec(pc_block_cycles(&pc_block, cpu_s->rspeed, force_10ms ? 100 : 1000));
+    debugger_cpu_exec(pc_block_cycles(&pc_block, cpu_s->rspeed, force_10ms ? 100 : 1000));
     ack_pause();
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     if (gdbstub_step == GDBSTUB_EXEC) {
 #endif
-        if (!mouse_timed)
+        /* Likewise while the memory viewer holds the processor. */
+        if (!mouse_timed && !debugger_stopped())
             mouse_process();
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     }

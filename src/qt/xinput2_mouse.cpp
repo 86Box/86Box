@@ -48,7 +48,6 @@ static Display            *disp       = nullptr;
 static QThread            *procThread = nullptr;
 static QWidget            *grab_widget = nullptr;
 static XIEventMask         ximask;
-static std::atomic<bool>   exitfromthread  = false;
 static std::atomic<double> xi2_mouse_abs_x = 0, xi2_mouse_abs_y = 0;
 static int                 xi2opcode      = 0;
 static double              prev_coords[2] = { 0.0 };

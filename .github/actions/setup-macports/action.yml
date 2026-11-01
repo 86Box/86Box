@@ -1,0 +1,152 @@
+name: Set up MacPorts
+description: >-
+  Installs MacPorts as expected by .ci/build.sh, restoring the installation
+  saved by the MacPorts cache workflow when
+  available, or installing it with Qt built with Vulkan support otherwise.
+
+inputs:
+
+  arch:
+    description: Architecture to configure MacPorts for (x86_64 or arm64).
+    required: true
+
+  restore:
+    description: Whether to restore a cached installation.
+    default: "true"
+
+  macports-version:
+    description: MacPorts version to install.
+    default: 2.12.7
+
+outputs:
+
+  cache-key-prefix:
+    description: Prefix of the cache keys holding MacPorts installations for this runner.
+    value: ${{ steps.key.outputs.prefix }}
+
+  tarball:
+    description: Path the cached installation tarball is restored from and saved to.
+    value: ${{ runner.temp }}/macports.tar
+
+  qt-built:
+    description: Whether Qt had to be built from source ("true" or "false").
+    value: ${{ steps.qt.outputs.built }}
+
+runs:
+
+  using: composite
+
+  steps:
+    - name: Determine cache key
+      id: key
+      shell: bash
+      env:
+        MACPORTS_VERSION: ${{ inputs.macports-version }}
+        ARCH: ${{ inputs.arch }}
+      run: |
+        os_version=$(sw_vers -productVersion | cut -d. -f1)
+        echo "prefix=macports-$MACPORTS_VERSION-macos$os_version-$ARCH-" >> "$GITHUB_OUTPUT"
+
+    # Caches are saved with the run ID as a suffix, so restore the newest one
+    - name: Restore cached installation
+      id: restore
+      if: inputs.restore == 'true'
+      uses: actions/cache/restore@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+      with:
+        path: ${{ runner.temp }}/macports.tar
+        key: ${{ steps.key.outputs.prefix }}${{ github.run_id }}
+        restore-keys: ${{ steps.key.outputs.prefix }}
+
+    # Unlike on Jenkins, binary archives are allowed (no "buildfromsource
+    # always" and no deployment target override) so that dependencies don't
+    # have to be built from source.
+    #
+    # This also runs on a cache hit, as the installer creates the macports
+    # user that MacPorts drops privileges to, which the cached installation
+    # does not include.
+    - name: Install MacPorts
+      shell: bash
+      env:
+        GH_TOKEN: ${{ github.token }}
+        MACPORTS_VERSION: ${{ inputs.macports-version }}
+        ARCH: ${{ inputs.arch }}
+      run: |
+        # Pick the installer for the runner's macOS version
+        os_version=$(sw_vers -productVersion | cut -d. -f1)
+        pkg_url=$(gh api "repos/macports/macports-base/releases/tags/v$MACPORTS_VERSION" \
+          | jq -r --arg prefix "MacPorts-$MACPORTS_VERSION-$os_version-" '.assets[] | select(.name | startswith($prefix) and endswith(".pkg")) | .browser_download_url')
+        curl -fsSL -o "$RUNNER_TEMP/macports.pkg" "$pkg_url"
+        sudo installer -pkg "$RUNNER_TEMP/macports.pkg" -target /
+        rm -f "$RUNNER_TEMP/macports.pkg"
+        printf 'build_arch %s\nuniversal_archs\nui_interactive no\n' "$ARCH" | sudo tee -a /opt/local/etc/macports/macports.conf
+
+    # Extract over the fresh installation, replacing it
+    - name: Extract cached installation
+      if: steps.restore.outputs.cache-matched-key != ''
+      shell: bash
+      env:
+        TARBALL: ${{ runner.temp }}/macports.tar
+      run: |
+        sudo tar -C / -xpf "$TARBALL"
+        rm -f "$TARBALL"
+
+    # build.sh patches Qt to enable Vulkan support, which MoltenVK requires,
+    # but that only takes effect when Qt is built from source. Build qtbase
+    # from source with the same patch, using binary archives for everything
+    # else.
+    #
+    # This also runs on a cache hit, as a cached Qt may be outdated after
+    # updating the ports tree. build.sh would then upgrade it to the binary
+    # archive without Vulkan support, since port install upgrades outdated
+    # dependencies.
+    - name: Ensure Qt has Vulkan support
+      id: qt
+      shell: bash
+      run: |
+        port=/opt/local/bin/port
+        qt_gui_pri=/opt/local/libexec/qt5/mkspecs/modules/qt_lib_gui.pri
+
+        qt_has_vulkan() {
+          grep -E '^QT\.gui\.enabled_features' "$qt_gui_pri" 2> /dev/null | grep -qw vulkan
+        }
+
+        qt_build() {
+          if ! sudo "$port" -N -s "$@" qt5-qtbase; then
+            # The build output only goes to the MacPorts log
+            log=$("$port" logfile qt5-qtbase)
+            echo "::group::Errors in $log"
+            grep -E -B 5 -A 10 'error:|Error [0-9]|\*\*\*' "$log" | head -n 300
+            echo "::endgroup::"
+            echo "::group::End of $log"
+            tail -n 100 "$log"
+            echo "::endgroup::"
+            exit 1
+          fi
+        }
+
+        sudo "$port" -N selfupdate
+        portfile=$("$port" file qt5-qtbase)
+        sudo sed -i '' -e 's/-no-feature-vulkan/-feature-vulkan/g' "$portfile"
+        sudo sed -i '' -e 's/configure.env-append MAKE=/configure.env-append VULKAN_SDK=${prefix} MAKE=/g' "$portfile"
+
+        # Qt's Cocoa plugin includes MoltenVK headers when Vulkan is enabled
+        sudo "$port" -N install vulkan-headers MoltenVK depof:qt5-qtbase
+
+        echo "built=true" >> "$GITHUB_OUTPUT"
+        if [ -z "$("$port" -q installed qt5-qtbase)" ]; then
+          echo "Building Qt from source."
+          qt_build install
+        elif [ -n "$("$port" -q outdated qt5-qtbase)" ] || ! qt_has_vulkan; then
+          # Dependencies were already upgraded above, so don't build those
+          # from source too
+          echo "Rebuilding outdated Qt or Qt without Vulkan support from source."
+          qt_build -n upgrade --force
+        else
+          echo "Qt is up to date and has Vulkan support."
+          echo "built=false" >> "$GITHUB_OUTPUT"
+        fi
+
+        if ! qt_has_vulkan; then
+          echo "::error::Qt was built without Vulkan support."
+          exit 1
+        fi

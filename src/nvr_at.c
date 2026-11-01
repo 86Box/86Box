@@ -307,6 +307,14 @@ typedef struct local_t {
     uint8_t  bank[8];
     uint8_t *lock;
 
+    /* National PC873xx RTC: registers 40h-7Fh of banks 1 and 2, unless the
+       Super I/O owns them (nvr_at_set_pc873xx_banks()). */
+    uint8_t  rtc_bank_regs[2][64];
+    uint8_t  (*bank_read)(int bank, uint8_t reg, void *priv);
+    void     (*bank_write)(int bank, uint8_t reg, uint8_t val, void *priv);
+    int      (*bank_alarm)(void *priv);
+    void      *bank_priv;
+
     int16_t count;
     int16_t state;
 
@@ -483,9 +491,11 @@ timer_update(void *priv)
         if (local->cent != 0xff)
             nvr->regs[local->cent] = old_cent;
 
-        /* Check for any alarms we need to handle. */
+        /* Check for any alarms we need to handle. The PC873xx's date and
+           month alarms are relocatable, so its Super I/O checks them. */
         if (check_alarm(nvr, RTC_SECONDS) && check_alarm(nvr, RTC_MINUTES) && check_alarm(nvr, RTC_HOURS) &&
-            check_alarm_via(nvr, RTC_DOM, RTC_ALDAY) && check_alarm_via(nvr, RTC_MONTH, RTC_ALMONTH) /* &&
+            ((local->bank_alarm != NULL) ? local->bank_alarm(local->bank_priv) :
+             (check_alarm_via(nvr, RTC_DOM, RTC_ALDAY) && check_alarm_via(nvr, RTC_MONTH, RTC_ALMONTH))) /* &&
             check_alarm_via(nvr, RTC_DOM, RTC_ALDAY_SIS) && check_alarm_via(nvr, RTC_MONTH, RTC_ALMONTH_SIS) */) {
             nvr->regs[RTC_REGC] |= REGC_AF;
             timer_update_irq(nvr);
@@ -509,6 +519,33 @@ timer_update(void *priv)
     }
 }
 
+/* The National PC873xx RTC (PC87307, PC97317) also selects its register
+   bank with DV2-DV0: DV0 selects bank 1, and DV2:DV1 = 10 bank 2 (the APC
+   registers); the oscillator runs in all of them. */
+static int
+nvr_rtc_bank(const nvr_t *nvr, const local_t *local)
+{
+    if (!(local->flags & FLAG_PC873XX_BANKS))
+        return 0;
+
+    if ((nvr->regs[RTC_REGA] & (REGA_DV2 | REGA_DV1)) == REGA_DV2)
+        return 2;
+
+    return !!(nvr->regs[RTC_REGA] & REGA_DV0);
+}
+
+static int
+nvr_osc_running(const nvr_t *nvr)
+{
+    const local_t *local = (local_t *) nvr->data;
+    uint8_t        dv    = nvr->regs[RTC_REGA] & REGA_DV;
+
+    if (local->flags & FLAG_PC873XX_BANKS)
+        return ((dv & (REGA_DV2 | REGA_DV1)) == REGA_DV1) || ((dv & (REGA_DV2 | REGA_DV1)) == REGA_DV2);
+
+    return dv == 0x20;
+}
+
 static void
 timer_load_count(nvr_t *nvr)
 {
@@ -517,7 +554,7 @@ timer_load_count(nvr_t *nvr)
 
     timer_disable(&local->rtc_timer);
 
-    if ((nvr->regs[RTC_REGA] & 0x70) != 0x20) {
+    if (!nvr_osc_running(nvr)) {
         local->state = 0;
         return;
     }
@@ -562,7 +599,7 @@ timer_tick(nvr_t *nvr)
 
     /* Only update it there is no SET in progress.
        Also avoid updating it is DV2-DV0 are not set to 0, 1, 0. */
-    if (((nvr->regs[RTC_REGA] & 0x70) == 0x20) && !(nvr->regs[RTC_REGB] & REGB_SET)) {
+    if (nvr_osc_running(nvr) && !(nvr->regs[RTC_REGB] & REGB_SET)) {
         /* Set the UIP bit, announcing the update. */
         local->stat = REGA_UIP;
 
@@ -570,6 +607,15 @@ timer_tick(nvr_t *nvr)
         local->ecount = 244ULL * TIMER_USEC;
         timer_set_delay_u64(&local->update_timer, local->ecount);
     }
+}
+
+/* The RAM Lock of 38h-3Fh in the lower (wp[0]) or upper (wp[1]) 128 bytes:
+   writes are ignored and reads return FFh. */
+static int
+nvr_wp_locked(const local_t *local, uint16_t reg)
+{
+    return ((reg >= 0x38) && (reg <= 0x3f) && local->wp[0]) ||
+           ((reg >= 0xb8) && (reg <= 0xbf) && local->wp[1]);
 }
 
 static void
@@ -587,15 +633,27 @@ nvr_reg_common_write(uint16_t reg, uint8_t val, nvr_t *nvr, local_t *local)
         nvr->is_new = 0;
     if ((reg == 0x55) && (local->flags & FLAG_AMI_1999J_HACK))
         nvr->is_new = 0;
-    if ((reg >= 0x38) && (reg <= 0x3f) && local->wp[0])
-        return;
-    if ((reg >= 0xb8) && (reg <= 0xbf) && local->wp[1])
+    if (nvr_wp_locked(local, reg))
         return;
     if (nvr->regs[reg] != val) {
         nvr->regs[reg] = val;
         if ((reg >= 0x0d) && ((local->cent == 0xff) || (reg != local->cent)))
             nvr_dosave     = 1;
     }
+}
+
+/* Banks 1 and 2 of the PC873xx RTC share 00h-3Fh with bank 0; 40h-7Fh are
+   the bank's own registers (the alarm/century registers in bank 1, the APC
+   in bank 2), not bank 0's RAM. */
+static uint8_t *
+nvr_rtc_bank_reg(nvr_t *nvr, local_t *local, uint16_t reg)
+{
+    int bank = nvr_rtc_bank(nvr, local);
+
+    if (!bank || (reg < 0x40) || (reg > 0x7f))
+        return NULL;
+
+    return &local->rtc_bank_regs[bank - 1][reg & 0x3f];
 }
 
 /* This must be exposed because ACPI uses it. */
@@ -689,7 +747,14 @@ nvr_write(uint16_t addr, uint8_t val, void *priv)
         if (local->bank[addr_id] == 0xff)
             return;
 #endif
-        nvr_reg_write(local->addr[addr_id], val, priv);
+        uint8_t *bank_reg = nvr_rtc_bank_reg(nvr, local, local->addr[addr_id]);
+
+        if ((bank_reg != NULL) && (local->bank_write != NULL))
+            local->bank_write(nvr_rtc_bank(nvr, local), local->addr[addr_id], val, local->bank_priv);
+        else if (bank_reg != NULL)
+            *bank_reg = val;
+        else
+            nvr_reg_write(local->addr[addr_id], val, priv);
     } else {
         local->addr[addr_id] = (val & (nvr->size - 1));
         /* Some chipsets use a 256 byte NVRAM but ports 70h and 71h always access only 128 bytes. */
@@ -734,6 +799,14 @@ nvr_read(uint16_t addr, void *priv)
     cycles -= ISA_CYCLES(8);
 
     if (local->bank[addr_id] == 0xff)
+        ret = 0xff;
+    else if ((addr & 1) && (nvr_rtc_bank_reg(nvr, (local_t *) local, local->addr[addr_id]) != NULL)) {
+        if (local->bank_read != NULL)
+            ret = local->bank_read(nvr_rtc_bank(nvr, local), local->addr[addr_id], local->bank_priv);
+        else
+            ret = *nvr_rtc_bank_reg(nvr, (local_t *) local, local->addr[addr_id]);
+    }
+    else if ((addr & 1) && nvr_wp_locked(local, local->addr[addr_id]))
         ret = 0xff;
     else if (addr & 1)
         switch (local->addr[addr_id]) {
@@ -1134,6 +1207,25 @@ void
 nvr_irq_set(int irq, nvr_t *nvr)
 {
     nvr->irq = irq;
+}
+
+/* The National PC873xx Super I/O implements registers 40h-7Fh of the RTC's
+   banks 1 and 2 (the date/month alarms, the century and the upper RAM ports
+   in bank 1, the APC in bank 2) and the relocatable date and month alarms;
+   alarm() is called when the time alarm matches and says whether those
+   match too. */
+void
+nvr_at_set_pc873xx_banks(nvr_t *nvr,
+                         uint8_t (*read)(int bank, uint8_t reg, void *priv),
+                         void (*write)(int bank, uint8_t reg, uint8_t val, void *priv),
+                         int (*alarm)(void *priv), void *priv)
+{
+    local_t *local = (local_t *) nvr->data;
+
+    local->bank_read  = read;
+    local->bank_write = write;
+    local->bank_alarm = alarm;
+    local->bank_priv  = priv;
 }
 
 void

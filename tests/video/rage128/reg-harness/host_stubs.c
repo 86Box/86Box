@@ -43,6 +43,7 @@
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/mem.h>
+#include <86box/agpgart.h>
 #include <86box/pci.h>
 #include <86box/plat.h>
 #include <86box/rom.h>
@@ -256,6 +257,21 @@ harness_ram_ok(uint32_t addr, uint32_t len)
         return 0;
     }
     return 1;
+}
+
+/* Host pointer into ram[] for a page-granular device read, the core
+   agpgart_bus_ptr. The register harness, whose dma_bm_read reads the same
+   ram[], serves the pointer so the fast path runs; a replay (read hook
+   set) returns NULL so every read goes through the hook as recorded. An
+   out-of-bounds page is NULL too, and dma_bm_read then counts the stray. */
+const uint8_t *
+agpgart_bus_ptr(uint32_t addr, uint32_t len)
+{
+    if (harness_bm_read_hook || (ram == NULL) || !len
+        || (((addr & 0xfffu) + len) > 0x1000u)
+        || ((uint64_t) addr + len > ((uint64_t) mem_size << 10)))
+        return NULL;
+    return ram + addr;
 }
 
 void

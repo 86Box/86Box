@@ -774,6 +774,7 @@ mach64_updatemapping(mach64_t *mach64)
      */
     if (mach64->config_cntl & 4) {
         if ((svga->mapping.read_b != mach64_read) || (svga->mapping.priv != mach64)) {
+            mem_debug_add(mach64_read, mach64_write, mach64_debug_ptr);
             mem_mapping_set_handler(&svga->mapping, mach64_read, mach64->isa_8bit ? NULL : mach64_readw, mach64->isa_8bit ? NULL : mach64_readl,
                                     mach64_write, mach64->isa_8bit ? NULL : mach64_writew, mach64->isa_8bit ? NULL : mach64_writel);
             mem_mapping_set_p(&svga->mapping, mach64);
@@ -820,9 +821,9 @@ mach64_updatemapping(mach64_t *mach64)
 
             mach64_map_aperture(mach64, &mach64->linear_mapping, 1, 0, (8 << 20) - win);
             mach64_map_aperture(mach64, &mach64->mmio_linear_mapping, 1, (8 << 20) - win, win);
-            /* The big-endian aperture, the second 8M, is memory only (VT RRG
-               figure 2.1), but for the 3D Rage II+'s registers in its top 4K
-               (mach64_readb_be). */
+            /* The big-endian aperture, the second 8M, is memory (VT RRG
+               figure 2.1), but for the registers again at its top on the VT
+               and the 3D Rage II+ (mach64_be_regs). */
             mach64_map_aperture(mach64, &mach64->linear_mapping_big_endian, 1, 8 << 20, 8 << 20);
         }
     } else {
@@ -2781,6 +2782,18 @@ mach64_read(uint32_t addr, void *priv)
         ret  = svga_read_linear(addr, svga);
     return ret;
 }
+/* For the memory viewer: the byte mach64_read() returns, without its side
+   effects. */
+uint8_t *
+mach64_debug_ptr(uint32_t addr, int write, void *priv)
+{
+    mach64_t *mach64 = (mach64_t *) priv;
+
+    addr = mach64_decode_addr(mach64, addr, 0);
+    if (addr == 0xffffffff)
+        return NULL;
+    return svga_debug_ptr_common(addr, 1, write, &mach64->svga);
+}
 uint16_t
 mach64_readw(uint32_t addr, void *priv)
 {
@@ -3097,15 +3110,19 @@ mach64_writel_linear(uint32_t addr, uint32_t val, void *priv)
  * The 3D Rage II+ has its registers in the top 4K of the big-endian
  * aperture too, as they are, and ATI's Windows 95 driver uses them there:
  * with that window read as memory, it rejects the card ("The adapter type
- * is incorrect").
+ * is incorrect"). The VT has them at the top of the big-endian aperture as
+ * well, the same window as at the top of the little-endian one: the
+ * Windows 98 ATIM64 mini-VDD reads them there, and with that window read as
+ * memory it polls a status bit forever while installing the card.
  */
 static mach64_t *
 mach64_be_regs(uint32_t addr, void *priv)
 {
     mach64_t            *mach64 = (mach64_t *) ((svga_t *) priv)->priv;
     const mem_mapping_t *map    = &mach64->linear_mapping_big_endian;
+    const uint32_t       win    = (mach64->type >= MACH64_GTB) ? 0x1000 : mach64_reg_window(mach64);
 
-    if ((mach64->type >= MACH64_GTB) && ((addr - map->base) >= (map->size - 0x1000)))
+    if ((mach64->type >= MACH64_VT) && ((addr - map->base) >= (map->size - win)))
         return mach64;
     return NULL;
 }
@@ -3776,11 +3793,6 @@ mach64gx_isa_available(void)
 {
     return rom_present(BIOS_ISA_ROM_PATH);
 }
-int
-mach64gx_xpression_vlb_available(void)
-{
-    return rom_present(BIOS_XPRESSION_VLB_27803_PATH);
-}
 
 int
 mach64gx_vlb_available(void)
@@ -3973,23 +3985,14 @@ static const device_config_t mach64gx_xpression_config[] = {
         .name           = "bios_ver",
         .description    = "BIOS Revision",
         .type           = CONFIG_BIOS,
-        .default_string = "113_27803_102",
+        .default_string = "113_27804_101",
         .default_int    = 0,
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "113-27803-102 (1995/03/16)",
-                .internal_name = "113_27803_102",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 32768,
-                .files         = { BIOS_XPRESSION_VLB_27803_PATH, "" }
-            },
-            {
-                .name          = "113-27804-101 (1995/01/20)",
+                .name          = "113-27804-101 (01/20/1995)",
                 .internal_name = "113_27804_101",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -3998,7 +4001,7 @@ static const device_config_t mach64gx_xpression_config[] = {
                 .files         = { BIOS_XPRESSION_VLB_27804_PATH, "" }
             },
             {
-                .name          = "113-27802-101 (1994/08/24)",
+                .name          = "113-27802-101 (08/24/1994)",
                 .internal_name = "113_27802_101",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -4143,7 +4146,7 @@ static const device_config_t mach64gtb_onboard_config[] = {
 // clang-format on
 
 const device_t mach64gx_isa_device = {
-    .name          = "ATI Mach64GX (Graphics Pro Turbo)",
+    .name          = "ATI Mach64GX (Graphics Pro Turbo) ISA",
     .internal_name = "mach64gx_isa",
     .flags         = DEVICE_ISA16,
     .local         = MACH64_GX,
@@ -4157,7 +4160,7 @@ const device_t mach64gx_isa_device = {
 };
 
 const device_t mach64gx_vlb_device = {
-    .name          = "ATI Mach64GX (Graphics Pro Turbo)",
+    .name          = "ATI Mach64GX (Graphics Pro Turbo) VLB",
     .internal_name = "mach64gx_vlb",
     .flags         = DEVICE_VLB,
     .local         = MACH64_GX,
@@ -4171,7 +4174,7 @@ const device_t mach64gx_vlb_device = {
 };
 
 const device_t mach64gx_vlb_onboard_device = {
-    .name          = "ATI Mach64GX VLB (On-Board)",
+    .name          = "ATI Mach64GX (On-Board) VLB",
     .internal_name = "mach64gx_vlb_onboard",
     .flags         = DEVICE_VLB,
     .local         = MACH64_GX | MACH64_FLAG_ONBOARD,
@@ -4185,14 +4188,14 @@ const device_t mach64gx_vlb_onboard_device = {
 };
 
 const device_t mach64gx_xpression_vlb_device = {
-    .name          = "ATI Graphics Xpression (Mach64GX) VLB",
+    .name          = "ATI Mach64GX (Graphics Xpression) VLB",
     .internal_name = "mach64gx_xpression_vlb",
     .flags         = DEVICE_VLB,
     .local         = MACH64_GX | MACH64_FLAG_DRAM,
     .init          = mach64gx_init,
     .close         = mach64_close,
     .reset         = mach64_reset,
-    .available     = mach64gx_xpression_vlb_available,
+    .available     = NULL,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64gx_xpression_config
@@ -4214,7 +4217,7 @@ const device_t mach64gx_pci_device = {
 };
 
 const device_t mach64gx_pci_onboard_device = {
-    .name          = "ATI Mach64GX PCI (On-Board)",
+    .name          = "ATI Mach64GX (On-Board) PCI",
     .internal_name = "mach64gx_pci_onboard",
     .flags         = DEVICE_PCI,
     .local         = MACH64_GX | MACH64_FLAG_DRAM | MACH64_FLAG_ONBOARD,

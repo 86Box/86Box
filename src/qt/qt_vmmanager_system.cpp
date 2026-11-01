@@ -633,6 +633,8 @@ VMManagerSystem::setupVars()
         display_table[VMManager::Display::Name::Video].append(tr("XGA Graphics").prepend(VMManagerDetailSection::sectionSeparator));
     if (video_config.contains("da2") && (video_config["da2"].toInt() != 0))
         display_table[VMManager::Display::Name::Video].append(tr("IBM PS/55 Display Adapter Graphics").prepend(VMManagerDetailSection::sectionSeparator));
+    if (video_config.contains("powervr") && (video_config["powervr"].toInt() != 0))
+        display_table[VMManager::Display::Name::Video].append(tr("PowerVR PCX1/PCX2 Graphics").prepend(VMManagerDetailSection::sectionSeparator));
 
     // Voodoo
     QString voodoo_name = "";

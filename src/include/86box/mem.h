@@ -123,6 +123,8 @@
                                      by the bus (mem_set_cache_access). */
 #define MEM_MAPPING_CPU_ONLY  256 /* The processor's own: seen by its accesses and never
                                      by a bus master's (mem_*_phys). */
+#define MEM_MAPPING_NO_CODEGEN 512 /* Code in it is interpreted: writes to its memory are
+                                      not tracked at its own address. */
 
 /* #define's for memory granularity, currently 4k, less does
    not work because of internal 4k pages. */
@@ -202,6 +204,13 @@ typedef struct _mem_mapping_ {
     void *priv; /* backpointer to device */
 } mem_mapping_t;
 
+/* For the memory viewer, on a video card's memory: where the byte the
+   processor would read at addr is in the card's memory, found without the
+   read handler's side effects (latches, wait states, blitter data); NULL
+   where no such byte is. priv is the mapping's. write: the viewer will
+   write the byte, so the card redraws it. */
+typedef uint8_t *(*mem_debug_ptr_t)(uint32_t addr, int write, void *priv);
+
 extern uint64_t *byte_dirty_mask;
 extern uint64_t *byte_code_present_mask;
 
@@ -230,16 +239,6 @@ typedef struct page_t {
 
     uint64_t *byte_dirty_mask;
     uint64_t *byte_code_present_mask;
-
-    /*Self-modifying-code thrash tracking: a block recompiled for this page
-      and discarded again before it was ever reused (see codeblock_t::reused)
-      bumps smc_strikes and arms smc_cooldown_until (a tsc deadline). While
-      cooldown is active, the dynarec skips compiling code on this page and
-      runs it through the plain interpreter instead, since compiling code
-      that is rewritten before it can be reused just adds cost with no
-      payback. A block that *is* reused resets smc_strikes to 0.*/
-    uint8_t  smc_strikes;
-    uint64_t smc_cooldown_until;
 } page_t;
 
 extern uint32_t purgable_page_list_head;
@@ -304,6 +303,9 @@ extern int mem_a20_state;
 extern int mem_a20_alt;
 extern int mem_a20_chipset;
 extern int mem_a20_key;
+extern void (*mem_a20_trap)(int state, void *priv);
+extern void  *mem_a20_trap_priv;
+extern int    mem_a20_gate;
 
 extern int is_compare;
 
@@ -347,6 +349,9 @@ extern uint32_t readmemll_no_mmut_2386(uint32_t addr, uint32_t *a64);
 extern void     writememll_no_mmut_2386(uint32_t addr, uint32_t *a64, uint32_t val);
 
 extern void     do_mmutranslate_2386(uint32_t addr, uint32_t *a64, int num, int write);
+
+extern uint32_t mem_readl_map(uint32_t addr);
+extern void     mem_writel_map(uint32_t addr, uint32_t val);
 
 extern uint8_t *getpccache(uint32_t a);
 extern int      cpu_fetch_device;
@@ -395,6 +400,14 @@ extern void mem_mapping_set_write_handler(mem_mapping_t *,
                                           void (*write_l)(uint32_t addr, uint32_t val, void *priv));
 
 extern void mem_mapping_set_p(mem_mapping_t *, void *priv);
+/* Let the memory viewer at the video memory behind any mapping whose byte
+   read handler is read_b, through debug_ptr; and write it where the write
+   handler is write_b. Cards register their handlers once, at init. */
+extern void            mem_debug_add(uint8_t (*read_b)(uint32_t addr, void *priv),
+                                     void (*write_b)(uint32_t addr, uint8_t val, void *priv),
+                                     mem_debug_ptr_t debug_ptr);
+/* The debug_ptr for the mapping's handlers as they are now, or NULL. */
+extern mem_debug_ptr_t mem_debug_find(const mem_mapping_t *map, int write);
 
 extern void mem_mapping_set_addr(mem_mapping_t *,
                                  uint32_t base, uint32_t size);
@@ -411,6 +424,7 @@ extern void mem_set_cache_access(uint32_t base, uint32_t size, int cached);
 extern int  mem_bus_unbacked(uint32_t base, uint32_t size);
 
 extern const uint8_t *mem_phys_ptr(uint32_t addr, uint32_t len);
+extern const mem_mapping_t *mem_read_mapping_at(uint32_t addr);
 extern uint32_t       mem_mapping_gen;
 extern size_t         mem_ram_size(void);
 
@@ -423,6 +437,15 @@ extern void     mem_writeb_phys(uint32_t addr, uint8_t val);
 extern void     mem_writew_phys(uint32_t addr, uint16_t val);
 extern void     mem_writel_phys(uint32_t addr, uint32_t val);
 extern void     mem_write_phys(void *src, uint32_t addr, int tranfer_size);
+
+/* Views of memory for mem_view_read() and mem_view_write(). */
+#define MEM_VIEW_BUS        0 /* DMA and bus masters, as mem_readb_phys() */
+#define MEM_VIEW_CPU        1 /* the processor, in or out of SMM as it is now */
+#define MEM_VIEW_CPU_NORMAL 2 /* the processor outside SMM */
+#define MEM_VIEW_CPU_SMM    3 /* the processor in SMM */
+
+extern uint32_t mem_view_read(int view, uint32_t addr, int width);
+extern void     mem_view_write(int view, uint32_t addr, uint32_t val, int width);
 extern uint32_t mem_write_phys_block(const void *src, uint32_t addr, uint32_t len);
 
 extern uint8_t  mem_read_ram(uint32_t addr, void *priv);
@@ -437,6 +460,9 @@ extern int mem_addr_is_ram(uint32_t addr);
 extern uint64_t mmutranslate_noabrt(uint32_t addr, int rw);
 
 extern void mem_invalidate_range(uint32_t start_addr, uint32_t end_addr);
+extern int  mem_phys_has_code(uint32_t addr, uint32_t len);
+extern void mem_phys_written(uint32_t addr, uint32_t len);
+extern void mem_set_ram_alias(uint32_t base, uint32_t ram_addr, uint32_t size, int set);
 
 extern void mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page);
 extern void mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *page);

@@ -39,7 +39,7 @@
 #include <86box/pci.h>
 #include <86box/sio.h>
 #include <86box/keyboard.h>
-#include "kbc_at_vectra.h"
+#include <86box/kbc_test.h>
 
 #define STAT_PARITY        0x80
 #define STAT_RTIMEOUT      0x40
@@ -3151,8 +3151,10 @@ kbc_at_init(const device_t *info)
 
     /* The actual keyboard. */
     if (keyboard_type == KEYBOARD_TYPE_INTERNAL) {
-        if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS) || machine_has_flags(machine, MACHINE_KEYBOARD_AX))
-            device_add(machine_has_flags_ex(MACHINE_PS2_KBC) ? &keyboard_ps55_device : &keyboard_ax_device);
+        const device_t *kbd = machine_get_kbd_device(machine);
+
+        if (kbd != NULL)
+            device_add(kbd);
         else
             device_add_params(&keyboard_at_generic_device, (void *) (uintptr_t)
                               (machine_has_flags_ex(MACHINE_PS2_KBC) ? FLAG_PS2_KBD : 0x00));

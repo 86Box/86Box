@@ -367,8 +367,19 @@ gdbstub_break(void)
 static void
 gdbstub_jump(uint32_t new_pc)
 {
-    cpu_state.pc = new_pc - cs;
+    /* The 8086 and 80186 would otherwise go on with what they prefetched. */
+    if (is286)
+        cpu_state.pc = new_pc - cs;
+    else
+        set_ip_808x(new_pc - cs);
     flushmmucache();
+}
+
+/* The linear address of the next instruction. */
+static uint32_t
+gdbstub_pc(void)
+{
+    return cs + (is286 ? cpu_state.pc : ip_808x());
 }
 
 static inline int
@@ -544,6 +555,8 @@ gdbstub_client_write_reg(int index, uint8_t *buf)
             width = 2;
             loadseg(*((uint16_t *) buf), segment_regs[index - GDB_REG_CS]);
             flushmmucache();
+            if ((index == GDB_REG_CS) && !is286)
+                flush_prefetch_808x();
             break;
 
 #if 0
@@ -668,7 +681,7 @@ gdbstub_client_read_reg(int index, uint8_t *buf)
             break;
 
         case GDB_REG_EIP:
-            *((uint32_t *) buf) = cs + cpu_state.pc;
+            *((uint32_t *) buf) = gdbstub_pc();
             break;
 
         case GDB_REG_EFLAGS:
@@ -736,6 +749,298 @@ gdbstub_client_read_reg(int index, uint8_t *buf)
     return width;
 }
 
+/* Guest memory is read and written through the path the running CPU core
+   takes for a data operand (386_common.h): the lookup tables and then
+   readmem*l()/writemem*l() on the 486 and later, the *_2386() functions on
+   the 286 and 386, and the bus on the 8086 and 80186. Everything such an
+   access changes besides the memory written is put back afterwards: the
+   abort state and CR2 a page fault leaves, DR6 and the trap a debug
+   register match leaves, the cycles spent, the translation scratch, the
+   accessed and dirty bits the page walk sets, and the lookup tables, which
+   no page enters while cpu_dr_armed is set. */
+typedef struct gdbstub_pt_entry_t {
+    uint64_t  addr; /* physical address of the entry's low dword */
+    uint32_t *ptr;  /* where the 486+ page walk reaches it, or NULL for the bus (286/386) */
+    uint32_t  val;
+} gdbstub_pt_entry_t;
+
+typedef struct gdbstub_mem_state_t {
+    int                saved_abrt;
+    uint32_t           saved_abrt_error;
+    uint32_t           saved_cr2;
+    uint32_t           saved_dr6;
+    int                saved_trap;
+    int                saved_cycles;
+    uint32_t           saved_addr64;
+    uint32_t           saved_addr64a[8];
+    uint32_t           saved_mem_logical_addr;
+    uint8_t            saved_high_page;
+    int                saved_read_type;
+    int                saved_cpu_old_paging;
+    int                saved_cpl_override;
+    int                saved_cpu_dr_armed;
+    int                pt_num;
+    gdbstub_pt_entry_t pt[4]; /* two levels for each of two pages */
+    uint64_t           phys[2];
+} gdbstub_mem_state_t;
+
+/* A page table entry as the page walk of this CPU core sees it. */
+static uint32_t *
+gdbstub_pt_ptr(uint64_t addr)
+{
+    if ((addr > 0xffffffffULL) || !_mem_exec[addr >> MEM_GRANULARITY_BITS])
+        return NULL;
+
+    return &((uint32_t *) _mem_exec[addr >> MEM_GRANULARITY_BITS])[(addr >> 2) & MEM_GRANULARITY_QMASK];
+}
+
+static int
+gdbstub_pt_record(gdbstub_mem_state_t *state, uint64_t addr, uint32_t *val)
+{
+    gdbstub_pt_entry_t *ent = &state->pt[state->pt_num];
+
+    ent->addr = addr;
+    if (cpu_use_exec) {
+        if (!(ent->ptr = gdbstub_pt_ptr(addr)))
+            return 0;
+        ent->val = *ent->ptr;
+    } else {
+        ent->ptr = NULL;
+        ent->val = mem_readl_map((uint32_t) addr);
+    }
+    *val = ent->val;
+    state->pt_num++;
+
+    return 1;
+}
+
+/* Note the entries the page walk for addr reads (and may set the accessed
+   and dirty bits of), and the physical page addr is in. */
+static void
+gdbstub_pt_snapshot(gdbstub_mem_state_t *state, uint32_t addr, uint64_t *phys)
+{
+    uint32_t pde;
+    uint32_t pte;
+    uint64_t pdpte;
+
+    *phys = 0xffffffffffffffffULL;
+
+    if (cpu_use_exec && (cr4 & CR4_PAE)) {
+        pdpte = pae_pdpte[(addr >> 30) & 3] & 0x000000ffffffffffULL;
+        if (!(pdpte & 1) || !gdbstub_pt_record(state, (pdpte & ~0xfffULL) + ((addr >> 18) & 0xff8), &pde) || !(pde & 1))
+            return;
+        if (pde & 0x80) {
+            *phys = ((((uint64_t) state->pt[state->pt_num - 1].ptr[1] << 32) | pde) & 0x000000ffffe00000ULL) + (addr & 0x1fffff);
+            return;
+        }
+        if (!gdbstub_pt_record(state, ((((uint64_t) state->pt[state->pt_num - 1].ptr[1] << 32) | pde) & 0x000000fffffff000ULL) + ((addr >> 9) & 0xff8), &pte) || !(pte & 1))
+            return;
+        *phys = ((((uint64_t) state->pt[state->pt_num - 1].ptr[1] << 32) | pte) & 0x000000fffffff000ULL) + (addr & 0xfff);
+    } else {
+        if (!gdbstub_pt_record(state, (cr3 & ~0xfff) + ((addr >> 20) & 0xffc), &pde) || !(pde & 1))
+            return;
+        if ((pde & 0x80) && (cr4 & CR4_PSE)) {
+            *phys = (pde & ~0x3fffff) + (addr & 0x3fffff);
+            if (cpu_use_exec && (cpu_features & CPU_FEATURE_PSE36))
+                *phys |= (uint64_t) (pde & 0x1e000) << 19;
+            return;
+        }
+        if (!gdbstub_pt_record(state, (pde & ~0xfff) + ((addr >> 10) & 0xffc), &pte) || !(pte & 1))
+            return;
+        *phys = (pte & ~0xfff) + (addr & 0xfff);
+    }
+}
+
+static void
+gdbstub_mem_enter(gdbstub_mem_state_t *state, uint32_t addr, int width)
+{
+    state->saved_abrt             = cpu_state.abrt;
+    state->saved_abrt_error       = abrt_error;
+    state->saved_cr2              = cr2;
+    state->saved_dr6              = dr[6];
+    state->saved_trap             = trap;
+    state->saved_cycles           = cycles;
+    state->saved_addr64           = addr64;
+    memcpy(state->saved_addr64a, addr64a, sizeof(state->saved_addr64a));
+    state->saved_mem_logical_addr = mem_logical_addr;
+    state->saved_high_page        = high_page;
+    state->saved_read_type        = read_type;
+    state->saved_cpu_old_paging   = cpu_old_paging;
+    state->saved_cpl_override     = cpl_override;
+    state->saved_cpu_dr_armed     = cpu_dr_armed;
+    state->pt_num           = 0;
+    state->phys[0] = state->phys[1] = 0xffffffffffffffffULL;
+
+    if (cr0 >> 31) {
+        gdbstub_pt_snapshot(state, addr, &state->phys[0]);
+        if ((addr ^ (addr + width - 1)) & ~0xfff)
+            gdbstub_pt_snapshot(state, (addr + width - 1) & ~0xfff, &state->phys[1]);
+    }
+
+    /* As the CPU would make the access in the debugger's place: free of a
+       pending abort (which fails every translation), with the current paging
+       state, as a data read, and with the privilege checks of supervisor mode. */
+    cpu_state.abrt = 0;
+    read_type      = 4;
+    cpu_old_paging = 0;
+    cpl_override   = 1;
+    cpu_dr_armed   = 1;
+}
+
+/* Answers whether the access faulted. */
+static int
+gdbstub_mem_leave(gdbstub_mem_state_t *state, uint32_t addr, uint8_t *buf, int width, int write)
+{
+    int      ret = !!cpu_state.abrt;
+    int      n0  = 0x1000 - (addr & 0xfff);
+    int      hit;
+    uint32_t cur;
+    uint32_t set;
+    uint64_t lo;
+    uint64_t hi;
+
+    if (n0 > width)
+        n0 = width;
+
+    /* Clear the accessed and dirty bits the walk set, unless the debugger
+       wrote the entry itself. The walk comes before the data, so an entry
+       the debugger read was read with them set: clear them there too. */
+    for (int i = 0; i < state->pt_num; i++) {
+        gdbstub_pt_entry_t *ent = &state->pt[i];
+
+        cur = ent->ptr ? *ent->ptr : mem_readl_map((uint32_t) ent->addr);
+        set = cur & ~ent->val & 0x60;
+        if (!set)
+            continue;
+
+        hit = -1;
+        for (int p = 0; (p < 2) && !ret; p++) {
+            lo = state->phys[p];
+            hi = lo + (p ? (width - n0) : n0);
+            if ((lo != 0xffffffffffffffffULL) && (ent->addr >= lo) && (ent->addr < hi))
+                hit = (int) (ent->addr - lo) + (p ? n0 : 0);
+            else if (write && (lo != 0xffffffffffffffffULL) && (ent->addr < hi) && ((ent->addr + 4) > lo))
+                hit = width;
+        }
+        if (hit >= 0) {
+            if (write)
+                continue;
+            buf[hit] &= ~set;
+        }
+
+        if (ent->ptr)
+            *ent->ptr = cur & ~set;
+        else
+            mem_writel_map((uint32_t) ent->addr, cur & ~set);
+    }
+
+    cpu_state.abrt   = state->saved_abrt;
+    abrt_error       = state->saved_abrt_error;
+    cr2              = state->saved_cr2;
+    dr[6]            = state->saved_dr6;
+    trap             = state->saved_trap;
+    cycles           = state->saved_cycles;
+    addr64           = state->saved_addr64;
+    memcpy(addr64a, state->saved_addr64a, sizeof(state->saved_addr64a));
+    mem_logical_addr = state->saved_mem_logical_addr;
+    high_page        = state->saved_high_page;
+    read_type        = state->saved_read_type;
+    cpu_old_paging   = state->saved_cpu_old_paging;
+    cpl_override     = state->saved_cpl_override;
+    cpu_dr_armed     = state->saved_cpu_dr_armed;
+
+    return ret;
+}
+
+/* The bus cycles of an 8086 or 80186 data access (808x.c, vx0_biu.c): a
+   word at an even address on the 16-bit bus, bytes otherwise. */
+static void
+gdbstub_mem_access_808x(uint32_t addr, uint8_t *buf, int width, int write)
+{
+    for (int i = 0; i < width; i += 2) {
+        if (((width - i) >= 2) && is8086 && !((addr + i) & 1)) {
+            if (write)
+                write_mem_w(addr + i, buf[i] | (buf[i + 1] << 8));
+            else {
+                uint16_t val = read_mem_w(addr + i);
+                buf[i]       = val & 0xff;
+                buf[i + 1]   = val >> 8;
+            }
+        } else {
+            for (int j = i; (j < (i + 2)) && (j < width); j++) {
+                if (write)
+                    write_mem_b(addr + j, buf[j]);
+                else
+                    buf[j] = read_mem_b(addr + j);
+            }
+        }
+    }
+}
+
+/* Reads or writes width (1, 2, 4 or 8) bytes at linear address addr as the
+   CPU would, answering whether that faulted. */
+static int
+gdbstub_mem_rw(uint32_t addr, uint8_t *buf, int width, int write)
+{
+    gdbstub_mem_state_t state;
+    uintptr_t           lookup;
+
+    gdbstub_mem_enter(&state, addr, width);
+
+    if (!is286)
+        gdbstub_mem_access_808x(addr, buf, width, write);
+    else if (!cpu_use_exec) {
+        /* The 286 and 386 interpreter (386.c, OPS_286_386). */
+        if (write) switch (width) {
+            case 1: writemembl_2386(addr, buf[0]); break;
+            case 2: writememwl_2386(addr, *(uint16_t *) buf); break;
+            case 4: writememll_2386(addr, *(uint32_t *) buf); break;
+            case 8: writememql_2386(addr, *(uint64_t *) buf); break;
+        } else switch (width) {
+            case 1: buf[0] = readmembl_2386(addr); break;
+            case 2: *(uint16_t *) buf = readmemwl_2386(addr); break;
+            case 4: *(uint32_t *) buf = readmemll_2386(addr); break;
+            case 8: *(uint64_t *) buf = readmemql_2386(addr); break;
+        }
+    } else {
+        /* The 486 and later interpreter (386_dynarec.c): a page in the lookup
+           table, at an aligned address, is accessed directly. */
+        lookup = write ? writelookup2[addr >> 12] : readlookup2[addr >> 12];
+        if ((lookup != (uintptr_t) LOOKUP_INV) && !(addr & (width - 1))) {
+            if (write)
+                memcpy((void *) (lookup + addr), buf, width);
+            else
+                memcpy(buf, (void *) (lookup + addr), width);
+        } else if (write) switch (width) {
+            case 1: writemembl(addr, buf[0]); break;
+            case 2: writememwl(addr, *(uint16_t *) buf); break;
+            case 4: writememll(addr, *(uint32_t *) buf); break;
+            case 8: writememql(addr, *(uint64_t *) buf); break;
+        } else switch (width) {
+            case 1: buf[0] = readmembl(addr); break;
+            case 2: *(uint16_t *) buf = readmemwl(addr); break;
+            case 4: *(uint32_t *) buf = readmemll(addr); break;
+            case 8: *(uint64_t *) buf = readmemql(addr); break;
+        }
+    }
+
+    return gdbstub_mem_leave(&state, addr, buf, width, write);
+}
+
+/* The widest access the CPU makes at a time: 8 bytes on the 386 and later
+   (whose readmemq/writememq this is), 2 on the 8086, 80186 and 286. */
+static int
+gdbstub_mem_width(int left)
+{
+    if (is386 && (left >= 8))
+        return 8;
+    if (is386 && (left >= 4))
+        return 4;
+    if (left >= 2)
+        return 2;
+    return 1;
+}
+
 static void
 gdbstub_client_packet(gdbstub_client_t *client)
 {
@@ -753,9 +1058,6 @@ gdbstub_client_packet(gdbstub_client_t *client)
     int     packet_len;
     uint8_t buf[10] = { 0 };
     char   *p;
-
-    int     orig_cpu_abrt        = cpu_state.abrt;
-    int     orig_cpu_abrt_reason = abrt_error;
 
     /* Validate checksum. */
     client->packet_pos -= 2;
@@ -885,75 +1187,16 @@ e22:
             if (k >= (sizeof(client->response) >> 1))
                 k = (sizeof(client->response) >> 1) - 1;
 
-            /* Read by qwords, then by dwords, then by words, then by bytes. */
-            i = 0;
-            cpl_override = 1;
-            if (is386) {
-                for (; i < (k & ~7); i += 8) {
-                    orig_cpu_abrt        = cpu_state.abrt;
-                    orig_cpu_abrt_reason = abrt_error;
-                    *((uint64_t *) buf) = readmemql(j);
-                    if (cpu_state.abrt != orig_cpu_abrt) {
-                        if (cpu_state.abrt == ABRT_PF) {
-                            cpu_state.abrt = orig_cpu_abrt;
-                            abrt_error     = orig_cpu_abrt_reason;
-                            cpl_override   = 0;
-                            FAST_RESPONSE("E06");
-                            break;
-                        }
-                    }
-                    j += 8;
-                    gdbstub_client_respond_hex(client, buf, 8);
+            /* Read by the widest accesses the CPU makes. */
+            for (i = 0; i < k; i += l) {
+                l = gdbstub_mem_width(k - i);
+                if (gdbstub_mem_rw(j, buf, l, 0)) {
+                    FAST_RESPONSE("E06");
+                    break;
                 }
-                for (; i < (k & ~3); i += 4) {
-                    orig_cpu_abrt        = cpu_state.abrt;
-                    orig_cpu_abrt_reason = abrt_error;
-                    *((uint32_t *) buf) = readmemll(j);
-                    if (cpu_state.abrt != orig_cpu_abrt) {
-                        if (cpu_state.abrt == ABRT_PF) {
-                            cpu_state.abrt = orig_cpu_abrt;
-                            abrt_error     = orig_cpu_abrt_reason;
-                            cpl_override   = 0;
-                            FAST_RESPONSE("E06");
-                            break;
-                        }
-                    }
-                    j += 4;
-                    gdbstub_client_respond_hex(client, buf, 4);
-                }
+                j += l;
+                gdbstub_client_respond_hex(client, buf, l);
             }
-            for (; i < (k & ~1); i += 2) {
-                orig_cpu_abrt        = cpu_state.abrt;
-                orig_cpu_abrt_reason = abrt_error;
-                *((uint16_t *) buf) = readmemwl(j);
-                if (cpu_state.abrt != orig_cpu_abrt) {
-                    if (cpu_state.abrt == ABRT_PF) {
-                        cpu_state.abrt = orig_cpu_abrt;
-                        abrt_error     = orig_cpu_abrt_reason;
-                        cpl_override   = 0;
-                        FAST_RESPONSE("E06");
-                        break;
-                    }
-                }
-                j += 2;
-                gdbstub_client_respond_hex(client, buf, 2);
-            }
-            for (; i < k; i++) {
-                orig_cpu_abrt        = cpu_state.abrt;
-                orig_cpu_abrt_reason = abrt_error;
-                buf[0] = readmembl(j++);
-                if (cpu_state.abrt != orig_cpu_abrt) {
-                    if (cpu_state.abrt == ABRT_PF) {
-                        cpu_state.abrt = orig_cpu_abrt;
-                        abrt_error     = orig_cpu_abrt_reason;
-                        cpl_override   = 0;
-                        FAST_RESPONSE("E06");
-                        break;
-                    }
-                }
-                gdbstub_client_respond_hex(client, buf, 1);
-            }
-            cpl_override = 0;
             break;
 
         case 'M': /* write memory */
@@ -986,76 +1229,19 @@ e22:
                     goto e22;
             }
 
-            /* Write by qwords, then by dwords, then by words, then by bytes. */
+            /* Write by the widest accesses the CPU makes. */
             p = client->packet;
-            i = 0;
-            cpl_override = 1;
-            if (is386) {
-                for (; i < (k & ~7); i += 8) {
-                    orig_cpu_abrt        = cpu_state.abrt;
-                    orig_cpu_abrt_reason = abrt_error;
-                    writememql(j, *((uint64_t *) p));
-                    if (cpu_state.abrt != orig_cpu_abrt) {
-                        if (cpu_state.abrt == ABRT_PF) {
-                            cpu_state.abrt = orig_cpu_abrt;
-                            abrt_error     = orig_cpu_abrt_reason;
-                            cpl_override   = 0;
-                            FAST_RESPONSE("E06");
-                            break;
-                        }
-                    }
-                    j += 8;
-                    p += 8;
+            for (i = 0; i < k; i += l) {
+                l = gdbstub_mem_width(k - i);
+                if (gdbstub_mem_rw(j, (uint8_t *) p, l, 1)) {
+                    FAST_RESPONSE("E06");
+                    break;
                 }
-                for (; i < (k & ~3); i += 4) {
-                    orig_cpu_abrt        = cpu_state.abrt;
-                    orig_cpu_abrt_reason = abrt_error;
-                    writememll(j, *((uint32_t *) p));
-                    if (cpu_state.abrt != orig_cpu_abrt) {
-                        if (cpu_state.abrt == ABRT_PF) {
-                            cpu_state.abrt = orig_cpu_abrt;
-                            abrt_error     = orig_cpu_abrt_reason;
-                            cpl_override   = 0;
-                            FAST_RESPONSE("E06");
-                            break;
-                        }
-                    }
-                    j += 4;
-                    p += 4;
-                }
+                j += l;
+                p += l;
             }
-            for (; i < (k & ~1); i += 2) {
-                orig_cpu_abrt        = cpu_state.abrt;
-                orig_cpu_abrt_reason = abrt_error;
-                writememwl(j, *((uint16_t *) p));
-                if (cpu_state.abrt != orig_cpu_abrt) {
-                    if (cpu_state.abrt == ABRT_PF) {
-                        cpu_state.abrt = orig_cpu_abrt;
-                        abrt_error     = orig_cpu_abrt_reason;
-                        cpl_override   = 0;
-                        FAST_RESPONSE("E06");
-                        break;
-                    }
-                }
-                j += 2;
-                p += 2;
-            }
-            for (; i < k; i++) {
-                orig_cpu_abrt        = cpu_state.abrt;
-                orig_cpu_abrt_reason = abrt_error;
-                writemembl(j++, p[0]);
-                if (cpu_state.abrt != orig_cpu_abrt) {
-                    if (cpu_state.abrt == ABRT_PF) {
-                        cpu_state.abrt = orig_cpu_abrt;
-                        abrt_error     = orig_cpu_abrt_reason;
-                        cpl_override   = 0;
-                        FAST_RESPONSE("E06");
-                        break;
-                    }
-                }
-                p++;
-            }
-            cpl_override = 0;
+            if (i < k)
+                break;
 
             /* Respond positively. */
             goto ok;
@@ -1382,10 +1568,12 @@ unknown:
 
             /* Test writability of software breakpoint. */
             if (client->packet[1] == '0') {
-                buf[0] = readmembl(j);
-                writemembl(j, 0xcc);
-                buf[1] = readmembl(j);
-                writemembl(j, buf[0]);
+                buf[1] = 0xcc;
+                if (gdbstub_mem_rw(j, &buf[0], 1, 0) || gdbstub_mem_rw(j, &buf[1], 1, 1))
+                    goto end;
+                buf[1] = 0x00;
+                gdbstub_mem_rw(j, &buf[1], 1, 0);
+                gdbstub_mem_rw(j, &buf[0], 1, 1);
                 if (buf[1] != 0xcc)
                     goto end;
             }
@@ -1536,12 +1724,25 @@ gdbstub_cpu_exec(int32_t cycs)
     if (gdbstub_step <= GDBSTUB_SSTEP) {
         /* Swap in any software breakpoints. */
         gdbstub_breakpoint_t *swbreak = first_swbreak;
+        int                   refetch = 0;
         while (swbreak) {
-            /* Swap the INT 3 opcode into the address. */
-            swbreak->orig_val = readmembl(swbreak->addr);
-            writemembl(swbreak->addr, 0xcc);
+            /* Swap the INT 3 opcode into the address, where it can be read
+               (which an unmapped page answering 0xCC leaves as it is when
+               swapping back out). */
+            uint8_t val = 0xcc;
+            if (gdbstub_mem_rw(swbreak->addr, &swbreak->orig_val, 1, 0))
+                swbreak->orig_val = 0xcc;
+            else
+                gdbstub_mem_rw(swbreak->addr, &val, 1, 1);
+
+            /* The 8086 and 80186 may hold the original byte in their prefetch
+               queue (at most 6 bytes, and a preloaded opcode). */
+            if (!is286 && ((swbreak->addr - gdbstub_pc()) < 8))
+                refetch = 1;
             swbreak = swbreak->next;
         }
+        if (refetch)
+            flush_prefetch_808x();
 
         /* Call the original cpu_exec function outside the debugger context. */
         if ((gdbstub_step == GDBSTUB_SSTEP) && ((cycles + cycs) <= 0))
@@ -1550,13 +1751,20 @@ gdbstub_cpu_exec(int32_t cycs)
         cpu_exec_shadow(cycs);
         in_gdbstub = 1;
 
-        /* Swap out any software breakpoints. */
+        /* Swap out any software breakpoints, and on the 8086 and 80186 drop
+           an INT 3 opcode the prefetch queue already took. */
         swbreak = first_swbreak;
+        refetch = 0;
         while (swbreak) {
-            if (readmembl(swbreak->addr) == 0xcc)
-                writemembl(swbreak->addr, swbreak->orig_val);
+            uint8_t val;
+            if (!gdbstub_mem_rw(swbreak->addr, &val, 1, 0) && (val == 0xcc))
+                gdbstub_mem_rw(swbreak->addr, &swbreak->orig_val, 1, 1);
+            if (!is286 && ((swbreak->addr - gdbstub_pc()) < 8))
+                refetch = 1;
             swbreak = swbreak->next;
         }
+        if (refetch)
+            flush_prefetch_808x();
     }
 
     /* Populate stop reason if we have stopped. */
@@ -1806,7 +2014,7 @@ gdbstub_instruction(void)
     gdbstub_breakpoint_t *breakpoint = first_hwbreak;
     if (breakpoint) {
         /* Calculate the current instruction's address. */
-        uint32_t wanted_addr = cs + cpu_state.pc;
+        uint32_t wanted_addr = gdbstub_pc();
 
         /* Go through the list of software breakpoints. */
         do {

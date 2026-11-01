@@ -78,7 +78,7 @@ typedef union rgba_u {
 
 #define FIFO_ENTRIES    (voodoo->fifo_write_idx - voodoo->fifo_read_idx)
 #define FIFO_FULL       ((voodoo->fifo_write_idx - voodoo->fifo_read_idx) >= FIFO_SIZE - 4)
-#define FIFO_EMPTY      (voodoo->fifo_read_idx == voodoo->fifo_write_idx)
+#define FIFO_EMPTY      voodoo_fifo_empty(voodoo)
 
 #define VOODOO_BUF_FRONT   0
 #define VOODOO_BUF_BACK    1
@@ -763,6 +763,7 @@ typedef struct voodoo_t {
 
     int      force_blit_count;
     int      can_blit;
+    int      override; /* Pass-through on a primary display that is not an svga_t */
     mutex_t *force_blit_mutex;
 
     int   use_recompiler;
@@ -786,6 +787,12 @@ typedef struct voodoo_t {
     void   *priv;
     uint8_t monitor_index;
 } voodoo_t;
+
+static inline int
+voodoo_fifo_empty(const voodoo_t *voodoo)
+{
+    return voodoo->fifo_read_idx == voodoo->fifo_write_idx;
+}
 
 enum {
     VOODOO_INTRCTRL_ENABLE_MASK            = 0x0030003f,

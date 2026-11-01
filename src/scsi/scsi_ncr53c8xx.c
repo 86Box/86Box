@@ -45,6 +45,9 @@
 
 #define NCR53C8XX_SDMS3_ROM "roms/scsi/ncr53c8xx/NCR307.BIN"
 #define SYM53C8XX_SDMS4_ROM "roms/scsi/ncr53c8xx/8xx_64.rom"
+#define TEKRAM_DC390F_320_ROM      "roms/scsi/ncr53c8xx/390320.bin"
+#define TEKRAM_DC390F_323_ROM      "roms/scsi/ncr53c8xx/int13f.BIN"
+#define TEKRAM_DC390F_323_0SEC_ROM "roms/scsi/ncr53c8xx/int13f-0sec.BIN"
 
 #define HA_ID               7
 
@@ -523,6 +526,9 @@ ncr53c8xx_update_irq(ncr53c8xx_t *dev)
     if (dev->istat & NCR_ISTAT_INTF) {
         level = 1;
     }
+    /* IRQD disables the IRQ pin; the status bits still get set. */
+    if (dev->dcntl & NCR_DCNTL_IRQD)
+        level = 0;
 
 #ifdef STATE_KEEPING
     if (level != dev->last_level) {
@@ -1647,6 +1653,7 @@ ncr53c8xx_reg_writeb(ncr53c8xx_t *dev, uint32_t offset, uint8_t val)
             break;
         case 0x3b: /* DCNTL */
             dev->dcntl = val & ~(NCR_DCNTL_PFF | NCR_DCNTL_STD);
+            ncr53c8xx_update_irq(dev);
             if ((val & NCR_DCNTL_STD) && dev->sstop)
                 ncr53c8xx_execute_script(dev);
             break;
@@ -1763,6 +1770,15 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
 
     dev->regop = 1;
 
+    /* With CTEST2 bit 3 set, SCRATCHA and SCRATCHB read back the memory and SCRIPTS RAM base addresses
+       (the Tekram DC-390F BIOS uses this to find where to load its SCRIPTS). */
+    if (dev->wide && (dev->ctest2 & NCR_CTEST2_PCICIE)) {
+        if ((offset >= 0x34) && (offset <= 0x37))
+            return (dev->MMIOBase >> ((offset & 3) << 3)) & 0xff;
+        if ((offset >= 0x5c) && (offset <= 0x5f))
+            return (dev->RAMBase >> ((offset & 3) << 3)) & 0xff;
+    }
+
     switch (offset) {
         case 0x00: /* SCNTL0 */
             ncr53c8xx_log("NCR 810: Read SCNTL0 %02X\n", dev->scntl0);
@@ -1787,6 +1803,9 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
             return dev->sdid;
         case 0x07: /* GPREG */
             tmp = (dev->gpreg & (dev->gpcntl ^ 0x1f)) & 0x1f;
+            /* The Tekram BIOS reads GPIO2 to tell the DC-390F (high) from the DC-390U (low). */
+            if ((dev->has_bios >= 3) && (dev->gpcntl & 0x04))
+                tmp |= 0x04;
             if ((dev->gpcntl & 0x41) == 0x01) {
                 tmp &= 0xfe;
                 if (i2c_gpio_get_sda(dev->i2c))
@@ -2258,6 +2277,8 @@ ncr53c8xx_bios_set_addr(ncr53c8xx_t *dev, uint32_t base)
 {
     if (dev->has_bios == 2)
         mem_mapping_set_addr(&dev->bios.mapping, base, 0x10000);
+    else if (dev->has_bios >= 3)
+        mem_mapping_set_addr(&dev->bios.mapping, base, 0x08000);
     else if (dev->has_bios == 1)
         mem_mapping_set_addr(&dev->bios.mapping, base, 0x04000);
 }
@@ -2554,6 +2575,11 @@ ncr53c8xx_init(const device_t *info)
             dev->bios.rom[0x3fff] += (dev->bios.rom[0x3fcb] - dev->chip);
             dev->bios.rom[0x3fcb] = dev->chip;
             ncr53c8xx_log("BIOS v3.07: New BIOS CHIP ID: %02X, old BIOS checksum: %02X\n", dev->bios.rom[0x3fcb], dev->bios.rom[0x3fff]);
+        } else if (dev->has_bios >= 3) {
+            /* The Tekram DC-390F BIOSes already have the 53c875 Device ID in their PCIR block. */
+            const char *fn = (dev->has_bios == 3) ? TEKRAM_DC390F_320_ROM :
+                             ((dev->has_bios == 4) ? TEKRAM_DC390F_323_ROM : TEKRAM_DC390F_323_0SEC_ROM);
+            rom_init(&dev->bios, fn, 0xc8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         }
     } else
         dev->has_bios = 0;
@@ -2614,6 +2640,9 @@ ncr53c8xx_init(const device_t *info)
     if (dev->has_bios == 2) {
         ncr53c8xx_pci_bar[3].addr = 0xffff0000;
         dev->bios_mask            = 0xffff0000;
+    } else if (dev->has_bios >= 3) {
+        ncr53c8xx_pci_bar[3].addr = 0xffff8000;
+        dev->bios_mask            = 0xffff8000;
     } else if (dev->has_bios == 1) {
         ncr53c8xx_pci_bar[3].addr = 0xffffc000;
         dev->bios_mask            = 0xffffc000;
@@ -2683,6 +2712,31 @@ static const device_config_t ncr53c8xx_pci_config[] = {
             { .description = "SDMS 3.x BIOS", .value = 1 },
             { .description = "Disable BIOS",  .value = 0 },
             { .description = ""                          }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
+static const device_config_t ncr53c875_pci_config[] = {
+  // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "SDMS 4.x BIOS",                                       .value = 2 },
+            { .description = "SDMS 3.x BIOS",                                       .value = 1 },
+            { .description = "Tekram DC-390F BIOS 3.20",                            .value = 3 },
+            { .description = "Tekram DC-390F BIOS 3.23",                            .value = 4 },
+            { .description = "Tekram DC-390F BIOS 3.23 (incl. 0 sec delay option)", .value = 5 },
+            { .description = "Disable BIOS",                                        .value = 0 },
+            { .description = ""                                                                }
         },
         .bios           = { { 0 } }
     },
@@ -2791,7 +2845,7 @@ const device_t ncr53c875_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = ncr53c8xx_pci_config,
+    .config        = ncr53c875_pci_config,
     .short_name    = "NCR 53c875"
 };
 

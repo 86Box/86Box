@@ -2,15 +2,15 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2026-09-30 05:47+0000\n"
+"PO-Revision-Date: 2026-10-30 19:02+0100\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Italian <https://weblate.86box.net/projects/86box/86box/it/>\n"
-"Language: it-IT\n"
+"Language: it_IT\n"
 "MIME-Version: 1.0\n"
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=n != 1;\n"
-"X-Generator: Weblate 5.12.2\n"
+"X-Generator: Poedit 3.10\n"
 "X-Language: it_IT\n"
 "X-Source-Language: en_US\n"
 
@@ -153,10 +153,10 @@ msgid "4:&3 Integer scale"
 msgstr "Scala intera 4:&3"
 
 msgid "&Center"
-msgstr ""
+msgstr "&Centrato"
 
 msgid "4:3 Cen&ter"
-msgstr ""
+msgstr "Cen&trato 4:3"
 
 msgid "Inverted VGA monitor"
 msgstr "Monitor VGA invertito"
@@ -417,34 +417,34 @@ msgid "Memory:"
 msgstr "Memoria:"
 
 msgid "Synchronize with host clock"
-msgstr ""
+msgstr "Sincronizzazione dell'ora con il sistema"
 
 msgid "Time zone:"
-msgstr ""
+msgstr "Fuso orario:"
 
 msgid "Local"
-msgstr ""
+msgstr "Locale"
 
 msgid "UTC"
-msgstr ""
+msgstr "UTC"
 
 msgid "Date:"
-msgstr ""
+msgstr "Data:"
 
 msgid "Match the host"
-msgstr ""
+msgstr "Sincronizza la data con il sistema"
 
 msgid "Offset the year by:"
-msgstr ""
+msgstr "Modifica l'anno di:"
 
 msgid "(currently %1)"
-msgstr ""
+msgstr "(attuale %1)"
 
 msgid "Always use the year:"
-msgstr ""
+msgstr "Usa sempre l'anno:"
 
 msgid "Do not synchronize the date"
-msgstr ""
+msgstr "Non sincronizzare la data"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Utilizza l'interprete 486 per i processori 286 e 386"
@@ -459,7 +459,7 @@ msgid "Block linking on the dynamic recompiler"
 msgstr "Collegamento dei blocchi con il ricompilatore dinamico"
 
 msgid "Debug registers on 486 and later processors"
-msgstr ""
+msgstr "Registri di debug sui processori 486 e successivi"
 
 msgid "CPU frame size"
 msgstr "Dimensione blocchi CPU"
@@ -654,10 +654,10 @@ msgid "Cassette"
 msgstr "Cassetta"
 
 msgid "Turbo IDE"
-msgstr ""
+msgstr "Turbo IDE"
 
 msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
-msgstr ""
+msgstr "Rimuove il limite di velocità del trasferimento dei dati sull'interfaccia IDE. Saranno comunque rispettati i tempi di accesso per i dischi rigidi e le unità CD-ROM."
 
 msgid "Hard disks:"
 msgstr "Dischi rigidi:"
@@ -987,7 +987,7 @@ msgid "Press %1 or middle button to release mouse"
 msgstr "Premi %1 o pulsante centrale per rilasciare il mouse"
 
 msgid "Press %1 or side button to release mouse"
-msgstr ""
+msgstr "Premi %1 o il pulsante laterale per rilasciare il mouse"
 
 msgid "Bus"
 msgstr "Bus"
@@ -1355,33 +1355,35 @@ msgid "Delete virtual machines to Recycle Bin"
 msgstr "Usa il cestino per eliminare le macchine virtuali"
 
 msgid "Discord"
-msgstr ""
+msgstr "Discord"
 
 msgid "Show running machines in my Discord status"
-msgstr ""
+msgstr "Mostra le macchine in esecuzione nel mio stato Discord"
 
 msgid "Details shown:"
-msgstr ""
+msgstr "Dettagli:"
 
 msgid "Machine name and hardware"
-msgstr ""
+msgstr "Nome macchina e hardware"
 
 msgid "Hardware only"
-msgstr ""
+msgstr "Solo hardware"
 
 msgid "No details"
-msgstr ""
+msgstr "Nessun dettaglio"
 
 msgid "Using %1"
-msgstr ""
+msgstr "Utilizzo di %1"
 
 msgid "%n machine(s) active"
 msgid_plural "%n machines active"
-msgstr[0] ""
+msgstr[0] "%n macchina attiva"
+msgstr[1] "%n macchine attive"
 
 msgid " (+%n more)"
 msgid_plural " (+%n more)"
-msgstr[0] ""
+msgstr[0] " (+altri %n)"
+msgstr[1] " (+altri %n)"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -1713,7 +1715,7 @@ msgid "The disk image has been successfully created."
 msgstr "L'immagine di disco è stata creata con successo."
 
 msgid "Raw image"
-msgstr "Immagine grezza"
+msgstr "Immagine RAW"
 
 msgid "HDI image"
 msgstr "Immagine HDI"
@@ -2979,7 +2981,7 @@ msgid "Serial Passthrough"
 msgstr "Dispositivo passaggio porta seriale"
 
 msgid "Host serial device"
-msgstr "Dispositivo seriale host"
+msgstr "Dispositivo seriale di sistema"
 
 msgid "Named Pipe"
 msgstr "Pipe denominata"
@@ -3027,7 +3029,7 @@ msgid "Client"
 msgstr "Client"
 
 msgid "Reconnect automatically"
-msgstr "Riconnettere automaticamente"
+msgstr "Riconnessione automatica"
 
 msgid "Use standard input/output"
 msgstr "Utilizzare ingresso/uscita standard"
@@ -3240,7 +3242,7 @@ msgid "Key bindings"
 msgstr "Associazione dei tasti"
 
 msgid "VM Manager"
-msgstr ""
+msgstr "Gestore macchine virtuali"
 
 msgid "Action"
 msgstr "Azione"
@@ -3519,7 +3521,7 @@ msgid "To change the system directory, stop all running machines."
 msgstr "Per modificare la directory di sistema, arrestare tutte le macchine in funzione."
 
 msgid "Raw"
-msgstr "Grezzo"
+msgstr "RAW"
 
 msgid "Use EDC/ECC emulation"
 msgstr "Usa emulazione EDC/ECC"
@@ -3591,7 +3593,7 @@ msgid "Parallel Port"
 msgstr "Porta parallela"
 
 msgid "Paper Size"
-msgstr "Dimensioni di carta"
+msgstr "Dimensioni carta"
 
 msgid "Letter"
 msgstr "Letter"
@@ -3642,13 +3644,13 @@ msgid "Television"
 msgstr "Televisore"
 
 msgid "Invert LCD colors"
-msgstr "Invertire i colori LCD"
+msgstr "Inverti colori LCD"
 
 msgid "LCD (CGA mode)"
-msgstr "LCD (modo CGA)"
+msgstr "LCD (modalità CGA)"
 
 msgid "LCD (MDA mode)"
-msgstr "LCD (modo MDA)"
+msgstr "LCD (modalità MDA)"
 
 msgid "Disabled (250h)"
 msgstr "Disabilitato (250h)"
@@ -3693,19 +3695,25 @@ msgid "Sample rate:"
 msgstr "Frequenza di campionamento:"
 
 msgid "Enable audio input (mic/line-in)"
-msgstr ""
+msgstr "Abilita ingresso audio (microfono/ingresso di linea)"
 
 msgid "Audio input device:"
-msgstr ""
+msgstr "Dispositivo di ingresso audio:"
 
 msgid "Audio input sample rate:"
-msgstr ""
+msgstr "Frequenza di ingresso audio:"
 
 msgid "Rate the emulator mixes to the host output device."
-msgstr ""
+msgstr "Frequenza di campionamento del missaggio sonoro dell'emulatore inviato al dispositivo di uscita audio di sistema."
 
-msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
+msgid ""
+"Rate the host input capture device is opened at.\n"
+"\n"
+"44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
 msgstr ""
+"Frequenza di campionamento alla quale viene aperto il dispositivo di ingresso audio di sistema.\n"
+"\n"
+"44100 è divisibile esattamente per le frequenze 44,1/22/11 kHz delle schede SB16/AWE32."
 
 msgid "CGA lightpen"
 msgstr "Penna ottica CGA"
@@ -3714,58 +3722,76 @@ msgid "Luminance threshold (%)"
 msgstr "Soglia di luminanza (%)"
 
 msgid "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded."
-msgstr ""
+msgstr "VFIO: Impossibile aprire /dev/vfio/vfio: %s. Assicurarsi che il modulo vfio-pci sia stato caricato."
 
 msgid "VFIO %s: Invalid device location."
-msgstr ""
+msgstr "VFIO %s: Posizione del dispositivo non valida."
 
 msgid "VFIO %s: Device not found."
-msgstr ""
+msgstr "VFIO %s: Dispositivo non trovato."
 
 msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
-msgstr ""
+msgstr "VFIO %s: Il dispositivo non dispone di un gruppo IOMMU. Assicurarsi che VT-d o IOMMU siano abilitati nel sistema."
 
 msgid "VFIO %s: Device is not bound to vfio-pci."
-msgstr ""
+msgstr "VFIO %s: Il dispositivo non è associato a vfio-pci."
 
 msgid "VFIO %s: Could not open IOMMU group %d: %s"
-msgstr ""
+msgstr "VFIO %s: Impossibile aprire il gruppo IOMMU %d: %s"
 
 msgid "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci."
-msgstr ""
+msgstr "VFIO %s: Il gruppo IOMMU %d non è utilizzabile. Tutti i dispositivi nel gruppo devono essere associati a vfio-pci."
 
 msgid "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low."
-msgstr ""
+msgstr "VFIO: Impossibile mappare la memoria della macchina virtuale per il DMA: %s. Il limite di memoria bloccata (ulimit -l) potrebbe essere troppo esiguo."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
-msgstr ""
+msgstr "VFIO %s: Impossibile leggere il file ROM \"%s\"; utilizzo della ROM del dispositivo."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
-msgstr ""
+msgstr "VFIO %s: Impossibile leggere il file ROM \"%s\"; la ROM è disabilitata."
 
 msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
-msgstr ""
+msgstr "VFIO %s: La ROM non sembra valida. È possibile caricare una ROM personalizzata tramite le impostazioni VFIO."
 
-msgid "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?"
+msgid ""
+"VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n"
+"\n"
+"%s\n"
+"Bind them now?"
 msgstr ""
+"VFIO: Questi dispositivi devono essere associati a vfio-pci, operazione che richiede i privilegi di amministratore:\n"
+"\n"
+"%s\n"
+"Vuoi associarli adesso?"
 
 msgid "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?"
-msgstr ""
+msgstr "VFIO: Sono necessari i privilegi di amministratore per consentire a 86Box di accedere ai dispositivi di passaggio diretto. Continuare?"
 
 msgid "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:"
-msgstr ""
+msgstr "Questi dispositivi non sono stati selezionati, ma condividono un gruppo IOMMU con un dispositivo selezionato; pertanto verranno anch'essi associati:"
 
 msgid "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci."
-msgstr ""
+msgstr "VFIO %s: Il gruppo IOMMU %d contiene anche %s, necessario per il sistema. Il gruppo non verrà associato a vfio-pci."
 
-msgid "VFIO: Could not prepare the devices for passthrough:\n%s"
+msgid ""
+"VFIO: Could not prepare the devices for passthrough:\n"
+"%s"
 msgstr ""
+"VFIO: Impossibile preparare i dispositivi per il passaggio diretto:\n"
+"%s"
 
-msgid "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s"
+msgid ""
+"VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n"
+"\n"
+"%s"
 msgstr ""
+"VFIO: Non è stato possibile richiedere i privilegi di amministratore. Per preparare i dispositivi al passaggio diretto, esegui questo comando, quindi effettua un riavvio completo:\n"
+"\n"
+"%s"
 
 msgid "Prepare PCI devices for VFIO passthrough"
-msgstr ""
+msgstr "Preparazione dei dispositivi PCI per il passaggio diretto tramite VFIO"
 
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
-msgstr ""
+msgstr "È richiesta l'autenticazione per preparare i dispositivi PCI al passaggio diretto verso 86Box."

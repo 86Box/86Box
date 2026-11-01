@@ -1030,6 +1030,17 @@ typedef struct rage128_t {
                                   aligned allocator, which is not free()-
                                   compatible on every host; rage128_gpu_close
                                   owns the release, svga_close must not see it */
+    /* Host-newer page map of the GPU backend's device-local VRAM mirror,
+       one byte per 4 KB page of local memory; NULL with the backend off.
+       A 1 means svga.vram may hold bytes in that page that the mirror
+       lacks. Every writer of svga.vram other than a command the backend
+       also applies to the mirror sets it after its store
+       (r128_vram_hnew); only the submit thread clears it, as it records
+       the copy of that page into the mirror. hnew_all is the same mark
+       for every page at once, set by writers whose resolved address is
+       not known here. */
+    atomic_uchar *vram_hnew;
+    atomic_uchar  vram_hnew_all;
 
     /* Staging for texture levels the workers do not read straight from
        VRAM. The 3D texel sampler runs on the raster workers, and the AGP
@@ -1397,6 +1408,10 @@ typedef struct r128_surf_t {
     uint32_t                   rel;  /* card address of base[0]              */
     uint32_t                   mask; /* wrap bound applied to (addr - rel)   */
     struct rage128_span_stage *st;   /* staged backing store, NULL = local   */
+    /* a local window's VRAM bytes, [wlo, wlo + wlen), marked host-newer
+       for the GPU backend's mirror when a read-write window is committed;
+       wlen 0 for a staged window, whose write-back marks its own stores */
+    uint32_t wlo, wlen;
 } r128_surf_t;
 
 static inline uint8_t *
@@ -1754,7 +1769,7 @@ static inline int
 r128_prim_past_pitch(uint32_t base, uint32_t stride, int tiled, int ylast,
                      int xmax, uint32_t bpp, uint32_t *hi)
 {
-    uint64_t xbe, far;
+    uint64_t xbe, last;
     uint32_t h;
 
     if (xmax < 0 || ylast < 0)
@@ -1763,11 +1778,11 @@ r128_prim_past_pitch(uint32_t base, uint32_t stride, int tiled, int ylast,
     if (xbe <= stride)
         return 0;
     if (tiled)
-        far = 16ull * stride * ((uint32_t) ylast >> 4) + 15u * 64u
+        last = 16ull * stride * ((uint32_t) ylast >> 4) + 15u * 64u
             + r128_tile_x((uint32_t) (xbe - 1));
     else
-        far = (uint64_t) (uint32_t) ylast * stride + xbe - 1;
-    h = (uint32_t) ((uint64_t) base + far + 1);
+        last = (uint64_t) (uint32_t) ylast * stride + xbe - 1;
+    h = (uint32_t) ((uint64_t) base + last + 1);
     if (h > *hi)
         *hi = h;
     return 1;
@@ -1851,6 +1866,79 @@ extern void rage128_pm4_scratch_drop(rage128_t *dev);
    (vid_ati_rage128_pm4.c). SUBMIT-THREAD ONLY. */
 extern int rage128_pm4_bus_write_block(rage128_t *dev, uint32_t vm, const uint8_t *src, uint32_t len);
 
+/* ---- Depth plane, fixed point ----
+   Interpolated depth is modeled as an exact fixed-point plane: normalized
+   depth (0.0 near, 1.0 far) times 2^39 in a signed 64-bit integer. The
+   chip's depth iterator precision is not documented. Fixed point is
+   modeled because a pixel's value is then the closed form
+   start + k * step in every renderer: the interpreter, the span JITs and
+   the GPU kernels step or multiply as suits them and get the same bits.
+   One unit is 2^-15 of a 24-bit depth step, so the rounding of the
+   per-pixel gradient, accumulated over a 2048-pixel row, moves a value by
+   at most 2^-5 of a step.
+
+   The triangle setup forms the plane in double and converts it once.
+   The seed is clamped to +-2^60 and each gradient to +-2^47 (256 full
+   depth ranges per pixel), so a seed plus 2^11 steps in x and in y stays
+   under 2^62. Only a sliver whose depth crosses more than 256 ranges per
+   pixel meets the gradient clamp; its value is then modeled, not the
+   exact plane. A NaN converts to 0. */
+#define R128_ZFX_BITS     39
+#define R128_ZFX_ONE      (1ll << R128_ZFX_BITS)
+#define R128_ZFX_SEED_LIM (1ll << 60)
+#define R128_ZFX_GRAD_LIM (1ll << 47)
+
+/* v * 2^39 rounded to nearest, halves away from zero, clamped to
+   [-lim, lim]. Written without libm so every file that includes this
+   header gets the same conversion. */
+static inline int64_t
+r128_zfx(double v, int64_t lim)
+{
+    double  s = v * (double) R128_ZFX_ONE;
+    int64_t t;
+    double  f;
+
+    if (!(s == s))
+        return 0;
+    if (s >= (double) lim)
+        return lim;
+    if (s <= -(double) lim)
+        return -lim;
+    t = (int64_t) s; /* truncates toward zero; |s| < 2^63 */
+    f = s - (double) t;
+    if (f >= 0.5)
+        t++;
+    else if (f <= -0.5)
+        t--;
+    return t;
+}
+
+/* A plane value clamped to [0, 1.0]. */
+static inline uint64_t
+r128_zfx_clamp(int64_t z)
+{
+    return (z < 0) ? 0 : ((z > R128_ZFX_ONE) ? (uint64_t) R128_ZFX_ONE : (uint64_t) z);
+}
+
+/* Depth cell value of a clamped plane value: z * zmax rounded to nearest.
+   zc * zmax is below 2^63 for zmax up to 2^24 - 1, and zc = 1.0 gives
+   exactly zmax, so a far pixel matches a buffer cleared to the far
+   value. */
+static inline uint32_t
+r128_zfx_quant(uint64_t zc, uint32_t zmax)
+{
+    return (uint32_t) ((zc * zmax + (1ull << (R128_ZFX_BITS - 1))) >> R128_ZFX_BITS);
+}
+
+/* Table-fog position of a clamped plane value: z * 255 with 32 fraction
+   bits, so the entry index is the high word (0..255) and the blend
+   fraction the low word. */
+static inline uint64_t
+r128_zfx_fogpos(uint64_t zc)
+{
+    return (zc * 255u) >> (R128_ZFX_BITS - 32);
+}
+
 /* ---- Span JIT (vid_ati_rage128_jit.c; per-architecture backends in
    vid_ati_rage128_codegen_<arch>.h, ARM64 and x86-64) ----
    A compiled block rasterizes whole scanlines for one
@@ -1871,7 +1959,7 @@ typedef struct r128_jit_tri_t {
     int32_t  x0, x1;                 /* inclusive column walk range                 */
     int64_t  e0dxi, e1dxi, e2dxi;    /* winding-normalized edge x-steps      */
     float    invs;                   /* winding-normalized barycentric scale        */
-    double   dZdx;                   /* depth plane x-gradient (double DDA)         */
+    int64_t  dzx;                    /* depth plane x-gradient, fixed point (r128_zfx) */
     float    vca[4], vcb[4], vcc[4]; /* vertex RGBA, flat fold applied    */
     /* Per-triangle texture-stage context, an r3d_texctx_t (defined above)
        held as a plain pointer: blocks that call helpers pass it back to
@@ -1897,12 +1985,13 @@ typedef struct r128_jit_tri_t {
 extern int rage128_texstage_run(void *tc, float w0, float w1, float w2, float *col);
 
 /* Rasterize one owned row. e0/e1/e2 are the winding-normalized row seeds,
-   zline the row's depth DDA seed, drow/zrow the row base VRAM addresses.
+   zline the depth plane value (r128_zfx) at the row's first column,
+   drow/zrow the row base VRAM addresses.
    Returns (rx1 << 32) | rx0 -- the written-pixel column range for dirty
    marking; rx0 == 0xffffffff means the row wrote nothing. */
 typedef uint64_t (*r128_jit_span_fn)(const r128_jit_tri_t *tri,
                                      int64_t e0, int64_t e1, int64_t e2,
-                                     double zline, uint32_t drow, uint32_t zrow,
+                                     int64_t zline, uint32_t drow, uint32_t zrow,
                                      int32_t py);
 
 /* Which span-JIT emitter this build has, if any. Shared with
@@ -1943,7 +2032,7 @@ extern void rage128_jit_stat_rows(rage128_t *dev, int count_tri,
    render path uses and drive the JIT through rage128_3d_jit_row. */
 extern int  rage128_jit_verify_pre(rage128_t *dev, r128_jit_tri_t *tri,
                                    const rage128_draw_state_t *dstate, r128_jit_span_fn fn,
-                                   int64_t e0, int64_t e1, int64_t e2, double zline,
+                                   int64_t e0, int64_t e1, int64_t e2, int64_t zline,
                                    uint32_t drow, uint32_t zrow, int32_t py,
                                    int c_tld, int z_tld);
 extern void rage128_jit_verify_post(rage128_t *dev, const r128_jit_tri_t *tri,
@@ -2045,6 +2134,20 @@ extern void rage128_2d_reset(rage128_t *dev);
 extern int  rage128_pm4_reg_read(rage128_t *dev, uint32_t off, uint32_t *val);
 extern int  rage128_pm4_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask);
 extern int  rage128_pm4_bus_read(rage128_t *dev, uint32_t bus_addr, uint32_t *val);
+
+/* One resolved page of a bus-mastered stream: the translation every
+   dword of a 4 KB page shares, held in a caller's local variable for one
+   transfer. n is 0 until the first read resolves it; a caller sets n to
+   0 to drop it. rage128_pm4_span_read reads the next dword from it, or
+   resolves again when the address is not the one the span expects. */
+typedef struct r128_bus_span {
+    uint32_t       next; /* bus address of the next dword               */
+    uint32_t       n;    /* dwords left in the page from next, 0 = none */
+    const uint8_t *p;    /* host bytes at next, NULL = read per dword   */
+    uint32_t       phys; /* table mode: physical address of next        */
+    int            mode; /* 0 aperture, 1 on-chip table, 2 misaligned   */
+} r128_bus_span_t;
+extern int  rage128_pm4_span_read(rage128_t *dev, r128_bus_span_t *sp, uint32_t bus_addr, uint32_t *val);
 extern void rage128_pm4_reset(rage128_t *dev);
 extern void rage128_pm4_thread_init(rage128_t *dev);
 extern void rage128_pm4_thread_close(rage128_t *dev);
@@ -2286,7 +2389,7 @@ r128_row_owned(int32_t y, int thr_id, int thr_mask)
    must run the JIT through the same walk it checks. */
 extern uint64_t rage128_3d_jit_row(r128_jit_tri_t *jt, r128_jit_span_fn jfn,
                                    int64_t e0, int64_t e1, int64_t e2,
-                                   double zline, uint32_t drow, uint32_t zrow,
+                                   int64_t zline, uint32_t drow, uint32_t zrow,
                                    int32_t py, int c_tld, int z_tld,
                                    uint32_t bpp, uint32_t zbpp);
 extern void     rage128_3d_tri(rage128_t *dev, const rage128_raster_state_t *rs,
@@ -2408,6 +2511,12 @@ extern int rage128_gpu_submit_line(rage128_t *dev, const rage128_raster_state_t 
                                    const r3d_vtx_t *a, const r3d_vtx_t *b);
 extern int rage128_gpu_submit_point(rage128_t *dev, const rage128_raster_state_t *rs,
                                     const r3d_vtx_t *v);
+/* A primitive the backend refused is about to be drawn on the CPU into
+   svga.vram: mark its color and depth rows host-newer for the mirror.
+   Submit thread; b and c may be NULL (a point, a line). */
+extern void rage128_gpu_cpu_prim(rage128_t *dev, const rage128_raster_state_t *rs,
+                                 const r3d_vtx_t *a, const r3d_vtx_t *b,
+                                 const r3d_vtx_t *c);
 #define R128_GPU_2D_REG_GUI  0x100u
 #define R128_GPU_2D_REG_BRES 0x101u
 /* Ordering point for a 2D operation: submit the pending segment so the
@@ -2503,7 +2612,7 @@ extern void rage128_gpu_2d_verify_bad(rage128_t *dev, int table,
    this is the jfn -- the JIT's tex-inline predicate does not cover it. */
 extern uint64_t rage128_gpu_capture_span(const r128_jit_tri_t *tri,
                                          int64_t e0, int64_t e1, int64_t e2,
-                                         double zline, uint32_t drow,
+                                         int64_t zline, uint32_t drow,
                                          uint32_t zrow, int32_t py);
 /* Covered columns [*cx0, *cx1] of one whole row under the capture's own
    edge clip; 0 when the row has none. Lets the tiled row walk skip the
@@ -2518,7 +2627,7 @@ extern int rage128_gpu_capture_row_cover(const r128_jit_tri_t *tri,
    since it only measures and does not draw. */
 extern uint64_t rage128_gpu_count_span(const r128_jit_tri_t *tri,
                                        int64_t e0, int64_t e1, int64_t e2,
-                                       double zline, uint32_t drow,
+                                       int64_t zline, uint32_t drow,
                                        uint32_t zrow, int32_t py);
 /* Scanout base latched: submit every outstanding slot and wait for it. */
 extern void rage128_gpu_present(rage128_t *dev);
@@ -2626,6 +2735,41 @@ r128_texcache_dirty(rage128_t *dev, uint32_t lo, uint32_t len)
         ts->n_kill++;
     }
     r128_texcache_unlock(ts);
+}
+/* Local bytes [lo, lo+len) of svga.vram have been stored to, so the GPU
+   backend's mirror may lack them: mark their pages host-newer. Called
+   after the store. The release store orders the bytes before the mark,
+   and the submit thread clears the mark with an acquire exchange before
+   it records the page's copy, so the copy sees every store whose mark it
+   cleared; a store that lands after the clear sets the mark again and is
+   copied by the next segment that reads the page. A store and its mark
+   on the submit thread itself cannot be split by a recording, so a
+   submit-thread writer may also mark before it stores. len wraps
+   through vram_mask by pages, as the changedvram walks do. */
+static inline void
+r128_vram_hnew(rage128_t *dev, uint32_t lo, uint32_t len)
+{
+    atomic_uchar *h = dev->vram_hnew;
+    uint32_t      m = dev->vram_mask;
+
+    if (!h || !len)
+        return;
+    if (len > m) {
+        atomic_store_explicit(&dev->vram_hnew_all, 1, memory_order_release);
+        return;
+    }
+    for (uint32_t o = 0; o < len; o += 0x1000u)
+        atomic_store_explicit(&h[((lo + o) & m) >> 12], 1, memory_order_release);
+    atomic_store_explicit(&h[((lo + len - 1u) & m) >> 12], 1, memory_order_release);
+}
+
+/* Every page host-newer: for a store whose resolved address is not known
+   to the device (the svga core's planar and banked paths). */
+static inline void
+r128_vram_hnew_all(rage128_t *dev)
+{
+    if (dev->vram_hnew)
+        atomic_store_explicit(&dev->vram_hnew_all, 1, memory_order_release);
 }
 extern int rage128_gpu_stage_grow(rage128_t *dev, uint32_t need);
 /* Staged color and Z targets and the GPU: the c_stage and z_stage

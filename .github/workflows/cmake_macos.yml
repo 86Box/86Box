@@ -1,5 +1,13 @@
 name: CMake (macos)
 
+# Compile checks for the configurations the pull request builds (made with
+# .ci/build.sh) don't cover.
+#
+# The build types, user interfaces and architectures marked manual are only
+# built on manual runs with the full matrix option, as macOS runners are
+# scarce. Among them is the x86_64 Qt 5 Dev Debug build, which the CodeQL
+# workflow already makes.
+
 on:
 
   push:
@@ -13,7 +21,15 @@ on:
       - vcpkg.json
       - "!**/Makefile*"
 
+  # Closing a pull request (including merging it) starts a run that builds
+  # nothing, only cancelling the run in progress through the concurrency
+  # group below
   pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - closed
     paths:
       - src/**
       - cmake/**
@@ -24,10 +40,22 @@ on:
       - vcpkg.json
       - "!**/Makefile*"
 
-# Cancel superseded runs for the same pull request. Other events get a
-# unique group so that they are never cancelled or held back.
+  schedule:
+    - cron: "0 5 * * 0"
+
+  workflow_dispatch:
+    inputs:
+      full_matrix:
+        description: Build every configuration, including the build types, user interfaces and architectures marked manual
+        type: boolean
+        default: true
+
+# Cancel superseded runs for the same pull request. Pushes to master share
+# a group too, so that while one is building, only the newest of the pushes
+# after it waits instead of all of them. Other events get a unique group so
+# that they are never cancelled or held back.
 concurrency:
-  group: ${{ github.workflow }}-${{ github.event.pull_request.number || github.run_id }}
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || (github.ref == 'refs/heads/master' && github.event_name == 'push' && 'master') || github.run_id }}
   cancel-in-progress: ${{ github.event_name == 'pull_request' }}
 
 jobs:
@@ -36,37 +64,62 @@ jobs:
 
     name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.environment.arch }}"
 
+    if: github.event.action != 'closed'
+
     runs-on: ${{ matrix.environment.runner }}
 
     strategy:
       fail-fast: true
       matrix:
+        # Build types, user interfaces and architectures marked manual are
+        # only built on manual runs with the full matrix option
         build:
 #          - name: Regular
 #            preset: regular
-          - name: Debug
+          - name: Dev Debug
             preset: dev_debug
-            slug: -Debug
+            slug: -Dev-Debug
+            manual: true
           - name: Dev
             preset: development
             slug: -Dev
         ui:
-          - name: SDL GUI
-            qt: off
-            slug: -SDL
-            static: on
           - name: Qt 5 GUI
             qt: on
-            slug: -Qt5
+            qt6: off
+            slug: ""
             packages: >-
               qt@5
+          - name: Qt 6 GUI
+            qt: on
+            qt6: on
+            slug: -Qt6
+            packages: >-
+              qt
+            manual: true
+          - name: SDL GUI
+            qt: off
+            qt6: off
+            slug: -SDL
+            static: on
+            manual: true
         environment:
           - arch: x86_64
             slug: -x86_64
             runner: macos-15-intel
+            manual: true
           - arch: arm64
             slug: -arm64
             runner: macos-15
+        # A missing manual key matches false, so full matrix runs exclude
+        # 'never', which no entry has, instead
+        exclude:
+          - build:
+              manual: ${{ !inputs.full_matrix || 'never' }}
+          - ui:
+              manual: ${{ !inputs.full_matrix || 'never' }}
+          - environment:
+              manual: ${{ !inputs.full_matrix || 'never' }}
 
     steps:
       - name: Install dependencies
@@ -92,8 +145,11 @@ jobs:
         run: >-
           cmake -S . -B build --preset ${{ matrix.build.preset }}
           -D QT=${{ matrix.ui.qt }}
+          -D USE_QT6=${{ matrix.ui.qt6 }}
           -D Qt5_ROOT=$(brew --prefix qt@5)
           -D Qt5LinguistTools_ROOT=$(brew --prefix qt@5)
+          -D Qt6_ROOT=$(brew --prefix qt)
+          -D Qt6LinguistTools_ROOT=$(brew --prefix qt)
           -D OpenAL_ROOT=$(brew --prefix openal-soft)
           -D LIBSERIALPORT_ROOT=$(brew --prefix libserialport)
 
@@ -106,5 +162,5 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
-          name: '86Box${{ matrix.ui.slug }}${{ matrix.build.slug }}-macOS${{ matrix.environment.slug }}-gha${{ github.run_number }}'
+          name: '86Box${{ matrix.build.slug }}${{ matrix.ui.slug }}-macOS${{ matrix.environment.slug }}-gha${{ github.run_number }}'
           path: build/artifacts/**

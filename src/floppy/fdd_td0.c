@@ -578,6 +578,13 @@ get_raw_tsize(const int side_flags, const int slower_rpm)
             break;
     }
 
+    /* As above, these are the double density figures; the drive layer runs an
+       FM track at half the rate code's cell rate, so it carries half as many
+       bytes and the gap 3 worked out from the MFM capacity would make the
+       encoder wrap over the sectors it has already written. */
+    if (!(side_flags & 8))
+        size /= 2;
+
     return size;
 }
 

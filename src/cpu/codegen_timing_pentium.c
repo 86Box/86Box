@@ -105,8 +105,6 @@ static uint64_t *u_pipe_deps;
 
 static uint32_t regmask_modified;
 
-static uint32_t addr_regmask;
-
 static int fpu_latency;
 static int fpu_st_latency[8];
 
@@ -1220,7 +1218,6 @@ codegen_timing_pentium_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, UNUS
             u_pipe_full         = 0;
             decode_delay_offset = 0;
             regmask_modified    = u_pipe_regmask;
-            addr_regmask        = 0;
             return;
         }
 
@@ -1260,7 +1257,6 @@ codegen_timing_pentium_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, UNUS
                 decode_delay_offset = 0;
 
                 regmask_modified = get_dstdep_mask(deps[opcode], fetchdat, bit8) | u_pipe_regmask;
-                addr_regmask     = 0;
                 return;
             }
         }
@@ -1272,7 +1268,6 @@ nopair:
         codegen_instruction(u_pipe_timings, u_pipe_deps, u_pipe_opcode, u_pipe_fetchdat, u_pipe_decode_delay_offset, u_pipe_op_32, agi_stall);
         u_pipe_full      = 0;
         regmask_modified = u_pipe_regmask;
-        addr_regmask     = 0;
     }
 
     if ((timings[opcode] & PAIR_U) && (decode_delay + decode_delay_offset) <= 0) {
@@ -1303,7 +1298,6 @@ nopair:
     codegen_instruction(timings, deps, opcode, fetchdat, decode_delay_offset, op_32, agi_stall);
     decode_delay_offset = 0;
     regmask_modified    = get_dstdep_mask(deps[opcode], fetchdat, bit8);
-    addr_regmask        = 0;
 }
 
 void

@@ -203,7 +203,6 @@ mach_log(void *priv, const char *format, ...)
                 dest_dat = ~0;                                                                         \
                 break;                                                                                 \
             case 0x03:                                                                                 \
-                dest_dat = dest_dat;                                                                   \
                 break;                                                                                 \
             case 0x04:                                                                                 \
                 dest_dat = ~src_dat;                                                                   \

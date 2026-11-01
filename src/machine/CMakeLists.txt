@@ -36,12 +36,15 @@ add_library(mch OBJECT
     m_tandy2k.c
     m_v86p.c
     m_at_t3100e.c
+    m_at_tandy_vis.c
+    m_at_tvis_memcard.c
     m_ps1.c
     m_ps2_isa.c
     m_ps2_mca.c
     m_at_common.c
     m_at_286.c
     m_at_386sx.c
+    m_at_386ex.c
     m_at_m6117.c
     m_at_386dx.c
     m_at_486slc.c
@@ -66,7 +69,4 @@ add_library(mch OBJECT
     m_at_slot2.c
     m_at_socket370.c
     m_at_misc.c
-    tandy_vis/m_at_tandy_vis.c
-    tandy_vis/m_tandy_vis_memcard.c
-    tandy_vis/m_tandy_vis_ps2.c
 )

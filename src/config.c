@@ -702,6 +702,10 @@ load_machine(void)
     fpu_softfloat = !!ini_section_get_int(cat, "fpu_softfloat", 0);
     if ((fpu_type != FPU_NONE) && machine_has_flags(machine, MACHINE_SOFTFLOAT_ONLY))
         fpu_softfloat = 1;
+    /* A board with no coprocessor socket cannot take an external FPU. */
+    if ((fpu_type != FPU_NONE) && (fpu_type != FPU_INTERNAL) &&
+        machine_has_flags(machine, MACHINE_NO_FPU_SOCKET))
+        fpu_type = FPU_NONE;
 
     p = ini_section_get_string(cat, "time_sync", NULL);
     if (p != NULL) {
@@ -871,21 +875,25 @@ load_input_devices(void)
     p = ini_section_get_string(cat, "keyboard_type", NULL);
     if (p != NULL)
         keyboard_type = config_known(keyboard_get_from_internal_name(p), STRING_UNSUPPORTED_KEYBOARD, p);
-    else if (machines[machine].init == machine_xt_pc5086_init)
-        keyboard_type = KEYBOARD_TYPE_PC_XT;
-    else if (machine_has_bus(machine, MACHINE_BUS_PS2_PORTS)) {
-        if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS))
+    else {
+        /* A machine that comes with a keyboard of its own offers that one by
+           default, whatever its bus might have suggested otherwise. */
+        const device_t *kbd = machine_get_kbd_device(machine);
+
+        if (kbd == &keyboard_pc_xt_device)
+            keyboard_type = KEYBOARD_TYPE_PC_XT;
+        else if (kbd == &keyboard_ps55_device)
             keyboard_type = KEYBOARD_TYPE_PS55;
-        else
-            keyboard_type = KEYBOARD_TYPE_PS2;
-    } else if (machine_has_bus(machine, MACHINE_BUS_ISA16) ||
-               machine_has_bus(machine, MACHINE_BUS_PCI)) {
-        if (machine_has_flags(machine, MACHINE_KEYBOARD_AX))
+        else if (kbd == &keyboard_ax_device)
             keyboard_type = KEYBOARD_TYPE_AX;
-        else
+        else if (machine_has_bus(machine, MACHINE_BUS_PS2_PORTS))
+            keyboard_type = KEYBOARD_TYPE_PS2;
+        else if (machine_has_bus(machine, MACHINE_BUS_ISA16) ||
+                 machine_has_bus(machine, MACHINE_BUS_PCI))
             keyboard_type = KEYBOARD_TYPE_AT;
-    } else
-        keyboard_type = KEYBOARD_TYPE_PC_XT;
+        else
+            keyboard_type = KEYBOARD_TYPE_PC_XT;
+    }
 
     p = ini_section_get_string(cat, "mouse_type", NULL);
     if (p != NULL) {
@@ -2074,6 +2082,15 @@ load_floppy_and_cdrom_drives(void)
 
         sprintf(temp, "cdrom_%02i_speed", c + 1);
         cdrom[c].speed = ini_section_get_int(cat, temp, 8);
+
+        sprintf(temp, "cdrom_%02i_dvd_speed", c + 1);
+        cdrom[c].dvd_speed = ini_section_get_int(cat, temp, 2);
+
+        sprintf(temp, "cdrom_%02i_hd_speed", c + 1);
+        cdrom[c].hd_speed = ini_section_get_int(cat, temp, 1);
+
+        sprintf(temp, "cdrom_%02i_restricted_capacity", c + 1);
+        cdrom[c].restricted_capacity = ini_section_get_int(cat, temp, 1);
 
         sprintf(temp, "cdrom_%02i_no_check", c + 1);
         cdrom[c].no_check = ini_section_get_int(cat, temp, 0);
@@ -4715,6 +4732,26 @@ save_floppy_and_cdrom_drives(void)
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_int(cat, temp, cdrom[c].speed);
+
+        sprintf(temp, "cdrom_%02i_dvd_speed", c + 1);
+        if ((cdrom[c].bus_type == 0) || (cdrom[c].dvd_speed == 2) ||
+            (cdrom_get_dvd_speed(cdrom_get_type(c)) != -1))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, cdrom[c].dvd_speed);
+
+        sprintf(temp, "cdrom_%02i_hd_speed", c + 1);
+        if ((cdrom[c].bus_type == 0) || (cdrom[c].hd_speed == 1) ||
+            (cdrom_get_hd_speed(cdrom_get_type(c)) != -1))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, cdrom[c].hd_speed);
+
+        sprintf(temp, "cdrom_%02i_restricted_capacity", c + 1);
+        if ((cdrom[c].bus_type == 0) || (cdrom[c].restricted_capacity == 1))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, cdrom[c].restricted_capacity);
 
         sprintf(temp, "cdrom_%02i_type", c + 1);
         char *tn = cdrom_get_internal_name(cdrom_get_type(c));

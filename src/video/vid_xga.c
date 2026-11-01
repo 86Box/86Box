@@ -1039,7 +1039,6 @@ xga_ext_inb(uint16_t addr, void *priv)
                 d = ~s & d;                                                            \
                 break;                                                                 \
             case 0x05:                                                                 \
-                d = d;                                                                 \
                 break;                                                                 \
             case 0x06:                                                                 \
                 d = s ^ d;                                                             \

@@ -531,10 +531,11 @@ scsi_cdrom_mode_sense(const scsi_cdrom_t *dev, uint8_t *buf, uint32_t pos,
                             buf[pos++] |= (cdrom_is_caddy(dev->drv->type) ? 0x00 : 0x20);
                         } else if ((i == GPMODE_CAPABILITIES_PAGE) && (j >= 6) &&
                                    (j <= 7)) {
+                            int max_sp = cdrom_get_active_speed(dev->drv);
                             if (j & 1)
-                                buf[pos++] = ((dev->drv->real_speed * 176) & 0xff);
+                                buf[pos++] = ((max_sp * 176) & 0xff);
                             else
-                                buf[pos++] = ((dev->drv->real_speed * 176) >> 8);
+                                buf[pos++] = ((max_sp * 176) >> 8);
                         } else if ((i == GPMODE_CAPABILITIES_PAGE) && (j >= 12) &&
                                    (j <= 13)) {
                             if (j & 1)
@@ -679,7 +680,12 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
         double  bytes_per_second;
         double  period;
 
-        if ((dev->drv->speed > 72) || (dev->was_cached == -1)) {
+        int active = cdrom_get_active_speed(dev->drv);
+            int turbo = 0;
+            if (dev->drv->cd_status == CD_STATUS_DVD) turbo = (active >= 17);
+            else if ((dev->drv->cd_status == CD_STATUS_HDDVD) || (dev->drv->cd_status == CD_STATUS_BLURAY)) turbo = (active >= 3);
+            else turbo = (active > 72);
+            if (turbo || (dev->was_cached == -1)) {
             if (dev->drv->bus_type == CDROM_BUS_SCSI)
                 dev->callback = -1.0; /* Speed depends on SCSI controller */
             else if (dev->was_cached == -1)
@@ -703,9 +709,18 @@ scsi_cdrom_set_period(scsi_cdrom_t *dev)
             scsi_cdrom_log(dev->log, "Seek period: %lf us\n", period);
             dev->callback += period;
 
-            /* 44100 * 16 bits * 2 channels = 176400 bytes per second */
-            bytes_per_second = 176400.0;
-            bytes_per_second *= (double) dev->drv->cur_speed;
+            /* Media-aware 1x rate:
+               CD: 176400 bytes/s (44.1 kHz * 16-bit * 2 ch raw)
+               DVD: 1385000 bytes/s (standard DVD 1x) */
+            double base_rate;
+            if ((dev->drv->cd_status == CD_STATUS_HDDVD) || (dev->drv->cd_status == CD_STATUS_BLURAY))
+                base_rate = 4500000.0; /* HD DVD / Blu-ray 1x */
+            else if (dev->drv->cd_status == CD_STATUS_DVD)
+                base_rate = 1385000.0;
+            else
+                base_rate = 176400.0;
+            int active = cdrom_get_active_speed(dev->drv);
+            bytes_per_second = base_rate * (double) active;
 
             period = 1000000.0 / bytes_per_second;
             scsi_cdrom_log(dev->log, "Byte transfer period: %lf us\n", period);
@@ -1069,7 +1084,7 @@ scsi_cdrom_read_data(scsi_cdrom_t *dev, const int msf, const int type, const int
 
     dev->sectors_num   = 0;
 
-    if ((dev->drv->cd_status == CD_STATUS_EMPTY) || (dev->drv->cd_status == CD_STATUS_DVD_REJECTED))
+    if ((dev->drv->cd_status == CD_STATUS_EMPTY) || (dev->drv->cd_status == CD_STATUS_DVD_REJECTED) || (dev->drv->cd_status == CD_STATUS_HDDVD_REJECTED) || (dev->drv->cd_status == CD_STATUS_BLURAY_REJECTED))
         scsi_cdrom_not_ready(dev);
     else if (dev->sector_pos > dev->drv->cdrom_capacity) {
         scsi_cdrom_lba_out_of_range(dev);
@@ -1372,10 +1387,10 @@ scsi_cdrom_pre_execution_check(scsi_cdrom_t *dev, const uint8_t *cdb)
             if (!(scsi_cdrom_command_flags[cdb[0]] & ALLOW_UA))
                 scsi_cdrom_insert((void *) dev);
 
-            ready = (dev->drv->cd_status != CD_STATUS_EMPTY) && (dev->drv->cd_status != CD_STATUS_DVD_REJECTED);
+            ready = (dev->drv->cd_status != CD_STATUS_EMPTY) && (dev->drv->cd_status != CD_STATUS_DVD_REJECTED) && (dev->drv->cd_status != CD_STATUS_HDDVD_REJECTED) && (dev->drv->cd_status != CD_STATUS_BLURAY_REJECTED);
         }
     } else
-        ready = (dev->drv->cd_status != CD_STATUS_EMPTY) && (dev->drv->cd_status != CD_STATUS_DVD_REJECTED);
+        ready = (dev->drv->cd_status != CD_STATUS_EMPTY) && (dev->drv->cd_status != CD_STATUS_DVD_REJECTED) && (dev->drv->cd_status != CD_STATUS_HDDVD_REJECTED) && (dev->drv->cd_status != CD_STATUS_BLURAY_REJECTED);
 
 skip_ready_check:
     /*
@@ -3008,7 +3023,6 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
     int           idx                    = 0;
     int           ret                    = 1;
     int32_t       blen                   = 65536;
-    uint32_t      profiles[2]            = { MMC_PROFILE_CD_ROM, MMC_PROFILE_DVD_ROM };
     uint8_t       scsi_bus               = (dev->drv->scsi_device_id >> 4) & 0x0f;
     uint8_t       scsi_id                = dev->drv->scsi_device_id & 0x0f;
     char          model[2048]            = { 0 };
@@ -3452,7 +3466,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                    Also, the max_len variable is reused as this command does otherwise not
                    use it, to avoid having to declare another variable.
                  */
-                if ((dev->drv->cd_status == CD_STATUS_EMPTY) || (dev->drv->cd_status == CD_STATUS_DVD_REJECTED))
+                if ((dev->drv->cd_status == CD_STATUS_EMPTY) || (dev->drv->cd_status == CD_STATUS_DVD_REJECTED) || (dev->drv->cd_status == CD_STATUS_HDDVD_REJECTED) || (dev->drv->cd_status == CD_STATUS_BLURAY_REJECTED))
                     max_len = 70; /* No media inserted. */
                 else if (dev->drv->cd_status == CD_STATUS_DVD)
                     max_len = 65; /* DVD. */
@@ -3519,7 +3533,8 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
 
             /* Only feature 0 is supported */
             if ((feature > 3) && (feature != 0x010) && (feature != 0x1d) && (feature != 0x01e) &&
-                (feature != 0x01f) && (feature != 0x103))
+                (feature != 0x01f) && (feature != 0x40) && (feature != 0x50) &&
+                (feature != 0x103))
                 scsi_cdrom_invalid_field(dev, feature);
             else {
                 scsi_cdrom_buf_alloc(dev, 65536);
@@ -3529,18 +3544,53 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
 
                 alloc_length    = 0;
 
-                if ((dev->drv->cd_status != CD_STATUS_EMPTY) && (dev->drv->cd_status != CD_STATUS_DVD_REJECTED)) {
-                    if (dev->drv->cd_status == CD_STATUS_DVD) {
-                        b[6] = (MMC_PROFILE_DVD_ROM >> 8) & 0xff;
-                        b[7] = MMC_PROFILE_DVD_ROM & 0xff;
-                        ret  = 1;
-                    } else {
-                        b[6] = (MMC_PROFILE_CD_ROM >> 8) & 0xff;
-                        b[7] = MMC_PROFILE_CD_ROM & 0xff;
-                        ret  = 0;
+                /* Build supported profile list from drive capabilities. */
+                uint32_t local_profiles[6];
+                int max_profiles = 0;
+                int current_profile = MMC_PROFILE_CD_ROM;
+
+                local_profiles[max_profiles++] = MMC_PROFILE_CD_ROM;
+
+                if (cdrom_is_dvd(dev->drv->type))
+                    local_profiles[max_profiles++] = MMC_PROFILE_DVD_ROM;
+
+                /* HD DVD / Blu-ray capability. */
+                int hd_capable = (cdrom_drive_types[dev->drv->type].hd_speed != 0);
+                int is_ultra   = (strcmp(cdrom_get_internal_name(dev->drv->type), "86ultra") == 0);
+
+                if (hd_capable) {
+                    if (is_ultra || cdrom_drive_types[dev->drv->type].hd_type == 1)
+                        local_profiles[max_profiles++] = MMC_PROFILE_HDDVD_ROM;
+                    if (is_ultra || cdrom_drive_types[dev->drv->type].hd_type == 0)
+                        local_profiles[max_profiles++] = MMC_PROFILE_BD_ROM;
+                }
+
+                /* Current profile based on inserted media. */
+                if ((dev->drv->cd_status != CD_STATUS_EMPTY) &&
+                    (dev->drv->cd_status != CD_STATUS_DVD_REJECTED) &&
+                    (dev->drv->cd_status != CD_STATUS_HDDVD_REJECTED) &&
+                    (dev->drv->cd_status != CD_STATUS_BLURAY_REJECTED)) {
+                    if (dev->drv->cd_status == CD_STATUS_HDDVD)
+                        current_profile = MMC_PROFILE_HDDVD_ROM;
+                    else if (dev->drv->cd_status == CD_STATUS_BLURAY)
+                        current_profile = MMC_PROFILE_BD_ROM;
+                    else if (dev->drv->cd_status == CD_STATUS_DVD)
+                        current_profile = MMC_PROFILE_DVD_ROM;
+                    else
+                        current_profile = MMC_PROFILE_CD_ROM;
+                }
+
+                b[6] = (current_profile >> 8) & 0xff;
+                b[7] = current_profile & 0xff;
+
+                /* Find index of current profile for the "current" flag. */
+                ret = -1;
+                for (int i = 0; i < max_profiles; i++) {
+                    if (local_profiles[i] == current_profile) {
+                        ret = i;
+                        break;
                     }
-                } else
-                    ret = 2;
+                }
 
                 alloc_length = 8;
                 b += 8;
@@ -3548,17 +3598,16 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                 if ((feature == 0) || ((cdb[1] & 3) < 2)) {
                     /* Persistent and current. */
                     b[2] = (0 << 2) | 0x02 | 0x01;
-                    int max_profiles = cdrom_is_dvd(dev->drv->type) ? 2 : 1;
                     b[3] = max_profiles * 4;
 
                     alloc_length += 4;
                     b += 4;
 
                     for (uint8_t i = 0; i < max_profiles; i++) {
-                        b[0] = (profiles[i] >> 8) & 0xff;
-                        b[1] = profiles[i] & 0xff;
+                        b[0] = (local_profiles[i] >> 8) & 0xff;
+                        b[1] = local_profiles[i] & 0xff;
 
-                        if (ret == i)
+                        if (ret == (int)i)
                             b[2] |= 1;
 
                         alloc_length += 4;
@@ -3638,6 +3687,30 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                     alloc_length += 4;
                     b += 4;
                 }
+                /* BD Read (0x40) and HD DVD Read (0x50) features. */
+                if (hd_capable && ((feature == 0x40) || (feature == 0x50) || ((cdb[1] & 3) < 2))) {
+                    int want_bd   = (is_ultra || cdrom_drive_types[dev->drv->type].hd_type == 0);
+                    int want_hddvd = (is_ultra || cdrom_drive_types[dev->drv->type].hd_type == 1);
+
+                    if (want_bd && ((feature == 0x40) || ((cdb[1] & 3) < 2))) {
+                        b[0] = 0x00;
+                        b[1] = 0x40;
+                        b[2] = (0 << 2) | 0x02 | 0x01; /* persistent and current */
+                        b[3] = 4;
+                        b[4] = 0x01; /* BD-ROM readable */
+                        alloc_length += 8;
+                        b += 8;
+                    }
+                    if (want_hddvd && ((feature == 0x50) || ((cdb[1] & 3) < 2))) {
+                        b[0] = 0x00;
+                        b[1] = 0x50;
+                        b[2] = (0 << 2) | 0x02 | 0x01; /* persistent and current */
+                        b[3] = 4;
+                        b[4] = 0x01; /* HD DVD-ROM readable */
+                        alloc_length += 8;
+                        b += 8;
+                    }
+                }
                 if ((feature == 0x103) || ((cdb[1] & 3) < 2)) {
                     b[0] = 1;
                     b[1] = 3;
@@ -3700,7 +3773,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                     gesn_event_header->notification_class |= GESN_MEDIA;
 
                     /* Bits 7-4 = Reserved, Bits 4-1 = Media Status. */
-                    if ((dev->drv->cd_status == CD_STATUS_EMPTY) || (dev->drv->cd_status == CD_STATUS_DVD_REJECTED))
+                    if ((dev->drv->cd_status == CD_STATUS_EMPTY) || (dev->drv->cd_status == CD_STATUS_DVD_REJECTED) || (dev->drv->cd_status == CD_STATUS_HDDVD_REJECTED) || (dev->drv->cd_status == CD_STATUS_BLURAY_REJECTED))
                         dev->buffer[4] = MEC_MEDIA_REMOVAL;
                     else
                         dev->buffer[4] = dev->unit_attention ? MEC_NEW_MEDIA : MEC_NO_CHANGE;

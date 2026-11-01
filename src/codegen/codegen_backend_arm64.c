@@ -615,7 +615,8 @@ rep_step_offset(codeblock_t *block, int off_reg, int delta_reg, int a32)
   In  - W0 = source segment offset in cpu_state (bits 0-11), cycle limit
              (bits 12-23), cycles per element (bits 24-31)
   Out - W0 = 0 to carry on with the block, non-zero to leave it with
-             cpu_state.pc set back to the instruction
+             cpu_state.pc set back to the instruction, or left at the next
+             one, which the caller sets, after an SMI on the last element
 
   Does what the interpreter's REP handlers in x86_ops_rep_dyn.h do: the same
   cycles per element, and the block ends at the same element when the string
@@ -635,11 +636,13 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*ele
     uint32_t *to_done;
     uint32_t *to_break[2];
     uint32_t *to_abort;
+    uint32_t *to_smi;
     uint32_t *branch;
     uint32_t *branch2;
     uint8_t  *loop;
     uint8_t  *target;
     uint8_t  *done_ret;
+    uint8_t  *set_pc;
 
     /*Unpack the parameters*/
     host_arm64_UBFX(block, REG_W1, REG_W0, 12, 12);
@@ -919,6 +922,12 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*ele
     rep_step_offset(block, REP_DST, REP_STEP, a32);
     host_arm64_SUB_IMM(block, REP_CNT, REP_CNT, 1);
     host_arm64_SUB_REG(block, REP_CYCLES, REP_CYCLES, REP_ELEMCYC, 0);
+    /*An element that raised an SMI (a trapped write) ends the instruction,
+      as the interpreter's loop does. Only these elements can: the runs copy
+      RAM through direct lookups, which nothing traps.*/
+    host_arm64_LDRB_IMM_W(block, REG_W0, REG_CPUSTATE, rep_state_offset(&cpu_state._smi_line));
+    host_arm64_CMP_IMM(block, REG_W0, 0);
+    to_smi = host_arm64_BNE_(block);
     host_arm64_CMP_REG(block, REP_CYCLES, REP_END);
     to_break[1] = host_arm64_BLT_(block);
     host_arm64_B(block, loop);
@@ -944,8 +953,19 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*ele
     rep_writeback(block, is_stos, a32);
 
     host_arm64_branch_set_offset(branch, &block_write_data[block_pos]);
+    set_pc = &block_write_data[block_pos];
     host_arm64_LDR_IMM_W(block, REG_W1, REG_CPUSTATE, rep_state_offset(&cpu_state.oldpc));
     host_arm64_STR_IMM_W(block, REG_W1, REG_CPUSTATE, rep_state_offset(&cpu_state.pc));
+    host_arm64_mov_imm(block, REG_W0, 1);
+    host_arm64_RET(block, REG_X30);
+
+    /*SMI: leave the block for it, restarting the instruction if elements are
+      left, otherwise after it, where the caller has set cpu_state.pc*/
+    host_arm64_branch_set_offset(to_smi, &block_write_data[block_pos]);
+    rep_writeback(block, is_stos, a32);
+    host_arm64_CMP_IMM(block, REP_CNT, 0);
+    branch = host_arm64_BNE_(block);
+    host_arm64_branch_set_offset(branch, set_pc);
     host_arm64_mov_imm(block, REG_W0, 1);
     host_arm64_RET(block, REG_X30);
 
@@ -1030,14 +1050,14 @@ _Static_assert(BLOCK_SIZE <= 0x10000, "block numbers and codeblock_hash entries 
   it does the stores the C loop would have done and jumps to the next
   block's link entry, which runs on the frame this block's prologue built.
 
-  Global addresses come from a literal pool placed just before the routine,
-  so the routine and the pool must share one allocator block. Loads are
-  paired wherever the layout allows, since on a hit the routine is limited
-  by how many loads it issues rather than by its length.*/
+  Global addresses come from a static literal pool, leaving the allocator
+  block for executable code. Loads are paired wherever the layout allows,
+  since on a hit the routine is limited by how many loads it issues rather
+  than by its length.*/
 static void
 build_link_routine(codeblock_t *block)
 {
-    uint64_t *lit;
+    static uint64_t lit[LINK_LIT_COUNT];
     uint8_t  *start_data;
     uint32_t *miss[LINK_MAX_MISS];
     int       nr_miss = 0;
@@ -1061,11 +1081,7 @@ build_link_routine(codeblock_t *block)
 
     /*Start a fresh allocator block, so nothing below is split across two*/
     codegen_alloc(block, BLOCK_MAX - 4);
-    if (block_pos & 7)
-        block_pos += 4;
     start_data = block_write_data;
-    lit        = (uint64_t *) &block_write_data[block_pos];
-    block_pos += LINK_LIT_COUNT * 8;
 
     lit[LINK_LIT_WAS_RESET]         = (uint64_t) (uintptr_t) &x86_was_reset;
     lit[LINK_LIT_FLUSH_PENDING]     = (uint64_t) (uintptr_t) &cpu_flush_pending;
@@ -1101,7 +1117,7 @@ build_link_routine(codeblock_t *block)
     /*X17 = the literal pool. X1 = the exit's slot, whose exit_pc and exit_cs
       must match cpu_state.pc and the CS base and whose entry must be set;
       X15 = its entry; W2 = cs + pc*/
-    host_arm64_ADR(block, REG_X17, (int) ((uintptr_t) lit - (uintptr_t) &block_write_data[block_pos]));
+    host_arm64_MOVX_IMM(block, REG_X17, (uint64_t) (uintptr_t) lit);
     host_arm64_LDR_IMM_W(block, REG_W2, REG_CPUSTATE, rep_state_offset(&cpu_state.pc));
     host_arm64_LDR_IMM_W(block, REG_W3, REG_CPUSTATE, rep_state_offset(&cpu_state.seg_cs.base));
     host_arm64_LDP_IMM_X(block, REG_X5, REG_X15, REG_X0, LINK_SLOT(exit_pc));
@@ -1290,6 +1306,10 @@ build_link_routine(codeblock_t *block)
     host_arm64_LDR_IMM_X(block, REG_X3, REG_X1, LINK_SLOT(block));
     host_arm64_MOVZ_IMM(block, REG_W4, 1);
     host_arm64_STRB_IMM(block, REG_W4, REG_X3, offsetof(codeblock_t, used));
+    /*Linked entries bypass the dispatcher's SMC reuse countdown.*/
+    host_arm64_LDRB_IMM_W(block, REG_W4, REG_X3, offsetof(codeblock_t, runs_left));
+    host_arm64_MOV_REG_LSR(block, REG_W4, REG_W4, 1);
+    host_arm64_STRB_IMM(block, REG_W4, REG_X3, offsetof(codeblock_t, runs_left));
     host_arm64_BR(block, REG_X15);
 
     /*Miss: the block's own epilogue, X0 still the slots. codegen_exit_rout

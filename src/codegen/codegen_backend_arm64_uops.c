@@ -225,6 +225,27 @@ codegen_CALL_INSTRUCTION_FUNC(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*Leave the block for an SMI the instruction raised, with pc set after it,
+  taken from the immediate for SMI_EXIT_IMM. The branch over the exit is
+  the only cost while none is pending.*/
+static int
+codegen_SMI_EXIT_IMM(codeblock_t *block, uop_t *uop)
+{
+    uint32_t *branch_ptr;
+
+    host_arm64_LDRB_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state._smi_line - (uintptr_t) &cpu_state);
+    host_arm64_CMP_IMM(block, REG_TEMP, 0);
+    branch_ptr = host_arm64_BEQ_(block);
+    if (uop->type & UOP_TYPE_PARAMS_IMM) {
+        host_arm64_mov_imm(block, REG_TEMP, uop->imm_data);
+        host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.pc - (uintptr_t) &cpu_state);
+    }
+    host_arm64_B(block, codegen_exit_rout);
+    host_arm64_branch_set_offset(branch_ptr, &block_write_data[block_pos]);
+
+    return 0;
+}
+
 static int
 codegen_CMP_IMM_JZ(codeblock_t *block, uop_t *uop)
 {
@@ -3406,6 +3427,12 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_CALL_REP_STRING &
         UOP_MASK]
     = codegen_CALL_INSTRUCTION_FUNC,
+    [UOP_SMI_EXIT_IMM &
+        UOP_MASK]
+    = codegen_SMI_EXIT_IMM,
+    [UOP_SMI_EXIT &
+        UOP_MASK]
+    = codegen_SMI_EXIT_IMM,
     [UOP_CALL_FUNC_ORDERED &
         UOP_MASK]
     = codegen_CALL_FUNC,

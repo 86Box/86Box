@@ -27,6 +27,7 @@
 #include <86box/device.h>
 #include <86box/mouse.h>
 #include <86box/chipset.h>
+#include <86box/cyrix_gxm.h>
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/fdc.h>
@@ -54,6 +55,7 @@ const machine_filter_t machine_types[] = {
     { "[1982] 80186",                     MACHINE_TYPE_186         },
     { "[1982] 80286",                     MACHINE_TYPE_286         },
     { "[1988] i386SX",                    MACHINE_TYPE_386SX       },
+    { "[1994] i386EX",                    MACHINE_TYPE_386EX       },
     { "[1997] ALi M6117",                 MACHINE_TYPE_M6117       },
     { "[1992] 486SLC",                    MACHINE_TYPE_486SLC      },
     { "[1985] i386DX",                    MACHINE_TYPE_386DX       },
@@ -106,6 +108,7 @@ const machine_filter_t machine_chipsets[] = {
     { "C&T CS4031",                 MACHINE_CHIPSET_CT_CS4031           },
     { "Contaq 82C596",              MACHINE_CHIPSET_CONTAQ_82C596       },
     { "Contaq 82C597",              MACHINE_CHIPSET_CONTAQ_82C597       },
+    { "Cyrix MediaGX MMX/Cx5530",   MACHINE_CHIPSET_CYRIX_CX5530        },
     { "IMS 8848",                   MACHINE_CHIPSET_IMS_8848            },
     { "Intel 82335",                MACHINE_CHIPSET_INTEL_82335         },
     { "Intel 420TX",                MACHINE_CHIPSET_INTEL_420TX         },
@@ -2846,7 +2849,7 @@ const machine_t machines[] = {
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &f82c710_pc5086_device,
-        .kbd_device               = NULL,
+        .kbd_device               = &keyboard_pc_xt_device,
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
@@ -3634,7 +3637,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC | MACHINE_BUS_PS2_PORTS,
-        .flags     = MACHINE_VIDEO_FIXED | MACHINE_FDC | MACHINE_PS2_KBC | MACHINE_KEYBOARD | MACHINE_KEYBOARD_JIS,
+        .flags     = MACHINE_NO_FPU_SOCKET | MACHINE_VIDEO_FIXED | MACHINE_FDC | MACHINE_PS2_KBC | MACHINE_KEYBOARD,
         .ram       = {
             .min  = 640,
             .max  = 640,
@@ -3653,7 +3656,7 @@ const machine_t machines[] = {
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = &ibm3477_device,
-        .kbd_device               = NULL,
+        .kbd_device               = &keyboard_ps55_device,
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
@@ -6972,7 +6975,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD | MACHINE_KEYBOARD_AX,
+        .flags     = MACHINE_VIDEO_FIXED | MACHINE_KEYBOARD,
         .ram       = {
             .min  = 1024,
             .max  = 4096,
@@ -6992,7 +6995,7 @@ const machine_t machines[] = {
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
-        .kbd_device               = NULL,
+        .kbd_device               = &keyboard_ax_device,
         .fdc_device               = NULL,
         .vid_device               = &if386jega_device,
         .snd_device               = NULL,
@@ -7557,7 +7560,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA,
-        .flags     = MACHINE_VIDEO | MACHINE_ESDI | MACHINE_KEYBOARD_JIS,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI,
         .ram       = {
             /* 1MB is not enough for the reference disk */
             .min  = 2048,
@@ -7577,6 +7580,149 @@ const machine_t machines[] = {
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
+        .kbd_device               = &keyboard_ps55_device,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+
+    /* 386EX machines */
+    {
+        .name              = "[i386EX] Technologic Systems TS-3100",
+        .internal_name     = "ts3100",
+        .type              = MACHINE_TYPE_386EX,
+        .chipset           = MACHINE_CHIPSET_DISCRETE,
+        .init              = machine_at_ts3100_init,
+        .p1_handler        = NULL,
+        .gpio_handler      = machine_at_ts3x00_gpio_handler,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_386EX,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 25000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_AT | MACHINE_BUS_PS2_PORTS,
+        .flags     = MACHINE_PS2_KBC,
+        .ram       = {
+            .min  = 512,
+            .max  = 512,
+            .step = 0
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0xff,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &ts3x00_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    {
+        .name              = "[i386EX] Technologic Systems TS-3200",
+        .internal_name     = "ts3200",
+        .type              = MACHINE_TYPE_386EX,
+        .chipset           = MACHINE_CHIPSET_DISCRETE,
+        .init              = machine_at_ts3200_init,
+        .p1_handler        = NULL,
+        .gpio_handler      = machine_at_ts3x00_gpio_handler,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_386EX,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 25000000,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_AT | MACHINE_BUS_PS2_PORTS,
+        .flags     = MACHINE_PS2_KBC,
+        .ram       = {
+            .min  = 8192,
+            .max  = 8192,
+            .step = 0,
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0xff,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &ts3x00_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    {
+        .name              = "[i386EX] Technologic Systems TS-3400",
+        .internal_name     = "ts3400",
+        .type              = MACHINE_TYPE_386EX,
+        .chipset           = MACHINE_CHIPSET_DISCRETE,
+        .init              = machine_at_ts3400_init,
+        .p1_handler        = NULL,
+        .gpio_handler      = machine_at_ts3x00_gpio_handler,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_386EX,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 33333333,
+            .max_bus     = 33333333,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_AT | MACHINE_BUS_PS2_PORTS,
+        .flags     = MACHINE_PS2_KBC,
+        .ram       = {
+            .min  = 8192,
+            .max  = 16384,
+            .step = 8192,
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = KBC_VEN_VIA | 0x00424600,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT_ZERO_DEFAULT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0xff,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &ts3x00_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
@@ -8885,7 +9031,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
-        .flags     = MACHINE_VIDEO | MACHINE_ESDI | MACHINE_KEYBOARD_JIS,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI,
         .ram       = {
             .min  = 2048,
             .max  = 65536,
@@ -8904,7 +9050,7 @@ const machine_t machines[] = {
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
-        .kbd_device               = NULL,
+        .kbd_device               = &keyboard_ps55_device,
         .fdc_device               = NULL,
         .vid_device               = &ps55db2_device,
         .snd_device               = NULL,
@@ -8933,7 +9079,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
-        .flags     = MACHINE_VIDEO | MACHINE_ESDI | MACHINE_KEYBOARD_JIS,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI,
         .ram       = {
             .min  = 2048,
             .max  = 65536,
@@ -8952,7 +9098,7 @@ const machine_t machines[] = {
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
-        .kbd_device               = NULL,
+        .kbd_device               = &keyboard_ps55_device,
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
@@ -9320,7 +9466,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
-        .flags     = MACHINE_VIDEO | MACHINE_ESDI | MACHINE_KEYBOARD_JIS,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI,
         .ram       = {
             .min  = 4096,
             .max  = 65536,
@@ -9339,7 +9485,7 @@ const machine_t machines[] = {
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
         .device                   = NULL,
-        .kbd_device               = NULL,
+        .kbd_device               = &keyboard_ps55_device,
         .fdc_device               = NULL,
         .vid_device               = NULL,
         .snd_device               = NULL,
@@ -14402,7 +14548,7 @@ const machine_t machines[] = {
             .max_multi   = 2.0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: ST STPC Atlas (not yet implemented) and NIC: Realtek RTL8139C+ (onboard variant not yet emulated) */
+        .flags     = MACHINE_IDE | MACHINE_APM | MACHINE_PCI_INTERNAL, /* Machine has internal video: ST STPC Atlas (not yet implemented) and NIC: Realtek RTL8139C+ */
         .ram       = {
             .min  = 8192,
             .max  = 131072,
@@ -19050,7 +19196,206 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    
+    /* Cyrix MediaGX MMX */
+    /* The Cyrix MediaGX MMX and the Cx5530A on a single-board computer, with
+       Winbond W83977F (and its keyboard controller and RTC) and W83977EF
+       Super I/Os, and one DIMM socket. */
+    {
+        .name              = "[Cyrix MediaGX MMX] AEWIN AW-H602",
+        .internal_name     = "awp601",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_CYRIX_CX5530,
+        .init              = machine_at_awp601_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_GXM,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 30000000,
+            .max_bus     = 33333333,
+            .min_voltage = 2800,
+            .max_voltage = 3000,
+            .min_multi   = 5.0,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_NIC,
+        .ram       = {
+            .min  = 8192,
+            .max  = 131072,
+            .step = 8192
+        },
+        .nvrmask                  = 511,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &cyrix_gxm_video_device,
+        .snd_device               = &cs5530_xpressaudio_device,
+        .net_device               = &rtl8139c_plus_onboard_device,
+        .aliases                  = { "" }
+    },
+    /* The Cyrix MediaGX MMX with its integrated graphics, and the Cx5530, with
+       a National PC97317 Super I/O and its keyboard controller. */
+    {
+        .name              = "[Cyrix MediaGX MMX] ECS P5GX-M",
+        .internal_name     = "p5gxm",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_CYRIX_CX5530,
+        .init              = machine_at_p5gxm_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = machine_at_p5gxm_gpio_handler,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_GXM,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 30000000,
+            .max_bus     = 33333333,
+            .min_voltage = 2800,
+            .max_voltage = 3000,
+            .min_multi   = 5.0,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_VIDEO | MACHINE_SOUND,
+        .ram       = {
+            .min  = 8192,
+            .max  = 262144,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &cyrix_gxm_video_device,
+        .snd_device               = &cs5530_xpressaudio_device,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* The Geode GX1 and the CS5530A on an ECX single-board computer, with a
+       National PC97317 Super I/O (and its keyboard controller and RTC) at
+       2Eh, a Winbond W83977EF at 370h for COM3/COM4, an on-board Realtek
+       RTL8139C and one DIMM socket. */
+    {
+        .name              = "[Cyrix MediaGX MMX] Maxan Systems MSC-655B",
+        .internal_name     = "msc655b",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_CYRIX_CX5530,
+        .init              = machine_at_msc655b_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = machine_at_p5gxm_gpio_handler,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_GXM,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 30000000,
+            .max_bus     = 33333333,
+            .min_voltage = 2800,
+            .max_voltage = 3000,
+            .min_multi   = 5.0,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_USB | MACHINE_VIDEO | MACHINE_SOUND | MACHINE_NIC,
+        .ram       = {
+            .min  = 8192,
+            .max  = 262144,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &cyrix_gxm_video_device,
+        .snd_device               = &cs5530_xpressaudio_device,
+        .net_device               = &rtl8139c_plus_onboard_device,
+        .aliases                  = { "" }
+    },
+    /* The Cyrix MediaGX MMX and the Cx5530 on Cyrix's MXi ("Unicorn")
+       reference design, with a National PC97317 Super I/O at 2Eh. */
+    {
+        .name              = "[Cyrix MediaGX MMX] Tatung T3032",
+        .internal_name     = "t3032",
+        .type              = MACHINE_TYPE_SOCKET7,
+        .chipset           = MACHINE_CHIPSET_CYRIX_CX5530,
+        .init              = machine_at_t3032_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = machine_at_p5gxm_gpio_handler,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_GXM,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 30000000,
+            .max_bus     = 33333333,
+            .min_voltage = 2800,
+            .max_voltage = 3000,
+            .min_multi   = 5.0,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_VIDEO | MACHINE_SOUND,
+        .ram       = {
+            .min  = 8192,
+            .max  = 262144,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &cyrix_gxm_video_device,
+        .snd_device               = &cs5530_xpressaudio_device,
+        .net_device               = NULL,
+        .aliases                  = { "Cyrix Unicorn", "" }
+    },
     /* 430HX */
     /* Has a SM(S)C FDC37C935 Super I/O chip with on-chip KBC with Phoenix
        MultiKey/42 (version 1.38) KBC firmware. */
@@ -23148,9 +23493,9 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
-        /* TODO: Implement the PC87307 NVR. */
-        .nvr_device               = &nvr_at_device,
-        .nvr_params               = NVR_AT,
+        /* The PC87307 brings its own RTC/NVR. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
         .sio_device               = NULL,
         .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
@@ -23199,9 +23544,9 @@ const machine_t machines[] = {
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = NULL,
         .kbc_params               = 0x00000000,
-        /* TODO: Implement the PC87307 NVR. */
-        .nvr_device               = &nvr_at_device,
-        .nvr_params               = NVR_AT,
+        /* The PC87307 brings its own RTC/NVR. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
         .sio_device               = NULL,
         .sio_params               = 0x00000000,
         .kbc_p1                   = 0x000044f0,
@@ -26223,7 +26568,7 @@ const machine_t machines[] = {
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB, /* Machine has EISA, possibly for a riser? */
                                                         /* Yes, that's a riser slot, not EISA. */
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_AGP_INTERNAL | MACHINE_VIDEO | MACHINE_SOUND, /* Machine has internal NIC: either Intel 82559ER or Realtek RTL8139C+ (the latter's onboard variant not yet emulated) */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB | MACHINE_AGP_INTERNAL | MACHINE_VIDEO | MACHINE_SOUND, /* Machine has internal NIC: either Intel 82559ER or Realtek RTL8139C+ */
         .ram       = {
             .min  = 8192,
             .max  = 524288,
@@ -27395,6 +27740,15 @@ machine_get_kbc_device(int m)
 {
     if (machines[m].kbc_device)
         return (machines[m].kbc_device);
+
+    return (NULL);
+}
+
+const device_t *
+machine_get_kbd_device(int m)
+{
+    if (machines[m].kbd_device)
+        return (machines[m].kbd_device);
 
     return (NULL);
 }

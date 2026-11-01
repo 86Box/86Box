@@ -939,7 +939,7 @@ adgold_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
     }
     adgold->sysex = 1;
     for (uint32_t i = 0; i < len; i++) {
-        if (adgold->midi_r == adgold->midi_w)
+        if (adgold->midi_used >= 15)
             return (len - i);
         adgold->midi_queue[adgold->midi_w++] = buffer[i];
         adgold->midi_w &= 0x0f;

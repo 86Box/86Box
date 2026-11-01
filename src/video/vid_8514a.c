@@ -149,7 +149,6 @@ CLAMP(int16_t in, int16_t min, int16_t max)
                 dest_dat = ~0;                                                                         \
                 break;                                                                                 \
             case 0x03:                                                                                 \
-                dest_dat = dest_dat;                                                                   \
                 break;                                                                                 \
             case 0x04:                                                                                 \
                 dest_dat = ~src_dat;                                                                   \

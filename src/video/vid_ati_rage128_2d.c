@@ -696,6 +696,8 @@ rage128_2d_map_span(rage128_t *dev, r128_surf_t *s, struct rage128_span_stage *s
         s->rel  = 0;
         s->mask = dev->vram_mask;
         s->st   = NULL;
+        s->wlo  = 0;
+        s->wlen = 0;
         return 1;
     }
     start = (int64_t) y0 * pb + (int64_t) (x0 < 0 ? x0 : 0) * bpp;
@@ -717,6 +719,8 @@ rage128_2d_map_span(rage128_t *dev, r128_surf_t *s, struct rage128_span_stage *s
         s->rel  = 0;
         s->mask = dev->vram_mask;
         s->st   = NULL;
+        s->wlo  = 0;
+        s->wlen = dev->vram_size;
         return 1;
     }
     lo = surf_base + (uint32_t) start;
@@ -2039,6 +2043,19 @@ rage128_2d_queue_pat(rage128_t *dev, int x, int y, int w, int h,
 #undef R128_PAT_BIT
 }
 
+/* Whether the write mask leaves every byte of a pixel open. The per-byte
+   walks mask byte b of a pixel with mask byte (b & 3), so a pixel of bpp
+   bytes sees only the low bpp bytes of DP_WRITE_MASK: at 16 bpp a mask
+   of 0x0000FFFF stores exactly what 0xFFFFFFFF stores. A fast path that
+   assumes an open mask is therefore valid whenever this returns 1. */
+static inline int
+rage128_2d_wmask_full(uint32_t wmask, int bpp)
+{
+    uint32_t m = (bpp >= 4) ? 0xffffffffu : ((1u << (bpp * 8)) - 1u);
+
+    return (wmask & m) == m;
+}
+
 /* Fill one rectangle through the current ROP3. Brush types 13 and 15
    paint the solid foreground color; brush types 0 and 1 expand the 8x8
    mono pattern (0 = foreground and background, 1 = foreground and leave
@@ -2082,15 +2099,16 @@ rage128_2d_paint_rect(rage128_t *dev, int x, int y, int w, int h,
     cca = rage128_2d_ccmp_setup(dev, 0, bpp, bpp, &cc);
 
     /* Fast path: a solid PATCOPY (ROP 0xF0, result = pattern) with the
-       write mask fully open fills each row with the brush color. That
-       stores the same bytes as the general walk (rop3(0xF0, pb, 0, d) =
-       pb, mask byte 0xff). Aux scissors still allow it when the whole
-       clipped rect passes them. A partial write mask, a pattern brush,
-       another ROP or an active color compare takes the per-byte walk. */
+       write mask open on every byte of the pixel fills each row with the
+       brush color. That stores the same bytes as the general walk
+       (rop3(0xF0, pb, 0, d) = pb, mask byte 0xff). Aux scissors still
+       allow it when the whole clipped rect passes them. A partial write
+       mask, a pattern brush, another ROP or an active color compare
+       takes the per-byte walk. */
     int aux_ok = !aux_on
         || rage128_aux_sc_accepts_rect(dev->aux_sc_cntl, dev->aux_sc_rect,
                                        x, y, x + w - 1, y + h - 1);
-    int fast = aux_ok && wmask == 0xffffffffu && rop == 0xf0
+    int fast = aux_ok && rage128_2d_wmask_full(wmask, bpp) && rop == 0xf0
         && !mono8x8 && !col8x8 && !cca;
     uint8_t fpx[4];
     if (fast)
@@ -2118,7 +2136,7 @@ rage128_2d_paint_rect(rage128_t *dev, int x, int y, int w, int h,
 
     if ((mono8x8 || col8x8) && !cca && dev->gpu && !dev->synctel) {
         int dind = rage128_2d_rop_dindep(rop)
-            && wmask == 0xffffffffu;
+            && rage128_2d_wmask_full(wmask, bpp);
         int vq = rage128_2d_vq_begin(dev, dind ? 2 : 8,
                                      dev->dst_offset
                                          + ((uint32_t) y * rage128_2d_dst_stride(dev, bpp) + (uint32_t) x * (uint32_t) bpp),
@@ -2168,7 +2186,7 @@ rage128_2d_paint_rect(rage128_t *dev, int x, int y, int w, int h,
 
         if (rop != 0xf0)
             why |= 1;
-        if (wmask != 0xffffffffu)
+        if (!rage128_2d_wmask_full(wmask, bpp))
             why |= 2;
         if (!aux_ok)
             why |= 4;
@@ -2671,8 +2689,8 @@ rage128_2d_line(rage128_t *dev, int x0, int y0, int x1, int y1,
        read-modify-write dispatch. The queue walk advances the pattern
        position, so it is put back before any CPU re-walk. */
     if (!cca && dev->gpu && !dev->synctel) {
-        int dind = rage128_2d_rop_dindep(rop) && wmask == 0xffffffffu
-            && bpp == 4;
+        int dind = rage128_2d_rop_dindep(rop)
+            && rage128_2d_wmask_full(wmask, bpp) && bpp == 4;
         int ph  = pat_en ? *phase : 0;
         int bx0 = (x0 < x1 ? x0 : x1);
         int vq, ok;
@@ -2895,8 +2913,8 @@ rage128_2d_bres_line(rage128_t *dev, uint32_t dir)
        refuses, the CPU plot pass below runs from the same state, and a
        refused read-modify-write op has recorded nothing. */
     if (!cca && dev->gpu && !dev->synctel) {
-        int dind = rage128_2d_rop_dindep(rop) && wmask == 0xffffffffu
-            && bpp == 4;
+        int dind = rage128_2d_rop_dindep(rop)
+            && rage128_2d_wmask_full(wmask, bpp) && bpp == 4;
         int bx0 = xa;
         int ph  = phase;
         int vq, ok;
@@ -3154,7 +3172,7 @@ rage128_2d_blit_rect_pat(rage128_t *dev, int sx, int sy, int dx, int dy,
             why |= 32; /* bad coordinates wrap in the CPU walk's window */
         if (cca)
             why |= 16; /* per-pixel color compare: CPU walk only */
-        if (!why && !aux && rop == 0xccu && wmask == 0xffffffffu
+        if (!why && !aux && rop == 0xccu && rage128_2d_wmask_full(wmask, bpp)
             && !(pat8x8 && mono_la)) {
             uint32_t dpb   = rage128_2d_dst_stride(dev, bpp);
             uint32_t spb   = rage128_2d_src_stride(dev, bpp);
@@ -3218,8 +3236,8 @@ rage128_2d_blit_rect_pat(rage128_t *dev, int sx, int sy, int dx, int dy,
        to the destination. That stores the same bytes as the general
        walk (rop3(0xCC, pb, sb, d) = sb, mask byte 0xff), and the row
        buffer still keeps overlapping copies right. */
-    int fast = !aux_on && wmask == 0xffffffffu && rop == 0xccu && !cca
-        && !(pat8x8 && mono_la);
+    int fast = !aux_on && rage128_2d_wmask_full(wmask, bpp) && rop == 0xccu
+        && !cca && !(pat8x8 && mono_la);
 
     for (int i = 0; i < h; i++) {
         int      row   = top_down ? i : (h - 1 - i);
@@ -3491,7 +3509,7 @@ rage128_2d_blit_rect_key(rage128_t *dev, int sx, int sy, int dx, int dy, int w, 
 
         if (!rage128_2d_rop_dindep(rop))
             why |= 1;
-        if (wmask != 0xffffffffu)
+        if (!rage128_2d_wmask_full(wmask, bpp))
             why |= 2;
         if (!why) {
             if (rage128_2d_queue_blit_key(dev, sx, sy, dx, dy, w, h, key,
@@ -4056,7 +4074,7 @@ rage128_2d_stretch_rect(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
 
         if (!rage128_2d_rop_dindep(rop))
             why |= 1;
-        if (wmask != 0xffffffffu)
+        if (!rage128_2d_wmask_full(wmask, bpp))
             why |= 2;
         if (cgen)
             why |= 16; /* compare state the resolve key cannot express */
@@ -4316,7 +4334,7 @@ rage128_2d_mono_rect(rage128_t *dev, int x, int y, int w, int h,
         /* a leave-alone pattern keeps the destination cell by cell,
            which only the read-modify-write plane can express */
         int dind = rage128_2d_rop_dindep(rop)
-            && wmask == 0xffffffffu && !(pat8x8 && pat_la);
+            && rage128_2d_wmask_full(wmask, bpp) && !(pat8x8 && pat_la);
         int pat = (pat8x8 || patcol) ? 1 : 0;
         int rx0 = x < cx0 ? cx0 : x;
         int ry0 = y < cy0 ? cy0 : y;
@@ -4475,8 +4493,8 @@ rage128_2d_host_color_rect(rage128_t *dev, int x, int y, int w, int h,
     if (!cca && dev->gpu && !dev->synctel) {
         /* a pattern brush changes the pattern value per pixel, which
            only the read-modify-write plane can express */
-        int dind = rage128_2d_rop_dindep(rop) && wmask == 0xffffffffu
-            && !(pat8x8 || patcol);
+        int dind = rage128_2d_rop_dindep(rop)
+            && rage128_2d_wmask_full(wmask, bpp) && !(pat8x8 || patcol);
         int rx0 = x < cx0 ? cx0 : x;
         int ry0 = y < cy0 ? cy0 : y;
         int rx1 = x + w - 1 > cx1 ? cx1 : x + w - 1;
@@ -6013,7 +6031,7 @@ rage128_2d_fill_gradient(rage128_t *dev, int x, int y, int w, int h)
        (rage128_2d_queue_grad). With synctel on, the CPU walk is kept so
        the access record stays complete. */
     if (dev->gpu && !dev->synctel) {
-        if (wmask == 0xffffffffu && !cca) {
+        if (rage128_2d_wmask_full(wmask, bpp) && !cca) {
             if (rage128_2d_queue_grad(dev, x, y, w, h, kx0, ky0, bpp))
                 return;
         } else

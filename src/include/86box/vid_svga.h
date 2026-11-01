@@ -237,6 +237,12 @@ typedef struct svga_t {
     /*Called at the start of vertical sync*/
     void (*vsync_callback)(struct svga_t *svga);
 
+    /* The VGA vertical retrace interrupt (CRTC 11 bits 4 and 5, Input Status 0
+       bit 7). A card that wires it up sets this, and it is called when the
+       interrupt may have changed. */
+    int vert_int;
+    void (*vert_int_update)(struct svga_t *svga);
+
     /* Called instead of the blank while the core is in DPMS mode, by a device whose monitors
        do not all sleep together and which therefore paints the sleep state itself. */
     void (*dpms_render)(struct svga_t *svga);
@@ -336,6 +342,8 @@ typedef struct svga_t {
     int border_override;
     int border_left;
     int border_top;
+    int hsync_ext;
+    int hblank_ext;
 
     /* Return a 32 bpp color from a 15/16 bpp color. */
     uint32_t (*conv_16to32)(struct svga_t *svga, uint16_t color, uint8_t bpp);
@@ -399,6 +407,8 @@ extern int  svga_init(const device_t *info, svga_t *svga, void *priv, int memsiz
                       void (*hwcursor_draw)(struct svga_t *svga, int displine),
                       void (*overlay_draw)(struct svga_t *svga, int displine));
 extern void svga_recalctimings(svga_t *svga);
+extern void svga_vert_int_crtc_write(svga_t *svga);
+extern int  svga_vert_int_active(const svga_t *svga);
 extern void svga_close(svga_t *svga);
 
 uint8_t  svga_read(uint32_t addr, void *priv);
@@ -409,6 +419,8 @@ void     svga_writew(uint32_t addr, uint16_t val, void *priv);
 void     svga_writel(uint32_t addr, uint32_t val, void *priv);
 uint8_t  svga_read_linear(uint32_t addr, void *priv);
 uint8_t  svga_readb_linear(uint32_t addr, void *priv);
+uint8_t *svga_debug_ptr_common(uint32_t addr, uint8_t linear, int write, svga_t *svga);
+void     svga_debug_add(void);
 uint16_t svga_readw_linear(uint32_t addr, void *priv);
 uint32_t svga_readl_linear(uint32_t addr, void *priv);
 void     svga_write_linear(uint32_t addr, uint8_t val, void *priv);
@@ -580,6 +592,7 @@ extern const device_t sc11487_nors2_ramdac_device;
 extern const device_t sc1502x_ramdac_device;
 extern const device_t sc1502x_rs2_ramdac_device;
 extern const device_t sdac_ramdac_device;
+extern const device_t stg1700_ramdac_device;
 extern const device_t stg1702_ramdac_device;
 extern const device_t stg1703_ramdac_device;
 extern const device_t tkd8001_ramdac_device;

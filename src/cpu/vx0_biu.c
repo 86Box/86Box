@@ -55,28 +55,23 @@ static uint16_t    pfq_in                = 0x0000;
 /* Variables to aid with the prefetch queue operation. */
 static int         pfq_size              = 0;
 
-static int         cycles_ex             = 0;
-
 /* The prefetch queue (4 bytes for 8088, 6 bytes for 8086). */
 static uint8_t     pfq[6];
 
 static int         biu_cycles            = 0;
 static int         biu_wait              = 0;
 static int         biu_wait_length       = 0;
-static int         refresh               = 0;
 static uint16_t    mem_data              = 0;
 static uint32_t    mem_seg               = 0;
 static uint16_t    mem_addr              = 0;
 static int         biu_state             = 0;
 static int         biu_next_state        = 0;
-static int         biu_scheduled_state   = 0;
 static int         biu_state_length      = 0;
 static int         biu_state_total_len   = 0;
 static int         dma_state             = 0;
 static int         dma_state_length      = 0;
 static int         wait_states           = 0;
 static int         fetch_suspended       = 0;
-static int         ready                 = 1;
 static int         dma_wait_states       = 0;
 
 #define BUS_CYCLE       (biu_cycles & 3)
@@ -257,7 +252,6 @@ biu_reset(void)
     BUS_CYCLE_T1;
     biu_cycles          = 0;
     biu_wait            = 0;
-    refresh             = 0;
     bus_request_type    = 0;
     biu_queue_preload   = 0;
     pic_data            = -1;
@@ -269,7 +263,6 @@ biu_reset(void)
     dma_state_length    = 0;
     biu_state           = BIU_STATE_IDLE;
     biu_next_state      = BIU_STATE_IDLE;
-    biu_scheduled_state = BIU_STATE_IDLE;
     biu_state_length    = 0;
     pfq_size            = is8086 ? 6 : 4;
     pfq_in              = 0x0000;
@@ -293,8 +286,6 @@ cycles_forward(int c)
         if (!is286)
             process_timers();
     }
-
-    cycles_ex++;
 }
 
 static void
@@ -491,7 +482,6 @@ run_dma_cycle(void)
                     dma_wait_states = 12;    /* 3 + 9 */
                 else
                     dma_wait_states = 7;     /* 3 + 4 */
-                ready = 0;
             } else if (dma_state_length == 0) {
                 dma_state = DMA_STATE_IDLE;
                 dma_state_length = 1;
@@ -1241,6 +1231,22 @@ pfq_write(void)
 
     if (pfq_pos >= pfq_size)
         pfq_pos = pfq_size;
+}
+
+/* The bytes the BIU holds for the next instruction, oldest first: an opcode
+   already taken from the queue, then the queue. Changes nothing; for
+   debuggers, as the processor runs these bytes rather than memory's. */
+int
+biu_pfq_peek(uint8_t *buf, int max)
+{
+    int n = 0;
+
+    if (biu_queue_preload && (n < max))
+        buf[n++] = biu_preload_byte;
+    for (int i = 0; (i < pfq_pos) && (n < max); i++)
+        buf[n++] = pfq[i];
+
+    return n;
 }
 
 uint8_t

@@ -1334,6 +1334,11 @@ bool    ImGui_ImplVulkan_LoadFunctions(uint32_t api_version, PFN_vkVoidFunction(
 bool    ImGui_ImplVulkan_Init(ImGui_ImplVulkan_InitInfo* info)
 {
     IM_ASSERT(g_FunctionsLoaded && "Need to call ImGui_ImplVulkan_LoadFunctions() if IMGUI_IMPL_VULKAN_NO_PROTOTYPES or VK_NO_PROTOTYPES are set!");
+    if (!g_FunctionsLoaded)
+    {
+        fprintf(stderr, "ImGui Vulkan: functions have not been loaded\n");
+        return false;
+    }
 
     if (info->ApiVersion == 0)
         info->ApiVersion = ImGui_ImplVulkan_GetDefaultApiVersion();

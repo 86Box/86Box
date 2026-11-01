@@ -78,12 +78,12 @@ int harness_gpu_gate(rage128_t *dev, const rage128_raster_state_t *rs);
 
 /* One captured span record, as the kernel reads it: the column range and
    row bases, plus the seeds the kernel starts the span from (the three
-   integer edge values and the depth seed's double bits at x0). */
+   integer edge values and the fixed-point depth seed at x0). */
 typedef struct harness_gpu_span_t {
     int32_t  x0, x1, py;
     uint32_t drow, zrow;
     int64_t  e0, e1, e2;
-    uint64_t zline;
+    int64_t  zline;
     uint32_t group; /* the workgroup group the flush puts it in */
     uint32_t rank;  /* its position in that group's order */
     uint32_t level; /* the leveler's pass for it: a span that shares a
@@ -98,7 +98,7 @@ typedef struct harness_gpu_cap_t {
     uint64_t need_px;
     uint32_t clo, chi;   /* prim_ranges color hazard interval             */
     uint32_t zlo, zhi;   /* ... and z                                      */
-    uint64_t dzdx;       /* the tri record's per-pixel depth step (bits)   */
+    int64_t  dzdx;       /* the tri record's per-pixel depth step (r128_zfx) */
     int64_t  edx[3];     /* ... and its per-pixel edge steps               */
     int      rowalias;   /* the run was flagged row-alias                  */
     uint32_t ngroups;    /* groups the flush splits the run into           */
@@ -138,7 +138,7 @@ typedef struct harness_gpu_sub_t {
     uint64_t toobig;      /* draws rejected after the exact count       */
     uint64_t miss;        /* reprice-consumption tripwire, must be 0    */
     uint32_t nspans;      /* span records the capture consumed          */
-    uint32_t seg_px;      /* pixels the capture consumed                */
+    uint32_t seg_px;      /* pixels in the span records the capture wrote */
 } harness_gpu_sub_t;
 
 /* Run one triangle through the production submit entry against a
@@ -246,17 +246,27 @@ uint64_t harness_gpu_fab_qskip(void *g, int t, int b);
 uint64_t harness_gpu_fab_qnb(void *g, int t);
 uint64_t harness_gpu_fab_fill_skip(void *g, int b);
 uint64_t harness_gpu_fab_tiled(void *g);
+/* Real-backend probes for the carry vector: submits that ended at a
+   cadence point and left the segment open, whether cells are carried
+   right now, and whether the backend runs async; the last waits for
+   every submitted slot's fence without retiring it or touching the open
+   segment, so a vector can order a host store after work in flight. */
+uint64_t harness_gpu_carry_submits(void *g);
+int      harness_gpu_carry_open(void *g);
+int      harness_gpu_async(void *g);
+void     harness_gpu_wait_submitted(void *g);
 uint64_t harness_gpu_fab_fill_rects(void *g);
 uint64_t harness_gpu_fab_fill_cpu(void *g);
 /* Tiled-fill probe. q_reset empties the fabricated backend's
    queued-2D accumulation (fill list, write hull, pending flag) so a leg
-   starts from nothing queued. fill_exec executes the queued solid-fill
-   records on host memory the way gpu_disp_fills hands them to
-   vkCmdFillBuffer (the dword-replicated color at every byte, phase by
-   address; dword offset and size), reports the queued-write hull
-   [f_lo, f_hi) as the records left it, empties the accumulation again,
-   and returns the record count; -1 = a record is not a solid fill, is
-   off a dword, or runs past size. */
+   starts from nothing queued. fill_exec executes the queued records on
+   host memory the way the GPU executes them: a solid fill as a buffer
+   fill (the dword-replicated color at every byte, phase by address;
+   dword offset and size), a staged copy as a buffer copy (the staged
+   bytes per row from the staging ring, any alignment). It reports the
+   queued-write hull [f_lo, f_hi) as the records left it, empties the
+   accumulation again, and returns the record count; -1 = a record is
+   another kind, a solid fill off a dword, or a range past its buffer. */
 void harness_gpu_fab_q_reset(void *g);
 int  harness_gpu_fab_fill_exec(void *g, uint8_t *mem, uint32_t size,
                                uint32_t *flo, uint32_t *fhi);

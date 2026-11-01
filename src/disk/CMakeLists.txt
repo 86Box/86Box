@@ -20,10 +20,10 @@ add_library(hdd OBJECT
     hdd_image.c
     hdd_table.c
     hdc.c
-    hdc_tandy2k.c
     hdc_st506_xt.c
     hdc_st506_at.c
     hdc_st506_mca.c
+    hdc_st506_wd10.c
     hdc_xta.c
     hdc_xta_ps1.c
     hdc_esdi_at.c

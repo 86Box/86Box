@@ -483,6 +483,9 @@ msgstr ""
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr ""
 
+msgid "PowerVR PCX1/PCX2 Graphics"
+msgstr ""
+
 msgid "SCSI:"
 msgstr ""
 
@@ -1561,6 +1564,12 @@ msgstr ""
 msgid "Hard disk (%1)"
 msgstr ""
 
+msgid "Board LED"
+msgstr ""
+
+msgid "Board LED %1"
+msgstr ""
+
 msgid "Custom…"
 msgstr ""
 
@@ -2447,6 +2456,9 @@ msgid "Line doubling type"
 msgstr ""
 
 msgid "Snow emulation"
+msgstr ""
+
+msgid "Display Enhancement Board (GO329)"
 msgstr ""
 
 msgid "Monitor type"

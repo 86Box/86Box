@@ -56,6 +56,7 @@
 #include <86box/timer.h>
 #include <86box/path.h>
 #include <86box/plat.h>
+#include <86box/rom.h>
 #include <86box/nvr.h>
 
 int nvr_dosave; /* NVR is dirty, needs saved */
@@ -270,6 +271,42 @@ void
 nvr_set_ven_save(void (*ven_save)(void))
 {
     saved_nvr->ven_save = ven_save;
+}
+
+/*
+   For a machine whose BIOS does not set up a blank NVR the way the board
+   ships: if there was no saved NVR, load the contents from fn in the ROM set
+   instead, as if they had been saved. Returns whether it did.
+ */
+int
+nvr_load_default(nvr_t *nvr, const char *fn)
+{
+    uint8_t regs[NVR_MAXSIZE];
+    FILE   *fp;
+    size_t  len;
+
+    if (!nvr->is_new || (nvr->size == 0))
+        return 0;
+
+    fp = rom_fopen(fn, "rb");
+    if (fp == NULL)
+        return 0;
+    len = fread(regs, 1, nvr->size, fp);
+    (void) fclose(fp);
+
+    if (len != nvr->size) {
+        nvr_log("NVR: default '%s' is not %i bytes\n", fn, nvr->size);
+        return 0;
+    }
+
+    nvr_log("NVR: loading the default from '%s'\n", fn);
+    memcpy(nvr->regs, regs, nvr->size);
+    nvr->is_new = 0;
+
+    if (nvr->start != NULL)
+        nvr->start(nvr);
+
+    return 1;
 }
 
 /* Save the current NVR to a file. */

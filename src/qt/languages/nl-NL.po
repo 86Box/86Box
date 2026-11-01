@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-24 02:49+0000\n"
+"PO-Revision-Date: 2026-10-30 16:05+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -415,34 +415,34 @@ msgid "Memory:"
 msgstr "Geheugen:"
 
 msgid "Synchronize with host clock"
-msgstr ""
+msgstr "Synchroniseer met host-klok"
 
 msgid "Time zone:"
-msgstr ""
+msgstr "Tijdzone:"
 
 msgid "Local"
-msgstr ""
+msgstr "Lokaal"
 
 msgid "UTC"
-msgstr ""
+msgstr "UTC"
 
 msgid "Date:"
-msgstr ""
+msgstr "Datum:"
 
 msgid "Match the host"
-msgstr ""
+msgstr "Afstemmen op de host"
 
 msgid "Offset the year by:"
-msgstr ""
+msgstr "Het jaartal verschuiven met:"
 
 msgid "(currently %1)"
-msgstr ""
+msgstr "(huidig %1)"
 
 msgid "Always use the year:"
-msgstr ""
+msgstr "Gebruik altijd jaartal:"
 
 msgid "Do not synchronize the date"
-msgstr ""
+msgstr "Synchroniseer de datum niet"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Gebruik de 486-interpreter voor 286- en 386-processoren"
@@ -3143,7 +3143,7 @@ msgid "Key bindings"
 msgstr "Toetskoppelingen"
 
 msgid "VM Manager"
-msgstr ""
+msgstr "VM Beheerder"
 
 msgid "Action"
 msgstr "Actie"

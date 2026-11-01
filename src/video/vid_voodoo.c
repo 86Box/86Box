@@ -194,12 +194,9 @@ voodoo_recalc(voodoo_t *voodoo)
             voodoo->fb_draw_buffer     = voodoo->disp_buffer;
             break;
         case FBZ_DRAW_BACK:
+        default: /*Reserved selects go to the back buffer, as in voodoo_update_queued_buffers()*/
             voodoo->params.draw_offset = voodoo->back_offset;
             voodoo->fb_draw_buffer     = voodoo->draw_buffer;
-            break;
-
-        default:
-            fatal("voodoo_recalc : unknown draw buffer\n");
             break;
     }
 
@@ -664,6 +661,25 @@ voodoo_cmdfifo_write(voodoo_t *voodoo, uint32_t fifo_addr, uint32_t val)
     }
 }
 
+/* VGA pass-through: the Voodoo takes the monitor from the primary display.
+   That is an svga_t, or a display with an override handler of its own
+   (the MediaGX). */
+static void
+voodoo_set_override(voodoo_t *voodoo, int val)
+{
+    if (voodoo->svga) {
+        svga_set_override(voodoo->svga, val);
+        return;
+    }
+
+    if (voodoo->set->nr_cards == 2) {
+        voodoo->set->voodoos[0]->override = val;
+        voodoo->set->voodoos[1]->override = val;
+    } else
+        voodoo->override = val;
+    video_set_override(val);
+}
+
 static void
 voodoo_writel(uint32_t addr, uint32_t val, void *priv)
 {
@@ -702,7 +718,7 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
                 break;
             
             case SST_userIntrCMD:
-                fatal("userIntrCMD write %08x\n", val);
+                voodoo_log("userIntrCMD write %08x\n", val);
                 break;
 
             case SST_swapbufferCMD:
@@ -768,6 +784,11 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
                 if ((voodoo->v_disp == 386) || (voodoo->v_disp == 402) ||
                     (voodoo->v_disp == 482) || (voodoo->v_disp == 602))
                     voodoo->v_disp     -= 2;
+                /*12 bits each way, but target_buffer is 2048x2048 and has to fit the overscan too*/
+                if (voodoo->h_disp > 1984)
+                    voodoo->h_disp = 1984;
+                if (voodoo->v_disp > 2016)
+                    voodoo->v_disp = 2016;
                 break;
             case SST_fbiInit0:
                 if (voodoo->initEnable & 0x01) {
@@ -784,9 +805,9 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
                         memset(voodoo->dirty_line, 1, sizeof(voodoo->dirty_line));
 
                     if (voodoo->set->nr_cards == 2)
-                        svga_set_override(voodoo->svga, (voodoo->set->voodoos[0]->fbiInit0 | voodoo->set->voodoos[1]->fbiInit0) & 1);
+                        voodoo_set_override(voodoo, (voodoo->set->voodoos[0]->fbiInit0 | voodoo->set->voodoos[1]->fbiInit0) & 1);
                     else
-                        svga_set_override(voodoo->svga, val & 1);
+                        voodoo_set_override(voodoo, val & 1);
                     if (val & FBIINIT0_GRAPHICS_RESET) {
                         /*Reset display/draw buffer selection. This may not actually
                           happen here on a real Voodoo*/
@@ -800,7 +821,8 @@ voodoo_writel(uint32_t addr, uint32_t val, void *priv)
                         voodoo_recalc(voodoo);
                         voodoo->front_offset = voodoo->params.front_offset;
                     }
-                    svga_recalctimings(voodoo->svga);
+                    if (voodoo->svga)
+                        svga_recalctimings(voodoo->svga);
                 }
                 break;
             case SST_fbiInit1:
@@ -1274,7 +1296,8 @@ voodoo_card_init(const device_t *info)
 
     mem_mapping_add(&voodoo->mapping, 0, 0, NULL, voodoo_readw, voodoo_readl, NULL, voodoo_writew, voodoo_writel, NULL, MEM_MAPPING_EXTERNAL, voodoo);
 
-    voodoo->fb_mem     = calloc(1, 4 * 1024 * 1024);
+    /*Accesses mask the start of a row, the extra 8 KB hold the 4096 pixels after the last one*/
+    voodoo->fb_mem     = calloc(1, 4 * 1024 * 1024 + 8192);
     voodoo->tex_mem[0] = calloc(1, voodoo->texture_size * 1024 * 1024);
     if (voodoo->dual_tmus)
         voodoo->tex_mem[1] = calloc(1, voodoo->texture_size * 1024 * 1024);

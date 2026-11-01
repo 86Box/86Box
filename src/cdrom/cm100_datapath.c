@@ -1,5 +1,5 @@
 #include <string.h>
-#include "cm100_internal.h"
+#include <86box/cm100_internal.h>
 
 #define CM100_SECTOR_NS UINT64_C(13333333)
 

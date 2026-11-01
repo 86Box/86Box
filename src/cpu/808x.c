@@ -38,6 +38,7 @@
 #include <86box/ppi.h>
 #include <86box/timer.h>
 #include <86box/gdbstub.h>
+#include <86box/debugger.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 #include "x86_interrupt.h"
@@ -786,6 +787,56 @@ set_ip(uint16_t new_ip)
         pfq_ip = cpu_state.pc = new_ip;
         prefetching           = 1;
     }
+}
+
+/* The IP of the next instruction. Between instructions the new BIU already
+   holds that instruction's opcode (finalize()), and IP has moved past it. */
+uint16_t
+ip_808x(void)
+{
+    return (cpu_state.pc - (is_new_biu && biu_queue_preload)) & 0xffff;
+}
+
+/* Refill the prefetch queue from CS:IP, as a jump does, after something
+   outside the instruction stream (a debugger) changed either of them or
+   the memory there. */
+void
+flush_prefetch_808x(void)
+{
+    if (is_new_biu) {
+        cpu_state.pc = ip_808x();
+        biu_suspend_fetch();
+        biu_queue_flush();
+    } else {
+        pfq_clear();
+        set_ip(cpu_state.pc);
+    }
+}
+
+/* The bytes the prefetch queue holds for the next instruction, oldest
+   first, without changing anything. The processor runs these rather than
+   what is in memory now. */
+int
+queue_peek_808x(uint8_t *buf, int max)
+{
+    int n = 0;
+
+    if (is_new_biu)
+        return biu_pfq_peek(buf, max);
+
+    for (int i = 0; (i < pfq_pos) && (n < max); i++)
+        buf[n++] = pfq[i];
+
+    return n;
+}
+
+/* Move to new_ip from outside the instruction stream (a debugger). */
+void
+set_ip_808x(uint16_t new_ip)
+{
+    biu_queue_preload = 0;
+    cpu_state.pc      = new_ip;
+    flush_prefetch_808x();
 }
 
 /* Memory refresh read - called by reads and writes on DMA channel 0. */
@@ -2878,6 +2929,14 @@ execx86_instruction(void)
                 break;
 
             case 0xcc:             /* INT 3 */
+#ifdef USE_GDBSTUB
+                /* A debugger breakpoint: stop on it, and fetch from it
+                   again once the original byte is back. */
+                if (gdbstub_int3()) {
+                    flush_prefetch_808x();
+                    break;
+                }
+#endif
                 interrupt(3);
                 break;
             case 0xcd:             /* INT */
@@ -3483,5 +3542,7 @@ execx86(int cycs)
         if (gdbstub_instruction())
             return;
 #endif
+        if (DEBUGGER_INSTRUCTION_PASS(completed))
+            return;
     }
 }

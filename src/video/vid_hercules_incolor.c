@@ -170,6 +170,8 @@ typedef struct {
     int      vsynctime;
     int      vadj;
 
+    int monitor_index;
+
     uint8_t palette[16]; /* EGA-style 16 -> 64 palette registers */
     uint8_t palette_idx; /* Palette write index */
     uint8_t latch[4];    /* Memory read/write latches */
@@ -869,6 +871,11 @@ incolor_poll(void *priv)
     int        scanline_old;
     int        cw      = INCOLOR_CW;
 
+    /* Bind the monitor macros to this card's own display. */
+    const int prev_monitor_index = monitor_index_global;
+
+    monitor_index_global = dev->monitor_index;
+
     if (!dev->linepos) {
         timer_advance_u64(&dev->timer, dev->dispofftime);
         dev->status |= 1;
@@ -990,6 +997,8 @@ incolor_poll(void *priv)
         if (dev->scanline == (dev->crtc[10] & 31) || ((dev->crtc[8] & 3) == 3 && dev->scanline == ((dev->crtc[10] & 31) >> 1)))
             dev->cursorvisible = 1;
     }
+
+    monitor_index_global = prev_monitor_index;
 }
 
 static void *
@@ -1043,6 +1052,8 @@ incolor_init(UNUSED(const device_t *info))
     dev->palette_idx = 0;
 
     video_inform(VIDEO_FLAG_TYPE_MDA, &timing_incolor);
+
+    dev->monitor_index = monitor_index_global;
 
     if (!lpt_get_3bc_used()) {
         /* Force the LPT3 port to be enabled. */

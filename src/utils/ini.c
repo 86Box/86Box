@@ -432,13 +432,16 @@ ini_read_ex(const char *fn, int is_rom)
 
     while (1) {
         memset(buff, 0x00, sizeof(buff));
+        /* Stop when nothing more could be read, not on end-of-file: a last
+           line without a newline sets end-of-file but still has to be parsed,
+           and a read error leaves end-of-file clear. */
 #ifdef __HAIKU__
-        ini_fgetws(buff, sizeof_w(buff), fp);
-#else
-        (void) !fgetws(buff, sizeof_w(buff), fp);
-#endif
-        if (feof(fp))
+        if (ini_fgetws(buff, sizeof_w(buff), fp) == NULL)
             break;
+#else
+        if (fgetws(buff, sizeof_w(buff), fp) == NULL)
+            break;
+#endif
 
         /* Make sure there are no stray newlines or hard-returns in there. */
         if (wcslen(buff) > 0)

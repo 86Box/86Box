@@ -366,7 +366,7 @@ fdc_int(fdc_t *fdc, int set_fintr)
 {
     int ienable = 0;
 
-    if (fdc->flags & FDC_FLAG_PS2_MCA)
+    if (fdc->flags & (FDC_FLAG_PS2_MCA | FDC_FLAG_TANDY2K))
         ienable = 1;
     else if (!(fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)))
         ienable = !!(fdc->dor & 8);
@@ -856,7 +856,10 @@ fdc_sis(fdc_t *fdc)
     if (fdc->reset_stat) {
         const int drive_num = real_drive(fdc, 4 - fdc->reset_stat);
         if (fdd_get_flags(fdc->fdd[drive_num])) {
-            fdd_stop(fdc->fdd[drive_num]);
+            /* Without a DOR latch nothing in the guest can start a motor again,
+               so a reset must not stop one. */
+            if (!(fdc->flags & FDC_FLAG_TANDY2K))
+                fdd_stop(fdc->fdd[drive_num]);
             fdd_set_head(fdc->fdd[drive_num], 0);
             fdc->res[9] = 0xc0 | (4 - fdc->reset_stat) | (fdd_get_head(fdc->fdd[drive_num]) ? 4 : 0);
         } else
@@ -967,6 +970,14 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
     if ((fdc->flags & FDC_FLAG_PCJX) &&
         (((addr & 7) != 2) && ((addr & 7) != 5)))
         return;
+
+    /* The Tandy 2000 puts the status register on 30h and the
+       command/data register on 32h, with the data register
+       mirrored at the DMA acknowledge address 80h. */
+    if (fdc->flags & FDC_FLAG_TANDY2K) {
+        if (((addr >= 0x0030) && (addr <= 0x0033)) || (addr == 0x0080))
+            addr = 0x03f5;
+    }
 
     if (!fdc->power_down || ((addr & 7) == 2) || ((addr & 7) == 4))
         switch (addr & 7) {
@@ -1340,13 +1351,18 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                         if (command_has_drivesel[fdc->command & 0x1F]) {
                             if (fdc->flags & FDC_FLAG_PCJR)
                                 fdc->drive = 0;
-                            else if (fdc->flags & (FDC_FLAG_5550 | FDC_FLAG_PCJX))
+                            else if (fdc->flags & (FDC_FLAG_5550 | FDC_FLAG_PCJX | FDC_FLAG_TANDY2K))
                                 fdc->drive = fdc->params[0] & 3;
                             else
                                 fdc->drive = fdc->dor & 3;
                             fdc->rw_drive = fdc->params[0] & 3;
-                            if (fdc->flags & FDC_FLAG_PCJX)
+                            if (fdc->flags & (FDC_FLAG_PCJX | FDC_FLAG_TANDY2K))
                                 current_drive = real_drive(fdc, fdc->drive);
+                            if (fdc->flags & FDC_FLAG_TANDY2K) {
+                                /* The motor lines are strapped on, and there is no
+                                   DOR to spin the selected drive up with. */
+                                fdd_set_motor_enable(fdc->fdd[real_drive(fdc, fdc->drive)], 1);
+                            }
                             if (((fdc->command & 0x1F) == 7) || ((fdc->command & 0x1F) == 15))
                                 fdc->stat |= (1 << real_drive(fdc, fdc->drive));
                         }
@@ -1697,6 +1713,16 @@ fdc_read(uint16_t addr, void *priv)
     if ((fdc->flags & FDC_FLAG_PCJX) &&
         (((addr & 7) != 4) && ((addr & 7) != 5)))
         return 0xff;
+
+    /* The Tandy 2000 puts the status register on 30h and the
+       command/data register on 32h, with the data register
+       mirrored at the DMA acknowledge address 80h. */
+    if (fdc->flags & FDC_FLAG_TANDY2K) {
+        if (((addr >= 0x0031) && (addr <= 0x0033)) || (addr == 0x0080))
+            addr = 0x03f5;
+        else if (addr == 0x0030)
+            addr = 0x03f4;
+    }
 
     if (!fdc->power_down || ((addr & 7) == 2))
         switch (addr & 7) {
@@ -2108,7 +2134,7 @@ fdc_callback(void *priv)
                    report the two-side and ready bits as always set. */
                 fdc->res[10] |= 0x28;
             } else {
-                /* The XT-class controllers passes the drive's pins through, so
+                /* The XT-class controllers pass the drive's pins through, so
                    a position with no drive has no ready signal to report. */
                 if (fdd_is_double_sided(drv))
                     fdc->res[10] |= 0x08;
@@ -2803,6 +2829,11 @@ fdc_set_base(fdc_t *fdc, int base)
         return;
     }
 
+    /* The Tandy 2000 decodes its host registers on the 16-bit bus at
+       30h/32h, rather than at the address the caller passes. */
+    if (fdc->flags & FDC_FLAG_TANDY2K)
+        base = 0x0030;
+
     if (fdc->flags & FDC_FLAG_PCJX) {
         io_sethandler(base, 0x0008, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
     } else if (fdc->flags & FDC_FLAG_NSC) {
@@ -2816,6 +2847,9 @@ fdc_set_base(fdc_t *fdc, int base)
         io_sethandler(base, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
         io_sethandler(base + 0x0004, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
         io_sethandler(base + 0x0005, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+    } else if (fdc->flags & FDC_FLAG_TANDY2K) {
+        io_sethandler(base, 0x0004, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+        io_sethandler(0x0080, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
     } else {
         if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
             io_sethandler(base + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
@@ -2860,6 +2894,9 @@ fdc_remove(fdc_t *fdc)
         io_removehandler(fdc->base_address, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
         io_removehandler(fdc->base_address + 4, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
         io_removehandler(fdc->base_address + 5, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+    } else if (fdc->flags & FDC_FLAG_TANDY2K) {
+        io_removehandler(0x0030, 0x0004, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+        io_removehandler(0x0080, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
     } else {
         if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
             io_removehandler(fdc->base_address + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
@@ -3024,7 +3061,7 @@ fdc_init(const device_t *info)
 
     fdc->flags = (int) info->local;
 
-    if (fdc->flags & FDC_FLAG_5550)
+    if (fdc->flags & (FDC_FLAG_5550 | FDC_FLAG_TANDY2K))
         fdc->irq = 4;
     else
         /* Always use IRQ 6. */
@@ -3060,20 +3097,6 @@ const device_t fdc_xt_device = {
     .internal_name = "fdc_xt",
     .flags         = DEVICE_ISA,
     .local         = 0,
-    .init          = fdc_init,
-    .close         = fdc_close,
-    .reset         = fdc_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t fdc_ibm5140_device = {
-    .name          = "IBM PC Convertible FDC",
-    .internal_name = "fdc_ibm5140",
-    .flags         = 0,
-    .local         = FDC_FLAG_IBM5140 | FDC_FLAG_NEC | FDC_FLAG_NO_TDR | FDC_FLAG_IRQ_ON_NOOP_SEEK,
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
@@ -3214,6 +3237,34 @@ const device_t fdc_pcjx_device = {
     .internal_name = "fdc_pcjx",
     .flags         = 0,
     .local         = FDC_FLAG_PCJX | FDC_FLAG_NO_DSR_RESET | FDC_FLAG_NO_TDR,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc_ibm5140_device = {
+    .name          = "IBM PC Convertible FDC",
+    .internal_name = "fdc_ibm5140",
+    .flags         = 0,
+    .local         = FDC_FLAG_IBM5140 | FDC_FLAG_NEC | FDC_FLAG_NO_TDR | FDC_FLAG_IRQ_ON_NOOP_SEEK,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc_tandy2k_device = {
+    .name          = "Tandy 2000 FDC",
+    .internal_name = "fdc_tandy2k",
+    .flags         = 0,
+    .local         = FDC_FLAG_TANDY2K | FDC_FLAG_NEC,
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,

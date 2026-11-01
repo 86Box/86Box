@@ -48,5 +48,13 @@ if(BUILD_TESTING)
     )
     add_test(NAME Mach64.3D COMMAND mach64_3d_tests)
 
+    add_executable(ogc_deb_tests vid_ogc_deb_test.c)
+    target_include_directories(ogc_deb_tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_SOURCE_DIR}/src/cpu
+        ${PROJECT_BINARY_DIR}/src/include
+    )
+    add_test(NAME OGC.DEB COMMAND ogc_deb_tests)
+
     add_subdirectory(rage128)
 endif()

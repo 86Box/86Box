@@ -1,5 +1,5 @@
 #include <string.h>
-#include "cm100_internal.h"
+#include <86box/cm100_internal.h>
 
 static unsigned
 cm100_bcd(uint8_t value)

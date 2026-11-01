@@ -147,7 +147,8 @@ int (*const codegen_rep_elem[2][3][2])(x86seg *seg) = {
 /*The routine runs the whole instruction and leaves the guest registers and
   the cycle count in cpu_state, so they are reloaded after it. The cycle
   figures are the interpreter's, and do not change while compiled blocks
-  exist.*/
+  exist. cpu_state.pc is the next instruction for an SMI raised by the last
+  element, which leaves the block there.*/
 static uint32_t
 rep_string(ir_data_t *ir, int is_stos, int shift, uint32_t op_32, uint32_t op_pc)
 {
@@ -163,6 +164,7 @@ rep_string(ir_data_t *ir, int is_stos, int shift, uint32_t op_32, uint32_t op_pc
     }
 
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    uop_MOV_IMM(ir, IREG_pc, op_pc);
     codegen_accumulate_flush(ir);
     uop_CALL_REP_STRING(ir, codegen_rep_rout[is_stos][shift][a32], seg_offset | (cycle_limit << 12) | (elem_cycles << 24));
     uop_MOV_REG_PTR(ir, IREG_ECX, &ECX);
