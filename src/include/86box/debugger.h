@@ -137,6 +137,7 @@ typedef struct debugger_decode_info_t {
     int fpu_trap; /* CR0.EM or TS set: x87 opcodes raise #NM */
     int vpc;      /* Virtual PC extensions (0F 3F) are on */
     int fpu_ud;   /* an x87 opcode the coprocessor lacks raises #UD (the 486 and later) */
+    int invlpg;   /* INVLPG (0F 01 /7) exists: the 486 and later, and IBM's 386SLC and 486 */
 } debugger_decode_info_t;
 
 extern void debugger_decode_info(debugger_decode_info_t *info);

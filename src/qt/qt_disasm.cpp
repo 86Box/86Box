@@ -26,7 +26,10 @@
  *            and MediaGX system management instructions, Virtual PC's
  *            0F 3F), not what they mean now (SYSCALL, SSE, VMX, three-byte
  *            opcode maps). VEX, EVEX and XOP are LES, LDS, BOUND and POP
- *            with a register operand, which raise #UD.
+ *            with a register operand, which raise #UD. The spare ModR/M
+ *            forms of the groups (0F 00, 0F 01, 0F AE, 0F C7 and so on),
+ *            which the library takes as later instructions (MONITOR,
+ *            RDTSCP, LFENCE, RDRAND), raise #UD as 86Box's handlers do.
  *          - The library's decoder modes for extensions that reuse old
  *            encodings (MPX, CET, LZCNT/TZCNT, WBNOINVD, CLDEMOTE,
  *            instruction prefetch hints) are off: these processors have
@@ -1144,6 +1147,92 @@ Disassembler::decode(uint32_t ip, bool current)
             d.text = (op2 == 0x24) ? QStringLiteral("mov %1, tr%2").arg(QLatin1String(regs[m & 7])).arg((m >> 3) & 7)
                                    : QStringLiteral("mov tr%1, %2").arg((m >> 3) & 7).arg(QLatin1String(regs[m & 7]));
             return finish();
+        }
+        /* The ModR/M forms of these that the processor refuses, as 86Box's
+           handlers do: the library takes some of them as later
+           instructions (MONITOR, SERIALIZE, RDTSCP, LFENCE, RDRAND). */
+        if (kind == DEBUGGER_OP_NORMAL) {
+            int           reg;
+            int           mod;
+            QString       refused;
+            const QString badReg = QStringLiteral("ModR/M reg %1: #UD");
+            const QString regOp  = QStringLiteral("Register operand: #UD");
+            switch (op2) {
+                case 0x00:
+                case 0x01:
+                case 0x0d:
+                case 0x71 ... 0x73:
+                case 0xae:
+                case 0xba:
+                case 0xc7:
+                    if (!modrmReg(at + 2, &reg, &mod))
+                        return finish();
+                    break;
+                default:
+                    reg = mod = -1;
+                    break;
+            }
+            switch (op2) {
+                case 0x00: /* SLDT, STR, LLDT, LTR, VERR, VERW */
+                    if (reg >= 6)
+                        refused = badReg;
+                    break;
+                case 0x01: /* SGDT, SIDT, LGDT, LIDT and INVLPG take memory; no /5 */
+                    if (reg == 5)
+                        refused = badReg;
+                    else if ((reg == 7) && !info_.invlpg)
+                        refused = QStringLiteral("No INVLPG on this processor: #UD");
+                    else if ((mod == 3) && ((reg <= 3) || (reg == 7)))
+                        refused = regOp;
+                    break;
+                case 0x0d: /* PREFETCH (the P6 hint NOPs are their own kind) */
+                    if (mod == 3)
+                        refused = regOp;
+                    break;
+                case 0x71 ... 0x73: /* PSRLx, PSRAx, PSLLx, on a register */
+                    if ((reg != 2) && (reg != 6) && ((reg != 4) || (op2 == 0x73)))
+                        refused = badReg;
+                    else if (mod != 3)
+                        refused = QStringLiteral("Memory operand: #UD");
+                    break;
+                case 0xae: /* FXSAVE, FXRSTOR */
+                    if (reg > 1)
+                        refused = badReg;
+                    else if (mod == 3)
+                        refused = regOp;
+                    break;
+                case 0xba: /* BT, BTS, BTR, BTC */
+                    if (reg < 4)
+                        refused = badReg;
+                    break;
+                case 0xc7: /* CMPXCHG8B */
+                    if ((mod == 3) && info_.vpc) {
+                        d.len  = at + 3;
+                        d.text = dbText(f, d.len);
+                        d.note = QStringLiteral("Virtual PC: CMPXCHG8B on a register is a no-op (the BIOS's host call)");
+                        return finish();
+                    }
+                    if (reg != 1)
+                        refused = badReg;
+                    else if (mod == 3)
+                        refused = regOp;
+                    break;
+                default:
+                    break;
+            }
+            if (!refused.isEmpty()) {
+                invalidOp(1, op2, at + 1, refused.contains(QLatin1String("%1")) ? refused.arg(reg) : refused);
+                return finish();
+            }
+            if (op2 == 0x0d) {
+                /* The library has /2 as PREFETCHWT1; all but /1 are PREFETCH. */
+                if (lib(withOp(0x0f, at + 1))) {
+                    d.text = renameMnemonic(d.text, (reg == 1) ? QStringLiteral("prefetchw") : QStringLiteral("prefetch"));
+                    if (reg > 1)
+                        d.note = QStringLiteral("0F 0D /%1 is an alias of PREFETCH (0F 0D /0)").arg(reg);
+                }
+                return finish();
+            }
         }
         switch (kind) {
             case DEBUGGER_OP_ILLEGAL:

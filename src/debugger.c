@@ -665,6 +665,7 @@ debugger_decode_info(debugger_decode_info_t *info)
     info->fpu_trap = is286 && !!(cr0 & 0x0c);
     info->vpc      = !!is_vpc;
     info->fpu_ud   = is486 || isibm486;
+    info->invlpg   = is486 || isibm486;
 }
 
 /* The tables the running interpreter dispatches through, and what they hold
