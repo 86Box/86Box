@@ -23,9 +23,9 @@
  *          - The 286 and later run what their opcode tables hold: an
  *            opcode a processor does not have raises #UD, and some mean
  *            what they did on that processor (LOADALL, UMOV, the Cyrix
- *            and MediaGX system management instructions, Virtual PC's
- *            0F 3F), not what they mean now (SYSCALL, SSE, VMX, three-byte
- *            opcode maps). VEX, EVEX and XOP are LES, LDS, BOUND and POP
+ *            and MediaGX system management instructions, the Cyrix EMMI
+ *            in 0F 50-5E, Virtual PC's 0F 3F), not what they mean now
+ *            (SYSCALL, SSE, VMX, three-byte opcode maps). VEX, EVEX and XOP are LES, LDS, BOUND and POP
  *            with a register operand, which raise #UD. The spare ModR/M
  *            forms of the groups (0F 00, 0F 01, 0F AE, 0F C7 and so on),
  *            which the library takes as later instructions (MONITOR,
@@ -1319,6 +1319,67 @@ Disassembler::decode(uint32_t ip, bool current)
                     }
                     d.text = QString::fromLatin1(names[idx]) + QLatin1Char(' ') + ops;
                     d.note = QStringLiteral("Cyrix system management (later VMX/MMX/GETSEC)");
+                }
+                return finish();
+            }
+            case DEBUGGER_OP_EMMI: {
+                /* mm, mm/m64 as the MMX instructions have them (PADDB, which
+                   the library decodes, stands in), without the prefixes
+                   that would make that SSE. */
+                static const char *const names[16] = { "paveb", "paddsiw", "pmagw", nullptr, "pdistib", "psubsiw", nullptr, nullptr,
+                                                       "pmvzb", "pmulhrwc", "pmvnzb", "pmvlzb", "pmvgezb", "pmulhriw", "pmachriw", nullptr };
+                const char              *name      = names[op2 & 15];
+                int                      reg;
+                int                      mod;
+                if (!modrmReg(at + 2, &reg, &mod))
+                    return finish();
+                if (!name) {
+                    invalidOp(1, op2, at + 1, QStringLiteral("Not an instruction on this processor: #UD"));
+                    return finish();
+                }
+                /* Memory only: PDISTIB, PMACHRIW and the conditional moves. */
+                if ((mod == 3) && ((op2 == 0x54) || (op2 == 0x58) || ((op2 >= 0x5a) && (op2 != 0x5d)))) {
+                    invalidOp(1, op2, at + 1, QStringLiteral("Register operand: #UD"));
+                    return finish();
+                }
+                View w = v;
+                for (size_t i = 0; i < w.head.size();) {
+                    if ((w.head[i] == 0x66) || (w.head[i] == 0xf2) || (w.head[i] == 0xf3))
+                        w.head.erase(w.head.begin() + (ptrdiff_t) i);
+                    else
+                        i++;
+                }
+                w.head.push_back(0x0f);
+                w.head.push_back(0xfc);
+                w.resume = at + 2;
+                if (!lib(w))
+                    return finish();
+                d.text = renameMnemonic(d.text, QString::fromLatin1(name));
+                /* Some write, or test, the other register of the pair. */
+                switch (op2) {
+                    case 0x51:
+                    case 0x54:
+                    case 0x55:
+                    case 0x5d:
+                    case 0x5e:
+                        d.note = QStringLiteral("Cyrix EMMI: the result goes to mm%1").arg(reg ^ 1);
+                        break;
+                    case 0x58:
+                    case 0x5a:
+                    case 0x5b:
+                    case 0x5c: {
+                        static const char *const conds[4] = { "are zero", "are not zero", "are negative", "are not negative" };
+                        const int                c        = (op2 == 0x58) ? 0 : (op2 - 0x59);
+                        d.note                            = QStringLiteral("Cyrix EMMI: moves the bytes where those of mm%1 %2").arg(reg ^ 1).arg(QLatin1String(conds[c]));
+                        break;
+                    }
+                    default:
+                        d.note = QStringLiteral("Cyrix EMMI");
+                        break;
+                }
+                if (!info_.emmi) {
+                    d.invalid = true;
+                    d.note    = QStringLiteral("Cyrix EMMI, which is off (CCR7 bit 0): #UD");
                 }
                 return finish();
             }

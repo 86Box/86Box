@@ -666,6 +666,7 @@ debugger_decode_info(debugger_decode_info_t *info)
     info->vpc      = !!is_vpc;
     info->fpu_ud   = is486 || isibm486;
     info->invlpg   = is486 || isibm486;
+    info->emmi     = !!(ccr7 & 1);
 }
 
 /* The tables the running interpreter dispatches through, and what they hold
@@ -755,6 +756,8 @@ debugger_opcode_kind(int map, uint8_t op, int opsize)
                                                                                                     DEBUGGER_OP_NORMAL;
         case 0x10 ... 0x13:
             return DEBUGGER_OP_UMOV;
+        case 0x50 ... 0x5f: /* 86Box has no SSE */
+            return DEBUGGER_OP_EMMI;
         case 0x36:
             return DEBUGGER_OP_RDSHR;
         case 0x37:

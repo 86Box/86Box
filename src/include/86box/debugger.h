@@ -138,6 +138,7 @@ typedef struct debugger_decode_info_t {
     int vpc;      /* Virtual PC extensions (0F 3F) are on */
     int fpu_ud;   /* an x87 opcode the coprocessor lacks raises #UD (the 486 and later) */
     int invlpg;   /* INVLPG (0F 01 /7) exists: the 486 and later, and IBM's 386SLC and 486 */
+    int emmi;     /* the Cyrix EMMI instructions are on (CCR7 bit 0); off, they raise #UD */
 } debugger_decode_info_t;
 
 extern void debugger_decode_info(debugger_decode_info_t *info);
@@ -166,7 +167,8 @@ enum {
     DEBUGGER_OP_CPU_WRITE,   /* MediaGX 0F 3C */
     DEBUGGER_OP_CPU_READ,    /* MediaGX 0F 3D */
     DEBUGGER_OP_VPCEXT,      /* Virtual PC 0F 3F */
-    DEBUGGER_OP_HINT_NOP     /* P6 0F 0D, 0F 18-1F */
+    DEBUGGER_OP_HINT_NOP,    /* P6 0F 0D, 0F 18-1F */
+    DEBUGGER_OP_EMMI         /* Cyrix 0F 50-5E (6x86MX, MediaGX) */
 };
 
 extern int debugger_opcode_kind(int map, uint8_t op, int opsize);
