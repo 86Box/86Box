@@ -104,7 +104,8 @@ svga_recalc_remap_func(svga_t *svga)
             func_nr = svga->packed_chain4 ? VAR_BYTE_MODE : VAR_DWORD_MODE;
         else if (svga->crtc[0x17] & 0x40)
             func_nr = VAR_BYTE_MODE;
-        else if (svga->chain2_write || svga->chain2_read)
+        else if ((svga->chain2_write || svga->chain2_read) &&
+                  ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)))
             func_nr = VAR_BYTE_MODE;
         else if (svga->crtc[0x17] & 0x20)
             func_nr = VAR_WORD_MODE_MA15;
