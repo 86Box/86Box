@@ -26988,6 +26988,55 @@ const machine_t machines[] = {
         .aliases                  = { "" }
     },
 
+    /* Has the SiS 620 chipset on-chip KBC. */
+    {
+        .name              = "[SiS 620] BCM IN620",
+        .internal_name     = "in620",
+        .type              = MACHINE_TYPE_SOCKET370,
+        .chipset           = MACHINE_CHIPSET_SIS_620,
+        .init              = machine_at_in620_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET370,
+            .block       = CPU_BLOCK(CPU_CYRIX3S),
+            .min_bus     = 66666667,
+            .max_bus     = 100000000,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi   = 3.5,
+            .max_multi   = 6.5
+        },
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_SOUND | MACHINE_VIDEO | MACHINE_USB,
+        .ram       = {
+            .min  = 8192,
+            .max  = 1048576, /* BIOS does not recognize more than this amount */
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0x00000010,
+        .device                   = &in620_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &sis6306_onboard_device,
+        .snd_device               = &ess_solo1_onboard_device,
+        .net_device               = NULL,
+        .aliases                  = { "GVC DR724", "Packard Bell Skye", "Packard Bell PB1030", "Monorail PC6200", "MODULAR CIRCUIT TECHNOLOGY MCT-C204", "" }
+    },
+
     /* SMSC VictoryBX-66 */
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
