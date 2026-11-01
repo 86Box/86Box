@@ -2538,6 +2538,143 @@ svga_writeb_linear(uint32_t addr, uint8_t val, void *priv)
     svga->vram[addr]              = val;
 }
 
+/* A word or dword in write modes 0-3 with the standard four-plane
+   addressing: the same VRAM, changedvram and fullchange results as one
+   svga_write_common() call per byte, lowest byte first, with the register
+   state read once per access. Nothing a byte writes (VRAM, changedvram,
+   fullchange, the XGA test state) is read back by the next byte, and the
+   latches are only loaded by reads. */
+static void
+svga_write_planar(svga_t *svga, uint32_t addr, uint32_t val, int nbytes, uint8_t linear)
+{
+    uint8_t *const       vram        = svga->vram;
+    uint8_t *const       changedvram = svga->changedvram;
+    const int            framecount  = svga->monitor->mon_changeframecount;
+    const uint32_t       decode_mask = svga->decode_mask;
+    const uint32_t       vram_max    = svga->vram_max;
+    const uint32_t       vram_mask   = svga->vram_mask;
+    uint32_t           (*translate)(uint32_t addr, void *priv) = svga->translate_address;
+    const uint8_t        writemode   = svga->writemode;
+    const uint8_t        writemask   = svga->writemask;
+    const int            text        = !(svga->gdcreg[6] & 1);
+    const int            chain4_byte = (svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only;
+    const int            chain4      = svga->chain4;
+    const int            chain2      = svga->chain2_write;
+    const uint8_t        rot         = svga->gdcreg[3] & 7;
+    const uint8_t        rop         = svga->gdcreg[3] & 0x18;
+    const uint8_t        bitmask     = svga->gdcreg[8];
+    const uint8_t        sr_enable   = svga->gdcreg[1];
+    const uint8_t        sr_value    = svga->gdcreg[0];
+    const int            mode0_plain = (bitmask == 0xff) && !rop && (!sr_enable || svga->set_reset_disabled);
+    uint8_t              latch[4];
+    uint8_t              sr[4];
+
+    for (uint8_t i = 0; i < 4; i++) {
+        latch[i] = svga->latch.b[i];
+        sr[i]    = !!(sr_value & (1 << i)) * 0xff;
+    }
+
+    for (int n = 0; n < nbytes; n++, addr++, val >>= 8) {
+        uint32_t a          = addr;
+        uint8_t  b          = val & 0xff;
+        uint8_t  writemask2 = writemask;
+        uint8_t  vall[4];
+        uint8_t  mask;
+
+        if (!linear) {
+            xga_write_test(a, b, svga);
+            a = svga_decode_addr(svga, a, 1);
+            if (a == 0xffffffff)
+                continue;
+        }
+
+        if (text)
+            svga->fullchange = 2;
+
+        if (chain4_byte) {
+            writemask2 &= 1 << (a & 3);
+            a &= ~3;
+        } else if (chain4) {
+            writemask2 &= 1 << (a & 3);
+            if (!linear)
+                a &= ~3;
+            a = ((a & 0xfffc) << 2) | ((a & 0x30000) >> 14) | (a & ~0x3ffff);
+        } else if (chain2) {
+            writemask2 &= 0x5 << (a & 1);
+            a &= ~1;
+            a <<= 2;
+        } else
+            a <<= 2;
+
+        if (!writemask2)
+            continue;
+
+        a &= decode_mask;
+
+        if (translate)
+            a = translate(a, svga);
+
+        if (a >= vram_max)
+            continue;
+
+        a &= vram_mask;
+
+        changedvram[a >> 12] = framecount;
+
+        switch (writemode) {
+            case 0:
+                b = ((b >> rot) | (b << (8 - rot)));
+                if (mode0_plain) {
+                    for (uint8_t i = 0; i < 4; i++) {
+                        if (writemask2 & (1 << i))
+                            vram[a | i] = b;
+                    }
+                    continue;
+                }
+                for (uint8_t i = 0; i < 4; i++)
+                    vall[i] = (sr_enable & (1 << i)) ? sr[i] : b;
+                mask = bitmask;
+                break;
+            case 1:
+                for (uint8_t i = 0; i < 4; i++) {
+                    if (writemask2 & (1 << i))
+                        vram[a | i] = latch[i];
+                }
+                continue;
+            case 2:
+                for (uint8_t i = 0; i < 4; i++)
+                    vall[i] = !!(b & (1 << i)) * 0xff;
+                mask = bitmask;
+                break;
+            default:
+                b = ((b >> rot) | (b << (8 - rot)));
+                for (uint8_t i = 0; i < 4; i++)
+                    vall[i] = sr[i];
+                mask = bitmask & b;
+                break;
+        }
+
+        for (uint8_t i = 0; i < 4; i++) {
+            if (!(writemask2 & (1 << i)))
+                continue;
+            switch (rop) {
+                case 0x00: /* Set */
+                    vram[a | i] = (vall[i] & mask) | (latch[i] & ~mask);
+                    break;
+                case 0x08: /* AND */
+                    vram[a | i] = (vall[i] | ~mask) & latch[i];
+                    break;
+                case 0x10: /* OR */
+                    vram[a | i] = (vall[i] & mask) | latch[i];
+                    break;
+                default: /* XOR */
+                    vram[a | i] = (vall[i] & mask) ^ latch[i];
+                    break;
+            }
+        }
+    }
+}
+
 void
 svga_writew_common(uint32_t addr, uint16_t val, uint8_t linear, void *priv)
 {
@@ -2549,8 +2686,12 @@ svga_writew_common(uint32_t addr, uint16_t val, uint8_t linear, void *priv)
            Keep the byte-wise VRAM behavior but charge the bus timing once. */
     if (!svga->fast) {
         int bus_cycles = cycles - svga->monitor->mon_video_timing_write_w;
-        svga_write_common(addr, val, linear, priv);
-        svga_write_common(addr + 1, val >> 8, linear, priv);
+        if ((svga->writemode < 4) && !(svga->adv_flags & (FLAG_ADDR_BY8 | FLAG_ADDR_BY16 | FLAG_LATCH8 | FLAG_EXT_WRITE)))
+            svga_write_planar(svga, addr, val, 2, linear);
+        else {
+            svga_write_common(addr, val, linear, priv);
+            svga_write_common(addr + 1, val >> 8, linear, priv);
+        }
         cycles = bus_cycles;
         return;
     }
@@ -2611,10 +2752,14 @@ svga_writel_common(uint32_t addr, uint32_t val, uint8_t linear, void *priv)
            Keep the byte-wise VRAM behavior but charge the bus timing once. */
     if (!svga->fast) {
         int bus_cycles = cycles - svga->monitor->mon_video_timing_write_l;
-        svga_write_common(addr, val, linear, priv);
-        svga_write_common(addr + 1, val >> 8, linear, priv);
-        svga_write_common(addr + 2, val >> 16, linear, priv);
-        svga_write_common(addr + 3, val >> 24, linear, priv);
+        if ((svga->writemode < 4) && !(svga->adv_flags & (FLAG_ADDR_BY8 | FLAG_ADDR_BY16 | FLAG_LATCH8 | FLAG_EXT_WRITE)))
+            svga_write_planar(svga, addr, val, 4, linear);
+        else {
+            svga_write_common(addr, val, linear, priv);
+            svga_write_common(addr + 1, val >> 8, linear, priv);
+            svga_write_common(addr + 2, val >> 16, linear, priv);
+            svga_write_common(addr + 3, val >> 24, linear, priv);
+        }
         cycles = bus_cycles;
         return;
     }
