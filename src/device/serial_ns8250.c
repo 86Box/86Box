@@ -35,6 +35,8 @@
 #include <86box/fifo.h>
 #include <86box/serial.h>
 #include <86box/mouse.h>
+#include <86box/nvr.h>
+#include <86box/acpi.h>
 
 enum {
     SERIAL_INT_LSR       = 1,
@@ -533,6 +535,10 @@ serial_set_ri(serial_t *dev, uint8_t enabled)
         dev->msr |= 0x4;
         dev->int_status |= SERIAL_INT_MSR;
         serial_update_ints(dev);
+
+        /* A COM port's RI# also reaches the ACPI chipset's ring input, which
+           can wake the machine (PIIX4 RI_STS, VIA RI_STS, ALi RING_STS). */
+        acpi_gpe_event(ACPI_GPE_RI);
     }
 }
 
