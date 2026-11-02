@@ -1233,8 +1233,10 @@ picint_lines(uint16_t num, int level, int set, uint8_t *irq_state, int to_ioapic
    if (!slaves)
        apic_lines &= 0x00ff;
 
-   if (num & 0x0100)
-       acpi_rtc_status = !!set;
+   /* RTC_STS is set by the RTC's interrupt and stays set until software
+      writes 1 to it (ACPI 1.0 Table 4-9). */
+   if ((num & 0x0100) && set)
+       acpi_rtc_status = 1;
 
    if (num) {
        if (irq_callback != NULL)
