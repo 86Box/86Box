@@ -29,8 +29,6 @@
 /* ------------------------------------------------------------------------ */
 
 #define SERIAL_8250          0
-#define SERIAL_8250_PCJR_3F8 1
-#define SERIAL_8250_PCJR_2F8 2
 #define SERIAL_16450         3
 #define SERIAL_16550         4
 #define SERIAL_16650         5
@@ -153,6 +151,7 @@ typedef struct serial_s {
     uint8_t txsr_empty;
     uint8_t msr_set;
     uint8_t irq_state;
+    uint8_t irq_direct; /* The interrupt output goes straight to the IRQ, not through OUT2. */
 
     uint16_t dlab;
     uint16_t base_address;
@@ -254,6 +253,7 @@ extern void      serial_devices_reset(void);
 extern void      serial_remove(serial_t *dev);
 extern void      serial_setup(serial_t *dev, uint16_t addr, uint8_t irq);
 extern void      serial_irq(serial_t *dev, uint8_t irq);
+extern void      serial_set_irq_direct(serial_t *dev, int direct);
 extern void      serial_write_fifo(serial_t *dev, uint8_t dat);
 extern void      serial_set_next_inst(int ni);
 extern void      serial_standalone_init(void);
@@ -286,8 +286,6 @@ extern void      i8251_set_clock(void *priv, double hz);
 
 extern const device_t i8251_device;
 extern const device_t ns8250_device;
-extern const device_t ns8250_pcjr_3f8_device;
-extern const device_t ns8250_pcjr_2f8_device;
 extern const device_t ns16450_device;
 extern const device_t ns16550_device;
 extern const device_t ns16650_device;

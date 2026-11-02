@@ -863,6 +863,20 @@ const device_t pcjr_device = {
     .config        = pcjr_config
 };
 
+/* The PCjr's UARTs run off its 1.7895 MHz clock, and are wired straight to their IRQs, not through OUT2. */
+static void
+pcjr_add_uart(uint16_t addr, uint8_t irq)
+{
+    serial_t *uart = device_add(&ns8250_device);
+
+    if (!com_ports[uart->inst].enabled)
+        return;
+
+    serial_set_clock_src(uart, 1789500.0);
+    serial_set_irq_direct(uart, 1);
+    serial_setup(uart, addr, irq);
+}
+
 int
 machine_pcjr_init(UNUSED(const machine_t *model))
 {
@@ -926,12 +940,10 @@ machine_pcjr_init(UNUSED(const machine_t *model))
         pcjr->option_fdc = 1;
     }
 
-    if (!pcjr->option_modem)
-        device_add(&ns8250_pcjr_2f8_device);
-    else {
-        device_add(&ns8250_pcjr_3f8_device);
-        device_add(&ns8250_pcjr_2f8_device);
-    }
+    /* The serial port, and the internal modem's UART before it when it is fitted. */
+    if (pcjr->option_modem)
+        pcjr_add_uart(COM1_ADDR, COM1_IRQ);
+    pcjr_add_uart(COM2_ADDR, COM2_IRQ);
 
     /* So that serial_standalone_init() won't do anything. */
     serial_set_next_inst(SERIAL_MAX - 1);
