@@ -269,6 +269,7 @@ const joystick_t joystick_sw_pad = {
     .write         = sw_write,
     .read_axis     = sw_read_axis,
     .a0_over       = sw_a0_over,
+    .digital       = 1,
     .axis_count    = 2,
     .button_count  = 10,
     .pov_count     = 0,
