@@ -2151,13 +2151,13 @@ cpu_386_flags_rebuild(void)
 void
 cpu_dr7_update(void)
 {
-    int armed = cpu_debug_regs_486 && is386 && (dr[7] & 0xff);
+    int armed     = cpu_debug_regs_486 && is386 && (dr[7] & 0xff);
+    int was_armed = cpu_dr_armed;
 
-    if (armed && !cpu_dr_armed) {
-        cpu_dr_armed = 1;
+    cpu_dr_armed = armed;
+    mem_debug_update();
+    if (armed && !was_armed)
         flushmmucache_nopc();
-    } else
-        cpu_dr_armed = armed;
 }
 
 extern uint64_t mmutranslate_noabrt_2386(uint32_t addr, int rw);

@@ -163,6 +163,24 @@ class GuestTests(unittest.TestCase):
                 self.assertIn(f"{reason}:{address:X};", r.command("s"))
                 self.assertEqual(r.command(f"z{kind},{address:x},2"), "OK")
 
+    def test_watchpoint_survives_guest_dr7_update(self):
+        r = self.remote
+        # Clear DR7, then read and write memory while the remote watch stays armed.
+        r.write_mem(0x7000, bytes.fromhex("6631c00f23f8a10080a30280ebfe"))
+        r.write_mem(0x8000, bytes.fromhex("34120000"))
+        for kind, address, reason, pc in (
+            (2, 0x8002, "watch", 0x700c),
+            (3, 0x8000, "rwatch", 0x7009),
+            (4, 0x8000, "awatch", 0x7009),
+        ):
+            with self.subTest(kind=kind):
+                r.write_reg(8, 0x7000)
+                self.assertEqual(r.command(f"Z{kind},{address:x},2"), "OK")
+                self.assertIn(f"{reason}:{address:X};", r.command("c"))
+                self.assertEqual(r.read_reg(8), pc)
+                self.assertEqual(r.read_reg(0) & 0xffff, 0x1234)
+                self.assertEqual(r.command(f"z{kind},{address:x},2"), "OK")
+
     def test_warmed_continue_and_step(self):
         r = self.remote
         # inc ax; cmp ax,1000; jne 7000; nop; jmp 7000
@@ -200,6 +218,21 @@ class GuestTests(unittest.TestCase):
         self.assertEqual(r.read_reg(0) & 0xffff, 0x1235)
         self.assertEqual(r.read_reg(3) & 0xffff, 0x1234)
         self.assertEqual(r.read_reg(4) & 0xffff, 0x9000)
+
+    def test_instruction_fetch_crosses_page(self):
+        r = self.remote
+        # mov eax,12345678; inc ax; nop; jmp $
+        program = bytes.fromhex("66b8785634124090ebfe")
+        for start in range(0x7ffc, 0x8000):
+            with self.subTest(start=start):
+                r.write_mem(start, program)
+                r.write_reg(8, start)
+                self.assertTrue(r.command("s").startswith("T05"))
+                self.assertEqual(r.read_reg(8), start + 6)
+                self.assertEqual(r.read_reg(0), 0x12345678)
+                self.assertTrue(r.command("s").startswith("T05"))
+                self.assertEqual(r.read_reg(8), start + 7)
+                self.assertEqual(r.read_reg(0), 0x12345679)
 
     def test_interrupt_and_reconnect(self):
         r = self.remote
