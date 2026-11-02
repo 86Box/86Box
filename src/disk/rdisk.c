@@ -45,17 +45,19 @@ rdisk_drive_t rdisk_drives[RDISK_NUM];
 static scsi_device_t lpt_rdisk_devices[PARALLEL_MAX];
 
 /*
- * A Zip drive on the parallel port is a SCSI Zip drive behind the PPA3
- * parallel-to-SCSI chip that Iomega built into it: the host talks SCSI to it,
- * not ATAPI. Every other drive on the parallel port (the SuperDisk behind the
- * Shuttle EPAT) is an ATAPI drive.
+ * A Zip drive on the parallel port is a SCSI Zip drive behind the
+ * parallel-to-SCSI chip that Iomega built into it (PPA3 in the Zip 100, IMM in
+ * the Zip Plus and the Zip 250): the host talks SCSI to it, not ATAPI. Every
+ * other drive on the parallel port (the SuperDisk behind the Shuttle EPAT) is
+ * an ATAPI drive.
  */
 static int
 rdisk_is_scsi(const rdisk_t *dev)
 {
     return (dev->drv->bus_type == RDISK_BUS_SCSI) ||
            ((dev->drv->bus_type == RDISK_BUS_LPT) &&
-            ((dev->drv->type == RDISK_TYPE_ZIP_100) || (dev->drv->type == RDISK_TYPE_ZIP_100_PLUS)));
+            ((dev->drv->type == RDISK_TYPE_ZIP_100) || (dev->drv->type == RDISK_TYPE_ZIP_100_PLUS) ||
+             (dev->drv->type == RDISK_TYPE_ZIP_250)));
 }
 
 /* The SCSI device entry of a drive that talks SCSI. */
@@ -5352,9 +5354,16 @@ rdisk_hard_reset(void)
              * configuration. Instantiate it here and let it claim the port with
              * lpt_attach() - first claim wins against any other LPT device.
              */
-            if (rdisk_drives[c].bus_type == RDISK_BUS_LPT)
-                device_add_inst(((rdisk_drives[c].type == RDISK_TYPE_ZIP_100) || (rdisk_drives[c].type == RDISK_TYPE_ZIP_100_PLUS)) ? &lpt_zip_device : &lpt_epat_device,
-                                rdisk_drives[c].res + 1);
+            if (rdisk_drives[c].bus_type == RDISK_BUS_LPT) {
+                const device_t *bridge = &lpt_epat_device;
+
+                if (rdisk_drives[c].type == RDISK_TYPE_ZIP_100)
+                    bridge = &lpt_zip_device;
+                else if ((rdisk_drives[c].type == RDISK_TYPE_ZIP_100_PLUS) ||
+                         (rdisk_drives[c].type == RDISK_TYPE_ZIP_250))
+                    bridge = &lpt_zip250_device;
+                device_add_inst(bridge, rdisk_drives[c].res + 1);
+            }
         }
     }
 }
