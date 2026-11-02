@@ -93,6 +93,13 @@ VMManagerMain::VMManagerMain(QWidget *parent)
 
     // Connect the model signal
     connect(vm_model, &VMManagerModel::systemDataChanged, this, &VMManagerMain::modelDataChange);
+    connect(vm_model, &VMManagerModel::selectionRestored, this, [this](const QModelIndex &idx) {
+        if (idx.isValid()) {
+            const auto mapped = proxy_model->mapFromSource(idx);
+            ui->listView->setCurrentIndex(mapped);
+            ui->listView->scrollTo(mapped, QAbstractItemView::PositionAtCenter);
+        }
+    });
 
 #ifdef DISCORD
     discord = new VMManagerDiscord(this);
@@ -1025,4 +1032,19 @@ VMManagerMain::showTextFileContents(const QString &title, const QString &path)
     textDisplayDialog->layout()->addWidget(textEdit);
     textDisplayDialog->layout()->addWidget(buttonBox);
     textDisplayDialog->exec();
+}
+
+
+void
+VMManagerMain::loadFromCache(const QString &selectName)
+{
+    if (vm_model)
+        vm_model->loadFromCache(selectName);
+}
+
+void
+VMManagerMain::startBackgroundDiscovery()
+{
+    if (vm_model)
+        vm_model->startBackgroundDiscovery();
 }

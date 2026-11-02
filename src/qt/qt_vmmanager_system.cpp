@@ -126,17 +126,20 @@ VMManagerSystem::~VMManagerSystem()
 QVector<VMManagerSystem *>
 VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
 {
+    const bool showProgress = (parent != nullptr);
     QProgressDialog progDialog(parent);
     unsigned int    found = 0;
-    progDialog.setCancelButton(nullptr);
-    progDialog.setWindowTitle(tr("Searching for VMs…"));
-    progDialog.setMinimumDuration(0);
-    progDialog.setValue(0);
-    progDialog.setMinimum(0);
-    progDialog.setMaximum(0);
-    progDialog.setWindowFlags(progDialog.windowFlags() & ~Qt::WindowCloseButtonHint);
-    progDialog.setMinimumSize(progDialog.sizeHint());
-    progDialog.setMaximumSize(progDialog.sizeHint());
+    if (showProgress) {
+        progDialog.setCancelButton(nullptr);
+        progDialog.setWindowTitle(tr("Searching for VMs…"));
+        progDialog.setMinimumDuration(0);
+        progDialog.setValue(0);
+        progDialog.setMinimum(0);
+        progDialog.setMaximum(0);
+        progDialog.setWindowFlags(progDialog.windowFlags() & ~Qt::WindowCloseButtonHint);
+        progDialog.setMinimumSize(progDialog.sizeHint());
+        progDialog.setMaximumSize(progDialog.sizeHint());
+    }
     QElapsedTimer scanTimer;
     scanTimer.start();
     QVector<VMManagerSystem *> system_configs;
@@ -162,8 +165,10 @@ VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
     timer.start();
     while (dir_iterator.hasNext()) {
         found++;
-        progDialog.setLabelText(tr("Found %1").arg(QString::number(found)));
-        QApplication::processEvents();
+        if (showProgress) {
+            progDialog.setLabelText(tr("Found %1").arg(QString::number(found)));
+            QApplication::processEvents();
+        }
         QString filename = dir_iterator.next();
         QString root_cfg;
         if ((search_directory[search_directory.size() - 1] == '/') || (search_directory[search_directory.size() - 1] == '\\'))
@@ -181,15 +186,19 @@ VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
     // foreach (QFileInfo hit, matches) {
     //     system_configs.append(new VMManagerSystem(hit));
     // }
-    progDialog.setMaximum(found);
-    progDialog.setValue(0);
+    if (showProgress) {
+        progDialog.setMaximum(found);
+        progDialog.setValue(0);
+    }
     unsigned int appended = 0;
     for (const auto &filename : matches) {
         system_configs.append(new VMManagerSystem(filename));
         appended++;
-        progDialog.setLabelText(system_configs.last()->displayName);
-        progDialog.setValue(appended);
-        QApplication::processEvents();
+        if (showProgress) {
+            progDialog.setLabelText(system_configs.last()->displayName);
+            progDialog.setValue(appended);
+            QApplication::processEvents();
+        }
     }
     if (matches.size()) {
         auto elapsed = timer.elapsed();
@@ -197,6 +206,78 @@ VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
         qDebug() << "Overall scan time was" << scanTimer.elapsed() << "ms, average" << elapsed / matches.size() << "ms / load";
     }
     return system_configs;
+}
+
+QVector<VMManagerSystem *>
+VMManagerSystem::loadFromCache()
+{
+    QVector<VMManagerSystem *> cached;
+    char buf[1024] = {};
+    plat_get_global_config_dir(buf, sizeof(buf));
+    const auto vmmIni = QDir(QString::fromUtf8(buf)).filePath("vmm.ini");
+    if (!QFile::exists(vmmIni))
+        return cached;
+
+    QSettings settings(vmmIni, QSettings::IniFormat);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    settings.setIniCodec("UTF-8");
+#endif
+    const auto groups = settings.childGroups();
+    for (const auto &uuid : groups) {
+        if (uuid.isEmpty() || uuid == "General")
+            continue;
+        settings.beginGroup(uuid);
+        const auto cfgPath = settings.value("config_file").toString();
+        settings.endGroup();
+        if (cfgPath.isEmpty())
+            continue;
+        const QFileInfo fi(cfgPath);
+        if (!fi.exists() || !fi.isFile())
+            continue;
+        // Skip the root config if it somehow got stored
+        if (fi.fileName().compare(QString(CONFIG_FILE), Qt::CaseInsensitive) != 0)
+            continue;
+        auto *sys = new VMManagerSystem(cfgPath);
+        if (sys->isValid())
+            cached.append(sys);
+        else
+            delete sys;
+    }
+    qDebug() << "Loaded" << cached.size() << "VMs from vmm.ini cache";
+    return cached;
+}
+
+QStringList
+VMManagerSystem::cachedConfigPaths()
+{
+    QStringList paths;
+    char buf[1024] = {};
+    plat_get_global_config_dir(buf, sizeof(buf));
+    const auto vmmIni = QDir(QString::fromUtf8(buf)).filePath("vmm.ini");
+    if (!QFile::exists(vmmIni))
+        return paths;
+
+    QSettings settings(vmmIni, QSettings::IniFormat);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    settings.setIniCodec("UTF-8");
+#endif
+    const auto groups = settings.childGroups();
+    for (const auto &uuid : groups) {
+        if (uuid.isEmpty() || uuid == "General")
+            continue;
+        settings.beginGroup(uuid);
+        const auto cfgPath = settings.value("config_file").toString();
+        settings.endGroup();
+        if (cfgPath.isEmpty())
+            continue;
+        const QFileInfo fi(cfgPath);
+        if (!fi.exists() || !fi.isFile())
+            continue;
+        if (fi.fileName().compare(QString(CONFIG_FILE), Qt::CaseInsensitive) != 0)
+            continue;
+        paths.append(cfgPath);
+    }
+    return paths;
 }
 
 QString

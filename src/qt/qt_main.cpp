@@ -727,6 +727,9 @@ main(int argc, char *argv[])
             vmm_dark_mode_filter = darkModeFilter.get();
 #endif
             vmm_main_window->show();
+            QApplication::processEvents(); // let the window paint before loading the list
+            // Load cached list and start background discovery after the window is visible
+            vmm_main_window->startBackgroundDiscovery();
         });
         QApplication::exec();
         return 0;
