@@ -194,6 +194,13 @@ extern void debugger_cpu_format(char *buf, int size);
 /* A register's value by name ("eax", "ip", "cs" (selector), ...); nonzero
    on success. seg_base gets a segment register's cached base. */
 extern int debugger_register(const char *name, uint32_t *val, uint32_t *seg_base);
+/* Caller holds the emulator lock. Edits require a stopped, complete
+   instruction. Returns zero for an unavailable register or invalid value.
+   Segment selectors load their descriptor without device reads or guest
+   exceptions; name.base/limit/access/flags edit the hidden cache directly. */
+extern int debugger_register_write(const char *name, uint32_t val);
+/* Materialized low flags without changing the lazy-flags state. */
+extern uint16_t debugger_flags(void);
 
 #ifdef __cplusplus
 }

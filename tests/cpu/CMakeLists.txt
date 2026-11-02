@@ -1,4 +1,8 @@
 if(BUILD_TESTING)
+    add_executable(debugger_register_tests
+        debugger_register_test.cpp
+        ../../src/debugger_register.c
+    )
     add_executable(cpu_tr_tests
         cpu_tr_test.cpp
         ../../src/cpu/cpu.c
@@ -26,7 +30,7 @@ if(BUILD_TESTING)
     )
     add_executable(x87_fistp_tests x87_fistp_test.cpp ../../src/cpu/x87_ferr.c)
     add_executable(x87_fistp_new_tags_tests x87_fistp_test.cpp ../../src/cpu/x87_ferr.c)
-    set(cpu_test_targets cpu_tr_tests cpu_interrupt_tests codegen_reuse_tests cpu_cache_tests x87_fistp_tests x87_fistp_new_tags_tests)
+    set(cpu_test_targets debugger_register_tests cpu_tr_tests cpu_interrupt_tests codegen_reuse_tests cpu_cache_tests x87_fistp_tests x87_fistp_new_tags_tests)
     if(TARGET codegen_shift_cl_tests)
         list(APPEND cpu_test_targets codegen_shift_cl_tests)
     endif()
