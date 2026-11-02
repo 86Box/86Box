@@ -17,8 +17,12 @@
  *            followed by low data (currently 160us) - timings are
  *            probably wrong, but good enough for everything I've tried
  *          - Analog inputs are only used to time ID packet request.
- *            If A0 timing out is followed after ~64us by another 0x201
- *            write then an ID packet is triggered
+ *            If A0 timing out is followed within 100us by another 0x201
+ *            write then an ID packet is triggered. The Windows 9x driver
+ *            waits 60us after A0 falls (InterruptDelay in MOTOWN.INF,
+ *            45us if unset) and Linux waits 45us (SW_KICK), both using
+ *            delay loops calibrated against the PIT, so the write can
+ *            land a few microseconds either side of the nominal delay
  *          - Sidewinder game pad ID is 'H0003'
  *          - ID is sent in Mode A (1 bit per clock), but data bit 2
  *            must change during ID packet transfer, or Windows 9x
@@ -65,6 +69,11 @@
 #include <86box/timer.h>
 #include <86box/gameport.h>
 #include <86box/plat_unused.h>
+
+/* The trigger timer runs for this long after A0 falls, and an
+   ID packet is sent if the next write lands within the ID window. */
+#define SW_TRIGGER_TIMER_US 10000
+#define SW_ID_WINDOW_US     100
 
 typedef struct sw_data {
     pc_timer_t poll_timer;
@@ -176,7 +185,7 @@ sw_write(void *priv)
         sw->poll_clock = 1;
         timer_set_delay_u64(&sw->poll_timer, TIMER_USEC * 40);
 
-        if (time_since_last > 9900 && time_since_last < 9940) {
+        if (time_since_last > (SW_TRIGGER_TIMER_US - SW_ID_WINDOW_US)) {
             sw->poll_mode = 0;
             sw->poll_left = 49;
             sw->poll_data = 0x2400ULL | (0x1830ULL << 15) | (0x19b0ULL << 30);
@@ -245,7 +254,7 @@ sw_a0_over(void *priv)
 {
     sw_data *sw = (sw_data *) priv;
 
-    timer_set_delay_u64(&sw->trigger_timer, TIMER_USEC * 10000);
+    timer_set_delay_u64(&sw->trigger_timer, TIMER_USEC * SW_TRIGGER_TIMER_US);
 }
 
 const joystick_t joystick_sw_pad = {
