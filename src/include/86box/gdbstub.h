@@ -33,20 +33,16 @@ enum {
     GDBSTUB_BREAK_AWATCH = 7
 };
 
-#define GDBSTUB_MEM_ACCESS(addr, access, width)                               \
-    do {                                                                      \
-        if (GDBSTUB_WATCHED(addr) || GDBSTUB_WATCHED((addr) + (width) - 1)) { \
-            uint32_t gdbstub_addrs[(width)];                                  \
-            for (int gdbstub_i = 0; gdbstub_i < (width); gdbstub_i++)         \
-                gdbstub_addrs[gdbstub_i] = (addr) + gdbstub_i;                \
-            gdbstub_mem_access(gdbstub_addrs, (access) | (width));            \
-        }                                                                     \
+#define GDBSTUB_MEM_ACCESS(addr, access, width)                    \
+    do {                                                         \
+        if (UNLIKELY(gdbstub_watching))                           \
+            gdbstub_mem_access_linear((addr), (access), (width)); \
     } while (0)
 
-#define GDBSTUB_MEM_ACCESS_FAST(addrs, access, width)                             \
-    do {                                                                          \
-        if (GDBSTUB_WATCHED((addrs)[0]) || GDBSTUB_WATCHED((addrs)[(width) - 1])) \
-            gdbstub_mem_access((addrs), (access) | (width));                      \
+#define GDBSTUB_MEM_ACCESS_FAST(addrs, access, width)                \
+    do {                                                           \
+        if (UNLIKELY(gdbstub_watching))                             \
+            gdbstub_mem_access_checked((addrs), (access), (width)); \
     } while (0)
 
 extern int      gdbstub_step, gdbstub_next_asap;
@@ -68,5 +64,24 @@ extern int  gdbstub_int3(void);
 extern void gdbstub_mem_access(uint32_t *addrs, int access);
 extern void gdbstub_init(void);
 extern void gdbstub_close(void);
+
+/* Keep watchpoint bitmap checks and address arrays out of ordinary memory paths. */
+static inline __attribute__((cold)) void
+gdbstub_mem_access_checked(uint32_t *addrs, int access, int width)
+{
+    if (GDBSTUB_WATCHED(addrs[0]) || GDBSTUB_WATCHED(addrs[width - 1]))
+        gdbstub_mem_access(addrs, access | width);
+}
+
+static inline __attribute__((cold)) void
+gdbstub_mem_access_linear(uint32_t addr, int access, int width)
+{
+    if (GDBSTUB_WATCHED(addr) || GDBSTUB_WATCHED(addr + width - 1)) {
+        uint32_t addrs[8];
+        for (int i = 0; i < width; i++)
+            addrs[i] = addr + i;
+        gdbstub_mem_access(addrs, access | width);
+    }
+}
 
 #endif

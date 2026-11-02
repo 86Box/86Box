@@ -101,6 +101,7 @@ uintptr_t writelookup2[1048576] = { 0 };
 
 
 uint32_t mem_logical_addr;
+int      mem_debug_active;
 
 int shadowbios = 0;
 int shadowbios_write;
@@ -373,6 +374,10 @@ mem_flush_write_page(uint32_t addr, UNUSED(uint32_t virt))
     /* Where the page is stored, if not at ram[addr] (remapped RAM). */
     const uint8_t *mem        = ((page_target->mem != NULL) && (page_target->mem != page_ff)) ? page_target->mem : NULL;
 
+    /* SMC invalidation repeatedly scans this mostly empty cache. */
+#if defined(__GNUC__)
+#    pragma GCC unroll 4
+#endif
     for (uint16_t c = 0; c < 256; c++) {
         if (writelookup[c] != (int) 0xffffffff) {
             /* Match every virtual alias of the physical page, not only the
@@ -744,7 +749,14 @@ mem_addr_translate(uint32_t addr, uint32_t chunk_start, uint32_t len)
     return chunk_start + (addr & mask);
 }
 
-void
+static inline __attribute__((cold)) int
+mem_debug_page(uint32_t addr)
+{
+    return cpu_dr_armed || GDBSTUB_WATCHED(addr);
+}
+
+/* Watchpoint handling must not push cache fills out of hot memory handlers. */
+__attribute__((always_inline)) inline void
 addreadlookup(uint32_t virt, uint32_t phys)
 {
     uint32_t large_offset = is_compare ? 1048576 : 0;
@@ -755,10 +767,7 @@ addreadlookup(uint32_t virt, uint32_t phys)
 
     /* Nothing goes in while a debug register breakpoint is armed, so that
        every access is checked (cpu_dr7_update()). */
-    if ((virt == 0xffffffff) || cpu_dr_armed)
-        return;
-
-    if (GDBSTUB_WATCHED(virt))
+    if ((virt == 0xffffffff) || (UNLIKELY(mem_debug_active) && mem_debug_page(virt)))
         return;
 
     if (readlookup2[index] != (uintptr_t) LOOKUP_INV)
@@ -792,15 +801,12 @@ addwritelookup(uint32_t virt, uint32_t phys)
 /* For RAM the processor sees at bus address phys but which is stored at
    ram[ram_addr]: code is tracked by bus address, so phys picks the page the
    check for code is made on, and ram_addr where the writes go. */
-void
+__attribute__((always_inline)) inline void
 addwritelookup_remapped(uint32_t virt, uint32_t phys, uint32_t ram_addr)
 {
     /* As in addreadlookup(). The RAM write handlers mark code pages dirty
        themselves, so page_lookup is not needed for that meanwhile. */
-    if ((virt == 0xffffffff) || cpu_dr_armed)
-        return;
-
-    if (GDBSTUB_WATCHED(virt))
+    if ((virt == 0xffffffff) || (UNLIKELY(mem_debug_active) && mem_debug_page(virt)))
         return;
 
     if (page_lookup[virt >> 12])
@@ -1049,15 +1055,35 @@ write_mem_w(uint32_t addr, uint16_t val)
     }
 }
 
+void
+mem_debug_update(void)
+{
+    mem_debug_active = cpu_dr_armed || gdbstub_watching;
+}
+
+static __attribute__((noinline, cold)) void
+mem_debug_check_access(uint32_t addr, int access, int width)
+{
+    if (width == 1) {
+        GDBSTUB_MEM_ACCESS(addr, access, 1);
+        if (cpu_dr_armed)
+            mem_debug_check_addr(addr, access == GDBSTUB_MEM_WRITE ? 2 : read_type);
+    } else {
+        if (cpu_dr_armed)
+            for (int i = 0; i < width; i++)
+                mem_debug_check_addr(addr + i, access == GDBSTUB_MEM_WRITE ? 2 : read_type);
+        GDBSTUB_MEM_ACCESS(addr, access, width);
+    }
+}
+
 uint8_t
 readmembl(uint32_t addr)
 {
     mem_mapping_t *map;
     uint64_t       a;
 
-    GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 1);
-    if (cpu_dr_armed)
-        mem_debug_check_addr(addr, read_type);
+    if (UNLIKELY(mem_debug_active))
+        mem_debug_check_access(addr, GDBSTUB_MEM_READ, 1);
 
     addr64           = (uint64_t) addr;
     mem_logical_addr = addr;
@@ -1086,9 +1112,8 @@ writemembl(uint32_t addr, uint8_t val)
     mem_mapping_t *map;
     uint64_t       a;
 
-    GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_WRITE, 1);
-    if (cpu_dr_armed)
-        mem_debug_check_addr(addr, 2);
+    if (UNLIKELY(mem_debug_active))
+        mem_debug_check_access(addr, GDBSTUB_MEM_WRITE, 1);
 
     addr64           = (uint64_t) addr;
     mem_logical_addr = addr;
@@ -1174,12 +1199,8 @@ readmemwl(uint32_t addr)
     uint64_t       a;
 
     addr64a[0] = addr;
-    addr64a[1] = addr + 1;
-    if (cpu_dr_armed) {
-        mem_debug_check_addr(addr, read_type);
-        mem_debug_check_addr(addr + 1, read_type);
-    }
-    GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_READ, 2);
+    if (UNLIKELY(mem_debug_active))
+        mem_debug_check_access(addr, GDBSTUB_MEM_READ, 2);
 
     mem_logical_addr = addr;
 
@@ -1237,12 +1258,8 @@ writememwl(uint32_t addr, uint16_t val)
     uint64_t       a;
 
     addr64a[0] = addr;
-    addr64a[1] = addr + 1;
-    if (cpu_dr_armed) {
-        mem_debug_check_addr(addr, 2);
-        mem_debug_check_addr(addr + 1, 2);
-    }
-    GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_WRITE, 2);
+    if (UNLIKELY(mem_debug_active))
+        mem_debug_check_access(addr, GDBSTUB_MEM_WRITE, 2);
 
     mem_logical_addr = addr;
 
@@ -1419,12 +1436,9 @@ readmemll(uint32_t addr)
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
 
-    for (i = 0; i < 4; i++)
-        addr64a[i] = (uint64_t) (addr + i);
-    if (cpu_dr_armed)
-        for (i = 0; i < 4; i++)
-            mem_debug_check_addr(addr + i, read_type);
-    GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_READ, 4);
+    addr64a[0] = addr;
+    if (UNLIKELY(mem_debug_active))
+        mem_debug_check_access(addr, GDBSTUB_MEM_READ, 4);
 
     mem_logical_addr = addr;
 
@@ -1497,12 +1511,9 @@ writememll(uint32_t addr, uint32_t val)
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
 
-    for (i = 0; i < 4; i++)
-        addr64a[i] = (uint64_t) (addr + i);
-    if (cpu_dr_armed)
-        for (i = 0; i < 4; i++)
-            mem_debug_check_addr(addr + i, 2);
-    GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_WRITE, 4);
+    addr64a[0] = addr;
+    if (UNLIKELY(mem_debug_active))
+        mem_debug_check_access(addr, GDBSTUB_MEM_WRITE, 4);
 
     mem_logical_addr = addr;
 
@@ -1705,12 +1716,9 @@ readmemql(uint32_t addr)
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
 
-    for (i = 0; i < 8; i++)
-        addr64a[i] = (uint64_t) (addr + i);
-    if (cpu_dr_armed)
-        for (i = 0; i < 8; i++)
-            mem_debug_check_addr(addr + i, read_type);
-    GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_READ, 8);
+    addr64a[0] = addr;
+    if (UNLIKELY(mem_debug_active))
+        mem_debug_check_access(addr, GDBSTUB_MEM_READ, 8);
 
     mem_logical_addr = addr;
 
@@ -1793,12 +1801,9 @@ writememql(uint32_t addr, uint64_t val)
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
 
-    for (i = 0; i < 8; i++)
-        addr64a[i] = (uint64_t) (addr + i);
-    if (cpu_dr_armed)
-        for (i = 0; i < 8; i++)
-            mem_debug_check_addr(addr + i, 2);
-    GDBSTUB_MEM_ACCESS_FAST(addr64a, GDBSTUB_MEM_WRITE, 8);
+    addr64a[0] = addr;
+    if (UNLIKELY(mem_debug_active))
+        mem_debug_check_access(addr, GDBSTUB_MEM_WRITE, 8);
 
     mem_logical_addr = addr;
 

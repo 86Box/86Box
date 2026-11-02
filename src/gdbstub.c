@@ -404,6 +404,7 @@ gdbstub_clear_breakpoints(void)
     }
     memset(gdbstub_watch_pages, 0, sizeof(gdbstub_watch_pages));
     gdbstub_watching = 0;
+    mem_debug_update();
     flushmmucache();
 }
 
@@ -1012,6 +1013,7 @@ gdbstub_mem_enter(gdbstub_mem_state_t *state, uint32_t addr, int width)
     cpu_old_paging = 0;
     cpl_override   = 1;
     cpu_dr_armed   = 1;
+    mem_debug_update();
 }
 
 /* Answers whether the access faulted. */
@@ -1075,6 +1077,7 @@ gdbstub_mem_leave(gdbstub_mem_state_t *state, uint32_t addr, uint8_t *buf, int w
     cpu_old_paging   = state->saved_cpu_old_paging;
     cpl_override     = state->saved_cpl_override;
     cpu_dr_armed     = state->saved_cpu_dr_armed;
+    mem_debug_update();
 
     return ret;
 }
@@ -1783,6 +1786,7 @@ unknown:
                 /* Drop cached lookups, so that accesses to the watched
                    pages go through the checked paths. */
                 gdbstub_watching = first_rwatch || first_wwatch || first_awatch;
+                mem_debug_update();
                 flushmmucache();
             }
 

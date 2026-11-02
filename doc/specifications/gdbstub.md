@@ -123,6 +123,20 @@ inside previously warmed loops. Connecting/disconnecting changes code-cache
 mode on the emulation thread. Debugger memory/control-state edits invalidate
 cached assumptions before execution resumes.
 
+With the listener disabled, quantum dispatch selects instruction loops without
+remote-debugger polling, including the dynarec's interpretation and compilation
+passes. Debugger instruction loops are kept out of the ordinary execution paths.
+Memory access helpers keep watchpoint bitmap checks and address-list setup on
+cold paths, reached only while memory watchpoints are installed. The 386+
+memory helpers share one inactive guard for guest debug-register and remote
+watchpoints, including tracked dynarec stores. Its state is refreshed whenever
+either debugger's memory checks change, including temporary debugger accesses.
+Multi-byte address lists are prepared only for watchpoint checks or page-crossing
+translations that need them.
+Cache fills and the interpreter's instruction-fetch fast path remain inline
+even with debugger support. Dynarec interpretation and compilation share an
+out-of-line fetch helper to avoid duplicating its fallbacks in the dispatcher.
+
 Direct block links and full-loop unrolling are disabled while a client is
 connected. The dynarec's ordinary discovery/compilation interpretation and
 unsupported-instruction helpers still apply. Debugging changes execution

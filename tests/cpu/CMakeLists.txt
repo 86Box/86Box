@@ -23,6 +23,14 @@ if(BUILD_TESTING)
             COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/gdbstub_test.py
                 --binary ${GDBSTUB_TEST_BINARY} --rompath ${GDBSTUB_TEST_ROMPATH} --runtime)
         set_tests_properties(gdbstub_isolated_guest PROPERTIES RUN_SERIAL TRUE TIMEOUT 180)
+        if(DYNAREC)
+            add_test(NAME gdbstub_isolated_dynarec_off
+                COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/gdbstub_test.py
+                    --binary ${GDBSTUB_TEST_BINARY} --rompath ${GDBSTUB_TEST_ROMPATH}
+                    --runtime --guest-debug-regs off)
+            set_tests_properties(gdbstub_isolated_dynarec_off
+                PROPERTIES RUN_SERIAL TRUE TIMEOUT 180)
+        endif()
         foreach(debug_regs on off)
             add_test(NAME gdbstub_isolated_interpreter_${debug_regs}
                 COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/gdbstub_test.py
@@ -39,7 +47,7 @@ if(BUILD_TESTING)
         endif()
     endif()
     add_executable(codegen_reuse_tests codegen_reuse_test.cpp)
-    add_executable(gdbstub_watch_tests gdbstub_watch_test.cpp)
+    add_executable(gdbstub_watch_tests gdbstub_watch_test.cpp ../../src/mem/mem.c)
     set(cpu_test_targets codegen_reuse_tests gdbstub_watch_tests)
     foreach(target ${cpu_test_targets})
         target_include_directories(${target} PRIVATE

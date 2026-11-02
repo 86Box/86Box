@@ -76,7 +76,7 @@ x386_dynarec_log(const char *fmt, ...)
 #    define x386_dynarec_log(fmt, ...)
 #endif
 
-static __attribute__((noinline, hot)) void
+static __inline void
 fetch_ea_32_long(uint32_t rmdat)
 {
     eal_r = eal_w = NULL;
@@ -569,11 +569,16 @@ update_tsc(void)
     }
 }
 
-/* dbg is a constant, cpu_debug_regs_486 as the block starts: each caller below
-   gets a copy of the loop, and with the option off the debug register
-   handling is not compiled in at all. */
+/* Keep fetch fallbacks out of the dynarec's dispatch and compilation loops. */
+static __attribute__((noinline)) uint32_t
+dynarec_fetch(uint32_t addr)
+{
+    return fastreadl_fetch(addr);
+}
+
+/* Constant options keep inactive debugger checks out of the instruction loop. */
 __attribute__((always_inline)) static inline void
-exec386_dynarec_int_common(const int dbg)
+exec386_dynarec_int_common(const int dbg, const int gdb)
 {
     cpu_block_end = 0;
     x86_was_reset = 0;
@@ -617,7 +622,7 @@ exec386_dynarec_int_common(const int dbg)
             break;
         }
 
-        fetchdat = fastreadl_fetch(cs + cpu_state.pc);
+        fetchdat = dynarec_fetch(cs + cpu_state.pc);
 #    ifdef ENABLE_386_DYNAREC_LOG
         if (in_smm)
             x386_dynarec_log("[%04X:%08X] fetchdat = %08X\n", CS, cpu_state.pc, fetchdat);
@@ -643,7 +648,7 @@ exec386_dynarec_int_common(const int dbg)
             x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
         }
 
-        if (gdbstub_active && gdbstub_instruction())
+        if (gdb && gdbstub_instruction())
             CPU_BLOCK_END();
 
         if (cpu_flush_pending == 1)
@@ -711,16 +716,34 @@ block_ended:
 static __attribute__((noinline)) void
 exec386_dynarec_int_dbg(void)
 {
-    exec386_dynarec_int_common(1);
+    exec386_dynarec_int_common(1, 0);
 }
 
-static __inline void
-exec386_dynarec_int(void)
+static __attribute__((noinline, cold)) void
+exec386_dynarec_int_gdb(void)
+{
+    if (cpu_debug_regs_486)
+        exec386_dynarec_int_common(1, 1);
+    else
+        exec386_dynarec_int_common(0, 1);
+}
+
+static __attribute__((noinline)) void
+exec386_dynarec_int_normal(void)
 {
     if (UNLIKELY(cpu_debug_regs_486))
         exec386_dynarec_int_dbg();
     else
-        exec386_dynarec_int_common(0);
+        exec386_dynarec_int_common(0, 0);
+}
+
+__attribute__((always_inline)) static inline void
+exec386_dynarec_int(const int gdb)
+{
+    if (gdb)
+        exec386_dynarec_int_gdb();
+    else
+        exec386_dynarec_int_normal();
 }
 
 /* pc and _cs as one 64-bit value, so a lookup compares both at once. */
@@ -741,12 +764,12 @@ codeblock_pc_cs(const codeblock_t *block)
    op keeps it (rf_flag_no_clear), as the interpreted loop does; compiled
    code clears it after the first opcode fetch (codegen_generate_call()). */
 #if defined(__linux__) && !defined(__clang__)
-static inline void __attribute__((optimize("O2")))
+__attribute__((always_inline, optimize("O2"))) static inline void
 #else
-/* Inlined into the dispatch loop, which now comes in two copies. */
+/* Constant callers specialize both discovery and compilation loops. */
 __attribute__((always_inline)) static inline void
 #endif
-exec386_dynarec_dyn(const int dbg)
+exec386_dynarec_dyn_common(const int dbg, const int gdb)
 {
     uint32_t start_pc  = 0;
     uint32_t phys_addr = get_phys(cs + cpu_state.pc);
@@ -764,7 +787,7 @@ exec386_dynarec_dyn(const int dbg)
        fetched through the device's read handlers, and nothing tracks writes
        there, so it is interpreted every time rather than kept in a block. */
     if (!cpu_state.abrt && (_mem_exec[phys_addr >> MEM_GRANULARITY_BITS] == NULL)) {
-        exec386_dynarec_int();
+        exec386_dynarec_int(gdb);
         return;
     }
     cpu_fetch_device = 0;
@@ -833,7 +856,7 @@ exec386_dynarec_dyn(const int dbg)
                 (((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST)) != CODEBLOCK_WAS_RECOMPILED) ||
                  (block->page_mask & *block->dirty_mask) ||
                  (block->page_mask2 && (block->page_mask2 & *block->dirty_mask2)))) {
-                exec386_dynarec_int();
+                exec386_dynarec_int(gdb);
                 return;
             }
 
@@ -976,7 +999,7 @@ exec386_dynarec_dyn(const int dbg)
             cpu_state.ea_seg = &cpu_state.seg_ds;
             cpu_state.ssegs  = 0;
 
-            fetchdat = fastreadl_fetch(cs + cpu_state.pc);
+            fetchdat = dynarec_fetch(cs + cpu_state.pc);
 #    ifdef ENABLE_386_DYNAREC_LOG
             if (in_smm)
                 x386_dynarec_log("[%04X:%08X] fetchdat = %08X\n", CS, cpu_state.pc, fetchdat);
@@ -1000,7 +1023,7 @@ exec386_dynarec_dyn(const int dbg)
                     cpu_state.eflags &= ~(RF_FLAG);
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
 
-                if (gdbstub_active && gdbstub_instruction())
+                if (gdb && gdbstub_instruction())
                     CPU_BLOCK_END();
 
                 if (x86_was_reset)
@@ -1115,7 +1138,7 @@ exec386_dynarec_dyn(const int dbg)
                a long last instruction's tail is marked, on whichever page. */
             codegen_endpc = (cs + cpu_state.pc) + 14;
 
-            fetchdat      = fastreadl_fetch(cs + cpu_state.pc);
+            fetchdat      = dynarec_fetch(cs + cpu_state.pc);
 
 #    ifdef ENABLE_386_DYNAREC_LOG
             if (in_smm)
@@ -1137,7 +1160,7 @@ exec386_dynarec_dyn(const int dbg)
                     cpu_state.eflags &= ~(RF_FLAG);
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
 
-                if (gdbstub_active && gdbstub_instruction())
+                if (gdb && gdbstub_instruction())
                     CPU_BLOCK_END();
 
                 if (x86_was_reset)
@@ -1264,10 +1287,58 @@ cpu_irq_drain(void)
     }
 }
 
+#if defined(__linux__) && !defined(__clang__)
+static __attribute__((noinline, optimize("O2"))) void
+exec386_dynarec_dyn_normal(void)
+{
+    exec386_dynarec_dyn_common(0, 0);
+}
+
+static __attribute__((noinline, optimize("O2"))) void
+exec386_dynarec_dyn_dbg(void)
+{
+    exec386_dynarec_dyn_common(1, 0);
+}
+
+static __attribute__((noinline, cold, optimize("O2"))) void
+exec386_dynarec_dyn_gdb(void)
+{
+    exec386_dynarec_dyn_common(0, 1);
+}
+
+static __attribute__((noinline, cold, optimize("O2"))) void
+exec386_dynarec_dyn_gdb_dbg(void)
+{
+    exec386_dynarec_dyn_common(1, 1);
+}
+#endif
+
 /* As exec386_dynarec_int_common(): dbg is cpu_debug_regs_486, a constant, and
    the copy without it carries no debug register test per block. */
 __attribute__((always_inline)) static inline void
-exec386_dynarec_common(int32_t cycs, const int dbg)
+exec386_dynarec_dyn(const int dbg, const int gdb)
+{
+#if defined(__linux__) && !defined(__clang__)
+    /* Keep GCC's O2 block path while specializing before the O3 dispatcher. */
+    if (gdb) {
+        if (dbg)
+            exec386_dynarec_dyn_gdb_dbg();
+        else
+            exec386_dynarec_dyn_gdb();
+    } else {
+        if (dbg)
+            exec386_dynarec_dyn_dbg();
+        else
+            exec386_dynarec_dyn_normal();
+    }
+#else
+    exec386_dynarec_dyn_common(dbg, gdb);
+#endif
+}
+
+/* As exec386_dynarec_int_common(), both options specialize at quantum entry. */
+__attribute__((always_inline)) static inline void
+exec386_dynarec_common(int32_t cycs, const int dbg, const int gdb)
 {
     int      vector;
     int      tempi;
@@ -1308,9 +1379,9 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
                 link_from = NULL;
 #    endif
-                exec386_dynarec_int();
+                exec386_dynarec_int(gdb);
             } else {
-                exec386_dynarec_dyn(dbg);
+                exec386_dynarec_dyn(dbg, gdb);
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
                 /* Linked blocks moved the loop-top state on; time is counted
                    from the last link. */
@@ -1431,7 +1502,7 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
                     timer_process();
             }
 
-            if (gdbstub_active && gdbstub_instruction())
+            if (gdb && gdbstub_instruction())
                 return;
             if (DEBUGGER_INSTRUCTION()) {
                 cycles_main -= (cycles_start - cycles);
@@ -1446,16 +1517,27 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
 static __attribute__((noinline)) void
 exec386_dynarec_dbg(int32_t cycs)
 {
-    exec386_dynarec_common(cycs, 1);
+    exec386_dynarec_common(cycs, 1, 0);
+}
+
+static __attribute__((noinline, cold)) void
+exec386_dynarec_gdb(int32_t cycs)
+{
+    if (cpu_debug_regs_486)
+        exec386_dynarec_common(cycs, 1, 1);
+    else
+        exec386_dynarec_common(cycs, 0, 1);
 }
 
 void
 exec386_dynarec(int32_t cycs)
 {
-    if (UNLIKELY(cpu_debug_regs_486))
+    if (UNLIKELY(gdbstub_active))
+        exec386_dynarec_gdb(cycs);
+    else if (UNLIKELY(cpu_debug_regs_486))
         exec386_dynarec_dbg(cycs);
     else
-        exec386_dynarec_common(cycs, 0);
+        exec386_dynarec_common(cycs, 0, 0);
 }
 #endif
 

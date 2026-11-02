@@ -263,10 +263,7 @@ build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
     host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
     to_c[nr_to_c++] = host_x86_JNZ_long(block);
     /*An armed debug breakpoint needs writememll()'s check*/
-    host_x86_MOV32_REG_ABS(block, REG_ESI, &cpu_dr_armed);
-    host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
-    to_c[nr_to_c++] = host_x86_JNZ_long(block);
-    host_x86_MOV32_REG_ABS(block, REG_ESI, &gdbstub_watching);
+    host_x86_MOV32_REG_ABS(block, REG_ESI, &mem_debug_active);
     host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
     to_c[nr_to_c++] = host_x86_JNZ_long(block);
 
@@ -428,7 +425,7 @@ build_store_routine(codeblock_t *block, int size, int is_float)
 
     *branch_offset = (uint8_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) branch_offset) - 1;
     if (size <= 4 && !is_float) {
-        uint32_t *to_c[7];
+        uint32_t *to_c[6];
         int       nr_to_c = build_store_tracked(block, size, to_c);
 
         for (int c = 0; c < nr_to_c; c++)

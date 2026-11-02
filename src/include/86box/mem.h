@@ -489,6 +489,9 @@ extern void flushmmucache_nopc(void);
 extern void flushmmucache_ring3(void);
 
 extern void mem_debug_check_addr(uint32_t addr, int write);
+/* Recompute after changing cpu_dr_armed or gdbstub_watching. */
+extern int  mem_debug_active;
+extern void mem_debug_update(void);
 
 extern void mem_a20_init(void);
 extern void mem_a20_recalc(void);
