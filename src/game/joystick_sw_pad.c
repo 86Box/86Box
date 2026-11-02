@@ -9,8 +9,11 @@
  *          Implementation of a Side Winder GamePad.
  *
  * Notes:   - Write to 0x201 starts packet transfer (5*N or 15*N bits)
- *          - Currently alternates between Mode A and Mode B (is there
- *            any way of actually controlling which is used?)
+ *          - Data packets are sent in Mode A until an ID packet is
+ *            requested, and in Mode B from then on. Both the Windows 9x
+ *            driver and Linux take the toggling of data bit 2 during
+ *            the ID packet to mean that the pad is in Mode B, and read
+ *            every later packet in that mode only
  *          - Windows 9x drivers require Mode B when more than 1 pad
  *            connected
  *          - Packet preceeded by high data (currently 50us), and
@@ -187,11 +190,11 @@ sw_write(void *priv)
 
         if (time_since_last > (SW_TRIGGER_TIMER_US - SW_ID_WINDOW_US)) {
             sw->poll_mode = 0;
+            sw->data_mode = 1;
             sw->poll_left = 49;
             sw->poll_data = 0x2400ULL | (0x1830ULL << 15) | (0x19b0ULL << 30);
         } else {
             sw->poll_mode = sw->data_mode;
-            sw->data_mode = !sw->data_mode;
 
             if (sw->poll_mode) {
                 sw->poll_left = 1;
