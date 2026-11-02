@@ -1201,7 +1201,11 @@ picint_lines(uint16_t num, int level, int set, uint8_t *irq_state, int to_ioapic
 
             if (num & w) {
                 if ((!!*irq_state) != !!set) {
-                    set ? dev->lines[b]++ : dev->lines[b]--;
+                    /* Don't let an unmatched lower wrap the count. */
+                    if (set)
+                        dev->lines[b]++;
+                    else if (dev->lines[b])
+                        dev->lines[b]--;
 
                     if (to_ioapic) {
                         if (set)
