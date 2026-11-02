@@ -25,6 +25,8 @@ extern "C" {
 #define PM_FREQ         ACPI_TIMER_FREQ
 
 #define RSM_STS         (1 << 15)
+#define WAK_STS         (1 << 15)
+#define PWRBTNOR_STS    (1 << 11)
 #define RTC_STS         (1 << 10)
 #define PWRBTN_STS      (1 << 8)
 #define GBL_STS         (1 << 5)
@@ -45,6 +47,21 @@ extern "C" {
 #define SUS_RESET_CPU   (1 << 3)
 #define SUS_RESET_CACHE (1 << 4)
 #define SUS_RESET_PCI   (1 << 5)
+
+/* General-purpose event sources, as acpi_gpe_event() takes them. Each chip
+   maps them onto its own status bits; one it lacks is ignored. */
+#define ACPI_GPE_RI     0 /* ring indicate (RI#) */
+#define ACPI_GPE_USB    1 /* USB resume */
+#define ACPI_GPE_LID    2 /* notebook lid */
+#define ACPI_GPE_THRM   3 /* thermal alarm (THRM#) */
+#define ACPI_GPE_GPI    4 /* general-purpose input (PIIX4 GPI1#, VIA PME#) */
+#define ACPI_GPE_MAX    5
+
+/* acpi_set_event_hook() events: what a southbridge with its own SMI enables
+   decides about. */
+#define ACPI_HOOK_SMI      0 /* an enabled event in legacy mode (SCI_EN clear) */
+#define ACPI_HOOK_PWRBTN   1 /* the power button was pressed */
+#define ACPI_HOOK_OVERRIDE 2 /* may a 4 s press force soft off? (returns 0 if not) */
 
 #define ACPI_ENABLE     0xf1
 #define ACPI_DISABLE    0xf0
@@ -157,6 +174,11 @@ typedef struct acpi_t {
     int         usb_sts_w1c; /* GLBSTS bit 1 as on the SLC90E66 */
     int         usb_smi_level; /* SiS 5595: last level of the OHCI's SMI output */
     int         rtc_sts_seen;  /* acpi_rtc_status at the last poll */
+    int         sleeping;      /* In a sleeping state (S1-S3) since SLP_EN */
+    int         sleep_typ;     /* SLP_TYP written with SLP_EN */
+    int         sleep_flags;   /* Its suspend_types[] entry */
+    int         wake_pending;  /* A wake event, acted on by acpi_sleep_run() */
+    int         pwrbtn_held;   /* ms the power button has been held */
     uint64_t    pmtmr_latch;
     int         power_on;      /* The next reset is a power on: resume event */
     int         gp_count;      /* SiS general purpose timer: its count, */
@@ -178,6 +200,8 @@ typedef struct acpi_t {
     void       *trap_priv;
     void      (*sci_hook)(void *priv, int set);
     void       *sci_hook_priv;
+    int       (*event_hook)(void *priv, int event);
+    void       *event_hook_priv;
     void       *smbus;
     void       *priv;
 } acpi_t;
@@ -189,6 +213,9 @@ extern int        acpi_rtc_status;
 extern atomic_int acpi_pwrbut_pressed;
 #endif
 extern int        acpi_enabled;
+/* Nonzero while the machine is in an ACPI sleeping state: pc_run() then calls
+   acpi_sleep_run() instead of running the CPU. */
+extern int        acpi_sleeping;
 
 extern const device_t acpi_ali_device;
 extern const device_t acpi_intel_device;
@@ -201,6 +228,13 @@ extern const device_t acpi_sis_5595_device;
 
 /* Functions */
 extern void    acpi_pwrbut_press(void);
+/* Holds the power button until the 4 s override (or 5 s where the chip has
+   it turned off), from any thread. */
+extern void    acpi_pwrbut_hold(void);
+/* Runs the machine's timers for cycs CPU cycles without the CPU. */
+extern void    acpi_sleep_run(int32_t cycs);
+/* An event on a general-purpose input of the board's ACPI chip. */
+extern void    acpi_gpe_event(int source);
 extern void    acpi_update_irq(acpi_t *dev);
 extern void    acpi_raise_smi(void *priv, int do_smi);
 extern void    acpi_gp_timer_timeout(void *priv, int n);
@@ -224,6 +258,7 @@ extern void    acpi_set_gpireg2_default(acpi_t *dev, uint8_t gpireg2_default);
 extern void    acpi_set_nvr(acpi_t *dev, nvr_t *nvr);
 extern void    acpi_set_trap_update(acpi_t *dev, void (*update)(void *priv), void *priv);
 extern void    acpi_set_sci_hook(acpi_t *dev, void (*hook)(void *priv, int set), void *priv);
+extern void    acpi_set_event_hook(acpi_t *dev, int (*hook)(void *priv, int event), void *priv);
 extern uint8_t acpi_ali_soft_smi_status_read(acpi_t *dev);
 extern void    acpi_ali_soft_smi_status_write(acpi_t *dev, uint8_t soft_smi);
 extern void *  acpi_get_smbus(void *priv);
