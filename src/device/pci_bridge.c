@@ -206,8 +206,12 @@ pci_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
         case 0x22:
         case 0x24:
         case 0x26:
-            val &= 0xf0;    /* SiS datasheets say 0Fh for 1Ch but that's clearly an erratum since the
-                               definition of the bits is identical to the other vendors' AGP bridges. */
+            /* SiS datasheets say 0Fh for 1Ch but that's clearly an erratum since the
+               definition of the bits is identical to the other vendors' AGP bridges.
+               Bits 3-0 are read-only (PCI-to-PCI Bridge Architecture: the I/O
+               window's 16/32-bit and the prefetchable window's 32/64-bit type; the
+               memory window's are reserved), so a write keeps them. */
+            val = (val & 0xf0) | (dev->regs[addr] & 0x0f);
             break;
 
         case 0x35:

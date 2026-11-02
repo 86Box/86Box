@@ -6575,7 +6575,7 @@ mystique_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
                 break;
 
             case 0xf8:
-                ret = mystique->pci_regs[0xf8] & 0x7;
+                ret = mystique->pci_regs[0xf8] & 0x1;
                 break;
 
             case 0xf9:
@@ -6746,7 +6746,9 @@ mystique_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, voi
             break;
 
         case 0xf8:
-            mystique->pci_regs[0xf8] = val & 0x7;
+            /* AGP command DATA_RATE takes 1x only, the one rate the
+               status (F4h) offers (AGP 2.0 6.1.10: unimplemented fields read 0). */
+            mystique->pci_regs[0xf8] = val & 0x1;
             break;
 
         case 0xf9:
