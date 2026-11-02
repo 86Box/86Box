@@ -42,6 +42,8 @@ agpgart_log(const char *fmt, ...)
 #    define agpgart_log(fmt, ...)
 #endif
 
+#define AGPGART_NOWHERE 0xffffffff
+
 void
 agpgart_set_aperture(agpgart_t *dev, uint32_t base, uint32_t size, int enable)
 {
@@ -86,6 +88,11 @@ agpgart_translate(uint32_t addr, agpgart_t *dev)
     /* Get the GART pointer for this page. */
     register uint32_t gart_ptr = mem_readl_phys(dev->gart_base + ((addr >> 10) & 0xfffffffc)) & 0xfffff000;
 
+    /* An entry pointing back into the aperture would have us translate
+       our own accesses forever; such a page reads all ones and drops writes. */
+    if (((gart_ptr - dev->aperture_base) & ~dev->aperture_mask) == 0)
+        return AGPGART_NOWHERE;
+
     /* Return remapped address with the page offset. */
     return gart_ptr | (addr & 0x00000fff);
 }
@@ -116,6 +123,8 @@ agpgart_bus_ptr(uint32_t addr, uint32_t len)
         if (entry == NULL)
             return NULL;
         memcpy(&gart_ptr, entry, 4);
+        if ((((gart_ptr & 0xfffff000) - dev->aperture_base) & ~dev->aperture_mask) == 0)
+            return NULL;
         return mem_phys_ptr((gart_ptr & 0xfffff000) | (off & 0x00000fff), len);
     }
     return mem_phys_ptr(addr, len);
@@ -125,42 +134,77 @@ static uint8_t
 agpgart_aperture_readb(uint32_t addr, void *priv)
 {
     agpgart_t *dev = (agpgart_t *) priv;
-    return mem_readb_phys(agpgart_translate(addr, dev));
+    uint32_t   ra  = agpgart_translate(addr, dev);
+
+    return (ra == AGPGART_NOWHERE) ? 0xff : mem_readb_phys(ra);
 }
 
 static uint16_t
 agpgart_aperture_readw(uint32_t addr, void *priv)
 {
     agpgart_t *dev = (agpgart_t *) priv;
-    return mem_readw_phys(agpgart_translate(addr, dev));
+    uint32_t   ra;
+
+    /* Each 4 KB page has its own GART entry, so split accesses that
+       straddle two pages (AGP 2.0 2.1, Figure 2-1). */
+    if ((addr & 0xfff) > 0xffe)
+        return agpgart_aperture_readb(addr, priv) | (agpgart_aperture_readb(addr + 1, priv) << 8);
+    ra = agpgart_translate(addr, dev);
+    return (ra == AGPGART_NOWHERE) ? 0xffff : mem_readw_phys(ra);
 }
 
 static uint32_t
 agpgart_aperture_readl(uint32_t addr, void *priv)
 {
     agpgart_t *dev = (agpgart_t *) priv;
-    return mem_readl_phys(agpgart_translate(addr, dev));
+    uint32_t   ra;
+
+    if ((addr & 0xfff) > 0xffc)
+        return agpgart_aperture_readw(addr, priv) | ((uint32_t) agpgart_aperture_readw(addr + 2, priv) << 16);
+    ra = agpgart_translate(addr, dev);
+    return (ra == AGPGART_NOWHERE) ? 0xffffffff : mem_readl_phys(ra);
 }
 
 static void
 agpgart_aperture_writeb(uint32_t addr, uint8_t val, void *priv)
 {
     agpgart_t *dev = (agpgart_t *) priv;
-    mem_writeb_phys(agpgart_translate(addr, dev), val);
+    uint32_t   ra  = agpgart_translate(addr, dev);
+
+    if (ra != AGPGART_NOWHERE)
+        mem_writeb_phys(ra, val);
 }
 
 static void
 agpgart_aperture_writew(uint32_t addr, uint16_t val, void *priv)
 {
     agpgart_t *dev = (agpgart_t *) priv;
-    mem_writew_phys(agpgart_translate(addr, dev), val);
+    uint32_t   ra;
+
+    if ((addr & 0xfff) > 0xffe) {
+        agpgart_aperture_writeb(addr, val & 0xff, priv);
+        agpgart_aperture_writeb(addr + 1, val >> 8, priv);
+        return;
+    }
+    ra = agpgart_translate(addr, dev);
+    if (ra != AGPGART_NOWHERE)
+        mem_writew_phys(ra, val);
 }
 
 static void
 agpgart_aperture_writel(uint32_t addr, uint32_t val, void *priv)
 {
     agpgart_t *dev = (agpgart_t *) priv;
-    mem_writel_phys(agpgart_translate(addr, dev), val);
+    uint32_t   ra;
+
+    if ((addr & 0xfff) > 0xffc) {
+        agpgart_aperture_writew(addr, val & 0xffff, priv);
+        agpgart_aperture_writew(addr + 2, val >> 16, priv);
+        return;
+    }
+    ra = agpgart_translate(addr, dev);
+    if (ra != AGPGART_NOWHERE)
+        mem_writel_phys(ra, val);
 }
 
 static void *
