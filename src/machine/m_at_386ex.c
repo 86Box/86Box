@@ -934,8 +934,8 @@ ts3x00_init(const machine_t *model, const ts3x00_model_t *ts)
     ex = device_add_params(&i386ex_device, (void *) (I386EX_SIO0 | I386EX_SIO1));
     /* The board logic resets the processor when the watchdog times out. */
     i386ex_set_wdtout(ex, i386ex_wdtout_reset, NULL);
-    /* The board logic drives COMCLK with the usual UART clock. */
-    i386ex_set_comclk(ex, 1843200.0);
+    /* The board logic drives COMCLK at 1.8519 MHz, not a PC UART's usual 1.8432 MHz. */
+    i386ex_set_comclk(ex, 1851900.0);
     /* The 386EX's UARTs are the only serial ports on the board. */
     serial_set_next_inst(SERIAL_MAX - 1);
 
