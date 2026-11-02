@@ -1164,27 +1164,15 @@ serial_init(const device_t *info)
             serial_setup(dev, COM4_ADDR, COM4_IRQ);
         else if (next_inst == 2)
             serial_setup(dev, COM3_ADDR, COM3_IRQ);
-        else if ((next_inst == 1) || (info->local == SERIAL_8250_PCJR_2F8))
+        else if (next_inst == 1)
             serial_setup(dev, COM2_ADDR, COM2_IRQ);
-        // TODO
-#if 0
-        else if ((next_inst == 1) || (info->local == SERIAL_8250_PCJR_3F8))
-            serial_setup(dev, COM1_ADDR, COM1_IRQ);
-#endif
         else if (next_inst == 0)
             serial_setup(dev, COM1_ADDR, COM1_IRQ);
 
         /* Default to 1200,N,7. */
         dev->dlab = 96;
         dev->fcr  = 0x06;
-        /* The PCjr's UART is wired straight to its IRQ. */
-        if ((info->local == SERIAL_8250_PCJR_3F8) || (info->local == SERIAL_8250_PCJR_2F8)) {
-            dev->clock_src  = 1789500.0;
-            dev->irq_direct = 1;
-        } else {
-            dev->clock_src  = 1843200.0;
-            dev->irq_direct = 0;
-        }
+        dev->clock_src = 1843200.0;
         timer_add(&dev->transmit_timer, serial_transmit_timer, dev, 0);
         timer_add(&dev->timeout_timer, serial_timeout_timer, dev, 0);
         timer_add(&dev->receive_timer, serial_receive_timer, dev, 0);
@@ -1232,34 +1220,6 @@ const device_t ns8250_device = {
     .internal_name = "ns8250",
     .flags         = 0,
     .local         = SERIAL_8250,
-    .init          = serial_init,
-    .close         = serial_close,
-    .reset         = serial_reset,
-    .available     = NULL,
-    .speed_changed = serial_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t ns8250_pcjr_3f8_device = {
-    .name          = "National Semiconductor 8250(-compatible) UART for PCjr (0x3f8)",
-    .internal_name = "ns8250_pcjr_3f8",
-    .flags         = 0,
-    .local         = SERIAL_8250_PCJR_3F8,
-    .init          = serial_init,
-    .close         = serial_close,
-    .reset         = serial_reset,
-    .available     = NULL,
-    .speed_changed = serial_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t ns8250_pcjr_2f8_device = {
-    .name          = "National Semiconductor 8250(-compatible) UART for PCjr (0x2f8)",
-    .internal_name = "ns8250_pcjr_2f8",
-    .flags         = 0,
-    .local         = SERIAL_8250_PCJR_2F8,
     .init          = serial_init,
     .close         = serial_close,
     .reset         = serial_reset,

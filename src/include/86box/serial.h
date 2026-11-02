@@ -29,8 +29,6 @@
 /* ------------------------------------------------------------------------ */
 
 #define SERIAL_8250          0
-#define SERIAL_8250_PCJR_3F8 1
-#define SERIAL_8250_PCJR_2F8 2
 #define SERIAL_16450         3
 #define SERIAL_16550         4
 #define SERIAL_16650         5
@@ -288,8 +286,6 @@ extern void      i8251_set_clock(void *priv, double hz);
 
 extern const device_t i8251_device;
 extern const device_t ns8250_device;
-extern const device_t ns8250_pcjr_3f8_device;
-extern const device_t ns8250_pcjr_2f8_device;
 extern const device_t ns16450_device;
 extern const device_t ns16550_device;
 extern const device_t ns16650_device;
