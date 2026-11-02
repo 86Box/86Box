@@ -150,7 +150,6 @@
 #define RP_BM_HOSTDATA         0x244
 #define RP_BM_ADDR             0x248
 #define RP_BM_GUI_TABLE_CMD    0x24c
-#define RP_TEX_PALETTE_INDEX   0x340
 #define RP_STW_EXP             0x344
 #define RP_LOG_MAX_INC         0x348
 #define RP_W_X_INC             0x358
@@ -183,6 +182,7 @@
 #define RP_TEX_ST_DIRECT       (1u << 19)
 #define RP_TEX_SRC_AGP         (1u << 20)
 #define RP_TEX_CACHE_FLUSH     (1u << 23)
+#define RP_TEX_CACHE_SIZE_SELECT (1u << 30)
 #define RP_SEC_TEX_CLAMP_S     (1u << 24)
 #define RP_SEC_TEX_CLAMP_T     (1u << 25)
 #define RP_SECONDARY_STW       (1u << 31)
@@ -273,6 +273,7 @@ struct mach64_3d_t {
     mach64_t *mach64;
     uint32_t  regs[256];            /* the register block, as dwords */
     uint32_t  texture_palette[256]; /* CI8 texels, 0x00RRGGBB */
+    uint8_t   texture_palette_ram[0x800]; /* Rage Pro texture cache palette image */
 
     /* The trailing edge is a live trajectory register, like DST_Y_X. */
     int trail_x;
@@ -311,11 +312,6 @@ struct mach64_3d_t {
     uint32_t vtx_sec[3][3];
     uint32_t setup_cntl;
     uint32_t one_over_area;
-    /* TEX_PALETTE_INDEX: once written, TEX_PALETTE stores at the index and
-       steps it, else it takes the GT-B's index in bits 31:24. */
-    int      palette_indexed;
-    uint32_t palette_index;
-
     /* The emulation thread's AGP pages, and the rows of a triangle found
        and not yet drawn. */
     mach64_rp_agp_cache_t agp;
@@ -735,6 +731,23 @@ static void
 mach64_3d_texture_palette_store(uint32_t *palette, uint32_t value)
 {
     palette[value >> 24] = value & 0x00ffffff;
+}
+
+static void
+mach64_3d_texture_palette_cache_byte(mach64_3d_t *ctx, uint32_t addr, uint8_t value)
+{
+    unsigned offset = addr & 0x7ff;
+    unsigned slot   = (offset & 0x3ff) >> 2;
+    unsigned index  = slot >> 1;
+    uint16_t packed;
+
+    /* ATID3DR3 packs {low, low, high, high} RGB565 words in each
+       8-byte group; the second 0x400-byte half reverses low and high. */
+    ctx->texture_palette_ram[offset] = value;
+    index += ((((slot & 1) != 0) ^ (offset >= 0x400)) ? 128 : 0);
+    offset &= ~1u;
+    packed = ctx->texture_palette_ram[offset] | ((uint16_t) ctx->texture_palette_ram[offset + 1] << 8);
+    ctx->texture_palette[index] = mach64_3d_argb565(packed, 1) & 0x00ffffff;
 }
 
 /*
@@ -2810,12 +2823,26 @@ mach64_scaler_destination_supported(int format)
 static rgba_t
 mach64_scaler_read_source(mach64_3d_t *ctx, int format, uint32_t base, uint32_t pitch, int x, int y)
 {
+    mach64_t *mach64 = ctx->mach64;
     int    bpp   = mach64_scaler_source_bpp(format);
     rgba_t black = { 0, 0, 0, 255 };
+    uint32_t addr;
+    uint32_t raw;
 
     if ((bpp != 1) && (bpp != 2) && (bpp != 4))
         return black;
-    return mach64_3d_unpack(ctx, format, mach64_3d_vram_read(ctx->mach64, base + (y * pitch + x) * bpp, bpp), 1);
+    addr = base + (y * pitch + x) * bpp;
+    raw  = mach64_3d_vram_read(mach64, addr, bpp);
+    if (mach64->ragepro && format == 8 && (ctx->regs[RP_TEX_CNTL >> 2] & RP_TEX_CACHE_SIZE_SELECT)) {
+        /* A cache fill brings in the whole line, including the bytes
+           between the scaler's samples (32 source bytes per pixel in
+           ATI's palette upload). */
+        for (unsigned i = 0; i < 32; i++) {
+            uint32_t fetch = (addr & ~31u) + i;
+            mach64_3d_texture_palette_cache_byte(ctx, fetch, mach64_3d_vram_read8(mach64, fetch));
+        }
+    }
+    return mach64_3d_unpack(ctx, format, raw, 1);
 }
 
 static uint32_t
@@ -3014,7 +3041,7 @@ mach64_scaler_draw(mach64_3d_t *ctx)
     mach64_t       *mach64     = ctx->mach64;
     const uint32_t *regs       = ctx->regs;
     int             replicate  = !!(regs[SCALE_3D_CNTL >> 2] & SCALE_PIX_REP);
-    uint32_t        src_base   = regs[SCALE_Y_OFF >> 2] & ~7;
+    uint32_t        src_base   = regs[SCALE_Y_OFF >> 2] & (mach64->ragepro ? ~3u : ~7u);
     int             src_width  = regs[SCALE_WIDTH >> 2] & 0x1fff;
     int             src_height = regs[SCALE_HEIGHT >> 2] & 0x1fff;
     uint32_t        src_pitch  = regs[SCALE_Y_PITCH >> 2] & 0x1fff;
@@ -3407,21 +3434,6 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
     /* The Rage Pro's own block 0 registers; its bus master's
        (vid_ati_mach64_ragepro.c) have been seen before the FIFO. */
     if (mach64->ragepro) {
-        if (reg == RP_TEX_PALETTE_INDEX) {
-            ctx->regs[reg >> 2]  = mach64_3d_merge_write(ctx->regs[reg >> 2], addr, val, type);
-            ctx->palette_indexed = 1;
-            ctx->palette_index   = ctx->regs[reg >> 2] & 0xff;
-            return 1;
-        }
-        if ((reg == TEX_PALETTE) && ctx->palette_indexed) {
-            /* With an index set the entries are stored in turn. */
-            ctx->regs[reg >> 2] = mach64_3d_merge_write(ctx->regs[reg >> 2], addr, val, type);
-            if (mach64_3d_write_complete(addr, type)) {
-                ctx->texture_palette[ctx->palette_index & 0xff] = ctx->regs[reg >> 2] & 0x00ffffff;
-                ctx->palette_index                              = (ctx->palette_index + 1) & 0xff;
-            }
-            return 1;
-        }
         if (mach64_3d_ragepro_register(reg)) {
             ctx->regs[reg >> 2] = mach64_3d_merge_write(ctx->regs[reg >> 2], addr, val, type);
             return 1;
@@ -3581,35 +3593,52 @@ typedef struct mach64_rp_map_t {
  * holding y4 XOR x5. That is the same byte address bit as the 16 bpp x5,
  * the swizzle being of memory, not of texels. Found by de-tiling 3DMark
  * 99's 64x64 to 256x256 maps every way and keeping the smoothest, then
- * telling it from its transpose by the HUD's lettering; 8 bpp maps are
- * taken to be laid out as 16 bpp ones.
+ * telling it from its transpose by the HUD's lettering.
  *
- * mach64_rp_tile[bpp32][l2w][l2h] holds, for a 2^l2w x 2^l2h map, each u's
+ * 8 bpp uses x0 x1 y0 x2 y1 y2, then x3 y3 x4 y4 and so on,
+ * with y5 XOR x6. This matches all 65536 bytes of Forsaken's 256x256
+ * menu texture against its original bitmap. Each format's bank XOR
+ * therefore lands on byte address bit 11.
+ *
+ * mach64_rp_tile[depth][l2w][l2h] holds, for 8/16/32 bpp and a 2^l2w x 2^l2h map, each u's
  * and each v's share of the texel index, to be XORed: 1024 entries for u,
  * then 1024 for v.
  */
-static uint32_t *mach64_rp_tile[2][11][11];
+static uint32_t *mach64_rp_tile[3][11][11];
 
 static void
 mach64_rp_tile_init(void)
 {
     if (mach64_rp_tile[0][0][0])
         return;
-    for (int bpp32 = 0; bpp32 < 2; bpp32++)
+    for (int depth = 0; depth < 3; depth++)
         for (int l2w = 0; l2w <= 10; l2w++)
             for (int l2h = 0; l2h <= 10; l2h++) {
                 uint32_t *t     = calloc(2048, sizeof(uint32_t));
-                int       first = bpp32 ? 0 : 2; /* x and y bits below this go in pairs, x0 x1 y0 y1 */
+                int       first = (depth == 2) ? 0 : ((depth == 0) ? 3 : 2);
                 int       xbit[10];
                 int       ybit[10];
                 int       pos = 0;
 
-                for (int i = 0; i < first; i++)
-                    if (i < l2w)
-                        xbit[i] = pos++;
-                for (int i = 0; i < first; i++)
-                    if (i < l2h)
-                        ybit[i] = pos++;
+                if (depth == 0) {
+                    /* 0..9 name X bits, 10..19 name Y bits. */
+                    static const int prefix[] = { 0, 1, 10, 2, 11, 12 };
+                    for (unsigned i = 0; i < sizeof(prefix) / sizeof(prefix[0]); i++) {
+                        int bit = prefix[i] % 10;
+                        if (prefix[i] < 10) {
+                            if (bit < l2w)
+                                xbit[bit] = pos++;
+                        } else if (bit < l2h)
+                            ybit[bit] = pos++;
+                    }
+                } else {
+                    for (int i = 0; i < first; i++)
+                        if (i < l2w)
+                            xbit[i] = pos++;
+                    for (int i = 0; i < first; i++)
+                        if (i < l2h)
+                            ybit[i] = pos++;
+                }
                 for (int i = first; i < 10; i++) {
                     if (i < l2w)
                         xbit[i] = pos++;
@@ -3623,23 +3652,28 @@ mach64_rp_tile_init(void)
                         if ((i < l2h) && ((c >> i) & 1))
                             t[1024 + c] |= 1u << ybit[i];
                     }
-                /* The bank swizzle: x5 ^= y5 at 16 bpp, y4 ^= x5 at 32 */
-                if (!bpp32 && (l2w > 5) && (l2h > 5))
+                /* The bank swizzle of byte address bit 11. */
+                if ((depth == 0) && (l2w > 6) && (l2h > 5))
+                    for (int c = 0; c < 1024; c++)
+                        if ((c >> 6) & 1)
+                            t[c] ^= 1u << ybit[5];
+                if ((depth == 1) && (l2w > 5) && (l2h > 5))
                     for (int c = 0; c < 1024; c++)
                         if ((c >> 5) & 1)
                             t[1024 + c] ^= 1u << xbit[5];
-                if (bpp32 && (l2w > 5) && (l2h > 4))
+                if ((depth == 2) && (l2w > 5) && (l2h > 4))
                     for (int c = 0; c < 1024; c++)
                         if ((c >> 5) & 1)
                             t[c] ^= 1u << ybit[4];
-                mach64_rp_tile[bpp32][l2w][l2h] = t;
+                mach64_rp_tile[depth][l2w][l2h] = t;
             }
 }
 
 static void
 mach64_rp_map_tiled(mach64_rp_map_t *map)
 {
-    const uint32_t *t = mach64_rp_tile[map->tex.bpp == 4][log2i(map->w)][log2i(map->h)];
+    int depth = (map->tex.bpp == 4) ? 2 : ((map->tex.bpp == 2) ? 1 : 0);
+    const uint32_t *t = mach64_rp_tile[depth][log2i(map->w)][log2i(map->h)];
 
     map->tile_u = t;
     map->tile_v = t + 1024;

@@ -70,6 +70,7 @@ if(BUILD_TESTING)
         ${PROJECT_BINARY_DIR}/src/include
     )
     add_test(NAME Mach64.3D COMMAND mach64_3d_tests)
+    add_test(NAME Mach64.Palette COMMAND mach64_3d_tests --palette)
 
     add_executable(ogc_deb_tests vid_ogc_deb_test.c)
     target_include_directories(ogc_deb_tests PRIVATE

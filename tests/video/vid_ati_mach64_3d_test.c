@@ -40,6 +40,37 @@ int       monitor_index_global;
 
 static int failures;
 static int card_type = MACH64_GTB;
+static uint8_t test_agp[0x10000];
+
+/* Host services used by the Rage Pro path in the shared engine. */
+uint8_t
+log2i(uint32_t value)
+{
+    uint8_t result = 0;
+    while (value >>= 1)
+        result++;
+    return result;
+}
+
+void
+pclog(const char *fmt, ...)
+{
+    (void) fmt;
+}
+
+const uint8_t *
+agpgart_bus_ptr(uint32_t addr, uint32_t len)
+{
+    return (addr <= sizeof(test_agp) && len <= sizeof(test_agp) - addr) ? test_agp + addr : NULL;
+}
+
+void
+dma_bm_read(uint32_t addr, uint8_t *dst, uint32_t len, int transfer_size)
+{
+    (void) addr;
+    (void) transfer_size;
+    memset(dst, 0, len);
+}
 
 /* The draw engine FIFO: a drain runs what is queued, and an ordering test
    can have a queued DP_SRC and DST_CNTL take effect at the next drain. */
@@ -522,6 +553,7 @@ yuv_tests(void)
 static void
 palette_tests(void)
 {
+    mach64_3d_t ctx = { 0 };
     uint32_t palette[256] = { 0 };
     uint32_t rgb;
     uint32_t ci4_low;
@@ -534,6 +566,23 @@ palette_tests(void)
     expect_u32("entry 0x30", palette[0x30], 0x00bda54au);
     expect_u32("entry 0x01", palette[0x01], 0x00181821u);
     expect_u32("unwritten entry", palette[0x02], 0);
+
+    mach64_3d_expand_table_init();
+
+    /* The scaler's palette image swaps the two 128-entry halves in its
+       second 0x400-byte row. */
+    mach64_3d_texture_palette_cache_byte(&ctx, 0x000, 0x00);
+    mach64_3d_texture_palette_cache_byte(&ctx, 0x001, 0xf8);
+    expect_u32("palette cache first-half entry", ctx.texture_palette[0], 0xff0000u);
+    mach64_3d_texture_palette_cache_byte(&ctx, 0x004, 0xe0);
+    mach64_3d_texture_palette_cache_byte(&ctx, 0x005, 0x07);
+    expect_u32("palette cache first-row high entry", ctx.texture_palette[128], 0x00ff00u);
+    mach64_3d_texture_palette_cache_byte(&ctx, 0x400, 0x1f);
+    mach64_3d_texture_palette_cache_byte(&ctx, 0x401, 0x00);
+    expect_u32("palette cache second-row high entry", ctx.texture_palette[128], 0x0000ffu);
+    mach64_3d_texture_palette_cache_byte(&ctx, 0x404, 0xff);
+    mach64_3d_texture_palette_cache_byte(&ctx, 0x405, 0xff);
+    expect_u32("palette cache second-row low entry", ctx.texture_palette[0], 0xffffffu);
 
     rgb = palette[0x30];
     expect_u32("red", (rgb >> 16) & 0xff, 0xbdu);
@@ -1063,6 +1112,120 @@ scaler_tests(void)
     failures += run_scaler_color_compare_test(mach64);
     failures += run_scaler_visibility_test(mach64);
     card_close(mach64);
+}
+
+/* ATID3DR3's palette upload: Y8 samples 32 bytes apart, bilinearly
+   filtered over two rows, with destination writes disabled. */
+static void
+ragepro_palette_upload_tests(void)
+{
+    mach64_t *m = card_create();
+    mach64_3d_t *ctx = m->gt3d;
+    const uint32_t staging = 0x20800;
+
+    m->ragepro = 1;
+    m->dp_pix_width = 0x80000003;
+    m->dp_src = 0x505;
+    m->dp_mix = 0x70007;
+    m->write_mask = 0;
+    m->dst_off_pitch = 0x10000000;
+    m->dst_cntl = 0x8e023;
+    m->sc_left_right = 0x1fff0000;
+    m->sc_top_bottom = 0x3fff0000;
+    for (unsigned pass = 0; pass < 2; pass++) {
+        for (unsigned i = 0; i < 128; i++) {
+            uint16_t low = ((i + pass) << 8) | i;
+            uint16_t high = 0xffffu ^ low;
+            uint16_t words[] = {low, low, high, high, high, high, low, low};
+            memcpy(m->svga.vram + staging + i * 8, words, 8);
+            memcpy(m->svga.vram + staging + 0x400 + i * 8, words + 4, 8);
+        }
+        mach64_3d_write(m, SCALE_3D_CNTL, 0x40, FIFO_WRITE_DWORD);
+        mach64_3d_write(m, RP_TEX_CNTL, 0x40800000, FIFO_WRITE_DWORD);
+        mach64_3d_write(m, SCALE_Y_OFF, staging + 4, FIFO_WRITE_DWORD);
+        mach64_3d_write(m, SCALE_Y_PITCH, 0x3fc, FIFO_WRITE_DWORD);
+        mach64_3d_write(m, SCALE_WIDTH, 0x400, FIFO_WRITE_DWORD);
+        mach64_3d_write(m, SCALE_HEIGHT, 2, FIFO_WRITE_DWORD);
+        mach64_3d_write(m, SCALE_HACC, 0, FIFO_WRITE_DWORD);
+        mach64_3d_write(m, SCALE_VACC, 0x8000, FIFO_WRITE_DWORD);
+        mach64_3d_write(m, SCALE_X_INC, 0x200000, FIFO_WRITE_DWORD);
+        mach64_3d_write(m, SCALE_Y_INC, 0x10000, FIFO_WRITE_DWORD);
+        mach64_3d_write(m, 0x118, 0x200001, FIFO_WRITE_DWORD);
+        mach64_3d_write(m, RP_TEX_CNTL, RP_TEX_CACHE_FLUSH, FIFO_WRITE_DWORD);
+        for (unsigned i = 0; i < 256; i++) {
+            uint16_t packed = (((i & 127) + pass) << 8) | (i & 127);
+            if (i >= 128)
+                packed ^= 0xffff;
+            uint32_t r = (packed >> 11) & 31, g = (packed >> 5) & 63, b = packed & 31;
+            uint32_t expected = ((r << 3 | r >> 2) << 16) | ((g << 2 | g >> 4) << 8) | (b << 3 | b >> 2);
+            expect_u32("driver palette upload", ctx->texture_palette[i], expected);
+            m->svga.vram[0x30000 + i] = i;
+            mach64_3d_texture_t map = {.base = 0x30000, .width = 256, .bpp = 1, .format = 2};
+            int inhibits;
+            expect_u32("uploaded CI8 texel", mach64_3d_texel_at(ctx, &map, i, 0, &inhibits), 0xff000000 | expected);
+            test_agp[i] = i;
+            map.base = 0;
+            expect_u32("uploaded AGP CI8 texel", mach64_rp_texel_agp(ctx, &ctx->agp, &map, i, 0, &inhibits), 0xff000000 | expected);
+        }
+        expect_u32("palette upload leaves destination intact", *pixel32(m, 0), 0);
+    }
+    /* Ordinary scaler reads and older cards must not load texture RAM. */
+    memset(m->svga.vram + staging, 0, 0x800);
+    uint32_t saved[256];
+    memcpy(saved, ctx->texture_palette, sizeof(saved));
+    for (unsigned i = 0; i < 0x800; i += 32)
+        (void) mach64_scaler_read_source(ctx, 8, staging, 0x400, i, 0);
+    CHECK(!memcmp(saved, ctx->texture_palette, sizeof(saved)));
+    m->ragepro = 0;
+    ctx->regs[RP_TEX_CNTL >> 2] = RP_TEX_CACHE_SIZE_SELECT;
+    for (unsigned i = 0; i < 0x800; i += 32)
+        (void) mach64_scaler_read_source(ctx, 8, staging, 0x400, i, 0);
+    CHECK(!memcmp(saved, ctx->texture_palette, sizeof(saved)));
+    m->ragepro = 1;
+    /* 0x340 is not an auto-increment selector for packed TEX_PALETTE. */
+    mach64_3d_write(m, 0x340, 7, FIFO_WRITE_DWORD);
+    mach64_3d_write(m, TEX_PALETTE, 0x9a123456, FIFO_WRITE_DWORD);
+    expect_u32("packed palette keeps its explicit index", ctx->texture_palette[0x9a], 0x123456);
+    card_close(m);
+}
+
+static void
+ragepro_ci8_tiling_tests(void)
+{
+    mach64_t *m = card_create();
+    mach64_3d_t *ctx = m->gt3d;
+    mach64_rp_map_t map = {0};
+    /* Fixed coordinate-bit positions from a byte-for-byte comparison of
+       the driver's 256x256 AGP texture upload and its source bitmap. */
+    const unsigned xb[] = {0, 1, 3, 6, 8, 10, 12, 14};
+    const unsigned yb[] = {2, 4, 5, 7, 9, 11, 13, 15};
+
+    m->ragepro = 1;
+    mach64_rp_map_level(ctx, &map, 2, 0x30000, 8, 8, 0, 0);
+    mach64_rp_map_tiled(&map);
+    for (unsigned i = 0; i < 256; i++)
+        ctx->texture_palette[i] = i * 0x010101;
+    for (unsigned y = 0; y < 256; y++)
+        for (unsigned x = 0; x < 256; x++) {
+            unsigned addr = ((x >> 6) & 1) << 11;
+            for (unsigned b = 0; b < 8; b++)
+                addr ^= (((x >> b) & 1) << xb[b]) | (((y >> b) & 1) << yb[b]);
+            uint8_t texel = (x * 17 + y * 31) & 255;
+            m->svga.vram[0x30000 + addr] = texel;
+            test_agp[addr] = texel;
+            expect_u32("CI8 tiled address", map.tile_u[x] ^ map.tile_v[y], addr);
+        }
+    for (int agp = 0; agp < 2; agp++) {
+        map.agp = agp;
+        map.tex.base = agp ? 0 : 0x30000;
+        for (int y = 0; y < 256; y++)
+            for (int x = 0; x < 256; x++) {
+                uint32_t expected = 0xff000000 | (((x * 17 + y * 31) & 255) * 0x010101);
+                int inhibits;
+                expect_u32("CI8 tiled texel", mach64_rp_texel(ctx, &ctx->agp, &map, x, y, &inhibits), expected);
+            }
+    }
+    card_close(m);
 }
 
 /*
@@ -2550,8 +2713,15 @@ draw_tests(void)
 }
 
 int
-main(void)
+main(int argc, char **argv)
 {
+    if (argc == 2 && !strcmp(argv[1], "--palette")) {
+        palette_tests();
+        ragepro_palette_upload_tests();
+        ragepro_ci8_tiling_tests();
+        printf("Mach64 palette: %d failed checks\n", failures);
+        return failures ? 1 : 0;
+    }
     /* Both generations use this register-driven draw engine and scaler. */
     for (card_type = MACH64_GT; card_type <= MACH64_GTB; card_type++) {
         field_tests();
@@ -2566,6 +2736,10 @@ main(void)
         scaler_tests();
         draw_tests();
     }
+    /* The Rage Pro's own paths are on the GT-B core. */
+    card_type = MACH64_GTB;
+    ragepro_palette_upload_tests();
+    ragepro_ci8_tiling_tests();
 
     if (failures) {
         fprintf(stderr, "Mach64 3D engine: %d checks failed\n", failures);
