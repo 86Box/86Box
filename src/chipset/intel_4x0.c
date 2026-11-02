@@ -542,7 +542,10 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                         i4x0_mask_bar(regs, dev->agpgart);
                         break;
                     case INTEL_440GX:
-                        regs[0x51] = (regs[0x51] & 0xb0) | (val & 0x4f);
+                        /* Bit 15 (WSC# Handshake Disable) is read-write and
+                           bit 14 reserved, as on the 440BX (82443GX datasheet,
+                           NBXCFG). */
+                        regs[0x51] = (regs[0x51] & 0x70) | (val & 0x8f);
                         i4x0_mask_bar(regs, dev->agpgart);
                         break;
                     default:
@@ -1377,7 +1380,8 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 switch (dev->type) {
                     case INTEL_440LX:
                     case INTEL_440EX:
-                        regs[0xa7] = val & 0x1f;
+                        /* AGPSTAT's request depth is read-only (82443LX/EX
+                           datasheets, AGPSTAT). */
                         break;
                     default:
                         break;
@@ -1414,7 +1418,9 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 switch (dev->type) {
                     case INTEL_440LX:
                     case INTEL_440EX:
-                        regs[0xb1] = (val & 0x22);
+                        /* CGAS (bit 13) and the expedite throttle timer
+                           (bits 9:8) (82443LX/EX datasheets, AGPCTRL). */
+                        regs[0xb1] = (val & 0x23);
                         break;
                     case INTEL_440BX:
                     case INTEL_440ZX:
