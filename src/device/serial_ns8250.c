@@ -898,6 +898,23 @@ serial_remove(serial_t *dev)
     dev->base_address = 0x0000;
 }
 
+/*
+   Moves the UART's interrupt output to another IRQ line, or to none (0xff).
+   Like the multiplexer on a real chip, this drops it from the old line and
+   raises it on the new one if an interrupt is pending, so that a level held
+   on the old line is released.
+ */
+static void
+serial_set_irq_line(serial_t *dev, uint8_t irq)
+{
+    if (irq == dev->irq)
+        return;
+
+    serial_do_irq(dev, 0);
+    dev->irq = irq;
+    serial_update_ints(dev);
+}
+
 void
 serial_setup(serial_t *dev, uint16_t addr, uint8_t irq)
 {
@@ -913,7 +930,7 @@ serial_setup(serial_t *dev, uint16_t addr, uint8_t irq)
     dev->base_address = addr;
     if (addr != 0x0000)
         io_sethandler(addr, 0x0008, serial_read, NULL, NULL, serial_write, NULL, NULL, dev);
-    dev->irq = irq;
+    serial_set_irq_line(dev, irq);
 }
 
 void
@@ -922,10 +939,7 @@ serial_irq(serial_t *dev, const uint8_t irq)
     if (dev == NULL)
         return;
 
-    if (com_ports[dev->inst].enabled)
-        dev->irq = irq;
-    else
-        dev->irq = 0xff;
+    serial_set_irq_line(dev, com_ports[dev->inst].enabled ? irq : 0xff);
 
     serial_log("Port %i IRQ = %02X\n", dev->inst, irq);
 }
