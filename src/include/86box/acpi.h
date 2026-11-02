@@ -25,6 +25,7 @@ extern "C" {
 #define PM_FREQ         ACPI_TIMER_FREQ
 
 #define RSM_STS         (1 << 15)
+#define RTC_STS         (1 << 10)
 #define PWRBTN_STS      (1 << 8)
 #define GBL_STS         (1 << 5)
 #define BM_STS          (1 << 4)
@@ -93,6 +94,7 @@ typedef struct acpi_regs_t {
     uint8_t  reg_34;
     uint8_t  index;
     uint8_t  reg_ff;
+    uint8_t  pm2_cntrl;
     uint16_t pmsts;
     uint16_t pmen;
     uint16_t pmcntrl;
@@ -158,6 +160,7 @@ typedef struct acpi_t {
     int         mirq_is_level;
     int         usb_sts_w1c; /* GLBSTS bit 1 as on the SLC90E66 */
     int         usb_smi_level; /* SiS 5595: last level of the OHCI's SMI output */
+    int         rtc_sts_seen;  /* acpi_rtc_status at the last poll */
     uint64_t    pmtmr_latch;
     pc_timer_t  timer;
     pc_timer_t  resume_timer;

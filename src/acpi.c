@@ -103,20 +103,21 @@ acpi_gp_timer_get(UNUSED(acpi_t *dev))
     return clock;
 }
 
+/* Time to the next change of the counter's top bit (bit 23, or bit 31 with
+   the 32-bit timer), when TMR_STS is set (ACPI 1.0 Table 4-9). */
 static double
 acpi_get_overflow_period(acpi_t *dev)
 {
     uint64_t timer = acpi_clock_get();
-    uint64_t overflow_time;
+    uint64_t half  = dev->regs.timer32 ? 0x80000000ULL : 0x00800000ULL;
+    uint64_t next  = (timer | (half - 1)) + 1;
 
-    if (dev->regs.timer32)
-        overflow_time = (timer + 0x80000000LL) & ~0x7fffffffLL;
-    else
-        overflow_time = (timer + 0x800000LL) & ~0x7fffffLL;
+    /* A callback that runs a hair before the toggle it was set for has
+       already reported it: aim for the next one. */
+    if ((next - timer) < 0x100)
+        next += half;
 
-    uint64_t time_to_overflow = overflow_time - timer;
-
-    return ((double) time_to_overflow / (double) ACPI_TIMER_FREQ) * 1000000.0;
+    return ((double) (next - timer) / (double) ACPI_TIMER_FREQ) * 1000000.0;
 }
 
 static void
@@ -128,13 +129,15 @@ acpi_timer_update(acpi_t *dev, bool enable)
         timer_stop(&dev->timer);
 }
 
+/* TMR_STS is set at every change of the top bit, whatever TMR_EN says; the
+   enable only decides whether it raises SCI. So the timer always runs. */
 static void
 acpi_timer_overflow(void *priv)
 {
     acpi_t *dev = (acpi_t *) priv;
     dev->regs.pmsts |= TMROF_STS;
     acpi_update_irq(dev);
-    acpi_timer_update(dev, (dev->regs.pmen & TMROF_EN) && !(dev->regs.pmsts & TMROF_STS));
+    acpi_timer_update(dev, true);
 }
 
 static void
@@ -145,7 +148,7 @@ acpi_gp_timer_update(acpi_t *dev, bool enable, int count)
         acpi_count = count;
         timer_on_auto(&dev->gp_timer, (1000000.0 / (double) ACPI_TIMER_FREQ) * ((double) count));
     } else
-        timer_stop(&dev->timer);
+        timer_stop(&dev->gp_timer);
 }
 
 void
@@ -196,7 +199,8 @@ acpi_per_timer(void *priv)
 void
 acpi_update_irq(acpi_t *dev)
 {
-    int sci_level = (dev->regs.pmsts & dev->regs.pmen) & (RTC_EN | PWRBTN_EN | GBL_EN | TMROF_EN);
+    uint16_t pmsts     = dev->regs.pmsts | (acpi_rtc_status ? RTC_STS : 0);
+    int      sci_level = (pmsts & dev->regs.pmen) & (RTC_EN | PWRBTN_EN | GBL_EN | TMROF_EN);
     sis_55xx_common_t *sis = (sis_55xx_common_t *) dev->priv;
 
     switch (dev->vendor) {
@@ -335,6 +339,8 @@ acpi_reg_read_common_regs(UNUSED(int size), uint16_t addr, void *priv)
             ret = (dev->regs.pmcntrl >> shift16) & 0xff;
             if (addr == 0x05)
                 ret = (ret & 0xdf); /* Bit 5 is write-only. */
+            else if (dev->vendor == VEN_VIA_596B)
+                ret &= ~0x04; /* GBL_RLS is write-only (VT82C596B p. 71 / PDF 77). */
             break;
         case 0x08:
         case 0x09:
@@ -377,7 +383,7 @@ acpi_reg_read_ali(int size, uint16_t addr, void *priv)
         case 0x12:
         case 0x13:
             /* PCNTRL - Processor Control Register (IO) */
-            ret = (dev->regs.pcntrl >> shift16) & 0xff;
+            ret = (dev->regs.pcntrl >> shift32) & 0xff;
             break;
         case 0x14:
             /* LVL2 - Processor Level 2 Register */
@@ -408,12 +414,13 @@ acpi_reg_read_ali(int size, uint16_t addr, void *priv)
             ret = (dev->regs.gpen1 >> shift16) & 0xff;
             break;
         case 0x20 ... 0x27:
-            /* GPE1_CTL - General Purpose Event1 Control Register */
-            ret = (dev->regs.gpcntrl >> shift32) & 0xff;
+            /* GPE1_CTL / BIOS Release Control: BIOS_RLS (bit 1) always reads 0,
+               the rest is reserved (M1543C p. 203 / PDF 204). */
+            ret = 0x00;
             break;
         case 0x30:
-            /* PM2_CNTRL - Power Management 2 Control Register( */
-            ret = dev->regs.pmcntrl;
+            /* PM2_CNTRL - Power Management 2 Control Register */
+            ret = dev->regs.pm2_cntrl;
             break;
         default:
             ret = acpi_reg_read_common_regs(size, addr, priv);
@@ -833,7 +840,7 @@ acpi_reg_read_sis_5582(int size, uint16_t addr, void *priv)
             break;
         case 0x1a:
         case 0x1b:
-            ret = (dev->regs.reg_18 >> shift16) & 0xff;
+            ret = (dev->regs.reg_1a >> shift16) & 0xff;
             break;
         case 0x1c:
         case 0x1d:
@@ -1149,22 +1156,25 @@ acpi_reg_write_ali(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x1f:
         case 0x1e:
             /* GPE1_EN - General Purpose Event1 Enable Register */
-            dev->regs.gpen1 = ((dev->regs.gpen & ~(0xff << shift16)) | (val << shift16)) & 0x0c01;
+            dev->regs.gpen1 = ((dev->regs.gpen1 & ~(0xff << shift16)) | (val << shift16)) & 0x0c01;
             break;
         case 0x20 ... 0x27:
-            /* GPE1_CTL - General Purpose Event1 Control Register */
-            dev->regs.gpcntrl = ((dev->regs.gpcntrl & ~(0xff << shift32)) | (val << shift32)) & 0x00000001;
+            /* GPE1_CTL / BIOS Release Control: a 1 written to BIOS_RLS (20h
+               bit 1) sets GBL_STS, an SCI if GBL_EN is set; nothing is stored
+               (M1543C p. 203 / PDF 204). */
+            if ((addr == 0x20) && (val & 0x02)) {
+                dev->regs.pmsts |= GBL_STS;
+                acpi_update_irq(dev);
+            }
             break;
         case 0x30:
-            /* PM2_CNTRL - Power Management 2 Control Register */
-            dev->regs.pmcntrl = val & 1;
+            /* PM2_CNTRL - Power Management 2 Control Register: ARB_DIS */
+            dev->regs.pm2_cntrl = val & 0x01;
             break;
         default:
             acpi_reg_write_common_regs(size, addr, val, priv);
             /* Setting GBL_RLS also sets BIOS_STS and generates SMI. */
-            if ((addr == 0x00) && !(dev->regs.pmsts & 0x20))
-                dev->regs.gpcntrl &= ~0x0002;
-            else if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
+            if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
                 dev->regs.gpsts1 |= 0x01;
                 if (dev->regs.gpen1 & 0x01)
                     acpi_raise_smi(dev, 1);
@@ -1205,8 +1215,9 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *priv)
             dev->regs.pcntrl = ((dev->regs.pcntrl & ~(0xff << shift32)) | (val << shift32)) & 0x00023e1e;
             break;
         case 0x12:
-            /* PCNTRL - Processor Control Register (IO) */
-            dev->regs.pcntrl = ((dev->regs.pcntrl & ~(0xfd << shift32)) | (val << shift32)) & 0x00023e1e;
+            /* PCNTRL - Processor Control Register (IO): CC_STS (bit 17) is
+               read-only (PIIX4 7.2.7, p. 141 / PDF 141). */
+            dev->regs.pcntrl = ((dev->regs.pcntrl & ~(0xfd << shift32)) | ((val & 0xfd) << shift32)) & 0x00023e1e;
             break;
         case 0x18:
         case 0x19:
@@ -1234,7 +1245,8 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x2a:
         case 0x2b:
             /* GLBCTL - Global Control Register (IO) */
-            dev->regs.glbctl = ((dev->regs.glbctl & ~(0xff << shift32)) | (val << shift32)) & 0x0701ff07;
+            /* BIOS_RLS (bit 1) always reads 0 (PIIX4 7.2.13, p. 145 / PDF 145). */
+            dev->regs.glbctl = ((dev->regs.glbctl & ~(0xff << shift32)) | (val << shift32)) & 0x0701ff05;
             /* Check if there's anything still pending and re-assert SMI# if it is. */
             /* A pending legacy USB status needs its GLBEN bit 0 only on the
                SLC90E66; the PIIX4 model raises it without LEGACY_USB_EN, as
@@ -1244,11 +1256,10 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *priv)
                  ((dev->regs.glbsts & 0x01) && (dev->regs.glben & 0x02)) ||
                  ((dev->regs.glbsts & 0x02) && (!dev->usb_sts_w1c || (dev->regs.glben & 0x01)))))
                 acpi_raise_smi(dev, 1);
-            /* Setting BIOS_RLS also sets GBL_STS and generates SMI. */
-            if (dev->regs.glbctl & 0x00000002) {
-                dev->regs.pmsts |= 0x20;
-                if (dev->regs.pmen & 0x20)
-                    acpi_update_irq(dev);
+            /* A 1 written to BIOS_RLS sets GBL_STS, an SCI if GBL_EN is set. */
+            if ((addr == 0x28) && (val & 0x02)) {
+                dev->regs.pmsts |= GBL_STS;
+                acpi_update_irq(dev);
             }
             break;
         case 0x2c:
@@ -1273,10 +1284,9 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *priv)
             break;
         default:
             acpi_reg_write_common_regs(size, addr, val, priv);
-            /* Setting GBL_RLS also sets BIOS_STS and generates SMI. */
-            if ((addr == 0x00) && !(dev->regs.pmsts & 0x20))
-                dev->regs.glbctl &= ~0x0002;
-            else if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
+            /* A 1 written to GBL_RLS sets BIOS_STS and generates SMI; the bit
+               reads back (PIIX4 7.2.3, p. 139 / PDF 139). */
+            if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
                 dev->regs.glbsts |= 0x01;
                 if (dev->regs.glben & 0x02)
                     acpi_raise_smi(dev, 1);
@@ -1288,10 +1298,11 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *priv)
 static void
 acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *priv)
 {
-    acpi_t *dev = (acpi_t *) priv;
-    int     shift16;
-    int     shift32;
-    int     level;
+    acpi_t  *dev = (acpi_t *) priv;
+    int      shift16;
+    int      shift32;
+    int      level;
+    uint32_t old;
 
     addr &= 0xff;
     acpi_log("(%i) ACPI Write (%i) %02X: %02X\n", in_smm, size, addr, val);
@@ -1329,15 +1340,16 @@ acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x2c:
             /* GLBCTL - Global Control Register (IO) */
             level              = acpi_via_smi_level(dev);
+            old                = dev->regs.glbctl;
             dev->regs.glbctl   = (dev->regs.glbctl & ~0xff) | (val & 0xff);
             dev->regs.smi_lock = !!(dev->regs.glbctl & 0x0010);
             if (!level && acpi_via_smi_level(dev))
                 acpi_raise_smi(dev, 1);
-            /* Setting BIOS_RLS also sets GBL_STS and generates SMI. */
-            if (dev->regs.glbctl & 0x0002) {
-                dev->regs.pmsts |= 0x20;
-                if (dev->regs.pmen & 0x20)
-                    acpi_update_irq(dev);
+            /* Setting BIOS_RLS sets GBL_STS (an SCI if GBL_EN is set); it stays
+               set until GBL_STS is cleared (VT82C586B p. 51 / PDF 57). */
+            if (!(old & 0x0002) && (dev->regs.glbctl & 0x0002)) {
+                dev->regs.pmsts |= GBL_STS;
+                acpi_update_irq(dev);
             }
             break;
         case 0x2d:
@@ -1363,17 +1375,29 @@ acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *priv)
             dev->regs.gptren = ((dev->regs.gptren & ~(0xff << shift32)) | (val << shift32)) & 0x000000d9;
             break;
         default:
+            old = dev->regs.pmcntrl;
             acpi_reg_write_common_regs(size, addr, val, priv);
-            /* Setting GBL_RLS also sets BIOS_STS and generates SMI. */
-            if ((addr == 0x00) && !(dev->regs.pmsts & 0x20))
+            /* Clearing GBL_STS clears BIOS_RLS. Setting GBL_RLS sets BIOS_STS
+               and, with BIOS_EN, generates SMI; it stays set until BIOS_STS is
+               cleared, so writing it back set raises nothing (VT82C586B p. 47
+               and 50 / PDF 53 and 56). */
+            if ((addr == 0x00) && !(dev->regs.pmsts & GBL_STS))
                 dev->regs.glbctl &= ~0x0002;
-            else if ((addr == 0x04) && (dev->regs.pmcntrl & 0x0004)) {
+            else if ((addr == 0x04) && !(old & 0x0004) && (dev->regs.pmcntrl & 0x0004)) {
                 dev->regs.glbsts |= 0x20;
                 if (dev->regs.glben & 0x20)
                     acpi_raise_smi(dev, 1);
             }
             break;
     }
+}
+
+/* Clearing BIOS_STS clears GBL_RLS (VT82C586B p. 50 / PDF 56). */
+static void
+acpi_via_bios_sts_cleared(acpi_t *dev)
+{
+    if (!(dev->regs.glbsts & 0x20))
+        dev->regs.pmcntrl &= ~0x0004;
 }
 
 static void
@@ -1401,6 +1425,7 @@ acpi_reg_write_via(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x29:
             /* GLBSTS - Global Status Register (IO) */
             dev->regs.glbsts &= ~((val << shift16) & 0x007f);
+            acpi_via_bios_sts_cleared(dev);
             break;
         case 0x2a:
         case 0x2b:
@@ -1480,6 +1505,7 @@ acpi_reg_write_via_596b(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x29:
             /* GLBSTS - Global Status Register (IO) */
             dev->regs.glbsts &= ~((val << shift16) & 0xfdff);
+            acpi_via_bios_sts_cleared(dev);
             break;
         case 0x2a:
         case 0x2b:
@@ -2412,6 +2438,9 @@ void
 acpi_set_timer32(acpi_t *dev, uint8_t timer32)
 {
     dev->regs.timer32 = timer32;
+    /* The top bit moves: re-aim the TMR_STS timer. */
+    if (timer_is_enabled(&dev->timer))
+        acpi_timer_update(dev, true);
 }
 
 void
@@ -2501,12 +2530,18 @@ acpi_pwrbtn_timer(void *priv)
     acpi_t *dev = (acpi_t *) priv;
 
     timer_on_auto(&dev->pwrbtn_timer, 16. * 1000.);
+    /* A press always sets PWRBTN_STS; PWRBTN_EN only decides whether it
+       raises SCI (ACPI 1.0 Table 4-9). */
     if (acpi_pwrbut_pressed) {
         acpi_pwrbut_pressed = 0;
-        if (dev->regs.pmen & PWRBTN_EN) {
-            dev->regs.pmsts |= PWRBTN_STS;
-            acpi_update_irq(dev);
-        }
+        dev->regs.pmsts |= PWRBTN_STS;
+        acpi_update_irq(dev);
+    }
+    /* RTC_STS is set from the PIC's IRQ 8 handling (pic.c), where raising
+       SCI would re-enter the PIC: raise it here instead. */
+    if (acpi_rtc_status != dev->rtc_sts_seen) {
+        dev->rtc_sts_seen = acpi_rtc_status;
+        acpi_update_irq(dev);
     }
 }
 
@@ -2687,6 +2722,8 @@ acpi_reset(void *priv)
     acpi_update_irq(dev);
     dev->irq_state = 0;
 
+    acpi_timer_update(dev, true);
+
     timer_disable(&dev->gp_timer);
 
     acpi_last_clock = 0ULL;
@@ -2705,6 +2742,11 @@ acpi_reset(void *priv)
 
         if (gpio != 0xffffffff)
             dev->regs.gpe_pin = gpio & 0x0003ffff;
+    }
+
+    if (dev->vendor == VEN_ALI) {
+        /* SLP_TYP 100b, "Working" (M1543C p. 195 / PDF 196). */
+        dev->regs.pmcntrl = 0x1000;
     }
 
     if (dev->vendor == VEN_SIS_5582) {
