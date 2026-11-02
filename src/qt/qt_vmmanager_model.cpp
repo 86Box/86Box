@@ -105,20 +105,9 @@ VMManagerModel::getConfigObjectForIndex(const QModelIndex &index) const
 void
 VMManagerModel::reload(QWidget *parent)
 {
-    // Scan for configs
-    auto machines_vec = VMManagerSystem::scanForConfigs(parent);
-    for (const auto &scanned_config : machines_vec) {
-        int found = 0;
-        for (const auto &existing_config : machines) {
-            if (*scanned_config == *existing_config) {
-                found = 1;
-            }
-        }
-        if (!found) {
-            addConfigToModel(scanned_config);
-        }
-    }
-    // TODO: Remove missing configs
+    // Prefer the non-blocking background discovery path
+    Q_UNUSED(parent);
+    startBackgroundDiscovery();
 }
 
 void

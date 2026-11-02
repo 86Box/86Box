@@ -23,7 +23,6 @@
 #include <QtNetwork>
 #include <QElapsedTimer>
 #include <QMessageBox>
-#include <QProgressDialog>
 #include <QWindow>
 #include "qt_util.hpp"
 #include "qt_vmmanager_system.hpp"
@@ -126,20 +125,8 @@ VMManagerSystem::~VMManagerSystem()
 QVector<VMManagerSystem *>
 VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
 {
-    const bool showProgress = (parent != nullptr);
-    QProgressDialog progDialog(parent);
-    unsigned int    found = 0;
-    if (showProgress) {
-        progDialog.setCancelButton(nullptr);
-        progDialog.setWindowTitle(tr("Searching for VMs…"));
-        progDialog.setMinimumDuration(0);
-        progDialog.setValue(0);
-        progDialog.setMinimum(0);
-        progDialog.setMaximum(0);
-        progDialog.setWindowFlags(progDialog.windowFlags() & ~Qt::WindowCloseButtonHint);
-        progDialog.setMinimumSize(progDialog.sizeHint());
-        progDialog.setMaximumSize(progDialog.sizeHint());
-    }
+    Q_UNUSED(parent);
+    unsigned int found = 0;
     QElapsedTimer scanTimer;
     scanTimer.start();
     QVector<VMManagerSystem *> system_configs;
@@ -165,10 +152,7 @@ VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
     timer.start();
     while (dir_iterator.hasNext()) {
         found++;
-        if (showProgress) {
-            progDialog.setLabelText(tr("Found %1").arg(QString::number(found)));
-            QApplication::processEvents();
-        }
+
         QString filename = dir_iterator.next();
         QString root_cfg;
         if ((search_directory[search_directory.size() - 1] == '/') || (search_directory[search_directory.size() - 1] == '\\'))
@@ -186,19 +170,12 @@ VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
     // foreach (QFileInfo hit, matches) {
     //     system_configs.append(new VMManagerSystem(hit));
     // }
-    if (showProgress) {
-        progDialog.setMaximum(found);
-        progDialog.setValue(0);
-    }
+
     unsigned int appended = 0;
     for (const auto &filename : matches) {
         system_configs.append(new VMManagerSystem(filename));
         appended++;
-        if (showProgress) {
-            progDialog.setLabelText(system_configs.last()->displayName);
-            progDialog.setValue(appended);
-            QApplication::processEvents();
-        }
+
     }
     if (matches.size()) {
         auto elapsed = timer.elapsed();
