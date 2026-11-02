@@ -14,15 +14,20 @@
  */
 #include <QDebug>
 #include "qt_vmmanager_model.hpp"
+#include <86box/86box.h>
+#include <QDir>
+#include <QFileInfo>
+#include <QDirIterator>
+#include <QApplication>
+#include <QThread>
+#include <QTimer>
+#include <QSet>
+#include <QTimer>
+#include <QSet>
 
 VMManagerModel::VMManagerModel()
 {
-    auto machines_vec = VMManagerSystem::scanForConfigs();
-    for (const auto &each_config : machines_vec) {
-        machines.append(each_config);
-        connect(each_config, &VMManagerSystem::itemDataChanged, this, &VMManagerModel::modelDataChanged);
-        connect(each_config, &VMManagerSystem::globalConfigurationChanged, this, &VMManagerModel::globalConfigurationChanged);
-    }
+    // Start empty; cache load and discovery happen after the window is shown
 }
 
 VMManagerModel::~VMManagerModel()
@@ -100,20 +105,9 @@ VMManagerModel::getConfigObjectForIndex(const QModelIndex &index) const
 void
 VMManagerModel::reload(QWidget *parent)
 {
-    // Scan for configs
-    auto machines_vec = VMManagerSystem::scanForConfigs(parent);
-    for (const auto &scanned_config : machines_vec) {
-        int found = 0;
-        for (const auto &existing_config : machines) {
-            if (*scanned_config == *existing_config) {
-                found = 1;
-            }
-        }
-        if (!found) {
-            addConfigToModel(scanned_config);
-        }
-    }
-    // TODO: Remove missing configs
+    // Prefer the non-blocking background discovery path
+    Q_UNUSED(parent);
+    startBackgroundDiscovery();
 }
 
 void
@@ -144,6 +138,7 @@ VMManagerModel::addConfigToModel(VMManagerSystem *system_config)
     connect(system_config, &VMManagerSystem::itemDataChanged, this, &VMManagerModel::modelDataChanged);
     connect(system_config, &VMManagerSystem::globalConfigurationChanged, this, &VMManagerModel::globalConfigurationChanged);
     endInsertRows();
+    emit systemDataChanged();
 }
 
 void
@@ -201,4 +196,89 @@ VMManagerModel::getActiveMachineCount()
             running++;
     }
     return running;
+}
+
+
+void
+VMManagerModel::loadFromCache(const QString &selectName)
+{
+    const auto paths = VMManagerSystem::cachedConfigPaths();
+    for (const auto &path : paths) {
+        auto *sys = new VMManagerSystem(path);
+        if (sys->isValid()) {
+            addConfigToModel(sys);
+            // If this is the previously selected VM, select it immediately
+            if (!selectName.isEmpty() && sys->config_name == selectName) {
+                const QModelIndex idx = index(machines.size() - 1);
+                emit selectionRestored(idx);
+            }
+            // Let the view update so the list fills in as each VM is loaded
+            QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+        } else {
+            delete sys;
+        }
+    }
+    qDebug() << "Populated" << machines.size() << "VMs from cache";
+}
+
+void
+VMManagerModel::startBackgroundDiscovery()
+{
+    // Run only the filesystem scan on a background thread.
+    // Creating VMManagerSystem (QWidget) objects must stay on the main thread.
+    auto *thread = QThread::create([this]() {
+        // Silent scan that only collects paths (no VMManagerSystem construction)
+        QStringList foundPaths;
+        const QString search_directory = QString::fromUtf8(vmm_path);
+        if (QDir(search_directory).exists()) {
+            const QStringList filters = { QString(CONFIG_FILE) };
+            QDirIterator it(search_directory, filters, QDir::Files, QDirIterator::Subdirectories);
+            while (it.hasNext()) {
+                const QString filename = it.next();
+                // Skip the root config in the search directory itself
+                QString root_cfg;
+                if (search_directory.endsWith('/') || search_directory.endsWith('\\'))
+                    root_cfg = search_directory + QString(CONFIG_FILE);
+                else
+                    root_cfg = search_directory + "/" + QString(CONFIG_FILE);
+                if (filename.compare(root_cfg, Qt::CaseInsensitive) != 0)
+                    foundPaths.append(filename);
+            }
+        }
+
+        // Post the paths back to the main thread for object creation
+        QMetaObject::invokeMethod(this, [this, foundPaths]() {
+            QSet<QString> existingPaths;
+            for (const auto *sys : machines)
+                existingPaths.insert(sys->config_file.canonicalFilePath());
+
+            for (const auto &path : foundPaths) {
+                const QFileInfo fi(path);
+                const QString canonical = fi.canonicalFilePath();
+                if (canonical.isEmpty() || existingPaths.contains(canonical))
+                    continue;
+                auto *sys = new VMManagerSystem(path);
+                if (sys->isValid()) {
+                    addConfigToModel(sys);
+                    existingPaths.insert(canonical);
+                    QApplication::processEvents(QEventLoop::ExcludeUserInputEvents);
+                } else {
+                    delete sys;
+                }
+            }
+
+            // Remove cached entries whose config files no longer exist
+            QVector<VMManagerSystem *> toRemove;
+            for (auto *sys : machines) {
+                if (!sys->config_file.exists())
+                    toRemove.append(sys);
+            }
+            for (auto *sys : toRemove)
+                removeConfigFromModel(sys);
+
+            qDebug() << "Background discovery complete. Total VMs:" << machines.size();
+        }, Qt::QueuedConnection);
+    });
+    thread->start();
+    connect(thread, &QThread::finished, thread, &QObject::deleteLater);
 }
