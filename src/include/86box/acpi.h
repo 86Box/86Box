@@ -62,8 +62,6 @@ typedef struct acpi_regs_t {
     uint8_t  acpitst;
     uint8_t  auxen;
     uint8_t  auxsts;
-    uint8_t  plvl2;
-    uint8_t  plvl3;
     uint8_t  smicmd;
     uint8_t  gpio_dir;
     uint8_t  gpio_val;
@@ -75,8 +73,6 @@ typedef struct acpi_regs_t {
     uint8_t  gporeg[4];
     uint8_t  extiotrapsts;
     uint8_t  extiotrapen;
-    uint8_t  enter_c2_ps;
-    uint8_t  enter_c3_ps;
     uint8_t  reg_12;
     uint8_t  reg_13;
     uint8_t  smi_cmd;
@@ -162,6 +158,10 @@ typedef struct acpi_t {
     int         usb_smi_level; /* SiS 5595: last level of the OHCI's SMI output */
     int         rtc_sts_seen;  /* acpi_rtc_status at the last poll */
     uint64_t    pmtmr_latch;
+    int         power_on;      /* The next reset is a power on: resume event */
+    int         gp_count;      /* SiS general purpose timer: its count, */
+    uint64_t    gp_last_clock; /* and the ACPI clock when it started */
+    int         piix4_ab;      /* PIIX4 before the PIIX4E: its throttling */
     pc_timer_t  timer;
     pc_timer_t  resume_timer;
     pc_timer_t  pwrbtn_timer;
@@ -209,6 +209,9 @@ extern void    acpi_update_aux_io_mapping(acpi_t *dev, uint32_t base, int chipse
 extern void    acpi_init_gporeg(acpi_t *dev, uint8_t val0, uint8_t val1, uint8_t val2, uint8_t val3);
 extern void    acpi_set_timer32(acpi_t *dev, uint8_t timer32);
 extern void    acpi_set_slot(acpi_t *dev, int slot);
+/* The PIIX4 (82371AB) rather than the PIIX4E: its throttling starts at a
+   P_LVL2 read, ends at a break event and has the duty cycle inverted. */
+extern void    acpi_set_piix4_ab(acpi_t *dev, int ab);
 extern void    acpi_set_irq_mode(acpi_t *dev, int irq_mode);
 extern void    acpi_set_irq_pin(acpi_t *dev, int irq_pin);
 extern void    acpi_set_irq_line(acpi_t *dev, int irq_line);

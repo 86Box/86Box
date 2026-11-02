@@ -53,10 +53,6 @@ int        acpi_enabled        = 0;
 static double cpu_to_acpi;
 static int    acpi_pmtmr_read_cycles;
 
-static int      acpi_power_on    = 0;
-static uint64_t acpi_last_clock  = 0ULL;
-static int      acpi_count       = 0;
-
 #ifdef ENABLE_ACPI_LOG
 int acpi_do_log = ENABLE_ACPI_LOG;
 
@@ -92,11 +88,11 @@ acpi_timer_get(acpi_t *dev)
 }
 
 static uint8_t
-acpi_gp_timer_get(UNUSED(acpi_t *dev))
+acpi_gp_timer_get(acpi_t *dev)
 {
     uint64_t clock = acpi_clock_get();
-    clock -= acpi_last_clock;
-    if (clock >= acpi_count)
+    clock -= dev->gp_last_clock;
+    if (clock >= dev->gp_count)
         clock = 0x00;
     else
         clock &= 0xff;
@@ -144,8 +140,8 @@ static void
 acpi_gp_timer_update(acpi_t *dev, bool enable, int count)
 {
     if (enable) {
-        acpi_last_clock = acpi_clock_get();
-        acpi_count = count;
+        dev->gp_last_clock = acpi_clock_get();
+        dev->gp_count      = count;
         timer_on_auto(&dev->gp_timer, (1000000.0 / (double) ACPI_TIMER_FREQ) * ((double) count));
     } else
         timer_stop(&dev->gp_timer);
@@ -168,16 +164,16 @@ acpi_gp_timer(void *priv)
     if (dev->vendor == VEN_SIS_5595_1997) {
         dev->regs.gpe_sts |= 0x20000000;
         dev->regs.leg_sts |= 0x20;
-        acpi_gp_timer_update(dev, (dev->regs.gpe_en & 0x20000000), acpi_count);
+        acpi_gp_timer_update(dev, (dev->regs.gpe_en & 0x20000000), dev->gp_count);
         acpi_sis5595_smi_raise(dev);
     } else if (dev->vendor == VEN_SIS_5595) {
         dev->regs.gpe_sts |= 0x00000400;
         dev->regs.leg_sts |= 0x20;
-        acpi_gp_timer_update(dev, (dev->regs.gpe_en & 0x00000400), acpi_count);
+        acpi_gp_timer_update(dev, (dev->regs.gpe_en & 0x00000400), dev->gp_count);
         acpi_sis5595_smi_raise(dev);
     } else {
         dev->regs.reg_14 |= 0x2000;
-        acpi_gp_timer_update(dev, (dev->regs.reg_16 & 0x2000), acpi_count);
+        acpi_gp_timer_update(dev, (dev->regs.reg_16 & 0x2000), dev->gp_count);
         smi_raise();
     }
 }
@@ -308,6 +304,109 @@ acpi_gp_timer_timeout(void *priv, int n)
         acpi_raise_smi(dev, 1);
 }
 
+/* Processor clock control (ACPI 1.0 4.7.2.6, p. 4-54).  P_CNT is
+   the processor control register (ACPI 1.0 4.7.3.5.1, p. 4-64): THT_EN
+   (bit 4) modulates STPCLK# with the duty cycle in its CLK_VAL field. */
+static uint32_t
+acpi_p_cnt(const acpi_t *dev)
+{
+    switch (dev->vendor) {
+        case VEN_INTEL:
+        case VEN_ALI:
+        case VEN_VIA:
+        case VEN_VIA_596B:
+            return dev->regs.pcntrl;
+        case VEN_SIS_5582:
+        case VEN_SIS_5595_1997:
+        case VEN_SIS_5595:
+            return dev->regs.reg_0c;
+        default:
+            /* The SMC has no processor block. */
+            return 0x00000000;
+    }
+}
+
+/* The PIIX4's and the M7101's CC_EN/CLK_EN (P_CNT bit 9): without it neither
+   throttling nor a P_LVL2/P_LVL3 read do anything (PIIX4 7.2.7, p. 141;
+   M1543C P_CNTRL, p. 197).  The VIA and SiS chips have no such bit. */
+static int
+acpi_clock_control_enabled(const acpi_t *dev)
+{
+    if ((dev->vendor == VEN_INTEL) || (dev->vendor == VEN_ALI))
+        return !!(dev->regs.pcntrl & 0x00000200);
+
+    return 1;
+}
+
+/* Throttling: the share of the time the processor runs.  THT_EN on, or, on
+   the PIIX4 before the PIIX4E, a P_LVL2 read with THT_EN on (start), starts
+   it.  The duty field is CLK_VAL bits 3:1 (bits 3:0 on the VT82C596B), and
+   what it means differs:
+   - PIIX4E, M7101, SiS 5595: the running share, as ACPI has it
+     ("%Performance = Dutyset / 2^dutywidth"; PIIX4 specification update
+     no. 13, p. 16; M1543C P_CNTRL, p. 197; SiS 5595 ACPI 0Ch, pp. 137-138);
+   - PIIX4, VT82C586B, VT82C596B, SiS 5582: the share STPCLK# is asserted
+     (PIIX4 7.2.7, p. 141; VT82C586B p. 48 / PDF 54; VT82C596B p. 72 /
+     PDF 78), or STPCLK# high : low = 7 : 1 for 001 (SiS 5582 ACPI 0Ch,
+     p. 162).
+   The PIIX4 ends it at a break event; the PIIX4E throttles until THT_EN or
+   CC_EN is cleared (specification update no. 14, p. 17). */
+static void
+acpi_throttle_update(acpi_t *dev, int start)
+{
+    uint32_t p_cnt  = acpi_p_cnt(dev);
+    int      width  = (dev->vendor == VEN_VIA_596B) ? 4 : 3;
+    int      period = 1 << width;
+    int      duty   = (dev->vendor == VEN_VIA_596B) ? (p_cnt & 0x0f) : ((p_cnt >> 1) & 0x07);
+    int      run;
+
+    if (!(p_cnt & 0x10) || !acpi_clock_control_enabled(dev) || (duty == 0)) {
+        /* Off, or the reserved duty value 0 (100% on the SiS 5595). */
+        cpu_throttle_run = 0;
+        return;
+    }
+
+    if (dev->piix4_ab && !start && !cpu_throttle_run)
+        return;
+
+    if ((dev->vendor == VEN_VIA) || (dev->vendor == VEN_VIA_596B) ||
+        (dev->vendor == VEN_SIS_5582) || dev->piix4_ab)
+        run = period - duty;
+    else
+        run = duty;
+
+    cpu_throttle_period = period;
+    cpu_throttle_break  = dev->piix4_ab;
+    cpu_throttle_run    = run;
+    acpi_log("ACPI: throttling, running %i/%i\n", run, period);
+}
+
+/* A byte read of P_LVL2 (c3 = 0) or P_LVL3 (c3 = 1): STPCLK# is asserted
+   and the processor stops until a break event (ACPI 1.0 4.7.3.5.2-3, p. 4-65;
+   PIIX4 7.2.8-9 and 11.2.1, pp. 142 and 204; VT82C586B p. 48 / PDF 54;
+   VT82C596B p. 72 / PDF 78; M1543C LVL2/LVL3, p. 198; SiS 5582 ACPI 10h-11h,
+   p. 163; SiS 5595 ACPI 10h-11h, p. 138).  The read returns 00h.  C3 differs
+   from C2 in the bus masters the processor cannot snoop; the emulated one
+   needs no snooping, and a bus master request (BM_RLD) is not a break event
+   here: the interrupt that ends the transfer is. */
+static void
+acpi_enter_cx(acpi_t *dev, int c3)
+{
+    if (!acpi_clock_control_enabled(dev))
+        return;
+
+    /* The PIIX4 before the PIIX4E: a P_LVL2 read with THT_EN on throttles
+       instead, until a break event (PIIX4 11.2.1, p. 204; specification
+       update no. 14, p. 17). */
+    if (!c3 && dev->piix4_ab && (dev->regs.pcntrl & 0x10)) {
+        acpi_throttle_update(dev, 1);
+        if (cpu_throttle_run)
+            return;
+    }
+
+    cpu_stpclk = 1;
+}
+
 static uint32_t
 acpi_reg_read_common_regs(UNUSED(int size), uint16_t addr, void *priv)
 {
@@ -386,12 +485,11 @@ acpi_reg_read_ali(int size, uint16_t addr, void *priv)
             ret = (dev->regs.pcntrl >> shift32) & 0xff;
             break;
         case 0x14:
-            /* LVL2 - Processor Level 2 Register */
-            ret = dev->regs.plvl2;
-            break;
         case 0x15:
-            /* LVL3 - Processor Level 3 Register */
-            ret = dev->regs.plvl3;
+            /* LVL2/LVL3 - Processor Level 2/3 Register: read only, a read
+               enters C2/C3 (M1543C p. 198). */
+            if (size == 1)
+                acpi_enter_cx((acpi_t *) dev, addr & 1);
             break;
         case 0x18:
         case 0x19:
@@ -463,6 +561,14 @@ acpi_reg_read_intel(int size, uint16_t addr, void *priv)
         case 0x13:
             /* PCNTRL - Processor Control Register (IO) */
             ret = (dev->regs.pcntrl >> shift32) & 0xff;
+            break;
+        case 0x14:
+        case 0x15:
+            /* PLVL2/PLVL3 - Processor Level 2/3 Register (IO): byte
+               readable only, 00h, a read enters C2/C3 (PIIX4 7.2.8-9,
+               p. 142). */
+            if (size == 1)
+                acpi_enter_cx((acpi_t *) dev, addr & 1);
             break;
         case 0x18:
         case 0x19:
@@ -548,6 +654,14 @@ acpi_reg_read_via_common(int size, uint16_t addr, void *priv)
         case 0x13:
             /* PCNTRL - Processor Control Register (IO) */
             ret = (dev->regs.pcntrl >> shift32) & 0xff;
+            break;
+        case 0x14:
+        case 0x15:
+            /* P_LVL2/P_LVL3 - Processor Level 2/3: always 00h, a read
+               enters C2/C3 (VT82C586B p. 48 / PDF 54; VT82C596B p. 72 /
+               PDF 78). */
+            if (size == 1)
+                acpi_enter_cx((acpi_t *) dev, addr & 1);
             break;
         case 0x20:
         case 0x21:
@@ -811,10 +925,11 @@ acpi_reg_read_sis_5582(int size, uint16_t addr, void *priv)
             ret = (dev->regs.reg_0c >> shift32) & 0xff;
             break;
         case 0x10:
-            ret = dev->regs.enter_c2_ps;
-            break;
         case 0x11:
-            ret = dev->regs.enter_c3_ps;
+            /* P_LVL2/P_LVL3: 00h, a read enters C2/C3 (SiS 5582 p. 163;
+               SiS 5595 p. 138). */
+            if (size == 1)
+                acpi_enter_cx((acpi_t *) dev, addr & 1);
             break;
         case 0x12:
             ret = dev->regs.reg_12;
@@ -902,10 +1017,11 @@ acpi_reg_read_sis_5595(int size, uint16_t addr, void *priv)
             ret = (dev->regs.reg_0c >> shift32) & 0xff;
             break;
         case 0x10:
-            ret = dev->regs.enter_c2_ps;
-            break;
         case 0x11:
-            ret = dev->regs.enter_c3_ps;
+            /* P_LVL2/P_LVL3: 00h, a read enters C2/C3 (SiS 5582 p. 163;
+               SiS 5595 p. 138). */
+            if (size == 1)
+                acpi_enter_cx((acpi_t *) dev, addr & 1);
             break;
         case 0x12:
             ret = dev->regs.reg_12;
@@ -1129,14 +1245,11 @@ acpi_reg_write_ali(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x13:
             /* PCNTRL - Processor Control Register (IO) */
             dev->regs.pcntrl = ((dev->regs.pcntrl & ~(0xff << shift32)) | (val << shift32)) & 0x00023e1e;
+            acpi_throttle_update(dev, 0);
             break;
         case 0x14:
-            /* LVL2 - Processor Level 2 Register */
-            dev->regs.plvl2 = val;
-            break;
         case 0x15:
-            /* LVL3 - Processor Level 3 Register */
-            dev->regs.plvl3 = val;
+            /* LVL2/LVL3 - Processor Level 2/3 Register: read only. */
             break;
         case 0x18:
         case 0x19:
@@ -1213,11 +1326,13 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x13:
             /* PCNTRL - Processor Control Register (IO) */
             dev->regs.pcntrl = ((dev->regs.pcntrl & ~(0xff << shift32)) | (val << shift32)) & 0x00023e1e;
+            acpi_throttle_update(dev, 0);
             break;
         case 0x12:
             /* PCNTRL - Processor Control Register (IO): CC_STS (bit 17) is
                read-only (PIIX4 7.2.7, p. 141 / PDF 141). */
             dev->regs.pcntrl = ((dev->regs.pcntrl & ~(0xfd << shift32)) | ((val & 0xfd) << shift32)) & 0x00023e1e;
+            acpi_throttle_update(dev, 0);
             break;
         case 0x18:
         case 0x19:
@@ -1314,8 +1429,12 @@ acpi_reg_write_via_common(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x11:
         case 0x12:
         case 0x13:
-            /* PCNTRL - Processor Control Register (IO) */
-            dev->regs.pcntrl = ((dev->regs.pcntrl & ~(0xff << shift32)) | (val << shift32)) & 0x0000001e;
+            /* PCNTRL - Processor Control Register (IO): bits 4-1 on the
+               VT82C586B (p. 48 / PDF 54), 11-8 and 4-0 on the VT82C596B
+               (p. 72 / PDF 78). */
+            dev->regs.pcntrl = ((dev->regs.pcntrl & ~(0xff << shift32)) | (val << shift32)) &
+                               ((dev->vendor == VEN_VIA_596B) ? 0x00000f1f : 0x0000001e);
+            acpi_throttle_update(dev, 0);
             break;
         case 0x20:
         case 0x21:
@@ -1651,13 +1770,13 @@ acpi_reg_write_sis_5582(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x0d:
         case 0x0e:
         case 0x0f:
-            dev->regs.reg_0c &= ~((val << shift32) & 0x007e);
+            /* P_CNT: bits 6-1 read/write (SiS 5582 ACPI 0Ch, p. 162). */
+            dev->regs.reg_0c = ((dev->regs.reg_0c & ~(0xff << shift32)) | (val << shift32)) & 0x0000007e;
+            acpi_throttle_update(dev, 0);
             break;
         case 0x10:
-            dev->regs.enter_c2_ps = val;
-            break;
         case 0x11:
-            dev->regs.enter_c3_ps = val;
+            /* P_LVL2/P_LVL3: writes have no effect. */
             break;
         case 0x12:
             dev->regs.reg_12 = val & 0x01;
@@ -1880,13 +1999,13 @@ acpi_reg_write_sis_5595(int size, uint16_t addr, uint8_t val, void *priv)
         case 0x0d:
         case 0x0e:
         case 0x0f:
-            dev->regs.reg_0c &= ~((val << shift32) & 0x001e);
+            /* P_CTL: bits 4-1 read/write (SiS 5595 ACPI 0Ch, pp. 137-138). */
+            dev->regs.reg_0c = ((dev->regs.reg_0c & ~(0xff << shift32)) | (val << shift32)) & 0x0000001e;
+            acpi_throttle_update(dev, 0);
             break;
         case 0x10:
-            dev->regs.enter_c2_ps = val;
-            break;
         case 0x11:
-            dev->regs.enter_c3_ps = val;
+            /* P_LVL2/P_LVL3: writes have no effect. */
             break;
         case 0x12:
             dev->regs.reg_12 = val & 0x01;
@@ -2444,6 +2563,12 @@ acpi_set_timer32(acpi_t *dev, uint8_t timer32)
 }
 
 void
+acpi_set_piix4_ab(acpi_t *dev, int ab)
+{
+    dev->piix4_ab = ab;
+}
+
+void
 acpi_set_slot(acpi_t *dev, int slot)
 {
     dev->slot = slot;
@@ -2702,7 +2827,7 @@ acpi_reset(void *priv)
             dev->regs.gpi_val |= 0x00008000;
     }
 
-    if (acpi_power_on) {
+    if (dev->power_on) {
         /* Power on always generates a resume event, except on the SiS 5582.
            There only the RTC and the APC that powers the board up run from
            RTCVDD; the ACPI registers are in the 3.3V OVDD well, which is off
@@ -2710,7 +2835,7 @@ acpi_reset(void *priv)
            41 / PDF 39 and 41). */
         if (dev->vendor != VEN_SIS_5582)
             dev->regs.pmsts |= 0x8100;
-        acpi_power_on = 0;
+        dev->power_on = 0;
     }
 
     /* The Gateway Tomahawk requires the LID polarity bit to be set. */
@@ -2726,8 +2851,12 @@ acpi_reset(void *priv)
 
     timer_disable(&dev->gp_timer);
 
-    acpi_last_clock = 0ULL;
-    acpi_count = 0;
+    dev->gp_last_clock = 0ULL;
+    dev->gp_count      = 0;
+
+    /* Clock control back to full speed. */
+    cpu_stpclk       = 0;
+    cpu_throttle_run = 0;
 
     timer_disable(&dev->per_timer);
 
@@ -2775,11 +2904,11 @@ acpi_speed_changed(void *priv)
             timer_stop(&dev->gp_timer);
 
             if (dev->vendor == VEN_SIS_5595_1997)
-                acpi_gp_timer_update(dev, (dev->regs.gpe_en & 0x20000000), acpi_count);
+                acpi_gp_timer_update(dev, (dev->regs.gpe_en & 0x20000000), dev->gp_count);
             else if (dev->vendor == VEN_SIS_5595)
-                acpi_gp_timer_update(dev, (dev->regs.gpe_en & 0x00000400), acpi_count);
+                acpi_gp_timer_update(dev, (dev->regs.gpe_en & 0x00000400), dev->gp_count);
             else
-                acpi_gp_timer_update(dev, (dev->regs.reg_16 & 0x2000), acpi_count);
+                acpi_gp_timer_update(dev, (dev->regs.reg_16 & 0x2000), dev->gp_count);
         }
 
         if (timer_is_on(&dev->per_timer)) {
@@ -2810,6 +2939,9 @@ acpi_close(void *priv)
     }
 
     timer_stop(&dev->timer);
+
+    cpu_stpclk       = 0;
+    cpu_throttle_run = 0;
 
     free(dev);
 }
@@ -2912,7 +3044,7 @@ acpi_init(const device_t *info)
     acpi_reset(dev);
 
     acpi_enabled  = 1;
-    acpi_power_on = 1;
+    dev->power_on = 1;
 
     return dev;
 }

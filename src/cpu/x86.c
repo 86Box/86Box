@@ -463,6 +463,8 @@ reset_common(int hard)
     /* Out of any HLT: the block end must not step past the reset vector's
        first byte (386_dynarec.c). */
     cpu_halted = 0;
+    /* RESET and INIT are break events of the clock control. */
+    cpu_stpclk = 0;
     smi_line = smm_in_hlt = 0;
     smi_block             = 0;
 
