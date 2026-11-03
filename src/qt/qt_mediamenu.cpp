@@ -1180,6 +1180,9 @@ MediaMenu::rdiskUpdateMenu(int i)
     switch (rdisk_drives[i].bus_type) {
         default:
             break;
+        case RDISK_BUS_IDE:
+            busName = "IDE";
+            break;
         case RDISK_BUS_ATAPI:
             busName = "ATAPI";
             break;

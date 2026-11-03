@@ -107,6 +107,7 @@ typedef struct ide_s {
     int      mdma_mode;
     int      do_initial_read;
     uint8_t  is_jride;
+    uint8_t  removable;  /* ATA removable drive (hdd_num is an rdisk slot) */
     uint32_t drive;
     uint32_t cfg_spt;
     uint32_t cfg_hpc;
@@ -199,6 +200,7 @@ extern ide_t *ide_get_drive(int ch);
 extern void   ide_irq(ide_t *ide, int set, int log);
 extern void   ide_allocate_buffer(ide_t *dev);
 extern void   ide_atapi_attach(ide_t *dev);
+extern int    ide_ata_removable_attach(int ch, int hdd_num);
 #endif
 
 extern void *ide_xtide_init(void);

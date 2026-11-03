@@ -522,7 +522,7 @@ MachineStatus::iterateRDisk(const std::function<void(int)> &cb)
     auto hdc_name = QString(hdc_get_internal_name(hdc_current[0]));
     for (size_t i = 0; i < RDISK_NUM; i++) {
         /* Could be Internal or External IDE.. */
-        if ((rdisk_drives[i].bus_type == RDISK_BUS_ATAPI) && !hasIDE() &&
+        if (((rdisk_drives[i].bus_type == RDISK_BUS_ATAPI) || (rdisk_drives[i].bus_type == RDISK_BUS_IDE)) && !hasIDE() &&
             !hdc_name.startsWith(QStringLiteral("ide")) &&
             !hdc_name.startsWith(QStringLiteral("xtide")) &&
 //            !hdc_name.startsWith(QStringLiteral("jride")) &&
