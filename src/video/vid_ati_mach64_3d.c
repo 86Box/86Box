@@ -181,6 +181,7 @@
 #define RP_TEXTURE_CLAMP_T     (1u << 18)
 #define RP_TEX_ST_DIRECT       (1u << 19)
 #define RP_TEX_SRC_AGP         (1u << 20)
+#define RP_TEX_VQ              (1u << 21)
 #define RP_TEX_CACHE_FLUSH     (1u << 23)
 #define RP_TEX_CACHE_SIZE_SELECT (1u << 30)
 #define RP_SEC_TEX_CLAMP_S     (1u << 24)
@@ -3572,6 +3573,7 @@ typedef struct mach64_rp_map_t {
     int                 clamp_s;
     int                 clamp_t;
     int                 agp; /* TEX_SRC_AGP: in system memory, AGP_BASE + the offset */
+    int                 vq;  /* TEX_VQ: the map is a map of codebook indices, one per 2x2 texels */
     const uint32_t     *tile_u; /* TEXTURE_TILING: where texel u, v of the map is, */
     const uint32_t     *tile_v; /* as tile_u[u] ^ tile_v[v]; NULL when it is linear */
 } mach64_rp_map_t;
@@ -3673,7 +3675,13 @@ static void
 mach64_rp_map_tiled(mach64_rp_map_t *map)
 {
     int depth = (map->tex.bpp == 4) ? 2 : ((map->tex.bpp == 2) ? 1 : 0);
-    const uint32_t *t = mach64_rp_tile[depth][log2i(map->w)][log2i(map->h)];
+    const uint32_t *t;
+
+    /* A VQ map's bytes are its index map, w/2 by h/2 of them. */
+    if (map->vq)
+        t = mach64_rp_tile[0][(map->w > 1) ? (log2i(map->w) - 1) : 0][(map->h > 1) ? (log2i(map->h) - 1) : 0];
+    else
+        t = mach64_rp_tile[depth][log2i(map->w)][log2i(map->h)];
 
     map->tile_u = t;
     map->tile_v = t + 1024;
@@ -3714,6 +3722,55 @@ mach64_rp_map_level(mach64_3d_t *ctx, mach64_rp_map_t *map, int format, uint32_t
     map->tex.key_mask      = mach64->clr_cmp_mask;
 }
 
+/*
+ * VQ textures (TEX_CNTL TEX_VQ, Rage Pro only). The texture is a map of one
+ * byte indices, one for each 2x2 block of texels, and a codebook of 256
+ * blocks, each four 16-bit texels in the order upper left, upper right,
+ * lower left, lower right (the SDK's C3D_CODEBOOKENTRY). The index map is (w/2) x (h/2) bytes at
+ * TEX_n_OFF; a mip level takes an index map of its own, and the smallest
+ * levels all point at the same last index map.
+ *
+ * Measured on a real Rage Pro with ATI3DCIF 4.11.2692 (doc/hardware/
+ * ati-ragepro-vq.md):
+ *
+ * - The codebook goes into the 0x800 bytes of the texture cache palette
+ *   image the way a CI8 palette does (a Y8 scaler pass). The driver stages it
+ *   swizzled: for k below 128, offset 8k holds the upper words of block k
+ *   and the lower words of block k + 128, and offset 0x400 + 8k holds the
+ *   upper words of block k + 128 and the lower words of block k. The texel
+ *   fetch undoes that: see mach64_rp_vq_word_offset.
+ * - The codebook words are RGB565 when DP_PIX_WIDTH 31:28 is 2, which is what
+ *   the driver writes.
+ * - TEX_SIZE_PITCH gives the texture's size in texels, the index map is half
+ *   that on each axis.
+ *
+ * Not measured: whether TEXTURE_TILING tiles the index map (RP_VQ_TILED_INDEX_MAP
+ * assumes it does, as an 8 bpp map of w/2 by h/2), and the texel type for a
+ * DP_PIX_WIDTH 31:28 of 3, 4 or 15, which no driver we have writes for VQ.
+ */
+#define RP_VQ_TILED_INDEX_MAP 1
+
+/* The codebook texel type: DP_PIX_WIDTH 31:28 when it names a 16-bit type, else RGB565 (the driver writes 2). */
+static int
+mach64_rp_vq_texel_format(const mach64_t *mach64)
+{
+    int format = mach64_3d_src_format(mach64);
+
+    return ((format == 3) || (format == 4) || (format == 15)) ? format : 4;
+}
+
+/*
+ * Where in the palette image the word of codebook block i, row r (0 upper, 1
+ * lower) and column c is. The two halves of the image hold blocks i and
+ * i ^ 128 with their lower rows exchanged, so a lower row comes from the
+ * other half.
+ */
+static inline unsigned
+mach64_rp_vq_word_offset(unsigned i, unsigned r, unsigned c)
+{
+    return ((((i >> 7) & 1) ^ r) << 10) + ((i & 127) << 3) + (r << 2) + (c << 1);
+}
+
 /* The primary texture and its mip maps: level n is TEX_<size-n>_OFF. */
 static int
 mach64_rp_texture_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
@@ -3729,7 +3786,10 @@ mach64_rp_texture_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
     uint32_t  offsets[11];
     int       lowest;
     int       bias     = (tex_cntl >> RP_LOD_BIAS_SHIFT) & 15;
+    int       vq       = !!(tex_cntl & RP_TEX_VQ);
 
+    if (vq)
+        format = mach64_rp_vq_texel_format(mach64);
     if (!mach64_3d_bytes_per_pixel(format))
         return 0;
     if (l2w > 10)
@@ -3765,7 +3825,8 @@ mach64_rp_texture_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
         mach64_rp_map_level(ctx, &tx->maps[n], format, offsets[size - n], l2w - n, l2h - n, !!(tex_cntl & RP_TEXTURE_CLAMP_S),
                             !!(tex_cntl & RP_TEXTURE_CLAMP_T));
         tx->maps[n].agp = !!(tex_cntl & RP_TEX_SRC_AGP);
-        if (tex_cntl & RP_TEXTURE_TILING)
+        tx->maps[n].vq  = vq;
+        if ((tex_cntl & RP_TEXTURE_TILING) && (!vq || RP_VQ_TILED_INDEX_MAP))
             mach64_rp_map_tiled(&tx->maps[n]);
     }
     tx->bilinear_mag = !!(cntl & BILINEAR_TEX_EN);
@@ -3858,6 +3919,40 @@ mach64_rp_agp_read(mach64_rp_agp_cache_t *agp, uint32_t addr, void *dst, unsigne
     dma_bm_read(addr, (uint8_t *) dst, len, len);
 }
 
+/* A VQ map's texel u, v, as 0xAARRGGBB: the codebook block its 2x2 index names. */
+static uint32_t
+mach64_rp_texel_vq(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_map_t *map, int u, int v, int *inhibits)
+{
+    mach64_t *mach64 = ctx->mach64;
+    int       iw     = (map->w > 1) ? (map->w >> 1) : 1;
+    int       iu     = u >> 1;
+    int       iv     = v >> 1;
+    uint32_t  off    = map->tile_u ? (map->tile_u[iu] ^ map->tile_v[iv]) : (uint32_t) (iv * iw + iu);
+    uint8_t   index  = 0;
+    uint32_t  raw;
+    uint32_t  argb;
+
+    if (map->agp)
+        mach64_rp_agp_read(agp, mach64->rp.agp_base + map->tex.base + off, &index, 1);
+    else
+        index = mach64_3d_vram_read8(mach64, map->tex.base + off);
+    off = mach64_rp_vq_word_offset(index, v & 1, u & 1);
+    raw = ctx->texture_palette_ram[off] | ((uint32_t) ctx->texture_palette_ram[off + 1] << 8);
+    switch (map->tex.format) {
+        case 3:
+            argb = mach64_3d_argb1555(raw, map->tex.dynamic_range);
+            break;
+        case 15:
+            argb = mach64_3d_argb4444(raw, map->tex.dynamic_range);
+            break;
+        default:
+            argb = mach64_3d_argb565(raw, map->tex.dynamic_range);
+            break;
+    }
+    *inhibits = mach64_3d_texel_key_inhibits(&map->tex, argb & 0x00ffffff);
+    return argb;
+}
+
 /* A texel of a map in AGP memory, decoded as mach64_3d_texel_at does. */
 static uint32_t
 mach64_rp_texel_agp(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_3d_texture_t *map, int u, int v, int *inhibits)
@@ -3906,6 +4001,8 @@ mach64_rp_texel(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_ma
 {
     u = mach64_rp_wrap(u, map->w, map->clamp_s);
     v = mach64_rp_wrap(v, map->h, map->clamp_t);
+    if (map->vq)
+        return mach64_rp_texel_vq(ctx, agp, map, u, v, inhibits);
     if (map->tile_u) {
         uint32_t i = map->tile_u[u] ^ map->tile_v[v];
 
@@ -3937,7 +4034,7 @@ mach64_rp_texels_2x2(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_
     uint32_t                   idx[4];
     uint32_t                   raw[4] = { 0, 0, 0, 0 };
 
-    if ((tex->format != 2) && (tex->format != 3) && (tex->format != 4) && (tex->format != 6) && (tex->format != 15)) {
+    if (map->vq || ((tex->format != 2) && (tex->format != 3) && (tex->format != 4) && (tex->format != 6) && (tex->format != 15))) {
         c[0] = mach64_rp_texel(ctx, agp, map, u, v, &inh[0]);
         c[1] = mach64_rp_texel(ctx, agp, map, u + 1, v, &inh[1]);
         c[2] = mach64_rp_texel(ctx, agp, map, u, v + 1, &inh[2]);

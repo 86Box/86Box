@@ -1253,6 +1253,264 @@ ragepro_ci8_tiling_tests(void)
 }
 
 /*
+ * VQ textures. The codebook goes in as ATI's driver loads a palette (a Y8
+ * scaler pass over 0x800 staged bytes), the index maps are written to video
+ * and AGP memory, and the texels come out of the Rage Pro fetch path the
+ * triangle uses. Expected texels are worked out here from the layout: a
+ * codebook block is four 16-bit texels, upper left, upper right, lower left,
+ * lower right; an index covers the 2x2 texels at (2x, 2y).
+ */
+static uint16_t
+vq_block_texel(unsigned block, unsigned k)
+{
+    return (uint16_t) (block * 0x0101u + k * 0x2467u + (block >> 3) * 0x0840u);
+}
+
+static uint8_t
+vq_index(unsigned x, unsigned y)
+{
+    return (uint8_t) (x * 29 + y * 7 + 3);
+}
+
+/*
+ * The 0x800 byte image ATI3DCIF stages for a codebook: for k below 128, offset 8k
+ * holds the upper two words of block k and the lower two of block k + 128, and
+ * offset 0x400 + 8k the upper two of block k + 128 and the lower two of block k
+ * (read from the driver; a real card reads the codebook back unswizzled, see
+ * ragepro_vq_real_card_tests).
+ */
+static void
+vq_driver_image(const uint8_t *codebook, uint8_t *image)
+{
+    for (unsigned k = 0; k < 128; k++) {
+        memcpy(image + 8 * k, codebook + 8 * k, 4);
+        memcpy(image + 8 * k + 4, codebook + 8 * (k + 128) + 4, 4);
+        memcpy(image + 0x400 + 8 * k, codebook + 8 * (k + 128), 4);
+        memcpy(image + 0x400 + 8 * k + 4, codebook + 8 * k + 4, 4);
+    }
+}
+
+/* The codebook through the Y8 scaler pass, from vram at staging. */
+static void
+vq_load_codebook(mach64_t *m, uint32_t staging, const uint8_t *codebook)
+{
+    memcpy(m->svga.vram + staging, codebook, 0x800);
+    m->dp_pix_width = 0x80000003;
+    m->dp_src = 0x505;
+    m->dp_mix = 0x70007;
+    m->write_mask = 0;
+    m->dst_off_pitch = 0x10000000;
+    m->dst_cntl = 0x8e023;
+    m->sc_left_right = 0x1fff0000;
+    m->sc_top_bottom = 0x3fff0000;
+    mach64_3d_write(m, SCALE_3D_CNTL, 0x40, FIFO_WRITE_DWORD);
+    mach64_3d_write(m, RP_TEX_CNTL, 0x40800000, FIFO_WRITE_DWORD);
+    mach64_3d_write(m, SCALE_Y_OFF, staging + 4, FIFO_WRITE_DWORD);
+    mach64_3d_write(m, SCALE_Y_PITCH, 0x3fc, FIFO_WRITE_DWORD);
+    mach64_3d_write(m, SCALE_WIDTH, 0x400, FIFO_WRITE_DWORD);
+    mach64_3d_write(m, SCALE_HEIGHT, 2, FIFO_WRITE_DWORD);
+    mach64_3d_write(m, SCALE_HACC, 0, FIFO_WRITE_DWORD);
+    mach64_3d_write(m, SCALE_VACC, 0x8000, FIFO_WRITE_DWORD);
+    mach64_3d_write(m, SCALE_X_INC, 0x200000, FIFO_WRITE_DWORD);
+    mach64_3d_write(m, SCALE_Y_INC, 0x10000, FIFO_WRITE_DWORD);
+    mach64_3d_write(m, 0x118, 0x200001, FIFO_WRITE_DWORD);
+    mach64_3d_write(m, RP_TEX_CNTL, RP_TEX_CACHE_FLUSH, FIFO_WRITE_DWORD);
+}
+
+/* 0xAARRGGBB of a 16-bit texel, zero extended (SCALE_PIX_EXPAND clear). */
+static uint32_t
+vq_expected(unsigned format, uint16_t t)
+{
+    uint32_t r, g, b, a = 0xff;
+
+    if (format == 4) {
+        r = (t >> 11) << 3;
+        g = ((t >> 5) & 63) << 2;
+        b = (t & 31) << 3;
+    } else if (format == 3) {
+        a = (t & 0x8000) ? 0xff : 0;
+        r = ((t >> 10) & 31) << 3;
+        g = ((t >> 5) & 31) << 3;
+        b = (t & 31) << 3;
+    } else {
+        a = (t >> 12) * 17;
+        r = ((t >> 8) & 15) << 4;
+        g = ((t >> 4) & 15) << 4;
+        b = (t & 15) << 4;
+    }
+    return (a << 24) | (r << 16) | (g << 8) | b;
+}
+
+/* Where an index byte is for an 8 x 4 index map tiled as 8 bpp. */
+static unsigned
+vq_tiled_8x4(unsigned x, unsigned y)
+{
+    return (x & 1) | (((x >> 1) & 1) << 1) | ((y & 1) << 2) | (((x >> 2) & 1) << 3) | (((y >> 1) & 1) << 4);
+}
+
+static void
+vq_texel_checks(mach64_t *m, const char *what, unsigned format, int tiled, int agp)
+{
+    mach64_3d_t        *ctx = m->gt3d;
+    mach64_rp_texture_t tx;
+    const uint32_t      base = 0x30000;
+
+    /* A 16 x 8 texel VQ map: an 8 x 4 index map at TEX_4_OFF. */
+    for (unsigned y = 0; y < 4; y++)
+        for (unsigned x = 0; x < 8; x++) {
+            unsigned off = tiled ? vq_tiled_8x4(x, y) : y * 8 + x;
+
+            m->svga.vram[base + off] = vq_index(x, y);
+            test_agp[0x100 + off]    = vq_index(x, y);
+        }
+    m->dp_pix_width = format << 28;
+    ctx->regs[SCALE_3D_CNTL >> 2]        = MIP_MAP_DISABLE;
+    ctx->regs[RP_TEX_CNTL >> 2]          = RP_TEX_VQ | (tiled ? RP_TEXTURE_TILING : 0) | (agp ? RP_TEX_SRC_AGP : 0);
+    ctx->regs[TEX_SIZE_PITCH >> 2]       = 4 | (4 << 4) | (3 << 8);
+    ctx->regs[(TEX_0_OFF + 16) >> 2]     = agp ? 0x100 : base;
+    CHECK(mach64_rp_texture_init(ctx, &tx));
+    expect_int("VQ one level", tx.levels, 1);
+    memset(ctx->agp.tag, 0, sizeof(ctx->agp.tag));
+    for (unsigned v = 0; v < 8; v++)
+        for (unsigned u = 0; u < 16; u++) {
+            int      inhibits;
+            unsigned block = vq_index(u >> 1, v >> 1);
+            char     name[96];
+
+            snprintf(name, sizeof(name), "%s VQ texel %u,%u", what, u, v);
+            expect_u32(name, mach64_rp_texel(ctx, &ctx->agp, &tx.maps[0], u, v, &inhibits),
+                       vq_expected(format, vq_block_texel(block, ((v & 1) << 1) | (u & 1))));
+        }
+    /* The nearest sample at a texel's center is that texel. */
+    {
+        int      inhibits;
+        unsigned u = 9, v = 5;
+
+        expect_u32("VQ sampled texel", mach64_rp_sample_map(ctx, &ctx->agp, &tx.maps[0], 0, (u + 0.5) / 16, (v + 0.5) / 8, &inhibits),
+                   vq_expected(format, vq_block_texel(vq_index(u >> 1, v >> 1), ((v & 1) << 1) | (u & 1))));
+    }
+}
+
+#include "vid_ati_mach64_vq_vectors.h"
+
+/*
+ * What a real Rage Pro fetched for a 64x64 VQ texture whose codebook words say which block and
+ * word they are (vid_ati_mach64_vq_vectors.h, a VQ diagnostic): the guest stages the image
+ * ATI3DCIF stages, and every texel of the 1:1 quad is compared with the real card's pixel.
+ */
+static void
+ragepro_vq_real_card_tests(void)
+{
+    mach64_t           *m   = card_create();
+    mach64_3d_t        *ctx = m->gt3d;
+    mach64_rp_texture_t tx;
+    uint8_t             codebook[0x800];
+    uint8_t             image[0x800];
+    int                 bad = 0;
+
+    m->ragepro = 1;
+    for (unsigned i = 0; i < 256; i++)
+        for (unsigned p = 0; p < 4; p++) {
+            unsigned word = ((i >> 3) << 11) | ((((i & 7) << 2 | p) << 1) << 5) | 21;
+
+            codebook[i * 8 + p * 2]     = word & 255;
+            codebook[i * 8 + p * 2 + 1] = word >> 8;
+        }
+    vq_driver_image(codebook, image);
+    vq_load_codebook(m, 0x20800, image);
+    for (unsigned n = 0; n < 1024; n++)
+        m->svga.vram[0x30000 + n] = vq_a_seq[n & 255];
+    m->dp_pix_width = 2u << 28;
+    ctx->regs[SCALE_3D_CNTL >> 2]    = MIP_MAP_DISABLE;
+    ctx->regs[RP_TEX_CNTL >> 2]      = RP_TEX_VQ;
+    ctx->regs[TEX_SIZE_PITCH >> 2]   = 6 | (6 << 4) | (6 << 8);
+    ctx->regs[(TEX_0_OFF + 24) >> 2] = 0x30000;
+    CHECK(mach64_rp_texture_init(ctx, &tx));
+    for (unsigned y = 0; y < 64; y++)
+        for (unsigned x = 0; x < 64; x++) {
+            int      inhibits;
+            uint32_t argb = mach64_rp_texel(ctx, &ctx->agp, &tx.maps[0], x, y, &inhibits);
+            unsigned p555 = (((argb >> 19) & 31) << 10) | (((argb >> 11) & 31) << 5) | ((argb >> 3) & 31);
+
+            if (p555 != vq_a_real_pixels[y * 64 + x])
+                bad++;
+        }
+    expect_int("VQ texels differing from a real Rage Pro", bad, 0);
+    card_close(m);
+}
+
+static void
+ragepro_vq_tests(void)
+{
+    mach64_t *m = card_create();
+    mach64_3d_t *ctx = m->gt3d;
+    uint8_t codebook[0x800];
+    static const unsigned formats[] = {4, 3, 15};
+
+    m->ragepro = 1;
+    for (unsigned b = 0; b < 256; b++)
+        for (unsigned k = 0; k < 4; k++) {
+            codebook[b * 8 + k * 2]     = vq_block_texel(b, k) & 255;
+            codebook[b * 8 + k * 2 + 1] = vq_block_texel(b, k) >> 8;
+        }
+    {
+        uint8_t image[0x800];
+
+        vq_driver_image(codebook, image);
+        vq_load_codebook(m, 0x20800, image);
+        CHECK(!memcmp(ctx->texture_palette_ram, image, 0x800));
+    }
+    for (unsigned f = 0; f < 3; f++)
+        for (int tiled = 0; tiled < 2; tiled++)
+            for (int agp = 0; agp < 2; agp++)
+                vq_texel_checks(m, "primary", formats[f], tiled, agp);
+    /* A format that is not a 16-bit one leaves the codebook as RGB565. */
+    {
+        mach64_rp_texture_t tx;
+        int                 inhibits;
+
+        memset(m->svga.vram + 0x30000, 5, 32);
+        m->dp_pix_width = 2u << 28;
+        ctx->regs[(TEX_0_OFF + 16) >> 2] = 0x30000;
+        ctx->regs[RP_TEX_CNTL >> 2]      = RP_TEX_VQ;
+        CHECK(mach64_rp_texture_init(ctx, &tx));
+        expect_u32("VQ default texel type", mach64_rp_texel(ctx, &ctx->agp, &tx.maps[0], 1, 1, &inhibits),
+                   vq_expected(4, vq_block_texel(5, 3)));
+    }
+    /* Two mip levels: the smaller map has an index map of its own. */
+    {
+        mach64_rp_texture_t tx;
+        int                 inhibits;
+
+        for (unsigned i = 0; i < 8; i++)
+            m->svga.vram[0x34000 + i] = 200 + i;
+        m->dp_pix_width = 4u << 28;
+        ctx->regs[SCALE_3D_CNTL >> 2]    = 0;
+        ctx->regs[(TEX_0_OFF + 16) >> 2] = 0x30000;
+        ctx->regs[(TEX_0_OFF + 12) >> 2] = 0x34000;
+        ctx->regs[RP_TEX_CNTL >> 2]      = RP_TEX_VQ;
+        CHECK(mach64_rp_texture_init(ctx, &tx));
+        expect_int("VQ two levels", tx.levels, 2);
+        expect_u32("VQ level 1 texel", mach64_rp_texel(ctx, &ctx->agp, &tx.maps[1], 5, 3, &inhibits),
+                   vq_expected(4, vq_block_texel(200 + 1 * 4 + 2, 3)));
+    }
+    /* Without TEX_VQ the same bytes are an ordinary 565 map. */
+    {
+        mach64_rp_texture_t tx;
+        int                 inhibits;
+
+        m->dp_pix_width = 4u << 28;
+        ctx->regs[SCALE_3D_CNTL >> 2] = MIP_MAP_DISABLE;
+        ctx->regs[RP_TEX_CNTL >> 2]   = 0;
+        CHECK(mach64_rp_texture_init(ctx, &tx));
+        CHECK(!tx.maps[0].vq);
+        expect_u32("non-VQ map is not decoded as VQ", mach64_rp_texel(ctx, &ctx->agp, &tx.maps[0], 0, 0, &inhibits),
+                   vq_expected(4, m->svga.vram[0x30000] | (m->svga.vram[0x30001] << 8)));
+    }
+    card_close(m);
+}
+
+/*
  * Draw commands through the registers: trapezoids, lines and the state they
  * leave. The legacy registers they share with the draw engine are set
  * directly. The commands are those of RRG-G02700 4-43 to 4-48, and the
@@ -2745,6 +3003,12 @@ draw_tests(void)
 int
 main(int argc, char **argv)
 {
+    if (argc == 2 && !strcmp(argv[1], "--vq")) {
+        ragepro_vq_tests();
+        ragepro_vq_real_card_tests();
+        printf("Mach64 VQ: %d failed checks\n", failures);
+        return failures ? 1 : 0;
+    }
     if (argc == 2 && !strcmp(argv[1], "--palette")) {
         palette_tests();
         ragepro_palette_upload_tests();
@@ -2771,6 +3035,8 @@ main(int argc, char **argv)
     card_type = MACH64_GTB;
     ragepro_palette_upload_tests();
     ragepro_ci8_tiling_tests();
+    ragepro_vq_tests();
+    ragepro_vq_real_card_tests();
 
     if (failures) {
         fprintf(stderr, "Mach64 3D engine: %d checks failed\n", failures);
