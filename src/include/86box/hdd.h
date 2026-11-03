@@ -254,6 +254,7 @@ extern int      rdisk_ata_write_protected(int slot);
 extern int      rdisk_ata_take_media_change(int slot); /* 1 once after a change */
 extern void     rdisk_ata_lock(int slot, int lock);
 extern int      rdisk_ata_eject(int slot);             /* -1 while locked */
+extern int      rdisk_ata_soft_protect(int slot, uint8_t subcommand); /* -1: unsupported */
 
 extern int image_is_hdi(const char *s);
 extern int image_is_hdx(const char *s, int check_signature);

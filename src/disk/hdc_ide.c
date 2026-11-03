@@ -113,6 +113,7 @@
 #define WIN_IDENTIFY                   0xec /* Ask drive to identify itself */
 #define WIN_SET_FEATURES               0xef
 #define WIN_READ_NATIVE_MAX            0xf8
+#define WIN_SYQUEST_WRITE_PROTECT      0xc0 /* SyQuest; CFA ERASE elsewhere */
 #define WIN_INVALID                    0xff
 
 #define FEATURE_SET_TRANSFER_MODE      0x03
@@ -1980,6 +1981,13 @@ ide_ata_removable_command(ide_t *ide, const uint8_t val)
 
         case WIN_ACK_MEDIA_CHANGE:
             (void) rdisk_ata_take_media_change(slot);
+            break;
+
+        case WIN_SYQUEST_WRITE_PROTECT:
+            if (!rdisk_ata_media_present(slot))
+                err = NM_ERR;
+            else if (rdisk_ata_soft_protect(slot, ide->tf->cylprecomp) < 0)
+                err = ABRT_ERR;
             break;
 
         /* ATA-1 boot hints; SQATDRVR.SYS sends post-boot once it is loaded. */

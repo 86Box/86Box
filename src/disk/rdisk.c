@@ -2797,6 +2797,7 @@ rdisk_insert(rdisk_t *dev)
         /* An ATA drive reports a change once, as MC on its next media command. */
         dev->ata_mc     = 1;
         dev->ata_locked = 0;
+        dev->soft_wp    = 0;
         if (dev->drv->fp == NULL) {
             dev->unit_attention = 0;
             dev->transition     = 0;
@@ -5361,6 +5362,7 @@ rdisk_hard_reset(void)
             /* A cartridge in the drive at power on is no change. */
             dev->ata_mc     = 0;
             dev->ata_locked = 0;
+            dev->soft_wp    = 0;
 
             if (rdisk_drives[c].bus_type == RDISK_BUS_SCSI)
                 rdisk_log(dev->log, "SCSI RDISK drive %i attached to SCSI ID %i\n",
@@ -5430,8 +5432,8 @@ rdisk_ata_write(const int slot, const uint32_t sector, const uint32_t count, con
 {
     const rdisk_t *dev = rdisk_ata_dev(slot);
 
-    if ((dev == NULL) || dev->drv->read_only || (rdisk_ata_seek(dev, sector, count) == -1) ||
-        (fwrite(buffer, 512, count, dev->drv->fp) != count))
+    if ((dev == NULL) || dev->drv->read_only || dev->soft_wp ||
+        (rdisk_ata_seek(dev, sector, count) == -1) || (fwrite(buffer, 512, count, dev->drv->fp) != count))
         return -1;
 
     fflush(dev->drv->fp);
@@ -5444,7 +5446,8 @@ rdisk_ata_zero(const int slot, const uint32_t sector, const uint32_t count)
     static const uint8_t zero[512] = { 0 };
     const rdisk_t       *dev       = rdisk_ata_dev(slot);
 
-    if ((dev == NULL) || dev->drv->read_only || (rdisk_ata_seek(dev, sector, count) == -1))
+    if ((dev == NULL) || dev->drv->read_only || dev->soft_wp ||
+        (rdisk_ata_seek(dev, sector, count) == -1))
         return -1;
 
     for (uint32_t i = 0; i < count; i++) {
@@ -5478,7 +5481,27 @@ rdisk_ata_write_protected(const int slot)
 {
     const rdisk_t *dev = rdisk_ata_dev(slot);
 
-    return (dev != NULL) && dev->drv->read_only;
+    return (dev != NULL) && (dev->drv->read_only || dev->soft_wp);
+}
+
+/*
+   SyQuest Write Protect Enable/Disable (C0h): Features 'P' sets the
+   cartridge's software write protection, 'E' clears it (SparQ Internal EIDE
+   Technical Reference, 1997, p. 6-72). The real drive keeps the setting on
+   the cartridge; here it lasts until the cartridge is changed. The EZ135
+   aborts the command: it has only the write protect tab.
+ */
+int
+rdisk_ata_soft_protect(const int slot, const uint8_t subcommand)
+{
+    rdisk_t *dev = rdisk_ata_dev(slot);
+
+    if ((dev == NULL) || (dev->drv->type != RDISK_TYPE_EZ230A) ||
+        ((subcommand != 'P') && (subcommand != 'E')))
+        return -1;
+
+    dev->soft_wp    = (subcommand == 'P');
+    return 0;
 }
 
 int

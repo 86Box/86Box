@@ -749,6 +749,7 @@ typedef struct rdisk_t {
     /* A drive on RDISK_BUS_IDE. */
     uint8_t            ata_mc;        /* a cartridge change to report as MC */
     uint8_t            ata_locked;    /* door locked (MEDIA LOCK) */
+    uint8_t            soft_wp;       /* the cartridge's software write protection (C0h) */
 } rdisk_t;
 
 extern rdisk_t      *rdisk[RDISK_NUM];
