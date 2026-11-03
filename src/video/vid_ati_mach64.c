@@ -967,6 +967,8 @@ mach64_line_callback(svga_t *svga)
 #define PLL_XCLK_CNTL  0xb
 #define PLL_TEST_CNTL  0xe
 #define PLL_TEST_COUNT 0xf
+#define EXT_VPLL_MSB   0x1c
+#define EXT_V2PLL_MSB  0x27
 
 /* The four pixel clocks the PLL registers give. On the VT family
    VCLK_SRC_SEL (PLL_VCLK_CNTL 1:0) picks the bus clock (CPUCLK), DCLK,
@@ -1051,6 +1053,12 @@ pll_write(mach64_t *mach64, uint32_t addr, uint8_t val)
                 val = 0;
             if ((mach64->type >= MACH64_VT) && (mach64->pll_addr == PLL_TEST_CNTL) && !mach64_pll_test_mode(mach64))
                 val = 0;
+            /* EXT_VPLL_UPDATE and EXT_V2PLL_UPDATE (bit 3) read 1 while the
+               atomic divider update is pending (LT Pro RRG, RRG-G03300). The
+               extended dividers are not modelled, so the update is done at
+               once; ATI's Windows 2000 driver for the Rage Pro waits for it. */
+            if (mach64->ragepro && ((mach64->pll_addr == EXT_VPLL_MSB) || (mach64->pll_addr == EXT_V2PLL_MSB)))
+                val &= ~0x08;
             mach64->pll_regs[mach64->pll_addr] = val;
             mach64_pll_recalc(mach64);
             break;
