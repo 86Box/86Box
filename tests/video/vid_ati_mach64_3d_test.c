@@ -1511,6 +1511,220 @@ ragepro_vq_tests(void)
 }
 
 /*
+ * Rage Pro 16 bpp dither and Gouraud color, against a real card.
+ *
+ * The expected pixels come from raw frame buffer dumps of a PCI Rage Pro
+ * (1002:4750, ATI driver 5.30, 3DCIF 4.11.1.2692) drawing, into a 640x480 555
+ * surface, flat gray 16x16 patches (gray 0..255, 32 per row from (64,32)),
+ * and a gray ramp over the full width and one over the full height. With the
+ * dither on, a component v comes out as min(31, (scale[v] + rank) >> 4):
+ * the tables below are the scale, 9 bits per v, read out of the patches (each
+ * v shows two outputs across the 16 ranks, and where they change is scale[v]
+ * mod 16), and the rank is a 4 by 8 table at the absolute screen X and Y.
+ * Dither off, a component is v >> 3. The ramps show the interpolated color is
+ * sampled at the pixel center and truncated to 8 bits: v = floor(255 * (p +
+ * 0.5) / extent). The real vertical ramp is one 8-bit step lower than that
+ * on three rows, which the engine does not reproduce; they are skipped.
+ */
+static const uint16_t real_scale_red_blue[256] = {
+      0,   2,   4,   6,   8,  10,  12,  14,  16,  18,  20,  22,  24,  26,  28,  30,
+     31,  33,  35,  37,  39,  41,  43,  45,  47,  49,  51,  53,  55,  57,  59,  61,
+     62,  64,  66,  68,  70,  72,  74,  76,  78,  80,  82,  84,  86,  88,  90,  92,
+     93,  95,  97,  99, 101, 103, 105, 107, 109, 111, 113, 115, 117, 119, 121, 123,
+    124, 126, 128, 130, 132, 134, 136, 138, 140, 142, 144, 146, 148, 150, 152, 154,
+    155, 157, 159, 161, 163, 165, 167, 169, 171, 173, 175, 177, 179, 181, 183, 185,
+    186, 188, 190, 192, 194, 196, 198, 200, 202, 204, 206, 208, 210, 212, 214, 216,
+    217, 219, 221, 223, 225, 227, 229, 231, 233, 235, 237, 239, 241, 243, 245, 247,
+    249, 251, 253, 255, 257, 259, 261, 263, 265, 267, 269, 271, 273, 275, 277, 279,
+    280, 282, 284, 286, 288, 290, 292, 294, 296, 298, 300, 302, 304, 306, 308, 310,
+    311, 313, 315, 317, 319, 321, 323, 325, 327, 329, 331, 333, 335, 337, 339, 341,
+    342, 344, 346, 348, 350, 352, 354, 356, 358, 360, 362, 364, 366, 368, 370, 372,
+    373, 375, 377, 379, 381, 383, 385, 387, 389, 391, 393, 395, 397, 399, 401, 403,
+    404, 406, 408, 410, 412, 414, 416, 418, 420, 422, 424, 426, 428, 430, 432, 434,
+    435, 437, 439, 441, 443, 445, 447, 449, 451, 453, 455, 457, 459, 461, 463, 465,
+    466, 468, 470, 472, 474, 476, 478, 480, 482, 484, 486, 488, 490, 492, 494, 496,
+};
+
+static const uint16_t real_scale_green[256] = {
+      0,   2,   4,   6,   8,  10,  12,  14,  15,  17,  19,  21,  23,  25,  27,  29,
+     31,  33,  35,  37,  39,  41,  43,  45,  46,  48,  50,  52,  54,  56,  58,  60,
+     62,  64,  66,  68,  70,  72,  74,  76,  77,  79,  81,  83,  85,  87,  89,  91,
+     93,  95,  97,  99, 101, 103, 105, 107, 108, 110, 112, 114, 116, 118, 120, 122,
+    124, 126, 128, 130, 132, 134, 136, 138, 140, 142, 144, 146, 148, 150, 152, 154,
+    155, 157, 159, 161, 163, 165, 167, 169, 171, 173, 175, 177, 179, 181, 183, 185,
+    186, 188, 190, 192, 194, 196, 198, 200, 202, 204, 206, 208, 210, 212, 214, 216,
+    217, 219, 221, 223, 225, 227, 229, 231, 233, 235, 237, 239, 241, 243, 245, 247,
+    249, 251, 253, 255, 257, 259, 261, 263, 264, 266, 268, 270, 272, 274, 276, 278,
+    280, 282, 284, 286, 288, 290, 292, 294, 295, 297, 299, 301, 303, 305, 307, 309,
+    311, 313, 315, 317, 319, 321, 323, 325, 326, 328, 330, 332, 334, 336, 338, 340,
+    342, 344, 346, 348, 350, 352, 354, 356, 357, 359, 361, 363, 365, 367, 369, 371,
+    373, 375, 377, 379, 381, 383, 385, 387, 389, 391, 393, 395, 397, 399, 401, 403,
+    404, 406, 408, 410, 412, 414, 416, 418, 420, 422, 424, 426, 428, 430, 432, 434,
+    435, 437, 439, 441, 443, 445, 447, 449, 451, 453, 455, 457, 459, 461, 463, 465,
+    466, 468, 470, 472, 474, 476, 478, 480, 482, 484, 486, 488, 490, 492, 494, 496,
+};
+
+static const uint8_t real_rank[8][4] = {
+    { 15, 7, 13, 5 }, { 3, 11, 1, 9 }, { 12, 4, 14, 6 }, { 0, 8, 2, 10 },
+    { 13, 5, 15, 7 }, { 1, 9, 3, 11 }, { 14, 6, 12, 4 }, { 2, 10, 0, 8 }
+};
+
+#define DITHER_W 640
+#define DITHER_H 480
+
+static void
+dither_vertex(mach64_t *m, int n, double x, double y, int gray)
+{
+    uint32_t argb = 0xff000000u | (uint32_t) gray * 0x010101u;
+    uint32_t xy4  = ((uint32_t) (int) (x * 4.0) << 16) | ((uint32_t) (int) (y * 4.0) & 0xffffu);
+
+    mach64_3d_setup_write(m, 0x90 + n * 8 + 5, argb);
+    mach64_3d_setup_write(m, 0x90 + n * 8 + 6, xy4);
+}
+
+/* One triangle of three vertices (x, y, gray), 1/area as the driver gives it. */
+static void
+dither_triangle(mach64_t *m, const double v[3][3])
+{
+    double   area = (v[0][0] - v[2][0]) * (v[1][1] - v[2][1]) - (v[0][1] - v[2][1]) * (v[1][0] - v[2][0]);
+    float    ooa  = (float) (1.0 / area);
+    uint32_t raw;
+
+    for (int i = 0; i < 3; i++)
+        dither_vertex(m, i, v[i][0], v[i][1], (int) v[i][2]);
+    memcpy(&raw, &ooa, 4);
+    mach64_3d_setup_write(m, 0x90 + 7, raw);
+}
+
+/* The rectangle [x0,x1) x [y0,y1) as the two triangles the diagnostic sends. */
+static void
+dither_rect(mach64_t *m, double x0, double y0, double x1, double y1, int tl, int tr, int bl, int br)
+{
+    const double a[3][3] = { { x0, y0, tl }, { x1, y0, tr }, { x0, y1, bl } };
+    const double b[3][3] = { { x1, y0, tr }, { x1, y1, br }, { x0, y1, bl } };
+
+    dither_triangle(m, a);
+    dither_triangle(m, b);
+}
+
+static void
+dither_surface(mach64_t *m, int dither)
+{
+    mach64_3d_t *ctx = m->gt3d;
+
+    memset(m->svga.vram, 0, (size_t) DITHER_W * DITHER_H * 2);
+    m->dp_pix_width  = 3; /* ARGB 1555 */
+    m->dp_src        = 0x00000500u;
+    m->dp_mix        = 0x00070007u;
+    m->write_mask    = 0xffffffffu;
+    m->dst_off_pitch = (DITHER_W / 8) << 22;
+    m->sc_left_right = (DITHER_W - 1) << 16;
+    m->sc_top_bottom = (DITHER_H - 1) << 16;
+    m->clr_cmp_cntl  = 0;
+    ctx->regs[Z_CNTL >> 2]        = 0;
+    ctx->regs[SCALE_3D_CNTL >> 2] = (FCN_SHADE << SCALE_3D_FCN_SHIFT) | (dither ? (DITHER_EN | SCALE_DITHER) : 0);
+    ctx->setup_cntl               = 0;
+}
+
+static unsigned
+dither_pixel(const mach64_t *m, int x, int y)
+{
+    return (m->svga.vram[(y * DITHER_W + x) * 2] | (m->svga.vram[(y * DITHER_W + x) * 2 + 1] << 8)) & 0x7fffu;
+}
+
+static unsigned
+dither_expected(int v, int x, int y)
+{
+    int r = (real_scale_red_blue[v] + real_rank[y & 7][x & 3]) >> 4;
+    int g = (real_scale_green[v] + real_rank[y & 7][x & 3]) >> 4;
+
+    if (r > 31)
+        r = 31;
+    if (g > 31)
+        g = 31;
+    return (unsigned) ((r << 10) | (g << 5) | r);
+}
+
+static void
+ragepro_dither_tests(void)
+{
+    mach64_t *m = card_create();
+    int       bad;
+
+    m->ragepro = 1;
+
+    /* Flat patches, dither on: every pixel of every gray. */
+    dither_surface(m, 1);
+    for (int i = 0; i < 256; i++) {
+        double x0 = 64 + 16 * (i % 32);
+        double y0 = 32 + 16 * (i / 32);
+
+        dither_rect(m, x0, y0, x0 + 16, y0 + 16, i, i, i, i);
+    }
+    bad = 0;
+    for (int i = 0; i < 256; i++)
+        for (int y = 0; y < 16; y++)
+            for (int x = 0; x < 16; x++) {
+                int px = 64 + 16 * (i % 32) + x;
+                int py = 32 + 16 * (i / 32) + y;
+
+                bad += (dither_pixel(m, px, py) != dither_expected(i, px, py));
+            }
+    expect_int("dithered flat patches differing from a real Rage Pro", bad, 0);
+
+    /* Flat patches, dither off: truncation. */
+    dither_surface(m, 0);
+    for (int i = 0; i < 256; i++) {
+        double x0 = 64 + 16 * (i % 32);
+        double y0 = 32 + 16 * (i / 32);
+
+        dither_rect(m, x0, y0, x0 + 16, y0 + 16, i, i, i, i);
+    }
+    bad = 0;
+    for (int i = 0; i < 256; i++)
+        bad += (dither_pixel(m, 64 + 16 * (i % 32) + 5, 32 + 16 * (i / 32) + 9) != (unsigned) (((i >> 3) << 10) | ((i >> 3) << 5) | (i >> 3)));
+    expect_int("undithered flat patches differing from a real Rage Pro", bad, 0);
+
+    /* Ramps, dither off: the color is the pixel center's, truncated. */
+    dither_surface(m, 0);
+    dither_rect(m, 0, 0, DITHER_W, 240, 0, 255, 0, 255);
+    dither_rect(m, 0, 240, DITHER_W, DITHER_H, 0, 0, 255, 255);
+    bad = 0;
+    for (int x = 0; x < DITHER_W; x++) {
+        int l = (255 * (2 * x + 1) / (2 * DITHER_W)) >> 3;
+
+        bad += (dither_pixel(m, x, 100) != (unsigned) ((l << 10) | (l << 5) | l));
+    }
+    expect_int("undithered horizontal ramp differing from a real Rage Pro", bad, 0);
+    bad = 0;
+    for (int y = 240; y < DITHER_H; y++) {
+        int l = (255 * (2 * (y - 240) + 1) / (2 * 240)) >> 3;
+
+        bad += (dither_pixel(m, 300, y) != (unsigned) ((l << 10) | (l << 5) | l));
+    }
+    expect_int("undithered vertical ramp differing from a real Rage Pro", bad, 0);
+
+    /* Ramps, dither on. */
+    dither_surface(m, 1);
+    dither_rect(m, 0, 0, DITHER_W, 240, 0, 255, 0, 255);
+    dither_rect(m, 0, 240, DITHER_W, DITHER_H, 0, 0, 255, 255);
+    bad = 0;
+    for (int y = 0; y < 240; y += 7)
+        for (int x = 0; x < DITHER_W; x++)
+            bad += (dither_pixel(m, x, y) != dither_expected(255 * (2 * x + 1) / (2 * DITHER_W), x, y));
+    expect_int("dithered horizontal ramp differing from a real Rage Pro", bad, 0);
+    bad = 0;
+    for (int y = 240; y < DITHER_H; y++) {
+        int skip = (y == 240 + 136) || (y == 240 + 152) || (y == 240 + 168);
+
+        for (int x = 0; x < DITHER_W && !skip; x++)
+            bad += (dither_pixel(m, x, y) != dither_expected(255 * (2 * (y - 240) + 1) / (2 * 240), x, y));
+    }
+    expect_int("dithered vertical ramp differing from a real Rage Pro", bad, 0);
+    card_close(m);
+}
+
+/*
  * Draw commands through the registers: trapezoids, lines and the state they
  * leave. The legacy registers they share with the draw engine are set
  * directly. The commands are those of RRG-G02700 4-43 to 4-48, and the
@@ -2376,9 +2590,9 @@ pixie_profile_case(mach64_t *m, int textured, int dx, int dy, int slope, int cli
                 case_expect("opaque RGB555 alpha", pixel >> 15, 1);
                 for (int channel = 0; channel < 3; channel++) {
                     int quantized = (pixel >> (10 - 5 * channel)) & 31;
-                    int lower     = channels[channel] >> 3;
-                    /* Accept either neighboring quantization code; do not
-                     * bless the current substituted Bayer table as hardware. */
+                    /* A dithered component is its value scaled to 5 bits,
+                     * rounded down, or the code above that. */
+                    int lower     = channels[channel] * 31 / 255;
                     case_expect("lit component within quantization bounds",
                                 quantized >= lower && quantized <= lower + 1, 1);
                 }
@@ -3009,6 +3223,11 @@ main(int argc, char **argv)
         printf("Mach64 VQ: %d failed checks\n", failures);
         return failures ? 1 : 0;
     }
+    if (argc == 2 && !strcmp(argv[1], "--dither")) {
+        ragepro_dither_tests();
+        printf("Mach64 dither: %d failed checks\n", failures);
+        return failures ? 1 : 0;
+    }
     if (argc == 2 && !strcmp(argv[1], "--palette")) {
         palette_tests();
         ragepro_palette_upload_tests();
@@ -3037,6 +3256,7 @@ main(int argc, char **argv)
     ragepro_ci8_tiling_tests();
     ragepro_vq_tests();
     ragepro_vq_real_card_tests();
+    ragepro_dither_tests();
 
     if (failures) {
         fprintf(stderr, "Mach64 3D engine: %d checks failed\n", failures);

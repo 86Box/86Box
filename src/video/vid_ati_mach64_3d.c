@@ -915,32 +915,43 @@ mach64_3d_unpack(mach64_3d_t *ctx, int format, uint32_t raw, int source)
  * The reduction of the 24-bit pipeline to the frame buffer's pixel type,
  * SCALE_3D_CNTL 4:1: DITHER_EN dithers, by X error diffusion or, with
  * SCALE_DITHER, a fixed two-dimensional table; DITHER_INIT clears the error
- * at each scan line; ROUND_EN rounds when not dithering. The register guide
- * does not give the table, so a 4x4 Bayer matrix stands in for it.
+ * at each scan line; ROUND_EN rounds when not dithering.
+ *
+ * The table is 4 pixels wide and 8 rows tall, indexed by the absolute screen
+ * X and Y, and holds a rank 0..15 per pixel. A real Rage Pro (ATI driver
+ * 5.30, 3DCIF 4.11.1.2692, 555 surface) reduces an 8-bit component v to
+ * min(max, (M(v) + rank) >> 4): M is v scaled to the output range in 4
+ * fractional bits, and the rank is added in the last of them. M is not the
+ * exact quotient v * max * 16 / 255 but a shift-and-add form of it; for a
+ * 5-bit component:
+ *   red, blue  M = 2 v - (v >> 4) + (v >> 7)
+ *   green      the same, less 1 where bit 3 of v is set and bit 6 is clear.
+ * Dithering off, the component is truncated, v >> (8 - bits).
  */
-static const uint8_t mach64_3d_bayer4[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
+static const uint8_t mach64_3d_dither_rank[8][4] = {
+    { 15, 7, 13, 5 }, { 3, 11, 1, 9 }, { 12, 4, 14, 6 }, { 0, 8, 2, 10 },
+    { 13, 5, 15, 7 }, { 1, 9, 3, 11 }, { 14, 6, 12, 4 }, { 2, 10, 0, 8 }
+};
 
-/* What the table adds before the low bits are dropped, by [bits dropped][Y
-   and X in the cell], made by mach64_3d_init. */
-static uint8_t mach64_3d_dither_add[8][16];
-
-static void
-mach64_3d_dither_table_init(void)
+/* v scaled to bits wide in 4 fractional bits, before the rank is added. */
+static inline int
+mach64_3d_dither_scale(int v, int bits, int channel)
 {
-    for (int drop = 0; drop < 8; drop++) {
-        int span = (1 << drop) - 1;
+    if (bits == 5) {
+        int m = 2 * v - (v >> 4) + (v >> 7);
 
-        for (int i = 0; i < 16; i++)
-            mach64_3d_dither_add[drop][i] = (mach64_3d_bayer4[i] * span + 7) / 15;
+        if (channel == 1)
+            m -= (v >> 3) & ~(v >> 6) & 1;
+        return m;
     }
+    return (v * ((1 << bits) - 1) * 32 + 255) / 510;
 }
 
 static inline int
-mach64_3d_quantize_ordered(int v, int bits, int x, int y)
+mach64_3d_quantize_ordered(int v, int bits, int channel, int x, int y)
 {
-    int drop = 8 - bits;
-    int max  = (1 << bits) - 1;
-    int q    = (mach64_3d_clamp8(v) + mach64_3d_dither_add[drop][((y & 3) << 2) | (x & 3)]) >> drop;
+    int max = (1 << bits) - 1;
+    int q   = (mach64_3d_dither_scale(mach64_3d_clamp8(v), bits, channel) + mach64_3d_dither_rank[y & 7][x & 3]) >> 4;
 
     return (q > max) ? max : q;
 }
@@ -974,7 +985,7 @@ mach64_3d_quantize(mach64_3d_dither_t *dither, uint32_t cntl, int v, int bits, i
 {
     if (cntl & DITHER_EN) {
         if (cntl & SCALE_DITHER)
-            return mach64_3d_quantize_ordered(v, bits, x, y);
+            return mach64_3d_quantize_ordered(v, bits, channel, x, y);
         return mach64_3d_quantize_diffuse(v, bits, &dither->err[channel]);
     }
     if (cntl & ROUND_EN)
@@ -3509,8 +3520,8 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
  * grouped by kind (all S, all T ... all X_Y), for packed DMA writes.
  *
  * The pixels are sampled at their centres with the top-left rule, and every
- * value is interpolated in the plane its three vertices give it, colours
- * rounded; S/W, T/W and W in screen space, then divided, which is the chip's
+ * value is interpolated in the plane its three vertices give it, the red,
+ * green and blue channels truncated to 8 bits and alpha rounded; S/W, T/W and W in screen space, then divided, which is the chip's
  * perspective correction. (ATI's Windows 2000 driver, atidrab, adds half a
  * pixel to Direct3D's coordinates: alphabox, sampling at the centres of
  * those, matched Direct3D's software rasteriser pixel for pixel.) A pixel
@@ -4390,6 +4401,19 @@ mach64_rp_at8(const mach64_rp_plane_t *p, double x, double y)
     return (v >= 255.0) ? 255 : (int) v;
 }
 
+/* An 8-bit color plane at x, y, truncated and clamped; NaN is 0. A real Rage
+   Pro's Gouraud color steps to the next 8-bit value where the interpolant
+   reaches it, not half a step before. */
+static inline int
+mach64_rp_at8_floor(const mach64_rp_plane_t *p, double x, double y)
+{
+    double v = mach64_rp_at(p, x, y);
+
+    if (!(v >= 0.0))
+        return 0;
+    return (v >= 255.0) ? 255 : (int) v;
+}
+
 /* The level of detail at s, t: log2 of the texels of the largest map a
    pixel steps across, along the screen axis that steps across more.
    d(S/W)/dx = (dS/dx - s dW/dx) / W. */
@@ -4444,9 +4468,9 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
     int       spec_b = 0;
     int       fog_f  = 255;
 
-    shade.r = mach64_rp_at8(&tri->pl[RPP_R], fx, fy);
-    shade.g = mach64_rp_at8(&tri->pl[RPP_G], fx, fy);
-    shade.b = mach64_rp_at8(&tri->pl[RPP_B], fx, fy);
+    shade.r = mach64_rp_at8_floor(&tri->pl[RPP_R], fx, fy);
+    shade.g = mach64_rp_at8_floor(&tri->pl[RPP_G], fx, fy);
+    shade.b = mach64_rp_at8_floor(&tri->pl[RPP_B], fx, fy);
     shade.a = mach64_rp_at8(&tri->pl[RPP_A], fx, fy);
 
     if (z_on) {
@@ -5127,7 +5151,6 @@ mach64_3d_init(mach64_t *mach64)
     mach64_3d_t *ctx = calloc(1, sizeof(mach64_3d_t));
 
     mach64_3d_expand_table_init();
-    mach64_3d_dither_table_init();
     mach64_rp_tile_init();
     ctx->mach64  = mach64;
     ctx->threads = ((mach64->render_threads == 2) || (mach64->render_threads == 4)) ? mach64->render_threads : 1;
