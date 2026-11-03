@@ -1178,6 +1178,12 @@ mach64_timing_status(mach64_t *mach64, uint32_t *used, int *busy)
     /* A guest polling the FIFO waits for entries the engine has yet to run. */
     if ((mach64->fifo_write_idx != mach64->fifo_read_idx) && !mach64->blitter_busy)
         mach64_wake_fifo_thread(mach64);
+    /* The next entry to leave has no cost until the engine thread has run
+       it. That wait is the host's: spent in polls, which take emulated time,
+       it would make the engine seem slower the slower the host is. */
+    mach64_timing_fold(mach64);
+    if ((timing->head == timing->fold) && (timing->fold != timing->tail) && timing->ring[timing->fold & TIMING_RING_MASK].queued)
+        mach64_wait_fifo_entry(mach64, timing->ring[timing->fold & TIMING_RING_MASK].fifo_idx);
     now   = mach64_timing_update(mach64);
     *used = timing->tail - timing->head;
     *busy = (timing->tail != timing->head) || (timing->free_at > now);

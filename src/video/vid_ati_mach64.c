@@ -3172,6 +3172,40 @@ mach64_writel_linear(uint32_t addr, uint32_t val, void *priv)
 }
 
 /*
+ * A read of the registers through memory takes the bus as long as one of
+ * the frame buffer does. Without it a guest polling GUI_STAT spun about
+ * fifty times for each read real hardware could have made, and the polling
+ * took most of the emulation thread's time. The read is charged once, here,
+ * as mach64_ext_readl reads in words and mach64_ext_readw in bytes.
+ */
+static uint8_t
+mach64_reg_readb(uint32_t addr, void *priv)
+{
+    const mach64_t *mach64 = (mach64_t *) priv;
+
+    cycles -= mach64->svga.monitor->mon_video_timing_read_b;
+    return mach64_ext_readb(addr, priv);
+}
+
+static uint16_t
+mach64_reg_readw(uint32_t addr, void *priv)
+{
+    const mach64_t *mach64 = (mach64_t *) priv;
+
+    cycles -= mach64->svga.monitor->mon_video_timing_read_w;
+    return mach64_ext_readw(addr, priv);
+}
+
+static uint32_t
+mach64_reg_readl(uint32_t addr, void *priv)
+{
+    const mach64_t *mach64 = (mach64_t *) priv;
+
+    cycles -= mach64->svga.monitor->mon_video_timing_read_l;
+    return mach64_ext_readl(addr, priv);
+}
+
+/*
  * The 3D Rage II+ has its registers in the top 4K of the big-endian
  * aperture too, as they are, and ATI's Windows 95 driver uses them there:
  * with that window read as memory, it rejects the card ("The adapter type
@@ -3198,7 +3232,7 @@ mach64_readb_be(uint32_t addr, void *priv)
     mach64_t *mach64 = mach64_be_regs(addr, priv);
 
     if (mach64)
-        return mach64_ext_readb(addr, mach64);
+        return mach64_reg_readb(addr, mach64);
     return mach64_read_linear(addr, priv);
 }
 
@@ -3208,7 +3242,7 @@ mach64_readw_be(uint32_t addr, void *priv)
     mach64_t *mach64 = mach64_be_regs(addr, priv);
 
     if (mach64)
-        return mach64_ext_readw(addr, mach64);
+        return mach64_reg_readw(addr, mach64);
     return bswap16(mach64_readw_linear(addr, priv));
 }
 
@@ -3218,7 +3252,7 @@ mach64_readl_be(uint32_t addr, void *priv)
     mach64_t *mach64 = mach64_be_regs(addr, priv);
 
     if (mach64)
-        return mach64_ext_readl(addr, mach64);
+        return mach64_reg_readl(addr, mach64);
     return bswap32(mach64_readl_linear(addr, priv));
 }
 
@@ -3577,17 +3611,17 @@ mach64_common_init(const device_t *info)
 
     mem_mapping_add(&mach64->linear_mapping, 0, 0, mach64_read_linear, mach64_readw_linear, mach64_readl_linear, mach64_write_linear, mach64_writew_linear, mach64_writel_linear, NULL, MEM_MAPPING_EXTERNAL, svga);
     mem_mapping_add(&mach64->linear_mapping_big_endian, 0, 0, mach64_readb_be, mach64_readw_be, mach64_readl_be, mach64_writeb_be, mach64_writew_be, mach64_writel_be, NULL, MEM_MAPPING_EXTERNAL, svga);
-    mem_mapping_add(&mach64->mmio_linear_mapping, 0, 0, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
+    mem_mapping_add(&mach64->mmio_linear_mapping, 0, 0, mach64_reg_readb, mach64_reg_readw, mach64_reg_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
     /* The registers in the VGA window, 1K at BFC00 and on the VT family 2K
        at BF800 while block 1 is on (mach64_reg_window); the video memory
        below them stays in the window. */
-    mem_mapping_add(&mach64->mmio_mapping, 0xbfc00, 0x400, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
+    mem_mapping_add(&mach64->mmio_mapping, 0xbfc00, 0x400, mach64_reg_readb, mach64_reg_readw, mach64_reg_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
     if (mach64->isa_8bit) {
         /* An 8-bit slot wires SA0-SA19 and SD0-SD7 only. The card decodes
            the address lines it has, so its window and register block answer
            at every 1 MB alias; LA17-LA23 are missing, so the linear aperture
            cannot exist (below). The word and dword handlers go with SD8-15. */
-        mem_mapping_set_handler(&mach64->mmio_mapping, mach64_ext_readb, NULL, NULL, mach64_ext_writeb, NULL, NULL);
+        mem_mapping_set_handler(&mach64->mmio_mapping, mach64_reg_readb, NULL, NULL, mach64_ext_writeb, NULL, NULL);
         mem_mapping_set_base_ignore(&mach64->mmio_mapping, 0xfff00000);
         mem_mapping_set_base_ignore(&svga->mapping, 0xfff00000);
     }
@@ -3902,7 +3936,7 @@ mach64gtb_init(const device_t *info)
     }
     mem_mapping_disable(&mach64->bios_rom.mapping);
 
-    mem_mapping_add(&mach64->aux_mapping, 0, 0, mach64_ext_readb, mach64_ext_readw, mach64_ext_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
+    mem_mapping_add(&mach64->aux_mapping, 0, 0, mach64_reg_readb, mach64_reg_readw, mach64_reg_readl, mach64_ext_writeb, mach64_ext_writew, mach64_ext_writel, NULL, MEM_MAPPING_EXTERNAL, mach64);
     mem_mapping_disable(&mach64->aux_mapping);
     io_sethandler(0x0102, 0x0001, mach64_gtb_genvs_in, NULL, NULL, mach64_gtb_genvs_out, NULL, NULL, mach64);
     io_sethandler(0x46e8, 0x0001, mach64_gtb_genena_in, NULL, NULL, mach64_gtb_genena_out, NULL, NULL, mach64);
