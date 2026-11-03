@@ -608,7 +608,8 @@ cmi8x38_start_playback(cmi8x38_t *dev)
 static uint8_t
 cmi8x38_read(uint16_t addr, void *priv)
 {
-    cmi8x38_t *dev = (cmi8x38_t *) priv;
+    cmi8x38_t     *dev = (cmi8x38_t *) priv;
+    cmi8x38_dma_t *dma;
     addr &= 0xff;
     uint8_t ret;
 
@@ -652,14 +653,14 @@ cmi8x38_read(uint16_t addr, void *priv)
             ret = dev->dma[(addr & 0x78) >> 3].sample_ptr >> 24;
             break;
 
-        case 0x84:
-        case 0x8c:
-            ret = dev->dma[(addr & 0x78) >> 3].frame_count_dma;
-            break;
-
-        case 0x85:
-        case 0x8d:
-            ret = dev->dma[(addr & 0x78) >> 3].frame_count_dma >> 8;
+        case 0x84 ... 0x85:
+        case 0x8c ... 0x8d:
+            /* Frames left minus one, the way the count is programmed (Linux takes
+               the position as the buffer's size minus this plus one, and treats a
+               value not below the size as invalid). Past the last frame, the
+               counter has been reloaded for the wrap around to the start. */
+            dma = &dev->dma[(addr & 0x78) >> 3];
+            ret = ((dma->frame_count_dma > 0) ? (dma->frame_count_dma - 1) : AS_U16(dev->io_regs[dma->reg | 0x4])) >> ((addr & 0x01) << 3);
             break;
 
         case 0x86:
