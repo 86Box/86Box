@@ -1341,7 +1341,10 @@ vq_expected(unsigned format, uint16_t t)
     return (a << 24) | (r << 16) | (g << 8) | b;
 }
 
-/* Where an index byte is for an 8 x 4 index map tiled as 8 bpp. */
+/* Where an index byte is for an 8 x 4 index map tiled as 8 bpp. This is an
+   assumed layout: the tiled VQ cases stage data the way the reader expects
+   it, so they check the reader against that assumption, not against a card.
+   No real-card capture of a tiled VQ index map exists. */
 static unsigned
 vq_tiled_8x4(unsigned x, unsigned y)
 {
@@ -1377,7 +1380,7 @@ vq_texel_checks(mach64_t *m, const char *what, unsigned format, int tiled, int a
             unsigned block = vq_index(u >> 1, v >> 1);
             char     name[96];
 
-            snprintf(name, sizeof(name), "%s VQ texel %u,%u", what, u, v);
+            snprintf(name, sizeof(name), "%s VQ texel %u,%u%s", what, u, v, tiled ? " (tiling: assumed layout, no card data)" : "");
             expect_u32(name, mach64_rp_texel(ctx, &ctx->agp, &tx.maps[0], u, v, &inhibits),
                        vq_expected(format, vq_block_texel(block, ((v & 1) << 1) | (u & 1))));
         }
@@ -1572,6 +1575,8 @@ static const uint8_t real_rank[8][4] = {
 #define DITHER_W 640
 #define DITHER_H 480
 
+#include "vid_ati_mach64_dither_vectors.h"
+
 static void
 dither_vertex(mach64_t *m, int n, double x, double y, int gray)
 {
@@ -1633,6 +1638,12 @@ dither_pixel(const mach64_t *m, int x, int y)
 }
 
 static unsigned
+dither_pixel_fmt(const mach64_t *m, int x, int y)
+{
+    return m->svga.vram[(y * DITHER_W + x) * 2] | (m->svga.vram[(y * DITHER_W + x) * 2 + 1] << 8);
+}
+
+static unsigned
 dither_expected(int v, int x, int y)
 {
     int r = (real_scale_red_blue[v] + real_rank[y & 7][x & 3]) >> 4;
@@ -1685,45 +1696,136 @@ ragepro_dither_tests(void)
         bad += (dither_pixel(m, 64 + 16 * (i % 32) + 5, 32 + 16 * (i / 32) + 9) != (unsigned) (((i >> 3) << 10) | ((i >> 3) << 5) | (i >> 3)));
     expect_int("undithered flat patches differing from a real Rage Pro", bad, 0);
 
-    /* Ramps, dither off: the color is the pixel center's, truncated. */
+    /* Ramps, dither off: expectations are the real card's pixels. */
     dither_surface(m, 0);
     dither_rect(m, 0, 0, DITHER_W, 240, 0, 255, 0, 255);
     dither_rect(m, 0, 240, DITHER_W, DITHER_H, 0, 0, 255, 255);
     bad = 0;
-    for (int x = 0; x < DITHER_W; x++) {
-        int l = (255 * (2 * x + 1) / (2 * DITHER_W)) >> 3;
-
-        bad += (dither_pixel(m, x, 100) != (unsigned) ((l << 10) | (l << 5) | l));
-    }
+    for (int x = 0; x < DITHER_W; x++)
+        bad += (dither_pixel(m, x, 100) != real_ramp_h_off[0][x]);
     expect_int("undithered horizontal ramp differing from a real Rage Pro", bad, 0);
     bad = 0;
-    for (int y = 240; y < DITHER_H; y++) {
-        int l = (255 * (2 * (y - 240) + 1) / (2 * 240)) >> 3;
-
-        bad += (dither_pixel(m, 300, y) != (unsigned) ((l << 10) | (l << 5) | l));
-    }
+    for (int y = 240; y < DITHER_H; y++)
+        bad += (dither_pixel(m, 300, y) != real_ramp_v_off[y - 240]);
     expect_int("undithered vertical ramp differing from a real Rage Pro", bad, 0);
 
-    /* Ramps, dither on. */
+    /* Ramps, dither on: every pixel against the real card's. */
     dither_surface(m, 1);
     dither_rect(m, 0, 0, DITHER_W, 240, 0, 255, 0, 255);
     dither_rect(m, 0, 240, DITHER_W, DITHER_H, 0, 0, 255, 255);
     bad = 0;
-    for (int y = 0; y < 240; y += 7)
+    for (int y = 0; y < 240; y++)
         for (int x = 0; x < DITHER_W; x++)
-            bad += (dither_pixel(m, x, y) != dither_expected(255 * (2 * x + 1) / (2 * DITHER_W), x, y));
+            bad += (dither_pixel(m, x, y) != real_ramp_h_on[y & 7][x]);
     expect_int("dithered horizontal ramp differing from a real Rage Pro", bad, 0);
-    bad = 0;
-    for (int y = 240; y < DITHER_H; y++) {
-        int skip = (y == 240 + 136) || (y == 240 + 152) || (y == 240 + 168);
 
-        for (int x = 0; x < DITHER_W && !skip; x++)
-            bad += (dither_pixel(m, x, y) != dither_expected(255 * (2 * (y - 240) + 1) / (2 * 240), x, y));
+    /* The vertical ramp: three rows differ from the card, one 8-bit step
+       lower there, and the engine does not reproduce that. They are known
+       divergences: each must still differ from the card, in exactly the
+       pinned pixels, so that a change either way is noticed. */
+    {
+        static const struct {
+            int      row;
+            unsigned emu[4]; /* what the engine draws at x = 0..3 (pinned, not measured) */
+        } known[] = {
+            { 240 + 136, { 0x4a52, 0x4a52, 0x4a52, 0x4631 } },
+            { 240 + 152, { 0x5294, 0x5294, 0x5294, 0x5294 } },
+            { 240 + 168, { 0x5ad6, 0x5ad6, 0x5ad6, 0x5ad6 } },
+        };
+        int unexpected = 0;
+        int matching   = 0;
+        int moved      = 0;
+
+        /* A pin that equals the card is no divergence at all. */
+        for (int i = 0; i < 3; i++) {
+            int same = 1;
+
+            for (int x = 0; x < 4; x++)
+                same &= (known[i].emu[x] == real_ramp_v_on[known[i].row - 240][x]);
+            matching += same;
+        }
+
+        for (int y = 240; y < DITHER_H; y++) {
+            int k = -1;
+
+            for (int i = 0; i < 3; i++)
+                if (known[i].row == y)
+                    k = i;
+            for (int x = 0; x < DITHER_W; x++) {
+                unsigned got = dither_pixel(m, x, y);
+
+                if (k < 0) {
+                    unexpected += (got != real_ramp_v_on[y - 240][x & 3]);
+                } else {
+                    moved += (got != known[k].emu[x & 3]);
+                }
+            }
+        }
+        expect_int("dithered vertical ramp differing from a real Rage Pro", unexpected, 0);
+        expect_int("known-divergent vertical ramp rows pinned equal to the card", matching, 0);
+        expect_int("known-divergent vertical ramp pixels moved from the pinned values", moved, 0);
     }
-    expect_int("dithered vertical ramp differing from a real Rage Pro", bad, 0);
     card_close(m);
 }
 
+
+/*
+ * Outside what was measured, SCALE_DITHER keeps the earlier 4x4 Bayer stand-in:
+ * a chip that is not a Rage Pro, and a Rage Pro writing 565 (only 555 has been
+ * measured). The expectation here is that stand-in's formula, written out
+ * independently of the engine: add (bayer * (2^drop - 1) + 7) / 15, drop the
+ * low bits.
+ */
+static void
+dither_bayer_tests_one(const char *what, int ragepro, unsigned pix_width)
+{
+    static const uint8_t bayer[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
+    mach64_t             *m        = card_create();
+    int                   bad      = 0;
+    int                   same_as_rage_pro = 0;
+
+    m->ragepro = ragepro;
+    dither_surface(m, 1);
+    m->dp_pix_width = pix_width;
+    for (int i = 0; i < 256; i++) {
+        double x0 = 64 + 16 * (i % 32);
+        double y0 = 32 + 16 * (i / 32);
+
+        dither_rect(m, x0, y0, x0 + 16, y0 + 16, i, i, i, i);
+    }
+    for (int i = 0; i < 256; i++) {
+        for (int yy = 0; yy < 16; yy++) {
+            for (int xx = 0; xx < 16; xx++) {
+                int      x    = 64 + 16 * (i % 32) + xx;
+                int      y    = 32 + 16 * (i / 32) + yy;
+                int      add5 = (bayer[((y & 3) << 2) | (x & 3)] * 7 + 7) / 15;
+                int      add6 = (bayer[((y & 3) << 2) | (x & 3)] * 3 + 7) / 15;
+                int      r    = (i + add5) >> 3;
+                int      g    = (pix_width == 4) ? (i + add6) >> 2 : r;
+                unsigned want;
+
+                if (r > 31)
+                    r = 31;
+                if (g > (pix_width == 4 ? 63 : 31))
+                    g = pix_width == 4 ? 63 : 31;
+                want = (pix_width == 4) ? (unsigned) ((r << 11) | (g << 5) | r) : (unsigned) ((r << 10) | (g << 5) | r);
+                bad += (dither_pixel_fmt(m, x, y) != want);
+                same_as_rage_pro += (dither_expected(i, x, y) == want);
+            }
+        }
+    }
+    expect_int(what, bad, 0);
+    /* The check above is not vacuous: the two tables disagree on many pixels. */
+    CHECK(same_as_rage_pro < 256 * 256 * 9 / 10);
+    card_close(m);
+}
+
+static void
+dither_bayer_tests(void)
+{
+    dither_bayer_tests_one("flat patches on a chip that is not a Rage Pro, differing from the Bayer stand-in", 0, 3);
+    dither_bayer_tests_one("flat patches on a Rage Pro writing 565, differing from the Bayer stand-in", 1, 4);
+}
 
 /*
  * Rage Pro mip level selection, against a real card.
@@ -1741,7 +1843,8 @@ ragepro_dither_tests(void)
  * The 1/area is the driver's float. The card's LOG_MAX_INC for a triangle whose
  * step is a power of two falls a hair short of it; the model takes the 1/area
  * a step down when it is above the true one, which reproduces all but two of the
- * vectors the generator was given (those are left out: see gen_mip_vectors.py).
+ * vectors the generator was given; those two stay in the file as known
+ * divergences.
  */
 #include "vid_ati_mach64_mip_vectors.h"
 
@@ -1775,6 +1878,8 @@ ragepro_mip_tests(void)
     int                   bad_pixels = 0;
     int                   bad_lmi    = 0;
     int                   shown      = 0;
+    int                   known_seen = 0;
+    int                   known_bad  = 0;
 
     m->ragepro = 1;
     /* level k of each texture: tex 0 at MIP_TEX_BASE, tex 1 a MiB above */
@@ -1831,7 +1936,19 @@ ragepro_mip_tests(void)
         memcpy(&raw, &ooa, 4);
         mach64_3d_setup_write(m, 0x90 + 7, raw);
 
-        if (v->has_lmi && (ctx->regs[RP_LOG_MAX_INC >> 2] & 0xfff000u) != v->lmi) {
+        if (v->known_divergent) {
+            unsigned emu = ctx->regs[RP_LOG_MAX_INC >> 2] & 0xfff000u;
+
+            known_seen++;
+            if (emu == v->lmi) {
+                fprintf(stderr, "mip %c vector %u: now matches the card's LOG_MAX_INC %06x; remove it from the known divergences\n", v->test, i, emu);
+                known_bad++;
+            } else if (emu != v->emu_lmi) {
+                fprintf(stderr, "mip %c vector %u: known divergence changed, LOG_MAX_INC %06x, pinned %06x, the card's %06x\n", v->test, i, emu, v->emu_lmi, v->lmi);
+                known_bad++;
+            }
+            /* Only the register is a known divergence: the pixels of the vector are checked below. */
+        } else if (v->has_lmi && (ctx->regs[RP_LOG_MAX_INC >> 2] & 0xfff000u) != v->lmi) {
             bad_lmi++;
             if (shown++ < 40)
                 fprintf(stderr, "mip %c vector %u: LOG_MAX_INC %06x, the card's %06x\n", v->test, i,
@@ -1850,6 +1967,158 @@ ragepro_mip_tests(void)
     }
     expect_int("mip pixels differing from a real Rage Pro", bad_pixels, 0);
     expect_int("mip LOG_MAX_INC differing from a real Rage Pro", bad_lmi, 0);
+    /* The known divergences: LOG_MAX_INC the model still gets wrong, each at
+       the value pinned in the vector file. A model that starts to match, or
+       moves, fails here so the entry is dealt with on purpose. */
+    expect_int("mip known divergences present", known_seen, 2);
+    expect_int("mip known divergences matching or moved", known_bad, 0);
+    card_close(m);
+}
+
+/*
+ * VQ through the triangle path. The texel-level checks above call the texel
+ * reader directly; these draw triangles through the setup registers, as the
+ * mip and dither tests do, and read the frame buffer back, so the sampling
+ * connection of the triangle rasterizer is part of what is checked.
+ *
+ * Test A: the 64x64 VQ texture and 1:1 point-sampled quad of the lookup test,
+ * all 64 x 64 pixels against the real card's. Test M: a 7 level VQ chain whose
+ * level k is one colour, 27 small triangles of rising level of detail, five
+ * interior pixels of each against the real card's.
+ */
+static void
+vq_tri_frame(mach64_t *m, unsigned cntl)
+{
+    mach64_3d_t *ctx = m->gt3d;
+
+    memset(m->svga.vram, 0, (size_t) DITHER_W * DITHER_H * 2);
+    m->dp_pix_width  = (2u << 28) | 3;
+    m->dp_src        = 0x00000500u;
+    m->dp_mix        = 0x00070007u;
+    m->write_mask    = 0xffffffffu;
+    m->dst_off_pitch = (DITHER_W / 8) << 22;
+    m->sc_left_right = (DITHER_W - 1) << 16;
+    m->sc_top_bottom = (DITHER_H - 1) << 16;
+    m->clr_cmp_cntl  = 0;
+    ctx->setup_cntl  = 0;
+    ctx->regs[Z_CNTL >> 2]        = 0;
+    ctx->regs[SCALE_3D_CNTL >> 2] = cntl;
+}
+
+static void
+vq_tri_draw(mach64_t *m, const double x[3], const double y[3], const double u[3], const double v[3], const double w[3])
+{
+    double   area = (x[0] - x[2]) * (y[1] - y[2]) - (y[0] - y[2]) * (x[1] - x[2]);
+    float    ooa  = (float) (1.0 / area);
+    uint32_t raw;
+
+    for (int n = 0; n < 3; n++) {
+        uint32_t xy4 = ((uint32_t) (int) (x[n] * 4.0) << 16) | ((uint32_t) (int) (y[n] * 4.0) & 0xffffu);
+
+        mach64_3d_setup_write(m, 0x90 + n * 8 + 5, 0xffffffffu);
+        mach64_3d_setup_write(m, 0x90 + n * 8 + 6, xy4);
+        mip_vertex_value(m, 0xab + 3 * n, u[n]);
+        mip_vertex_value(m, 0xab + 3 * n + 1, v[n]);
+        mip_vertex_value(m, 0xab + 3 * n + 2, w[n]);
+    }
+    memcpy(&raw, &ooa, 4);
+    mach64_3d_setup_write(m, 0x90 + 7, raw);
+}
+
+static unsigned
+vq_tri_pixel(const mach64_t *m, int x, int y)
+{
+    return dither_pixel(m, x, y);
+}
+
+static void
+ragepro_vq_triangle_tests(void)
+{
+    mach64_t    *m   = card_create();
+    mach64_3d_t *ctx = m->gt3d;
+    uint8_t      codebook[0x800];
+    uint8_t      image[0x800];
+    int          bad = 0;
+    int          bad_mip = 0;
+    int          shown = 0;
+
+    m->ragepro = 1;
+
+    /* Test A */
+    for (unsigned i = 0; i < 256; i++)
+        for (unsigned p = 0; p < 4; p++) {
+            unsigned word = ((i >> 3) << 11) | ((((i & 7) << 2 | p) << 1) << 5) | 21;
+
+            codebook[i * 8 + p * 2]     = word & 255;
+            codebook[i * 8 + p * 2 + 1] = word >> 8;
+        }
+    vq_driver_image(codebook, image);
+    vq_load_codebook(m, 0x20800, image);
+    vq_tri_frame(m, mip_filter_scale_3d_cntl(0));
+    for (unsigned n = 0; n < 1024; n++)
+        m->svga.vram[0x30000 + n] = vq_a_seq[n & 255];
+    ctx->regs[RP_TEX_CNTL >> 2]      = 0x40000080u | RP_TEX_VQ;
+    ctx->regs[TEX_SIZE_PITCH >> 2]   = 6 | (6 << 4) | (6 << 8);
+    ctx->regs[(TEX_0_OFF + 24) >> 2] = 0x30000;
+    {
+        const double ax[3] = { 16, 80, 16 }, ay[3] = { 16, 16, 80 }, au[3] = { 0, 1, 0 }, av[3] = { 0, 0, 1 }, aw[3] = { 1, 1, 1 };
+        const double bx[3] = { 80, 80, 16 }, by[3] = { 16, 80, 80 }, bu[3] = { 1, 1, 0 }, bv[3] = { 0, 1, 1 };
+
+        vq_tri_draw(m, ax, ay, au, av, aw);
+        vq_tri_draw(m, bx, by, bu, bv, aw);
+    }
+    for (int y = 0; y < 64; y++)
+        for (int x = 0; x < 64; x++)
+            if (vq_tri_pixel(m, 16 + x, 16 + y) != vq_a_real_pixels[y * 64 + x]) {
+                if (bad++ < 5)
+                    fprintf(stderr, "VQ A (%d,%d): %04x, the card's %04x\n", x, y, vq_tri_pixel(m, 16 + x, 16 + y), vq_a_real_pixels[y * 64 + x]);
+            }
+    expect_int("VQ triangle pixels differing from a real Rage Pro (lookup)", bad, 0);
+
+    /* Test M */
+    {
+        static const unsigned colour[7] = { 0xf800, 0x07e0, 0x001f, 0xffe0, 0x07ff, 0xf81f, 0xffff };
+        uint32_t              off = 0;
+
+        memset(codebook, 0, sizeof(codebook));
+        for (unsigned k = 0; k < 7; k++)
+            for (unsigned p = 0; p < 4; p++) {
+                codebook[k * 8 + p * 2]     = colour[k] & 255;
+                codebook[k * 8 + p * 2 + 1] = colour[k] >> 8;
+            }
+        vq_driver_image(codebook, image);
+        vq_load_codebook(m, 0x20800, image);
+        for (unsigned i = 0; i < sizeof(vq_mip_vectors) / sizeof(vq_mip_vectors[0]); i++) {
+            const struct vq_mip_vector *v = &vq_mip_vectors[i];
+
+            vq_tri_frame(m, mip_filter_scale_3d_cntl(0));
+            memset(m->svga.vram + 0x30000, 0, 0x1000);
+            off = 0;
+            for (unsigned k = 0; k < 7; k++) {
+                unsigned d = (64u >> k) / 2;
+
+                if (d < 1)
+                    d = 1;
+                /* The 1x1 texel level shares the 1x1 index map before it. */
+                if (k < 6)
+                    memset(m->svga.vram + 0x30000 + off, (int) k, d * d);
+                ctx->regs[(TEX_0_OFF + (6 - k) * 4) >> 2] = 0x30000 + off - ((k == 6) ? d * d : 0);
+                if (k < 6)
+                    off += d * d;
+            }
+            ctx->regs[RP_TEX_CNTL >> 2]    = 0x40000080u | RP_TEX_VQ;
+            ctx->regs[TEX_SIZE_PITCH >> 2] = 6 | (6 << 4) | (6 << 8);
+            vq_tri_draw(m, v->x, v->y, v->u, v->v, v->w);
+            for (int p = 0; p < 5; p++)
+                if (vq_tri_pixel(m, v->probe[p].x, v->probe[p].y) != v->probe[p].pixel555) {
+                    bad_mip++;
+                    if (shown++ < 12)
+                        fprintf(stderr, "VQ M vector %u (%d,%d): %04x, the card's %04x\n", i, v->probe[p].x, v->probe[p].y,
+                                vq_tri_pixel(m, v->probe[p].x, v->probe[p].y), v->probe[p].pixel555);
+                }
+        }
+        expect_int("VQ mip triangle pixels differing from a real Rage Pro", bad_mip, 0);
+    }
     card_close(m);
 }
 
@@ -2719,9 +2988,9 @@ pixie_profile_case(mach64_t *m, int textured, int dx, int dy, int slope, int cli
                 case_expect("opaque RGB555 alpha", pixel >> 15, 1);
                 for (int channel = 0; channel < 3; channel++) {
                     int quantized = (pixel >> (10 - 5 * channel)) & 31;
-                    /* A dithered component is its value scaled to 5 bits,
-                     * rounded down, or the code above that. */
-                    int lower     = channels[channel] * 31 / 255;
+                    /* Not a Rage Pro 555 surface: the Bayer stand-in table,
+                     * whose codes lie within one of the 5-bit truncation. */
+                    int lower     = channels[channel] >> 3;
                     case_expect("lit component within quantization bounds",
                                 quantized >= lower && quantized <= lower + 1, 1);
                 }
@@ -3349,6 +3618,7 @@ main(int argc, char **argv)
     if (argc == 2 && !strcmp(argv[1], "--vq")) {
         ragepro_vq_tests();
         ragepro_vq_real_card_tests();
+        ragepro_vq_triangle_tests();
         printf("Mach64 VQ: %d failed checks\n", failures);
         return failures ? 1 : 0;
     }
@@ -3359,6 +3629,7 @@ main(int argc, char **argv)
     }
     if (argc == 2 && !strcmp(argv[1], "--dither")) {
         ragepro_dither_tests();
+        dither_bayer_tests();
         printf("Mach64 dither: %d failed checks\n", failures);
         return failures ? 1 : 0;
     }
@@ -3390,7 +3661,9 @@ main(int argc, char **argv)
     ragepro_ci8_tiling_tests();
     ragepro_vq_tests();
     ragepro_vq_real_card_tests();
+    ragepro_vq_triangle_tests();
     ragepro_dither_tests();
+    dither_bayer_tests();
     ragepro_mip_tests();
 
     if (failures) {

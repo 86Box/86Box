@@ -917,43 +917,67 @@ mach64_3d_unpack(mach64_3d_t *ctx, int format, uint32_t raw, int source)
  * SCALE_DITHER, a fixed two-dimensional table; DITHER_INIT clears the error
  * at each scan line; ROUND_EN rounds when not dithering.
  *
- * The table is 4 pixels wide and 8 rows tall, indexed by the absolute screen
- * X and Y, and holds a rank 0..15 per pixel. A real Rage Pro (ATI driver
- * 5.30, 3DCIF 4.11.1.2692, 555 surface) reduces an 8-bit component v to
- * min(max, (M(v) + rank) >> 4): M is v scaled to the output range in 4
- * fractional bits, and the rank is added in the last of them. M is not the
- * exact quotient v * max * 16 / 255 but a shift-and-add form of it; for a
- * 5-bit component:
+ * Two tables exist for SCALE_DITHER, one function each. The ordered
+ * (4x4 Bayer) table is the stand-in used for every chip and format that has no
+ * measurement. The Rage Pro 555 law is used only on a Rage Pro writing a
+ * 15 bpp 555 surface, the one case measured on a real card.
+ */
+static const uint8_t mach64_3d_bayer4[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
+
+/* What the Bayer table adds before the low bits are dropped, by [bits
+   dropped][Y and X in the cell], made by mach64_3d_dither_table_init. */
+static uint8_t mach64_3d_dither_add[8][16];
+
+static void
+mach64_3d_dither_table_init(void)
+{
+    for (int drop = 0; drop < 8; drop++) {
+        int span = (1 << drop) - 1;
+
+        for (int i = 0; i < 16; i++)
+            mach64_3d_dither_add[drop][i] = (mach64_3d_bayer4[i] * span + 7) / 15;
+    }
+}
+
+static inline int
+mach64_3d_quantize_bayer(int v, int bits, int x, int y)
+{
+    int drop = 8 - bits;
+    int max  = (1 << bits) - 1;
+    int q    = (mach64_3d_clamp8(v) + mach64_3d_dither_add[drop][((y & 3) << 2) | (x & 3)]) >> drop;
+
+    return (q > max) ? max : q;
+}
+
+/*
+ * The Rage Pro 555 table. It is 4 pixels wide and 8 rows tall, indexed
+ * by the absolute screen X and Y, and holds a rank 0..15 per pixel. A real
+ * Rage Pro (ATI driver 5.30, 3DCIF 4.11.1.2692, 555 surface) reduces an
+ * 8-bit component v to min(31, (M(v) + rank) >> 4): M is v scaled to the
+ * output range in 4 fractional bits, and the rank is added in the last of
+ * them. M is not the exact quotient v * 31 * 16 / 255 but a shift-and-add
+ * form of it:
  *   red, blue  M = 2 v - (v >> 4) + (v >> 7)
  *   green      the same, less 1 where bit 3 of v is set and bit 6 is clear.
- * Dithering off, the component is truncated, v >> (8 - bits).
+ * Dithering off, the component is truncated, v >> 3.
  */
 static const uint8_t mach64_3d_dither_rank[8][4] = {
     { 15, 7, 13, 5 }, { 3, 11, 1, 9 }, { 12, 4, 14, 6 }, { 0, 8, 2, 10 },
     { 13, 5, 15, 7 }, { 1, 9, 3, 11 }, { 14, 6, 12, 4 }, { 2, 10, 0, 8 }
 };
 
-/* v scaled to bits wide in 4 fractional bits, before the rank is added. */
 static inline int
-mach64_3d_dither_scale(int v, int bits, int channel)
+mach64_3d_quantize_ragepro555(int v, int channel, int x, int y)
 {
-    if (bits == 5) {
-        int m = 2 * v - (v >> 4) + (v >> 7);
+    int m;
+    int q;
 
-        if (channel == 1)
-            m -= (v >> 3) & ~(v >> 6) & 1;
-        return m;
-    }
-    return (v * ((1 << bits) - 1) * 32 + 255) / 510;
-}
-
-static inline int
-mach64_3d_quantize_ordered(int v, int bits, int channel, int x, int y)
-{
-    int max = (1 << bits) - 1;
-    int q   = (mach64_3d_dither_scale(mach64_3d_clamp8(v), bits, channel) + mach64_3d_dither_rank[y & 7][x & 3]) >> 4;
-
-    return (q > max) ? max : q;
+    v = mach64_3d_clamp8(v);
+    m = 2 * v - (v >> 4) + (v >> 7);
+    if (channel == 1)
+        m -= (v >> 3) & ~(v >> 6) & 1;
+    q = (m + mach64_3d_dither_rank[y & 7][x & 3]) >> 4;
+    return (q > 31) ? 31 : q;
 }
 
 static inline int
@@ -981,11 +1005,11 @@ mach64_3d_quantize_diffuse(int v, int bits, int *err)
 }
 
 static inline int
-mach64_3d_quantize(mach64_3d_dither_t *dither, uint32_t cntl, int v, int bits, int channel, int x, int y)
+mach64_3d_quantize(mach64_3d_dither_t *dither, uint32_t cntl, int measured, int v, int bits, int channel, int x, int y)
 {
     if (cntl & DITHER_EN) {
         if (cntl & SCALE_DITHER)
-            return mach64_3d_quantize_ordered(v, bits, channel, x, y);
+            return measured ? mach64_3d_quantize_ragepro555(v, channel, x, y) : mach64_3d_quantize_bayer(v, bits, x, y);
         return mach64_3d_quantize_diffuse(v, bits, &dither->err[channel]);
     }
     if (cntl & ROUND_EN)
@@ -997,6 +1021,7 @@ static inline uint32_t
 mach64_3d_pack(mach64_3d_t *ctx, mach64_3d_dither_t *dither, int format, rgba_t c, int x, int y)
 {
     uint32_t cntl = ctx->regs[SCALE_3D_CNTL >> 2];
+    int      measured = ctx->mach64->ragepro && (format == 3);
     int      r;
     int      g;
     int      b;
@@ -1022,29 +1047,29 @@ mach64_3d_pack(mach64_3d_t *ctx, mach64_3d_dither_t *dither, int format, rgba_t 
 
     switch (format) {
         case 3:
-            r = mach64_3d_quantize(dither, cntl, c.r, 5, 0, x, y);
-            g = mach64_3d_quantize(dither, cntl, c.g, 5, 1, x, y);
-            b = mach64_3d_quantize(dither, cntl, c.b, 5, 2, x, y);
+            r = mach64_3d_quantize(dither, cntl, measured, c.r, 5, 0, x, y);
+            g = mach64_3d_quantize(dither, cntl, measured, c.g, 5, 1, x, y);
+            b = mach64_3d_quantize(dither, cntl, measured, c.b, 5, 2, x, y);
             return ((c.a >= 128) ? 0x8000 : 0) | (r << 10) | (g << 5) | b;
         case 4:
-            r = mach64_3d_quantize(dither, cntl, c.r, 5, 0, x, y);
-            g = mach64_3d_quantize(dither, cntl, c.g, 6, 1, x, y);
-            b = mach64_3d_quantize(dither, cntl, c.b, 5, 2, x, y);
+            r = mach64_3d_quantize(dither, cntl, measured, c.r, 5, 0, x, y);
+            g = mach64_3d_quantize(dither, cntl, measured, c.g, 6, 1, x, y);
+            b = mach64_3d_quantize(dither, cntl, measured, c.b, 5, 2, x, y);
             return (r << 11) | (g << 5) | b;
         case 6:
             return ((uint32_t) c.a << 24) | (c.r << 16) | (c.g << 8) | c.b;
         case 7:
-            r = mach64_3d_quantize(dither, cntl, c.r, 3, 0, x, y);
-            g = mach64_3d_quantize(dither, cntl, c.g, 3, 1, x, y);
-            b = mach64_3d_quantize(dither, cntl, c.b, 2, 2, x, y);
+            r = mach64_3d_quantize(dither, cntl, measured, c.r, 3, 0, x, y);
+            g = mach64_3d_quantize(dither, cntl, measured, c.g, 3, 1, x, y);
+            b = mach64_3d_quantize(dither, cntl, measured, c.b, 2, 2, x, y);
             r = mach64_3d_rgb8_red_code(r, !!(cntl & DITHER_EN), !!(cntl & RED_DITHER_MAX));
             return (r << 5) | (g << 2) | b;
         case 8:
             return (c.r * 77 + c.g * 150 + c.b * 29) >> 8;
         case 15:
-            r = mach64_3d_quantize(dither, cntl, c.r, 4, 0, x, y);
-            g = mach64_3d_quantize(dither, cntl, c.g, 4, 1, x, y);
-            b = mach64_3d_quantize(dither, cntl, c.b, 4, 2, x, y);
+            r = mach64_3d_quantize(dither, cntl, measured, c.r, 4, 0, x, y);
+            g = mach64_3d_quantize(dither, cntl, measured, c.g, 4, 1, x, y);
+            b = mach64_3d_quantize(dither, cntl, measured, c.b, 4, 2, x, y);
             return ((c.a >> 4) << 12) | (r << 8) | (g << 4) | b;
         default:
             return 0;
@@ -4486,6 +4511,9 @@ struct mach64_rp_tri_t {
     mach64_rp_texture_t tex;
     mach64_rp_texture_t tex2;
     int32_t             lmi; /* LOG_MAX_INC: log2 of the largest texel step, 16.16 */
+    int                 w_const; /* W is the same at every pixel: its reciprocal and LOD term are per triangle */
+    double              w_rcp;
+    int32_t             w_term;
 };
 
 /* The plane through the three values a0, a1, a2 at the vertices, from the
@@ -4591,14 +4619,19 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
 
     src = shade;
     if (textured) {
-        double   w    = mach64_rp_at(&tri->pl[RPP_W], fx, fy);
-        double   rw   = (w != 0.0) ? (1.0 / w) : 1.0;
+        double   w    = tri->w_const ? tri->pl[RPP_W].c : mach64_rp_at(&tri->pl[RPP_W], fx, fy);
+        double   rw   = tri->w_const ? tri->w_rcp : ((w != 0.0) ? (1.0 / w) : 1.0);
         double   s    = mach64_rp_at(&tri->pl[RPP_S], fx, fy) * rw;
         double   t    = mach64_rp_at(&tri->pl[RPP_T], fx, fy) * rw;
-        int32_t  lmi  = tri->lmi - 4096 * tri->tex.bias16 + ((w > 0.0) ? mach64_rp_w_term(w) : 0);
-        uint32_t argb = tri->tex.lod_used ? mach64_rp_sample_lmi(ctx, agp, &tri->tex, s, t, lmi, &inhibit) :
-                                            mach64_rp_sample(ctx, agp, &tri->tex, s, t, 0.0, &inhibit);
+        uint32_t argb;
         rgba_t   texel;
+
+        if (tri->tex.lod_used) {
+            int32_t w_term = tri->w_const ? tri->w_term : ((w > 0.0) ? mach64_rp_w_term(w) : 0);
+
+            argb = mach64_rp_sample_lmi(ctx, agp, &tri->tex, s, t, tri->lmi - 4096 * tri->tex.bias16 + w_term, &inhibit);
+        } else
+            argb = mach64_rp_sample(ctx, agp, &tri->tex, s, t, 0.0, &inhibit);
 
         if (inhibit)
             return;
@@ -5039,6 +5072,13 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
     }
     for (int p = 0; p < RPP_COUNT; p++)
         mach64_rp_plane(&tri.pl[p], vx, vy, a[p][0], a[p][1], a[p][2], ooa);
+    tri.w_const = tri.textured && (tri.pl[RPP_W].dx == 0.0) && (tri.pl[RPP_W].dy == 0.0);
+    if (tri.w_const) {
+        double w = tri.pl[RPP_W].c;
+
+        tri.w_rcp  = (w != 0.0) ? (1.0 / w) : 1.0;
+        tri.w_term = (w > 0.0) ? mach64_rp_w_term(w) : 0;
+    }
 
     /* LOG_MAX_INC: the steepest of the four gradients of the texture
        coordinates U = S / W and V = T / W across the screen, in texels of the
@@ -5305,6 +5345,7 @@ mach64_3d_init(mach64_t *mach64)
     mach64_3d_t *ctx = calloc(1, sizeof(mach64_3d_t));
 
     mach64_3d_expand_table_init();
+    mach64_3d_dither_table_init();
     mach64_rp_tile_init();
     ctx->mach64  = mach64;
     ctx->threads = ((mach64->render_threads == 2) || (mach64->render_threads == 4)) ? mach64->render_threads : 1;
