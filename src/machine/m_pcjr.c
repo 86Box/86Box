@@ -794,6 +794,21 @@ static const device_config_t pcjr_config[] = {
         .bios           = { { 0 } }
     },
     {
+        .name           = "composite_type",
+        .description    = "Composite type",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = PCJR_COMPOSITE_NEW,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Old", .value = PCJR_COMPOSITE_OLD },
+            { .description = "New", .value = PCJR_COMPOSITE_NEW },
+            { .description = ""                                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
         .name           = "double_type",
         .description    = "Line doubling type",
         .type           = CONFIG_SELECTION,
