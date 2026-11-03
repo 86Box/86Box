@@ -66,6 +66,12 @@ epat_log(void *priv, const char *fmt, ...)
 static const uint8_t epat_unlock[7] = { 0x22, 0xAA, 0x55, 0x00, 0xFF, 0x87, 0x78 };
 
 #define EPAT_CPP_CONNECT    0xE0
+/*
+ * SD120PPD.SYS connects with CPP(0xE0 | unit), and its unit is 0xFF once it
+ * has found a single bridge with no 1284.3 address: CPP(0xFF). It works on
+ * the real bridge, so that connects too.
+ */
+#define EPAT_CPP_CONNECT_ANY 0xFF
 #define EPAT_CPP_DISCONNECT 0x30
 
 /*
@@ -133,6 +139,7 @@ typedef struct epat_s {
     int     cpp_id_pos;     /* which one is being shifted out */
     int     cpp_id_hi;      /* 1 = the next read is its HIGH nibble */
     int     cpp_init;       /* data writes left to swallow after CPP(0x00) */
+    int     cpp_tail;       /* a CPP was committed; its closing 0xFF may follow */
     int     block_arm;   /* register 7 addressed, awaiting the w2 that starts it */
     int     block_half;  /* 0 = the next status read returns the low nibble */
     uint8_t block_latch; /* the byte being shifted out as two nibbles */
@@ -140,6 +147,8 @@ typedef struct epat_s {
     int     reg_fetched; /* the addressed register was read since the last strobe */
     int     irq_test;    /* the host's interrupt test is holding PE */
     uint8_t chip[0x20];  /* internal registers behind the 0x0E/0x0F pair */
+    uint16_t test_pos;   /* the test pattern's byte counter */
+    int      read_ahead; /* register 0x12 bit 1 seen since the last PACKET */
     uint8_t alt[8];      /* what 0x18-0x1F address while the window is open */
     uint8_t ident[512];  /* IDENTIFY PACKET DEVICE reply being read out */
     int     ident_left;  /* bytes of it still to go; 0 = none pending */
@@ -287,8 +296,9 @@ typedef struct epat_s {
  *
  * It also branches on the version later: >= 0xC3 programs a byte count into
  * this register before each block transfer (rva 0x4D50), which is a path
- * nothing here implements. 0xC0 is the lowest value that identifies as an
- * EPAT and keeps the simple path.
+ * nothing here implements. Version 5.46 also wants (ver & 0xFE) >= 0xC2
+ * after its chain walk (offset 0xA4E0 in the file) and gives up on 0xC0,
+ * so 0xC2 is the lowest value that gets through and keeps the simple path.
  *
  * ⚠ NOT a captured value - the real EPATRM's version has never been read.
  */
@@ -319,6 +329,40 @@ typedef struct epat_s {
 #define EPAT_REG_INTR       0x12
 #define EPAT_INTR_INTRQ     0x20
 
+/*
+ * The chip's test pattern. With register 0x13 bit 3 set, block transfers
+ * stay in the chip: a read returns the words k | (0xFF - k) << 8 for
+ * k = 0, 1, ... from a counter that bit 0 of the same register resets, and a
+ * write is dropped. SD120PPD.SYS keeps 0x13 at 0x84; for its test it pulses
+ * 0x8D/0x8C, writes that pattern, pulses again, reads it back and compares,
+ * and reports no adapter if it differs. Register 0x0A is 0x10 there as it is
+ * for any block read. Linux's epat_test_proto() reads the same pattern after
+ * WR(0x13,1); WR(0x13,0); WR(0xa,0x11), which this does not model.
+ */
+#define EPAT_REG_TEST       0x13
+#define EPAT_TEST_PATTERN   0x08
+#define EPAT_TEST_RESET     0x01
+
+/*
+ * Multi-sector transfers. Before a READ(10) of n sectors SD120PPD.SYS writes
+ * n - 1 to register 0x14 and its start block (0) to internal registers 6/7,
+ * and sets bit 1 of register 0x12, which its reconnect clears again before
+ * DRQ is served, so the arming is remembered until the next PACKET; register
+ * 0x14 keeps stale values between commands. When DRQ comes up it reads 6/7
+ * back and moves (value + 1) * 512 bytes in one block read, then finishes the
+ * command. The
+ * chip counts the blocks it has buffered from the drive; here the whole DRQ
+ * block is there at once, so 6/7 read as start + the DRQ block's sectors - 1,
+ * capped by register 0x14. A transfer under one sector makes the driver write
+ * 0xFF there ((36 >> 9) - 1), which must count as 0: start + 0xFF would make
+ * it ask for 0x10000 words, which wraps to none. Without this every
+ * multi-sector read stopped after its first sector.
+ */
+#define EPAT_REG_AUTO_COUNT 0x14
+#define EPAT_INTR_AUTO      0x02
+#define EPAT_CHIP_BLOCKS_LO 0x06
+#define EPAT_CHIP_BLOCKS_HI 0x07
+
 #define EPAT_REG_CHIP_INDEX 0x0E
 #define EPAT_REG_CHIP_DATA  0x0F
 #define EPAT_CHIP_ALT_VIEW  0x0C
@@ -327,7 +371,7 @@ typedef struct epat_s {
 #define EPAT_CHIP_ALT_ID    0xE2
 #define EPAT_IRQ_TEST      0x40
 #define EPAT_IRQ_TEST_DATA 0x80
-#define EPAT_CHIP_VERSION  0xC0
+#define EPAT_CHIP_VERSION  0xC2
 
 #define EPAT_CPP_INIT      0x00
 #define EPAT_CPP_UNIT_BYTE 0x08  /* 0x08 | unit -> one byte  */
@@ -378,10 +422,13 @@ typedef struct epat_s {
 static int
 epat_unlock_feed(epat_t *dev, uint8_t val)
 {
-    if (dev->udup && (val == dev->ulast)) {
-        dev->udup = 0;
+    /*
+     * SD120PPD.SYS writes each byte two or three times, depending on the
+     * mode it settled on. No two neighbouring frame bytes are equal, so every
+     * repeat is the same byte still on the lines.
+     */
+    if (dev->udup && (val == dev->ulast))
         return 0;
-    }
 
     dev->ulast = val;
     dev->udup  = 1;
@@ -711,8 +758,18 @@ epat_slave_selected(const epat_t *dev)
 static uint8_t
 epat_data_read(epat_t *dev)
 {
-    scsi_common_t *sc = dev->sd->sc;
+    scsi_common_t *sc;
     uint8_t        ret;
+
+    if (dev->regs[EPAT_REG_TEST] & EPAT_TEST_PATTERN) {
+        const uint8_t k = (uint8_t) (dev->test_pos >> 1);
+
+        ret = (dev->test_pos & 1) ? (uint8_t) (0xff - k) : k;
+        dev->test_pos++;
+        return ret;
+    }
+
+    sc = dev->sd->sc;
 
     if (epat_slave_selected(dev))
         return 0x00;
@@ -748,8 +805,13 @@ epat_data_read(epat_t *dev)
 static void
 epat_data_write(epat_t *dev, const uint8_t val)
 {
-    scsi_common_t *sc  = dev->sd->sc;
+    scsi_common_t *sc;
     uint8_t       *buf = NULL;
+
+    if (dev->regs[EPAT_REG_TEST] & EPAT_TEST_PATTERN)
+        return;
+
+    sc = dev->sd->sc;
 
     if (epat_slave_selected(dev))
         return;
@@ -861,6 +923,7 @@ epat_command(epat_t *dev, const uint8_t cmd)
     }
 
     epat_log(dev->log, "PACKET, byte count %u\n", dev->tf->request_length);
+    dev->read_ahead = 0;
 
     dev->tf->pos      = 0;
     sc->packet_status = PHASE_IDLE;
@@ -890,8 +953,30 @@ epat_reg_read(epat_t *dev, const uint8_t addr)
         return (addr == (EPAT_REG_TASKFILE + 7)) ? EPAT_CHIP_ALT_ID :
                                                    dev->alt[addr - EPAT_REG_TASKFILE];
 
-    if (addr == EPAT_REG_CHIP_DATA)
-        return dev->chip[dev->regs[EPAT_REG_CHIP_INDEX] & 0x1f];
+    if (addr == EPAT_REG_CHIP_DATA) {
+        const uint8_t idx = dev->regs[EPAT_REG_CHIP_INDEX] & 0x1f;
+
+        if (dev->read_ahead && ((idx == EPAT_CHIP_BLOCKS_LO) || (idx == EPAT_CHIP_BLOCKS_HI))) {
+            const uint8_t limit = dev->regs[EPAT_REG_AUTO_COUNT];
+            uint32_t      ready = 0;
+            uint16_t      blocks;
+
+            if ((dev->sd != NULL) && (dev->tf->atastat & DRQ_STAT) &&
+                (dev->sd->sc->max_transfer_len > dev->sd->sc->request_pos))
+                ready = dev->sd->sc->max_transfer_len - dev->sd->sc->request_pos;
+            ready  = ready ? ((ready + 511) / 512) - 1 : 0;
+            if (ready > ((limit == 0xff) ? 0 : limit))
+                ready = (limit == 0xff) ? 0 : limit;
+            blocks = (dev->chip[EPAT_CHIP_BLOCKS_LO] |
+                      ((dev->chip[EPAT_CHIP_BLOCKS_HI] & 0x03) << 8)) + ready;
+
+            if (idx == EPAT_CHIP_BLOCKS_LO)
+                return blocks & 0xff;
+            return (dev->chip[EPAT_CHIP_BLOCKS_HI] & ~0x03) | ((blocks >> 8) & 0x03);
+        }
+
+        return dev->chip[idx];
+    }
 
     if (addr == EPAT_REG_INTR)
         return (dev->regs[addr] & ~EPAT_INTR_INTRQ) | (dev->intrq ? EPAT_INTR_INTRQ : 0x00);
@@ -950,6 +1035,11 @@ epat_reg_write(epat_t *dev, const uint8_t addr, const uint8_t val)
     }
 
     dev->regs[addr] = val;
+
+    if ((addr == EPAT_REG_INTR) && (val & EPAT_INTR_AUTO))
+        dev->read_ahead = 1;
+    if ((addr == EPAT_REG_TEST) && (val & EPAT_TEST_RESET))
+        dev->test_pos = 0;
 
     if (addr == EPAT_REG_CHIP_DATA)
         dev->chip[dev->regs[EPAT_REG_CHIP_INDEX] & 0x1f] = val;
@@ -1108,6 +1198,17 @@ epat_write_data(uint8_t val, void *priv)
     }
     dev->cpp_init = 0;
 
+    /*
+     * A CPP ends with w0(0xFF) (Linux's CPP() macro, and SD120PPD.SYS, once
+     * per I/O delay). That is the lines going idle, not a register address:
+     * taken as one, it makes the next byte its value, and SD120PPD.SYS
+     * strobes a read of register 0 with that next byte, 0x00, still on the
+     * lines, as the bridge latches the address on the strobe.
+     */
+    if (dev->cpp_tail && (val == 0xff))
+        return;
+    dev->cpp_tail = 0;
+
     if (!dev->connected)
         return;
 
@@ -1240,7 +1341,7 @@ epat_write_ctrl(uint8_t val, void *priv)
      */
     if (!(dev->ctrl & 0x01) && (val & 0x01) && (dev->ustate == EPAT_UNLOCK_IDLE) &&
         dev->ucmd_pending) {
-        if (dev->ucmd == EPAT_CPP_CONNECT) {
+        if ((dev->ucmd == EPAT_CPP_CONNECT) || (dev->ucmd == EPAT_CPP_CONNECT_ANY)) {
             dev->connected    = 1;
             dev->status       = EPAT_STAT_IDLE;
             dev->irq_armed    = 0;
@@ -1288,6 +1389,7 @@ epat_write_ctrl(uint8_t val, void *priv)
         dev->ucmd         = 0;
         dev->ucmd_pending = 0;
         dev->upos = 0;
+        dev->cpp_tail     = 1;
     }
 
     /*
