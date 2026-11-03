@@ -39,6 +39,7 @@ monitor_t monitors[MONITORS_NUM];
 int       monitor_index_global;
 
 static int failures;
+static int card_type = MACH64_GTB;
 
 /* The draw engine FIFO: a drain runs what is queued, and an ordering test
    can have a queued DP_SRC and DST_CNTL take effect at the next drain. */
@@ -172,7 +173,7 @@ card_create(void)
     }
     mach64->vram_size = VRAM_SIZE >> 20; /* MiB */
     mach64->vram_mask = VRAM_SIZE - 1;
-    mach64->type      = MACH64_GTB;
+    mach64->type      = card_type;
     mach64->gt3d      = mach64_3d_init(mach64);
     return mach64;
 }
@@ -2507,17 +2508,20 @@ draw_tests(void)
 int
 main(void)
 {
-    field_tests();
-    data_path_tests();
-    trapezoid_tests();
-    mipmap_tests();
-    yuv_tests();
-    palette_tests();
-    control_tests();
-    texel_path_tests();
-    scaler_math_tests();
-    scaler_tests();
-    draw_tests();
+    /* Both generations use this register-driven draw engine and scaler. */
+    for (card_type = MACH64_GT; card_type <= MACH64_GTB; card_type++) {
+        field_tests();
+        data_path_tests();
+        trapezoid_tests();
+        mipmap_tests();
+        yuv_tests();
+        palette_tests();
+        control_tests();
+        texel_path_tests();
+        scaler_math_tests();
+        scaler_tests();
+        draw_tests();
+    }
 
     if (failures) {
         fprintf(stderr, "Mach64 3D engine: %d checks failed\n", failures);

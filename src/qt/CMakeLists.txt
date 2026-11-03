@@ -543,6 +543,11 @@ if(WIN32)
             set(QT_WINDOWS_STYLE_PLUGIN Qt${QT_MAJOR}::QWindowsVistaStylePlugin)
         endif()
         qt_import_plugins(plat INCLUDE Qt${QT_MAJOR}::QWindowsIntegrationPlugin Qt${QT_MAJOR}::QICOPlugin ${QT_WINDOWS_STYLE_PLUGIN})
+        if(AUTOMATION)
+            # Headless automation selects QT_QPA_PLATFORM=offscreen. Static
+            # Windows builds must import it explicitly, like the native QPA.
+            target_link_libraries(plat PRIVATE Qt${QT_MAJOR}::QOffscreenIntegrationPlugin)
+        endif()
     else()
         if(USE_QT6)
             install(CODE "
