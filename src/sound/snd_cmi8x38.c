@@ -712,6 +712,11 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
                     dev->io_regs[addr] &= ~(0x01 << i); /* clear enable */
                     dev->io_regs[0x10] &= ~(0x01 << i); /* clear interrupt */
 
+                    /* Flush the FIFO, or what's left in it plays after the channel
+                       was stopped (Linux resets it on stop), possibly in the next
+                       stream's format. */
+                    dev->dma[i].fifo_pos = dev->dma[i].fifo_end;
+
                     /* Reset Sound Blaster as well when resetting channel 0. */
                     if ((i == 0) && (dev->sb->dsp.sb_8_enable || dev->sb->dsp.sb_16_enable || dev->sb->dsp.sb_irq8 || dev->sb->dsp.sb_irq16))
                         dev->sb->dsp.sb_8_enable = dev->sb->dsp.sb_16_enable = dev->sb->dsp.sb_irq8 = dev->sb->dsp.sb_irq16 = 0;
