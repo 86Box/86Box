@@ -144,11 +144,31 @@ VMManagerModel::addConfigToModel(VMManagerSystem *system_config)
 void
 VMManagerModel::removeConfigFromModel(VMManagerSystem *system_config)
 {
-    const QModelIndex index = getIndexForConfigFile(system_config->config_file);
-    disconnect(system_config, &VMManagerSystem::itemDataChanged, this, &VMManagerModel::modelDataChanged);
-    beginRemoveRows(QModelIndex(), index.row(), index.row());
-    machines.remove(index.row());
-    endRemoveRows();
+    // Remove every entry that refers to the same config (case-insensitive on Windows)
+    QString target = system_config->config_file.canonicalFilePath();
+    if (target.isEmpty())
+        target = system_config->config_file.absoluteFilePath();
+#ifdef Q_OS_WIN
+    target = target.toLower();
+#endif
+
+    for (int i = machines.size() - 1; i >= 0; --i) {
+        QString key = machines.at(i)->config_file.canonicalFilePath();
+        if (key.isEmpty())
+            key = machines.at(i)->config_file.absoluteFilePath();
+#ifdef Q_OS_WIN
+        key = key.toLower();
+#endif
+        if (key != target && machines.at(i) != system_config)
+            continue;
+        auto *sys = machines.at(i);
+        disconnect(sys, &VMManagerSystem::itemDataChanged, this, &VMManagerModel::modelDataChanged);
+        beginRemoveRows(QModelIndex(), i, i);
+        machines.remove(i);
+        endRemoveRows();
+        if (sys != system_config)
+            delete sys;
+    }
     emit systemDataChanged();
 }
 
@@ -203,9 +223,19 @@ void
 VMManagerModel::loadFromCache(const QString &selectName)
 {
     const auto paths = VMManagerSystem::cachedConfigPaths();
+    QSet<QString> seen;
     for (const auto &path : paths) {
+        QString key = QFileInfo(path).canonicalFilePath();
+        if (key.isEmpty())
+            key = QFileInfo(path).absoluteFilePath();
+#ifdef Q_OS_WIN
+        key = key.toLower();
+#endif
+        if (seen.contains(key))
+            continue;
         auto *sys = new VMManagerSystem(path);
         if (sys->isValid()) {
+            seen.insert(key);
             addConfigToModel(sys);
             // If this is the previously selected VM, select it immediately
             if (!selectName.isEmpty() && sys->config_name == selectName) {
@@ -249,12 +279,24 @@ VMManagerModel::startBackgroundDiscovery()
         // Post the paths back to the main thread for object creation
         QMetaObject::invokeMethod(this, [this, foundPaths]() {
             QSet<QString> existingPaths;
-            for (const auto *sys : machines)
-                existingPaths.insert(sys->config_file.canonicalFilePath());
+            for (const auto *sys : machines) {
+                QString key = sys->config_file.canonicalFilePath();
+                if (key.isEmpty())
+                    key = sys->config_file.absoluteFilePath();
+#ifdef Q_OS_WIN
+                key = key.toLower();
+#endif
+                existingPaths.insert(key);
+            }
 
             for (const auto &path : foundPaths) {
                 const QFileInfo fi(path);
-                const QString canonical = fi.canonicalFilePath();
+                QString canonical = fi.canonicalFilePath();
+                if (canonical.isEmpty())
+                    canonical = fi.absoluteFilePath();
+#ifdef Q_OS_WIN
+                canonical = canonical.toLower();
+#endif
                 if (canonical.isEmpty() || existingPaths.contains(canonical))
                     continue;
                 auto *sys = new VMManagerSystem(path);
