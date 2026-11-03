@@ -2324,7 +2324,7 @@ composite_tests(void)
         m->sc_left_right = (DITHER_W - 1) << 16;
         m->sc_top_bottom = (DITHER_H - 1) << 16;
         m->clr_cmp_cntl  = 0;
-        for (int r = 0; r < 0x200; r++)
+        for (int r = 0; r < 256; r++)
             ctx->regs[r] = 0;
         ctx->regs[SCALE_3D_CNTL >> 2]            = v->scale_3d_cntl;
         ctx->regs[TEX_SIZE_PITCH >> 2]           = v->tex_size_pitch;
@@ -2353,20 +2353,16 @@ composite_tests(void)
             exact += (got == exp);
             bad += off;
         }
-        /* The card's modulate with a white diffuse colour lands up to two units from
-           the product of the two textures in 7 interior pixels of cmod; the formula
-           fits the card's 5 bit result in 318 of 351 pixels there, and in all of
-           cmodd (diffuse 80c0ff). Pinned, so a change in either direction is seen. */
-        if (!strcmp(v->name, "cmod")) {
-            expect_int("composite cmod pixels beyond one unit (pinned)", bad, 7);
-            bad = 0;
-        }
         bad_total += bad;
         if (bad && shown++ < 40)
             fprintf(stderr, "composite %s: %d of %d pixels more than one unit from the card\n", v->name, bad, v->npix);
     }
     printf("composite pixels: %d of %d exact, %d beyond one unit\n", exact, total, bad_total);
     expect_int("composite pixels more than one unit from a real Rage Pro", bad_total, 0);
+    /* The vectors are 40 states of one primary and diffuse colour and a few secondary
+       values: a summary of how close the model sits, not a check on the modulate rule,
+       which ragepro_modulate_tests checks pixel by pixel. */
+    printf("composite exact count (diagnostic only): %d of %d\n", exact, total);
     card_close(m);
 }
 
@@ -2514,6 +2510,558 @@ ragepro_vq_triangle_tests(void)
         }
         expect_int("VQ mip triangle pixels differing from a real Rage Pro", bad_mip, 0);
     }
+    card_close(m);
+}
+
+/*
+ * The Rage Pro's bilinear filter, against a real card.
+ *
+ * 64x64 textures of two colours per channel, drawn as quads (two triangles
+ * through the setup registers, white vertex colour, no perspective
+ * correction, dither off) into a 32 bit frame, so the filtered value keeps its
+ * 8 bits per channel. Magnified 128 pixels per texel, a probe's fraction of a
+ * texel follows its position, and the card's 16 steps (8 for VQ) show in the
+ * stairs of each strip. The d groups are minified 2:1 and 4:1 with a
+ * minifying filter, which gives one bilinear sample at the pixel centre.
+ */
+#include "vid_ati_mach64_bilinear_vectors.h"
+
+#define BL_FRAME 0x100000u
+#define BL_TEX   0x300000u
+#define BL_CODE  0x340000u
+
+static uint16_t
+bilinear_texel(int format, const struct bilinear_group *g, int kind, int x, int y)
+{
+    int c[3];
+
+    for (int i = 0; i < 3; i++)
+        c[i] = g->lo[i];
+    if (kind == 0) {
+        if (x & 1)
+            for (int i = 0; i < 3; i++)
+                c[i] = g->hi[i];
+    } else if (kind == 1) {
+        if (y & 1)
+            for (int i = 0; i < 3; i++)
+                c[i] = g->hi[i];
+    } else {
+        if ((x & 1) && !(y & 1))
+            c[0] = g->hi[0];
+        if (!(x & 1) && (y & 1))
+            c[1] = g->hi[1];
+        if ((x & 1) && (y & 1))
+            c[2] = g->hi[2];
+    }
+    if (format == 1)
+        return (uint16_t) (0x8000 | (c[0] << 10) | (c[1] << 5) | c[2]);
+    if (format == 2)
+        return (uint16_t) (0xf000 | (c[0] << 8) | (c[1] << 4) | c[2]);
+    return (uint16_t) ((c[0] << 11) | (c[1] << 5) | c[2]);
+}
+
+static void
+bilinear_texture(mach64_t *m, const struct bilinear_group *g, int kind)
+{
+    mach64_3d_t *ctx = m->gt3d;
+
+    if (g->format == 3) {
+        uint8_t codebook[0x800];
+        uint8_t image[0x800];
+
+        for (unsigned i = 0; i < 256; i++)
+            for (unsigned p = 0; p < 4; p++) {
+                uint16_t w = bilinear_texel(3, g, kind, (int) (p & 1), (int) (p >> 1));
+
+                codebook[i * 8 + p * 2]     = w & 255;
+                codebook[i * 8 + p * 2 + 1] = w >> 8;
+            }
+        vq_driver_image(codebook, image);
+        vq_load_codebook(m, BL_CODE, image);
+        memset(m->svga.vram + BL_TEX, 0, 32 * 32);
+    } else {
+        for (int y = 0; y < 64; y++)
+            for (int x = 0; x < 64; x++) {
+                uint16_t w = bilinear_texel(g->format, g, kind, x, y);
+
+                m->svga.vram[BL_TEX + (y * 64 + x) * 2]     = w & 255;
+                m->svga.vram[BL_TEX + (y * 64 + x) * 2 + 1] = w >> 8;
+            }
+    }
+    ctx->regs[RP_TEX_CNTL >> 2]      = 0x40000080u | ((g->format == 3) ? RP_TEX_VQ : 0);
+    ctx->regs[TEX_SIZE_PITCH >> 2]   = 0x6666;
+    ctx->regs[(TEX_0_OFF + 24) >> 2] = BL_TEX;
+}
+
+static void
+ragepro_bilinear_tests(void)
+{
+    static const int src_format[4] = { 4, 3, 15, 4 };
+    mach64_t        *m   = card_create();
+    mach64_3d_t     *ctx = m->gt3d;
+    int              bad_total = 0;
+    int              probes_total = 0;
+
+    m->ragepro = 1;
+    for (unsigned gi = 0; gi < sizeof(bilinear_groups) / sizeof(bilinear_groups[0]); gi++) {
+        const struct bilinear_group *g   = &bilinear_groups[gi];
+        int                          bad = 0;
+        int                          n   = 0;
+        int                          kind = -1;
+
+        memset(m->svga.vram + BL_FRAME, 0, (size_t) DITHER_W * DITHER_H * 4);
+        for (int qi = 0; qi < g->nquad; qi++) {
+            const struct bilinear_quad *q = &g->quads[qi];
+            const double x[3] = { q->x0, q->x1, q->x0 }, y[3] = { q->y0, q->y0, q->y1 };
+            const double u[3] = { q->u0 / 64.0, q->u1 / 64.0, q->u0 / 64.0 }, v[3] = { q->v0 / 64.0, q->v0 / 64.0, q->v1 / 64.0 };
+            const double bx[3] = { q->x1, q->x1, q->x0 }, by[3] = { q->y0, q->y1, q->y1 };
+            const double bu[3] = { q->u1 / 64.0, q->u1 / 64.0, q->u0 / 64.0 }, bv[3] = { q->v0 / 64.0, q->v1 / 64.0, q->v1 / 64.0 };
+            const double w[3] = { 1, 1, 1 };
+
+            if (q->kind != kind) {
+                kind = q->kind;
+                bilinear_texture(m, g, kind);
+            }
+            m->dp_pix_width  = ((uint32_t) src_format[g->format] << 28) | 6;
+            m->dp_src        = 0x00000500u;
+            m->dp_mix        = 0x00070007u;
+            m->write_mask    = 0xffffffffu;
+            m->dst_off_pitch = ((DITHER_W / 8) << 22) | (BL_FRAME / 8);
+            m->sc_left_right = (DITHER_W - 1) << 16;
+            m->sc_top_bottom = (DITHER_H - 1) << 16;
+            m->clr_cmp_cntl  = 0;
+            ctx->setup_cntl  = 0;
+            ctx->regs[Z_CNTL >> 2]        = 0;
+            ctx->regs[SCALE_3D_CNTL >> 2] = mip_filter_scale_3d_cntl(2);
+            vq_tri_draw(m, x, y, u, v, w);
+            vq_tri_draw(m, bx, by, bu, bv, w);
+            for (int p = 0; p < q->count; p++) {
+                const struct bilinear_probe *pr  = &bilinear_probes[q->first + p];
+                const uint8_t               *px  = m->svga.vram + BL_FRAME + ((size_t) pr->y * DITHER_W + pr->x) * 4;
+                unsigned                     got = ((unsigned) px[2] << 16) | ((unsigned) px[1] << 8) | px[0];
+
+                n++;
+                if (got != pr->rgb) {
+                    if (bad++ < 5)
+                        fprintf(stderr, "bilinear %s quad %d (%u,%u): %06x, the card's %06x\n", g->name, qi, pr->x, pr->y, got, pr->rgb);
+                }
+            }
+        }
+        printf("bilinear %s: %d of %d probes exact\n", g->name, n - bad, n);
+        bad_total += bad;
+        probes_total += n;
+    }
+    expect_int("bilinear filter probes differing from a real Rage Pro", bad_total, 0);
+    expect_int("bilinear filter probes checked", probes_total, (int) (sizeof(bilinear_probes) / sizeof(bilinear_probes[0])));
+    card_close(m);
+}
+
+
+#include "vid_ati_mach64_modulate_vectors.h"
+
+/*
+ * Rage Pro texture formats that are not 16 bit RGB, and the modulate combine of
+ * a composite texture, against a real card (see the header's comment for what
+ * each group holds). Strips of the CI8, CI4, RGB332 and ARGB8888 formats go
+ * through the primary texture, the composite strips and the ramps through the
+ * composite. The ramps (non-white primary and diffuse, every secondary channel
+ * value) are the data the modulate rule is fitted to; the strips are not.
+ */
+static uint32_t
+modulate_word(int format, const int c[3])
+{
+    switch (format) {
+        case 0:
+            return (uint32_t) ((c[0] << 11) | (c[1] << 5) | c[2]);
+        case 1:
+            return (uint32_t) (0x8000 | (c[0] << 10) | (c[1] << 5) | c[2]);
+        case 2:
+            return (uint32_t) (0xf000 | (c[0] << 8) | (c[1] << 4) | c[2]);
+        case 6:
+            return (uint32_t) ((c[0] << 5) | (c[1] << 2) | c[2]);
+        default:
+            return 0xff000000u | ((uint32_t) c[0] << 16) | ((uint32_t) c[1] << 8) | (uint32_t) c[2];
+    }
+}
+
+/* The register code (DP_PIX_WIDTH) of a texture format of the group. */
+static unsigned
+modulate_code(int format)
+{
+    static const unsigned code[8] = { 4, 3, 15, 4, 2, 2, 7, 6 };
+
+    return code[format];
+}
+
+static void
+modulate_texture(mach64_t *m, const struct mod_group *g, int kind, uint32_t base)
+{
+    int bytes = (g->format == 7) ? 4 : ((g->format >= 4 && g->format != 6) || g->format == 6) ? 1 : 2;
+
+    for (int y = 0; y < 64; y++)
+        for (int x = 0; x < 64; x++) {
+            int      c[3];
+            int      hi = (kind == 0) ? (x & 1) : (y & 1);
+            uint32_t w;
+
+            for (int i = 0; i < 3; i++)
+                c[i] = hi ? g->hi[i] : g->lo[i];
+            if (kind == 4) {
+                if (g->format == 2) {
+                    c[0] = x & 15;
+                    c[1] = (x * 3) & 15;
+                    c[2] = 15 - (x & 15);
+                } else if (g->format == 1) {
+                    c[0] = x & 31;
+                    c[1] = (x * 7) & 31;
+                    c[2] = 31 - (x & 31);
+                } else {
+                    c[0] = x & 31;
+                    c[1] = x & 63;
+                    c[2] = 31 - (x & 31);
+                }
+            }
+            w = (g->format == 4 || g->format == 5) ? (uint32_t) hi : modulate_word(g->format, c);
+            for (int b = 0; b < bytes; b++)
+                m->svga.vram[base + (y * 64 + x) * bytes + b] = (uint8_t) (w >> (8 * b));
+        }
+}
+
+static void
+modulate_solid(mach64_t *m, uint32_t base, const int p[3])
+{
+    uint32_t w = modulate_word(0, p);
+
+    for (int i = 0; i < 64 * 64; i++) {
+        m->svga.vram[base + i * 2]     = (uint8_t) w;
+        m->svga.vram[base + i * 2 + 1] = (uint8_t) (w >> 8);
+    }
+}
+
+static void
+modulate_vertices(mach64_t *m, const struct mod_quad *q, int composite, unsigned diffuse)
+{
+    const double x[2][3] = { { q->x0, q->x1, q->x0 }, { q->x1, q->x1, q->x0 } };
+    const double y[2][3] = { { q->y0, q->y0, q->y1 }, { q->y0, q->y1, q->y1 } };
+    const double u[2][3] = { { q->u0, q->u1, q->u0 }, { q->u1, q->u1, q->u0 } };
+    const double v[2][3] = { { q->v0, q->v0, q->v1 }, { q->v0, q->v1, q->v1 } };
+
+    for (int tri = 0; tri < 2; tri++) {
+        double   area = (x[tri][0] - x[tri][2]) * (y[tri][1] - y[tri][2]) - (y[tri][0] - y[tri][2]) * (x[tri][1] - x[tri][2]);
+        float    ooa  = (float) (1.0 / area);
+        uint32_t raw;
+
+        for (int n = 0; n < 3; n++) {
+            uint32_t xy4 = ((uint32_t) (int) (x[tri][n] * 4.0) << 16) | ((uint32_t) (int) (y[tri][n] * 4.0) & 0xffffu);
+            double   su  = u[tri][n] / 64.0;
+            double   sv  = v[tri][n] / 64.0;
+
+            mach64_3d_setup_write(m, 0x90 + n * 8 + 5, diffuse);
+            mach64_3d_setup_write(m, 0x90 + n * 8 + 6, xy4);
+            if (composite) {
+                /* the primary is a solid texture: any coordinate; the composite has its own */
+                mip_vertex_value(m, 0xab + 3 * n, 0.5);
+                mip_vertex_value(m, 0xab + 3 * n + 1, 0.5);
+                mip_vertex_value(m, 0xab + 3 * n + 2, 1.0);
+                mip_vertex_value(m, (n == 2) ? 0xa8 : (0xca + 3 * n), su);
+                mip_vertex_value(m, (n == 2) ? 0xa9 : (0xca + 3 * n + 1), sv);
+                mip_vertex_value(m, (n == 2) ? 0xaa : (0xca + 3 * n + 2), 1.0);
+            } else {
+                mip_vertex_value(m, 0xab + 3 * n, su);
+                mip_vertex_value(m, 0xab + 3 * n + 1, sv);
+                mip_vertex_value(m, 0xab + 3 * n + 2, 1.0);
+            }
+        }
+        memcpy(&raw, &ooa, 4);
+        mach64_3d_setup_write(m, 0x90 + 7, raw);
+    }
+}
+
+static void
+ragepro_modulate_tests(void)
+{
+    mach64_t    *m   = card_create();
+    mach64_3d_t *ctx = m->gt3d;
+    int          bad_group[16] = { 0 };
+    int          total[16]     = { 0 };
+
+    m->ragepro = 1;
+    for (unsigned gi = 0; gi < sizeof(mod_groups) / sizeof(mod_groups[0]); gi++) {
+        const struct mod_group *g = &mod_groups[gi];
+        int                     kind = -1;
+
+        memset(m->svga.vram + BL_FRAME, 0, (size_t) DITHER_W * DITHER_H * 4);
+        for (int qi = 0; qi < g->nquad; qi++) {
+            const struct mod_quad *q = &g->quads[qi];
+
+            memset(ctx->regs, 0, sizeof(ctx->regs));
+            ctx->setup_cntl = 0;
+            m->write_mask   = 0xffffffffu;
+            m->dp_src       = 0x00000500u;
+            m->dp_mix       = 0x00070007u;
+            m->dst_off_pitch = ((DITHER_W / 8) << 22) | (BL_FRAME / 8);
+            m->sc_left_right = (DITHER_W - 1) << 16;
+            m->sc_top_bottom = (DITHER_H - 1) << 16;
+            m->clr_cmp_cntl  = 0;
+            if (g->secondary) {
+                const int white[3] = { 31, 63, 31 };
+                const int prim[3] = { q->prim[0] ? q->prim[0] : white[0], q->prim[1] ? q->prim[1] : white[1],
+                                      q->prim[2] ? q->prim[2] : white[2] };
+
+                if (q->kind != kind) {
+                    kind = q->kind;
+                    modulate_texture(m, g, kind, BL_TEX + 0x2000);
+                }
+                modulate_solid(m, BL_TEX, q->kind == 4 ? prim : white);
+                m->dp_pix_width = (4u << 28) | 6 | (modulate_code(g->format) << 4);
+                ctx->regs[SCALE_3D_CNTL >> 2]        = 0x0541028bu;
+                ctx->regs[TEX_SIZE_PITCH >> 2]       = 0x06660666u;
+                ctx->regs[RP_TEX_CNTL >> 2]          = 0xc0080380u | (q->kind == 4 ? 0 : RP_COMP_FILTER_BILIN);
+                ctx->regs[RP_SECONDARY_TEX_OFF >> 2] = BL_TEX + 0x2000;
+                ctx->regs[(TEX_0_OFF + 6 * 4) >> 2]  = BL_TEX;
+                modulate_vertices(m, q, 1, q->kind == 4 ? (0xff000000u | q->dif) : 0xffffffffu);
+            } else {
+                if (q->kind != kind) {
+                    kind = q->kind;
+                    modulate_texture(m, g, kind, BL_TEX);
+                    if (g->format == 4 || g->format == 5) {
+                        ctx->texture_palette[0] = ((uint32_t) g->lo[0] << 16) | ((uint32_t) g->lo[1] << 8) | (uint32_t) g->lo[2];
+                        ctx->texture_palette[1] = ((uint32_t) g->hi[0] << 16) | ((uint32_t) g->hi[1] << 8) | (uint32_t) g->hi[2];
+                    }
+                }
+                m->dp_pix_width = ((uint32_t) modulate_code(g->format) << 28) | 6 | ((g->format == 5) ? CI4_RGB_LOW_NIBBLE : 0);
+                ctx->regs[SCALE_3D_CNTL >> 2]    = mip_filter_scale_3d_cntl(2);
+                ctx->regs[RP_TEX_CNTL >> 2]      = 0x40000080u;
+                ctx->regs[TEX_SIZE_PITCH >> 2]   = 0x6666;
+                ctx->regs[(TEX_0_OFF + 24) >> 2] = BL_TEX;
+                modulate_vertices(m, q, 0, 0xffffffffu);
+            }
+            for (int p = 0; p < q->count; p++) {
+                const struct mod_probe *pr  = &mod_probes[q->first + p];
+                const uint8_t          *px  = m->svga.vram + BL_FRAME + ((size_t) pr->y * DITHER_W + pr->x) * 4;
+                unsigned                got = ((unsigned) px[2] << 16) | ((unsigned) px[1] << 8) | px[0];
+
+                total[gi]++;
+                if (got != pr->rgb) {
+                    if (bad_group[gi]++ < 4)
+                        fprintf(stderr, "modulate %s quad %d (%u,%u): %06x, the card's %06x\n", g->name, qi, pr->x, pr->y, got, pr->rgb);
+                }
+            }
+        }
+        printf("modulate %s: %d of %d probes exact\n", g->name, total[gi] - bad_group[gi], total[gi]);
+        expect_int(g->name, bad_group[gi], 0);
+    }
+    card_close(m);
+}
+
+/*
+ * The 2x2 filter's fraction bits by texture format. The formats the card was
+ * measured with take 4 bits (VQ 3); the others keep the 8 bit fraction of the
+ * filter before the measurement. A point halfway between two texels' centres'
+ * 3/10 gives weight 64 (4 bits) or 76 (8 bits) of 256.
+ */
+static void
+ragepro_filter_format_tests(void)
+{
+    static const struct { int format; int bits; } fmt[] = {
+        { 2, 4 }, { 3, 4 }, { 4, 4 }, { 6, 4 }, { 7, 4 }, { 15, 4 }, { 8, 8 }, { 11, 8 }, { 14, 8 }
+    };
+    mach64_t    *m   = card_create();
+    mach64_3d_t *ctx = m->gt3d;
+
+    m->ragepro = 1;
+    ctx->texture_palette[0] = 0x00102030;
+    ctx->texture_palette[1] = 0x00f0e0d0;
+    for (unsigned i = 0; i < sizeof(fmt) / sizeof(fmt[0]); i++) {
+        mach64_rp_map_t map;
+        int             inh;
+        int             bpp;
+        uint32_t        c0, c1, expect, got;
+        unsigned        weight = (fmt[i].bits == 4) ? 64 : 76;
+
+        mach64_rp_map_level(ctx, &map, fmt[i].format, 0x4000, 3, 0, 0, 0);
+        bpp = map.tex.bpp;
+        /* texels 0 and 1 of row 0: two different values of whatever the format holds */
+        for (int b = 0; b < bpp; b++) {
+            m->svga.vram[0x4000 + b]       = (uint8_t) (fmt[i].format == 2 ? 0 : 0x20 + b * 0x31);
+            m->svga.vram[0x4000 + bpp + b] = (uint8_t) (fmt[i].format == 2 ? 1 : 0xe0 - b * 0x23);
+        }
+        c0 = mach64_3d_texel_at(ctx, &map.tex, 0, 0, &inh);
+        c1 = mach64_3d_texel_at(ctx, &map.tex, 1, 0, &inh);
+        expect = mach64_3d_lerp_texel(c0, c1, weight);
+        /* x = 0.5 + 0.3 texel: s = (0.8) / 8 of a map eight texels wide; the row is
+           the same in the second row of the filter */
+        got = mach64_rp_sample_map(ctx, &ctx->agp, &map, 1, 0.8 / 8.0, 0.5 / 1.0, &inh);
+        if (got != expect) {
+            fprintf(stderr, "filter format %d: %08x, expected %08x (weight %u of 256)\n", fmt[i].format, got, expect, weight);
+            failures++;
+        }
+        CHECK(c0 != c1);
+        CHECK(mach64_rp_filter_bits(&map) == fmt[i].bits);
+    }
+    {
+        mach64_rp_map_t map;
+
+        mach64_rp_map_level(ctx, &map, 4, 0, 3, 3, 0, 0);
+        map.vq = 1;
+        CHECK(mach64_rp_filter_bits(&map) == 3);
+    }
+    card_close(m);
+}
+
+/*
+ * The cell of the 2x2 filter at coordinates on and either side of a cell edge.
+ * The expected cells come from exact integer arithmetic on a coordinate of
+ * 1 / 2^20 texel. An edge, and a coordinate inside the 1 / 4096 of a cell the
+ * filter rounds to, is on the lower side; one beyond it is not.
+ */
+static void
+ragepro_filter_cell_tests(void)
+{
+    for (int bits = 3; bits <= 4; bits++) {
+        const int64_t unit = (int64_t) 1 << 20;
+        const int64_t half = (unit >> bits) / 8192; /* half of 1 / 4096 of a cell, in units of 2^-20 texel */
+
+        for (int n = -40; n <= 200; n++) {
+            int64_t edge = (int64_t) n * (unit >> bits);
+
+            for (int d = -4; d <= 4; d++) {
+                int64_t  a_int = edge + d * half / 2; /* a, in units of 2^-20 texel */
+                double   a     = (double) a_int / (double) unit;
+                int      texel;
+                unsigned weight;
+                int64_t  k = (a_int * ((int64_t) 1 << bits) * 4096 + (unit >> 1)) >> 20;
+                int64_t  mm = ((k + 4095) >> 12) - 1;
+                int64_t  m_edge = n - 1; /* the lower cell of the edge */
+
+                mach64_rp_filter_cell(a, bits, &texel, &weight);
+                if (texel != (int) (mm >> bits) || weight != (unsigned) (mm & ((1 << bits) - 1)) << (8 - bits)) {
+                    if (failures < 24)
+                        fprintf(stderr, "filter cell bits %d, a = %lld/2^20: texel %d weight %u, expected %d %u\n", bits,
+                                (long long) a_int, texel, weight, (int) (mm >> bits),
+                                (unsigned) (mm & ((1 << bits) - 1)) << (8 - bits));
+                    failures++;
+                }
+                /* the stated behaviour at the edge: the edge itself and a coordinate within the rounding
+                   of it, on either side, are the lower cell; two roundings beyond is not */
+                if (d >= -2 && d <= 1 && mm != m_edge) {
+                    if (failures < 24)
+                        fprintf(stderr, "filter cell bits %d: %d near-edge units from edge %d is cell %lld, expected %lld\n", bits, d, n,
+                                (long long) mm, (long long) m_edge);
+                    failures++;
+                }
+                if (d >= 2 && mm != m_edge + 1) {
+                    if (failures < 24)
+                        fprintf(stderr, "filter cell bits %d: %d units beyond edge %d is cell %lld, expected %lld\n", bits, d, n,
+                                (long long) mm, (long long) (m_edge + 1));
+                    failures++;
+                }
+            }
+        }
+    }
+    /* hand-checked edge cases at 4 bits: exactly on texel centre 1 (a = 1) is texel 0, weight 15/16; a = 2^-18 is the
+       edge of cell 0 and, inside the rounding, the lower cell, texel -1; 2^-16 is beyond it, texel 0 weight 0 */
+    {
+        int      texel;
+        unsigned weight;
+
+        mach64_rp_filter_cell(1.0, 4, &texel, &weight);
+        CHECK(texel == 0 && weight == 240);
+        mach64_rp_filter_cell(0.0, 4, &texel, &weight);
+        CHECK(texel == -1 && weight == 240);
+        mach64_rp_filter_cell(1.0 / 262144.0, 4, &texel, &weight);
+        CHECK(texel == -1 && weight == 240);
+        mach64_rp_filter_cell(1.0 / 65536.0, 4, &texel, &weight);
+        CHECK(texel == 0 && weight == 0);
+        mach64_rp_filter_cell(-1.0 / 262144.0, 4, &texel, &weight);
+        CHECK(texel == -1 && weight == 240);
+        mach64_rp_filter_cell(0.3, 8, &texel, &weight);
+        CHECK(texel == 0 && weight == 76);
+    }
+}
+
+/*
+ * Edges through the triangle path, for quads of different size and slope: a
+ * 16-step strip in which a pixel's centre is placed exactly on a cell edge
+ * (lower cell) or 2^-16 texel beyond it (upper cell), at 16 to 256 pixels
+ * per texel and in a few quad sizes. The expected value is the 8 bit lerp of
+ * the two texels with the weight the cell gives.
+ */
+static void
+ragepro_filter_edge_triangle_tests(void)
+{
+    static const int ppt[4]  = { 16, 32, 64, 256 };
+    static const int rows[3] = { 4, 8, 40 };
+    mach64_t        *m   = card_create();
+    mach64_3d_t     *ctx = m->gt3d;
+    int              bad = 0;
+
+    m->ragepro = 1;
+    for (int pi = 0; pi < 4; pi++)
+        for (int ri = 0; ri < 3; ri++)
+            for (int n = 1; n < 16; n += 2)
+                for (int beyond = 0; beyond <= 1; beyond++) {
+                    /* texel columns 20, 21, 22: lo, hi, lo (565 pair 1 of the card's strips) */
+                    const int lo[3] = { 6, 49, 18 }, hi[3] = { 27, 9, 31 };
+                    struct mod_quad q;
+                    struct mod_group g;
+                    const int probe_x = 4 + 5;
+                    double s_edge = 20.5 + n / 16.0;   /* a = 20 + n / 16 */
+                    double s_probe = s_edge + (beyond ? 1.0 / 65536.0 : 0.0);
+                    double u0 = s_probe - 5.5 / ppt[pi];
+                    int    cell_m = beyond ? (20 * 16 + n) : (20 * 16 + n - 1);
+                    int    left = cell_m >> 4, wt = cell_m & 15;
+                    uint32_t w0, w1;
+                    uint32_t expect = 0;
+
+                    memset(&q, 0, sizeof(q));
+                    memset(&g, 0, sizeof(g));
+                    q.x0 = 4; q.y0 = 4; q.x1 = 4 + 64; q.y1 = 4 + rows[ri];
+                    q.u0 = u0; q.v0 = 0.0; q.u1 = u0 + 64.0 / ppt[pi]; q.v1 = 1.0;
+                    for (int i = 0; i < 3; i++) { g.lo[i] = lo[i]; g.hi[i] = hi[i]; }
+                    g.format = 0;
+                    memset(ctx->regs, 0, sizeof(ctx->regs));
+                    ctx->setup_cntl = 0;
+                    m->write_mask = 0xffffffffu; m->dp_src = 0x500u; m->dp_mix = 0x70007u;
+                    m->dst_off_pitch = ((DITHER_W / 8) << 22) | (BL_FRAME / 8);
+                    m->sc_left_right = (DITHER_W - 1) << 16; m->sc_top_bottom = (DITHER_H - 1) << 16;
+                    m->clr_cmp_cntl = 0;
+                    memset(m->svga.vram + BL_FRAME, 0, (size_t) DITHER_W * DITHER_H * 4);
+                    modulate_texture(m, &g, 0, BL_TEX);
+                    m->dp_pix_width = (4u << 28) | 6;
+                    ctx->regs[SCALE_3D_CNTL >> 2]    = mip_filter_scale_3d_cntl(2);
+                    ctx->regs[RP_TEX_CNTL >> 2]      = 0x40000080u;
+                    ctx->regs[TEX_SIZE_PITCH >> 2]   = 0x6666;
+                    ctx->regs[(TEX_0_OFF + 24) >> 2] = BL_TEX;
+                    modulate_vertices(m, &q, 0, 0xffffffffu);
+                    w0 = (left & 1) ? 1u : 0u;
+                    w1 = 1u - w0;
+                    {
+                        uint32_t t0 = 0, t1 = 0;
+
+                        for (int ch = 0; ch < 3; ch++) {
+                            int bitsn = (ch == 1) ? 6 : 5;
+                            int v0c = w0 ? hi[ch] : lo[ch], v1c = w1 ? hi[ch] : lo[ch];
+                            int e0 = (v0c << (8 - bitsn)) | (v0c >> (2 * bitsn - 8));
+                            int e1 = (v1c << (8 - bitsn)) | (v1c >> (2 * bitsn - 8));
+                            int out = (e0 * (16 - wt) + e1 * wt + 8) >> 4;
+
+                            expect |= (uint32_t) out << (16 - 8 * ch);
+                            (void) t0; (void) t1;
+                        }
+                    }
+                    {
+                        const uint8_t *px = m->svga.vram + BL_FRAME + ((size_t) (4 + rows[ri] / 2) * DITHER_W + probe_x) * 4;
+                        unsigned got = ((unsigned) px[2] << 16) | ((unsigned) px[1] << 8) | px[0];
+
+                        if (got != expect) {
+                            if (bad++ < 8)
+                                fprintf(stderr, "filter edge: %d px/texel, %d rows, n %d, beyond %d: %06x, expected %06x\n", ppt[pi],
+                                        rows[ri], n, beyond, got, expect);
+                        }
+                    }
+                }
+    expect_int("filter edge cases through triangles differing from the formula", bad, 0);
     card_close(m);
 }
 
@@ -4007,39 +4555,83 @@ draw_tests(void)
     card_close(m);
 }
 
+/*
+ * With no argument the whole suite runs. Each option selects the checks of
+ * one area and any number of them can be given together; an unknown option is
+ * an error, so a mistyped command line cannot fall through to the default run.
+ */
+enum {
+    MODE_VQ = 1 << 0, MODE_BILINEAR = 1 << 1, MODE_MODULATE = 1 << 2, MODE_COMPOSITE = 1 << 3,
+    MODE_MIP = 1 << 4, MODE_DITHER = 1 << 5, MODE_PALETTE = 1 << 6
+};
+
 int
 main(int argc, char **argv)
 {
-    if (argc == 2 && !strcmp(argv[1], "--vq")) {
-        ragepro_vq_tests();
-        ragepro_vq_real_card_tests();
-        ragepro_vq_triangle_tests();
-        printf("Mach64 VQ: %d failed checks\n", failures);
-        return failures ? 1 : 0;
+    static const struct {
+        const char *option;
+        unsigned    bit;
+        const char *name;
+    } modes[] = {
+        { "--vq", MODE_VQ, "VQ" },
+        { "--bilinear", MODE_BILINEAR, "bilinear" },
+        { "--modulate", MODE_MODULATE, "modulate and formats" },
+        { "--composite", MODE_COMPOSITE, "composite" },
+        { "--mip", MODE_MIP, "mip" },
+        { "--dither", MODE_DITHER, "dither" },
+        { "--palette", MODE_PALETTE, "palette" },
+    };
+    unsigned selected = 0;
+
+    for (int a = 1; a < argc; a++) {
+        unsigned bit = 0;
+
+        for (unsigned i = 0; i < sizeof(modes) / sizeof(modes[0]); i++)
+            if (!strcmp(argv[a], modes[i].option))
+                bit = modes[i].bit;
+        if (!bit) {
+            fprintf(stderr, "unknown option %s; options:", argv[a]);
+            for (unsigned i = 0; i < sizeof(modes) / sizeof(modes[0]); i++)
+                fprintf(stderr, " %s", modes[i].option);
+            fprintf(stderr, "\n");
+            return 2;
+        }
+        selected |= bit;
     }
-    if (argc == 2 && !strcmp(argv[1], "--composite")) {
-        composite_tests();
-        printf("Mach64 composite: %d failed checks\n", failures);
-        return failures ? 1 : 0;
-    }
-    if (argc == 2 && !strcmp(argv[1], "--mip")) {
-        ragepro_mip_tests();
-        ragepro_mip_chain_tests();
-        printf("Mach64 mip: %d failed checks\n", failures);
-        return failures ? 1 : 0;
-    }
-    if (argc == 2 && !strcmp(argv[1], "--dither")) {
-        ragepro_dither_tests();
-        dither_bayer_tests();
-        ragepro_blend_tests();
-        printf("Mach64 dither: %d failed checks\n", failures);
-        return failures ? 1 : 0;
-    }
-    if (argc == 2 && !strcmp(argv[1], "--palette")) {
-        palette_tests();
-        ragepro_palette_upload_tests();
-        ragepro_ci8_tiling_tests();
-        printf("Mach64 palette: %d failed checks\n", failures);
+    if (selected) {
+        if (selected & MODE_PALETTE) {
+            palette_tests();
+            ragepro_palette_upload_tests();
+            ragepro_ci8_tiling_tests();
+        }
+        if (selected & MODE_VQ) {
+            ragepro_vq_tests();
+            ragepro_vq_real_card_tests();
+            ragepro_vq_triangle_tests();
+        }
+        if (selected & MODE_MIP) {
+            ragepro_mip_tests();
+            ragepro_mip_chain_tests();
+        }
+        if (selected & MODE_DITHER) {
+            ragepro_dither_tests();
+            dither_bayer_tests();
+            ragepro_blend_tests();
+        }
+        if (selected & MODE_COMPOSITE)
+            composite_tests();
+        if (selected & MODE_BILINEAR)
+            ragepro_bilinear_tests();
+        if (selected & MODE_MODULATE) {
+            ragepro_modulate_tests();
+            ragepro_filter_format_tests();
+            ragepro_filter_cell_tests();
+            ragepro_filter_edge_triangle_tests();
+        }
+        for (unsigned i = 0; i < sizeof(modes) / sizeof(modes[0]); i++)
+            if (selected & modes[i].bit)
+                printf("Mach64 %s: checks run\n", modes[i].name);
+        printf("Mach64 selected checks: %d failed\n", failures);
         return failures ? 1 : 0;
     }
     /* Both generations use this register-driven draw engine and scaler. */
@@ -4070,6 +4662,11 @@ main(int argc, char **argv)
     ragepro_mip_tests();
     ragepro_mip_chain_tests();
     composite_tests();
+    ragepro_bilinear_tests();
+    ragepro_modulate_tests();
+    ragepro_filter_format_tests();
+    ragepro_filter_cell_tests();
+    ragepro_filter_edge_triangle_tests();
 
     if (failures) {
         fprintf(stderr, "Mach64 3D engine: %d checks failed\n", failures);

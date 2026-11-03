@@ -4192,6 +4192,77 @@ mach64_rp_floor(double v)
     return floor(v);
 }
 
+/*
+ * The cell of a 2x2 filter's fraction. a is the coordinate in texels less
+ * half a texel, so a whole number is the centre of texel a. The fraction is
+ * quantised to bits bits, in cells (m / L, (m + 1) / L] with L = 1 << bits:
+ * the left texel is m >> bits and the weight of the right one is
+ * m & (L - 1) steps of 1 / L. A coordinate exactly on a cell edge, a texel
+ * centre included, takes the lower cell. Measured on a Rage Pro, for the
+ * magnification strips of RGB565, ARGB1555, ARGB4444, CI8, CI4, RGB332 and
+ * ARGB8888 textures (bits 4) and of VQ textures (bits 3), coordinates a
+ * multiple of 1 / 2048 texel apart.
+ *
+ * The coordinate is rounded to 1 / 4096 of a cell first. This is inferred,
+ * not measured: the card told the two sides of an edge apart at 1 / 2048 of
+ * a texel (1 / 128 of a cell at 16 steps), which is as fine as the captures
+ * went, and the plane evaluation here reaches an edge a hair off (about 1e-7
+ * of a texel), so without the rounding 14 of the 7656 probes of the plain
+ * strips differ. The effect is that a coordinate up to 1 / 8192 of a cell
+ * from an edge, which is 2^-17 texel at bits 4 and 2^-16 at bits 3, is taken
+ * for the edge, whichever side it is on, and a coordinate beyond that is not
+ * moved. A register-format model of the setup engine's S, T and W gradients
+ * (24 less the exponent of fraction bits, the low bits of which are not
+ * established) was not tried in its place.
+ *
+ * bits 8 is the 256 step weight and the floor of the coordinate that this
+ * filter had before the measurement, kept for the formats that were not
+ * measured.
+ */
+static inline void
+mach64_rp_filter_cell(double a, int bits, int *texel, unsigned *weight)
+{
+    if (bits >= 8) {
+        double f = mach64_rp_floor(a);
+
+        *texel  = (int) f;
+        *weight = (unsigned) ((a - f) * 256.0);
+        if (*weight > 255)
+            *weight = 255;
+    } else {
+        double  v = a * (double) (4096 << bits) + 0.5;
+        int64_t k = (int64_t) v; /* floor of v: v is far inside the range */
+        int64_t m;
+
+        if ((double) k > v)
+            k--;
+        m       = ((k + 4095) >> 12) - 1; /* ceil(k / 4096) - 1 */
+        *texel  = (int) (m >> bits);
+        *weight = (unsigned) (m & ((1 << bits) - 1)) << (8 - bits);
+    }
+}
+
+/* The fraction bits of a map's 2x2 filter: measured on a Rage Pro for the
+   formats it lists, 3 for a VQ map and 4 for the others; any other format
+   (Y8, YUV 4:2:2, AYUV 8888) keeps the 8 bit fraction the filter had before. */
+static inline int
+mach64_rp_filter_bits(const mach64_rp_map_t *map)
+{
+    if (map->vq)
+        return 3;
+    switch (map->tex.format) {
+        case 2:  /* CI8, CI4 */
+        case 3:  /* ARGB 1555 */
+        case 4:  /* RGB 565 */
+        case 6:  /* ARGB 8888 */
+        case 7:  /* RGB 332 */
+        case 15: /* ARGB 4444 */
+            return 4;
+        default:
+            return 8;
+    }
+}
+
 /* One map at s, t (0-1 across it): the nearest texel, or the 2x2 filter of
    the four whose centers surround the point. */
 static uint32_t
@@ -4203,6 +4274,7 @@ mach64_rp_sample_map(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_
     int      inh[4];
     uint32_t c[4];
     int      u, v;
+    int      bits;
     unsigned fu, fv;
 
     if (map->clamp_s)
@@ -4232,12 +4304,9 @@ mach64_rp_sample_map(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_
         fs = 0.0;
     if (ft > 1.0e9 || ft < -1.0e9)
         ft = 0.0;
-    u   = (int) mach64_rp_floor(fs);
-    v   = (int) mach64_rp_floor(ft);
-    fu  = (unsigned) ((fs - u) * 256.0);
-    fv  = (unsigned) ((ft - v) * 256.0);
-    fu  = (fu > 255) ? 255 : fu;
-    fv  = (fv > 255) ? 255 : fv;
+    bits = mach64_rp_filter_bits(map);
+    mach64_rp_filter_cell(fs, bits, &u, &fu);
+    mach64_rp_filter_cell(ft, bits, &v, &fv);
     mach64_rp_texels_2x2(ctx, agp, map, u, v, c, inh);
     *inhibits = inh[((fv >= 128) ? 2 : 0) + ((fu >= 128) ? 1 : 0)];
     return mach64_3d_lerp_texel(mach64_3d_lerp_texel(c[0], c[1], fu), mach64_3d_lerp_texel(c[2], c[3], fu), fv);
@@ -4622,6 +4691,29 @@ mach64_rp_lod(const mach64_rp_plane_t *ps, const mach64_rp_plane_t *pt, const ma
 #define RPK_Z      (1u << 2)
 #define RPK_565    (1u << 3)
 
+/*
+ * One colour channel of the modulate combine of a composite texture: the
+ * primary p and the secondary s, both 0 to 255. Measured on a Rage Pro for
+ * RGB565, ARGB1555 and ARGB4444 secondaries point sampled or bilinear, over a
+ * solid RGB565 primary, with the diffuse colour applied afterwards by the
+ * modulate light function (see mach64_rp_pixel). Only the top four bits n of s
+ * take part: the result is 0 when n is 0, and otherwise (16 (n + 1) p) >> 8;
+ * with a white primary that is s with its low four bits set. The diffuse
+ * channel d then gives (x (d + 1)) >> 8. Fitted to 1352 distinct
+ * secondary, primary and diffuse combinations of RGB565 (896 of ARGB1555, 448
+ * of ARGB4444), none of which was among the draws the form of the rule was
+ * first read from. Not measured, and left as they were: the alpha channel, the
+ * blend and add-specular combines, a VQ secondary, a primary that is filtered
+ * or not RGB565, and the other light functions.
+ */
+static inline int
+mach64_rp_modulate(int p, int s)
+{
+    int n = s >> 4;
+
+    return n ? ((16 * (n + 1) * p) >> 8) : 0;
+}
+
 /* A pixel of a triangle, through the whole pipeline, sampled at its centre. */
 __attribute__((always_inline)) static inline void
 mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t *dither, mach64_rp_agp_cache_t *agp, int x, int y,
@@ -4667,6 +4759,7 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
         double   t    = mach64_rp_at(&tri->pl[RPP_T], fx, fy) * rw;
         uint32_t argb;
         rgba_t   texel;
+        int      comp_mod = 0;
 
         if (tri->tex.lod_used) {
             int32_t w_term = tri->w_const ? tri->w_term : ((w > 0.0) ? mach64_rp_w_term(w) : 0);
@@ -4695,11 +4788,12 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
                     f = (tri->tex_cntl & RP_COMP_ALPHA) ? sec.a : (((tri->tex_cntl >> RP_COMP_FACTOR_SHIFT) & 15) * 255 / 16);
                     texel = mach64_3d_lerp(texel, sec, f);
                     break;
-                case 1: /* modulate */
-                    texel.r = texel.r * sec.r / 255;
-                    texel.g = texel.g * sec.g / 255;
-                    texel.b = texel.b * sec.b / 255;
+                case 1: /* modulate: see mach64_rp_modulate */
+                    texel.r = mach64_rp_modulate(texel.r, sec.r);
+                    texel.g = mach64_rp_modulate(texel.g, sec.g);
+                    texel.b = mach64_rp_modulate(texel.b, sec.b);
                     texel.a = texel.a * sec.a / 255;
+                    comp_mod = 1;
                     break;
                 default: /* specular addition: the primary lit, plus the composite */
                     texel.r = mach64_3d_clamp8(texel.r * shade.r / 255 + sec.r);
@@ -4728,9 +4822,15 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
         else {
             switch ((tri->cntl >> TEX_LIGHT_FCN) & 3) {
                 case 1: /* modulate */
-                    src.r = texel.r * shade.r / 255;
-                    src.g = texel.g * shade.g / 255;
-                    src.b = texel.b * shade.b / 255;
+                    if (comp_mod) {
+                        src.r = (texel.r * (shade.r + 1)) >> 8;
+                        src.g = (texel.g * (shade.g + 1)) >> 8;
+                        src.b = (texel.b * (shade.b + 1)) >> 8;
+                    } else {
+                        src.r = texel.r * shade.r / 255;
+                        src.g = texel.g * shade.g / 255;
+                        src.b = texel.b * shade.b / 255;
+                    }
                     src.a = (tri->cntl & TEX_MAP_AEN) ? (texel.a * shade.a / 255) : shade.a;
                     break;
                 case 2: /* alpha decal */
