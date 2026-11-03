@@ -346,6 +346,7 @@ static const rdisk_type_t rdisk_types[KNOWN_RDISK_TYPES] = {
 enum {
     RDISK_BUS_DISABLED =  0,
     RDISK_BUS_LPT      =  6,  /* coincides with HDD_BUS_LPT/CDROM_BUS_LPT for config strings */
+    RDISK_BUS_IDE      =  7,  /* coincides with HDD_BUS_IDE: a native ATA (not ATAPI) drive */
     RDISK_BUS_ATAPI    =  8,  /* coincides with HDD_BUS_ATAPI */
     RDISK_BUS_SCSI     =  9,  /* coincides with HDD_BUS_SCSI */
     RDISK_BUS_USB      = 10,
@@ -361,6 +362,7 @@ enum {
 #define RDISK_DRIVE_TYPE_ATAPI_LPT      (-3)
 #define RDISK_DRIVE_TYPE_SCSI_ATAPI_LPT (-4)
 #define RDISK_DRIVE_TYPE_SCSI_LPT       (-5)
+#define RDISK_DRIVE_TYPE_IDE_ATAPI      (-6)
 
 typedef struct rdisk_drive_type_t {
     const char *vendor;
@@ -523,8 +525,9 @@ static const rdisk_drive_type_t rdisk_drive_types[KNOWN_RDISK_DRIVE_TYPES] = {
     /* ---- SyQuest ---- */
     /* SyQuest drives that no report has, here and below.  The products of the IDE drives are in SQATDRVR.SYS 1.89 (byte-swapped,
        after "SyQuest ") and those of the SCSI drives in SQDRIVER.SYS 7.95 and SyQuest's driver lists; the firmware revisions
-       are placeholders.  The real IDE drives are ATA disks with removable media commands, which rdisk cannot be, so they
-       are ATAPI here.  Their manuals do say that SyQuest EIDE drives support the ATAPI standard.  The cartridges are
+       are placeholders.  The real IDE drives are ATA disks with removable media commands.  The EZ135A and EZ230A are
+       that on the IDE bus (RDISK_BUS_IDE, see rdisk_drive_reset()), with ATAPI kept as an approximation, which is all the
+       SQ3105A and SQ3270A are.  Their manuals do say that SyQuest EIDE drives support the ATAPI standard.  The cartridges are
        those of each drive's name, plus the 105 MB in the SQ3270 and the 44 MB in the SQ5110C, from what is generally
        known of these drives rather than from the drivers.  EZFlyer EIDE: 880 / 16 / 32, which is EZFLYER_230_SECTORS. */
     { "SyQuest", "SQ555", SYQUEST_PLACEHOLDER_REV, RDISK_MEDIUM_SQ400, RDISK_DRIVE_TYPE_SCSI, { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
@@ -539,10 +542,10 @@ static const rdisk_drive_type_t rdisk_drive_types[KNOWN_RDISK_DRIVE_TYPES] = {
     /* Aaru device report 197, a real SCSI SyQuest SQ5200C, which reads the SQ400, SQ800 and SQ2000. */
     { "SyQuest", "SQ5200C", "3CE4", RDISK_MEDIUM_SQ2000, RDISK_DRIVE_TYPE_SCSI, { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0, 0 } },
     { "SyQuest", "EZ135S", SYQUEST_PLACEHOLDER_REV, RDISK_MEDIUM_EZ135, RDISK_DRIVE_TYPE_SCSI, { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 } },
-    { "SyQuest", "EZ135A", SYQUEST_PLACEHOLDER_REV, RDISK_MEDIUM_EZ135, RDISK_DRIVE_TYPE_ATAPI, { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 } },
+    { "SyQuest", "EZ135A", SYQUEST_PLACEHOLDER_REV, RDISK_MEDIUM_EZ135, RDISK_DRIVE_TYPE_IDE_ATAPI, { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0, 0, 0 } },
     /* Aaru device report 195, a real SCSI SyQuest EZ230S, which reads EZ135 and EZFlyer 230 media. */
     { "SyQuest", "EZ230S", "7220", RDISK_MEDIUM_EZFLYER_230, RDISK_DRIVE_TYPE_SCSI, { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0 } },
-    { "SyQuest", "EZ230A", SYQUEST_PLACEHOLDER_REV, RDISK_MEDIUM_EZFLYER_230, RDISK_DRIVE_TYPE_ATAPI, { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0 } },
+    { "SyQuest", "EZ230A", SYQUEST_PLACEHOLDER_REV, RDISK_MEDIUM_EZFLYER_230, RDISK_DRIVE_TYPE_IDE_ATAPI, { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 1, 0, 0, 0, 0, 0, 0, 0 } },
     /* The ATAPI SyJet: its identity is not confirmed real (the revision is a placeholder). */
     { "SyQuest", "SyJet", "1.06", RDISK_MEDIUM_SYJET_1_5GB, RDISK_DRIVE_TYPE_ATAPI, { 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 0, 0, 0 } },
     /* The SCSI SyJet-S, seen with firmware 0111, 0095 and 0117 (Aaru reports 327, 328, 329); see SYJET_S_REV
@@ -646,6 +649,8 @@ rdisk_drive_type_supports_bus(const int drive_type, const uint8_t bus_type)
             return (bus_type == RDISK_BUS_ATAPI) || (bus_type == RDISK_BUS_LPT);
         case RDISK_DRIVE_TYPE_SCSI_LPT:
             return (bus_type == RDISK_BUS_SCSI) || (bus_type == RDISK_BUS_LPT);
+        case RDISK_DRIVE_TYPE_IDE_ATAPI:
+            return (bus_type == RDISK_BUS_IDE) || (bus_type == RDISK_BUS_ATAPI);
         case RDISK_DRIVE_TYPE_SCSI_ATAPI_LPT:
             return (bus_type == RDISK_BUS_SCSI) || (bus_type == RDISK_BUS_ATAPI) ||
                    (bus_type == RDISK_BUS_LPT);
@@ -740,6 +745,11 @@ typedef struct rdisk_t {
     uint8_t            protect_mode;    /* Zip and Jaz protection mode, see rdisk_set_protection(). */
     uint8_t            protect_password_len;
     uint8_t            protect_password[32];
+
+    /* A drive on RDISK_BUS_IDE. */
+    uint8_t            ata_mc;        /* a cartridge change to report as MC */
+    uint8_t            ata_locked;    /* door locked (MEDIA LOCK) */
+    uint8_t            soft_wp;       /* the cartridge's software write protection (C0h) */
 } rdisk_t;
 
 extern rdisk_t      *rdisk[RDISK_NUM];

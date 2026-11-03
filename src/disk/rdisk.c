@@ -33,6 +33,7 @@
 #include <86box/plat.h>
 #include <86box/ui.h>
 #include <86box/hdc_ide.h>
+#include <86box/hdd.h>
 #include <86box/lpt.h>
 #include <86box/rdisk.h>
 #include <86box/version.h>
@@ -1716,7 +1717,8 @@ rdisk_set_callback(const rdisk_t *dev)
      * here and indexing ide_drives with it would set a callback on an unrelated
      * drive. The bridge paces its own transfers.
      */
-    if ((dev->drv->bus_type != RDISK_BUS_SCSI) && (dev->drv->bus_type != RDISK_BUS_LPT))
+    if ((dev->drv->bus_type != RDISK_BUS_SCSI) && (dev->drv->bus_type != RDISK_BUS_LPT) &&
+        (dev->drv->bus_type != RDISK_BUS_IDE))
         ide_set_callback(ide_drives[dev->drv->ide_channel], dev->callback);
 }
 
@@ -2815,6 +2817,10 @@ void
 rdisk_insert(rdisk_t *dev)
 {
     if ((dev != NULL) && (dev->drv != NULL)) {
+        /* An ATA drive reports a change once, as MC on its next media command. */
+        dev->ata_mc     = 1;
+        dev->ata_locked = 0;
+        dev->soft_wp    = 0;
         if (dev->drv->fp == NULL) {
             dev->unit_attention = 0;
             dev->transition     = 0;
@@ -5064,8 +5070,8 @@ rdisk_syjet_identify(const ide_t *ide, const int ide_has_dma)
    interface used genuine ATA IDENTIFY DEVICE (ECh) and CHS/LBA hard-disk
    commands, not the ATAPI packet interface this function (and 86Box's rdisk
    framework generally, which only implements ATAPI-packet and SCSI command
-   sets - RDISK_BUS_IDE exists in the enum but isn't wired to a native-ATA
-   command path anywhere) actually emulates. This is the closest available
+   sets; RDISK_BUS_IDE is wired to a native-ATA command path for the EZ135A and
+   EZ230A only) actually emulates. This is the closest available
    approximation for attaching a SparQ to an IDE/ATAPI bus in 86Box today,
    not a byte-accurate reproduction of the real drive's native-ATA behavior.
  */
@@ -5272,6 +5278,34 @@ rdisk_drive_reset(const int c)
 
             ide_atapi_attach(id);
         }
+    } else if (rdisk_drives[c].bus_type == RDISK_BUS_IDE) {
+        /*
+         * ATA (not ATAPI) cartridge drive. The IDE code runs it as a hard
+         * disk on the reserved slot HDD_NUM + c, whose sector I/O comes back
+         * here through rdisk_ata_*(). The CHS geometry is the drive's own
+         * cartridge in 16 heads and 32 sectors (512 and 880 cylinders, SyQuest
+         * Technical Bulletin 5040).
+         */
+        const int                 slot = HDD_NUM + c;
+        hard_disk_t              *hd   = &hdd[slot];
+        const rdisk_drive_type_t *dt   = &rdisk_drive_types[rdisk_drives[c].type % KNOWN_RDISK_DRIVE_TYPES];
+
+        if (dev->tf == NULL)
+            dev->tf = (ide_tf_t *) calloc(1, sizeof(ide_tf_t));
+
+        memset(hd, 0x00, sizeof(hard_disk_t));
+        hd->bus_type           = HDD_BUS_IDE;
+        hd->ide_channel        = rdisk_drives[c].ide_channel;
+        hd->hpc                = 16;
+        hd->spt                = 32;
+        hd->tracks             = rdisk_types[dt->default_media].sectors / (hd->hpc * hd->spt);
+        hd->max_multiple_block = 16;
+        hd->vendor             = "SyQuest";
+        hd->model              = dt->model;
+        hd->version            = dt->revision;
+
+        if (!ide_ata_removable_attach(rdisk_drives[c].ide_channel, slot))
+            rdisk_log(dev->log, "IDE channel %i absent or taken\n", rdisk_drives[c].ide_channel);
     } else if (rdisk_drives[c].bus_type == RDISK_BUS_LPT) {
         /*
          * Parallel-port drive, reached through a bridge such as the Shuttle
@@ -5299,6 +5333,7 @@ rdisk_hard_reset(void)
 {
     for (uint8_t c = 0; c < RDISK_NUM; c++) {
         if ((rdisk_drives[c].bus_type == RDISK_BUS_ATAPI) ||
+            (rdisk_drives[c].bus_type == RDISK_BUS_IDE)   ||
             (rdisk_drives[c].bus_type == RDISK_BUS_SCSI)  ||
             (rdisk_drives[c].bus_type == RDISK_BUS_LPT)) {
 
@@ -5315,8 +5350,15 @@ rdisk_hard_reset(void)
                     continue;
             }
 
-            /* Make sure to ignore any ATAPI RDISK drive that has an out of range IDE channel. */
-            if ((rdisk_drives[c].bus_type == RDISK_BUS_ATAPI) && (rdisk_drives[c].ide_channel >= IDE_DRIVES_MAX))
+            /* Only a drive type with a native ATA interface can be on the IDE bus. */
+            if ((rdisk_drives[c].bus_type == RDISK_BUS_IDE) &&
+                ((rdisk_drives[c].type >= KNOWN_RDISK_DRIVE_TYPES) ||
+                 !rdisk_drive_type_supports_bus(rdisk_drive_types[rdisk_drives[c].type].drive_type, RDISK_BUS_IDE)))
+                continue;
+
+            /* Make sure to ignore any ATAPI or IDE RDISK drive that has an out of range IDE channel. */
+            if (((rdisk_drives[c].bus_type == RDISK_BUS_ATAPI) || (rdisk_drives[c].bus_type == RDISK_BUS_IDE)) &&
+                (rdisk_drives[c].ide_channel >= IDE_DRIVES_MAX))
                 continue;
 
             rdisk_drive_reset(c);
@@ -5338,11 +5380,19 @@ rdisk_hard_reset(void)
 
             rdisk_mode_sense_load(dev);
 
+            /* A cartridge in the drive at power on is no change. */
+            dev->ata_mc     = 0;
+            dev->ata_locked = 0;
+            dev->soft_wp    = 0;
+
             if (rdisk_drives[c].bus_type == RDISK_BUS_SCSI)
                 rdisk_log(dev->log, "SCSI RDISK drive %i attached to SCSI ID %i\n",
                         c, rdisk_drives[c].scsi_device_id);
             else if (rdisk_drives[c].bus_type == RDISK_BUS_ATAPI)
                 rdisk_log(dev->log, "ATAPI RDISK drive %i attached to IDE channel %i\n",
+                        c, rdisk_drives[c].ide_channel);
+            else if (rdisk_drives[c].bus_type == RDISK_BUS_IDE)
+                rdisk_log(dev->log, "ATA RDISK drive %i attached to IDE channel %i\n",
                         c, rdisk_drives[c].ide_channel);
             else if (rdisk_drives[c].bus_type == RDISK_BUS_LPT)
                 rdisk_log(dev->log, "LPT RDISK drive %i attached to LPT port %i\n",
@@ -5366,6 +5416,156 @@ rdisk_hard_reset(void)
             }
         }
     }
+}
+
+/*
+ * Sector I/O and media state of an ATA cartridge drive, for hdd_image.c and
+ * the IDE code. slot is the drive number (the hard disk slot minus HDD_NUM).
+ */
+static rdisk_t *
+rdisk_ata_dev(const int slot)
+{
+    rdisk_t *dev;
+
+    if ((slot < 0) || (slot >= RDISK_NUM) || (rdisk_drives[slot].bus_type != RDISK_BUS_IDE))
+        return NULL;
+
+    dev = (rdisk_t *) rdisk_drives[slot].priv;
+    return ((dev == NULL) || (dev->drv == NULL)) ? NULL : dev;
+}
+
+static int
+rdisk_ata_seek(const rdisk_t *dev, const uint32_t sector, const uint32_t count)
+{
+    if ((dev == NULL) || (dev->drv->fp == NULL) || (count > dev->drv->medium_size) ||
+        (sector > (dev->drv->medium_size - count)))
+        return -1;
+
+    return fseeko64(dev->drv->fp, ((uint64_t) sector << 9) + dev->drv->base, SEEK_SET);
+}
+
+int
+rdisk_ata_read(const int slot, const uint32_t sector, const uint32_t count, uint8_t *buffer)
+{
+    const rdisk_t *dev = rdisk_ata_dev(slot);
+
+    if ((rdisk_ata_seek(dev, sector, count) == -1) ||
+        (fread(buffer, 512, count, dev->drv->fp) != count))
+        return -1;
+
+    return 0;
+}
+
+int
+rdisk_ata_write(const int slot, const uint32_t sector, const uint32_t count, const uint8_t *buffer)
+{
+    const rdisk_t *dev = rdisk_ata_dev(slot);
+
+    if ((dev == NULL) || dev->drv->read_only || dev->soft_wp ||
+        (rdisk_ata_seek(dev, sector, count) == -1) || (fwrite(buffer, 512, count, dev->drv->fp) != count))
+        return -1;
+
+    fflush(dev->drv->fp);
+    return 0;
+}
+
+int
+rdisk_ata_zero(const int slot, const uint32_t sector, const uint32_t count)
+{
+    static const uint8_t zero[512] = { 0 };
+    const rdisk_t       *dev       = rdisk_ata_dev(slot);
+
+    if ((dev == NULL) || dev->drv->read_only || dev->soft_wp ||
+        (rdisk_ata_seek(dev, sector, count) == -1))
+        return -1;
+
+    for (uint32_t i = 0; i < count; i++) {
+        if (fwrite(zero, 512, 1, dev->drv->fp) != 1)
+            return -1;
+    }
+
+    fflush(dev->drv->fp);
+    return 0;
+}
+
+uint32_t
+rdisk_ata_last_sector(const int slot)
+{
+    const rdisk_t *dev = rdisk_ata_dev(slot);
+
+    return ((dev == NULL) || (dev->drv->fp == NULL) || !dev->drv->medium_size) ? 0 :
+           (dev->drv->medium_size - 1);
+}
+
+int
+rdisk_ata_media_present(const int slot)
+{
+    const rdisk_t *dev = rdisk_ata_dev(slot);
+
+    return (dev != NULL) && (dev->drv->fp != NULL);
+}
+
+int
+rdisk_ata_write_protected(const int slot)
+{
+    const rdisk_t *dev = rdisk_ata_dev(slot);
+
+    return (dev != NULL) && (dev->drv->read_only || dev->soft_wp);
+}
+
+/*
+   SyQuest Write Protect Enable/Disable (C0h): Features 'P' sets the
+   cartridge's software write protection, 'E' clears it (SparQ Internal EIDE
+   Technical Reference, 1997, p. 6-72). The real drive keeps the setting on
+   the cartridge; here it lasts until the cartridge is changed. The EZ135
+   aborts the command: it has only the write protect tab.
+ */
+int
+rdisk_ata_soft_protect(const int slot, const uint8_t subcommand)
+{
+    rdisk_t *dev = rdisk_ata_dev(slot);
+
+    if ((dev == NULL) || (dev->drv->type != RDISK_TYPE_EZ230A) ||
+        ((subcommand != 'P') && (subcommand != 'E')))
+        return -1;
+
+    dev->soft_wp    = (subcommand == 'P');
+    return 0;
+}
+
+int
+rdisk_ata_take_media_change(const int slot)
+{
+    rdisk_t  *dev = rdisk_ata_dev(slot);
+    const int ret = (dev != NULL) && dev->ata_mc;
+
+    if (dev != NULL)
+        dev->ata_mc = 0;
+
+    return ret;
+}
+
+void
+rdisk_ata_lock(const int slot, const int lock)
+{
+    rdisk_t *dev = rdisk_ata_dev(slot);
+
+    if (dev != NULL)
+        dev->ata_locked = !!lock;
+}
+
+int
+rdisk_ata_eject(const int slot)
+{
+    const rdisk_t *dev = rdisk_ata_dev(slot);
+
+    if ((dev == NULL) || dev->ata_locked)
+        return -1;
+
+    if (dev->drv->fp != NULL)
+        rdisk_eject(dev->id);
+
+    return 0;
 }
 
 /*
