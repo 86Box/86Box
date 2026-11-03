@@ -837,7 +837,7 @@ debugger_cpu_info(debugger_cpu_info_t *info)
 
 /* FLAGS as an instruction would see them, without leaving the lazily
    evaluated flags rebuilt: the processor's state is put back as it was. */
-static uint16_t
+uint16_t
 debugger_flags(void)
 {
     int      op  = cpu_state.flags_op;
@@ -976,41 +976,4 @@ debugger_cpu_format(char *buf, int size)
         } else
             APPEND("MSW %04X\n", msw);
     }
-}
-
-int
-debugger_register(const char *name, uint32_t *val, uint32_t *seg_base)
-{
-    static const char *r32[8]  = { "eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi" };
-    static const char *r16[8]  = { "ax", "cx", "dx", "bx", "sp", "bp", "si", "di" };
-    static const char *segs[6] = { "cs", "ss", "ds", "es", "fs", "gs" };
-    const x86seg      *seg_regs[6] = { &cpu_state.seg_cs, &cpu_state.seg_ss, &cpu_state.seg_ds,
-                                       &cpu_state.seg_es, &cpu_state.seg_fs, &cpu_state.seg_gs };
-
-    for (int i = 0; i < 8; i++) {
-        if (is386 && !strcmp(name, r32[i])) {
-            *val = cpu_state.regs[i].l;
-            return 1;
-        }
-        if (!strcmp(name, r16[i])) {
-            *val = cpu_state.regs[i].w;
-            return 1;
-        }
-    }
-    if (!strcmp(name, "ip") || (is386 && !strcmp(name, "eip"))) {
-        *val = debugger_ip();
-        if (name[0] == 'i')
-            *val &= 0xffff;
-        return 1;
-    }
-    for (int i = 0; i < (is386 ? 6 : 4); i++) {
-        if (!strcmp(name, segs[i])) {
-            *val = seg_regs[i]->seg;
-            if (seg_base)
-                *seg_base = seg_regs[i]->base;
-            return 1;
-        }
-    }
-
-    return 0;
 }
