@@ -3919,10 +3919,10 @@ mach64_rp_texel(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_ma
 
 /*
  * The 2x2 filter's texels at u, v to u + 1, v + 1, as mach64_rp_texel gives
- * them, in the order 00, 10, 01, 11: for the 16 and 32-bit types the
+ * them, in the order 00, 10, 01, 11: for CI8 and the 16 and 32-bit types the
  * coordinates are wrapped, the type decoded and the key looked at once for
  * the four. A texel's index in the map is v * w + u, or tile_u[u] ^
- * tile_v[v] tiled.
+ * tile_v[v] tiled. A CI8 texel's key is of its palette index.
  */
 static inline void
 mach64_rp_texels_2x2(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_map_t *map, int u, int v, uint32_t *c, int *inh)
@@ -3937,7 +3937,7 @@ mach64_rp_texels_2x2(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_
     uint32_t                   idx[4];
     uint32_t                   raw[4] = { 0, 0, 0, 0 };
 
-    if ((tex->format != 3) && (tex->format != 4) && (tex->format != 6) && (tex->format != 15)) {
+    if ((tex->format != 2) && (tex->format != 3) && (tex->format != 4) && (tex->format != 6) && (tex->format != 15)) {
         c[0] = mach64_rp_texel(ctx, agp, map, u, v, &inh[0]);
         c[1] = mach64_rp_texel(ctx, agp, map, u + 1, v, &inh[1]);
         c[2] = mach64_rp_texel(ctx, agp, map, u, v + 1, &inh[2]);
@@ -3969,12 +3969,27 @@ mach64_rp_texels_2x2(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_
     } else if (bpp == 4) {
         for (int i = 0; i < 4; i++)
             raw[i] = mach64_3d_vram_read32(mach64, tex->base + idx[i] * 4);
-    } else {
+    } else if (bpp == 2) {
         for (int i = 0; i < 4; i++)
             raw[i] = mach64_3d_vram_read16(mach64, tex->base + idx[i] * 2);
+    } else {
+        for (int i = 0; i < 4; i++)
+            raw[i] = mach64_3d_vram_read8(mach64, tex->base + idx[i]);
     }
 
     switch (tex->format) {
+        case 2:
+            for (int i = 0; i < 4; i++) {
+                raw[i] = mach64_3d_texture_palette_texel_index(mach64->dp_pix_width, raw[i]);
+                c[i]   = 0xff000000 | (ctx->texture_palette[raw[i]] & 0x00ffffff);
+            }
+            if (!tex->key_fcn)
+                inh[0] = inh[1] = inh[2] = inh[3] = 0;
+            else {
+                for (int i = 0; i < 4; i++)
+                    inh[i] = mach64_3d_texel_key_inhibits(tex, raw[i]);
+            }
+            return;
         case 3:
             for (int i = 0; i < 4; i++)
                 c[i] = mach64_3d_argb1555(raw[i], tex->dynamic_range);
@@ -4296,18 +4311,35 @@ mach64_rp_lod(const mach64_rp_plane_t *ps, const mach64_rp_plane_t *pt, const ma
     return (rho2 > 0.0) ? (0.5 * log2(rho2)) : -1.0;
 }
 
+/*
+ * What a span function knows of its triangles besides tri, so that the
+ * compiler drops what they do not do. RPK_SIMPLE: no composite texture,
+ * specular light, destination compare or constant DP_SRC, and a 1555
+ * destination, or 565 with RPK_565; RPK_TEX textured, RPK_Z with Z. Without
+ * RPK_SIMPLE, all is read from tri.
+ */
+#define RPK_SIMPLE (1u << 0)
+#define RPK_TEX    (1u << 1)
+#define RPK_Z      (1u << 2)
+#define RPK_565    (1u << 3)
+
 /* A pixel of a triangle, through the whole pipeline, sampled at its centre. */
-static void
+__attribute__((always_inline)) static inline void
 mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t *dither, mach64_rp_agp_cache_t *agp, int x, int y,
-                uint32_t addr, uint32_t z_addr)
+                uint32_t addr, uint32_t z_addr, const unsigned k)
 {
-    mach64_t *mach64 = ctx->mach64;
-    double    fx     = x + 0.5;
-    double    fy     = y + 0.5;
+    mach64_t *mach64    = ctx->mach64;
+    const int simple    = !!(k & RPK_SIMPLE);
+    const int z_on      = simple ? !!(k & RPK_Z) : tri->z_on;
+    const int textured  = simple ? !!(k & RPK_TEX) : tri->textured;
+    const int composite = !simple && tri->composite;
+    const int format    = simple ? ((k & RPK_565) ? 4 : 3) : tri->dst.format;
+    double    fx        = x + 0.5;
+    double    fy        = y + 0.5;
     rgba_t    shade;
     rgba_t    src;
     rgba_t    dst;
-    int       tex_a  = 255;
+    int       tex_a = 255;
     int       inhibit;
     uint16_t  depth  = 0;
     int       spec_r = 0;
@@ -4320,7 +4352,7 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
     shade.b = mach64_rp_at8(&tri->pl[RPP_B], fx, fy);
     shade.a = mach64_rp_at8(&tri->pl[RPP_A], fx, fy);
 
-    if (tri->z_on) {
+    if (z_on) {
         double z = mach64_rp_at(&tri->pl[RPP_Z], fx, fy);
 
         depth = (z <= 0.0) ? 0 : ((z >= 65535.0) ? 65535 : (uint16_t) z);
@@ -4329,7 +4361,7 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
     }
 
     src = shade;
-    if (tri->textured) {
+    if (textured) {
         double   w    = mach64_rp_at(&tri->pl[RPP_W], fx, fy);
         double   rw   = (w != 0.0) ? (1.0 / w) : 1.0;
         double   s    = mach64_rp_at(&tri->pl[RPP_S], fx, fy) * rw;
@@ -4342,7 +4374,7 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
             return;
         texel = mach64_3d_argb_rgba(argb);
 
-        if (tri->composite) {
+        if (composite) {
             double   w2  = mach64_rp_at(&tri->pl[RPP_W2], fx, fy);
             double   rw2 = (w2 != 0.0) ? (1.0 / w2) : 1.0;
             double   s2  = mach64_rp_at(&tri->pl[RPP_S2], fx, fy) * rw2;
@@ -4386,7 +4418,7 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
                 texel.a = mask ? 255 : shade.a;
         }
 
-        if (tri->composite && (((tri->tex_cntl >> RP_COMP_COMBINE_SHIFT) & 3) >= 2))
+        if (composite && (((tri->tex_cntl >> RP_COMP_COMBINE_SHIFT) & 3) >= 2))
             src = texel;
         else {
             switch ((tri->cntl >> TEX_LIGHT_FCN) & 3) {
@@ -4407,7 +4439,7 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
         }
     }
 
-    if (tri->alpha_tst & RP_SPECULAR_LIGHT_EN) {
+    if (!simple && (tri->alpha_tst & RP_SPECULAR_LIGHT_EN)) {
         spec_r = mach64_rp_at8(&tri->pl[RPP_SR], fx, fy);
         spec_g = mach64_rp_at8(&tri->pl[RPP_SG], fx, fy);
         spec_b = mach64_rp_at8(&tri->pl[RPP_SB], fx, fy);
@@ -4435,8 +4467,8 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
     dst.r = dst.g = dst.b = 0;
     dst.a = 255;
     if ((tri->alpha_fog == ALPHA_FOG_BLEND) || (((tri->alpha_tst >> RP_ALPHA_DST_SHIFT) & 6) == 6)) {
-        dst = mach64_3d_read_dst(ctx, addr, tri->dst.format);
-        if (!mach64_rp_format_has_alpha(tri->dst.format))
+        dst = mach64_3d_read_dst(ctx, addr, format);
+        if (!mach64_rp_format_has_alpha(format))
             dst.a = 255;
     }
     if (tri->alpha_fog == ALPHA_FOG_BLEND) {
@@ -4447,18 +4479,18 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
     }
     src.a = mach64_rp_dst_alpha(tri->alpha_tst, src.a, dst.a);
 
-    if (tri->dst_compare &&
+    if (!simple && tri->dst_compare &&
         mach64_3d_destination_compare_inhibits(mach64->clr_cmp_cntl, mach64->clr_cmp_clr, mach64->clr_cmp_mask,
                                                mach64_3d_vram_read(mach64, addr, tri->dst.bpp), tri->dst_compare_mask))
         return;
 
-    if (tri->dp_constant)
-        mach64_3d_write_dst_raw(ctx, addr, tri->dst.format,
+    if (!simple && tri->dp_constant)
+        mach64_3d_write_dst_raw(ctx, addr, format,
                                 mach64_3d_dp_select_source(mach64->dp_src, mach64->dp_bkgd_clr, mach64->dp_frgd_clr,
-                                                           mach64_3d_pack(ctx, dither, tri->dst.format, src, x, y)));
+                                                           mach64_3d_pack(ctx, dither, format, src, x, y)));
     else
-        mach64_3d_write_dst(ctx, dither, addr, tri->dst.format, src, x, y);
-    if (tri->z_write)
+        mach64_3d_write_dst(ctx, dither, addr, format, src, x, y);
+    if (z_on && tri->z_write)
         mach64_3d_vram_write(mach64, z_addr, depth, 2);
 }
 
@@ -4479,23 +4511,70 @@ mach64_rp_div_ceil(int64_t n, int64_t d)
     return ((n % d) && (n > 0)) ? (q + 1) : q;
 }
 
-/* Every step-th span found, from the first-th on. */
+/* Every step-th span found, from the first-th on, knowing k of them. */
+__attribute__((always_inline)) static inline void
+mach64_rp_draw_spans_k(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, int first, int step, mach64_3d_dither_t *dither,
+                       mach64_rp_agp_cache_t *agp, const unsigned k)
+{
+    const int bpp  = (k & RPK_SIMPLE) ? 2 : tri->dst.bpp;
+    const int z_on = (k & RPK_SIMPLE) ? !!(k & RPK_Z) : tri->z_on;
+
+    for (int i = first; i < ctx->rp_nspans; i += step) {
+        const mach64_rp_span_t *sp     = &ctx->rp_spans[i];
+        uint32_t                addr   = tri->dst.base + (sp->y * tri->dst.pitch + sp->first) * bpp;
+        uint32_t                z_addr = z_on ? (tri->z_base + (sp->y * tri->z_pitch + sp->first) * 2) : 0;
+
+        for (int x = sp->first; x <= sp->last; x++) {
+            mach64_rp_pixel(ctx, tri, dither, agp, x, sp->y, addr, z_addr, k);
+            addr += bpp;
+            if (z_on)
+                z_addr += 2;
+        }
+    }
+}
+
+typedef void (*mach64_rp_spans_fn)(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, int first, int step, mach64_3d_dither_t *dither,
+                                   mach64_rp_agp_cache_t *agp);
+
+#define MACH64_RP_SPANS(k)                                                                                  \
+    static void mach64_rp_draw_spans_##k(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, int first, int step, \
+                                         mach64_3d_dither_t *dither, mach64_rp_agp_cache_t *agp)            \
+    {                                                                                                       \
+        mach64_rp_draw_spans_k(ctx, tri, first, step, dither, agp, k);                                      \
+    }
+MACH64_RP_SPANS(0)
+MACH64_RP_SPANS(1)
+MACH64_RP_SPANS(3)
+MACH64_RP_SPANS(5)
+MACH64_RP_SPANS(7)
+MACH64_RP_SPANS(9)
+MACH64_RP_SPANS(11)
+MACH64_RP_SPANS(13)
+MACH64_RP_SPANS(15)
+
+/* By RPK_* bits; without RPK_SIMPLE, the one for any triangle. */
+static const mach64_rp_spans_fn mach64_rp_spans_fns[16] = {
+    mach64_rp_draw_spans_0, mach64_rp_draw_spans_1,  mach64_rp_draw_spans_0, mach64_rp_draw_spans_3,
+    mach64_rp_draw_spans_0, mach64_rp_draw_spans_5,  mach64_rp_draw_spans_0, mach64_rp_draw_spans_7,
+    mach64_rp_draw_spans_0, mach64_rp_draw_spans_9,  mach64_rp_draw_spans_0, mach64_rp_draw_spans_11,
+    mach64_rp_draw_spans_0, mach64_rp_draw_spans_13, mach64_rp_draw_spans_0, mach64_rp_draw_spans_15,
+};
+
+/* The RPK_* bits that hold for a triangle. */
+static unsigned
+mach64_rp_known(const mach64_rp_tri_t *tri)
+{
+    if (tri->composite || tri->dst_compare || tri->dp_constant || (tri->alpha_tst & RP_SPECULAR_LIGHT_EN) ||
+        ((tri->dst.format != 3) && (tri->dst.format != 4)))
+        return 0;
+    return RPK_SIMPLE | (tri->textured ? RPK_TEX : 0) | (tri->z_on ? RPK_Z : 0) | ((tri->dst.format == 4) ? RPK_565 : 0);
+}
+
 static void
 mach64_rp_draw_spans(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, int first, int step, mach64_3d_dither_t *dither,
                      mach64_rp_agp_cache_t *agp)
 {
-    for (int i = first; i < ctx->rp_nspans; i += step) {
-        const mach64_rp_span_t *sp     = &ctx->rp_spans[i];
-        uint32_t                addr   = tri->dst.base + (sp->y * tri->dst.pitch + sp->first) * tri->dst.bpp;
-        uint32_t                z_addr = tri->z_on ? (tri->z_base + (sp->y * tri->z_pitch + sp->first) * 2) : 0;
-
-        for (int x = sp->first; x <= sp->last; x++) {
-            mach64_rp_pixel(ctx, tri, dither, agp, x, sp->y, addr, z_addr);
-            addr += tri->dst.bpp;
-            if (tri->z_on)
-                z_addr += 2;
-        }
-    }
+    mach64_rp_spans_fns[mach64_rp_known(tri)](ctx, tri, first, step, dither, agp);
 }
 
 /*
