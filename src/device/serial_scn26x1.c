@@ -146,10 +146,8 @@ typedef struct scn26x1_t {
 
     const double *rates; /* Table 1 row set: B or C */
 
-    /* Whatever is on the other side of the port; NULL when nothing is attached. */
-    const serial_backend_t *be;
-    /* Storage for `be`; owned by this chip, so it goes away with the chip. */
-    serial_backend_store_t be_store;
+    /* The chip's end of the seam; it owns the backend storage. */
+    serial_endpoint_t ep;
 
     uint32_t modem;     /* modem lines driven by an in-machine device */
     uint8_t  modem_set; /* set once a device drives them */
@@ -231,13 +229,13 @@ scn26x1_update_backend(scn26x1_t *dev)
 {
     int parity = 0;
 
-    if ((dev->be == NULL) || (dev->be->set_format == NULL))
+    if ((dev->ep.be == NULL) || (dev->ep.be->set_format == NULL))
         return;
 
     if (dev->mr1 & SCN_MR1_PAREN)
         parity = (dev->mr1 & 0x20) ? CHAR_COM_PARITY_EVEN : CHAR_COM_PARITY_ODD;
 
-    dev->be->set_format(dev->be->priv, (int) (scn26x1_baud(dev) + 0.5),
+    dev->ep.be->set_format(dev->ep.be->priv, (int) (scn26x1_baud(dev) + 0.5),
                         SCN_MR1_LEN(dev->mr1) + 5, parity,
                         (SCN_MR1_STOP(dev->mr1) >= 0x02) ? 2 : 1);
 }
@@ -248,13 +246,13 @@ scn26x1_update_lines(scn26x1_t *dev)
 {
     uint32_t flags = 0;
 
-    if ((dev->be == NULL) || (dev->be->control == NULL))
+    if ((dev->ep.be == NULL) || (dev->ep.be->control == NULL))
         return;
 
     /* Local loopback holds DTR, RTS and TxD in their inactive state and only
        wires the transmitter into the receiver. */
     if (SCN_CR_MODE(dev->cr) == SCN_MODE_LOCAL) {
-        dev->be->control(dev->be->priv, 0);
+        dev->ep.be->control(dev->ep.be->priv, 0);
         return;
     }
 
@@ -265,17 +263,15 @@ scn26x1_update_lines(scn26x1_t *dev)
     if (dev->cr & SCN_CR_BREAK)
         flags |= CHAR_COM_BREAK;
 
-    dev->be->control(dev->be->priv, flags);
+    dev->ep.be->control(dev->ep.be->priv, flags);
 }
 
-/* ---- host side: the port's chardev, or NULL when it is released --------- */
-
+/* Called by the seam after a backend is installed or released: push the
+   character format and line state at whatever is on the other side now. */
 static void
-scn26x1_set_host_backend(void *priv, char_port_t *port)
+scn26x1_backend_changed(void *priv)
 {
     scn26x1_t *dev = (scn26x1_t *) priv;
-
-    dev->be = (port != NULL) ? serial_backend_from_chardev(port, &dev->be_store) : NULL;
 
     scn26x1_update_backend(dev);
     scn26x1_update_lines(dev);
@@ -345,17 +341,6 @@ static const serial_port_ops_t scn26x1_chip_ops = {
 };
 
 static void
-scn26x1_set_device_backend(void *priv, serial_device_t *sd)
-{
-    scn26x1_t *dev = (scn26x1_t *) priv;
-
-    dev->be = serial_backend_from_device(NULL, sd, &dev->be_store);
-
-    scn26x1_update_backend(dev);
-    scn26x1_update_lines(dev);
-}
-
-static void
 scn26x1_update_irq(scn26x1_t *dev)
 {
     int level;
@@ -385,8 +370,8 @@ scn26x1_input_state(scn26x1_t *dev, uint32_t line)
     if (dev->modem_set)
         return (dev->modem & line) ? 1 : 0;
 
-    if ((dev->be != NULL) && (dev->be->status != NULL))
-        return (dev->be->status(dev->be->priv) & line) ? 1 : 0;
+    if ((dev->ep.be != NULL) && (dev->ep.be->status != NULL))
+        return (dev->ep.be->status(dev->ep.be->priv) & line) ? 1 : 0;
 
     return 0;
 }
@@ -407,7 +392,7 @@ scn26x1_receiver_on(scn26x1_t *dev)
     /* With nothing driving DCD the input is treated as asserted, the same
        way an unwired CTS does not stop the transmitter: a board that does
        not model modem lines must not silently disable its receiver. */
-    if (!dev->modem_set && ((dev->be == NULL) || (dev->be->status == NULL)))
+    if (!dev->modem_set && ((dev->ep.be == NULL) || (dev->ep.be->status == NULL)))
         return 1;
 
     /* The stored state is the pin level: 0 means DCD is low, i.e. asserted. */
@@ -422,7 +407,7 @@ scn26x1_cts_on(scn26x1_t *dev)
     if (SCN_CR_MODE(dev->cr) == SCN_MODE_LOCAL)
         return (dev->cr & SCN_CR_RTS) ? 1 : 0;
 
-    if (dev->modem_set || ((dev->be != NULL) && (dev->be->status != NULL)))
+    if (dev->modem_set || ((dev->ep.be != NULL) && (dev->ep.be->status != NULL)))
         return scn26x1_input_state(dev, CHAR_COM_CTS);
 
     return 1;
@@ -470,10 +455,10 @@ scn26x1_rx_try_read(scn26x1_t *dev)
     if (dev->rx_full || !scn26x1_receiver_on(dev))
         return 0;
 
-    if ((dev->be == NULL) || (dev->be->read_byte == NULL))
+    if ((dev->ep.be == NULL) || (dev->ep.be->read_byte == NULL))
         return 0;
 
-    byte = dev->be->read_byte(dev->be->priv);
+    byte = dev->ep.be->read_byte(dev->ep.be->priv);
     if (byte < 0)
         return 0;
 
@@ -491,8 +476,8 @@ scn26x1_rx_poll(void *priv)
 
     /* With nothing driving the modem inputs from the device side, they follow the
        backend; a closed input floats high, which leaves the status bits clear. */
-    if (!dev->modem_set && (dev->be != NULL) && (dev->be->status != NULL)) {
-        uint32_t status = dev->be->status(dev->be->priv);
+    if (!dev->modem_set && (dev->ep.be != NULL) && (dev->ep.be->status != NULL)) {
+        uint32_t status = dev->ep.be->status(dev->ep.be->priv);
 
         scn26x1_set_input_dsr(dev, (status & CHAR_COM_DSR) ? 0 : 1);
         scn26x1_set_input_dcd(dev, (status & CHAR_COM_DCD) ? 0 : 1);
@@ -546,8 +531,8 @@ scn26x1_tx_start(scn26x1_t *dev)
 
     scn26x1_log("SCN26X1: Tx %02X\n", dev->tsr);
 
-    if ((dev->be != NULL) && (dev->be->write_byte != NULL))
-        dev->be->write_byte(dev->be->priv, dev->tsr);
+    if ((dev->ep.be != NULL) && (dev->ep.be->write_byte != NULL))
+        dev->ep.be->write_byte(dev->ep.be->priv, dev->tsr);
 
     timer_on_auto(&dev->timer, scn26x1_frame_bits(dev) * scn26x1_bit_time(dev));
 }
@@ -732,6 +717,13 @@ scn26x1_set_input_dcd(scn26x1_t *dev, int state)
     }
 }
 
+/* The board's handle on the chip's end of the seam. */
+serial_endpoint_t *
+scn26x1_endpoint(void *priv)
+{
+    return (priv != NULL) ? &((scn26x1_t *) priv)->ep : NULL;
+}
+
 /* Bind the interrupt output to a PIC line; 0 disconnects it. */
 void
 scn26x1_set_irq(void *priv, int irq_mask)
@@ -809,12 +801,11 @@ scn26x1_init(const device_t *info)
     /* The chip decodes no address of its own: the board registers the four ports and
        passes A1:A0 through, the same as the 8251. The port table drives the chardev
        or the in-machine device; the chip has no serial_t to register either. */
-    if ((port >= 0) && (port < SERIAL_MAX) && com_ports[port].enabled) {
-        com_ports[port].chip               = dev;
-        com_ports[port].ops                = &scn26x1_chip_ops;
-        com_ports[port].set_host_backend   = scn26x1_set_host_backend;
-        com_ports[port].set_device_backend = scn26x1_set_device_backend;
-    }
+    serial_endpoint_init(&dev->ep, dev, &scn26x1_chip_ops);
+    dev->ep.on_attach = scn26x1_backend_changed;
+
+    if ((port >= 0) && (port < SERIAL_MAX) && com_ports[port].enabled)
+        com_ports[port].ep = &dev->ep;
 
     return dev;
 }
@@ -833,14 +824,10 @@ scn26x1_close(void *priv)
     if (dev->irq_mask != 0)
         picintc(dev->irq_mask);
 
-    dev->be = NULL;
+    dev->ep.be = NULL;
 
-    if ((dev->port >= 0) && (dev->port < SERIAL_MAX) && (com_ports[dev->port].chip == dev)) {
-        com_ports[dev->port].chip               = NULL;
-        com_ports[dev->port].ops                = NULL;
-        com_ports[dev->port].set_host_backend   = NULL;
-        com_ports[dev->port].set_device_backend = NULL;
-    }
+    if ((dev->port >= 0) && (dev->port < SERIAL_MAX) && (com_ports[dev->port].ep == &dev->ep))
+        com_ports[dev->port].ep = NULL;
 
     free(dev);
 }
