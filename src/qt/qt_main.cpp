@@ -43,6 +43,9 @@
 Q_IMPORT_PLUGIN(QICOPlugin)
 #    ifdef Q_OS_WINDOWS
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
+#        ifdef USE_AUTOMATION
+Q_IMPORT_PLUGIN(QOffscreenIntegrationPlugin)
+#        endif
 #        if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
 /* Qt 6.7 renamed the windowsvista style plugin */
 Q_IMPORT_PLUGIN(QModernWindowsStylePlugin)
