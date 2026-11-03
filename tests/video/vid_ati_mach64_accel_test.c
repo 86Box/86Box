@@ -546,6 +546,7 @@ overlay_tests(void)
         const char *name;
     } cards[] = {
         { MACH64_VT2, "VT2" },
+        { MACH64_GT, "3D Rage" },
         { MACH64_GTB, "GT-B" }
     };
     static const uint32_t pairs[OVERLAY_W] = { 0x100000, 0x100000, 0x200000, 0x200000, 0x300000, 0x300000, 0x400000, 0x400000 };

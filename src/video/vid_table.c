@@ -173,6 +173,8 @@ video_cards[] = {
     { .device = &voodoo_3_1000_device,                          .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &voodoo_3_2000_device,                          .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &voodoo_3_3000_device,                          .flags = VIDEO_FLAG_TYPE_SEC       },
+    { .device = &mach64gt_device, .flags = VIDEO_FLAG_TYPE_SEC },
+    { .device = &mach64rage2_device, .flags = VIDEO_FLAG_TYPE_SEC },
     { .device = &mach64gtb_device,                              .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &mach32_pci_device,                             .flags = VIDEO_FLAG_TYPE_8514      },
     { .device = &mach64gx_pci_device,                           .flags = VIDEO_FLAG_TYPE_SEC       },
