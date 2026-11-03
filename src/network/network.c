@@ -110,6 +110,7 @@ static const NETWORK_CARD net_cards[] = {
     /* ISA16 */
     { &pcnet_am79c960_device      },
     { &pcnet_am79c961_device      },
+    { &pcnet_am79c961a_device     },
     { &de220p_device              },
     { &ne2000_compat_device       },
     { &pcnet_am79c960_eb_device   },
@@ -131,6 +132,11 @@ static const NETWORK_CARD net_cards[] = {
     /* PCI */
     { &pcnet_am79c973_device      },
     { &pcnet_am79c970a_device     },
+    { &pcnet_am79c970_device      },
+    { &pcnet_am79c971_device      },
+    { &pcnet_am79c972_device      },
+    { &pcnet_am79c975_device      },
+    { &pcnet_am79c974_device      },
     { &dec_tulip_21040_device     },
     { &dec_tulip_21140_device     },
     { &dec_tulip_device           },
