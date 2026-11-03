@@ -126,7 +126,6 @@ QVector<VMManagerSystem *>
 VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
 {
     Q_UNUSED(parent);
-    unsigned int found = 0;
     QElapsedTimer scanTimer;
     scanTimer.start();
     QVector<VMManagerSystem *> system_configs;
@@ -151,8 +150,6 @@ VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
     QElapsedTimer timer;
     timer.start();
     while (dir_iterator.hasNext()) {
-        found++;
-
         QString filename = dir_iterator.next();
         QString root_cfg;
         if ((search_directory[search_directory.size() - 1] == '/') || (search_directory[search_directory.size() - 1] == '\\'))
@@ -171,12 +168,9 @@ VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
     //     system_configs.append(new VMManagerSystem(hit));
     // }
 
-    unsigned int appended = 0;
-    for (const auto &filename : matches) {
+    for (const auto &filename : matches)
         system_configs.append(new VMManagerSystem(filename));
-        appended++;
 
-    }
     if (matches.size()) {
         auto elapsed = timer.elapsed();
         qDebug() << "Load loop took" << elapsed << "ms for" << matches.size() << "loads";
