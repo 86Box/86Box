@@ -3703,7 +3703,8 @@ typedef struct mach64_rp_texture_t {
     mach64_rp_map_t maps[11];
     int             bilinear_mag;
     int             blend_fcn; /* TEX_BLEND_FCN, or the composite's 2 or 0 */
-    double          lod_bias;  /* log2 of the threshold stride */
+    double          lod_bias;  /* log2 of the threshold stride (the composite) */
+    int             bias16;    /* the LOD bias field, sixteenths of a level (the primary) */
     int             lod_used;  /* there are levels, or the filters differ */
 } mach64_rp_texture_t;
 
@@ -3842,7 +3843,8 @@ mach64_rp_texture_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
     }
     tx->bilinear_mag = !!(cntl & BILINEAR_TEX_EN);
     tx->blend_fcn    = (cntl >> TEX_BLEND_FCN) & 3;
-    tx->lod_bias     = log2(1.0 + bias / 16.0);
+    tx->lod_bias     = 0.0;
+    tx->bias16       = bias;
     tx->lod_used     = (tx->levels > 1) || (tx->bilinear_mag != (tx->blend_fcn >= 2));
     return 1;
 }
@@ -3895,6 +3897,7 @@ mach64_rp_composite_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
     tx->bilinear_mag = !!(tex_cntl & RP_COMP_FILTER_BILIN);
     tx->blend_fcn    = (tex_cntl & RP_COMP_BLEND_BILINEAR) ? 2 : 0;
     tx->lod_bias     = 0.0;
+    tx->bias16       = 0;
     tx->lod_used     = (tx->levels > 1) || (tx->bilinear_mag != (tx->blend_fcn >= 2));
     return 1;
 }
@@ -4241,6 +4244,110 @@ mach64_rp_sample(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_t
     }
 }
 
+/*
+ * The primary texture at s, t, with the level named by the triangle's
+ * LOG_MAX_INC less the LOD bias plus -log2 of the pixel's W, in 16.16 log2
+ * of texels per pixel: lmi.
+ *
+ * Measured on a Rage Pro (3DCIF 4.11.2692, mip chain registered): a single
+ * level filter shows the level above the value, ceil(lmi / 65536), where
+ * the 4 bits at 15:12 are a bit of the mantissa's top three, so any
+ * fraction at all steps to the next map. A filter that blends levels shows
+ * floor(lmi / 65536) blended toward the next by nibble / 16 (a weight of
+ * 16 nibble in 256, the one weight every gray ramp of the card's output
+ * agrees with). Nothing is minified at lmi <= 0.
+ */
+static uint32_t
+mach64_rp_sample_lmi(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_texture_t *tx, double s, double t, int32_t lmi,
+                     int *inhibits)
+{
+    int      top = tx->levels - 1;
+    int      last;
+    int      level;
+    unsigned nibble;
+    unsigned frac;
+    int      ia;
+    int      ib;
+    uint32_t a;
+    uint32_t b;
+
+    if ((lmi <= 0) || !top)
+        return mach64_rp_sample_map(ctx, agp, &tx->maps[0], (lmi <= 0) ? tx->bilinear_mag : (tx->blend_fcn >= 2), s, t, inhibits);
+
+    /* A filter that is bilinear within a map stops two maps short of the
+       smallest: the card shows the 4x4 map of a 256 texture however far
+       the triangle shrinks it (measured for the filters 1, 2, 5 and 6 of
+       ATI3DCIF), where the point-sampled and blending ones reach the 1x1. */
+    last   = ((tx->blend_fcn >= 2) && (top >= 2)) ? (top - 2) : top;
+    level  = lmi >> 16;
+    nibble = (lmi >> 12) & 15;
+    switch (tx->blend_fcn) {
+        case 1:
+        case 3:
+            if (level >= last)
+                return mach64_rp_sample_map(ctx, agp, &tx->maps[last], tx->blend_fcn == 3, s, t, inhibits);
+            frac = nibble * 16;
+            a    = mach64_rp_sample_map(ctx, agp, &tx->maps[level], tx->blend_fcn == 3, s, t, &ia);
+            b    = mach64_rp_sample_map(ctx, agp, &tx->maps[level + 1], tx->blend_fcn == 3, s, t, &ib);
+            *inhibits = (frac >= 128) ? ib : ia;
+            return mach64_3d_lerp_texel(a, b, frac);
+        default:
+            if (lmi & 0xffff)
+                level++;
+            if (level > last)
+                level = last;
+            return mach64_rp_sample_map(ctx, agp, &tx->maps[level], tx->blend_fcn == 2, s, t, inhibits);
+    }
+}
+
+/*
+ * LOG_MAX_INC from the largest texel step across the triangle, texels of the
+ * largest map per pixel: the exponent in 23:16 and in 15:12 a nibble of the
+ * mantissa's top three bits j, 2 j + 1, or 0 for j = 0 (measured: the
+ * register reads exactly that for steps of 1 + k/64 times a power of two).
+ */
+static int32_t
+mach64_rp_log_max_inc(double step)
+{
+    int    e;
+    double m;
+    int    j;
+
+    if (!(step > 0.0) || !isfinite(step))
+        return -(128 << 16);
+    m = frexp(step, &e);
+    e--;
+    j = (int) floor(8.0 * (2.0 * m - 1.0));
+    if (j > 7)
+        j = 7;
+    if (e < -128)
+        return -(128 << 16);
+    if (e > 127)
+        e = 127;
+    return (int32_t) (e * 65536 + (j ? (2 * j + 1) : 0) * 4096);
+}
+
+/*
+ * -log2(w) of a positive W, 16.16, as the chip takes it per pixel: the
+ * exponent and, in 15:12, a nibble for the top three bits of the mantissa.
+ * The nibbles are measured, with the LOD bias as the probe: they are the
+ * ones where the level of a constant-W triangle drops (W 0.5 to 1 in sixteenths
+ * of an octave). They follow log2, where LOG_MAX_INC's follow 2 j + 1.
+ */
+static inline int32_t
+mach64_rp_w_term(double w)
+{
+    static const int8_t nibble[8] = { 0, 2, 5, 7, 9, 11, 13, 14 };
+    int                 e;
+    int                 j;
+    double              m = frexp(w * (1.0 + 1e-9), &e);
+
+    j = (int) floor(8.0 * (2.0 * m - 1.0));
+    if (j > 7)
+        j = 7;
+    return -((e - 1) * 65536 + nibble[j] * 4096);
+}
+
 /* A plane: value at the origin and its X and Y gradients. */
 typedef struct mach64_rp_plane_t {
     double c, dx, dy;
@@ -4378,6 +4485,7 @@ struct mach64_rp_tri_t {
     mach64_rp_plane_t   pl[RPP_COUNT];
     mach64_rp_texture_t tex;
     mach64_rp_texture_t tex2;
+    int32_t             lmi; /* LOG_MAX_INC: log2 of the largest texel step, 16.16 */
 };
 
 /* The plane through the three values a0, a1, a2 at the vertices, from the
@@ -4487,8 +4595,9 @@ mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t
         double   rw   = (w != 0.0) ? (1.0 / w) : 1.0;
         double   s    = mach64_rp_at(&tri->pl[RPP_S], fx, fy) * rw;
         double   t    = mach64_rp_at(&tri->pl[RPP_T], fx, fy) * rw;
-        double   lod  = tri->tex.lod_used ? mach64_rp_lod(&tri->pl[RPP_S], &tri->pl[RPP_T], &tri->pl[RPP_W], s, t, rw, &tri->tex.maps[0]) : 0.0;
-        uint32_t argb = mach64_rp_sample(ctx, agp, &tri->tex, s, t, lod, &inhibit);
+        int32_t  lmi  = tri->lmi - 4096 * tri->tex.bias16 + ((w > 0.0) ? mach64_rp_w_term(w) : 0);
+        uint32_t argb = tri->tex.lod_used ? mach64_rp_sample_lmi(ctx, agp, &tri->tex, s, t, lmi, &inhibit) :
+                                            mach64_rp_sample(ctx, agp, &tri->tex, s, t, 0.0, &inhibit);
         rgba_t   texel;
 
         if (inhibit)
@@ -4930,6 +5039,51 @@ mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
     }
     for (int p = 0; p < RPP_COUNT; p++)
         mach64_rp_plane(&tri.pl[p], vx, vy, a[p][0], a[p][1], a[p][2], ooa);
+
+    /* LOG_MAX_INC: the steepest of the four gradients of the texture
+       coordinates U = S / W and V = T / W across the screen, in texels of the
+       largest map, times the largest W of the vertices. */
+    tri.lmi = 0;
+    if (tri.textured) {
+        mach64_rp_plane_t pu;
+        mach64_rp_plane_t pv;
+        double            wmax = 0.0;
+        double            step;
+        double            rcp = ooa;
+
+        for (int i = 0; i < 3; i++) {
+            double w = a[RPP_W][i];
+
+            wmax = (w > wmax) ? w : wmax;
+        }
+        if (wmax <= 0.0)
+            wmax = 1.0;
+        {
+            double u[3];
+            double v[3];
+
+            for (int i = 0; i < 3; i++) {
+                u[i] = (a[RPP_W][i] != 0.0) ? (a[RPP_S][i] / a[RPP_W][i]) : 0.0;
+                v[i] = (a[RPP_W][i] != 0.0) ? (a[RPP_T][i] / a[RPP_W][i]) : 0.0;
+            }
+            /* Inferred approximation: the card's gradients seem to come from a
+               reciprocal a little below the true one. A triangle whose step is
+               exactly a power of two reads just under it, which moves
+               LOG_MAX_INC down a nibble (0x2f000 for a step of 8), and the
+               driver's own 1/area is rounded either way, so the one above is
+               taken a step down. The mechanism and the precision of the card's
+               reciprocal are not identified (any precision from 5 to 24
+               mantissa bits fits the readings), and two power-of-two vectors
+               are still not reproduced (known divergences in the tests). */
+            if (fabs(rcp * (cross / 16.0)) > 1.0)
+                rcp = (double) nextafterf((float) rcp, 0.0f);
+            mach64_rp_plane(&pu, vx, vy, u[0], u[1], u[2], rcp);
+            mach64_rp_plane(&pv, vx, vy, v[0], v[1], v[2], rcp);
+        }
+        step = fmax(fmax(fabs(pu.dx), fabs(pu.dy)) * tri.tex.maps[0].w, fmax(fabs(pv.dx), fabs(pv.dy)) * tri.tex.maps[0].h) * wmax;
+        tri.lmi = mach64_rp_log_max_inc(step);
+        ctx->regs[RP_LOG_MAX_INC >> 2] = ((uint32_t) (tri.lmi >> 16) & 0xff) << 16 | (((uint32_t) tri.lmi >> 12) & 15) << 12;
+    }
 
     /* Edges as functions of quarter-pixel coordinates, positive inside. */
     for (int e = 0; e < 3; e++) {

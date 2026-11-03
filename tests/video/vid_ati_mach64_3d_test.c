@@ -1724,6 +1724,135 @@ ragepro_dither_tests(void)
     card_close(m);
 }
 
+
+/*
+ * Rage Pro mip level selection, against a real card.
+ *
+ * The vectors (vid_ati_mach64_mip_vectors.h) are triangles drawn by a
+ * 256 x 256 RGB565 mip-mapped texture (9 levels, a solid color per level, or
+ * a gray ramp where the filter blends levels) through ATI3DCIF 4.11.2692 (mip-disable bug
+ * patched) on a PCI Rage Pro 1002:4750, with the LOG_MAX_INC the card
+ * reported after each and the pixels it drew at four points inside. The
+ * level the card shows is ceil of LOG_MAX_INC less the LOD bias plus the
+ * pixel's -log2 W, LOG_MAX_INC being the steepest screen gradient of the
+ * texture coordinates times the largest W of the triangle: see
+ * mach64_rp_log_max_inc, mach64_rp_w_term and mach64_rp_sample_lmi.
+ *
+ * The 1/area is the driver's float. The card's LOG_MAX_INC for a triangle whose
+ * step is a power of two falls a hair short of it; the model takes the 1/area
+ * a step down when it is above the true one, which reproduces all but two of the
+ * vectors the generator was given (those are left out: see gen_mip_vectors.py).
+ */
+#include "vid_ati_mach64_mip_vectors.h"
+
+#define MIP_TEX_BASE 0x100000u
+
+static unsigned
+mip_filter_scale_3d_cntl(int filter)
+{
+    /* what the driver wrote for each TMAP_FILTER (the card's SCALE_3D_CNTL) */
+    static const unsigned cntl[7] = { 0x0001008bu, 0x0a01008bu, 0x0a01008bu, 0x0401008bu, 0x0601008bu, 0x0e01008bu, 0x0801008bu };
+
+    return cntl[filter];
+}
+
+static void
+mip_vertex_value(mach64_t *m, int reg, double v)
+{
+    float    f = (float) v;
+    uint32_t raw;
+
+    memcpy(&raw, &f, 4);
+    mach64_3d_setup_write(m, reg, raw);
+}
+
+static void
+ragepro_mip_tests(void)
+{
+    static const uint16_t colour[9] = { 0xf800, 0x07e0, 0x001f, 0xffe0, 0x07ff, 0xf81f, 0xffff, 0xfc00, 0x8410 };
+    mach64_t             *m   = card_create();
+    mach64_3d_t          *ctx = m->gt3d;
+    int                   bad_pixels = 0;
+    int                   bad_lmi    = 0;
+    int                   shown      = 0;
+
+    m->ragepro = 1;
+    /* level k of each texture: tex 0 at MIP_TEX_BASE, tex 1 a MiB above */
+    for (int tex = 0; tex < 2; tex++) {
+        uint32_t base = MIP_TEX_BASE + (uint32_t) tex * 0x100000u;
+
+        for (int k = 0; k < 9; k++) {
+            unsigned side  = 256u >> k;
+            unsigned gray  = 3u * (unsigned) k + 1;
+            unsigned value = tex ? ((gray << 11) | ((gray << 1) << 5) | gray) : colour[k];
+
+            ctx->regs[(TEX_0_OFF + (8 - k) * 4) >> 2] = base;
+            for (unsigned i = 0; i < side * side; i++) {
+                m->svga.vram[base + i * 2]     = value & 0xff;
+                m->svga.vram[base + i * 2 + 1] = value >> 8;
+            }
+            base += side * side * 2;
+        }
+    }
+    for (unsigned i = 0; i < sizeof(mip_vectors) / sizeof(mip_vectors[0]); i++) {
+        const struct mip_vector *v    = &mip_vectors[i];
+        uint32_t                 base = MIP_TEX_BASE + (uint32_t) v->tex * 0x100000u;
+        double                   area = (v->x[0] - v->x[2]) * (v->y[1] - v->y[2]) - (v->y[0] - v->y[2]) * (v->x[1] - v->x[2]);
+        float                    ooa  = (float) (1.0 / area);
+        uint32_t                 raw;
+
+        memset(m->svga.vram, 0, (size_t) DITHER_W * DITHER_H * 2);
+        m->dp_pix_width  = (4u << 28) | 3;
+        m->dp_src        = 0x00000500u;
+        m->dp_mix        = 0x00070007u;
+        m->write_mask    = 0xffffffffu;
+        m->dst_off_pitch = (DITHER_W / 8) << 22;
+        m->sc_left_right = (DITHER_W - 1) << 16;
+        m->sc_top_bottom = (DITHER_H - 1) << 16;
+        m->clr_cmp_cntl  = 0;
+        ctx->setup_cntl  = 0;
+        ctx->regs[Z_CNTL >> 2]        = 0;
+        ctx->regs[SCALE_3D_CNTL >> 2] = mip_filter_scale_3d_cntl(v->filter);
+        ctx->regs[TEX_SIZE_PITCH >> 2] = 0x888;
+        ctx->regs[RP_TEX_CNTL >> 2]    = (v->filter == 5 ? 0x40000880u : 0x40000080u) | (unsigned) v->bias;
+        for (int k = 0, off = 0; k < 9; k++) {
+            ctx->regs[(TEX_0_OFF + (8 - k) * 4) >> 2] = base + (uint32_t) off;
+            off += (int) (((256u >> k) * (256u >> k)) * 2);
+        }
+        for (int n = 0; n < 3; n++) {
+            uint32_t xy4 = ((uint32_t) (int) (v->x[n] * 4.0) << 16) | ((uint32_t) (int) (v->y[n] * 4.0) & 0xffffu);
+
+            mach64_3d_setup_write(m, 0x90 + n * 8 + 5, 0xffffffffu);
+            mach64_3d_setup_write(m, 0x90 + n * 8 + 6, xy4);
+            mip_vertex_value(m, 0xab + 3 * n, v->u[n]);
+            mip_vertex_value(m, 0xab + 3 * n + 1, v->v[n]);
+            mip_vertex_value(m, 0xab + 3 * n + 2, v->w[n]);
+        }
+        memcpy(&raw, &ooa, 4);
+        mach64_3d_setup_write(m, 0x90 + 7, raw);
+
+        if (v->has_lmi && (ctx->regs[RP_LOG_MAX_INC >> 2] & 0xfff000u) != v->lmi) {
+            bad_lmi++;
+            if (shown++ < 40)
+                fprintf(stderr, "mip %c vector %u: LOG_MAX_INC %06x, the card's %06x\n", v->test, i,
+                        ctx->regs[RP_LOG_MAX_INC >> 2] & 0xfff000u, v->lmi);
+        }
+        for (int p = 0; p < v->nprobe; p++) {
+            unsigned got = dither_pixel(m, v->probe[p].x, v->probe[p].y);
+
+            if (got != v->probe[p].pixel555) {
+                bad_pixels++;
+                if (shown++ < 40)
+                    fprintf(stderr, "mip %c vector %u (%d,%d): pixel %04x, the card's %04x\n", v->test, i, v->probe[p].x,
+                            v->probe[p].y, got, v->probe[p].pixel555);
+            }
+        }
+    }
+    expect_int("mip pixels differing from a real Rage Pro", bad_pixels, 0);
+    expect_int("mip LOG_MAX_INC differing from a real Rage Pro", bad_lmi, 0);
+    card_close(m);
+}
+
 /*
  * Draw commands through the registers: trapezoids, lines and the state they
  * leave. The legacy registers they share with the draw engine are set
@@ -3223,6 +3352,11 @@ main(int argc, char **argv)
         printf("Mach64 VQ: %d failed checks\n", failures);
         return failures ? 1 : 0;
     }
+    if (argc == 2 && !strcmp(argv[1], "--mip")) {
+        ragepro_mip_tests();
+        printf("Mach64 mip: %d failed checks\n", failures);
+        return failures ? 1 : 0;
+    }
     if (argc == 2 && !strcmp(argv[1], "--dither")) {
         ragepro_dither_tests();
         printf("Mach64 dither: %d failed checks\n", failures);
@@ -3257,6 +3391,7 @@ main(int argc, char **argv)
     ragepro_vq_tests();
     ragepro_vq_real_card_tests();
     ragepro_dither_tests();
+    ragepro_mip_tests();
 
     if (failures) {
         fprintf(stderr, "Mach64 3D engine: %d checks failed\n", failures);
