@@ -1161,52 +1161,6 @@ pcnetTdtePoll(nic_t *dev, TMD *tmd)
 }
 
 /**
- * Poll Transmit Descriptor Table Entry
- * @return true if transmit descriptors available
- */
-static int
-pcnetCalcPacketLen(nic_t *dev, int cb)
-{
-    TMD      tmd;
-    int      cbPacket   = cb;
-    uint32_t iDesc      = CSR_XMTRC(dev);
-    uint32_t iFirstDesc = iDesc;
-
-    do {
-        /* Advance the ring counter */
-        if (iDesc < 2)
-            iDesc = CSR_XMTRL(dev);
-        else
-            iDesc--;
-
-        if (iDesc == iFirstDesc)
-            break;
-
-        uint32_t addrDesc = pcnetTdraAddr(dev, iDesc);
-
-        if (!pcnetTmdLoad(dev, &tmd, PHYSADDR(dev, addrDesc), 1)) {
-            /*
-             * No need to count further since this packet won't be sent anyway
-             * due to underflow.
-             */
-            pcnet_log(3, "%s: pcnetCalcPacketLen: underflow, return %u\n", dev->name, cbPacket);
-            return cbPacket;
-        }
-        if (tmd.tmd1.ones != 15) {
-            pcnet_log(1, "%s: BAD TMD XDA=%#010x\n",
-                      dev->name, PHYSADDR(dev, addrDesc));
-            pcnet_log(3, "%s: pcnetCalcPacketLen: bad TMD, return %u\n", dev->name, cbPacket);
-            return cbPacket;
-        }
-        pcnet_log(3, "%s: pcnetCalcPacketLen: got valid TMD, cb=%u\n", dev->name, 4096 - tmd.tmd1.bcnt);
-        cbPacket += 4096 - tmd.tmd1.bcnt;
-    } while (!tmd.tmd1.enp);
-
-    pcnet_log(3, "#%d pcnetCalcPacketLen: return %u\n", dev->name, cbPacket);
-    return cbPacket;
-}
-
-/**
  * Write data into guest receive buffers.
  */
 static int
@@ -1577,7 +1531,11 @@ pcnetAsyncTransmit(nic_t *dev)
              * we could reliably do that on SMP guests.
              */
             unsigned cb   = 4096 - tmd.tmd1.bcnt;
-            dev->xmit_pos = pcnetCalcPacketLen(dev, cb);
+            /* The next buffers are appended after this one. xmit_pos was the whole
+               frame's length (pcnetCalcPacketLen()), so each later buffer landed past a gap of
+               stale bytes: every frame a driver built from several buffers (NetWare's ODI
+               drivers do: 86Box issue 5602) went out mangled and too long. */
+            dev->xmit_pos = cb;
             dma_bm_read(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf, cb, dev->transfer_size);
 
             for (;;) {
