@@ -1079,22 +1079,34 @@ cmi8x38_dma_process(void *priv)
             cmi8x38_log("CMI8x38: Starting DMA %d at %08X (count %04X fragment %04X)\n", dma->id, dma->sample_ptr, dma->frame_count_dma, dma->frame_count_fragment);
         }
 
-        if (dma_status & 0x01) {
-            /* Write channel: read data from FIFO. */
-            mem_writel_phys(dma->sample_ptr, AS_U32(dma->fifo[dma->fifo_end & (sizeof(dma->fifo) - 1)]));
-        } else {
-            /* Read channel: write data to FIFO. */
-            AS_U32(dma->fifo[dma->fifo_end & (sizeof(dma->fifo) - 1)]) = mem_readl_phys(dma->sample_ptr);
-        }
-        dma->fifo_end += 4;
-        dma->sample_ptr += 4;
-
         /* The counts are in sample frames (the drivers program the buffer's
            bytes shifted right once for 16-bit and once for stereo), so a
            longword holds 4 of them for 8-bit mono, 2 for 8-bit stereo or
-           16-bit mono, and 1 for 16-bit stereo and multi-channel. */
-        const uint8_t fmt    = (dev->io_regs[0x08] >> (dma->id << 1)) & 0x03;
-        const int     frames = 4 >> ((fmt & 0x01) + (fmt >> 1));
+           16-bit mono, and 1 for 16-bit stereo and multi-channel. The buffer
+           need not be a whole number of longwords (ALSA hands out 22050-frame
+           buffers for 8-bit mono at 44100 Hz), so the last longword may only
+           be partly in it: take only the frames left, or the bytes past the
+           end would be played (or recorded over) before the wrap. */
+        const uint8_t fmt   = (dev->io_regs[0x08] >> (dma->id << 1)) & 0x03;
+        const int     shift = (fmt & 0x01) + (fmt >> 1);
+        int           frames = 4 >> shift;
+        if (frames > dma->frame_count_dma)
+            frames = dma->frame_count_dma;
+        const int bytes = frames << shift;
+
+        /* A partial longword leaves the FIFO pointers unaligned, so move it a byte at a time. */
+        if (dma_status & 0x01) {
+            /* Write channel: read data from FIFO. */
+            for (int i = 0; i < bytes; i++)
+                mem_writeb_phys(dma->sample_ptr + i, dma->fifo[(dma->fifo_end + i) & (sizeof(dma->fifo) - 1)]);
+        } else {
+            /* Read channel: write data to FIFO. */
+            const uint32_t val = mem_readl_phys(dma->sample_ptr);
+            for (int i = 0; i < bytes; i++)
+                dma->fifo[(dma->fifo_end + i) & (sizeof(dma->fifo) - 1)] = val >> (i << 3);
+        }
+        dma->fifo_end += bytes;
+        dma->sample_ptr += bytes;
 
         /* Check if the fragment size was reached. */
         dma->frame_count_fragment -= frames;
@@ -1134,6 +1146,16 @@ cmi8x38_dma_process(void *priv)
             dma->restart = 1;
         }
     }
+}
+
+/* Byte at a time, as the FIFO pointers aren't aligned after a partial longword. */
+static int16_t
+cmi8x38_fifo_read16(cmi8x38_dma_t *dma)
+{
+    const uint8_t lo = dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)];
+    const uint8_t hi = dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)];
+
+    return (int16_t) (lo | (hi << 8));
 }
 
 static void
@@ -1188,8 +1210,7 @@ cmi8x38_poll(void *priv)
 
         case 0x02: /* Mono, 16-bit PCM */
             if ((dma->fifo_end - dma->fifo_pos) >= 2) {
-                *out_l = *out_r = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-                dma->fifo_pos += 2;
+                *out_l = *out_r = cmi8x38_fifo_read16(dma);
                 dma->sample_count_out -= 2;
                 goto n4spk3d;
             }
@@ -1199,10 +1220,8 @@ cmi8x38_poll(void *priv)
             switch (dma->channels) {
                 case 2:
                     if ((dma->fifo_end - dma->fifo_pos) >= 4) {
-                        *out_l = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-                        dma->fifo_pos += 2;
-                        *out_r = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-                        dma->fifo_pos += 2;
+                        *out_l = cmi8x38_fifo_read16(dma);
+                        *out_r = cmi8x38_fifo_read16(dma);
                         dma->sample_count_out -= 4;
                         goto n4spk3d;
                     }
@@ -1210,14 +1229,10 @@ cmi8x38_poll(void *priv)
 
                 case 4:
                     if ((dma->fifo_end - dma->fifo_pos) >= 8) {
-                        dma->out_fl = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-                        dma->fifo_pos += 2;
-                        dma->out_fr = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-                        dma->fifo_pos += 2;
-                        dma->out_rl = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-                        dma->fifo_pos += 2;
-                        dma->out_rr = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-                        dma->fifo_pos += 2;
+                        dma->out_fl = cmi8x38_fifo_read16(dma);
+                        dma->out_fr = cmi8x38_fifo_read16(dma);
+                        dma->out_rl = cmi8x38_fifo_read16(dma);
+                        dma->out_rr = cmi8x38_fifo_read16(dma);
                         dma->sample_count_out -= 8;
                         return;
                     }
@@ -1225,16 +1240,11 @@ cmi8x38_poll(void *priv)
 
                 case 5: /* not supported by WDM and Linux drivers; channel layout assumed */
                     if ((dma->fifo_end - dma->fifo_pos) >= 10) {
-                        dma->out_fl = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-                        dma->fifo_pos += 2;
-                        dma->out_fr = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-                        dma->fifo_pos += 2;
-                        dma->out_rl = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-                        dma->fifo_pos += 2;
-                        dma->out_rr = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-                        dma->fifo_pos += 2;
-                        dma->out_c = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-                        dma->fifo_pos += 2;
+                        dma->out_fl = cmi8x38_fifo_read16(dma);
+                        dma->out_fr = cmi8x38_fifo_read16(dma);
+                        dma->out_rl = cmi8x38_fifo_read16(dma);
+                        dma->out_rr = cmi8x38_fifo_read16(dma);
+                        dma->out_c = cmi8x38_fifo_read16(dma);
                         dma->sample_count_out -= 10;
                         return;
                     }
@@ -1242,18 +1252,12 @@ cmi8x38_poll(void *priv)
 
                 case 6:
                     if ((dma->fifo_end - dma->fifo_pos) >= 12) {
-                        dma->out_fl = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-                        dma->fifo_pos += 2;
-                        dma->out_fr = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-                        dma->fifo_pos += 2;
-                        dma->out_rl = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-                        dma->fifo_pos += 2;
-                        dma->out_rr = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-                        dma->fifo_pos += 2;
-                        dma->out_c = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-                        dma->fifo_pos += 2;
-                        dma->out_lfe = AS_U16(dma->fifo[dma->fifo_pos & (sizeof(dma->fifo) - 1)]);
-                        dma->fifo_pos += 2;
+                        dma->out_fl = cmi8x38_fifo_read16(dma);
+                        dma->out_fr = cmi8x38_fifo_read16(dma);
+                        dma->out_rl = cmi8x38_fifo_read16(dma);
+                        dma->out_rr = cmi8x38_fifo_read16(dma);
+                        dma->out_c = cmi8x38_fifo_read16(dma);
+                        dma->out_lfe = cmi8x38_fifo_read16(dma);
                         dma->sample_count_out -= 12;
                         return;
                     }
