@@ -710,11 +710,7 @@ typedef struct rdisk_t {
     uint8_t            id;
     uint8_t            cur_lun;
     uint8_t            pad0;
-    uint8_t            prevent;    /* PREVENT MEDIUM REMOVAL is in effect. */
-    uint8_t            floptical_unlocked; /* A Floptical has had its MODE SENSE of page 2E since power-up. */
-    uint8_t            protect_mode;    /* Zip and Jaz protection mode, see rdisk_set_protection(). */
-    uint8_t            protect_password_len;
-    uint8_t            protect_password[32];
+    uint8_t            pad1;
 
     uint16_t           max_transfer_len;
     uint16_t           pad2;
@@ -736,6 +732,14 @@ typedef struct rdisk_t {
     double             callback;
 
     uint8_t            (*ven_cmd)(void *sc, uint8_t *cdb, int32_t *BufLen);
+
+    /* Everything above mirrors scsi_common_t, which the IDE and parallel port code see the drive as: new fields go
+       below. */
+    uint8_t            prevent;    /* PREVENT MEDIUM REMOVAL is in effect. */
+    uint8_t            floptical_unlocked; /* A Floptical has had its MODE SENSE of page 2E since power-up. */
+    uint8_t            protect_mode;    /* Zip and Jaz protection mode, see rdisk_set_protection(). */
+    uint8_t            protect_password_len;
+    uint8_t            protect_password[32];
 } rdisk_t;
 
 extern rdisk_t      *rdisk[RDISK_NUM];
