@@ -123,6 +123,59 @@ typedef struct serial_device_s {
 /* UART state (NS8250 family)                                               */
 /* ------------------------------------------------------------------------ */
 
+/* ------------------------------------------------------------------------ */
+/* Device side interface: what an in-machine device can do to the chip      */
+/* ------------------------------------------------------------------------ */
+
+typedef struct serial_port_ops_s {
+    int  (*can_receive)(void *chip);                     /* room for one more byte? */
+    void (*receive)(void *chip, uint8_t byte);           /* queue a byte for the guest */
+    void (*set_line)(void *chip, uint32_t line, int on); /* CTS/DSR/RI/DCD or DTR/RTS */
+    int  (*get_line)(void *chip, uint32_t line);
+} serial_port_ops_t;
+
+/* ------------------------------------------------------------------------ */
+/* The seam                                                                  */
+/* ------------------------------------------------------------------------ */
+
+/* One end of the connection between a chip and whatever sits on the other
+   side of its port. A chip owns this object, which means a chip can be wired
+   up with or without a COM port: com_ports[] points at one, and a board that
+   carries its own chip keeps the endpoint in the chip and talks to it
+   directly. */
+typedef struct serial_endpoint_s {
+    void                    *chip;  /* the chip's private state */
+    const serial_port_ops_t *ops;   /* how the device side reaches the chip */
+
+    /* Whatever is on the other side; NULL when nothing is attached. The store
+       belongs to this endpoint, so two chips on one port index cannot
+       overwrite each other's adapter. */
+    const serial_backend_t *be;
+    serial_backend_store_t  store;
+
+    /* Callbacks handed in by an in-machine device. */
+    serial_device_t         dev;
+
+    /* The chip's serial_t when it has one, NULL for chips without (i8251). */
+    struct serial_s        *serial;
+
+    /* Called after a backend is installed or released, so the chip can push
+       its character format and line state at the new side. */
+    void (*on_attach)(void *chip);
+} serial_endpoint_t;
+
+extern void serial_endpoint_init(serial_endpoint_t *ep, void *chip, const serial_port_ops_t *ops);
+extern void serial_endpoint_attach_device(serial_endpoint_t *ep, const serial_device_t *sd);
+extern void serial_endpoint_attach_chardev(serial_endpoint_t *ep, char_port_t *port);
+extern void serial_endpoint_detach(serial_endpoint_t *ep);
+
+/* Device side: what an in-machine device can do to a chip, with or without a
+   COM port. serial_port_*() below are the same calls through a port entry. */
+extern int  serial_endpoint_can_receive(serial_endpoint_t *ep);
+extern void serial_endpoint_receive(serial_endpoint_t *ep, uint8_t byte);
+extern void serial_endpoint_set_line(serial_endpoint_t *ep, uint32_t line, int on);
+extern int  serial_endpoint_get_line(serial_endpoint_t *ep, uint32_t line);
+
 typedef struct serial_s {
     uint8_t lsr;
     uint8_t thr;
@@ -169,24 +222,13 @@ typedef struct serial_s {
     double     clock_src;
     double     transmit_period;
 
-    struct serial_device_s *sd;
-    /* Whatever is on the other side of the port; NULL when nothing is attached. */
-    const serial_backend_t *be;
-    /* Storage for `be`; owned by this chip, so it goes away with the chip. */
-    serial_backend_store_t  be_store;
+    /* The chip's end of the seam: backend, device callbacks and the ops the
+       device side reaches this chip through. Owned by the chip, so it goes
+       away with it. */
+    serial_endpoint_t ep;
 
 } serial_t;
 
-/* ------------------------------------------------------------------------ */
-/* Device side interface: what an in-machine device can do to the chip      */
-/* ------------------------------------------------------------------------ */
-
-typedef struct serial_port_ops_s {
-    void (*receive)(void *chip, uint8_t byte);           /* queue a byte for the guest */
-    int  (*can_receive)(void *chip);                     /* room for one more byte? */
-    void (*set_line)(void *chip, uint32_t line, int on); /* CTS/DSR/RI/DCD or DTR/RTS */
-    int  (*get_line)(void *chip, uint32_t line);
-} serial_port_ops_t;
 
 /* ------------------------------------------------------------------------ */
 /* Port table (host side policy)                                            */
@@ -197,13 +239,10 @@ typedef struct ser_port_s {
     uint8_t hotunplug;
     int     device;
 
-    /* Set by every chip that owns this port: the host layer uses them to hand
-       the chip a freshly initialised chardev or device backend, or NULL when
-       the port is released, and to reach the device side interface. */
-    void  *chip;
-    void (*set_host_backend)(void *chip, char_port_t *port);
-    void (*set_device_backend)(void *chip, struct serial_device_s *sd);
-    const serial_port_ops_t *ops;
+    /* The chip's end of the seam, set by the chip when it takes this port and
+       cleared when it goes away. The host layer hands a chardev or a device
+       backend to it, or releases it with NULL. */
+    serial_endpoint_t *ep;
 
     /* The host-side backend lives with the port, not with the chip. */
     char_port_t char_port;
@@ -281,6 +320,18 @@ extern void      i8251_set_irq(void *priv, int irq_mask);
 extern void      i8251_set_clock(void *priv, double hz);
 
 /* ------------------------------------------------------------------------ */
+/* Signetics SCN2661                                                        */
+/* ------------------------------------------------------------------------ */
+
+/* The chip's end of the seam, for a board that carries the part itself and
+   wants to hand it a backend without taking a COM port. */
+extern serial_endpoint_t *scn26x1_endpoint(void *priv);
+
+extern uint8_t   scn26x1_read(uint16_t addr, void *priv);
+extern void      scn26x1_write(uint16_t addr, uint8_t val, void *priv);
+extern void      scn26x1_set_irq(void *priv, int irq_mask);
+
+/* ------------------------------------------------------------------------ */
 /* Device declarations                                                      */
 /* ------------------------------------------------------------------------ */
 
@@ -292,5 +343,7 @@ extern const device_t ns16650_device;
 extern const device_t ns16750_device;
 extern const device_t ns16850_device;
 extern const device_t ns16950_device;
+extern const device_t scn2661b_device;
+extern const device_t scn2661c_device;
 
 #endif /*EMU_SERIAL_H*/

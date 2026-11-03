@@ -12,6 +12,12 @@
  *          using it. No UART register, timing or interrupt logic
  *          belongs here.
  *
+ *          The seam itself lives next to it: a serial_endpoint_t is the
+ *          chip's end of the connection, and everything that hands a chip
+ *          a backend goes through it. A COM port is a table entry pointing
+ *          at an endpoint; a board that carries its own chip keeps the
+ *          endpoint and never touches com_ports[].
+ *
  * Authors: WNT50
  *
  *          Copyright 2026 WNT50.
@@ -29,32 +35,118 @@
 #include <86box/serial.h>
 
 ser_port_t com_ports[SERIAL_MAX] = { 0 };
+/* A device can claim a COM port before the chip is plugged into it; park its
+   callbacks here until the chip shows up. Only COM ports need this: a board
+   that carries its own chip already holds the endpoint. */
+static serial_device_t pending[SERIAL_MAX];
 
-static serial_device_t serial_devices[SERIAL_MAX];
+/* ---- the seam ---------------------------------------------------------- */
 
-/* Hand the chip its callback slot and, if a device already asked for this
-   port before the chip existed, build the backend now. Both sides call
-   this, so the order of attach and chip init no longer matters. */
+void
+serial_endpoint_init(serial_endpoint_t *ep, void *chip, const serial_port_ops_t *ops)
+{
+    memset(ep, 0, sizeof(*ep));
+
+    ep->chip = chip;
+    ep->ops  = ops;
+}
+
+void
+serial_endpoint_attach_device(serial_endpoint_t *ep, const serial_device_t *sd)
+{
+    if ((ep == NULL) || (sd == NULL))
+        return;
+
+    ep->dev = *sd;
+    ep->be  = serial_backend_from_device(ep->serial, &ep->dev, &ep->store);
+
+    if (ep->on_attach != NULL)
+        ep->on_attach(ep->chip);
+}
+
+void
+serial_endpoint_attach_chardev(serial_endpoint_t *ep, char_port_t *port)
+{
+    if (ep == NULL)
+        return;
+
+    ep->be = (port != NULL) ? serial_backend_from_chardev(port, &ep->store) : NULL;
+
+    if (ep->on_attach != NULL)
+        ep->on_attach(ep->chip);
+}
+
+void
+serial_endpoint_detach(serial_endpoint_t *ep)
+{
+    if (ep == NULL)
+        return;
+
+    ep->be = NULL;
+    memset(&ep->dev, 0, sizeof(ep->dev));
+
+    if (ep->on_attach != NULL)
+        ep->on_attach(ep->chip);
+}
+
+/* ---- device side: what an in-machine device can do to the chip ---------- */
+
+void
+serial_endpoint_receive(serial_endpoint_t *ep, uint8_t byte)
+{
+    if ((ep != NULL) && (ep->ops != NULL) && (ep->ops->receive != NULL))
+        ep->ops->receive(ep->chip, byte);
+}
+
+int
+serial_endpoint_can_receive(serial_endpoint_t *ep)
+{
+    if ((ep == NULL) || (ep->ops == NULL) || (ep->ops->can_receive == NULL))
+        return 0;
+
+    return ep->ops->can_receive(ep->chip);
+}
+
+void
+serial_endpoint_set_line(serial_endpoint_t *ep, uint32_t line, int on)
+{
+    if ((ep != NULL) && (ep->ops != NULL) && (ep->ops->set_line != NULL))
+        ep->ops->set_line(ep->chip, line, on);
+}
+
+int
+serial_endpoint_get_line(serial_endpoint_t *ep, uint32_t line)
+{
+    if ((ep == NULL) || (ep->ops == NULL) || (ep->ops->get_line == NULL))
+        return 0;
+
+    return ep->ops->get_line(ep->chip, line);
+}
+
+/* ---- COM ports: policy on top of the seam ------------------------------- */
+
+/* Hand the chip the device a COM port is waiting for, when the chip is there.
+   Both sides call this, so the order of attach and chip init does not
+   matter. */
 void
 serial_device_attach(int port)
 {
-    serial_device_t *sd;
+    ser_port_t *sp;
 
     if ((port < 0) || (port >= SERIAL_MAX))
         return;
 
-    sd = &serial_devices[port];
+    sp = &com_ports[port];
 
-    if (com_ports[port].serial != NULL)
-        com_ports[port].serial->sd = sd;
-
-    if ((sd->rcr_callback == NULL) && (sd->dev_write == NULL) &&
-        (sd->dtr_callback == NULL) && (sd->lcr_callback == NULL) &&
-        (sd->transmit_period_callback == NULL))
+    if (sp->ep == NULL)
         return;
 
-    if (com_ports[port].set_device_backend != NULL)
-        com_ports[port].set_device_backend(com_ports[port].chip, sd);
+    if ((pending[port].rcr_callback == NULL) && (pending[port].dev_write == NULL) &&
+        (pending[port].dtr_callback == NULL) && (pending[port].lcr_callback == NULL) &&
+        (pending[port].transmit_period_callback == NULL))
+        return;
+
+    serial_endpoint_attach_device(sp->ep, &pending[port]);
 }
 
 ser_port_t *
@@ -65,6 +157,9 @@ serial_attach_ex(int port,
                  void (*lcr_callback)(struct serial_s *serial, void *priv, uint8_t data_bits),
                  void *priv)
 {
+    if ((port < 0) || (port >= SERIAL_MAX))
+        return NULL;
+
     /* Make sure this port becomes non-hotunpluggable if a hotunpluggable dropdown
        device and a non-hotunpluggable external device are both trying to claim it. */
     uint8_t hotunplug         = com_ports[port].hotunplug;
@@ -72,17 +167,18 @@ serial_attach_ex(int port,
     if (hotunplug != CHAR_PORT_DETACHED)
         return NULL;
 
-    serial_device_t *sd = &serial_devices[port];
+    serial_device_t *sd = &pending[port];
 
-    sd->rcr_callback             = rcr_callback;
-    sd->dev_write                = dev_write;
     sd->transmit_period_callback = transmit_period_callback;
     sd->lcr_callback             = lcr_callback;
+    sd->rcr_callback             = rcr_callback;
+    sd->dtr_callback             = NULL;
     sd->priv                     = priv;
+    sd->dev_write                = dev_write;
 
     serial_device_attach(port);
 
-    return (com_ports[port].chip != NULL) ? &com_ports[port] : NULL;
+    return (com_ports[port].ep != NULL) ? &com_ports[port] : NULL;
 }
 
 ser_port_t *
@@ -92,6 +188,9 @@ serial_attach_ex_2(int port,
                    void (*dtr_callback)(struct serial_s *serial, int status, void *priv),
                    void *priv)
 {
+    if ((port < 0) || (port >= SERIAL_MAX))
+        return NULL;
+
     /* Make sure this port becomes non-hotunpluggable if a hotunpluggable dropdown
        device and a non-hotunpluggable external device are both trying to claim it. */
     uint8_t hotunplug         = com_ports[port].hotunplug;
@@ -99,7 +198,7 @@ serial_attach_ex_2(int port,
     if (hotunplug != CHAR_PORT_DETACHED)
         return NULL;
 
-    serial_device_t *sd = &serial_devices[port];
+    serial_device_t *sd = &pending[port];
 
     sd->rcr_callback             = rcr_callback;
     sd->dtr_callback             = dtr_callback;
@@ -110,7 +209,7 @@ serial_attach_ex_2(int port,
 
     serial_device_attach(port);
 
-    return (com_ports[port].chip != NULL) ? &com_ports[port] : NULL;
+    return (com_ports[port].ep != NULL) ? &com_ports[port] : NULL;
 }
 
 void
@@ -121,14 +220,14 @@ serial_devices_init(void)
         if (com_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG)
             continue;
 
-        memset(&(serial_devices[i]), 0, sizeof(serial_device_t));
+        memset(&(pending[i]), 0, sizeof(serial_device_t));
 
         com_ports[i].hotunplug = CHAR_PORT_DETACHED;
 
-        if (com_ports[i].set_host_backend == NULL)
+        if (com_ports[i].ep == NULL)
             continue;
 
-        com_ports[i].set_host_backend(com_ports[i].chip, NULL);
+        serial_endpoint_attach_chardev(com_ports[i].ep, NULL);
 
         memset(&com_ports[i].char_port, 0, sizeof(com_ports[i].char_port));
         if (com_ports[i].device) {
@@ -137,7 +236,7 @@ serial_devices_init(void)
             const device_t *device = char_get_device(com_ports[i].device);
             char_init(&com_ports[i].char_port, device, i + 1);
 
-            com_ports[i].set_host_backend(com_ports[i].chip, &com_ports[i].char_port);
+            serial_endpoint_attach_chardev(com_ports[i].ep, &com_ports[i].char_port);
 
             /* This port is hotunpluggable if the device allows it, unless further serial_attach attempts are made. */
             com_ports[i].hotunplug = (device->flags & DEVICE_HOTPLUG_OUT) ? CHAR_PORT_HOTUNPLUG : CHAR_PORT_NOHOTUNPLUG;
@@ -154,12 +253,12 @@ serial_devices_close(int hotplug)
             continue;
         com_ports[i].hotunplug = CHAR_PORT_DETACHED;
 
-        memset(&(serial_devices[i]), 0, sizeof(serial_device_t));
+        memset(&(pending[i]), 0, sizeof(serial_device_t));
 
-        if (com_ports[i].set_host_backend == NULL)
+        if (com_ports[i].ep == NULL)
             continue;
 
-        com_ports[i].set_host_backend(com_ports[i].chip, NULL);
+        serial_endpoint_detach(com_ports[i].ep);
         memset(&com_ports[i].char_port, 0, sizeof(char_port_t));
     }
 }
@@ -179,52 +278,40 @@ serial_devices_reset(void)
     serial_devices_init();
 }
 
-/* ---- device side: what an in-machine device can do to the chip ---------- */
+/* ---- port entry view of an endpoint ------------------------------------- */
 
 void
 serial_port_receive(ser_port_t *port, uint8_t byte)
 {
-    if ((port != NULL) && (port->ops != NULL) && (port->ops->receive != NULL))
-        port->ops->receive(port->chip, byte);
+    serial_endpoint_receive((port != NULL) ? port->ep : NULL, byte);
 }
 
 int
 serial_port_can_receive(ser_port_t *port)
 {
-    if ((port == NULL) || (port->ops == NULL) || (port->ops->can_receive == NULL))
-        return 0;
-
-    return port->ops->can_receive(port->chip);
+    return serial_endpoint_can_receive((port != NULL) ? port->ep : NULL);
 }
 
 void
 serial_port_set_line(ser_port_t *port, uint32_t line, int on)
 {
-    if ((port != NULL) && (port->ops != NULL) && (port->ops->set_line != NULL))
-        port->ops->set_line(port->chip, line, on);
+    serial_endpoint_set_line((port != NULL) ? port->ep : NULL, line, on);
 }
 
 int
 serial_port_get_line(ser_port_t *port, uint32_t line)
 {
-    if ((port == NULL) || (port->ops == NULL) || (port->ops->get_line == NULL))
-        return 0;
-
-    return port->ops->get_line(port->chip, line);
+    return serial_endpoint_get_line((port != NULL) ? port->ep : NULL, line);
 }
 
 void
 serial_port_detach(ser_port_t *port)
 {
-    int i;
-
-    if ((port == NULL) || (port->set_host_backend == NULL))
+    if ((port == NULL) || (port->ep == NULL))
         return;
 
-    i = (int) (port - com_ports);
-    if ((i < 0) || (i >= SERIAL_MAX))
-        return;
+    serial_endpoint_detach(port->ep);
 
-    port->set_host_backend(port->chip, NULL);
-    memset(&serial_devices[i], 0, sizeof(serial_device_t));
+    if ((port >= com_ports) && (port < (com_ports + SERIAL_MAX)))
+        memset(&pending[port - com_ports], 0, sizeof(serial_device_t));
 }

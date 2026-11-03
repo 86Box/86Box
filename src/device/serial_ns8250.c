@@ -92,8 +92,8 @@ serial_reset_port(serial_t *dev)
     serial_update_ints(dev);
     dev->irq_state = 0;
 
-    if ((dev->be != NULL) && (dev->be->control != NULL))
-        dev->be->control(dev->be->priv, (dev->mctrl & 0x03) | (dev->lcr & 0x40));
+    if ((dev->ep.be != NULL) && (dev->ep.be->control != NULL))
+        dev->ep.be->control(dev->ep.be->priv, (dev->mctrl & 0x03) | (dev->lcr & 0x40));
 }
 
 void
@@ -108,11 +108,11 @@ serial_transmit_period(serial_t *dev)
 
     /* Bit period based on DLAB. */
     dev->transmit_period = (16000000.0 * ddlab) / dev->clock_src;
-    if ((dev->be != NULL) && (dev->be->transmit_period != NULL))
-        dev->be->transmit_period(dev->be->priv, dev->transmit_period);
+    if ((dev->ep.be != NULL) && (dev->ep.be->transmit_period != NULL))
+        dev->ep.be->transmit_period(dev->ep.be->priv, dev->transmit_period);
 
-    if ((dev->be != NULL) && (dev->be->set_format != NULL))
-        dev->be->set_format(dev->be->priv, (int) (dev->clock_src / (16.0 * ddlab)),
+    if ((dev->ep.be != NULL) && (dev->ep.be->set_format != NULL))
+        dev->ep.be->set_format(dev->ep.be->priv, (int) (dev->clock_src / (16.0 * ddlab)),
                             (dev->lcr & 0x03) + 5, (dev->lcr >> 3) & 0x7, !!(dev->lcr & 0x04) + 1);
 }
 
@@ -203,8 +203,8 @@ serial_receive_timer(void *priv)
     /* Only read when the receive shift register is free: it still holds the
        previous byte until the code below moves it into the FIFO, so reading
        unconditionally can overwrite input that was never delivered. */
-    if ((dev->be != NULL) && (dev->be->read_byte != NULL) && (dev->out_new == 0xffff)) {
-        int val = dev->be->read_byte(dev->be->priv);
+    if ((dev->ep.be != NULL) && (dev->ep.be->read_byte != NULL) && (dev->out_new == 0xffff)) {
+        int val = dev->ep.be->read_byte(dev->ep.be->priv);
         if (val >= 0)
             serial_write_fifo(dev, (uint8_t) val);
     }
@@ -212,9 +212,9 @@ serial_receive_timer(void *priv)
     /* The modem status lines do not change thousands of times a second, and
        querying them is not free on every host. */
     dev->status_divider++;
-    if ((dev->be != NULL) && (dev->be->status != NULL) && !(dev->status_divider & 0x3f)) {
+    if ((dev->ep.be != NULL) && (dev->ep.be->status != NULL) && !(dev->status_divider & 0x3f)) {
         uint8_t prev_msr = dev->msr;
-        uint32_t flags = dev->be->status(dev->be->priv);
+        uint32_t flags = dev->ep.be->status(dev->ep.be->priv);
         uint8_t mask = CHAR_COM_CTS | CHAR_COM_DSR | CHAR_COM_RI | CHAR_COM_DCD;
         dev->msr = (dev->msr & ~mask) | (flags & mask);
         mask &= ~CHAR_COM_RI;
@@ -319,8 +319,8 @@ serial_transmit(serial_t *dev, uint8_t val)
 {
     if (dev->mctrl & 0x10)
         write_fifo(dev, val);
-    else if ((dev->be != NULL) && (dev->be->write_byte != NULL))
-        dev->be->write_byte(dev->be->priv, val);
+    else if ((dev->ep.be != NULL) && (dev->ep.be->write_byte != NULL))
+        dev->ep.be->write_byte(dev->ep.be->priv, val);
 }
 
 static void
@@ -683,28 +683,28 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                 serial_transmit_period(dev);
                 serial_update_speed(dev);
 
-                if ((dev->be != NULL) && (dev->be->set_lcr != NULL))
-                    dev->be->set_lcr(dev->be->priv, dev->lcr);
+                if ((dev->ep.be != NULL) && (dev->ep.be->set_lcr != NULL))
+                    dev->ep.be->set_lcr(dev->ep.be->priv, dev->lcr);
             }
             if (!(old & 0x40) && (val & 0x40) && (dev->mctrl & 0x10))
                 serial_receive_loopback_break(dev);
-            if (((old ^ val) & 0x40) && (dev->be != NULL) && (dev->be->control != NULL))
-                dev->be->control(dev->be->priv, (dev->mctrl & 0x03) | (val & 0x40));
+            if (((old ^ val) & 0x40) && (dev->ep.be != NULL) && (dev->ep.be->control != NULL))
+                dev->ep.be->control(dev->ep.be->priv, (dev->mctrl & 0x03) | (val & 0x40));
             break;
         case 4:
             old = dev->mctrl;
             if ((val & 2) && !(dev->mctrl & 2)) {
-                if ((dev->be != NULL) && (dev->be->rcr != NULL)) {
+                if ((dev->ep.be != NULL) && (dev->ep.be->rcr != NULL)) {
                     serial_log("RTS toggle callback\n");
-                    dev->be->rcr(dev->be->priv);
+                    dev->ep.be->rcr(dev->ep.be->priv);
                 }
             }
             if (!(val & 8) && (dev->mctrl & 8) && !dev->irq_direct)
                 serial_do_irq(dev, 0);
-            if ((dev->be != NULL) && (dev->be->dtr != NULL) && ((val ^ dev->mctrl) & 1))
-                dev->be->dtr(dev->be->priv, val & 1);
-            if (((dev->mctrl ^ val) & 0x03) && (dev->be != NULL) && (dev->be->control != NULL))
-                dev->be->control(dev->be->priv, (val & 0x03) | (dev->lcr & 0x40));
+            if ((dev->ep.be != NULL) && (dev->ep.be->dtr != NULL) && ((val ^ dev->mctrl) & 1))
+                dev->ep.be->dtr(dev->ep.be->priv, val & 1);
+            if (((dev->mctrl ^ val) & 0x03) && (dev->ep.be != NULL) && (dev->ep.be->control != NULL))
+                dev->ep.be->control(dev->ep.be->priv, (val & 0x03) | (dev->lcr & 0x40));
             dev->mctrl = val & 0x1f;
             if (val & 0x10) {
                 new_msr = (val & 0x0c) << 4;
@@ -1054,25 +1054,24 @@ static const serial_port_ops_t serial_chip_ops = {
     .receive     = serial_chip_receive
 };
 
+/* The seam calls this after a backend is installed or released; push the line
+   state at whatever is on the other side now. The storage stays in this chip. */
 static void
-serial_set_device_backend(void *priv, serial_device_t *sd)
+serial_backend_changed(void *priv)
 {
     serial_t *dev = (serial_t *) priv;
 
-    dev->be = serial_backend_from_device(dev, sd, &dev->be_store);
+    if ((dev->ep.be != NULL) && (dev->ep.be->control != NULL))
+        dev->ep.be->control(dev->ep.be->priv, (dev->mctrl & 0x03) | (dev->lcr & 0x40));
 }
 
-/* The host layer hands the port's chardev over, or NULL when it is released;
-   the backend storage stays in this chip. */
-static void
-serial_set_host_backend(void *priv, char_port_t *port)
+/* A device backend is attached when any of its callbacks is present. */
+static int
+serial_has_device(serial_t *dev)
 {
-    serial_t *dev = (serial_t *) priv;
-
-    dev->be = (port != NULL) ? serial_backend_from_chardev(port, &dev->be_store) : NULL;
-
-    if ((dev->be != NULL) && (dev->be->control != NULL))
-        dev->be->control(dev->be->priv, (dev->mctrl & 0x03) | (dev->lcr & 0x40));
+    return (dev->ep.dev.rcr_callback != NULL) || (dev->ep.dev.dev_write != NULL) ||
+           (dev->ep.dev.dtr_callback != NULL) || (dev->ep.dev.lcr_callback != NULL) ||
+           (dev->ep.dev.transmit_period_callback != NULL);
 }
 
 static void
@@ -1080,19 +1079,13 @@ serial_close(void *priv)
 {
     serial_t *dev = (serial_t *) priv;
 
-    if (dev->sd || com_ports[dev->inst].char_port.type) {
-        if (dev->sd)
-            memset(dev->sd, 0, sizeof(serial_device_t));
-        dev->be = NULL;
+    if (serial_has_device(dev) || com_ports[dev->inst].char_port.type) {
+        serial_endpoint_detach(&dev->ep);
         fifo_close(dev->rcvr_fifo);
     }
 
-    if ((dev->inst < SERIAL_MAX) && (com_ports[dev->inst].chip == dev)) {
-        com_ports[dev->inst].chip               = NULL;
-        com_ports[dev->inst].ops                = NULL;
-        com_ports[dev->inst].set_host_backend   = NULL;
-        com_ports[dev->inst].set_device_backend = NULL;
-    }
+    if ((dev->inst < SERIAL_MAX) && (com_ports[dev->inst].ep == &dev->ep))
+        com_ports[dev->inst].ep = NULL;
 
     /*
        Needed to avoid a segmentation fault at serial_devices_init() for any serial port
@@ -1108,7 +1101,7 @@ serial_reset(void *priv)
 {
     serial_t *dev = (serial_t *) priv;
 
-    if (dev->sd || com_ports[dev->inst].char_port.type) {
+    if (serial_has_device(dev) || com_ports[dev->inst].char_port.type) {
         timer_disable(&dev->transmit_timer);
         timer_disable(&dev->timeout_timer);
         timer_disable(&dev->receive_timer);
@@ -1152,12 +1145,13 @@ serial_init(const device_t *info)
         serial_log("Adding serial port %i...\n", next_inst);
         dev->type = info->local;
 
-        com_ports[next_inst].serial             = dev;
-        com_ports[next_inst].chip               = dev;
-        com_ports[next_inst].ops                = &serial_chip_ops;
-        com_ports[next_inst].hotunplug          = CHAR_PORT_DETACHED;
-        com_ports[next_inst].set_host_backend   = serial_set_host_backend;
-        com_ports[next_inst].set_device_backend = serial_set_device_backend;
+        serial_endpoint_init(&dev->ep, dev, &serial_chip_ops);
+        dev->ep.on_attach = serial_backend_changed;
+        dev->ep.serial    = dev;
+
+        com_ports[next_inst].serial    = dev;
+        com_ports[next_inst].ep        = &dev->ep;
+        com_ports[next_inst].hotunplug = CHAR_PORT_DETACHED;
 
         /* A device that asked for this port before the chip existed gets its
            backend built now. */
