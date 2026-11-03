@@ -72,20 +72,46 @@ ati18800_out(uint16_t addr, uint8_t val, void *priv)
             old                             = ati18800->regs[ati18800->index];
             ati18800->regs[ati18800->index] = val;
             switch (ati18800->index) {
+                case 0xa7:
+                    if ((old ^ val) & 0x80)
+                        svga_recalctimings(svga);
+                    break;
+                case 0xad:
+                    if ((old ^ val) & 0x0c)
+                        svga_recalctimings(svga);
+                    break;
                 case 0xb0:
-                    if ((old ^ val) & 6)
+                    if ((old ^ val) & 0xe0)
                         svga_recalctimings(svga);
                     break;
                 case 0xb2:
                 case 0xbe:
-                    if (ati18800->regs[0xbe] & 8) { /*Read/write bank mode*/
+                    if (ati18800->regs[0xbe] & 0x08) { /* Read/write bank mode */
                         svga->read_bank  = ((ati18800->regs[0xb2] & 0xe0) >> 5) * 0x10000;
                         svga->write_bank = ((ati18800->regs[0xb2] & 0x0e) >> 1) * 0x10000;
-                    } else /*Single bank mode*/
-                        svga->read_bank = svga->write_bank = ((ati18800->regs[0xb2] & 0x0e) >> 1) * 0x10000;
+                    } else { /* Single bank mode */
+                        svga->read_bank  = ((ati18800->regs[0xb2] & 0x0e) >> 1) * 0x10000;
+                        svga->write_bank = ((ati18800->regs[0xb2] & 0x0e) >> 1) * 0x10000;
+                    }
+                    if (ati18800->index == 0xbe) {
+                        if ((old ^ val) & 0x41)
+                            svga_recalctimings(svga);
+                    }
                     break;
                 case 0xb3:
                     ati_eeprom_write(&ati18800->eeprom, val & 8, val & 2, val & 1);
+                    break;
+                case 0xb6:
+                    if ((old ^ val) & 0x10)
+                        svga_recalctimings(svga);
+                    break;
+                case 0xb8:
+                    if ((old ^ val) & 0x40)
+                        svga_recalctimings(svga);
+                    break;
+                case 0xb9:
+                    if ((old ^ val) & 0x02)
+                        svga_recalctimings(svga);
                     break;
 
                 default:
@@ -139,9 +165,15 @@ ati18800_in(uint16_t addr, void *priv)
         case 0x1cf:
             switch (ati18800->index) {
                 case 0xb7:
-                    temp = ati18800->regs[ati18800->index] & ~8;
+                    temp = ati18800->regs[0xb7] & ~0x08;
                     if (ati_eeprom_read(&ati18800->eeprom))
-                        temp |= 8;
+                        temp |= 0x08;
+                    break;
+                case 0xbb:
+                    temp = ati18800->regs[0xbb];
+                    temp &= ~0x20;
+                    if (ati18800->memory == 512)
+                        temp |= 0x20;
                     break;
                 default:
                     temp = ati18800->regs[ati18800->index];
@@ -168,17 +200,40 @@ ati18800_recalctimings(svga_t *svga)
     const ati18800_t *ati18800 = (ati18800_t *) svga->priv;
     int               clock_sel;
 
-    clock_sel = ((svga->miscout >> 2) & 3) | ((ati18800->regs[0xbe] & 0x10) >> 1) | ((ati18800->regs[0xb9] & 2) << 1);
+    if (ati18800->regs[0xad] & 0x08)
+        svga->hblankstart    = ((ati18800->regs[0x0d] >> 2) << 8) + svga->crtc[2];
 
-    if (ati18800->regs[0xb6] & 0x10) {
+    clock_sel = 0x00;
+
+    if (svga->miscout & 0x04)
+        clock_sel |= 0x01;
+    if (svga->miscout & 0x08)
+        clock_sel |= 0x02;
+    if (ati18800->regs[0xb2] & 0x40)
+        clock_sel |= 0x04;
+    if (ati18800->regs[0xbe] & 0x10)
+        clock_sel |= 0x08;
+
+    svga->interlace = (ati18800->regs[0xb2] & 0x01);
+    if (svga->interlace)
+        svga->dispend >>= 1;
+
+    if (ati18800->regs[0xb0] & 0x40)
+        svga->memaddr_latch |= 0x10000;
+
+    if (ati18800->regs[0xb0] & 0x80)
+        svga->memaddr_latch |= 0x20000;
+
+    if ((ati18800->regs[0xb6] & 0x18) >= 0x10) {
         svga->hdisp <<= 1;
         svga->htotal <<= 1;
         svga->rowoffset <<= 1;
         svga->gdcreg[5] &= ~0x40;
     }
 
-    if (ati18800->regs[0xb0] & 6) {
+    if (ati18800->regs[0xb0] & 0x26) {
         svga->gdcreg[5] |= 0x40;
+        svga->lowres = 0;
         if ((ati18800->regs[0xb6] & 0x18) >= 0x10)
             svga->packed_4bpp = 1;
         else
@@ -186,7 +241,7 @@ ati18800_recalctimings(svga_t *svga)
     } else
         svga->packed_4bpp = 0;
 
-    if ((ati18800->regs[0xb6] & 0x18) == 8) {
+    if ((ati18800->regs[0xb6] & 0x18) == 0x08) {
         svga->hdisp <<= 1;
         svga->htotal <<= 1;
         svga->ati_4color = 1;
@@ -195,7 +250,24 @@ ati18800_recalctimings(svga_t *svga)
 
 
     if (!svga->scrblank && svga->attr_palette_enable) {
-        svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clock_sel ^ 0x08, svga->clock_gen);
+        switch (clock_sel) {
+            case 0:
+            case 5:
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 50175000.0;
+                break;
+            case 1:
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 56644000.0;
+                break;
+            case 3:
+            case 4:
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 44900000.0;
+                break;
+            case 7:
+                svga->clock = (cpuclock * (double) (1ULL << 32)) / 36000000.0;
+                break;
+            default:
+                break;
+        }
 
         switch ((ati18800->regs[0xb8] >> 6) & 0x03) {
             case 0x01:
@@ -277,7 +349,7 @@ ati18800_init(const device_t *info)
             break;
         case ATI18800_EDGE16:
             rom_init(&ati18800->bios_rom, BIOS_ROM_PATH_EDGE16, 0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
-            ati18800->memory = 512;
+            ati18800->memory = device_get_config_int("memory");
             break;
     }
 
@@ -286,14 +358,13 @@ ati18800_init(const device_t *info)
               ati18800_in, ati18800_out,
               NULL,
               NULL);
-    ati18800->svga.clock_gen = device_add(&ati18810_28800_device);
-    ati18800->svga.getclock  = ics2494_getclock;
 
     io_sethandler(0x01ce, 0x0002, ati18800_in, NULL, NULL, ati18800_out, NULL, NULL, ati18800);
     io_sethandler(0x03a0, 0x0040, ati18800_in, NULL, NULL, ati18800_out, NULL, NULL, ati18800);
 
     ati18800->svga.miscout = 0;
     ati18800->svga.bpp = 8;
+    ati18800->svga.packed_chain4 = 1;
 
     ati_eeprom_load(&ati18800->eeprom, "ati18800.nvr", 0);
 
@@ -364,7 +435,7 @@ static const device_config_t ati18800_wonder_config[] = {
 };
 
 const device_t ati18800_wonder_device = {
-    .name          = "ATI-18800",
+    .name          = "ATI VGA Wonder 16",
     .internal_name = "ati18800w",
     .flags         = DEVICE_ISA,
     .local         = ATI18800_WONDER,
@@ -402,5 +473,5 @@ const device_t ati18800_device = {
     .available     = ati18800_available,
     .speed_changed = ati18800_speed_changed,
     .force_redraw  = ati18800_force_redraw,
-    .config        = NULL
+    .config        = ati18800_wonder_config
 };
