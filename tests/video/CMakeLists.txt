@@ -56,5 +56,20 @@ if(BUILD_TESTING)
     )
     add_test(NAME OGC.DEB COMMAND ogc_deb_tests)
 
+    # The Voodoo LOD test includes the renderer it tests.
+    add_executable(voodoo_lod_log2_tests vid_voodoo_lod_log2_test.c)
+    target_include_directories(voodoo_lod_log2_tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_SOURCE_DIR}/src/cpu
+        ${PROJECT_BINARY_DIR}/src/include
+    )
+    if(NOT MSVC AND (ARCH STREQUAL "i386" OR ARCH STREQUAL "x86_64"))
+        target_compile_options(voodoo_lod_log2_tests PRIVATE "-msse2")
+    endif()
+    if(NOT MSVC)
+        target_link_libraries(voodoo_lod_log2_tests PRIVATE m)
+    endif()
+    add_test(NAME Voodoo.LodLog2 COMMAND voodoo_lod_log2_tests)
+
     add_subdirectory(rage128)
 endif()
