@@ -2467,7 +2467,9 @@ load_other_removable_devices(void)
         }
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
-            rdisk_drives[c].image_history[i] = (char *) calloc((MAX_IMAGE_PATH_LEN + 1) << 1, sizeof(char));
+            /* The legacy zip_ loop above has already allocated these. */
+            if (rdisk_drives[c].image_history[i] == NULL)
+                rdisk_drives[c].image_history[i] = (char *) calloc((MAX_IMAGE_PATH_LEN + 1) << 1, sizeof(char));
             sprintf(temp, "rdisk_%02i_image_history_%02i", c + 1, i + 1);
             p = ini_section_get_string(cat, temp, NULL);
             if (p) {
