@@ -644,8 +644,15 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
                     ((dev->ecr & 0xe0) == 0xc0))
                     /* AFIFO */
                     lpt_write_fifo(dev, val, 0x00);
-                else if (!(dev->ecr & 0xc0) && (!(dev->ecr & 0x20) || !(lpt_get_ctrl_raw(dev) & 0x20)) &&
-                           dev->output_enabled && dev->dt && dev->dt->write_data && dev->dt->priv)
+                /*
+                 * DATAR drives the pins in the standard, PS/2 and EPP modes;
+                 * the latter two are bidirectional and need the direction bit
+                 * clear. SD120PPD.SYS leaves the ECR in EPP mode and talks to
+                 * its bridge through DATAR.
+                 */
+                else if ((!(dev->ecr & 0xc0) || ((dev->ecr & 0xe0) == 0x80)) &&
+                         (!(dev->ecr & 0xe0) || !(lpt_get_ctrl_raw(dev) & 0x20)) &&
+                         dev->output_enabled && dev->dt && dev->dt->write_data && dev->dt->priv)
                     /* DATAR */
                     dev->dt->write_data(val, dev->dt->priv);
                 dev->dat = val;
