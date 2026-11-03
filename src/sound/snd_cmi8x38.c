@@ -1070,11 +1070,17 @@ cmi8x38_dma_process(void *priv)
         /* Start DMA if requested. */
         if (dma->restart) {
             /* Set up base address and counters.
-               Nothing reads sample_count_out; it's implemented as an assumption. */
+               Nothing reads sample_count_out; it's implemented as an assumption.
+               The fragment counter only starts over when the channel is started,
+               not when the buffer wraps around, as the buffer need not be a whole
+               number of fragments (ALSA hands out 22050-frame buffers with 5513-
+               frame periods); starting it over at the wrap lost one fragment
+               interrupt per buffer there, and with it the end of a drain. */
+            if (dma->restart == 1)
+                dma->frame_count_fragment = AS_U16(dev->io_regs[dma->reg | 0x6]) + 1;
             dma->restart         = 0;
             dma->sample_ptr      = AS_U32(dev->io_regs[dma->reg]);
             dma->frame_count_dma = dma->sample_count_out = AS_U16(dev->io_regs[dma->reg | 0x4]) + 1;
-            dma->frame_count_fragment                    = AS_U16(dev->io_regs[dma->reg | 0x6]) + 1;
 
             cmi8x38_log("CMI8x38: Starting DMA %d at %08X (count %04X fragment %04X)\n", dma->id, dma->sample_ptr, dma->frame_count_dma, dma->frame_count_fragment);
         }
@@ -1111,16 +1117,20 @@ cmi8x38_dma_process(void *priv)
         /* Check if the fragment size was reached. */
         dma->frame_count_fragment -= frames;
         if (dma->frame_count_fragment <= 0) {
-            /* Reset fragment counter. */
-            dma->frame_count_fragment = AS_U16(dev->io_regs[dma->reg | 0x6]) + 1;
+            /* Reload fragment counter, carrying over the frames taken past the
+               fragment's end, as a fragment need not be a whole number of longwords. */
+            const int32_t fragment = AS_U16(dev->io_regs[dma->reg | 0x6]) + 1;
+            do
+                dma->frame_count_fragment += fragment;
+            while (dma->frame_count_fragment <= 0);
 #ifdef ENABLE_CMI8X38_LOG
-            if (dma->frame_count_fragment > 1) /* avoid log spam if fragment counting is unused, like on the newer WDM drivers (cmudax3) */
+            if (fragment > 1) /* avoid log spam if fragment counting is unused, like on the newer WDM drivers (cmudax3) */
                 cmi8x38_log("CMI8x38: DMA %d fragment size reached at %04X frames left", dma->id, dma->frame_count_dma - 1);
 #endif
             /* Fire interrupt if requested. */
             if (dev->io_regs[0x0e] & dma_bit) {
 #ifdef ENABLE_CMI8X38_LOG
-                if (dma->frame_count_fragment > 1)
+                if (fragment > 1)
                     cmi8x38_log(", firing interrupt\n");
 #endif
                 /* Set channel interrupt flag. */
@@ -1130,7 +1140,7 @@ cmi8x38_dma_process(void *priv)
                 cmi8x38_update_irqs(dev);
             } else {
 #ifdef ENABLE_CMI8X38_LOG
-                if (dma->frame_count_fragment > 1)
+                if (fragment > 1)
                     cmi8x38_log("\n");
 #endif
             }
@@ -1142,8 +1152,8 @@ cmi8x38_dma_process(void *priv)
             dma->frame_count_dma = 0;
             cmi8x38_log("CMI8x38: DMA %d end reached, restarting\n", dma->id);
 
-            /* Restart DMA on the next run. */
-            dma->restart = 1;
+            /* Wrap around to the buffer's start on the next run. */
+            dma->restart = 2;
         }
     }
 }
