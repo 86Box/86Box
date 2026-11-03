@@ -307,20 +307,23 @@ FPU_save_regi_tag(extFloat80_t reg, int tag, int stnr)
 /* A waiting instruction with an exception pending: with CR0.NE, #MF
    with the frame at the instruction. Without it, FERR# raises IRQ 13
    and the instruction waits (is restarted) until the handler clears the
-   error or writes port F0h, which asserts IGNNE# until ES clears. */
-#define FPU_check_pending_exceptions()          \
-    do {                                        \
-        if (!(fpu_state.swd & FPU_SW_Summary))  \
-            fpu_ignne = 0;                      \
-        else if (cr0 & 0x20) {                  \
-            cpu_state.pc = cpu_state.oldpc;     \
-            new_ne       = 1;                   \
-            return 1;                           \
-        } else if (!fpu_ignne) {                \
-            cpu_state.pc = cpu_state.oldpc;     \
-            x87_ferr_assert();                  \
-            return 1;                           \
-        }                                       \
+   error or writes port F0h, which asserts IGNNE# until ES clears. Either
+   way the instruction is not executed. */
+#define FPU_check_pending_exceptions()         \
+    do {                                       \
+        if (!(fpu_state.swd & FPU_SW_Summary)) \
+            fpu_ignne = 0;                     \
+        else if (cr0 & 0x20) {                 \
+            cpu_state.pc = cpu_state.oldpc;    \
+            new_ne       = 1;                  \
+            x87_op |= X87_OP_NOT_EXECUTED;     \
+            return 1;                          \
+        } else if (!fpu_ignne) {               \
+            cpu_state.pc = cpu_state.oldpc;    \
+            x87_ferr_assert();                 \
+            x87_op |= X87_OP_NOT_EXECUTED;     \
+            return 1;                          \
+        }                                      \
     } while (0)
 #endif
 

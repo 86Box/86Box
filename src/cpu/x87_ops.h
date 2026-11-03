@@ -328,12 +328,13 @@ typedef union {
         {              \
         }
 #else
-#    define FP_ENTER()       \
-        do {                 \
-            if (cr0 & 0xc) { \
-                x86_int(7);  \
-                return 1;    \
-            }                \
+#    define FP_ENTER()                         \
+        do {                                   \
+            if (cr0 & 0xc) {                   \
+                x86_int(7);                    \
+                x87_op |= X87_OP_NOT_EXECUTED; \
+                return 1;                      \
+            }                                  \
         } while (0)
 #endif
 
@@ -569,6 +570,7 @@ op_nofpu_a16(uint32_t fetchdat)
 {
     if (cr0 & 0xc) {
         x86_int(7);
+        x87_op |= X87_OP_NOT_EXECUTED;
         return 1;
     } else {
         fetch_ea_16(fetchdat);
@@ -580,6 +582,7 @@ op_nofpu_a32(uint32_t fetchdat)
 {
     if (cr0 & 0xc) {
         x86_int(7);
+        x87_op |= X87_OP_NOT_EXECUTED;
         return 1;
     } else {
         fetch_ea_32(fetchdat);
@@ -608,6 +611,10 @@ FPU_ILLEGAL_a16(uint32_t fetchdat)
        the 486 and later; no pending-exception check, no state change
        (Pentium Vol. 3, 23.3.5) */
     FP_ENTER();
+    /* Unexecuted from here on the 486 and later: #UD, or a fault in its
+       fetch_ea first */
+    if (is486 || isibm486)
+        x87_op |= X87_OP_NOT_EXECUTED;
     fetch_ea_16(fetchdat);
     if (is486 || isibm486) {
         x86illegal();
@@ -625,6 +632,10 @@ FPU_ILLEGAL_a32(uint32_t fetchdat)
        the 486 and later; no pending-exception check, no state change
        (Pentium Vol. 3, 23.3.5) */
     FP_ENTER();
+    /* Unexecuted from here on the 486 and later: #UD, or a fault in its
+       fetch_ea first */
+    if (is486 || isibm486)
+        x87_op |= X87_OP_NOT_EXECUTED;
     fetch_ea_32(fetchdat);
     if (is486 || isibm486) {
         x86illegal();

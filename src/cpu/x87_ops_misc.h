@@ -154,6 +154,7 @@ opFST(uint32_t fetchdat)
     {
     ST(fetchdat & 7)                              = ST(0);
     cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = cpu_state.tag[cpu_state.TOP & 7];
+    cpu_state.MM[(cpu_state.TOP + fetchdat) & 7].q = cpu_state.MM[cpu_state.TOP & 7].q;
     /* C1 clear: no rounding to report (SDM 1999, FST) */
     cpu_state.npxs &= ~FPU_SW_C1;
     }
@@ -182,6 +183,7 @@ opFSTP(uint32_t fetchdat)
     {
     ST(fetchdat & 7)                              = ST(0);
     cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = cpu_state.tag[cpu_state.TOP & 7];
+    cpu_state.MM[(cpu_state.TOP + fetchdat) & 7].q = cpu_state.MM[cpu_state.TOP & 7].q;
     /* C1 clear: no rounding to report (SDM 1999, FST) */
     cpu_state.npxs &= ~FPU_SW_C1;
     }
