@@ -231,6 +231,18 @@ mach64_out(uint16_t addr, uint8_t val, void *priv)
             break;
         case 0x3c0:
         case 0x3c1:
+            /* The VGA palette address source also controls display blanking.
+               ATI's Windows 95 driver blanks through CRTC_DISPLAY_DIS before
+               a mode switch, then enables the display through ATTRX bit 5. */
+            if (!svga->attrff) {
+                uint32_t old_cntl = mach64->crtc_gen_cntl;
+
+                mach64->crtc_gen_cntl = (old_cntl & ~0x40u) | ((val & 0x20) ? 0 : 0x40);
+                if (mach64->crtc_gen_cntl != old_cntl) {
+                    svga_recalctimings(svga);
+                    svga->fullchange = svga->monitor->mon_changeframecount;
+                }
+            }
             /* ATI38 bits 0 and 1 write-protect the palette registers ATTR00-0F
                and the overscan register ATTR11 (5-22). */
             if ((mach64->type == MACH64_GX) && svga->attrff &&
@@ -3731,7 +3743,7 @@ mach64gtb_init(const device_t *info)
 
     if (info->local & MACH64_FLAG_ONBOARD)
         /* On-board: the video BIOS is part of the system BIOS. */
-        ati_eeprom_load(&mach64->eeprom, rage2 ? "mach64rage2_onboard.nvr" : "mach64rage2p_onboard.nvr", 1);
+        ati_eeprom_load(&mach64->eeprom, original ? "mach64rage_onboard.nvr" : rage2 ? "mach64rage2_onboard.nvr" : "mach64rage2p_onboard.nvr", 1);
     else {
         ati_eeprom_load(&mach64->eeprom, original ? "mach64rage.nvr" : rage2 ? "mach64rage2.nvr" : "mach64rage2p_ars2d.nvr", 1);
         /* ARS2D is 36K, 48h blocks of 512 bytes by its PCI data structure. */
@@ -4312,6 +4324,19 @@ const device_t mach64gt_device = {
     .close         = mach64_close,
     .reset         = mach64_reset,
     .available     = mach64gt_available,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = mach64gtb_onboard_config
+};
+
+const device_t mach64gt_onboard_device = {
+    .name          = "ATI 3D Rage (On-Board)",
+    .internal_name = "mach64_rage_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = MACH64_GT | MACH64_FLAG_ONBOARD,
+    .init          = mach64gtb_init,
+    .close         = mach64_close,
+    .reset         = mach64_reset,
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64gtb_onboard_config
