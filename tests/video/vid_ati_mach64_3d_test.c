@@ -1492,6 +1492,8 @@ ragepro_vq_tests(void)
         ctx->regs[(TEX_0_OFF + 16) >> 2] = 0x30000;
         ctx->regs[(TEX_0_OFF + 12) >> 2] = 0x34000;
         ctx->regs[RP_TEX_CNTL >> 2]      = RP_TEX_VQ;
+        /* a 16x16 map: the levels follow the size field, and 15:12 names the smallest (TEX_3) */
+        ctx->regs[TEX_SIZE_PITCH >> 2]   = 4 | (4 << 4) | (4 << 8) | (3 << 12);
         CHECK(mach64_rp_texture_init(ctx, &tx));
         expect_int("VQ two levels", tx.levels, 2);
         expect_u32("VQ level 1 texel", mach64_rp_texel(ctx, &ctx->agp, &tx.maps[1], 5, 3, &inhibits),
@@ -2114,6 +2116,125 @@ ragepro_mip_tests(void)
        moves, fails here so the entry is dealt with on purpose. */
     expect_int("mip known divergences present", known_seen, 2);
     expect_int("mip known divergences matching or moved", known_bad, 0);
+    card_close(m);
+}
+
+/*
+ * Rage Pro composite (second) texture, against a real card.
+ *
+ * Composite states (blend factors, modulate, add specular, factor from
+ * alpha, the secondary filters, the secondary's own coordinates, a secondary
+ * registered as a mip chain), replayed from the card's registers through the
+ * triangle path: the vertex registers as the driver left them, the 3D state
+ * registers, and the 64x64 textures the probe built. The compared pixels are
+ * every second one of the triangle's interior, within one unit of a 5 bit
+ * component (the card's own rounding is not known to the bit).
+ */
+#include "vid_ati_mach64_composite_vectors.h"
+
+#define COMP_FRAME 0x300000u
+
+static unsigned
+composite_texel(int which, int x, int y)
+{
+    int xs = x * 31 / 63;
+    int ys = y * 31 / 63;
+
+    switch (which) {
+        case 0: /* primary: r = x, g = y, b = 0 */
+            return (xs << 11) | ((ys << 1) << 5);
+        case 1:
+            return (8 << 11) | ((8 << 1) << 5) | xs;
+        case 2:
+            return (8 << 11) | ((8 << 1) << 5) | ys;
+        case 3: /* 4444: alpha = x / 2, r = g = 4, b = y / 2 */
+            return ((xs >> 1) << 12) | (4 << 8) | (4 << 4) | (ys >> 1);
+        case 4: /* a mip chain whose level 0 is red */
+            return 0xf800;
+        default: /* one texel checker */
+            return (8 << 11) | ((8 << 1) << 5) | (((x + y) & 1) ? 31 : 0);
+    }
+}
+
+static void
+composite_tests(void)
+{
+    mach64_t    *m   = card_create();
+    mach64_3d_t *ctx = m->gt3d;
+    int          bad_total = 0;
+    int          exact     = 0;
+    int          total     = 0;
+    int          shown     = 0;
+
+    m->ragepro = 1;
+    for (unsigned i = 0; i < sizeof(composite_vectors) / sizeof(composite_vectors[0]); i++) {
+        const struct composite_vector *v = &composite_vectors[i];
+        int                            bad = 0;
+
+        memset(m->svga.vram, 0, COMP_FRAME + (size_t) DITHER_W * DITHER_H * 2);
+        for (int y = 0; y < 64; y++)
+            for (int x = 0; x < 64; x++) {
+                unsigned p = composite_texel(0, x, y);
+                unsigned c = composite_texel(v->sec_tex, x, y);
+                uint32_t po = v->tex_6_off + (y * 64 + x) * 2;
+                uint32_t co = v->secondary_tex_off + (y * 64 + x) * 2;
+
+                m->svga.vram[po] = p & 0xff;
+                m->svga.vram[po + 1] = p >> 8;
+                m->svga.vram[co] = c & 0xff;
+                m->svga.vram[co + 1] = c >> 8;
+            }
+        m->dp_pix_width  = (4u << 28) | 3 | ((v->sec_tex == 3 ? 15u : 4u) << 4);
+        m->dp_src        = 0x00000500u;
+        m->dp_mix        = 0x00070007u;
+        m->write_mask    = 0xffffffffu;
+        m->dst_off_pitch = ((DITHER_W / 8) << 22) | (COMP_FRAME / 8);
+        m->sc_left_right = (DITHER_W - 1) << 16;
+        m->sc_top_bottom = (DITHER_H - 1) << 16;
+        m->clr_cmp_cntl  = 0;
+        for (int r = 0; r < 0x200; r++)
+            ctx->regs[r] = 0;
+        ctx->regs[SCALE_3D_CNTL >> 2]            = v->scale_3d_cntl;
+        ctx->regs[TEX_SIZE_PITCH >> 2]           = v->tex_size_pitch;
+        ctx->regs[RP_TEX_CNTL >> 2]              = v->tex_cntl;
+        ctx->regs[RP_SECONDARY_TEX_OFF >> 2]     = v->secondary_tex_off;
+        ctx->regs[(TEX_0_OFF + 6 * 4) >> 2]      = v->tex_6_off;
+        ctx->regs[Z_CNTL >> 2]                   = 0;
+        ctx->regs[RP_ALPHA_TST_CNTL >> 2]        = v->alpha_tst_cntl;
+        for (int n = 0; n < v->nsetup; n++)
+            mach64_3d_setup_write(m, v->setup[n].idx, v->setup[n].val);
+        mach64_3d_setup_write(m, 0xc0, v->one_over_area); /* starts the triangle */
+
+        for (int p = 0; p < v->npix; p++) {
+            const uint8_t *px  = m->svga.vram + COMP_FRAME + ((8 + v->pix[p].dy) * DITHER_W + 60 + v->pix[p].dx) * 2;
+            unsigned       got = (px[0] | (px[1] << 8)) & 0x7fffu;
+            unsigned       exp = v->pix[p].pixel555;
+            int            off = 0;
+
+            for (int sh = 0; sh <= 10; sh += 5) {
+                int d = (int) ((got >> sh) & 31) - (int) ((exp >> sh) & 31);
+
+                if (d > 1 || d < -1)
+                    off = 1;
+            }
+            total++;
+            exact += (got == exp);
+            bad += off;
+        }
+        /* The card's modulate with a white diffuse colour lands up to two units from
+           the product of the two textures in 7 interior pixels of cmod; the formula
+           fits the card's 5 bit result in 318 of 351 pixels there, and in all of
+           cmodd (diffuse 80c0ff). Pinned, so a change in either direction is seen. */
+        if (!strcmp(v->name, "cmod")) {
+            expect_int("composite cmod pixels beyond one unit (pinned)", bad, 7);
+            bad = 0;
+        }
+        bad_total += bad;
+        if (bad && shown++ < 40)
+            fprintf(stderr, "composite %s: %d of %d pixels more than one unit from the card\n", v->name, bad, v->npix);
+    }
+    printf("composite pixels: %d of %d exact, %d beyond one unit\n", exact, total, bad_total);
+    expect_int("composite pixels more than one unit from a real Rage Pro", bad_total, 0);
     card_close(m);
 }
 
@@ -3764,6 +3885,11 @@ main(int argc, char **argv)
         printf("Mach64 VQ: %d failed checks\n", failures);
         return failures ? 1 : 0;
     }
+    if (argc == 2 && !strcmp(argv[1], "--composite")) {
+        composite_tests();
+        printf("Mach64 composite: %d failed checks\n", failures);
+        return failures ? 1 : 0;
+    }
     if (argc == 2 && !strcmp(argv[1], "--mip")) {
         ragepro_mip_tests();
         printf("Mach64 mip: %d failed checks\n", failures);
@@ -3809,6 +3935,7 @@ main(int argc, char **argv)
     dither_bayer_tests();
     ragepro_blend_tests();
     ragepro_mip_tests();
+    composite_tests();
 
     if (failures) {
         fprintf(stderr, "Mach64 3D engine: %d checks failed\n", failures);

@@ -74,6 +74,7 @@ if(BUILD_TESTING)
     add_test(NAME Mach64.VQ COMMAND mach64_3d_tests --vq)
     add_test(NAME Mach64.Mip COMMAND mach64_3d_tests --mip)
     add_test(NAME Mach64.Dither COMMAND mach64_3d_tests --dither)
+    add_test(NAME Mach64.Composite COMMAND mach64_3d_tests --composite)
 
     add_executable(mach64_busmaster_tests vid_ati_mach64_busmaster_test.c)
     target_include_directories(mach64_busmaster_tests PRIVATE
