@@ -2340,7 +2340,7 @@ sysexit(UNUSED(uint32_t fetchdat))
 
     cpu_cur_status &= ~(CPU_STATUS_NOTFLATSS | CPU_STATUS_NOTWIDESS /* | CPU_STATUS_V86*/);
     cpu_cur_status |= (CPU_STATUS_USE32 | CPU_STATUS_STACK32 | CPU_STATUS_PMODE);
-    flushmmucache_nopc();
+    flushmmucache_ring3();
     set_use32(1);
     set_stack32(1);
 
@@ -2458,7 +2458,7 @@ sysret(UNUSED(uint32_t fetchdat))
 
     cpu_cur_status &= ~(CPU_STATUS_NOTFLATSS | CPU_STATUS_NOTWIDESS /* | CPU_STATUS_V86*/);
     cpu_cur_status |= (CPU_STATUS_USE32 | CPU_STATUS_STACK32 | CPU_STATUS_PMODE);
-    flushmmucache_nopc();
+    flushmmucache_ring3();
     set_use32(1);
     set_stack32(1);
 
