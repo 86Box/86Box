@@ -179,6 +179,20 @@ VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
     return system_configs;
 }
 
+
+// Case-folded canonical path for deduplication (Windows paths are case-insensitive)
+static QString normalizedConfigKey(const QString &path)
+{
+    const QFileInfo fi(path);
+    QString key = fi.canonicalFilePath();
+    if (key.isEmpty())
+        key = fi.absoluteFilePath();
+#ifdef Q_OS_WIN
+    key = key.toLower();
+#endif
+    return key;
+}
+
 QVector<VMManagerSystem *>
 VMManagerSystem::loadFromCache()
 {
@@ -246,7 +260,23 @@ VMManagerSystem::cachedConfigPaths()
             continue;
         if (fi.fileName().compare(QString(CONFIG_FILE), Qt::CaseInsensitive) != 0)
             continue;
-        paths.append(cfgPath);
+        // The section key must be the UUID derived from the config path
+        // (the same value stored in 86box.cfg). Anything else is a stale duplicate.
+        const QString expected = util::generateUuid(cfgPath);
+        if (uuid.compare(expected, Qt::CaseInsensitive) != 0)
+            continue;
+        const QString key = normalizedConfigKey(cfgPath);
+        if (key.isEmpty())
+            continue;
+        bool already = false;
+        for (const auto &existing : paths) {
+            if (normalizedConfigKey(existing) == key) {
+                already = true;
+                break;
+            }
+        }
+        if (!already)
+            paths.append(cfgPath);
     }
     return paths;
 }
@@ -363,6 +393,31 @@ VMManagerSystem::saveSettings()
         config_settings->setStringValue("timestamp", lastUsedTimestamp.toString(Qt::ISODate));
 
     config_settings->setStringValue("icon", icon);
+
+    // Drop any other vmm.ini section that points at this config under a
+    // different UUID (stale duplicates from older path casings).
+    // Operate on a separate QSettings so we do not disturb the current group.
+    const QString mine = normalizedConfigKey(config_file.absoluteFilePath());
+    if (!mine.isEmpty()) {
+        QSettings cleanup(config_settings->settings->fileName(), QSettings::IniFormat);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+        cleanup.setIniCodec("UTF-8");
+#endif
+        const auto groups = cleanup.childGroups();
+        for (const auto &other : groups) {
+            if (other.isEmpty() || other == "General" || other.compare(uuid, Qt::CaseInsensitive) == 0)
+                continue;
+            cleanup.beginGroup(other);
+            const QString otherPath = cleanup.value("config_file").toString();
+            cleanup.endGroup();
+            if (otherPath.isEmpty())
+                continue;
+            if (normalizedConfigKey(otherPath) == mine)
+                cleanup.remove(other);
+        }
+        cleanup.sync();
+    }
+
     generateSearchTerms();
 }
 void

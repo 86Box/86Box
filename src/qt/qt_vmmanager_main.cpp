@@ -822,7 +822,32 @@ VMManagerMain::deleteSystem(VMManagerSystem *sysconfig)
             QMessageBox::critical(this, tr("Remove directory failed"), tr("Some files in the machine's directory were unable to be deleted. Please delete them manually."));
             return;
         }
-        config.remove(sysconfig->uuid);
+        // Remove every cache section that points at this config
+        // (older vmm.ini files can contain the same machine under multiple UUIDs)
+        QString target = sysconfig->config_file.canonicalFilePath();
+        if (target.isEmpty())
+            target = sysconfig->config_file.absoluteFilePath();
+#ifdef Q_OS_WIN
+        target = target.toLower();
+#endif
+        const auto groups = config.settings->childGroups();
+        for (const auto &uuid : groups) {
+            if (uuid.isEmpty() || uuid == "General")
+                continue;
+            config.settings->beginGroup(uuid);
+            QString cfg = config.settings->value("config_file").toString();
+            config.settings->endGroup();
+            if (cfg.isEmpty())
+                continue;
+            QString key = QFileInfo(cfg).canonicalFilePath();
+            if (key.isEmpty())
+                key = QFileInfo(cfg).absoluteFilePath();
+#ifdef Q_OS_WIN
+            key = key.toLower();
+#endif
+            if (key == target || uuid == sysconfig->uuid)
+                config.settings->remove(uuid);
+        }
         vm_model->removeConfigFromModel(sysconfig);
         delete sysconfig;
 
