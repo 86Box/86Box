@@ -67,7 +67,10 @@ typedef struct pcjr_s {
     uint32_t      comp_lut[256];
     uint32_t      comp_key;      /* Mode and palette the table was made for. */
     int           comp_hue;
-    int           comp_len;      /* Raw bytes on the last rendered line. */
+    int           comp_brightness;
+    int           comp_contrast;
+    int           comp_saturation;
+    int           comp_len;     /* Raw bytes on the last rendered line. */
     uint8_t       comp_raw[512];
 
     /* Keyboard Controller stuff. */

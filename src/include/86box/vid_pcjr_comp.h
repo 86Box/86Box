@@ -20,8 +20,10 @@
 /* Fill lut[] (256 entries, 0x00RRGGBB) with the artifact colours of the
    PCjr's 320x200x4 (bpp1 = 0) or 640x200x2 (bpp1 = 1) graphics modes.
    colors[] are the four RGBI palette entries; only 160 slots are used,
-   the rest are cleared. */
+   the rest are cleared. brightness, contrast and saturation are in the
+   units of the CGA composite settings (0, 100 and 100 by default). */
 void pcjr_comp_generate(uint32_t *lut, int new_era, int bw, int bpp1, int hue,
+                        int brightness, int contrast, int saturation,
                         const uint8_t *colors);
 
 /* Decode one line of raw video memory (len bytes, two bits per hdot pair,

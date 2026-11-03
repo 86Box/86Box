@@ -529,6 +529,10 @@ vid_render_comp(pcjr_t *pcjr, int line, int ho_d)
     int      len   = pcjr->comp_len;
     int      bpp1  = !!(pcjr->array[3] & 0x08);
     int      bw    = !!(pcjr->array[0] & 0x04);
+    int      brightness;
+    int      saturation;
+    int      hue;
+    int      contrast;
     uint32_t key;
 
     if ((ho_d + (len << 3)) > buffer32->w)
@@ -540,11 +544,19 @@ vid_render_comp(pcjr_t *pcjr, int line, int ho_d)
           ((pcjr->array[0x13] & 0x0f) << 12) | ((pcjr->array[0x12] & 0x0f) << 8) |
           ((pcjr->array[0x11] & 0x0f) << 4) | (pcjr->array[0x10] & 0x0f);
 
-    if ((key != pcjr->comp_key) || (vid_cga_comp_hue != pcjr->comp_hue)) {
-        pcjr->comp_key = key;
-        pcjr->comp_hue = vid_cga_comp_hue;
-        pcjr_comp_generate(pcjr->comp_lut, pcjr->composite_new_era, bw, bpp1,
-                           pcjr->comp_hue, &pcjr->array[0x10]);
+    /* The CGA composite settings, as previewed or applied. Sharpness has no
+       counterpart in this model. */
+    cga_comp_get(&brightness, &saturation, &hue, &contrast);
+
+    if ((key != pcjr->comp_key) || (hue != pcjr->comp_hue) || (brightness != pcjr->comp_brightness) ||
+        (contrast != pcjr->comp_contrast) || (saturation != pcjr->comp_saturation)) {
+        pcjr->comp_key        = key;
+        pcjr->comp_hue        = hue;
+        pcjr->comp_brightness = brightness;
+        pcjr->comp_contrast   = contrast;
+        pcjr->comp_saturation = saturation;
+        pcjr_comp_generate(pcjr->comp_lut, pcjr->composite_new_era, bw, bpp1, hue,
+                           brightness, contrast, saturation, &pcjr->array[0x10]);
     }
 
     pcjr_comp_line(pcjr->comp_lut, pcjr->comp_raw, len, &buffer32->line[line][ho_d]);
@@ -804,6 +816,10 @@ pcjr_vid_init(pcjr_t *pcjr)
 
     pcjr->double_type = device_get_config_int("double_type");
     cga_interpolate_init();
+
+    /* The generic filter keeps the old-CGA PCjr profile; this applies the
+       saved composite settings to it. */
+    cga_comp_init(0);
 
     monitors[monitor_index_global].mon_composite = !!pcjr->composite;
 }

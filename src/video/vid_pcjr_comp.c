@@ -74,15 +74,15 @@ to_linear_rgb(float v)
 
 void
 pcjr_comp_generate(uint32_t *lut, int new_era, int bw, int bpp1, int hue,
+                   int brightness, int contrast, int saturation,
                    const uint8_t *colors)
 {
     const float tau = 6.28318531f;       /* 2 * pi */
     const float ns  = 567.0f / 440.0f;   /* Degrees of hue shift per nanosecond. */
 
-    /* Brightness 0, contrast 100, saturation 100, as in the original. */
-    const float tv_brightness = 0.0f / 100.0f;
-    const float tv_saturation = 100.0f / 100.0f;
-    const float tv_contrast   = (1 - tv_brightness) * 100.0f / 100.0f;
+    const float tv_brightness = (float) brightness / 100.0f;
+    const float tv_saturation = (float) saturation / 100.0f;
+    const float tv_contrast   = (1 - tv_brightness) * (float) contrast / 100.0f;
 
     /* The pixel clock delay calculation is not accurate for 2bpp, but the
        difference is small and a more accurate calculation would be too slow. */
