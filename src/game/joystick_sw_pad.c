@@ -9,16 +9,23 @@
  *          Implementation of a Side Winder GamePad.
  *
  * Notes:   - Write to 0x201 starts packet transfer (5*N or 15*N bits)
- *          - Currently alternates between Mode A and Mode B (is there
- *            any way of actually controlling which is used?)
+ *          - Data packets are sent in Mode A until an ID packet is
+ *            requested, and in Mode B from then on. Both the Windows 9x
+ *            driver and Linux take the toggling of data bit 2 during
+ *            the ID packet to mean that the pad is in Mode B, and read
+ *            every later packet in that mode only
  *          - Windows 9x drivers require Mode B when more than 1 pad
  *            connected
  *          - Packet preceeded by high data (currently 50us), and
  *            followed by low data (currently 160us) - timings are
  *            probably wrong, but good enough for everything I've tried
  *          - Analog inputs are only used to time ID packet request.
- *            If A0 timing out is followed after ~64us by another 0x201
- *            write then an ID packet is triggered
+ *            If A0 timing out is followed within 100us by another 0x201
+ *            write then an ID packet is triggered. The Windows 9x driver
+ *            waits 60us after A0 falls (InterruptDelay in MOTOWN.INF,
+ *            45us if unset) and Linux waits 45us (SW_KICK), both using
+ *            delay loops calibrated against the PIT, so the write can
+ *            land a few microseconds either side of the nominal delay
  *          - Sidewinder game pad ID is 'H0003'
  *          - ID is sent in Mode A (1 bit per clock), but data bit 2
  *            must change during ID packet transfer, or Windows 9x
@@ -65,6 +72,11 @@
 #include <86box/timer.h>
 #include <86box/gameport.h>
 #include <86box/plat_unused.h>
+
+/* The trigger timer runs for this long after A0 falls, and an
+   ID packet is sent if the next write lands within the ID window. */
+#define SW_TRIGGER_TIMER_US 10000
+#define SW_ID_WINDOW_US     100
 
 typedef struct sw_data {
     pc_timer_t poll_timer;
@@ -176,13 +188,13 @@ sw_write(void *priv)
         sw->poll_clock = 1;
         timer_set_delay_u64(&sw->poll_timer, TIMER_USEC * 40);
 
-        if (time_since_last > 9900 && time_since_last < 9940) {
+        if (time_since_last > (SW_TRIGGER_TIMER_US - SW_ID_WINDOW_US)) {
             sw->poll_mode = 0;
+            sw->data_mode = 1;
             sw->poll_left = 49;
             sw->poll_data = 0x2400ULL | (0x1830ULL << 15) | (0x19b0ULL << 30);
         } else {
             sw->poll_mode = sw->data_mode;
-            sw->data_mode = !sw->data_mode;
 
             if (sw->poll_mode) {
                 sw->poll_left = 1;
@@ -245,7 +257,7 @@ sw_a0_over(void *priv)
 {
     sw_data *sw = (sw_data *) priv;
 
-    timer_set_delay_u64(&sw->trigger_timer, TIMER_USEC * 10000);
+    timer_set_delay_u64(&sw->trigger_timer, TIMER_USEC * SW_TRIGGER_TIMER_US);
 }
 
 const joystick_t joystick_sw_pad = {
@@ -257,6 +269,7 @@ const joystick_t joystick_sw_pad = {
     .write         = sw_write,
     .read_axis     = sw_read_axis,
     .a0_over       = sw_a0_over,
+    .digital       = 1,
     .axis_count    = 2,
     .button_count  = 10,
     .pov_count     = 0,
