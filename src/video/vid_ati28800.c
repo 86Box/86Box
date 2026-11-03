@@ -190,6 +190,10 @@ ati28800_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3C9:
             if ((ati28800->type == VGAWONDERXL) || (ati28800->type == VGAWONDERXLPLUS))
                 sc1148x_ramdac_out(addr, 0, val, svga->ramdac, svga);
+#ifdef USE_XL24
+            else if (ati28800->type == VGAWONDERXL24) /* RS2 is bit 2 of ATI register B3 */
+                bt481_ramdac_out(addr, ati28800->regs[0xb3] & 0x04, val, svga->ramdac, svga);
+#endif /* USE_XL24 */
             else
                 svga_out(addr, val, svga);
             return;
@@ -346,6 +350,10 @@ ati28800_in(uint16_t addr, void *priv)
         case 0x3C9:
             if ((ati28800->type == VGAWONDERXL) || (ati28800->type == VGAWONDERXLPLUS))
                 return sc1148x_ramdac_in(addr, 0, svga->ramdac, svga);
+#ifdef USE_XL24
+            if (ati28800->type == VGAWONDERXL24)
+                return bt481_ramdac_in(addr, ati28800->regs[0xb3] & 0x04, svga->ramdac, svga);
+#endif /* USE_XL24 */
             return svga_in(addr, svga);
 
         case 0x3D4:
@@ -524,6 +532,28 @@ ati28800_recalctimings(svga_t *svga)
                                 svga->memaddr_latch <<= 1;
                             }
                             break;
+                        case 16:
+                            if (svga->lowres)
+                                svga->render = svga_render_16bpp_lowres;
+                            else {
+                                svga->render = svga_render_16bpp_highres;
+                                svga->hdisp >>= 1;
+                                svga->dots_per_clock >>= 1;
+                                svga->rowoffset <<= 1;
+                                svga->memaddr_latch <<= 1;
+                            }
+                            break;
+                        case 24:
+                            if (svga->lowres)
+                                svga->render = svga_render_24bpp_lowres;
+                            else {
+                                svga->render = svga_render_24bpp_highres;
+                                svga->hdisp /= 3;
+                                svga->dots_per_clock /= 3;
+                                svga->rowoffset <<= 1;
+                                svga->memaddr_latch <<= 1;
+                            }
+                            break;
                         default:
                             break;
                     }
@@ -664,6 +694,7 @@ ati28800_init(const device_t *info)
                                  BIOS_XL24_ODD_PATH,
                                  0xc0000, 0x10000, 0xffff,
                                  0, MEM_MAPPING_EXTERNAL);
+            ati28800->svga.ramdac = device_add(&bt481_ramdac_device);
             break;
 #endif /* USE_XL24 */
 
