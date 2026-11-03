@@ -1300,13 +1300,13 @@ mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
     int idx;
 
     if (!mach64->timing) {
-        if (!mach64->ragepro || (addr & FIFO_ADDR_SETUP) || !mach64_ragepro_gui_write(mach64, addr, val, type))
+        if (!mach64_has_busmaster(mach64) || (addr & FIFO_ADDR_SETUP) || !mach64_ragepro_gui_write(mach64, addr, val, type))
             mach64_queue_fifo(mach64, addr, val, type);
         return;
     }
 
     mach64_timing_before_write(mach64);
-    if (mach64->ragepro && !(addr & FIFO_ADDR_SETUP) && mach64_ragepro_gui_write(mach64, addr, val, type)) {
+    if (mach64_has_busmaster(mach64) && !(addr & FIFO_ADDR_SETUP) && mach64_ragepro_gui_write(mach64, addr, val, type)) {
         mach64_timing_after_write(mach64, 0, 0);
         return;
     }

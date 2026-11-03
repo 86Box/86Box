@@ -872,8 +872,8 @@ mach64_crtc_int_en(const mach64_t *mach64)
         return 0x0000000a;
     if ((mach64->type == MACH64_VT) || (mach64->type == MACH64_VT2) || (mach64->type == MACH64_GT))
         return 0x0055000a;
-    /* The Rage Pro's bus master end of list, BUSMASTER_EOL_INT_EN (24). */
-    if (mach64->ragepro)
+    /* The IIC/Pro bus master end of list, BUSMASTER_EOL_INT_EN (24). */
+    if (mach64_has_busmaster(mach64))
         return 0x0155028a;
     return 0x0055028a;
 }
@@ -1229,7 +1229,6 @@ mach64_gtb_latched(uint32_t reg)
         case 0x94: /* CONFIG_STAT1 */
         case 0x98: /* CONFIG_STAT2 */
         case 0x9c:
-        case 0xa0: /* BUS_CNTL */
         case 0xa4:
         case 0xa8:
         case 0xac: /* EXT_MEM_CNTL */
@@ -1398,7 +1397,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
     else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
         if ((mach64->type == MACH64_GTB || (mach64->gt3d && ((addr & 0x3ff) >= 0x100))) && (addr & 0x400) && mach64_gtb_readb(mach64, addr, &ret))
             return ret;
-        if (mach64->ragepro && !(addr & 0x400)) {
+        if (mach64_has_busmaster(mach64) && !(addr & 0x400)) {
             uint32_t dword;
 
             if (mach64_ragepro_blk1_read(mach64, addr & 0x3ff, &dword))
@@ -1938,7 +1937,7 @@ mach64_ext_readw(uint32_t addr, void *priv)
         /* A 3D register in one read, not two halves. */
         if (mach64->gt3d && (addr & 0x400) && (addr & 0x300) && ((addr & 3) <= 2) && mach64_3d_read(mach64, addr, &dword))
             return dword >> ((addr & 3) * 8);
-        if (mach64->ragepro && !(addr & 0x400) && ((addr & 3) <= 2) && mach64_ragepro_blk1_read(mach64, addr & 0x3ff, &dword))
+        if (mach64_has_busmaster(mach64) && !(addr & 0x400) && ((addr & 3) <= 2) && mach64_ragepro_blk1_read(mach64, addr & 0x3ff, &dword))
             return dword >> ((addr & 3) * 8);
         if (!(addr & 0x400)) {
             mach64_log("mach64_ext_readw: addr=%04x\n", addr);
@@ -1976,7 +1975,7 @@ mach64_ext_readl(uint32_t addr, void *priv)
         /* A 3D register in one read, not four bytes. */
         if (mach64->gt3d && (addr & 0x400) && (addr & 0x300) && !(addr & 3) && mach64_3d_read(mach64, addr, &ret))
             return ret;
-        if (mach64->ragepro && !(addr & 0x400) && !(addr & 3) && mach64_ragepro_blk1_read(mach64, addr & 0x3ff, &ret))
+        if (mach64_has_busmaster(mach64) && !(addr & 0x400) && !(addr & 3) && mach64_ragepro_blk1_read(mach64, addr & 0x3ff, &ret))
             return ret;
         if (!(addr & 0x400)) {
             mach64_log("mach64_ext_readl: addr=%04x\n", addr);
@@ -2018,7 +2017,7 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
 
         if ((mach64->type == MACH64_GTB) && ((addr & 0x700) == 0x400) && mach64_gtb_writeb(mach64, addr, val))
             return;
-        if (mach64->ragepro && !(addr & 0x400) && mach64_ragepro_blk1_write(mach64, addr & 0x3ff, val, 1))
+        if (mach64_has_busmaster(mach64) && !(addr & 0x400) && mach64_ragepro_blk1_write(mach64, addr & 0x3ff, val, 1))
             return;
         if (!(addr & 0x400) && mach64_is_vt(mach64)) {
             const int      reg   = (addr & 0x3ff) >> 2;
@@ -2381,7 +2380,7 @@ mach64_ext_writew(uint32_t addr, uint16_t val, void *priv)
         svga->mapping.write_w(addr, val, svga->mapping.priv);
     else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
         mach64_log("mach64_ext_writew : addr %08X val %04X\n", addr, val);
-        if (mach64->ragepro && !(addr & 0x400) && ((addr & 3) <= 2) && mach64_ragepro_blk1_write(mach64, addr & 0x3ff, val, 2))
+        if (mach64_has_busmaster(mach64) && !(addr & 0x400) && ((addr & 3) <= 2) && mach64_ragepro_blk1_write(mach64, addr & 0x3ff, val, 2))
             return;
         if (!(addr & 0x400)) {
             mach64_log("mach64_ext_writew: addr=%04x val=%04x\n", addr, val);
@@ -2418,7 +2417,7 @@ mach64_ext_writel(uint32_t addr, uint32_t val, void *priv)
     else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
         if ((addr & 0x3c0) != 0x200)
             mach64_log("mach64_ext_writel : addr %08X val %08X\n", addr, val);
-        if (mach64->ragepro && !(addr & 0x400) && !(addr & 3) && mach64_ragepro_blk1_write(mach64, addr & 0x3ff, val, 4))
+        if (mach64_has_busmaster(mach64) && !(addr & 0x400) && !(addr & 3) && mach64_ragepro_blk1_write(mach64, addr & 0x3ff, val, 4))
             return;
         if (!(addr & 0x400)) {
             mach64_log("mach64_ext_writel: addr=%04x val=%08x\n", addr, val);
@@ -3348,9 +3347,9 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
         case PCI_REG_COMMAND:
             return mach64->pci_regs[PCI_REG_COMMAND]; /*Respond to IO and memory accesses*/
         case PCI_REG_STATUS_L:
-            /* The Rage Pro has a capability list (the AGP one)
-               and, an AGP device, is 66 MHz capable. */
-            return mach64->agp ? 0x30 : 0x00;
+            /* Both AGP boards are 66 MHz capable. Only the Pro has an AGP
+               capability list; the IIC uses PCI transfers on the AGP bus. */
+            return mach64->agp ? (mach64->ragepro ? 0x30 : 0x20) : 0x00;
         case PCI_REG_STATUS_H:
             return 1 << 1; /*Medium DEVSEL timing*/
         case PCI_REG_REVISION:
@@ -3415,9 +3414,9 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
                 return mach64->pci_regs[MACH64_PCI_IOCONFIG];
             return mach64->use_block_decoded_io | mach64->io_base;
         case PCI_REG_CAPS_PTR:
-            return mach64->agp ? RAGEPRO_AGP_CAP : 0x00;
+            return (mach64->agp && mach64->ragepro) ? RAGEPRO_AGP_CAP : 0x00;
         case RAGEPRO_AGP_CAP ... (RAGEPRO_AGP_CAP + 0x0b):
-            if (mach64->agp)
+            if (mach64->agp && mach64->ragepro)
                 return mach64_ragepro_agp_read(mach64, addr - RAGEPRO_AGP_CAP);
             return 0x00;
         default:
@@ -3499,7 +3498,7 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
             break;
         case (RAGEPRO_AGP_CAP + 8) ... (RAGEPRO_AGP_CAP + 0x0b):
             /* The Rage Pro's AGP command register. */
-            if (mach64->agp)
+            if (mach64->agp && mach64->ragepro)
                 mach64->pci_regs[addr] = val & ragepro_agp_cmd_mask[addr - RAGEPRO_AGP_CAP - 8];
             break;
         case MACH64_PCI_IOCONFIG:
@@ -3878,14 +3877,22 @@ mach64gtb_init(const device_t *info)
     if (info->local & MACH64_FLAG_RAGE2C) {
         /* The 3D Rage IIC (PCI PQFP), "GV". Midway TouchMaster II's
            kernel only attaches to this ID, and hard-codes the block I/O at D800h. */
-        mach64->pci_id         = 0x4756;
-        mach64->config_chip_id = 0x9a004756;
+        mach64->rage2c        = 1;
+        mach64->agp           = !!(info->flags & DEVICE_AGP);
+        mach64->pci_id        = mach64->agp ? 0x475a : 0x4756;
+        /* ATI PRG Appendix B BIOS ASIC code 473Ah: IIC, not II+ (479Ah).
+           The AGP IIC is PCI-66/FRAME only (AMD article 18872), so it has
+           neither the Pro's AGP capability nor its texture/setup engine. */
+        mach64->config_chip_id = 0x3a000000 | mach64->pci_id;
         mach64->fixed_io       = device_get_config_hex16("fixed_io") & 0xff00;
+        mach64_ragepro_reset(mach64);
     }
     mach64->dac_cntl                      = 1 << 16;      /*Internal 24-bit DAC*/
     mach64->config_stat0                  = ((original || rage2) ? 4 : 5) | (1 << 4); /* EDO DRAM (4) or SGRAM (5), VGA enabled. */
-    /* GT encodes 2/4 MiB as 2/3; GT-B counts 512 KiB units minus one. */
+    /* GT encodes 2/4 MiB as 2/3; GT-B counts 512 KiB units minus one (2/4/8 MB = 3/7/F). */
     mach64->mem_cntl                      = original ? (mach64->vram_size == 2 ? 2 : 3) : (mach64->vram_size * 2 - 1);
+    if (mach64->rage2c)
+        mach64->config_stat0 = device_get_bios_local(info, device_get_config_bios("bios_ver")) | (1 << 4);
     if (info->local & MACH64_FLAG_RAGEPRO) {
         /* The 3D Rage Pro: the GT-B's 2D and 3D engines and
            front-end scaler with its own setup engine, second texture, bus
@@ -3932,7 +3939,7 @@ mach64gtb_init(const device_t *info)
                  0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     } else if (info->local & MACH64_FLAG_RAGE2C) {
         /* The Rage IIC's own BIOS, 32K at the bottom of a 27C512. */
-        ati_eeprom_load(&mach64->eeprom, "mach64rage2c.nvr", 1);
+        ati_eeprom_load(&mach64->eeprom, mach64->agp ? "mach64rage2c_agp.nvr" : "mach64rage2c.nvr", 1);
         rom_init(&mach64->bios_rom, (char *) device_get_bios_file(info, device_get_config_bios("bios_ver"), 0),
                  0xc0000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
     } else {
@@ -4345,7 +4352,7 @@ static const device_config_t mach64gtc_config[] = {
                 .internal_name = "113_61801_101",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = 0,
+                .local         = 4,
                 .size          = 65536,
                 .files         = { BIOS_RAGE2C_61801_PATH, "" }
             },
@@ -4354,9 +4361,164 @@ static const device_config_t mach64gtc_config[] = {
                 .internal_name = "113_38816_100",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = 0,
+                .local         = 5,
                 .size          = 65536,
                 .files         = { BIOS_RAGE2C_38816_PATH, "" }
+            },
+            {
+                .name          = "113-40605-102 (1998/10/27, BK3.10.1, EDO)",
+                .internal_name = "113_40605_102",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 2,
+                .size          = 65536,
+                .files         = { BIOS_RAGE2C_40605_PATH, "" }
+            },
+            {
+                .name          = "113-40606-102 (1998/10/29, BK3.10.1, EDO)",
+                .internal_name = "113_40606_102",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 2,
+                .size          = 32768,
+                .files         = { BIOS_RAGE2C_40606_PATH, "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 8, /* Midway TouchMaster II 3.0x keeps images above 4 MB */
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "2 MB", .value = 2 },
+            { .description = "4 MB", .value = 4 },
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "render_threads",
+        .description    = "Render threads",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "4", .value = 4 },
+            { .description = ""              }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "fixed_io",
+        .description    = "I/O base",
+        .type           = CONFIG_HEX16,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Assigned by the BIOS",          .value = 0x0000 },
+            { .description = "D800h (Midway TouchMaster II)", .value = 0xd800 },
+            { .description = ""                                               }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+/* Rage IIC PQFP on the AGP connector, using PCI-66 transfers. */
+static const device_config_t mach64gtc_agp_config[] = {
+    {
+        .name           = "bios_ver",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "113_52805_101",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "113-52805-101 (1999/11/23, BK3.11, SDRAM)",
+                .internal_name = "113_52805_101",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 4,
+                .size          = 65536,
+                .files         = { BIOS_RAGE2C_52805_PATH, "" }
+            },
+            {
+                .name          = "113-48301-100 (1998/02/19, BK3.10.0, EDO)",
+                .internal_name = "113_48301_100",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 2,
+                .size          = 65536,
+                .files         = { BIOS_RAGE2C_48301_PATH, "" }
+            },
+            {
+                .name          = "113-48301-100 alternate (1998/02/19, BK3.10.0, EDO)",
+                .internal_name = "113_48301_100_alt",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 2,
+                .size          = 65536,
+                .files         = { BIOS_RAGE2C_48301_ALT_PATH, "" }
+            },
+            {
+                .name          = "113-48303-100 (1998/03/04, BK3.10.0, EDO)",
+                .internal_name = "113_48303_100",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 2,
+                .size          = 65536,
+                .files         = { BIOS_RAGE2C_48303_PATH, "" }
+            },
+            {
+                .name          = "113-49302-100 (1998/09/08, BK3.10.1, SDRAM)",
+                .internal_name = "113_49302_100",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 4,
+                .size          = 32768,
+                .files         = { BIOS_RAGE2C_49302_PATH, "" }
+            },
+            {
+                .name          = "113-EV200-H00 evaluation (1998/06/11, BK3.10.1, EDO)",
+                .internal_name = "113_ev200_h00",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 2,
+                .size          = 32768,
+                .files         = { BIOS_RAGE2C_EV200_PATH, "" }
+            },
+            {
+                .name          = "113-EV205-S00 evaluation (1998/07/29, BK3.10.1, SDRAM)",
+                .internal_name = "113_ev205_s00",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 4,
+                .size          = 65536,
+                .files         = { BIOS_RAGE2C_EV205_PATH, "" }
+            },
+            {
+                .name          = "EDO single cycle (1998/09/23, BK3.10.1/3.096)",
+                .internal_name = "edo_3096",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 2,
+                .size          = 32768,
+                .files         = { BIOS_RAGE2C_EDO_3096_PATH, "" }
             },
             { .files_no = 0 }
         }
@@ -4882,6 +5044,21 @@ const device_t mach64gtc_device = {
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64gtc_config
+};
+
+/* The 3D Rage IIC (AGP FRAME/PCI-66). */
+const device_t mach64gtc_agp_device = {
+    .name          = "ATI 3D Rage IIC AGP",
+    .internal_name = "mach64_rage2c_agp",
+    .flags         = DEVICE_AGP,
+    .local         = MACH64_GTB | MACH64_FLAG_RAGE2C,
+    .init          = mach64gtb_init,
+    .close         = mach64_close,
+    .reset         = mach64_reset,
+    .available     = NULL,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = mach64gtc_agp_config
 };
 
 /* The 3D Rage Pro (AGP). */

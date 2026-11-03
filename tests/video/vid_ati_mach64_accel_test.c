@@ -117,6 +117,27 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
     return 0;
 }
 
+/* This suite isolates the legacy 2D/FIFO path. Bus-master transfers and
+   Pro setup are covered by the bus-master and 3D suites. */
+int
+mach64_3d_setup_write(mach64_t *mach64, int reg, uint32_t val)
+{
+    (void) mach64;
+    (void) reg;
+    (void) val;
+    return 0;
+}
+
+int
+mach64_ragepro_gui_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
+{
+    (void) mach64;
+    (void) addr;
+    (void) val;
+    (void) type;
+    return 0;
+}
+
 static mach64_t *
 card_create(void)
 {
@@ -132,7 +153,7 @@ card_create(void)
         exit(1);
     }
     mach64->svga.priv = mach64;
-    mach64->vram_size = VRAM_SIZE;
+    mach64->vram_size = VRAM_SIZE >> 20;
     mach64->vram_mask = VRAM_SIZE - 1;
     mach64->type      = MACH64_GTB;
     return mach64;
@@ -647,12 +668,17 @@ timing_used(mach64_t *mach64, uint64_t now, int *busy)
 }
 
 static void
-timing_fifo_tests(void)
+timing_fifo_tests(int profile)
 {
     mach64_t        *mach64 = card_create();
     mach64_timing_t *timing = mach64->timing = mach64_timing_init();
+    mach64->rage2c = profile == 1;
+    mach64->ragepro = profile == 2;
     uint32_t         used;
     int              busy;
+
+    mach64->rage2c = profile == 1;
+    mach64->ragepro = profile == 2;
 
     /* The engine takes the first entry at once; the others wait for its
        10 ticks. */
@@ -682,6 +708,8 @@ timing_fifo_tests(void)
        it; until then it holds the entries behind it. */
     mach64 = card_create();
     timing = mach64->timing = mach64_timing_init();
+    mach64->rage2c = profile == 1;
+    mach64->ragepro = profile == 2;
     timing_push(timing, 0, 1, 3, 0);
     timing_push(timing, 0, 0, 0, 5);
     used = timing_used(mach64, 1000, &busy);
@@ -696,12 +724,14 @@ timing_fifo_tests(void)
     /* A write to a full FIFO waits for the engine to take an entry. */
     mach64 = card_create();
     timing = mach64->timing = mach64_timing_init();
-    for (int i = 0; i <= TIMING_FIFO_DEPTH; i++)
+    mach64->rage2c = profile == 1;
+    mach64->ragepro = profile == 2;
+    for (int i = 0; i <= mach64_fifo_depth(mach64); i++)
         timing_push(timing, 0, 0, 0, 100);
     tsc    = 0;
     cycles = 0;
     mach64_timing_before_write(mach64);
-    CHECK((timing->floor == 100) && (cycles == -100) && ((timing->tail - timing->head) == (TIMING_FIFO_DEPTH - 1)),
+    CHECK((timing->floor == 100) && (cycles == -100) && ((timing->tail - timing->head) == (mach64_fifo_depth(mach64) - 1)),
           "a full FIFO waited until %llu, %d cycles, %u used", (unsigned long long) timing->floor, cycles,
           timing->tail - timing->head);
     card_close(mach64);
@@ -709,7 +739,9 @@ timing_fifo_tests(void)
     /* Entries that a reset of the draw engine FIFO took away are dropped. */
     mach64 = card_create();
     timing = mach64->timing = mach64_timing_init();
-    for (int i = 0; i < TIMING_FIFO_DEPTH; i++)
+    mach64->rage2c = profile == 1;
+    mach64->ragepro = profile == 2;
+    for (int i = 0; i < mach64_fifo_depth(mach64); i++)
         timing_push(timing, 0, 1, 100 + i, 0);
     mach64_timing_before_write(mach64);
     CHECK(timing->tail == timing->head, "%u lost entries kept", timing->tail - timing->head);
@@ -939,7 +971,8 @@ main(void)
     gui_engine_tests();
     composite_tests();
     overlay_tests();
-    timing_fifo_tests();
+    for (int profile = 0; profile < 3; profile++)
+        timing_fifo_tests(profile);
     timing_clock_tests();
     timing_cost_tests();
     engine_reset_tests();

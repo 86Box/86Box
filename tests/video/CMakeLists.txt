@@ -72,6 +72,14 @@ if(BUILD_TESTING)
     add_test(NAME Mach64.3D COMMAND mach64_3d_tests)
     add_test(NAME Mach64.Palette COMMAND mach64_3d_tests --palette)
 
+    add_executable(mach64_busmaster_tests vid_ati_mach64_busmaster_test.c)
+    target_include_directories(mach64_busmaster_tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_SOURCE_DIR}/src/cpu
+        ${PROJECT_BINARY_DIR}/src/include
+    )
+    add_test(NAME Mach64.BusMaster COMMAND mach64_busmaster_tests)
+
     add_executable(ogc_deb_tests vid_ogc_deb_test.c)
     target_include_directories(ogc_deb_tests PRIVATE
         ${PROJECT_SOURCE_DIR}/src/include

@@ -395,6 +395,7 @@ extern const device_t mach64rage2_onboard_device;
 extern const device_t mach64gtb_device;
 extern const device_t mach64gtb_onboard_device;
 extern const device_t mach64gtc_device;
+extern const device_t mach64gtc_agp_device;
 extern const device_t mach64ragepro_device;
 extern const device_t mach64ragepro_pci_device;
 extern const device_t mach64ragepro_onboard_device;

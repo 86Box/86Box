@@ -611,6 +611,30 @@ palette_tests(void)
 
 /* Texel keys, component expansion and other controls. */
 
+/* The IIC HAL asks for 128 free entries before its first draw. Reporting
+   the II+'s 48 makes the real driver spin forever at initialization. */
+static void
+fifo_identity_tests(void)
+{
+    mach64_t *m = card_create();
+    uint32_t value;
+    const unsigned depths[] = { 48, 128, 192, 128, 64 };
+    for (unsigned profile = 0; profile < 5; profile++) {
+        m->rage2c = profile == 1;
+        m->ragepro = profile >= 2;
+        m->rp.gui_cntl = profile >= 2 ? profile - 2 : 0;
+        expect_u32("FIFO physical capacity", mach64_fifo_depth(m), depths[profile]);
+        for (unsigned used = 0; used <= depths[profile]; used++) {
+            m->fifo_read_idx = 0;
+            m->fifo_write_idx = used;
+            CHECK(mach64_3d_read(m, GUI_STAT, &value));
+            expect_u32("GUI_STAT free entries", (value >> 16) & 0x1ff, depths[profile] - used);
+            expect_u32("GUI_STAT active", value & 1, used != 0);
+        }
+    }
+    card_close(m);
+}
+
 static void
 control_tests(void)
 {
@@ -1725,7 +1749,7 @@ scissor_case(mach64_t *m, int mode, int line)
     snprintf(case_name, sizeof(case_name), "signed/empty scissor mode=%d line=%d", mode, line);
     cases++;
     setup(m, 6);
-    m->sc_left_right = ((uint32_t) left & 0x1fffu) | ((uint32_t) right & 0x1fffu) << 16;
+    m->sc_left_right = ((uint32_t) left & 0x3fffu) | ((uint32_t) right & 0x3fffu) << 16;
     m->sc_top_bottom = ((uint32_t) top & 0x7fffu) | ((uint32_t) bottom & 0x7fffu) << 16;
     write_reg(m, DST_Y_X_ALIAS, xy(8, 8));
     unsigned expected_status = (8 < left ? 0x10u : 0) | (8 > right ? 0x20u : 0) | (8 < top ? 0x40u : 0) | (8 > bottom ? 0x80u : 0);
@@ -1767,8 +1791,8 @@ scissor_case(mach64_t *m, int mode, int line)
     }
 }
 
-/* Apply delayed source/polygon state at the FIFO barrier. Classification must
- * use this state, not the stale state preceding a 2D/3D transition. */
+/* The FIFO thread applies shared 2D state before dispatching the next 3D
+ * command. Classification must use this ordered state. */
 static void
 line_dispatch_case(mach64_t *m, int mode, unsigned alias)
 {
@@ -1786,6 +1810,11 @@ line_dispatch_case(mach64_t *m, int mode, unsigned alias)
     fifo_shared_update = 1;
     case_expect("source change is queued", mach64_3d_write(m, 0x2d8, fifo_shared_source, FIFO_WRITE_DWORD), 0);
     case_expect("polygon change is queued", mach64_3d_write(m, 0x130, fifo_shared_cntl, FIFO_WRITE_DWORD), 0);
+    /* Model the 2D fallbacks in mach64_fifo_run_one, rather than the old
+       CPU-side drain that was removed when 3D writes joined the FIFO. */
+    m->dp_src = fifo_shared_source;
+    m->dst_cntl = fifo_shared_cntl;
+    fifo_shared_update = 0;
     int      shaded = mode == 1 || mode == 2;
     unsigned result = mach64_3d_write(m, alias, 4, FIFO_WRITE_DWORD);
     /* Alias 0x144 belongs to the 3D front end even for non-drawing state. */
@@ -2010,15 +2039,16 @@ legacy_barrier_case(mach64_t *m)
     setup(m, 6);
     write_reg(m, SCALE_3D_CNTL, 0);
     before = fifo_waits;
-    /* Model a shared-register fallback notification, not a running FIFO. */
+    /* Writes now run on the FIFO thread, in order with shared state.
+       Only CPU register reads need to drain the FIFO. */
     case_expect("shared write falls through", mach64_3d_write(m, 0x2d8, m->dp_src, FIFO_WRITE_DWORD), 0);
     for (unsigned i = 0; i < 16; i++)
         case_expect("ordinary line remains legacy", mach64_3d_write(m, DST_BRES_LNTH, LINE_DIS | (i << 16), FIFO_WRITE_DWORD), 0);
     case_expect("no extra waits for ordinary line state", fifo_waits, before);
     write_reg(m, Z_CNTL, Z_LEQUAL_WRITE);
-    case_expect("existing 2D-to-3D barrier retained", fifo_waits, before + 1);
+    case_expect("FIFO-ordered 3D write does not drain itself", fifo_waits, before);
     write_reg(m, Z_CNTL, Z_LEQUAL_WRITE);
-    case_expect("clean 3D state does not wait again", fifo_waits, before + 1);
+    case_expect("subsequent 3D write does not drain itself", fifo_waits, before);
 }
 
 static void
@@ -2730,6 +2760,7 @@ main(int argc, char **argv)
         mipmap_tests();
         yuv_tests();
         palette_tests();
+        fifo_identity_tests();
         control_tests();
         texel_path_tests();
         scaler_math_tests();

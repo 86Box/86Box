@@ -3342,8 +3342,8 @@ mach64_3d_read(mach64_t *mach64, uint32_t addr, uint32_t *val)
                at once. */
             if (!mach64_timing_status(mach64, &used, &busy))
                 return 0;
-            if (mach64->ragepro) {
-                /* The Rage Pro's 16 bits stand for its whole FIFO, a
+            if (mach64->ragepro || mach64->rage2c) {
+                /* The IIC/Pro's 16 bits stand for their whole FIFO, a
                    sixteenth of it each, filling from bit 0 (the DRI
                    driver waits for "slots <= 0x8000 >> entries"). */
                 uint32_t step = mach64_fifo_depth(mach64) / 16;

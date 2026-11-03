@@ -64,9 +64,19 @@
 #define BIOS_ROMGT_PATH              "roms/video/mach64/3d_rage.bin"
 #define BIOS_ROMRAGE2_PATH           "roms/video/mach64/3d_rage_ii.bin"
 #define BIOS_ROMGTB_PATH              "roms/video/mach64/ARS2D.bin"
-/* 3D Rage IIC PCI BIOSes (PCI ID 4756h), dumped from 27C512 EPROMs. */
+/* 3D Rage IIC BIOSes: 32K images, some with 32K of EPROM padding. */
 #define BIOS_RAGE2C_61801_PATH        "roms/video/mach64/rage2c_pci_113-61801-101.bin"
 #define BIOS_RAGE2C_38816_PATH        "roms/video/mach64/rage2c_pci_113-38816-100.bin"
+#define BIOS_RAGE2C_40605_PATH "roms/video/mach64/rage2c_pci_113-40605-102.bin"
+#define BIOS_RAGE2C_40606_PATH "roms/video/mach64/rage2c_pci_113-40606-102.bin"
+#define BIOS_RAGE2C_52805_PATH "roms/video/mach64/rage2c_agp_113-52805-101.bin"
+#define BIOS_RAGE2C_48301_PATH "roms/video/mach64/rage2c_agp_113-48301-100.bin"
+#define BIOS_RAGE2C_48301_ALT_PATH "roms/video/mach64/rage2c_agp_113-48301-100_alt.bin"
+#define BIOS_RAGE2C_48303_PATH "roms/video/mach64/rage2c_agp_113-48303-100.bin"
+#define BIOS_RAGE2C_49302_PATH "roms/video/mach64/rage2c_agp_113-49302-100.bin"
+#define BIOS_RAGE2C_EV200_PATH "roms/video/mach64/rage2c_agp_113-ev200-h00.bin"
+#define BIOS_RAGE2C_EV205_PATH "roms/video/mach64/rage2c_agp_113-ev205-s00.bin"
+#define BIOS_RAGE2C_EDO_3096_PATH "roms/video/mach64/rage2c_agp_edo_3.096.bin"
 /* 3D Rage Pro (AGP, PCI ID GB, 4742h) BIOSes: 32K images, two from
    27C512 EPROMs (lower half), two read out as 32K. */
 #define BIOS_RAGEPRO_TURBO_PATH       "roms/video/mach64/ragepro_agp_turbo_3.091.bin"
@@ -156,6 +166,7 @@ typedef struct mach64_t {
     int     isa_irq_raised;
 
     uint8_t on_board;
+    uint8_t rage2c;  /* Rage IIC: shared bus master, without Pro setup/AGP textures */
     uint8_t ragepro; /* 3D Rage Pro identity, setup engine and bus master */
     uint8_t agp;     /* On the AGP: its capability and timings */
 
@@ -612,13 +623,22 @@ extern mach64_t* reset_state[2];
 
 
 
-/* The command FIFO's entries. The GT-B has 48; the Rage Pro's
+/* The IIC and Pro share a descriptor bus master (PRG 8.10). */
+static inline int
+mach64_has_busmaster(const mach64_t *mach64)
+{
+    return mach64->rage2c || mach64->ragepro;
+}
+
+/* The command FIFO's entries. The II+ has 48, the IIC has 128; the Pro's
    GUI_CNTL CMDFIFO_SIZE_MODE (1:0) makes it 192 (0, the default), 128 or 64
    (the DRI driver's mach64_drv.h), and its Direct3D HAL waits for 128 free
    in GUI_STAT. */
 static inline uint32_t
 mach64_fifo_depth(const mach64_t *mach64)
 {
+    if (mach64->rage2c)
+        return 128;
     if (!mach64->ragepro)
         return 48;
     switch (mach64->rp.gui_cntl & 3) {

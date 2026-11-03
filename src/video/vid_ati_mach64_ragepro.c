@@ -85,8 +85,12 @@
    and coefficients, the command FIFO, the bus master, the planar scaler
    buffers and the setup engine. */
 static int
-mach64_ragepro_blk1_reg(uint32_t addr)
+mach64_ragepro_blk1_reg(const mach64_t *mach64, uint32_t addr)
 {
+    /* The IIC shares descriptor DMA, without the Pro-only registers. */
+    if (mach64->rage2c)
+        return ((addr >= RP1_BM_FRAME_BUF_OFFSET) && (addr <= RP1_BM_STATUS)) ||
+               (addr == RP1_BM_GUI_TABLE) || (addr == RP1_BM_SYSTEM_TABLE);
     return ((addr >= RP1_AGP_BASE) && (addr <= RP1_SCALER_H_COEFF4)) || ((addr >= RP1_GUI_CMDFIFO_DEBUG) && (addr <= RP1_BM_STATUS)) ||
            (addr == RP1_BM_GUI_TABLE) || (addr == RP1_BM_SYSTEM_TABLE) ||
            ((addr >= RP1_SCALER_BUF0_OFFSET_U) && (addr <= RP1_SCALER_BUF1_OFFSET_V)) || ((addr >= RP1_SETUP_FIRST) && (addr <= RP1_SETUP_LAST));
@@ -403,7 +407,7 @@ mach64_ragepro_blk1_write(mach64_t *mach64, uint32_t addr, uint32_t val, int byt
     uint32_t mask  = (bytes >= 4) ? 0xffffffff : (((1u << (bytes * 8)) - 1) << shift);
     uint32_t v;
 
-    if (!mach64_ragepro_blk1_reg(reg))
+    if (!mach64_ragepro_blk1_reg(mach64, reg))
         return 0;
 
     v = (mach64->rp.blk1[reg >> 2] & ~mask) | ((val << shift) & mask);
@@ -445,7 +449,7 @@ mach64_ragepro_blk1_read(mach64_t *mach64, uint32_t addr, uint32_t *val)
 {
     uint32_t reg = addr & 0x3fc;
 
-    if (!mach64_ragepro_blk1_reg(reg))
+    if (!mach64_ragepro_blk1_reg(mach64, reg))
         return 0;
 
     if ((reg >= RP1_SETUP_FIRST) && (reg <= RP1_SETUP_LAST)) {
