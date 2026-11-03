@@ -2120,6 +2120,138 @@ ragepro_mip_tests(void)
 }
 
 /*
+ * Rage Pro mip level cap, against a real card: truncated chains.
+ *
+ * Diagnostic tests 1 (256x256, 4 of 9 levels supplied), 2 (128x128, 6 of 8)
+ * and 5 (128x32, 6 of 8) drawn with the three ways a driver can pass the
+ * levels it lacks: pointers into poison-filled memory (real), the last
+ * supplied level's pointer again (last), NULL (null). TEX_n_OFF are the
+ * values the driver wrote, so a missing level reads whatever its register
+ * holds. The levels follow TEX_SIZE_PITCH, not the registers.
+ *
+ * Memory at address 0 is zero here, so a level that reads address 0 and one
+ * that is not fetched at all both come out black: the null mode checks the
+ * black the card showed, not that address 0 is read.
+ */
+#include "vid_ati_mach64_mipchain_vectors.h"
+
+#define MIP_CHAIN_FRAME 0x300000u
+
+static void
+mip_chain_fill(mach64_t *m, uint32_t off, unsigned w, unsigned h, unsigned value)
+{
+    for (unsigned i = 0; i < w * h; i++) {
+        m->svga.vram[off + i * 2]     = value & 0xff;
+        m->svga.vram[off + i * 2 + 1] = value >> 8;
+    }
+}
+
+static void
+ragepro_mip_chain_tests(void)
+{
+    static const uint16_t colour[9] = { 0xf800, 0x07e0, 0x001f, 0xffe0, 0x07ff, 0xf81f, 0xffff, 0xfc00, 0x8410 };
+    static const int      kcol[9][3] = { { 31, 0, 0 }, { 0, 31, 0 }, { 0, 0, 31 }, { 31, 31, 0 }, { 0, 31, 31 },
+                                         { 31, 0, 31 }, { 31, 31, 31 }, { 31, 16, 0 }, { 16, 16, 16 } };
+    mach64_t             *m   = card_create();
+    mach64_3d_t          *ctx = m->gt3d;
+    int                   bad[3]   = { 0, 0, 0 };
+    int                   total[3] = { 0, 0, 0 };
+    int                   shown    = 0;
+
+    m->ragepro = 1;
+    for (unsigned i = 0; i < sizeof(mip_chain_vectors) / sizeof(mip_chain_vectors[0]); i++) {
+        const struct mip_chain_vector *v   = &mip_chain_vectors[i];
+        const struct mip_chain_layout *lay = &mip_chain_layouts[v->layout];
+        int                            mode = !strcmp(lay->mode, "real") ? 0 : (!strcmp(lay->mode, "last") ? 1 : 2);
+        double                         area = (v->x[0] - v->x[2]) * (v->y[1] - v->y[2]) - (v->y[0] - v->y[2]) * (v->x[1] - v->x[2]);
+        float                          ooa  = (float) (1.0 / area);
+        uint32_t                       raw;
+        int                            bad_here = 0;
+
+        {
+            int nfull = ((lay->wl2 > lay->hl2) ? lay->wl2 : lay->hl2) + 1;
+            int s     = nfull - 1;
+
+            memset(m->svga.vram, 0, MIP_CHAIN_FRAME);
+            for (int k = 0; k < nfull; k++) {
+                unsigned w = 1u << ((lay->wl2 - k) > 0 ? (lay->wl2 - k) : 0);
+                unsigned h = 1u << ((lay->hl2 - k) > 0 ? (lay->hl2 - k) : 0);
+                unsigned val;
+                uint32_t off = lay->tex_off[s - k];
+
+                if (k < lay->supplied) {
+                    unsigned gray = 3u * (unsigned) k + 1;
+
+                    val = v->tex ? ((gray << 11) | ((gray << 1) << 5) | gray) : colour[k];
+                } else if (mode == 0) {
+                    /* poison: the level's colour with 0, 16, 31 read as 4, 12, 24; a ramp's r = b = 3k + 1, g = 3k + 5 */
+                    unsigned r, g, b;
+
+                    if (v->tex) {
+                        r = b = 3u * (unsigned) k + 1;
+                        g     = 3u * (unsigned) k + 5;
+                    } else {
+                        r = (kcol[k][0] == 0) ? 4 : ((kcol[k][0] == 16) ? 12 : 24);
+                        g = (kcol[k][1] == 0) ? 4 : ((kcol[k][1] == 16) ? 12 : 24);
+                        b = (kcol[k][2] == 0) ? 4 : ((kcol[k][2] == 16) ? 12 : 24);
+                    }
+                    val = (r << 11) | ((g << 1) << 5) | b;
+                } else
+                    continue;
+                mip_chain_fill(m, off, w, h, val);
+            }
+        }
+        m->dp_pix_width  = (4u << 28) | 3;
+        m->dp_src        = 0x00000500u;
+        m->dp_mix        = 0x00070007u;
+        m->write_mask    = 0xffffffffu;
+        m->dst_off_pitch = ((DITHER_W / 8) << 22) | (MIP_CHAIN_FRAME / 8);
+        m->sc_left_right = (DITHER_W - 1) << 16;
+        m->sc_top_bottom = (DITHER_H - 1) << 16;
+        m->clr_cmp_cntl  = 0;
+        ctx->setup_cntl  = 0;
+        ctx->regs[Z_CNTL >> 2]         = 0;
+        ctx->regs[SCALE_3D_CNTL >> 2]  = v->scale_3d_cntl;
+        ctx->regs[TEX_SIZE_PITCH >> 2] = lay->tex_size_pitch;
+        ctx->regs[RP_TEX_CNTL >> 2]    = v->tex_cntl;
+        for (int n = 0; n < 9; n++)
+            ctx->regs[(TEX_0_OFF + n * 4) >> 2] = lay->tex_off[n];
+        memset(m->svga.vram + MIP_CHAIN_FRAME, 0, (size_t) DITHER_W * DITHER_H * 2);
+        for (int n = 0; n < 3; n++) {
+            uint32_t xy4 = ((uint32_t) (int) (v->x[n] * 4.0) << 16) | ((uint32_t) (int) (v->y[n] * 4.0) & 0xffffu);
+
+            mach64_3d_setup_write(m, 0x90 + n * 8 + 5, 0xffffffffu);
+            mach64_3d_setup_write(m, 0x90 + n * 8 + 6, xy4);
+            mip_vertex_value(m, 0xab + 3 * n, v->u[n]);
+            mip_vertex_value(m, 0xab + 3 * n + 1, v->v[n]);
+            mip_vertex_value(m, 0xab + 3 * n + 2, v->w[n]);
+        }
+        memcpy(&raw, &ooa, 4);
+        mach64_3d_setup_write(m, 0x90 + 7, raw);
+
+        for (int p = 0; p < 3; p++) {
+            const uint8_t *px = m->svga.vram + MIP_CHAIN_FRAME + (v->probe[p].y * DITHER_W + v->probe[p].x) * 2;
+            unsigned       got = (px[0] | (px[1] << 8)) & 0x7fffu;
+
+            if (got != v->probe[p].pixel555)
+                bad_here = 1;
+        }
+        total[mode]++;
+        if (bad_here) {
+            bad[mode]++;
+            if (shown++ < 25)
+                fprintf(stderr, "mip chain %s test %d vector %u (tex %d filter %d): pixel mismatch\n", lay->mode, lay->test, i, v->tex, v->filter);
+        }
+    }
+    printf("mip chain triangles differing from a real Rage Pro: real %d of %d, last %d of %d, null %d of %d\n", bad[0], total[0], bad[1],
+           total[1], bad[2], total[2]);
+    expect_int("mip chain triangles differing (real)", bad[0], 0);
+    expect_int("mip chain triangles differing (last)", bad[1], 0);
+    expect_int("mip chain triangles differing (null)", bad[2], 0);
+    card_close(m);
+}
+
+/*
  * Rage Pro composite (second) texture, against a real card.
  *
  * Composite states (blend factors, modulate, add specular, factor from
@@ -3892,6 +4024,7 @@ main(int argc, char **argv)
     }
     if (argc == 2 && !strcmp(argv[1], "--mip")) {
         ragepro_mip_tests();
+        ragepro_mip_chain_tests();
         printf("Mach64 mip: %d failed checks\n", failures);
         return failures ? 1 : 0;
     }
@@ -3935,6 +4068,7 @@ main(int argc, char **argv)
     dither_bayer_tests();
     ragepro_blend_tests();
     ragepro_mip_tests();
+    ragepro_mip_chain_tests();
     composite_tests();
 
     if (failures) {

@@ -3868,20 +3868,21 @@ mach64_rp_texture_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
     for (int level = 0; level <= 10; level++)
         offsets[level] = ctx->regs[(TEX_0_OFF + (level << 2)) >> 2];
 
-    /* The smallest map is the one TEX_SIZE_PITCH 15:12 names (alphabox's
-       reading, checked against Direct3D's software rasteriser), and never
-       one past a TEX_n_OFF left at 0: ATI's Windows 9x driver gives maps
-       down to 8x8 only and leaves TEX_0_OFF..TEX_2_OFF at 0, which read as
-       maps of their own made the far end of 3DMark 99's mip-mapped tunnel
-       sample the start of AGP memory. */
+    /* The levels follow the size field, not the offsets: level k of a size-s
+       map is read from TEX_(s-k)_OFF whatever those hold. Measured with
+       pointers into poison memory, the last map's pointer repeated, and NULL
+       (892 of the 904 triangles recorded per mode were analysed): the card's
+       frames match this on every triangle. So a driver that repeats the last
+       map's pointer gets that map again. That a level at 0 is fetched from
+       address 0 is inferred from the black the card shows for NULL levels;
+       no capture put distinguishable contents at address 0.
+       TEX_SIZE_PITCH 15:12 can still raise the smallest map. */
     if (cntl & MIP_MAP_DISABLE)
         lowest = size;
     else {
-        lowest = mach64_3d_mip_lowest_populated_level(offsets, size);
-        while ((lowest < size) && !offsets[lowest])
-            lowest++;
-        if (lowest < ((tsp >> 12) & 15))
-            lowest = (((tsp >> 12) & 15) < size) ? ((tsp >> 12) & 15) : size;
+        lowest = (tsp >> 12) & 15;
+        if (lowest > size)
+            lowest = size;
     }
     tx->levels = size - lowest + 1;
     for (int n = 0; n < tx->levels; n++) {
