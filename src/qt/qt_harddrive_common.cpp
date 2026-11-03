@@ -34,6 +34,8 @@ extern "C" {
 #include <86box/machine.h>
 #include <86box/mem.h>
 #include <86box/usb.h>
+#include <86box/thread.h>
+#include <86box/network.h>
 }
 
 #include "qt_settings.hpp"
@@ -380,12 +382,15 @@ Harddrives::scsiPlan(bus_owner_t *owners)
     int mach = machine;
     int snd[SOUND_CARD_MAX];
     int scsi[SCSI_CARD_MAX];
+    int net[NET_CARD_MAX];
     int msd = usb_msd_type;
 
     for (int i = 0; i < SOUND_CARD_MAX; i++)
         snd[i] = sound_card_current[i];
     for (int i = 0; i < SCSI_CARD_MAX; i++)
         scsi[i] = scsi_card_current[i];
+    for (int i = 0; i < NET_CARD_MAX; i++)
+        net[i] = net_cards_conf[i].device_num;
 
     if (Settings::settings != nullptr) {
         mach = Settings::settings->currentMachine();
@@ -393,10 +398,12 @@ Harddrives::scsiPlan(bus_owner_t *owners)
             snd[i] = Settings::settings->currentSoundCard(i);
         for (int i = 0; i < SCSI_CARD_MAX; i++)
             scsi[i] = Settings::settings->currentScsiCard(i);
+        for (int i = 0; i < NET_CARD_MAX; i++)
+            net[i] = Settings::settings->currentNetCard(i);
         msd = Settings::settings->currentUsbMsd();
     }
 
-    return scsi_plan(owners, mach, snd, scsi, msd);
+    return scsi_plan(owners, mach, snd, net, scsi, msd);
 }
 
 /* A device's label: its short name, with "(Onboard)" for a chip on the
