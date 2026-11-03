@@ -66,7 +66,6 @@ typedef struct cmi8x38_dma_t {
     uint32_t fifo_end;
     int32_t  frame_count_dma;
     int32_t  frame_count_fragment;
-    int32_t  sample_count_out;
     uint8_t  fifo[256];
     uint8_t  restart;
 
@@ -663,14 +662,11 @@ cmi8x38_read(uint16_t addr, void *priv)
             ret = ((dma->frame_count_dma > 0) ? (dma->frame_count_dma - 1) : AS_U16(dev->io_regs[dma->reg | 0x4])) >> ((addr & 0x01) << 3);
             break;
 
-        case 0x86:
-        case 0x8e:
-            ret = dev->dma[(addr & 0x78) >> 3].sample_count_out >> 2;
-            break;
-
-        case 0x87:
-        case 0x8f:
-            ret = dev->dma[(addr & 0x78) >> 3].sample_count_out >> 10;
+        case 0x86 ... 0x87:
+        case 0x8e ... 0x8f:
+            /* Fragment frames left minus one, as above. */
+            dma = &dev->dma[(addr & 0x78) >> 3];
+            ret = ((dma->frame_count_fragment > 0) ? (dma->frame_count_fragment - 1) : 0) >> ((addr & 0x01) << 3);
             break;
 
         default:
@@ -922,7 +918,7 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
         case 0x84 ... 0x85:
         case 0x8c ... 0x8d:
             dev->io_regs[addr]                           = val;
-            dev->dma[(addr & 0x78) >> 3].frame_count_dma = dev->dma[(addr & 0x78) >> 3].sample_count_out = AS_U16(dev->io_regs[addr & 0xfe]) + 1;
+            dev->dma[(addr & 0x78) >> 3].frame_count_dma = AS_U16(dev->io_regs[addr & 0xfe]) + 1;
             return;
 
         case 0x86 ... 0x87:
@@ -1054,6 +1050,50 @@ cmi8x38_update(cmi8x38_t *dev, cmi8x38_dma_t *dma)
     }
 }
 
+/* The fragment counter (the high word of the frame count register) is the count
+   of frames at the codec, so a playback channel counts what was played, not what
+   was fetched into the FIFO. The fragment interrupt then means the fragment was
+   heard: a driver stopping on the last one (Linux resets the channel, flushing
+   the FIFO) doesn't cut off its end, while what's left in the FIFO is past it. */
+static void
+cmi8x38_fragment_count(cmi8x38_dma_t *dma, int frames)
+{
+    cmi8x38_t    *dev     = dma->dev;
+    const uint8_t dma_bit = 0x01 << dma->id;
+
+    dma->frame_count_fragment -= frames;
+    if (dma->frame_count_fragment > 0)
+        return;
+
+    /* Reload fragment counter, carrying over the frames taken past the
+       fragment's end, as a fragment need not be a whole number of longwords. */
+    const int32_t fragment = AS_U16(dev->io_regs[dma->reg | 0x6]) + 1;
+    do
+        dma->frame_count_fragment += fragment;
+    while (dma->frame_count_fragment <= 0);
+#ifdef ENABLE_CMI8X38_LOG
+    if (fragment > 1) /* avoid log spam if fragment counting is unused, like on the newer WDM drivers (cmudax3) */
+        cmi8x38_log("CMI8x38: DMA %d fragment size reached at %04X frames left", dma->id, dma->frame_count_dma - 1);
+#endif
+    /* Fire interrupt if requested. */
+    if (dev->io_regs[0x0e] & dma_bit) {
+#ifdef ENABLE_CMI8X38_LOG
+        if (fragment > 1)
+            cmi8x38_log(", firing interrupt\n");
+#endif
+        /* Set channel interrupt flag. */
+        dev->io_regs[0x10] |= dma_bit;
+
+        /* Fire interrupt. */
+        cmi8x38_update_irqs(dev);
+    } else {
+#ifdef ENABLE_CMI8X38_LOG
+        if (fragment > 1)
+            cmi8x38_log("\n");
+#endif
+    }
+}
+
 static void
 cmi8x38_dma_process(void *priv)
 {
@@ -1076,7 +1116,6 @@ cmi8x38_dma_process(void *priv)
         /* Start DMA if requested. */
         if (dma->restart) {
             /* Set up base address and counters.
-               Nothing reads sample_count_out; it's implemented as an assumption.
                The fragment counter only starts over when the channel is started,
                not when the buffer wraps around, as the buffer need not be a whole
                number of fragments (ALSA hands out 22050-frame buffers with 5513-
@@ -1086,7 +1125,7 @@ cmi8x38_dma_process(void *priv)
                 dma->frame_count_fragment = AS_U16(dev->io_regs[dma->reg | 0x6]) + 1;
             dma->restart         = 0;
             dma->sample_ptr      = AS_U32(dev->io_regs[dma->reg]);
-            dma->frame_count_dma = dma->sample_count_out = AS_U16(dev->io_regs[dma->reg | 0x4]) + 1;
+            dma->frame_count_dma = AS_U16(dev->io_regs[dma->reg | 0x4]) + 1;
 
             cmi8x38_log("CMI8x38: Starting DMA %d at %08X (count %04X fragment %04X)\n", dma->id, dma->sample_ptr, dma->frame_count_dma, dma->frame_count_fragment);
         }
@@ -1120,37 +1159,11 @@ cmi8x38_dma_process(void *priv)
         dma->fifo_end += bytes;
         dma->sample_ptr += bytes;
 
-        /* Check if the fragment size was reached. */
-        dma->frame_count_fragment -= frames;
-        if (dma->frame_count_fragment <= 0) {
-            /* Reload fragment counter, carrying over the frames taken past the
-               fragment's end, as a fragment need not be a whole number of longwords. */
-            const int32_t fragment = AS_U16(dev->io_regs[dma->reg | 0x6]) + 1;
-            do
-                dma->frame_count_fragment += fragment;
-            while (dma->frame_count_fragment <= 0);
-#ifdef ENABLE_CMI8X38_LOG
-            if (fragment > 1) /* avoid log spam if fragment counting is unused, like on the newer WDM drivers (cmudax3) */
-                cmi8x38_log("CMI8x38: DMA %d fragment size reached at %04X frames left", dma->id, dma->frame_count_dma - 1);
-#endif
-            /* Fire interrupt if requested. */
-            if (dev->io_regs[0x0e] & dma_bit) {
-#ifdef ENABLE_CMI8X38_LOG
-                if (fragment > 1)
-                    cmi8x38_log(", firing interrupt\n");
-#endif
-                /* Set channel interrupt flag. */
-                dev->io_regs[0x10] |= dma_bit;
-
-                /* Fire interrupt. */
-                cmi8x38_update_irqs(dev);
-            } else {
-#ifdef ENABLE_CMI8X38_LOG
-                if (fragment > 1)
-                    cmi8x38_log("\n");
-#endif
-            }
-        }
+        /* The fragment count is of frames at the codec. A recording channel's
+           frames reach memory as they're taken from the codec, but a playback
+           channel's are counted as they're played; see cmi8x38_poll. */
+        if (dma_status & 0x01)
+            cmi8x38_fragment_count(dma, frames);
 
         /* Check if the buffer's end was reached. */
         dma->frame_count_dma -= frames;
@@ -1210,7 +1223,7 @@ cmi8x38_poll(void *priv)
         case 0x00: /* Mono, 8-bit PCM */
             if ((dma->fifo_end - dma->fifo_pos) >= 1) {
                 *out_l = *out_r = (dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)] ^ 0x80) << 8;
-                dma->sample_count_out--;
+                cmi8x38_fragment_count(dma, 1);
                 goto n4spk3d;
             }
             break;
@@ -1219,7 +1232,7 @@ cmi8x38_poll(void *priv)
             if ((dma->fifo_end - dma->fifo_pos) >= 2) {
                 *out_l = (dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)] ^ 0x80) << 8;
                 *out_r = (dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)] ^ 0x80) << 8;
-                dma->sample_count_out -= 2;
+                cmi8x38_fragment_count(dma, 1);
                 goto n4spk3d;
             }
             break;
@@ -1227,7 +1240,7 @@ cmi8x38_poll(void *priv)
         case 0x02: /* Mono, 16-bit PCM */
             if ((dma->fifo_end - dma->fifo_pos) >= 2) {
                 *out_l = *out_r = cmi8x38_fifo_read16(dma);
-                dma->sample_count_out -= 2;
+                cmi8x38_fragment_count(dma, 1);
                 goto n4spk3d;
             }
             break;
@@ -1238,7 +1251,7 @@ cmi8x38_poll(void *priv)
                     if ((dma->fifo_end - dma->fifo_pos) >= 4) {
                         *out_l = cmi8x38_fifo_read16(dma);
                         *out_r = cmi8x38_fifo_read16(dma);
-                        dma->sample_count_out -= 4;
+                        cmi8x38_fragment_count(dma, 1);
                         goto n4spk3d;
                     }
                     break;
@@ -1249,7 +1262,7 @@ cmi8x38_poll(void *priv)
                         dma->out_fr = cmi8x38_fifo_read16(dma);
                         dma->out_rl = cmi8x38_fifo_read16(dma);
                         dma->out_rr = cmi8x38_fifo_read16(dma);
-                        dma->sample_count_out -= 8;
+                        cmi8x38_fragment_count(dma, 2);
                         return;
                     }
                     break;
@@ -1261,7 +1274,7 @@ cmi8x38_poll(void *priv)
                         dma->out_rl = cmi8x38_fifo_read16(dma);
                         dma->out_rr = cmi8x38_fifo_read16(dma);
                         dma->out_c = cmi8x38_fifo_read16(dma);
-                        dma->sample_count_out -= 10;
+                        cmi8x38_fragment_count(dma, 2);
                         return;
                     }
                     break;
@@ -1274,7 +1287,7 @@ cmi8x38_poll(void *priv)
                         dma->out_rr = cmi8x38_fifo_read16(dma);
                         dma->out_c = cmi8x38_fifo_read16(dma);
                         dma->out_lfe = cmi8x38_fifo_read16(dma);
-                        dma->sample_count_out -= 12;
+                        cmi8x38_fragment_count(dma, 3);
                         return;
                     }
                     break;
