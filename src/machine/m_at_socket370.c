@@ -546,6 +546,15 @@ static const device_config_t in620_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
+                .name          = "AwardBIOS v4.51PG - Retail v1.00",
+                .internal_name = "in620_100",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/in620/102100.BIN", "" }
+            },
+            {
                 .name          = "AwardBIOS v4.51PG - Packard Bell v1.08",
                 .internal_name = "in620_108",
                 .bios_type     = BIOS_NORMAL,
