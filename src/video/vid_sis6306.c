@@ -1255,6 +1255,20 @@ sis6306_overlay_yuv_to_rgb(uint8_t y, uint8_t u, uint8_t v)
     return (r << 16) | (g << 8) | b;
 }
 
+static uint32_t
+sis6306_overlay_uv_base(const uint8_t *cr, int v_plane)
+{
+    const uint32_t dword_address = v_plane ?
+        ((uint32_t) cr[0xba] | ((uint32_t) cr[0xbb] << 8) |
+         ((uint32_t) (cr[0xb9] >> 4) << 16) |
+         ((uint32_t) (cr[0xbe] & 0x04) << 18)) :
+        ((uint32_t) cr[0xb7] | ((uint32_t) cr[0xb8] << 8) |
+         ((uint32_t) (cr[0xb9] & 0x0f) << 16) |
+         ((uint32_t) (cr[0xbe] & 0x02) << 19));
+
+    return dword_address << 2;
+}
+
 static void
 sis6306_overlay_scanline(svga_t *svga)
 {
@@ -1269,6 +1283,9 @@ sis6306_overlay_scanline(svga_t *svga)
     /* CR8C/CR8E specify scanline pitch in 32-bit doublewords. */
     const uint32_t stride_dwords = (uint32_t) cr[0x8c] | ((uint32_t) (cr[0x8e] & 15) << 8);
     const uint32_t stride = stride_dwords << 2;
+    const int planar_yuv420 = !!((cr[0x98] & 0x40) && (cr[0xb6] & 0x04));
+    const uint32_t uv_stride = (((uint32_t) cr[0xbc] |
+                                ((uint32_t) (cr[0xbd] & 15) << 8)) << 2);
     /* CR89[7:3] contains address[20:16], not CR89[3:0]. */
     const uint32_t fb_addr = ((((uint32_t) cr[0x89] >> 3) << 16) |
                               ((uint32_t) cr[0x8b] << 8) | cr[0x8a]) << 2;
@@ -1278,7 +1295,8 @@ sis6306_overlay_scanline(svga_t *svga)
     int left, right;
 
     if (!(cr[0x98] & 2) || ((cr[0xa9] & 15) != 15) || !dst || !dst->dat ||
-        !svga->vram || !stride || !hfactor || xend <= xstart ||
+        !svga->vram || !stride || (planar_yuv420 && !uv_stride) ||
+        !hfactor || xend <= xstart ||
         yend <= ystart || y < ystart || y >= yend ||
         y + svga->y_add < 0 || y + svga->y_add >= dst->h)
         return;
@@ -1296,6 +1314,11 @@ sis6306_overlay_scanline(svga_t *svga)
      * whole source rows; fractional byte offsets skew packed YUV pairs. */
     const uint32_t src_y = (uint32_t) (((uint64_t) (y - ystart) * vfactor) >> 6);
     const uint64_t base = (uint64_t) fb_addr + (uint64_t) src_y * stride;
+    const uint64_t uv_row = (uint64_t) (src_y >> 1) * uv_stride;
+    const uint64_t u_base = planar_yuv420 ?
+                            (uint64_t) sis6306_overlay_uv_base(cr, 0) + uv_row : 0;
+    const uint64_t v_base = planar_yuv420 ?
+                            (uint64_t) sis6306_overlay_uv_base(cr, 1) + uv_row : 0;
     uint32_t *pixels = dst->line[y + svga->y_add];
     if (!pixels)
         return;
@@ -1304,7 +1327,22 @@ sis6306_overlay_scanline(svga_t *svga)
         const uint32_t src_x = (uint32_t) (((uint64_t) (x - xstart) * hfactor) >> 6);
         uint32_t rgb;
 
-        if (cr[0x98] & 0x40) {
+        if (planar_yuv420) {
+            const uint32_t luma_x = (src_x < stride) ? src_x : (stride - 1);
+            const uint32_t chroma_x = ((luma_x >> 1) < uv_stride) ?
+                                      (luma_x >> 1) : (uv_stride - 1);
+            const uint64_t y_addr = base + luma_x;
+            const uint64_t u_addr = u_base + chroma_x;
+            const uint64_t v_addr = v_base + chroma_x;
+
+            if (y_addr >= svga->vram_max || u_addr >= svga->vram_max ||
+                v_addr >= svga->vram_max)
+                continue;
+
+            rgb = sis6306_overlay_yuv_to_rgb(svga->vram[(size_t) y_addr],
+                                             svga->vram[(size_t) u_addr],
+                                             svga->vram[(size_t) v_addr]);
+        } else if (cr[0x98] & 0x40) {
             /* Four consecutive bytes encode two packed YUV422 pixels. */
             const uint32_t src_x_clamped = (stride > 3) ?
                                            ((src_x < (stride >> 1)) ? src_x : ((stride >> 1) - 1)) : 0;
@@ -1426,7 +1464,9 @@ sis6306_render_packed_base(svga_t *svga)
             pixels[x] = sis6306_gamma_rgb(dev, pixels[x]);
     }
 
-    if (svga->bpp >= 15)
+    if (svga->bpp >= 15 ||
+        (svga->bpp == 8 && (dev->ext_crtc[0xb6] & 0x04) &&
+         (dev->ext_crtc[0x98] & 0x40)))
         sis6306_overlay_scanline(svga);
 }
 
@@ -1829,7 +1869,8 @@ sis6306_out(uint16_t addr, uint8_t val, void *priv)
                 if (dev->ext_crtc_unlocked) {
                     const uint8_t index = dev->sis_crtc_index;
                     if (dev->ext_crtc[index] != val &&
-                        ((index >= 0x81 && index <= 0x98) || index == 0xa9))
+                        ((index >= 0x81 && index <= 0x98) || index == 0xa9 ||
+                         (index >= 0xb6 && index <= 0xbe)))
                         svga->fullchange = svga->monitor->mon_changeframecount;
                     dev->ext_crtc[index] = val;
                 }
@@ -6152,7 +6193,7 @@ sis6306_pci_read(int func, int addr, int len, void *priv)
         case 0x34: return 0x40;
 
         case 0x3c: return dev->irq_line;
-        case 0x3d: return 0x01;
+        case 0x3d: return 0x00; /* Force disable flat panel mode.  Can eventually be something like return (sis6306_sre & 0x08) ? 0x01 : 0x00; */
         case 0x3e: return 0x00;
         case 0x3f: return 0x00;
 
