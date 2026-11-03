@@ -6193,7 +6193,7 @@ sis6306_pci_read(int func, int addr, int len, void *priv)
         case 0x34: return 0x40;
 
         case 0x3c: return dev->irq_line;
-        case 0x3d: return 0x01;
+        case 0x3d: return 0x00; /* Force disable flat panel mode.  Can eventually be something like return (sis6306_sre & 0x08) ? 0x01 : 0x00; */
         case 0x3e: return 0x00;
         case 0x3f: return 0x00;
 
