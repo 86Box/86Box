@@ -1771,8 +1771,9 @@ ragepro_dither_tests(void)
 
 /*
  * Outside what was measured, SCALE_DITHER keeps the earlier 4x4 Bayer stand-in:
- * a chip that is not a Rage Pro, and a Rage Pro writing 565 (only 555 has been
- * measured). The expectation here is that stand-in's formula, written out
+ * a chip that is not a Rage Pro, and a Rage Pro writing a surface other than
+ * 555 or 565 (both have been measured). The cases here are the chip that is
+ * not a Rage Pro. The expectation is that stand-in's formula, written out
  * independently of the engine: add (bayer * (2^drop - 1) + 7) / 15, drop the
  * low bits.
  */
@@ -1824,7 +1825,148 @@ static void
 dither_bayer_tests(void)
 {
     dither_bayer_tests_one("flat patches on a chip that is not a Rage Pro, differing from the Bayer stand-in", 0, 3);
-    dither_bayer_tests_one("flat patches on a Rage Pro writing 565, differing from the Bayer stand-in", 1, 4);
+}
+
+/*
+ * Rage Pro 565 dither and blend-then-dither order, against a real card.
+ *
+ * vid_ati_mach64_blend_vectors.h holds, for the 555 and 565 captures of the
+ * diagnostic's flat patches (B dither on, C dither off) and blend tests (G..R,
+ * see the header), the CRC-32 of each 16x16 patch's words as
+ * read back from the card. The scenes are drawn here the way the diagnostic
+ * draws them: a black clear, an opaque gray destination layer, then for the
+ * blend tests a translucent gray layer of vertex alpha over it, and every
+ * patch must reproduce the card's words.
+ */
+#include "vid_ati_mach64_blend_vectors.h"
+
+static uint32_t
+crc32_words(const uint16_t *w, int n)
+{
+    uint32_t c = 0xffffffffu;
+
+    for (int i = 0; i < n * 2; i++) {
+        c ^= ((const uint8_t *) w)[i]; /* little-endian host */
+        for (int k = 0; k < 8; k++)
+            c = (c >> 1) ^ (0xedb88320u & (0u - (c & 1)));
+    }
+    return ~c;
+}
+
+static void
+blend_rect(mach64_t *m, double x0, double y0, double x1, double y1, int gray, int alpha)
+{
+    const double v[2][3][3] = { { { x0, y0, gray }, { x1, y0, gray }, { x0, y1, gray } },
+                                { { x1, y0, gray }, { x1, y1, gray }, { x0, y1, gray } } };
+
+    for (int t = 0; t < 2; t++) {
+        double   area = (v[t][0][0] - v[t][2][0]) * (v[t][1][1] - v[t][2][1]) - (v[t][0][1] - v[t][2][1]) * (v[t][1][0] - v[t][2][0]);
+        float    ooa  = (float) (1.0 / area);
+        uint32_t raw;
+
+        for (int i = 0; i < 3; i++) {
+            uint32_t argb = ((uint32_t) alpha << 24) | (uint32_t) gray * 0x010101u;
+            uint32_t xy4  = ((uint32_t) (int) (v[t][i][0] * 4.0) << 16) | ((uint32_t) (int) (v[t][i][1] * 4.0) & 0xffffu);
+
+            mach64_3d_setup_write(m, 0x90 + i * 8 + 5, argb);
+            mach64_3d_setup_write(m, 0x90 + i * 8 + 6, xy4);
+        }
+        memcpy(&raw, &ooa, 4);
+        mach64_3d_setup_write(m, 0x90 + 7, raw);
+    }
+}
+
+/* Draw one diagnostic scene into a fresh surface. test is the index into
+   real_blend_crc's second dimension: 0 B, 1 C, then G..R. */
+static void
+blend_scene(mach64_t *m, int test, unsigned pix_width)
+{
+    static const int  bd[8] = { 16, 56, 96, 128, 160, 192, 224, 248 };
+    static const int  bs[4] = { 24, 104, 184, 248 };
+    static const int  ba[8] = { 16, 48, 80, 112, 144, 176, 208, 240 };
+    /* G H I J K L M N O P Q R: destination layer dithered, final dither, blend (src, dst code), sweep dst / src */
+    static const struct {
+        int dst_dither, dither, src_code, dst_code, sweep_d, sweep_s;
+    } cfg[12] = {
+        { 0, 1, 4, 5, -1, 0 },   { 0, 0, 4, 5, -1, 0 },   { 1, 1, 4, 5, -1, 0 },   { 1, 0, 4, 5, -1, 0 },
+        { 0, 1, 4, 1, -1, 0 },   { 0, 0, 4, 1, -1, 0 },   { 0, 1, 1, 1, -1, 0 },   { 0, 0, 1, 1, -1, 0 },
+        { 0, 1, 4, 5, 0, 255 },  { 0, 1, 4, 5, 248, 0 }, { 0, 1, 4, 5, 128, 0 }, { 0, 1, 4, 5, 128, 255 },
+    };
+    mach64_3d_t *ctx = m->gt3d;
+
+    dither_surface(m, 0);
+    m->dp_pix_width = pix_width;
+    if (test < 2) {
+        dither_surface(m, test == 0);
+        m->dp_pix_width = pix_width;
+        for (int i = 0; i < 256; i++) {
+            double x0 = 64 + 16 * (i % 32);
+            double y0 = 32 + 16 * (i / 32);
+
+            blend_rect(m, x0, y0, x0 + 16, y0 + 16, i, 255);
+        }
+        return;
+    }
+    {
+        int c = test - 2;
+
+        dither_surface(m, cfg[c].dst_dither);
+        m->dp_pix_width = pix_width;
+        for (int i = 0; i < 256; i++) {
+            double x0 = 64 + 16 * (i % 32);
+            double y0 = 32 + 16 * (i / 32);
+
+            blend_rect(m, x0, y0, x0 + 16, y0 + 16, (cfg[c].sweep_d >= 0) ? cfg[c].sweep_d : bd[i / 32], 255);
+        }
+        ctx->regs[SCALE_3D_CNTL >> 2] = (FCN_SHADE << SCALE_3D_FCN_SHIFT) | (cfg[c].dither ? (DITHER_EN | SCALE_DITHER) : 0) |
+                                        (ALPHA_FOG_BLEND << ALPHA_FOG_SHIFT) | ((uint32_t) cfg[c].src_code << ALPHA_BLEND_SRC) |
+                                        ((uint32_t) cfg[c].dst_code << ALPHA_BLEND_DST);
+        for (int i = 0; i < 256; i++) {
+            double x0 = 64 + 16 * (i % 32);
+            double y0 = 32 + 16 * (i / 32);
+            int    g  = (cfg[c].sweep_d >= 0) ? cfg[c].sweep_s : bs[(i % 32) & 3];
+            int    a  = (cfg[c].sweep_d >= 0) ? i : ba[(i % 32) >> 2];
+
+            blend_rect(m, x0, y0, x0 + 16, y0 + 16, g, a);
+        }
+    }
+}
+
+static int
+blend_scene_bad_patches(mach64_t *m, int test, int fmt)
+{
+    unsigned keep = (fmt == 0) ? 0x7fffu : 0xffffu;
+    int      bad  = 0;
+
+    for (int i = 0; i < 256; i++) {
+        uint16_t w[256];
+
+        for (int y = 0; y < 16; y++) {
+            for (int x = 0; x < 16; x++)
+                w[y * 16 + x] = (uint16_t) (dither_pixel_fmt(m, 64 + 16 * (i % 32) + x, 32 + 16 * (i / 32) + y) & keep);
+        }
+        bad += (crc32_words(w, 256) != real_blend_crc[fmt][test][i]);
+    }
+    return bad;
+}
+
+static void
+ragepro_blend_tests(void)
+{
+    static const char names[] = "BCGHIJKLMNOPQR";
+
+    for (int fmt = 0; fmt < 2; fmt++) {
+        for (int test = 0; test < 14; test++) {
+            mach64_t *m = card_create();
+            char      what[96];
+
+            m->ragepro = 1;
+            blend_scene(m, test, fmt ? 4 : 3);
+            snprintf(what, sizeof(what), "%s test %c patches differing from a real Rage Pro", fmt ? "565" : "555", names[test]);
+            expect_int(what, blend_scene_bad_patches(m, test, fmt), 0);
+            card_close(m);
+        }
+    }
 }
 
 /*
@@ -3630,6 +3772,7 @@ main(int argc, char **argv)
     if (argc == 2 && !strcmp(argv[1], "--dither")) {
         ragepro_dither_tests();
         dither_bayer_tests();
+        ragepro_blend_tests();
         printf("Mach64 dither: %d failed checks\n", failures);
         return failures ? 1 : 0;
     }
@@ -3664,6 +3807,7 @@ main(int argc, char **argv)
     ragepro_vq_triangle_tests();
     ragepro_dither_tests();
     dither_bayer_tests();
+    ragepro_blend_tests();
     ragepro_mip_tests();
 
     if (failures) {

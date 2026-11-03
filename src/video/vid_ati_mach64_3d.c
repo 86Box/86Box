@@ -919,8 +919,8 @@ mach64_3d_unpack(mach64_3d_t *ctx, int format, uint32_t raw, int source)
  *
  * Two tables exist for SCALE_DITHER, one function each. The ordered
  * (4x4 Bayer) table is the stand-in used for every chip and format that has no
- * measurement. The Rage Pro 555 law is used only on a Rage Pro writing a
- * 15 bpp 555 surface, the one case measured on a real card.
+ * measurement. The Rage Pro 555 and 565 tables are used only on a Rage Pro
+ * writing a 16 bpp surface, the cases measured on a real card.
  */
 static const uint8_t mach64_3d_bayer4[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
 
@@ -980,6 +980,27 @@ mach64_3d_quantize_ragepro555(int v, int channel, int x, int y)
     return (q > 31) ? 31 : q;
 }
 
+/*
+ * The Rage Pro 565 table. Red and blue are the 555 table unchanged. Green has six
+ * bits: the same rank is added to v scaled to 0..63 in 4 fractional bits,
+ *   M = 4 v - (v >> 4) + (v >> 6)
+ * with no further correction, and the sum is shifted down by 4 and capped at
+ * 63. Read off the same real-card captures as the 555 table, drawing into a
+ * surface the driver was told is 565 (green: the count of pixels at the upper
+ * of two adjacent levels is M mod 16).
+ */
+static inline int
+mach64_3d_quantize_ragepro565_green(int v, int x, int y)
+{
+    int m;
+    int q;
+
+    v = mach64_3d_clamp8(v);
+    m = 4 * v - (v >> 4) + (v >> 6);
+    q = (m + mach64_3d_dither_rank[y & 7][x & 3]) >> 4;
+    return (q > 63) ? 63 : q;
+}
+
 static inline int
 mach64_3d_quantize_round(int v, int bits)
 {
@@ -1008,8 +1029,11 @@ static inline int
 mach64_3d_quantize(mach64_3d_dither_t *dither, uint32_t cntl, int measured, int v, int bits, int channel, int x, int y)
 {
     if (cntl & DITHER_EN) {
-        if (cntl & SCALE_DITHER)
-            return measured ? mach64_3d_quantize_ragepro555(v, channel, x, y) : mach64_3d_quantize_bayer(v, bits, x, y);
+        if (cntl & SCALE_DITHER) {
+            if (!measured)
+                return mach64_3d_quantize_bayer(v, bits, x, y);
+            return (bits == 6) ? mach64_3d_quantize_ragepro565_green(v, x, y) : mach64_3d_quantize_ragepro555(v, channel, x, y);
+        }
         return mach64_3d_quantize_diffuse(v, bits, &dither->err[channel]);
     }
     if (cntl & ROUND_EN)
@@ -1021,7 +1045,7 @@ static inline uint32_t
 mach64_3d_pack(mach64_3d_t *ctx, mach64_3d_dither_t *dither, int format, rgba_t c, int x, int y)
 {
     uint32_t cntl = ctx->regs[SCALE_3D_CNTL >> 2];
-    int      measured = ctx->mach64->ragepro && (format == 3);
+    int      measured = ctx->mach64->ragepro && ((format == 3) || (format == 4));
     int      r;
     int      g;
     int      b;
@@ -1123,9 +1147,11 @@ mach64_3d_write_dst(mach64_3d_t *ctx, mach64_3d_dither_t *dither, uint32_t addr,
      * A blended 15/16-bpp pixel through the dither table: a component equal
      * to the destination's keeps the destination's bits. The table would
      * otherwise raise an already quantized component even where the blend
-     * added nothing, as with a black additive texel.
+     * added nothing, as with a black additive texel. A Rage Pro does not: it
+     * dithers the blended value like any other, which can land a level off
+     * the stored one.
      */
-    if (((format == 3) || (format == 4)) && (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND) &&
+    if (!mach64->ragepro && ((format == 3) || (format == 4)) && (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND) &&
         ((cntl & (DITHER_EN | SCALE_DITHER)) == (DITHER_EN | SCALE_DITHER))) {
         uint32_t old  = mach64_3d_vram_read16(mach64, addr);
         rgba_t   dst  = mach64_3d_unpack(ctx, format, old, 0);
@@ -4443,10 +4469,25 @@ mach64_rp_blend(uint32_t cntl, rgba_t src, rgba_t dst)
     int    out[4];
     rgba_t o;
 
-    for (int ch = 0; ch < 4; ch++)
-        out[ch] = mach64_3d_clamp8((mach64_3d_component(src, ch) * mach64_rp_blend_factor(src_code, src, dst, ch, 1, sat) +
-                                    mach64_3d_component(dst, ch) * mach64_rp_blend_factor(dst_code, src, dst, ch, 0, sat) + 127) /
-                                   255);
+    for (int ch = 0; ch < 4; ch++) {
+        int s = mach64_3d_component(src, ch);
+        int d = mach64_3d_component(dst, ch);
+
+        /*
+         * The color channels of the two source-alpha blends a real Rage Pro
+         * was measured on, in 8 bits with the alpha taken as a/256 and
+         * (256 - a)/256 of the sides, each side's product truncated, rather
+         * than the exact division by 255 used for the other combinations.
+         */
+        if ((ch < 3) && !sat && (src_code == 4) && (dst_code == 5))
+            out[ch] = ((s * (src.a + 1)) >> 8) + ((d * (256 - src.a)) >> 8);
+        else if ((ch < 3) && !sat && (src_code == 4) && (dst_code == 1))
+            out[ch] = mach64_3d_clamp8(((s * (src.a + 1)) >> 8) + d);
+        else
+            out[ch] = mach64_3d_clamp8((s * mach64_rp_blend_factor(src_code, src, dst, ch, 1, sat) +
+                                        d * mach64_rp_blend_factor(dst_code, src, dst, ch, 0, sat) + 127) /
+                                       255);
+    }
     o.r = out[0];
     o.g = out[1];
     o.b = out[2];
