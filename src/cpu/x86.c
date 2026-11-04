@@ -327,10 +327,12 @@ reset_fpu_init(void)
     cpu_state.ismmx = 0;
 }
 
-/* RESET's FPU on the K5, K6 and K6-2: control word 0040H, status 0, every
-   tag "zero" -- 5555H -- with the registers, the MMX registers, the
-   instruction and data pointers and the opcode zero (AMD-K6 data sheet
-   20695E, Table 28; AMD-K6-2 data sheet 21850, Table 32; the K5's
+/* RESET's FPU on the Pentium, the P6 family, the K5, K6 and K6-2: control
+   word 0040H, status 0, every tag "zero" -- 5555H -- with the registers,
+   the MMX registers, the instruction and data pointers and the opcode zero
+   (Pentium Vol. 1, Jul 1995, Table 4-2; Pentium Pro Vol. 3, Jan 1996,
+   Table 8-2; the MMX registers, SDM 1999 Vol. 3, Table 8-1; AMD-K6 data
+   sheet 20695E, Table 28; AMD-K6-2 data sheet 21850, Table 32; the K5's
    "identical to that of the Pentium processor", AMD-K5 TRM 18524C, Table
    5-15). */
 static void
@@ -363,25 +365,24 @@ reset_fpu_zero(void)
    reset_387(), which raises no IRQ 13 and holds no instruction back: the
    board side as it is with no error pending, since what a board's IRQ 13
    logic does with ERROR# low after RESET is in few boards' books. The
-   others -- the Pentium and the P6 family, the Intel486 family, whose
-   books leave a power-on to the board's BIST request, and the CPUs whose
-   books give no FPU state after RESET -- keep what they had: the soft FPU
-   its reset state, which is the Pentium's and the P6 family's (Pentium
-   Vol. 1, Jul 1995, Table 4-2; Pentium Pro Vol. 3, Jan 1996, Table 8-2),
-   the other FPU its contents (the Pentium's is set in reset_common()). */
+   others -- the Intel486 family, whose books leave a power-on to the
+   board's BIST request, and the CPUs whose books give no FPU state after
+   RESET -- keep what they had: the soft FPU its reset state, the other FPU
+   its contents. */
 static void
 reset_fpu_hard(void)
 {
-    int k86 = 0;
+    int zero = 0;
 
     if ((fpu_type == FPU_INTERNAL) && (cpu_s != NULL)) {
+        zero = cpu_init_keeps_state();
         switch (cpu_s->cpu_type) {
             case CPU_K5:
             case CPU_5K86:
             case CPU_K6:
             case CPU_K6_2:
             case CPU_K6_2C:
-                k86 = 1;
+                zero = 1;
                 break;
             default:
                 break;
@@ -392,7 +393,7 @@ reset_fpu_hard(void)
         reset_fpu_init();
     else if (fpu_type == FPU_387)
         reset_387();
-    else if (k86)
+    else if (zero)
         reset_fpu_zero();
     else if (fpu_softfloat) {
         SF_FPU_reset();
@@ -490,22 +491,6 @@ reset_common(int hard, int src)
        the 82C291 takes a 387SX. */
     if (!hard && (src & soft_reset_387) && (fpu_type == FPU_387))
         reset_387();
-    /* RESET's FPU, where the soft FPU (SF_FPU_reset) does not hold it:
-       control word 0040H, status 0, every tag "zero" -- 5555H -- with the
-       registers zero (Pentium Vol. 1, Jul 1995, Table 4-2). */
-    if (hard && !fpu_softfloat && cpu_is_p5()) {
-        /* As x87_set_control_word leaves it: round to nearest, and a
-           precision control of 00 is the 24-bit key blocks compile under. */
-        cpu_state.npxc = 0x0040;
-        codegen_set_rounding_mode(0);
-        cpu_cur_status |= CPU_STATUS_FPU_PC24;
-        cpu_state.npxs = 0;
-        cpu_state.TOP  = 0;
-        for (int i = 0; i < 8; i++) {
-            cpu_state.ST[i]  = 0.0;
-            cpu_state.tag[i] = 1; /* TAG_VALID: a zero */
-        }
-    }
 
     ccr0 = ccr1 = ccr2 = ccr3 = ccr4 = ccr5 = ccr6 = ccr7 = 0;
     ccr4 = 0x85;
