@@ -3326,13 +3326,15 @@ mach64_writel_be(uint32_t addr, uint32_t val, void *priv)
    gives the 1x and 2x rates and sideband addressing, the "2X (133 MHz)
    fully pipelined operation and sideband support" of the BL440ZX TPS 1.7;
    the request queue depth (31:24, here 8) is not in our documents. The
-   command register keeps the rate (2:0), AGP_ENABLE (8), SBA_ENABLE (9)
+   command register keeps the rate (1:0), AGP_ENABLE (8), SBA_ENABLE (9)
    and the request depth (31:24) it is given (AGP Interface Specification
    1.0, 6.1.4-6.1.5). */
 #define RAGEPRO_AGP_CAP    0x50
 #define RAGEPRO_AGP_STATUS 0x07000203
 
-static const uint8_t ragepro_agp_cmd_mask[4] = { 0x07, 0x03, 0x00, 0xff };
+/* The rate field takes 1x and 2x only, the rates the status offers (AGP 2.0
+   6.1.10: unimplemented fields read 0). */
+static const uint8_t ragepro_agp_cmd_mask[4] = { 0x03, 0x03, 0x00, 0xff };
 
 static uint8_t
 mach64_ragepro_agp_read(const mach64_t *mach64, int off)
