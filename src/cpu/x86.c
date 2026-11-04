@@ -369,12 +369,16 @@ reset_common(int hard, int src)
     /* FOP: INIT leaves the FPU as it was (Pentium Vol. 3, 16.2). */
     if (!reset_init)
         x87_op = 0;
-    /* A soft reset leaves the FPU as it was where the processor's book says
-       so (cpu_soft_reset_keeps_fpu); otherwise, and on RESET, the soft FPU
-       takes its reset state, except on the P54C, P55C and P6 family, whose
-       INIT keeps it. */
-    if (fpu_softfloat && !cpu_init_keeps_state() && (hard || !cpu_soft_reset_keeps_fpu()))
+    /* RESET gives the soft FPU its reset state, the Pentium and the P6
+       family included (Pentium Vol. 1, Jul 1995, Table 4-2; Pentium Pro
+       Vol. 3, Jan 1996, Table 8-2); a soft reset does too, except where the
+       processor's book says it leaves the FPU as it was
+       (cpu_soft_reset_keeps_fpu, INIT on the P54C, P55C and P6 family among
+       them). The reset state is not the MMX one. */
+    if (fpu_softfloat && (hard || !cpu_soft_reset_keeps_fpu())) {
         SF_FPU_reset();
+        cpu_state.ismmx = 0;
+    }
     /* A board whose reset logic drives the 387's RESET from this source as
        well as the CPU's (soft_reset_387). A 287 is left alone: on the
        CS8230 its RESET comes from the system reset and port F1h only, and
@@ -383,7 +387,7 @@ reset_common(int hard, int src)
         reset_387();
     /* RESET's FPU, where the soft FPU (SF_FPU_reset) does not hold it:
        control word 0040H, status 0, every tag "zero" -- 5555H -- with the
-       registers zero (Pentium Vol. 1, Table 3-2). */
+       registers zero (Pentium Vol. 1, Jul 1995, Table 4-2). */
     if (hard && !fpu_softfloat && cpu_is_p5()) {
         /* As x87_set_control_word leaves it: round to nearest, and a
            precision control of 00 is the 24-bit key blocks compile under. */
