@@ -176,6 +176,7 @@ static int
 opMOV_CRx_r_a16(uint32_t fetchdat)
 {
     uint32_t old_cr0 = cr0;
+    uint32_t new_cr0;
 
     if ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
         x86gpf(NULL, 0);
@@ -184,21 +185,22 @@ opMOV_CRx_r_a16(uint32_t fetchdat)
     fetch_ea_16(fetchdat);
     switch (cpu_reg) {
         case 0:
-            if (cpu_cr0_invalid(cpu_state.regs[cpu_rm].l)) {
+            new_cr0 = cpu_cr0_write_value(cpu_state.regs[cpu_rm].l);
+            if (cpu_cr0_invalid(new_cr0)) {
                 x86gpf(NULL, 0);
                 return 1;
             }
-            if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x00000001)
+            if ((new_cr0 ^ cr0) & 0x00000001)
                 flushmmucache();
-            else if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x80000000) {
+            else if ((new_cr0 ^ cr0) & 0x80000000) {
                 flushmmucache_nopc();
                 cpu_flush_pending = 1;
-            } else if ((cpu_state.regs[cpu_rm].l ^ cr0) & WP_FLAG)
+            } else if ((new_cr0 ^ cr0) & WP_FLAG)
                 flushmmucache_write();
             /* Make sure CPL = 0 when switching from real mode to protected mode. */
-            if ((cpu_state.regs[cpu_rm].l & 0x01) && !(cr0 & 0x01))
+            if ((new_cr0 & 0x01) && !(cr0 & 0x01))
                 cpu_state.seg_cs.access &= 0x9f;
-            cr0 = cpu_state.regs[cpu_rm].l;
+            cr0 = new_cr0;
             if (cpu_16bitbus)
                 cr0 |= 0x10;
             if (hascache && !(cr0 & (1 << 30)))
@@ -245,6 +247,7 @@ static int
 opMOV_CRx_r_a32(uint32_t fetchdat)
 {
     uint32_t old_cr0 = cr0;
+    uint32_t new_cr0;
 
     if ((CPL || (cpu_state.eflags & VM_FLAG)) && (cr0 & 1)) {
         x86gpf(NULL, 0);
@@ -253,21 +256,22 @@ opMOV_CRx_r_a32(uint32_t fetchdat)
     fetch_ea_32(fetchdat);
     switch (cpu_reg) {
         case 0:
-            if (cpu_cr0_invalid(cpu_state.regs[cpu_rm].l)) {
+            new_cr0 = cpu_cr0_write_value(cpu_state.regs[cpu_rm].l);
+            if (cpu_cr0_invalid(new_cr0)) {
                 x86gpf(NULL, 0);
                 return 1;
             }
-            if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x00000001)
+            if ((new_cr0 ^ cr0) & 0x00000001)
                 flushmmucache();
-            else if ((cpu_state.regs[cpu_rm].l ^ cr0) & 0x80000000) {
+            else if ((new_cr0 ^ cr0) & 0x80000000) {
                 flushmmucache_nopc();
                 cpu_flush_pending = 1;
-            } else if ((cpu_state.regs[cpu_rm].l ^ cr0) & WP_FLAG)
+            } else if ((new_cr0 ^ cr0) & WP_FLAG)
                 flushmmucache_write();
             /* Make sure CPL = 0 when switching from real mode to protected mode. */
-            if ((cpu_state.regs[cpu_rm].l & 0x01) && !(cr0 & 0x01))
+            if ((new_cr0 & 0x01) && !(cr0 & 0x01))
                 cpu_state.seg_cs.access &= 0x9f;
-            cr0 = cpu_state.regs[cpu_rm].l;
+            cr0 = new_cr0;
             if (cpu_16bitbus)
                 cr0 |= 0x10;
             if (hascache && !(cr0 & (1 << 30)))

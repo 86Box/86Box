@@ -899,6 +899,20 @@ cpu_eflags_implemented(void)
     return mask;
 }
 
+/* The value a CR0 write stores. On the 386 bits 30-5 are reserved: its
+   CR0 has only PG and bits 4-0 (386 DX Microprocessor Programmer's
+   Reference Manual, 1990, figure 4-3, PDF p. 113; 386 SX Microprocessor
+   Programmer's Reference Manual, 1989, figure 4-3, PDF p. 110). Its CR0
+   read returns the reserved bits set, so a value read and written back
+   would otherwise turn on the 486's NE, WP, AM, NW and CD here. */
+static __inline uint32_t
+cpu_cr0_write_value(uint32_t value)
+{
+    if (is386 && !is486 && !isibm486)
+        return value & 0x8000001f;
+    return value;
+}
+
 static __inline int
 cpu_cr0_invalid(uint32_t value)
 {

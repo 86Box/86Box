@@ -1095,7 +1095,7 @@ opLOADALL386(UNUSED(uint32_t fetchdat))
 {
     uint32_t la_addr = es + EDI;
 
-    cr0              = readmeml(0, la_addr);
+    cr0              = cpu_cr0_write_value(readmeml(0, la_addr));
     if (cr0 & 1)
         cpu_cur_status |= CPU_STATUS_PMODE;
     else
