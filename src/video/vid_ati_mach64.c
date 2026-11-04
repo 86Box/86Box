@@ -4244,9 +4244,8 @@ mach64gtb_init(const device_t *info)
         ati_eeprom_load(&mach64->eeprom, (info->local & MACH64_FLAG_RAGEPRO) ? "mach64ragepro_onboard.nvr" :
                                          original ? "mach64rage_onboard.nvr" : rage2 ? "mach64rage2_onboard.nvr" : "mach64rage2p_onboard.nvr", 1);
     else if (info->local & MACH64_FLAG_RAGEXL) {
-        /* The Rage XL card's BIOS, 32K to 42K by its PCI data structure,
-           in the 64K ROM BAR: the whole part is there, and the system BIOS
-           copies the image's own length. */
+        /* The Rage XL card's BIOS in the 64K ROM BAR: the whole part is
+           there, and the system BIOS copies the image's own length. */
         ati_eeprom_load(&mach64->eeprom, "mach64ragexl.nvr", 1);
         rom_init(&mach64->bios_rom, (char *) device_get_bios_file(info, device_get_config_bios("bios_ver"), 0),
                  0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
@@ -5104,24 +5103,6 @@ static const device_config_t mach64ragexl_config[] = {
                 .local         = 0,
                 .size          = 32768,
                 .files         = { BIOS_RAGEXL_72301_PATH, "" }
-            },
-            {
-                .name          = "GR-xlamis3p.150 (AMI), SDRAM (2002/09/26, BK4.3.04/4.333)",
-                .internal_name = "ami_4333",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 65536,
-                .files         = { BIOS_RAGEXL_AMI_4333_PATH, "" }
-            },
-            {
-                .name          = "113-72307-100, SDRAM (2000/12/18, BK4.3.04/4.330)",
-                .internal_name = "113_72307_100",
-                .bios_type     = BIOS_NORMAL,
-                .files_no      = 1,
-                .local         = 0,
-                .size          = 36864,
-                .files         = { BIOS_RAGEXL_72307_PATH, "" }
             },
             { .files_no = 0 }
         }
