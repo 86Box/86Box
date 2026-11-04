@@ -1056,7 +1056,7 @@ machine_tandy2000_init(const machine_t *model)
     device_add(&tandy_2000_video_device);
 
     if (hdc_current[0] == HDC_INTERNAL)
-        device_add(&st506_tandy2k_wd1010_device);
+        device_add(&st506_wd1010_device);
 
     /* The board is an option: no internal mouse means it is not installed,
        and its clock goes with it. */

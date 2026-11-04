@@ -1,12 +1,11 @@
 /* A port access may reset the CPU, itself or by running the timers (a PIT
    read brings the TSC up to date): the instruction then ends the recompiled
    block, and the reset is done (x86_reset_deferred). A trapped I/O cycle
-   asserts SMI# during the instruction, also taken at its boundary. A read
-   of an ACPI P_LVL2/P_LVL3 register stops the processor at it (cpu_stpclk). */
+   asserts SMI# during the instruction, also taken at its boundary. */
 static __inline int
 io_op_end(void)
 {
-    return x86_was_reset || smi_line || (nmi && nmi_enable && nmi_mask) || cpu_stpclk;
+    return x86_was_reset || smi_line || (nmi && nmi_enable && nmi_mask);
 }
 
 static int

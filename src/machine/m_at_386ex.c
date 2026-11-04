@@ -42,6 +42,7 @@
 #include <86box/port_92.h>
 #include <86box/serial.h>
 #include <86box/board_led.h>
+#include <86box/video.h>
 #include <86box/machine.h>
 #include <86box/plat_unused.h>
 
@@ -399,7 +400,8 @@ const device_t ts3x00_device = {
  * TS-9500 expansion board: a PS/2 keyboard and mouse controller, VGA, a
  * Compact Flash socket and a flash chip on the PC/104 bus, with registers
  * in I/O 0x198-0x19F. The boards have no keyboard controller of their own,
- * so one is always fitted, with only its keyboard controller and registers
+ * and without one are run from a serial console, so one is fitted when a
+ * video card is selected, with only its keyboard controller and registers
  * emulated:
  *
  *   0x19A  Bit 0 LED (1 = on), bit 1 KB IRQ, bit 2 mouse IRQ, bit 6 JP1
@@ -942,8 +944,11 @@ ts3x00_init(const machine_t *model, const ts3x00_model_t *ts)
     j = device_add(&ts3x00_device);
     ts3x00_board_init(j, ts, ex);
 
-    /* The keyboard controller is on a TS-9500, which the BIOS has to find to connect IRQ1. */
-    device_add(&ts9500_device);
+    /* The keyboard controller is on a TS-9500, which the BIOS has to find to
+       connect IRQ1. It is only fitted with a video card: without one, the
+       board is run from its serial console. */
+    if (gfxcard[0] != VID_NONE)
+        device_add(&ts9500_device);
 
     return ret;
 }

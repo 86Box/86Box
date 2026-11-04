@@ -3189,7 +3189,9 @@ pcnet_pm_wake(nic_t *dev, int override)
     dev->pmcsr |= 0x8000; /* PME_STATUS */
     if ((dev->pmcsr & 0x0100) || (override && (dev->aCSR[116] & 0x0400))) {
         pcnet_log(1, "%s: PME\n", dev->name);
+#ifdef XEON3D_ACPI_PR_WAS_MERGED
         acpi_gpe_event(ACPI_GPE_GPI);
+#endif
     }
 }
 

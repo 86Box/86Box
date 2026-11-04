@@ -321,6 +321,12 @@ reset_common(int hard)
     /* FOP: INIT leaves the FPU as it was (Pentium Vol. 3, 16.2). */
     if (!reset_init)
         x87_op = 0;
+    /* A soft reset leaves the FPU as it was where the processor's book says
+       so (cpu_soft_reset_keeps_fpu); otherwise, and on RESET, the soft FPU
+       takes its reset state, except on the P54C, P55C and P6 family, whose
+       INIT keeps it. */
+    if (fpu_softfloat && !cpu_init_keeps_state() && (hard || !cpu_soft_reset_keeps_fpu()))
+        SF_FPU_reset();
     /* RESET's FPU, where the soft FPU (SF_FPU_reset) does not hold it:
        control word 0040H, status 0, every tag "zero" -- 5555H -- with the
        registers zero (Pentium Vol. 1, Table 3-2). */
@@ -457,8 +463,6 @@ reset_common(int hard)
     /* Out of any HLT: the block end must not step past the reset vector's
        first byte (386_dynarec.c). */
     cpu_halted = 0;
-    /* RESET and INIT are break events of the clock control. */
-    cpu_stpclk = 0;
     smi_line = smm_in_hlt = 0;
     smi_block             = 0;
 

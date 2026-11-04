@@ -39,6 +39,7 @@ int floatx80_remainder(floatx80 a, floatx80 b, floatx80 *r, uint64_t *q, struct 
 int floatx80_ieee754_remainder(floatx80 a, floatx80 b, floatx80 *r, uint64_t *q, struct softfloat_status_t *status);
 
 floatx80 f2xm1(floatx80 a, struct softfloat_status_t *status);
+floatx80 f2xm1_387(floatx80 a, struct softfloat_status_t *status);
 #ifdef __cplusplus
 floatx80 fyl2x(floatx80 a, floatx80 b, softfloat_status_t &status);
 floatx80 fyl2xp1(floatx80 a, floatx80 b, softfloat_status_t &status);
