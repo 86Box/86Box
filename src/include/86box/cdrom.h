@@ -45,6 +45,7 @@
 
 #define CD_BLANK_NOT 0x00
 #define CD_BLANK_CDR 0x01
+#define CD_BLANK_CDRW 0x02
 
 /* Approximate sector limits (2048-byte sectors) for capacity clamping and media heuristics. */
 #define CD_MAX_SECTORS      445500      /* 99-minute CD-R, largest practical CD */
@@ -346,6 +347,7 @@ static const struct cdrom_drive_types_s {
     { "TOSHIBA",  "DVD-ROM SD-M1912", "TM01", "",          "toshiba_m1912",  BUS_TYPE_IDE,  0, 48, 96, 0, 1, {  4,  2,  2,  4 } }, /* DVD-ROM model produced under their TSST brand */
     { "TOSHIBA",  "DVD-ROM SD-M2012", "TU01", "",          "toshiba_m2012",  BUS_TYPE_IDE,  0, 48, 96, 0, 1, {  4,  2,  2,  5 } }, /* DVD-ROM model produced under their TSST brand; updated version of SD-M1912 */
     { "WEARNES",  "CDD-110",          "1.02", "",          "wearnes_110",    BUS_TYPE_IDE,  1,  2, 36, 0, 0, {  0, -1, -1, -1 } },
+    { "YAMAHA",   "CRW4416S",         "1.0j", "",          "yamaha_crw4416s", BUS_TYPE_SCSI, 2, 16, 36, 0, 0, { -1, -1, -1, -1 } , 0 , 0 },
     { "YAMAHA",   "CRW8424E",         "1.0g", "",          "yamaha_crw8424", BUS_TYPE_IDE,  0, 24, 36, 0, 0, {  4,  2,  2, -1 } },
     { "CHINON",   "CD-ROM CDS-431",   "H42 ", "",          "chinon_431",     BUS_TYPE_SCSI, 1,  1, 36, 1, 0, { -1, -1, -1, -1 } },
     { "CHINON",   "CD-ROM CDX-435",   "M62 ", "",          "chinon_435",     BUS_TYPE_SCSI, 1,  2, 36, 1, 0, { -1, -1, -1, -1 } },
@@ -565,6 +567,30 @@ typedef struct raw_track_info_t {
     uint8_t  pf;
 } raw_track_info_t;
 
+/* State of a recordable disc, as reported by the get_write_info op. */
+#define CD_WSTATE_BLANK       0
+#define CD_WSTATE_APPENDABLE  1
+#define CD_WSTATE_CLOSED      2
+
+/* Special track values for the write_to_toc op; 1 to 99 close that track. */
+#define CD_WTOC_ABORT         0x00    /* Drop a test write's cue sheet. */
+#define CD_WTOC_CLOSE_DISC    0xa2    /* Close the session, no further sessions. */
+#define CD_WTOC_CLOSE_SESSION 0xb0    /* Close the session, allow another one. */
+
+typedef struct cdrom_write_info_t {
+    int      state;           /* CD_WSTATE_* */
+    int      session_open;    /* The last session is incomplete. */
+    int      sessions;        /* Sessions on the disc, including the invisible one. */
+    int      ls_first_track;  /* First track in the last session. */
+    int      next_track;      /* Number of the invisible or incomplete track. */
+    uint32_t track_start;     /* Start of that track. */
+    uint32_t nwa;             /* Next writable address. */
+    uint32_t free_blocks;
+    uint32_t lead_in_start;   /* Lead-in of the next session, as an LBA + 150 frame. */
+    int      track_packet;    /* The incomplete track is an incremental one. */
+    uint32_t fixed_packet;    /* Packet size of a formatted disc, 0 if it is not one. */
+} cdrom_write_info_t;
+
 /* Define the various CD-ROM drive operations (ops). */
 typedef struct cdrom_ops_t {
     int      (*get_track_info)(const void *local, const uint32_t track,
@@ -584,13 +610,28 @@ typedef struct cdrom_ops_t {
     int      (*is_empty)(const void *local);
     int      (*send_cuesheet)(const void *local, const uint8_t *buffer,
                               int len);
+    /* The buffer holds a full 2352-byte sector, mode is 0 for audio. */
     int      (*write_sector)(const void *local, const uint8_t *buffer,
-                             const uint32_t sector);
+                             const int32_t sector, const int write_type,
+                             const int mode, const int ctl);
     int      (*write_to_toc)(const void *local, const uint8_t track);
     void     (*close)(void *local);
     void     (*load)(const void *local);
     /* Return 13 ASCII MCN digits and nonzero if a catalog number is present. */
     int      (*get_mcn)(const void *local, uint8_t *mcn);
+    /* Recordable media only, NULL for everything else. */
+    void     (*get_write_info)(const void *local, cdrom_write_info_t *wi);
+    /* Data block type the cue sheet assigns to a sector, nonzero if it has none. */
+    int      (*get_sao_block_type)(const void *local, const int32_t sector, int *data_block_type);
+    /* SYNCHRONIZE CACHE, which is what ends a session-at-once recording. */
+    int      (*flush)(const void *local, const int multi_session);
+    /* Takes the full sector, and the Q sub-channel that says where it belongs. */
+    int      (*write_raw)(const void *local, const uint8_t *buffer, const uint8_t *q,
+                          const int32_t sector);
+    int      (*blank)(const void *local, const int type, const uint32_t lba);
+    int      (*format)(const void *local, const uint32_t blocks, const uint32_t packet_size,
+                       const int grow);
+    int      (*reserve_track)(const void *local, const uint32_t size);
 } cdrom_ops_t;
 
 typedef struct cdrom {
@@ -806,7 +847,13 @@ extern int             cdrom_is_playing(const uint8_t id);
 extern int             cdrom_is_paused(const uint8_t id);
 extern void            cdrom_eject(const uint8_t id);
 extern void            cdrom_reload(const uint8_t id);
-extern int             cdrom_insert_blank(cdrom_t *dev, const char *fn);
+extern int             cdrom_insert_blank(cdrom_t *dev, const char *fn, const int type);
+extern int             cdrom_blank(cdrom_t *dev, const int type, const uint32_t lba);
+extern int             cdrom_format(cdrom_t *dev, const uint32_t blocks, const uint32_t packet_size,
+                                    const int grow);
+extern int             cdrom_reserve_track(cdrom_t *dev, const uint32_t size);
+extern int             cdrom_get_format_capacities(const cdrom_t *dev, uint8_t *b);
+extern int             cdrom_is_blank(const cdrom_t *dev);
 
 extern void            cdrom_compute_ecc_block(cdrom_t *dev, uint8_t *parity, const uint8_t *data,
                                                uint32_t major_count, uint32_t minor_count,
@@ -817,7 +864,12 @@ extern int             cdrom_send_cuesheet(cdrom_t *dev, const uint8_t *buffer, 
 extern int             cdrom_read_buffer_capacity(cdrom_t *dev, uint8_t *buffer, int block);
 extern int             cdrom_write_to_toc(cdrom_t *dev, const uint8_t track);
 extern int             cdrom_writesector(cdrom_t *dev, const uint8_t *buffer, int sector,
-                                         int write_type, int data_block_type);
+                                         int write_type, int data_block_type, int ctl);
+extern int             cdrom_get_write_block_size(const cdrom_t *dev, int sector, int write_type,
+                                                  int data_block_type);
+extern int             cdrom_flush_writes(cdrom_t *dev, const int multi_session);
+extern void            cdrom_build_raw_sector(cdrom_t *dev, uint8_t *b, const int lba, const int mode,
+                                              const int form, const int sub_header);
 extern unsigned short  cdrom_crc16(unsigned short crc, const unsigned char *buf,
                                    size_t len);
 

@@ -15,20 +15,9 @@
 #ifndef CDROM_IMAGE_WRITABLE_H
 #define CDROM_IMAGE_WRITABLE_H
 
-/* Track file struct. */
-typedef struct wtrack_file_t {
-    int (*read)(void *priv, uint8_t *buffer, uint64_t seek, size_t count);
-    uint64_t (*get_length)(void *priv);
-    void (*close)(void *priv);
-
-    char  fn[260];
-    FILE *fp;
-    void *priv;
-    void *log;
-
-    int motorola;
-} wtrack_file_t;
-
-extern void *wimage_open(cdrom_t *dev, const char *path);
+extern void *wimage_open(cdrom_t *dev, const char *path, const int type);
+extern void *wimage_resume(cdrom_t *dev, const char *path, int *type);
+extern int   wimage_can_resume(const char *path);
+extern int   wimage_get_blank_file_type(const char *path);
 
 #endif /*CDROM_IMAGE_WRITABLE_H*/

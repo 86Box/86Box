@@ -180,7 +180,8 @@ MediaMenu::refresh(QMenu *parentMenu)
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Image…"), [this, i]() { cdromMount(i, 0, nullptr); })->setCheckable(false);
         menu->addAction(getIconWithIndicator(folder_icon, pixmap_size, QIcon::Normal, Browse), tr("&Folder…"), [this, i]() { cdromMount(i, 1, nullptr); })->setCheckable(false);
         // Can make it only appear if the drive is a Yamaha?
-        menu->addAction(tr("Add &blank disc"), [this, i]() { cdromInsertBlank(i); })->setCheckable(false);
+        menu->addAction(tr("Add &blank CD-R"), [this, i]() { cdromInsertBlank(i, CD_BLANK_CDR); })->setCheckable(false);
+        menu->addAction(tr("Add blank CD-R&W"), [this, i]() { cdromInsertBlank(i, CD_BLANK_CDRW); })->setCheckable(false);
         menu->addSeparator();
         menu->addAction(getIconWithIndicator(QIcon(":/settings/qt/icons/cdrom_image.ico"), pixmap_size, QIcon::Normal, Browse), tr("&Image…"), [this, i]() { cdromMount(i, 0, nullptr); })->setCheckable(false);
         menu->addAction(getIconWithIndicator(QIcon(":/settings/qt/icons/cdrom_folder.ico"), pixmap_size, QIcon::Normal, Browse), tr("&Folder…"), [this, i]() { cdromMount(i, 1, nullptr); })->setCheckable(false);
@@ -702,7 +703,7 @@ MediaMenu::cdromMount(int i, int dir, const QString &arg)
 }
 
 void
-MediaMenu::cdromInsertBlank(int i)
+MediaMenu::cdromInsertBlank(int i, int type)
 {
     // Check if drive is empty
     if (!cdrom_is_empty(i)) {
@@ -711,41 +712,33 @@ MediaMenu::cdromInsertBlank(int i)
     }
 
     cdrom_t *drv = &cdrom[i];
-/* (claunia) TODO: Temporarily disabled because a KDE thumbnailer makes it crash while debugging on my machine, until later
-    // Ask user for cuesheet file location
-    QString cueFileName = QFileDialog::getSaveFileName(
-        parentWidget,
-        tr("CD-R(W) cuesheet image"),
-        QString(),
-        tr("Cuesheet files (*.cue)")
-    );
-    if (cueFileName.isEmpty()) {
+
+    QFileDialog::Options options;
+#ifdef Q_OS_LINUX
+    options |= QFileDialog::DontUseNativeDialog;
+#endif
+    // The burned disc is written to this file when the guest closes a session
+    QString fileName = QFileDialog::getSaveFileName(parentWidget, (type == CD_BLANK_CDRW) ? tr("CD-RW image") : tr("CD-R image"),
+                                                    getMediaOpenDirectory(),
+                                                    tr("Aaru images") % util::DlgFilter({ "aaruf" }, true),
+                                                    nullptr, options);
+    if (fileName.isEmpty())
         return;
-    }
-    // Ensure .cue extension
-    if (!cueFileName.endsWith(".cue", Qt::CaseInsensitive)) {
-        cueFileName += ".cue";
-    }
-    QFile cueFile(cueFileName);
-    if (cueFile.exists()) {
-        QMessageBox::StandardButton reply = QMessageBox::question(
-            parentWidget,
-            tr("Replace file"),
-            tr("The file '%1' already exists. Do you want to replace it?").arg(cueFileName),
-            QMessageBox::Yes | QMessageBox::No
-        );
-        if (reply != QMessageBox::Yes) {
-            return;
-        }
-    }
+
+    if (!fileName.endsWith(".aaruf", Qt::CaseInsensitive))
+        fileName += ".aaruf";
 
     // Add a blank disc
-    cdrom_insert_blank(drv, cueFileName.toUtf8());
-*/
+    if (cdrom_insert_blank(drv, fileName.toUtf8().constData(), type) != 0) {
+        ui_sb_update_icon_state(SB_CDROM | i, 1);
+        return;
+    }
 
-    cdrom_insert_blank(drv, "/home/claunia/foo_86box.cue"); // (claunia) Temporary hardcoded path until the above is fixed
-
-    ui_sb_update_icon_state(SB_CDROM | i, 1);
+    ui_sb_update_icon_state(SB_CDROM | i, 0);
+    mhm.addImageToHistory(i, ui::MediaType::Optical, cdrom[i].prev_image_path, cdrom[i].image_path);
+    cdromUpdateMenu(i);
+    ui_sb_update_tip(SB_CDROM | i);
+    config_save();
 }
 
 void
