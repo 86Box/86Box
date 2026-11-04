@@ -2859,11 +2859,26 @@ mach64_scaler_mix(uint32_t src, uint32_t dst, unsigned function)
     }
 }
 
+/* The scaler's two YUV 422 types: 11, VYUY 422, pairs of Y0 U Y1 V from
+   the low byte up; 12, YVYU 422, pairs of Y0 V Y1 U. */
+static int
+mach64_scaler_yuv422(int format)
+{
+    return (format == 11) || (format == 12);
+}
+
 /* YUV 422 takes 2 bytes a pixel in the scaler, read in 4-byte pairs. */
 static int
 mach64_scaler_source_bpp(int format)
 {
-    return (format == 11) ? 2 : mach64_3d_bytes_per_pixel(format);
+    return mach64_scaler_yuv422(format) ? 2 : mach64_3d_bytes_per_pixel(format);
+}
+
+/* And writes 2 bytes a pixel: its Y and the pair's U or V. */
+static int
+mach64_scaler_destination_bpp(int format)
+{
+    return mach64_scaler_yuv422(format) ? 2 : mach64_3d_bytes_per_pixel(format);
 }
 
 static int
@@ -2876,6 +2891,8 @@ mach64_scaler_destination_supported(int format)
         case 6:
         case 7:
         case 8:
+        case 11:
+        case 12:
         case 15:
             return 1;
         default:
@@ -2920,13 +2937,25 @@ mach64_scaler_yuyv_luma(mach64_t *mach64, uint32_t base, uint32_t pitch, int x, 
     return mach64_yuyv_y(mach64_scaler_yuyv_pair(mach64, base, pitch, x >> 1, y), x);
 }
 
+/* A pair's U and V as stored, by its type's byte order. */
 static void
-mach64_scaler_yuyv_chroma(mach64_t *mach64, uint32_t base, uint32_t pitch, int pair_x, int y, int signed_uv, int *u, int *v)
+mach64_scaler_yuv422_raw_uv(uint32_t raw, int format, uint8_t *u, uint8_t *v)
+{
+    *u = (format == 12) ? mach64_yuyv_v(raw) : mach64_yuyv_u(raw);
+    *v = (format == 12) ? mach64_yuyv_u(raw) : mach64_yuyv_v(raw);
+}
+
+static void
+mach64_scaler_yuyv_chroma(mach64_t *mach64, int format, uint32_t base, uint32_t pitch, int pair_x, int y, int signed_uv,
+                          int passthrough, int *u, int *v)
 {
     uint32_t raw = mach64_scaler_yuyv_pair(mach64, base, pitch, pair_x, y);
+    uint8_t  ru;
+    uint8_t  rv;
 
-    *u = mach64_yuv_chroma(mach64_yuyv_u(raw), signed_uv);
-    *v = mach64_yuv_chroma(mach64_yuyv_v(raw), signed_uv);
+    mach64_scaler_yuv422_raw_uv(raw, format, &ru, &rv);
+    *u = passthrough ? ru : mach64_yuv_chroma(ru, signed_uv);
+    *v = passthrough ? rv : mach64_yuv_chroma(rv, signed_uv);
 }
 
 /*
@@ -2935,8 +2964,9 @@ mach64_scaler_yuyv_chroma(mach64_t *mach64, uint32_t base, uint32_t pitch, int p
  * samples unless SCALE_PIX_REP replicates the nearest.
  */
 static rgba_t
-mach64_scaler_sample_yuyv(mach64_3d_t *ctx, uint32_t base, uint32_t pitch, int x, int x_next, int uv_x, int uv_x_next, int y,
-                          int y_next, unsigned h_fraction, unsigned uv_fraction, unsigned v_fraction, int replicate)
+mach64_scaler_sample_yuyv(mach64_3d_t *ctx, int format, int passthrough, uint32_t base, uint32_t pitch, int x, int x_next, int uv_x,
+                          int uv_x_next, int y, int y_next, unsigned h_fraction, unsigned uv_fraction, unsigned v_fraction,
+                          int replicate)
 {
     mach64_t *mach64    = ctx->mach64;
     int       signed_uv = !!(ctx->regs[SCALE_3D_CNTL >> 2] & APPLE_YUV_MODE);
@@ -2946,7 +2976,7 @@ mach64_scaler_sample_yuyv(mach64_3d_t *ctx, uint32_t base, uint32_t pitch, int x
     int       u;
     int       v;
 
-    mach64_scaler_yuyv_chroma(mach64, base, pitch, uv_x, y, signed_uv, &u00, &v00);
+    mach64_scaler_yuyv_chroma(mach64, format, base, pitch, uv_x, y, signed_uv, passthrough, &u00, &v00);
     if (replicate) {
         luma = mach64_scaler_yuyv_luma(mach64, base, pitch, x, y);
         u    = u00;
@@ -2963,14 +2993,20 @@ mach64_scaler_sample_yuyv(mach64_3d_t *ctx, uint32_t base, uint32_t pitch, int x
         int u11;
         int v11;
 
-        mach64_scaler_yuyv_chroma(mach64, base, pitch, uv_x_next, y, signed_uv, &u01, &v01);
-        mach64_scaler_yuyv_chroma(mach64, base, pitch, uv_x, y_next, signed_uv, &u10, &v10);
-        mach64_scaler_yuyv_chroma(mach64, base, pitch, uv_x_next, y_next, signed_uv, &u11, &v11);
+        mach64_scaler_yuyv_chroma(mach64, format, base, pitch, uv_x_next, y, signed_uv, passthrough, &u01, &v01);
+        mach64_scaler_yuyv_chroma(mach64, format, base, pitch, uv_x, y_next, signed_uv, passthrough, &u10, &v10);
+        mach64_scaler_yuyv_chroma(mach64, format, base, pitch, uv_x_next, y_next, signed_uv, passthrough, &u11, &v11);
         luma = mach64_scaler_lerp4(mach64_scaler_lerp4(y00, y10, v_fraction), mach64_scaler_lerp4(y01, y11, v_fraction), h_fraction);
         u    = mach64_scaler_lerp4_signed(mach64_scaler_lerp4_signed(u00, u10, v_fraction),
                                           mach64_scaler_lerp4_signed(u01, u11, v_fraction), uv_fraction);
         v    = mach64_scaler_lerp4_signed(mach64_scaler_lerp4_signed(v00, v10, v_fraction),
                                           mach64_scaler_lerp4_signed(v01, v11, v_fraction), uv_fraction);
+    }
+    if (passthrough) {
+        /* Y, U and V as stored, in the red, green and blue lanes. */
+        rgba_t c = { luma, mach64_3d_clamp8(u), mach64_3d_clamp8(v), 255 };
+
+        return c;
     }
     return mach64_3d_yuv_rgba(luma, u, v, 255);
 }
@@ -2990,12 +3026,14 @@ mach64_scaler_source_key_inhibits(mach64_3d_t *ctx, int format, uint32_t base, u
                                                mach64_3d_texture_palette_texel_index(mach64->dp_pix_width,
                                                                                      mach64_3d_vram_read8(mach64, base + y * pitch + x)));
 
-    if (format == 11) {
+    if (mach64_scaler_yuv422(format)) {
         uint32_t raw       = mach64_scaler_yuyv_pair(mach64, base, pitch, x >> 1, y);
         int      signed_uv = !!(ctx->regs[SCALE_3D_CNTL >> 2] & APPLE_YUV_MODE);
+        uint8_t  u;
+        uint8_t  v;
 
-        color = mach64_3d_yuv_rgba(mach64_yuyv_y(raw, x), mach64_yuv_chroma(mach64_yuyv_u(raw), signed_uv),
-                                   mach64_yuv_chroma(mach64_yuyv_v(raw), signed_uv), 255);
+        mach64_scaler_yuv422_raw_uv(raw, format, &u, &v);
+        color = mach64_3d_yuv_rgba(mach64_yuyv_y(raw, x), mach64_yuv_chroma(u, signed_uv), mach64_yuv_chroma(v, signed_uv), 255);
     } else
         color = mach64_scaler_read_source(ctx, format, base, pitch, x, y);
 
@@ -3049,6 +3087,99 @@ mach64_scaler_lerp_rgba(rgba_t first, rgba_t second, unsigned coefficient)
  * mixed by DP_MIX's foreground function and written through WRITE_MASK.
  * CLR_CMP_SRC 1 compares the scaled pixel itself; 3 is reserved.
  */
+/*
+ * A YUV 422 destination pixel: its Y, and U or V by its place in the pair
+ * (U first for VYUY, V first for YVYU). The pipeline carries Y, U and V in
+ * the red, green and blue lanes, as a YUV 422 source passes them on
+ * unconverted; an RGB source is converted. ATI's DirectDraw driver
+ * (macxdd32 4.11) does its MPEG motion compensation on packed YUV surfaces
+ * so: copies, ONE/ONE adds of the error blocks and averages (DP_MIX 17h).
+ */
+static int
+mach64_scaler_yuv422_pixel_is_v(uint32_t addr, int format)
+{
+    return ((addr >> 1) & 1) ^ (format == 12);
+}
+
+static rgba_t
+mach64_scaler_yuv422_read_dst(mach64_t *mach64, uint32_t addr, int format)
+{
+    uint32_t raw = mach64_3d_vram_read(mach64, addr, 2);
+    rgba_t   c   = { raw & 0xff, 128, 128, 255 };
+
+    if (mach64_scaler_yuv422_pixel_is_v(addr, format))
+        c.b = raw >> 8;
+    else
+        c.g = raw >> 8;
+    return c;
+}
+
+/* BT.601, full range, the inverse of mach64_yuv_centered_to_rgb(). */
+static rgba_t
+mach64_scaler_rgb_to_yuv(rgba_t c)
+{
+    int    r   = mach64_3d_clamp8(c.r);
+    int    g   = mach64_3d_clamp8(c.g);
+    int    b   = mach64_3d_clamp8(c.b);
+    int    y   = (77 * r + 150 * g + 29 * b + 128) >> 8;
+    rgba_t yuv = { y, mach64_3d_clamp8((((b - y) * 144) >> 8) + 128), mach64_3d_clamp8((((r - y) * 183) >> 8) + 128), c.a };
+
+    return yuv;
+}
+
+/* DP_MIX on a YUV 422 pixel works on its two bytes apart; 17h averages
+   each, as MPEG's bidirectional prediction wants. */
+static uint32_t
+mach64_scaler_mix_bytes(uint32_t src, uint32_t dst, unsigned function, int bytes)
+{
+    uint32_t ret = 0;
+
+    if ((function & 0x1f) != 0x17)
+        return mach64_scaler_mix(src, dst, function);
+    for (int i = 0; i < bytes; i++)
+        ret |= ((((src >> (i * 8)) & 0xff) + ((dst >> (i * 8)) & 0xff)) >> 1) << (i * 8);
+    return ret;
+}
+
+static void
+mach64_scaler_write_pixel_yuv422(mach64_3d_t *ctx, uint32_t addr, int format, rgba_t src, int src_is_yuv, int source_inhibits)
+{
+    mach64_t *mach64 = ctx->mach64;
+    uint32_t  cntl   = ctx->regs[SCALE_3D_CNTL >> 2];
+    uint32_t  dst    = mach64_3d_vram_read(mach64, addr, 2);
+    int       is_v   = mach64_scaler_yuv422_pixel_is_v(addr, format);
+    uint32_t  packed;
+    uint32_t  result;
+    int       inhibits;
+
+    if (!src_is_yuv)
+        src = mach64_scaler_rgb_to_yuv(src);
+    if (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND)
+        src = mach64_3d_blend(cntl, src, mach64_scaler_yuv422_read_dst(mach64, addr, format));
+    packed = mach64_3d_clamp8(src.r) | ((uint32_t) mach64_3d_clamp8(is_v ? src.b : src.g) << 8);
+
+    switch ((mach64->clr_cmp_cntl >> 24) & 3) {
+        case 0:
+            inhibits = mach64_3d_color_compare_inhibits(mach64->clr_cmp_cntl, mach64->clr_cmp_clr, mach64->clr_cmp_mask, dst);
+            break;
+        case 1:
+            inhibits = mach64_3d_color_compare_inhibits(mach64->clr_cmp_cntl, mach64->clr_cmp_clr, mach64->clr_cmp_mask, packed);
+            break;
+        case 2:
+            inhibits = source_inhibits;
+            break;
+        default:
+            inhibits = 0;
+            break;
+    }
+    if (inhibits)
+        return;
+
+    result = mach64_scaler_mix_bytes(packed, dst, (mach64->dp_mix >> 16) & 0x1f, 2) & 0xffff;
+    result = (result & mach64->write_mask) | (dst & ~mach64->write_mask);
+    mach64_3d_vram_write(mach64, addr, result & 0xffff, 2);
+}
+
 static void
 mach64_scaler_write_pixel(mach64_3d_t *ctx, uint32_t addr, int format, int x, int y, rgba_t src, int source_inhibits)
 {
@@ -3119,7 +3250,9 @@ mach64_scaler_draw(mach64_3d_t *ctx)
     int32_t         v_start    = mach64_3d_sign_extend(regs[SCALE_VACC >> 2], 21);
     int             src_format = mach64_3d_src_format(mach64);
     int             dst_format = mach64_3d_dst_format(mach64);
-    int             dst_bpp    = mach64_3d_bytes_per_pixel(dst_format);
+    int             dst_bpp    = mach64_scaler_destination_bpp(dst_format);
+    /* YUV 422 in and out: Y, U and V go through as they are. */
+    int             passthrough = mach64_scaler_yuv422(src_format) && mach64_scaler_yuv422(dst_format);
     int             dst_pitch  = ((mach64->dst_off_pitch >> 22) & 0x3ff) << 3;
     uint32_t        dst_base   = (mach64->dst_off_pitch & 0xfffff) << 3;
     int             dst_x      = mach64_3d_sign_extend(mach64->dst_y_x >> 16, 13);
@@ -3176,9 +3309,14 @@ mach64_scaler_draw(mach64_3d_t *ctx)
                 inhibits = mach64_scaler_source_inhibits(ctx, src_format, src_base, src_pitch, src_x, src_x_next, src_y,
                                                          src_y_next, h_fraction, v_fraction, replicate);
 
-                if (src_format == 11) {
+                if (mach64_scaler_yuv422(src_format)) {
                     int      uv_width    = (src_width + 1) >> 1;
-                    int32_t  uv_acc      = uv_start + (int32_t) (dx * xuv_inc);
+                    /* Into a YUV 422 destination a pixel pair takes one
+                       chroma sample, at its first pixel: the second one's
+                       V (or U) comes from the same source pair. */
+                    int      pair_dx     = (passthrough && (((dst_base >> 1) + (uint32_t) (y * (dst_pitch >> 1)) + (uint32_t) x) & 1))
+                                               ? (dx - x_dir) : dx;
+                    int32_t  uv_acc      = uv_start + (int32_t) (pair_dx * xuv_inc);
                     int      uv_x        = mach64_scaler_accum_pixel(uv_acc);
                     unsigned uv_fraction = mach64_scaler_accum_fraction4(uv_acc);
                     int      uv_x_next;
@@ -3189,8 +3327,8 @@ mach64_scaler_draw(mach64_3d_t *ctx)
                         uv_x = uv_width - 1;
                     uv_x_next = (uv_x + 1 >= uv_width) ? (uv_width - 1) : (uv_x + 1);
 
-                    src = mach64_scaler_sample_yuyv(ctx, src_base, src_pitch, src_x, src_x_next, uv_x, uv_x_next, src_y,
-                                                    src_y_next, h_fraction, uv_fraction, v_fraction, replicate);
+                    src = mach64_scaler_sample_yuyv(ctx, src_format, passthrough, src_base, src_pitch, src_x, src_x_next, uv_x,
+                                                    uv_x_next, src_y, src_y_next, h_fraction, uv_fraction, v_fraction, replicate);
                 } else {
                     rgba_t nearest;
 
@@ -3223,7 +3361,10 @@ mach64_scaler_draw(mach64_3d_t *ctx)
                 addr = (int64_t) dst_base + ((int64_t) y * dst_pitch + x) * dst_bpp;
                 if ((addr < 0) || (((uint64_t) addr + dst_bpp) > vram_size))
                     continue;
-                mach64_scaler_write_pixel(ctx, addr, dst_format, x, y, src, inhibits);
+                if (mach64_scaler_yuv422(dst_format))
+                    mach64_scaler_write_pixel_yuv422(ctx, addr, dst_format, src, passthrough, inhibits);
+                else
+                    mach64_scaler_write_pixel(ctx, addr, dst_format, x, y, src, inhibits);
             }
         }
     }

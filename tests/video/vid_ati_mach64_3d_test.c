@@ -1125,6 +1125,96 @@ run_scaler_visibility_test(mach64_t *mach64)
     return wrong;
 }
 
+/*
+ * ATI's DirectDraw MPEG motion compensation on a packed surface (macxdd32
+ * 4.11): DP_PIX_WIDTH C00000CCh, YVYU 422 in and out, scaled 1:1. A copy
+ * keeps every byte, SCALE_3D_CNTL 98A40h adds the error block ONE/ONE with
+ * saturation, and DP_MIX 17h averages the two predictions byte by byte.
+ */
+static int
+yuv422_mc_blit(mach64_t *mach64, uint32_t src, uint32_t dst, uint32_t cntl, uint32_t mix)
+{
+    int wrong = 0;
+
+    mach64->dp_pix_width  = 0xc00000ccu;
+    mach64->dp_src        = 0x00000505u;
+    mach64->dp_mix        = mix;
+    mach64->write_mask    = 0xffffffffu;
+    mach64->clr_cmp_cntl  = 0;
+    mach64->dst_off_pitch = (1u << 22) | (dst >> 3); /* 8 pixels of 2 bytes */
+    mach64->dst_y_x       = 0;
+    mach64->dst_cntl      = DST_X_DIR | DST_Y_DIR;
+    mach64->sc_left_right = 0x0fff0000u;
+    mach64->sc_top_bottom = 0x3fff0000u;
+
+    wrong += write_scaler_register(mach64, 0x1c0, src);
+    wrong += write_scaler_register(mach64, 0x1dc, 4);
+    wrong += write_scaler_register(mach64, 0x1e0, 1);
+    wrong += write_scaler_register(mach64, 0x1ec, 8);
+    wrong += write_scaler_register(mach64, 0x1f0, 0x00010000u);
+    wrong += write_scaler_register(mach64, 0x1f4, 0x00010000u);
+    wrong += write_scaler_register(mach64, 0x1f8, 0);
+    wrong += write_scaler_register(mach64, 0x3c8, 0);
+    wrong += write_scaler_register(mach64, 0x3d8, 0x00008000u);
+    wrong += write_scaler_register(mach64, 0x3e0, 0);
+    wrong += write_scaler_register(mach64, 0x1fc, cntl);
+    if (!mach64_3d_write(mach64, 0x118, 0x00040001u, FIFO_WRITE_DWORD)) {
+        fprintf(stderr, "YUV 422 MC destination trigger was not claimed\n");
+        wrong++;
+    }
+    return wrong;
+}
+
+static int
+run_yuv422_motion_comp_test(mach64_t *mach64)
+{
+    static const uint8_t ref[8]      = { 16, 90, 235, 200, 120, 30, 60, 250 };
+    static const uint8_t error[8]    = { 10, 10, 30, 70, 0, 255, 5, 10 };
+    static const uint8_t ref2[8]     = { 20, 100, 135, 101, 121, 32, 61, 249 };
+    const uint32_t       src         = 0x10000;
+    const uint32_t       err         = 0x10100;
+    const uint32_t       src2        = 0x10200;
+    const uint32_t       dst         = 0x20000;
+    int                  wrong       = 0;
+    uint8_t              expected[8];
+
+    memcpy(mach64->svga.vram + src, ref, 8);
+    memcpy(mach64->svga.vram + err, error, 8);
+    memcpy(mach64->svga.vram + src2, ref2, 8);
+    memset(mach64->svga.vram + dst, 0x55, 8);
+
+    /* The prediction: a byte-exact copy. */
+    wrong += yuv422_mc_blit(mach64, src, dst, 0x00000040u, 0x00070007u);
+    if (memcmp(mach64->svga.vram + dst, ref, 8)) {
+        fprintf(stderr, "YUV 422 MC copy: got %02x %02x %02x %02x %02x %02x %02x %02x\n", mach64->svga.vram[dst],
+                mach64->svga.vram[dst + 1], mach64->svga.vram[dst + 2], mach64->svga.vram[dst + 3], mach64->svga.vram[dst + 4],
+                mach64->svga.vram[dst + 5], mach64->svga.vram[dst + 6], mach64->svga.vram[dst + 7]);
+        wrong++;
+    }
+
+    /* The error block, added ONE/ONE with saturation. */
+    wrong += yuv422_mc_blit(mach64, err, dst, 0x00098a40u, 0x00070003u);
+    for (int i = 0; i < 8; i++)
+        expected[i] = (ref[i] + error[i] > 255) ? 255 : (uint8_t) (ref[i] + error[i]);
+    if (memcmp(mach64->svga.vram + dst, expected, 8)) {
+        for (int i = 0; i < 8; i++)
+            fprintf(stderr, "YUV 422 MC add byte %d: expected %02x, got %02x\n", i, expected[i], mach64->svga.vram[dst + i]);
+        wrong++;
+    }
+
+    /* A bidirectional prediction: the second reference averaged in. */
+    memcpy(mach64->svga.vram + dst, ref, 8);
+    wrong += yuv422_mc_blit(mach64, src2, dst, 0x00000040u, 0x00170017u);
+    for (int i = 0; i < 8; i++)
+        expected[i] = (uint8_t) ((ref[i] + ref2[i]) >> 1);
+    if (memcmp(mach64->svga.vram + dst, expected, 8)) {
+        for (int i = 0; i < 8; i++)
+            fprintf(stderr, "YUV 422 MC average byte %d: expected %02x, got %02x\n", i, expected[i], mach64->svga.vram[dst + i]);
+        wrong++;
+    }
+    return wrong;
+}
+
 static void
 scaler_tests(void)
 {
@@ -1135,6 +1225,7 @@ scaler_tests(void)
     failures += run_apple_yuv_test(mach64);
     failures += run_scaler_color_compare_test(mach64);
     failures += run_scaler_visibility_test(mach64);
+    failures += run_yuv422_motion_comp_test(mach64);
     card_close(mach64);
 }
 
