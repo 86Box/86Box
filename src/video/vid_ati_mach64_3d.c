@@ -1571,6 +1571,27 @@ mach64_3d_texel_key_inhibits(const mach64_3d_texture_t *map, uint32_t selected)
     }
 }
 
+/* What the texel key compares a texel by: the 16 and 8-bit RGB types by the
+   texel as stored, as a pseudo-color one by its index, before expansion to
+   8 bits a channel. ATI's Windows 9x driver keys black RGB565 and ARGB1555
+   textures with CLR_CMP_CLR 0 and CLR_CMP_MASK FFFFh (Forsaken), so a key on
+   the expanded color would take any pure red texel, whose low 16 bits are 0,
+   for the key. The other types keep their 24-bit color. */
+static inline uint32_t
+mach64_3d_texel_key_value(int format, uint32_t raw, uint32_t argb)
+{
+    switch (format) {
+        case 3:  /* ARGB 1555 */
+        case 4:  /* RGB 565 */
+        case 15: /* ARGB 4444 */
+            return raw & 0xffff;
+        case 7:  /* RGB 332 */
+            return raw & 0xff;
+        default:
+            return argb & 0x00ffffff;
+    }
+}
+
 /* The texel at u, v, and whether the key hides it: a pseudo-color texel by
    its index, any other by its color. The 16 and 32-bit types are unpacked
    here, the others by mach64_3d_unpack_argb. The 2x2 filter fetches four,
@@ -1585,16 +1606,19 @@ mach64_3d_texel_at(mach64_3d_t *ctx, const mach64_3d_texture_t *map, int u, int 
 
     switch (map->format) {
         case 3:
-            argb = mach64_3d_argb1555(mach64_3d_vram_read16(mach64, addr), map->dynamic_range);
+            raw  = mach64_3d_vram_read16(mach64, addr);
+            argb = mach64_3d_argb1555(raw, map->dynamic_range);
             break;
         case 4:
-            argb = mach64_3d_argb565(mach64_3d_vram_read16(mach64, addr), map->dynamic_range);
+            raw  = mach64_3d_vram_read16(mach64, addr);
+            argb = mach64_3d_argb565(raw, map->dynamic_range);
             break;
         case 6:
-            argb = mach64_3d_vram_read32(mach64, addr);
+            raw  = argb = mach64_3d_vram_read32(mach64, addr);
             break;
         case 15:
-            argb = mach64_3d_argb4444(mach64_3d_vram_read16(mach64, addr), map->dynamic_range);
+            raw  = mach64_3d_vram_read16(mach64, addr);
+            argb = mach64_3d_argb4444(raw, map->dynamic_range);
             break;
         case 11:
             raw  = mach64_3d_vram_read32(mach64, map->base + (v * map->width + (u & ~1)) * 2);
@@ -1609,7 +1633,7 @@ mach64_3d_texel_at(mach64_3d_t *ctx, const mach64_3d_texture_t *map, int u, int 
             }
             break;
     }
-    *inhibits = mach64_3d_texel_key_inhibits(map, argb & 0x00ffffff);
+    *inhibits = mach64_3d_texel_key_inhibits(map, mach64_3d_texel_key_value(map->format, raw, argb));
     return argb;
 }
 
@@ -4197,7 +4221,7 @@ mach64_rp_texel_vq(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp
             argb = mach64_3d_argb565(raw, map->tex.dynamic_range);
             break;
     }
-    *inhibits = mach64_3d_texel_key_inhibits(&map->tex, argb & 0x00ffffff);
+    *inhibits = mach64_3d_texel_key_inhibits(&map->tex, mach64_3d_texel_key_value(map->tex.format, raw, argb));
     return argb;
 }
 
@@ -4240,7 +4264,7 @@ mach64_rp_texel_agp(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_3
             }
             break;
     }
-    *inhibits = mach64_3d_texel_key_inhibits(map, argb & 0x00ffffff);
+    *inhibits = mach64_3d_texel_key_inhibits(map, mach64_3d_texel_key_value(map->format, raw, argb));
     return argb;
 }
 
@@ -4357,7 +4381,7 @@ mach64_rp_texels_2x2(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_
         inh[0] = inh[1] = inh[2] = inh[3] = 0;
     else {
         for (int i = 0; i < 4; i++)
-            inh[i] = mach64_3d_texel_key_inhibits(tex, c[i] & 0x00ffffff);
+            inh[i] = mach64_3d_texel_key_inhibits(tex, mach64_3d_texel_key_value(tex->format, raw[i], c[i]));
     }
 }
 
