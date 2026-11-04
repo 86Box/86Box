@@ -287,8 +287,10 @@ reset_387(void)
         cpu_cur_status &= ~(CPU_STATUS_FPU_PC24 | CPU_STATUS_FPU_RC_NZ);
         cpu_state.npxs = sw;
         cpu_state.TOP  = 0;
+        /* Tagged empty, the registers kept: an extended denormal keeps
+           TAG_DENORMAL (x87.h) */
         for (int i = 0; i < 8; i++)
-            cpu_state.tag[i] = TAG_EMPTY;
+            cpu_state.tag[i] &= TAG_DENORMAL;
         cpu_state.ismmx = 0;
     }
     fpu_ferr  = 1;
@@ -321,8 +323,9 @@ reset_fpu_init(void)
         cpu_cur_status &= ~(CPU_STATUS_FPU_PC24 | CPU_STATUS_FPU_RC_NZ);
         cpu_state.npxs = (fpu_type == FPU_8087) ? (cpu_state.npxs & 0x4700) : 0;
         cpu_state.TOP  = 0;
+        /* As reset_387: TAG_DENORMAL stays */
         for (int i = 0; i < 8; i++)
-            cpu_state.tag[i] = TAG_EMPTY;
+            cpu_state.tag[i] &= TAG_DENORMAL;
     }
     cpu_state.ismmx = 0;
 }
