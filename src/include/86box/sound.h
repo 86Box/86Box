@@ -366,6 +366,9 @@ extern const device_t mmb_device;
 extern const device_t thunderboard_device;
 extern const device_t jazz16_device;
 
+/* Oak Technology OTI-601 */
+extern const device_t mozart_device;
+
 /* OPTi 82c93x */
 extern const device_t acermagic_s20_device;
 extern const device_t mirosound_pcm10_device;
