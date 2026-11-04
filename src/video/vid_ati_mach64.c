@@ -733,6 +733,36 @@ mach64_sync_ap_loc(mach64_t *mach64)
         mach64->config_cntl = (mach64->config_cntl & ~3) | 2;
 }
 
+/* A byte write to the VGA window. Reaching memory linearly (fb_only)
+   with the raster operations off (fast), a byte goes straight to video memory
+   as a word or dword already does: the sequencer's map mask does not apply.
+   The Rage XL's BIOS leaves it at 3 in its accelerator modes, and Windows
+   2000's ATI miniport (atimpab.sys) tests a few bytes of VGA memory one at a
+   time there before each mode set through the BIOS, failing them otherwise
+   (and the mode set with them, for ever). */
+static void
+mach64_vga_write(uint32_t addr, uint8_t val, void *priv)
+{
+    svga_t *svga = (svga_t *) priv;
+
+    if (!svga->fb_only || !svga->fast) {
+        svga_write(addr, val, priv);
+        return;
+    }
+    cycles -= svga->monitor->mon_video_timing_write_b;
+    addr = svga_decode_addr(svga, addr, 1);
+    if (addr == 0xffffffff)
+        return;
+    addr &= svga->decode_mask;
+    if (svga->translate_address)
+        addr = svga->translate_address(addr, priv);
+    if (addr >= svga->vram_max)
+        return;
+    addr &= svga->vram_mask;
+    svga->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
+    svga->vram[addr]              = val;
+}
+
 void
 mach64_updatemapping(mach64_t *mach64)
 {
@@ -795,9 +825,9 @@ mach64_updatemapping(mach64_t *mach64)
         }
         mach64_mapping_set(&mach64->mmio_mapping, 0xc0000 - mach64_reg_window(mach64), mach64_reg_window(mach64));
     } else {
-        if ((svga->mapping.read_b != svga_read) || (svga->mapping.priv != svga)) {
+        if ((svga->mapping.write_b != mach64_vga_write) || (svga->mapping.priv != svga)) {
             mem_mapping_set_handler(&svga->mapping, svga_read, mach64->isa_8bit ? NULL : svga_readw, mach64->isa_8bit ? NULL : svga_readl,
-                                    svga_write, mach64->isa_8bit ? NULL : svga_writew, mach64->isa_8bit ? NULL : svga_writel);
+                                    mach64_vga_write, mach64->isa_8bit ? NULL : svga_writew, mach64->isa_8bit ? NULL : svga_writel);
             mem_mapping_set_p(&svga->mapping, svga);
         }
         mach64_mapping_off(&mach64->mmio_mapping);
@@ -2832,8 +2862,10 @@ mach64_write(uint32_t addr, uint8_t val, void *priv)
     mach64_t *mach64 = (mach64_t *) priv;
     svga_t   *svga   = &mach64->svga;
     addr = mach64_decode_addr(mach64, addr, 1);
+    /* Bytes take the fast path as words and dwords do (see
+       mach64_vga_write()). */
     if (addr != 0xffffffff)
-        svga_write_linear(addr, val, svga);
+        svga_writeb_linear(addr, val, svga);
 }
 void
 mach64_writew(uint32_t addr, uint16_t val, void *priv)
