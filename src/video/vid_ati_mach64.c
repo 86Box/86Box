@@ -1828,8 +1828,8 @@ mach64_ext_readb(uint32_t addr, void *priv)
                     /* DAC_CMP_OUTPUT (7): 1 when all three comparators are below
                        0.28 V (VT RRG 4-40), the same comparators the VGA's
                        switch sense (3C2h bit 4) reads. */
-                    if (((addr & 3) == 0) && mach64_is_vt(mach64) && (svga_in(0x3c2, svga) & 0x10))
-                        ret |= 0x80;
+                    if ((addr & 3) == 0)
+                        ret = mach64_dac_cntl_low(mach64);
                     break;
                 case 0xc7:
                     READ8(addr, mach64->dac_cntl);
@@ -4258,8 +4258,8 @@ mach64gtb_init(const device_t *info)
             mach64->gtb_regs[0x95] = mach64->bios_rom.rom[0x4d];
         }
     } else if (info->local & MACH64_FLAG_RAGELT) {
-        /* The Rage LT Pro dump is 58K (74h blocks by its ROM header).
-           Keep the 64K ROM window; rom_init pads the unused tail with FFh. */
+        /* Use the full 64K flash image: the shorter shadow dump has already
+           removed its one-shot power-on initialization calls. */
         ati_eeprom_load(&mach64->eeprom, "mach64ragelt.nvr", 1);
         rom_init(&mach64->bios_rom, (char *) device_get_bios_file(info, device_get_config_bios("bios_ver"), 0),
                  0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
@@ -5146,7 +5146,7 @@ static const device_config_t mach64ragelt_config[] = {
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 4,
-                .size          = 59392,
+                .size          = 65536,
                 .files         = { BIOS_RAGELT_55702_PATH, "" }
             },
             { .files_no = 0 }

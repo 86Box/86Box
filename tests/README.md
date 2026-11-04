@@ -313,3 +313,11 @@ ctest --test-dir build --output-on-failure -R '^Ini'
 ```
 
 Build with AddressSanitizer to check the long-name cases for memory errors.
+
+# Mach64 BIOS monitor detection
+
+`Mach64.Display` checks the on-chip DAC comparator used by ATI BIOS CRT
+probing, from CT through VT/GT-B (including the Rage Pro family), and its
+read-only output bit. It preserves external-RAMDAC GX behavior. This helper
+regression complements the boot and Windows driver tests; it does not model
+analog monitor voltages or replace end-to-end display testing.

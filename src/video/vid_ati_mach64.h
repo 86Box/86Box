@@ -92,8 +92,8 @@
    the size the BIOS leaves itself once it has run. */
 #define BIOS_RAGEXL_72301_PATH        "roms/video/mach64/ragexl_pci_113-72301-101.bin"
 /* Rage LT Pro AGP (BGA-312, PCI ID LB, 4C42h), SDRAM: ATI 113-55702-100,
-   BK4.1.3/4.154T, 1999/04/13 ("MACH64LBPCIMTSDU"), board 109-55700-01: a 58K
-   image (74h blocks) in a 64K part. */
+   BK4.1.3/4.154T, 1999/04/13 ("MACH64LBPCIMTSDU"), board 109-55700-01:
+   the full 64K flash image, with its cold-start initialization intact. */
 #define BIOS_RAGELT_55702_PATH        "roms/video/mach64/ragelt_agp_113-55702-100.bin"
 
 #define FIFO_SIZE         65536
@@ -782,3 +782,19 @@ mach64_mpp_writeb(mach64_t *mach64, uint32_t addr, uint8_t val)
             var = (var & 0x00ffffff) | ((val) << 24); \
             break;                                    \
     }
+
+/* The on-chip DAC's comparator is present from CT onward, including
+ * Rage Pro/XL/LT Pro. Their BIOS uses it to detect the attached CRT before
+ * programming a display mode (LT Pro RRG 4-84). Bit 7 is read-only. */
+static inline uint8_t
+mach64_dac_cntl_low(mach64_t *mach64)
+{
+    uint8_t value = mach64->dac_cntl;
+
+    if (mach64->type >= MACH64_CT) {
+        value &= ~0x80;
+        if (svga_in(0x3c2, &mach64->svga) & 0x10)
+            value |= 0x80;
+    }
+    return value;
+}
