@@ -720,7 +720,7 @@ mach64_timing_seconds(const mach64_timing_work_t *work, const mach64_timing_cloc
  * or out of reach of the chip is taken as 60 MHz.
  */
 static mach64_timing_clocks_t
-mach64_timing_pll_clocks(const uint8_t *pll_regs, double cpu_bus_hz)
+mach64_timing_pll_clocks(const uint8_t *pll_regs, double cpu_bus_hz, double ref_hz)
 {
     const mach64_timing_clocks_t fallback = { 60000000.0, 60000000.0, 0.0 };
     mach64_timing_clocks_t       c        = fallback;
@@ -734,7 +734,7 @@ mach64_timing_pll_clocks(const uint8_t *pll_regs, double cpu_bus_hz)
     if (!ref_div || !fb_div)
         return fallback;
 
-    pll_mclk = PLL_REF_HZ * ((xclk & 4) ? 4.0 : 2.0) * fb_div / ref_div;
+    pll_mclk = ref_hz * ((xclk & 4) ? 4.0 : 2.0) * fb_div / ref_div;
     switch ((gen_cntl >> 4) & 7) {
         case 0:
             src = pll_mclk;
@@ -753,7 +753,7 @@ mach64_timing_pll_clocks(const uint8_t *pll_regs, double cpu_bus_hz)
             break;
         case 6:
         case 7:
-            src = PLL_REF_HZ;
+            src = ref_hz;
             break;
         default:
             return fallback;
@@ -932,7 +932,8 @@ mach64_timing_now(mach64_timing_t *timing)
 static mach64_timing_clocks_t
 mach64_timing_measure(const mach64_t *mach64)
 {
-    mach64_timing_clocks_t clocks = mach64_timing_pll_clocks(mach64->pll_regs, (double) cpu_pci_speed);
+    mach64_timing_clocks_t clocks = mach64_timing_pll_clocks(mach64->pll_regs, (double) cpu_pci_speed,
+                                                             mach64->ragelt ? RAGELT_PLL_REF_HZ : PLL_REF_HZ);
 
     if (mach64->crtc_gen_cntl & (1u << 24)) {
         double pixel_clock = mach64->pll_freq[mach64->clock_cntl & 3];

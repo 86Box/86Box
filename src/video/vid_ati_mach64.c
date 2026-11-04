@@ -150,6 +150,8 @@ mach64_crtc_write_filter(const mach64_t *mach64, int reg, uint8_t old, uint8_t *
     return 1;
 }
 
+static int mach64_lt_vga_shadowed(const mach64_t *mach64, uint8_t index);
+
 /* ATIX bits 7:6 carry the index offset, which must match the one GDC 51h
    set (VGA Register Guide 5-4); anything else addresses no register. */
 static int
@@ -292,6 +294,10 @@ mach64_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3D5:
             if (svga->crtcreg > 0x20)
                 return;
+            if (mach64_lt_vga_shadowed(mach64, svga->crtcreg)) {
+                mach64->lt_vga_shadow[svga->crtcreg] = val;
+                return;
+            }
             old = svga->crtc[svga->crtcreg];
             if (mach64->type == MACH64_GX) {
                 if (!mach64_crtc_write_filter(mach64, svga->crtcreg, old, &val))
@@ -365,6 +371,8 @@ mach64_in(uint16_t addr, void *priv)
         case 0x3D5:
             if (svga->crtcreg > 0x20)
                 return 0xff;
+            if (mach64_lt_vga_shadowed(mach64, svga->crtcreg))
+                return mach64->lt_vga_shadow[svga->crtcreg];
             return svga->crtc[svga->crtcreg];
 
         default:
@@ -1019,7 +1027,7 @@ mach64_pll_recalc(mach64_t *mach64)
         int                  idx = (mach64->pll_regs[VCLK_POST_DIV] >> (c * 2)) & 3;
         double               m   = (double) mach64->pll_regs[PLL_REF_DIV];
         double               n   = (double) mach64->pll_regs[VCLK0_FB_DIV + c];
-        double               r   = 14318184.0;
+        double               r   = mach64->ragelt ? RAGELT_PLL_REF_HZ : 14318184.0;
         double               p;
 
         if (mach64->type >= MACH64_VT) {
@@ -1052,7 +1060,7 @@ mach64_pll_recalc(mach64_t *mach64)
            the VGA modes, whose clocks are the VGA's here.) The reference
            source (bits 1:0) is XTALIN here: the other two, PLLMCLK/2 and
            PLLSCLK/2, are not used by the BIOS. */
-        if (mach64->ragexl && (mach64->pll_regs[0x19] & 0x04)) {
+        if (MACH64_LT_REGS(mach64) && (mach64->pll_regs[0x19] & 0x04)) {
             m = (double) (mach64->pll_regs[0x1a] | ((mach64->pll_regs[0x1c] & 0x03) << 8));
             n = (double) (mach64->pll_regs[0x1b] | ((mach64->pll_regs[0x1c] & 0x70) << 4)) / 2.0;
         }
@@ -1335,7 +1343,7 @@ mach64_gtb_gp_io_drive(mach64_t *mach64)
 {
     const uint32_t gp_io = mach64->gp_io;
 
-    if (mach64->ragexl)
+    if (MACH64_LT_REGS(mach64))
         return;
     if (mach64->ragepro) {
         i2c_gpio_set(mach64->i2c, mach64_gtb_gp_io_pin(gp_io, GTB_GP_IO_SCL_D, GTB_GP_IO_DIR_SCL_D),
@@ -1356,7 +1364,7 @@ mach64_gtb_gp_io_read(mach64_t *mach64, uint32_t addr)
     int     scl = i2c_gpio_get_scl(mach64->i2c);
     int     sda = i2c_gpio_get_sda(mach64->i2c);
 
-    if (mach64->ragexl)
+    if (MACH64_LT_REGS(mach64))
         return ret;
     if (mach64->ragepro) {
         if ((addr & 3) == 1) /* GP_IO_C, GP_IO_D */
@@ -1376,6 +1384,84 @@ mach64_gtb_gp_io_read(mach64_t *mach64, uint32_t addr)
     return ret;
 }
 
+/*
+ * the Rage LT Pro's shadow and second CRTC registers (LT Pro RRG
+ * 4-33..4-37, LCD_GEN_CTRL 8-4). With CRTC_RW_SELECT the accelerator CRTC's
+ * timing, VLINE, OFF_PITCH and overscan width registers are the second
+ * CRTC's; with SHADOW_RW_EN the five timing registers (00h-13h) and the
+ * VGA CRTC's timing registers are the panel's shadow copies. Both are kept
+ * as written: the second CRTC and the panel are not displayed (CRT only),
+ * and the CRT is timed from the normal registers, as with a CRT and no
+ * panel. Returns NULL for a register that is the normal one.
+ */
+#define RAGELT_LCD_GEN_CTRL          1
+#define RAGELT_LCD_POWER_MANAGEMENT  8
+#define RAGELT_CRTC_RW_SELECT        (1u << 27)
+#define RAGELT_SHADOW_RW_EN          (1u << 31)
+#define RAGELT_PWR_MGT_ON            (1u << 0)
+#define RAGELT_STANDBY_NOW           (1u << 27)
+#define RAGELT_SUSPEND_NOW           (1u << 28)
+#define RAGELT_PWR_MGT_STATUS        (3u << 29)
+
+static uint32_t *
+mach64_lt_crtc_reg(mach64_t *mach64, uint32_t reg)
+{
+    const uint32_t gen = mach64->lcd_regs[RAGELT_LCD_GEN_CTRL];
+
+    if (gen & RAGELT_CRTC_RW_SELECT) {
+        if ((reg < 0x18) || ((reg & 0xfc) == 0x44) || ((reg & 0xfc) == 0x48))
+            return &mach64->lt_crtc2[reg >> 2];
+    } else if ((gen & RAGELT_SHADOW_RW_EN) && (reg < 0x14))
+        return &mach64->lt_shadow[reg >> 2];
+    return NULL;
+}
+
+/* The VGA CRTC registers with shadow copies (RRG 4-33), reached through
+   3?5h while SHADOW_RW_EN is set (the second CRTC has no VGA side). */
+static int
+mach64_lt_vga_shadowed(const mach64_t *mach64, uint8_t index)
+{
+    const uint32_t gen = mach64->lcd_regs[RAGELT_LCD_GEN_CTRL];
+
+    if (!mach64->ragelt || !(gen & RAGELT_SHADOW_RW_EN) || (gen & RAGELT_CRTC_RW_SELECT))
+        return 0;
+    switch (index) {
+        case 0x00 ... 0x07:
+        case 0x09 ... 0x0b:
+        case 0x10 ... 0x12:
+        case 0x14 ... 0x16:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+/* POWER_MANAGEMENT (LCD index 8, RRG 8-16): with PWR_MGT_ON, STANDBY_NOW and
+   SUSPEND_NOW put the chip in standby or suspend at once; PWR_MGT_STATUS
+   (30:29, read only) says which, and the display is off in either. The
+   timers, pins and the keyboard snoop are not emulated. */
+static uint32_t
+mach64_lt_pm_status(const mach64_t *mach64)
+{
+    const uint32_t pm = mach64->lcd_regs[RAGELT_LCD_POWER_MANAGEMENT];
+
+    if (!(pm & RAGELT_PWR_MGT_ON))
+        return 0;
+    if (pm & RAGELT_SUSPEND_NOW)
+        return 2u << 29;
+    if (pm & RAGELT_STANDBY_NOW)
+        return 1u << 29;
+    return 0;
+}
+
+static void
+mach64_update_dpms(mach64_t *mach64)
+{
+    svga_t *svga = &mach64->svga;
+
+    svga->dpms = !!(mach64->crtc_gen_cntl & 0x0c) || (mach64->ragelt && mach64_lt_pm_status(mach64));
+}
+
 /* The GT-B's own registers in block 0: returns 0 for those of the core. */
 static int
 mach64_gtb_readb(mach64_t *mach64, uint32_t addr, uint8_t *val)
@@ -1391,12 +1477,17 @@ mach64_gtb_readb(mach64_t *mach64, uint32_t addr, uint8_t *val)
         *val = mach64_gtb_gp_io_read(mach64, addr);
     else if (mach64->ragepro && (((reg & 0xfc) == 0x3c) || ((reg & 0xfc) == 0xbc)))
         *val = mach64_ragepro_i2c_readb(mach64, reg);
-    else if (mach64->ragexl && ((reg & 0xfc) == 0xa8))
+    else if (mach64->ragelt && (reg < 0x50) && mach64_lt_crtc_reg(mach64, reg))
+        *val = *mach64_lt_crtc_reg(mach64, reg) >> ((addr & 3) * 8);
+    else if (MACH64_LT_REGS(mach64) && ((reg & 0xfc) == 0xa8))
         /* The Rage XL's LCD_DATA (2Ah), the register LCD_INDEX (29h, kept
            as written) selects (XL/XC RRG 8-1). No panel: MONDET_SENSE and
            GUI_ACTIVE read 0 in LCD_INDEX. */
     {
         uint32_t lcd = mach64->lcd_regs[mach64->gtb_regs[0xa4] & 0x3f];
+
+        if (mach64->ragelt && ((mach64->gtb_regs[0xa4] & 0x3f) == RAGELT_LCD_POWER_MANAGEMENT))
+            lcd = (lcd & ~RAGELT_PWR_MGT_STATUS) | mach64_lt_pm_status(mach64);
 
         if ((mach64->gtb_regs[0xa4] & 0x3f) == RAGEXL_LCD_LT_GIO) {
             /* The pins read back as the DDC lines are. */
@@ -1422,10 +1513,16 @@ mach64_gtb_writeb(mach64_t *mach64, uint32_t addr, uint8_t val)
     if ((reg & 0xfc) == 0x78) {
         WRITE8(addr, mach64->gp_io, val);
         mach64_gtb_gp_io_drive(mach64);
-    } else if (mach64->ragexl && ((reg & 0xfc) == 0xa8)) {
+    } else if (mach64->ragelt && (reg < 0x50) && mach64_lt_crtc_reg(mach64, reg)) {
+        uint32_t *crtc = mach64_lt_crtc_reg(mach64, reg);
+
+        WRITE8(addr, *crtc, val);
+    } else if (MACH64_LT_REGS(mach64) && ((reg & 0xfc) == 0xa8)) {
         WRITE8(addr, mach64->lcd_regs[mach64->gtb_regs[0xa4] & 0x3f], val);
         if ((mach64->gtb_regs[0xa4] & 0x3f) == RAGEXL_LCD_LT_GIO)
             mach64_ragexl_lt_gio_drive(mach64);
+        if (mach64->ragelt && ((mach64->gtb_regs[0xa4] & 0x3f) == RAGELT_LCD_POWER_MANAGEMENT))
+            mach64_update_dpms(mach64);
     } else if (mach64->ragepro && (((reg & 0xfc) == 0x3c) || ((reg & 0xfc) == 0xbc)))
         mach64_ragepro_i2c_writeb(mach64, reg, val);
     else if (mach64_gtb_latched(reg))
@@ -2259,7 +2356,7 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     svga->fast    = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) &&
                                     ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) &&
                                     !(svga->adv_flags & FLAG_ADDR_BY8);
-                    svga->dpms = !!(mach64->crtc_gen_cntl & 0x0c);
+                    mach64_update_dpms(mach64);
                     svga_recalctimings(&mach64->svga);
                     svga->fullchange = svga->monitor->mon_changeframecount;
                     break;
@@ -3418,6 +3515,28 @@ mach64_writel_be(uint32_t addr, uint32_t val, void *priv)
 #define RAGEPRO_AGP_CAP    0x50
 #define RAGEPRO_AGP_STATUS 0x07000203
 
+/* The Rage LT Pro's PCI power management capability (RRG 6-8, 6-9):
+   ID 01h, the end of the list, D1 and D2 supported, no PME; version 1 (PCI
+   PM 1.0: the RRG gives no version field, 2:0 are taken as that). The
+   control/status register keeps the power state, 1:0. */
+#define RAGELT_PM_CAP 0x5c
+#define RAGELT_PMC    0x0601
+
+static uint8_t
+mach64_ragelt_pm_read(const mach64_t *mach64, int off)
+{
+    switch (off) {
+        case 0:
+            return 0x01; /* CAP_ID: power management */
+        case 2 ... 3:
+            return (RAGELT_PMC >> ((off - 2) * 8)) & 0xff;
+        case 4:
+            return mach64->lt_pmcsr;
+        default:
+            return 0x00;
+    }
+}
+
 /* The rate field takes 1x and 2x only, the rates the status offers (AGP 2.0
    6.1.10: unimplemented fields read 0). */
 static const uint8_t ragepro_agp_cmd_mask[4] = { 0x03, 0x03, 0x00, 0xff };
@@ -3429,7 +3548,9 @@ mach64_ragepro_agp_read(const mach64_t *mach64, int off)
         case 0:
             return 0x02; /* CAP_ID: AGP */
         case 1:
-            return 0x00; /* NEXT_PTR: end of the list */
+            /* NEXT_PTR: the end of the list; the LT Pro's goes on to its
+               power management capability (RRG 6-7). */
+            return mach64->ragelt ? RAGELT_PM_CAP : 0x00;
         case 2:
             return 0x10; /* AGP revision 1.0 */
         case 4 ... 7:
@@ -3523,7 +3644,7 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
                the card's ROM after the PCI reset, or written by a system
                BIOS through the alias at 4Ch (XL/XC RRG 4-36; Controller
                Specifications 3.10.2). */
-            if (mach64->ragexl)
+            if (MACH64_LT_REGS(mach64))
                 return mach64->gtb_regs[0x94 + ((addr + 2) & 3)];
             return 0x00;
         case PCI_REG_INT_LINE:
@@ -3539,6 +3660,10 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
         case RAGEPRO_AGP_CAP ... (RAGEPRO_AGP_CAP + 0x0b):
             if (mach64->agp && mach64->ragepro)
                 return mach64_ragepro_agp_read(mach64, addr - RAGEPRO_AGP_CAP);
+            return 0x00;
+        case RAGELT_PM_CAP ... (RAGELT_PM_CAP + 7):
+            if (mach64->ragelt)
+                return mach64_ragelt_pm_read(mach64, addr - RAGELT_PM_CAP);
             return 0x00;
         default:
             break;
@@ -3618,9 +3743,15 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
             mach64->int_line = val;
             break;
         case 0x4c ... 0x4f:
-            /* The Rage XL's writable alias of the subsystem IDs. */
-            if (mach64->ragexl)
+            /* The Rage XL's and LT Pro's writable alias of the
+               subsystem IDs. */
+            if (MACH64_LT_REGS(mach64))
                 mach64->gtb_regs[0x94 + ((addr + 2) & 3)] = val;
+            break;
+        case RAGELT_PM_CAP + 4:
+            /* The LT Pro's power state (D0-D3). */
+            if (mach64->ragelt)
+                mach64->lt_pmcsr = val & 0x03;
             break;
         case (RAGEPRO_AGP_CAP + 8) ... (RAGEPRO_AGP_CAP + 0x0b):
             /* The Rage Pro's AGP command register. */
@@ -4036,7 +4167,7 @@ mach64gtb_init(const device_t *info)
         mach64->agp            = !!(info->flags & DEVICE_AGP);
         mach64->pci_id         = (info->local & MACH64_FLAG_PQFP) ? 0x4750 : 0x4742;
         mach64->config_chip_id = 0x5c000000 | mach64->pci_id;
-        if (!(info->local & MACH64_FLAG_RAGEXL))
+        if (!(info->local & (MACH64_FLAG_RAGEXL | MACH64_FLAG_RAGELT)))
             mach64->fixed_io = device_get_config_hex16("fixed_io") & 0xff00;
         if (info->local & MACH64_FLAG_PQFP)
             mach64->config_stat0 = 5 | (1 << 4);
@@ -4053,6 +4184,24 @@ mach64gtb_init(const device_t *info)
             mach64->pci_id         = 0x4752;
             mach64->config_chip_id = 0x27000000 | mach64->pci_id;
             mach64->config_stat0   = 4 | (1 << 4);
+        }
+        if (info->local & MACH64_FLAG_RAGELT) {
+            /* The Rage LT Pro, "LB" (4C42h), the AGP-133 BGA-312
+               part (LT Pro RRG tables 4-4, 6-1), ASIC ID DCh: CFG_CHIP_REV
+               3 (the A22 production part), foundry UMC (3), major version
+               4 (RRG 4-27). CONFIG_STAT0: SDRAM, as the "...SDU" BIOS
+               expects, the VGA, FULLAGP_STRAP (bit 23, the 312-ball
+               package), panel ID 0. The subsystem IDs are the chip's
+               power-up default, 6987h/1002h (PCI 2Ch, RRG 6-6): the card's
+               ROM holds none at 4Ah. */
+            mach64->ragelt         = 1;
+            mach64->pci_id         = 0x4c42;
+            mach64->config_chip_id = 0xdc000000 | mach64->pci_id;
+            mach64->config_stat0   = 4 | (1 << 4) | (1 << 23);
+            mach64->gtb_regs[0x94] = 0x87;
+            mach64->gtb_regs[0x95] = 0x69;
+            mach64->gtb_regs[0x96] = 0x02;
+            mach64->gtb_regs[0x97] = 0x10;
         }
         mach64_ragepro_reset(mach64);
     }
@@ -4083,6 +4232,29 @@ mach64gtb_init(const device_t *info)
             mach64->gtb_regs[0x97] = mach64->bios_rom.rom[0x4b];
             mach64->gtb_regs[0x94] = mach64->bios_rom.rom[0x4c];
             mach64->gtb_regs[0x95] = mach64->bios_rom.rom[0x4d];
+        }
+    } else if (info->local & MACH64_FLAG_RAGELT) {
+        /* The Rage LT Pro card's BIOS, 64K (80h blocks by its ROM
+           header and PCI data structure). */
+        ati_eeprom_load(&mach64->eeprom, "mach64ragelt.nvr", 1);
+        rom_init(&mach64->bios_rom, (char *) device_get_bios_file(info, device_get_config_bios("bios_ver"), 0),
+                 0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+        if (mach64->bios_rom.rom) {
+            /* The only dump of it sums to 06h over its 64K: the first 32K
+               (the VGA BIOS) sum to 00h, the upper half (VESA and panel code,
+               the "MACH64LPOEM INFO" panel tables an OEM tool edits) does
+               not, and an Award BIOS (AX6BC) then skips the option ROM: no
+               picture. Its last byte is taken as the upper half's checksum
+               and made good again here. */
+            uint8_t sum = 0;
+
+            for (int i = 0; i < 0xffff; i++)
+                sum += mach64->bios_rom.rom[i];
+            if ((uint8_t) (sum + mach64->bios_rom.rom[0xffff]) != 0x00) {
+                pclog("Rage LT Pro: BIOS image checksum %02X, last byte set to %02X\n",
+                      (uint8_t) (sum + mach64->bios_rom.rom[0xffff]), (uint8_t) -sum);
+                mach64->bios_rom.rom[0xffff] = (uint8_t) -sum;
+            }
         }
     } else if (info->local & MACH64_FLAG_RAGEPRO) {
         /* The Rage Pro card's own BIOS, 32K. */
@@ -4944,6 +5116,66 @@ static const device_config_t mach64ragexl_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+/* The Rage LT Pro AGP card (BGA-312, 4C42h), SDRAM. The LT Pro
+   takes up to 16 MB (MEM_CNTL's MEM_SIZE, LT Pro RRG 4-18); the cards
+   had 4 or 8 MB. */
+static const device_config_t mach64ragelt_config[] = {
+    {
+        .name           = "bios_ver",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "113_55702_100",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "113-55702-100, SDRAM (1999/04/13, BK4.1.3/4.154T)",
+                .internal_name = "113_55702_100",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 65536,
+                .files         = { BIOS_RAGELT_55702_PATH, "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 8,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "4 MB", .value = 4 },
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "render_threads",
+        .description    = "Render threads",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "4", .value = 4 },
+            { .description = ""              }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 /* The on-board 3D Rage Pro Turbo of the Intel BL440ZX, 8 MB of
    SDRAM (TPS 1.7); its BIOS is in the system BIOS. */
 static const device_config_t mach64ragepro_onboard_config[] = {
@@ -5316,6 +5548,21 @@ const device_t mach64ragexl_pci_device = {
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64ragexl_config
+};
+
+/* The Rage LT Pro (AGP). */
+const device_t mach64ragelt_agp_device = {
+    .name          = "ATI Rage LT Pro AGP",
+    .internal_name = "mach64_ragelt_agp",
+    .flags         = DEVICE_AGP,
+    .local         = MACH64_GTB | MACH64_FLAG_RAGEPRO | MACH64_FLAG_RAGELT,
+    .init          = mach64gtb_init,
+    .close         = mach64_close,
+    .reset         = mach64_reset,
+    .available     = NULL,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = mach64ragelt_config
 };
 
 const device_t mach64ragepro_onboard_device = {

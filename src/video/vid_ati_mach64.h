@@ -89,6 +89,9 @@
 /* Rage XL PCI (BGA, PCI ID GR, 4752h), 8 MB SDRAM: ATI 113-72307-100,
    BK4.3.04/4.330, 2000/12/18 ("MACH64GRPCIMTSDUN8"), 36K (48h blocks). */
 #define BIOS_RAGEXL_72307_PATH        "roms/video/mach64/XL_5219.bin"
+/* Rage LT Pro AGP (BGA-312, PCI ID LB, 4C42h), SDRAM: ATI 113-55702-100,
+   BK4.1.3/4.154T, 1999/04/13 ("MACH64LBPCIMTSDU"), board 109-55700-01, 64K. */
+#define BIOS_RAGELT_55702_PATH        "roms/video/mach64/ATI Rage LT Pro AGP (109-55700-01) 113-55702-100 4.154T.bin"
 
 #define FIFO_SIZE         65536
 #define FIFO_MASK         (FIFO_SIZE - 1)
@@ -139,7 +142,17 @@ enum {
 #define MACH64_FLAG_RAGEPRO (1 << 21) /* 3D Rage Pro, the GT-B core plus its own setup engine, bus master and AGP */
 #define MACH64_FLAG_PQFP    (1 << 22) /* The Rage Pro's PCI PQFP package, PCI ID GP (4750h) */
 #define MACH64_FLAG_RAGEXL  (1 << 24) /* Rage XL, the Rage Pro core with the LT Pro's PLL and LCD registers */
+#define MACH64_FLAG_RAGELT  (1 << 25) /* Rage LT Pro, the mobile Rage Pro: LCD registers, shadow and second CRTC, power management */
 #define MACH64_PCI_IOCONFIG 0x40        // "User Defined Configuration"
+
+/* The Rage LT Pro card's PLL reference, a 29.498928 MHz crystal (as
+   on the LT Pro's notebooks; the "29MHz reference clock" of CONFIG_PANEL's
+   BL_CLK_SEL, LT Pro RRG 8-3): its BIOS programs the VGA's 25.175 and 28.322
+   MHz as 218 and 246 over a reference divider of 64, which only that gives. */
+#define RAGELT_PLL_REF_HZ 29498928.0
+
+/* The chips with the LT register block (LCD_INDEX/LCD_DATA, the extended VPLL). */
+#define MACH64_LT_REGS(m) ((m)->ragexl || (m)->ragelt)
 
 typedef struct mach64_3d_t     mach64_3d_t;
 typedef struct mach64_timing_t mach64_timing_t;
@@ -174,6 +187,7 @@ typedef struct mach64_t {
     uint8_t ragepro; /* 3D Rage Pro identity, setup engine and bus master */
     uint8_t agp;     /* On the AGP: its capability and timings */
     uint8_t ragexl;  /* Rage XL: extended VPLL, LCD_INDEX/LCD_DATA, subsystem IDs */
+    uint8_t ragelt;  /* Rage LT Pro: the XL's LT registers plus shadow/second CRTC and power management */
 
     uint8_t pci_regs[256];
     uint8_t int_line;
@@ -431,6 +445,12 @@ typedef struct mach64_t {
     uint32_t         aux_base;
     uint8_t          gtb_regs[256]; /* control registers kept as written */
     uint32_t         lcd_regs[64];  /* Rage XL, LCD_DATA's indexed registers (LCD_INDEX 5:0) */
+    /* Rage LT Pro (LT Pro RRG 4-33..4-37, 6-5..6-9). */
+    uint32_t         lt_shadow[5];       /* the panel's shadow CRTC_H_TOTAL_DISP..CRTC_VLINE_CRNT_VLINE */
+    uint32_t         lt_crtc2[0x50 / 4]; /* the second CRTC's registers, by block 0 dword (00h-4Ch) */
+    uint8_t          lt_vga_shadow[0x18]; /* the shadowed VGA CRTC registers (3?5 00h-17h) */
+    uint32_t         lt_subsys;          /* PCI 2Ch: subsystem ID 31:16, subsystem vendor 15:0 */
+    uint8_t          lt_pmcsr;           /* PCI 60h: the power state */
     uint8_t          genena;        /* 46E8h */
     uint8_t          genvs;         /* 102h */
 

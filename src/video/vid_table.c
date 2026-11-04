@@ -221,6 +221,7 @@ video_cards[] = {
     /* AGP */
     { .device = &mach64gtc_agp_device,                          .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &mach64ragepro_device,                          .flags = VIDEO_FLAG_TYPE_SEC       },
+    { .device = &mach64ragelt_agp_device,                       .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &voodoo_banshee_agp_device,                     .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &velocity_100_agp_device,                       .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &velocity_200_agp_device,                       .flags = VIDEO_FLAG_TYPE_SEC       },

@@ -760,23 +760,23 @@ timing_clock_tests(void)
     pll[3]   = 0x10; /* MCLK_SRC_SEL: PLLMCLK / 2 */
     pll[4]   = 0x96; /* MCLK_FB_DIV */
     pll[11]  = 0x00; /* XCLK = MCLK = the source, 2 * MCLK_FB_DIV */
-    c        = mach64_timing_pll_clocks(pll, 33333333.0);
+    c        = mach64_timing_pll_clocks(pll, 33333333.0, PLL_REF_HZ);
     pll_mclk = PLL_REF_HZ * 2.0 * 0x96 / 0x21;
     CHECK(near(c.mclk, pll_mclk / 2.0, 1.0) && near(c.xclk, pll_mclk / 2.0, 1.0), "MCLK %.0f, XCLK %.0f", c.mclk, c.xclk);
 
     pll[11] = 0x04; /* MFB_TIMES_4_2B */
     pll[3]  = 0x20; /* PLLMCLK / 4 */
-    c       = mach64_timing_pll_clocks(pll, 33333333.0);
+    c       = mach64_timing_pll_clocks(pll, 33333333.0, PLL_REF_HZ);
     CHECK(near(c.mclk, pll_mclk / 2.0, 1.0), "MFB_TIMES_4_2B: MCLK %.0f", c.mclk);
 
     pll[11] = 0x06; /* XCLK_MCLK_RATIO 2: XCLK the source / 2, MCLK / 3 */
-    c       = mach64_timing_pll_clocks(pll, 33333333.0);
+    c       = mach64_timing_pll_clocks(pll, 33333333.0, PLL_REF_HZ);
     CHECK(near(c.xclk, pll_mclk / 4.0, 1.0) && near(c.mclk, pll_mclk / 6.0, 1.0), "ratio 2: XCLK %.0f, MCLK %.0f", c.xclk,
           c.mclk);
 
     /* An unprogrammed PLL is taken as 60 MHz. */
     memset(pll, 0, sizeof(pll));
-    c = mach64_timing_pll_clocks(pll, 33333333.0);
+    c = mach64_timing_pll_clocks(pll, 33333333.0, PLL_REF_HZ);
     CHECK((c.mclk == 60000000.0) && (c.xclk == 60000000.0), "unprogrammed: MCLK %.0f, XCLK %.0f", c.mclk, c.xclk);
 
     /* 640x480 at 16 bpp and 25.175 MHz: 80 of 100 characters, 480 of 525

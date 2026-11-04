@@ -595,8 +595,8 @@ mach64_ragepro_dump(mach64_t *mach64)
         pclog("Rage Pro: PLL%s\n", pll);
         pclog("Rage Pro: CLOCK_CNTL %08X MEM_CNTL %08X pixel clocks %.0f %.0f %.0f %.0f Hz\n", mach64->clock_cntl, mach64->mem_cntl,
               mach64->pll_freq[0], mach64->pll_freq[1], mach64->pll_freq[2], mach64->pll_freq[3]);
-        if (mach64->ragexl)
-            pclog("Rage XL: CONFIG_STAT1 %02X%02X%02X%02X LCD_INDEX %02X, LCD 0-9 %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X\n",
+        if (MACH64_LT_REGS(mach64))
+            pclog("Rage XL/LT: CONFIG_STAT1 %02X%02X%02X%02X LCD_INDEX %02X, LCD 0-9 %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X\n",
                   mach64->gtb_regs[0x97], mach64->gtb_regs[0x96], mach64->gtb_regs[0x95], mach64->gtb_regs[0x94], mach64->gtb_regs[0xa4],
                   mach64->lcd_regs[0], mach64->lcd_regs[1], mach64->lcd_regs[2], mach64->lcd_regs[3], mach64->lcd_regs[4],
                   mach64->lcd_regs[5], mach64->lcd_regs[6], mach64->lcd_regs[7], mach64->lcd_regs[8], mach64->lcd_regs[9]);
