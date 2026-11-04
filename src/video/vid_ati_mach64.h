@@ -449,7 +449,6 @@ typedef struct mach64_t {
     uint32_t         lt_shadow[5];       /* the panel's shadow CRTC_H_TOTAL_DISP..CRTC_VLINE_CRNT_VLINE */
     uint32_t         lt_crtc2[0x50 / 4]; /* the second CRTC's registers, by block 0 dword (00h-4Ch) */
     uint8_t          lt_vga_shadow[0x18]; /* the shadowed VGA CRTC registers (3?5 00h-17h) */
-    uint32_t         lt_subsys;          /* PCI 2Ch: subsystem ID 31:16, subsystem vendor 15:0 */
     uint8_t          lt_pmcsr;           /* PCI 60h: the power state */
     uint8_t          genena;        /* 46E8h */
     uint8_t          genvs;         /* 102h */

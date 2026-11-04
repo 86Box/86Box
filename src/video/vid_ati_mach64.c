@@ -309,6 +309,14 @@ mach64_out(uint16_t addr, uint8_t val, void *priv)
                     val = (old & ~0x10) | (val & 0x10);
             }
             svga->crtc[svga->crtcreg] = val;
+            /* On the Rage LT Pro the VGA's vertical display end
+               (CR12) is the accelerator's too, CRTC_V_DISP 7:0 (CRTC_V_TOTAL_DISP
+               23:16): its BIOS's mode set writes CR12 and reads it back
+               there to tell a working VGA, and only then turns the
+               accelerator display (CRTC_EXT_DISP_EN) off -- without it,
+               mode 3 after a Windows driver's mode stayed 1024x768. */
+            if (mach64->ragelt && (svga->crtcreg == 0x12))
+                mach64->crtc_v_total_disp = (mach64->crtc_v_total_disp & ~0x00ff0000) | ((uint32_t) val << 16);
 
             if (old != val) {
                 if (svga->crtcreg < 0xe || svga->crtcreg > 0x10) {
@@ -1322,20 +1330,23 @@ mach64_gtb_gp_io_pin(uint32_t gp_io, uint32_t data, uint32_t dir)
 /* The Rage XL's DDC is on MONID1/MONID2, GPIO_15 and GPIO_16 of
    LT_GIO (LCD index 7, XL/XC RRG 8-13; MONID(3:0) are GPIO(17:14), Controller
    Specifications table 3-11): data bits 13/14, directions 29/30. MONID1 is
-   the data, MONID2 the clock. GP_IO's pins carry no DDC there. */
+   the data, MONID2 the clock. GP_IO's pins carry no DDC there. The Rage LT
+   Pro card has them the other way round: its BIOS's VBE 4F15h starts with
+   GPIO_16 falling while GPIO_15 is high, and clocks GPIO_15. */
 #define RAGEXL_LCD_LT_GIO      7
-#define RAGEXL_LT_GIO_SDA      (1u << 13)
-#define RAGEXL_LT_GIO_SCL      (1u << 14)
-#define RAGEXL_LT_GIO_DIR_SDA  (1u << 29)
-#define RAGEXL_LT_GIO_DIR_SCL  (1u << 30)
+#define RAGEXL_LT_GIO_15       (1u << 13)
+#define RAGEXL_LT_GIO_16       (1u << 14)
+#define RAGEXL_LT_GIO_SDA(m)   ((m)->ragelt ? RAGEXL_LT_GIO_16 : RAGEXL_LT_GIO_15)
+#define RAGEXL_LT_GIO_SCL(m)   ((m)->ragelt ? RAGEXL_LT_GIO_15 : RAGEXL_LT_GIO_16)
 
 static void
 mach64_ragexl_lt_gio_drive(mach64_t *mach64)
 {
     const uint32_t gio = mach64->lcd_regs[RAGEXL_LCD_LT_GIO];
 
-    i2c_gpio_set(mach64->i2c, mach64_gtb_gp_io_pin(gio, RAGEXL_LT_GIO_SCL, RAGEXL_LT_GIO_DIR_SCL),
-                 mach64_gtb_gp_io_pin(gio, RAGEXL_LT_GIO_SDA, RAGEXL_LT_GIO_DIR_SDA));
+    /* A pin's direction bit is its data bit's plus 16. */
+    i2c_gpio_set(mach64->i2c, mach64_gtb_gp_io_pin(gio, RAGEXL_LT_GIO_SCL(mach64), RAGEXL_LT_GIO_SCL(mach64) << 16),
+                 mach64_gtb_gp_io_pin(gio, RAGEXL_LT_GIO_SDA(mach64), RAGEXL_LT_GIO_SDA(mach64) << 16));
 }
 
 static void
@@ -1491,11 +1502,11 @@ mach64_gtb_readb(mach64_t *mach64, uint32_t addr, uint8_t *val)
 
         if ((mach64->gtb_regs[0xa4] & 0x3f) == RAGEXL_LCD_LT_GIO) {
             /* The pins read back as the DDC lines are. */
-            lcd &= ~(RAGEXL_LT_GIO_SDA | RAGEXL_LT_GIO_SCL);
+            lcd &= ~(RAGEXL_LT_GIO_15 | RAGEXL_LT_GIO_16);
             if (i2c_gpio_get_sda(mach64->i2c))
-                lcd |= RAGEXL_LT_GIO_SDA;
+                lcd |= RAGEXL_LT_GIO_SDA(mach64);
             if (i2c_gpio_get_scl(mach64->i2c))
-                lcd |= RAGEXL_LT_GIO_SCL;
+                lcd |= RAGEXL_LT_GIO_SCL(mach64);
         }
         *val = lcd >> ((addr & 3) * 8);
     } else if (mach64_gtb_latched(reg))
