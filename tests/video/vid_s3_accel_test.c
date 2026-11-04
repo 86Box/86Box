@@ -506,6 +506,48 @@ test_packed_mmio(void)
     check((pix(11, 22) == 0) && (pix(12, 21) == 0), "scissors not applied");
 }
 
+/* The pixels from (x0, y0) to (x1, y1) have the colour and the ring around them is untouched. */
+static void
+check_area(int x0, int y0, int x1, int y1)
+{
+    int bad = 0;
+
+    for (int y = y0 - 1; y <= y1 + 1; y++) {
+        for (int x = x0 - 1; x <= x1 + 1; x++) {
+            int inside = (x >= x0) && (x <= x1) && (y >= y0) && (y <= y1);
+
+            if (pix(x, y) != (inside ? color() : pix(0, 0)) && !bad++)
+                check(0, "pixel (%d, %d) is %X", x, y, pix(x, y));
+        }
+    }
+}
+
+/* Rectangle fill solid (CMD 010: 86C928 p. 10-10, Vision864 p. 18-9, Vision964 p. 18-9;
+   Vision868 and Vision968 5.4.3.3, p. 5-14; Trio32/64 13.3.3.3, p. 13-12; Trio64V+ 15.4.3.3,
+   p. 15-12; S3.TXT lines 977-981). The scissors hold the lowest and highest X and Y that are
+   drawn (86C928 pp. 10-16 and 10-17, Vision864 pp. 18-15 and 18-16, Vision964 pp. 18-15 and
+   18-16, Trio32/64 pp. 18-20 and 18-21, Trio64V+ pp. 20-15 and 20-16), the lowest and highest
+   coordinates of the clipping rectangle (S3.TXT lines 1115-1136). */
+static void
+test_rect_scissors(void)
+{
+    memset(vram, 0x5a, sizeof(vram));
+    rect_start(100, 50, 20);
+    port_w(0xbee8, 0x0000 | 9);
+    port_w(0x9ae8, 0x40b1);
+    check_area(100, 50, 119, 59);
+
+    memset(vram, 0x5a, sizeof(vram));
+    port_w(0xbee8, 0x1000 | 52);  /* SCISSORS_T */
+    port_w(0xbee8, 0x2000 | 105); /* SCISSORS_L */
+    port_w(0xbee8, 0x3000 | 55);  /* SCISSORS_B */
+    port_w(0xbee8, 0x4000 | 110); /* SCISSORS_R */
+    rect_start(100, 50, 20);
+    port_w(0xbee8, 0x0000 | 9);
+    port_w(0x9ae8, 0x40b1);
+    check_area(105, 52, 110, 55);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -516,6 +558,7 @@ main(int argc, char **argv)
     run("bee8_mmio32", test_bee8_mmio32,
         C_928 | C_928PCI | C_864 | C_868 | C_964 | C_968 | C_TRIO32 | C_TRIO64 | C_TRIO64V | C_TRIO64V2);
     run("packed_mmio", test_packed_mmio, C_868 | C_968 | C_TRIO32 | C_TRIO64 | C_TRIO64V | C_TRIO64V2);
+    run("rect_scissors", test_rect_scissors, C_ALL);
 
     if (verbose)
         print_matrix();
