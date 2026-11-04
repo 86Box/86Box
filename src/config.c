@@ -1791,6 +1791,7 @@ load_hard_disks(void)
                 break;
 
             case HDD_BUS_IDE:
+            case HDD_BUS_LPT:
                 max_spt    = 255;
                 max_hpc    = 255;
                 max_tracks = 266305;
@@ -1817,6 +1818,7 @@ load_hard_disks(void)
             case HDD_BUS_ESDI:
             case HDD_BUS_ATAPI:
             case HDD_BUS_SCSI:
+            case HDD_BUS_LPT:
                 sprintf(tmp2, "1997_5400rpm");
                 break;
             default:
@@ -1865,6 +1867,15 @@ load_hard_disks(void)
 
             if (hdd[c].ide_channel >= IDE_DRIVES_MAX)
                 hdd[c].ide_channel = IDE_DRIVES_MAX - 1;
+        } else
+            ini_section_delete_var(cat, temp);
+
+        /* Parallel port */
+        sprintf(temp, "hdd_%02i_lpt_port", c + 1);
+        if (hdd[c].bus_type == HDD_BUS_LPT) {
+            hdd[c].channel = ini_section_get_int(cat, temp, 0);
+            if (hdd[c].channel >= PARALLEL_MAX)
+                hdd[c].channel = PARALLEL_MAX - 1;
         } else
             ini_section_delete_var(cat, temp);
 
@@ -1942,6 +1953,9 @@ load_hard_disks(void)
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "hdd_%02i_ide_channel", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            sprintf(temp, "hdd_%02i_lpt_port", c + 1);
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "hdd_%02i_scsi_location", c + 1);
@@ -4561,6 +4575,12 @@ save_hard_disks(void)
             ini_section_set_string(cat, temp, tmp2);
         }
 
+        sprintf(temp, "hdd_%02i_lpt_port", c + 1);
+        if (!hdd_is_valid(c) || (hdd[c].bus_type != HDD_BUS_LPT))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, hdd[c].channel);
+
         sprintf(temp, "hdd_%02i_scsi_id", c + 1);
         ini_section_delete_var(cat, temp);
 
@@ -4602,25 +4622,28 @@ save_hard_disks(void)
         if (!hdd_is_valid(c) ||
             ((hdd[c].bus_type != HDD_BUS_MFM) && (hdd[c].bus_type != HDD_BUS_ESDI) &&
             (hdd[c].bus_type != HDD_BUS_IDE) && (hdd[c].bus_type != HDD_BUS_SCSI) &&
-            (hdd[c].bus_type != HDD_BUS_ATAPI)))
+            (hdd[c].bus_type != HDD_BUS_ATAPI) && (hdd[c].bus_type != HDD_BUS_LPT)))
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_string(cat, temp, hdd_preset_get_internal_name(hdd[c].speed_preset));
 
         sprintf(temp, "hdd_%02i_vendor", c + 1);
-        if ((hdd[c].bus_type == HDD_BUS_IDE || hdd[c].bus_type == HDD_BUS_ATAPI || hdd[c].bus_type == HDD_BUS_SCSI) &&
+        if ((hdd[c].bus_type == HDD_BUS_IDE || hdd[c].bus_type == HDD_BUS_ATAPI || hdd[c].bus_type == HDD_BUS_SCSI ||
+             hdd[c].bus_type == HDD_BUS_LPT) &&
             hdd_preset_is_generic(hdd[c].speed_preset) && hdd[c].custom_vendor[0])
             ini_section_set_string(cat, temp, hdd[c].custom_vendor);
         else
             ini_section_delete_var(cat, temp);
         sprintf(temp, "hdd_%02i_model", c + 1);
-        if ((hdd[c].bus_type == HDD_BUS_IDE || hdd[c].bus_type == HDD_BUS_ATAPI || hdd[c].bus_type == HDD_BUS_SCSI) &&
+        if ((hdd[c].bus_type == HDD_BUS_IDE || hdd[c].bus_type == HDD_BUS_ATAPI || hdd[c].bus_type == HDD_BUS_SCSI ||
+             hdd[c].bus_type == HDD_BUS_LPT) &&
             hdd_preset_is_generic(hdd[c].speed_preset) && hdd[c].custom_model[0])
             ini_section_set_string(cat, temp, hdd[c].custom_model);
         else
             ini_section_delete_var(cat, temp);
         sprintf(temp, "hdd_%02i_revision", c + 1);
-        if ((hdd[c].bus_type == HDD_BUS_IDE || hdd[c].bus_type == HDD_BUS_ATAPI || hdd[c].bus_type == HDD_BUS_SCSI) &&
+        if ((hdd[c].bus_type == HDD_BUS_IDE || hdd[c].bus_type == HDD_BUS_ATAPI || hdd[c].bus_type == HDD_BUS_SCSI ||
+             hdd[c].bus_type == HDD_BUS_LPT) &&
             hdd_preset_is_generic(hdd[c].speed_preset) && hdd[c].custom_version[0])
             ini_section_set_string(cat, temp, hdd[c].custom_version);
         else

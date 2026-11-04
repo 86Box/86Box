@@ -205,6 +205,8 @@ extern int    ide_ata_removable_attach(int ch, int hdd_num);
 
 extern void *ide_xtide_init(void);
 extern void  ide_xtide_close(void);
+extern void *ide_lpt_init(int port);
+extern void  ide_lpt_close(int port);
 extern void  ide_xtide_set_is_jride(int is_jride);
 extern uint8_t *ide_get_pio_buffer(void *priv);
 extern void  ide_complete_pio_buffer_read(void *priv);

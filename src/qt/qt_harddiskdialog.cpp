@@ -820,6 +820,7 @@ HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index)
             max_cylinders = 266305;
             break;
         case HDD_BUS_IDE:
+        case HDD_BUS_LPT:
             max_sectors   = 255;
             max_heads     = 255;
             max_cylinders = 266305;
@@ -869,6 +870,9 @@ HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index)
             break;
         case HDD_BUS_SCSI:
             chanIdx = (Harddrives::busTrackClass->next_free_scsi_id());
+            break;
+        case HDD_BUS_LPT:
+            chanIdx = (Harddrives::busTrackClass->next_free_lpt_port());
             break;
     }
 

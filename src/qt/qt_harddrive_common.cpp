@@ -51,7 +51,7 @@ void
 Harddrives::populateBuses(QAbstractItemModel *model)
 {
     model->removeRows(0, model->rowCount());
-    model->insertRows(0, 6);
+    model->insertRows(0, 7);
 
     model->setData(model->index(0, 0), "ST-506/ST-412 (MFM/RLL)");
     model->setData(model->index(1, 0), "XTA");
@@ -59,6 +59,7 @@ Harddrives::populateBuses(QAbstractItemModel *model)
     model->setData(model->index(3, 0), "IDE");
     model->setData(model->index(4, 0), "ATAPI");
     model->setData(model->index(5, 0), "SCSI");
+    model->setData(model->index(6, 0), "LPT");
 
     model->setData(model->index(0, 0), HDD_BUS_MFM, Qt::UserRole);
     model->setData(model->index(1, 0), HDD_BUS_XTA, Qt::UserRole);
@@ -66,6 +67,7 @@ Harddrives::populateBuses(QAbstractItemModel *model)
     model->setData(model->index(3, 0), HDD_BUS_IDE, Qt::UserRole);
     model->setData(model->index(4, 0), HDD_BUS_ATAPI, Qt::UserRole);
     model->setData(model->index(5, 0), HDD_BUS_SCSI, Qt::UserRole);
+    model->setData(model->index(6, 0), HDD_BUS_LPT, Qt::UserRole);
 }
 
 void
@@ -128,6 +130,7 @@ Harddrives::populateSpeeds(QAbstractItemModel *model, SettingsCompleter *sc, int
         case HDD_BUS_IDE:
         case HDD_BUS_ATAPI:
         case HDD_BUS_SCSI:
+        case HDD_BUS_LPT:
             num_preset = hdd_preset_get_num();
             break;
 

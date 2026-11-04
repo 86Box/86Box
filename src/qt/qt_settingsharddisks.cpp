@@ -60,7 +60,7 @@ QIcon hard_disk_icon;
 static bool
 genericHDD(uint32_t bus, uint32_t speed)
 {
-    return (bus == HDD_BUS_IDE || bus == HDD_BUS_ATAPI || bus == HDD_BUS_SCSI) &&
+    return (bus == HDD_BUS_IDE || bus == HDD_BUS_ATAPI || bus == HDD_BUS_SCSI || bus == HDD_BUS_LPT) &&
            hdd_preset_is_generic(speed);
 }
 
@@ -332,6 +332,9 @@ SettingsHarddisks::on_comboBoxBus_currentIndexChanged(int index)
         case HDD_BUS_SCSI:
             chanIdx = (Harddrives::busTrackClass->next_free_scsi_id());
             break;
+        case HDD_BUS_LPT:
+            chanIdx = (Harddrives::busTrackClass->next_free_lpt_port());
+            break;
     }
 
     ui->comboBoxChannel->setCurrentIndex(chanIdx);
@@ -489,7 +492,8 @@ SettingsHarddisks::onTableRowChanged(const QModelIndex &current)
     uint32_t speed      = current.siblingAtColumn(ColumnSpeed).data(Qt::UserRole).toUInt();
     uint32_t audio      = hidden ? -1 : ia[current.row()];
     ui->pushButtonConfigure->setHidden(hidden ||
-                                       (bus != HDD_BUS_IDE && bus != HDD_BUS_ATAPI && bus != HDD_BUS_SCSI));
+                                       (bus != HDD_BUS_IDE && bus != HDD_BUS_ATAPI && bus != HDD_BUS_SCSI &&
+                                        bus != HDD_BUS_LPT));
 
     auto *model = ui->comboBoxBus->model();
     auto  match = model->match(model->index(0, 0), Qt::UserRole, bus);

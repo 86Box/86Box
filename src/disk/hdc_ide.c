@@ -45,6 +45,7 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdd.h>
+#include <86box/lpt.h>
 #include <86box/sound.h>
 #include <86box/rdisk.h>
 #include <86box/thread.h>
@@ -163,6 +164,7 @@ typedef struct mcide_t {
 } mcide_t;
 
 ide_board_t *ide_boards[IDE_BUS_MAX] = { 0 };
+static int   ide_lpt_port[IDE_BUS_MAX]; /* LPT port + 1 of a parallel port bridge's board */
 
 static uint8_t ide_ter_pnp_rom[] = {
     /* BOX0001, serial 0, dummy checksum (filled in by isapnp_add_card) */
@@ -3487,10 +3489,11 @@ ide_board_setup(const int board)
 
     c = 0;
     for (d = 0; d < HDD_NUM; d++) {
-        const int is_ide   = (hdd[d].bus_type == HDD_BUS_IDE);
-        const int ch       = hdd[d].ide_channel;
+        const int lpt      = ide_lpt_port[board];
+        const int is_ide   = lpt ? (hdd[d].bus_type == HDD_BUS_LPT) : (hdd[d].bus_type == HDD_BUS_IDE);
+        const int ch       = lpt ? min_ch : hdd[d].ide_channel;
 
-        const int valid_ch = ((ch >= min_ch) && (ch <= max_ch));
+        const int valid_ch = lpt ? (hdd[d].channel == (lpt - 1)) : ((ch >= min_ch) && (ch <= max_ch));
 
         if (is_ide && valid_ch) {
             ide_log("Found IDE hard disk on channel %i\n", ch);
@@ -3753,6 +3756,39 @@ void
 ide_xtide_close(void)
 {
     ide_board_close(0);
+}
+
+/* The board of the parallel port to IDE bridge on LPT port (0-based),
+   counted down from the last: no I/O ports and no IRQ, and the bridge calls
+   ide_readb() and the others on it. Its master is the hard disk the user
+   put on that port (bus LPT). */
+static int
+ide_lpt_board(int port)
+{
+    return IDE_BUS_MAX - 1 - port;
+}
+
+void *
+ide_lpt_init(int port)
+{
+    const int board = ide_lpt_board(port);
+
+    if ((port < 0) || (port >= PARALLEL_MAX) || ide_board_claimed(board))
+        return NULL;
+
+    ide_lpt_port[board] = port + 1;
+    ide_board_init(board, -1, 0, 0, 0, 0);
+
+    return ide_boards[board];
+}
+
+void
+ide_lpt_close(int port)
+{
+    if ((port >= 0) && (port < PARALLEL_MAX)) {
+        ide_board_close(ide_lpt_board(port));
+        ide_lpt_port[ide_lpt_board(port)] = 0;
+    }
 }
 
 void
@@ -4120,6 +4156,18 @@ ide_plan(ide_owner_t owners[IDE_BUS_MAX], int mach, const int hdc[], const int s
     for (int board = 0; board < IDE_BUS_MAX; board++) {
         if (plan.taken[board] && (board >= shown))
             shown = board + 1;
+    }
+
+    /* Last, the bridge of each hard disk on a parallel port, on a board of
+       its own that is not offered for IDE drives. */
+    for (int i = 0; i < PARALLEL_MAX; i++) {
+        for (int c = 0; c < HDD_NUM; c++) {
+            if (lpt_ports[i].enabled && hdd_is_valid(c) &&
+                (hdd[c].bus_type == HDD_BUS_LPT) && (hdd[c].channel == i)) {
+                ide_plan_claim(&plan, 1 << ide_lpt_board(i), &lpt_on26_device, i + 1, 0);
+                break;
+            }
+        }
     }
 
     return shown;

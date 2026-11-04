@@ -62,9 +62,9 @@ hdd_string_to_bus(char *str, int cdrom)
     if (!strcmp(str, "atapi"))
         return HDD_BUS_ATAPI;
 
-    /* Removable disks only: reached through a parallel-port bridge. */
-    if (!strcmp(str, "lpt") && cdrom)
-        return CDROM_BUS_LPT;
+    /* Reached through a parallel port bridge. */
+    if (!strcmp(str, "lpt"))
+        return HDD_BUS_LPT;
 
     if (!strcmp(str, "xta"))
         return HDD_BUS_XTA;
@@ -167,9 +167,8 @@ hdd_bus_to_string(int bus, int cdrom)
             break;
 
         /* Removable-mode only: the QIC-117 tape buses. */
-        case TAPE_BUS_LPT:
-            if (cdrom)
-                s = "lpt";
+        case HDD_BUS_LPT:
+            s = "lpt";
             break;
 
         case TAPE_BUS_FDC:
