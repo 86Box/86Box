@@ -3,9 +3,9 @@
 
 #include <QAbstractScrollArea>
 #include <QDialog>
+#include <QStringList>
 #include <QVector>
 
-class QButtonGroup;
 class QCheckBox;
 class QComboBox;
 class QLabel;
@@ -17,7 +17,14 @@ class QTimer;
 class QTreeWidget;
 class QTreeWidgetItem;
 
-/* A hex view of one address space that reads only the rows it shows. */
+/* A contiguous range of mapped addresses. */
+struct MappedRange {
+    uint32_t start;
+    uint32_t length; /* in bytes, multiple of BYTES_PER_ROW for simplicity, or just page aligned */
+};
+
+/* A hex view of one address space that reads only the rows it shows,
+   omitting addresses that are not mapped. */
 class MemoryHexView : public QAbstractScrollArea {
     Q_OBJECT
 
@@ -66,6 +73,13 @@ private:
     void     fillSelection();
     QString  selectionText() const;
 
+    /* Build the list of mapped ranges for the current space. */
+    void     rebuildMappedRanges();
+    /* Map a virtual row (in the dense view) to a real address. */
+    uint32_t virtualRowToAddr(int64_t virtualRow) const;
+    /* Map a real address to its virtual row, or -1 if unmapped. */
+    int64_t  addrToVirtualRow(uint32_t addr) const;
+
     int      space_ = 0;
     uint32_t sel_    = 0;
     uint32_t anchor_ = 0; /* the other end of the selection */
@@ -80,6 +94,10 @@ private:
 
     int charW_ = 8;
     int lineH_ = 16;
+
+    /* Dense view of only mapped memory. */
+    QVector<MappedRange> mappedRanges_;
+    uint64_t             totalMappedBytes_ = 0;
 };
 
 class MemoryViewer : public QDialog {
@@ -98,10 +116,10 @@ public:
 
 protected:
     void closeEvent(QCloseEvent *event) override;
+    bool eventFilter(QObject *object, QEvent *event) override;
 
 private slots:
-    void onPause();
-    void onContinue();
+    void onRunToggle();
     void onStep();
     void onGo();
     void onSpaceChanged(int index);
@@ -110,17 +128,25 @@ private slots:
     void onDisasmItemActivated(QTreeWidgetItem *item, int column);
     void onDump(uint32_t start, uint32_t len);
     void refreshAll();
+    void executeCommand();
 
 private:
-    void refreshCpu();
-    void refreshDisasm();
-    void updateStatus();
-    void updateRunButtons();
+    struct DisasmView;
+
+    /* The read parts take the lock; the show parts only touch widgets, so
+       a refresh can update them after letting the emulator go again. */
+    bool    readCpu(QString *text);
+    void    showCpu(const QString &text);
+    bool    readDisasm(DisasmView *view);
+    void    showDisasm(const DisasmView &view);
+    void    refreshCpu();
+    void    refreshDisasm();
+    void    updateStatus();
+    void    updateRunButton();
+    void    refreshMappings();
 
     MemoryHexView  *hex_;
-    QButtonGroup   *runGroup_;
-    QPushButton    *pauseBtn_;
-    QPushButton    *continueBtn_;
+    QPushButton    *runBtn_;
     QComboBox      *spaceBox_;
     QLineEdit      *addrEdit_;
     QCheckBox      *liveBox_;
@@ -131,6 +157,11 @@ private:
     QCheckBox      *followBox_;
     QLabel         *statusLabel_;
     QTimer         *timer_;
+    QPlainTextEdit *commandOutput_;
+    QLineEdit      *commandInput_;
+    QStringList    commandHistory_;
+    QString        commandDraft_;
+    int            historyIndex_ = 0;
 
     int      lastState_  = -1;
     uint32_t lastStops_  = 0;

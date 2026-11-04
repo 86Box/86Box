@@ -41,6 +41,7 @@ typedef struct pcxr_frame_t {
     uint32_t camera;        /* CAMERA: texture c/f/r scale */
     uint32_t xclip;         /* XCLIP */
     uint32_t bilinear;      /* BILINEAR */
+    uint32_t fastfog;       /* FASTFOG: bit 8 enable, bits 7:0 threshold */
     const uint32_t *fog_table; /* 128 entries (FOG_TABLE registers) */
 } pcxr_frame_t;
 

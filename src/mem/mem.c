@@ -38,6 +38,7 @@
 #include <86box/plat.h>
 #include <86box/rom.h>
 #include <86box/gdbstub.h>
+#include <86box/thread.h>
 #ifdef USE_DYNAREC
 #    include "codegen_public.h"
 #else
@@ -133,7 +134,12 @@ uint8_t              *_mem_exec[MEM_MAPPINGS_NO];
 
 /* Moves on whenever the map is rebuilt: a pointer mem_phys_ptr gave holds
    while it is unchanged. */
-uint32_t mem_mapping_gen;
+_Atomic uint32_t mem_mapping_gen;
+
+/* Device threads (a video card's FIFO or command processor) rebuild their
+   own mappings from their own threads, so two rebuilds can run at once.
+   Their slot walks must not interleave. */
+static mutex_t *mem_mapping_mutex;
 
 static mem_mapping_t *base_mapping;
 static mem_mapping_t *last_mapping;
@@ -1893,6 +1899,36 @@ mem_read_phys_block(void *dest, uint32_t addr, uint32_t len)
     return done;
 }
 
+static void mem_phys_written_range(uint32_t addr, uint32_t len);
+
+/* A write of 1 to 4 bytes inside one 64-byte chunk, the device writes that
+   come one at a time, marked without the loop: the same dirty bits and the
+   same evict list test as mem_phys_written_range(). */
+inline void
+mem_phys_written(uint32_t addr, uint32_t len)
+{
+    uint32_t lo = addr & PAGE_BYTE_MASK_MASK;
+
+    if ((len == 0) || (len > 4) || ((lo + len) > (PAGE_BYTE_MASK_MASK + 1))) {
+        mem_phys_written_range(addr, len);
+        return;
+    }
+    if ((addr >> 12) < pages_sz) {
+        page_t *page = &pages[addr >> 12];
+
+        if ((page->mem != NULL) && (page->mem != page_ff) && (page->byte_dirty_mask != NULL)) {
+            uint32_t c     = (addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
+            uint64_t mask  = (uint64_t) 1 << c;
+            uint64_t bytes = (((uint64_t) 1 << len) - 1) << lo;
+
+            page->dirty_mask |= mask;
+            page->byte_dirty_mask[c] |= bytes;
+            if (((page->code_present_mask & mask) || (page->byte_code_present_mask[c] & bytes)) && !page_in_evict_list(page))
+                page_add_to_evict_list(page);
+        }
+    }
+}
+
 void
 mem_writeb_phys(uint32_t addr, uint8_t val)
 {
@@ -2118,7 +2154,7 @@ mem_write_phys_block(const void *src, uint32_t addr, uint32_t len)
             break;
 
         memcpy(&(map->exec[off]), p + done, chunk);
-        mem_phys_written(addr, chunk);
+        mem_phys_written_range(addr, chunk);
         addr += chunk;
         done += chunk;
     }
@@ -2298,8 +2334,8 @@ mem_write_raml_page(uint32_t addr, uint32_t val, page_t *page)
    to memory: mark them dirty as a processor write would, so that code
    compiled from them is not run again. A real processor snoops every write
    to memory, not only its own. */
-void
-mem_phys_written(uint32_t addr, uint32_t len)
+static void
+mem_phys_written_range(uint32_t addr, uint32_t len)
 {
     while (len) {
         uint32_t off = addr & 0xfff;
@@ -2737,7 +2773,11 @@ mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore)
     if ((base + size + (base_ignore & mask)) > MEM_ADDR_SPACE_END)
         mem_mapping_past_4g(base, size, base_ignore & (uint32_t) mask);
 
-    mem_mapping_gen++;
+    /* Taken after the check above: that path ends in fatal(), whose shutdown
+       closes devices that disable their mappings and so come back here. */
+    thread_wait_mutex(mem_mapping_mutex);
+
+    atomic_fetch_add_explicit(&mem_mapping_gen, 1, memory_order_relaxed);
 
     map = base_mapping;
 
@@ -2925,6 +2965,21 @@ mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore)
     }
     pclog("\n");
 #endif
+
+    thread_release_mutex(mem_mapping_mutex);
+}
+
+/* For a reader that must see the map between rebuilds, not during one. */
+void
+mem_mapping_lock(void)
+{
+    thread_wait_mutex(mem_mapping_mutex);
+}
+
+void
+mem_mapping_unlock(void)
+{
+    thread_release_mutex(mem_mapping_mutex);
 }
 
 void
@@ -3482,6 +3537,9 @@ mem_init(void)
     /* Perform a one-time init. */
     ram = rom = NULL;
     pages     = NULL;
+
+    if (mem_mapping_mutex == NULL)
+        mem_mapping_mutex = thread_create_mutex();
 }
 
 static void

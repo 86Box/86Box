@@ -237,6 +237,12 @@ typedef struct svga_t {
     /*Called at the start of vertical sync*/
     void (*vsync_callback)(struct svga_t *svga);
 
+    /* The VGA vertical retrace interrupt (CRTC 11 bits 4 and 5, Input Status 0
+       bit 7). A card that wires it up sets this, and it is called when the
+       interrupt may have changed. */
+    int vert_int;
+    void (*vert_int_update)(struct svga_t *svga);
+
     /* Called instead of the blank while the core is in DPMS mode, by a device whose monitors
        do not all sleep together and which therefore paints the sleep state itself. */
     void (*dpms_render)(struct svga_t *svga);
@@ -401,6 +407,8 @@ extern int  svga_init(const device_t *info, svga_t *svga, void *priv, int memsiz
                       void (*hwcursor_draw)(struct svga_t *svga, int displine),
                       void (*overlay_draw)(struct svga_t *svga, int displine));
 extern void svga_recalctimings(svga_t *svga);
+extern void svga_vert_int_crtc_write(svga_t *svga);
+extern int  svga_vert_int_active(const svga_t *svga);
 extern void svga_close(svga_t *svga);
 
 uint8_t  svga_read(uint32_t addr, void *priv);

@@ -658,6 +658,9 @@ machine_at_pcv90_init(const machine_t *model)
     pci_register_slot(0x10, PCI_CARD_NORMAL,      4, 1, 2, 3);
     pci_register_slot(0x07, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
 
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
     device_add(&i430hx_device);
     device_add(&piix3_device);
     device_add_params(&pc87306_device, (void *) PCX730X_AMI);

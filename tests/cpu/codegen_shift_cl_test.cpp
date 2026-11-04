@@ -3,6 +3,7 @@
 #include <cstdint>
 #include <cstdlib>
 #include <cstring>
+#include <vector>
 #include <gtest/gtest.h>
 
 extern "C" {
@@ -37,11 +38,23 @@ void fatal(const char *, ...) { std::abort(); }
 int reg_is_native_size(ir_reg_t reg) { return IREG_GET_SIZE(reg.reg) == IREG_SIZE_L; }
 int codegen_flags_rebuild_known(ir_data_t *, int) { return 0; }
 void codegen_mark_code_present_multibyte(codeblock_t *, uint32_t, int) { }
+/* The memory forms address through DS; the EA uops themselves are not
+   under test. */
 x86seg *codegen_generate_ea(ir_data_t *, x86seg *, uint32_t, int, uint32_t *, uint32_t, int)
 {
-    std::abort();
+    return &cpu_state.seg_ds;
 }
-void codegen_check_seg_write(codeblock_t *, ir_data_t *, x86seg *) { std::abort(); }
+void codegen_check_seg_write(codeblock_t *, ir_data_t *, x86seg *) { }
+int codegen_exit_cycles(int) { return 0; }
+void codegen_record_exit(int, int) { }
+void codegen_flags_known_use(ir_data_t *, int) { }
+void codegen_fetch_walk(uint32_t) { }
+int codegen_fetch_walk_off;
+int codegen_page2_walked;
+int codegen_wide_ds, codegen_wide_ss;
+int codegen_v86_64k;
+int codegen_addr_bound(ir_data_t *, int, uint32_t *, int *) { return 0; }
+uint8_t codegen_fpu_tag_valid, codegen_fpu_tag_empty;
 uint8_t *getpccache(uint32_t) { std::abort(); }
 uint8_t readmembl(uint32_t) { std::abort(); }
 }
@@ -111,17 +124,58 @@ TEST_F(CodegenShiftCl, TranslatesEveryRegisterAndCountIncludingBlockEntry)
                     }
 }
 
-TEST_F(CodegenShiftCl, MemoryOperandsKeepTheirExistingFallbackGuards)
+/* A memory operand is read before the count is tested, as the interpreter
+   reads it, and a zero count joins after the store without writing it. The
+   uops do not depend on the CL seen while compiling or on block entry. */
+TEST_F(CodegenShiftCl, MemoryOperandsTranslateWithTheRunTimeCount)
 {
-    for (auto translate : {ropD2, ropD3_w, ropD3_l}) {
-        cpu_state.regs[1].b.l = 0;
-        block.ins = 1;
-        EXPECT_EQ(translate(&block, &ir, 0, 0x20, 0x300, 0x101), 0u);
-        cpu_state.regs[1].b.l = 1;
-        block.ins = 0;
-        EXPECT_EQ(translate(&block, &ir, 0, 0x20, 0x300, 0x101), 0u);
-        EXPECT_EQ(ir.wr_pos, 0);
-    }
+    for (auto translate : {ropD2, ropD3_w, ropD3_l})
+        for (unsigned operation : {0, 1, 4, 5, 6, 7}) {
+            std::vector<uint32_t> first;
+
+            for (unsigned count : {0, 1, 32})
+                for (unsigned prior : {0, 1}) {
+                    SetUp();
+                    SCOPED_TRACE(::testing::Message() << operation << ':' << count << ':' << prior);
+                    cpu_state.regs[1].b.l = count;
+                    block.ins             = prior;
+                    ASSERT_EQ(translate(&block, &ir, 0, (operation << 3) | 3, 0x300, 0x101), 0x102u);
+                    ASSERT_GT(ir.wr_pos, 4);
+                    EXPECT_EQ(ir.uops[0].type & UOP_MASK, UOP_AND_IMM & UOP_MASK);
+                    EXPECT_EQ(ir.uops[0].src_reg_a.reg, IREG_ECX);
+                    EXPECT_EQ(ir.uops[0].imm_data, 31u);
+
+                    int branch = -1, load = -1, store = -1;
+                    for (int i = 0; i < ir.wr_pos; i++) {
+                        uint32_t type = ir.uops[i].type & UOP_MASK;
+
+                        if (type == (UOP_CMP_IMM_JZ_DEST & UOP_MASK) && ir.uops[i].src_reg_a.reg == IREG_temp2)
+                            branch = i;
+                        else if (type == (UOP_MEM_LOAD_REG & UOP_MASK) && load < 0)
+                            load = i;
+                        else if (type == (UOP_MEM_STORE_REG & UOP_MASK))
+                            store = i;
+                        EXPECT_NE(type, UOP_CALL_INSTRUCTION_FUNC & UOP_MASK);
+                    }
+                    ASSERT_GE(branch, 0);
+                    EXPECT_EQ(ir.uops[branch].imm_data, 0u);
+                    EXPECT_EQ(ir.uops[branch].jump_dest_uop, ir.wr_pos);
+                    EXPECT_GE(load, 0);
+                    EXPECT_LT(load, branch);
+                    EXPECT_GT(store, branch);
+                    EXPECT_EQ(ir.uops[ir.wr_pos - 1].type & UOP_MASK, UOP_NOP_BARRIER & UOP_MASK);
+                    EXPECT_EQ(codegen_flags_changed, 0);
+                    EXPECT_NE(block.page_mask, 0u);
+
+                    std::vector<uint32_t> types;
+                    for (int i = 0; i < ir.wr_pos; i++)
+                        types.push_back(ir.uops[i].type);
+                    if (first.empty())
+                        first = types;
+                    else
+                        EXPECT_EQ(types, first);
+                }
+        }
 }
 
 TEST_F(CodegenShiftCl, CarryRotatesKeepTheirExistingFallback)

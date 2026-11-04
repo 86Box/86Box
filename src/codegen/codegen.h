@@ -121,6 +121,8 @@ extern uint8_t *block_write_data;
 #define CODEBLOCK_IN_DIRTY_LIST 0x40
 /*Code block is not inlining immediate parameters, parameters must be fetched from memory*/
 #define CODEBLOCK_NO_IMMEDIATES 0x80
+/*Code block is on the block list of its first page*/
+#define CODEBLOCK_IN_PAGE_LIST 0x100
 
 #define BLOCK_PC_INVALID        0xffffffff
 
@@ -310,9 +312,42 @@ codeblock_tree_delete(codeblock_t *block)
 
 void codegen_mark_code_present_multibyte(codeblock_t *block, uint32_t start_pc, int len);
 
+/*The second 4 KB page's walk (dynarec_fetch_walk), emitted once per compile
+  where the interpreter's fetch first reads from that page: at the front of
+  the instruction whose own fetch reaches it, else where a handler takes a
+  byte from it (codegen_fetch_walk_mark). codegen_fetch_walk_off: the marks
+  of bytes that fetch covers, which do not walk. codegen_fetch_walk_defer:
+  the marks of an EA whose walk is made later, by a hand-over's op in its
+  fetch_ea or after a compiled x87 instruction's address is formed; the
+  address is kept in codegen_fetch_walk_deferred with bit 0 set, 0 for
+  none. Such a walk is past the instruction's front, where the bytes before
+  it are on the first page (a page-2 byte among those the front fetch reads
+  walks there), so its address is always a page's first byte, linear 0
+  included, and the low bits are free*/
+extern int      codegen_page2_walked;
+extern int      codegen_fetch_walk_off;
+extern int      codegen_fetch_walk_defer;
+extern uint32_t codegen_fetch_walk_deferred;
+extern void     codegen_fetch_walk(uint32_t addr);
+extern int      dynarec_fetch_walk(uint32_t addr);
+
+/*The walk for bytes a handler takes, where it is called. The interpreter's
+  op fetches an immediate after the EA and the segment's null and writable
+  test, before the operand (IMUL and TEST r/m,imm read the operand first),
+  so a handler that marks it after the access calls this there. In a block
+  that reads its immediates from RAM (CODEBLOCK_NO_IMMEDIATES) an immediate
+  not wholly on the first page is still marked (immediate_off_first_page)*/
+static inline void
+codegen_fetch_walk_mark(codeblock_t *block, uint32_t start_pc, int len)
+{
+    if (!codegen_page2_walked && !codegen_fetch_walk_off && (((start_pc + len - 1) ^ block->pc) & ~0xfff))
+        codegen_fetch_walk(((start_pc ^ block->pc) & ~0xfff) ? start_pc : ((start_pc + len - 1) & ~0xfff));
+}
+
 static inline void
 codegen_mark_code_present(codeblock_t *block, uint32_t start_pc, int len)
 {
+    codegen_fetch_walk_mark(block, start_pc, len);
     if (len == 1) {
         if (block->flags & CODEBLOCK_BYTE_MASK) {
             if (!((start_pc ^ block->pc) & ~0x3f)) /*Starts in second page*/
@@ -370,6 +405,16 @@ extern void (*codegen_timing_block_start)(void);
 extern void (*codegen_timing_block_end)(void);
 extern int (*codegen_timing_jump_cycles)(void);
 
+/*What a model's block start keeps from the block before*/
+typedef struct codegen_timing_state_t {
+    uint32_t regmask_modified;
+    int      fpu_latency;
+    int      fpu_st_latency[8];
+} codegen_timing_state_t;
+
+extern void (*codegen_timing_save)(codegen_timing_state_t *state);
+extern void (*codegen_timing_load)(const codegen_timing_state_t *state);
+
 typedef struct codegen_timing_t {
     void (*start)(void);
     void (*prefix)(uint8_t prefix, uint32_t fetchdat);
@@ -377,6 +422,10 @@ typedef struct codegen_timing_t {
     void (*block_start)(void);
     void (*block_end)(void);
     int (*jump_cycles)(void);
+    /*save copies the kept state out, load sets it, or clears it when given
+      NULL. NULL where block start clears it all*/
+    void (*save)(codegen_timing_state_t *state);
+    void (*load)(const codegen_timing_state_t *state);
 } codegen_timing_t;
 
 extern codegen_timing_t codegen_timing_pentium;
@@ -408,7 +457,18 @@ extern int codegen_flags_changed;
 /*Forgets the block's inline flags rebuilds (codegen_ops_helpers.c)*/
 extern void codegen_flags_known_reset(void);
 
+/*Set while the block being recompiled is a V86 block entered with every
+  segment limit 0..0xffff (CPU_STATUS_NOT64K clear): V86 segment loads keep
+  them so, an instruction run by the interpreter may not*/
+extern int codegen_v86_64k;
+/*The first uop of the instruction being recompiled*/
+extern int codegen_instr_first_uop;
+
 extern int codegen_fpu_entered;
+/*Set when a compiled instruction since the block's last pending exception
+  check can have set ES and gone on: the next waiting x87 instruction checks
+  again although the block has entered the FPU*/
+extern int codegen_fpu_es_check;
 extern int codegen_mmx_entered;
 
 extern int codegen_fpu_loaded_iq[8];
@@ -419,10 +479,39 @@ extern int codegen_in_recompile;
 void codegen_generate_reset(void);
 
 int  codegen_get_instruction_uop(codeblock_t *block, uint32_t pc, int *first_instruction, int *TOP);
+void codegen_get_instruction_entered(int ins, int *fpu_entered, int *fpu_es_check, int *mmx_entered);
+void codegen_get_instruction_tags(int ins, uint8_t *tag_valid, uint8_t *tag_empty);
 void codegen_set_loop_start(struct ir_data_t *ir, int first_instruction);
 
 #ifdef DEBUG_EXTRA
 extern uint32_t instr_counts[256 * 256];
 #endif
+
+/*Compiled far transfers: the x86seg routine and the globals around it
+  (386_dynarec_ops.c)*/
+extern void dynarec_iret_pm(int is32);
+extern void dynarec_iret_cs(uint16_t seg);
+extern int  dynarec_dtr(uint32_t op);
+extern void dynarec_lmsw(uint16_t tempw);
+extern int  dynarec_call_far_w(uint16_t new_cs, uint32_t ret_pc);
+extern int  dynarec_call_far_l(uint16_t new_cs, uint32_t ret_pc);
+
+/*The interpreted loop's RF handling after an instruction, with the 486
+  debug registers option (386_dynarec_ops.c)*/
+extern void dynarec_rf_after_op(void);
+
+/*Compiled MOV CRx and MOV DRx: the control register writes with what they
+  flush, and the debug register accesses (386_dynarec_ops.c)*/
+extern int  dynarec_mov_cr0(uint32_t rm);
+extern void dynarec_mov_cr2(uint32_t rm);
+extern int  dynarec_mov_cr3(uint32_t rm);
+extern int  dynarec_mov_cr4(uint32_t rm);
+extern int  dynarec_mov_drx_gd(void);
+extern int  dynarec_mov_drx(uint32_t op);
+
+/*A compiled MOV SS and the instruction after it (codegen.c)*/
+extern int      codegen_mov_ss_pair_valid;
+extern uint32_t codegen_mov_ss_pair_pc;
+extern int      codegen_instruction_room(void);
 
 #endif

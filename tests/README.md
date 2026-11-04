@@ -127,6 +127,17 @@ Build `mach64_accel_tests` and `mach64_3d_tests` with `BUILD_TESTING=ON`, then r
 
 `video/vid_ati_mach64_3d_test.c` stubs the draw engine FIFO, the timing model and the render threads, so its card draws on one thread. It checks the 3D registers' fixed-point fields, the texture palette and keys, the texel path's packed forms (the 2x2 filter's blend two components at a time, every 16-bit texel unpacked through the expansion tables, and reads that wrap at the end of video memory), mip level selection, YUV and the scaler, then 1,077 draw cases through the registers against the whole frame and Z buffers: triangles of two trapezoids in ARGB1555, RGB565 and ARGB8888, shaded, textured and additive, in both directions and clipped; all eight Z tests; texel keys, alpha masks and the destination compare; the `DST_BRES_LNTH` commands of RRG-G02700 4-46; signed scissors; color and Z fields that wrap; textured lines; bilinear texel centers; and eight register streams of ATI3DCIF 4.03.2510's triangle setup against the color and depth planes of their vertices. The expected images are closed forms, not the engine's own helpers. The tests establish the documented register behavior and the engine's consistency, not the chip's undocumented rounding or dither.
 
+# 3dfx Voodoo LOD log2
+
+Build `voodoo_lod_log2_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^Voodoo.LodLog2$' --output-on-failure`.
+The test includes `vid_voodoo_render.c` for its private functions and checks
+the table log2 behind the LOD against libm's `log2()`: the table itself, exact
+powers of two, every table entry and the double just below it, and a million
+random samples over 129 octaves, each within the error bound the code claims.
+It also checks that the 8.8 LOD made from it differs from libm's by at most
+one step, and rarely. It does not render anything.
+
 # ATI Rage 128
 
 Build with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^Rage128\.'`. The tools live in `video/rage128/`, one directory each; each directory also builds on its own with its `build.sh`, and its README covers the options. The register and replay tools compile the device sources with host stubs; all of them need GCC or Clang. See [the Rage 128 hardware notes](../doc/hardware/ati-rage128.md) for the boards and their ROMs, what the device models, the render lanes and the environment switches.

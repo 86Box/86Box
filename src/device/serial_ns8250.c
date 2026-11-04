@@ -35,8 +35,8 @@
 #include <86box/fifo.h>
 #include <86box/serial.h>
 #include <86box/mouse.h>
-
-serial_port_t com_ports[SERIAL_MAX] = { 0 };
+#include <86box/nvr.h>
+#include <86box/acpi.h>
 
 enum {
     SERIAL_INT_LSR       = 1,
@@ -48,12 +48,10 @@ enum {
     SERIAL_INT_TX_DMA_TC = 64
 };
 
-void    serial_update_ints(serial_t *dev);
+void serial_update_ints(serial_t *dev);
+static void serial_xmit_d_empty_evt(void *priv);
 
-static int             next_inst = 0;
-static serial_device_t serial_devices[SERIAL_MAX];
-
-static void            serial_xmit_d_empty_evt(void *priv);
+static int next_inst = 0;
 
 #ifdef ENABLE_SERIAL_LOG
 int serial_do_log = ENABLE_SERIAL_LOG;
@@ -96,8 +94,8 @@ serial_reset_port(serial_t *dev)
     serial_update_ints(dev);
     dev->irq_state = 0;
 
-    if (dev->char_port.chardev.control)
-        dev->char_port.chardev.control((dev->mctrl & 0x03) | (dev->lcr & 0x40), dev->char_port.chardev.priv);
+    if ((dev->ep.be != NULL) && (dev->ep.be->control != NULL))
+        dev->ep.be->control(dev->ep.be->priv, (dev->mctrl & 0x03) | (dev->lcr & 0x40));
 }
 
 void
@@ -112,15 +110,12 @@ serial_transmit_period(serial_t *dev)
 
     /* Bit period based on DLAB. */
     dev->transmit_period = (16000000.0 * ddlab) / dev->clock_src;
-    if (dev->sd && dev->sd->transmit_period_callback)
-        dev->sd->transmit_period_callback(dev, dev->sd->priv, dev->transmit_period);
+    if ((dev->ep.be != NULL) && (dev->ep.be->transmit_period != NULL))
+        dev->ep.be->transmit_period(dev->ep.be->priv, dev->transmit_period);
 
-    dev->char_port.com.baud      = dev->clock_src / (16.0 * ddlab);
-    dev->char_port.com.data_bits = (dev->lcr & 0x03) + 5;
-    dev->char_port.com.parity    = (dev->lcr >> 3) & 0x7;
-    dev->char_port.com.stop_bits = !!(dev->lcr & 0x04) + 1;
-    if (dev->char_port.chardev.port_config)
-        dev->char_port.chardev.port_config(dev->char_port.chardev.priv);
+    if ((dev->ep.be != NULL) && (dev->ep.be->set_format != NULL))
+        dev->ep.be->set_format(dev->ep.be->priv, (int) (dev->clock_src / (16.0 * ddlab)),
+                            (dev->lcr & 0x03) + 5, (dev->lcr >> 3) & 0x7, !!(dev->lcr & 0x04) + 1);
 }
 
 void
@@ -151,7 +146,20 @@ serial_update_ints(serial_t *dev)
         }
     }
 
-    serial_do_irq(dev, !(dev->iir & 0x01) && ((dev->mctrl & 8) || ((dev->type == SERIAL_8250_PCJR_3F8) || (dev->type == SERIAL_8250_PCJR_2F8))));
+    serial_do_irq(dev, !(dev->iir & 0x01) && ((dev->mctrl & 8) || dev->irq_direct));
+}
+
+/*
+   Whether the interrupt output goes straight to the IRQ, as on the PCjr or
+   where a chip connects the UART itself, rather than through OUT2, which on
+   a PC's serial port is the IRQ enable. A direct interrupt does not depend
+   on OUT2.
+ */
+void
+serial_set_irq_direct(serial_t *dev, int direct)
+{
+    dev->irq_direct = !!direct;
+    serial_update_ints(dev);
 }
 
 static void
@@ -197,18 +205,18 @@ serial_receive_timer(void *priv)
     /* Only read when the receive shift register is free: it still holds the
        previous byte until the code below moves it into the FIFO, so reading
        unconditionally can overwrite input that was never delivered. */
-    if (dev->char_port.chardev.read && (dev->out_new == 0xffff)) {
-        uint8_t val;
-        if (dev->char_port.chardev.read(&val, sizeof(val), dev->char_port.chardev.priv) > 0)
-            serial_write_fifo(dev, val);
+    if ((dev->ep.be != NULL) && (dev->ep.be->read_byte != NULL) && (dev->out_new == 0xffff)) {
+        int val = dev->ep.be->read_byte(dev->ep.be->priv);
+        if (val >= 0)
+            serial_write_fifo(dev, (uint8_t) val);
     }
 
     /* The modem status lines do not change thousands of times a second, and
        querying them is not free on every host. */
     dev->status_divider++;
-    if (dev->char_port.chardev.status && !(dev->status_divider & 0x3f)) {
+    if ((dev->ep.be != NULL) && (dev->ep.be->status != NULL) && !(dev->status_divider & 0x3f)) {
         uint8_t prev_msr = dev->msr;
-        uint32_t flags = dev->char_port.chardev.status(dev->char_port.chardev.priv);
+        uint32_t flags = dev->ep.be->status(dev->ep.be->priv);
         uint8_t mask = CHAR_COM_CTS | CHAR_COM_DSR | CHAR_COM_RI | CHAR_COM_DCD;
         dev->msr = (dev->msr & ~mask) | (flags & mask);
         mask &= ~CHAR_COM_RI;
@@ -313,10 +321,8 @@ serial_transmit(serial_t *dev, uint8_t val)
 {
     if (dev->mctrl & 0x10)
         write_fifo(dev, val);
-    else if (dev->sd && dev->sd->dev_write)
-        dev->sd->dev_write(dev, dev->sd->priv, val);
-    else if (dev->char_port.chardev.write)
-        dev->char_port.chardev.write(&val, sizeof(val), dev->char_port.chardev.priv);
+    else if ((dev->ep.be != NULL) && (dev->ep.be->write_byte != NULL))
+        dev->ep.be->write_byte(dev->ep.be->priv, val);
 }
 
 static void
@@ -529,6 +535,10 @@ serial_set_ri(serial_t *dev, uint8_t enabled)
         dev->msr |= 0x4;
         dev->int_status |= SERIAL_INT_MSR;
         serial_update_ints(dev);
+
+        /* A COM port's RI# also reaches the ACPI chipset's ring input, which
+           can wake the machine (PIIX4 RI_STS, VIA RI_STS, ALi RING_STS). */
+        acpi_gpe_event(ACPI_GPE_RI);
     }
 }
 
@@ -679,28 +689,28 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                 serial_transmit_period(dev);
                 serial_update_speed(dev);
 
-                if (dev->sd && dev->sd->lcr_callback)
-                    dev->sd->lcr_callback(dev, dev->sd->priv, dev->lcr);
+                if ((dev->ep.be != NULL) && (dev->ep.be->set_lcr != NULL))
+                    dev->ep.be->set_lcr(dev->ep.be->priv, dev->lcr);
             }
             if (!(old & 0x40) && (val & 0x40) && (dev->mctrl & 0x10))
                 serial_receive_loopback_break(dev);
-            if (((old ^ val) & 0x40) && dev->char_port.chardev.control)
-                dev->char_port.chardev.control((dev->mctrl & 0x03) | (val & 0x40), dev->char_port.chardev.priv);
+            if (((old ^ val) & 0x40) && (dev->ep.be != NULL) && (dev->ep.be->control != NULL))
+                dev->ep.be->control(dev->ep.be->priv, (dev->mctrl & 0x03) | (val & 0x40));
             break;
         case 4:
             old = dev->mctrl;
             if ((val & 2) && !(dev->mctrl & 2)) {
-                if (dev->sd && dev->sd->rcr_callback) {
+                if ((dev->ep.be != NULL) && (dev->ep.be->rcr != NULL)) {
                     serial_log("RTS toggle callback\n");
-                    dev->sd->rcr_callback(dev, dev->sd->priv);
+                    dev->ep.be->rcr(dev->ep.be->priv);
                 }
             }
-            if (!(val & 8) && (dev->mctrl & 8))
+            if (!(val & 8) && (dev->mctrl & 8) && !dev->irq_direct)
                 serial_do_irq(dev, 0);
-            if (dev->sd && dev->sd->dtr_callback && (val ^ dev->mctrl) & 1)
-                dev->sd->dtr_callback(dev, val & 1, dev->sd->priv);
-            if (((dev->mctrl ^ val) & 0x03) && dev->char_port.chardev.control)
-                dev->char_port.chardev.control((val & 0x03) | (dev->lcr & 0x40), dev->char_port.chardev.priv);
+            if ((dev->ep.be != NULL) && (dev->ep.be->dtr != NULL) && ((val ^ dev->mctrl) & 1))
+                dev->ep.be->dtr(dev->ep.be->priv, val & 1);
+            if (((dev->mctrl ^ val) & 0x03) && (dev->ep.be != NULL) && (dev->ep.be->control != NULL))
+                dev->ep.be->control(dev->ep.be->priv, (val & 0x03) | (dev->lcr & 0x40));
             dev->mctrl = val & 0x1f;
             if (val & 0x10) {
                 new_msr = (val & 0x0c) << 4;
@@ -894,6 +904,23 @@ serial_remove(serial_t *dev)
     dev->base_address = 0x0000;
 }
 
+/*
+   Moves the UART's interrupt output to another IRQ line, or to none (0xff).
+   Like the multiplexer on a real chip, this drops it from the old line and
+   raises it on the new one if an interrupt is pending, so that a level held
+   on the old line is released.
+ */
+static void
+serial_set_irq_line(serial_t *dev, uint8_t irq)
+{
+    if (irq == dev->irq)
+        return;
+
+    serial_do_irq(dev, 0);
+    dev->irq = irq;
+    serial_update_ints(dev);
+}
+
 void
 serial_setup(serial_t *dev, uint16_t addr, uint8_t irq)
 {
@@ -909,7 +936,7 @@ serial_setup(serial_t *dev, uint16_t addr, uint8_t irq)
     dev->base_address = addr;
     if (addr != 0x0000)
         io_sethandler(addr, 0x0008, serial_read, NULL, NULL, serial_write, NULL, NULL, dev);
-    dev->irq = irq;
+    serial_set_irq_line(dev, irq);
 }
 
 void
@@ -918,10 +945,7 @@ serial_irq(serial_t *dev, const uint8_t irq)
     if (dev == NULL)
         return;
 
-    if (com_ports[dev->inst].enabled)
-        dev->irq = irq;
-    else
-        dev->irq = 0xff;
+    serial_set_irq_line(dev, com_ports[dev->inst].enabled ? irq : 0xff);
 
     serial_log("Port %i IRQ = %02X\n", dev->inst, irq);
 }
@@ -962,122 +986,6 @@ serial_xmit_d_empty_evt(void *priv)
     dev->int_status = (dev->int_status & ~SERIAL_INT_TRANSMIT) | (is_empty ? SERIAL_INT_TRANSMIT : 0);
 }
 
-serial_t *
-serial_attach_ex(int port,
-                 void (*rcr_callback)(struct serial_s *serial, void *priv),
-                 void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data),
-                 void (*transmit_period_callback)(struct serial_s *serial, void *priv, double transmit_period),
-                 void (*lcr_callback)(struct serial_s *serial, void *priv, uint8_t data_bits),
-                 void *priv)
-{
-    /* Make sure this port becomes non-hotunpluggable if a hotunpluggable dropdown
-       device and a non-hotunpluggable external device are both trying to claim it. */
-    uint8_t hotunplug         = com_ports[port].hotunplug;
-    com_ports[port].hotunplug = CHAR_PORT_NOHOTUNPLUG;
-    if (hotunplug != CHAR_PORT_DETACHED)
-        return NULL;
-
-    serial_device_t *sd = &serial_devices[port];
-
-    sd->rcr_callback             = rcr_callback;
-    sd->dev_write                = dev_write;
-    sd->transmit_period_callback = transmit_period_callback;
-    sd->lcr_callback             = lcr_callback;
-    sd->priv                     = priv;
-
-    return com_ports[port].serial;
-}
-
-serial_t *
-serial_attach_ex_2(int port,
-                   void (*rcr_callback)(struct serial_s *serial, void *priv),
-                   void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data),
-                   void (*dtr_callback)(struct serial_s *serial, int status, void *priv),
-                   void *priv)
-{
-    /* Make sure this port becomes non-hotunpluggable if a hotunpluggable dropdown
-       device and a non-hotunpluggable external device are both trying to claim it. */
-    uint8_t hotunplug         = com_ports[port].hotunplug;
-    com_ports[port].hotunplug = CHAR_PORT_NOHOTUNPLUG;
-    if (hotunplug != CHAR_PORT_DETACHED)
-        return NULL;
-
-    serial_device_t *sd = &serial_devices[port];
-
-    sd->rcr_callback             = rcr_callback;
-    sd->dtr_callback             = dtr_callback;
-    sd->dev_write                = dev_write;
-    sd->transmit_period_callback = NULL;
-    sd->lcr_callback             = NULL;
-    sd->priv                     = priv;
-
-    return com_ports[port].serial;
-}
-
-void
-serial_devices_init(void)
-{
-    for (uint8_t i = 0; i < SERIAL_MAX; i++) {
-        /* Leave non-hotunpluggable ports and their devices alone. */
-        if (com_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG)
-            continue;
-
-        memset(&(serial_devices[i]), 0, sizeof(serial_device_t));
-
-        com_ports[i].hotunplug = CHAR_PORT_DETACHED;
-
-        serial_t *serial = com_ports[i].serial;
-        if (!serial)
-            continue;
-
-        memset(&serial->char_port, 0, sizeof(serial->char_port));
-        if (com_ports[i].device) {
-            serial->char_port.type = CHAR_PORT_COM;
-            snprintf(serial->char_port.name, sizeof(serial->char_port.name), "COM%i", i + 1);
-            const device_t *device = char_get_device(com_ports[i].device);
-            char_init(&serial->char_port, device, i + 1);
-
-            if (serial->char_port.chardev.control)
-                serial->char_port.chardev.control((serial->mctrl & 0x03) | (serial->lcr & 0x40), serial->char_port.chardev.priv);
-
-            /* This port is hotunpluggable if the device allows it, unless further serial_attach attempts are made. */
-            com_ports[i].hotunplug = (device->flags & DEVICE_HOTPLUG_OUT) ? CHAR_PORT_HOTUNPLUG : CHAR_PORT_NOHOTUNPLUG;
-        }
-    }
-}
-
-void
-serial_devices_close(int hotplug)
-{
-    for (uint8_t i = 0; i < SERIAL_MAX; i++) {
-        /* Leave non-hotunpluggable ports and their devices alone in a hotplug operation. */
-        if (hotplug && (com_ports[i].hotunplug >= CHAR_PORT_NOHOTUNPLUG))
-            continue;
-        com_ports[i].hotunplug = CHAR_PORT_DETACHED;
-
-        memset(&(serial_devices[i]), 0, sizeof(serial_device_t));
-
-        if (com_ports[i].serial)
-            memset(&com_ports[i].serial->char_port, 0, sizeof(char_port_t));
-    }
-}
-
-void
-serial_devices_reset(void)
-{
-    /* Only close the dropdown devices of the ports that serial_devices_close() and serial_devices_init()
-       will go through. A port where another device also asked for the port, such as a serial mouse,
-       is left alone by them, and closing its device would leave the port calling into it. */
-    for (uint8_t i = 0; i < SERIAL_MAX; i++) {
-        if (com_ports[i].hotunplug < CHAR_PORT_NOHOTUNPLUG)
-            device_close_by_flags_inst(DEVICE_COM | DEVICE_HOTPLUG_OUT, i + 1);
-    }
-
-    serial_devices_close(1);
-
-    serial_devices_init();
-}
-
 static void
 serial_speed_changed(void *priv)
 {
@@ -1086,16 +994,104 @@ serial_speed_changed(void *priv)
     serial_update_speed(dev);
 }
 
+/* ---- device side: what an in-machine device can do to this chip --------- */
+
+static void
+serial_chip_receive(void *chip, uint8_t byte)
+{
+    serial_write_fifo((serial_t *) chip, byte);
+}
+
+static int
+serial_chip_can_receive(void *chip)
+{
+    serial_t *dev = (serial_t *) chip;
+
+    if ((dev->type >= SERIAL_16550) && dev->fifo_enabled) {
+        if (fifo_get_full(dev->rcvr_fifo))
+            return 0;
+    } else if (dev->lsr & 1) {
+        return 0;
+    }
+
+    return dev->out_new == 0xffff;
+}
+
+static void
+serial_chip_set_line(void *chip, uint32_t line, int on)
+{
+    serial_t *dev = (serial_t *) chip;
+
+    switch (line) {
+        case CHAR_COM_CTS:
+            serial_set_cts(dev, on);
+            break;
+        case CHAR_COM_DSR:
+            serial_set_dsr(dev, on);
+            break;
+        case CHAR_COM_DCD:
+            serial_set_dcd(dev, on);
+            break;
+        case CHAR_COM_RI:
+            serial_set_ri(dev, on);
+            break;
+        default:
+            break;
+    }
+}
+
+static int
+serial_chip_get_line(void *chip, uint32_t line)
+{
+    serial_t *dev = (serial_t *) chip;
+
+    if (line == CHAR_COM_DTR)
+        return (dev->mctrl & 0x01) ? 1 : 0;
+    if (line == CHAR_COM_RTS)
+        return (dev->mctrl & 0x02) ? 1 : 0;
+
+    return (dev->msr & line) ? 1 : 0;
+}
+
+static const serial_port_ops_t serial_chip_ops = {
+    .can_receive = serial_chip_can_receive,
+    .set_line    = serial_chip_set_line,
+    .get_line    = serial_chip_get_line,
+    .receive     = serial_chip_receive
+};
+
+/* The seam calls this after a backend is installed or released; push the line
+   state at whatever is on the other side now. The storage stays in this chip. */
+static void
+serial_backend_changed(void *priv)
+{
+    serial_t *dev = (serial_t *) priv;
+
+    if ((dev->ep.be != NULL) && (dev->ep.be->control != NULL))
+        dev->ep.be->control(dev->ep.be->priv, (dev->mctrl & 0x03) | (dev->lcr & 0x40));
+}
+
+/* A device backend is attached when any of its callbacks is present. */
+static int
+serial_has_device(serial_t *dev)
+{
+    return (dev->ep.dev.rcr_callback != NULL) || (dev->ep.dev.dev_write != NULL) ||
+           (dev->ep.dev.dtr_callback != NULL) || (dev->ep.dev.lcr_callback != NULL) ||
+           (dev->ep.dev.transmit_period_callback != NULL);
+}
+
 static void
 serial_close(void *priv)
 {
     serial_t *dev = (serial_t *) priv;
 
-    if (dev->sd || dev->char_port.type) {
-        if (dev->sd)
-            memset(dev->sd, 0, sizeof(serial_device_t));
+    if (serial_has_device(dev) || com_ports[dev->inst].char_port.type) {
+        serial_endpoint_detach(&dev->ep);
         fifo_close(dev->rcvr_fifo);
     }
+
+    if ((dev->inst < SERIAL_MAX) && (com_ports[dev->inst].ep == &dev->ep))
+        com_ports[dev->inst].ep = NULL;
 
     /*
        Needed to avoid a segmentation fault at serial_devices_init() for any serial port
@@ -1111,7 +1107,7 @@ serial_reset(void *priv)
 {
     serial_t *dev = (serial_t *) priv;
 
-    if (dev->sd || dev->char_port.type) {
+    if (serial_has_device(dev) || com_ports[dev->inst].char_port.type) {
         timer_disable(&dev->transmit_timer);
         timer_disable(&dev->timeout_timer);
         timer_disable(&dev->receive_timer);
@@ -1154,10 +1150,18 @@ serial_init(const device_t *info)
     if (com_ports[next_inst].enabled || (info->local & 0xFFF00000)) {
         serial_log("Adding serial port %i...\n", next_inst);
         dev->type = info->local;
-        dev->sd         = &(serial_devices[next_inst]);
+
+        serial_endpoint_init(&dev->ep, dev, &serial_chip_ops);
+        dev->ep.on_attach = serial_backend_changed;
+        dev->ep.serial    = dev;
 
         com_ports[next_inst].serial    = dev;
+        com_ports[next_inst].ep        = &dev->ep;
         com_ports[next_inst].hotunplug = CHAR_PORT_DETACHED;
+
+        /* A device that asked for this port before the chip existed gets its
+           backend built now. */
+        serial_device_attach(next_inst);
 
         if (info->local & 0xfff00000) {
             dev->base_address = info->local >> 20;
@@ -1174,23 +1178,15 @@ serial_init(const device_t *info)
             serial_setup(dev, COM4_ADDR, COM4_IRQ);
         else if (next_inst == 2)
             serial_setup(dev, COM3_ADDR, COM3_IRQ);
-        else if ((next_inst == 1) || (info->local == SERIAL_8250_PCJR_2F8))
+        else if (next_inst == 1)
             serial_setup(dev, COM2_ADDR, COM2_IRQ);
-        // TODO
-#if 0
-        else if ((next_inst == 1) || (info->local == SERIAL_8250_PCJR_3F8))
-            serial_setup(dev, COM1_ADDR, COM1_IRQ);
-#endif
         else if (next_inst == 0)
             serial_setup(dev, COM1_ADDR, COM1_IRQ);
 
         /* Default to 1200,N,7. */
         dev->dlab = 96;
         dev->fcr  = 0x06;
-        if ((info->local == SERIAL_8250_PCJR_3F8) || (info->local == SERIAL_8250_PCJR_2F8))
-            dev->clock_src = 1789500.0;
-        else
-            dev->clock_src = 1843200.0;
+        dev->clock_src = 1843200.0;
         timer_add(&dev->transmit_timer, serial_transmit_timer, dev, 0);
         timer_add(&dev->timeout_timer, serial_timeout_timer, dev, 0);
         timer_add(&dev->receive_timer, serial_receive_timer, dev, 0);
@@ -1238,34 +1234,6 @@ const device_t ns8250_device = {
     .internal_name = "ns8250",
     .flags         = 0,
     .local         = SERIAL_8250,
-    .init          = serial_init,
-    .close         = serial_close,
-    .reset         = serial_reset,
-    .available     = NULL,
-    .speed_changed = serial_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t ns8250_pcjr_3f8_device = {
-    .name          = "National Semiconductor 8250(-compatible) UART for PCjr (0x3f8)",
-    .internal_name = "ns8250_pcjr_3f8",
-    .flags         = 0,
-    .local         = SERIAL_8250_PCJR_3F8,
-    .init          = serial_init,
-    .close         = serial_close,
-    .reset         = serial_reset,
-    .available     = NULL,
-    .speed_changed = serial_speed_changed,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
-const device_t ns8250_pcjr_2f8_device = {
-    .name          = "National Semiconductor 8250(-compatible) UART for PCjr (0x2f8)",
-    .internal_name = "ns8250_pcjr_2f8",
-    .flags         = 0,
-    .local         = SERIAL_8250_PCJR_2F8,
     .init          = serial_init,
     .close         = serial_close,
     .reset         = serial_reset,

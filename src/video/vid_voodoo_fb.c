@@ -322,7 +322,7 @@ voodoo_fb_cca_process(const voodoo_params_t *params, rgba8_t *write_data, uint16
             alocal = new_depth >> 8; /*FIXME*/
             break;
         default:
-            fatal("Bad cca_localselect %i\n", cca_localselect);
+            voodoo_fb_log("Bad cca_localselect %i\n", cca_localselect);
             alocal = 0xff;
             break;
     }
@@ -379,7 +379,7 @@ voodoo_fb_cca_process(const voodoo_params_t *params, rgba8_t *write_data, uint16
             msel_b = cother_b;
             break;
         default:
-            fatal("Bad cc_mselect %i\n", cc_mselect);
+            voodoo_fb_log("Bad cc_mselect %i\n", cc_mselect);
             msel_r = 0;
             msel_g = 0;
             msel_b = 0;
@@ -399,7 +399,7 @@ voodoo_fb_cca_process(const voodoo_params_t *params, rgba8_t *write_data, uint16
             msel_a = aother;
             break;
         default:
-            fatal("Bad cca_mselect %i\n", cca_mselect);
+            voodoo_fb_log("Bad cca_mselect %i\n", cca_mselect);
             msel_a = 0;
             break;
     }
@@ -436,7 +436,7 @@ voodoo_fb_cca_process(const voodoo_params_t *params, rgba8_t *write_data, uint16
         case 0:
             break;
         default:
-            fatal("Bad cc_add %i\n", cc_add);
+            voodoo_fb_log("Bad cc_add %i\n", cc_add);
     }
 
     if (cca_add)
@@ -540,7 +540,8 @@ voodoo_fb_writew(uint32_t addr, uint16_t val, void *priv)
             break;
 
         default:
-            fatal("voodoo_fb_writew : bad LFB format %08X\n", voodoo->lfbMode);
+            voodoo_fb_log("voodoo_fb_writew : bad LFB format %08X\n", voodoo->lfbMode);
+            return;
     }
 
     if (voodoo->type >= VOODOO_BANSHEE) {
@@ -561,7 +562,7 @@ voodoo_fb_writew(uint32_t addr, uint16_t val, void *priv)
         y >>= 1;
     }
 
-    if (voodoo->fb_write_offset == voodoo->params.front_offset && y < 2048)
+    if (voodoo->fb_write_offset == voodoo->params.front_offset && y >= 0 && y < 2048)
         voodoo->dirty_line[y] = 1;
 
     if (voodoo->col_tiled)
@@ -758,7 +759,8 @@ voodoo_fb_writel(uint32_t addr, uint32_t val, void *priv)
             break;
 
         default:
-            fatal("voodoo_fb_writel : bad LFB format %08X\n", voodoo->lfbMode);
+            voodoo_fb_log("voodoo_fb_writel : bad LFB format %08X\n", voodoo->lfbMode);
+            return;
     }
 
     if (voodoo->type >= VOODOO_BANSHEE) {
@@ -779,7 +781,7 @@ voodoo_fb_writel(uint32_t addr, uint32_t val, void *priv)
         y >>= 1;
     }
 
-    if (voodoo->fb_write_offset == voodoo->params.front_offset && y < 2048)
+    if (voodoo->fb_write_offset == voodoo->params.front_offset && y >= 0 && y < 2048)
         voodoo->dirty_line[y] = 1;
 
     if (voodoo->col_tiled)

@@ -1089,8 +1089,16 @@ cmi8x38_dma_process(void *priv)
         dma->fifo_end += 4;
         dma->sample_ptr += 4;
 
+        /* The counts are in sample frames (the drivers program the buffer's
+           bytes shifted right once for 16-bit and once for stereo), so a
+           longword holds 4 of them for 8-bit mono, 2 for 8-bit stereo or
+           16-bit mono, and 1 for 16-bit stereo and multi-channel. */
+        const uint8_t fmt    = (dev->io_regs[0x08] >> (dma->id << 1)) & 0x03;
+        const int     frames = 4 >> ((fmt & 0x01) + (fmt >> 1));
+
         /* Check if the fragment size was reached. */
-        if (--dma->frame_count_fragment <= 0) {
+        dma->frame_count_fragment -= frames;
+        if (dma->frame_count_fragment <= 0) {
             /* Reset fragment counter. */
             dma->frame_count_fragment = AS_U16(dev->io_regs[dma->reg | 0x6]) + 1;
 #ifdef ENABLE_CMI8X38_LOG
@@ -1117,7 +1125,8 @@ cmi8x38_dma_process(void *priv)
         }
 
         /* Check if the buffer's end was reached. */
-        if (--dma->frame_count_dma <= 0) {
+        dma->frame_count_dma -= frames;
+        if (dma->frame_count_dma <= 0) {
             dma->frame_count_dma = 0;
             cmi8x38_log("CMI8x38: DMA %d end reached, restarting\n", dma->id);
 

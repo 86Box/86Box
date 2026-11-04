@@ -556,7 +556,7 @@ voodoo_use_texture(voodoo_t *voodoo, voodoo_params_t *params, int tmu)
                 break;
 
             default:
-                fatal("Unknown texture format %i\n", params->tformat[tmu]);
+                voodoo_texture_log("Unknown texture format %i\n", params->tformat[tmu]);
         }
     }
 

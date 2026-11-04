@@ -2458,6 +2458,9 @@ msgstr ""
 msgid "Snow emulation"
 msgstr ""
 
+msgid "Display Enhancement Board (GO329)"
+msgstr ""
+
 msgid "Monitor type"
 msgstr ""
 

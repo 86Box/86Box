@@ -12,13 +12,16 @@
  *          (debugger.c), which never calls a device's handlers: only the
  *          bytes on screen (and the page table entries that map them) are
  *          read, and memory only devices can answer for is shown, not read.
+ *
+ *          The hex pane omits addresses that are not mapped (classed
+ *          DEBUGGER_MEM_UNMAPPED), presenting only the mapped regions
+ *          contiguously.
  */
 #include "qt_memoryviewer.hpp"
 
 #include <algorithm>
 
 #include <QApplication>
-#include <QButtonGroup>
 #include <QCheckBox>
 #include <QClipboard>
 #include <QCloseEvent>
@@ -43,6 +46,7 @@
 #include <QPlainTextEdit>
 #include <QProgressDialog>
 #include <QPushButton>
+#include <QRegularExpression>
 #include <QScrollBar>
 #include <QSpinBox>
 #include <QSplitter>
@@ -54,6 +58,8 @@ extern "C" {
 #include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/debugger.h>
+#include <86box/mem.h>
+#include <86box/io.h>
 
 int startblit_timeout(int timeout_ms);
 }
@@ -111,10 +117,119 @@ MemoryHexView::MemoryHexView(QWidget *parent)
     updateScrollBar();
 }
 
+void
+MemoryHexView::rebuildMappedRanges()
+{
+    mappedRanges_.clear();
+    totalMappedBytes_ = 0;
+
+    if (!MemoryViewer::lock())
+        return;
+
+    const uint32_t PAGE = 4096;
+
+    if (space_ == DEBUGGER_SPACE_PHYSICAL) {
+        /* Physical: a page is mapped when either the read or write mapping
+           is present. Scanning the arrays is far cheaper than a million
+           debugger_mem_read calls. */
+        uint32_t rangeStart = 0;
+        bool     inRange    = false;
+        for (uint32_t g = 0; g < MEM_MAPPINGS_NO; g++) {
+            const bool mapped = (read_mapping[g] != nullptr) || (write_mapping[g] != nullptr);
+            const uint32_t page = g * PAGE;
+            if (mapped) {
+                if (!inRange) {
+                    rangeStart = page;
+                    inRange    = true;
+                }
+            } else if (inRange) {
+                MappedRange r;
+                r.start  = rangeStart;
+                r.length = page - rangeStart;
+                mappedRanges_.append(r);
+                totalMappedBytes_ += r.length;
+                inRange = false;
+            }
+        }
+        if (inRange) {
+            MappedRange r;
+            r.start  = rangeStart;
+            r.length = (uint32_t) (0x100000000ULL - rangeStart);
+            mappedRanges_.append(r);
+            totalMappedBytes_ += r.length;
+        }
+    } else {
+        /* Linear: a page is mapped when the page walk succeeds and the
+           resulting physical page is not UNMAPPED. */
+        uint32_t rangeStart = 0;
+        bool     inRange    = false;
+        for (uint64_t page = 0; page < 0x100000000ULL; page += PAGE) {
+            uint8_t data = 0;
+            uint8_t cls  = DEBUGGER_MEM_UNMAPPED;
+            debugger_mem_read(space_, (uint32_t) page, 1, &data, &cls);
+            const bool mapped = (cls != DEBUGGER_MEM_UNMAPPED);
+            if (mapped) {
+                if (!inRange) {
+                    rangeStart = (uint32_t) page;
+                    inRange    = true;
+                }
+            } else if (inRange) {
+                MappedRange r;
+                r.start  = rangeStart;
+                r.length = (uint32_t) page - rangeStart;
+                mappedRanges_.append(r);
+                totalMappedBytes_ += r.length;
+                inRange = false;
+            }
+        }
+        if (inRange) {
+            MappedRange r;
+            r.start  = rangeStart;
+            r.length = (uint32_t) (0x100000000ULL - rangeStart);
+            mappedRanges_.append(r);
+            totalMappedBytes_ += r.length;
+        }
+    }
+
+    MemoryViewer::unlock();
+}
+
+uint32_t
+MemoryHexView::virtualRowToAddr(int64_t virtualRow) const
+{
+    if (mappedRanges_.isEmpty() || virtualRow < 0)
+        return 0;
+
+    uint64_t offset = (uint64_t) virtualRow * BYTES_PER_ROW;
+    for (const auto &r : mappedRanges_) {
+        if (offset < r.length) {
+            return r.start + (uint32_t) offset;
+        }
+        offset -= r.length;
+    }
+    /* Past the end: return the end of the last range. */
+    const auto &last = mappedRanges_.last();
+    return last.start + last.length - 1;
+}
+
+int64_t
+MemoryHexView::addrToVirtualRow(uint32_t addr) const
+{
+    uint64_t bytesBefore = 0;
+    for (const auto &r : mappedRanges_) {
+        if (addr >= r.start && addr < r.start + r.length) {
+            uint64_t off = addr - r.start;
+            return (int64_t) ((bytesBefore + off) / BYTES_PER_ROW);
+        }
+        bytesBefore += r.length;
+    }
+    return -1; /* unmapped */
+}
+
 uint32_t
 MemoryHexView::topAddr() const
 {
-    return (uint32_t) verticalScrollBar()->value() * BYTES_PER_ROW;
+    return virtualRowToAddr(verticalScrollBar()->value());
 }
 
 int
@@ -127,9 +242,11 @@ MemoryHexView::visibleRows() const
 void
 MemoryHexView::updateScrollBar()
 {
-    const int total = (int) (0x100000000ULL / BYTES_PER_ROW);
-    verticalScrollBar()->setRange(0, total - visibleRows());
-    verticalScrollBar()->setPageStep(visibleRows());
+    const int64_t totalRows = (totalMappedBytes_ + BYTES_PER_ROW - 1) / BYTES_PER_ROW;
+    const int     vis       = visibleRows();
+    const int     maxVal    = (int) std::max<int64_t>(0, totalRows - vis);
+    verticalScrollBar()->setRange(0, maxVal);
+    verticalScrollBar()->setPageStep(vis);
     verticalScrollBar()->setSingleStep(1);
 
     const int width = charW_ * (10 + (BYTES_PER_ROW * 3) + 1 + 1 + BYTES_PER_ROW + 2);
@@ -142,6 +259,8 @@ MemoryHexView::setSpace(int space)
 {
     space_  = space;
     nibble_ = 0;
+    rebuildMappedRanges();
+    updateScrollBar();
     refresh();
 }
 
@@ -151,9 +270,14 @@ MemoryHexView::goTo(uint32_t addr)
     sel_    = addr;
     anchor_ = addr;
     nibble_ = 0;
-    const uint32_t row = addr / BYTES_PER_ROW;
+    int64_t vrow = addrToVirtualRow(addr);
+    if (vrow < 0) {
+        /* Unmapped; stay put or go to nearest? For now just select. */
+        refresh();
+        return;
+    }
     /* Put the address a few rows down from the top, for context. */
-    int64_t top = (int64_t) row - 2;
+    int64_t top = vrow - 2;
     verticalScrollBar()->setValue((int) std::clamp<int64_t>(top, 0, verticalScrollBar()->maximum()));
     refresh();
 }
@@ -161,31 +285,58 @@ MemoryHexView::goTo(uint32_t addr)
 void
 MemoryHexView::ensureVisible(uint32_t addr)
 {
-    const int64_t row = addr / BYTES_PER_ROW;
+    int64_t vrow = addrToVirtualRow(addr);
+    if (vrow < 0)
+        return;
     const int64_t top = verticalScrollBar()->value();
-    if (row < top)
-        verticalScrollBar()->setValue((int) row);
-    else if (row >= (top + visibleRows()))
-        verticalScrollBar()->setValue((int) std::min<int64_t>(row - visibleRows() + 1, verticalScrollBar()->maximum()));
+    if (vrow < top)
+        verticalScrollBar()->setValue((int) vrow);
+    else if (vrow >= (top + visibleRows()))
+        verticalScrollBar()->setValue((int) std::min<int64_t>(vrow - visibleRows() + 1, verticalScrollBar()->maximum()));
 }
 
 void
 MemoryHexView::refresh()
 {
-    const uint32_t start = topAddr();
-    const uint32_t len   = (uint32_t) std::min<uint64_t>((uint64_t) visibleRows() * BYTES_PER_ROW, 0x100000000ULL - start);
+    /* Safety net: if ranges were never built (or the lock failed earlier),
+       build them now so rows do not all collapse to address 0. */
+    if (mappedRanges_.isEmpty())
+        rebuildMappedRanges();
 
-    QVector<uint8_t> data(len);
-    QVector<uint8_t> cls(len);
+    const int64_t vtop = verticalScrollBar()->value();
+    const int     rows = visibleRows();
+
+    QVector<uint8_t> data;
+    QVector<uint8_t> cls;
+    data.reserve(rows * BYTES_PER_ROW);
+    cls.reserve(rows * BYTES_PER_ROW);
 
     if (!MemoryViewer::lock()) {
         emit status(tr("The emulator is busy; the memory view was not updated."));
         return;
     }
-    debugger_mem_read(space_, start, len, data.data(), cls.data());
+
+    uint32_t firstAddr = 0;
+    bool haveFirst = false;
+    for (int r = 0; r < rows; r++) {
+        uint32_t rowAddr = virtualRowToAddr(vtop + r);
+        if (!haveFirst) {
+            firstAddr = rowAddr;
+            haveFirst = true;
+        }
+        /* Read the 16 bytes of this row. */
+        uint8_t rowData[BYTES_PER_ROW];
+        uint8_t rowCls[BYTES_PER_ROW];
+        debugger_mem_read(space_, rowAddr, BYTES_PER_ROW, rowData, rowCls);
+        for (int i = 0; i < BYTES_PER_ROW; i++) {
+            data.append(rowData[i]);
+            cls.append(rowCls[i]);
+        }
+    }
+
     MemoryViewer::unlock();
 
-    cacheAddr_ = start;
+    cacheAddr_ = firstAddr;
     data_      = data;
     cls_       = cls;
     viewport()->update();
@@ -246,14 +397,14 @@ MemoryHexView::paintEvent(QPaintEvent *)
     p.fillRect(viewport()->rect(), pal.color(QPalette::Base));
     p.setFont(font());
 
+    const int64_t vtop = verticalScrollBar()->value();
+
     for (int r = 0; r < rows; r++) {
-        const uint64_t rowAddr = (uint64_t) cacheAddr_ + (uint64_t) r * BYTES_PER_ROW;
+        const uint32_t rowAddr = virtualRowToAddr(vtop + r);
         const int      y       = r * lineH_;
-        if (rowAddr > 0xffffffffULL)
-            break;
 
         p.setPen(pal.color(QPalette::Text));
-        p.drawText(xoff, y + ascent, QString::asprintf("%08X", (uint32_t) rowAddr));
+        p.drawText(xoff, y + ascent, QString::asprintf("%08X", rowAddr));
 
         for (int i = 0; i < BYTES_PER_ROW; i++) {
             const uint32_t idx = (uint32_t) (r * BYTES_PER_ROW + i);
@@ -297,7 +448,7 @@ MemoryHexView::paintEvent(QPaintEvent *)
                     break;
             }
 
-            const uint32_t addr = (uint32_t) rowAddr + i;
+            const uint32_t addr = rowAddr + i;
             if (addr >= selectionStart() && addr <= selectionEnd()) {
                 /* A translucent highlight, over whatever class was drawn. */
                 QColor selBg = pal.color(QPalette::Highlight);
@@ -342,10 +493,9 @@ MemoryHexView::hitTest(const QPoint &pos, uint32_t *addr) const
     if (col < 0)
         return 0;
 
-    const uint64_t a = (uint64_t) cacheAddr_ + (uint64_t) row * BYTES_PER_ROW + col;
-    if (a > 0xffffffffULL)
-        return 0;
-    *addr = (uint32_t) a;
+    const int64_t vtop = verticalScrollBar()->value();
+    const uint32_t rowAddr = virtualRowToAddr(vtop + row);
+    *addr = rowAddr + col;
     return 1;
 }
 
@@ -384,9 +534,26 @@ MemoryHexView::mouseReleaseEvent(QMouseEvent *event)
 void
 MemoryHexView::moveSelection(int64_t delta, bool extend)
 {
-    const int64_t a = std::clamp<int64_t>((int64_t) sel_ + delta, 0, 0xffffffffLL);
-    setSelection((uint32_t) a, extend);
-    ensureVisible(sel_);
+    /* Move in the dense virtual address space so navigation skips unmapped. */
+    int64_t vrow = addrToVirtualRow(sel_);
+    int     col  = sel_ % BYTES_PER_ROW;
+    if (vrow < 0) {
+        /* Currently on unmapped; snap to nearest mapped or stay. */
+        setSelection(sel_, extend);
+        return;
+    }
+    int64_t voff = vrow * BYTES_PER_ROW + col + delta;
+    if (voff < 0)
+        voff = 0;
+    uint64_t maxOff = totalMappedBytes_ - 1;
+    if ((uint64_t) voff > maxOff)
+        voff = (int64_t) maxOff;
+
+    int64_t newVrow = voff / BYTES_PER_ROW;
+    int     newCol  = (int) (voff % BYTES_PER_ROW);
+    uint32_t newAddr = virtualRowToAddr(newVrow) + newCol;
+    setSelection(newAddr, extend);
+    ensureVisible(newAddr);
 }
 
 void
@@ -698,26 +865,19 @@ MemoryViewer::MemoryViewer(QWidget *parent)
     setWindowFlags(windowFlags() | Qt::WindowMinMaxButtonsHint);
     setAttribute(Qt::WA_DeleteOnClose);
 
-    /* The two run buttons are icons that rule each other out: one of
-       them is checked at all times, mirroring the debugger's state. */
-    pauseBtn_    = new QPushButton(QIcon(":/menuicons/qt/icons/pause.ico"), QString(), this);
-    continueBtn_ = new QPushButton(QIcon(":/menuicons/qt/icons/run.ico"), QString(), this);
-    auto *stepBtn = new QPushButton(tr("Step"), this);
-    pauseBtn_->setShortcut(QKeySequence(Qt::Key_F6));
-    continueBtn_->setShortcut(QKeySequence(Qt::Key_F5));
+    /* A single toggle button, matching the main toolbar: raised with the
+       pause icon while the guest is running, depressed with the play
+       (run) icon while it is paused. */
+    runBtn_ = new QPushButton(this);
+    runBtn_->setCheckable(true);
+    runBtn_->setShortcut(QKeySequence(Qt::Key_F5));
+    runBtn_->setAccessibleName(tr("Pause / Resume"));
+    /* Icon and tooltip are set from the state in updateRunButton(). */
+
+    auto *stepBtn = new QPushButton(this);
+    stepBtn->setIcon(QIcon(":/settings/qt/icons/fast_forward.ico"));
+    stepBtn->setAccessibleName(tr("Step"));
     stepBtn->setShortcut(QKeySequence(Qt::Key_F11));
-    pauseBtn_->setToolTip(tr("Stop the processor at the next instruction (F6)"));
-    continueBtn_->setToolTip(tr("Let the processor run (F5)"));
-    /* Icons only: the names are for screen readers. */
-    pauseBtn_->setAccessibleName(tr("Pause"));
-    continueBtn_->setAccessibleName(tr("Continue"));
-    /* Checkable, in a mutually exclusive group, like the state they show. */
-    pauseBtn_->setCheckable(true);
-    continueBtn_->setCheckable(true);
-    runGroup_ = new QButtonGroup(this);
-    runGroup_->addButton(pauseBtn_);
-    runGroup_->addButton(continueBtn_);
-    runGroup_->setExclusive(true);
     stepBtn->setToolTip(tr("Run the given number of instructions (F11)"));
     stepCount_ = new QSpinBox(this);
     stepCount_->setRange(1, 1000000);
@@ -733,10 +893,14 @@ MemoryViewer::MemoryViewer(QWidget *parent)
     liveBox_    = new QCheckBox(tr("Live update"), this);
     liveBox_->setChecked(true);
     auto *dumpBtn = new QPushButton(tr("Dump..."), this);
+    auto *commandsBtn = new QPushButton(tr("Commands"), this);
+    commandsBtn->setCheckable(true);
+    commandsBtn->setChecked(true);
+    commandsBtn->setShortcut(QKeySequence(QStringLiteral("Ctrl+D")));
+    commandsBtn->setToolTip(tr("Show or hide debugger commands (Ctrl+D)"));
 
     auto *bar = new QHBoxLayout;
-    bar->addWidget(pauseBtn_);
-    bar->addWidget(continueBtn_);
+    bar->addWidget(runBtn_);
     bar->addWidget(stepBtn);
     bar->addWidget(stepCount_);
     bar->addSpacing(12);
@@ -745,6 +909,7 @@ MemoryViewer::MemoryViewer(QWidget *parent)
     bar->addWidget(goBtn);
     bar->addWidget(liveBox_);
     bar->addWidget(dumpBtn);
+    bar->addWidget(commandsBtn);
 
     hex_ = new MemoryHexView(this);
 
@@ -790,7 +955,6 @@ MemoryViewer::MemoryViewer(QWidget *parent)
     disasm_->setRootIsDecorated(false);
     disasm_->setUniformRowHeights(true);
     disasm_->setFont(monoFont());
-    disasm_->header()->setSectionResizeMode(QHeaderView::ResizeToContents);
     disasm_->setToolTip(tr("Double-click a line to set or clear a breakpoint there"));
     auto *disBox    = new QGroupBox(tr("Disassembly"), this);
     auto *disLayout = new QVBoxLayout(disBox);
@@ -820,15 +984,48 @@ MemoryViewer::MemoryViewer(QWidget *parent)
 
     statusLabel_ = new QLabel(this);
 
+    auto *commandBox = new QGroupBox(tr("Debugger commands"), this);
+    auto *commandLayout = new QVBoxLayout(commandBox);
+    commandOutput_ = new QPlainTextEdit(commandBox);
+    commandOutput_->setObjectName(QStringLiteral("debuggerCommandOutput"));
+    commandOutput_->setReadOnly(true);
+    commandOutput_->setFont(monoFont());
+    commandOutput_->setLineWrapMode(QPlainTextEdit::NoWrap);
+    commandOutput_->setMaximumBlockCount(4096);
+    commandOutput_->setAccessibleName(tr("Debugger command output"));
+    commandInput_ = new QLineEdit(commandBox);
+    commandInput_->setObjectName(QStringLiteral("debuggerCommandInput"));
+    commandInput_->setFont(monoFont());
+    commandInput_->setAccessibleName(tr("Debugger command"));
+    commandInput_->setPlaceholderText(tr("help — commands; Up/Down — history; . — selected address"));
+    commandInput_->installEventFilter(this);
+    commandLayout->addWidget(commandOutput_, 1);
+    commandLayout->addWidget(commandInput_);
+    commandOutput_->appendPlainText(tr("Commands share the memory viewer's address space and selection. Type help for commands."));
+    auto *panes = new QSplitter(Qt::Vertical, this);
+    panes->addWidget(split);
+    panes->addWidget(commandBox);
+    panes->setStretchFactor(0, 1);
+    panes->setSizes({ 580, 180 });
+    connect(commandInput_, &QLineEdit::returnPressed, this, &MemoryViewer::executeCommand);
+    connect(commandsBtn, &QPushButton::toggled, this, [this, commandBox](bool visible) {
+        commandBox->setVisible(visible);
+        if (visible)
+            commandInput_->setFocus();
+    });
+
     auto *layout = new QVBoxLayout(this);
     layout->addLayout(bar);
-    layout->addWidget(split, 1);
+    layout->addWidget(panes, 1);
     layout->addWidget(statusLabel_);
+
+    // Return in an editor must not also activate a dialog default button.
+    for (auto *button : findChildren<QPushButton *>())
+        button->setAutoDefault(false);
 
     resize(1400, 820);
 
-    connect(pauseBtn_, &QPushButton::clicked, this, &MemoryViewer::onPause);
-    connect(continueBtn_, &QPushButton::clicked, this, &MemoryViewer::onContinue);
+    connect(runBtn_, &QPushButton::clicked, this, &MemoryViewer::onRunToggle);
     connect(stepBtn, &QPushButton::clicked, this, &MemoryViewer::onStep);
     connect(goBtn, &QPushButton::clicked, this, &MemoryViewer::onGo);
     connect(addrEdit_, &QLineEdit::returnPressed, this, &MemoryViewer::onGo);
@@ -856,6 +1053,9 @@ MemoryViewer::MemoryViewer(QWidget *parent)
     connect(timer_, &QTimer::timeout, this, &MemoryViewer::onPoll);
     timer_->start(100);
 
+    /* Build the mapped-range list for the initial (Physical) space before
+       the first goTo/refresh, otherwise every row collapses to address 0. */
+    hex_->setSpace(spaceBox_->itemData(0).toInt());
     hex_->goTo(0);
     refreshAll();
 }
@@ -874,16 +1074,14 @@ MemoryViewer::closeEvent(QCloseEvent *event)
 }
 
 void
-MemoryViewer::onPause()
+MemoryViewer::onRunToggle()
 {
-    debugger_pause();
-    updateStatus();
-}
-
-void
-MemoryViewer::onContinue()
-{
-    debugger_continue();
+    /* Toggle based on the current debugger state, not the button's
+       checked property (which the click has already flipped). */
+    if (debugger_get_state() == DEBUGGER_BREAK)
+        debugger_continue();
+    else
+        debugger_pause();
     updateStatus();
 }
 
@@ -894,15 +1092,20 @@ MemoryViewer::onStep()
     updateStatus();
 }
 
-/* One of the two run buttons is always checked: the state the debugger
-   is in. The exclusive group unchecks the other on a click; this sets
-   both where the state goes another way (a step, a breakpoint). */
+/* Raised with the pause icon while running; depressed with the play
+   icon while paused, matching the main window toolbar. */
 void
-MemoryViewer::updateRunButtons()
+MemoryViewer::updateRunButton()
 {
     const bool stopped = (debugger_get_state() == DEBUGGER_BREAK);
-    pauseBtn_->setChecked(stopped);
-    continueBtn_->setChecked(!stopped);
+    runBtn_->setChecked(stopped);
+    if (stopped) {
+        runBtn_->setIcon(QIcon(":/menuicons/qt/icons/run.ico"));
+        runBtn_->setToolTip(tr("Let the processor run (F5)"));
+    } else {
+        runBtn_->setIcon(QIcon(":/menuicons/qt/icons/pause.ico"));
+        runBtn_->setToolTip(tr("Stop the processor at the next instruction (F5)"));
+    }
 }
 
 void
@@ -961,6 +1164,7 @@ MemoryViewer::onPoll()
         updateStatus();
         if (stopped) {
             refreshAll();
+            commandOutput_->appendPlainText(tr("Stopped: %1").arg(statusLabel_->text()));
             if (debugger_stop_reason() == DEBUGGER_STOP_BREAKPOINT) {
                 raise();
                 activateWindow();
@@ -975,17 +1179,38 @@ MemoryViewer::onPoll()
     }
 }
 
+/* What the disassembly shows, read under the lock. */
+struct MemoryViewer::DisasmView {
+    debugger_cpu_info_t info {};
+    QVector<DisasmInsn> lines;
+    QVector<bool>       bps;
+    uint32_t            segBase = 0;
+};
+
 void
 MemoryViewer::refreshAll()
 {
+    QString    cpu;
+    DisasmView view;
+    bool       haveCpu;
+    bool       haveDisasm;
+
+    /* One lock for every part, so they agree with each other; the widgets
+       are updated after it, as the emulator waits for as long as it is
+       held. */
     if (!lock()) {
         statusLabel_->setText(tr("The emulator is busy; the view was not updated."));
         return;
     }
     hex_->refresh();
-    refreshCpu();
-    refreshDisasm();
+    haveCpu    = readCpu(&cpu);
+    haveDisasm = readDisasm(&view);
     unlock();
+
+    if (haveCpu)
+        showCpu(cpu);
+    if (haveDisasm)
+        showDisasm(view);
     updateStatus();
 }
 
@@ -1020,86 +1245,108 @@ MemoryViewer::updateStatus()
         text += QStringLiteral(" ") + tr("The emulator is paused; resume it to run or step.");
     text += QStringLiteral(" ") + tr("The dynamic recompiler is off while this window is open.");
     statusLabel_->setText(text);
-    updateRunButtons();
+    updateRunButton();
+}
+
+bool
+MemoryViewer::readCpu(QString *text)
+{
+    QByteArray buf(4096, '\0');
+
+    if (!lock())
+        return false;
+    debugger_cpu_format(buf.data(), buf.size());
+    unlock();
+
+    *text = QString::fromLatin1(buf.constData());
+    return true;
+}
+
+void
+MemoryViewer::showCpu(const QString &text)
+{
+    const int pos = cpuText_->verticalScrollBar()->value();
+    cpuText_->setPlainText(text);
+    cpuText_->verticalScrollBar()->setValue(pos);
 }
 
 void
 MemoryViewer::refreshCpu()
 {
-    QByteArray buf(4096, '\0');
+    QString text;
 
-    if (!lock())
-        return;
-    debugger_cpu_format(buf.data(), buf.size());
-    unlock();
-
-    const int pos = cpuText_->verticalScrollBar()->value();
-    cpuText_->setPlainText(QString::fromLatin1(buf.constData()));
-    cpuText_->verticalScrollBar()->setValue(pos);
+    if (readCpu(&text))
+        showCpu(text);
 }
 
-void
-MemoryViewer::refreshDisasm()
+bool
+MemoryViewer::readDisasm(DisasmView *view)
 {
 #ifdef USE_DISASM
-    debugger_cpu_info_t info;
-    QVector<DisasmInsn> lines;
-    QVector<bool>       bps;
-    uint32_t            segBase = 0;
-
     if (!lock())
-        return;
-    debugger_cpu_info(&info);
+        return false;
+    debugger_cpu_info(&view->info);
     {
         Disassembler dis;
-        uint32_t     ip = followBox_->isChecked() ? info.ip : (disasmAddr_ - dis.csBase());
+        uint32_t     ip = followBox_->isChecked() ? view->info.ip : (disasmAddr_ - dis.csBase());
         if (!followBox_->isChecked() && dis.wraps() && (ip > 0xffff)) {
             /* Out of CS's reach where IP wraps at 64 KB: decode in the
                segment the address starts. */
             dis.setBase(disasmAddr_ & ~0x0f);
             ip = disasmAddr_ & 0x0f;
         }
-        segBase = dis.csBase();
+        view->segBase = dis.csBase();
         for (int i = 0; i < DISASM_LINES; i++) {
             /* The instruction at CS:IP may already be in the prefetch queue. */
-            DisasmInsn d = dis.decode(ip, (dis.csBase() == info.cs_base) && (ip == info.ip));
-            bps.append(debugger_breakpoint_present(d.lin));
-            lines.append(d);
+            DisasmInsn d = dis.decode(ip, (dis.csBase() == view->info.cs_base) && (ip == view->info.ip));
+            view->bps.append(debugger_breakpoint_present(d.lin));
+            view->lines.append(d);
             /* Past something unreadable, go on at the next byte. */
             ip = dis.next(ip, d.len);
         }
     }
     unlock();
+    return true;
+#else
+    (void) view;
+    return false;
+#endif
+}
+
+void
+MemoryViewer::showDisasm(const DisasmView &view)
+{
+    const debugger_cpu_info_t &info = view.info;
 
     if (followBox_->isChecked())
         disasmEdit_->setText(QString::asprintf("%04X:%0*X", info.cs_sel, info.code32 ? 8 : 4, info.ip));
 
     /* The rows are kept and rewritten, not made anew: a live update between
        the two clicks of a double-click (a breakpoint) would otherwise take
-       the row it started on away, and the double-click with it. */
-    while (disasm_->topLevelItemCount() > lines.size())
+       the row it started on away, and the double-click with it. Each cell
+       is set once, to what it shows: an unchanged value is not set again,
+       and so neither repaints nor resizes anything. */
+    while (disasm_->topLevelItemCount() > view.lines.size())
         delete disasm_->takeTopLevelItem(disasm_->topLevelItemCount() - 1);
-    while (disasm_->topLevelItemCount() < lines.size())
+    while (disasm_->topLevelItemCount() < view.lines.size())
         new QTreeWidgetItem(disasm_);
 
     QTreeWidgetItem *current = nullptr;
-    for (int n = 0; n < lines.size(); n++) {
-        const DisasmInsn &l    = lines[n];
-        QTreeWidgetItem  *item = disasm_->topLevelItem(n);
+    for (int n = 0; n < view.lines.size(); n++) {
+        const DisasmInsn &l         = view.lines[n];
+        QTreeWidgetItem  *item      = disasm_->topLevelItem(n);
+        const bool        isCurrent = (l.lin == info.pc_linear);
         QString           bytes;
-        for (int c = 0; c < 5; c++) {
-            item->setBackground(c, QBrush());
-            item->setForeground(c, QBrush());
-        }
         for (int i = 0; (i < l.len) && (i < 16); i++)
             bytes += QString::asprintf("%02X", l.bytes[i]);
 
-        item->setText(0, bps[n] ? QStringLiteral("\u25cf") : QString());
+        item->setText(0, view.bps[n] ? QStringLiteral("\u25cf") : QString());
         item->setForeground(0, QBrush(Qt::red));
-        if (segBase == info.cs_base)
+        item->setBackground(0, QBrush());
+        if (view.segBase == info.cs_base)
             item->setText(1, QString::asprintf("%08X  %04X:%0*X", l.lin, info.cs_sel, info.code32 ? 8 : 4, info.code32 ? l.ip : (l.ip & 0xffff)));
         else if (!info.protected_mode)
-            item->setText(1, QString::asprintf("%08X  %04X:%04X", l.lin, segBase >> 4, l.ip & 0xffff));
+            item->setText(1, QString::asprintf("%08X  %04X:%04X", l.lin, view.segBase >> 4, l.ip & 0xffff));
         else
             item->setText(1, QString::asprintf("%08X", l.lin));
         item->setData(1, Qt::UserRole, l.lin);
@@ -1108,21 +1355,37 @@ MemoryViewer::refreshDisasm()
         item->setText(4, l.note);
         item->setToolTip(3, l.note);
         item->setToolTip(4, l.note);
-        if (l.len <= 0)
-            item->setForeground(3, QBrush(unmappedFg));
-        else if (l.invalid)
-            item->setForeground(3, QBrush(inaccessibleBg));
-        if (l.lin == info.pc_linear) {
-            for (int c = 1; c < 5; c++) {
-                item->setBackground(c, palette().brush(QPalette::Highlight));
-                item->setForeground(c, palette().brush(QPalette::HighlightedText));
-            }
-            current = item;
+        for (int c = 1; c < 5; c++) {
+            QBrush fg;
+            if (isCurrent)
+                fg = palette().brush(QPalette::HighlightedText);
+            else if ((c == 3) && (l.len <= 0))
+                fg = QBrush(unmappedFg);
+            else if ((c == 3) && l.invalid)
+                fg = QBrush(inaccessibleBg);
+            item->setForeground(c, fg);
+            item->setBackground(c, isCurrent ? palette().brush(QPalette::Highlight) : QBrush());
         }
+        if (isCurrent)
+            current = item;
     }
+
+    /* Fitted once here, not by the header resizing to the contents: that
+       measures each column over all the rows again for every cell set
+       above, and took most of a second. */
+    for (int c = 0; c < disasm_->columnCount(); c++)
+        disasm_->resizeColumnToContents(c);
     if (current)
         disasm_->scrollToItem(current);
-#endif
+}
+
+void
+MemoryViewer::refreshDisasm()
+{
+    DisasmView view;
+
+    if (readDisasm(&view))
+        showDisasm(view);
 }
 
 /* Hex number, with an optional 0x prefix or h suffix. */
@@ -1199,6 +1462,318 @@ MemoryViewer::parseAddress(const QString &text, int space, uint32_t *addr, QStri
     if (ret)
         *addr = val;
     return ret;
+}
+
+bool
+MemoryViewer::eventFilter(QObject *object, QEvent *event)
+{
+    if (object == commandInput_ && event->type() == QEvent::KeyPress) {
+        auto *key = static_cast<QKeyEvent *>(event);
+        if (key->key() == Qt::Key_Up || key->key() == Qt::Key_Down) {
+            if (historyIndex_ == commandHistory_.size())
+                commandDraft_ = commandInput_->text();
+            historyIndex_ = qBound(0, historyIndex_ + (key->key() == Qt::Key_Up ? -1 : 1),
+                                   int(commandHistory_.size()));
+            commandInput_->setText(historyIndex_ == commandHistory_.size()
+                                       ? commandDraft_ : commandHistory_.at(historyIndex_));
+            return true;
+        }
+    }
+    return QDialog::eventFilter(object, event);
+}
+
+void
+MemoryViewer::refreshMappings()
+{
+    const uint32_t selected = hex_->selection();
+    hex_->setSpace(hex_->space());
+    hex_->goTo(selected);
+    refreshAll();
+}
+
+void
+MemoryViewer::executeCommand()
+{
+    const QString line = commandInput_->text().trimmed();
+    if (line.isEmpty())
+        return;
+    commandInput_->clear();
+    if (commandHistory_.isEmpty() || commandHistory_.last() != line)
+        commandHistory_.append(line);
+    if (commandHistory_.size() > 200)
+        commandHistory_.removeFirst();
+    historyIndex_ = commandHistory_.size();
+    commandDraft_.clear();
+    auto print = [this](const QString &text) { commandOutput_->appendPlainText(text); };
+    print(QStringLiteral("[%1:%2] > %3").arg(spaceBox_->currentText(),
+          QString::asprintf("%08X", hex_->selection()), line));
+    const QStringList args = line.split(QRegularExpression(QStringLiteral("\\s+")), Qt::SkipEmptyParts);
+    const QString cmd = args.first().toLower();
+    const int n = args.size() - 1;
+    auto usage = [&print](const QString &text) { print(tr("Usage: %1").arg(text)); };
+    auto address = [this, &print](const QString &text, int space, uint32_t *value) {
+        if (text == QStringLiteral(".")) {
+            if (space != hex_->space()) {
+                print(tr("The selection is physical; use a linear address or switch to linear space."));
+                return false;
+            }
+            *value = hex_->selection();
+            return true;
+        }
+        QString error;
+        if (parseAddress(text, space, value, &error))
+            return true;
+        print(error);
+        return false;
+    };
+    // Never hold the emulator lock while updating widgets or opening a dialog.
+    auto acquire = [&print]() {
+        if (lock())
+            return true;
+        print(tr("The emulator is busy; try again."));
+        return false;
+    };
+
+    if (cmd == QStringLiteral("help") && n == 1 && args[1].toLower() == QStringLiteral("registers")) {
+        print(tr("r name [hex-value]: read or edit a register supported by the current processor.\n"
+                 "EAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH DH BH\n"
+                 "IP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\n"
+                 "GDTR.base GDTR.limit IDTR.base IDTR.limit LDTR TR\n"
+                 "CS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (hidden descriptor cache)\n"
+                 "Selectors load descriptors without executing guest instructions; cache fields are literal edits.\n"
+                 "Writes require pause at a complete instruction boundary. NEC 8080-mode register edits are unavailable."));
+    } else if (cmd == QStringLiteral("help") && !n) {
+        print(tr("Numbers are hexadecimal; step counts are decimal. Addresses accept registers and seg:off.\n"
+                 ". means the hex selection; omitted memory addresses use it.\n"
+                 "help | clear | refresh | regs\n"
+                 "run | pause | step [count]\n"
+                 "space physical|linear | goto address | db [address [length]] (max 1000 hex bytes)\n"
+                 "write address byte [byte ...] | dump (opens selection export)\n"
+                 "dbio [address [length]] | writeio address byte [byte ...] (device side effects; requires pause)\n"
+                 "u address (linear disassembly) | follow on|off\n"
+                 "bp address | bc address|all | bl (linear breakpoints)\n"
+                 "r [register [value]] (read/set; values are hex); help registers lists names\n"
+                 "peek port [b|w|d] | poke port value [b|w|d]\n"
+                 "Register/memory writes and I/O require pause. I/O invokes device handlers, including read side effects."));
+    } else if (cmd == QStringLiteral("clear") && !n) {
+        commandOutput_->clear();
+    } else if (cmd == QStringLiteral("refresh") && !n) {
+        refreshMappings();
+    } else if ((cmd == QStringLiteral("regs") || cmd == QStringLiteral("r")) && !n) {
+        QString text;
+        if (readCpu(&text)) {
+            showCpu(text);
+            print(text);
+        } else
+            print(tr("The emulator is busy; try again."));
+    } else if (cmd == QStringLiteral("r") && (n == 1 || n == 2)) {
+        uint32_t value = 0;
+        if (n == 2 && !parseHex(args[2], &value)) {
+            usage(QStringLiteral("r register hexadecimal-value"));
+            return;
+        }
+        if (!acquire())
+            return;
+        const QByteArray name = args[1].toLower().toLatin1();
+        const int result = n == 2 ? debugger_register_write(name.constData(), value)
+                                  : debugger_register(name.constData(), &value, nullptr);
+        if (result > 0 && n == 2)
+            debugger_register(name.constData(), &value, nullptr);
+        unlock();
+        if (result > 0) {
+            print(QStringLiteral("%1 = %2").arg(args[1].toUpper(), QString::asprintf("%08X", value)));
+            if (n == 2)
+                refreshMappings();
+        } else
+            print(tr("Register unavailable, value invalid, or processor not paused at a complete instruction boundary."));
+    } else if ((cmd == QStringLiteral("run") || cmd == QStringLiteral("pause")) && !n) {
+        if (cmd == QStringLiteral("run"))
+            debugger_continue();
+        else
+            debugger_pause();
+        updateStatus();
+        print(statusLabel_->text());
+    } else if (cmd == QStringLiteral("step") && n <= 1) {
+        bool ok = true;
+        int count = n ? args[1].toInt(&ok, 10) : 1;
+        if (!ok || count < 1 || count > stepCount_->maximum()) {
+            usage(QStringLiteral("step [1..1000000] (decimal)"));
+            return;
+        }
+        stepCount_->setValue(count);
+        onStep();
+    } else if (cmd == QStringLiteral("space") && n == 1) {
+        const QString space = args[1].toLower();
+        if (space != QStringLiteral("physical") && space != QStringLiteral("linear")) {
+            usage(QStringLiteral("space physical|linear"));
+            return;
+        }
+        spaceBox_->setCurrentIndex(space == QStringLiteral("physical") ? 0 : 1);
+    } else if (cmd == QStringLiteral("goto") && n == 1) {
+        uint32_t addr;
+        if (address(args[1], hex_->space(), &addr)) {
+            addrEdit_->setText(QString::asprintf("%08X", addr));
+            hex_->goTo(addr);
+        }
+    } else if ((cmd == QStringLiteral("db") || cmd == QStringLiteral("dbio")) && n <= 2) {
+        uint32_t addr = hex_->selection(), len = 0x80;
+        if (n && !address(args[1], hex_->space(), &addr))
+            return;
+        if ((n == 2 && !parseHex(args[2], &len)) || !len || len > 0x1000 || uint64_t(addr) + len > 0x100000000ULL) {
+            usage(QStringLiteral("db [address [length]] (1..1000 hex bytes; no address wrap)"));
+            return;
+        }
+        QVector<uint8_t> data(len), cls(len);
+        if (!acquire())
+            return;
+        if (cmd == QStringLiteral("dbio")) {
+            if (!debugger_stopped()) {
+                unlock();
+                print(tr("Pause the processor before side-effecting memory access."));
+                return;
+            }
+            for (uint32_t i = 0; i < len; i++) {
+                uint32_t physical = addr + i;
+                const bool mapped = hex_->space() == DEBUGGER_SPACE_PHYSICAL || debugger_translate(physical, &physical);
+                cls[i] = mapped ? DEBUGGER_MEM_RAM : DEBUGGER_MEM_INACCESSIBLE;
+                data[i] = mapped ? uint8_t(mem_view_read(MEM_VIEW_CPU, physical, 1)) : 0;
+            }
+        } else
+            debugger_mem_read(hex_->space(), addr, len, data.data(), cls.data());
+        unlock();
+        for (uint32_t offset = 0; offset < len; offset += 16) {
+            QString row = QString::asprintf("%08X  ", addr + offset), ascii;
+            for (uint32_t i = offset; i < offset + 16; i++) {
+                if (i >= len) {
+                    row += QStringLiteral("   ");
+                    continue;
+                }
+                row += readable(cls[i]) ? QString::asprintf("%02X ", data[i])
+                     : cls[i] == DEBUGGER_MEM_UNMAPPED ? QStringLiteral("-- ") : QStringLiteral("?? ");
+                ascii += readable(cls[i]) && data[i] >= 32 && data[i] < 127 ? QChar(data[i]) : QLatin1Char('.');
+            }
+            print(row + QStringLiteral(" ") + ascii);
+        }
+        addrEdit_->setText(QString::asprintf("%08X", addr));
+        hex_->goTo(addr);
+        if (cmd == QStringLiteral("dbio"))
+            refreshMappings();
+    } else if ((cmd == QStringLiteral("write") || cmd == QStringLiteral("writeio")) && n >= 2) {
+        uint32_t addr;
+        if (!address(args[1], hex_->space(), &addr))
+            return;
+        QVector<uint8_t> bytes;
+        for (int i = 2; i < args.size(); i++) {
+            uint32_t byte;
+            if (!parseHex(args[i], &byte) || byte > 0xff) {
+                usage(QStringLiteral("write address byte [byte ...] (bytes 00..FF)"));
+                return;
+            }
+            bytes.append(uint8_t(byte));
+        }
+        if (bytes.size() > 4096 || uint64_t(addr) + bytes.size() > 0x100000000ULL) {
+            print(tr("Write exceeds 4096 bytes or wraps the address space."));
+            return;
+        }
+        if (!acquire())
+            return;
+        int written = 0;
+        const bool stopped = debugger_stopped();
+        if (stopped) {
+            for (int i = 0; i < bytes.size(); i++) {
+                if (cmd == QStringLiteral("writeio")) {
+                    uint32_t physical = addr + i;
+                    if (hex_->space() == DEBUGGER_SPACE_PHYSICAL || debugger_translate(physical, &physical)) {
+                        mem_view_write(MEM_VIEW_CPU, physical, bytes[i], 1);
+                        written++;
+                    }
+                } else
+                    written += !!debugger_mem_write(hex_->space(), addr + i, bytes[i]);
+            }
+        }
+        unlock();
+        if (!stopped)
+            print(tr("Pause the processor before writing memory."));
+        else {
+            print(cmd == QStringLiteral("writeio")
+                      ? tr("Issued %1 of %2 byte writes; devices may ignore writes. Untranslated addresses are skipped.").arg(written).arg(bytes.size())
+                      : tr("Wrote %1 of %2 bytes; read-only or inaccessible bytes are skipped.").arg(written).arg(bytes.size()));
+            refreshMappings();
+        }
+    } else if (cmd == QStringLiteral("dump") && !n) {
+        onDump(hex_->selectionStart(), uint32_t(qMin(hex_->selectionLen(), uint64_t(UINT32_MAX))));
+    } else if (cmd == QStringLiteral("u") && n == 1) {
+#ifdef USE_DISASM
+        uint32_t addr;
+        if (address(args[1], DEBUGGER_SPACE_LINEAR, &addr)) {
+            followBox_->setChecked(false);
+            disasmAddr_ = addr;
+            disasmEdit_->setText(QString::asprintf("%08X", addr));
+            refreshDisasm();
+        }
+#else
+        print(tr("Disassembly is not available in this build."));
+#endif
+    } else if (cmd == QStringLiteral("follow") && n == 1 &&
+               (args[1].toLower() == QStringLiteral("on") || args[1].toLower() == QStringLiteral("off"))) {
+        followBox_->setChecked(args[1].toLower() == QStringLiteral("on"));
+    } else if ((cmd == QStringLiteral("bp") || cmd == QStringLiteral("bc")) && n == 1) {
+        if (cmd == QStringLiteral("bc") && args[1].toLower() == QStringLiteral("all")) {
+            debugger_breakpoints_clear();
+        } else {
+            uint32_t addr;
+            if (!address(args[1], DEBUGGER_SPACE_LINEAR, &addr))
+                return;
+            const bool wanted = cmd == QStringLiteral("bp");
+            if (!!debugger_breakpoint_present(addr) != wanted && debugger_breakpoint_toggle(addr) < 0) {
+                print(tr("Too many breakpoints."));
+                return;
+            }
+            print(tr("Breakpoint %1 at %2.").arg(wanted ? tr("set") : tr("cleared"), QString::asprintf("%08X", addr)));
+        }
+        refreshDisasm();
+    } else if (cmd == QStringLiteral("bl") && !n) {
+        uint32_t list[DEBUGGER_MAX_BREAKPOINTS];
+        const int count = debugger_breakpoints(list, DEBUGGER_MAX_BREAKPOINTS);
+        print(tr("%1 breakpoint(s), linear addresses:").arg(count));
+        for (int i = 0; i < count; i++)
+            print(QString::asprintf("%08X", list[i]));
+    } else if ((cmd == QStringLiteral("peek") && (n == 1 || n == 2)) ||
+               (cmd == QStringLiteral("poke") && (n == 2 || n == 3))) {
+        const bool write = cmd == QStringLiteral("poke");
+        const int widthIndex = write ? 3 : 2;
+        const QString width = n == widthIndex ? args[widthIndex].toLower() : QStringLiteral("b");
+        uint32_t port, value = 0;
+        const uint32_t max = width == QStringLiteral("b") ? 0xff : width == QStringLiteral("w") ? 0xffff : UINT32_MAX;
+        if (!parseHex(args[1], &port) || port > 0xffff ||
+            (width != QStringLiteral("b") && width != QStringLiteral("w") && width != QStringLiteral("d")) ||
+            (write && (!parseHex(args[2], &value) || value > max))) {
+            usage(write ? QStringLiteral("poke port value [b|w|d]") : QStringLiteral("peek port [b|w|d]"));
+            return;
+        }
+        if (!acquire())
+            return;
+        if (!debugger_stopped()) {
+            unlock();
+            print(tr("Pause the processor before accessing I/O ports."));
+            return;
+        }
+        if (write) {
+            if (width == QStringLiteral("b")) outb(uint16_t(port), uint8_t(value));
+            else if (width == QStringLiteral("w")) outw(uint16_t(port), uint16_t(value));
+            else outl(uint16_t(port), value);
+        } else {
+            if (width == QStringLiteral("b")) value = inb(uint16_t(port));
+            else if (width == QStringLiteral("w")) value = inw(uint16_t(port));
+            else value = inl(uint16_t(port));
+        }
+        unlock();
+        print(QStringLiteral("I/O %1 %2 %3 (%4)").arg(QString::asprintf("%04X", port),
+              write ? QStringLiteral("<-") : QStringLiteral("->"), QString::asprintf("%08X", value), width));
+        refreshMappings();
+    } else {
+        print(tr("Unknown command or invalid arguments. Type help for syntax."));
+    }
 }
 
 void

@@ -231,6 +231,18 @@ mach64_out(uint16_t addr, uint8_t val, void *priv)
             break;
         case 0x3c0:
         case 0x3c1:
+            /* The VGA palette address source also controls display blanking.
+               ATI's Windows 95 driver blanks through CRTC_DISPLAY_DIS before
+               a mode switch, then enables the display through ATTRX bit 5. */
+            if (!svga->attrff) {
+                uint32_t old_cntl = mach64->crtc_gen_cntl;
+
+                mach64->crtc_gen_cntl = (old_cntl & ~0x40u) | ((val & 0x20) ? 0 : 0x40);
+                if (mach64->crtc_gen_cntl != old_cntl) {
+                    svga_recalctimings(svga);
+                    svga->fullchange = svga->monitor->mon_changeframecount;
+                }
+            }
             /* ATI38 bits 0 and 1 write-protect the palette registers ATTR00-0F
                and the overscan register ATTR11 (5-22). */
             if ((mach64->type == MACH64_GX) && svga->attrff &&
@@ -856,7 +868,7 @@ mach64_crtc_int_en(const mach64_t *mach64)
 {
     if (mach64->type == MACH64_GX)
         return 0x0000000a;
-    if ((mach64->type == MACH64_VT) || (mach64->type == MACH64_VT2))
+    if ((mach64->type == MACH64_VT) || (mach64->type == MACH64_VT2) || (mach64->type == MACH64_GT))
         return 0x0055000a;
     return 0x0055028a;
 }
@@ -1339,7 +1351,7 @@ mach64_gtb_genena_out(UNUSED(uint16_t port), uint8_t val, void *priv)
 static int
 mach64_is_vt(const mach64_t *mach64)
 {
-    return (mach64->type == MACH64_VT) || (mach64->type == MACH64_VT2);
+    return (mach64->type == MACH64_VT) || (mach64->type == MACH64_VT2) || (mach64->type == MACH64_GT);
 }
 
 uint8_t
@@ -1353,7 +1365,7 @@ mach64_ext_readb(uint32_t addr, void *priv)
     if ((addr >= 0x000a0000) && (addr < 0x000bf800))
         ret = svga->mapping.read_b(addr, svga->mapping.priv);
     else if ((addr < 0x000a0000) || ((addr >= 0x000bf800) && (addr <= 0x000bffff)) || (addr >= 0x00100000)) {
-        if ((mach64->type == MACH64_GTB) && (addr & 0x400) && mach64_gtb_readb(mach64, addr, &ret))
+        if ((mach64->type == MACH64_GTB || (mach64->gt3d && ((addr & 0x3ff) >= 0x100))) && (addr & 0x400) && mach64_gtb_readb(mach64, addr, &ret))
             return ret;
         if (!(addr & 0x400) && mach64_is_vt(mach64)) {
             ret = mach64->vt_blk1[(addr & 0x3ff) >> 2] >> ((addr & 3) * 8);
@@ -3692,15 +3704,18 @@ mach64vt2_init(const device_t *info)
 }
 
 /*
- * The 3D Rage II+ DVD (GT-B, PCI ID GU): a VT2 with the 3D engine and the
- * front-end scaler of the 3D RAGE (vid_ati_mach64_3d.c), SGRAM, and a timed
- * draw engine (vid_ati_mach64_accel.c).
+ * The 3D Rage family shares the draw engine and front-end scaler. The
+ * original GT-A2 uses the VT-style video registers and EDO DRAM. GT-B
+ * adds the separate scaler buffers and register aperture; Rage II retains
+ * the GT PCI ID, while the II+ DVD identifies as GU and uses SGRAM.
  */
 static void *
 mach64gtb_init(const device_t *info)
 {
     mach64_t *mach64 = mach64_common_init(info);
     svga_t   *svga   = &mach64->svga;
+    const int original = mach64->type == MACH64_GT;
+    const int rage2    = !!(info->local & MACH64_FLAG_RAGE2);
 
     svga->dac_hwcursor_draw = NULL;
 
@@ -3711,28 +3726,30 @@ mach64gtb_init(const device_t *info)
 
     mach64->pci                           = 1;
     mach64->vlb                           = 0;
-    mach64->pci_id                        = 0x4755;
-    mach64->config_chip_id                = 0x9a004755;   /* "GU", ASIC ID 9Ah (VT/RAGE RRG 4-17) */
+    mach64->pci_id                        = (original || rage2) ? 0x4754 : 0x4755;
+    mach64->config_chip_id                = ((original ? 0x40u : 0x9au) << 24) | mach64->pci_id;
     mach64->dac_cntl                      = 1 << 16;      /*Internal 24-bit DAC*/
-    mach64->config_stat0                  = 5 | (1 << 4); /* CFG_MEM_TYPE 5, SGRAM on the GT-B, and the CFG_VGA_EN strap */
-    mach64->mem_cntl                      = 7;            /* MEM_SIZE, 4 bits from the VT-B on: 4 MB */
+    mach64->config_stat0                  = ((original || rage2) ? 4 : 5) | (1 << 4); /* EDO DRAM (4) or SGRAM (5), VGA enabled. */
+    /* GT encodes 2/4 MiB as 2/3; GT-B counts 512 KiB units minus one. */
+    mach64->mem_cntl                      = original ? (mach64->vram_size == 2 ? 2 : 3) : (mach64->vram_size * 2 - 1);
     mach64->use_block_decoded_io          = 4;
     mach64->pci_regs[MACH64_PCI_IOCONFIG] = 4;
     mach64->genena                        = 0x08;
     mach64->genvs                         = 0x01;
 
     mach64_vt_pll_reset(mach64);
-    /* The clock generator starts on the first clock of the GX's clock chip,
-       100 MHz: the VGA's 25.175 MHz instead, until ARS2D programs the PLL. */
+    /* VGA starts at 25.175 MHz until the BIOS programs the PLL. */
     ics2595_setclock(svga->clock_gen, 25175000.0);
 
     if (info->local & MACH64_FLAG_ONBOARD)
         /* On-board: the video BIOS is part of the system BIOS. */
-        ati_eeprom_load(&mach64->eeprom, "mach64rage2p_onboard.nvr", 1);
+        ati_eeprom_load(&mach64->eeprom, original ? "mach64rage_onboard.nvr" : rage2 ? "mach64rage2_onboard.nvr" : "mach64rage2p_onboard.nvr", 1);
     else {
-        ati_eeprom_load(&mach64->eeprom, "mach64rage2p_ars2d.nvr", 1);
+        ati_eeprom_load(&mach64->eeprom, original ? "mach64rage.nvr" : rage2 ? "mach64rage2.nvr" : "mach64rage2p_ars2d.nvr", 1);
         /* ARS2D is 36K, 48h blocks of 512 bytes by its PCI data structure. */
-        rom_init(&mach64->bios_rom, BIOS_ROMGTB_PATH, 0xc0000, 0x9000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+        const char *bios = original ? BIOS_ROMGT_PATH : rage2 ? BIOS_ROMRAGE2_PATH : BIOS_ROMGTB_PATH;
+        const uint32_t size = (original || rage2) ? 0x8000 : 0x9000;
+        rom_init(&mach64->bios_rom, bios, 0xc0000, size, size == 0x8000 ? 0x7fff : 0xffff, 0, MEM_MAPPING_EXTERNAL);
     }
     mem_mapping_disable(&mach64->bios_rom.mapping);
 
@@ -3810,6 +3827,18 @@ mach64vt_available(void)
     return rom_present(BIOS_ROMVT_PATH);
 }
 static int
+mach64gt_available(void)
+{
+    return rom_present(BIOS_ROMGT_PATH);
+}
+
+static int
+mach64rage2_available(void)
+{
+    return rom_present(BIOS_ROMRAGE2_PATH);
+}
+
+static int
 mach64gtb_available(void)
 {
     return rom_present(BIOS_ROMGTB_PATH);
@@ -3838,7 +3867,7 @@ mach64_close(void *priv)
     thread_close_mutex(mach64->dma.lock);
 #endif
 
-    if (mach64->type == MACH64_GTB) {
+    if (mach64->gt3d) {
         io_removehandler(0x0102, 0x0001, mach64_gtb_genvs_in, NULL, NULL, mach64_gtb_genvs_out, NULL, NULL, mach64);
         io_removehandler(0x46e8, 0x0001, mach64_gtb_genena_in, NULL, NULL, mach64_gtb_genena_out, NULL, NULL, mach64);
         mach64_3d_close(mach64->gt3d);
@@ -4284,6 +4313,60 @@ const device_t mach64vt2_device = {
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64vt2_config
+};
+
+const device_t mach64gt_device = {
+    .name          = "ATI 3D Rage",
+    .internal_name = "mach64_rage",
+    .flags         = DEVICE_PCI,
+    .local         = MACH64_GT,
+    .init          = mach64gtb_init,
+    .close         = mach64_close,
+    .reset         = mach64_reset,
+    .available     = mach64gt_available,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = mach64gtb_onboard_config
+};
+
+const device_t mach64gt_onboard_device = {
+    .name          = "ATI 3D Rage (On-Board)",
+    .internal_name = "mach64_rage_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = MACH64_GT | MACH64_FLAG_ONBOARD,
+    .init          = mach64gtb_init,
+    .close         = mach64_close,
+    .reset         = mach64_reset,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = mach64gtb_onboard_config
+};
+
+const device_t mach64rage2_device = {
+    .name          = "ATI 3D Rage II",
+    .internal_name = "mach64_rage2",
+    .flags         = DEVICE_PCI,
+    .local         = MACH64_GTB | MACH64_FLAG_RAGE2,
+    .init          = mach64gtb_init,
+    .close         = mach64_close,
+    .reset         = mach64_reset,
+    .available     = mach64rage2_available,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = mach64gtb_config
+};
+
+const device_t mach64rage2_onboard_device = {
+    .name          = "ATI 3D Rage II (On-Board)",
+    .internal_name = "mach64_rage2_onboard",
+    .flags         = DEVICE_PCI,
+    .local         = MACH64_GTB | MACH64_FLAG_RAGE2 | MACH64_FLAG_ONBOARD,
+    .init          = mach64gtb_init,
+    .close         = mach64_close,
+    .reset         = mach64_reset,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = mach64gtb_onboard_config
 };
 
 const device_t mach64gtb_device = {

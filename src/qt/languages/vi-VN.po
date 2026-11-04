@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-25 04:19+0000\n"
+"PO-Revision-Date: 2026-10-31 20:01+0000\n"
 "Last-Translator: nguyen <barnacl437@disroot.org>\n"
 "Language-Team: Vietnamese <https://weblate.86box.net/projects/86box/86box/vi/"
 ">\n"
@@ -431,7 +431,7 @@ msgid "Date:"
 msgstr ""
 
 msgid "Match the host"
-msgstr ""
+msgstr "Chung với máy host"
 
 msgid "Offset the year by:"
 msgstr ""

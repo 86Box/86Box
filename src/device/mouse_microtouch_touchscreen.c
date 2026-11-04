@@ -116,7 +116,7 @@ typedef struct mouse_microtouch_t {
     bool         pq_down_zone, pq_up_zone;
     uint8_t     *nvr;
     char         nvr_path[64];
-    serial_t    *serial;
+    ser_port_t  *serial;
     Fifo8        resp;
     pc_timer_t   host_to_serial_timer;
     pc_timer_t   reset_timer;
@@ -745,28 +745,19 @@ mtouch_write_to_host(void *priv)
 
     if (dev->serial == NULL)
         goto no_write_to_machine;
-    if ((dev->serial->type >= SERIAL_16550) && dev->serial->fifo_enabled) {
-        if (fifo_get_full(dev->serial->rcvr_fifo)) {
-            goto no_write_to_machine;
-        }
-    } else {
-        if (dev->serial->lsr & 1) {
-            goto no_write_to_machine;
-        }
-    }
     if (dev->in_reset) {
         goto no_write_to_machine;
     }
-    /* serial_write_fifo() only places the byte in the receive shift register
-       (out_new); the UART's receive timer moves it into RBR or the FIFO.
-       Writing again before that has happened overwrites the previous byte.
-       Losing the status byte of a liftoff report makes drivers miss the
-       liftoff, so wait until the receive shift register is free. */
-    if (dev->serial->out_new != 0xffff) {
+    /* queueing a byte only fills the receive shift register; the UART's
+       receive timer moves it into RBR or the FIFO. Writing again before
+       that has happened overwrites the previous byte. Losing the status
+       byte of a liftoff report makes drivers miss the liftoff, so wait
+       until the chip says it has room again. */
+    if (!serial_port_can_receive(dev->serial)) {
         goto no_write_to_machine;
     }
     if (fifo8_num_used(&dev->resp)) {
-        serial_write_fifo(dev->serial, fifo8_pop(&dev->resp));
+        serial_port_receive(dev->serial, fifo8_pop(&dev->resp));
     }
     else {
         mtouch_prepare_transmit(dev);
@@ -838,9 +829,9 @@ mtouch_init(UNUSED(const device_t *info))
 
     dev->serial = serial_attach(device_get_config_int("port"), NULL, mtouch_write, dev);
     if (dev->serial) {
-        serial_set_cts(dev->serial, 1);
-        serial_set_dsr(dev->serial, 1);
-        serial_set_dcd(dev->serial, 1);
+        serial_port_set_line(dev->serial, CHAR_COM_CTS, 1);
+        serial_port_set_line(dev->serial, CHAR_COM_DSR, 1);
+        serial_port_set_line(dev->serial, CHAR_COM_DCD, 1);
     }
 
     dev->id = device_get_config_int("identity");
@@ -872,8 +863,8 @@ mtouch_close(void *priv)
     
     fifo8_destroy(&dev->resp);
     /* Detach serial port from the mouse. */
-    if (dev && dev->serial && dev->serial->sd) {
-        memset(dev->serial->sd, 0, sizeof(serial_device_t));
+    if (dev && dev->serial) {
+        serial_port_detach(dev->serial);
     }
     
     if (dev->nvr != NULL)

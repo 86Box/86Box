@@ -65,11 +65,17 @@ typedef struct i8251_t {
     int txrdy;
     int txe;
 
-    int irq_mask; /* IRQ line as a PIC bit mask, 0 = not connected */
+    int port; /* COM port this chip is wired to */
 
     double clock; /* TxC/RxC in Hz, 0 = not programmed */
 
-    char_port_t char_port;
+    int irq_mask; /* IRQ line as a PIC bit mask, 0 = not connected */
+
+    /* The chip's end of the seam; it owns the backend storage. */
+    serial_endpoint_t       ep;
+
+    uint32_t modem;     /* modem lines driven by an in-machine device */
+    uint8_t  modem_set; /* set once a device drives them */
 
     pc_timer_t rx_timer;
     pc_timer_t tx_timer;
@@ -148,33 +154,96 @@ i8251_bit_period(const i8251_t *dev)
 static void
 i8251_update_backend(i8251_t *dev)
 {
-    char_device_t *cd = &dev->char_port.chardev;
+    double  hz;
+    uint8_t parity;
 
-    if (!cd->port_config)
+    if ((dev->ep.be == NULL) || (dev->ep.be->set_format == NULL))
         return;
 
-    double hz = dev->clock;
+    hz = dev->clock;
     if (hz < 1.0)
         hz = 153600.0;
 
-    dev->char_port.com.baud      = (uint32_t) ((hz / (double) i8251_baud_factor(dev)) + 0.5);
     if (dev->mode & 0x10)
-        dev->char_port.com.parity = (dev->mode & 0x20) ? CHAR_COM_PARITY_EVEN : CHAR_COM_PARITY_ODD;
+        parity = (dev->mode & 0x20) ? CHAR_COM_PARITY_EVEN : CHAR_COM_PARITY_ODD;
     else
-        dev->char_port.com.parity = 0;
-    dev->char_port.com.data_bits = (uint8_t) i8251_data_bits(dev);
-    dev->char_port.com.stop_bits = (uint8_t) i8251_stop_bits(dev);
+        parity = 0;
 
-    cd->port_config(cd->priv);
+    dev->ep.be->set_format(dev->ep.be->priv, (int) ((hz / (double) i8251_baud_factor(dev)) + 0.5),
+                        (int) i8251_data_bits(dev), parity, (int) i8251_stop_bits(dev));
 }
+
+/* Called by the seam after a backend is installed or released. */
+static void i8251_update_lines(i8251_t *dev);
+
+static void
+i8251_backend_changed(void *priv)
+{
+    i8251_t *dev = (i8251_t *) priv;
+
+    i8251_update_lines(dev);
+}
+
+/* ---- device side: what an in-machine device can do to this chip --------- */
+
+static void
+i8251_chip_receive(void *priv, uint8_t byte)
+{
+    i8251_t *dev = (i8251_t *) priv;
+
+    if (dev->rx_ready)
+        return;
+
+    dev->rx_data  = byte;
+    dev->rx_ready = 1;
+    i8251_update_irq(dev);
+}
+
+static int
+i8251_chip_can_receive(void *priv)
+{
+    return !((i8251_t *) priv)->rx_ready;
+}
+
+static void
+i8251_chip_set_line(void *priv, uint32_t line, int on)
+{
+    i8251_t *dev = (i8251_t *) priv;
+
+    dev->modem_set = 1;
+
+    if (on)
+        dev->modem |= line;
+    else
+        dev->modem &= ~line;
+}
+
+static int
+i8251_chip_get_line(void *priv, uint32_t line)
+{
+    i8251_t *dev = (i8251_t *) priv;
+
+    if (line == CHAR_COM_RTS)
+        return (dev->command & 0x20) ? 1 : 0;
+    if (line == CHAR_COM_DTR)
+        return (dev->command & 0x02) ? 1 : 0;
+
+    return (dev->modem & line) ? 1 : 0;
+}
+
+static const serial_port_ops_t i8251_chip_ops = {
+    .can_receive = i8251_chip_can_receive,
+    .set_line    = i8251_chip_set_line,
+    .get_line    = i8251_chip_get_line,
+    .receive     = i8251_chip_receive
+};
 
 static void
 i8251_update_lines(i8251_t *dev)
 {
-    char_device_t *cd = &dev->char_port.chardev;
-    uint32_t       flags = 0;
+    uint32_t flags = 0;
 
-    if (!cd->control)
+    if ((dev->ep.be == NULL) || (dev->ep.be->control == NULL))
         return;
 
     if (dev->command & 0x02)
@@ -184,7 +253,7 @@ i8251_update_lines(i8251_t *dev)
     if (dev->command & 0x08)
         flags |= CHAR_COM_BREAK;
 
-    cd->control(flags, cd->priv);
+    dev->ep.be->control(dev->ep.be->priv, flags);
 }
 
 static void
@@ -222,8 +291,8 @@ i8251_tx_start(void *priv)
     dev->txrdy = 1;
     i8251_update_irq(dev);
 
-    if (dev->char_port.chardev.write)
-        dev->char_port.chardev.write(&dev->tx_data, 1, dev->char_port.chardev.priv);
+    if ((dev->ep.be != NULL) && (dev->ep.be->write_byte != NULL))
+        dev->ep.be->write_byte(dev->ep.be->priv, dev->tx_data);
 
     if (bits < 1)
         bits = 1;
@@ -236,11 +305,11 @@ i8251_rx_poll(void *priv)
 {
     i8251_t *dev = (i8251_t *) priv;
 
-    if (!dev->rx_ready && (dev->command & 0x04) && dev->char_port.chardev.read) {
-        uint8_t byte;
+    if (!dev->rx_ready && (dev->command & 0x04) && (dev->ep.be != NULL) && (dev->ep.be->read_byte != NULL)) {
+        int byte = dev->ep.be->read_byte(dev->ep.be->priv);
 
-        if (dev->char_port.chardev.read(&byte, 1, dev->char_port.chardev.priv) == 1) {
-            dev->rx_data  = byte;
+        if (byte >= 0) {
+            dev->rx_data  = (uint8_t) byte;
             dev->rx_ready = 1;
             i8251_update_irq(dev);
         }
@@ -263,9 +332,13 @@ i8251_read(uint16_t addr, void *priv)
               (dev->txrdy ? 0x01 : 0x00) |
               (dev->txe ? 0x04 : 0x00);
 
-        /* With no backend attached the modem inputs float high. */
-        if ((dev->char_port.chardev.status(dev->char_port.chardev.priv) & CHAR_COM_DSR) ||
-            (!dev->char_port.chardev.status))
+        /* A device driving the modem lines wins over the host backend; with
+           nothing attached the inputs float high. */
+        if (dev->modem_set) {
+            if (dev->modem & CHAR_COM_DSR)
+                ret |= 0x80;
+        } else if ((dev->ep.be == NULL) || (dev->ep.be->status == NULL) ||
+                   (dev->ep.be->status(dev->ep.be->priv) & CHAR_COM_DSR))
             ret |= 0x80;
     } else {
         ret           = dev->rx_data;
@@ -360,11 +433,15 @@ i8251_init(const device_t *info)
     timer_add(&dev->tx_done_timer, i8251_tx_done, dev, 0);
     timer_set_delay_u64(&dev->rx_timer, 1000 * TIMER_USEC);
 
-    if ((port < SERIAL_MAX) && com_ports[port].enabled && com_ports[port].device) {
-        dev->char_port.type = CHAR_PORT_COM;
-        snprintf(dev->char_port.name, sizeof(dev->char_port.name), "COM%d", port + 1);
-        char_init(&dev->char_port, char_get_device(com_ports[port].device), port + 1);
-    }
+    dev->port = port;
+
+    /* The port table drives the chardev; the 16550 path does the same through
+       serial_t, this chip has no serial_t to register. */
+    serial_endpoint_init(&dev->ep, dev, &i8251_chip_ops);
+    dev->ep.on_attach = i8251_backend_changed;
+
+    if ((port < SERIAL_MAX) && com_ports[port].enabled)
+        com_ports[port].ep = &dev->ep;
 
     return dev;
 }
@@ -380,6 +457,11 @@ i8251_close(void *priv)
 
     if (dev->irq_mask != 0)
         picintc(dev->irq_mask);
+
+    dev->ep.be = NULL;
+
+    if ((dev->port < SERIAL_MAX) && (com_ports[dev->port].ep == &dev->ep))
+        com_ports[dev->port].ep = NULL;
 
     free(dev);
 }

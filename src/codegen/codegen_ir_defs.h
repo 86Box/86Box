@@ -386,8 +386,43 @@
 /*UOP_CMP_JNWITHIN - if (src_reg_a < src_reg_b || src_reg_a + imm > src_reg_c), unsigned,
   then jump to ptr*/
 #define UOP_CMP_JNWITHIN (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0xcf | UOP_TYPE_ORDER_BARRIER)
+/*UOP_CMN_IMM_JC - if src_reg_a + imm carries out of 32 bits, then jump to ptr*/
+#define UOP_CMN_IMM_JC (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0xd5 | UOP_TYPE_ORDER_BARRIER)
+/*UOP_CMP_JNWITHIN_TOP - if (src_reg_a < src_reg_b || src_reg_a + imm carries out
+  of 32 bits), unsigned, then jump to ptr*/
+#define UOP_CMP_JNWITHIN_TOP (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0xd6 | UOP_TYPE_ORDER_BARRIER)
+/*UOP_FP_CONTROL_SET - src_reg_a is the x87 control word just loaded, one that
+  unmasks no set flag: the host rounding state follows its RC field (as
+  codegen_set_rounding_mode) and FERR# goes low (as x87_ferr_clear)*/
+#define UOP_FP_CONTROL_SET (UOP_TYPE_PARAMS_REGS | 0xd0)
+/*UOP_FDIV_JSLOW_DEST - src_reg_c = src_reg_a / src_reg_b as the host rounded it
+  (UOP_FDIV); jump to ptr when the x87 divide cannot be finished from that
+  quotient: an operand outside the exponent window of x87_divide_fast (a
+  memory operand of the single kind in imm is held to the single's normal
+  range as well) or a power-of-two quotient. imm is x87_dyn_fdiv's layout.*/
+#define UOP_FDIV_JSLOW_DEST (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0xd1 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
+/*UOP_FDIV_FLAGS_JSLOW_DEST - dest_reg = the status word bits the divide
+  src_reg_b / src_reg_c with the quotient src_reg_a (UOP_FDIV) raises at the
+  precision control: PE from the exact remainder, C1 when the result rounded
+  up in magnitude (x87_divide_fast). Jump to ptr when the precision is 24 bits
+  (imm) and the quotient is a single-precision midpoint or its single is not
+  normal, or when PE is raised and unmasked: those finish as the software
+  divide does. The control word is read from cpu_state: the uop is an order
+  barrier, so a loaded copy has been written back.*/
+#define UOP_FDIV_FLAGS_JSLOW_DEST (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0xd2 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
+/*UOP_FCOM_SIGNED_ZERO - as UOP_FCOM, except that src_reg_a = -0 against
+  src_reg_b = +0 (the double images 0x8000000000000000 and 0) reports less
+  (C0), the interpreter's FCOMPP answer on a 287XL or later (opFCOMPP, the
+  80387 detection case)*/
+#define UOP_FCOM_SIGNED_ZERO (UOP_TYPE_PARAMS_REGS | 0xd3)
+/*UOP_FCOM_CHKCOP - as UOP_FCOM, except that src_reg_a 0x3fec1a6ff866a936
+  against src_reg_b 0x3fec1a6ff866a938 (double images) reports equal (C3),
+  the interpreter's x87_compare() case for CHKCOP; with imm_data 1, also
+  src_reg_a -0 against src_reg_b +0 reports less (C0), as
+  UOP_FCOM_SIGNED_ZERO*/
+#define UOP_FCOM_CHKCOP (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | 0xd4)
 
-#define UOP_MAX     0xd0
+#define UOP_MAX     0xd7
 
 #define UOP_INVALID 0xff
 
@@ -423,6 +458,9 @@ typedef struct uop_t {
 #else
     uint32_t      imm_data;
 #endif
+    /*A uop that can leave the block: what its exit adds to cycles first
+      (codegen_exit_cycles)*/
+    int           imm_data2;
     void         *p;
     ir_host_reg_t dest_reg_a_real;
     ir_host_reg_t src_reg_a_real, src_reg_b_real, src_reg_c_real;
@@ -441,6 +479,57 @@ typedef struct ir_data_t {
     struct codeblock_t *block;
 } ir_data_t;
 
+/* What an exit taken before the block's end adds to cycles: the cycles
+   accumulated so far, and with held what the timing model holds for the
+   block's end. codegen_exit_stamp gives it to the uop just generated, whose
+   exit path the backend charges (codegen.c) */
+extern int  codegen_exit_cycles(int held);
+extern void codegen_exit_stamp(ir_data_t *ir, int held);
+extern void codegen_record_exit(int pos, int held);
+extern void codegen_record_route(int pos, void *p);
+
+/* Whether the exits taken on a fault, or to run an instruction again,
+   charge the timing model's held cycle too */
+#define EXIT_FAULT_HELD 1
+
+/* The uops that can leave the block: an access or check that faults, a
+   call whose nonzero answer leaves (the interpreter's op, a REP string
+   routine), and the test for an SMI raised by the instruction before it.
+   Each is stamped as it is generated, so every handler's exits charge what
+   the block's end would */
+static inline int
+uop_type_can_fault(uint32_t uop_type)
+{
+    switch (uop_type & UOP_MASK) {
+        case UOP_CALL_INSTRUCTION_FUNC & UOP_MASK:
+        case UOP_SMI_EXIT_IMM & UOP_MASK:
+        case UOP_SMI_EXIT & UOP_MASK:
+        case UOP_CALL_REP_STRING & UOP_MASK:
+        case UOP_MEM_LOAD_ABS & UOP_MASK:
+        case UOP_MEM_LOAD_REG & UOP_MASK:
+        case UOP_MEM_LOAD_REG_EA & UOP_MASK:
+        case UOP_MEM_LOAD_SINGLE & UOP_MASK:
+        case UOP_MEM_LOAD_DOUBLE & UOP_MASK:
+        case UOP_MEM_STORE_ABS & UOP_MASK:
+        case UOP_MEM_STORE_REG & UOP_MASK:
+        case UOP_MEM_STORE_IMM_8 & UOP_MASK:
+        case UOP_MEM_STORE_IMM_16 & UOP_MASK:
+        case UOP_MEM_STORE_IMM_32 & UOP_MASK:
+        case UOP_MEM_STORE_SINGLE & UOP_MASK:
+        case UOP_MEM_STORE_DOUBLE & UOP_MASK:
+        case UOP_LOAD_SEG & UOP_MASK:
+        case UOP_CMP_IMM_JZ & UOP_MASK:
+        case UOP_CMP_JB & UOP_MASK:
+        case UOP_CMP_JNBE & UOP_MASK:
+        case UOP_CMP_JNWITHIN & UOP_MASK:
+        case UOP_CMN_IMM_JC & UOP_MASK:
+        case UOP_CMP_JNWITHIN_TOP & UOP_MASK:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
 static inline uop_t *
 uop_alloc(ir_data_t *ir, uint32_t uop_type)
 {
@@ -452,6 +541,9 @@ uop_alloc(ir_data_t *ir, uint32_t uop_type)
     uop = &ir->uops[ir->wr_pos++];
 
     uop->is_a16     = 0;
+    uop->imm_data2  = uop_type_can_fault(uop_type) ? codegen_exit_cycles(EXIT_FAULT_HELD) : 0;
+    if (uop_type_can_fault(uop_type))
+        codegen_record_exit(ir->wr_pos - 1, EXIT_FAULT_HELD);
 
     uop->dest_reg_a = invalid_ir_reg;
     uop->src_reg_a  = invalid_ir_reg;
@@ -555,6 +647,15 @@ uop_gen_reg_dst_imm(uint32_t uop_type, ir_data_t *ir, int dest_reg, uint32_t imm
     uop->type       = uop_type;
     uop->dest_reg_a = codegen_reg_write(dest_reg, ir->wr_pos - 1);
     uop->imm_data   = imm;
+    /*A tag set to a constant: valid with TAG_VALID (bit 0) in it, empty as
+      TAG_EMPTY (0) (x87.h). No constant has TAG_DENORMAL, which a valid one
+      must not (codegen_fpu_guard_stack)*/
+    if (((uop_type & UOP_MASK) == (UOP_MOV_IMM & UOP_MASK)) && ((unsigned) (IREG_GET_REG(dest_reg) - IREG_tag0) < 8)) {
+        if (imm & 1)
+            codegen_fpu_tag_valid |= 1 << (IREG_GET_REG(dest_reg) - IREG_tag0);
+        else if (!imm)
+            codegen_fpu_tag_empty |= 1 << (IREG_GET_REG(dest_reg) - IREG_tag0);
+    }
 }
 
 static inline void
@@ -570,11 +671,25 @@ uop_gen_reg_dst_pointer(uint32_t uop_type, ir_data_t *ir, int dest_reg, void *p)
 static inline void
 uop_gen_reg_dst_src1(uint32_t uop_type, ir_data_t *ir, int dest_reg, int src_reg)
 {
-    uop_t *uop = uop_alloc(ir, uop_type);
+    uop_t    *uop      = uop_alloc(ir, uop_type);
+    const int src_tag  = IREG_GET_REG(src_reg) - IREG_tag0;
+    const int dest_tag = IREG_GET_REG(dest_reg) - IREG_tag0;
+    int       valid    = 0;
+    int       empty    = 0;
 
+    /*A tag copied from another keeps what is known of it, read before the
+      write forgets the destination's (the two can be one)*/
+    if (((uop_type & UOP_MASK) == (UOP_MOV & UOP_MASK)) && ((unsigned) src_tag < 8)) {
+        valid = (codegen_fpu_tag_valid >> src_tag) & 1;
+        empty = (codegen_fpu_tag_empty >> src_tag) & 1;
+    }
     uop->type       = uop_type;
     uop->src_reg_a  = codegen_reg_read(src_reg);
     uop->dest_reg_a = codegen_reg_write(dest_reg, ir->wr_pos - 1);
+    if ((unsigned) dest_tag < 8) {
+        codegen_fpu_tag_valid |= valid << dest_tag;
+        codegen_fpu_tag_empty |= empty << dest_tag;
+    }
 }
 
 static inline void
@@ -676,7 +791,7 @@ uop_gen_reg_src3(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int src_reg_b,
     return ir->wr_pos - 1;
 }
 
-static inline void
+static inline int
 uop_gen_reg_src3_imm(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int src_reg_b, int src_reg_c, uint32_t imm)
 {
     uop_t *uop = uop_alloc(ir, uop_type);
@@ -686,6 +801,23 @@ uop_gen_reg_src3_imm(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int src_re
     uop->src_reg_b = codegen_reg_read(src_reg_b);
     uop->src_reg_c = codegen_reg_read(src_reg_c);
     uop->imm_data  = imm;
+
+    return ir->wr_pos - 1;
+}
+
+static inline int
+uop_gen_reg_dst_src3_imm(uint32_t uop_type, ir_data_t *ir, int dest_reg, int src_reg_a, int src_reg_b, int src_reg_c, uint32_t imm)
+{
+    uop_t *uop = uop_alloc(ir, uop_type);
+
+    uop->type       = uop_type;
+    uop->src_reg_a  = codegen_reg_read(src_reg_a);
+    uop->src_reg_b  = codegen_reg_read(src_reg_b);
+    uop->src_reg_c  = codegen_reg_read(src_reg_c);
+    uop->dest_reg_a = codegen_reg_write(dest_reg, ir->wr_pos - 1);
+    uop->imm_data   = imm;
+
+    return ir->wr_pos - 1;
 }
 
 static inline void
@@ -702,12 +834,25 @@ uop_gen_imm(uint32_t uop_type, ir_data_t *ir, uint32_t imm)
 }
 
 static inline void
+uop_gen_imm2(uint32_t uop_type, ir_data_t *ir, uint32_t imm, int imm2)
+{
+    uop_t *uop = uop_alloc(ir, uop_type);
+
+    uop->type      = uop_type;
+    uop->imm_data  = imm;
+    uop->imm_data2 = imm2;
+    codegen_record_exit(ir->wr_pos - 1, EXIT_FAULT_HELD);
+}
+
+static inline void
 uop_gen_pointer(uint32_t uop_type, ir_data_t *ir, void *p)
 {
     uop_t *uop = uop_alloc(ir, uop_type);
 
     uop->type = uop_type;
     uop->p    = p;
+    if ((uop_type & UOP_MASK) == (UOP_JMP & UOP_MASK))
+        codegen_record_route(ir->wr_pos - 1, p);
 }
 
 static inline void
@@ -753,6 +898,18 @@ uop_gen_reg_src2_pointer(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int sr
 }
 
 static inline void
+uop_gen_reg_src2_imm_pointer(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int src_reg_b, uint32_t imm, void *p)
+{
+    uop_t *uop = uop_alloc(ir, uop_type);
+
+    uop->type      = uop_type;
+    uop->src_reg_a = codegen_reg_read(src_reg_a);
+    uop->src_reg_b = codegen_reg_read(src_reg_b);
+    uop->imm_data  = imm;
+    uop->p         = p;
+}
+
+static inline void
 uop_gen_reg_src3_imm_pointer(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int src_reg_b, int src_reg_c, uint32_t imm, void *p)
 {
     uop_t *uop = uop_alloc(ir, uop_type);
@@ -775,6 +932,9 @@ extern int codegen_fp_pending(void);
    inline, the helper called only when it is set (codegen.c). A waiting x87
    instruction's is in codegen_generate_call. */
 extern void codegen_fp_pending_check(ir_data_t *ir);
+/* The exit a helper's answer of 1 in reg takes (a fault, or the FERR# wait),
+   charging the cycles accumulated so far on that path only (codegen.c) */
+extern void codegen_exit_on_one(ir_data_t *ir, int reg);
 extern int  codegen_fpu_rc_nearest(ir_data_t *ir);
 extern int  codegen_fpu_class_dirty;
 /* A store from an empty ST(0): the interpreter's version, then the block
@@ -790,6 +950,13 @@ extern void codegen_fpu_guard_stack(ir_data_t *ir, uint32_t fetchdat, uint32_t o
 /* FIST/FISTP of a value that may not fit: the interpreter's version */
 extern void codegen_fpu_guard_int_range(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg, const double *bounds);
 extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg, int src_reg, uint32_t indefinite);
+/* FLDCW of a word (cw_reg) that unmasks a set flag: the error is raised and
+   the block ends at next_pc */
+extern void codegen_fpu_guard_cw_unmasks(ir_data_t *ir, uint32_t next_pc, int cw_reg);
+/* The compiled x87 instruction's FPU pointers, for a handler that can
+   leave the block before its end: emitted ahead of that exit, in place of
+   codegen_generate_call's record after the handler (codegen.c) */
+extern void codegen_fpu_record_pointers(ir_data_t *ir);
 
 #define uop_LOAD_FUNC_ARG_REG(ir, arg, reg)                      uop_gen_reg_src1(UOP_LOAD_FUNC_ARG_0 + arg, ir, reg)
 
@@ -841,8 +1008,13 @@ extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, u
 #define uop_CMP_JB(ir, src_reg_a, src_reg_b, p)                  uop_gen_reg_src2_pointer(UOP_CMP_JB, ir, src_reg_a, src_reg_b, p)
 #define uop_CMP_JNBE(ir, src_reg_a, src_reg_b, p)                uop_gen_reg_src2_pointer(UOP_CMP_JNBE, ir, src_reg_a, src_reg_b, p)
 #define uop_CMP_JNWITHIN(ir, src_reg, lo_reg, hi_reg, imm, p)    uop_gen_reg_src3_imm_pointer(UOP_CMP_JNWITHIN, ir, src_reg, lo_reg, hi_reg, imm, p)
+#define uop_CMN_IMM_JC(ir, src_reg, imm, p)                      uop_gen_reg_src_pointer_imm(UOP_CMN_IMM_JC, ir, src_reg, p, imm)
+#define uop_CMP_JNWITHIN_TOP(ir, src_reg, lo_reg, imm, p)        uop_gen_reg_src2_imm_pointer(UOP_CMP_JNWITHIN_TOP, ir, src_reg, lo_reg, imm, p)
 
 #define uop_FCMP_JWITHIN_DEST(ir, src_reg, lo_reg, hi_reg)      uop_gen_reg_src3(UOP_FCMP_JWITHIN_DEST, ir, src_reg, lo_reg, hi_reg)
+#define uop_FP_CONTROL_SET(ir, src_reg)                         uop_gen_reg_src1(UOP_FP_CONTROL_SET, ir, src_reg)
+#define uop_FDIV_JSLOW_DEST(ir, num_reg, den_reg, q_reg, imm)   uop_gen_reg_src3_imm(UOP_FDIV_JSLOW_DEST, ir, num_reg, den_reg, q_reg, imm)
+#define uop_FDIV_FLAGS_JSLOW_DEST(ir, dst_reg, q_reg, num_reg, den_reg, imm) uop_gen_reg_dst_src3_imm(UOP_FDIV_FLAGS_JSLOW_DEST, ir, dst_reg, q_reg, num_reg, den_reg, imm)
 #define uop_CMP_JNB_DEST(ir, src_reg_a, src_reg_b)               uop_gen_reg_src2(UOP_CMP_JNB_DEST, ir, src_reg_a, src_reg_b)
 #define uop_CMP_JNBE_DEST(ir, src_reg_a, src_reg_b)              uop_gen_reg_src2(UOP_CMP_JNBE_DEST, ir, src_reg_a, src_reg_b)
 #define uop_CMP_JNL_DEST(ir, src_reg_a, src_reg_b)               uop_gen_reg_src2(UOP_CMP_JNL_DEST, ir, src_reg_a, src_reg_b)
@@ -858,6 +1030,8 @@ extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, u
 
 #define uop_FADD(ir, dst_reg, src_reg_a, src_reg_b)              uop_gen_reg_dst_src2(UOP_FADD, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_FCOM(ir, dst_reg, src_reg_a, src_reg_b)              uop_gen_reg_dst_src2(UOP_FCOM, ir, dst_reg, src_reg_a, src_reg_b)
+#define uop_FCOM_SIGNED_ZERO(ir, dst_reg, src_reg_a, src_reg_b)  uop_gen_reg_dst_src2(UOP_FCOM_SIGNED_ZERO, ir, dst_reg, src_reg_a, src_reg_b)
+#define uop_FCOM_CHKCOP(ir, dst_reg, src_reg_a, src_reg_b, signed_zero) uop_gen_reg_dst_src2_imm(UOP_FCOM_CHKCOP, ir, dst_reg, src_reg_a, src_reg_b, signed_zero)
 #define uop_FDIV(ir, dst_reg, src_reg_a, src_reg_b)              uop_gen_reg_dst_src2(UOP_FDIV, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_FMUL(ir, dst_reg, src_reg_a, src_reg_b)              uop_gen_reg_dst_src2(UOP_FMUL, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_FSUB(ir, dst_reg, src_reg_a, src_reg_b)              uop_gen_reg_dst_src2(UOP_FSUB, ir, dst_reg, src_reg_a, src_reg_b)
@@ -869,12 +1043,16 @@ extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, u
 #define uop_FTST(ir, dst_reg, src_reg)                           uop_gen_reg_dst_src1(UOP_FTST, ir, dst_reg, src_reg)
 
 #if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64 || defined __loongarch_lp64
+/*Their exits (#NM, #UD, a pending x87 exception) charge what the block's end
+  would on the exit path only (codegen_exit_cycles): imm_data2 of the uop, or
+  codegen_exit_on_one after a helper. The path that goes on leaves the cycles
+  to the next flush.*/
 #if defined __aarch64__ || defined _M_ARM64
 #define uop_FP_ENTER_NOWAIT(ir)                             \
     do {                                                    \
         if (!codegen_fpu_entered) {                         \
             uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);   \
-            uop_gen_imm(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc); \
+            uop_gen_imm2(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc, codegen_exit_cycles(EXIT_FAULT_HELD)); \
         }                                                   \
         codegen_mmx_entered = 0;                            \
     } while (0)
@@ -882,7 +1060,7 @@ extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, u
     do {                                                    \
         if (!codegen_fpu_entered) {                         \
             uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);   \
-            uop_gen_imm(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc); \
+            uop_gen_imm2(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc, codegen_exit_cycles(EXIT_FAULT_HELD)); \
         }                                                   \
         codegen_fpu_entered = 1;                            \
         codegen_mmx_entered = 0;                            \
@@ -893,7 +1071,7 @@ extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, u
         if (!codegen_fpu_entered) {                         \
             uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);           \
             uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_fp_enter); \
-            uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout); \
+            codegen_exit_on_one(ir, IREG_temp0);                    \
         }                                                   \
         codegen_mmx_entered = 0;                            \
     } while (0)
@@ -902,7 +1080,7 @@ extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, u
         if (!codegen_fpu_entered) {                         \
             uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);           \
             uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_fp_enter); \
-            uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout); \
+            codegen_exit_on_one(ir, IREG_temp0);                    \
         }                                                   \
         codegen_fpu_entered = 1;                            \
         codegen_mmx_entered = 0;                            \
@@ -913,7 +1091,7 @@ extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, u
         if (!codegen_mmx_entered) {                         \
             uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);            \
             uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_mmx_enter); \
-            uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout); \
+            codegen_exit_on_one(ir, IREG_temp0);                     \
         }                                                   \
         codegen_mmx_entered = 1;                             \
         codegen_fpu_entered = 0;                             \
@@ -924,13 +1102,13 @@ extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, u
 #define uop_FP_ENTER_NOWAIT(ir)                             \
     do {                                                    \
         if (!codegen_fpu_entered)                           \
-            uop_gen_imm(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc); \
+            uop_gen_imm2(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc, codegen_exit_cycles(EXIT_FAULT_HELD)); \
         codegen_mmx_entered = 0;                            \
     } while (0)
 #define uop_FP_ENTER(ir)                                    \
     do {                                                    \
         if (!codegen_fpu_entered)                           \
-            uop_gen_imm(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc); \
+            uop_gen_imm2(UOP_FP_ENTER_ORDERED, ir, cpu_state.oldpc, codegen_exit_cycles(EXIT_FAULT_HELD)); \
         codegen_fpu_entered = 1;                            \
         codegen_mmx_entered = 0;                            \
     } while (0)
@@ -940,10 +1118,10 @@ extern void codegen_fpu_guard_int_indefinite(ir_data_t *ir, uint32_t fetchdat, u
             if (fpu_softfloat) {                                             \
                 uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                \
                 uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_mmx_fpu_pending); \
-                uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout);        \
+                codegen_exit_on_one(ir, IREG_temp0);                         \
             } else                                                           \
                 codegen_fp_pending_check(ir);                                \
-            uop_gen_imm(UOP_MMX_ENTER, ir, cpu_state.oldpc);                 \
+            uop_gen_imm2(UOP_MMX_ENTER, ir, cpu_state.oldpc, codegen_exit_cycles(EXIT_FAULT_HELD)); \
         }                                                                    \
         codegen_mmx_entered = 1;                                             \
         codegen_fpu_entered = 0;                                             \

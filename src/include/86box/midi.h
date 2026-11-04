@@ -41,7 +41,6 @@ typedef struct midi_device_t {
 
 typedef struct midi_in_handler_t {
     uint8_t *buf;
-    int      cnt;
     uint32_t len;
 
     void (*msg)(void *priv, uint8_t *msg, uint32_t len);

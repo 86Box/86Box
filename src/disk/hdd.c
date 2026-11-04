@@ -34,7 +34,7 @@
 
 #define HDD_OVERHEAD_TIME 50.0
 
-hard_disk_t hdd[HDD_NUM];
+hard_disk_t hdd[HDD_SLOTS];
 
 int
 hdd_init(void)

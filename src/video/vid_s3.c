@@ -545,10 +545,17 @@ s3_update_irqs(s3_t *s3)
     if (!s3->pci)
         return;
 
-    if (s3->subsys_cntl & s3->subsys_stat & INT_MASK)
+    if ((s3->subsys_cntl & s3->subsys_stat & INT_MASK) ||
+        ((s3->svga.crtc[0x32] & 0x10) && svga_vert_int_active(&s3->svga)))
         pci_set_irq(s3->pci_slot, PCI_INTA, &s3->irq_state);
     else
         pci_clear_irq(s3->pci_slot, PCI_INTA, &s3->irq_state);
+}
+
+static void
+s3_vert_int_update(svga_t *svga)
+{
+    s3_update_irqs((s3_t *) svga->priv);
 }
 
 #define WRITE8(addr, var, val)                        \
@@ -3219,6 +3226,15 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
             svga->crtc[svga->crtcreg] = val;
 
             switch (svga->crtcreg) {
+                case 0x11:
+                    svga_vert_int_crtc_write(svga);
+                    /* The interrupt bits don't affect the timings */
+                    if ((val & ~0x30) == (old & ~0x30))
+                        old = val;
+                    break;
+                case 0x32:
+                    s3_update_irqs(s3);
+                    break;
                 case 0x31:
                     s3->ma_ext             = (s3->ma_ext & 0x1c) | ((val & 0x30) >> 4);
                     svga->force_dword_mode = !!(val & 0x08);
@@ -8697,13 +8713,13 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_data, vo
                             update = 1;
 
                         if (update) {
-                            READ((s3->accel.cy * s3->width * x_mul) + (s3->accel.cx * x_mul), dest_dat);
+                            READ(dstbase + (s3->accel.cy * s3->width * x_mul) + (s3->accel.cx * x_mul), dest_dat);
 
                             old_dest_dat = dest_dat;
                             MIX
 
                             if (s3->accel.ssv_draw) {
-                                WRITE((s3->accel.cy * s3->width * x_mul) + (s3->accel.cx * x_mul), dest_dat);
+                                WRITE(dstbase + (s3->accel.cy * s3->width * x_mul) + (s3->accel.cx * x_mul), dest_dat);
                             }
                         }
                     }
@@ -8809,15 +8825,15 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_data, vo
                             update = 1;
 
                         if (update) {
-                            READ((s3->accel.cy * s3->width * x_mul) + (s3->accel.cx * x_mul), dest_dat);
+                            READ(dstbase + (s3->accel.cy * s3->width * x_mul) + (s3->accel.cx * x_mul), dest_dat);
 
                             old_dest_dat = dest_dat;
                             MIX
 
                             if ((s3->accel.cmd & 0x04) && s3->accel.sy) {
-                                WRITE((s3->accel.cy * s3->width * x_mul) + (s3->accel.cx * x_mul), dest_dat);
+                                WRITE(dstbase + (s3->accel.cy * s3->width * x_mul) + (s3->accel.cx * x_mul), dest_dat);
                             } else if (!(s3->accel.cmd & 0x04)) {
-                                WRITE((s3->accel.cy * s3->width * x_mul) + (s3->accel.cx * x_mul), dest_dat);
+                                WRITE(dstbase + (s3->accel.cy * s3->width * x_mul) + (s3->accel.cx * x_mul), dest_dat);
                             }
                         }
                     }
@@ -8921,12 +8937,12 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_data, vo
                             update = 1;
 
                         if (update) {
-                            READ((s3->accel.cy * s3->width * x_mul) + (s3->accel.cx * x_mul), dest_dat);
+                            READ(dstbase + (s3->accel.cy * s3->width * x_mul) + (s3->accel.cx * x_mul), dest_dat);
 
                             old_dest_dat = dest_dat;
                             MIX
 
-                            WRITE((s3->accel.cy * s3->width * x_mul) + (s3->accel.cx * x_mul), dest_dat);
+                            WRITE(dstbase + (s3->accel.cy * s3->width * x_mul) + (s3->accel.cx * x_mul), dest_dat);
                         }
                     }
 
@@ -8960,7 +8976,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_data, vo
                         else
                             s3->accel.cy--;
 
-                        if (s3->accel.err_term >= s3->accel.maj_axis_pcnt) {
+                        if (s3->accel.err_term >= 0) {
                             s3->accel.err_term = (int16_t) (s3->accel.err_term + s3->accel.destx_distp);
                             if (s3->accel.cmd & 0x20)
                                 s3->accel.cx++;
@@ -8974,7 +8990,7 @@ s3_accel_start(int count, int cpu_input, uint32_t mix_dat, uint32_t cpu_data, vo
                         else
                             s3->accel.cx--;
 
-                        if (s3->accel.err_term >= s3->accel.maj_axis_pcnt) {
+                        if (s3->accel.err_term >= 0) {
                             s3->accel.err_term = (int16_t) (s3->accel.err_term + s3->accel.destx_distp);
                             if (s3->accel.cmd & 0x80)
                                 s3->accel.cy++;
@@ -11008,6 +11024,7 @@ s3_init(const device_t *info)
         svga->crtc[0x37] |= 0x04;
 
     svga->vblank_start = s3_vblank_start;
+    svga->vert_int_update = s3_vert_int_update;
 
     s3_io_set(s3);
 

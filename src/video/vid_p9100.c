@@ -1371,7 +1371,9 @@ p9100_quad_outline(int *lo, int *hi, int ymin, int ymax, int x0, int y0, int x1,
             if (x0 > hi[y0 - ymin])
                 hi[y0 - ymin] = x0;
         }
-        if ((x0 == x1) && (y0 == y1))
+        const int x_cond = (sx == 1) ? (x0 >= x1) : (x0 <= x1);
+        const int y_cond = (sy == 1) ? (y0 >= y1) : (y0 <= y1);
+        if (x_cond && y_cond)
             break;
         if ((2 * err) >= dy) {
             err += dy;

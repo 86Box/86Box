@@ -207,7 +207,6 @@ int reg_op_waitstates; /* Extra cycles added to pure register/branch instruction
                            io_waitstates. */
 int cpu_cache_int_enabled;
 int cpu_cache_ext_enabled;
-int cpu_flush_pending;
 int cpu_old_paging;
 int cpu_isa_speed;
 int cpu_pci_speed;
@@ -1305,6 +1304,10 @@ cpu_set(void)
         case CPU_i486DX_SLENH:
             cpu_features = CPU_FEATURE_CR4 | CPU_FEATURE_VME;
             cpu_CR4_mask = CR4_VME | CR4_PVI | CR4_VME;
+            /* The Intel486 data books give CR4 only VME and PVI and no #GP for
+               its other bits, so a write to them is dropped: Windows XP sets
+               DE on any processor with VME. */
+            cpu_CR4_ignore = ~cpu_CR4_mask & 0xffffffff;
             fallthrough;
         case CPU_RAPIDCAD:
         case CPU_i486SX:
@@ -2978,6 +2981,22 @@ cpu_ven_reset(void)
     }
 }
 
+/* A read of the TSC through an MSR counts the compiled block's cycles so
+   far, as RDTSC does: they reach the counter only through update_tsc().
+   A due timer run there can reset the CPU; the registers then hold the
+   reset state and the read returns nothing (nonzero). */
+static int
+tsc_msr_sync(void)
+{
+#ifdef USE_DYNAREC
+    if (cpu_use_dynarec) {
+        update_tsc();
+        return x86_was_reset;
+    }
+#endif
+    return 0;
+}
+
 void
 cpu_RDMSR(void)
 {
@@ -3034,6 +3053,8 @@ cpu_RDMSR(void)
                     break;
                 /* Time Stamp Counter */
                 case 0x10:
+                    if (tsc_msr_sync())
+                        break;
                     EAX = tsc & 0xffffffff;
                     EDX = tsc >> 32;
                     break;
@@ -3088,6 +3109,8 @@ cpu_RDMSR(void)
                     break;
                 /* Time Stamp Counter */
                 case 0x10:
+                    if (tsc_msr_sync())
+                        break;
                     EAX = tsc & 0xffffffff;
                     EDX = tsc >> 32;
                     break;
@@ -3120,6 +3143,8 @@ cpu_RDMSR(void)
                     break;
                 /* PERFCTR0 - Performance Counter Register 0 - aliased to TSC */
                 case 0xc1:
+                    if (tsc_msr_sync())
+                        break;
                     EAX = tsc & 0xffffffff;
                     EDX = (tsc >> 32) & 0xff;
                     break;
@@ -3222,6 +3247,8 @@ cpu_RDMSR(void)
                     break;
                 /* Time Stamp Counter */
                 case 0x00000010:
+                    if (tsc_msr_sync())
+                        break;
                     EAX = tsc & 0xffffffff;
                     EDX = tsc >> 32;
                     break;
@@ -3407,6 +3434,8 @@ amd_k_invalid_rdmsr:
                 /* Time Stamp Counter */
                 case 0x00000010:
                 case 0x80000010:
+                    if (tsc_msr_sync())
+                        break;
                     EAX = tsc & 0xffffffff;
                     EDX = tsc >> 32;
                     break;
@@ -3519,6 +3548,8 @@ pentium_invalid_rdmsr:
                     break;
                 /* Time Stamp Counter */
                 case 0x10:
+                    if (tsc_msr_sync())
+                        break;
                     EAX = tsc & 0xffffffff;
                     EDX = tsc >> 32;
                     break;
@@ -3554,6 +3585,8 @@ pentium_invalid_rdmsr:
                     break;
                 /* Time Stamp Counter */
                 case 0x10:
+                    if (tsc_msr_sync())
+                        break;
                     EAX = tsc & 0xffffffff;
                     EDX = tsc >> 32;
                     break;

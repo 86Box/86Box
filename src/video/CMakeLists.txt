@@ -76,6 +76,7 @@ add_library(vid OBJECT
 
     # PCjr/PC JX/Tandy
     vid_pcjr.c
+    vid_pcjr_comp.c
     vid_pcjx.c
     vid_tandy1k.c
     vid_tandy2k.c

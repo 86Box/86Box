@@ -93,6 +93,13 @@ VMManagerMain::VMManagerMain(QWidget *parent)
 
     // Connect the model signal
     connect(vm_model, &VMManagerModel::systemDataChanged, this, &VMManagerMain::modelDataChange);
+    connect(vm_model, &VMManagerModel::selectionRestored, this, [this](const QModelIndex &idx) {
+        if (idx.isValid()) {
+            const auto mapped = proxy_model->mapFromSource(idx);
+            ui->listView->setCurrentIndex(mapped);
+            ui->listView->scrollTo(mapped, QAbstractItemView::PositionAtCenter);
+        }
+    });
 
 #ifdef DISCORD
     discord = new VMManagerDiscord(this);
@@ -281,20 +288,21 @@ illegal_chars:
 
                     QFileInfo configFileInfo(vmDir + CONFIG_FILE);
                     if (configFileInfo.exists()) {
-                        const auto current_index = ui->listView->currentIndex();
-                        vm_model->reload(this);
-                        const auto created_object = vm_model->getIndexForConfigFile(configFileInfo);
-                        if (created_object.row() < 0) {
-                            // For some reason the index of the new object couldn't be determined. Fall back to the old index.
-                            ui->listView->setCurrentIndex(current_index);
-                            return;
+                        auto *added = new VMManagerSystem(configFileInfo.absoluteFilePath());
+                        if (added->isValid()) {
+                            added->setDisplayName(edit->text());
+                            vm_model->addConfigToModel(added);
+                            const QModelIndex srcIndex = vm_model->getIndexForConfigFile(added->config_file);
+                            if (srcIndex.isValid()) {
+                                const QModelIndex mapped = proxy_model->mapFromSource(srcIndex);
+                                ui->listView->setCurrentIndex(mapped);
+                                ui->listView->scrollTo(mapped, QAbstractItemView::PositionAtCenter);
+                            }
+                        } else {
+                            delete added;
                         }
-                        auto added_system = vm_model->getConfigObjectForIndex(created_object);
-                        added_system->setDisplayName(edit->text());
-                        // Get the index of the newly-created system and select it
-                        const QModelIndex mapped_index = proxy_model->mapFromSource(created_object);
-                        ui->listView->setCurrentIndex(mapped_index);
-                        modelDataChange();
+                        // Background verification for any other filesystem changes
+                        startBackgroundDiscovery();
                     } else {
                         QDir(dstPath).removeRecursively();
                         QMessageBox::critical(this, tr("Clone"), tr("Failed to clone VM."), QMessageBox::Ok);
@@ -500,12 +508,12 @@ VMManagerMain::reload()
     auto *completerModel = new QStringListModel(getSearchCompletionList(), ui->searchBar->completer());
     ui->searchBar->completer()->setModel(completerModel);
 
-    // If machines are found, set the selection to the first one
-    if (proxy_model->rowCount(QModelIndex()) > 0) {
-        const QModelIndex first_index = proxy_model->index(0, 0);
-        ui->listView->setCurrentIndex(first_index);
-        emit selectionOrStateChanged(selected_sysconfig);
-    }
+    // Load the cache for the (possibly new) path and start background discovery
+    const auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
+    const auto lastSelection = config->getStringValue("last_selection");
+    delete config;
+    vm_model->loadFromCache(lastSelection);
+    startBackgroundDiscovery();
 
     // Notify the status bar
     emit updateStatusRight(machineCountString());
@@ -753,25 +761,33 @@ VMManagerMain::addNewSystem(const QString &name, const QString &dir, const QStri
                     fail = true;
                 }
                 if (fail) {
+                    // Cancel (or failure): leave the previous selection unchanged
                     delete new_system;
                     return;
                 }
-                const auto current_index = ui->listView->currentIndex();
-                vm_model->reload(this);
-                const auto created_object = vm_model->getIndexForConfigFile(new_system->config_file);
-                if (created_object.row() < 0) {
-                    // For some reason the index of the new object couldn't be determined. Fall back to the old index.
-                    ui->listView->setCurrentIndex(current_index);
-                    delete new_system;
-                    return;
-                }
-                auto added_system = vm_model->getConfigObjectForIndex(created_object);
-                added_system->setDisplayName(displayName);
-                // Get the index of the newly-created system and select it
-                const QModelIndex mapped_index = proxy_model->mapFromSource(created_object);
-                ui->listView->setCurrentIndex(mapped_index);
+
+                // Success: add the new VM immediately so it appears without waiting for a scan
+                const auto newPath = new_system->config_file.absoluteFilePath();
                 delete new_system;
-                modelDataChange();
+
+                auto *added = new VMManagerSystem(newPath);
+                if (added->isValid()) {
+                    if (!displayName.isEmpty())
+                        added->setDisplayName(displayName);
+                    vm_model->addConfigToModel(added);
+
+                    const QModelIndex srcIndex = vm_model->getIndexForConfigFile(added->config_file);
+                    if (srcIndex.isValid()) {
+                        const QModelIndex mapped = proxy_model->mapFromSource(srcIndex);
+                        ui->listView->setCurrentIndex(mapped);
+                        ui->listView->scrollTo(mapped, QAbstractItemView::PositionAtCenter);
+                    }
+                } else {
+                    delete added;
+                }
+
+                // Verify the rest of the filesystem in the background (no blocking dialog)
+                startBackgroundDiscovery();
             });
 }
 
@@ -806,7 +822,32 @@ VMManagerMain::deleteSystem(VMManagerSystem *sysconfig)
             QMessageBox::critical(this, tr("Remove directory failed"), tr("Some files in the machine's directory were unable to be deleted. Please delete them manually."));
             return;
         }
-        config.remove(sysconfig->uuid);
+        // Remove every cache section that points at this config
+        // (older vmm.ini files can contain the same machine under multiple UUIDs)
+        QString target = sysconfig->config_file.canonicalFilePath();
+        if (target.isEmpty())
+            target = sysconfig->config_file.absoluteFilePath();
+#ifdef Q_OS_WIN
+        target = target.toLower();
+#endif
+        const auto groups = config.settings->childGroups();
+        for (const auto &uuid : groups) {
+            if (uuid.isEmpty() || uuid == "General")
+                continue;
+            config.settings->beginGroup(uuid);
+            QString cfg = config.settings->value("config_file").toString();
+            config.settings->endGroup();
+            if (cfg.isEmpty())
+                continue;
+            QString key = QFileInfo(cfg).canonicalFilePath();
+            if (key.isEmpty())
+                key = QFileInfo(cfg).absoluteFilePath();
+#ifdef Q_OS_WIN
+            key = key.toLower();
+#endif
+            if (key == target || uuid == sysconfig->uuid)
+                config.settings->remove(uuid);
+        }
         vm_model->removeConfigFromModel(sysconfig);
         delete sysconfig;
 
@@ -1025,4 +1066,19 @@ VMManagerMain::showTextFileContents(const QString &title, const QString &path)
     textDisplayDialog->layout()->addWidget(textEdit);
     textDisplayDialog->layout()->addWidget(buttonBox);
     textDisplayDialog->exec();
+}
+
+
+void
+VMManagerMain::loadFromCache(const QString &selectName)
+{
+    if (vm_model)
+        vm_model->loadFromCache(selectName);
+}
+
+void
+VMManagerMain::startBackgroundDiscovery()
+{
+    if (vm_model)
+        vm_model->startBackgroundDiscovery();
 }

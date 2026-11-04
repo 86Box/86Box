@@ -139,7 +139,7 @@ null_data_seg(x86seg *s)
     s->base    = -1;
     s->checked = 0;
     if (s == &cpu_state.seg_ds)
-        cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+        cpu_cur_status |= CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTWIDEDS;
     if (s == &cpu_state.seg_es)
         cpu_cur_status |= CPU_STATUS_NOTFLATES;
 }
@@ -316,6 +316,8 @@ do_seg_load(x86seg *s, uint16_t *segdat)
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATSS;
     }
+    cpu_set_wide_status(s);
+    cpu_mark_64k_status(s);
 }
 #endif
 
@@ -413,7 +415,7 @@ loadseg(uint16_t seg, x86seg *s)
             s->base    = -1;
             s->checked = 0;
             if (s == &cpu_state.seg_ds)
-                cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+                cpu_cur_status |= CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTWIDEDS;
             if (s == &cpu_state.seg_es)
                 cpu_cur_status |= CPU_STATUS_NOTFLATES;
             return 0;
@@ -508,9 +510,9 @@ loadseg(uint16_t seg, x86seg *s)
         s->checked   = 0;
 #ifdef USE_DYNAREC
         if (s == &cpu_state.seg_ds)
-            codegen_flat_ds = 0;
+            codegen_flat_ds = codegen_wide_ds = 0;
         if (s == &cpu_state.seg_ss)
-            codegen_flat_ss = 0;
+            codegen_flat_ss = codegen_wide_ss = 0;
         if (s == &cpu_state.seg_es)
             codegen_flat_es = 0;
 #endif
@@ -527,9 +529,9 @@ loadseg(uint16_t seg, x86seg *s)
             do_seg_v86_init(s);
 #ifdef USE_DYNAREC
         if (s == &cpu_state.seg_ds)
-            codegen_flat_ds = 0;
+            codegen_flat_ds = codegen_wide_ds = 0;
         if (s == &cpu_state.seg_ss)
-            codegen_flat_ss = 0;
+            codegen_flat_ss = codegen_wide_ss = 0;
         if (s == &cpu_state.seg_es)
             codegen_flat_es = 0;
 #endif
@@ -555,6 +557,7 @@ loadseg(uint16_t seg, x86seg *s)
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATSS;
     }
+    cpu_set_wide_status(s);
 
     return cpu_state.abrt;
 }
@@ -2113,7 +2116,7 @@ pmodeiret(int is32)
             do_seg_v86_init(&cpu_state.seg_es);
             op_loadseg(segs[1], &cpu_state.seg_ds);
             do_seg_v86_init(&cpu_state.seg_ds);
-            cpu_cur_status |= CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTFLATES;
+            cpu_cur_status |= CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTFLATES | CPU_STATUS_NOTWIDEDS;
             op_loadseg(segs[2], &cpu_state.seg_fs);
             do_seg_v86_init(&cpu_state.seg_fs);
             op_loadseg(segs[3], &cpu_state.seg_gs);
@@ -2135,7 +2138,8 @@ pmodeiret(int is32)
             ESP = newsp;
             op_loadseg(newss, &cpu_state.seg_ss);
             do_seg_v86_init(&cpu_state.seg_ss);
-            cpu_cur_status |= CPU_STATUS_NOTFLATSS;
+            cpu_cur_status |= CPU_STATUS_NOTFLATSS | CPU_STATUS_NOTWIDESS;
+            cpu_update_64k_status();
             use32 = 0;
             cpu_cur_status &= ~CPU_STATUS_USE32;
             cpu_state.flags = (tempflags & 0xffd5) | 2;
@@ -2474,9 +2478,9 @@ task_load_seg(x86seg *s, uint16_t sel, const uint16_t *sd, uint32_t addr)
     }
 #ifdef USE_DYNAREC
     if (s == &cpu_state.seg_ds)
-        codegen_flat_ds = 0;
+        codegen_flat_ds = codegen_wide_ds = 0;
     if (s == &cpu_state.seg_ss)
-        codegen_flat_ss = 0;
+        codegen_flat_ss = codegen_wide_ss = 0;
     if (s == &cpu_state.seg_es)
         codegen_flat_es = 0;
 #endif
@@ -2498,6 +2502,7 @@ task_load_seg(x86seg *s, uint16_t sel, const uint16_t *sd, uint32_t addr)
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATSS;
     }
+    cpu_set_wide_status(s);
 }
 
 /* CS of the new task, its checks made. CPL is the selector's RPL: "The new
@@ -2892,6 +2897,7 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
 
     if (is386 ? !task_checks_386(&img, cpl, ext) : !task_checks_286(&img, cpl, ext))
         return;
+    cpu_update_64k_status();
 
     if (cpu_debug_regs_486 || !cpu_use_exec)
         rf_flag_no_clear = 1;
@@ -2961,9 +2967,9 @@ cyrix_load_seg_descriptor(uint32_t addr, x86seg *seg)
         seg->checked = 0;
 #ifdef USE_DYNAREC
         if (seg == &cpu_state.seg_ds)
-            codegen_flat_ds = 0;
+            codegen_flat_ds = codegen_wide_ds = 0;
         if (seg == &cpu_state.seg_ss)
-            codegen_flat_ss = 0;
+            codegen_flat_ss = codegen_wide_ss = 0;
         if (seg == &cpu_state.seg_es)
             codegen_flat_es = 0;
 #endif

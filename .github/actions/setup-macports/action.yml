@@ -28,6 +28,10 @@ outputs:
     description: Path the cached installation tarball is restored from and saved to.
     value: ${{ runner.temp }}/macports.tar
 
+  qt-built:
+    description: Whether Qt had to be built from source ("true" or "false").
+    value: ${{ steps.qt.outputs.built }}
+
 runs:
 
   using: composite
@@ -96,6 +100,7 @@ runs:
     # archive without Vulkan support, since port install upgrades outdated
     # dependencies.
     - name: Ensure Qt has Vulkan support
+      id: qt
       shell: bash
       run: |
         port=/opt/local/bin/port
@@ -127,6 +132,7 @@ runs:
         # Qt's Cocoa plugin includes MoltenVK headers when Vulkan is enabled
         sudo "$port" -N install vulkan-headers MoltenVK depof:qt5-qtbase
 
+        echo "built=true" >> "$GITHUB_OUTPUT"
         if [ -z "$("$port" -q installed qt5-qtbase)" ]; then
           echo "Building Qt from source."
           qt_build install
@@ -137,6 +143,7 @@ runs:
           qt_build -n upgrade --force
         else
           echo "Qt is up to date and has Vulkan support."
+          echo "built=false" >> "$GITHUB_OUTPUT"
         fi
 
         if ! qt_has_vulkan; then

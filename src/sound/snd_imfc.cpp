@@ -13672,8 +13672,8 @@ imfc_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
     }
     midiin_sysex = 1;
     for (uint32_t i = 0; i < len; i++) {
-        if (midiin_r == midiin_w)
-            return (int) (len -i);
+        if (midiin_used >= 255)
+            return (int) (len - i);
         midiin_queue[midiin_w++] = buffer[i];
         midiin_w &= 0xff;
         midiin_used++;
