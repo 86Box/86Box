@@ -4195,12 +4195,10 @@ mach64gtb_init(const device_t *info)
         mach64->config_chip_id = 0x5c000000 | mach64->pci_id;
         if (!(info->local & (MACH64_FLAG_RAGEXL | MACH64_FLAG_RAGELT)))
             mach64->fixed_io = device_get_config_hex16("fixed_io") & 0xff00;
-        if (info->local & MACH64_FLAG_PQFP)
-            mach64->config_stat0 = 5 | (1 << 4);
-        else if (!(info->local & MACH64_FLAG_ONBOARD) && !strcmp(device_get_config_bios("bios_ver"), "113_40212_103"))
-            mach64->config_stat0 = 5 | (1 << 4);
-        else
+        if (info->local & MACH64_FLAG_ONBOARD)
             mach64->config_stat0 = 4 | (1 << 4);
+        else
+            mach64->config_stat0 = device_get_bios_local(info, device_get_config_bios("bios_ver")) | (1 << 4);
         if (info->local & MACH64_FLAG_RAGEXL) {
             /* The Rage XL, "GR" (4752h), the PCI-33 BGA part (XL/XC
                RRG table 4-4), ASIC ID 27h (TSMC B41, the OEM RRG's table
@@ -4260,28 +4258,11 @@ mach64gtb_init(const device_t *info)
             mach64->gtb_regs[0x95] = mach64->bios_rom.rom[0x4d];
         }
     } else if (info->local & MACH64_FLAG_RAGELT) {
-        /* The Rage LT Pro card's BIOS, 64K (80h blocks by its ROM
-           header and PCI data structure). */
+        /* The Rage LT Pro dump is 58K (74h blocks by its ROM header).
+           Keep the 64K ROM window; rom_init pads the unused tail with FFh. */
         ati_eeprom_load(&mach64->eeprom, "mach64ragelt.nvr", 1);
         rom_init(&mach64->bios_rom, (char *) device_get_bios_file(info, device_get_config_bios("bios_ver"), 0),
                  0xc0000, 0x10000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
-        if (mach64->bios_rom.rom) {
-            /* The only dump of it sums to 06h over its 64K: the first 32K
-               (the VGA BIOS) sum to 00h, the upper half (VESA and panel code,
-               the "MACH64LPOEM INFO" panel tables an OEM tool edits) does
-               not, and an Award BIOS (AX6BC) then skips the option ROM: no
-               picture. Its last byte is taken as the upper half's checksum
-               and made good again here. */
-            uint8_t sum = 0;
-
-            for (int i = 0; i < 0xffff; i++)
-                sum += mach64->bios_rom.rom[i];
-            if ((uint8_t) (sum + mach64->bios_rom.rom[0xffff]) != 0x00) {
-                pclog("Rage LT Pro: BIOS image checksum %02X, last byte set to %02X\n",
-                      (uint8_t) (sum + mach64->bios_rom.rom[0xffff]), (uint8_t) -sum);
-                mach64->bios_rom.rom[0xffff] = (uint8_t) -sum;
-            }
-        }
     } else if (info->local & MACH64_FLAG_RAGEPRO) {
         /* The Rage Pro card's own BIOS, 32K. */
         ati_eeprom_load(&mach64->eeprom, (info->local & MACH64_FLAG_PQFP) ? "mach64ragepro_pci.nvr" : "mach64ragepro.nvr", 1);
@@ -4943,7 +4924,7 @@ static const device_config_t mach64ragepro_config[] = {
                 .internal_name = "turbo_3_091",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = 0,
+                .local         = 4,
                 .size          = 32768,
                 .files         = { BIOS_RAGEPRO_TURBO_PATH, "" }
             },
@@ -4952,7 +4933,7 @@ static const device_config_t mach64ragepro_config[] = {
                 .internal_name = "113_49801_101_2000",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = 0,
+                .local         = 4,
                 .size          = 32768,
                 .files         = { BIOS_RAGEPRO_49801_2000_PATH, "" }
             },
@@ -4961,7 +4942,7 @@ static const device_config_t mach64ragepro_config[] = {
                 .internal_name = "113_49801_101_1998",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = 0,
+                .local         = 4,
                 .size          = 32768,
                 .files         = { BIOS_RAGEPRO_49801_1998_PATH, "" }
             },
@@ -4970,7 +4951,7 @@ static const device_config_t mach64ragepro_config[] = {
                 .internal_name = "113_40212_103",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = 0,
+                .local         = 5,
                 .size          = 32768,
                 .files         = { BIOS_RAGEPRO_40212_PATH, "" }
             },
@@ -5044,7 +5025,7 @@ static const device_config_t mach64ragepro_pci_config[] = {
                 .internal_name = "113_41901_104",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = 0,
+                .local         = 5,
                 .size          = 32768,
                 .files         = { BIOS_RAGEPRO_PCI_41901_PATH, "" }
             },
@@ -5104,7 +5085,7 @@ static const device_config_t mach64ragexl_config[] = {
                 .internal_name = "113_72301_101",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = 0,
+                .local         = 4,
                 .size          = 32768,
                 .files         = { BIOS_RAGEXL_72301_PATH, "" }
             },
@@ -5164,8 +5145,8 @@ static const device_config_t mach64ragelt_config[] = {
                 .internal_name = "113_55702_100",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
-                .local         = 0,
-                .size          = 65536,
+                .local         = 4,
+                .size          = 59392,
                 .files         = { BIOS_RAGELT_55702_PATH, "" }
             },
             { .files_no = 0 }
