@@ -309,13 +309,18 @@ mach64_out(uint16_t addr, uint8_t val, void *priv)
                     val = (old & ~0x10) | (val & 0x10);
             }
             svga->crtc[svga->crtcreg] = val;
-            /* On the Rage LT Pro the VGA's vertical display end
-               (CR12) is the accelerator's too, CRTC_V_DISP 7:0 (CRTC_V_TOTAL_DISP
-               23:16): its BIOS's mode set writes CR12 and reads it back
-               there to tell a working VGA, and only then turns the
-               accelerator display (CRTC_EXT_DISP_EN) off -- without it,
-               mode 3 after a Windows driver's mode stayed 1024x768. */
-            if (mach64->ragelt && (svga->crtcreg == 0x12))
+            /* On the Rage LT Pro and Rage XL the VGA's vertical display
+               end (CR12) is the accelerator's too, CRTC_V_DISP 7:0
+               (CRTC_V_TOTAL_DISP 23:16; XL/XC RRG 4-43, USE_SHADOWED_VEND:
+               "3?5 index 12 or CRTC_V_TOTAL_DISP bits 26:16"): their BIOSes'
+               mode set writes CR12 and reads it back there to tell a
+               working VGA, and only then turns the accelerator display
+               (CRTC_EXT_DISP_EN) off. On a mismatch the XL BIOS sets
+               SCRATCH_REG1 bit 18 and leaves it on at the next mode set
+               (113-72301-101 at 16A6h, tested at 15E8h) -- without it,
+               mode 3 after a Windows driver's mode stayed in the driver's
+               mode (a full-screen DOS box stayed blank). */
+            if (MACH64_LT_REGS(mach64) && (svga->crtcreg == 0x12))
                 mach64->crtc_v_total_disp = (mach64->crtc_v_total_disp & ~0x00ff0000) | ((uint32_t) val << 16);
 
             if (old != val) {
@@ -3540,12 +3545,15 @@ mach64_writel_be(uint32_t addr, uint32_t val, void *priv)
 #define RAGEPRO_AGP_CAP    0x50
 #define RAGEPRO_AGP_STATUS 0x07000203
 
-/* The Rage LT Pro's PCI power management capability (RRG 6-8, 6-9):
-   ID 01h, the end of the list, D1 and D2 supported, no PME; version 1 (PCI
-   PM 1.0: the RRG gives no version field, 2:0 are taken as that). The
-   control/status register keeps the power state, 1:0. */
+/* The Rage LT Pro's and Rage XL's PCI power management capability (LT
+   Pro RRG 6-8, 6-9; XL/XC RRG 6-9, 6-10): ID 01h, the end of the list, D1
+   and D2 supported (D2 not on the XC), no PME. Neither RRG gives the
+   version field (2:0): the LT Pro's is taken as 1 (PCI PM 1.0), the XL's
+   as 2 (PCI PM 1.1), what PCI Rage XL boards report. The control/status
+   register keeps the power state, 1:0, the only writable field. */
 #define RAGELT_PM_CAP 0x5c
 #define RAGELT_PMC    0x0601
+#define RAGEXL_PMC    0x0602
 
 static uint8_t
 mach64_ragelt_pm_read(const mach64_t *mach64, int off)
@@ -3554,7 +3562,7 @@ mach64_ragelt_pm_read(const mach64_t *mach64, int off)
         case 0:
             return 0x01; /* CAP_ID: power management */
         case 2 ... 3:
-            return (RAGELT_PMC >> ((off - 2) * 8)) & 0xff;
+            return ((mach64->ragexl ? RAGEXL_PMC : RAGELT_PMC) >> ((off - 2) * 8)) & 0xff;
         case 4:
             return mach64->lt_pmcsr;
         default:
@@ -3605,7 +3613,11 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
             return mach64->pci_regs[PCI_REG_COMMAND]; /*Respond to IO and memory accesses*/
         case PCI_REG_STATUS_L:
             /* Both AGP boards are 66 MHz capable. Only the Pro has an AGP
-               capability list; the IIC uses PCI transfers on the AGP bus. */
+               capability list; the IIC uses PCI transfers on the AGP bus.
+               The Rage XL has a capability list and is fast back-to-back
+               capable (XL/XC RRG 6-2). */
+            if (mach64->ragexl)
+                return 0x90;
             return mach64->agp ? (mach64->ragepro ? 0x30 : 0x20) : 0x00;
         case PCI_REG_STATUS_H:
             return 1 << 1; /*Medium DEVSEL timing*/
@@ -3681,13 +3693,18 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
                 return mach64->pci_regs[MACH64_PCI_IOCONFIG];
             return mach64->use_block_decoded_io | mach64->io_base;
         case PCI_REG_CAPS_PTR:
+            /* The XL/XC RRG (6-6, 6-8) gives the AGP parts' list, AGP at
+               50h, then power management at 5Ch. The PCI XL has no AGP
+               capability: its list starts at power management. */
+            if (mach64->ragexl)
+                return RAGELT_PM_CAP;
             return (mach64->agp && mach64->ragepro) ? RAGEPRO_AGP_CAP : 0x00;
         case RAGEPRO_AGP_CAP ... (RAGEPRO_AGP_CAP + 0x0b):
             if (mach64->agp && mach64->ragepro)
                 return mach64_ragepro_agp_read(mach64, addr - RAGEPRO_AGP_CAP);
             return 0x00;
         case RAGELT_PM_CAP ... (RAGELT_PM_CAP + 7):
-            if (mach64->ragelt)
+            if (MACH64_LT_REGS(mach64))
                 return mach64_ragelt_pm_read(mach64, addr - RAGELT_PM_CAP);
             return 0x00;
         default:
@@ -3774,8 +3791,8 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
                 mach64->gtb_regs[0x94 + ((addr + 2) & 3)] = val;
             break;
         case RAGELT_PM_CAP + 4:
-            /* The LT Pro's power state (D0-D3). */
-            if (mach64->ragelt)
+            /* The LT Pro's and XL's power state (D0-D3). */
+            if (MACH64_LT_REGS(mach64))
                 mach64->lt_pmcsr = val & 0x03;
             break;
         case (RAGEPRO_AGP_CAP + 8) ... (RAGEPRO_AGP_CAP + 0x0b):
