@@ -41,7 +41,7 @@
 #define CD_STATUS_BLURAY_REJECTED   17
 #define CD_STATUS_DVD_REJECTED      18
 #define CD_STATUS_HAS_AUDIO         0xc
-#define CD_STATUS_MASK              0x2f
+#define CD_STATUS_MASK              0x3f
 
 #define CD_BLANK_NOT 0x00
 #define CD_BLANK_CDR 0x01
