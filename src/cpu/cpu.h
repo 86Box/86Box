@@ -618,16 +618,6 @@ extern int smi_block;
    the loop tests between two blocks, kept together in cpu_events */
 #include <86box/cpu_events.h>
 
-/* The chipset's ACPI clock control (acpi.c).  cpu_stpclk: STPCLK#
-   held by a P_LVL2/P_LVL3 read (C2/C3), no instruction runs until a break
-   event (an interrupt request, NMI or SMI).  cpu_throttle_run: STPCLK#
-   modulated (THT_EN), the processor running cpu_throttle_run parts of every
-   cpu_throttle_period, 0 = not throttled; cpu_throttle_break: a break event
-   ends the throttling (the PIIX4 before the PIIX4E). */
-extern int cpu_stpclk;
-extern int cpu_throttle_run;
-extern int cpu_throttle_period;
-extern int cpu_throttle_break;
 extern int cpu_is_p5(void);
 extern int cpu_init_keeps_state(void);
 

@@ -83,12 +83,6 @@ int smi_latched = 0;
 int smm_in_hlt  = 0;
 int smi_block   = 0;
 
-/* ACPI clock control, see cpu.h. */
-int cpu_stpclk          = 0;
-int cpu_throttle_run    = 0;
-int cpu_throttle_period = 8;
-int cpu_throttle_break  = 0;
-
 /* RSM restarted a HLT and a latched SMI is about to be entered. */
 static int smm_rsm_restart = 0;
 
