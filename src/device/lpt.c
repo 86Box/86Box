@@ -1147,7 +1147,7 @@ lpt_port_setup(lpt_t *dev, const uint16_t port)
 {
     if (lpt_ports[dev->id].enabled) {
         if ((dev->addr != 0x0000) && (dev->addr != 0xffff)) {
-            io_removehandler(dev->addr, 0x0007, lpt_read, NULL, NULL, lpt_write, NULL, NULL, dev);
+            io_removehandler(dev->addr, 0x0008, lpt_read, NULL, NULL, lpt_write, NULL, NULL, dev);
             io_removehandler(dev->addr + 0x0400, 0x0007, lpt_read, NULL, NULL, lpt_write, NULL, NULL, dev);
         }
         if ((port != 0x0000) && (port != 0xffff)) {
@@ -1199,7 +1199,7 @@ void
 lpt_port_remove(lpt_t *dev)
 {
     if (lpt_ports[dev->id].enabled && (dev->addr != 0xffff)) {
-        io_removehandler(dev->addr, 0x0007, lpt_read, NULL, NULL, lpt_write, NULL, NULL, dev);
+        io_removehandler(dev->addr, 0x0008, lpt_read, NULL, NULL, lpt_write, NULL, NULL, dev);
         io_removehandler(dev->addr + 0x0400, 0x0007, lpt_read, NULL, NULL, lpt_write, NULL, NULL, dev);
 
         dev->addr = 0xffff;
