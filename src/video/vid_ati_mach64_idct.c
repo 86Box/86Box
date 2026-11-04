@@ -27,8 +27,8 @@
  *            LEVEL with GUIREG_ADR the index of IDCT_RUNS and the count
  *            3T-1; 10 is IDCT register writes with auto-increment (XL/XC
  *            RRG: BM_ADDR, p. 6-13 / PDF 225).
- *          - GUI_CNTL (MM 1_5E) bit 12, IDCT_PRSR_MODE, swaps the two
- *            IDCT_LEVEL writes of a triplet; bit 13,
+ *          - GUI_CNTL (MM 1_5E) bit 16, IDCT_PRSR_MODE, swaps the two
+ *            IDCT_LEVEL writes of a triplet; bit 17,
  *            IDCT_BLOCK_GUI_INITIATOR, stops writes to the IDCT registers
  *            from starting the IDCT (XL/XC RRG: GUI_CNTL, p. 5-64 / PDF
  *            208).
@@ -62,10 +62,12 @@
  *          record's:
  *
  *            RUNS    four run bytes, the first coefficient's in 31:24;
- *                    FFh ends the block and its level is ignored
+ *                    FFh ends the block and its level is ignored, 3Fh is
+ *                    an unused slot (ATI DVD Player 6.2 pads its last
+ *                    triplet with it, then sends IDCT_FLAGS 00)
  *            LEVELS  two signed 16-bit levels, high half first; the
- *                    second LEVELS write of a triplet holds the first two
- *                    levels, the first one the last two
+ *                    first LEVELS write of a triplet holds the first two
+ *                    levels in mode 0; mode 1 reverses the two writes
  *
  *          An FFh run ends the block there and then: the HAL's command
  *          player ends a block by FFFFFFFFh in RUNS with no LEVELS after
@@ -88,8 +90,10 @@
  *            one block after another in its rows, a 16x16 luma macroblock
  *            takes blocks 0 and 1 side by side above 2 and 3, MPEG's own
  *            order. The tiles of one draw are consumed by it. A draw that
- *            finds too few blocks adds zero for the missing ones.
- *          - IDCT_CONTROL is kept as written and has no other effect.
+ *            finds too few blocks adds zero for the missing ones; native
+ *            scaler submissions wait until their blocks are available.
+ *          - Native IDCT_CONTROL bit 10 selects intra reconstruction, with
+ *            a prediction bias of 128. Other control bits are stored only.
  *
  * Authors: Cacodemon345
  *
@@ -102,19 +106,35 @@
 #define IDCT_FIRST   0x380
 #define IDCT_RUNS    0x380
 #define IDCT_LEVELS  0x384
+#define IDCT_AUTH_STATUS 0x388
+#define IDCT_AUTH_DATA   0x38c
 #define IDCT_CONTROL 0x3bc
 #define IDCT_LAST    0x3bc
 
 /* GUI_CNTL */
-#define GUI_CNTL_IDCT_PRSR_MODE      (1u << 12)
-#define GUI_CNTL_IDCT_BLOCK_GUI_INIT (1u << 13)
+#define GUI_CNTL_IDCT_PRSR_MODE      (1u << 16)
+#define GUI_CNTL_IDCT_BLOCK_GUI_INIT (1u << 17)
 
 /* Finished blocks held for the draw engine. A macroblock is six; this is
    room for many, so that a decoder sending a whole slice of coefficients
    before its draws loses nothing. */
 #define IDCT_QUEUE 256
 
+typedef struct idct_draw_t {
+    struct idct_draw_t *next;
+    void *state;
+    unsigned blocks;
+    void (*render)(mach64_t *, const void *);
+} idct_draw_t;
+
 struct mach64_idct_t {
+    idct_draw_t *draw_head, *draw_tail;
+    unsigned pending_draws;
+    int draining;
+    /* ATIMIAAE maps logical 1F88/1F8C to MM 1_E2/1_E3. The decoder,
+       CINMST32 2.0.36.6152 @4B1B94A0, computes the responses and key. */
+    unsigned auth_state, auth_reset;
+    uint32_t auth_seq, challenge, response, host_response, key;
     /* The block being fed: coefficients by raster position, the scan
        position of the next one, and whether any has arrived. */
     int16_t coef[64];
@@ -140,6 +160,156 @@ struct mach64_idct_t {
     unsigned dropped; /* blocks overwritten unused, for the log */
     unsigned starved; /* tiles drawn with no block, for the log */
 };
+
+enum { AUTH_RESET, AUTH_CHALLENGE, AUTH_ACK, AUTH_RESPONSE, AUTH_ARMED, AUTH_FAILED };
+
+int
+mach64_idct_authenticated(const mach64_t *mach64)
+{
+    return mach64->idct && mach64->idct->auth_state == AUTH_ARMED;
+}
+
+/* Native MCAM sets CONTROL=420 for intra macroblocks, then queues their
+   Y/U/V rectangles before supplying the six coefficient blocks. */
+int
+mach64_idct_intra(const mach64_t *mach64)
+{
+    return mach64->idct && (mach64->idct->regs[(IDCT_CONTROL-IDCT_FIRST)/4] & 0x400);
+}
+
+static void
+idct_drain(mach64_t *m)
+{
+    mach64_idct_t *idct = m->idct;
+    if (idct->draining) return;
+    idct->draining = 1;
+    while (idct->draw_head && idct->count >= idct->draw_head->blocks) {
+        idct_draw_t *draw = idct->draw_head;
+        idct->draw_head = draw->next;
+        if (!idct->draw_head) idct->draw_tail = NULL;
+        idct->pending_draws--;
+        draw->render(m, draw->state);
+        free(draw->state);
+        free(draw);
+    }
+    idct->draining = 0;
+}
+
+int
+mach64_idct_defer(mach64_t *m, void *state, unsigned blocks, void (*render)(mach64_t *, const void *))
+{
+    mach64_idct_t *idct = m->idct;
+    idct_draw_t *draw;
+    if (!idct || !blocks || blocks > IDCT_QUEUE || idct->pending_draws >= IDCT_QUEUE ||
+        !(draw = calloc(1, sizeof(*draw)))) {
+        free(state);
+        return 0;
+    }
+    draw->state = state; draw->blocks = blocks; draw->render = render;
+    if (idct->draw_tail) idct->draw_tail->next = draw;
+    else idct->draw_head = draw;
+    idct->draw_tail = draw;
+    idct->pending_draws++;
+    idct_drain(m);
+    return 1;
+}
+
+static void
+idct_discard_draws(mach64_idct_t *idct)
+{
+    while (idct->draw_head) {
+        idct_draw_t *next = idct->draw_head->next;
+        free(idct->draw_head->state);
+        free(idct->draw_head);
+        idct->draw_head = next;
+    }
+}
+
+static uint32_t
+idct_key_step(uint32_t c)
+{
+    uint32_t a = (c & 0x40u) ^ (c >> 25);
+    a = (a >> 1) ^ (c & 0x20u);
+    a = (a >> 4) ^ (c & 2u);
+    return (a >> 1) | (c << 1);
+}
+
+/* The two permutations and 31 rounds in installed CINMST32.DLL
+   @4B1B9050, @4B1B90D0, @4B1B9130; also used by the Rage 128 decoder. */
+static uint32_t
+idct_auth_hash(uint32_t c)
+{
+    uint32_t a = ((c >> 5) & 0x07000000u) | (c & 0xe000u);
+    uint32_t d, n, e;
+    a = ((a >> 8) | (c & 0x1f00u)) >> 2;
+    a = ((a | (c & 0xe0000u)) >> 1) | (c & 0x400u);
+    d = ((c & 0xfu) << 8) | (c & 0xf0u);
+    d = ((d << 13) | (c & 0xfe01c000u)) << 1;
+    d |= c & 0x100u;
+    c = (a >> 2) | (d << 2) | (c & 0x200u);
+    n = ~c;
+    a = ((c >> 4) & 0xff0000u) | (c & 0xf00000ffu);
+    a = ((a >> 2) | (n & 0x003fc000u)) >> 2;
+    a |= c & 0xff0u;
+    e = ((c & 0xfu) << 9) | (n & 0xffffe000u);
+    c = (a >> 4) | (e << 11) | (n & 0xf0000u);
+    for (int i = 0; i < 31; i++)
+        c = idct_key_step(c);
+    return c;
+}
+
+/* Called synchronously, after draining the draw FIFO, so a status read
+   observes preceding authentication writes. Other IDCT ports stay queued. */
+int
+mach64_idct_auth_read(mach64_t *mach64, uint32_t reg, uint32_t *val)
+{
+    mach64_idct_t *idct = mach64->idct;
+    static const uint32_t status[] = { 8, 8, 1, 9, 0x1a, 0 };
+    if (!idct || (reg != IDCT_AUTH_STATUS && reg != IDCT_AUTH_DATA))
+        return 0;
+    if (reg == IDCT_AUTH_STATUS) {
+        *val = status[idct->auth_state];
+        return 1;
+    }
+    if (idct->auth_state == AUTH_RESET) {
+        idct->auth_seq += 0x9e3779b9u;
+        idct->challenge = idct_auth_hash(idct->auth_seq);
+        if (!idct->challenge)
+            idct->challenge = 1;
+        idct->auth_state = AUTH_CHALLENGE;
+    } else if (idct->auth_state == AUTH_RESPONSE) {
+        idct->key = idct_auth_hash(idct->host_response ^ (idct->response & 0x9009000cu));
+        idct->auth_state = AUTH_ARMED;
+        pclog("Rage XL IDCT: authentication armed, key=%08x\n", idct->key);
+    }
+    *val = idct->auth_state == AUTH_ARMED ? idct->host_response :
+           idct->auth_state == AUTH_FAILED ? 0 : idct->challenge;
+    return 1;
+}
+
+int
+mach64_idct_auth_write(mach64_t *mach64, uint32_t reg, uint32_t val)
+{
+    mach64_idct_t *idct = mach64->idct;
+    if (!idct || (reg != IDCT_AUTH_STATUS && reg != IDCT_AUTH_DATA))
+        return 0;
+    if (reg == IDCT_AUTH_STATUS) {
+        if (val == 4)
+            idct->auth_reset = 1;
+        else if (val == 0 && idct->auth_reset) {
+            idct->auth_state = AUTH_RESET;
+            idct->auth_reset = 0;
+            idct->key = idct->challenge = idct->response = idct->host_response = 0;
+        }
+    } else if (idct->auth_state == AUTH_CHALLENGE) {
+        idct->response = val;
+        idct->auth_state = val && val == idct_auth_hash(idct->challenge) ? AUTH_ACK : AUTH_FAILED;
+    } else if (idct->auth_state == AUTH_ACK) {
+        idct->host_response = idct_auth_hash(val);
+        idct->auth_state = val ? AUTH_RESPONSE : AUTH_FAILED;
+    }
+    return 1;
+}
 
 /* Entry [n] is the raster index of zigzag scan position n (ISO/IEC 13818-2,
    7.3, figure 7-2). */
@@ -247,12 +417,12 @@ idct_block_done(mach64_idct_t *idct)
     idct->dirty = 0;
 }
 
-/* One triplet: four run bytes in runs, first in 31:24, and four levels as
-   the halves of b then a, high half first. */
+/* Four run bytes, first in 31:24. GUI_CNTL's parser mode determines
+   which level dword comes first before this expansion. */
 static void
 idct_triplet(mach64_idct_t *idct, uint32_t runs, uint32_t a, uint32_t b)
 {
-    const int32_t lvl[4] = { (int16_t) (b >> 16), (int16_t) b, (int16_t) (a >> 16), (int16_t) a };
+    const int32_t lvl[4] = { (int16_t) (a >> 16), (int16_t) a, (int16_t) (b >> 16), (int16_t) b };
 
     for (int i = 0; i < 4; i++) {
         uint32_t run = (runs >> (24 - 8 * i)) & 0xff;
@@ -263,6 +433,12 @@ idct_triplet(mach64_idct_t *idct, uint32_t runs, uint32_t a, uint32_t b)
                all-zero block. The rest of the word is padding. */
             idct_block_done(idct);
             break;
+        }
+        if (run == 0x3f) {
+            /* Padding: the DVD player's decoder fills the rest of a
+               triplet's run word with 3Fh and ends the block with an
+               IDCT_FLAGS 00 packet. */
+            continue;
         }
         idct->pos += (int) run;
         if (idct->pos >= 64)
@@ -279,19 +455,31 @@ idct_triplet(mach64_idct_t *idct, uint32_t runs, uint32_t a, uint32_t b)
 
 /* A write to an IDCT register, in the draw engine's order: reg is the byte
    offset in block 1. */
-void
-mach64_idct_write(mach64_t *mach64, uint32_t reg, uint32_t val)
+static void
+idct_write(mach64_t *mach64, uint32_t reg, uint32_t val, int from_bm)
 {
     mach64_idct_t *idct = mach64->idct;
 
     if (!idct || (reg < IDCT_FIRST) || (reg > IDCT_LAST))
         return;
     idct->regs[(reg - IDCT_FIRST) >> 2] = val;
-    if (mach64->rp.gui_cntl & GUI_CNTL_IDCT_BLOCK_GUI_INIT)
+    if (!from_bm && (mach64->rp.gui_cntl & GUI_CNTL_IDCT_BLOCK_GUI_INIT))
         return;
 
     switch (reg) {
         case IDCT_RUNS:
+            /* CINMST32 @4B1B95B0 scrambles only the run word, preserves
+               FFFFFFFF, and steps the key if any plaintext run is FF.
+               Unauthenticated native MCAM traffic stays in the clear. */
+            if (mach64_idct_authenticated(mach64) && mach64_idct_intra(mach64)) {
+                if (val != 0xffffffffu)
+                    val ^= idct->key & 0x7f7f7f7fu;
+                for (int i = 0; i < 4; i++)
+                    if (((val >> (i * 8)) & 0xff) == 0xff) {
+                        idct->key = idct_key_step(idct->key);
+                        break;
+                    }
+            }
             idct->runs  = val;
             idct->phase = 0;
             /* A RUNS word of FFh runs alone ends the block: the driver's
@@ -316,6 +504,19 @@ mach64_idct_write(mach64_t *mach64, uint32_t reg, uint32_t val)
         default:
             break;
     }
+    idct_drain(mach64);
+}
+
+void
+mach64_idct_write(mach64_t *mach64, uint32_t reg, uint32_t val)
+{
+    idct_write(mach64, reg, val, 0);
+}
+
+void
+mach64_idct_bm_write(mach64_t *mach64, uint32_t reg, uint32_t val)
+{
+    idct_write(mach64, reg, val, 1);
 }
 
 /* The end-of-block request of a BM_ADDR packet with IDCT_FLAGS 00. */
@@ -324,8 +525,14 @@ mach64_idct_end_block(mach64_t *mach64)
 {
     mach64_idct_t *idct = mach64->idct;
 
-    if (idct)
+    if (idct) {
         idct_triplet(idct, 0xffffffff, 0, 0);
+        /* Clear inter residuals still advance the decoder's running key,
+           one step for each of the six macroblock blocks. */
+        if (mach64_idct_authenticated(mach64) && !mach64_idct_intra(mach64))
+            idct->key = idct_key_step(idct->key);
+        idct_drain(mach64);
+    }
 }
 
 int
@@ -378,8 +585,10 @@ mach64_idct_draw_end(mach64_t *mach64)
 void
 mach64_idct_reset(mach64_t *mach64)
 {
-    if (mach64->idct)
+    if (mach64->idct) {
+        idct_discard_draws(mach64->idct);
         memset(mach64->idct, 0, sizeof(mach64_idct_t));
+    }
 }
 
 mach64_idct_t *
@@ -392,5 +601,6 @@ mach64_idct_init(void)
 void
 mach64_idct_close(mach64_idct_t *idct)
 {
+    if (idct) idct_discard_draws(idct);
     free(idct);
 }

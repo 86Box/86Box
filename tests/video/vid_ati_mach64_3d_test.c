@@ -1215,18 +1215,147 @@ run_yuv422_motion_comp_test(mach64_t *mach64)
     return wrong;
 }
 
+/* XL DP_PIX_WIDTH: RGB8 intensity uses green on writes; packed 24-bit
+   destinations occupy three bytes and may not overwrite their neighbour. */
+static int
+run_scaler_intensity_and_24_test(mach64_t *m)
+{
+    int wrong = 0;
+    m->dp_src = 0x500;
+    m->dp_mix = 0x70007;
+    m->write_mask = ~0u;
+    m->dst_off_pitch = 1u << 22;
+    m->dst_y_x = 0;
+    m->dst_cntl = DST_X_DIR | DST_Y_DIR;
+    m->sc_left_right = 7u << 16;
+    m->sc_top_bottom = 0;
+    m->clr_cmp_cntl = 0;
+    wrong += write_scaler_register(m, 0x1c0, SOURCE_OFFSET);
+    wrong += write_scaler_register(m, 0x1dc, 2);
+    wrong += write_scaler_register(m, 0x1e0, 1);
+    wrong += write_scaler_register(m, 0x1ec, 8);
+    wrong += write_scaler_register(m, 0x1f0, 0x10000);
+    wrong += write_scaler_register(m, 0x1f4, 0x10000);
+    wrong += write_scaler_register(m, 0x1fc, 0x140);
+    for (unsigned mode = 0; mode < 3; mode++) {
+        memset(m->svga.vram, 0x7e, 32);
+        *pixel32(m, SOURCE_OFFSET) = 0x0012ab34;
+        *pixel32(m, SOURCE_OFFSET + 4) = 0x00ed5607;
+        m->dp_pix_width = mode == 0 ? 0x60000005 : mode == 1 ? 0x60000009 : 0x90000006;
+        if (mode == 2) {
+            m->svga.vram[SOURCE_OFFSET] = 17;
+            m->svga.vram[SOURCE_OFFSET+1] = 231;
+        }
+        wrong += write_scaler_register(m, 0x1f8, 0);
+        wrong += write_scaler_register(m, 0x3c8, 0);
+        wrong += !mach64_3d_write(m, 0x118, 0x00020001, FIFO_WRITE_DWORD);
+        if (mode == 0) {
+            const uint8_t expected[] = { 0x34,0xab,0x12,0x07,0x56,0xed,0x7e };
+            wrong += memcmp(m->svga.vram, expected, sizeof(expected)) != 0;
+        } else if (mode == 1)
+            wrong += m->svga.vram[0] != 0xab || m->svga.vram[1] != 0x56 || m->svga.vram[2] != 0x7e;
+        else
+            wrong += *pixel32(m,0) != 0x00111111 || *pixel32(m,4) != 0x00e7e7e7;
+    }
+    if (wrong) fprintf(stderr, "scaler intensity/24-bit: %d failures\n", wrong);
+    return wrong;
+}
+
 static void
 scaler_tests(void)
 {
     mach64_t *mach64 = card_create();
 
     failures += run_rgb_scaler_test(mach64);
+    failures += run_scaler_intensity_and_24_test(mach64);
     failures += run_yuyv_scaler_test(mach64);
     failures += run_apple_yuv_test(mach64);
     failures += run_scaler_color_compare_test(mach64);
     failures += run_scaler_visibility_test(mach64);
     failures += run_yuv422_motion_comp_test(mach64);
     card_close(mach64);
+}
+
+static void
+xl_scaler_alias_tests(void)
+{
+    mach64_t *m = card_create();
+    m->ragepro = 1;
+    m->idct = mach64_idct_init();
+    m->dp_pix_width = 0x80000808;
+    m->dp_src = 0x500;
+    m->dp_mix = 0x70007;
+    m->write_mask = ~0u;
+    m->dst_off_pitch = 1u << 22;
+    m->dst_cntl = DST_X_DIR | DST_Y_DIR;
+    m->sc_left_right = 7u << 16;
+    m->sc_top_bottom = 7u << 16;
+    for (unsigned i = 0; i < 64; i++) m->svga.vram[SOURCE_OFFSET+i] = 40+i;
+    write_scaler_register(m, 0x1dc, 8);
+    write_scaler_register(m, 0x1e0, 8);
+    write_scaler_register(m, 0x1f0, 0x10000);
+    write_scaler_register(m, 0x1f4, 0x10000);
+    write_scaler_register(m, 0x1fc, 0x140);
+    write_scaler_register(m, RP_SCALE_PITCH_BOTH, 0x00080008);
+    write_scaler_register(m, RP_SCALE_OFF_ACC, SOURCE_OFFSET);
+    write_scaler_register(m, RP_SCALE_DST_Y_X, 0x00010002);
+    write_scaler_register(m, XL_SCALE_DST_HEIGHT_WIDTH, 0x00020002);
+    for (unsigned y = 0; y < 2; y++)
+        for (unsigned x = 0; x < 2; x++)
+            if (m->svga.vram[(y+2)*8+x+1] != 40+y*8+x) {
+                fprintf(stderr, "XL native scaler launch: wrong pixel %u,%u\n",x,y);
+                failures++;
+            }
+    mach64_idct_close(m->idct);
+    m->idct = NULL;
+    card_close(m);
+}
+
+/* Native DVD submits Y/U/V rectangles before its six coefficient blocks. */
+static void
+xl_idct_reconstruction_test(void)
+{
+    mach64_t *m = card_create();
+    mach64_3d_t *ctx = m->gt3d;
+    m->ragepro = 1;
+    m->idct = mach64_idct_init();
+    m->rp.gui_cntl = 1u << 16;
+    m->dp_pix_width = 0x80080888;
+    m->dp_src = 0x500;
+    m->dp_mix = 0x70007;
+    m->write_mask = ~0u;
+    m->dst_cntl = DST_X_DIR | DST_Y_DIR;
+    m->sc_left_right = m->sc_top_bottom = 31u << 16;
+    ctx->regs[SCALE_WIDTH >> 2] = ctx->regs[SCALE_HEIGHT >> 2] = 16;
+    ctx->regs[SCALE_Y_PITCH >> 2] = 16;
+    ctx->regs[SCALE_3D_CNTL >> 2] = 0x8240;
+    ctx->regs[RP_ALPHA_TST_CNTL >> 2] = RP_IDCT_EN;
+    mach64_idct_bm_write(m, 0x3bc, 0x420);
+    for (unsigned plane = 0; plane < 3; plane++) {
+        m->dst_off_pitch = ((plane ? 1u : 2u) << 22) | (plane * 512 / 8);
+        m->dst_height_width = plane ? 0x00080008 : 0x00100010;
+        mach64_scaler_submit(ctx);
+    }
+    expect_u32("IDCT waits for coefficients", m->svga.vram[0], 0);
+    const int dc[] = {-568, -552, -408, -248, 80, -80};
+    for (unsigned block = 0; block < 6; block++) {
+        mach64_idct_bm_write(m, 0x380, 0x00ffffff);
+        mach64_idct_bm_write(m, 0x384, 0);
+        mach64_idct_bm_write(m, 0x384, (uint32_t)(uint16_t)dc[block] << 16);
+        if (block < 3)
+            expect_u32("IDCT waits for whole Y rectangle", m->svga.vram[0], 0);
+    }
+    for (unsigned y = 0; y < 16; y++)
+        for (unsigned x = 0; x < 16; x++) {
+            const unsigned expected[] = {57, 59, 77, 97};
+            expect_u32("IDCT Y quadrant", m->svga.vram[y*16+x], expected[(y/8)*2+x/8]);
+        }
+    expect_u32("IDCT U bias", m->svga.vram[512], 138);
+    expect_u32("IDCT V bias", m->svga.vram[1024], 118);
+    expect_u32("IDCT restores latest destination", m->dst_off_pitch, (1u << 22) | 128);
+    mach64_idct_close(m->idct);
+    m->idct = NULL;
+    card_close(m);
 }
 
 /* ATID3DR3's palette upload: Y8 samples 32 bytes apart, bilinearly
@@ -4790,6 +4919,8 @@ main(int argc, char **argv)
         texel_path_tests();
         scaler_math_tests();
         scaler_tests();
+        xl_scaler_alias_tests();
+        xl_idct_reconstruction_test();
         draw_tests();
     }
     /* The Rage Pro's own paths are on the GT-B core. */

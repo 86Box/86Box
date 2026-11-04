@@ -159,6 +159,8 @@
 #define RP_SECONDARY_TEX_OFF   0x378
 #define RP_SCALE_PITCH_BOTH    0x380
 #define RP_SCALE_OFF_ACC       0x388
+#define RP_SCALE_DST_Y_X       0x38c
+#define XL_SCALE_DST_HEIGHT_WIDTH 0x390
 #define RP_COMPOSITE_SHADOW_ID 0x398
 #define RP_SPECULAR_FIRST      0x39c
 #define RP_SPECULAR_LAST       0x3bc
@@ -274,6 +276,7 @@ typedef struct mach64_3d_helper_t {
 
 struct mach64_3d_t {
     mach64_t *mach64;
+    int       idct_render_intra;
     uint32_t  regs[256];            /* the register block, as dwords */
     uint32_t  texture_palette[256]; /* CI8 texels, 0x00RRGGBB */
     uint8_t   texture_palette_ram[0x800]; /* Rage Pro texture cache palette image */
@@ -897,6 +900,7 @@ mach64_3d_unpack_argb(mach64_3d_t *ctx, int format, uint32_t raw, int source)
             return 0xff000000 | ((uint32_t) mach64_3d_expand_table[dynamic][3][(raw >> 5) & 7] << 16) |
                    ((uint32_t) mach64_3d_expand_table[dynamic][3][(raw >> 2) & 7] << 8) | mach64_3d_expand_table[dynamic][2][raw & 3];
         case 8:
+        case 9: /* RGB8 intensity, like Y8 on reads (XL RRG 5-45). */
             return 0xff000000 | ((raw & 0xff) * 0x010101);
         case 14:
             return mach64_3d_rgba_argb(mach64_3d_yuv_to_rgba(ctx, (raw >> 16) & 0xff, (raw >> 8) & 0xff, raw & 0xff, (raw >> 24) & 0xff));
@@ -1092,6 +1096,10 @@ mach64_3d_pack(mach64_3d_t *ctx, mach64_3d_dither_t *dither, int format, rgba_t 
             return (r << 5) | (g << 2) | b;
         case 8:
             return (c.r * 77 + c.g * 150 + c.b * 29) >> 8;
+        case 9: /* RGB8 intensity writes use the green channel. */
+            return c.g;
+        case 5: /* Packed BGR24, scaler destination only. */
+            return (c.r << 16) | (c.g << 8) | c.b;
         case 15:
             r = mach64_3d_quantize(dither, cntl, measured, c.r, 4, 0, x, y);
             g = mach64_3d_quantize(dither, cntl, measured, c.g, 4, 1, x, y);
@@ -2897,6 +2905,8 @@ mach64_scaler_yuv422(int format)
 static int
 mach64_scaler_source_bpp(int format)
 {
+    if (format == 9)
+        return 1;
     return mach64_scaler_yuv422(format) ? 2 : mach64_3d_bytes_per_pixel(format);
 }
 
@@ -2904,6 +2914,10 @@ mach64_scaler_source_bpp(int format)
 static int
 mach64_scaler_destination_bpp(int format)
 {
+    if (format == 5)
+        return 3;
+    if (format == 9)
+        return 1;
     return mach64_scaler_yuv422(format) ? 2 : mach64_3d_bytes_per_pixel(format);
 }
 
@@ -2914,9 +2928,11 @@ mach64_scaler_destination_supported(int format)
         case 2:
         case 3:
         case 4:
+        case 5:
         case 6:
         case 7:
         case 8:
+        case 9:
         case 11:
         case 12:
         case 15:
@@ -3229,8 +3245,8 @@ mach64_scaler_write_pixel(mach64_3d_t *ctx, uint32_t addr, int format, int x, in
 {
     mach64_t *mach64     = ctx->mach64;
     uint32_t  cntl       = ctx->regs[SCALE_3D_CNTL >> 2];
-    int       bpp        = mach64_3d_bytes_per_pixel(format);
-    uint32_t  pixel_mask = (bpp == 1) ? 0xff : ((bpp == 2) ? 0xffff : 0xffffffff);
+    int       bpp        = mach64_scaler_destination_bpp(format);
+    uint32_t  pixel_mask = bpp == 4 ? 0xffffffffu : ((1u << (bpp * 8)) - 1);
     uint32_t  dst        = mach64_3d_vram_read(mach64, addr, bpp);
     uint32_t  packed;
     uint32_t  result;
@@ -3239,7 +3255,7 @@ mach64_scaler_write_pixel(mach64_3d_t *ctx, uint32_t addr, int format, int x, in
     if (idct)
         src = mach64_scaler_add_residual(src, resid);
     else if (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND)
-        src = mach64_3d_blend(cntl, src, mach64_3d_read_dst(ctx, addr, format));
+        src = mach64_3d_blend(cntl, src, mach64_3d_unpack(ctx, format, dst, 0));
 
     if (format == 2)
         packed = ((mach64_3d_clamp8(src.r) >> 5) << 5) | ((mach64_3d_clamp8(src.g) >> 5) << 2) | (mach64_3d_clamp8(src.b) >> 6);
@@ -3261,7 +3277,7 @@ mach64_scaler_write_pixel(mach64_3d_t *ctx, uint32_t addr, int format, int x, in
             inhibits = 0;
             break;
     }
-    if (inhibits || ((bpp != 1) && (bpp != 2) && (bpp != 4)))
+    if (inhibits || (bpp < 1) || (bpp > 4))
         return;
 
     result = mach64_scaler_mix(packed, dst, (mach64->dp_mix >> 16) & 0x1f) & pixel_mask;
@@ -3316,12 +3332,16 @@ mach64_scaler_draw(mach64_3d_t *ctx)
     int32_t         a_start    = mach64_3d_s8_12_decode(regs[ALPHA_START >> 2]);
     int32_t         a_x_inc    = mach64_3d_s8_12_decode(regs[ALPHA_X_INC >> 2]);
     int32_t         a_y_inc    = mach64_3d_s8_12_decode(regs[ALPHA_Y_INC >> 2]);
-    /* The Rage XL adds its IDCT's residual with IDCT_EN, which takes
-       effect with blending on. */
+    /* Inter draws add residuals to the scaled prediction; native intra
+       draws reconstruct around 128 even with alpha blending disabled. */
     int             idct       = mach64->idct && (regs[RP_ALPHA_TST_CNTL >> 2] & RP_IDCT_EN) &&
-                                 (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND);
+                                 ((((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND) || ctx->idct_render_intra);
     uint32_t        vacc_advanced;
 
+    /* XL RRG 5-45 permits packed 24-bit output only for scaling, without
+       alpha blending. Keep it out of the 3D pixel-width table. */
+    if (dst_format == 5 && (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND))
+        return;
     if (src_width && src_height && src_pitch && dst_width && dst_height && mach64_scaler_source_bpp(src_format) && dst_bpp &&
         mach64_scaler_destination_supported(dst_format)) {
         if (idct)
@@ -3411,6 +3431,11 @@ mach64_scaler_draw(mach64_3d_t *ctx)
                         continue;
                 }
 
+                if (idct && ctx->idct_render_intra) {
+                    src.r = src.g = src.b = 128;
+                    src.a = 255;
+                    inhibits = 0;
+                }
                 addr = (int64_t) dst_base + ((int64_t) y * dst_pitch + x) * dst_bpp;
                 if ((addr < 0) || (((uint64_t) addr + dst_bpp) > vram_size))
                     continue;
@@ -3428,6 +3453,72 @@ mach64_scaler_draw(mach64_3d_t *ctx)
     /* SCALE_VACC moves on by the lines drawn. */
     vacc_advanced              = (uint32_t) ((int64_t) v_start + (int64_t) dst_height * y_inc);
     ctx->regs[SCALE_VACC >> 2] = (ctx->regs[SCALE_VACC >> 2] & ~0x001ffff0) | (vacc_advanced & 0x001ffff0);
+}
+
+/* XL queues reconstruction rectangles ahead of their coefficient blocks.
+   Keep the submitted state until the IDCT producer has supplied each block. */
+#define XL_SCALER_FIELDS(X) \
+    X(dp_pix_width) X(dp_src) X(dp_mix) X(write_mask) X(dst_off_pitch) \
+    X(dst_y_x) X(dst_height_width) X(dst_cntl) X(sc_left_right) \
+    X(sc_top_bottom) X(clr_cmp_cntl) X(clr_cmp_clr) X(clr_cmp_mask)
+typedef struct xl_scaler_state_t {
+    uint32_t regs[256];
+    int intra;
+#define XL_DECLARE(f) uint32_t f;
+    XL_SCALER_FIELDS(XL_DECLARE)
+#undef XL_DECLARE
+} xl_scaler_state_t;
+
+static void
+xl_scaler_capture(mach64_3d_t *ctx, xl_scaler_state_t *s)
+{
+    memcpy(s->regs, ctx->regs, sizeof(s->regs));
+    s->intra = ctx->idct_render_intra;
+#define XL_CAPTURE(f) s->f = ctx->mach64->f;
+    XL_SCALER_FIELDS(XL_CAPTURE)
+#undef XL_CAPTURE
+}
+
+static void
+xl_scaler_restore(mach64_3d_t *ctx, const xl_scaler_state_t *s)
+{
+    memcpy(ctx->regs, s->regs, sizeof(s->regs));
+    ctx->idct_render_intra = s->intra;
+#define XL_RESTORE(f) ctx->mach64->f = s->f;
+    XL_SCALER_FIELDS(XL_RESTORE)
+#undef XL_RESTORE
+}
+#undef XL_SCALER_FIELDS
+
+static void
+xl_scaler_render(mach64_t *m, const void *state)
+{
+    mach64_3d_t *ctx = m->gt3d;
+    xl_scaler_state_t saved;
+    xl_scaler_capture(ctx, &saved);
+    xl_scaler_restore(ctx, state);
+    mach64_scaler_draw(ctx);
+    xl_scaler_restore(ctx, &saved);
+}
+
+static void
+mach64_scaler_submit(mach64_3d_t *ctx)
+{
+    mach64_t *m = ctx->mach64;
+    unsigned width = (m->dst_height_width >> 16) & 0x1fff;
+    unsigned height = m->dst_height_width & 0x1fff;
+    int intra = mach64_idct_intra(m);
+    if (m->idct && (ctx->regs[RP_ALPHA_TST_CNTL >> 2] & RP_IDCT_EN) &&
+        (intra || (((ctx->regs[SCALE_3D_CNTL >> 2] >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND))) {
+        xl_scaler_state_t *s = malloc(sizeof(*s));
+        if (!s)
+            return;
+        xl_scaler_capture(ctx, s);
+        s->intra = intra;
+        mach64_idct_defer(m, s, ((width + 7) / 8) * ((height + 7) / 8), xl_scaler_render);
+        return;
+    }
+    mach64_scaler_draw(ctx);
 }
 
 /* A write that completes its register, the last byte of a byte or word
@@ -3694,6 +3785,19 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
     /* The Rage Pro's own block 0 registers; its bus master's
        (vid_ati_mach64_ragepro.c) have been seen before the FIFO. */
     if (mach64->ragepro) {
+        /* Native XL MCAM batches use the combined scaler aliases:
+           E0 pitches, E2 source/reset, E3 destination, E4 draw dimensions.
+           The E4 launch is present in ATIMCRAE's native command stream;
+           it is not a Rage Pro specular/triangle command. */
+        if (mach64->idct && reg == XL_SCALE_DST_HEIGHT_WIDTH) {
+            ctx->regs[reg >> 2] = mach64_3d_merge_write(ctx->regs[reg >> 2], addr, val, type);
+            if (mach64_3d_write_complete(addr, type)) {
+                mach64->dst_height_width = ctx->regs[reg >> 2];
+                if (((ctx->regs[SCALE_3D_CNTL >> 2] >> SCALE_3D_FCN_SHIFT) & 3) == FCN_SCALE)
+                    mach64_scaler_submit(ctx);
+            }
+            return 1;
+        }
         if (mach64_3d_ragepro_register(reg)) {
             ctx->regs[reg >> 2] = mach64_3d_merge_write(ctx->regs[reg >> 2], addr, val, type);
             /* J5.30's CI8 GDI bitmap expansion uses the Rage Pro alias
@@ -3704,6 +3808,13 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
                 ctx->regs[SCALE_Y_OFF >> 2] = ctx->regs[reg >> 2];
                 ctx->regs[SCALE_HACC >> 2] = 0;
                 ctx->regs[SCALE_VACC >> 2] = 0;
+            }
+            if (mach64->idct && mach64_3d_write_complete(addr, type)) {
+                if (reg == RP_SCALE_PITCH_BOTH) {
+                    ctx->regs[SCALE_Y_PITCH >> 2] = ctx->regs[reg >> 2] & 0x1fff;
+                    ctx->regs[0x368 >> 2] = (ctx->regs[reg >> 2] >> 16) & 0x1fff;
+                } else if (reg == RP_SCALE_DST_Y_X)
+                    mach64->dst_y_x = ctx->regs[reg >> 2];
             }
             return 1;
         }

@@ -65,7 +65,9 @@
 /* SRC_CNTL */
 #define SRC_BM_ENABLE    (1u << 8)
 #define SRC_BM_OP_SHIFT  10
-#define SRC_BM_OP_TO_REG 3 /* system memory to the bus master host data register */
+#define SRC_BM_OP_TO_HOST 0 /* frame buffer to system memory */
+#define SRC_BM_OP_TO_FB   1 /* system memory to frame buffer */
+#define SRC_BM_OP_TO_REG  3 /* system memory to the bus master host data register */
 
 /* BUS_CNTL */
 #define BUS_MASTER_DIS (1u << 6)
@@ -214,13 +216,24 @@ mach64_ragepro_i2c_writeb(mach64_t *mach64, uint32_t reg, uint8_t val)
 }
 
 /* A register write from the bus master: idx is ATI's MM index, block 0 in
-   00h-FFh, block 1 in 100h-1FFh. It goes in as the CPU's would. */
+   00h-FFh, block 1 in 100h-1FFh. It goes in as the CPU's would, but only to
+   what BM_ADDR's packets are for (XL/XC RRG 6-13): the command FIFO's draw
+   engine (block 0 from 100h on) and the 3D setup engine and IDCT (block 1
+   from 240h, VERTEX_1_S, on). The rest -- the bus master's own registers among them -- is
+   not reached that way: a stream out of step with its headers would
+   otherwise rewrite BM_SYSTEM_TABLE and BM_GUI_TABLE and start transfers
+   from whatever its data says. */
 static void
 mach64_ragepro_bm_reg_write(mach64_t *mach64, uint32_t idx, uint32_t val)
 {
-    idx &= 0x1ff;
+    /* GUIREG_ADR is not a wrapping register address. In particular, an
+       invalid coefficient-as-header must not alias back into GUI state. */
+    if ((idx > 0x1ff) || (idx < 0x40) || ((idx >= 0x100) && (idx < (0x100 | (RP1_SETUP_FIRST >> 2)))))
+        return;
     if (idx < 0x100)
         mach64_ext_writel(0x400 | (idx << 2), val, mach64);
+    else if (mach64->idct && mach64->rp.pkt_triplets >= 0 && (idx == 0x1e0 || idx == 0x1e1))
+        mach64_queue(mach64, FIFO_ADDR_IDCT | FIFO_ADDR_IDCT_BM | ((idx & 0xff) << 2), val, FIFO_WRITE_DWORD);
     else
         mach64_ext_writel((idx & 0xff) << 2, val, mach64);
 }
@@ -230,12 +243,11 @@ mach64_ragepro_bm_reg_write(mach64_t *mach64, uint32_t idx, uint32_t val)
 #define BM_ADDR_IDCT_FLAGS(v) (((v) >> 29) & 3)
 #define IDCT_FLAGS_END        0 /* end of block, no data */
 #define IDCT_FLAGS_TRIPLETS   1 /* RUN, LEVEL, LEVEL ... to IDCT_RUNS and IDCT_LEVELS */
-
 /* A BM_ADDR header: the packet it starts. */
 static void
 mach64_ragepro_bm_header(mach64_t *mach64, uint32_t val)
 {
-    uint32_t counter = (val >> 16) & 0xffff;
+    uint32_t counter = (val >> 16) & (mach64->idct ? 0x1f : 0xffff);
 
     mach64->rp.pkt_reg      = val & 0xffff;
     mach64->rp.pkt_triplets = -1;
@@ -273,6 +285,22 @@ mach64_ragepro_bm_gui_dword(mach64_t *mach64, uint32_t target, uint32_t val)
 {
     svga_t  *svga = &mach64->svga;
     uint32_t reg;
+    /* Optional raw command capture for diagnosing decoder packet framing. */
+    static FILE *trace;
+    static int trace_init, trace_count;
+    if (!trace_init) {
+        const char *path = getenv("MACH64_BM_TRACE");
+        trace_init = 1;
+        if (path && *path)
+            trace = fopen(path, "w");
+    }
+    if (trace && trace_count++ < 500000) {
+        fprintf(trace, "%08x %08x %d %03x %d %llu %08x\n", target, val,
+                mach64->rp.pkt_count, mach64->rp.pkt_reg, mach64->rp.pkt_triplets,
+                (unsigned long long) mach64->rp.descriptors, mach64->rp.command);
+        if (!(trace_count & 4095))
+            fflush(trace);
+    }
 
     /* The registers are told by bits 22:11 alone: ATI's DirectDraw driver
        (macxdd32 4.11, its MPEG motion compensation) sends its register
@@ -291,6 +319,19 @@ mach64_ragepro_bm_gui_dword(mach64_t *mach64, uint32_t target, uint32_t val)
            with the count less one in 31:16 (GUIREG_COUNTER), then the
            data of that many registers in a row. The packet carries on
            across descriptors. */
+        /* CINMST32's native XL stream can leave a preallocated triplet
+           header immediately before its IDCT_CONTROL synchronization
+           packet (captured with MMC 6.2). C00001EF is not a legal clear
+           RUNS word: its C0/EF bytes exceed 63 and are not FF. Accept the
+           explicit synchronization header at that RUN boundary instead
+           of feeding subsequent GUI state to the coefficient port. The
+           A00201E0 triplet header is also impossible as a clear run word
+           or MPEG level pair, and allows recovery after a malformed tail.
+           This recovery must not examine an authenticated ciphertext word. */
+        if (mach64->idct && !mach64_idct_authenticated(mach64) &&
+            (val == 0xa00201e0 || (mach64->rp.pkt_triplets == 0 &&
+             mach64->rp.pkt_reg == 0x1e0 && val == 0xc00001ef)))
+            mach64->rp.pkt_count = 0;
         if (!mach64->rp.pkt_count) {
             mach64_ragepro_bm_header(mach64, val);
             return;
@@ -332,6 +373,27 @@ mach64_ragepro_bm_count(uint32_t command)
     uint32_t count = command & BM_CMD_COUNT;
 
     return (count > 4096) ? 4096 : count;
+}
+
+/* A descriptor aimed at the register aperture is a register transfer,
+   including when submitted through BM_SYSTEM_TABLE. ATIMIAAE's native
+   authentication helper uses precisely that route (7FFFE48, C0000008). */
+static void
+mach64_ragepro_bm_register_transfer(mach64_t *mach64)
+{
+    uint32_t count = mach64_ragepro_bm_count(mach64->rp.command);
+    uint32_t target = mach64->rp.frame_buf_offset & 0x00ffffff;
+    uint8_t buf[4096];
+    if (!count)
+        return;
+    dma_bm_read(mach64->rp.system_mem_addr & ~3u, buf, (count + 3) & ~3u, 4);
+    for (uint32_t i = 0; i < count; i += 4) {
+        uint32_t value;
+        memcpy(&value, buf + i, 4);
+        mach64_ragepro_bm_gui_dword(mach64, target, value);
+        if (!(mach64->rp.command & BM_CMD_HOLD_OFFSET))
+            target += 4;
+    }
 }
 
 /*
@@ -386,52 +448,96 @@ mach64_ragepro_gui_master(mach64_t *mach64)
 }
 
 /*
+ * The current descriptor's block between the frame buffer and system
+ * memory, to the host or from it. The source's low two address bits give
+ * the alignment.
+ */
+static void
+mach64_ragepro_bm_copy(mach64_t *mach64, int to_host)
+{
+    svga_t  *svga  = &mach64->svga;
+    uint32_t count = mach64_ragepro_bm_count(mach64->rp.command);
+    uint32_t fb    = mach64->rp.frame_buf_offset & 0x00ffffff;
+    uint32_t sys   = mach64->rp.system_mem_addr;
+    uint8_t  buf[4096];
+
+    if (!count)
+        return;
+    /* The framebuffer aperture includes the register window. ATIMIAAE
+       submits its authentication packets with BUS_MASTER_OP=1, not 3:
+       copying those bytes into backing VRAM loses the register writes. */
+    if (!to_host && ((fb & 0x7ff800) == BM_APERTURE_REGS)) {
+        mach64_ragepro_bm_register_transfer(mach64);
+        return;
+    }
+    if (to_host) {
+        sys = (sys & ~3) | (fb & 3);
+        for (uint32_t i = 0; i < count; i++)
+            buf[i] = svga->vram[(fb + i) & mach64->vram_mask];
+        dma_bm_write(sys, buf, count, 1);
+    } else {
+        fb = (fb & ~3) | (sys & 3);
+        dma_bm_read(sys, buf, count, 1);
+        for (uint32_t i = 0; i < count; i++) {
+            uint32_t a = (fb + i) & mach64->vram_mask;
+
+            svga->vram[a]              = buf[i];
+            svga->changedvram[a >> 12] = svga->monitor->mon_changeframecount;
+        }
+    }
+}
+
+/*
  * A system transfer (8.10.3), started by a write of BM_SYSTEM_TABLE: the
  * table's address in 31:4, SYSTEM_TRIGGER in 2:0. Trigger 0 copies system
  * memory to the frame buffer, as the guide's example has it; 1 is taken as
- * the other way. The source's low two address bits give the alignment.
+ * the other way.
  */
 static void
 mach64_ragepro_system_master(mach64_t *mach64, uint32_t table)
 {
-    svga_t  *svga    = &mach64->svga;
     uint32_t addr    = table & ~0x0f;
     int      to_host = table & 1;
-    uint8_t  buf[4096];
 
     mach64_wait_fifo_idle(mach64);
     mach64->rp.running = 1;
     for (int n = 0; n < BM_MAX_DESCRIPTORS; n++) {
-        uint32_t count;
-        uint32_t fb;
-        uint32_t sys;
-
         mach64_ragepro_bm_descriptor(mach64, addr);
         addr += 16;
-
-        count = mach64_ragepro_bm_count(mach64->rp.command);
-        fb    = mach64->rp.frame_buf_offset & 0x00ffffff;
-        sys   = mach64->rp.system_mem_addr;
-        if (to_host)
-            sys = (sys & ~3) | (fb & 3);
+        if (!to_host && ((mach64->rp.frame_buf_offset & 0x7ff800) == BM_APERTURE_REGS))
+            mach64_ragepro_bm_register_transfer(mach64);
         else
-            fb = (fb & ~3) | (sys & 3);
+            mach64_ragepro_bm_copy(mach64, to_host);
+        if (mach64->rp.command & BM_CMD_EOL)
+            break;
+    }
+    mach64->rp.running = 0;
+    mach64_ragepro_bm_eol(mach64);
+}
 
-        if (count) {
-            if (to_host) {
-                for (uint32_t i = 0; i < count; i++)
-                    buf[i] = svga->vram[(fb + i) & mach64->vram_mask];
-                dma_bm_write(sys, buf, count, 1);
-            } else {
-                dma_bm_read(sys, buf, count, 1);
-                for (uint32_t i = 0; i < count; i++) {
-                    uint32_t a = (fb + i) & mach64->vram_mask;
+/*
+ * A GUI bus master copy: SRC_CNTL's BUS_MASTER_OP 0 (frame buffer to system
+ * memory) or 1 (system memory to frame buffer, XL/XC RRG 5-21), started like
+ * the GUI master by a DST_WIDTH or DST_HEIGHT_WIDTH write, over the
+ * descriptors from BM_GUI_TABLE on in its circular buffer (RRG 6-14) to the
+ * end of the list. ATI's Windows 98 drivers test the bus master this way at
+ * start: one 256-byte descriptor to frame buffer offset 0, checked there,
+ * and they set BUS_MASTER_DIS for good when it does not arrive.
+ */
+static void
+mach64_ragepro_gui_copy(mach64_t *mach64, int to_host)
+{
+    uint32_t size  = 16384u << (mach64->rp.gui_table & 3);
+    uint32_t base  = mach64->rp.gui_table & ~(size - 1);
+    uint32_t addr  = mach64->rp.gui_table & ~0x0f;
+    int      limit = size / 16;
 
-                    svga->vram[a]          = buf[i];
-                    svga->changedvram[a >> 12] = svga->monitor->mon_changeframecount;
-                }
-            }
-        }
+    mach64->rp.running = 1;
+    for (int n = 0; n < limit; n++) {
+        mach64_ragepro_bm_descriptor(mach64, addr);
+        addr                 = base | ((addr + 16) & (size - 1));
+        mach64->rp.gui_table = addr | (mach64->rp.gui_table & 3);
+        mach64_ragepro_bm_copy(mach64, to_host);
         if (mach64->rp.command & BM_CMD_EOL)
             break;
     }
@@ -476,6 +582,11 @@ mach64_ragepro_blk1_write(mach64_t *mach64, uint32_t addr, uint32_t val, int byt
         return 1;
     }
     if (mach64_idct_reg(mach64, reg)) {
+        if (reg == 0x388 || reg == 0x38c) {
+            mach64_wait_fifo_idle(mach64);
+            mach64_idct_auth_write(mach64, reg, v);
+            return 1;
+        }
         /* The IDCT takes its data in order with the draws that use it. */
         mach64_queue(mach64, FIFO_ADDR_IDCT | reg, v, FIFO_WRITE_DWORD);
         return 1;
@@ -489,9 +600,8 @@ mach64_ragepro_blk1_write(mach64_t *mach64, uint32_t addr, uint32_t val, int byt
             mach64->rp.agp_cntl = v;
             break;
         case RP1_GUI_CNTL:
-            /* CMDFIFO_SIZE_MODE; the XL's IDCT_PRSR_MODE (12) and
-               IDCT_BLOCK_GUI_INITIATOR (13). */
-            mach64->rp.gui_cntl = v & (mach64->idct ? 0x3003 : 0x3);
+            /* XL RRG 5-64: IDCT_PRSR_MODE (16), BLOCK_GUI_INITIATOR (17). */
+            mach64->rp.gui_cntl = v & (mach64->idct ? 0x30003 : 0x3);
             break;
         case RP1_BM_GUI_TABLE:
             mach64->rp.gui_table = v & ~0x0c;
@@ -511,6 +621,11 @@ int
 mach64_ragepro_blk1_read(mach64_t *mach64, uint32_t addr, uint32_t *val)
 {
     uint32_t reg = addr & 0x3fc;
+
+    if (mach64->idct && (reg == 0x388 || reg == 0x38c)) {
+        mach64_wait_fifo_idle(mach64);
+        return mach64_idct_auth_read(mach64, reg, val);
+    }
 
     if (!mach64_ragepro_blk1_reg(mach64, reg))
         return 0;
@@ -616,11 +731,22 @@ mach64_ragepro_gui_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t
         case RP0_DST_HEIGHT_WIDTH:
             if (!done || mach64->rp.running)
                 return 0;
-            if (!(mach64->rp.src_cntl & SRC_BM_ENABLE) || (((mach64->rp.src_cntl >> SRC_BM_OP_SHIFT) & 3) != SRC_BM_OP_TO_REG) ||
-                !mach64_ragepro_bm_enabled(mach64))
+            if (!(mach64->rp.src_cntl & SRC_BM_ENABLE) || !mach64_ragepro_bm_enabled(mach64))
                 return 0;
-            mach64_ragepro_gui_master(mach64);
-            return 1;
+            switch ((mach64->rp.src_cntl >> SRC_BM_OP_SHIFT) & 3) {
+                case SRC_BM_OP_TO_FB:
+                    mach64_ragepro_gui_copy(mach64, 0);
+                    return 1;
+                case SRC_BM_OP_TO_HOST:
+                    mach64_ragepro_gui_copy(mach64, 1);
+                    return 1;
+                case SRC_BM_OP_TO_REG:
+                    mach64_ragepro_gui_master(mach64);
+                    return 1;
+                default:
+                    /* 2, foreground register to system memory: not done. */
+                    return 0;
+            }
         default:
             return 0;
     }

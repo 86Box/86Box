@@ -86,6 +86,17 @@ if(BUILD_TESTING)
     )
     add_test(NAME Mach64.BusMaster COMMAND mach64_busmaster_tests)
 
+    add_executable(mach64_idct_tests vid_ati_mach64_idct_test.c)
+    target_include_directories(mach64_idct_tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_SOURCE_DIR}/src/cpu
+        ${PROJECT_BINARY_DIR}/src/include
+    )
+    add_test(NAME Mach64.IDCT COMMAND mach64_idct_tests)
+    if(UNIX)
+        target_link_libraries(mach64_idct_tests PRIVATE m)
+    endif()
+
     foreach(target mach64_accel_tests mach64_3d_tests mach64_busmaster_tests)
         target_sources(${target} PRIVATE ../../src/video/vid_ati_mach64_idct.c)
     endforeach()

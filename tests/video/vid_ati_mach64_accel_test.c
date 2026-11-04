@@ -964,10 +964,70 @@ engine_reset_tests(void)
     card_close(mach64);
 }
 
+static void
+extended_raw_format_tests(void)
+{
+    static const unsigned formats[] = { 7, 8, 9, 11, 12, 14, 15 };
+    for (unsigned n = 0; n < sizeof(formats)/sizeof(formats[0]); n++) {
+        mach64_t *m = card_create();
+        unsigned fmt = formats[n];
+        unsigned bytes = fmt < 10 ? 1 : fmt == 15 ? 2 : 4;
+        m->ragepro = 1;
+        memset(m->svga.vram, 0x7e, 64);
+        write_reg(m, 0x2d0, fmt | (fmt << 8) | (fmt << 16));
+        write_reg(m, 0x100, 1u << 22); /* pitch 8 pixels */
+        write_reg(m, 0x2a8, 7u << 16);
+        write_reg(m, 0x2b4, 0);
+        write_reg(m, 0x2c8, ~0u);
+        write_reg(m, 0x2c4, 0x33333333);
+        write_reg(m, 0x2d8, 0x100); /* constant foreground */
+        write_reg(m, 0x2d4, 0x70007);
+        write_reg(m, 0x130, DST_X_DIR | DST_Y_DIR);
+        write_reg(m, 0x10c, 0);
+        write_reg(m, 0x118, 0x00040001);
+        fifo_run(m);
+        for (unsigned i = 0; i < 4 * bytes; i++)
+            CHECK(m->svga.vram[i] == 0x33, "format %u byte %u incorrectly addressed", fmt, i);
+        CHECK(m->svga.vram[4 * bytes] == 0x7e, "format %u overwrote the guard", fmt);
+        card_close(m);
+    }
+}
+
+static void
+xl_planar_overlay_test(void)
+{
+    mach64_t *m = card_create();
+    uint32_t out[4];
+    m->idct = mach64_idct_init();
+    m->scaler_format = 0xa;
+    m->overlay_base = 0x100;
+    m->svga.overlay.pitch = 8;
+    m->rp.blk1[0x1d4 >> 2] = 0x1000;
+    m->rp.blk1[0x1d8 >> 2] = 0x2000;
+    for (unsigned y = 0; y < 3; y++) {
+        for (unsigned x = 0; x < 4; x++)
+            m->svga.vram[0x100 + y*8+x] = 20+y*4+x;
+        m->svga.vram[0x1000 + (y>>1)*4] = 80+(y>>1)*8;
+        m->svga.vram[0x1001 + (y>>1)*4] = 90+(y>>1)*8;
+        m->svga.vram[0x2000 + (y>>1)*4] = 140+(y>>1)*8;
+        m->svga.vram[0x2001 + (y>>1)*4] = 150+(y>>1)*8;
+        mach64_overlay_decode(m, out, &m->svga.vram[0x100+y*8], NULL, 4);
+        for (unsigned x = 0; x < 4; x++) {
+            uint32_t expected = (20+y*4+x) | ((80+(x>>1)*10+(y>>1)*8)<<8) | ((140+(x>>1)*10+(y>>1)*8)<<16);
+            CHECK(out[x] == expected, "planar overlay %u,%u: %06x != %06x", x,y,out[x],expected);
+        }
+    }
+    mach64_idct_close(m->idct);
+    m->idct = NULL;
+    card_close(m);
+}
+
 int
 main(void)
 {
     key_tests();
+    extended_raw_format_tests();
+    xl_planar_overlay_test();
     gui_engine_tests();
     composite_tests();
     overlay_tests();

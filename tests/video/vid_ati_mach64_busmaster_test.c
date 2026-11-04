@@ -44,6 +44,10 @@ mach64_ext_writel(uint32_t addr, uint32_t val, void *priv)
 void
 mach64_queue(mach64_t *m, uint32_t addr, uint32_t val, uint32_t type)
 {
+    if (addr & FIFO_ADDR_IDCT_BM) {
+        mach64_ext_writel(addr & 0x3fc, val, m);
+        return;
+    }
     (void) m;
     (void) addr;
     (void) val;
@@ -133,6 +137,50 @@ descriptor(uint32_t addr, uint32_t fb, uint32_t sys, uint32_t cmd)
 {
     uint32_t d[4] = { fb, sys, cmd, 0 };
     memcpy(test_ram + addr, d, sizeof(d));
+}
+
+static void
+xl_packet_boundaries(mach64_t *m)
+{
+    m->idct = mach64_idct_init();
+    CHECK(m->idct != NULL);
+    if (!m->idct) return;
+    writes = 0;
+    /* A run/level triplet stays in progress across descriptor boundaries. */
+    mach64_ragepro_bm_gui_dword(m, 0x7fffe48, 0xa00201e0);
+    mach64_ragepro_bm_gui_dword(m, 0x7fffe48, 0x00010101);
+    CHECK(m->rp.pkt_count == 2);
+    mach64_ragepro_bm_gui_dword(m, 0x7fffe48, 0x0006fffa);
+    mach64_ragepro_bm_gui_dword(m, 0x7fffe48, 0x000afffa);
+    CHECK(m->rp.pkt_count == 0 && writes == 3);
+    CHECK(write_addr[0] == 0x380 && write_addr[1] == 0x384 && write_addr[2] == 0x384);
+    /* Captured MMC 6.2 boundary: unused triplet template, then sync. */
+    mach64_ragepro_bm_gui_dword(m, 0x7fffe48, 0xa00201e0);
+    mach64_ragepro_bm_gui_dword(m, 0x7fffe48, 0xc00001ef);
+    mach64_ragepro_bm_gui_dword(m, 0x7fffe48, 0);
+    mach64_ragepro_bm_gui_dword(m, 0x7fffe48, 0x0000007f);
+    mach64_ragepro_bm_gui_dword(m, 0x7fffe48, 0x00098a40);
+    CHECK(writes == 5 && write_addr[3] == 0x3bc && write_addr[4] == 0x5fc);
+    CHECK(write_val[4] == 0x98a40 && m->rp.pkt_count == 0);
+    /* An invalid header must not wrap 8A40 to GUI register 40. */
+    mach64_ragepro_bm_reg_write(m, 0x8a40, 0xdeadbeef);
+    CHECK(writes == 5);
+    /* ATIMIAAE system-master submission must execute the two dwords,
+       rather than copy them into the top of VRAM. */
+    {
+        const uint32_t auth_packet[] = { 0xc00001e2, 4 };
+        memcpy(test_ram + 0x1000, auth_packet, sizeof(auth_packet));
+        descriptor(0x100, 0x07fffe48, 0x1000, BM_CMD_HOLD_OFFSET | BM_CMD_EOL | 8);
+        mach64_ragepro_system_master(m, 0x100);
+        CHECK(writes == 6 && write_addr[5] == 0x388 && write_val[5] == 4);
+        /* Real ATIMIAAE uses GUI BUS_MASTER_OP=1 with this same target. */
+        mach64_ragepro_bm_copy(m, 0);
+        CHECK(writes == 7 && write_addr[6] == 0x388 && write_val[6] == 4);
+    }
+    mach64_ragepro_blk1_write(m, RP1_GUI_CNTL, 0x33003, 4);
+    CHECK(mach64_ragepro_blk1_read(m, RP1_GUI_CNTL, &write_val[15]) && write_val[15] == 0x30003);
+    mach64_idct_close(m->idct);
+    m->idct = NULL;
 }
 
 static void
@@ -238,6 +286,7 @@ main(void)
     memset(m->svga.vram, 0, 0x10000);
     system_transfers(m);
     gui_transfers(m);
+    xl_packet_boundaries(m);
     free(m->svga.vram);
     free(m->svga.changedvram);
     free(m);

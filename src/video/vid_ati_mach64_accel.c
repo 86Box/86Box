@@ -523,6 +523,8 @@ mach64_fifo_run_one(mach64_t *mach64)
        runs the write that starts it. */
     if (mach64->gt3d && (addr & FIFO_ADDR_SETUP))
         mach64_3d_setup_write(mach64, (addr & 0x3fc) >> 2, val);
+    else if (addr & FIFO_ADDR_IDCT_BM)
+        mach64_idct_bm_write(mach64, addr & 0x3fc, val);
     else if (addr & FIFO_ADDR_IDCT)
         mach64_idct_write(mach64, addr & 0x3fc, val);
     else if (addr & FIFO_ADDR_IDCT_END)
@@ -1583,12 +1585,37 @@ mach64_host_pixels(mach64_t *mach64, uint32_t val, int bits, uint32_t *out, uint
     return n;
 }
 
+/* XL RRG 5-49: the standard engine treats Y8/RGB8 intensity/RGB332 as
+   raw bytes and YUV422 as raw dwords. Do not truncate the extended pixel
+   format nibble and accidentally select mono/4-bit or 16-bit access. */
+static int
+mach64_draw_width(const mach64_t *mach64, unsigned format)
+{
+    if (mach64->ragepro) {
+        switch (format & 15) {
+            case 7:
+            case 8:
+            case 9:
+                return 2;
+            case 11:
+            case 12:
+            case 14:
+                return 6;
+            case 15:
+                return 4;
+            default:
+                break;
+        }
+    }
+    return format & 7;
+}
+
 static void
 mach64_accel_common(mach64_t *mach64)
 {
-    mach64->accel.dst_pix_width  = mach64->dp_pix_width & 7;
-    mach64->accel.src_pix_width  = (mach64->dp_pix_width >> 8) & 7;
-    mach64->accel.host_pix_width = (mach64->dp_pix_width >> 16) & 7;
+    mach64->accel.dst_pix_width  = mach64_draw_width(mach64, mach64->dp_pix_width);
+    mach64->accel.src_pix_width  = mach64_draw_width(mach64, mach64->dp_pix_width >> 8);
+    mach64->accel.host_pix_width = mach64_draw_width(mach64, mach64->dp_pix_width >> 16);
 
     mach64->accel.dst_size  = mach64_width[mach64->accel.dst_pix_width];
     mach64->accel.src_size  = mach64_width[mach64->accel.src_pix_width];
@@ -2313,6 +2340,15 @@ mach64_overlay_mask888(uint16_t mask, int format)
     return expanded;
 }
 
+/* XL's native DVD surfaces program independent chroma-plane addresses.
+   Leave the older packed YUV12 path in use when those are not supplied. */
+static int
+mach64_overlay_planar(const mach64_t *m)
+{
+    return m->idct && m->scaler_format == 0xa &&
+           (m->rp.blk1[0x1d4 >> 2] || m->rp.blk1[0x1d8 >> 2]);
+}
+
 /* One line of the source: RGB widened to 24 bits, YUV as decoded. */
 static void
 mach64_overlay_decode(mach64_t *mach64, uint32_t *out, uint8_t *src, uint8_t *uvsrc, int src_w)
@@ -2330,7 +2366,20 @@ mach64_overlay_decode(mach64_t *mach64, uint32_t *out, uint8_t *src, uint8_t *uv
             DECODE_ARGB8888();
             break;
         case 0xa:
-            DECODE_YUV12_PACKED();
+            if (mach64_overlay_planar(mach64)) {
+                const uint8_t *vram = mach64->svga.vram;
+                uint32_t mask = mach64->vram_mask;
+                uint32_t pitch = mach64->svga.overlay.pitch;
+                uint32_t y = pitch ? ((uint32_t) (src - vram) - mach64->overlay_base) / pitch : 0;
+                uint32_t u = mach64->rp.blk1[0x1d4 >> 2] + (y >> 1) * (pitch >> 1);
+                uint32_t v = mach64->rp.blk1[0x1d8 >> 2] + (y >> 1) * (pitch >> 1);
+                for (x = 0; x < src_w; x++)
+                    out[x] = vram[((uint32_t) (src - vram) + x) & mask] |
+                             ((uint32_t) vram[(u + (x >> 1)) & mask] << 8) |
+                             ((uint32_t) vram[(v + (x >> 1)) & mask] << 16);
+            } else {
+                DECODE_YUV12_PACKED();
+            }
             break;
         case 0xb:
             DECODE_VYUY422();
@@ -2451,7 +2500,7 @@ mach64_overlay_draw(svga_t *svga, int displine)
     int       v_acc      = mach64->overlay_v_acc;
     int       v_next     = MIN(v_acc + v_inc, v_max << 12);
     int       v_alpha    = vert_blend ? mach64_overlay_alpha(v_acc, v_next) : 0;
-    uint32_t  line_bytes = svga->overlay.pitch * ((mach64->scaler_format == 6) ? 4 : 2);
+    uint32_t  line_bytes = svga->overlay.pitch * (mach64_overlay_planar(mach64) ? 1 : ((mach64->scaler_format == 6) ? 4 : 2));
     uint32_t *line       = mach64->overlay_dat;
     uint32_t  blended[2048];
     uint32_t  scaled[2048];

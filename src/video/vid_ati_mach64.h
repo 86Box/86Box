@@ -109,6 +109,7 @@
 #define FIFO_ADDR_SETUP   0x00000800 /* a dword of the Rage Pro's setup engine, block 1 */
 #define FIFO_ADDR_IDCT    0x00001000 /* a dword of the Rage XL's IDCT registers, block 1 */
 #define FIFO_ADDR_IDCT_END 0x00002000 /* the Rage XL's IDCT end-of-block request */
+#define FIFO_ADDR_IDCT_BM 0x00004000 /* IDCT data lane, bypasses the PIO initiator gate */
 #define FIFO_ADDR_BLK1    (FIFO_ADDR_SETUP | FIFO_ADDR_IDCT | FIFO_ADDR_IDCT_END)
 
 enum {
@@ -627,8 +628,15 @@ void     mach64_3d_ragepro_dump(mach64_t *mach64);
 mach64_idct_t *mach64_idct_init(void);
 void           mach64_idct_close(mach64_idct_t *idct);
 void           mach64_idct_reset(mach64_t *mach64);
+int            mach64_idct_auth_read(mach64_t *mach64, uint32_t reg, uint32_t *val);
+int            mach64_idct_auth_write(mach64_t *mach64, uint32_t reg, uint32_t val);
+int            mach64_idct_authenticated(const mach64_t *mach64);
+int            mach64_idct_intra(const mach64_t *mach64);
+int            mach64_idct_defer(mach64_t *mach64, void *state, unsigned blocks,
+                                void (*render)(mach64_t *, const void *));
 int            mach64_idct_reg(const mach64_t *mach64, uint32_t reg);
 void           mach64_idct_write(mach64_t *mach64, uint32_t reg, uint32_t val);
+void           mach64_idct_bm_write(mach64_t *mach64, uint32_t reg, uint32_t val);
 void           mach64_idct_end_block(mach64_t *mach64);
 void           mach64_idct_draw_begin(mach64_t *mach64, int width, int height);
 int            mach64_idct_residual(const mach64_t *mach64, int dx, int dy);
