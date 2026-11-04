@@ -1311,11 +1311,32 @@ mach64_gtb_gp_io_pin(uint32_t gp_io, uint32_t data, uint32_t dir)
     return !(gp_io & dir) || (gp_io & data);
 }
 
+/* The Rage XL's DDC is on MONID1/MONID2, GPIO_15 and GPIO_16 of
+   LT_GIO (LCD index 7, XL/XC RRG 8-13; MONID(3:0) are GPIO(17:14), Controller
+   Specifications table 3-11): data bits 13/14, directions 29/30. MONID1 is
+   the data, MONID2 the clock. GP_IO's pins carry no DDC there. */
+#define RAGEXL_LCD_LT_GIO      7
+#define RAGEXL_LT_GIO_SDA      (1u << 13)
+#define RAGEXL_LT_GIO_SCL      (1u << 14)
+#define RAGEXL_LT_GIO_DIR_SDA  (1u << 29)
+#define RAGEXL_LT_GIO_DIR_SCL  (1u << 30)
+
+static void
+mach64_ragexl_lt_gio_drive(mach64_t *mach64)
+{
+    const uint32_t gio = mach64->lcd_regs[RAGEXL_LCD_LT_GIO];
+
+    i2c_gpio_set(mach64->i2c, mach64_gtb_gp_io_pin(gio, RAGEXL_LT_GIO_SCL, RAGEXL_LT_GIO_DIR_SCL),
+                 mach64_gtb_gp_io_pin(gio, RAGEXL_LT_GIO_SDA, RAGEXL_LT_GIO_DIR_SDA));
+}
+
 static void
 mach64_gtb_gp_io_drive(mach64_t *mach64)
 {
     const uint32_t gp_io = mach64->gp_io;
 
+    if (mach64->ragexl)
+        return;
     if (mach64->ragepro) {
         i2c_gpio_set(mach64->i2c, mach64_gtb_gp_io_pin(gp_io, GTB_GP_IO_SCL_D, GTB_GP_IO_DIR_SCL_D),
                      mach64_gtb_gp_io_pin(gp_io, GTB_GP_IO_SDA_C, GTB_GP_IO_DIR_SDA_C));
@@ -1335,6 +1356,8 @@ mach64_gtb_gp_io_read(mach64_t *mach64, uint32_t addr)
     int     scl = i2c_gpio_get_scl(mach64->i2c);
     int     sda = i2c_gpio_get_sda(mach64->i2c);
 
+    if (mach64->ragexl)
+        return ret;
     if (mach64->ragepro) {
         if ((addr & 3) == 1) /* GP_IO_C, GP_IO_D */
             ret = (ret & ~0x30) | (sda ? 0x10 : 0x00) | (scl ? 0x20 : 0x00);
@@ -1372,8 +1395,19 @@ mach64_gtb_readb(mach64_t *mach64, uint32_t addr, uint8_t *val)
         /* The Rage XL's LCD_DATA (2Ah), the register LCD_INDEX (29h, kept
            as written) selects (XL/XC RRG 8-1). No panel: MONDET_SENSE and
            GUI_ACTIVE read 0 in LCD_INDEX. */
-        *val = mach64->lcd_regs[mach64->gtb_regs[0xa4] & 0x3f] >> ((addr & 3) * 8);
-    else if (mach64_gtb_latched(reg))
+    {
+        uint32_t lcd = mach64->lcd_regs[mach64->gtb_regs[0xa4] & 0x3f];
+
+        if ((mach64->gtb_regs[0xa4] & 0x3f) == RAGEXL_LCD_LT_GIO) {
+            /* The pins read back as the DDC lines are. */
+            lcd &= ~(RAGEXL_LT_GIO_SDA | RAGEXL_LT_GIO_SCL);
+            if (i2c_gpio_get_sda(mach64->i2c))
+                lcd |= RAGEXL_LT_GIO_SDA;
+            if (i2c_gpio_get_scl(mach64->i2c))
+                lcd |= RAGEXL_LT_GIO_SCL;
+        }
+        *val = lcd >> ((addr & 3) * 8);
+    } else if (mach64_gtb_latched(reg))
         *val = mach64->gtb_regs[reg];
     else
         return 0;
@@ -1390,6 +1424,8 @@ mach64_gtb_writeb(mach64_t *mach64, uint32_t addr, uint8_t val)
         mach64_gtb_gp_io_drive(mach64);
     } else if (mach64->ragexl && ((reg & 0xfc) == 0xa8)) {
         WRITE8(addr, mach64->lcd_regs[mach64->gtb_regs[0xa4] & 0x3f], val);
+        if ((mach64->gtb_regs[0xa4] & 0x3f) == RAGEXL_LCD_LT_GIO)
+            mach64_ragexl_lt_gio_drive(mach64);
     } else if (mach64->ragepro && (((reg & 0xfc) == 0x3c) || ((reg & 0xfc) == 0xbc)))
         mach64_ragepro_i2c_writeb(mach64, reg, val);
     else if (mach64_gtb_latched(reg))
