@@ -138,6 +138,23 @@
         do_mmutranslate((s) + (a), b, 4, 1)
 #endif
 
+/* readmemb() of an immediate in the instruction stream: a code fetch, which
+   the window after RESET leaves unmasked (mem_a20_reset_line, mem.c). The
+   fetch mark is set for this one read and cleared after it, whatever the
+   read does. */
+static __inline uint8_t
+readmemb_fetch(uint32_t s, uint32_t a)
+{
+    uint8_t ret;
+
+    if (!mem_a20_reset_line)
+        return readmemb(s, a);
+    mem_a20_reset_line_fetch = 1;
+    ret                      = readmemb(s, a);
+    mem_a20_reset_line_fetch = 0;
+    return ret;
+}
+
 #define check_io_perm(port, size)                                    \
     if (msw & 1 && ((CPL > IOPL) || (cpu_state.eflags & VM_FLAG))) { \
         int tempi = checkio(port, (1 << size) - 1);                  \
@@ -355,6 +372,49 @@ fastreadl(uint32_t a)
     return ret;
 }
 #else
+/* A code fetch getpccache() hands to the read handlers. In the window after
+   RESET the fetch mark is set for this one read and cleared after it,
+   whatever the read does, so that only it reads the reset line unmasked
+   (mem_a20_reset_line, mem.c). */
+static __inline uint8_t
+readmembl_fetch(uint32_t a)
+{
+    uint8_t ret;
+
+    if (!mem_a20_reset_line)
+        return readmembl(a);
+    mem_a20_reset_line_fetch = 1;
+    ret                      = readmembl(a);
+    mem_a20_reset_line_fetch = 0;
+    return ret;
+}
+
+static __inline uint16_t
+readmemwl_fetch(uint32_t a)
+{
+    uint16_t ret;
+
+    if (!mem_a20_reset_line)
+        return readmemwl(a);
+    mem_a20_reset_line_fetch = 1;
+    ret                      = readmemwl(a);
+    mem_a20_reset_line_fetch = 0;
+    return ret;
+}
+
+static __inline uint32_t
+readmemll_fetch(uint32_t a)
+{
+    uint32_t ret;
+
+    if (!mem_a20_reset_line)
+        return readmemll(a);
+    mem_a20_reset_line_fetch = 1;
+    ret                      = readmemll(a);
+    mem_a20_reset_line_fetch = 0;
+    return ret;
+}
+
 static __inline uint8_t
 fastreadb(uint32_t a)
 {
@@ -367,7 +427,7 @@ fastreadb(uint32_t a)
     if (cpu_state.abrt)
         return 0;
     if (t == NULL)
-        return readmembl(a);
+        return readmembl_fetch(a);
     pccache  = a >> 12;
     pccache2 = t;
 
@@ -391,7 +451,7 @@ fastreadw(uint32_t a)
     if (cpu_state.abrt)
         return 0;
     if (t == NULL)
-        return readmemwl(a);
+        return readmemwl_fetch(a);
 
     pccache  = a >> 12;
     pccache2 = t;
@@ -410,7 +470,7 @@ fastreadl(uint32_t a)
             if (cpu_state.abrt)
                 return 0;
             if (t == NULL)
-                return readmemll(a);
+                return readmemll_fetch(a);
             pccache2 = t;
             pccache  = a >> 12;
         }
@@ -507,7 +567,7 @@ fastreadw_fetch(uint32_t a)
     if (cpu_state.abrt)
         return 0;
     if (t == NULL)
-        return readmemwl(a);
+        return readmemwl_fetch(a);
 
     pccache  = a >> 12;
     pccache2 = t;
@@ -527,7 +587,7 @@ fastreadl_fetch(uint32_t a)
             if (cpu_state.abrt)
                 return 0;
             if (t == NULL)
-                return readmemll(a);
+                return readmemll_fetch(a);
             pccache2 = t;
             pccache  = a >> 12;
         }

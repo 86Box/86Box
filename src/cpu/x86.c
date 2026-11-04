@@ -401,6 +401,27 @@ reset_fpu_hard(void)
     }
 }
 
+/* The CPUs whose books leave the first prefetch after RESET unmasked by
+   A20M# (mem_a20_reset_line): the Intel486 data book 241731-002 covers the
+   Intel486 SX, DX, DX2 and DX4 and the SL Enhanced parts; the Am486DX/DX2
+   hardware reference manual covers those two only (the Am486DX4, DXL and
+   Enhanced Am486 data sheets give the RESET rule without the latency). */
+static int
+reset_line_unmasked(void)
+{
+    switch (cpu_s->cpu_type) {
+        case CPU_i486SX:
+        case CPU_i486DX:
+        case CPU_i486SX_SLENH:
+        case CPU_i486DX_SLENH:
+            return 1;
+        case CPU_Am486DX:
+            return !strcmp(cpu_f->internal_name, "am486dx") || !strcmp(cpu_f->internal_name, "am486dx2");
+        default:
+            return 0;
+    }
+}
+
 static void
 reset_common(int hard, int src)
 {
@@ -543,6 +564,7 @@ reset_common(int hard, int src)
         else
             loadcs_2386(0xF000);
         cpu_state.pc = 0xFFF0;
+        mem_a20_reset_line_arm(reset_line_unmasked());
         if (hard) {
             rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
             if (is6117 || is386ex)

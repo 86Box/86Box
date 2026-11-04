@@ -45,4 +45,11 @@ extern cpu_events_t cpu_events;
 #define cpu_dr_armed          cpu_events.dr_armed
 #define cpu_halted            cpu_events.halted
 
+/* cpu_override_dynarec holds a bit per writer, so that one clearing its own
+   does not end another's: the board's (the PS/2 cache disable, the PIIX4
+   SMBus transfer) and the 486's first fetch after RESET while its line is
+   read past the A20 gate (mem_a20_reset_line). */
+#define CPU_OVERRIDE_BOARD      1
+#define CPU_OVERRIDE_RESET_LINE 2
+
 #endif /*EMU_CPU_EVENTS_H*/
