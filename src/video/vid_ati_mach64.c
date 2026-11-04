@@ -1237,7 +1237,8 @@ mach64_gtb_latched(uint32_t reg)
         case 0xcc:
         case 0xd4: /* CUSTOM_MACRO_CNTL */
         case 0xd8:
-        case 0xe8 ... 0xfc: /* CRC_SIG and on */
+        case 0xe8: /* CRC_SIG */
+        case 0xfc: /* ECh-F8h are the MPP's (mach64_mpp_readb()) */
             return 1;
         default:
             return 0;
@@ -1248,16 +1249,20 @@ mach64_gtb_latched(uint32_t reg)
  * GP_IO (VT/RAGE RRG 4-4). ATI's software for the GT-B bit-bangs I2C on
  * its pins, the clock on B or A and the data on 4 or C; a pin's direction
  * bit is its data bit's plus 16, and a pin not driven floats high. The card
- * has one DDC bus, so both pairs drive it, wired-AND.
+ * has one DDC bus, so both pairs drive it, wired-AND. The Rage Pro's BIOS
+ * (Turbo 3.091, its VBE 4F15h) has the clock on D and the data on C, as the
+ * VT3's; it waits for the clock to read high after letting it go.
  */
 #define GTB_GP_IO_SDA_4     (1 << 4)
 #define GTB_GP_IO_SCL_A     (1 << 10)
 #define GTB_GP_IO_SCL_B     (1 << 11)
 #define GTB_GP_IO_SDA_C     (1 << 12)
+#define GTB_GP_IO_SCL_D     (1 << 13)
 #define GTB_GP_IO_DIR_SDA_4 (1 << 20)
 #define GTB_GP_IO_DIR_SCL_A (1 << 26)
 #define GTB_GP_IO_DIR_SCL_B (1 << 27)
 #define GTB_GP_IO_DIR_SDA_C (1 << 28)
+#define GTB_GP_IO_DIR_SCL_D (1 << 29)
 
 static int
 mach64_gtb_gp_io_pin(uint32_t gp_io, uint32_t data, uint32_t dir)
@@ -1270,6 +1275,11 @@ mach64_gtb_gp_io_drive(mach64_t *mach64)
 {
     const uint32_t gp_io = mach64->gp_io;
 
+    if (mach64->ragepro) {
+        i2c_gpio_set(mach64->i2c, mach64_gtb_gp_io_pin(gp_io, GTB_GP_IO_SCL_D, GTB_GP_IO_DIR_SCL_D),
+                     mach64_gtb_gp_io_pin(gp_io, GTB_GP_IO_SDA_C, GTB_GP_IO_DIR_SDA_C));
+        return;
+    }
     i2c_gpio_set(mach64->i2c,
                  mach64_gtb_gp_io_pin(gp_io, GTB_GP_IO_SCL_A, GTB_GP_IO_DIR_SCL_A) &&
                      mach64_gtb_gp_io_pin(gp_io, GTB_GP_IO_SCL_B, GTB_GP_IO_DIR_SCL_B),
@@ -1284,6 +1294,11 @@ mach64_gtb_gp_io_read(mach64_t *mach64, uint32_t addr)
     int     scl = i2c_gpio_get_scl(mach64->i2c);
     int     sda = i2c_gpio_get_sda(mach64->i2c);
 
+    if (mach64->ragepro) {
+        if ((addr & 3) == 1) /* GP_IO_C, GP_IO_D */
+            ret = (ret & ~0x30) | (sda ? 0x10 : 0x00) | (scl ? 0x20 : 0x00);
+        return ret;
+    }
     switch (addr & 3) {
         case 0: /* GP_IO_4 */
             ret = (ret & ~0x10) | (sda ? 0x10 : 0x00);
@@ -1631,6 +1646,10 @@ mach64_ext_readb(uint32_t addr, void *priv)
                 case 0xe8 ... 0xeb:
                     /* CONFIG_STAT1: nothing set on this board (CFG_PCI_DAC_CFG 0). */
                     ret = 0x00;
+                    break;
+                case 0xec ... 0xfb:
+                    if (mach64->type >= MACH64_VT)
+                        ret = mach64_mpp_readb(mach64, addr);
                     break;
                 case 0xdc ... 0xdf:
                     /* "All except CONFIG_CNTL have memory mapped register
@@ -2324,6 +2343,10 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
                     break;
                 case 0xe8 ... 0xeb:
                     break; /* CONFIG_STAT1 is read-only */
+                case 0xec ... 0xfb:
+                    if (mach64->type >= MACH64_VT)
+                        mach64_mpp_writeb(mach64, addr, val);
+                    break;
                 case 0xd0 ... 0xd3:
                     /* GEN_GUI_EN (bit 8): "0 = Resets draw engine" (RRG 3-57). */
                     if (((addr & 3) == 1) && (mach64->gen_test_cntl & 0x100) && !(val & 0x01))

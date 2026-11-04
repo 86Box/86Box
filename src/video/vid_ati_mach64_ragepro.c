@@ -32,6 +32,8 @@
 #include <86box/dma.h>
 
 /* Block 1 (byte offsets in the 1K block below block 0). */
+#define RP1_MPP_CONFIG         0x0c0 /* MPP_CONFIG ... MPP_DATA again */
+#define RP1_MPP_DATA           0x0cc
 #define RP1_AGP_BASE           0x148
 #define RP1_AGP_CNTL           0x14c
 #define RP1_SCALER_COLOUR_CNTL 0x150
@@ -81,7 +83,7 @@
    circular buffer of 128K, or a system table of as many descriptors. */
 #define BM_MAX_DESCRIPTORS 8192
 
-/* The block 1 registers of the Rage Pro: AGP, the scaler's colour control
+/* The block 1 registers of the Rage Pro: the MPP's again, AGP, the scaler's colour control
    and coefficients, the command FIFO, the bus master, the planar scaler
    buffers and the setup engine. */
 static int
@@ -91,7 +93,7 @@ mach64_ragepro_blk1_reg(const mach64_t *mach64, uint32_t addr)
     if (mach64->rage2c)
         return ((addr >= RP1_BM_FRAME_BUF_OFFSET) && (addr <= RP1_BM_STATUS)) ||
                (addr == RP1_BM_GUI_TABLE) || (addr == RP1_BM_SYSTEM_TABLE);
-    return ((addr >= RP1_AGP_BASE) && (addr <= RP1_SCALER_H_COEFF4)) || ((addr >= RP1_GUI_CMDFIFO_DEBUG) && (addr <= RP1_BM_STATUS)) ||
+    return ((addr >= RP1_MPP_CONFIG) && (addr <= RP1_MPP_DATA)) || ((addr >= RP1_AGP_BASE) && (addr <= RP1_SCALER_H_COEFF4)) || ((addr >= RP1_GUI_CMDFIFO_DEBUG) && (addr <= RP1_BM_STATUS)) ||
            (addr == RP1_BM_GUI_TABLE) || (addr == RP1_BM_SYSTEM_TABLE) ||
            ((addr >= RP1_SCALER_BUF0_OFFSET_U) && (addr <= RP1_SCALER_BUF1_OFFSET_V)) || ((addr >= RP1_SETUP_FIRST) && (addr <= RP1_SETUP_LAST));
 }
@@ -410,6 +412,11 @@ mach64_ragepro_blk1_write(mach64_t *mach64, uint32_t addr, uint32_t val, int byt
     if (!mach64_ragepro_blk1_reg(mach64, reg))
         return 0;
 
+    if (reg <= RP1_MPP_DATA) {
+        mach64_mpp_write(mach64, (reg - RP1_MPP_CONFIG) >> 2, val << shift, mask);
+        return 1;
+    }
+
     v = (mach64->rp.blk1[reg >> 2] & ~mask) | ((val << shift) & mask);
     mach64->rp.blk1[reg >> 2] = v;
     if (((addr & 3) + bytes) < 4)
@@ -451,6 +458,11 @@ mach64_ragepro_blk1_read(mach64_t *mach64, uint32_t addr, uint32_t *val)
 
     if (!mach64_ragepro_blk1_reg(mach64, reg))
         return 0;
+
+    if (reg <= RP1_MPP_DATA) {
+        *val = mach64_mpp_read(mach64, (reg - RP1_MPP_CONFIG) >> 2);
+        return 1;
+    }
 
     if ((reg >= RP1_SETUP_FIRST) && (reg <= RP1_SETUP_LAST)) {
         mach64_wait_fifo_idle(mach64);

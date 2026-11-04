@@ -373,6 +373,8 @@ typedef struct mach64_t {
 
     uint32_t config_stat0;
 
+    uint32_t mpp[4]; /* MPP_CONFIG, MPP_STROBE_SEQ, MPP_ADDR, MPP_DATA (VT and later) */
+
     uint32_t cur_clr0;
     uint32_t cur_clr1;
 
@@ -684,6 +686,39 @@ mach64_mem_bndry(const mach64_t *mach64)
             ret = ((var) >> 24) & 0xff; \
             break;                      \
     }
+
+/* The multimedia peripheral port (MPP_CONFIG ... MPP_DATA, block 0 ECh-FBh;
+   the Rage Pro's block 1 has them again at C0h-CFh). Nothing is on the port:
+   a transfer is over at once (MPP_BUSY, bit 30, never set) and data reads
+   float high. ATI's Rage Pro drivers (ati2vxae, 4.13) write MPP_CONFIG and
+   MPP_STROBE_SEQ, read them back and wait for MPP_BUSY to clear. */
+static inline uint32_t
+mach64_mpp_read(const mach64_t *mach64, int reg)
+{
+    return (reg == 3) ? 0xffffffff : mach64->mpp[reg];
+}
+
+static inline void
+mach64_mpp_write(mach64_t *mach64, int reg, uint32_t val, uint32_t mask)
+{
+    mach64->mpp[reg] = (mach64->mpp[reg] & ~mask) | (val & mask);
+    mach64->mpp[0] &= ~0x40000000;
+}
+
+/* Block 0's ECh-FBh, a byte at a time. */
+static inline uint8_t
+mach64_mpp_readb(const mach64_t *mach64, uint32_t addr)
+{
+    return mach64_mpp_read(mach64, ((addr + 4) & 0x0f) >> 2) >> ((addr & 3) * 8);
+}
+
+static inline void
+mach64_mpp_writeb(mach64_t *mach64, uint32_t addr, uint8_t val)
+{
+    const int shift = (addr & 3) * 8;
+
+    mach64_mpp_write(mach64, ((addr + 4) & 0x0f) >> 2, (uint32_t) val << shift, 0xffu << shift);
+}
 
 #define WRITE8(addr, var, val)                        \
     switch ((addr) &3) {                              \
