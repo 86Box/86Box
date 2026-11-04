@@ -143,7 +143,8 @@ hdc_reset(void)
     for (int port = 0; port < PARALLEL_MAX; port++) {
         for (int c = 0; c < HDD_NUM; c++) {
             if (hdd_is_valid(c) && (hdd[c].bus_type == HDD_BUS_LPT) && (hdd[c].channel == port)) {
-                device_add_inst(&lpt_on26_device, port + 1);
+                device_add_inst(hdd_lpt_bridge_device(hdd[c].lpt_bridge),
+                                port + 1);
                 break;
             }
         }

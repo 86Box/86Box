@@ -15,7 +15,10 @@ namespace Harddrives {
 void                        populateBuses(QAbstractItemModel *model);
 void                        populateCDROMBuses(QAbstractItemModel *model);
 void                        populateRemovableBuses(QAbstractItemModel *model);
-void                        populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusTracking *sbt = nullptr);
+void                        populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusTracking *sbt = nullptr, bool lptBridges = false);
+/* Hard disks on bus LPT: one channel per port and bridge, port | bridge << 2. */
+QString                     lptBridgeName(int bridge);
+bool                        lptPortEnabled(int port);
 void                        populateSpeeds(QAbstractItemModel *model, SettingsCompleter *sc, int bus);
 QString                     BusChannelName(uint8_t bus, uint8_t channel);
 int                         idePlan(bus_owner_t *owners, ide_conflict_t *conflicts = nullptr, int *conflictCount = nullptr);

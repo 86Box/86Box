@@ -1878,6 +1878,12 @@ load_hard_disks(void)
                 hdd[c].channel = PARALLEL_MAX - 1;
         } else
             ini_section_delete_var(cat, temp);
+        sprintf(temp, "hdd_%02i_lpt_bridge", c + 1);
+        if (hdd[c].bus_type == HDD_BUS_LPT) {
+            p = ini_section_get_string(cat, temp, "on26");
+            hdd[c].lpt_bridge = hdd_lpt_bridge_get_from_internal_name(p);
+        } else
+            ini_section_delete_var(cat, temp);
 
         /* SCSI */
         if (hdd[c].bus_type == HDD_BUS_SCSI) {
@@ -1956,6 +1962,9 @@ load_hard_disks(void)
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "hdd_%02i_lpt_port", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            sprintf(temp, "hdd_%02i_lpt_bridge", c + 1);
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "hdd_%02i_scsi_location", c + 1);
@@ -4580,6 +4589,12 @@ save_hard_disks(void)
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_int(cat, temp, hdd[c].channel);
+
+        sprintf(temp, "hdd_%02i_lpt_bridge", c + 1);
+        if (!hdd_is_valid(c) || (hdd[c].bus_type != HDD_BUS_LPT))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_string(cat, temp, hdd_lpt_bridge_get_internal_name(hdd[c].lpt_bridge));
 
         sprintf(temp, "hdd_%02i_scsi_id", c + 1);
         ini_section_delete_var(cat, temp);

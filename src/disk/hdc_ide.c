@@ -155,6 +155,10 @@ typedef struct ide_board_t {
 
     ide_t     *ide[2];
     ide_bm_t  *bm;
+
+    /* A parallel port bridge: INTRQ goes to it instead of the PIC. */
+    void     (*lpt_irq)(int set, void *priv);
+    void      *lpt_priv;
 } ide_board_t;
 
 typedef struct mcide_t {
@@ -602,6 +606,8 @@ ide_irq_update(ide_board_t *dev, UNUSED(int log))
 
     if (!dev->force_ata3 && dev->bm && dev->bm->set_irq)
         dev->bm->set_irq(set << 2, dev->bm->priv);
+    else if (dev->lpt_irq != NULL)
+        dev->lpt_irq(set, dev->lpt_priv);
     else if (ide_boards[ide->board]->irq != -1)
         picint_common(1 << dev->irq, PIC_IRQ_EDGE, set, NULL);
 }
@@ -3782,6 +3788,40 @@ ide_lpt_init(int port)
     return ide_boards[board];
 }
 
+/* The bridge's handler of INTRQ changes on the LPT board of the port. */
+void
+ide_lpt_set_irq(int port, void (*lpt_irq)(int set, void *priv), void *priv)
+{
+    ide_board_t *dev;
+
+    if ((port < 0) || (port >= PARALLEL_MAX))
+        return;
+
+    dev = ide_boards[ide_lpt_board(port)];
+    if (dev != NULL) {
+        dev->lpt_irq  = lpt_irq;
+        dev->lpt_priv = priv;
+    }
+}
+
+/* The INTRQ line of the drive selected on the LPT board, as nIEN gates it. */
+int
+ide_lpt_intrq(int port)
+{
+    const ide_board_t *dev;
+    const ide_t       *ide;
+
+    if ((port < 0) || (port >= PARALLEL_MAX))
+        return 0;
+
+    dev = ide_boards[ide_lpt_board(port)];
+    if (dev == NULL)
+        return 0;
+
+    ide = ide_drives[dev->cur_dev];
+    return (ide != NULL) && !(dev->devctl & 2) && ide->irqstat;
+}
+
 void
 ide_lpt_close(int port)
 {
@@ -4164,7 +4204,9 @@ ide_plan(ide_owner_t owners[IDE_BUS_MAX], int mach, const int hdc[], const int s
         for (int c = 0; c < HDD_NUM; c++) {
             if (lpt_ports[i].enabled && hdd_is_valid(c) &&
                 (hdd[c].bus_type == HDD_BUS_LPT) && (hdd[c].channel == i)) {
-                ide_plan_claim(&plan, 1 << ide_lpt_board(i), &lpt_on26_device, i + 1, 0);
+                ide_plan_claim(&plan, 1 << ide_lpt_board(i),
+                               hdd_lpt_bridge_device(hdd[c].lpt_bridge),
+                               i + 1, 0);
                 break;
             }
         }

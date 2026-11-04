@@ -149,8 +149,20 @@ Harddrives::populateSpeeds(QAbstractItemModel *model, SettingsCompleter *sc, int
     }
 }
 
+QString
+Harddrives::lptBridgeName(int bridge)
+{
+    return QString(hdd_lpt_bridge_get_name(bridge));
+}
+
+bool
+Harddrives::lptPortEnabled(int port)
+{
+    return (port >= 0) && (port < PARALLEL_MAX) && lpt_ports[port].enabled;
+}
+
 void
-Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusTracking *sbt)
+Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusTracking *sbt, bool lptBridges)
 {
     model->removeRows(0, model->rowCount());
 
@@ -245,6 +257,23 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
             if ((channel < (SCSI_BUS_MAX * SCSI_ID_MAX)) && (channel >= busRows))
                 busRows = (channel | 15) + 1;
         }
+    }
+
+    if ((bus == TAPE_BUS_LPT) && lptBridges) {
+        /* Each port once per bridge; the port is in use either way. */
+        model->insertRows(0, PARALLEL_MAX * HDD_LPT_BRIDGES);
+        for (int i = 0; i < (PARALLEL_MAX * HDD_LPT_BRIDGES); ++i) {
+            const int port   = i / HDD_LPT_BRIDGES;
+            const int bridge = i % HDD_LPT_BRIDGES;
+            auto      idx    = model->index(i, 0);
+
+            model->setData(idx, QString("LPT%1 %2").arg(port + 1).arg(lptBridgeName(bridge)));
+            model->setData(idx, port | (bridge << 2), Qt::UserRole);
+            auto *channelItem = qobject_cast<QStandardItemModel *>(model)->item(i);
+            if (channelItem)
+                channelItem->setEnabled(!channelsInUse.contains(port) && lpt_ports[port].enabled);
+        }
+        return;
     }
 
     model->insertRows(0, busRows);

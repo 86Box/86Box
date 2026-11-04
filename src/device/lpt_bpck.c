@@ -36,6 +36,7 @@
 #include <86box/hdc_ide.h>
 #include <86box/cdrom.h>
 #include <86box/scsi_cdrom.h>
+#include <86box/hdd.h>
 #include <86box/log.h>
 
 #ifdef ENABLE_LPT_BPCK_LOG
@@ -95,14 +96,42 @@ typedef struct bpck_s {
     int            in_reset;
     int            reset_abrt;
     uint8_t        intrq; /* the drive's INTRQ, until status is read */
+
+    /*
+     * A hard disk behind the bridge (bus LPT, bridge BackPack), on an IDE
+     * board of its own: the task file, device control and the data stream go
+     * to the IDE emulation, a byte at a time, two of them to a 16-bit cycle.
+     */
+    void    *ide;
+    uint16_t ide_rd;      /* the data word being read out */
+    uint8_t  ide_rd_half; /* its high byte is next */
+    uint8_t  ide_wr_lo;   /* the low byte of a data word being written */
+    uint8_t  ide_wr_half; /* the high byte is next */
 } bpck_t;
 
 
 /* The ATAPI task file the bridge exposes, and the drive behind it. */
 #define BPCK_REG_TASKFILE 0x40 /* measured: the driver forms 0x40 | offset */
 #define BPCK_REG_DEVCTL   0x46
-#define BPCK_REG_IRQ      0x0b /* bit 7: the drive's INTRQ */
-#define BPCK_IRQ_INTRQ    0x80
+/* With a hard disk: 0x48 | offset is the IDE control block, as in Linux's
+   bpck6.c (cont 1), so 0x4E is device control and alternate status. */
+#define BPCK_IDE_CTL       0x08
+#define BPCK_IDE_CTL_END   0x0f
+#define BPCK_REG_IRQ       0x0b
+#define BPCK_IRQ_INTRQ     0x80
+
+/*
+ * The EEPROM of a hard disk pod, where it differs from the CD-ROM pod's,
+ * as BPHDDRV.SYS reads it: word 2 is the device type (0x0080 a hard disk,
+ * 0x0082 a CD-ROM), word 0x11 the geometry the driver addresses the drive
+ * in (sectors per track high, heads low), words 3-0x10 the drive's name (low byte first),
+ * which must not be empty. Words 0x2F-0x36 are the password, zero for none.
+ */
+#define BPCK_EE_TYPE      0x02
+#define BPCK_EE_TYPE_HD   0x0080
+#define BPCK_EE_NAME      0x03
+#define BPCK_EE_NAME_LEN  14
+#define BPCK_EE_GEOMETRY  0x11
 
 #define ATA_DATA     0
 #define ATA_ERROR    1
@@ -176,18 +205,20 @@ bpck_read_reg(void *priv, int reg)
      * not the bridge, so it is served by the ATAPI engine.
      */
     if (((reg & 0xff) >= BPCK_REG_TASKFILE) &&
-        ((reg & 0xff) <= (BPCK_REG_TASKFILE + ATA_STATUS))) {
+        ((reg & 0xff) <= (BPCK_REG_TASKFILE + ((dev->ide != NULL) ? BPCK_IDE_CTL_END : ATA_STATUS)))) {
         ret = bpck_reg_read(dev, (uint8_t) reg);
         bpck_log("BPCK:    RR %02X -> %02X\n", reg & 0xff, ret);
         return ret;
     }
 
     ret = dev->regs[reg & 0xff];
+    /* Register 0x0B bit 7 is the drive's INTRQ: BPHDDRV.SYS polls it after
+       each command, BPCDDRV.SYS 2.13 before it reads a data phase. */
+    if ((reg & 0xff) == BPCK_REG_IRQ) {
+        const int intrq = (dev->ide != NULL) ? ide_lpt_intrq(dev->port) : dev->intrq;
 
-    /* Register 0x0B bit 7 is the drive's INTRQ: BPCDDRV.SYS 2.13 polls it
-       before it reads a data phase. */
-    if ((reg & 0xff) == BPCK_REG_IRQ)
-        ret = (uint8_t) ((ret & ~BPCK_IRQ_INTRQ) | (dev->intrq ? BPCK_IRQ_INTRQ : 0x00));
+        ret = (uint8_t) ((ret & ~BPCK_IRQ_INTRQ) | (intrq ? BPCK_IRQ_INTRQ : 0x00));
+    }
 
     /* Register 0x00 bit 7 is the EEPROM data line, not stored state. */
     if ((reg & 0xff) == 0x00)
@@ -208,7 +239,7 @@ bpck_write_reg(void *priv, int reg, uint8_t val)
     dev->regs[reg & 0xff] = val;
 
     if (((reg & 0xff) >= BPCK_REG_TASKFILE) &&
-        ((reg & 0xff) <= (BPCK_REG_TASKFILE + ATA_STATUS))) {
+        ((reg & 0xff) <= (BPCK_REG_TASKFILE + ((dev->ide != NULL) ? BPCK_IDE_CTL_END : ATA_STATUS)))) {
         bpck_reg_write(dev, (uint8_t) reg, val);
         return;
     }
@@ -557,9 +588,67 @@ bpck_command(bpck_t *dev, const uint8_t cmd)
  * controller drives the drive through. Offsets outside the task file (device
  * control, and the bridge's own registers) stay in regs[].
  */
+/* The data register of the hard disk: a byte of a 16-bit IDE cycle. */
+static uint8_t
+bpck_ide_data_read(bpck_t *dev)
+{
+    uint8_t ret;
+
+    if (!dev->ide_rd_half)
+        dev->ide_rd = ide_readw(0, dev->ide);
+    ret               = dev->ide_rd_half ? (uint8_t) (dev->ide_rd >> 8) : (uint8_t) dev->ide_rd;
+    dev->ide_rd_half ^= 1;
+
+    return ret;
+}
+
+static void
+bpck_ide_data_write(bpck_t *dev, const uint8_t val)
+{
+    if (!dev->ide_wr_half)
+        dev->ide_wr_lo = val;
+    else
+        ide_writew(0, (uint16_t) (dev->ide_wr_lo | (val << 8)), dev->ide);
+    dev->ide_wr_half ^= 1;
+}
+
+static uint8_t
+bpck_ide_reg_read(bpck_t *dev, const uint8_t addr)
+{
+    const uint8_t off = addr - BPCK_REG_TASKFILE;
+
+    if ((addr == BPCK_REG_BLOCK) || (off == ATA_DATA))
+        return bpck_ide_data_read(dev);
+    if (off >= BPCK_IDE_CTL)
+        return (off == (BPCK_IDE_CTL + 6)) ? ide_read_alt_status(0, dev->ide) : 0xff;
+
+    dev->ide_rd_half = dev->ide_wr_half = 0;
+    return ide_readb(off, dev->ide);
+}
+
+static void
+bpck_ide_reg_write(bpck_t *dev, const uint8_t addr, const uint8_t val)
+{
+    const uint8_t off = addr - BPCK_REG_TASKFILE;
+
+    if (off == ATA_DATA)
+        bpck_ide_data_write(dev, val);
+    else if (off == (BPCK_IDE_CTL + 6))
+        ide_write_devctl(0, val, dev->ide);
+    else if (off < BPCK_IDE_CTL) {
+        dev->ide_rd_half = dev->ide_wr_half = 0;
+        ide_writeb(off, val, dev->ide);
+    }
+}
+
 static uint8_t
 bpck_reg_read(bpck_t *dev, const uint8_t addr)
 {
+    if ((dev->ide != NULL) &&
+        ((addr == BPCK_REG_BLOCK) ||
+         ((addr >= BPCK_REG_TASKFILE) && (addr <= (BPCK_REG_TASKFILE + BPCK_IDE_CTL_END)))))
+        return bpck_ide_reg_read(dev, addr);
+
     bpck_attach_drive(dev);
 
     /*
@@ -606,6 +695,12 @@ static void
 bpck_reg_write(bpck_t *dev, const uint8_t addr, const uint8_t val)
 {
     dev->tf_regs[addr] = val;
+
+    if (dev->ide != NULL) {
+        if ((addr >= BPCK_REG_TASKFILE) && (addr <= (BPCK_REG_TASKFILE + BPCK_IDE_CTL_END)))
+            bpck_ide_reg_write(dev, addr, val);
+        return;
+    }
 
     bpck_attach_drive(dev);
 
@@ -681,6 +776,18 @@ static const bpck_link_ops_t bpck_link_ops = {
 /* 86Box device plumbing                                                 */
 /* --------------------------------------------------------------------- */
 
+/* The EEPROM of a hard disk pod: type, name and the geometry of the disk. */
+static void
+bpck_ee_hard_disk(bpck_t *dev, const hard_disk_t *hd)
+{
+    static const char name[BPCK_EE_NAME_LEN * 2 + 1] = "86BOX HARD DISK             ";
+
+    dev->ee.data[BPCK_EE_TYPE] = BPCK_EE_TYPE_HD;
+    for (int i = 0; i < BPCK_EE_NAME_LEN; i++)
+        dev->ee.data[BPCK_EE_NAME + i] = (uint16_t) ((name[(i * 2) + 1] << 8) | name[i * 2]);
+    dev->ee.data[BPCK_EE_GEOMETRY] = (uint16_t) (((hd->spt & 0xff) << 8) | (hd->hpc & 0xff));
+}
+
 static void *
 bpck_init(UNUSED(const device_t *info))
 {
@@ -705,6 +812,19 @@ bpck_init(UNUSED(const device_t *info))
     timer_add(&dev->busy_timer, bpck_busy_done, dev, 0);
     timer_add(&dev->reset_timer, bpck_reset_done, dev, 0);
 
+    /* A hard disk on this port with the BackPack as its bridge. */
+    for (int c = 0; c < HDD_NUM; c++) {
+        if (hdd_is_valid(c) && (hdd[c].bus_type == HDD_BUS_LPT) &&
+            (hdd[c].channel == dev->port) && (hdd[c].lpt_bridge == HDD_LPT_BPCK)) {
+            dev->ide = ide_lpt_init(dev->port);
+            if (dev->ide != NULL)
+                bpck_ee_hard_disk(dev, &hdd[c]);
+            bpck_log("BPCK: LPT%i hard disk attached%s\n", dev->port + 1,
+                     (dev->ide == NULL) ? " - no IDE board free" : "");
+            break;
+        }
+    }
+
     bpck_log("BPCK: attached as unit %02X on LPT port %i\n", dev->link.unit, dev->port);
 
     return dev;
@@ -713,6 +833,10 @@ bpck_init(UNUSED(const device_t *info))
 static void
 bpck_close(void *priv)
 {
+    bpck_t *dev = (bpck_t *) priv;
+
+    if ((dev != NULL) && (dev->ide != NULL))
+        ide_lpt_close(dev->port);
     free(priv);
 }
 
