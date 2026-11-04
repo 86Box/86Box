@@ -485,10 +485,16 @@ cpu_soft_reset_keeps_fpu(void)
     }
 }
 
+/* The reset signature in EDX, for a soft reset's caller. A 386 or later
+   gets it from reset_common() once the reset is done, which for a deferred
+   or held one is later than its caller; the books of the 8086 and the 286
+   give no DX after RESET (80286 and 80287 PRM, 1987, Table 5-3), and theirs
+   is still written here. */
 void
 cpu_set_edx(void)
 {
-    EDX = cpu_s->edx_reset;
+    if (!is386)
+        EDX = cpu_s->edx_reset;
 }
 
 cpu_family_t *

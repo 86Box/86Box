@@ -568,14 +568,19 @@ reset_common(int hard, int src)
         tr.base   = 0;
         tr.limit  = 0xffff;
     }
-    if (is386 || hard)
-        EAX = EBX = ECX = EDX = ESI = EDI = EBP = ESP = 0;
+    /* EDX: the processor's signature after RESET and INIT alike (386 DX PRM,
+       1990, 10.1; Intel486 DX data sheet, Table 6.2; Pentium Vol. 1, Jul
+       1995, Table 4-2; SDM 1999 Vol. 3, Table 8-1), set here, when the
+       reset is done */
+    if (is386 || hard) {
+        EAX = EBX = ECX = ESI = EDI = EBP = ESP = 0;
+        EDX = cpu_s->edx_reset;
+    }
 
     if (hard) {
         makeznptable();
         resetreadlookup();
         makemod1table();
-        cpu_set_edx();
     }
     x86seg_reset();
     cpu_update_64k_status();
