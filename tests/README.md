@@ -321,3 +321,7 @@ probing, from CT through VT/GT-B (including the Rage Pro family), and its
 read-only output bit. It preserves external-RAMDAC GX behavior. This helper
 regression complements the boot and Windows driver tests; it does not model
 analog monitor voltages or replace end-to-end display testing.
+
+`Mach64.Palette` also checks Rage Pro `SCALE_OFF_ACC` bitmap expansion
+after a palette-cache upload has left a different source and accumulator
+state. It checks CI8 output pixels and byte, word and dword register writes.

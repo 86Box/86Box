@@ -158,6 +158,7 @@
 #define RP_TEX_CNTL            0x374
 #define RP_SECONDARY_TEX_OFF   0x378
 #define RP_SCALE_PITCH_BOTH    0x380
+#define RP_SCALE_OFF_ACC       0x388
 #define RP_COMPOSITE_SHADOW_ID 0x398
 #define RP_SPECULAR_FIRST      0x39c
 #define RP_SPECULAR_LAST       0x3bc
@@ -3671,6 +3672,15 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
     if (mach64->ragepro) {
         if (mach64_3d_ragepro_register(reg)) {
             ctx->regs[reg >> 2] = mach64_3d_merge_write(ctx->regs[reg >> 2], addr, val, type);
+            /* J5.30's CI8 GDI bitmap expansion uses the Rage Pro alias
+               to load a new source and restart both scaler accumulators.
+               Leaving these at the preceding palette-cache upload makes
+               ATI's display-property bitmaps sample the staging buffer. */
+            if ((reg == RP_SCALE_OFF_ACC) && mach64_3d_write_complete(addr, type)) {
+                ctx->regs[SCALE_Y_OFF >> 2] = ctx->regs[reg >> 2];
+                ctx->regs[SCALE_HACC >> 2] = 0;
+                ctx->regs[SCALE_VACC >> 2] = 0;
+            }
             return 1;
         }
     }

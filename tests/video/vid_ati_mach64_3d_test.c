@@ -1304,6 +1304,57 @@ ragepro_palette_upload_tests(void)
     card_close(m);
 }
 
+/* J5.30 alternates palette-cache uploads with CI8 scaler expansion for
+   its display-property controls. The offset/accumulator alias must replace
+   that upload's source and fractions, including split register writes. */
+static void
+ragepro_scaler_offset_acc_tests(void)
+{
+    mach64_t *m = card_create();
+    mach64_3d_t *ctx = m->gt3d;
+    const uint32_t source = 0x18000;
+    const uint32_t colors[] = { 0x00ff0000, 0x0000ff00, 0x000000ff, 0x00ffffff };
+
+    m->ragepro = 1;
+    m->dp_pix_width = 0x20000006;
+    m->dp_src = 0x500;
+    m->dp_mix = 0x70007;
+    m->write_mask = ~0u;
+    m->dst_off_pitch = 0x02000000; /* 64 pixels */
+    m->dst_y_x = 0;
+    m->dst_cntl = DST_X_DIR | DST_Y_DIR;
+    m->sc_left_right = 0x003f0000;
+    m->sc_top_bottom = 0x003f0000;
+    ctx->regs[SCALE_3D_CNTL >> 2] = 0x140;
+    ctx->regs[SCALE_Y_PITCH >> 2] = 4;
+    ctx->regs[SCALE_WIDTH >> 2] = 4;
+    ctx->regs[SCALE_HEIGHT >> 2] = 2;
+    ctx->regs[SCALE_X_INC >> 2] = 0x10000;
+    ctx->regs[SCALE_Y_INC >> 2] = 0x10000;
+    for (unsigned i = 0; i < 4; i++)
+        ctx->texture_palette[0x10 + i] = colors[i];
+    for (unsigned i = 0; i < 8; i++)
+        m->svga.vram[source + i] = 0x10 + (i & 3);
+
+    for (unsigned bytes = 1; bytes <= 4; bytes *= 2) {
+        uint32_t type = bytes == 1 ? FIFO_WRITE_BYTE : bytes == 2 ? FIFO_WRITE_WORD : FIFO_WRITE_DWORD;
+        ctx->regs[SCALE_Y_OFF >> 2] = 0x20804; /* stale palette staging */
+        ctx->regs[SCALE_HACC >> 2] = 0x8000;
+        ctx->regs[SCALE_VACC >> 2] = 0x18000;
+        memset(m->svga.vram, 0xa5, 64 * 2 * 4);
+        for (unsigned offset = 0; offset < 4; offset += bytes)
+            CHECK(mach64_3d_write(m, RP_SCALE_OFF_ACC + offset, source >> (offset * 8), type));
+        expect_u32("scaler alias source", ctx->regs[SCALE_Y_OFF >> 2], source);
+        expect_u32("scaler alias horizontal restart", ctx->regs[SCALE_HACC >> 2], 0);
+        expect_u32("scaler alias vertical restart", ctx->regs[SCALE_VACC >> 2], 0);
+        CHECK(mach64_3d_write(m, 0x118, 0x00040002, FIFO_WRITE_DWORD));
+        for (unsigned y = 0; y < 2; y++)
+            for (unsigned x = 0; x < 4; x++)
+                expect_u32("CI8 control bitmap", *pixel32(m, (y * 64 + x) * 4), colors[x]);
+    }
+    card_close(m);
+}
+
 static void
 ragepro_ci8_tiling_tests(void)
 {
@@ -4693,6 +4744,7 @@ main(int argc, char **argv)
         if (selected & MODE_PALETTE) {
             palette_tests();
             ragepro_palette_upload_tests();
+            ragepro_scaler_offset_acc_tests();
             ragepro_ci8_tiling_tests();
         }
         if (selected & MODE_VQ) {
@@ -4743,6 +4795,7 @@ main(int argc, char **argv)
     /* The Rage Pro's own paths are on the GT-B core. */
     card_type = MACH64_GTB;
     ragepro_palette_upload_tests();
+    ragepro_scaler_offset_acc_tests();
     ragepro_ci8_tiling_tests();
     ragepro_vq_tests();
     ragepro_vq_real_card_tests();
