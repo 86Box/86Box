@@ -295,6 +295,111 @@ reset_387(void)
     fpu_ignne = 1;
 }
 
+/* An 8087, 80C187, 287 or 287XL through RESET: as FNINIT leaves it. The
+   control word x87_initial_control_word() gives (037FH, the 8087's 03FFH),
+   the exception flags and TOP 0, every tag empty; the data registers and
+   the exception pointers are not changed, and the condition code is left
+   undefined (8087: iAPX 86,88 User's Manual, 1981, Table S-7; 80C187 data
+   sheet 270640-004, Initialization; 80286 and 80287 PRM, 1987, Table 3-1,
+   with the 037FH of the Intel287 XL/XLT data sheet, 2.6, "the same values
+   as in an 80287 after RESET"). */
+static void
+reset_fpu_init(void)
+{
+    const uint16_t cw = x87_initial_control_word();
+
+    if (fpu_softfloat) {
+        fpu_state.cwd = cw;
+        fpu_state.swd = (fpu_type == FPU_8087) ? (fpu_state.swd & 0x4700) : 0;
+        fpu_state.tos = 0;
+        fpu_state.tag = 0xffff;
+    } else {
+        /* Round to nearest and 64-bit precision: neither status bit the
+           blocks are keyed on */
+        cpu_state.npxc = cw;
+        codegen_set_rounding_mode(0);
+        cpu_cur_status &= ~(CPU_STATUS_FPU_PC24 | CPU_STATUS_FPU_RC_NZ);
+        cpu_state.npxs = (fpu_type == FPU_8087) ? (cpu_state.npxs & 0x4700) : 0;
+        cpu_state.TOP  = 0;
+        for (int i = 0; i < 8; i++)
+            cpu_state.tag[i] = TAG_EMPTY;
+    }
+    cpu_state.ismmx = 0;
+}
+
+/* RESET's FPU on the K5, K6 and K6-2: control word 0040H, status 0, every
+   tag "zero" -- 5555H -- with the registers, the MMX registers, the
+   instruction and data pointers and the opcode zero (AMD-K6 data sheet
+   20695E, Table 28; AMD-K6-2 data sheet 21850, Table 32; the K5's
+   "identical to that of the Pentium processor", AMD-K5 TRM 18524C, Table
+   5-15). */
+static void
+reset_fpu_zero(void)
+{
+    if (fpu_softfloat)
+        SF_FPU_reset();
+    else {
+        /* As x87_set_control_word leaves it: round to nearest, and a
+           precision control of 00 is the 24-bit key blocks compile under. */
+        cpu_state.npxc = 0x0040;
+        codegen_set_rounding_mode(0);
+        cpu_cur_status |= CPU_STATUS_FPU_PC24;
+        cpu_cur_status &= ~CPU_STATUS_FPU_RC_NZ;
+        cpu_state.npxs = 0;
+        cpu_state.TOP  = 0;
+        for (int i = 0; i < 8; i++) {
+            cpu_state.ST[i]   = 0.0;
+            cpu_state.tag[i]  = TAG_VALID;
+            cpu_state.MM[i].q = 0;
+        }
+    }
+    x87_clear_pointers();
+    cpu_state.ismmx = 0;
+}
+
+/* RESET's FPU, where its book gives it. A 387 is reset with the CPU on
+   every board: its RESETIN "should be connected to the 80386 RESET pin"
+   (80387 PRM, 1987, 3.1.4; Intel387 SX data sheet, 4.1.4), so it takes
+   reset_387(), which raises no IRQ 13 and holds no instruction back: the
+   board side as it is with no error pending, since what a board's IRQ 13
+   logic does with ERROR# low after RESET is in few boards' books. The
+   others -- the Pentium and the P6 family, the Intel486 family, whose
+   books leave a power-on to the board's BIST request, and the CPUs whose
+   books give no FPU state after RESET -- keep what they had: the soft FPU
+   its reset state, which is the Pentium's and the P6 family's (Pentium
+   Vol. 1, Jul 1995, Table 4-2; Pentium Pro Vol. 3, Jan 1996, Table 8-2),
+   the other FPU its contents (the Pentium's is set in reset_common()). */
+static void
+reset_fpu_hard(void)
+{
+    int k86 = 0;
+
+    if ((fpu_type == FPU_INTERNAL) && (cpu_s != NULL)) {
+        switch (cpu_s->cpu_type) {
+            case CPU_K5:
+            case CPU_5K86:
+            case CPU_K6:
+            case CPU_K6_2:
+            case CPU_K6_2C:
+                k86 = 1;
+                break;
+            default:
+                break;
+        }
+    }
+
+    if ((fpu_type == FPU_8087) || (fpu_type == FPU_80187) || (fpu_type == FPU_287) || (fpu_type == FPU_287XL))
+        reset_fpu_init();
+    else if (fpu_type == FPU_387)
+        reset_387();
+    else if (k86)
+        reset_fpu_zero();
+    else if (fpu_softfloat) {
+        SF_FPU_reset();
+        cpu_state.ismmx = 0;
+    }
+}
+
 static void
 reset_common(int hard, int src)
 {
@@ -369,13 +474,13 @@ reset_common(int hard, int src)
     /* FOP: INIT leaves the FPU as it was (Pentium Vol. 3, 16.2). */
     if (!reset_init)
         x87_op = 0;
-    /* RESET gives the soft FPU its reset state, the Pentium and the P6
-       family included (Pentium Vol. 1, Jul 1995, Table 4-2; Pentium Pro
-       Vol. 3, Jan 1996, Table 8-2); a soft reset does too, except where the
-       processor's book says it leaves the FPU as it was
-       (cpu_soft_reset_keeps_fpu, INIT on the P54C, P55C and P6 family among
-       them). The reset state is not the MMX one. */
-    if (fpu_softfloat && (hard || !cpu_soft_reset_keeps_fpu())) {
+    /* RESET: reset_fpu_hard(). A soft reset gives the soft FPU its reset
+       state too, except where the processor's book says it leaves the FPU
+       as it was (cpu_soft_reset_keeps_fpu, INIT on the P54C, P55C and P6
+       family among them). The reset state is not the MMX one. */
+    if (hard)
+        reset_fpu_hard();
+    else if (fpu_softfloat && !cpu_soft_reset_keeps_fpu()) {
         SF_FPU_reset();
         cpu_state.ismmx = 0;
     }
