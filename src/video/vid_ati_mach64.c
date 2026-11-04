@@ -3850,6 +3850,7 @@ mach64_reset(void *priv)
         reset_state[dev->svga.monitor_index]->pci_slot = dev->pci_slot;
 
         *dev = *reset_state[dev->svga.monitor_index];
+        mach64_idct_reset(dev);
         mach64_io_map(dev);
         memset(dev->svga.vram, 0, dev->svga.vram_max);
         memset(dev->svga.changedvram, 0, (dev->svga.vram_max >> 12) + 1);
@@ -4309,6 +4310,8 @@ mach64gtb_init(const device_t *info)
     mach64->render_threads = device_get_config_int("render_threads");
     mach64->gt3d           = mach64_3d_init(mach64);
     mach64->timing         = mach64_timing_init();
+    if (mach64->ragexl)
+        mach64->idct = mach64_idct_init();
 
     svga->vblank_start = mach64_vblank_start;
     svga->adv_flags   |= FLAG_PANNING_ATI;
@@ -4419,6 +4422,7 @@ mach64_close(void *priv)
         io_removehandler(0x46e8, 0x0001, mach64_gtb_genena_in, NULL, NULL, mach64_gtb_genena_out, NULL, NULL, mach64);
         mach64_3d_close(mach64->gt3d);
         mach64_timing_close(mach64->timing);
+        mach64_idct_close(mach64->idct);
     }
 
     svga_close(&mach64->svga);

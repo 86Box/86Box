@@ -193,6 +193,7 @@
 #define RP_ALPHA_TEST_SHIFT    4
 #define RP_ALPHA_DST_SHIFT     8
 #define RP_ALPHA_TST_SRC_ALPHA (1u << 12)
+#define RP_IDCT_EN             (1u << 15) /* the Rage XL's */
 #define RP_REF_ALPHA_SHIFT     16
 #define RP_SPECULAR_LIGHT_EN   (1u << 31)
 
@@ -3141,8 +3142,24 @@ mach64_scaler_mix_bytes(uint32_t src, uint32_t dst, unsigned function, int bytes
     return ret;
 }
 
+/*
+ * The Rage XL's IDCT_EN: the IDCT's residual sample takes the place of the
+ * destination in the blend, which becomes Src + Dst, clamped to 0-255
+ * (XL/XC RRG: ALPHA_TST_CNTL, p. 5-19 / PDF 163). It goes into every
+ * component the pixel has.
+ */
+static rgba_t
+mach64_scaler_add_residual(rgba_t src, int resid)
+{
+    src.r = mach64_3d_clamp8(src.r + resid);
+    src.g = mach64_3d_clamp8(src.g + resid);
+    src.b = mach64_3d_clamp8(src.b + resid);
+    return src;
+}
+
 static void
-mach64_scaler_write_pixel_yuv422(mach64_3d_t *ctx, uint32_t addr, int format, rgba_t src, int src_is_yuv, int source_inhibits)
+mach64_scaler_write_pixel_yuv422(mach64_3d_t *ctx, uint32_t addr, int format, rgba_t src, int src_is_yuv, int source_inhibits, int idct,
+                                 int resid)
 {
     mach64_t *mach64 = ctx->mach64;
     uint32_t  cntl   = ctx->regs[SCALE_3D_CNTL >> 2];
@@ -3154,7 +3171,9 @@ mach64_scaler_write_pixel_yuv422(mach64_3d_t *ctx, uint32_t addr, int format, rg
 
     if (!src_is_yuv)
         src = mach64_scaler_rgb_to_yuv(src);
-    if (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND)
+    if (idct)
+        src = mach64_scaler_add_residual(src, resid);
+    else if (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND)
         src = mach64_3d_blend(cntl, src, mach64_scaler_yuv422_read_dst(mach64, addr, format));
     packed = mach64_3d_clamp8(src.r) | ((uint32_t) mach64_3d_clamp8(is_v ? src.b : src.g) << 8);
 
@@ -3181,7 +3200,7 @@ mach64_scaler_write_pixel_yuv422(mach64_3d_t *ctx, uint32_t addr, int format, rg
 }
 
 static void
-mach64_scaler_write_pixel(mach64_3d_t *ctx, uint32_t addr, int format, int x, int y, rgba_t src, int source_inhibits)
+mach64_scaler_write_pixel(mach64_3d_t *ctx, uint32_t addr, int format, int x, int y, rgba_t src, int source_inhibits, int idct, int resid)
 {
     mach64_t *mach64     = ctx->mach64;
     uint32_t  cntl       = ctx->regs[SCALE_3D_CNTL >> 2];
@@ -3192,7 +3211,9 @@ mach64_scaler_write_pixel(mach64_3d_t *ctx, uint32_t addr, int format, int x, in
     uint32_t  result;
     int       inhibits;
 
-    if (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND)
+    if (idct)
+        src = mach64_scaler_add_residual(src, resid);
+    else if (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND)
         src = mach64_3d_blend(cntl, src, mach64_3d_read_dst(ctx, addr, format));
 
     if (format == 2)
@@ -3270,10 +3291,16 @@ mach64_scaler_draw(mach64_3d_t *ctx)
     int32_t         a_start    = mach64_3d_s8_12_decode(regs[ALPHA_START >> 2]);
     int32_t         a_x_inc    = mach64_3d_s8_12_decode(regs[ALPHA_X_INC >> 2]);
     int32_t         a_y_inc    = mach64_3d_s8_12_decode(regs[ALPHA_Y_INC >> 2]);
+    /* The Rage XL adds its IDCT's residual with IDCT_EN, which takes
+       effect with blending on. */
+    int             idct       = mach64->idct && (regs[RP_ALPHA_TST_CNTL >> 2] & RP_IDCT_EN) &&
+                                 (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND);
     uint32_t        vacc_advanced;
 
     if (src_width && src_height && src_pitch && dst_width && dst_height && mach64_scaler_source_bpp(src_format) && dst_bpp &&
         mach64_scaler_destination_supported(dst_format)) {
+        if (idct)
+            mach64_idct_draw_begin(mach64, dst_width, dst_height);
         for (int dy = 0; dy < dst_height; dy++) {
             int      y          = dst_y + dy * y_dir;
             int32_t  v_acc      = v_start + (int32_t) (dy * y_inc);
@@ -3294,6 +3321,7 @@ mach64_scaler_draw(mach64_3d_t *ctx)
                 unsigned h_fraction = mach64_scaler_accum_fraction4(h_acc);
                 int      src_x_next;
                 int      inhibits;
+                int      resid;
                 int64_t  addr;
                 rgba_t   src;
 
@@ -3361,12 +3389,15 @@ mach64_scaler_draw(mach64_3d_t *ctx)
                 addr = (int64_t) dst_base + ((int64_t) y * dst_pitch + x) * dst_bpp;
                 if ((addr < 0) || (((uint64_t) addr + dst_bpp) > vram_size))
                     continue;
+                resid = idct ? mach64_idct_residual(mach64, dx, dy) : 0;
                 if (mach64_scaler_yuv422(dst_format))
-                    mach64_scaler_write_pixel_yuv422(ctx, addr, dst_format, src, passthrough, inhibits);
+                    mach64_scaler_write_pixel_yuv422(ctx, addr, dst_format, src, passthrough, inhibits, idct, resid);
                 else
-                    mach64_scaler_write_pixel(ctx, addr, dst_format, x, y, src, inhibits);
+                    mach64_scaler_write_pixel(ctx, addr, dst_format, x, y, src, inhibits, idct, resid);
             }
         }
+        if (idct)
+            mach64_idct_draw_end(mach64);
     }
 
     /* SCALE_VACC moves on by the lines drawn. */

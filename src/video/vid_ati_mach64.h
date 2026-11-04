@@ -107,6 +107,9 @@
 #define FIFO_TYPE         0xff000000
 #define FIFO_ADDR         0x00ffffff
 #define FIFO_ADDR_SETUP   0x00000800 /* a dword of the Rage Pro's setup engine, block 1 */
+#define FIFO_ADDR_IDCT    0x00001000 /* a dword of the Rage XL's IDCT registers, block 1 */
+#define FIFO_ADDR_IDCT_END 0x00002000 /* the Rage XL's IDCT end-of-block request */
+#define FIFO_ADDR_BLK1    (FIFO_ADDR_SETUP | FIFO_ADDR_IDCT | FIFO_ADDR_IDCT_END)
 
 enum {
     FIFO_INVALID     = (0x00 << 24),
@@ -159,6 +162,7 @@ enum {
 
 typedef struct mach64_3d_t     mach64_3d_t;
 typedef struct mach64_timing_t mach64_timing_t;
+typedef struct mach64_idct_t   mach64_idct_t;
 
 typedef struct mach64_t {
     mem_mapping_t linear_mapping;
@@ -444,6 +448,7 @@ typedef struct mach64_t {
     /* 3D Rage II+ (GT-B) */
     mach64_3d_t     *gt3d;        /* 3D engine and scaler, vid_ati_mach64_3d.c */
     mach64_timing_t *timing;      /* draw engine timing, vid_ati_mach64_accel.c */
+    mach64_idct_t   *idct;        /* the Rage XL's MPEG IDCT, vid_ati_mach64_idct.c */
     int              render_threads; /* threads drawing a large trapezoid's rows */
     mem_mapping_t    aux_mapping; /* the register aperture at BAR2 */
     uint32_t         aux_base;
@@ -474,6 +479,7 @@ typedef struct mach64_t {
         uint32_t gui_cntl;
         int      pkt_count;     /* GUI master register packet: the writes left */
         uint32_t pkt_reg;       /*   and the next register, as a MM offset index */
+        int      pkt_triplets;  /*   a Rage XL IDCT packet of RUN, LEVEL, LEVEL triplets: the next dword's place */
         int      running;       /* a bus master transfer is being run */
         uint64_t descriptors;   /* run since reset, for the debug dump */
         uint64_t triangles;     /* setup engine triangles drawn */
@@ -615,6 +621,18 @@ void     mach64_timing_dump(mach64_t *mach64);
 int      mach64_3d_setup_write(mach64_t *mach64, int reg, uint32_t val);
 int      mach64_3d_setup_read(mach64_t *mach64, int reg, uint32_t *val);
 void     mach64_3d_ragepro_dump(mach64_t *mach64);
+
+/* The Rage XL's IDCT engine, in vid_ati_mach64_idct.c. reg is the byte
+   offset in block 1. The writes and the draws reach it through the FIFO. */
+mach64_idct_t *mach64_idct_init(void);
+void           mach64_idct_close(mach64_idct_t *idct);
+void           mach64_idct_reset(mach64_t *mach64);
+int            mach64_idct_reg(const mach64_t *mach64, uint32_t reg);
+void           mach64_idct_write(mach64_t *mach64, uint32_t reg, uint32_t val);
+void           mach64_idct_end_block(mach64_t *mach64);
+void           mach64_idct_draw_begin(mach64_t *mach64, int width, int height);
+int            mach64_idct_residual(const mach64_t *mach64, int dx, int dy);
+void           mach64_idct_draw_end(mach64_t *mach64);
 
 uint8_t  mach64_readb_be(uint32_t addr, void *priv);
 void     mach64_writeb_be(uint32_t addr, uint8_t val, void *priv);

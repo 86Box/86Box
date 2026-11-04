@@ -523,6 +523,10 @@ mach64_fifo_run_one(mach64_t *mach64)
        runs the write that starts it. */
     if (mach64->gt3d && (addr & FIFO_ADDR_SETUP))
         mach64_3d_setup_write(mach64, (addr & 0x3fc) >> 2, val);
+    else if (addr & FIFO_ADDR_IDCT)
+        mach64_idct_write(mach64, addr & 0x3fc, val);
+    else if (addr & FIFO_ADDR_IDCT_END)
+        mach64_idct_end_block(mach64);
     else if (!mach64->gt3d || (type == FIFO_INVALID) || !mach64_3d_write(mach64, addr, val, type)) {
         switch (type) {
             case FIFO_WRITE_BYTE:
@@ -1301,13 +1305,13 @@ mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
     int idx;
 
     if (!mach64->timing) {
-        if (!mach64_has_busmaster(mach64) || (addr & FIFO_ADDR_SETUP) || !mach64_ragepro_gui_write(mach64, addr, val, type))
+        if (!mach64_has_busmaster(mach64) || (addr & FIFO_ADDR_BLK1) || !mach64_ragepro_gui_write(mach64, addr, val, type))
             mach64_queue_fifo(mach64, addr, val, type);
         return;
     }
 
     mach64_timing_before_write(mach64);
-    if (mach64_has_busmaster(mach64) && !(addr & FIFO_ADDR_SETUP) && mach64_ragepro_gui_write(mach64, addr, val, type)) {
+    if (mach64_has_busmaster(mach64) && !(addr & FIFO_ADDR_BLK1) && mach64_ragepro_gui_write(mach64, addr, val, type)) {
         mach64_timing_after_write(mach64, 0, 0);
         return;
     }

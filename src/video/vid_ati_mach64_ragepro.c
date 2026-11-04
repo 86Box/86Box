@@ -95,7 +95,8 @@ mach64_ragepro_blk1_reg(const mach64_t *mach64, uint32_t addr)
                (addr == RP1_BM_GUI_TABLE) || (addr == RP1_BM_SYSTEM_TABLE);
     return ((addr >= RP1_MPP_CONFIG) && (addr <= RP1_MPP_DATA)) || ((addr >= RP1_AGP_BASE) && (addr <= RP1_SCALER_H_COEFF4)) || ((addr >= RP1_GUI_CMDFIFO_DEBUG) && (addr <= RP1_BM_STATUS)) ||
            (addr == RP1_BM_GUI_TABLE) || (addr == RP1_BM_SYSTEM_TABLE) ||
-           ((addr >= RP1_SCALER_BUF0_OFFSET_U) && (addr <= RP1_SCALER_BUF1_OFFSET_V)) || ((addr >= RP1_SETUP_FIRST) && (addr <= RP1_SETUP_LAST));
+           ((addr >= RP1_SCALER_BUF0_OFFSET_U) && (addr <= RP1_SCALER_BUF1_OFFSET_V)) || ((addr >= RP1_SETUP_FIRST) && (addr <= RP1_SETUP_LAST)) ||
+           mach64_idct_reg(mach64, addr);
 }
 
 void
@@ -224,6 +225,48 @@ mach64_ragepro_bm_reg_write(mach64_t *mach64, uint32_t idx, uint32_t val)
         mach64_ext_writel((idx & 0xff) << 2, val, mach64);
 }
 
+/* BM_ADDR's IDCT packets (Rage XL/XC RRG: BM_ADDR, p. 6-13 / PDF 225). */
+#define BM_ADDR_IDCT          (1u << 31)
+#define BM_ADDR_IDCT_FLAGS(v) (((v) >> 29) & 3)
+#define IDCT_FLAGS_END        0 /* end of block, no data */
+#define IDCT_FLAGS_TRIPLETS   1 /* RUN, LEVEL, LEVEL ... to IDCT_RUNS and IDCT_LEVELS */
+
+/* A BM_ADDR header: the packet it starts. */
+static void
+mach64_ragepro_bm_header(mach64_t *mach64, uint32_t val)
+{
+    uint32_t counter = (val >> 16) & 0xffff;
+
+    mach64->rp.pkt_reg      = val & 0xffff;
+    mach64->rp.pkt_triplets = -1;
+    if (!mach64->idct || !(val & BM_ADDR_IDCT)) {
+        mach64->rp.pkt_count = counter + 1;
+        return;
+    }
+
+    /* The Rage XL's IDCT: GUIREG_COUNTER is 5 bits there (20:16), the
+       IDCT flags above it. */
+    counter &= 0x1f;
+    switch (BM_ADDR_IDCT_FLAGS(val)) {
+        case IDCT_FLAGS_END:
+            mach64_queue(mach64, FIFO_ADDR_IDCT_END, 0, FIFO_WRITE_DWORD);
+            mach64->rp.pkt_count = 0;
+            break;
+        case IDCT_FLAGS_TRIPLETS:
+            /* GUIREG_ADR is IDCT_RUNS; the two LEVELs go to the register
+               after it. The guide's count is 3T-1, ATI's command player
+               (atimcrae.dll @b010c400) sends 0 for one triplet. */
+            mach64->rp.pkt_triplets = 0;
+            mach64->rp.pkt_count    = (counter / 3 + 1) * 3;
+            break;
+        default:
+            /* 10, IDCT register writes, auto-incremented as a GUI packet's;
+               11 is reserved and taken the same way. */
+            mach64->rp.pkt_count = counter + 1;
+            break;
+    }
+}
+
 /* A dword of a GUI transfer to the aperture offset target. */
 static void
 mach64_ragepro_bm_gui_dword(mach64_t *mach64, uint32_t target, uint32_t val)
@@ -249,12 +292,15 @@ mach64_ragepro_bm_gui_dword(mach64_t *mach64, uint32_t target, uint32_t val)
            data of that many registers in a row. The packet carries on
            across descriptors. */
         if (!mach64->rp.pkt_count) {
-            mach64->rp.pkt_reg   = val & 0xffff;
-            mach64->rp.pkt_count = ((val >> 16) & 0xffff) + 1;
+            mach64_ragepro_bm_header(mach64, val);
             return;
         }
-        mach64_ragepro_bm_reg_write(mach64, mach64->rp.pkt_reg, val);
-        mach64->rp.pkt_reg++;
+        if (mach64->rp.pkt_triplets >= 0) {
+            /* RUN to GUIREG_ADR, LEVEL and LEVEL to the next register. */
+            mach64_ragepro_bm_reg_write(mach64, mach64->rp.pkt_reg + !!mach64->rp.pkt_triplets, val);
+            mach64->rp.pkt_triplets = (mach64->rp.pkt_triplets + 1) % 3;
+        } else
+            mach64_ragepro_bm_reg_write(mach64, mach64->rp.pkt_reg++, val);
         mach64->rp.pkt_count--;
         return;
     }
@@ -429,6 +475,11 @@ mach64_ragepro_blk1_write(mach64_t *mach64, uint32_t addr, uint32_t val, int byt
         mach64_queue(mach64, FIFO_ADDR_SETUP | reg, v, FIFO_WRITE_DWORD);
         return 1;
     }
+    if (mach64_idct_reg(mach64, reg)) {
+        /* The IDCT takes its data in order with the draws that use it. */
+        mach64_queue(mach64, FIFO_ADDR_IDCT | reg, v, FIFO_WRITE_DWORD);
+        return 1;
+    }
 
     switch (reg) {
         case RP1_AGP_BASE:
@@ -438,7 +489,9 @@ mach64_ragepro_blk1_write(mach64_t *mach64, uint32_t addr, uint32_t val, int byt
             mach64->rp.agp_cntl = v;
             break;
         case RP1_GUI_CNTL:
-            mach64->rp.gui_cntl = v & 0x3;
+            /* CMDFIFO_SIZE_MODE; the XL's IDCT_PRSR_MODE (12) and
+               IDCT_BLOCK_GUI_INITIATOR (13). */
+            mach64->rp.gui_cntl = v & (mach64->idct ? 0x3003 : 0x3);
             break;
         case RP1_BM_GUI_TABLE:
             mach64->rp.gui_table = v & ~0x0c;
