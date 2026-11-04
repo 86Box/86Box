@@ -46,7 +46,6 @@
 #include <86box/sis_55xx.h>
 #include <86box/chipset.h>
 #include <86box/usb.h>
-#include "cpu.h"
 
 #ifdef ENABLE_SIS_5595_PMU_LOG
 int sis_5595_pmu_do_log = ENABLE_SIS_5595_PMU_LOG;
@@ -90,10 +89,6 @@ sis_5595_pmu_trap_io(UNUSED(const uint16_t size), UNUSED(const uint16_t port), U
 {
     sis_5595_pmu_io_trap_t *trap = (sis_5595_pmu_io_trap_t *) priv;
     sis_5595_pmu_t         *dev  = (sis_5595_pmu_t *) trap->priv;
-
-    /* Avoid retriggering PMU I/O traps while the SMI handler runs in SMM. */
-    if (in_smm)
-        return;
 
     trap->sts_reg[0x04] |= trap->sts_mask;
 
