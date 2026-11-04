@@ -891,12 +891,14 @@ VMManagerSystem::setupVars()
         if (key.contains(rdisk_match) || key.contains(zip_match)) {
             auto device_number    = key.split("_").at(1);
             auto rdisk_parameters = QString(removable_config[key]);
-            auto rdisk_type       = rdisk_parameters.split(",").at(0).toInt();
+            auto rdisk_config_id  = rdisk_parameters.split(",").at(0).toInt();
             if (key.contains(zip_match))
-                rdisk_type++;
+                rdisk_config_id++;
             auto rdisk_bus = rdisk_parameters.split(",").at(1).trimmed().toUpper();
 
-            if ((rdisk_type >= 0) && (rdisk_type < KNOWN_RDISK_DRIVE_TYPES)) {
+            /* The file has the number of rdisk_type_config_ids[], not an index of rdisk_drive_types[]. */
+            const uint32_t rdisk_type = rdisk_type_from_config(rdisk_config_id);
+            if ((rdisk_type != RDISK_TYPE_GENERIC) || (rdisk_config_id == 0)) {
                 if (!rdisk_bus.isEmpty())
                     rdisk_bus = QString(" (%1)").arg(rdisk_bus);
                 rdiskDevices.append(QString("%1 %2%3").arg(rdisk_drive_types[rdisk_type].vendor, rdisk_drive_types[rdisk_type].model, rdisk_bus));
