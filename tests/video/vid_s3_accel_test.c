@@ -484,6 +484,28 @@ test_bee8_mmio32(void)
     check_rows(8);
 }
 
+/* Packed MMIO: a doubleword store from A8100h writes two registers, the first in the low half
+   (Vision868 and Vision968 table 5-1, p. 5-2; Trio32/64 table 13-1, p. 13-5; Trio64V+ table 15-1,
+   p. 15-5). The Vision864 and Vision964 books have no packed MMIO (table 9-5, p. 9-8). */
+static void
+test_packed_mmio(void)
+{
+    mmio_l(0xa8100, (123 << 16) | 456); /* ALT_CURXY: CUR_Y, CUR_X */
+    check((port_r(0x86e8) == 123) && (port_r(0x82e8) == 456), "ALT_CURXY");
+
+    /* An 8x8 rectangle at (10, 20) that only the packed FRGD_MIX lets draw. */
+    rect_start(0, 0, 1);
+    port_w(0xbae8, 0x0023);                   /* FRGD_MIX: leave the destination */
+    mmio_l(0xa8100, (10 << 16) | 20);         /* ALT_CURXY */
+    mmio_l(0xa8148, (7 << 16) | 7);           /* ALT_PCNT: MIN_AXIS_PCNT, MAJ_AXIS_PCNT */
+    mmio_l(0xa8134, (0x0027 << 16) | 0x0003); /* ALT_MIX: BKGD_MIX, FRGD_MIX */
+    mmio_l(0xa8138, (12 << 16) | 22);         /* SCISSORS_T, SCISSORS_L */
+    mmio_l(0xa813c, (1023 << 16) | 767);      /* SCISSORS_B, SCISSORS_R */
+    port_w(0x9ae8, 0x40b1);
+    check((pix(12, 22) == color()) && (pix(17, 27) == color()), "rectangle not drawn");
+    check((pix(11, 22) == 0) && (pix(12, 21) == 0), "scissors not applied");
+}
+
 int
 main(int argc, char **argv)
 {
@@ -493,6 +515,7 @@ main(int argc, char **argv)
     run("bee8_port", test_bee8_port, C_ALL);
     run("bee8_mmio32", test_bee8_mmio32,
         C_928 | C_928PCI | C_864 | C_868 | C_964 | C_968 | C_TRIO32 | C_TRIO64 | C_TRIO64V | C_TRIO64V2);
+    run("packed_mmio", test_packed_mmio, C_868 | C_968 | C_TRIO32 | C_TRIO64 | C_TRIO64V | C_TRIO64V2);
 
     if (verbose)
         print_matrix();
