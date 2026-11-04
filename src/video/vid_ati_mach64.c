@@ -1666,6 +1666,18 @@ mach64_ext_readb(uint32_t addr, void *priv)
                 case 0x4b:
                     ret = mach64->scaler_yuv_aper;
                     break;
+                case 0x40 ... 0x49:
+                case 0x4c ... 0x57:
+                case 0x60 ... 0x8f:
+                    /* The GT-B's capture registers (CAPTURE_START_END to
+                       ONESHOT_BUF_OFFSET, VT/RAGE RRG 4-117): read back as
+                       written. ATI's Rage Pro VxD (macxw4 4.11) reads
+                       CAPTURE_CONFIG back for the buffer mode and field. */
+                    if (mach64->type >= MACH64_GTB) {
+                        READ8(addr, mach64->gtb_capture[((addr & 0x3ff) - 0x40) >> 2]);
+                    } else
+                        ret = 0xff;
+                    break;
                 default:
                     ret = 0xff;
                     break;
@@ -2239,6 +2251,8 @@ mach64_ext_writeb(uint32_t addr, uint8_t val, void *priv)
             mach64->vt_blk1[reg] = (mach64->vt_blk1[reg] & ~(0xffu << shift)) | ((uint32_t) val << shift);
         }
         if (!(addr & 0x400)) {
+            if ((mach64->type >= MACH64_GTB) && ((addr & 0x3ff) >= 0x40) && ((addr & 0x3ff) < 0x90))
+                WRITE8(addr, mach64->gtb_capture[((addr & 0x3ff) - 0x40) >> 2], val);
             switch (addr & 0x3ff) {
                 case 0x00 ... 0x03:
                     WRITE8(addr, mach64->overlay_y_x_start, val);

@@ -426,6 +426,7 @@ typedef struct mach64_t {
     uint32_t scaler_buf_offset[2];
     uint32_t scaler_buf_pitch;
     uint32_t overlay_exclusive_horz, overlay_exclusive_vert;
+    uint32_t gtb_capture[0x50 >> 2]; /* GT-B and later: block 1 40h-8Fh, the capture registers, kept as written */
 
     uint32_t vga_dsp_config;
     uint32_t vga_dsp_on_off;
