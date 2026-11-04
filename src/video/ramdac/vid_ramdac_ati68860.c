@@ -220,7 +220,7 @@ ati68860_set_ramdac_type(void *priv, int type)
     if (ramdac->ramdac_type != type) {
         ramdac->ramdac_type = type;
 
-        for (uint8_t c = 0; c < 256; c++) {
+        for (uint16_t c = 0; c < 256; c++) {
             if (ramdac->ramdac_type == RAMDAC_8BIT)
                 ramdac->pallook[c] = makecol32(ramdac->pal[c].r, ramdac->pal[c].g,
                                                ramdac->pal[c].b);
