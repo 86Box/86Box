@@ -83,7 +83,7 @@ port_92_readw(uint16_t port, void *priv)
 static void
 port_92_pulse(UNUSED(void *priv))
 {
-    softresetx86(); /* Pulse reset! */
+    softresetx86_from(SOFT_RESET_PORT92); /* Pulse reset! */
     cpu_set_edx();
     if (machines[machine].init == machine_at_pl5600d_init)
         smbase = 0x00030000;

@@ -1924,7 +1924,7 @@ x86_int(int num)
         if ((num << 2UL) + 3UL > idt.limit) {
             if (idt.limit < 35) {
                 cpu_state.abrt = 0;
-                softresetx86();
+                softresetx86_from(SOFT_RESET_SHUTDOWN);
                 cpu_set_edx();
 #ifdef ENABLE_386_COMMON_LOG
                 x386_common_log("Triple fault in real mode - reset\n");

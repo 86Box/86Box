@@ -28,6 +28,8 @@
 #include "x86.h"
 #include "x86seg_common.h"
 #include "x86seg.h"
+#include "x87_sf.h"
+#include "x87.h"
 #include <86box/machine.h>
 #include <86box/device.h>
 #include <86box/dma.h>
@@ -66,6 +68,7 @@ int nmi            = 0;
 int nmi_auto_clear = 0;
 
 int soft_reset_pci = 0;
+int soft_reset_387 = 0;
 
 /* Is the TRAP flag on? */
 int trap = 0;
@@ -245,11 +248,55 @@ static int reset_init;
 
 /* Common reset function. */
 /* 1 soft, 2 hard: a reset raised inside a recompiled block, done once the
-   block has returned (x86_reset_deferred) */
+   block has returned (x86_reset_deferred), with the sources of its soft
+   resets */
 static int reset_deferred;
+static int reset_deferred_src;
+
+/* A 387 beside the CPU, taken through RESET with it by the board. It comes
+   out as FNINIT leaves it, but with IM clear and IE, ES and B set (80387
+   PRM, 1987, 6.2, p. 6-5; Intel387 DX data sheet, 3-281): CW 037Eh, SW
+   8081h, every tag empty, TOP 0. The data registers and the exception
+   pointers are left alone: RESET is defined by FNINIT, which does not
+   change them (80387 PRM, Table 6-1). The 387 holds ERROR# low after
+   RESET, with BUSY# high (80387 PRM, Table 3.3), until FNINIT, FNCLEX,
+   FNSTENV or FNSAVE (3.1.7). FERR# is taken as already up and the board's
+   IGNNE# latch as set, so this error raises no IRQ 13 and holds no
+   instruction back, the board side as it is with no error pending. That
+   is what the CS8230 and the OPTi 82C291 do, which latch IRQ 13 only on an
+   error that comes while the coprocessor is busy (C&T, the
+   80386-to-coprocessor note for the CS8230, Rev 1.2, 2.1 and Figure 1.0;
+   OPTi 82C291 data sheet, 4.10); for the other boards what their IRQ 13
+   logic does with it is not documented, and none is added. */
+static void
+reset_387(void)
+{
+    const uint16_t cw = 0x037e;
+    const uint16_t sw = 0x8081;
+
+    if (fpu_softfloat) {
+        fpu_state.cwd = cw;
+        fpu_state.swd = sw;
+        fpu_state.tos = 0;
+        fpu_state.tag = 0xffff;
+    } else {
+        /* Round to nearest and 64-bit precision: neither status bit the
+           blocks are keyed on */
+        cpu_state.npxc = cw;
+        codegen_set_rounding_mode(0);
+        cpu_cur_status &= ~(CPU_STATUS_FPU_PC24 | CPU_STATUS_FPU_RC_NZ);
+        cpu_state.npxs = sw;
+        cpu_state.TOP  = 0;
+        for (int i = 0; i < 8; i++)
+            cpu_state.tag[i] = TAG_EMPTY;
+        cpu_state.ismmx = 0;
+    }
+    fpu_ferr  = 1;
+    fpu_ignne = 1;
+}
 
 static void
-reset_common(int hard)
+reset_common(int hard, int src)
 {
 #ifdef USE_DYNAREC
     /* A port or memory access in the block may have run a timer that resets
@@ -258,6 +305,7 @@ reset_common(int hard)
        next I/O instruction or block link. */
     if (inrecomp) {
         reset_deferred = MAX(reset_deferred, hard + 1);
+        reset_deferred_src |= src;
         x86_was_reset  = 1;
         return;
     }
@@ -327,6 +375,12 @@ reset_common(int hard)
        INIT keeps it. */
     if (fpu_softfloat && !cpu_init_keeps_state() && (hard || !cpu_soft_reset_keeps_fpu()))
         SF_FPU_reset();
+    /* A board whose reset logic drives the 387's RESET from this source as
+       well as the CPU's (soft_reset_387). A 287 is left alone: on the
+       CS8230 its RESET comes from the system reset and port F1h only, and
+       the 82C291 takes a 387SX. */
+    if (!hard && (src & soft_reset_387) && (fpu_type == FPU_387))
+        reset_387();
     /* RESET's FPU, where the soft FPU (SF_FPU_reset) does not hold it:
        control word 0040H, status 0, every tag "zero" -- 5555H -- with the
        registers zero (Pentium Vol. 1, Table 3-2). */
@@ -506,7 +560,7 @@ reset_common(int hard)
 void
 resetx86(void)
 {
-    reset_common(1);
+    reset_common(1, 0);
 
     soft_reset_mask = 0;
 }
@@ -518,21 +572,31 @@ x86_reset_deferred(void)
 {
     if (reset_deferred) {
         const int hard = reset_deferred - 1;
+        const int src  = reset_deferred_src;
 
-        reset_deferred = 0;
-        cpu_state.abrt = 0; /* a fault later in the block came after the reset */
-        reset_common(hard);
+        reset_deferred     = 0;
+        reset_deferred_src = 0;
+        cpu_state.abrt     = 0; /* a fault later in the block came after the reset */
+        reset_common(hard, src);
     }
 }
 #endif
 
+/* src: where it came from (SOFT_RESET_*), 0 for a chipset's own reset
+   register or another source no board resets the coprocessor on */
 void
-softresetx86(void)
+softresetx86_from(int src)
 {
     if (soft_reset_mask)
         return;
 
-    reset_common(0);
+    reset_common(0, src);
+}
+
+void
+softresetx86(void)
+{
+    softresetx86_from(0);
 }
 
 /* Actual hard reset. */

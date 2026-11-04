@@ -1265,7 +1265,7 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
                     x86_fault_in_delivery(tempi, second_abrt);
                     if (cpu_state.abrt) {
                         cpu_state.abrt = 0;
-                        softresetx86();
+                        softresetx86_from(SOFT_RESET_SHUTDOWN);
                         cpu_set_edx();
 #    ifdef ENABLE_386_DYNAREC_LOG
                         x386_dynarec_log("Triple fault - reset\n");
@@ -1712,7 +1712,7 @@ block_ended:
                     x86_fault_in_delivery(tempi, second_abrt);
                     if (cpu_state.abrt) {
                         cpu_state.abrt = 0;
-                        softresetx86();
+                        softresetx86_from(SOFT_RESET_SHUTDOWN);
                         cpu_set_edx();
 #ifdef ENABLE_386_LOG
                         x386_dynarec_log("Triple fault - reset\n");

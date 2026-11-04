@@ -878,6 +878,7 @@ extern void refreshread(void);
 extern void refreshread_vx0(void);
 extern void resetreadlookup(void);
 extern void softresetx86(void);
+extern void softresetx86_from(int src);
 extern void x86_reset_deferred(void);
 extern void hardresetx86(void);
 extern void x86_int(int num);
@@ -949,6 +950,13 @@ extern uint32_t addr64a[8];
 extern uint32_t addr64a_2[8];
 
 extern int soft_reset_pci;
+
+/* The sources of a soft reset, for a board whose reset logic also resets
+   the 387 on them (soft_reset_387, set by its chipset) */
+#define SOFT_RESET_KBC      0x01 /* the 8042's reset pulse */
+#define SOFT_RESET_SHUTDOWN 0x02 /* a shutdown (triple fault) */
+#define SOFT_RESET_PORT92   0x04 /* port 92h's fast reset */
+extern int soft_reset_387;
 
 extern int reset_on_hlt;
 extern int hlt_reset_pending;
