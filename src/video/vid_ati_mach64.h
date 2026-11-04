@@ -86,6 +86,9 @@
 /* 3D Rage Pro PCI (PQFP, PCI ID GP, 4750h), SGRAM: ATI 113-41901-104,
    BK3.9.0/3.077, 1997/10/20 ("MACH64GPPCIMTSGU"), read out as 32K. */
 #define BIOS_RAGEPRO_PCI_41901_PATH   "roms/video/mach64/ragepro_pci_113-41901-104.bin"
+/* Rage XL PCI (BGA, PCI ID GR, 4752h), 8 MB SDRAM: ATI 113-72307-100,
+   BK4.3.04/4.330, 2000/12/18 ("MACH64GRPCIMTSDUN8"), 36K (48h blocks). */
+#define BIOS_RAGEXL_72307_PATH        "roms/video/mach64/XL_5219.bin"
 
 #define FIFO_SIZE         65536
 #define FIFO_MASK         (FIFO_SIZE - 1)
@@ -135,6 +138,7 @@ enum {
 #define MACH64_FLAG_RAGE2C  (1 << 20) /* 3D Rage IIC, the GT-B under PCI ID GV (4756h) */
 #define MACH64_FLAG_RAGEPRO (1 << 21) /* 3D Rage Pro, the GT-B core plus its own setup engine, bus master and AGP */
 #define MACH64_FLAG_PQFP    (1 << 22) /* The Rage Pro's PCI PQFP package, PCI ID GP (4750h) */
+#define MACH64_FLAG_RAGEXL  (1 << 24) /* Rage XL, the Rage Pro core with the LT Pro's PLL and LCD registers */
 #define MACH64_PCI_IOCONFIG 0x40        // "User Defined Configuration"
 
 typedef struct mach64_3d_t     mach64_3d_t;
@@ -169,6 +173,7 @@ typedef struct mach64_t {
     uint8_t rage2c;  /* Rage IIC: shared bus master, without Pro setup/AGP textures */
     uint8_t ragepro; /* 3D Rage Pro identity, setup engine and bus master */
     uint8_t agp;     /* On the AGP: its capability and timings */
+    uint8_t ragexl;  /* Rage XL: extended VPLL, LCD_INDEX/LCD_DATA, subsystem IDs */
 
     uint8_t pci_regs[256];
     uint8_t int_line;
@@ -425,6 +430,7 @@ typedef struct mach64_t {
     mem_mapping_t    aux_mapping; /* the register aperture at BAR2 */
     uint32_t         aux_base;
     uint8_t          gtb_regs[256]; /* control registers kept as written */
+    uint32_t         lcd_regs[64];  /* Rage XL, LCD_DATA's indexed registers (LCD_INDEX 5:0) */
     uint8_t          genena;        /* 46E8h */
     uint8_t          genvs;         /* 102h */
 

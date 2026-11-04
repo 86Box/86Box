@@ -1045,6 +1045,17 @@ mach64_pll_recalc(mach64_t *mach64)
         if (mach64->type >= MACH64_GTB)
             idx |= ((mach64->pll_regs[PLL_XCLK_CNTL] >> (4 + c)) & 1) << 2;
         p = (double) vtb_post_div[idx];
+        /* The Rage XL's extended VPLL (XL/XC RRG 4-83..4-85): with
+           EXT_VPLL_EN (EXT_VPLL_CNTL, PLL 19h, bit 2) every clock takes the
+           10-bit reference and 11-bit feedback dividers of 1Ah-1Ch, the
+           feedback not doubled. (EXT_VPLL_VGA_EN, bit 3, would extend it to
+           the VGA modes, whose clocks are the VGA's here.) The reference
+           source (bits 1:0) is XTALIN here: the other two, PLLMCLK/2 and
+           PLLSCLK/2, are not used by the BIOS. */
+        if (mach64->ragexl && (mach64->pll_regs[0x19] & 0x04)) {
+            m = (double) (mach64->pll_regs[0x1a] | ((mach64->pll_regs[0x1c] & 0x03) << 8));
+            n = (double) (mach64->pll_regs[0x1b] | ((mach64->pll_regs[0x1c] & 0x70) << 4)) / 2.0;
+        }
         if ((p == 0.0) || (m == 0.0)) {
             mach64->pll_freq[c] = 0.0;
             continue;
@@ -1357,6 +1368,11 @@ mach64_gtb_readb(mach64_t *mach64, uint32_t addr, uint8_t *val)
         *val = mach64_gtb_gp_io_read(mach64, addr);
     else if (mach64->ragepro && (((reg & 0xfc) == 0x3c) || ((reg & 0xfc) == 0xbc)))
         *val = mach64_ragepro_i2c_readb(mach64, reg);
+    else if (mach64->ragexl && ((reg & 0xfc) == 0xa8))
+        /* The Rage XL's LCD_DATA (2Ah), the register LCD_INDEX (29h, kept
+           as written) selects (XL/XC RRG 8-1). No panel: MONDET_SENSE and
+           GUI_ACTIVE read 0 in LCD_INDEX. */
+        *val = mach64->lcd_regs[mach64->gtb_regs[0xa4] & 0x3f] >> ((addr & 3) * 8);
     else if (mach64_gtb_latched(reg))
         *val = mach64->gtb_regs[reg];
     else
@@ -1372,6 +1388,8 @@ mach64_gtb_writeb(mach64_t *mach64, uint32_t addr, uint8_t val)
     if ((reg & 0xfc) == 0x78) {
         WRITE8(addr, mach64->gp_io, val);
         mach64_gtb_gp_io_drive(mach64);
+    } else if (mach64->ragexl && ((reg & 0xfc) == 0xa8)) {
+        WRITE8(addr, mach64->lcd_regs[mach64->gtb_regs[0xa4] & 0x3f], val);
     } else if (mach64->ragepro && (((reg & 0xfc) == 0x3c) || ((reg & 0xfc) == 0xbc)))
         mach64_ragepro_i2c_writeb(mach64, reg, val);
     else if (mach64_gtb_latched(reg))
@@ -3462,6 +3480,16 @@ mach64_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
             return (mach64->on_board) ? 0 : mach64->pci_regs[0x32];
         case PCI_REG_ROM_BAR_BYTE3:
             return (mach64->on_board) ? 0 : mach64->pci_regs[0x33];
+        case 0x2c ... 0x2f:
+        case 0x4c ... 0x4f:
+            /* The Rage XL's subsystem IDs are CONFIG_STAT1 (block 0
+               25h): SUBSYS_VEN_ID in 31:16, SUBSYS_DEV_ID in 15:0, read from
+               the card's ROM after the PCI reset, or written by a system
+               BIOS through the alias at 4Ch (XL/XC RRG 4-36; Controller
+               Specifications 3.10.2). */
+            if (mach64->ragexl)
+                return mach64->gtb_regs[0x94 + ((addr + 2) & 3)];
+            return 0x00;
         case PCI_REG_INT_LINE:
             return mach64->int_line;
         case PCI_REG_INT_PIN:
@@ -3552,6 +3580,11 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
             return;
         case PCI_REG_INT_LINE:
             mach64->int_line = val;
+            break;
+        case 0x4c ... 0x4f:
+            /* The Rage XL's writable alias of the subsystem IDs. */
+            if (mach64->ragexl)
+                mach64->gtb_regs[0x94 + ((addr + 2) & 3)] = val;
             break;
         case (RAGEPRO_AGP_CAP + 8) ... (RAGEPRO_AGP_CAP + 0x0b):
             /* The Rage Pro's AGP command register. */
@@ -3967,13 +4000,24 @@ mach64gtb_init(const device_t *info)
         mach64->agp            = !!(info->flags & DEVICE_AGP);
         mach64->pci_id         = (info->local & MACH64_FLAG_PQFP) ? 0x4750 : 0x4742;
         mach64->config_chip_id = 0x5c000000 | mach64->pci_id;
-        mach64->fixed_io       = device_get_config_hex16("fixed_io") & 0xff00;
+        if (!(info->local & MACH64_FLAG_RAGEXL))
+            mach64->fixed_io = device_get_config_hex16("fixed_io") & 0xff00;
         if (info->local & MACH64_FLAG_PQFP)
             mach64->config_stat0 = 5 | (1 << 4);
         else if (!(info->local & MACH64_FLAG_ONBOARD) && !strcmp(device_get_config_bios("bios_ver"), "113_40212_103"))
             mach64->config_stat0 = 5 | (1 << 4);
         else
             mach64->config_stat0 = 4 | (1 << 4);
+        if (info->local & MACH64_FLAG_RAGEXL) {
+            /* The Rage XL, "GR" (4752h), the PCI-33 BGA part (XL/XC
+               RRG table 4-4), ASIC ID 27h (TSMC B41, the OEM RRG's table
+               4-5, the last of its revisions). SDRAM, as the "...SDU"
+               BIOS expects. */
+            mach64->ragexl         = 1;
+            mach64->pci_id         = 0x4752;
+            mach64->config_chip_id = 0x27000000 | mach64->pci_id;
+            mach64->config_stat0   = 4 | (1 << 4);
+        }
         mach64_ragepro_reset(mach64);
     }
     mach64->use_block_decoded_io          = 4;
@@ -3989,7 +4033,22 @@ mach64gtb_init(const device_t *info)
         /* On-board: the video BIOS is part of the system BIOS. */
         ati_eeprom_load(&mach64->eeprom, (info->local & MACH64_FLAG_RAGEPRO) ? "mach64ragepro_onboard.nvr" :
                                          original ? "mach64rage_onboard.nvr" : rage2 ? "mach64rage2_onboard.nvr" : "mach64rage2p_onboard.nvr", 1);
-    else if (info->local & MACH64_FLAG_RAGEPRO) {
+    else if (info->local & MACH64_FLAG_RAGEXL) {
+        /* The Rage XL card's BIOS, 36K (48h blocks by its PCI data
+           structure) in the 64K ROM BAR. */
+        ati_eeprom_load(&mach64->eeprom, "mach64ragexl.nvr", 1);
+        rom_init(&mach64->bios_rom, (char *) device_get_bios_file(info, device_get_config_bios("bios_ver"), 0),
+                 0xc0000, 0x9000, 0xffff, 0, MEM_MAPPING_EXTERNAL);
+        /* The add-in card's "ROM based straps": the chip reads ROM bytes
+           4Ah-4Dh after the PCI reset, the subsystem vendor and ID (Controller
+           Specifications 3.10.2, table 3-20), into CONFIG_STAT1. */
+        if (mach64->bios_rom.rom) {
+            mach64->gtb_regs[0x96] = mach64->bios_rom.rom[0x4a];
+            mach64->gtb_regs[0x97] = mach64->bios_rom.rom[0x4b];
+            mach64->gtb_regs[0x94] = mach64->bios_rom.rom[0x4c];
+            mach64->gtb_regs[0x95] = mach64->bios_rom.rom[0x4d];
+        }
+    } else if (info->local & MACH64_FLAG_RAGEPRO) {
         /* The Rage Pro card's own BIOS, 32K. */
         ati_eeprom_load(&mach64->eeprom, (info->local & MACH64_FLAG_PQFP) ? "mach64ragepro_pci.nvr" : "mach64ragepro.nvr", 1);
         rom_init(&mach64->bios_rom, (char *) device_get_bios_file(info, device_get_config_bios("bios_ver"), 0),
@@ -4790,6 +4849,65 @@ static const device_config_t mach64ragepro_pci_config[] = {
     { .name = "", .description = "", .type = CONFIG_END }
 };
 
+/* The Rage XL PCI card (BGA, 4752h), SDRAM. The XL takes up to 8 MB
+   (MEM_CNTL's MEM_SIZE, XL/XC RRG 4-20). */
+static const device_config_t mach64ragexl_config[] = {
+    {
+        .name           = "bios_ver",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_BIOS,
+        .default_string = "113_72307_100",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "113-72307-100, SDRAM (2000/12/18, BK4.3.04/4.330)",
+                .internal_name = "113_72307_100",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 36864,
+                .files         = { BIOS_RAGEXL_72307_PATH, "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    {
+        .name           = "memory",
+        .description    = "Memory size",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 8,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "4 MB", .value = 4 },
+            { .description = "8 MB", .value = 8 },
+            { .description = ""                 }
+        },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "render_threads",
+        .description    = "Render threads",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 2,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "1", .value = 1 },
+            { .description = "2", .value = 2 },
+            { .description = "4", .value = 4 },
+            { .description = ""              }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
 /* The on-board 3D Rage Pro Turbo of the Intel BL440ZX, 8 MB of
    SDRAM (TPS 1.7); its BIOS is in the system BIOS. */
 static const device_config_t mach64ragepro_onboard_config[] = {
@@ -5147,6 +5265,21 @@ const device_t mach64ragepro_pci_device = {
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64ragepro_pci_config
+};
+
+/* The Rage XL (PCI). */
+const device_t mach64ragexl_pci_device = {
+    .name          = "ATI Rage XL PCI",
+    .internal_name = "mach64_ragexl_pci",
+    .flags         = DEVICE_PCI,
+    .local         = MACH64_GTB | MACH64_FLAG_RAGEPRO | MACH64_FLAG_RAGEXL,
+    .init          = mach64gtb_init,
+    .close         = mach64_close,
+    .reset         = mach64_reset,
+    .available     = NULL,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = mach64ragexl_config
 };
 
 const device_t mach64ragepro_onboard_device = {

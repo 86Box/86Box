@@ -587,6 +587,20 @@ mach64_ragepro_dump(mach64_t *mach64)
           (int) mach64->blitter_busy);
     mach64_timing_dump(mach64);
     pclog("Rage Pro: GUI_STAT %08X FIFO_STAT %08X\n", mach64_ext_readl(0x738, mach64), mach64_ext_readl(0x710, mach64));
+    {
+        char pll[64 * 3 + 1];
+
+        for (int i = 0; i < 64; i++)
+            sprintf(&pll[i * 3], " %02X", mach64->pll_regs[i]);
+        pclog("Rage Pro: PLL%s\n", pll);
+        pclog("Rage Pro: CLOCK_CNTL %08X MEM_CNTL %08X pixel clocks %.0f %.0f %.0f %.0f Hz\n", mach64->clock_cntl, mach64->mem_cntl,
+              mach64->pll_freq[0], mach64->pll_freq[1], mach64->pll_freq[2], mach64->pll_freq[3]);
+        if (mach64->ragexl)
+            pclog("Rage XL: CONFIG_STAT1 %02X%02X%02X%02X LCD_INDEX %02X, LCD 0-9 %08X %08X %08X %08X %08X %08X %08X %08X %08X %08X\n",
+                  mach64->gtb_regs[0x97], mach64->gtb_regs[0x96], mach64->gtb_regs[0x95], mach64->gtb_regs[0x94], mach64->gtb_regs[0xa4],
+                  mach64->lcd_regs[0], mach64->lcd_regs[1], mach64->lcd_regs[2], mach64->lcd_regs[3], mach64->lcd_regs[4],
+                  mach64->lcd_regs[5], mach64->lcd_regs[6], mach64->lcd_regs[7], mach64->lcd_regs[8], mach64->lcd_regs[9]);
+    }
     mach64_3d_ragepro_dump(mach64);
 }
 
