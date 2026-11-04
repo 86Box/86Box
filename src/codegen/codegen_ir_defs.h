@@ -648,7 +648,8 @@ uop_gen_reg_dst_imm(uint32_t uop_type, ir_data_t *ir, int dest_reg, uint32_t imm
     uop->dest_reg_a = codegen_reg_write(dest_reg, ir->wr_pos - 1);
     uop->imm_data   = imm;
     /*A tag set to a constant: valid with TAG_VALID (bit 0) in it, empty as
-      TAG_EMPTY (0) (x87.h)*/
+      TAG_EMPTY (0) (x87.h). No constant has TAG_DENORMAL, which a valid one
+      must not (codegen_fpu_guard_stack)*/
     if (((uop_type & UOP_MASK) == (UOP_MOV_IMM & UOP_MASK)) && ((unsigned) (IREG_GET_REG(dest_reg) - IREG_tag0) < 8)) {
         if (imm & 1)
             codegen_fpu_tag_valid |= 1 << (IREG_GET_REG(dest_reg) - IREG_tag0);

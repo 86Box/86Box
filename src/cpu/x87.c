@@ -82,8 +82,14 @@ x87_settag(uint16_t new_tag)
     for (uint8_t c = 0; c < 8; c++) {
         int tag = (new_tag >> (c * 2)) & 3;
 
+        /* The tag word loads no register: a denormal one stays denormal
+           while it is not tagged empty, whatever class the word gives it */
+        const uint8_t denormal = cpu_state.tag[c] & TAG_DENORMAL;
+
         if (tag == X87_TAG_EMPTY)
             cpu_state.tag[c] = TAG_EMPTY;
+        else if (denormal)
+            cpu_state.tag[c] = TAG_VALID | TAG_DENORMAL;
         else if (tag == 2)
             cpu_state.tag[c] = TAG_VALID | TAG_UINT64;
         else

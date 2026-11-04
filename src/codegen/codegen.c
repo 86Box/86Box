@@ -844,7 +844,7 @@ codegen_fpu_handover(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t 
 
 /* A store from ST(0) when it is empty, a stack underflow: the interpreter
    does it (x87_empty_store, opFST: IE and SF, the indefinite stored when
-   masked) */
+   masked). An extended denormal in ST(0) goes to it too. */
 void
 codegen_fpu_guard_empty(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t interp_pc, x86seg *target_seg)
 {
@@ -857,7 +857,9 @@ codegen_fpu_guard_empty(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32
     if (codegen_fpu_tag_valid & (1 << st0))
         return;
     uop_MOVZX(ir, IREG_temp0, IREG_tag_B(0));
-    jump_uop = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp0, TAG_EMPTY);
+    /*Valid and not an extended denormal (codegen_fpu_guard_stack)*/
+    uop_AND_IMM(ir, IREG_temp0, IREG_temp0, TAG_VALID | TAG_DENORMAL);
+    jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp0, TAG_VALID);
     codegen_fpu_handover(ir, fetchdat, op_32, interp_pc, target_seg);
     uop_set_jump_dest(ir, jump_uop);
     /*The block goes on only with ST(0) valid*/
@@ -870,7 +872,10 @@ codegen_fpu_guard_empty(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32
    interpreter's version of the instruction takes it (x87_stack_underflow,
    x87_stack_overflow and their callers in x87_ops.h), and the block ends
    past it. One branch tests them all: a register is empty when its tag's
-   TAG_VALID bit is clear (x87.h). Taken after the operand's address is
+   TAG_VALID bit is clear (x87.h). A register read that holds an extended
+   denormal (TAG_DENORMAL) goes the same way, the interpreter raising DE for
+   the instructions that do, so codegen_fpu_tag_valid also says the register
+   is not one, here and in codegen_fpu_guard_empty. Taken after the operand's address is
    generated and before it is read: the interpreter does the whole
    instruction again, so a #GP or #PF on the operand still comes first. */
 void
@@ -897,22 +902,24 @@ codegen_fpu_guard_stack(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32
     if (!regs)
         return;
 
+    /*temp0 collects what is wrong: TAG_VALID clear or TAG_DENORMAL set in a
+      register read (tag ^ TAG_VALID), TAG_VALID set in the push destination*/
     for (int i = 0; i < 8; i++) {
         if (!(regs & FPU_GUARD_ST(i)))
             continue;
         uop_MOVZX(ir, have ? IREG_temp1 : IREG_temp0, IREG_tag_B(i));
+        uop_XOR_IMM(ir, have ? IREG_temp1 : IREG_temp0, have ? IREG_temp1 : IREG_temp0, TAG_VALID);
         if (have)
-            uop_AND(ir, IREG_temp0, IREG_temp0, IREG_temp1);
+            uop_OR(ir, IREG_temp0, IREG_temp0, IREG_temp1);
         have = 1;
     }
     if (regs & FPU_GUARD_PUSH) {
         uop_MOVZX(ir, have ? IREG_temp1 : IREG_temp0, IREG_tag_B(-1));
-        uop_XOR_IMM(ir, have ? IREG_temp1 : IREG_temp0, have ? IREG_temp1 : IREG_temp0, TAG_VALID);
         if (have)
-            uop_AND(ir, IREG_temp0, IREG_temp0, IREG_temp1);
+            uop_OR(ir, IREG_temp0, IREG_temp0, IREG_temp1);
     }
-    uop_AND_IMM(ir, IREG_temp0, IREG_temp0, TAG_VALID);
-    jump_uop = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp0, 0);
+    uop_AND_IMM(ir, IREG_temp0, IREG_temp0, TAG_VALID | TAG_DENORMAL);
+    jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp0, 0);
     codegen_fpu_handover(ir, fetchdat, op_32, interp_pc, target_seg);
     uop_set_jump_dest(ir, jump_uop);
     /*The block goes on only with them valid, and a push's ST(7) empty*/
