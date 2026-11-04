@@ -231,7 +231,10 @@ mach64_ragepro_bm_gui_dword(mach64_t *mach64, uint32_t target, uint32_t val)
     svga_t  *svga = &mach64->svga;
     uint32_t reg;
 
-    if ((target & 0xfff800) != BM_APERTURE_REGS) {
+    /* The registers are told by bits 22:11 alone: ATI's DirectDraw driver
+       (macxdd32 4.11, its MPEG motion compensation) sends its register
+       packets to 7FFFE48h, its Direct3D driver to 7FFE48h. */
+    if ((target & 0x7ff800) != BM_APERTURE_REGS) {
         /* A run into the frame buffer. */
         target &= mach64->vram_mask & ~3;
         *(uint32_t *) &svga->vram[target]   = val;

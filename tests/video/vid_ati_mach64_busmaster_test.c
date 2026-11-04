@@ -193,6 +193,16 @@ gui_transfers(mach64_t *m)
     CHECK(write_val[0] == packet[1] && write_val[1] == packet[2]);
     CHECK(mach64_ragepro_blk1_read(m, RP1_BM_GUI_TABLE, &value) && value == 0x4020);
     CHECK(!m->rp.running && !m->rp.pkt_count);
+
+    /* ATI's DirectDraw MPEG motion compensation sends its packets to
+       7FFFE48h: the registers are told by bits 22:11, not by 23:11. */
+    writes = 0;
+    descriptor(0x4020, 0x7fffe48, 0x1000, BM_CMD_HOLD_OFFSET | BM_CMD_EOL | 12);
+    CHECK(mach64_ragepro_gui_write(m, RP0_BM_GUI_TABLE_CMD, 0x4020, FIFO_WRITE_DWORD));
+    CHECK(!mach64_ragepro_gui_write(m, RP0_SRC_CNTL, SRC_BM_ENABLE | (3u << SRC_BM_OP_SHIFT), FIFO_WRITE_DWORD));
+    CHECK(mach64_ragepro_gui_write(m, RP0_DST_HEIGHT_WIDTH, 1, FIFO_WRITE_DWORD));
+    CHECK(writes == 2 && write_addr[0] == 0x6c0 && write_addr[1] == 0x6c4);
+    CHECK(!m->rp.pkt_count);
 }
 
 int
