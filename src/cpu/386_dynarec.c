@@ -421,6 +421,67 @@ codegen_fp_pending(void)
     return x87_legacy_pending_entry();
 }
 
+/* x87_dyn_fdiv with an extended-denormal register operand (TAG_DENORMAL):
+   the divide as the softfloat core's FDIV handlers do it (sf_FDIV_st0_stj,
+   sf_FDIV_sti_st0, sf_FDIV/sf_FDIVR of the sf_FPU forms), on the legacy
+   registers as x87_denormal_sf hands them over, so a compiled FDIV and an
+   interpreted one agree. The memory operand is the double the block loaded,
+   from a single (kind 1), a double (2) or an integer (0). An empty register
+   operand is left to x87_legacy_divide's stack fault. */
+static int
+x87_dyn_fdiv_denormal(uint32_t imm)
+{
+    const int                 dest = imm & 7;
+    const int                 n    = (imm >> 3) & 7;
+    const int                 q    = (imm >> 6) & 7;
+    const int                 kind = (imm >> 11) & 3;
+    const double              m    = cpu_state.x87_operand;
+    extFloat80_t              a;
+    extFloat80_t              b;
+    extFloat80_t              result;
+    struct softfloat_status_t status;
+    int                       is_nan = 0;
+    int                       ret;
+
+    x87_legacy_to_sf();
+    clear_C1();
+    status = i387cw_to_softfloat_status_word(i387_get_control_word());
+    if (imm & 0x600) {
+        /* The register operand is ST(0) */
+        const extFloat80_t r = FPU_read_regi(0);
+        extFloat80_t       mem = r;
+        float32            m32;
+        float64            m64;
+        float              f;
+
+        if (kind == 1) {
+            f = (float) m;
+            memcpy(&m32, &f, sizeof(m32));
+            is_nan = FPU_handle_NaN32(r, m32, &result, &status);
+            if (!is_nan)
+                mem = f32_to_extF80(m32, &status);
+        } else if (kind == 2) {
+            memcpy(&m64, &m, sizeof(m64));
+            is_nan = FPU_handle_NaN64(r, m64, &result, &status);
+            if (!is_nan)
+                mem = f64_to_extF80(m64, &status);
+        } else
+            mem = i32_to_extF80((int32_t) m);
+        a = (imm & 0x200) ? mem : r;
+        b = (imm & 0x400) ? mem : r;
+    } else {
+        a = FPU_read_regi(n);
+        b = FPU_read_regi(q);
+    }
+    if (!is_nan)
+        result = extF80_div(a, b, &status);
+    ret = FPU_exception(0, status.softfloat_exceptionFlags, 0) ? 1 : 0;
+    if (!ret)
+        FPU_save_regi(result, dest);
+    x87_sf_to_legacy();
+    return ret;
+}
+
 /* The compiled FDIV family of the legacy FPU (codegen_ops_fpu_arith.c):
    the quotient as the interpreter forms it, x87_legacy_divide's exceptions
    and all, then rounded to the precision control and tagged. imm: bits 0-2
@@ -444,6 +505,13 @@ x87_dyn_fdiv(uint32_t imm)
     double    num  = (imm & 0x200) ? cpu_state.x87_operand : cpu_state.ST[(cpu_state.TOP + n) & 7];
     double    den  = (imm & 0x400) ? cpu_state.x87_operand : cpu_state.ST[(cpu_state.TOP + q) & 7];
     int       flags;
+
+    /* An extended-denormal register operand (TAG_DENORMAL, which an empty
+       register never has): the divide as the softfloat core's FDIV does it
+       (sf_FDIV*, x87_denormal_sf), on the operand's own value */
+    if (((!(imm & 0x200) && X87_ST_DENORMAL(n)) || (!(imm & 0x400) && X87_ST_DENORMAL(q))) &&
+        !((!(imm & 0x200) && X87_ST_EMPTY(n)) || (!(imm & 0x400) && X87_ST_EMPTY(q))))
+        return x87_dyn_fdiv_denormal(imm);
 
     if (imm & 0x600) {
         const double m        = cpu_state.x87_operand;

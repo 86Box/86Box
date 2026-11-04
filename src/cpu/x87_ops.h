@@ -138,13 +138,18 @@ x87_pop(void)
 
 #include "x87_ops_fist.h"
 
+/* denormal: set to TAG_DENORMAL for an image with a zero exponent and a
+   nonzero significand, which converts to a zero, else to 0; signif: the
+   image's significand, which such a register keeps in MM[].q */
 static __inline double
-x87_ld80(void)
+x87_ld80(uint8_t *denormal, uint64_t *signif)
 {
     x87_conv_t test;
     test.eind.ll = readmeml(easeg, cpu_state.eaaddr);
     test.eind.ll |= (uint64_t) readmeml(easeg, cpu_state.eaaddr + 4) << 32;
     test.begin = readmemw(easeg, cpu_state.eaaddr + 8);
+    *denormal  = (!(test.begin & 0x7fff) && test.eind.ll) ? TAG_DENORMAL : 0;
+    *signif    = test.eind.ll;
     return x87_from80(&test);
 }
 
@@ -190,8 +195,15 @@ x87_ld_frstor(int reg)
         cpu_state.tag[reg] = TAG_VALID | TAG_UINT64;
         cpu_state.ST[reg] = (double) cpu_state.MM[reg].q;
     } else {
-        cpu_state.tag[reg] &= ~TAG_UINT64;
-        cpu_state.ST[reg] = x87_ld80();
+        uint8_t  denormal;
+        uint64_t signif;
+
+        cpu_state.tag[reg] &= ~(TAG_UINT64 | TAG_DENORMAL);
+        /* MM[].q holds the significand already (readmemq above) */
+        cpu_state.ST[reg] = x87_ld80(&denormal, &signif);
+        /* The tag word, loaded first, says whether the register is empty */
+        if (cpu_state.tag[reg] != TAG_EMPTY)
+            cpu_state.tag[reg] |= denormal;
     }
 }
 
@@ -492,6 +504,39 @@ x87_stack_fault_push(void)
         }                                                                       \
     } while (0)
 
+/* A register operand the double file holds as a zero for an extended
+   denormal (TAG_DENORMAL): the instruction runs as the softfloat core's
+   handler sf_op runs it (x87_denormal_sf), which has the operand's value,
+   so its result and its exceptions in their order (80387 PRM 1987, 3.2.7;
+   i486 PRM 1990, 16.2.7: an SNaN, a QNaN, then another invalid operation
+   or a zero divide, all before the denormal operand).
+   X87_CHECK_DENORMAL goes in a register form after its cpu_state.pc++ (and
+   after its stack-fault check, which a denormal register cannot take);
+   X87_CHECK_DENORMAL_ENTRY first thing in a memory form, before its operand
+   is read. The 8087 build keeps the previous behaviour. */
+#ifdef FPU_8087
+#    define X87_CHECK_DENORMAL(denormal, sf_op) \
+        do {                                    \
+        } while (0)
+#    define X87_CHECK_DENORMAL_ENTRY(denormal, sf_op) \
+        do {                                          \
+        } while (0)
+#else
+#    define X87_CHECK_DENORMAL(denormal, sf_op)          \
+        do {                                             \
+            if (denormal) {                              \
+                cpu_state.pc--;                          \
+                return x87_denormal_sf(fetchdat, sf_op); \
+            }                                            \
+        } while (0)
+#    define X87_CHECK_DENORMAL_ENTRY(denormal, sf_op)    \
+        do {                                             \
+            if (denormal)                                \
+                return x87_denormal_sf(fetchdat, sf_op); \
+        } while (0)
+#endif
+#define X87_ST_DENORMAL2(a, b) (X87_ST_DENORMAL(a) || X87_ST_DENORMAL(b))
+
 /* ST(0) read, and a second result pushed */
 #define X87_CHECK_STACK_PUSH(t)                                           \
     do {                                                                  \
@@ -559,6 +604,109 @@ x87_push_int64(int64_t i)
 #include "x87_ops_sf_misc.h"
 #include "x87_ops_sf_trans.h"
 #include "x87_ops_sf.h"
+
+#ifndef FPU_8087
+/* Physical register reg as an extended value: a TAG_DENORMAL one from the
+   significand its load kept in MM[].q and the sign of its zero, a
+   TAG_UINT64 one from its integer, any other as FSTP m80 stores it. */
+static __inline extFloat80_t
+x87_legacy_reg80(int reg)
+{
+    extFloat80_t r;
+    x87_conv_t   c;
+
+    if (cpu_state.tag[reg] & TAG_DENORMAL) {
+        r.signExp = signbit(cpu_state.ST[reg]) ? 0x8000 : 0;
+        r.signif  = cpu_state.MM[reg].q;
+    } else if (cpu_state.tag[reg] & TAG_UINT64)
+        r = i64_to_extF80((int64_t) cpu_state.MM[reg].q);
+    else {
+        x87_to80(cpu_state.ST[reg], &c);
+        r.signExp = (uint16_t) c.begin;
+        r.signif  = c.eind.ll;
+    }
+    return r;
+}
+
+/* An extended value into physical register reg, tagged valid: an
+   extended denormal as a signed zero with TAG_DENORMAL and its
+   significand in MM[].q, anything else to the nearest double */
+static __inline void
+x87_legacy_set_reg80(int reg, extFloat80_t r)
+{
+    x87_conv_t c;
+
+    if (!(r.signExp & 0x7fff) && r.signif) {
+        cpu_state.ST[reg]   = (r.signExp & 0x8000) ? -0.0 : 0.0;
+        cpu_state.MM[reg].q = r.signif;
+        cpu_state.tag[reg]  = TAG_VALID | TAG_DENORMAL;
+    } else {
+        c.begin             = (int16_t) r.signExp;
+        c.eind.ll           = r.signif;
+        cpu_state.ST[reg]   = x87_from80(&c);
+        cpu_state.tag[reg]  = TAG_VALID;
+    }
+}
+
+/* The legacy FPU's instruction with a TAG_DENORMAL register operand, run
+   by the softfloat core's handler for the same opcode (X87_CHECK_DENORMAL):
+   the control and status words, TOP and the registers go to fpu_state, the
+   handler runs from the instruction's ModR/M byte, and the registers it
+   wrote, TOP and the status word come back. A register it did not write
+   keeps its legacy form (a FILD integer stays exact). Writes are told by
+   the tag: every occupied register goes over tagged special (10b), which
+   the handlers here only test for empty, and a register they write
+   (FPU_save_regi) comes back valid (00b), whatever its value. The pointers
+   stay the escape wrapper's, as for any legacy instruction. */
+static __inline void
+x87_legacy_to_sf(void)
+{
+    fpu_state.cwd = cpu_state.npxc;
+    fpu_state.swd = cpu_state.npxs & ~FPU_SW_Top;
+    fpu_state.tos = cpu_state.TOP & 7;
+    fpu_state.tag = 0;
+    for (int i = 0; i < 8; i++) {
+        if (cpu_state.tag[i] == TAG_EMPTY) {
+            fpu_state.st_space[i].signExp = 0;
+            fpu_state.st_space[i].signif  = 0;
+            fpu_state.tag |= X87_TAG_EMPTY << (i * 2);
+        } else {
+            fpu_state.st_space[i] = x87_legacy_reg80(i);
+            fpu_state.tag |= X87_TAG_INVALID << (i * 2);
+        }
+    }
+}
+
+static __inline void
+x87_sf_to_legacy(void)
+{
+    for (int i = 0; i < 8; i++) {
+        const int tag = (fpu_state.tag >> (i * 2)) & 3;
+
+        if (tag == X87_TAG_EMPTY)
+            cpu_state.tag[i] = TAG_EMPTY;
+        else if (tag == X87_TAG_VALID)
+            x87_legacy_set_reg80(i, fpu_state.st_space[i]);
+    }
+    /* TOP lives in cpu_state.TOP, which the legacy pushes and pops count
+       without wrapping: it moves by what the handler pushed or popped. The
+       status word's TOP field is left as the legacy instructions leave it
+       (opFSTSW_AX). */
+    cpu_state.TOP += (int) ((((fpu_state.tos - cpu_state.TOP) + 4) & 7)) - 4;
+    cpu_state.npxs = (fpu_state.swd & ~FPU_SW_Top) | (cpu_state.npxs & FPU_SW_Top);
+}
+
+static __inline int
+x87_denormal_sf(uint32_t fetchdat, OpFn sf_op)
+{
+    int ret;
+
+    x87_legacy_to_sf();
+    ret = sf_op(fetchdat);
+    x87_sf_to_legacy();
+    return ret;
+}
+#endif
 
 #include "x87_ops_arith.h"
 #include "x87_ops_misc.h"

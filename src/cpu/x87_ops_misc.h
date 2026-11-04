@@ -52,6 +52,7 @@ opFXTRACT(UNUSED(uint32_t fetchdat))
     FP_ENTER();
     cpu_state.pc++;
     X87_CHECK_STACK_PUSH(fxtract);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL(0), sf_FXTRACT);
     test.eind.d = ST(0);
     exp80       = test.eind.ll & 0x7ff0000000000000LL;
     exp80final  = (exp80 >> 52) - BIAS64;
@@ -659,7 +660,8 @@ opFCHS(UNUSED(uint32_t fetchdat))
     cpu_state.pc++;
     X87_CHECK_UNDERFLOW(X87_ST_EMPTY(0), 0, 0, fchs);
     ST(0) = -ST(0);
-    FP_TAG_VALID;
+    /* A denormal stays one */
+    cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID | (cpu_state.tag[cpu_state.TOP & 7] & TAG_DENORMAL);
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fchs) : (x87_timings.fchs * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fchs) : (x87_concurrency.fchs * cpu_multi));
     return 0;
@@ -672,7 +674,8 @@ opFABS(UNUSED(uint32_t fetchdat))
     cpu_state.pc++;
     X87_CHECK_UNDERFLOW(X87_ST_EMPTY(0), 0, 0, fabs);
     ST(0) = fabs(ST(0));
-    FP_TAG_VALID;
+    /* A denormal stays one */
+    cpu_state.tag[cpu_state.TOP & 7] = TAG_VALID | (cpu_state.tag[cpu_state.TOP & 7] & TAG_DENORMAL);
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fabs) : (x87_timings.fabs * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fabs) : (x87_concurrency.fabs * cpu_multi));
     return 0;
@@ -683,6 +686,7 @@ opFTST(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL(0), sf_FTST);
     cpu_state.npxs &= ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
     if (X87_STACK_FAULTS && X87_ST_EMPTY(0)) {
         /* Unordered whether or not #IA is masked, unlike FCOM (sf_FTST) */
@@ -710,6 +714,7 @@ opFTSTP(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL(0), sf_FTSTP);
     cpu_state.npxs &= ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
     if (X87_STACK_FAULTS && X87_ST_EMPTY(0)) {
         /* As FTST, and no pop either way */
@@ -850,6 +855,7 @@ opF2XM1(UNUSED(uint32_t fetchdat))
     FP_ENTER();
     cpu_state.pc++;
     X87_CHECK_UNDERFLOW(X87_ST_EMPTY(0), 0, 0, f2xm1);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL(0), sf_F2XM1);
     ST(0) = pow(2.0, ST(0)) - 1.0;
     FP_TAG_VALID;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.f2xm1) : (x87_timings.f2xm1 * cpu_multi));
@@ -863,6 +869,7 @@ opFYL2X(UNUSED(uint32_t fetchdat))
     FP_ENTER();
     cpu_state.pc++;
     X87_CHECK_UNDERFLOW(X87_ST_EMPTY2(0, 1), 1, 1, fyl2x);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, 1), sf_FYL2X);
     ST(1) = ST(1) * (log(ST(0)) / log(2.0));
     FP_TAG_VALID_N;
     x87_pop();
@@ -877,6 +884,7 @@ opFYL2XP1(UNUSED(uint32_t fetchdat))
     FP_ENTER();
     cpu_state.pc++;
     X87_CHECK_UNDERFLOW(X87_ST_EMPTY2(0, 1), 1, 1, fyl2xp1);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, 1), sf_FYL2XP1);
     ST(1) = ST(1) * (log1p(ST(0)) / log(2.0));
     FP_TAG_VALID_N;
     x87_pop();
@@ -900,6 +908,7 @@ opFPTAN(UNUSED(uint32_t fetchdat))
     cpu_state.pc++;
     cpu_state.npxs &= ~FPU_SW_C2;
     X87_CHECK_STACK_PUSH(fptan);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL(0), sf_FPTAN);
     X87_TRIG_RANGE();
     ST(0) = tan(ST(0));
     FP_TAG_VALID;
@@ -915,6 +924,7 @@ opFPATAN(UNUSED(uint32_t fetchdat))
     FP_ENTER();
     cpu_state.pc++;
     X87_CHECK_UNDERFLOW(X87_ST_EMPTY2(0, 1), 1, 1, fpatan);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, 1), sf_FPATAN);
     ST(1) = atan2(ST(1), ST(0));
     FP_TAG_VALID_N;
     x87_pop();
@@ -1013,6 +1023,7 @@ opFPREM(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, 1), sf_FPREM);
     if (!x87_fprem_common(0))
         FP_TAG_VALID;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fprem) : (x87_timings.fprem * cpu_multi));
@@ -1025,6 +1036,7 @@ opFPREM1(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, 1), sf_FPREM1);
     if (!x87_fprem_common(1))
         FP_TAG_VALID;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fprem1) : (x87_timings.fprem1 * cpu_multi));
@@ -1038,6 +1050,7 @@ opFSQRT(UNUSED(uint32_t fetchdat))
     FP_ENTER();
     cpu_state.pc++;
     X87_CHECK_UNDERFLOW(X87_ST_EMPTY(0), 0, 0, fsqrt);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL(0), sf_FSQRT);
     ST(0) = sqrt(ST(0));
     FP_ROUND_PC(ST(0));
     FP_TAG_VALID;
@@ -1055,6 +1068,7 @@ opFSINCOS(UNUSED(uint32_t fetchdat))
     cpu_state.pc++;
     cpu_state.npxs &= ~FPU_SW_C2;
     X87_CHECK_STACK_PUSH(fsincos);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL(0), sf_FSINCOS);
     X87_TRIG_RANGE();
     td    = ST(0);
     ST(0) = sin(td);
@@ -1074,6 +1088,7 @@ opFRNDINT(UNUSED(uint32_t fetchdat))
     FP_ENTER();
     cpu_state.pc++;
     X87_CHECK_UNDERFLOW(X87_ST_EMPTY(0), 0, 0, frndint);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL(0), sf_FRNDINT);
     /* In the double domain: no integer range limit, and a zero result
        keeps the operand's sign */
     dst0 = x87_fround_rc(ST(0));
@@ -1159,6 +1174,7 @@ opFSCALE(UNUSED(uint32_t fetchdat))
     FP_ENTER();
     cpu_state.pc++;
     X87_CHECK_UNDERFLOW(X87_ST_EMPTY2(0, 1), 0, 0, fscale);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, 1), sf_FSCALE);
     temp64 = (int64_t) ST(1);
     if (ST(0) != 0.0)
         ST(0) = ST(0) * pow(2.0, (double) temp64);
@@ -1176,6 +1192,7 @@ opFSIN(UNUSED(uint32_t fetchdat))
     cpu_state.pc++;
     cpu_state.npxs &= ~FPU_SW_C2;
     X87_CHECK_UNDERFLOW(X87_ST_EMPTY(0), 0, 0, fsin_cos);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL(0), sf_FSIN);
     X87_TRIG_RANGE();
     ST(0) = sin(ST(0));
     FP_TAG_VALID;
@@ -1191,6 +1208,7 @@ opFCOS(UNUSED(uint32_t fetchdat))
     cpu_state.pc++;
     cpu_state.npxs &= ~FPU_SW_C2;
     X87_CHECK_UNDERFLOW(X87_ST_EMPTY(0), 0, 0, fsin_cos);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL(0), sf_FCOS);
     X87_TRIG_RANGE();
     ST(0) = cos(ST(0));
     FP_TAG_VALID;

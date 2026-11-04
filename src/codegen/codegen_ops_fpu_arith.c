@@ -106,13 +106,17 @@ fdiv_divide(ir_data_t *ir, uint32_t next_pc, uint32_t imm)
         uop_AND_IMM(ir, IREG_temp2, IREG_temp2, 0x300);
         jump_pc = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp2, 0x200);
     }
+    /* An empty register or an extended denormal (TAG_DENORMAL, DE) goes to
+       the call */
     if (!(imm & FDIV_MEM_NUM)) {
         uop_MOVZX(ir, IREG_temp2, IREG_tag_B((imm >> 3) & 7));
-        jump_num = uop_CMP_IMM_JZ_DEST(ir, IREG_temp2, TAG_EMPTY);
+        uop_AND_IMM(ir, IREG_temp2, IREG_temp2, TAG_VALID | TAG_DENORMAL);
+        jump_num = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp2, TAG_VALID);
     }
     if (!(imm & FDIV_MEM_DEN)) {
         uop_MOVZX(ir, IREG_temp2, IREG_tag_B((imm >> 6) & 7));
-        jump_den = uop_CMP_IMM_JZ_DEST(ir, IREG_temp2, TAG_EMPTY);
+        uop_AND_IMM(ir, IREG_temp2, IREG_temp2, TAG_VALID | TAG_DENORMAL);
+        jump_den = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp2, TAG_VALID);
     }
     uop_FDIV(ir, IREG_temp0_D, num, den);
     jump_slow  = uop_FDIV_JSLOW_DEST(ir, num, den, IREG_temp0_D, imm);
