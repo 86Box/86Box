@@ -89,6 +89,12 @@
 /* Rage XL PCI (BGA, PCI ID GR, 4752h), 8 MB SDRAM: ATI 113-72307-100,
    BK4.3.04/4.330, 2000/12/18 ("MACH64GRPCIMTSDUN8"), 36K (48h blocks). */
 #define BIOS_RAGEXL_72307_PATH        "roms/video/mach64/XL_5219.bin"
+/* Rage XL PCI, 8 MB SDRAM: ATI 113-72301-101, BK4.3.04/4.330, 2001/01/04
+   ("MACH64GRPCIMTSDUN8"), 32K. */
+#define BIOS_RAGEXL_72301_PATH        "roms/video/mach64/ragexl_pci_113-72301-101.bin"
+/* Rage XL PCI, SDRAM: ATI's test build GR-xlamis3p.150 for AMI, BK4.3.04/4.333,
+   2002/09/26 ("MACH64GRPCIMTSDU"), 42K (54h blocks) in a 64K part. */
+#define BIOS_RAGEXL_AMI_4333_PATH     "roms/video/mach64/ragexl_pci_4.333_ami.bin"
 /* Rage LT Pro AGP (BGA-312, PCI ID LB, 4C42h), SDRAM: ATI 113-55702-100,
    BK4.1.3/4.154T, 1999/04/13 ("MACH64LBPCIMTSDU"), board 109-55700-01, 64K. */
 #define BIOS_RAGELT_55702_PATH        "roms/video/mach64/ATI Rage LT Pro AGP (109-55700-01) 113-55702-100 4.154T.bin"
