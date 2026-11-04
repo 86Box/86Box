@@ -96,8 +96,9 @@
    2002/09/26 ("MACH64GRPCIMTSDU"), 42K (54h blocks) in a 64K part. */
 #define BIOS_RAGEXL_AMI_4333_PATH     "roms/video/mach64/ragexl_pci_4.333_ami.bin"
 /* Rage LT Pro AGP (BGA-312, PCI ID LB, 4C42h), SDRAM: ATI 113-55702-100,
-   BK4.1.3/4.154T, 1999/04/13 ("MACH64LBPCIMTSDU"), board 109-55700-01, 64K. */
-#define BIOS_RAGELT_55702_PATH        "roms/video/mach64/ATI Rage LT Pro AGP (109-55700-01) 113-55702-100 4.154T.bin"
+   BK4.1.3/4.154T, 1999/04/13 ("MACH64LBPCIMTSDU"), board 109-55700-01: a 58K
+   image (74h blocks) in a 64K part. */
+#define BIOS_RAGELT_55702_PATH        "roms/video/mach64/ragelt_agp_113-55702-100.bin"
 
 #define FIFO_SIZE         65536
 #define FIFO_MASK         (FIFO_SIZE - 1)
