@@ -851,7 +851,7 @@ HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index)
     ui->lineEditHeads->setValidator(new QIntValidator(1, max_heads, this));
     ui->lineEditSectors->setValidator(new QIntValidator(1, max_sectors, this));
 
-    Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass, true);
+    Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass, Harddrives::LptBridgesHdd);
     Harddrives::populateSpeeds(ui->comboBoxSpeed->model(), scSpeed, ui->comboBoxBus->currentData().toInt());
 
     switch (ui->comboBoxBus->currentData().toInt()) {

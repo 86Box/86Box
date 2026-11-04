@@ -2185,6 +2185,13 @@ load_floppy_and_cdrom_drives(void)
 
             if (cdrom[c].res >= PARALLEL_MAX)
                 cdrom[c].res = PARALLEL_MAX - 1;
+
+            /* The bridge: the BackPack unless the configuration names one. */
+            sprintf(temp, "cdrom_%02i_lpt_bridge", c + 1);
+            p = ini_section_get_string(cat, temp, NULL);
+            cdrom[c].lpt_bridge = (p == NULL) ? HDD_LPT_BPCK : hdd_lpt_bridge_get_from_internal_name(p);
+            if (!cdrom_lpt_bridge_valid(cdrom[c].lpt_bridge))
+                cdrom[c].lpt_bridge = HDD_LPT_BPCK;
         } else if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
             sprintf(temp, "cdrom_%02i_scsi_location", c + 1);
             sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c & 3);
@@ -2439,6 +2446,15 @@ load_other_removable_devices(void)
 
             if (rdisk_drives[c].res >= PARALLEL_MAX)
                 rdisk_drives[c].res = PARALLEL_MAX - 1;
+
+            /* The bridge: the EPAT unless the configuration names one; the
+               ZIP drives have their own chip. */
+            sprintf(temp, "rdisk_%02i_lpt_bridge", c + 1);
+            p = ini_section_get_string(cat, temp, NULL);
+            rdisk_drives[c].lpt_bridge = (p == NULL) ? HDD_LPT_EPAT : hdd_lpt_bridge_get_from_internal_name(p);
+            if ((rdisk_drives[c].lpt_bridge >= HDD_LPT_BRIDGES) || (rdisk_drives[c].type == RDISK_TYPE_ZIP_100) ||
+                (rdisk_drives[c].type == RDISK_TYPE_ZIP_100_PLUS) || (rdisk_drives[c].type == RDISK_TYPE_ZIP_250))
+                rdisk_drives[c].lpt_bridge = HDD_LPT_EPAT;
         } else if (rdisk_drives[c].bus_type == RDISK_BUS_SCSI) {
             sprintf(temp, "rdisk_%02i_scsi_location", c + 1);
             sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c + 2);
@@ -4856,6 +4872,12 @@ save_floppy_and_cdrom_drives(void)
         else
             ini_section_set_int(cat, temp, cdrom[c].res);
 
+        sprintf(temp, "cdrom_%02i_lpt_bridge", c + 1);
+        if ((cdrom[c].bus_type != CDROM_BUS_LPT) || (cdrom[c].lpt_bridge == HDD_LPT_BPCK))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_string(cat, temp, hdd_lpt_bridge_get_internal_name(cdrom[c].lpt_bridge));
+
         sprintf(temp, "cdrom_%02i_image_path", c + 1);
         if ((cdrom[c].bus_type == 0) || (strlen(cdrom[c].image_path) == 0))
             ini_section_delete_var(cat, temp);
@@ -4922,6 +4944,12 @@ save_other_removable_devices(void)
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_int(cat, temp, rdisk_drives[c].res);
+
+        sprintf(temp, "rdisk_%02i_lpt_bridge", c + 1);
+        if ((rdisk_drives[c].bus_type != RDISK_BUS_LPT) || (rdisk_drives[c].lpt_bridge == HDD_LPT_EPAT))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_string(cat, temp, hdd_lpt_bridge_get_internal_name(rdisk_drives[c].lpt_bridge));
 
         sprintf(temp, "rdisk_%02i_image_path", c + 1);
         if ((rdisk_drives[c].bus_type == 0) || (strlen(rdisk_drives[c].image_path) == 0))

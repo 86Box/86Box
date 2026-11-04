@@ -31,6 +31,7 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/fdd.h>
 #include <86box/cdrom.h>
+#include <86box/hdd.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_tape.h>
 #include <86box/fdd_audio.h>
@@ -66,6 +67,29 @@ SettingsFloppyCDROM::setFloppyType(QAbstractItemModel *model, const QModelIndex 
     model->setData(idx, icon, Qt::DecorationRole);
 }
 
+/* On bus LPT the list's channel is the port and, above it, the bridge. */
+static QString
+cdromChannelName(uint8_t bus, uint8_t channel)
+{
+    if (bus == CDROM_BUS_LPT)
+        return QString("LPT%1 (%2)").arg((channel & 3) + 1).arg(Harddrives::lptBridgeName(channel >> 2));
+
+    return Harddrives::BusChannelName(bus, channel);
+}
+
+/* What the bus tracking counts: on bus LPT only the port. */
+static int
+cdromTrackChannel(int bus, int channel)
+{
+    return (bus == CDROM_BUS_LPT) ? (channel & 3) : channel;
+}
+
+static uint8_t
+cdromListChannel(const cdrom_t *drv)
+{
+    return (drv->bus_type == CDROM_BUS_LPT) ? (uint8_t) (drv->res | (drv->lpt_bridge << 2)) : drv->res;
+}
+
 void
 SettingsFloppyCDROM::setCDROMBus(QAbstractItemModel *model, const QModelIndex &idx, uint8_t bus, uint32_t type, uint8_t channel)
 {
@@ -89,7 +113,7 @@ SettingsFloppyCDROM::setCDROMBus(QAbstractItemModel *model, const QModelIndex &i
     }
 
     auto i = idx.siblingAtColumn(0);
-    model->setData(i, Harddrives::BusChannelName(bus, channel));
+    model->setData(i, cdromChannelName(bus, channel));
     model->setData(i, bus, Qt::UserRole);
     model->setData(i, channel, Qt::UserRole + 1);
     model->setData(i, icon, Qt::DecorationRole);
@@ -258,7 +282,7 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
     for (int i = 0; i < CDROM_NUM; i++) {
         auto idx  = model->index(i, 0);
         int  type = cdrom_get_type(i);
-        setCDROMBus(model, idx, cdrom[i].bus_type, type, cdrom[i].res);
+        setCDROMBus(model, idx, cdrom[i].bus_type, type, cdromListChannel(&cdrom[i]));
         setCDROMType(model, idx.siblingAtColumn(2), type);
         int speed = cdrom_get_speed(type);
         if (speed == -1)
@@ -378,7 +402,7 @@ SettingsFloppyCDROM::changed()
     model = ui->treeViewCDROM->model();
     for (int i = 0; i < CDROM_NUM; i++) {
         has_changed  |= (cdrom[i].bus_type        != model->index(i, 0).data(Qt::UserRole).toUInt());
-        has_changed  |= (cdrom[i].res             != model->index(i, 0).data(Qt::UserRole + 1).toUInt());
+        has_changed  |= (cdromListChannel(&cdrom[i]) != model->index(i, 0).data(Qt::UserRole + 1).toUInt());
         has_changed  |= cdrom[i].speed && (cdrom[i].speed != model->index(i, 1).data(Qt::UserRole).toUInt());
         has_changed  |= (cdrom_get_type(i)        != model->index(i, 2).data(Qt::UserRole).toInt());
         has_changed  |= (cdrom[i].restricted_capacity != model->index(i, 1).data(Qt::UserRole + 4).toUInt());
@@ -425,6 +449,11 @@ SettingsFloppyCDROM::save(int soft)
         cdrom[i].get_channel = NULL;
         cdrom[i].bus_type    = model->index(i, 0).data(Qt::UserRole).toUInt();
         cdrom[i].res         = model->index(i, 0).data(Qt::UserRole + 1).toUInt();
+        if (cdrom[i].bus_type == CDROM_BUS_LPT) {
+            cdrom[i].lpt_bridge = cdrom[i].res >> 2;
+            cdrom[i].res &= 3;
+        } else
+            cdrom[i].lpt_bridge = HDD_LPT_BPCK;
         cdrom[i].speed       = model->index(i, 1).data(Qt::UserRole).toUInt();
         cdrom[i].dvd_speed   = model->index(i, 1).data(Qt::UserRole + 2).toUInt();
         cdrom[i].hd_speed    = model->index(i, 1).data(Qt::UserRole + 3).toUInt();
@@ -633,7 +662,13 @@ SettingsFloppyCDROM::on_comboBoxFloppyAudio_activated(int)
 void
 SettingsFloppyCDROM::showEvent(QShowEvent *event)
 {
-    Harddrives::refreshBusNames(ui->treeViewCDROM->model());
+    /* As Harddrives::refreshBusNames(), with the bridge of a drive on LPT. */
+    auto *model = ui->treeViewCDROM->model();
+    for (int row = 0; row < model->rowCount(); row++) {
+        const auto idx = model->index(row, 0);
+
+        model->setData(idx, cdromChannelName(idx.data(Qt::UserRole).toUInt(), idx.data(Qt::UserRole + 1).toUInt()));
+    }
     reloadBusChannels();
     QWidget::showEvent(event);
 }
@@ -642,7 +677,7 @@ void
 SettingsFloppyCDROM::reloadBusChannels()
 {
     auto selected = ui->comboBoxChannel->currentIndex();
-    Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass);
+    Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass, Harddrives::LptBridgesCdrom);
     ui->comboBoxChannel->setCurrentIndex(selected);
     enableCurrentlySelectedChannel();
 }
@@ -656,7 +691,7 @@ SettingsFloppyCDROM::on_comboBoxBus_currentIndexChanged(int index)
         ui->comboBoxChannel->setEnabled(((bus == CDROM_BUS_MITSUMI) || (bus == CDROM_BUS_PHILIPS) || (bus == CDROM_BUS_CM100) || (bus == CDROM_BUS_SONY)) ? 0 : enabled);        ui->comboBoxCDROMType->setEnabled((bus == CDROM_BUS_MITSUMI) ? 0 : enabled);
         ui->checkBoxErrorCheck->setEnabled(((bus == CDROM_BUS_MITSUMI) || (bus == CDROM_BUS_PHILIPS) || (bus == CDROM_BUS_CM100) || (bus == CDROM_BUS_SONY)) ? 0 : enabled);
 
-        Harddrives::populateBusChannels(ui->comboBoxChannel->model(), bus, Harddrives::busTrackClass);
+        Harddrives::populateBusChannels(ui->comboBoxChannel->model(), bus, Harddrives::busTrackClass, Harddrives::LptBridgesCdrom);
     }
 }
 
@@ -669,7 +704,7 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
     uint8_t bus_type = ui->comboBoxBus->currentData().toUInt();
     int     cdromIdx = ui->treeViewCDROM->selectionModel()->currentIndex().data().toInt();
 
-    Harddrives::busTrackClass->device_track(0, DEV_CDROM, ui->treeViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->treeViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
+    Harddrives::busTrackClass->device_track(0, DEV_CDROM, ui->treeViewCDROM->model()->data(i, Qt::UserRole).toInt(), cdromTrackChannel(ui->treeViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->treeViewCDROM->model()->data(i, Qt::UserRole + 1).toInt()));
     if (bus_type == CDROM_BUS_HITACHI)
         ui->comboBoxChannel->setCurrentIndex(Harddrives::busTrackClass->next_free_hitachi_channel());
     else if (bus_type == CDROM_BUS_MKE)
@@ -678,8 +713,11 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
         ui->comboBoxChannel->setCurrentIndex(Harddrives::busTrackClass->next_free_ide_channel());
     else if (bus_type == CDROM_BUS_SCSI)
         ui->comboBoxChannel->setCurrentIndex(Harddrives::busTrackClass->next_free_scsi_id());
-    else if (bus_type == CDROM_BUS_LPT)
-        ui->comboBoxChannel->setCurrentIndex(Harddrives::busTrackClass->next_free_lpt_port());
+    else if (bus_type == CDROM_BUS_LPT) {
+        /* The port's BackPack entry. */
+        int port = Harddrives::busTrackClass->next_free_lpt_port();
+        ui->comboBoxChannel->setCurrentIndex((port == CHANNEL_NONE) ? port : ((port * HDD_LPT_BRIDGES) + HDD_LPT_BPCK));
+    }
     else if ((bus_type == CDROM_BUS_MITSUMI) || (bus_type == CDROM_BUS_PHILIPS) || (bus_type == CDROM_BUS_CM100) || (bus_type == CDROM_BUS_SONY))
         ui->comboBoxChannel->setCurrentIndex(0);
 
@@ -687,7 +725,7 @@ SettingsFloppyCDROM::on_comboBoxBus_activated(int)
                 ui->treeViewCDROM->selectionModel()->currentIndex(),
                 bus_type, cdrom[cdromIdx].type,
                 ui->comboBoxChannel->currentData().toUInt());
-    Harddrives::busTrackClass->device_track(1, DEV_CDROM, ui->treeViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->treeViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
+    Harddrives::busTrackClass->device_track(1, DEV_CDROM, ui->treeViewCDROM->model()->data(i, Qt::UserRole).toInt(), cdromTrackChannel(ui->treeViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->treeViewCDROM->model()->data(i, Qt::UserRole + 1).toInt()));
 
     auto *modelType  = ui->comboBoxCDROMType->model();
     int   removeRows = modelType->rowCount();
@@ -769,6 +807,18 @@ SettingsFloppyCDROM::enableCurrentlySelectedChannel()
     auto       *item       = item_model->item(index);
     if (item)
         item->setEnabled(true);
+
+    /* On bus LPT the drive may change its bridge and keep its port. */
+    if ((index >= 0) && (ui->comboBoxBus->currentData().toInt() == CDROM_BUS_LPT)) {
+        const int first = index - (index % HDD_LPT_BRIDGES);
+
+        for (int i = first; i < (first + HDD_LPT_BRIDGES); i++) {
+            auto *other = item_model->item(i);
+            if (other && Harddrives::lptPortEnabled(first / HDD_LPT_BRIDGES) &&
+                cdrom_lpt_bridge_valid(i % HDD_LPT_BRIDGES))
+                other->setEnabled(true);
+        }
+    }
 }
 
 void
@@ -776,13 +826,13 @@ SettingsFloppyCDROM::on_comboBoxChannel_activated(int)
 {
     int type = ui->comboBoxCDROMType->currentData().toUInt();
     auto i = ui->treeViewCDROM->selectionModel()->currentIndex().siblingAtColumn(0);
-    Harddrives::busTrackClass->device_track(0, DEV_CDROM, ui->treeViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->treeViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
+    Harddrives::busTrackClass->device_track(0, DEV_CDROM, ui->treeViewCDROM->model()->data(i, Qt::UserRole).toInt(), cdromTrackChannel(ui->treeViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->treeViewCDROM->model()->data(i, Qt::UserRole + 1).toInt()));
     setCDROMBus(ui->treeViewCDROM->model(),
                 ui->treeViewCDROM->selectionModel()->currentIndex(),
                 ui->comboBoxBus->currentData().toUInt(), type,
                 ui->comboBoxChannel->currentData().toUInt());
     ui->treeViewCDROM->resizeColumnToContents(0);
-    Harddrives::busTrackClass->device_track(1, DEV_CDROM, ui->treeViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->treeViewCDROM->model()->data(i, Qt::UserRole + 1).toInt());
+    Harddrives::busTrackClass->device_track(1, DEV_CDROM, ui->treeViewCDROM->model()->data(i, Qt::UserRole).toInt(), cdromTrackChannel(ui->treeViewCDROM->model()->data(i, Qt::UserRole).toInt(), ui->treeViewCDROM->model()->data(i, Qt::UserRole + 1).toInt()));
     emit cdromChannelChanged();
 }
 

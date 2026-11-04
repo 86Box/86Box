@@ -162,7 +162,7 @@ Harddrives::lptPortEnabled(int port)
 }
 
 void
-Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusTracking *sbt, bool lptBridges)
+Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusTracking *sbt, int lptBridges)
 {
     model->removeRows(0, model->rowCount());
 
@@ -271,7 +271,8 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
             model->setData(idx, port | (bridge << 2), Qt::UserRole);
             auto *channelItem = qobject_cast<QStandardItemModel *>(model)->item(i);
             if (channelItem)
-                channelItem->setEnabled(!channelsInUse.contains(port) && lpt_ports[port].enabled);
+                channelItem->setEnabled(!channelsInUse.contains(port) && lpt_ports[port].enabled &&
+                                        ((lptBridges != LptBridgesCdrom) || cdrom_lpt_bridge_valid(bridge)));
         }
         return;
     }

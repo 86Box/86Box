@@ -306,7 +306,7 @@ SettingsHarddisks::reloadBusChannels()
        clear that channel's use by another drive. */
     const QSignalBlocker blocker(ui->comboBoxChannel);
     const auto           selected = ui->comboBoxChannel->currentIndex();
-    Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass, true);
+    Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass, Harddrives::LptBridgesHdd);
     ui->comboBoxChannel->setCurrentIndex(selected);
     enableCurrentlySelectedChannel();
 }
@@ -338,7 +338,7 @@ SettingsHarddisks::on_comboBoxBus_currentIndexChanged(int index)
            selected, so that picking the channel below always reaches
            on_comboBoxChannel_currentIndexChanged(). */
         const QSignalBlocker blocker(ui->comboBoxChannel);
-        Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass, true);
+        Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass, Harddrives::LptBridgesHdd);
         ui->comboBoxChannel->setCurrentIndex(-1);
     }
     Harddrives::populateSpeeds(ui->comboBoxSpeed->model(), scSpeed, ui->comboBoxBus->currentData().toInt());

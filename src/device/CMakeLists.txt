@@ -57,6 +57,7 @@ add_library(dev OBJECT
     lpt_bpfdd.c
     lpt_on26.c
     lpt_epia.c
+    lpt_freecom.c
     lpt_ditto.c
     lpt_epat.c
     lpt_zip.c

@@ -93,6 +93,8 @@ enum {
     HDD_LPT_EPAT = 1, /* Shuttle EPAT */
     HDD_LPT_EPIA = 2, /* Shuttle EPIA */
     HDD_LPT_BPCK = 3, /* MicroSolutions BackPack */
+    HDD_LPT_FRPW = 4, /* Freecom Power */
+    HDD_LPT_FRIQ = 5, /* Freecom IQ */
     HDD_LPT_BRIDGES
 };
 
@@ -233,6 +235,7 @@ extern const device_t *hdd_lpt_bridge_device(int bridge);
 extern const char *hdd_lpt_bridge_get_internal_name(int bridge);
 extern int         hdd_lpt_bridge_get_from_internal_name(const char *s);
 extern const char *hdd_lpt_bridge_get_name(int bridge);
+extern int         cdrom_lpt_bridge_valid(int bridge);
 
 extern hard_disk_t  hdd[HDD_SLOTS];
 extern unsigned int hdd_table[128][3];

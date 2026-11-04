@@ -1238,8 +1238,18 @@ static const struct {
     { "on26", "OnSpec 90c26", &lpt_on26_device },
     { "epat", "Shuttle EPAT", &lpt_epat_device },
     { "epia", "Shuttle EPIA", &lpt_epia_device },
-    { "bpck", "MicroSolutions BackPack", &lpt_bpck_device }
+    { "bpck", "MicroSolutions BackPack", &lpt_bpck_device },
+    { "frpw", "Freecom Power", &lpt_frpw_device },
+    { "friq", "Freecom IQ", &lpt_friq_device }
 };
+
+/* Whether a CD-ROM drive on bus LPT can sit behind the bridge: the EPAT
+   model drives a removable disk of its own instead. */
+int
+cdrom_lpt_bridge_valid(int bridge)
+{
+    return (bridge >= 0) && (bridge < HDD_LPT_BRIDGES) && (bridge != HDD_LPT_EPAT);
+}
 
 static int
 hdd_lpt_bridge_valid(int bridge)

@@ -497,6 +497,7 @@ typedef struct cdrom {
     };
 
     uint8_t            bus_type;     /* 0 = ATAPI, 1 = SCSI */
+    uint8_t            lpt_bridge;   /* bus LPT: the bridge, HDD_LPT_* */
     uint8_t            bus_mode;     /* Bit 0 = PIO suported;
                                         Bit 1 = DMA supportd. */
     uint8_t            cd_status;    /* Struct variable reserved for

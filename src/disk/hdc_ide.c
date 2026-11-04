@@ -3788,6 +3788,14 @@ ide_lpt_init(int port)
     return ide_boards[board];
 }
 
+/* The IDE channel of the master on the LPT board of the port: where an
+   ATAPI CD-ROM drive behind a bridge on that port attaches. */
+int
+ide_lpt_channel(int port)
+{
+    return ide_lpt_board(port) << 1;
+}
+
 /* The bridge's handler of INTRQ changes on the LPT board of the port. */
 void
 ide_lpt_set_irq(int port, void (*lpt_irq)(int set, void *priv), void *priv)
@@ -4206,6 +4214,24 @@ ide_plan(ide_owner_t owners[IDE_BUS_MAX], int mach, const int hdc[], const int s
                 (hdd[c].bus_type == HDD_BUS_LPT) && (hdd[c].channel == i)) {
                 ide_plan_claim(&plan, 1 << ide_lpt_board(i),
                                hdd_lpt_bridge_device(hdd[c].lpt_bridge),
+                               i + 1, 0);
+                break;
+            }
+        }
+        for (int c = 0; c < RDISK_NUM; c++) {
+            if (lpt_ports[i].enabled && (rdisk_drives[c].bus_type == RDISK_BUS_LPT) &&
+                (rdisk_drives[c].res == i) && (rdisk_drives[c].lpt_bridge != HDD_LPT_EPAT)) {
+                ide_plan_claim(&plan, 1 << ide_lpt_board(i),
+                               hdd_lpt_bridge_device(rdisk_drives[c].lpt_bridge),
+                               i + 1, 0);
+                break;
+            }
+        }
+        for (int c = 0; c < CDROM_NUM; c++) {
+            if (lpt_ports[i].enabled && (cdrom[c].bus_type == CDROM_BUS_LPT) &&
+                (cdrom[c].res == i) && (cdrom[c].lpt_bridge != HDD_LPT_BPCK)) {
+                ide_plan_claim(&plan, 1 << ide_lpt_board(i),
+                               hdd_lpt_bridge_device(cdrom[c].lpt_bridge),
                                i + 1, 0);
                 break;
             }
