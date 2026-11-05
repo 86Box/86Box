@@ -114,7 +114,11 @@ sis_5595_pmu_trap_io_mask(const uint16_t size, const uint16_t port, const uint8_
 {
     sis_5595_pmu_io_trap_t *trap = (sis_5595_pmu_io_trap_t *) priv;
 
-    if ((port & trap->mask) == (trap->addr & trap->mask))
+    /* PMU 5Ch-5Dh/4Dh: a mask bit of 1 IGNOREs that address bit.
+       Bits above the maskable low address bits must still match. */
+    const uint16_t compare_mask = (uint16_t) ~((uint16_t) trap->mask);
+
+    if ((port & compare_mask) == (trap->addr & compare_mask))
         sis_5595_pmu_trap_io(size, port, write, val, priv);
 }
 
@@ -145,8 +149,6 @@ sis_5595_pmu_trap_update_devctl(sis_5595_pmu_t *dev, uint8_t trap_id, uint8_t en
     if (enable && !trap->trap) {
         trap->priv     = (void *) dev;
         trap->flags    = flags;
-        trap->mask     = mask;
-        trap->addr     = addr;
         if (flags & 0x10)
             trap->trap     = io_trap_add(sis_5595_pmu_trap_io_ide_bm, trap);
         else if (flags & 0x08)
@@ -159,7 +161,17 @@ sis_5595_pmu_trap_update_devctl(sis_5595_pmu_t *dev, uint8_t trap_id, uint8_t en
         trap->sts_mask = sts_mask;
     }
 
-    /* Remap I/O trap. */
+    /* Configuration registers can be rewritten while a trap stays enabled.
+       Keep the address and ignore-bit mask current in that case, too. */
+    trap->mask = mask;
+    trap->addr = addr;
+
+    /* Programmable I/O masks affect the low 6 bits of the 10-bit trap
+       and the low 5 (1997) or 8 (1998) bits of the 16-bit trap.
+       Register the entire candidate block, then test the exact match. */
+    if (flags & 0x08)
+        addr &= (uint16_t) ~(size - 1);
+
     io_trap_remap(trap->trap, enable, addr, size);
 }
 
@@ -208,6 +220,9 @@ sis_5595_pmu_trap_update(void *priv)
 
     temp = fregs[0x5e] | (fregs[0x5f] << 8);
 
+    /* PMU 4Dh: 1997 defines ignore bits A[4:0] (4Dh[4:0]);
+       1998 defines A[7:0] (4Dh[7:0]) in the register description.
+       The 1998 address-register note mentions only five bits. */
     if (dev->is_1997) {
         mask = fregs[0x4d] & 0x1f;
 
