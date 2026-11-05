@@ -198,6 +198,38 @@
            </layout>
           </item>
 
+          <item row="5">
+           <layout class="QHBoxLayout" name="horizontalLayoutCharLcd">
+            <item>
+             <widget class="QCheckBox" name="checkBoxCharLcd">
+              <property name="text">
+               <string>Character LCD (HD44780)</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <spacer name="horizontalSpacerCharLcd">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>40</width>
+                <height>20</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+            <item>
+             <widget class="QPushButton" name="pushButtonConfigureCharLcd">
+              <property name="text">
+               <string>Configure</string>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </item>
+
          </layout>
         </widget>
        </item>
@@ -661,6 +693,8 @@
   <tabstop>pushButtonConfigureKeyCard</tabstop>
   <tabstop>checkBoxSoftPower</tabstop>
   <tabstop>pushButtonConfigureSoftPower</tabstop>
+  <tabstop>checkBoxCharLcd</tabstop>
+  <tabstop>pushButtonConfigureCharLcd</tabstop>
   <tabstop>comboBoxMemExpCard1</tabstop>
   <tabstop>pushButtonConfigureMemExpCard1</tabstop>
   <tabstop>comboBoxMemExpCard2</tabstop>

@@ -2796,6 +2796,7 @@ load_other_peripherals(void)
     unittester_enabled     = !!ini_section_get_int(cat, "unittester_enabled", 0);
     novell_keycard_enabled = !!ini_section_get_int(cat, "novell_keycard_enabled", 0);
     softpower_enabled      = !!ini_section_get_int(cat, "softpower_enabled", 0);
+    char_lcd_enabled       = !!ini_section_get_int(cat, "char_lcd_enabled", 0);
 
     if (!bugger_enabled)
         ini_section_delete_var(cat, "bugger_enabled");
@@ -2811,6 +2812,9 @@ load_other_peripherals(void)
 
     if (!softpower_enabled)
         ini_section_delete_var(cat, "softpower_enabled");
+
+    if (!char_lcd_enabled)
+        ini_section_delete_var(cat, "char_lcd_enabled");
 
     // MCA RAM Boards
     for (uint8_t c = 0; c < MCAMEM_MAX; c++) {
@@ -4424,6 +4428,11 @@ save_other_peripherals(void)
         ini_section_delete_var(cat, "softpower_enabled");
     else
         ini_section_set_int(cat, "softpower_enabled", softpower_enabled);
+
+    if (char_lcd_enabled == 0)
+        ini_section_delete_var(cat, "char_lcd_enabled");
+    else
+        ini_section_set_int(cat, "char_lcd_enabled", char_lcd_enabled);
 
     // MCA RAM Boards
     for (uint8_t c = 0; c < MCAMEM_MAX; c++) {

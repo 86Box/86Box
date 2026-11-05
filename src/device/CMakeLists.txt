@@ -22,6 +22,7 @@ add_library(dev OBJECT
     ast_readout.c
     board_led.c
     bugger.c
+    char_lcd.c
     cartridge.c
     cassette.c
     clock_ics9xxx.c

@@ -203,6 +203,7 @@ extern int      novell_keycard_enabled;     /* (C) enable Novell NetWare 2.x key
 extern int      postcard_enabled;           /* (C) enable POST card */
 extern int      unittester_enabled;         /* (C) enable unit tester device */
 extern int      softpower_enabled;            /* (C) enable PC Convertible-style soft power card */
+extern int      char_lcd_enabled;             /* (C) enable HD44780 character LCD */
 extern int      gameport_type[];            /* (C) enable gameports */
 extern int      mcamem_type[];              /* (C) enable MCA mem cards */
 extern int      isamem_type[];              /* (C) enable ISA mem cards */

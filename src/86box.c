@@ -65,6 +65,7 @@
 #include <86box/postcard.h>
 #include <86box/unittester.h>
 #include <86box/softpower.h>
+#include <86box/char_lcd.h>
 #include <86box/ibm5140_power.h>
 #include <86box/novell_cardkey.h>
 #include <86box/mcamem.h>
@@ -182,6 +183,7 @@ int      novell_keycard_enabled                 = 0;              /* (C) enable 
 int      postcard_enabled                       = 0;              /* (C) enable POST card */
 int      unittester_enabled                     = 0;              /* (C) enable unit tester device */
 int      softpower_enabled                      = 0;              /* (C) enable PC Convertible-style soft power card */
+int      char_lcd_enabled                       = 0;              /* (C) enable HD44780 character LCD */
 int      gameport_type[GAMEPORT_MAX]            = { 0, 0 };       /* (C) enable gameports */
 int      mcamem_type[MCAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable MCA mem cards */
 int      isamem_type[ISAMEM_MAX]                = { 0, 0, 0, 0 }; /* (C) enable ISA mem cards */
@@ -2082,6 +2084,9 @@ pc_reset_hard_init(void)
 
     if (novell_keycard_enabled)
         device_add(&novell_keycard_device);
+
+    if (char_lcd_enabled)
+        device_add(&char_lcd_device);
 
     if (IS_ARCH(machine, MACHINE_BUS_PCI) ||
         IS_ARCH(machine, MACHINE_BUS_AGP) ||

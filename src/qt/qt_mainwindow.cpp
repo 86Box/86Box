@@ -28,6 +28,7 @@
 #include "qt_preferences.hpp"
 #include "qt_mcadevicelist.hpp"
 #include "qt_memoryviewer.hpp"
+#include "qt_charlcd.hpp"
 
 #include <QPointer>
 
@@ -297,6 +298,10 @@ MainWindow::MainWindow(QWidget *parent)
         prev_kana   = kana;
     });
     ledKeyboardTimer->start();
+
+    /* The character LCD, when one is fitted, in a window of its own. */
+    ui->menuView->addSeparator();
+    new CharLcdWindow(this, ui->menuView->addAction(tr("Character &LCD")));
 
 #ifdef Q_OS_WINDOWS
     util::setWin11RoundedCorners(this->winId(), (hide_status_bar ? false : true));

@@ -65,6 +65,9 @@ private slots:
     void on_checkBoxSoftPower_stateChanged(int arg1);
     void on_pushButtonConfigureSoftPower_clicked();
 
+    void on_checkBoxCharLcd_stateChanged(int arg1);
+    void on_pushButtonConfigureCharLcd_clicked();
+
 private:
     Ui::SettingsOtherPeripherals *ui;
     int                           machineId { 0 };
@@ -76,6 +79,7 @@ private:
     int                           novell_keycard_cfg_changed = 0;
     int                           softpower_cfg_changed      = 0;
     bool                          softpower_card_enabled     = false;
+    int                           char_lcd_cfg_changed       = 0;
 
     SettingsCompleter            *scRTC;
 
