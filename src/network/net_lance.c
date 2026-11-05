@@ -715,8 +715,19 @@ lance_csr_read(lance_t *dev, int reg)
                 ret = dev->csr[3];
             break;
 
+        case 0x58:
+            /* Chip version, low word. 0x3003 identifies the Am7990/C-LANCE
+               as seen by the Linux and NetWare drivers. */
+            ret = 0x3003;
+            break;
+
+        case 0x59:
+            /* Chip version, high word. */
+            ret = 0x0000;
+            break;
+
         default:
-            ret = dev->csr[reg & 3];
+            ret = 0x0000;
             break;
     }
 
@@ -802,7 +813,7 @@ lance_rdp_read(uint16_t addr, void *priv)
     (void) addr;
 
     lance_log("[LANCE] RDP read  csr%d\n", dev->rap & 3);
-    return lance_csr_read(dev, dev->rap & 3);
+    return lance_csr_read(dev, dev->rap);
 }
 
 void
@@ -813,7 +824,7 @@ lance_rdp_write(uint16_t addr, uint16_t val, void *priv)
     (void) addr;
 
     lance_log("[LANCE] RDP write csr%d = %04X\n", dev->rap & 3, val);
-    lance_csr_write(dev, dev->rap & 3, val);
+    lance_csr_write(dev, dev->rap, val);
 }
 
 uint16_t
@@ -834,7 +845,7 @@ lance_rap_write(uint16_t addr, uint16_t val, void *priv)
 
     (void) addr;
 
-    dev->rap = (uint8_t) (val & 0x03);
+    dev->rap = (uint8_t) (val & 0xff);
     lance_log("[LANCE] RAP write %04X -> %d\n", val, dev->rap);
 }
 
