@@ -1878,6 +1878,32 @@ media_why(char *why, const char *what)
     return why;
 }
 
+/* The client's next bytes, or <= 0 once it's gone or we're closing. A shutdown() from another
+   thread doesn't wake a blocking recv() on Winsock, so automation_close() would wait for as long
+   as the client stays connected: there, wait in short steps and look at the flag. */
+static int
+client_recv(char *buf, int len)
+{
+#ifdef _WIN32
+    for (;;) {
+        fd_set         rd;
+        struct timeval tv = { 0, 100000 };
+        int            r;
+
+        if (!enabled)
+            return 0;
+        FD_ZERO(&rd);
+        FD_SET(client_fd, &rd);
+        r = select(0, &rd, NULL, NULL, &tv);
+        if (r < 0)
+            return r;
+        if (r > 0)
+            break;
+    }
+#endif
+    return recv(client_fd, buf, len, 0);
+}
+
 /* media put <name> <bytes>, then the bytes: runs on the listener thread,
    which takes them off the connection itself, while the machine runs on.
    `buf` holds the `have` bytes that arrived with the request line; *used
@@ -1940,7 +1966,7 @@ media_put(const char *args, const char *buf, size_t have, size_t *used)
     *used = n;
     left -= n;
     while (left) {
-        int r = recv(client_fd, chunk, (int) ((left < sizeof(chunk)) ? left : sizeof(chunk)), 0);
+        int r = client_recv(chunk, (int) ((left < sizeof(chunk)) ? left : sizeof(chunk)));
         if (r <= 0) {
 #ifndef _WIN32
             if ((r < 0) && (errno == EINTR))
@@ -2673,7 +2699,7 @@ automation_thread(UNUSED(void *priv))
 
         while (enabled) {
             char *nl;
-            int   n = recv(client_fd, inbuf + inlen, (int) (sizeof(inbuf) - 1 - inlen), 0);
+            int   n = client_recv(inbuf + inlen, (int) (sizeof(inbuf) - 1 - inlen));
             if (n <= 0) {
 #ifndef _WIN32
                 if ((n < 0) && (errno == EINTR))
@@ -2721,9 +2747,11 @@ automation_thread(UNUSED(void *priv))
                     req_line[sizeof(req_line) - 1] = '\0';
                     thread_reset_event(req_done);
                     atomic_store(&req_pending, 1);
-                    thread_wait_event(req_done, -1);
+                    /* Closing (on a fatal error, say) wakes us without a reply; if its wake-up came
+                       just before the reset above, the flag still says so. */
+                    while (enabled && thread_wait_event(req_done, 100))
+                        ;
 
-                    /* Closing (on a fatal error, say) wakes us without a reply. */
                     if (!enabled || !write_all(client_fd, resp.buf, resp.len) || !write_all(client_fd, "\n", 1))
                         goto disconnect;
                 }
