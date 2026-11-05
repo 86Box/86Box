@@ -1,8 +1,14 @@
 if(BUILD_TESTING)
+    add_executable(x87_f2xm1_tests x87_f2xm1_test.cpp)
+    target_include_directories(x87_f2xm1_tests PRIVATE ${PROJECT_SOURCE_DIR}/src/cpu)
+    target_link_libraries(x87_f2xm1_tests PRIVATE softfloat3e)
+    add_test(NAME x87_f2xm1_tests COMMAND x87_f2xm1_tests)
+
     add_executable(debugger_register_tests
         debugger_register_test.cpp
         ../../src/debugger_register.c
     )
+
     add_executable(cpu_tr_tests
         cpu_tr_test.cpp
         ../../src/cpu/cpu.c
