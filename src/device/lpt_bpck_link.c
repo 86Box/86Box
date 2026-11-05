@@ -391,13 +391,17 @@ link_write_ctrl(uint8_t val, void *priv)
                the data lines may take the link. Answering to every address is
                not harmless - the host decides a unit is present by the status
                changing across the knock, so a pod that answers everywhere is
-               found nowhere.
+               found nowhere. A knock for another pod also lets go of the
+               link this one held: a host that walks the chain without
+               letting go first must see the others' answers, not ours.
              */
             if (link->dat == link->unit)
                 link_connect(link);
-            else
+            else {
+                link_disconnect(link);
                 LINK_LOG(link, "%s: knock for unit %02X, not ours (%02X)\n",
                          link->name, link->dat, link->unit);
+            }
         }
 
         return;
@@ -463,6 +467,60 @@ link_read_status(void *priv)
     }
 
     return ret;
+}
+
+/*
+   The 93C46. CS falling ends a frame; every rising CLK clocks DI in until
+   a command is recognised, after which each rising edge shifts the
+   addressed word out MSB first. Only READ is implemented: a driver issues
+   EWEN and WRITE as well, but a pod whose identity changed under it would
+   be a fault, not a feature.
+ */
+void
+bpck_ee_write(bpck_ee_t *ee, uint8_t val, const char *name,
+              void (*log)(const char *fmt, ...))
+{
+    const uint8_t old = ee->lines;
+
+    ee->lines = val;
+
+    if (!(val & BPCK_EE_CS)) {
+        ee->bits    = 0;
+        ee->shift   = 0;
+        ee->reading = 0;
+        ee->dout    = 0;
+        return;
+    }
+
+    /* Everything happens on the rising edge of the clock. */
+    if (!((val & BPCK_EE_CLK) && !(old & BPCK_EE_CLK)))
+        return;
+
+    if (ee->reading) {
+        ee->dout = (ee->out & 0x8000) ? 1 : 0;
+        ee->out  = (uint16_t) (ee->out << 1);
+        return;
+    }
+
+    ee->shift = (uint16_t) ((ee->shift << 1) | ((val & BPCK_EE_DI) ? 1 : 0));
+    ee->bits++;
+
+    /* START, opcode and six address bits: nine in all. */
+    if (ee->bits >= 9) {
+        const uint8_t addr = ee->shift & 0x3f;
+
+        if ((ee->shift & 0x180) == 0x180) {
+            ee->out     = ee->data[addr];
+            ee->reading = 1;
+            if (log != NULL)
+                log("%s: EEPROM read word %02X -> %04X\n", name, addr, ee->out);
+        } else {
+            if (log != NULL)
+                log("%s: EEPROM command %03X ignored\n", name, ee->shift & 0x1ff);
+            ee->bits  = 0;
+            ee->shift = 0;
+        }
+    }
 }
 
 int

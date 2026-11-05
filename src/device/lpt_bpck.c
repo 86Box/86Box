@@ -73,18 +73,10 @@ typedef struct bpck_s {
     uint8_t regs[256];
 
     /*
-     * The 93C46 the pod identifies itself from. Register 0x06 carries the
-     * lines and register 0x00 bit 7 is DO, which is why a read of 0x00 is not
-     * simply the stored byte. Addressing, opcode and word size are the
-     * standard part; only the contents are ours to supply.
+     * The 93C46 the pod identifies itself from; register 0x00 bit 7 is its
+     * DO, which is why a read of 0x00 is not simply the stored byte.
      */
-    uint8_t  ee_lines;
-    uint16_t ee_shift;   /* command being clocked in */
-    int      ee_bits;    /* bits clocked since CS rose */
-    uint16_t ee_out;     /* word being clocked out */
-    int      ee_reading;
-    int      ee_do;
-    uint16_t ee_data[64];
+    bpck_ee_t ee;
 
     /* The ATAPI drive behind the bridge, and the task file it presents. */
     scsi_device_t *sd;
@@ -105,10 +97,6 @@ typedef struct bpck_s {
     uint8_t        intrq; /* the drive's INTRQ, until status is read */
 } bpck_t;
 
-#define BPCK_EE_ENABLE 0x08
-#define BPCK_EE_CS     0x04
-#define BPCK_EE_DI     0x02
-#define BPCK_EE_CLK    0x01
 
 /* The ATAPI task file the bridge exposes, and the drive behind it. */
 #define BPCK_REG_TASKFILE 0x40 /* measured: the driver forms 0x40 | offset */
@@ -176,56 +164,6 @@ static void    bpck_reg_write(bpck_t *dev, const uint8_t addr, const uint8_t val
 /* Layer 2: the register file                                            */
 /* --------------------------------------------------------------------- */
 
-/*
- * The 93C46. CS falling ends a frame; every rising CLK clocks DI in until a
- * command is recognised, after which each rising edge shifts the addressed
- * word out MSB first. Only READ is implemented: the driver issues EWEN and
- * WRITE as well, but a pod whose identity changed under it would be a fault,
- * not a feature.
- */
-static void
-bpck_ee_write(bpck_t *dev, uint8_t val)
-{
-    const uint8_t old = dev->ee_lines;
-
-    dev->ee_lines = val;
-
-    if (!(val & BPCK_EE_CS)) {
-        dev->ee_bits    = 0;
-        dev->ee_shift   = 0;
-        dev->ee_reading = 0;
-        dev->ee_do      = 0;
-        return;
-    }
-
-    /* Everything happens on the rising edge of the clock. */
-    if (!((val & BPCK_EE_CLK) && !(old & BPCK_EE_CLK)))
-        return;
-
-    if (dev->ee_reading) {
-        dev->ee_do  = (dev->ee_out & 0x8000) ? 1 : 0;
-        dev->ee_out = (uint16_t) (dev->ee_out << 1);
-        return;
-    }
-
-    dev->ee_shift = (uint16_t) ((dev->ee_shift << 1) | ((val & BPCK_EE_DI) ? 1 : 0));
-    dev->ee_bits++;
-
-    /* START, opcode and six address bits: nine in all. */
-    if (dev->ee_bits >= 9) {
-        const uint8_t addr = dev->ee_shift & 0x3f;
-
-        if ((dev->ee_shift & 0x180) == 0x180) {
-            dev->ee_out     = dev->ee_data[addr];
-            dev->ee_reading = 1;
-            bpck_log("BPCK: EEPROM read word %02X -> %04X\n", addr, dev->ee_out);
-        } else {
-            bpck_log("BPCK: EEPROM command %03X ignored\n", dev->ee_shift & 0x1ff);
-            dev->ee_bits  = 0;
-            dev->ee_shift = 0;
-        }
-    }
-}
 
 static uint8_t
 bpck_read_reg(void *priv, int reg)
@@ -253,7 +191,7 @@ bpck_read_reg(void *priv, int reg)
 
     /* Register 0x00 bit 7 is the EEPROM data line, not stored state. */
     if ((reg & 0xff) == 0x00)
-        ret = (uint8_t) ((ret & 0x7f) | (dev->ee_do ? 0x80 : 0x00));
+        ret = (uint8_t) ((ret & 0x7f) | (dev->ee.dout ? 0x80 : 0x00));
 
     bpck_log("BPCK:    RR %02X -> %02X\n", reg & 0xff, ret);
 
@@ -276,7 +214,7 @@ bpck_write_reg(void *priv, int reg, uint8_t val)
     }
 
     if ((reg & 0xff) == 0x06)
-        bpck_ee_write(dev, val);
+        bpck_ee_write(&dev->ee, val, "BPCK", BPCK_LINK_LOG);
 
     /*
      * Register 0x04 carries the protocol the bridge is to use. It is acted on
@@ -756,7 +694,7 @@ bpck_init(UNUSED(const device_t *info))
     dev->link.max_proto = BPCK_PROTO_EPP32;
     dev->port           = (uint8_t) (device_get_instance() - 1);
 
-    memcpy(dev->ee_data, bpck_ee_default, sizeof(dev->ee_data));
+    memcpy(dev->ee.data, bpck_ee_default, sizeof(dev->ee.data));
 
     if (!bpck_link_attach(&dev->link, &bpck_link_ops, dev, "BPCK", BPCK_LINK_LOG)) {
         /* Another device already has this port. */

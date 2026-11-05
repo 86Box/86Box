@@ -93,6 +93,31 @@ typedef struct bpck_link_t {
     uint8_t last_status; /* last value handed back, to quieten poll loops */
 } bpck_link_t;
 
+/*
+   The 93C46 a pod identifies itself from, where one is fitted: register
+   0x06 carries its lines and register 0x00 bit 7 is DO. Addressing,
+   opcode and word size are the standard part; only the contents are the
+   pod's to supply.
+ */
+#define BPCK_EE_ENABLE 0x08
+#define BPCK_EE_CS     0x04
+#define BPCK_EE_DI     0x02
+#define BPCK_EE_CLK    0x01
+
+typedef struct bpck_ee_t {
+    uint8_t  lines;
+    uint16_t shift;   /* command being clocked in */
+    int      bits;    /* bits clocked since CS rose */
+    uint16_t out;     /* word being clocked out */
+    int      reading;
+    int      dout;
+    uint16_t data[64];
+} bpck_ee_t;
+
+/* The lines the host writes to register 0x06. */
+extern void bpck_ee_write(bpck_ee_t *ee, uint8_t val, const char *name,
+                          void (*log)(const char *fmt, ...));
+
 /* Sets the link up and claims the parallel port of the device instance;
    0 if another device already has it. */
 extern int bpck_link_attach(bpck_link_t *link, const bpck_link_ops_t *ops, void *priv,
