@@ -19,10 +19,14 @@
  *
  *           - The adapter wakes up on an IEEE 1284.3 style command packet,
  *             AA 55 00 FF 87 78 <command> after any byte (Linux sends FE,
- *             ValuStor FF), with the command strobed in: 20h or 21h
- *             connects, 30h disconnects. The status lines answer B, 5, B
- *             in the high nibble after FF, 87 and 78, and F once the
- *             command is strobed (on26_test_port() checks "0xb5f").
+ *             ValuStor FF), with the command strobed in: 20h connects,
+ *             30h disconnects. The status lines answer B, 5, B in the high
+ *             nibble after FF, 87 and 78, and F once the command is
+ *             strobed (on26_test_port() checks "0xb5f").
+ *           - CDBLAZER.SYS assigns the adapter daisy chain address 0
+ *             (command 00h) and wants nFault low after 78 from then on, or
+ *             it takes the chain for busy and drops the request. It counts
+ *             a second drive if 21h (address 1) connects as well.
  *           - Once connected, SELECT pulses with STROBE high latch a
  *             register index off the data lines (P1), and AUTOFD pulses
  *             with STROBE high write the data lines into that register
@@ -101,13 +105,22 @@ on26_log(const char *fmt, ...)
    does not count. */
 static const uint8_t on26_cpp[6] = { 0xaa, 0x55, 0x00, 0xff, 0x87, 0x78 };
 
-#define ON26_CPP_CONNECT    0x20 /* 21h connects as well */
+#define ON26_CPP_CONNECT    0x20
 #define ON26_CPP_DISCONNECT 0x30
+#define ON26_CPP_ASSIGN     0x00 /* 00h-03h: the chain address */
 
 #define ON26_CHK_1          0xb8 /* after FE AA 55 00 FF */
 #define ON26_CHK_2          0x58 /* after 87 */
 #define ON26_CHK_78         0xb8 /* after 78 */
+#define ON26_CHK_78_ADDR    0xb0 /* after 78, with a chain address */
 #define ON26_CHK_3          0xf8 /* the command strobed */
+
+/* After a register write, until a read is clocked, the status lines show
+   the adapter: PError set, and BUSY (bit 7) the drive's INTRQ.
+   CDBLAZER.SYS finds the adapter by PError and polls BUSY for the end of
+   a command. */
+#define ON26_STAT_REG       0x28
+#define ON26_STAT_INTRQ     0x80
 
 /* An internal register reads as a word: the register, then a second byte
    in which ValuStor's drivers want bit 5 set. Register 4, read only, is
@@ -135,6 +148,7 @@ typedef struct on26_t {
     uint8_t  ctrl;       /* control lines, as the host last wrote them */
     uint8_t  cpp_pos;    /* bytes of the command packet matched so far */
     uint8_t  cpp_stat;   /* checkpoint status while a packet runs */
+    uint8_t  chain_addr; /* a daisy chain address was assigned */
     uint8_t  connected;
     uint8_t  index;      /* internal register addressed */
     uint8_t  regs[16];   /* internal registers; 1 = IDE address, 2 = mode */
@@ -143,6 +157,7 @@ typedef struct on26_t {
     uint16_t rd_word;    /* the IDE read cycle being clocked out */
     uint8_t  rd_step;    /* nibbles (or bytes) of it handed out */
     uint8_t  status_out; /* what the status lines show while connected */
+    uint8_t  reg_stat;   /* they show the adapter (ON26_STAT_REG) instead */
     uint8_t  loop[ON26_LOOP_SIZE]; /* the loopback buffer (register 5) */
     uint8_t  loop_wr;
     uint8_t  loop_rd;
@@ -238,6 +253,7 @@ on26_write_reg(on26_t *dev, uint8_t index, uint8_t val)
     dev->regs[index & 15] = val;
     dev->rd_step         = 0;
     dev->wr_half         = 0;
+    dev->reg_stat        = 1;
 }
 
 /* The next nibble (4-bit) or byte (8-bit) of the window. */
@@ -248,6 +264,7 @@ on26_clock_read(on26_t *dev)
     int     steps = bytes ? 2 : 4;
     uint8_t byte;
 
+    dev->reg_stat = 0;
     if (dev->rd_step == 0) {
         if (dev->index == 4)
             dev->rd_word = ON26_VERSION | (ON26_RD_HIGH << 8);
@@ -278,7 +295,7 @@ on26_clock_read(on26_t *dev)
 static void
 on26_connect(on26_t *dev, uint8_t cmd)
 {
-    if ((cmd == ON26_CPP_CONNECT) || (cmd == (ON26_CPP_CONNECT | 1))) {
+    if (cmd == ON26_CPP_CONNECT) {
         if (!dev->connected)
             on26_log("ON26: connected\n");
         dev->connected  = 1;
@@ -286,7 +303,11 @@ on26_connect(on26_t *dev, uint8_t cmd)
         dev->rd_step    = 0;
         dev->wr_half    = 0;
         dev->status_out = 0x08;
+        dev->reg_stat   = 0;
     } else {
+        /* Only address 0, the one adapter on the chain. */
+        if ((cmd & 0xfc) == ON26_CPP_ASSIGN)
+            dev->chain_addr = (cmd == ON26_CPP_ASSIGN);
         if (dev->connected)
             on26_log("ON26: disconnected (%02X)\n", cmd);
         dev->connected = 0;
@@ -312,7 +333,7 @@ on26_write_data(uint8_t val, void *priv)
         else if (dev->cpp_pos == 5)
             dev->cpp_stat = ON26_CHK_2;
         else if (dev->cpp_pos == 6)
-            dev->cpp_stat = ON26_CHK_78;
+            dev->cpp_stat = dev->chain_addr ? ON26_CHK_78_ADDR : ON26_CHK_78;
         else
             dev->cpp_stat = 0;
     } else if (dev->cpp_pos == sizeof(on26_cpp))
@@ -380,6 +401,8 @@ on26_read_status(void *priv)
 
     if (dev->cpp_stat)
         return dev->cpp_stat & LPT_STAT_MASK;
+    if (dev->connected && dev->reg_stat)
+        return ON26_STAT_REG | (ide_lpt_intrq(dev->port) ? ON26_STAT_INTRQ : 0x00);
     if (dev->connected)
         return dev->status_out & LPT_STAT_MASK;
 
