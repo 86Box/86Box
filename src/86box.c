@@ -2085,7 +2085,8 @@ pc_reset_hard_init(void)
     if (novell_keycard_enabled)
         device_add(&novell_keycard_device);
 
-    if (char_lcd_enabled)
+    /* A parallel port LCD adapter may have added it already. */
+    if (char_lcd_enabled && !char_lcd_present())
         device_add(&char_lcd_device);
 
     if (IS_ARCH(machine, MACHINE_BUS_PCI) ||

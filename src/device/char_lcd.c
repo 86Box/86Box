@@ -17,7 +17,9 @@
  *          busy flag and address counter, and the time each instruction
  *          keeps it busy for.
  *
- *          It sits at two ISA I/O ports, instruction register first.
+ *          It can sit at two ISA I/O ports (instruction register first),
+ *          or on a parallel port wired the usual "Winamp" way: D0-D7 to
+ *          the data pins, nSTROBE to EN, nAUTOFD to R/W and nINIT to RS.
  *
  *          The module is a single instance with its state kept statically,
  *          so that the user interface, which polls it from its own thread,
@@ -39,6 +41,7 @@
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/timer.h>
+#include <86box/lpt.h>
 #include <86box/thread.h>
 #include <86box/char_lcd.h>
 #include <86box/plat_unused.h>
@@ -102,6 +105,10 @@ typedef struct char_lcd_t {
     uint8_t rd_hold;  /* What a read's second nibble returns. */
 
     volatile uint8_t busy;
+
+    /* The pins, for the pin interface. */
+    uint8_t pin_en;
+    uint8_t pin_out;
 
     uint16_t base; /* ISA I/O base, 0 if none. */
 
@@ -587,6 +594,35 @@ char_lcd_bus_write(int rs, uint8_t val)
     }
 }
 
+/*
+   EN's rising edge starts a read, whose data the module then drives until
+   EN falls; its falling edge latches a write.
+ */
+int
+char_lcd_pins(int rs, int rw, int en, uint8_t data)
+{
+    int ret = -1;
+
+    if (!lcd.present)
+        return ret;
+
+    lcd_lock();
+
+    en = !!en;
+    if (en && !lcd.pin_en && rw)
+        lcd.pin_out = lcd_bus_read_locked(rs);
+    else if (!en && lcd.pin_en && !rw)
+        lcd_bus_write_locked(rs, data);
+    lcd.pin_en = en;
+
+    if (en && rw)
+        ret = lcd.pin_out;
+
+    lcd_unlock();
+
+    return ret;
+}
+
 int
 char_lcd_present(void)
 {
@@ -805,12 +841,12 @@ static const device_config_t char_lcd_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "None", .value = 0x0000 },
-            { .description = "300H", .value = 0x0300 },
-            { .description = "308H", .value = 0x0308 },
-            { .description = "310H", .value = 0x0310 },
-            { .description = "318H", .value = 0x0318 },
-            { .description = ""                      }
+            { .description = "None (parallel port)", .value = 0x0000 },
+            { .description = "300H",                 .value = 0x0300 },
+            { .description = "308H",                 .value = 0x0308 },
+            { .description = "310H",                 .value = 0x0310 },
+            { .description = "318H",                 .value = 0x0318 },
+            { .description = ""                                      }
         },
         .bios           = { { 0 } }
     },
@@ -830,4 +866,89 @@ const device_t char_lcd_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = char_lcd_config
+};
+
+/*
+ * The parallel port adapter. nSTROBE, nAUTOFD and nSELECTIN are inverted
+ * between the control register and their pins, and nINIT is not, so EN and
+ * R/W are high when their bits are clear, and RS when its bit is set. The
+ * data lines are the port's latch; reads from the module are not wired back.
+ */
+#define LPT_LCD_EN 0x01 /* nSTROBE */
+#define LPT_LCD_RW 0x02 /* nAUTOFD */
+#define LPT_LCD_RS 0x04 /* nINIT */
+
+typedef struct lpt_char_lcd_t {
+    uint8_t data;
+    uint8_t ctrl;
+    void   *lpt;
+} lpt_char_lcd_t;
+
+static void
+lpt_char_lcd_pins(const lpt_char_lcd_t *dev)
+{
+    char_lcd_pins(!!(dev->ctrl & LPT_LCD_RS), !(dev->ctrl & LPT_LCD_RW), !(dev->ctrl & LPT_LCD_EN), dev->data);
+}
+
+static void
+lpt_char_lcd_write_data(uint8_t val, void *priv)
+{
+    lpt_char_lcd_t *dev = (lpt_char_lcd_t *) priv;
+
+    dev->data = val;
+    lpt_char_lcd_pins(dev);
+}
+
+static void
+lpt_char_lcd_write_ctrl(uint8_t val, void *priv)
+{
+    lpt_char_lcd_t *dev = (lpt_char_lcd_t *) priv;
+
+    dev->ctrl = val;
+    lpt_char_lcd_pins(dev);
+}
+
+static uint8_t
+lpt_char_lcd_read_status(UNUSED(void *priv))
+{
+    /* Nothing on the status pins: not busy, acknowledged, selected, paper in. */
+    return 0xdf;
+}
+
+static void *
+lpt_char_lcd_init(UNUSED(const device_t *info))
+{
+    lpt_char_lcd_t *dev = (lpt_char_lcd_t *) calloc(1, sizeof(lpt_char_lcd_t));
+
+    /* EN starts low. */
+    dev->ctrl = LPT_LCD_EN;
+
+    dev->lpt = lpt_attach(lpt_char_lcd_write_data, lpt_char_lcd_write_ctrl, NULL,
+                          lpt_char_lcd_read_status, NULL, NULL, NULL, dev);
+
+    /* The module itself, with the settings it has under Other peripherals. */
+    if (!char_lcd_present())
+        device_add(&char_lcd_device);
+
+    return dev;
+}
+
+static void
+lpt_char_lcd_close(void *priv)
+{
+    free(priv);
+}
+
+const device_t lpt_char_lcd_device = {
+    .name          = "Character LCD (HD44780, Winamp wiring)",
+    .internal_name = "lpt_char_lcd",
+    .flags         = DEVICE_LPT,
+    .local         = 0,
+    .init          = lpt_char_lcd_init,
+    .close         = lpt_char_lcd_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };

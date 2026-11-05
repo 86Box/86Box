@@ -28,6 +28,7 @@
 #include <86box/timer.h>
 #include <86box/lpt.h>
 #include <86box/prt_devs.h>
+#include <86box/char_lcd.h>
 #include <86box/thread.h>
 #include <86box/network.h>
 
@@ -67,6 +68,7 @@ static const struct {
     { &lpt_hasp_savquest_device },
     { &lpt_bpfdd_device },
     { &lpt_bpmcd_device },
+    { &lpt_char_lcd_device },
     { &char_pipe_lpt_device },
     { &char_file_lpt_device },
     { &char_loopback_lpt_device },

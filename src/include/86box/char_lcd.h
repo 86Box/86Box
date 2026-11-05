@@ -58,9 +58,13 @@ extern int      char_lcd_get_frame(char_lcd_frame_t *frame, int blink_on);
 /* A whole bus cycle, as a board with an LCD bus makes. Unfitted, the bus reads high. */
 extern uint8_t  char_lcd_bus_read(int rs);
 extern void     char_lcd_bus_write(int rs, uint8_t val);
+/* The module's pins, for whatever drives them one by one. Returns what the
+   module drives onto D0-D7, or -1 when it is not driving them. */
+extern int      char_lcd_pins(int rs, int rw, int en, uint8_t data);
 
 #ifdef EMU_DEVICE_H
 extern const device_t char_lcd_device;
+extern const device_t lpt_char_lcd_device;
 #endif
 
 #ifdef __cplusplus
