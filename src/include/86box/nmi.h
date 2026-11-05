@@ -4,8 +4,10 @@
 #ifndef EMU_NMI_H
 #define EMU_NMI_H
 
+/* nmi lives in cpu_events */
+#include <86box/cpu_events.h>
+
 extern int nmi_mask;
-extern int nmi;
 extern int nmi_auto_clear;
 
 /* Told when the NMI enable (port 70h bit 7 on an AT) changes, for a board

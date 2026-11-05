@@ -1113,7 +1113,7 @@ link_addr_exact(codeblock_t *block, int reg, const void *ptr)
 _Static_assert(offsetof(cpu_events_t, flush_pending) == 4 && offsetof(cpu_events_t, init) == 8
                    && offsetof(cpu_events_t, ne) == 12 && offsetof(cpu_events_t, force_interpreter) == 16
                    && offsetof(cpu_events_t, override_dynarec) == 20 && offsetof(cpu_events_t, dr_armed) == 24
-                   && offsetof(cpu_events_t, halted) == 28 && sizeof(cpu_events_t) == 32,
+                   && offsetof(cpu_events_t, halted) == 28 && sizeof(cpu_events_t) == 48,
                "cpu_events is loaded as two pairs of 64-bit words");
 
 /*Fields the routine loads together, with LDP or one wider load*/

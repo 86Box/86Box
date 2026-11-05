@@ -1209,6 +1209,49 @@ exec386_dynarec_dyn(const int dbg)
 
 }
 
+/*The events the loop takes after a block, read as three words: nonzero when
+  any may be due. cpu_events.irq stands for the interrupt sources below.*/
+_Static_assert(offsetof(cpu_events_t, ne) == offsetof(cpu_events_t, init) + 4
+                   && offsetof(cpu_events_t, irq) == offsetof(cpu_events_t, nmi_req) + 4
+                   && offsetof(cpu_events_t, irq_pad) == offsetof(cpu_events_t, irq) + 1
+                   && offsetof(cpu_state_t, _smi_line) == offsetof(cpu_state_t, abrt) + 1,
+               "the event words are pairs of adjacent fields");
+
+static __inline int
+cpu_events_due(void)
+{
+    uint64_t init_ne;
+    uint64_t nmi_irq;
+    uint16_t abrt_smi;
+
+    memcpy(&init_ne, &cpu_events.init, sizeof(init_ne));
+    memcpy(&nmi_irq, &cpu_events.nmi_req, sizeof(nmi_irq));
+    memcpy(&abrt_smi, &cpu_state.abrt, sizeof(abrt_smi));
+
+    return (init_ne | nmi_irq | abrt_smi) != 0;
+}
+
+/*Any source x86_external_interrupt_pending() can answer yes from*/
+static __inline int
+cpu_irq_sources(void)
+{
+    return pic.int_pending || (!cascade && pic2.int_pending) || cpu_lapic_extint_live[0] || (cpu_lapic_irr_live & 1u);
+}
+
+/*Only this thread clears cpu_events.irq; a writer on another thread may set
+  it at any time, so the sources are read again after the clear. Setting it
+  again is a read-modify-write so that a writer's release store stays in the
+  sequence the next clear's exchange synchronizes with.*/
+static __inline void
+cpu_irq_drain(void)
+{
+    if (cpu_events.irq && !cpu_irq_sources()) {
+        (void) __atomic_exchange_n(&cpu_events.irq, 0, __ATOMIC_ACQ_REL);
+        if (cpu_irq_sources())
+            (void) __atomic_fetch_or(&cpu_events.irq, 1, __ATOMIC_RELAXED);
+    }
+}
+
 /* As exec386_dynarec_int_common(): dbg is cpu_debug_regs_486, a constant, and
    the copy without it carries no debug register test per block. */
 __attribute__((always_inline)) static inline void
@@ -1268,37 +1311,40 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
                     cpu_flush_pending++;
             }
 
-            if (cpu_init) {
-                cpu_init = 0;
-                resetx86();
-            }
+            /* Every test below fails while none of its inputs is set. */
+            if (cpu_events_due()) {
+                if (cpu_init) {
+                    cpu_init = 0;
+                    resetx86();
+                }
 
-            if (cpu_state.abrt) {
-                flags_rebuild();
-                tempi          = cpu_state.abrt & ABRT_MASK;
-                cpu_state.abrt = 0;
-                x86_doabrt(tempi);
                 if (cpu_state.abrt) {
-                    int second_abrt = cpu_state.abrt & ABRT_MASK;
+                    flags_rebuild();
+                    tempi          = cpu_state.abrt & ABRT_MASK;
                     cpu_state.abrt = 0;
-                    cpu_state.pc   = cpu_state.oldpc;
-                    x86_fault_in_delivery(tempi, second_abrt);
+                    x86_doabrt(tempi);
                     if (cpu_state.abrt) {
+                        int second_abrt = cpu_state.abrt & ABRT_MASK;
                         cpu_state.abrt = 0;
-                        softresetx86_from(SOFT_RESET_SHUTDOWN);
-                        cpu_set_edx();
+                        cpu_state.pc   = cpu_state.oldpc;
+                        x86_fault_in_delivery(tempi, second_abrt);
+                        if (cpu_state.abrt) {
+                            cpu_state.abrt = 0;
+                            softresetx86_from(SOFT_RESET_SHUTDOWN);
+                            cpu_set_edx();
 #    ifdef ENABLE_386_DYNAREC_LOG
-                        x386_dynarec_log("Triple fault - reset\n");
+                            x386_dynarec_log("Triple fault - reset\n");
 #    endif
+                        }
                     }
                 }
-            }
 
-            if (new_ne) {
-                oldcs = CS;
-                cpu_state.oldpc = cpu_state.pc;
-                new_ne = 0;
-                x86_int(16);
+                if (new_ne) {
+                    oldcs = CS;
+                    cpu_state.oldpc = cpu_state.pc;
+                    new_ne = 0;
+                    x86_int(16);
+                }
             }
 
             /* A P_LVL2/P_LVL3 read in the block, or throttling.  The
@@ -1309,43 +1355,48 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
                 cpu_throttle_stall(oldcyc2 - cycles);
             }
 
-            if (smi_line) {
-                const int before = in_smm;
+            /* Read again: the tests above can raise an event. */
+            if (cpu_events_due()) {
+                if (smi_line) {
+                    const int before = in_smm;
 
-                enter_smm_check(0);
-                if (in_smm != before)
-                    cpu_halted = 0;
-            } else if (NMI_TAKEABLE()) {
-                /* Out of a HLT that left pc on itself: "the saved CS:IP (or
-                   CS:EIP) value points to the instruction following the HLT
-                   instruction" (Pentium Vol. 3, HLT), NMI included. */
-                if (cpu_halted)
-                    cpu_state.pc++;
-                cpu_halted = 0;
-                oldcs = CS;
-                cpu_state.oldpc = cpu_state.pc;
-                x86_int(2);
-                nmi_enable = 0;
-#    ifdef OLD_NMI_BEHAVIOR
-                if (nmi_auto_clear) {
-                    nmi_auto_clear = 0;
-                    nmi            = 0;
-                }
-#    else
-                nmi = 0;
-#    endif
-            } else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending()) {
-                vector = x86_external_interrupt_vector();
-                if (vector != -1) {
-                    /* An interrupt that came after the HLT looked: past the
-                       HLT, as above. */
+                    enter_smm_check(0);
+                    if (in_smm != before)
+                        cpu_halted = 0;
+                } else if (NMI_TAKEABLE()) {
+                    /* Out of a HLT that left pc on itself: "the saved CS:IP (or
+                       CS:EIP) value points to the instruction following the HLT
+                       instruction" (Pentium Vol. 3, HLT), NMI included. */
                     if (cpu_halted)
                         cpu_state.pc++;
+                    cpu_halted = 0;
                     oldcs = CS;
                     cpu_state.oldpc = cpu_state.pc;
-                    x86_int(vector);
-                    cpu_halted = 0; /* out of HLT, into the handler */
+                    x86_int(2);
+                    nmi_enable = 0;
+#    ifdef OLD_NMI_BEHAVIOR
+                    if (nmi_auto_clear) {
+                        nmi_auto_clear = 0;
+                        nmi            = 0;
+                    }
+#    else
+                    nmi = 0;
+#    endif
+                } else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending()) {
+                    vector = x86_external_interrupt_vector();
+                    if (vector != -1) {
+                        /* An interrupt that came after the HLT looked: past the
+                           HLT, as above. */
+                        if (cpu_halted)
+                            cpu_state.pc++;
+                        oldcs = CS;
+                        cpu_state.oldpc = cpu_state.pc;
+                        x86_int(vector);
+                        cpu_halted = 0; /* out of HLT, into the handler */
+                    }
                 }
+
+                cpu_irq_drain();
             }
 
             cycdiff = oldcyc - cycles;

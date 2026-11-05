@@ -63,8 +63,7 @@ uint32_t  rmdat;
 /* XT CPU multiplier. */
 uint64_t xt_cpu_multi;
 
-/* Variables for handling the non-maskable interrupts. */
-int nmi            = 0;
+/* Variables for handling the non-maskable interrupts (nmi in cpu_events). */
 int nmi_auto_clear = 0;
 
 int soft_reset_pci = 0;

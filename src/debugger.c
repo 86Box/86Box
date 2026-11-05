@@ -33,8 +33,6 @@
 extern void cpu_386_flags_rebuild(void);
 extern const uint8_t opf_0f[256];
 
-volatile int debugger_attached = 0;
-
 /* Written by the viewer and read by the processor's thread, and the other
    way around: the ATOMIC_ accesses order them on hosts that need it. The
    breakpoint list is written before its count, so the processor's thread

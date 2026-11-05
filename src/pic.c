@@ -407,6 +407,10 @@ pic_notify(void)
         pic_update_pending_dual();
     else
         update_pending();
+
+    /* May run off the CPU thread: int_pending is stored before the flag. */
+    if (pic.int_pending || pic2.int_pending)
+        __atomic_store_n(&cpu_events.irq, 1, __ATOMIC_RELEASE);
 }
 
 static void
