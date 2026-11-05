@@ -93,7 +93,7 @@ static uint16_t
 ne2100_prom_readw(uint16_t addr, void *priv)
 {
     ne2100_t *dev = (ne2100_t *) priv;
-    int       off = addr & (NE2100_PROM_SIZE - 1);
+    int       off = (addr & (NE2100_PROM_SIZE - 1)) & ~1;
 
     return (uint16_t) (dev->prom[off] | (dev->prom[(off + 1) & (NE2100_PROM_SIZE - 1)] << 8));
 }
@@ -125,6 +125,7 @@ ne2100_init(const device_t *info)
 {
     ne2100_t *dev;
     lance_t  *lance;
+    uint16_t  prom_sum;
     uint16_t  base;
     int       irq;
     int       mac;
@@ -170,10 +171,19 @@ ne2100_init(const device_t *info)
 
     lance_reset(lance);
 
-    /* Station address PROM: the first six bytes are the node address, the
-       rest is unused on the NE2100. */
+    /* Station address PROM: six address bytes, six unused bytes, then a
+       checksum word at 0x0C and two more unused bytes. The NetWare driver
+       verifies that the sum of the other 14 bytes matches this word. */
     memcpy(dev->prom, lance->mac, 6);
-    memset(dev->prom + 6, 0xff, NE2100_PROM_SIZE - 6);
+    memset(dev->prom + 6, 0x00, 6);
+    dev->prom[14] = 0x00;
+    dev->prom[15] = 0x00;
+    prom_sum      = 0;
+    for (int i = 0; i < 12; i++)
+        prom_sum += dev->prom[i];
+    prom_sum += dev->prom[14] + dev->prom[15];
+    dev->prom[12] = (uint8_t) (prom_sum & 0xff);
+    dev->prom[13] = (uint8_t) (prom_sum >> 8);
 
     io_sethandler(lance->base, NE2100_PROM_SIZE,
                   ne2100_prom_read, ne2100_prom_readw, NULL,
