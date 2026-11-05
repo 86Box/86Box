@@ -239,6 +239,67 @@ const OpFn x86_fpu_illegal_op[2] = { FPU_ILLEGAL_a16, FPU_ILLEGAL_a32 };
    limit checks are left out (both recompilers) */
 int codegen_flat_es;
 
+/* ACPI clock control (cpu.h, acpi.c).  A break event, which returns
+   the processor from C2/C3 to C0, is a request on INTR whether or not IF is
+   set, NMI or SMI# (ACPI 1.0 figure 4-13, p. 4-55; PIIX4 11.2.1, p. 204).  An
+   interrupt it brings is then taken, or not, as from C0. */
+static __inline int
+cpu_break_event(void)
+{
+    return smi_line || NMI_TAKEABLE() || x86_external_interrupt_pending();
+}
+
+/* After an instruction or a block, and while stopped: a pending break event
+   ends C2/C3 and, where it does, the throttling. */
+static __inline void
+cpu_clock_control_check(void)
+{
+    if ((cpu_stpclk || (cpu_throttle_run && cpu_throttle_break)) && cpu_break_event()) {
+        cpu_stpclk = 0;
+        if (cpu_throttle_break)
+            cpu_throttle_run = 0;
+    }
+}
+
+/* STPCLK# held: time passes to the next timer event (or the end of the
+   slice) without an instruction. */
+static __inline void
+cpu_stpclk_idle(void)
+{
+    int64_t idle = (int64_t) (timer_target - (uint64_t) tsc) + 1;
+
+    if (idle > cycles)
+        idle = cycles;
+    if (idle < 1)
+        idle = 1;
+
+    cycles -= (int32_t) idle;
+    tsc += idle;
+
+    if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint64_t) tsc))
+        timer_process();
+}
+
+/* Throttling: for every ran cycles the processor ran, STPCLK# holds it
+   (period - run) / run more, as the duty cycle has it.  The remainder is
+   kept, so that short blocks are not rounded away. */
+static __inline void
+cpu_throttle_stall(int32_t ran)
+{
+    static int64_t rem = 0;
+    int64_t        acc;
+    int32_t        stall;
+
+    if ((ran <= 0) || (cpu_throttle_run <= 0) || (cpu_throttle_run >= cpu_throttle_period))
+        return;
+
+    acc   = ((int64_t) ran * (cpu_throttle_period - cpu_throttle_run)) + rem;
+    stall = (int32_t) (acc / cpu_throttle_run);
+    rem   = acc % cpu_throttle_run;
+
+    cycles -= stall;
+}
+
 /* Compiled blocks hold no debug-register checks. Data and I/O breakpoints can
    fire on any access, so they still disable the recompiler outright; an
    execution breakpoint only blocks the block covering it, and a block spans at
@@ -619,6 +680,9 @@ exec386_dynarec_int_common(const int dbg)
             CPU_BLOCK_END();
         else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending() && !cpu_end_block_after_ins)
             CPU_BLOCK_END();
+        /* A P_LVL2/P_LVL3 read stopped the processor. */
+        if (cpu_stpclk)
+            CPU_BLOCK_END();
     }
 
 block_ended:
@@ -940,6 +1004,9 @@ exec386_dynarec_dyn(const int dbg)
                 CPU_BLOCK_END();
             if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending() && !cpu_end_block_after_ins)
                 CPU_BLOCK_END();
+            /* A P_LVL2/P_LVL3 read stopped the processor. */
+            if (cpu_stpclk)
+                CPU_BLOCK_END();
 
             if (cpu_end_block_after_ins) {
                 cpu_end_block_after_ins--;
@@ -1071,6 +1138,9 @@ exec386_dynarec_dyn(const int dbg)
                 CPU_BLOCK_END();
             if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending() && !cpu_end_block_after_ins)
                 CPU_BLOCK_END();
+            /* A P_LVL2/P_LVL3 read stopped the processor. */
+            if (cpu_stpclk)
+                CPU_BLOCK_END();
 
             if (cpu_end_block_after_ins) {
                 cpu_end_block_after_ins--;
@@ -1142,6 +1212,15 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
         cycles_start = cycles;
 
         while (cycles > 0) {
+            /* STPCLK# held (C2/C3), no instruction runs. */
+            if (cpu_stpclk) {
+                cpu_clock_control_check();
+                if (cpu_stpclk) {
+                    cpu_stpclk_idle();
+                    continue;
+                }
+            }
+
             cpu_halted      = 0;
             oldcs           = CS;
             oldcpl          = CPL;
@@ -1200,6 +1279,14 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
                 cpu_state.oldpc = cpu_state.pc;
                 new_ne = 0;
                 x86_int(16);
+            }
+
+            /* A P_LVL2/P_LVL3 read in the block, or throttling.  The
+               stall is for everything since the loop top (oldcyc2): linked
+               blocks run on without coming back here, and moved oldcyc. */
+            if (cpu_stpclk || cpu_throttle_run) {
+                cpu_clock_control_check();
+                cpu_throttle_stall(oldcyc2 - cycles);
             }
 
             if (smi_line) {
@@ -1526,6 +1613,17 @@ exec386_common(int32_t cycs, const int dbg)
         oldcyc        = cycles;
         while (cycdiff < cycle_period) {
             int ins_fetch_fault = 0;
+
+            /* STPCLK# held (C2/C3), no instruction runs. */
+            if (cpu_stpclk) {
+                cpu_clock_control_check();
+                if (cpu_stpclk) {
+                    cpu_stpclk_idle();
+                    cycdiff = oldcyc - cycles;
+                    continue;
+                }
+            }
+
             ins_cycles = cycles;
 
             oldcs  = CS;
@@ -1642,6 +1740,12 @@ block_ended:
                 oldcs = CS;
                 cpu_state.oldpc = cpu_state.pc;
                 x86_int(1);
+            }
+
+            /* A P_LVL2/P_LVL3 read, or throttling. */
+            if (cpu_stpclk || cpu_throttle_run) {
+                cpu_clock_control_check();
+                cpu_throttle_stall(ins_cycles - cycles);
             }
 
             if (smi_line)
