@@ -1162,12 +1162,21 @@ static const device_config_t ergoe452_config[] = {
             },
             {
                 .name          = "ICL BIOS #58 - Revision 1.21",
-                .internal_name = "ergoe452",
+                .internal_name = "ergoe452_121",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 131072,
                 .files         = { "roms/machines/ergoe452/B58_c.ldb", "" }
+            },
+            {
+                .name          = "ICL BIOS #58 - Revision 1.28",
+                .internal_name = "ergoe452",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ergoe452/B58_G.LDB", "" }
             },
             { .files_no = 0 }
         }
