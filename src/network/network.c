@@ -96,6 +96,7 @@ static const NETWORK_CARD net_cards[] = {
     { &ne2000_compat_8bit_device  },
     { &ne1000_device              },
     { &ne2000_device              },
+    { &ne2100_device              },
     { &rtl8019as_pnp_device       },
     { &wd8003e_device             },
     { &wd8003eb_device            },
