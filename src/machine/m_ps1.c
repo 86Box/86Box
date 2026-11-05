@@ -747,7 +747,7 @@ static const device_config_t ps1_2133_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "65G9499 (09/01/93)",
+                .name          = "IBM PS/1 BIOS - Revision 65G9499 (09/01/93)",
                 .internal_name = "ps1_2133_65g9499",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -756,7 +756,7 @@ static const device_config_t ps1_2133_config[] = {
                 .files         = { "roms/machines/ibmps1_2133/65g9499.bin", "" }
             },
             {
-                .name          = "52G2973 (01/22/93)",
+                .name          = "IBM PS/1 BIOS - Revision 52G2973 (01/22/93)",
                 .internal_name = "ps1_2133_52g2973",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
