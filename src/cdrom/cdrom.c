@@ -28,6 +28,7 @@
 /* lpt.h declares lpt_t only if timer.h has been seen first. */
 #include <86box/timer.h>
 #include <86box/lpt.h>
+#include <86box/hdd.h>
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_interface.h>
@@ -1219,15 +1220,15 @@ cdrom_interface_reset(void)
 {
     /* On a Tandy VIS machine, add the Mitsumi controller; it has no ISA slots
        for another one, and that one would clash with it at 0x310. */
-    if (machines[machine].init == machine_at_tandy_vis_init) {
+    if (machines[machine].init == machine_at_tandy_vis_init)
         device_add(&mitsumi_cdrom_vis_device);
-        return;
-    }
-
     /* If we have a valid controller, add its device. */
-    if ((cdrom_interface_current > 0) &&
-        controllers[cdrom_interface_current].device)
+    else if ((cdrom_interface_current > 0) &&
+             controllers[cdrom_interface_current].device)
         device_add(controllers[cdrom_interface_current].device);
+
+    /* Mitsumi drives no card took go to the parallel port BackPacks. */
+    lpt_bpmcd_attach_drives();
 }
 
 const char *
@@ -3673,13 +3674,20 @@ cdrom_hard_reset(void)
                     break;
 
                 case CDROM_BUS_LPT:
-                    scsi_cdrom_drive_reset(i);
                     /*
                      * The bridge is not a device the user picks: assigning the drive
                      * to an LPT port is the whole configuration. It claims the port
-                     * with lpt_attach(), first claim wins.
+                     * with lpt_attach(), first claim wins. The BackPack drives the
+                     * drive itself; the others have an IDE board of their own, the
+                     * drive is an ATAPI drive on it and needs it first.
                      */
-                    device_add_inst(&lpt_bpck_device, dev->res + 1);
+                    if (dev->lpt_bridge == HDD_LPT_BPCK) {
+                        scsi_cdrom_drive_reset(i);
+                        device_add_inst(&lpt_bpck_device, dev->res + 1);
+                    } else {
+                        device_add_inst(hdd_lpt_bridge_device(dev->lpt_bridge), dev->res + 1);
+                        scsi_cdrom_drive_reset(i);
+                    }
                     break;
 
                 default:

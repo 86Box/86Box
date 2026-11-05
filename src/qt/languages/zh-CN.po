@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-27 19:03+0000\n"
+"PO-Revision-Date: 2026-11-05 15:44+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -489,6 +489,9 @@ msgstr "XGA 图形"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 显示适配器图形"
+
+msgid "PowerVR PCX1/PCX2 Graphics"
+msgstr "PowerVR PCX1/PCX2图形"
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -3668,3 +3671,21 @@ msgstr "为 VFIO 直通准备 PCI 设备"
 
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
 msgstr "若要将 PCI 设备准备好以直通至 86Box，需要进行身份验证。"
+
+msgid "Disabled"
+msgstr "禁用"
+
+msgid "Unlimited capacity"
+msgstr "不限制容量"
+
+msgid "CD speed:"
+msgstr "CD速度："
+
+msgid "DVD speed:"
+msgstr "DVD速度："
+
+msgid "HD/BD speed:"
+msgstr "HD/BD速度："
+
+msgid "Software-initiated poweroff device (IBM 5140)"
+msgstr "软控制关机设备（IBM 5140）"

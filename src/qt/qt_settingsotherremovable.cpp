@@ -22,6 +22,7 @@ extern "C" {
 #include <86box/timer.h>
 #include <86box/scsi_device.h>
 #include <86box/mo.h>
+#include <86box/hdd.h>
 #include <86box/rdisk.h>
 #include <86box/scsi_tape.h>
 }
@@ -91,7 +92,13 @@ rdiskTypeBusCompatible(int bus, uint32_t type)
     if (type >= KNOWN_RDISK_DRIVE_TYPES)
         return false;
 
-    return rdisk_drive_type_supports_bus(rdisk_drive_types[type].drive_type, (uint8_t) bus) != 0;
+    const int drive_type = rdisk_drive_types[type].drive_type;
+
+    /* On bus LPT an ATAPI drive sits behind one of the IDE bridges. */
+    if ((bus == RDISK_BUS_LPT) && rdisk_drive_type_supports_bus(drive_type, RDISK_BUS_ATAPI))
+        return true;
+
+    return rdisk_drive_type_supports_bus(drive_type, (uint8_t) bus) != 0;
 }
 
 static int
@@ -105,6 +112,66 @@ firstCompatibleRDiskType(int bus)
     return 0;
 }
 
+/* On bus LPT the list's channel is the port and, above it, the bridge. */
+static bool
+rdiskOwnChip(uint32_t type)
+{
+    return (type == RDISK_TYPE_ZIP_100) || (type == RDISK_TYPE_ZIP_100_PLUS) || (type == RDISK_TYPE_ZIP_250);
+}
+
+static QString
+rdiskChannelName(uint8_t bus, uint32_t type, uint8_t channel)
+{
+    if ((bus == RDISK_BUS_LPT) && (channel != CHANNEL_NONE)) {
+        if (rdiskOwnChip(type))
+            return QString("LPT%1").arg((channel & 3) + 1);
+        return QString("LPT%1 (%2)").arg((channel & 3) + 1).arg(Harddrives::lptBridgeName(channel >> 2));
+    }
+
+    return Harddrives::BusChannelName(bus, channel);
+}
+
+/* A Zip drive on bus LPT has its own bridge chip: of each port only the
+   Shuttle EPAT entry can be chosen, and a selected other bridge of that
+   port becomes it. Returns whether the selection changed. */
+static bool
+restrictRDiskBridges(QComboBox *cbox, int bus, uint32_t type)
+{
+    if ((bus != RDISK_BUS_LPT) || !rdiskOwnChip(type))
+        return false;
+
+    auto *model = qobject_cast<QStandardItemModel *>(cbox->model());
+    for (int row = 0; row < model->rowCount(); row++) {
+        auto *item = model->item(row);
+        if (item && ((item->data(Qt::UserRole).toUInt() >> 2) != HDD_LPT_EPAT))
+            item->setEnabled(false);
+    }
+
+    if (cbox->currentIndex() < 0)
+        return false;
+    const uint32_t channel = cbox->currentData().toUInt();
+    if ((channel >> 2) == HDD_LPT_EPAT)
+        return false;
+    const auto match = model->match(model->index(0, 0), Qt::UserRole, (channel & 3) | (HDD_LPT_EPAT << 2));
+    if (match.isEmpty())
+        return false;
+    cbox->setCurrentIndex(match.first().row());
+    return true;
+}
+
+/* What the bus tracking counts: on bus LPT only the port. */
+static int
+rdiskTrackChannel(int bus, int channel)
+{
+    return (bus == RDISK_BUS_LPT) ? (channel & 3) : channel;
+}
+
+static uint8_t
+rdiskListChannel(const rdisk_drive_t *drv)
+{
+    return (drv->bus_type == RDISK_BUS_LPT) ? (uint8_t) (drv->res | (drv->lpt_bridge << 2)) : drv->res;
+}
+
 static uint8_t
 nextFreeRDiskChannel(SettingsBusTracking *sbt, int bus)
 {
@@ -112,8 +179,11 @@ nextFreeRDiskChannel(SettingsBusTracking *sbt, int bus)
         case RDISK_BUS_IDE:
         case RDISK_BUS_ATAPI:
             return sbt->next_free_ide_channel();
-        case RDISK_BUS_LPT:
-            return sbt->next_free_lpt_port();
+        case RDISK_BUS_LPT: {
+            /* The port's EPAT entry. */
+            const uint8_t port = sbt->next_free_lpt_port();
+            return (port == CHANNEL_NONE) ? port : (uint8_t) ((port * HDD_LPT_BRIDGES) + HDD_LPT_EPAT);
+        }
         default:
             return sbt->next_free_scsi_id();
     }
@@ -195,7 +265,7 @@ SettingsOtherRemovable::setRDiskBus(QAbstractItemModel *model, const QModelIndex
     }
 
     auto i = idx.siblingAtColumn(0);
-    model->setData(i, Harddrives::BusChannelName(bus, channel));
+    model->setData(i, rdiskChannelName(bus, type, channel));
     model->setData(i, bus, Qt::UserRole);
     model->setData(i, channel, Qt::UserRole + 1);
     model->setData(i, icon, Qt::DecorationRole);
@@ -358,7 +428,7 @@ SettingsOtherRemovable::SettingsOtherRemovable(QWidget *parent)
     model->insertRows(0, RDISK_NUM);
     for (int i = 0; i < RDISK_NUM; i++) {
         auto idx = model->index(i, 0);
-        setRDiskBus(model, idx, rdisk_drives[i].bus_type, rdisk_drives[i].type, rdisk_drives[i].res);
+        setRDiskBus(model, idx, rdisk_drives[i].bus_type, rdisk_drives[i].type, rdiskListChannel(&rdisk_drives[i]));
         setRDiskType(model, idx.siblingAtColumn(1), rdisk_drives[i].bus_type, rdisk_drives[i].type);
         Harddrives::busTrackClass->device_track(1, DEV_RDISK, rdisk_drives[i].bus_type,
                                                 ((rdisk_drives[i].bus_type == RDISK_BUS_ATAPI) || (rdisk_drives[i].bus_type == RDISK_BUS_IDE)) ?
@@ -436,7 +506,7 @@ SettingsOtherRemovable::changed()
     model = ui->treeViewRDisk->model();
     for (uint8_t i = 0; i < RDISK_NUM; i++) {
         has_changed |= (rdisk_drives[i].bus_type != model->index(i, 0).data(Qt::UserRole).toUInt());
-        has_changed |= (rdisk_drives[i].res      != model->index(i, 0).data(Qt::UserRole + 1).toUInt());
+        has_changed |= (rdiskListChannel(&rdisk_drives[i]) != model->index(i, 0).data(Qt::UserRole + 1).toUInt());
         has_changed |= (rdisk_drives[i].type     != model->index(i, 1).data(Qt::UserRole).toUInt());
     }
 
@@ -477,6 +547,12 @@ SettingsOtherRemovable::save(int soft)
         rdisk_drives[i].bus_type = model->index(i, 0).data(Qt::UserRole).toUInt();
         rdisk_drives[i].res      = model->index(i, 0).data(Qt::UserRole + 1).toUInt();
         rdisk_drives[i].type     = model->index(i, 1).data(Qt::UserRole).toUInt();
+        rdisk_drives[i].lpt_bridge = HDD_LPT_EPAT;
+        if (rdisk_drives[i].bus_type == RDISK_BUS_LPT) {
+            if (!rdiskOwnChip(rdisk_drives[i].type))
+                rdisk_drives[i].lpt_bridge = rdisk_drives[i].res >> 2;
+            rdisk_drives[i].res &= 3;
+        }
     }
 
     model = ui->treeViewTape->model();
@@ -530,6 +606,7 @@ SettingsOtherRemovable::onRDiskRowChanged(const QModelIndex &current)
     ui->comboBoxRDiskType->setCurrentIndex(type);
     updateRDiskTypeCombo();
     enableCurrentlySelectedChannel_RDisk();
+    restrictRDiskBridges(ui->comboBoxRDiskChannel, bus, type);
 }
 
 /* The machine, disk controllers and sound cards chosen on other pages
@@ -538,7 +615,14 @@ void
 SettingsOtherRemovable::showEvent(QShowEvent *event)
 {
     Harddrives::refreshBusNames(ui->treeViewMO->model());
-    Harddrives::refreshBusNames(ui->treeViewRDisk->model());
+    /* As Harddrives::refreshBusNames(), with the bridge of a drive on LPT. */
+    auto *model = ui->treeViewRDisk->model();
+    for (int row = 0; row < model->rowCount(); row++) {
+        const auto idx = model->index(row, 0);
+
+        model->setData(idx, rdiskChannelName(idx.data(Qt::UserRole).toUInt(), idx.siblingAtColumn(1).data(Qt::UserRole).toUInt(),
+                                             idx.data(Qt::UserRole + 1).toUInt()));
+    }
     Harddrives::refreshBusNames(ui->treeViewTape->model());
     reloadBusChannels_MO();
     reloadBusChannels_RDisk();
@@ -561,9 +645,12 @@ SettingsOtherRemovable::reloadBusChannels_RDisk()
 {
     auto selected = ui->comboBoxRDiskChannel->currentIndex();
     Harddrives::populateBusChannels(ui->comboBoxRDiskChannel->model(),
-                                    ui->comboBoxRDiskBus->currentData().toInt(), Harddrives::busTrackClass);
+                                    ui->comboBoxRDiskBus->currentData().toInt(), Harddrives::busTrackClass,
+                                    Harddrives::LptBridgesHdd);
     ui->comboBoxRDiskChannel->setCurrentIndex(selected);
     enableCurrentlySelectedChannel_RDisk();
+    restrictRDiskBridges(ui->comboBoxRDiskChannel, ui->comboBoxRDiskBus->currentData().toInt(),
+                         ui->comboBoxRDiskType->currentData().toUInt());
 }
 
 void
@@ -586,7 +673,9 @@ SettingsOtherRemovable::on_comboBoxRDiskBus_currentIndexChanged(int index)
         bool enabled = (bus != RDISK_BUS_DISABLED);
         ui->comboBoxRDiskChannel->setEnabled(enabled);
         ui->comboBoxRDiskType->setEnabled(enabled);
-        Harddrives::populateBusChannels(ui->comboBoxRDiskChannel->model(), bus, Harddrives::busTrackClass);
+        Harddrives::populateBusChannels(ui->comboBoxRDiskChannel->model(), bus, Harddrives::busTrackClass,
+                                        Harddrives::LptBridgesHdd);
+        restrictRDiskBridges(ui->comboBoxRDiskChannel, bus, ui->comboBoxRDiskType->currentData().toUInt());
     }
     updateRDiskTypeCombo();
 }
@@ -627,7 +716,7 @@ void
 SettingsOtherRemovable::on_comboBoxRDiskBus_activated(int)
 {
     auto i = ui->treeViewRDisk->selectionModel()->currentIndex().siblingAtColumn(0);
-    Harddrives::busTrackClass->device_track(0, DEV_RDISK, ui->treeViewRDisk->model()->data(i, Qt::UserRole).toInt(), ui->treeViewRDisk->model()->data(i, Qt::UserRole + 1).toInt());
+    Harddrives::busTrackClass->device_track(0, DEV_RDISK, ui->treeViewRDisk->model()->data(i, Qt::UserRole).toInt(), rdiskTrackChannel(ui->treeViewRDisk->model()->data(i, Qt::UserRole).toInt(), ui->treeViewRDisk->model()->data(i, Qt::UserRole + 1).toInt()));
     uint8_t next_free = nextFreeRDiskChannel(Harddrives::busTrackClass, ui->comboBoxRDiskBus->currentData().toInt());
     ui->comboBoxRDiskChannel->setCurrentIndex(next_free == CHANNEL_NONE ? -1 : next_free);
     ui->treeViewRDisk->model()->data(i, Qt::UserRole + 1);
@@ -639,6 +728,7 @@ SettingsOtherRemovable::on_comboBoxRDiskBus_activated(int)
     if ((new_bus != RDISK_BUS_DISABLED) && !rdiskTypeBusCompatible(new_bus, type))
         type = firstCompatibleRDiskType(new_bus);
     ui->comboBoxRDiskType->setCurrentIndex(type);
+    restrictRDiskBridges(ui->comboBoxRDiskChannel, new_bus, type);
     setRDiskBus(ui->treeViewRDisk->model(),
                 ui->treeViewRDisk->selectionModel()->currentIndex(),
                 ui->comboBoxRDiskBus->currentData().toUInt(),
@@ -649,7 +739,7 @@ SettingsOtherRemovable::on_comboBoxRDiskBus_activated(int)
                  ui->comboBoxRDiskBus->currentData().toUInt(),
                  ui->comboBoxRDiskType->currentData().toUInt());
     ui->treeViewRDisk->resizeColumnToContents(0);
-    Harddrives::busTrackClass->device_track(1, DEV_RDISK, ui->treeViewRDisk->model()->data(i, Qt::UserRole).toInt(), ui->treeViewRDisk->model()->data(i, Qt::UserRole + 1).toInt());
+    Harddrives::busTrackClass->device_track(1, DEV_RDISK, ui->treeViewRDisk->model()->data(i, Qt::UserRole).toInt(), rdiskTrackChannel(ui->treeViewRDisk->model()->data(i, Qt::UserRole).toInt(), ui->treeViewRDisk->model()->data(i, Qt::UserRole + 1).toInt()));
     emit rdiskChannelChanged();
 }
 
@@ -671,6 +761,17 @@ SettingsOtherRemovable::enableCurrentlySelectedChannel_RDisk()
     auto       *item       = item_model->item(index);
     if (item)
         item->setEnabled(true);
+
+    /* On bus LPT the drive may change its bridge and keep its port. */
+    if ((index >= 0) && (ui->comboBoxRDiskBus->currentData().toInt() == RDISK_BUS_LPT)) {
+        const int first = index - (index % HDD_LPT_BRIDGES);
+
+        for (int i = first; i < (first + HDD_LPT_BRIDGES); i++) {
+            auto *other = item_model->item(i);
+            if (other && Harddrives::lptPortEnabled(first / HDD_LPT_BRIDGES))
+                other->setEnabled(true);
+        }
+    }
 }
 void
 SettingsOtherRemovable::on_comboBoxMOChannel_activated(int)
@@ -690,14 +791,15 @@ void
 SettingsOtherRemovable::on_comboBoxRDiskChannel_activated(int)
 {
     auto i = ui->treeViewRDisk->selectionModel()->currentIndex().siblingAtColumn(0);
-    Harddrives::busTrackClass->device_track(0, DEV_RDISK, ui->treeViewRDisk->model()->data(i, Qt::UserRole).toInt(), ui->treeViewRDisk->model()->data(i, Qt::UserRole + 1).toInt());
+    Harddrives::busTrackClass->device_track(0, DEV_RDISK, ui->treeViewRDisk->model()->data(i, Qt::UserRole).toInt(), rdiskTrackChannel(ui->treeViewRDisk->model()->data(i, Qt::UserRole).toInt(), ui->treeViewRDisk->model()->data(i, Qt::UserRole + 1).toInt()));
     setRDiskBus(ui->treeViewRDisk->model(),
                 ui->treeViewRDisk->selectionModel()->currentIndex(),
                 ui->comboBoxRDiskBus->currentData().toUInt(),
                 ui->comboBoxRDiskType->currentData().toUInt(),
                 ui->comboBoxRDiskChannel->currentData().toUInt());
     Harddrives::busTrackClass->device_track(1, DEV_RDISK, ui->treeViewRDisk->model()->data(i, Qt::UserRole).toInt(),
-                                            ui->treeViewRDisk->model()->data(i, Qt::UserRole + 1).toInt());
+                                            rdiskTrackChannel(ui->treeViewRDisk->model()->data(i, Qt::UserRole).toInt(),
+                                                              ui->treeViewRDisk->model()->data(i, Qt::UserRole + 1).toInt()));
     ui->treeViewRDisk->resizeColumnToContents(0);
     emit rdiskChannelChanged();
 }
@@ -719,6 +821,13 @@ SettingsOtherRemovable::on_comboBoxRDiskType_activated(int)
                  ui->comboBoxRDiskBus->currentData().toUInt(),
                  ui->comboBoxRDiskType->currentData().toUInt());
     ui->treeViewRDisk->resizeColumnToContents(1);
+
+    /* On bus LPT the type decides which bridges can be chosen, and how the
+       list names the channel. */
+    if (ui->comboBoxRDiskBus->currentData().toInt() == RDISK_BUS_LPT) {
+        reloadBusChannels_RDisk();
+        on_comboBoxRDiskChannel_activated(ui->comboBoxRDiskChannel->currentIndex());
+    }
 }
 
 void

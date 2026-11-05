@@ -83,6 +83,12 @@ int smi_latched = 0;
 int smm_in_hlt  = 0;
 int smi_block   = 0;
 
+/* ACPI clock control, see cpu.h. */
+int cpu_stpclk          = 0;
+int cpu_throttle_run    = 0;
+int cpu_throttle_period = 8;
+int cpu_throttle_break  = 0;
+
 /* RSM restarted a HLT and a latched SMI is about to be entered. */
 static int smm_rsm_restart = 0;
 
@@ -2334,7 +2340,7 @@ sysexit(UNUSED(uint32_t fetchdat))
 
     cpu_cur_status &= ~(CPU_STATUS_NOTFLATSS | CPU_STATUS_NOTWIDESS /* | CPU_STATUS_V86*/);
     cpu_cur_status |= (CPU_STATUS_USE32 | CPU_STATUS_STACK32 | CPU_STATUS_PMODE);
-    flushmmucache_nopc();
+    flushmmucache_ring3();
     set_use32(1);
     set_stack32(1);
 
@@ -2452,7 +2458,7 @@ sysret(UNUSED(uint32_t fetchdat))
 
     cpu_cur_status &= ~(CPU_STATUS_NOTFLATSS | CPU_STATUS_NOTWIDESS /* | CPU_STATUS_V86*/);
     cpu_cur_status |= (CPU_STATUS_USE32 | CPU_STATUS_STACK32 | CPU_STATUS_PMODE);
-    flushmmucache_nopc();
+    flushmmucache_ring3();
     set_use32(1);
     set_stack32(1);
 

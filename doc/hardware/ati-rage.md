@@ -22,12 +22,52 @@ ROMs are not included in the source tree. Put these in `roms/video/mach64/`:
 
 | Filename | BIOS | Bytes | SHA-256 |
 | --- | --- | --- | --- |
-| `3d_rage.bin` | ATI-264GT EDO 113-34003-101 | 32768 | `9eb265c65711889ccb492f8d4c7366d225c4a7f7d1251c8b0f9a090db695137e` |
+| `3d_rage.bin` | ATI-264GT EDO 113-34003-101 | 32768 | `72cd2246c85f9a8c0df49413024367619e4c1255ea863c81b0f950fe90970f4a` |
 | `3d_rage_ii.bin` | ATI MACH64 GTB 113-38500-100 | 32768 | `17842db8fa23cf619f8c6197f1600e5205c4c3a91ef541b8558d8bbcc7b8430c` |
 
 The latter may be distributed as a 65536-byte dump with padding. Its ROM
 header and PCI data structure specify a 32768-byte image. Both images above
 have a zero byte-sum checksum over that length.
+
+## Rage II ATI3DCIF drivers
+
+Keep the Rage II PCI ID `1002:4754` and ASIC revision `9a`. This combination
+is reported by real hardware, including the PCI configuration dumps in
+[NetBSD PR 50429](https://gnats.netbsd.org/50429). The Windows driver also
+reports the identity as `479a` through ATI's display-driver escape interface.
+Changing the revision to `40` makes the card claim to be an original GT;
+it does not change its GT-B memory-size encoding or register layout.
+
+The PCV-90 recovery driver belongs to the original Rage configuration above.
+Use a Rage II-capable display driver and its matching ATI3DCIF components
+for the standalone Rage II. Replacing an ASIC ID check is not a driver update.
+
+A Windows 98 test installation has been verified with the `w82420en.exe`
+package: display driver build `4.10.2420`, package `5.21_OEMS_ENU`,
+`MACXDD32.DLL` version `4.10.2359`, and `ATI3DCIF.DLL` version `4.10.2690`.
+The installed DirectDraw HAL and CIF DLL were checked against the package's
+compressed files. The package is available on
+[AMD's Rage II driver page](https://www.amd.com/en/support/downloads/drivers.html/graphics/legacy-graphics/rage-series/ati-rage-ii-series.html).
+Its INF advertises II+, LT and VT3 models, while the display-driver binary
+also recognizes GT/GT-B revision `9a`. The test used the package's `SETUP.EXE`
+to update an existing MACXW4 installation; this does not validate automatic
+Plug and Play selection of that package on a fresh `4754` installation.
+ATI's earlier [4.03.2162 release notes](https://files.mpoli.fi/unpacked/hardware/display/ati/w95-2162.zip/w95-2162.txt)
+explicitly list both Rage II and II+ as supported products.
+
+With `9a` unchanged, the tested driver returns interface version `0205` from
+escape `73f0`, and `ATI3DCIF_Init` returns zero. MechWarrior 2 ATI 3D Rage
+Special Edition installs, reaches Clan Wolf's Nav Computer training mission,
+and renders the terrain, sky, other mechs, cockpit and pause menu at 512x384.
+This validates this title and driver combination, not every ATI3DCIF game.
+
+The trapezoid renderer also decodes both Bresenham edges' error, increment
+and decrement as signed 18-bit fields, as specified by the VT/RAGE register
+guide. Treating the full dword as signed made zero-extended negative fields
+or reserved high bits change triangle coverage. Regression cases verify
+color, depth and continuation in all four directions, including split draws.
+This field-decoding fault is reproduced independently of the game; the
+captured MechWarrior 2 stream used sign-extended edge values already.
 
 ## PCV-90 recovery reproduction
 
@@ -73,7 +113,7 @@ the Exit controls return to the Windows desktop.
 ## Validation
 
 The Mach64 accelerator tests cover the original GT overlay as well as VT2
-and GT-B. The 3D suite runs against both GT and GT-B (2154 draw cases).
+and GT-B. The 3D suite runs against both GT and GT-B (2202 draw cases).
 Standalone cards have also reached the PCV-90 BIOS screen, with PCI revision
 40/9a and the auxiliary BAR absent/present respectively. Headless startup
 has been verified with the Qt 5 static Windows build. Live MMIO checks

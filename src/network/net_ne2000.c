@@ -1245,6 +1245,15 @@ nic_init(const device_t *info)
             mac_oui         |= ((int) dev->maclocal[2]);
             device_set_config_mac("mac_oui", mac_oui);
         } else {
+            /* Bit 0 of the first octet is the individual/group bit. With it set the
+               station address is a group address, so the receive filter takes every
+               unicast frame sent to the card for a multicast one and drops it unless
+               the driver happens to enable that hash bucket. Older builds generated
+               such OUIs at random; clear the bit and store the result. */
+            if (mac_oui & 0x010000) {
+                mac_oui &= ~0x010000;
+                device_set_config_mac("mac_oui", mac_oui);
+            }
             dev->maclocal[0] = (mac_oui >> 16) & 0xff;
             dev->maclocal[1] = (mac_oui >> 8) & 0xff;
             dev->maclocal[2] = (mac_oui & 0xff);
@@ -1582,7 +1591,7 @@ static const device_config_t ne1000_compat_config[] = {
         .name           = "mac_oui",
         .description    = "MAC Address OUI",
         .type           = CONFIG_MAC,
-        .default_string = NULL,
+        .default_string = "00:86:b0",
         .default_int    = -1,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -1732,7 +1741,7 @@ static const device_config_t ne2000_compat_config[] = {
         .name           = "mac_oui",
         .description    = "MAC Address OUI",
         .type           = CONFIG_MAC,
-        .default_string = NULL,
+        .default_string = "00:86:b0",
         .default_int    = -1,
         .file_filter    = NULL,
         .spinner        = { 0 },
@@ -1824,7 +1833,7 @@ static const device_config_t ne2000_compat_8bit_config[] = {
         .name           = "mac_oui",
         .description    = "MAC Address OUI",
         .type           = CONFIG_MAC,
-        .default_string = NULL,
+        .default_string = "00:86:b0",
         .default_int    = -1,
         .file_filter    = NULL,
         .spinner        = { 0 },

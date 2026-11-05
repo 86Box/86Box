@@ -30,6 +30,7 @@
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/lpt.h>
+#include <86box/lpt_bpck_link.h>
 #include <86box/lpt_ditto.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_tape.h>
@@ -45,51 +46,9 @@
 #define ENABLE_LPT_DITTO_LOG 1
 #endif
 
-/*
-   Port register bits at their literal values; the inversion at the
-   connector applies on top, and both ends work in terms of the register.
- */
+/* STROBE at its literal register value; the rest of the wire is
+   lpt_bpck_link.c's. */
 #define LPT_CTRL_STROBE   0x01
-#define LPT_CTRL_AUTOFD   0x02
-#define LPT_CTRL_INIT     0x04
-#define LPT_CTRL_SELECT   0x08
-#define LPT_CTRL_INTEN    0x10
-#define LPT_CTRL_DIR      0x20
-
-/*
-   The four bits that reach the connector. Compare against them masked:
-   the host keeps 0xc0 in its control shadow and writes it back to us.
- */
-#define LPT_CTRL_LINES    0x0f
-
-#define LPT_STAT_ERROR    0x08
-#define LPT_STAT_SELECT   0x10
-#define LPT_STAT_PAPEROUT 0x20
-#define LPT_STAT_ACK      0x40
-#define LPT_STAT_BUSY     0x80
-
-/* Only the top five bits of the status register belong to the device -
-   the parallel port makes the low three up for itself. */
-#define LPT_STAT_MASK     0xf8
-
-/*
-   What the status lines read as before the pod drives them. Not zero:
-   that reads as every line asserted at once, and a host that looks at
-   the port before knocking decides there is nothing here.
- */
-#define LPT_STAT_IDLE     0xd8
-
-/*
-   Transfer protocols, in the host driver's order: below EPP-8 everything
-   goes through the SPP registers, above it through base+3 and base+4.
- */
-enum {
-    DITTO_PROTO_SPP = 0,
-    DITTO_PROTO_PS2,
-    DITTO_PROTO_EPP8,
-    DITTO_PROTO_EPP16,
-    DITTO_PROTO_EPP32
-};
 
 /*
    Protocol bits for control register 0x04, and for 0x24 deferred to the
@@ -371,34 +330,17 @@ typedef struct ditto_t {
     void   *lpt;
 
     /* Configuration. */
-    int     max_proto;  /* fastest protocol the bridge will admit to */
     int     capacity;   /* cartridge the drive is loaded with, in GB */
-    uint8_t unit;       /* address this pod answers a knock at */
     char    image_fn[1024];
     int     readonly;
 
     /* Layer 1: the wire. */
-    uint8_t ctrl;       /* our shadow of the host's control register */
-    uint8_t dat;        /* last byte the host put on the data lines */
-    int     connected;
-    int     proto;      /* protocol the bridge is programmed for */
-    uint8_t proto_bits;
-
-    int     knock;       /* SELECT edges seen since it began */
-    int     ident;        /* answering the post-knock address probe */
-    int     latching;     /* an out-of-band register write is under way */
-    int     latch_commits; /* bytes it has committed so far */
-
-    /* Layer 1: the byte being handed back to the host. */
-    int     cur_reg;    /* register the host has addressed */
-    int     xfer_idx;   /* bytes moved since that register was addressed -
-                           the multi-byte registers (0x22, 0x24, 0x28, 0x2c,
-                           0x30, 0x34) are written as a run of bytes to the
-                           one address, and index themselves off this */
-    uint8_t rd_val;     /* byte being shifted out */
-    int     rd_high;    /* the low nibble has gone, the high one is next */
-    uint8_t rd_out;     /* status bits presenting the current nibble */
-    uint8_t last_status; /* last value handed back, to quieten poll loops */
+    bpck_link_t link;
+    uint8_t     proto_bits;
+    int         xfer_idx;   /* bytes moved since that register was addressed -
+                               the multi-byte registers (0x22, 0x24, 0x28, 0x2c,
+                               0x30, 0x34) are written as a run of bytes to the
+                               one address, and index themselves off this */
 
     /* Layer 2: the register file. */
     uint8_t  reg[256];
@@ -483,7 +425,6 @@ typedef struct ditto_t {
     int      image_dirty;   /* written but not yet flushed to disk */
     int      epp_warned;    /* the EPP-vs-port mismatch has been reported */
     uint32_t last_port_ms;  /* when the host last touched the port */
-    uint8_t  dat_out;       /* last byte we put on the data lines */
     uint8_t  ui_write;      /* the drive's current command writes to the tape */
 
     /* Counted for the format-rate summary, not used by the emulation. */
@@ -513,10 +454,6 @@ typedef struct ditto_t {
 #define DITTO_IDLE_MS 20
 
 #ifdef ENABLE_LPT_DITTO_LOG
-
-static const char *ditto_proto_name[] = {
-    "SPP 4-bit", "PS/2 8-bit", "EPP-8", "EPP-16", "EPP-32"
-};
 
 static void
 ditto_log(const char *fmt, ...)
@@ -550,24 +487,11 @@ ditto_tape_capacity(const ditto_t *dev)
            FDD_TAPE_SECTOR_SIZE;
 }
 
-/*
-   Where the conversation has got to, appended to every traced access:
-   did it knock, did the knock take, which register did it address.
- */
-static const char *
-ditto_state(const ditto_t *dev)
-{
-    static char buf[64];
-
-    snprintf(buf, sizeof(buf), "%s reg=%02X knock=%d%s",
-             dev->connected ? "CONN" : "----", dev->cur_reg, dev->knock,
-             dev->latching ? " latch" : "");
-
-    return buf;
-}
+#define DITTO_LINK_LOG ditto_log
 #else
 #define ditto_log(fmt, ...)
 #define ditto_note_idle(dev)
+#define DITTO_LINK_LOG NULL
 #endif
 
 /*
@@ -579,14 +503,14 @@ ditto_decode_proto_bits(uint8_t bits)
 {
     switch (bits & DITTO_PROTO_BITS_MASK) {
         case DITTO_PROTO_BITS_PS2:
-            return DITTO_PROTO_PS2;
+            return BPCK_PROTO_PS2;
         case DITTO_PROTO_BITS_EPP:
-            return DITTO_PROTO_EPP8;
+            return BPCK_PROTO_EPP8;
         default:
             break;
     }
 
-    return DITTO_PROTO_SPP;
+    return BPCK_PROTO_SPP;
 }
 
 /* --------------------------------------------------------------------- */
@@ -633,8 +557,8 @@ ditto_mem_read_byte(ditto_t *dev)
 static int
 ditto_mem_burst_active(const ditto_t *dev)
 {
-    return dev->connected && (dev->cur_reg == BP_REG_MEMORY) &&
-           dev->mem_write_armed && (dev->ctrl & LPT_CTRL_STROBE);
+    return dev->link.connected && (dev->link.cur_reg == BP_REG_MEMORY) &&
+           dev->mem_write_armed && (dev->link.ctrl & LPT_CTRL_STROBE);
 }
 
 static void
@@ -652,7 +576,7 @@ ditto_mem_write_byte(ditto_t *dev, uint8_t val)
 static void
 ditto_update_irq(ditto_t *dev, int test_poke)
 {
-    if (dev->lpt == NULL)
+    if (dev->link.lpt == NULL)
         return;
 
     /*
@@ -663,9 +587,9 @@ ditto_update_irq(ditto_t *dev, int test_poke)
      */
     if (dev->irq_pending &&
         (test_poke || ((dev->irq_ctrl & BP_IRQ_MASK) == BP_IRQ_HARDEN)))
-        lpt_irq(dev->lpt, 1);
+        lpt_irq(dev->link.lpt, 1);
     else
-        lpt_irq(dev->lpt, 0);
+        lpt_irq(dev->link.lpt, 0);
 }
 
 /* --------------------------------------------------------------------- */
@@ -2989,7 +2913,7 @@ backpack_write_reg(ditto_t *dev, int reg, uint8_t val)
                register 0x24, which is remembered for the next one.
              */
             dev->proto_bits      = val;
-            dev->proto           = ditto_decode_proto_bits(val);
+            dev->link.proto      = ditto_decode_proto_bits(val);
             dev->mem_write_armed = !!(val & BP_CTRL_MEM_WRITE);
 
             /*
@@ -3042,7 +2966,7 @@ backpack_write_reg(ditto_t *dev, int reg, uint8_t val)
             } else if ((idx == 1) && (val == BP_PROTO_MAGIC)) {
                 dev->deferred_valid = 1;
                 ditto_log("Ditto: protocol %s programmed for the next connect\n",
-                          ditto_proto_name[ditto_decode_proto_bits(dev->deferred_proto_bits)]);
+                          bpck_proto_name[ditto_decode_proto_bits(dev->deferred_proto_bits)]);
             }
             break;
 
@@ -3091,54 +3015,43 @@ backpack_write_reg(ditto_t *dev, int reg, uint8_t val)
 }
 
 /* --------------------------------------------------------------------- */
-/* Layer 1: the BackPack wire protocol                                   */
+/* Layer 1: what the Ditto adds to the BackPack wire protocol            */
 /* --------------------------------------------------------------------- */
 
-/*
-   A nibble across the five status bits we own: value bits 0-2 into
-   status 3-5, bit 3 into status 7. ACK is left clear, so a nibble can
-   never be mistaken for the connect response.
- */
 static uint8_t
-ditto_encode_nibble(uint8_t val)
+ditto_link_read_reg(void *priv, int reg)
 {
-    return (uint8_t) (((val & 0x07) << 3) | ((val & 0x08) << 4));
-}
-
-static uint8_t
-ditto_connect_response(const ditto_t *dev)
-{
-    return (uint8_t) ((dev->proto >= DITTO_PROTO_EPP8)
-                          ? (LPT_STAT_ACK | LPT_STAT_BUSY)
-                          : LPT_STAT_ACK);
-}
-
-/*
-   The address probe that follows every knock: our unit number, and the
-   complement of it when AUTOFD is low. The host requires the two
-   readings to be complements - an empty port cannot do that - and only
-   then checks the number. It rides alongside the protocol answer
-   because the other host driver reads the same status and wants only
-   that.
- */
-static uint8_t
-ditto_ident_response(const ditto_t *dev)
-{
-    const uint8_t id = (dev->ctrl & LPT_CTRL_AUTOFD)
-                           ? dev->unit
-                           : (uint8_t) ~dev->unit;
-
-    return (uint8_t) (ditto_connect_response(dev) | ((id & 0x07) << 3));
+    return backpack_read_reg((ditto_t *) priv, reg);
 }
 
 static void
-ditto_connect(ditto_t *dev)
+ditto_link_write_reg(void *priv, int reg, uint8_t val)
 {
-    dev->connected   = 1;
-    dev->knock       = 0;
-    dev->ident       = 1;
-    dev->rd_high     = 0;
-    dev->rd_out      = 0x00;
+    backpack_write_reg((ditto_t *) priv, reg, val);
+}
+
+static void
+ditto_link_activity(void *priv, int status)
+{
+    ditto_t *dev = (ditto_t *) priv;
+
+    ditto_note_idle(dev);
+
+    /*
+       The host polls the status lines non-stop while it waits for the
+       drive - which is exactly while the drive is busy. The status bar
+       only samples the activity flag periodically and clears it after
+       displaying, so re-assert it on every poll.
+     */
+    if (status &&
+        ((dev->fdc_phase == FDC_PHASE_EXEC) || dev->qic_busy || dev->qic_running))
+        ditto_ui_activity(1, dev->ui_write);
+}
+
+static void
+ditto_link_connect(void *priv)
+{
+    ditto_t *dev = (ditto_t *) priv;
 
     /*
        A protocol programmed into 0x24 comes into force here, which is why
@@ -3146,167 +3059,49 @@ ditto_connect(ditto_t *dev)
      */
     if (dev->deferred_valid) {
         dev->proto_bits     = dev->deferred_proto_bits;
-        dev->proto          = ditto_decode_proto_bits(dev->deferred_proto_bits);
+        dev->link.proto     = ditto_decode_proto_bits(dev->deferred_proto_bits);
         dev->deferred_valid = 0;
     }
 
     /* Connecting takes the interrupt line down; the host polls instead. */
     ditto_update_irq(dev, 0);
 
-    /* The bridge answers with which family of protocols it is set for. */
-    dev->rd_out = ditto_connect_response(dev);
-
-    ditto_log("Ditto: connected in %s mode\n", ditto_proto_name[dev->proto]);
-
     /*
        A mode the port cannot carry, said once a session. The host can
        program EPP and never issue a cycle, because the super I/O maps
        base+3 and base+4 only when it has EPP switched on.
      */
-    if ((dev->proto >= DITTO_PROTO_EPP8) && !dev->epp_warned) {
+    if ((dev->link.proto >= BPCK_PROTO_EPP8) && !dev->epp_warned) {
         dev->epp_warned = 1;
         ditto_log("Ditto: EPP selected; the port %s carry EPP cycles\n",
-                  ((lpt_t *) dev->lpt)->epp ? "does" : "DOES NOT");
+                  ((lpt_t *) dev->link.lpt)->epp ? "does" : "DOES NOT");
     }
 }
 
 static void
-ditto_disconnect(ditto_t *dev)
+ditto_link_disconnect(void *priv)
 {
-    if (!dev->connected)
-        return;
+    ditto_t *dev = (ditto_t *) priv;
 
-    dev->connected    = 0;
-
-    dev->knock        = 0;
-    dev->ident        = 0;
-    dev->latching     = 0;
-    dev->rd_out       = 0x00;
-    dev->mem_burst    = 0;
+    dev->mem_burst = 0;
 
     /* Letting go is what lets a pending interrupt reach the host. */
     ditto_update_irq(dev, 0);
-
-    ditto_log("Ditto: disconnected\n");
-}
-
-/*
-   The next nibble of the addressed register. Every second toggle starts
-   a fresh byte, so a host that keeps toggling streams the register out.
- */
-/*
-   Whether the bridge will talk in the mode it is programmed for. Held
-   back by the ceiling it answers all ones, which breaks the host's self
-   test - which is how it is meant to find out and settle on less.
- */
-static int
-ditto_proto_usable(const ditto_t *dev)
-{
-    return dev->connected && (dev->proto <= dev->max_proto);
 }
 
 static void
-ditto_advance_read(ditto_t *dev)
-{
-    uint8_t val;
-
-    if (!ditto_proto_usable(dev)) {
-        ditto_log("Ditto: read refused in %s mode\n", ditto_proto_name[dev->proto]);
-        dev->rd_out  = ditto_encode_nibble(0x0f);
-        dev->rd_high = !dev->rd_high;
-        dev->dat_out = 0xff;
-        if (dev->lpt != NULL)
-            lpt_write_to_dat(dev->lpt, 0xff);
-        return;
-    }
-
-    /*
-       In byte mode the bridge drives the data lines rather than the status
-       bits, so a whole byte comes back per toggle.
-     */
-    if (dev->proto == DITTO_PROTO_PS2) {
-        val          = backpack_read_reg(dev, dev->cur_reg);
-        dev->rd_out  = 0x00;
-        dev->dat_out = val;
-        if (dev->lpt != NULL)
-            lpt_write_to_dat(dev->lpt, val);
-        return;
-    }
-
-    if (dev->rd_high) {
-        dev->rd_out  = ditto_encode_nibble(dev->rd_val >> 4);
-        dev->rd_high = 0;
-    } else {
-        dev->rd_val  = backpack_read_reg(dev, dev->cur_reg);
-        dev->rd_out  = ditto_encode_nibble(dev->rd_val & 0x0f);
-        dev->rd_high = 1;
-    }
-}
-
-/*
-   EPP moves addressing and data onto the port's own registers, so none
-   of the toggling above applies. A wide read arrives as consecutive
-   byte reads, which is what the bridge would see too.
- */
-static void
-ditto_epp_write_data(uint8_t is_addr, uint8_t val, void *priv)
+ditto_link_address(void *priv)
 {
     ditto_t *dev = (ditto_t *) priv;
 
-    if (!ditto_proto_usable(dev) || (dev->proto < DITTO_PROTO_EPP8)) {
-        ditto_log("Ditto: EPP write ignored in %s mode\n",
-                  ditto_proto_name[dev->proto]);
-        return;
-    }
-
-    if (is_addr) {
-        ditto_log("Ditto: W3 %02X (EPP address)\n", val);
-        dev->cur_reg   = val;
-        dev->xfer_idx  = 0;
-        dev->rd_high   = 0;
-        dev->mem_burst = 0;
-    } else {
-        ditto_log("Ditto: W4 %02X (EPP data)\n", val);
-        backpack_write_reg(dev, dev->cur_reg, val);
-    }
+    dev->xfer_idx  = 0;
+    dev->mem_burst = 0;
 }
 
 static void
-ditto_epp_request_read(uint8_t is_addr, void *priv)
+ditto_link_data(void *priv, uint8_t val, uint8_t old)
 {
     ditto_t *dev = (ditto_t *) priv;
-    uint8_t  val = 0xff;
-
-    ditto_log("Ditto: R%d (EPP %s)\n", is_addr ? 3 : 4,
-              is_addr ? "address" : "data");
-
-    if (!is_addr && ditto_proto_usable(dev) && (dev->proto >= DITTO_PROTO_EPP8))
-        val = backpack_read_reg(dev, dev->cur_reg);
-
-    dev->dat_out = val;
-    if (dev->lpt != NULL)
-        lpt_write_to_dat(dev->lpt, val);
-}
-
-static void
-ditto_write_data(uint8_t val, void *priv)
-{
-    ditto_t      *dev = (ditto_t *) priv;
-    const uint8_t old = dev->dat;
-
-    ditto_note_idle(dev);
-
-    ditto_log("Ditto: W0 %02X            [%s]\n", val, ditto_state(dev));
-
-    dev->dat = val;
-
-    /*
-       An address on the data lines starts a knock, so toggles counted before
-       it were not part of one. Counting from a data write is safe where
-       arming on one is not: the port calls us for every write, changed or
-       not. Without this the knock completes an edge early.
-     */
-    dev->knock = 0;
 
     /*
        Mid burst a byte commits on either an INIT toggle or a change of the
@@ -3320,136 +3115,13 @@ ditto_write_data(uint8_t val, void *priv)
         dev->mem_burst = 1; /* the write that primes the lines */
     else if (val != old)
         ditto_mem_write_byte(dev, val);
-
-    /*
-       The bridge drives the data lines only during a PS/2 or EPP read;
-       otherwise the host reads its own latch back, so keep the port's input
-       register tracking what was written or it sees zeroes and misjudges
-       what the port can do.
-     */
-    if (dev->lpt != NULL)
-        lpt_write_to_dat(dev->lpt, val);
 }
 
 static void
-ditto_write_ctrl(uint8_t val, void *priv)
+ditto_link_ctrl(void *priv, uint8_t chg, uint8_t lines)
 {
-    ditto_t      *dev   = (ditto_t *) priv;
-    const uint8_t old   = dev->ctrl;
-    const uint8_t chg       = (uint8_t) ((old ^ val) & LPT_CTRL_LINES);
-    const uint8_t lines     = (uint8_t) (val & LPT_CTRL_LINES);
-    const uint8_t old_lines = (uint8_t) (old & LPT_CTRL_LINES);
+    ditto_t *dev = (ditto_t *) priv;
 
-    ditto_note_idle(dev);
-
-
-    ditto_log("Ditto: W2 %02X (was %02X)  [%s]\n", val, old, ditto_state(dev));
-
-    dev->ctrl = val;
-
-    /* The bridge latches on edges. Rewriting the same value is nothing. */
-    if (chg == 0x00)
-        return;
-
-    /*
-       An out-of-band register write, addressed off the data lines with
-       SELECT raised. The host forces a protocol and seeds the EPP self test
-       this way, and they are one mechanism: SELECT latches the register
-       number, each AUTOFD toggle commits the data lines, STROBE dropping
-       ends it and leaves that register addressed. An EPP disconnect opens
-       identically but commits nothing. Test this before anything else looks
-       at SELECT.
-     */
-    if (dev->latching) {
-        if (chg & LPT_CTRL_AUTOFD) {
-            backpack_write_reg(dev, dev->cur_reg, dev->dat);
-            dev->latch_commits++;
-        }
-
-        if (!(lines & LPT_CTRL_STROBE)) {
-            dev->latching = 0;
-            if (dev->latch_commits == 0)
-                ditto_disconnect(dev);
-        }
-
-        return;
-    }
-
-    if (dev->connected && (lines == (LPT_CTRL_STROBE | LPT_CTRL_SELECT))) {
-        dev->latching      = 1;
-        dev->latch_commits = 0;
-        dev->cur_reg       = dev->dat;
-        dev->xfer_idx      = 0;
-        dev->rd_high       = 0;
-        dev->mem_burst     = 0;
-        return;
-    }
-
-    /*
-       Letting go: INIT dropped leaving AUTOFD alone, then INIT and SELECT
-       raised together. Only the pair in that order ends the link - one
-       driver toggles SELECT constantly, and the other's nibble reads pass
-       through AUTOFD-alone twice a byte, so neither half means anything on
-       its own.
-     */
-    if (dev->connected && (old_lines == LPT_CTRL_AUTOFD) &&
-        (lines & LPT_CTRL_SELECT)) {
-        ditto_disconnect(dev);
-        return;
-    }
-
-    /*
-       The address probe that closes the knock. Nothing else may look at
-       these two AUTOFD edges: once the link is up an AUTOFD edge latches a
-       register number off the data lines, which still carry the unit number
-       - so without this the probe addresses register zero and the host
-       reads a nibble where it expected an address, and gives up.
-     */
-    if (dev->ident) {
-        if (chg & LPT_CTRL_SELECT)
-            dev->ident = 0;
-        return;
-    }
-
-    /*
-       The connect knock: three toggles of SELECT while the other lines hold
-       INIT alone, with the unit address on the data lines. What makes an
-       edge count is the state of the other lines, not an earlier write that
-       armed it - a host may arrive in the knocking state without writing
-       anything at all. As a level it also throws out stray counts.
-     */
-    if ((lines & ~LPT_CTRL_SELECT) != LPT_CTRL_INIT)
-        dev->knock = 0;
-    else if (chg & LPT_CTRL_SELECT) {
-        if (++dev->knock >= 3) {
-            dev->knock = 0;
-
-            /*
-               The knock is addressed: these chain, so only the pod named on
-               the data lines may take the link. Answering to every address is
-               not harmless - the host decides a unit is present by the status
-               changing across the knock, so a pod that answers everywhere is
-               found nowhere.
-             */
-            if (dev->dat == dev->unit)
-                ditto_connect(dev);
-            else {
-                ditto_log("Ditto: knock for unit %02X, not ours (%02X)\n",
-                          dev->dat, dev->unit);
-            }
-        }
-
-        return;
-    }
-
-    if (!dev->connected)
-        return;
-
-    /*
-       With the link up three edges carry everything: AUTOFD latches the
-       register number, and INIT clocks a byte - in when STROBE is set, out
-       when it is clear.
-     */
     /*
        STROBE dropping closes a burst write. Only the implicit, data-change
        half of the commit rule is gated this way; an INIT toggle is the host
@@ -3457,68 +3129,18 @@ ditto_write_ctrl(uint8_t val, void *priv)
      */
     if ((chg & LPT_CTRL_STROBE) && !(lines & LPT_CTRL_STROBE))
         dev->mem_burst = 0;
-
-    if (chg & LPT_CTRL_AUTOFD) {
-        dev->cur_reg   = dev->dat;
-        dev->xfer_idx  = 0;
-        dev->rd_high   = 0;
-        dev->mem_burst = 0;
-
-        /*
-           Addressing a register also puts the connect answer back on the
-           status lines, and it has to be a level we hold: a host that reads
-           the status without clocking anything must keep seeing it.
-         */
-        dev->rd_out = ditto_connect_response(dev);
-        return;
-    }
-
-    if (chg & LPT_CTRL_INIT) {
-        if (lines & LPT_CTRL_STROBE)
-            backpack_write_reg(dev, dev->cur_reg, dev->dat);
-        else
-            ditto_advance_read(dev);
-    }
 }
 
-static uint8_t
-ditto_read_status(void *priv)
-{
-    ditto_t *dev = (ditto_t *) priv;
-    uint8_t  ret;
-
-    ditto_note_idle(dev);
-
-    /*
-       The host polls the status lines non-stop while it waits for the
-       drive - which is exactly while the drive is busy. The status bar
-       only samples the activity flag periodically and clears it after
-       displaying, so re-assert it on every poll.
-     */
-    if ((dev->fdc_phase == FDC_PHASE_EXEC) || dev->qic_busy || dev->qic_running)
-        ditto_ui_activity(1, dev->ui_write);
-
-    if (dev->connected && dev->ident)
-        ret = ditto_ident_response(dev);
-    else if (dev->connected)
-        ret = dev->rd_out;
-    else
-        /* Not connected: the bridge leaves the status lines alone. */
-        ret = LPT_STAT_IDLE;
-
-    ret &= LPT_STAT_MASK;
-
-    /*
-       Idle status reads are how a host spins, so trace them only when the
-       answer changes.
-     */
-    if ((ret != dev->last_status) || dev->connected) {
-        ditto_log("Ditto: R1 -> %02X          [%s]\n", ret, ditto_state(dev));
-        dev->last_status = ret;
-    }
-
-    return ret;
-}
+static const bpck_link_ops_t ditto_link_ops = {
+    .read_reg   = ditto_link_read_reg,
+    .write_reg  = ditto_link_write_reg,
+    .activity   = ditto_link_activity,
+    .connect    = ditto_link_connect,
+    .disconnect = ditto_link_disconnect,
+    .address    = ditto_link_address,
+    .data       = ditto_link_data,
+    .ctrl       = ditto_link_ctrl
+};
 
 /* --------------------------------------------------------------------- */
 /* 86Box device plumbing                                                 */
@@ -3534,8 +3156,8 @@ ditto_init(UNUSED(const device_t *info))
     if (dev == NULL)
         return NULL;
 
-    dev->unit     = 0;
-    dev->max_proto = DITTO_PROTO_EPP8;
+    dev->link.unit      = 0;
+    dev->link.max_proto = BPCK_PROTO_EPP8;
 
     /*
        A tape_drives[] entry on the LPT bus (the Tape drives tab) takes
@@ -3592,7 +3214,7 @@ ditto_init(UNUSED(const device_t *info))
     }
 
     /* The bridge powers up in SPP, the one mode every port can manage. */
-    dev->proto      = DITTO_PROTO_SPP;
+    dev->link.proto = BPCK_PROTO_SPP;
     dev->proto_bits = DITTO_PROTO_BITS_SPP | DITTO_PROTO_BITS_FIXED;
     dev->crc        = DITTO_CRC_INIT;
 
@@ -3620,10 +3242,7 @@ ditto_init(UNUSED(const device_t *info))
 
     qic_set_error(dev, QIC_ERROR_POWER_ON_RESET, QIC_NO_COMMAND);
 
-    dev->lpt = lpt_attach(ditto_write_data, ditto_write_ctrl, NULL,
-                          ditto_read_status, NULL,
-                          ditto_epp_write_data, ditto_epp_request_read, dev);
-    if (dev->lpt == NULL) {
+    if (!bpck_link_attach(&dev->link, &ditto_link_ops, dev, "Ditto", DITTO_LINK_LOG)) {
         /* Another device already has this port, or the port is absent. */
         ditto_log("Ditto: port %i unavailable or already claimed, not attaching\n", port);
         free(dev->buffer);
@@ -3637,7 +3256,7 @@ ditto_init(UNUSED(const device_t *info))
     ditto_log("Ditto: attached as %s (vendor ID %04X, ROM %02X), protocol "
               "ceiling %s, image \"%s\"%s\n",
               model->name, dev->qic_vendor_id, dev->qic_rom_version,
-              ditto_proto_name[dev->max_proto], dev->image_fn,
+              bpck_proto_name[dev->link.max_proto], dev->image_fn,
               dev->readonly ? " (write protected)" : "");
 
     return dev;

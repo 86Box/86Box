@@ -490,6 +490,9 @@ msgstr "XGA 圖形"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 顯示介面卡圖形"
 
+msgid "PowerVR PCX1/PCX2 Graphics"
+msgstr ""
+
 msgid "SCSI:"
 msgstr "SCSI:"
 
@@ -3694,3 +3697,21 @@ msgstr "為 PCI 裝置設置 VFIO 透通"
 
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
 msgstr "要求授權以設置 PCI 裝置透通予 86Box。"
+
+msgid "Disabled"
+msgstr ""
+
+msgid "Unlimited capacity"
+msgstr ""
+
+msgid "CD speed:"
+msgstr ""
+
+msgid "DVD speed:"
+msgstr ""
+
+msgid "HD/BD speed:"
+msgstr ""
+
+msgid "Software-initiated poweroff device (IBM 5140)"
+msgstr ""
