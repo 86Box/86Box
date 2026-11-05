@@ -3,11 +3,12 @@
 #include <gtest/gtest.h>
 
 extern "C" {
+#include <86box/cpu_events.h>
 #include <86box/mem.h>
 #include <86box/gdbstub.h>
 
 int             gdbstub_watching;
-int             cpu_dr_armed;
+cpu_events_t    cpu_events;
 uint64_t        gdbstub_watch_pages[(((uint32_t) -1) >> (MEM_GRANULARITY_BITS + 6)) + 1];
 static unsigned hits;
 static int      last_access;

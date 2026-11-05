@@ -165,6 +165,8 @@ python tests/cpu/gdbstub_test.py --binary build/src/86Box \
 Use `--interpreter` to select interpreter execution. `--trace-translated`
 requires host GDB and asserts calls from generated code during both continue
 and single-step. `--guest-gdb` adds a real GDB compatibility check.
+The protected-mode cases also warm a descriptor page and then install read
+watchpoints in each half of a segment descriptor, checking cache invalidation.
 `--guest-debug-regs off` exercises remote debugging without guest
 debug-register emulation; the guest TF check still runs.
 `--graceful` requires an AUTOMATION-enabled binary and checks shutdown through

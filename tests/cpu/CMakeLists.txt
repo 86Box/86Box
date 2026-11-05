@@ -31,6 +31,11 @@ if(BUILD_TESTING)
             set_tests_properties(gdbstub_isolated_dynarec_off
                 PROPERTIES RUN_SERIAL TRUE TIMEOUT 180)
         endif()
+        add_test(NAME gdbstub_isolated_fxsr
+            COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/gdbstub_test.py
+                --binary ${GDBSTUB_TEST_BINARY} --rompath ${GDBSTUB_TEST_ROMPATH}
+                --runtime --cpu pentium2-xeon GuestTests.test_fx_image_checksum_watchpoints)
+        set_tests_properties(gdbstub_isolated_fxsr PROPERTIES RUN_SERIAL TRUE TIMEOUT 180)
         foreach(debug_regs on off)
             add_test(NAME gdbstub_isolated_interpreter_${debug_regs}
                 COMMAND ${Python3_EXECUTABLE} -B ${CMAKE_CURRENT_SOURCE_DIR}/gdbstub_test.py
@@ -47,8 +52,20 @@ if(BUILD_TESTING)
         endif()
     endif()
     add_executable(codegen_reuse_tests codegen_reuse_test.cpp)
+    if(DYNAREC)
+        if(UNIX AND CMAKE_SYSTEM_PROCESSOR MATCHES "^(x86_64|amd64|AMD64)$")
+            add_executable(codegen_rx_tests codegen_rx_test.cpp codegen_rx_fixture.c)
+            target_include_directories(codegen_rx_tests PRIVATE ${PROJECT_SOURCE_DIR}/src/codegen)
+            target_compile_definitions(codegen_rx_tests PRIVATE USE_DYNAREC)
+        endif()
+    endif()
+    add_executable(x87_fprem_tests x87_fprem_test.cpp)
     add_executable(gdbstub_watch_tests gdbstub_watch_test.cpp ../../src/mem/mem.c)
-    set(cpu_test_targets codegen_reuse_tests gdbstub_watch_tests)
+    add_executable(mem_flush_write_tests mem_flush_write_test.cpp ../../src/mem/mem.c)
+    set(cpu_test_targets codegen_reuse_tests x87_fprem_tests gdbstub_watch_tests mem_flush_write_tests)
+    if(TARGET codegen_rx_tests)
+        list(APPEND cpu_test_targets codegen_rx_tests)
+    endif()
     foreach(target ${cpu_test_targets})
         target_include_directories(${target} PRIVATE
             ${PROJECT_SOURCE_DIR}/src/include

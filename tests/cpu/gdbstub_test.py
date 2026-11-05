@@ -20,6 +20,8 @@ CPU_MODELS = {
     "386": ("acc386", "i386dx", 16000000, 1, "none", 4096, "et4000ax"),
     "pentium-mmx": ("p55t2p4", "pentium_p55c", 233333333, 3.5,
                     "internal", 16384, "et4000ax"),
+    "pentium2-xeon": ("fw6400gx", "pentium2_xeon", 450000000, 4.5,
+                     "internal", 65536, "et4000ax"),
 }
 
 
@@ -100,6 +102,7 @@ class Remote:
 class GuestTests(unittest.TestCase):
     native_flags = 2
     guest_debug_regs = True
+    fxsr = False
 
     @classmethod
     def setUpClass(cls):
@@ -410,6 +413,53 @@ class GuestTests(unittest.TestCase):
         self.assertEqual(r.command("m400000,4"), "78563412")
         self.assertEqual(r.command("z2,400000,4"), "OK")
 
+    def test_fx_image_checksum_watchpoints(self):
+        if not self.fxsr:
+            self.skipTest("Requires FXSAVE/FXRSTOR")
+        r = self.remote
+        for base in (0x9000, 0x8ff0):
+            with self.subTest(base=base):
+                # Warm the image lookup, then watch reserved bytes read only
+                # by the exact-state checksum, not the register loaders.
+                r.write_mem(0x7000, bytes.fromhex("dbe30fae06") +
+                            struct.pack("<H", base) + bytes.fromhex("90ebf6"))
+                r.write_reg(8, 0x7000)
+                self.assertEqual(r.command("Z1,7007,1"), "OK")
+                self.assertIn("hwbreak:;", r.command("c"))
+                self.assertEqual(r.command("z1,7007,1"), "OK")
+                address = base + 156
+                self.assertEqual(r.command(f"Z3,{address:x},1"), "OK")
+                self.assertIn(f"rwatch:{address:X};", r.command("c"))
+                self.assertEqual(r.read_reg(8), 0x7007)
+                self.assertEqual(r.command(f"z3,{address:x},1"), "OK")
+                r.write_mem(0x7100, bytes.fromhex("0fae0e") +
+                            struct.pack("<H", base) + bytes.fromhex("90ebfe"))
+                r.write_reg(8, 0x7100)
+                self.assertEqual(r.command(f"Z3,{address:x},1"), "OK")
+                self.assertIn(f"rwatch:{address:X};", r.command("c"))
+                self.assertEqual(r.read_reg(8), 0x7105)
+                self.assertEqual(r.command(f"z3,{address:x},1"), "OK")
+
+    def test_descriptor_read_watchpoints(self):
+        r = self.remote
+        r.write_mem(0x7400, bytes.fromhex(
+            "0000000000000000ffff0000009acf00ffff00000092cf00"))
+        r.write_mem(0x7500, struct.pack("<HI", 23, 0x7400))
+        r.write_mem(0x7000, bytes.fromhex(
+            "fa0f011600750f20c06683c8010f22c066ea008000000800"))
+        # Warm the descriptor page before adding a watch in either dword.
+        r.write_mem(0x8000, bytes.fromhex("66b810008ed890ebf7"))
+        self.assertEqual(r.command("Z1,8006,1"), "OK")
+        self.assertIn("hwbreak:;", r.command("c"))
+        self.assertEqual(r.command("z1,8006,1"), "OK")
+        for address in (0x7410, 0x7416):
+            with self.subTest(address=address):
+                self.assertEqual(r.command(f"Z3,{address:x},1"), "OK")
+                self.assertIn(f"rwatch:{address:X};", r.command("c"))
+                self.assertEqual(r.read_reg(8), 0x8006)
+                self.assertEqual(r.read_reg(0xc), 0x10)
+                self.assertEqual(r.command(f"z3,{address:x},1"), "OK")
+
     def test_warmed_cross_page_watchpoints(self):
         r = self.remote
         # mov ax,[8fff]; mov [9fff],ax; inc cx; cmp cx,1000; jne 7000
@@ -453,6 +503,7 @@ if __name__ == "__main__":
     PORT = args.port
     GuestTests.native_flags = 0x8002 if args.cpu == "v20" else 2
     GuestTests.guest_debug_regs = args.guest_debug_regs == "on"
+    GuestTests.fxsr = args.cpu == "pentium2-xeon"
     if args.binary:
         if not args.rompath:
             parser.error("--binary requires --rompath")
