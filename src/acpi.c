@@ -2623,7 +2623,12 @@ acpi_reset(void *priv)
         dev->regs.gpireg[2] = 0xcd;
         /* Bit 5 must be set at reset to disable the A17 xor for the Flash. */
         dev->regs.gporeg[3] |= 0x20;
-    }
+    } else if (machines[machine].init == machine_at_bx6_init)
+        /*
+           Bit 3 must be cleared to enable the CPU Soft Menu on the ABIT AB-BX6
+           BIOS revision EG.
+         */
+        dev->regs.gpireg[2] = 0xd5;
     if (dev->vendor == VEN_VIA_596B) {
         dev->regs.gpo_val = 0x7fffffff;
         /*
