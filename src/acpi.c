@@ -152,7 +152,10 @@ void
 acpi_sis5595_smi_raise(void *priv)
 {
     acpi_t *dev = (acpi_t *) priv;
-    if (dev->regs.leg_en & 0x20) {
+
+    /* SMI_STS remains set until acknowledged by the SMI handler.
+       Do not queue another SMI while the previous one is pending. */
+    if ((dev->regs.leg_en & 0x20) && !(dev->regs.leg_sts & 0x20)) {
         dev->regs.leg_sts |= 0x20;
         smi_raise();
     }
@@ -164,12 +167,10 @@ acpi_gp_timer(void *priv)
     acpi_t *dev = (acpi_t *) priv;
     if (dev->vendor == VEN_SIS_5595_1997) {
         dev->regs.gpe_sts |= 0x20000000;
-        dev->regs.leg_sts |= 0x20;
         acpi_gp_timer_update(dev, (dev->regs.gpe_en & 0x20000000), acpi_count);
         acpi_sis5595_smi_raise(dev);
     } else if (dev->vendor == VEN_SIS_5595) {
         dev->regs.gpe_sts |= 0x00000400;
-        dev->regs.leg_sts |= 0x20;
         acpi_gp_timer_update(dev, (dev->regs.gpe_en & 0x00000400), acpi_count);
         acpi_sis5595_smi_raise(dev);
     } else {
