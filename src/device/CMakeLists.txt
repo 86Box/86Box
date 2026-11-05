@@ -53,6 +53,7 @@ add_library(dev OBJECT
     keyboard_xt.c
     lpt.c
     lpt_bpck.c
+    lpt_bpck_link.c
     lpt_ditto.c
     lpt_epat.c
     lpt_zip.c
