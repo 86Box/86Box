@@ -2303,10 +2303,10 @@ fdd_tape_init(void)
     timer_add(&tape_timer, tape_clock, drv, 0);
     tape_timer_added = 1;
 
-    timer_add(&tape_cmd_timer, tape_command_timeout, NULL, 0);
+    timer_add(&tape_cmd_timer, tape_command_timeout, drv, 0);
     tape_cmd_timer_added = 1;
 
-    timer_add(&tape_motion_timer, tape_motion_tick, NULL, 0);
+    timer_add(&tape_motion_timer, tape_motion_tick, drv, 0);
     tape_motion_timer_added = 1;
 
     timer_add(&tape_busy_timer, tape_busy_done, NULL, 0);
