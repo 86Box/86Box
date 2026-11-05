@@ -55,6 +55,7 @@ add_library(dev OBJECT
     lpt_bpck.c
     lpt_bpck_link.c
     lpt_bpfdd.c
+    lpt_bpmcd.c
     lpt_ditto.c
     lpt_epat.c
     lpt_zip.c
