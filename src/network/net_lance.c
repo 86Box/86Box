@@ -690,12 +690,15 @@ int
 lance_rx(void *card_drv, uint8_t *buf, int length)
 {
     lance_t *dev = (lance_t *) card_drv;
+    int      result;
 
-    lance_log("[LANCE] rx %d bytes\n", length);
+    result = lance_receive(dev, buf, length);
+    lance_rx_complete(dev, result);
 
-    lance_rx_complete(dev, lance_receive(dev, buf, length));
-
-    return 0;
+    /* Network layer contract: zero means "could not take this frame", the
+       packet stays queued and is offered again. Only a full receive ring
+       defers it; an accepted or filtered-out frame is consumed. */
+    return (result == -2) ? 0 : 1;
 }
 
 static uint16_t
