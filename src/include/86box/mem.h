@@ -486,6 +486,7 @@ extern void     pae_load_pdptes(void);
 extern void flushmmucache_write(void);
 extern void flushmmucache_pc(void);
 extern void flushmmucache_nopc(void);
+extern void flushmmucache_ring3(void);
 
 extern void mem_debug_check_addr(uint32_t addr, int write);
 
