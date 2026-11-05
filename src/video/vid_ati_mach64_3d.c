@@ -2288,10 +2288,10 @@ mach64_3d_draw_trapezoid(mach64_3d_t *ctx, uint32_t cmd)
     int                  y;
     int                  lead_err;
     int                  trail_err;
-    int                  lead_inc   = (int32_t) mach64->dst_bres_inc;
-    int                  lead_dec   = (int32_t) mach64->dst_bres_dec;
-    int                  trail_inc  = (int32_t) ctx->regs[TRAIL_BRES_INC >> 2];
-    int                  trail_dec  = (int32_t) ctx->regs[TRAIL_BRES_DEC >> 2];
+    int                  lead_inc   = mach64_3d_sign_extend(mach64->dst_bres_inc, 18);
+    int                  lead_dec   = mach64_3d_sign_extend(mach64->dst_bres_dec, 18);
+    int                  trail_inc  = mach64_3d_sign_extend(ctx->regs[TRAIL_BRES_INC >> 2], 18);
+    int                  trail_dec  = mach64_3d_sign_extend(ctx->regs[TRAIL_BRES_DEC >> 2], 18);
     int                  y_dir      = (mach64->dst_cntl & DST_Y_DIR) ? 1 : -1;
     int                  lead_dir   = (mach64->dst_cntl & DST_X_DIR) ? 1 : -1;
     int                  trail_dir  = (mach64->dst_cntl & TRAIL_X_DIR) ? 1 : -1;
@@ -2320,8 +2320,11 @@ mach64_3d_draw_trapezoid(mach64_3d_t *ctx, uint32_t cmd)
         ctx->trail_valid = 1;
     }
     trail     = ctx->trail_x;
-    lead_err  = (int32_t) mach64->dst_bres_err;
-    trail_err = (int32_t) ctx->regs[TRAIL_BRES_ERR >> 2];
+    /* The leading and trailing Bresenham fields are signed 18-bit values,
+       just as for lines. Reserved high bits must not change an edge's
+       slope or turn a zero-extended negative error into an initial X walk. */
+    lead_err  = mach64_3d_sign_extend(mach64->dst_bres_err, 18);
+    trail_err = mach64_3d_sign_extend(ctx->regs[TRAIL_BRES_ERR >> 2], 18);
 
     if (!mach64_3d_dst_init(mach64, &job.dst))
         return;

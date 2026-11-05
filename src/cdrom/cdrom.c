@@ -1220,15 +1220,15 @@ cdrom_interface_reset(void)
 {
     /* On a Tandy VIS machine, add the Mitsumi controller; it has no ISA slots
        for another one, and that one would clash with it at 0x310. */
-    if (machines[machine].init == machine_at_tandy_vis_init) {
+    if (machines[machine].init == machine_at_tandy_vis_init)
         device_add(&mitsumi_cdrom_vis_device);
-        return;
-    }
-
     /* If we have a valid controller, add its device. */
-    if ((cdrom_interface_current > 0) &&
-        controllers[cdrom_interface_current].device)
+    else if ((cdrom_interface_current > 0) &&
+             controllers[cdrom_interface_current].device)
         device_add(controllers[cdrom_interface_current].device);
+
+    /* Mitsumi drives no card took go to the parallel port BackPacks. */
+    lpt_bpmcd_attach_drives();
 }
 
 const char *

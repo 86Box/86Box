@@ -2421,11 +2421,55 @@ bilinear_wrap_edge_case(mach64_t *m, int bilinear)
     }
 }
 
+/* Both edge walkers have signed 18-bit error/step fields. A caller can
+ * zero-extend a negative field or leave arbitrary reserved high bits. The
+ * four rows below move one pixel after rows zero and two, in either
+ * direction; splitting the command must preserve the same coverage. */
+static void
+trapezoid_edge_field_case(mach64_t *m, int dx, int dy, int encoding, int split)
+{
+    int ox = dx > 0 ? 8 : 24, oy = dy > 0 ? 8 : 24;
+    uint32_t reserved = encoding == 1 ? 0xfffc0000u : encoding == 2 ? 0xa5a80000u : 0;
+
+    snprintf(case_name, sizeof(case_name), "trapezoid edge fields dir=%d,%d encoding=%d split=%d",
+             dx, dy, encoding, split);
+    cases++;
+    setup(m, 6);
+    m->dst_cntl = (dx > 0 ? DST_X_DIR | TRAIL_X_DIR | TRAP_FILL_DIR : 0) | (dy > 0 ? DST_Y_DIR : 0);
+    m->dst_bres_err = reserved | 0x3ffff;
+    m->dst_bres_inc = reserved | 2;
+    m->dst_bres_dec = reserved | 0x3fffc;
+    write_reg(m, TRAIL_BRES_ERR, reserved | 0x3ffff);
+    write_reg(m, TRAIL_BRES_INC, reserved | 2);
+    write_reg(m, TRAIL_BRES_DEC, reserved | 0x3fffc);
+    write_reg(m, DST_Y_X_ALIAS, xy(ox, oy));
+    write_reg(m, DST_BRES_LNTH, LINE_DIS | (unsigned) (ox + dx * 4) << 16 | DRAW_TRAP | (split ? 2 : 4));
+    if (split)
+        write_reg(m, LEAD_BRES_LNTH, DRAW_TRAP | 2);
+    for (int y = 0; y < SIZE; y++) {
+        for (int x = 0; x < SIZE; x++) {
+            int row = (y - oy) * dy, column = (x - ox) * dx;
+            int shift = (row + 1) / 2;
+            int inside = row >= 0 && row < 4 && column >= shift && column < shift + 4;
+            case_expect("18-bit edge coverage", load_pixel(m, (y * SIZE + x) * 4, 4),
+                        inside ? 0xff204060u : BACKGROUND);
+            case_expect("18-bit edge depth", load_pixel(m, Z_BASE + (y * SIZE + x) * 2, 2),
+                        inside ? 1000u : INITIAL_Z);
+        }
+    }
+    case_expect("18-bit leading edge continuation", m->dst_y_x, xy(ox + dx * 2, oy + dy * 4));
+}
+
 static void
 draw_tests(void)
 {
     static const int formats[] = { 3, 4, 6 };
     mach64_t        *m         = card_create();
+    for (int dx = -1; dx <= 1; dx += 2)
+        for (int dy = -1; dy <= 1; dy += 2)
+            for (int encoding = 0; encoding < 3; encoding++)
+                for (int split = 0; split <= 1; split++)
+                    trapezoid_edge_field_case(m, dx, dy, encoding, split);
     for (int axis = 0; axis < 2; axis++)
         for (int wrap = 0; wrap < 2; wrap++)
             bilinear_fraction_case(m, axis, wrap);

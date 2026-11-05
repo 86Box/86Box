@@ -113,6 +113,7 @@ static const NETWORK_CARD net_cards[] = {
     { &pcnet_am79c961a_device     },
     { &de220p_device              },
     { &ne2000_compat_device       },
+    { &ne2100_novell_device       },
     { &pcnet_am79c960_eb_device   },
     /* EISA */
     { &threec592_device           },
