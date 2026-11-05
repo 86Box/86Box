@@ -491,6 +491,9 @@ msgstr "Прискорювач XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Graphics"
 
+msgid "PowerVR PCX1/PCX2 Graphics"
+msgstr ""
+
 msgid "SCSI:"
 msgstr "SCSI:"
 
@@ -3713,3 +3716,21 @@ msgstr "Підготувати пристрої PCI для VFIO-прокидан
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
 msgstr ""
 "Для підготовки пристроїв PCI до прокидання у 86Box потрібна автентифікація."
+
+msgid "Disabled"
+msgstr ""
+
+msgid "Unlimited capacity"
+msgstr ""
+
+msgid "CD speed:"
+msgstr ""
+
+msgid "DVD speed:"
+msgstr ""
+
+msgid "HD/BD speed:"
+msgstr ""
+
+msgid "Software-initiated poweroff device (IBM 5140)"
+msgstr ""

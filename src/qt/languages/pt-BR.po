@@ -490,6 +490,9 @@ msgstr "Gráficos XGA"
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Gráficos do Adaptador de Vídeo IBM PS/55"
 
+msgid "PowerVR PCX1/PCX2 Graphics"
+msgstr ""
+
 msgid "SCSI:"
 msgstr "SCSI:"
 
@@ -3699,3 +3702,21 @@ msgid "Authentication is required to prepare PCI devices for passthrough to 86Bo
 msgstr ""
 "Autenticação é necessária para preparar dispositivos PCI para passagem para "
 "o 86Box."
+
+msgid "Disabled"
+msgstr ""
+
+msgid "Unlimited capacity"
+msgstr ""
+
+msgid "CD speed:"
+msgstr ""
+
+msgid "DVD speed:"
+msgstr ""
+
+msgid "HD/BD speed:"
+msgstr ""
+
+msgid "Software-initiated poweroff device (IBM 5140)"
+msgstr ""
