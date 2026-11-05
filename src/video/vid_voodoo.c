@@ -1429,6 +1429,7 @@ voodoo_card_init(const device_t *info)
 #ifndef NO_CODEGEN
     voodoo_codegen_init(voodoo);
 #endif
+    voodoo_lod_table_init();
 
     voodoo->disp_buffer = 0;
     voodoo->draw_buffer = 1;
@@ -1591,6 +1592,7 @@ voodoo_2d3d_card_init(int type)
 #ifndef NO_CODEGEN
     voodoo_codegen_init(voodoo);
 #endif
+    voodoo_lod_table_init();
 
     voodoo->disp_buffer = 0;
     voodoo->draw_buffer = 1;

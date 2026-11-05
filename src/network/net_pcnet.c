@@ -39,13 +39,18 @@
 #include <86box/rom.h>
 #include <86box/pci.h>
 #include <86box/pic.h>
+#include "cpu.h"
 #include <86box/random.h>
 #include <86box/device.h>
 #include <86box/isapnp.h>
+#include <86box/nmc93cxx.h>
 #include <86box/timer.h>
+#include <86box/nvr.h>
+#include <86box/acpi.h>
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/net_pcnet.h>
+#include <86box/scsi_pcscsi.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 #include <86box/bswap.h>
@@ -65,7 +70,7 @@ typedef struct RTNETETHERHDR {
 } RTNETETHERHDR;
 #pragma pack()
 
-#define BCR_MAX_RAP 50
+#define BCR_MAX_RAP 56
 #define MII_MAX_REG 32
 #define CSR_MAX_REG 128
 
@@ -88,12 +93,12 @@ typedef struct RTNETETHERHDR {
 #define BCR_SWCONFIG  8
 #define BCR_FDC       9
 /* 10 - 15 = reserved */
-#define BCR_IOBASEL 16 /* Reserved */
-#define BCR_IOBASEU 16 /* Reserved */
+#define BCR_IOBASEL 16 /* Reserved but on the Am79C965A */
+#define BCR_IOBASEU 17 /* Reserved but on the Am79C965A (it was 16) */
 #define BCR_BSBC    18
 #define BCR_EECAS   19
 #define BCR_SWS     20
-#define BCR_INTCON  21 /* Reserved */
+#define BCR_INTCON  21 /* Reserved but on the Am79C965A */
 #define BCR_PLAT    22
 #define BCR_PCISVID 23
 #define BCR_PCISID  24
@@ -193,6 +198,9 @@ typedef struct RTNETETHERHDR {
 /** Calculates the full physical address.  */
 #define PHYSADDR(S, A) ((A) | (S)->GCUpperPhys)
 
+/* Resources as in the Am79C961 data sheet's sample configuration record (Appendix C):
+   DMA 3/5/6/7 16-bit bus master, IRQ 3/4/5/9/10/11/12/15 high true edge. The card and logical
+   device IDs and the vendor register flags stay as they were, so installed guests keep their driver. */
 static const uint8_t am79c961_pnp_rom[] = {
     0x04, 0x96, 0x55, 0xaa, 0x00, 0x00, 0x00, 0x00, 0x00,                                                                                                         /* ADV55AA, dummy checksum (filled in by isapnp_add_card) */
     0x0a, 0x10, 0x00,                                                                                                                                             /* PnP version 1.0, vendor version 0.0 */
@@ -201,11 +209,68 @@ static const uint8_t am79c961_pnp_rom[] = {
     0x16, 0x04, 0x96, 0x55, 0xaa, 0x00, 0xbd,       /* logical device ADV55AA, supports vendor-specific registers 0x38/0x3A/0x3B/0x3C/0x3D/0x3F */
     0x1c, 0x41, 0xd0, 0x82, 0x8c,                   /* compatible device PNP828C */
     0x47, 0x00, 0x00, 0x02, 0xe0, 0x03, 0x20, 0x18, /* I/O 0x200-0x3E0, decodes 10-bit, 32-byte alignment, 24 addresses */
-    0x2a, 0xe8, 0x02,                               /* DMA 3/5/6/7, compatibility, no count by word, no count by byte, not bus master, 16-bit only */
+    0x2a, 0xe8, 0x06,                               /* DMA 3/5/6/7, compatibility, bus master, 16-bit only */
+    0x23, 0x38, 0x9e, 0x01,                         /* IRQ 3/4/5/9/10/11/12/15, high true edge sensitive */
+
+    0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
+};
+
+/* The PCnet-ISA II (Am79C961A), from its data sheet's sample configuration record
+   (Appendix C): card ADV2100, logical device ADV55AA (I/O range check) compatible with PNP828C,
+   DMA 8/16-bit bus master, IRQ high true edge or low true level. The serial number (bytes 4-7)
+   is set from the MAC address at init. */
+static const uint8_t am79c961a_pnp_rom[] = {
+    0x04, 0x96, 0x21, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, /* ADV2100, serial, dummy checksum (filled in by isapnp_add_card) */
+    0x0a, 0x10, 0x00,                                     /* PnP version 1.0, vendor version 0.0 */
+    0x82, 0x29, 0x00, 'A', 'M', 'D', ' ', 'P', 'C', 'n', 'e', 't', '-', 'I', 'S', 'A', ' ', 'I', 'I', ' ',
+    'E', 't', 'h', 'e', 'r', 'n', 'e', 't', ' ', 'N', 'e', 't', 'w', 'o', 'r', 'k', ' ', 'A', 'd', 'a', 'p', 't', 'e', 'r', /* ANSI identifier */
+
+    0x15, 0x04, 0x96, 0x55, 0xaa, 0x02,             /* logical device ADV55AA, I/O range check */
+    0x1c, 0x41, 0xd0, 0x82, 0x8c,                   /* compatible device PNP828C */
+    0x47, 0x00, 0x00, 0x02, 0xe0, 0x03, 0x20, 0x18, /* I/O 0x200-0x3E0, decodes 10-bit, 32-byte alignment, 24 addresses */
+    0x2a, 0xe8, 0x05,                               /* DMA 3/5/6/7, compatibility, bus master, 8- and 16-bit */
     0x23, 0x38, 0x9e, 0x09,                         /* IRQ 3/4/5/9/10/11/12/15, low true level sensitive, high true edge sensitive */
 
     0x79, 0x00 /* end tag, dummy checksum (filled in by isapnp_add_card) */
 };
+
+/* The serial EEPROM's map (93C46, auto-loaded after H_RESET and on BCR19 PREAD): bytes
+   00h-0Fh are the Address PROM image, then from word `first` one register per word (`regs`: a
+   BCR, PCNET_EE_CSR | n a CSR, PCNET_EE_SKIP a word that is not loaded). The 8-bit sum of the
+   first `bytes` bytes must be FFh; `adjust` is the checksum adjust byte. */
+#define PCNET_EE_CSR  0x100
+#define PCNET_EE_SKIP -1
+
+typedef struct pcnet_eeprom_map_t {
+    uint8_t        bytes;
+    uint8_t        adjust;
+    uint8_t        first;
+    uint8_t        nregs;
+    int8_t         csr116_word; /* word 03h: CSR116 on the Am79C973, -1 elsewhere */
+    const int16_t *regs;
+} pcnet_eeprom_map_t;
+
+/* Am79C965A Table 39: BCR16/17 (I/O base) are not loaded : the configured base wins. */
+static const int16_t pcnet_ee_regs_965[] = { PCNET_EE_SKIP, PCNET_EE_SKIP, 18, 2, 21 };
+/* Am79C970A Table 11 (word 0Fh: reserved byte + checksum adjust). */
+static const int16_t pcnet_ee_regs_970a[] = { 4, 5, 18, 2, 6, 7, 9, PCNET_EE_SKIP, 22 };
+/* Am79C973 Table 13 (word 28h: BCR55[7:0] + checksum adjust). */
+static const int16_t pcnet_ee_regs_973[] = { 2, 4, 5, 6, 7, 9, 18, 22, 23, 24, 25, 26, 27, 32, 33, 35,
+                                             36, 37, 38, 39, 40, 41, 42, 43, 44,
+                                             48, 49, 50, 51, 52, 53, 54, 55 };
+
+/* Am79C971 Table 13 (words 18h-1Fh reserved; byte 3Fh the checksum adjust). */
+static const int16_t pcnet_ee_regs_971[] = { 2, 4, 5, 6, 7, 9, 18, 22, 23, 24, 25, 26, 27, 32, 33, 35 };
+/* Am79C972 Table 10 (word 21h: reserved byte + checksum adjust). */
+static const int16_t pcnet_ee_regs_972[] = { 2, 4, 5, 6, 7, 9, 18, 22, 23, 24, 25, 26, 27, 32, 33, 35,
+                                             36, 37, 38, 39, 40, 41, 42, 43, 44 };
+
+static const pcnet_eeprom_map_t pcnet_ee_map_965  = { 36, 0x1f, 8, 5, -1, pcnet_ee_regs_965 };
+static const pcnet_eeprom_map_t pcnet_ee_map_970a = { 36, 0x1f, 8, 9, -1, pcnet_ee_regs_970a };
+static const pcnet_eeprom_map_t pcnet_ee_map_971  = { 64, 0x3f, 8, 16, -1, pcnet_ee_regs_971 };
+static const pcnet_eeprom_map_t pcnet_ee_map_972  = { 68, 0x43, 8, 25, 3, pcnet_ee_regs_972 };
+/* The Am79C975's (Table 14) is the same: it loads BCR48-55 into its SMIU. */
+static const pcnet_eeprom_map_t pcnet_ee_map_973  = { 82, 0x51, 8, 33, 3, pcnet_ee_regs_973 };
 
 typedef struct {
     mem_mapping_t mmio_mapping;
@@ -263,6 +328,29 @@ typedef struct {
     uint8_t    maclocal[6]; /* configured MAC (local) address */
     pc_timer_t timer, timer_soft_int, timer_restore;
     netcard_t *netcard;
+    /* The serial EEPROM (NULL on chips without one), its map, and its default contents --
+       the H_RESET register values, also loaded when the checksum fails. */
+    nmc93cxx_eeprom_t        *eeprom;
+    const pcnet_eeprom_map_t *eeprom_map;
+    uint16_t                  eeprom_default[64];
+    /* The PCnet-ISA II's EEPROM word 10h, MISC Config 2 (ISACSR9), loaded at RESET. */
+    uint16_t isa2_dup;
+
+    /* PCI configuration space, per card (it was shared by all PCI cards). */
+    uint8_t   pci_regs[PCI_REGSIZE];
+    pci_bar_t pci_bar[2];
+    /* PCI power management (Am79C972/973/975): PMCSR and the OnNow Pattern
+       Match RAM (64 words of 40 bits, BCR45-47) with its pending write. */
+    uint16_t pmcsr;
+    uint8_t  pmr[64][5];
+    uint8_t  pmr_wr[5];
+    /* The PCnet-32 (Am79C965A): where its 32 bytes of I/O are decoded (-1: nowhere),
+       the interrupt mode last driven (BCR2 INTLEVEL), and Software Relocatable Mode (no
+       I/O decode; the position in the 378h write sequence that ends it). */
+    int     vlb_io_base;
+    int     irq_level;
+    int     srm;
+    uint8_t srm_pos;
 } nic_t;
 
 /** @todo All structs: big endian? */
@@ -381,8 +469,80 @@ typedef struct RMD {
     } rmd3;
 } RMD;
 
-static bar_t   pcnet_pci_bar[3];
-static uint8_t pcnet_pci_regs[PCI_REGSIZE];
+/* What each PCI chip reports, from AMD's data sheets: PCI revision ID, the
+   chip ID in CSR88/89 (part number 2420h/2621h/2623h/2624h/2625h/2627h, version 0),
+   whether it has the PCI power management capability (PCI PM 1.0 on the Am79C972, 1.1
+   on the Am79C973/975), and the address and identifier of the PHY on its MII (-1 none). */
+typedef struct pcnet_chip_t {
+    int      board;
+    uint8_t  rev;
+    uint16_t csr88, csr89;
+    int      fast;   /* 10/100 Mbps, MII, STINT */
+    int      magic;  /* Magic Packet (CSR5 MPMODE) */
+    int      pm;     /* PCI power management + OnNow (CSR116, BCR36-47) */
+    uint16_t pmc;    /* PMC as an EEPROM would load it into BCR36 */
+    int      phyad;
+    uint16_t phyid1, phyid2;
+} pcnet_chip_t;
+
+static const pcnet_chip_t pcnet_chips[] = {
+    /* The 1994 data sheet: revision 00h, no Magic Packet. */
+    { DEV_AM79C970,  0x00, 0x0003, 0x0242, 0, 0, 0, 0x0000, -1,   0,      0      },
+    /* CSR89 version 6, as the Rev E data sheet gives it. */
+    { DEV_AM79C970A, 0x10, 0x1003, 0x6262, 0, 1, 0, 0x0000, -1,   0,      0      },
+    /* "The initial revision value will be 21h." External PHY: an Am79C874 NetPHY-1. */
+    { DEV_AM79C971,  0x21, 0x3003, 0x0262, 1, 1, 0, 0x0000, 0x00, 0x0022, 0x561b },
+    /* PME from D0-D3hot, D1/D2 supported, PM 1.0 (BCR36: the EEPROM default). */
+    { DEV_AM79C972,  0x30, 0x4003, 0x0262, 1, 1, 1, 0x7e01, 0x00, 0x0022, 0x561b },
+    /* Internal PHY at 1Eh, identifier 0000h/6B60h (ANR2/ANR3); PM 1.1. */
+    { DEV_AM79C973,  0x40, 0x5003, 0x0262, 1, 1, 1, 0x7e02, 0x1e, 0x0000, 0x6b60 },
+    { DEV_AM79C975,  0x40, 0x7003, 0x0262, 1, 1, 1, 0x7e02, 0x1e, 0x0000, 0x6b60 },
+    /* PCnet-SCSI's Ethernet: revision 00h, part number 2420h (the PCnet-PCI's, which
+       Linux's lance.c calls "79C970 or 79C974 PCnet-SCSI"). */
+    { DEV_AM79C974,  0x00, 0x0003, 0x0242, 0, 0, 0, 0x0000, -1,   0,      0      },
+};
+
+static const pcnet_chip_t *
+pcnet_chip(const nic_t *dev)
+{
+    for (size_t i = 0; i < (sizeof(pcnet_chips) / sizeof(pcnet_chips[0])); i++)
+        if (pcnet_chips[i].board == dev->board)
+            return &pcnet_chips[i];
+    return NULL;
+}
+
+static __inline int
+pcnet_is_fast(const nic_t *dev)
+{
+    const pcnet_chip_t *c = pcnet_chip(dev);
+    return c && c->fast;
+}
+
+static __inline int
+pcnet_has_pm(const nic_t *dev)
+{
+    const pcnet_chip_t *c = pcnet_chip(dev);
+    return c && c->pm;
+}
+
+/* The chips with a full-duplex control register (BCR9): the PCnet-ISA II, PCnet-PCI II
+   and the FAST family. The PCnet-ISA, ISA+, PCnet-32, PCnet-PCI and PCnet-SCSI have none. */
+static __inline int
+pcnet_has_bcr9(const nic_t *dev)
+{
+    return (dev->board == DEV_AM79C961A) || (dev->board == DEV_AM79C970A) || pcnet_is_fast(dev);
+}
+
+/* The chips whose setup registers (CSR80/82/100) may be written while suspended (SPND)
+   as well as stopped; the older ones have no SPND and take them only while stopped. */
+static __inline int
+pcnet_has_spnd(const nic_t *dev)
+{
+    return pcnet_has_bcr9(dev);
+}
+
+static int  pcnet_pm_receive(nic_t *dev, const uint8_t *buf, int size);
+static void pcnet_pm_link_change(nic_t *dev);
 
 static void     pcnetAsyncTransmit(nic_t *dev);
 static void     pcnetPollRxTx(nic_t *dev);
@@ -391,6 +551,8 @@ static uint16_t pcnet_bcr_readw(nic_t *dev, uint16_t rap);
 static void     pcnet_bcr_writew(nic_t *dev, uint16_t rap, uint16_t val);
 static void     pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val);
 static int      pcnetCanReceive(nic_t *dev);
+static void     pcnet_vlb_io_update(nic_t *dev);
+static void     pcnet_vlb_bsbc_fix(nic_t *dev);
 
 #ifdef ENABLE_PCNET_LOG
 int pcnet_do_log = ENABLE_PCNET_LOG;
@@ -414,12 +576,32 @@ static void
 pcnet_do_irq(nic_t *dev, int issue)
 {
     if (dev->is_pci) {
+        /* The Am79C974's Ethernet interrupts on INTB (its SCSI on INTA). */
+        const uint8_t pin = (dev->board == DEV_AM79C974) ? PCI_INTB : PCI_INTA;
+
         if (issue)
-            pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
+            pci_set_irq(dev->pci_slot, pin, &dev->irq_state);
         else
-            pci_clear_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
+            pci_clear_irq(dev->pci_slot, pin, &dev->irq_state);
     } else {
-        if (issue)
+        /* The PCnet-32's BCR2 INTLEVEL (Am79C965A, BCR2 bit 7): 0 drives its interrupt
+           pin high while asserted (edge, not shareable), 1 low and floats it otherwise (level,
+           shareable). A mode change first releases what the old mode drove. */
+        int level = dev->is_vlb && (dev->aBCR[BCR_MC] & 0x0080);
+
+        if (level != dev->irq_level) {
+            if (dev->irq_level)
+                picintclevel(1 << dev->base_irq, &dev->irq_state);
+            else
+                picintc(1 << dev->base_irq);
+            dev->irq_level = level;
+        }
+        if (level) {
+            if (issue)
+                picintlevel(1 << dev->base_irq, &dev->irq_state);
+            else
+                picintclevel(1 << dev->base_irq, &dev->irq_state);
+        } else if (issue)
             picint(1 << dev->base_irq);
         else
             picintc(1 << dev->base_irq);
@@ -435,6 +617,65 @@ static __inline int
 pcnetIsLinkUp(nic_t *dev)
 {
     return !dev->fLinkTempDown && dev->fLinkUp;
+}
+
+/* The PCnet-ISA II's (Am79C961A) network port and full duplex. The port is ISACSR2
+   (BCR2) MEDSEL: 00 software select by CSR15 PORTSEL (00 AUI, 01 10BASE-T, 10 GPSI), 01
+   10BASE-T, 10 auto selection (the default: 10BASE-T while its link passes, else AUI), 11 AUI. */
+#define PCNET_PORT_AUI  0
+#define PCNET_PORT_10BT 1
+#define PCNET_PORT_GPSI 2
+
+static int
+pcnet_isa2_port(nic_t *dev)
+{
+    switch (dev->aBCR[BCR_MC] & 0x0003) {
+        default:
+        case 0:
+            switch ((dev->aCSR[15] >> 7) & 0x0003) {
+                case 1:
+                    return PCNET_PORT_10BT;
+                case 2:
+                    return PCNET_PORT_GPSI;
+                default: /* 11 is reserved */
+                    return PCNET_PORT_AUI;
+            }
+        case 1:
+            return PCNET_PORT_10BT;
+        case 2:
+            return pcnetIsLinkUp(dev) ? PCNET_PORT_10BT : PCNET_PORT_AUI;
+        case 3:
+            return PCNET_PORT_AUI;
+    }
+}
+
+/* ISACSR9 (BCR9): FDEN (bit 0) gives full duplex on the 10BASE-T and GPSI ports, on the AUI
+   port only with AUIFD (bit 1) too; never on 10BASE-T while CSR15 DLNKTST is set. */
+static int
+pcnet_isa2_full_duplex(nic_t *dev)
+{
+    if ((dev->board != DEV_AM79C961A) || !(dev->aBCR[BCR_FDC] & 0x0001))
+        return 0;
+
+    switch (pcnet_isa2_port(dev)) {
+        case PCNET_PORT_AUI:
+            return !!(dev->aBCR[BCR_FDC] & 0x0002);
+        case PCNET_PORT_10BT:
+            return !(dev->aCSR[15] & 0x1000);
+        default:
+            return 1;
+    }
+}
+
+/* The FDLSE LED function (ISACSR5-7 bit 8): a link pass state with full duplex capability --
+   on 10BASE-T link pass with FDEN, on AUI FDEN and AUIFD, on GPSI FDEN. */
+static int
+pcnet_isa2_fd_link(nic_t *dev)
+{
+    if (!pcnet_isa2_full_duplex(dev))
+        return 0;
+
+    return (pcnet_isa2_port(dev) != PCNET_PORT_10BT) || pcnetIsLinkUp(dev);
 }
 
 /**
@@ -852,22 +1093,46 @@ pcnetSoftReset(nic_t *dev)
     CSR_RCVRL(dev) = 1;
     CSR_XMTRL(dev) = 1;
     dev->aCSR[80]  = 0x1410;
+    /* The Am79C965A's CSR80 is E810h (bits 15:14 read as ones, RCVFW and XMTSP 64
+       bytes, XMTFW 8 cycles, DMACR 16) and its CSR82 (bus activity timer) 0000h after
+       H_RESET or S_RESET (register summary). */
+    if (dev->is_vlb) {
+        dev->aCSR[80] = 0xe810;
+        dev->aCSR[82] = 0x0000;
+    }
 
+    /* CSR89:CSR88 is the JTAG ID, version << 28 | part number << 12 | 003h (AMD), as each
+       chip's data sheet gives it: Am79C960 0003h, Am79C961 2260h, Am79C965A 2430h (version 3),
+       Am79C970A 2621h (version 6), Am79C973 2625h. The Am79C961 and Am79C965 reported the
+       Am79C960's ID before. */
     switch (dev->board) {
+        case DEV_AM79C970:
         case DEV_AM79C970A:
-            dev->aCSR[88] = 0x1003;
-            dev->aCSR[89] = 0x0262;
-            break;
+        case DEV_AM79C971:
+        case DEV_AM79C972:
         case DEV_AM79C973:
-            dev->aCSR[88] = 0x5003;
-            dev->aCSR[89] = 0x0262;
+        case DEV_AM79C975:
+        case DEV_AM79C974:
+            dev->aCSR[88] = pcnet_chip(dev)->csr88;
+            dev->aCSR[89] = pcnet_chip(dev)->csr89;
+            break;
+        case DEV_AM79C960_VLB:
+            dev->aCSR[88] = 0x0003;
+            dev->aCSR[89] = 0x3243;
+            break;
+        case DEV_AM79C961:
+            dev->aCSR[88] = 0x0003;
+            dev->aCSR[89] = 0x0226;
             break;
         case DEV_AM79C960:
         case DEV_AM79C960_EB:
-        case DEV_AM79C960_VLB:
-        case DEV_AM79C961:
             dev->aCSR[88] = 0x3003;
             dev->aCSR[89] = 0x0000;
+            break;
+        /* The Am79C961A's data sheet gives 32261003h (part 2261h, version 3). */
+        case DEV_AM79C961A:
+            dev->aCSR[88] = 0x1003;
+            dev->aCSR[89] = 0x3226;
             break;
 
         default:
@@ -875,7 +1140,8 @@ pcnetSoftReset(nic_t *dev)
     }
 
     dev->aCSR[94]  = 0x0000;
-    dev->aCSR[100] = 0x0200;
+    /* The PCnet-PCI II and PCnet-FAST III reset the bus timeout to 0600h (their larger FIFOs). */
+    dev->aCSR[100] = dev->is_pci ? 0x0600 : 0x0200;
     dev->aCSR[103] = 0x0105;
     CSR_MISSC(dev) = 0;
     dev->aCSR[114] = 0x0000;
@@ -930,8 +1196,6 @@ pcnetInit(nic_t *dev)
 {
     pcnet_log(3, "%s: pcnetInit: init_addr=%#010x\n", dev->name, PHYSADDR(dev, CSR_IADR(dev)));
 
-    /** @todo Documentation says that RCVRL and XMTRL are stored as two's complement!
-     *        Software is allowed to write these registers directly. */
 #define PCNET_INIT()                                                            \
     do {                                                                        \
         dma_bm_read(PHYSADDR(dev, CSR_IADR(dev)),                               \
@@ -1114,9 +1378,12 @@ pcnetRdtePoll(nic_t *dev)
             return;
         }
 
-        /**
-         * @todo NNRD
-         */
+        /* NNRD (CSR36/37) holds the address of the descriptor after the next one. The
+           chip only uses it to read that descriptor ahead; here the ring is polled again for
+           each frame, so the address is all there is to it. */
+        if (--i < 1)
+            i = CSR_RCVRL(dev);
+        CSR_NNRD(dev) = pcnetRdraAddr(dev, i);
     } else {
         CSR_CRDA(dev) = CSR_CRBA(dev) = CSR_NRDA(dev) = CSR_NRBA(dev) = 0;
         CSR_CRBC(dev) = CSR_NRBC(dev) = CSR_CRST(dev) = 0;
@@ -1161,52 +1428,6 @@ pcnetTdtePoll(nic_t *dev, TMD *tmd)
 }
 
 /**
- * Poll Transmit Descriptor Table Entry
- * @return true if transmit descriptors available
- */
-static int
-pcnetCalcPacketLen(nic_t *dev, int cb)
-{
-    TMD      tmd;
-    int      cbPacket   = cb;
-    uint32_t iDesc      = CSR_XMTRC(dev);
-    uint32_t iFirstDesc = iDesc;
-
-    do {
-        /* Advance the ring counter */
-        if (iDesc < 2)
-            iDesc = CSR_XMTRL(dev);
-        else
-            iDesc--;
-
-        if (iDesc == iFirstDesc)
-            break;
-
-        uint32_t addrDesc = pcnetTdraAddr(dev, iDesc);
-
-        if (!pcnetTmdLoad(dev, &tmd, PHYSADDR(dev, addrDesc), 1)) {
-            /*
-             * No need to count further since this packet won't be sent anyway
-             * due to underflow.
-             */
-            pcnet_log(3, "%s: pcnetCalcPacketLen: underflow, return %u\n", dev->name, cbPacket);
-            return cbPacket;
-        }
-        if (tmd.tmd1.ones != 15) {
-            pcnet_log(1, "%s: BAD TMD XDA=%#010x\n",
-                      dev->name, PHYSADDR(dev, addrDesc));
-            pcnet_log(3, "%s: pcnetCalcPacketLen: bad TMD, return %u\n", dev->name, cbPacket);
-            return cbPacket;
-        }
-        pcnet_log(3, "%s: pcnetCalcPacketLen: got valid TMD, cb=%u\n", dev->name, 4096 - tmd.tmd1.bcnt);
-        cbPacket += 4096 - tmd.tmd1.bcnt;
-    } while (!tmd.tmd1.enp);
-
-    pcnet_log(3, "#%d pcnetCalcPacketLen: return %u\n", dev->name, cbPacket);
-    return cbPacket;
-}
-
-/**
  * Write data into guest receive buffers.
  */
 static int
@@ -1220,6 +1441,10 @@ pcnetReceiveNoSync(void *priv, uint8_t *buf, int size)
     int      cbPacket;
     uint8_t  buf1[60];
     RMD      rmd      = { 0 };
+
+    /* Magic Packet mode flushes every frame; OnNow pattern matching watches them. */
+    if (size && pcnet_pm_receive(dev, buf, size))
+        return 1;
 
     if (CSR_DRX(dev) || CSR_STOP(dev) || CSR_SPND(dev) || !size)
         return 0;
@@ -1446,6 +1671,11 @@ pcnetXmitFailTMDLinkDown(nic_t *dev, TMD *pTmd)
 {
     /* make carrier error - hope this is correct. */
     dev->cLinkDownReported++;
+    /* In full duplex on the AUI or GPSI port the PCnet-ISA II reports neither Loss of
+       Carrier nor the SQE test's CERR (Am79C961A data sheet, Full Duplex Operation, MAC Engine
+       changes 2 and 4); on 10BASE-T in Link Fail it still reports both. */
+    if (pcnet_isa2_full_duplex(dev) && (pcnet_isa2_port(dev) != PCNET_PORT_10BT))
+        return;
     pTmd->tmd2.lcar = pTmd->tmd1.err = 1;
     dev->aCSR[0] |= 0x8000 | 0x2000; /* ERR | CERR */
 }
@@ -1577,7 +1807,11 @@ pcnetAsyncTransmit(nic_t *dev)
              * we could reliably do that on SMP guests.
              */
             unsigned cb   = 4096 - tmd.tmd1.bcnt;
-            dev->xmit_pos = pcnetCalcPacketLen(dev, cb);
+            /* The next buffers are appended after this one. xmit_pos was the whole
+               frame's length (pcnetCalcPacketLen()), so each later buffer landed past a gap of
+               stale bytes: every frame a driver built from several buffers (NetWare's ODI
+               drivers do: 86Box issue 5602) went out mangled and too long. */
+            dev->xmit_pos = cb;
             dma_bm_read(PHYSADDR(dev, tmd.tmd0.tbadr), dev->abLoopBuf, cb, dev->transfer_size);
 
             for (;;) {
@@ -1706,15 +1940,10 @@ pcnetPollTimer(void *priv)
         pcnetPollRxTx(dev);
 }
 
+/* The H_RESET values of the BCRs (the EEPROM-programmable ones included). */
 static void
-pcnetHardReset(nic_t *dev)
+pcnetBcrDefaults(nic_t *dev)
 {
-    pcnet_log(2, "%s: pcnetHardReset\n", dev->name);
-
-    dev->iISR = 0;
-    pcnet_do_irq(dev, 0);
-
-    /* Many of the BCR values would normally be read from the EEPROM. */
     dev->aBCR[BCR_MSRDA] = 0x0005;
     dev->aBCR[BCR_MSWRA] = 0x0005;
     dev->aBCR[BCR_MC]    = 0x0002;
@@ -1724,17 +1953,133 @@ pcnetHardReset(nic_t *dev)
     dev->aBCR[BCR_LED3]  = 0x0090;
 
     dev->aBCR[BCR_FDC]   = 0x0000;
+    /* The PCnet-ISA II loads ISACSR9 from its EEPROM's word 10h at RESET (data sheet,
+       EEPROM byte map); 0000h, half duplex, is its default without one. */
+    if (dev->board == DEV_AM79C961A)
+        dev->aBCR[BCR_FDC] = dev->isa2_dup & 0x0003;
     dev->aBCR[BCR_BSBC]  = 0x9001;
+    /* The Am79C965A's BCR18 is 2101h: CLL 00100b, bit 8 reads one, LINBC 001. */
+    if (dev->is_vlb)
+        dev->aBCR[BCR_BSBC] = 0x2101;
     dev->aBCR[BCR_EECAS] = 0x0002;
     dev->aBCR[BCR_STVAL] = 0xffff;
     dev->aCSR[58] = dev->aBCR[BCR_SWS] = 0x0200; /* CSR58 is an alias for BCR20 */
     dev->iLog2DescSize                 = 3;
     dev->aBCR[BCR_PLAT]                = 0xff06;
     dev->aBCR[BCR_MIICAS]              = 0x20; /* Auto-negotiation on. */
-    dev->aBCR[BCR_MIIADDR]             = 0;    /* Internal PHY on Am79C973 would be (0x1e << 5) */
+    dev->aBCR[BCR_MIIADDR]             = 0;
+    /* The Am79C973/975's internal PHY is at 1Eh; an EEPROM sets PHYAD so. */
+    if (pcnet_chip(dev) && (pcnet_chip(dev)->phyad > 0))
+        dev->aBCR[BCR_MIIADDR] = pcnet_chip(dev)->phyad << 5;
+    if (pcnet_has_pm(dev)) {
+        dev->aBCR[BCR_PMC_A] = pcnet_chip(dev)->pmc;
+        dev->aCSR[116] &= 0x3800; /* the D3cold bits are reset only at power-on */
+        dev->aBCR[BCR_PMR1] &= ~0x0080;
+    }
     dev->aBCR[BCR_PCIVID]              = 0x1022;
-    dev->aBCR[BCR_PCISID]              = 0x0020;
+    /* On the FAST family BCR23/24 are what PCI configuration space 2Ch-2Fh shows;
+       they default to AMD's own 1022h:2000h, as AMD's reference EEPROMs have it. */
+    dev->aBCR[BCR_PCISID]              = pcnet_is_fast(dev) ? 0x2000 : 0x0020;
     dev->aBCR[BCR_PCISVID]             = 0x1022;
+}
+
+static uint8_t
+pcnet_eeprom_byte(const uint16_t *words, int b)
+{
+    return (words[b >> 1] >> ((b & 1) << 3)) & 0xff;
+}
+
+/* The automatic EEPROM read (after H_RESET, or BCR19 PREAD). A good checksum loads the
+   Address PROM and the EEPROM-programmable registers and sets PVALID; a bad one puts those
+   registers back to their H_RESET values and leaves the Address PROM alone. */
+static void
+pcnet_eeprom_load(nic_t *dev)
+{
+    const pcnet_eeprom_map_t *map   = dev->eeprom_map;
+    const uint16_t           *words = nmc93cxx_eeprom_data(dev->eeprom);
+    uint8_t                   sum   = 0;
+    int                       valid;
+
+    for (int b = 0; b < map->bytes; b++)
+        sum += pcnet_eeprom_byte(words, b);
+    valid = (sum == 0xff);
+
+    if (valid) {
+        for (int b = 0; b < 16; b++)
+            dev->aPROM[b] = pcnet_eeprom_byte(words, b);
+    } else
+        words = dev->eeprom_default;
+
+    for (int i = 0; i < map->nregs; i++) {
+        int      w = map->first + i;
+        uint16_t v = words[w];
+
+        if (map->regs[i] == PCNET_EE_SKIP)
+            continue;
+        if ((w << 1) + 1 == map->adjust)
+            v &= 0x00ff;
+        if (map->regs[i] & PCNET_EE_CSR)
+            dev->aCSR[map->regs[i] & 0xff] = v;
+        else
+            dev->aBCR[map->regs[i]] = v;
+    }
+    if (map->csr116_word >= 0)
+        dev->aCSR[116] = words[map->csr116_word];
+
+    if (dev->netcard)
+        dev->netcard->byte_period = (pcnet_is_fast(dev) && (dev->aBCR[BCR_MIICAS] & 0x28)) ? NET_PERIOD_100M : NET_PERIOD_10M;
+
+    /* EEDET: an EEPROM is there; PVALID: its contents passed the checksum. */
+    dev->aBCR[BCR_EECAS] = valid ? 0xa000 : 0x2000;
+
+    /* The Am79C965A. ESK is one after H_RESET (BCR19). BCR16/17 hold the I/O base in
+       use (the configured one, see pcnet_ee_regs_965). A failed checksum puts it in Software
+       Relocatable Mode: it stops decoding I/O and waits for the 378h sequence ("Software
+       Relocatable Mode", "EEPROM-Programmable Registers"). */
+    if (dev->is_vlb) {
+        dev->aBCR[BCR_EECAS] |= 0x0002;
+        dev->aBCR[16] = dev->base_address & 0xffe0;
+        dev->aBCR[17] = 0x0000;
+        dev->srm      = !valid;
+        dev->srm_pos  = 0;
+        pcnet_vlb_bsbc_fix(dev);
+        pcnet_vlb_io_update(dev);
+    }
+
+    pcnet_log(1, "%s: EEPROM read, checksum %s\n", dev->name, valid ? "good" : "bad");
+}
+
+/* Recompute the station address checksum (bytes 0Ch/0Dh) and the checksum adjust byte. */
+static void
+pcnet_eeprom_checksums(const pcnet_eeprom_map_t *map, uint16_t *words)
+{
+    uint16_t sum16 = 0;
+    uint8_t  sum   = 0;
+
+    for (int b = 0; b < 16; b++)
+        if ((b != 12) && (b != 13))
+            sum16 += pcnet_eeprom_byte(words, b);
+    words[6] = sum16;
+
+    words[map->adjust >> 1] &= (map->adjust & 1) ? 0x00ff : 0xff00;
+    for (int b = 0; b < map->bytes; b++)
+        sum += pcnet_eeprom_byte(words, b);
+    words[map->adjust >> 1] |= (uint8_t) (0xff - sum) << ((map->adjust & 1) << 3);
+}
+
+static void
+pcnetHardReset(nic_t *dev)
+{
+    pcnet_log(2, "%s: pcnetHardReset\n", dev->name);
+
+    dev->iISR = 0;
+    pcnet_do_irq(dev, 0);
+
+    pcnetBcrDefaults(dev);
+    if (dev->eeprom) {
+        nmc93cxx_eeprom_write(dev->eeprom, 0, 0, 0);
+        pcnet_eeprom_load(dev);
+    }
 
     /* Reset the error counter. */
     dev->uCntBadRMD = 0;
@@ -1823,12 +2168,16 @@ pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val)
         case 45:               /* NRBCU */
         case 46:               /* POLL */
         case 47:               /* POLLINT */
-        case 72:               /* RCVRC */
-        case 74:               /* XMTRC */
         case 112:              /* MISSC */
             if (CSR_STOP(dev) || CSR_SPND(dev))
                 break;
             return;
+        case 72: /* RCVRC */
+        case 74: /* XMTRC */
+            if (!CSR_STOP(dev) && !CSR_SPND(dev))
+                return;
+            val = -val;
+            break;
         case 3: /* Interrupt Mask and Deferral Control */
             break;
         case 4: /* Test and Features Control */
@@ -1899,25 +2248,50 @@ pcnet_csr_writew(nic_t *dev, uint16_t rap, uint16_t val)
         case 58: /* Software Style */
             pcnet_bcr_writew(dev, BCR_SWS, val);
             break;
+        case 80:  /* CSR80 (burst and FIFO thresholds), CSR82 (bus activity timer) */
+        case 82:  /* and CSR100 (bus timeout) are setup registers, written only while stopped */
+        case 100: /* (or suspended, on the chips with SPND), as each chip's data sheet has it. */
+            if (!CSR_STOP(dev) && !(pcnet_has_spnd(dev) && CSR_SPND(dev)))
+                return;
+            /* The FAST family's CSR82 is TXDAPL, the transmit descriptor address, written only
+               through CSR60; the ISA chips have no CSR100. */
+            if ((rap == 82) && pcnet_is_fast(dev))
+                return;
+            if ((rap == 100) && !dev->is_pci && !dev->is_vlb)
+                return;
+            if ((rap == 80) && dev->is_vlb) /* the Am79C965A's 15:14 read ones */
+                val |= 0xc000;
+            break;
+        case 116: /* OnNow Power Mode (Am79C972/973/975) */
+            if (!pcnet_has_pm(dev))
+                return;
+            /* LCMODE_D3C/MPPEN_D3C/PMAT_MODE_D3C, EMPPLBA, LCDET and MPMAT always;
+               PME_EN_OVR, LCMODE, MPPEN and the RWU bits only while stopped or
+               suspended. PMAT is read only. */
+            {
+                uint16_t mask = 0x3a60;
+                if (CSR_STOP(dev) || CSR_SPND(dev))
+                    mask |= 0x051e;
+                val = (dev->aCSR[116] & ~mask) | (val & mask);
+            }
+            break;
         /*
-         * Registers 76 and 78 aren't stored correctly (see todos), but I'm don't dare
-         * try fix that right now. So, as a quick hack for 'alt init' I'll just correct them here.
+         * The chip keeps RCVRC/XMTRC (CSR72/74) and RCVRL/XMTRL (CSR76/78) as two's
+         * complement numbers; internally they are kept positive (the ring code counts the
+         * descriptors down from the length to 1), so they are negated on the way in and out.
+         * A new ring length also points the ring counter at the first descriptor, so the
+         * counter never lies outside the new ring.
          */
-        case 76: /* RCVRL */ /** @todo call pcnetUpdateRingHandlers */
-                             /** @todo receive ring length is stored in two's complement! */
-        case 78: /* XMTRL */ /** @todo call pcnetUpdateRingHandlers */
-                             /** @todo transmit ring length is stored in two's complement! */
+        case 76: /* RCVRL */
+        case 78: /* XMTRL */
             if (!CSR_STOP(dev) && !CSR_SPND(dev)) {
                 pcnet_log(3, "%s: WRITE CSR%d, %#06x !!\n", dev->name, rap, val);
                 return;
             }
-            pcnet_log(3, "%s: WRITE CSR%d, %#06x (hacked %#06x) (alt init)\n", dev->name,
-                      rap, val, 1 + ~val);
-            val = 1 + ~val;
-
-            /*
-             * HACK ALERT! Set the counter registers too.
-             */
+            val = -val;
+            if (val == 0) /* 0 is a ring of 65536: not usable */
+                return;
+            pcnet_log(3, "%s: WRITE CSR%d => length %d (alt init)\n", dev->name, rap, val);
             dev->aCSR[rap - 4] = val;
             break;
         default:
@@ -1962,6 +2336,12 @@ pcnet_csr_readw(nic_t *dev, uint16_t rap)
             return pcnet_bcr_readw(dev, BCR_SWS);
         case 68: /* Custom register to pass link speed to driver */
             return pcnetLinkSpd(dev->u32LinkSpeed);
+        case 72: /* RCVRC */
+        case 74: /* XMTRC */
+        case 76: /* RCVRL */
+        case 78: /* XMTRL */
+            val = -dev->aCSR[rap]; /* Two's complement, see pcnet_csr_writew() */
+            break;
         default:
             val = dev->aCSR[rap];
             break;
@@ -2008,26 +2388,111 @@ pcnet_bcr_writew(nic_t *dev, uint16_t rap, uint16_t val)
         case BCR_MC:
         case BCR_FDC:
         case BCR_BSBC:
-        case BCR_EECAS:
         case BCR_PLAT:
         case BCR_MIIADDR:
+            /* A chip without BCR9 ignores writes to it. */
+            if ((rap == BCR_FDC) && !pcnet_has_bcr9(dev))
+                break;
+            /* The PCnet-ISA II's ISACSR9 has only AUIFD and FDEN (bits 1:0). */
+            if ((rap == BCR_FDC) && (dev->board == DEV_AM79C961A))
+                val &= 0x0003;
+            /* The Am79C965A's BCR2 keeps T-MAULOOP, IESRWE, INTLEVEL, EADISEL, AWAKE,
+               ASEL and bit 0, the rest reads zero; INTLEVEL changes the interrupt pin's mode. */
+            if (dev->is_vlb && (rap == BCR_MC)) {
+                dev->aBCR[rap] = val & 0x418f;
+                pcnetUpdateIrq(dev);
+                break;
+            }
+            /* In its BCR18 DWIO (bit 7) is read only -- set by a double word write to
+               RDP -- and TSTSHDW (4:3) only the EEPROM sets; bit 8 reads one. */
+            if (dev->is_vlb && (rap == BCR_BSBC)) {
+                dev->aBCR[rap] = (dev->aBCR[rap] & 0x0098) | (val & 0xfe67);
+                pcnet_vlb_bsbc_fix(dev);
+                break;
+            }
             dev->aBCR[rap] = val;
             break;
 
+        case BCR_IOBASEL: /* The Am79C965A's I/O base, BCR16/17, moves its I/O space */
+        case BCR_IOBASEU:
+            if (!dev->is_vlb)
+                break;
+            dev->aBCR[rap] = (rap == BCR_IOBASEL) ? (val & 0xffe0) : val;
+            pcnet_vlb_io_update(dev);
+            break;
+
+        case BCR_INTCON: /* Am79C965A BCR21: IOAW24, REJECTDIS, INTSEL; only while stopped */
+            if (!dev->is_vlb || !CSR_STOP(dev))
+                break;
+            dev->aBCR[rap] = val & 0x0183;
+            pcnet_vlb_io_update(dev); /* IOAW24 */
+            break;
+
         case BCR_MIICAS:
-            dev->netcard->byte_period = (dev->board == DEV_AM79C973 && (val & 0x28)) ? NET_PERIOD_100M : NET_PERIOD_10M;
+            dev->netcard->byte_period = (pcnet_is_fast(dev) && (val & 0x28)) ? NET_PERIOD_100M : NET_PERIOD_10M;
             dev->aBCR[rap]            = val;
             break;
 
         case BCR_STVAL:
             val &= 0xffff;
             dev->aBCR[BCR_STVAL] = val;
-            if (dev->board == DEV_AM79C973)
+            if (pcnet_is_fast(dev))
                 timer_set_delay_u64(&dev->timer_soft_int, (12.8 * val) * TIMER_USEC);
             break;
 
         case BCR_MIIMDR:
-            dev->aMII[dev->aBCR[BCR_MIIADDR] & 0x1f] = val;
+            /* Only the PHY at its own address takes the write; a soft reset
+               (BMCR bit 15) completes at once. */
+            if (pcnet_chip(dev) && (pcnet_chip(dev)->phyad >= 0) &&
+                (((dev->aBCR[BCR_MIIADDR] >> 5) & 0x1f) == pcnet_chip(dev)->phyad)) {
+                if ((dev->aBCR[BCR_MIIADDR] & 0x1f) == 0) {
+                    if (val & 0x8000)
+                        val = 0x3000;
+                    val &= 0x7fff;
+                }
+                dev->aMII[dev->aBCR[BCR_MIIADDR] & 0x1f] = val;
+            }
+            break;
+
+        case BCR_PMR1: /* OnNow Pattern Match RAM access */
+            if (!pcnet_has_pm(dev))
+                break;
+            if (!(val & 0x0080))
+                dev->pmr_wr[0] = val >> 8;
+            dev->aBCR[rap] = val & 0xffff;
+            break;
+        case BCR_PMR2:
+            if (!pcnet_has_pm(dev) || (dev->aBCR[BCR_PMR1] & 0x0080))
+                break;
+            dev->pmr_wr[1] = val & 0xff;
+            dev->pmr_wr[2] = val >> 8;
+            break;
+        case BCR_PMR3:
+            if (!pcnet_has_pm(dev) || (dev->aBCR[BCR_PMR1] & 0x0080))
+                break;
+            dev->pmr_wr[3] = val & 0xff;
+            dev->pmr_wr[4] = val >> 8;
+            memcpy(dev->pmr[dev->aBCR[BCR_PMR1] & 0x3f], dev->pmr_wr, 5);
+            break;
+
+        case BCR_EECAS:
+            if (!dev->eeprom) {
+                dev->aBCR[rap] = val;
+                break;
+            }
+            /* PREAD (only while stopped or suspended) re-reads the EEPROM at once;
+               otherwise EEN drives ECS/ESK/EDI onto the Microwire pins. */
+            if ((val & 0x4000) && (CSR_STOP(dev) || CSR_SPND(dev))) {
+                nmc93cxx_eeprom_write(dev->eeprom, 0, 0, 0);
+                pcnet_eeprom_load(dev);
+                break;
+            }
+            /* The Am79C965A also keeps EBUSY (bit 3, its SHFBUSY pin). */
+            dev->aBCR[rap] = (dev->aBCR[rap] & 0xa000) | (val & (dev->is_vlb ? 0x001f : 0x0017));
+            if (val & 0x0010)
+                nmc93cxx_eeprom_write(dev->eeprom, !!(val & 0x0004), !!(val & 0x0002), !!(val & 0x0001));
+            else
+                nmc93cxx_eeprom_write(dev->eeprom, 0, 0, 0);
             break;
 
         default:
@@ -2104,12 +2569,12 @@ pcnet_mii_readw(nic_t *dev, uint16_t miiaddr)
 
         case 2:
             /* PHY identifier 1. */
-            val = 0x22; /* Am79C874/AC101 PHY */
+            val = pcnet_chip(dev)->phyid1; /* Am79C874 on the MII, 0000h inside the Am79C973 */
             break;
 
         case 3:
             /* PHY identifier 2. */
-            val = 0x561b; /* Am79C874/AC101 PHY */
+            val = pcnet_chip(dev)->phyid2;
             break;
 
         case 4:
@@ -2179,6 +2644,10 @@ pcnet_bcr_readw(nic_t *dev, uint16_t rap)
     uint16_t val;
     rap &= 0x7f;
     switch (rap) {
+        case BCR_FDC: /* Zero on the chips without one */
+            val = pcnet_has_bcr9(dev) ? dev->aBCR[rap] : 0x0000;
+            break;
+
         case BCR_LNKST:
         case BCR_LED1:
         case BCR_LED2:
@@ -2190,18 +2659,54 @@ pcnet_bcr_readw(nic_t *dev, uint16_t rap)
                 val &= ~0x40;
             }
             val |= (val & 0x017f & dev->u32Lnkst) ? 0x8000 : 0;
+            if (dev->board == DEV_AM79C961A) {
+                /* On the PCnet-ISA II, LEDOUT also shows FDLSE (bit 8, full duplex
+                   link status). ISACSR4 is not programmable: bit 15 is LNKST alone, masked
+                   while 10BASE-T runs full duplex with AUIFD clear and an LED has FDLSE. */
+                if ((rap != BCR_LNKST) && (val & 0x0100) && pcnet_isa2_fd_link(dev))
+                    val |= 0x8000;
+                if (rap == BCR_LNKST) {
+                    val = pcnetIsLinkUp(dev) ? 0x8000 : 0x0000;
+                    if (pcnet_isa2_full_duplex(dev) && (pcnet_isa2_port(dev) == PCNET_PORT_10BT) &&
+                        !(dev->aBCR[BCR_FDC] & 0x0002) &&
+                        ((dev->aBCR[BCR_LED1] | dev->aBCR[BCR_LED2] | dev->aBCR[BCR_LED3]) & 0x0100))
+                        val = 0x0000;
+                }
+            }
             break;
 
         case BCR_MIIMDR:
-            if ((dev->board == DEV_AM79C973) && (((dev->aBCR[BCR_MIIADDR] >> 5) & 0x1f) == 0)) {
+            /* The PHY answers at its own address only (1Eh inside the Am79C973/975). */
+            if (pcnet_chip(dev) && (pcnet_chip(dev)->phyad >= 0) &&
+                (((dev->aBCR[BCR_MIIADDR] >> 5) & 0x1f) == pcnet_chip(dev)->phyad)) {
                 uint16_t miiaddr = dev->aBCR[BCR_MIIADDR] & 0x1f;
                 val              = pcnet_mii_readw(dev, miiaddr);
             } else
                 val = 0xffff;
             break;
 
+        case BCR_EECAS:
+            val = dev->aBCR[rap];
+            /* With EEN set, bit 0 reads the EEDO pin. */
+            if (dev->eeprom && (val & 0x0010))
+                val = (val & ~0x0001) | nmc93cxx_eeprom_read(dev->eeprom);
+            break;
+
+        case BCR_PMR1: /* Only PMAT_MODE reads back while matching */
+            if (dev->aBCR[BCR_PMR1] & 0x0080)
+                val = 0x0080;
+            else
+                val = (dev->pmr[dev->aBCR[BCR_PMR1] & 0x3f][0] << 8) | (dev->aBCR[BCR_PMR1] & 0x7f);
+            break;
+        case BCR_PMR2:
+            val = dev->pmr[dev->aBCR[BCR_PMR1] & 0x3f][1] | (dev->pmr[dev->aBCR[BCR_PMR1] & 0x3f][2] << 8);
+            break;
+        case BCR_PMR3:
+            val = dev->pmr[dev->aBCR[BCR_PMR1] & 0x3f][3] | (dev->pmr[dev->aBCR[BCR_PMR1] & 0x3f][4] << 8);
+            break;
+
         case BCR_SWCONFIG:
-            if (dev->board == DEV_AM79C961)
+            if ((dev->board == DEV_AM79C961) || (dev->board == DEV_AM79C961A))
                 val = ((dev->base_irq & 0x0f) << 4) | (dev->dma_channel & 0x07);
             else
                 val = 0xffff;
@@ -2328,7 +2833,7 @@ pcnet_dword_write(nic_t *dev, uint32_t addr, uint32_t val)
         }
     } else if ((addr & 0x0f) == 0) {
         /* switch device to dword i/o mode */
-        pcnet_bcr_writew(dev, BCR_BSBC, pcnet_bcr_readw(dev, BCR_BSBC) | 0x0080);
+        dev->aBCR[BCR_BSBC] |= 0x0080; /* Not through BCR18, where DWIO is read only */
         pcnet_log(3, "%s: device switched into dword i/o mode\n", dev->name);
     }
 }
@@ -2344,6 +2849,10 @@ pcnet_dword_read(nic_t *dev, uint32_t addr)
                 if (!CSR_DPOLL(dev))
                     timer_set_delay_u64(&dev->timer, 2000 * TIMER_USEC);
                 val = pcnet_csr_readw(dev, dev->u32RAP);
+                /* In DWIO mode CSR88 reads the whole 32-bit chip ID (Am79C965A,
+                   "RDP Access": the upper halves of all CSRs but CSR88 are reserved). */
+                if (dev->is_vlb && (dev->u32RAP == 88))
+                    val |= (uint32_t) dev->aCSR[89] << 16;
                 if (dev->u32RAP == 0)
                     goto skip_update_irq;
                 break;
@@ -2374,7 +2883,10 @@ static void
 pcnet_aprom_writeb(nic_t *dev, uint32_t addr, uint32_t val)
 {
     /* Check APROMWE bit to enable write access */
-    if (pcnet_bcr_readw(dev, 2) & 0x80)
+    /* It is BCR2 bit 8 on every chip that has one (APROMWE on the PCnet-PCI II and the
+       FAST family, IESRWE on the PCnet-PCI and PCnet-32); bit 7 was the C-LANCE's numbering. The
+       ISA chips read their address from an external PROM or the EEPROM, which writes never reach. */
+    if ((dev->is_pci || dev->is_vlb) && (pcnet_bcr_readw(dev, 2) & 0x0100))
         dev->aPROM[addr & 0x0f] = val & 0xff;
 }
 
@@ -2394,7 +2906,8 @@ pcnet_write(nic_t *dev, uint32_t addr, uint32_t val, int len)
     pcnet_log(3, "%s: write addr %x, val %x, off %x, len %d\n", dev->name, addr, val, off, len);
 
     if (off < 0x10) {
-        if (!BCR_DWIO(dev) && len == 1)
+        /* The Am79C965A's shadow RAM never takes byte writes ("APROM Access"). */
+        if (!BCR_DWIO(dev) && len == 1 && !dev->is_vlb)
             pcnet_aprom_writeb(dev, addr, val);
         else if (!BCR_DWIO(dev) && ((addr & 1) == 0) && len == 2) {
             pcnet_aprom_writeb(dev, addr, val);
@@ -2587,6 +3100,213 @@ pcnet_ioset(nic_t *dev, uint16_t addr, int len)
     }
 }
 
+/* The Am79C965A's Software Relocatable Mode (data sheet, "Software Relocation of I/O
+   Resources", Table 34). It snoops byte writes to 378h: "AMD" and 01h, then IOBASEL, IOBASEU,
+   BCR2 and BCR21, low byte first. A wrong byte in the first four starts the match again. */
+static const uint8_t pcnet_srm_key[4]  = { 0x41, 0x4d, 0x44, 0x01 };
+static const uint8_t pcnet_srm_regs[4] = { BCR_IOBASEL, BCR_IOBASEU, BCR_MC, BCR_INTCON };
+
+static void
+pcnet_srm_write(UNUSED(uint16_t addr), uint8_t val, void *priv)
+{
+    nic_t *dev = (nic_t *) priv;
+    int    reg;
+
+    if (!dev->srm)
+        return;
+
+    if (dev->srm_pos < 4) {
+        if (val == pcnet_srm_key[dev->srm_pos])
+            dev->srm_pos++;
+        else
+            dev->srm_pos = (val == pcnet_srm_key[0]) ? 1 : 0;
+        return;
+    }
+
+    reg = pcnet_srm_regs[(dev->srm_pos - 4) >> 1];
+    if (dev->srm_pos & 1)
+        dev->aBCR[reg] = (dev->aBCR[reg] & 0x00ff) | (val << 8);
+    else
+        dev->aBCR[reg] = (dev->aBCR[reg] & 0xff00) | val;
+
+    if (++dev->srm_pos == 12) {
+        dev->aBCR[BCR_IOBASEL] &= 0xffe0;
+        dev->aBCR[BCR_MC] &= 0x418f;
+        dev->aBCR[BCR_INTCON] &= 0x0183;
+        dev->srm     = 0;
+        dev->srm_pos = 0;
+        pcnet_log(1, "%s: left Software Relocatable Mode, I/O at %04X%04X\n", dev->name,
+                  dev->aBCR[BCR_IOBASEU], dev->aBCR[BCR_IOBASEL]);
+        pcnet_vlb_io_update(dev);
+        pcnetUpdateIrq(dev);
+    }
+}
+
+/* Where the Am79C965A decodes its 32 bytes of I/O: at BCR17:BCR16, compared on all 32
+   address bits (only the low 24 with BCR21 IOAW24) -- a 486's I/O cycles drive A31-A16 low,
+   so an upper half the bus never carries leaves it unreachable -- and nowhere in Software
+   Relocatable Mode, which snoops 378h instead. */
+static void
+pcnet_vlb_io_update(nic_t *dev)
+{
+    const uint16_t upper = dev->aBCR[BCR_IOBASEU] & ((dev->aBCR[BCR_INTCON] & 0x0100) ? 0x00ff : 0xffff);
+    const int      base  = (dev->srm || upper) ? -1 : (dev->aBCR[BCR_IOBASEL] & 0xffe0);
+
+    if (base != dev->vlb_io_base) {
+        if (dev->vlb_io_base >= 0)
+            pcnet_ioremove(dev, dev->vlb_io_base, 0x20);
+        if (base >= 0)
+            pcnet_ioset(dev, base, 0x20);
+        dev->vlb_io_base = base;
+    }
+
+    io_removehandler(0x0378, 1, NULL, NULL, NULL, pcnet_srm_write, NULL, NULL, dev);
+    if (dev->srm)
+        io_sethandler(0x0378, 1, NULL, NULL, NULL, pcnet_srm_write, NULL, NULL, dev);
+}
+
+/* Am79C965A BCR18. Bit 8 reads one. In VESA VL-Bus mode BREADE and BWRITE are forced to
+   zero while VLBEN is low, which a VL-Bus card wires from the slot's ID lines so that it is low
+   above 33 MHz, where linear bursts are not allowed. */
+static void
+pcnet_vlb_bsbc_fix(nic_t *dev)
+{
+    dev->aBCR[BCR_BSBC] |= 0x0100;
+    if (cpu_busspeed > 33333334.0)
+        dev->aBCR[BCR_BSBC] &= ~0x0060;
+}
+
+/* PCI power management and wake-up (Am79C972/973/975 data sheets, "Power
+   Savings Mode"). A wake-up event sets PME_STATUS; PME is asserted while PME_EN (or,
+   for Magic Packet and link change, CSR116 PME_EN_OVR) is set too. PME reaches the
+   board's ACPI GPE wake path as the general-purpose input (VIA PME#, PIIX4 GPI). */
+static void
+pcnet_pm_wake(nic_t *dev, int override)
+{
+    if (!pcnet_has_pm(dev))
+        return;
+
+    dev->pmcsr |= 0x8000; /* PME_STATUS */
+    if ((dev->pmcsr & 0x0100) || (override && (dev->aCSR[116] & 0x0400))) {
+        pcnet_log(1, "%s: PME\n", dev->name);
+#ifdef XEON3D_ACPI_PR_WAS_MERGED
+        acpi_gpe_event(ACPI_GPE_GPI);
+#endif
+    }
+}
+
+/* Magic Packet mode: MPMODE (or MPPEN/MPPEN_D3C) with MPEN (CSR5 bit 2) set, or PG
+   deasserted. PG has no line of its own here: the function's D3 state stands for it
+   (the system takes PCI power away only after putting the card in D3). */
+static int
+pcnet_pm_magic_mode(const nic_t *dev)
+{
+    const pcnet_chip_t *c = pcnet_chip(dev);
+    int                 mode;
+    int                 pg_low;
+
+    if (!c || !c->magic)
+        return 0;
+
+    mode   = !!(dev->aCSR[5] & 0x0002);
+    pg_low = c->pm && ((dev->pmcsr & 0x0003) == 0x0003);
+    if (c->pm && (dev->aCSR[116] & 0x1010))
+        mode = 1;
+    return mode && ((dev->aCSR[5] & 0x0004) || pg_low);
+}
+
+static int
+pcnet_pm_is_magic(const nic_t *dev, const uint8_t *buf, int size)
+{
+    const uint8_t *padr = (const uint8_t *) &dev->aCSR[12];
+    int            run  = 0;
+
+    /* The destination must be the physical address unless MPPLBA/EMPPLBA. */
+    if (!(dev->aCSR[5] & 0x0020) && !(pcnet_has_pm(dev) && (dev->aCSR[116] & 0x0040)) &&
+        memcmp(buf, padr, 6))
+        return 0;
+
+    /* Sixteen consecutive copies of PADR anywhere after the length/type field. */
+    for (int i = 14; (i + 6) <= size;) {
+        if (!memcmp(&buf[i], padr, 6)) {
+            if (++run == 16)
+                return 1;
+            i += 6;
+        } else {
+            i -= run * 6 - 1;
+            run = 0;
+        }
+    }
+    return 0;
+}
+
+/* OnNow pattern match: PMR word 0 byte 0 enables patterns 0-7, bytes 1-4 of words 0
+   and 1 point to their first words. Each pattern word skips SKIP dwords of the frame,
+   compares the bytes MASK selects and moves on a dword; EOP ends the pattern. */
+static int
+pcnet_pm_pattern(const nic_t *dev, const uint8_t *buf, int size)
+{
+    for (int p = 0; p < 8; p++) {
+        int w;
+        int off = 0;
+        int ok  = 1;
+
+        if (!(dev->pmr[0][0] & (1 << p)))
+            continue;
+        w = dev->pmr[p >> 2][1 + (p & 3)];
+        if ((w < 2) || (w > 63))
+            continue;
+        for (; w < 64; w++) {
+            const uint8_t ctl = dev->pmr[w][0];
+
+            off += ((ctl >> 4) & 7) * 4;
+            for (int b = 0; b < 4; b++)
+                if ((ctl & (1 << b)) && (((off + b) >= size) || (buf[off + b] != dev->pmr[w][1 + b])))
+                    ok = 0;
+            off += 4;
+            if (!ok || (ctl & 0x80))
+                break;
+        }
+        if (ok && (w < 64))
+            return 1;
+    }
+    return 0;
+}
+
+/* Called for every received frame: 1 if it was taken (Magic Packet mode flushes all). */
+static int
+pcnet_pm_receive(nic_t *dev, const uint8_t *buf, int size)
+{
+    if (pcnet_has_pm(dev) && ((dev->aBCR[BCR_PMR1] & 0x0080) || (dev->aCSR[116] & 0x0800)) &&
+        !(dev->aCSR[116] & 0x0080) && pcnet_pm_pattern(dev, buf, size)) {
+        pcnet_log(1, "%s: OnNow pattern matched\n", dev->name);
+        dev->aCSR[116] |= 0x0080; /* PMAT */
+        pcnet_pm_wake(dev, 0);
+    }
+
+    if (!pcnet_pm_magic_mode(dev))
+        return 0;
+
+    if (pcnet_pm_is_magic(dev, buf, size)) {
+        pcnet_log(1, "%s: Magic Packet\n", dev->name);
+        dev->aCSR[5] |= 0x0010; /* MPINT */
+        if (pcnet_has_pm(dev))
+            dev->aCSR[116] |= 0x0020; /* MPMAT */
+        pcnetUpdateIrq(dev);
+        pcnet_pm_wake(dev, 1);
+    }
+    return 1;
+}
+
+static void
+pcnet_pm_link_change(nic_t *dev)
+{
+    if (pcnet_has_pm(dev) && (dev->aCSR[116] & 0x2100)) {
+        dev->aCSR[116] |= 0x0200; /* LCDET */
+        pcnet_pm_wake(dev, 1);
+    }
+}
+
 static void
 pcnet_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *priv)
 {
@@ -2597,7 +3317,7 @@ pcnet_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *
 
     switch (addr) {
         case 0x04:
-            valxor = (val & 0x57) ^ pcnet_pci_regs[addr];
+            valxor = (val & 0x57) ^ dev->pci_regs[addr];
             if (valxor & PCI_COMMAND_IO) {
                 pcnet_ioremove(dev, dev->PCIBase, 32);
                 if ((dev->PCIBase != 0) && (val & PCI_COMMAND_IO))
@@ -2608,15 +3328,15 @@ pcnet_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *
                 if ((dev->MMIOBase != 0) && (val & PCI_COMMAND_MEM))
                     pcnet_mem_set_addr(dev, dev->MMIOBase);
             }
-            pcnet_pci_regs[addr] = val & 0x57;
+            dev->pci_regs[addr] = val & 0x57;
             break;
 
         case 0x05:
-            pcnet_pci_regs[addr] = val & 0x01;
+            dev->pci_regs[addr] = val & 0x01;
             break;
 
         case 0x0D:
-            pcnet_pci_regs[addr] = val;
+            dev->pci_regs[addr] = val;
             break;
 
         case 0x10:
@@ -2627,14 +3347,14 @@ pcnet_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *
             /* First, remove the old I/O. */
             pcnet_ioremove(dev, dev->PCIBase, 32);
             /* Then let's set the PCI regs. */
-            pcnet_pci_bar[0].addr_regs[addr & 3] = val;
+            dev->pci_bar[0].addr_regs[addr & 3] = val;
             /* Then let's calculate the new I/O base. */
-            pcnet_pci_bar[0].addr &= 0xffe0;
-            dev->PCIBase = pcnet_pci_bar[0].addr;
+            dev->pci_bar[0].addr &= 0xffe0;
+            dev->PCIBase = dev->pci_bar[0].addr;
             /* Log the new base. */
             pcnet_log(4, "%s: New I/O base is %04X\n", dev->name, dev->PCIBase);
             /* We're done, so get out of the here. */
-            if (pcnet_pci_regs[4] & PCI_COMMAND_IO) {
+            if (dev->pci_regs[4] & PCI_COMMAND_IO) {
                 if (dev->PCIBase != 0)
                     pcnet_ioset(dev, dev->PCIBase, 32);
             }
@@ -2647,14 +3367,14 @@ pcnet_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *
             /* First, remove the old I/O. */
             pcnet_mem_disable(dev);
             /* Then let's set the PCI regs. */
-            pcnet_pci_bar[1].addr_regs[addr & 3] = val;
+            dev->pci_bar[1].addr_regs[addr & 3] = val;
             /* Then let's calculate the new I/O base. */
-            pcnet_pci_bar[1].addr &= 0xffffc000;
-            dev->MMIOBase = pcnet_pci_bar[1].addr & 0xffffc000;
+            dev->pci_bar[1].addr &= 0xffffc000;
+            dev->MMIOBase = dev->pci_bar[1].addr & 0xffffc000;
             /* Log the new base. */
             pcnet_log(4, "%s: New MMIO base is %08X\n", dev->name, dev->MMIOBase);
             /* We're done, so get out of the here. */
-            if (pcnet_pci_regs[4] & PCI_COMMAND_MEM) {
+            if (dev->pci_regs[4] & PCI_COMMAND_MEM) {
                 if (dev->MMIOBase != 0)
                     pcnet_mem_set_addr(dev, dev->MMIOBase);
             }
@@ -2662,7 +3382,20 @@ pcnet_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *
 
         case 0x3C:
             dev->base_irq        = val;
-            pcnet_pci_regs[addr] = val;
+            dev->pci_regs[addr] = val;
+            return;
+
+        /* PMCSR. PowerState and DATA_SEL are stored (the power state has no
+           effect on the chip, per the data sheet); PME_STATUS is write-1-to-clear. */
+        case 0x44:
+            if (pcnet_has_pm(dev))
+                dev->pmcsr = (dev->pmcsr & ~0x0003) | (val & 0x03);
+            return;
+        case 0x45:
+            if (pcnet_has_pm(dev)) {
+                dev->pmcsr = (dev->pmcsr & ~0x1f00) | ((val << 8) & 0x1f00);
+                dev->pmcsr &= ~((val << 8) & 0x8000);
+            }
             return;
 
         default:
@@ -2687,15 +3420,15 @@ pcnet_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
         case 0x03:
             return 0x20;
         case 0x04:
-            return pcnet_pci_regs[0x04] & 0x57; /*Respond to IO and memory accesses*/
+            return dev->pci_regs[0x04] & 0x57; /*Respond to IO and memory accesses*/
         case 0x05:
-            return pcnet_pci_regs[0x05] & 0x01;
+            return dev->pci_regs[0x05] & 0x01;
         case 0x06:
-            return 0x80;
+            return pcnet_has_pm(dev) ? 0x90 : 0x80; /* Bit 4, capabilities list */
         case 0x07:
             return 2;
         case 0x08:
-            return (dev->board == DEV_AM79C973) ? 0x40 : 0x10; /*Revision ID*/
+            return pcnet_chip(dev)->rev; /* Per chip, from the data sheets */
         case 0x09:
             return 0; /*Programming interface*/
         case 0x0A:
@@ -2703,41 +3436,82 @@ pcnet_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
         case 0x0B:
             return 2; /*Class code*/
         case 0x0D:
-            return pcnet_pci_regs[addr];
+            return dev->pci_regs[addr];
         case 0x0E:
             return 0; /*Header type */
         case 0x10:
-            return pcnet_pci_bar[0].addr_regs[0] | 1; /*I/O space*/
+            return dev->pci_bar[0].addr_regs[0] | 1; /*I/O space*/
         case 0x11:
-            return pcnet_pci_bar[0].addr_regs[1];
+            return dev->pci_bar[0].addr_regs[1];
         case 0x12:
-            return pcnet_pci_bar[0].addr_regs[2];
+            return dev->pci_bar[0].addr_regs[2];
         case 0x13:
-            return pcnet_pci_bar[0].addr_regs[3];
+            return dev->pci_bar[0].addr_regs[3];
         case 0x14:
             return 0; /*Memory space*/
         case 0x15:
-            return pcnet_pci_bar[1].addr_regs[1];
+            return dev->pci_bar[1].addr_regs[1];
         case 0x16:
-            return pcnet_pci_bar[1].addr_regs[2];
+            return dev->pci_bar[1].addr_regs[2];
         case 0x17:
-            return pcnet_pci_bar[1].addr_regs[3];
+            return dev->pci_bar[1].addr_regs[3];
+        /* The Am79C970 and 974 have no subsystem IDs; the Am79C971/972/973/975 read
+           BCR23/BCR24 (EEPROM-loaded; the 973's defaults are the 1022h:2000h it always
+           reported). The Am79C970A keeps that constant. */
         case 0x2C:
-            return 0x22;
         case 0x2D:
-            return 0x10;
+            if ((dev->board == DEV_AM79C970) || (dev->board == DEV_AM79C974))
+                return 0x00;
+            if (dev->board == DEV_AM79C970A)
+                return (addr & 1) ? 0x10 : 0x22;
+            return dev->aBCR[BCR_PCISVID] >> ((addr & 1) * 8);
         case 0x2E:
-            return 0x00;
         case 0x2F:
-            return 0x20;
+            if ((dev->board == DEV_AM79C970) || (dev->board == DEV_AM79C974))
+                return 0x00;
+            if (dev->board == DEV_AM79C970A)
+                return (addr & 1) ? 0x20 : 0x00;
+            return dev->aBCR[BCR_PCISID] >> ((addr & 1) * 8);
+        case 0x34:
+            return pcnet_has_pm(dev) ? 0x40 : 0x00;
         case 0x3C:
             return dev->base_irq;
         case 0x3D:
-            return PCI_INTA;
+            /* The Am79C974's Ethernet is on INTB (data sheet amendment: 02h). */
+            return (dev->board == DEV_AM79C974) ? PCI_INTB : PCI_INTA;
+        /* MIN_GNT/MAX_LAT are BCR22 (PCI Latency, FF06h) on the FAST family; the
+           Am79C974 reads 0. */
         case 0x3E:
-            return 0x06;
+            if (dev->board == DEV_AM79C974)
+                return 0x00;
+            return pcnet_is_fast(dev) ? (dev->aBCR[BCR_PLAT] & 0xff) : 0x06;
         case 0x3F:
-            return 0xff;
+            if (dev->board == DEV_AM79C974)
+                return 0x00;
+            return pcnet_is_fast(dev) ? (dev->aBCR[BCR_PLAT] >> 8) : 0xff;
+
+        /* The PCI power management capability. */
+        case 0x40:
+            return pcnet_has_pm(dev) ? 0x01 : 0x00;
+        case 0x41:
+            return 0x00;
+        case 0x42:
+        case 0x43:
+            return pcnet_has_pm(dev) ? (dev->aBCR[BCR_PMC_A] >> ((addr & 1) * 8)) : 0x00;
+        case 0x44:
+            return pcnet_has_pm(dev) ? (dev->pmcsr & 0xff) : 0x00;
+        case 0x45:
+            if (!pcnet_has_pm(dev))
+                return 0x00;
+            /* DATA_SCALE from BCR37-44 bits 9:8 as DATA_SEL picks them. */
+            if (((dev->pmcsr >> 9) & 0x0f) < 8)
+                return ((dev->pmcsr >> 8) & 0x9f) |
+                       (((dev->aBCR[BCR_DATA0 + ((dev->pmcsr >> 9) & 0x0f)] >> 8) & 3) << 5);
+            return (dev->pmcsr >> 8) & 0x9f;
+        case 0x47:
+            if (pcnet_has_pm(dev) && (((dev->pmcsr >> 9) & 0x0f) < 8))
+                return dev->aBCR[BCR_DATA0 + ((dev->pmcsr >> 9) & 0x0f)] & 0xff;
+            return 0x00;
 
         default:
             break;
@@ -2754,14 +3528,14 @@ pcnet_pnp_config_changed(uint8_t ld, isapnp_device_config_t *config, void *priv)
 
     nic_t *dev = (nic_t *) priv;
 
+    /* Remove the old I/O range before forgetting it (it was cleared first, so a
+       reconfigured card kept answering at its old address too). */
+    if (dev->base_address && (dev->base_address != ISAPNP_IO_DISABLED))
+        pcnet_ioremove(dev, dev->base_address, 0x20);
+
     dev->base_address = 0;
     dev->base_irq     = 0;
     dev->dma_channel  = -1;
-
-    if (dev->base_address) {
-        pcnet_ioremove(dev, dev->base_address, 0x20);
-        dev->base_address = 0;
-    }
 
     if (config->activate) {
         dev->base_address = config->io[0].base;
@@ -2869,6 +3643,7 @@ pcnetSetLinkState(void *priv, uint32_t link_state)
     bool link_up = !(link_state & NET_LINK_DOWN);
     if (dev->fLinkUp != link_up) {
         dev->fLinkUp = link_up;
+        pcnet_pm_link_change(dev);
         if (link_up) {
             dev->fLinkTempDown     = 1;
             dev->cLinkDownReported = 0;
@@ -2980,7 +3755,7 @@ pcnet_init(const device_t *info)
         dev->aPROM[9] = 0x11;
     else if (dev->is_vlb)
         dev->aPROM[9] = 0x10;
-    else if (dev->board == DEV_AM79C961)
+    else if ((dev->board == DEV_AM79C961) || (dev->board == DEV_AM79C961A))
         dev->aPROM[9] = 0x01;
     else
         dev->aPROM[9] = 0x00;
@@ -3014,16 +3789,20 @@ pcnet_init(const device_t *info)
          */
 
         /* Enable our address space in PCI. */
-        pcnet_pci_bar[0].addr_regs[0] = 1;
-        pcnet_pci_bar[1].addr_regs[0] = 0;
-        pcnet_pci_regs[0x04]          = 3;
+        dev->pci_bar[0].addr_regs[0] = 1;
+        dev->pci_bar[1].addr_regs[0] = 0;
+        dev->pci_regs[0x04]          = 3;
 
         /* Add device to the PCI bus, keep its slot number. */
         if (info->local & 0x0100)
             pci_add_card(PCI_ADD_NETWORK, pcnet_pci_read, pcnet_pci_write, dev, &dev->pci_slot);
         else
             pci_add_card(PCI_ADD_NORMAL, pcnet_pci_read, pcnet_pci_write, dev, &dev->pci_slot);
-    } else if (dev->board == DEV_AM79C961) {
+
+        /* The Am79C974 answers a second IDSEL as the Am53C974. */
+        if (dev->board == DEV_AM79C974)
+            am79c974_scsi_add(device_get_config_int("bios"));
+    } else if ((dev->board == DEV_AM79C961) || (dev->board == DEV_AM79C961A)) {
         dev->dma_channel = -1;
 
         /* Weird secondary checksum. The datasheet isn't clear on what
@@ -3033,8 +3812,19 @@ pcnet_init(const device_t *info)
 
         dev->aPROM[51] = checksum;
 
-        memcpy(&dev->aPROM[0x40], am79c961_pnp_rom, sizeof(am79c961_pnp_rom));
-        isapnp_add_card(&dev->aPROM[0x40], sizeof(am79c961_pnp_rom), pcnet_pnp_config_changed, NULL, pcnet_pnp_read_vendor_reg, pcnet_pnp_write_vendor_reg, dev);
+        if (dev->board == DEV_AM79C961A) {
+            /* The duplex setting its EEPROM holds for ISACSR9. */
+            dev->isa2_dup = device_get_config_int("duplex");
+            memcpy(&dev->aPROM[0x40], am79c961a_pnp_rom, sizeof(am79c961a_pnp_rom));
+            /* Serial number from the MAC address, so two cards isolate apart. */
+            dev->aPROM[0x44] = dev->maclocal[5];
+            dev->aPROM[0x45] = dev->maclocal[4];
+            dev->aPROM[0x46] = dev->maclocal[3];
+            isapnp_add_card(&dev->aPROM[0x40], sizeof(am79c961a_pnp_rom), pcnet_pnp_config_changed, NULL, pcnet_pnp_read_vendor_reg, pcnet_pnp_write_vendor_reg, dev);
+        } else {
+            memcpy(&dev->aPROM[0x40], am79c961_pnp_rom, sizeof(am79c961_pnp_rom));
+            isapnp_add_card(&dev->aPROM[0x40], sizeof(am79c961_pnp_rom), pcnet_pnp_config_changed, NULL, pcnet_pnp_read_vendor_reg, pcnet_pnp_write_vendor_reg, dev);
+        }
     } else {
         dev->base_address = device_get_config_hex16("base");
         dev->base_irq     = device_get_config_int("irq");
@@ -3043,6 +3833,73 @@ pcnet_init(const device_t *info)
         else
             dev->dma_channel = device_get_config_int("dma");
         pcnet_ioset(dev, dev->base_address, 0x20);
+        dev->vlb_io_base = dev->base_address;
+    }
+
+    /* The PCnet-32, PCnet-PCI II and PCnet-FAST family load their Address PROM and some
+       registers from a 93C46 serial EEPROM, kept in nmc93cxx_eeprom_<card>_<n>.nvr. Its default
+       contents are the configured MAC and the H_RESET register values. */
+    if (dev->board == DEV_AM79C960_VLB)
+        dev->eeprom_map = &pcnet_ee_map_965;
+    else if (dev->board == DEV_AM79C970A)
+        dev->eeprom_map = &pcnet_ee_map_970a;
+    else if (dev->board == DEV_AM79C971)
+        dev->eeprom_map = &pcnet_ee_map_971;
+    else if (dev->board == DEV_AM79C972)
+        dev->eeprom_map = &pcnet_ee_map_972;
+    else if ((dev->board == DEV_AM79C973) || (dev->board == DEV_AM79C975))
+        dev->eeprom_map = &pcnet_ee_map_973;
+    if (dev->eeprom_map) {
+        const pcnet_eeprom_map_t *map = dev->eeprom_map;
+        nmc93cxx_eeprom_params_t  params;
+        char                      filename[1024] = { 0 };
+        uint16_t                 *words;
+        int                       changed = 0;
+
+        if (dev->is_vlb) {
+            /* Am79C965A: byte 8 is the IRQ for AMD's drivers. */
+            dev->aPROM[8] = dev->base_irq;
+            for (c = 0, checksum = 0; c < 16; c++)
+                if ((c != 12) && (c != 13))
+                    checksum += dev->aPROM[c];
+            *(uint16_t *) &dev->aPROM[12] = cpu_to_le16(checksum);
+        }
+
+        pcnetBcrDefaults(dev);
+        for (c = 0; c < 8; c++)
+            dev->eeprom_default[c] = dev->aPROM[c << 1] | (dev->aPROM[(c << 1) + 1] << 8);
+        for (c = 0; c < map->nregs; c++) {
+            int16_t r = map->regs[c];
+
+            if (r == PCNET_EE_SKIP)
+                dev->eeprom_default[map->first + c] = 0;
+            else if (r & PCNET_EE_CSR)
+                dev->eeprom_default[map->first + c] = dev->aCSR[r & 0xff];
+            else
+                dev->eeprom_default[map->first + c] = dev->aBCR[r];
+        }
+        if (dev->is_vlb)
+            dev->eeprom_default[8] = dev->base_address; /* BCR16, as programmed */
+        pcnet_eeprom_checksums(map, dev->eeprom_default);
+
+        params.type            = NMC_93C46_x16_64;
+        params.default_content = dev->eeprom_default;
+        params.filename        = filename;
+        snprintf(filename, sizeof(filename), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name, device_get_instance());
+        dev->eeprom = device_add_inst_params(&nmc93cxx_device, device_get_instance(), &params);
+
+        /* The MAC address (and the PCnet-32's IRQ byte) in Settings win over the stored ones. */
+        words = (uint16_t *) nmc93cxx_eeprom_data(dev->eeprom);
+        for (c = 0; c < 16; c++) {
+            if ((c < 6) || (dev->is_vlb && (c == 8))) {
+                if (pcnet_eeprom_byte(words, c) != dev->aPROM[c]) {
+                    words[c >> 1] = (words[c >> 1] & ((c & 1) ? 0x00ff : 0xff00)) | (dev->aPROM[c] << ((c & 1) << 3));
+                    changed = 1;
+                }
+            }
+        }
+        if (changed)
+            pcnet_eeprom_checksums(map, words);
     }
 
     pcnet_log(2, "%s: I/O=%04x, IRQ=%d, MAC=%02x:%02x:%02x:%02x:%02x:%02x\n",
@@ -3058,11 +3915,11 @@ pcnet_init(const device_t *info)
 
     /* Attach ourselves to the network module. */
     dev->netcard              = network_attach(dev, dev->aPROM, pcnetReceiveNoSync, pcnetSetLinkState);
-    dev->netcard->byte_period = (dev->board == DEV_AM79C973) ? NET_PERIOD_100M : NET_PERIOD_10M;
+    dev->netcard->byte_period = pcnet_is_fast(dev) ? NET_PERIOD_100M : NET_PERIOD_10M;
 
     timer_add(&dev->timer, pcnetPollTimer, dev, 0);
 
-    if (dev->board == DEV_AM79C973)
+    if (pcnet_is_fast(dev))
         timer_add(&dev->timer_soft_int, pcnetTimerSoftInt, dev, 0);
 
     timer_add(&dev->timer_restore, pcnetTimerRestore, dev, 0);
@@ -3076,6 +3933,9 @@ pcnet_close(void *priv)
     nic_t *dev = (nic_t *) priv;
 
     pcnet_log(1, "%s: closed\n", dev->name);
+
+    if (dev->is_vlb && dev->srm) /* Stop snooping 378h */
+        io_removehandler(0x0378, 1, NULL, NULL, NULL, pcnet_srm_write, NULL, NULL, dev);
 
     netcard_close(dev->netcard);
 
@@ -3096,6 +3956,38 @@ static const device_config_t pcnet_pci_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+
+/* The PCnet-ISA II's EEPROM word 10h, ISACSR9 at RESET (FDEN bit 0, AUIFD bit 1). */
+static const device_config_t pcnet_isa2_config[] = {
+    {
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "duplex",
+        .description    = "Duplex (EEPROM)",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "Half duplex",                    .value = 0 },
+            { .description = "Full duplex (10BASE-T)",         .value = 1 },
+            { .description = "Full duplex (10BASE-T and AUI)", .value = 3 },
+            { .description = ""                                           }
+        },
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
@@ -3226,7 +4118,41 @@ static const device_config_t pcnet_vlb_config[] = {
     },
     { .name = "", .description = "", .type = CONFIG_END }
 };
+
+/* The PCnet-SCSI's MAC and its SCSI side's BIOS. */
+static const device_config_t pcnet_scsi_config[] = {
+    {
+        .name           = "mac",
+        .description    = "MAC Address",
+        .type           = CONFIG_MAC,
+        .default_string = NULL,
+        .default_int    = -1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "bios",
+        .description    = "Enable SCSI BIOS",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
 // clang-format on
+
+/* Its SCSI controller takes a bus, planned with the network cards'. */
+static uint32_t
+pcnet_scsi_buses(UNUSED(const device_t *info))
+{
+    return 1;
+}
 
 const device_t pcnet_am79c960_device = {
     .name          = "AMD PCnet-ISA",
@@ -3288,6 +4214,20 @@ const device_t pcnet_am79c961_device = {
     .config        = pcnet_pci_config
 };
 
+const device_t pcnet_am79c961a_device = {
+    .name          = "AMD PCnet-ISA II",
+    .internal_name = "pcnetisa2",
+    .flags         = DEVICE_ISA16,
+    .local         = DEV_AM79C961A,
+    .init          = pcnet_init,
+    .close         = pcnet_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pcnet_isa2_config
+};
+
 const device_t pcnet_am79c970a_device = {
     .name          = "AMD PCnet-PCI II",
     .internal_name = "pcnetpci",
@@ -3342,4 +4282,79 @@ const device_t pcnet_am79c973_onboard_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = pcnet_pci_config
+};
+
+/* The PCI chips the code base did not have. */
+const device_t pcnet_am79c970_device = {
+    .name          = "AMD PCnet-PCI",
+    .internal_name = "pcnetpci_970",
+    .flags         = DEVICE_PCI,
+    .local         = DEV_AM79C970,
+    .init          = pcnet_init,
+    .close         = pcnet_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pcnet_pci_config
+};
+
+const device_t pcnet_am79c971_device = {
+    .name          = "AMD PCnet-FAST",
+    .internal_name = "pcnetfast_971",
+    .flags         = DEVICE_PCI,
+    .local         = DEV_AM79C971,
+    .init          = pcnet_init,
+    .close         = pcnet_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pcnet_pci_config
+};
+
+const device_t pcnet_am79c972_device = {
+    .name          = "AMD PCnet-FAST+",
+    .internal_name = "pcnetfastplus",
+    .flags         = DEVICE_PCI,
+    .local         = DEV_AM79C972,
+    .init          = pcnet_init,
+    .close         = pcnet_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pcnet_pci_config
+};
+
+const device_t pcnet_am79c975_device = {
+    .name          = "AMD PCnet-FAST III (Am79C975)",
+    .internal_name = "pcnetfast_975",
+    .flags         = DEVICE_PCI,
+    .local         = DEV_AM79C975,
+    .init          = pcnet_init,
+    .close         = pcnet_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pcnet_pci_config
+};
+
+/* The AMD PCnet-SCSI (Am79C974). Its Ethernet side here; the chip's
+   SCSI side, a second single-function device on its own IDSEL, is the
+   Am53C974 of scsi_pcscsi.c (am79c974_scsi_add()). */
+const device_t pcnet_am79c974_device = {
+    .name          = "AMD PCnet-SCSI (Am79C974)",
+    .internal_name = "pcnetscsi",
+    .flags         = DEVICE_PCI,
+    .local         = DEV_AM79C974,
+    .init          = pcnet_init,
+    .close         = pcnet_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = pcnet_scsi_config,
+    .scsi_buses    = pcnet_scsi_buses
 };

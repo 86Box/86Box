@@ -5857,12 +5857,15 @@ s3_virge_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, voi
             virge->pci_regs[0x3c] = val;
             return;
 
+        /* The AGP command register takes only what the status
+           register offers (AGP 2.0 6.1.10: reserved and unimplemented fields
+           read 0) -- the rates of 84h; no 4G (5) nor sideband (9). */
         case 0x88:
-            virge->pci_regs[0x88] = val & 0x27;
+            virge->pci_regs[0x88] = val & ((virge->chip >= S3_TRIO3D2X) ? 0x03 : 0x01);
             return;
 
         case 0x89:
-            virge->pci_regs[0x89] = val & 0x03;
+            virge->pci_regs[0x89] = val & 0x01;
             return;
 
         case 0x8b:

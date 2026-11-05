@@ -19,6 +19,9 @@
 #define PCJR_RGB_NO_BROWN 4
 #define PCJR_RGB_IBM_5153 5
 
+#define PCJR_COMPOSITE_OLD 0
+#define PCJR_COMPOSITE_NEW 1
+
 #define DOUBLE_NONE               0
 #define DOUBLE_SIMPLE             1
 #define DOUBLE_INTERPOLATE_SRGB   2
@@ -56,8 +59,19 @@ typedef struct pcjr_s {
     int           firstline;
     int           lastline;
     int           composite;
+    int           composite_new_era;
     int           apply_hd;
     int           double_type;
+
+    /* Composite artifact colours of the 320x200x4 and 640x200x2 modes. */
+    uint32_t      comp_lut[256];
+    uint32_t      comp_key;      /* Mode and palette the table was made for. */
+    int           comp_hue;
+    int           comp_brightness;
+    int           comp_contrast;
+    int           comp_saturation;
+    int           comp_len;     /* Raw bytes on the last rendered line. */
+    uint8_t       comp_raw[512];
 
     /* Keyboard Controller stuff. */
     int        latched;

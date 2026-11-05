@@ -23,7 +23,6 @@
 #include <QtNetwork>
 #include <QElapsedTimer>
 #include <QMessageBox>
-#include <QProgressDialog>
 #include <QWindow>
 #include "qt_util.hpp"
 #include "qt_vmmanager_system.hpp"
@@ -126,17 +125,7 @@ VMManagerSystem::~VMManagerSystem()
 QVector<VMManagerSystem *>
 VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
 {
-    QProgressDialog progDialog(parent);
-    unsigned int    found = 0;
-    progDialog.setCancelButton(nullptr);
-    progDialog.setWindowTitle(tr("Searching for VMs…"));
-    progDialog.setMinimumDuration(0);
-    progDialog.setValue(0);
-    progDialog.setMinimum(0);
-    progDialog.setMaximum(0);
-    progDialog.setWindowFlags(progDialog.windowFlags() & ~Qt::WindowCloseButtonHint);
-    progDialog.setMinimumSize(progDialog.sizeHint());
-    progDialog.setMaximumSize(progDialog.sizeHint());
+    Q_UNUSED(parent);
     QElapsedTimer scanTimer;
     scanTimer.start();
     QVector<VMManagerSystem *> system_configs;
@@ -161,9 +150,6 @@ VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
     QElapsedTimer timer;
     timer.start();
     while (dir_iterator.hasNext()) {
-        found++;
-        progDialog.setLabelText(tr("Found %1").arg(QString::number(found)));
-        QApplication::processEvents();
         QString filename = dir_iterator.next();
         QString root_cfg;
         if ((search_directory[search_directory.size() - 1] == '/') || (search_directory[search_directory.size() - 1] == '\\'))
@@ -181,22 +167,118 @@ VMManagerSystem::scanForConfigs(QWidget *parent, const QString &searchPath)
     // foreach (QFileInfo hit, matches) {
     //     system_configs.append(new VMManagerSystem(hit));
     // }
-    progDialog.setMaximum(found);
-    progDialog.setValue(0);
-    unsigned int appended = 0;
-    for (const auto &filename : matches) {
+
+    for (const auto &filename : matches)
         system_configs.append(new VMManagerSystem(filename));
-        appended++;
-        progDialog.setLabelText(system_configs.last()->displayName);
-        progDialog.setValue(appended);
-        QApplication::processEvents();
-    }
+
     if (matches.size()) {
         auto elapsed = timer.elapsed();
         qDebug() << "Load loop took" << elapsed << "ms for" << matches.size() << "loads";
         qDebug() << "Overall scan time was" << scanTimer.elapsed() << "ms, average" << elapsed / matches.size() << "ms / load";
     }
     return system_configs;
+}
+
+
+// Case-folded canonical path for deduplication (Windows paths are case-insensitive)
+static QString normalizedConfigKey(const QString &path)
+{
+    const QFileInfo fi(path);
+    QString key = fi.canonicalFilePath();
+    if (key.isEmpty())
+        key = fi.absoluteFilePath();
+#ifdef Q_OS_WIN
+    key = key.toLower();
+#endif
+    return key;
+}
+
+QVector<VMManagerSystem *>
+VMManagerSystem::loadFromCache()
+{
+    QVector<VMManagerSystem *> cached;
+    char buf[1024] = {};
+    plat_get_global_config_dir(buf, sizeof(buf));
+    const auto vmmIni = QDir(QString::fromUtf8(buf)).filePath("vmm.ini");
+    if (!QFile::exists(vmmIni))
+        return cached;
+
+    QSettings settings(vmmIni, QSettings::IniFormat);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    settings.setIniCodec("UTF-8");
+#endif
+    const auto groups = settings.childGroups();
+    for (const auto &uuid : groups) {
+        if (uuid.isEmpty() || uuid == "General")
+            continue;
+        settings.beginGroup(uuid);
+        const auto cfgPath = settings.value("config_file").toString();
+        settings.endGroup();
+        if (cfgPath.isEmpty())
+            continue;
+        const QFileInfo fi(cfgPath);
+        if (!fi.exists() || !fi.isFile())
+            continue;
+        // Skip the root config if it somehow got stored
+        if (fi.fileName().compare(QString(CONFIG_FILE), Qt::CaseInsensitive) != 0)
+            continue;
+        auto *sys = new VMManagerSystem(cfgPath);
+        if (sys->isValid())
+            cached.append(sys);
+        else
+            delete sys;
+    }
+    qDebug() << "Loaded" << cached.size() << "VMs from vmm.ini cache";
+    return cached;
+}
+
+QStringList
+VMManagerSystem::cachedConfigPaths()
+{
+    QStringList paths;
+    char buf[1024] = {};
+    plat_get_global_config_dir(buf, sizeof(buf));
+    const auto vmmIni = QDir(QString::fromUtf8(buf)).filePath("vmm.ini");
+    if (!QFile::exists(vmmIni))
+        return paths;
+
+    QSettings settings(vmmIni, QSettings::IniFormat);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+    settings.setIniCodec("UTF-8");
+#endif
+    const auto groups = settings.childGroups();
+    for (const auto &uuid : groups) {
+        if (uuid.isEmpty() || uuid == "General")
+            continue;
+        settings.beginGroup(uuid);
+        const auto cfgPath = settings.value("config_file").toString();
+        settings.endGroup();
+        if (cfgPath.isEmpty())
+            continue;
+        const QFileInfo fi(cfgPath);
+        if (!fi.exists() || !fi.isFile())
+            continue;
+        if (fi.fileName().compare(QString(CONFIG_FILE), Qt::CaseInsensitive) != 0)
+            continue;
+        // The section key must be the UUID derived from the config path
+        // (the same value stored in 86box.cfg). Anything else is a stale duplicate.
+        const QString expected = util::generateUuid(cfgPath);
+        if (uuid.compare(expected, Qt::CaseInsensitive) != 0)
+            continue;
+        const QString key = normalizedConfigKey(cfgPath);
+        if (key.isEmpty())
+            continue;
+        bool already = false;
+        for (const auto &existing : paths) {
+            if (normalizedConfigKey(existing) == key) {
+                already = true;
+                break;
+            }
+        }
+        if (!already)
+            paths.append(cfgPath);
+    }
+    return paths;
 }
 
 QString
@@ -311,6 +393,31 @@ VMManagerSystem::saveSettings()
         config_settings->setStringValue("timestamp", lastUsedTimestamp.toString(Qt::ISODate));
 
     config_settings->setStringValue("icon", icon);
+
+    // Drop any other vmm.ini section that points at this config under a
+    // different UUID (stale duplicates from older path casings).
+    // Operate on a separate QSettings so we do not disturb the current group.
+    const QString mine = normalizedConfigKey(config_file.absoluteFilePath());
+    if (!mine.isEmpty()) {
+        QSettings cleanup(config_settings->settings->fileName(), QSettings::IniFormat);
+#if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
+        cleanup.setIniCodec("UTF-8");
+#endif
+        const auto groups = cleanup.childGroups();
+        for (const auto &other : groups) {
+            if (other.isEmpty() || other == "General" || other.compare(uuid, Qt::CaseInsensitive) == 0)
+                continue;
+            cleanup.beginGroup(other);
+            const QString otherPath = cleanup.value("config_file").toString();
+            cleanup.endGroup();
+            if (otherPath.isEmpty())
+                continue;
+            if (normalizedConfigKey(otherPath) == mine)
+                cleanup.remove(other);
+        }
+        cleanup.sync();
+    }
+
     generateSearchTerms();
 }
 void
@@ -784,12 +891,14 @@ VMManagerSystem::setupVars()
         if (key.contains(rdisk_match) || key.contains(zip_match)) {
             auto device_number    = key.split("_").at(1);
             auto rdisk_parameters = QString(removable_config[key]);
-            auto rdisk_type       = rdisk_parameters.split(",").at(0).toInt();
+            auto rdisk_config_id  = rdisk_parameters.split(",").at(0).toInt();
             if (key.contains(zip_match))
-                rdisk_type++;
+                rdisk_config_id++;
             auto rdisk_bus = rdisk_parameters.split(",").at(1).trimmed().toUpper();
 
-            if ((rdisk_type >= 0) && (rdisk_type < KNOWN_RDISK_DRIVE_TYPES)) {
+            /* The file has the number of rdisk_type_config_ids[], not an index of rdisk_drive_types[]. */
+            const uint32_t rdisk_type = rdisk_type_from_config(rdisk_config_id);
+            if ((rdisk_type != RDISK_TYPE_GENERIC) || (rdisk_config_id == 0)) {
                 if (!rdisk_bus.isEmpty())
                     rdisk_bus = QString(" (%1)").arg(rdisk_bus);
                 rdiskDevices.append(QString("%1 %2%3").arg(rdisk_drive_types[rdisk_type].vendor, rdisk_drive_types[rdisk_type].model, rdisk_bus));

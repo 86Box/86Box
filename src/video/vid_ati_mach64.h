@@ -61,6 +61,8 @@
 #define BIOS_ROMCT_PATH               "roms/video/mach64/mach64-68b110b8cddfd546595673.bin"
 #define BIOS_ROMVT_PATH               "roms/video/mach64/mach64vt-660c60c135839345779942.bin"
 #define BIOS_ROMVT2_PATH              "roms/video/mach64/atimach64vt2pci.bin"
+#define BIOS_ROMGT_PATH              "roms/video/mach64/3d_rage.bin"
+#define BIOS_ROMRAGE2_PATH           "roms/video/mach64/3d_rage_ii.bin"
 #define BIOS_ROMGTB_PATH              "roms/video/mach64/ARS2D.bin"
 
 #define FIFO_SIZE         65536
@@ -99,10 +101,12 @@ enum {
     MACH64_CT,
     MACH64_VT,
     MACH64_VT2,
-    MACH64_GTB, /* 3D Rage II+; before the VT3, whose GP_IO DDC it does not have */
+    MACH64_GT, /* Original 3D Rage (GT-A2), VT-style overlay. */
+    MACH64_GTB, /* 3D Rage II/II+; before the VT3, whose GP_IO DDC it does not have */
     MACH64_VT3
 };
 
+#define MACH64_FLAG_RAGE2   (1 << 20) /* GT-B before the II+ DVD (GT PCI ID) */
 #define MACH64_FLAG_ONBOARD (1 << 19)
 #define MACH64_FLAG_DRAM    (1 << 17) /* the board's memory is DRAM (256Kx16), not VRAM */
 #define MACH64_PCI_IOCONFIG 0x40        // "User Defined Configuration"

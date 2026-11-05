@@ -54,8 +54,6 @@
 
 #define CPU_BLOCK_END() cpu_block_end = 1
 
-int cpu_force_interpreter   = 0;
-int cpu_override_dynarec    = 0;
 int inrecomp                = 0;
 int cpu_block_end           = 0;
 int cpu_end_block_after_ins = 0;
@@ -362,6 +360,67 @@ codegen_fp_pending(void)
     return x87_legacy_pending_entry();
 }
 
+/* x87_dyn_fdiv with an extended-denormal register operand (TAG_DENORMAL):
+   the divide as the softfloat core's FDIV handlers do it (sf_FDIV_st0_stj,
+   sf_FDIV_sti_st0, sf_FDIV/sf_FDIVR of the sf_FPU forms), on the legacy
+   registers as x87_denormal_sf hands them over, so a compiled FDIV and an
+   interpreted one agree. The memory operand is the double the block loaded,
+   from a single (kind 1), a double (2) or an integer (0). An empty register
+   operand is left to x87_legacy_divide's stack fault. */
+static int
+x87_dyn_fdiv_denormal(uint32_t imm)
+{
+    const int                 dest = imm & 7;
+    const int                 n    = (imm >> 3) & 7;
+    const int                 q    = (imm >> 6) & 7;
+    const int                 kind = (imm >> 11) & 3;
+    const double              m    = cpu_state.x87_operand;
+    extFloat80_t              a;
+    extFloat80_t              b;
+    extFloat80_t              result;
+    struct softfloat_status_t status;
+    int                       is_nan = 0;
+    int                       ret;
+
+    x87_legacy_to_sf();
+    clear_C1();
+    status = i387cw_to_softfloat_status_word(i387_get_control_word());
+    if (imm & 0x600) {
+        /* The register operand is ST(0) */
+        const extFloat80_t r = FPU_read_regi(0);
+        extFloat80_t       mem = r;
+        float32            m32;
+        float64            m64;
+        float              f;
+
+        if (kind == 1) {
+            f = (float) m;
+            memcpy(&m32, &f, sizeof(m32));
+            is_nan = FPU_handle_NaN32(r, m32, &result, &status);
+            if (!is_nan)
+                mem = f32_to_extF80(m32, &status);
+        } else if (kind == 2) {
+            memcpy(&m64, &m, sizeof(m64));
+            is_nan = FPU_handle_NaN64(r, m64, &result, &status);
+            if (!is_nan)
+                mem = f64_to_extF80(m64, &status);
+        } else
+            mem = i32_to_extF80((int32_t) m);
+        a = (imm & 0x200) ? mem : r;
+        b = (imm & 0x400) ? mem : r;
+    } else {
+        a = FPU_read_regi(n);
+        b = FPU_read_regi(q);
+    }
+    if (!is_nan)
+        result = extF80_div(a, b, &status);
+    ret = FPU_exception(0, status.softfloat_exceptionFlags, 0) ? 1 : 0;
+    if (!ret)
+        FPU_save_regi(result, dest);
+    x87_sf_to_legacy();
+    return ret;
+}
+
 /* The compiled FDIV family of the legacy FPU (codegen_ops_fpu_arith.c):
    the quotient as the interpreter forms it, x87_legacy_divide's exceptions
    and all, then rounded to the precision control and tagged. imm: bits 0-2
@@ -369,8 +428,11 @@ codegen_fp_pending(void)
    bit 9: the numerator is the memory operand (cpu_state.x87_operand), bit
    10: the denominator is; bits 11-12: the memory operand was a single (1)
    or a double (2), for its denormal check. Answers 1 on an unmasked
-   exception, which leaves the destination, its tag and TOP alone: the
-   block ends there, its PC past the instruction. */
+   exception that suppresses the result, which leaves the destination, its
+   tag and TOP alone: the block ends there, its PC past the instruction. An
+   unmasked precision exception alone stores and tags the rounded result
+   and answers 0 with ES set; the block goes on, and its next waiting
+   instruction checks for the pending exception. */
 int
 x87_dyn_fdiv(uint32_t imm)
 {
@@ -382,6 +444,13 @@ x87_dyn_fdiv(uint32_t imm)
     double    num  = (imm & 0x200) ? cpu_state.x87_operand : cpu_state.ST[(cpu_state.TOP + n) & 7];
     double    den  = (imm & 0x400) ? cpu_state.x87_operand : cpu_state.ST[(cpu_state.TOP + q) & 7];
     int       flags;
+
+    /* An extended-denormal register operand (TAG_DENORMAL, which an empty
+       register never has): the divide as the softfloat core's FDIV does it
+       (sf_FDIV*, x87_denormal_sf), on the operand's own value */
+    if (((!(imm & 0x200) && X87_ST_DENORMAL(n)) || (!(imm & 0x400) && X87_ST_DENORMAL(q))) &&
+        !((!(imm & 0x200) && X87_ST_EMPTY(n)) || (!(imm & 0x400) && X87_ST_EMPTY(q))))
+        return x87_dyn_fdiv_denormal(imm);
 
     if (imm & 0x600) {
         const double m        = cpu_state.x87_operand;
@@ -584,13 +653,17 @@ exec386_dynarec_int(void)
         exec386_dynarec_int_common(0);
 }
 
+/* dbg is the dispatch loop's constant: with the option on, the mark and
+   compile passes clear RF before each instruction and after it unless the
+   op keeps it (rf_flag_no_clear), as the interpreted loop does; compiled
+   code clears it after the first opcode fetch (codegen_generate_call()). */
 #if defined(__linux__) && !defined(__clang__)
 static inline void __attribute__((optimize("O2")))
 #else
 /* Inlined into the dispatch loop, which now comes in two copies. */
 __attribute__((always_inline)) static inline void
 #endif
-exec386_dynarec_dyn(void)
+exec386_dynarec_dyn(const int dbg)
 {
     uint32_t start_pc  = 0;
     uint32_t phys_addr = get_phys(cs + cpu_state.pc);
@@ -743,9 +816,11 @@ exec386_dynarec_dyn(void)
     {
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
         codegen_link_slot_t *(*code)(void) = (void *) &block->data[BLOCK_START];
+        /* Only codegen_init() and codegen_reset() change it. */
+        const int link = codegen_block_link;
 
         /* from may predate the reset that turned linking off. */
-        if ((from != NULL) && codegen_block_link)
+        if ((from != NULL) && link)
             codegen_link_patch(from, block, phys_addr);
 #    else
         void (*code)(void) = (void *) &block->data[BLOCK_START];
@@ -753,10 +828,14 @@ exec386_dynarec_dyn(void)
 
         block->used   = 1; /* run: the eviction sweep passes it over once */
         block->runs_left >>= 1; /* reached via block->data */
+        /* A reset the slice's timer run raised after the previous block
+           left the flag set; the instructions that test it in the block
+           (RDTSC, RDMSR, OUT) must see only a reset raised by this one. */
+        x86_was_reset = 0;
         inrecomp = 1;
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
         /* A block compiled without links returns nothing. */
-        if (codegen_block_link)
+        if (link)
             link_from = code();
         else
             code();
@@ -764,7 +843,16 @@ exec386_dynarec_dyn(void)
         code();
 #    endif
         inrecomp = 0;
-        x86_reset_deferred();
+        /* Only a reset raised inside the block defers, and it sets
+           x86_was_reset as it does (reset_common()). */
+        if (x86_was_reset)
+            x86_reset_deferred();
+        /* An op that ends the block with its answer (INT n through a task
+           gate) leaves before its after-op RF handling (dynarec_rf_after_op),
+           with RF already as that leaves it: its rf_flag_no_clear is
+           consumed here. Every other exit follows that handling. */
+        if (dbg && !cpu_state.abrt)
+            rf_flag_no_clear = 0;
 
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
         if (x86_was_reset)
@@ -818,10 +906,18 @@ exec386_dynarec_dyn(void)
                 codegen_generate_call(opcode, x86_opcodes[(opcode | cpu_state.op32) & 0x3ff], fetchdat, cpu_state.pc, cpu_state.pc - 1);
                 codegen_block_version_check_ins(cs + cpu_state.oldpc);
 
+                if (dbg)
+                    cpu_state.eflags &= ~(RF_FLAG);
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
 
                 if (x86_was_reset)
                     break;
+            }
+
+            if (dbg && !cpu_state.abrt) {
+                if (!rf_flag_no_clear)
+                    cpu_state.eflags &= ~RF_FLAG;
+                rf_flag_no_clear = 0;
             }
 
                 /* Cap source code at 4000 bytes per block; this
@@ -941,10 +1037,18 @@ exec386_dynarec_dyn(void)
 
                 cpu_state.pc++;
 
+                if (dbg)
+                    cpu_state.eflags &= ~(RF_FLAG);
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
 
                 if (x86_was_reset)
                     break;
+            }
+
+            if (dbg && !cpu_state.abrt) {
+                if (!rf_flag_no_clear)
+                    cpu_state.eflags &= ~RF_FLAG;
+                rf_flag_no_clear = 0;
             }
 
                 /* Cap source code at 4000 bytes per block; this
@@ -1052,7 +1156,7 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
 #    endif
                 exec386_dynarec_int();
             } else {
-                exec386_dynarec_dyn();
+                exec386_dynarec_dyn(dbg);
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
                 /* Linked blocks moved the loop-top state on; time is counted
                    from the last link. */

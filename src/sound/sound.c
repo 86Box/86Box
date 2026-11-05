@@ -226,6 +226,7 @@ static const SOUND_CARD sound_cards[] = {
     { &pas16d_device                },
     { &jazz16_device                },
     { &mirosound_pcm10_device       },
+    { &mozart_device                },
     { &opti_82c930_device           },
     { &opti_82c931_device           },
     { &sb_16_device                 },

@@ -141,6 +141,7 @@ typedef struct bpck_s {
     int            reset_us;
     int            in_reset;
     int            reset_abrt;
+    uint8_t        intrq; /* the drive's INTRQ, until status is read */
 } bpck_t;
 
 #define BPCK_EE_ENABLE 0x08
@@ -151,6 +152,8 @@ typedef struct bpck_s {
 /* The ATAPI task file the bridge exposes, and the drive behind it. */
 #define BPCK_REG_TASKFILE 0x40 /* measured: the driver forms 0x40 | offset */
 #define BPCK_REG_DEVCTL   0x46
+#define BPCK_REG_IRQ      0x0b /* bit 7: the drive's INTRQ */
+#define BPCK_IRQ_INTRQ    0x80
 
 #define ATA_DATA     0
 #define ATA_ERROR    1
@@ -295,6 +298,11 @@ bpck_read_reg(bpck_t *dev, int reg)
     }
 
     ret = dev->regs[reg & 0xff];
+
+    /* Register 0x0B bit 7 is the drive's INTRQ: BPCDDRV.SYS 2.13 polls it
+       before it reads a data phase. */
+    if ((reg & 0xff) == BPCK_REG_IRQ)
+        ret = (uint8_t) ((ret & ~BPCK_IRQ_INTRQ) | (dev->intrq ? BPCK_IRQ_INTRQ : 0x00));
 
     /* Register 0x00 bit 7 is the EEPROM data line, not stored state. */
     if ((reg & 0xff) == 0x00)
@@ -493,6 +501,7 @@ bpck_atapi_callback(bpck_t *dev)
             if (sc->packet_status == PHASE_ERROR)
                 dev->tf->atastat |= ERR_STAT;
             dev->tf->phase    = 3;
+            dev->intrq        = 1;
             sc->packet_status = PHASE_NONE;
             bpck_log("BPCK: command done, status %02X\n", dev->tf->atastat);
             break;
@@ -502,6 +511,7 @@ bpck_atapi_callback(bpck_t *dev)
             dev->tf->atastat = READY_STAT | DRQ_STAT | (dev->tf->atastat & ERR_STAT);
             /* PHASE_DATA_IN gives ireason 2 (I/O set), PHASE_DATA_OUT gives 0. */
             dev->tf->phase   = !(sc->packet_status & 0x01) << 1;
+            dev->intrq       = 1;
             bpck_log("BPCK: data phase %s, %u bytes, request length %u\n",
                      (sc->packet_status == PHASE_DATA_IN) ? "in" : "out",
                      sc->packet_len, dev->tf->request_length);
@@ -641,6 +651,7 @@ bpck_command(bpck_t *dev, const uint8_t cmd)
         dev->tf->error          = ABRT_ERR;
         dev->tf->request_length = (ATAPI_SIG_HI << 8) | ATAPI_SIG_LO;
         dev->tf->phase          = 1;
+        dev->intrq              = 1;
         return;
     }
 
@@ -648,6 +659,7 @@ bpck_command(bpck_t *dev, const uint8_t cmd)
 
     dev->tf->pos      = 0;
     sc->packet_status = PHASE_IDLE;
+    dev->intrq        = 0;
     dev->tf->phase    = 1; /* ireason 1: the drive wants the CDB */
     dev->tf->atastat  = READY_STAT | DRQ_STAT;
 }
@@ -696,6 +708,7 @@ bpck_reg_read(bpck_t *dev, const uint8_t addr)
         case ATA_DRVHD:
             return dev->tf->drvsel;
         case ATA_STATUS:
+            dev->intrq = 0;
             return dev->tf->atastat;
         default:
             return dev->tf_regs[addr];

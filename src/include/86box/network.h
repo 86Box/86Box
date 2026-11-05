@@ -247,10 +247,16 @@ extern const device_t pcnet_am79c960_device;
 extern const device_t pcnet_am79c960_eb_device;
 extern const device_t pcnet_am79c960_vlb_device;
 extern const device_t pcnet_am79c961_device;
+extern const device_t pcnet_am79c961a_device;
 extern const device_t pcnet_am79c970a_device;
 extern const device_t pcnet_am79c970a_onboard_device;
 extern const device_t pcnet_am79c973_device;
+extern const device_t pcnet_am79c970_device;
+extern const device_t pcnet_am79c971_device;
+extern const device_t pcnet_am79c972_device;
+extern const device_t pcnet_am79c975_device;
 extern const device_t pcnet_am79c973_onboard_device;
+extern const device_t pcnet_am79c974_device;
 
 /* Modem */
 extern const device_t modem_device;

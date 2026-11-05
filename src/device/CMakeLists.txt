@@ -55,6 +55,7 @@ add_library(dev OBJECT
     lpt_bpck.c
     lpt_ditto.c
     lpt_epat.c
+    lpt_zip.c
     mouse.c
     mouse_bus.c
     mouse_ibm7690_tablet.c
@@ -72,6 +73,7 @@ add_library(dev OBJECT
     serial_host.c
     serial_i8251.c
     serial_ns8250.c
+    serial_scn26x1.c
     softpower_ibm5140.c
     smbus_ali7101.c
     smbus_piix4.c
