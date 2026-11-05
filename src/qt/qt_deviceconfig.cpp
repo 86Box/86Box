@@ -514,22 +514,33 @@ DeviceConfig::ProcessConfig(void *dc, const void *c, const bool is_dep)
                     lineEdit->setSizePolicy(QSizePolicy::MinimumExpanding, QSizePolicy::Preferred);
                     lineEdit->setInputMask("HH:HH:HH;0");
                     lineEdit->setObjectName(config->name);
-                    // Display the current or generated MAC in uppercase
+                    // An OUI is the first half of the station address, so a generated one
+                    // must leave the individual/group bit clear (a set bit makes the card's
+                    // own address a multicast one) and sets the locally administered bit.
+                    bool is_oui       = !strcmp(config->name, "mac_oui");
+                    auto generate_mac = [is_oui] {
+                        uint8_t first = random_generate();
+                        if (is_oui)
+                            first = (first & 0xfc) | 0x02;
+                        return QString::asprintf("%02X:%02X:%02X", first, random_generate(), random_generate());
+                    };
+                    // Display the current, default or generated MAC in uppercase
                     // When stored it will be converted to lowercase
                     if (config_get_mac(device_context->name, config->name,
                                        config->default_int)
                         & 0xFF000000) {
-                        lineEdit->setText(QString::asprintf("%02X:%02X:%02X", random_generate(),
-                                                            random_generate(), random_generate()));
+                        if (config->default_string != nullptr)
+                            lineEdit->setText(QString(config->default_string).toUpper());
+                        else
+                            lineEdit->setText(generate_mac());
                     } else {
                         auto current_mac = QString(config_get_string(device_context->name, config->name,
                                                                      const_cast<char *>(config->default_string)));
                         lineEdit->setText(current_mac.toUpper());
                     }
                     // Action for the generate button
-                    connect(generateButton, &QPushButton::clicked, [lineEdit] {
-                        lineEdit->setText(QString::asprintf("%02X:%02X:%02X", random_generate(),
-                                                            random_generate(), random_generate()));
+                    connect(generateButton, &QPushButton::clicked, [lineEdit, generate_mac] {
+                        lineEdit->setText(generate_mac());
                     });
                     hboxLayout->addWidget(lineEdit);
                     hboxLayout->addWidget(generateButton);
