@@ -313,3 +313,19 @@ ctest --test-dir build --output-on-failure -R '^Ini'
 ```
 
 Build with AddressSanitizer to check the long-name cases for memory errors.
+
+# HD44780 character LCD
+
+The optional `device/char_lcd_smoke.py` drives the character LCD through its
+ISA, parallel port and TS-3x00 interfaces in a running 86Box, over the
+automation socket, and reads back the address counter and DDRAM. It needs a
+build with `-D AUTOMATION=ON`, on Linux or macOS, and the IBM AT and TS-3200
+ROMs:
+
+```sh
+python3 tests/device/char_lcd_smoke.py --emulator build/src/86Box
+```
+
+A control case writes to a parallel port with nothing attached and checks
+that nothing arrives. See [the character LCD notes](../doc/hardware/hd44780-lcd.md)
+for the DEBUG scripts the cases follow.
