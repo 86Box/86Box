@@ -752,22 +752,12 @@ exec386_dynarec_dyn(const int dbg)
 
     /* Refresh before the lookup AND before a fresh compile: the old
        dynarec skips the lookup on an empty hash slot, and the new block
-       still takes its key from cpu_cur_status. */
-    if (cpu_state.npxc & 0x300)
-        cpu_cur_status &= ~CPU_STATUS_FPU_PC24;
-    else
-        cpu_cur_status |= CPU_STATUS_FPU_PC24;
-    if ((cpu_state.npxc >> 10) & 3)
-        cpu_cur_status |= CPU_STATUS_FPU_RC_NZ;
-    else
-        cpu_cur_status &= ~CPU_STATUS_FPU_RC_NZ;
-    /* ES flat: its limit checks are left out (CHECK_SEG_LIMITS). It is
-       loaded by far more paths than DS and SS, which keep their bits as
-       they load; this is the one place it is read. */
-    if ((cpu_state.seg_es.base == 0) && (cpu_state.seg_es.limit_low == 0) && (cpu_state.seg_es.limit_high == 0xffffffff))
-        cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
-    else
-        cpu_cur_status |= CPU_STATUS_NOTFLATES;
+       still takes its key from cpu_cur_status. Stored only when the bits
+       differ from npxc's PC and RC fields. ES flatness needs no refresh:
+       every write to the ES base or limits sets NOTFLATES as it loads. */
+    uint16_t fpu_status = ((cpu_state.npxc & 0x300) ? 0 : CPU_STATUS_FPU_PC24) | ((cpu_state.npxc & 0xc00) ? CPU_STATUS_FPU_RC_NZ : 0);
+    if ((cpu_cur_status & (CPU_STATUS_FPU_PC24 | CPU_STATUS_FPU_RC_NZ)) != fpu_status)
+        cpu_cur_status = (cpu_cur_status & ~(CPU_STATUS_FPU_PC24 | CPU_STATUS_FPU_RC_NZ)) | fpu_status;
 
     if (!cpu_state.abrt)
     {
