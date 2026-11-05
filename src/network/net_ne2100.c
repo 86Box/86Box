@@ -49,8 +49,18 @@
 #include <86box/network.h>
 #include <86box/net_lance.h>
 
+/* NE2100 board layout: a 16-byte station address PROM at the card base,
+   the chip registers above it (Linux lance.c, FreeBSD if_lnc). */
+#define NE2100_PROM_SIZE    0x0010
+#define NE2100_RDP_OFFSET   0x0010
+#define NE2100_RAP_OFFSET   0x0012
+#define NE2100_RESET_OFFSET 0x0014
+
 typedef struct ne2100_t {
     lance_t *lance;
+
+    uint8_t  prom[NE2100_PROM_SIZE];
+    uint16_t reset_latch;
 } ne2100_t;
 
 #ifdef ENABLE_NE2100_LOG
@@ -70,6 +80,45 @@ ne2100_log(const char *fmt, ...)
 #else
 #    define ne2100_log(fmt, ...)
 #endif
+
+static uint8_t
+ne2100_prom_read(uint16_t addr, void *priv)
+{
+    ne2100_t *dev = (ne2100_t *) priv;
+
+    return dev->prom[addr & (NE2100_PROM_SIZE - 1)];
+}
+
+static uint16_t
+ne2100_prom_readw(uint16_t addr, void *priv)
+{
+    ne2100_t *dev = (ne2100_t *) priv;
+    int       off = addr & (NE2100_PROM_SIZE - 1);
+
+    return (uint16_t) (dev->prom[off] | (dev->prom[(off + 1) & (NE2100_PROM_SIZE - 1)] << 8));
+}
+
+static uint16_t
+ne2100_reset_read(uint16_t addr, void *priv)
+{
+    ne2100_t *dev = (ne2100_t *) priv;
+
+    (void) addr;
+
+    return dev->reset_latch;
+}
+
+static void
+ne2100_reset_write(uint16_t addr, uint16_t val, void *priv)
+{
+    ne2100_t *dev = (ne2100_t *) priv;
+
+    (void) addr;
+
+    /* The board reset line is level driven; the drivers read this back and
+       write it again to release the chip, which is already out of reset. */
+    dev->reset_latch = val;
+}
 
 static void *
 ne2100_init(const device_t *info)
@@ -121,20 +170,23 @@ ne2100_init(const device_t *info)
 
     lance_reset(lance);
 
-    /* RDP is a single 16-bit port; it must not be registered over 0x0C62,
-       or the RAP handler at that address is shadowed by the wider range. */
-    io_sethandler(lance->base, 0x0002,
+    /* Station address PROM: the first six bytes are the node address, the
+       rest is unused on the NE2100. */
+    memcpy(dev->prom, lance->mac, 6);
+    memset(dev->prom + 6, 0xff, NE2100_PROM_SIZE - 6);
+
+    io_sethandler(lance->base, NE2100_PROM_SIZE,
+                  ne2100_prom_read, ne2100_prom_readw, NULL,
+                  NULL, NULL, NULL, dev);
+    io_sethandler(lance->base + NE2100_RDP_OFFSET, 0x0002,
                   NULL, lance_rdp_read, NULL,
                   NULL, lance_rdp_write, NULL, lance);
-    io_sethandler(lance->base + 0x0004, 0x0002,
-                  NULL, lance_rdp_read, NULL,
-                  NULL, lance_rdp_write, NULL, lance);
-    io_sethandler(lance->base + 0x0002, 0x0002,
+    io_sethandler(lance->base + NE2100_RAP_OFFSET, 0x0002,
                   NULL, lance_rap_read, NULL,
                   NULL, lance_rap_write, NULL, lance);
-    io_sethandler(lance->base + 0x0006, 0x0002,
-                  NULL, lance_rap_read, NULL,
-                  NULL, lance_rap_write, NULL, lance);
+    io_sethandler(lance->base + NE2100_RESET_OFFSET, 0x0002,
+                  NULL, ne2100_reset_read, NULL,
+                  NULL, ne2100_reset_write, NULL, dev);
 
     lance->card = network_attach(lance, lance->mac, lance_rx, NULL);
 
