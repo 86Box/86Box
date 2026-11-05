@@ -27,6 +27,7 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdd.h>
+#include <86box/lpt.h>
 
 int hdc_current[HDC_MAX] = { 0, 0 };
 
@@ -133,6 +134,20 @@ hdc_reset(void)
         /* If we have a valid controller, add its device. */
         if (hdc_current[i] > HDC_INTERNAL)
             device_add_inst(controllers[hdc_current[i]].device, i + 1);
+    }
+
+    /* A hard disk on a parallel port is reached through a bridge, which is
+       not something the user picks: putting the disk on the port is the
+       whole configuration. The bridge claims the port with lpt_attach(),
+       first claim wins. */
+    for (int port = 0; port < PARALLEL_MAX; port++) {
+        for (int c = 0; c < HDD_NUM; c++) {
+            if (hdd_is_valid(c) && (hdd[c].bus_type == HDD_BUS_LPT) && (hdd[c].channel == port)) {
+                device_add_inst(hdd_lpt_bridge_device(hdd[c].lpt_bridge),
+                                port + 1);
+                break;
+            }
+        }
     }
 }
 

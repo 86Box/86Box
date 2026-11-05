@@ -51,7 +51,7 @@ void
 Harddrives::populateBuses(QAbstractItemModel *model)
 {
     model->removeRows(0, model->rowCount());
-    model->insertRows(0, 6);
+    model->insertRows(0, 7);
 
     model->setData(model->index(0, 0), "ST-506/ST-412 (MFM/RLL)");
     model->setData(model->index(1, 0), "XTA");
@@ -59,6 +59,7 @@ Harddrives::populateBuses(QAbstractItemModel *model)
     model->setData(model->index(3, 0), "IDE");
     model->setData(model->index(4, 0), "ATAPI");
     model->setData(model->index(5, 0), "SCSI");
+    model->setData(model->index(6, 0), "LPT");
 
     model->setData(model->index(0, 0), HDD_BUS_MFM, Qt::UserRole);
     model->setData(model->index(1, 0), HDD_BUS_XTA, Qt::UserRole);
@@ -66,6 +67,7 @@ Harddrives::populateBuses(QAbstractItemModel *model)
     model->setData(model->index(3, 0), HDD_BUS_IDE, Qt::UserRole);
     model->setData(model->index(4, 0), HDD_BUS_ATAPI, Qt::UserRole);
     model->setData(model->index(5, 0), HDD_BUS_SCSI, Qt::UserRole);
+    model->setData(model->index(6, 0), HDD_BUS_LPT, Qt::UserRole);
 }
 
 void
@@ -128,6 +130,7 @@ Harddrives::populateSpeeds(QAbstractItemModel *model, SettingsCompleter *sc, int
         case HDD_BUS_IDE:
         case HDD_BUS_ATAPI:
         case HDD_BUS_SCSI:
+        case HDD_BUS_LPT:
             num_preset = hdd_preset_get_num();
             break;
 
@@ -146,8 +149,20 @@ Harddrives::populateSpeeds(QAbstractItemModel *model, SettingsCompleter *sc, int
     }
 }
 
+QString
+Harddrives::lptBridgeName(int bridge)
+{
+    return QString(hdd_lpt_bridge_get_name(bridge));
+}
+
+bool
+Harddrives::lptPortEnabled(int port)
+{
+    return (port >= 0) && (port < PARALLEL_MAX) && lpt_ports[port].enabled;
+}
+
 void
-Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusTracking *sbt)
+Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusTracking *sbt, int lptBridges)
 {
     model->removeRows(0, model->rowCount());
 
@@ -242,6 +257,24 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
             if ((channel < (SCSI_BUS_MAX * SCSI_ID_MAX)) && (channel >= busRows))
                 busRows = (channel | 15) + 1;
         }
+    }
+
+    if ((bus == TAPE_BUS_LPT) && lptBridges) {
+        /* Each port once per bridge; the port is in use either way. */
+        model->insertRows(0, PARALLEL_MAX * HDD_LPT_BRIDGES);
+        for (int i = 0; i < (PARALLEL_MAX * HDD_LPT_BRIDGES); ++i) {
+            const int port   = i / HDD_LPT_BRIDGES;
+            const int bridge = i % HDD_LPT_BRIDGES;
+            auto      idx    = model->index(i, 0);
+
+            model->setData(idx, QString("LPT%1 %2").arg(port + 1).arg(lptBridgeName(bridge)));
+            model->setData(idx, port | (bridge << 2), Qt::UserRole);
+            auto *channelItem = qobject_cast<QStandardItemModel *>(model)->item(i);
+            if (channelItem)
+                channelItem->setEnabled(!channelsInUse.contains(port) && lpt_ports[port].enabled &&
+                                        ((lptBridges != LptBridgesCdrom) || cdrom_lpt_bridge_valid(bridge)));
+        }
+        return;
     }
 
     model->insertRows(0, busRows);

@@ -28,6 +28,7 @@
 /* lpt.h declares lpt_t only if timer.h has been seen first. */
 #include <86box/timer.h>
 #include <86box/lpt.h>
+#include <86box/hdd.h>
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_interface.h>
@@ -3673,13 +3674,20 @@ cdrom_hard_reset(void)
                     break;
 
                 case CDROM_BUS_LPT:
-                    scsi_cdrom_drive_reset(i);
                     /*
                      * The bridge is not a device the user picks: assigning the drive
                      * to an LPT port is the whole configuration. It claims the port
-                     * with lpt_attach(), first claim wins.
+                     * with lpt_attach(), first claim wins. The BackPack drives the
+                     * drive itself; the others have an IDE board of their own, the
+                     * drive is an ATAPI drive on it and needs it first.
                      */
-                    device_add_inst(&lpt_bpck_device, dev->res + 1);
+                    if (dev->lpt_bridge == HDD_LPT_BPCK) {
+                        scsi_cdrom_drive_reset(i);
+                        device_add_inst(&lpt_bpck_device, dev->res + 1);
+                    } else {
+                        device_add_inst(hdd_lpt_bridge_device(dev->lpt_bridge), dev->res + 1);
+                        scsi_cdrom_drive_reset(i);
+                    }
                     break;
 
                 default:
