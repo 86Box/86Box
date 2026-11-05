@@ -5233,7 +5233,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT,
-        .flags     = MACHINE_FDC, /* Machine has video: Paradise PVGA1A */
+        .flags     = MACHINE_FDC, /* Machine has internal video: Paradise PVGA1A */
         .ram       = {
             .min  = 256, /* POST misdetects memory when it's less than 1 MB,
                             but otherwise such amounts work without issues */
@@ -11246,6 +11246,55 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
+    /* Has a VLSI VL82C114 Combination I/O which holds the KBC. */
+    {
+        .name              = "[VLSI 82C480] IBM PS/1 model 2133",
+        .internal_name     = "ibmps1_2133",
+        .type              = MACHINE_TYPE_SOCKET2,
+        .chipset           = MACHINE_CHIPSET_VLSI_VL82C480,
+        .init              = machine_ps1_m2133_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SOCKET3,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 25000000,
+            .max_bus     = 33333333,
+            .min_voltage = 5000,
+            .max_voltage = 5000,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PS2,
+        .flags     = MACHINE_IDE | MACHINE_VIDEO,
+        .ram       = {
+            .min  = 1024,
+            .max  = 65536,
+            .step = 1024
+        },
+        .nvrmask                  = 127,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        /* The NVR is on the VLSI VL82C114. */
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &ps1_2133_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &gd5428_onboard_device,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
     /* Has a VLSI VL82C113A SCAMP Combination I/O which holds the KBC. */
     {
         .name              = "[VLSI 82C480] Intel Classic R",
@@ -11340,55 +11389,6 @@ const machine_t machines[] = {
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
-        .snd_device               = NULL,
-        .net_device               = NULL,
-        .aliases                  = { "" }
-    },
-    /* Has a VLSI VL82C114 Combination I/O which holds the KBC. */
-    {
-        .name              = "[VLSI 82C480] IBM PS/1 model 2133",
-        .internal_name     = "ibmps1_2133",
-        .type              = MACHINE_TYPE_SOCKET2,
-        .chipset           = MACHINE_CHIPSET_VLSI_VL82C480,
-        .init              = machine_ps1_m2133_init,
-        .p1_handler        = machine_generic_p1_handler,
-        .gpio_handler      = NULL,
-        .available_flag    = MACHINE_AVAILABLE,
-        .gpio_acpi_handler = NULL,
-        .cpu               = {
-            .package     = CPU_PKG_SOCKET3,
-            .block       = CPU_BLOCK_NONE,
-            .min_bus     = 25000000,
-            .max_bus     = 33333333,
-            .min_voltage = 5000,
-            .max_voltage = 5000,
-            .min_multi   = 0,
-            .max_multi   = 0
-        },
-        .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE | MACHINE_VIDEO,
-        .ram       = {
-            .min  = 1024,
-            .max  = 65536,
-            .step = 1024
-        },
-        .nvrmask                  = 127,
-        .jumpered_ecp_dma         = 0,
-        .default_jumpered_ecp_dma = -1,
-        .kbc_device               = NULL,
-        .kbc_params               = 0x00000000,
-        /* The NVR is on the VLSI VL82C114. */
-        .nvr_device               = NULL,
-        .nvr_params               = 0x00000000,
-        .sio_device               = NULL,
-        .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x000004f0,
-        .gpio                     = 0xffffffff,
-        .gpio_acpi                = 0xffffffff,
-        .device                   = &ps1_2133_device,
-        .kbd_device               = NULL,
-        .fdc_device               = NULL,
-        .vid_device               = &gd5428_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL,
         .aliases                  = { "" }
@@ -18670,7 +18670,7 @@ const machine_t machines[] = {
             .max_multi   = 3.0
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal video: ATI 3D Rage II (Mach64GT-B) (not yet implemented) */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_GAMEPORT | MACHINE_USB, /* Machine has internal video: ATI 3D Rage II (Mach64GT-B) */
         .ram       = {
             .min  = 8192,
             .max  = 131072,
@@ -19730,7 +19730,7 @@ const machine_t machines[] = {
             .max_multi   = 3.5
         },
         .bus_flags = MACHINE_PS2_PCI | MACHINE_BUS_USB,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_USB | MACHINE_NIC, /* Machine has internal video: either ATI 3D Rage (Mach64GT) (not yet implemented) or 3D Rage II+ DVD (Mach64GT-B) */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_USB | MACHINE_NIC, /* Machine has internal video: either ATI 3D Rage (Mach64GT) or 3D Rage II+ DVD (Mach64GT-B) */
         .ram       = {
             .min  = 8192,
             .max  = 524288,
