@@ -137,6 +137,7 @@ extern const device_t      lpt_zip250_device;
 extern const device_t      lpt_hasp_savquest_device;
 
 extern const device_t      lpt_bpck_device;
+extern const device_t      lpt_bpfdd_device;
 extern const device_t      lpt_ditto_device;
 
 extern const device_t      lpt_loopback_device;

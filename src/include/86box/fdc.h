@@ -67,6 +67,8 @@
 #define FDC_FLAG_TANDY2K             0x4000000  /* Tandy 2000, no DOR latch on board */
 #define FDC_FLAG_COMPAQ              0x8000000  /* Compaq 386, drive type sense at 3F1 */
 #define FDC_FLAG_IGNORE_DENSEL_FORCE 0x10000000 /* FDC ignores DENSEL on HD media */
+#define FDC_FLAG_HOSTED              0x40000000 /* Behind another device: no I/O ports,
+                                                   DMA and interrupt through its host */
 #define FDC_FLAG_PNP                 0x80000000 /* FDC is PnP */
 
 typedef struct sector_id_fields_t {
@@ -81,6 +83,19 @@ typedef union sector_id_t {
     uint8_t            byte_array[4];
     sector_id_fields_t id;
 } sector_id_t;
+
+/*
+   The device an FDC with FDC_FLAG_HOSTED sits behind. It takes the place
+   of the ISA DMA controller and the PIC: dma_read and dma_write move one
+   byte and return DMA_OVER at terminal count (dma_read DMA_NODATA when
+   it has none), as dma_channel_read and dma_channel_write do.
+ */
+typedef struct fdc_host_t {
+    int  (*dma_read)(void *priv);
+    int  (*dma_write)(void *priv, uint8_t val);
+    void (*drq)(void *priv, int set);
+    void (*irq)(void *priv, int set);
+} fdc_host_t;
 
 typedef struct fdc_t {
     uint8_t dor;
@@ -186,6 +201,9 @@ typedef struct fdc_t {
     pc_timer_t watchdog_timer;
 
     void *fdd[4];
+
+    const fdc_host_t *host;
+    void             *host_priv;
 } fdc_t;
 
 extern void fdc_remove(fdc_t *fdc);
@@ -267,6 +285,7 @@ extern void fdc_overrun(fdc_t *fdc);
 extern void fdc_set_base(fdc_t *fdc, int base);
 extern void fdc_set_irq(fdc_t *fdc, int irq);
 extern void fdc_set_dma_ch(fdc_t *fdc, int dma_ch);
+extern void fdc_set_host(fdc_t *fdc, const fdc_host_t *host, void *priv);
 extern int  fdc_getdata(fdc_t *fdc, int last);
 extern int  fdc_data(fdc_t *fdc, uint8_t data, int last);
 
@@ -297,6 +316,7 @@ extern const device_t fdc_pcjx_device;
 extern const device_t fdc_ibm5140_device;
 extern const device_t fdc_tandy2k_device;
 extern const device_t fdc_at_device;
+extern const device_t fdc_hosted_device;
 extern const device_t fdc_at_sec_device;
 extern const device_t fdc_at_ter_device;
 extern const device_t fdc_at_qua_device;
