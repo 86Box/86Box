@@ -168,7 +168,7 @@ cmi8x38_mpu_irq_update(void *priv, int set)
 static int
 cmi8x38_mpu_irq_pending(void *priv)
 {
-    const cmi8x38_t *dev = (cmi8x38_t *) priv;
+    cmi8x38_t *dev = (cmi8x38_t *) priv;
 
     return dev->io_regs[0x12] & 0x01;
 }
@@ -421,9 +421,9 @@ cmi8338_io_trap(UNUSED(const uint16_t size), uint16_t port, uint8_t write, uint8
 static uint8_t
 cmi8x38_sb_mixer_read(uint16_t addr, void *priv)
 {
-    cmi8x38_t               *dev   = (cmi8x38_t *) priv;
-    const sb_ct1745_mixer_t *mixer = &dev->sb->mixer_sb16;
-    uint8_t                  ret   = sb_ct1745_mixer_read(addr, dev->sb);
+    cmi8x38_t         *dev   = (cmi8x38_t *) priv;
+    sb_ct1745_mixer_t *mixer = &dev->sb->mixer_sb16;
+    uint8_t            ret   = sb_ct1745_mixer_read(addr, dev->sb);
 
     if (addr & 1) {
         if ((mixer->index == 0x0e) || (mixer->index >= 0xf0))
@@ -970,8 +970,8 @@ cmi8x38_remap(cmi8x38_t *dev)
 static uint8_t
 cmi8x38_pci_read(int func, int addr, UNUSED(int len), void *priv)
 {
-    const cmi8x38_t *dev = (cmi8x38_t *) priv;
-    uint8_t          ret = 0xff;
+    cmi8x38_t *dev = (cmi8x38_t *) priv;
+    uint8_t    ret = 0xff;
 
     if (!func) {
         ret = dev->pci_regs[addr];
@@ -1040,9 +1040,9 @@ cmi8x38_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 static void
 cmi8x38_update(cmi8x38_t *dev, cmi8x38_dma_t *dma)
 {
-    const sb_ct1745_mixer_t *mixer = &dev->sb->mixer_sb16;
-    int32_t                  l     = (dma->out_fl * mixer->voice_l) * mixer->master_l;
-    int32_t                  r     = (dma->out_fr * mixer->voice_r) * mixer->master_r;
+    sb_ct1745_mixer_t *mixer = &dev->sb->mixer_sb16;
+    int32_t            l     = (dma->out_fl * mixer->voice_l) * mixer->master_l;
+    int32_t            r     = (dma->out_fr * mixer->voice_r) * mixer->master_r;
 
     for (; dma->pos < sound_pos_global; dma->pos++) {
         dma->buffer[dma->pos * 2]     = l;
@@ -1058,8 +1058,8 @@ cmi8x38_update(cmi8x38_t *dev, cmi8x38_dma_t *dma)
 static void
 cmi8x38_fragment_count(cmi8x38_dma_t *dma, int frames)
 {
-    cmi8x38_t    *dev     = dma->dev;
-    const uint8_t dma_bit = 0x01 << dma->id;
+    cmi8x38_t *dev     = dma->dev;
+    uint8_t    dma_bit = 0x01 << dma->id;
 
     dma->frame_count_fragment -= frames;
     if (dma->frame_count_fragment > 0)
@@ -1067,7 +1067,7 @@ cmi8x38_fragment_count(cmi8x38_dma_t *dma, int frames)
 
     /* Reload fragment counter, carrying over the frames taken past the
        fragment's end, as a fragment need not be a whole number of longwords. */
-    const int32_t fragment = AS_U16(dev->io_regs[dma->reg | 0x6]) + 1;
+    int32_t fragment = AS_U16(dev->io_regs[dma->reg | 0x6]) + 1;
     do
         dma->frame_count_fragment += fragment;
     while (dma->frame_count_fragment <= 0);
@@ -1138,12 +1138,12 @@ cmi8x38_dma_process(void *priv)
            buffers for 8-bit mono at 44100 Hz), so the last longword may only
            be partly in it: take only the frames left, or the bytes past the
            end would be played (or recorded over) before the wrap. */
-        const uint8_t fmt   = (dev->io_regs[0x08] >> (dma->id << 1)) & 0x03;
-        const int     shift = (fmt & 0x01) + (fmt >> 1);
+        uint8_t fmt   = (dev->io_regs[0x08] >> (dma->id << 1)) & 0x03;
+        int     shift = (fmt & 0x01) + (fmt >> 1);
         int           frames = 4 >> shift;
         if (frames > dma->frame_count_dma)
             frames = dma->frame_count_dma;
-        const int bytes = frames << shift;
+        int bytes = frames << shift;
 
         /* A partial longword leaves the FIFO pointers unaligned, so move it a byte at a time. */
         if (dma_status & 0x01) {
@@ -1152,7 +1152,7 @@ cmi8x38_dma_process(void *priv)
                 mem_writeb_phys(dma->sample_ptr + i, dma->fifo[(dma->fifo_end + i) & (sizeof(dma->fifo) - 1)]);
         } else {
             /* Read channel: write data to FIFO. */
-            const uint32_t val = mem_readl_phys(dma->sample_ptr);
+            uint32_t val = mem_readl_phys(dma->sample_ptr);
             for (int i = 0; i < bytes; i++)
                 dma->fifo[(dma->fifo_end + i) & (sizeof(dma->fifo) - 1)] = val >> (i << 3);
         }
@@ -1181,8 +1181,8 @@ cmi8x38_dma_process(void *priv)
 static int16_t
 cmi8x38_fifo_read16(cmi8x38_dma_t *dma)
 {
-    const uint8_t lo = dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)];
-    const uint8_t hi = dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)];
+    uint8_t lo = dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)];
+    uint8_t hi = dma->fifo[dma->fifo_pos++ & (sizeof(dma->fifo) - 1)];
 
     return (int16_t) (lo | (hi << 8));
 }
