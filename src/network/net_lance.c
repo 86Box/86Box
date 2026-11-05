@@ -567,20 +567,28 @@ lance_receive(lance_t *dev, uint8_t *buf, int length)
     if (!(dev->csr[0] & CSR0_RXON) || (dev->mode & MODE_DRX))
         return -1;
 
-    /* Manual 1.8: frames shorter than 64 bytes including the FCS are
-       dropped whole and do not consume a descriptor. */
-    if ((length + 4) < 64)
-        return -1;
-
     /* Overlong (jabber) frames are dropped as well. */
     if (length > 1518)
         return -1;
+
+    /* Too short to be a real frame even once padded. */
+    if (length < 40)
+        return -1;
+
+    /* The backend hands over the frame without the Ethernet pad. On the wire
+       the transmitter pads it to 60 bytes, so outside loopback the LANCE
+       never sees anything shorter than 64 bytes including the FCS. */
+    memcpy(frame, buf, length);
+    if (length < 60) {
+        memset(&frame[length], 0x00, 60 - length);
+        length = 60;
+    }
+    buf = frame;
 
     if (!lance_address_filter(dev, buf, length))
         return -1;
 
     /* The real chip writes the FCS into the buffer too and counts it in MCNT. */
-    memcpy(frame, buf, length);
     fcs = lance_crc32(buf, length);
     lance_log("[LANCE] rx %d bytes fcs=%08x\n", length, fcs);
     frame[length + 0] = (uint8_t) (fcs >> 0);
@@ -608,7 +616,8 @@ lance_receive(lance_t *dev, uint8_t *buf, int length)
         dev->rx_md[0] = lance_md_read(dev, ring_address | 0);
         dev->rx_md[2] = lance_md_read(dev, ring_address | 4);
 
-        rx_buf_length = dev->rx_md[2] & 0x0fff;
+        /* TRM 18: RMD2 BCNT is the two's complement of the buffer size too. */
+        rx_buf_length = (int) (0u - dev->rx_md[2]) & 0x0fff;
         count         = length - offset;
         if (count > rx_buf_length)
             count = rx_buf_length;
