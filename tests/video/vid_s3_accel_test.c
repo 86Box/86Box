@@ -148,10 +148,10 @@ void svga_writel_linear(uint32_t addr, uint32_t val, void *priv) { abort(); }
 uint8_t xga_read_test(uint32_t addr, void *priv) { abort(); }
 void xga_write_test(uint32_t addr, uint8_t val, void *priv) { abort(); }
 
-/* Mappings, IRQs and timings don't matter here. */
-void mem_mapping_enable(mem_mapping_t *map) { }
-void mem_mapping_disable(mem_mapping_t *map) { }
-void mem_mapping_set_addr(mem_mapping_t *map, uint32_t base, uint32_t size) { }
+/* Mappings only need their state, for the MMIO window; IRQs and timings don't matter here. */
+void mem_mapping_enable(mem_mapping_t *map) { map->enable = 1; }
+void mem_mapping_disable(mem_mapping_t *map) { map->enable = 0; }
+void mem_mapping_set_addr(mem_mapping_t *map, uint32_t base, uint32_t size) { map->base = base; map->size = size; map->enable = 1; }
 void mem_mapping_set_handler(mem_mapping_t *map, uint8_t (*read_b)(uint32_t addr, void *priv),
                              uint16_t (*read_w)(uint32_t addr, void *priv),
                              uint32_t (*read_l)(uint32_t addr, void *priv),
@@ -286,6 +286,61 @@ port_r(uint16_t port)
     return val;
 }
 
+/* A doubleword store into the MMIO window that vid_s3.c maps for the chip. */
+static void
+mmio_l(uint32_t addr, uint32_t val)
+{
+    const mem_mapping_t *map = &s3.mmio_mapping;
+
+    check(map->enable && (addr >= map->base) && (addr < map->base + map->size), "no MMIO at %05X", addr);
+    if (map->enable)
+        s3_accel_write_l(addr, val, &s3);
+}
+
+static uint32_t
+pix(int x, int y)
+{
+    uint32_t addr = (y * s3.width + x) * (cur_bpp / 8);
+
+    drain();
+    switch (cur_bpp) {
+        case 8:
+            return vram[addr];
+        case 16:
+            return vram[addr] | (vram[addr + 1] << 8);
+        default:
+            return vram[addr] | (vram[addr + 1] << 8) | (vram[addr + 2] << 16) | ((uint32_t) vram[addr + 3] << 24);
+    }
+}
+
+/* In 32 bpp a colour takes two word writes, low half first (RSF, BEE8h index E bit 4). */
+static void
+color_w(uint16_t port, uint32_t val)
+{
+    port_w(port, val);
+    if (cur_bpp == 32)
+        port_w(port, val >> 16);
+}
+
+/* A colour that fits the depth. */
+static uint32_t
+color(void)
+{
+    return 0x00c3a5e1 & ((cur_bpp == 32) ? 0xffffffff : ((1 << cur_bpp) - 1));
+}
+
+/* Rectangle fill solid as in Trio32/64 13.3.3.3 (p. 13-12), up to the height and the command. */
+static void
+rect_start(int x, int y, int width)
+{
+    port_w(0xbae8, 0x0027); /* FRGD_MIX: FRGD_COLOR, NEW */
+    color_w(0xa6e8, color());
+    port_w(0xbee8, 0xa000); /* PIX_CNTL: FRGD_MIX selects */
+    port_w(0x86e8, x);
+    port_w(0x82e8, y);
+    port_w(0x96e8, width - 1); /* MAJ_AXIS_PCNT */
+}
+
 /* A 1024-pixel-wide enhanced mode as a driver sets it, with standard MMIO and open scissors. */
 static void
 card_setup(const chip_t *c, int bpp)
@@ -312,6 +367,8 @@ card_setup(const chip_t *c, int bpp)
     s3.accel_start               = s3_accel_start;
     s3.wake_fifo_thread          = &wake_event;
     s3.fifo_not_full_event       = &not_full_event;
+    s3.mmio_mapping.base         = 0xa0000; /* As s3_init() adds it */
+    s3.mmio_mapping.size         = 0x10000;
 
     memset(io, 0, sizeof(io));
     s3_io_set(&s3);
@@ -391,12 +448,51 @@ test_cur_xy(void)
     check(port_r(0x82e8) == 456, "CUR_Y reads %u", port_r(0x82e8));
 }
 
+/* Rows filled by a rectangle at (10, 20), 8 wide, after its height was set. */
+static void
+check_rows(int rows)
+{
+    for (int y = 20; y < 20 + rows; y++)
+        check((pix(10, y) == color()) && (pix(17, y) == color()), "row %d not filled", y - 20);
+    check((pix(10, 20 + rows) == 0) && (pix(18, 20) == 0), "drew outside %dx8", rows);
+}
+
+/* MULTIFUNC_CNTL (BEE8h) index 0 is MIN_AXIS_PCNT, the rectangle height - 1: 86C928 p. 10-15,
+   Vision864 p. 18-15, Vision964 p. 18-15, Trio32/64 p. 18-20, Trio64V+ p. 20-15, S3.TXT
+   lines 1109-1112. */
+static void
+test_bee8_port(void)
+{
+    rect_start(10, 20, 8);
+    port_w(0xbee8, 0x0000 | 7);
+    port_w(0x9ae8, 0x40b1);
+    check_rows(8);
+}
+
+/* A doubleword store to BEE8h in the standard MMIO window writes one 16-bit register:
+   there is no register at BEEAh (86C928 table 3-1, p. 3-4; Vision864 and Vision964 table 9-5,
+   p. 9-8; Vision868 and Vision968 table 5-1, p. 5-2; Trio32/64 table 13-1, p. 13-5; Trio64V+
+   table 15-1, p. 15-5). XFree86 3.3's S3 server sets the height this way. S3.TXT puts the
+   86C801/805 MMIO at A0000h-A7FFFh (lines 477-478), not at A8000h-AFFFFh like the 86C928's
+   command registers (lines 479-482), so those chips aren't asserted. */
+static void
+test_bee8_mmio32(void)
+{
+    rect_start(10, 20, 8);
+    mmio_l(0xabee8, 0x00000007);
+    port_w(0x9ae8, 0x40b1);
+    check_rows(8);
+}
+
 int
 main(int argc, char **argv)
 {
     verbose = (argc > 1) && !strcmp(argv[1], "-v");
 
     run("cur_xy", test_cur_xy, C_ALL);
+    run("bee8_port", test_bee8_port, C_ALL);
+    run("bee8_mmio32", test_bee8_mmio32,
+        C_928 | C_928PCI | C_864 | C_868 | C_964 | C_968 | C_TRIO32 | C_TRIO64 | C_TRIO64V | C_TRIO64V2);
 
     if (verbose)
         print_matrix();
