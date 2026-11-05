@@ -1114,10 +1114,11 @@ ergoe452_speed_strap(void)
         case 100: return 0x2;
         case 120: return 0xa;
         case 133: return 0x6;
-        case 150: return 0x1;
+        case 150: return 0x8;
         case 166: return 0x4;
         case 180: return 0x9;
         case 200: return 0x5;
+        case 233: return 0x7; /* shown as 100 MHz even on BIOS 1.21 */
         default:  return 0xf; /* 60 MHz */
     }
 }
