@@ -1261,6 +1261,11 @@ extern int             machine_at_p5vxb_init(const machine_t *);
 extern int             machine_at_p55va_init(const machine_t *);
 extern int             machine_at_gw2kte_init(const machine_t *);
 extern int             machine_at_brio80xx_init(const machine_t *);
+extern uint32_t        machine_at_ergoe452_gpio_handler(uint8_t write, uint32_t val);
+#ifdef EMU_DEVICE_H
+extern const device_t  ergoe452_device;
+#endif
+extern int             machine_at_ergoe452_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  lgibmx52_device;
 #endif

@@ -2103,7 +2103,8 @@ fdc_callback(void *priv)
             return;
         case 0x01: /* Mode */
             fdc->stat         = 0x80;
-            fdc->densel_force = (fdc->params[2] & 0xC0) >> 6;
+            if (!(fdc->flags & FDC_FLAG_IGNORE_DENSEL_FORCE))
+                fdc->densel_force = (fdc->params[2] & 0xC0) >> 6;
             return;
         case 0x02: /* Read track */
             ui_sb_update_icon(SB_FLOPPY | (fdc->bus + real_drive(fdc, fdc->drive)), 1);
@@ -3419,6 +3420,20 @@ const device_t fdc_at_nsc_device = {
     .internal_name = "fdc_at_nsc",
     .flags         = DEVICE_ISA,
     .local         = FDC_FLAG_AT | FDC_FLAG_MORE_TRACKS | FDC_FLAG_NSC,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc_at_nsc_ignore_densel_device = {
+    .name          = "PC/AT FDC (NSC PC8730x, ignore DENSEL force)",
+    .internal_name = "fdc_at_nsc_ignore_densel",
+    .flags         = DEVICE_ISA,
+    .local         = FDC_FLAG_AT | FDC_FLAG_MORE_TRACKS | FDC_FLAG_IGNORE_DENSEL_FORCE | FDC_FLAG_NSC,
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
