@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-05 05:04+0000\n"
+"PO-Revision-Date: 2026-11-05 15:26+0000\n"
 "Last-Translator: Broifonn_9 <molodchina812@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
@@ -1113,7 +1113,7 @@ msgid "Thrustmaster Formula T1/T2 without adapter"
 msgstr "Thrustmaster Formula T1/T2 без адаптера"
 
 msgid "None"
-msgstr "Ні"
+msgstr "Немає"
 
 msgid "%1 MB (CHS: %2, %3, %4)"
 msgstr "%1 МБ (CHS: %2, %3, %4)"
@@ -1191,7 +1191,19 @@ msgid "About %1"
 msgstr "Про %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Емулятор старих комп'ютерів\n\nАвтори: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nЗ попередніми основними внесками Sarah Walker, leilei, JohnElliott, greatpsycho та інших.\n\nВипускаєтся під ліцензією GNU General Public License версії 2 або більше пізніше. Додадкову інформацію см. у файлі LICENSE."
+msgstr ""
+"Емулятор старих комп'ютерів\n"
+"\n"
+"Автори: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, "
+"coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin "
+"(elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen "
+"(waltje), Tiseno100, reenigne та ін.\n"
+"\n"
+"З попередніми основними внесками Sarah Walker, leilei, JohnElliott, "
+"greatpsycho та ін.\n"
+"\n"
+"Випускається під ліцензією GNU General Public License версії 2 або пізніше. "
+"Додаткову інформацію дивіться у файлі LICENSE."
 
 msgid "Hardware not available"
 msgstr "Обладнання недоступне"
@@ -1651,7 +1663,7 @@ msgid "The selected file will be overwritten. Are you sure you want to use it?"
 msgstr "Вибраний файл буде перезаписано. Ви впевнені, що хочете використовувати його?"
 
 msgid "Unsupported disk image"
-msgstr "Образ диска, що не підтримується"
+msgstr "Образ диска не підтримується"
 
 msgid "Unable to read device"
 msgstr "Неможливо зчитати пристрій"
@@ -2116,7 +2128,7 @@ msgid "OPL4-ML Daughterboard"
 msgstr "Дочірня плата OPL4-ML"
 
 msgid "System MIDI"
-msgstr "MIDI системи"
+msgstr "Системний MIDI"
 
 msgid "MIDI Input Device"
 msgstr "Пристрій введення MIDI"
@@ -2200,10 +2212,10 @@ msgid "IBM 5161 Expansion Unit"
 msgstr "Блок розширення IBM 5161"
 
 msgid "IBM Cassette Basic"
-msgstr "Касетний бейсік IBM"
+msgstr "Касетний Basic IBM"
 
 msgid "Translate 26 -> 17"
-msgstr "Перекладіть 26 -> 17"
+msgstr "Перекласти 26 -> 17"
 
 msgid "Language"
 msgstr "Мова"
@@ -2527,7 +2539,7 @@ msgid "Enable NMI for CGA emulation"
 msgstr "Увімкнути NMI для емуляції CGA"
 
 msgid "Voodoo type"
-msgstr "Тип вуду"
+msgstr "Тип Voodoo"
 
 msgid "Framebuffer memory size"
 msgstr "Розмір пам'яті фреймбуфера"
@@ -2746,7 +2758,7 @@ msgid "New"
 msgstr "Новий"
 
 msgid "Color (generic)"
-msgstr "Кольоровий (загальний)"
+msgstr "Кольоровий (звичайний)"
 
 msgid "Green Monochrome"
 msgstr "Зелений монохромний"
@@ -2767,7 +2779,7 @@ msgid "Simple doubling"
 msgstr "Просте подвоєння"
 
 msgid "sRGB interpolation"
-msgstr "sRGB інтерполяція"
+msgstr "sRGB-інтерполяція"
 
 msgid "Linear interpolation"
 msgstr "Лінійна інтерполяція"
@@ -2839,25 +2851,25 @@ msgid "Other languages"
 msgstr "Інші мови"
 
 msgid "Bochs latest"
-msgstr "Bochs останній"
+msgstr "Остання версія Bochs"
 
 msgid "Apply overscan deltas"
 msgstr "Застосувати дельти вильотів розгортки"
 
 msgid "Mono Interlaced"
-msgstr "Монохромний інтерлейсний"
+msgstr "Монохромний черезрядковий"
 
 msgid "Mono Non-Interlaced"
-msgstr "Монохромний неінтерлейсний"
+msgstr "Монохромний нечерезрядковий"
 
 msgid "Color Interlaced"
-msgstr "Кольоровий інтерлейсний"
+msgstr "Кольоровий черезрядковий"
 
 msgid "Color Non-Interlaced"
-msgstr "Кольоровий неінтерлейсний"
+msgstr "Кольоровий нечерезрядковий"
 
 msgid "3Dfx Voodoo Graphics"
-msgstr "Прискорювач 3Dfx Voodoo"
+msgstr "Прискорювач 3dfx Voodoo"
 
 msgid "3Dfx Voodoo 2"
 msgstr "3dfx Voodoo 2"
@@ -2941,7 +2953,7 @@ msgid "Loopback Type"
 msgstr "Тип кабелю"
 
 msgid "Parallel cable"
-msgstr "LPT-кабель"
+msgstr "Кабель паралельного порту"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
 msgstr "Односпрямований (8 біт) / LapLink (4 біт)"
@@ -3001,7 +3013,7 @@ msgid "High performance impact"
 msgstr "Високий вплив на продуктивність"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Стандартний] Диск оперативної пам'яті (макс. швидкість)"
+msgstr "[Стандартний] ОЗП-диск (макс. швидкість)"
 
 msgid "[Generic] 1983 MFM (3600 RPM)"
 msgstr "[Стандартний] 1983 MFM (3600 RPM)"
@@ -3244,7 +3256,7 @@ msgid "Hostname:"
 msgstr "Ім'я хоста:"
 
 msgid "ISA RAM:"
-msgstr "ISA ОЗУ:"
+msgstr "ISA ОЗП:"
 
 msgid "ISA ROM:"
 msgstr "ISA-ПЗП:"
@@ -3397,7 +3409,7 @@ msgid "Color scheme"
 msgstr "Колірна гамма"
 
 msgid "Light"
-msgstr "Світло"
+msgstr "Світлий"
 
 msgid "Dark"
 msgstr "Темний"
@@ -3439,7 +3451,7 @@ msgid "Audio output device:"
 msgstr "Пристрій виведення звуку:"
 
 msgid "System Default"
-msgstr "Системний"
+msgstr "Системний за замовчуванням"
 
 msgid "Unable to open image or folder \"%s\"."
 msgstr "Неможливо відкрити файл або папку «%s»."
