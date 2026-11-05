@@ -232,7 +232,11 @@ pc87307_gpio_write(uint16_t port, uint8_t val, void *priv)
     dev->gpio[bank][port & 0x0007] = val;
 
     if (bank == 0) {
-        machine_handle_gpio(1, ((dev->gpio[0][5] & dev->gpio[0][4]) << 8) | (dev->gpio[0][0] & dev->gpio[0][1]));
+        /* Pins configured as inputs float high. */
+        uint8_t p0 = (dev->gpio[0][0] & dev->gpio[0][1]) | ~dev->gpio[0][1];
+        uint8_t p1 = (dev->gpio[0][4] & dev->gpio[0][5]) | ~dev->gpio[0][5];
+
+        machine_handle_gpio(1, (p1 << 8) | p0);
     }
 }
 
@@ -1770,7 +1774,7 @@ pc87307_reset(void *priv)
     dev->ld_regs[LD_FDC  ][0x41] = 0x03;
     dev->ld_regs[LD_FDC  ][0x44] = 0x02;
     dev->ld_regs[LD_FDC  ][0x45] = 0x04;
-    dev->ld_regs[LD_FDC  ][0xc0] = 0x02;
+    dev->ld_regs[LD_FDC  ][0xc0] = 0x20;
 
     dev->ld_regs[LD_LPT  ][0x30] = 0x02;
     dev->ld_regs[LD_LPT  ][0x31] = 0x78;
@@ -1891,7 +1895,10 @@ pc87307_init(const device_t *info)
 
     dev->id = info->local & 0xff;
 
-    dev->fdc = device_add_params(&fdc_at_nsc_device, (void *) FDC_FLAG_PNP);
+    if (info->local & FDC_FLAG_IGNORE_DENSEL_FORCE)
+        dev->fdc = device_add_params(&fdc_at_nsc_ignore_densel_device, (void *) FDC_FLAG_PNP);
+    else
+        dev->fdc = device_add_params(&fdc_at_nsc_device, (void *) FDC_FLAG_PNP);
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);

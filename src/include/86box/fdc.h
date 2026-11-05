@@ -38,35 +38,36 @@
 #define FDC_QUATERNARY_IRQ      6
 #define FDC_QUATERNARY_DMA      2
 
-#define FDC_FLAG_PCJR           0x01     /* PCjr */
-#define FDC_FLAG_DISKCHG_ACTLOW 0x02     /* Amstrad, PS/1, PS/2 ISA */
-#define FDC_FLAG_AT             0x04     /* AT+, PS/x */
-#define FDC_FLAG_PS2            0x08     /* PS/1, PS/2 ISA */
-#define FDC_FLAG_PS2_MCA        0x10     /* PS/2 MCA */
-#define FDC_FLAG_SUPERIO        0x20     /* Super I/O chips */
-#define FDC_FLAG_START_RWC_1    0x40     /* W83877F, W83977F */
-#define FDC_FLAG_MORE_TRACKS    0x80     /* W83877F, W83977F, PC87306, PC87309 */
-#define FDC_FLAG_NSC            0x100    /* PC87306, PC87309 */
-#define FDC_FLAG_TOSHIBA        0x200    /* T1000, T1200 */
-#define FDC_FLAG_AMSTRAD        0x400    /* Non-AT Amstrad machines */
-#define FDC_FLAG_UMC            0x800    /* UMC UM8398 */
-#define FDC_FLAG_ALI            0x1000   /* ALi M512x / M1543C */
-#define FDC_FLAG_NO_DSR_RESET   0x2000   /* Has no DSR reset */
-#define FDC_FLAG_DENSEL_INVERT  0x4000   /* Invert DENSEL polarity */
-#define FDC_FLAG_FINTR          0x8000   /* Raise FINTR on data command finish */
-#define FDC_FLAG_NEC            0x10000  /* Is NEC upd765-compatible */
-#define FDC_FLAG_SEC            0x20000  /* Is Secondary */
-#define FDC_FLAG_TER            0x40000  /* Is Tertiary */
-#define FDC_FLAG_QUA            0x80000  /* Is Quaternary */
-#define FDC_FLAG_SMC661         0x100000 /* SM(s)C FDC37C661 - different TDR enhanced mode */
-#define FDC_FLAG_5550           0x200000 /* IBM Multistation 5550 */
-#define FDC_FLAG_NO_TDR         0x400000 /* Has no tape drive register */
-#define FDC_FLAG_PCJX           0x800000 /* IBM PC JX no-DMA adapter */
-#define FDC_FLAG_IRQ_ON_NOOP_SEEK 0x1000000 /* Interrupt on zero-step SEEK completion */
-#define FDC_FLAG_IBM5140        0x2000000 /* Convertible motherboard adapter */
-#define FDC_FLAG_TANDY2K        0x4000000 /* Tandy 2000, no DOR latch on board */
-#define FDC_FLAG_COMPAQ         0x8000000 /* Compaq 386, drive type sense at 3F1 */
-#define FDC_FLAG_PNP            0x80000000 /* FDC is PnP */
+#define FDC_FLAG_PCJR                0x01       /* PCjr */
+#define FDC_FLAG_DISKCHG_ACTLOW      0x02       /* Amstrad, PS/1, PS/2 ISA */
+#define FDC_FLAG_AT                  0x04       /* AT+, PS/x */
+#define FDC_FLAG_PS2                 0x08       /* PS/1, PS/2 ISA */
+#define FDC_FLAG_PS2_MCA             0x10       /* PS/2 MCA */
+#define FDC_FLAG_SUPERIO             0x20       /* Super I/O chips */
+#define FDC_FLAG_START_RWC_1         0x40       /* W83877F, W83977F */
+#define FDC_FLAG_MORE_TRACKS         0x80       /* W83877F, W83977F, PC87306, PC87309 */
+#define FDC_FLAG_NSC                 0x100      /* PC87306, PC87309 */
+#define FDC_FLAG_TOSHIBA             0x200      /* T1000, T1200 */
+#define FDC_FLAG_AMSTRAD             0x400      /* Non-AT Amstrad machines */
+#define FDC_FLAG_UMC                 0x800      /* UMC UM8398 */
+#define FDC_FLAG_ALI                 0x1000     /* ALi M512x / M1543C */
+#define FDC_FLAG_NO_DSR_RESET        0x2000     /* Has no DSR reset */
+#define FDC_FLAG_DENSEL_INVERT       0x4000     /* Invert DENSEL polarity */
+#define FDC_FLAG_FINTR               0x8000     /* Raise FINTR on data command finish */
+#define FDC_FLAG_NEC                 0x10000    /* Is NEC upd765-compatible */
+#define FDC_FLAG_SEC                 0x20000    /* Is Secondary */
+#define FDC_FLAG_TER                 0x40000    /* Is Tertiary */
+#define FDC_FLAG_QUA                 0x80000    /* Is Quaternary */
+#define FDC_FLAG_SMC661              0x100000   /* SM(s)C FDC37C661 - different TDR enhanced mode */
+#define FDC_FLAG_5550                0x200000   /* IBM Multistation 5550 */
+#define FDC_FLAG_NO_TDR              0x400000   /* Has no tape drive register */
+#define FDC_FLAG_PCJX                0x800000   /* IBM PC JX no-DMA adapter */
+#define FDC_FLAG_IRQ_ON_NOOP_SEEK    0x1000000  /* Interrupt on zero-step SEEK completion */
+#define FDC_FLAG_IBM5140             0x2000000  /* Convertible motherboard adapter */
+#define FDC_FLAG_TANDY2K             0x4000000  /* Tandy 2000, no DOR latch on board */
+#define FDC_FLAG_COMPAQ              0x8000000  /* Compaq 386, drive type sense at 3F1 */
+#define FDC_FLAG_IGNORE_DENSEL_FORCE 0x10000000 /* FDC ignores DENSEL on HD media */
+#define FDC_FLAG_PNP                 0x80000000 /* FDC is PnP */
 
 typedef struct sector_id_fields_t {
     uint8_t c;
@@ -306,6 +307,7 @@ extern const device_t fdc_at_smc_device;
 extern const device_t fdc_at_ali_device;
 extern const device_t fdc_at_winbond_device;
 extern const device_t fdc_at_nsc_device;
+extern const device_t fdc_at_nsc_ignore_densel_device;
 extern const device_t fdc_at_nsc_pc87310_device;
 extern const device_t fdc_at_nsc_dp8473_device;
 extern const device_t fdc_ps2_device;
