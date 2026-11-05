@@ -150,24 +150,3 @@ msgstr "&Centre"
 
 msgid "4:3 Cen&ter"
 msgstr "4:3 Cen&tre"
-
-msgid "PowerVR PCX1/PCX2 Graphics"
-msgstr ""
-
-msgid "Disabled"
-msgstr ""
-
-msgid "Unlimited capacity"
-msgstr ""
-
-msgid "CD speed:"
-msgstr ""
-
-msgid "DVD speed:"
-msgstr ""
-
-msgid "HD/BD speed:"
-msgstr ""
-
-msgid "Software-initiated poweroff device (IBM 5140)"
-msgstr ""
