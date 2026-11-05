@@ -352,8 +352,9 @@ lance_init_block(lance_t *dev)
               dev->rx_ring_base, 1 << ((ib[19] >> 5) & 7),
               dev->tx_ring_base, 1 << ((ib[23] >> 5) & 7));
 
-    /* INIT is cleared by the chip, IDON reports completion. */
-    dev->csr[0] &= (uint16_t) ~CSR0_INIT;
+    /* TRM 1-18: INIT is only cleared by RESET or by setting STOP, not by
+       the chip when the block has been read; IDON reports completion. The
+       NetWare driver relies on that and expects CSR0 = 0x33 after STRT. */
     dev->csr[0] |= CSR0_IDON;
 }
 
@@ -761,9 +762,12 @@ lance_csr_write(lance_t *dev, int reg, uint16_t val)
             dev->csr[0] &= (uint16_t) ~(val & (CSR0_IDON | CSR0_TINT | CSR0_RINT | CSR0_MERR | CSR0_MISS | CSR0_CERR | CSR0_BABL | CSR0_ERR));
 
             if (val & CSR0_STRT) {
-                /* STRT must read back as 1 (the ROM polls bit 1 at F6BA9). */
+                /* STRT must read back as 1 (VAXmate polls bit 1 at F6BA9).
+                   INIT is only cleared by STOP or reset, so a started chip
+                   reads 0x33 (INIT|STRT|TXON|RXON); the NetWare driver
+                   checks exactly that after issuing STRT. */
+                dev->csr[0] &= (uint16_t) ~CSR0_STOP;
                 dev->csr[0] |= CSR0_STRT;
-                dev->csr[0] &= (uint16_t) ~(CSR0_STOP | CSR0_INIT);
                 if (dev->mode & MODE_DRX)
                     dev->csr[0] &= (uint16_t) ~CSR0_RXON;
                 else
@@ -774,8 +778,10 @@ lance_csr_write(lance_t *dev, int reg, uint16_t val)
                     dev->csr[0] |= CSR0_TXON;
                 timer_set_delay_u64(&dev->tx_timer, 20 * TIMER_USEC);
             }
-            if (val & CSR0_INIT) {
-                /* Setting INIT (or STRT) also clears STOP, TRM 1.9.2. */
+            if ((val & CSR0_INIT) && !(dev->csr[0] & CSR0_INIT)) {
+                /* Setting INIT (or STRT) also clears STOP, TRM 1.9.2. Only the
+                   0 -> 1 transition starts the procedure: the driver writes
+                   CSR0 back with INIT still set to acknowledge IDON. */
                 dev->csr[0] &= (uint16_t) ~CSR0_STOP;
                 dev->csr[0] |= CSR0_INIT;
                 dev->init_addr = ((uint32_t) dev->csr[1] | ((uint32_t) dev->csr[2] << 16)) & INIT_ADDR_MASK;
@@ -870,9 +876,8 @@ lance_reset(void *priv)
     dev->tx_ring_base = 0x000000;
     dev->rx_ring_mask = 0xff;
     dev->tx_ring_mask = 0xff;
-    /* NICSR interrupt enable and diagnostic LED are both off after reset. */
-    dev->irq_gate = 0;
-
+    /* The interrupt gate belongs to the board glue, not to the chip;
+       each board sets its own power-on state. */
     timer_disable(&dev->tx_timer);
 
     picintc(1 << dev->irq_num);
@@ -1033,6 +1038,9 @@ lance_vaxmate_init(const device_t *info)
     memcpy(dev->mac, mac, sizeof(dev->mac));
 
     lance_reset(dev);
+
+    /* NICSR interrupt enable and diag LED are both off after reset. */
+    lance_set_irq_gate(dev, 0);
 
     /* RDP is a single 16-bit port; it must not be registered over 0x0C62,
        or the RAP handler at that address is shadowed by the wider range. */

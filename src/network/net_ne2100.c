@@ -171,6 +171,10 @@ ne2100_init(const device_t *info)
 
     lance_reset(lance);
 
+    /* The NE2100 wires the LANCE interrupt pin straight to the ISA IRQ
+       jumper, so there is no board-level gate to open. */
+    lance_set_irq_gate(lance, 1);
+
     /* Station address PROM: six address bytes, six unused bytes, then a
        checksum word at 0x0C and two more unused bytes. The NetWare driver
        verifies that the sum of the other 14 bytes matches this word. */
