@@ -3224,12 +3224,19 @@ acpi_reset(void *priv)
     }
 
     if (dev->power_on) {
-        /* Power on always generates a resume event, except on the SiS 5582.
-           There only the RTC and the APC that powers the board up run from
-           RTCVDD; the ACPI registers are in the 3.3V OVDD well, which is off
-           until power-up, so they come up cleared (SiS 5581/5582 p. 39 and
-           41 / PDF 39 and 41). */
-        if (dev->vendor != VEN_SIS_5582)
+        /* Power on always generates a resume event, except on the SiS 5582
+           and 5595. There only the RTC and the APC that powers the board up
+           run from RTCVDD; the ACPI registers are powered with the rest of the
+           board, so they come up cleared (SiS 5581/5582 p. 39 and 41 / PDF 39
+           and 41, where they are in the 3.3V OVDD well; SiS 5595 3.6.1.3,
+           p. 44, and PM1_STS, p. 134). The press that powers the board up
+           goes to the APC, and the ACPI block sees presses only once PWRGD is
+           high (SiS 5595 3.7.2.2, p. 47). A PWRBTN_STS set here becomes an
+           SMI# as soon as the BIOS sets PWRBTN_EN in legacy mode, which the
+           Compaq Mustang-S BIOS does early in POST, before it has installed
+           an SMI handler. */
+        if ((dev->vendor != VEN_SIS_5582) && (dev->vendor != VEN_SIS_5595_1997) &&
+            (dev->vendor != VEN_SIS_5595))
             dev->regs.pmsts |= 0x8100;
         dev->power_on = 0;
     }
