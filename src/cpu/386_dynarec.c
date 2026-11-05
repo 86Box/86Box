@@ -717,6 +717,19 @@ exec386_dynarec_int(void)
         exec386_dynarec_int_common(0);
 }
 
+/* pc and _cs as one 64-bit value, so a lookup compares both at once. */
+_Static_assert(offsetof(codeblock_t, _cs) == offsetof(codeblock_t, pc) + 4, "codeblock_t pc/_cs layout");
+_Static_assert(!(offsetof(codeblock_t, pc) & 7), "codeblock_t pc/_cs layout");
+
+static inline uint64_t
+codeblock_pc_cs(const codeblock_t *block)
+{
+    uint64_t pc_cs;
+
+    memcpy(&pc_cs, (const uint8_t *) block + offsetof(codeblock_t, pc), sizeof(pc_cs));
+    return pc_cs;
+}
+
 /* dbg is the dispatch loop's constant: with the option on, the mark and
    compile passes clear RF before each instruction and after it unless the
    op keeps it (rf_flag_no_clear), as the interpreted loop does; compiled
@@ -761,13 +774,17 @@ exec386_dynarec_dyn(const int dbg)
 
     if (!cpu_state.abrt)
     {
-        page_t *page = &pages[phys_addr >> 12];
+        const uint32_t key_w[2] = { cs + cpu_state.pc, cs };
+        uint64_t       key;
+
+        memcpy(&key, key_w, sizeof(key));
 
         /* Block must match current CS, PC, code segment size,
            and physical address. The physical address check will
            also catch any page faults at this stage */
-        valid_block = (block->pc == cs + cpu_state.pc) && (block->_cs == cs) && (block->phys == phys_addr) && !((block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
+        valid_block = (codeblock_pc_cs(block) == key) && (block->phys == phys_addr) && !((block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
         if (!valid_block) {
+            page_t  *page = &pages[phys_addr >> 12];
             uint64_t mask = (uint64_t) 1 << ((phys_addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
             int      byte_offset = (phys_addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
             uint64_t byte_mask   = 1ULL << (phys_addr & PAGE_BYTE_MASK_MASK);
@@ -778,7 +795,7 @@ exec386_dynarec_dyn(const int dbg)
                 /* Walk page tree to see if we find the correct block */
                 codeblock_t *new_block = codeblock_tree_find(phys_addr, cs);
                 if (new_block) {
-                    valid_block = (new_block->pc == cs + cpu_state.pc) && (new_block->_cs == cs) && (new_block->phys == phys_addr) && !((new_block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((new_block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
+                    valid_block = (codeblock_pc_cs(new_block) == key) && (new_block->phys == phys_addr) && !((new_block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((new_block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
                     if (valid_block) {
                         block = new_block;
                         codeblock_hash[hash] = get_block_nr(block);
@@ -787,48 +804,35 @@ exec386_dynarec_dyn(const int dbg)
             }
         }
 
-        /* This block keeps getting its freshly-compiled code rewritten
-           before it has run often enough to pay for compiling it (see
-           invalidate_block()/codeblock_t::smc_strikes): compiling it again
-           would just pay the same cost for nothing again, so interpret it
-           instead until the cooldown lapses. The usual interpreter stopping
-           conditions apply. Do not use cpu_end_block_after_ins as a length
-           limit: it also inhibits pending maskable IRQs. */
-        if (valid_block && (block->smc_cooldown_until > tsc) &&
-            (((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST)) != CODEBLOCK_WAS_RECOMPILED) ||
-             (block->page_mask & *block->dirty_mask) ||
-             (block->page_mask2 && (block->page_mask2 & *block->dirty_mask2)))) {
-            exec386_dynarec_int();
-            return;
-        }
+        /* A compiled block off the dirty list, on one page or byte-mask
+           chunk (HAS_PAGE2 is set whenever page_mask2 is not 0 on such a
+           block), with no dirty code bytes and, with a static TOP,
+           compiled for this one, passes every test below without a side
+           effect, the SMC cooldown's included: it can only interpret a
+           block that fails one of these. */
+        if (valid_block &&
+            ((((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST | CODEBLOCK_HAS_PAGE2)) ^ CODEBLOCK_WAS_RECOMPILED) |
+              ((block->TOP ^ cpu_state.TOP) & ((block->flags & CODEBLOCK_STATIC_TOP) ? 7 : 0))) |
+             (block->page_mask & *block->dirty_mask))) {
+            page_t *page = &pages[phys_addr >> 12];
 
-        if (valid_block && (block->page_mask & *block->dirty_mask)) {
-            codegen_check_flush(page, page->dirty_mask, phys_addr);
-#        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
-            /* Covers the flag write just below. */
-            codegen_link_block_changed(block);
-#        endif
-            if (block->valid && (block->flags & CODEBLOCK_IN_DIRTY_LIST))
-                block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
-            else
-            if (!block->valid)
-                valid_block = 0;
-        }
-        if (valid_block && block->page_mask2) {
-            /* We don't want the second page to cause a page
-               fault at this stage - that would break any
-               code crossing a page boundary where the first
-               page is present but the second isn't. Instead
-               allow the first page to be interpreted and for
-               the page fault to occur when the page boundary
-               is actually crossed.*/
-            uint32_t phys_addr_2 = get_phys_noabrt(block->pc + ((block->flags & CODEBLOCK_BYTE_MASK) ? 0x40 : 0x400));
-            page_t *page_2 = &pages[phys_addr_2 >> 12];
+            /* This block keeps getting its freshly-compiled code rewritten
+               before it has run often enough to pay for compiling it (see
+               invalidate_block()/codeblock_t::smc_strikes): compiling it again
+               would just pay the same cost for nothing again, so interpret it
+               instead until the cooldown lapses. The usual interpreter stopping
+               conditions apply. Do not use cpu_end_block_after_ins as a length
+               limit: it also inhibits pending maskable IRQs. */
+            if (valid_block && (block->smc_cooldown_until > tsc) &&
+                (((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST)) != CODEBLOCK_WAS_RECOMPILED) ||
+                 (block->page_mask & *block->dirty_mask) ||
+                 (block->page_mask2 && (block->page_mask2 & *block->dirty_mask2)))) {
+                exec386_dynarec_int();
+                return;
+            }
 
-            if ((block->phys_2 ^ phys_addr_2) & ~0xfff)
-                valid_block = 0;
-            else if (block->page_mask2 & *block->dirty_mask2) {
-                codegen_check_flush(page_2, page_2->dirty_mask, phys_addr_2);
+            if (valid_block && (block->page_mask & *block->dirty_mask)) {
+                codegen_check_flush(page, page->dirty_mask, phys_addr);
 #        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
                 /* Covers the flag write just below. */
                 codegen_link_block_changed(block);
@@ -839,31 +843,57 @@ exec386_dynarec_dyn(const int dbg)
                 if (!block->valid)
                     valid_block = 0;
             }
-        }
-        if (valid_block && (block->flags & CODEBLOCK_IN_DIRTY_LIST)) {
-            block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
-            if (block->flags & CODEBLOCK_BYTE_MASK)
-                block->flags |= CODEBLOCK_NO_IMMEDIATES;
-            else
-                block->flags |= CODEBLOCK_BYTE_MASK;
+            if (valid_block && block->page_mask2) {
+                /* We don't want the second page to cause a page
+                   fault at this stage - that would break any
+                   code crossing a page boundary where the first
+                   page is present but the second isn't. Instead
+                   allow the first page to be interpreted and for
+                   the page fault to occur when the page boundary
+                   is actually crossed.*/
+                uint32_t phys_addr_2 = get_phys_noabrt(block->pc + ((block->flags & CODEBLOCK_BYTE_MASK) ? 0x40 : 0x400));
+                page_t *page_2 = &pages[phys_addr_2 >> 12];
+
+                if ((block->phys_2 ^ phys_addr_2) & ~0xfff)
+                    valid_block = 0;
+                else if (block->page_mask2 & *block->dirty_mask2) {
+                    codegen_check_flush(page_2, page_2->dirty_mask, phys_addr_2);
 #        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
-            codegen_link_block_changed(block);
+                    /* Covers the flag write just below. */
+                    codegen_link_block_changed(block);
 #        endif
-        }
-        if (valid_block && (block->flags & CODEBLOCK_WAS_RECOMPILED) && (block->flags & CODEBLOCK_STATIC_TOP) && block->TOP != (cpu_state.TOP & 7))
-        {
-            /* FPU top-of-stack does not match the value this block was compiled
-               with, re-compile using dynamic top-of-stack*/
-            block->flags &= ~(CODEBLOCK_STATIC_TOP | CODEBLOCK_WAS_RECOMPILED);
+                    if (block->valid && (block->flags & CODEBLOCK_IN_DIRTY_LIST))
+                        block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
+                    else
+                    if (!block->valid)
+                        valid_block = 0;
+                }
+            }
+            if (valid_block && (block->flags & CODEBLOCK_IN_DIRTY_LIST)) {
+                block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
+                if (block->flags & CODEBLOCK_BYTE_MASK)
+                    block->flags |= CODEBLOCK_NO_IMMEDIATES;
+                else
+                    block->flags |= CODEBLOCK_BYTE_MASK;
 #        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
-            codegen_link_block_changed(block);
+                codegen_link_block_changed(block);
 #        endif
+            }
+            if (valid_block && (block->flags & CODEBLOCK_WAS_RECOMPILED) && (block->flags & CODEBLOCK_STATIC_TOP) && block->TOP != (cpu_state.TOP & 7))
+            {
+                /* FPU top-of-stack does not match the value this block was compiled
+                   with, re-compile using dynamic top-of-stack*/
+                block->flags &= ~(CODEBLOCK_STATIC_TOP | CODEBLOCK_WAS_RECOMPILED);
+#        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+                codegen_link_block_changed(block);
+#        endif
+            }
+            /* A block whose code was rewritten may be back to bytes it was
+               compiled from before: put that version back rather than compile
+               them again. */
+            if (valid_block && (block->flags & CODEBLOCK_IN_DIRTY_LIST) && (block->flags & CODEBLOCK_NO_IMMEDIATES))
+                codegen_block_restore_version(block);
         }
-        /* A block whose code was rewritten may be back to bytes it was
-           compiled from before: put that version back rather than compile
-           them again. */
-        if (valid_block && (block->flags & CODEBLOCK_IN_DIRTY_LIST) && (block->flags & CODEBLOCK_NO_IMMEDIATES))
-            codegen_block_restore_version(block);
     }
 
     if (valid_block && (block->flags & CODEBLOCK_WAS_RECOMPILED))
