@@ -37,6 +37,7 @@ typedef struct lance_t {
     uint8_t    tx_ring_pos;
     uint16_t   tx_md[4];
     uint16_t   rx_md[4];
+    uint32_t   dma_limit; /* highest address the board can master to */
     pc_timer_t tx_timer;
     netcard_t *card;
 } lance_t;

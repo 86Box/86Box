@@ -172,11 +172,12 @@ lance_bswap(uint8_t *buf, int len)
 
 /* TRM 1-21: a bus master cycle that gets no READY (nothing decodes the
    address) raises MERR and turns both transmitter and receiver off. The
-   VAXmate only decodes 1 MB, so anything above that has no responder. */
+   reachable window depends on the board wiring: 24 bits on ISA, 1 MB on
+   the VAXmate. */
 static int
 lance_dma_check(lance_t *dev, uint32_t addr, int len)
 {
-    if ((len > 0) && ((addr >= 0x00100000u) || ((uint32_t) len > (0x00100000u - addr)))) {
+    if ((len > 0) && ((addr >= dev->dma_limit) || ((uint32_t) len > (dev->dma_limit - addr)))) {
         dev->csr[0] |= CSR0_MERR | CSR0_ERR;
         dev->csr[0] &= (uint16_t) ~(CSR0_TXON | CSR0_RXON);
         lance_log("[LANCE] MERR addr=%06X len=%d csr0=%04X\n",
@@ -237,9 +238,9 @@ lance_ring_entry(lance_t *dev, const char *tag, uint32_t base, uint8_t mask,
     }
 
     a = base + ((uint32_t) pos << 3);
-    if ((a >= 0x00100000u) || ((a + 8u) > 0x00100000u)) {
-        lance_log("[LANCE] %s: entry %u at %06X outside the 1 MB window\n",
-                  tag, pos, a);
+    if ((a >= dev->dma_limit) || ((a + 8u) > dev->dma_limit)) {
+        lance_log("[LANCE] %s: entry %u at %06X outside the %06X window\n",
+                  tag, pos, a, dev->dma_limit);
         dev->csr[0] |= CSR0_MERR | CSR0_ERR;
         dev->csr[0] &= (uint16_t) ~(CSR0_TXON | CSR0_RXON);
         lance_update_irq(dev);
@@ -337,13 +338,13 @@ lance_init_block(lance_t *dev)
 
     memcpy(dev->mac, dev->padr, 6);
 
-    /* The ring must fit in the 1 MB window; out-of-range accesses raise MERR. */
-    if ((dev->rx_ring_base + ((uint32_t) (dev->rx_ring_mask + 1) << 3)) > 0x00100000u)
-        lance_log("[LANCE] rx ring %05X + %u entries runs past the 1 MB window\n",
-                  dev->rx_ring_base, (unsigned) (dev->rx_ring_mask + 1));
-    if ((dev->tx_ring_base + ((uint32_t) (dev->tx_ring_mask + 1) << 3)) > 0x00100000u)
-        lance_log("[LANCE] tx ring %05X + %u entries runs past the 1 MB window\n",
-                  dev->tx_ring_base, (unsigned) (dev->tx_ring_mask + 1));
+    /* The rings must fit in the window the board can master to; out-of-range accesses raise MERR. */
+    if ((dev->rx_ring_base + ((uint32_t) (dev->rx_ring_mask + 1) << 3)) > dev->dma_limit)
+        lance_log("[LANCE] rx ring %05X + %u entries runs past the %06X window\n",
+                  dev->rx_ring_base, (unsigned) (dev->rx_ring_mask + 1), dev->dma_limit);
+    if ((dev->tx_ring_base + ((uint32_t) (dev->tx_ring_mask + 1) << 3)) > dev->dma_limit)
+        lance_log("[LANCE] tx ring %05X + %u entries runs past the %06X window\n",
+                  dev->tx_ring_base, (unsigned) (dev->tx_ring_mask + 1), dev->dma_limit);
 
     lance_log("[LANCE] init: mode=%04X mac=%02X:%02X:%02X:%02X:%02X:%02X "
               "rx=%05X/%d tx=%05X/%d\n",
@@ -413,7 +414,9 @@ lance_transmit(lance_t *dev)
         dev->tx_md[2] = lance_md_read(dev, ring_address | 4);
         dev->tx_md[3] = 0x0000;
 
-        tx_buf_length = dev->tx_md[2] & 0x0fff;
+        /* TRM 1-25: the 12-bit BCNT field of TMD2 holds the two's complement
+           of the buffer byte count; the upper nibble is "must be ones". */
+        tx_buf_length = (int) (0u - dev->tx_md[2]) & 0x0fff;
         total += tx_buf_length;
 
         copy = tx_buf_length;
@@ -896,8 +899,11 @@ lance_init(const device_t *info)
         return NULL;
 
     /* Defaults; the board that instantiates the chip overrides these. */
-    dev->base    = LANCE_BASE;
-    dev->irq_num = LANCE_IRQ;
+    dev->base      = LANCE_BASE;
+    dev->irq_num   = LANCE_IRQ;
+    /* The LANCE drives 24 address lines, so an ISA board can master the
+       whole 16 MB space; the VAXmate narrows this to 1 MB. */
+    dev->dma_limit = 0x01000000;
     dev->mac[0]  = 0x08;
     dev->mac[1]  = 0x00;
     dev->mac[2]  = 0x2b;
@@ -1041,6 +1047,9 @@ lance_vaxmate_init(const device_t *info)
 
     /* NICSR interrupt enable and diag LED are both off after reset. */
     lance_set_irq_gate(dev, 0);
+
+    /* The VAXmate decodes only the first megabyte of system memory. */
+    dev->dma_limit = 0x00100000;
 
     /* RDP is a single 16-bit port; it must not be registered over 0x0C62,
        or the RAP handler at that address is shadowed by the wider range. */
