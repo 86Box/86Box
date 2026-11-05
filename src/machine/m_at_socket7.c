@@ -1176,7 +1176,7 @@ static const device_config_t ergoe452_config[] = {
                 .files_no      = 1,
                 .local         = 0,
                 .size          = 131072,
-                .files         = { "roms/machines/ergoe452/B58_G.ldb", "" }
+                .files         = { "roms/machines/ergoe452/B58_G.LDB", "" }
             },
             { .files_no = 0 }
         }
