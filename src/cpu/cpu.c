@@ -765,10 +765,20 @@ cpu_set(void)
 
     if (cpu_s->rspeed <= 8000000)
         cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
-    else if (is486)
-        cpu_rom_prefetch_cycles =  (int) (6.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
+    else if (is586)
+        cpu_rom_prefetch_cycles = (int) (6.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
     else
-        cpu_rom_prefetch_cycles =  (int) (8.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
+        cpu_rom_prefetch_cycles = (int) (8.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
+
+    io_delay_multi = 0;
+    if ((machines[machine].init == machine_xt_ibm5550_init) ||
+        (machines[machine].init == machine_xt_ibm5535_init))
+        io_delay = 8;
+    else if (is286) {
+        io_delay = cpu_rom_prefetch_cycles;
+        io_delay_multi = 1;
+    } else
+        io_delay = (int) round(((double) cpu_s->rspeed) / 3000000.0);
 
     cpu_set_isa_pci_div(0);
     cpu_set_pci_speed(0);
@@ -2147,10 +2157,20 @@ cpu_set_isa_speed(int speed)
 
     if (cpu_s->rspeed <= 8000000)
         cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
-    else if (is486)
-        cpu_rom_prefetch_cycles =  (int) (6.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
+    else if (is586)
+        cpu_rom_prefetch_cycles = (int) (6.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
     else
-        cpu_rom_prefetch_cycles =  (int) (8.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
+        cpu_rom_prefetch_cycles = (int) (8.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
+
+    io_delay_multi = 0;
+    if ((machines[machine].init == machine_xt_ibm5550_init) ||
+        (machines[machine].init == machine_xt_ibm5535_init))
+        io_delay = 8;
+    else if (is286) {
+        io_delay = cpu_rom_prefetch_cycles;
+        io_delay_multi = 1;
+    } else
+        io_delay = (int) round(((double) cpu_s->rspeed) / 3000000.0);
 
     pc_speed_changed();
 

@@ -340,6 +340,7 @@ extern void do_pause(int p);
 
 extern double isa_timing;
 extern int    io_delay;
+extern int    io_delay_multi;
 extern int    framecountx;
 
 extern volatile int     cpu_thread_run;
