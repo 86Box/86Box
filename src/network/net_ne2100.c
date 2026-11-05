@@ -175,13 +175,14 @@ ne2100_init(const device_t *info)
        jumper, so there is no board-level gate to open. */
     lance_set_irq_gate(lance, 1);
 
-    /* Station address PROM: six address bytes, six unused bytes, then a
-       checksum word at 0x0C and two more unused bytes. The NetWare driver
-       verifies that the sum of the other 14 bytes matches this word. */
+    /* Station address PROM, 16 bytes: six address bytes, six unused bytes,
+       the checksum word at 0x0C, and the 0x57 0x57 board signature at 0x0E/0x0F
+       that the Linux lance.c driver probes for. Novell's drivers verify that
+       the sum of the other 14 bytes matches this word. */
     memcpy(dev->prom, lance->mac, 6);
     memset(dev->prom + 6, 0x00, 6);
-    dev->prom[14] = 0x00;
-    dev->prom[15] = 0x00;
+    dev->prom[14] = 0x57;
+    dev->prom[15] = 0x57;
     prom_sum      = 0;
     for (int i = 0; i < 12; i++)
         prom_sum += dev->prom[i];
@@ -271,7 +272,7 @@ static const device_config_t ne2100_config[] = {
 };
 // clang-format on
 
-const device_t ne2100_device = {
+const device_t ne2100_novell_device = {
     .name          = "Novell NE2100/NE1500T",
     .internal_name = "novell_ne2100",
     .flags         = DEVICE_ISA16,

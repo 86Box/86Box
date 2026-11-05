@@ -243,7 +243,7 @@ extern const device_t de220p_device;
 extern const device_t rtl8029as_device;
 
 /* AMD LANCE */
-extern const device_t ne2100_device;
+extern const device_t ne2100_novell_device;
 
 /* AMD PCnet */
 extern const device_t pcnet_am79c960_device;
