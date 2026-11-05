@@ -42,6 +42,7 @@
 #include <86box/port_92.h>
 #include <86box/serial.h>
 #include <86box/board_led.h>
+#include <86box/char_lcd.h>
 #include <86box/video.h>
 #include <86box/machine.h>
 #include <86box/plat_unused.h>
@@ -71,8 +72,11 @@
  * and 3 make outputs, and 0x3 has the RS (bit 7) and WR# (bit 6) pins to
  * read and the EN pin (bit 0) to write. DIO2 is pins 1-15 of the DIO2
  * header, whose low and high nibbles control bits 0 and 1 make outputs.
- * Nothing is attached to either header, so their inputs read high, as does
- * the LCD bus.
+ * The LCD header has the character LCD on it when one is fitted (under
+ * Other peripherals); nothing else is attached to either header, so their
+ * inputs read high, as does the LCD bus without the LCD. In DIO mode the
+ * board leaves the LCD's RS and R/W pins to their pull-ups, so a pulse on
+ * EN is a data read, with the LCD driving pins 7-14 while EN is high.
  *
  * Each "checked" jumper config value represents an installed jumper. The
  * board pulls the jumper pins up and an installed jumper grounds its pin,
@@ -216,17 +220,24 @@ ts3x00_lcd_outputs(const ts3x00_t *dev)
     return ((dev->dio_ctrl & TS3X00_LCD_LOW_OUT) ? 0x0f : 0x00) | ((dev->dio_ctrl & TS3X00_LCD_HIGH_OUT) ? 0xf0 : 0x00);
 }
 
-/* An LCD bus cycle, with RS from A0. No LCD is attached, so the bus reads high. */
+/* An LCD bus cycle, with RS from A0. Without the LCD, the bus reads high. */
 static uint8_t
-ts3x00_lcd_bus_read(UNUSED(const ts3x00_t *dev), UNUSED(int rs))
+ts3x00_lcd_bus_read(UNUSED(const ts3x00_t *dev), int rs)
 {
-    return 0xff;
+    return char_lcd_bus_read(rs);
 }
 
 static void
-ts3x00_lcd_bus_write(UNUSED(ts3x00_t *dev), UNUSED(int rs), UNUSED(uint8_t val))
+ts3x00_lcd_bus_write(UNUSED(ts3x00_t *dev), int rs, uint8_t val)
 {
-    /* No LCD is attached. */
+    char_lcd_bus_write(rs, val);
+}
+
+/* In DIO mode, what the LCD drives onto pins 7-14: RS and R/W are pulled high. */
+static int
+ts3x00_lcd_dio_pins(const ts3x00_t *dev)
+{
+    return char_lcd_pins(1, 1, dev->lcd_ctl & TS3X00_LCD_EN, dev->lcd);
 }
 
 static uint8_t
@@ -240,8 +251,11 @@ ts3x00_read(uint16_t port, void *priv)
         case TS3X00_REG_LCD_DATA:
             if (dev->dio_ctrl & TS3X00_LCD_MODE)
                 ret = ts3x00_lcd_bus_read(dev, port & 1);
-            else if (!(port & 1))
-                ret = ts3x00_port_pins(dev->lcd, ts3x00_lcd_outputs(dev), 0xff);
+            else if (!(port & 1)) {
+                int lcd_out = ts3x00_lcd_dio_pins(dev);
+
+                ret = ts3x00_port_pins(dev->lcd, ts3x00_lcd_outputs(dev), (lcd_out < 0) ? 0xff : lcd_out);
+            }
             /* The RS and WR# pins, which nothing drives, read high, as does the rest. */
             break;
         case TS3X00_REG_PRODUCT:
@@ -277,10 +291,13 @@ ts3x00_write(uint16_t port, uint8_t val, void *priv)
         case TS3X00_REG_LCD_DATA:
             if (dev->dio_ctrl & TS3X00_LCD_MODE)
                 ts3x00_lcd_bus_write(dev, port & 1, val);
-            else if (port & 1)
-                dev->lcd_ctl = val & TS3X00_LCD_EN;
-            else
-                dev->lcd = val;
+            else {
+                if (port & 1)
+                    dev->lcd_ctl = val & TS3X00_LCD_EN;
+                else
+                    dev->lcd = val;
+                ts3x00_lcd_dio_pins(dev);
+            }
             break;
         case TS3X00_REG_DIO_CTRL:
             dev->dio_ctrl = val;
@@ -331,6 +348,9 @@ ts3x00_dev_init(UNUSED(const device_t *info))
     dev->jp4 = device_get_config_int("jp4");
     dev->jp5 = device_get_config_int("jp5");
 
+    /* The LCD header, for the character LCD when it is fitted. */
+    char_lcd_board_header(1);
+
     return dev;
 }
 
@@ -341,6 +361,8 @@ ts3x00_dev_close(void *priv)
 
     if (dev->flash != NULL)
         sst_flash_destroy(dev->flash);
+
+    char_lcd_board_header(0);
 
     ts3x00_board = NULL;
     free(dev);

@@ -50,7 +50,8 @@ extern "C" {
 
 /* Whether the module is fitted. */
 extern int      char_lcd_present(void);
-/* Whether the module is fitted and should be shown: once something has written to it. */
+/* Whether the module is fitted and should be shown: when a board has a
+   header for it, or once something has written to it. */
 extern int      char_lcd_shown(void);
 /* Fills in the frame, with the blinking cursor in the phase given; 0 if no module is fitted. */
 extern int      char_lcd_get_frame(char_lcd_frame_t *frame, int blink_on);
@@ -61,6 +62,9 @@ extern void     char_lcd_bus_write(int rs, uint8_t val);
 /* The module's pins, for whatever drives them one by one. Returns what the
    module drives onto D0-D7, or -1 when it is not driving them. */
 extern int      char_lcd_pins(int rs, int rw, int en, uint8_t data);
+
+/* A board with an LCD header says so, so that the module is always shown on it. */
+extern void     char_lcd_board_header(int wired);
 
 #ifdef EMU_DEVICE_H
 extern const device_t char_lcd_device;

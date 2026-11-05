@@ -17,9 +17,11 @@
  *          busy flag and address counter, and the time each instruction
  *          keeps it busy for.
  *
- *          It can sit at two ISA I/O ports (instruction register first),
- *          or on a parallel port wired the usual "Winamp" way: D0-D7 to
- *          the data pins, nSTROBE to EN, nAUTOFD to R/W and nINIT to RS.
+ *          A board with an LCD bus or header drives it through the bus
+ *          cycle or pin functions; on others, it can sit at two ISA I/O
+ *          ports (instruction register first), or on a parallel port wired
+ *          the usual "Winamp" way: D0-D7 to the data pins, nSTROBE to EN,
+ *          nAUTOFD to R/W and nINIT to RS.
  *
  *          The module is a single instance with its state kept statically,
  *          so that the user interface, which polls it from its own thread,
@@ -116,6 +118,7 @@ typedef struct char_lcd_t {
 } char_lcd_t;
 
 static char_lcd_t lcd;
+static int        lcd_board_header;
 static mutex_t   *lcd_mutex;
 
 /*
@@ -623,6 +626,12 @@ char_lcd_pins(int rs, int rw, int en, uint8_t data)
     return ret;
 }
 
+void
+char_lcd_board_header(int wired)
+{
+    lcd_board_header = !!wired;
+}
+
 int
 char_lcd_present(void)
 {
@@ -632,7 +641,7 @@ char_lcd_present(void)
 int
 char_lcd_shown(void)
 {
-    return lcd.present && lcd.written;
+    return lcd.present && (lcd_board_header || lcd.written);
 }
 
 /* The 5x8 pattern for a character code; in 5x10 mode, the rows that fit the glass. */
@@ -841,12 +850,12 @@ static const device_config_t char_lcd_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "None (parallel port)", .value = 0x0000 },
-            { .description = "300H",                 .value = 0x0300 },
-            { .description = "308H",                 .value = 0x0308 },
-            { .description = "310H",                 .value = 0x0310 },
-            { .description = "318H",                 .value = 0x0318 },
-            { .description = ""                                      }
+            { .description = "None (board header or parallel port)", .value = 0x0000 },
+            { .description = "300H",                                 .value = 0x0300 },
+            { .description = "308H",                                 .value = 0x0308 },
+            { .description = "310H",                                 .value = 0x0310 },
+            { .description = "318H",                                 .value = 0x0318 },
+            { .description = ""                                                      }
         },
         .bios           = { { 0 } }
     },

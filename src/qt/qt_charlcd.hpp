@@ -13,8 +13,8 @@ extern "C" {
 class QAction;
 class QTimer;
 
-/* The character LCD's glass, in a window of its own. It shows itself once
-   something writes to the LCD. */
+/* The character LCD's glass, in a window of its own. It shows itself on a
+   board with an LCD header, or once something writes to the LCD. */
 class CharLcdWindow : public QWidget {
     Q_OBJECT
 
