@@ -196,14 +196,14 @@ test_16color(int chip, int width, int accelerated)
     assert(svga->rowoffset == 40);
     assert(svga->render == svga_render_4bpp_highres);
 
-    /* Later S3 chips retain their existing enhanced 4bpp stride handling. */
+    /* The 80x/928 handle enhanced 4bpp modes like the 911/924. */
     s3.chip = S3_86C928;
     svga->crtc[0x31] = 0x08;
     svga->crtc[0x3a] = 0;
     svga->rowoffset = 64;
     s3_recalctimings(svga);
-    assert(svga->rowoffset == 128);
-    assert(svga->render == svga_render_8bpp_highres);
+    assert(svga->rowoffset == 64);
+    assert(svga->render == (accelerated ? svga_render_8bpp_highres : s3_render_4bpp_highres));
 }
 
 int
