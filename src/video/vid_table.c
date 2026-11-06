@@ -61,10 +61,8 @@ video_cards[] = {
     /* ISA */
     { .device = &ati18800_wonder_device,                        .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &ati18800_vga88_device,                         .flags = VIDEO_FLAG_TYPE_NONE      },
-#ifdef USE_XL24
-    { .device = &ati28800_wonderxl24_device,                    .flags = VIDEO_FLAG_TYPE_NONE      },
-#endif /* USE_XL24 */
     { .device = &ati28800_5_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
+    { .device = &ati28800_wonderxl24_device,                    .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &ati28800_wonder1024d_xl_plus_device,           .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &atiega800p_device,                             .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &mach8_vga_isa_device,                          .flags = VIDEO_FLAG_TYPE_8514      },
