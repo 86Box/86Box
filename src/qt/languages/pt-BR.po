@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-26 21:52+0000\n"
+"PO-Revision-Date: 2026-11-06 17:16+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -491,7 +491,7 @@ msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Gráficos do Adaptador de Vídeo IBM PS/55"
 
 msgid "PowerVR PCX1/PCX2 Graphics"
-msgstr ""
+msgstr "Gráficos PowerVR PCX1/PCX2"
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -3704,19 +3704,19 @@ msgstr ""
 "o 86Box."
 
 msgid "Disabled"
-msgstr ""
+msgstr "Desabilitado"
 
 msgid "Unlimited capacity"
-msgstr ""
+msgstr "Capacidade ilimitada"
 
 msgid "CD speed:"
-msgstr ""
+msgstr "Velocidade do CD:"
 
 msgid "DVD speed:"
-msgstr ""
+msgstr "Velocidade do DVD:"
 
 msgid "HD/BD speed:"
-msgstr ""
+msgstr "Velocidade do HD/BD:"
 
 msgid "Software-initiated poweroff device (IBM 5140)"
-msgstr ""
+msgstr "Dispositivo de desligamento iniciado por software (IBM 5140)"
