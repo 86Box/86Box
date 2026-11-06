@@ -38,8 +38,10 @@
 #include <86box/ppi.h>
 #include <86box/timer.h>
 #include <86box/gdbstub.h>
+#include <86box/debugger.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include "x86_interrupt.h"
 #include "vx0_biu.h"
 
 #define do_cycle()           wait_vx0(1, 0)
@@ -199,8 +201,9 @@ const uint8_t opf_0f[256]  = {      0,      0,      0,      0,      0,      0,  
                                OP_MRM, OP_MRM, OP_MRM, OP_MRM, OP_MRM, OP_MRM, OP_MRM, OP_MRM,   /* 18 */
                                     0,      0,      0,      0,      0,      0,      0,      0,   /* 20 */
                                OP_MRM,      0, OP_MRM,      0,      0,      0,      0,      0,   /* 28 */
-                               OP_MRM,      0, OP_MRM,      0,      0,      0,      0,      0,   /* 30 */
-                               OP_MRM,      0, OP_MRM,      0,      0,      0,      0,      0,   /* 38 */
+                               /* INS/EXT live at 31/33 (reg8, reg8) and 39/3B (reg8, imm4). */
+                                    0, OP_MRM,      0, OP_MRM,      0,      0,      0,      0,   /* 30 */
+                                    0, OP_MRM,      0, OP_MRM,      0,      0,      0,      0,   /* 38 */
                                     0,      0,      0,      0,      0,      0,      0,      0,   /* 40 */
                                     0,      0,      0,      0,      0,      0,      0,      0,   /* 48 */
                                     0,      0,      0,      0,      0,      0,      0,      0,   /* 50 */
@@ -372,6 +375,35 @@ sync_from_i8080(void)
     cpu_state.flags |= 1 << 1;
     cpu_state.flags |= emulated_processor.cf << 0;
     set_if(emulated_processor.iff);
+}
+
+/* Whether the V20/V30 is in 8080 emulation mode, and if so its 8080
+   registers as they are now (the x86 ones are only synced on the way out):
+   r gets A, B, C, D, E, H, L. For debuggers; changes nothing. */
+int
+vx0_i8080_state(uint16_t *pc, uint16_t *sp, uint8_t *r, uint8_t *flags)
+{
+    if (!is_nec || (cpu_state.flags & MD_FLAG))
+        return 0;
+
+    if (pc)
+        *pc = emulated_processor.pc;
+    if (sp)
+        *sp = emulated_processor.sp;
+    if (r) {
+        r[0] = emulated_processor.a;
+        r[1] = emulated_processor.b;
+        r[2] = emulated_processor.c;
+        r[3] = emulated_processor.d;
+        r[4] = emulated_processor.e;
+        r[5] = emulated_processor.h;
+        r[6] = emulated_processor.l;
+    }
+    if (flags)
+        *flags = (emulated_processor.sf << 7) | (emulated_processor.zf << 6) | (emulated_processor.hf << 4) |
+                 (emulated_processor.pf << 2) | 0x02 | emulated_processor.cf;
+
+    return 1;
 }
 
 void
@@ -1428,7 +1460,7 @@ irq_pending(void)
     uint8_t temp;
 
     temp = (nmi && nmi_enable && nmi_mask) || ((cpu_state.flags & T_FLAG) && !noint) ||
-           ((in_hlt || (cpu_state.flags & I_FLAG)) && pic.int_pending && !noint);
+           ((in_hlt || (cpu_state.flags & I_FLAG)) && x86_external_interrupt_pending() && !noint);
 
     return temp;
 }
@@ -1491,7 +1523,7 @@ check_interrupts(void)
                 int2();
             return;
         }
-        if ((in_hlt || (cpu_state.flags & I_FLAG)) && pic.int_pending && !noint) {
+        if ((in_hlt || (cpu_state.flags & I_FLAG)) && x86_external_interrupt_pending() && !noint) {
             repeating = 0;
             completed = 1;
             if (is_nec && in_hlt && !(cpu_state.flags & I_FLAG)) {
@@ -2056,8 +2088,6 @@ string_op(int bits)
             break;
     }
 }
-
-static int do_print = 1;
 
 static void
 execvx0_0f(void)
@@ -3638,6 +3668,15 @@ execute_instruction(void)
             break;
 
         case 0xcc: /* INT 3 */
+#ifdef USE_GDBSTUB
+            /* A debugger breakpoint: stop on it, and fetch from it again
+               once the original byte is back. */
+            if (gdbstub_int3()) {
+                flush_prefetch_808x();
+                jump = 1;
+                break;
+            }
+#endif
             do_cycles_i(4);
             int3();
             jump = 1;
@@ -3937,10 +3976,8 @@ execute_instruction(void)
                 new_ip = (cpu_state.pc + rel8) & 0xffff;
                 reljmp(new_ip, 1);
                 jump = 1;
-                do_print = 0;
             } else {
                 do_cycle_i();
-                do_print = 1;
             }
             break;
 
@@ -3957,11 +3994,9 @@ execute_instruction(void)
                 new_ip = (cpu_state.pc + rel8) & 0xffff;
                 reljmp(new_ip, 1);
                 jump = 1;
-                do_print = 0;
             }
             if (!jump) {
                 do_cycle();
-                do_print = 1;
             }
             break;
 
@@ -4833,5 +4868,7 @@ check_completed:
         if (gdbstub_instruction())
             return;
 #endif
+        if (DEBUGGER_INSTRUCTION_PASS(completed))
+            return;
     }
 }

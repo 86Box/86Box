@@ -99,7 +99,16 @@ i4x0_map(i4x0_t *dev, uint32_t addr, uint32_t size, int state)
     if (dev->mem_state[base] != state) {
         mem_set_mem_state_both(addr, size, states[state]);
         dev->mem_state[base] = state;
-        flushmmucache_nopc();
+        /*
+         * With the CPU cache disabled, the next instruction is fetched through
+         * the new mapping, so the current code page has to go as well: the
+         * IBM PC 7x0 BIOS switches F0000h from shadow RAM back to ROM this way
+         * when it restarts.
+         */
+        if (cr0 & (1 << 30))
+            flushmmucache();
+        else
+            flushmmucache_nopc();
         /* Also invalidate the range for this block, properly fixes P2B-LS soft reset. */
         mem_invalidate_range(addr, addr + size - 1);
     }
@@ -538,11 +547,14 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                         break;
                     case INTEL_440BX:
                     case INTEL_440ZX:
-                        regs[0x51] = (regs[0x51] & 0x70) | (val & 0x8f);
+                        regs[0x51] = (regs[0x51] & 0x20) | (val & 0xdf);
                         i4x0_mask_bar(regs, dev->agpgart);
                         break;
                     case INTEL_440GX:
-                        regs[0x51] = (regs[0x51] & 0xb0) | (val & 0x4f);
+                        /* Bit 15 (WSC# Handshake Disable) is read-write and
+                           bit 14 reserved, as on the 440BX (82443GX datasheet,
+                           NBXCFG). */
+                        regs[0x51] = (regs[0x51] & 0x70) | (val & 0x8f);
                         i4x0_mask_bar(regs, dev->agpgart);
                         break;
                     default:
@@ -836,10 +848,12 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             case 0x63:
             case 0x64:
                 if ((addr & 0x7) <= dev->max_drb) {
-                    if (machines[machine].init == machine_at_rc440bx_init)
+                    if ((machines[machine].init == machine_at_rc440bx_init) ||
+                        (machines[machine].init == machine_at_borapro_init))
                         dev->drb_written[addr & 0x7] = val;
                     dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
-                    if (machines[machine].init == machine_at_rc440bx_init)
+                    if ((machines[machine].init == machine_at_rc440bx_init) ||
+                        (machines[machine].init == machine_at_borapro_init))
                         i4x0_drb_row0_update(dev);
                     break;
                 }
@@ -869,10 +883,12 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
             case 0x65:
                 if ((addr & 0x7) <= dev->max_drb) {
-                    if (machines[machine].init == machine_at_rc440bx_init)
+                    if ((machines[machine].init == machine_at_rc440bx_init) ||
+                        (machines[machine].init == machine_at_borapro_init))
                         dev->drb_written[addr & 0x7] = val;
                     dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
-                    if (machines[machine].init == machine_at_rc440bx_init)
+                    if ((machines[machine].init == machine_at_rc440bx_init) ||
+                        (machines[machine].init == machine_at_borapro_init))
                         i4x0_drb_row0_update(dev);
                     break;
                 }
@@ -902,10 +918,12 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
             case 0x66:
                 if ((addr & 0x7) <= dev->max_drb) {
-                    if (machines[machine].init == machine_at_rc440bx_init)
+                    if ((machines[machine].init == machine_at_rc440bx_init) ||
+                        (machines[machine].init == machine_at_borapro_init))
                         dev->drb_written[addr & 0x7] = val;
                     dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
-                    if (machines[machine].init == machine_at_rc440bx_init)
+                    if ((machines[machine].init == machine_at_rc440bx_init) ||
+                        (machines[machine].init == machine_at_borapro_init))
                         i4x0_drb_row0_update(dev);
                     break;
                 }
@@ -926,10 +944,12 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 break;
             case 0x67:
                 if ((addr & 0x7) <= dev->max_drb) {
-                    if (machines[machine].init == machine_at_rc440bx_init)
+                    if ((machines[machine].init == machine_at_rc440bx_init) ||
+                        (machines[machine].init == machine_at_borapro_init))
                         dev->drb_written[addr & 0x7] = val;
                     dev->write_drbs(regs, 0x60, 0x60 + dev->max_drb, dev->drb_unit);
-                    if (machines[machine].init == machine_at_rc440bx_init)
+                    if ((machines[machine].init == machine_at_rc440bx_init) ||
+                        (machines[machine].init == machine_at_borapro_init))
                         i4x0_drb_row0_update(dev);
                     break;
                 }
@@ -1369,7 +1389,8 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 switch (dev->type) {
                     case INTEL_440LX:
                     case INTEL_440EX:
-                        regs[0xa7] = val & 0x1f;
+                        /* AGPSTAT's request depth is read-only (82443LX/EX
+                           datasheets, AGPSTAT). */
                         break;
                     default:
                         break;
@@ -1406,7 +1427,9 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 switch (dev->type) {
                     case INTEL_440LX:
                     case INTEL_440EX:
-                        regs[0xb1] = (val & 0x22);
+                        /* CGAS (bit 13) and the expedite throttle timer
+                           (bits 9:8) (82443LX/EX datasheets, AGPCTRL). */
+                        regs[0xb1] = (val & 0x23);
                         break;
                     case INTEL_440BX:
                     case INTEL_440ZX:
@@ -1656,12 +1679,14 @@ i4x0_reset(void *priv)
         i4x0_write(0, 0x5a + i, 1, 0x00, priv);
 
     for (uint8_t i = 0; i <= dev->max_drb; i++) {
-        if (machines[machine].init == machine_at_rc440bx_init)
+        if ((machines[machine].init == machine_at_rc440bx_init) ||
+            (machines[machine].init == machine_at_borapro_init))
             dev->regs[0x60 + i] = dev->drb_written[i] = dev->drb_default;
         else
             dev->regs[0x60 + i] = dev->drb_default;
     }
-    if (machines[machine].init == machine_at_rc440bx_init)
+    if ((machines[machine].init == machine_at_rc440bx_init) ||
+        (machines[machine].init == machine_at_borapro_init))
         i4x0_drb_row0_update(dev);
 
     if (dev->type >= INTEL_430NX) {
@@ -2023,7 +2048,8 @@ i4x0_init(const device_t *info)
     else if (dev->type >= INTEL_440LX)
         cpu_set_agp_speed(cpu_busspeed);
 
-    if (machines[machine].init == machine_at_rc440bx_init)
+    if ((machines[machine].init == machine_at_rc440bx_init) ||
+        (machines[machine].init == machine_at_borapro_init))
         memcpy(dev->drb_written, &regs[0x60], sizeof(dev->drb_written));
 
     i4x0_write(regs[0x59], 0x59, 1, 0x00, dev);

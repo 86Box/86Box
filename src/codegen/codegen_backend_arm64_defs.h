@@ -136,5 +136,9 @@ extern void *codegen_fp_round_quad;
 extern void *codegen_gpf_rout;
 extern void *codegen_ss_rout;
 extern void *codegen_exit_rout;
+/*Where an exit to one of the three routines above goes when it first adds
+  add (uop->imm_data2, negative for a charge) to cycles: the routine itself
+  for 0, an entry that charges it on the way, or NULL when there is none*/
+void *codegen_exit_dest(void *route, int add);
 /*REP MOVS/STOS routines, indexed by [STOS][log2 element size][32-bit addressing]*/
 extern void *codegen_rep_rout[2][3][2];

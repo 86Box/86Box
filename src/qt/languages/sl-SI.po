@@ -416,17 +416,35 @@ msgstr "MB"
 msgid "Memory:"
 msgstr "Pomnilnik:"
 
-msgid "Time synchronization"
-msgstr "Sinhronizacija časa"
+msgid "Synchronize with host clock"
+msgstr ""
 
-msgid "Disabled"
-msgstr "Onemogočeno"
+msgid "Time zone:"
+msgstr ""
 
-msgid "Enabled (local time)"
-msgstr "Omogočeno (lokalni čas)"
+msgid "Local"
+msgstr ""
 
-msgid "Enabled (UTC)"
-msgstr "Omogočeno (UTC)"
+msgid "UTC"
+msgstr ""
+
+msgid "Date:"
+msgstr ""
+
+msgid "Match the host"
+msgstr ""
+
+msgid "Offset the year by:"
+msgstr ""
+
+msgid "(currently %1)"
+msgstr ""
+
+msgid "Always use the year:"
+msgstr ""
+
+msgid "Do not synchronize the date"
+msgstr ""
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Uporabi interpreter za 486 tudi za procesorje 286 in 386"
@@ -472,6 +490,9 @@ msgstr "Grafika XGA"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Grafika prikazovalnika IBM PS/55"
+
+msgid "PowerVR PCX1/PCX2 Graphics"
+msgstr ""
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -3134,6 +3155,9 @@ msgstr "Vnos"
 msgid "Key bindings"
 msgstr "Kombinacije tipk"
 
+msgid "VM Manager"
+msgstr ""
+
 msgid "Action"
 msgstr "Dejanje"
 
@@ -3650,4 +3674,22 @@ msgid "Prepare PCI devices for VFIO passthrough"
 msgstr ""
 
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
+msgstr ""
+
+msgid "Disabled"
+msgstr ""
+
+msgid "Unlimited capacity"
+msgstr ""
+
+msgid "CD speed:"
+msgstr ""
+
+msgid "DVD speed:"
+msgstr ""
+
+msgid "HD/BD speed:"
+msgstr ""
+
+msgid "Software-initiated poweroff device (IBM 5140)"
 msgstr ""

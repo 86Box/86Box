@@ -30,6 +30,12 @@ opAAD(uint32_t fetchdat)
     return 0;
 }
 
+/* 18 clocks on the P5 core, as the recompiler's Pentium timing charges. A
+   block's first passes run here: a different count makes AAM timing loops,
+   such as MR BIOS's CPU clock measurement, disagree with themselves. */
+#define AAM_CYCLES (((cpu_s->cpu_type == CPU_P24T) || (cpu_s->cpu_type == CPU_PENTIUM) || \
+                     (cpu_s->cpu_type == CPU_PENTIUMMMX)) ? 18 : (is486 ? 15 : 17))
+
 static int
 opAAM(uint32_t fetchdat)
 {
@@ -45,8 +51,8 @@ opAAM(uint32_t fetchdat)
     AH = AL / base;
     AL %= base;
     setznp8(AL);
-    CLOCK_CYCLES((is486) ? 15 : 17);
-    PREFETCH_RUN(is486 ? 15 : 17, 2, -1, 0, 0, 0, 0, 0);
+    CLOCK_CYCLES(AAM_CYCLES);
+    PREFETCH_RUN(AAM_CYCLES, 2, -1, 0, 0, 0, 0, 0);
     return 0;
 }
 

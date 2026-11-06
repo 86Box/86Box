@@ -103,6 +103,7 @@ extern void        writememw_vx0(uint32_t s, uint32_t a, uint16_t v);
 extern void        writemem_vx0(uint32_t s, uint16_t v);
 extern void        writememl_vx0(uint32_t s, uint32_t a, uint32_t v);
 extern void        writememq_vx0(uint32_t s, uint32_t a, uint64_t v);
+extern int         biu_pfq_peek(uint8_t *buf, int max);
 extern uint8_t     biu_pfq_read(void);
 extern uint8_t     biu_pfq_fetchb_common(void);
 extern uint8_t     biu_pfq_fetchb(void);

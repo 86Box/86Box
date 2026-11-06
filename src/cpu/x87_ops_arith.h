@@ -1,3 +1,7 @@
+/* The register FDIV forms with an extended-denormal operand, as
+   x87_dyn_fdiv: an empty one is x87_legacy_divide's stack fault */
+#define X87_FDIV_DENORMAL(i) (X87_ST_DENORMAL2(0, i) && !X87_ST_EMPTY2(0, i))
+
 #ifdef FPU_8087
 #define x87_div_register(dst, a, b) x87_div(dst, a, b)
 #else
@@ -31,6 +35,20 @@ static inline double float_add(double src, double val, int round)
     return _mm_cvtsd_f64(xmm_res);
 }
 
+/* With two NaN operands, ADDSD/MULSD return the first one. A C operator or
+   an intrinsic lets the compiler swap the operands, so pin the order here. */
+static inline double x87_add_sd(double a, double b)
+{
+    __asm__("addsd %1, %0" : "+x"(a) : "xm"(b));
+    return a;
+}
+
+static inline double x87_mul_sd(double a, double b)
+{
+    __asm__("mulsd %1, %0" : "+x"(a) : "xm"(b));
+    return a;
+}
+
 #define DO_FADD(use_var)                                               \
     do                                                                 \
     {                                                                  \
@@ -38,7 +56,19 @@ static inline double float_add(double src, double val, int round)
     }                                                                  \
     while (0)
 
+#define DO_FMUL(use_var) ST(0) = x87_mul_sd(ST(0), use_var)
+
 #else
+static inline double x87_add_sd(double a, double b)
+{
+    return a + b;
+}
+
+static inline double x87_mul_sd(double a, double b)
+{
+    return a * b;
+}
+
 #define DO_FADD(use_var)                                               \
     do                                                                 \
     {                                                                  \
@@ -49,18 +79,22 @@ static inline double float_add(double src, double val, int round)
             fesetround(FE_TONEAREST);                                  \
     }                                                                  \
     while (0)
+
+#define DO_FMUL(use_var) ST(0) *= use_var
 #endif
 
 #define opFPU(name, optype, a_size, load_var, get, use_var, cycle_postfix)                                                                         \
     static int opFADD##name##_a##a_size(UNUSED(uint32_t fetchdat))                                                                                 \
     {                                                                                                                                              \
         optype t;                                                                                                                                  \
+        X87_CHECK_DENORMAL_ENTRY(X87_ST_DENORMAL(0), sf_FADD##name##_a##a_size);                                                                   \
         FP_ENTER();                                                                                                                                \
         fetch_ea_##a_size(fetchdat);                                                                                                               \
         SEG_CHECK_READ(cpu_state.ea_seg);                                                                                                          \
         load_var = get();                                                                                                                          \
         if (cpu_state.abrt)                                                                                                                        \
             return 1;                                                                                                                              \
+        X87_CHECK_UNDERFLOW(X87_ST_EMPTY(0), 0, 0, fadd##cycle_postfix);                                                                           \
         DO_FADD(use_var); FP_ROUND_PC(ST(0));                                                                                                                          \
         FP_TAG_VALID;                                                                                                                              \
         CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fadd##cycle_postfix) : ((x87_timings.fadd##cycle_postfix) * cpu_multi));           \
@@ -70,12 +104,14 @@ static inline double float_add(double src, double val, int round)
     static int opFCOM##name##_a##a_size(UNUSED(uint32_t fetchdat))                                                                                 \
     {                                                                                                                                              \
         optype t;                                                                                                                                  \
+        X87_CHECK_DENORMAL_ENTRY(X87_ST_DENORMAL(0), sf_FCOM##name##_a##a_size);                                                                   \
         FP_ENTER();                                                                                                                                \
         fetch_ea_##a_size(fetchdat);                                                                                                               \
         SEG_CHECK_READ(cpu_state.ea_seg);                                                                                                          \
         load_var = get();                                                                                                                          \
         if (cpu_state.abrt)                                                                                                                        \
             return 1;                                                                                                                              \
+        X87_CHECK_UNDERFLOW_COMPARE(X87_ST_EMPTY(0), 0, fcom##cycle_postfix);                                                                      \
         cpu_state.npxs &= ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);                                                                                    \
         cpu_state.npxs |= x87_compare(ST(0), (double) use_var);                                                                                    \
         CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fcom##cycle_postfix) : ((x87_timings.fcom##cycle_postfix) * cpu_multi));           \
@@ -85,12 +121,14 @@ static inline double float_add(double src, double val, int round)
     static int opFCOMP##name##_a##a_size(UNUSED(uint32_t fetchdat))                                                                                \
     {                                                                                                                                              \
         optype t;                                                                                                                                  \
+        X87_CHECK_DENORMAL_ENTRY(X87_ST_DENORMAL(0), sf_FCOMP##name##_a##a_size);                                                                  \
         FP_ENTER();                                                                                                                                \
         fetch_ea_##a_size(fetchdat);                                                                                                               \
         SEG_CHECK_READ(cpu_state.ea_seg);                                                                                                          \
         load_var = get();                                                                                                                          \
         if (cpu_state.abrt)                                                                                                                        \
             return 1;                                                                                                                              \
+        X87_CHECK_UNDERFLOW_COMPARE(X87_ST_EMPTY(0), 1, fcom##cycle_postfix);                                                                      \
         cpu_state.npxs &= ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);                                                                                    \
         cpu_state.npxs |= x87_compare(ST(0), (double) use_var);                                                                                    \
         x87_pop();                                                                                                                                 \
@@ -101,6 +139,7 @@ static inline double float_add(double src, double val, int round)
     static int opFDIV##name##_a##a_size(UNUSED(uint32_t fetchdat))                                                                                 \
     {                                                                                                                                              \
         optype t;                                                                                                                                  \
+        X87_CHECK_DENORMAL_ENTRY(X87_ST_DENORMAL(0), sf_FDIV##name##_a##a_size);                                                                   \
         FP_ENTER();                                                                                                                                \
         fetch_ea_##a_size(fetchdat);                                                                                                               \
         SEG_CHECK_READ(cpu_state.ea_seg);                                                                                                          \
@@ -116,6 +155,7 @@ static inline double float_add(double src, double val, int round)
     static int opFDIVR##name##_a##a_size(UNUSED(uint32_t fetchdat))                                                                                \
     {                                                                                                                                              \
         optype t;                                                                                                                                  \
+        X87_CHECK_DENORMAL_ENTRY(X87_ST_DENORMAL(0), sf_FDIVR##name##_a##a_size);                                                                  \
         FP_ENTER();                                                                                                                                \
         fetch_ea_##a_size(fetchdat);                                                                                                               \
         SEG_CHECK_READ(cpu_state.ea_seg);                                                                                                          \
@@ -131,13 +171,15 @@ static inline double float_add(double src, double val, int round)
     static int opFMUL##name##_a##a_size(UNUSED(uint32_t fetchdat))                                                                                 \
     {                                                                                                                                              \
         optype t;                                                                                                                                  \
+        X87_CHECK_DENORMAL_ENTRY(X87_ST_DENORMAL(0), sf_FMUL##name##_a##a_size);                                                                   \
         FP_ENTER();                                                                                                                                \
         fetch_ea_##a_size(fetchdat);                                                                                                               \
         SEG_CHECK_READ(cpu_state.ea_seg);                                                                                                          \
         load_var = get();                                                                                                                          \
         if (cpu_state.abrt)                                                                                                                        \
             return 1;                                                                                                                              \
-        ST(0) *= use_var; FP_ROUND_PC(ST(0));                                                                                                                          \
+        X87_CHECK_UNDERFLOW(X87_ST_EMPTY(0), 0, 0, fmul##cycle_postfix);                                                                           \
+        DO_FMUL(use_var); FP_ROUND_PC(ST(0));                                                                                                                          \
         FP_TAG_VALID;                                                                                                                              \
         CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fmul##cycle_postfix) : ((x87_timings.fmul##cycle_postfix) * cpu_multi));           \
         CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fmul##cycle_postfix) : ((x87_concurrency.fmul##cycle_postfix) * cpu_multi)); \
@@ -146,12 +188,14 @@ static inline double float_add(double src, double val, int round)
     static int opFSUB##name##_a##a_size(UNUSED(uint32_t fetchdat))                                                                                 \
     {                                                                                                                                              \
         optype t;                                                                                                                                  \
+        X87_CHECK_DENORMAL_ENTRY(X87_ST_DENORMAL(0), sf_FSUB##name##_a##a_size);                                                                   \
         FP_ENTER();                                                                                                                                \
         fetch_ea_##a_size(fetchdat);                                                                                                               \
         SEG_CHECK_READ(cpu_state.ea_seg);                                                                                                          \
         load_var = get();                                                                                                                          \
         if (cpu_state.abrt)                                                                                                                        \
             return 1;                                                                                                                              \
+        X87_CHECK_UNDERFLOW(X87_ST_EMPTY(0), 0, 0, fadd##cycle_postfix);                                                                           \
         ST(0) -= use_var; FP_ROUND_PC(ST(0));                                                                                                                          \
         FP_TAG_VALID;                                                                                                                              \
         CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fadd##cycle_postfix) : ((x87_timings.fadd##cycle_postfix) * cpu_multi));           \
@@ -161,12 +205,14 @@ static inline double float_add(double src, double val, int round)
     static int opFSUBR##name##_a##a_size(UNUSED(uint32_t fetchdat))                                                                                        \
     {                                                                                                                                              \
         optype t;                                                                                                                                  \
+        X87_CHECK_DENORMAL_ENTRY(X87_ST_DENORMAL(0), sf_FSUBR##name##_a##a_size);                                                                  \
         FP_ENTER();                                                                                                                                \
         fetch_ea_##a_size(fetchdat);                                                                                                               \
         SEG_CHECK_READ(cpu_state.ea_seg);                                                                                                          \
         load_var = get();                                                                                                                          \
         if (cpu_state.abrt)                                                                                                                        \
             return 1;                                                                                                                              \
+        X87_CHECK_UNDERFLOW(X87_ST_EMPTY(0), 0, 0, fadd##cycle_postfix);                                                                           \
         ST(0) = use_var - ST(0); FP_ROUND_PC(ST(0));                                                                                                                   \
         FP_TAG_VALID;                                                                                                                              \
         CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fadd##cycle_postfix) : ((x87_timings.fadd##cycle_postfix) * cpu_multi));           \
@@ -198,7 +244,9 @@ static int opFADD(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
-    ST(0) = ST(0) + ST(fetchdat & 7); FP_ROUND_PC(ST(0));
+    X87_CHECK_UNDERFLOW(X87_ST_EMPTY2(0, fetchdat & 7), 0, 0, fadd);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FADD_st0_stj);
+    ST(0) = x87_add_sd(ST(0), ST(fetchdat & 7)); FP_ROUND_PC(ST(0));
     FP_TAG_VALID;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fadd) : (x87_timings.fadd * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fadd) : (x87_concurrency.fadd * cpu_multi));
@@ -209,7 +257,9 @@ opFADDr(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
-    ST(fetchdat & 7) = ST(fetchdat & 7) + ST(0); FP_ROUND_PC(ST(fetchdat & 7));
+    X87_CHECK_UNDERFLOW(X87_ST_EMPTY2(0, fetchdat & 7), fetchdat & 7, 0, fadd);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FADD_sti_st0);
+    ST(fetchdat & 7) = x87_add_sd(ST(fetchdat & 7), ST(0)); FP_ROUND_PC(ST(fetchdat & 7));
     FP_TAG_VALID_F;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fadd) : (x87_timings.fadd * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fadd) : (x87_concurrency.fadd * cpu_multi));
@@ -220,7 +270,9 @@ opFADDP(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
-    ST(fetchdat & 7) = ST(fetchdat & 7) + ST(0); FP_ROUND_PC(ST(fetchdat & 7));
+    X87_CHECK_UNDERFLOW(X87_ST_EMPTY2(0, fetchdat & 7), fetchdat & 7, 1, fadd);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FADDP_sti_st0);
+    ST(fetchdat & 7) = x87_add_sd(ST(fetchdat & 7), ST(0)); FP_ROUND_PC(ST(fetchdat & 7));
     FP_TAG_VALID_F;
     x87_pop();
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fadd) : (x87_timings.fadd * cpu_multi));
@@ -228,10 +280,12 @@ opFADDP(uint32_t fetchdat)
     return 0;
 }
 
-/* FCOMI/FUCOMI: ZF, PF and CF are C3, C2 and C0 of the compare */
+/* FCOMI/FUCOMI: ZF, PF and CF are C3, C2 and C0 of the compare (the caller
+   clears them), and OF, SF and AF are cleared (SDM vol. 2, FCOMI) */
 static inline void
 x87_eflags_from_compare(uint32_t c)
 {
+    cpu_state.flags &= ~(V_FLAG | N_FLAG | A_FLAG);
     if (c & FPU_SW_C3)
         cpu_state.flags |= Z_FLAG;
     if (c & FPU_SW_C2)
@@ -245,6 +299,8 @@ opFCOM(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_UNDERFLOW_COMPARE(X87_ST_EMPTY2(0, fetchdat & 7), 0, fcom);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FCOM_sti);
     cpu_state.npxs &= ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
     cpu_state.npxs |= x87_compare(ST(0), ST(fetchdat & 7)); /* unordered: 111 */
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fcom) : (x87_timings.fcom * cpu_multi));
@@ -257,6 +313,8 @@ opFCOMP(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_UNDERFLOW_COMPARE(X87_ST_EMPTY2(0, fetchdat & 7), 1, fcom);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FCOMP_sti);
     cpu_state.npxs &= ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
     cpu_state.npxs |= x87_compare(ST(0), ST(fetchdat & 7));
     x87_pop();
@@ -271,6 +329,8 @@ opFCOMPP(UNUSED(uint32_t fetchdat))
     uint64_t *p, *q;
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_UNDERFLOW_COMPARE(X87_ST_EMPTY2(0, 1), 2, fcom);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, 1), sf_FCOMPP);
     cpu_state.npxs &= ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
     p = (uint64_t *) &ST(0);
     q = (uint64_t *) &ST(1);
@@ -291,6 +351,8 @@ opFUCOMPP(UNUSED(uint32_t fetchdat))
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_UNDERFLOW_COMPARE(X87_ST_EMPTY2(0, 1), 2, fucom);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, 1), sf_FUCOMPP);
     cpu_state.npxs &= ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
     cpu_state.npxs |= x87_ucompare(ST(0), ST(1));
     x87_pop();
@@ -307,6 +369,8 @@ opFCOMI(uint32_t fetchdat)
     FP_ENTER();
     cpu_state.pc++;
     flags_rebuild();
+    X87_CHECK_UNDERFLOW_COMI(X87_ST_EMPTY2(0, fetchdat & 7), 0, fcom);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FCOMI_st0_stj);
     cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
     x87_eflags_from_compare(x87_compare(ST(0), ST(fetchdat & 7)));
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fcom) : (x87_timings.fcom * cpu_multi));
@@ -319,6 +383,8 @@ opFCOMIP(uint32_t fetchdat)
     FP_ENTER();
     cpu_state.pc++;
     flags_rebuild();
+    X87_CHECK_UNDERFLOW_COMI(X87_ST_EMPTY2(0, fetchdat & 7), 1, fcom);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FCOMIP_st0_stj);
     cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
     x87_eflags_from_compare(x87_compare(ST(0), ST(fetchdat & 7)));
     x87_pop();
@@ -334,6 +400,7 @@ opFDIV(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_DENORMAL(X87_FDIV_DENORMAL(fetchdat & 7), sf_FDIV_st0_stj);
     x87_div_register(ST(0), ST(0), ST(fetchdat & 7)); FP_ROUND_PC(ST(0));
     FP_TAG_VALID;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fdiv) : (x87_timings.fdiv * cpu_multi));
@@ -345,6 +412,7 @@ opFDIVr(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_DENORMAL(X87_FDIV_DENORMAL(fetchdat & 7), sf_FDIV_sti_st0);
     x87_div_register(ST(fetchdat & 7), ST(fetchdat & 7), ST(0)); FP_ROUND_PC(ST(fetchdat & 7));
     FP_TAG_VALID_F;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fdiv) : (x87_timings.fdiv * cpu_multi));
@@ -356,6 +424,7 @@ opFDIVP(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_DENORMAL(X87_FDIV_DENORMAL(fetchdat & 7), sf_FDIVP_sti_st0);
     x87_div_register(ST(fetchdat & 7), ST(fetchdat & 7), ST(0)); FP_ROUND_PC(ST(fetchdat & 7));
     FP_TAG_VALID_F;
     x87_pop();
@@ -369,6 +438,7 @@ opFDIVR(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_DENORMAL(X87_FDIV_DENORMAL(fetchdat & 7), sf_FDIVR_st0_stj);
     x87_div_register(ST(0), ST(fetchdat & 7), ST(0)); FP_ROUND_PC(ST(0));
     FP_TAG_VALID;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fdiv) : (x87_timings.fdiv * cpu_multi));
@@ -380,6 +450,7 @@ opFDIVRr(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_DENORMAL(X87_FDIV_DENORMAL(fetchdat & 7), sf_FDIVR_sti_st0);
     x87_div_register(ST(fetchdat & 7), ST(0), ST(fetchdat & 7)); FP_ROUND_PC(ST(fetchdat & 7));
     FP_TAG_VALID_F;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fdiv) : (x87_timings.fdiv * cpu_multi));
@@ -391,6 +462,7 @@ opFDIVRP(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_DENORMAL(X87_FDIV_DENORMAL(fetchdat & 7), sf_FDIVRP_sti_st0);
     x87_div_register(ST(fetchdat & 7), ST(0), ST(fetchdat & 7)); FP_ROUND_PC(ST(fetchdat & 7));
     FP_TAG_VALID_F;
     x87_pop();
@@ -404,7 +476,9 @@ opFMUL(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
-    ST(0) = ST(0) * ST(fetchdat & 7); FP_ROUND_PC(ST(0));
+    X87_CHECK_UNDERFLOW(X87_ST_EMPTY2(0, fetchdat & 7), 0, 0, fmul);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FMUL_st0_stj);
+    ST(0) = x87_mul_sd(ST(0), ST(fetchdat & 7)); FP_ROUND_PC(ST(0));
     FP_TAG_VALID;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fmul) : (x87_timings.fmul * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fmul) : (x87_concurrency.fmul * cpu_multi));
@@ -415,7 +489,9 @@ opFMULr(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
-    ST(fetchdat & 7) = ST(0) * ST(fetchdat & 7); FP_ROUND_PC(ST(fetchdat & 7));
+    X87_CHECK_UNDERFLOW(X87_ST_EMPTY2(0, fetchdat & 7), fetchdat & 7, 0, fmul);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FMUL_sti_st0);
+    ST(fetchdat & 7) = x87_mul_sd(ST(0), ST(fetchdat & 7)); FP_ROUND_PC(ST(fetchdat & 7));
     FP_TAG_VALID_F;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fmul) : (x87_timings.fmul * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fmul) : (x87_concurrency.fmul * cpu_multi));
@@ -426,7 +502,9 @@ opFMULP(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
-    ST(fetchdat & 7) = ST(0) * ST(fetchdat & 7); FP_ROUND_PC(ST(fetchdat & 7));
+    X87_CHECK_UNDERFLOW(X87_ST_EMPTY2(0, fetchdat & 7), fetchdat & 7, 1, fmul);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FMULP_sti_st0);
+    ST(fetchdat & 7) = x87_mul_sd(ST(0), ST(fetchdat & 7)); FP_ROUND_PC(ST(fetchdat & 7));
     FP_TAG_VALID_F;
     x87_pop();
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fmul) : (x87_timings.fmul * cpu_multi));
@@ -439,6 +517,8 @@ opFSUB(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_UNDERFLOW(X87_ST_EMPTY2(0, fetchdat & 7), 0, 0, fadd);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FSUB_st0_stj);
     ST(0) = ST(0) - ST(fetchdat & 7); FP_ROUND_PC(ST(0));
     FP_TAG_VALID;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fadd) : (x87_timings.fadd * cpu_multi));
@@ -450,6 +530,8 @@ opFSUBr(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_UNDERFLOW(X87_ST_EMPTY2(0, fetchdat & 7), fetchdat & 7, 0, fadd);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FSUB_sti_st0);
     ST(fetchdat & 7) = ST(fetchdat & 7) - ST(0); FP_ROUND_PC(ST(fetchdat & 7));
     FP_TAG_VALID_F;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fadd) : (x87_timings.fadd * cpu_multi));
@@ -461,6 +543,8 @@ opFSUBP(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_UNDERFLOW(X87_ST_EMPTY2(0, fetchdat & 7), fetchdat & 7, 1, fadd);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FSUBP_sti_st0);
     ST(fetchdat & 7) = ST(fetchdat & 7) - ST(0); FP_ROUND_PC(ST(fetchdat & 7));
     FP_TAG_VALID_F;
     x87_pop();
@@ -474,6 +558,8 @@ opFSUBR(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_UNDERFLOW(X87_ST_EMPTY2(0, fetchdat & 7), 0, 0, fadd);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FSUBR_st0_stj);
     ST(0) = ST(fetchdat & 7) - ST(0); FP_ROUND_PC(ST(0));
     FP_TAG_VALID;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fadd) : (x87_timings.fadd * cpu_multi));
@@ -485,6 +571,8 @@ opFSUBRr(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_UNDERFLOW(X87_ST_EMPTY2(0, fetchdat & 7), fetchdat & 7, 0, fadd);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FSUBR_sti_st0);
     ST(fetchdat & 7) = ST(0) - ST(fetchdat & 7); FP_ROUND_PC(ST(fetchdat & 7));
     FP_TAG_VALID_F;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fadd) : (x87_timings.fadd * cpu_multi));
@@ -496,6 +584,8 @@ opFSUBRP(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_UNDERFLOW(X87_ST_EMPTY2(0, fetchdat & 7), fetchdat & 7, 1, fadd);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FSUBRP_sti_st0);
     ST(fetchdat & 7) = ST(0) - ST(fetchdat & 7); FP_ROUND_PC(ST(fetchdat & 7));
     FP_TAG_VALID_F;
     x87_pop();
@@ -510,6 +600,8 @@ opFUCOM(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_UNDERFLOW_COMPARE(X87_ST_EMPTY2(0, fetchdat & 7), 0, fucom);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FUCOM_sti);
     cpu_state.npxs &= ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
     cpu_state.npxs |= x87_ucompare(ST(0), ST(fetchdat & 7));
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fucom) : (x87_timings.fucom * cpu_multi));
@@ -522,6 +614,8 @@ opFUCOMP(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
+    X87_CHECK_UNDERFLOW_COMPARE(X87_ST_EMPTY2(0, fetchdat & 7), 1, fucom);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FUCOMP_sti);
     cpu_state.npxs &= ~(FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
     cpu_state.npxs |= x87_ucompare(ST(0), ST(fetchdat & 7));
     x87_pop();
@@ -537,6 +631,8 @@ opFUCOMI(uint32_t fetchdat)
     FP_ENTER();
     cpu_state.pc++;
     flags_rebuild();
+    X87_CHECK_UNDERFLOW_COMI(X87_ST_EMPTY2(0, fetchdat & 7), 0, fucom);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FUCOMI_st0_stj);
     cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
     x87_eflags_from_compare(x87_ucompare(ST(0), ST(fetchdat & 7)));
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fucom) : (x87_timings.fucom * cpu_multi));
@@ -549,6 +645,8 @@ opFUCOMIP(uint32_t fetchdat)
     FP_ENTER();
     cpu_state.pc++;
     flags_rebuild();
+    X87_CHECK_UNDERFLOW_COMI(X87_ST_EMPTY2(0, fetchdat & 7), 1, fucom);
+    X87_CHECK_DENORMAL(X87_ST_DENORMAL2(0, fetchdat & 7), sf_FUCOMIP_st0_stj);
     cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
     x87_eflags_from_compare(x87_ucompare(ST(0), ST(fetchdat & 7)));
     x87_pop();

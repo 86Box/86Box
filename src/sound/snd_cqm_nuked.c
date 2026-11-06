@@ -193,6 +193,67 @@ static inline int doshifter(int x, int shift)
 #   define doshifter(x, shift) (shift > 12 ? (x << (shift - 12)) : (x >> (12 - shift)))
 #endif
 
+/* Per slot: channel, operator, the mode bit that makes the channel 4-op (-1: none), key bit. */
+typedef struct {
+    int8_t ch;
+    int8_t op;
+    int8_t mode_bit;
+    int8_t key_bit;
+} cqm_slot_info_t;
+
+static const cqm_slot_info_t slot_info[48] = {
+    {  0, 0,  0,  0 }, {  0, 1,  0,  0 }, {  0, 2,  0,  0 }, {  0, 3,  0,  0 },
+    {  1, 0,  1,  1 }, {  1, 1,  1,  1 }, {  1, 2,  1,  1 }, {  1, 3,  1,  1 },
+    {  2, 0,  2,  2 }, {  2, 1,  2,  2 }, {  2, 2,  2,  2 }, {  2, 3,  2,  2 },
+    {  3, 0,  0,  3 }, {  3, 1,  0,  3 }, {  4, 0,  1,  4 }, {  4, 1,  1,  4 },
+    {  5, 0,  2,  5 }, {  5, 1,  2,  5 }, {  6, 0, -1,  6 }, {  6, 1, -1,  6 },
+    {  7, 0, -1,  7 }, {  7, 1, -1,  8 }, {  8, 0, -1,  9 }, {  8, 1, -1, 10 },
+    {  9, 0,  3, 11 }, {  9, 1,  3, 11 }, {  9, 2,  3, 11 }, {  9, 3,  3, 11 },
+    { 10, 0,  4, 12 }, { 10, 1,  4, 12 }, { 10, 2,  4, 12 }, { 10, 3,  4, 12 },
+    { 11, 0,  5, 13 }, { 11, 1,  5, 13 }, { 11, 2,  5, 13 }, { 11, 3,  5, 13 },
+    { 12, 0,  3, 14 }, { 12, 1,  3, 14 }, { 13, 0,  4, 15 }, { 13, 1,  4, 15 },
+    { 14, 0,  5, 16 }, { 14, 1,  5, 16 }, { 15, 0, -1, 17 }, { 15, 1, -1, 17 },
+    { 16, 0, -1, 18 }, { 16, 1, -1, 18 }, { 17, 0, -1, 19 }, { 17, 1, -1, 19 }
+};
+
+/* Envelope step gate for rates below 32: bit ((ratesum >> 2) & 7) of the entry for (counter & 63). */
+static const uint8_t eg_step_mask[64] = {
+    0xff, 0x80, 0xc0, 0x80, 0xe0, 0x80, 0xc0, 0x80, 0xf0, 0x80, 0xc0, 0x80, 0xe0, 0x80, 0xc0, 0x80,
+    0xf8, 0x80, 0xc0, 0x80, 0xe0, 0x80, 0xc0, 0x80, 0xf0, 0x80, 0xc0, 0x80, 0xe0, 0x80, 0xc0, 0x80,
+    0xfc, 0x80, 0xc0, 0x80, 0xe0, 0x80, 0xc0, 0x80, 0xf0, 0x80, 0xc0, 0x80, 0xe0, 0x80, 0xc0, 0x80,
+    0xf8, 0x80, 0xc0, 0x80, 0xe0, 0x80, 0xc0, 0x80, 0xf0, 0x80, 0xc0, 0x80, 0xe0, 0x80, 0xc0, 0x80
+};
+
+/* Every slot released at zero level with no modulation pending: a sample then only
+   advances the phases, the rhythm bits and the noise. */
+static int
+cqm_is_silent(const cqm_t *chip)
+{
+    if (chip->wave_prev | chip->wavesample)
+        return 0;
+
+    for (int i = 0; i < 48; i++)
+        if (chip->slotz[i].env | chip->slotz[i].mod[0] | chip->slotz[i].mod[1])
+            return 0;
+
+    return 1;
+}
+
+static uint32_t
+cqm_noise_steps(uint32_t noise, int n)
+{
+    /* Up to 11 steps at once: each new bit (bit 10 ^ bit 17) only reads old bits. */
+    while (n > 0) {
+        int      k    = (n > 11) ? 11 : n;
+        uint32_t bits = ((noise ^ (noise >> 7)) >> (11 - k)) & ((1u << k) - 1);
+
+        noise = (noise << k) | bits;
+        n -= k;
+    }
+
+    return noise;
+}
+
 void CQM_Generate(cqm_t* chip, int32_t* sample)
 {
     int idx;
@@ -201,6 +262,22 @@ void CQM_Generate(cqm_t* chip, int32_t* sample)
     int con_prev = 0;
     int isrhy = (chip->rhy & 0x20) != 0;
     int accum[2] = { 0, 0 };
+    const int mode = chip->mode;
+    const int oddeven = chip->oddeven;
+    uint32_t keyl, okeyl;
+    int trem_sub, vib_shift_add, vibneg, step_mask;
+
+    /* State carried from slot to slot, kept out of *chip until the loop ends. */
+    uint32_t noise = chip->noise;
+    int hh_bit1 = chip->hh_bit1;
+    int hh_bit2 = chip->hh_bit2;
+    int rhy_bit = chip->rhy_bit;
+    int32_t dooutput = chip->dooutput;
+    int32_t wave_prev = chip->wave_prev;
+    int32_t wavesample = chip->wavesample;
+    int32_t waveshift = chip->waveshift;
+    int wavepan = chip->wavepan;
+    int is4op2 = chip->is4op2;
 
     chip->okeyl = chip->keyl;
     chip->keyl = (chip->key[0] << 0);
@@ -238,16 +315,125 @@ void CQM_Generate(cqm_t* chip, int32_t* sample)
             chip->keyl |= 1 << 6;
     }
 
-    for (idx = 0; idx < 48; idx++)
+    keyl = chip->keyl;
+    okeyl = chip->okeyl;
+
     {
-        int wave, key, kon;
+        int trem = (chip->trem_cnt >> 1) & 15;
+        if (chip->trem_cnt & 32)
+            trem ^= 15;
+        if (chip->rhy & 0x80)
+            trem_sub = trem << 9;
+        else
+            trem_sub = (trem >> 1) << 8;
+    }
+
+    vib_shift_add = 0;
+    if ((chip->counter & 0x600) == 0x400)
+        vib_shift_add++;
+    if (chip->rhy & 0x40)
+        vib_shift_add++;
+    vibneg = (chip->counter >> 11) & 1;
+
+    step_mask = oddeven ? eg_step_mask[chip->counter & 63] : 0;
+
+    if (!(keyl & ~okeyl) && cqm_is_silent(chip))
+    {
+        static const int multi_shift_add1[] = {
+            0, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5
+        };
+
+        static const int multi_shift_add2[] = {
+            0, 0, 0, 1, 0, 1, 2, -1, 0, 1, 2, 2, 3, 3, -1, -1
+        };
+
+        /* hh and tc read their own phases before this sample advances them. */
+        if (isrhy)
+        {
+            uint32_t p20 = chip->slotz[20].phase;
+            uint32_t p23 = chip->slotz[23].phase;
+            int b1 = (p23 >> 12) & 1;
+            int b2 = (p23 >> 14) & 1;
+
+            hh_bit1 = (p20 >> 12) & 1;
+            hh_bit2 = (~(p20 >> 16) ^ (p20 >> 11)) & 1;
+            rhy_bit = !(
+                (!(b1 && b2 && hh_bit1) && (b1 || b2 || hh_bit1))
+                || hh_bit2
+                );
+        }
+
+        for (idx = 0; idx < 48; idx++)
+        {
+            const uint8_t* access = regaccess[idx];
+            cqmslot_t* slot = &chip->slotz[idx];
+            int pmulti = chip->regs[access[4]];
+            int fnum_hi = chip->regs[access[3]];
+            int fnum = chip->regs[access[2]] | ((fnum_hi & 3) << 8);
+            int block = (fnum_hi >> 2) & 7;
+            int multi = (isrhy && idx == 21) ? multi_l : pmulti & 15;
+            int mshift = multi_shift_add2[multi];
+            int phase = slot->phase;
+            int fnum_ps = fnum << 8;
+
+            multi_l = pmulti & 15;
+
+            if (block == 0)
+                fnum_ps &= ~256; /* mask fnum0 */
+
+            phase += doshifter(fnum_ps, block + 2 + multi_shift_add1[multi]);
+            if (mshift < 0)
+                phase -= doshifter(fnum_ps, block + 2 - mshift);
+            else if (mshift > 0)
+                phase += doshifter(fnum_ps, block + 2 + mshift);
+
+            /* vibrato */
+            if (pmulti & 0x40)
+            {
+                int fnum_h = (fnum & 0x380) << 1;
+                int shift_l = block + vib_shift_add + multi_shift_add1[multi];
+
+                if (vibneg)
+                    phase -= doshifter(fnum_h, shift_l);
+                else
+                    phase += doshifter(fnum_h, shift_l);
+
+                if (mshift != 0)
+                {
+                    int neg = mshift < 0;
+                    int shift_h = block + vib_shift_add + (neg ? -mshift : mshift);
+
+                    if (neg ^ vibneg)
+                        phase -= doshifter(fnum_h, shift_h);
+                    else
+                        phase += doshifter(fnum_h, shift_h);
+                }
+            }
+
+            slot->phase = phase;
+        }
+
+        noise = cqm_noise_steps(noise, 48);
+
+        /* What the last slot (channel 17, operator 1, never 4-op) leaves. */
+        dooutput = 1;
+        waveshift = 7;
+        wave_prev = 0;
+        wavesample = 0;
+        wavepan = (chip->regs[regaccess[47][1]] >> 4) & 3;
+        is4op2 = 0;
+    }
+    else for (idx = 0; idx < 48; idx++)
+    {
+        int wave = 0, key, kon;
         int pmulti, fnum_lo, fnum_hi, fnum, block, multi;
         int fb_con, phase, modsub, modadd, fb, modshift, fnum_ps;
         int shift_l;
+        int quiet;
 
-        int ch = 0;
-        int op = 0;
-        int is4op = 0;
+        const int ch = slot_info[idx].ch;
+        const int op = slot_info[idx].op;
+        const int is4op = (slot_info[idx].mode_bit >= 0) ? ((mode >> slot_info[idx].mode_bit) & 1) : 0;
 
         static const int multi_shift_add1[] = {
             0, 1, 2, 2, 3, 3, 3, 4, 4, 4, 4, 4, 4, 4, 5, 5
@@ -262,52 +448,18 @@ void CQM_Generate(cqm_t* chip, int32_t* sample)
 
         int32_t *modptr;
 
-        int keybit = 0;
-
-        {
-            int idx2 = idx;
-            if (idx2 >= 24)
-            {
-                idx2 -= 24;
-                ch += 9;
-            }
-
-            if (idx2 < 12)
-            {
-                ch += idx2 >> 2;
-                op = idx2 & 3;
-
-                if (ch < 9)
-                    is4op = (chip->mode >> ch) & 1;
-                else
-                    is4op = (chip->mode >> (ch - 6)) & 1;
-            }
-            else
-            {
-                ch += (idx2 >> 1) - 3;
-                op = idx2 & 1;
-
-                if (ch >= 3 && ch < 6)
-                    is4op = (chip->mode >> (ch - 3)) & 1;
-                else if (ch >= 12 && ch < 15)
-                    is4op = (chip->mode >> (ch - 9)) & 1;
-            }
-        }
+        const int keybit = slot_info[idx].key_bit;
 
         if (op == 0)
             modptr = chip->slotz[idx + 1].mod;
         else
             modptr = chip->slotz[idx].mod;
 
-        if (ch < 7)
-            keybit = ch;
-        else if (ch < 9)
-            keybit = ch * 2 + op - 7;
-        else
-            keybit = ch + 2;
+        key = (keyl >> keybit) & 1;
+        kon = key && !(okeyl & (1 << keybit));
 
-        key = (chip->keyl >> keybit) & 1;
-        kon = key && !(chip->okeyl & (1 << keybit));
+        /* A released slot at zero level stays there until key-on and makes no sound. */
+        quiet = (slot->env == 0) && !kon;
 
         if (kon)
         {
@@ -315,8 +467,10 @@ void CQM_Generate(cqm_t* chip, int32_t* sample)
             modptr[1] = 0;
         }
         else if (op != 0)
-            modptr[chip->oddeven ^ 1] = chip->wave_prev << 2;
+            modptr[oddeven ^ 1] = wave_prev << 2;
 
+        /* A quiet slot's wave is zero; the rhythm bits below still have to advance. */
+        if (!quiet || isrhy)
         {
             int wf;
             int phase_in;
@@ -329,15 +483,15 @@ void CQM_Generate(cqm_t* chip, int32_t* sample)
 
             if (isrhy)
             {
-                int nbit = chip->noise & 1;
+                int nbit = noise & 1;
                 switch (idx)
                 {
                     /* hh */
                     case 20:
-                        phase_in = 0x1000 | (nbit << 13) | (chip->rhy_bit << 15);
+                        phase_in = 0x1000 | (nbit << 13) | (rhy_bit << 15);
 
-                        chip->hh_bit1 = (slot->phase >> 12) & 1;
-                        chip->hh_bit2 = (~(slot->phase >> 16) ^ (slot->phase >> 11)) & 1;
+                        hh_bit1 = (slot->phase >> 12) & 1;
+                        hh_bit2 = (~(slot->phase >> 16) ^ (slot->phase >> 11)) & 1;
                         break;
                     /* sd */
                     case 21:
@@ -349,11 +503,11 @@ void CQM_Generate(cqm_t* chip, int32_t* sample)
                         int b1 = (slot->phase >> 12) & 1;
                         int b2 = (slot->phase >> 14) & 1;
 
-                        phase_in = (chip->rhy_bit << 15) | 0x2000;
+                        phase_in = (rhy_bit << 15) | 0x2000;
 
-                        chip->rhy_bit = !(
-                            (!(b1 && b2 && chip->hh_bit1) && (b1 || b2 || chip->hh_bit1))
-                            || chip->hh_bit2
+                        rhy_bit = !(
+                            (!(b1 && b2 && hh_bit1) && (b1 || b2 || hh_bit1))
+                            || hh_bit2
                             );
                         break;
                     }
@@ -475,6 +629,9 @@ void CQM_Generate(cqm_t* chip, int32_t* sample)
         fnum = fnum_lo | ((fnum_hi & 3) << 8);
         block = (fnum_hi >> 2) & 7;
 
+        if (quiet)
+            wave = 0;
+        else
         {
             int gain, shift;
             int env = slot->env & 0x1ffff;
@@ -484,15 +641,7 @@ void CQM_Generate(cqm_t* chip, int32_t* sample)
 
             /* tremolo */
             if (pmulti & 0x80)
-            {
-                int trem = (chip->trem_cnt >> 1) & 15;
-                if (chip->trem_cnt & 32)
-                    trem ^= 15;
-                if (chip->rhy & 0x80)
-                    env -= trem << 9;
-                else
-                    env -= (trem >> 1) << 8;
-            }
+                env -= trem_sub;
 
             if (ksltl & 0xc0)
             {
@@ -549,8 +698,8 @@ void CQM_Generate(cqm_t* chip, int32_t* sample)
 
         phase = slot->phase;
 
-        modsub = modptr[chip->oddeven ^ 1];
-        modadd = modptr[chip->oddeven];
+        modsub = modptr[oddeven ^ 1];
+        modadd = modptr[oddeven];
 
         fb = (fb_con >> 1) & 7;
         if ((op == 0 && fb == 0)
@@ -629,17 +778,11 @@ void CQM_Generate(cqm_t* chip, int32_t* sample)
         if (pmulti & 0x40)
         {
             int shift_l;
-            int vibneg;
             int fnum_h = (fnum & 0x380) << 1;
 
-            int shift_add = 0;
-            if ((chip->counter & 0x600) == 0x400)
-                shift_add++;
-            if (chip->rhy & 0x40)
-                shift_add++;
+            int shift_add = vib_shift_add;
 
             shift_l = block + shift_add + multi_shift_add1[multi];
-            vibneg = (chip->counter >> 11) & 1;
 
             if (vibneg)
                 phase -= doshifter(fnum_h, shift_l);
@@ -677,6 +820,7 @@ void CQM_Generate(cqm_t* chip, int32_t* sample)
             slot->phase = phase;
         }
 
+        if (!quiet)
         {
             int rate, ratesum, ratemax, ratezero, dostep, inc, of, slsub, slreach, nextstate;
             int ad = chip->regs[access[7]];
@@ -728,14 +872,7 @@ void CQM_Generate(cqm_t* chip, int32_t* sample)
             if (ratesum & 32)
                 dostep = 1;
             else
-            {
-                dostep = chip->oddeven && ((chip->counter & 1) == 0 || (ratesum & 28) == 28)
-                    && ((chip->counter & 2) == 0 || (ratesum & 24) == 24)
-                    && ((chip->counter & 4) == 0 || ((ratesum & 16) != 0 && (ratesum & 12) != 0))
-                    && ((chip->counter & 8) == 0 || (ratesum & 16) != 0)
-                    && ((chip->counter & 16) == 0 || (ratesum & 16) != 0 || (ratesum & 12) == 12)
-                    && ((chip->counter & 32) == 0 || (ratesum & 24) != 0);
-            }
+                dostep = (step_mask >> ((ratesum >> 2) & 7)) & 1;
 
             inc = 0;
             if (dostep)
@@ -836,23 +973,23 @@ void CQM_Generate(cqm_t* chip, int32_t* sample)
             /* w1338 && (!(is4op&& op == 1) || con); // is4op && op==1 && con ->mute */
             int is4opch = (ch % 9) < 3;
 
-            if (chip->dooutput && !(chip->is4op2 && !con))
+            if (dooutput && !(is4op2 && !con))
             {
-                int sumwave = doshifter(chip->wavesample << 5, chip->waveshift);
+                int sumwave = doshifter(wavesample << 5, waveshift);
 
-                if (chip->wavepan & 1)
+                if (wavepan & 1)
                     accum[0] += sumwave;
-                if (chip->wavepan & 2)
+                if (wavepan & 2)
                     accum[1] += sumwave;
             }
 
-            chip->waveshift = 7;
+            waveshift = 7;
             if (isrhy && ch >= 6 && ch < 9)
-                chip->waveshift++;
-            chip->wave_prev = wave;
-            chip->wavesample = wave >> 3;
-            chip->wavepan = (fb_con >> 4) & 3;
-            chip->is4op2 = is4opch && is4op && op == 1;
+                waveshift++;
+            wave_prev = wave;
+            wavesample = wave >> 3;
+            wavepan = (fb_con >> 4) & 3;
+            is4op2 = is4opch && is4op && op == 1;
 
             doout = 0;
 
@@ -877,15 +1014,26 @@ void CQM_Generate(cqm_t* chip, int32_t* sample)
                 break;
             }
 
-            chip->dooutput = doout;
+            dooutput = doout;
         }
 
         {
             /* FIXME: runs 13 times per slot on real chip */
-            uint32_t bit = ((chip->noise >> 10) ^ (chip->noise >> 17)) & 1;
-            chip->noise = (chip->noise << 1) | bit;
+            uint32_t bit = ((noise >> 10) ^ (noise >> 17)) & 1;
+            noise = (noise << 1) | bit;
         }
     }
+
+    chip->noise = noise;
+    chip->hh_bit1 = hh_bit1;
+    chip->hh_bit2 = hh_bit2;
+    chip->rhy_bit = rhy_bit;
+    chip->dooutput = dooutput;
+    chip->wave_prev = wave_prev;
+    chip->wavesample = wavesample;
+    chip->waveshift = waveshift;
+    chip->wavepan = wavepan;
+    chip->is4op2 = is4op2;
 
     chip->oddeven ^= 1;
     if (chip->oddeven == 0)

@@ -1131,7 +1131,7 @@ sensation_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
     }
     dev->sysex = 1;
     for (uint32_t i = 0; i < len; i++) {
-        if (dev->midi_r == dev->midi_w)
+        if (dev->midi_used >= 15)
             return (len - i);
         dev->midi_queue[dev->midi_w++] = buffer[i];
         dev->midi_w &= 0x0f;

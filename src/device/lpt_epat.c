@@ -35,6 +35,7 @@
 #include <86box/scsi_device.h>
 #include <86box/hdc_ide.h>
 #include <86box/rdisk.h>
+#include <86box/hdd.h>
 #include <86box/plat_unused.h>
 #include <86box/log.h>
 
@@ -66,6 +67,12 @@ epat_log(void *priv, const char *fmt, ...)
 static const uint8_t epat_unlock[7] = { 0x22, 0xAA, 0x55, 0x00, 0xFF, 0x87, 0x78 };
 
 #define EPAT_CPP_CONNECT    0xE0
+/*
+ * SD120PPD.SYS connects with CPP(0xE0 | unit), and its unit is 0xFF once it
+ * has found a single bridge with no 1284.3 address: CPP(0xFF). It works on
+ * the real bridge, so that connects too.
+ */
+#define EPAT_CPP_CONNECT_ANY 0xFF
 #define EPAT_CPP_DISCONNECT 0x30
 
 /*
@@ -133,6 +140,7 @@ typedef struct epat_s {
     int     cpp_id_pos;     /* which one is being shifted out */
     int     cpp_id_hi;      /* 1 = the next read is its HIGH nibble */
     int     cpp_init;       /* data writes left to swallow after CPP(0x00) */
+    int     cpp_tail;       /* a CPP was committed; its closing 0xFF may follow */
     int     block_arm;   /* register 7 addressed, awaiting the w2 that starts it */
     int     block_half;  /* 0 = the next status read returns the low nibble */
     uint8_t block_latch; /* the byte being shifted out as two nibbles */
@@ -140,6 +148,8 @@ typedef struct epat_s {
     int     reg_fetched; /* the addressed register was read since the last strobe */
     int     irq_test;    /* the host's interrupt test is holding PE */
     uint8_t chip[0x20];  /* internal registers behind the 0x0E/0x0F pair */
+    uint16_t test_pos;   /* the test pattern's byte counter */
+    int      read_ahead; /* register 0x12 bit 1 seen since the last PACKET */
     uint8_t alt[8];      /* what 0x18-0x1F address while the window is open */
     uint8_t ident[512];  /* IDENTIFY PACKET DEVICE reply being read out */
     int     ident_left;  /* bytes of it still to go; 0 = none pending */
@@ -232,6 +242,17 @@ typedef struct epat_s {
     int        reset_us;
     int        in_reset;
     int        reset_abrt; /* a command was issued inside the settle window */
+
+    /*
+     * A hard disk behind the bridge (bus LPT, bridge EPAT), on an IDE board
+     * of its own: the task file, device control and the data stream go to
+     * the IDE emulation, a byte at a time, two of them to a 16-bit cycle.
+     */
+    void      *ide;
+    uint16_t   ide_rd;      /* the data word being read out */
+    uint8_t    ide_rd_half; /* its high byte is next */
+    uint8_t    ide_wr_lo;   /* the low byte of a data word being written */
+    uint8_t    ide_wr_half; /* the high byte is next */
 } epat_t;
 
 #define EPAT_REG_TASKFILE 0x18 /* cont 0 */
@@ -287,8 +308,9 @@ typedef struct epat_s {
  *
  * It also branches on the version later: >= 0xC3 programs a byte count into
  * this register before each block transfer (rva 0x4D50), which is a path
- * nothing here implements. 0xC0 is the lowest value that identifies as an
- * EPAT and keeps the simple path.
+ * nothing here implements. Version 5.46 also wants (ver & 0xFE) >= 0xC2
+ * after its chain walk (offset 0xA4E0 in the file) and gives up on 0xC0,
+ * so 0xC2 is the lowest value that gets through and keeps the simple path.
  *
  * ⚠ NOT a captured value - the real EPATRM's version has never been read.
  */
@@ -319,6 +341,40 @@ typedef struct epat_s {
 #define EPAT_REG_INTR       0x12
 #define EPAT_INTR_INTRQ     0x20
 
+/*
+ * The chip's test pattern. With register 0x13 bit 3 set, block transfers
+ * stay in the chip: a read returns the words k | (0xFF - k) << 8 for
+ * k = 0, 1, ... from a counter that bit 0 of the same register resets, and a
+ * write is dropped. SD120PPD.SYS keeps 0x13 at 0x84; for its test it pulses
+ * 0x8D/0x8C, writes that pattern, pulses again, reads it back and compares,
+ * and reports no adapter if it differs. Register 0x0A is 0x10 there as it is
+ * for any block read. Linux's epat_test_proto() reads the same pattern after
+ * WR(0x13,1); WR(0x13,0); WR(0xa,0x11), which this does not model.
+ */
+#define EPAT_REG_TEST       0x13
+#define EPAT_TEST_PATTERN   0x08
+#define EPAT_TEST_RESET     0x01
+
+/*
+ * Multi-sector transfers. Before a READ(10) of n sectors SD120PPD.SYS writes
+ * n - 1 to register 0x14 and its start block (0) to internal registers 6/7,
+ * and sets bit 1 of register 0x12, which its reconnect clears again before
+ * DRQ is served, so the arming is remembered until the next PACKET; register
+ * 0x14 keeps stale values between commands. When DRQ comes up it reads 6/7
+ * back and moves (value + 1) * 512 bytes in one block read, then finishes the
+ * command. The
+ * chip counts the blocks it has buffered from the drive; here the whole DRQ
+ * block is there at once, so 6/7 read as start + the DRQ block's sectors - 1,
+ * capped by register 0x14. A transfer under one sector makes the driver write
+ * 0xFF there ((36 >> 9) - 1), which must count as 0: start + 0xFF would make
+ * it ask for 0x10000 words, which wraps to none. Without this every
+ * multi-sector read stopped after its first sector.
+ */
+#define EPAT_REG_AUTO_COUNT 0x14
+#define EPAT_INTR_AUTO      0x02
+#define EPAT_CHIP_BLOCKS_LO 0x06
+#define EPAT_CHIP_BLOCKS_HI 0x07
+
 #define EPAT_REG_CHIP_INDEX 0x0E
 #define EPAT_REG_CHIP_DATA  0x0F
 #define EPAT_CHIP_ALT_VIEW  0x0C
@@ -327,7 +383,7 @@ typedef struct epat_s {
 #define EPAT_CHIP_ALT_ID    0xE2
 #define EPAT_IRQ_TEST      0x40
 #define EPAT_IRQ_TEST_DATA 0x80
-#define EPAT_CHIP_VERSION  0xC0
+#define EPAT_CHIP_VERSION  0xC2
 
 #define EPAT_CPP_INIT      0x00
 #define EPAT_CPP_UNIT_BYTE 0x08  /* 0x08 | unit -> one byte  */
@@ -378,10 +434,13 @@ typedef struct epat_s {
 static int
 epat_unlock_feed(epat_t *dev, uint8_t val)
 {
-    if (dev->udup && (val == dev->ulast)) {
-        dev->udup = 0;
+    /*
+     * SD120PPD.SYS writes each byte two or three times, depending on the
+     * mode it settled on. No two neighbouring frame bytes are equal, so every
+     * repeat is the same byte still on the lines.
+     */
+    if (dev->udup && (val == dev->ulast))
         return 0;
-    }
 
     dev->ulast = val;
     dev->udup  = 1;
@@ -460,6 +519,9 @@ epat_attach_drive(epat_t *dev)
 {
     if (dev->sd != NULL)
         return 1;
+
+    if (dev->ide != NULL)
+        return 0;
 
     if (dev->no_drive)
         return 0;
@@ -558,6 +620,25 @@ epat_irq_ready(void *priv)
 }
 
 /* ATA: INTRQ is asserted when the drive wants the host, unless nIEN is set. */
+/* INTRQ: the built-in drive's, or that of the hard disk on the IDE board. */
+static int
+epat_intrq(const epat_t *dev)
+{
+    if (dev->ide != NULL)
+        return ide_lpt_intrq(dev->port);
+
+    return dev->intrq;
+}
+
+static void epat_update_irq(epat_t *dev);
+
+/* INTRQ of the hard disk changed: the bridge passes it on to the port. */
+static void
+epat_ide_irq(UNUSED(int set), void *priv)
+{
+    epat_update_irq((epat_t *) priv);
+}
+
 static void
 epat_raise_intrq(epat_t *dev)
 {
@@ -711,8 +792,26 @@ epat_slave_selected(const epat_t *dev)
 static uint8_t
 epat_data_read(epat_t *dev)
 {
-    scsi_common_t *sc = dev->sd->sc;
+    scsi_common_t *sc;
     uint8_t        ret;
+
+    if (dev->regs[EPAT_REG_TEST] & EPAT_TEST_PATTERN) {
+        const uint8_t k = (uint8_t) (dev->test_pos >> 1);
+
+        ret = (dev->test_pos & 1) ? (uint8_t) (0xff - k) : k;
+        dev->test_pos++;
+        return ret;
+    }
+
+    if (dev->ide != NULL) {
+        if (!dev->ide_rd_half)
+            dev->ide_rd = ide_readw(0, dev->ide);
+        ret               = dev->ide_rd_half ? (uint8_t) (dev->ide_rd >> 8) : (uint8_t) dev->ide_rd;
+        dev->ide_rd_half ^= 1;
+        return ret;
+    }
+
+    sc = dev->sd->sc;
 
     if (epat_slave_selected(dev))
         return 0x00;
@@ -748,8 +847,22 @@ epat_data_read(epat_t *dev)
 static void
 epat_data_write(epat_t *dev, const uint8_t val)
 {
-    scsi_common_t *sc  = dev->sd->sc;
+    scsi_common_t *sc;
     uint8_t       *buf = NULL;
+
+    if (dev->regs[EPAT_REG_TEST] & EPAT_TEST_PATTERN)
+        return;
+
+    if (dev->ide != NULL) {
+        if (!dev->ide_wr_half)
+            dev->ide_wr_lo = val;
+        else
+            ide_writew(0, (uint16_t) (dev->ide_wr_lo | (val << 8)), dev->ide);
+        dev->ide_wr_half ^= 1;
+        return;
+    }
+
+    sc = dev->sd->sc;
 
     if (epat_slave_selected(dev))
         return;
@@ -861,6 +974,7 @@ epat_command(epat_t *dev, const uint8_t cmd)
     }
 
     epat_log(dev->log, "PACKET, byte count %u\n", dev->tf->request_length);
+    dev->read_ahead = 0;
 
     dev->tf->pos      = 0;
     sc->packet_status = PHASE_IDLE;
@@ -881,6 +995,7 @@ epat_alt_view(const epat_t *dev, const uint8_t addr)
            (addr <= (EPAT_REG_TASKFILE + 7));
 }
 
+
 static uint8_t
 epat_reg_read(epat_t *dev, const uint8_t addr)
 {
@@ -890,11 +1005,47 @@ epat_reg_read(epat_t *dev, const uint8_t addr)
         return (addr == (EPAT_REG_TASKFILE + 7)) ? EPAT_CHIP_ALT_ID :
                                                    dev->alt[addr - EPAT_REG_TASKFILE];
 
-    if (addr == EPAT_REG_CHIP_DATA)
-        return dev->chip[dev->regs[EPAT_REG_CHIP_INDEX] & 0x1f];
+    if (addr == EPAT_REG_CHIP_DATA) {
+        const uint8_t idx = dev->regs[EPAT_REG_CHIP_INDEX] & 0x1f;
+
+        if (dev->read_ahead && ((idx == EPAT_CHIP_BLOCKS_LO) || (idx == EPAT_CHIP_BLOCKS_HI))) {
+            const uint8_t limit = dev->regs[EPAT_REG_AUTO_COUNT];
+            uint32_t      ready = 0;
+            uint16_t      blocks;
+
+            if ((dev->sd != NULL) && (dev->tf->atastat & DRQ_STAT) &&
+                (dev->sd->sc->max_transfer_len > dev->sd->sc->request_pos))
+                ready = dev->sd->sc->max_transfer_len - dev->sd->sc->request_pos;
+            ready  = ready ? ((ready + 511) / 512) - 1 : 0;
+            if (ready > ((limit == 0xff) ? 0 : limit))
+                ready = (limit == 0xff) ? 0 : limit;
+            blocks = (dev->chip[EPAT_CHIP_BLOCKS_LO] |
+                      ((dev->chip[EPAT_CHIP_BLOCKS_HI] & 0x03) << 8)) + ready;
+
+            if (idx == EPAT_CHIP_BLOCKS_LO)
+                return blocks & 0xff;
+            return (dev->chip[EPAT_CHIP_BLOCKS_HI] & ~0x03) | ((blocks >> 8) & 0x03);
+        }
+
+        return dev->chip[idx];
+    }
 
     if (addr == EPAT_REG_INTR)
-        return (dev->regs[addr] & ~EPAT_INTR_INTRQ) | (dev->intrq ? EPAT_INTR_INTRQ : 0x00);
+        return (dev->regs[addr] & ~EPAT_INTR_INTRQ) | (epat_intrq(dev) ? EPAT_INTR_INTRQ : 0x00);
+
+    if (dev->ide != NULL) {
+        if (addr == EPAT_REG_BLOCK)
+            return epat_data_read(dev);
+        if (addr == EPAT_REG_DEVCTL)
+            return ide_read_alt_status(0, dev->ide);
+        if ((addr >= EPAT_REG_TASKFILE) && (addr <= (EPAT_REG_TASKFILE + ATA_STATUS))) {
+            if (addr == (EPAT_REG_TASKFILE + ATA_DATA))
+                return epat_data_read(dev);
+            dev->ide_rd_half = dev->ide_wr_half = 0;
+            return ide_readb(addr - EPAT_REG_TASKFILE, dev->ide);
+        }
+        return dev->regs[addr];
+    }
 
     /*
      * Inside the settle window only status and error mean anything, and they
@@ -951,8 +1102,25 @@ epat_reg_write(epat_t *dev, const uint8_t addr, const uint8_t val)
 
     dev->regs[addr] = val;
 
+    if ((addr == EPAT_REG_INTR) && (val & EPAT_INTR_AUTO))
+        dev->read_ahead = 1;
+    if ((addr == EPAT_REG_TEST) && (val & EPAT_TEST_RESET))
+        dev->test_pos = 0;
+
     if (addr == EPAT_REG_CHIP_DATA)
         dev->chip[dev->regs[EPAT_REG_CHIP_INDEX] & 0x1f] = val;
+
+    if (dev->ide != NULL) {
+        if (addr == EPAT_REG_DEVCTL)
+            ide_write_devctl(0, val, dev->ide);
+        else if (addr == (EPAT_REG_TASKFILE + ATA_DATA))
+            epat_data_write(dev, val);
+        else if ((addr > EPAT_REG_TASKFILE) && (addr <= (EPAT_REG_TASKFILE + ATA_STATUS))) {
+            dev->ide_rd_half = dev->ide_wr_half = 0;
+            ide_writeb(addr - EPAT_REG_TASKFILE, val, dev->ide);
+        }
+        return;
+    }
 
     epat_attach_drive(dev);
 
@@ -1029,7 +1197,7 @@ epat_update_irq(epat_t *dev)
 {
     const int want = (dev->regs[EPAT_REG_IRQCTL] & EPAT_IRQ_TEST) &&
                      (dev->data == EPAT_IRQ_TEST_DATA);
-    const int out  = want || (dev->irq_armed && dev->irq_ready && dev->intrq);
+    const int out  = want || (dev->irq_armed && dev->irq_ready && epat_intrq(dev));
 
     dev->irq_test = want;
     if (out != dev->irq_out) {
@@ -1076,7 +1244,7 @@ epat_write_data(uint8_t val, void *priv)
         else if ((dev->ucmd & 0xf8) == EPAT_CPP_UNIT_BYTE) {
             /* Read once, straight after the frame, with no strobe. Only unit 0 exists. */
             const int unit    = dev->ucmd & 0x07;
-            dev->unit_byte    = (dev->intrq && (unit == 0)) ?
+            dev->unit_byte    = (epat_intrq(dev) && (unit == 0)) ?
                                     (uint8_t) (0x80 | (unit << 4)) : 0x00;
             dev->unit_pending = 1;
             dev->ucmd_pending = 0;
@@ -1107,6 +1275,17 @@ epat_write_data(uint8_t val, void *priv)
         return;
     }
     dev->cpp_init = 0;
+
+    /*
+     * A CPP ends with w0(0xFF) (Linux's CPP() macro, and SD120PPD.SYS, once
+     * per I/O delay). That is the lines going idle, not a register address:
+     * taken as one, it makes the next byte its value, and SD120PPD.SYS
+     * strobes a read of register 0 with that next byte, 0x00, still on the
+     * lines, as the bridge latches the address on the strobe.
+     */
+    if (dev->cpp_tail && (val == 0xff))
+        return;
+    dev->cpp_tail = 0;
 
     if (!dev->connected)
         return;
@@ -1161,7 +1340,7 @@ epat_write_data(uint8_t val, void *priv)
              * it clear: SD120PPD.SYS writes device control without ever
              * setting SRST, and that must not reset the drive.
              */
-            if ((dev->reg_addr == EPAT_REG_DEVCTL) && (was & 0x04) && !(val & 0x04)) {
+            if ((dev->ide == NULL) && (dev->reg_addr == EPAT_REG_DEVCTL) && (was & 0x04) && !(val & 0x04)) {
                 if (dev->reset_us > 0) {
                     dev->in_reset   = 1;
                     dev->reset_abrt = 0;
@@ -1240,7 +1419,7 @@ epat_write_ctrl(uint8_t val, void *priv)
      */
     if (!(dev->ctrl & 0x01) && (val & 0x01) && (dev->ustate == EPAT_UNLOCK_IDLE) &&
         dev->ucmd_pending) {
-        if (dev->ucmd == EPAT_CPP_CONNECT) {
+        if ((dev->ucmd == EPAT_CPP_CONNECT) || (dev->ucmd == EPAT_CPP_CONNECT_ANY)) {
             dev->connected    = 1;
             dev->status       = EPAT_STAT_IDLE;
             dev->irq_armed    = 0;
@@ -1288,6 +1467,7 @@ epat_write_ctrl(uint8_t val, void *priv)
         dev->ucmd         = 0;
         dev->ucmd_pending = 0;
         dev->upos = 0;
+        dev->cpp_tail     = 1;
     }
 
     /*
@@ -1565,6 +1745,19 @@ epat_init(UNUSED(const device_t *info))
     lpt_set_ecp_write_data(dev->lpt, epat_ecp_write_data);
     lpt_set_ecp_write_addr(dev->lpt, epat_ecp_write_addr);
 
+    /* A hard disk on this port with the EPAT as its bridge. */
+    for (int c = 0; (dev->lpt != NULL) && (c < HDD_NUM); c++) {
+        if (hdd_is_valid(c) && (hdd[c].bus_type == HDD_BUS_LPT) &&
+            (hdd[c].channel == dev->port) && (hdd[c].lpt_bridge == HDD_LPT_EPAT)) {
+            dev->ide = ide_lpt_init(dev->port);
+            if (dev->ide != NULL)
+                ide_lpt_set_irq(dev->port, epat_ide_irq, dev);
+            epat_log(dev->log, "LPT%i hard disk attached%s\n", dev->port + 1,
+                     (dev->ide == NULL) ? " - no IDE board free" : "");
+            break;
+        }
+    }
+
     return dev;
 }
 
@@ -1574,6 +1767,8 @@ epat_close(void *priv)
     epat_t *dev = (epat_t *) priv;
 
     if (dev != NULL) {
+        if (dev->ide != NULL)
+            ide_lpt_close(dev->port);
         if (dev->log != NULL)
             log_close(dev->log);
         free(dev);

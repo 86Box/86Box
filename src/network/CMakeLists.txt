@@ -21,13 +21,16 @@ list(APPEND net_sources
     net_slirp.c
     net_switch.c
     net_dp8390.c
+    net_lance.c
     net_3c501.c
     net_3c503.c
     net_3c509b.c
     net_3c59x_eisa.c
     net_ne2000.c
+    net_ne2100.c
     net_pcnet.c
     net_wd8003.c
+    net_pe2.c
     net_pe3.c
     net_plip.c
     net_event.c

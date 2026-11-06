@@ -6,7 +6,8 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Emulation of the IBM RGB 528 true colour RAMDAC.
+ *          Emulation of the IBM RGB 528 true colour RAMDAC, and of the
+ *          RGB 525 it extends.
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *
@@ -88,6 +89,7 @@ typedef struct ibm_rgb528_ramdac_t {
     uint8_t              pix_n[8];
     uint8_t              pix_m[8];
     float                ref_clock;
+    uint8_t              port_sel_only;
 } ibm_rgb528_ramdac_t;
 
 void
@@ -100,7 +102,6 @@ ibm_rgb528_render_4bpp(svga_t *svga)
     uint64_t                   dat64     = 0x0000000000000000ULL;
     uint64_t                   dat642    = 0x0000000000000000ULL;
     const ibm_rgb528_ramdac_t *ramdac    = (ibm_rgb528_ramdac_t *) svga->ramdac;
-    uint8_t                    b8_dcol   = (ramdac->indexed_data[0x0c] & 0xc0) >> 6;
     uint8_t                    partition = (ramdac->indexed_data[0x07] & 0x0f) << 4;
     uint8_t                    swap_word = ramdac->indexed_data[0x72] & 0x10;
     uint8_t                    swap_nib  = ramdac->indexed_data[0x72] & 0x21;
@@ -150,13 +151,11 @@ ibm_rgb528_render_4bpp(svga_t *svga)
                 else
                     dat = (dat32 >> (((x & 7) << 2) ^ 4)) & 0xf;
             }
-            if (b8_dcol == 0x00) {
-                dat_out.a = 0x00;
-                dat_out.r = ramdac->palettes[0][partition | dat];
-                dat_out.g = ramdac->palettes[1][partition | dat];
-                dat_out.b = ramdac->palettes[2][partition | dat];
-            } else
-                dat_out.pixel = video_8togs[dat];
+            /* 4 BPP always goes through the palette. */
+            dat_out.a = 0x00;
+            dat_out.r = ramdac->palettes[0][partition | dat];
+            dat_out.g = ramdac->palettes[1][partition | dat];
+            dat_out.b = ramdac->palettes[2][partition | dat];
             if (svga->lowres) {
                 p[x << 1] = p[(x << 1) + 1] = dat_out.pixel & 0xffffff;
             } else
@@ -182,7 +181,7 @@ ibm_rgb528_render_8bpp(svga_t *svga)
     uint64_t                   dat64     = 0x0000000000000000ULL;
     uint64_t                   dat642    = 0x0000000000000000ULL;
     const ibm_rgb528_ramdac_t *ramdac    = (ibm_rgb528_ramdac_t *) svga->ramdac;
-    uint8_t                    b8_dcol   = (ramdac->indexed_data[0x0c] & 0xc0) >> 6;
+    uint8_t                    b8_dcol   = ramdac->indexed_data[0x0b] & 0x01;
     uint8_t                    swap_word = ramdac->indexed_data[0x72] & 0x10;
     uint8_t                    vram_size = ramdac->indexed_data[0x70] & 0x03;
 
@@ -226,8 +225,11 @@ ibm_rgb528_render_8bpp(svga_t *svga)
                 dat_out.r = ramdac->palettes[0][dat];
                 dat_out.g = ramdac->palettes[1][dat];
                 dat_out.b = ramdac->palettes[2][dat];
-            } else
-                dat_out.pixel = video_8togs[dat];
+            } else {
+                /* Palette bypass: the same value goes to all three DACs. */
+                dat_out.a = 0x00;
+                dat_out.r = dat_out.g = dat_out.b = dat;
+            }
             if (svga->lowres) {
                 p[x << 1] = p[(x << 1) + 1] = dat_out.pixel & 0xffffff;
             } else
@@ -441,7 +443,7 @@ ibm_rgb528_render_24bpp(svga_t *svga)
                 dat_ex->a = 0x00;
                 dat_ex->r = ramdac->palettes[0][dat_ex->r];
                 dat_ex->g = ramdac->palettes[1][dat_ex->g];
-                dat_ex->g = ramdac->palettes[2][dat_ex->b];
+                dat_ex->b = ramdac->palettes[2][dat_ex->b];
                 if ((svga->ramdac_type != RAMDAC_8BIT) && !b6bit_lin) {
                     dat_ex->r |= ((dat_ex->r & 0xc0) >> 6);
                     dat_ex->g |= ((dat_ex->g & 0xc0) >> 6);
@@ -522,7 +524,7 @@ ibm_rgb528_render_32bpp(svga_t *svga)
                 dat_ex->a = 0x00;
                 dat_ex->r = ramdac->palettes[0][dat_ex->r];
                 dat_ex->g = ramdac->palettes[1][dat_ex->g];
-                dat_ex->g = ramdac->palettes[2][dat_ex->b];
+                dat_ex->b = ramdac->palettes[2][dat_ex->b];
                 if ((svga->ramdac_type != RAMDAC_8BIT) && !b6bit_lin) {
                     dat_ex->r |= ((dat_ex->r & 0xc0) >> 6);
                     dat_ex->g |= ((dat_ex->g & 0xc0) >> 6);
@@ -544,36 +546,37 @@ ibm_rgb528_render_32bpp(svga_t *svga)
     }
 }
 
-static void
-ibm_rgb528_set_bpp(ibm_rgb528_ramdac_t *ramdac, svga_t *svga)
+/* Bits per pixel of the VRAM pixel port format, 0 when the VGA port is selected. */
+static int
+ibm_rgb528_port_bpp(const ibm_rgb528_ramdac_t *ramdac)
 {
     uint8_t b16_dcol = (ramdac->indexed_data[0x0c] & 0xc0) >> 6;
     uint8_t b555_565 = ramdac->indexed_data[0x0c] & 0x02;
 
-    if (ramdac->indexed_data[0x071] & 0x01)
-        switch (ramdac->indexed_data[0x00a] & 0x07) {
-            case 0x02:
-                svga->bpp = 4;
-                break;
-            case 0x03:
-            default:
-                svga->bpp = 8;
-                break;
-            case 0x04:
-                if (b555_565 && (b16_dcol != 0x01))
-                    svga->bpp = 16;
-                else
-                    svga->bpp = 15;
-                break;
-            case 0x05:
-                svga->bpp = 24;
-                break;
-            case 0x06:
-                svga->bpp = 32;
-                break;
-        }
-    else
-        svga->bpp = 8;
+    if (!(ramdac->indexed_data[0x071] & 0x01))
+        return 0;
+
+    switch (ramdac->indexed_data[0x00a] & 0x07) {
+        case 0x02:
+            return 4;
+        case 0x03:
+        default:
+            return 8;
+        case 0x04:
+            return (b555_565 && (b16_dcol != 0x01)) ? 16 : 15;
+        case 0x05:
+            return 24;
+        case 0x06:
+            return 32;
+    }
+}
+
+static void
+ibm_rgb528_set_bpp(ibm_rgb528_ramdac_t *ramdac, svga_t *svga)
+{
+    int bpp = ibm_rgb528_port_bpp(ramdac);
+
+    svga->bpp = bpp ? bpp : 8;
 
     svga_recalctimings(svga);
 }
@@ -836,10 +839,10 @@ ibm_rgb528_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga)
             temp = ramdac->indexed_data[ramdac->index];
             switch (ramdac->index) {
                 case 0x0000: /* Revision */
-                    temp = 0xe0;
+                    temp = (ramdac->type == 525) ? 0xf0 : 0xe0;
                     break;
                 case 0x0001: /* ID */
-                    temp = 0x02;
+                    temp = (ramdac->type == 525) ? 0x01 : 0x02;
                     break;
                 case 0x0031:
                     if (loc_read)
@@ -878,10 +881,42 @@ ibm_rgb528_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga)
     return temp;
 }
 
+static int
+ibm_rgb528_select_render(const ibm_rgb528_ramdac_t *ramdac, svga_t *svga, int bpp)
+{
+    switch (bpp) {
+        case 4:
+            svga->render = ibm_rgb528_render_4bpp;
+            break;
+        case 8:
+            svga->render = ibm_rgb528_render_8bpp;
+            break;
+        case 15:
+        case 16:
+            svga->render = ibm_rgb528_render_15_16bpp;
+            break;
+        case 24:
+            /* Packed 24 bpp needs a 64 or 128-bit VRAM port. */
+            if (!(ramdac->indexed_data[0x070] & 0x03))
+                return 0;
+            svga->render = ibm_rgb528_render_24bpp;
+            break;
+        case 32:
+            svga->render = ibm_rgb528_render_32bpp;
+            break;
+
+        default:
+            return 0;
+    }
+
+    return 1;
+}
+
 void
 ibm_rgb528_recalctimings(void *priv, svga_t *svga)
 {
     const ibm_rgb528_ramdac_t *ramdac = (ibm_rgb528_ramdac_t *) priv;
+    int                        vga_gfx;
 
     svga->interlace = !!(ramdac->indexed_data[0x071] & 0x20);
     //pclog("MiscClockControl idx002=%02x, SystemClockControl idx008=%02x, Misc2 idx071=%02x, Misc1 idx070=%02x, Misc4 idx073=%02x, bpp=%d.\n",
@@ -930,35 +965,31 @@ ibm_rgb528_recalctimings(void *priv, svga_t *svga)
         }
     }
 
-    if (svga->scrblank || !svga->attr_palette_enable) {
-        if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
-            if (((svga->gdcreg[5] & 0x60) == 0x40) || ((svga->gdcreg[5] & 0x60) == 0x60)) {
-                if (ramdac->indexed_data[0x071] & 0x01) {
-                    switch (svga->bpp) {
-                        case 4:
-                            svga->render = ibm_rgb528_render_4bpp;
-                            break;
-                        case 8:
-                            svga->render = ibm_rgb528_render_8bpp;
-                            break;
-                        case 15:
-                        case 16:
-                            svga->render = ibm_rgb528_render_15_16bpp;
-                            break;
-                        case 24:
-                            svga->render = ibm_rgb528_render_24bpp;
-                            break;
-                        case 32:
-                            svga->render = ibm_rgb528_render_32bpp;
-                            break;
+    /* By default the VRAM pixel port renderers are only used in VGA 256-colour
+       graphics modes. With port_sel_only set, PORT SEL alone decides, as on
+       the real chip. */
+    vga_gfx = (svga->scrblank || !svga->attr_palette_enable) &&
+              ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) &&
+              (((svga->gdcreg[5] & 0x60) == 0x40) || ((svga->gdcreg[5] & 0x60) == 0x60));
 
-                        default:
-                            break;
-                    }
-                }
-            }
-        }
-    }
+    if ((ramdac->port_sel_only || vga_gfx) && (ramdac->indexed_data[0x071] & 0x01))
+        ibm_rgb528_select_render(ramdac, svga, svga->bpp);
+}
+
+/* Use the VRAM pixel port renderer when the RAMDAC is set up for the given
+   pixel size; returns its bits per pixel, or 0 if the caller should keep its
+   own renderer. */
+int
+ibm_rgb528_ramdac_set_render(void *priv, svga_t *svga, int bytes_pp)
+{
+    const ibm_rgb528_ramdac_t *ramdac = (ibm_rgb528_ramdac_t *) priv;
+    int                        bpp    = ibm_rgb528_port_bpp(ramdac);
+
+    if ((bpp < 8) || (((bpp + 7) >> 3) != bytes_pp) || !ibm_rgb528_select_render(ramdac, svga, bpp))
+        return 0;
+
+    svga->bpp = bpp;
+    return bpp;
 }
 
 float
@@ -1006,6 +1037,16 @@ ibm_rgb528_getclock(int clock, void *priv)
     //pclog("PIXCTRL1=%02x, clock=%d, m=%d, df=%d, n=%d, ctrl2=%02x, miscclock=%02x, sysclock=%02x, f_pll=%f.\n",
     //      ramdac->indexed_data[0x010], clock, pll_vco_div_cnt, pll_df, pll_ref_div_cnt, ramdac->indexed_data[0x011], ramdac->indexed_data[0x002], ramdac->indexed_data[0x008], f_pll);
     return f_pll;
+}
+
+/* The PLL output before the DDOTCLK divider, which SCLK is derived from. */
+float
+ibm_rgb528_getclock_pll(int clock, void *priv)
+{
+    const ibm_rgb528_ramdac_t *ramdac    = (ibm_rgb528_ramdac_t *) priv;
+    static const int           ddot_divs[8] = { 1, 2, 4, 8, 16, 1, 1, 1 };
+
+    return ibm_rgb528_getclock(clock, priv) * (float) ddot_divs[(ramdac->indexed_data[0x0002] >> 1) & 0x07];
 }
 
 void
@@ -1123,10 +1164,23 @@ ibm_rgb528_ramdac_set_ref_clock(void *priv, svga_t *svga, float ref_clock)
     svga_recalctimings(svga);
 }
 
+void
+ibm_rgb528_ramdac_set_port_sel_only(void *priv, svga_t *svga, int port_sel_only)
+{
+    ibm_rgb528_ramdac_t *ramdac = (ibm_rgb528_ramdac_t *) priv;
+
+    if (ramdac)
+        ramdac->port_sel_only = !!port_sel_only;
+
+    svga_recalctimings(svga);
+}
+
 void *
-ibm_rgb528_ramdac_init(UNUSED(const device_t *info))
+ibm_rgb528_ramdac_init(const device_t *info)
 {
     ibm_rgb528_ramdac_t *ramdac = (ibm_rgb528_ramdac_t *) calloc(1, sizeof(ibm_rgb528_ramdac_t));
+
+    ramdac->type = info->local;
 
     ramdac->smlc_part            = 0x0100;
     ramdac->ref_clock            = 14318184.0f;
@@ -1152,7 +1206,21 @@ const device_t ibm_rgb528_ramdac_device = {
     .name          = "IBM RGB528 RAMDAC",
     .internal_name = "ibm_rgb528_ramdac",
     .flags         = 0,
-    .local         = 0,
+    .local         = 528,
+    .init          = ibm_rgb528_ramdac_init,
+    .close         = ibm_rgb528_ramdac_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ibm_rgb525_ramdac_device = {
+    .name          = "IBM RGB525 RAMDAC",
+    .internal_name = "ibm_rgb525_ramdac",
+    .flags         = 0,
+    .local         = 525,
     .init          = ibm_rgb528_ramdac_init,
     .close         = ibm_rgb528_ramdac_close,
     .reset         = NULL,

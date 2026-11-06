@@ -166,12 +166,12 @@ dump_block(const char *path, const void *code, int len)
 #    define JHT_WIN64_THUNK 0
 #endif
 #if JHT_WIN64_THUNK
-/* SysV in: rdi=tri rsi=e0 rdx=e1 rcx=e2 xmm0=zline r8d=drow r9d=zrow
-   stack: [rsp+8]=py [rsp+16]=fn.  Win64 out: rcx=tri rdx=e0 r8=e1
-   r9=e2, zline/drow/zrow/py in the callee's [rsp+40..64] above a
-   32-byte shadow, rsp 16-aligned at the call. */
+/* SysV in: rdi=tri rsi=e0 rdx=e1 rcx=e2 r8=zline r9d=drow
+   stack: [rsp+8]=zrow [rsp+16]=py [rsp+24]=fn.  Win64 out: rcx=tri
+   rdx=e0 r8=e1 r9=e2, zline/drow/zrow/py in the callee's [rsp+40..64]
+   above a 32-byte shadow, rsp 16-aligned at the call. */
 uint64_t jht_win64_call(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
-                        int64_t e2, double zline, uint32_t drow,
+                        int64_t e2, int64_t zline, uint32_t drow,
                         uint32_t zrow, int32_t py, r128_jit_span_fn fn)
     __asm__("jht_win64_call");
 __asm__(
@@ -182,18 +182,17 @@ __asm__(
     "  movq  %rsp, %rbp\n"
     "  subq  $64, %rsp\n"          /* 32B shadow + 4 stack args; rsp
                                       was 16-aligned after the push */
-    "  movl  %r8d, %eax\n"         /* drow (before r8 takes e1) */
-    "  movl  %r9d, %r10d\n"        /* zrow (before r9 takes e2) */
+    "  movq  %r8, 32(%rsp)\n"      /* zline -> callee [rsp+40] (before r8 takes e1) */
+    "  movl  %r9d, 40(%rsp)\n"     /* drow  -> callee [rsp+48] (before r9 takes e2) */
+    "  movl  16(%rbp), %eax\n"     /* zrow  (SysV stack arg)   */
+    "  movl  %eax, 48(%rsp)\n"     /* zrow  -> callee [rsp+56] */
+    "  movl  24(%rbp), %eax\n"     /* py    (SysV stack arg)   */
+    "  movl  %eax, 56(%rsp)\n"     /* py    -> callee [rsp+64] */
     "  movq  %rcx, %r9\n"          /* e2  */
     "  movq  %rdx, %r8\n"          /* e1  */
     "  movq  %rsi, %rdx\n"         /* e0  */
     "  movq  %rdi, %rcx\n"         /* tri */
-    "  movsd %xmm0, 32(%rsp)\n"    /* zline -> callee [rsp+40] */
-    "  movl  %eax, 40(%rsp)\n"     /* drow  -> callee [rsp+48] */
-    "  movl  %r10d, 48(%rsp)\n"    /* zrow  -> callee [rsp+56] */
-    "  movl  16(%rbp), %eax\n"     /* py    (SysV stack arg)   */
-    "  movl  %eax, 56(%rsp)\n"     /* py    -> callee [rsp+64] */
-    "  callq *24(%rbp)\n"          /* fn    (SysV stack arg)   */
+    "  callq *32(%rbp)\n"          /* fn    (SysV stack arg)   */
     "  movq  %rbp, %rsp\n"
     "  popq  %rbp\n"
     "  retq\n");
@@ -982,13 +981,13 @@ ref_aux_pass(const rage128_draw_state_t *d, int x, int y)
 
 static uint64_t
 ref_span(const r128_jit_tri_t *t, const rage128_draw_state_t *d,
-         int64_t e0, int64_t e1, int64_t e2, double zline,
+         int64_t e0, int64_t e1, int64_t e2, int64_t zline,
          uint32_t drow, uint32_t zrow, int32_t py)
 {
     int32_t rx0 = -1, rx1 = -1;
 
     for (int32_t px = t->x0; px <= t->x1;
-         px++, e0 += t->e0dxi, e1 += t->e1dxi, e2 += t->e2dxi, zline += t->dZdx) {
+         px++, e0 += t->e0dxi, e1 += t->e1dxi, e2 += t->e2dxi, zline += t->dzx) {
         if (e0 < 0 || e1 < 0 || e2 < 0)
             continue;
         if (d->aux_on && !ref_aux_pass(d, px, py))
@@ -1004,9 +1003,7 @@ ref_span(const r128_jit_tri_t *t, const rage128_draw_state_t *d,
         float w1 = (float) (e1 + t->e1b) * t->invs;
         float w2 = (float) (e2 + t->e2b) * t->invs;
 
-        double zc = zline;
-        if (!(zc > 0.0)) zc = 0.0;
-        if (zc > 1.0) zc = 1.0;
+        uint64_t zc = r128_zfx_clamp(zline);
 
         uint32_t zi = 0;
         uint8_t *zcell = NULL;
@@ -1014,11 +1011,7 @@ ref_span(const r128_jit_tri_t *t, const rage128_draw_state_t *d,
         uint32_t sbuf = 0;
 
         if (d->z_en || d->sten_on) {
-            double zq = zc * (double) d->zmax + 0.5;
-
-            if (zq > (double) d->zmax)
-                zq = (double) d->zmax;
-            zi = (uint32_t) zq;
+            zi = r128_zfx_quant(zc, d->zmax);
             uint32_t zaddr = zrow + (uint32_t) px * d->zbpp;
             if (t->zptr) {
                 uint32_t zoff = zaddr - t->z_base;
@@ -1069,7 +1062,7 @@ ref_span(const r128_jit_tri_t *t, const rage128_draw_state_t *d,
 
             if (d->fog_table_en) {
                 /* sub-entry blend, same split as the interpreter */
-                uint64_t q  = (uint64_t) (zc * 255.0 * 4294967296.0);
+                uint64_t q  = r128_zfx_fogpos(zc);
                 uint32_t i  = (uint32_t) (q >> 32);
                 uint32_t i1 = i < 255 ? i + 1 : i;
                 float    tf = (float) (uint32_t) q * (1.0f / 4294967296.0f);
@@ -1483,7 +1476,7 @@ run_config(uint8_t *code, const rage128_draw_state_t *d, int iters, size_t ci)
         tj.e1dxi = (int64_t) (int32_t) (rng() % 20000) - 10000;
         tj.e2dxi = -(tj.e0dxi + tj.e1dxi);
         tj.invs  = 1.0f / (float) area;
-        tj.dZdx  = ((double) (int32_t) rng() / 4e12);
+        tj.dzx   = r128_zfx((double) (int32_t) rng() / 4e12, R128_ZFX_GRAD_LIM);
         for (int k = 0; k < 4; k++) {
             tj.vca[k] = (float) (rng() & 0xff) / 255.0f;
             tj.vcb[k] = (float) (rng() & 0xff) / 255.0f;
@@ -1614,12 +1607,14 @@ run_config(uint8_t *code, const rage128_draw_state_t *d, int iters, size_t ci)
         int64_t e0 = (int64_t) (rng() % (uint32_t) area) - area / 8;
         int64_t e1 = (int64_t) (rng() % (uint32_t) area) - area / 8;
         int64_t e2 = area - e0 - e1 - (int64_t) (rng() % 4); /* fill-rule bias */
-        double  zl = (double) (int32_t) (rng() % 3000) / 2000.0 - 0.2;
+        int64_t zl = r128_zfx((double) (int32_t) (rng() % 3000) / 2000.0 - 0.2,
+                              R128_ZFX_SEED_LIM);
 
         if (d->fog_en && d->fog_table_en && !d->z_en) {
-            /* Z-off table fog follows the serial double DDA through
-               clamp endpoints, nonfinite inputs and fractional entries.
-               Select fixed probes without changing other states' RNG. */
+            /* Z-off table fog follows the fixed-point depth through
+               clamp endpoints, the conversion's NaN and infinity cases
+               and fractional entries. Select fixed probes without
+               changing other states' RNG. */
             static const double depth[][2] = {
                 { 0.0, 0.125 }, { 1.0, -0.125 },
                 { -0.25, 0.125 }, { 1.25, -0.125 },
@@ -1631,8 +1626,8 @@ run_config(uint8_t *code, const rage128_draw_state_t *d, int iters, size_t ci)
             unsigned probe = (unsigned) it % 16u;
 
             if (probe < sizeof(depth) / sizeof(depth[0])) {
-                zl = depth[probe][0];
-                tj.dZdx = depth[probe][1];
+                zl     = r128_zfx(depth[probe][0], R128_ZFX_SEED_LIM);
+                tj.dzx = r128_zfx(depth[probe][1], R128_ZFX_GRAD_LIM);
             }
         }
 
@@ -1698,15 +1693,15 @@ run_config(uint8_t *code, const rage128_draw_state_t *d, int iters, size_t ci)
             || memcmp(zar_j, zar_r, ARENA_SZ) || memcmp(car_j, car_r, ARENA_SZ)) {
             total_fail++;
             if (total_fail <= 5) {
-                printf("REPLAY e0dxi=%lldLL e1dxi=%lldLL e2dxi=%lldLL invs=%.9g dZdx=%.17g seed=%08x\n"
+                printf("REPLAY e0dxi=%lldLL e1dxi=%lldLL e2dxi=%lldLL invs=%.9g dzx=%lldLL seed=%08x\n"
                        "REPLAY vca={%.9gf,%.9gf,%.9gf,%.9gf} vcb={%.9gf,%.9gf,%.9gf,%.9gf} vcc={%.9gf,%.9gf,%.9gf,%.9gf}\n"
-                       "REPLAY e0=%lldLL e1=%lldLL e2=%lldLL zl=%.17g\n",
+                       "REPLAY e0=%lldLL e1=%lldLL e2=%lldLL zl=%lldLL\n",
                        (long long) tj.e0dxi, (long long) tj.e1dxi, (long long) tj.e2dxi,
-                       tj.invs, tj.dZdx, texseed,
+                       tj.invs, (long long) tj.dzx, texseed,
                        tj.vca[0], tj.vca[1], tj.vca[2], tj.vca[3],
                        tj.vcb[0], tj.vcb[1], tj.vcb[2], tj.vcb[3],
                        tj.vcc[0], tj.vcc[1], tj.vcc[2], tj.vcc[3],
-                       (long long) e0, (long long) e1, (long long) e2, zl);
+                       (long long) e0, (long long) e1, (long long) e2, (long long) zl);
                 printf("MISMATCH case=%zu it=%d py=%d x=[%d..%d] drow=%08x zrow=%08x cbase=%08x clim=%u stc=%d stz=%d auxc=%02x rx jit=%016llx ref=%016llx\n",
                        ci, it, py, tj.x0, tj.x1, drow, zrow, tj.c_base,
                        tj.c_lim, staged_c, staged_z, d->aux_cntl,
@@ -1881,8 +1876,8 @@ fog_nan_vectors(uint8_t *code)
             return -1;
         tr = tj; tr.vram = (uint8_t *) dst_r;
         r128_jit_span_fn fn = (r128_jit_span_fn) (void *) code;
-        uint64_t rj = JHT_SPAN_CALL(fn, &tj, 1, 1, 1, 0.0, 0, 0, 0);
-        uint64_t rr = ref_span(&tr, &d, 1, 1, 1, 0.0, 0, 0, 0);
+        uint64_t rj = JHT_SPAN_CALL(fn, &tj, 1, 1, 1, 0, 0, 0, 0);
+        uint64_t rr = ref_span(&tr, &d, 1, 1, 1, 0, 0, 0, 0);
         int bad = rj != rr || memcmp(dst_j, dst_r, sizeof(dst_j));
 
         total_rows++; total_fail += bad; failures += bad;
@@ -1988,8 +1983,8 @@ bias_vectors(uint8_t *code)
                     tj.fog[k] = 1.0f;
                 }
                 tr = tj; tr.vram = (uint8_t *) dst_r;
-                uint64_t rj = JHT_SPAN_CALL(fn, &tj, e0, e1, e2, 0.0, 0, 0, 0);
-                uint64_t rr = ref_span(&tr, &d, e0, e1, e2, 0.0, 0, 0, 0);
+                uint64_t rj = JHT_SPAN_CALL(fn, &tj, e0, e1, e2, 0, 0, 0, 0);
+                uint64_t rr = ref_span(&tr, &d, e0, e1, e2, 0, 0, 0, 0);
                 int      bad = rj != rr || memcmp(dst_j, dst_r, sizeof(dst_j));
                 uint32_t want = d.bpp == 4 ? 0xffffffffu : 0xffffu;
                 uint32_t got  = d.bpp == 4 ? dst_r[cov]
@@ -2901,7 +2896,7 @@ bench_main(uint8_t *code, uint64_t npx)
         int64_t          area = 1 << 20;
         int64_t          e0 = 1000, e1 = 500000;
         int64_t          e2 = area - e0 - e1 - 1;
-        double           zl = 0.5;
+        int64_t          zl = R128_ZFX_ONE / 2;
         uint32_t         drow = 0x1000, zrow = 0x40000;
 
         memset(&tj, 0, sizeof(tj));
@@ -2913,7 +2908,7 @@ bench_main(uint8_t *code, uint64_t npx)
         tj.e1dxi     = -1200;
         tj.e2dxi     = -1800;
         tj.invs      = 1.0f / (float) area;
-        tj.dZdx      = 1e-6;
+        tj.dzx       = r128_zfx(1e-6, R128_ZFX_GRAD_LIM);
         for (int k = 0; k < 4; k++) {
             tj.vca[k] = 0.9f - 0.1f * (float) k;
             tj.vcb[k] = 0.2f + 0.2f * (float) k;
@@ -3019,7 +3014,7 @@ ct_worker_run(void *arg)
     w->tj.texctx    = &w->tctx;
     while (!atomic_load_explicit(w->stop, memory_order_relaxed)) {
         w->tctx.tta = 0.20f + (float) (row & 31) * 0.02f;
-        w->fn(&w->tj, 1000, 500000, (1 << 20) - 501001, 0.5,
+        w->fn(&w->tj, 1000, 500000, (1 << 20) - 501001, R128_ZFX_ONE / 2,
               row * CT_PITCH, CT_ZBASE + row * CT_PITCH,
               (int32_t) (row & 31));
         row += (uint32_t) w->wcnt;
@@ -3093,7 +3088,7 @@ contend_main(uint8_t *code)
     tj.x1    = s.span - 1;
     tj.e0dxi = 3000; tj.e1dxi = -1200; tj.e2dxi = -1800;
     tj.invs  = 1.0f / (float) (1 << 20);
-    tj.dZdx  = 1e-6;
+    tj.dzx   = r128_zfx(1e-6, R128_ZFX_GRAD_LIM);
     for (int k = 0; k < 4; k++) {
         tj.vca[k] = 0.9f - 0.1f * (float) k;
         tj.vcb[k] = 0.2f + 0.2f * (float) k;
@@ -3108,7 +3103,7 @@ contend_main(uint8_t *code)
     memset(&vram_j[0x40000], 0xff, (size_t) s.span * 4);
     uint64_t rx = ((r128_jit_span_fn) (void *) code)(&tj, 1000, 500000,
                                                      (1 << 20) - 501001,
-                                                     0.5, 0x1000, 0x40000, 0);
+                                                     R128_ZFX_ONE / 2, 0x1000, 0x40000, 0);
     if ((uint32_t) rx != 0 || (uint32_t) (rx >> 32) != (uint32_t) (s.span - 1)) {
         printf("contend: span not fully shaded -- shape bug\n");
         return 2;
@@ -4206,9 +4201,9 @@ persp_vectors(uint8_t *code, int dump)
                             tj.vca[k] = tj.vcb[k] = tj.vcc[k] = 1.0f;
                         tr = tj; tr.vram = dst_r;
                         r128_jit_span_fn fn = (r128_jit_span_fn) (void *) code;
-                        uint64_t rj = JHT_SPAN_CALL(fn, &tj, 2, 1, 1, 0.0, 0, 0, 0);
+                        uint64_t rj = JHT_SPAN_CALL(fn, &tj, 2, 1, 1, 0, 0, 0, 0);
                         g_real_tex = 1;
-                        uint64_t rr = ref_span(&tr, &d, 2, 1, 1, 0.0, 0, 0, 0);
+                        uint64_t rr = ref_span(&tr, &d, 2, 1, 1, 0, 0, 0, 0);
                         g_real_tex = 0;
                         rows++; total_rows++;
                         int bad = rj != rr || memcmp(dst_j, dst_r, sizeof(dst_j));
@@ -4454,7 +4449,7 @@ main(int argc, char **argv)
         { 6, 1, 1, 2, 4, 0xffffff, 0, 0, 0, 0, 0, 0,      0, 0, 0, 0, 0 , 0, 0 },
         { 6, 1, 0, 5, 4, 0xffffff, 8, 0, 0, 0, 0, 0,      0, 0, 0, 0, 0 , 0, 0 },
         { 4, 1, 1, 7, 2, 0xffff, 0, 0, 0, 0, 0, 0,        0, 0, 0, 0, 0 , 0, 0 },
-        { 6, 1, 1, 4, 4, 0xffffffffu, 0, 0, 0, 0, 0, 0,   0, 0, 0, 0, 0 , 0, 0 },
+        { 6, 1, 1, 4, 4, 0xffffff, 0, 0, 0, 0, 0, 0,      0, 0, 0, 0, 0 , 0, 0 },
         { 4, 1, 1, 3, 4, 0xffffff, 0, 0, 0, 0, 0, 0,      0, 0, 0, 0, 0 , 0, 0 },
         { 6, 1, 1, 6, 2, 0xffff, 0, 0, 0, 0, 0, 0,        0, 0, 0, 0, 0 , 0, 0 },
         { 4, 1, 1, 1, 4, 0xffffff, 8, 0, 0, 0, 0, 0,      0, 0, 0, 0, 0 , 0, 0 },
@@ -4601,7 +4596,7 @@ main(int argc, char **argv)
             tj.e1dxi = 0;
             tj.e2dxi = 0;
             tj.invs  = 1.0f / (float) (E0DXI * (int64_t) LW);
-            tj.dZdx  = 0.0;
+            tj.dzx   = 0;
             for (int k = 0; k < 4; k++) {
                 tj.vca[k] = 1.0f;
                 tj.vcb[k] = 0.0f;

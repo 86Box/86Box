@@ -12,7 +12,8 @@ extern "C" {
 #include "x87.h"
 cpu_state_t cpu_state; /* cr0 is its CR0 (cpu.h) */
 fpu_state_t fpu_state;
-int         is486 = 1, new_ne;
+int         is486 = 1;
+cpu_events_t cpu_events;
 int         fpu_ignne, fpu_ferr, fpu_ferr_timing, fpu_type, fpu_softfloat;
 }
 

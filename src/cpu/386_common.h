@@ -103,33 +103,38 @@
         else                                                                                                                \
             *(uint64_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
 
-#    define do_mmut_rb(s, a, b)                                                                       \
-        if (readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF)) \
+/* With paging off and no debug register breakpoint armed, do_mmutranslate()
+   has nothing to do: the _no_mmut accessors only read the addresses it fills
+   in while paging is on. */
+#    define do_mmut_needed() ((cr0 >> 31) || cpu_dr_armed)
+
+#    define do_mmut_rb(s, a, b)                                                                                           \
+        if (do_mmut_needed() && (readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF))) \
         do_mmutranslate((s) + (a), b, 1, 0)
-#    define do_mmut_rw(s, a, b)                                                                                            \
-        if (readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) \
+#    define do_mmut_rw(s, a, b)                                                                                                                  \
+        if (do_mmut_needed() && (readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1))) \
         do_mmutranslate((s) + (a), b, 2, 0)
-#    define do_mmut_rl(s, a, b)                                                                                            \
-        if (readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) \
+#    define do_mmut_rl(s, a, b)                                                                                                                  \
+        if (do_mmut_needed() && (readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3))) \
         do_mmutranslate((s) + (a), b, 4, 0)
-#    define do_mmut_rb2(s, a, b)                                                                       \
-        if (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF)) \
+#    define do_mmut_rb2(s, a, b)                                                                                                       \
+        if (do_mmut_needed() && (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF))) \
         do_mmutranslate((s) + (a), b, 1, 0)
-#    define do_mmut_rw2(s, a, b)                                                                                            \
-        if (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) \
+#    define do_mmut_rw2(s, a, b)                                                                                                                              \
+        if (do_mmut_needed() && (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1))) \
         do_mmutranslate((s) + (a), b, 2, 0)
-#    define do_mmut_rl2(s, a, b)                                                                                            \
-        if (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) \
+#    define do_mmut_rl2(s, a, b)                                                                                                                              \
+        if (do_mmut_needed() && (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3))) \
         do_mmutranslate((s) + (a), b, 4, 0)
 
-#    define do_mmut_wb(s, a, b)                                                                        \
-        if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF)) \
+#    define do_mmut_wb(s, a, b)                                                                                            \
+        if (do_mmut_needed() && (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF))) \
         do_mmutranslate((s) + (a), b, 1, 1)
-#    define do_mmut_ww(s, a, b)                                                                                             \
-        if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) \
+#    define do_mmut_ww(s, a, b)                                                                                                                   \
+        if (do_mmut_needed() && (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1))) \
         do_mmutranslate((s) + (a), b, 2, 1)
-#    define do_mmut_wl(s, a, b)                                                                                             \
-        if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) \
+#    define do_mmut_wl(s, a, b)                                                                                                                   \
+        if (do_mmut_needed() && (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3))) \
         do_mmutranslate((s) + (a), b, 4, 1)
 #endif
 
@@ -542,9 +547,12 @@ fastreadl_fetch(uint32_t a)
 static __inline int
 ea_outside_limit(uint32_t n)
 {
-    const x86seg *s = cpu_state.ea_seg;
+    const x86seg  *s    = cpu_state.ea_seg;
+    /* 64-bit so that an operand ending at or past 0xffffffff is correctly
+       seen as out of range instead of silently wrapping to a low address. */
+    const uint64_t high = (uint64_t) cpu_state.eaaddr + n - 1;
 
-    if ((cpu_state.eaaddr >= s->limit_low) && ((cpu_state.eaaddr + n - 1) <= s->limit_high))
+    if ((cpu_state.eaaddr >= s->limit_low) && (high <= s->limit_high))
         return 0;
     SEG_LIMIT_FAULT(s);
     return 1;
@@ -899,12 +907,15 @@ cpu_cr0_invalid(uint32_t value)
 
     /* On the 6x86 family, NW means Not Write-Back: NW=1 selects
        write-through caching even with CD=0 (94175 and 94329, table 2-4).
-       The 5x86 instead uses NW=1 for write-back (94246, table 5-1).
+       The 5x86 instead uses NW=1 for write-back (94246, table 5-1), and so
+       does the MediaGX (MediaGX MMX data book, Table 3-7).
        Intel's invalid CD/NW combination must not reject either mode. */
     if ((cpu_s->cpu_type == CPU_Cx5x86) ||
         (cpu_s->cpu_type == CPU_Cx6x86) ||
         (cpu_s->cpu_type == CPU_Cx6x86L) ||
-        (cpu_s->cpu_type == CPU_Cx6x86MX))
+        (cpu_s->cpu_type == CPU_Cx6x86MX) ||
+        (cpu_s->cpu_type == CPU_CxGX1) ||
+        (cpu_s->cpu_type == CPU_STPC))
         return 0;
 
     return (cpu_s->cpu_type >= CPU_i486SX) &&

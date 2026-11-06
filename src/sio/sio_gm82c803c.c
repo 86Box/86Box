@@ -34,7 +34,7 @@ typedef struct gm82c803c_t {
     uint8_t   tries;
     uint8_t   has_ide;
     uint8_t   dma_map[4];
-    uint8_t   irq_map[10];
+    uint8_t   irq_map[16];
     uint8_t   regs[256];
     int       cur_reg;
     fdc_t    *fdc;
@@ -116,7 +116,7 @@ set_serial_addr(gm82c803c_t *dev, int port)
     serial_remove(dev->uart[port]);
     if (dev->regs[0xc2] & (0x04 << port)) {
         serial_port = (dev->regs[0xc7 + port] << 2) & 0xfff8;
-        serial_irq  = dev->irq_map[dev->regs[0xcb] >> ((port ^ 1) * 0xff)];
+        serial_irq  = dev->irq_map[(dev->regs[0xcb] >> ((port ^ 1) * 4)) & 0x0f];
 
         serial_setup(dev->uart[port], serial_port, serial_irq);
     }
@@ -223,9 +223,11 @@ gm82c803c_write(uint16_t port, uint8_t val, void *priv)
                 case 0xc7:
                     if (valxor)
                         set_serial_addr(dev, 0);
+                    break;
                 case 0xc8:
                     if (valxor)
                         set_serial_addr(dev, 1);
+                    break;
                 case 0xc9:
                     if (valxor & 0xf0)
                         fdc_handler(dev);

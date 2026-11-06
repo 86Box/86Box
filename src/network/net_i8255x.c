@@ -82,7 +82,6 @@ i8255x_log(const char *fmt, ...)
 
 #define PCI_MEM_SIZE            (4 * 1024)
 #define PCI_IO_SIZE             64
-#define PCI_FLASH_SIZE          (128 * 1024)
 
 #define BITS(n, m) (((0xffffffffU << (31 - n)) >> (31 - n + m)) << m)
 
@@ -225,19 +224,18 @@ typedef struct {
     uint8_t    irq_state;
     uint16_t   io_base;
     uint32_t   mem_base;
-    uint32_t   flash_base;
     uint16_t   pci_device_id;
     uint8_t    pci_revision;
     uint16_t   pci_subsystem_vendor_id;
     uint16_t   pci_subsystem_id;
 
     mem_mapping_t bar_mem;
-    mem_mapping_t bar_flash;
 
     /* Hash register (multicast mask array, multiple individual addresses). */
     uint8_t mult[8];
     netcard_t *nic;
-    uint8_t mac[6];
+    uint8_t mac[6];             /* individual address (IA setup) */
+    uint8_t bia[6];             /* burned-in address (EEPROM) */
     uint8_t scb_stat;           /* SCB stat/ack byte */
     uint8_t int_stat;           /* PCI interrupt status */
     /* region must not be saved. */
@@ -273,6 +271,7 @@ typedef struct {
     uint16_t stats_size;        /* size of the statistical counters dump */
     uint16_t max_stats_size;    /* largest dump this chip supports */
     bool has_extended_tcb_support;
+    const e100_device_info_t *info;
 
     uint32_t link_state;
 } eepro100_t;
@@ -354,6 +353,17 @@ static const e100_device_info_t eepro100_devices[] = {
         .subsystem_vendor_id = 0x8086,
         .subsystem_id = 0x0001,
         .stats_size = 80,
+        .has_extended_tcb_support = true,
+        .power_management = true,
+    },{
+        .name = "i82558b_int",
+        .desc = "Intel i82558B Ethernet (integrated)",
+        .device = i82558B,
+        .device_id = 0x1229,
+        .revision = 0x05,
+        .subsystem_vendor_id = 0x8086,
+        .subsystem_id = 0x0007,
+        .stats_size = 76,
         .has_extended_tcb_support = true,
         .power_management = true,
     }
@@ -587,14 +597,23 @@ stw_le_pci_dma(UNUSED(eepro100_t *s), uint32_t addr, uint16_t val)
     dma_bm_write(addr, (uint8_t *) &val, 2, 2);
 }
 
+static void update_stats_size(eepro100_t *s);
+
+/* Configure command defaults after a software or hardware reset. */
+static const uint8_t eepro100_config_default[22] = {
+    0x16, 0x08, 0x00, 0x00, 0x00, 0x00, 0x32, 0x00,
+    0x01, 0x00, 0x2e, 0x00, 0x60, 0x00, 0xf2, 0xc8,
+    0x00, 0x40, 0xf2, 0x00, 0x3f, 0x05
+};
+
 static void
-nic_selective_reset(eepro100_t *s)
+nic_eeprom_init(eepro100_t *s)
 {
     size_t   i;
     uint16_t sum = 0;
     uint16_t *eeprom_contents = s->eeprom->contents;
 
-    memcpy(eeprom_contents, s->mac, 6);
+    memcpy(eeprom_contents, s->bia, 6);
     eeprom_contents[EEPROM_ID] = EEPROM_ID_VALID;
     if (s->device == i82557B || s->device == i82557C)
         eeprom_contents[5] = 0x0100;
@@ -604,21 +623,54 @@ nic_selective_reset(eepro100_t *s)
     }
     eeprom_contents[EEPROM_SIZE - 1] = 0xbaba - sum;
     i8255x_log("checksum=0x%04x\n", eeprom_contents[EEPROM_SIZE - 1]);
+}
+
+/* Port selective reset: the CU and RU go idle. The CU and RU base, the error
+   counters, the configuration, the IA and the multicast setup are kept. */
+static void
+nic_selective_reset(eepro100_t *s)
+{
+    disable_interrupt(s);
+    s->scb_stat = 0;
 
     memset(s->mem, 0, sizeof(s->mem));
     e100_write_reg4(s, SCBCtrlMDI, BIT(21));
 
-    memcpy(&s->mdimem[0], &eepro100_mdi_default[0], sizeof(s->mdimem));
+    s->cu_offset      = 0;
+    s->cu_offset_hpq  = 0;
+    s->ru_offset      = 0;
+    s->ru_rbd_address = 0xffffffff;
+    s->statsaddr      = 0;
+
+    /* EECS drops with the EEPROM control register, ending any EEPROM access. */
+    s->eeprom->tick = 0;
+    s->eeprom->eecs = 0;
+    s->eeprom->eesk = 0;
+    s->eeprom->eedo = 1;
 }
 
+/* Port software reset: everything except the PCI configuration space and the PHY. */
 static void
 nic_reset(void *opaque)
 {
     eepro100_t *s = opaque;
-    /* TODO: Clearing of hash register for selective reset, too? */
-    memset(&s->mult[0], 0, sizeof(s->mult));
-    s->ru_rbd_address = 0xffffffff;
+
     nic_selective_reset(s);
+
+    /* The IA reverts to the broadcast address and the hash table is cleared. */
+    memset(s->mac, 0xff, sizeof(s->mac));
+    memset(&s->mult[0], 0, sizeof(s->mult));
+
+    memcpy(s->configuration, eepro100_config_default, sizeof(s->configuration));
+    /* FDX# pin enable defaults to on for the 82558 B-step and later. */
+    if (s->device != i82557A && s->device != i82557B &&
+        s->device != i82557C && s->device != i82558A)
+        s->configuration[19] |= BIT(7);
+    update_stats_size(s);
+
+    s->cu_base = 0;
+    s->ru_base = 0;
+    memset(&s->statistics, 0, sizeof(s->statistics));
 }
 
 /* Commands that can be put in a command list entry. */
@@ -1320,7 +1372,8 @@ eepro100_write_mdi(eepro100_t *s)
 #define PORT_SELFTEST           1
 #define PORT_SELECTIVE_RESET    2
 #define PORT_DUMP               3
-#define PORT_SELECTION_MASK     3
+#define PORT_DUMP_WAKEUP        7
+#define PORT_SELECTION_MASK     0xf
 
 typedef struct {
     uint32_t st_sign;           /* Self Test Signature */
@@ -1345,6 +1398,8 @@ eepro100_write_port(eepro100_t *s)
         break;
     case PORT_SELFTEST:
         i8255x_log("selftest address=0x%08x\n", address);
+        /* The self-test runs between an internal selective reset and a full reset. */
+        nic_selective_reset(s);
         {
             eepro100_selftest_t data;
             dma_bm_read(address, (uint8_t *) &data, sizeof(data), 1);
@@ -1352,10 +1407,18 @@ eepro100_write_port(eepro100_t *s)
             data.st_result = 0;
             dma_bm_write(address, (uint8_t *) &data, sizeof(data), 1);
         }
+        nic_reset(s);
         break;
     case PORT_SELECTIVE_RESET:
-        i8255x_log("selective reset, selftest address=0x%08x\n", address);
+        i8255x_log("selective reset\n");
         nic_selective_reset(s);
+        break;
+    case PORT_DUMP_WAKEUP:
+        i8255x_log("dump wake-up packet, address=0x%08x\n", address);
+        /* No wake-up packet is ever stored, so report an empty one. */
+        nic_selective_reset(s);
+        stl_le_pci_dma(s, address + 4, 0);
+        stl_le_pci_dma(s, address, 0xa000);
         break;
     default:
         i8255x_log("val=0x%08x\n", val);
@@ -1594,7 +1657,10 @@ eepro100_write2(eepro100_t *s, uint32_t addr, uint16_t val)
 static void
 eepro100_write4(eepro100_t *s, uint32_t addr, uint32_t val)
 {
-    if (addr <= sizeof(s->mem) - sizeof(val)) {
+    /* SCBStatus, SCBAck, SCBCmd and SCBIntmask have per-byte semantics, so a
+       longword write that covers them must go through the word path instead of
+       being stored verbatim. */
+    if ((addr > SCBIntmask) && (addr <= sizeof(s->mem) - sizeof(val))) {
         e100_write_reg4(s, addr, val);
     }
 
@@ -1617,7 +1683,9 @@ eepro100_write4(eepro100_t *s, uint32_t addr, uint32_t val)
         break;
     default:
         i8255x_log("addr=0x%02x val=0x%08x\n", addr, val);
-        i8255x_log("unknown longword write\n");
+        eepro100_write2(s, addr, (uint16_t) val);
+        eepro100_write2(s, addr + 2, (uint16_t) (val >> 16));
+        break;
     }
 }
 
@@ -1730,65 +1798,6 @@ eepro100_mem_writel(uint32_t addr, uint32_t val, void *priv)
         eepro100_write4(s, addr & (PCI_MEM_SIZE - 1), val);
 }
 
-/* Flash access handlers (aliased to the same registers). */
-
-static uint8_t
-eepro100_flash_readb(uint32_t addr, void *priv)
-{
-    eepro100_t *s = priv;
-
-    if ((addr >= s->flash_base) && (addr < (s->flash_base + PCI_FLASH_SIZE)))
-        return eepro100_read1(s, addr & (PCI_FLASH_SIZE - 1));
-    return 0xff;
-}
-
-static uint16_t
-eepro100_flash_readw(uint32_t addr, void *priv)
-{
-    eepro100_t *s = priv;
-
-    if ((addr >= s->flash_base) && (addr < (s->flash_base + PCI_FLASH_SIZE)))
-        return eepro100_read2(s, addr & (PCI_FLASH_SIZE - 1));
-    return 0xffff;
-}
-
-static uint32_t
-eepro100_flash_readl(uint32_t addr, void *priv)
-{
-    eepro100_t *s = priv;
-
-    if ((addr >= s->flash_base) && (addr < (s->flash_base + PCI_FLASH_SIZE)))
-        return eepro100_read4(s, addr & (PCI_FLASH_SIZE - 1));
-    return 0xffffffff;
-}
-
-static void
-eepro100_flash_writeb(uint32_t addr, uint8_t val, void *priv)
-{
-    eepro100_t *s = priv;
-
-    if ((addr >= s->flash_base) && (addr < (s->flash_base + PCI_FLASH_SIZE)))
-        eepro100_write1(s, addr & (PCI_FLASH_SIZE - 1), val);
-}
-
-static void
-eepro100_flash_writew(uint32_t addr, uint16_t val, void *priv)
-{
-    eepro100_t *s = priv;
-
-    if ((addr >= s->flash_base) && (addr < (s->flash_base + PCI_FLASH_SIZE)))
-        eepro100_write2(s, addr & (PCI_FLASH_SIZE - 1), val);
-}
-
-static void
-eepro100_flash_writel(uint32_t addr, uint32_t val, void *priv)
-{
-    eepro100_t *s = priv;
-
-    if ((addr >= s->flash_base) && (addr < (s->flash_base + PCI_FLASH_SIZE)))
-        eepro100_write4(s, addr & (PCI_FLASH_SIZE - 1), val);
-}
-
 static int
 eepro100_do_receive(void *priv, uint8_t *buf, int size)
 {
@@ -1821,13 +1830,14 @@ eepro100_do_receive(void *priv, uint8_t *buf, int size)
          * Long frames are discarded. */
         i8255x_log("received long frame (%d byte), ignored\n", size);
         return size;
+    } else if (memcmp(buf, broadcast_macaddr, 6) == 0) {
+        /* Broadcast frame. Checked first, since the IA is the broadcast
+         * address after a reset until the IA setup command. */
+        i8255x_log("received broadcast, len=%d\n", size);
+        rfd_status |= 0x0002;
     } else if (memcmp(buf, s->mac, 6) == 0) {       /* !!! */
         /* Frame matches individual address. */
         i8255x_log("received frame for me, len=%d\n", size);
-    } else if (memcmp(buf, broadcast_macaddr, 6) == 0) {
-        /* Broadcast frame. */
-        i8255x_log("received broadcast, len=%d\n", size);
-        rfd_status |= 0x0002;
     } else if (buf[0] & 0x01) {
         /* Multicast frame. */
         i8255x_log("received multicast, len=%d\n", size);
@@ -1865,12 +1875,13 @@ eepro100_do_receive(void *priv, uint8_t *buf, int size)
     }
 
     if (get_ru_state(s) != ru_ready) {
-        /* No resources available. */
+        /* The RU discards frames when it isn't ready. RNR was already raised
+         * when it left the ready state, and only frames discarded in the
+         * no resources state are counted. */
         i8255x_log("no resources, state=%u\n", get_ru_state(s));
-        /* TODO: RNR interrupt only at first failed frame? */
-        eepro100_rnr_interrupt(s);
-        s->statistics.rx_resource_errors++;
-        return 0;
+        if (get_ru_state(s) == ru_no_resources)
+            s->statistics.rx_resource_errors++;
+        return size;
     }
     eepro100_rx_t rx;
     dma_bm_read(s->ru_base + s->ru_offset,
@@ -1979,7 +1990,7 @@ eepro100_set_link_status(void *priv, uint32_t link_state)
 }
 
 static void
-e100_pci_reset(eepro100_t *s, e100_device_info_t *info)
+e100_pci_reset(eepro100_t *s, const e100_device_info_t *info)
 {
     uint32_t device = s->device;
     uint8_t *pci_conf = s->pci_conf;
@@ -2018,13 +2029,6 @@ e100_pci_reset(eepro100_t *s, e100_device_info_t *info)
     default:
         i8255x_log("Device %X is undefined!\n", device);
     }
-
-    /* Standard TxCB. */
-    s->configuration[6] |= BIT(4);
-
-    /* Standard statistical counters. */
-    s->configuration[6] |= BIT(5);
-    update_stats_size(s);
 
     if (info->power_management) {
         /* Power Management Capabilities */
@@ -2090,16 +2094,8 @@ eepro100_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
             return s->pci_conf[addr & 0xFF] & 0xf0;
         case 0x14:
             return (s->pci_conf[addr & 0xFF] & 0xc0) | 0x01;
-        case 0x18:
-            return 0;
-        case 0x19:
-            return 0;
-        case 0x1a:
-            return s->pci_conf[addr & 0xFF] & 0xfe;
-        case 0x1b:
-            return s->pci_conf[addr & 0xFF];
-        case 0x1c ... 0x27:
-            return 0;   /* BARs 3-5 do not exist on the 8255x */
+        case 0x18 ... 0x27:
+            return 0;   /* BARs 2-5 do not exist on the 8255x */
         case 0x30 ... 0x33:
             return 0;   /* No expansion ROM */
         case 0x2c:
@@ -2133,7 +2129,6 @@ eepro100_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, voi
                              eepro100_io_writeb, eepro100_io_writew, eepro100_io_writel,
                              priv);
             mem_mapping_disable(&s->bar_mem);
-            mem_mapping_disable(&s->bar_flash);
             s->pci_conf[addr & 0xFF] = val;
             if ((val & PCI_COMMAND_IO) && s->io_base)
                 io_sethandler(s->io_base, PCI_IO_SIZE,
@@ -2144,8 +2139,6 @@ eepro100_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, voi
                        ((val & PCI_COMMAND_IO) && s->io_base) ? "handler SET" : "handler NOT set");
             if ((val & PCI_COMMAND_MEM) && s->bar_mem.size && s->mem_base)
                 mem_mapping_enable(&s->bar_mem);
-            if ((val & PCI_COMMAND_MEM) && s->bar_flash.size && s->flash_base)
-                mem_mapping_enable(&s->bar_flash);
             break;
         case 0x05:
             s->pci_conf[addr & 0xFF] = val & 1;
@@ -2203,27 +2196,12 @@ eepro100_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, voi
                 i8255x_log("io handler SKIPPED (cmd IO=0)\n");
             }
             break;
-        case 0x18:
-        case 0x19:
-        case 0x1a:
-        case 0x1b:
-            mem_mapping_disable(&s->bar_flash);
-            s->pci_conf[addr & 0xFF] = val;
-            s->flash_base = (s->pci_conf[0x1b] << 24) | (s->pci_conf[0x1a] << 16) |
-                            (s->pci_conf[0x19] << 8) | s->pci_conf[0x18];
-            s->flash_base &= 0xfffe0000;
-            if (s->flash_base != 0) {
-                mem_mapping_set_addr(&s->bar_flash, s->flash_base, PCI_FLASH_SIZE);
-                if (!(s->pci_conf[0x04] & PCI_COMMAND_MEM))
-                    mem_mapping_disable(&s->bar_flash);
-            }
-            break;
         case 0x2c:
         case 0x2d:
         case 0x2e:
         case 0x2f:
             break;   /* Subsystem ID registers are read-only */
-        case 0x1c ... 0x27:
+        case 0x18 ... 0x27:
         case 0x30 ... 0x33:
             break;   /* Non-existent BARs and expansion ROM */
         case 0x3c:
@@ -2244,7 +2222,7 @@ nic_init_pci(eepro100_t *s)
     pci_conf[0x01] = 0x80;
     pci_conf[0x02] = (s->pci_device_id) & 0xff;
     pci_conf[0x03] = (s->pci_device_id) >> 8;
-    pci_conf[0x04] = 0x07; /* command: IO, memory, bus master */
+    pci_conf[0x04] = 0x00; /* command: all decoders off until configured */
     pci_conf[0x06] = 0x80;
     pci_conf[0x07] = 0x02; /* status */
     pci_conf[0x08] = s->pci_revision; /* revision */
@@ -2319,7 +2297,8 @@ nic_init(const device_t *info)
         mac_bytes[5] = (mac & 0xff);
     }
 
-    memcpy(s->mac, mac_bytes, 6);
+    memcpy(s->bia, mac_bytes, 6);
+    nic_eeprom_init(s);
 
     mem_mapping_add(&s->bar_mem, 0, 0,
                     eepro100_mem_readb, eepro100_mem_readw, eepro100_mem_readl,
@@ -2327,16 +2306,12 @@ nic_init(const device_t *info)
                     NULL, MEM_MAPPING_EXTERNAL, s);
     mem_mapping_disable(&s->bar_mem);
 
-    mem_mapping_add(&s->bar_flash, 0, 0,
-                    eepro100_flash_readb, eepro100_flash_readw, eepro100_flash_readl,
-                    eepro100_flash_writeb, eepro100_flash_writew, eepro100_flash_writel,
-                    NULL, MEM_MAPPING_EXTERNAL, s);
-    mem_mapping_disable(&s->bar_flash);
-
+    s->info = device_info;
     nic_init_pci(s);
-    e100_pci_reset(s, (e100_device_info_t *) device_info);
+    e100_pci_reset(s, device_info);
+    memcpy(&s->mdimem[0], &eepro100_mdi_default[0], sizeof(s->mdimem));
 
-    s->nic = network_attach(s, s->mac, eepro100_do_receive, eepro100_set_link_status);
+    s->nic = network_attach(s, s->bia, eepro100_do_receive, eepro100_set_link_status);
     s->nic->byte_period = NET_PERIOD_100M;
     pci_add_card((info->local & 0x0100) ? PCI_ADD_NETWORK : PCI_ADD_NORMAL,
                  eepro100_pci_read, eepro100_pci_write, s, &s->pci_slot);
@@ -2350,14 +2325,31 @@ nic_close(void *priv)
 {
     eepro100_t *s = priv;
 
+    netcard_close(s->nic);
+
     free(s->eeprom);
     free(s);
 }
 
+/* Hardware reset (RST#): also resets the PCI configuration space and the PHY. */
 static void
 eepro100_reset(void *priv)
 {
     eepro100_t *s = priv;
+
+    io_removehandler(s->io_base, PCI_IO_SIZE,
+                     eepro100_io_readb, eepro100_io_readw, eepro100_io_readl,
+                     eepro100_io_writeb, eepro100_io_writew, eepro100_io_writel,
+                     s);
+    mem_mapping_disable(&s->bar_mem);
+    s->io_base  = 0;
+    s->mem_base = 0;
+
+    memset(s->pci_conf, 0, sizeof(s->pci_conf));
+    nic_init_pci(s);
+    e100_pci_reset(s, s->info);
+
+    memcpy(&s->mdimem[0], &eepro100_mdi_default[0], sizeof(s->mdimem));
 
     nic_reset(s);
 }
@@ -2545,7 +2537,7 @@ const device_t i82558b_onboard_device = {
     .name          = "Intel SB82558B (On-Board)",
     .internal_name = "i82558b_onboard",
     .flags         = DEVICE_PCI,
-    .local         = 0x0002 | 0x0100,
+    .local         = 0x0007 | 0x0100,
     .init          = nic_init,
     .close         = nic_close,
     .reset         = eepro100_reset,

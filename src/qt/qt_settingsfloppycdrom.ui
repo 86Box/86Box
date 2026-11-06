@@ -208,23 +208,10 @@
             </property>
            </widget>
           </item>
-          <item row="0" column="4">
-           <widget class="QLabel" name="labelSpeed">
+          <item row="0" column="4" colspan="2">
+           <widget class="QCheckBox" name="checkBoxUnlimitedCapacity">
             <property name="text">
-             <string>Speed:</string>
-            </property>
-           </widget>
-          </item>
-          <item row="0" column="5">
-           <widget class="QComboBox" name="comboBoxSpeed">
-            <property name="maxVisibleItems">
-             <number>30</number>
-            </property>
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
+             <string>Unlimited capacity</string>
             </property>
            </widget>
           </item>
@@ -255,6 +242,56 @@
             </property>
            </widget>
           </item>
+          <item row="2" column="0" colspan="6">
+           <layout class="QHBoxLayout" name="speedLayout">
+            <property name="spacing">
+             <number>6</number>
+            </property>
+            <item>
+             <widget class="QLabel" name="labelCDSpeed">
+              <property name="text">
+               <string>CD speed:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="comboBoxCDSpeed"/>
+            </item>
+            <item>
+             <widget class="QLabel" name="labelDVDSpeed">
+              <property name="text">
+               <string>DVD speed:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="comboBoxDVDSpeed"/>
+            </item>
+            <item>
+             <widget class="QLabel" name="labelHDBDSpeed">
+              <property name="text">
+               <string>HD/BD speed:</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QComboBox" name="comboBoxHDBDSpeed"/>
+            </item>
+            <item>
+             <spacer name="speedSpacer">
+              <property name="orientation">
+               <enum>Qt::Horizontal</enum>
+              </property>
+              <property name="sizeHint" stdset="0">
+               <size>
+                <width>0</width>
+                <height>0</height>
+               </size>
+              </property>
+             </spacer>
+            </item>
+           </layout>
+          </item>
          </layout>
         </widget>
        </item>
@@ -275,7 +312,6 @@
   <tabstop>treeViewCDROM</tabstop>
   <tabstop>comboBoxBus</tabstop>
   <tabstop>comboBoxChannel</tabstop>
-  <tabstop>comboBoxSpeed</tabstop>
   <tabstop>comboBoxCDROMType</tabstop>
  </tabstops>
  <resources/>

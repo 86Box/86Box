@@ -312,7 +312,8 @@ spd_register(uint8_t ram_type, uint8_t slot_mask, uint16_t max_module_size)
                 sdram_data->ca_setup = sdram_data->data_setup = 0x15;
                 sdram_data->ca_hold = sdram_data->data_hold = 0x08;
 
-                if (machines[machine].init == machine_at_rc440bx_init) {
+                if ((machines[machine].init == machine_at_rc440bx_init) ||
+                    (machines[machine].init == machine_at_borapro_init)) {
                     /* The P08 (Gateway) BIOS only accepts modules whose highest
                        CAS latency is 3, as on real PC100/PC133 modules. */
                     sdram_data->cas   = 0x06; /* CAS 3/2 supported */

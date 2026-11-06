@@ -122,6 +122,7 @@ static mouse_t mouse_devices[] = {
     { &mouse_msserial_ballpoint_device },
     { &mouse_ltserial_device           },
     { &mouse_ps2_device                },
+    { &mouse_usb_device                },
 #ifdef USE_STANDALONE_QUICKPORT
     { &mouse_upc_standalone_device     },
 #endif
@@ -140,6 +141,7 @@ static mouse_t tablet_devices[] = {
     { &mouse_ibm7690_touch_device        },
     { &mouse_cga_lightpen_device        },
     { &mouse_pxl_380_device             },
+    { &tablet_usb_device                },
     { NULL                              }
 };
 

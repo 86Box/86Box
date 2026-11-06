@@ -1596,7 +1596,7 @@ const device_t dp83815_device = {
 };
 
 const device_t dp83815_onboard_device = {
-    .name          = "National Semiconductor DP83815/16 (Onboard)",
+    .name          = "National Semiconductor DP83815/16 (On-Board)",
     .internal_name = "dp83815_onboard",
     .flags         = DEVICE_PCI,
     .local         = 0x8000,

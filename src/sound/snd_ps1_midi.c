@@ -43,17 +43,19 @@ static int
 ps1midi_in_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
 {
     ps1midi_t *ps1midi = priv;
+    uint32_t   i;
 
-    for (int i = 0; i < len; i++) {
-        //ps1midi->buffer[ps1midi->pos++] = buffer[i];
+    for (i = 0; i < len; i++) {
+        if (fifo8_is_full(&ps1midi->fifo))
+            break;
         fifo8_push(&ps1midi->fifo, buffer[i]);
         ps1midi->fifo_used++;
     }
-    if ((ps1midi->ctrl & 1)) {
+    if ((i > 0) && (ps1midi->ctrl & 1)) {
         ps1midi->irq_pend = 1;
         picint(1 << 7);
     }
-    return 0;
+    return len - i;
 }
 
 static int
@@ -87,7 +89,7 @@ ps1midi_read(uint16_t addr, void *priv)
     switch (addr & 0x7) {
         case 0:
             if (ps1midi->fifo_used > 0)
-                ps1midi->fifo_used++;
+                ps1midi->fifo_used--;
             return fifo8_pop(&ps1midi->fifo);
         case 1:
             return ps1midi->ctrl;

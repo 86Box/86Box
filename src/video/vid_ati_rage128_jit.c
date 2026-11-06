@@ -554,7 +554,7 @@ r128_jit_vrow_copy(const r128_jit_tri_t *tri, int is_z, uint32_t rowbase,
 int
 rage128_jit_verify_pre(rage128_t *dev, r128_jit_tri_t *tri,
                        const rage128_draw_state_t *ds, r128_jit_span_fn fn,
-                       int64_t e0, int64_t e1, int64_t e2, double zline,
+                       int64_t e0, int64_t e1, int64_t e2, int64_t zline,
                        uint32_t drow, uint32_t zrow, int32_t py,
                        int c_tld, int z_tld)
 {

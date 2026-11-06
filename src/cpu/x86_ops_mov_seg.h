@@ -192,6 +192,14 @@ opMOV_seg_w_a16(uint32_t fetchdat)
             op_loadseg(new_seg, &cpu_state.seg_ss);
             if (cpu_state.abrt)
                 return 1;
+#if defined(USE_DYNAREC) && !defined(IS_DYNAREC) && !defined(OPS_286_386)
+            /* The recompiler compiled this MOV SS as the first of a pair
+               (codegen_mov_ss_pair_valid, codegen_mov_ss_pair_pc): the next
+               instruction is compiled into the block too, before it runs
+               below. The mark moves on to it. */
+            if (codegen_in_recompile && codegen_mov_ss_pair_valid && (codegen_mov_ss_pair_pc == cs + cpu_state.oldpc))
+                codegen_mov_ss_pair_pc = cs + cpu_state.pc;
+#endif
             cpu_state.oldpc  = cpu_state.pc;
             cpu_state.op32   = use32;
             cpu_state.ssegs  = 0;
@@ -200,6 +208,12 @@ opMOV_seg_w_a16(uint32_t fetchdat)
             cpu_state.pc++;
             if (cpu_state.abrt)
                 return 1;
+#if defined(USE_DYNAREC) && !defined(IS_DYNAREC) && !defined(OPS_286_386)
+            if (codegen_in_recompile && codegen_mov_ss_pair_valid && (codegen_mov_ss_pair_pc == cs + cpu_state.oldpc)) {
+                codegen_generate_call(fetchdat & 0xff, x86_opcodes[(fetchdat & 0xff) | cpu_state.op32], fetchdat >> 8, cpu_state.pc, cpu_state.pc - 1);
+                codegen_block_version_check_ins(cs + cpu_state.oldpc);
+            }
+#endif
 #ifdef OPS_286_386
             x86_2386_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
 #else
@@ -242,6 +256,14 @@ opMOV_seg_w_a32(uint32_t fetchdat)
             op_loadseg(new_seg, &cpu_state.seg_ss);
             if (cpu_state.abrt)
                 return 1;
+#if defined(USE_DYNAREC) && !defined(IS_DYNAREC) && !defined(OPS_286_386)
+            /* The recompiler compiled this MOV SS as the first of a pair
+               (codegen_mov_ss_pair_valid, codegen_mov_ss_pair_pc): the next
+               instruction is compiled into the block too, before it runs
+               below. The mark moves on to it. */
+            if (codegen_in_recompile && codegen_mov_ss_pair_valid && (codegen_mov_ss_pair_pc == cs + cpu_state.oldpc))
+                codegen_mov_ss_pair_pc = cs + cpu_state.pc;
+#endif
             cpu_state.oldpc  = cpu_state.pc;
             cpu_state.op32   = use32;
             cpu_state.ssegs  = 0;
@@ -250,6 +272,12 @@ opMOV_seg_w_a32(uint32_t fetchdat)
             cpu_state.pc++;
             if (cpu_state.abrt)
                 return 1;
+#if defined(USE_DYNAREC) && !defined(IS_DYNAREC) && !defined(OPS_286_386)
+            if (codegen_in_recompile && codegen_mov_ss_pair_valid && (codegen_mov_ss_pair_pc == cs + cpu_state.oldpc)) {
+                codegen_generate_call(fetchdat & 0xff, x86_opcodes[(fetchdat & 0xff) | cpu_state.op32], fetchdat >> 8, cpu_state.pc, cpu_state.pc - 1);
+                codegen_block_version_check_ins(cs + cpu_state.oldpc);
+            }
+#endif
 #ifdef OPS_286_386
             x86_2386_opcodes[(fetchdat & 0xff) | cpu_state.op32](fetchdat >> 8);
 #else

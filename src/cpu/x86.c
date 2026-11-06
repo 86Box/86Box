@@ -65,8 +65,6 @@ uint64_t xt_cpu_multi;
 int nmi            = 0;
 int nmi_auto_clear = 0;
 
-/* Was the CPU ever reset? */
-int x86_was_reset  = 0;
 int soft_reset_pci = 0;
 
 /* Is the TRAP flag on? */
@@ -235,6 +233,10 @@ makeznptable(void)
 }
 
 extern void codegen_set_rounding_mode(int mode); /* x87.h */
+/* The board's processor reset: the MP table hook looks afresh (ioapic.c). */
+extern void ioapic_processor_reset(void);
+/* The processor's RESET or INIT pin resets its local APIC (lapic.c). */
+extern void lapic_index_board_reset(uint8_t index);
 
 /* A soft reset on a processor with an INIT pin: what INIT keeps rather
    than what RESET sets (Pentium Vol. 3, Table 16-1; 16.2: the INIT pin
@@ -278,6 +280,10 @@ reset_common(int hard)
             return;
     }
 
+    /* The BIOS's POST runs again, and builds its MP table again, perhaps
+       elsewhere. */
+    ioapic_processor_reset();
+
     /* Make sure to gracefully leave SMM. */
     if (in_smm)
         leave_smm();
@@ -315,6 +321,12 @@ reset_common(int hard)
     /* FOP: INIT leaves the FPU as it was (Pentium Vol. 3, 16.2). */
     if (!reset_init)
         x87_op = 0;
+    /* A soft reset leaves the FPU as it was where the processor's book says
+       so (cpu_soft_reset_keeps_fpu); otherwise, and on RESET, the soft FPU
+       takes its reset state, except on the P54C, P55C and P6 family, whose
+       INIT keeps it. */
+    if (fpu_softfloat && !cpu_init_keeps_state() && (hard || !cpu_soft_reset_keeps_fpu()))
+        SF_FPU_reset();
     /* RESET's FPU, where the soft FPU (SF_FPU_reset) does not hold it:
        control word 0040H, status 0, every tag "zero" -- 5555H -- with the
        registers zero (Pentium Vol. 1, Table 3-2). */
@@ -336,6 +348,8 @@ reset_common(int hard)
     ccr4 = 0x85;
     cyrix.arr[3].base = 0x30000;
     cyrix.arr[3].size = 65536;
+    if (is_gxm)
+        cpu_gxm_reset();
 
     if (reset_init)
         /* INIT leaves CD and NW, and sets ET (Pentium Vol. 3, Table 16-1,
@@ -383,7 +397,7 @@ reset_common(int hard)
         cpu_state.pc = 0xFFF0;
         if (hard) {
             rammask = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
-            if (is6117)
+            if (is6117 || is386ex)
                 rammask |= 0x3000000;
             mem_a20_key = mem_a20_alt = mem_a20_state = 0;
             /* NEC PC-9801VX reset starts in its 20-bit compatibility address
@@ -432,10 +446,11 @@ reset_common(int hard)
         cpu_set_edx();
     }
     x86seg_reset();
+    cpu_update_64k_status();
 #ifdef USE_DYNAREC
     /* The data segments come out of reset with a 64K limit: not flat, so
        the recompiler keeps their limit checks */
-    cpu_cur_status |= CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTFLATSS | CPU_STATUS_NOTFLATES;
+    cpu_cur_status |= CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTFLATSS | CPU_STATUS_NOTFLATES | CPU_STATUS_NOTWIDEDS | CPU_STATUS_NOTWIDESS;
 #endif
 #ifdef USE_DYNAREC
     if (hard)
@@ -455,11 +470,17 @@ reset_common(int hard)
         /* RESET empties the caches too. */
         cpu_car_invalidate();
     }
+    /* The local APIC goes through INIT at the INIT pin, and after RESET's
+       vendor reset as well, which sets its registers but not what it holds
+       beside them. */
+    lapic_index_board_reset(0);
 
     in_smm = smi_latched = 0;
     /* Out of any HLT: the block end must not step past the reset vector's
        first byte (386_dynarec.c). */
     cpu_halted = 0;
+    /* RESET and INIT are break events of the clock control. */
+    cpu_stpclk = 0;
     smi_line = smm_in_hlt = 0;
     smi_block             = 0;
 

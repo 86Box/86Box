@@ -97,10 +97,15 @@ typedef struct sis6306_3d_prepared_t {
     int blend_en;
     int tex_en;
     int persp_en;
+    int tex_transparency_en;
+    uint32_t tex_key_low;
+    uint32_t tex_key_high;
 
     unsigned tex_fmt;
     unsigned tex_min;
     int tex_mag_linear;
+    int tex_wrap_u;
+    int tex_wrap_v;
     unsigned tex_blend;
     unsigned tex_alpha_blend;
     unsigned blend_dst;
@@ -262,6 +267,12 @@ typedef struct sis6306_zwatch_t {
 
 typedef struct sis6306_t {
     svga_t svga;
+    uint8_t gamma_lut[256][3];
+    uint8_t gamma_pending[256][3];
+    uint16_t gamma_next_index;
+    uint8_t gamma_collecting;
+    uint8_t gamma_has_8bit_data;
+    uint8_t gamma_active;
     uint8_t pci_slot;
     uint8_t pci_command;
     uint8_t irq_line;
@@ -1191,11 +1202,238 @@ sis6306_packed_scanout_unsafe(svga_t *svga)
     return unsafe;
 }
 
+static uint32_t
+sis6306_gamma_rgb(const sis6306_t *dev, uint32_t rgb)
+{
+    const uint8_t (*lut)[3] = dev->gamma_lut;
+
+    return (rgb & 0xff000000U) |
+           ((uint32_t) lut[(rgb >> 16) & 0xff][0] << 16) |
+           ((uint32_t) lut[(rgb >> 8) & 0xff][1] << 8) |
+           ((uint32_t) lut[rgb & 0xff][2]);
+}
+
+static uint32_t
+sis6306_gamma_conv_16to32(svga_t *svga, uint16_t color, uint8_t bpp)
+{
+    sis6306_t *dev = (sis6306_t *) svga->priv;
+    const uint32_t rgb = (bpp == 15) ? video_15to32[color] : video_16to32[color];
+
+    return dev->gamma_active ? sis6306_gamma_rgb(dev, rgb) : rgb;
+}
+
+static int
+sis6306_gamma_scanline_dirty(svga_t *svga)
+{
+    const uint32_t addr = svga->force_old_addr ? svga->memaddr :
+                          svga->remap_func(svga, svga->memaddr);
+    const uint32_t page = addr >> 12;
+
+    return !!svga->fullchange || !!svga->changedvram[page] ||
+           !!svga->changedvram[page + 1] ||
+           (svga->force_old_addr && svga->bpp == 32 &&
+            !!svga->changedvram[page + 2]);
+}
+
+static inline unsigned
+sis6306_overlay_clamp8(int value)
+{
+    return (unsigned) ((value < 0) ? 0 : ((value > 255) ? 255 : value));
+}
+
+static uint32_t
+sis6306_overlay_yuv_to_rgb(uint8_t y, uint8_t u, uint8_t v)
+{
+    /* CCIR-601 limited-range YUV, with rounding to nearest integer. */
+    const int luma = 298 * ((int) y - 16);
+    const int cb   = (int) u - 128;
+    const int cr   = (int) v - 128;
+    const unsigned r = sis6306_overlay_clamp8((luma + 409 * cr + 128) >> 8);
+    const unsigned g = sis6306_overlay_clamp8((luma - 100 * cb - 208 * cr + 128) >> 8);
+    const unsigned b = sis6306_overlay_clamp8((luma + 516 * cb + 128) >> 8);
+
+    return (r << 16) | (g << 8) | b;
+}
+
+static uint32_t
+sis6306_overlay_uv_base(const uint8_t *cr, int v_plane)
+{
+    const uint32_t dword_address = v_plane ?
+        ((uint32_t) cr[0xba] | ((uint32_t) cr[0xbb] << 8) |
+         ((uint32_t) (cr[0xb9] >> 4) << 16) |
+         ((uint32_t) (cr[0xbe] & 0x04) << 18)) :
+        ((uint32_t) cr[0xb7] | ((uint32_t) cr[0xb8] << 8) |
+         ((uint32_t) (cr[0xb9] & 0x0f) << 16) |
+         ((uint32_t) (cr[0xbe] & 0x02) << 19));
+
+    return dword_address << 2;
+}
+
+static void
+sis6306_overlay_scanline(svga_t *svga)
+{
+    sis6306_t *dev = (sis6306_t *) svga->priv;
+    const uint8_t *cr = dev->ext_crtc;
+    bitmap_t *dst = svga->monitor->target_buffer;
+    const int y = svga->displine;
+    const int xstart = (int) cr[0x81] | ((int) (cr[0x83] & 7) << 8);
+    const int xend   = (int) cr[0x82] | ((int) ((cr[0x83] >> 4) & 7) << 8);
+    const int ystart = (int) cr[0x84] | ((int) (cr[0x86] & 7) << 8);
+    const int yend   = (int) cr[0x85] | ((int) ((cr[0x86] >> 4) & 7) << 8);
+    /* CR8C/CR8E specify scanline pitch in 32-bit doublewords. */
+    const uint32_t stride_dwords = (uint32_t) cr[0x8c] | ((uint32_t) (cr[0x8e] & 15) << 8);
+    const uint32_t stride = stride_dwords << 2;
+    const int planar_yuv420 = !!((cr[0x98] & 0x40) && (cr[0xb6] & 0x04));
+    const uint32_t uv_stride = (((uint32_t) cr[0xbc] |
+                                ((uint32_t) (cr[0xbd] & 15) << 8)) << 2);
+    /* CR89[7:3] contains address[20:16], not CR89[3:0]. */
+    const uint32_t fb_addr = ((((uint32_t) cr[0x89] >> 3) << 16) |
+                              ((uint32_t) cr[0x8b] << 8) | cr[0x8a]) << 2;
+    const int hfactor = ((int) (cr[0x94] & 15) << 6) | (cr[0x92] & 63);
+    const int vfactor = (cr[0x93] & 63) ? (cr[0x93] & 63) : 64;
+    const int format = (cr[0x93] >> 6) & 3;
+    int left, right;
+
+    if (!(cr[0x98] & 2) || ((cr[0xa9] & 15) != 15) || !dst || !dst->dat ||
+        !svga->vram || !stride || (planar_yuv420 && !uv_stride) ||
+        !hfactor || xend <= xstart ||
+        yend <= ystart || y < ystart || y >= yend ||
+        y + svga->y_add < 0 || y + svga->y_add >= dst->h)
+        return;
+
+    left  = (xstart > 0) ? xstart : 0;
+    right = (xend < svga->hdisp) ? xend : svga->hdisp;
+    if (left + svga->x_add < 0)
+        left = -svga->x_add;
+    if (right + svga->x_add > dst->w)
+        right = dst->w - svga->x_add;
+    if (left >= right)
+        return;
+
+    /* CR93[5:0] is a six-bit (1/64) vertical scale factor. Advance in
+     * whole source rows; fractional byte offsets skew packed YUV pairs. */
+    const uint32_t src_y = (uint32_t) (((uint64_t) (y - ystart) * vfactor) >> 6);
+    const uint64_t base = (uint64_t) fb_addr + (uint64_t) src_y * stride;
+    const uint64_t uv_row = (uint64_t) (src_y >> 1) * uv_stride;
+    const uint64_t u_base = planar_yuv420 ?
+                            (uint64_t) sis6306_overlay_uv_base(cr, 0) + uv_row : 0;
+    const uint64_t v_base = planar_yuv420 ?
+                            (uint64_t) sis6306_overlay_uv_base(cr, 1) + uv_row : 0;
+    uint32_t *pixels = dst->line[y + svga->y_add];
+    if (!pixels)
+        return;
+
+    for (int x = left; x < right; x++) {
+        const uint32_t src_x = (uint32_t) (((uint64_t) (x - xstart) * hfactor) >> 6);
+        uint32_t rgb;
+
+        if (planar_yuv420) {
+            const uint32_t luma_x = (src_x < stride) ? src_x : (stride - 1);
+            const uint32_t chroma_x = ((luma_x >> 1) < uv_stride) ?
+                                      (luma_x >> 1) : (uv_stride - 1);
+            const uint64_t y_addr = base + luma_x;
+            const uint64_t u_addr = u_base + chroma_x;
+            const uint64_t v_addr = v_base + chroma_x;
+
+            if (y_addr >= svga->vram_max || u_addr >= svga->vram_max ||
+                v_addr >= svga->vram_max)
+                continue;
+
+            rgb = sis6306_overlay_yuv_to_rgb(svga->vram[(size_t) y_addr],
+                                             svga->vram[(size_t) u_addr],
+                                             svga->vram[(size_t) v_addr]);
+        } else if (cr[0x98] & 0x40) {
+            /* Four consecutive bytes encode two packed YUV422 pixels. */
+            const uint32_t src_x_clamped = (stride > 3) ?
+                                           ((src_x < (stride >> 1)) ? src_x : ((stride >> 1) - 1)) : 0;
+            const uint64_t addr = base + ((uint64_t) (src_x_clamped >> 1) << 2);
+            if (addr + 3 >= svga->vram_max)
+                continue;
+            const uint8_t *sample = svga->vram + (size_t) addr;
+            uint8_t yy, uu, vv;
+            switch (format) {
+                case 0: /* UYVY */
+                    uu = sample[0]; vv = sample[2];
+                    yy = sample[(src_x_clamped & 1) ? 3 : 1];
+                    break;
+                case 1: /* VYUY */
+                    vv = sample[0]; uu = sample[2];
+                    yy = sample[(src_x_clamped & 1) ? 3 : 1];
+                    break;
+                case 2: /* YUYV -- observed during Win98 MPEG playback */
+                    yy = sample[(src_x_clamped & 1) ? 2 : 0];
+                    uu = sample[1]; vv = sample[3];
+                    break;
+                default: /* YVYU */
+                    yy = sample[(src_x_clamped & 1) ? 2 : 0];
+                    vv = sample[1]; uu = sample[3];
+                    break;
+            }
+            rgb = sis6306_overlay_yuv_to_rgb(yy, uu, vv);
+        } else {
+            /* RGB555/RGB565 overlay surfaces use two bytes per pixel. */
+            const uint32_t src_x_clamped = (stride > 1) ?
+                                           ((src_x < (stride >> 1)) ? src_x : ((stride >> 1) - 1)) : 0;
+            const uint64_t addr = base + (uint64_t) src_x_clamped * 2;
+            if (addr + 1 >= svga->vram_max)
+                continue;
+            const uint16_t colour = (uint16_t) (svga->vram[addr] |
+                                                 ((uint16_t) svga->vram[addr + 1] << 8));
+            rgb = (format & 1) ? video_16to32[colour] : video_15to32[colour & 0x7fff];
+        }
+        pixels[x + svga->x_add] = dev->gamma_active ? sis6306_gamma_rgb(dev, rgb) : rgb;
+    }
+}
+
+static void
+sis6306_render_16bpp_halfdot(svga_t *svga)
+{
+    const uint32_t display_mask = svga->vram_display_mask;
+    const uint32_t ma = svga->memaddr;
+    const uint32_t start_addr = svga->force_old_addr ? ma :
+                                svga->remap_func(svga, ma);
+    const uint32_t changed_page = (start_addr & display_mask) >> 12;
+    const unsigned output_pixels = (unsigned) svga->hdisp +
+                                   (unsigned) svga->scrollcache + 1;
+
+    if (!svga->fullchange && !svga->changedvram[changed_page] &&
+        !svga->changedvram[changed_page + 1])
+        return;
+
+    uint32_t *out = &svga->monitor->target_buffer->line[
+                      svga->displine + svga->y_add][svga->x_add];
+    if (svga->firstline_draw == 2000)
+        svga->firstline_draw = svga->displine;
+    svga->lastline_draw = svga->displine;
+
+    for (unsigned x = 0; x < output_pixels; x += 2) {
+        const uint32_t source_offset = x; /* (x / 2) pixels * two bytes */
+        const uint32_t raw_addr = ma + source_offset;
+        const uint32_t src_addr = (svga->force_old_addr || !svga->remap_required) ?
+                                  raw_addr : svga->remap_func(svga, raw_addr);
+        const uint32_t addr = src_addr & display_mask;
+        const uint16_t pixel = (uint16_t) svga->vram[addr] |
+                               ((uint16_t) svga->vram[(addr + 1) & display_mask] << 8);
+        const uint32_t rgb = svga->conv_16to32(svga, pixel, 16);
+        out[x] = rgb;
+        if (x + 1 < output_pixels)
+            out[x + 1] = rgb;
+    }
+
+    svga->memaddr = (ma + ((output_pixels + 1) / 2) * 2) & display_mask;
+}
+
 static void
 sis6306_render_packed_base(svga_t *svga)
 {
     if (sis6306_packed_scanout_unsafe(svga))
         return;
+
+    sis6306_t *dev = (sis6306_t *) svga->priv;
+    if (dev->ext_crtc[0x98] & 2)
+        svga->fullchange = svga->monitor->mon_changeframecount;
+    const int apply_gamma = dev->gamma_active && (svga->bpp >= 24) &&
+                            sis6306_gamma_scanline_dirty(svga);
 
     switch (svga->bpp) {
         case 32:
@@ -1205,7 +1443,10 @@ sis6306_render_packed_base(svga_t *svga)
             svga_render_24bpp_highres(svga);
             break;
         case 16:
-            svga_render_16bpp_highres(svga);
+            if (svga->seqregs[0x01] & 0x08)
+                sis6306_render_16bpp_halfdot(svga);
+            else
+                svga_render_16bpp_highres(svga);
             break;
         case 15:
             svga_render_15bpp_highres(svga);
@@ -1214,6 +1455,19 @@ sis6306_render_packed_base(svga_t *svga)
             svga_render_8bpp_highres(svga);
             break;
     }
+
+    if (apply_gamma) {
+        uint32_t *pixels = &svga->monitor->target_buffer->line[
+                            svga->displine + svga->y_add][svga->x_add];
+        const int count = svga->hdisp + svga->scrollcache + 1;
+        for (int x = 0; x < count; x++)
+            pixels[x] = sis6306_gamma_rgb(dev, pixels[x]);
+    }
+
+    if (svga->bpp >= 15 ||
+        (svga->bpp == 8 && (dev->ext_crtc[0xb6] & 0x04) &&
+         (dev->ext_crtc[0x98] & 0x40)))
+        sis6306_overlay_scanline(svga);
 }
 
 static void
@@ -1447,6 +1701,9 @@ sis6306_recalctimings(svga_t *svga)
         svga->plane_mask = svga->attrregs[0x12] & 0x0f;
     }
 
+    if (packed)
+        svga->rowcount = svga->crtc[0x09] & 0x1f;
+
     /* Restore SiS extended/fast page-flip start bits after generic timing recalc. */
     sis6306_update_display_start(dev);
 }
@@ -1482,7 +1739,54 @@ sis6306_update_graphics_mode(sis6306_t *dev)
     if (packed && (dev->svga.bpp == 8) && (!old_packed || (old_bpp != 8)))
         dev->svga.dac_mask = 0xff;
 
+    if ((old_bpp >= 15) && (dev->svga.bpp < 15)) {
+        dev->gamma_active = 0;
+        dev->gamma_collecting = 0;
+    }
+
     sis6306_update_cursor(dev);
+}
+
+static void
+sis6306_gamma_dac_entry(sis6306_t *dev, unsigned index)
+{
+    const svga_t *svga = &dev->svga;
+
+    if ((svga->bpp < 15) || !(dev->ext_seq[0x07] & 0x04)) {
+        dev->gamma_collecting = 0;
+        return;
+    }
+
+    if (index == 0) {
+        dev->gamma_next_index = 0;
+        dev->gamma_collecting = 1;
+        dev->gamma_has_8bit_data = 0;
+    }
+
+    if (!dev->gamma_collecting || (index != dev->gamma_next_index)) {
+        dev->gamma_collecting = 0;
+        return;
+    }
+
+    const uint8_t r = svga->vgapal[index].r;
+    const uint8_t g = svga->vgapal[index].g;
+    const uint8_t b = svga->vgapal[index].b;
+
+    dev->gamma_pending[index][0] = r;
+    dev->gamma_pending[index][1] = g;
+    dev->gamma_pending[index][2] = b;
+
+    if ((r > 0x3f) || (g > 0x3f) || (b > 0x3f))
+        dev->gamma_has_8bit_data = 1;
+
+    if (++dev->gamma_next_index == 256) {
+        dev->gamma_collecting = 0;
+        if (dev->gamma_has_8bit_data) {
+            memcpy(dev->gamma_lut, dev->gamma_pending, sizeof(dev->gamma_lut));
+            dev->gamma_active = 1;
+            dev->svga.fullchange = dev->svga.monitor->mon_changeframecount;
+        }
+    }
 }
 
 static void
@@ -1504,6 +1808,19 @@ sis6306_out(uint16_t addr, uint8_t val, void *priv)
         sis6306_accel_sync(dev);
 
     switch (addr) {
+        case 0x03c8:
+            svga_out(addr, val, svga);
+            return;
+
+        case 0x03c9: {
+            const unsigned index = (unsigned) svga->dac_addr & 0xffU;
+            const int completed = (svga->dac_pos == 2);
+            svga_out(addr, val, svga);
+            if (completed)
+                sis6306_gamma_dac_entry(dev, index);
+            return;
+        }
+
         case 0x03c6:
             svga_out(addr, val, svga);
             return;
@@ -1550,7 +1867,12 @@ sis6306_out(uint16_t addr, uint8_t val, void *priv)
 
             if (dev->sis_crtc_index >= 0x20) {
                 if (dev->ext_crtc_unlocked) {
-                    dev->ext_crtc[dev->sis_crtc_index] = val;
+                    const uint8_t index = dev->sis_crtc_index;
+                    if (dev->ext_crtc[index] != val &&
+                        ((index >= 0x81 && index <= 0x98) || index == 0xa9 ||
+                         (index >= 0xb6 && index <= 0xbe)))
+                        svga->fullchange = svga->monitor->mon_changeframecount;
+                    dev->ext_crtc[index] = val;
                 }
                 return;
             }
@@ -2397,6 +2719,241 @@ sis6306_engine_multi_scanline(sis6306_t *dev, uint32_t command,
     return pixels;
 }
 
+static uint64_t
+sis6306_engine_line(sis6306_t *dev, uint32_t command)
+{
+    const unsigned bytespp = sis6306_engine_bytespp(dev);
+    const uint32_t base = sis6306_engine_reg32(dev, 0x8210) & 0x007fffffU;
+    const uint16_t pitch = sis6306_engine_reg16(dev, 0x8214) & 0x1fff;
+    const uint16_t dst_height = sis6306_engine_reg16(dev, 0x8216) & 0x1fff;
+    const unsigned count = sis6306_engine_reg16(dev, 0x8218) & 0x7f;
+    const uint32_t fg = sis6306_engine_reg32(dev, 0x821c);
+    const uint8_t rop = (uint8_t) (command >> 8);
+    const int highres = !!(command & (1U << 19));
+    const int omit_end = !!(command & (1U << 21));
+    uint32_t changed_lo = 0xffffffffU, changed_hi = 0;
+    uint64_t pixels = 0;
+    int x0, y0;
+
+    if (!pitch || !bytespp || !count || count > 97)
+        return 0;
+    x0 = sis6306_engine_reg16(dev, 0x8208) & 0xffff;
+    y0 = sis6306_engine_reg16(dev, 0x820a) & 0xffff;
+    if (highres) {
+        x0 >>= 4;
+        y0 >>= 4;
+    }
+
+    for (unsigned segment = 0; segment < count; segment++) {
+        uint32_t endpoint;
+        int x1, y1, x, y, dx, dy, sx, sy, err;
+        unsigned total_steps, step = 0;
+
+        if (segment == 0) {
+            x1 = sis6306_engine_reg16(dev, 0x820c);
+            y1 = sis6306_engine_reg16(dev, 0x820e);
+        } else {
+            const uint32_t off = 0x8300U + (segment - 1U) * 4U;
+            endpoint = sis6306_engine_reg32(dev, off);
+            x1 = (int) (endpoint & 0xffffU);
+            y1 = (int) (endpoint >> 16);
+        }
+        if (highres) {
+            x1 >>= 4;
+            y1 >>= 4;
+        }
+        x = x0;
+        y = y0;
+        dx = abs(x1 - x0);
+        dy = abs(y1 - y0);
+        sx = (x0 < x1) ? 1 : -1;
+        sy = (y0 < y1) ? 1 : -1;
+        err = dx - dy;
+        total_steps = (unsigned) ((dx > dy) ? dx : dy);
+
+        for (;;) {
+            /* Do not draw a suppressed final pixel, including a point. */
+            if (!omit_end || step != total_steps) {
+                if (sis6306_engine_clip_pixel(dev, command, x, y,
+                                              pitch, dst_height, bytespp) &&
+                    x >= 0 && y >= 0 &&
+                    x < (int) (pitch / bytespp)) {
+                    const uint64_t a64 = (uint64_t) base +
+                        (uint64_t) y * pitch + (uint64_t) x * bytespp;
+                    if (a64 + bytespp <= dev->svga.vram_max) {
+                        const uint32_t a = (uint32_t) a64;
+                        const uint32_t old = sis6306_engine_read_pixel(dev, a, bytespp);
+                        const uint32_t out = sis6306_engine_rop_pixel(rop, old,
+                                                                       fg, fg, bytespp);
+                        sis6306_engine_write_pixel(dev, a, bytespp, out);
+                        if (a < changed_lo) changed_lo = a;
+                        if (a + bytespp - 1 > changed_hi) changed_hi = a + bytespp - 1;
+                        pixels++;
+                    }
+                }
+            }
+            if (x == x1 && y == y1)
+                break;
+            {
+                const int twice = err * 2;
+                if (twice > -dy) { err -= dy; x += sx; }
+                if (twice < dx)  { err += dx; y += sy; }
+            }
+            step++;
+        }
+        x0 = x1;
+        y0 = y1;
+    }
+    sis6306_engine_mark_changed(dev, changed_lo, changed_hi);
+    return pixels;
+}
+
+static uint64_t
+sis6306_engine_trapezoid(sis6306_t *dev, uint32_t command)
+{
+    const unsigned bytespp = sis6306_engine_bytespp(dev);
+    const uint16_t height = sis6306_engine_reg16(dev, 0x8208) & 0x0fff;
+    const int highres = !!(command & (1U << 19));
+    const int scale = highres ? 16 : 1;
+    const int ystart = (sis6306_engine_reg16(dev, 0x820a) & 0x0fff) / scale;
+    const int left_start = (sis6306_engine_reg16(dev, 0x820c) & 0x0fff);
+    const int right_start = (sis6306_engine_reg16(dev, 0x820e) & 0x0fff);
+    const uint32_t base = sis6306_engine_reg32(dev, 0x8210) & 0x007fffffU;
+    const uint16_t pitch = sis6306_engine_reg16(dev, 0x8214) & 0x1fff;
+    const uint16_t dst_height = sis6306_engine_reg16(dev, 0x8216) & 0x1fff;
+    const uint16_t ldx = sis6306_engine_reg16(dev, 0x8244);
+    const uint16_t ldy = sis6306_engine_reg16(dev, 0x8246);
+    const uint16_t rdx = sis6306_engine_reg16(dev, 0x8248);
+    const uint16_t rdy = sis6306_engine_reg16(dev, 0x824a);
+    const int32_t lerr = (int32_t) (sis6306_engine_reg32(dev, 0x824c) << 10) >> 10;
+    const int32_t rerr = (int32_t) (sis6306_engine_reg32(dev, 0x8250) << 10) >> 10;
+    const int xdir_l = (command & (1U << 16)) ? 1 : -1;
+    const int xdir_r = (command & (1U << 21)) ? 1 : -1;
+    const int ydir = (command & (1U << 17)) ? 1 : -1;
+    const int transparent = !!(command & (1U << 20));
+    const uint8_t rop = (uint8_t) (command >> 8);
+    uint32_t changed_lo = 0xffffffffU, changed_hi = 0;
+    uint64_t pixels = 0;
+
+    if (!height || !pitch || !bytespp)
+        return 0;
+    for (unsigned row = 0; row < height; row++) {
+        const int y = ystart + ydir * (int) row;
+        const int64_t lstep = ldy ?
+            ((int64_t) row * ldx + ((int64_t) ldy / 2) +
+             ((lerr >= -(int32_t) ldy && lerr <= (int32_t) ldy) ? lerr : 0)) / ldy : 0;
+        const int64_t rstep = rdy ?
+            ((int64_t) row * rdx + ((int64_t) rdy / 2) +
+             ((rerr >= -(int32_t) rdy && rerr <= (int32_t) rdy) ? rerr : 0)) / rdy : 0;
+        int xa = (int) (((int64_t) left_start + (int64_t) xdir_l * lstep) / scale);
+        int xb = (int) (((int64_t) right_start + (int64_t) xdir_r * rstep) / scale);
+        int low, high;
+        if (xa > xb) { const int t = xa; xa = xb; xb = t; }
+        low = (xa < 0) ? 0 : xa;
+        high = xb;
+        if (high >= (int) (pitch / bytespp))
+            high = (int) (pitch / bytespp) - 1;
+        if (y < 0 || high < low ||
+            (dst_height && y >= dst_height))
+            continue;
+        for (int x = low; x <= high; x++) {
+            if (!sis6306_engine_clip_pixel(dev, command, x, y,
+                                           pitch, dst_height, bytespp))
+                continue;
+            if (transparent && ((command >> 6) & 3U) == 2U &&
+                !(dev->accel_regs[0x822cU + ((unsigned) y & 7U)] &
+                  (0x80U >> ((unsigned) x & 7U))))
+                continue;
+            {
+                const uint64_t a64 = (uint64_t) base +
+                    (uint64_t) y * pitch + (uint64_t) x * bytespp;
+                if (a64 + bytespp <= dev->svga.vram_max) {
+                    const uint32_t a = (uint32_t) a64;
+                    const uint32_t pat = sis6306_engine_pattern(dev, command, x, y, bytespp);
+                    const uint32_t old = sis6306_engine_read_pixel(dev, a, bytespp);
+                    const uint32_t out = sis6306_engine_rop_pixel(rop, old, pat, 0, bytespp);
+                    sis6306_engine_write_pixel(dev, a, bytespp, out);
+                    if (a < changed_lo) changed_lo = a;
+                    if (a + bytespp - 1 > changed_hi) changed_hi = a + bytespp - 1;
+                    pixels++;
+                }
+            }
+        }
+    }
+    sis6306_engine_mark_changed(dev, changed_lo, changed_hi);
+    return pixels;
+}
+
+static uint64_t
+sis6306_engine_transparent_bitblt(sis6306_t *dev, uint32_t command)
+{
+    const unsigned bytespp = sis6306_engine_bytespp(dev);
+    const uint32_t src_base = sis6306_engine_reg32(dev, 0x8200) & 0x007fffffU;
+    const uint16_t src_pitch = sis6306_engine_reg16(dev, 0x8204) & 0x1fff;
+    const int sy0 = sis6306_engine_reg16(dev, 0x8208) & 0x0fff;
+    const int sx0 = sis6306_engine_reg16(dev, 0x820a) & 0x0fff;
+    const int dy0 = sis6306_engine_reg16(dev, 0x820c) & 0x0fff;
+    const int dx0 = sis6306_engine_reg16(dev, 0x820e) & 0x0fff;
+    const uint32_t dst_base = sis6306_engine_reg32(dev, 0x8210) & 0x007fffffU;
+    const uint16_t dst_pitch = sis6306_engine_reg16(dev, 0x8214) & 0x1fff;
+    const uint16_t dst_height = sis6306_engine_reg16(dev, 0x8216) & 0x1fff;
+    const unsigned width = sis6306_engine_reg16(dev, 0x8218) & 0x1fff;
+    const unsigned height = sis6306_engine_reg16(dev, 0x821a) & 0x1fff;
+    const uint32_t key_d_hi = sis6306_engine_reg32(dev, 0x821c);
+    const uint32_t key_d_lo = sis6306_engine_reg32(dev, 0x8220);
+    const uint32_t key_s_hi = sis6306_engine_reg32(dev, 0x8224);
+    const uint32_t key_s_lo = sis6306_engine_reg32(dev, 0x8228);
+    const unsigned rop = (command >> 8) & 0x0fU;
+    const int xs = (command & (1U << 16)) ? 1 : -1;
+    const int ys = (command & (1U << 17)) ? 1 : -1;
+    const uint32_t mask = bytespp == 1 ? 0xffU : bytespp == 2 ? 0xffffU :
+                          bytespp == 3 ? 0xffffffU : 0xffffffffU;
+    uint32_t changed_lo = 0xffffffffU, changed_hi = 0;
+    uint64_t pixels = 0;
+
+    if (!width || !height || !bytespp || !src_pitch || !dst_pitch)
+        return 0;
+    for (unsigned row = 0; row < height; row++) {
+        const int sy = sy0 + ys * (int) row;
+        const int dy = dy0 + ys * (int) row;
+        if (sy < 0 || dy < 0 ||
+            (dst_height && dy >= dst_height))
+            continue;
+        for (unsigned col = 0; col < width; col++) {
+            const int sx = sx0 + xs * (int) col;
+            const int dx = dx0 + xs * (int) col;
+            uint64_t sa64, da64;
+            uint32_t src, dst;
+            int src_match, dst_match;
+            if (sx < 0 || dx < 0 ||
+                sx >= (int) (src_pitch / bytespp) ||
+                dx >= (int) (dst_pitch / bytespp) ||
+                !sis6306_engine_clip_pixel(dev, command, dx, dy,
+                                           dst_pitch, dst_height, bytespp))
+                continue;
+            sa64 = (uint64_t) src_base + (uint64_t) sy * src_pitch +
+                   (uint64_t) sx * bytespp;
+            da64 = (uint64_t) dst_base + (uint64_t) dy * dst_pitch +
+                   (uint64_t) dx * bytespp;
+            if (sa64 + bytespp > dev->svga.vram_max ||
+                da64 + bytespp > dev->svga.vram_max)
+                continue;
+            src = sis6306_engine_read_pixel(dev, (uint32_t) sa64, bytespp) & mask;
+            dst = sis6306_engine_read_pixel(dev, (uint32_t) da64, bytespp) & mask;
+            src_match = (src >= (key_s_lo & mask) && src <= (key_s_hi & mask));
+            dst_match = (dst >= (key_d_lo & mask) && dst <= (key_d_hi & mask));
+            if ((rop >> ((dst_match << 1) | src_match)) & 1U)
+                continue;  /* DirectDraw ROP preserves destination. */
+            sis6306_engine_write_pixel(dev, (uint32_t) da64, bytespp, src);
+            if ((uint32_t) da64 < changed_lo) changed_lo = (uint32_t) da64;
+            if ((uint32_t) da64 + bytespp - 1 > changed_hi)
+                changed_hi = (uint32_t) da64 + bytespp - 1;
+            pixels++;
+        }
+    }
+    sis6306_engine_mark_changed(dev, changed_lo, changed_hi);
+    return pixels;
+}
 
 static void
 sis6306_engine_execute(sis6306_t *dev, uint32_t command)
@@ -2427,6 +2984,15 @@ sis6306_engine_execute(sis6306_t *dev, uint32_t command)
                 break;
             case 0x3:
                 sis6306_engine_multi_scanline(dev, command, 0, 1, NULL, NULL);
+                break;
+            case 0x4:
+                sis6306_engine_line(dev, command);
+                break;
+            case 0x5:
+                sis6306_engine_trapezoid(dev, command);
+                break;
+            case 0x6:
+                sis6306_engine_transparent_bitblt(dev, command);
                 break;
             default:
                 break;
@@ -2720,6 +3286,19 @@ sis6306_3d_ztest(unsigned mode, uint16_t znew, uint16_t zdst)
         case 7: return 1;
         default: return 0;
     }
+}
+
+/* TenTXTR discards sampled texels inside the inclusive RGB colour-key
+ * range.  Compare the sampled texture colour before vertex modulation, fog,
+ * alpha testing or depth writes; these must not change the keyed colour.
+ */
+static inline int
+sis6306_3d_texture_key_match(uint32_t lo, uint32_t hi,
+                             uint8_t r, uint8_t g, uint8_t b)
+{
+    return (r >= ((lo >> 16) & 0xffU)) && (r <= ((hi >> 16) & 0xffU)) &&
+           (g >= ((lo >> 8) & 0xffU)) && (g <= ((hi >> 8) & 0xffU)) &&
+           (b >= (lo & 0xffU)) && (b <= (hi & 0xffU));
 }
 
 /* Documented SiS530 alpha-test compare modes.  TAREF and Anew are
@@ -3471,6 +4050,7 @@ sis6306_3d_prepare(sis6306_t *dev, sis6306_3d_prepared_t *out)
     const uint32_t misc2     = sis6306_3d_reg32(dev, 0x8a28);
     const uint32_t tex1      = sis6306_3d_reg32(dev, 0x8a38);
     const uint32_t tex2      = sis6306_3d_reg32(dev, 0x8a3c);
+    const uint32_t tex3      = sis6306_3d_reg32(dev, 0x8a40);
     const uint32_t tex0base  = sis6306_3d_reg32(dev, 0x8a44);
     const uint32_t texp01    = sis6306_3d_reg32(dev, 0x8a6c);
     const uint32_t texsize   = sis6306_3d_reg32(dev, 0x8a80);
@@ -3492,8 +4072,19 @@ sis6306_3d_prepare(sis6306_t *dev, sis6306_3d_prepared_t *out)
     const int blend_en       = !!(enable & (1U << 2));
     const int tex_en         = !!(enable & (1U << 10));
     const int persp_en       = !!(enable & (1U << 9));
+    const int tex_transparency_en = !!(enable & (1U << 8));
     const unsigned tex_fmt   = (tex1 >> 24) & 0xff;
     const unsigned tex_map   = (tex1 >> 16) & 0xff;
+    /* TTXMPMD: wrap overrides mirror/clamp on each axis. Mirror-only
+     * addressing is not yet implemented, so never substitute clamping. */
+    const int tex_wrap_u = !!(tex_map & 0x01);
+    const int tex_wrap_v = !!(tex_map & 0x02);
+    const int tex_clamp_u = !!(tex_map & 0x10);
+    const int tex_clamp_v = !!(tex_map & 0x20);
+    const int tex_map_supported =
+        (tex_wrap_u || (tex_clamp_u && !(tex_map & 0x04))) &&
+        (tex_wrap_v || (tex_clamp_v && !(tex_map & 0x08))) &&
+        !(tex_map & 0xc0); /* Border-colour modes remain unsupported. */
     const unsigned tex_min   = tex1 & 7U;
     const int tex_mag_linear = !!(tex1 & 8);
     const int tex_sysmem     = !!(tex1 & (1U << 5));
@@ -3531,8 +4122,7 @@ sis6306_3d_prepare(sis6306_t *dev, sis6306_3d_prepared_t *out)
 
 
     if ((draw != 2) || !(enable & (1U << 11)) ||
-        (enable & ((1U << 18) | (1U << 16) |
-                   (1U << 8) | (1U << 1))) ||
+        (enable & ((1U << 18) | (1U << 16) | (1U << 1))) ||
         (rop != 0x0c) || !pitch) {
         return 0;
     }
@@ -3550,6 +4140,7 @@ sis6306_3d_prepare(sis6306_t *dev, sis6306_3d_prepared_t *out)
                       ((blend_dst == 1) && (blend_src == 4)) ||
                       ((blend_dst == 5) && (blend_src == 4)) ||
                       ((blend_dst == 0) && (blend_src == 8)) ||
+                      ((blend_dst == 0) && (blend_src == 1)) || /* ZERO/ONE */
                       ((blend_dst == 2) && (blend_src == 0)) ||
                       ((blend_dst == 2) && (blend_src == 8)))) {
         return 0;
@@ -3564,10 +4155,11 @@ sis6306_3d_prepare(sis6306_t *dev, sis6306_3d_prepared_t *out)
                                        (tex_alpha_blend <= 2);
         const int tex555_ok = tex555_replace_ok || tex555_passthrough_ok ||
                               tex555_modulate_ok;
+        /* For RGB565, all documented TTXBLAMD modes 0/1/2 use Apix. */
         const int tex565_replace_ok = (tex_fmt == 0x51) && (tex_blend == 0) &&
-                                      ((tex_alpha_blend == 0) || (tex_alpha_blend == 1));
+                                      (tex_alpha_blend <= 2);
         const int tex565_modulate_ok = (tex_fmt == 0x51) && (tex_blend == 2) &&
-                                       ((tex_alpha_blend == 0) || (tex_alpha_blend == 1));
+                                       (tex_alpha_blend <= 2);
         const int tex565_ok = tex565_replace_ok || tex565_modulate_ok;
         const int tex1555_replace_ok = (tex_fmt == 0x52) && (tex_blend == 0) &&
                                        (tex_alpha_blend <= 2);
@@ -3596,7 +4188,7 @@ sis6306_3d_prepare(sis6306_t *dev, sis6306_3d_prepared_t *out)
                             tex4444_ok || tex8888_ok) ||
             !tex_pitch0 || (tex0base >= mem_size) ||
             (tex_w > 512) || (tex_h > 512) ||
-            ((tex_map & 0x03) != 0x03)) {
+            !tex_map_supported) {
             return 0;
         }
     } else if (persp_en) {
@@ -3751,7 +4343,7 @@ sis6306_3d_prepare(sis6306_t *dev, sis6306_3d_prepared_t *out)
                                       (dst_bytespp == 2) && !bgr &&
                                       ztest_en && zwrite_en && (zmode == 3) && (zfmt == 1) &&
                                       fog_en && !blend_en && !alpha_test_en &&
-                                      tex_en && persp_en && (shade == 4) &&
+                                      tex_en && persp_en && !tex_transparency_en && (shade == 4) &&
                                       (tex_fmt == 0x51) && (tex_min == 5) && tex_mag_linear &&
                                       (tex_blend == 2) && (tex_alpha_blend == 1) &&
                                       !tex_sysmem && (rop == 0x0c) && (tex_map == 0x03);
@@ -3804,9 +4396,15 @@ sis6306_3d_prepare(sis6306_t *dev, sis6306_3d_prepared_t *out)
     out->blend_en = blend_en;
     out->tex_en = tex_en;
     out->persp_en = persp_en;
+    out->tex_transparency_en = tex_transparency_en;
+    /* TTXTRSL (8A3C) / TTXTRSH (8A40), RGB888 range. */
+    out->tex_key_low = tex2 & 0x00ffffffU;
+    out->tex_key_high = tex3 & 0x00ffffffU;
     out->tex_fmt = tex_fmt;
     out->tex_min = tex_min;
     out->tex_mag_linear = tex_mag_linear;
+    out->tex_wrap_u = tex_wrap_u;
+    out->tex_wrap_v = tex_wrap_v;
     out->tex_blend = tex_blend;
     out->tex_alpha_blend = tex_alpha_blend;
     out->blend_dst = blend_dst;
@@ -3889,9 +4487,14 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
     const int blend_en = p->blend_en;
     const int tex_en = p->tex_en;
     const int persp_en = p->persp_en;
+    const int tex_transparency_en = p->tex_transparency_en;
+    const uint32_t tex_key_low = p->tex_key_low;
+    const uint32_t tex_key_high = p->tex_key_high;
     const unsigned tex_fmt = p->tex_fmt;
     const unsigned tex_min = p->tex_min;
     const int tex_mag_linear = p->tex_mag_linear;
+    const int tex_wrap_u = p->tex_wrap_u;
+    const int tex_wrap_v = p->tex_wrap_v;
     const unsigned tex_blend = p->tex_blend;
     const unsigned tex_alpha_blend = p->tex_alpha_blend;
     const unsigned blend_dst = p->blend_dst;
@@ -4446,7 +5049,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                     sampled = sis6306_3d_sample_texture555x(dev, mem_size, tex_level_base[level0],
                                                            tex_level_pitch[level0],
                                                            tex_level_w[level0], tex_level_h[level0],
-                                                           tu, tv, 1, 1, linear0, 0,
+                                                           tu, tv, tex_wrap_u, tex_wrap_v, linear0, 0,
                                                            &a0s, &r0s, &g0s, &b0s);
                     if (sampled && (level1 != level0) && (level_frac > 0.0f)) {
                         float a1s, r1s, g1s, b1s;
@@ -4455,7 +5058,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                             !sis6306_3d_sample_texture555x(dev, mem_size, tex_level_base[level1],
                                                           tex_level_pitch[level1],
                                                           tex_level_w[level1], tex_level_h[level1],
-                                                          tu, tv, 1, 1, linear1, 0,
+                                                          tu, tv, tex_wrap_u, tex_wrap_v, linear1, 0,
                                                           &a1s, &r1s, &g1s, &b1s))
                             sampled = 0;
                         else {
@@ -4470,7 +5073,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                     sampled = sis6306_3d_sample_texture565(dev, mem_size, tex_level_base[level0],
                                                           tex_level_pitch[level0],
                                                           tex_level_w[level0], tex_level_h[level0],
-                                                          tu, tv, 1, 1, linear0, 0,
+                                                          tu, tv, tex_wrap_u, tex_wrap_v, linear0, 0,
                                                           &r0s, &g0s, &b0s);
                     if (sampled && (level1 != level0) && (level_frac > 0.0f)) {
                         float r1s, g1s, b1s;
@@ -4479,7 +5082,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                             !sis6306_3d_sample_texture565(dev, mem_size, tex_level_base[level1],
                                                          tex_level_pitch[level1],
                                                          tex_level_w[level1], tex_level_h[level1],
-                                                         tu, tv, 1, 1, linear1, 0,
+                                                         tu, tv, tex_wrap_u, tex_wrap_v, linear1, 0,
                                                          &r1s, &g1s, &b1s))
                             sampled = 0;
                         else {
@@ -4494,7 +5097,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                     sampled = sis6306_3d_sample_texture555x(dev, mem_size, tex_level_base[level0],
                                                            tex_level_pitch[level0],
                                                            tex_level_w[level0], tex_level_h[level0],
-                                                           tu, tv, 1, 1, linear0, 1,
+                                                           tu, tv, tex_wrap_u, tex_wrap_v, linear0, 1,
                                                            &a0s, &r0s, &g0s, &b0s);
                     if (sampled && (level1 != level0) && (level_frac > 0.0f)) {
                         float a1s, r1s, g1s, b1s;
@@ -4503,7 +5106,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                             !sis6306_3d_sample_texture555x(dev, mem_size, tex_level_base[level1],
                                                           tex_level_pitch[level1],
                                                           tex_level_w[level1], tex_level_h[level1],
-                                                          tu, tv, 1, 1, linear1, 1,
+                                                          tu, tv, tex_wrap_u, tex_wrap_v, linear1, 1,
                                                           &a1s, &r1s, &g1s, &b1s))
                             sampled = 0;
                         else {
@@ -4519,7 +5122,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                     sampled = sis6306_3d_sample_texture4444(dev, mem_size, tex_level_base[level0],
                                                            tex_level_pitch[level0],
                                                            tex_level_w[level0], tex_level_h[level0],
-                                                           tu, tv, 1, 1, linear0,
+                                                           tu, tv, tex_wrap_u, tex_wrap_v, linear0,
                                                            &a0s, &r0s, &g0s, &b0s);
                     if (sampled && (level1 != level0) && (level_frac > 0.0f)) {
                         float a1s, r1s, g1s, b1s;
@@ -4528,7 +5131,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                             !sis6306_3d_sample_texture4444(dev, mem_size, tex_level_base[level1],
                                                           tex_level_pitch[level1],
                                                           tex_level_w[level1], tex_level_h[level1],
-                                                          tu, tv, 1, 1, linear1,
+                                                          tu, tv, tex_wrap_u, tex_wrap_v, linear1,
                                                           &a1s, &r1s, &g1s, &b1s))
                             sampled = 0;
                         else {
@@ -4544,7 +5147,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                     sampled = sis6306_3d_sample_texture8888(dev, mem_size, tex_level_base[level0],
                                                            tex_level_pitch[level0],
                                                            tex_level_w[level0], tex_level_h[level0],
-                                                           tu, tv, 1, 1, linear0,
+                                                           tu, tv, tex_wrap_u, tex_wrap_v, linear0,
                                                            &a0s, &r0s, &g0s, &b0s);
                     if (sampled && (level1 != level0) && (level_frac > 0.0f)) {
                         float a1s, r1s, g1s, b1s;
@@ -4553,7 +5156,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                             !sis6306_3d_sample_texture8888(dev, mem_size, tex_level_base[level1],
                                                           tex_level_pitch[level1],
                                                           tex_level_w[level1], tex_level_h[level1],
-                                                          tu, tv, 1, 1, linear1,
+                                                          tu, tv, tex_wrap_u, tex_wrap_v, linear1,
                                                           &a1s, &r1s, &g1s, &b1s))
                             sampled = 0;
                         else {
@@ -4569,6 +5172,17 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                     continue;
                 }
 
+                /* TenTXTR (Enable[8]) rejects the texture's programmed RGB
+                 * key range without modifying destination colour or Z.
+                 * This must occur before texturing combines Ctex with Cpix.
+                 */
+                if (tex_transparency_en &&
+                    sis6306_3d_texture_key_match(tex_key_low, tex_key_high,
+                                                 sis6306_3d_clamp8(tr),
+                                                 sis6306_3d_clamp8(tg),
+                                                 sis6306_3d_clamp8(tb))) {
+                    continue;
+                }
 
                 if (tex_fmt == 0x50) {
                     if (tex_blend == 0) {
@@ -4710,8 +5324,9 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
             {
                 const uint64_t dst64 = dst64_step;
                 if (row_dst_in_bounds || (dst64 + dst_bytespp <= mem_size)) {
-
-                    if (blend_en) {
+                    /* TBLDST=ZERO, TBLSRC=ONE: output the source as-is,
+                     * with no destination sample (or extra blend arithmetic). */
+                    if (blend_en && !((blend_dst == 0) && (blend_src == 1))) {
                         float dr, dg, db;
                         sis6306_3d_read_dst_pixel_fast(dev, (uint32_t) dst64,
                                                       dst_bytespp, bgr,
@@ -4765,6 +5380,7 @@ sis6306_3d_raster_prepared(sis6306_t *dev, unsigned render_lane,
                     if (ztest_en && zwrite_en) {
                         sis6306_3d_write16(dev, zaddr, znew);
                     }
+                } else {
                 }
             }
         }
@@ -5577,7 +6193,7 @@ sis6306_pci_read(int func, int addr, int len, void *priv)
         case 0x34: return 0x40;
 
         case 0x3c: return dev->irq_line;
-        case 0x3d: return 0x01;
+        case 0x3d: return 0x00; /* Force disable flat panel mode.  Can eventually be something like return (sis6306_sre & 0x08) ? 0x01 : 0x00; */
         case 0x3e: return 0x00;
         case 0x3f: return 0x00;
 
@@ -5756,6 +6372,7 @@ sis6306_init(const device_t *info)
               sis6306_in, sis6306_out,
               sis6306_hwcursor_draw, NULL);
 
+    dev->svga.conv_16to32 = sis6306_gamma_conv_16to32;
     dev->svga.line_compare = sis6306_line_compare;
 
     /*
@@ -5904,7 +6521,7 @@ static const device_config_t sis6306_config[] = {
 };
 
 const device_t sis6306_onboard_device = {
-    .name          = "SiS 6306 (5598/530/620) On-Board AGP",
+    .name          = "SiS 6306 (530/620) On-Board AGP",
     .internal_name = "sis6306_onboard",
     .flags         = DEVICE_AGP,
     .local         = 1,

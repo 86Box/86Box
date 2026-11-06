@@ -1,5 +1,5 @@
 #include <string.h>
-#include "cm153_uart.h"
+#include <86box/cm153_uart.h>
 
 enum {
     UART_TX_READY = 0x01,

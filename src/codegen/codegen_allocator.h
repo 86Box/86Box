@@ -34,7 +34,11 @@
 
 
 #define MEM_BLOCK_MASK (MEM_BLOCK_NR - 1)
+#if defined __aarch64__ || defined _M_ARM64
+#define MEM_BLOCK_SIZE 0x3e8
+#else
 #define MEM_BLOCK_SIZE 0x3c0
+#endif
 
 #if defined __aarch64__ || defined _M_ARM64
 /*Every 1024 blocks (under 1MB) one block of veneers to the backend's

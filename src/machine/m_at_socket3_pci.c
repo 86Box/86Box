@@ -1305,7 +1305,7 @@ static const device_config_t zida4dps_config[] = {
             },
             {
                 .name          = "AwardBIOS v4.51PG - Revision 1.72F (Funworld OEM)",
-                .internal_name = "4dps_172f",
+                .internal_name = "4dps",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,
@@ -1314,7 +1314,7 @@ static const device_config_t zida4dps_config[] = {
             },
             {
                 .name          = "AwardBIOS v4.51PG - Revision 4.00A (patched)",
-                .internal_name = "4dps",
+                .internal_name = "4dps_400a",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = 0,

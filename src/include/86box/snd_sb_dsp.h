@@ -32,10 +32,6 @@
 #define IS_AZTECH(dsp)     ((dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT2320_0X13 || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT2316R_0X12 || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT2316A_0X11 || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZT1605_0X0C || (dsp)->sb_subtype == SB_SUBTYPE_CLONE_AZTPR16_0X09) /* check for future AZT cards here */
 #define AZTECH_EEPROM_SIZE 36
 
-/* MediaVision related */
-#define IS_MV201(dsp)  ((dsp)->sb_subtype == SB_SUBTYPE_MVD201)
-#define IS_MV1216(dsp) ((dsp)->sb_subtype == SB_SUBTYPE_MVD1216)
-
 typedef struct sb_dsp_t {
     int   sb_type;
     int   sb_subtype; /* which clone */
@@ -239,6 +235,18 @@ typedef struct sb_dsp_t {
 
     mpu_t *mpu;
 } sb_dsp_t;
+
+static inline int
+IS_MV201(const sb_dsp_t *dsp)
+{
+    return dsp->sb_subtype == SB_SUBTYPE_MVD201;
+}
+
+static inline int
+IS_MV1216(const sb_dsp_t *dsp)
+{
+    return dsp->sb_subtype == SB_SUBTYPE_MVD1216;
+}
 
 extern void sb_dsp_input_msg(void *priv, uint8_t *msg, uint32_t len);
 

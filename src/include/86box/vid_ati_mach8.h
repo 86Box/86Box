@@ -144,7 +144,7 @@ typedef struct mach_t {
         uint16_t scratch1;
         uint16_t test;
         uint16_t pattern;
-        uint16_t test2;
+        uint16_t mem_bnd_reg;
         int      patt_data_idx_reg;
         int      patt_data_idx;
         int      src_y_dir;
@@ -210,8 +210,6 @@ typedef struct mach_t {
 
     atomic_int force_busy;
     atomic_int fifo_test_idx;
-
-    uint16_t ctl;
 } mach_t;
 
 #endif /*VIDEO_ATI_MACH8_H*/

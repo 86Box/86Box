@@ -314,8 +314,9 @@ gameport_read(UNUSED(uint16_t addr), void *priv)
 #else
     uint8_t       buttons = joystick->intf->read(joystick->dat);
 
-    /* Keep button lines stable while axis timers are still discharging. */
-    if (joystick->state & 0x0f)
+    /* Keep button lines stable while axis timers are still discharging,
+       except on devices whose button lines carry a serial protocol. */
+    if ((joystick->state & 0x0f) && !joystick->intf->digital)
         buttons = 0xf0;
 
     const uint8_t ret     = joystick->state | buttons;

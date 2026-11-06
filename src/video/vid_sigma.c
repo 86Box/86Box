@@ -176,6 +176,7 @@ typedef struct sigma_t {
     int plane;
     int revision;
     int fullchange;
+    int monitor_index;
 } sigma_t;
 
 #define COMPOSITE_OLD 0
@@ -224,7 +225,7 @@ sigma_out(uint16_t addr, uint8_t val, void *priv)
                 sigma->crtc[sigma->crtcreg] = val & crtcmask[sigma->crtcreg];
                 if (old != val) {
                     if (sigma->crtcreg < 0xe || sigma->crtcreg > 0x10) {
-                        sigma->fullchange = changeframecount;
+                        sigma->fullchange = monitors[sigma->monitor_index].mon_changeframecount;
                         sigma_recalctimings(sigma);
                     }
                 }
@@ -232,7 +233,7 @@ sigma_out(uint16_t addr, uint8_t val, void *priv)
 
             case 0x2D8:
                 sigma->sigmamode = val;
-                sigma->fullchange = changeframecount;
+                sigma->fullchange = monitors[sigma->monitor_index].mon_changeframecount;
                 sigma_recalctimings(sigma);
                 return;
             case 0x2D9:
@@ -607,6 +608,11 @@ sigma_poll(void *priv)
     uint32_t cols[4];
     int      scanline_old;
 
+    /* Bind the monitor macros to this card's own display. */
+    const int prev_monitor_index = monitor_index_global;
+
+    monitor_index_global = sigma->monitor_index;
+
     if (!sigma->linepos) {
         timer_advance_u64(&sigma->timer, sigma->dispofftime);
         sigma->sigmastat |= STATUS_RETR_H;
@@ -778,6 +784,8 @@ sigma_poll(void *priv)
         if (sigma->scanline == (sigma->crtc[10] & 31) || ((sigma->crtc[8] & 3) == 3 && sigma->scanline == ((sigma->crtc[10] & 31) >> 1)))
             sigma->cursorvisible = 1;
     }
+
+    monitor_index_global = prev_monitor_index;
 }
 
 static void *
@@ -789,6 +797,8 @@ sigma_init(UNUSED(const device_t *info))
     bios_addr = device_get_config_hex20("bios_addr");
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_sigma);
+
+    sigma->monitor_index = monitor_index_global;
 
     sigma->enable_nmi = device_get_config_int("enable_nmi");
 

@@ -75,11 +75,10 @@
    about the device's subgroup size: results do not depend on the
    subgroup size, only packing efficiency does.
 
-   Z ladder: the interpreter steps zline += dZdx one pixel at a time in
-   double, and zline + i * dZdx computed in parallel would round
-   differently. The pre-pass (vid_ati_rage128_gpu_lad.comp) walks each
-   span's chain at the head of the segment submit and stores the
-   quantized depth per pixel in binding 6; this kernel only reads it.
+   Depth: every renderer models depth as the same fixed-point plane
+   (r128_zfx in vid_ati_rage128.h), so a pixel's depth is the span's
+   zline plus i steps in 64-bit integers, the value the interpreter
+   reaches by stepping. zfx_at computes it per pixel.
 
    Bit-exactness rules:
    - every float local is `precise`, and the host sets
@@ -206,7 +205,6 @@ layout(constant_id = 28) const int F_S3TC1 = -1;
    pipelines are always uber pipelines (C_FOLD 0). */
 layout(constant_id = 24) const int V_SERIAL = 0;
 
-#include "vid_ati_rage128_gpu_f64.glsl"
 #include "vid_ati_rage128_gpu_abi.glsl"
 
 layout(local_size_x = GPU_BATCH_SLOTS * GPU_SLOT_W) in;
@@ -230,9 +228,6 @@ layout(std430, binding = 2) readonly buffer R { uint rows[]; };  /* pairs: batch
 layout(std430, binding = 3) readonly buffer O { uint slots[]; };
 layout(std430, binding = 4) readonly buffer S { seg_span_t spans[]; };
 layout(std430, binding = 5) readonly buffer T { seg_tri_t tris[]; };
-/* quantized depth per pixel (16 or 24 bits; table-fog draws add the fog
-   entry in [31:24] and a second word), written by the pre-pass */
-layout(std430, binding = 6) readonly buffer L { uint lad[]; };
 /* Imported tex_stage arena, word view: texture levels staged from AGP
    memory. A slot whose packed base has bit 31 set samples here with
    mask-then-add addressing (arena_off + (off & (slice - 1))), the
@@ -1254,13 +1249,27 @@ edge_i64(uvec2 e)
     return int64_t(uint64_t(e.x) | (uint64_t(e.y) << 32));
 }
 
+/* Fixed-point depth of pixel i of span si (r128_zfx), clamped to
+   [0, 1.0] = [0, 2^39] (r128_zfx_clamp). */
+uint64_t
+zfx_at(int si, int ti, uint i)
+{
+    int64_t z = edge_i64(spans[si].zline) + int64_t(i) * edge_i64(tris[ti].dZdx);
+
+    return (z < 0L) ? 0UL : ((z > (1L << 39)) ? (1UL << 39) : uint64_t(z));
+}
+
+/* Depth cell value: zc * zmax rounded to nearest (r128_zfx_quant). */
+uint
+zfx_quant(uint64_t zc, uint zmax)
+{
+    return uint((zc * uint64_t(zmax) + (1UL << 38)) >> 39);
+}
+
 void
 pixel(int si, int ti, uint i)
 {
     int  px = spans[si].x0 + int(i);
-    /* ladder slot: table-fog draws have two words per pixel (depth,
-       then the 32-bit fog fraction), every other draw one */
-    uint lat = spans[si].px_base + i * ((tris[ti].ftab_en != 0u) ? 2u : 1u);
     bool cdead = (C_FOLD != 0)
         ? (C_DEAD != 0)
         : (tris[ti].wmask == 0u
@@ -1317,8 +1326,8 @@ pixel(int si, int ti, uint i)
         w2 = ef2 * tris[ti].invs;
     }
 
-    /* ---- Z and stencil tests (runtime selectors; depth from the
-       pre-pass) ---- zbpp 2 reads the u16 cell whole; zbpp 4 reads the
+    /* ---- Z and stencil tests (runtime selectors; depth from
+       zfx_at) ---- zbpp 2 reads the u16 cell whole; zbpp 4 reads the
        word and shifts the depth field out from beside the stencil byte.
        zcell is the resolved byte address, so the writebacks below hit
        the same cell. With stencil on, a failed test cannot discard yet:
@@ -1335,9 +1344,7 @@ pixel(int si, int ti, uint i)
     if (V_Z != 0) {
         uint zrw = spans[si].zrow;
 
-        /* bits [31:24] hold the table-fog entry (ftab_en draws only,
-           which read it again below); depth uses at most the low 24 */
-        zi    = lad[lat] & zmax;
+        zi    = zfx_quant(zfx_at(si, ti, i), zmax);
         zstg  = (zrw & 0x80000000u) != 0u;
         zcell = zstg ? ((zrw & 0x7fffffffu) + uint(px) * zbpp)
                      : ((zrw + uint(px) * zbpp) & pc.vram_mask);
@@ -1572,19 +1579,22 @@ pixel(int si, int ti, uint i)
        (SDK: Setting 3D Render States, p. 6-51 / PDF 163). Vertex fog
        interpolates the per-vertex factor and clamps it, since it can
        leave [0, 1] near the edges. Table fog, as the interpreter models
-       it, blends the table entry the pre-pass chose with the next one
-       by the 32-bit fraction, in the interpreter's float operations:
+       it, blends the table entry the pixel's depth selects with the
+       next one by the 32-bit fraction, in the interpreter's float
+       operations:
        t = float(fr) * 2^-32, f = (T[i] + (T[i1] - T[i]) * t) / 255,
        with the divide correctly rounded. */
     if (!cdead && tris[ti].fog_en != 0u) {
         precise float f;
 
         if (tris[ti].ftab_en != 0u) {
-            /* The ladder supplies the fog index and fraction even
-               without a live depth cell. Read them here so the texture
-               stages do not keep the operands live, as with Z writeback. */
-            uint fi = lad[lat] >> 24;
-            uint fr = lad[lat + 1u];
+            /* Index and fraction from the pixel's depth
+               (r128_zfx_fogpos), computed here, without a live depth
+               cell, so the texture stages do not keep the operands
+               live, as with Z writeback. */
+            uint64_t q  = (zfx_at(si, ti, i) * 255UL) >> 7;
+            uint     fi = uint(q >> 32);
+            uint     fr = uint(q);
             uint i1 = min(fi + 1u, 255u);
             precise float t  = float(fr) * (1.0 / 4294967296.0);
             precise float fa = float((tris[ti].fog_table[fi >> 2] >> ((fi & 3u) * 8u)) & 0xffu);
@@ -1766,7 +1776,7 @@ pixel(int si, int ti, uint i)
     if (V_Z != 0 && tris[ti].z_wr != 0u) {
         /* With stencil folded off, nothing between the test and here
            uses the cell state, so it is computed again: the address,
-           widths and depth depend only on the same tris, spans and lad
+           widths and depth depend only on the same tris and spans
            inputs, and recomputing them means the compiler does not keep
            them in registers across the texture stages. When stencil can
            run (an unfolded pipeline or S_STEN 1), the state is live for
@@ -1786,7 +1796,7 @@ pixel(int si, int ti, uint i)
             wcell = wstg ? ((wrw & 0x7fffffffu) + uint(px) * wbpp)
                          : ((wrw + uint(px) * wbpp) & pc.vram_mask);
             wua   = !wstg && (wcell & (wbpp - 1u)) != 0u;
-            wzi   = lad[lat] & wmax;
+            wzi   = zfx_quant(zfx_at(si, ti, i), wmax);
         } else {
             wbpp = zbpp;  wshf = zshift; wmax = zmax; wstg = zstg;
             wcell = zcell; wua = zua;    wzi  = zi;

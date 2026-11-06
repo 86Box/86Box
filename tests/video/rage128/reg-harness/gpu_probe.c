@@ -351,7 +351,11 @@ harness_gpu_submit_probe(rage128_t *dev, const rage128_raster_state_t *rs,
     res->toobig  = g->st_toobig;
     res->miss    = g->st_reprice_miss;
     res->nspans  = g->nspans;
-    res->seg_px  = g->seg_px;
+    for (uint32_t i = 0; i < g->nspans; i++) {
+        const seg_span_t *sp = &((const seg_span_t *) g->slot[0].b_spans.map)[i];
+
+        res->seg_px += (uint32_t) (sp->x1 - sp->x0 + 1);
+    }
     free(g->slot[0].b_spans.map);
     free(g->slot[0].b_tris.map);
     free(g->slot[0].b_pal.map);
@@ -589,6 +593,34 @@ harness_gpu_fab_tiled(void *g)
 }
 
 uint64_t
+harness_gpu_carry_submits(void *g)
+{
+    return ((r128_gpu_t *) g)->st_carry;
+}
+
+int
+harness_gpu_carry_open(void *g)
+{
+    return ((r128_gpu_t *) g)->bkc_on;
+}
+
+int
+harness_gpu_async(void *g)
+{
+    return ((r128_gpu_t *) g)->async;
+}
+
+void
+harness_gpu_wait_submitted(void *gp)
+{
+    r128_gpu_t *g = (r128_gpu_t *) gp;
+
+    for (unsigned i = 0; i < GPU_RING_SLOTS; i++)
+        if (atomic_load_explicit(&g->slot[i].submitted, memory_order_acquire))
+            vkWaitForFences(g->dev, 1, &g->slot[i].fence, VK_TRUE, UINT64_MAX);
+}
+
+uint64_t
 harness_gpu_fab_fill_rects(void *g)
 {
     return ((r128_gpu_t *) g)->st_fill_rects;
@@ -621,6 +653,24 @@ harness_gpu_fab_fill_exec(void *gp, uint8_t *mem, uint32_t size,
     for (uint32_t i = 0; i < g->nfills; i++) {
         const gpu_fill_t *f = &g->fills[i];
 
+        /* A staged copy runs as a buffer copy does: len bytes per row
+           from the staging ring at src + row * spitch, with no alignment
+           rule. */
+        if (f->kind == 1 && f->mid < 0) {
+            const uint8_t *sp = (const uint8_t *) g->stage2d.map;
+
+            if (!sp)
+                return -1;
+            for (uint32_t r = 0; r < f->rows; r++) {
+                uint64_t a = (uint64_t) f->addr + (uint64_t) r * f->pitch;
+                uint64_t s = (uint64_t) f->src + (uint64_t) r * f->spitch;
+
+                if (a + f->len > size || s + f->len > GPU_2DSTAGE_SIZE)
+                    return -1;
+                memcpy(&mem[a], &sp[s], f->len);
+            }
+            continue;
+        }
         if (f->kind != 0 || f->mid >= 0 || (f->len & 3u))
             return -1;
         for (uint32_t r = 0; r < f->rows; r++) {
@@ -1312,6 +1362,33 @@ harness_gpu_fab_tiled(void *g)
 {
     (void) g;
     return 0;
+}
+
+uint64_t
+harness_gpu_carry_submits(void *g)
+{
+    (void) g;
+    return 0;
+}
+
+int
+harness_gpu_carry_open(void *g)
+{
+    (void) g;
+    return 0;
+}
+
+int
+harness_gpu_async(void *g)
+{
+    (void) g;
+    return 0;
+}
+
+void
+harness_gpu_wait_submitted(void *g)
+{
+    (void) g;
 }
 
 uint64_t

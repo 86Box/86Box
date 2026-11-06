@@ -30,7 +30,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
     static int opREP_INSW_##size(UNUSED(uint32_t fetchdat))                                                       \
     {                                                                                                             \
@@ -63,7 +63,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
     static int opREP_INSL_##size(UNUSED(uint32_t fetchdat))                                                       \
     {                                                                                                             \
@@ -96,7 +96,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
                                                                                                                   \
     static int opREP_OUTSB_##size(UNUSED(uint32_t fetchdat))                                                      \
@@ -129,7 +129,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
     static int opREP_OUTSW_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
@@ -161,7 +161,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
     static int opREP_OUTSL_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
@@ -193,7 +193,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
                                                                                                                   \
     static int opREP_MOVSB_##size(UNUSED(uint32_t fetchdat))                                                      \
@@ -231,7 +231,7 @@
             }                                                                                                     \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 3 : 4;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
@@ -239,7 +239,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
     static int opREP_MOVSW_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
@@ -277,7 +277,7 @@
             }                                                                                                     \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 3 : 4;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
@@ -285,7 +285,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
     static int opREP_MOVSL_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
@@ -323,7 +323,7 @@
             }                                                                                                     \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 3 : 4;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
@@ -331,7 +331,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
                                                                                                                   \
     static int opREP_STOSB_##size(UNUSED(uint32_t fetchdat))                                                      \
@@ -353,7 +353,7 @@
                 DEST_REG++;                                                                                       \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 4 : 5;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
@@ -361,7 +361,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
     static int opREP_STOSW_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
@@ -382,7 +382,7 @@
                 DEST_REG += 2;                                                                                    \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 4 : 5;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
@@ -390,7 +390,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
     static int opREP_STOSL_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
@@ -411,7 +411,7 @@
                 DEST_REG += 4;                                                                                    \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 4 : 5;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
@@ -419,7 +419,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
                                                                                                                   \
     static int opREP_LODSB_##size(UNUSED(uint32_t fetchdat))                                                      \
@@ -442,7 +442,7 @@
                 SRC_REG++;                                                                                        \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 4 : 5;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
@@ -450,7 +450,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
     static int opREP_LODSW_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
@@ -472,7 +472,7 @@
                 SRC_REG += 2;                                                                                     \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 4 : 5;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
@@ -480,7 +480,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
     static int opREP_LODSL_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
@@ -502,7 +502,7 @@
                 SRC_REG += 4;                                                                                     \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 4 : 5;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if (CNT_REG > 0) {                                                                                        \
@@ -510,7 +510,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }
 
 #define REP_OPS_CMPS_SCAS(size, CNT_REG, SRC_REG, DEST_REG, FV)                                                   \
@@ -559,7 +559,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
     static int opREP_CMPSW_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
@@ -607,7 +607,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
     static int opREP_CMPSL_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
@@ -655,7 +655,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
                                                                                                                   \
     static int opREP_SCASB_##size(UNUSED(uint32_t fetchdat))                                                      \
@@ -680,7 +680,7 @@
                 DEST_REG++;                                                                                       \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 5 : 8;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if ((CNT_REG > 0) && (FV == tempz)) {                                                                     \
@@ -688,7 +688,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
     static int opREP_SCASW_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
@@ -712,7 +712,7 @@
                 DEST_REG += 2;                                                                                    \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 5 : 8;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if ((CNT_REG > 0) && (FV == tempz)) {                                                                     \
@@ -720,7 +720,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }                                                                                                             \
     static int opREP_SCASL_##size(UNUSED(uint32_t fetchdat))                                                      \
     {                                                                                                             \
@@ -744,7 +744,7 @@
                 DEST_REG += 4;                                                                                    \
             CNT_REG--;                                                                                            \
             cycles -= is486 ? 5 : 8;                                                                              \
-            if (cycles < cycles_end)                                                                              \
+            if ((cycles < cycles_end) || smi_line)                                                                \
                 break;                                                                                            \
         }                                                                                                         \
         if ((CNT_REG > 0) && (FV == tempz)) {                                                                     \
@@ -752,7 +752,7 @@
             cpu_state.pc = cpu_state.oldpc;                                                                       \
             return 1;                                                                                             \
         }                                                                                                         \
-        return cpu_state.abrt;                                                                                    \
+        return cpu_state.abrt || smi_line;                                                                        \
     }
 
 REP_OPS(a16, CX, SI, DI)

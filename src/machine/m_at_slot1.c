@@ -606,6 +606,10 @@ machine_at_optiplexgxa_init(const machine_t *model)
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
+    /* The on-board video; its BIOS is in the system BIOS. */
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
+
     return ret;
 }
 
@@ -1109,6 +1113,10 @@ machine_at_in440ex_init(const machine_t *model)
 
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
+    /* The on-board video; its BIOS is in the system BIOS. */
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
+
     return ret;
 }
 
@@ -1206,6 +1214,10 @@ machine_at_in440exd_init(const machine_t *model)
 
     if (sound_card_current[0] == SOUND_INTERNAL)
         machine_snd = device_add(machine_get_snd_device(machine));
+
+    /* The on-board video; its BIOS is in the system BIOS. */
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }
@@ -2108,6 +2120,10 @@ machine_at_optiplexgx1_init(const machine_t *model)
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
+    /* The on-board video; its BIOS is in the system BIOS. */
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
+
     return ret;
 }
 
@@ -2801,6 +2817,10 @@ machine_at_ms6147_init(const machine_t *model)
         device_add(&ct1297_device);
     }
 
+    /* The on-board video; its BIOS is in the system BIOS. */
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
+
     return ret;
 }
 
@@ -2836,6 +2856,17 @@ static const device_config_t p6sba_config[] = {
             },
             { .files_no = 0 }
         }
+    },
+    {
+        .name           = "disable_apic",
+        .description    = "Disable APIC",
+        .type           = CONFIG_BINARY,
+        .default_int    = 0,
+        .default_string = NULL,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
@@ -2884,6 +2915,7 @@ machine_at_p6sba_init(const machine_t *model)
     pci_register_slot(0x01, PCI_CARD_AGPBRIDGE,   1, 2, 3, 4);
 
     device_add(&i440bx_device);
+    device_add(&integrated_cpu_lapic_device);
     device_add(&piix4e_device);
     device_add_params(&w83977_device, (void *) (W83977TF | W83977_AMI | W83977_NO_NVR));
     device_add(&intel_flash_bxt_device);

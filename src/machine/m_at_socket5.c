@@ -38,6 +38,7 @@
 #include <86box/sio.h>
 #include <86box/video.h>
 #include <86box/machine.h>
+#include <86box/ioapic_routes.h>
 #include <86box/sound.h>
 
 /* i430NX */
@@ -65,6 +66,53 @@ machine_at_p54np4_init(const machine_t *model)
 
     device_add(&i430nx_device);
     device_add(&sio_zb_device);
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+    device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_PRI));
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
+/* i430NX, with the 82379AB SIO.A in place of the P54NP4's 82378ZB */
+int
+machine_at_p54np4d_init(const machine_t *model)
+{
+    static const ioapic_legacy_irq_routing_t p54np4d_irq_routing = {
+        .irq_to_intin = IOAPIC_LEGACY_IRQ_ROUTE_SIOA
+    };
+    void *sio;
+    void *ioapic;
+    int   ret;
+
+    ret = bios_load_linear("roms/machines/p54np4d/IN5I0207.AWD",
+                           0x000e0000, 131072, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    device_add(&ide_vlb_device);
+
+    /* The BIOS's own slot table (F000:0933) lists devices 07h, 06h, 05h and
+       04h, whose INTA# it routes to PIRQ0-3 in turn and each further INT#
+       to the next PIRQ (F000:1216). */
+    pci_init(PCI_CONFIG_TYPE_2 | PCI_CAN_SWITCH_TYPE);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x07, PCI_CARD_NORMAL,      1, 2, 3, 4); /* 07 = Slot 1 */
+    pci_register_slot(0x06, PCI_CARD_NORMAL,      2, 3, 4, 1); /* 06 = Slot 2 */
+    pci_register_slot(0x05, PCI_CARD_NORMAL,      3, 4, 1, 2); /* 05 = Slot 3 */
+    pci_register_slot(0x04, PCI_CARD_NORMAL,      4, 1, 2, 3); /* 04 = Slot 4 */
+    pci_register_slot(0x02, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+
+    device_add(&i430nx_device);
+    sio = device_add(&sio_a_device);
+    /* The SIO.A's I/O APIC: the BIOS gives it ID 2 at FEC00000h and lists
+       the ISA IRQs on it in its MP table (Award: its last POST code before
+       booting is FFh). */
+    ioapic = device_add_params(&ioapic_validated_up_device,
+                               (void *) (IOAPIC_TOPOLOGY_UP_APIC_DEFAULT | IOAPIC_VARIANT_ESC));
+    ioapic_set_legacy_irq_routing(ioapic, &p54np4d_irq_routing);
+    sio_a_set_ioapic(sio, ioapic);
     device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
     device_add_params(&fdc37c6xx_device, (void *) (FDC37C665 | FDC37C6XX_IDE_PRI));
     device_add(&intel_flash_bxt_device);

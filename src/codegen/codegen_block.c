@@ -6,6 +6,7 @@
 #include "cpu.h"
 #include <86box/mem.h>
 #include <86box/plat_unused.h>
+#include <86box/timer.h>
 
 #include "x86.h"
 #include "x86_flags.h"
@@ -29,10 +30,16 @@ uint8_t *block_write_data = NULL;
 
 int      codegen_flat_ds;
 int      codegen_flat_ss;
+int      codegen_wide_ds;
+int      codegen_wide_ss;
+int      codegen_v86_64k;
 int      mmx_ebx_ecx_loaded;
 int      codegen_flags_changed = 0;
 int      codegen_fpu_entered   = 0;
+int      codegen_fpu_es_check  = 0;
 int      codegen_mmx_entered   = 0;
+uint8_t  codegen_fpu_tag_valid = 0;
+uint8_t  codegen_fpu_tag_empty = 0;
 int      codegen_fpu_loaded_iq[8];
 x86seg  *op_ea_seg;
 int      op_ssegs;
@@ -47,12 +54,6 @@ int        block_pos;
 uint32_t codegen_endpc;
 
 int        codegen_block_cycles;
-static int codegen_block_ins;
-static int codegen_block_full_ins;
-
-static uint32_t last_op32;
-static x86seg  *last_ea_seg;
-static int      last_ssegs;
 
 #ifdef DEBUG_EXTRA
 uint32_t instr_counts[256 * 256];
@@ -255,10 +256,88 @@ int codegen_block_link = 1;
   gets back a value a slot may still hold for it.*/
 static uint32_t link_gen_last = 0;
 
+#    ifdef CODEGEN_BACKEND_HAS_LINK_SETS
+codegen_link_set_t codegen_link_sets[CODEGEN_LINK_SETS] __attribute__((aligned(64)));
+
+/*The orders of e[0..2], most recently used first: 012 021 102 120 201 210*/
+const uint8_t codegen_link_set_mtf[6][4] = {
+    { 0, 2, 4 },
+    { 1, 2, 4 },
+    { 0, 2, 5 },
+    { 0, 3, 5 },
+    { 1, 3, 4 },
+    { 1, 3, 5 }
+};
+/*The least recently used entry of each order*/
+static const uint8_t link_set_lru[6] = { 2, 1, 2, 0, 1, 0 };
+
+uint16_t        codegen_link_site_set[BLOCK_SIZE * CODEGEN_LINK_SLOTS];
+static uint16_t link_set_free[CODEGEN_LINK_SETS];
+static int      link_set_free_nr;
+
+static void
+link_sets_reset(void)
+{
+    memset(codegen_link_site_set, 0, sizeof(codegen_link_site_set));
+    link_set_free_nr = 0;
+    for (int c = CODEGEN_LINK_SETS - 1; c > 0; c--)
+        link_set_free[link_set_free_nr++] = c;
+}
+
+static void
+link_site_release(int site)
+{
+    if (codegen_link_site_set[site] && (codegen_link_site_set[site] != CODEGEN_LINK_SET_ONE))
+        link_set_free[link_set_free_nr++] = codegen_link_site_set[site];
+    codegen_link_site_set[site] = 0;
+}
+
+/*The slot is about to be filled for a target at another key: keep the record
+  it holds in its set, in the entry that holds that target if one does (as
+  the routine would have swapped it), else in the least recently used one.
+  With no set yet, the slot gets one the second time its target changes.*/
+static void
+link_set_keep(codegen_link_slot_t *slot)
+{
+    const int           site = ((uintptr_t) slot - (uintptr_t) codegen_link_slots) / sizeof(codegen_link_slot_t);
+    codegen_link_set_t *set;
+    int                 n;
+
+    if (!codegen_link_site_set[site]) {
+        codegen_link_site_set[site] = CODEGEN_LINK_SET_ONE;
+        return;
+    }
+    if (codegen_link_site_set[site] == CODEGEN_LINK_SET_ONE) {
+        if (!link_set_free_nr)
+            return;
+        codegen_link_site_set[site] = link_set_free[--link_set_free_nr];
+        set                         = &codegen_link_sets[codegen_link_site_set[site]];
+        memset(set, 0, sizeof(codegen_link_set_t));
+#        if defined(__aarch64__) || defined(_M_ARM64)
+        slot->set = set->e[1].set = set->e[2].set = codegen_link_site_set[site];
+#        endif
+        set->e[0] = *slot;
+        return;
+    }
+    set = &codegen_link_sets[codegen_link_site_set[site]];
+    for (n = 0; n < 3; n++) {
+        if ((set->e[n].exit_pc == cpu_state.pc) && (set->e[n].exit_cs == cs))
+            break;
+    }
+    if (n == 3)
+        n = link_set_lru[set->order];
+    set->e[n]  = *slot;
+    set->order = codegen_link_set_mtf[set->order][n];
+}
+#    endif
+
 void
 codegen_link_reset(void)
 {
     memset(codegen_link_slots, 0, sizeof(codegen_link_slots));
+#    ifdef CODEGEN_BACKEND_HAS_LINK_SETS
+    link_sets_reset();
+#    endif
 }
 
 void
@@ -283,6 +362,10 @@ codegen_link_block_changed(codeblock_t *block)
 static void
 link_slots_clear(codeblock_t *block)
 {
+#    ifdef CODEGEN_BACKEND_HAS_LINK_SETS
+    for (int c = 0; c < CODEGEN_LINK_SLOTS; c++)
+        link_site_release(get_block_nr(block) * CODEGEN_LINK_SLOTS + c);
+#    endif
     memset(codegen_link_slots[get_block_nr(block)], 0, sizeof(codegen_link_slots[0]));
 }
 
@@ -316,6 +399,10 @@ codegen_link_patch(codegen_link_slot_t *from, codeblock_t *block, uint32_t phys)
 
     /*The exit's own slot, whatever it held*/
     slot = from;
+#    ifdef CODEGEN_BACKEND_HAS_LINK_SETS
+    if (slot->entry && ((slot->exit_pc != cpu_state.pc) || (slot->exit_cs != cs)))
+        link_set_keep(slot);
+#    endif
 
     slot->entry      = NULL;
     slot->exit_pc    = cpu_state.pc;
@@ -593,6 +680,7 @@ add_to_block_list(codeblock_t *block)
         block->next                    = BLOCK_INVALID;
         pages[block->phys >> 12].block = block_nr;
     }
+    block->flags |= CODEBLOCK_IN_PAGE_LIST;
 
     if (block->next) {
 #ifndef RELEASE_BUILD
@@ -620,8 +708,12 @@ add_to_block_list(codeblock_t *block)
 static void
 remove_from_block_list(codeblock_t *block, UNUSED(uint32_t pc))
 {
-    if (!block->page_mask)
+    /* Not page_mask: a recompile clears that while the block stays listed,
+       and a block given up before its first instruction is marked would be
+       freed still on the list, which then loops when it is listed again */
+    if (!(block->flags & CODEBLOCK_IN_PAGE_LIST))
         return;
+    block->flags &= ~CODEBLOCK_IN_PAGE_LIST;
 #ifndef RELEASE_BUILD
     if (block->flags & CODEBLOCK_IN_DIRTY_LIST)
         fatal("remove_from_block_list: in dirty list\n");
@@ -660,6 +752,13 @@ remove_from_block_list(codeblock_t *block, UNUSED(uint32_t pc))
     }
 }
 
+/*Strike threshold, base cooldown length (in tsc counts), and cap on the
+  exponential backoff applied per consecutive strike, for the SMC-thrash
+  interpret fallback (see page_t).*/
+#define SMC_THRASH_STRIKE_THRESHOLD 3
+#define SMC_THRASH_BASE_COOLDOWN    4096
+#define SMC_THRASH_MAX_STRIKES      8
+
 static void
 invalidate_block(codeblock_t *block)
 {
@@ -671,6 +770,21 @@ invalidate_block(codeblock_t *block)
     if (!block->valid)
         fatal("Invalidating deleted block\n");
 #endif
+    /* A block that compiled, then got rewritten before it ran often enough
+       from block->data to make up for compiling it, cost more than
+       interpreting it would have: count it as a strike against the block.
+       One that ran often enough paid for itself, so it clears the block's
+       strikes instead. One that was only marked, never compiled, cost
+       nothing extra and tells neither. */
+    if (block->flags & CODEBLOCK_WAS_RECOMPILED) {
+        if (block->runs_left) {
+            if (block->smc_strikes < SMC_THRASH_MAX_STRIKES)
+                block->smc_strikes++;
+            if (block->smc_strikes >= SMC_THRASH_STRIKE_THRESHOLD)
+                block->smc_cooldown_until = tsc + ((uint64_t) SMC_THRASH_BASE_COOLDOWN << (block->smc_strikes - SMC_THRASH_STRIKE_THRESHOLD));
+        } else
+            block->smc_strikes = 0;
+    }
     remove_from_block_list(block, old_pc);
     block_dirty_list_add(block);
     if (block->head_mem_block) {
@@ -831,7 +945,8 @@ codegen_check_flush(page_t *page, UNUSED(uint64_t mask), UNUSED(uint32_t phys_ad
     page->code_present_mask &= ~page->dirty_mask;
     page->dirty_mask = 0;
 
-    for (uint8_t c = 0; c < 64; c++) {
+    /* A page with no RAM behind it has no byte masks of its own */
+    for (uint8_t c = 0; (c < 64) && (page->mem != page_ff); c++) {
         if (page->byte_code_present_mask[c] & page->byte_dirty_mask[c])
             remove_from_evict_list = 0;
         page->byte_code_present_mask[c] &= ~page->byte_dirty_mask[c];
@@ -859,9 +974,11 @@ codegen_block_init(uint32_t phys_addr)
     block_num                 = HASH(phys_addr);
     codeblock_hash[block_num] = block_current;
 
-    block->valid       = 1;
-    block->ins         = 0;
-    block->pc          = cs + cpu_state.pc;
+    block->valid             = 1;
+    block->ins               = 0;
+    block->smc_strikes        = 0;
+    block->smc_cooldown_until = 0;
+    block->pc                = cs + cpu_state.pc;
     block->_cs         = cs;
     block->phys        = phys_addr;
     block->dirty_mask  = &page->dirty_mask;
@@ -930,27 +1047,22 @@ codegen_block_start_recompile(codeblock_t *block)
        bits would leave every later non-flat visit a new block. */
     block->status = (cpu_cur_status & ~CPU_STATUS_MASK) | (block->status & CPU_STATUS_MASK);
     block->used   = 1; /* new: not the next thing the eviction sweep takes */
+    block->runs_left = SMC_THRASH_RUN_MASK; /* not yet run from block->data */
 
     block->page_mask = block->page_mask2 = 0;
     block->ins                           = 0;
 
     cpu_block_end = 0;
 
-    last_op32   = -1;
-    last_ea_seg = NULL;
-    last_ssegs  = -1;
-
     codegen_block_cycles = 0;
     codegen_timing_block_start();
-
-    codegen_block_ins      = 0;
-    codegen_block_full_ins = 0;
 
     recomp_page = block->phys & ~0xfff;
 
     codegen_flags_changed = 0;
     codegen_flags_known_reset();
     codegen_fpu_entered   = 0;
+    codegen_fpu_es_check  = 0;
     codegen_mmx_entered   = 0;
     codegen_fpu_class_dirty = 0;
 
@@ -960,10 +1072,16 @@ codegen_block_start_recompile(codeblock_t *block)
 
     block->TOP = cpu_state.TOP & 7;
     block->flags |= CODEBLOCK_WAS_RECOMPILED;
+    codegen_page2_walked     = 0;
+    codegen_fetch_walk_off   = 0;
+    codegen_fetch_walk_defer = 0;
 
     codegen_flat_ds = !(block->status & CPU_STATUS_NOTFLATDS);
     codegen_flat_ss = !(block->status & CPU_STATUS_NOTFLATSS);
     codegen_flat_es = !(block->status & CPU_STATUS_NOTFLATES);
+    codegen_wide_ds = !(block->status & CPU_STATUS_NOTWIDEDS);
+    codegen_wide_ss = !(block->status & CPU_STATUS_NOTWIDESS);
+    codegen_v86_64k = (block->status & CPU_STATUS_V86) && !(block->status & CPU_STATUS_NOT64K);
 
     if (block->flags & CODEBLOCK_BYTE_MASK) {
         block->dirty_mask  = &page->byte_dirty_mask[(block->phys >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK];
@@ -1143,8 +1261,9 @@ codegen_block_end_recompile(codeblock_t *block)
 {
     uint64_t page_mask2_compiled = block->page_mask2;
 
+    codegen_accumulate_record(ACC_END, 0, 0, 0, 0, 0);
     codegen_timing_block_end();
-    codegen_accumulate(ir_data, ACCREG_cycles, -codegen_block_cycles);
+    codegen_accumulate_timing(ir_data);
 
     if (block->flags & CODEBLOCK_IN_DIRTY_LIST)
         block_dirty_list_remove(block);
@@ -1158,7 +1277,10 @@ codegen_block_end_recompile(codeblock_t *block)
     if (!(block->flags & CODEBLOCK_HAS_FPU))
         block->flags &= ~CODEBLOCK_STATIC_TOP;
 
-    codegen_accumulate_flush(ir_data);
+    /*The unrolled branch falls through when taken. Only its not-taken
+      exit owes the drain and the branch credit.*/
+    if (!codegen_ir_unrolling())
+        codegen_accumulate_flush(ir_data);
     codegen_ir_compile(ir_data, block);
 #ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
     codegen_link_block_changed(block);
@@ -1249,6 +1371,10 @@ codegen_block_restore_version(codeblock_t *block)
         block->dirty_mask     = &page->byte_dirty_mask[(block->phys >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK];
         block->dirty_mask2    = NULL;
         block->flags          = (block->flags & ~(CODEBLOCK_HAS_FPU | CODEBLOCK_STATIC_TOP)) | v->flags | CODEBLOCK_WAS_RECOMPILED;
+        /* Restoring a kept version is cheap (a few memcmp calls), unlike a
+           real recompile: do not let it count as an SMC-thrash strike if
+           it gets invalidated again before being run often from block->data. */
+        block->runs_left      = 0;
         codegen_block_generate_end_mask_recompile();
         add_to_block_list(block);
         block_version_owner_sync(block_nr);
@@ -1311,7 +1437,37 @@ codegen_block_version_check_ins(uint32_t addr)
 void
 codegen_flush(void)
 {
-    return;
+    /*A TLB flush ends get_phys()'s cached translation, as it ends the fetch
+      cache: the next block lookup translates again, and its walk sets the
+      Accessed bits the fetch would. A real entry is page aligned, so this
+      tag never hits, there or in the link routines' compare.*/
+    get_phys_phys = 0xffffffff;
+}
+
+int      codegen_page2_walked;
+int      codegen_fetch_walk_off;
+int      codegen_fetch_walk_defer;
+uint32_t codegen_fetch_walk_deferred;
+
+/*Compiled code fetches nothing: the walk of the second page the
+  interpreter's fetch would make at this point, every time the block gets
+  here. A full barrier, so it is safe inside a handler (the temporaries are
+  written back), and its exit takes the #PF from this instruction's oldpc.
+  The cycles it may leave with are stamped on it (uop_alloc)*/
+void
+codegen_fetch_walk(uint32_t addr)
+{
+    ir_data_t *ir = codegen_get_ir_data();
+
+    codegen_page2_walked = 1;
+    /*A displacement whose walk is made later (codegen_skip, codegen.c's
+      codegen_generate_ea), linear 0 as any other address*/
+    if (codegen_fetch_walk_defer) {
+        codegen_fetch_walk_deferred = addr | 1;
+        return;
+    }
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    uop_CALL_INSTRUCTION_FUNC(ir, dynarec_fetch_walk, addr);
 }
 
 void

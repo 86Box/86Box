@@ -75,6 +75,8 @@ signals:
     void vmmGlobalConfigurationChanged();
 public slots:
     void emitVmmSignal();
+    void setVmmSupervised(bool supervised);
+    void applyGlobalPreferences();
     void showSettings();
     void hardReset();
     void togglePause();
@@ -143,6 +145,7 @@ private slots:
     void showMessage_(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool *done = nullptr);
 
     void on_actionMCA_devices_triggered();
+    void on_actionMemory_viewer_triggered();
 
 protected:
     void keyPressEvent(QKeyEvent *event) override;
@@ -183,8 +186,11 @@ private:
     std::shared_ptr<MediaMenu>     mm;
     QMenu                         *dynarecMenu = nullptr;
 
+    bool hasKanaLock();
     void updateShortcuts();
+    void updatePowerOffAction();
     void refreshDisplayRatioActions();
+    bool isMainWindowOrRendererActive() const;
     void processKeyboardInput(bool down, uint32_t keycode);
 #ifdef Q_OS_MACOS
     uint32_t last_modifiers = 0;
@@ -207,9 +213,11 @@ private:
     /* Mouse capture state before showing fullscreen UI */
     bool mouse_was_captured = false;
 
+    /* Whether the built-in 86Box VM manager supervises this machine, as
+       opposed to another manager or none */
+    bool vmm_supervised = false;
+
     friend class SpecifyDimensions;
-    friend class Preferences;
-    friend class PreferencesEmulator;
     friend class RendererCommon;
     friend class RendererStack;         // For UI variable access by non-primary renderer windows.
     friend class WindowsRawInputFilter; // Needed to reload renderers on style sheet changes.

@@ -71,6 +71,62 @@ static void fdc_callback(void *priv);
 static void fdc_rate(fdc_t *fdc, int drive);
 void        fdc_error(fdc_t *fdc, int st5, int st6);
 
+/* Interrupt and DMA, through the host of a hosted FDC. */
+static void
+fdc_irq(fdc_t *fdc, int set)
+{
+    if (fdc->host != NULL) {
+        if (fdc->host->irq != NULL)
+            fdc->host->irq(fdc->host_priv, set);
+    } else if (fdc->irq != 0xff) {
+        if (set)
+            picint(1 << fdc->irq);
+        else
+            picintc(1 << fdc->irq);
+    }
+}
+
+static int
+fdc_dma_read(fdc_t *fdc)
+{
+    if (fdc->host != NULL)
+        return fdc->host->dma_read(fdc->host_priv);
+
+    return dma_channel_read(fdc->dma_ch);
+}
+
+static int
+fdc_dma_write(fdc_t *fdc, uint8_t val)
+{
+    if (fdc->host != NULL)
+        return fdc->host->dma_write(fdc->host_priv, val);
+
+    return dma_channel_write(fdc->dma_ch, val);
+}
+
+static void
+fdc_dma_drq(fdc_t *fdc, int set)
+{
+    if (fdc->host != NULL) {
+        if (fdc->host->drq != NULL)
+            fdc->host->drq(fdc->host_priv, set);
+    } else
+        dma_set_drq(fdc->dma_ch, set);
+}
+
+static int
+fdc_dma_get_drq(fdc_t *fdc)
+{
+    return (fdc->host == NULL) && dma_get_drq(fdc->dma_ch);
+}
+
+/* A read with the DMA channel in verify mode only checks the sectors. */
+static int
+fdc_dma_verify(fdc_t *fdc)
+{
+    return (fdc->host == NULL) && ((dma_mode(fdc->dma_ch) & 0x0C) == 0x00);
+}
+
 int            lastbyte             = 0;
 volatile int   fdcinited            = 0;
 
@@ -366,7 +422,7 @@ fdc_request_next_sector_id(fdc_t *fdc)
         fdc->stat = 0xb0;
     else {
         fdc_log("FDC command %02X: Raise DRQ on request next sector ID\n", fdc->processed_cmd);
-        dma_set_drq(fdc->dma_ch, 1);
+        fdc_dma_drq(fdc, 1);
         fdc->stat = 0x10;
     }
 }
@@ -423,14 +479,13 @@ fdc_int(fdc_t *fdc, int set_fintr)
 {
     int ienable = 0;
 
-    if (fdc->flags & FDC_FLAG_PS2_MCA)
+    if (fdc->flags & (FDC_FLAG_PS2_MCA | FDC_FLAG_TANDY2K))
         ienable = 1;
     else if (!(fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)))
         ienable = !!(fdc->dor & 8);
 
     if (ienable) {
-        if (fdc->irq != 0xff)
-            picint(1 << fdc->irq);
+        fdc_irq(fdc, 1);
 
         if (set_fintr)
             fdc->fintr = 1;
@@ -447,8 +502,8 @@ fdc_watchdog_poll(void *priv)
     if (fdc->watchdog_count)
         timer_advance_u64(&fdc->watchdog_timer, 1000 * TIMER_USEC);
     else {
-        if ((fdc->dor & 0x20) && (fdc->irq != 0xff))
-            picint(1 << fdc->irq);
+        if (fdc->dor & 0x20)
+            fdc_irq(fdc, 1);
     }
 }
 
@@ -901,7 +956,7 @@ fdc_io_command_phase1(fdc_t *fdc, int out)
             fdc->stat |= 0x80;
     } else {
         fdc_log("FDC command %02X: Raise DRQ on command phase 1\n", fdc->processed_cmd);
-        dma_set_drq(fdc->dma_ch, 1);
+        fdc_dma_drq(fdc, 1);
     }
 }
 
@@ -913,7 +968,10 @@ fdc_sis(fdc_t *fdc)
     if (fdc->reset_stat) {
         const int drive_num = real_drive(fdc, 4 - fdc->reset_stat);
         if (fdd_get_flags(fdc->fdd[drive_num])) {
-            fdd_stop(fdc->fdd[drive_num]);
+            /* Without a DOR latch nothing in the guest can start a motor again,
+               so a reset must not stop one. */
+            if (!(fdc->flags & FDC_FLAG_TANDY2K))
+                fdd_stop(fdc->fdd[drive_num]);
             fdd_set_head(fdc->fdd[drive_num], 0);
             fdc->res[9] = 0xc0 | (4 - fdc->reset_stat) | (fdd_get_head(fdc->fdd[drive_num]) ? 4 : 0);
         } else
@@ -984,8 +1042,7 @@ fdc_pcjx_dor(fdc_t *fdc, uint8_t val)
         timer_disable(&fdc->timer);
         timer_disable(&fdc->watchdog_timer);
         fdc->watchdog_count = 0;
-        if (fdc->irq != 0xff)
-            picintc(1 << fdc->irq);
+        fdc_irq(fdc, 0);
         for (int drive = 0; drive < 4; drive++)
             fdd_stop(fdc->fdd[drive]);
         fdc_ctrl_reset(fdc, 1);
@@ -1002,8 +1059,7 @@ fdc_pcjx_dor(fdc_t *fdc, uint8_t val)
         } else if ((fdc->dor & 0x40) && !(val & 0x40)) {
             fdc->watchdog_count = 1000;
             timer_set_delay_u64(&fdc->watchdog_timer, 1000 * TIMER_USEC);
-            if (fdc->irq != 0xff)
-                picintc(1 << fdc->irq);
+            fdc_irq(fdc, 0);
         }
     }
     fdc->dor = val;
@@ -1024,6 +1080,14 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
     if ((fdc->flags & FDC_FLAG_PCJX) &&
         (((addr & 7) != 2) && ((addr & 7) != 5)))
         return;
+
+    /* The Tandy 2000 puts the status register on 30h and the
+       command/data register on 32h, with the data register
+       mirrored at the DMA acknowledge address 80h. */
+    if (fdc->flags & FDC_FLAG_TANDY2K) {
+        if (((addr >= 0x0030) && (addr <= 0x0033)) || (addr == 0x0080))
+            addr = 0x03f5;
+    }
 
     if (!fdc->power_down || ((addr & 7) == 2) || ((addr & 7) == 4))
         switch (addr & 7) {
@@ -1075,7 +1139,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                     if ((fdc->dor & 0x40) && !(val & 0x40)) {
                         timer_set_delay_u64(&fdc->watchdog_timer, 1000 * TIMER_USEC);
                         fdc->watchdog_count = 1000;
-                        picintc(1 << fdc->irq);
+                        fdc_irq(fdc, 0);
                     }
                     if ((val & 0x80) && !(fdc->dor & 0x80)) {
                         timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
@@ -1100,7 +1164,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                     if (!(val & 8) && (fdc->dor & 8) && !(fdc->flags & FDC_FLAG_PS2_MCA)) {
                         fdc->tc    = 1;
                         fdc->fintr = 0;
-                        picintc(1 << fdc->irq);
+                        fdc_irq(fdc, 0);
                     }
                     if (!(val & 4)) {
                         if (fdc->flags & FDC_FLAG_PC98)
@@ -1162,7 +1226,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 return;
             case 4: /* DSR */
                 if (fdc->flags & FDC_FLAG_5550)
-                    picintc(1 << fdc->irq);
+                    fdc_irq(fdc, 0);
                 if (!(fdc->flags & FDC_FLAG_NO_DSR_RESET)) {
                     if (!(val & 0x80)) {
                         timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
@@ -1175,7 +1239,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                 return;
             case 5: /*Command register*/
                 if (fdc->flags & FDC_FLAG_5550)
-                    picintc(1 << fdc->irq);
+                    fdc_irq(fdc, 0);
                 /* The uPD765 does not accept a command until every result byte
                    has been read out, so writes arriving before that is neither
                    a command byte nor one of its parameters. */
@@ -1403,13 +1467,18 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 fdc->drive = 0;
                             /* PC-98 has no IBM DOR drive-select bits; its
                              * uPD765 command byte is the physical unit select. */
-                            else if (fdc->flags & (FDC_FLAG_5550 | FDC_FLAG_PCJX | FDC_FLAG_PC98))
+                            else if (fdc->flags & (FDC_FLAG_5550 | FDC_FLAG_PCJX | FDC_FLAG_TANDY2K | FDC_FLAG_PC98))
                                 fdc->drive = fdc->params[0] & 3;
                             else
                                 fdc->drive = fdc->dor & 3;
                             fdc->rw_drive = fdc->params[0] & 3;
-                            if (fdc->flags & FDC_FLAG_PCJX)
+                            if (fdc->flags & (FDC_FLAG_PCJX | FDC_FLAG_TANDY2K))
                                 current_drive = real_drive(fdc, fdc->drive);
+                            if (fdc->flags & FDC_FLAG_TANDY2K) {
+                                /* The motor lines are strapped on, and there is no
+                                   DOR to spin the selected drive up with. */
+                                fdd_set_motor_enable(fdc->fdd[real_drive(fdc, fdc->drive)], 1);
+                            }
                             if (((fdc->command & 0x1F) == 7) || ((fdc->command & 0x1F) == 15))
                                 fdc->stat |= (1 << real_drive(fdc, fdc->drive));
                         }
@@ -1446,6 +1515,18 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 else
                                     timer_set_delay_u64(&fdc->timer, 256 * TIMER_USEC);
                                 break;                                
+                            case 0x13: /* Configure */
+                                /*
+                                   No execution phase: the controller is ready for the next
+                                   command right away. The Windows 98 QIC-117 tape driver
+                                   (DRVWQ117) gives it about 100 us before it resets the
+                                   controller and tries again; each try nests on the 4 KB
+                                   stack it probes from, and a hundred of them run into its
+                                   own variables, corrupting the stack pointer it switches
+                                   back to.
+                                 */
+                                timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
+                                break;
                             default:
                                 timer_set_delay_u64(&fdc->timer, 256 * TIMER_USEC);
                                 break;
@@ -1505,8 +1586,20 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                     fdc->dma = 0;
                                 if (!fdc->dma && !(fdc->flags & FDC_FLAG_PCJX)) {
                                     fdc_log("FDC command %02X: Lower DRQ on DMA mode disable\n", fdc->processed_cmd);
-                                    dma_set_drq(fdc->dma_ch, 0);
+                                    fdc_dma_drq(fdc, 0);
                                 }
+                                break;
+                            case 0x13: /* Configure */
+                                /* No execution or result phase: the chip is
+                                   ready for the next command at once. */
+                                fdc->config = fdc->params[1];
+                                fdc->pretrk = fdc->params[2];
+                                fdc->fifo   = (fdc->params[1] & 0x20) ? 0 : 1;
+                                fdc->tfifo  = (fdc->params[1] & 0xF);
+                                fifo_reset(fdc->fifo_p);
+                                fifo_set_len(fdc->fifo_p, fdc->tfifo + 1);
+                                fifo_set_trigger_len(fdc->fifo_p, fdc->tfifo + 1);
+                                fdc->stat = 0x80;
                                 break;
                             case 0x04: /*Sense drive status*/
                                 fdd_set_head(fdc->fdd[real_drive(fdc, fdc->drive)],
@@ -1557,7 +1650,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                     fdc_noidam(fdc);
                                     return;
                                 }
-                                if (!(fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)) && fdc->dma && ((dma_mode(fdc->dma_ch) & 0x0C) == 0x00)) {
+                                if (!(fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)) && fdc->dma && fdc_dma_verify(fdc)) {
                                     /* DMA is in verify mode, treat this like a VERIFY command. */
                                     fdc_log("Verify-mode read!\n");
                                     fdc->deleted |= 2;
@@ -1772,6 +1865,16 @@ fdc_read(uint16_t addr, void *priv)
         (((addr & 7) != 4) && ((addr & 7) != 5)))
         return 0xff;
 
+    /* The Tandy 2000 puts the status register on 30h and the
+       command/data register on 32h, with the data register
+       mirrored at the DMA acknowledge address 80h. */
+    if (fdc->flags & FDC_FLAG_TANDY2K) {
+        if (((addr >= 0x0031) && (addr <= 0x0033)) || (addr == 0x0080))
+            addr = 0x03f5;
+        else if (addr == 0x0030)
+            addr = 0x03f4;
+    }
+
     if (!fdc->power_down || ((addr & 7) == 2))
         switch (addr & 7) {
             case 0: /* STA */
@@ -1791,7 +1894,7 @@ fdc_read(uint16_t addr, void *priv)
                         ret |= 0x10;
                     if (fdc->step)                         /* STEP */
                         ret |= 0x20;
-                    if (dma_get_drq(fdc->dma_ch))          /* DRQ */
+                    if (fdc_dma_get_drq(fdc))              /* DRQ */
                         ret |= 0x40;
                     if (fdc->fintr || fdc->reset_stat)     /* INTR */
                         ret |= 0x80;
@@ -1918,12 +2021,12 @@ fdc_read(uint16_t addr, void *priv)
                 break;
             case 4: /*Status*/
                 if (fdc->flags & FDC_FLAG_5550)
-                    picintc(1 << fdc->irq);
+                    fdc_irq(fdc, 0);
                 ret = fdc->stat;
                 break;
             case 5: /*Data*/
                 if (fdc->flags & FDC_FLAG_5550)
-                    picintc(1 << fdc->irq);
+                    fdc_irq(fdc, 0);
                 if (fdc->fifointest) {
                     /* Read FIFO buffer in the test mode (PS/55) */
                     ret = fifo_read(fdc->fifo_p);
@@ -1941,6 +2044,10 @@ fdc_read(uint16_t addr, void *priv)
                     break;
                 }
                 if (fdc->paramstogo) {
+                    /* The result phase takes INT down. The PIC only sees the
+                       edge, but a host that latches the line sees the level. */
+                    if (fdc->flags & FDC_FLAG_HOSTED)
+                        fdc_irq(fdc, 0);
                     fdc->stat &= ~0x80;
                     fdc_log("%i parameters to go\n", fdc->paramstogo);
                     fdc->paramstogo--;
@@ -2084,7 +2191,7 @@ fdc_poll_common_finish(fdc_t *fdc, int compare, int st5)
         fdc->stat = 0xf0;
     fdc_log("FDC command %02X: Lower DRQ on finish\n", fdc->processed_cmd);
     if (!(fdc->flags & FDC_FLAG_PCJX))
-        dma_set_drq(fdc->dma_ch, 0);
+        fdc_dma_drq(fdc, 0);
 }
 
 static void
@@ -2151,7 +2258,8 @@ fdc_callback(void *priv)
             return;
         case 0x01: /* Mode */
             fdc->stat         = 0x80;
-            fdc->densel_force = (fdc->params[2] & 0xC0) >> 6;
+            if (!(fdc->flags & FDC_FLAG_IGNORE_DENSEL_FORCE))
+                fdc->densel_force = (fdc->params[2] & 0xC0) >> 6;
             return;
         case 0x02: /* Read track */
             ui_sb_update_icon(SB_FLOPPY | (fdc->bus + real_drive(fdc, fdc->drive)), 1);
@@ -2168,7 +2276,7 @@ fdc_callback(void *priv)
                     fdc->stat = 0x70;
                 else {
                     fdc_log("FDC command %02X: Raise DRQ on callback\n", fdc->processed_cmd);
-                    dma_set_drq(fdc->dma_ch, 1);
+                    fdc_dma_drq(fdc, 1);
                     fdc->stat = 0x50;
                 }
             }
@@ -2182,7 +2290,7 @@ fdc_callback(void *priv)
                    report the two-side and ready bits as always set. */
                 fdc->res[10] |= 0x28;
             } else {
-                /* The XT-class controllers passes the drive's pins through, so
+                /* The XT-class controllers pass the drive's pins through, so
                    a position with no drive has no ready signal to report. */
                 if (fdd_is_double_sided(drv))
                     fdc->res[10] |= 0x08;
@@ -2315,7 +2423,7 @@ fdc_callback(void *priv)
                     else {
                         if (fifo_get_empty(fdc->fifo_p)) {
                             fdc_log("FDC command %02X: Raise DRQ on callback\n", fdc->processed_cmd);
-                            dma_set_drq(fdc->dma_ch, 1);
+                            fdc_dma_drq(fdc, 1);
                         }
                         fdc->stat = 0x10;
                     }
@@ -2331,7 +2439,7 @@ fdc_callback(void *priv)
                     else {
                         if (fifo_get_empty(fdc->fifo_p)) {
                             fdc_log("FDC command %02X: Raise DRQ on callback\n", fdc->processed_cmd);
-                            dma_set_drq(fdc->dma_ch, 1);
+                            fdc_dma_drq(fdc, 1);
                         }
                        fdc->stat = 0x50;
                     }
@@ -2347,7 +2455,7 @@ fdc_callback(void *priv)
                     else {
                         if (fifo_get_empty(fdc->fifo_p)) {
                             fdc_log("FDC command %02X: Raise DRQ on callback\n", fdc->processed_cmd);
-                            dma_set_drq(fdc->dma_ch, 1);
+                            fdc_dma_drq(fdc, 1);
                         }
                         fdc->stat = 0x10;
                     }
@@ -2446,16 +2554,6 @@ fdc_callback(void *priv)
             fdc->paramstogo = 1;
             fdc->interrupt  = 0;
             return;
-        case 0x13: /*Configure*/
-            fdc->config = fdc->params[1];
-            fdc->pretrk = fdc->params[2];
-            fdc->fifo   = (fdc->params[1] & 0x20) ? 0 : 1;
-            fdc->tfifo  = (fdc->params[1] & 0xF);
-            fifo_reset(fdc->fifo_p);
-            fifo_set_len(fdc->fifo_p, fdc->tfifo + 1);
-            fifo_set_trigger_len(fdc->fifo_p, fdc->tfifo + 1);
-            fdc->stat   = 0x80;
-            return;
         case 0x14: /*Unlock*/
         case 0x94: /*Lock*/
             fdc->lock       = (fdc->interrupt & 0x80) ? 1 : 0;
@@ -2482,7 +2580,7 @@ fdc_error(fdc_t *fdc, int st5, int st6)
 {
     fdc_log("FDC command %02X: Lower DRQ on error\n", fdc->processed_cmd);
     if (!(fdc->flags & FDC_FLAG_PCJX))
-        dma_set_drq(fdc->dma_ch, 0);
+        fdc_dma_drq(fdc, 0);
     timer_disable(&fdc->timer);
 
     fdc_int(fdc, 1);
@@ -2601,20 +2699,20 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
             fdc->data_ready = 1;
             fdc->stat       = 0x50;
             fdc_log("FDC command %02X: Raise DRQ on data read from drive without FIFO\n", fdc->processed_cmd);
-            dma_set_drq(fdc->dma_ch, 1);
+            fdc_dma_drq(fdc, 1);
 
             fdc->dat = data;
             fdc_xfer_count_down(fdc);
-            result = dma_channel_write(fdc->dma_ch, data);
+            result = fdc_dma_write(fdc, data);
 
             if (result & DMA_OVER) {
                 fdc_log("FDC command %02X: Lower DRQ on data read from drive without FIFO #1\n", fdc->processed_cmd);
-                dma_set_drq(fdc->dma_ch, 0);
+                fdc_dma_drq(fdc, 0);
                 fdc->tc = 1;
                 return -1;
             }
             fdc_log("FDC command %02X: Lower DRQ on data read from drive without FIFO #2\n", fdc->processed_cmd);
-            dma_set_drq(fdc->dma_ch, 0);
+            fdc_dma_drq(fdc, 0);
         } else {
             /* FIFO enabled */
             fifo_write(data, fdc->fifo_p);
@@ -2623,21 +2721,21 @@ fdc_data(fdc_t *fdc, uint8_t data, int last)
                 fdc->data_ready = 1;
                 fdc->stat       = 0x50;
                 fdc_log("FDC command %02X: Raise DRQ on data read from drive with FIFO\n", fdc->processed_cmd);
-                dma_set_drq(fdc->dma_ch, 1);
+                fdc_dma_drq(fdc, 1);
 
                 while (!fifo_get_empty(fdc->fifo_p)) {
-                    result = dma_channel_write(fdc->dma_ch, fifo_read(fdc->fifo_p));
+                    result = fdc_dma_write(fdc, fifo_read(fdc->fifo_p));
                     fdc_xfer_count_down(fdc);
 
                     if (result & DMA_OVER) {
                         fdc_log("FDC command %02X: Lower DRQ on data read from drive with FIFO #1\n", fdc->processed_cmd);
-                        dma_set_drq(fdc->dma_ch, 0);
+                        fdc_dma_drq(fdc, 0);
                         fdc->tc = 1;
                         return -1;
                     }
                 }
                 fdc_log("FDC command %02X: Lower DRQ on data read from drive with FIFO #2\n", fdc->processed_cmd);
-                dma_set_drq(fdc->dma_ch, 0);
+                fdc_dma_drq(fdc, 0);
             }
         }
     }
@@ -2756,9 +2854,9 @@ fdc_getdata(fdc_t *fdc, int last)
         }
     } else {
         if (!fdc->fifo || (fdc->tfifo < 1)) {
-            data = dma_channel_read(fdc->dma_ch);
+            data = fdc_dma_read(fdc);
             fdc_log("FDC command %02X: Lower DRQ on data write to drive without FIFO\n", fdc->processed_cmd);
-            dma_set_drq(fdc->dma_ch, 0);
+            fdc_dma_drq(fdc, 0);
 
             if (data != DMA_NODATA)
                 fdc_xfer_count_down(fdc);
@@ -2768,13 +2866,13 @@ fdc_getdata(fdc_t *fdc, int last)
 
             if (!last) {
                 fdc_log("FDC command %02X: Raise DRQ on data write to drive without FIFO\n", fdc->processed_cmd);
-                dma_set_drq(fdc->dma_ch, 1);
+                fdc_dma_drq(fdc, 1);
                 fdc->stat = 0x10;
             }
         } else {
             if (fifo_get_empty(fdc->fifo_p)) {
                 while (!fifo_get_full(fdc->fifo_p)) {
-                    data            = dma_channel_read(fdc->dma_ch);
+                    data            = fdc_dma_read(fdc);
                     fifo_write(data, fdc->fifo_p);
 
                     if (data != DMA_NODATA)
@@ -2787,15 +2885,15 @@ fdc_getdata(fdc_t *fdc, int last)
                     if (data & DMA_OVER) {
                         fdc_log("FDC command %02X: Lower DRQ on data write to drive with FIFO #1\n",
                                 fdc->processed_cmd);
-                        dma_set_drq(fdc->dma_ch, 0);
+                        fdc_dma_drq(fdc, 0);
                         fdc->tc = 1;
                         break;
                     }
                 }
 
-                if (dma_get_drq(fdc->dma_ch)) {
+                if (fdc_dma_get_drq(fdc)) {
                     fdc_log("FDC command %02X: Lower DRQ on data write to drive with FIFO #2\n", fdc->processed_cmd);
-                    dma_set_drq(fdc->dma_ch, 0);
+                    fdc_dma_drq(fdc, 0);
                 }
             }
 
@@ -2804,7 +2902,7 @@ fdc_getdata(fdc_t *fdc, int last)
 
             if (!last && fifo_get_empty(fdc->fifo_p)) {
                 fdc_log("FDC command %02X: Raise DRQ on data write to drive with FIFO\n", fdc->processed_cmd);
-                dma_set_drq(fdc->dma_ch, 1);
+                fdc_dma_drq(fdc, 1);
                 fdc->stat = 0x10;
             }
         }
@@ -2830,7 +2928,7 @@ fdc_sectorid(fdc_t *fdc, uint8_t track, uint8_t side, uint8_t sector, uint8_t si
     fdc->paramstogo = 7;
     fdc_log("FDC command %02X: Lower DRQ on returning sector ID\n", fdc->processed_cmd);
     if (!(fdc->flags & FDC_FLAG_PCJX))
-        dma_set_drq(fdc->dma_ch, 0);
+        fdc_dma_drq(fdc, 0);
 }
 
 uint8_t
@@ -2885,6 +2983,13 @@ fdc_set_dma_ch(fdc_t *fdc, int dma_ch)
 }
 
 void
+fdc_set_host(fdc_t *fdc, const fdc_host_t *host, void *priv)
+{
+    fdc->host      = host;
+    fdc->host_priv = priv;
+}
+
+void
 fdc_set_base(fdc_t *fdc, int base)
 {
     int super_io = (fdc->flags & FDC_FLAG_SUPERIO);
@@ -2893,6 +2998,11 @@ fdc_set_base(fdc_t *fdc, int base)
         fdc->base_address = base;
         return;
     }
+
+    /* The Tandy 2000 decodes its host registers on the 16-bit bus at
+       30h/32h, rather than at the address the caller passes. */
+    if (fdc->flags & FDC_FLAG_TANDY2K)
+        base = 0x0030;
 
     if (fdc->flags & FDC_FLAG_PCJX) {
         io_sethandler(base, 0x0008, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
@@ -2907,6 +3017,9 @@ fdc_set_base(fdc_t *fdc, int base)
         io_sethandler(base, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
         io_sethandler(base + 0x0004, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
         io_sethandler(base + 0x0005, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+    } else if (fdc->flags & FDC_FLAG_TANDY2K) {
+        io_sethandler(base, 0x0004, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+        io_sethandler(0x0080, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
     } else {
         if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
             io_sethandler(base + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
@@ -2951,6 +3064,9 @@ fdc_remove(fdc_t *fdc)
         io_removehandler(fdc->base_address, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
         io_removehandler(fdc->base_address + 4, 0x0001, fdc_read, NULL, NULL, NULL, NULL, NULL, fdc);
         io_removehandler(fdc->base_address + 5, 0x0003, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+    } else if (fdc->flags & FDC_FLAG_TANDY2K) {
+        io_removehandler(0x0030, 0x0004, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
+        io_removehandler(0x0080, 0x0001, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
     } else {
         if ((fdc->flags & FDC_FLAG_AT) || (fdc->flags & FDC_FLAG_AMSTRAD)) {
             io_removehandler(fdc->base_address + (super_io ? 2 : 0), super_io ? 0x0004 : 0x0006, fdc_read, NULL, NULL, fdc_write, NULL, NULL, fdc);
@@ -3057,7 +3173,8 @@ fdc_reset(void *priv)
 
     /* Native motherboard adapters own their port decoders.  A later reset
      * must not install a second, IBM-style controller at 3F0h on PC-98. */
-    if (!(fdc->flags & (FDC_FLAG_PCJX | FDC_FLAG_IBM5140 | FDC_FLAG_PC98))) {
+    /* The JX motherboard owns every programmable decode alias. */
+    if (!(fdc->flags & (FDC_FLAG_PCJX | FDC_FLAG_IBM5140 | FDC_FLAG_HOSTED | FDC_FLAG_PC98))) {
         if (!(fdc->flags & FDC_FLAG_PNP)) {
             fdc_remove(fdc);
             if (fdc->flags & FDC_FLAG_SEC)
@@ -3148,7 +3265,7 @@ fdc_init(const device_t *info)
 
     fdc->flags = (int) info->local;
 
-    if (fdc->flags & FDC_FLAG_5550)
+    if (fdc->flags & (FDC_FLAG_5550 | FDC_FLAG_TANDY2K))
         fdc->irq = 4;
     else
         /* Always use IRQ 6. */
@@ -3193,20 +3310,6 @@ const device_t fdc_xt_device = {
     .config        = NULL
 };
 
-const device_t fdc_ibm5140_device = {
-    .name          = "IBM PC Convertible FDC",
-    .internal_name = "fdc_ibm5140",
-    .flags         = 0,
-    .local         = FDC_FLAG_IBM5140 | FDC_FLAG_NEC | FDC_FLAG_NO_TDR | FDC_FLAG_IRQ_ON_NOOP_SEEK,
-    .init          = fdc_init,
-    .close         = fdc_close,
-    .reset         = fdc_reset,
-    .available     = NULL,
-    .speed_changed = NULL,
-    .force_redraw  = NULL,
-    .config        = NULL
-};
-
 /* Native PC-98 on-board uPD765.  The motherboard owns its native decoders;
  * this device never installs a generic 3F0h decoder. */
 const device_t fdc_pc98_device = {
@@ -3217,6 +3320,10 @@ const device_t fdc_pc98_device = {
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t fdc_xt_sec_device = {
@@ -3359,11 +3466,54 @@ const device_t fdc_pcjx_device = {
     .config        = NULL
 };
 
+const device_t fdc_ibm5140_device = {
+    .name          = "IBM PC Convertible FDC",
+    .internal_name = "fdc_ibm5140",
+    .flags         = 0,
+    .local         = FDC_FLAG_IBM5140 | FDC_FLAG_NEC | FDC_FLAG_NO_TDR | FDC_FLAG_IRQ_ON_NOOP_SEEK,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc_tandy2k_device = {
+    .name          = "Tandy 2000 FDC",
+    .internal_name = "fdc_tandy2k",
+    .flags         = 0,
+    .local         = FDC_FLAG_TANDY2K | FDC_FLAG_NEC,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
 const device_t fdc_at_device = {
     .name          = "PC/AT FDC",
     .internal_name = "fdc_at",
     .flags         = DEVICE_ISA,
     .local         = FDC_FLAG_AT,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+/* An FDC behind another device, which attaches with fdc_set_host(). */
+const device_t fdc_hosted_device = {
+    .name          = "Hosted FDC",
+    .internal_name = "fdc_hosted",
+    .flags         = 0,
+    .local         = FDC_FLAG_AT | FDC_FLAG_HOSTED,
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,
@@ -3504,6 +3654,20 @@ const device_t fdc_at_nsc_device = {
     .internal_name = "fdc_at_nsc",
     .flags         = DEVICE_ISA,
     .local         = FDC_FLAG_AT | FDC_FLAG_MORE_TRACKS | FDC_FLAG_NSC,
+    .init          = fdc_init,
+    .close         = fdc_close,
+    .reset         = fdc_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t fdc_at_nsc_ignore_densel_device = {
+    .name          = "PC/AT FDC (NSC PC8730x, ignore DENSEL force)",
+    .internal_name = "fdc_at_nsc_ignore_densel",
+    .flags         = DEVICE_ISA,
+    .local         = FDC_FLAG_AT | FDC_FLAG_MORE_TRACKS | FDC_FLAG_IGNORE_DENSEL_FORCE | FDC_FLAG_NSC,
     .init          = fdc_init,
     .close         = fdc_close,
     .reset         = fdc_reset,

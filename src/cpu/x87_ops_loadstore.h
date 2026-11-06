@@ -189,9 +189,7 @@ opFILDiq_a16(UNUSED(uint32_t fetchdat))
     temp64 = geteaq();
     if (cpu_state.abrt)
         return 1;
-    x87_push((double) temp64);
-    cpu_state.MM[cpu_state.TOP & 7].q = temp64;
-    FP_TAG_DEFAULT;
+    x87_push_int64(temp64);
 
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fild_64) : (x87_timings.fild_64 * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fild_64) : (x87_concurrency.fild_64 * cpu_multi));
@@ -208,9 +206,7 @@ opFILDiq_a32(uint32_t fetchdat)
     temp64 = geteaq();
     if (cpu_state.abrt)
         return 1;
-    x87_push((double) temp64);
-    cpu_state.MM[cpu_state.TOP & 7].q = temp64;
-    FP_TAG_DEFAULT;
+    x87_push_int64(temp64);
 
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fild_64) : (x87_timings.fild_64 * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fild_64) : (x87_concurrency.fild_64 * cpu_multi));
@@ -252,13 +248,10 @@ FBLD_a16(UNUSED(uint32_t fetchdat))
     if (sign && !load_val) {
         /* The sign is kept, -0 included */
         x87_push(-0.0);
-        FP_TAG_VALID;
     } else {
         if (sign)
             load_val = -load_val;
-        x87_push((double) load_val);
-        cpu_state.MM[cpu_state.TOP & 7].q = load_val;
-        FP_TAG_DEFAULT;
+        x87_push_int64(load_val);
     }
 
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fild_64) : (x87_timings.fild_64 * cpu_multi));
@@ -300,13 +293,10 @@ FBLD_a32(uint32_t fetchdat)
     if (sign && !load_val) {
         /* The sign is kept, -0 included */
         x87_push(-0.0);
-        FP_TAG_VALID;
     } else {
         if (sign)
             load_val = -load_val;
-        x87_push((double) load_val);
-        cpu_state.MM[cpu_state.TOP & 7].q = load_val;
-        FP_TAG_DEFAULT;
+        x87_push_int64(load_val);
     }
 
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fild_64) : (x87_timings.fild_64 * cpu_multi));
@@ -569,15 +559,25 @@ opFISTPil_a32(uint32_t fetchdat)
 static int
 opFLDe_a16(UNUSED(uint32_t fetchdat))
 {
-    double t;
+    double   t;
+    uint8_t  denormal;
+    uint64_t signif;
+    int      pushed;
     FP_ENTER();
     fetch_ea_16(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
     CHECK_READ_EA(10);
-    t = x87_ld80();
+    t = x87_ld80(&denormal, &signif);
     if (cpu_state.abrt)
         return 1;
+    /* Only a push of the value itself, not a stack overflow's indefinite,
+       keeps the image's class and significand (the 8087 build keeps none) */
+    pushed = X87_STACK_FAULTS && X87_ST_EMPTY(-1);
     x87_push(t);
+    if (pushed && denormal) {
+        cpu_state.tag[cpu_state.TOP & 7] |= denormal;
+        cpu_state.MM[cpu_state.TOP & 7].q = signif;
+    }
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fld_80) : (x87_timings.fld_80 * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fld_80) : (x87_concurrency.fld_80 * cpu_multi));
     return 0;
@@ -586,15 +586,24 @@ opFLDe_a16(UNUSED(uint32_t fetchdat))
 static int
 opFLDe_a32(uint32_t fetchdat)
 {
-    double t;
+    double   t;
+    uint8_t  denormal;
+    uint64_t signif;
+    int      pushed;
     FP_ENTER();
     fetch_ea_32(fetchdat);
     SEG_CHECK_READ(cpu_state.ea_seg);
     CHECK_READ_EA(10);
-    t = x87_ld80();
+    t = x87_ld80(&denormal, &signif);
     if (cpu_state.abrt)
         return 1;
+    /* As opFLDe_a16 */
+    pushed = X87_STACK_FAULTS && X87_ST_EMPTY(-1);
     x87_push(t);
+    if (pushed && denormal) {
+        cpu_state.tag[cpu_state.TOP & 7] |= denormal;
+        cpu_state.MM[cpu_state.TOP & 7].q = signif;
+    }
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.fld_80) : (x87_timings.fld_80 * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.fld_80) : (x87_concurrency.fld_80 * cpu_multi));
     return 0;

@@ -26,6 +26,7 @@
 #include <86box/pci.h>
 #include <86box/device.h>
 #include <86box/chipset.h>
+#include <86box/ioapic_routes.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/keyboard.h>
@@ -107,6 +108,17 @@ static const device_config_t s2dge_config[] = {
             { .files_no = 0 }
         },
     },
+    {
+        .name           = "disable_apic",
+        .description    = "Disable APIC",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
@@ -160,6 +172,19 @@ machine_at_s2dge_init(const machine_t *model)
     device_add_params(&w83977_device, (void *) (W83977TF | W83977_AMI | W83977_NO_NVR));
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0xF, 512);
+    {
+        /* Keep S2DGE APIC wiring local: install IOAPIC, then bind board IRQ map. */
+        static const ioapic_legacy_irq_routing_t s2dge_irq_routing = {
+            .irq_to_intin  = IOAPIC_LEGACY_IRQ_ROUTE_ISA,
+            .pirq_to_intin = IOAPIC_PIRQ_ROUTE_82093AA
+        };
+        /* An AMI BIOS: its last POST code before booting is 00h, and its
+           MP table is built by then (IOAPIC_POST_TRIGGER_AMI). */
+        void *ioapic = device_add_params(&ioapic_validated_up_device,
+                                         (void *) (IOAPIC_TOPOLOGY_UP_APIC_DEFAULT | IOAPIC_POST_TRIGGER_AMI));
+
+        ioapic_set_legacy_irq_routing(ioapic, &s2dge_irq_routing);
+    }
     device_add(&w83781d_device);    /* fans: CPU1, CPU2, Thermal Control; temperatures: unused, CPU1, CPU2? */
     hwm_values.fans[1]         = 0; /* no CPU2 fan */
     hwm_values.temperatures[0] = 0; /* unused */

@@ -15,6 +15,10 @@ QString DlgFilter(std::initializer_list<QString> extensions, bool last = false);
 QString DlgFilter(QStringList extensions, bool last = false);
 /* Returns screen the widget is on */
 QScreen *screenOfWidget(QWidget *widget);
+/* Returns the smallest size in device-independent pixels that covers at least the given
+   number of device pixels: sizes are multiplied by the scale factor, so some device pixel
+   sizes can't be asked for exactly */
+int      logicalSizeForPixels(int pixels, qreal dpr);
 /* Puts an image on the clipboard, offering PNG ahead of the other formats */
 void     copyImageToClipboard(const QImage &image);
 #ifdef Q_OS_WINDOWS

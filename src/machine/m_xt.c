@@ -1304,6 +1304,23 @@ machine_xt_top88_init(const machine_t *model)
     return ret;
 }
 
+int
+machine_xt_ergodata_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ergodatawxt/ERGODATA Wild XT.bin",
+                           0x000fc000, 16384, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    /* On-board FDC cannot be disabled */
+    machine_xt_clone_init(model, 1);
+
+    return ret;
+}
+
 static void
 machine_xt_hyundai_common_init(const machine_t *model)
 {

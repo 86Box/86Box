@@ -21,6 +21,15 @@ typedef struct
     uint8_t     sb_pci_slot;
     uint8_t     ide_bits_1_3_writable;
     uint8_t     usb_enabled;
+    uint8_t     usb_irq_level; /* the OHCI's USBIRQ output */
+    uint8_t     usb_irq_state;
+    void       *usb_priv;      /* the USB function, for its enable */
+    uint8_t     usb_smi_level; /* the OHCI's SMI output */
+    /* Where the OHCI's SMI output goes: 95h of the 5571/5581 host bridge,
+       or the 5595's ACPI LEG_STS. */
+    void      (*usb_smi)(void *priv, int level);
+    void       *usb_smi_priv;
+    uint8_t     usb_pme_level; /* INT or SMI active while USB is enabled */
 
     uint8_t    *pmu_regs;
 
@@ -49,6 +58,8 @@ extern void    sis_5513_ide_write(int addr, uint8_t val, void *priv);
 extern uint8_t sis_5513_ide_read(int addr, void *priv);
 extern void    sis_5572_usb_write(int addr, uint8_t val, void *priv);
 extern uint8_t sis_5572_usb_read(int addr, void *priv);
+/* Applies sis->usb_enabled to the USB function's window, bus master and IRQ. */
+extern void    sis_5572_usb_apply_enable(void *priv);
 extern void    sis_5595_pmu_write(int addr, uint8_t val, void *priv);
 extern uint8_t sis_5595_pmu_read(int addr, void *priv);
 

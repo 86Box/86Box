@@ -770,9 +770,12 @@ viso_close(void *priv)
     if (tf->fp)
         fclose(tf->fp);
 #ifdef IMAGE_VISO_LOG
-    if (stricmp(path_get_extension(viso->tf.fn), "iso"))
-#endif
+    if (stricmp(path_get_extension(viso->tf.fn), "iso")) {
         remove(nvr_path(viso->tf.fn));
+    }
+#else
+    remove(nvr_path(viso->tf.fn));
+#endif
 
     viso_entry_t *entry = viso->root_dir;
     viso_entry_t *next_entry;
@@ -823,13 +826,16 @@ viso_init(const uint8_t id, const char *dirname, int *error)
     if (!data)
         goto end;
 
-        /* Open temporary file. */
+    /* Open temporary file. */
 #ifdef IMAGE_VISO_LOG
-    if (image_viso_do_log)
+    if (image_viso_do_log) {
         memcpy(viso->tf.fn, "viso-debug.iso", sizeof("viso-debug.iso"));
-    else
-#endif
+    } else {
         plat_tempfile(viso->tf.fn, "viso", ".tmp");
+    }
+#else
+    plat_tempfile(viso->tf.fn, "viso", ".tmp");
+#endif
     viso->tf.fp = plat_fopen64(nvr_path(viso->tf.fn), "w+b");
     if (!viso->tf.fp)
         goto end;

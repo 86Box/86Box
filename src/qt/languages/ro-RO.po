@@ -416,17 +416,35 @@ msgstr "MB"
 msgid "Memory:"
 msgstr "Memorie:"
 
-msgid "Time synchronization"
-msgstr "Sincronizarea timpului"
+msgid "Synchronize with host clock"
+msgstr ""
 
-msgid "Disabled"
-msgstr "Dezactivat"
+msgid "Time zone:"
+msgstr ""
 
-msgid "Enabled (local time)"
-msgstr "Activat (ora locală)"
+msgid "Local"
+msgstr ""
 
-msgid "Enabled (UTC)"
-msgstr "Activat (UTC)"
+msgid "UTC"
+msgstr ""
+
+msgid "Date:"
+msgstr ""
+
+msgid "Match the host"
+msgstr ""
+
+msgid "Offset the year by:"
+msgstr ""
+
+msgid "(currently %1)"
+msgstr ""
+
+msgid "Always use the year:"
+msgstr ""
+
+msgid "Do not synchronize the date"
+msgstr ""
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Folosește interpretorul 486 pentru procesoarele 286 și 386"
@@ -472,6 +490,9 @@ msgstr "Grafică XGA"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Grafică adaptor de afișaj IBM PS/55"
+
+msgid "PowerVR PCX1/PCX2 Graphics"
+msgstr ""
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -3234,6 +3255,9 @@ msgstr ""
 msgid "Key bindings"
 msgstr ""
 
+msgid "VM Manager"
+msgstr ""
+
 msgid "Action"
 msgstr ""
 
@@ -3743,4 +3767,22 @@ msgid "Prepare PCI devices for VFIO passthrough"
 msgstr ""
 
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
+msgstr ""
+
+msgid "Disabled"
+msgstr ""
+
+msgid "Unlimited capacity"
+msgstr ""
+
+msgid "CD speed:"
+msgstr ""
+
+msgid "DVD speed:"
+msgstr ""
+
+msgid "HD/BD speed:"
+msgstr ""
+
+msgid "Software-initiated poweroff device (IBM 5140)"
 msgstr ""

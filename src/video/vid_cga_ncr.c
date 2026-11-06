@@ -164,10 +164,16 @@ nga_poll(void *priv)
     int      col;
     int      scanline_old;
 
+    /* Bind the monitor macros to this card's own display. */
+    const int prev_monitor_index = monitor_index_global;
+
+    monitor_index_global = nga->cga.monitor_used;
+
     /* graphic mode and not high-res modes */
     if ((nga->cga.cgamode & CGA_MODE_FLAG_GRAPHICS) && !(nga->cga.cgamode & 0x40)) {
         /* standard cga mode */
         cga_poll(&nga->cga);
+        monitor_index_global = prev_monitor_index;
         return;
     } else {
         /* high-res or text mode */
@@ -538,6 +544,8 @@ nga_poll(void *priv)
             }
         }
     }
+
+    monitor_index_global = prev_monitor_index;
 }
 
 void
@@ -565,6 +573,8 @@ nga_init(UNUSED(const device_t *info))
     nga_t  *nga = (nga_t *) calloc(1, sizeof(nga_t));
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_nga);
+
+    nga->cga.monitor_used = monitor_index_global;
 
     charset = device_get_config_int("charset");
 

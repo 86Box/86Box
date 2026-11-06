@@ -50,6 +50,7 @@
 #include <86box/chipset.h>
 #include <86box/sio.h>
 #include <86box/hwm.h>
+#include <86box/flash.h>
 
 #ifdef ENABLE_SIS_5513_PCI_TO_ISA_LOG
 int sis_5513_pci_to_isa_do_log = ENABLE_SIS_5513_PCI_TO_ISA_LOG;
@@ -97,7 +98,37 @@ typedef struct sis_5513_pci_to_isa_t {
     void              *hwm;
 
     uint8_t          (*pit_read_reg)(void *priv, uint8_t reg);
+
+    /* SiS 5595 flash write-protect latch for the Mustang-S to boot correctly. */
+    uint8_t            compaqms_flash_gate_active;
+    uint8_t            flash_protect_latched;
+    int               (*previous_flash_write_gate)(uint32_t addr, void *priv);
+    void               *previous_flash_write_gate_priv;
 } sis_5513_pci_to_isa_t;
+
+/* On the SiS 5595, setting either PCI 45h[5] or 45h[2] activates the
+   write-protection latch until CPU reset. Before activation, programming
+   is permitted. Once active, bit 5 must be clear and bit 2 set to allow writes. */
+static int
+sis_5595_flash_write_allowed(const sis_5513_pci_to_isa_t *dev)
+{
+    return !dev->flash_protect_latched ||
+           (dev->pci_conf[0x45] & 0x24) == 0x04;
+}
+
+static int
+sis_5595_compaqms_flash_write_gate(uint32_t addr, void *priv)
+{
+    sis_5513_pci_to_isa_t *dev = (sis_5513_pci_to_isa_t *) priv;
+
+    /* Preserve a gate already registered by another device. */
+    if (dev->previous_flash_write_gate &&
+        !dev->previous_flash_write_gate(addr, dev->previous_flash_write_gate_priv))
+        return 0;
+
+    return sis_5595_flash_write_allowed(dev);
+}
+
 
 static void
 sis_5595_acpi_recalc(sis_5513_pci_to_isa_t *dev)
@@ -197,6 +228,38 @@ sis_5595_ddma_recalc(sis_5513_pci_to_isa_t *dev)
                                dev->ddma_enable && (dev->pci_conf[0x84] & (1 << i)) &&
                                (dev->ddma_base != 0x0000));
     }
+}
+
+/* USBIRQ Remapping Control (5571 68h, 5582 and 5595 62h): bit 7 clear
+   routes the OHCI's USBIRQ to the IRQ in bits 3-0 (SiS 5571 p. 57 /
+   PDF 61; SiS 5582 p. 150 / PDF 150; SiS 5595 p. 99 / PDF 105). An active
+   USBIRQ is dropped from the old IRQ and raised again on the new one. */
+static void
+sis_5513_usbirq_remap(sis_5513_pci_to_isa_t *dev, uint8_t val)
+{
+    int held = dev->sis->usb_irq_level && dev->sis->usb_enabled;
+
+    if (held)
+        pci_clear_mirq(PCI_MIRQ3, 1, &dev->sis->usb_irq_state);
+    if (val & 0x80)
+        pci_set_mirq_routing(PCI_MIRQ3, PCI_IRQ_DISABLED);
+    else
+        pci_set_mirq_routing(PCI_MIRQ3, val & 0xf);
+    if (held)
+        pci_set_mirq(PCI_MIRQ3, 1, &dev->sis->usb_irq_state);
+}
+
+/* Bit 6 of the same register enables the integrated USB function (same
+   pages). */
+static void
+sis_5513_usb_enable(sis_5513_pci_to_isa_t *dev, int on)
+{
+    if (on == dev->sis->usb_enabled)
+        return;
+
+    dev->sis->usb_enabled = on;
+    if (dev->sis->usb_priv != NULL)
+        sis_5572_usb_apply_enable(dev->sis->usb_priv);
 }
 
 /* Bit 7 of register 64h makes GPIO0 an input (the default) or an output;
@@ -307,10 +370,8 @@ sis_5513_01_pci_to_isa_write(int addr, uint8_t val, sis_5513_pci_to_isa_t *dev)
         case 0x68: /* USBIRQ Remapping Control Register */
             sis_5513_pci_to_isa_log("Set MIRQ routing: USBIRQ -> %02X\n", val);
             dev->pci_conf[addr] = val & 0xcf;
-            if (val & 0x80)
-                 pci_set_mirq_routing(PCI_MIRQ3, PCI_IRQ_DISABLED);
-            else
-                pci_set_mirq_routing(PCI_MIRQ3, val & 0xf);
+            sis_5513_usb_enable(dev, !!(val & 0x40));
+            sis_5513_usbirq_remap(dev, val);
             break;
 
         case 0x69:
@@ -389,11 +450,8 @@ sis_5513_11_pci_to_isa_write(int addr, uint8_t val, sis_5513_pci_to_isa_t *dev)
         case 0x62: /* USBIRQ Remapping Control Register */
             sis_5513_pci_to_isa_log("Set MIRQ routing: USBIRQ -> %02X\n", val);
             dev->pci_conf[addr] = val;
-            dev->sis->usb_enabled = !!(val & 0x40);
-            if (val & 0x80)
-                 pci_set_mirq_routing(PCI_MIRQ3, PCI_IRQ_DISABLED);
-            else
-                pci_set_mirq_routing(PCI_MIRQ3, val & 0xf);
+            sis_5513_usb_enable(dev, !!(val & 0x40));
+            sis_5513_usbirq_remap(dev, val);
             break;
 
         case 0x63: /* GPCS0 Control Register */
@@ -520,11 +578,8 @@ sis_5513_b0_pci_to_isa_write(int addr, uint8_t val, sis_5513_pci_to_isa_t *dev)
         case 0x62: /* USBIRQ Remapping Control Register */
             sis_5513_pci_to_isa_log("Set MIRQ routing: USBIRQ -> %02X\n", val);
             dev->pci_conf[addr] = val;
-            dev->sis->usb_enabled = !!(val & 0x40);
-            if (val & 0x80)
-                 pci_set_mirq_routing(PCI_MIRQ3, PCI_IRQ_DISABLED);
-            else
-                 pci_set_mirq_routing(PCI_MIRQ3, val & 0xf);
+            sis_5513_usb_enable(dev, !!(val & 0x40));
+            sis_5513_usbirq_remap(dev, val);
             break;
 
         case 0x63: /* PCI OutputBuffer Current Strength Register */ {
@@ -750,9 +805,6 @@ sis_5513_pci_to_isa_write(int addr, uint8_t val, void *priv)
             pci_set_irq_routing(addr & 0x07, (val & 0x80) ? PCI_IRQ_DISABLED : (val & 0x0f));
             break;
         case 0x44: /* INTD# Remapping Control Register */
-            /* The onboard Solo-1 on the IN530 uses this for INTA for IRQ5 */
-            if (!strcmp(machine_get_internal_name(), "in530") && !(val & 0x80))
-                val = (val & 0xf0) | 0x05;
             if (dev->rev == 0x11) {
                 dev->pci_conf[addr] = val & 0xcf;
                 sis_5513_apc_recalc(dev, val & 0x10);
@@ -784,6 +836,10 @@ sis_5513_pci_to_isa_write(int addr, uint8_t val, void *priv)
                 nvr_bank_set(0, !!(val & 0x08), dev->nvr);
                 if ((dev->rev == 0x81) || (dev->rev == 0xb0))
                     sis_5513_apc_recalc(dev, val & 0x02);
+
+                if (dev->compaqms_flash_gate_active &&
+                    (dev->pci_conf[0x45] & 0x24))
+                    dev->flash_protect_latched = 1;
             }
             break;
         case 0x46: /* ISA Bus Control Register II */
@@ -996,6 +1052,10 @@ sis_5513_01_pci_to_isa_reset(sis_5513_pci_to_isa_t *dev)
     dev->pci_conf[0x74] = dev->pci_conf[0x75] = 0x00;
     dev->pci_conf[0x76] = dev->pci_conf[0x77] = 0x00;
 
+    /* USB goes off before MIRQ3 loses its route, so an active USBIRQ is
+       cleared on the IRQ it was raised on. */
+    sis_5513_usb_enable(dev, 0);
+
     pci_set_mirq_routing(PCI_MIRQ1, PCI_IRQ_DISABLED);
     pci_set_mirq_routing(PCI_MIRQ3, PCI_IRQ_DISABLED);
 }
@@ -1026,6 +1086,10 @@ sis_5513_11_pci_to_isa_reset(sis_5513_pci_to_isa_t *dev)
     dev->pci_conf[0x89] = dev->pci_conf[0x8a] = 0x00;
     dev->pci_conf[0x90] = dev->pci_conf[0x91] = 0x00;
 
+    /* USB goes off before MIRQ3 loses its route, so an active USBIRQ is
+       cleared on the IRQ it was raised on. */
+    sis_5513_usb_enable(dev, 0);
+
     pci_set_mirq_routing(PCI_MIRQ3, PCI_IRQ_DISABLED);
     pci_set_mirq_routing(PCI_MIRQ5, PCI_IRQ_DISABLED);
 
@@ -1035,7 +1099,6 @@ sis_5513_11_pci_to_isa_reset(sis_5513_pci_to_isa_t *dev)
     sis_5595_acpi_recalc(dev);
 
     dev->sis->ide_bits_1_3_writable = 0;
-    dev->sis->usb_enabled = 0;
 
     sis_5513_apc_recalc(dev, 0);
 }
@@ -1068,6 +1131,10 @@ sis_5513_b0_pci_to_isa_reset(sis_5513_pci_to_isa_t *dev)
     dev->pci_conf[0x8b] = dev->pci_conf[0x8c] = 0x00;
     dev->pci_conf[0x90] = dev->pci_conf[0x91] = 0x00;
 
+    /* USB goes off before MIRQ3 loses its route, so an active USBIRQ is
+       cleared on the IRQ it was raised on. */
+    sis_5513_usb_enable(dev, 0);
+
     pci_set_mirq_routing(PCI_MIRQ3, PCI_IRQ_DISABLED);
     pci_set_mirq_routing(PCI_MIRQ5, PCI_IRQ_DISABLED);
     pci_set_mirq_routing(PCI_MIRQ6, PCI_IRQ_DISABLED);
@@ -1087,8 +1154,6 @@ sis_5513_b0_pci_to_isa_reset(sis_5513_pci_to_isa_t *dev)
     dev->dam_irq_enable = 0;
 
     cpu_cpurst_on_sr = 1;
-
-    dev->sis->usb_enabled = 0;
 
     sis_5513_apc_recalc(dev, 0);
 
@@ -1149,6 +1214,9 @@ sis_5513_pci_to_isa_reset(void *priv)
 
     cpu_set_isa_speed(7159091);
     nvr_bank_set(0, 0, dev->nvr);
+
+    if (dev->compaqms_flash_gate_active)
+        dev->flash_protect_latched = 0;
 }
 
 static void
@@ -1167,6 +1235,13 @@ sis_5513_pci_to_isa_close(void *priv)
 
     if (dev->fn != NULL)
         free(dev->fn);
+
+    if (dev->compaqms_flash_gate_active &&
+        flash_bios_write_gate == sis_5595_compaqms_flash_write_gate &&
+        flash_bios_write_gate_priv == dev) {
+        flash_bios_write_gate = dev->previous_flash_write_gate;
+        flash_bios_write_gate_priv = dev->previous_flash_write_gate_priv;
+    }
 
     free(dev);
 }
@@ -1209,6 +1284,9 @@ sis_5513_pci_to_isa_init(UNUSED(const device_t *info))
         case 0x01:
             /* MIRQ */
             pci_enable_mirq(1);
+
+            /* USBIRQ, routed by 68h (SiS 5571 p. 57 / PDF 61) */
+            pci_enable_mirq(3);
             break;
         case 0x11:
         case 0x81:
@@ -1246,6 +1324,14 @@ sis_5513_pci_to_isa_init(UNUSED(const device_t *info))
             }
 
             dev->sis->acpi->priv = dev->sis;
+            /* The 5595 takes the OHCI's SMI output in its ACPI block, LEG_STS
+               and LEG_EN bit 6 (SiS 5595 p. 150-151 / PDF 156-157). The 5582
+               leaves it to 95h of the 5581 host bridge (SiS 5581/5582
+               p. 137 / PDF 137). */
+            if (dev->rev != 0x11) {
+                dev->sis->usb_smi      = acpi_sis5595_usb_smi;
+                dev->sis->usb_smi_priv = dev->sis->acpi;
+            }
             acpi_set_slot(dev->sis->acpi, dev->sis->sb_pci_slot);
             acpi_set_nvr(dev->sis->acpi, dev->nvr);
 
@@ -1269,6 +1355,16 @@ sis_5513_pci_to_isa_init(UNUSED(const device_t *info))
     }
 
     sis_5513_pci_to_isa_reset(dev);
+
+    /* Only for the Mustang-S. */
+    if ((dev->rev == 0xb0) &&
+        !strcmp(machine_get_internal_name(), "compaqms")) {
+        dev->compaqms_flash_gate_active = 1;
+        dev->previous_flash_write_gate = flash_bios_write_gate;
+        dev->previous_flash_write_gate_priv = flash_bios_write_gate_priv;
+        flash_bios_write_gate = sis_5595_compaqms_flash_write_gate;
+        flash_bios_write_gate_priv = dev;
+    }
 
     return dev;
 }

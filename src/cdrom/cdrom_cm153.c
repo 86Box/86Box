@@ -10,7 +10,7 @@
 #include <86box/plat.h>
 #include <86box/timer.h>
 #include <86box/ui.h>
-#include "cm153_uart.h"
+#include <86box/cm153_uart.h>
 
 typedef struct cm153 {
     cdrom_t *cd;

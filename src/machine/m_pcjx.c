@@ -626,6 +626,9 @@ pcjx_clock_nvr_start(nvr_t *nvr)
     clock->pending_second = 0;
     clock->stopped_us = 10000;
     if (time_sync & TIME_SYNC_ENABLED) {
+        /* Keep the chip's own date if asked to. */
+        if (time_keep_date && pcjx_clock_calendar(clock, &tm))
+            nvr_time_set_date(&tm);
         nvr_time_get(&tm);
         /* Unlike the generic getter's approximation, host tm_wday is not
          * needed here: derive a correct Gregorian weekday once at startup.

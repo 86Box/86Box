@@ -64,8 +64,9 @@
 
 /* ------------------------------------------------------------------------
  * Register map of the emitted span function. It is called through
- * r128_jit_span_fn, so AAPCS64 passes tri in x0, e0..e2 in x1..x3, drow,
- * zrow and py in w4..w6 and zline in d0. The prologue saves x19..x28.
+ * r128_jit_span_fn, so AAPCS64 passes tri in x0, e0..e2 in x1..x3, zline
+ * in x4 and drow, zrow and py in w5..w7. The prologue moves zline to d0
+ * and drow, zrow and py to w4..w6, then saves x19..x28.
  *
  *   x0  tri                           x14 zptr (staged Z base or 0)
  *   x1  e0 accumulator                w15 z_base
@@ -82,12 +83,12 @@
  *   w11 vram_mask                         and x27 the color cell
  *   w12 px                            w13 x1 (last column, inclusive)
  *
- *   d0  zline    s1 invs    d2 dZdx    d3 zc    d16 zq
+ *   d0  zline, the fixed-point depth (r128_zfx) as raw integer bits
+ *   d2  its per-pixel step, the same way    s1 invs
  *   v4  vca      v5 vcb     v6 vcc
  *   s16..s18 barycentric weights w0/w1/w2
  *   v25 col {r,g,b,a}       v26, v27, v29..v31 scratch
  *   v28 255 in each 32-bit lane (dither clamp)
- *   d19 0.0     d20 1.0     d21 (double)zmax    d22 0.5
  *   v23 255.0f in all lanes v24 0.5f in all lanes
  *
  * x18 is never touched: it is the platform register on some ABIs. The
@@ -656,46 +657,80 @@ r128_a64_fmul_s(r128_a64_emit_t *e, int sd, int sn, int sm)
     r128_a64_e32(e, 0x1E200800 | (sm << 16) | (sn << 5) | sd);
 }
 
+/* ADD Dd, Dn, Dm: 64-bit integer add in the SIMD register file. The
+   fixed-point depth value and its step stay in d0 and d2 as raw integer
+   bits, so the per-pixel step is this add. */
 static void
-r128_a64_fmul_d(r128_a64_emit_t *e, int dd, int dn, int dm)
+r128_a64_add_d(r128_a64_emit_t *e, int dd, int dn, int dm)
 {
-    r128_a64_e32(e, 0x1E600800 | (dm << 16) | (dn << 5) | dd);
+    r128_a64_e32(e, 0x5EE08400 | (dm << 16) | (dn << 5) | dd);
+}
+
+/* 64-bit integer lane ops on two lanes, for the SoA depth: SUB, SHL and
+   USHR by an immediate, and the signed compares CMGT (two registers) and
+   CMGT against zero. */
+static void
+r128_a64_sub_2d(r128_a64_emit_t *e, int vd, int vn, int vm)
+{
+    r128_a64_e32(e, 0x6EE08400 | (vm << 16) | (vn << 5) | vd);
 }
 
 static void
-r128_a64_fadd_d(r128_a64_emit_t *e, int dd, int dn, int dm)
+r128_a64_shl_2d(r128_a64_emit_t *e, int vd, int vn, int sh)
 {
-    r128_a64_e32(e, 0x1E602800 | (dm << 16) | (dn << 5) | dd);
+    r128_a64_e32(e, 0x4F005400 | ((uint32_t) (64 + sh) << 16) | (vn << 5) | vd);
 }
 
 static void
-r128_a64_fcmp_d0(r128_a64_emit_t *e, int dn)
+r128_a64_ushr_2d(r128_a64_emit_t *e, int vd, int vn, int sh)
 {
-    r128_a64_e32(e, 0x1E602008 | (dn << 5));
+    r128_a64_e32(e, 0x6F000400 | ((uint32_t) (128 - sh) << 16) | (vn << 5) | vd);
 }
 
 static void
-r128_a64_fcmp_d(r128_a64_emit_t *e, int dn, int dm)
+r128_a64_cmgt_s2d(r128_a64_emit_t *e, int vd, int vn, int vm)
 {
-    r128_a64_e32(e, 0x1E602000 | (dm << 16) | (dn << 5));
+    r128_a64_e32(e, 0x4EE03400 | (vm << 16) | (vn << 5) | vd);
 }
 
 static void
-r128_a64_fcsel_d(r128_a64_emit_t *e, int dd, int dn, int dm, int cond)
+r128_a64_cmgt0_s2d(r128_a64_emit_t *e, int vd, int vn)
 {
-    r128_a64_e32(e, 0x1E600C00 | (dm << 16) | (cond << 12) | (dn << 5) | dd);
+    r128_a64_e32(e, 0x4EE08800 | (vn << 5) | vd);
+}
+
+/* CMP Xn, Xm (SUBS XZR, Xn, Xm); register 31 reads as zero */
+static void
+r128_a64_cmp_x_reg(r128_a64_emit_t *e, int rn, int rm)
+{
+    r128_a64_e32(e, 0xEB00001F | (rm << 16) | (rn << 5));
 }
 
 static void
-r128_a64_fcvtzu_w_d(r128_a64_emit_t *e, int wd, int dn)
+r128_a64_sub_x_reg(r128_a64_emit_t *e, int rd, int rn, int rm)
 {
-    r128_a64_e32(e, 0x1E790000 | (dn << 5) | wd);
+    r128_a64_e32(e, 0xCB000000 | (rm << 16) | (rn << 5) | rd);
 }
 
+/* LSL Xd, Xn, #sh (UBFM alias) */
 static void
-r128_a64_fcvtzu_x_d(r128_a64_emit_t *e, int xd, int dn)
+r128_a64_lsl_x(r128_a64_emit_t *e, int rd, int rn, int sh)
 {
-    r128_a64_e32(e, 0x9E790000 | (dn << 5) | xd);
+    r128_a64_e32(e, 0xD3400000 | ((uint32_t) ((64 - sh) & 63) << 16)
+                        | ((uint32_t) (63 - sh) << 10) | (rn << 5) | rd);
+}
+
+/* Fixed-point depth (r128_zfx) of the raw value in d0 into general
+   registers: clamp to [0, 1.0] into x16, using xt as scratch. */
+static void
+r128_a64_zfx_clamp(r128_a64_emit_t *e, int xt)
+{
+    r128_a64_e32(e, 0x9E660000 | (0 << 5) | 16); /* fmov x16, d0 */
+    r128_a64_cmp_x_reg(e, 16, 31);
+    r128_a64_csel_x(e, 16, 31, 16, A64_LT); /* z < 0 -> 0 */
+    r128_a64_mov_x_imm64(e, xt, 1ull << R128_ZFX_BITS);
+    r128_a64_cmp_x_reg(e, 16, xt);
+    r128_a64_csel_x(e, 16, xt, 16, A64_GT); /* z > 1.0 -> 1.0 */
 }
 
 /* xd = cond ? xn : xm + 1 */
@@ -737,12 +772,6 @@ r128_a64_fcvtzu_w_s(r128_a64_emit_t *e, int wd, int sn)
 
 /* FMOV with the 8-bit floating-point immediate: 0x70 is 1.0, 0x60 is
    0.5 */
-static void
-r128_a64_fmov_d_imm(r128_a64_emit_t *e, int dd, uint32_t imm8)
-{
-    r128_a64_e32(e, 0x1E601000 | (imm8 << 13) | dd);
-}
-
 static void
 r128_a64_fmov_s_imm(r128_a64_emit_t *e, int sd, uint32_t imm8)
 {
@@ -1107,8 +1136,8 @@ r128_jit_arm64_can(const rage128_draw_state_t *ds)
  * ---------------------------------------------------------------------- */
 #define R128_A64_SP_TRI  96  /* stp x0, x4: tri + drow (per row)          */
 #define R128_A64_SP_ROW  112 /* stp x5, x6: zrow + dither row (per row)   */
-#define R128_A64_SP_D19  128 /* stp d19, d20: 0.0 / 1.0 (per row, z_on)   */
-#define R128_A64_SP_D21  144 /* stp d21, d22: zmax / 0.5 (per row, z_on)  */
+#define R128_A64_SP_D19  128 /* 32 bytes the scalar path leaves free; SoA  */
+#define R128_A64_SP_D21  144 /* blocks keep d14/d15 at R128_A64_SP_D19+16  */
 #define R128_A64_SP_Q23  160 /* stp q23, q24: 255.0f / 0.5f splats        */
 #define R128_A64_SP_COL  192 /* col vector: helper input/output           */
 #define R128_A64_SP_E01  208 /* stp x1, x2: e0, e1                        */
@@ -1279,8 +1308,8 @@ r128_a64_gen_setup(r128_a64_gen_t *g, uint8_t *code,
     g->bppsh        = bppsh;
     g->z_on         = z_on;
     /* Table fog reads interpolated depth even without the Z test, so
-       its scalar loop loads and steps the same double DDA without
-       enabling the Z test or its writes. */
+       its scalar loop loads and steps the same fixed-point depth
+       without enabling the Z test or its writes. */
     g->z_step       = z_on || (ds->fog_en && ds->fog_table_en);
     g->sten_on      = sten_on;
     g->dith_on      = dith_on;
@@ -1325,6 +1354,15 @@ r128_a64_gen_prologue(r128_a64_gen_t *g)
     r128_a64_stp_x(&g->e, 25, 26, 64);
     r128_a64_stp_x(&g->e, 27, 28, 80);
 
+    /* The fixed-point depth seed arrives in x4, so drow, zrow and py sit
+       one register up (w5..w7). Move the seed to d0, where the block
+       keeps it as raw integer bits, and the other three down to w4..w6,
+       before x7 is loaded below. */
+    r128_a64_fmov_d_x(&g->e, 0, 4);
+    r128_a64_mov_w(&g->e, 4, 5);
+    r128_a64_mov_w(&g->e, 5, 6);
+    r128_a64_mov_w(&g->e, 6, 7);
+
     /* per-triangle constants */
     r128_a64_ldr_x(&g->e, 7, 0, (int) offsetof(r128_jit_tri_t, e0dxi));
     r128_a64_ldr_x(&g->e, 8, 0, (int) offsetof(r128_jit_tri_t, e1dxi));
@@ -1337,7 +1375,7 @@ r128_a64_gen_prologue(r128_a64_gen_t *g)
     r128_a64_ldur_q(&g->e, 5, 0, (int) offsetof(r128_jit_tri_t, vcb));
     r128_a64_ldur_q(&g->e, 6, 0, (int) offsetof(r128_jit_tri_t, vcc));
     if (g->z_step)
-        r128_a64_ldr_d(&g->e, 2, 0, (int) offsetof(r128_jit_tri_t, dZdx));
+        r128_a64_ldr_d(&g->e, 2, 0, (int) offsetof(r128_jit_tri_t, dzx));
     if (z_on || sten_on) {
         /* The stencil byte lives in the Z cell, so a stencil block
            resolves that cell even with the Z test off and needs the Z
@@ -1353,17 +1391,6 @@ r128_a64_gen_prologue(r128_a64_gen_t *g)
     r128_a64_movn_w(&g->e, 24, 0);
 
     /* FP constants */
-    if (z_on) {
-        uint64_t zmaxd_bits;
-        double   zmaxd = (double) ds->zmax;
-
-        memcpy(&zmaxd_bits, &zmaxd, 8);
-        r128_a64_fmov_d_x(&g->e, 19, 31);     /* d19 = 0.0 (xzr)  */
-        r128_a64_fmov_d_imm(&g->e, 20, 0x70); /* d20 = 1.0      */
-        r128_a64_mov_x_imm64(&g->e, 16, zmaxd_bits);
-        r128_a64_fmov_d_x(&g->e, 21, 16);     /* d21 = (double)zmax */
-        r128_a64_fmov_d_imm(&g->e, 22, 0x60); /* d22 = 0.5      */
-    }
     r128_a64_movz_w(&g->e, 16, 0x437F, 1); /* 255.0f bits      */
     r128_a64_fmov_s_w(&g->e, 23 + 0, 16);  /* s23 = 255.0f     */
     /* v23 is not w23 (rx0): the FP/SIMD and general registers are
@@ -1453,10 +1480,6 @@ r128_a64_gen_row_texspill(r128_a64_gen_t *g)
 {
     r128_a64_stp_x(&g->e, 0, 4, R128_A64_SP_TRI);
     r128_a64_stp_x(&g->e, 5, 6, R128_A64_SP_ROW);
-    if (g->z_on) {
-        r128_a64_stp_d_sp(&g->e, 19, 20, R128_A64_SP_D19);
-        r128_a64_stp_d_sp(&g->e, 21, 22, R128_A64_SP_D21);
-    }
     r128_a64_stp_q_sp(&g->e, 23, 24, R128_A64_SP_Q23);
 }
 
@@ -1629,23 +1652,21 @@ r128_a64_gen_zsten(r128_a64_gen_t *g)
     int                         b_zvram, b_zres;
 
     if (z_on) {
-        /* zc = zline clamped to [0,1], as the C does with
-           if (!(zc > 0.0)) and if (zc > 1.0): NaN and values <= 0 both
-           become 0.0, since GT is false for an unordered compare.
+        /* zc = zline clamped to [0, 1.0] (r128_zfx_clamp), then
+           zi = (zc * zmax + 2^38) >> 39 (r128_zfx_quant). zmax is
+           2^16 - 1 or 2^24 - 1, so zc * zmax is (zc << n) - zc.
            Stencil-only blocks skip the quantize: the interpreter
            computes zi there too, but uses it only for the Z test and
            the Z write, which are both off. */
-        r128_a64_fcmp_d0(&g->e, 0);
-        r128_a64_fcsel_d(&g->e, 3, 0, 19, A64_GT);
-        r128_a64_fcmp_d(&g->e, 3, 20);
-        r128_a64_fcsel_d(&g->e, 3, 20, 3, A64_GT);
-        /* zq = zc * zmax + 0.5 in double, clamped to zmax; zi =
-           (uint32_t) zq */
-        r128_a64_fmul_d(&g->e, 16, 3, 21);
-        r128_a64_fadd_d(&g->e, 16, 16, 22);
-        r128_a64_fcmp_d(&g->e, 16, 21);
-        r128_a64_fcsel_d(&g->e, 16, 21, 16, A64_GT);
-        r128_a64_fcvtzu_w_d(&g->e, 17, 16); /* w17 = zi (live into z write) */
+        int zn = (ds->zmax == 0xffffu) ? 16 : 24;
+
+        r128_a64_zfx_clamp(&g->e, 17);
+        r128_a64_lsl_x(&g->e, 17, 16, zn);
+        r128_a64_sub_x_reg(&g->e, 16, 17, 16);
+        r128_a64_mov_x_imm64(&g->e, 17, 1ull << (R128_ZFX_BITS - 1));
+        r128_a64_add_x_reg(&g->e, 16, 16, 17);
+        r128_a64_lsr_x(&g->e, 16, 16, R128_ZFX_BITS);
+        r128_a64_mov_w(&g->e, 17, 16); /* w17 = zi (live into z write) */
     }
     /* zaddr = zrow + px * zbpp; stencil implies zbpp == 4, since the
        draw state turns stencil off for 16-bit Z */
@@ -1834,17 +1855,13 @@ r128_a64_gen_texture(r128_a64_gen_t *g)
         r128_a64_ldur_q(&g->e, 5, 0, (int) offsetof(r128_jit_tri_t, vcb));
         r128_a64_ldur_q(&g->e, 6, 0, (int) offsetof(r128_jit_tri_t, vcc));
         if (g->z_step)
-            r128_a64_ldr_d(&g->e, 2, 0, (int) offsetof(r128_jit_tri_t, dZdx));
+            r128_a64_ldr_d(&g->e, 2, 0, (int) offsetof(r128_jit_tri_t, dzx));
         if (z_on || sten_on) {
             /* zptr (x14) and z_base (w15) are caller-saved, so the call
                may clobber them; reload them for the next pixel's Z cell
                resolve. z_lim (w19) is callee-saved and survives. */
             r128_a64_ldr_x(&g->e, 14, 0, (int) offsetof(r128_jit_tri_t, zptr));
             r128_a64_ldr_w(&g->e, 15, 0, (int) offsetof(r128_jit_tri_t, z_base));
-        }
-        if (z_on) {
-            r128_a64_ldp_d_sp(&g->e, 19, 20, R128_A64_SP_D19);
-            r128_a64_ldp_d_sp(&g->e, 21, 22, R128_A64_SP_D21);
         }
         if (g->z_step)
             r128_a64_ldr_d(&g->e, 0, 31, R128_A64_SP_ZL);
@@ -1903,9 +1920,8 @@ r128_a64_gen_spec(r128_a64_gen_t *g)
    takes it from the vertices, 1 from the fog table indexed by depth.
    Each path leaves f in s27 and 1.0f in s26; the shared blend then runs
    on all four lanes (the fog color's lane 3 is 0) and the original
-   alpha is put back. Table fog uses the serial depth DDA in d0.
-   With the Z test off, the fog stage supplies its own clamp constants
-   so neither a depth cell nor Z quantization is needed. */
+   alpha is put back. Table fog uses the fixed-point depth in d0 with
+   its own clamp, so it needs neither a depth cell nor the Z quantize. */
 static void
 r128_a64_gen_fog(r128_a64_gen_t *g)
 {
@@ -1932,33 +1948,22 @@ r128_a64_gen_fog(r128_a64_gen_t *g)
         r128_a64_fcsel_s(&g->e, 27, 26, 27, A64_GT); /* f>1 -> 1            */
     } else {
         /* Table fog, blending between adjacent entries the way the
-           interpreter splits the depth: q = (uint64_t) (zc * 255.0 *
-           2^32), one FCVTZU from double, holds the entry index i in
-           its high word and a 32-bit fraction in its low word. Then
+           interpreter splits the depth: q = (zc * 255) >> 7
+           (r128_zfx_fogpos) holds the entry index i in its high word
+           and a 32-bit fraction in its low word. Then
            f = (T[i] + (T[i1] - T[i]) * t) / 255.0f with
            t = (float) fraction * 2^-32 and i1 = i + 1, or i at 255.
            zc is recomputed here from zline (d0) with the Z block's
-           clamp, in d3. This code uses only x16 and x25 as general
-           scratch (w17 holds zi and x26 the Z cell): the fraction
-           moves to s27 before x16 takes the index, and x25 steps
-           from &T[i] to &T[i1] with CSINC, which keeps &T[i] when
-           i is 255. f is already within [0,1], so the C's clamp
-           needs no code here. */
-        if (!g->z_on) {
-            r128_a64_fmov_d_x(&g->e, 19, 31);
-            r128_a64_fmov_d_imm(&g->e, 20, 0x70);
-        }
-        r128_a64_fcmp_d0(&g->e, 0);
-        r128_a64_fcsel_d(&g->e, 3, 0, 19, A64_GT); /* zc = (zline>0)?..:0 */
-        r128_a64_fcmp_d(&g->e, 3, 20);
-        r128_a64_fcsel_d(&g->e, 3, 20, 3, A64_GT);              /* zc = (zc>1)?1:zc    */
-        r128_a64_mov_x_imm64(&g->e, 16, 0x406FE00000000000ull); /* 255.0    */
-        r128_a64_fmov_d_x(&g->e, 29, 16);
-        r128_a64_fmul_d(&g->e, 3, 3, 29);
-        r128_a64_mov_x_imm64(&g->e, 16, 0x41F0000000000000ull); /* 2^32     */
-        r128_a64_fmov_d_x(&g->e, 29, 16);
-        r128_a64_fmul_d(&g->e, 3, 3, 29);
-        r128_a64_fcvtzu_x_d(&g->e, 16, 3); /* q = i<<32 | fr      */
+           clamp. This code uses only x16 and x25 as general scratch
+           (w17 holds zi and x26 the Z cell): the fraction moves to s27
+           before x16 takes the index, and x25 steps from &T[i] to
+           &T[i1] with CSINC, which keeps &T[i] when i is 255. f is
+           already within [0,1], so the C's clamp needs no code
+           here. */
+        r128_a64_zfx_clamp(&g->e, 25);
+        r128_a64_lsl_x(&g->e, 25, 16, 8);
+        r128_a64_sub_x_reg(&g->e, 16, 25, 16); /* zc * 255            */
+        r128_a64_lsr_x(&g->e, 16, 16, R128_ZFX_BITS - 32); /* q = i<<32 | fr */
         r128_a64_ucvtf_s_w(&g->e, 27, 16); /* float(fr) (low w)   */
         r128_a64_lsr_x(&g->e, 16, 16, 32); /* i                   */
         r128_a64_ldr_x(&g->e, 25, 0, (int) offsetof(r128_jit_tri_t, fog_table));
@@ -2355,7 +2360,7 @@ r128_a64_gen_zwrite(r128_a64_gen_t *g)
 
 /* pix_skip: patch every recorded skip branch to here, then step the
    accumulators as the C loop's increment does (e0..e2 by their x steps,
-   zline by dZdx, px by 1). The branch kind is read back from the
+   zline by its integer step, px by 1). The branch kind is read back from the
    emitted word: the test-and-branch pair TBZ and TBNZ (bits [30:25] are
    011011; bit 24 is the op bit that tells them apart and bit 31 the b5
    half of the bit number, so both are left out of the mask) take the
@@ -2386,7 +2391,7 @@ r128_a64_gen_pixskip(r128_a64_gen_t *g)
     r128_a64_add_x_reg(&g->e, 2, 2, 8);
     r128_a64_add_x_reg(&g->e, 3, 3, 9);
     if (g->z_step)
-        r128_a64_fadd_d(&g->e, 0, 0, 2);
+        r128_a64_add_d(&g->e, 0, 0, 2);
     r128_a64_add_w_imm(&g->e, 12, 12, 1);
     r128_a64_b_to(&g->e, g->loop_head);
 }

@@ -28,6 +28,7 @@
 /* lpt.h declares lpt_t only if timer.h has been seen first. */
 #include <86box/timer.h>
 #include <86box/lpt.h>
+#include <86box/hdd.h>
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_interface.h>
@@ -186,11 +187,8 @@ cdrom_generate_name(const int type, char *name, const int internal)
 
     if (internal)
         sprintf(name, "%s_%s_%s", elements[0], elements[1], elements[2]);
-    else if (cdrom_drive_types[type].speed == -1)
-        sprintf(name, "%s %s %s", elements[0], elements[1], elements[2]);
     else
-        sprintf(name, "%s %s %s (%ix)", elements[0], elements[1],
-                elements[2], cdrom_drive_types[type].speed);
+        sprintf(name, "%s %s %s", elements[0], elements[1], elements[2]);
 }
 
 static double
@@ -1222,15 +1220,15 @@ cdrom_interface_reset(void)
 {
     /* On a Tandy VIS machine, add the Mitsumi controller; it has no ISA slots
        for another one, and that one would clash with it at 0x310. */
-    if (machines[machine].init == machine_at_tandy_vis_init) {
+    if (machines[machine].init == machine_at_tandy_vis_init)
         device_add(&mitsumi_cdrom_vis_device);
-        return;
-    }
-
     /* If we have a valid controller, add its device. */
-    if ((cdrom_interface_current > 0) &&
-        controllers[cdrom_interface_current].device)
+    else if ((cdrom_interface_current > 0) &&
+             controllers[cdrom_interface_current].device)
         device_add(controllers[cdrom_interface_current].device);
+
+    /* Mitsumi drives no card took go to the parallel port BackPacks. */
+    lpt_bpmcd_attach_drives();
 }
 
 const char *
@@ -1361,6 +1359,40 @@ cdrom_get_speed(const int type)
 {
     return cdrom_drive_types[type].speed;
 }
+
+int
+cdrom_get_dvd_speed(const int type)
+{
+    return cdrom_drive_types[type].dvd_speed;
+}
+
+int
+cdrom_get_hd_speed(const int type)
+{
+    return cdrom_drive_types[type].hd_speed;
+}
+/* Returns the speed that should be used for transfer-rate calculations
+   given the currently inserted media. */
+int
+cdrom_get_active_speed(const cdrom_t *dev)
+{
+    if ((dev->cd_status == CD_STATUS_DVD) &&
+        (cdrom_drive_types[dev->type].dvd_speed != 0)) {
+        if (cdrom_drive_types[dev->type].dvd_speed == -1)
+            return (dev->dvd_speed > 0) ? dev->dvd_speed : dev->speed;
+        return cdrom_drive_types[dev->type].dvd_speed;
+    }
+    if (((dev->cd_status == CD_STATUS_HDDVD) || (dev->cd_status == CD_STATUS_BLURAY)) &&
+        (cdrom_drive_types[dev->type].hd_speed != 0)) {
+        if (cdrom_drive_types[dev->type].hd_speed == -1)
+            return (dev->hd_speed > 0) ? dev->hd_speed : 1;
+        return cdrom_drive_types[dev->type].hd_speed;
+    }
+    if (cdrom_drive_types[dev->type].speed == -1)
+        return dev->speed;
+    return cdrom_drive_types[dev->type].speed;
+}
+
 
 int
 cdrom_get_inquiry_len(const int type)
@@ -2091,6 +2123,7 @@ cdrom_get_current_status(const cdrom_t *dev)
 void
 cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
 {
+    const uint8_t       format    = b[0];
     const subchannel_t *subc      = &dev->cached_subc;
     int                 base      = 0;
     int                 diff      = 4;
@@ -2106,7 +2139,7 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
               dev->seek_pos, dev->cd_end);
 
     /* Format code. */
-    switch (b[0]) {
+    switch (format) {
         /*
            Mode 0 = Q subchannel mode, first 16 bytes are identical to mode 1 (current
                     position), the rest are stuff like ISRC etc., which can be all zeroes.
@@ -2160,21 +2193,25 @@ cdrom_get_current_subchannel(cdrom_t *dev, uint8_t *b, const int msf)
                 b[10] = (dat >> 8) & 0xff;
                 b[11] = dat & 0xff;
             }
-            if (b[0] != 0x00)
+            if (format != 0x00)
                 break;
             base += 12;
             fallthrough;
         case 0x02:
-            /* UPC  - TODO: Finding and reporting the actual UPC data. */
+            /* Media Catalog Number, as ASCII digits (MMC format 2). */
             memset(&(b[base]), 0x00, 20 - diff);
             base += diff;
             memset(&(b[base + 1]), 0x30, 13);
+            b[base + 14] = 0x00;
+            if ((dev->ops != NULL) && (dev->ops->get_mcn != NULL) &&
+                dev->ops->get_mcn(dev->local, &(b[base + 1])))
+                b[base] = 0x80; /* MCVAL */
             /* NEC CDR-260 speaks BCD. */
             if (dev->is_bcd)
                 b[base + 15] = bin2bcd(subc->abs_f);
             else
                 b[base + 15] = subc->abs_f;
-            if (b[0] != 0x00)
+            if (format != 0x00)
                 break;
             base += 16;
             fallthrough;
@@ -3343,6 +3380,56 @@ cdrom_set_empty(cdrom_t *dev)
     dev->subc_sector    = -1;
 }
 
+
+/* Maximum sector count this drive type may accept when capacity is restricted. */
+static uint32_t
+cdrom_drive_max_sectors(const cdrom_t *dev)
+{
+    const struct cdrom_drive_types_s *dt = &cdrom_drive_types[dev->type];
+    if (dt->hd_speed != 0) {
+        /* HD-capable: limit by preferred high-def format. */
+        if (dt->hd_type == 1)
+            return HDDVD_MAX_SECTORS;
+        return BD_MAX_SECTORS;
+    }
+    if (dt->is_dvd)
+        return DVD_MAX_SECTORS;
+    return CD_MAX_SECTORS;
+}
+
+static uint32_t
+cdrom_clamp_capacity(cdrom_t *dev, int media)
+{
+    if (!dev->restricted_capacity)
+        return dev->cdrom_capacity;
+    uint32_t max = cdrom_drive_max_sectors(dev);
+    /* Also never report more than the media type itself allows. */
+    if (media == 0 && max > CD_MAX_SECTORS) max = CD_MAX_SECTORS;
+    else if (media == 1 && max > DVD_MAX_SECTORS) max = DVD_MAX_SECTORS;
+    else if (media == 2 && max > HDDVD_MAX_SECTORS) max = HDDVD_MAX_SECTORS;
+    else if (media == 3 && max > BD_MAX_SECTORS) max = BD_MAX_SECTORS;
+    if (dev->cdrom_capacity > max)
+        dev->cdrom_capacity = max;
+    return dev->cdrom_capacity;
+}
+
+/* Returns 1 if the media should be rejected under the current restriction policy. */
+static int
+cdrom_media_rejected(const cdrom_t *dev, int media, uint32_t capacity)
+{
+    if (!dev->restricted_capacity)
+        return 0;
+    /* Type incompatibility is always rejected. */
+    if (media == 1 && !cdrom_is_dvd(dev->type))
+        return 1;
+    if ((media == 2 || media == 3) && cdrom_drive_types[dev->type].hd_speed == 0)
+        return 1;
+    /* Size exceeds what this drive type is allowed to accept. */
+    if (capacity > cdrom_drive_max_sectors(dev))
+        return 1;
+    return 0;
+}
+
 void
 cdrom_update_status(cdrom_t *dev)
 {
@@ -3355,21 +3442,37 @@ cdrom_update_status(cdrom_t *dev)
     dev->seek_pos       = 0;
     dev->cd_buflen      = 0;
 
-    if (dev->ops->is_dvd(dev->local)) {
-        if (cdrom_is_dvd(dev->type))
-            dev->cd_status      = CD_STATUS_DVD;
+    int media = dev->ops->is_dvd(dev->local);
+    uint32_t capacity = dev->ops->get_last_block(dev->local);
+    dev->cdrom_capacity = capacity;
+
+    int rejected = cdrom_media_rejected(dev, media, capacity);
+
+    if (media == 1) { /* DVD */
+        dev->cd_status = rejected ? CD_STATUS_DVD_REJECTED : CD_STATUS_DVD;
+    } else if (media == 2) { /* HD DVD */
+        dev->cd_status = rejected ? CD_STATUS_HDDVD_REJECTED : CD_STATUS_HDDVD;
+    } else if (media == 3) { /* Blu-ray */
+        dev->cd_status = rejected ? CD_STATUS_BLURAY_REJECTED : CD_STATUS_BLURAY;
+    } else {
+        /* CD or unknown. Still reject if it somehow exceeds the drive max. */
+        if (rejected)
+            dev->cd_status = CD_STATUS_DVD_REJECTED; /* reuse closest rejection */
         else
-            dev->cd_status      = CD_STATUS_DVD_REJECTED;
-    } else
-        dev->cd_status      = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
-                                                                CD_STATUS_DATA_ONLY;
+            dev->cd_status = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
+                                                               CD_STATUS_DATA_ONLY;
+    }
+
+    if (!rejected)
+        cdrom_clamp_capacity(dev, media);
 
     dev->cached_sector  = -1;
     dev->subc_sector    = -1;
 
-    dev->cdrom_capacity = dev->ops->get_last_block(dev->local);
-
-    if ((dev->cd_status != CD_STATUS_EMPTY) && (dev->cd_status != CD_STATUS_DVD_REJECTED)) {
+    if ((dev->cd_status != CD_STATUS_EMPTY) &&
+        (dev->cd_status != CD_STATUS_DVD_REJECTED) &&
+        (dev->cd_status != CD_STATUS_HDDVD_REJECTED) &&
+        (dev->cd_status != CD_STATUS_BLURAY_REJECTED)) {
         /* Signal media change to the emulated machine. */
         cdrom_insert(dev->id);
 
@@ -3422,19 +3525,34 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
         dev->cd_buflen      = 0;
 
         if ((dev->ops->is_empty != NULL) && dev->ops->is_empty(dev->local))
-            dev->cd_status      = CD_STATUS_EMPTY;
-        else if (dev->ops->is_dvd(dev->local)) {
-            if (cdrom_is_dvd(dev->type))
-                dev->cd_status      = CD_STATUS_DVD;
-            else {
-                warning(plat_get_string(STRING_CDROM_DVD_IN_CD_DRIVE), fn);
-                dev->cd_status      = CD_STATUS_DVD_REJECTED;
-            }
-        } else
-            dev->cd_status      = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
-                                                                    CD_STATUS_DATA_ONLY;
+            dev->cd_status = CD_STATUS_EMPTY;
+        else {
+            int media = dev->ops->is_dvd(dev->local);
+            uint32_t capacity = dev->ops->get_last_block(dev->local);
+            dev->cdrom_capacity = capacity;
 
-        dev->cdrom_capacity = dev->ops->get_last_block(dev->local);
+            int rejected = cdrom_media_rejected(dev, media, capacity);
+
+            if (rejected)
+                warning(plat_get_string(STRING_CDROM_IMAGE_TOO_LARGE), fn);
+
+            if (media == 1) { /* DVD */
+                dev->cd_status = rejected ? CD_STATUS_DVD_REJECTED : CD_STATUS_DVD;
+            } else if (media == 2) { /* HD DVD */
+                dev->cd_status = rejected ? CD_STATUS_HDDVD_REJECTED : CD_STATUS_HDDVD;
+            } else if (media == 3) { /* Blu-ray */
+                dev->cd_status = rejected ? CD_STATUS_BLURAY_REJECTED : CD_STATUS_BLURAY;
+            } else {
+                if (rejected)
+                    dev->cd_status = CD_STATUS_DVD_REJECTED;
+                else
+                    dev->cd_status = dev->ops->has_audio(dev->local) ? CD_STATUS_STOPPED :
+                                                                       CD_STATUS_DATA_ONLY;
+            }
+
+            if (!rejected)
+                cdrom_clamp_capacity(dev, media);
+        }
 
         cdrom_log(dev->log, "CD-ROM capacity: %i sectors (%" PRIi64 " bytes)\n",
                   dev->cdrom_capacity, ((uint64_t) dev->cdrom_capacity) << 11ULL);
@@ -3444,7 +3562,7 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
     cdrom_toc_dump(dev);
 #endif
 
-    if (!skip_insert && (dev->cd_status != CD_STATUS_EMPTY) && (dev->cd_status != CD_STATUS_DVD_REJECTED)) {
+    if (!skip_insert && (dev->cd_status != CD_STATUS_EMPTY) && (dev->cd_status != CD_STATUS_DVD_REJECTED) && (dev->cd_status != CD_STATUS_HDDVD_REJECTED) && (dev->cd_status != CD_STATUS_BLURAY_REJECTED)) {
         /* Signal media change to the emulated machine. */
         cdrom_insert(dev->id);
 
@@ -3556,13 +3674,20 @@ cdrom_hard_reset(void)
                     break;
 
                 case CDROM_BUS_LPT:
-                    scsi_cdrom_drive_reset(i);
                     /*
                      * The bridge is not a device the user picks: assigning the drive
                      * to an LPT port is the whole configuration. It claims the port
-                     * with lpt_attach(), first claim wins.
+                     * with lpt_attach(), first claim wins. The BackPack drives the
+                     * drive itself; the others have an IDE board of their own, the
+                     * drive is an ATAPI drive on it and needs it first.
                      */
-                    device_add_inst(&lpt_bpck_device, dev->res + 1);
+                    if (dev->lpt_bridge == HDD_LPT_BPCK) {
+                        scsi_cdrom_drive_reset(i);
+                        device_add_inst(&lpt_bpck_device, dev->res + 1);
+                    } else {
+                        device_add_inst(hdd_lpt_bridge_device(dev->lpt_bridge), dev->res + 1);
+                        scsi_cdrom_drive_reset(i);
+                    }
                     break;
 
                 default:

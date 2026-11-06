@@ -34,10 +34,10 @@
 #include <86box/plat_unused.h>
 
 typedef struct sio_t {
-    uint8_t id;
+    uint8_t id; /* the Revision ID: 00h IB, 03h ZB, 88h the 82379AB */
     uint8_t pci_slot;
-    uint8_t pad;
-    uint8_t pad0;
+    uint8_t is_zb; /* the ZB's registers: the ZB and the 82379AB */
+    uint8_t is_sioa;
 
     uint8_t regs[256];
 
@@ -51,6 +51,7 @@ typedef struct sio_t {
 
     apm_t     *apm;
     port_92_t *port_92;
+    void      *ioapic; /* the 82379AB's I/O APIC, which the board hands over */
 } sio_t;
 
 #ifdef ENABLE_SIO_LOG
@@ -147,14 +148,14 @@ sio_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
         return;
 
     /* The IB (original) variant of the SIO has no PCI IRQ steering. */
-    if ((addr >= 0x60) && (addr <= 0x63) && (dev->id < 0x03))
+    if ((addr >= 0x60) && (addr <= 0x63) && !dev->is_zb)
         return;
 
     old = dev->regs[addr];
 
     switch (addr) {
         case 0x04: /*Command register*/
-            if (dev->id == 0x03)
+            if (dev->is_zb)
                 dev->regs[addr] = (dev->regs[addr] & 0xf7) | (val & 0x08);
             break;
 
@@ -163,7 +164,7 @@ sio_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             break;
 
         case 0x40:
-            if (dev->id == 0x03) {
+            if (dev->is_zb) {
                 dev->regs[addr] = (val & 0x7f);
 
                 if (!((val ^ old) & 0x40))
@@ -180,13 +181,13 @@ sio_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             dev->regs[addr] = (val & 0x1f);
             break;
         case 0x42:
-            if (dev->id == 0x03)
+            if (dev->is_zb)
                 dev->regs[addr] = val;
             else
                 dev->regs[addr] = (val & 0x77);
             break;
         case 0x43:
-            if (dev->id == 0x03)
+            if (dev->is_zb)
                 dev->regs[addr] = (val & 0x01);
             break;
         case 0x45:
@@ -219,6 +220,10 @@ sio_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 port_92_add(dev->port_92);
             break;
         case 0x57:
+            /* Reserved on the 82379AB, which has no S/G relocation
+               (82378ZB/82379AB data sheet, Table 3). */
+            if (dev->is_sioa)
+                break;
             dev->regs[addr] = val;
 
             dma_remove_sg();
@@ -228,13 +233,32 @@ sio_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
         case 0x61:
         case 0x62:
         case 0x63:
-            if (dev->id == 0x03) {
+            if (dev->is_zb) {
                 sio_log("Set IRQ routing: INT %c -> %02X\n", 0x41 + (addr & 0x03), val);
                 dev->regs[addr] = val & 0x8f;
                 if (val & 0x80)
                     pci_set_irq_routing(PCI_INTA + (addr & 0x03), PCI_IRQ_DISABLED);
                 else
                     pci_set_irq_routing(PCI_INTA + (addr & 0x03), val & 0xf);
+            }
+            break;
+        case 0x70:
+            /* PACC, 82379AB only: bit 1, SMIRC, puts SMI on the I/O
+               APIC's input 0 in place of INT; bit 0, INTRC, holds the
+               external INT signal inactive (data sheet 3.1.26). */
+            if (dev->is_sioa) {
+                dev->regs[addr] = val & 0x03;
+                ioapic_set_pin0_smi(dev->ioapic, !!(val & 0x02));
+                ioapic_set_intr_masked(dev->ioapic, !!(val & 0x01));
+            }
+            break;
+        case 0x71:
+            /* APICBASE, 82379AB only: bits 5-2 are A[15:12] and bits 1-0
+               A[11:10] of the I/O APIC's window at FEC0xy00h (data sheet
+               3.1.27). */
+            if (dev->is_sioa) {
+                dev->regs[addr] = val & 0x3f;
+                ioapic_set_mmio_base(dev->ioapic, 0xfec00000 | ((uint32_t) (val & 0x3f) << 10));
             }
             break;
         case 0x80:
@@ -257,7 +281,7 @@ sio_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             }
             break;
         case 0xa0:
-            if (dev->id == 0x03) {
+            if (dev->is_zb) {
                 dev->regs[addr] = val & 0x1f;
                 apm_set_do_smi(dev->apm, !!(val & 0x01) && !!(dev->regs[0xa2] & 0x80));
                 switch ((val & 0x18) >> 3) {
@@ -280,34 +304,34 @@ sio_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             }
             break;
         case 0xa2:
-            if (dev->id == 0x03) {
+            if (dev->is_zb) {
                 dev->regs[addr] = val & 0xff;
                 apm_set_do_smi(dev->apm, !!(dev->regs[0xa0] & 0x01) && !!(val & 0x80));
             }
             break;
         case 0xaa:
-            if (dev->id == 0x03)
+            if (dev->is_zb)
                 dev->regs[addr] &= (val & 0xff);
             break;
         case 0xac:
         case 0xae:
-            if (dev->id == 0x03)
+            if (dev->is_zb)
                 dev->regs[addr] = val & 0xff;
             break;
         case 0xa4:
-            if (dev->id == 0x03) {
+            if (dev->is_zb) {
                 dev->regs[addr]    = val & 0xfb;
                 cpu_fast_off_flags = (cpu_fast_off_flags & 0xffffff00) | dev->regs[addr];
             }
             break;
         case 0xa5:
-            if (dev->id == 0x03) {
+            if (dev->is_zb) {
                 dev->regs[addr]    = val & 0xff;
                 cpu_fast_off_flags = (cpu_fast_off_flags & 0xffff00ff) | (dev->regs[addr] << 8);
             }
             break;
         case 0xa7:
-            if (dev->id == 0x03) {
+            if (dev->is_zb) {
                 dev->regs[addr]    = val & 0xa0;
                 cpu_fast_off_flags = (cpu_fast_off_flags & 0x00ffffff) | (dev->regs[addr] << 24);
             }
@@ -422,15 +446,16 @@ sio_reset_hard(void *priv)
     dev->regs[0x4d] = 0x40;
     dev->regs[0x4e] = 0x07;
     dev->regs[0x4f] = 0x4f;
-    dev->regs[0x57] = 0x04;
-    if (dev->id == 0x03) {
+    if (!dev->is_sioa)
+        dev->regs[0x57] = 0x04;
+    if (dev->is_zb) {
         dev->regs[0x60] = 0x80;
         dev->regs[0x61] = 0x80;
         dev->regs[0x62] = 0x80;
         dev->regs[0x63] = 0x80;
     }
     dev->regs[0x80] = 0x78;
-    if (dev->id == 0x03) {
+    if (dev->is_zb) {
         dev->regs[0xa0] = 0x08;
         dev->regs[0xa8] = 0x0f;
     }
@@ -476,10 +501,12 @@ sio_reset(void *priv)
     sio_write(0, 0x4d, 1, 0x40, priv);
 
     sio_write(0, 0x57, 1, 0x04, priv);
+    sio_write(0, 0x70, 1, 0x00, priv);
+    sio_write(0, 0x71, 1, 0x00, priv);
 
     dma_set_params(1, 0xffffffff);
 
-    if (dev->id == 0x03) {
+    if (dev->is_zb) {
         sio_write(0, 0x60, 1, 0x80, priv);
         sio_write(0, 0x61, 1, 0x80, priv);
         sio_write(0, 0x62, 1, 0x80, priv);
@@ -515,7 +542,7 @@ sio_speed_changed(void *priv)
     if (te)
         timer_set_delay_u64(&dev->timer, ((uint64_t) dev->timer_latch) * TIMER_USEC);
 
-    if (dev->id == 0x03) {
+    if (dev->is_zb) {
         te = timer_is_on(&dev->fast_off_timer);
 
         timer_stop(&dev->fast_off_timer);
@@ -531,16 +558,18 @@ sio_init(const device_t *info)
 
     pci_add_card(PCI_ADD_SOUTHBRIDGE, sio_read, sio_write, dev, &dev->pci_slot);
 
-    dev->id = info->local;
+    dev->id      = info->local;
+    dev->is_zb   = (dev->id != 0x00);
+    dev->is_sioa = (dev->id == 0x88);
 
-    if (dev->id == 0x03)
+    if (dev->is_zb)
         timer_add(&dev->fast_off_timer, sio_fast_off_count, dev, 0);
 
     sio_reset_hard(dev);
 
     cpu_fast_off_flags = 0x00000000;
 
-    if (dev->id == 0x03) {
+    if (dev->is_zb) {
         cpu_fast_off_val   = dev->regs[0xa8];
         cpu_fast_off_count = cpu_fast_off_val + 1;
 
@@ -548,7 +577,7 @@ sio_init(const device_t *info)
     } else
         cpu_fast_off_val = cpu_fast_off_count = 0;
 
-    if (dev->id == 0x03) {
+    if (dev->is_zb) {
         dev->apm = device_add(&apm_pci_device);
         /* APM intercept handler to update 82378ZB SMI status on APM SMI. */
         io_sethandler(0x00b2, 0x0001, NULL, NULL, NULL, sio_apm_out, NULL, NULL, dev);
@@ -561,7 +590,7 @@ sio_init(const device_t *info)
     dma_ext_mode_init();
     dma_high_page_init();
 
-    if (dev->id == 0x03)
+    if (dev->is_zb)
         dma_alias_set();
 
     io_sethandler(0x0073, 0x0001,
@@ -605,3 +634,32 @@ const device_t sio_zb_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+
+/* The 82379AB (SIO.A): the ZB with an I/O APIC of its own, sixteen inputs
+   at FEC00000h, which APICBASE moves (data sheet 3.7, 4.9). */
+const device_t sio_a_device = {
+    .name          = "Intel 82379AB (SIO.A)",
+    .internal_name = "sio_a",
+    .flags         = DEVICE_PCI,
+    .local         = 0x88, /* "88h: 82379AB A0 Stepping" (data sheet 3.1.5) */
+    .init          = sio_init,
+    .close         = sio_close,
+    .reset         = sio_reset,
+    .available     = NULL,
+    .speed_changed = sio_speed_changed,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+/* The board wires the 82379AB's I/O APIC (IOAPIC_VARIANT_ESC) and hands it
+   over here: PACC and APICBASE act on it from then on. */
+void
+sio_a_set_ioapic(void *priv, void *ioapic)
+{
+    sio_t *dev = (sio_t *) priv;
+
+    dev->ioapic = ioapic;
+    ioapic_set_mmio_base(ioapic, 0xfec00000 | ((uint32_t) dev->regs[0x71] << 10));
+    ioapic_set_pin0_smi(ioapic, !!(dev->regs[0x70] & 0x02));
+    ioapic_set_intr_masked(ioapic, !!(dev->regs[0x70] & 0x01));
+}

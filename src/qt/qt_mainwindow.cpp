@@ -27,6 +27,9 @@
 #include "qt_soundgain.hpp"
 #include "qt_preferences.hpp"
 #include "qt_mcadevicelist.hpp"
+#include "qt_memoryviewer.hpp"
+
+#include <QPointer>
 
 #include "qt_rendererstack.hpp"
 #include "qt_renderercommon.hpp"
@@ -38,10 +41,10 @@
 extern "C" {
 #include <86box/86box.h>
 #include <86box/config.h>
+#include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
-#include <86box/device.h>
 #include <86box/video.h>
 #include <86box/mouse.h>
 #include <86box/machine.h>
@@ -169,7 +172,7 @@ keyb_filter(BMessage *message, BHandler **target, BMessageFilter *filter)
 static BMessageFilter *filter;
 #endif
 
-extern int cpu_force_interpreter;
+#include <86box/cpu_events.h>
 
 extern void     qt_mouse_capture(int);
 extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index);
@@ -347,9 +350,7 @@ MainWindow::MainWindow(QWidget *parent)
         num_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         scroll_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
         caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
-        int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
-        int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_AX) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
-        kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
+        kana_label->setVisible(hasKanaLock());
 
         ui->actionMouse->setEnabled(true);
         ui->actionTablet->setEnabled(true);
@@ -477,6 +478,15 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
 
+    /* Keys go to the guest only while the main window or a renderer is
+       active (keyReleaseEvent), so one held down as another of our windows
+       takes over, such as the memory viewer stopping at a breakpoint, would
+       never be released. Leaving the application is handled above. */
+    connect(qApp, &QGuiApplication::focusWindowChanged, this, [this](QWindow *window) {
+        if (window && !isMainWindowOrRendererActive())
+            keyboard_all_up();
+    });
+
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
         if (shownonce) {
             if (resizableonce == false)
@@ -492,14 +502,21 @@ MainWindow::MainWindow(QWidget *parent)
             ui->toolBar->show();
         }
         if (!QApplication::platformName().contains("eglfs") && vid_resize != 1) {
-            w = static_cast<int>(w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.));
+            /* Without HiDPI scaling the size is in device pixels. The window may come out
+               a pixel larger than that, and the renderer then draws the picture without
+               stretching it to fill the extra pixel. */
+            if (!dpi_scale) {
+                const qreal dpr = util::screenOfWidget(this)->devicePixelRatio();
+                w = util::logicalSizeForPixels(w, dpr);
+                h = util::logicalSizeForPixels(h, dpr);
+            }
 
-            const int modifiedHeight = static_cast<int>(h / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.))
+            const int modifiedHeight = h
                 + menuBar()->height()
                 + (statusBar()->height() * !hide_status_bar)
                 + (ui->toolBar->height() * !hide_tool_bar);
 
-            ui->stackedWidget->resize(w, static_cast<int>(h / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.)));
+            ui->stackedWidget->resize(w, h);
             setFixedSize(w, modifiedHeight);
         }
     });
@@ -509,11 +526,13 @@ MainWindow::MainWindow(QWidget *parent)
 #ifdef QT_RESIZE_DEBUG
             qDebug() << "Resize";
 #endif
-            w = static_cast<int>(w / (!dpi_scale ? util::screenOfWidget(renderers[monitor_index].get())->devicePixelRatio() : 1.));
+            if (!dpi_scale) {
+                const qreal dpr = util::screenOfWidget(renderers[monitor_index].get())->devicePixelRatio();
+                w = util::logicalSizeForPixels(w, dpr);
+                h = util::logicalSizeForPixels(h, dpr);
+            }
 
-            int modifiedHeight = static_cast<int>(h / (!dpi_scale ? util::screenOfWidget(renderers[monitor_index].get())->devicePixelRatio() : 1.));
-
-            renderers[monitor_index]->setFixedSize(w, modifiedHeight);
+            renderers[monitor_index]->setFixedSize(w, h);
         }
     });
 
@@ -1015,6 +1034,8 @@ MainWindow::closeEvent(QCloseEvent *event)
             event->ignore();
             return;
         }
+        if (!confirm_exit)
+            config_save_global_setting("Emulator", "confirm_exit");
     }
     if (window_remember && !video_fullscreen) {
         window_w = ui->stackedWidget->width();
@@ -1330,6 +1351,8 @@ MainWindow::on_actionHard_Reset_triggered()
             confirm_reset = true;
             return;
         }
+        if (!confirm_reset)
+            config_save_global_setting("Emulator", "confirm_reset");
     }
     config_changed = 2;
     pc_reset_hard();
@@ -1376,6 +1399,12 @@ void
 MainWindow::emitVmmSignal()
 {
     emit vmmConfigurationChanged();
+}
+
+void
+MainWindow::setVmmSupervised(bool supervised)
+{
+    vmm_supervised = supervised;
 }
 
 void
@@ -1695,6 +1724,13 @@ MainWindow::keyMatchesAccelerator(const QKeyEvent *ke, const char *name)
 bool
 MainWindow::eventFilter(QObject *receiver, QEvent *event)
 {
+    /* Keys typed into the memory viewer are its own, not the guest's. */
+    if ((event->type() == QEvent::KeyPress) || (event->type() == QEvent::KeyRelease) || (event->type() == QEvent::ShortcutOverride)) {
+        auto *widget = qobject_cast<QWidget *>(receiver);
+        if (widget && qobject_cast<MemoryViewer *>(widget->window()))
+            return QMainWindow::eventFilter(receiver, event);
+    }
+
     if (event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease) {
         auto      *ke   = static_cast<QKeyEvent *>(event);
         const bool down = event->type() == QEvent::KeyPress;
@@ -1790,7 +1826,7 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         }
     }
 
-    if (!main_window_blocked && !dopause && (!kbd_req_capture || mouse_capture)) {
+    if (!main_window_blocked && !dopause && (!kbd_req_capture || mouse_capture) && isMainWindowOrRendererActive()) {
 #if 0
         if (event->type() == QEvent::Shortcut) {
             auto shortcutEvent = (QShortcutEvent *) event;
@@ -1852,15 +1888,7 @@ MainWindow::refreshMediaMenu()
     status->setDynarecMenu(dynarecMenu);
     status->refresh(ui->statusbar);
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
-    const bool has_power_button = device_has_power_button();
-    if (acpi_enabled || has_power_button) {
-        ui->actionACPI_Shutdown->setText(tr("Power &off (soft)"));
-        ui->actionACPI_Shutdown->setToolTip(tr("Power off (soft)"));
-    } else {
-        ui->actionACPI_Shutdown->setText((confirm_exit && confirm_exit_cmdl) ? tr("Power &off…") : tr("Power &off"));
-        ui->actionACPI_Shutdown->setToolTip(tr("Power off"));
-    }
-    ui->actionACPI_Shutdown->setEnabled(true);
+    updatePowerOffAction();
     ui_update_force_interpreter();
 
     num_label->setToolTip(QShortcut::tr("Num Lock"));
@@ -1870,9 +1898,7 @@ MainWindow::refreshMediaMenu()
     caps_label->setToolTip(QShortcut::tr("Caps Lock"));
     caps_label->setVisible(machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD));
     kana_label->setToolTip(QShortcut::tr("Kana Lock"));
-    int ext_ax_kbd = machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
-    int int_ax_kbd = machine_has_flags(machine, MACHINE_KEYBOARD_AX) && !machine_has_bus(machine, MACHINE_BUS_PS2_PORTS);
-    kana_label->setVisible(ext_ax_kbd || int_ax_kbd);
+    kana_label->setVisible(hasKanaLock());
 
     bool enable_comp_option = false;
     for (int i = 0; i < MONITORS_NUM; i++) {
@@ -1884,6 +1910,33 @@ MainWindow::refreshMediaMenu()
 
     ui->actionCGA_composite_settings->setEnabled(enable_comp_option);
     refreshDisplayRatioActions();
+}
+
+/* Only the AX keyboard has a Kana Lock key. A machine that ships one has the
+   indicator whatever the bus, any other machine has it while an AX keyboard
+   is selected on a keyboard port. */
+bool
+MainWindow::hasKanaLock()
+{
+    if (machine_get_kbd_device(machine) == &keyboard_ax_device)
+        return true;
+
+    return machine_has_bus(machine, MACHINE_BUS_PS2_PORTS | MACHINE_BUS_AT_KBD) && (keyboard_type == KEYBOARD_TYPE_AX);
+}
+
+/* Labels the power off action, which only asks for confirmation without ACPI. */
+void
+MainWindow::updatePowerOffAction()
+{
+    const bool has_power_button = device_has_power_button();
+    if (acpi_enabled || has_power_button) {
+        ui->actionACPI_Shutdown->setText(tr("Power &off (soft)"));
+        ui->actionACPI_Shutdown->setToolTip(tr("Power off (soft)"));
+    } else {
+        ui->actionACPI_Shutdown->setText((confirm_exit && confirm_exit_cmdl) ? tr("Power &off…") : tr("Power &off"));
+        ui->actionACPI_Shutdown->setToolTip(tr("Power off"));
+    }
+    ui->actionACPI_Shutdown->setEnabled(true);
 }
 
 void
@@ -1957,6 +2010,8 @@ MainWindow::showMessage_(int flags, const QString &header, const QString &messag
 void
 MainWindow::keyPressEvent(QKeyEvent *event)
 {
+    if (!isMainWindowOrRendererActive())
+        return;
     if (send_keyboard_input) {
 #ifdef Q_OS_MACOS
         processMacKeyboardInput(true, event);
@@ -1966,6 +2021,20 @@ MainWindow::keyPressEvent(QKeyEvent *event)
     }
 
     event->accept();
+}
+
+bool
+MainWindow::isMainWindowOrRendererActive() const
+{
+    if (QMainWindow::isActiveWindow())
+        return true;
+
+    for (const auto &renderer : renderers) {
+        if (renderer && renderer->isActiveWindow())
+            return true;
+    }
+
+    return false;
 }
 
 void
@@ -1983,6 +2052,8 @@ MainWindow::blitToWidget(int x, int y, int w, int h, int monitor_index)
 void
 MainWindow::keyReleaseEvent(QKeyEvent *event)
 {
+    if (!isMainWindowOrRendererActive())
+        return;
     if (event->key() == Qt::Key_Pause) {
         if (keyboard_recv_ui(0x38) && keyboard_recv_ui(0x138)) {
             plat_pause(dopause ^ 1);
@@ -2558,7 +2629,12 @@ MainWindow::updateStatusEmptyIcons()
 void
 MainWindow::on_actionPreferences_triggered()
 {
-    Preferences preferences(this);
+    /* Another instance may have changed the preferences since they were loaded. */
+    config_load_global();
+
+    /* The manager page is only shown under the built-in VM manager. This machine
+       is running, so the manager's system directory cannot be changed. */
+    Preferences preferences(vmm_supervised && !vmm_disabled, true, this);
     preferences.setModal(true);
     preferences.setWindowModality(Qt::WindowModal);
     preferences.setWindowFlag(Qt::CustomizeWindowHint, true);
@@ -2570,12 +2646,52 @@ MainWindow::on_actionPreferences_triggered()
         default:
             break;
         case QDialog::Accepted:
-            updateShortcuts();
+            applyGlobalPreferences();
             emit vmmGlobalConfigurationChanged();
             break;
         case QDialog::Rejected:
+            /* They were still reloaded. */
+            applyGlobalPreferences();
             break;
     }
+}
+
+/* Applies the global preferences once they were saved or reloaded. */
+void
+MainWindow::applyGlobalPreferences()
+{
+#ifdef Q_OS_WINDOWS
+    extern void selectDarkMode();
+    selectDarkMode();
+#endif
+
+    auto size = centralWidget()->size();
+
+    Preferences::loadTranslators(QCoreApplication::instance());
+    Preferences::reloadStrings();
+    ui->retranslateUi(this);
+    QString vmname(vm_name);
+    if (vmname.at(vmname.size() - 1) == '"' || vmname.at(vmname.size() - 1) == '\'')
+        vmname.truncate(vmname.size() - 1);
+    setWindowTitle(QString("%1 - %2 %3").arg(vmname, EMU_NAME, EMU_VERSION_FULL));
+    QString msg = status->getMessage();
+    status.reset(new MachineStatus(this));
+    refreshMediaMenu();
+    status->message(msg);
+    connect(this, &MainWindow::updateStatusBarTip, status.get(), &MachineStatus::updateTip);
+    connect(this, &MainWindow::statusBarMessage, status.get(), &MachineStatus::message, Qt::QueuedConnection);
+
+    /* Keep the size of the screen while the menus and the status bar change. */
+    QTimer::singleShot(200, this, [this, size] () {
+        centralWidget()->setFixedSize(size);
+        QApplication::processEvents();
+        if (vid_resize == 1) {
+            centralWidget()->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        }
+    });
+
+    updateShortcuts();
+    updateMouseStrings();
 }
 
 void
@@ -2671,6 +2787,20 @@ MainWindow::on_actionMCA_devices_triggered()
 {
     if (const auto dlg = new MCADeviceList(this))
         dlg->exec();
+}
+
+void
+MainWindow::on_actionMemory_viewer_triggered()
+{
+    /* One viewer at a time: it owns the debugger while it is open. */
+    static QPointer<MemoryViewer> viewer;
+
+    if (!viewer) {
+        viewer = new MemoryViewer(this);
+        viewer->show();
+    }
+    viewer->raise();
+    viewer->activateWindow();
 }
 
 void

@@ -28,6 +28,7 @@ class VMManagerMainWindow;
 class VMManagerMainWindow final : public QMainWindow {
     Q_OBJECT
 public:
+    void startBackgroundDiscovery();
     explicit VMManagerMainWindow(QWidget *parent = nullptr);
     ~VMManagerMainWindow() override;
     void updateSettings();
@@ -60,7 +61,7 @@ private slots:
     void vmmStateChanged(const VMManagerSystem *sysconfig) const;
     void on_actionHide_tool_bar_triggered();
     void preferencesTriggered();
-#if EMU_BUILD_NUM != 0
+#ifdef UPDATE_CHECK
     void checkForUpdatesTriggered();
 #endif
 

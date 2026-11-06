@@ -252,7 +252,7 @@ sf_FCOMI_st0_stj(uint32_t fetchdat)
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
         /* Unordered, but with #IA unmasked the flags are not set */
         if (is_IA_masked())
-            cpu_state.flags |= (Z_FLAG | P_FLAG | C_FLAG);
+            FPU_write_eflags_fpu_compare(softfloat_relation_unordered);
         goto next_ins;
     }
     status = i387cw_to_softfloat_status_word(i387_get_control_word());
@@ -285,7 +285,7 @@ sf_FCOMIP_st0_stj(uint32_t fetchdat)
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
         /* Unordered, but with #IA unmasked the flags are not set */
         if (is_IA_masked())
-            cpu_state.flags |= (Z_FLAG | P_FLAG | C_FLAG);
+            FPU_write_eflags_fpu_compare(softfloat_relation_unordered);
         if (is_IA_masked()) {
             FPU_pop();
         }
@@ -390,7 +390,7 @@ sf_FUCOMI_st0_stj(uint32_t fetchdat)
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
         /* Unordered, but with #IA unmasked the flags are not set */
         if (is_IA_masked())
-            cpu_state.flags |= (Z_FLAG | P_FLAG | C_FLAG);
+            FPU_write_eflags_fpu_compare(softfloat_relation_unordered);
         goto next_ins;
     }
     status = i387cw_to_softfloat_status_word(i387_get_control_word());
@@ -423,7 +423,7 @@ sf_FUCOMIP_st0_stj(uint32_t fetchdat)
         FPU_exception(fetchdat, FPU_EX_Stack_Underflow, 0);
         /* Unordered, but with #IA unmasked the flags are not set */
         if (is_IA_masked())
-            cpu_state.flags |= (Z_FLAG | P_FLAG | C_FLAG);
+            FPU_write_eflags_fpu_compare(softfloat_relation_unordered);
         if (is_IA_masked())
             FPU_pop();
 

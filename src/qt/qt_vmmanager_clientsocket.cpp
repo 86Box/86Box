@@ -93,10 +93,21 @@ VMManagerClientSocket::connected() const
 }
 
 void
-VMManagerClientSocket::disconnected() const
+VMManagerClientSocket::disconnected()
 {
     // TODO: signal
     qDebug("Disconnected from %s", qPrintable(server_name));
+    setVmmSupervised(false);
+}
+
+void
+VMManagerClientSocket::setVmmSupervised(const bool new_vmm_supervised)
+{
+    if (vmm_supervised == new_vmm_supervised)
+        return;
+
+    vmm_supervised = new_vmm_supervised;
+    emit vmmSupervisedChanged(vmm_supervised);
 }
 
 void
@@ -180,13 +191,14 @@ VMManagerClientSocket::jsonReceived(const QJsonObject &json)
         case VMManagerProtocol::ManagerMessage::RequestStatus:
             qDebug("Status request command received from manager");
             break;
+        case VMManagerProtocol::ManagerMessage::ManagerIdentity:
+            qDebug("Identity received from manager");
+            setVmmSupervised(VMManagerProtocol::getParams(json) == VMManagerProtocol::managerIdentity());
+            break;
         case VMManagerProtocol::ManagerMessage::GlobalConfigurationChanged:
             {
                 config_load_global();
-#ifdef Q_OS_WINDOWS
-                void selectDarkMode();
-                selectDarkMode();
-#endif
+                emit globalConfigurationReloaded();
                 break;
             }
         default:

@@ -191,6 +191,8 @@ plat_get_string(int i)
             return "Unable to load image \"%s\": libaaruformat.so is missing, which is required for Aaru format image support.";
         case STRING_CDROM_DVD_IN_CD_DRIVE:
             return "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored.";
+        case STRING_CDROM_IMAGE_TOO_LARGE:
+            return "The image \"%s\" exceeds the maximum capacity of this drive and will be ignored.";
         case STRING_CHARDEV_CONNECT_ERROR:
             return "%s: Could not connect to %s: %s";
         case STRING_CHARDEV_CREATE_ERROR:
@@ -201,6 +203,10 @@ plat_get_string(int i)
             return "%s: Virtual console already in use by %s";
         case STRING_CHARDEV_TERMINAL_ERROR:
             return "%s: Could not create terminal: %s";
+        case STRING_USB_NO_PORT:
+            return "%s was not connected: every USB port of this machine is in use.";
+        case STRING_USB_NO_CONTROLLER:
+            return "%s was not connected: this machine has no USB controller that can take devices.";
 #ifdef USE_VFIO
         case STRING_VFIO_NO_CONTAINER:
             return "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded.";

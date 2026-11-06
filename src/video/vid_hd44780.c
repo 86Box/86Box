@@ -93,6 +93,7 @@ typedef struct hd44780_t {
 
     hd44780_lcd_t lcd[7];
     int           controllers;
+    int           rows_per_controller;
     int           cols;
     int           rows;
 
@@ -703,9 +704,11 @@ hd44780_render(hd44780_t *dev)
     }
 
     for (int row = 0; row < dev->rows; row++) {
-        hd44780_lcd_t *lcd = &dev->lcd[row >> 1];
+        hd44780_lcd_t *lcd = &dev->lcd[row / dev->rows_per_controller];
+        /* Each of the controller's two lines runs on, past the first two rows, onto the next two. */
+        int base = ((row % dev->rows_per_controller) >> 1) * dev->cols;
         for (int col = 0; col < dev->cols; col++) {
-            int            addr      = ((row & 1) ? HD44780_LINE_LEN : 0) + ((col + lcd->shift) % HD44780_LINE_LEN);
+            int            addr      = ((row & 1) ? HD44780_LINE_LEN : 0) + ((base + col + lcd->shift) % HD44780_LINE_LEN);
             int            at_cursor = (hd44780_ddram_index(lcd->addr & 0x7f) == addr);
             int            is_cursor = at_cursor && (lcd->config[1] & 0x02);
             int            is_blink  = at_cursor && (lcd->config[1] & 0x01) && (lcd->frames < 30);
@@ -1015,7 +1018,12 @@ hd44780_init(const device_t *info)
 
     dev->cols        = MAX(MIN(dev->cols, HD44780_LINE_LEN), 1);
     dev->rows        = MAX(MIN(dev->rows, (sizeof(dev->lcd) / sizeof(dev->lcd[0])) * 2), 1);
-    dev->controllers = (dev->rows + 1) / 2;
+    /* A controller drives two lines of 40 characters. On a module of up to
+       20 columns, each line goes on onto a second row, so that one controller
+       drives four rows: rows 2 and 3 of a 20x4 are DDRAM 14H and 54H on. A
+       wider module takes a controller for every two rows. */
+    dev->rows_per_controller = (dev->cols <= (HD44780_LINE_LEN / 2)) ? 4 : 2;
+    dev->controllers         = (dev->rows + dev->rows_per_controller - 1) / dev->rows_per_controller;
     for (int i = 0; i < dev->controllers; i++) {
         hd44780_lcd_t *lcd = &dev->lcd[i];
 

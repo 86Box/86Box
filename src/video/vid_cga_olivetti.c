@@ -52,6 +52,23 @@ extern const device_config_t cga_config[]; /* defined in vid_cga.c */
 #define COMPOSITE_OLD 0
 #define COMPOSITE_NEW 1
 
+/*
+ * Display Enhancement Board (GO329, the AT&T PC 6300 DEB), from the AT&T PC 6300 PLUS
+ * Hardware Reference Manual pp. 4-76..4-110 and AT&T's DEDRIVER.DEV. Three more 32K
+ * bit planes at A0000-B7FFF; with the VDC's own plane at B8000 they address a 256 x
+ * 4-bit look-up table. 3DDh selects what a write to 3DFh reaches.
+ */
+#define DEB_ADDR_MODE       0x01 /* 3DFh writes the mode control register */
+#define DEB_ADDR_LUT        0x02 /* 3DFh writes the LUT or its address counter */
+
+#define DEB_MODE_LUTOUT     0x01 /* LUT drives the monitor; clear = transparent */
+#define DEB_MODE_COUNT_RUN  0x02 /* -LUTCOUNTLD: clear = a LUT-port write loads the counter */
+#define DEB_MODE_LITTLE     0x08 /* LITTLEBIT: only the low 4 LUT address bits */
+#define DEB_MODE_16COLOR    0x10 /* LUTSEL: 16-colour graphics; clear = overlay */
+#define DEB_MODE_400LINE    0x20 /* OLIB: no line pairing */
+#define DEB_MODE_ENHANID    0x40 /* EXPID bits report the DEB's display */
+#define DEB_MODE_VIDEO      0x80 /* EVIDE: clear = LUT output forced to black */
+
 static video_timings_t timing_ogc = { .type = VIDEO_ISA, .write_b = 8, .write_w = 16, .write_l = 32, .read_b = 8, .read_w = 16, .read_l = 32 };
 
 static uint8_t mdaattr[256][2][2];
@@ -106,6 +123,26 @@ ogc_out(uint16_t addr, uint8_t val, void *priv)
             }
             break;
 
+        /* bit 2 (the DEB's own 6845 at 3DBh/3DCh) is ignored; the driver programs
+           it like the VDC's, and the scanout assumes that. */
+        case 0x3dd:
+            if (ogc->deb_vram)
+                ogc->deb_addr = val & 0x07;
+            break;
+
+        case 0x3df:
+            if (!ogc->deb_vram)
+                break;
+            if (ogc->deb_addr & DEB_ADDR_MODE)
+                ogc->deb_mode = val;
+            if (ogc->deb_addr & DEB_ADDR_LUT) {
+                if (ogc->deb_mode & DEB_MODE_COUNT_RUN)
+                    ogc->deb_lut[ogc->deb_lut_ptr++] = val & 0x0f;
+                else
+                    ogc->deb_lut_ptr = val;
+            }
+            break;
+
         default:
             break;
     }
@@ -128,7 +165,8 @@ ogc_in(uint16_t addr, void *priv)
         case 0x3d5:
         case 0x3da:
             /*
-             * bits 6-7: 3 = no DEB expansion board installed
+             * bits 6-7: 3 = no DEB expansion board installed, 0 = DEB
+             *           (with ENHANID set, the DEB display's ID instead)
              * bits 4-5: 2 color, 3 mono
              * bit 3: high during 1st half of vertical retrace in character mode (CCA standard)
              * bit 2: lightpen switch (CGA standard)
@@ -137,9 +175,13 @@ ogc_in(uint16_t addr, void *priv)
              */
             ret = cga_in(addr, &ogc->cga);
             if (addr == 0x3da) {
-                ret = ret | 0xe0;
+                ret = (ret & 0x1f) | 0x20;
                 if (ogc->mono_display)
                     ret = ret | 0x10;
+                if (!ogc->deb_vram)
+                    ret = ret | 0xc0;
+                else if (ogc->deb_mode & DEB_MODE_ENHANID)
+                    ret = ret | (ogc->mono_display ? 0xc0 : 0x80);
             }
             break;
 
@@ -199,6 +241,69 @@ ogc_read(uint32_t addr, void *priv)
     return (ogc->cga.vram[addr & 0x7FFF]);
 }
 
+/* Planes 0, 1, 2 at A0000, A8000, B0000; the VDC's B8000 plane is plane 3. */
+static void
+deb_write(uint32_t addr, uint8_t val, void *priv)
+{
+    ogc_t *ogc = (ogc_t *) priv;
+
+    ogc->deb_vram[addr - 0xa0000] = val;
+    ogc_waitstates(ogc);
+}
+
+static uint8_t
+deb_read(uint32_t addr, void *priv)
+{
+    ogc_t *ogc = (ogc_t *) priv;
+
+    ogc_waitstates(ogc);
+    return ogc->deb_vram[addr - 0xa0000];
+}
+
+/*
+ * Pass one drawn VDC line through the LUT (pp. 4-100..4-104). y counts raster lines
+ * from the top: the 6845 line doubled by lineff, which is also how mode 40h banks its
+ * 4 x 8K, so the DEB planes line up with the VDC plane in the 16-colour mode.
+ */
+static void
+deb_line(ogc_t *ogc, int width)
+{
+    uint32_t     *p      = &buffer32->line[ogc->cga.displine][8];
+    const int     n      = (ogc->cga.vc * (ogc->cga.crtc[CGA_CRTC_MAX_SCANLINE_ADDR] + 1)) + ogc->cga.scanline;
+    const int     y      = (n << 1) | ogc->lineff;
+    const int     blink1 = (ogc->cga.cgablink >> 3) & 1; /* period 16 frames */
+    const int     blink2 = (ogc->cga.cgablink >> 4) & 1; /* twice that */
+    const uint8_t mode   = ogc->deb_mode;
+    uint32_t      base;
+
+    if (mode & DEB_MODE_400LINE)
+        base = ((y & 3) << 13) + ((y >> 2) * 80);
+    else /* line pairing; PAGESEL picks the second 16K */
+        base = (((y >> 1) & 1) << 13) + ((y >> 2) * 80) + ((ogc->ctrl_3de & 0x08) ? 0x4000 : 0);
+
+    for (int x = 0; x < width; x++) {
+        const uint32_t a   = (base + (x >> 3)) & 0x7fff;
+        const int      bit = 7 - (x & 7);
+        const uint8_t  vdc = (p[x] - 16) & 0x0f; /* IRGB */
+        uint8_t        deb = ((ogc->deb_vram[a] >> bit) & 1) |
+                             (((ogc->deb_vram[0x8000 + a] >> bit) & 1) << 1) |
+                             (((ogc->deb_vram[0x10000 + a] >> bit) & 1) << 2);
+        uint8_t        lut;
+
+        if (mode & DEB_MODE_16COLOR) /* BLINK1 BLINK2 RA0 PAT1 B P2 P1 P0 */
+            lut = (blink1 << 7) | (blink2 << 6) | ((y & 1) << 5) | ((x & 1) << 4) | ((vdc & 1) << 3) | deb;
+        else /* overlay: BLINK1 H G R B P2 P1 P0 */
+            lut = (blink1 << 7) | ((vdc & 8) << 3) | ((vdc & 2) << 4) | ((vdc & 4) << 2) | ((vdc & 1) << 3) | deb;
+        if (mode & DEB_MODE_LITTLE)
+            lut &= 0x0f;
+
+        /* The LUT drives B, R, G, H (D0-D3): red and green are swapped against IRGB,
+           which is why DEDRIVER.DEV writes green as 4 and red as 2. */
+        deb = (mode & DEB_MODE_VIDEO) ? ogc->deb_lut[lut] : 0;
+        p[x] = (deb & 0x09) | ((deb & 0x02) << 1) | ((deb & 0x04) >> 1) | 16;
+    }
+}
+
 void
 ogc_poll(void *priv)
 {
@@ -219,12 +324,19 @@ ogc_poll(void *priv)
     int      blink     = 0;
     int      underline = 0;
 
+    /* Bind the monitor macros to this card's own display. */
+    const int prev_monitor_index = monitor_index_global;
+
+    monitor_index_global = ogc->cga.monitor_used;
+
     // Composite color appears dark blue
 
-    /* graphic mode and not mode 40h */
-    if (!(ogc->ctrl_3de & 0x1 || !(ogc->cga.cgamode & CGA_MODE_FLAG_GRAPHICS))) {
+    /* graphic mode and not mode 40h; under the DEB's LUT, 640x200 stays here, line-doubled */
+    if ((ogc->cga.cgamode & CGA_MODE_FLAG_GRAPHICS) && !(ogc->ctrl_3de & 0x1) &&
+        !(ogc->deb_vram && (ogc->deb_mode & DEB_MODE_LUTOUT) && (ogc->cga.cgamode & CGA_MODE_FLAG_HIGHRES_GRAPHICS))) {
         /* standard cga mode */
         cga_poll(&ogc->cga);
+        monitor_index_global = prev_monitor_index;
         return;
     } else {
         /* mode 40h or text mode */
@@ -349,7 +461,8 @@ ogc_poll(void *priv)
                         cols[0] = 0;
                         cols[1] = 15 + 16;
                     } else {
-                        dat2    = (ogc->cga.scanline & 1) * 0x2000;
+                        /* PAGESEL moves both the VDC and the DEB to the second 16K */
+                        dat2    = ((ogc->cga.scanline & 1) * 0x2000) + ogc->base;
                         cols[0] = 0;
                         cols[1] = (ogc->cga.cgacol & 15) + 16;
                     }
@@ -369,9 +482,15 @@ ogc_poll(void *priv)
                         }
                     }
                 }
+
+                if (ogc->deb_vram && (ogc->deb_mode & DEB_MODE_LUTOUT))
+                    deb_line(ogc, ogc->cga.crtc[CGA_CRTC_HDISP] << ((ogc->cga.cgamode & CGA_MODE_FLAG_HIGHRES) ? 3 : 4));
             } else {
                 /* ogc specific */
                 cols[0] = ((ogc->cga.cgamode & 0x12) == 0x12) ? 0 : (ogc->cga.cgacol & 15) + 16;
+                /* the DEB blanks outside the 6845's display enable */
+                if (ogc->deb_vram && (ogc->deb_mode & DEB_MODE_LUTOUT))
+                    cols[0] = 16;
                 if (ogc->cga.cgamode & CGA_MODE_FLAG_HIGHRES)
                     hline(buffer32, 0, ogc->cga.displine, ((ogc->cga.crtc[CGA_CRTC_HDISP] << 3) + 16) << 2, cols[0]);
                 else
@@ -539,6 +658,8 @@ ogc_poll(void *priv)
             }
         }
     }
+
+    monitor_index_global = prev_monitor_index;
 }
 
 void
@@ -546,6 +667,7 @@ ogc_close(void *priv)
 {
     ogc_t *ogc = (ogc_t *) priv;
 
+    free(ogc->deb_vram);
     free(ogc->cga.vram);
     free(ogc);
 }
@@ -586,7 +708,6 @@ ogc_mdaattr_rebuild(void)
 /*
  * Missing features
  * - Composite video mode not working
- * - Optional EGC expansion board (which handles 640x400x16) not implemented
  */
 void *
 ogc_init(UNUSED(const device_t *info))
@@ -597,6 +718,8 @@ ogc_init(UNUSED(const device_t *info))
     ogc_t *ogc = (ogc_t *) calloc(1, sizeof(ogc_t));
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_ogc);
+
+    ogc->cga.monitor_used = monitor_index_global;
 
     video_load_font("roms/video/ogc/ogc graphics board go380 258 pqbq.bin", FONT_FORMAT_PC200, LOAD_FONT_NO_OFFSET);
 
@@ -616,6 +739,14 @@ ogc_init(UNUSED(const device_t *info))
                     ogc_read, NULL, NULL,
                     ogc_write, NULL, NULL, NULL, 0, ogc);
     io_sethandler(0x03d0, 16, ogc_in, NULL, NULL, ogc_out, NULL, NULL, ogc);
+
+    /* Powers up transparent (mode 0), so it shows the VDC until a driver enables it. */
+    if (device_get_config_int("deb")) {
+        ogc->deb_vram = calloc(1, 0x18000);
+        mem_mapping_add(&ogc->deb_mapping, 0xa0000, 0x18000,
+                        deb_read, NULL, NULL,
+                        deb_write, NULL, NULL, NULL, 0, ogc);
+    }
 
     overscan_x = overscan_y = 16;
     ogc->cga.rgb_type       = device_get_config_int("rgb_type");
@@ -652,6 +783,17 @@ const device_config_t ogc_m24_config[] = {
             { .description = "Gray Monochrome",  .value = 3 },
             { .description = ""                             }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "deb",
+        .description    = "Display Enhancement Board (GO329)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {

@@ -21,7 +21,6 @@
 
 #include "qt_defs.hpp"
 #include "qt_settings.hpp"
-#include "ui_qt_settings.h"
 #include "qt_mainwindow.hpp"
 #include "ui_qt_mainwindow.h"
 
@@ -44,8 +43,13 @@ extern "C" {
 #include <86box/lpt.h>
 #include <86box/serial.h>
 #include <86box/midi.h>
+#include <86box/mem.h>
+#include <86box/usb.h>
+#include <86box/thread.h>
+#include <86box/network.h>
 }
 
+#include <QStackedWidget>
 #include <QStandardItemModel>
 
 #include "qt_settings_completer.hpp"
@@ -75,91 +79,32 @@ extern "C" {
 #include <QMessageBox>
 #include <QCheckBox>
 #include <QStyle>
+#include <QTabWidget>
 
 #include <dirent.h>
 #include <unistd.h>
 
 extern MainWindow *main_window;
 
-class SettingsModel : public QAbstractListModel {
-public:
-    SettingsModel(QObject *parent)
-        : QAbstractListModel(parent)
-    {
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-        fontHeight = QFontMetrics(qApp->font()).height();
-#else
-        fontHeight = QApplication::fontMetrics().height();
-#endif
-    }
-
-    QVariant data(const QModelIndex &index, int role = Qt::DisplayRole) const override;
-    int      rowCount(const QModelIndex &parent = QModelIndex()) const override;
-
-private:
-    QStringList pages = {
-        "Machine",
-        "Display",
-        "Input devices",
-        "Sound",
-        "Network",
-        "Ports (COM & LPT)",
-        "Storage controllers",
-        "Hard disks",
-        "Floppy & CD-ROM drives",
-        "Other removable devices",
-        "Other peripherals",
-    };
-    QStringList page_icons = {
-        "machine",
-        "display",
-        "input_devices",
-        "sound",
-        "network",
-        "ports",
-        "storage_controllers",
-        "hard_disk",
-        "floppy_and_cdrom_drives",
-        "other_removable_devices",
-        "other_peripherals",
-    };
-    int fontHeight;
+static const QVector<PagedDialog::Page> settingsPages = {
+    { "Machine",                 "machine"                 },
+    { "Display",                 "display"                 },
+    { "Input devices",           "input_devices"           },
+    { "Sound",                   "sound"                   },
+    { "Network",                 "network"                 },
+    { "Ports (COM & LPT)",       "ports"                   },
+    { "Storage controllers",     "storage_controllers"     },
+    { "Hard disks",              "hard_disk"               },
+    { "Floppy & CD-ROM drives",  "floppy_and_cdrom_drives" },
+    { "Other removable devices", "other_removable_devices" },
+    { "Other peripherals",       "other_peripherals"       },
 };
 
-QVariant
-SettingsModel::data(const QModelIndex &index, int role) const
-{
-    Q_ASSERT(checkIndex(index, QAbstractItemModel::CheckIndexOption::IndexIsValid | QAbstractItemModel::CheckIndexOption::ParentIsInvalid));
-
-    switch (role) {
-        case Qt::DisplayRole:
-            return tr(pages.at(index.row()).toUtf8().data());
-        case Qt::DecorationRole:
-            return QIcon(QString(":/settings/qt/icons/%1.ico").arg(page_icons[index.row()]));
-        case Qt::SizeHintRole:
-            return QSize(-1, fontHeight * 2);
-        default:
-            return {};
-    }
-}
-
-int
-SettingsModel::rowCount(const QModelIndex &parent) const
-{
-    (void) parent;
-    return pages.size();
-}
-
 Settings *Settings::settings = nullptr;
-;
-Settings::Settings(QWidget *parent)
-    : QDialog(parent)
-    , ui(new Ui::Settings)
-{
-    ui->setupUi(this);
-    auto *model = new SettingsModel(this);
-    ui->listView->setModel(model);
 
+Settings::Settings(QWidget *parent)
+    : PagedDialog(tr("Settings"), QSize(720, 472), settingsPages, parent)
+{
     Settings::settings = this;
 
     Harddrives::busTrackClass = new SettingsBusTracking;
@@ -179,30 +124,29 @@ Settings::Settings(QWidget *parent)
     otherRemovable     = nullptr;
     otherPeripherals   = nullptr;
 
-    ui->stackedWidget->addWidget(machine);
+    pageStack()->addWidget(machine);
     for (int i = PAGE_DISPLAY; i < PAGE_COUNT; i++)
-        ui->stackedWidget->addWidget(new QWidget(this));
+        pageStack()->addWidget(new QWidget(this));
 
-    connect(ui->listView->selectionModel(), &QItemSelectionModel::currentChanged, this,
-            [this](const QModelIndex &current, const QModelIndex &previous) {
-                ensurePage(current.row());
-                ui->stackedWidget->setCurrentIndex(current.row());
-                ui->headerIcon->setPixmap(qvariant_cast<QIcon>(ui->listView->model()->data(current, Qt::DecorationRole)).pixmap(QSize(16, 16)));
-                ui->headerLabel->setText(ui->listView->model()->data(current, Qt::DisplayRole).toString());
-            });
+    showFirstPage();
+}
 
-    ui->listView->setCurrentIndex(model->index(0, 0));
+void
+Settings::aboutToShowPage(int index)
+{
+    ensurePage(index);
 }
 
 /* A page takes the place of its placeholder in the stack. */
 void
 Settings::placePage(int index, QWidget *page)
 {
-    QWidget *placeholder = ui->stackedWidget->widget(index);
+    QWidget *placeholder = pageStack()->widget(index);
 
-    ui->stackedWidget->insertWidget(index, page);
-    ui->stackedWidget->removeWidget(placeholder);
+    pageStack()->insertWidget(index, page);
+    pageStack()->removeWidget(placeholder);
     delete placeholder;
+    growToFitPages();
 }
 
 /* Build the page at a list index if it is not built yet, with the pages it
@@ -262,6 +206,37 @@ Settings::ensurePage(int index)
                 placePage(PAGE_PORTS, ports);
                 connect(machine, &SettingsMachine::currentMachineChanged, ports,
                         &SettingsPorts::onCurrentMachineChanged);
+                /* A USB card gives the machine a USB bus, so a change of card
+                   refreshes the pages that list USB devices. */
+                connect(ports, &SettingsPorts::usbBusChanged, this, [this](int id) {
+                    if (input != nullptr)
+                        input->onCurrentMachineChanged(id);
+                    if (sound != nullptr)
+                        sound->onCurrentMachineChanged(id);
+                    if (storageControllers != nullptr)
+                        storageControllers->onCurrentMachineChanged(id);
+                });
+                connect(ports, &SettingsPorts::drivePageRequested, this, [this](SettingsPorts::DrivePage page) {
+                    switch (page) {
+                        case SettingsPorts::DrivePage::HardDisks:
+                            showPage(PAGE_HARDDISKS);
+                            break;
+                        case SettingsPorts::DrivePage::Cdrom:
+                            /* Showing the page builds it; then its CD-ROM
+                               tab, since floppy drives cannot be on USB. */
+                            showPage(PAGE_FLOPPYCDROM);
+                            if (floppyCdrom != nullptr) {
+                                auto *tabs = floppyCdrom->findChild<QTabWidget *>("tabWidgetFloppyCDROM");
+                                auto *tab  = floppyCdrom->findChild<QWidget *>("tabCDROM");
+                                if ((tabs != nullptr) && (tab != nullptr))
+                                    tabs->setCurrentWidget(tab);
+                            }
+                            break;
+                        case SettingsPorts::DrivePage::Removable:
+                            showPage(PAGE_REMOVABLE);
+                            break;
+                    }
+                });
                 if (machineId != ::machine)
                     ports->onCurrentMachineChanged(machineId);
             }
@@ -365,7 +340,6 @@ Settings::ensureAllPages()
 
 Settings::~Settings()
 {
-    delete ui;
     /* The device lists are read again the next time: ROMs may come or go
        in between. */
     Models::ClearDevices();
@@ -396,6 +370,19 @@ int
 Settings::currentScsiCard(int i) const
 {
     return (storageControllers != nullptr) ? storageControllers->scsiCard(i) : scsi_card_current[i];
+}
+
+/* The network card in slot i (the PCnet-SCSI takes a SCSI bus). */
+int
+Settings::currentNetCard(int i) const
+{
+    return (network != nullptr) ? network->netCard(i) : net_cards_conf[i].device_num;
+}
+
+int
+Settings::currentUsbMsd() const
+{
+    return (ports != nullptr) ? ports->usbMsd() : usb_msd_type;
 }
 
 void
@@ -470,6 +457,8 @@ Settings::accept()
             confirm_save = true;
             return;
         }
+        if (!confirm_save)
+            config_save_global_setting("Emulator", "confirm_save");
     } else if (changed && !(changed & SETTINGS_REQUIRE_HARD_RESET) && !settings_only) {
         save(1);
         config_changed = 2;

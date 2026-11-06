@@ -249,7 +249,7 @@ ps2_write_split_ram(uint32_t addr, uint8_t val, void *priv)
     uint32_t oldaddr = addr;
     addr             = ((addr - ps2.split_addr) & 0x000fffff) + ps2.split_phys;
     if (cpu_use_exec) {
-        addwritelookup(mem_logical_addr, addr);
+        addwritelookup_remapped(mem_logical_addr, oldaddr, addr);
         mem_write_ramb_page(addr, val, &pages[oldaddr >> 12]);
     } else
         ram[addr] = val;
@@ -260,7 +260,7 @@ ps2_write_split_ramw(uint32_t addr, uint16_t val, void *priv)
     uint32_t oldaddr = addr;
     addr             = ((addr - ps2.split_addr) & 0x000fffff) + ps2.split_phys;
     if (cpu_use_exec) {
-        addwritelookup(mem_logical_addr, addr);
+        addwritelookup_remapped(mem_logical_addr, oldaddr, addr);
         mem_write_ramw_page(addr, val, &pages[oldaddr >> 12]);
     } else
         *(uint16_t *) &ram[addr] = val;
@@ -271,7 +271,7 @@ ps2_write_split_raml(uint32_t addr, uint32_t val, void *priv)
     uint32_t oldaddr = addr;
     addr             = ((addr - ps2.split_addr) & 0x000fffff) + ps2.split_phys;
     if (cpu_use_exec) {
-        addwritelookup(mem_logical_addr, addr);
+        addwritelookup_remapped(mem_logical_addr, oldaddr, addr);
         mem_write_raml_page(addr, val, &pages[oldaddr >> 12]);
     } else
         *(uint32_t *) &ram[addr] = val;
@@ -2971,7 +2971,7 @@ static const device_config_t ps2_model_50_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "IBM PS/2 model 50",
+                .name          = "IBM PS/2 BIOS - Revision 0 (Model 50, 02/13/87)",
                 .internal_name = "ibmps2_m50",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 4,
@@ -2981,7 +2981,7 @@ static const device_config_t ps2_model_50_config[] = {
                                    "roms/machines/ibmps2_m50/90x7423.zm14", "roms/machines/ibmps2_m50/90x7426.zm16", "" }
             },
             {
-                .name          = "IBM PS/2 model 50Z",
+                .name          = "IBM PS/2 BIOS - Revision 3 (Model 50Z, 04/18/88)",
                 .internal_name = "ibmps2_m50z",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,

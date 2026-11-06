@@ -27,6 +27,14 @@ typedef struct ogc_t {
     uint32_t base;
     int      lineff;
     int      mono_display;
+
+    /* Display Enhancement Board (GO329); deb_vram is NULL when it is not fitted. */
+    uint8_t      *deb_vram;
+    mem_mapping_t deb_mapping;
+    uint8_t       deb_addr;
+    uint8_t       deb_mode;
+    uint8_t       deb_lut_ptr;
+    uint8_t       deb_lut[256];
 } ogc_t;
 
 void    ogc_recalctimings(ogc_t *ogc);

@@ -1,0 +1,107 @@
+name: MacPorts cache
+
+# Refreshes the cached MacPorts installations used by the macOS builds of
+# the pull request builds workflow. Only caches saved on master are
+# available to all pull requests, so pull request builds never save one.
+#
+# The daily run updates the cached installation and only saves it when Qt
+# had to be rebuilt (such as after a Qt update in the ports tree), so that
+# pull request builds don't have to rebuild it in the meantime. All other
+# runs set MacPorts up from scratch, so that leftovers don't accumulate.
+
+on:
+
+  push:
+    branches:
+      - master
+    paths:
+      - .ci/dependencies_macports.txt
+      - .github/actions/setup-macports/**
+      - .github/workflows/macports_cache.yml
+
+  schedule:
+    # Keep the monthly schedule in sync with the FULL condition below
+    - cron: "0 3 1 * *"
+    - cron: "0 4 * * *"
+
+  workflow_dispatch:
+    inputs:
+      full:
+        description: Set MacPorts up from scratch instead of updating the cached installation
+        type: boolean
+        default: true
+
+permissions:
+  contents: read
+
+jobs:
+
+  # Set MacPorts up and make a regular build, which installs all dependencies
+  # listed for build.sh, then save the installation
+  cache:
+
+    name: "macOS ${{ matrix.arch }}"
+
+    runs-on: ${{ matrix.runner }}
+
+    env:
+      FULL: ${{ github.event_name == 'push' || github.event.schedule == '0 3 1 * *' || inputs.full == true }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep these in sync with the macOS targets of the pull request
+        # builds workflow
+        include:
+          - arch: x86_64
+            runner: macos-15-intel
+          - arch: arm64
+            runner: macos-15
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Set up MacPorts
+        id: macports
+        uses: ./.github/actions/setup-macports
+        with:
+          arch: ${{ matrix.arch }}
+          restore: ${{ env.FULL != 'true' }}
+
+      # Nothing changed in the cached installation if Qt is still up to date
+      - name: Build
+        if: env.FULL == 'true' || steps.macports.outputs.qt-built == 'true'
+        env:
+          ARCH: ${{ matrix.arch }}
+        run: |
+          mkdir -p _output
+          cd _output
+          status=0
+          sh ../.ci/build.sh -b "86Box-macOS-$ARCH-cache" "$ARCH" -t --preset=regular -D CMAKE_BUILD_TYPE=Release \
+            -D DYNAREC=ON -D QT=ON -D BUILD_TYPE=alpha || status=$?
+
+          # Status 50 means the build succeeded but could not be notarized
+          if [ $status -ne 0 ] && [ $status -ne 50 ]; then
+            exit $status
+          fi
+
+      - name: Pack installation
+        if: env.FULL == 'true' || steps.macports.outputs.qt-built == 'true'
+        env:
+          TARBALL: ${{ steps.macports.outputs.tarball }}
+        run: >-
+          sudo tar -C / -cf "$TARBALL"
+          --exclude opt/local/var/macports/build
+          --exclude opt/local/var/macports/distfiles
+          --exclude opt/local/var/macports/logs
+          opt/local
+
+      - name: Save installation
+        if: env.FULL == 'true' || steps.macports.outputs.qt-built == 'true'
+        uses: actions/cache/save@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
+        with:
+          path: ${{ steps.macports.outputs.tarball }}
+          key: ${{ steps.macports.outputs.cache-key-prefix }}${{ github.run_id }}

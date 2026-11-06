@@ -1,0 +1,56 @@
+name: MSYS2 cache
+
+# Refreshes the MSYS2 package caches used by the Windows CMake and CodeQL
+# workflows. Only caches saved on master are available to all pull requests,
+# and MSYS2 packages are updated often, so updating them daily makes it more
+# likely for pull requests to find up to date packages in the cache.
+#
+# setup-msys2 saves the cache by itself when any packages changed.
+
+on:
+
+  push:
+    branches:
+      - master
+    paths:
+      - .github/actions/setup-msys2/**
+      - .github/workflows/msys2_cache.yml
+
+  schedule:
+    - cron: "30 3 * * *"
+
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+
+  cache:
+
+    name: "${{ matrix.msystem }}"
+
+    runs-on: ${{ matrix.runner }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        # Keep these in sync with the environments of the Windows CMake and
+        # CodeQL workflows
+        include:
+          - msystem: UCRT64
+            runner: windows-2022
+          - msystem: CLANGARM64
+            runner: windows-11-arm
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          sparse-checkout: .github/actions
+          persist-credentials: false
+
+      - name: Set up MSYS2
+        uses: ./.github/actions/setup-msys2
+        with:
+          msystem: ${{ matrix.msystem }}

@@ -29,6 +29,7 @@
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
 #include <86box/gdbstub.h>
+#include <86box/debugger.h>
 #ifndef OPS_286_386
 #    define OPS_286_386
 #endif
@@ -221,6 +222,12 @@ fetch_ea_16_long(uint32_t rmdat)
 
 #include "386_ops.h"
 
+/* What the tables above hold for an opcode the processor does not have, so
+   that a debugger can tell. */
+const OpFn x86_2386_illegal_op = ILLEGAL;
+/* And for the x87 opcodes, 16- and 32-bit addressing. */
+const OpFn x86_2386_fpu_illegal_op[2] = { FPU_ILLEGAL_a16, FPU_ILLEGAL_a32 };
+
 void
 cpu_bus_stall(int clocks)
 {
@@ -404,9 +411,9 @@ exec386_2386(int32_t cycs)
 #else
                 nmi = 0;
 #endif
-            } else if ((cpu_state.flags & I_FLAG) && pic.int_pending && !cpu_end_block_after_ins) {
+            } else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending() && !cpu_end_block_after_ins) {
                 cpu_pc98_interrupt_wait();
-                vector = picinterrupt();
+                vector = x86_external_interrupt_vector();
                 if (vector != -1) {
                     flags_rebuild();
                     if (msw & 1)
@@ -455,6 +462,8 @@ exec386_2386(int32_t cycs)
             if (gdbstub_instruction())
                 return;
 #endif
+            if (DEBUGGER_INSTRUCTION())
+                return;
         }
     }
 }

@@ -21,6 +21,8 @@ add_library(chipset OBJECT
     acc2168.c
     cs8220.c
     cs8230.c
+    cs5530.c
+    cyrix_gxm.c
     ali1429.c
     ali1435.c
     ali1489.c
@@ -41,6 +43,10 @@ add_library(chipset OBJECT
     ims8848.c
     intel_8018x.c
     intel_82335.c
+    intel_386ex.c
+    intel_386ex_csu.c
+    intel_386ex_rcu.c
+    intel_386ex_wdt.c
     intel_420ex.c
     intel_4x0.c
     intel_i450kx.c
@@ -48,6 +54,16 @@ add_library(chipset OBJECT
     intel_sio.c
     intel_piix.c
     isa486c.c
+    # Board/chipset targets reference APIC devices, but the source lives one level up.
+    ../apic_bus.c
+    ../apic_cpu_policy.c
+    ../apic_platform.c
+    ../lapic_policy.c
+    ../lapic.c
+    ../lapic_mmio.c
+    ../lapic_state.c
+    ../lapic_delivery.c
+    ../ioapic_82093aa.c
     ../ioapic.c
     laserxt.c
     neat.c

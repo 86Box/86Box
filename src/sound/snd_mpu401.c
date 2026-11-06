@@ -1378,12 +1378,17 @@ MPU401_InputSysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
     mpu401_log("MPU401 Input Sysex\n");
 
     if (!mpu->intelligent || mpu->mode == M_UART) {
-        /* UART mode input. */
-        for (i = 0; i < len; i++)
+        /* UART mode input. Leave what doesn't fit in the queue to the
+           caller, instead of losing it. */
+        for (i = 0; i < len; i++) {
+            if (mpu->queue_used >= MPU401_QUEUE)
+                break;
             MPU401_QueueByte(mpu, buffer[i]);
+        }
 
-        MPU401_ReadRaiseIRQ(mpu);
-        return 0;
+        if (i > 0)
+            MPU401_ReadRaiseIRQ(mpu);
+        return len - i;
     }
 
     if (mpu->filter.sysex_in) {
@@ -1413,7 +1418,7 @@ MPU401_InputSysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
             return (len - available);
         }
     } else if (mpu->filter.sysex_thru && mpu->midi_thru) {
-        midi_raw_out_byte(0xf0);
+        /* The buffer has the F0 already. */
         for (i = 0; i < len; i++)
             midi_raw_out_byte(*(buffer + i));
     }

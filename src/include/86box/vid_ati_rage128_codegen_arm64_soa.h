@@ -25,8 +25,8 @@
  *          which is exact because |e| stays below 2^40 for the snapped
  *          coordinate range, and then double to float, which rounds
  *          once; the scalar loop's single SCVTF from int64 to float
- *          gives the same result. zline advances by the same serial
- *          chain of double adds as the C loop.
+ *          gives the same result. zline is the fixed-point depth, exact
+ *          integer adds in every lane.
  *
  *          A group whose lane addresses would leave a staged arena or
  *          straddle the VRAM wrap mask bails to the scalar loop before
@@ -59,16 +59,16 @@
  *   v8/v9     e0 lane offsets 2D: {0, dx0} / {2*dx0, 3*dx0}
  *   v10/v11   e1 lane offsets
  *   v12/v13   e2 lane offsets      (d8-d15 saved in the prologue)
- *   v16       (z_on) (double)zmax splat 2D
- *   v17       (z_on) 0.5 splat 2D
- *   v18       (z_on) 1.0 splat 2D
- *   v19..v22  not written (lane 0 holds the scalar d19..d22 constants)
+ *   v17       (z_on) 2^38 splat 2D, the depth quantize's rounding half
+ *   v18       (z_on) 1.0 in fixed-point depth (2^39) splat 2D
+ *   v16, v19..v22  not written
  *   v23/v24   255.0f / 0.5f splats 4S (shared with the scalar loop)
  *   v28       (dither) 255 integer splat 4S (shared with the scalar loop)
  *   v29/v30   (dither) the row's Bayer adds 4S: 565 uses bay>>1 / bay>>2,
  *             1555 RGB uses bay>>1 in v29, and 4444 uses bay in v29;
  *             (px+k)&3 stays fixed as px advances by 4, so adds stay live
- *   d0/d2     zline accumulator / dZdx (shared with the scalar loop)
+ *   d0/d2     zline accumulator / its step, fixed-point integer bits
+ *             (shared with the scalar loop)
  * NEON scratch inside one group iteration:
  *   v3, v7, v14, v15, v25, v26, v27, v31   (8 registers, all used at peak)
  * General scratch: x16, x17, x25, x28. x26 is the group's Z cell base and
@@ -140,12 +140,6 @@ r128_a64_dup_2d_x(r128_a64_emit_t *e, int vd, int xn)
 }
 
 static void
-r128_a64_dup_2d_lane(r128_a64_emit_t *e, int vd, int vn, int lane)
-{
-    r128_a64_e32(e, 0x4E000400 | ((uint32_t) ((lane << 4) | 8) << 16) | (vn << 5) | vd);
-}
-
-static void
 r128_a64_ins_elem_d(r128_a64_emit_t *e, int vd, int dlane, int vn, int slane)
 {
     r128_a64_e32(e, 0x6E000400 | ((uint32_t) ((dlane << 4) | 8) << 16) | ((uint32_t) (slane << 3) << 11) | (vn << 5) | vd);
@@ -191,36 +185,6 @@ static void
 r128_a64_fcvtn2(r128_a64_emit_t *e, int vd, int vn) /* Vd.4S upper <- Vn.2D */
 {
     r128_a64_e32(e, 0x4E616800 | (vn << 5) | vd);
-}
-
-static void
-r128_a64_fmul_2d(r128_a64_emit_t *e, int vd, int vn, int vm)
-{
-    r128_a64_e32(e, 0x6E60DC00 | (vm << 16) | (vn << 5) | vd);
-}
-
-static void
-r128_a64_fadd_2d(r128_a64_emit_t *e, int vd, int vn, int vm)
-{
-    r128_a64_e32(e, 0x4E60D400 | (vm << 16) | (vn << 5) | vd);
-}
-
-static void
-r128_a64_fcmgt0_2d(r128_a64_emit_t *e, int vd, int vn)
-{
-    r128_a64_e32(e, 0x4EE0C800 | (vn << 5) | vd);
-}
-
-static void
-r128_a64_fcmgt_2d(r128_a64_emit_t *e, int vd, int vn, int vm)
-{
-    r128_a64_e32(e, 0x6EE0E400 | (vm << 16) | (vn << 5) | vd);
-}
-
-static void
-r128_a64_fcvtzu_2d(r128_a64_emit_t *e, int vd, int vn)
-{
-    r128_a64_e32(e, 0x6EE1B800 | (vn << 5) | vd);
 }
 
 static void
@@ -379,7 +343,7 @@ r128_a64_umax_4s(r128_a64_emit_t *e, int vd, int vn, int vm)
  * SoA sub-gate for untextured states (r128_jit_soa_can): which states
  * that _can() approved get the vector loop. Textured states go through
  * r128_a64_soa_tex_can below instead. Table fog with z_en stores the raw
- * zline double lanes before the Z block consumes them, and the fog stage
+ * fixed-point zline lanes before the Z block consumes them, and the fog stage
  * derives zc from them again per lane. Vertex fog, specular, aux scissors
  * and stencil all run in the vector loop; stencil stores the Z block's
  * results packed per lane and does a masked read-modify-write after the
@@ -998,10 +962,12 @@ r128_a64_emit_soa_prologue(r128_a64_emit_t *e, const rage128_draw_state_t *ds,
     }
 
     if (ds->z_en) {
-        /* 2D splats from the scalar double constants (FP-domain dup) */
-        r128_a64_dup_2d_lane(e, 16, 21, 0); /* (double)zmax */
-        r128_a64_dup_2d_lane(e, 17, 22, 0); /* 0.5          */
-        r128_a64_dup_2d_lane(e, 18, 20, 0); /* 1.0          */
+        /* 2D splats of the fixed-point depth constants: 2^38 (the
+           quantize's rounding half) and 1.0 = 2^39 */
+        r128_a64_mov_x_imm64(e, 16, 1ull << (R128_ZFX_BITS - 1));
+        r128_a64_dup_2d_x(e, 17, 16);
+        r128_a64_mov_x_imm64(e, 16, 1ull << R128_ZFX_BITS);
+        r128_a64_dup_2d_x(e, 18, 16);
     }
 
     if (dith_on) {
@@ -2580,12 +2546,12 @@ r128_a64_soa_fogf(r128_a64_emit_t *e)
 
 /* Table-fog factor on 4 lanes (untextured, z_en only), the
    interpreter's blend between adjacent table entries. Per lane,
-   q = trunc(zc*255*2^32) (FCVTZU 2D on the exact product); UZP2 takes
-   the entry indices and UZP1 the 32-bit fractions out of the 64-bit
-   lanes. f = (T[i] + (T[i1]-T[i]) * t) / 255.0f with t = float(fr) *
-   2^-32 and i1 = min(i+1, 255). zc is the raw zline double stored at
-   TFA/TFB by the Z block, clamped to [0,1] in the same form as the
-   scalar FCSEL clamp (compare-mask AND for <= 0 or NaN, BSL for > 1).
+   q = (zc * 255) >> 7 (r128_zfx_fogpos); UZP2 takes the entry indices
+   and UZP1 the 32-bit fractions out of the 64-bit lanes.
+   f = (T[i] + (T[i1]-T[i]) * t) / 255.0f with t = float(fr) * 2^-32
+   and i1 = min(i+1, 255). zc is the raw fixed-point zline stored at
+   TFA/TFB by the Z block, clamped to [0, 1.0] in the same form as the
+   Z block's clamp (signed compare-mask AND for <= 0, BSL for > 1.0).
    Both byte lookups pass their index vectors through TFA/TFB, which are
    free after the reload. Out: f in v3. Scratch v15/v26/v31, x17/x25;
    v7 (zi) and v17 are not touched; v18 (1.0 2D splat) is read for the
@@ -2595,24 +2561,20 @@ r128_a64_soa_tfogf(r128_a64_emit_t *e)
 {
     r128_a64_ldr_q(e, 26, 31, R128_A64_SP_SOA_TFA);
     r128_a64_ldr_q(e, 31, 31, R128_A64_SP_SOA_TFB);
-    r128_a64_fcmgt0_2d(e, 15, 26);
-    r128_a64_and_16b(e, 26, 26, 15); /* zc <= 0 / NaN -> 0   */
-    r128_a64_fcmgt_2d(e, 15, 26, 18);
+    r128_a64_cmgt0_s2d(e, 15, 26);
+    r128_a64_and_16b(e, 26, 26, 15); /* zc <= 0 -> 0          */
+    r128_a64_cmgt_s2d(e, 15, 26, 18);
     r128_a64_bsl_16b(e, 15, 18, 26); /* zcA = zc > 1 ? 1     */
-    r128_a64_fcmgt0_2d(e, 26, 31);
+    r128_a64_cmgt0_s2d(e, 26, 31);
     r128_a64_and_16b(e, 31, 31, 26);
-    r128_a64_fcmgt_2d(e, 26, 31, 18);
-    r128_a64_bsl_16b(e, 26, 18, 31);                    /* zcB                  */
-    r128_a64_mov_x_imm64(e, 17, 0x406FE00000000000ull); /* 255.0        */
-    r128_a64_dup_2d_x(e, 31, 17);
-    r128_a64_fmul_2d(e, 15, 15, 31);
-    r128_a64_fmul_2d(e, 26, 26, 31);
-    r128_a64_mov_x_imm64(e, 17, 0x41F0000000000000ull); /* 2^32         */
-    r128_a64_dup_2d_x(e, 31, 17);
-    r128_a64_fmul_2d(e, 15, 15, 31);
-    r128_a64_fmul_2d(e, 26, 26, 31);
-    r128_a64_fcvtzu_2d(e, 15, 15); /* q = i<<32 | fr       */
-    r128_a64_fcvtzu_2d(e, 26, 26);
+    r128_a64_cmgt_s2d(e, 26, 31, 18);
+    r128_a64_bsl_16b(e, 26, 18, 31); /* zcB                  */
+    r128_a64_shl_2d(e, 31, 15, 8);
+    r128_a64_sub_2d(e, 15, 31, 15); /* zcA * 255            */
+    r128_a64_ushr_2d(e, 15, 15, R128_ZFX_BITS - 32);
+    r128_a64_shl_2d(e, 31, 26, 8);
+    r128_a64_sub_2d(e, 26, 31, 26); /* zcB * 255            */
+    r128_a64_ushr_2d(e, 26, 26, R128_ZFX_BITS - 32); /* q = i<<32 | fr */
     r128_a64_uzp2_4s(e, 31, 15, 26); /* i  4S                */
     r128_a64_uzp1_4s(e, 3, 15, 26);  /* fr 4S                */
     r128_a64_str_q(e, 31, 31, R128_A64_SP_SOA_TFA);
@@ -3417,10 +3379,10 @@ r128_a64_soa_lp_aux(r128_a64_soa_lp_t *l)
     }
 }
 
-/* zline lanes through the same serial chain of double adds as the C
-   loop increment, so the sums are bit-exact; the lanes are assembled
-   in FP registers. d0 advances to the next group base here, so no bail
-   may follow this point. Then the quantize and the Z test. */
+/* zline lanes: the fixed-point depth of the group's four pixels, d0
+   plus 0..3 integer steps, assembled in v7 (lanes 0, 1) and v15 (lanes
+   2, 3). d0 advances to the next group base here, so no bail may follow
+   this point. Then the quantize and the Z test. */
 static void
 r128_a64_soa_lp_z(r128_a64_soa_lp_t *l)
 {
@@ -3429,13 +3391,13 @@ r128_a64_soa_lp_z(r128_a64_soa_lp_t *l)
     int                         sten = l->sten, zquant = l->zquant;
 
     r128_a64_ins_elem_d(e, 7, 0, 0, 0);
-    r128_a64_fadd_d(e, 26, 0, 2);
+    r128_a64_add_d(e, 26, 0, 2);
     r128_a64_ins_elem_d(e, 7, 1, 26, 0);
-    r128_a64_fadd_d(e, 26, 26, 2);
+    r128_a64_add_d(e, 26, 26, 2);
     r128_a64_ins_elem_d(e, 15, 0, 26, 0);
-    r128_a64_fadd_d(e, 26, 26, 2);
+    r128_a64_add_d(e, 26, 26, 2);
     r128_a64_ins_elem_d(e, 15, 1, 26, 0);
-    r128_a64_fadd_d(e, 0, 26, 2);
+    r128_a64_add_d(e, 0, 26, 2);
 
     if (ds->fog_en && ds->fog_table_en) {
         /* table fog: store the raw zline lanes before the quantize and
@@ -3446,28 +3408,30 @@ r128_a64_soa_lp_z(r128_a64_soa_lp_t *l)
     }
 
     if (zquant) {
-        /* clamp: NaN or <= 0 -> 0 with a compare-mask AND (like the
-           scalar FCSEL: FCMGT is false on unordered), > 1 -> 1 with a
-           BSL select */
-        r128_a64_fcmgt0_2d(e, 26, 7);
+        /* clamp (r128_zfx_clamp): <= 0 -> 0 with a signed compare-mask
+           AND, > 1.0 -> 1.0 with a BSL select */
+        r128_a64_cmgt0_s2d(e, 26, 7);
         r128_a64_and_16b(e, 7, 7, 26);
-        r128_a64_fcmgt0_2d(e, 26, 15);
+        r128_a64_cmgt0_s2d(e, 26, 15);
         r128_a64_and_16b(e, 15, 15, 26);
-        r128_a64_fcmgt_2d(e, 26, 7, 18);
+        r128_a64_cmgt_s2d(e, 26, 7, 18);
         r128_a64_bsl_16b(e, 26, 18, 7); /* zcA */
-        r128_a64_fcmgt_2d(e, 31, 15, 18);
+        r128_a64_cmgt_s2d(e, 31, 15, 18);
         r128_a64_bsl_16b(e, 31, 18, 15); /* zcB */
-        /* zq = zc*zmax + 0.5, clamp > zmax -> zmax, then to uint32 */
-        r128_a64_fmul_2d(e, 26, 26, 16);
-        r128_a64_fadd_2d(e, 26, 26, 17);
-        r128_a64_fmul_2d(e, 31, 31, 16);
-        r128_a64_fadd_2d(e, 31, 31, 17);
-        r128_a64_fcmgt_2d(e, 15, 26, 16);
-        r128_a64_bsl_16b(e, 15, 16, 26);
-        r128_a64_fcmgt_2d(e, 7, 31, 16);
-        r128_a64_bsl_16b(e, 7, 16, 31);
-        r128_a64_fcvtzu_2d(e, 15, 15);
-        r128_a64_fcvtzu_2d(e, 7, 7);
+        /* zi = ((zc << n) - zc + 2^38) >> 39 (r128_zfx_quant; zmax is
+           2^n - 1, so the shift and subtract are zc * zmax) */
+        {
+            int zn = (ds->zmax == 0xffffu) ? 16 : 24;
+
+            r128_a64_shl_2d(e, 15, 26, zn);
+            r128_a64_sub_2d(e, 26, 15, 26);
+            r128_a64_add_2d(e, 26, 26, 17);
+            r128_a64_ushr_2d(e, 15, 26, R128_ZFX_BITS);
+            r128_a64_shl_2d(e, 7, 31, zn);
+            r128_a64_sub_2d(e, 31, 7, 31);
+            r128_a64_add_2d(e, 31, 31, 17);
+            r128_a64_ushr_2d(e, 7, 31, R128_ZFX_BITS);
+        }
         r128_a64_uzp1_4s(e, 7, 15, 7); /* v7 = zi 4S */
     }
 

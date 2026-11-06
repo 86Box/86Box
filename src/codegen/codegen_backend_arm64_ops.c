@@ -47,6 +47,7 @@
 #    define OPCODE_ADD_IMM            (0x11 << OPCODE_SHIFT)
 #    define OPCODE_ADDX_IMM           (0x91 << OPCODE_SHIFT)
 #    define OPCODE_ADR                (0x10 << OPCODE_SHIFT)
+#    define OPCODE_ADRP               (0x90 << OPCODE_SHIFT)
 #    define OPCODE_B                  (0x14 << OPCODE_SHIFT)
 #    define OPCODE_BL                 (0x94 << OPCODE_SHIFT)
 #    define OPCODE_BCOND              (0x54 << OPCODE_SHIFT)
@@ -55,6 +56,7 @@
 #    define OPCODE_CMN_IMM            (0x31 << OPCODE_SHIFT)
 #    define OPCODE_CMNX_IMM           (0xb1 << OPCODE_SHIFT)
 #    define OPCODE_CCMP_REG           (0x7a400000)
+#    define OPCODE_CCMN_IMM           (0x3a400800)
 #    define OPCODE_CMP_IMM            (0x71 << OPCODE_SHIFT)
 #    define OPCODE_CMPX_IMM           (0xf1 << OPCODE_SHIFT)
 #    define OPCODE_SUB_IMM            (0x51 << OPCODE_SHIFT)
@@ -82,6 +84,7 @@
 #    define OPCODE_LDP_IMM_X          (0x2a5 << 22)
 #    define OPCODE_LDP_POSTIDX_X      (0x2a3 << 22)
 #    define OPCODE_SBFX               (0x04c << 22)
+#    define OPCODE_STP_IMM_X          (0x2a4 << 22)
 #    define OPCODE_STP_PREIDX_X       (0x2a6 << 22)
 #    define OPCODE_STP_POSTIDX_X      (0x2a2 << 22)
 #    define OPCODE_STR_IMM_W          (0x2e4 << 22)
@@ -90,6 +93,7 @@
 #    define OPCODE_STRB_IMM           (0x0e4 << 22)
 #    define OPCODE_STRH_IMM           (0x1e4 << 22)
 #    define OPCODE_UBFX               (0x14c << 22)
+#    define OPCODE_UBFX_X             (0xd3400000)
 
 #    define OPCODE_ADD_LSL            (0x058 << 21)
 #    define OPCODE_ADD_LSR            (0x05a << 21)
@@ -165,6 +169,7 @@
 #    define OPCODE_FMOV_S_W           (0x1e270000)
 #    define OPCODE_FMOV_W_S           (0x1e260000)
 #    define OPCODE_FMOV_S_ONE         (0x1e2e1000)
+#    define OPCODE_FMSUB_D            (0x1f408000)
 #    define OPCODE_FMUL_D             (0x1e600800)
 #    define OPCODE_FMUL_V2S           (0x2e20dc00)
 #    define OPCODE_FNEG_D             (0x1e614000)
@@ -445,6 +450,24 @@ host_arm64_ADR(codeblock_t *block, int dst_reg, int offset)
 {
     codegen_addlong(block, OPCODE_ADR | Rd(dst_reg) | OFFSET20(offset));
 }
+/*The code runs at the address it is written to, so the page offset is taken
+  from the write position*/
+int
+host_arm64_ADRP_in_range(uintptr_t target)
+{
+    int64_t pages = (int64_t) (target >> 12) - (int64_t) ((uintptr_t) &block_write_data[block_pos] >> 12);
+
+    return pages >= -(1 << 20) && pages < (1 << 20);
+}
+void
+host_arm64_ADRP(codeblock_t *block, int dst_reg, uintptr_t target)
+{
+    int64_t pages = (int64_t) (target >> 12) - (int64_t) ((uintptr_t) &block_write_data[block_pos] >> 12);
+
+    if (pages < -(1 << 20) || pages >= (1 << 20))
+        fatal("host_arm64_ADRP out of range %llx\n", (unsigned long long) target);
+    codegen_addlong(block, OPCODE_ADRP | Rd(dst_reg) | ((pages & 3) << 29) | (((pages >> 2) & 0x7ffff) << 5));
+}
 
 void
 host_arm64_AND_IMM(codeblock_t *block, int dst_reg, int src_n_reg, uint32_t imm_data)
@@ -643,6 +666,15 @@ host_arm64_BVS_(codeblock_t *block)
     codegen_addlong(block, OPCODE_B);
     return (uint32_t *) &block_write_data[block_pos - 4];
 }
+/*CBNZ Xreg in the same template: a CBZ over the B*/
+uint32_t *
+host_arm64_CBNZ_(codeblock_t *block, int reg)
+{
+    codegen_alloc(block, 12);
+    codegen_addlong(block, OPCODE_CBZ | OFFSET19(8) | Rt(reg));
+    codegen_addlong(block, OPCODE_B);
+    return (uint32_t *) &block_write_data[block_pos - 4];
+}
 
 void
 host_arm64_branch_set_offset(uint32_t *opcode, void *dest)
@@ -703,12 +735,27 @@ host_arm64_branch_set_offset(uint32_t *opcode, void *dest)
         }
     }
 
+    /* And to the CBZ/CBNZ skip+branch form of host_arm64_CBNZ_(). */
+    if (((branch_insn & 0xfc000000u) == OPCODE_B) &&
+        ((cond_insn & 0xfe000000u) == OPCODE_CBZ) &&
+        (bcond_offset_bytes(cond_insn) == 8)) {
+        uint8_t *cond_src = (uint8_t *) cond_opcode;
+
+        if (codegen_allocator_can_branch_imm19(cond_src, dest)) {
+            uint32_t flipped  = cond_insn ^ (1u << 24);
+            int      offset19 = (int) ((uintptr_t) dest - (uintptr_t) cond_opcode);
+
+            *cond_opcode = (flipped & ~0x00ffffe0u) | OFFSET19(offset19);
+            *opcode      = OPCODE_NOP;
+            return;
+        }
+    }
+
     *opcode = OPCODE_B | OFFSET26(offset26);
     (void) is_bcond_template;
     (void) is_tbxz_template;
 }
 
-#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
 /*Single-instruction forward branches, patched with
   host_arm64_short_branch_set_offset(). The target must be within the range
   of the branch's own immediate, so these are only for code that is known to
@@ -772,6 +819,7 @@ host_arm64_short_branch_set_offset(uint32_t *opcode, void *dest)
     }
 }
 
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
 void
 host_arm64_LDR_LITERAL_X(codeblock_t *block, int dest_reg, int literal_offset)
 {
@@ -824,6 +872,26 @@ host_arm64_BEQ(codeblock_t *block, void *dest)
     host_arm64_MOVX_IMM(block, REG_X16, (uint64_t) dest);
     host_arm64_BR(block, REG_X16);
     (void) is_local;
+}
+
+/*One B.CS to dest, or to the veneer of its region (codegen_allocator_veneer),
+  when either is in imm19 range. Returns 0, with nothing emitted, when
+  neither is.*/
+int
+host_arm64_BCS_near(codeblock_t *block, void *dest)
+{
+    uint8_t *branch_src;
+    void    *target = dest;
+
+    codegen_alloc(block, 4);
+    branch_src = &block_write_data[block_pos];
+    if (!codegen_allocator_can_branch_imm19(branch_src, target)) {
+        target = codegen_allocator_veneer(branch_src, dest);
+        if (!target || !codegen_allocator_can_branch_imm19(branch_src, target))
+            return 0;
+    }
+    codegen_addlong(block, OPCODE_BCOND | COND_CS | OFFSET19((intptr_t) ((uint8_t *) target - branch_src)));
+    return 1;
 }
 
 void
@@ -966,6 +1034,20 @@ host_arm64_CCMP_REG_CS(codeblock_t *block, int src_n_reg, int src_m_reg, int nzc
 {
     codegen_addlong(block, OPCODE_CCMP_REG | CSEL_COND(COND_CS) | Rn(src_n_reg) | Rm(src_m_reg) | nzcv);
 }
+/*CCMN: the flags of src_n_reg + imm_data when CS holds, else nzcv*/
+void
+host_arm64_CCMN_IMM_CS(codeblock_t *block, int src_n_reg, uint32_t imm_data, int nzcv)
+{
+    if (imm_data > 0x1f)
+        fatal("CCMN_IMM_CS %08x\n", imm_data);
+    codegen_addlong(block, OPCODE_CCMN_IMM | (imm_data << 16) | CSEL_COND(COND_CS) | Rn(src_n_reg) | nzcv);
+}
+/*64-bit CCMP: the flags of src_n_reg compared with src_m_reg when EQ holds, else nzcv*/
+void
+host_arm64_CCMPX_REG_EQ(codeblock_t *block, int src_n_reg, int src_m_reg, int nzcv)
+{
+    codegen_addlong(block, OPCODE_CCMP_REG | (1u << 31) | CSEL_COND(COND_EQ) | Rn(src_n_reg) | Rm(src_m_reg) | nzcv);
+}
 
 /*CSET dst_reg, cond: CSINC dst_reg, WZR, WZR with the opposite condition*/
 void
@@ -1029,6 +1111,26 @@ void
 host_arm64_CSEL_EQ(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
 {
     codegen_addlong(block, OPCODE_CSEL | CSEL_COND(COND_EQ) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+void
+host_arm64_CSELX_EQ(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_CSEL | (1u << 31) | CSEL_COND(COND_EQ) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+void
+host_arm64_CSEL_NE(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_CSEL | CSEL_COND(COND_NE) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+void
+host_arm64_CSEL_GT(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_CSEL | CSEL_COND(COND_GT) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+void
+host_arm64_CSEL_LT(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_CSEL | CSEL_COND(COND_LT) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
 }
 void
 host_arm64_CSEL_VS(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
@@ -1126,6 +1228,12 @@ host_arm64_FCMP_D(codeblock_t *block, int src_n_reg, int src_m_reg)
 {
     codegen_addlong(block, OPCODE_FCMP_D | Rn(src_n_reg) | Rm(src_m_reg));
 }
+/*FCMP against +0.0: Z for a zero of either sign, V for a NaN*/
+void
+host_arm64_FCMP_D_ZERO(codeblock_t *block, int src_n_reg)
+{
+    codegen_addlong(block, OPCODE_FCMP_D | Rn(src_n_reg) | (1 << 3));
+}
 /*FCCMP: the flags of src_n_reg compared with src_m_reg when GT holds, else nzcv*/
 void
 host_arm64_FCCMP_D_GT(codeblock_t *block, int src_n_reg, int src_m_reg, int nzcv)
@@ -1216,6 +1324,12 @@ void
 host_arm64_FMUL_D(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
 {
     codegen_addlong(block, OPCODE_FMUL_D | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+/*dst = src_a - src_n * src_m, rounded once*/
+void
+host_arm64_FMSUB_D(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int src_a_reg)
+{
+    codegen_addlong(block, OPCODE_FMSUB_D | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg) | Rt2(src_a_reg));
 }
 void
 host_arm64_FMUL_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
@@ -1708,6 +1822,13 @@ host_arm64_SRSHR_V4S(codeblock_t *block, int dst_reg, int src_n_reg, int shift)
 }
 
 void
+host_arm64_STP_IMM_X(codeblock_t *block, int src_reg1, int src_reg2, int base_reg, int offset)
+{
+    if (!in_range7_x(offset))
+        fatal("host_arm64_STP_IMM_X out of range7 %i\n", offset);
+    codegen_addlong(block, OPCODE_STP_IMM_X | IMM7_X(offset) | Rn(base_reg) | Rt(src_reg1) | Rt2(src_reg2));
+}
+void
 host_arm64_STP_PREIDX_X(codeblock_t *block, int src_reg1, int src_reg2, int base_reg, int offset)
 {
     if (!in_range7_x(offset))
@@ -1875,6 +1996,12 @@ void
 host_arm64_UBFX(codeblock_t *block, int dst_reg, int src_reg, int lsb, int width)
 {
     codegen_addlong(block, OPCODE_UBFX | Rd(dst_reg) | Rn(src_reg) | IMMN(0) | IMMR(lsb) | IMMS((lsb + width - 1) & 31));
+}
+/*64-bit UBFX: lsb and width within the X register*/
+void
+host_arm64_UBFX_X(codeblock_t *block, int dst_reg, int src_reg, int lsb, int width)
+{
+    codegen_addlong(block, OPCODE_UBFX_X | Rd(dst_reg) | Rn(src_reg) | IMMR(lsb & 63) | IMMS((lsb + width - 1) & 63));
 }
 
 void

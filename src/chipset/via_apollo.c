@@ -133,6 +133,21 @@ apollo_agp_map(via_apollo_t *dev)
     agpgart_set_gart(dev->agpgart, (dev->pci_conf[0x89] << 8) | (dev->pci_conf[0x8a] << 16) | (dev->pci_conf[0x8b] << 24));
 }
 
+/* AGP status A4h. Bit 1 (2x) reads back AGP control ACh bit 3 on the
+   VT82C598MVP/691/693A/694X, and the 694X's 4G, Fast Write and 4x bits (5, 4, 2)
+   read back AGP miscellaneous control AEh, which the BIOS sets; the VP3 and the
+   VT8601 always report 1x and 2x (their datasheets). */
+static void
+apollo_agp_status(via_apollo_t *dev)
+{
+    if ((dev->id < VIA_598) || (dev->id == VIA_8601))
+        return;
+
+    dev->pci_conf[0xa4] = 0x01 | ((dev->pci_conf[0xac] & 0x08) >> 2);
+    if (dev->id == VIA_694)
+        dev->pci_conf[0xa4] |= dev->pci_conf[0xae] & 0x34;
+}
+
 static void
 via_apollo_setup(via_apollo_t *dev)
 {
@@ -141,6 +156,10 @@ via_apollo_setup(via_apollo_t *dev)
     dev->pci_conf[0x01] = 0x11;
     dev->pci_conf[0x02] = dev->id >> 16;
     dev->pci_conf[0x03] = dev->id >> 24;
+    /* The VT8601's host bridge is 0601h (8601h is its AGP bridge, device 1);
+       dev->id keeps 8601h, which orders it after the 694X in the checks below. */
+    if (dev->id == VIA_8601)
+        dev->pci_conf[0x03] = 0x06;
 
     dev->pci_conf[0x04] = 6;
     dev->pci_conf[0x05] = 0;
@@ -236,17 +255,21 @@ via_apollo_setup(via_apollo_t *dev)
 
     if (dev->id >= VIA_597) {
         dev->pci_conf[0xa0] = 0x02;
-        /* The VT82C694X (Pro133A) is AGP 2.0 with 4x; the others are
-           AGP 1.0 with 1x and 2x. */
+        /* The VT82C694X (Pro133A) is AGP 2.0, 4x when its BIOS sets AEh bit 2;
+           the others are AGP 1.0 with 1x and 2x. */
         dev->pci_conf[0xa2] = (dev->id == VIA_694) ? 0x20 : 0x10;
-        dev->pci_conf[0xa4] = (dev->id == VIA_694) ? 0x07 : 0x03;
+        dev->pci_conf[0xa4] = 0x03;
         dev->pci_conf[0xa5] = 0x02;
         dev->pci_conf[0xa7] = 0x07;
 
-        if (dev->id == VIA_693A) {
+        /* ACh bit 3 (2x supported, read back at A4h bit 1) starts set;
+           the MVP3 and Pro datasheets give 0, but a BIOS such as the AX59Pro's
+           never sets it, and real boards with them report 2x. */
+        if ((dev->id >= VIA_598) && (dev->id != VIA_8601))
             dev->pci_conf[0xac] = 0x08;
+        if ((dev->id == VIA_693A) || (dev->id == VIA_694))
             dev->pci_conf[0xad] = 0x02;
-        }
+        apollo_agp_status(dev);
 
         if (dev->id == VIA_694) {
             dev->pci_conf[0xb0] = 0x80; /* The datasheet refers it as 8xh */
@@ -272,6 +295,12 @@ via_apollo_host_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, v
         return;
     if (((addr == 0x78) || (addr >= 0xad)) && (dev->id == VIA_597))
         return;
+    /* The 694X's AGP miscellaneous control (AEh) is read-write. */
+    if ((addr == 0xae) && (dev->id == VIA_694)) {
+        dev->pci_conf[0xae] = val & 0x34;
+        apollo_agp_status(dev);
+        return;
+    }
     if (((addr == 0x67) || ((addr >= 0xf0) && (addr < 0xfc))) && (dev->id < VIA_691))
         return;
 
@@ -675,8 +704,11 @@ via_apollo_host_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, v
             apollo_agp_map(dev);
             break;
         case 0x88:
-            if ((dev->id == VIA_693A) || (dev->id == VIA_8601))
+            /* Bit 0 is reserved on the 693A, 694X and 8601, bit 2 on the VP3. */
+            if ((dev->id == VIA_693A) || (dev->id == VIA_694) || (dev->id == VIA_8601))
                 dev->pci_conf[0x88] = (dev->pci_conf[0x88] & ~0x06) | (val & 0x06);
+            else if (dev->id == VIA_597)
+                dev->pci_conf[0x88] = (dev->pci_conf[0x88] & ~0x03) | (val & 0x03);
             else
                 dev->pci_conf[0x88] = (dev->pci_conf[0x88] & ~0x07) | (val & 0x07);
             apollo_agp_map(dev);
@@ -701,17 +733,28 @@ via_apollo_host_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, v
             dev->pci_conf[0xa9] = (dev->pci_conf[0xa9] & ~0x03) | (val & 0x03);
             break;
         case 0xac:
-            if (dev->id == VIA_8601)
+            /* Bits 6-0 on the 693A, 694X and 8601 (bit 7, AGP Disable, is a
+               strap); bits 2-0 on the VP3. */
+            if ((dev->id == VIA_693A) || (dev->id == VIA_694) || (dev->id == VIA_8601))
                 dev->pci_conf[0xac] = (dev->pci_conf[0xac] & ~0x7f) | (val & 0x7f);
+            else if (dev->id == VIA_597)
+                dev->pci_conf[0xac] = (dev->pci_conf[0xac] & ~0x07) | (val & 0x07);
             else
                 dev->pci_conf[0xac] = (dev->pci_conf[0xac] & ~0x0f) | (val & 0x0f);
+            apollo_agp_status(dev);
             break;
         case 0xad:
-            dev->pci_conf[0xad] = (dev->pci_conf[0xad] & ~0x0f) | (val & 0x0f);
+            /* Bit 4 (first or last DRAM ready) on the 693A and 694X. */
+            if ((dev->id == VIA_693A) || (dev->id == VIA_694))
+                dev->pci_conf[0xad] = (dev->pci_conf[0xad] & ~0x1f) | (val & 0x1f);
+            else
+                dev->pci_conf[0xad] = (dev->pci_conf[0xad] & ~0x0f) | (val & 0x0f);
             break;
 
         case 0xfc:
-            if (dev->id == VIA_8601)
+            /* Bit 1 is the back-door for the A7h request depth on the
+               693A, 694X and 8601. */
+            if ((dev->id == VIA_693A) || (dev->id == VIA_694) || (dev->id == VIA_8601))
                 dev->pci_conf[0xfc] = (dev->pci_conf[0xfc] & ~0x03) | (val & 0x03);
             else if (dev->id > VIA_597)
                 dev->pci_conf[0xfc] = (dev->pci_conf[0xfc] & ~0x01) | (val & 0x01);
@@ -739,6 +782,9 @@ via_apollo_read(int func, int addr, UNUSED(int len), void *priv)
     if (func == 0) {
         if ((dev->pci_conf[0xfc] & 0x01) && ((addr == 2) || (addr == 3)))
             ret = dev->pci_conf[addr + 0xfc];
+        else if ((addr == 0xa7) && (dev->pci_conf[0xfc] & 0x02) && (dev->id >= VIA_693A))
+            /* The back-door request depth, FDh bits 2-0 (4-0 on the 694X). */
+            ret = dev->pci_conf[0xfd] & ((dev->id == VIA_694) ? 0x1f : 0x07);
         else
             ret = dev->pci_conf[addr];
     }

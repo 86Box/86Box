@@ -16,8 +16,8 @@
 /* rage128 GPU raster backend -- records shared by the host and the
    kernels.
 
-   The shading kernel (vid_ati_rage128_gpu_seg.comp) and the z-ladder
-   pre-pass (vid_ati_rage128_gpu_lad.comp) include this file. It holds
+   The shading kernel (vid_ati_rage128_gpu_seg.comp) includes this
+   file. It holds
    the batch slot constants and the two std430 records the host fills
    for each segment: seg_span_t, one per captured span, in binding 4,
    and seg_tri_t, one per triangle, in binding 5.
@@ -64,23 +64,22 @@
 
 /* One captured span: pixels x0..x1 of row py, from triangle tri. e0,
    e1 and e2 are the three edge-function values at x0, and zline is the
-   depth at x0 as the bit pattern of a double. The host stores them as
-   int64_t and uint64_t; here each is a uvec2, low word first.
+   fixed-point depth at x0 (r128_zfx in vid_ati_rage128.h: normalized
+   depth times 2^39). The host stores them as int64_t; here each is a
+   uvec2, low word first.
    pad1 is not padding: the host sets it to 1 when all three edge values
    stay within signed 32 bits across the whole span, and the shading
    kernel then steps them as 32-bit integers instead of 64-bit ones.
    drow and zrow are the byte addresses of the color row and the depth
    row. With bit 31 set, the row is in the staging buffers for an AGP
    render target (bindings 9 to 12) and the low 31 bits are an offset
-   into them rather than into VRAM. px_base is where the span's words
-   start in the z-ladder buffer (binding 6): one word per pixel, or two
-   for a table-fog draw. */
+   into them rather than into VRAM. pad0 is unused. */
 struct seg_span_t {
     uvec2 e0, e1, e2;
     uvec2 zline;
     int   x0, x1, py, tri;
     uint     drow, zrow;
-    uint     px_base, pad1;
+    uint     pad0, pad1;
 };
 
 /* One triangle. Most fields are copies of the interpreter's triangle
@@ -88,7 +87,7 @@ struct seg_span_t {
    texture context (r3d_texctx_t) under the same names;
    capture_tri_record in vid_ati_rage128_gpu.c fills the record.
    e0dxi, e1dxi and e2dxi are the per-pixel x steps of the span's edge
-   values, and dZdx is the per-pixel depth step as the bits of a double,
+   values, and dZdx is the per-pixel step of the fixed-point depth,
    both stored as in seg_span_t.
 
    st_cfg holds 8 words per texture stage: 0 texel datatype, plus bit 4
@@ -192,14 +191,13 @@ struct seg_tri_t {
        factors fga, fgb and fgc. ftab_en is set when fog_en is on and
        MISC_3D_STATE_CNTL_REG.FOG_TABLE_EN, bit 14, selects the fog
        table (RRG: MISC_3D_STATE_CNTL_REG, p. 3-257 / PDF 275); f then
-       comes from fog_table. The z-ladder pre-pass splits the pixel's depth,
-       clamped to 0..1 and times 255, into a table index, stored in bits
-       [31:24] of the pixel's ladder word, and a 32-bit fraction, stored
-       in the word after it. The kernel interpolates between the table
-       entries at that index and the next one by the fraction. Table fog
-       therefore needs a depth cell: the host refuses a table-fog draw
-       with neither depth nor stencil enabled, and the interpreter draws
-       it. */
+       comes from fog_table. The kernel splits the pixel's depth,
+       clamped to 0..1 and times 255, into a table index and a 32-bit
+       fraction (r128_zfx_fogpos in vid_ati_rage128.h), and interpolates
+       between the table entries at that index and the next one by the
+       fraction. The depth comes from the span's fixed-point plane, not
+       from a depth cell, so table fog also runs with depth and stencil
+       off. */
     float fga, fgb, fgc;
     float fogr, fogg, fogb;
     uint  fog_en, ftab_en;

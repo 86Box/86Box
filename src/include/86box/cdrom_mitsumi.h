@@ -20,4 +20,11 @@
 extern const device_t mitsumi_cdrom_device;
 extern const device_t mitsumi_cdrom_vis_device;
 
+/* No I/O ports, IRQ or DMA: the host reaches registers 0 and 1. */
+#define MITSUMI_HOSTED 2
+extern const device_t mitsumi_cdrom_hosted_device;
+
+extern uint8_t mitsumi_cdrom_host_read(void *priv, int reg);
+extern void    mitsumi_cdrom_host_write(void *priv, int reg, uint8_t val);
+
 #endif /*CDROM_MITSUMI_H*/

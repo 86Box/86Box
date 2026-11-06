@@ -30,7 +30,7 @@ extern "C" {
 #include <86box/version.h>
 }
 
-#if EMU_BUILD_NUM != 0
+#ifdef UPDATE_CHECK
 #    include "qt_updatecheck.hpp"
 #endif
 
@@ -88,6 +88,8 @@ public slots:
 #ifdef Q_OS_WINDOWS
     void onDarkModeUpdated();
 #endif
+    void loadFromCache(const QString &selectName = {});
+    void startBackgroundDiscovery();
     int  getActiveMachineCount();
 
     QList<int> getPaneSizes() const;
@@ -104,9 +106,6 @@ private:
 #ifdef DISCORD
     VMManagerDiscord *discord;
 #endif
-#if EMU_BUILD_NUM != 0
-    bool updateCheck = false;
-#endif
     bool regexSearch = false;
 
     // void updateSelection(const QItemSelection &selected,
@@ -117,13 +116,13 @@ private:
     void                  loadSettings();
     [[nodiscard]] bool    currentSelectionIsValid() const;
     [[nodiscard]] QString machineCountString(QString states = "") const;
-#if EMU_BUILD_NUM != 0
+#ifdef UPDATE_CHECK
     void backgroundUpdateCheckStart() const;
 #endif
     void showTextFileContents(const QString &title, const QString &path);
 private slots:
     void vmStateChange();
-#if EMU_BUILD_NUM != 0
+#ifdef UPDATE_CHECK
     void backgroundUpdateCheckComplete(const UpdateCheck::UpdateResult &result);
     void backgroundUpdateCheckError(const QString &errorMsg);
 #endif

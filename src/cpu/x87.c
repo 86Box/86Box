@@ -23,6 +23,17 @@
 #include "softfloat3e/specialize.h"
 #include <86box/plat_unused.h>
 
+/* Bit 7 masks interrupts on the 8087 and is reserved on later coprocessors.
+   Intel 8087 Numerics Supplement, Fig. S-7; 80C187 datasheet, Fig. 5. */
+uint16_t
+x87_initial_control_word(void)
+{
+    if (fpu_type == FPU_8087)
+        return 0x03ff;
+
+    return 0x037f;
+}
+
 uint32_t x87_pc_off;
 uint32_t x87_op_off;
 uint16_t x87_pc_seg;
@@ -71,8 +82,14 @@ x87_settag(uint16_t new_tag)
     for (uint8_t c = 0; c < 8; c++) {
         int tag = (new_tag >> (c * 2)) & 3;
 
+        /* The tag word loads no register: a denormal one stays denormal
+           while it is not tagged empty, whatever class the word gives it */
+        const uint8_t denormal = cpu_state.tag[c] & TAG_DENORMAL;
+
         if (tag == X87_TAG_EMPTY)
             cpu_state.tag[c] = TAG_EMPTY;
+        else if (denormal)
+            cpu_state.tag[c] = TAG_VALID | TAG_DENORMAL;
         else if (tag == 2)
             cpu_state.tag[c] = TAG_VALID | TAG_UINT64;
         else
@@ -261,8 +278,9 @@ FPU_status_word_flags_fpu_compare(int float_relation)
 void
 FPU_write_eflags_fpu_compare(int float_relation)
 {
-    /* ZF, PF and CF are written, not ORed in */
-    cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG);
+    /* ZF, PF and CF are written, not ORed in, and OF, SF and AF cleared
+       (SDM vol. 2, FCOMI/FCOMIP/FUCOMI/FUCOMIP) */
+    cpu_state.flags &= ~(Z_FLAG | P_FLAG | C_FLAG | V_FLAG | N_FLAG | A_FLAG);
     switch (float_relation) {
         case softfloat_relation_unordered:
             cpu_state.flags |= (Z_FLAG | P_FLAG | C_FLAG);

@@ -83,7 +83,7 @@ row_write(uint32_t addr, uint8_t val, void *priv)
     const row_t *dev = (row_t *) priv;
     uint32_t     new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
 
-    addwritelookup(mem_logical_addr, new_addr);
+    addwritelookup_remapped(mem_logical_addr, addr, new_addr);
     mem_write_ramb_page(new_addr, val, &pages[addr >> 12]);
 }
 
@@ -94,7 +94,7 @@ row_writew(uint32_t addr, uint16_t val, void *priv)
     const row_t *dev = (row_t *) priv;
     uint32_t     new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
 
-    addwritelookup(mem_logical_addr, new_addr);
+    addwritelookup_remapped(mem_logical_addr, addr, new_addr);
     mem_write_ramw_page(new_addr, val, &pages[addr >> 12]);
 }
 
@@ -105,7 +105,7 @@ row_writel(uint32_t addr, uint32_t val, void *priv)
     const row_t *dev = (row_t *) priv;
     uint32_t     new_addr = ((addr - dev->host_base) & dev->ram_mask) + dev->ram_base;
 
-    addwritelookup(mem_logical_addr, new_addr);
+    addwritelookup_remapped(mem_logical_addr, addr, new_addr);
     mem_write_raml_page(new_addr, val, &pages[addr >> 12]);
 }
 

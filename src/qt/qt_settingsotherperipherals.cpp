@@ -27,6 +27,7 @@
 #    include <QProcess>
 #    include <QStandardItemModel>
 #    include <QStringBuilder>
+#    include <QTimer>
 #endif
 
 extern "C" {
@@ -41,6 +42,8 @@ extern "C" {
 #include <86box/softpower.h>
 #include <86box/novell_cardkey.h>
 #ifdef USE_VFIO
+#    include <86box/ini.h>
+#    include <86box/config.h>
 #    include <86box/vfio.h>
 #endif
 }
@@ -69,7 +72,6 @@ enum {
     ColumnCheck = 0,
     ColumnGroup,
     ColumnLocation,
-    ColumnID,
     ColumnName
 };
 
@@ -77,7 +79,8 @@ enum {
 enum {
     GroupRole = Qt::UserRole, /* IOMMU group, -1 for a device that was not found */
     ROMEnabledRole,
-    ROMFileRole
+    ROMFileRole,
+    IDRole /* vendor:device from sysfs, shown after the name */
 };
 
 /* The IOMMU group decides what can be passed through: the host has to give
@@ -165,32 +168,9 @@ readSysfsId(const QString &path)
     return id.isEmpty() ? QStringLiteral("????") : id.rightJustified(4, '0');
 }
 
-/* Device names as lspci gives them, by dddd:bb:dd.f location. */
-static QHash<QString, QString>
-lspciNames()
-{
-    QHash<QString, QString> names;
-    QProcess                lspci;
-
-    lspci.start(QStringLiteral("lspci"), { QStringLiteral("-D") });
-    if (!lspci.waitForFinished(5000)) {
-        lspci.kill();
-        lspci.waitForFinished();
-        return names;
-    }
-
-    const auto lines = QString::fromLocal8Bit(lspci.readAllStandardOutput()).split('\n');
-    for (const auto &line : lines) {
-        const int space = line.indexOf(' ');
-        if (space > 0)
-            names.insert(line.left(space), line.mid(space + 1).trimmed());
-    }
-
-    return names;
-}
-
+/* A device that was found is named later, from lspci. */
 static QModelIndex
-appendDevice(QStandardItemModel *model, int group, const QString &location, const QString &id, const QString &name)
+appendDevice(QStandardItemModel *model, int group, const QString &location, const QString &id, const QString &name = QString())
 {
     auto *check = new QStandardItem;
     check->setCheckable(true);
@@ -198,11 +178,11 @@ appendDevice(QStandardItemModel *model, int group, const QString &location, cons
     check->setData(group, GroupRole);
     check->setData(false, ROMEnabledRole);
     check->setData(QString(), ROMFileRole);
+    check->setData(id, IDRole);
 
     QList<QStandardItem *> row = { check,
                                    new QStandardItem((group >= 0) ? QString::number(group) : QStringLiteral("??")),
                                    new QStandardItem(location),
-                                   new QStandardItem(QStringLiteral("[%1]").arg(id)),
                                    new QStandardItem(name) };
     for (auto *item : row)
         item->setEditable(false);
@@ -241,7 +221,7 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent)
 
 #ifdef USE_VFIO
     vfioModel = new VFIODeviceModel(this);
-    vfioModel->setHorizontalHeaderLabels({ QString(), tr("Group"), tr("Location"), tr("ID"), tr("Name") });
+    vfioModel->setHorizontalHeaderLabels({ QString(), tr("Group"), tr("Location"), tr("Name") });
     ui->treeViewVFIO->setModel(vfioModel);
 
     /* FileField fixes its own width; let this one stretch across the panel. */
@@ -257,6 +237,13 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent)
 
     connect(ui->treeViewVFIO->selectionModel(), &QItemSelectionModel::currentRowChanged, this,
             [this](const QModelIndex &, const QModelIndex &) { vfioUpdateControls(); });
+    /* Keep the current index on the checkbox, which is the only cell the
+       space key toggles; clicking a row makes the clicked cell current. */
+    connect(ui->treeViewVFIO->selectionModel(), &QItemSelectionModel::currentChanged, this,
+            [this](const QModelIndex &current, const QModelIndex &) {
+                if (current.isValid() && (current.column() != ColumnCheck))
+                    ui->treeViewVFIO->selectionModel()->setCurrentIndex(current.siblingAtColumn(ColumnCheck), QItemSelectionModel::NoUpdate);
+            });
     connect(vfioModel, &QAbstractItemModel::dataChanged, this,
             [this](const QModelIndex &, const QModelIndex &, const QVector<int> &roles) {
                 if (roles.isEmpty() || roles.contains(Qt::CheckStateRole))
@@ -285,6 +272,14 @@ SettingsOtherPeripherals::SettingsOtherPeripherals(QWidget *parent)
     if (vfioModel->rowCount() > 0)
         ui->treeViewVFIO->setCurrentIndex(vfioModel->index(0, 0));
     vfioUpdateControls();
+
+    /* Only run lspci if the tab is ever shown. */
+    connect(ui->tabWidgetSound, &QTabWidget::currentChanged, this, [this](int index) {
+        if (ui->tabWidgetSound->widget(index) == ui->tabVFIO)
+            vfioRequestNames();
+    });
+    if (ui->tabWidgetSound->currentWidget() == ui->tabVFIO)
+        vfioRequestNames();
 #else
     /* VFIO is only available on Linux, with the development branch. */
     ui->tabWidgetSound->removeTab(ui->tabWidgetSound->indexOf(ui->tabVFIO));
@@ -303,6 +298,14 @@ SettingsOtherPeripherals::~SettingsOtherPeripherals()
         delete scIsaRomCard[i];
 
     delete scRTC;
+
+#ifdef USE_VFIO
+    /* Killing lspci finishes it, which would name devices in a page being torn down. */
+    if (vfioLspci) {
+        vfioLspci->disconnect(this);
+        delete vfioLspci;
+    }
+#endif
 
     delete ui;
 }
@@ -771,10 +774,8 @@ SettingsOtherPeripherals::vfioEnumerate()
         return (a.group != b.group) ? (a.group < b.group) : (a.location < b.location);
     });
 
-    const auto names = devices.isEmpty() ? QHash<QString, QString>() : lspciNames();
     for (const auto &device : devices)
-        appendDevice(vfioModel, device.group, device.location, device.id,
-                     names.value(device.location, tr("Unknown device")));
+        appendDevice(vfioModel, device.group, device.location, device.id);
 
     if (devices.isEmpty()) {
         const auto warning_icon = QIcon(":/misc/qt/icons/warning.ico");
@@ -783,10 +784,74 @@ SettingsOtherPeripherals::vfioEnumerate()
     ui->vfioNoGroupsWarning->setVisible(devices.isEmpty());
 }
 
+/* Name the devices from one lspci call, in the background. */
+void
+SettingsOtherPeripherals::vfioRequestNames()
+{
+    if (vfioNamesRequested)
+        return;
+    vfioNamesRequested = true;
+
+    auto *lspci   = new QProcess(this);
+    auto *timeout = new QTimer(lspci);
+    vfioLspci     = lspci;
+    timeout->setSingleShot(true);
+    connect(timeout, &QTimer::timeout, lspci, &QProcess::kill);
+
+    /* A killed or failed lspci names the devices it got to, if any. */
+    auto done = [this, lspci] {
+        QHash<QString, QString> names;
+        const auto lines = QString::fromLocal8Bit(lspci->readAllStandardOutput()).split('\n');
+        for (const auto &line : lines) {
+            const int space = line.indexOf(' ');
+            if (space > 0)
+                names.insert(line.left(space), line.mid(space + 1).trimmed());
+        }
+        vfioSetNames(names);
+        vfioLspci = nullptr;
+        lspci->deleteLater();
+    };
+    connect(lspci, qOverload<int, QProcess::ExitStatus>(&QProcess::finished), this, done);
+    connect(lspci, &QProcess::errorOccurred, this, [done](QProcess::ProcessError error) {
+        if (error == QProcess::FailedToStart)
+            done();
+    });
+
+    lspci->start(QStringLiteral("lspci"), { QStringLiteral("-D") });
+    timeout->start(5000);
+}
+
+/* The IDs go after the name, as lspci -nn puts them, but without the class code. */
+void
+SettingsOtherPeripherals::vfioSetNames(const QHash<QString, QString> &names)
+{
+    for (int row = 0; row < vfioModel->rowCount(); row++) {
+        const QModelIndex index = vfioModel->index(row, ColumnCheck);
+        if (index.data(GroupRole).toInt() < 0)
+            continue;
+
+        const QString name = names.value(index.siblingAtColumn(ColumnLocation).data().toString(), tr("Unknown device"));
+        vfioModel->setData(index.siblingAtColumn(ColumnName), QString(name % QStringLiteral(" [") % index.data(IDRole).toString() % ']'));
+    }
+
+    ui->treeViewVFIO->resizeColumnToContents(ColumnName);
+}
+
 /* Check the configured devices, adding the ones not found at the end. */
 void
 SettingsOtherPeripherals::vfioRestore()
 {
+    /* A device no longer passed through keeps its ROM file in the
+       configuration, for when it is again. */
+    for (int row = 0; row < vfioModel->rowCount(); row++) {
+        const QModelIndex index    = vfioModel->index(row, ColumnCheck);
+        const QString     location = index.siblingAtColumn(ColumnLocation).data().toString();
+        const QString     romFile  = QString::fromUtf8(config_get_string("VFIO", (location % QStringLiteral("_rom_fn")).toUtf8().constData(), (char *) ""));
+        const int         enable   = config_get_int("VFIO", (location % QStringLiteral("_rom_enable")).toUtf8().constData(), !romFile.isEmpty());
+        vfioModel->setData(index, enable != 0, ROMEnabledRole);
+        vfioModel->setData(index, romFile, ROMFileRole);
+    }
+
     for (int i = 0; (i < VFIO_DEVICE_MAX) && vfio_device_conf[i].location[0]; i++) {
         const QString location = normalizedLocation(vfio_device_conf[i].location);
 
@@ -795,12 +860,12 @@ SettingsOtherPeripherals::vfioRestore()
         if (vfioModel->rowCount() > 0)
             matches = vfioModel->match(vfioModel->index(0, ColumnLocation), Qt::DisplayRole, location, 1, Qt::MatchExactly);
         if (matches.isEmpty())
-            index = appendDevice(vfioModel, -1, location, QStringLiteral("????:????"), tr("Unknown device"));
+            index = appendDevice(vfioModel, -1, location, QString(), tr("Unknown device"));
         else
             index = matches.first().siblingAtColumn(ColumnCheck);
 
         vfioModel->setData(index, static_cast<int>(Qt::Checked), Qt::CheckStateRole);
-        vfioModel->setData(index, vfio_device_conf[i].rom_fn[0] != '\0', ROMEnabledRole);
+        vfioModel->setData(index, vfio_device_conf[i].rom_enable != 0, ROMEnabledRole);
         vfioModel->setData(index, QString(vfio_device_conf[i].rom_fn), ROMFileRole);
     }
 }
@@ -815,8 +880,8 @@ SettingsOtherPeripherals::vfioSelectedDevices() const
         if (index.data(Qt::CheckStateRole).toInt() != Qt::Checked)
             continue;
 
-        const QString romFile = index.data(ROMEnabledRole).toBool() ? index.data(ROMFileRole).toString() : QString();
-        devices.append({ index.siblingAtColumn(ColumnLocation).data().toString(), romFile });
+        devices.append({ index.siblingAtColumn(ColumnLocation).data().toString(),
+                         index.data(ROMEnabledRole).toBool(), index.data(ROMFileRole).toString() });
     }
 
     return devices;
@@ -827,7 +892,8 @@ SettingsOtherPeripherals::vfioChanged() const
 {
     VFIODeviceList current;
     for (int i = 0; (i < VFIO_DEVICE_MAX) && vfio_device_conf[i].location[0]; i++)
-        current.append({ normalizedLocation(vfio_device_conf[i].location), QString(vfio_device_conf[i].rom_fn) });
+        current.append({ normalizedLocation(vfio_device_conf[i].location),
+                         vfio_device_conf[i].rom_enable != 0, QString(vfio_device_conf[i].rom_fn) });
 
     /* The order the devices are listed in is not a change. */
     VFIODeviceList selected = vfioSelectedDevices();
@@ -843,12 +909,22 @@ SettingsOtherPeripherals::vfioSave()
     memset(vfio_device_conf, 0, sizeof(vfio_device_conf));
 
     int i = 0;
-    for (const auto &device : vfioSelectedDevices()) {
+    for (const auto &[location, romEnabled, romFile] : vfioSelectedDevices()) {
         if (i >= VFIO_DEVICE_MAX)
             break;
-        strncpy(vfio_device_conf[i].location, device.first.toUtf8().constData(), sizeof(vfio_device_conf[i].location) - 1);
-        strncpy(vfio_device_conf[i].rom_fn, device.second.toUtf8().constData(), sizeof(vfio_device_conf[i].rom_fn) - 1);
+        strncpy(vfio_device_conf[i].location, location.toUtf8().constData(), sizeof(vfio_device_conf[i].location) - 1);
+        strncpy(vfio_device_conf[i].rom_fn, romFile.toUtf8().constData(), sizeof(vfio_device_conf[i].rom_fn) - 1);
+        vfio_device_conf[i].rom_enable = romEnabled;
         i++;
+    }
+
+    /* config.c saves the custom ROM of the devices passed through, and
+       this one the others' for when they are again. */
+    for (int row = 0; row < vfioModel->rowCount(); row++) {
+        const QModelIndex index = vfioModel->index(row, ColumnCheck);
+        if (index.data(Qt::CheckStateRole).toInt() != Qt::Checked)
+            config_save_vfio_rom(index.siblingAtColumn(ColumnLocation).data().toString().toUtf8().constData(),
+                                 index.data(ROMFileRole).toString().toUtf8().constData(), index.data(ROMEnabledRole).toBool());
     }
 }
 

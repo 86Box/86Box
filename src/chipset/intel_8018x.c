@@ -105,11 +105,13 @@
 /* Control register (270788-001 Figure 81): PRL (bits 2-0) is the source's
    priority level, MSK (bit 3) gates it. Bit 4 is the LTM bit of the INT0-INT3
    registers: set, the input follows its level; clear, a LOW-to-HIGH transition
-   latches the request (section 9.5.2.2). The SFNM and C bits above it (INT0
-   and INT1 only) affect cascading and are stored but not acted on. */
+   latches the request. C (bit 5) turns INT0/INT1 into INT/INTA pairs; SFNM
+   (bit 6) allows the same input to nest while it is in service. */
 #define I8018X_ICU_CON_MSK      0x0008u
 #define I8018X_ICU_CON_PRL      0x0007u
 #define I8018X_ICU_CON_LTM      0x0010u
+#define I8018X_ICU_CON_C        0x0020u
+#define I8018X_ICU_CON_SFNM     0x0040u
 
 /* Priority Mask Register (270788-001 Figure 84): the three PRM bits hold the
    lowest priority an interrupt may have and still be serviced, so all of them
@@ -134,8 +136,8 @@
 #define I8018X_ICU_IRQ_MAP      4
 
 struct i8018x_pcb_t {
-    uint16_t base;        /* current PCB I/O base */
-    uint16_t reloc;       /* Relocation Register value */
+    uint16_t base;        /* decoded I/O base currently registered */
+    uint16_t reloc;       /* raw RELOC: A19-A8 base, M/IO, ET, slave/master */
     uint8_t  handler_set; /* whether our I/O handler is currently registered */
     uint16_t regs[I8018X_PCB_SIZE / 2];
     uint64_t tmr_base[3];   /* tsc when the timer last (re)started its count cycle */
@@ -151,9 +153,11 @@ struct i8018x_pcb_t {
     int      dma_ch[2];       /* 86Box DMA channel the on-chip channel drives, -1 = unused */
     uint8_t  dma_drq[2];      /* request pin state, recorded only */
     uint8_t  dma_adv_pend[2]; /* pointer step owed to the read_only/advance pair */
-    int8_t   pic_irq[I8018X_ICU_IRQ_MAP];  /* 8259 line a board source sits on, -1 = none */
-    int8_t   pic_line[I8018X_ICU_IRQ_MAP]; /* controller input that line drives */
+    int8_t   pic_irq[I8018X_ICU_IRQ_MAP];  /* source 8259 IRQ line, -1 = unused */
+    int8_t   pic_line[I8018X_ICU_IRQ_MAP]; /* destination ICU input 0-3 (INT0-INT3) */
     uint8_t  pic_hook;                     /* whether our 8259 line observer is in place */
+    ext_ack_t ext_ack[2];                  /* cascade ack for INT0/INT1, NULL = internal */
+    void     *ext_ack_priv[2];
 };
 
 static uint8_t  i8018x_pcb_inb(uint16_t port, void *priv);
@@ -284,6 +288,7 @@ static const uint16_t i8018x_icu_src[I8018X_ICU_SOURCES] = {
    tests this for null itself, so a machine without such a controller never
    pays for the call. */
 struct i8018x_pcb_t *i8018x_pcb_current;
+int i8018x_pcb_cascade;
 
 /* Control register holding a source's MSK bit; master mode merges the three
    timers into one register, so they share theirs. */
@@ -363,8 +368,16 @@ i8018x_pcb_icu_inputs(struct i8018x_pcb_t *dev)
 static uint16_t
 i8018x_pcb_icu_requests(struct i8018x_pcb_t *dev)
 {
-    return (uint16_t) (dev->regs[I8018X_ICU_REQ / 2] | i8018x_pcb_icu_inputs(dev) |
-                       dev->icu_dma | (dev->tmr_req ? I8018X_ICU_SRC_TMR : 0x0000u));
+    uint16_t req = (uint16_t) (dev->regs[I8018X_ICU_REQ / 2] | i8018x_pcb_icu_inputs(dev) |
+                               dev->icu_dma | (dev->tmr_req ? I8018X_ICU_SRC_TMR : 0x0000u));
+
+    /* In cascade mode INT2/INT3 are INTA outputs, not interrupt inputs. */
+    if (dev->regs[I8018X_ICU_INT_CON(0) / 2] & I8018X_ICU_CON_C)
+        req &= (uint16_t) ~I8018X_ICU_SRC_INT(2);
+    if (dev->regs[I8018X_ICU_INT_CON(1) / 2] & I8018X_ICU_CON_C)
+        req &= (uint16_t) ~I8018X_ICU_SRC_INT(3);
+
+    return req;
 }
 
 /* The controller halts DMA when it takes an NMI and releases it again when an
@@ -410,11 +423,15 @@ i8018x_pcb_icu_peek(struct i8018x_pcb_t *pcb)
     for (int i = 0; i < I8018X_ICU_SOURCES; i++) {
         uint16_t bit  = i8018x_icu_src[i];
         uint16_t prio = i8018x_pcb_icu_prio(pcb, bit);
+        int      sfnm = ((i == 5) || (i == 6)) &&
+                        (pcb->regs[I8018X_ICU_INT_CON(i - 5) / 2] & I8018X_ICU_CON_SFNM);
 
-        if (!(pending & bit) || (pcb->icu_isr & bit))
+        if (!(pending & bit))
+            continue;
+        if ((pcb->icu_isr & bit) && !sfnm)
             continue;
         if ((prio > (pcb->regs[I8018X_ICU_PRIO_MASK / 2] & I8018X_ICU_PRM_BITS)) ||
-            (prio >= top_prio))
+            (!sfnm && (prio >= top_prio)))
             continue;
 
         servable |= bit;
@@ -469,6 +486,12 @@ i8018x_pcb_icu_acknowledge(struct i8018x_pcb_t *pcb)
     else
         pcb->icu_latch &= (uint16_t) ~i8018x_icu_src[i];
 
+    /* Cascade mode: the 8259 supplies the vector on the INTA pair. */
+    if (((i == 5) || (i == 6)) &&
+        (pcb->regs[I8018X_ICU_INT_CON(i - 5) / 2] & I8018X_ICU_CON_C) &&
+        (pcb->ext_ack[i - 5] != NULL))
+        return pcb->ext_ack[i - 5](pcb->ext_ack_priv[i - 5]);
+
     return i8018x_icu_type[i];
 }
 
@@ -518,6 +541,19 @@ i8018x_pcb_icu_int(struct i8018x_pcb_t *pcb, int line, int level)
         else if (!level)
             pcb->icu_latch &= (uint16_t) ~bit;
     }
+}
+
+/* Attach the external controller that answers an INT0/INT1 cascade ack. */
+void
+i8018x_pcb_set_ext_ack(struct i8018x_pcb_t *pcb, int line, ext_ack_t ack, void *priv)
+{
+    if ((pcb == NULL) || (line < 0) || (line > 1))
+        return;
+
+    pcb->ext_ack[line]      = ack;
+    pcb->ext_ack_priv[line] = priv;
+
+    i8018x_pcb_cascade = (pcb->ext_ack[0] != NULL) || (pcb->ext_ack[1] != NULL);
 }
 
 /* A board that hangs its sources on the machine's 8259 instead of on the
@@ -1092,8 +1128,10 @@ i8018x_pcb_close(void *priv)
 
     dma_set_controller(NULL, NULL);
 
-    if (i8018x_pcb_current == dev)
+    if (i8018x_pcb_current == dev) {
         i8018x_pcb_current = NULL;
+        i8018x_pcb_cascade = 0;
+    }
 
     free(dev);
 }
@@ -1115,6 +1153,7 @@ i8018x_pcb_init(const device_t *info)
     /* The core asks the controller through i8018x_pcb_icu_pending() and
        i8018x_pcb_icu_int_type(), which have no argument to carry it. */
     i8018x_pcb_current = dev;
+    i8018x_pcb_cascade = 0;
 
     return dev;
 }

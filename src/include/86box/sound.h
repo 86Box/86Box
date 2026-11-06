@@ -162,7 +162,6 @@ extern int         sound_card_has_input(int card);
 extern const char *sound_card_get_internal_name(int card);
 extern int         sound_card_get_from_internal_name(const char *s);
 extern void        sound_card_init(void);
-extern void        sound_set_cd_volume(unsigned int vol_l, unsigned int vol_r);
 
 extern void sound_speed_changed(void);
 
@@ -366,6 +365,9 @@ extern const device_t mmb_device;
 /* Media Vision */
 extern const device_t thunderboard_device;
 extern const device_t jazz16_device;
+
+/* Oak Technology OTI-601 */
+extern const device_t mozart_device;
 
 /* OPTi 82c93x */
 extern const device_t acermagic_s20_device;

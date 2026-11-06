@@ -30,11 +30,12 @@ ropFFREE(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint
 }
 
 uint32_t
-ropFLD(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropFLD(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int src_reg = fetchdat & 7;
 
     uop_FP_ENTER(ir);
+    codegen_fpu_guard_stack(ir, fetchdat, op_32, op_pc - 1, NULL, FPU_GUARD_ST(src_reg) | FPU_GUARD_PUSH);
     uop_MOV(ir, IREG_ST(-1), IREG_ST(src_reg));
     uop_MOV(ir, IREG_ST_i64(-1), IREG_ST_i64(src_reg));
     uop_MOV(ir, IREG_tag(-1), IREG_tag(src_reg));
@@ -88,6 +89,36 @@ ropFSTCW(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
 
     return op_pc + 1;
 }
+/* FLDCW. The loaded word is the control word as it is; a flag it leaves
+   unmasked that is set "will result in a floating-point error condition"
+   (486 PRM, FLDCW): raised as the interpreter raises it, and the block
+   ends. Otherwise ES and B go clear and FERR# is lowered, the host rounding
+   follows the new RC, and the next compiled instruction built for the
+   control word's classes checks them (codegen_fpu_class_dirty). */
+uint32_t
+ropFLDCW(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    x86seg *target_seg;
+
+#if !(defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64)
+    /*Only the arm64 and x86-64 backends implement UOP_FP_CONTROL_SET*/
+    return 0;
+#endif
+    uop_FP_ENTER(ir);
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    op_pc--;
+    target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+    codegen_check_seg_read(block, ir, target_seg);
+    CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
+    uop_MEM_LOAD_REG(ir, IREG_temp0_W, ireg_seg_base(target_seg), IREG_eaaddr);
+    codegen_fpu_guard_cw_unmasks(ir, op_pc + 1, IREG_temp0_W);
+    uop_MOV(ir, IREG_NPXC, IREG_temp0_W);
+    uop_AND_IMM(ir, IREG_NPXS, IREG_NPXS, ~0x8080); /*ES and B*/
+    uop_FP_CONTROL_SET(ir, IREG_NPXC);
+    codegen_fpu_class_dirty = 1;
+
+    return op_pc + 1;
+}
 /* The status word as FSTSW gives it: TOP (bits 13-11) is the stack's own,
    which npxs does not keep up to date. */
 static void
@@ -125,11 +156,12 @@ ropFSTSW_AX(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), U
 }
 
 uint32_t
-ropFXCH(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
+ropFXCH(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
     int dest_reg = fetchdat & 7;
 
     uop_FP_ENTER(ir);
+    codegen_fpu_guard_stack(ir, fetchdat, op_32, op_pc - 1, NULL, FPU_GUARD_ST(0) | FPU_GUARD_ST(dest_reg));
     uop_MOV(ir, IREG_temp0_D, IREG_ST(0));
     uop_MOV(ir, IREG_temp1_Q, IREG_ST_i64(0));
     uop_MOV(ir, IREG_temp2, IREG_tag(0));
@@ -139,6 +171,9 @@ ropFXCH(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint3
     uop_MOV(ir, IREG_ST(dest_reg), IREG_temp0_D);
     uop_MOV(ir, IREG_ST_i64(dest_reg), IREG_temp1_Q);
     uop_MOV(ir, IREG_tag(dest_reg), IREG_temp2);
+    /*Both were valid past the guard, so both still are: the copy through
+      temp2 hides that from the tag tracking*/
+    codegen_fpu_tag_valid |= (1 << ((cpu_state.TOP + 0) & 7)) | (1 << ((cpu_state.TOP + dest_reg) & 7));
 
     return op_pc;
 }

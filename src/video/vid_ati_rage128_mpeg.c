@@ -874,6 +874,7 @@ mc_run(rage128_t *dev, const rage128_mc_cmd_t *c, const int16_t (*resid)[16])
         svga->changedvram[(dst & vmask) >> 12] = svga->monitor->mon_changeframecount;
         svga->changedvram[((dst + c->w - 1u) & vmask) >> 12]
             = svga->monitor->mon_changeframecount;
+        r128_vram_hnew(dev, dst & vmask, c->w);
         dst += pd;
         a1 += p1;
         a2 += p2;

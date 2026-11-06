@@ -41,6 +41,7 @@ typedef struct pcxr_frame_t {
     uint32_t camera;        /* CAMERA: texture c/f/r scale */
     uint32_t xclip;         /* XCLIP */
     uint32_t bilinear;      /* BILINEAR */
+    uint32_t fastfog;       /* FASTFOG: bit 8 enable, bits 7:0 threshold */
     const uint32_t *fog_table; /* 128 entries (FOG_TABLE registers) */
 } pcxr_frame_t;
 
@@ -71,5 +72,10 @@ void pcxr_render(const pcxr_frame_t *f, uint32_t *rgb, pcxr_result_t *res);
 /* Pack 0x00RRGGBB into the PACKMODE output format. bytes_per_pixel is
    returned; returns the packed value in *out (little endian). */
 int pcxr_pack(uint32_t packmode, uint32_t rgb, int x, int y, uint32_t *out);
+
+/* pcxr_pack() for the n pixels of row y from column x (src points at the
+   start of the row), written to out in the frame buffer's byte order.
+   Returns the number of bytes written. */
+uint32_t pcxr_pack_run(uint32_t packmode, const uint32_t *src, int x, int n, int y, uint8_t *out);
 
 #endif

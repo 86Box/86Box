@@ -677,6 +677,11 @@ v6355_poll(void *priv)
     /* Simulated CRTC height registers */
     int crtc4, crtc5, crtc6, crtc7, crtc8, crtc9;
 
+    /* Bind the monitor macros to this card's own display. */
+    const int prev_monitor_index = monitor_index_global;
+
+    monitor_index_global = v6355->monitor_index;
+
     if (!(v6355->cgamode & 2)) {
         /* Text mode values */
         crtc4 = (height + 54) / 8;
@@ -898,6 +903,8 @@ v6355_poll(void *priv)
                  v6355->charbuffer[x] = v6355->vram[(((v6355->ma << 1) + x) & 0x3fff)];
         }
     }
+
+    monitor_index_global = prev_monitor_index;
 }
 
 static void *
@@ -908,7 +915,7 @@ v6355_standalone_init(const device_t *info) {
 
     video_inform(VIDEO_FLAG_TYPE_CGA, &timing_v6355);
 
-    v6355->display_type = device_get_config_int("display_type");
+    v6355->monitor_index = monitor_index_global;
 
     overscan_x = overscan_y = 16;
 

@@ -1,6 +1,6 @@
 #include <stdlib.h>
 #include <string.h>
-#include "cm100_internal.h"
+#include <86box/cm100_internal.h>
 
 /* EP 0 241 081 gives ordering and timeout limits.
    These provisional durations are isolated until a real mechanism is traced. */

@@ -66,6 +66,21 @@ screenOfWidget(QWidget *widget)
 #endif
 }
 
+int
+logicalSizeForPixels(int pixels, qreal dpr)
+{
+    if (dpr <= 0.)
+        return pixels;
+
+    /* Qt rounds a window's size to whole device pixels, but a widget drawn into its
+       parent covers the size multiplied out, so don't count on the rounding. */
+    int size = static_cast<int>(pixels / dpr);
+    while ((size * dpr) < (pixels - 0.001))
+        size++;
+
+    return size;
+}
+
 #ifdef Q_OS_WINDOWS
 
 bool

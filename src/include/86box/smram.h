@@ -26,6 +26,12 @@ typedef struct _smram_ {
     uint32_t size;
     uint32_t old_host_base;
     uint32_t old_size;
+
+    /* The pages at host_base made an alias of the RAM at ram_base
+       (mem_set_ram_alias), for code compiled in SMRAM above the RAM. */
+    uint32_t alias_base;
+    uint32_t alias_ram;
+    uint32_t alias_size;
 } smram_t;
 
 /* Make a backup copy of host_base and size of all the SMRAM structs, needed so that if

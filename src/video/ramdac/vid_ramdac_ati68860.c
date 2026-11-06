@@ -59,7 +59,7 @@ typedef struct ati68860_ramdac_t {
     int      dac_r;
     int      dac_g;
     PALETTE  pal;
-    uint32_t pallook[2];
+    uint32_t pallook[256];
 
     int ramdac_type;
 } ati68860_ramdac_t;
@@ -82,89 +82,93 @@ ati68860_ramdac_out(uint16_t addr, uint8_t val, int is_8514, void *priv, svga_t 
         case 3:
             svga_out(is_8514 ? 0x2eb : 0x3c7, val, svga);
             break;
-        default:
-            ramdac->regs[addr & 0xf] = val;
-            switch (addr & 0xf) {
-                case 0x4:
-                    ramdac->dac_addr = val;
-                    ramdac->dac_pos  = 0;
-                    break;
-                case 0x5:
-                    switch (ramdac->dac_pos) {
-                        case 0:
-                            ramdac->dac_r = val;
-                            ramdac->dac_pos++;
-                            break;
-                        case 1:
-                            ramdac->dac_g = val;
-                            ramdac->dac_pos++;
-                            break;
-                        case 2:
-                            if (ramdac->dac_addr > 1)
-                                break;
-                            ramdac->pal[ramdac->dac_addr].r = ramdac->dac_r;
-                            ramdac->pal[ramdac->dac_addr].g = ramdac->dac_g;
-                            ramdac->pal[ramdac->dac_addr].b = val;
-                            if (ramdac->ramdac_type == RAMDAC_8BIT)
-                                ramdac->pallook[ramdac->dac_addr] = makecol32(ramdac->pal[ramdac->dac_addr].r,
-                                                                              ramdac->pal[ramdac->dac_addr].g,
-                                                                              ramdac->pal[ramdac->dac_addr].b);
-                            else
-                                ramdac->pallook[ramdac->dac_addr] = makecol32(video_6to8[ramdac->pal[ramdac->dac_addr].r & 0x3f],
-                                                                              video_6to8[ramdac->pal[ramdac->dac_addr].g & 0x3f],
-                                                                              video_6to8[ramdac->pal[ramdac->dac_addr].b & 0x3f]);
-                            ramdac->dac_pos  = 0;
-                            ramdac->dac_addr = (ramdac->dac_addr + 1) & 255;
-                            break;
+    }
 
-                        default:
-                            break;
-                    }
-                    break;
-                case 0xb:
-                    switch (val) {
-                        case 0x82:
-                            ramdac->render = svga_render_4bpp_highres;
-                            break;
-                        case 0x83:
-                            /*FIXME*/
-                            ramdac->render = svga_render_8bpp_clone_highres;
-                            break;
-                        case 0xa0:
-                        case 0xb0:
-                            ramdac->render = svga_render_15bpp_highres;
-                            break;
-                        case 0xa1:
-                        case 0xb1:
-                            ramdac->render = svga_render_16bpp_highres;
-                            break;
-                        case 0xc0:
-                        case 0xd0:
-                            ramdac->render = svga_render_24bpp_highres;
-                            break;
-                        case 0xe2:
-                        case 0xf7:
-                            ramdac->render = svga_render_32bpp_highres;
-                            break;
-                        case 0xe3:
-                            ramdac->render = svga_render_ABGR8888_highres;
-                            break;
-                        case 0xf2:
-                            ramdac->render = svga_render_RGBA8888_highres;
-                            break;
-                        default:
-                            /*FIXME*/
-                            ramdac->render = svga_render_8bpp_clone_highres;
-                            break;
-                    }
-                    break;
-                case 0xc:
-                    svga_set_ramdac_type(svga, (val & 1) ? RAMDAC_6BIT : RAMDAC_8BIT);
-                    break;
+    ramdac->regs[addr & 0xf] = val;
 
-                default:
+    switch (addr & 0xf) {
+        case 0x0:
+        case 0x4:
+            ramdac->dac_addr = val;
+            ramdac->dac_pos = 0;
+            break;
+        case 0x1:
+        case 0x5:
+            switch (ramdac->dac_pos) {
+                case 0:
+                    ramdac->dac_r = val;
+                    ramdac->dac_pos++;
+                    break;
+                case 1:
+                    ramdac->dac_g = val;
+                    ramdac->dac_pos++;
+                    break;
+                case 2:
+                    ramdac->pal[ramdac->dac_addr].r = ramdac->dac_r;
+                    ramdac->pal[ramdac->dac_addr].g = ramdac->dac_g;
+                    ramdac->pal[ramdac->dac_addr].b = val;
+
+                    if (ramdac->ramdac_type == RAMDAC_8BIT)
+                        ramdac->pallook[ramdac->dac_addr] =
+                                makecol32(ramdac->pal[ramdac->dac_addr].r,
+                                          ramdac->pal[ramdac->dac_addr].g,
+                                          ramdac->pal[ramdac->dac_addr].b);
+                    else
+                        ramdac->pallook[ramdac->dac_addr] =
+                                makecol32((ramdac->pal[ramdac->dac_addr].r & 0x3f) * 4,
+                                          (ramdac->pal[ramdac->dac_addr].g & 0x3f) * 4,
+                                          (ramdac->pal[ramdac->dac_addr].b & 0x3f) * 4);
+                    ramdac->dac_pos = 0;
+                    ramdac->dac_addr = (ramdac->dac_addr + 1) & 255;
                     break;
             }
+            break;
+        case 0xb:
+            switch (val) {
+                case 0x82:
+                    svga->bpp = 4;
+                    ramdac->render = svga_render_4bpp_highres;
+                    break;
+                case 0x83:
+                    svga->bpp = 8;
+                    ramdac->render = svga_render_8bpp_highres;
+                    break;
+                case 0xa0:
+                case 0xb0:
+                    svga->bpp = 15;
+                    ramdac->render = svga_render_15bpp_highres;
+                    break;
+                case 0xa1:
+                case 0xb1:
+                    svga->bpp = 16;
+                    ramdac->render = svga_render_16bpp_highres;
+                    break;
+                case 0xc0:
+                case 0xd0:
+                    svga->bpp = 24;
+                    ramdac->render = svga_render_24bpp_highres;
+                    break;
+                case 0xe2:
+                case 0xf7:
+                    svga->bpp = 32;
+                    ramdac->render = svga_render_32bpp_highres;
+                    break;
+                case 0xe3:
+                    svga->bpp = 32;
+                    ramdac->render = svga_render_ABGR8888_highres;
+                    break;
+                case 0xf2:
+                    svga->bpp = 32;
+                    ramdac->render = svga_render_RGBA8888_highres;
+                    break;
+                default:
+                    svga->bpp = 8;
+                    ramdac->render = svga_render_8bpp_highres;
+                    break;
+            }
+            break;
+        case 0xc:
+            svga_set_ramdac_type(svga, (val & 1) ? RAMDAC_6BIT : RAMDAC_8BIT);
             break;
     }
 }
@@ -216,7 +220,7 @@ ati68860_set_ramdac_type(void *priv, int type)
     if (ramdac->ramdac_type != type) {
         ramdac->ramdac_type = type;
 
-        for (uint8_t c = 0; c < 2; c++) {
+        for (uint16_t c = 0; c < 256; c++) {
             if (ramdac->ramdac_type == RAMDAC_8BIT)
                 ramdac->pallook[c] = makecol32(ramdac->pal[c].r, ramdac->pal[c].g,
                                                ramdac->pal[c].b);

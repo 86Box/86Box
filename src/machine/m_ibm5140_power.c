@@ -376,6 +376,14 @@ ibm5140_rtc_start(nvr_t *rtc)
     if (time_sync & TIME_SYNC_ENABLED) {
         struct tm now;
 
+        if (time_keep_date) {
+            /* Keep the chip's own date. */
+            now.tm_wday = rtc_decode(dev, rtc->regs[6]) - 1;
+            now.tm_mday = rtc_decode(dev, rtc->regs[7]);
+            now.tm_mon  = rtc_decode(dev, rtc->regs[8]) - 1;
+            now.tm_year = rtc_decode(dev, rtc->regs[0x32]) * 100 + rtc_decode(dev, rtc->regs[9]) - 1900;
+            nvr_time_set_date(&now);
+        }
         nvr_time_get(&now);
         rtc->regs[0] = rtc_encode(dev, now.tm_sec);
         rtc->regs[2] = rtc_encode(dev, now.tm_min);

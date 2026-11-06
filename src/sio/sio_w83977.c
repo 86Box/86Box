@@ -472,20 +472,17 @@ w83977_serial_handler(w83977_t *dev, const int uart)
 static void
 w83977_nvr_handler(w83977_t *dev)
 {
-    uint8_t        local_enable = !!dev->ld_regs[6][0x30];
+    const uint8_t  local_enable = !!dev->ld_regs[4][0x30];
     const uint16_t old_base     = dev->nvr_base;
-
-    local_enable &= (((dev->ld_regs[6][0xf0] & 0xe0) == 0x80) ||
-                     ((dev->ld_regs[6][0xf0] & 0xe0) == 0xe0));
 
     dev->nvr_base = 0x0000;
 
     if (local_enable)
-        dev->nvr_base = make_port(dev, 6) & 0xfffe;
+        dev->nvr_base = make_port(dev, 4) & 0xfffe;
 
     if (dev->nvr_base != old_base) {
         if ((dev->id != 1) && dev->has_nvr && (old_base > 0x0000) && (old_base <= 0x0ffe))
-            nvr_at_handler(0, dev->nvr_base, dev->nvr);
+            nvr_at_handler(0, old_base, dev->nvr);
 
         if ((dev->id != 1) && dev->has_nvr && (dev->nvr_base > 0x0000) && (dev->nvr_base <= 0x0ffe))
             nvr_at_handler(1, dev->nvr_base, dev->nvr);
@@ -841,13 +838,17 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                                 w83977_nvr_handler(dev);
                             break;
                         case 0xf0:
-                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+                            /* Bits 7-6 select bank 0, bank 1 (128 bytes of
+                               user RAM) or bank 2 (century, Alarm B and the
+                               "On-Now" registers at 40h-4Ch); a write cannot
+                               clear the lock bits 3-0. */
+                            dev->ld_regs[dev->regs[7]][dev->cur_reg] = (val & 0xcf) | (dev->ld_regs[4][0xf0] & 0x0f);
 
-                            if ((dev->id != 1) && dev->has_nvr && valxor) {
-                                nvr_lock_set(0x80, 0x20, !!(dev->ld_regs[6][dev->cur_reg] & 0x01), dev->nvr);
-                                nvr_lock_set(0xa0, 0x20, !!(dev->ld_regs[6][dev->cur_reg] & 0x02), dev->nvr);
-                                nvr_lock_set(0xc0, 0x20, !!(dev->ld_regs[6][dev->cur_reg] & 0x04), dev->nvr);
-                                nvr_lock_set(0xe0, 0x20, !!(dev->ld_regs[6][dev->cur_reg] & 0x08), dev->nvr);
+                            if ((dev->id != 1) && dev->has_nvr) {
+                                nvr_lock_set(0x80, 0x20, !!(dev->ld_regs[4][dev->cur_reg] & 0x01), dev->nvr);
+                                nvr_lock_set(0xa0, 0x20, !!(dev->ld_regs[4][dev->cur_reg] & 0x02), dev->nvr);
+                                nvr_lock_set(0xc0, 0x20, !!(dev->ld_regs[4][dev->cur_reg] & 0x04), dev->nvr);
+                                nvr_lock_set(0xe0, 0x20, !!(dev->ld_regs[4][dev->cur_reg] & 0x08), dev->nvr);
 
                                 nvr_bank_set(0, val >> 6, dev->nvr);
                             }
@@ -1283,9 +1284,9 @@ w83977_init(const device_t *info)
 
     dev->hefras    = info->local & W83977_370;
 
-    dev->id = next_id;
+    dev->id = (info->local & W83977_SECONDARY) ? 1 : next_id;
 
-    if (next_id == 1)
+    if (dev->id == 1)
         dev->hefras   ^= W83977_370;
     else
         dev->fdc       = device_add_params(&fdc_at_smc_device, (void *) FDC_FLAG_PNP);
@@ -1294,14 +1295,14 @@ w83977_init(const device_t *info)
         dev->uart[0]   = device_add_inst(&ns16550_device, 3);
         dev->uart[1]   = device_add_inst(&ns16550_device, 4);
     } else {
-        dev->uart[0]   = device_add_inst(&ns16550_device, (next_id << 1) + 1);
-        dev->uart[1]   = device_add_inst(&ns16550_device, (next_id << 1) + 2);
+        dev->uart[0]   = device_add_inst(&ns16550_device, (dev->id << 1) + 1);
+        dev->uart[1]   = device_add_inst(&ns16550_device, (dev->id << 1) + 2);
     }
 
     if (info->local & W83977_LPT_FORCE_SEC)
         dev->lpt       = device_add_inst(&lpt_port_device, 2);
     else
-        dev->lpt       = device_add_inst(&lpt_port_device, next_id + 1);
+        dev->lpt       = device_add_inst(&lpt_port_device, dev->id + 1);
 
     dev->type      = info->local & W83977_TYPE;
 
@@ -1311,6 +1312,8 @@ w83977_init(const device_t *info)
 
     if (dev->has_nvr && (dev->id != 1)) {
         dev->nvr = device_add_params(&nvr_at_device, (void *) (uintptr_t) NVR_AT_ZERO_DEFAULT);
+        /* The NVR installs itself at 70h. */
+        dev->nvr_base = 0x0070;
 
         nvr_bank_set(0, 0, dev->nvr);
     }

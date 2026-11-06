@@ -6,7 +6,9 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Mitsumi CD-ROM emulation for the ISA bus.
+ *          Mitsumi CD-ROM emulation for the ISA bus, and behind a host
+ *          that reaches the interface's two registers another way (the
+ *          parallel port BackPack CD-ROM): no I/O ports, IRQ or DMA then.
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
  *          Jasmine Iwanek, <jriwanek@gmail.com>
@@ -211,6 +213,13 @@ mitsumi_cdrom_is_ready(const mcd_t *dev)
 }
 
 static void
+mitsumi_clear_irq(const mcd_t *dev)
+{
+    if ((dev->irq >= 0) && (dev->irq < 16))
+        picintc(1 << dev->irq);
+}
+
+static void
 mitsumi_set_irq(const mcd_t *dev, const uint8_t mask)
 {
     if ((dev->irq >= 0) && (dev->irq < 16) && (dev->enable_irq & mask)) {
@@ -313,6 +322,13 @@ static uint32_t
 mitsumi_dma_length(const mcd_t *dev)
 {
     /*
+       Behind the BackPack the length is written as one less: its driver,
+       BPCDDRV.SYS 1.06, sets 07FFh for 2048 byte blocks.
+     */
+    if (dev->dma < 0)
+        return (dev->dmalen + 1) & 0xffff;
+
+    /*
        Mask out the lower 3 bits, need for one of the DOS drivers to
        operate correctly.
      */
@@ -354,7 +370,7 @@ mitsumi_cdrom_insert(void *priv)
     dev->stat         = mitsumi_status(dev);
     dev->change       = 1;
     dev->cmdbuf_count = 0;
-    picintc(1 << dev->irq);
+    mitsumi_clear_irq(dev);
     mitsumi_raise_change_irq(dev);
 }
 
@@ -407,7 +423,7 @@ mitsumi_print_cmd(mcd_t* dev, uint8_t command) {
 static void
 mitsumi_cdrom_reset(mcd_t *dev)
 {
-    picintc(1 << dev->irq);
+    mitsumi_clear_irq(dev);
     cdrom_stop(dev->cdrom_dev);
     dev->dma_timeout_ms  = 18;
     dev->cmdrd_count     = 0;
@@ -595,6 +611,13 @@ mitsumi_cdrom_read_sector(mcd_t *dev, int first)
     }
     dev->real_count = available;
     dev->buf_count  = MIN(mitsumi_dma_length(dev), available);
+    /*
+       Behind a host the length register ends the sector: BPCDDRV.SYS
+       takes 2048 bytes in a mode with bit 7 set and then waits for the
+       status, the two bytes more go unread.
+     */
+    if (dev->dma < 0)
+        dev->real_count = dev->buf_count;
     if (dev->buf_count == 0)
         return -3;
 
@@ -1071,7 +1094,7 @@ mitsumi_cdrom_in(uint16_t port, void *priv)
             mitsumi_cdrom_log("Mitsumi: byte=ff\n");
             return 0xff;
         case 1:
-            picintc(1 << dev->irq);
+            mitsumi_clear_irq(dev);
             ret = mitsumi_cdrom_get_flags(dev);
             mitsumi_cdrom_log("Mitsumi: [%04X:%08X] flags=%02x (data=%d, bytes=%d, status=%d)\n",
                               CS, cpu_state.pc, ret, dev->data, dev->buf_count, dev->cmdbuf_count);
@@ -1189,7 +1212,8 @@ mitsumi_cdrom_out(uint16_t port, uint8_t val, void *priv)
                                                           dev->dmalen, mitsumi_dma_length(dev));
                                         break;
                                     case 0x02:
-                                        dev->enable_dma = val;
+                                        /* Without a DMA channel the data goes by PIO. */
+                                        dev->enable_dma = (dev->dma >= 0) ? val : 0;
                                         mitsumi_cdrom_log("Mitsumi: DMA enable=%02x, channel=%d\n",
                                                           dev->enable_dma, dev->dma);
                                         if (!dev->enable_dma) {
@@ -1470,8 +1494,9 @@ mitsumi_cdrom_init(UNUSED(const device_t *info))
 {
     mcd_t *dev = calloc(1, sizeof(mcd_t));
 
+    /* The first Mitsumi drive not taken by another interface. */
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
-        if (cdrom[i].bus_type == CDROM_BUS_MITSUMI) {
+        if ((cdrom[i].bus_type == CDROM_BUS_MITSUMI) && (cdrom[i].priv == NULL)) {
             dev->cdrom_dev = &cdrom[i];
             break;
         }
@@ -1489,12 +1514,18 @@ mitsumi_cdrom_init(UNUSED(const device_t *info))
     dev->cdrom_dev->cached_sector = -1;
     dev->cdrom_dev->subc_sector = -1;
 
-    dev->base = (info->local & 1) ? 0x310 : device_get_config_hex16("base");
-    dev->irq  = (info->local & 1) ? 5 : device_get_config_int("irq");
-    dev->dma  = (info->local & 1) ? 5 : device_get_config_int("dma");
+    if (info->local & MITSUMI_HOSTED) {
+        dev->base = 0;
+        dev->irq  = -1;
+        dev->dma  = -1;
+    } else {
+        dev->base = (info->local & 1) ? 0x310 : device_get_config_hex16("base");
+        dev->irq  = (info->local & 1) ? 5 : device_get_config_int("irq");
+        dev->dma  = (info->local & 1) ? 5 : device_get_config_int("dma");
 
-    io_sethandler(dev->base, 4,
-                  mitsumi_cdrom_in, NULL, NULL, mitsumi_cdrom_out, NULL, NULL, dev);
+        io_sethandler(dev->base, 4,
+                      mitsumi_cdrom_in, NULL, NULL, mitsumi_cdrom_out, NULL, NULL, dev);
+    }
 
     timer_add(&dev->dma_timeout_timer, mitsumi_dma_timeout_callback, dev, 0);
     timer_add(&dev->read_timer, mitsumi_read_callback, dev, 0);
@@ -1511,13 +1542,15 @@ mitsumi_cdrom_close(void *priv)
     mcd_t *dev = (mcd_t *) priv;
 
     if (dev) {
-        dma_set_service_handler(dev->dma, NULL, NULL);
+        if (dev->dma >= 0)
+            dma_set_service_handler(dev->dma, NULL, NULL);
         mitsumi_abort_read(dev);
         if (timer_is_enabled(&dev->tray_timer))
             timer_disable(&dev->tray_timer);
-        io_removehandler(dev->base, 4,
-                         mitsumi_cdrom_in, NULL, NULL, mitsumi_cdrom_out, NULL, NULL, dev);
-        picintc(1 << dev->irq);
+        if (dev->irq >= 0)
+            io_removehandler(dev->base, 4,
+                             mitsumi_cdrom_in, NULL, NULL, mitsumi_cdrom_out, NULL, NULL, dev);
+        mitsumi_clear_irq(dev);
         if (dev->cdrom_dev && (dev->cdrom_dev->priv == dev)) {
             dev->cdrom_dev->priv        = NULL;
             dev->cdrom_dev->insert      = NULL;
@@ -1607,6 +1640,33 @@ const device_t mitsumi_cdrom_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = mitsumi_config
+};
+
+/* The interface's registers 0 and 1, for a host that has no I/O ports for it. */
+uint8_t
+mitsumi_cdrom_host_read(void *priv, int reg)
+{
+    return mitsumi_cdrom_in((uint16_t) (reg & 3), priv);
+}
+
+void
+mitsumi_cdrom_host_write(void *priv, int reg, uint8_t val)
+{
+    mitsumi_cdrom_out((uint16_t) (reg & 3), val, priv);
+}
+
+const device_t mitsumi_cdrom_hosted_device = {
+    .name          = "Mitsumi interface (hosted)",
+    .internal_name = "mcd_hosted",
+    .flags         = 0,
+    .local         = MITSUMI_HOSTED,
+    .init          = mitsumi_cdrom_init,
+    .close         = mitsumi_cdrom_close,
+    .reset         = mitsumi_cdrom_device_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
 };
 
 const device_t mitsumi_cdrom_vis_device = {

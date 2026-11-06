@@ -70,6 +70,8 @@
 #include <86box/keyboard.h>
 #include <86box/machine.h>
 #include <86box/mouse.h>
+#include <86box/mem.h>
+#include <86box/usb.h>
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/scsi.h>
@@ -129,7 +131,35 @@ config_log(const char *fmt, ...)
 int new_loaded = 0;
 int kb_loaded  = 0;
 
+/* Returns the section to load a setting moved out of the "Emulator" section
+   from: the old section is only used when the new one does not have it. */
+static ini_section_t
+moved_setting_section(ini_section_t cat, const char *name)
+{
+    if (ini_has_entry(cat, name))
+        return cat;
+
+    return ini_find_section(global, "Emulator");
+}
+
 /* Load global configuration */
+static void
+load_global_general(void)
+{
+    ini_section_t cat = ini_find_section(global, "General");
+    new_loaded |= (cat != NULL);
+
+    char         *p;
+
+    p = ini_section_get_string(moved_setting_section(cat, "language"), "language", NULL);
+    if (p != NULL)
+        lang_id = plat_language_code(p);
+    else
+        lang_id = plat_language_code(DEFAULT_LANGUAGE);
+
+    color_scheme = ini_section_get_int(moved_setting_section(cat, "color_scheme"), "color_scheme", 0);
+}
+
 static void
 load_global_emulator(void)
 {
@@ -137,12 +167,6 @@ load_global_emulator(void)
     new_loaded |= (cat != NULL);
 
     char         *p;
-
-    p = ini_section_get_string(cat, "language", NULL);
-    if (p != NULL)
-        lang_id = plat_language_code(p);
-    else
-        lang_id = plat_language_code(DEFAULT_LANGUAGE);
 
     open_dir_usr_path = ini_section_get_int(cat, "open_dir_usr_path", 0);
 
@@ -152,13 +176,8 @@ load_global_emulator(void)
     confirm_reset = ini_section_get_int(cat, "confirm_reset", 1);
     confirm_exit  = ini_section_get_int(cat, "confirm_exit", 1);
     confirm_save  = ini_section_get_int(cat, "confirm_save", 1);
-    color_scheme  = ini_section_get_int(cat, "color_scheme", 0);
 
     vmm_disabled = ini_section_get_int(cat, "vmm_disabled", 0);
-
-    discord_presence = ini_section_get_int(cat, "discord_presence", 0);
-    if ((discord_presence < 0) || (discord_presence > 3))
-        discord_presence = 0;
 
     chd_precache_level = ini_section_get_int(cat, "chd_precache_level", 0);
 
@@ -207,8 +226,12 @@ load_global_keybinds(void)
         /* Check if the binding was marked as cleared */
         if (strcmp(p, "none") == 0)
             acc_keys[x].seq[0] = '\0';
-        /* If there's no binding in the file, leave it alone. */
-        else if (strcmp(p, "default") != 0) {
+        /* If there's no binding in the file, use the default one: the file may
+           be reloaded after another instance reset the binding. */
+        else if (strcmp(p, "default") == 0) {
+            strncpy(acc_keys[x].seq, def_acc_keys[x].seq, sizeof(acc_keys[x].seq) - 1);
+            acc_keys[x].seq[sizeof(acc_keys[x].seq) - 1] = '\0';
+        } else {
             /*
                It would be ideal to validate whether the user entered a
                valid combo at this point, but the Qt method for testing that is
@@ -217,9 +240,26 @@ load_global_keybinds(void)
                However, to improve the user experience, we should validate keys
                and erase any bad combos from config on mainwindow load.
              */
-            strcpy(acc_keys[x].seq, p);
+            strncpy(acc_keys[x].seq, p, sizeof(acc_keys[x].seq) - 1);
+            acc_keys[x].seq[sizeof(acc_keys[x].seq) - 1] = '\0';
         }
     }
+}
+
+static void
+load_global_manager(void)
+{
+    ini_section_t cat = ini_find_section(global, "Manager");
+    new_loaded |= (cat != NULL);
+
+    vmm_discord_presence = ini_section_get_int(cat, "discord_presence", 0);
+    if ((vmm_discord_presence < 0) || (vmm_discord_presence > 3))
+        vmm_discord_presence = 0;
+
+    vmm_update_check    = ini_section_get_int(cat, "update_check", 1);
+    vmm_regex_search    = ini_section_get_int(cat, "regex_search", 0);
+    vmm_window_remember = ini_section_get_int(cat, "window_remember", 0);
+    vmm_delete_to_trash = ini_section_get_int(cat, "delete_to_trash", 0);
 }
 
 static void
@@ -272,10 +312,13 @@ load_global(void)
     new_loaded = 0;
     kb_loaded  = 0;
 
+    load_global_general();
     load_global_emulator();
     load_global_input();
 
     load_global_keybinds();            /* Load shortcut keybinds */
+
+    load_global_manager();
 
     if (!new_loaded)
         load_global_legacy();
@@ -664,6 +707,10 @@ load_machine(void)
     fpu_softfloat = !!ini_section_get_int(cat, "fpu_softfloat", 0);
     if ((fpu_type != FPU_NONE) && machine_has_flags(machine, MACHINE_SOFTFLOAT_ONLY))
         fpu_softfloat = 1;
+    /* A board with no coprocessor socket cannot take an external FPU. */
+    if ((fpu_type != FPU_NONE) && (fpu_type != FPU_INTERNAL) &&
+        machine_has_flags(machine, MACHINE_NO_FPU_SOCKET))
+        fpu_type = FPU_NONE;
 
     p = ini_section_get_string(cat, "time_sync", NULL);
     if (p != NULL) {
@@ -677,6 +724,13 @@ load_machine(void)
             time_sync = TIME_SYNC_ENABLED;
     } else
         time_sync = TIME_SYNC_ENABLED;
+
+    time_offset_years = ini_section_get_int(cat, "time_offset_years", 0);
+    time_fixed_year   = ini_section_get_int(cat, "time_fixed_year", 0);
+    /* Prefer fixed year if both are present. */
+    if (time_fixed_year != 0 && time_offset_years != 0)
+        time_offset_years = 0;
+    time_keep_date    = !!ini_section_get_int(cat, "time_keep_date", 0);
 
     pit_mode = ini_section_get_int(cat, "pit_mode", -1);
 
@@ -826,21 +880,25 @@ load_input_devices(void)
     p = ini_section_get_string(cat, "keyboard_type", NULL);
     if (p != NULL)
         keyboard_type = config_known(keyboard_get_from_internal_name(p), STRING_UNSUPPORTED_KEYBOARD, p);
-    else if (machines[machine].init == machine_xt_pc5086_init)
-        keyboard_type = KEYBOARD_TYPE_PC_XT;
-    else if (machine_has_bus(machine, MACHINE_BUS_PS2_PORTS)) {
-        if (machine_has_flags(machine, MACHINE_KEYBOARD_JIS))
+    else {
+        /* A machine that comes with a keyboard of its own offers that one by
+           default, whatever its bus might have suggested otherwise. */
+        const device_t *kbd = machine_get_kbd_device(machine);
+
+        if (kbd == &keyboard_pc_xt_device)
+            keyboard_type = KEYBOARD_TYPE_PC_XT;
+        else if (kbd == &keyboard_ps55_device)
             keyboard_type = KEYBOARD_TYPE_PS55;
-        else
-            keyboard_type = KEYBOARD_TYPE_PS2;
-    } else if (machine_has_bus(machine, MACHINE_BUS_ISA16) ||
-               machine_has_bus(machine, MACHINE_BUS_PCI)) {
-        if (machine_has_flags(machine, MACHINE_KEYBOARD_AX))
+        else if (kbd == &keyboard_ax_device)
             keyboard_type = KEYBOARD_TYPE_AX;
-        else
+        else if (machine_has_bus(machine, MACHINE_BUS_PS2_PORTS))
+            keyboard_type = KEYBOARD_TYPE_PS2;
+        else if (machine_has_bus(machine, MACHINE_BUS_ISA16) ||
+                 machine_has_bus(machine, MACHINE_BUS_PCI))
             keyboard_type = KEYBOARD_TYPE_AT;
-    } else
-        keyboard_type = KEYBOARD_TYPE_PC_XT;
+        else
+            keyboard_type = KEYBOARD_TYPE_PC_XT;
+    }
 
     p = ini_section_get_string(cat, "mouse_type", NULL);
     if (p != NULL) {
@@ -1320,6 +1378,18 @@ load_ports(void)
         }
     }
 
+    p             = ini_section_get_string(cat, "usb_card", "none");
+    usb_card_type = usb_card_get_from_internal_name(p);
+    p             = ini_section_get_string(cat, "usb_hub", "none");
+    usb_hub_type  = usb_hub_get_from_internal_name(p);
+    p             = ini_section_get_string(cat, "usb_msd", "none");
+    usb_msd_type  = usb_msd_get_from_internal_name(p);
+
+    for (int i = 0; i < USB_SLOTS; i++) {
+        sprintf(temp, "%s_connected", usb_slot_internal_name(i));
+        usb_slot_want(i, !!ini_section_get_int(cat, temp, 1));
+    }
+
 #if 0
 // TODO: Load
     for (c = 0; c < GAMEPORT_MAX; c++) {
@@ -1734,6 +1804,7 @@ load_hard_disks(void)
                 break;
 
             case HDD_BUS_IDE:
+            case HDD_BUS_LPT:
                 max_spt    = 255;
                 max_hpc    = 255;
                 max_tracks = 266305;
@@ -1760,6 +1831,7 @@ load_hard_disks(void)
             case HDD_BUS_ESDI:
             case HDD_BUS_ATAPI:
             case HDD_BUS_SCSI:
+            case HDD_BUS_LPT:
                 sprintf(tmp2, "1997_5400rpm");
                 break;
             default:
@@ -1815,6 +1887,21 @@ load_hard_disks(void)
 
             if (hdd[c].ide_channel >= IDE_DRIVES_MAX)
                 hdd[c].ide_channel = IDE_DRIVES_MAX - 1;
+        } else
+            ini_section_delete_var(cat, temp);
+
+        /* Parallel port */
+        sprintf(temp, "hdd_%02i_lpt_port", c + 1);
+        if (hdd[c].bus_type == HDD_BUS_LPT) {
+            hdd[c].channel = ini_section_get_int(cat, temp, 0);
+            if (hdd[c].channel >= PARALLEL_MAX)
+                hdd[c].channel = PARALLEL_MAX - 1;
+        } else
+            ini_section_delete_var(cat, temp);
+        sprintf(temp, "hdd_%02i_lpt_bridge", c + 1);
+        if (hdd[c].bus_type == HDD_BUS_LPT) {
+            p = ini_section_get_string(cat, temp, "on26");
+            hdd[c].lpt_bridge = hdd_lpt_bridge_get_from_internal_name(p);
         } else
             ini_section_delete_var(cat, temp);
 
@@ -1895,6 +1982,12 @@ load_hard_disks(void)
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "hdd_%02i_ide_channel", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            sprintf(temp, "hdd_%02i_lpt_port", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            sprintf(temp, "hdd_%02i_lpt_bridge", c + 1);
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "hdd_%02i_scsi_location", c + 1);
@@ -2036,6 +2129,15 @@ load_floppy_and_cdrom_drives(void)
         sprintf(temp, "cdrom_%02i_speed", c + 1);
         cdrom[c].speed = ini_section_get_int(cat, temp, 8);
 
+        sprintf(temp, "cdrom_%02i_dvd_speed", c + 1);
+        cdrom[c].dvd_speed = ini_section_get_int(cat, temp, 2);
+
+        sprintf(temp, "cdrom_%02i_hd_speed", c + 1);
+        cdrom[c].hd_speed = ini_section_get_int(cat, temp, 1);
+
+        sprintf(temp, "cdrom_%02i_restricted_capacity", c + 1);
+        cdrom[c].restricted_capacity = ini_section_get_int(cat, temp, 1);
+
         sprintf(temp, "cdrom_%02i_no_check", c + 1);
         cdrom[c].no_check = ini_section_get_int(cat, temp, 0);
 
@@ -2106,6 +2208,13 @@ load_floppy_and_cdrom_drives(void)
 
             if (cdrom[c].res >= PARALLEL_MAX)
                 cdrom[c].res = PARALLEL_MAX - 1;
+
+            /* The bridge: the BackPack unless the configuration names one. */
+            sprintf(temp, "cdrom_%02i_lpt_bridge", c + 1);
+            p = ini_section_get_string(cat, temp, NULL);
+            cdrom[c].lpt_bridge = (p == NULL) ? HDD_LPT_BPCK : hdd_lpt_bridge_get_from_internal_name(p);
+            if (!cdrom_lpt_bridge_valid(cdrom[c].lpt_bridge))
+                cdrom[c].lpt_bridge = HDD_LPT_BPCK;
         } else if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
             sprintf(temp, "cdrom_%02i_scsi_location", c + 1);
             sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c & 3);
@@ -2225,11 +2334,12 @@ load_other_removable_devices(void)
         sprintf(temp, "zip_%02i_parameters", c + 1);
         p = ini_section_get_string(cat, temp, NULL);
         if (p != NULL) {
-            sscanf(p, "%01u, %s", &rdisk_drives[c].type, s);
+            sscanf(p, "%u, %s", &rdisk_drives[c].type, s);
             legacy_zip_drives++;
         } else
             sscanf("0, none", "%01u, %s", &rdisk_drives[c].type, s);
         rdisk_drives[c].type++;
+        rdisk_drives[c].type = rdisk_type_from_config(rdisk_drives[c].type);
         rdisk_drives[c].bus_type = hdd_string_to_bus(s, 1);
 
         /* Default values, needed for proper operation of the Settings dialog. */
@@ -2331,16 +2441,17 @@ load_other_removable_devices(void)
         sprintf(temp, "rdisk_%02i_parameters", c + 1);
         p = ini_section_get_string(cat, temp, NULL);
         if (p != NULL) {
-            sscanf(p, "%01u, %s", &rdisk_drives[c].type, s);
+            sscanf(p, "%u, %s", &rdisk_drives[c].type, s);
             legacy_zip_drives++;
         } else
             sscanf("0, none", "%01u, %s", &rdisk_drives[c].type, s);
+        rdisk_drives[c].type = rdisk_type_from_config(rdisk_drives[c].type);
         rdisk_drives[c].bus_type = hdd_string_to_bus(s, 1);
 
         /* Default values, needed for proper operation of the Settings dialog. */
         rdisk_drives[c].ide_channel = rdisk_drives[c].scsi_device_id = c + 2;
 
-        if (rdisk_drives[c].bus_type == RDISK_BUS_ATAPI) {
+        if ((rdisk_drives[c].bus_type == RDISK_BUS_ATAPI) || (rdisk_drives[c].bus_type == RDISK_BUS_IDE)) {
             sprintf(temp, "rdisk_%02i_ide_channel", c + 1);
             sprintf(tmp2, "%u:%u", (c + 2) >> 1, (c + 2) & 1);
             p = ini_section_get_string(cat, temp, tmp2);
@@ -2358,6 +2469,15 @@ load_other_removable_devices(void)
 
             if (rdisk_drives[c].res >= PARALLEL_MAX)
                 rdisk_drives[c].res = PARALLEL_MAX - 1;
+
+            /* The bridge: the EPAT unless the configuration names one; the
+               ZIP drives have their own chip. */
+            sprintf(temp, "rdisk_%02i_lpt_bridge", c + 1);
+            p = ini_section_get_string(cat, temp, NULL);
+            rdisk_drives[c].lpt_bridge = (p == NULL) ? HDD_LPT_EPAT : hdd_lpt_bridge_get_from_internal_name(p);
+            if ((rdisk_drives[c].lpt_bridge >= HDD_LPT_BRIDGES) || (rdisk_drives[c].type == RDISK_TYPE_ZIP_100) ||
+                (rdisk_drives[c].type == RDISK_TYPE_ZIP_100_PLUS) || (rdisk_drives[c].type == RDISK_TYPE_ZIP_250))
+                rdisk_drives[c].lpt_bridge = HDD_LPT_EPAT;
         } else if (rdisk_drives[c].bus_type == RDISK_BUS_SCSI) {
             sprintf(temp, "rdisk_%02i_scsi_location", c + 1);
             sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c + 2);
@@ -2377,7 +2497,7 @@ load_other_removable_devices(void)
             }
         }
 
-        if (rdisk_drives[c].bus_type != RDISK_BUS_ATAPI) {
+        if ((rdisk_drives[c].bus_type != RDISK_BUS_ATAPI) && (rdisk_drives[c].bus_type != RDISK_BUS_IDE)) {
             sprintf(temp, "rdisk_%02i_ide_channel", c + 1);
             ini_section_delete_var(cat, temp);
         }
@@ -2411,7 +2531,9 @@ load_other_removable_devices(void)
         }
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
-            rdisk_drives[c].image_history[i] = (char *) calloc((MAX_IMAGE_PATH_LEN + 1) << 1, sizeof(char));
+            /* The legacy zip_ loop above has already allocated these. */
+            if (rdisk_drives[c].image_history[i] == NULL)
+                rdisk_drives[c].image_history[i] = (char *) calloc((MAX_IMAGE_PATH_LEN + 1) << 1, sizeof(char));
             sprintf(temp, "rdisk_%02i_image_history_%02i", c + 1, i + 1);
             p = ini_section_get_string(cat, temp, NULL);
             if (p) {
@@ -2765,7 +2887,7 @@ load_other_peripherals(void)
 
 #ifdef USE_VFIO
     /* VFIO passthrough devices: a space-separated device list, with
-       an optional custom ROM file for each device. */
+       an optional custom ROM file for each device, which can be disabled. */
     ini_section_t vfio_cat = ini_find_section(config, "VFIO");
     char         *devices;
     char         *token;
@@ -2781,6 +2903,9 @@ load_other_peripherals(void)
         snprintf(temp, sizeof(temp), "%s_rom_fn", token);
         strncpy(vfio_device_conf[c].rom_fn, ini_section_get_string(vfio_cat, temp, ""),
                 sizeof(vfio_device_conf[c].rom_fn) - 1);
+
+        snprintf(temp, sizeof(temp), "%s_rom_enable", token);
+        vfio_device_conf[c].rom_enable = !!ini_section_get_int(vfio_cat, temp, !!vfio_device_conf[c].rom_fn[0]);
 
         c++;
     }
@@ -2900,7 +3025,8 @@ load_keybinds(void)
                 However, to improve the user experience, we should validate keys
                 and erase any bad combos from config on mainwindow load.
               */
-             strcpy(acc_keys[x].seq, p);
+             strncpy(acc_keys[x].seq, p, sizeof(acc_keys[x].seq) - 1);
+             acc_keys[x].seq[sizeof(acc_keys[x].seq) - 1] = '\0';
         }
 
         ini_section_delete_var(cat, acc_keys[x].name);
@@ -2914,6 +3040,8 @@ config_load_global(void)
 {
     config_log("Loading global config file '%s'...\n", global_cfg_path);
 
+    /* The file may be reloaded, as another instance may have changed it. */
+    ini_close(global);
     global = ini_read(global_cfg_path);
 
     if (global == NULL) {
@@ -3082,13 +3210,27 @@ config_load(void)
 
     video_copy = (video_grayscale || invert_display) ? video_transform_copy : memcpy;
 
-    return config_ask_unsupported();
+    if (!config_ask_unsupported())
+        return 0;
+
+    /* Move the key bindings taken from this configuration to the global one,
+       one at a time, as another instance may have changed it since it was
+       loaded. Without bindings in the global configuration, all were at their
+       defaults, so the ones that are not came from here. */
+    if (!kb_loaded) {
+        for (int x = 0; x < NUM_ACCELS; x++) {
+            if (strcmp(acc_keys[x].seq, def_acc_keys[x].seq) != 0)
+                config_save_global_setting("Keybinds", acc_keys[x].name);
+        }
+    }
+
+    return 1;
 }
 
 static void
-save_global_emulator(void)
+save_global_general(void)
 {
-    ini_section_t cat = ini_find_or_create_section(global, "Emulator");
+    ini_section_t cat = ini_find_or_create_section(global, "General");
     char          buffer[512] = { 0 };
 
     if (lang_id == plat_language_code(DEFAULT_LANGUAGE))
@@ -3102,6 +3244,18 @@ save_global_emulator(void)
         ini_section_set_int(cat, "color_scheme", color_scheme);
     else
         ini_section_delete_var(cat, "color_scheme");
+
+    ini_delete_section_if_empty(global, cat);
+}
+
+static void
+save_global_emulator(void)
+{
+    ini_section_t cat = ini_find_or_create_section(global, "Emulator");
+
+    /* These were moved to the "General" section. */
+    ini_section_delete_var(cat, "language");
+    ini_section_delete_var(cat, "color_scheme");
 
     if (open_dir_usr_path)
         ini_section_set_int(cat, "open_dir_usr_path", open_dir_usr_path);
@@ -3143,11 +3297,6 @@ save_global_emulator(void)
         ini_section_set_int(cat, "vmm_disabled", vmm_disabled);
     else
         ini_section_delete_var(cat, "vmm_disabled");
-
-    if (discord_presence)
-        ini_section_set_int(cat, "discord_presence", discord_presence);
-    else
-        ini_section_delete_var(cat, "discord_presence");
 
     if (vmm_path_cfg[0] != 0) {
         /* Save path as relative to the EXE path in portable mode */
@@ -3201,14 +3350,50 @@ save_global_keybinds(void)
     ini_delete_section_if_empty(global, cat);
 }
 
+static void
+save_global_manager(void)
+{
+    ini_section_t cat = ini_find_or_create_section(global, "Manager");
+
+    if (vmm_discord_presence)
+        ini_section_set_int(cat, "discord_presence", vmm_discord_presence);
+    else
+        ini_section_delete_var(cat, "discord_presence");
+
+    if (vmm_update_check != 1)
+        ini_section_set_int(cat, "update_check", vmm_update_check);
+    else
+        ini_section_delete_var(cat, "update_check");
+
+    if (vmm_regex_search)
+        ini_section_set_int(cat, "regex_search", vmm_regex_search);
+    else
+        ini_section_delete_var(cat, "regex_search");
+
+    if (vmm_window_remember)
+        ini_section_set_int(cat, "window_remember", vmm_window_remember);
+    else
+        ini_section_delete_var(cat, "window_remember");
+
+    if (vmm_delete_to_trash)
+        ini_section_set_int(cat, "delete_to_trash", vmm_delete_to_trash);
+    else
+        ini_section_delete_var(cat, "delete_to_trash");
+
+    ini_delete_section_if_empty(global, cat);
+}
+
 /* Save global configuration */
 static void
 save_global(void)
 {
+    save_global_general();
     save_global_emulator();
     save_global_input();
 
     save_global_keybinds();
+
+    save_global_manager();
 }
 
 /* Save scan code mappings. */
@@ -3500,6 +3685,23 @@ save_machine(void)
             ini_section_delete_var(cat, "time_sync");
     else
         ini_section_set_string(cat, "time_sync", "disabled");
+
+    /* At most one of the two year settings is written. Fixed year wins. */
+    if (time_fixed_year != 0) {
+        ini_section_set_int(cat, "time_fixed_year", time_fixed_year);
+        ini_section_delete_var(cat, "time_offset_years");
+    } else if (time_offset_years != 0) {
+        ini_section_set_int(cat, "time_offset_years", time_offset_years);
+        ini_section_delete_var(cat, "time_fixed_year");
+    } else {
+        ini_section_delete_var(cat, "time_offset_years");
+        ini_section_delete_var(cat, "time_fixed_year");
+    }
+
+    if (time_keep_date)
+        ini_section_set_int(cat, "time_keep_date", 1);
+    else
+        ini_section_delete_var(cat, "time_keep_date");
 
     if (pit_mode == -1)
         ini_section_delete_var(cat, "pit_mode");
@@ -3937,6 +4139,30 @@ save_ports(void)
             ini_section_set_string(cat, temp, char_get_device(lpt_ports[c].device)->internal_name);
     }
 
+    if (usb_card_type == 0)
+        ini_section_delete_var(cat, "usb_card");
+    else
+        ini_section_set_string(cat, "usb_card", usb_card_get_internal_name(usb_card_type));
+
+    if (usb_hub_type == 0)
+        ini_section_delete_var(cat, "usb_hub");
+    else
+        ini_section_set_string(cat, "usb_hub", usb_hub_get_internal_name(usb_hub_type));
+
+    if (usb_msd_type == 0)
+        ini_section_delete_var(cat, "usb_msd");
+    else
+        ini_section_set_string(cat, "usb_msd", usb_msd_get_internal_name(usb_msd_type));
+
+    /* Written only for a device the user unplugged. */
+    for (int i = 0; i < USB_SLOTS; i++) {
+        sprintf(temp, "%s_connected", usb_slot_internal_name(i));
+        if (usb_slot_wanted(i))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, 0);
+    }
+
 #if 0
 // TODO: Save
     for (c = 0; c < GAMEPORT_MAX; c++) {
@@ -4263,28 +4489,16 @@ save_other_peripherals(void)
 #ifdef USE_VFIO
     ini_section_t vfio_cat = ini_find_or_create_section(config, "VFIO");
     char          devices[VFIO_DEVICE_MAX * (sizeof(vfio_device_conf[0].location) + 1)];
-    char         *p;
-    char         *token;
-    char         *strtok_save;
 
-    /* Remove the ROM files of the previously saved devices. */
-    p = strdup(ini_section_get_string(vfio_cat, "devices", ""));
-    for (token = strtok_r(p, " ", &strtok_save); token; token = strtok_r(NULL, " ", &strtok_save)) {
-        snprintf(temp, sizeof(temp), "%s_rom_fn", token);
-        ini_section_delete_var(vfio_cat, temp);
-    }
-    free(p);
-
+    /* The ROM files of devices no longer passed through are kept, for
+       when they are again. */
     devices[0] = '\0';
     for (uint8_t c = 0; (c < VFIO_DEVICE_MAX) && vfio_device_conf[c].location[0]; c++) {
         if (devices[0])
             strcat(devices, " ");
         strcat(devices, vfio_device_conf[c].location);
 
-        if (vfio_device_conf[c].rom_fn[0]) {
-            snprintf(temp, sizeof(temp), "%.255s_rom_fn", vfio_device_conf[c].location);
-            ini_section_set_string(vfio_cat, temp, vfio_device_conf[c].rom_fn);
-        }
+        config_save_vfio_rom(vfio_device_conf[c].location, vfio_device_conf[c].rom_fn, vfio_device_conf[c].rom_enable);
     }
 
     if (devices[0])
@@ -4415,6 +4629,18 @@ save_hard_disks(void)
             ini_section_set_string(cat, temp, tmp2);
         }
 
+        sprintf(temp, "hdd_%02i_lpt_port", c + 1);
+        if (!hdd_is_valid(c) || (hdd[c].bus_type != HDD_BUS_LPT))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, hdd[c].channel);
+
+        sprintf(temp, "hdd_%02i_lpt_bridge", c + 1);
+        if (!hdd_is_valid(c) || (hdd[c].bus_type != HDD_BUS_LPT))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_string(cat, temp, hdd_lpt_bridge_get_internal_name(hdd[c].lpt_bridge));
+
         sprintf(temp, "hdd_%02i_scsi_id", c + 1);
         ini_section_delete_var(cat, temp);
 
@@ -4456,25 +4682,28 @@ save_hard_disks(void)
         if (!hdd_is_valid(c) ||
             ((hdd[c].bus_type != HDD_BUS_MFM) && (hdd[c].bus_type != HDD_BUS_ESDI) &&
             (hdd[c].bus_type != HDD_BUS_IDE) && (hdd[c].bus_type != HDD_BUS_SCSI) &&
-            (hdd[c].bus_type != HDD_BUS_ATAPI)))
+            (hdd[c].bus_type != HDD_BUS_ATAPI) && (hdd[c].bus_type != HDD_BUS_LPT)))
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_string(cat, temp, hdd_preset_get_internal_name(hdd[c].speed_preset));
 
         sprintf(temp, "hdd_%02i_vendor", c + 1);
-        if ((hdd[c].bus_type == HDD_BUS_IDE || hdd[c].bus_type == HDD_BUS_ATAPI || hdd[c].bus_type == HDD_BUS_SCSI) &&
+        if ((hdd[c].bus_type == HDD_BUS_IDE || hdd[c].bus_type == HDD_BUS_ATAPI || hdd[c].bus_type == HDD_BUS_SCSI ||
+             hdd[c].bus_type == HDD_BUS_LPT) &&
             hdd_preset_is_generic(hdd[c].speed_preset) && hdd[c].custom_vendor[0])
             ini_section_set_string(cat, temp, hdd[c].custom_vendor);
         else
             ini_section_delete_var(cat, temp);
         sprintf(temp, "hdd_%02i_model", c + 1);
-        if ((hdd[c].bus_type == HDD_BUS_IDE || hdd[c].bus_type == HDD_BUS_ATAPI || hdd[c].bus_type == HDD_BUS_SCSI) &&
+        if ((hdd[c].bus_type == HDD_BUS_IDE || hdd[c].bus_type == HDD_BUS_ATAPI || hdd[c].bus_type == HDD_BUS_SCSI ||
+             hdd[c].bus_type == HDD_BUS_LPT) &&
             hdd_preset_is_generic(hdd[c].speed_preset) && hdd[c].custom_model[0])
             ini_section_set_string(cat, temp, hdd[c].custom_model);
         else
             ini_section_delete_var(cat, temp);
         sprintf(temp, "hdd_%02i_revision", c + 1);
-        if ((hdd[c].bus_type == HDD_BUS_IDE || hdd[c].bus_type == HDD_BUS_ATAPI || hdd[c].bus_type == HDD_BUS_SCSI) &&
+        if ((hdd[c].bus_type == HDD_BUS_IDE || hdd[c].bus_type == HDD_BUS_ATAPI || hdd[c].bus_type == HDD_BUS_SCSI ||
+             hdd[c].bus_type == HDD_BUS_LPT) &&
             hdd_preset_is_generic(hdd[c].speed_preset) && hdd[c].custom_version[0])
             ini_section_set_string(cat, temp, hdd[c].custom_version);
         else
@@ -4590,6 +4819,26 @@ save_floppy_and_cdrom_drives(void)
         else
             ini_section_set_int(cat, temp, cdrom[c].speed);
 
+        sprintf(temp, "cdrom_%02i_dvd_speed", c + 1);
+        if ((cdrom[c].bus_type == 0) || (cdrom[c].dvd_speed == 2) ||
+            (cdrom_get_dvd_speed(cdrom_get_type(c)) != -1))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, cdrom[c].dvd_speed);
+
+        sprintf(temp, "cdrom_%02i_hd_speed", c + 1);
+        if ((cdrom[c].bus_type == 0) || (cdrom[c].hd_speed == 1) ||
+            (cdrom_get_hd_speed(cdrom_get_type(c)) != -1))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, cdrom[c].hd_speed);
+
+        sprintf(temp, "cdrom_%02i_restricted_capacity", c + 1);
+        if ((cdrom[c].bus_type == 0) || (cdrom[c].restricted_capacity == 1))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, cdrom[c].restricted_capacity);
+
         sprintf(temp, "cdrom_%02i_type", c + 1);
         char *tn = cdrom_get_internal_name(cdrom_get_type(c));
         if ((cdrom[c].bus_type == 0) || (cdrom[c].bus_type == CDROM_BUS_MITSUMI) || !strcmp(tn, "86cd"))
@@ -4652,6 +4901,12 @@ save_floppy_and_cdrom_drives(void)
         else
             ini_section_set_int(cat, temp, cdrom[c].res);
 
+        sprintf(temp, "cdrom_%02i_lpt_bridge", c + 1);
+        if ((cdrom[c].bus_type != CDROM_BUS_LPT) || (cdrom[c].lpt_bridge == HDD_LPT_BPCK))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_string(cat, temp, hdd_lpt_bridge_get_internal_name(cdrom[c].lpt_bridge));
+
         sprintf(temp, "cdrom_%02i_image_path", c + 1);
         if ((cdrom[c].bus_type == 0) || (strlen(cdrom[c].image_path) == 0))
             ini_section_delete_var(cat, temp);
@@ -4684,13 +4939,13 @@ save_other_removable_devices(void)
         if (rdisk_drives[c].bus_type == 0) {
             ini_section_delete_var(cat, temp);
         } else {
-            sprintf(tmp2, "%u, %s", rdisk_drives[c].type,
+            sprintf(tmp2, "%u, %s", rdisk_type_to_config(rdisk_drives[c].type),
                     hdd_bus_to_string(rdisk_drives[c].bus_type, 1));
             ini_section_set_string(cat, temp, tmp2);
         }
 
         sprintf(temp, "rdisk_%02i_ide_channel", c + 1);
-        if (rdisk_drives[c].bus_type != RDISK_BUS_ATAPI)
+        if ((rdisk_drives[c].bus_type != RDISK_BUS_ATAPI) && (rdisk_drives[c].bus_type != RDISK_BUS_IDE))
             ini_section_delete_var(cat, temp);
         else {
             sprintf(tmp2, "%u:%u", rdisk_drives[c].ide_channel >> 1,
@@ -4718,6 +4973,12 @@ save_other_removable_devices(void)
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_int(cat, temp, rdisk_drives[c].res);
+
+        sprintf(temp, "rdisk_%02i_lpt_bridge", c + 1);
+        if ((rdisk_drives[c].bus_type != RDISK_BUS_LPT) || (rdisk_drives[c].lpt_bridge == HDD_LPT_EPAT))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_string(cat, temp, hdd_lpt_bridge_get_internal_name(rdisk_drives[c].lpt_bridge));
 
         sprintf(temp, "rdisk_%02i_image_path", c + 1);
         if ((rdisk_drives[c].bus_type == 0) || (strlen(rdisk_drives[c].image_path) == 0))
@@ -4853,12 +5114,43 @@ save_other_removable_devices(void)
     ini_delete_section_if_empty(config, cat);
 }
 
+/*
+   Save the global configuration, for the preferences and when the file was
+   just loaded. Nothing else saves it as a whole, since another instance may
+   have changed it since this one read it: a setting changed outside the
+   preferences is saved on its own with config_save_global_setting().
+ */
 void
 config_save_global(void)
 {
     save_global();                  /* Global */
 
     ini_write(global, global_cfg_path);
+}
+
+/* Save one setting of the global configuration, keeping the rest of the
+   file as it is. */
+void
+config_save_global_setting(const char *head, const char *name)
+{
+    ini_t file = ini_read(global_cfg_path);
+    const char *p;
+
+    if (file == NULL)
+        file = ini_new();
+
+    save_global();
+
+    p = ini_get_string(global, head, name, NULL);
+    if (p != NULL)
+        ini_set_string(file, head, name, p);
+    else {
+        ini_delete_var(file, head, name);
+        ini_delete_section_if_empty(file, ini_find_section(file, head));
+    }
+
+    ini_write(file, global_cfg_path);
+    ini_close(file);
 }
 
 void
@@ -4889,8 +5181,6 @@ config_save(void)
 
     ini_write(config, cfg_path);
 
-    config_save_global();
-
     if (config_mutex)
         thread_release_mutex(config_mutex);
 }
@@ -4900,3 +5190,26 @@ config_get_ini(void)
 {
     return config;
 }
+
+#ifdef USE_VFIO
+/* Save the custom ROM of a VFIO device, passed through or not. It is
+   enabled by default if there is a file. */
+void
+config_save_vfio_rom(const char *location, const char *rom_fn, int rom_enable)
+{
+    ini_section_t cat = ini_find_or_create_section(config, "VFIO");
+    char          temp[512];
+
+    snprintf(temp, sizeof(temp), "%.255s_rom_fn", location);
+    if (rom_fn[0])
+        ini_section_set_string(cat, temp, rom_fn);
+    else
+        ini_section_delete_var(cat, temp);
+
+    snprintf(temp, sizeof(temp), "%.255s_rom_enable", location);
+    if (!!rom_enable == !!rom_fn[0])
+        ini_section_delete_var(cat, temp);
+    else
+        ini_section_set_int(cat, temp, !!rom_enable);
+}
+#endif

@@ -132,7 +132,7 @@ SoftwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
     buf_usage[buf_idx ^ 1].clear();
 
     if (source != origSource)
-        onResize(this->width(), this->height());
+        layoutPicture();
 
     if ((top == 0) && (bottom == h)) {
         update();
@@ -142,7 +142,10 @@ SoftwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
         bottom      = std::min(bottom + 1, h);
         int dtop    = destination.y() + ((top * destination.height()) / h) - 1;
         int dbottom = destination.y() + (((bottom * destination.height()) + h - 1) / h) + 1;
-        update(QRect(destination.x(), dtop, destination.width(), dbottom - dtop));
+        /* The destination is in device pixels, updates are in device-independent ones. */
+        update(QRectF(destination.x() / pixelRatio, dtop / pixelRatio,
+                      destination.width() / pixelRatio, (dbottom - dtop) / pixelRatio)
+                   .toAlignedRect());
     }
 
     if (monitors[r_monitor_index].mon_screenshots) {
@@ -197,9 +200,22 @@ SoftwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 }
 
 void
+SoftwareRenderer::layoutPicture()
+{
+    /* Lay out in device pixels, like the other renderers. */
+    pixelRatio = devicePixelRatioF();
+    onResize(width(), height());
+
+    /* Mouse movement is scaled by the size of the picture, which this renderer has
+       always given in device-independent pixels. */
+    monitors[r_monitor_index].mon_res_x = destination.width() / pixelRatio;
+    monitors[r_monitor_index].mon_res_y = destination.height() / pixelRatio;
+}
+
+void
 SoftwareRenderer::resizeEvent(QResizeEvent *event)
 {
-    onResize(width(), height());
+    layoutPicture();
     QWidget::resizeEvent(event);
 }
 
@@ -229,8 +245,12 @@ SoftwareRenderer::onPaint(QPaintDevice *device)
     painter.fillRect(0, 0, device->width(), device->height(), Qt::black);
 #endif
     if (cur_image != -1) {
+        /* The destination is in device pixels, so that the picture can be drawn at
+           exactly its own size when HiDPI scaling is off. */
+        const QRectF target(destination.x() / pixelRatio, destination.y() / pixelRatio,
+                            destination.width() / pixelRatio, destination.height() / pixelRatio);
         painter.setCompositionMode(QPainter::CompositionMode_Plus);
-        painter.drawImage(destination, *images[cur_image], source);
+        painter.drawImage(target, *images[cur_image], QRectF(source));
         painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
     }
 

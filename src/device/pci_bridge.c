@@ -206,17 +206,29 @@ pci_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
         case 0x22:
         case 0x24:
         case 0x26:
-            val &= 0xf0;    /* SiS datasheets say 0Fh for 1Ch but that's clearly an erratum since the
-                               definition of the bits is identical to the other vendors' AGP bridges. */
+            /* SiS datasheets say 0Fh for 1Ch but that's clearly an erratum since the
+               definition of the bits is identical to the other vendors' AGP bridges.
+               Bits 3-0 are read-only (PCI-to-PCI Bridge Architecture: the I/O
+               window's 16/32-bit and the prefetchable window's 32/64-bit type; the
+               memory window's are reserved), so a write keeps them. */
+            val = (val & 0xf0) | (dev->regs[addr] & 0x0f);
+            break;
+
+        case 0x35:
+        case 0x36:
+        case 0x37:
+            /* Reserved and read 0 on the ALi M5243 (35-3Bh). */
+            if (dev->local == AGP_BRIDGE_ALI_M5243)
+                return;
             break;
 
         case 0x38:
         case 0x39:
         case 0x3a:
         case 0x3b:
-            /* The Intel AGP bridges have no expansion ROM base address:
-               38-3Bh are reserved and read 0. */
-            if (AGP_BRIDGE_INTEL(dev->local))
+            /* The Intel AGP bridges and the ALi M5243 have no expansion ROM
+               base address: 38-3Bh are reserved and read 0. */
+            if (AGP_BRIDGE_INTEL(dev->local) || (dev->local == AGP_BRIDGE_ALI_M5243))
                 return;
             break;
 
@@ -230,10 +242,8 @@ pci_bridge_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 val &= 0x0c;
             else if (AGP_BRIDGE_SIS(dev->local))
                 val &= 0x0e;
-            else if (dev->local == AGP_BRIDGE_ALI_M5247)
+            else if (AGP_BRIDGE_ALI(dev->local))
                 val &= 0x0f;
-            else if (dev->local == AGP_BRIDGE_ALI_M5243)
-                return;
             else if (AGP_BRIDGE(dev->local)) {
                 if ((dev->local == AGP_BRIDGE_INTEL_440BX) || (dev->local == AGP_BRIDGE_INTEL_440GX))
                     val &= 0xed;

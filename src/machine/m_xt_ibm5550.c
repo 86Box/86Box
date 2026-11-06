@@ -2672,6 +2672,11 @@ epoch_nvr_start(nvr_t *nvr)
     /* Initialize the internal and chip times. */
     if (time_sync & TIME_SYNC_ENABLED) {
         /* Use the internal clock's time. */
+        if (time_keep_date) {
+            /* Keep the chip's own date. */
+            epoch_nvr_time_get(nvr->regs, &tm);
+            nvr_time_set_date(&tm);
+        }
         nvr_time_get(&tm);
         epoch_nvr_time_set(nvr->regs, &tm);
     } else {

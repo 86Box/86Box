@@ -126,6 +126,7 @@ option(VNC          "VNC renderer"                                              
 option(MINITRACE    "Enable Chrome tracing using the modified minitrace library" OFF)
 option(GDBSTUB      "Enable GDB stub server for debugging"                       OFF)
 option(AUTOMATION   "Enable the automation control socket"                       OFF)
+option(DISASM       "Disassembler in the memory viewer (Zydis)"                   ON)
 option(DEV_BRANCH   "Development branch"                                         OFF)
 option(DISCORD      "Discord Rich Presence support"                              ON)
 option(LIBASAN      "Enable compilation with the addresss sanitizer"             OFF)
@@ -201,7 +202,6 @@ cmake_dependent_option(ISAMEM_BRAT    "BocaRAM/AT"                              
 cmake_dependent_option(OPL4ML         "OPL4-ML daughterboard"                    ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(SIO_DETECT     "Super I/O Detection Helper"               ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(WACOM          "Wacom Input Devices"                      ON    "DEV_BRANCH"  OFF)
-cmake_dependent_option(XL24           "ATI VGA Wonder XL24 (ATI-28800-6)"        ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(VFIO           "Virtual Function I/O"                     ON    "DEV_BRANCH"  OFF)
 cmake_dependent_option(SOFTMODEM      "AC'97 Softmodem"                          ON    "DEV_BRANCH"  OFF)
 

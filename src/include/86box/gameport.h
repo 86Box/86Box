@@ -64,6 +64,7 @@ typedef struct joystick_t {
     int     (*read_axis)(void *priv, int axis);
     void    (*a0_over)(void *priv);
 
+    int         digital; /* Button lines carry a serial protocol, never hold them */
     int         axis_count;
     int         button_count;
     int         pov_count;

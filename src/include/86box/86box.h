@@ -20,6 +20,8 @@
 #ifndef EMU_86BOX_H
 #define EMU_86BOX_H
 
+#include <stdio.h>
+
 #if defined(__NetBSD__) || defined(__OpenBSD__)
 /* Doesn't compile on NetBSD/OpenBSD without this include */
 #include <stdarg.h>
@@ -223,6 +225,9 @@ extern int      cpu_use_dynarec;            /* (C) cpu uses/needs Dyna */
 extern int      fpu_type;                   /* (C) fpu type */
 extern int      fpu_softfloat;              /* (C) fpu uses softfloat */
 extern int      time_sync;                  /* (C) enable time sync */
+extern int      time_offset_years;          /* (C) year offset for time sync */
+extern int      time_fixed_year;            /* (C) fixed year for time sync (0 = none) */
+extern int      time_keep_date;             /* (C) time sync keeps the guest's own date */
 extern int      hdd_format_type;            /* (C) hard disk file format */
 extern int      confirm_reset;              /* (G) enable reset confirmation */
 extern int      confirm_exit;               /* (G) enable exit confirmation */
@@ -253,7 +258,11 @@ extern int    fm_driver;                    /* (C) select FM sound driver */
 extern int    hook_enabled;                 /* (C) Keyboard hook is enabled */
 extern int    vmm_disabled;                 /* (G) disable built-in manager */
 extern char   vmm_path_cfg[1024];           /* (G) VMs path (unless -E is used) */
-extern int    discord_presence;             /* (G) Discord status: off, name and hardware, hardware only, no details */
+extern int    vmm_discord_presence;         /* (G) Discord status: off, name and hardware, hardware only, no details */
+extern int    vmm_update_check;             /* (G) check for updates when the manager starts */
+extern int    vmm_regex_search;             /* (G) search the manager with regular expressions */
+extern int    vmm_window_remember;          /* (G) remember the manager's window size and position */
+extern int    vmm_delete_to_trash;          /* (G) delete machines to the trash */
 extern int    gdbstub_port;                 /* (C) The GDB stub port. */
 
 extern char exe_path[2048];        /* path (dir) of executable */
@@ -289,7 +298,7 @@ extern void pclog(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 /* Optional per-line log callback for UI consumers (e.g. OSD log viewer). */
 extern void (*pclog_hook)(const char *line);
 extern void always_log(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
-extern void fatal(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
+extern void fatal(const char *fmt, ...) __attribute__ ((noreturn, format (printf, 1, 2)));
 extern void warning(const char *fmt, ...) __attribute__ ((format (printf, 1, 2)));
 
 /* Keep the callable logging ABI, but omit diagnostic argument evaluation in
@@ -338,6 +347,7 @@ extern void do_pause(int p);
 
 extern double isa_timing;
 extern int    io_delay;
+extern int    io_delay_multi;
 extern int    framecountx;
 
 extern volatile int     cpu_thread_run;

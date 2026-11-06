@@ -344,6 +344,8 @@ void
 voodoo_flush(voodoo_t *voodoo)
 {
     voodoo->flush = 1;
+    if (voodoo->swap_pending)
+        thread_set_event(voodoo->wake_fifo_thread);
     if (!FIFO_EMPTY) {
         thread_wait_mutex(voodoo->fifo_mutex);
         voodoo_fifo_run(voodoo);
@@ -365,7 +367,6 @@ void
 voodoo_wait_for_swap_complete(voodoo_t *voodoo)
 {
     while (voodoo->swap_pending) {
-        /* Avoid waiting on wake_fifo_thread here; main thread may be draining the FIFO. */
         thread_wait_mutex(voodoo->swap_mutex);
         if ((voodoo->swap_pending && voodoo->flush) || FIFO_FULL) {
             /*Main thread is waiting for FIFO to empty, so skip vsync wait and just swap*/
@@ -378,13 +379,14 @@ voodoo_wait_for_swap_complete(voodoo_t *voodoo)
             break;
         } else
             thread_release_mutex(voodoo->swap_mutex);
-        /* Yield briefly while waiting for the swap to complete. */
-#ifdef _WIN32
-        /* Sleep(1) can add measurable stalls on Windows. */
-        plat_delay_ms(0);
-#else
-        plat_delay_ms(1);
-#endif
+        /* The vsync swap and voodoo_flush() both signal this event, so this thread
+           resumes at once: a late resume after each swap costs frame rate. Only the
+           FIFO thread gets here, as flush is set whenever the CPU thread runs the
+           FIFO, so the reset can't clear a wake-up meant for it. Testing after the
+           reset means a signal can't be lost; the timeout is only a backstop. */
+        thread_reset_event(voodoo->wake_fifo_thread);
+        if (voodoo->swap_pending && !voodoo->flush)
+            thread_wait_event(voodoo->wake_fifo_thread, 1);
     }
 }
 
@@ -560,8 +562,10 @@ voodoo_fifo_thread(void *param)
                             break;
 
                         case 4: /*JMP AGP*/
-                            if (UNLIKELY(voodoo->type < VOODOO_BANSHEE))
-                                fatal("CMDFIFO0: Not Banshee %08x\n", header);
+                            if (UNLIKELY(voodoo->type < VOODOO_BANSHEE)) {
+                                voodoo_fifo_log("CMDFIFO0: Not Banshee %08x\n", header);
+                                break;
+                            }
 
                             voodoo->cmdfifo_rp     = ((header >> 4) & 0x1fffffc) | (cmdfifo_get(voodoo) << 25);
                             voodoo->cmdfifo_in_agp = 1;
@@ -571,7 +575,7 @@ voodoo_fifo_thread(void *param)
                             break;
 
                         default:
-                            fatal("Bad CMDFIFO0 %08x\n", header);
+                            voodoo_fifo_log("Bad CMDFIFO0 %08x\n", header);
                     }
                     voodoo->cmd_status = (voodoo->cmd_status & ~(1 << 27)) | (voodoo->cmdfifo_in_sub << 27);
                     break;
@@ -609,15 +613,20 @@ voodoo_fifo_thread(void *param)
                     break;
 
                 case 2:
-                    if (voodoo->type < VOODOO_2)
-                        fatal("CMDFIFO2: Not Voodoo 2\n");
+                    if (voodoo->type < VOODOO_2) {
+                        voodoo_fifo_log("CMDFIFO2: Not Voodoo 2\n");
+                        break;
+                    }
                     mask = (header >> 3);
-                    addr = 8;
+                    addr = (voodoo->type >= VOODOO_BANSHEE) ? 8 : SST_bltSrcBaseAddr;
                     while (mask) {
                         if (mask & 1) {
                             uint32_t val = cmdfifo_get(voodoo);
 
-                            voodoo_2d_reg_writel(voodoo, addr, val);
+                            if (voodoo->type >= VOODOO_BANSHEE)
+                                voodoo_2d_reg_writel(voodoo, addr, val);
+                            else
+                                voodoo_cmdfifo_reg_writel(voodoo, addr, val);
                         }
 
                         addr += 4;
@@ -779,7 +788,7 @@ voodoo_fifo_thread(void *param)
 
                 case 6:
                     if (UNLIKELY(voodoo->type < VOODOO_BANSHEE)) {
-                        fatal("CMDFIFO6: Not Banshee %08x %08x\n", header, voodoo->cmdfifo_rp);
+                        voodoo_fifo_log("CMDFIFO6: Not Banshee %08x %08x\n", header, voodoo->cmdfifo_rp);
                     } else {
                         /* The header holds size and space. Four payload words follow. */
                         uint32_t val = header;
@@ -796,7 +805,7 @@ voodoo_fifo_thread(void *param)
                     break;
 
                 default:
-                    fatal("Bad CMDFIFO packet %08x %08x\n", header, voodoo->cmdfifo_rp);
+                    voodoo_fifo_log("Bad CMDFIFO packet %08x %08x\n", header, voodoo->cmdfifo_rp);
             }
 
             end_time = plat_timer_read();
@@ -854,8 +863,10 @@ voodoo_fifo_thread(void *param)
                             break;
 
                         case 4: /*JMP AGP*/
-                            if (UNLIKELY(voodoo->type < VOODOO_BANSHEE))
-                                fatal("CMDFIFO0: Not Banshee %08x\n", header);
+                            if (UNLIKELY(voodoo->type < VOODOO_BANSHEE)) {
+                                voodoo_fifo_log("CMDFIFO0: Not Banshee %08x\n", header);
+                                break;
+                            }
 
                             voodoo->cmdfifo_rp_2     = ((header >> 4) & 0x1fffffc) | (cmdfifo_get_2(voodoo) << 25);
                             voodoo->cmdfifo_in_agp_2 = 1;
@@ -865,7 +876,7 @@ voodoo_fifo_thread(void *param)
                             break;
 
                         default:
-                            fatal("Bad CMDFIFO0 %08x\n", header);
+                            voodoo_fifo_log("Bad CMDFIFO0 %08x\n", header);
                     }
                     voodoo->cmd_status_2 = (voodoo->cmd_status_2 & ~(1 << 27)) | (voodoo->cmdfifo_in_sub_2 << 27);
                     break;
@@ -903,8 +914,10 @@ voodoo_fifo_thread(void *param)
                     break;
 
                 case 2:
-                    if (voodoo->type < VOODOO_2)
-                        fatal("CMDFIFO2: Not Voodoo 2\n");
+                    if (voodoo->type < VOODOO_2) {
+                        voodoo_fifo_log("CMDFIFO2: Not Voodoo 2\n");
+                        break;
+                    }
                     mask = (header >> 3);
                     addr = 8;
                     while (mask) {
@@ -1072,7 +1085,7 @@ voodoo_fifo_thread(void *param)
 
                 case 6:
                     if (UNLIKELY(voodoo->type < VOODOO_BANSHEE)) {
-                        fatal("CMDFIFO6: Not Banshee %08x %08x\n", header, voodoo->cmdfifo_rp);
+                        voodoo_fifo_log("CMDFIFO6: Not Banshee %08x %08x\n", header, voodoo->cmdfifo_rp);
                     } else {
                         uint32_t val = header;
                         banshee_cmd_write(voodoo->priv, 0x00, val >> 5);              /* agpReqSize */
@@ -1088,7 +1101,7 @@ voodoo_fifo_thread(void *param)
                     break;
 
                 default:
-                    fatal("Bad CMDFIFO packet %08x %08x\n", header, voodoo->cmdfifo_rp);
+                    voodoo_fifo_log("Bad CMDFIFO packet %08x %08x\n", header, voodoo->cmdfifo_rp);
             }
 
             end_time = plat_timer_read();

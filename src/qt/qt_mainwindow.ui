@@ -128,6 +128,7 @@
     <addaction name="actionEnd_trace"/>
     <addaction name="separator"/>
     <addaction name="actionMCA_devices"/>
+    <addaction name="actionMemory_viewer"/>
     <addaction name="separator"/>
     <addaction name="actionOpen_printer_tray"/>
     <addaction name="actionOpen_screenshots_folder"/>
@@ -812,6 +813,11 @@
   <action name="actionMCA_devices">
    <property name="text">
     <string>&amp;MCA devices…</string>
+   </property>
+  </action>
+  <action name="actionMemory_viewer">
+   <property name="text">
+    <string>Memory &amp;viewer</string>
    </property>
   </action>
   <action name="actionShow_non_primary_monitors">

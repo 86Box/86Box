@@ -33,6 +33,7 @@
 #include <86box/video.h>
 #include <86box/vid_ati_eeprom.h>
 #include <86box/vid_ega.h>
+#include <86box/plat_unused.h>
 
 void ega_doblit(int wx, int wy, ega_t *ega);
 
@@ -49,7 +50,6 @@ static int             active             = 0;
 uint32_t               pallook16[256];
 uint32_t               pallook64[256];
 static int             ega_type           = EGA_TYPE_IBM;
-static int             old_overscan_color = 0;
 
 /* 3C2 controls default mode on EGA. On VGA, it determines monitor type (mono or colour):
     7=CGA mode (200 lines), 9=EGA mode (350 lines), 8=EGA mode (200 lines). */
@@ -1389,6 +1389,26 @@ ega_write(uint32_t addr, uint8_t val, void *priv)
     }
 }
 
+/* For the memory viewer: the byte ega_read() returns in read mode 0, found
+   without loading the latches or taking wait states. */
+static uint8_t *
+ega_debug_ptr(uint32_t addr, UNUSED(int write), void *priv)
+{
+    ega_t *ega       = (ega_t *) priv;
+    int    readplane = ega->readplane;
+
+    if (ega->chain2_read)
+        readplane = (readplane & 2) | (addr & 1);
+
+    addr = ega_remap_cpu_addr(addr, ega) << 2;
+    if (addr >= ega->vram_limit)
+        return NULL;
+    if ((ega_type == EGA_TYPE_COMPAQ) && (ega->gdcreg[4] & 0x04))
+        return NULL;
+
+    return &ega->vram[addr | readplane];
+}
+
 uint8_t
 ega_read(uint32_t addr, void *priv)
 {
@@ -1440,6 +1460,10 @@ ega_read(uint32_t addr, void *priv)
 void
 ega_init(ega_t *ega, int monitor_type, int is_mono)
 {
+    /* For the memory viewer; here, as machines with the card built in map
+       the same handlers. */
+    mem_debug_add(ega_read, ega_write, ega_debug_ptr);
+
     ega->vram     = calloc(1, 0x40000);
     ega->vrammask = 0x3ffff;
 
@@ -1545,8 +1569,6 @@ ega_init(ega_t *ega, int monitor_type, int is_mono)
 
     ega->vram_limit = 256 * 1024;
     ega->vrammask   = ega->vram_limit - 1;
-
-    old_overscan_color = 0;
 
     /* Color Plane Enable defaults to all four planes enabled. */
     ega->attrregs[0x12] = 0x0f;
