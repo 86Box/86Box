@@ -270,6 +270,7 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "ATI 3D Rage IIC", .new = "ATI Rage IIc PCI" },
         { .old = "ATI 3D Rage IIC AGP", .new = "ATI Rage IIc AGP" },
         { .old = "ATI 3D Rage Pro Turbo AGP (On-Board)", .new = "ATI Rage Pro Turbo AGP (On-Board)" },
+        { .old = "Novell NE2100/NE1500T", .new = "Novell NE2100" },
         { 0 }
     };
 

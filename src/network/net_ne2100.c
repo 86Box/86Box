@@ -273,7 +273,7 @@ static const device_config_t ne2100_config[] = {
 // clang-format on
 
 const device_t ne2100_novell_device = {
-    .name          = "Novell NE2100/NE1500T",
+    .name          = "Novell NE2100",
     .internal_name = "novell_ne2100",
     .flags         = DEVICE_ISA16,
     .local         = 0,
@@ -283,5 +283,6 @@ const device_t ne2100_novell_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = ne2100_config
+    .config        = ne2100_config,
+    .alias         = "Novell NE1500T"
 };
