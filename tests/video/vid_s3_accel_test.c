@@ -636,6 +636,21 @@ test_mixes(void)
     check_small_rect(bg, old, "FRGD_MIX", 0x0007);
 }
 
+/* WRT_MASK (AAE8h) leaves the bitplanes whose bits are 0 as they are. In 32 bpp it is two 16-bit
+   registers, written low half first (86C928 p. 10-12, Vision864 p. 18-12, Vision964 p. 18-12,
+   Trio32/64 p. 18-17, Trio64V+ p. 20-12, S3.TXT lines 1031-1037). */
+static void
+test_wrt_mask(void)
+{
+    uint32_t mask = 0x0ff0f03c & depth_mask();
+    uint32_t old  = 0x5a5a5a5a & depth_mask();
+
+    memset(vram, 0x5a, sizeof(vram));
+    rect_start(10, 20, 4);
+    color_w(0xaae8, mask);
+    check_small_rect((color() & mask) | (old & ~mask), old, "WRT_MASK", mask);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -648,6 +663,7 @@ main(int argc, char **argv)
     run("packed_mmio", test_packed_mmio, C_868 | C_968 | C_TRIO32 | C_TRIO64 | C_TRIO64V | C_TRIO64V2);
     run("rect_scissors", test_rect_scissors, C_ALL);
     run("mixes", test_mixes, C_ALL);
+    run("wrt_mask", test_wrt_mask, C_ALL);
 
     if (verbose)
         print_matrix();
