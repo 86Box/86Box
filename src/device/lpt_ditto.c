@@ -39,13 +39,6 @@
 #include <86box/ui.h>
 #include <86box/tape_qic117.h>
 
-/*
-   Whether debug logging is enabled.
- */
-#if 1
-#define ENABLE_LPT_DITTO_LOG 1
-#endif
-
 /* STROBE at its literal register value; the rest of the wire is
    lpt_bpck_link.c's. */
 #define LPT_CTRL_STROBE   0x01
