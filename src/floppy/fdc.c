@@ -1399,6 +1399,18 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 else
                                     timer_set_delay_u64(&fdc->timer, 256 * TIMER_USEC);
                                 break;                                
+                            case 0x13: /* Configure */
+                                /*
+                                   No execution phase: the controller is ready for the next
+                                   command right away. The Windows 98 QIC-117 tape driver
+                                   (DRVWQ117) gives it about 100 us before it resets the
+                                   controller and tries again; each try nests on the 4 KB
+                                   stack it probes from, and a hundred of them run into its
+                                   own variables, corrupting the stack pointer it switches
+                                   back to.
+                                 */
+                                timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
+                                break;
                             default:
                                 timer_set_delay_u64(&fdc->timer, 256 * TIMER_USEC);
                                 break;
