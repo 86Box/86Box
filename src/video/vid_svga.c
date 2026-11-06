@@ -1186,12 +1186,8 @@ svga_recalctimings(svga_t *svga)
 
     crtcconst = svga->clock * (double) svga->char_width;
     if (ibm8514_active && (svga->dev8514 != NULL)) {
-        if (dev->on) {
-            if (ATI_MACH32)
-                crtcconst = svga->clock * 8;
-            else
-                crtcconst8514 = svga->clock_8514 * 8;
-        }
+        if (dev->on)
+            crtcconst8514 = svga->clock_8514 * 8;
     }
     if (xga_active && (svga->xga != NULL)) {
         if (xga->on)
@@ -1237,7 +1233,10 @@ svga_recalctimings(svga_t *svga)
 
     if (ibm8514_active && (svga->dev8514 != NULL)) {
         if (dev->on) {
-            if (!ATI_MACH32) {
+            if (ATI_MACH32) {
+                disptime8514 = ((double) (uint32_t) svga->htotal) * svga->multiplier;
+                _dispontime8514 = (double) (uint32_t) svga->hdisp_time;
+            } else {
                 disptime8514 = (double) (uint32_t) dev->h_total;
                 _dispontime8514 = (double) (uint32_t) dev->h_disp_time;
             }
@@ -1254,15 +1253,6 @@ svga_recalctimings(svga_t *svga)
     if (svga->seqregs[1] & 8) {
         disptime *= 2.0;
         _dispontime *= 2.0;
-
-        if (ibm8514_active && (svga->dev8514 != NULL)) {
-            if (dev->on) {
-                if (ATI_MACH32) {
-                    disptime /= 2.0;
-                    _dispontime /= 2.0;
-                }
-            }
-        }
     }
 
 #ifdef USE_HEXT
@@ -1295,7 +1285,19 @@ svga_recalctimings(svga_t *svga)
 
         case 1: /*Plus 8514/A*/
             if (dev->on) {
-                if (!ATI_MACH32) {
+                if (ATI_MACH32) {
+                    _dispofftime8514 = disptime8514 - _dispontime8514;
+                    svga_log("DISPTIME8514=%lf, off=%lf, DISPONTIME8514=%lf, CRTCCONST8514=%lf.\n", disptime8514, _dispofftime8514, _dispontime8514, crtcconst8514);
+                    _dispontime8514 *= crtcconst8514;
+                    _dispofftime8514 *= crtcconst8514;
+
+                    svga->dispontime  = (uint64_t) (int64_t) round(_dispontime8514);
+                    svga->dispofftime = (uint64_t) (int64_t) round(_dispofftime8514);
+                    if (svga->dispontime < TIMER_USEC)
+                        svga->dispontime = TIMER_USEC;
+                    if (svga->dispofftime < TIMER_USEC)
+                        svga->dispofftime = TIMER_USEC;
+                } else {
                     _dispofftime8514 = disptime8514 - _dispontime8514;
                     svga_log("DISPTIME8514=%lf, off=%lf, DISPONTIME8514=%lf, CRTCCONST8514=%lf.\n", disptime8514, _dispofftime8514, _dispontime8514, crtcconst8514);
                     _dispontime8514 *= crtcconst8514;
@@ -1333,8 +1335,21 @@ svga_recalctimings(svga_t *svga)
 
         case 3: /*Plus 8514/A and XGA*/
             if (dev->on) {
-                if (!ATI_MACH32) {
+                if (ATI_MACH32) {
                     _dispofftime8514 = disptime8514 - _dispontime8514;
+                    svga_log("DISPTIME8514=%lf, off=%lf, DISPONTIME8514=%lf, CRTCCONST8514=%lf.\n", disptime8514, _dispofftime8514, _dispontime8514, crtcconst8514);
+                    _dispontime8514 *= crtcconst8514;
+                    _dispofftime8514 *= crtcconst8514;
+
+                    svga->dispontime  = (uint64_t) (int64_t) round(_dispontime8514);
+                    svga->dispofftime = (uint64_t) (int64_t) round(_dispofftime8514);
+                    if (svga->dispontime < TIMER_USEC)
+                        svga->dispontime = TIMER_USEC;
+                    if (svga->dispofftime < TIMER_USEC)
+                        svga->dispofftime = TIMER_USEC;
+                } else {
+                    _dispofftime8514 = disptime8514 - _dispontime8514;
+                    svga_log("DISPTIME8514=%lf, off=%lf, DISPONTIME8514=%lf, CRTCCONST8514=%lf.\n", disptime8514, _dispofftime8514, _dispontime8514, crtcconst8514);
                     _dispontime8514 *= crtcconst8514;
                     _dispofftime8514 *= crtcconst8514;
 
@@ -1344,8 +1359,6 @@ svga_recalctimings(svga_t *svga)
                         dev->dispontime = TIMER_USEC;
                     if (dev->dispofftime < TIMER_USEC)
                         dev->dispofftime = TIMER_USEC;
-
-
                 }
                 ibm8514_set_poll(svga);
             } else if (xga->on) {
