@@ -2381,9 +2381,11 @@ s3_hwcursor_draw(svga_t *svga, int displine)
                         fg = svga->pallook[svga->crtc[0xe]];
                         bg = svga->pallook[svga->crtc[0xf]];
                     } else {
-                        if (!(svga->crtc[0x45] & 0x04)) {
-                            shift = 2;
-                            width = 8;
+                        if (s3->chip != S3_86C805I) {
+                            if (!(svga->crtc[0x45] & 0x04)) {
+                                shift = 2;
+                                width = 8;
+                            }
                         }
                         fg = video_15to32[s3->hwc_fg_col & 0xffff];
                         bg = video_15to32[s3->hwc_bg_col & 0xffff];
@@ -2409,9 +2411,11 @@ s3_hwcursor_draw(svga_t *svga, int displine)
                         fg = svga->pallook[svga->crtc[0xe]];
                         bg = svga->pallook[svga->crtc[0xf]];
                     } else {
-                        if (!(svga->crtc[0x45] & 0x04)) {
-                            shift = 2;
-                            width = 8;
+                        if (s3->chip != S3_86C805I) {
+                            if (!(svga->crtc[0x45] & 0x04)) {
+                                shift = 2;
+                                width = 8;
+                            }
                         }
                         fg = video_16to32[s3->hwc_fg_col & 0xffff];
                         bg = video_16to32[s3->hwc_bg_col & 0xffff];
@@ -3232,9 +3236,11 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                     if ((val & ~0x30) == (old & ~0x30))
                         old = val;
                     break;
+
                 case 0x32:
                     s3_update_irqs(s3);
                     break;
+
                 case 0x31:
                     s3->ma_ext             = (s3->ma_ext & 0x1c) | ((val & 0x30) >> 4);
                     svga->force_dword_mode = !!(val & 0x08);
@@ -3341,18 +3347,13 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                     if (s3->chip >= S3_TRIO32) {
                         if (svga->bpp == 32)
                             svga->hwcursor.x <<= 1;
-                    } else if ((s3->chip >= S3_86C928) && (s3->chip <= S3_86C805)) {
-                        if ((svga->bpp == 15) || (svga->bpp == 16))
-                            svga->hwcursor.x >>= (svga->crtc[0x45] & 0x04) ? 1 : 2;
-                        else if (svga->bpp == 24)
-                            svga->hwcursor.x /= 3;
-                        else if (svga->bpp == 32)
-                            svga->hwcursor.x <<= 1;
-                    } else if (s3->chip <= S3_86C924) {
+                    } else if (s3->chip <= S3_86C805) {
                         if ((svga->bpp == 15) || (svga->bpp == 16))
                             svga->hwcursor.x >>= 1;
                         else if (svga->bpp == 24)
                             svga->hwcursor.x /= 3;
+                        else if (svga->bpp == 32)
+                            svga->hwcursor.x <<= 1;
                     }
                     s3_log("Write CRTC46=%02x, CRTC47=%02x, CRTC45=%02x.\n", svga->crtc[0x46], svga->crtc[0x47], svga->crtc[0x45]);
                     break;
@@ -4249,6 +4250,7 @@ s3_recalctimings(svga_t *svga)
                         switch (s3->ramdac_type) {
                             case S3_SDAC: /*S3 SDAC/GENDAC RAMDAC with its clock chip*/
                             case ATT49X: /*AT&T 490/1/2 RAMDAC*/
+                            case SC1502X: /*SC15025 RAMDAC*/
                                 svga->hdisp >>= 1;
                                 if (svga->dots_per_clock == 16) {
                                     svga->clock *= 2.0;
@@ -4454,6 +4456,7 @@ s3_recalctimings(svga_t *svga)
                         switch (s3->ramdac_type) {
                             case S3_SDAC: /*S3 SDAC/GENDAC RAMDAC with its clock chip*/
                             case ATT49X: /*AT&T 490/1/2 RAMDAC*/
+                            case SC1502X: /*SC15025 RAMDAC*/
                                 svga->hdisp >>= 1;
                                 if (svga->dots_per_clock == 16) {
                                     svga->clock *= 2.0;
@@ -4663,7 +4666,7 @@ s3_recalctimings(svga_t *svga)
                         if (!svga->chain4)
                             svga->chain4 |= 0x08;
                         switch (s3->ramdac_type) {
-                            case S3_SDAC:
+                            case S3_SDAC: /*S3 SDAC/GENDAC RAMDAC with its clock chip*/
                                 if (s3->card_type == S3_SPEA_MIRAGE_86C805) {
                                     svga->hdisp = (svga->hdisp / 3) << 1;
                                     svga->dots_per_clock = (svga->dots_per_clock / 3) << 1;
@@ -4673,7 +4676,8 @@ s3_recalctimings(svga_t *svga)
                                 }
                                 svga->clock *= 2.0;
                                 break;
-                            case ATT49X:
+                            case ATT49X: /*AT&T 490/1/2 RAMDAC*/
+                            case SC1502X: /*SC15025 RAMDAC*/
                                 svga->hdisp /= 3;
                                 svga->dots_per_clock /= 3;
                                 svga->clock *= 2.0;
@@ -4946,6 +4950,12 @@ s3_recalctimings(svga_t *svga)
             svga->hoverride = 1;
         else if ((s3->bpp == 2) && enhanced_8bpp_modes)
             svga->hoverride = 1;
+        else if (((s3->bpp == 0) || (s3->bpp == 3)) && (svga->bpp == 24) && enhanced_8bpp_modes) /*Windows 95 80x drivers at 24bpp uses Pixel BPP 3 in S3 Enhanced Modes*/
+            svga->hoverride = 1;
+        else if ((s3->chip <= S3_86C805I) && enhanced_8bpp_modes) /*More issues going on with the SPEA V7 Mirage ISA/VL drivers with horizontal displays*/
+            svga->hoverride = 1;
+
+        s3_log("Color16bit=%x, vgabpp=%d, enhanced8bpp=%d, pixelbpp=%d.\n", s3->color_16bit, svga->bpp, enhanced_8bpp_modes, s3->bpp);
     }
     if (svga->render == svga_render_2bpp_lowres)
         svga->render = svga_render_2bpp_s3_lowres;

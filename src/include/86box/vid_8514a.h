@@ -78,6 +78,7 @@ typedef struct ibm8514_t {
     int force_old_addr;
     int type;
     ibm8514_card_type local;
+    uint32_t card_variant;
     int bpp;
     int on;
     int accel_bpp;

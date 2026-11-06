@@ -199,39 +199,41 @@ ics2494_init(const device_t *info)
             break;
         case 1:
             /* ATI 18811-0/ATI 18812-0 for ATI 28800 */
-            ics2494->freq[0] = 42950000.0;
-            ics2494->freq[1] = 48770000.0;
-            ics2494->freq[2] = 92400000.0;
-            ics2494->freq[3] = 36000000.0;
-            ics2494->freq[4] = 50350000.0;
-            ics2494->freq[5] = 56640000.0;
-            ics2494->freq[7] = 44900000.0;
-            ics2494->freq[8] = 30240000.0;
-            ics2494->freq[9] = 32000000.0;
-            ics2494->freq[10] = 110000000.0;
-            ics2494->freq[11] = 80000000.0;
-            ics2494->freq[12] = 39910000.0;
-            ics2494->freq[13] = 44900000.0;
-            ics2494->freq[14] = 75000000.0;
-            ics2494->freq[15] = 65000000.0;
+            ics2494->freq[0] =   30240000.0;
+            ics2494->freq[1] =   32000000.0;
+            ics2494->freq[2] =  110000000.0;
+            ics2494->freq[3] =   80000000.0;
+            ics2494->freq[4] =   42954000.0;
+            ics2494->freq[5] =   48771000.0;
+            ics2494->freq[6] =   92400000.0;
+            ics2494->freq[7] =   36000000.0;
+            ics2494->freq[8] =   39910000.0;
+            ics2494->freq[9] =   44900000.0;
+            ics2494->freq[10] =  75000000.0;
+            ics2494->freq[11] =  65000000.0;
+            ics2494->freq[12] =  50350000.0;
+            ics2494->freq[13] =  56640000.0;
+            ics2494->freq[14] =  14318184.0; /*Doesn't seem to generate anything, but who knows*/
+            ics2494->freq[15] =  44900000.0;
             break;
         case 2:
             /* ATI 18811-1/ATI 18811-2 for ATI 28800 */
-            ics2494->freq[0] = 100000000.0;
-            ics2494->freq[1] = 126000000.0;
-            ics2494->freq[2] = 92400000.0;
-            ics2494->freq[3] = 36000000.0;
-            ics2494->freq[4] = 50350000.0;
-            ics2494->freq[5] = 56640000.0;
-            ics2494->freq[7] = 44900000.0;
-            ics2494->freq[8] = 135000000.0;
-            ics2494->freq[9] = 32000000.0;
-            ics2494->freq[10] = 110000000.0;
-            ics2494->freq[11] = 80000000.0;
-            ics2494->freq[12] = 39910000.0;
-            ics2494->freq[13] = 44900000.0;
-            ics2494->freq[14] = 75000000.0;
-            ics2494->freq[15] = 65000000.0;
+            ics2494->freq[0] =  135000000.0;
+            ics2494->freq[1] =   32000000.0;
+            ics2494->freq[2] =  110000000.0;
+            ics2494->freq[3] =   80000000.0;
+            ics2494->freq[4] =  100000000.0;
+            ics2494->freq[5] =  126000000.0;
+            ics2494->freq[6] =   92400000.0;
+            ics2494->freq[7] =   36000000.0;
+            ics2494->freq[8] =   39910000.0;
+            ics2494->freq[9] =   44900000.0;
+            ics2494->freq[10] =  75000000.0;
+            ics2494->freq[11] =  65000000.0;
+            ics2494->freq[12] =  50350000.0;
+            ics2494->freq[13] =  56640000.0;
+            ics2494->freq[14] =  14318184.0; /*Doesn't seem to generate anything, but who knows*/
+            ics2494->freq[15] =  44900000.0;
             break;
         case 100:
             /* ATI 18810 for ATI Mach32 */
@@ -253,38 +255,57 @@ ics2494_init(const device_t *info)
             ics2494->freq[15] = 65000000.0;
             break;
         case 101:
-            /* ATI 18811-0/ATI 18812-0 for ATI Mach32 */
-            ics2494->freq[0] = 42954000.0;
-            ics2494->freq[1] = 48771000.0;
-            ics2494->freq[2] = 92400000.0;
-            ics2494->freq[3] = 36000000.0;
-            ics2494->freq[4] = 30240000.0;
-            ics2494->freq[5] = 32000000.0;
-            ics2494->freq[6] = 110000000.0;
-            ics2494->freq[7] = 80000000.0;
-            ics2494->freq[8] = 50350000.0;
-            ics2494->freq[9] = 56640000.0;
-            ics2494->freq[10] = 0.0;
-            ics2494->freq[11] = 44900000.0;
-            ics2494->freq[12] = 39910000.0;
-            ics2494->freq[13] = 44900000.0;
-            ics2494->freq[14] = 75000000.0;
-            ics2494->freq[15] = 65000000.0;
+            /* ATI 18811-0/ATI 18812-0 for ATI Mach8/32 */
+            ics2494->freq[0] =   42954000.0;
+            ics2494->freq[1] =   48771000.0;
+            ics2494->freq[2] =   92400000.0;
+            ics2494->freq[3] =   36000000.0;
+            ics2494->freq[4] =   50350000.0;
+            ics2494->freq[5] =   56640000.0;
+            ics2494->freq[6] =   14318184.0; /*Doesn't seem to generate anything, but who knows*/
+            ics2494->freq[7] =   44900000.0;
+            ics2494->freq[8] =   30240000.0;
+            ics2494->freq[9] =   32000000.0;
+            ics2494->freq[10] = 110000000.0;
+            ics2494->freq[11] =  80000000.0;
+            ics2494->freq[12] =  39910000.0;
+            ics2494->freq[13] =  44900000.0;
+            ics2494->freq[14] =  75000000.0;
+            ics2494->freq[15] =  65000000.0;
             break;
         case 102:
-            /* ATI 18811-1/ATI 18811-2 for ATI Mach32 */
+            /* ATI 18811-1/ATI 18811-2 for ATI Mach8/32 */
             ics2494->freq[0] =  100000000.0;
             ics2494->freq[1] =  126000000.0;
             ics2494->freq[2] =   92400000.0;
             ics2494->freq[3] =   36000000.0;
             ics2494->freq[4] =   50350000.0;
             ics2494->freq[5] =   56640000.0;
-            ics2494->freq[6] =   14318184.0;
+            ics2494->freq[6] =   14318184.0; /*Doesn't seem to generate anything, but who knows*/
             ics2494->freq[7] =   44900000.0;
             ics2494->freq[8] =  135000000.0;
             ics2494->freq[9] =   32000000.0;
             ics2494->freq[10] = 110000000.0;
             ics2494->freq[11] =  80000000.0;
+            ics2494->freq[12] =  39910000.0;
+            ics2494->freq[13] =  44900000.0;
+            ics2494->freq[14] =  75000000.0;
+            ics2494->freq[15] =  65000000.0;
+            break;
+        case 103:
+            /* ATI 18811-1/ATI 18811-2 for ATI Mach32 VGA Wonder compatible  */
+            ics2494->freq[0] =  100000000.0;
+            ics2494->freq[1] =  126000000.0;
+            ics2494->freq[2] =   92400000.0;
+            ics2494->freq[3] =   36000000.0;
+            ics2494->freq[4] =  135000000.0;
+            ics2494->freq[5] =   32000000.0;
+            ics2494->freq[6] =  110000000.0;
+            ics2494->freq[7] =   80000000.0;
+            ics2494->freq[8] =   50350000.0;
+            ics2494->freq[9] =   56640000.0;
+            ics2494->freq[10] =  14318184.0; /*Doesn't seem to generate anything, but who knows*/
+            ics2494->freq[11] =  44900000.0;
             ics2494->freq[12] =  39910000.0;
             ics2494->freq[13] =  44900000.0;
             ics2494->freq[14] =  75000000.0;
@@ -515,6 +536,20 @@ const device_t ati18811_1_mach32_device = {
     .internal_name = "ati18811_1_mach32",
     .flags         = 0,
     .local         = 102,
+    .init          = ics2494_init,
+    .close         = ics2494_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t ati18811_1_mach32_vga_device = {
+    .name          = "ATI 18811-1 (ATI Mach32) VGA Clock Generator",
+    .internal_name = "ati18811_1_mach32_vga",
+    .flags         = 0,
+    .local         = 103,
     .init          = ics2494_init,
     .close         = ics2494_close,
     .reset         = NULL,
