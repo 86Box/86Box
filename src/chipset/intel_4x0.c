@@ -99,7 +99,16 @@ i4x0_map(i4x0_t *dev, uint32_t addr, uint32_t size, int state)
     if (dev->mem_state[base] != state) {
         mem_set_mem_state_both(addr, size, states[state]);
         dev->mem_state[base] = state;
-        flushmmucache_nopc();
+        /*
+         * With the CPU cache disabled, the next instruction is fetched through
+         * the new mapping, so the current code page has to go as well: the
+         * IBM PC 7x0 BIOS switches F0000h from shadow RAM back to ROM this way
+         * when it restarts.
+         */
+        if (cr0 & (1 << 30))
+            flushmmucache();
+        else
+            flushmmucache_nopc();
         /* Also invalidate the range for this block, properly fixes P2B-LS soft reset. */
         mem_invalidate_range(addr, addr + size - 1);
     }

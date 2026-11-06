@@ -62,3 +62,19 @@ if(BUILD_TESTING)
     include(GoogleTest)
     gtest_discover_tests(kbc_vectra_tests)
 endif()
+
+if(BUILD_TESTING)
+    add_executable(ibm_pc700_power_tests
+        ibm_pc700_power_test.cpp
+        ../../src/device/ibm_pc700_power.c
+    )
+
+    target_include_directories(ibm_pc700_power_tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_BINARY_DIR}/src/include
+    )
+    target_link_libraries(ibm_pc700_power_tests PRIVATE GTest::gtest_main)
+
+    include(GoogleTest)
+    gtest_discover_tests(ibm_pc700_power_tests)
+endif()
