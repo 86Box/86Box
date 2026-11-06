@@ -555,7 +555,7 @@ static const device_config_t in620_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "AwardBIOS v4.51PG - Retail v1.00",
+                .name          = "AwardBIOS v4.51PG - Revision 1.00",
                 .internal_name = "in620_100",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -564,7 +564,7 @@ static const device_config_t in620_config[] = {
                 .files         = { "roms/machines/in620/102100.BIN", "" }
             },
             {
-                .name          = "AwardBIOS v4.51PG - Packard Bell v1.08",
+                .name          = "AwardBIOS v4.51PG - Revision 1.08 (Packard Bell)",
                 .internal_name = "in620_108",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -573,7 +573,7 @@ static const device_config_t in620_config[] = {
                 .files         = { "roms/machines/in620/724108.bin", "" }
             },
             {
-                .name          = "AwardBIOS v4.51PG - Monorail v1.20",
+                .name          = "AwardBIOS v4.51PG - Revision 1.20 (Monorail)",
                 .internal_name = "in620_120",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,

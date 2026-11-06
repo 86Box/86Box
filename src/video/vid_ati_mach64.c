@@ -5503,7 +5503,7 @@ const device_t mach64gtb_device = {
 
 /* The 3D Rage IIC (PCI). */
 const device_t mach64gtc_device = {
-    .name          = "ATI 3D Rage IIC",
+    .name          = "ATI Rage IIc PCI",
     .internal_name = "mach64_rage2c",
     .flags         = DEVICE_PCI,
     .local         = MACH64_GTB | MACH64_FLAG_RAGE2C,
@@ -5518,7 +5518,7 @@ const device_t mach64gtc_device = {
 
 /* The 3D Rage IIC (AGP FRAME/PCI-66). */
 const device_t mach64gtc_agp_device = {
-    .name          = "ATI 3D Rage IIC AGP",
+    .name          = "ATI Rage IIc AGP",
     .internal_name = "mach64_rage2c_agp",
     .flags         = DEVICE_AGP,
     .local         = MACH64_GTB | MACH64_FLAG_RAGE2C,
@@ -5544,7 +5544,7 @@ const device_t mach64ragepro_device = {
     .speed_changed = mach64_speed_changed,
     .force_redraw  = mach64_force_redraw,
     .config        = mach64ragepro_config,
-    .alias         = "ATI 3D Rage Pro Turbo AGP"
+    .alias         = "ATI Rage Pro Turbo AGP"
 };
 
 /* The 3D Rage Pro (PCI). */
@@ -5593,7 +5593,7 @@ const device_t mach64ragelt_agp_device = {
 };
 
 const device_t mach64ragepro_onboard_device = {
-    .name          = "ATI 3D Rage Pro Turbo AGP (On-Board)",
+    .name          = "ATI Rage Pro Turbo AGP (On-Board)",
     .internal_name = "mach64_ragepro_onboard",
     .flags         = DEVICE_AGP,
     .local         = MACH64_GTB | MACH64_FLAG_RAGEPRO | MACH64_FLAG_ONBOARD,

@@ -399,6 +399,7 @@ extern const device_t mach64gtc_agp_device;
 extern const device_t mach64ragepro_device;
 extern const device_t mach64ragepro_pci_device;
 extern const device_t mach64ragexl_pci_device;
+extern const device_t mach64ragexl_agp_device; /* Not yet ready */
 extern const device_t mach64ragelt_agp_device;
 extern const device_t mach64ragepro_onboard_device;
 extern const device_t mach64vt3_onboard_device;
@@ -662,9 +663,6 @@ extern const device_t ps1vga_mca_device;
 
 /* 3DFX Voodoo Graphics */
 extern const device_t voodoo_device;
-
-/* PowerVR PCX1/PCX2 */
-extern const device_t powervr_pcx_device;
 extern const device_t voodoo_banshee_pci_device;
 extern const device_t voodoo_banshee_agp_device;
 extern const device_t voodoo_3_1000_device;
@@ -677,6 +675,9 @@ extern const device_t voodoo_3_3000_agp_device;
 extern const device_t voodoo_3_3500_agp_device;
 extern const device_t velocity_100_agp_device;
 extern const device_t velocity_200_agp_device;
+
+/* PowerVR PCX1/PCX2 */
+extern const device_t powervr_pcx_device;
 
 /* Wyse 700 */
 extern const device_t wy700_device;
