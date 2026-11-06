@@ -24,6 +24,64 @@ void svga_writel_linear(uint32_t addr, uint32_t val, void *priv) { abort(); }
 uint8_t xga_read_test(uint32_t addr, void *priv) { abort(); }
 void xga_write_test(uint32_t addr, uint8_t val, void *priv) { abort(); }
 
+/* Outside the tested paths; the shared ones are in vid_s3_test_stubs.c. */
+int xga_active;
+// clang-format off
+void bt48x_hwcursor_draw(svga_t *svga, int displine) { abort(); }
+void bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga) { abort(); }
+uint8_t bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga) { abort(); }
+void att49x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga) { abort(); }
+uint8_t att49x_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga) { abort(); }
+void att498_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga) { abort(); }
+uint8_t att498_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga) { abort(); }
+void ibm_rgb528_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga) { abort(); }
+uint8_t ibm_rgb528_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga) { abort(); }
+void mu9c1880_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga) { abort(); }
+uint8_t mu9c1880_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga) { abort(); }
+void sc1148x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga) { abort(); }
+uint8_t sc1148x_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga) { abort(); }
+void sc1502x_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga) { abort(); }
+uint8_t sc1502x_ramdac_in(uint16_t addr, void *priv, svga_t *svga) { abort(); }
+void sdac_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga) { abort(); }
+uint8_t sdac_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga) { abort(); }
+void stg_ramdac_out(uint16_t addr, uint8_t val, void *priv, svga_t *svga) { abort(); }
+uint8_t stg_ramdac_in(uint16_t addr, void *priv, svga_t *svga) { abort(); }
+void tvp3026_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga) { abort(); }
+uint8_t tvp3026_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga) { abort(); }
+bool nmc93cxx_eeprom_read(nmc93cxx_eeprom_t *dev) { abort(); }
+void nmc93cxx_eeprom_write(nmc93cxx_eeprom_t *dev, bool eecs, bool eesk, bool eedi) { abort(); }
+void i2c_gpio_set(void *dev_handle, uint8_t scl, uint8_t sda) { abort(); }
+uint8_t i2c_gpio_get_sda(void *dev_handle) { abort(); }
+uint8_t i2c_gpio_get_scl(void *dev_handle) { abort(); }
+void io_sethandler(uint16_t base, uint16_t size, uint8_t (*inb)(uint16_t port, void *priv),
+                   uint16_t (*inw)(uint16_t port, void *priv), uint32_t (*inl)(uint16_t port, void *priv),
+                   void (*outb)(uint16_t port, uint8_t val, void *priv), void (*outw)(uint16_t port, uint16_t val, void *priv),
+                   void (*outl)(uint16_t port, uint32_t val, void *priv), void *priv) { abort(); }
+void io_removehandler(uint16_t base, uint16_t size, uint8_t (*inb)(uint16_t port, void *priv),
+                      uint16_t (*inw)(uint16_t port, void *priv), uint32_t (*inl)(uint16_t port, void *priv),
+                      void (*outb)(uint16_t port, uint8_t val, void *priv), void (*outw)(uint16_t port, uint16_t val, void *priv),
+                      void (*outl)(uint16_t port, uint32_t val, void *priv), void *priv) { abort(); }
+void mem_mapping_enable(mem_mapping_t *map) { abort(); }
+void mem_mapping_disable(mem_mapping_t *map) { abort(); }
+void mem_mapping_set_addr(mem_mapping_t *map, uint32_t base, uint32_t size) { abort(); }
+void mem_mapping_set_handler(mem_mapping_t *map, uint8_t (*read_b)(uint32_t addr, void *priv),
+                             uint16_t (*read_w)(uint32_t addr, void *priv),
+                             uint32_t (*read_l)(uint32_t addr, void *priv),
+                             void (*write_b)(uint32_t addr, uint8_t val, void *priv),
+                             void (*write_w)(uint32_t addr, uint16_t val, void *priv),
+                             void (*write_l)(uint32_t addr, uint32_t val, void *priv)) { abort(); }
+void pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state) { abort(); }
+uint64_t plat_timer_read(void) { abort(); }
+void thread_set_event(event_t *arg) { abort(); }
+void thread_reset_event(event_t *arg) { abort(); }
+int thread_wait_event(event_t *arg, int timeout) { abort(); }
+uint8_t svga_in(uint16_t addr, void *priv) { abort(); }
+void svga_out(uint16_t addr, uint8_t val, void *priv) { abort(); }
+void svga_recalctimings(svga_t *svga) { abort(); }
+void svga_vert_int_crtc_write(svga_t *svga) { abort(); }
+int svga_vert_int_active(const svga_t *svga) { abort(); }
+// clang-format on
+
 static float
 test_clock(int clock, void *priv)
 {

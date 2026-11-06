@@ -143,7 +143,9 @@ uint8_t i2c_gpio_get_scl(void *dev_handle) { abort(); }
 uint8_t svga_in(uint16_t addr, void *priv) { abort(); }
 uint8_t svga_read_linear(uint32_t addr, void *priv) { abort(); }
 uint16_t svga_readw_linear(uint32_t addr, void *priv) { abort(); }
+uint32_t svga_readl_linear(uint32_t addr, void *priv) { abort(); }
 void svga_write_linear(uint32_t addr, uint8_t val, void *priv) { abort(); }
+void svga_writew_linear(uint32_t addr, uint16_t val, void *priv) { abort(); }
 void svga_writel_linear(uint32_t addr, uint32_t val, void *priv) { abort(); }
 uint8_t xga_read_test(uint32_t addr, void *priv) { abort(); }
 void xga_write_test(uint32_t addr, uint8_t val, void *priv) { abort(); }
