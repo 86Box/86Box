@@ -1069,6 +1069,53 @@ const machine_t machines[] = {
         .aliases                  = { "" }
     },
     {
+        .name              = "[8088] ERGODATA Wild XT",
+        .internal_name     = "ergodatawxt",
+        .type              = MACHINE_TYPE_8088,
+        .chipset           = MACHINE_CHIPSET_DISCRETE,
+        .init              = machine_xt_ergodata_init,
+        .p1_handler        = NULL,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_8088,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 0,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_PC,
+        .flags     = MACHINE_FDC, /* Machine has internal video: Paradise PVC2 (not yet implemented) */
+        .ram       = {
+            .min  = 128,
+            .max  = 640,
+            .step = 64
+        },
+        .nvrmask                  = 0,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_xtclone_device,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0xff,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = NULL,
+        .kbd_device               = &keyboard_pc_xt_device,
+        .fdc_device               = &fdc_xt_device,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    {
         .name              = "[8088] Hyundai SUPER-16T",
         .internal_name     = "super16t",
         .type              = MACHINE_TYPE_8088,
