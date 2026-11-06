@@ -1440,7 +1440,6 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                             case 0x0c: /* Read deleted data */
                             case 0x11: /* Scan equal */
                             case 0x12: /* Perpendicular mode */
-                            case 0x13: /* Configure */
                             case 0x16: /* Verify */
                             case 0x19: /* Scan low or equal */
                             case 0x1d: /* Scan high or equal */
