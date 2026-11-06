@@ -233,6 +233,50 @@
             </property>
            </widget>
           </item>
+          <item row="8" column="0" colspan="2">
+           <widget class="QCheckBox" name="checkBoxSoundInput">
+            <property name="text">
+             <string>Enable audio input (mic/line-in)</string>
+            </property>
+           </widget>
+          </item>
+          <item row="9" column="0">
+           <widget class="QLabel" name="labelAudioInputDevice">
+            <property name="text">
+             <string>Audio input device:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="9" column="1" colspan="2">
+           <widget class="QComboBox" name="comboBoxAudioInputDevice">
+            <property name="maxVisibleItems">
+             <number>30</number>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+          <item row="10" column="0">
+           <widget class="QLabel" name="labelAudioInputRate">
+            <property name="text">
+             <string>Audio input sample rate:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="10" column="1" colspan="2">
+           <widget class="QComboBox" name="comboBoxAudioInputRate">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Fixed">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
 
          </layout>
         </widget>
@@ -387,6 +431,9 @@
   <tabstop>checkBoxFloat32</tabstop>
   <tabstop>comboBoxAudioOutputDevice</tabstop>
   <tabstop>comboBoxSampleRate</tabstop>
+  <tabstop>checkBoxSoundInput</tabstop>
+  <tabstop>comboBoxAudioInputDevice</tabstop>
+  <tabstop>comboBoxAudioInputRate</tabstop>
   <tabstop>comboBoxMidiOut</tabstop>
   <tabstop>pushButtonConfigureMidiOut</tabstop>
   <tabstop>comboBoxMidiIn</tabstop>

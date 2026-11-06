@@ -34,5 +34,7 @@
 	<string>NSApplication</string>
 	<key>NSHighResolutionCapable</key>
 	<string>True</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>Lets the emulated sound card record from this Mac's audio input.</string>
 </dict>
 </plist>

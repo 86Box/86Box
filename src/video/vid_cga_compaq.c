@@ -99,10 +99,16 @@ compaq_cga_poll(void *priv)
 
     int32_t  highres_graphics_flag = (CGA_MODE_FLAG_HIGHRES_GRAPHICS | CGA_MODE_FLAG_GRAPHICS);
 
+    /* Bind the monitor macros to this card's own display. */
+    const int prev_monitor_index = monitor_index_global;
+
+    monitor_index_global = dev->monitor_used;
+
     /* If in graphics mode or character height is not 13, behave as CGA */
     if ((dev->cgamode & highres_graphics_flag) || (dev->crtc[CGA_CRTC_MAX_SCANLINE_ADDR] != 13)) {
         overscan_x = overscan_y = 16;
         cga_poll(dev);
+        monitor_index_global = prev_monitor_index;
         return;
     } else
         overscan_x = overscan_y = 0;
@@ -402,6 +408,8 @@ compaq_cga_poll(void *priv)
                 dev->charbuffer[x] = dev->vram[((dev->memaddr << 1) + x) & 0x3fff];
         }
     }
+
+    monitor_index_global = prev_monitor_index;
 }
 
 static void *
@@ -464,6 +472,7 @@ compaq_cga_init(const device_t *info)
     dev->crtc[9] = 13;
 
     monitors[monitor_index_global].mon_composite = !!dev->composite;
+    dev->monitor_used                            = monitor_index_global;
 
     return dev;
 }

@@ -11,9 +11,11 @@
  *
  * Authors: Sarah Walker, <https://pcem-emulator.co.uk/>
  *          Miran Grca, <mgrca8@gmail.com>
+ *          Nathan Lewis, <git@nrlewis.dev>
  *
  *          Copyright 2008-2019 Sarah Walker.
  *          Copyright 2016-2019 Miran Grca.
+ *          Copyright 2026      Nathan Lewis.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -28,10 +30,14 @@
 #include <86box/nvr.h>
 #include <86box/plat.h>
 #include <86box/plat_fallthrough.h>
+#include <86box/flash.h>
 
 #define FLAG_WORD    4
 #define FLAG_BXB     2
 #define FLAG_INV_A16 1
+
+#define CATALYST_AMD    0x01 /* An AMD part, which also takes auto select (80h). */
+#define CATALYST_28F020 0x02 /* The 2 Mbit part. */
 
 enum {
     BLOCK_MAIN1,
@@ -54,26 +60,45 @@ enum {
     CMD_RESET            = 0xFF
 };
 
-typedef struct flash_t {
-    uint8_t command;
-    uint8_t is_amd;
-    uint8_t dirty;
-    uint8_t pad;
+/* The chip. */
+struct catalyst_t {
+    uint8_t  command;
+    uint8_t  is_amd;
+    uint8_t  dirty;
+    uint8_t  write_protect;
+    uint8_t  id;
     uint8_t *array;
+
+    uint32_t size;
+    uint32_t mask;
+    uint32_t lines_mask; /* Address lines the board drives instead of the CPU, */
+    uint32_t lines_val;  /* and their levels. */
+
+    char nvr_path[1024];
+};
+
+/* The chip as the boot BIOS. */
+typedef struct catalyst_bios_t {
+    catalyst_t *chip;
 
     mem_mapping_t mapping;
     mem_mapping_t mapping_h[2];
-} flash_t;
+} catalyst_bios_t;
 
-static char flash_path[1024];
+/* Where the chip sees an access, with the address lines the board drives. */
+static uint32_t
+catalyst_addr(const catalyst_t *dev, uint32_t addr)
+{
+    return ((addr & ~dev->lines_mask) | dev->lines_val) & dev->mask;
+}
 
 static uint8_t
-flash_read(uint32_t addr, void *priv)
+catalyst_read(uint32_t addr, void *priv)
 {
-    const flash_t *dev = (flash_t *) priv;
-    uint8_t        ret = 0xff;
+    const catalyst_t *dev = (catalyst_t *) priv;
+    uint8_t           ret = 0xff;
 
-    addr &= biosmask;
+    addr = catalyst_addr(dev, addr);
 
     switch (dev->command) {
         case CMD_ERASE_VERIFY:
@@ -92,12 +117,12 @@ flash_read(uint32_t addr, void *priv)
                 if (addr == 0x00000)
                     ret = 0x01; /* AMD */
                 else if (addr == 0x00001)
-                    ret = 0xa7; /* Am28F010 */
+                    ret = dev->id;
             } else {
                 if (addr == 0x00000)
                     ret = 0x31; /* CATALYST */
                 else if (addr == 0x00001)
-                    ret = 0xb4; /* 28F010 */
+                    ret = dev->id;
             }
             break;
 
@@ -109,12 +134,12 @@ flash_read(uint32_t addr, void *priv)
 }
 
 static uint16_t
-flash_readw(uint32_t addr, void *priv)
+catalyst_readw(uint32_t addr, void *priv)
 {
-    flash_t        *dev = (flash_t *) priv;
+    catalyst_t     *dev = (catalyst_t *) priv;
     const uint16_t *q;
 
-    addr &= biosmask;
+    addr = catalyst_addr(dev, addr);
 
     q = (uint16_t *) &(dev->array[addr]);
 
@@ -122,12 +147,12 @@ flash_readw(uint32_t addr, void *priv)
 }
 
 static uint32_t
-flash_readl(uint32_t addr, void *priv)
+catalyst_readl(uint32_t addr, void *priv)
 {
-    flash_t        *dev = (flash_t *) priv;
+    catalyst_t     *dev = (catalyst_t *) priv;
     const uint32_t *q;
 
-    addr &= biosmask;
+    addr = catalyst_addr(dev, addr);
 
     q = (uint32_t *) &(dev->array[addr]);
 
@@ -135,23 +160,29 @@ flash_readl(uint32_t addr, void *priv)
 }
 
 static void
-flash_write(uint32_t addr, uint8_t val, void *priv)
+catalyst_write(uint32_t addr, uint8_t val, void *priv)
 {
-    flash_t *dev = (flash_t *) priv;
+    catalyst_t *dev = (catalyst_t *) priv;
 
-    addr &= biosmask;
+    if (dev->write_protect)
+        return;
 
+    addr = catalyst_addr(dev, addr);
+
+    /* Erase and program take two cycles; the next write is a new command. */
     switch (dev->command) {
         case CMD_ERASE:
             if (val == CMD_ERASE_CONFIRM) {
-                memset(dev->array, 0xff, biosmask + 1);
+                memset(dev->array, 0xff, dev->size);
                 dev->dirty = 1;
             }
+            dev->command = CMD_SET_READ;
             break;
 
         case CMD_PROGRAM:
             dev->array[addr] = val;
-            dev->dirty = 1;
+            dev->dirty       = 1;
+            dev->command     = CMD_SET_READ;
             break;
 
         default:
@@ -161,76 +192,270 @@ flash_write(uint32_t addr, uint8_t val, void *priv)
 }
 
 static void
-flash_writew(UNUSED(uint32_t addr), UNUSED(uint16_t val), UNUSED(void *priv))
+catalyst_writew(UNUSED(uint32_t addr), UNUSED(uint16_t val), UNUSED(void *priv))
 {
     //
 }
 
 static void
-flash_writel(UNUSED(uint32_t addr), UNUSED(uint32_t val), UNUSED(void *priv))
+catalyst_writel(UNUSED(uint32_t addr), UNUSED(uint32_t val), UNUSED(void *priv))
 {
     //
 }
 
+/*
+   Where a window of the chip at base starts in the chip, and how the window
+   repeats it if it is bigger than the chip. A window across an address line
+   that the board drives is not one piece of the chip, so it has no exec
+   pointer.
+ */
 static void
-catalyst_flash_add_mappings(flash_t *dev)
+catalyst_window(const catalyst_t *dev, uint32_t base, uint32_t size, uint8_t **exec, uint32_t *mask)
 {
-    memcpy(dev->array, rom, biosmask + 1);
+    const uint32_t offset = catalyst_addr(dev, base);
 
-    mem_mapping_add(&dev->mapping, 0xe0000, 0x20000,
-                    flash_read, flash_readw, flash_readl,
-                    flash_write, flash_writew, flash_writel,
-                    dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
+    if (size > (dev->mask + 1)) {
+        if ((base & dev->mask) != 0)
+            fatal("Catalyst Flash: %08X bytes at %08X do not start on a %08X byte boundary\n",
+                  size, base, dev->mask + 1);
 
-    mem_mapping_add(&(dev->mapping_h[0]), 0xfffc0000, 0x20000,
-                    flash_read, flash_readw, flash_readl,
-                    flash_write, flash_writew, flash_writel,
-                    dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
-    mem_mapping_add(&(dev->mapping_h[1]), 0xfffe0000, 0x20000,
-                    flash_read, flash_readw, flash_readl,
-                    flash_write, flash_writew, flash_writel,
-                    dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
+        *exec = dev->lines_mask ? NULL : dev->array;
+        *mask = dev->mask;
+    } else {
+        if ((offset + size) > (dev->mask + 1))
+            fatal("Catalyst Flash: %08X bytes at %08X are past the end of the %08X byte chip\n",
+                  size, base, dev->mask + 1);
+
+        if ((base ^ (base + size - 1)) & dev->lines_mask)
+            *exec = NULL;
+        else
+            *exec = dev->array + offset;
+        *mask = 0xffffffff;
+    }
 }
 
-static void
-catalyst_flash_reset(void *priv)
+/* Map a window of the chip at base, which may be bigger than the chip. */
+void
+catalyst_flash_map(catalyst_t *dev, mem_mapping_t *mapping, uint32_t base, uint32_t size)
 {
-    flash_t *dev = (flash_t *) priv;
+    uint8_t *exec;
+    uint32_t mask;
 
+    catalyst_window(dev, base, size, &exec, &mask);
+
+    mem_mapping_add(mapping, base, size,
+                    catalyst_read, catalyst_readw, catalyst_readl,
+                    catalyst_write, catalyst_writew, catalyst_writel,
+                    exec, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
+    if (mask != 0xffffffff)
+        mem_mapping_set_mask(mapping, mask);
+}
+
+/* Move a window added by catalyst_flash_map() elsewhere, under the same rules. */
+void
+catalyst_flash_remap(catalyst_t *dev, mem_mapping_t *mapping, uint32_t base, uint32_t size)
+{
+    uint8_t *exec;
+    uint32_t mask;
+
+    catalyst_window(dev, base, size, &exec, &mask);
+
+    mem_mapping_set_addr(mapping, base, size);
+    mem_mapping_set_exec(mapping, exec);
+    mem_mapping_set_mask(mapping, mask);
+}
+
+void
+catalyst_flash_set_write_protect(catalyst_t *dev, int protect)
+{
+    dev->write_protect = !!protect;
+}
+
+uint32_t
+catalyst_flash_get_size(const catalyst_t *dev)
+{
+    return dev->size;
+}
+
+void
+catalyst_flash_reset(catalyst_t *dev)
+{
     dev->command = CMD_RESET;
 }
 
-static void *
-catalyst_flash_init(UNUSED(const device_t *info))
+catalyst_t *
+catalyst_flash_create(const device_t *model, const flash_cfg_t *cfg)
 {
-    FILE    *fp;
-    flash_t *dev;
+    FILE       *fp;
+    catalyst_t *dev = calloc(1, sizeof(catalyst_t));
 
-    dev = calloc(1, sizeof(flash_t));
+    dev->is_amd = !!(model->local & CATALYST_AMD);
+    if (model->local & CATALYST_28F020) {
+        dev->size = 0x40000;
+        dev->id   = dev->is_amd ? 0x2a : 0xbd; /* Am28F020, 28F020 */
+    } else {
+        dev->size = 0x20000;
+        dev->id   = dev->is_amd ? 0xa7 : 0xb4; /* Am28F010, 28F010 */
+    }
+    dev->mask = dev->size - 1;
 
-    sprintf(flash_path, "%s.bin", machine_get_nvr_name_ex(machine));
+    dev->array = (uint8_t *) calloc(1, dev->size);
+    memset(dev->array, 0xff, dev->size);
+
+    if (cfg->image != NULL)
+        memcpy(dev->array, cfg->image, MIN(cfg->image_len, dev->size));
+
+    catalyst_flash_reset(dev);
+
+    if (cfg->nvr_name != NULL) {
+        if (strlen(cfg->nvr_name) == 0)
+            fatal("Attempting to open the Flash file for reading with an empty invalid name\n");
+
+        snprintf(dev->nvr_path, sizeof(dev->nvr_path), "%s.bin", cfg->nvr_name);
+
+        fp = nvr_fopen(dev->nvr_path, "rb");
+        if (fp != NULL) {
+            if (!dump_missing)
+                (void) !fread(dev->array, dev->size, 1, fp);
+            fclose(fp);
+        } else if (!dump_missing)
+            dev->dirty = 1;
+    }
+
+    return dev;
+}
+
+void
+catalyst_flash_destroy(catalyst_t *dev)
+{
+    FILE *fp;
+
+    if (dev->dirty && (dev->nvr_path[0] != '\0')) {
+        fp = nvr_fopen(dev->nvr_path, "wb");
+        if (fp != NULL) {
+            if (!dump_missing)
+                fwrite(dev->array, dev->size, 1, fp);
+            fclose(fp);
+        } else if (!dump_missing)
+            warning("Unable to open %s for writing, please make sure your NVR folder is writable\n", dev->nvr_path);
+    }
+
+    free(dev->array);
+    dev->array = NULL;
+
+    free(dev);
+}
+
+/* The boot BIOS: the chip behind the BIOS chip select. */
+static uint8_t
+catalyst_bios_read(uint32_t addr, void *priv)
+{
+    const catalyst_bios_t *dev = (catalyst_bios_t *) priv;
+
+    if (!flash_bios_read_selected(addr))
+        return 0xff;
+
+    return catalyst_read(addr, dev->chip);
+}
+
+static uint16_t
+catalyst_bios_readw(uint32_t addr, void *priv)
+{
+    const catalyst_bios_t *dev = (catalyst_bios_t *) priv;
+
+    if (!flash_bios_read_selected(addr))
+        return 0xffff;
+
+    return catalyst_readw(addr, dev->chip);
+}
+
+static uint32_t
+catalyst_bios_readl(uint32_t addr, void *priv)
+{
+    const catalyst_bios_t *dev = (catalyst_bios_t *) priv;
+
+    if (!flash_bios_read_selected(addr))
+        return 0xffffffff;
+
+    return catalyst_readl(addr, dev->chip);
+}
+
+static void
+catalyst_bios_write(uint32_t addr, uint8_t val, void *priv)
+{
+    const catalyst_bios_t *dev = (catalyst_bios_t *) priv;
+
+    if (!flash_bios_write_selected(addr))
+        return;
+
+    catalyst_write(addr, val, dev->chip);
+}
+
+static void
+catalyst_bios_map(catalyst_bios_t *dev, mem_mapping_t *mapping, uint32_t base)
+{
+    uint8_t *exec;
+    uint32_t mask;
+
+    catalyst_window(dev->chip, base, 0x20000, &exec, &mask);
+
+    mem_mapping_add(mapping, base, 0x20000,
+                    catalyst_bios_read, catalyst_bios_readw, catalyst_bios_readl,
+                    catalyst_bios_write, catalyst_writew, catalyst_writel,
+                    exec, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
+}
+
+/*
+   For a board that drives some of the boot BIOS chip's address lines itself,
+   such as a bank select: the lines in mask take the levels in val instead of
+   the CPU's.
+ */
+void
+catalyst_flash_bios_set_addr_lines(void *priv, uint32_t mask, uint32_t val)
+{
+    catalyst_bios_t *dev     = (catalyst_bios_t *) priv;
+    mem_mapping_t   *maps[3] = { &dev->mapping, &dev->mapping_h[0], &dev->mapping_h[1] };
+    uint8_t         *exec;
+    uint32_t         window_mask;
+
+    dev->chip->lines_mask = mask & dev->chip->mask;
+    dev->chip->lines_val  = val & dev->chip->lines_mask;
+
+    for (uint8_t i = 0; i < 3; i++) {
+        catalyst_window(dev->chip, maps[i]->base, maps[i]->size, &exec, &window_mask);
+        mem_mapping_set_exec(maps[i], exec);
+    }
+
+    /* The CPU may be running from the chip. */
+    flushmmucache();
+}
+
+static void
+catalyst_flash_bios_reset(void *priv)
+{
+    catalyst_bios_t *dev = (catalyst_bios_t *) priv;
+
+    catalyst_flash_reset(dev->chip);
+}
+
+static void *
+catalyst_flash_init(const device_t *info)
+{
+    catalyst_bios_t *dev = calloc(1, sizeof(catalyst_bios_t));
+    flash_cfg_t      cfg = { 0 };
+
+    cfg.nvr_name  = machine_get_nvr_name_ex(machine);
+    cfg.image     = rom;
+    cfg.image_len = biosmask + 1;
 
     mem_mapping_disable(&bios_mapping);
     mem_mapping_disable(&bios_high_mapping);
 
-    dev->array = (uint8_t *) calloc(1, 0x20000);
-    memset(dev->array, 0xff, 0x20000);
+    dev->chip = catalyst_flash_create(info, &cfg);
 
-    catalyst_flash_add_mappings(dev);
-
-    dev->command = CMD_RESET;
-    dev->is_amd  = info->local;
-
-    if (strlen(flash_path) > 0) {
-        fp = nvr_fopen(flash_path, "rb");
-        if (fp != NULL) {
-            if (!dump_missing)
-                (void) !fread(dev->array, 0x20000, 1, fp);
-            fclose(fp);
-        } else if (!dump_missing)
-            dev->dirty = 1;
-    } else
-        fatal("Attempting to open the Flash file for reading with an empty invalid name\n");
+    catalyst_bios_map(dev, &dev->mapping, 0xe0000);
+    catalyst_bios_map(dev, &(dev->mapping_h[0]), 0xfffc0000);
+    catalyst_bios_map(dev, &(dev->mapping_h[1]), 0xfffe0000);
 
     return dev;
 }
@@ -238,24 +463,9 @@ catalyst_flash_init(UNUSED(const device_t *info))
 static void
 catalyst_flash_close(void *priv)
 {
-    FILE    *fp;
-    flash_t *dev = (flash_t *) priv;
+    catalyst_bios_t *dev = (catalyst_bios_t *) priv;
 
-    if (dev->dirty) {
-        if (strlen(flash_path) > 0) {
-            fp = nvr_fopen(flash_path, "wb");
-            if (fp != NULL) {
-                if (!dump_missing)
-                    fwrite(dev->array, 0x20000, 1, fp);
-                fclose(fp);
-            } else if (!dump_missing)
-                warning("Unable to open %s for writing, please make sure your NVR folder is writable\n", flash_path);
-        } else
-            fatal("Attempting to open the Flash file for writing with an empty invalid name\n");
-    }
-
-    free(dev->array);
-    dev->array = NULL;
+    catalyst_flash_destroy(dev->chip);
 
     free(dev);
 }
@@ -267,7 +477,21 @@ const device_t catalyst_flash_device = {
     .local         = 0,
     .init          = catalyst_flash_init,
     .close         = catalyst_flash_close,
-    .reset         = catalyst_flash_reset,
+    .reset         = catalyst_flash_bios_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t catalyst_28f020_flash_device = {
+    .name          = "Catalyst 28F020 Flash BIOS",
+    .internal_name = "catalyst_28f020_flash",
+    .flags         = DEVICE_PCI,
+    .local         = CATALYST_28F020,
+    .init          = catalyst_flash_init,
+    .close         = catalyst_flash_close,
+    .reset         = catalyst_flash_bios_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -278,10 +502,10 @@ const device_t amd_am28f010_flash_device = {
     .name          = "AMD Am28F010-D Flash BIOS",
     .internal_name = "amd_am28f010_flash",
     .flags         = DEVICE_PCI,
-    .local         = 1,
+    .local         = CATALYST_AMD,
     .init          = catalyst_flash_init,
     .close         = catalyst_flash_close,
-    .reset         = catalyst_flash_reset,
+    .reset         = catalyst_flash_bios_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,

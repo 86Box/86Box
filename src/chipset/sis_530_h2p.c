@@ -97,6 +97,47 @@ static uint32_t bank_sizes[6] = { 0x00800000,      /*   8 MB */
                                   0x08000000,      /* 128 MB */
                                   0x10000000 };    /* 256 MB */
 
+/*
+ * This fixes the UMA reservation being added to the visible RAM
+ */
+static uint32_t
+sis_530_shared_framebuffer_size(const sis_530_host_to_pci_t *dev)
+{
+    if (!(dev->pci_conf[0x63] & 0x40))
+        return 0;
+
+    switch ((dev->pci_conf[0x63] >> 4) & 0x03) {
+        case 0x01: return 2U << 20;
+        case 0x02: return 4U << 20;
+        case 0x03: return 8U << 20;
+        default:   return 0;
+    }
+}
+
+static void
+sis_530_shared_framebuffer_recalc(sis_530_host_to_pci_t *dev)
+{
+    const uint32_t total_bytes = mem_size << 10;
+    uint32_t reserve = sis_530_shared_framebuffer_size(dev);
+    uint32_t visible_bytes;
+
+    if (reserve >= total_bytes)
+        reserve = 0;
+
+    visible_bytes = total_bytes - reserve;
+
+    if (visible_bytes > 0x00100000U) {
+        mem_mapping_set_addr(&ram_high_mapping, 0x00100000U,
+                             visible_bytes - 0x00100000U);
+        mem_mapping_set_exec(&ram_high_mapping, ram + 0x00100000U);
+    } else
+        mem_mapping_disable(&ram_high_mapping);
+
+    sis_530_host_to_pci_log(
+        "SiS 530 H2P: shared framebuffer=%u KiB, CPU-visible RAM=%u KiB, installed=%u KiB\n",
+        reserve >> 10, visible_bytes >> 10, mem_size);
+}
+
 static void
 sis_530_shadow_recalc(sis_530_host_to_pci_t *dev)
 {
@@ -201,25 +242,28 @@ static void
 sis_530_mask_bar(uint8_t *regs, void *agpgart)
 {
     uint32_t bar;
-    uint32_t sizes[8] = { 0x00400000, 0x00800000, 0x01000000, 0x02000000, 0x04000000, 0x08000000,
-                          0x10000000, 0x00000000 } ;
+    uint32_t size;
+    static const uint32_t sizes[8] = { 0x00400000, 0x00800000, 0x01000000, 0x02000000,
+                                       0x04000000, 0x08000000, 0x10000000, 0x00000000 };
 
-    /* Make sure the aperture's base is aligned to its size. */
-    bar = (regs[0x13] << 24) | (regs[0x12] << 16);
-    bar &= (sizes[(regs[0x94] >> 4) & 0x07] | 0xf0000000);
+    /* Make sure the aperture's base is aligned to its size; selector 7 is reserved. */
+    bar = ((uint32_t) regs[0x13] << 24) | ((uint32_t) regs[0x12] << 16);
+    size = sizes[(regs[0x94] >> 4) & 0x07];
+
+    if (size)
+        bar &= ~(size - 1U);
     regs[0x12] = (bar >> 16) & 0xff;
     regs[0x13] = (bar >> 24) & 0xff;
 
     if (!agpgart)
         return;
 
-    /* Map aperture and GART. */
-    agpgart_set_aperture(agpgart,
-                         bar,
-                         sizes[(regs[0x94] >> 4) & 0x07],
-                         !!(regs[0x94] & 0x02));
+    /* Reserved selector 7 must never enable an aperture mapping. */
+    agpgart_set_aperture(agpgart, bar, size, (size != 0) && !!(regs[0x94] & 0x02));
     if (regs[0x94] & 0x01)
-        agpgart_set_gart(agpgart, (regs[0x91] << 8) | (regs[0x92] << 16) | (regs[0x93] << 24));
+        agpgart_set_gart(agpgart, ((uint32_t) regs[0x91] << 8) |
+                                 ((uint32_t) regs[0x92] << 16) |
+                                 ((uint32_t) regs[0x93] << 24));
     else
         agpgart_set_gart(agpgart, 0x00000000);
 }
@@ -269,6 +313,9 @@ sis_530_host_to_pci_write(int addr, uint8_t val, void *priv)
             dev->pci_conf[addr] = dev->ram_banks[0].installed |
                                   (dev->ram_banks[1].installed << 1) |
                                   (dev->ram_banks[2].installed << 2);
+
+            dev->pci_conf[addr] |= val & 0x70;
+            sis_530_shared_framebuffer_recalc(dev);
             break;
 
         case 0x68:
@@ -297,10 +344,19 @@ sis_530_host_to_pci_write(int addr, uint8_t val, void *priv)
         case 0x90:
         case 0x97 ... 0xab:
         case 0xb0:
-        case 0xc8 ... 0xcb:
         case 0xd4 ... 0xda:
         case 0xe0 ... 0xe3:
         case 0xef:
+            dev->pci_conf[addr] = val;
+            break;
+
+        /* AGP command: the data rate (1x/2x, as the status reports),
+           AGP_EN, SBA_EN and RQ_DEPTH. */
+        case 0xc8:
+        case 0xc9:
+            dev->pci_conf[addr] = val & 0x03;
+            break;
+        case 0xcb:
             dev->pci_conf[addr] = val;
             break;
 
@@ -369,7 +425,10 @@ sis_530_host_to_pci_reset(void *priv)
     dev->pci_conf[0x5e] = dev->pci_conf[0x5f] = 0x00;
     dev->pci_conf[0x60] = dev->pci_conf[0x61] = 0x00;
     dev->pci_conf[0x62] = 0x00;
-    dev->pci_conf[0x63] = 0xff;
+    dev->pci_conf[0x63] = dev->ram_banks[0].installed |
+                          (dev->ram_banks[1].installed << 1) |
+                          (dev->ram_banks[2].installed << 2);
+    sis_530_shared_framebuffer_recalc(dev);
     dev->pci_conf[0x64] = dev->pci_conf[0x65] = 0x00;
     dev->pci_conf[0x68] = dev->pci_conf[0x69] = 0x00;
     dev->pci_conf[0x6a] = dev->pci_conf[0x6b] = 0x00;

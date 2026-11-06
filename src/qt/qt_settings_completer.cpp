@@ -20,6 +20,7 @@
 #include <QCompleter>
 #include <QLineEdit>
 #include <QStandardItemModel>
+#include <QTimer>
 #include <utility>
 #include "qt_settings_completer.hpp"
 #ifdef Q_OS_WINDOWS
@@ -40,7 +41,9 @@ bool
 SettingsCompleter::eventFilter(QObject *watched, QEvent *event)
 {
     if (watched == comboBoxMain) {
-        if (event->type() == QEvent::FocusOut) {
+        if (event->type() == QEvent::FocusIn)
+            flush();
+        else if (event->type() == QEvent::FocusOut && comboBoxMain->lineEdit()) {
             int     i    = comboBoxMain->currentIndex();
             QString name = comboBoxMain->model()->data(comboBoxMain->model()->index(i, 0), Qt::DisplayRole).toString();
             comboBoxMain->lineEdit()->setText(name);
@@ -51,13 +54,14 @@ SettingsCompleter::eventFilter(QObject *watched, QEvent *event)
 }
 
 SettingsCompleter::SettingsCompleter(QComboBox *cb, QComboBox *cbSort)
+    : QObject(cb)
 {
     comboBoxMain = cb;
     comboBoxSort = cbSort;
 
     comboBoxMain->setEditable(true);
-    completer = new QCompleter(comboBoxMain->lineEdit());
-    model     = new QStandardItemModel(completer);
+    completer = new QCompleter(this);
+    model     = new QStandardItemModel(this);
     completer->setModel(model);
     comboBoxMain->lineEdit()->setCompleter(completer);
     completer->setCompletionMode(QCompleter::PopupCompletion);
@@ -92,7 +96,15 @@ SettingsCompleter::SettingsCompleter(QComboBox *cb, QComboBox *cbSort)
         }
     });
 
-    rows = 0;
+}
+
+SettingsCompleter::~SettingsCompleter()
+{
+    /* Hiding the completion popup can send focus events during teardown. */
+    if (comboBoxMain)
+        comboBoxMain->removeEventFilter(this);
+    delete completer;
+    qDeleteAll(pending);
 }
 
 void
@@ -109,9 +121,27 @@ SettingsCompleter::addRow(QString name, QString alias, int special, int id)
     QStandardItem *item = new QStandardItem(stored_alias);
     item->setData(id);
     item->setData(name, Qt::UserRole + 2);
-    model->appendRow(item);
 
-    rows++;
+    /* A page adds a whole list at a time: the rows are appended together
+       once it is done, rather than the completer reworking its matches
+       for each one. */
+    if (pending.isEmpty())
+        QTimer::singleShot(0, this, [this]() { flush(); });
+    pending.append(item);
+
+}
+
+void
+SettingsCompleter::flush()
+{
+    if (pending.isEmpty())
+        return;
+
+    /* Model signals can re-enter the event filter or rebuild the list.
+       Detach the batch before the model takes ownership of its items. */
+    QList<QStandardItem *> batch;
+    batch.swap(pending);
+    model->invisibleRootItem()->appendRows(batch);
 }
 
 void
@@ -159,11 +189,10 @@ SettingsCompleter::addDevice(const void *device, QString name)
 void
 SettingsCompleter::removeRows()
 {
-    if (rows > 0) {
-        auto removeRows = model->rowCount();
+    qDeleteAll(pending);
+    pending.clear();
 
-        model->removeRows(0, removeRows);
-
-        rows = 0;
-    }
+    /* Use the actual model state: removal signals can queue a new batch. */
+    if (model != nullptr)
+        model->removeRows(0, model->rowCount());
 }

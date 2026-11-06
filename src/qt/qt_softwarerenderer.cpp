@@ -22,6 +22,8 @@
 #include <QResizeEvent>
 #include <QScreen>
 #include <QTimer>
+#include <algorithm>
+#include <cstring>
 #include "qt_util.hpp"
 #include "qt_osd.hpp"
 
@@ -105,16 +107,46 @@ SoftwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
     if ((void *) tval == nullptr)
         return;
     auto origSource = source;
+    int  prev_image = cur_image;
 
     cur_image = buf_idx;
-    buf_usage[buf_idx ^ 1].clear();
-
     source.setRect(x, y, w, h);
 
-    if (source != origSource)
-        onResize(this->width(), this->height());
+    /* Only repaint the rows that changed since the last frame, which the other
+       buffer still holds until it is released below. Every frame is blitted
+       whether or not anything changed, and sending all of it to a remote X
+       display can queue up enough to put the picture a second behind. */
+    int top    = 0;
+    int bottom = h;
+    if ((source == origSource) && (prev_image != -1) && (prev_image != buf_idx)) {
+        const QImage &cur  = *images[buf_idx];
+        const QImage &last = *images[prev_image];
+        auto          same = [&](int row) {
+            return !memcmp(cur.constScanLine(y + row) + (x * 4), last.constScanLine(y + row) + (x * 4), w * 4);
+        };
+        while ((top < h) && same(top))
+            top++;
+        while ((bottom > top) && same(bottom - 1))
+            bottom--;
+    }
+    buf_usage[buf_idx ^ 1].clear();
 
-    update();
+    if (source != origSource)
+        layoutPicture();
+
+    if ((top == 0) && (bottom == h)) {
+        update();
+    } else if (top < bottom) {
+        /* Filtering blends each row into its neighbours, so take a row more on either side. */
+        top         = std::max(top - 1, 0);
+        bottom      = std::min(bottom + 1, h);
+        int dtop    = destination.y() + ((top * destination.height()) / h) - 1;
+        int dbottom = destination.y() + (((bottom * destination.height()) + h - 1) / h) + 1;
+        /* The destination is in device pixels, updates are in device-independent ones. */
+        update(QRectF(destination.x() / pixelRatio, dtop / pixelRatio,
+                      destination.width() / pixelRatio, (dbottom - dtop) / pixelRatio)
+                   .toAlignedRect());
+    }
 
     if (monitors[r_monitor_index].mon_screenshots) {
         char path[1024];
@@ -168,9 +200,22 @@ SoftwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
 }
 
 void
+SoftwareRenderer::layoutPicture()
+{
+    /* Lay out in device pixels, like the other renderers. */
+    pixelRatio = devicePixelRatioF();
+    onResize(width(), height());
+
+    /* Mouse movement is scaled by the size of the picture, which this renderer has
+       always given in device-independent pixels. */
+    monitors[r_monitor_index].mon_res_x = destination.width() / pixelRatio;
+    monitors[r_monitor_index].mon_res_y = destination.height() / pixelRatio;
+}
+
+void
 SoftwareRenderer::resizeEvent(QResizeEvent *event)
 {
-    onResize(width(), height());
+    layoutPicture();
     QWidget::resizeEvent(event);
 }
 
@@ -200,8 +245,12 @@ SoftwareRenderer::onPaint(QPaintDevice *device)
     painter.fillRect(0, 0, device->width(), device->height(), Qt::black);
 #endif
     if (cur_image != -1) {
+        /* The destination is in device pixels, so that the picture can be drawn at
+           exactly its own size when HiDPI scaling is off. */
+        const QRectF target(destination.x() / pixelRatio, destination.y() / pixelRatio,
+                            destination.width() / pixelRatio, destination.height() / pixelRatio);
         painter.setCompositionMode(QPainter::CompositionMode_Plus);
-        painter.drawImage(destination, *images[cur_image], source);
+        painter.drawImage(target, *images[cur_image], QRectF(source));
         painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
     }
 

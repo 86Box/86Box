@@ -17,5 +17,7 @@
 #    error ARCH arm64
 #elif defined(__x86_64) || defined(__x86_64__) || defined(__amd64) || defined(_M_X64)
 #    error ARCH x86_64
+#elif defined(__loongarch_lp64)
+#    error ARCH loongarch64
 #endif
 #error ARCH unknown

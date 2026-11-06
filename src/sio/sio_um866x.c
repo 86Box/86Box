@@ -290,7 +290,7 @@ um866x_init(UNUSED(const device_t *info))
 {
     um866x_t *dev = (um866x_t *) calloc(1, sizeof(um866x_t));
 
-    dev->fdc = device_add(&fdc_at_smc_device);
+    dev->fdc = device_add_params(&fdc_at_smc_device, (void *) FDC_FLAG_PNP);
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);

@@ -45,6 +45,9 @@
 
 #define NCR53C8XX_SDMS3_ROM "roms/scsi/ncr53c8xx/NCR307.BIN"
 #define SYM53C8XX_SDMS4_ROM "roms/scsi/ncr53c8xx/8xx_64.rom"
+#define TEKRAM_DC390F_320_ROM      "roms/scsi/ncr53c8xx/390320.bin"
+#define TEKRAM_DC390F_323_ROM      "roms/scsi/ncr53c8xx/int13f.BIN"
+#define TEKRAM_DC390F_323_0SEC_ROM "roms/scsi/ncr53c8xx/int13f-0sec.BIN"
 
 #define HA_ID               7
 
@@ -205,7 +208,7 @@ typedef enum {
 typedef struct ncr53c8xx_t {
     char          nvr_path[64];
     uint8_t       pci_slot;
-    uint8_t       chip, wide;
+    uint8_t       chip, wide, chip_type;
     int           has_bios;
     int           BIOSBase;
     rom_t         bios;
@@ -276,6 +279,7 @@ typedef struct ncr53c8xx_t {
     uint8_t gpreg;
     uint8_t slpar;
     uint8_t swide;
+    uint8_t macntl;
     uint8_t gpcntl;
     uint8_t last_command;
     uint8_t sodl;
@@ -316,10 +320,6 @@ typedef struct ncr53c8xx_t {
     uint8_t bus;
 
     pc_timer_t timer;
-
-#ifdef USE_WDTR
-    uint8_t tr_set[16];
-#endif
 } ncr53c8xx_t;
 
 #ifdef ENABLE_NCR53C8XX_LOG
@@ -431,27 +431,20 @@ ncr53c8xx_soft_reset(ncr53c8xx_t *dev)
     dev->last_level = 0;
     dev->gpreg      = 0;
     dev->slpar      = 0;
+    dev->macntl     = 0;
     dev->sstop      = 1;
     dev->gpcntl     = 0x03;
 
     if (dev->wide) {
         /* This *IS* a wide SCSI controller, so reset all SCSI
            devices. */
-        for (i = 0; i < 16; i++) {
-#ifdef USE_WDTR
-            dev->tr_set[i] = 0;
-#endif
+        for (i = 0; i < 16; i++)
             scsi_device_reset(&scsi_devices[dev->bus][i]);
-        }
     } else {
         /* This is *NOT* a wide SCSI controller, so do not touch
            SCSI devices with ID's >= 8. */
-        for (i = 0; i < 8; i++) {
-#ifdef USE_WDTR
-            dev->tr_set[i] = 0;
-#endif
+        for (i = 0; i < 8; i++)
             scsi_device_reset(&scsi_devices[dev->bus][i]);
-        }
     }
 }
 
@@ -533,6 +526,9 @@ ncr53c8xx_update_irq(ncr53c8xx_t *dev)
     if (dev->istat & NCR_ISTAT_INTF) {
         level = 1;
     }
+    /* IRQD disables the IRQ pin; the status bits still get set. */
+    if (dev->dcntl & NCR_DCNTL_IRQD)
+        level = 0;
 
 #ifdef STATE_KEEPING
     if (level != dev->last_level) {
@@ -800,19 +796,33 @@ ncr53c8xx_do_status(ncr53c8xx_t *dev)
     ncr53c8xx_add_msg_byte(dev, 0); /* COMMAND COMPLETE */
 }
 
-#ifdef USE_WDTR
+/* Answer an initiator's WDTR the way a target does: in a MSG IN phase,
+   with the width it agrees to, then carry on to the COMMAND phase. */
 static void
-ncr53c8xx_do_wdtr(ncr53c8xx_t *dev, int exponent)
+ncr53c8xx_do_wdtr(ncr53c8xx_t *dev, uint8_t exponent)
 {
-    ncr53c8xx_log("Target-initiated WDTR (%08X)\n", dev);
+    ncr53c8xx_log("WDTR response, exponent %d\n", exponent);
     ncr53c8xx_set_phase(dev, PHASE_MI);
-    dev->msg_action = 4;
+    dev->msg_action = 0;
     ncr53c8xx_add_msg_byte(dev, 0x01);     /* EXTENDED MESSAGE */
     ncr53c8xx_add_msg_byte(dev, 0x02);     /* EXTENDED MESSAGE LENGTH */
     ncr53c8xx_add_msg_byte(dev, 0x03);     /* WIDE DATA TRANSFER REQUEST */
-    ncr53c8xx_add_msg_byte(dev, exponent); /* TRANSFER WIDTH EXPONENT (16-bit) */
+    ncr53c8xx_add_msg_byte(dev, exponent); /* TRANSFER WIDTH EXPONENT */
 }
-#endif
+
+/* Same for SDTR. An offset of 0 agrees to asynchronous transfers. */
+static void
+ncr53c8xx_do_sdtr(ncr53c8xx_t *dev, uint8_t period, uint8_t offset)
+{
+    ncr53c8xx_log("SDTR response, period %d, offset %d\n", period, offset);
+    ncr53c8xx_set_phase(dev, PHASE_MI);
+    dev->msg_action = 0;
+    ncr53c8xx_add_msg_byte(dev, 0x01);   /* EXTENDED MESSAGE */
+    ncr53c8xx_add_msg_byte(dev, 0x03);   /* EXTENDED MESSAGE LENGTH */
+    ncr53c8xx_add_msg_byte(dev, 0x01);   /* SYNCHRONOUS DATA TRANSFER REQUEST */
+    ncr53c8xx_add_msg_byte(dev, period); /* TRANSFER PERIOD FACTOR */
+    ncr53c8xx_add_msg_byte(dev, offset); /* REQ/ACK OFFSET */
+}
 
 static void
 ncr53c8xx_do_msgin(ncr53c8xx_t *dev)
@@ -844,9 +854,6 @@ ncr53c8xx_do_msgin(ncr53c8xx_t *dev)
                 break;
             case 3:
                 ncr53c8xx_set_phase(dev, PHASE_DI);
-                break;
-            case 4:
-                ncr53c8xx_set_phase(dev, PHASE_MO);
                 break;
             default:
                 abort();
@@ -902,6 +909,11 @@ ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
                 ncr53c8xx_log("MSG: Disconnect\n");
                 ncr53c8xx_disconnect(dev);
                 break;
+            case 0x07:
+                /* The initiator rejected our last message (e.g. a WDTR answer). */
+                ncr53c8xx_log("MSG: Message Reject\n");
+                ncr53c8xx_set_phase(dev, PHASE_CMD);
+                break;
             case 0x08:
                 ncr53c8xx_log("MSG: No Operation\n");
                 ncr53c8xx_set_phase(dev, PHASE_CMD);
@@ -914,19 +926,14 @@ ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
                 ncr53c8xx_log("Extended message 0x%x (len %d)\n", msg, len);
                 switch (msg) {
                     case 1:
-                        ncr53c8xx_log("SDTR (ignored)\n");
+                        ncr53c8xx_log("SDTR, period %d\n", arg);
                         ncr53c8xx_skip_msgbytes(dev, 1);
+                        ncr53c8xx_do_sdtr(dev, arg, 0x00);
                         break;
                     case 3:
-                        ncr53c8xx_log("WDTR (ignored)\n");
-#ifdef USE_WDTR
-                        dev->tr_set[dev->sdid] = 1;
-#endif
-                        if (arg > 0x01) {
-                            ncr53c8xx_bad_message(dev, msg);
-                            return;
-                        }
-                        ncr53c8xx_set_phase(dev, PHASE_CMD);
+                        ncr53c8xx_log("WDTR, exponent %d\n", arg);
+                        /* The target does 16 bits at most, and only on a wide bus. */
+                        ncr53c8xx_do_wdtr(dev, (arg && dev->wide) ? 0x01 : 0x00);
                         break;
                     case 5:
                         ncr53c8xx_log("PPR (ignored)\n");
@@ -955,12 +962,7 @@ ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
                 scsi_device_command_stop(sd);
                 ncr53c8xx_disconnect(dev);
                 break;
-            case 0x0c:
-                /* BUS DEVICE RESET message, reset wide transfer request. */
-#ifdef USE_WDTR
-                dev->tr_set[dev->sdid] = 0;
-#endif
-                /* FALLTHROUGH */
+            case 0x0c: /* BUS DEVICE RESET */
             case 0x06:
             case 0x0e:
                 /* clear the current I/O process */
@@ -977,12 +979,7 @@ ncr53c8xx_do_msgout(ncr53c8xx_t *dev, uint8_t id)
                     dev->current_lun = msg & 7;
                     scsi_device_identify(sd, msg & 7);
                     ncr53c8xx_log("Select LUN %d\n", dev->current_lun);
-#ifdef USE_WDTR
-                    if ((dev->chip == CHIP_875) && !dev->tr_set[dev->sdid])
-                        ncr53c8xx_do_wdtr(dev, 0x01);
-                    else
-#endif
-                        ncr53c8xx_set_phase(dev, PHASE_CMD);
+                    ncr53c8xx_set_phase(dev, PHASE_CMD);
                 }
                 break;
         }
@@ -1656,6 +1653,7 @@ ncr53c8xx_reg_writeb(ncr53c8xx_t *dev, uint32_t offset, uint8_t val)
             break;
         case 0x3b: /* DCNTL */
             dev->dcntl = val & ~(NCR_DCNTL_PFF | NCR_DCNTL_STD);
+            ncr53c8xx_update_irq(dev);
             if ((val & NCR_DCNTL_STD) && dev->sstop)
                 ncr53c8xx_execute_script(dev);
             break;
@@ -1666,6 +1664,9 @@ ncr53c8xx_reg_writeb(ncr53c8xx_t *dev, uint32_t offset, uint8_t val)
         case 0x41: /* SIEN1 */
             dev->sien1 = val;
             ncr53c8xx_update_irq(dev);
+            break;
+        case 0x46: /* MACNTL */
+            dev->macntl = val & 0x0f;
             break;
         case 0x47: /* GPCNTL */
             ncr53c8xx_log("GPCNTL write: %02X\n", val);
@@ -1769,6 +1770,15 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
 
     dev->regop = 1;
 
+    /* With CTEST2 bit 3 set, SCRATCHA and SCRATCHB read back the memory and SCRIPTS RAM base addresses
+       (the Tekram DC-390F BIOS uses this to find where to load its SCRIPTS). */
+    if (dev->wide && (dev->ctest2 & NCR_CTEST2_PCICIE)) {
+        if ((offset >= 0x34) && (offset <= 0x37))
+            return (dev->MMIOBase >> ((offset & 3) << 3)) & 0xff;
+        if ((offset >= 0x5c) && (offset <= 0x5f))
+            return (dev->RAMBase >> ((offset & 3) << 3)) & 0xff;
+    }
+
     switch (offset) {
         case 0x00: /* SCNTL0 */
             ncr53c8xx_log("NCR 810: Read SCNTL0 %02X\n", dev->scntl0);
@@ -1793,6 +1803,9 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
             return dev->sdid;
         case 0x07: /* GPREG */
             tmp = (dev->gpreg & (dev->gpcntl ^ 0x1f)) & 0x1f;
+            /* The Tekram BIOS reads GPIO2 to tell the DC-390F (high) from the DC-390U (low). */
+            if ((dev->has_bios >= 3) && (dev->gpcntl & 0x04))
+                tmp |= 0x04;
             if ((dev->gpcntl & 0x41) == 0x01) {
                 tmp &= 0xfe;
                 if (i2c_gpio_get_sda(dev->i2c))
@@ -1842,8 +1855,12 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
             return dev->scntl1 & NCR_SCNTL1_CON ? 0 : 2;
             CASE_GET_REG32(dsa, 0x10)
         case 0x14: /* ISTAT */
-            ncr53c8xx_log("NCR 810: Read ISTAT %02X\n", dev->istat);
-            tmp = dev->istat;
+            /* CON follows the connection; the Windows symc8xx driver resets
+               the chip on a negotiation interrupt that arrives without it. */
+            tmp = dev->istat & ~NCR_ISTAT_CON;
+            if (dev->scntl1 & NCR_SCNTL1_CON)
+                tmp |= NCR_ISTAT_CON;
+            ncr53c8xx_log("NCR 810: Read ISTAT %02X\n", tmp);
             return tmp;
         case 0x16: /* MBOX0 */
             if (dev->wide)
@@ -1936,8 +1953,11 @@ ncr53c8xx_reg_readb(ncr53c8xx_t *dev, uint32_t offset)
             ncr53c8xx_log("NCR 810: Read SWIDE %02X\n", dev->stime0);
             return dev->swide;
         case 0x46: /* MACNTL */
-            ncr53c8xx_log("NCR 810: Read MACNTL 4F\n");
-            return 0x4f;
+            /* TYP (bits 7-4) identifies the chip; SDMS 4.x takes the bus width
+               and speed from it, not from the PCI device ID. */
+            tmp = (dev->chip_type << 4) | dev->macntl;
+            ncr53c8xx_log("NCR 810: Read MACNTL %02X\n", tmp);
+            return tmp;
         case 0x47: /* GPCNTL */
             ncr53c8xx_log("NCR 810: Read GPCNTL %02X\n", dev->gpcntl);
             return dev->gpcntl;
@@ -2257,6 +2277,8 @@ ncr53c8xx_bios_set_addr(ncr53c8xx_t *dev, uint32_t base)
 {
     if (dev->has_bios == 2)
         mem_mapping_set_addr(&dev->bios.mapping, base, 0x10000);
+    else if (dev->has_bios >= 3)
+        mem_mapping_set_addr(&dev->bios.mapping, base, 0x08000);
     else if (dev->has_bios == 1)
         mem_mapping_set_addr(&dev->bios.mapping, base, 0x04000);
 }
@@ -2553,6 +2575,11 @@ ncr53c8xx_init(const device_t *info)
             dev->bios.rom[0x3fff] += (dev->bios.rom[0x3fcb] - dev->chip);
             dev->bios.rom[0x3fcb] = dev->chip;
             ncr53c8xx_log("BIOS v3.07: New BIOS CHIP ID: %02X, old BIOS checksum: %02X\n", dev->bios.rom[0x3fcb], dev->bios.rom[0x3fff]);
+        } else if (dev->has_bios >= 3) {
+            /* The Tekram DC-390F BIOSes already have the 53c875 Device ID in their PCIR block. */
+            const char *fn = (dev->has_bios == 3) ? TEKRAM_DC390F_320_ROM :
+                             ((dev->has_bios == 4) ? TEKRAM_DC390F_323_ROM : TEKRAM_DC390F_323_0SEC_ROM);
+            rom_init(&dev->bios, fn, 0xc8000, 0x8000, 0x7fff, 0, MEM_MAPPING_EXTERNAL);
         }
     } else
         dev->has_bios = 0;
@@ -2567,33 +2594,42 @@ ncr53c8xx_init(const device_t *info)
     switch (dev->chip) {
         case CHIP_810:
             sprintf(dev->nvr_path, "ncr53c810_%i.nvr", device_get_instance());
-            dev->wide     = 0;
+            dev->wide      = 0;
+            /* TYP is reserved on the 810 and undocumented for the 815 and 820;
+               keep the 4 they always read, which SDMS 4.x takes for an 810A. */
+            dev->chip_type = 0x04;
             break;
         case CHIP_815:
             dev->chip_rev = 0x04;
             sprintf(dev->nvr_path, "ncr53c815_%i.nvr", device_get_instance());
-            dev->wide     = 0;
+            dev->wide      = 0;
+            dev->chip_type = 0x04;
             break;
         case CHIP_820:
             sprintf(dev->nvr_path, "ncr53c820_%i.nvr", device_get_instance());
-            dev->wide     = 1;
+            dev->wide      = 1;
+            dev->chip_type = 0x04;
             break;
         case CHIP_825:
             dev->chip_rev = 0x26;
             sprintf(dev->nvr_path, "ncr53c825a_%i.nvr", device_get_instance());
-            dev->wide     = 1;
+            dev->wide      = 1;
+            dev->chip_type = 0x06;
             break;
         case CHIP_860:
             scsi_bus_set_speed(dev->bus, 20000000.0);
             dev->chip_rev = 0x04;
             sprintf(dev->nvr_path, "ncr53c860_%i.nvr", device_get_instance());
-            dev->wide     = 1;
+            /* Narrow Ultra: no SCRIPTS RAM, SCRATCHC-J or upper data byte. */
+            dev->wide      = 0;
+            dev->chip_type = 0x05;
             break;
         case CHIP_875:
             scsi_bus_set_speed(dev->bus, 40000000.0);
             dev->chip_rev = 0x04;
             sprintf(dev->nvr_path, "ncr53c875_%i.nvr", device_get_instance());
-            dev->wide     = 1;
+            dev->wide      = 1;
+            dev->chip_type = 0x07;
             break;
     }
 
@@ -2604,6 +2640,9 @@ ncr53c8xx_init(const device_t *info)
     if (dev->has_bios == 2) {
         ncr53c8xx_pci_bar[3].addr = 0xffff0000;
         dev->bios_mask            = 0xffff0000;
+    } else if (dev->has_bios >= 3) {
+        ncr53c8xx_pci_bar[3].addr = 0xffff8000;
+        dev->bios_mask            = 0xffff8000;
     } else if (dev->has_bios == 1) {
         ncr53c8xx_pci_bar[3].addr = 0xffffc000;
         dev->bios_mask            = 0xffffc000;
@@ -2680,6 +2719,31 @@ static const device_config_t ncr53c8xx_pci_config[] = {
   // clang-format on
 };
 
+static const device_config_t ncr53c875_pci_config[] = {
+  // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Revision",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "SDMS 4.x BIOS",                                       .value = 2 },
+            { .description = "SDMS 3.x BIOS",                                       .value = 1 },
+            { .description = "Tekram DC-390F BIOS 3.20",                            .value = 3 },
+            { .description = "Tekram DC-390F BIOS 3.23",                            .value = 4 },
+            { .description = "Tekram DC-390F BIOS 3.23 (incl. 0 sec delay option)", .value = 5 },
+            { .description = "Disable BIOS",                                        .value = 0 },
+            { .description = ""                                                                }
+        },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
 const device_t ncr53c810_pci_device = {
     .name          = "NCR 53c810",
     .internal_name = "ncr53c810",
@@ -2691,7 +2755,8 @@ const device_t ncr53c810_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "NCR 53c810"
 };
 
 const device_t ncr53c810_onboard_pci_device = {
@@ -2705,7 +2770,8 @@ const device_t ncr53c810_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "NCR 53c810"
 };
 
 const device_t ncr53c815_pci_device = {
@@ -2719,7 +2785,8 @@ const device_t ncr53c815_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = ncr53c8xx_pci_config
+    .config        = ncr53c8xx_pci_config,
+    .short_name    = "NCR 53c815"
 };
 
 const device_t ncr53c820_pci_device = {
@@ -2733,7 +2800,8 @@ const device_t ncr53c820_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "NCR 53c820"
 };
 
 const device_t ncr53c825a_pci_device = {
@@ -2747,7 +2815,8 @@ const device_t ncr53c825a_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = ncr53c8xx_pci_config
+    .config        = ncr53c8xx_pci_config,
+    .short_name    = "NCR 53c825A"
 };
 
 const device_t ncr53c860_pci_device = {
@@ -2761,7 +2830,8 @@ const device_t ncr53c860_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = ncr53c8xx_pci_config
+    .config        = ncr53c8xx_pci_config,
+    .short_name    = "NCR 53c860"
 };
 
 const device_t ncr53c875_pci_device = {
@@ -2775,7 +2845,8 @@ const device_t ncr53c875_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = ncr53c8xx_pci_config
+    .config        = ncr53c875_pci_config,
+    .short_name    = "NCR 53c875"
 };
 
 const device_t ncr53c875_onboard_pci_device = {
@@ -2789,5 +2860,6 @@ const device_t ncr53c875_onboard_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "NCR 53c875"
 };

@@ -1,0 +1,153 @@
+name: Pull request build links
+
+# Keeps a single comment on each pull request up to date with links to the
+# artifacts of its latest builds.
+#
+# workflow_run is used so that the job has permission to comment on pull
+# requests from forks. The job never checks out or runs code from the pull
+# request. Since the build workflow runs the pull request's own version of
+# its workflow file, everything read from its runs (such as artifact names)
+# is treated as untrusted.
+
+on:
+
+  workflow_run:
+    workflows:
+      - Pull request builds
+    types:
+      - completed
+
+# The comment is rebuilt from scratch on every run, so it is enough for the
+# last queued run per pull request branch to go through.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.workflow_run.head_repository.full_name }}-${{ github.event.workflow_run.head_branch }}
+  cancel-in-progress: false
+
+permissions:
+  actions: read
+  pull-requests: write
+
+jobs:
+
+  comment:
+
+    name: Update build links comment
+
+    runs-on: ubuntu-latest
+
+    if: github.event.workflow_run.event == 'pull_request'
+
+    steps:
+      - name: Update comment
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          HEAD_REPO: ${{ github.event.workflow_run.head_repository.full_name }}
+          HEAD_BRANCH: ${{ github.event.workflow_run.head_branch }}
+        run: |
+          set -euo pipefail
+
+          marker='<!-- pr-build-links -->'
+
+          # workflow_run.pull_requests is empty for pull requests from forks,
+          # so look the pull request up by its head instead
+          pr_json=$(gh api -X GET "repos/$GH_REPO/pulls" \
+            -f state=open -f head="${HEAD_REPO%%/*}:$HEAD_BRANCH" \
+            | jq --arg repo "$HEAD_REPO" 'map(select(.head.repo.full_name == $repo)) | .[0] // empty')
+          if [ -z "$pr_json" ]; then
+            echo "No open pull request for $HEAD_REPO:$HEAD_BRANCH, skipping."
+            exit 0
+          fi
+          pr=$(jq -r '.number' <<< "$pr_json")
+          pr_created=$(jq -r '.created_at' <<< "$pr_json")
+
+          # Runs for this pull request's branch, newest first. Runs from
+          # before the pull request was opened belong to an earlier pull
+          # request from the same branch. Runs skipped because an unrelated
+          # label was added are left out.
+          runs=$(gh api -X GET "repos/$GH_REPO/actions/workflows/pr_builds.yml/runs" \
+            -f event=pull_request -f branch="$HEAD_BRANCH" -F per_page=50 \
+            | jq --arg repo "$HEAD_REPO" --arg since "$pr_created" \
+              '[.workflow_runs[] | select(.head_repository.full_name == $repo and .created_at >= $since and .conclusion != "skipped")]')
+
+          if [ "$(jq 'length' <<< "$runs")" -eq 0 ]; then
+            echo "No builds for #$pr yet, skipping."
+            exit 0
+          fi
+
+          {
+            echo "$marker"
+            echo "## Builds"
+            echo
+            echo "Builds of this pull request from GitHub Actions. Downloading them requires being signed in to GitHub, and they are deleted after the artifact retention period."
+            echo
+            echo "> [!WARNING]"
+            echo "> These builds contain unreviewed code from this pull request. Use them at your own risk."
+            echo
+          } > body.md
+
+          latest_id=$(jq -r '.[0].id' <<< "$runs")
+          latest_sha=$(jq -r '.[0].head_sha[0:9]' <<< "$runs")
+          latest_url=$(jq -r '.[0].html_url' <<< "$runs")
+          latest_status=$(jq -r '.[0].status' <<< "$runs")
+          latest_conclusion=$(jq -r '.[0].conclusion // ""' <<< "$runs")
+
+          if [ "$latest_status" != "completed" ]; then
+            echo ":hourglass: [A build of \`$latest_sha\`]($latest_url) is in progress." >> body.md
+          elif [ "$latest_conclusion" = "success" ]; then
+            echo ":white_check_mark: [The latest build of \`$latest_sha\`]($latest_url) succeeded." >> body.md
+          else
+            echo ":x: [The latest build of \`$latest_sha\`]($latest_url) did not fully succeed ($latest_conclusion)." >> body.md
+          fi
+
+          # Link the newest completed run that has artifacts left, which may
+          # be a partially failed one
+          artifacts=
+          for run_id in $(jq -r '.[] | select(.status == "completed") | .id' <<< "$runs" | head -n 10); do
+            artifacts=$(gh api -X GET "repos/$GH_REPO/actions/runs/$run_id/artifacts" -F per_page=100 \
+              | jq '[.artifacts[] | select(.expired | not)] | sort_by(.name)')
+            if [ "$(jq 'length' <<< "$artifacts")" -gt 0 ]; then
+              break
+            fi
+            artifacts=
+          done
+
+          if [ -z "$artifacts" ]; then
+            echo >> body.md
+            echo "No builds are available yet." >> body.md
+          else
+            run_json=$(jq --argjson id "$run_id" '.[] | select(.id == $id)' <<< "$runs")
+            run_sha=$(jq -r '.head_sha[0:9]' <<< "$run_json")
+            run_url=$(jq -r '.html_url' <<< "$run_json")
+
+            if [ "$run_id" != "$latest_id" ]; then
+              echo >> body.md
+              echo "Showing the builds of [\`$run_sha\`]($run_url) instead." >> body.md
+            fi
+
+            for platform in Windows Linux macOS; do
+              # Artifact names come from the pull request's workflow file, so
+              # strip anything that could be interpreted as Markdown or HTML
+              list=$(jq -r --arg platform "$platform" --arg base "https://github.com/$GH_REPO/actions/runs/$run_id/artifacts" \
+                '.[] | select(.name | contains("-\($platform)-"))
+                 | "- [\(.name | gsub("[^A-Za-z0-9._+-]"; "_"))](\($base)/\(.id)) (\(.size_in_bytes / 1048576 * 10 | round / 10) MB)"' \
+                <<< "$artifacts")
+              if [ -n "$list" ]; then
+                printf '\n### %s\n\n%s\n' "$platform" "$list" >> body.md
+              fi
+            done
+          fi
+
+          comment_id=$(gh api --paginate "repos/$GH_REPO/issues/$pr/comments" \
+            | jq -rs --arg marker "$marker" \
+              'add | map(select(.user.login == "github-actions[bot]" and (.body | startswith($marker)))) | .[0].id // empty')
+
+          if [ -n "$comment_id" ]; then
+            gh api -X PATCH "repos/$GH_REPO/issues/comments/$comment_id" -F body=@body.md > /dev/null
+            echo "Updated comment $comment_id on #$pr."
+          elif [ -n "$artifacts" ]; then
+            gh api -X POST "repos/$GH_REPO/issues/$pr/comments" -F body=@body.md > /dev/null
+            echo "Posted comment on #$pr."
+          else
+            echo "No builds to link on #$pr yet, skipping."
+          fi

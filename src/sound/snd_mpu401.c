@@ -1378,12 +1378,17 @@ MPU401_InputSysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
     mpu401_log("MPU401 Input Sysex\n");
 
     if (!mpu->intelligent || mpu->mode == M_UART) {
-        /* UART mode input. */
-        for (i = 0; i < len; i++)
+        /* UART mode input. Leave what doesn't fit in the queue to the
+           caller, instead of losing it. */
+        for (i = 0; i < len; i++) {
+            if (mpu->queue_used >= MPU401_QUEUE)
+                break;
             MPU401_QueueByte(mpu, buffer[i]);
+        }
 
-        MPU401_ReadRaiseIRQ(mpu);
-        return 0;
+        if (i > 0)
+            MPU401_ReadRaiseIRQ(mpu);
+        return len - i;
     }
 
     if (mpu->filter.sysex_in) {
@@ -1413,7 +1418,7 @@ MPU401_InputSysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
             return (len - available);
         }
     } else if (mpu->filter.sysex_thru && mpu->midi_thru) {
-        midi_raw_out_byte(0xf0);
+        /* The buffer has the F0 already. */
         for (i = 0; i < len; i++)
             midi_raw_out_byte(*(buffer + i));
     }
@@ -1750,26 +1755,27 @@ mpu401_mca_write(uint16_t port, uint8_t val, void *priv)
         return;
 
     addr = (mpu->pos_regs[2] & 2) ? 0x0330 : 0x1330;
+    io_removehandler(addr, 2, mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
 
     port &= 7;
 
     mpu->pos_regs[port] = val;
 
     if (port == 2) {
-        io_removehandler(addr, 2,
-                         mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
+        if (mpu->pos_regs[2] & 0x01) {
+            addr = (mpu->pos_regs[2] & 2) ? 0x1330 : 0x0330;
 
-        addr = (mpu->pos_regs[2] & 2) ? 0x1330 : 0x0330;
-
-        io_sethandler(addr, 2,
-                      mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
+            io_sethandler(addr, 2,
+                          mpu401_read, NULL, NULL, mpu401_write, NULL, NULL, mpu);
+        }
     }
 }
 
 static uint8_t
-mpu401_mca_feedb(UNUSED(void *priv))
+mpu401_mca_feedb(void *priv)
 {
-    return 1;
+    mpu_t   *mpu = (mpu_t *) priv;
+    return mpu->pos_regs[2] & 0x01;
 }
 
 void

@@ -53,6 +53,7 @@ add_library(snd OBJECT
     snd_sb_dsp.c
     snd_emu8k.c
     snd_mmb.c
+    snd_mozart.c
     snd_mpu401.c
     snd_pas16.c
     snd_jazz16.c
@@ -99,11 +100,13 @@ elseif(OPENAL)
 
     if(TARGET OpenAL::OpenAL)
         target_link_libraries(86Box OpenAL::OpenAL)
+        target_link_libraries(snd PRIVATE OpenAL::OpenAL)
         if(WIN32 AND STATIC_BUILD)
             target_link_libraries(OpenAL::OpenAL INTERFACE avrt)
         endif()
     else()
         target_link_libraries(86Box ${OPENAL_LIBRARY})
+        target_include_directories(snd PRIVATE ${OPENAL_INCLUDE_DIR})
         if(WIN32 AND STATIC_BUILD)
             target_link_libraries(${OPENAL_LIBRARY} INTERFACE avrt)
         endif()

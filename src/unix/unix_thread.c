@@ -106,6 +106,11 @@ thread_wait_event(event_t *handle, int timeout)
         while (!event->state)
             pthread_cond_wait(&event->cond, &event->mutex);
     } else if (!event->state)
+        /* Events are manual-reset: a set latches state until the reset,
+           and the broadcast that came with it reaches only waiters already
+           blocked. A timed wait entered on a set event must therefore test
+           state before it sleeps, or it waits out the whole timeout for a
+           broadcast that never comes. */
         pthread_cond_timedwait(&event->cond, &event->mutex, &abstime);
     pthread_mutex_unlock(&event->mutex);
 

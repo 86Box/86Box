@@ -42,6 +42,51 @@ static struct audio_swpar info[8];
 static audio_info_t       info[8];
 #endif
 
+int
+al_capture_get_rate(void)
+{
+    return 0;
+}
+
+const char *
+sound_get_input_devices(void)
+{
+    return NULL; /* audio(4): capture device enumeration not implemented */
+}
+
+int
+al_capture_available(void)
+{
+    return 0;
+}
+
+void
+al_capture_open(void)
+{
+}
+
+void
+al_capture_close(void)
+{
+}
+
+void
+al_capture_start(void)
+{
+}
+
+void
+al_capture_stop(void)
+{
+}
+
+void
+al_capture_get_data(int16_t *buf, size_t *len)
+{
+    if (len)
+        *len = 0;
+}
+
 const char *
 sound_get_output_devices(void)
 {

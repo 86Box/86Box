@@ -76,10 +76,25 @@ random_twist(uint32_t *val)
     *val ^= 0x4ED32706;
 }
 
+/* With a seed set (random_seed()), random_generate() is a plain PRNG with
+   its own state: the same seed gives the same bytes, whatever the host
+   clock says and whatever else calls rand(). */
+static int      seeded = 0;
+static uint64_t seed_state;
+
 uint8_t
 random_generate(void)
 {
     uint16_t r = 0;
+
+    if (seeded) {
+        /* splitmix64 */
+        uint64_t z = (seed_state += 0x9E3779B97F4A7C15ULL);
+        z          = (z ^ (z >> 30)) * 0xBF58476D1CE4E5B9ULL;
+        z          = (z ^ (z >> 27)) * 0x94D049BB133111EBULL;
+        return (uint8_t) ((z ^ (z >> 31)) >> 56);
+    }
+
     r          = (RDTSC() ^ ROTATE_LEFT(preconst, rand() % 32)) % 256;
     random_twist(&preconst);
     return (r & 0xff);
@@ -91,4 +106,12 @@ random_init(void)
     uint32_t seed = RDTSC();
     srand(seed);
     return;
+}
+
+void
+random_seed(uint32_t seed)
+{
+    seed_state = seed;
+    seeded     = 1;
+    srand(seed);
 }

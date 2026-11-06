@@ -1,15 +1,8 @@
-#ifdef USE_NEW_DYNAREC
-#    define CPU_SET_OXPC
-#else
-#    define CPU_SET_OXPC oxpc = cpu_state.pc;
-#endif
-
 #define RETF_a16(stack_offset)                        \
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG)) { \
         op_pmoderetf(0, stack_offset);                \
         return 1;                                     \
     }                                                 \
-    CPU_SET_OXPC                                      \
     if (stack32) {                                    \
         cpu_state.pc = readmemw(ss, ESP);             \
         op_loadcs(readmemw(ss, ESP + 2));             \
@@ -30,7 +23,6 @@
         op_pmoderetf(1, stack_offset);                \
         return 1;                                     \
     }                                                 \
-    CPU_SET_OXPC                                      \
     if (stack32) {                                    \
         cpu_state.pc = readmeml(ss, ESP);             \
         op_loadcs(readmeml(ss, ESP + 4) & 0xffff);    \
@@ -118,7 +110,6 @@ opIRET_186(UNUSED(uint32_t fetchdat))
         optype = 0;
     } else {
         uint16_t new_cs;
-        CPU_SET_OXPC
         if (stack32) {
             cpu_state.pc    = readmemw(ss, ESP);
             new_cs          = readmemw(ss, ESP + 2);
@@ -135,9 +126,7 @@ opIRET_186(UNUSED(uint32_t fetchdat))
     }
     flags_extract();
     nmi_enable = 1;
-#ifdef USE_DEBUG_REGS_486
     rf_flag_no_clear = 1;
-#endif
     CPU_BLOCK_END();
 
     PREFETCH_RUN(cycles_old - cycles, 1, -1, 2, 0, 0, 0, 0);
@@ -161,7 +150,6 @@ opIRET_286(UNUSED(uint32_t fetchdat))
         optype = 0;
     } else {
         uint16_t new_cs;
-        CPU_SET_OXPC
         if (stack32) {
             cpu_state.pc    = readmemw(ss, ESP);
             new_cs          = readmemw(ss, ESP + 2);
@@ -178,9 +166,7 @@ opIRET_286(UNUSED(uint32_t fetchdat))
     }
     flags_extract();
     nmi_enable = 1;
-#ifdef USE_DEBUG_REGS_486
     rf_flag_no_clear = 1;
-#endif
     CPU_BLOCK_END();
 
     PREFETCH_RUN(cycles_old - cycles, 1, -1, 2, 0, 0, 0, 0);
@@ -231,7 +217,6 @@ opIRET(UNUSED(uint32_t fetchdat))
             optype = 0;
         } else {
             uint16_t new_cs;
-            CPU_SET_OXPC
             if (stack32) {
                 cpu_state.pc    = readmemw(ss, ESP);
                 new_cs          = readmemw(ss, ESP + 2);
@@ -249,9 +234,7 @@ opIRET(UNUSED(uint32_t fetchdat))
     }
     flags_extract();
     nmi_enable = 1;
-#ifdef USE_DEBUG_REGS_486
     rf_flag_no_clear = 1;
-#endif
     CPU_BLOCK_END();
 
     PREFETCH_RUN(cycles_old - cycles, 1, -1, 2, 0, 0, 0, 0);
@@ -275,18 +258,17 @@ opIRETD(UNUSED(uint32_t fetchdat))
         optype = 0;
     } else {
         uint16_t new_cs;
-        CPU_SET_OXPC
         if (stack32) {
             cpu_state.pc     = readmeml(ss, ESP);
             new_cs           = readmemw(ss, ESP + 4);
             cpu_state.flags  = (readmemw(ss, ESP + 8) & 0xffd5) | 2;
-            cpu_state.eflags = readmemw(ss, ESP + 10);
+            cpu_state.eflags = readmemw(ss, ESP + 10) & cpu_eflags_implemented();
             ESP += 12;
         } else {
             cpu_state.pc     = readmeml(ss, SP);
             new_cs           = readmemw(ss, ((SP + 4) & 0xffff));
             cpu_state.flags  = (readmemw(ss, (SP + 8) & 0xffff) & 0xffd5) | 2;
-            cpu_state.eflags = readmemw(ss, (SP + 10) & 0xffff);
+            cpu_state.eflags = readmemw(ss, (SP + 10) & 0xffff) & cpu_eflags_implemented();
             SP += 12;
         }
         op_loadcs(new_cs);
@@ -294,9 +276,7 @@ opIRETD(UNUSED(uint32_t fetchdat))
     }
     flags_extract();
     nmi_enable = 1;
-#ifdef USE_DEBUG_REGS_486
     rf_flag_no_clear = 1;
-#endif
     CPU_BLOCK_END();
 
     PREFETCH_RUN(cycles_old - cycles, 1, -1, 0, 2, 0, 0, 1);

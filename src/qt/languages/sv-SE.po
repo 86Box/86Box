@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-05 10:56+0000\n"
+"PO-Revision-Date: 2026-11-04 14:27+0000\n"
 "Last-Translator: toshineon <pettersson.mk11@gmail.com>\n"
 "Language-Team: Swedish <https://weblate.86box.net/projects/86box/86box/sv/>\n"
 "Language: sv-SE\n"
@@ -150,6 +150,12 @@ msgstr "&Skala till heltal"
 msgid "4:&3 Integer scale"
 msgstr "Skala till heltal i 4:&3"
 
+msgid "&Center"
+msgstr "&Centrera"
+
+msgid "4:3 Cen&ter"
+msgstr "4:3 Cen&trera"
+
 msgid "Inverted VGA monitor"
 msgstr "Inverterad VGA-skärm"
 
@@ -233,9 +239,6 @@ msgstr "L&jud"
 
 msgid "&Preferences…"
 msgstr "&Preferenser…"
-
-msgid "Enable &Discord integration"
-msgstr "Aktivera &integration med Discord"
 
 msgid "Sound &gain…"
 msgstr "Ljud&förstärkning…"
@@ -411,17 +414,35 @@ msgstr "MB"
 msgid "Memory:"
 msgstr "Minne:"
 
-msgid "Time synchronization"
-msgstr "Synkronisera tid"
+msgid "Synchronize with host clock"
+msgstr "Synkronisera med värdens klocka"
 
-msgid "Disabled"
-msgstr "Inaktiverad"
+msgid "Time zone:"
+msgstr "Tidszon:"
 
-msgid "Enabled (local time)"
-msgstr "Aktiverad (lokal tid)"
+msgid "Local"
+msgstr "Lokal"
 
-msgid "Enabled (UTC)"
-msgstr "Aktiverad (UTC)"
+msgid "UTC"
+msgstr ""
+
+msgid "Date:"
+msgstr "Datum:"
+
+msgid "Match the host"
+msgstr "Samma som värd"
+
+msgid "Offset the year by:"
+msgstr "Förskjut år med:"
+
+msgid "(currently %1)"
+msgstr "(för närvarande %1)"
+
+msgid "Always use the year:"
+msgstr "Använd alltid året:"
+
+msgid "Do not synchronize the date"
+msgstr "Synkronisera inte datumet"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Använd 486-programtolk för 286- och 386-processorer"
@@ -431,6 +452,12 @@ msgstr "Dynamisk omkompilator"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Exakt flyttalsprocessor-miljö på dynamisk omkompilator"
+
+msgid "Block linking on the dynamic recompiler"
+msgstr "Blocklänkning i dynamisk omkompilator"
+
+msgid "Debug registers on 486 and later processors"
+msgstr "Felsökningsregister på 486 och senare processorer"
 
 msgid "CPU frame size"
 msgstr "Ramstorlek för processor"
@@ -461,6 +488,9 @@ msgstr "XGA-grafik"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 bildskärmsadapter"
+
+msgid "PowerVR PCX1/PCX2 Graphics"
+msgstr ""
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -623,6 +653,14 @@ msgstr "Styrenhet 4:"
 
 msgid "Cassette"
 msgstr "Kassettband"
+
+msgid "Turbo IDE"
+msgstr "Turbo-IDE"
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
+"Tar bort hastighetsbegränsningen för överföringsläget på IDE. Hårddiskars "
+"och CD-ROM-enheters timing tillämpas fortfarande."
 
 msgid "Hard disks:"
 msgstr "Hårddiskar:"
@@ -944,6 +982,9 @@ msgstr "Tryck på %1 för att släppa musen"
 
 msgid "Press %1 or middle button to release mouse"
 msgstr "Tryck på %1 eller mellersta musknappen för att släppa musen"
+
+msgid "Press %1 or side button to release mouse"
+msgstr "Tryck på %1 eller sidoknapp för att släppa musen"
 
 msgid "Bus"
 msgstr "Buss"
@@ -1273,6 +1314,37 @@ msgstr "Använd vanliga uttryck i sökfältet"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "Ta bort virtuella maskiner till Papperskorgen"
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr "Visa maskiner som körs i min Discord-status"
+
+msgid "Details shown:"
+msgstr "Visade detaljer:"
+
+msgid "Machine name and hardware"
+msgstr "Maskinnamn och maskinvara"
+
+msgid "Hardware only"
+msgstr "Endast maskinvara"
+
+msgid "No details"
+msgstr "Inga detaljer"
+
+msgid "Using %1"
+msgstr "Använder %1"
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] "%n maskin aktiv"
+msgstr[1] "%n maskiner aktiva"
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] " (+%n mer)"
+msgstr[1] " (+%n mer)"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -3003,13 +3075,13 @@ msgid "Model:"
 msgstr "Modell:"
 
 msgid "Brand:"
-msgstr ""
+msgstr "Märke:"
 
 msgid "Revision:"
 msgstr ""
 
 msgid "[Generic HDD] Device Configuration"
-msgstr ""
+msgstr "[Allmän hårddisk] Enhetskonfigurering"
 
 msgid "Failed to initialize Vulkan renderer."
 msgstr "Kunde inte initialisera Vulkan-renderaren."
@@ -3076,6 +3148,9 @@ msgstr "Inmatning"
 
 msgid "Key bindings"
 msgstr "Tangentbindningar"
+
+msgid "VM Manager"
+msgstr "VM-hanterare"
 
 msgid "Action"
 msgstr "Handling"
@@ -3517,8 +3592,131 @@ msgstr "938 (Traditionell kinesiska)"
 msgid "Sample rate:"
 msgstr "Samplingsfrekvens:"
 
+msgid "Enable audio input (mic/line-in)"
+msgstr "Aktivera ljudingång (mik/linjeingång)"
+
+msgid "Audio input device:"
+msgstr "Ljudingångsenhet:"
+
+msgid "Audio input sample rate:"
+msgstr "Ljudingång samplingsfrekvens:"
+
+msgid "Rate the emulator mixes to the host output device."
+msgstr "Frekvens med vilken emulatorn blandar till värdens utgångsenhet."
+
+msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
+msgstr ""
+"Frekvens med vilken värdens ingångfångstenhet öppnas.\n"
+"\n"
+"44100 delas jämnt med SB16/AWE32s frekvens på 44.1/22/11 kHz."
+
 msgid "CGA lightpen"
 msgstr "CGA-ljuspenna"
 
 msgid "Luminance threshold (%)"
 msgstr "Tröskel för luminans (%)"
+
+msgid "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded."
+msgstr ""
+"VFIO: /dev/vfio/vfio: %s kunde inte öppnas. Säkerställ att vfio-pci-modulen "
+"är inläst."
+
+msgid "VFIO %s: Invalid device location."
+msgstr "VFIO %s: Ogiltig enhetsplats."
+
+msgid "VFIO %s: Device not found."
+msgstr "VFIO %s: Kunde inte hitta enhet."
+
+msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
+msgstr ""
+"VFIO %s: Enhet har ingen IOMMU-grupp. Säkerställ att VT-d eller IOMMU är "
+"aktiverat på ditt system."
+
+msgid "VFIO %s: Device is not bound to vfio-pci."
+msgstr "VFIO %s: Enhet inte bunden till vfio-pci."
+
+msgid "VFIO %s: Could not open IOMMU group %d: %s"
+msgstr "VFIO %s: IOMMU-grupp %d: %s kunde inte öppnas"
+
+msgid "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci."
+msgstr ""
+"VFIO %s: IOMMU-grupp %d inte genomförbar. Alla enheter i gruppen måste "
+"bindas till vfio-pci."
+
+msgid "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low."
+msgstr ""
+"VFIO: Gästminne för DMA: %s kunde inte kartläggas. Den låsta minnesgränsen ("
+"ulimit -l) kan vara för låg."
+
+msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
+msgstr "VFIO %s: ROM-fil \"%s\" kunde inte läsas; använder enhetens egna ROM."
+
+msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
+msgstr "VFIO %s: ROM-filen \"%s\" kunde inte läsas; ROMen är avaktiverad."
+
+msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
+msgstr ""
+"VFIO %s: ROMen ser ogiltig ut. En egen ROM kan läsas in genom VFIO-"
+"inställningarna."
+
+msgid "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?"
+msgstr ""
+"VFIO: Dessa enheter måste bindas till vfio-pci, vilket kräver "
+"administratörsrättigheter:\n"
+"\n"
+"%s\n"
+"Vill du binda dem nu?"
+
+msgid "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?"
+msgstr ""
+"VFIO: Administratörsrättigheter krävs för att ge 86Box tillgång till "
+"vidarebefordrade enheter. Fortsätt?"
+
+msgid "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:"
+msgstr ""
+"Dessa enheter är inte valda, men delar en IOMMU-grupp med en vald enhet, så "
+"de kommer också att bindas:"
+
+msgid "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci."
+msgstr ""
+"VFIO %s: IOMMU-grupp &d innehåller också %s, vilket värden behöver. Gruppen "
+"kommer inte att bindas till vfio-pci."
+
+msgid "VFIO: Could not prepare the devices for passthrough:\n%s"
+msgstr ""
+"VFIO: Enheterna kunde inte förberedas för vidarebefordring:\n"
+"%s"
+
+msgid "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s"
+msgstr ""
+"VFIO: Administratörsrättigheter kunde inte efterfrågas. För att förbereda "
+"enheterna för vidarebefordring, kör detta kommanda och gör sedan en hård "
+"omstart:\n"
+"\n"
+"%s"
+
+msgid "Prepare PCI devices for VFIO passthrough"
+msgstr "Förbered PCI-enheter för VFIO-vidarebefordring"
+
+msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
+msgstr ""
+"Autentisering krävs för att förbereda PCI-enheter för vidarebefordring till "
+"86Box."
+
+msgid "Disabled"
+msgstr ""
+
+msgid "Unlimited capacity"
+msgstr ""
+
+msgid "CD speed:"
+msgstr ""
+
+msgid "DVD speed:"
+msgstr ""
+
+msgid "HD/BD speed:"
+msgstr ""
+
+msgid "Software-initiated poweroff device (IBM 5140)"
+msgstr ""

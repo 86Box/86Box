@@ -194,7 +194,9 @@ const device_t ide_um8886af_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "UMC UM8886AF",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_um8673f_device = {
@@ -208,5 +210,7 @@ const device_t ide_um8673f_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "UMC UM8673F",
+    .ide_boards    = ide_boards_pri_sec
 };

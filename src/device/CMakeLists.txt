@@ -20,6 +20,7 @@ add_library(dev OBJECT
     access_bus.c
     ast_nvr.c
     ast_readout.c
+    board_led.c
     bugger.c
     cartridge.c
     cassette.c
@@ -34,6 +35,8 @@ add_library(dev OBJECT
     i2c.c
     i2c_gpio.c
     ibm_5161.c
+    ibm_pc700_power.c
+    ibm_pc700_readout.c
     inboard386.c
     ibm_xma.c
     mcamem.c
@@ -45,14 +48,22 @@ add_library(dev OBJECT
     kbc_at.c
     kbc_at_dev.c
     kbc_ps2_m25.c
+    kbc_tvis.c
     kbc_xt.c
     keyboard.c
     keyboard_at.c
     keyboard_xt.c
     lpt.c
     lpt_bpck.c
+    lpt_bpck_link.c
+    lpt_bpfdd.c
+    lpt_on26.c
+    lpt_epia.c
+    lpt_freecom.c
+    lpt_bpmcd.c
     lpt_ditto.c
     lpt_epat.c
+    lpt_zip.c
     mouse.c
     mouse_bus.c
     mouse_ibm7690_tablet.c
@@ -66,11 +77,16 @@ add_library(dev OBJECT
     phoenix_486_jumper.c
     postcard.c
     radisys_config.c
-    serial.c
-    softpower.c
+    serial_backend.c
+    serial_host.c
+    serial_i8251.c
+    serial_ns8250.c
+    serial_scn26x1.c
+    softpower_ibm5140.c
     smbus_ali7101.c
     smbus_piix4.c
     smbus_sis5595.c
+    tandy_clkmouse.c
     tulip_jumper.c
     unittester.c
     zenith_scratchpad.c
@@ -96,6 +112,20 @@ endif()
 if(CMAKE_SYSTEM_NAME MATCHES "Linux" AND VFIO AND VFIO_AVAILABLE)
     add_compile_definitions(USE_VFIO)
     target_sources(dev PRIVATE vfio.c)
+
+    # Embed the device preparation script, as not every supported compiler has #embed.
+    add_custom_command(OUTPUT "${CMAKE_CURRENT_BINARY_DIR}/vfio_setup_sh.h"
+        COMMAND "${CMAKE_COMMAND}" "-DIN=${CMAKE_CURRENT_SOURCE_DIR}/vfio-setup.sh"
+                "-DOUT=${CMAKE_CURRENT_BINARY_DIR}/vfio_setup_sh.h" -DNAME=vfio_setup_sh
+                -P "${PROJECT_SOURCE_DIR}/cmake/EmbedFile.cmake"
+        DEPENDS vfio-setup.sh "${PROJECT_SOURCE_DIR}/cmake/EmbedFile.cmake"
+        COMMENT "Embedding vfio-setup.sh")
+    target_sources(dev PRIVATE "${CMAKE_CURRENT_BINARY_DIR}/vfio_setup_sh.h")
+    target_include_directories(dev PRIVATE "${CMAKE_CURRENT_BINARY_DIR}")
+
+    # An installed copy is preferred, as it comes with a polkit policy.
+    include(GNUInstallDirs)
+    target_compile_definitions(dev PRIVATE "VFIO_SETUP_HELPER=\"${CMAKE_INSTALL_FULL_LIBEXECDIR}/86box/vfio-setup\"")
 endif()
 
 if(LASERXT)

@@ -223,6 +223,15 @@ hercules_write(uint32_t addr, uint8_t val, void *priv)
     hercules_waitstates(dev);
 }
 
+/* For the memory viewer: no wait states. */
+static uint8_t *
+hercules_debug_ptr(uint32_t addr, UNUSED(int write), void *priv)
+{
+    hercules_t *dev = (hercules_t *) priv;
+
+    return &dev->vram[addr & ((dev->ctrl2 & 0x01) ? 0xffff : 0x0fff)];
+}
+
 static uint8_t
 hercules_read(uint32_t addr, void *priv)
 {
@@ -575,6 +584,7 @@ hercules_init(UNUSED(const device_t *info))
                     hercules_write, NULL, NULL,
                     NULL /*dev->vram*/, MEM_MAPPING_EXTERNAL,
                     dev);
+    mem_debug_add(hercules_read, hercules_write, hercules_debug_ptr);
 
     io_sethandler(0x03b0, 0x0010,
                   hercules_in, NULL, NULL,

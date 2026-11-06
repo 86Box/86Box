@@ -283,13 +283,15 @@ net_pcap_thread(void *priv)
 
             case NET_EVENT_TX:
                 net_event_clear(&pcap->tx_event);
-                if (!(net_cards_conf[pcap->card->card_num].link_state & NET_LINK_DOWN)) {
+                {
                     int packets = network_tx_popv(pcap->card, pcap->pktv, PCAP_PKT_BATCH);
-                    for (int i = 0; i < packets; i++) {
-                        h.caplen = pcap->pktv[i].len;
-                        f_pcap_sendqueue_queue(pcap->pcap_queue, &h, pcap->pktv[i].data);
+                    if (!(net_cards_conf[pcap->card->card_num].link_state & NET_LINK_DOWN)) {
+                        for (int i = 0; i < packets; i++) {
+                            h.caplen = pcap->pktv[i].len;
+                            f_pcap_sendqueue_queue(pcap->pcap_queue, &h, pcap->pktv[i].data);
+                        }
+                        f_pcap_sendqueue_transmit(pcap->pcap, pcap->pcap_queue, 0);
                     }
-                    f_pcap_sendqueue_transmit(pcap->pcap, pcap->pcap_queue, 0);
                 }
                 pcap->pcap_queue->len = 0;
                 break;

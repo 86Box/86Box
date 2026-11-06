@@ -10,8 +10,10 @@
  *          devices.
  *
  * Authors: Miran Grca, <mgrca8@gmail.com>
+ *          Nathan Lewis, <git@nrlewis.dev>
  *
  *          Copyright 2016-2020 Miran Grca.
+ *          Copyright 2026      Nathan Lewis.
  */
 #include <stdio.h>
 #include <stdint.h>
@@ -44,12 +46,13 @@ enum {
     CMD_CLEAR_BLOCK_LOCKS = 0xD0
 };
 
-typedef struct flash_t {
+/* The chip. */
+struct e28f0xx_t {
     uint8_t  command;
     uint8_t  status;
     uint8_t  master_lock;
     uint8_t  flags;
-    uint8_t  ctrl;
+    uint8_t  write_protect;
     uint8_t *array;
 
     uint8_t  block_locks[32];
@@ -57,48 +60,31 @@ typedef struct flash_t {
     uint16_t flash_id;
     uint16_t dirty;
 
+    uint32_t size;
+    uint32_t mask;
     uint32_t program_addr;
 
-    mem_mapping_t mapping[4];
+    char nvr_path[1024];
+};
+
+/* The chip as the boot BIOS. */
+typedef struct e28f0xx_bios_t {
+    e28f0xx_t *chip;
+
+    uint8_t cobalt3k;
+    uint8_t ctrl; /* The Cobalt Qube 3's bank control. */
+
+    mem_mapping_t mapping[2];
     mem_mapping_t mapping_h[64];
-} flash_t;
-
-static char flash_path[1024];
-
-void
-flash_e28f0xx_cobalt3k_update(uint8_t val)
-{
-    flash_t *dev = (flash_t *) device_get_priv(&intel_flash_e28f0xx_cobalt3k_device);
-    if (!dev)
-        return;
-
-    dev->ctrl = val;
-
-    uint8_t *exec = (dev->ctrl & 0x40) ? NULL : &dev->array[(dev->ctrl & 0x0f) << 16];
-    mem_mapping_set_exec(&(dev->mapping[0]), exec);
-    mem_mapping_set_exec(&(dev->mapping_h[0]), exec);
-}
-
-static uint32_t
-flash_calc_addr(const flash_t *dev, uint32_t addr)
-{
-    if (dev->flags & FLAG_COBALT3K) {
-        if (dev->ctrl & 0x40) /* bank 1 absent */
-            return 0xffffffff;
-        return ((dev->ctrl & 0x0f) << 16) | (addr & 0x0000ffff);
-    }
-    return addr & biosmask;
-}
+} e28f0xx_bios_t;
 
 static uint8_t
-flash_read(uint32_t addr, void *priv)
+e28f0xx_read(uint32_t addr, void *priv)
 {
-    const flash_t *dev = (flash_t *) priv;
-    uint8_t        ret;
+    const e28f0xx_t *dev = (e28f0xx_t *) priv;
+    uint8_t          ret;
 
-    addr = flash_calc_addr(dev, addr);
-    if (addr == 0xffffffff)
-        return 0xff;
+    addr &= dev->mask;
 
     switch (dev->command) {
         default:
@@ -135,13 +121,11 @@ flash_read(uint32_t addr, void *priv)
 }
 
 static uint16_t
-flash_readw(uint32_t addr, void *priv)
+e28f0xx_readw(uint32_t addr, void *priv)
 {
-    const flash_t  *dev = (flash_t *) priv;
+    const e28f0xx_t *dev = (e28f0xx_t *) priv;
 
-    addr = flash_calc_addr(dev, addr);
-    if (addr == 0xffffffff)
-        return 0xffff;
+    addr &= dev->mask;
 
     if (dev->flags & FLAG_WORD)
         addr &= 0xfffffffe;
@@ -184,27 +168,26 @@ flash_readw(uint32_t addr, void *priv)
 }
 
 static uint32_t
-flash_readl(uint32_t addr, void *priv)
+e28f0xx_readl(uint32_t addr, void *priv)
 {
-    const flash_t  *dev = (flash_t *) priv;
+    const e28f0xx_t *dev = (e28f0xx_t *) priv;
 
-    addr = flash_calc_addr(dev, addr);
-    if (addr == 0xffffffff)
-        return 0xffffffff;
+    addr &= dev->mask;
 
-    const uint32_t *q   = (uint32_t *) &(dev->array[addr]);
+    const uint32_t *q = (uint32_t *) &(dev->array[addr]);
 
     return *q;
 }
 
 static void
-flash_write(uint32_t addr, uint8_t val, void *priv)
+e28f0xx_write(uint32_t addr, uint8_t val, void *priv)
 {
-    flash_t *      dev         = (flash_t *) priv;
+    e28f0xx_t *dev = (e28f0xx_t *) priv;
 
-    addr = flash_calc_addr(dev, addr);
-    if (addr == 0xffffffff)
+    if (dev->write_protect)
         return;
+
+    addr &= dev->mask;
 
     const uint32_t block_start = addr & 0xffff0000;
 
@@ -282,13 +265,14 @@ flash_write(uint32_t addr, uint8_t val, void *priv)
 }
 
 static void
-flash_writew(uint32_t addr, uint16_t val, void *priv)
+e28f0xx_writew(uint32_t addr, uint16_t val, void *priv)
 {
-    flash_t *      dev         = (flash_t *) priv;
+    e28f0xx_t *dev = (e28f0xx_t *) priv;
 
-    addr = flash_calc_addr(dev, addr);
-    if (addr == 0xffffffff)
+    if (dev->write_protect)
         return;
+
+    addr &= dev->mask;
 
     const uint32_t block_start = addr & 0xffff0000;
 
@@ -367,37 +351,296 @@ flash_writew(uint32_t addr, uint16_t val, void *priv)
 }
 
 static void
-flash_writel(UNUSED(uint32_t addr), UNUSED(uint32_t val), UNUSED(void *priv))
+e28f0xx_writel(UNUSED(uint32_t addr), UNUSED(uint32_t val), UNUSED(void *priv))
 {
     //
 }
 
+/*
+   Where a window of the chip at base starts in the chip, and how the window
+   repeats it if it is bigger than the chip.
+ */
 static void
-flash_add_mappings(flash_t *dev)
+e28f0xx_window(const e28f0xx_t *dev, uint32_t base, uint32_t size, uint8_t **exec, uint32_t *mask)
 {
-    uint8_t  max = 2;
-    uint32_t base;
-    uint32_t sub = 0x20000;
+    const uint32_t offset = base & dev->mask;
 
-    if (dev->flags & FLAG_COBALT3K) {
-        memcpy(dev->array, rom, biosmask + 1);
+    if (size > (dev->mask + 1)) {
+        if (offset != 0)
+            fatal("Intel Smart Flash: %08X bytes at %08X do not start on a %08X byte boundary\n",
+                  size, base, dev->mask + 1);
 
-        mem_mapping_add(&(dev->mapping[0]), 0x000f0000, 0x10000,
-                        flash_read, flash_readw, flash_readl,
-                        flash_write, flash_writew, flash_writel,
-                        dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
-        mem_mapping_add(&(dev->mapping_h[0]), 0xffff0000, 0x10000,
-                        flash_read, flash_readw, flash_readl,
-                        flash_write, flash_writew, flash_writel,
-                        dev->array, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
+        *exec = dev->array;
+        *mask = dev->mask;
+    } else {
+        if ((offset + size) > (dev->mask + 1))
+            fatal("Intel Smart Flash: %08X bytes at %08X are past the end of the %08X byte chip\n",
+                  size, base, dev->mask + 1);
 
-        flash_e28f0xx_cobalt3k_update(0x00);
+        *exec = dev->array + offset;
+        *mask = 0xffffffff;
+    }
+}
+
+/* Map a window of the chip at base, which may be bigger than the chip. */
+void
+e28f0xx_map(e28f0xx_t *dev, mem_mapping_t *mapping, uint32_t base, uint32_t size)
+{
+    uint8_t *exec;
+    uint32_t mask;
+
+    e28f0xx_window(dev, base, size, &exec, &mask);
+
+    mem_mapping_add(mapping, base, size,
+                    e28f0xx_read, e28f0xx_readw, e28f0xx_readl,
+                    e28f0xx_write, e28f0xx_writew, e28f0xx_writel,
+                    exec, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
+    if (mask != 0xffffffff)
+        mem_mapping_set_mask(mapping, mask);
+}
+
+/* Move a window added by e28f0xx_map() elsewhere, under the same rules. */
+void
+e28f0xx_remap(e28f0xx_t *dev, mem_mapping_t *mapping, uint32_t base, uint32_t size)
+{
+    uint8_t *exec;
+    uint32_t mask;
+
+    e28f0xx_window(dev, base, size, &exec, &mask);
+
+    mem_mapping_set_addr(mapping, base, size);
+    mem_mapping_set_exec(mapping, exec);
+    mem_mapping_set_mask(mapping, mask);
+}
+
+void
+e28f0xx_set_write_protect(e28f0xx_t *dev, int protect)
+{
+    dev->write_protect = !!protect;
+}
+
+uint32_t
+e28f0xx_get_size(const e28f0xx_t *dev)
+{
+    return dev->size;
+}
+
+void
+e28f0xx_reset(e28f0xx_t *dev)
+{
+    dev->command = CMD_READ_ARRAY;
+    dev->status  = 0;
+}
+
+e28f0xx_t *
+e28f0xx_create(const device_t *model, const flash_cfg_t *cfg)
+{
+    FILE      *fp;
+    e28f0xx_t *dev = calloc(1, sizeof(e28f0xx_t));
+
+    if (cfg->size == 0)
+        fatal("Intel Smart Flash: the chip's size is required\n");
+
+    dev->flags = model->local & 0xff;
+    dev->size  = cfg->size;
+    dev->mask  = cfg->size - 1;
+
+    dev->array = (uint8_t *) calloc(1, dev->size);
+    memset(dev->array, 0xff, dev->size);
+
+    if (cfg->image != NULL)
+        memcpy(dev->array, cfg->image, MIN(cfg->image_len, dev->size));
+
+    switch (dev->mask) {
+        default:
+        case 0x7ffff:
+            dev->flash_id = 0xa7;
+            break;
+        case 0xfffff:
+            dev->flash_id = 0xa6;
+            break;
+        case 0x1fffff:
+            dev->flash_id = 0xaa;
+            break;
+    }
+
+    e28f0xx_reset(dev);
+
+    if (cfg->nvr_name != NULL) {
+        if (strlen(cfg->nvr_name) == 0)
+            fatal("Attempting to open the Flash file for reading with an empty invalid name\n");
+
+        snprintf(dev->nvr_path, sizeof(dev->nvr_path), "%s.bin", cfg->nvr_name);
+
+        fp = nvr_fopen(dev->nvr_path, "rb");
+        if (fp != NULL) {
+            if (!dump_missing)
+                (void) !fread(dev->array, dev->size, 1, fp);
+            fclose(fp);
+        } else if (!dump_missing)
+            dev->dirty = 1;
+    }
+
+    return dev;
+}
+
+void
+e28f0xx_destroy(e28f0xx_t *dev)
+{
+    FILE *fp;
+
+    if (dev->dirty && (dev->nvr_path[0] != '\0')) {
+        fp = nvr_fopen(dev->nvr_path, "wb");
+        if (fp != NULL) {
+            if (!dump_missing)
+                fwrite(dev->array, dev->size, 1, fp);
+            fclose(fp);
+        } else if (!dump_missing)
+            warning("Unable to open %s for writing, please make sure your NVR folder is writable\n", dev->nvr_path);
+    }
+
+    free(dev->array);
+    dev->array = NULL;
+
+    free(dev);
+}
+
+/*
+   The boot BIOS: the chip behind the BIOS chip select. On the Cobalt Qube 3,
+   the board banks the chip: its bank control picks the 64k that appears, or,
+   with bit 6 set, none of it.
+ */
+static int
+e28f0xx_bios_addr(const e28f0xx_bios_t *dev, uint32_t *addr)
+{
+    if (dev->cobalt3k) {
+        if (dev->ctrl & 0x40) /* bank 1 absent */
+            return 0;
+        *addr = ((dev->ctrl & 0x0f) << 16) | (*addr & 0x0000ffff);
+    }
+
+    return 1;
+}
+
+static uint8_t
+e28f0xx_bios_read(uint32_t addr, void *priv)
+{
+    const e28f0xx_bios_t *dev = (e28f0xx_bios_t *) priv;
+
+    if (!flash_bios_read_selected(addr))
+        return 0xff;
+
+    if (!e28f0xx_bios_addr(dev, &addr))
+        return 0xff;
+
+    return e28f0xx_read(addr, dev->chip);
+}
+
+static uint16_t
+e28f0xx_bios_readw(uint32_t addr, void *priv)
+{
+    const e28f0xx_bios_t *dev = (e28f0xx_bios_t *) priv;
+
+    if (!flash_bios_read_selected(addr))
+        return 0xffff;
+
+    if (!e28f0xx_bios_addr(dev, &addr))
+        return 0xffff;
+
+    return e28f0xx_readw(addr, dev->chip);
+}
+
+static uint32_t
+e28f0xx_bios_readl(uint32_t addr, void *priv)
+{
+    const e28f0xx_bios_t *dev = (e28f0xx_bios_t *) priv;
+
+    if (!flash_bios_read_selected(addr))
+        return 0xffffffff;
+
+    if (!e28f0xx_bios_addr(dev, &addr))
+        return 0xffffffff;
+
+    return e28f0xx_readl(addr, dev->chip);
+}
+
+static void
+e28f0xx_bios_write(uint32_t addr, uint8_t val, void *priv)
+{
+    const e28f0xx_bios_t *dev = (e28f0xx_bios_t *) priv;
+
+    if (!flash_bios_write_selected(addr))
+        return;
+
+    if (!e28f0xx_bios_addr(dev, &addr))
+        return;
+
+    e28f0xx_write(addr, val, dev->chip);
+}
+
+static void
+e28f0xx_bios_writew(uint32_t addr, uint16_t val, void *priv)
+{
+    const e28f0xx_bios_t *dev = (e28f0xx_bios_t *) priv;
+
+    if (!flash_bios_write_selected(addr))
+        return;
+
+    if (!e28f0xx_bios_addr(dev, &addr))
+        return;
+
+    e28f0xx_writew(addr, val, dev->chip);
+}
+
+static void
+e28f0xx_bios_writel(uint32_t addr, uint32_t val, void *priv)
+{
+    const e28f0xx_bios_t *dev = (e28f0xx_bios_t *) priv;
+
+    e28f0xx_writel(addr, val, dev->chip);
+}
+
+void
+flash_e28f0xx_cobalt3k_update(uint8_t val)
+{
+    e28f0xx_bios_t *dev = (e28f0xx_bios_t *) device_get_priv(&intel_flash_e28f0xx_cobalt3k_device);
+    if (!dev)
+        return;
+
+    dev->ctrl = val;
+
+    uint8_t *exec = (dev->ctrl & 0x40) ? NULL : &dev->chip->array[(dev->ctrl & 0x0f) << 16];
+    mem_mapping_set_exec(&(dev->mapping[0]), exec);
+    mem_mapping_set_exec(&(dev->mapping_h[0]), exec);
+}
+
+static void
+e28f0xx_bios_map(e28f0xx_bios_t *dev, mem_mapping_t *mapping, uint8_t *exec, uint32_t base)
+{
+    mem_mapping_add(mapping, base, 0x10000,
+                    e28f0xx_bios_read, e28f0xx_bios_readw, e28f0xx_bios_readl,
+                    e28f0xx_bios_write, e28f0xx_bios_writew, e28f0xx_bios_writel,
+                    exec, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
+}
+
+static void
+e28f0xx_add_mappings(e28f0xx_bios_t *dev)
+{
+    const uint32_t mask = dev->chip->mask;
+    uint8_t        max  = 2;
+    uint32_t       base;
+    uint32_t       sub = 0x20000;
+
+    if (dev->cobalt3k) {
+        /* Bank 0 until the bank control is written. */
+        e28f0xx_bios_map(dev, &(dev->mapping[0]), dev->chip->array, 0x000f0000);
+        e28f0xx_bios_map(dev, &(dev->mapping_h[0]), dev->chip->array, 0xffff0000);
         return;
     }
 
-    switch (biosmask) {
+    switch (mask) {
         default:
-            fatal("Invalid BIOS mask for Intel E82F0xx flash: %08X!\n", biosmask);
+            fatal("Invalid BIOS mask for Intel E82F0xx flash: %08X!\n", mask);
             break;
         case 0x0007ffff:
             sub = 0x00080000;
@@ -414,7 +657,7 @@ flash_add_mappings(flash_t *dev)
     }
 
     for (uint8_t i = 0; i < max; i++) {
-        switch (biosmask) {
+        switch (mask) {
             default:
                 base = 0x00040000 + (i << 16);
                 break;
@@ -429,106 +672,52 @@ flash_add_mappings(flash_t *dev)
                 break;
         }
 
-        uint32_t fbase = base & biosmask;
+        uint8_t *exec = dev->chip->array + (base & mask);
 
-        memcpy(&dev->array[fbase], &rom[base & biosmask], 0x10000);
-
-        if ((max == 2) || (i >= 2))
-            mem_mapping_add(&(dev->mapping[i]), base, 0x10000,
-                            flash_read, flash_readw, flash_readl,
-                            flash_write, flash_writew, flash_writel,
-                            dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
-        mem_mapping_add(&(dev->mapping_h[i]), (base | 0xfff00000) - sub, 0x10000,
-                        flash_read, flash_readw, flash_readl,
-                        flash_write, flash_writew, flash_writel,
-                        dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
-        mem_mapping_add(&(dev->mapping_h[i + max]), (base | 0xfff00000), 0x10000,
-                        flash_read, flash_readw, flash_readl,
-                        flash_write, flash_writew, flash_writel,
-                        dev->array + fbase, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM | MEM_MAPPING_ROMCS | MEM_MAPPING_ROM_WS, (void *) dev);
+        if ((max == 2) || (i >= (max - 2)))
+            e28f0xx_bios_map(dev, &(dev->mapping[i & 1]), exec, base);
+        e28f0xx_bios_map(dev, &(dev->mapping_h[i]), exec, (base | 0xfff00000) - sub);
+        e28f0xx_bios_map(dev, &(dev->mapping_h[i + max]), exec, base | 0xfff00000);
     }
 }
 
 static void
-flash_reset(void *priv)
+e28f0xx_bios_reset(void *priv)
 {
-    flash_t *dev = (flash_t *) priv;
+    e28f0xx_bios_t *dev = (e28f0xx_bios_t *) priv;
 
-    dev->command = CMD_READ_ARRAY;
-    dev->status  = 0;
+    e28f0xx_reset(dev->chip);
 }
 
 static void *
-flash_init(const device_t *info)
+e28f0xx_init(const device_t *info)
 {
-    FILE    *fp;
-    flash_t *dev;
+    e28f0xx_bios_t *dev = calloc(1, sizeof(e28f0xx_bios_t));
+    flash_cfg_t     cfg = { 0 };
 
-    dev = calloc(1, sizeof(flash_t));
+    cfg.nvr_name  = machine_get_nvr_name_ex(machine);
+    cfg.image     = rom;
+    cfg.image_len = biosmask + 1;
+    cfg.size      = biosmask + 1;
 
-    sprintf(flash_path, "%s.bin", machine_get_nvr_name_ex(machine));
-
-    dev->flags = info->local & 0xff;
+    dev->cobalt3k = !!(info->local & FLAG_COBALT3K);
 
     mem_mapping_disable(&bios_mapping);
     mem_mapping_disable(&bios_high_mapping);
 
-    dev->array = (uint8_t *) calloc(1, biosmask + 1);
-    memset(dev->array, 0xff, biosmask + 1);
+    dev->chip = e28f0xx_create(info, &cfg);
 
-    switch (biosmask) {
-        default:
-        case 0x7ffff:
-            dev->flash_id = 0xa7;
-            break;
-        case 0xfffff:
-            dev->flash_id = 0xa6;
-            break;
-        case 0x1fffff:
-            dev->flash_id = 0xaa;
-            break;
-    }
-
-    flash_add_mappings(dev);
-
-    dev->command = CMD_READ_ARRAY;
-    dev->status  = 0;
-
-    if (strlen(flash_path) > 0) {
-        fp = nvr_fopen(flash_path, "rb");
-        if (fp != NULL) {
-            if (!dump_missing)
-                (void) !fread(dev->array, biosmask + 1, 1, fp);
-            fclose(fp);
-        } else if (!dump_missing)
-            dev->dirty = 1;
-    } else
-        fatal("Attempting to open the Flash file for reading with an empty invalid name\n");
+    e28f0xx_add_mappings(dev);
 
     return dev;
 }
 
 static void
-flash_close(void *priv)
+e28f0xx_close(void *priv)
 {
-    FILE    *fp;
-    flash_t *dev = (flash_t *) priv;
+    e28f0xx_bios_t *dev = (e28f0xx_bios_t *) priv;
 
-    if (dev->dirty) {
-        if (strlen(flash_path) > 0) {
-            fp = nvr_fopen(flash_path, "wb");
-            if (fp != NULL) {
-                if (!dump_missing)
-                    fwrite(dev->array, biosmask + 1, 1, fp);
-                fclose(fp);
-            } else if (!dump_missing)
-                warning("Unable to open %s for writing, please make sure your NVR folder is writable\n", flash_path);
-        } else
-            fatal("Attempting to open the Flash file for writing with an empty invalid name\n");
-    }
-
-    free(dev->array);
-    dev->array = NULL;
+    e28f0xx_destroy(dev->chip);
 
     free(dev);
 }
@@ -538,9 +727,9 @@ const device_t intel_flash_e28f0xx_device = {
     .internal_name = "intel_flash_e28f0xx",
     .flags         = DEVICE_PCI,
     .local         = 0,
-    .init          = flash_init,
-    .close         = flash_close,
-    .reset         = flash_reset,
+    .init          = e28f0xx_init,
+    .close         = e28f0xx_close,
+    .reset         = e28f0xx_bios_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
@@ -552,9 +741,9 @@ const device_t intel_flash_e28f0xx_cobalt3k_device = {
     .internal_name = "intel_flash_e28f0xx_cobalt3k",
     .flags         = DEVICE_PCI,
     .local         = FLAG_COBALT3K,
-    .init          = flash_init,
-    .close         = flash_close,
-    .reset         = flash_reset,
+    .init          = e28f0xx_init,
+    .close         = e28f0xx_close,
+    .reset         = e28f0xx_bios_reset,
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,

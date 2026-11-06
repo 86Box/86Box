@@ -3,6 +3,7 @@
 #include <cctype>
 #include <cstdint>
 #include <cstring>
+#include <cstdlib>
 #include <iterator>
 #include <memory>
 #include <string>

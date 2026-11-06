@@ -46,10 +46,12 @@ extern uint16_t *mod1add[2][8];
 extern uint16_t  znptable16[65536];
 
 extern int pfq_pos;
-extern int x86_was_reset;
 extern int trap;
 extern int codegen_flat_ss;
 extern int codegen_flat_ds;
+extern int codegen_wide_ss;
+extern int codegen_wide_ds;
+extern int codegen_flat_es;
 extern int timetolive;
 extern int keyboardtimer;
 extern int trap;
@@ -60,8 +62,6 @@ extern int cpl_override;
 extern int nmi_enable;
 extern int oddeven;
 extern int inttype;
-
-extern int cpu_init;
 
 extern uint32_t  use32;
 extern uint32_t  rmdat;
@@ -110,5 +110,13 @@ extern uint8_t is_smint;
 
 extern uint16_t io_port;
 extern uint32_t io_val;
+/* The size (1, 2 or 4) and direction of the last I/O cycle, for an SMM
+   header that reports it. */
+extern uint8_t  io_size;
+extern uint8_t  io_write;
+/* Set while an I/O cycle's handlers run, and once SMI# is asserted during
+   it: only then is the SMM header's I/O information about that cycle. */
+extern uint8_t  io_cycle;
+extern uint8_t  io_cycle_smi;
 
 #endif /*EMU_X86_H*/

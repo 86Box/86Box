@@ -46,6 +46,11 @@ enum {
     SBAWE64_DSP_416  /* DSP v4.16 + OPL3 */
 };
 
+enum {
+    QUIRK_NOFILTER = 0x01, /* Clone lacks SBPro-compatible lowpass filter */
+    QUIRK_FILTERND = 0x02  /* Clone has non-defeatable lowpass filter */
+};
+
 /* SB 2.0 CD version */
 typedef struct sb_ct1335_mixer_t {
     double master;
@@ -225,7 +230,6 @@ typedef struct sb_t {
     uint8_t  es186x_bypass_state;
     uint16_t es186x_confaddr;
     uint16_t es186x_rom_pos;
-    isapnp_device_config_t *es186x_bypass_conf;
 
     /* ESS ES188x secondary DAC */
     int        ess_dac2_freq;
@@ -250,8 +254,16 @@ typedef struct sb_t {
     uint8_t    ess_dac2_dmaff;
     uint8_t    ess_dac2_dmacount;
 
+    /* Clone mixer quirks */
+    uint8_t    mixer_quirks;
+
     void   *opl_mixer;
     void  (*opl_mix)(void*, double*, double*);
+
+    /* ESS Solo-1: where the Audio 1 and MPU-401 interrupts go when they are
+       not on ISA IRQ's (ess_solo1_legacy_irq_attach). */
+    void  (*solo1_irq_update)(void *priv, int set);
+    void   *solo1_irq_priv;
 } sb_t;
 
 typedef struct goldfinch_t {
@@ -273,6 +285,7 @@ extern uint8_t sb_ess_mixer_read(uint16_t addr, void *priv);
 extern void    sb_ess_mixer_reset(sb_t *sb);
 
 extern void sb_get_buffer_sbpro(int32_t *buffer, uint16_t len, void *priv);
+extern void sb_put_buffer_sbpro(int16_t *buffer, int len, void *priv);
 extern void sb_get_music_buffer_sbpro(int32_t *buffer, uint16_t len, void *priv);
 extern void sbpro_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void sb16_awe32_filter_cd_audio(int channel, double *buffer, void *priv);
@@ -288,6 +301,8 @@ extern void sb_get_music_buffer_ess(int32_t *buffer, uint16_t len, void *priv);
 extern void ess_filter_cd_audio(int channel, double *buffer, void *priv);
 extern void ess_filter_pc_speaker(int channel, double *buffer, void *priv);
 extern void ess_filter_midi(int channel, double *buffer, void *priv);
+extern void ess_put_buffer(int16_t *buffer, int len, void *priv);
+extern void ess_calc_input_gains(void);
 
 extern void   *ess_solo1_legacy_init(void);
 extern void    ess_solo1_legacy_mix_esfm(void *priv, int32_t *buffer, uint16_t len);
@@ -298,6 +313,8 @@ extern void    ess_solo1_legacy_config(void *priv, uint16_t sb_addr, int sb_enab
 extern uint8_t ess_solo1_legacy_fm_read(void *priv, uint16_t addr);
 extern void    ess_solo1_legacy_fm_write(void *priv, uint16_t addr, uint8_t val);
 extern void    ess_solo1_legacy_mixer_write(void *priv, uint8_t index, uint8_t val);
+extern uint8_t ess_solo1_legacy_irq_status(void *priv);
+extern void    ess_solo1_legacy_irq_attach(void *priv, void (*irq_update)(void *priv, int set), void *irq_priv);
 extern uint8_t ess_solo1_legacy_mpu_read(void *priv, uint16_t addr);
 extern void    ess_solo1_legacy_mpu_write(void *priv, uint16_t addr, uint8_t val);
 extern void    ess_solo1_legacy_close(void *priv);

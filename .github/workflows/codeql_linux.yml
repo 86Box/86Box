@@ -1,5 +1,10 @@
 name: CodeQL Analysis (Linux)
 
+# Each analysis uploads its results under its own category, so that analyses
+# of different platforms and configurations don't replace each other's
+# results. These Debug builds double as compile checks, which is why the
+# CMake workflows leave them out of their reduced matrix.
+
 on:
 
   push:
@@ -14,7 +19,15 @@ on:
       - vcpkg.json
       - "!**/Makefile*"
 
+  # Closing a pull request (including merging it) starts a run that builds
+  # nothing, only cancelling the run in progress through the concurrency
+  # group below
   pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - closed
     branches: [ "master" ]
     paths:
       - src/**
@@ -29,11 +42,21 @@ on:
   schedule:
     - cron: '22 11 * * 0'
 
+# Cancel superseded runs for the same pull request. Pushes to master share
+# a group too, so that while one is building, only the newest of the pushes
+# after it waits instead of all of them. Other events get a unique group so
+# that they are never cancelled or held back.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number || (github.ref == 'refs/heads/master' && github.event_name == 'push' && 'master') || github.run_id }}
+  cancel-in-progress: ${{ github.event_name == 'pull_request' }}
+
 jobs:
 
   analyze-linux:
 
-    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.dynarec.name }}, ${{ matrix.environment.arch }}"
+    name: "${{ matrix.ui.name }}, ${{ matrix.build.name }}, ${{ matrix.environment.arch }}"
+
+    if: github.event.action != 'closed'
 
     runs-on: ubuntu-26.04
 
@@ -58,21 +81,16 @@ jobs:
 #          - name: Dev
 #            preset: development
 #            slug: -Dev
-        dynarec:
-          - name: ODR
-            new: off
-            slug: -ODR
-          - name: NDR
-            new: on
-            slug: -NDR
         ui:
           - name: SDL GUI
+            id: sdl
             qt: off
             qt6: off
             sdl_shader: on
             slug: -SDL
             static: on
           - name: Qt 5 GUI
+            id: qt5
             qt: on
             qt6: off
             sdl_shader: off
@@ -91,11 +109,6 @@ jobs:
 #          - arch: arm64
 #            slug: -arm64
 #            runner: ubuntu-22.04-arm
-#        exclude:
-#          - dynarec:
-#              new: off
-#            environment:
-#              arch: arm64
 
     steps:
       - name: Install dependencies
@@ -130,11 +143,13 @@ jobs:
         with:
           languages: ${{ matrix.language }}
           config-file: ./.github/codeql/codeql-config.yml
+          # TRAP caches of C++ take up much of the repository's cache space
+          # for little benefit, so don't use them
+          trap-caching: false
 
       - name: Configure CMake
         run: >-
           cmake -S . -B build --preset ${{ matrix.build.preset }}
-          -D NEW_DYNAREC=${{ matrix.dynarec.new }}
           -D QT=${{ matrix.ui.qt }}
           -D USE_QT6=${{ matrix.ui.qt6 }}
           -D USE_SDL_SHADER=${{ matrix.ui.sdl_shader }}
@@ -146,10 +161,10 @@ jobs:
       - name: Perform CodeQL Analysis
         uses: github/codeql-action/analyze@b96794f015dfd88f77b49b1c93e0fa7110f94c63 #v4.38
         with:
-          category: "/language:${{matrix.language}}"
+          category: "/language:${{ matrix.language }}/os:linux/ui:${{ matrix.ui.id }}"
 
       - name: SonarQube Scan
-        if: matrix.build.preset == 'dev_debug' && matrix.dynarec.new == 'on' && matrix.ui.qt == 'on' && env.SONAR_TOKEN != ''
+        if: matrix.build.preset == 'dev_debug' && matrix.ui.qt == 'on' && env.SONAR_TOKEN != ''
 #        if: 0
         uses: SonarSource/sonarqube-scan-action@22918119ff8e1ca75a623e15c8296b6ea4fbe28f #v8.2.1
         env:

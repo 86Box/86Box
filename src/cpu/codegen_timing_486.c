@@ -330,7 +330,9 @@ codegen_timing_486_start(void)
 void
 codegen_timing_486_prefix(uint8_t prefix, UNUSED(uint32_t fetchdat))
 {
-    timing_count += COUNT(opcode_timings_486[prefix], 0);
+    /*Counted as it is decoded: a fetch fault in a later prefix leaves with
+      the cycles of the ones before it (codegen_generate_call)*/
+    codegen_block_cycles += COUNT(opcode_timings_486[prefix], 0);
     last_prefix = prefix;
 }
 

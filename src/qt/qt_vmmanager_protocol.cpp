@@ -64,6 +64,15 @@ VMManagerProtocol::constructDefaultObject(VMManagerProtocol::Sender type)
     return json_message;
 }
 
+QJsonObject
+VMManagerProtocol::managerIdentity()
+{
+    QJsonObject identity;
+    identity["name"]    = QStringLiteral(EMU_NAME " VM Manager");
+    identity["version"] = QStringLiteral(EMU_VERSION);
+    return identity;
+}
+
 bool
 VMManagerProtocol::hasRequiredFields(const QJsonObject &json_document)
 {
@@ -97,6 +106,8 @@ VMManagerProtocol::getClientMessageType(const QJsonObject &json_document)
         return VMManagerProtocol::ClientMessage::WinIdMessage;
     else if (message_type == "GlobalConfigurationChanged")
         return VMManagerProtocol::ClientMessage::GlobalConfigurationChanged;
+    else if (message_type == "WindowActivated")
+        return VMManagerProtocol::ClientMessage::WindowActivated;
 
     return VMManagerProtocol::ClientMessage::UnknownMessage;
 }
@@ -130,6 +141,9 @@ VMManagerProtocol::getManagerMessageType(const QJsonObject &json_document)
 
     if (message_type == "GlobalConfigurationChanged")
         return VMManagerProtocol::ManagerMessage::GlobalConfigurationChanged;
+
+    if (message_type == "ManagerIdentity")
+        return VMManagerProtocol::ManagerMessage::ManagerIdentity;
 
     return VMManagerProtocol::ManagerMessage::UnknownMessage;
 }

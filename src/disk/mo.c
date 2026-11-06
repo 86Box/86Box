@@ -94,6 +94,100 @@ static const mode_sense_pages_t mo_mode_sense_pages_default      = { 0 };
 static const mode_sense_pages_t mo_mode_sense_pages_default_scsi = { 0 };
 
 static const mode_sense_pages_t mo_mode_sense_pages_changeable   = { 0 };
+
+/*
+   Sony MD Data and Hi-MD pages, rebuilt from the decoded values in Aaru device reports 324 (MDM110), 273
+   (MDH-10) and 173 (Hi-MD WALKMAN).  Pages 20h, 21h and 1Bh are in the reports without values, so their lengths
+   are ESTIMATED and they are all zero.
+ */
+static const mode_sense_pages_t mdm110_mode_sense_pages_default = {
+    { [0x01] = { GPMODE_R_W_ERROR_PAGE,  0x0a, 0x80, 0x03, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00 },
+      [0x07] = { 0x07,                   0x0a, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+      [0x08] = { GPMODE_CACHING_PAGE,    0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+      [0x20] = { 0x20,                   0x0a } }
+};
+
+static const mode_sense_pages_t mdh10_mode_sense_pages_default = {
+    { [0x01] = { GPMODE_R_W_ERROR_PAGE,  0x0a, 0x80, 0x05, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00 },
+      [0x07] = { 0x07,                   0x0a, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+      [0x08] = { GPMODE_CACHING_PAGE,    0x0a, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+      [0x20] = { 0x20,                   0x0a },
+      [0x21] = { 0x21,                   0x0a } }
+};
+
+static const mode_sense_pages_t himd_mode_sense_pages_default = {
+    { [0x01] = { GPMODE_R_W_ERROR_PAGE,  0x0a, 0xa5, 0x06, 0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00 },
+      [0x08] = { GPMODE_CACHING_PAGE,    0x0a, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
+      [0x1b] = { 0x1b,                   0x0a } }
+};
+
+/* What can be changed: nothing, only the lengths are needed. */
+static const mode_sense_pages_t md_mode_sense_pages_changeable = {
+    { [0x01] = { GPMODE_R_W_ERROR_PAGE,  0x0a },
+      [0x07] = { 0x07,                   0x0a },
+      [0x08] = { GPMODE_CACHING_PAGE,    0x0a },
+      [0x1b] = { 0x1b,                   0x0a },
+      [0x20] = { 0x20,                   0x0a },
+      [0x21] = { 0x21,                   0x0a } }
+};
+
+#define IS_SONY_MD(t) (((t) == MO_TYPE_SONY_MDM110) || ((t) == MO_TYPE_SONY_MDH10) || ((t) == MO_TYPE_SONY_HIMD))
+
+static uint64_t
+mo_page_flags(const mo_t *dev)
+{
+    switch (dev->drv->type) {
+        case MO_TYPE_SONY_MDM110:
+            return GPMODEP_R_W_ERROR_PAGE | (1ULL << 0x07) | GPMODEP_CACHING_PAGE | (1ULL << 0x20) | GPMODEP_ALL_PAGES;
+        case MO_TYPE_SONY_MDH10:
+            return GPMODEP_R_W_ERROR_PAGE | (1ULL << 0x07) | GPMODEP_CACHING_PAGE | (1ULL << 0x20) | (1ULL << 0x21) |
+                   GPMODEP_ALL_PAGES;
+        case MO_TYPE_SONY_HIMD:
+            return GPMODEP_R_W_ERROR_PAGE | GPMODEP_CACHING_PAGE | (1ULL << 0x1b) | GPMODEP_ALL_PAGES;
+        default:
+            return mo_mode_sense_page_flags;
+    }
+}
+
+static const mode_sense_pages_t *
+mo_pages_default(const mo_t *dev)
+{
+    switch (dev->drv->type) {
+        case MO_TYPE_SONY_MDM110:
+            return &mdm110_mode_sense_pages_default;
+        case MO_TYPE_SONY_MDH10:
+            return &mdh10_mode_sense_pages_default;
+        case MO_TYPE_SONY_HIMD:
+            return &himd_mode_sense_pages_default;
+        default:
+            return (dev->drv->bus_type == MO_BUS_SCSI) ? &mo_mode_sense_pages_default_scsi : &mo_mode_sense_pages_default;
+    }
+}
+
+static const mode_sense_pages_t *
+mo_pages_changeable(const mo_t *dev)
+{
+    return IS_SONY_MD(dev->drv->type) ? &md_mode_sense_pages_changeable : &mo_mode_sense_pages_changeable;
+}
+
+/* Can this disc not be written?  The 2336-byte MiniDisc media are audio discs to a computer. */
+static int
+mo_write_blocked(const mo_t *dev)
+{
+    return dev->drv->read_only || (dev->drv->sector_size == 2336);
+}
+
+/* The medium type of the mode parameter header. */
+static uint8_t
+mo_medium_type(const mo_t *dev)
+{
+    for (uint8_t i = 0; i < KNOWN_MO_TYPES; i++) {
+        if ((mo_types[i].sectors == dev->drv->medium_size) && (mo_types[i].bytes_per_sector == dev->drv->sector_size))
+            return mo_types[i].medium_type_code;
+    }
+
+    return 0;
+}
 // clang-format on
 
 static void mo_command_complete(mo_t *dev);
@@ -336,13 +430,7 @@ mo_mode_sense_load(mo_t *dev)
 {
     char  fn[512] = { 0 };
 
-    memset(&dev->ms_pages_saved, 0, sizeof(mode_sense_pages_t));
-    if (mo_drives[dev->id].bus_type == MO_BUS_SCSI)
-        memcpy(&dev->ms_pages_saved, &mo_mode_sense_pages_default_scsi,
-               sizeof(mode_sense_pages_t));
-    else
-        memcpy(&dev->ms_pages_saved, &mo_mode_sense_pages_default,
-               sizeof(mode_sense_pages_t));
+    memcpy(&dev->ms_pages_saved, mo_pages_default(dev), sizeof(mode_sense_pages_t));
 
     if (dev->drv->bus_type == MO_BUS_SCSI)
         sprintf(fn, "scsi_mo_%02i_mode_sense_bin", dev->id);
@@ -381,12 +469,9 @@ mo_mode_sense_read(const mo_t *dev, const uint8_t pgctl,
         case 3:
             return dev->ms_pages_saved.pages[page][pos];
         case 1:
-            return mo_mode_sense_pages_changeable.pages[page][pos];
+            return mo_pages_changeable(dev)->pages[page][pos];
         case 2:
-            if (dev->drv->bus_type == MO_BUS_SCSI)
-                return mo_mode_sense_pages_default_scsi.pages[page][pos];
-            else
-                return mo_mode_sense_pages_default.pages[page][pos];
+            return mo_pages_default(dev)->pages[page][pos];
 
         default:
             break;
@@ -399,7 +484,7 @@ static uint32_t
 mo_mode_sense(const mo_t *dev, uint8_t *buf, uint32_t pos,
               uint8_t page, const uint8_t block_descriptor_len)
 {
-    const uint64_t pf    = mo_mode_sense_page_flags;
+    const uint64_t pf    = mo_page_flags(dev);
     const uint8_t  pgctl = (page >> 6) & 3;
 
     page &= 0x3f;
@@ -415,9 +500,9 @@ mo_mode_sense(const mo_t *dev, uint8_t *buf, uint32_t pos,
         buf[pos++] = (dev->drv->sector_size & 0xff);
     }
 
-    for (uint8_t i = 0; i < 0x40; i++) {
+    for (uint8_t i = 0; i < GPMODE_ALL_PAGES; i++) {
         if ((page == GPMODE_ALL_PAGES) || (page == i)) {
-            if (pf & (1LL << ((uint64_t) page))) {
+            if (pf & (1ULL << ((uint64_t) i))) {
                 const uint8_t msplen = mo_mode_sense_read(dev, pgctl, i, 1);
                 buf[pos++]           = mo_mode_sense_read(dev, pgctl, i, 0);
                 buf[pos++]           = msplen;
@@ -1287,7 +1372,7 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
             break;
 
         case GPCMD_FORMAT_UNIT:
-            if (dev->drv->read_only) {
+            if (mo_write_blocked(dev)) {
                 mo_write_protected(dev);
                 return;
             }
@@ -1425,6 +1510,12 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
         case GPCMD_WRITE_AND_VERIFY_10:
         case GPCMD_WRITE_12:
         case GPCMD_WRITE_AND_VERIFY_12:
+            if ((cdb[0] != GPCMD_VERIFY_6) && (cdb[0] != GPCMD_VERIFY_10) && (cdb[0] != GPCMD_VERIFY_12) &&
+                mo_write_blocked(dev)) {
+                mo_write_protected(dev);
+                return;
+            }
+
             mo_set_phase(dev, SCSI_PHASE_DATA_OUT);
             alloc_length = dev->drv->sector_size;
 
@@ -1498,6 +1589,11 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
             break;
 
         case GPCMD_WRITE_SAME_10:
+            if (mo_write_blocked(dev)) {
+                mo_write_protected(dev);
+                return;
+            }
+
             mo_set_phase(dev, SCSI_PHASE_DATA_OUT);
             alloc_length = dev->drv->sector_size;
 
@@ -1553,7 +1649,7 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                 mo_buf_alloc(dev, 65536);
             }
 
-            if (!(mo_mode_sense_page_flags & (1LL << (uint64_t) (cdb[2] & 0x3f)))) {
+            if (!(mo_page_flags(dev) & (1ULL << (uint64_t) (cdb[2] & 0x3f)))) {
                 mo_invalid_field(dev, cdb[2]);
                 mo_buf_free(dev);
                 return;
@@ -1567,7 +1663,7 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                                                cdb[2], block_desc);
                 len            = MIN(len, alloc_length);
                 dev->buffer[0] = len - 1;
-                dev->buffer[1] = 0;
+                dev->buffer[1] = mo_medium_type(dev);
                 if (block_desc)
                     dev->buffer[3] = 8;
             } else {
@@ -1576,7 +1672,7 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                 len            = MIN(len, alloc_length);
                 dev->buffer[0] = (len - 2) >> 8;
                 dev->buffer[1] = (len - 2) & 255;
-                dev->buffer[2] = 0;
+                dev->buffer[2] = mo_medium_type(dev);
                 if (block_desc) {
                     dev->buffer[6] = 0;
                     dev->buffer[7] = 8;
@@ -1645,7 +1741,8 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                 preamble_len = 4;
                 size_idx     = 3;
 
-                dev->buffer[idx++] = 7;         /* Optical disk */
+                /* Optical disk; report 173 has the Hi-MD WALKMAN as a direct-access device. */
+                dev->buffer[idx++] = (dev->drv->type == MO_TYPE_SONY_HIMD) ? 0 : 7;
                 dev->buffer[idx++] = cdb[2];
                 dev->buffer[idx++] = 0;
 
@@ -1676,7 +1773,7 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                 if ((cdb[1] & 0xe0) || ((dev->cur_lun > 0x00) && (dev->cur_lun < 0xff)))
                     dev->buffer[0] = 0x7f;    /* No physical device on this LUN */
                 else
-                    dev->buffer[0] = 0x07;    /* Optical disk */
+                    dev->buffer[0] = (dev->drv->type == MO_TYPE_SONY_HIMD) ? 0x00 : 0x07;    /* Optical disk */
                 dev->buffer[1] = 0x80;        /* Removable */
                 /* SCSI-2 compliant */
                 dev->buffer[2] = (dev->drv->bus_type == MO_BUS_SCSI) ? 0x02 : 0x00;
@@ -1687,6 +1784,13 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                     dev->buffer[7] = 0x20;    /* Wide bus supported */
                 }
                 dev->buffer[7] |= 0x02;
+                if (IS_SONY_MD(dev->drv->type)) {
+                    /* Reports 324 and 273 have no wide transfers.  Report 173 claims no standard. */
+                    dev->buffer[6] = 0x00;
+                    dev->buffer[7] = 0x00;
+                    if (dev->drv->type == MO_TYPE_SONY_HIMD)
+                        dev->buffer[2] = 0x00;
+                }
 
                 if (dev->drv->type > 0) {
                     ide_padstr8(dev->buffer + 8, 8,
@@ -1770,6 +1874,11 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
 
         case GPCMD_ERASE_10:
         case GPCMD_ERASE_12:
+            if (mo_write_blocked(dev)) {
+                mo_write_protected(dev);
+                return;
+            }
+
             /* Relative address. */
             if (cdb[1] & 1)
                 previous_pos = dev->sector_pos;
@@ -1968,10 +2077,10 @@ mo_phase_data_out(scsi_common_t *sc)
 
                 pos += 2;
 
-                if (!(mo_mode_sense_page_flags & (1LL << ((uint64_t) page))))
+                if (!(mo_page_flags(dev) & (1ULL << ((uint64_t) page))))
                     error |= 1;
                 else for (uint8_t i = 0; i < page_len; i++) {
-                    const uint8_t ch      = mo_mode_sense_pages_changeable.pages[page][i + 2];
+                    const uint8_t ch      = mo_pages_changeable(dev)->pages[page][i + 2];
                     const uint8_t old_val = dev->ms_pages_saved.pages[page][i + 2];
                     val                   = dev->buffer[pos + i];
                     if (val != old_val) {
@@ -2188,7 +2297,7 @@ mo_hard_reset(void)
             }
 
             /* Make sure to ignore any ATAPI MO drive that has an out of range IDE channel. */
-            if ((mo_drives[c].bus_type == MO_BUS_ATAPI) && (mo_drives[c].ide_channel > 7))
+            if ((mo_drives[c].bus_type == MO_BUS_ATAPI) && (mo_drives[c].ide_channel >= IDE_DRIVES_MAX))
                 continue;
 
             mo_drive_reset(c);

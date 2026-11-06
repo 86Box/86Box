@@ -1,0 +1,6 @@
+# Build products and local replay artifacts.
+/replay
+*.exe
+*.dSYM/
+*.cap
+*.cap.zst

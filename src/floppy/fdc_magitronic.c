@@ -58,17 +58,19 @@ b215_read(UNUSED(uint16_t addr), void *priv)
     int drive_spec[2];
 
     for (uint8_t i = 0; i <= 1; i++) {
-        if (fdd_is_525(DRIVE_SELECT)) {
-            if (!fdd_is_dd(DRIVE_SELECT))
+        if (fdd_is_525(&drives[dev->fdc_controller->bus + DRIVE_SELECT])) {
+            if (!fdd_is_dd(&drives[dev->fdc_controller->bus + DRIVE_SELECT]))
                 drive_spec[i] = 1;
-            else if (fdd_doublestep_40(DRIVE_SELECT))
+            else if (fdd_doublestep_40(&drives[dev->fdc_controller->bus + DRIVE_SELECT]))
                 drive_spec[i] = 2;
             else
                 drive_spec[i] = 0;
         } else {
-            if (fdd_is_dd(DRIVE_SELECT) && !fdd_is_double_sided(DRIVE_SELECT))
+            if (fdd_is_dd(&drives[dev->fdc_controller->bus + DRIVE_SELECT]) &&
+                !fdd_is_double_sided(&drives[dev->fdc_controller->bus + DRIVE_SELECT]))
                 drive_spec[i] = 0;
-            else if (fdd_is_dd(DRIVE_SELECT) && fdd_is_double_sided(DRIVE_SELECT))
+            else if (fdd_is_dd(&drives[dev->fdc_controller->bus + DRIVE_SELECT]) &&
+                     fdd_is_double_sided(&drives[dev->fdc_controller->bus + DRIVE_SELECT]))
                 drive_spec[i] = 2;
             else
                 drive_spec[i] = 3;

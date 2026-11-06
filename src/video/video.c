@@ -27,6 +27,9 @@
 #include <stdlib.h>
 #include <wchar.h>
 #include <math.h>
+#ifdef __APPLE__
+#    include <pthread/qos.h>
+#endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
@@ -43,6 +46,7 @@
 #include <86box/thread.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
+#include <86box/automation.h>
 
 #include <minitrace/minitrace.h>
 
@@ -414,6 +418,12 @@ static void
 blit_thread(void *param)
 {
     blit_data_t *data = param;
+
+#ifdef __APPLE__
+    /* The emulation thread blocks on this thread twice per displayed
+       frame; default QoS makes those waits E-core-latency-bound. */
+    pthread_set_qos_class_self_np(QOS_CLASS_USER_INITIATED, 0);
+#endif
     while (data->thread_run) {
         thread_wait_event(data->wake_blit_thread, -1);
         thread_reset_event(data->wake_blit_thread);
@@ -438,6 +448,8 @@ video_blit_memtoscreen_monitor(int x, int y, int w, int h, int monitor_index)
         return;
 
     video_wait_for_blit_monitor(monitor_index);
+
+    automation_frame(x, y, w, h, monitor_index);
 
     monitors[monitor_index].mon_blit_data_ptr->busy          = 1;
     monitors[monitor_index].mon_blit_data_ptr->buffer_in_use = 1;
@@ -915,7 +927,7 @@ video_init(void)
 
     video_8togs = calloc(4, 256);
     for (uint16_t c = 0; c < 256; c++)
-        video_8togs[c] = c | (c << 16) | (c << 24);
+        video_8togs[c] = c | (c << 8) | (c << 16);
 
     video_8to32 = calloc(4, 256);
     for (uint16_t c = 0; c < 256; c++)

@@ -36,6 +36,7 @@
 #define PORT_92_RESET 8
 #define PORT_92_A20   16
 #define PORT_92_KEY   32
+#define PORT_92_ONE   64 /* One A20 state, the keyboard controller's and port 92h's */
 
 static uint8_t
 port_92_readb(uint16_t port, void *priv)
@@ -46,7 +47,9 @@ port_92_readb(uint16_t port, void *priv)
     if (port == 0x92) {
         /* Return bit 1 directly from mem_a20_alt, so the
            pin can be reset independently of the device. */
-        if (dev->flags & PORT_92_KEY)
+        if (dev->flags & PORT_92_ONE)
+            ret = (dev->reg & ~0x03) | ((mem_a20_key | mem_a20_alt) & 2) | (cpu_alt_reset & 1);
+        else if (dev->flags & PORT_92_KEY)
             ret = (dev->reg & ~0x03) | (mem_a20_key & 2) | (cpu_alt_reset & 1);
         else
             ret = (dev->reg & ~0x03) | (mem_a20_alt & 2) | (cpu_alt_reset & 1);
@@ -100,7 +103,12 @@ port_92_writeb(uint16_t port, uint8_t val, void *priv)
 
     dev->reg = val & 0x03;
 
-    if (dev->flags & PORT_92_KEY) {
+    if (dev->flags & PORT_92_ONE) {
+        /* The one state: a write sets it whichever way it was set. */
+        mem_a20_key = val & 2;
+        mem_a20_alt = (mem_a20_alt & 0xfd) | (val & 2);
+        mem_a20_recalc();
+    } else if (dev->flags & PORT_92_KEY) {
         mem_a20_key = val & 2;
         mem_a20_recalc();
     } else if ((mem_a20_alt ^ val) & 2) {
@@ -289,6 +297,20 @@ const device_t port_92_pci_device = {
     .internal_name = "port_92_pci",
     .flags         = 0,
     .local         = PORT_92_PCI,
+    .init          = port_92_init,
+    .close         = port_92_close,
+    .reset         = port_92_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t port_92_pci_one_device = {
+    .name          = "Port 92 Register (PCI, one A20 state)",
+    .internal_name = "port_92_pci_one",
+    .flags         = 0,
+    .local         = PORT_92_PCI | PORT_92_ONE,
     .init          = port_92_init,
     .close         = port_92_close,
     .reset         = port_92_reset,

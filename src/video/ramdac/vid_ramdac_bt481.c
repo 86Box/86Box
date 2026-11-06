@@ -13,11 +13,13 @@
  *
  *          Copyright 2024 TheCollector1995.
  */
+#include <stdarg.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
 #include <string.h>
 #include <wchar.h>
+#define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/mem.h>
@@ -31,12 +33,30 @@ typedef struct bt481_ramdac_t {
     uint8_t cmd;
 } bt481_ramdac_t;
 
+#ifdef ENABLE_BT481_LOG
+int bt481_do_log = ENABLE_BT481_LOG;
+
+static void
+bt481_log(const char *fmt, ...)
+{
+    va_list ap;
+
+    if (bt481_do_log) {
+        va_start(ap, fmt);
+        pclog_ex(fmt, ap);
+        va_end(ap);
+    }
+}
+#else
+#    define bt481_log(fmt, ...)
+#endif
+
 static void
 bt481_ramdac_command(uint8_t val, void *priv, svga_t *svga)
 {
     bt481_ramdac_t *ramdac  = (bt481_ramdac_t *) priv;
     ramdac->cmd             = val;
-    pclog("RAMDAC CMD=%02x.\n", val);
+    bt481_log("RAMDAC CMD=%02x.\n", val);
     switch ((ramdac->cmd >> 4) & 0x0f) {
         default:
         case 0x00:
@@ -75,7 +95,7 @@ bt481_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga)
             ramdac->state = 0;
             break;
         case 0x02:
-            pclog("RAMDAC Write State=%x.\n", ramdac->state);
+            bt481_log("RAMDAC Write State=%x.\n", ramdac->state);
             switch (ramdac->state) {
                 case 4:
                     bt481_ramdac_command(val, ramdac, svga);
@@ -122,7 +142,7 @@ bt481_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga)
             break;
     }
 
-    pclog("RAMDAC IN=%02x, ret=%02x.\n", rs, temp);
+    bt481_log("RAMDAC IN=%02x, ret=%02x.\n", rs, temp);
     return temp;
 }
 

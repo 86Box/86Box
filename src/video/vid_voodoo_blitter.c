@@ -127,7 +127,6 @@ voodooblt_log(const char *fmt, ...)
             dst_dat = ~(src_dat ^ dst_dat); \
             break;                          \
         case 0xa:                           \
-            dst_dat = dst_dat;              \
             break;                          \
         case 0xb:                           \
             dst_dat = ~src_dat | dst_dat;   \
@@ -146,6 +145,13 @@ voodooblt_log(const char *fmt, ...)
             break;                          \
     }
 
+/*Base, stride and position all come from the guest, and X can go negative*/
+static inline uint16_t *
+voodoo_v2_blit_pixel(voodoo_t *voodoo, uint32_t row_addr, int x)
+{
+    return (uint16_t *) &voodoo->fb_mem[(row_addr + x * 2) & voodoo->fb_mask];
+}
+
 void
 voodoo_v2_blit_start(voodoo_t *voodoo)
 {
@@ -154,7 +160,6 @@ voodoo_v2_blit_start(voodoo_t *voodoo)
     int      size_y = ABS(voodoo->bltSizeY);
     int      x_dir = (voodoo->bltSizeX > 0) ? 1 : -1;
     int      y_dir = (voodoo->bltSizeY > 0) ? 1 : -1;
-    int      dst_x;
     int      src_y = voodoo->bltSrcY & 0x7ff;
     int      dst_y = voodoo->bltDstY & 0x7ff;
     int      src_stride    = (voodoo->bltCommand & BLTCMD_SRC_TILED) ? ((voodoo->bltSrcXYStride & 0x3f) * 32 * 2) : (voodoo->bltSrcXYStride & 0xff8);
@@ -172,14 +177,14 @@ voodoo_v2_blit_start(voodoo_t *voodoo)
     switch (voodoo->bltCommand & BLIT_COMMAND_MASK) {
         case BLIT_COMMAND_SCREEN_TO_SCREEN:
             for (int y = 0; y <= size_y; y++) {
-                const uint16_t *src   = (uint16_t *) &voodoo->fb_mem[src_base_addr + src_y * src_stride];
-                uint16_t       *dst   = (uint16_t *) &voodoo->fb_mem[dst_base_addr + dst_y * dst_stride];
-                int             src_x = voodoo->bltSrcX;
-                int             dst_x = voodoo->bltDstX;
+                uint32_t src_addr = src_base_addr + src_y * src_stride;
+                uint32_t dst_addr = dst_base_addr + dst_y * dst_stride;
+                int      src_x    = voodoo->bltSrcX;
+                int      dst_x    = voodoo->bltDstX;
 
                 for (int x = 0; x <= size_x; x++) {
-                    uint16_t src_dat = src[src_x];
-                    uint16_t dst_dat = dst[dst_x];
+                    uint16_t src_dat = *voodoo_v2_blit_pixel(voodoo, src_addr, src_x);
+                    uint16_t dst_dat = *voodoo_v2_blit_pixel(voodoo, dst_addr, dst_x);
                     int      rop     = 0;
 
                     if (voodoo->bltCommand & BLIT_CLIPPING_ENABLED) {
@@ -206,7 +211,7 @@ voodoo_v2_blit_start(voodoo_t *voodoo)
 
                     MIX(src_dat, dst_dat, voodoo->bltRop[rop]);
 
-                    dst[dst_x] = dst_dat;
+                    *voodoo_v2_blit_pixel(voodoo, dst_addr, dst_x) = dst_dat;
 skip_pixel_blit:
                     src_x += x_dir;
                     dst_x += x_dir;
@@ -223,15 +228,15 @@ skip_pixel_blit:
 
         case BLIT_COMMAND_RECT_FILL:
             for (int y = 0; y <= size_y; y++) {
-                uint16_t *dst;
-                int       dst_x = voodoo->bltDstX;
+                uint32_t dst_addr;
+                int      dst_x = voodoo->bltDstX;
 
                 if (SLI_ENABLED) {
                     if ((!(voodoo->initEnable & INITENABLE_SLI_MASTER_SLAVE) && (dst_y & 1)) || ((voodoo->initEnable & INITENABLE_SLI_MASTER_SLAVE) && !(dst_y & 1)))
                         goto skip_line_fill;
-                    dst = (uint16_t *) &voodoo->fb_mem[dst_base_addr + (dst_y >> 1) * dst_stride];
+                    dst_addr = dst_base_addr + (dst_y >> 1) * dst_stride;
                 } else
-                    dst = (uint16_t *) &voodoo->fb_mem[dst_base_addr + dst_y * dst_stride];
+                    dst_addr = dst_base_addr + dst_y * dst_stride;
 
                 for (int x = 0; x < size_x; x++) {
                     if (voodoo->bltCommand & BLIT_CLIPPING_ENABLED) {
@@ -239,7 +244,7 @@ skip_pixel_blit:
                             goto skip_pixel_fill;
                     }
 
-                    dst[dst_x] = voodoo->bltColorFg;
+                    *voodoo_v2_blit_pixel(voodoo, dst_addr, dst_x) = voodoo->bltColorFg;
 skip_pixel_fill:
                     dst_x += x_dir;
                 }
@@ -248,40 +253,29 @@ skip_line_fill:
             }
             break;
 
-        case BLIT_COMMAND_SGRAM_FILL:
-            /*32x32 tiles - 2kb*/
+        case BLIT_COMMAND_SGRAM_FILL: {
+            const int sgram_page_words = 512;
+
+            /* Glide uses SGRAM fill for whole pages, with 512 64-bit words in X. */
             dst_y  = voodoo->bltDstY & 0x3ff;
-            size_x = voodoo->bltSizeX & 0x1ff; // 512*8 = 4kb
             size_y = voodoo->bltSizeY & 0x3ff;
 
+            /* Replicate the 16-bit fill color across one 64-bit write. */
             dat64 = voodoo->bltColorFg | ((uint64_t) voodoo->bltColorFg << 16) | ((uint64_t) voodoo->bltColorFg << 32) | ((uint64_t) voodoo->bltColorFg << 48);
 
             for (int y = 0; y <= size_y; y++) {
-                uint64_t *dst;
+                uint64_t *dst = (uint64_t *) &voodoo->fb_mem[(dst_y * sgram_page_words * 8) & voodoo->fb_mask];
 
-                /*This may be wrong*/
-                if (!y) {
-                    dst_x  = voodoo->bltDstX & 0x1ff;
-                    size_x = 511 - dst_x;
-                } else if (y < size_y) {
-                    dst_x  = 0;
-                    size_x = 511;
-                } else {
-                    dst_x  = 0;
-                    size_x = voodoo->bltSizeX & 0x1ff;
-                }
-
-                dst = (uint64_t *) &voodoo->fb_mem[(dst_y * 512 * 8 + dst_x * 8) & voodoo->fb_mask];
-
-                for (int x = 0; x <= size_x; x++)
+                for (int x = 0; x < sgram_page_words; x++)
                     dst[x] = dat64;
 
                 dst_y++;
             }
             break;
+        }
 
         default:
-            fatal("bad blit command %08x\n", voodoo->bltCommand);
+            voodooblt_log("bad blit command %08x\n", voodoo->bltCommand);
     }
 }
 
@@ -291,7 +285,6 @@ voodoo_v2_blit_data(voodoo_t *voodoo, uint32_t data)
     int       src_bits  = 32;
     uint32_t  base_addr = (voodoo->bltCommand & BLTCMD_DST_TILED) ? ((voodoo->bltDstBaseAddr & 0x3ff) << 12) : (voodoo->bltDstBaseAddr & 0x3ffff8);
     uint32_t  addr;
-    uint16_t *dst;
 
     if ((voodoo->bltCommand & BLIT_COMMAND_MASK) != BLIT_COMMAND_CPU_TO_SCREEN)
         return;
@@ -308,13 +301,10 @@ voodoo_v2_blit_data(voodoo_t *voodoo, uint32_t data)
         voodoo->launch_pending = 0;
     }
 
-    if (SLI_ENABLED) {
+    if (SLI_ENABLED)
         addr = base_addr + (voodoo->blt.dst_y >> 1) * voodoo->blt.dst_stride;
-        dst  = (uint16_t *) &voodoo->fb_mem[addr];
-    } else {
+    else
         addr = base_addr + voodoo->blt.dst_y * voodoo->blt.dst_stride;
-        dst  = (uint16_t *) &voodoo->fb_mem[addr];
-    }
 
     if (addr >= voodoo->front_offset && voodoo->row_width) {
         int y = (addr - voodoo->front_offset) / voodoo->row_width;
@@ -420,7 +410,7 @@ voodoo_v2_blit_data(voodoo_t *voodoo, uint32_t data)
                 goto skip_pixel;
         }
 
-        dst_dat = dst[x];
+        dst_dat = *voodoo_v2_blit_pixel(voodoo, addr, x);
 
         if (voodoo->bltCommand & BLIT_SRC_CHROMA) {
             r = (src_dat >> 11);
@@ -441,7 +431,7 @@ voodoo_v2_blit_data(voodoo_t *voodoo, uint32_t data)
 
         MIX(src_dat, dst_dat, voodoo->bltRop[rop]);
 
-        dst[x] = dst_dat;
+        *voodoo_v2_blit_pixel(voodoo, addr, x) = dst_dat;
 
 skip_pixel:
         voodoo->blt.cur_x++;
@@ -507,7 +497,7 @@ voodoo_fastfill(voodoo_t *voodoo, voodoo_params_t *params)
                         cbuf[x] = col;
                 }
                 /* Mark line dirty for single buffer mode */
-                if (params->draw_offset == params->front_offset && y < 2048)
+                if (params->draw_offset == params->front_offset && y >= 0 && y < 2048)
                     voodoo->dirty_line[y] = 1;
             }
         }

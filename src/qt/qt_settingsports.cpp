@@ -17,6 +17,7 @@
  */
 #include <cstdint>
 #include <cstdio>
+#include <vector>
 
 extern "C" {
 #include <86box/86box.h>
@@ -28,6 +29,8 @@ extern "C" {
 #include <86box/scsi_tape.h>
 #include <86box/serial.h>
 #include <86box/char.h>
+#include <86box/mem.h>
+#include <86box/usb.h>
 }
 
 #include "qt_deviceconfig.hpp"
@@ -42,6 +45,7 @@ extern "C" {
 #include "qt_settingsports.hpp"
 #include "ui_qt_settingsports.h"
 
+#include <QSignalBlocker>
 #include <QStandardItem>
 
 SettingsPorts::SettingsPorts(QWidget *parent)
@@ -70,6 +74,10 @@ SettingsPorts::~SettingsPorts()
     for (int i = 0; i < SERIAL_MAX_UI; i++)
         delete scCom[i];
 
+    /* The card picked in the dialog no longer applies once it closes; the
+       saved usb_card_type decides which machines have a USB bus again. */
+    usb_card_pending = -1;
+
     delete ui;
 }
 
@@ -94,6 +102,9 @@ SettingsPorts::changed()
     int soft_changed = 0;
 
     has_changed |= (jumpered_internal_ecp_dma != ui->comboBoxLptECPDMA->currentData().toInt());
+    has_changed |= (usb_card_type != ui->comboBoxUsbCard->currentData().toInt());
+    has_changed |= (usb_hub_type != ui->comboBoxUsbHub->currentData().toInt());
+    has_changed |= (usb_msd_type != ui->comboBoxUsbMsd->currentData().toInt());
 
     for (int i = 0; i < PARALLEL_MAX; i++) {
         auto *checkBox = findChild<QCheckBox *>(QString("checkBoxParallel%1").arg(i + 1));
@@ -167,6 +178,32 @@ SettingsPorts::save(int soft)
         return;
 
     jumpered_internal_ecp_dma = ui->comboBoxLptECPDMA->currentData().toInt();
+    usb_card_type             = ui->comboBoxUsbCard->currentData().toInt();
+    usb_hub_type              = ui->comboBoxUsbHub->currentData().toInt();
+    usb_msd_type              = ui->comboBoxUsbMsd->currentData().toInt();
+}
+
+int
+SettingsPorts::usbMsd() const
+{
+    return (ui->comboBoxUsbMsd->count() > 0) ? ui->comboBoxUsbMsd->currentData().toInt() : usb_msd_type;
+}
+
+/* The character devices, for the parallel and serial port lists alike. */
+static const QVector<Models::Device> &
+charDevices()
+{
+    return Models::Devices(
+        char_get_device,
+        [](int c) -> const char * {
+            const device_t *dev = char_get_device(c);
+            return (dev != nullptr) ? dev->internal_name : nullptr;
+        },
+        [](int c) -> int {
+            const device_t *dev = char_get_device(c);
+            return (dev != nullptr) && device_available(dev);
+        },
+        -1);
 }
 
 void
@@ -184,6 +221,7 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
     int selectedRow = -2;
     int first       = -2;
 
+    Models::Batch ecpDmaRows(lptEcpDmaModel);
     for (int i = 0; i < 9; ++i) {
         int j = machine_map_jumpered_ecp_dma(i);
 
@@ -194,18 +232,15 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
             first = j;
 
         QString name = tr(machine_get_jumpered_ecp_dma_name(i));
-        int     row  = lptEcpDmaModel->rowCount();
-        lptEcpDmaModel->insertRow(row);
-        auto idx = lptEcpDmaModel->index(row, 0);
-
-        lptEcpDmaModel->setData(idx, name, Qt::DisplayRole);
-        lptEcpDmaModel->setData(idx, j, Qt::UserRole);
+        int     row  = ecpDmaRows.add(name, j);
 
         if (j == jumpered_internal_ecp_dma)
             selectedRow = row - removeRowsEcpDma;
 
         c++;
     }
+
+    ecpDmaRows.commit();
 
     if (selectedRow == -2)
         selectedRow = first;
@@ -235,33 +270,23 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
         removeRows_[i] = models[i]->rowCount();
     }
 
-    while (true) {
-        const device_t *device = char_get_device(c);
-        const QString name = DeviceConfig::DeviceName(device,
-                                                      device ? device->internal_name : nullptr, -1);
+    const auto &chars = charDevices();
 
-        if (name.isEmpty())
-            break;
+    std::vector<Models::Batch> lptRows(models, models + PARALLEL_MAX);
+    for (const auto &device : chars) {
+        if ((device.dev->flags & DEVICE_LPT) && device.available && device_is_valid(device.dev, machineId)) {
+            for (uint8_t i = 0; i < PARALLEL_MAX; ++i) {
+                int row = lptRows[i].add(device.name, device.id);
+                scLpt[i]->addDevice(nullptr, device.name);
 
-        if ((device->flags & DEVICE_LPT) && device_available(device)) {
-            if (name.isEmpty())
-                break;
-
-            if (device_is_valid(device, machineId)) {
-                for (uint8_t i = 0; i < PARALLEL_MAX; ++i) {
-                    int row = Models::AddEntry(models[i], name, c);
-                    scCom[i]->addDevice(nullptr, name);
-
-                    if (c == lpt_ports[i].device)
-                        selectedRows[i] = row - removeRows_[i];
-                }
+                if (device.id == lpt_ports[i].device)
+                    selectedRows[i] = row - removeRows_[i];
             }
         }
-
-        c++;
     }
 
     for (uint8_t i = 0; i < PARALLEL_MAX; ++i) {
+        lptRows[i].commit();
         models[i]->removeRows(0, removeRows_[i]);
         cbox[i]->setEnabled(models[i]->rowCount() > 1);
         cbox[i]->setCurrentIndex(-1);
@@ -293,33 +318,21 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
         selectedRows[i] = 0;
     }
 
-    while (true) {
-        const device_t *device = char_get_device(c);
-        const QString name = DeviceConfig::DeviceName(device,
-                                                      device ? device->internal_name : nullptr, -1);
+    std::vector<Models::Batch> comRows(models, models + SERIAL_MAX_UI);
+    for (const auto &device : chars) {
+        if ((device.dev->flags & DEVICE_COM) && device.available && device_is_valid(device.dev, machineId)) {
+            for (uint8_t i = 0; i < SERIAL_MAX_UI; ++i) {
+                int row = comRows[i].add(device.name, device.id);
+                scCom[i]->addDevice(nullptr, device.name);
 
-        if (name.isEmpty())
-            break;
-
-        if ((device->flags & DEVICE_COM) && device_available(device)) {
-            if (name.isEmpty())
-                break;
-
-            if (device_is_valid(device, machineId)) {
-                for (uint8_t i = 0; i < SERIAL_MAX_UI; ++i) {
-                    int row = Models::AddEntry(models[i], name, c);
-                    scCom[i]->addDevice(nullptr, name);
-
-                    if (c == com_ports[i].device)
-                        selectedRows[i] = row - removeRows_[i];
-                }
+                if (device.id == com_ports[i].device)
+                    selectedRows[i] = row - removeRows_[i];
             }
         }
-
-        c++;
     }
 
     for (int i = 0; i < SERIAL_MAX_UI; i++) {
+        comRows[i].commit();
         models[i]->removeRows(0, removeRows_[i]);
         cbox[i]->setEnabled(models[i]->rowCount() > 1);
         cbox[i]->setCurrentIndex(-1);
@@ -337,6 +350,136 @@ SettingsPorts::onCurrentMachineChanged(int machineId)
             }
         }
     }
+
+    // USB card: a selection updates the hub list and the other pages, so the
+    // signals are blocked while the list is rebuilt, and only the final
+    // selection counts.
+    auto *usbCardModel   = ui->comboBoxUsbCard->model();
+    auto  removeRowsCard = usbCardModel->rowCount();
+    int   curCard        = (removeRowsCard > 0) ? ui->comboBoxUsbCard->currentData().toInt() : usb_card_type;
+
+    selectedRow = 0;
+    {
+        const QSignalBlocker blockCard(ui->comboBoxUsbCard);
+        Models::Batch        usbCardRows(usbCardModel);
+
+        for (int i = 0; i < usb_card_get_ndev(); ++i) {
+            const device_t *dev = usb_card_get_device(i);
+
+            if (device_is_valid(dev, machineId) == 0)
+                continue;
+
+            int row = usbCardRows.add(DeviceConfig::DeviceName(dev, usb_card_get_internal_name(i), 0), i);
+            if (i == curCard)
+                selectedRow = row - removeRowsCard;
+        }
+        usbCardRows.commit();
+        usbCardModel->removeRows(0, removeRowsCard);
+        ui->comboBoxUsbCard->setEnabled(usbCardModel->rowCount() > 1);
+        ui->comboBoxUsbCard->setCurrentIndex(-1);
+    }
+    ui->comboBoxUsbCard->setCurrentIndex(selectedRow);
+}
+
+/* The hub is a USB device: it is offered only while the machine, or the
+   USB card chosen, has a USB bus. */
+void
+SettingsPorts::updateUsbHubList()
+{
+    auto *usbHubModel   = ui->comboBoxUsbHub->model();
+    auto  removeRowsHub = usbHubModel->rowCount();
+    int   curHub        = (removeRowsHub > 0) ? ui->comboBoxUsbHub->currentData().toInt() : usb_hub_type;
+    int   selectedRow   = 0;
+
+    Models::Batch usbHubRows(usbHubModel);
+    for (int i = 0; i < usb_hub_get_ndev(); ++i) {
+        const device_t *dev = usb_hub_get_device(i);
+
+        if (device_is_valid(dev, machineId) == 0)
+            continue;
+
+        int row = usbHubRows.add(DeviceConfig::DeviceName(dev, usb_hub_get_internal_name(i), 0), i);
+        if (i == curHub)
+            selectedRow = row - removeRowsHub;
+    }
+    usbHubRows.commit();
+    usbHubModel->removeRows(0, removeRowsHub);
+    ui->comboBoxUsbHub->setEnabled(usbHubModel->rowCount() > 1);
+    ui->comboBoxUsbHub->setCurrentIndex(-1);
+    ui->comboBoxUsbHub->setCurrentIndex(selectedRow);
+}
+
+void
+SettingsPorts::on_comboBoxUsbCard_currentIndexChanged(int index)
+{
+    if (index < 0)
+        return;
+
+    usb_card_pending = ui->comboBoxUsbCard->currentData().toInt();
+    updateUsbHubList();
+    updateUsbMsdList();
+    emit usbBusChanged(machineId);
+}
+
+/* USB mass storage is offered like the hub. It holds no drives of its own:
+   they sit on the SCSI bus it bridges, set up on the drive pages, which the
+   two buttons under it open. */
+void
+SettingsPorts::updateUsbMsdList()
+{
+    auto *usbMsdModel   = ui->comboBoxUsbMsd->model();
+    auto  removeRowsMsd = usbMsdModel->rowCount();
+    int   curMsd        = (removeRowsMsd > 0) ? ui->comboBoxUsbMsd->currentData().toInt() : usb_msd_type;
+    int   selectedRow   = 0;
+
+    Models::Batch usbMsdRows(usbMsdModel);
+    for (int i = 0; i < usb_msd_get_ndev(); ++i) {
+        const device_t *dev = usb_msd_get_device(i);
+
+        if (device_is_valid(dev, machineId) == 0)
+            continue;
+
+        int row = usbMsdRows.add(DeviceConfig::DeviceName(dev, usb_msd_get_internal_name(i), 0), i);
+        if (i == curMsd)
+            selectedRow = row - removeRowsMsd;
+    }
+    usbMsdRows.commit();
+    usbMsdModel->removeRows(0, removeRowsMsd);
+    ui->comboBoxUsbMsd->setEnabled(usbMsdModel->rowCount() > 1);
+    ui->comboBoxUsbMsd->setCurrentIndex(-1);
+    ui->comboBoxUsbMsd->setCurrentIndex(selectedRow);
+}
+
+void
+SettingsPorts::on_comboBoxUsbMsd_currentIndexChanged(int index)
+{
+    if (index < 0)
+        return;
+
+    const bool on = (ui->comboBoxUsbMsd->currentData().toInt() > 0);
+
+    ui->labelUsbMsdDrives->setEnabled(on);
+    ui->pushButtonUsbMsdHardDisks->setEnabled(on);
+    ui->pushButtonUsbMsdCdrom->setEnabled(on);
+    ui->pushButtonUsbMsdRemovable->setEnabled(on);
+}
+
+void
+SettingsPorts::on_pushButtonUsbMsdHardDisks_clicked()
+{
+    emit drivePageRequested(DrivePage::HardDisks);
+}
+
+void
+SettingsPorts::on_pushButtonUsbMsdCdrom_clicked()
+{
+    emit drivePageRequested(DrivePage::Cdrom);
+}
+
+void
+SettingsPorts::on_pushButtonUsbMsdRemovable_clicked()
+{
+    emit drivePageRequested(DrivePage::Removable);
 }
 
 void

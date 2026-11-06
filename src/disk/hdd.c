@@ -24,7 +24,10 @@
 #include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
+#include <86box/timer.h>
+#include <86box/device.h>
 #include <86box/hdd.h>
+#include <86box/lpt.h>
 #include <86box/cdrom.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_tape.h>
@@ -34,7 +37,7 @@
 
 #define HDD_OVERHEAD_TIME 50.0
 
-hard_disk_t hdd[HDD_NUM];
+hard_disk_t hdd[HDD_SLOTS];
 
 int
 hdd_init(void)
@@ -62,9 +65,9 @@ hdd_string_to_bus(char *str, int cdrom)
     if (!strcmp(str, "atapi"))
         return HDD_BUS_ATAPI;
 
-    /* Removable disks only: reached through a parallel-port bridge. */
-    if (!strcmp(str, "lpt") && cdrom)
-        return CDROM_BUS_LPT;
+    /* Reached through a parallel port bridge. */
+    if (!strcmp(str, "lpt"))
+        return HDD_BUS_LPT;
 
     if (!strcmp(str, "xta"))
         return HDD_BUS_XTA;
@@ -74,6 +77,18 @@ hdd_string_to_bus(char *str, int cdrom)
 
     if (!strcmp(str, "mitsumi") && cdrom)
         return CDROM_BUS_MITSUMI;
+
+    if (!strcmp(str, "sony") && cdrom)
+        return CDROM_BUS_SONY;
+
+    if (!strcmp(str, "philips") && cdrom)
+        return CDROM_BUS_PHILIPS;
+
+    if (!strcmp(str, "philips_cm100") && cdrom)
+        return CDROM_BUS_CM100;
+
+    if (!strcmp(str, "hitachi") && cdrom)
+        return CDROM_BUS_HITACHI;
 
     if (!strcmp(str, "mke") && cdrom)
         return CDROM_BUS_MKE;
@@ -129,15 +144,34 @@ hdd_bus_to_string(int bus, int cdrom)
                 s = "mitsumi";
             break;
 
+        case CDROM_BUS_PHILIPS:
+            if (cdrom)
+                s = "philips";
+            break;
+
+        case CDROM_BUS_SONY:
+            if (cdrom)
+                s = "sony";
+            break;
+
+        case CDROM_BUS_CM100:
+            if (cdrom)
+                s = "philips_cm100";
+            break;
+
+        case CDROM_BUS_HITACHI:
+            if (cdrom)
+                s = "hitachi";
+            break;
+
         case CDROM_BUS_MKE:
             if (cdrom)
                 s = "mke";
             break;
 
         /* Removable-mode only: the QIC-117 tape buses. */
-        case TAPE_BUS_LPT:
-            if (cdrom)
-                s = "lpt";
+        case HDD_BUS_LPT:
+            s = "lpt";
             break;
 
         case TAPE_BUS_FDC:
@@ -513,8 +547,8 @@ static hdd_preset_t hdd_speed_presets[] = {
     { .name = "[PIO IDE] Seagate SWIFT (ST1186A)",                .internal_name = "ST1186A",                          .model = "st1186AT",                                                    .zones =  1, .avg_spt =  33, .heads =  1, .rpm = 3600,  .full_stroke_ms = 35, .track_seek_ms = 4,   .rcache_num_seg =  1, .rcache_seg_size =   32, .max_multiple =  1 },
     { .name = "[PIO IDE] Seagate SWIFT (ST1201A)",                .internal_name = "ST1201A",                          .model = "st1201AT",                                                    .zones =  1, .avg_spt =  50, .heads =  1, .rpm = 3600,  .full_stroke_ms = 33, .track_seek_ms = 4,   .rcache_num_seg =  1, .rcache_seg_size =   32, .max_multiple =  1 },
     { .name = "[PIO IDE] Seagate SWIFT (ST1239A)",                .internal_name = "ST1239A",                          .model = "st1239AT",                                                    .zones =  1, .avg_spt =  50, .heads =  2, .rpm = 3600,  .full_stroke_ms = 33, .track_seek_ms = 4,   .rcache_num_seg =  1, .rcache_seg_size =   32, .max_multiple =  1 },
-    { .name = "[PIO IDE] Westen Digital WD93024-A",               .internal_name = "WD93024A",                         .model = "WD93024A",                                                    .zones =  1, .avg_spt =  33, .heads =  1, .rpm = 3600,  .full_stroke_ms = 33, .track_seek_ms = 4,   .rcache_num_seg =  1, .rcache_seg_size =   32, .max_multiple =  1 },
-    { .name = "[PIO IDE] Westen Digital WD93044-A",               .internal_name = "WD93044A",                         .model = "WD93044A",                                                    .zones =  1, .avg_spt =  50, .heads =  1, .rpm = 3600,  .full_stroke_ms = 33, .track_seek_ms = 4,   .rcache_num_seg =  1, .rcache_seg_size =   32, .max_multiple =  1 },
+    { .name = "[PIO IDE] Western Digital WD93024-A",               .internal_name = "WD93024A",                         .model = "WD93024A",                                                    .zones =  1, .avg_spt =  33, .heads =  1, .rpm = 3600,  .full_stroke_ms = 33, .track_seek_ms = 4,   .rcache_num_seg =  1, .rcache_seg_size =   32, .max_multiple =  1 },
+    { .name = "[PIO IDE] Western Digital WD93044-A",               .internal_name = "WD93044A",                         .model = "WD93044A",                                                    .zones =  1, .avg_spt =  50, .heads =  1, .rpm = 3600,  .full_stroke_ms = 33, .track_seek_ms = 4,   .rcache_num_seg =  1, .rcache_seg_size =   32, .max_multiple =  1 },
     { .name = "[PIO-2] IBM DSAA-3270",                            .internal_name = "DSAA3270",                         .model = "DSAA-3270",                            .version = "25505120", .zones =  8, .avg_spt = 268, .heads =  2, .rpm = 4500,  .full_stroke_ms = 25, .track_seek_ms = 2.1, .rcache_num_seg =  3, .rcache_seg_size =   32, .max_multiple =  8 },
     { .name = "[CE-ATA] Hitachi DK110A-13",                       .internal_name = "DK110A13",                         .model = "HITACHI DK110A",                                              .zones =  1, .avg_spt = 150, .heads =  4, .rpm = 4464,  .full_stroke_ms = 35, .track_seek_ms = 6,   .rcache_num_seg =  1, .rcache_seg_size =   32, .max_multiple =  8 }, // Never produced nor released
     { .name = "[ATA-1] Alps Electric DR-311C AT",                 .internal_name = "DR311",                            .model = "ALPS DR311",                           .version = "E125052E", .zones =  1, .avg_spt =  33, .heads =  2, .rpm = 3448,  .full_stroke_ms = 50, .track_seek_ms = 5,   .rcache_num_seg =  1, .rcache_seg_size =  128, .max_multiple =  8 },
@@ -1193,4 +1227,61 @@ hdd_preset_apply(int hdd_id)
 
     hdd_zones_init(hd);
     hdd_cache_init(hd);
+}
+
+/* The bridges a hard disk on bus LPT can sit behind, by HDD_LPT_*. */
+static const struct {
+    const char     *internal_name;
+    const char     *name;
+    const device_t *device;
+} hdd_lpt_bridges[HDD_LPT_BRIDGES] = {
+    { "on26", "OnSpec 90c26", &lpt_on26_device },
+    { "epat", "Shuttle EPAT", &lpt_epat_device },
+    { "epia", "Shuttle EPIA", &lpt_epia_device },
+    { "bpck", "MicroSolutions BackPack", &lpt_bpck_device },
+    { "frpw", "Freecom Power", &lpt_frpw_device },
+    { "friq", "Freecom IQ", &lpt_friq_device }
+};
+
+/* Whether a CD-ROM drive on bus LPT can sit behind the bridge: the EPAT
+   model drives a removable disk of its own instead. */
+int
+cdrom_lpt_bridge_valid(int bridge)
+{
+    return (bridge >= 0) && (bridge < HDD_LPT_BRIDGES) && (bridge != HDD_LPT_EPAT);
+}
+
+static int
+hdd_lpt_bridge_valid(int bridge)
+{
+    return ((bridge >= 0) && (bridge < HDD_LPT_BRIDGES)) ? bridge : HDD_LPT_ON26;
+}
+
+const device_t *
+hdd_lpt_bridge_device(int bridge)
+{
+    return hdd_lpt_bridges[hdd_lpt_bridge_valid(bridge)].device;
+}
+
+const char *
+hdd_lpt_bridge_get_internal_name(int bridge)
+{
+    return hdd_lpt_bridges[hdd_lpt_bridge_valid(bridge)].internal_name;
+}
+
+const char *
+hdd_lpt_bridge_get_name(int bridge)
+{
+    return hdd_lpt_bridges[hdd_lpt_bridge_valid(bridge)].name;
+}
+
+int
+hdd_lpt_bridge_get_from_internal_name(const char *s)
+{
+    for (int i = 0; i < HDD_LPT_BRIDGES; i++) {
+        if (!strcmp(hdd_lpt_bridges[i].internal_name, s))
+            return i;
+    }
+
+    return HDD_LPT_ON26;
 }

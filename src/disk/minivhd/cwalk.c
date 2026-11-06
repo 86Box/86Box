@@ -173,9 +173,11 @@ static bool cwk_path_is_string_equal(const char *first, const char *second,
   while (*first && *second && n > 0) {
     // We can consider the string to be not equal if the two lowercase
     // characters are not equal.
-    if (tolower(*first++) != tolower(*second++)) {
+    if (tolower((unsigned char)*first) != tolower((unsigned char)*second)) {
       return false;
     }
+    ++first;
+    ++second;
 
     --n;
   }

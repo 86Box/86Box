@@ -25,6 +25,16 @@
 #define IMG_FMT_VHD_DIFF    5
 
 #define HDD_NUM             88 /* total of 88 images supported */
+/*
+   Slots after the configured ones, one per removable disk drive (RDISK_NUM).
+   A removable drive on the IDE (ATA) bus uses its slot for the geometry and
+   timing the IDE code reads from hdd[], while hdd_image_read() and friends
+   pass sector I/O on that slot to the cartridge image (rdisk_ata_*()). They
+   are never configured, saved or listed as hard disks.
+ */
+#define HDD_RDISK_SLOTS     4
+#define HDD_SLOTS           (HDD_NUM + HDD_RDISK_SLOTS)
+#define HDD_IS_RDISK_SLOT(id) (((id) >= HDD_NUM) && ((id) < HDD_SLOTS))
 
 /* Hard Disk bus types. */
 #if 0
@@ -76,6 +86,17 @@ enum {
     HDD_BUS_USB      = 10
 };
 #endif
+
+/* The bridge of a hard disk on bus LPT. */
+enum {
+    HDD_LPT_ON26 = 0, /* OnSpec 90c26 */
+    HDD_LPT_EPAT = 1, /* Shuttle EPAT */
+    HDD_LPT_EPIA = 2, /* Shuttle EPIA */
+    HDD_LPT_BPCK = 3, /* MicroSolutions BackPack */
+    HDD_LPT_FRPW = 4, /* Freecom Power */
+    HDD_LPT_FRIQ = 5, /* Freecom IQ */
+    HDD_LPT_BRIDGES
+};
 
 enum {
     HDD_OP_SEEK  = 0,
@@ -159,7 +180,7 @@ typedef struct hard_disk_t {
                                         READ-ONLY */
     uint8_t            raw_device;   /* Path is a raw block device
                                         (e.g. /dev/sdX, /dev/diskN) */
-    uint8_t            pad0;
+    uint8_t            lpt_bridge;   /* Bus LPT: HDD_LPT_* */
 
     void              *priv;
 
@@ -208,7 +229,15 @@ typedef struct hard_disk_t {
     double             cyl_switch_usec;
 } hard_disk_t;
 
-extern hard_disk_t  hdd[HDD_NUM];
+#ifdef EMU_DEVICE_H
+extern const device_t *hdd_lpt_bridge_device(int bridge);
+#endif
+extern const char *hdd_lpt_bridge_get_internal_name(int bridge);
+extern int         hdd_lpt_bridge_get_from_internal_name(const char *s);
+extern const char *hdd_lpt_bridge_get_name(int bridge);
+extern int         cdrom_lpt_bridge_valid(int bridge);
+
+extern hard_disk_t  hdd[HDD_SLOTS];
 extern unsigned int hdd_table[128][3];
 
 extern int   hdd_init(void);
@@ -233,6 +262,18 @@ extern void     hdd_image_close(uint8_t id);
 extern void     hdd_image_sync(uint8_t id);
 extern void     hdd_image_sync_all(void);
 extern void     hdd_image_calc_chs(uint32_t *c, uint32_t *h, uint32_t *s, uint32_t size);
+
+/* Sector I/O of a removable drive's slot, implemented in rdisk.c. */
+extern int      rdisk_ata_read(int slot, uint32_t sector, uint32_t count, uint8_t *buffer);
+extern int      rdisk_ata_write(int slot, uint32_t sector, uint32_t count, const uint8_t *buffer);
+extern int      rdisk_ata_zero(int slot, uint32_t sector, uint32_t count);
+extern uint32_t rdisk_ata_last_sector(int slot);
+extern int      rdisk_ata_media_present(int slot);
+extern int      rdisk_ata_write_protected(int slot);
+extern int      rdisk_ata_take_media_change(int slot); /* 1 once after a change */
+extern void     rdisk_ata_lock(int slot, int lock);
+extern int      rdisk_ata_eject(int slot);             /* -1 while locked */
+extern int      rdisk_ata_soft_protect(int slot, uint8_t subcommand); /* -1: unsupported */
 
 extern int image_is_hdi(const char *s);
 extern int image_is_hdx(const char *s, int check_signature);

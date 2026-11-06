@@ -51,6 +51,7 @@ HarddiskDialog::HarddiskDialog(bool existing, QWidget *parent)
     , ui(new Ui::HarddiskDialog)
 {
     ui->setupUi(this);
+    Harddrives::widenPopup(ui->comboBoxChannel);
 
     scSpeed = new SettingsCompleter(ui->comboBoxSpeed, nullptr);
 
@@ -819,6 +820,7 @@ HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index)
             max_cylinders = 266305;
             break;
         case HDD_BUS_IDE:
+        case HDD_BUS_LPT:
             max_sectors   = 255;
             max_heads     = 255;
             max_cylinders = 266305;
@@ -849,7 +851,7 @@ HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index)
     ui->lineEditHeads->setValidator(new QIntValidator(1, max_heads, this));
     ui->lineEditSectors->setValidator(new QIntValidator(1, max_sectors, this));
 
-    Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass);
+    Harddrives::populateBusChannels(ui->comboBoxChannel->model(), ui->comboBoxBus->currentData().toInt(), Harddrives::busTrackClass, Harddrives::LptBridgesHdd);
     Harddrives::populateSpeeds(ui->comboBoxSpeed->model(), scSpeed, ui->comboBoxBus->currentData().toInt());
 
     switch (ui->comboBoxBus->currentData().toInt()) {
@@ -868,6 +870,12 @@ HarddiskDialog::on_comboBoxBus_currentIndexChanged(int index)
             break;
         case HDD_BUS_SCSI:
             chanIdx = (Harddrives::busTrackClass->next_free_scsi_id());
+            break;
+        case HDD_BUS_LPT:
+            /* The port's first entry: the OnSpec 90c26. */
+            chanIdx = (Harddrives::busTrackClass->next_free_lpt_port());
+            if (chanIdx != 0xFF)
+                chanIdx *= HDD_LPT_BRIDGES;
             break;
     }
 

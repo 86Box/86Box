@@ -1220,7 +1220,7 @@ const device_t wd8013epa_device = {
 };
 
 const device_t ibm_ethernet_efd4_device = {
-    .name          = "IBM PS/2 Adapter/A for Ethernet Networks (WD8013WP/A, AUI/RJ-45, EFD4/92F0046)",
+    .name          = "IBM PS/2 Adapter/A (WD8013WP/A)",
     .internal_name = "ibm_ethernet_92f0046",
     .flags         = DEVICE_MCA,
     .local         = WD8013WPA_IBM,
@@ -1234,7 +1234,7 @@ const device_t ibm_ethernet_efd4_device = {
 };
 
 const device_t ibm_ethernet_efd5_device = {
-    .name          = "IBM PS/2 Adapter/A for Ethernet Networks (WD8013EP/A, AUI/BNC, EFD5)",
+    .name          = "IBM PS/2 Adapter/A (WD8013EP/A)",
     .internal_name = "ibm_ethernet_efd5",
     .flags         = DEVICE_MCA,
     .local         = WD8013EPA_IBM,
@@ -1248,7 +1248,7 @@ const device_t ibm_ethernet_efd5_device = {
 };
 
 const device_t ibm_ethernet_efe5_device = {
-    .name          = "IBM PS/2 Adapter/A for Ethernet Networks (WD8003E/A, AUI/BNC, EFE5)",
+    .name          = "IBM PS/2 Adapter/A (WD8003E/A)",
     .internal_name = "ibm_ethernet_efe5",
     .flags         = DEVICE_MCA,
     .local         = WD8003EA_IBM,

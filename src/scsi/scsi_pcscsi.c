@@ -175,6 +175,7 @@ typedef struct esp_t {
     char         *bios_path;
     char          nvr_path[64];
     uint8_t       pci_slot;
+    uint8_t       am79c974; /* The SCSI side of an Am79C974 PCnet-SCSI */
     int           has_bios;
     int           BIOSBase;
     int           MMIOBase;
@@ -2095,9 +2096,9 @@ esp_pci_read(UNUSED(int func), int addr, int len, void *priv)
         case 0x3D:
             return PCI_INTA;
         case 0x3E:
-            return 0x04;
+            return dev->am79c974 ? 0x00 : 0x04; /* Reserved on the Am79C974 */
         case 0x3F:
-            return 0x28;
+            return dev->am79c974 ? 0x00 : 0x28;
         case 0x40 ... 0x4f:
             return esp_pci_regs[addr];
 
@@ -2255,7 +2256,8 @@ dc390_init(const device_t *info)
 
     dev->bus = scsi_get_bus();
 
-    dev->local = info->local;
+    dev->local    = info->local & 0xff;
+    dev->am79c974 = !!(info->local & 0x100);
     dev->mca = 0;
 
     fifo8_create(&dev->fifo, ESP_FIFO_SZ);
@@ -2269,10 +2271,17 @@ dc390_init(const device_t *info)
     esp_pci_bar[0].addr_regs[0] = 1;
     esp_pci_regs[0x04]          = 3;
 
-    dev->has_bios = device_get_config_int("bios");
+    if (dev->am79c974)
+        dev->has_bios = !!(info->local & 0x200); /* The PCnet-SCSI's own option */
+    else
+        dev->has_bios = device_get_config_int("bios");
     if (dev->has_bios) {
         dev->BIOSBase = 0xc8000;
-        if (dev->local) {
+        if (dev->am79c974) {
+            /* AMD's own PCscsi BIOS, the only AMD one. */
+            dev->bios_path = (char *) AM53C974_3_01_AMD_ROM;
+            rom_init(&dev->bios, dev->bios_path, dev->BIOSBase, 0x4000, 0x3fff, 0, MEM_MAPPING_EXTERNAL);
+        } else if (dev->local) {
             bios_rev         = (char *) device_get_config_bios("bios_rev");
             dev->bios_path   = (char *) device_get_bios_file(info, bios_rev, 0);
             if (!strcmp(bios_rev, "v3_43"))
@@ -2686,7 +2695,8 @@ const device_t dc390_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = bios_enable_config
+    .config        = bios_enable_config,
+    .short_name    = "DC-390"
 };
 
 const device_t am53c974_pci_device = {
@@ -2700,7 +2710,8 @@ const device_t am53c974_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = am53c974_bios_enable_config
+    .config        = am53c974_bios_enable_config,
+    .short_name    = "AM53C974"
 };
 
 const device_t am53c974a_pci_device = {
@@ -2714,7 +2725,8 @@ const device_t am53c974a_pci_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = am53c974a_bios_enable_config
+    .config        = am53c974a_bios_enable_config,
+    .short_name    = "AM53C974A"
 };
 
 const device_t ncr53c90a_mca_device = {
@@ -2728,5 +2740,30 @@ const device_t ncr53c90a_mca_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "NCR 53c90A"
 };
+
+/* The SCSI side of the AMD PCnet-SCSI (Am79C974): its Am53C974 on a
+   second IDSEL of its own, INTA, revision 00h. Added by net_pcnet.c's
+   Am79C974, whose settings hold the BIOS option (local bit 9). */
+const device_t am79c974_scsi_device = {
+    .name          = "AMD PCnet-SCSI (Am79C974) SCSI",
+    .internal_name = "am79c974_scsi",
+    .flags         = DEVICE_PCI,
+    .local         = 1 | 0x100,
+    .init          = dc390_init,
+    .close         = esp_close,
+    .reset         = esp_pci_reset,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL,
+    .short_name    = "PCnet-SCSI"
+};
+
+void
+am79c974_scsi_add(int bios)
+{
+    device_add_params(&am79c974_scsi_device, (void *) (uintptr_t) (bios ? 0x200 : 0));
+}

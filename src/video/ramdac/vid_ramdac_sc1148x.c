@@ -29,7 +29,6 @@
 typedef struct sc1148x_ramdac_t {
     int     type;
     int     state;
-    int     rs2;
     uint8_t ctrl;
 } sc1148x_ramdac_t;
 
@@ -53,14 +52,14 @@ sc1148x_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga
                     oldbpp       = svga->bpp;
                     switch (ramdac->type) {
                         case 0: /* Sierra Mark 2 (11483)*/
-                        case 2: /* Sierra Mark 2 (11484)*/
-                        case 3: /* Sierra Mark 1 (11486)*/
+                        case 1: /* Sierra Mark 2 (11484)*/
+                        case 2: /* Sierra Mark 1 (11486)*/
                             if (val & 0xa0) {
                                 svga->bpp = 15;
                             } else if (val == 0x00)
                                 svga->bpp = 8;
                             break;
-                        case 1: /* Sierra Mark 3 (11487)*/
+                        case 3: /* Sierra Mark 3 (11487)*/
                             if (val & 0xa0) {
                                 if (val & 0x40)
                                     svga->bpp = 16;
@@ -131,7 +130,7 @@ sc1148x_ramdac_init(const device_t *info)
 {
     sc1148x_ramdac_t *ramdac = (sc1148x_ramdac_t *) calloc(1, sizeof(sc1148x_ramdac_t));
 
-    ramdac->type = info->local;
+    ramdac->type = info->local & 0xff;
 
     return ramdac;
 }
@@ -159,9 +158,9 @@ const device_t sc11483_ramdac_device = {
     .config        = NULL
 };
 
-const device_t sc11487_ramdac_device = {
-    .name          = "Sierra SC11487 RAMDAC",
-    .internal_name = "sc11487_ramdac",
+const device_t sc11484_ramdac_device = {
+    .name          = "Sierra SC11484 RAMDAC",
+    .internal_name = "sc11484_ramdac",
     .flags         = 0,
     .local         = 1,
     .init          = sc1148x_ramdac_init,
@@ -173,9 +172,25 @@ const device_t sc11487_ramdac_device = {
     .config        = NULL
 };
 
+
 const device_t sc11484_nors2_ramdac_device = {
     .name          = "Sierra SC11484 RAMDAC (no RS2 signal)",
     .internal_name = "sc11484_nors2_ramdac",
+    .flags         = 0,
+    .local         = 1 | 0x100,
+    .init          = sc1148x_ramdac_init,
+    .close         = sc1148x_ramdac_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+
+const device_t sc11486_ramdac_device = {
+    .name          = "Sierra SC11486 RAMDAC",
+    .internal_name = "sc11486_ramdac",
     .flags         = 0,
     .local         = 2,
     .init          = sc1148x_ramdac_init,
@@ -187,11 +202,25 @@ const device_t sc11484_nors2_ramdac_device = {
     .config        = NULL
 };
 
-const device_t sc11486_ramdac_device = {
-    .name          = "Sierra SC11486 RAMDAC",
-    .internal_name = "sc11486_ramdac",
+const device_t sc11487_ramdac_device = {
+    .name          = "Sierra SC11487 RAMDAC",
+    .internal_name = "sc11487_ramdac",
     .flags         = 0,
     .local         = 3,
+    .init          = sc1148x_ramdac_init,
+    .close         = sc1148x_ramdac_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = NULL
+};
+
+const device_t sc11487_nors2_ramdac_device = {
+    .name          = "Sierra SC11487 RAMDAC (no RS2 signal)",
+    .internal_name = "sc11487_nors2_ramdac",
+    .flags         = 0,
+    .local         = 3 | 0x100,
     .init          = sc1148x_ramdac_init,
     .close         = sc1148x_ramdac_close,
     .reset         = NULL,

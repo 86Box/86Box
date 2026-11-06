@@ -186,6 +186,21 @@ ali1489_defaults(ali1489_t *dev)
     pci_set_irq_routing(PCI_INTD, PCI_IRQ_DISABLED);
 }
 
+/* Register 2Bh bits 3 (TURBO pin) and 4 (system turbo, the SPLED output)
+   are read-only status. The TURBO pin is not wired up, so it reads high. */
+static void
+ali1489_turbo_status(ali1489_t *dev)
+{
+    uint8_t reg   = dev->regs[0x2b];
+    int     pin   = 1;
+    int     turbo = reg & 0x02;
+
+    if ((reg & 0x04) && !(reg & 0x01) && pin)
+        turbo = 1;
+
+    dev->regs[0x2b] = (reg & 0xe7) | (pin ? 0x08 : 0x00) | (turbo ? 0x10 : 0x00);
+}
+
 static void
 ali1489_write(uint16_t addr, uint8_t val, void *priv)
 {
@@ -283,7 +298,8 @@ ali1489_write(uint16_t addr, uint8_t val, void *priv)
                         break;
 
                     case 0x2b: /* Turbo Function Register */
-                        dev->regs[dev->index] = (val & 0xbf) | 0x40;
+                        dev->regs[dev->index] = (val & 0xa7) | 0x40;
+                        ali1489_turbo_status(dev);
                         break;
 
                     case 0x30: /* Power Management Unit Control Register */

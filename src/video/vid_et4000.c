@@ -676,6 +676,17 @@ et4000_recalctimings(svga_t *svga)
         svga->dots_per_clock <<= 1;
     }
 
+    /* Interlace (CRTC 35 bit 7), the vertical registers count frame lines */
+    svga->interlace = svga->crtc[0x35] & 0x80;
+    if (svga->interlace) {
+        int shift = (svga->crtc[0x17] & 0x04) ? 2 : 1;
+
+        svga->vtotal >>= shift;
+        svga->vsyncstart >>= shift;
+        svga->vblankstart >>= shift;
+        svga->dispend >>= shift;
+    }
+
     if (svga->getclock == NULL) {
         switch (clk_sel) {
             case 0:
@@ -1117,9 +1128,9 @@ static const device_config_t et4000_config[] = {
 };
 
 const device_t et4000_isa_device = {
-    .name          = "Tseng Labs ET4000AX (ISA)",
+    .name          = "Tseng Labs ET4000AX",
     .internal_name = "et4000ax",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA | DEVICE_ISA16,
     .local         = ET4000_TYPE_USE_CONFIG_BIOS,
     .init          = et4000_init,
     .close         = et4000_close,
@@ -1131,7 +1142,7 @@ const device_t et4000_isa_device = {
 };
 
 const device_t et4000_mca_device = {
-    .name          = "Tseng Labs ET4000AX (MCA)",
+    .name          = "Tseng Labs ET4000AX",
     .internal_name = "et4000mca",
     .flags         = DEVICE_MCA,
     .local         = ET4000_TYPE_MCA,

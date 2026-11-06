@@ -253,12 +253,17 @@ VulkanWindowRenderer::recreateShaderSrcImages()
     shaderSrcImageAllocations.resize(swapchainImageViews.size());
     shaderFilterChains.resize(swapchainImageViews.size());
 
+    /* The shaders only get the part of the image that is inside the swapchain. */
+    QRect vis_source;
+    QRect vis_destination;
+    visibleRects(curExtent.width, curExtent.height, vis_source, vis_destination);
+
     for (unsigned int i = 0; i < swapchainImageViews.size(); i++) {
         VkImageCreateInfo img_info = { };
         img_info.sType             = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
         img_info.imageType         = VK_IMAGE_TYPE_2D;
-        img_info.extent.width      = source.width();
-        img_info.extent.height     = source.height();
+        img_info.extent.width      = vis_source.width();
+        img_info.extent.height     = vis_source.height();
         img_info.extent.depth      = 1;
         img_info.mipLevels         = 1;
         img_info.arrayLayers       = 1;
@@ -637,7 +642,12 @@ VulkanWindowRenderer::render()
     m_devFuncs->vkResetFences(logi_device, 1, &presentFences[current_frame]);
     auto         cmdBufs = this->cmdBuffers[current_frame];
 
-    if (prev_source != source) {
+    /* Only the part of the image that lands inside the swapchain can be blitted, copied or used as a viewport. */
+    QRect vis_source;
+    QRect vis_destination;
+    visibleRects(curExtent.width, curExtent.height, vis_source, vis_destination);
+
+    if (prev_source != vis_source) {
 #ifdef LIBRA_RUNTIME_VULKAN
         try {
             recreateShaderSrcImages();
@@ -647,7 +657,7 @@ VulkanWindowRenderer::render()
             return;
         }
 #endif
-        prev_source = source;
+        prev_source = vis_source;
     }
 
     VkCommandBufferBeginInfo beginInfo { };
@@ -791,17 +801,17 @@ VulkanWindowRenderer::render()
     bregion.dstSubresource.mipLevel = 0;
     bregion.dstSubresource.baseArrayLayer = 0;
     bregion.dstSubresource.layerCount = 1;
-    bregion.srcOffsets[0].x = source.x();
-    bregion.srcOffsets[0].y = source.y();
+    bregion.srcOffsets[0].x = vis_source.x();
+    bregion.srcOffsets[0].y = vis_source.y();
     bregion.srcOffsets[0].z = 0;
-    bregion.srcOffsets[1].x = source.x() + source.width();
-    bregion.srcOffsets[1].y = source.y() + source.height();
+    bregion.srcOffsets[1].x = vis_source.x() + vis_source.width();
+    bregion.srcOffsets[1].y = vis_source.y() + vis_source.height();
     bregion.srcOffsets[1].z = 1;
-    bregion.dstOffsets[0].x = std::clamp((uint32_t)destination.x(), 0u, (uint32_t)curExtent.width);
-    bregion.dstOffsets[0].y = std::clamp((uint32_t)destination.y(), 0u, (uint32_t)curExtent.height);
+    bregion.dstOffsets[0].x = vis_destination.x();
+    bregion.dstOffsets[0].y = vis_destination.y();
     bregion.dstOffsets[0].z = 0;
-    bregion.dstOffsets[1].x = std::clamp((uint32_t)destination.x() + (uint32_t)destination.width(), 0u, (uint32_t)curExtent.width);
-    bregion.dstOffsets[1].y = std::clamp((uint32_t)destination.y() + (uint32_t)destination.height(), 0u, (uint32_t)curExtent.height);
+    bregion.dstOffsets[1].x = vis_destination.x() + vis_destination.width();
+    bregion.dstOffsets[1].y = vis_destination.y() + vis_destination.height();
     bregion.dstOffsets[1].z = 1;
 
     VkImageCopy cregion{};
@@ -813,14 +823,14 @@ VulkanWindowRenderer::render()
     cregion.dstSubresource.mipLevel = 0;
     cregion.dstSubresource.baseArrayLayer = 0;
     cregion.dstSubresource.layerCount = 1;
-    cregion.srcOffset.x = source.x();
-    cregion.srcOffset.y = source.y();
+    cregion.srcOffset.x = vis_source.x();
+    cregion.srcOffset.y = vis_source.y();
     cregion.srcOffset.z = 0;
     cregion.dstOffset.x = 0;
     cregion.dstOffset.y = 0;
     cregion.dstOffset.z = 0;
-    cregion.extent.width = source.width();
-    cregion.extent.height = source.height();
+    cregion.extent.width = vis_source.width();
+    cregion.extent.height = vis_source.height();
     cregion.extent.depth = 1;
 
     VkImageSubresourceRange clr_range;
@@ -949,14 +959,14 @@ VulkanWindowRenderer::render()
         libra_error_t error = nullptr;
 
         if (i == 0) {
-            vport.x = destination.x();
-            vport.y = destination.y();
-            vport.width = destination.width();
-            vport.height= destination.height();
+            vport.x = vis_destination.x();
+            vport.y = vis_destination.y();
+            vport.width = vis_destination.width();
+            vport.height= vis_destination.height();
 #ifndef LIBRASHADER_STATIC
-            error = librashader_inst.vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)source.width(), (unsigned int)source.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
+            error = librashader_inst.vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)vis_source.width(), (unsigned int)vis_source.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
 #else
-            error = libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)source.width(), (unsigned int)source.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
+            error = libra_vk_filter_chain_frame(&shaderFilterChains[swapchain_image_index][i].chain, cmdBufs, current_frame_shader, { shader_img_src, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)vis_source.width(), (unsigned int)vis_source.height()}, { shader_img_dst, VK_FORMAT_B8G8R8A8_UNORM, (unsigned int)curExtent.width, (unsigned int)curExtent.height }, &vport, nullptr, nullptr);
 #endif
         } else {
             vport.x = 0;

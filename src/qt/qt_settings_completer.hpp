@@ -2,6 +2,7 @@
 #define QT_SETTINGS_COMPLETER
 
 #include <QWidget>
+#include <QPointer>
 #include <QComboBox>
 #include <QCompleter>
 #include <QLineEdit>
@@ -15,7 +16,7 @@ class SettingsCompleter : public QObject {
 public:
     explicit SettingsCompleter(QComboBox *cb, QComboBox *cbSort);
     SettingsCompleter()  = default;
-    ~SettingsCompleter() = default;
+    ~SettingsCompleter();
 
     void addMachine(int i, int j);
     void addDevice(const void *device, QString name);
@@ -23,16 +24,18 @@ public:
     void removeRows();
 
 private:
-    QComboBox *         comboBoxMain = nullptr;
-    QComboBox *         comboBoxSort = nullptr;
+    QPointer<QComboBox> comboBoxMain;
+    QPointer<QComboBox> comboBoxSort;
 
     QCompleter *        completer    = nullptr;
     QStandardItemModel *model        = nullptr;
 
-    int                 rows         = 0;
+    /* Rows added since the model was last filled; they go in together. */
+    QList<QStandardItem *> pending;
 
     bool                eventFilter(QObject *watched, QEvent *event);
     void                addRow(QString name, QString alias, int special, int id);
+    void                flush();
 };
 
 #endif // QT_SETTINGS_COMPLETER

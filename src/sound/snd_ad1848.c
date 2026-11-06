@@ -35,6 +35,9 @@
 #define CS4232 0x02
 #define CS4236 0x03
 
+#define AD1848_REC_SAFEFTY_MARGIN 4096
+#define AD1848_REC_MAX_MARGIN (AD1848_REC_SAFEFTY_MARGIN * 2)
+
 #ifdef ENABLE_AD1848_LOG
 int ad1848_do_log = ENABLE_AD1848_LOG;
 
@@ -413,7 +416,8 @@ ad1848_write(uint16_t addr, uint8_t val, void *priv)
                         ad1848->adpcm_pos = 0;
                         ad1848->adpcm_predictor[0] = ad1848->adpcm_predictor[1] = 0;
                         ad1848->adpcm_step_index[0] = ad1848->adpcm_step_index[1] = 0;
-                        ad1848->dma_ff = 0;
+                        ad1848->rec_dma_ff = 0;
+                        memset(ad1848->record_buffer, 0, sizeof(ad1848->record_buffer));
                         if (!ad1848->iw_mode3) {
                             if (ad1848->timer_latch)
                                 timer_set_delay_u64(&ad1848->rec_timer_count, ad1848->timer_latch);
@@ -634,6 +638,10 @@ readonly_x:
                     if ((ad1848->type != AD1848_TYPE_CS4232) && (ad1848->type != AD1848_TYPE_CS4236) && (ad1848->type != AD1848_TYPE_INTERWAVE))
                         goto readonly_i;
                     break;
+                case 28:
+                    if (ad1848->type == AD1848_TYPE_INTERWAVE)
+                        updatefreq = 1;
+                    break;
                 case 29:
                     if ((ad1848->type != AD1848_TYPE_CS4232) && (ad1848->type != AD1848_TYPE_CS4236) && (ad1848->type != AD1848_TYPE_INTERWAVE))
                         goto readonly_i;
@@ -714,6 +722,25 @@ ad1848_process_mulaw(uint8_t byte)
     return (int16_t) temp;
 }
 
+static uint8_t
+ad1848_encode_mulaw(int16_t sample)
+{
+    uint8_t sign = 0x00;
+    uint16_t mask = 0x1000;
+    uint8_t position = 12;
+    uint8_t lsb = 0;
+    if (sample < 0) {
+        sample = -sample;
+        sign = 0x80;
+    }
+    sample += 33;
+    if (sample > 0x1fff)
+        sample = 0x1fff;
+    for (; ((sample & mask) != mask && position >= 5); mask >>= 1, position--);
+    lsb = (sample >> (position - 4)) & 0x0f;
+    return (~(sign | ((position - 5) << 4) | lsb));
+}
+
 static int16_t
 ad1848_process_alaw(uint8_t byte)
 {
@@ -735,6 +762,24 @@ ad1848_process_alaw(uint8_t byte)
             break;
     }
     return (int16_t) ((byte & 0x80) ? dec : -dec);
+}
+
+static uint8_t
+ad1848_encode_alaw(int16_t sample)
+{
+    uint16_t mask = 0x800;
+    uint8_t sign = 0x00;
+    uint8_t position = 11;
+    uint8_t lsb = 0;
+    if (sample < 0) {
+        sample = -sample;
+        sign = 0x80;
+    }
+    if (sample > 0xfff)
+        sample = 0xfff;
+    for (; ((sample & mask) != mask && position >= 5); mask >>= 1, position--);
+    lsb = (sample >> ((position == 4) ? 1 : (position - 4))) & 0x0f;
+    return (sign | ((position - 4) << 4) | lsb) ^ 0x55;
 }
 
 static uint32_t
@@ -796,12 +841,25 @@ ad1848_process_adpcm(ad1848_t *ad1848, int channel)
 }
 
 static void
+ad1848_record_resync(ad1848_t *ad1848)
+{
+    int pos = (ad1848->record_pos_write_mic - AD1848_REC_SAFEFTY_MARGIN) & 0xFFFF;
+
+    ad1848->record_pos_read = pos;
+
+    for (int i = 0; i < AD1848_REC_SAFEFTY_MARGIN; i++) {
+        ad1848->record_buffer[pos] = 0;
+        pos                     = (pos + 1) & 0xFFFF;
+    }
+}
+
+static void
 ad1848_input_poll(void *priv)
 {
     ad1848_t *ad1848 = (ad1848_t *) priv;
 
     uint8_t mode2_en   = ((ad1848->regs[12] & 0x40) && (ad1848->type >= AD1848_TYPE_CS4231)) || ((ad1848->type == AD1848_TYPE_OPTI930) && (ad1848->opti930_mode2));
-    uint8_t fullduplex = mode2_en && !(ad1848->regs[9] & 0x04);
+    uint8_t fullduplex = mode2_en && !(ad1848->regs[9] & 0x04) && !(ad1848->dma2 == 4);
     uint8_t channel    = fullduplex ? ad1848->dma2 : ad1848->dma;
     uint8_t rec_format = mode2_en ? (ad1848->regs[28] & ad1848->fmt_mask) : (ad1848->regs[8] & ad1848->fmt_mask);
 
@@ -818,75 +876,107 @@ ad1848_input_poll(void *priv)
     }
 
     if (ad1848->rec_enable) {
+        const int diff = (int) (int16_t) (ad1848->record_pos_write_mic - ad1848->record_pos_read);
+        if ((diff <= 0) || (diff > AD1848_REC_MAX_MARGIN))
+            ad1848_record_resync(ad1848);
 
         switch (rec_format) {
             case 0x00: /* Mono, 8-bit PCM */
-                if (channel >= 4)
-                    dma_channel_write(channel, 0x0000);
-                else
-                    dma_channel_write(channel, 0x00);
+                if ((channel >= 4) && ad1848->rec_dma_ff) {
+                    ad1848->rec_dma_data |= (ad1848->record_buffer[ad1848->record_pos_read] & 0xff00);
+                    ad1848->rec_dma_data ^= 0x8080;
+                    dma_channel_write(channel, ad1848->rec_dma_data);
+                } else if ((channel >= 4) && !ad1848->rec_dma_ff)
+                    ad1848->rec_dma_data = ((ad1848->record_buffer[ad1848->record_pos_read] >> 8) & 0xff);
+                else if (channel <= 3)
+                    dma_channel_write(channel, (ad1848->record_buffer[ad1848->record_pos_read] >> 8) ^ 0x80);
+                ad1848->record_pos_read += 2;
+                ad1848->rec_dma_ff = !ad1848->rec_dma_ff;
+                ad1848->record_pos_read &= 0xFFFF;
                 break;
 
             case 0x10: /* Stereo, 8-bit PCM */
                 if (channel >= 4)
-                    dma_channel_write(channel, 0x0000);
+                    dma_channel_write(channel, (((ad1848->record_buffer[ad1848->record_pos_read] >> 8) & 0xff) | (ad1848->record_buffer[ad1848->record_pos_read + 1] & 0xff00)) ^ 0x8080);
                 else {
-                    dma_channel_write(channel, 0x00);
-                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, (ad1848->record_buffer[ad1848->record_pos_read] >> 8) ^ 0x80);
+                    dma_channel_write(channel, (ad1848->record_buffer[ad1848->record_pos_read + 1] >> 8) ^ 0x80);
                 }
+                ad1848->record_pos_read += 2;
+                ad1848->record_pos_read &= 0xFFFF;
                 break;
 
             case 0x20: /* Mono, 8-bit Mu-Law */
-                if (channel >= 4)
-                    dma_channel_write(channel, 0x0000);
-                else
-                    dma_channel_write(channel, 0x00);
+                if ((channel >= 4) && ad1848->rec_dma_ff) {
+                    ad1848->rec_dma_data |= (ad1848_encode_mulaw(ad1848->record_buffer[ad1848->record_pos_read]) << 8);
+                    dma_channel_write(channel, ad1848->rec_dma_data);
+                } else if ((channel >= 4) && !ad1848->rec_dma_ff)
+                    ad1848->rec_dma_data = ad1848_encode_mulaw(ad1848->record_buffer[ad1848->record_pos_read]);
+                else if (channel <= 3)
+                    dma_channel_write(channel, ad1848_encode_mulaw(ad1848->record_buffer[ad1848->record_pos_read]));
+                ad1848->record_pos_read += 2;
+                ad1848->rec_dma_ff = !ad1848->rec_dma_ff;
+                ad1848->record_pos_read &= 0xFFFF;
                 break;
 
             case 0x30: /* Stereo, 8-bit Mu-Law */
                 if (channel >= 4)
-                    dma_channel_write(channel, 0x0000);
+                    dma_channel_write(channel, ad1848_encode_mulaw(ad1848->record_buffer[ad1848->record_pos_read]) | (ad1848_encode_mulaw(ad1848->record_buffer[ad1848->record_pos_read + 1]) << 8));
                 else {
-                    dma_channel_write(channel, 0x00);
-                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, ad1848_encode_mulaw(ad1848->record_buffer[ad1848->record_pos_read]));
+                    dma_channel_write(channel, ad1848_encode_mulaw(ad1848->record_buffer[ad1848->record_pos_read + 1]));
                 }
+                ad1848->record_pos_read += 2;
+                ad1848->record_pos_read &= 0xFFFF;
                 break;
 
             case 0x40: /* Mono, 16-bit PCM little endian */
                 if (channel >= 4)
-                    dma_channel_write(channel, 0x0000);
+                    dma_channel_write(channel, ad1848->record_buffer[ad1848->record_pos_read]);
                 else {
-                    dma_channel_write(channel, 0x00);
-                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, ad1848->record_buffer[ad1848->record_pos_read] & 0xff);
+                    dma_channel_write(channel, ad1848->record_buffer[ad1848->record_pos_read] >> 8);
                 }
+                ad1848->record_pos_read += 2;
+                ad1848->record_pos_read &= 0xFFFF;
                 break;
 
             case 0x50: /* Stereo, 16-bit PCM little endian */
                 if (channel >= 4) {
-                    dma_channel_write(channel, 0x0000);
-                    dma_channel_write(channel, 0x0000);
+                    dma_channel_write(channel, ad1848->record_buffer[ad1848->record_pos_read]);
+                    dma_channel_write(channel, ad1848->record_buffer[ad1848->record_pos_read + 1]);
                 } else {
-                    dma_channel_write(channel, 0x00);
-                    dma_channel_write(channel, 0x00);
-                    dma_channel_write(channel, 0x00);
-                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, ad1848->record_buffer[ad1848->record_pos_read] & 0xff);
+                    dma_channel_write(channel, ad1848->record_buffer[ad1848->record_pos_read] >> 8);
+                    dma_channel_write(channel, ad1848->record_buffer[ad1848->record_pos_read + 1] & 0xff);
+                    dma_channel_write(channel, ad1848->record_buffer[ad1848->record_pos_read + 1] >> 8);
                 }
+                ad1848->record_pos_read += 2;
+                ad1848->record_pos_read &= 0xFFFF;
                 break;
 
             case 0x60: /* Mono, 8-bit A-Law */
-                if (channel >= 4)
-                    dma_channel_write(channel, 0x0000);
-                else
-                    dma_channel_write(channel, 0x00);
+                if ((channel >= 4) && ad1848->rec_dma_ff) {
+                    ad1848->rec_dma_data |= (ad1848_encode_alaw(ad1848->record_buffer[ad1848->record_pos_read]) << 8);
+                    dma_channel_write(channel, ad1848->rec_dma_data);
+                } else if ((channel >= 4) && !ad1848->rec_dma_ff)
+                    ad1848->rec_dma_data = ad1848_encode_alaw(ad1848->record_buffer[ad1848->record_pos_read]);
+                else if (channel <= 3)
+                    dma_channel_write(channel, ad1848_encode_alaw(ad1848->record_buffer[ad1848->record_pos_read]));
+                ad1848->record_pos_read += 2;
+                ad1848->rec_dma_ff = !ad1848->rec_dma_ff;
+                ad1848->record_pos_read &= 0xFFFF;
                 break;
 
             case 0x70: /* Stereo, 8-bit A-Law */
                 if (channel >= 4)
-                    dma_channel_write(channel, 0x0000);
+                    dma_channel_write(channel, ad1848_encode_alaw(ad1848->record_buffer[ad1848->record_pos_read]) | (ad1848_encode_alaw(ad1848->record_buffer[ad1848->record_pos_read + 1]) << 8));
                 else {
-                    dma_channel_write(channel, 0x00);
-                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, ad1848_encode_alaw(ad1848->record_buffer[ad1848->record_pos_read]));
+                    dma_channel_write(channel, ad1848_encode_alaw(ad1848->record_buffer[ad1848->record_pos_read + 1]));
                 }
+                ad1848->record_pos_read += 2;
+                ad1848->record_pos_read &= 0xFFFF;
                 break;
 
                 /* 0x80 and 0x90 reserved */
@@ -894,38 +984,48 @@ ad1848_input_poll(void *priv)
             case 0xa0: /* Mono, 4-bit ADPCM */
                 if (channel >= 4)
                     dma_channel_write(channel, 0x0000);
-                else
-                    dma_channel_write(channel, 0x00);
+                else {
+                    if (ad1848->adpcm_pos & 1)
+                        dma_channel_write(channel, 0x00);
+                }
+                ad1848->adpcm_pos++;
+                ad1848->record_pos_read += 2;
+                ad1848->record_pos_read &= 0xFFFF;
                 break;
 
             case 0xb0: /* Stereo, 4-bit ADPCM */
                 if (channel >= 4)
                     dma_channel_write(channel, 0x0000);
-                else {
+                else
                     dma_channel_write(channel, 0x00);
-                    dma_channel_write(channel, 0x00);
-                }
+                ad1848->adpcm_pos++;
+                ad1848->record_pos_read += 2;
+                ad1848->record_pos_read &= 0xFFFF;
                 break;
 
             case 0xc0: /* Mono, 16-bit PCM big endian */
                 if (channel >= 4)
-                    dma_channel_write(channel, 0x0000);
+                    dma_channel_write(channel, ((ad1848->record_buffer[ad1848->record_pos_read] & 0xff) << 8) | (ad1848->record_buffer[ad1848->record_pos_read] >> 8));
                 else {
-                    dma_channel_write(channel, 0x00);
-                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, ad1848->record_buffer[ad1848->record_pos_read] >> 8);
+                    dma_channel_write(channel, ad1848->record_buffer[ad1848->record_pos_read] & 0xff);
                 }
+                ad1848->record_pos_read += 2;
+                ad1848->record_pos_read &= 0xFFFF;
                 break;
 
             case 0xd0: /* Stereo, 16-bit PCM big endian */
                 if (channel >= 4) {
-                    dma_channel_write(channel, 0x0000);
-                    dma_channel_write(channel, 0x0000);
+                    dma_channel_write(channel, ((ad1848->record_buffer[ad1848->record_pos_read] & 0xff) << 8) | (ad1848->record_buffer[ad1848->record_pos_read] >> 8));
+                    dma_channel_write(channel, ((ad1848->record_buffer[ad1848->record_pos_read + 1] & 0xff) << 8) | (ad1848->record_buffer[ad1848->record_pos_read + 1] >> 8));
                 } else {
-                    dma_channel_write(channel, 0x00);
-                    dma_channel_write(channel, 0x00);
-                    dma_channel_write(channel, 0x00);
-                    dma_channel_write(channel, 0x00);
+                    dma_channel_write(channel, ad1848->record_buffer[ad1848->record_pos_read] >> 8);
+                    dma_channel_write(channel, ad1848->record_buffer[ad1848->record_pos_read] & 0xff);
+                    dma_channel_write(channel, ad1848->record_buffer[ad1848->record_pos_read + 1] >> 8);
+                    dma_channel_write(channel, ad1848->record_buffer[ad1848->record_pos_read + 1] & 0xff);
                 }
+                ad1848->record_pos_read += 2;
+                ad1848->record_pos_read &= 0xFFFF;
                 break;
 
                 /* 0xe0 and 0xf0 reserved */

@@ -569,7 +569,8 @@ machine_at_sensation1_init(const machine_t *model)
     if (fdc_current[0] == FDC_INTERNAL)
         device_add(&fdc_at_nsc_dp8473_device);
 
-    /* TODO: Add onboard WD90C31 once it's implemented */
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
 
     if (sound_card_current[0] == SOUND_INTERNAL)
         machine_snd = device_add(machine_get_snd_device(machine));
@@ -616,6 +617,30 @@ machine_at_tuliptc38_init(const machine_t *model)
 }
 
 /* ZyMOS Poach */
+int
+machine_at_asus48625_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_interleaved("roms/machines/asus48625/Mainboard_Asus_486-25_Rev211_LOW_EVEN_AM27C256-DIP28.bin",
+	                            "roms/machines/asus48625/Mainboard_Asus_486-25_Rev211_HIGH_ODD_AM27C256-DIP28.bin",
+                                0x000f0000, 65536, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+	
+    device_add(&asus48625_device);
+    device_add(&port_92_key_device);
+
+    device_add_params(machine_get_kbc_device(machine), (void *) model->kbc_params);
+
+    if (fdc_current[0] == FDC_INTERNAL)
+        device_add(&fdc_at_device);
+
+    return ret;
+}
 int
 machine_at_isa486c_init(const machine_t *model)
 {

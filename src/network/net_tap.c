@@ -220,16 +220,27 @@ void net_tap_error(char *errbuf, const char* format, ...)
         } \
     } while (0)
 
+int
+net_tap_prepare(void)
+{
+    int fd;
+    if ((fd = open("/dev/net/tun", O_RDWR)) < 0)
+        return -errno;
+    struct ifreq ifr = { .ifr_flags = IFF_TAP | IFF_NO_PI };
+    int ret = (ioctl(fd, TUNSETIFF, &ifr) < 0) ? -errno : 0;
+    close(fd);
+    return ret;
+}
+
 // Returns -ERRNO so we can get an idea what's wrong
 int net_tap_alloc(const uint8_t *mac_addr, const char* bridge_dev)
 {
     int fd;
-    struct ifreq ifr = {0};
     if ((fd = open("/dev/net/tun", O_RDWR)) < 0) {
         tap_log("TAP: open error: %s\n", strerror(errno));
         return -errno;
     }
-    ifr.ifr_flags = IFF_TAP | IFF_NO_PI;
+    struct ifreq ifr = { .ifr_flags = IFF_TAP | IFF_NO_PI };
     int err;
     if ((err = ioctl(fd, TUNSETIFF, &ifr)) < 0) {
         tap_log("TAP: ioctl TUNSETIFF error: %s\n", strerror(errno));

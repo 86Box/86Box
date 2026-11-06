@@ -61,9 +61,9 @@ static const struct {
     uint32_t off;
     uint32_t on;
 } hd44780_palettes[] = {
-    { .panel = 0x66f26a, .off = 0x5ee562, .on = 0x000000 }, /* black on green */
-    { .panel = 0x102f96, .off = 0x1a3ea8, .on = 0xeef4ff }, /* white on blue */
-    { .panel = 0xa0a0a0, .off = 0x909090, .on = 0x000000 }  /* unbacklit */
+    [HD44780_COLOR_GREEN] = { .panel = 0x66f26a, .off = 0x5ee562, .on = 0x000000 }, /* black on green */
+    [HD44780_COLOR_BLUE]  = { .panel = 0x102f96, .off = 0x1a3ea8, .on = 0xeef4ff }, /* white on blue */
+    [HD44780_COLOR_NONE]  = { .panel = 0xa0a0a0, .off = 0x909090, .on = 0x000000 }  /* unbacklit */
 };
 
 typedef struct hd44780_lcd_t {
@@ -93,6 +93,7 @@ typedef struct hd44780_t {
 
     hd44780_lcd_t lcd[7];
     int           controllers;
+    int           rows_per_controller;
     int           cols;
     int           rows;
 
@@ -703,9 +704,11 @@ hd44780_render(hd44780_t *dev)
     }
 
     for (int row = 0; row < dev->rows; row++) {
-        hd44780_lcd_t *lcd = &dev->lcd[row >> 1];
+        hd44780_lcd_t *lcd = &dev->lcd[row / dev->rows_per_controller];
+        /* Each of the controller's two lines runs on, past the first two rows, onto the next two. */
+        int base = ((row % dev->rows_per_controller) >> 1) * dev->cols;
         for (int col = 0; col < dev->cols; col++) {
-            int            addr      = ((row & 1) ? HD44780_LINE_LEN : 0) + ((col + lcd->shift) % HD44780_LINE_LEN);
+            int            addr      = ((row & 1) ? HD44780_LINE_LEN : 0) + ((base + col + lcd->shift) % HD44780_LINE_LEN);
             int            at_cursor = (hd44780_ddram_index(lcd->addr & 0x7f) == addr);
             int            is_cursor = at_cursor && (lcd->config[1] & 0x02);
             int            is_blink  = at_cursor && (lcd->config[1] & 0x01) && (lcd->frames < 30);
@@ -1015,7 +1018,12 @@ hd44780_init(const device_t *info)
 
     dev->cols        = MAX(MIN(dev->cols, HD44780_LINE_LEN), 1);
     dev->rows        = MAX(MIN(dev->rows, (sizeof(dev->lcd) / sizeof(dev->lcd[0])) * 2), 1);
-    dev->controllers = (dev->rows + 1) / 2;
+    /* A controller drives two lines of 40 characters. On a module of up to
+       20 columns, each line goes on onto a second row, so that one controller
+       drives four rows: rows 2 and 3 of a 20x4 are DDRAM 14H and 54H on. A
+       wider module takes a controller for every two rows. */
+    dev->rows_per_controller = (dev->cols <= (HD44780_LINE_LEN / 2)) ? 4 : 2;
+    dev->controllers         = (dev->rows + dev->rows_per_controller - 1) / dev->rows_per_controller;
     for (int i = 0; i < dev->controllers; i++) {
         hd44780_lcd_t *lcd = &dev->lcd[i];
 
@@ -1147,10 +1155,10 @@ static const device_config_t hd44780_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "Green", .value = 0 },
-            { .description = "Blue",  .value = 1 },
-            { .description = "None",  .value = 2 },
-            { .description = ""                  }
+            { .description = "Green", .value = HD44780_COLOR_GREEN },
+            { .description = "Blue",  .value = HD44780_COLOR_BLUE  },
+            { .description = "None",  .value = HD44780_COLOR_NONE  },
+            { .description = ""                                    }
         },
         .bios           = { { 0 } }
     },

@@ -70,16 +70,14 @@ extern void fdd_tape_close(void);
 extern void fdd_tape_load(const char *fn);
 extern void fdd_tape_eject(void);
 
-extern void fdd_tape_set_fdc(void *fdc);
-
 /* Adds a burst of step pulses to the train in progress, and returns how
    long the controller needs to clock them out, in microseconds. */
-extern int fdd_tape_step(int drive, int steps);
+extern int fdd_tape_step(void *priv, int steps);
 
 /* Queries used by the floppy drive and controller layers. */
-extern int fdd_tape_present(int drive);
-extern int fdd_tape_track0(int drive);
-extern int fdd_tape_get_flags(int drive);
+extern int fdd_tape_present(void *priv);
+extern int fdd_tape_track0(void *priv);
+extern int fdd_tape_get_flags(void *priv);
 
 #ifdef __cplusplus
 }

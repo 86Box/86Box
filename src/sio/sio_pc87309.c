@@ -728,7 +728,7 @@ pc87309_init(const device_t *info)
 
     dev->id = info->local & 0xff;
 
-    dev->fdc = device_add(&fdc_at_nsc_device);
+    dev->fdc = device_add_params(&fdc_at_nsc_device, (void *) FDC_FLAG_PNP);
 
     dev->uart[0] = device_add_inst(&ns16550_device, 1);
     dev->uart[1] = device_add_inst(&ns16550_device, 2);

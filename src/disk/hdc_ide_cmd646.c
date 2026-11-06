@@ -815,7 +815,9 @@ const device_t ide_cmd646_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "CMD 646",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_cmd646_legacy_only_device = {
@@ -829,7 +831,9 @@ const device_t ide_cmd646_legacy_only_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "CMD 646",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_cmd646_single_channel_device = {
@@ -843,7 +847,9 @@ const device_t ide_cmd646_single_channel_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "CMD 646",
+    .ide_boards    = ide_boards_pri_sec
 };
 
 const device_t ide_cmd646_ter_qua_device = {
@@ -857,7 +863,9 @@ const device_t ide_cmd646_ter_qua_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "CMD 646",
+    .ide_boards    = ide_boards_ter_qua
 };
 
 const device_t ide_cmd648_ter_qua_device = {
@@ -871,7 +879,9 @@ const device_t ide_cmd648_ter_qua_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = cmd648_config
+    .config        = cmd648_config,
+    .short_name    = "CMD 648",
+    .ide_boards    = ide_boards_ter_qua
 };
 
 const device_t ide_cmd648_ter_qua_onboard_device = {
@@ -885,7 +895,9 @@ const device_t ide_cmd648_ter_qua_onboard_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = NULL
+    .config        = NULL,
+    .short_name    = "CMD 648",
+    .ide_boards    = ide_boards_ter_qua
 };
 
 const device_t ide_cmd649_ter_qua_device = {
@@ -899,5 +911,7 @@ const device_t ide_cmd649_ter_qua_device = {
     .available     = NULL,
     .speed_changed = NULL,
     .force_redraw  = NULL,
-    .config        = cmd649_config
+    .config        = cmd649_config,
+    .short_name    = "CMD 649",
+    .ide_boards    = ide_boards_ter_qua
 };

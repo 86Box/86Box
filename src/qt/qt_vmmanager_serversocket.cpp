@@ -71,6 +71,9 @@ VMManagerServerSocket::serverConnectionReceived()
     }
     connect(socket, &QLocalSocket::readyRead, this, &VMManagerServerSocket::serverReceivedMessage);
     connect(socket, &QLocalSocket::disconnected, this, &VMManagerServerSocket::serverDisconnected);
+
+    if (server_type == VMManagerServerSocket::ServerType::Standard)
+        serverSendMessage(VMManagerProtocol::ManagerMessage::ManagerIdentity, VMManagerProtocol::managerIdentity());
 }
 
 void
@@ -118,7 +121,7 @@ VMManagerServerSocket::serverReceivedMessage()
 }
 
 void
-VMManagerServerSocket::serverSendMessage(VMManagerProtocol::ManagerMessage protocol_message, const QStringList &arguments) const
+VMManagerServerSocket::serverSendMessage(VMManagerProtocol::ManagerMessage protocol_message, const QJsonObject &params) const
 {
     if (!socket) {
         qInfo("Cannot send message: Invalid socket");
@@ -130,6 +133,8 @@ VMManagerServerSocket::serverSendMessage(VMManagerProtocol::ManagerMessage proto
     stream.setVersion(QDataStream::Qt_5_7);
     auto packet      = new VMManagerProtocol(VMManagerProtocol::Sender::Manager);
     auto jsonMessage = packet->protocolManagerMessage(protocol_message);
+    if (!params.isEmpty())
+        jsonMessage["params"] = params;
     stream << QJsonDocument(jsonMessage).toJson(QJsonDocument::Compact);
 }
 
@@ -193,6 +198,9 @@ VMManagerServerSocket::jsonReceived(const QJsonObject &json)
         case VMManagerProtocol::ClientMessage::GlobalConfigurationChanged:
             qDebug("Global configuration change received from client");
             emit globalConfigurationChanged();
+            break;
+        case VMManagerProtocol::ClientMessage::WindowActivated:
+            emit windowActivated();
             break;
         default:
             qDebug("Unknown client message type received:");

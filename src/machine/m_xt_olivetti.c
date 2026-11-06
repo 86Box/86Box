@@ -244,6 +244,11 @@ mm58174_start(nvr_t *nvr)
     /* Initialize the internal and chip times. */
     if (time_sync & TIME_SYNC_ENABLED) {
         /* Use the internal clock's time. */
+        if (time_keep_date) {
+            /* Keep the chip's own date. */
+            mm58174_time_get(nvr->regs, &tm);
+            nvr_time_set_date(&tm);
+        }
         nvr_time_get(&tm);
         mm58174_time_set(nvr->regs, &tm);
     } else {
@@ -403,6 +408,11 @@ mm58274_start(nvr_t *nvr)
     /* Initialize the internal and chip times. */
     if (time_sync & TIME_SYNC_ENABLED) {
         /* Use the internal clock's time. */
+        if (time_keep_date) {
+            /* Keep the chip's own date. */
+            mm58274_time_get(nvr->regs, &tm);
+            nvr_time_set_date(&tm);
+        }
         nvr_time_get(&tm);
         mm58274_time_set(nvr->regs, &tm);
     } else {
@@ -2207,7 +2217,7 @@ m24_read(uint16_t port, UNUSED(void *priv))
          */
         case 0x67:
             for (uint8_t i = 0; i < FDD_NUM; i++) {
-                if (fdd_get_flags(i))
+                if (fdd_get_flags(&drives[i]))
                     fdd_count++;
             }
 
@@ -2236,7 +2246,8 @@ m24_read(uint16_t port, UNUSED(void *priv))
             ret |= 0x2;
 
             /* 1 = 720 kB (3.5"), 0 = 360 kB (5.25") */
-            ret |= (fdd_doublestep_40(0) || fdd_doublestep_40(1)) ? 0x1 : 0x0;
+            ret |= (fdd_doublestep_40(&drives[0]) ||
+                    fdd_doublestep_40(&drives[1])) ? 0x1 : 0x0;
             break;
 
         default:
@@ -2259,7 +2270,7 @@ m240_read(uint16_t port, UNUSED(void *priv))
             if (ppi.pb & 0x8) {
                 /* Switches 4, 5 - floppy drives (number) */
                 for (uint8_t i = 0; i < FDD_NUM; i++) {
-                    if (fdd_get_flags(i))
+                    if (fdd_get_flags(&drives[i]))
                         fdd_count++;
                 }
                 if (!fdd_count)
@@ -2292,9 +2303,9 @@ m240_read(uint16_t port, UNUSED(void *priv))
                         0 = First drive is 5.25" (for low density drive, this means 40-track).
              */
 
-            ret = (fdd_is_hd(0) || fdd_is_hd(1)) ? 0x80 : 0x00;
-            ret |= fdd_doublestep_40(1) ? 0x40 : 0x00;
-            ret |= fdd_doublestep_40(0) ? 0x20 : 0x00;
+            ret = (fdd_is_hd(&drives[0]) || fdd_is_hd(&drives[1])) ? 0x80 : 0x00;
+            ret |= fdd_doublestep_40(&drives[1]) ? 0x40 : 0x00;
+            ret |= fdd_doublestep_40(&drives[0]) ? 0x20 : 0x00;
             break;
 
         default:
