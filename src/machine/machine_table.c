@@ -5815,7 +5815,7 @@ const machine_t machines[] = {
             .min_multi   = 0,
             .max_multi   = 0
         },
-        .bus_flags = MACHINE_PS2,
+        .bus_flags = MACHINE_AT | MACHINE_BUS_PS2,
         .flags     = MACHINE_IDE, /* Machine has internal video: C&T VGA 411 (not yet implemented) */
         .ram       = {
             .min  = 512, /* crashes and bootloops during POST with less */
@@ -5826,15 +5826,15 @@ const machine_t machines[] = {
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .kbc_params               = 0x00000000,
         .nvr_device               = &nvr_at_device,
         .nvr_params               = NVR_AT,
         .sio_device               = NULL,
         .sio_params               = 0x00000000,
-        .kbc_p1                   = 0x00000cf0,
+        .kbc_p1                   = 0x000004f0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &f82c710_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
@@ -5863,7 +5863,7 @@ const machine_t machines[] = {
             .min_multi   = 0,
             .max_multi   = 0
         },
-        .bus_flags = MACHINE_PS2,
+        .bus_flags = MACHINE_AT | MACHINE_BUS_PS2,
         .flags     = MACHINE_FLAGS_NONE,
         .ram       = {
             .min  = 512, /* crashes and bootloops during POST with less */
@@ -5874,7 +5874,7 @@ const machine_t machines[] = {
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .kbc_params               = 0x00000000,
         .nvr_device               = &nvr_at_device,
         .nvr_params               = NVR_AT,
         .sio_device               = NULL,
@@ -5882,7 +5882,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &f82c710_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = NULL,
@@ -5911,7 +5911,7 @@ const machine_t machines[] = {
             .min_multi   = 0,
             .max_multi   = 0
         },
-        .bus_flags = MACHINE_PS2,
+        .bus_flags = MACHINE_AT | MACHINE_BUS_PS2,
         .flags     = MACHINE_IDE | MACHINE_VIDEO,
         .ram       = {
             .min  = 512, /* crashes and bootloops during POST with less */
@@ -5922,7 +5922,7 @@ const machine_t machines[] = {
         .jumpered_ecp_dma         = 0,
         .default_jumpered_ecp_dma = -1,
         .kbc_device               = &kbc_at_device,
-        .kbc_params               = KBC_VEN_AMI | 0x00004600,
+        .kbc_params               = 0x00000000,
         .nvr_device               = &nvr_at_device,
         .nvr_params               = NVR_AT,
         .sio_device               = NULL,
@@ -5930,7 +5930,7 @@ const machine_t machines[] = {
         .kbc_p1                   = 0x00000cf0,
         .gpio                     = 0xffffffff,
         .gpio_acpi                = 0xffffffff,
-        .device                   = NULL,
+        .device                   = &f82c710_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
         .vid_device               = &ati28800k_spc4620p_device,
@@ -28046,9 +28046,16 @@ machine_has_flags_ex(uintptr_t flags)
     int ret = machine_has_flags(machine, flags);
 
     if (flags & MACHINE_PS2_KBC) {
-        if (machine_is_ps2 && (machines[machine].init != machine_at_pc5286_init))
+        if (machine_is_ps2 &&
+            (machines[machine].init != machine_at_pc5286_init) &&
+            (machines[machine].init != machine_at_spc4200p_init) &&
+            (machines[machine].init != machine_at_spc4216p_init) &&
+            (machines[machine].init != machine_at_spc4620p_init))
             ret |= MACHINE_PS2_KBC;
-        else if (machines[machine].init == machine_at_pc5286_init)
+        else if ((machines[machine].init == machine_at_pc5286_init) ||
+                 (machines[machine].init == machine_at_spc4200p_init) ||
+                 (machines[machine].init == machine_at_spc4216p_init) ||
+                 (machines[machine].init == machine_at_spc4620p_init))
             ret &= ~MACHINE_PS2_KBC;
     }
 
