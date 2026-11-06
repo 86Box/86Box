@@ -113,7 +113,8 @@ mach64_timing_status(mach64_t *mach64, uint32_t *used, int *busy)
     return 0;
 }
 
-/* The card here has one render thread, so the helpers are never made. */
+/* Run helper jobs synchronously at wakeup. This deliberately draws helper
+   lanes before lane zero, checking that the result does not depend on order. */
 uint64_t timer_freq;
 
 uint64_t
@@ -126,8 +127,10 @@ thread_t *
 thread_create_named(void (*thread_func)(void *param), void *param, const char *name)
 {
     (void) thread_func;
-    (void) param;
     (void) name;
+    mach64_3d_helper_t *helper = param;
+    *(mach64_3d_helper_t **) helper->go = helper;
+    atomic_store(&helper->sleeping, 1);
     return NULL;
 }
 
@@ -141,13 +144,19 @@ thread_wait(thread_t *arg)
 event_t *
 thread_create_event(void)
 {
-    return NULL;
+    return calloc(1, sizeof(mach64_3d_helper_t *));
 }
 
 void
 thread_set_event(event_t *arg)
 {
-    (void) arg;
+    mach64_3d_helper_t *helper = *(mach64_3d_helper_t **) arg;
+    mach64_3d_t *ctx = helper->ctx;
+
+    if (ctx->helpers_quit)
+        return;
+    mach64_rp_draw_spans(ctx, ctx->rp_job, helper->index, ctx->job_threads, &helper->dither, &helper->agp);
+    atomic_fetch_sub(&ctx->job_left, 1);
 }
 
 void
@@ -167,7 +176,7 @@ thread_wait_event(event_t *arg, int timeout)
 void
 thread_destroy_event(event_t *arg)
 {
-    (void) arg;
+    free(arg);
 }
 
 static void
@@ -4836,6 +4845,92 @@ enum {
     MODE_MIP = 1 << 4, MODE_DITHER = 1 << 5, MODE_PALETTE = 1 << 6
 };
 
+static void
+ragepro_parallel_diffusion_tests(void)
+{
+    for (int threads = 2; threads <= 4; threads += 2) {
+        for (int scenario = 0; scenario < 12; scenario++) {
+            mach64_t *m = card_create();
+            mach64_3d_t *ctx = m->gt3d;
+            mach64_rp_tri_t tri = { 0 };
+            mach64_3d_dither_t initial = { 1, 0, { 2, -3, 1 } };
+            mach64_3d_dither_t expected;
+            uint8_t reference[4096];
+
+            tri.dst.pitch = 64;
+            tri.dst.bpp = 2;
+            tri.dst.format = 4;
+            tri.cntl = DITHER_EN | DITHER_INIT;
+            tri.pl[RPP_R].c = 103.2;
+            tri.pl[RPP_G].c = 127.8;
+            tri.pl[RPP_B].c = 58.9;
+            tri.pl[RPP_R].dx = 0.7;
+            tri.pl[RPP_G].dy = 0.3;
+            tri.pl[RPP_A].c = 255;
+            if (scenario == 1) {
+                /* Last row and an entire helper lane fail the Z test. */
+                tri.z_on = 1;
+                tri.z_pitch = 64;
+                tri.z_base = 8192;
+                tri.z_cntl = 1 << Z_TEST_SHIFT; /* less than */
+                tri.pl[RPP_Z].c = 10;
+                for (int y = 0; y < 32; y++) {
+                    for (int x = 0; x < 64; x++)
+                        mach64_3d_vram_write(m, 8192 + 2 * (y * 64 + x),
+                                            ((y % threads == 1) || (y == 31)) ? 0 : 65535, 2);
+                }
+            } else if (scenario == 2) {
+                tri.alpha_tst = RP_ALPHA_TEST_EN; /* never */
+            } else if (scenario == 3) {
+                initial.y = -1;
+            } else if (scenario == 4) {
+                initial.valid = 0;
+            } else if (scenario == 5) {
+                initial.y = 5; /* incoming error inside batch */
+            } else if (scenario == 6) {
+                tri.cntl &= ~DITHER_INIT; /* cross-row carry: serial */
+            } else if (scenario >= 7) {
+                initial.y = 40; /* incoming state past the batch */
+                if (scenario == 8)
+                    tri.alpha_tst = RP_ALPHA_TEST_EN; /* no writes */
+                if (scenario == 9) {
+                    tri.alpha_tst = RP_ALPHA_TEST_EN | (1 << RP_ALPHA_TEST_SHIFT) | (128 << RP_REF_ALPHA_SHIFT) |
+                                    RP_ALPHA_TST_SRC_ALPHA;
+                    tri.pl[RPP_A].c = 255;
+                    tri.pl[RPP_A].dy = -16; /* only later rows pass */
+                }
+                if (scenario >= 10) {
+                    initial.y = 5;
+                    tri.alpha_tst = RP_ALPHA_TEST_EN | RP_ALPHA_TST_SRC_ALPHA;
+                    if (scenario == 11) {
+                        tri.alpha_tst |= (1 << RP_ALPHA_TEST_SHIFT) | (128 << RP_REF_ALPHA_SHIFT);
+                        tri.pl[RPP_A].c = 208;
+                        tri.pl[RPP_A].dy = -16; /* first write on incoming Y */
+                    }
+                }
+            }
+            ctx->regs[SCALE_3D_CNTL >> 2] = tri.cntl;
+            ctx->threads = threads;
+            ctx->dither = initial;
+            ctx->rp_nspans = 32;
+            for (int y = 0; y < 32; y++)
+                ctx->rp_spans[y] = (mach64_rp_span_t) { y, 0, 63 };
+            CHECK(mach64_rp_spans_shared(ctx, &tri, 2048) == (scenario != 6));
+            mach64_rp_draw_spans(ctx, &tri, 0, 1, &ctx->dither, &ctx->agp);
+            memcpy(reference, m->svga.vram, sizeof(reference));
+            expected = ctx->dither;
+            memset(m->svga.vram, 0, sizeof(reference));
+            ctx->dither = initial;
+            mach64_rp_draw_batch(ctx, &tri, 2048);
+            CHECK(memcmp(reference, m->svga.vram, sizeof(reference)) == 0);
+            CHECK(ctx->dither.valid == expected.valid);
+            CHECK(ctx->dither.y == expected.y);
+            CHECK(memcmp(ctx->dither.err, expected.err, sizeof(expected.err)) == 0);
+            card_close(m);
+        }
+    }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -4886,6 +4981,7 @@ main(int argc, char **argv)
             ragepro_mip_chain_tests();
         }
         if (selected & MODE_DITHER) {
+            ragepro_parallel_diffusion_tests();
             ragepro_dither_tests();
             dither_bayer_tests();
             ragepro_blend_tests();
@@ -4925,6 +5021,7 @@ main(int argc, char **argv)
     }
     /* The Rage Pro's own paths are on the GT-B core. */
     card_type = MACH64_GTB;
+    ragepro_parallel_diffusion_tests();
     ragepro_palette_upload_tests();
     ragepro_scaler_offset_acc_tests();
     ragepro_ci8_tiling_tests();

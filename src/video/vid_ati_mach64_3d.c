@@ -5320,8 +5320,11 @@ mach64_rp_spans_shared(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, uint32_t pi
 
     if ((ctx->threads < 2) || (ctx->rp_nspans < 2) || (pixels < MACH64_3D_SHARED_PIXELS))
         return 0;
-    if ((tri->cntl & DITHER_EN) && !(tri->cntl & SCALE_DITHER))
-        return 0;
+    if ((tri->cntl & DITHER_EN) && !(tri->cntl & SCALE_DITHER)) {
+        /* DITHER_INIT breaks the dependency between scanlines. */
+        if (!(tri->cntl & DITHER_INIT))
+            return 0;
+    }
 
     for (int i = 1; i < ctx->rp_nspans; i++) {
         const mach64_rp_span_t *sp = &ctx->rp_spans[i];
@@ -5379,6 +5382,27 @@ mach64_rp_draw_batch(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, uint32_t pixe
         return;
     }
 
+    if (((tri->cntl & (DITHER_EN | SCALE_DITHER)) == DITHER_EN) && ctx->dither.valid &&
+        (ctx->dither.y > ctx->rp_spans[0].y) && (ctx->dither.y <= ctx->rp_spans[ctx->rp_nspans - 1].y)) {
+        /* Incoming error can belong to an interior row. Draw in order until
+           a colour is packed (resetting that error), or that row is passed.
+           Rejected pixels do not reset it. The remaining rows are independent. */
+        int done = 0;
+
+        do {
+            const mach64_rp_span_t *sp = &ctx->rp_spans[done];
+
+            mach64_rp_draw_spans(ctx, tri, done, ctx->rp_nspans, &ctx->dither, &ctx->agp);
+            pixels -= sp->last - sp->first + 1;
+            done++;
+        } while ((done < ctx->rp_nspans) && (ctx->dither.y > ctx->rp_spans[done - 1].y));
+        ctx->rp_nspans -= done;
+        memmove(ctx->rp_spans, ctx->rp_spans + done, ctx->rp_nspans * sizeof(ctx->rp_spans[0]));
+        if (ctx->rp_nspans)
+            mach64_rp_draw_batch(ctx, tri, pixels);
+        return;
+    }
+
     if (!ctx->helpers_made)
         mach64_3d_helpers_make(ctx);
     ctx->job         = NULL;
@@ -5386,18 +5410,38 @@ mach64_rp_draw_batch(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, uint32_t pixe
     ctx->job_threads = threads;
     for (int i = 0; i < (threads - 1); i++)
         ctx->helpers[i].dither = ctx->dither;
+    if ((tri->cntl & (DITHER_EN | SCALE_DITHER)) == DITHER_EN) {
+        for (int i = 0; i < (threads - 1); i++)
+            ctx->helpers[i].dither.valid = 0;
+    }
     mach64_3d_helpers_start(ctx);
 
     own = ctx->dither;
+    if (((tri->cntl & (DITHER_EN | SCALE_DITHER)) == DITHER_EN) && (own.y != ctx->rp_spans[0].y))
+        own.valid = 0;
     mach64_rp_draw_spans(ctx, tri, 0, threads, &own, &ctx->agp);
     while (atomic_load(&ctx->job_left))
         mach64_3d_pause();
 
-    for (int i = 0; i < (threads - 1); i++) {
-        if (!ctx->helpers[i].dither.valid)
-            own.valid = 0;
+    if ((tri->cntl & (DITHER_EN | SCALE_DITHER)) == DITHER_EN) {
+        /* A rejected pixel never packs a colour, and a whole lane can be
+           rejected. The last row that actually packed a pixel owns the
+           outgoing error, irrespective of which lane drew it. */
+        for (int i = 0; i < (threads - 1); i++) {
+            const mach64_3d_dither_t *d = &ctx->helpers[i].dither;
+
+            if (d->valid && (!own.valid || (d->y > own.y)))
+                own = *d;
+        }
+        if (own.valid)
+            ctx->dither = own;
+    } else {
+        for (int i = 0; i < (threads - 1); i++) {
+            if (!ctx->helpers[i].dither.valid)
+                own.valid = 0;
+        }
+        ctx->dither.valid = own.valid;
     }
-    ctx->dither.valid = own.valid;
     ctx->rp_nspans    = 0;
 }
 
