@@ -99,6 +99,9 @@ if(BUILD_TESTING)
 
     foreach(target mach64_accel_tests mach64_3d_tests mach64_busmaster_tests)
         target_sources(${target} PRIVATE ../../src/video/vid_ati_mach64_idct.c)
+        if(UNIX)
+            target_link_libraries(${target} PRIVATE m)
+        endif()
     endforeach()
 
     add_executable(mach64_display_tests vid_ati_mach64_display_test.c)
