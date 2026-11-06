@@ -35,6 +35,7 @@ add_library(dev OBJECT
     i2c.c
     i2c_gpio.c
     ibm_5161.c
+    ibm_pc700_power.c
     inboard386.c
     ibm_xma.c
     mcamem.c
