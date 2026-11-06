@@ -158,17 +158,20 @@ catalyst_write(uint32_t addr, uint8_t val, void *priv)
 
     addr &= dev->mask;
 
+    /* Erase and program take two cycles; the next write is a new command. */
     switch (dev->command) {
         case CMD_ERASE:
             if (val == CMD_ERASE_CONFIRM) {
                 memset(dev->array, 0xff, dev->size);
                 dev->dirty = 1;
             }
+            dev->command = CMD_SET_READ;
             break;
 
         case CMD_PROGRAM:
             dev->array[addr] = val;
-            dev->dirty = 1;
+            dev->dirty       = 1;
+            dev->command     = CMD_SET_READ;
             break;
 
         default:
