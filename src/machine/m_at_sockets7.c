@@ -283,6 +283,10 @@ machine_at_gwlucas_init(const machine_t *model)
         device_add(&cs4297_device);
     }
 
+    /* The on-board video; its BIOS is in the system BIOS. */
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
+
     return ret;
 }
 

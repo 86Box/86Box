@@ -70,6 +70,45 @@ if(BUILD_TESTING)
         ${PROJECT_BINARY_DIR}/src/include
     )
     add_test(NAME Mach64.3D COMMAND mach64_3d_tests)
+    add_test(NAME Mach64.Palette COMMAND mach64_3d_tests --palette)
+    add_test(NAME Mach64.VQ COMMAND mach64_3d_tests --vq)
+    add_test(NAME Mach64.Mip COMMAND mach64_3d_tests --mip)
+    add_test(NAME Mach64.Dither COMMAND mach64_3d_tests --dither)
+    add_test(NAME Mach64.Composite COMMAND mach64_3d_tests --composite)
+    add_test(NAME Mach64.Bilinear COMMAND mach64_3d_tests --bilinear)
+    add_test(NAME Mach64.Modulate COMMAND mach64_3d_tests --modulate)
+
+    add_executable(mach64_busmaster_tests vid_ati_mach64_busmaster_test.c)
+    target_include_directories(mach64_busmaster_tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_SOURCE_DIR}/src/cpu
+        ${PROJECT_BINARY_DIR}/src/include
+    )
+    add_test(NAME Mach64.BusMaster COMMAND mach64_busmaster_tests)
+
+    add_executable(mach64_idct_tests vid_ati_mach64_idct_test.c)
+    target_include_directories(mach64_idct_tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_SOURCE_DIR}/src/cpu
+        ${PROJECT_BINARY_DIR}/src/include
+    )
+    add_test(NAME Mach64.IDCT COMMAND mach64_idct_tests)
+    if(UNIX)
+        target_link_libraries(mach64_idct_tests PRIVATE m)
+    endif()
+
+    foreach(target mach64_accel_tests mach64_3d_tests mach64_busmaster_tests)
+        target_sources(${target} PRIVATE ../../src/video/vid_ati_mach64_idct.c)
+    endforeach()
+
+    add_executable(mach64_display_tests vid_ati_mach64_display_test.c)
+    target_include_directories(mach64_display_tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_SOURCE_DIR}/src/cpu
+        ${PROJECT_BINARY_DIR}/src/include
+    )
+    add_test(NAME Mach64.Display COMMAND mach64_display_tests)
+
 
     add_executable(ogc_deb_tests vid_ogc_deb_test.c)
     target_include_directories(ogc_deb_tests PRIVATE
