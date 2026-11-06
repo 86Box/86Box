@@ -1,6 +1,7 @@
 if(BUILD_TESTING)
     add_executable(s3_display_tests
         vid_s3_display_test.c
+        vid_s3_test_stubs.c
         ../../src/video/vid_svga_render.c
         ../../src/video/clockgen/vid_clockgen_ics2494.c
         ../../src/video/clockgen/vid_clockgen_icd2061.c
@@ -21,6 +22,7 @@ if(BUILD_TESTING)
 
     add_executable(s3_accel_tests
         vid_s3_accel_test.c
+        vid_s3_test_stubs.c
         ../../src/video/vid_svga_render.c
         ../../src/video/clockgen/vid_clockgen_ics2494.c
         ../../src/video/clockgen/vid_clockgen_icd2061.c
