@@ -108,7 +108,8 @@ extern uint32_t     am29f016d_get_size(const am29f016d_t *dev);
 
 extern const device_t amd_flash_am29f016d_device;
 
-/* Catalyst 28F010 and AMD Am28F010 chips: catalyst_flash_device and amd_am28f010_flash_device. */
+/* Catalyst 28F010/28F020 and AMD Am28F010 chips: catalyst_flash_device,
+   catalyst_28f020_flash_device and amd_am28f010_flash_device. */
 typedef struct catalyst_t catalyst_t;
 
 extern catalyst_t *catalyst_flash_create(const device_t *model, const flash_cfg_t *cfg);
@@ -119,8 +120,13 @@ extern void        catalyst_flash_remap(catalyst_t *dev, struct _mem_mapping_ *m
 extern void        catalyst_flash_set_write_protect(catalyst_t *dev, int protect);
 extern uint32_t    catalyst_flash_get_size(const catalyst_t *dev);
 
+/* For a board that drives some of the boot BIOS chip's address lines itself,
+   such as a bank select: the lines in mask take the levels in val. */
+extern void catalyst_flash_bios_set_addr_lines(void *priv, uint32_t mask, uint32_t val);
+
 extern const device_t amd_am28f010_flash_device;
 extern const device_t catalyst_flash_device;
+extern const device_t catalyst_28f020_flash_device;
 
 /*
  * Intel 28F001BX/28F002BX/28F004BX boot block chips and their Micron
