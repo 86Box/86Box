@@ -324,11 +324,18 @@ color_w(uint16_t port, uint32_t val)
         port_w(port, val >> 16);
 }
 
+/* The bits of a pixel at the current depth. */
+static uint32_t
+depth_mask(void)
+{
+    return (cur_bpp == 32) ? 0xffffffff : ((1 << cur_bpp) - 1);
+}
+
 /* A colour that fits the depth. */
 static uint32_t
 color(void)
 {
-    return 0x00c3a5e1 & ((cur_bpp == 32) ? 0xffffffff : ((1 << cur_bpp) - 1));
+    return 0x00c3a5e1 & depth_mask();
 }
 
 /* Rectangle fill solid as in Trio32/64 13.3.3.3 (p. 13-12), up to the height and the command. */
@@ -550,6 +557,85 @@ test_rect_scissors(void)
     check_area(105, 52, 110, 55);
 }
 
+/* The 16 mixes of BKGD_MIX and FRGD_MIX bits 3-0, as the books list them, between the current
+   bitmap colour c and the new colour n (86C928 p. 10-14, Vision864 p. 18-14, Vision964 p. 18-14,
+   Trio32/64 p. 18-19, Trio64V+ p. 20-14, S3.TXT lines 1060-1079). */
+static uint32_t
+mix_result(int mix, uint32_t c, uint32_t n)
+{
+    switch (mix) {
+        case 0x0:
+            return ~c;
+        case 0x1:
+            return 0;
+        case 0x2:
+            return ~0;
+        case 0x3:
+            return c;
+        case 0x4:
+            return ~n;
+        case 0x5:
+            return c ^ n;
+        case 0x6:
+            return ~(c ^ n);
+        case 0x7:
+            return n;
+        case 0x8:
+            return ~c | ~n;
+        case 0x9:
+            return c | ~n;
+        case 0xa:
+            return ~c | n;
+        case 0xb:
+            return c | n;
+        case 0xc:
+            return c & n;
+        case 0xd:
+            return ~c & n;
+        case 0xe:
+            return c & ~n;
+        default:
+            return ~c & ~n;
+    }
+}
+
+/* Fill a 4x2 rectangle at (10, 20) with the mix and colours set up, and check that `want` is
+   drawn there and the pixels around it are still `old`. */
+static void
+check_small_rect(uint32_t want, uint32_t old, const char *what, int arg)
+{
+    port_w(0xbee8, 0x0000 | 1);
+    port_w(0x9ae8, 0x40b1);
+    check((pix(10, 20) == want) && (pix(13, 21) == want), "%s %X draws %X, not %X", what, arg, pix(10, 20), want);
+    check((pix(9, 20) == old) && (pix(14, 21) == old) && (pix(10, 22) == old), "%s %X draws outside", what, arg);
+}
+
+/* Each mix over a bitmap of CCh bytes with a foreground colour of AAh bytes, so that every
+   pixel holds all four pairs of current and new bits. FRGD_MIX bits 6-5 pick the colour
+   source: 01b the foreground colour, 00b the background colour (86C928 p. 10-14,
+   Vision864 p. 18-14, Vision964 p. 18-14, Trio32/64 p. 18-19, Trio64V+ p. 20-14, S3.TXT
+   lines 1080-1093). */
+static void
+test_mixes(void)
+{
+    uint32_t old = 0xcccccccc & depth_mask();
+    uint32_t bg  = ~color() & depth_mask();
+
+    for (int mix = 0; mix < 16; mix++) {
+        memset(vram, 0xcc, sizeof(vram));
+        rect_start(10, 20, 4);
+        port_w(0xbae8, 0x0020 | mix); /* FRGD_MIX: FRGD_COLOR */
+        color_w(0xa6e8, 0xaaaaaaaa & depth_mask());
+        check_small_rect(mix_result(mix, 0xcccccccc, 0xaaaaaaaa) & depth_mask(), old, "mix", mix);
+    }
+
+    memset(vram, 0xcc, sizeof(vram));
+    rect_start(10, 20, 4);
+    color_w(0xa2e8, bg);    /* BKGD_COLOR */
+    port_w(0xbae8, 0x0007); /* FRGD_MIX: BKGD_COLOR, NEW */
+    check_small_rect(bg, old, "FRGD_MIX", 0x0007);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -561,6 +647,7 @@ main(int argc, char **argv)
         C_928 | C_928PCI | C_864 | C_868 | C_964 | C_968 | C_TRIO32 | C_TRIO64 | C_TRIO64V | C_TRIO64V2);
     run("packed_mmio", test_packed_mmio, C_868 | C_968 | C_TRIO32 | C_TRIO64 | C_TRIO64V | C_TRIO64V2);
     run("rect_scissors", test_rect_scissors, C_ALL);
+    run("mixes", test_mixes, C_ALL);
 
     if (verbose)
         print_matrix();
