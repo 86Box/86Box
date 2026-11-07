@@ -95,7 +95,9 @@ opFINIT(UNUSED(uint32_t fetchdat))
     x87_ferr_clear();
 #endif
     p              = (uint64_t *) cpu_state.tag;
-    *p = 0;
+    /* Every tag empty, the registers "Not changed" (80387 PRM 1987, Table
+       6-1, p. 6-6): TAG_DENORMAL stays in each byte */
+    *p &= 0x0202020202020202ULL;
     cpu_state.TOP   = 0;
     cpu_state.ismmx = 0;
     x87_clear_pointers();
@@ -115,7 +117,9 @@ opFFREE(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
-    cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_EMPTY;
+    /* "the content of the register is unaffected" (80387 PRM 1987, 4.8.13,
+       p. 4-28): an extended denormal keeps TAG_DENORMAL */
+    cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= TAG_DENORMAL;
     CLOCK_CYCLES_FPU((fpu_type >= FPU_487SX) ? (x87_timings.ffree) : (x87_timings.ffree * cpu_multi));
     CONCURRENCY_CYCLES((fpu_type >= FPU_487SX) ? (x87_concurrency.ffree) : (x87_concurrency.ffree * cpu_multi));
     return 0;
@@ -126,7 +130,8 @@ opFFREEP(uint32_t fetchdat)
 {
     FP_ENTER();
     cpu_state.pc++;
-    cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] = TAG_EMPTY;
+    /* As FFREE */
+    cpu_state.tag[(cpu_state.TOP + fetchdat) & 7] &= TAG_DENORMAL;
     if (cpu_state.abrt)
         return 1;
     x87_pop();
@@ -530,7 +535,8 @@ FSAVE(void)
     x87_ferr_clear();
 #endif
     p              = (uint64_t *) cpu_state.tag;
-    *p = 0;
+    /* As FNINIT: TAG_DENORMAL stays */
+    *p &= 0x0202020202020202ULL;
     cpu_state.TOP   = 0;
     cpu_state.ismmx = 0;
     x87_clear_pointers();

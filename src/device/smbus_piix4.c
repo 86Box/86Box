@@ -321,7 +321,7 @@ unknown_protocol:
         timer_disable(&dev->response_timer);
         /* delay = ((half clock for start + half clock for stop) + (bytes * (8 bits + ack))) * bit period in usecs */
         timer_set_delay_u64(&dev->response_timer, (1 + (timer_bytes * 9)) * dev->bit_period * TIMER_USEC);
-        cpu_override_dynarec = 1;
+        cpu_override_dynarec |= CPU_OVERRIDE_BOARD;
     }
 }
 
@@ -333,7 +333,7 @@ smbus_piix4_response(void *priv)
     /* Dispatch the status register update. */
     dev->stat = dev->next_stat;
 
-    cpu_override_dynarec = 0;
+    cpu_override_dynarec &= ~CPU_OVERRIDE_BOARD;
 }
 
 void

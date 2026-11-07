@@ -294,6 +294,20 @@ ropFDIVRr(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uin
 
     return op_pc;
 }
+/* The pop after a divide, whose ST(0) operand no guard kept from being an
+   extended denormal (the call takes one): tagged empty, it keeps
+   TAG_DENORMAL with its value (80387 PRM 1987, 4.3.3; x87.h) */
+static void
+fdiv_pop(codeblock_t *block, ir_data_t *ir)
+{
+    uop_MOV(ir, IREG_temp0, IREG_tag(0));
+    uop_AND_IMM(ir, IREG_temp0, IREG_temp0, TAG_DENORMAL);
+    uop_MOV(ir, IREG_tag(0), IREG_temp0);
+    if (block->flags & CODEBLOCK_STATIC_TOP)
+        uop_MOV_IMM(ir, IREG_FPU_TOP, cpu_state.TOP + 1);
+    else
+        uop_ADD_IMM(ir, IREG_FPU_TOP, IREG_FPU_TOP, 1);
+}
 uint32_t
 ropFDIVP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
@@ -303,7 +317,7 @@ ropFDIVP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
         return 0;
     uop_FP_ENTER(ir);
     fdiv_divide(ir, op_pc, FDIV_REGS(dest_reg, dest_reg, 0));
-    fpu_POP(block, ir);
+    fdiv_pop(block, ir);
 
     return op_pc;
 }
@@ -316,7 +330,7 @@ ropFDIVRP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fe
         return 0;
     uop_FP_ENTER(ir);
     fdiv_divide(ir, op_pc, FDIV_REGS(dest_reg, 0, dest_reg));
-    fpu_POP(block, ir);
+    fdiv_pop(block, ir);
 
     return op_pc;
 }

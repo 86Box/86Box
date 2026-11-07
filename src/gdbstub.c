@@ -568,6 +568,11 @@ gdbstub_client_write_reg(int index, uint8_t *buf)
 
         case GDB_REG_CR0 ... GDB_REG_CR4:
             *cr_regs[index - GDB_REG_CR0] = *((uint32_t *) buf);
+            /* As a MOV to CR0 stores it: on the 386 only PG and bits 4-0
+               (386 DX Microprocessor Programmer's Reference Manual, 1990,
+               figure 4-3, PDF p. 113). */
+            if ((index == GDB_REG_CR0) && is386 && !is486 && !isibm486)
+                cr0 &= 0x8000001f;
             flushmmucache();
             break;
 

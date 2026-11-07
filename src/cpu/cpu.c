@@ -417,6 +417,11 @@ cpu_init_keeps_state(void)
 
 /* Whether a soft reset (the keyboard controller's reset pulse, port 92h, a
    shutdown) leaves the FPU as it was, as the books give it:
+   - a 287 or 387 beside the CPU: on the IBM PC AT the reset pulse and a
+     shutdown reach only the CPU's RESET pin, the coprocessor is reset by
+     the system reset and an OUT to port F1h (IBM PC AT Technical
+     Reference, Mar 1986, pp. 1-53
+     and 2-4, and the planar schematic, sheets 1, 3 and 22);
    - the Intel486 family: with no self-test (BIST) at RESET "the floating
      point registers are unchanged" (Intel486 DX data sheet, Oct 1992,
      section 6.5 and Table 6.2; Intel486 family data book, Jan 1995,
@@ -447,18 +452,14 @@ cpu_init_keeps_state(void)
    The others keep the reset the soft FPU has always given them: the CPUs
    for which no book at hand gives the FPU state after a soft reset (Cyrix
    486 and 5x86, the IDT WinChip, IBM's 486s, the ST STPC, the RapidCAD,
-   the K6-2+ and K6-III), and a 287 or 387 beside the CPU, whose reset on
-   a soft reset is the board's wiring: the IBM PC AT resets the
-   coprocessor only with the system reset and port F1h (IBM PC AT
-   Technical Reference, Mar 1986, pp. 1-53 and 2-4), while the C&T CS8230
-   resets the 387 with the CPU (CS8230 data book, RESET3). */
+   the K6-2+ and K6-III). */
 int
 cpu_soft_reset_keeps_fpu(void)
 {
     if (cpu_init_keeps_state() || (fpu_type == FPU_487SX))
         return 1;
     if (fpu_type != FPU_INTERNAL)
-        return 0;
+        return 1;
     if (cpu_s == NULL)
         return 0;
 
@@ -484,10 +485,16 @@ cpu_soft_reset_keeps_fpu(void)
     }
 }
 
+/* The reset signature in EDX, for a soft reset's caller. A 386 or later
+   gets it from reset_common() once the reset is done, which for a deferred
+   or held one is later than its caller; the books of the 8086 and the 286
+   give no DX after RESET (80286 and 80287 PRM, 1987, Table 5-3), and theirs
+   is still written here. */
 void
 cpu_set_edx(void)
 {
-    EDX = cpu_s->edx_reset;
+    if (!is386)
+        EDX = cpu_s->edx_reset;
 }
 
 cpu_family_t *
@@ -679,6 +686,7 @@ cpu_set(void)
     cpu_s         = (CPU *) &cpu_f->cpus[cpu_effective];
 
     soft_reset_pci    = 0;
+    soft_reset_387    = 0;
     cpu_init          = 0;
 
     cpu_alt_reset     = 0;

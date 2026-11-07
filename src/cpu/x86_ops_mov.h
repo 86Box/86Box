@@ -224,7 +224,7 @@ opMOV_b_imm_a16(uint32_t fetchdat)
     fetch_ea_16(fetchdat);
     ILLEGAL_ON((rmdat & 0x38) != 0);
     SEG_CHECK_WRITE(cpu_state.ea_seg);
-    temp = readmemb(cs, cpu_state.pc);
+    temp = readmemb_fetch(cs, cpu_state.pc);
     cpu_state.pc++;
     if (cpu_state.abrt)
         return 1;
