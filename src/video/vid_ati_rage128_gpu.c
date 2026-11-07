@@ -5021,6 +5021,42 @@ gpu_fill_cmd(VkCommandBuffer cb, VkBuffer b, const gpu_fill_t *f)
                             f->len, f->color);
 }
 
+/* Record a solid fill (kind 0) of three or more separate rows as one
+   fill of the first row and buffer copies of that row into the others,
+   64 rows per copy command. A fill command covers one contiguous range,
+   so a rectangle narrower than its pitch otherwise costs one command per
+   row, and a host copy engine pays a fixed setup cost for every command:
+   a full-screen fill of a few hundred rows then costs far more in
+   commands than in bytes. A copy command takes many regions, so the
+   same rows cost a few commands. The first row is the source of every
+   copy; the rows sit a pitch apart and pitch exceeds the row length, so
+   the source and destination regions are disjoint, as a copy within one
+   buffer requires. The barrier between the fill and the copies makes
+   the first row's bytes visible to the copies' reads. xq: cb is a
+   copy-queue batch, whose barriers carry no compute stages. */
+static void
+gpu_fill_rows_cmd(VkCommandBuffer cb, int xq, VkBuffer b, const gpu_fill_t *f)
+{
+    VkBufferCopy rc[64];
+
+    vkCmdFillBuffer(cb, b, f->addr, f->len, f->color);
+    gpu_cmd_barrier(cb, xq, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_PIPELINE_STAGE_TRANSFER_BIT,
+                    VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_TRANSFER_READ_BIT);
+    for (uint32_t done = 1; done < f->rows;) {
+        uint32_t n = f->rows - done > 64 ? 64 : f->rows - done;
+
+        for (uint32_t r = 0; r < n; r++) {
+            rc[r].srcOffset = f->addr;
+            rc[r].dstOffset = (VkDeviceSize) f->addr
+                + (VkDeviceSize) (done + r) * f->pitch;
+            rc[r].size = f->len;
+        }
+        vkCmdCopyBuffer(cb, b, b, n, rc);
+        done += n;
+    }
+}
+
 /* A queued 2D op that stores into the import only: mark its destination
    pages host-newer, from the first destination word to the last row's
    end (the RMW kernel works on whole words). Recorded before the mirror
@@ -5053,7 +5089,9 @@ gpu_mid_copy_cmd(VkCommandBuffer cb, int xq, VkBuffer sb, VkBuffer db,
                         | VK_ACCESS_TRANSFER_READ_BIT
                         | VK_ACCESS_TRANSFER_WRITE_BIT,
                     VK_ACCESS_TRANSFER_WRITE_BIT);
-    if (f->kind == 0)
+    if (f->kind == 0 && f->rows > 2 && f->pitch > f->len)
+        gpu_fill_rows_cmd(cb, xq, db, f);
+    else if (f->kind == 0)
         gpu_fill_cmd(cb, db, f);
     else
         gpu_fill_copy_cmd(cb, sb, db, f);
