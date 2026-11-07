@@ -1160,6 +1160,24 @@ r3d_stage_slot(rage128_t *dev, const rage128_raster_state_t *rs, int st,
     return sl;
 }
 
+void
+rage128_3d_slot_descs(rage128_t *dev, const rage128_raster_state_t *rs,
+                      r3d_stage_desc_t *sd0, r3d_stage_desc_t *sd1)
+{
+    const rage128_draw_state_t *ds = &rs->d;
+
+    if (ds->tex_en) {
+        r3d_stage_desc_init(rs, 0, sd0);
+        for (int sl = 0; sl <= ds->sh[0].top; sl++)
+            r3d_stage_slot(dev, rs, 0, sd0, sl);
+    }
+    if (ds->sec_en) {
+        r3d_stage_desc_init(rs, 1, sd1);
+        for (int sl = 0; sl <= ds->sh[1].top; sl++)
+            r3d_stage_slot(dev, rs, 1, sd1, sl);
+    }
+}
+
 /* Blend two ARGB8888 colors by w in [0, 256], two 8-bit lanes per
    32-bit multiply: each lane gets (x * (256 - w) + y * w + 128) >> 8.
    A lane's sum is at most 256 * 255 + 128, below 2^16, so it never
@@ -4505,6 +4523,7 @@ rage128_raster_state_capture(rage128_t *dev, rage128_raster_state_t *rs)
         rage128_c_stage_writeback(dev);
     }
 
+    dev->r3d_draw_seq++;
     rs->t3d        = dev->t3d;
     rs->dst_offset = dev->dst_offset;
     rs->dst_pitch  = dev->dst_pitch;

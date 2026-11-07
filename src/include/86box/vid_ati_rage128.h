@@ -978,6 +978,10 @@ typedef struct rage128_t {
                                   the GPU backend can tell two draws' palette
                                   copies are identical without comparing them
                                   (equal number = same contents) */
+    uint32_t r3d_draw_seq;     /* incremented by each draw's state capture,
+                                  so the GPU backend can tell that two
+                                  primitives belong to the same draw and
+                                  reuse what it derived from the state once */
 
     void    *i2c;        /* GPIO_MONID bit-banged DDC I2C bus */
     void    *ddc;        /* DDC EDID EEPROM attached to that bus */
@@ -2453,6 +2457,12 @@ extern uint64_t rage128_3d_jit_row(r128_jit_tri_t *jt, r128_jit_span_fn jfn,
                                    int64_t zline, uint32_t drow, uint32_t zrow,
                                    int32_t py, int c_tld, int z_tld,
                                    uint32_t bpp, uint32_t zbpp);
+/* Fill the two stages' sampler descriptors for a draw and resolve every
+   mip slot a sampler can reach (0 to top), exactly as the per-triangle
+   setup does for the GPU span capture. The slot values depend on the
+   draw's state alone, so the GPU backend resolves them once per draw. */
+extern void     rage128_3d_slot_descs(rage128_t *dev, const rage128_raster_state_t *rs,
+                                      r3d_stage_desc_t *sd0, r3d_stage_desc_t *sd1);
 extern void     rage128_3d_tri(rage128_t *dev, const rage128_raster_state_t *rs,
                                int thr_id, int thr_mask,
                                const r3d_vtx_t *a, const r3d_vtx_t *b, const r3d_vtx_t *c,

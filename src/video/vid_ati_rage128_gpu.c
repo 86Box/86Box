@@ -1276,6 +1276,31 @@ typedef struct r128_gpu_t {
     int32_t  cur_kernel; /* kernel id of the draw in flight */
     int32_t  cur_tuple;  /* interned combine tuple of the draw in flight */
     int32_t  cur_serial; /* draw in flight is a serialized alias draw */
+    /* Segment generation: incremented whenever the segment's 3D records
+       are dropped (submit or abandon), so a record derived for one
+       segment is never reused in the next. */
+    uint32_t seg_gen;
+    /* What admission derives from a draw's state once instead of per
+       primitive (gpu_adm_draw). The first half depends on the state
+       alone and lives as long as the draw; the second half (seg_*)
+       names records in the open segment and lives as long as both. */
+    struct {
+        const rage128_raster_state_t *rs;
+        uint32_t                      seq;
+        int                           valid;
+        int                           kern;     /* gpu_state_kernel, -1 = refused */
+        int32_t                       tup;      /* folded-pipeline tuple, when tup_ok */
+        int                           tup_ok;
+        int                           agp[2];   /* stage's hull starts in AGP memory */
+        int                           odd_c, odd_z;
+        int                           q_on[2];  /* stage feeds the texture hull */
+        uint32_t                      qlo[2], qhi[2];
+        int                           smip;     /* some sampled slot is staged */
+        r3d_stage_desc_t              sd0, sd1; /* resolved slots */
+        int                           seg_valid;
+        uint32_t                      seg_gen;
+        uint32_t                      draw_idx; /* the draw record in the segment */
+    } adm;
 
     /* combine-tuple interning (CCE/submit thread) */
     gpu_tuple_t *tuples; /* GPU_TUPLE_CAP entries */
@@ -6060,6 +6085,7 @@ gpu_accum_drop_3d(r128_gpu_t *g)
     g->seg_czstaged    = 0;
     g->npal            = 0;
     g->pal_up_gen      = 0;
+    g->seg_gen++;
     gpu_bk_reset(g);
     /* kept mid fills now precede every run the segment will gain */
     for (uint32_t i = 0; g->nmid && i < g->nfills; i++)
@@ -6621,21 +6647,149 @@ gpu_draw_append(r128_gpu_t *g, const seg_draw_t *dr)
     return g->ndraws++;
 }
 
-/* First span of a triangle: write its seg_tri_t record into the build
-   slot from the JIT tri record and the texture context, and its draw
-   state into a seg_draw_t (shared with the previous triangle when the
-   two match). Returns the draw record. */
-static const seg_draw_t *
-capture_tri_record(r128_gpu_t *g, rage128_t *dev, const r3d_texctx_t *tc,
-                   const r128_jit_tri_t *tri)
+/* Build a draw's seg_draw_t from its state and resolved sampler slots
+   and append it to the segment (shared with the previous draw when the
+   two match). Returns its index. Admission calls this once per draw and
+   segment, before any of the draw's triangles is captured. The memset
+   zeroes every field a branch below skips, so two draws with the same
+   state compare equal. */
+static uint32_t
+gpu_draw_record(r128_gpu_t *g, rage128_t *dev, const rage128_raster_state_t *rs,
+                const r3d_stage_desc_t *sd0, const r3d_stage_desc_t *sd1)
 {
-    const rage128_draw_state_t *d = &tc->rs->d;
-    seg_tri_t                  *tt;
+    const rage128_draw_state_t *d = &rs->d;
     seg_draw_t                  dr_rec;
     seg_draw_t                 *dr = &dr_rec;
 
-    tt = &((seg_tri_t *) g->slot[g->build_slot].b_tris.map)[g->ntris];
     memset(dr, 0, sizeof(*dr));
+    dr->lod_bias = d->lod_bias;
+    dr->texw0    = d->texw0;
+    dr->texh0    = d->texh0;
+    dr->texw1    = d->texw1;
+    dr->texh1    = d->texh1;
+    /* With z off (a stencil-only draw, for one) the cell is still
+       visited, so the depth compare is set to always pass (7) and the
+       depth field is not written. */
+    dr->zfn    = d->z_en ? d->zfn : 7;
+    dr->z_wr   = (d->z_en && d->z_wr) ? 1 : 0;
+    dr->zbpp   = (uint32_t) d->zbpp;
+    dr->zshift = (uint32_t) d->zshift;
+    if (d->sten_on) {
+        dr->sten_ctl = 1u | (d->sfn << 4) | (d->sfail_op << 8)
+            | (d->zpass_op << 12) | (d->zfail_op << 16);
+        dr->sten_rm = d->sref | (d->svmask << 8) | (d->swmask << 16);
+    }
+    dr->dst_dt  = d->dst_dt;
+    dr->wmask   = d->wmask;
+    dr->dither  = d->dither ? 1 : 0;
+    dr->persp   = (d->do_persp ? 1u : 0u)
+        | ((d->sec_en && !d->tex_en) ? 2u : 0u);
+    dr->spec_en = d->spec_en ? 1 : 0;
+    dr->fog_en  = d->fog_en ? 1 : 0;
+    dr->ftab_en = (d->fog_en && d->fog_table_en) ? 1 : 0;
+    if (dr->ftab_en)
+        memcpy(dr->fog_table, rs->t3d.fog_table, 256);
+    /* CI4/CI8: copy the draw's palette into the slot's palette arena,
+       from the rs copy so a verify replay reads the same entries; reuse
+       the last copy while tex_pal_gen is unchanged. gpu_submit_prim
+       flushed first if the arena was full, so npal cannot overflow. */
+    if (gpu_draw_ci(d)) {
+        if (g->npal == 0 || g->pal_up_gen != dev->tex_pal_gen) {
+            memcpy((uint32_t *) g->slot[g->build_slot].b_pal.map
+                       + (size_t) g->npal * 256,
+                   rs->t3d.tex_palette, 256 * sizeof(uint32_t));
+            g->pal_up_gen = dev->tex_pal_gen;
+            g->npal++;
+        }
+        dr->pal_base = (g->npal - 1) * 256;
+    }
+    dr->fogr = d->fogr;
+    dr->fogg = d->fogg;
+    dr->fogb = d->fogb;
+    /* the color key values and masks are set up only for a textured
+       draw; for any other draw the memset above left ck_ctl 0 (keying
+       off) */
+    if (d->tex_en && d->need_ck) {
+        dr->ck_ctl = (d->ck3d_on ? 1u : 0u) | (d->ckc_on ? 2u : 0u)
+            | (d->ckfn == 3 ? 4u : 0u);
+        dr->ck3d_clr = d->ck3d_clr;
+        dr->ck3d_msk = d->ck3d_msk;
+        dr->ckc_clr  = d->ckc_clr;
+        dr->ckc_msk  = d->ckc_msk;
+    }
+    dr->atest_en  = d->atest_en ? 1 : 0;
+    dr->atest_fn  = d->atest_fn;
+    dr->atest_ref = d->atest_ref;
+    dr->bsrc      = d->bsrc;
+    dr->bdst      = d->bdst;
+    dr->bfcn      = d->bfcn;
+    dr->stip_en   = d->stip_en ? 1 : 0;
+    if (dr->stip_en)
+        memcpy(dr->stipple, rs->stipple, sizeof(dr->stipple));
+    dr->aux_cntl  = d->aux_on ? d->aux_cntl : 0;
+    memcpy(dr->aux_x0, d->aux_x0, sizeof(dr->aux_x0));
+    memcpy(dr->aux_x1, d->aux_x1, sizeof(dr->aux_x1));
+    memcpy(dr->aux_y0, d->aux_y0, sizeof(dr->aux_y0));
+    memcpy(dr->aux_y1, d->aux_y1, sizeof(dr->aux_y1));
+    memcpy(dr->cc, d->cc, sizeof(dr->cc));
+    dr->persp2    = (d->do_persp ^ d->sec_persp_diff) ? 1 : 0;
+    dr->sel_w     = d->sel_w ? 1 : 0;
+    dr->sec_sel   = d->sec_sel ? 1 : 0;
+    dr->need_lod2 = d->need_lod2 ? 1 : 0;
+    dr->top0      = d->sh[0].top;
+    dr->top1      = d->sh[1].top;
+    for (int st = 0; st < 2; st++) {
+        const r3d_stage_hdr_t *h = &d->sh[st];
+
+        dr->st_cfg[st * 8 + 0]   = h->dt | (h->aone ? 0x10u : 0u); /* 0x16 = opaque 8888 */
+        dr->st_cfg[st * 8 + 1]   = h->s3tc;
+        dr->st_cfg[st * 8 + 2]   = h->clamp_s;
+        dr->st_cfg[st * 8 + 3]   = h->clamp_t;
+        dr->st_cfg[st * 8 + 4]   = h->border;
+        dr->st_cfg[st * 8 + 5]   = h->minb;
+        dr->st_cfg[st * 8 + 6]   = h->mag;
+        dr->st_cfg[st * 8 + 7]   = h->mipdis ? 1 : 0;
+        dr->comb_cfg[st * 8 + 0] = d->comb[st].comb;
+        dr->comb_cfg[st * 8 + 1] = d->comb[st].fmsb;
+        dr->comb_cfg[st * 8 + 2] = d->comb[st].cfac;
+        dr->comb_cfg[st * 8 + 3] = d->comb[st].ifac;
+        dr->comb_cfg[st * 8 + 4] = d->comb[st].comba;
+        dr->comb_cfg[st * 8 + 5] = d->comb[st].afac;
+        dr->comb_cfg[st * 8 + 6] = d->comb[st].ifaca;
+    }
+    /* texture-lighting word in stage 0's spare slot: the unfolded
+       pipelines read it per draw, the folded ones pin it (C_LIGHT) */
+    dr->comb_cfg[7] = d->light_on
+        ? (d->lcomb.comb | (d->lcomb.fmsb << 4) | (d->lcomb.comba << 5))
+        : 0u;
+    if (d->tex_en)
+        for (int sl = 0; sl <= d->sh[0].top; sl++) {
+            dr->slot0[sl * 4 + 0] = sd0->slot[sl].lw;
+            dr->slot0[sl * 4 + 1] = sd0->slot[sl].lh;
+            dr->slot0[sl * 4 + 2] = gpu_slot_base_pack(g, dev, &sd0->slot[sl]);
+            dr->slot0[sl * 4 + 3] = sd0->slot[sl].mask;
+        }
+    if (d->sec_en)
+        for (int sl = 0; sl <= d->sh[1].top; sl++) {
+            dr->slot1[sl * 4 + 0] = sd1->slot[sl].lw;
+            dr->slot1[sl * 4 + 1] = sd1->slot[sl].lh;
+            dr->slot1[sl * 4 + 2] = gpu_slot_base_pack(g, dev, &sd1->slot[sl]);
+            dr->slot1[sl * 4 + 3] = sd1->slot[sl].mask;
+        }
+    return gpu_draw_append(g, dr);
+}
+
+/* First span of a triangle: write its seg_tri_t record into the build
+   slot from the JIT tri record and the texture context. Its draw state
+   is the draw record admission appended for the draw
+   (gpu_draw_record). */
+static void
+capture_tri_record(r128_gpu_t *g, const r3d_texctx_t *tc,
+                   const r128_jit_tri_t *tri)
+{
+    seg_tri_t *tt;
+
+    tt = &((seg_tri_t *) g->slot[g->build_slot].b_tris.map)[g->ntris];
     tt->e0dxi = tri->e0dxi;
     tt->e1dxi = tri->e1dxi;
     tt->e2dxi = tri->e2dxi;
@@ -6695,130 +6849,13 @@ capture_tri_record(r128_gpu_t *g, rage128_t *dev, const r3d_texctx_t *tc,
     tt->fgb   = tri->fog[1];
     tt->fgc   = tri->fog[2];
 
-    /* The draw record. The memset above zeroes every field a branch
-       below skips, so two draws with the same state compare equal. */
-    dr->lod_bias = d->lod_bias;
-    dr->texw0    = d->texw0;
-    dr->texh0    = d->texh0;
-    dr->texw1    = d->texw1;
-    dr->texh1    = d->texh1;
-    /* With z off (a stencil-only draw, for one) the cell is still
-       visited, so the depth compare is set to always pass (7) and the
-       depth field is not written. */
-    dr->zfn    = d->z_en ? d->zfn : 7;
-    dr->z_wr   = (d->z_en && d->z_wr) ? 1 : 0;
-    dr->zbpp   = (uint32_t) d->zbpp;
-    dr->zshift = (uint32_t) d->zshift;
-    if (d->sten_on) {
-        dr->sten_ctl = 1u | (d->sfn << 4) | (d->sfail_op << 8)
-            | (d->zpass_op << 12) | (d->zfail_op << 16);
-        dr->sten_rm = d->sref | (d->svmask << 8) | (d->swmask << 16);
-    }
-    dr->dst_dt  = d->dst_dt;
-    dr->wmask   = d->wmask;
-    dr->dither  = d->dither ? 1 : 0;
-    dr->persp   = (d->do_persp ? 1u : 0u)
-        | ((d->sec_en && !d->tex_en) ? 2u : 0u);
-    dr->spec_en = d->spec_en ? 1 : 0;
-    dr->fog_en  = d->fog_en ? 1 : 0;
-    dr->ftab_en = (d->fog_en && d->fog_table_en) ? 1 : 0;
-    if (dr->ftab_en)
-        memcpy(dr->fog_table, tc->rs->t3d.fog_table, 256);
-    /* CI4/CI8: copy the draw's palette into the slot's palette arena,
-       from the rs copy so a verify replay reads the same entries; reuse
-       the last copy while tex_pal_gen is unchanged. gpu_submit_prim
-       flushed first if the arena was full, so npal cannot overflow. */
-    if (gpu_draw_ci(d)) {
-        if (g->npal == 0 || g->pal_up_gen != dev->tex_pal_gen) {
-            memcpy((uint32_t *) g->slot[g->build_slot].b_pal.map
-                       + (size_t) g->npal * 256,
-                   tc->rs->t3d.tex_palette, 256 * sizeof(uint32_t));
-            g->pal_up_gen = dev->tex_pal_gen;
-            g->npal++;
-        }
-        dr->pal_base = (g->npal - 1) * 256;
-    }
-    dr->fogr = d->fogr;
-    dr->fogg = d->fogg;
-    dr->fogb = d->fogb;
-    /* the color key values and masks are set up only for a textured
-       draw; for any other draw the memset above left ck_ctl 0 (keying
-       off) */
-    if (d->tex_en && d->need_ck) {
-        dr->ck_ctl = (d->ck3d_on ? 1u : 0u) | (d->ckc_on ? 2u : 0u)
-            | (d->ckfn == 3 ? 4u : 0u);
-        dr->ck3d_clr = d->ck3d_clr;
-        dr->ck3d_msk = d->ck3d_msk;
-        dr->ckc_clr  = d->ckc_clr;
-        dr->ckc_msk  = d->ckc_msk;
-    }
-    dr->atest_en  = d->atest_en ? 1 : 0;
-    dr->atest_fn  = d->atest_fn;
-    dr->atest_ref = d->atest_ref;
-    dr->bsrc      = d->bsrc;
-    dr->bdst      = d->bdst;
-    dr->bfcn      = d->bfcn;
-    dr->stip_en   = d->stip_en ? 1 : 0;
-    if (dr->stip_en)
-        memcpy(dr->stipple, tc->rs->stipple, sizeof(dr->stipple));
-    dr->aux_cntl  = d->aux_on ? d->aux_cntl : 0;
-    memcpy(dr->aux_x0, d->aux_x0, sizeof(dr->aux_x0));
-    memcpy(dr->aux_x1, d->aux_x1, sizeof(dr->aux_x1));
-    memcpy(dr->aux_y0, d->aux_y0, sizeof(dr->aux_y0));
-    memcpy(dr->aux_y1, d->aux_y1, sizeof(dr->aux_y1));
-    memcpy(dr->cc, d->cc, sizeof(dr->cc));
-    dr->persp2    = (d->do_persp ^ d->sec_persp_diff) ? 1 : 0;
-    dr->sel_w     = d->sel_w ? 1 : 0;
-    dr->sec_sel   = d->sec_sel ? 1 : 0;
-    dr->need_lod2 = d->need_lod2 ? 1 : 0;
-    dr->top0      = d->sh[0].top;
-    dr->top1      = d->sh[1].top;
-    for (int st = 0; st < 2; st++) {
-        const r3d_stage_hdr_t *h = &d->sh[st];
-
-        dr->st_cfg[st * 8 + 0]   = h->dt | (h->aone ? 0x10u : 0u); /* 0x16 = opaque 8888 */
-        dr->st_cfg[st * 8 + 1]   = h->s3tc;
-        dr->st_cfg[st * 8 + 2]   = h->clamp_s;
-        dr->st_cfg[st * 8 + 3]   = h->clamp_t;
-        dr->st_cfg[st * 8 + 4]   = h->border;
-        dr->st_cfg[st * 8 + 5]   = h->minb;
-        dr->st_cfg[st * 8 + 6]   = h->mag;
-        dr->st_cfg[st * 8 + 7]   = h->mipdis ? 1 : 0;
-        dr->comb_cfg[st * 8 + 0] = d->comb[st].comb;
-        dr->comb_cfg[st * 8 + 1] = d->comb[st].fmsb;
-        dr->comb_cfg[st * 8 + 2] = d->comb[st].cfac;
-        dr->comb_cfg[st * 8 + 3] = d->comb[st].ifac;
-        dr->comb_cfg[st * 8 + 4] = d->comb[st].comba;
-        dr->comb_cfg[st * 8 + 5] = d->comb[st].afac;
-        dr->comb_cfg[st * 8 + 6] = d->comb[st].ifaca;
-    }
-    /* texture-lighting word in stage 0's spare slot: the unfolded
-       pipelines read it per draw, the folded ones pin it (C_LIGHT) */
-    dr->comb_cfg[7] = d->light_on
-        ? (d->lcomb.comb | (d->lcomb.fmsb << 4) | (d->lcomb.comba << 5))
-        : 0u;
-    if (d->tex_en)
-        for (int sl = 0; sl <= d->sh[0].top; sl++) {
-            dr->slot0[sl * 4 + 0] = tc->sd0.slot[sl].lw;
-            dr->slot0[sl * 4 + 1] = tc->sd0.slot[sl].lh;
-            dr->slot0[sl * 4 + 2] = gpu_slot_base_pack(g, dev, &tc->sd0.slot[sl]);
-            dr->slot0[sl * 4 + 3] = tc->sd0.slot[sl].mask;
-        }
-    if (d->sec_en)
-        for (int sl = 0; sl <= d->sh[1].top; sl++) {
-            dr->slot1[sl * 4 + 0] = tc->sd1.slot[sl].lw;
-            dr->slot1[sl * 4 + 1] = tc->sd1.slot[sl].lh;
-            dr->slot1[sl * 4 + 2] = gpu_slot_base_pack(g, dev, &tc->sd1.slot[sl]);
-            dr->slot1[sl * 4 + 3] = tc->sd1.slot[sl].mask;
-        }
-    tt->draw = gpu_draw_append(g, dr);
-    return &g->draw_last;
+    tt->draw = g->adm.draw_idx;
 }
 
 /* Per-triangle coverage counters (the close-time stats printer). */
 static void
 capture_tri_coverage(r128_gpu_t *g, const r3d_texctx_t *tc,
-                     const rage128_draw_state_t *d, const seg_draw_t *dr)
+                     const rage128_draw_state_t *d)
 {
     uint32_t full = (d->dst_dt == 6) ? 0xffffffffu : 0xffffu;
 
@@ -6848,17 +6885,8 @@ capture_tri_coverage(r128_gpu_t *g, const r3d_texctx_t *tc,
             if ((d->sh[st].dt & 15) == 0)
                 g->st_cov_texs3[d->sh[st].s3tc & 3]++;
         }
-    {
-        int smip = 0;
-
-        for (int sl = 0; sl <= d->sh[0].top && d->tex_en; sl++)
-            smip |= (dr->slot0[sl * 4 + 2] & 0x80000000u) != 0;
-        for (int sl = 0; sl <= d->sh[1].top && d->sec_en; sl++)
-            smip |= (dr->slot1[sl * 4 + 2] & 0x80000000u) != 0;
-        g->st_cov_smip += smip;
-    }
+    g->st_cov_smip += g->adm.smip;
     if (tc->rs->c_staged || tc->rs->z_staged) {
-        g->seg_czstaged = 1;
         g->st_cov_cstg += tc->rs->c_staged != 0;
         g->st_cov_zstg += tc->rs->z_staged != 0;
     }
@@ -7233,12 +7261,12 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
     (void) zline;
 
     if (g->cur_tri < 0) {
-        const rage128_draw_state_t *d  = &tc->rs->d;
-        const seg_draw_t           *dr = capture_tri_record(g, dev, tc, tri);
+        const rage128_draw_state_t *d = &tc->rs->d;
 
+        capture_tri_record(g, tc, tri);
         g->cur_tri = (int32_t) g->ntris++;
         g->st_tris++;
-        capture_tri_coverage(g, tc, d, dr);
+        capture_tri_coverage(g, tc, d);
         capture_run_open(g);
         capture_run_texrange(g, dev, tc, d);
     }
@@ -7469,6 +7497,87 @@ gpu_submit_prim_tris(rage128_t *dev, const rage128_raster_state_t *rs,
     return gpu;
 }
 
+/* Derive admission's per-draw values (the adm block of r128_gpu_t) from
+   the state, once per draw instead of once per primitive. A draw is one
+   state capture: the primitives of a draw share the capture's sequence
+   number and the state's address, and the state does not change between
+   them. The kernel choice, the folded-pipeline tuple, the texture hull
+   and the resolved sampler slots depend on the state alone; the
+   per-primitive work (byte ranges, alias tests, capture) stays in
+   gpu_submit_prim. Submit thread only. */
+static void
+gpu_adm_draw(rage128_t *dev, r128_gpu_t *g, const rage128_raster_state_t *rs)
+{
+    if (g->adm.valid && g->adm.rs == rs && g->adm.seq == dev->r3d_draw_seq)
+        return;
+    g->adm.valid     = 1;
+    g->adm.rs        = rs;
+    g->adm.seq       = dev->r3d_draw_seq;
+    g->adm.seg_valid = 0;
+    g->adm.tup_ok    = 0;
+    g->adm.kern      = gpu_state_kernel(dev, rs);
+    g->adm.odd_c     = (rs->dst_offset & (uint32_t) (rs->d.bpp - 1)) != 0;
+    g->adm.odd_z     = (rs->d.z_en || rs->d.sten_on)
+        && (rs->t3d.z_offset & (uint32_t) (rs->d.zbpp - 1)) != 0;
+    for (int st = 0; st < 2; st++) {
+        g->adm.agp[st]  = r128_card_is_agp(rs->tex_lo[st]);
+        g->adm.q_on[st] = rs->tex_hi[st] > rs->tex_lo[st] && !g->adm.agp[st];
+        if (g->adm.q_on[st]) {
+            const r3d_stage_hdr_t *h   = &rs->d.sh[st];
+            const uint32_t        *off = st ? rs->sec_stage_off : rs->prim_stage_off;
+            uint32_t               qlo = rs->tex_lo[st], qhi = rs->tex_hi[st];
+            int                    top = h->top < 0 ? 0 : (h->top > 10 ? 10 : h->top);
+            int                    low = ((st ? rs->d.need_lod2 : rs->d.need_lod)
+                       && !h->mipdis && h->minb >= 2)
+                                     ? 0
+                                     : top;
+            int                    staged = 1;
+
+            /* The hull covers the levels low..top, chosen by the same
+               rule rage128_raster_state_capture uses to build it. If
+               any of them is sampled from VRAM, the fetch wraps at the
+               VRAM mask and rng_fold folds the hull the way it folds the
+               store ranges; a stage sampled entirely from the arena
+               keeps its card-space hull. */
+            for (int sl = low; sl <= top; sl++)
+                if (off[sl] == R128_TEX_STAGE_NONE)
+                    staged = 0;
+            rng_fold(dev->vram_mask, staged, &qlo, &qhi);
+            g->adm.qlo[st] = qlo;
+            g->adm.qhi[st] = qhi;
+        }
+    }
+    g->adm.smip = 0;
+    if (g->adm.kern >= 0) {
+        const rage128_draw_state_t *d = &rs->d;
+
+        rage128_3d_slot_descs(dev, rs, &g->adm.sd0, &g->adm.sd1);
+        for (int sl = 0; sl <= d->sh[0].top && d->tex_en; sl++)
+            g->adm.smip |= g->adm.sd0.slot[sl].texbase != dev->svga.vram;
+        for (int sl = 0; sl <= d->sh[1].top && d->sec_en; sl++)
+            g->adm.smip |= g->adm.sd1.slot[sl].texbase != dev->svga.vram;
+    }
+}
+
+/* The segment half of the admission record: the draw's seg_draw_t (with
+   its palette snapshot and the staged-slot mark) appended to the open
+   segment, and the segment's staged-target mark. Built once per draw
+   and segment, just before the first of the draw's primitives in that
+   segment is captured; every flush decision for that primitive is made
+   by then, so the segment it lands in is the one it is captured into.
+   Submit thread only. */
+static void
+gpu_adm_seg(rage128_t *dev, r128_gpu_t *g, const rage128_raster_state_t *rs)
+{
+    if (g->adm.seg_valid && g->adm.seg_gen == g->seg_gen)
+        return;
+    g->adm.draw_idx  = gpu_draw_record(g, dev, rs, &g->adm.sd0, &g->adm.sd1);
+    g->adm.seg_valid = 1;
+    g->adm.seg_gen   = g->seg_gen;
+    if (rs->c_staged || rs->z_staged)
+        g->seg_czstaged = 1;
+}
+
 static int gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
                            const r3d_vtx_t *a, const r3d_vtx_t *b,
                            const r3d_vtx_t *c, int line);
@@ -7521,13 +7630,20 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
     r128_gpu_t      *g = (r128_gpu_t *) dev->gpu;
     uint32_t         clo, chi, zlo, zhi;
     uint64_t         need_spans, need_px;
-    int              kern     = gpu_state_kernel(dev, rs);
+    int              kern;
     int32_t          tup      = -1;
     int              serial   = 0;
     int              repriced = 0;
     const r3d_vtx_t *gc       = line ? NULL : c;
+    int              fresh    = !(g->adm.valid && g->adm.rs == rs
+                                  && g->adm.seq == dev->r3d_draw_seq);
 
+    gpu_adm_draw(dev, g, rs);
+    kern = g->adm.kern;
     if (kern < 0) {
+        /* the refusal tally counts every refused primitive */
+        if (!fresh)
+            (void) gpu_state_kernel(dev, rs);
         rage128_gpu_fallback_guard(dev, rs, a, b, gc);
         return 0;
     }
@@ -7584,7 +7700,7 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
             if (r3d_tex_rng_hit(rs, st, clo, chi)
                 || r3d_tex_rng_hit(rs, st, zlo, zhi)) {
                 rtt = 1;
-                agp |= r128_card_is_agp(rs->tex_lo[st]);
+                agp |= g->adm.agp[st];
             }
         if (cz || rtt) {
             if (rs->c_staged || rs->z_staged || agp
@@ -7603,21 +7719,22 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
     /* Count accepted draws whose color or z base is not aligned to the
        cell size, so a cell can straddle two words of the kernel's
        storage view. The close-time stats report these counts. */
-    if (rs->dst_offset & (uint32_t) (rs->d.bpp - 1))
-        g->st_odd_c++;
-    if ((rs->d.z_en || rs->d.sten_on)
-        && (rs->t3d.z_offset & (uint32_t) (rs->d.zbpp - 1)))
-        g->st_odd_z++;
+    g->st_odd_c += (uint64_t) g->adm.odd_c;
+    g->st_odd_z += (uint64_t) g->adm.odd_z;
 
     /* Folded-pipeline key. Untextured kernels have no combine stage and
        run the unfolded pipeline (tuple -1), so they never split a run.
        Serial draws keep tuple -1 too: only unfolded (uber) serial
        pipelines are built. */
     if (!serial && r128_gpu_variants[kern].tex > 0) {
-        uint32_t sel[GPU_TUPLE_SEL];
+        if (!g->adm.tup_ok) {
+            uint32_t sel[GPU_TUPLE_SEL];
 
-        gpu_tuple_normalize(&rs->d, r128_gpu_variants[kern].tex, sel);
-        tup = gpu_tuple_intern(g, sel);
+            gpu_tuple_normalize(&rs->d, r128_gpu_variants[kern].tex, sel);
+            g->adm.tup    = gpu_tuple_intern(g, sel);
+            g->adm.tup_ok = 1;
+        }
+        tup = g->adm.tup;
     }
 
     /* render-to-texture: this draw samples bytes the segment writes */
@@ -7670,7 +7787,7 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
 
         if (g->nspans + need_spans > GPU_SPAN_CAP)
             cap = 0;
-        else if (g->ntris + 2 > GPU_TRI_CAP)
+        else if (g->ntris + 2 > GPU_TRI_CAP || g->ndraws + 1 > GPU_TRI_CAP)
             cap = 1;
         else if (g->nruns == GPU_RUN_CAP
                  && (g->run_break
@@ -7751,31 +7868,11 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
     if (rs->z_staged)
         atomic_store_explicit(&g->z_stg, 1, memory_order_relaxed);
     for (int st = 0; st < 2; st++)
-        if (rs->tex_hi[st] > rs->tex_lo[st] && !r128_card_is_agp(rs->tex_lo[st])) {
-            const r3d_stage_hdr_t *h   = &rs->d.sh[st];
-            const uint32_t        *off = st ? rs->sec_stage_off : rs->prim_stage_off;
-            uint32_t               qlo = rs->tex_lo[st], qhi = rs->tex_hi[st];
-            int                    top    = h->top < 0 ? 0 : (h->top > 10 ? 10 : h->top);
-            int                    low    = ((st ? rs->d.need_lod2 : rs->d.need_lod)
-                       && !h->mipdis && h->minb >= 2)
-                                      ? 0
-                                      : top;
-            int                    staged = 1;
-
-            /* The hull covers the levels low..top, chosen by the same
-               rule rage128_raster_state_capture uses to build it. If
-               any of them is sampled from VRAM, the fetch wraps at the
-               VRAM mask and rng_fold folds the hull the way it folds the
-               store ranges; a stage sampled entirely from the arena
-               keeps its card-space hull. */
-            for (int sl = low; sl <= top; sl++)
-                if (off[sl] == R128_TEX_STAGE_NONE)
-                    staged = 0;
-            rng_fold(dev->vram_mask, staged, &qlo, &qhi);
-            rng_pub(g, &g->q_lo, &g->q_hi, qlo, qhi, 0);
-        }
+        if (g->adm.q_on[st])
+            rng_pub(g, &g->q_lo, &g->q_hi, g->adm.qlo[st], g->adm.qhi[st], 0);
     atomic_store_explicit(&g->pending, 1, memory_order_release);
 
+    gpu_adm_seg(dev, g, rs);
     g->cur_tri    = -1;
     g->cur_kernel = kern;
     g->cur_tuple  = tup;
