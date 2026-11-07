@@ -1,12 +1,24 @@
 #include <gtest/gtest.h>
 
+#include <gtest/gtest.h>
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <string>
 #include <vector>
 
 extern "C" {
+#include <86box/86box.h>
+#include <86box/cdrom.h>
+#include <86box/cdrom_image.h>
+#include <86box/plat.h>
+#include <86box/plat_dynld.h>
 #define fallthrough [[fallthrough]]
 #define calloc(count, size) (mcd_t *) calloc(count, size)
 #include "../../src/cdrom/cdrom_mitsumi.c"
@@ -166,14 +178,14 @@ TEST_F(MitsumiTest, FlagsArbitrateDataAndStatusAndExposeTray)
     dev.change = 0;
     dev.cmdbuf_count = 0;
     dev.buf_count = 0;
-    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NODATA | FLAG_NOSTAT | FLAG_UNK | 1);
+    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NODATA | FLAG_NOSTAT | FLAG_NOCHANGE | 1);
     dev.cmdbuf_count = 1;
-    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NODATA | FLAG_UNK | 1);
+    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NODATA | FLAG_NOCHANGE | 1);
     dev.data = 1;
     dev.buf_count = 1;
-    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NOSTAT | FLAG_UNK | 1);
+    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NOSTAT | FLAG_NOCHANGE | 1);
     dev.early_status = 1;
-    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NODATA | FLAG_UNK | 1);
+    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NODATA | FLAG_NOCHANGE | 1);
     dev.tray_open = 1;
     EXPECT_TRUE(mitsumi_cdrom_get_flags(&dev) & FLAG_OPEN);
 }
@@ -378,47 +390,42 @@ void timer_add(pc_timer_t *timer, void (*callback)(void *), void *priv, int star
     timer->priv = priv;
     timer->flags = start ? TIMER_ENABLED : 0;
 }
-void cdrom_stop(cdrom_t *) { ++mock.stop_calls; }
-int cdrom_has_data(cdrom_t *) { return 1; }
-double cdrom_seek_time(const cdrom_t *) { return 0.0; }
-int cdrom_read_toc(const cdrom_t *, uint8_t *buffer, int, uint8_t, int, int)
-{
-    buffer[2] = 1;
-    buffer[3] = 1;
-    return 0;
-}
-void cdrom_get_track_buffer(cdrom_t *, uint8_t *buffer)
-{
-    std::memset(buffer, 0, 34);
-    buffer[2] = 0;
-    buffer[3] = 2;
-    buffer[4] = 0;
-}
-int cdrom_get_q(cdrom_t *, uint8_t *buffer, int current, uint8_t)
-{
-    std::memset(buffer, 0, 10);
-    return current + 1;
-}
-void cdrom_seek(cdrom_t *dev, uint32_t pos, uint8_t)
-{
-    mock.last_seek = pos;
-    dev->seek_pos = pos;
-}
-int cdrom_readsector_raw(cdrom_t *, uint8_t *buffer, int, int, int, int,
-                         int *len, uint8_t)
-{
-    for (int i = 0; i < mock.read_length; ++i)
-        buffer[i] = static_cast<uint8_t>(i);
-    *len = mock.read_length;
-    return mock.read_result;
-}
-uint8_t cdrom_audio_play(cdrom_t *, uint32_t, uint32_t, int) { return 1; }
-int cdrom_lba_to_msf_accurate(int lba)
-{
-    const uint32_t absolute = lba + 150;
-    return ((absolute / (60 * 75)) << 16) | (((absolute / 75) % 60) << 8) | (absolute % 75);
-}
-void cdrom_reload(uint8_t) { ++mock.reload_calls; }
-void cdrom_eject(uint8_t) { ++mock.eject_calls; }
 
+void *log_open(const char *) { return nullptr; }
+void log_close(void *) {}
+void log_fatal(void *, const char *, ...) { std::abort(); }
+void warning(const char *, ...) {}
+void fatal(const char *, ...) { std::abort(); }
+void pclog(const char *, ...) {}
+char *plat_get_string(int) { static char text[] = "image error"; return text; }
+char *nvr_path(char *path) { return path; }
+FILE *plat_fopen(const char *path, const char *mode) { return std::fopen(path, mode); }
+FILE *plat_fopen64(const char *path, const char *mode) { return std::fopen(path, mode); }
+FILE *rom_fopen(const char *path, char *mode) { return std::fopen(path, mode); }
+void *dynld_module(const char *, dllimp_t *) { return nullptr; }
+void dynld_close(void *) {}
+track_file_t *viso_init(uint8_t, const char *, int *error) { *error = 1; return nullptr; }
+void plat_tempfile(char *, char *, char *) { std::abort(); }
+void path_get_dirname(char *dest, const char *path)
+{
+    const auto dir = std::filesystem::path(path).parent_path().string();
+    std::memcpy(dest, dir.c_str(), dir.size() + 1);
+}
+#ifndef _WIN32
+int stricmp(const char *a, const char *b)
+{
+    while (*a && std::tolower(static_cast<unsigned char>(*a)) == std::tolower(static_cast<unsigned char>(*b))) {
+        ++a;
+        ++b;
+    }
+    return std::tolower(static_cast<unsigned char>(*a)) - std::tolower(static_cast<unsigned char>(*b));
+}
+#endif
+int path_abs(char *path) { return std::filesystem::path(path).is_absolute(); }
+void path_normalize(char *) {}
+void path_append_filename(char *dest, const char *base, const char *file)
+{
+    const auto path = (std::filesystem::path(base) / file).string();
+    std::memmove(dest, path.c_str(), path.size() + 1);
+}
 }
