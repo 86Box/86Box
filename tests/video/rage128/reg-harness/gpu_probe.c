@@ -232,11 +232,14 @@ harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
        host memory here -- the capture path never touches Vulkan */
     g->slot[0].b_spans.map = calloc(GPU_SPAN_CAP, sizeof(seg_span_t));
     g->slot[0].b_tris.map  = calloc(GPU_TRI_CAP, sizeof(seg_tri_t));
+    g->slot[0].b_draws.map = calloc(GPU_TRI_CAP, sizeof(seg_draw_t));
     g->slot[0].b_pal.map   = calloc(GPU_PAL_CAP * 256, sizeof(uint32_t));
     if (!g->slot[0].b_spans.map || !g->slot[0].b_tris.map
+        || !g->slot[0].b_draws.map
         || !g->slot[0].b_pal.map) {
         free(g->slot[0].b_spans.map);
         free(g->slot[0].b_tris.map);
+        free(g->slot[0].b_draws.map);
         free(g->slot[0].b_pal.map);
         harness_gpu_dispose(g);
         return 0;
@@ -353,6 +356,7 @@ harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
     }
     free(g->slot[0].b_spans.map);
     free(g->slot[0].b_tris.map);
+    free(g->slot[0].b_draws.map);
     free(g->slot[0].b_pal.map);
     harness_gpu_dispose(g);
     return 1;
@@ -371,11 +375,14 @@ harness_gpu_submit_probe(rage128_t *dev, const rage128_raster_state_t *rs,
         return 0;
     g->slot[0].b_spans.map = calloc(GPU_SPAN_CAP, sizeof(seg_span_t));
     g->slot[0].b_tris.map  = calloc(GPU_TRI_CAP, sizeof(seg_tri_t));
+    g->slot[0].b_draws.map = calloc(GPU_TRI_CAP, sizeof(seg_draw_t));
     g->slot[0].b_pal.map   = calloc(GPU_PAL_CAP * 256, sizeof(uint32_t));
     if (!g->slot[0].b_spans.map || !g->slot[0].b_tris.map
+        || !g->slot[0].b_draws.map
         || !g->slot[0].b_pal.map) {
         free(g->slot[0].b_spans.map);
         free(g->slot[0].b_tris.map);
+        free(g->slot[0].b_draws.map);
         free(g->slot[0].b_pal.map);
         harness_gpu_dispose(g);
         return 0;
@@ -398,6 +405,7 @@ harness_gpu_submit_probe(rage128_t *dev, const rage128_raster_state_t *rs,
     }
     free(g->slot[0].b_spans.map);
     free(g->slot[0].b_tris.map);
+    free(g->slot[0].b_draws.map);
     free(g->slot[0].b_pal.map);
     harness_gpu_dispose(g);
     return 1;
@@ -431,11 +439,14 @@ harness_gpu_texq_begin(rage128_t *dev)
     }
     g->slot[0].b_spans.map = calloc(GPU_SPAN_CAP, sizeof(seg_span_t));
     g->slot[0].b_tris.map  = calloc(GPU_TRI_CAP, sizeof(seg_tri_t));
+    g->slot[0].b_draws.map = calloc(GPU_TRI_CAP, sizeof(seg_draw_t));
     g->slot[0].b_pal.map   = calloc(GPU_PAL_CAP * 256, sizeof(uint32_t));
     if (!g->slot[0].b_spans.map || !g->slot[0].b_tris.map
+        || !g->slot[0].b_draws.map
         || !g->slot[0].b_pal.map) {
         free(g->slot[0].b_spans.map);
         free(g->slot[0].b_tris.map);
+        free(g->slot[0].b_draws.map);
         free(g->slot[0].b_pal.map);
         harness_gpu_dispose(g);
         free(h);
@@ -518,6 +529,7 @@ harness_gpu_texq_end(void *hp, rage128_t *dev, uint32_t lo, uint32_t hi,
 
     free(g->slot[0].b_spans.map);
     free(g->slot[0].b_tris.map);
+    free(g->slot[0].b_draws.map);
     free(g->slot[0].b_pal.map);
     harness_gpu_dispose(g);
     free(h);

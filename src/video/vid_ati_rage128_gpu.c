@@ -263,8 +263,10 @@ gpu_tel_close(void)
 }
 
 /* The 64-bit fields of seg_tri_t (edge steps and plane seeds, the
-   depth step, FOG_TABLE) are written as host words and read as uvec2 limbs, low
-   half first -- the whole record ABI is little-endian by construction. */
+   depth step) are written as host words and read as uvec2 limbs, low
+   half first, and seg_draw_t packs the FOG_TABLE bytes four to a word,
+   entry 0 lowest -- the whole record ABI is little-endian by
+   construction. */
 #    if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) \
         && __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
 #        error "rage128 GPU backend: the segment record ABI is little-endian only"
@@ -633,6 +635,8 @@ typedef struct seg_span_t {
     uint32_t drow, zrow;
 } seg_span_t;
 
+/* The values that change from one triangle to the next; draw indexes
+   the triangle's seg_draw_t. */
 typedef struct seg_tri_t {
     int64_t  e0dxi, e1dxi, e2dxi;
     int64_t  dZdx; /* per-pixel step of the fixed-point depth */
@@ -640,7 +644,24 @@ typedef struct seg_tri_t {
     int64_t  e0o, e1o, e2o;
     int64_t  e0dyi, e1dyi, e2dyi;
     int64_t  zo, dzy;
-    float    invs, lod_bias;
+    float    invs;
+    uint32_t draw;
+    float    vca[4], vcb[4], vcc[4];
+    float    sta, stb, stc, tta, ttb, ttc;
+    float    s2a, s2b, s2c, t2a, t2b, t2c;
+    float    arhw, brhw, crhw;
+    float    dSdx, dSdy, dTdx, dTdy, dWdx, dWdy;
+    float    dS2dx, dS2dy, dT2dx, dT2dy;
+    /* the secondary stage's own W per vertex and its screen gradients */
+    float    a2rhw, b2rhw, c2rhw, dW2dx, dW2dy;
+    float    spa[3], spb[3], spc[3];
+    float    fga, fgb, fgc;
+} seg_tri_t;
+
+/* The draw state the triangles of a draw share. A segment holds one
+   record per run of triangles with identical state (gpu_draw_append). */
+typedef struct seg_draw_t {
+    float    lod_bias;
     float    texw0, texh0, texw1, texh1;
     uint32_t zfn, z_wr;
     uint32_t atest_en, atest_fn, atest_ref;
@@ -648,17 +669,9 @@ typedef struct seg_tri_t {
     uint32_t aux_cntl;
     int32_t  aux_x0[3], aux_x1[3], aux_y0[3], aux_y1[3];
     float    cc[4];
-    float    vca[4], vcb[4], vcc[4];
-    float    sta, stb, stc, tta, ttb, ttc;
-    float    s2a, s2b, s2c, t2a, t2b, t2c;
-    float    arhw, brhw, crhw;
-    float    dSdx, dSdy, dTdx, dTdy, dWdx, dWdy;
-    float    dS2dx, dS2dy, dT2dx, dT2dy;
-    /* the secondary stage's own W per vertex and its screen gradients,
-       with its perspective enable and whether that W is the vertex
-       rhw2 (SEC_SRC_SEL_W); see sec_persp_diff and sel_w in
+    /* the secondary stage's perspective enable and whether its W is
+       the vertex rhw2 (SEC_SRC_SEL_W); see sec_persp_diff and sel_w in
        r3d_draw_state_derive */
-    float    a2rhw, b2rhw, c2rhw, dW2dx, dW2dy;
     uint32_t persp2, sel_w, stip_en;
     uint32_t sec_sel, need_lod2;
     int32_t  top0, top1;
@@ -668,24 +681,24 @@ typedef struct seg_tri_t {
     uint32_t slot1[44];
     uint32_t dst_dt, wmask, dither, persp;
     uint32_t zbpp, zshift, sten_ctl, sten_rm;
-    float    spa[3], spb[3], spc[3];
     uint32_t spec_en;
-    float    fga, fgb, fgc;
     float    fogr, fogg, fogb;
     uint32_t fog_en, ftab_en;
     uint32_t ck3d_clr, ck3d_msk, ckc_clr, ckc_msk;
     uint32_t ck_ctl, pal_base;
     uint32_t fog_table[64]; /* FOG_TABLE snapshot, packed little-endian */
     uint32_t stipple[32];
-} seg_tri_t;
+} seg_draw_t;
 
 _Static_assert(sizeof(seg_span_t) == 16, "span layout drift");
-_Static_assert(sizeof(seg_tri_t) == 1408, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, stip_en) == 396, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, stipple) == 1280, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, cc) == 204, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, st_cfg) == 416, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, slot0) == 544, "tri layout drift");
+_Static_assert(sizeof(seg_tri_t) == 320, "tri layout drift");
+_Static_assert(offsetof(seg_tri_t, vca) == 104, "tri layout drift");
+_Static_assert(offsetof(seg_tri_t, spa) == 272, "tri layout drift");
+_Static_assert(sizeof(seg_draw_t) == 1092, "draw layout drift");
+_Static_assert(offsetof(seg_draw_t, cc) == 104, "draw layout drift");
+_Static_assert(offsetof(seg_draw_t, st_cfg) == 148, "draw layout drift");
+_Static_assert(offsetof(seg_draw_t, slot0) == 276, "draw layout drift");
+_Static_assert(offsetof(seg_draw_t, stipple) == 964, "draw layout drift");
 /* The packed span fields: x0 and py in 14 bits (a scissor coordinate is
    14 bits wide, RRG: SC_BOTTOM_RIGHT, p. 3-162 / PDF 180, and the row
    cap covers the same range), the width less one in 8 bits (a span is
@@ -988,16 +1001,17 @@ typedef struct gpu_slot_t {
     atomic_int      fence_seen;
     VkQueryPool     tqpool;
     VkDescriptorSet dset;
-    r128_gpu_buf_t  b_rows, b_order, b_spans, b_tris, b_pal;
-    /* Device-local copies of the four record buffers, which the kernels
+    r128_gpu_buf_t  b_rows, b_order, b_spans, b_tris, b_draws, b_pal;
+    /* Device-local copies of the five record buffers, which the kernels
        read when the backend has them (rec_dev). The CPU builds and reads
        records in the host buffers above; each submit copies the bytes
        its segment used across (up_rows_b and up_ord_b: the row pairs and
-       slot words written; spans and triangles are counted in nspans and
-       ntris). Every lane of a workgroup reads its slot word, span and
-       triangle fields, so reading them over the bus from host memory
-       would cross it once per lane group instead of once per submit. */
-    r128_gpu_buf_t  d_rows, d_order, d_spans, d_tris;
+       slot words written; spans, triangles and draws are counted in
+       nspans, ntris and ndraws). Every lane of a workgroup reads its
+       slot word, span, triangle and draw fields, so reading them over the
+       bus from host memory would cross it once per lane group instead of
+       once per submit. */
+    r128_gpu_buf_t  d_rows, d_order, d_spans, d_tris, d_draws;
     uint32_t        up_rows_b, up_ord_b;
     /* the copy-queue batch that uploads them, ahead of the kernels */
     VkCommandBuffer ucb;
@@ -1220,7 +1234,11 @@ typedef struct r128_gpu_t {
     _Atomic uint64_t flip_seq;
 
     /* segment accumulation (CCE/submit thread) */
-    uint32_t nspans, ntris;
+    uint32_t nspans, ntris, ndraws;
+    /* The draw record last appended this segment (valid while ndraws is
+       nonzero). The comparison reads this copy, not the host buffer,
+       which may be write-combined memory that is slow to read back. */
+    seg_draw_t draw_last;
     /* deferred 2D solid fills, always recorded ahead of this segment's
        dispatches (a fill arriving with spans pending splits the segment
        first, so within any one submit every fill precedes every span) */
@@ -1485,6 +1503,8 @@ typedef struct r128_gpu_t {
        segment open (gpu_flush_body); st_segments counts them too */
     uint64_t st_segments, st_runs, st_spans, st_tris, st_fallback,
         st_flush[GF_CAUSES], st_carry;
+    /* draw records appended (seg_draw_t), against st_tris */
+    uint64_t st_draws;
     uint64_t st_verify_seg, st_verify_bad;
     int      rejects_logged;
     /* Reject-shape tally: one bump per FAILED predicate per rejected
@@ -5712,17 +5732,18 @@ static void
 gpu_disp_rec_upload(r128_gpu_t *g, gpu_slot_t *sl, int xq,
                     const VkCommandBufferBeginInfo *bi)
 {
-    const VkDeviceSize    sz[4] = { sl->up_rows_b, sl->up_ord_b,
+    const VkDeviceSize    sz[5] = { sl->up_rows_b, sl->up_ord_b,
                                     (VkDeviceSize) g->nspans * sizeof(seg_span_t),
-                                    (VkDeviceSize) g->ntris * sizeof(seg_tri_t) };
-    const r128_gpu_buf_t *hs[4] = { &sl->b_rows, &sl->b_order, &sl->b_spans,
-                                    &sl->b_tris };
-    const r128_gpu_buf_t *ds[4] = { &sl->d_rows, &sl->d_order, &sl->d_spans,
-                                    &sl->d_tris };
+                                    (VkDeviceSize) g->ntris * sizeof(seg_tri_t),
+                                    (VkDeviceSize) g->ndraws * sizeof(seg_draw_t) };
+    const r128_gpu_buf_t *hs[5] = { &sl->b_rows, &sl->b_order, &sl->b_spans,
+                                    &sl->b_tris, &sl->b_draws };
+    const r128_gpu_buf_t *ds[5] = { &sl->d_rows, &sl->d_order, &sl->d_spans,
+                                    &sl->d_tris, &sl->d_draws };
     VkCommandBuffer       cb    = xq ? sl->ucb : sl->cb;
     int                   any   = 0;
 
-    for (int i = 0; i < 4; i++) {
+    for (int i = 0; i < 5; i++) {
         VkBufferCopy c = { 0, 0, sz[i] };
 
         if (!sz[i])
@@ -5953,6 +5974,7 @@ gpu_accum_drop_3d(r128_gpu_t *g)
 {
     g->nspans          = 0;
     g->ntris           = 0;
+    g->ndraws          = 0;
     g->nruns           = 0;
     g->ntexq           = 0;
     g->texq_ovf        = 0;
@@ -6511,17 +6533,37 @@ gpu_edge32_span(int64_t e, int64_t dx, int32_t n)
         && last >= INT32_MIN && last <= INT32_MAX;
 }
 
+/* Append dr to the build slot's draw records unless it equals the last
+   one appended this segment, and return its index. A segment never
+   holds more draws than triangles, so the triangle cap bounds the
+   count. */
+static uint32_t
+gpu_draw_append(r128_gpu_t *g, const seg_draw_t *dr)
+{
+    if (g->ndraws && !memcmp(dr, &g->draw_last, sizeof(*dr)))
+        return g->ndraws - 1;
+    memcpy(&((seg_draw_t *) g->slot[g->build_slot].b_draws.map)[g->ndraws], dr,
+           sizeof(*dr));
+    g->draw_last = *dr;
+    g->st_draws++;
+    return g->ndraws++;
+}
+
 /* First span of a triangle: write its seg_tri_t record into the build
-   slot from the JIT tri record, the draw state and the texture context. */
-static seg_tri_t *
+   slot from the JIT tri record and the texture context, and its draw
+   state into a seg_draw_t (shared with the previous triangle when the
+   two match). Returns the draw record. */
+static const seg_draw_t *
 capture_tri_record(r128_gpu_t *g, rage128_t *dev, const r3d_texctx_t *tc,
                    const r128_jit_tri_t *tri)
 {
     const rage128_draw_state_t *d = &tc->rs->d;
     seg_tri_t                  *tt;
+    seg_draw_t                  dr_rec;
+    seg_draw_t                 *dr = &dr_rec;
 
     tt = &((seg_tri_t *) g->slot[g->build_slot].b_tris.map)[g->ntris];
-    memset(tt, 0, sizeof(*tt));
+    memset(dr, 0, sizeof(*dr));
     tt->e0dxi = tri->e0dxi;
     tt->e1dxi = tri->e1dxi;
     tt->e2dxi = tri->e2dxi;
@@ -6540,37 +6582,76 @@ capture_tri_record(r128_gpu_t *g, rage128_t *dev, const r3d_texctx_t *tc,
     tt->e2dyi = tri->e2dyi;
     tt->zo    = tri->zo;
     tt->dzy   = tri->dzy;
-    tt->invs     = tri->invs;
-    tt->lod_bias = d->lod_bias;
-    tt->texw0    = d->texw0;
-    tt->texh0    = d->texh0;
-    tt->texw1    = d->texw1;
-    tt->texh1    = d->texh1;
-    /* With z off (a stencil-only draw, for one) the cell is still
-       visited, so the depth compare is set to always pass (7) and the
-       depth field is not written. */
-    tt->zfn    = d->z_en ? d->zfn : 7;
-    tt->z_wr   = (d->z_en && d->z_wr) ? 1 : 0;
-    tt->zbpp   = (uint32_t) d->zbpp;
-    tt->zshift = (uint32_t) d->zshift;
-    if (d->sten_on) {
-        tt->sten_ctl = 1u | (d->sfn << 4) | (d->sfail_op << 8)
-            | (d->zpass_op << 12) | (d->zfail_op << 16);
-        tt->sten_rm = d->sref | (d->svmask << 8) | (d->swmask << 16);
-    }
-    tt->dst_dt  = d->dst_dt;
-    tt->wmask   = d->wmask;
-    tt->dither  = d->dither ? 1 : 0;
-    tt->persp   = (d->do_persp ? 1u : 0u)
-        | ((d->sec_en && !d->tex_en) ? 2u : 0u);
-    tt->spec_en = d->spec_en ? 1 : 0;
+    tt->invs  = tri->invs;
+    memcpy(tt->vca, tri->vca, sizeof(tt->vca));
+    memcpy(tt->vcb, tri->vcb, sizeof(tt->vcb));
+    memcpy(tt->vcc, tri->vcc, sizeof(tt->vcc));
+    tt->sta   = tc->sta;
+    tt->stb   = tc->stb;
+    tt->stc   = tc->stc;
+    tt->tta   = tc->tta;
+    tt->ttb   = tc->ttb;
+    tt->ttc   = tc->ttc;
+    tt->s2a   = tc->s2a;
+    tt->s2b   = tc->s2b;
+    tt->s2c   = tc->s2c;
+    tt->t2a   = tc->t2a;
+    tt->t2b   = tc->t2b;
+    tt->t2c   = tc->t2c;
+    tt->arhw  = tc->arhw;
+    tt->brhw  = tc->brhw;
+    tt->crhw  = tc->crhw;
+    tt->dSdx  = tc->dSdx;
+    tt->dSdy  = tc->dSdy;
+    tt->dTdx  = tc->dTdx;
+    tt->dTdy  = tc->dTdy;
+    tt->dWdx  = tc->dWdx;
+    tt->dWdy  = tc->dWdy;
+    tt->dS2dx = tc->dS2dx;
+    tt->dS2dy = tc->dS2dy;
+    tt->dT2dx = tc->dT2dx;
+    tt->dT2dy = tc->dT2dy;
+    tt->a2rhw = tc->a2rhw;
+    tt->b2rhw = tc->b2rhw;
+    tt->c2rhw = tc->c2rhw;
+    tt->dW2dx = tc->dW2dx;
+    tt->dW2dy = tc->dW2dy;
     memcpy(tt->spa, tri->spa, sizeof(tt->spa));
     memcpy(tt->spb, tri->spb, sizeof(tt->spb));
     memcpy(tt->spc, tri->spc, sizeof(tt->spc));
-    tt->fog_en  = d->fog_en ? 1 : 0;
-    tt->ftab_en = (d->fog_en && d->fog_table_en) ? 1 : 0;
-    if (tt->ftab_en)
-        memcpy(tt->fog_table, tc->rs->t3d.fog_table, 256);
+    tt->fga   = tri->fog[0];
+    tt->fgb   = tri->fog[1];
+    tt->fgc   = tri->fog[2];
+
+    /* The draw record. The memset above zeroes every field a branch
+       below skips, so two draws with the same state compare equal. */
+    dr->lod_bias = d->lod_bias;
+    dr->texw0    = d->texw0;
+    dr->texh0    = d->texh0;
+    dr->texw1    = d->texw1;
+    dr->texh1    = d->texh1;
+    /* With z off (a stencil-only draw, for one) the cell is still
+       visited, so the depth compare is set to always pass (7) and the
+       depth field is not written. */
+    dr->zfn    = d->z_en ? d->zfn : 7;
+    dr->z_wr   = (d->z_en && d->z_wr) ? 1 : 0;
+    dr->zbpp   = (uint32_t) d->zbpp;
+    dr->zshift = (uint32_t) d->zshift;
+    if (d->sten_on) {
+        dr->sten_ctl = 1u | (d->sfn << 4) | (d->sfail_op << 8)
+            | (d->zpass_op << 12) | (d->zfail_op << 16);
+        dr->sten_rm = d->sref | (d->svmask << 8) | (d->swmask << 16);
+    }
+    dr->dst_dt  = d->dst_dt;
+    dr->wmask   = d->wmask;
+    dr->dither  = d->dither ? 1 : 0;
+    dr->persp   = (d->do_persp ? 1u : 0u)
+        | ((d->sec_en && !d->tex_en) ? 2u : 0u);
+    dr->spec_en = d->spec_en ? 1 : 0;
+    dr->fog_en  = d->fog_en ? 1 : 0;
+    dr->ftab_en = (d->fog_en && d->fog_table_en) ? 1 : 0;
+    if (dr->ftab_en)
+        memcpy(dr->fog_table, tc->rs->t3d.fog_table, 256);
     /* CI4/CI8: copy the draw's palette into the slot's palette arena,
        from the rs copy so a verify replay reads the same entries; reuse
        the last copy while tex_pal_gen is unchanged. gpu_submit_prim
@@ -6583,124 +6664,89 @@ capture_tri_record(r128_gpu_t *g, rage128_t *dev, const r3d_texctx_t *tc,
             g->pal_up_gen = dev->tex_pal_gen;
             g->npal++;
         }
-        tt->pal_base = (g->npal - 1) * 256;
+        dr->pal_base = (g->npal - 1) * 256;
     }
-    tt->fga  = tri->fog[0];
-    tt->fgb  = tri->fog[1];
-    tt->fgc  = tri->fog[2];
-    tt->fogr = d->fogr;
-    tt->fogg = d->fogg;
-    tt->fogb = d->fogb;
+    dr->fogr = d->fogr;
+    dr->fogg = d->fogg;
+    dr->fogb = d->fogb;
     /* the color key values and masks are set up only for a textured
        draw; for any other draw the memset above left ck_ctl 0 (keying
        off) */
     if (d->tex_en && d->need_ck) {
-        tt->ck_ctl = (d->ck3d_on ? 1u : 0u) | (d->ckc_on ? 2u : 0u)
+        dr->ck_ctl = (d->ck3d_on ? 1u : 0u) | (d->ckc_on ? 2u : 0u)
             | (d->ckfn == 3 ? 4u : 0u);
-        tt->ck3d_clr = d->ck3d_clr;
-        tt->ck3d_msk = d->ck3d_msk;
-        tt->ckc_clr  = d->ckc_clr;
-        tt->ckc_msk  = d->ckc_msk;
+        dr->ck3d_clr = d->ck3d_clr;
+        dr->ck3d_msk = d->ck3d_msk;
+        dr->ckc_clr  = d->ckc_clr;
+        dr->ckc_msk  = d->ckc_msk;
     }
-    tt->atest_en  = d->atest_en ? 1 : 0;
-    tt->atest_fn  = d->atest_fn;
-    tt->atest_ref = d->atest_ref;
-    tt->bsrc      = d->bsrc;
-    tt->bdst      = d->bdst;
-    tt->bfcn      = d->bfcn;
-    tt->stip_en   = d->stip_en ? 1 : 0;
-    if (tt->stip_en)
-        memcpy(tt->stipple, tc->rs->stipple, sizeof(tt->stipple));
-    tt->aux_cntl  = d->aux_on ? d->aux_cntl : 0;
-    memcpy(tt->aux_x0, d->aux_x0, sizeof(tt->aux_x0));
-    memcpy(tt->aux_x1, d->aux_x1, sizeof(tt->aux_x1));
-    memcpy(tt->aux_y0, d->aux_y0, sizeof(tt->aux_y0));
-    memcpy(tt->aux_y1, d->aux_y1, sizeof(tt->aux_y1));
-    memcpy(tt->cc, d->cc, sizeof(tt->cc));
-    memcpy(tt->vca, tri->vca, sizeof(tt->vca));
-    memcpy(tt->vcb, tri->vcb, sizeof(tt->vcb));
-    memcpy(tt->vcc, tri->vcc, sizeof(tt->vcc));
-    tt->sta       = tc->sta;
-    tt->stb       = tc->stb;
-    tt->stc       = tc->stc;
-    tt->tta       = tc->tta;
-    tt->ttb       = tc->ttb;
-    tt->ttc       = tc->ttc;
-    tt->s2a       = tc->s2a;
-    tt->s2b       = tc->s2b;
-    tt->s2c       = tc->s2c;
-    tt->t2a       = tc->t2a;
-    tt->t2b       = tc->t2b;
-    tt->t2c       = tc->t2c;
-    tt->arhw      = tc->arhw;
-    tt->brhw      = tc->brhw;
-    tt->crhw      = tc->crhw;
-    tt->dSdx      = tc->dSdx;
-    tt->dSdy      = tc->dSdy;
-    tt->dTdx      = tc->dTdx;
-    tt->dTdy      = tc->dTdy;
-    tt->dWdx      = tc->dWdx;
-    tt->dWdy      = tc->dWdy;
-    tt->dS2dx     = tc->dS2dx;
-    tt->dS2dy     = tc->dS2dy;
-    tt->dT2dx     = tc->dT2dx;
-    tt->dT2dy     = tc->dT2dy;
-    tt->a2rhw     = tc->a2rhw;
-    tt->b2rhw     = tc->b2rhw;
-    tt->c2rhw     = tc->c2rhw;
-    tt->dW2dx     = tc->dW2dx;
-    tt->dW2dy     = tc->dW2dy;
-    tt->persp2    = (d->do_persp ^ d->sec_persp_diff) ? 1 : 0;
-    tt->sel_w     = d->sel_w ? 1 : 0;
-    tt->sec_sel   = d->sec_sel ? 1 : 0;
-    tt->need_lod2 = d->need_lod2 ? 1 : 0;
-    tt->top0      = d->sh[0].top;
-    tt->top1      = d->sh[1].top;
+    dr->atest_en  = d->atest_en ? 1 : 0;
+    dr->atest_fn  = d->atest_fn;
+    dr->atest_ref = d->atest_ref;
+    dr->bsrc      = d->bsrc;
+    dr->bdst      = d->bdst;
+    dr->bfcn      = d->bfcn;
+    dr->stip_en   = d->stip_en ? 1 : 0;
+    if (dr->stip_en)
+        memcpy(dr->stipple, tc->rs->stipple, sizeof(dr->stipple));
+    dr->aux_cntl  = d->aux_on ? d->aux_cntl : 0;
+    memcpy(dr->aux_x0, d->aux_x0, sizeof(dr->aux_x0));
+    memcpy(dr->aux_x1, d->aux_x1, sizeof(dr->aux_x1));
+    memcpy(dr->aux_y0, d->aux_y0, sizeof(dr->aux_y0));
+    memcpy(dr->aux_y1, d->aux_y1, sizeof(dr->aux_y1));
+    memcpy(dr->cc, d->cc, sizeof(dr->cc));
+    dr->persp2    = (d->do_persp ^ d->sec_persp_diff) ? 1 : 0;
+    dr->sel_w     = d->sel_w ? 1 : 0;
+    dr->sec_sel   = d->sec_sel ? 1 : 0;
+    dr->need_lod2 = d->need_lod2 ? 1 : 0;
+    dr->top0      = d->sh[0].top;
+    dr->top1      = d->sh[1].top;
     for (int st = 0; st < 2; st++) {
         const r3d_stage_hdr_t *h = &d->sh[st];
 
-        tt->st_cfg[st * 8 + 0]   = h->dt | (h->aone ? 0x10u : 0u); /* 0x16 = opaque 8888 */
-        tt->st_cfg[st * 8 + 1]   = h->s3tc;
-        tt->st_cfg[st * 8 + 2]   = h->clamp_s;
-        tt->st_cfg[st * 8 + 3]   = h->clamp_t;
-        tt->st_cfg[st * 8 + 4]   = h->border;
-        tt->st_cfg[st * 8 + 5]   = h->minb;
-        tt->st_cfg[st * 8 + 6]   = h->mag;
-        tt->st_cfg[st * 8 + 7]   = h->mipdis ? 1 : 0;
-        tt->comb_cfg[st * 8 + 0] = d->comb[st].comb;
-        tt->comb_cfg[st * 8 + 1] = d->comb[st].fmsb;
-        tt->comb_cfg[st * 8 + 2] = d->comb[st].cfac;
-        tt->comb_cfg[st * 8 + 3] = d->comb[st].ifac;
-        tt->comb_cfg[st * 8 + 4] = d->comb[st].comba;
-        tt->comb_cfg[st * 8 + 5] = d->comb[st].afac;
-        tt->comb_cfg[st * 8 + 6] = d->comb[st].ifaca;
+        dr->st_cfg[st * 8 + 0]   = h->dt | (h->aone ? 0x10u : 0u); /* 0x16 = opaque 8888 */
+        dr->st_cfg[st * 8 + 1]   = h->s3tc;
+        dr->st_cfg[st * 8 + 2]   = h->clamp_s;
+        dr->st_cfg[st * 8 + 3]   = h->clamp_t;
+        dr->st_cfg[st * 8 + 4]   = h->border;
+        dr->st_cfg[st * 8 + 5]   = h->minb;
+        dr->st_cfg[st * 8 + 6]   = h->mag;
+        dr->st_cfg[st * 8 + 7]   = h->mipdis ? 1 : 0;
+        dr->comb_cfg[st * 8 + 0] = d->comb[st].comb;
+        dr->comb_cfg[st * 8 + 1] = d->comb[st].fmsb;
+        dr->comb_cfg[st * 8 + 2] = d->comb[st].cfac;
+        dr->comb_cfg[st * 8 + 3] = d->comb[st].ifac;
+        dr->comb_cfg[st * 8 + 4] = d->comb[st].comba;
+        dr->comb_cfg[st * 8 + 5] = d->comb[st].afac;
+        dr->comb_cfg[st * 8 + 6] = d->comb[st].ifaca;
     }
     /* texture-lighting word in stage 0's spare slot: the unfolded
-       pipelines read it per tri, the folded ones pin it (C_LIGHT) */
-    tt->comb_cfg[7] = d->light_on
+       pipelines read it per draw, the folded ones pin it (C_LIGHT) */
+    dr->comb_cfg[7] = d->light_on
         ? (d->lcomb.comb | (d->lcomb.fmsb << 4) | (d->lcomb.comba << 5))
         : 0u;
     if (d->tex_en)
         for (int sl = 0; sl <= d->sh[0].top; sl++) {
-            tt->slot0[sl * 4 + 0] = tc->sd0.slot[sl].lw;
-            tt->slot0[sl * 4 + 1] = tc->sd0.slot[sl].lh;
-            tt->slot0[sl * 4 + 2] = gpu_slot_base_pack(g, dev, &tc->sd0.slot[sl]);
-            tt->slot0[sl * 4 + 3] = tc->sd0.slot[sl].mask;
+            dr->slot0[sl * 4 + 0] = tc->sd0.slot[sl].lw;
+            dr->slot0[sl * 4 + 1] = tc->sd0.slot[sl].lh;
+            dr->slot0[sl * 4 + 2] = gpu_slot_base_pack(g, dev, &tc->sd0.slot[sl]);
+            dr->slot0[sl * 4 + 3] = tc->sd0.slot[sl].mask;
         }
     if (d->sec_en)
         for (int sl = 0; sl <= d->sh[1].top; sl++) {
-            tt->slot1[sl * 4 + 0] = tc->sd1.slot[sl].lw;
-            tt->slot1[sl * 4 + 1] = tc->sd1.slot[sl].lh;
-            tt->slot1[sl * 4 + 2] = gpu_slot_base_pack(g, dev, &tc->sd1.slot[sl]);
-            tt->slot1[sl * 4 + 3] = tc->sd1.slot[sl].mask;
+            dr->slot1[sl * 4 + 0] = tc->sd1.slot[sl].lw;
+            dr->slot1[sl * 4 + 1] = tc->sd1.slot[sl].lh;
+            dr->slot1[sl * 4 + 2] = gpu_slot_base_pack(g, dev, &tc->sd1.slot[sl]);
+            dr->slot1[sl * 4 + 3] = tc->sd1.slot[sl].mask;
         }
-    return tt;
+    tt->draw = gpu_draw_append(g, dr);
+    return &g->draw_last;
 }
 
 /* Per-triangle coverage counters (the close-time stats printer). */
 static void
 capture_tri_coverage(r128_gpu_t *g, const r3d_texctx_t *tc,
-                     const rage128_draw_state_t *d, const seg_tri_t *tt)
+                     const rage128_draw_state_t *d, const seg_draw_t *dr)
 {
     uint32_t full = (d->dst_dt == 6) ? 0xffffffffu : 0xffffu;
 
@@ -6734,9 +6780,9 @@ capture_tri_coverage(r128_gpu_t *g, const r3d_texctx_t *tc,
         int smip = 0;
 
         for (int sl = 0; sl <= d->sh[0].top && d->tex_en; sl++)
-            smip |= (tt->slot0[sl * 4 + 2] & 0x80000000u) != 0;
+            smip |= (dr->slot0[sl * 4 + 2] & 0x80000000u) != 0;
         for (int sl = 0; sl <= d->sh[1].top && d->sec_en; sl++)
-            smip |= (tt->slot1[sl * 4 + 2] & 0x80000000u) != 0;
+            smip |= (dr->slot1[sl * 4 + 2] & 0x80000000u) != 0;
         g->st_cov_smip += smip;
     }
     if (tc->rs->c_staged || tc->rs->z_staged) {
@@ -7116,11 +7162,11 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
 
     if (g->cur_tri < 0) {
         const rage128_draw_state_t *d  = &tc->rs->d;
-        const seg_tri_t            *tt = capture_tri_record(g, dev, tc, tri);
+        const seg_draw_t           *dr = capture_tri_record(g, dev, tc, tri);
 
         g->cur_tri = (int32_t) g->ntris++;
         g->st_tris++;
-        capture_tri_coverage(g, tc, d, tt);
+        capture_tri_coverage(g, tc, d, dr);
         capture_run_open(g);
         capture_run_texrange(g, dev, tc, d);
     }
@@ -11149,11 +11195,12 @@ gpu_slot_bufs_create(r128_gpu_t *g)
                            GPU_SPAN_CAP * GPU_BATCH_SLOTS * sizeof(uint32_t), hu)
             || !gpu_mk_buf(g, &sl->b_spans, GPU_SPAN_CAP * sizeof(seg_span_t), hu)
             || !gpu_mk_buf(g, &sl->b_tris, GPU_TRI_CAP * sizeof(seg_tri_t), hu)
+            || !gpu_mk_buf(g, &sl->b_draws, GPU_TRI_CAP * sizeof(seg_draw_t), hu)
             || !gpu_mk_buf(g, &sl->b_pal, GPU_PAL_CAP * 256 * sizeof(uint32_t),
                            VK_BUFFER_USAGE_STORAGE_BUFFER_BIT))
             return "segment buffer allocation failed";
     }
-    /* The device-local record copies, about 20 MB per slot. Not fatal:
+    /* The device-local record copies, about 17 MB per slot. Not fatal:
        on a device without the room the kernels read the host buffers. */
     g->rec_dev = 1;
     for (unsigned i = 0; g->rec_dev && i < GPU_RING_SLOTS; i++) {
@@ -11163,16 +11210,17 @@ gpu_slot_bufs_create(r128_gpu_t *g)
             || !gpu_mk_dbuf(g, &sl->d_order,
                             GPU_SPAN_CAP * GPU_BATCH_SLOTS * sizeof(uint32_t), du)
             || !gpu_mk_dbuf(g, &sl->d_spans, GPU_SPAN_CAP * sizeof(seg_span_t), du)
-            || !gpu_mk_dbuf(g, &sl->d_tris, GPU_TRI_CAP * sizeof(seg_tri_t), du))
+            || !gpu_mk_dbuf(g, &sl->d_tris, GPU_TRI_CAP * sizeof(seg_tri_t), du)
+            || !gpu_mk_dbuf(g, &sl->d_draws, GPU_TRI_CAP * sizeof(seg_draw_t), du))
             g->rec_dev = 0;
     }
     if (!g->rec_dev) {
         for (unsigned i = 0; i < GPU_RING_SLOTS; i++) {
             gpu_slot_t     *sl     = &g->slot[i];
-            r128_gpu_buf_t *bfs[4] = { &sl->d_rows, &sl->d_order, &sl->d_spans,
-                                       &sl->d_tris };
+            r128_gpu_buf_t *bfs[5] = { &sl->d_rows, &sl->d_order, &sl->d_spans,
+                                       &sl->d_tris, &sl->d_draws };
 
-            for (int k = 0; k < 4; k++) {
+            for (int k = 0; k < 5; k++) {
                 if (bfs[k]->b)
                     vkDestroyBuffer(g->dev, bfs[k]->b, NULL);
                 if (bfs[k]->m)
@@ -11514,6 +11562,7 @@ gpu_dsets_create(r128_gpu_t *g)
             const r128_gpu_buf_t  *ro            = g->rec_dev ? &sl->d_order : &sl->b_order;
             const r128_gpu_buf_t  *rs            = g->rec_dev ? &sl->d_spans : &sl->b_spans;
             const r128_gpu_buf_t  *rt            = g->rec_dev ? &sl->d_tris : &sl->b_tris;
+            const r128_gpu_buf_t  *rd            = g->rec_dev ? &sl->d_draws : &sl->b_draws;
             VkDescriptorBufferInfo bi[GPU_NBIND] = {
                 { vb,                                          0, VK_WHOLE_SIZE },
                 { vb,                                          0, VK_WHOLE_SIZE },
@@ -11521,9 +11570,7 @@ gpu_dsets_create(r128_gpu_t *g)
                 { ro->b,                                       0, VK_WHOLE_SIZE },
                 { rs->b,                                       0, VK_WHOLE_SIZE },
                 { rt->b,                                       0, VK_WHOLE_SIZE },
-                /* binding 6 is not read by any kernel; a valid buffer
-                   keeps the set complete without renumbering 7..12 */
-                { rt->b,                                       0, VK_WHOLE_SIZE },
+                { rd->b,                                       0, VK_WHOLE_SIZE },
                 { g->stage_ok ? g->stage_buf : g->vram_buf,    0, VK_WHOLE_SIZE },
                 { sl->b_pal.b,                                 0, VK_WHOLE_SIZE },
                 /* staged color and z arenas, a 16-bit view and a word
@@ -11999,8 +12046,9 @@ gpu_close_threads(r128_gpu_t *g)
 static void
 gpu_stats_core(rage128_t *dev, r128_gpu_t *g)
 {
-    gpu_log("RAGE128 GPU: records: %s, uploaded %llu bytes\n",
-            g->rec_dev ? "device-local" : "host", (unsigned long long) g->rec_up_bytes);
+    gpu_log("RAGE128 GPU: records: %s, uploaded %llu bytes, draws=%llu\n",
+            g->rec_dev ? "device-local" : "host", (unsigned long long) g->rec_up_bytes,
+            (unsigned long long) g->st_draws);
     gpu_log("RAGE128 GPU: carry: submits=%llu\n",
             (unsigned long long) g->st_carry);
     gpu_log("RAGE128 GPU: close: segments=%llu runs=%llu spans=%llu tris=%llu fallback_draws=%llu"
@@ -12639,12 +12687,13 @@ gpu_close_vk(r128_gpu_t *g)
     vkDestroyDescriptorSetLayout(g->dev, g->dsl, NULL);
     for (unsigned s = 0; s < GPU_RING_SLOTS; s++) {
         gpu_slot_t     *sl      = &g->slot[s];
-        r128_gpu_buf_t *bufs[9] = { &sl->b_rows, &sl->b_order, &sl->b_spans,
-                                    &sl->b_tris, &sl->b_pal, &sl->d_rows,
-                                    &sl->d_order, &sl->d_spans, &sl->d_tris };
+        r128_gpu_buf_t *bufs[11] = { &sl->b_rows, &sl->b_order, &sl->b_spans,
+                                     &sl->b_tris, &sl->b_draws, &sl->b_pal,
+                                     &sl->d_rows, &sl->d_order, &sl->d_spans,
+                                     &sl->d_tris, &sl->d_draws };
 
         /* the device-local copies are null handles without rec_dev */
-        for (int i = 0; i < 9; i++) {
+        for (int i = 0; i < 11; i++) {
             vkDestroyBuffer(g->dev, bufs[i]->b, NULL);
             vkFreeMemory(g->dev, bufs[i]->m, NULL);
         }
