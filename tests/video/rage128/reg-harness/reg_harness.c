@@ -59,6 +59,9 @@ extern int      harness_ticks_override;
 extern uint32_t harness_ticks_ms;
 extern uint64_t harness_sysmem_stray;
 extern uint64_t harness_irq_offthread;
+extern uint64_t harness_svga_offthread;
+extern uint64_t harness_svga_recalc_calls;
+extern uint64_t harness_svga_ramdac_calls;
 extern void     harness_ram_alloc(void);
 extern void     harness_video_luts_init(void);
 extern uint8_t (*harness_pci_read)(int func, int addr, int len, void *priv);
@@ -5773,6 +5776,117 @@ vectors_cce_gen_int(rage128_t *dev)
     rr_reset(dev);
     wr(dev, RAGE128_PCI_GART_PAGE, 1);
     pci_wr8(0x04, 0x03);
+}
+
+/* Display registers written by packets. The register value must change
+   when the packet runs, but the svga core calls (the timing
+   recalculation, the RAMDAC type) and the snapshot, which reads the
+   line timer, must run on the CPU thread: at its next register read or
+   at the next ring pump. harness_svga_offthread counts core calls made
+   off the CPU thread; a snapshot run on the CCE thread is seen by the
+   interrupt line it leaves stale. */
+static void
+vectors_cce_display(rage128_t *dev)
+{
+    svga_t   *svga     = &dev->svga;
+    uint32_t *tbl      = (uint32_t *) (ram + GART_TABLE_PHYS);
+    uint32_t *ring     = (uint32_t *) (ram + RING_PHYS);
+    uint32_t  gen_save = rd(dev, RAGE128_CRTC_GEN_CNTL);
+    uint32_t  htd_save = rd(dev, RAGE128_CRTC_H_TOTAL_DISP);
+    uint32_t  vss_save = rd(dev, RAGE128_CRTC_V_SYNC_STRT_WID);
+    uint32_t  dac_save = rd(dev, RAGE128_DAC_CNTL);
+    uint32_t  pkt[2];
+    uint64_t  off0;
+    uint64_t  calls0;
+
+    harness_ram_alloc();
+    harness_sysmem_stray = 0;
+    rr_reset(dev);
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save | RAGE128_CRTC_EXT_DISP_EN | RAGE128_CRTC_EN);
+    wr(dev, RAGE128_GEN_INT_CNTL, 0);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_ACK_MASK);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x70000000);
+    wr(dev, RAGE128_PM4_MICRO_CNTL, 0x40000000);
+    off0 = harness_svga_offthread;
+
+    /* A CRTC timing register: 31 character clocks per line, 8 shown. */
+    calls0 = harness_svga_recalc_calls;
+    pkt[0] = RAGE128_CRTC_H_TOTAL_DISP >> 2;
+    pkt[1] = (7u << 16) | 30u;
+    pio_submit(dev, pkt, 2);
+    rr_quiesce(dev);
+    check32("cce display: a packet write of CRTC_H_TOTAL_DISP lands",
+            rd(dev, RAGE128_CRTC_H_TOTAL_DISP), (7u << 16) | 30u);
+    check32("cce display: its recalculation runs on the CPU thread by the next register read",
+            (uint32_t) (harness_svga_recalc_calls - calls0), 1);
+    check32("cce display: the recalculated line is 31 character clocks",
+            (uint32_t) svga->htotal, 31);
+
+    /* DAC_CNTL: the RAMDAC width goes to the svga core. */
+    calls0 = harness_svga_ramdac_calls;
+    pkt[0] = RAGE128_DAC_CNTL >> 2;
+    pkt[1] = dac_save ^ RAGE128_DAC_8BIT_EN;
+    pio_submit(dev, pkt, 2);
+    rr_quiesce(dev);
+    check32("cce display: a packet write of DAC_CNTL lands",
+            rd(dev, RAGE128_DAC_CNTL) & RAGE128_DAC_8BIT_EN,
+            (dac_save ^ RAGE128_DAC_8BIT_EN) & RAGE128_DAC_8BIT_EN);
+    check32("cce display: the RAMDAC width is set on the CPU thread by the next register read",
+            (uint32_t) (harness_svga_ramdac_calls - calls0), 1);
+
+    /* MANUAL_SNAPSHOT_NOW from a packet: the capture is taken on the CPU
+       thread, at the raster position set here. */
+    svga->displine = 100;
+    svga->linepos  = 0;
+    pkt[0] = RAGE128_SNAPSHOT_VIF_COUNT >> 2;
+    pkt[1] = 1u << 25;
+    pio_submit(dev, pkt, 2);
+    rr_quiesce(dev);
+    check32("cce display: no snapshot was taken on the CCE thread",
+            (uint32_t) atomic_load(&dev->gen_int_stale), 0);
+    check32("cce display: the packet snapshot captures V and H counts",
+            rd(dev, RAGE128_SNAPSHOT_VH_COUNTS), (100u << 16) | 8u);
+    check32("cce display: the packet snapshot latches SNAPSHOT_INT",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_SNAPSHOT, RAGE128_GIS_SNAPSHOT);
+    check32("cce display: SNAPSHOT_VIF_COUNT holds the packet's write",
+            rd(dev, RAGE128_SNAPSHOT_VIF_COUNT), 1u << 25);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_SNAPSHOT);
+    wr(dev, RAGE128_SNAPSHOT_VIF_COUNT, 0);
+
+    /* Ring: the pump brings the timing up to date with no register read
+       in between. */
+    rr_reset(dev);
+    memset(ram + GART_TABLE_PHYS, 0, 0x1000);
+    memset(ram + RING_PHYS, 0, 0x1000);
+    tbl[RING_CARD_ADDR >> 12] = RING_PHYS;
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    gart_table_on(dev, GART_TABLE_PHYS);
+    wr(dev, RAGE128_AGP_BASE, 0);
+    wr(dev, RAGE128_PM4_BUFFER_OFFSET, RING_CARD_ADDR);
+    ring[0] = RAGE128_CRTC_V_SYNC_STRT_WID >> 2;
+    ring[1] = vss_save ^ 1u;
+    calls0  = harness_svga_recalc_calls;
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x80000003);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 2);
+    rr_quiesce(dev);
+    rage128_pm4_kick(dev);
+    check32("cce display: a ring timing write is recalculated by the next pump",
+            (uint32_t) (harness_svga_recalc_calls - calls0), 1);
+    check32("cce display: the ring write lands",
+            rd(dev, RAGE128_CRTC_V_SYNC_STRT_WID), vss_save ^ 1u);
+
+    check32("cce display: no svga core call was made off the CPU thread",
+            (uint32_t) (harness_svga_offthread - off0), 0);
+    check_true("cce display: no stray bus-master access", harness_sysmem_stray == 0);
+
+    rr_reset(dev);
+    wr(dev, RAGE128_PCI_GART_PAGE, 1);
+    pci_wr8(0x04, 0x03);
+    wr(dev, RAGE128_CRTC_V_SYNC_STRT_WID, vss_save);
+    wr(dev, RAGE128_CRTC_H_TOTAL_DISP, htd_save);
+    wr(dev, RAGE128_DAC_CNTL, dac_save);
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save);
 }
 
 /* ------------------------------------------------------------------ */
@@ -13685,6 +13799,7 @@ run_agp_32mb(void)
     vectors_ring_size_encode(dev);
     vectors_pio_ingress(dev);
     vectors_cce_gen_int(dev);
+    vectors_cce_display(dev);
     vectors_bm_chunk_tap(dev);
     vectors_modeset_tap(dev);
     vectors_early_arms(dev);

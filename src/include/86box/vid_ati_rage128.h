@@ -507,6 +507,8 @@ typedef struct rage128_t {
     atomic_uint gen_int_status; /* latched events (write 1 to ack)      */
     atomic_int  gen_int_stale;  /* INTA not yet re-evaluated after a
                                    change made on the CCE thread        */
+    atomic_uint disp_defer;     /* display work a packet requested on the
+                                   CCE thread, for the CPU thread to run */
     uint8_t     irq_state;      /* PCI INTA assert shadow (pci_set_irq) */
 
     /* For each register-file dword, the block whose handler takes a
@@ -2090,6 +2092,7 @@ extern void     rage128_conv_close(rage128_t *dev);
 extern void     rage128_vline_timer(void *priv);
 extern void     rage128_gen_int_update(rage128_t *dev);
 extern void     rage128_gen_int_sync(rage128_t *dev);
+extern void     rage128_display_sync(rage128_t *dev);
 extern void     rage128_gen_int_vblank(rage128_t *dev);
 extern void     rage128_gen_int_vsync(rage128_t *dev);
 

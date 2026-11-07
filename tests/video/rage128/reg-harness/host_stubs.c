@@ -459,6 +459,24 @@ static pthread_t harness_cpu_thread;
 static int       harness_cpu_thread_set;
 uint64_t         harness_irq_offthread;
 
+/* The svga core belongs to the emulation thread as well: its timing
+   state is read by the line poll, which takes no lock. Every call into
+   it made from another thread is counted the same way, and the calls
+   made from the emulation thread are counted too, so a vector can see
+   a deferred call land. */
+uint64_t harness_svga_offthread;
+uint64_t harness_svga_recalc_calls;
+uint64_t harness_svga_ramdac_calls;
+
+static void
+harness_svga_call(uint64_t *calls)
+{
+    if (harness_cpu_thread_set && !pthread_equal(pthread_self(), harness_cpu_thread))
+        harness_svga_offthread++;
+    else
+        (*calls)++;
+}
+
 void
 pci_add_card(uint8_t add_type,
              uint8_t (*read)(int func, int addr, int len, void *priv),
@@ -800,6 +818,7 @@ svga_close(svga_t *svga)
 void
 svga_recalctimings(svga_t *svga)
 {
+    harness_svga_call(&harness_svga_recalc_calls);
     if (svga->recalctimings_ex)
         svga->recalctimings_ex(svga);
 
@@ -852,6 +871,7 @@ void
 svga_set_ramdac_type(svga_t *svga, int type)
 {
     (void) svga; (void) type;
+    harness_svga_call(&harness_svga_ramdac_calls);
 }
 
 /* Banked A0000 access: raw vram bytes only (no plane logic). */

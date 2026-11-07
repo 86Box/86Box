@@ -405,6 +405,22 @@ rage128_pll_read(rage128_t *dev)
 
 static void rage128_recalctimings_apply(rage128_t *dev);
 
+/* Display work that a packet on the CCE thread asks for and the CPU
+   thread runs: the timing recalculation, the RAMDAC width, and a manual
+   snapshot. */
+#define RAGE128_DISP_DEFER_RECALC   (1u << 0)
+#define RAGE128_DISP_DEFER_RAMDAC   (1u << 1)
+#define RAGE128_DISP_DEFER_SNAPSHOT (1u << 2)
+
+/* DAC_CNTL.DAC_8BIT_EN selects the RAMDAC width, 8 or 6 bits per gun
+   (RRG: DAC_CNTL, p. 3-124 / PDF 142). CPU thread only. */
+static void
+rage128_ramdac_apply(rage128_t *dev)
+{
+    svga_set_ramdac_type(&dev->svga,
+                         (dev->dac_cntl & RAGE128_DAC_8BIT_EN) ? RAMDAC_8BIT : RAMDAC_6BIT);
+}
+
 static void
 rage128_pll_write(rage128_t *dev, uint32_t val, uint32_t mask)
 {
@@ -1808,6 +1824,17 @@ rage128_recalctimings_apply(rage128_t *dev)
 {
     svga_t *svga = &dev->svga;
 
+    /* A type-0 or type-1 packet can write any register, the CRTC and PLL
+       registers among them, so a register write that needs this also
+       runs on the CCE thread. The svga core's timing state and the line
+       timer belong to the CPU thread, whose line poll reads them without
+       a lock, so there the request is only recorded; the register value
+       has already changed, and the CPU thread recalculates from the
+       registers as they then stand. */
+    if (rage128_on_cce_thread) {
+        atomic_fetch_or(&dev->disp_defer, RAGE128_DISP_DEFER_RECALC);
+        return;
+    }
     svga_recalctimings(&dev->svga);
     if (svga->timer.callback != rage128_svga_poll_timed)
         timer_set_callback(&svga->timer, rage128_svga_poll_timed);
@@ -1832,6 +1859,7 @@ rage128_vsync_callback(svga_t *svga)
     if (dev->svga.timer.callback != rage128_svga_poll_timed)
         timer_set_callback(&dev->svga.timer, rage128_svga_poll_timed);
 
+    rage128_display_sync(dev);
     rage128_pace_update(dev);
 
     if (dev->synctel)
@@ -2093,11 +2121,45 @@ rage128_snapshot_hcount(rage128_t *dev)
 static void
 rage128_snapshot_take(rage128_t *dev)
 {
+    /* The counts come from the svga line timer and line counter, which
+       the CPU thread advances, so a snapshot asked for by a packet is
+       taken by the CPU thread when it next catches up with the CCE
+       thread (a register read or a ring pump), at the raster position
+       of that moment. */
+    if (rage128_on_cce_thread) {
+        atomic_fetch_or(&dev->disp_defer, RAGE128_DISP_DEFER_SNAPSHOT);
+        return;
+    }
     dev->snapshot_vh_counts = rage128_snapshot_hcount(dev)
         | (((uint32_t) dev->svga.displine & 0x7ff) << 16);
     dev->snapshot_f_count = dev->frame_count & 0x1fffff;
     atomic_fetch_or(&dev->gen_int_status, RAGE128_GIS_SNAPSHOT);
     rage128_gen_int_update(dev);
+}
+
+/* Run the display work that packets asked for on the CCE thread. CPU
+   thread only. It runs at every register read, at the end of every ring
+   pump and at every vertical sync, so the work lands within one pump
+   period while ring work is outstanding (the bound the interrupt line
+   has), at the driver's next register read, or at the next frame,
+   whichever is first. Each action works from the current register
+   values, so several writes before a sync give one recalculation. The
+   mask is taken before the registers are read, so a request that lands
+   after that read stays in the mask for the next sync. */
+void
+rage128_display_sync(rage128_t *dev)
+{
+    uint32_t d;
+
+    if (!atomic_load_explicit(&dev->disp_defer, memory_order_relaxed))
+        return;
+    d = atomic_exchange(&dev->disp_defer, 0);
+    if (d & RAGE128_DISP_DEFER_RECALC)
+        rage128_recalctimings_apply(dev);
+    if (d & RAGE128_DISP_DEFER_RAMDAC)
+        rage128_ramdac_apply(dev);
+    if (d & RAGE128_DISP_DEFER_SNAPSHOT)
+        rage128_snapshot_take(dev);
 }
 
 /* ------------------------------------------------------------------ */
@@ -2803,7 +2865,12 @@ rage128_display_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t m
                                                     | ((val >> 24) & m));
                     rage128_dac_mask_apply(dev);
                 }
-                svga_set_ramdac_type(svga, (dev->dac_cntl & RAGE128_DAC_8BIT_EN) ? RAMDAC_8BIT : RAMDAC_6BIT);
+                /* The RAMDAC width is svga core state, set on the CPU
+                   thread only (see the timing recalculation). */
+                if (rage128_on_cce_thread)
+                    atomic_fetch_or(&dev->disp_defer, RAGE128_DISP_DEFER_RAMDAC);
+                else
+                    rage128_ramdac_apply(dev);
                 return 1;
             }
         case RAGE128_CRTC_STATUS:

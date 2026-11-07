@@ -927,7 +927,9 @@ rage128_pm4_pump(rage128_t *dev)
        interrupt registers marked INTA stale before the executor moved
        the retire pointer past it. Either the test saw that pointer
        still behind and armed the timer, so a later pump comes back
-       here, or the mark is already visible to this sync. */
+       here, or the mark is already visible to this sync. Display work a
+       packet asked for is marked the same way. */
+    rage128_display_sync(dev);
     rage128_gen_int_sync(dev);
 
     return result;

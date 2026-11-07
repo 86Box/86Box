@@ -748,9 +748,8 @@ static void    rage128_endian_apply(rage128_t *dev);
    either register. pci_set_irq and pci_clear_irq drive INTA through the
    irq_state shadow, as vid_ati_mach64.c does.
 
-   A type-0 or type-1 packet can write any register, these two and
-   SNAPSHOT_VIF_COUNT among them, so the register changes also arrive
-   from the CCE thread. The emulator's PCI and PIC interrupt code takes
+   A type-0 or type-1 packet can write any register, these two among
+   them, so the register changes also arrive from the CCE thread. The emulator's PCI and PIC interrupt code takes
    no lock and belongs to the CPU thread, so the CCE thread changes the
    register value at once, atomically, but only marks the line stale;
    the CPU thread re-evaluates it on its next call here or through the
@@ -855,7 +854,9 @@ rage128_reg_read32(rage128_t *dev, uint32_t off)
 {
     off &= 0x3ffc;
 
-    /* Register reads come from the CPU thread only. */
+    /* Register reads come from the CPU thread only. Display work comes
+       first: a deferred snapshot latches an interrupt status bit. */
+    rage128_display_sync(dev);
     rage128_gen_int_sync(dev);
 
     if (dev->ftl_en) {
