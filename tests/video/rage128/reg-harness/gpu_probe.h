@@ -76,14 +76,19 @@ void harness_gpu_rng_fold(uint32_t vram_mask, int staged, uint32_t *lo,
    the state's own shape and not a residency artifact. */
 int harness_gpu_gate(rage128_t *dev, const rage128_raster_state_t *rs);
 
-/* One captured span record, as the kernel reads it: the column range and
-   row bases, plus the seeds the kernel starts the span from (the three
-   integer edge values and the fixed-point depth seed at x0). */
+/* One captured span record: the column range and row bases as the
+   kernel reads them; e0..zline, the three unbiased integer edge values
+   and the fixed-point depth at x0 as the kernel computes them from the
+   triangle's plane seeds; and w_e0..w_zline, the same values as the row
+   walk handed them to the capture, which the plane seeds must
+   reproduce. */
 typedef struct harness_gpu_span_t {
     int32_t  x0, x1, py;
     uint32_t drow, zrow;
     int64_t  e0, e1, e2;
     int64_t  zline;
+    int64_t  w_e0, w_e1, w_e2;
+    int64_t  w_zline;
     uint32_t group; /* the workgroup group the flush puts it in */
     uint32_t rank;  /* its position in that group's order */
     uint32_t level; /* the leveler's pass for it: a span that shares a
@@ -94,7 +99,7 @@ typedef struct harness_gpu_span_t {
 typedef struct harness_gpu_cap_t {
     uint32_t nspans;     /* records written (may exceed the caller's array) */
     uint32_t got;        /* records copied out                             */
-    uint64_t need_spans; /* gpu_tri_need's accept-bound reservation         */
+    uint64_t need_spans; /* probe_tri_need's accept-bound reservation       */
     uint64_t need_px;
     uint32_t clo, chi;   /* prim_ranges color hazard interval             */
     uint32_t zlo, zhi;   /* ... and z                                      */
@@ -196,6 +201,26 @@ int harness_gpu_tuple_reload(uint32_t fmt0, uint32_t fmt1,
                               uint32_t s3tc0, uint32_t s3tc1,
                               uint32_t loaded[4], int *exact);
 
+/* Build a cache file path twice through the production builder: with no
+   private directory (empty_refused = it returned 0 and an empty path) and
+   with a fresh private one (private_joined = the path is that directory,
+   one separator, then the file name). Returns 0 if the probe cannot run. */
+int harness_gpu_cache_path_probe(int *empty_refused, int *private_joined);
+
+/* Publish random pending hulls the way the submitter does and test random
+   ranges with the CPU barriers' range test (pending summary first) and
+   with the pending walk alone: mismatch counts the queries where the two
+   disagree, hits the queries that hit. Returns 0 if the probe cannot
+   run. */
+int harness_gpu_pnd_summary_probe(uint32_t seed, uint32_t *queries,
+                                  uint32_t *mismatch, uint32_t *hits);
+
+/* Time n miss calls of the CPU aperture barrier and its stages on a
+   fabricated backend whose pending hulls and twelve submitted slots sit
+   above the accessed window, in four states (idle, pending, slots, both),
+   and print ns per call. Prints nothing without Vulkan headers. */
+void harness_gpu_barrier_bench(rage128_t *dev, uint32_t n);
+
 /* Save two one-stage combines (the seven stage-0 selectors each, the
    formats pinned as a live ARGB8888 draw) as learned pairs and reload
    them through the production loader: pairs = the pairs it recorded,
@@ -280,6 +305,9 @@ void harness_gpu_fab_scan_arm(void *g, uint32_t lo, uint32_t hi);
    the way a queued fill or blit records its destination: the hull
    widens over it and the exact list gains it. */
 void harness_gpu_fab_scan_add(void *g, uint32_t lo, uint32_t hi);
+/* CPU barrier range hits that went on to the quiesce (the backend's
+   cpu-barrier hit count). */
+uint64_t harness_gpu_fab_cpu_hits(void *g);
 /* Scanned lines that went out ahead of an unfinished GPU store. */
 uint64_t harness_gpu_fab_scan_stale(void *g);
 void harness_gpu_fab_scan_read(void *g, int *pending, uint64_t *kicks,

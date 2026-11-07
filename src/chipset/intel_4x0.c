@@ -343,7 +343,13 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                         break;
                     case INTEL_440LX:
                     case INTEL_440EX:
-                        regs[0x04] = val & 0x40;
+                        /* Only Parity Error Enable (bit 6) is writable; the
+                           reserved bits 2:1 keep their default of 1, as in
+                           the 0006h default (82443LX and 82443EX datasheets,
+                           PCICMD). Windows 98 takes a clear memory enable bit
+                           for a host bridge whose aperture is not decoded and
+                           moves APBASE. */
+                        regs[0x04] = (regs[0x04] & ~0x40) | (val & 0x40);
                         break;
                 }
                 break;

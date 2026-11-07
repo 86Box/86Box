@@ -47,6 +47,7 @@
 
 #include <stdatomic.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 #include <86box/device.h>
 #include <86box/mem.h>
@@ -160,6 +161,11 @@ rage128_now_ns(void)
     return (uint64_t) ts.tv_sec * 1000000000ull + (uint64_t) ts.tv_nsec;
 #endif
 }
+
+/* Texture staging entry tables (rage128_t tex_stage): cached levels
+   across draws, and per-batch levels. */
+#define R128_TEX_CACHE_ENTS 1024u
+#define R128_TEX_BATCH_ENTS 256u
 
 typedef struct rage128_t {
     svga_t svga;
@@ -498,10 +504,22 @@ typedef struct rage128_t {
                                      pp. 3-70-3-71 / PDF 88-89)          */
     int vblank_save;              /* CRTC_STATUS[1] sticky vblank         */
 
-    /* Interrupt controller (GEN_INT_CNTL/STATUS 0x0040/0x0044). */
-    uint32_t gen_int_cntl;   /* enable mask                          */
-    uint32_t gen_int_status; /* latched events (write 1 to ack)      */
-    uint8_t  irq_state;      /* PCI INTA assert shadow (pci_set_irq) */
+    /* Interrupt controller (GEN_INT_CNTL/STATUS 0x0040/0x0044). Packets
+       write both registers on the CCE thread while the CPU thread latches
+       events into the status, so both are atomic. Only the CPU thread
+       drives INTA; a change made on the CCE thread marks the line stale
+       and the CPU thread brings it up to date. */
+    atomic_uint gen_int_cntl;   /* enable mask                          */
+    atomic_uint gen_int_status; /* latched events (write 1 to ack)      */
+    atomic_int  gen_int_stale;  /* INTA not yet re-evaluated after a
+                                   change made on the CCE thread        */
+    atomic_uint disp_defer;     /* display work a packet requested on the
+                                   CCE thread, for the CPU thread to run */
+    uint8_t     irq_state;      /* PCI INTA assert shadow (pci_set_irq) */
+
+    /* For each register-file dword, the block whose handler takes a
+       write to it, found at the first write (0 until then). */
+    atomic_uchar reg_wr_blk[0x4000 >> 2];
 
     /* 2D GUI engine context (vid_ati_rage128_2d.c). Registers hold the
        packed spec encodings; the executors decode on use. */
@@ -966,6 +984,10 @@ typedef struct rage128_t {
                                   the GPU backend can tell two draws' palette
                                   copies are identical without comparing them
                                   (equal number = same contents) */
+    uint32_t r3d_draw_seq;     /* incremented by each draw's state capture,
+                                  so the GPU backend can tell that two
+                                  primitives belong to the same draw and
+                                  reuse what it derived from the state once */
 
     void    *i2c;        /* GPIO_MONID bit-banged DDC I2C bus */
     void    *ddc;        /* DDC EDID EEPROM attached to that bus */
@@ -1059,18 +1081,39 @@ typedef struct rage128_t {
         uint32_t gen;   /* batch number; incremented at each reset    */
         /* Cache generation for the GPU backend's reuse of staged levels
            across draws. A staged copy of a tiled level in local VRAM stays
-           valid until tgen changes, which happens on any store into the
-           source range below or when the arena is reset. Copies from AGP
-           memory are never reused: the guest writes AGP memory without
-           the device seeing it. */
+           valid while tgen is unchanged and no store has landed in its own
+           source bytes; tgen changes when the arena is reset, which drops
+           every cached level at once. Copies from AGP memory are never
+           reused: the guest writes AGP memory without the device seeing
+           it. */
         uint32_t tgen;
-        /* Card-address range [src_lo, src_hi) covering every cached level's
-           source (equal = none). Written under the lock below; atomic so
-           the CPU store check can read them without the lock first. A
-           stale value there gives an order the lock could also have
-           produced (the store counted before the copy was published). */
+        /* Card-address range [src_lo, src_hi) covering every live cached
+           level's source and the source of a cacheable copy in progress
+           (equal = none). Written under the lock below; atomic so the CPU
+           store check can read them without the lock first. A stale value
+           there gives an order the lock could also have produced (the
+           store counted before the copy was published). */
         atomic_uint src_lo;
         atomic_uint src_hi;
+        /* Source range of the cacheable level being copied into the arena
+           (equal = none), and whether a store has landed in it since the
+           copy began: such a copy may hold bytes from before the store,
+           so it is never cached. Under the lock. */
+        uint32_t cp_lo, cp_hi;
+        int      cp_hit;
+        /* One bit per 4 KB page of the low 32 MB of card memory (local
+           VRAM): set for every page a live cached level's source or the
+           copy in progress lies in. It may also hold pages of levels
+           dropped since it was last rebuilt, never fewer. A store inside
+           the combined source range whose pages are all clear is decided
+           here without the lock, so a guest that streams stores into the
+           bytes of a dropped level, or between cached levels, does not
+           walk the entry table per store. Written under the lock; read
+           without it, as the range is. pg_tgen is the cache generation
+           the bits belong to: the first copy after an arena reset clears
+           them. */
+        atomic_ullong pg_live[128];
+        uint32_t      pg_tgen;
         /* reset counters by site (per-draw capture / raster flush), the
            flushes r3d_stage_reserve forces when the arena is full (a
            subset of n_rec_flush), arena growths, and the highest fill */
@@ -1079,10 +1122,30 @@ typedef struct rage128_t {
         uint64_t n_rec_wrap;
         uint64_t n_grow;
         uint64_t n_hit;  /* cross-draw cache hits                      */
-        uint64_t n_kill; /* cache invalidations (store hit aggregate)  */
+        uint64_t n_kill; /* stores that invalidated a cached level     */
+        /* CPU aperture stores that fell inside the combined source range,
+           and how many of those the page bits decided without the lock.
+           Atomic: the CPU thread and the command thread both reach the
+           CPU store barrier. */
+        atomic_ullong n_cpu_in;
+        atomic_ullong n_cpu_pgskip;
+        uint64_t n_full; /* cacheable stagings the full table could not
+                            record                                     */
+        uint64_t n_wrap_kept; /* wraps that kept the live cached levels */
+        uint32_t lap;         /* passes through the arena: one per wrap */
         uint32_t peak_used;
+        /* Staged levels. A cached entry (ent, the GPU backend's levels in
+           local memory) serves later draws until a store lands in its
+           source bytes or the arena is reset; a per-batch entry (pde: AGP
+           levels, and every level without the GPU backend) serves only the
+           batch whose gen it carries. A dead cached entry keeps its slot
+           until the table fills, when the table is compacted; idx is an
+           open-addressed index of the cached entries by key, slot + 1 per
+           bucket, 0 = empty, so a lookup does not scan the table. */
         uint32_t ent_count;
-        struct {
+        uint32_t ent_dead;
+        uint32_t pde_count;
+        struct rage128_tex_ent {
             uint32_t vm_base;   /* texture offset register value as
                                    written, mode bits included (key)      */
             uint32_t len;       /* byte length of the staged level (key)  */
@@ -1093,13 +1156,24 @@ typedef struct rage128_t {
             uint32_t arena_off; /* byte offset into arena                 */
             uint32_t gen;       /* gen (per-batch entry) or tgen (cached
                                    entry) when it was staged              */
-            uint32_t pd;        /* 1 = valid for this batch only (AGP, or
-                                   no GPU backend), 0 = cached            */
-        } ent[256];
-        /* Orders tgen, src_lo, src_hi and n_kill between the CPU store
-           check and the staging thread. Each locked section is a few
-           loads and stores, so a spin lock costs less than a mutex. All
-           other tex_stage fields are used by the submit thread only. */
+            uint32_t src_lo;    /* card bytes [src_lo, src_hi) the level
+                                   was copied from (a cached entry)       */
+            uint32_t src_hi;
+            uint32_t dead;      /* 1 = a store landed in the source bytes
+                                   of this cached entry                   */
+            uint32_t used_lap;  /* lap (below) in which a draw last used
+                                   this cached entry                      */
+        } ent[R128_TEX_CACHE_ENTS];
+        struct rage128_tex_ent pde[R128_TEX_BATCH_ENTS];
+        uint16_t               idx[2 * R128_TEX_CACHE_ENTS];
+        /* Orders tgen, src_lo, src_hi, cp_lo, cp_hi, cp_hit, n_kill and
+           the cached entry table between the CPU store check and the
+           staging thread. The table is written only by the staging
+           thread, and only under the lock, because a store on the CPU
+           thread walks it. A store reaches the walk only when its pages
+           hold a cached level, so a spin lock still costs less than a
+           mutex. All other tex_stage fields are used by the submit thread
+           only. */
         atomic_int lock;
     } tex_stage;
 
@@ -1847,6 +1921,11 @@ typedef struct r3d_texctx_t {
        in for the other members stays where it is. */
     float a2rhw, b2rhw, c2rhw;
     float dW2dx, dW2dy;
+    /* The GPU span capture's partition context for this walk, set once
+       per triangle by rage128_gpu_capture_begin; the capture reads its
+       records' destination from it on every span. Last, like the fields
+       above, so no offset a compiled span bakes in moves. */
+    void *cap;
 } r3d_texctx_t;
 
 /* Defined in vid_ati_rage128_3d.c (uses the texture-addressing helpers).
@@ -1974,6 +2053,18 @@ typedef struct r128_jit_tri_t {
        biased edge value is one less than the true one, so compiled code
        adds these back before it converts an edge value to a weight. */
     int64_t e0b, e1b, e2b;
+    /* Plane seeds of the winding-normalized edge values and of the
+       fixed-point depth: the value at pixel (0, 0) and the per-row step.
+       Any pixel's value is seed + y * row step + x * column step in
+       wrapping 64-bit arithmetic, the same integers the row walk reaches
+       by adding the steps, because wrapping addition and multiplication
+       agree modulo 2^64 whatever the order. The edge seeds carry the
+       fill-rule bias as the walk's row values do. The GPU lane's span
+       capture records these once per triangle; compiled blocks do not
+       read them. */
+    int64_t e0o, e1o, e2o;
+    int64_t e0dyi, e1dyi, e2dyi;
+    int64_t zo, dzy;
 } r128_jit_tri_t;
 
 /* The interpreter's per-pixel texture-stage block (both stages, chroma
@@ -2067,6 +2158,8 @@ extern void     rage128_gui_trig_vline_tick(rage128_t *dev);
 extern void     rage128_conv_close(rage128_t *dev);
 extern void     rage128_vline_timer(void *priv);
 extern void     rage128_gen_int_update(rage128_t *dev);
+extern void     rage128_gen_int_sync(rage128_t *dev);
+extern void     rage128_display_sync(rage128_t *dev);
 extern void     rage128_gen_int_vblank(rage128_t *dev);
 extern void     rage128_gen_int_vsync(rage128_t *dev);
 
@@ -2366,14 +2459,23 @@ extern void rage128_c_stage_writeback(rage128_t *dev);
    row y belongs to worker (y & thr_mask) with thr_mask = n - 1.
    thr_mask == 0: serial, every row is owned. thr_mask < 0: a worker
    count n = -thr_mask that is not a power of two, and row y belongs to
-   worker y mod n. Any map that gives each row exactly one owner is
+   worker y mod n. thr_mask >= R128_ROW_BAND: rows go out in bands of
+   2^((thr_mask >> 8) & 0xff) rows, band b to worker b mod
+   (thr_mask & 0xff), so a primitive a few rows tall belongs to one or
+   two workers and the others can skip it whole (the GPU span capture's
+   partitions). Any map that gives each row exactly one owner is
    correct, because the per-row values step on every row whoever owns
    it. */
+#define R128_ROW_BAND 0x10000
 static inline int
 r128_row_owned(int32_t y, int thr_id, int thr_mask)
 {
-    if (thr_mask > 0)
+    if (thr_mask > 0) {
+        if (thr_mask >= R128_ROW_BAND)
+            return (uint32_t) (y >> ((thr_mask >> 8) & 0xff)) % (uint32_t) (thr_mask & 0xff)
+                == (uint32_t) thr_id;
         return (y & thr_mask) == thr_id;
+    }
     if (thr_mask == 0)
         return 1;
     return (uint32_t) y % (uint32_t) -thr_mask == (uint32_t) thr_id;
@@ -2392,6 +2494,12 @@ extern uint64_t rage128_3d_jit_row(r128_jit_tri_t *jt, r128_jit_span_fn jfn,
                                    int64_t zline, uint32_t drow, uint32_t zrow,
                                    int32_t py, int c_tld, int z_tld,
                                    uint32_t bpp, uint32_t zbpp);
+/* Fill the two stages' sampler descriptors for a draw and resolve every
+   mip slot a sampler can reach (0 to top), exactly as the per-triangle
+   setup does for the GPU span capture. The slot values depend on the
+   draw's state alone, so the GPU backend resolves them once per draw. */
+extern void     rage128_3d_slot_descs(rage128_t *dev, const rage128_raster_state_t *rs,
+                                      r3d_stage_desc_t *sd0, r3d_stage_desc_t *sd1);
 extern void     rage128_3d_tri(rage128_t *dev, const rage128_raster_state_t *rs,
                                int thr_id, int thr_mask,
                                const r3d_vtx_t *a, const r3d_vtx_t *b, const r3d_vtx_t *c,
@@ -2610,6 +2718,12 @@ extern void rage128_gpu_2d_verify_bad(rage128_t *dev, int table,
    pre-resolved slot cache directly (like an inline-textured JIT block),
    so the tri setup must pre-resolve every reachable mip slot whenever
    this is the jfn -- the JIT's tex-inline predicate does not cover it. */
+/* Called by the triangle walk once per triangle, after setup, when the
+   row callback is the GPU span capture: binds the walk to the capture
+   partition thr and writes the triangle record when that partition owns
+   it. */
+extern void rage128_gpu_capture_begin(rage128_t *dev, r3d_texctx_t *tc,
+                                      const r128_jit_tri_t *jt, int thr);
 extern uint64_t rage128_gpu_capture_span(const r128_jit_tri_t *tri,
                                          int64_t e0, int64_t e1, int64_t e2,
                                          int64_t zline, uint32_t drow,
@@ -2634,6 +2748,43 @@ extern void rage128_gpu_present(rage128_t *dev);
 /* The guest CPU or the scanout touches local bytes [addr, addr+len):
    wait if the segment being built or a slot in flight owns them. */
 extern void rage128_gpu_cpu_barrier(rage128_t *dev, uint32_t addr, uint32_t len, int writes);
+/* The same barrier once the store bookkeeping (r128_gpu_store_note) has
+   run and the hazard summary has answered "maybe": the full range test,
+   then the wait or flush. rage128_gpu_cpu_access below is its caller. */
+extern void rage128_gpu_cpu_barrier_hit(rage128_t *dev, uint32_t addr, uint32_t len, int writes);
+
+/* Hazard summary of the GPU backend, the first member of its state, so
+   a non-null dev->gpu points at it. Each field is one interval over GPU
+   ranges, packed as hi << 32 | lo with hi exclusive and 0 for none:
+   pnd_st over the stores of the segment being built (draw color and
+   depth, queued 2D writes), pnd_all over those and its reads (texture
+   and transfer sources), sub_st and sub_all the same over every
+   submitted segment. The backend widens an interval before it records
+   the range it covers and empties or narrows it only after that range
+   is gone, so a range outside it touches no GPU work. */
+struct rage128_gpu_hull {
+    _Atomic uint64_t pnd_st, pnd_all;
+    _Atomic uint64_t sub_st, sub_all;
+};
+
+/* Could GPU work touch [lo, hi)? 0 is a definite no. A store asks the
+   intervals that include GPU reads, a read only the store intervals.
+   The pending interval is read first: an empty one, read with acquire,
+   was emptied after the submit that widened the submitted interval,
+   which the second acquire load then sees. */
+static inline int
+r128_gpu_hull_maybe(struct rage128_gpu_hull *h, uint32_t lo, uint32_t hi, int writes)
+{
+    uint64_t p = atomic_load_explicit(writes ? &h->pnd_all : &h->pnd_st,
+                                      memory_order_acquire);
+    uint64_t u = atomic_load_explicit(writes ? &h->sub_all : &h->sub_st,
+                                      memory_order_acquire);
+    uint32_t plo = (uint32_t) p, phi = (uint32_t) (p >> 32);
+    uint32_t ulo = (uint32_t) u, uhi = (uint32_t) (u >> 32);
+
+    return (phi > plo && hi > lo && lo < phi && hi > plo)
+        || (uhi > ulo && hi > lo && lo < uhi && hi > ulo);
+}
 /* Scanout reads one line: it waits only for the writes of a frame that
    has been flipped to. Writes into the buffer on display can tear, as
    they would on a chip that scans memory directly. Returns 0 when the
@@ -2694,12 +2845,13 @@ extern void rage128_gpu_stage_quiesce(rage128_t *dev, int per_draw);
 extern int  rage128_gpu_stage_idle(rage128_t *dev);
 
 /* A store into card bytes [lo, lo+len) may have changed bytes that a
-   staged level cached across draws was copied from, so drop the cache.
-   This is one compare against the combined source range; per-batch
-   staging is not affected. Callers: the CPU store barrier, the 2D
-   per-operation surface map, the queued 2D operations, and the 3D
-   render-target setup (render to texture: the batch flush brings VRAM
-   up to date, not the cached copy). */
+   staged level cached across draws was copied from, so every cached level
+   whose source bytes it overlaps is dropped, and the others stay. A store
+   outside the combined source range is decided with one compare and no
+   lock; per-batch staging is not affected. Callers: the CPU store
+   barrier, the 2D per-operation surface map, the queued 2D operations,
+   and the 3D render-target setup (render to texture: the batch flush
+   brings VRAM up to date, not the cached copy). */
 static inline void
 r128_texcache_lock(struct rage128_tex_stage *ts)
 {
@@ -2713,7 +2865,84 @@ r128_texcache_unlock(struct rage128_tex_stage *ts)
     atomic_store_explicit(&ts->lock, 0, memory_order_release);
 }
 
+/* Page bits of r128_tex_stage pg_live: the bytes they cover, and the bit
+   mask of word w for pages [p0, p1]. */
+#define R128_TEXCACHE_PG_BYTES 0x02000000u
+
+static inline uint64_t
+r128_texcache_pg_mask(uint32_t w, uint32_t p0, uint32_t p1)
+{
+    uint64_t m = ~0ull;
+
+    if (w == p0 >> 6)
+        m &= ~0ull << (p0 & 63u);
+    if (w == p1 >> 6)
+        m &= ~0ull >> (63u - (p1 & 63u));
+    return m;
+}
+
+/* Does [lo, hi) touch a page whose bit is set? A range past the map
+   answers yes, so the caller decides under the lock. Lock-free. */
+static inline int
+r128_texcache_pg_any(struct rage128_tex_stage *ts, uint32_t lo, uint64_t hi)
+{
+    uint32_t p0, p1;
+
+    if (hi > R128_TEXCACHE_PG_BYTES)
+        return 1;
+    p0 = lo >> 12;
+    p1 = (uint32_t) ((hi - 1u) >> 12);
+    for (uint32_t w = p0 >> 6; w <= p1 >> 6; w++)
+        if (atomic_load_explicit(&ts->pg_live[w], memory_order_relaxed)
+            & r128_texcache_pg_mask(w, p0, p1))
+            return 1;
+    return 0;
+}
+
+/* Set the bits of the pages of [lo, hi), clipped to the map. Under the
+   lock. */
 static inline void
+r128_texcache_pg_set(struct rage128_tex_stage *ts, uint32_t lo, uint64_t hi)
+{
+    uint32_t p0, p1;
+
+    if (hi > R128_TEXCACHE_PG_BYTES)
+        hi = R128_TEXCACHE_PG_BYTES;
+    if (lo >= hi)
+        return;
+    p0 = lo >> 12;
+    p1 = (uint32_t) ((hi - 1u) >> 12);
+    for (uint32_t w = p0 >> 6; w <= p1 >> 6; w++)
+        atomic_store_explicit(&ts->pg_live[w],
+                              atomic_load_explicit(&ts->pg_live[w], memory_order_relaxed)
+                                  | r128_texcache_pg_mask(w, p0, p1),
+                              memory_order_relaxed);
+}
+
+static inline void
+r128_texcache_pg_clear(struct rage128_tex_stage *ts)
+{
+    for (uint32_t w = 0; w < 128; w++)
+        atomic_store_explicit(&ts->pg_live[w], 0, memory_order_relaxed);
+}
+
+/* Empty both entry tables and the index: the arena's bytes are being
+   reused. Under the lock. The index is cleared only when it can hold
+   anything, so a lane without cached levels pays nothing per draw. */
+static inline void
+r128_texcache_reset_locked(struct rage128_tex_stage *ts)
+{
+    if (ts->ent_count)
+        memset(ts->idx, 0, sizeof(ts->idx));
+    ts->ent_count = 0;
+    ts->ent_dead  = 0;
+    ts->pde_count = 0;
+}
+
+/* Returns 0 for a store outside the combined source range, 1 for one
+   inside it whose pages hold no cached level (decided without the lock),
+   2 for one that took the lock and walked the entry table. */
+static inline int
 r128_texcache_dirty(rage128_t *dev, uint32_t lo, uint32_t len)
 {
     struct rage128_tex_stage *ts  = &dev->tex_stage;
@@ -2725,16 +2954,116 @@ r128_texcache_dirty(rage128_t *dev, uint32_t lo, uint32_t len)
        it. A possible hit is tested again under the lock, and that test
        decides. */
     if (shi == slo || lo >= shi || (uint64_t) lo + len <= slo)
-        return;
+        return 0;
+    if (!r128_texcache_pg_any(ts, lo, (uint64_t) lo + len))
+        return 1;
     r128_texcache_lock(ts);
     if (ts->src_hi != ts->src_lo && lo < ts->src_hi
         && (uint64_t) lo + len > ts->src_lo) {
-        ts->tgen++;
-        ts->src_lo = 0;
-        ts->src_hi = 0;
-        ts->n_kill++;
+        uint64_t hi   = (uint64_t) lo + len;
+        uint32_t nlo  = 0;
+        uint32_t nhi  = 0;
+        int      hits = 0;
+
+        /* A copy in progress that the store overlaps is not cached. Its
+           range stays in the combined range until the copy ends, so later
+           stores into it are still seen. */
+        if (ts->cp_hi != ts->cp_lo) {
+            if (lo < ts->cp_hi && hi > ts->cp_lo) {
+                ts->cp_hit = 1;
+                hits       = 1;
+            }
+            nlo = ts->cp_lo;
+            nhi = ts->cp_hi;
+        }
+        /* Drop the live cached levels whose source the store overlaps,
+           and shrink the combined range to the ones left. */
+        for (uint32_t i = 0; i < ts->ent_count; i++) {
+            if (ts->ent[i].dead || ts->ent[i].gen != ts->tgen)
+                continue;
+            if (lo < ts->ent[i].src_hi && hi > ts->ent[i].src_lo) {
+                ts->ent[i].dead = 1;
+                ts->ent_dead++;
+                hits = 1;
+                continue;
+            }
+            if (nlo == nhi) {
+                nlo = ts->ent[i].src_lo;
+                nhi = ts->ent[i].src_hi;
+            } else {
+                if (ts->ent[i].src_lo < nlo)
+                    nlo = ts->ent[i].src_lo;
+                if (ts->ent[i].src_hi > nhi)
+                    nhi = ts->ent[i].src_hi;
+            }
+        }
+        ts->src_lo = nlo;
+        ts->src_hi = nhi;
+        if (hits) {
+            /* Rebuild the page bits from what is left, so later stores
+               into the dropped levels' pages are decided without the
+               lock again. */
+            r128_texcache_pg_clear(ts);
+            if (ts->cp_hi != ts->cp_lo)
+                r128_texcache_pg_set(ts, ts->cp_lo, ts->cp_hi);
+            for (uint32_t i = 0; i < ts->ent_count; i++)
+                if (!ts->ent[i].dead && ts->ent[i].gen == ts->tgen)
+                    r128_texcache_pg_set(ts, ts->ent[i].src_lo, ts->ent[i].src_hi);
+            ts->n_kill++;
+        }
     }
     r128_texcache_unlock(ts);
+    return 2;
+}
+
+/* The CPU store barrier's form: the same check, counted for the close
+   line. */
+static inline void
+r128_texcache_dirty_cpu(rage128_t *dev, uint32_t lo, uint32_t len)
+{
+    int r = r128_texcache_dirty(dev, lo, len);
+
+    if (r) {
+        atomic_fetch_add_explicit(&dev->tex_stage.n_cpu_in, 1, memory_order_relaxed);
+        if (r == 1)
+            atomic_fetch_add_explicit(&dev->tex_stage.n_cpu_pgskip, 1,
+                                      memory_order_relaxed);
+    }
+}
+
+/* What a guest store owes before any GPU range test: drop the staged
+   texture levels copied from those bytes, and make the overlay compose
+   again if they are its source. The overlay compositor keeps this
+   frame's composed result and decides whether to dispatch again from
+   the overlay registers alone, so it cannot see a store into its source
+   pixels; clearing gpu_frame makes the next scanned line compose again,
+   and without it the new pixels would not show until the next frame. */
+static inline void
+r128_gpu_store_note(rage128_t *dev, uint32_t addr, uint32_t len)
+{
+    r128_texcache_dirty_cpu(dev, addr, len);
+    if (dev->ov0.gpu_frame && addr + len > dev->ov0.gpu_src_lo
+        && addr < dev->ov0.gpu_src_hi)
+        dev->ov0.gpu_frame = 0;
+}
+
+/* A guest CPU access through an aperture, with the GPU backend on: the
+   store bookkeeping, then the hazard summary decides the common case,
+   an access no GPU work touches, without calling into the backend. A
+   possible hit runs the full test and the wait. A sampled access of the
+   aperture profile takes the whole barrier, which times its parts. */
+static inline void
+rage128_gpu_cpu_access(rage128_t *dev, uint32_t addr, uint32_t len, int writes)
+{
+    if (dev->lfbt.sample) {
+        rage128_gpu_cpu_barrier(dev, addr, len, writes);
+        return;
+    }
+    if (writes)
+        r128_gpu_store_note(dev, addr, len);
+    if (r128_gpu_hull_maybe((struct rage128_gpu_hull *) dev->gpu, addr,
+                            addr + len, writes))
+        rage128_gpu_cpu_barrier_hit(dev, addr, len, writes);
 }
 /* Local bytes [lo, lo+len) of svga.vram have been stored to, so the GPU
    backend's mirror may lack them: mark their pages host-newer. Called
