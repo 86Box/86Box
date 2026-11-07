@@ -66,6 +66,7 @@ extern void *harness_pci_priv;
 extern char  harness_log_tail[];
 extern void  harness_log_tail_reset(void);
 extern int   harness_io_count(uint16_t port);
+extern int   harness_root_fopen_count(void);
 extern void (*harness_bm_write_hook)(uint32_t addr, uint32_t len);
 
 static int g_fail;
@@ -24184,6 +24185,18 @@ vectors_gpu_tuple_reload(void)
         printf("SKIP GPU tuple reload: built without Vulkan headers\n");
         return;
     }
+    {
+        int empty_refused, private_joined;
+
+        ok = harness_gpu_cache_path_probe(&empty_refused, &private_joined);
+        check_true("GPU cache path: probe runs", ok);
+        check_true("GPU cache path: empty directory is refused, not the root",
+                   empty_refused);
+        check_true("GPU cache path: private directory joins the file name",
+                   private_joined);
+        printf("GPU cache path: empty_refused=%d private_joined=%d\n",
+               empty_refused, private_joined);
+    }
     ok = harness_gpu_tuple_reload(22, 22, 0, 0, loaded, &exact);
     check_true("GPU tuple reload: opaque ARGB8888 pair loads", ok);
     check32("GPU tuple reload: opaque stage 0 selector", loaded[0], 22);
@@ -24877,6 +24890,10 @@ main(int argc, char **argv)
     if (getenv("R128_LANEGAP"))
         if (unit_selected("lanegap-expectedfail"))
             run_lanegap_expectedfail();
+
+    /* every unit has run: no device file was opened in a filesystem root */
+    check32("harness: files opened in a filesystem root",
+            (uint32_t) harness_root_fopen_count(), 0);
 
     printf("pass=%d fail=%d\n", g_pass, g_fail);
     return g_fail ? 1 : 0;

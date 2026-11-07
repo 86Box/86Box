@@ -201,6 +201,12 @@ int harness_gpu_tuple_reload(uint32_t fmt0, uint32_t fmt1,
                               uint32_t s3tc0, uint32_t s3tc1,
                               uint32_t loaded[4], int *exact);
 
+/* Build a cache file path twice through the production builder: with no
+   private directory (empty_refused = it returned 0 and an empty path) and
+   with a fresh private one (private_joined = the path is that directory,
+   one separator, then the file name). Returns 0 if the probe cannot run. */
+int harness_gpu_cache_path_probe(int *empty_refused, int *private_joined);
+
 /* Save two one-stage combines (the seven stage-0 selectors each, the
    formats pinned as a live ARGB8888 draw) as learned pairs and reload
    them through the production loader: pairs = the pairs it recorded,

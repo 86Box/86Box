@@ -886,7 +886,8 @@ harness_gpu_tuple_reload(uint32_t fmt0, uint32_t fmt1,
     if (!harness_gpu_cache_begin())
         goto done;
     cache_active = 1;
-    gpu_cache_path(path, sizeof(path), "r128gpu.tuples");
+    if (!gpu_cache_path(path, sizeof(path), "r128gpu.tuples"))
+        goto done;
     f = harness_gpu_open_output(path);
     if (!f)
         goto done;
@@ -910,6 +911,27 @@ done:
     free(g->learned);
     harness_gpu_dispose(g);
     return ok;
+}
+
+int
+harness_gpu_cache_path_probe(int *empty_refused, int *private_joined)
+{
+    char path[1088], dir[1024];
+
+    *empty_refused = *private_joined = 0;
+    /* without a private directory the harness supplies an empty one,
+       which the builder must refuse rather than join */
+    path[0]        = 'x';
+    *empty_refused = !gpu_cache_path(path, sizeof(path), "r128gpu.tuples")
+                     && !path[0];
+    if (!harness_gpu_cache_begin())
+        return 0;
+    plat_get_global_config_dir(dir, sizeof(dir));
+    *private_joined = gpu_cache_path(path, sizeof(path), "r128gpu.tuples")
+                      && dir[0] && !strncmp(path, dir, strlen(dir))
+                      && !strcmp(path + strlen(dir) + 1, "r128gpu.tuples");
+    harness_gpu_cache_end();
+    return 1;
 }
 
 int
@@ -953,7 +975,8 @@ harness_gpu_tuple_pair(const uint32_t a[7], const uint32_t b[7],
     if (!harness_gpu_cache_begin())
         goto done;
     cache_active = 1;
-    gpu_cache_path(path, sizeof(path), "r128gpu.tuples");
+    if (!gpu_cache_path(path, sizeof(path), "r128gpu.tuples"))
+        goto done;
     f = harness_gpu_open_output(path);
     if (!f)
         goto done;
@@ -1265,6 +1288,13 @@ harness_gpu_tuple_reload(uint32_t fmt0, uint32_t fmt1,
     (void) fmt0; (void) fmt1; (void) s3tc0; (void) s3tc1;
     (void) loaded;
     *exact = 0;
+    return 0;
+}
+
+int
+harness_gpu_cache_path_probe(int *empty_refused, int *private_joined)
+{
+    *empty_refused = *private_joined = 0;
     return 0;
 }
 

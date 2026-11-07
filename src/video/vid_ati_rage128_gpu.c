@@ -1999,20 +1999,29 @@ gpu_tuple_intern(r128_gpu_t *g, const uint32_t sel[GPU_TUPLE_SEL])
 
 /* Host-side cache files (driver-specific host state, not VM state):
    the Vulkan pipeline-cache blob and the learned (kernel, tuple) pair
-   list, both in the 86Box global config dir. */
-static void
+   list, both in the 86Box global config dir. An empty directory means
+   there is no place to keep them: the builder returns 0 with an empty
+   path, and the backend runs without the on-disk cache. Joining an
+   empty directory with the file name would put both files at the root
+   of the current drive. */
+static int
 gpu_cache_path(char *buf, size_t len, const char *name)
 {
     char   dir[1024];
     size_t n;
 
     plat_get_global_config_dir(dir, sizeof(dir));
+    n = strlen(dir);
+    if (!n) {
+        if (len)
+            buf[0] = '\0';
+        return 0;
+    }
     /* the platform layer already appends its own separator; adding a
        second one mixes separators on hosts that use a backslash */
-    n = strlen(dir);
     snprintf(buf, len, "%s%s%s", dir,
-             (n && (dir[n - 1] == '/' || dir[n - 1] == '\\')) ? "" : "/",
-             name);
+             (dir[n - 1] == '/' || dir[n - 1] == '\\') ? "" : "/", name);
+    return 1;
 }
 
 /* Shared state for the boot fan-out: one job list, claimed by atomic
@@ -2504,7 +2513,8 @@ gpu_tuples_load(r128_gpu_t *g)
     FILE    *f;
     unsigned kern, s[GPU_TUPLE_SEL];
 
-    gpu_cache_path(path, sizeof(path), "r128gpu.tuples");
+    if (!gpu_cache_path(path, sizeof(path), "r128gpu.tuples"))
+        return;
     f = plat_fopen(path, "r");
     if (!f)
         return;
@@ -2563,6 +2573,8 @@ gpu_persist_save(r128_gpu_t *g)
     FILE  *f;
     size_t sz = 0;
 
+    if (!gpu_cache_path(path, sizeof(path), "r128gpu.tuples"))
+        return;
     if (vkGetPipelineCacheData(g->dev, g->pcache, &sz, NULL) == VK_SUCCESS
         && sz > 0) {
         void *data = malloc(sz);
@@ -11298,8 +11310,9 @@ gpu_pcache_load(r128_gpu_t *g)
     long  bsz  = 0;
 
     vkGetPhysicalDeviceProperties2(g->phys, &p2);
-    gpu_cache_path(path, sizeof(path), "r128gpu.plcache");
-    f = plat_fopen(path, "rb");
+    f = gpu_cache_path(path, sizeof(path), "r128gpu.plcache")
+            ? plat_fopen(path, "rb")
+            : NULL;
     if (f) {
         fseek(f, 0, SEEK_END);
         bsz = ftell(f);

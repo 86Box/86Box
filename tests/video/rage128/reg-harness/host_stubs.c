@@ -27,6 +27,7 @@
  *          Copyright 2026 skiretic.
  */
 #include <stdarg.h>
+#include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -145,9 +146,43 @@ path_abs(char *path)
 #endif
 }
 
+/* Opens of a file directly in a filesystem root, counted whether or not
+   the open succeeds. No device file belongs there, and a vector pins the
+   count at zero: an empty directory joined with a file name lands in the
+   root, which on Windows is the root of the current drive and is often
+   writable, so every harness process would share that one file. The
+   GPU backend saves its caches from a worker thread too, hence the
+   atomic counter. */
+static atomic_int harness_root_fopens;
+
+int
+harness_root_fopen_count(void)
+{
+    return atomic_load(&harness_root_fopens);
+}
+
+static int
+harness_path_at_root(const char *path)
+{
+    const char *p = path;
+
+#ifdef _WIN32
+    if (p[0] && p[1] == ':')
+        p += 2;
+    if (*p != '/' && *p != '\\')
+        return 0;
+    p++;
+    return *p && !strchr(p, '/') && !strchr(p, '\\');
+#else
+    return p[0] == '/' && p[1] && !strchr(p + 1, '/');
+#endif
+}
+
 FILE *
 plat_fopen(const char *path, const char *mode)
 {
+    if (harness_path_at_root(path))
+        atomic_fetch_add(&harness_root_fopens, 1);
     return fopen(path, mode);
 }
 
@@ -518,9 +553,10 @@ harness_gpu_cache_end(void)
     harness_cache_dir[0] = '\0';
 }
 
-/* Persisted-cache paths use an empty directory by default, keeping the
-   harness away from the user's real config. Loader probes temporarily
-   select their own private directory. */
+/* The empty directory is the harness's "no cache" setting: the GPU cache
+   path builder refuses it, so devices neither load nor save the on-disk
+   caches and stay away from the user's real config. Loader probes
+   temporarily select their own private directory. */
 void
 plat_get_global_config_dir(char *outbuf, size_t len)
 {
