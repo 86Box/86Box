@@ -258,7 +258,7 @@ rage128_lfb_readb(uint32_t addr, void *priv)
     if (dev->synctel)
         rage128_synctel_cpu_read(dev, addr, 1);
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, addr, 1, 0);
+        rage128_gpu_cpu_access(dev, addr, 1, 0);
     if (t0)
         t2 = rage128_now_ns();
     cycles -= dev->svga.monitor->mon_video_timing_read_b;
@@ -316,7 +316,7 @@ rage128_lfb_read_n(uint32_t addr, void *priv, uint32_t len)
     if (dev->synctel)
         rage128_synctel_cpu_read(dev, addr, len);
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, addr, len, 0);
+        rage128_gpu_cpu_access(dev, addr, len, 0);
     if (t0)
         t2 = rage128_now_ns();
     cycles -= rage128_lfb_read_timing(dev, len);
@@ -360,7 +360,7 @@ rage128_lfb_writeb(uint32_t addr, uint8_t val, void *priv)
     if (dev->synctel)
         rage128_synctel_cpu_write(dev, addr, 1);
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, addr, 1, 1);
+        rage128_gpu_cpu_access(dev, addr, 1, 1);
     if (t0)
         t2 = rage128_now_ns();
     svga->vram[addr]              = val;
@@ -401,7 +401,7 @@ rage128_lfb_write_n(uint32_t addr, uint32_t val, void *priv, uint32_t len)
     if (dev->synctel)
         rage128_synctel_cpu_write(dev, addr, len);
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, addr, len, 1);
+        rage128_gpu_cpu_access(dev, addr, len, 1);
     if (t0)
         t2 = rage128_now_ns();
     if (len == 2)

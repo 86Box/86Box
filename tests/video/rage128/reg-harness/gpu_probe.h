@@ -207,6 +207,20 @@ int harness_gpu_tuple_reload(uint32_t fmt0, uint32_t fmt1,
    one separator, then the file name). Returns 0 if the probe cannot run. */
 int harness_gpu_cache_path_probe(int *empty_refused, int *private_joined);
 
+/* Publish random pending hulls the way the submitter does and test random
+   ranges with the CPU barriers' range test (pending summary first) and
+   with the pending walk alone: mismatch counts the queries where the two
+   disagree, hits the queries that hit. Returns 0 if the probe cannot
+   run. */
+int harness_gpu_pnd_summary_probe(uint32_t seed, uint32_t *queries,
+                                  uint32_t *mismatch, uint32_t *hits);
+
+/* Time n miss calls of the CPU aperture barrier and its stages on a
+   fabricated backend whose pending hulls and twelve submitted slots sit
+   above the accessed window, in four states (idle, pending, slots, both),
+   and print ns per call. Prints nothing without Vulkan headers. */
+void harness_gpu_barrier_bench(rage128_t *dev, uint32_t n);
+
 /* Save two one-stage combines (the seven stage-0 selectors each, the
    formats pinned as a live ARGB8888 draw) as learned pairs and reload
    them through the production loader: pairs = the pairs it recorded,
@@ -291,6 +305,9 @@ void harness_gpu_fab_scan_arm(void *g, uint32_t lo, uint32_t hi);
    the way a queued fill or blit records its destination: the hull
    widens over it and the exact list gains it. */
 void harness_gpu_fab_scan_add(void *g, uint32_t lo, uint32_t hi);
+/* CPU barrier range hits that went on to the quiesce (the backend's
+   cpu-barrier hit count). */
+uint64_t harness_gpu_fab_cpu_hits(void *g);
 /* Scanned lines that went out ahead of an unfinished GPU store. */
 uint64_t harness_gpu_fab_scan_stale(void *g);
 void harness_gpu_fab_scan_read(void *g, int *pending, uint64_t *kicks,

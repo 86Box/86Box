@@ -2646,6 +2646,43 @@ extern void rage128_gpu_present(rage128_t *dev);
 /* The guest CPU or the scanout touches local bytes [addr, addr+len):
    wait if the segment being built or a slot in flight owns them. */
 extern void rage128_gpu_cpu_barrier(rage128_t *dev, uint32_t addr, uint32_t len, int writes);
+/* The same barrier once the store bookkeeping (r128_gpu_store_note) has
+   run and the hazard summary has answered "maybe": the full range test,
+   then the wait or flush. rage128_gpu_cpu_access below is its caller. */
+extern void rage128_gpu_cpu_barrier_hit(rage128_t *dev, uint32_t addr, uint32_t len, int writes);
+
+/* Hazard summary of the GPU backend, the first member of its state, so
+   a non-null dev->gpu points at it. Each field is one interval over GPU
+   ranges, packed as hi << 32 | lo with hi exclusive and 0 for none:
+   pnd_st over the stores of the segment being built (draw color and
+   depth, queued 2D writes), pnd_all over those and its reads (texture
+   and transfer sources), sub_st and sub_all the same over every
+   submitted segment. The backend widens an interval before it records
+   the range it covers and empties or narrows it only after that range
+   is gone, so a range outside it touches no GPU work. */
+struct rage128_gpu_hull {
+    _Atomic uint64_t pnd_st, pnd_all;
+    _Atomic uint64_t sub_st, sub_all;
+};
+
+/* Could GPU work touch [lo, hi)? 0 is a definite no. A store asks the
+   intervals that include GPU reads, a read only the store intervals.
+   The pending interval is read first: an empty one, read with acquire,
+   was emptied after the submit that widened the submitted interval,
+   which the second acquire load then sees. */
+static inline int
+r128_gpu_hull_maybe(struct rage128_gpu_hull *h, uint32_t lo, uint32_t hi, int writes)
+{
+    uint64_t p = atomic_load_explicit(writes ? &h->pnd_all : &h->pnd_st,
+                                      memory_order_acquire);
+    uint64_t u = atomic_load_explicit(writes ? &h->sub_all : &h->sub_st,
+                                      memory_order_acquire);
+    uint32_t plo = (uint32_t) p, phi = (uint32_t) (p >> 32);
+    uint32_t ulo = (uint32_t) u, uhi = (uint32_t) (u >> 32);
+
+    return (phi > plo && hi > lo && lo < phi && hi > plo)
+        || (uhi > ulo && hi > lo && lo < uhi && hi > ulo);
+}
 /* Scanout reads one line: it waits only for the writes of a frame that
    has been flipped to. Writes into the buffer on display can tear, as
    they would on a chip that scans memory directly. Returns 0 when the
@@ -2747,6 +2784,41 @@ r128_texcache_dirty(rage128_t *dev, uint32_t lo, uint32_t len)
         ts->n_kill++;
     }
     r128_texcache_unlock(ts);
+}
+
+/* What a guest store owes before any GPU range test: drop the staged
+   texture levels copied from those bytes, and make the overlay compose
+   again if they are its source. The overlay compositor keeps this
+   frame's composed result and decides whether to dispatch again from
+   the overlay registers alone, so it cannot see a store into its source
+   pixels; clearing gpu_frame makes the next scanned line compose again,
+   and without it the new pixels would not show until the next frame. */
+static inline void
+r128_gpu_store_note(rage128_t *dev, uint32_t addr, uint32_t len)
+{
+    r128_texcache_dirty(dev, addr, len);
+    if (dev->ov0.gpu_frame && addr + len > dev->ov0.gpu_src_lo
+        && addr < dev->ov0.gpu_src_hi)
+        dev->ov0.gpu_frame = 0;
+}
+
+/* A guest CPU access through an aperture, with the GPU backend on: the
+   store bookkeeping, then the hazard summary decides the common case,
+   an access no GPU work touches, without calling into the backend. A
+   possible hit runs the full test and the wait. A sampled access of the
+   aperture profile takes the whole barrier, which times its parts. */
+static inline void
+rage128_gpu_cpu_access(rage128_t *dev, uint32_t addr, uint32_t len, int writes)
+{
+    if (dev->lfbt.sample) {
+        rage128_gpu_cpu_barrier(dev, addr, len, writes);
+        return;
+    }
+    if (writes)
+        r128_gpu_store_note(dev, addr, len);
+    if (r128_gpu_hull_maybe((struct rage128_gpu_hull *) dev->gpu, addr,
+                            addr + len, writes))
+        rage128_gpu_cpu_barrier_hit(dev, addr, len, writes);
 }
 /* Local bytes [lo, lo+len) of svga.vram have been stored to, so the GPU
    backend's mirror may lack them: mark their pages host-newer. Called

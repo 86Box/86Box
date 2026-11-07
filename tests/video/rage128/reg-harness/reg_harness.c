@@ -24197,6 +24197,18 @@ vectors_gpu_tuple_reload(void)
         printf("GPU cache path: empty_refused=%d private_joined=%d\n",
                empty_refused, private_joined);
     }
+    {
+        uint32_t queries, mismatch, hits;
+
+        ok = harness_gpu_pnd_summary_probe(0x866u, &queries, &mismatch, &hits);
+        check_true("GPU pending summary: probe runs", ok);
+        check32("GPU pending summary: range test agrees with the pending walk",
+                mismatch, 0);
+        check_true("GPU pending summary: some queries hit", hits > 0);
+        check_true("GPU pending summary: some queries miss", hits < queries);
+        printf("GPU pending summary: queries=%u hits=%u mismatch=%u\n",
+               queries, hits, mismatch);
+    }
     ok = harness_gpu_tuple_reload(22, 22, 0, 0, loaded, &exact);
     check_true("GPU tuple reload: opaque ARGB8888 pair loads", ok);
     check32("GPU tuple reload: opaque stage 0 selector", loaded[0], 22);
@@ -24761,6 +24773,64 @@ vectors_synctel_present_race(rage128_t *dev)
     check32("gpu telemetry: A, A: splits", synctel_present_splits(dev) - s0, 0);
 }
 
+/* The aperture handlers decide a miss from the backend's hazard summary
+   without calling into it; a possible hit still runs the full barrier.
+   A fabricated async backend owns one pending 2D store range: linear-
+   aperture accesses outside it must leave the segment pending and count
+   no barrier hit, a store inside it must quiesce and flush (the segment
+   leaves pending, one hit counted), and a read inside a re-armed
+   range must do the same, since a read conflicts with a GPU store. */
+static void
+vectors_gpu_aper_hull(void)
+{
+    rage128_t     *dev;
+    void          *fab;
+    mem_mapping_t *lm;
+    uint32_t       lb, lo = 0x100000u, hi = 0x100100u;
+    uint64_t       kicks, defers, served;
+    int            pend;
+
+    if (!harness_gpu_available()) {
+        printf("SKIP GPU aperture summary: built without Vulkan headers\n");
+        return;
+    }
+    dev = rage128_init(&ati_rage128_pro_device);
+    fab = harness_gpu_fab_alloc();
+    if (!fab) {
+        check_true("GPU aperture summary: fabricated backend", 0);
+        close_dev(dev);
+        return;
+    }
+    lm = &dev->lfb_mapping;
+    lb = dev->lfb_base;
+    fab_in(dev, fab);
+    harness_gpu_fab_scan_arm(fab, lo, hi);
+    lm->write_l(lb + 0x200000u, 0x11223344u, dev);
+    lm->write_b(lb + hi, 0x55, dev);
+    (void) lm->read_l(lb + lo - 4u, dev);
+    harness_gpu_fab_scan_read(fab, &pend, &kicks, &defers, &served);
+    check_true("GPU aperture summary: accesses outside leave the segment pending",
+               pend == 1);
+    check32("GPU aperture summary: accesses outside count no barrier hit",
+            (uint32_t) harness_gpu_fab_cpu_hits(fab), 0);
+    lm->write_l(lb + lo + 0x40u, 0x55667788u, dev);
+    harness_gpu_fab_scan_read(fab, &pend, &kicks, &defers, &served);
+    check_true("GPU aperture summary: a store inside flushes the segment",
+               pend == 0);
+    check32("GPU aperture summary: a store inside counts one barrier hit",
+            (uint32_t) harness_gpu_fab_cpu_hits(fab), 1);
+    harness_gpu_fab_scan_arm(fab, lo, hi);
+    (void) lm->read_w(lb + hi - 2u, dev);
+    harness_gpu_fab_scan_read(fab, &pend, &kicks, &defers, &served);
+    check_true("GPU aperture summary: a read inside flushes the segment",
+               pend == 0);
+    printf("GPU aperture summary: hits=%u pending=%d\n",
+           (uint32_t) harness_gpu_fab_cpu_hits(fab), pend);
+    fab_out(dev);
+    harness_gpu_fab_free(fab);
+    close_dev(dev);
+}
+
 static void
 run_synctel(void)
 {
@@ -24823,12 +24893,27 @@ main(int argc, char **argv)
     }
 
     if (unit_selected("gpu-tuple-reload")) {
+        vectors_gpu_aper_hull();
         vectors_gpu_tuple_reload();
         vectors_comb_seed();
         vectors_tuple_pair();
     }
 
     harness_video_luts_init();
+
+    /* Aperture-barrier miss timing only: R128_BARRIER_BENCH=N calls per
+       column (0 or unset = off) */
+    if (getenv("R128_BARRIER_BENCH")) {
+        uint32_t   n = (uint32_t) strtoul(getenv("R128_BARRIER_BENCH"), NULL, 0);
+        rage128_t *dev;
+
+        if (n) {
+            dev = rage128_init(&ati_rage128_pro_device);
+            harness_gpu_barrier_bench(dev, n);
+            close_dev(dev);
+            return 0;
+        }
+    }
 
     /* Native-box mode: only the parked x86-64 legs, a quick
        R128_JIT=verify run without the rest of the battery */

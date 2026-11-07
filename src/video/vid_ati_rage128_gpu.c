@@ -1071,6 +1071,26 @@ typedef struct gpu_snap_t {
 } gpu_snap_t;
 
 typedef struct r128_gpu_t {
+    /* The hazard summary, first so that the aperture handlers reach it
+       through dev->gpu alone (the summary struct in vid_ati_rage128.h).
+       sub_st / sub_all: one interval over the hull ranges of every
+       submitted slot, sub_st over the c, z and f hulls, sub_all over
+       those and the q and r hulls. Widened BEFORE a slot's submitted
+       flag rises and rebuilt only AFTER it clears, under sub_mtx, so
+       while a slot is submitted each of its hulls lies inside the
+       interval, and a range that misses the interval misses every slot
+       the scan would find. A slot whose work has finished keeps its
+       ranges until it is retired; with nothing submitting (a DOS program
+       after Windows) that may be never, and this test is what keeps the
+       twelve-slot scan off every guest store there.
+       pnd_st / pnd_all: the same over the pending accumulation's c, z, f
+       and q, r hulls. Every hull widening widens these first, on the same
+       thread (the one submitter: the CCE thread, or the CPU thread once
+       it has quiesced the CCE), and rng_reset empties them after the
+       hulls with a release store. So whenever a hull holds a byte, the
+       summary does too, and a range that misses the summary misses every
+       pending test. */
+    struct rage128_gpu_hull hull;
     int verify, async;
     int fold_en; /* 0 = R128_GPU_FOLD=0, uber-only diagnostic mode */
     /* VRAM mirror: the seg kernels address a device-local copy of VRAM
@@ -1474,17 +1494,6 @@ typedef struct r128_gpu_t {
        aperture store between two instructions cannot afford twelve
        slot cache lines to learn the GPU is idle. */
     atomic_uint inflight;
-    /* One interval over the hull ranges of every submitted slot, packed
-       hi << 32 | lo (0 = no slot): sub_st over the c, z and f hulls,
-       sub_all over those and the q and r hulls. Widened BEFORE a slot's
-       submitted flag rises and rebuilt only AFTER it clears, under
-       sub_mtx, so while a slot is submitted each of its hulls lies
-       inside the interval, and a range that misses the interval misses
-       every slot the scan would find. A slot whose work has finished
-       keeps its ranges until it is retired; with nothing submitting (a
-       DOS program after Windows) that may be never, and this test is
-       what keeps the twelve-slot scan off every guest store there. */
-    _Atomic uint64_t sub_st, sub_all;
 
     /* verify mode: shadow of the segment for interpreter replay */
     rage128_raster_state_t *v_states;
@@ -1787,6 +1796,8 @@ typedef struct r128_gpu_t {
        the CPU compositor / verify-mode pixel mismatches */
     uint64_t st_ov0_frames, st_ov0_px, st_ov0_cpu, st_ov0_bad;
 } r128_gpu_t;
+_Static_assert(offsetof(r128_gpu_t, hull) == 0,
+               "the aperture handlers read the summary through dev->gpu");
 
 static inline uint64_t
 prof_now(void)
@@ -2838,6 +2849,44 @@ rng_ext(atomic_uint *plo, atomic_uint *phi, uint32_t lo, uint32_t hi)
         atomic_store_explicit(phi, hi, memory_order_relaxed);
 }
 
+/* Widen a packed pending summary (pnd_st / pnd_all of r128_gpu_t) by
+   [lo, hi), in the form sub_st / sub_all use: hi << 32 | lo, 0 = empty.
+   The submitter is the only writer, so a load and a store suffice, as
+   in rng_ext; the store is a release so a reader that sees the wider
+   summary also sees what was published before it. */
+static void
+pnd_ext(_Atomic uint64_t *p, uint32_t lo, uint32_t hi)
+{
+    uint64_t u = atomic_load_explicit(p, memory_order_relaxed);
+    uint32_t ulo, uhi;
+
+    if (hi <= lo)
+        return;
+    ulo = u ? (uint32_t) u : 0xffffffffu;
+    uhi = u ? (uint32_t) (u >> 32) : 0;
+    if (ulo <= lo && uhi >= hi)
+        return;
+    if (lo < ulo)
+        ulo = lo;
+    if (hi > uhi)
+        uhi = hi;
+    atomic_store_explicit(p, ((uint64_t) uhi << 32) | ulo,
+                          memory_order_release);
+}
+
+/* Publish [lo, hi) into one pending hull: the summaries widen first
+   (both for a store hull, the c, z and f ones; only pnd_all for a read
+   hull, q and r), then the hull itself. */
+static inline void
+rng_pub(r128_gpu_t *g, atomic_uint *plo, atomic_uint *phi, uint32_t lo,
+        uint32_t hi, int store)
+{
+    if (store)
+        pnd_ext(&g->hull.pnd_st, lo, hi);
+    pnd_ext(&g->hull.pnd_all, lo, hi);
+    rng_ext(plo, phi, lo, hi);
+}
+
 /* Open and close one change of the pending f hull and its exact list
    (fq_gen of r128_gpu_t): the generation goes odd, the release fence
    orders the increment ahead of the hull and list stores, and the
@@ -2885,6 +2934,11 @@ rng_reset(r128_gpu_t *g)
     g->nfq    = 0;
     g->fq_ovf = 0;
     gpu_f_end(g);
+    /* Emptied last, by release stores: a reader that loads an empty
+       summary with acquire then sees every hull empty, and sees the
+       submitted-slot interval the dispatch widened before this reset. */
+    atomic_store_explicit(&g->hull.pnd_st, 0, memory_order_release);
+    atomic_store_explicit(&g->hull.pnd_all, 0, memory_order_release);
 }
 
 static int
@@ -3175,17 +3229,23 @@ gpu_tail_mid_queued(const r128_gpu_t *g)
 
 /* CPU-thread barriers (aperture stores, scanout, present reads): pending
    accumulation plus every submitted slot, hull ranges only, since they
-   may run while the executor is still capturing. The slots are scanned
-   only when the range meets the interval over all submitted hulls
-   (sub_st / sub_all of r128_gpu_t). */
+   may run while the executor is still capturing. The pending tests run
+   only when the range meets the summary over the pending hulls
+   (pnd_st / pnd_all of r128_gpu_t), and the slots are scanned only when
+   it meets the interval over all submitted hulls (sub_st / sub_all).
+   The pending summary is read first: an empty one read here means the
+   reset that emptied it came after the dispatch that widened the
+   submitted interval, which the second acquire then sees. */
 static int
 gpu_range_hit(r128_gpu_t *g, uint32_t lo, uint32_t hi, int texture)
 {
-    uint64_t u;
+    uint64_t u = atomic_load_explicit(texture ? &g->hull.pnd_all : &g->hull.pnd_st,
+                                      memory_order_acquire);
 
-    if (gpu_pending_hit(g, lo, hi, texture))
+    if (rng_hit((uint32_t) u, (uint32_t) (u >> 32), lo, hi)
+        && gpu_pending_hit(g, lo, hi, texture))
         return 1;
-    u = atomic_load_explicit(texture ? &g->sub_all : &g->sub_st,
+    u = atomic_load_explicit(texture ? &g->hull.sub_all : &g->hull.sub_st,
                              memory_order_acquire);
     if (!rng_hit((uint32_t) u, (uint32_t) (u >> 32), lo, hi))
         return 0;
@@ -4273,9 +4333,9 @@ static void
 gpu_sub_store(r128_gpu_t *g, uint32_t slo, uint32_t shi, uint32_t alo,
               uint32_t ahi)
 {
-    atomic_store_explicit(&g->sub_st, gpu_sub_pack(slo, shi),
+    atomic_store_explicit(&g->hull.sub_st, gpu_sub_pack(slo, shi),
                           memory_order_release);
-    atomic_store_explicit(&g->sub_all, gpu_sub_pack(alo, ahi),
+    atomic_store_explicit(&g->hull.sub_all, gpu_sub_pack(alo, ahi),
                           memory_order_release);
 }
 
@@ -4286,9 +4346,9 @@ gpu_sub_add(r128_gpu_t *g, const gpu_slot_t *sl)
 {
     uint32_t slo, shi, alo, ahi;
 
-    gpu_sub_unpack(atomic_load_explicit(&g->sub_st, memory_order_relaxed),
+    gpu_sub_unpack(atomic_load_explicit(&g->hull.sub_st, memory_order_relaxed),
                    &slo, &shi);
-    gpu_sub_unpack(atomic_load_explicit(&g->sub_all, memory_order_relaxed),
+    gpu_sub_unpack(atomic_load_explicit(&g->hull.sub_all, memory_order_relaxed),
                    &alo, &ahi);
     gpu_sub_ext(&slo, &shi, sl->c_lo, sl->c_hi);
     gpu_sub_ext(&slo, &shi, sl->z_lo, sl->z_hi);
@@ -6896,7 +6956,7 @@ static void
 gpu_f_add(r128_gpu_t *g, uint32_t lo, uint32_t hi)
 {
     gpu_f_begin(g);
-    rng_ext(&g->f_lo, &g->f_hi, lo, hi);
+    rng_pub(g, &g->f_lo, &g->f_hi, lo, hi, 1);
     gpu_fq_add(g, lo, hi);
     gpu_f_end(g);
 }
@@ -7684,8 +7744,8 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
     /* Publish the draw's byte ranges before capture starts. A CPU access
        may run on another thread while the CCE thread captures, and it
        must not pass the hazard gate while this draw is half recorded. */
-    rng_ext(&g->c_lo, &g->c_hi, clo, chi);
-    rng_ext(&g->z_lo, &g->z_hi, zlo, zhi);
+    rng_pub(g, &g->c_lo, &g->c_hi, clo, chi, 1);
+    rng_pub(g, &g->z_lo, &g->z_hi, zlo, zhi, 1);
     if (rs->c_staged)
         atomic_store_explicit(&g->c_stg, 1, memory_order_relaxed);
     if (rs->z_staged)
@@ -7712,7 +7772,7 @@ gpu_submit_prim(rage128_t *dev, const rage128_raster_state_t *rs,
                 if (off[sl] == R128_TEX_STAGE_NONE)
                     staged = 0;
             rng_fold(dev->vram_mask, staged, &qlo, &qhi);
-            rng_ext(&g->q_lo, &g->q_hi, qlo, qhi);
+            rng_pub(g, &g->q_lo, &g->q_hi, qlo, qhi, 0);
         }
     atomic_store_explicit(&g->pending, 1, memory_order_release);
 
@@ -8066,51 +8126,14 @@ gpu_rf_record(r128_gpu_t *g, uint32_t addr, uint64_t dt)
     g->pr_rf_used++;
 }
 
-/* The guest CPU, or scanout, is about to access local memory
-   [addr, addr+len): wait for any GPU work on those bytes. With writes
-   set the access stores there, so queued GPU texture reads conflict as
-   well; a read (scanout, a framebuffer aperture read) conflicts only
-   with GPU stores. A read whose bytes belong to submitted work only
-   waits on those fences (gpu_read_fence). Otherwise the CCE is
-   quiesced first: once rage128_pm4_drain_wait returns this thread is
-   the only submitter, and it can flush without a race. */
-void
-rage128_gpu_cpu_barrier(rage128_t *dev, uint32_t addr, uint32_t len, int writes)
+/* The barrier past a range hit: wait for, or flush, the GPU work on
+   [addr, addr+len). */
+static void
+gpu_cpu_barrier_wait(rage128_t *dev, uint32_t addr, uint32_t len, int writes)
 {
     r128_gpu_t *g = (r128_gpu_t *) dev->gpu;
     uint32_t    b = addr + len;
-    /* Aperture profile: on the sampled accesses (lfbt.sample) the time
-       spent here is split into the texture-cache invalidate and the
-       range test */
-    uint64_t tp = dev->lfbt.sample ? prof_now() : 0;
 
-    /* Before any early return: a store can hit cached staged texels
-       even when it hits no range of queued GPU work. */
-    if (writes) {
-        r128_texcache_dirty(dev, addr, len);
-        /* The overlay compositor keeps this frame's composed result
-           and decides whether to dispatch again from the overlay
-           registers alone, so it cannot see a store into its source
-           pixels. Clearing gpu_frame makes the next scanned line
-           compose again; without it the new pixels would not show
-           until the next frame. */
-        if (dev->ov0.gpu_frame && b > dev->ov0.gpu_src_lo
-            && addr < dev->ov0.gpu_src_hi)
-            dev->ov0.gpu_frame = 0;
-    }
-    if (tp) {
-        uint64_t t = prof_now();
-
-        dev->lfbt.tcd_ns += t - tp;
-        tp = t;
-    }
-    if (!gpu_range_hit(g, addr, b, writes)) {
-        if (tp)
-            dev->lfbt.rng_ns += prof_now() - tp;
-        return;
-    }
-    if (tp)
-        dev->lfbt.rng_ns += prof_now() - tp;
     if (rage128_on_cce_thread) {
         gpu_reap(g);
         if (!gpu_range_hit(g, addr, b, writes))
@@ -8190,6 +8213,58 @@ rage128_gpu_cpu_barrier(rage128_t *dev, uint32_t addr, uint32_t len, int writes)
             }
         }
     }
+}
+
+/* The guest CPU, or scanout, is about to access local memory
+   [addr, addr+len): wait for any GPU work on those bytes. With writes
+   set the access stores there, so queued GPU texture reads conflict as
+   well; a read (scanout, a framebuffer aperture read) conflicts only
+   with GPU stores. A read whose bytes belong to submitted work only
+   waits on those fences (gpu_read_fence). Otherwise the CCE is
+   quiesced first: once rage128_pm4_drain_wait returns this thread is
+   the only submitter, and it can flush without a race. */
+void
+rage128_gpu_cpu_barrier(rage128_t *dev, uint32_t addr, uint32_t len, int writes)
+{
+    r128_gpu_t *g = (r128_gpu_t *) dev->gpu;
+    uint32_t    b = addr + len;
+    /* Aperture profile: on the sampled accesses (lfbt.sample) the time
+       spent here is split into the texture-cache invalidate and the
+       range test */
+    uint64_t tp = dev->lfbt.sample ? prof_now() : 0;
+
+    /* Before any early return: a store can hit cached staged texels
+       even when it hits no range of queued GPU work. */
+    if (writes)
+        r128_gpu_store_note(dev, addr, len);
+    if (tp) {
+        uint64_t t = prof_now();
+
+        dev->lfbt.tcd_ns += t - tp;
+        tp = t;
+    }
+    /* The common case, a guest access no GPU work touches, is decided by
+       the two summaries without the call */
+    if (!r128_gpu_hull_maybe(&g->hull, addr, b, writes)
+        || !gpu_range_hit(g, addr, b, writes)) {
+        if (tp)
+            dev->lfbt.rng_ns += prof_now() - tp;
+        return;
+    }
+    if (tp)
+        dev->lfbt.rng_ns += prof_now() - tp;
+    gpu_cpu_barrier_wait(dev, addr, len, writes);
+}
+
+/* rage128_gpu_cpu_access (vid_ati_rage128.h) has made the store note and
+   found the hazard summary may hit: the full range test decides, as it
+   does inside rage128_gpu_cpu_barrier. */
+void
+rage128_gpu_cpu_barrier_hit(rage128_t *dev, uint32_t addr, uint32_t len,
+                            int writes)
+{
+    if (gpu_range_hit((r128_gpu_t *) dev->gpu, addr, addr + len, writes))
+        gpu_cpu_barrier_wait(dev, addr, len, writes);
 }
 
 /* Called on a CRTC_OFFSET write: every segment submitted so far, plus the
@@ -9605,7 +9680,7 @@ rage128_gpu_2d_blit(rage128_t *dev, uint32_t addr, uint32_t pitch,
     /* the queued store never passes rage128_gpu_2d_barrier */
     r128_texcache_dirty(dev, addr, (uint32_t) (dend - addr));
     gpu_f_add(g, addr, (uint32_t) dend);
-    rng_ext(&g->r_lo, &g->r_hi, src, (uint32_t) send);
+    rng_pub(g, &g->r_lo, &g->r_hi, src, (uint32_t) send, 0);
     atomic_store_explicit(&g->pending, 1, memory_order_release);
 
     if (g->verify2d) {
@@ -12869,6 +12944,15 @@ rage128_gpu_engine_busy(rage128_t *dev)
 }
 void
 rage128_gpu_cpu_barrier(rage128_t *dev, uint32_t addr, uint32_t len, int writes)
+{
+    (void) dev;
+    (void) addr;
+    (void) len;
+    (void) writes;
+}
+void
+rage128_gpu_cpu_barrier_hit(rage128_t *dev, uint32_t addr, uint32_t len,
+                            int writes)
 {
     (void) dev;
     (void) addr;

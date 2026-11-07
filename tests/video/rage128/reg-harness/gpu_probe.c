@@ -761,6 +761,12 @@ harness_gpu_fab_scan_arm(void *gp, uint32_t lo, uint32_t hi)
     atomic_store(&g->pending, 1);
 }
 
+uint64_t
+harness_gpu_fab_cpu_hits(void *gp)
+{
+    return ((r128_gpu_t *) gp)->st_cpu_barrier_hits;
+}
+
 void
 harness_gpu_fab_scan_add(void *gp, uint32_t lo, uint32_t hi)
 {
@@ -911,6 +917,188 @@ done:
     free(g->learned);
     harness_gpu_dispose(g);
     return ok;
+}
+
+/* The pending summary against the walk it guards: random hulls are
+   published through rng_pub into a fabricated backend, then random
+   ranges are tested both by gpu_range_hit (summary first) and by
+   gpu_pending_hit alone (no slot is submitted, so that is the whole
+   answer). Returns the number of queries, the disagreements, and how
+   many queries hit. */
+int
+harness_gpu_pnd_summary_probe(uint32_t seed, uint32_t *queries,
+                              uint32_t *mismatch, uint32_t *hits)
+{
+    r128_gpu_t *g = harness_gpu_alloc();
+    uint32_t    x = seed ? seed : 1u;
+
+    *queries = *mismatch = *hits = 0;
+    if (!g)
+        return 0;
+    for (int trial = 0; trial < 400; trial++) {
+        int npub = (int) (x % 6u);
+
+        rng_reset(g);
+        for (int k = 0; k < npub; k++) {
+            uint32_t lo, len, which;
+
+            x ^= x << 13; x ^= x >> 17; x ^= x << 5;
+            lo = x & 0xfffff0u;
+            x ^= x << 13; x ^= x >> 17; x ^= x << 5;
+            len   = (x & 0xffffu) + 1u;
+            which = (x >> 16) % 5u;
+            switch (which) {
+                case 0: rng_pub(g, &g->c_lo, &g->c_hi, lo, lo + len, 1); break;
+                case 1: rng_pub(g, &g->z_lo, &g->z_hi, lo, lo + len, 1); break;
+                case 2: gpu_f_add(g, lo, lo + len); break;
+                case 3: rng_pub(g, &g->q_lo, &g->q_hi, lo, lo + len, 0); break;
+                default: rng_pub(g, &g->r_lo, &g->r_hi, lo, lo + len, 0); break;
+            }
+        }
+        atomic_store(&g->pending, (x & 0x100u) ? 0 : 1);
+        for (int q = 0; q < 64; q++) {
+            uint32_t lo, len;
+            int      tex = q & 1, ref, got;
+
+            x ^= x << 13; x ^= x >> 17; x ^= x << 5;
+            lo  = x & 0xffffffu;
+            len = 1u + ((x >> 24) & 7u) * ((q & 2) ? 4096u : 1u);
+            ref = gpu_pending_hit(g, lo, lo + len, tex);
+            got = gpu_range_hit(g, lo, lo + len, tex);
+            (*queries)++;
+            *mismatch += ref != got;
+            *hits += got;
+        }
+    }
+    rng_reset(g);
+    atomic_store(&g->pending, 0);
+    harness_gpu_dispose(g);
+    return 1;
+}
+
+/* The slot walk as it ran before the submitted-slot interval: every
+   guest store with any slot submitted read all twelve flags. Kept only
+   as the bench's reference column. */
+static int
+bench_range_hit_walk(r128_gpu_t *g, uint32_t lo, uint32_t hi, int texture)
+{
+    if (gpu_pending_hit(g, lo, hi, texture))
+        return 1;
+    if (!atomic_load_explicit(&g->inflight, memory_order_acquire))
+        return 0;
+    for (unsigned i = 0; i < GPU_RING_SLOTS; i++) {
+        const gpu_slot_t *sl = &g->slot[i];
+
+        if (!atomic_load_explicit(&sl->submitted, memory_order_acquire))
+            continue;
+        if (rng_hit(sl->c_lo, sl->c_hi, lo, hi)
+            || rng_hit(sl->z_lo, sl->z_hi, lo, hi)
+            || gpu_slot_f_hit(g, sl, lo, hi)
+            || (texture
+                && (rng_hit(sl->q_lo, sl->q_hi, lo, hi)
+                    || rng_hit(sl->r_lo, sl->r_hi, lo, hi))))
+            return 1;
+    }
+    return 0;
+}
+
+static volatile int bench_sink;
+
+/* Nanoseconds per call of fn over n calls, the address walking a 1 MB
+   window below the far hulls so every call is a miss. */
+#define BENCH_LOOP(expr)                                                  \
+    do {                                                                  \
+        uint64_t t0_ = prof_now();                                        \
+        int      acc_ = 0;                                                \
+        for (uint32_t i_ = 0; i_ < n; i_++) {                             \
+            uint32_t a = (i_ * 4u) & 0xffffcu;                            \
+            acc_ += (expr);                                               \
+        }                                                                 \
+        bench_sink += acc_;                                               \
+        ns = (double) (prof_now() - t0_) / (double) n;                    \
+    } while (0)
+
+void
+harness_gpu_barrier_bench(rage128_t *dev, uint32_t n)
+{
+    static const char *const state_name[4] = {
+        "idle", "pending", "slots", "pending+slots"
+    };
+    r128_gpu_t *g   = harness_gpu_alloc();
+    void       *old = dev->gpu;
+    const uint32_t flo = 0x800000u, fhi = 0x900000u;
+
+    if (!g)
+        return;
+    dev->gpu         = g;
+    dev->lfbt.sample = 0;
+    for (int st = 0; st < 4; st++) {
+        double ns, full_w, full_r, rng_w, rng_r, tcd, walk_w, lfb_w, lfb_r;
+
+        atomic_store(&g->pending, (st & 1) ? 1 : 0);
+        rng_reset(g);
+        if (st & 1) {
+            /* published as the submitter publishes them */
+            rng_pub(g, &g->c_lo, &g->c_hi, flo, fhi, 1);
+            rng_pub(g, &g->z_lo, &g->z_hi, flo, fhi, 1);
+            rng_pub(g, &g->f_lo, &g->f_hi, flo, fhi, 1);
+            rng_pub(g, &g->q_lo, &g->q_hi, flo, fhi, 0);
+            rng_pub(g, &g->r_lo, &g->r_hi, flo, fhi, 0);
+        }
+        for (unsigned i = 0; i < GPU_RING_SLOTS; i++) {
+            gpu_slot_t *sl = &g->slot[i];
+
+            sl->c_lo = sl->z_lo = sl->f_lo = sl->q_lo = sl->r_lo = flo;
+            sl->c_hi = sl->z_hi = sl->f_hi = sl->q_hi = sl->r_hi = fhi;
+            atomic_store(&sl->submitted, (st & 2) ? 1 : 0);
+        }
+        atomic_store(&g->inflight, (st & 2) ? GPU_RING_SLOTS : 0);
+        gpu_sub_rebuild(g);
+
+        BENCH_LOOP((rage128_gpu_cpu_barrier(dev, a, 4, 1), 0));
+        full_w = ns;
+        BENCH_LOOP((rage128_gpu_cpu_barrier(dev, a, 4, 0), 0));
+        full_r = ns;
+        BENCH_LOOP(gpu_range_hit(g, a, a + 4, 1));
+        rng_w = ns;
+        BENCH_LOOP(gpu_range_hit(g, a, a + 4, 0));
+        rng_r = ns;
+        BENCH_LOOP((r128_texcache_dirty(dev, a, 4), 0));
+        tcd = ns;
+        BENCH_LOOP(bench_range_hit_walk(g, a, a + 4, 1));
+        walk_w = ns;
+        /* the guest's path: the linear-aperture dword handlers, called
+           through the mapping as the CPU core calls them, with the store
+           itself and the page mark included */
+        BENCH_LOOP((dev->lfb_mapping.write_l(dev->lfb_base + a, a, dev), 0));
+        lfb_w = ns;
+        BENCH_LOOP((int) dev->lfb_mapping.read_l(dev->lfb_base + a, dev));
+        lfb_r = ns;
+        printf("barrier bench: state=%s n=%u barrier_store_ns=%.2f "
+               "barrier_read_ns=%.2f range_store_ns=%.2f range_read_ns=%.2f "
+               "texcache_ns=%.2f old_walk_store_ns=%.2f lfb_writel_ns=%.2f "
+               "lfb_readl_ns=%.2f\n",
+               state_name[st], n, full_w, full_r, rng_w, rng_r, tcd, walk_w,
+               lfb_w, lfb_r);
+    }
+    for (unsigned i = 0; i < GPU_RING_SLOTS; i++)
+        atomic_store(&g->slot[i].submitted, 0);
+    atomic_store(&g->inflight, 0);
+    atomic_store(&g->pending, 0);
+    gpu_sub_rebuild(g);
+    dev->gpu = old;
+    harness_gpu_dispose(g);
+    /* the floor: the same handlers with no GPU backend on the device */
+    if (!dev->gpu) {
+        double ns, lfb_w, lfb_r;
+
+        BENCH_LOOP((dev->lfb_mapping.write_l(dev->lfb_base + a, a, dev), 0));
+        lfb_w = ns;
+        BENCH_LOOP((int) dev->lfb_mapping.read_l(dev->lfb_base + a, dev));
+        lfb_r = ns;
+        printf("barrier bench: state=no-gpu n=%u lfb_writel_ns=%.2f "
+               "lfb_readl_ns=%.2f\n", n, lfb_w, lfb_r);
+    }
 }
 
 int
@@ -1292,6 +1480,21 @@ harness_gpu_tuple_reload(uint32_t fmt0, uint32_t fmt1,
 }
 
 int
+harness_gpu_pnd_summary_probe(uint32_t seed, uint32_t *queries,
+                              uint32_t *mismatch, uint32_t *hits)
+{
+    (void) seed;
+    *queries = *mismatch = *hits = 0;
+    return 0;
+}
+
+void
+harness_gpu_barrier_bench(rage128_t *dev, uint32_t n)
+{
+    (void) dev; (void) n;
+}
+
+int
 harness_gpu_cache_path_probe(int *empty_refused, int *private_joined)
 {
     *empty_refused = *private_joined = 0;
@@ -1516,6 +1719,13 @@ void
 harness_gpu_fab_scan_add(void *g, uint32_t lo, uint32_t hi)
 {
     (void) g; (void) lo; (void) hi;
+}
+
+uint64_t
+harness_gpu_fab_cpu_hits(void *g)
+{
+    (void) g;
+    return 0;
 }
 
 uint64_t
