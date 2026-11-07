@@ -81,7 +81,7 @@ typedef struct hd44780_lcd_t {
 
 typedef struct hd44780_t {
     void   *log;
-    void   *lpt;
+    int     port;     /* The parallel port it is on. */
     uint8_t type;
     uint8_t wiring;
 
@@ -784,6 +784,20 @@ hd44780_poll(void *priv)
     monitor_index_global = dev->prev_monitor_index;
 }
 
+/*
+ * What the LCD drives onto its port's data lines. The port is looked up each
+ * time: as a video card, the LCD is set up in machine_init(), before a
+ * standalone parallel port is, so lpt_attach_ex() can't hand it back.
+ */
+static void
+hd44780_write_to_dat(hd44780_t *dev, uint8_t val)
+{
+    void *lpt = lpt_ports[dev->port].lpt;
+
+    if (lpt != NULL)
+        lpt_write_to_dat(lpt, val);
+}
+
 static void
 hd44780_clock(hd44780_t *dev, hd44780_lcd_t *lcd, uint8_t rs, uint8_t rw, uint8_t val)
 {
@@ -804,7 +818,7 @@ hd44780_clock(hd44780_t *dev, hd44780_lcd_t *lcd, uint8_t rs, uint8_t rw, uint8_
         int idx      = is_ddram ? hd44780_ddram_index(lcd->addr & 0x7f) : (lcd->addr & 0x3f);
 
         if (rw) { /* read */
-            lpt_write_to_dat(dev->lpt, (idx < 0) ? ' ' : (is_ddram ? lcd->ddram[idx] : lcd->cgram[idx]));
+            hd44780_write_to_dat(dev, (idx < 0) ? ' ' : (is_ddram ? lcd->ddram[idx] : lcd->cgram[idx]));
         } else if (idx >= 0) { /* write */
             if (is_ddram)
                 lcd->ddram[idx] = val;
@@ -820,7 +834,7 @@ hd44780_clock(hd44780_t *dev, hd44780_lcd_t *lcd, uint8_t rs, uint8_t rw, uint8_
         }
     } else {      /* command */
         if (rw) { /* read address */
-            lpt_write_to_dat(dev->lpt, lcd->addr & ((lcd->addr & 0x80) ? 0x7f : 0x3f));
+            hd44780_write_to_dat(dev, lcd->addr & ((lcd->addr & 0x80) ? 0x7f : 0x3f));
         } else if (val & 0xc0) { /* set address */
             lcd->addr = val;
         } else if (val & 0x20) { /* function set */
@@ -880,7 +894,7 @@ hd44780_write_ctrl(uint8_t val, void *priv)
 
     if (dev->wiring == HD44780_WIRING_8BIT) {                  /* 8-bit mode: control on control port */
         if ((dev->type == HD44780_COBALT3K) && (val & 0x08)) { /* Cobalt buttons on SelectIn */
-            lpt_write_to_dat(dev->lpt, ~(dev->buttons | 0x01));
+            hd44780_write_to_dat(dev, ~(dev->buttons | 0x01));
             return;
         }
 
@@ -997,8 +1011,9 @@ hd44780_init(const device_t *info)
         dev->font     = hd44780_font_a00;
         dev->palette  = info->local >> 8;
         dev->dot_size = LCD_SCALE - 1;
-        dev->lpt      = lpt_attach_ex(0, hd44780_write_data, hd44780_write_ctrl,
-                                      NULL, NULL, NULL, NULL, NULL, dev);
+        dev->port     = 0;
+        lpt_attach_ex(dev->port, hd44780_write_data, hd44780_write_ctrl,
+                      NULL, NULL, NULL, NULL, NULL, dev);
         keyboard_send = hd44780_cobalt3k_keyboard_send;
     } else {
         dev->wiring   = device_get_config_int("wiring");
@@ -1007,8 +1022,9 @@ hd44780_init(const device_t *info)
         dev->font     = device_get_config_int("font") ? hd44780_font_a02 : hd44780_font_a00;
         dev->palette  = device_get_config_int("palette");
         dev->dot_size = LCD_SCALE - !!device_get_config_int("dot_gap");
-        dev->lpt      = lpt_attach_ex(device_get_config_int("port"), hd44780_write_data,
-                                      hd44780_write_ctrl, NULL, NULL, NULL, NULL, NULL, dev);
+        dev->port     = device_get_config_int("port");
+        lpt_attach_ex(dev->port, hd44780_write_data, hd44780_write_ctrl,
+                      NULL, NULL, NULL, NULL, NULL, dev);
     }
 
     dev->log = log_open("HD44780");
