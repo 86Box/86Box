@@ -8,6 +8,10 @@
  *
  *          LPT-attached Hitachi HD44780 character LCD emulation.
  *
+ *          With its port set to the onboard LCD bus, the LCD is not on a
+ *          parallel port: the machine drives it through
+ *          hd44780_bus_read() and hd44780_bus_write() instead.
+ *
  *          Font data derived from https://github.com/jazz-soft/char-lcd
  *          (MIT licensed without notice)
  *
@@ -46,6 +50,8 @@ enum {
 
 #define HD44780_LINE_LEN 40
 
+#define HD44780_PORT_ONBOARD 0xff /* The "port" setting for the board's own LCD bus. */
+
 #define LCD_SCALE        4
 #define CHAR_W           5
 #define CHAR_H           8
@@ -81,7 +87,7 @@ typedef struct hd44780_lcd_t {
 
 typedef struct hd44780_t {
     void   *log;
-    int     port;     /* The parallel port it is on. */
+    int     port;     /* The parallel port it is on, or HD44780_PORT_ONBOARD. */
     uint8_t type;
     uint8_t wiring;
 
@@ -798,16 +804,19 @@ hd44780_write_to_dat(hd44780_t *dev, uint8_t val)
         lpt_write_to_dat(lpt, val);
 }
 
-static void
+/* One E cycle; returns what a read drives onto the data lines, or -1 for none. */
+static int
 hd44780_clock(hd44780_t *dev, hd44780_lcd_t *lcd, uint8_t rs, uint8_t rw, uint8_t val)
 {
+    int ret = -1;
+
     hd44780_log(dev->log, "clock(%X, %X, %08X)\n", rs, rw, val);
 
     if (!(lcd->config[2] & 0x10)) { /* 4-bit mode */
         if (!lcd->nibble) {
             lcd->latch  = val;
             lcd->nibble = 1;
-            return;
+            return ret;
         }
         val = (lcd->latch & 0xf0) | (val >> 4);
     }
@@ -818,7 +827,7 @@ hd44780_clock(hd44780_t *dev, hd44780_lcd_t *lcd, uint8_t rs, uint8_t rw, uint8_
         int idx      = is_ddram ? hd44780_ddram_index(lcd->addr & 0x7f) : (lcd->addr & 0x3f);
 
         if (rw) { /* read */
-            hd44780_write_to_dat(dev, (idx < 0) ? ' ' : (is_ddram ? lcd->ddram[idx] : lcd->cgram[idx]));
+            ret = (idx < 0) ? ' ' : (is_ddram ? lcd->ddram[idx] : lcd->cgram[idx]);
         } else if (idx >= 0) { /* write */
             if (is_ddram)
                 lcd->ddram[idx] = val;
@@ -834,7 +843,7 @@ hd44780_clock(hd44780_t *dev, hd44780_lcd_t *lcd, uint8_t rs, uint8_t rw, uint8_
         }
     } else {      /* command */
         if (rw) { /* read address */
-            hd44780_write_to_dat(dev, lcd->addr & ((lcd->addr & 0x80) ? 0x7f : 0x3f));
+            ret = lcd->addr & ((lcd->addr & 0x80) ? 0x7f : 0x3f);
         } else if (val & 0xc0) { /* set address */
             lcd->addr = val;
         } else if (val & 0x20) { /* function set */
@@ -866,6 +875,64 @@ hd44780_clock(hd44780_t *dev, hd44780_lcd_t *lcd, uint8_t rs, uint8_t rw, uint8_
             dev->redraw = 1;
         }
     }
+
+    return ret;
+}
+
+/* An E cycle from a parallel port, where what a read drives goes back on the port's data lines. */
+static void
+hd44780_clock_lpt(hd44780_t *dev, hd44780_lcd_t *lcd, uint8_t rs, uint8_t rw, uint8_t val)
+{
+    int ret = hd44780_clock(dev, lcd, rs, rw, val);
+
+    if (ret >= 0)
+        hd44780_write_to_dat(dev, ret);
+}
+
+/* The LCD on the board's own bus, if one is set to it. */
+static hd44780_t *hd44780_bus;
+
+/*
+ * A bus cycle on the board's own LCD bus, with the data on D0-D7, to every
+ * controller whose E line is set in 'e' (bit 0 for E0), in order, as a
+ * parallel port clocks every controller whose E line has an edge. A read
+ * returns what the last of them drives, as the last to go on a parallel
+ * port's data lines is what it reads; with none of them driving, or no LCD on
+ * the bus, it reads high.
+ */
+uint8_t
+hd44780_bus_read(uint8_t e, int rs)
+{
+    hd44780_t *dev = hd44780_bus;
+    int        ret = -1;
+
+    if (dev == NULL)
+        return 0xff;
+
+    for (int i = 0; i < dev->controllers; i++) {
+        if (e & (1 << i)) {
+            int val = hd44780_clock(dev, &dev->lcd[i], !!rs, 1, 0xff);
+
+            if (val >= 0)
+                ret = val;
+        }
+    }
+
+    return (ret < 0) ? 0xff : ret;
+}
+
+void
+hd44780_bus_write(uint8_t e, int rs, uint8_t val)
+{
+    hd44780_t *dev = hd44780_bus;
+
+    if (dev == NULL)
+        return;
+
+    for (int i = 0; i < dev->controllers; i++) {
+        if (e & (1 << i))
+            hd44780_clock(dev, &dev->lcd[i], !!rs, 0, val);
+    }
 }
 
 static void
@@ -877,11 +944,11 @@ hd44780_write_data(uint8_t val, void *priv)
         uint8_t rw = (dev->controllers > 2) ? 0 : (val & 0x20); /* R/W on D5 (unless 3+ controllers) */
 #define E_EDGE(rw, prev, val, mask) ((rw) ? (!((prev) & (mask)) && ((val) & (mask))) : (((prev) & (mask)) && !((val) & (mask))))
         if (E_EDGE(rw, dev->data, val, 0x40))                                    /* E[0] on D6 */
-            hd44780_clock(dev, &dev->lcd[0], val & 0x10, rw, (val << 4) | 0x0f); /* RS on D4, 4-bit data on D[3:0] */
+            hd44780_clock_lpt(dev, &dev->lcd[0], val & 0x10, rw, (val << 4) | 0x0f); /* RS on D4, 4-bit data on D[3:0] */
         if ((dev->controllers > 1) && E_EDGE(rw, dev->data, val, 0x80))          /* E[1] on D7 */
-            hd44780_clock(dev, &dev->lcd[1], val & 0x10, rw, (val << 4) | 0x0f);
+            hd44780_clock_lpt(dev, &dev->lcd[1], val & 0x10, rw, (val << 4) | 0x0f);
         if ((dev->controllers > 2) && E_EDGE(rw, dev->data, val, 0x20)) /* E[2] on D5 */
-            hd44780_clock(dev, &dev->lcd[2], val & 0x10, 0, (val << 4) | 0x0f);
+            hd44780_clock_lpt(dev, &dev->lcd[2], val & 0x10, 0, (val << 4) | 0x0f);
     }
 
     dev->data = val;
@@ -900,21 +967,21 @@ hd44780_write_ctrl(uint8_t val, void *priv)
 
         uint8_t rw = (dev->controllers > 2) ? 0 : !(val & 0x02);         /* R/W on autofd (unless 3+ controllers) */
         if (E_EDGE(!rw, dev->ctrl, val, 0x01))                           /* E[0] on strobe */
-            hd44780_clock(dev, &dev->lcd[0], val & 0x04, rw, dev->data); /* RS on nInit, 8-bit data on D[7:0] */
+            hd44780_clock_lpt(dev, &dev->lcd[0], val & 0x04, rw, dev->data); /* RS on nInit, 8-bit data on D[7:0] */
         if ((dev->controllers > 1) && E_EDGE(!rw, dev->ctrl, val, 0x08)) /* E[1] on SelectIn */
-            hd44780_clock(dev, &dev->lcd[1], val & 0x04, rw, dev->data);
+            hd44780_clock_lpt(dev, &dev->lcd[1], val & 0x04, rw, dev->data);
         if ((dev->controllers > 2) && E_EDGE(!rw, dev->ctrl, val, 0x02)) /* E[2] on autofd */
-            hd44780_clock(dev, &dev->lcd[2], val & 0x04, 0, dev->data);
+            hd44780_clock_lpt(dev, &dev->lcd[2], val & 0x04, 0, dev->data);
     } else { /* 4-bit mode: E[6:3] on control port */
         uint8_t rw = (dev->controllers > 2) ? 0 : (dev->data & 0x20);
         if ((dev->controllers > 3) && E_EDGE(!rw, dev->ctrl, val, 0x01)) /* E[3] on strobe */
-            hd44780_clock(dev, &dev->lcd[3], dev->data & 0x10, 0, (dev->data << 4) | 0x0f);
+            hd44780_clock_lpt(dev, &dev->lcd[3], dev->data & 0x10, 0, (dev->data << 4) | 0x0f);
         if ((dev->controllers > 4) && E_EDGE(!rw, dev->ctrl, val, 0x02)) /* E[4] on autofd */
-            hd44780_clock(dev, &dev->lcd[4], dev->data & 0x10, 0, (dev->data << 4) | 0x0f);
+            hd44780_clock_lpt(dev, &dev->lcd[4], dev->data & 0x10, 0, (dev->data << 4) | 0x0f);
         if ((dev->controllers > 5) && E_EDGE(rw, dev->ctrl, val, 0x04)) /* E[5] on nInit */
-            hd44780_clock(dev, &dev->lcd[5], dev->data & 0x10, 0, (dev->data << 4) | 0x0f);
+            hd44780_clock_lpt(dev, &dev->lcd[5], dev->data & 0x10, 0, (dev->data << 4) | 0x0f);
         if ((dev->controllers > 6) && E_EDGE(!rw, dev->ctrl, val, 0x08)) /* E[6] on SelectIn */
-            hd44780_clock(dev, &dev->lcd[6], dev->data & 0x10, 0, (dev->data << 4) | 0x0f);
+            hd44780_clock_lpt(dev, &dev->lcd[6], dev->data & 0x10, 0, (dev->data << 4) | 0x0f);
     }
 
     dev->ctrl = val;
@@ -1023,8 +1090,13 @@ hd44780_init(const device_t *info)
         dev->palette  = device_get_config_int("palette");
         dev->dot_size = LCD_SCALE - !!device_get_config_int("dot_gap");
         dev->port     = device_get_config_int("port");
-        lpt_attach_ex(dev->port, hd44780_write_data, hd44780_write_ctrl,
-                      NULL, NULL, NULL, NULL, NULL, dev);
+        if (dev->port == HD44780_PORT_ONBOARD) {
+            /* One LCD to a bus: a second one set to it is left unconnected. */
+            if (hd44780_bus == NULL)
+                hd44780_bus = dev;
+        } else
+            lpt_attach_ex(dev->port, hd44780_write_data, hd44780_write_ctrl,
+                          NULL, NULL, NULL, NULL, NULL, dev);
     }
 
     dev->log = log_open("HD44780");
@@ -1069,6 +1141,9 @@ hd44780_close(void *priv)
 
     hd44780_log(dev->log, "close()\n");
 
+    if (hd44780_bus == dev)
+        hd44780_bus = NULL;
+
     free(dev);
 }
 
@@ -1102,11 +1177,12 @@ static const device_config_t hd44780_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "LPT1", .value = 0 },
-            { .description = "LPT2", .value = 1 },
-            { .description = "LPT3", .value = 2 },
-            { .description = "LPT4", .value = 3 },
-            { .description = ""                 }
+            { .description = "LPT1",            .value = 0                    },
+            { .description = "LPT2",            .value = 1                    },
+            { .description = "LPT3",            .value = 2                    },
+            { .description = "LPT4",            .value = 3                    },
+            { .description = "Onboard LCD bus", .value = HD44780_PORT_ONBOARD },
+            { .description = ""                                               }
         },
         .bios           = { { 0 } }
     },
