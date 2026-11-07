@@ -80,6 +80,8 @@ opSTI(UNUSED(uint32_t fetchdat))
     /*First instruction after STI will always execute, regardless of whether
       there is a pending interrupt*/
     cpu_end_block_after_ins = 2;
+    if (gdbstub_debug)
+        gdbstub_inhibit_irq();
 
     CLOCK_CYCLES(2);
     PREFETCH_RUN(2, 1, -1, 0, 0, 0, 0, 0);

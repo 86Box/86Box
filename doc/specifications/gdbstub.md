@@ -87,6 +87,25 @@ Software execution breakpoints are checked at instruction boundaries rather
 than repeatedly replacing guest instructions with INT3. Their existing
 writable-memory check is retained.
 
+Requests must carry valid RSP checksums; corrupt packets are rejected with
+`-` and may be retransmitted. The former workaround accepting invalid
+checksums from older MSYS2 GDB clients is no longer enabled. Use a client
+that sends valid checksums. This is a deliberate compatibility change: the
+stub used to acknowledge every request without checking its checksum.
+
+`qSupported` advertises `PacketSize=3FFC` (16380 bytes of packet data, the
+buffer less `#`, two checksum digits and a terminator). A longer request with
+a valid checksum is acknowledged and refused with `E22`. A `-` from the client
+makes the stub retransmit its last response. If a response goes
+unacknowledged, the stub resends it every second. After three resends it
+disconnects the client, so a client that pipelines requests without
+acknowledging responses cannot stall emulation or shutdown. All responses,
+including IDA's `Hc1`, come from the emulation thread in order. A `G` packet
+must hold whole registers in `g` order (trailing registers may be omitted). Malformed packets
+are refused without writing anything. A register the CPU refuses, such as an
+invalid selector, stops the packet with `E22`. Registers written before it
+stay written, and nothing after it is written.
+
 Guest debug registers are not used to implement remote breakpoints. Their
 normal emulation and configuration remain independent of the remote stub.
 Watchpoints retain the existing memory-helper coverage; paths that bypass
@@ -149,6 +168,18 @@ execution or the instruction is restarted by the CPU engine. A watchpoint
 reports the matching instruction's completed access and takes precedence over
 the single-step stop reason.
 
+Debugger stops preserve the interrupt inhibition established by STI, MOV SS
+and POP SS. MOV SS and POP SS expose the following instruction as a separate
+remote breakpoint/step boundary, while still suppressing guest debug traps
+through that instruction. Pending external interrupts are delivered only
+after the stop has been reported and execution resumes, subject to the saved
+interrupt shadow. While attached, translated STI and MOV SS use their
+instruction helpers rather than the ordinary paired MOV SS translation.
+An interrupt waking a debugger-stopped HLT saves the address after HLT.
+Synchronous faults are delivered before checking execution breakpoints at
+the next boundary; a faulting instruction's unexecuted fallthrough does not
+hit a breakpoint.
+
 ## Regression tests
 
 The Python tests use only the standard library. They **overwrite guest
@@ -164,7 +195,12 @@ python tests/cpu/gdbstub_test.py --binary build/src/86Box \
 
 Use `--interpreter` to select interpreter execution. `--trace-translated`
 requires host GDB and asserts calls from generated code during both continue
-and single-step. `--guest-gdb` adds a real GDB compatibility check.
+and single-step, as well as cycle-budget accounting across dynarec stops.
+`--guest-gdb` adds a real GDB compatibility check.
+The instruction-boundary cases cover cold/warm stack-segment loads, guest
+TF/debug-register inhibition, and a verified pending PIT IRQ across a stop
+and resume, including HLT wakeup. Paging cases check that cold and warmed
+faulting loads do not hit software or hardware fallthrough breakpoints.
 The protected-mode cases also warm a descriptor page and then install read
 watchpoints in each half of a segment descriptor, checking cache invalidation.
 `--guest-debug-regs off` exercises remote debugging without guest
@@ -180,8 +216,12 @@ python tests/cpu/gdbstub_runtime_test.py --binary build/src/86Box \
 ```
 
 This checks default-disabled behavior, activation, nonpersistent CLI
-overrides, invalid ports, and an occupied listener port. The launchers isolate
-configuration/cache/data directories but preserve `XDG_RUNTIME_DIR`, so the
+overrides, invalid ports, and an occupied listener port. Its `ProtocolTests`
+launch one VM per test on consecutive fixed ports from `--protocol-port`
+(12450 by default). They check checksum rejection, retransmission,
+`PacketSize` and `qSupported` bounds, `G` validation, acknowledgement
+ordering, and shutdown with buffered or unacknowledged requests. The launchers
+isolate configuration/cache/data directories but preserve `XDG_RUNTIME_DIR`, so the
 host's audio sockets remain available.
 
 With `BUILD_TESTING=ON`, the `gdbstub_watch_tests` target provides focused

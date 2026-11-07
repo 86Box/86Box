@@ -48,6 +48,7 @@ enum {
 extern int      gdbstub_step, gdbstub_next_asap;
 extern int      gdbstub_active, gdbstub_debug;
 extern int      gdbstub_watching;
+extern int      gdbstub_irq_inhibit, gdbstub_ss_inhibit, gdbstub_events_pending;
 extern int      gdbstub_cli_enabled, gdbstub_cli_port;
 extern uint64_t gdbstub_watch_pages[(((uint32_t) -1) >> (MEM_GRANULARITY_BITS + 6)) + 1];
 
@@ -60,6 +61,11 @@ extern void gdbstub_cpu_init(void);
 extern void gdbstub_poll(void);
 extern int  gdbstub_instruction(void);
 extern int  gdbstub_instruction_start(void);
+extern int  gdbstub_instruction_begin(void);
+extern int  gdbstub_instruction_end(void);
+extern void gdbstub_instruction_reset(void);
+extern void gdbstub_inhibit_irq(void);
+extern void gdbstub_inhibit_ss(void);
 extern int  gdbstub_int3(void);
 extern void gdbstub_mem_access(uint32_t *addrs, int access);
 extern void gdbstub_init(void);

@@ -18,6 +18,7 @@
 #include "x87.h"
 #include <86box/nmi.h>
 #include <86box/mem.h>
+#include <86box/gdbstub.h>
 #include <86box/smram.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
@@ -2437,6 +2438,8 @@ sysret(UNUSED(uint32_t fetchdat))
     /* First instruction after SYSRET will always execute, regardless of whether
        there is a pending interrupt, following the STI logic */
     cpu_end_block_after_ins = 2;
+    if (gdbstub_debug)
+        gdbstub_inhibit_irq();
 
     oldcs = CS;
     cpu_state.oldpc = cpu_state.pc;

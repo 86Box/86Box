@@ -192,6 +192,13 @@ opMOV_seg_w_a16(uint32_t fetchdat)
             op_loadseg(new_seg, &cpu_state.seg_ss);
             if (cpu_state.abrt)
                 return 1;
+            if (gdbstub_debug) {
+                gdbstub_inhibit_ss();
+                CLOCK_CYCLES((cpu_mod == 3) ? 2 : 5);
+                PREFETCH_RUN((cpu_mod == 3) ? 2 : 5, 2, rmdat, 0, (cpu_mod == 3) ? 0 : 1, 0, 0, 0);
+                CPU_BLOCK_END();
+                return 1;
+            }
 #if defined(USE_DYNAREC) && !defined(IS_DYNAREC) && !defined(OPS_286_386)
             /* The recompiler compiled this MOV SS as the first of a pair
                (codegen_mov_ss_pair_valid, codegen_mov_ss_pair_pc): the next
@@ -256,6 +263,13 @@ opMOV_seg_w_a32(uint32_t fetchdat)
             op_loadseg(new_seg, &cpu_state.seg_ss);
             if (cpu_state.abrt)
                 return 1;
+            if (gdbstub_debug) {
+                gdbstub_inhibit_ss();
+                CLOCK_CYCLES((cpu_mod == 3) ? 2 : 5);
+                PREFETCH_RUN((cpu_mod == 3) ? 2 : 5, 2, rmdat, 0, (cpu_mod == 3) ? 0 : 1, 0, 0, 1);
+                CPU_BLOCK_END();
+                return 1;
+            }
 #if defined(USE_DYNAREC) && !defined(IS_DYNAREC) && !defined(OPS_286_386)
             /* The recompiler compiled this MOV SS as the first of a pair
                (codegen_mov_ss_pair_valid, codegen_mov_ss_pair_pc): the next

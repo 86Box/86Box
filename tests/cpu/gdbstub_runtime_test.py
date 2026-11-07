@@ -167,10 +167,228 @@ class RuntimeTests(unittest.TestCase):
                 listener.accept()
 
 
+def packet(payload):
+    data = payload if isinstance(payload, bytes) else payload.encode("ascii")
+    return b"$" + data + b"#" + f"{sum(data) & 255:02x}".encode()
+
+
+class ProtocolTests(unittest.TestCase):
+    """Remote serial protocol framing, sizing and lifecycle on a disposable VM."""
+
+    next_port = None
+
+    def setUp(self):
+        port = ProtocolTests.next_port
+        ProtocolTests.next_port += 1
+        directory = tempfile.TemporaryDirectory(prefix="86box-gdb-rsp-")
+        self.addCleanup(directory.cleanup)
+        root = Path(directory.name)
+        (root / "86box.cfg").write_text(configuration(port).replace(
+            "[General]\n", "[General]\ngdbstub_enabled = 1\n"))
+        control_path = root / "automation.sock"
+        environment = dict(os.environ, QT_QPA_PLATFORM="offscreen",
+                           XDG_CONFIG_HOME=str(root / "config"),
+                           XDG_CACHE_HOME=str(root / "cache"),
+                           XDG_DATA_HOME=str(root / "data"))
+        self.log_path = root / "process.log"
+        log = self.log_path.open("w+")
+        self.addCleanup(log.close)
+        self.process = subprocess.Popen(
+            [str(BINARY), "--automation", f"unix:{control_path}", "--noconfirm",
+             "--rompath", str(ROMPATH), "--vmpath", str(root)],
+            env=environment, stdout=log, stderr=log, cwd=root)
+        self.addCleanup(self.stop_process)
+        deadline = time.monotonic() + 15
+        while not control_path.exists():
+            self.assertIsNone(self.process.poll(), self.log())
+            self.assertLess(time.monotonic(), deadline, self.log())
+            time.sleep(0.05)
+        self.control = socket.socket(socket.AF_UNIX)
+        self.addCleanup(self.control.close)
+        self.control.settimeout(10)
+        self.control.connect(str(control_path))
+        self.stream = self.control.makefile("rwb", buffering=0)
+        self.addCleanup(self.stream.close)
+        self.remote = Remote(port)
+        self.addCleanup(self.remote.socket.close)
+        self.assertTrue(self.remote.command("?").startswith("T"))
+
+    def log(self):
+        return self.log_path.read_text(errors="replace")
+
+    def stop_process(self):
+        if self.process.poll() is None:
+            self.process.terminate()
+            try:
+                self.process.wait(timeout=5)
+            except subprocess.TimeoutExpired:
+                self.process.kill()
+                self.process.wait()
+
+    def quit(self):
+        self.stream.write(b"quit\n")
+        self.assertTrue(json.loads(self.stream.readline())["ok"])
+        self.assertEqual(self.process.wait(timeout=15), 0, self.log())
+
+    def raw_ack(self, data):
+        self.remote.socket.sendall(data)
+        return self.remote.socket.recv(1)
+
+    def packet_size(self):
+        features = self.remote.command("qSupported:swbreak+").split(";")
+        sizes = [f for f in features if f.startswith("PacketSize=")]
+        self.assertEqual(len(sizes), 1, features)
+        return int(sizes[0].split("=")[1], 16)
+
+    def test_checksum_mismatch_is_rejected_and_recovers(self):
+        for bad in (b"$?#00", b"$?#zz", b"$g#00"):
+            with self.subTest(packet=bad):
+                self.assertEqual(self.raw_ack(bad), b"-")
+                self.assertTrue(self.remote.command("?").startswith("T"))
+        # A NAK leaves the command unexecuted; the retransmission is executed once.
+        self.remote.write_reg(0, 0x11111111)
+        bad = bytearray(packet("P0=78563412"))
+        bad[-1] ^= 1
+        self.assertEqual(self.raw_ack(bytes(bad)), b"-")
+        self.assertEqual(self.remote.read_reg(0), 0x11111111)
+        self.assertEqual(self.remote.command("P0=78563412"), "OK")
+        self.assertEqual(self.remote.read_reg(0), 0x12345678)
+
+    def test_nak_retransmits_last_response(self):
+        self.assertEqual(self.raw_ack(packet("qC")), b"+")
+        sock = self.remote.socket
+        first = b""
+        while not first.endswith(b"#") and len(first) < 64:
+            first += sock.recv(1)
+        first += sock.recv(1) + sock.recv(1)
+        self.assertEqual(first, packet("QC1"))
+        sock.sendall(b"-")
+        again = b""
+        while len(again) < len(first):
+            again += sock.recv(len(first) - len(again))
+        self.assertEqual(again, first)
+        sock.sendall(b"+")
+        self.assertEqual(self.remote.command("qC"), "QC1")
+        self.assertTrue(self.remote.command("?").startswith("T"))
+
+    def test_qsupported_response_is_bounded_near_capacity(self):
+        size = self.packet_size()
+        # Each one-byte unsupported feature is echoed as three bytes ("a-;").
+        payload = "qSupported:" + ";".join("a" * ((size - 11 + 1) // 2))
+        payload = payload[:min(size, 16380)]
+        response = self.remote.command(payload)
+        self.assertLessEqual(len(response), 16383)
+        suffix = f"PacketSize={size:x};swbreak+;hwbreak+;qXfer:features:read+"
+        self.assertEqual(response[-len(suffix):].lower(), suffix.lower(), response[-80:])
+        echoed = response[:-len(suffix)].split(";")
+        self.assertEqual(echoed[-1], "")
+        self.assertEqual(set(echoed[:-1]), {"a-"})
+        self.assertTrue(self.remote.command("?").startswith("T"))
+        self.assertEqual(self.remote.command("qC"), "QC1")
+
+    def test_packet_size_limit_is_accurate(self):
+        size = self.packet_size()
+        # Pad the address so the hex data ends exactly at the advertised size.
+        count = (size - len("M7000,") - 4 - 1) // 2
+        header = f"M7000,{count:x}:"
+        header = header.replace("M7000", "M" + "0" * (size - len(header) - 2 * count) + "7000")
+        data = bytes((i * 7 + 3) & 255 for i in range(count))
+        payload = header + data.hex()
+        self.assertEqual(len(payload), size)
+        self.assertEqual(self.remote.command(payload), "OK")
+        read = b""
+        while len(read) < count:
+            chunk = min(0x1000, count - len(read))
+            read += bytes.fromhex(self.remote.command(f"m{0x7000 + len(read):x},{chunk:x}"))
+        self.assertEqual(read, data)
+        # One byte more is acknowledged (its checksum is valid) but refused.
+        self.assertEqual(self.raw_ack(packet(payload + "0")), b"+")
+        self.assertEqual(self.remote.receive(), "E22")
+        self.assertTrue(self.remote.command("?").startswith("T"))
+
+    WIDTHS = [4] * 10 + [2] * 6 + [4] * 4 + [8] + [10] * 8 + [2, 2, 2, 2, 4, 2, 4, 2] + [8] * 8
+
+    def fields(self, registers):
+        offsets, offset = [], 0
+        for width in self.WIDTHS:
+            offsets.append((offset, offset + 2 * width))
+            offset += 2 * width
+        self.assertEqual(offset, len(registers))
+        return offsets
+
+    def test_g_packet_validates_widths_and_stops_at_rejected_segment(self):
+        # Leave the reset vector, whose CS base alias a CS reload would drop.
+        self.remote.write_reg(0x10, 0x10)
+        self.remote.write_reg(0xa, 0)
+        self.remote.write_reg(8, 0x7000)
+        registers = self.remote.command("g")
+        fields = self.fields(registers)
+        self.assertEqual(self.remote.command("G" + registers), "OK")
+        self.assertEqual(self.remote.command("g"), registers)
+        for malformed in (registers[:-1], registers + "00", registers[:-2] + "zz"):
+            self.assertEqual(self.remote.command("G" + malformed), "E22")
+            self.assertEqual(self.remote.command("g"), registers)
+
+        self.remote.write_reg(0x10, 1)  # protected mode: a null CS is refused
+        before = self.remote.command("g")
+        changed = list(before)
+
+        def put(index, value):
+            start, end = fields[index]
+            changed[start:end] = value.to_bytes((end - start) // 2, "little").hex()
+
+        put(10, 0)              # CS = null selector
+        put(17, 0x13572468)     # CR2
+        put(37, 0x0123456789abcdef)  # MM0
+        self.assertEqual(self.remote.command("G" + "".join(changed)), "E22")
+        after = self.remote.command("g")
+        for index in range(10, len(fields)):
+            start, end = fields[index]
+            self.assertEqual(after[start:end], before[start:end], f"register {index} written")
+
+    def test_unacknowledged_pipelined_commands_do_not_block_shutdown(self):
+        # Requests sent without acknowledging the responses to earlier ones.
+        sock = self.remote.socket
+        sock.sendall(packet("?") + packet("qC") + packet("g") + packet("qC"))
+        # Quit once the stub is waiting for the first response's acknowledgement.
+        received = b""
+        while received.count(b"+") < 2:
+            received += sock.recv(1)
+        self.assertTrue(received.startswith(b"+$T"), received)
+        self.quit()
+
+    def test_responses_wait_for_acknowledgement(self):
+        sock = self.remote.socket
+        sock.sendall(packet("qC"))
+        self.assertEqual(sock.recv(1), b"+")
+        response = b""
+        while len(response) < len(packet("QC1")):
+            response += sock.recv(len(packet("QC1")) - len(response))
+        self.assertEqual(response, packet("QC1"))
+        # Until it is acknowledged, a further request (including IDA's Hc1,
+        # once answered by the reader thread) gets only its own '+'.
+        sock.sendall(packet("Hc1"))
+        self.assertEqual(sock.recv(1), b"+")
+        sock.settimeout(0.3)
+        with self.assertRaises(TimeoutError):
+            sock.recv(1)
+        sock.settimeout(10)
+        sock.sendall(b"+")
+        self.assertEqual(self.remote.receive(), "OK")
+        self.assertEqual(self.remote.command("qC"), "QC1")
+
+    def test_buffered_packets_do_not_block_shutdown(self):
+        self.remote.socket.sendall(b"".join(b"+" + packet("?") for _ in range(3000)))
+        self.quit()
+
+
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--binary", type=Path, required=True)
     parser.add_argument("--rompath", type=Path, required=True)
+    parser.add_argument("--protocol-port", type=int, default=12450,
+                        help="first fixed port for protocol tests (one per test)")
     args, remaining = parser.parse_known_args()
     BINARY, ROMPATH = args.binary.resolve(), args.rompath.resolve()
+    ProtocolTests.next_port = args.protocol_port
     unittest.main(argv=[__file__] + remaining)

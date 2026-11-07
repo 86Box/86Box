@@ -15,6 +15,7 @@
 #include "codegen_ops.h"
 #include "codegen_ops_helpers.h"
 #include "codegen_ops_mov.h"
+#include <86box/gdbstub.h>
 
 uint32_t
 ropMOV_rb_imm(codeblock_t *block, ir_data_t *ir, uint8_t opcode, UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
@@ -639,6 +640,8 @@ mov_ss(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uin
 {
     const int pmode = (msw & 1) && !(cpu_state.eflags & VM_FLAG);
 
+    if (gdbstub_debug)
+        return 0;
     if (!codegen_instruction_room())
         return 0;
     /*The versions this instruction writes (at most 5 of temp0, 6 of eaaddr,

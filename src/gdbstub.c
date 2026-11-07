@@ -144,9 +144,17 @@ typedef struct _gdbstub_client_ {
     uint8_t first_packet_received : 1;
     uint8_t ida_mode : 1;
     uint8_t waiting_stop : 1;
-    uint8_t in_packet : 1;
     int     packet_pos;
     int     response_pos;
+
+    /* Framing state, owned by the client thread until has_packet publishes it. */
+    int     in_packet; /* 0 = outside, 1 = data, 2 and 3 = checksum digits */
+    int     packet_overflow;
+    uint8_t packet_sum;
+
+    atomic_int closing;     /* set by every path that disconnects the client */
+    atomic_int ack_pending; /* the last response awaits '+' */
+    atomic_int nak_pending; /* the client asked for the last response again */
 
     event_t *processed_event;
     event_t *response_event;
@@ -158,6 +166,9 @@ typedef struct _gdbstub_client_ {
 
     struct _gdbstub_client_ *next;
 } gdbstub_client_t;
+
+/* Request data the packet buffer holds besides '#', the checksum and a NUL. */
+#define GDBSTUB_PACKET_MAX ((int) sizeof(((gdbstub_client_t *) NULL)->packet) - 4)
 
 typedef struct _gdbstub_breakpoint_ {
     uint32_t addr;
@@ -364,6 +375,8 @@ static thread_t         *server_thread;
 static atomic_int        stopping;
 static atomic_int        break_requested;
 static int               step_started;
+static int               instruction_pending;
+int                      gdbstub_irq_inhibit, gdbstub_ss_inhibit, gdbstub_events_pending;
 
 static void (*cpu_exec_shadow)(int32_t cycs);
 static gdbstub_breakpoint_t *first_swbreak = NULL;
@@ -415,6 +428,26 @@ gdbstub_pc(void)
 }
 
 static void
+gdbstub_jump(uint32_t new_pc);
+
+static int gdbstub_pc_reset_deferred, gdbstub_pc_moved;
+
+/* A debugger relocation discards boundary state pending for the old PC.
+   A 'G' packet defers this until all of its registers are written. */
+static void
+gdbstub_set_pc(uint32_t new_pc)
+{
+    uint32_t old_pc = cs + gdbstub_pc();
+    gdbstub_jump(new_pc);
+    if ((cs + gdbstub_pc()) != old_pc) {
+        if (gdbstub_pc_reset_deferred)
+            gdbstub_pc_moved = 1;
+        else
+            gdbstub_instruction_reset();
+    }
+}
+
+static void
 gdbstub_jump(uint32_t new_pc)
 {
     /* The 8086 and 80186 would otherwise go on with what they prefetched. */
@@ -436,6 +469,12 @@ gdbstub_hex_decode(int c)
         return c - 'a' + 10;
     else
         return 0;
+}
+
+static inline int
+gdbstub_is_hex(int c)
+{
+    return ((c >= '0') && (c <= '9')) || ((c >= 'A') && (c <= 'F')) || ((c >= 'a') && (c <= 'f'));
 }
 
 static inline int
@@ -590,7 +629,7 @@ gdbstub_client_write_reg(int index, uint8_t *buf)
             break;
 
         case GDB_REG_EIP:
-            gdbstub_jump(*((uint32_t *) buf));
+            gdbstub_set_pc(*((uint32_t *) buf));
             break;
 
         case GDB_REG_EFLAGS:
@@ -745,6 +784,7 @@ gdbstub_send(gdbstub_client_t *client, const void *data, size_t length)
 #endif
                 continue;
             sock_shutdown(client->socket);
+            atomic_store(&client->closing, 1);
             thread_set_event(client->response_event);
             return 0;
         }
@@ -754,8 +794,9 @@ gdbstub_send(gdbstub_client_t *client, const void *data, size_t length)
     return 1;
 }
 
+/* Transmit the current response, which stays in place for retransmission. */
 static void
-gdbstub_client_respond(gdbstub_client_t *client)
+gdbstub_client_transmit(gdbstub_client_t *client)
 {
     /* Calculate checksum. */
     int checksum = 0;
@@ -771,10 +812,73 @@ gdbstub_client_respond(gdbstub_client_t *client)
     gdbstub_log("GDB Stub: Sending response: %s\n", client->response);
     client->response[994] = i;
 #endif
+    /* Expect the acknowledgement before it can arrive. */
+    atomic_store(&client->ack_pending, 1);
     if (!gdbstub_send(client, "$", 1) || !gdbstub_send(client, client->response, client->response_pos))
         return;
     char response_cksum[3] = { '#', gdbstub_hex_encode((checksum >> 4) & 0x0f), gdbstub_hex_encode(checksum & 0x0f) };
     gdbstub_send(client, response_cksum, sizeof(response_cksum));
+}
+
+static void
+gdbstub_client_respond(gdbstub_client_t *client)
+{
+    /* Never transmit past the buffer, which also needs room for a NUL. */
+    if ((client->response_pos < 0) || (client->response_pos >= (int) sizeof(client->response))) {
+        gdbstub_log("GDB Stub: Response length %d out of bounds\n", client->response_pos);
+        FAST_RESPONSE("E01");
+    }
+    gdbstub_client_transmit(client);
+}
+
+/* Retransmit the last response if the client asked for it again. Runs on the
+   emulation thread, which owns the response buffer. */
+static void
+gdbstub_client_retransmit(gdbstub_client_t *client)
+{
+    if (atomic_exchange(&client->nak_pending, 0) && atomic_load(&client->ack_pending))
+        gdbstub_client_transmit(client);
+}
+
+#define GDBSTUB_ACK_RETRY_MS 1000 /* retransmit an unacknowledged response this often */
+#define GDBSTUB_ACK_RETRIES  3    /* then give up on the client */
+
+static void
+gdbstub_client_disconnect(gdbstub_client_t *client)
+{
+    atomic_store(&client->closing, 1);
+    sock_shutdown(client->socket);
+    thread_set_event(client->processed_event);
+    thread_set_event(client->response_event);
+}
+
+/* Wait until the last response is acknowledged, retransmitting it on request
+   or when the acknowledgement is overdue. A client that still doesn't
+   acknowledge it, such as one sending further requests without doing so,
+   is disconnected rather than holding the emulation thread. Returns 0 if
+   the client disconnected or the emulator is quitting. */
+static int
+gdbstub_client_wait_ack(gdbstub_client_t *client)
+{
+    uint32_t sent    = plat_get_ticks();
+    int      retries = 0;
+    while (!atomic_load(&client->closing) && cpu_thread_run) {
+        gdbstub_client_retransmit(client);
+        if (!atomic_load(&client->ack_pending))
+            return 1;
+        if ((plat_get_ticks() - sent) >= GDBSTUB_ACK_RETRY_MS) {
+            if (retries++ == GDBSTUB_ACK_RETRIES) {
+                gdbstub_log("GDB Stub: Client %s:%d did not acknowledge a response\n", inet_ntoa(client->addr.sin_addr), client->addr.sin_port);
+                gdbstub_client_disconnect(client);
+                break;
+            }
+            gdbstub_client_transmit(client);
+            sent = plat_get_ticks();
+        }
+        thread_wait_event(client->response_event, 100);
+        thread_reset_event(client->response_event);
+    }
+    return 0;
 }
 
 static void
@@ -784,8 +888,7 @@ gdbstub_client_respond_partial(gdbstub_client_t *client)
     gdbstub_client_respond(client);
 
     /* Wait for the response to be acknowledged. */
-    thread_wait_event(client->response_event, -1);
-    thread_reset_event(client->response_event);
+    gdbstub_client_wait_ack(client);
 }
 
 static void
@@ -1171,6 +1274,27 @@ gdbstub_mem_width(int left)
     return 1;
 }
 
+/* Check the "#xx" ending a complete packet against the sum of its data. */
+static int
+gdbstub_client_checksum_valid(gdbstub_client_t *client)
+{
+    int hi = client->packet[client->packet_pos - 2];
+    int lo = client->packet[client->packet_pos - 1];
+    return gdbstub_is_hex(hi) && gdbstub_is_hex(lo) && (((gdbstub_hex_decode(hi) << 4) | gdbstub_hex_decode(lo)) == client->packet_sum);
+}
+
+static int
+gdbstub_feature_supported(const char *name, int len)
+{
+    static const char *const exact[] = { "swbreak", "hwbreak", "qXfer:features:read" };
+    if (((len >= 10) && !strncmp(name, "PacketSize", 10)) || ((len >= 12) && !strncmp(name, "xmlRegisters", 12)))
+        return 1;
+    for (size_t n = 0; n < (sizeof(exact) / sizeof(exact[0])); n++)
+        if ((len == (int) strlen(exact[n])) && !strncmp(name, exact[n], len))
+            return 1;
+    return 0;
+}
+
 static void
 gdbstub_client_packet(gdbstub_client_t *client)
 {
@@ -1178,9 +1302,6 @@ gdbstub_client_packet(gdbstub_client_t *client)
     gdbstub_breakpoint_t *prev_breakpoint = NULL;
     gdbstub_breakpoint_t **first_breakpoint = NULL;
 
-#ifdef GDBSTUB_CHECK_CHECKSUM /* msys2 gdb 11.1 transmits qSupported and H with invalid checksum... */
-    uint8_t rcv_checksum = 0, checksum = 0;
-#endif
     int     i;
     int     j = 0;
     int     k = 0;
@@ -1189,29 +1310,22 @@ gdbstub_client_packet(gdbstub_client_t *client)
     uint8_t buf[10] = { 0 };
     char   *p;
 
-    /* Validate checksum. */
-    client->packet_pos -= 2;
-#ifdef GDBSTUB_CHECK_CHECKSUM
-    gdbstub_client_read_hex(client, &rcv_checksum, 1);
-#endif
-    AS_U16(client->packet[--client->packet_pos]) = 0;
-    packet_len = client->packet_pos; /* binary data may contain NUL, so don't rely on strlen */
-#ifdef GDBSTUB_CHECK_CHECKSUM
-    for (i = 0; i < client->packet_pos; i++)
-        checksum += client->packet[i];
-
-    if (checksum != rcv_checksum) {
-        /* Send negative acknowledgement. */
-#    ifdef ENABLE_GDBSTUB_LOG
+    /* Validate checksum. The client thread summed the data, including any
+       that didn't fit, and left "#xx" at the end. A conforming client
+       retransmits a request refused with '-'. */
+    packet_len = client->packet_pos - 3;
+    if (!gdbstub_client_checksum_valid(client)) {
+#ifdef ENABLE_GDBSTUB_LOG
+        client->packet[client->packet_pos] = '\0';
         i                   = client->packet[953]; /* pclog_ex buffer too small */
         client->packet[953] = '\0';
-        gdbstub_log("GDB Stub: Received packet with invalid checksum (expected %02X got %02X): %s\n", checksum, rcv_checksum, client->packet);
+        gdbstub_log("GDB Stub: Received packet with invalid checksum (expected %02X): %s\n", client->packet_sum, client->packet);
         client->packet[953] = i;
-#    endif
+#endif
         gdbstub_send(client, "-", 1);
         return;
     }
-#endif
+    AS_U16(client->packet[packet_len]) = 0; /* binary data may contain NUL, so don't rely on strlen */
 
     /* Send positive acknowledgement. */
 #ifdef ENABLE_GDBSTUB_LOG
@@ -1223,13 +1337,18 @@ gdbstub_client_packet(gdbstub_client_t *client)
     if (!gdbstub_send(client, "+", 1))
         return;
 
-    /* Block other responses from being written while this one (if any is produced) isn't acknowledged. */
-    if ((client->packet[0] != 'c') && (client->packet[0] != 's') && (client->packet[0] != 'v')) {
-        thread_wait_event(client->response_event, -1);
-        thread_reset_event(client->response_event);
-    }
+    /* Block other responses from being written while the last one isn't acknowledged. */
+    if (!gdbstub_client_wait_ack(client))
+        return;
     client->response_pos = 0;
     client->packet_pos   = 1;
+
+    /* Refuse requests longer than the PacketSize we advertise. */
+    if (client->packet_overflow) {
+        gdbstub_log("GDB Stub: Refusing packet longer than %d bytes\n", GDBSTUB_PACKET_MAX);
+        FAST_RESPONSE("E22");
+        goto end;
+    }
 
     /* Handle IDA-specific hacks. */
     if (!client->first_packet_received) {
@@ -1264,7 +1383,7 @@ gdbstub_client_packet(gdbstub_client_t *client)
 
             /* Jump to address if specified. */
             if (client->packet[1] && gdbstub_client_read_word(client, &j))
-                gdbstub_jump(j);
+                gdbstub_set_pc(j);
 
             /* Resume CPU. */
             gdbstub_step = gdbstub_next_asap = (client->packet[0] == 's') ? GDBSTUB_SSTEP : GDBSTUB_EXEC;
@@ -1287,14 +1406,35 @@ ok:
             break;
 
         case 'G': /* write all registers */
-            /* Write the values of all registers. */
-            for (i = 0; i < GDB_REG_MAX; i++) {
-                if (i == GDB_REG_MAX)
+            /* Validate the whole packet first: hex digits in whole registers,
+               laid out as 'g' returns them, possibly omitting trailing ones. */
+            for (i = 0, j = client->packet_pos; (i < GDB_REG_MAX) && (j < packet_len); i++)
+                j += gdbstub_client_read_reg(i, buf) << 1;
+            if (j != packet_len)
+                goto e22;
+            for (j = client->packet_pos; j < packet_len; j++) {
+                if (!gdbstub_is_hex(client->packet[j]))
                     goto e22;
-                if (!gdbstub_client_read_hex(client, buf, sizeof(buf)))
-                    break;
-                client->packet_pos += gdbstub_client_write_reg(i, buf) << 1;
             }
+
+            /* Write the values, stopping at the first one refused. Those
+               written before it stay written. */
+            k                         = cs + gdbstub_pc();
+            gdbstub_pc_reset_deferred = 1;
+            gdbstub_pc_moved          = 0;
+            for (i = 0; (i < GDB_REG_MAX) && (client->packet_pos < packet_len); i++) {
+                l = gdbstub_client_read_reg(i, buf);
+                memset(buf, 0, sizeof(buf));
+                gdbstub_client_read_hex(client, buf, l);
+                if (gdbstub_client_write_reg(i, buf) != l)
+                    break;
+                client->packet_pos += l << 1;
+            }
+            gdbstub_pc_reset_deferred = 0;
+            if (gdbstub_pc_moved && ((uint32_t) (cs + gdbstub_pc()) != (uint32_t) k))
+                gdbstub_instruction_reset();
+            if (client->packet_pos < packet_len)
+                goto e22;
 
             /* Respond positively. */
             goto ok;
@@ -1427,23 +1567,30 @@ e14:
 
             /* Perform the query. */
             if (!strcmp(client->response, "Supported")) {
-                /* Go through the feature list and negate ones we don't support. */
-                while ((client->response_pos < (sizeof(client->response) - 1)) && (i = gdbstub_client_read_string(client, &client->response[client->response_pos], sizeof(client->response) - client->response_pos - 1, ';'))) {
-                    client->packet_pos += i + 1;
-                    if (strncmp(&client->response[client->response_pos], "PacketSize", 10) && strcmp(&client->response[client->response_pos], "swbreak") && strcmp(&client->response[client->response_pos], "hwbreak") && strncmp(&client->response[client->response_pos], "xmlRegisters", 12) && strcmp(&client->response[client->response_pos], "qXfer:features:read")) {
-                        gdbstub_log("GDB Stub: Feature \"%s\" is not supported\n", &client->response[client->response_pos]);
+                char features[64];
+                int  features_len = snprintf(features, sizeof(features), "PacketSize=%X;swbreak+;hwbreak+;qXfer:features:read+", GDBSTUB_PACKET_MAX);
+
+                /* Go through the feature list and negate ones we don't support,
+                   as far as they fit before our own features. */
+                p = &client->packet[client->packet_pos];
+                while (p < &client->packet[packet_len]) {
+                    char *q = memchr(p, ';', &client->packet[packet_len] - p);
+                    i       = q ? (q - p) : (&client->packet[packet_len] - p);
+                    if (gdbstub_feature_supported(p, i)) {
+                        gdbstub_log("GDB Stub: Feature \"%.*s\" is supported\n", i, p);
+                    } else if ((client->response_pos + i + 2 + features_len) < (int) sizeof(client->response)) {
+                        gdbstub_log("GDB Stub: Feature \"%.*s\" is not supported\n", i, p);
+                        memcpy(&client->response[client->response_pos], p, i);
                         client->response_pos += i;
                         client->response[client->response_pos++] = '-';
                         client->response[client->response_pos++] = ';';
-                    } else {
-                        gdbstub_log("GDB Stub: Feature \"%s\" is supported\n", &client->response[client->response_pos]);
                     }
+                    p += i + 1;
                 }
 
                 /* Add our supported features to the end. */
-                if (client->response_pos < (sizeof(client->response) - 1))
-                    client->response_pos += snprintf(&client->response[client->response_pos], sizeof(client->response) - client->response_pos,
-                                                     "PacketSize=%X;swbreak+;hwbreak+;qXfer:features:read+", (int) (sizeof(client->packet) - 1));
+                memcpy(&client->response[client->response_pos], features, features_len);
+                client->response_pos += features_len;
                 break;
             } else if (!strcmp(client->response, "Xfer")) {
                 /* Read the transfer object. */
@@ -1811,18 +1958,17 @@ gdbstub_process_clients(int report_stop)
             client->waiting_stop = 0;
 
             /* Wait for any pending responses to be acknowledged. */
-            if (!thread_wait_event(client->response_event, -1)) {
-                /* Block other responses from being written while this one isn't acknowledged. */
-                thread_reset_event(client->response_event);
-
+            if (gdbstub_client_wait_ack(client)) {
                 /* Write stop reason response. */
                 strcpy(client->response, stop_reason);
                 client->response_pos = stop_reason_len;
                 gdbstub_client_respond(client);
             } else {
-                gdbstub_log("GDB Stub: Timed out waiting for client %s:%d\n", inet_ntoa(client->addr.sin_addr), client->addr.sin_port);
+                gdbstub_log("GDB Stub: Client %s:%d disconnected before a stop reply\n", inet_ntoa(client->addr.sin_addr), client->addr.sin_port);
             }
         }
+
+        gdbstub_client_retransmit(client);
 
         if (client->has_packet) {
             gdbstub_client_packet(client);
@@ -1972,6 +2118,17 @@ gdbstub_cpu_exec(int32_t cycs)
     in_gdbstub = 0;
 }
 
+/* Wait for the emulation thread to finish with the last packet. Returns 0
+   if the client is being disconnected instead. */
+static int
+gdbstub_client_wait_processed(gdbstub_client_t *client)
+{
+    if (atomic_load(&client->closing))
+        return 0;
+    thread_wait_event(client->processed_event, -1);
+    return !atomic_load(&client->closing);
+}
+
 static void
 gdbstub_client_thread(void *priv)
 {
@@ -1985,76 +2142,86 @@ gdbstub_client_thread(void *priv)
     thread_set_event(client->processed_event);
 
     /* Read data from client. */
-    while ((bytes_read = recv(client->socket, (char *) buf, sizeof(buf), 0)) > 0) {
+    while (!atomic_load(&client->closing) && ((bytes_read = recv(client->socket, (char *) buf, sizeof(buf), 0)) > 0)) {
         for (ssize_t i = 0; i < bytes_read; i++) {
             /* Inside a packet, only '$' is special; binary data ('X' packets) may contain
                raw '+', '-' and 0x03 bytes, such as the escaped form of '#' (0x7D 0x03). */
-            switch ((client->in_packet && (buf[i] != '$')) ? 0x100 : buf[i]) {
+            if (client->in_packet && (buf[i] != '$')) {
+                if (client->in_packet == 1) {
+                    if (buf[i] == '#') { /* packet checksum start */
+                        client->packet[client->packet_pos++] = '#';
+                        client->in_packet                    = 2;
+                    } else {
+                        /* Sum all data, but only keep what fits. */
+                        client->packet_sum += buf[i];
+                        if (client->packet_pos < GDBSTUB_PACKET_MAX)
+                            client->packet[client->packet_pos++] = buf[i];
+                        else
+                            client->packet_overflow = 1;
+                    }
+                    continue;
+                }
+                client->packet[client->packet_pos++] = buf[i];
+                if (client->in_packet++ < 3)
+                    continue;
+
+                /* The packet is complete. */
+                client->in_packet                  = 0;
+                client->packet[client->packet_pos] = '\0';
+
+                /* Flag that a packet should be processed. */
+                thread_reset_event(client->processed_event);
+                atomic_store(&client->has_packet, 1);
+                continue;
+            }
+
+            switch (buf[i]) {
                 case '$': /* packet start */
                     /* Wait for any existing packets to be processed. */
-                    thread_wait_event(client->processed_event, -1);
-                    thread_set_event(client->processed_event);
+                    if (!gdbstub_client_wait_processed(client))
+                        goto disconnect;
 
-                    client->packet_pos = 0;
-                    client->in_packet  = 1;
+                    client->packet_pos      = 0;
+                    client->packet_sum      = 0;
+                    client->packet_overflow = 0;
+                    client->in_packet       = 1;
                     break;
 
                 case '-': /* negative acknowledgement */
-                    /* Retransmit the current response. */
-                    gdbstub_client_respond(client);
+                    /* Have the emulation thread, which owns the response, retransmit it. */
+                    if (atomic_load(&client->ack_pending)) {
+                        atomic_store(&client->nak_pending, 1);
+                        thread_set_event(client->response_event);
+                    }
                     break;
 
                 case '+': /* positive acknowledgement */
                     /* Allow another response to be written. */
+                    atomic_store(&client->ack_pending, 0);
                     thread_set_event(client->response_event);
                     break;
 
                 case 0x03: /* break */
                     /* Wait for any existing packets to be processed. */
-                    thread_wait_event(client->processed_event, -1);
-                    thread_set_event(client->processed_event);
+                    if (!gdbstub_client_wait_processed(client))
+                        goto disconnect;
 
                     /* Break immediately. */
                     gdbstub_log("GDB Stub: Break requested\n");
                     gdbstub_break();
                     break;
 
-                default:
-                    /* Wait for any existing packets to be processed, just in case. */
-                    thread_wait_event(client->processed_event, -1);
-                    thread_set_event(client->processed_event);
-
-                    if (client->packet_pos < (sizeof(client->packet) - 1)) {
-                        /* Append byte to the packet. */
-                        client->packet[client->packet_pos++] = buf[i];
-
-                        /* Check if we're at the end of a packet. */
-                        if ((client->packet_pos >= 3) && (client->packet[client->packet_pos - 3] == '#')) { /* packet checksum start */
-                            client->in_packet = 0;
-
-                            /* Small hack to speed up IDA instruction trace mode. */
-                            if (*((uint32_t *) client->packet) == ('H' | ('c' << 8) | ('1' << 16) | ('#' << 24))) {
-                                /* Send pre-computed response. */
-                                gdbstub_send(client, "+$OK#9A", 7);
-
-                                /* Skip processing. */
-                                continue;
-                            }
-
-                            /* Flag that a packet should be processed. */
-                            client->packet[client->packet_pos] = '\0';
-                            thread_reset_event(client->processed_event);
-                            atomic_store(&client->has_packet, 1);
-                        }
-                    }
+                default: /* ignore anything else between packets */
                     break;
             }
         }
     }
 
+disconnect:
     gdbstub_log("GDB Stub: Connection with %s:%d broken\n", inet_ntoa(client->addr.sin_addr), client->addr.sin_port);
 
     /* Unblock anyone waiting on the response event. */
+    atomic_store(&client->closing, 1);
     thread_set_event(client->response_event);
 
     /* Remove this client from the list. */
@@ -2138,6 +2305,7 @@ gdbstub_server_thread(void *priv)
             last_client       = client;
 #else
             for (gdbstub_client_t *old = first_client; old; old = old->next) {
+                atomic_store(&old->closing, 1);
                 sock_shutdown(old->socket);
                 thread_set_event(old->processed_event);
                 thread_set_event(old->response_event);
@@ -2170,6 +2338,7 @@ gdbstub_server_thread(void *priv)
 void
 gdbstub_cpu_init(void)
 {
+    gdbstub_instruction_reset();
     /* Replace cpu_exec with our own function if the GDB stub is active. */
     if ((gdbstub_socket != -1) && (cpu_exec != gdbstub_cpu_exec)) {
         cpu_exec_shadow = cpu_exec;
@@ -2221,9 +2390,61 @@ gdbstub_instruction(void)
     return gdbstub_step - GDBSTUB_EXEC;
 }
 
-int
-gdbstub_instruction_start(void)
+void
+gdbstub_instruction_reset(void)
 {
+    instruction_pending = 0;
+    gdbstub_irq_inhibit = gdbstub_ss_inhibit = gdbstub_events_pending = 0;
+}
+
+void
+gdbstub_inhibit_irq(void)
+{
+    gdbstub_irq_inhibit = 2;
+}
+
+void
+gdbstub_inhibit_ss(void)
+{
+    gdbstub_irq_inhibit = gdbstub_ss_inhibit = 2;
+    trap = 0;
+}
+
+static void
+gdbstub_instruction_retire(void)
+{
+    /* Native code retires at the next boundary or block exit; interpreted
+       paths retire explicitly. Repeated stop checks must not consume shadow. */
+    if (!instruction_pending)
+        return;
+    instruction_pending = 0;
+    if (cpu_state.abrt || x86_was_reset) {
+        gdbstub_irq_inhibit = gdbstub_ss_inhibit = 0;
+        return;
+    }
+    if (gdbstub_ss_inhibit) {
+        trap = 0;
+        gdbstub_ss_inhibit--;
+    }
+    if (gdbstub_irq_inhibit)
+        gdbstub_irq_inhibit--;
+}
+
+int
+gdbstub_instruction_end(void)
+{
+    gdbstub_instruction_retire();
+    /* A fault's decoded fallthrough is not an execution boundary. Deliver
+       synchronous exceptions before looking for a remote execution stop. */
+    if (cpu_state.abrt || new_ne || trap)
+        return 0;
+    return !!gdbstub_instruction();
+}
+
+int
+gdbstub_instruction_begin(void)
+{
+    gdbstub_instruction_retire();
     if (gdbstub_step == GDBSTUB_SSTEP && !step_started) {
         /* The first boundary authorizes one instruction, not a stop. */
         step_started = 1;
@@ -2231,9 +2452,19 @@ gdbstub_instruction_start(void)
         int stop     = !!gdbstub_instruction();
         if (!stop)
             gdbstub_step = GDBSTUB_SSTEP;
+        instruction_pending = !stop;
         return stop;
     }
-    return !!gdbstub_instruction();
+    int stop = !!gdbstub_instruction();
+    instruction_pending = !stop;
+    return stop;
+}
+
+int
+gdbstub_instruction_start(void)
+{
+    /* Keep this entry exclusive to generated code for native-execution tests. */
+    return gdbstub_instruction_begin();
 }
 
 int
@@ -2417,6 +2648,7 @@ gdbstub_close(void)
             FAST_RESPONSE("W00");
             gdbstub_client_respond(client);
         }
+        atomic_store(&client->closing, 1);
         sock_shutdown(socket);
         thread_set_event(client->processed_event);
         thread_set_event(client->response_event);

@@ -590,6 +590,8 @@ exec386_dynarec_int_common(const int dbg, const int gdb)
     }
 
     while (!cpu_block_end) {
+        if (gdb && gdbstub_instruction_begin())
+            break;
         oldcs  = CS;
         oldcpl = CPL;
         cpu_state.oldpc = cpu_state.pc;
@@ -603,7 +605,7 @@ exec386_dynarec_int_common(const int dbg, const int gdb)
            image and clear it, otherwise the epilogue raises a second #DB. A
            pending BS is always stale here - trap's TF bit is only set further
            down, once an instruction is about to retire - so it is dropped. */
-        if (dbg && cpu_dr_armed && (cpu_state.abrt == 0) && is386 && cpu_386_check_instruction_fault()) {
+        if (dbg && (!gdb || !gdbstub_ss_inhibit) && cpu_dr_armed && (cpu_state.abrt == 0) && is386 && cpu_386_check_instruction_fault()) {
             if (trap & 2)
                 dr[6] |= 0x8000;
             if (trap & 16)
@@ -648,7 +650,7 @@ exec386_dynarec_int_common(const int dbg, const int gdb)
             x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
         }
 
-        if (gdb && gdbstub_instruction())
+        if (gdb && gdbstub_instruction_end())
             CPU_BLOCK_END();
 
         if (cpu_flush_pending == 1)
@@ -956,6 +958,8 @@ exec386_dynarec_dyn_common(const int dbg, const int gdb)
         code();
 #    endif
         inrecomp = 0;
+        if (gdb)
+            gdbstub_instruction_end();
         /* Only a reset raised inside the block defers, and it sets
            x86_was_reset as it does (reset_common()). */
         if (x86_was_reset)
@@ -991,6 +995,8 @@ exec386_dynarec_dyn_common(const int dbg, const int gdb)
         codegen_in_recompile = 1;
 
         while (!cpu_block_end) {
+            if (gdb && gdbstub_instruction_begin())
+                break;
             oldcs  = CS;
             oldcpl = CPL;
             cpu_state.oldpc = cpu_state.pc;
@@ -1023,7 +1029,7 @@ exec386_dynarec_dyn_common(const int dbg, const int gdb)
                     cpu_state.eflags &= ~(RF_FLAG);
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
 
-                if (gdb && gdbstub_instruction())
+                if (gdb && gdbstub_instruction_end())
                     CPU_BLOCK_END();
 
                 if (x86_was_reset)
@@ -1125,6 +1131,8 @@ exec386_dynarec_dyn_common(const int dbg, const int gdb)
         codegen_block_init(phys_addr);
 
         while (!cpu_block_end) {
+            if (gdb && gdbstub_instruction_begin())
+                break;
             oldcs  = CS;
             oldcpl = CPL;
             cpu_state.oldpc = cpu_state.pc;
@@ -1160,7 +1168,7 @@ exec386_dynarec_dyn_common(const int dbg, const int gdb)
                     cpu_state.eflags &= ~(RF_FLAG);
                 x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
 
-                if (gdb && gdbstub_instruction())
+                if (gdb && gdbstub_instruction_end())
                     CPU_BLOCK_END();
 
                 if (x86_was_reset)
@@ -1358,6 +1366,8 @@ exec386_dynarec_common(int32_t cycs, const int dbg, const int gdb)
         cycles_start = cycles;
 
         while (cycles > 0) {
+            int gdb_stop = 0;
+            int gdb_resuming_events = 0;
             /* STPCLK# held (C2/C3), no instruction runs. */
             if (cpu_stpclk) {
                 cpu_clock_control_check();
@@ -1367,14 +1377,20 @@ exec386_dynarec_common(int32_t cycs, const int dbg, const int gdb)
                 }
             }
 
-            cpu_halted      = 0;
             oldcs           = CS;
             oldcpl          = CPL;
             oldcyc = oldcyc2 = cycles;
             cycles_old       = cycles;
             oldtsc           = tsc;
             tsc_old          = tsc;
-            if (cpu_force_interpreter || cpu_override_dynarec || cpu_flush_pending || (!CACHE_ON_DBG(dbg))) /*Interpret block*/
+            if (gdb && gdbstub_events_pending) {
+                gdbstub_events_pending = 0;
+                gdb_resuming_events = 1;
+                goto debug_resume_events;
+            }
+            cpu_halted = 0;
+            if (cpu_force_interpreter || cpu_override_dynarec || cpu_flush_pending || (!CACHE_ON_DBG(dbg)) ||
+                (gdb && !gdbstub_debug && (gdbstub_irq_inhibit || gdbstub_ss_inhibit))) /*Interpret block*/
             {
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
                 link_from = NULL;
@@ -1394,6 +1410,10 @@ exec386_dynarec_common(int32_t cycs, const int dbg, const int gdb)
                     cpu_flush_pending++;
             }
 
+            if (gdb)
+                gdbstub_instruction_end();
+
+debug_resume_events:
             /* Every test below fails while none of its inputs is set. */
             if (cpu_events_due()) {
                 if (cpu_init) {
@@ -1438,15 +1458,17 @@ exec386_dynarec_common(int32_t cycs, const int dbg, const int gdb)
                 cpu_throttle_stall(oldcyc2 - cycles);
             }
 
+            if (gdb && !gdb_resuming_events)
+                gdb_stop = gdbstub_instruction_end();
             /* Read again: the tests above can raise an event. */
-            if (cpu_events_due()) {
-                if (smi_line) {
+            if (!gdb_stop && cpu_events_due()) {
+                if ((!gdb || !gdbstub_ss_inhibit) && smi_line) {
                     const int before = in_smm;
 
                     enter_smm_check(0);
                     if (in_smm != before)
                         cpu_halted = 0;
-                } else if (NMI_TAKEABLE()) {
+                } else if ((!gdb || !gdbstub_ss_inhibit) && NMI_TAKEABLE()) {
                     /* Out of a HLT that left pc on itself: "the saved CS:IP (or
                        CS:EIP) value points to the instruction following the HLT
                        instruction" (Pentium Vol. 3, HLT), NMI included. */
@@ -1465,7 +1487,7 @@ exec386_dynarec_common(int32_t cycs, const int dbg, const int gdb)
 #    else
                     nmi = 0;
 #    endif
-                } else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending()) {
+                } else if ((!gdb || !gdbstub_irq_inhibit) && (cpu_state.flags & I_FLAG) && x86_external_interrupt_pending()) {
                     vector = x86_external_interrupt_vector();
                     if (vector != -1) {
                         /* An interrupt that came after the HLT looked: past the
@@ -1502,8 +1524,13 @@ exec386_dynarec_common(int32_t cycs, const int dbg, const int gdb)
                     timer_process();
             }
 
-            if (gdb && gdbstub_instruction())
+            if (gdb && gdb_stop) {
+                gdbstub_events_pending = 1;
+                cycles_main -= (cycles_start - cycles);
                 return;
+            }
+            if (gdb && gdb_resuming_events)
+                continue;
             if (DEBUGGER_INSTRUCTION()) {
                 cycles_main -= (cycles_start - cycles);
                 return;
@@ -1778,6 +1805,8 @@ exec386_common(int32_t cycs, const int dbg, const int gdb)
         oldcyc        = cycles;
         while (cycdiff < cycle_period) {
             int ins_fetch_fault = 0;
+            int gdb_stop = 0;
+            int gdb_resuming_events = 0;
 
             /* STPCLK# held (C2/C3), no instruction runs. */
             if (cpu_stpclk) {
@@ -1790,6 +1819,17 @@ exec386_common(int32_t cycs, const int dbg, const int gdb)
             }
 
             ins_cycles = cycles;
+            if (gdb && gdbstub_events_pending) {
+                gdbstub_events_pending = 0;
+                gdb_resuming_events = 1;
+                goto debug_interpreter_events;
+            }
+            if (gdb && gdbstub_instruction_begin()) {
+                gdb_stop = 1;
+                goto debug_interpreter_account;
+            }
+            if (gdb)
+                cpu_halted = 0;
 
             oldcs  = CS;
             oldcpl = CPL;
@@ -1802,7 +1842,7 @@ exec386_common(int32_t cycs, const int dbg, const int gdb)
             if (inboard386_present)
                 inboard_post_fixups();
 
-            if (dbg && cpu_dr_armed && is386)
+            if (dbg && (!gdb || !gdbstub_ss_inhibit) && cpu_dr_armed && is386)
                 ins_fetch_fault = cpu_386_check_instruction_fault();
 
             /* Breakpoint fault has priority over other faults. */
@@ -1859,6 +1899,8 @@ exec386_common(int32_t cycs, const int dbg, const int gdb)
                 cpu_end_block_after_ins--;
 
 block_ended:
+            if (gdb)
+                gdbstub_instruction_end();
             if (cpu_state.abrt) {
 #ifdef ENABLE_386_LOG
                 uint8_t oop    = opcode;
@@ -1912,9 +1954,19 @@ block_ended:
                 cpu_throttle_stall(ins_cycles - cycles);
             }
 
-            if (smi_line)
+            if (gdb)
+                gdb_stop = gdbstub_instruction();
+debug_interpreter_events:
+            if (!gdb_stop && (!gdb || !gdbstub_ss_inhibit) && smi_line) {
+                const int before = in_smm;
                 enter_smm_check(0);
-            else if (NMI_TAKEABLE()) {
+                if (gdb && in_smm != before)
+                    cpu_halted = 0;
+            } else if (!gdb_stop && (!gdb || !gdbstub_ss_inhibit) && NMI_TAKEABLE()) {
+                if (gdb && cpu_halted)
+                    cpu_state.pc++;
+                if (gdb)
+                    cpu_halted = 0;
                 oldcs = CS;
                 cpu_state.oldpc = cpu_state.pc;
                 x86_int(2);
@@ -1927,9 +1979,13 @@ block_ended:
 #else
                 nmi = 0;
 #endif
-            } else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending() && !cpu_end_block_after_ins) {
+            } else if (!gdb_stop && (!gdb || !gdbstub_irq_inhibit) && (cpu_state.flags & I_FLAG) && x86_external_interrupt_pending() && !cpu_end_block_after_ins) {
                 vector = x86_external_interrupt_vector();
                 if (vector != -1) {
+                    if (gdb && cpu_halted)
+                        cpu_state.pc++;
+                    if (gdb)
+                        cpu_halted = 0;
                     flags_rebuild();
                     if (msw & 1)
                         pmodeint(vector, 0);
@@ -1959,6 +2015,7 @@ block_ended:
                 }
             }
 
+debug_interpreter_account:
             ins_cycles -= cycles;
             tsc += ins_cycles;
 
@@ -1973,8 +2030,12 @@ block_ended:
             if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint64_t) tsc))
                 timer_process();
 
-            if (gdb && gdbstub_instruction())
+            if (gdb && gdb_stop) {
+                gdbstub_events_pending = 1;
                 return;
+            }
+            if (gdb && gdb_resuming_events)
+                continue;
             if (DEBUGGER_INSTRUCTION())
                 return;
         }

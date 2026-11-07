@@ -103,6 +103,7 @@ class GuestTests(unittest.TestCase):
     native_flags = 2
     guest_debug_regs = True
     fxsr = False
+    cpu386 = True
 
     @classmethod
     def setUpClass(cls):
@@ -183,6 +184,148 @@ class GuestTests(unittest.TestCase):
                 self.assertEqual(r.read_reg(8), pc)
                 self.assertEqual(r.read_reg(0) & 0xffff, 0x1234)
                 self.assertEqual(r.command(f"z{kind},{address:x},2"), "OK")
+
+    def test_stack_segment_instruction_boundaries(self):
+        if not self.cpu386:
+            self.skipTest("386+ instruction-boundary integration")
+        r = self.remote
+        for opcode in (bytes.fromhex("8ed0"), bytes.fromhex("678ed0"),
+                       bytes.fromhex("17"), bytes.fromhex("6617")):
+            for warm in (False, True):
+                with self.subTest(opcode=opcode.hex(), warm=warm):
+                    # Reset SP each lap, then load SS and increment BX.
+                    body = b"\xbc\x00\x90\x31\xc0" + opcode + b"\x43"
+                    code = body + b"\xeb" + bytes(((-len(body) - 2) & 255,))
+                    r.write_mem(0x7000, code)
+                    r.write_mem(0x9000, bytes(512))
+                    r.write_reg(4, 0x9000)
+                    r.write_reg(3, 0)
+                    r.write_reg(8, 0x7000)
+                    if warm:
+                        r.send("c")
+                        time.sleep(0.1)
+                        r.socket.sendall(b"\x03")
+                        self.assertTrue(r.receive().startswith("T02"))
+                    after = 0x7005 + len(opcode)
+                    for kind in (0, 1):
+                        r.write_reg(4, 0x9000)
+                        r.write_reg(8, 0x7000)
+                        self.assertEqual(r.command(f"Z{kind},{after:x},1"), "OK")
+                        self.assertIn(("swbreak" if kind == 0 else "hwbreak") + ":;",
+                                      r.command("c"))
+                        self.assertEqual(r.read_reg(8), after)
+                        self.assertEqual(r.command(f"z{kind},{after:x},1"), "OK")
+                    r.write_reg(4, 0x9000)
+                    r.write_reg(0, 0)
+                    r.write_reg(8, 0x7005)
+                    before = r.read_reg(3)
+                    self.assertTrue(r.command("s").startswith("T05"))
+                    self.assertEqual(r.read_reg(8), after)
+                    self.assertEqual(r.read_reg(3), before)
+                    self.assertTrue(r.command("s").startswith("T05"))
+                    self.assertEqual(r.read_reg(8), after + 1)
+                    self.assertEqual(r.read_reg(3) & 0xffff, (before + 1) & 0xffff)
+
+    def test_interrupt_shadow_survives_debugger_stop(self):
+        if not self.cpu386:
+            self.skipTest("386+ interrupt-shadow integration")
+        r = self.remote
+
+        def out(port, value):
+            self.assertEqual(r.command("qRcmd," + f"ob {port:x} {value:x}".encode().hex()), "OK")
+
+        for opcode in (bytes.fromhex("fb"), bytes.fromhex("8ed0"), bytes.fromhex("17")):
+            for warm in (False, True):
+                with self.subTest(opcode=opcode.hex(), warm=warm):
+                    out(0x21, 0xff)
+                    out(0xa1, 0xff)
+                    body = b"\xbc\x00\x90\x31\xc0" + opcode + b"\x43\xfa"
+                    code = body + b"\xeb" + bytes(((-len(body) - 2) & 255,))
+                    r.write_mem(0x7100, code)
+                    r.write_mem(0x9000, bytes(32))
+                    r.write_mem(0x80, struct.pack("<HH", 0x7600, 0))
+                    r.write_mem(0x7600, bytes.fromhex("b020e620cf"))
+                    if warm:
+                        r.write_reg(8, 0x7100)
+                        r.send("c")
+                        time.sleep(0.1)
+                        r.socket.sendall(b"\x03")
+                        self.assertTrue(r.receive().startswith("T02"))
+                    # Initialize IRQ0 at vector 20h and let PIT ticks accumulate
+                    # under CLI. The IRR assertion proves the IRQ really is pending.
+                    setup = bytearray(b"\xfa")
+                    for port, value in ((0x20, 0x11), (0x21, 0x20), (0x21, 4),
+                                        (0x21, 1), (0x21, 0xfe), (0x43, 0x30),
+                                        (0x40, 2), (0x40, 0)):
+                        setup.extend((0xb0, value, 0xe6, port))
+                    # Poll the PIC IRR with a bounded guest loop; mode 0
+                    # produces one fresh edge rather than sub-tick pulses.
+                    setup.extend(bytes.fromhex("b9ffffb00ae620e420a8017502e2f8"))
+                    ready = 0x7000 + len(setup)
+                    r.write_mem(0x7000, setup + b"\x90\xeb\xfd")
+                    r.write_reg(9, self.native_flags)
+                    r.write_reg(8, 0x7000)
+                    self.assertEqual(r.command(f"Z1,{ready:x},1"), "OK")
+                    self.assertIn("hwbreak:;", r.command("c"))
+                    self.assertEqual(r.command(f"z1,{ready:x},1"), "OK")
+                    out(0x20, 0x0a)
+                    irr = bytes.fromhex(r.command("qRcmd," + b"ib 20 1".hex())).decode()
+                    self.assertEqual(int(irr.split(":")[1].strip(), 16) & 1, 1)
+                    r.write_reg(4, 0x9000)
+                    r.write_reg(0, 0)
+                    r.write_reg(3, 40)
+                    r.write_reg(8, 0x7105)
+                    r.write_reg(9, self.native_flags | (0 if opcode == b"\xfb" else 0x200))
+                    after = 0x7105 + len(opcode)
+                    self.assertEqual(r.command(f"Z0,{after:x},1"), "OK")
+                    self.assertIn("swbreak:;", r.command("c"))
+                    self.assertEqual(r.read_reg(8), after)
+                    self.assertEqual(r.read_reg(3), 40)
+                    self.assertEqual(r.command(f"z0,{after:x},1"), "OK")
+                    self.assertTrue(r.command("s").startswith("T05"))
+                    self.assertEqual(r.read_reg(8), after + 1)
+                    self.assertEqual(r.read_reg(3), 41)
+                    self.assertEqual(r.command("Z1,7600,1"), "OK")
+                    self.assertIn("hwbreak:;", r.command("c"))
+                    self.assertEqual(r.read_reg(8), 0x7600)
+                    saved_pc = int.from_bytes(bytes.fromhex(r.command(f"m{r.read_reg(4):x},2")), "little")
+                    self.assertEqual(saved_pc, after + 1)
+                    self.assertEqual(r.command("z1,7600,1"), "OK")
+                    out(0x21, 0xff)
+        r.write_reg(9, self.native_flags)
+
+    def test_halted_interrupt_resume(self):
+        if not self.cpu386:
+            self.skipTest("386+ interrupt integration")
+        r = self.remote
+        r.write_mem(0x80, struct.pack("<HH", 0x7600, 0))
+        r.write_mem(0x7600, bytes.fromhex("90ebfe"))
+        setup = bytearray(b"\xfa")
+        for port, value in ((0x20, 0x11), (0x21, 0x20), (0x21, 4), (0x21, 1),
+                            (0x21, 0xfe), (0x43, 0x30), (0x40, 2), (0x40, 0)):
+            setup.extend((0xb0, value, 0xe6, port))
+        # A bounded IRR poll proves the one-shot PIT interrupt is pending.
+        setup.extend(bytes.fromhex("b9ffffb00ae620e420a8017502e2f8"))
+        ready = 0x7000 + len(setup)
+        r.write_mem(0x7000, setup + bytes.fromhex("f490ebfe"))
+        self.assertEqual(r.command(f"Z1,{ready:x},1"), "OK")
+        self.assertIn("hwbreak:;", r.command("c"))
+        self.assertEqual(r.command(f"z1,{ready:x},1"), "OK")
+        irr = bytes.fromhex(r.command("qRcmd," + b"ib 20 1".hex())).decode()
+        self.assertEqual(int(irr.split(":")[1].strip(), 16) & 1, 1)
+        self.assertEqual(r.read_reg(8), ready)
+        # Repeated halted steps also exercise discovery, recompilation and warm code.
+        for _ in range(4):
+            self.assertTrue(r.command("s").startswith("T05"))
+            self.assertEqual(r.read_reg(8), ready)
+        r.write_reg(9, self.native_flags | 0x200)
+        self.assertEqual(r.command("Z1,7600,1"), "OK")
+        self.assertIn("hwbreak:;", r.command("c"))
+        self.assertEqual(r.read_reg(8), 0x7600)
+        saved_pc = int.from_bytes(bytes.fromhex(r.command(f"m{r.read_reg(4):x},2")), "little")
+        self.assertEqual(saved_pc, ready + 1)
+        self.assertEqual(r.command("z1,7600,1"), "OK")
+        self.assertEqual(r.command("qRcmd," + b"ob 21 ff".hex()), "OK")
 
     def test_warmed_continue_and_step(self):
         r = self.remote
@@ -333,6 +476,59 @@ class GuestTests(unittest.TestCase):
         self.assertTrue(int.from_bytes(bytes.fromhex(r.command("m9300,4")), "little") & 1)
         self.assertEqual(r.command("z1,7110,1"), "OK")
 
+    def test_stack_segment_shadow_suppresses_guest_traps(self):
+        if not self.cpu386:
+            self.skipTest("386+ guest debug-register integration")
+        r = self.remote
+        r.write_mem(4, struct.pack("<HH", 0x7600, 0))
+        r.write_mem(0x7600, bytes.fromhex("90ebfe"))
+        for opcode in (bytes.fromhex("8ed0"), bytes.fromhex("17"), bytes.fromhex("6617")):
+            with self.subTest(opcode=opcode.hex()):
+                r.write_mem(0x7000, opcode + bytes.fromhex("4390ebfe"))
+                r.write_mem(0x9000, bytes(8))
+                r.write_reg(0, 0)
+                r.write_reg(3, 0)
+                r.write_reg(4, 0x9000)
+                r.write_reg(8, 0x7000)
+                r.write_reg(9, self.native_flags | 0x100)
+                self.assertTrue(r.command("s").startswith("T05"))
+                self.assertEqual(r.read_reg(8), 0x7000 + len(opcode))
+                self.assertTrue(r.command("s").startswith("T05"))
+                self.assertEqual(r.read_reg(8), 0x7001 + len(opcode))
+                self.assertEqual(r.read_reg(3), 1)
+                self.assertTrue(r.command("s").startswith("T05"))
+                self.assertEqual(r.read_reg(8), 0x7600)
+                self.assertFalse(r.read_reg(9) & 0x100)
+                if not self.guest_debug_regs:
+                    continue
+                after = 0x7000 + len(opcode)
+                setup = bytearray()
+                for target, modrm in ((after, 0xc0), (after + 1, 0xc8),
+                                      (0, 0xf0), (0x405, 0xf8)):
+                    setup.extend(b"\x66\xb8" + struct.pack("<I", target) + bytes((0x0f, 0x23, modrm)))
+                r.write_mem(0x7200, setup + b"\xeb\xfe")
+                ready = 0x7200 + len(setup)
+                r.write_reg(8, 0x7200)
+                self.assertEqual(r.command(f"Z1,{ready:x},1"), "OK")
+                self.assertIn("hwbreak:;", r.command("c"))
+                self.assertEqual(r.command(f"z1,{ready:x},1"), "OK")
+                # Save DR6, disable DR7, then stop in the #DB handler.
+                r.write_mem(0x7600, bytes.fromhex("0f21f066a3009366b8000400000f23f8ebfe"))
+                r.write_reg(0, 0)
+                r.write_reg(4, 0x9000)
+                r.write_reg(8, 0x7000)
+                self.assertTrue(r.command("s").startswith("T05"))
+                self.assertEqual(r.read_reg(8), after)
+                self.assertTrue(r.command("s").startswith("T05"))
+                self.assertEqual(r.read_reg(8), after + 1)
+                self.assertTrue(r.command("s").startswith("T05"))
+                self.assertEqual(r.read_reg(8), 0x7600)
+                self.assertEqual(r.command("Z1,7610,1"), "OK")
+                self.assertIn("hwbreak:;", r.command("c"))
+                self.assertEqual(r.command("z1,7610,1"), "OK")
+                dr6 = int.from_bytes(bytes.fromhex(r.command("m9300,4")), "little")
+                self.assertEqual(dr6 & 3, 2)
+
     def test_fault_step(self):
         r = self.remote
         r.write_mem(6 * 4, struct.pack("<HH", 0x7100, 0))
@@ -412,6 +608,56 @@ class GuestTests(unittest.TestCase):
         self.assertEqual(r.command("m9000,4"), "78563412")
         self.assertEqual(r.command("m400000,4"), "78563412")
         self.assertEqual(r.command("z2,400000,4"), "OK")
+
+    def test_fault_fallthrough_breakpoint(self):
+        if not self.cpu386:
+            self.skipTest("386+ paging integration")
+        r = self.remote
+        for warm in (False, True):
+            for kind in (0, 1):
+                with self.subTest(warm=warm, kind=kind):
+                    self.setUp()
+                    self.test_protected_mode_and_paging()
+                    idt = bytearray(256 * 8)
+                    struct.pack_into("<HHBBH", idt, 14 * 8, 0x8300, 8, 0, 0x8e, 0)
+                    r.write_mem(0x9000, idt)
+                    r.write_mem(0x7508, struct.pack("<HI", len(idt) - 1, 0x9000))
+                    # LIDT; MOV EAX,[ESI]; INC EBX; loop back to MOV.
+                    r.write_mem(0x8400, bytes.fromhex("0f011d087500008b0643ebfb"))
+                    r.write_mem(0x8300, bytes.fromhex("4390ebfe"))
+                    r.write_reg(6, 0x400000)
+                    r.write_reg(8, 0x8400)
+                    if warm:
+                        r.send("c")
+                        time.sleep(0.1)
+                        r.socket.sendall(b"\x03")
+                        self.assertTrue(r.receive().startswith("T02"))
+                    r.write_reg(6, 0x500000)  # Unmapped, without invalidating warm code.
+                    r.write_reg(8, 0x8400 if not warm else 0x8407)
+                    before = r.read_reg(3)
+                    self.assertEqual(r.command(f"Z{kind},8409,1"), "OK")
+                    self.assertEqual(r.command("Z1,8301,1"), "OK")
+                    try:
+                        self.assertIn("hwbreak:;", r.command("c"))
+                        self.assertEqual(r.read_reg(8), 0x8301)
+                        self.assertEqual(r.read_reg(3), (before + 1) & 0xffffffff)
+                        frame = bytes.fromhex(r.command(f"m{r.read_reg(4):x},8"))
+                        self.assertEqual(int.from_bytes(frame[4:8], "little"), 0x8407)
+                        r.write_reg(8, 0x8407)
+                        stop = r.command("s")
+                        self.assertTrue(stop.startswith("T05"))
+                        self.assertNotIn("swbreak:;", stop)
+                        self.assertNotIn("hwbreak:;", stop)
+                        self.assertEqual(r.read_reg(8), 0x8300)
+                    finally:
+                        self.assertEqual(r.command(f"z{kind},8409,1"), "OK")
+                        self.assertEqual(r.command("z1,8301,1"), "OK")
+                        # The next real-mode fixture still uses the shared IDTR.
+                        r.write_mem(0x7508, struct.pack("<HI", 0x3ff, 0))
+                        r.write_mem(0x8500, bytes.fromhex("0f011d0875000090ebfe"))
+                        r.write_reg(8, 0x8500)
+                        self.assertTrue(r.command("s").startswith("T05"))
+                        self.assertEqual(r.read_reg(8), 0x8507)
 
     def test_fx_image_checksum_watchpoints(self):
         if not self.fxsr:
@@ -504,6 +750,7 @@ if __name__ == "__main__":
     GuestTests.native_flags = 0x8002 if args.cpu == "v20" else 2
     GuestTests.guest_debug_regs = args.guest_debug_regs == "on"
     GuestTests.fxsr = args.cpu == "pentium2-xeon"
+    GuestTests.cpu386 = args.cpu not in ("8088", "v20", "286")
     if args.binary:
         if not args.rompath:
             parser.error("--binary requires --rompath")
@@ -521,13 +768,39 @@ if __name__ == "__main__":
                 trace = root / "trace.gdb"
                 trace.write_text(
                     "set pagination off\nset confirm off\nset debuginfod enabled off\n"
+                    "python\n"
+                    "class CycleBudgetFinish(gdb.FinishBreakpoint):\n"
+                    "    seen = False\n"
+                    "    def __init__(self):\n"
+                    "        super().__init__(internal=True)\n"
+                    "        self.budget = int(gdb.parse_and_eval('*(int*)&cycles_main'))\n"
+                    "        arch = gdb.newest_frame().architecture().name()\n"
+                    "        arg = '$w0' if 'aarch64' in arch else '$a0' if 'loongarch' in arch else '$edi'\n"
+                    "        self.cycs = int(gdb.parse_and_eval(arg))\n"
+                    "        self.tsc = int(gdb.parse_and_eval('*(unsigned long long*)&tsc'))\n"
+                    "    def stop(self):\n"
+                    "        used = int(gdb.parse_and_eval('*(unsigned long long*)&tsc')) - self.tsc\n"
+                    "        remaining = int(gdb.parse_and_eval('*(int*)&cycles_main'))\n"
+                    "        if remaining != self.budget + self.cycs - used:\n"
+                    "            gdb.write('CYCLE_BUDGET_MISMATCH\\n')\n"
+                    "            gdb.execute('quit 1')\n"
+                    "        if used and not CycleBudgetFinish.seen:\n"
+                    "            gdb.write('CYCLE_BUDGET_OK\\n')\n"
+                    "            CycleBudgetFinish.seen = True\n"
+                    "        return False\n"
+                    "class CycleBudgetEntry(gdb.Breakpoint):\n"
+                    "    def stop(self):\n"
+                    "        CycleBudgetFinish()\n"
+                    "        return False\n"
+                    "CycleBudgetEntry('exec386_dynarec_gdb', internal=True)\n"
+                    "end\n"
                     "set $seen_continue = 0\nset $seen_step = 0\n"
                     "break gdbstub_instruction_start\ncommands\nsilent\n"
                     "if *(int*)&gdbstub_step == 0 && !$seen_continue\n"
                     'printf "GENERATED_CONTINUE\\n"\nset $seen_continue = 1\nend\n'
                     "if *(int*)&gdbstub_step == 1 && !$seen_step\n"
                     'printf "GENERATED_STEP\\n"\nset $seen_step = 1\nend\n'
-                    "if $seen_continue && $seen_step\ndisable 1\nend\n"
+                    "if $seen_continue && $seen_step\ndisable $_hit_bpnum\nend\n"
                     "continue\nend\nrun\n"
                 )
                 command = ["gdb", "--nx", "--batch", "-x", str(trace), "--args"] + command
@@ -609,7 +882,7 @@ if __name__ == "__main__":
                     if result is None or not result.wasSuccessful():
                         print(output)
                 if args.trace_translated:
-                    for marker in ("GENERATED_CONTINUE", "GENERATED_STEP"):
+                    for marker in ("GENERATED_CONTINUE", "GENERATED_STEP", "CYCLE_BUDGET_OK"):
                         if marker not in output:
                             print(output)
                             raise AssertionError(f"Host GDB did not observe {marker}")
