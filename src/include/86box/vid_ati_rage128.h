@@ -1131,6 +1131,8 @@ typedef struct rage128_t {
         atomic_ullong n_cpu_pgskip;
         uint64_t n_full; /* cacheable stagings the full table could not
                             record                                     */
+        uint64_t n_wrap_kept; /* wraps that kept the live cached levels */
+        uint32_t lap;         /* passes through the arena: one per wrap */
         uint32_t peak_used;
         /* Staged levels. A cached entry (ent, the GPU backend's levels in
            local memory) serves later draws until a store lands in its
@@ -1159,6 +1161,8 @@ typedef struct rage128_t {
             uint32_t src_hi;
             uint32_t dead;      /* 1 = a store landed in the source bytes
                                    of this cached entry                   */
+            uint32_t used_lap;  /* lap (below) in which a draw last used
+                                   this cached entry                      */
         } ent[R128_TEX_CACHE_ENTS];
         struct rage128_tex_ent pde[R128_TEX_BATCH_ENTS];
         uint16_t               idx[2 * R128_TEX_CACHE_ENTS];

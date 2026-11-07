@@ -3512,6 +3512,8 @@ r3d_fetch_vertex_cached(rage128_t *dev, uint32_t base, uint32_t stride,
    segment holds a pointer into it, and the reset never overwrites a
    level of the current draw, because this runs before any of them is
    staged. Submit thread only. */
+static int r3d_stage_keep_live(struct rage128_tex_stage *ts, uint32_t total);
+
 static void
 r3d_stage_reserve(rage128_t *dev, uint32_t total)
 {
@@ -3527,16 +3529,22 @@ r3d_stage_reserve(rage128_t *dev, uint32_t total)
     /* GPU lane: the flush above reclaims only an idle arena. When the
        arena really wraps, the queued segments must retire before the
        offsets are reused; this is the one wait the lane pays per pass
-       through the arena. */
+       through the arena. The live cached levels are then kept, moved to
+       the front; only when they and this draw do not fit together is
+       the arena emptied, with every cached level. */
     if (dev->gpu && ts->used && ts->used + total > ts->cap) {
         rage128_gpu_stage_quiesce(dev, 0);
-        ts->used = 0;
         ts->gen++;
         r128_texcache_lock(ts);
-        r128_texcache_reset_locked(ts);
-        ts->tgen++; /* the arena's bytes are gone, and the cached entries with them */
-        ts->src_lo = 0;
-        ts->src_hi = 0;
+        if (r3d_stage_keep_live(ts, total))
+            ts->n_wrap_kept++;
+        else {
+            ts->used = 0;
+            r128_texcache_reset_locked(ts);
+            ts->tgen++; /* the arena's bytes are gone, and the cached entries with them */
+            ts->src_lo = 0;
+            ts->src_hi = 0;
+        }
         r128_texcache_unlock(ts);
     }
 
@@ -3640,6 +3648,73 @@ r3d_tex_ent_compact(struct rage128_tex_stage *ts)
         r3d_tex_idx_insert(ts, i);
 }
 
+/* At an arena wrap, with no queued work left that samples the arena:
+   keep the cached levels that draws used during the pass that is ending,
+   instead of dropping every level. Most of a full arena is bytes no draw
+   reads again (per-batch levels, and the copies of levels a store has
+   dropped), while the levels in use are a few MB that later draws would
+   otherwise detile again. A level no draw used during the whole pass is
+   dropped, so the kept set follows the working set instead of growing
+   with every level ever staged. The kept levels move to the front, in
+   arena order, on the same 16-byte boundaries r3d_stage_level uses; the
+   index does not depend on where a level sits, and the page bits and the
+   combined source range are rebuilt for the levels kept. Returns 0,
+   leaving the caller to empty the arena, when the kept levels would take
+   more than half the arena or do not fit with need more bytes, or when
+   the table is not in arena order. Under the lock. */
+static int
+r3d_stage_keep_live(struct rage128_tex_stage *ts, uint32_t total)
+{
+    uint64_t dst  = 0;
+    uint32_t prev = 0;
+    uint32_t nlo  = 0;
+    uint32_t nhi  = 0;
+
+    for (uint32_t i = 0; i < ts->ent_count; i++)
+        if (ts->ent[i].used_lap != ts->lap && !ts->ent[i].dead) {
+            ts->ent[i].dead = 1;
+            ts->ent_dead++;
+        }
+    r3d_tex_ent_compact(ts);
+    ts->lap++;
+    for (uint32_t i = 0; i < ts->ent_count; i++) {
+        if (ts->ent[i].arena_off < prev)
+            return 0;
+        prev = ts->ent[i].arena_off;
+        dst  = ((dst + 15u) & ~15ull) + ts->ent[i].len;
+    }
+    if (!ts->ent_count || dst > ts->cap / 2u
+        || ((dst + 15u) & ~15ull) + total > ts->cap)
+        return 0;
+    dst = 0;
+    for (uint32_t i = 0; i < ts->ent_count; i++) {
+        struct rage128_tex_ent *e = &ts->ent[i];
+
+        dst = (dst + 15u) & ~15ull;
+        if (e->arena_off != (uint32_t) dst)
+            memmove(ts->arena + dst, ts->arena + e->arena_off, e->len);
+        e->arena_off = (uint32_t) dst;
+        dst += e->len;
+        if (nlo == nhi) {
+            nlo = e->src_lo;
+            nhi = e->src_hi;
+        } else {
+            if (e->src_lo < nlo)
+                nlo = e->src_lo;
+            if (e->src_hi > nhi)
+                nhi = e->src_hi;
+        }
+    }
+    r128_texcache_pg_clear(ts);
+    for (uint32_t i = 0; i < ts->ent_count; i++)
+        r128_texcache_pg_set(ts, ts->ent[i].src_lo, ts->ent[i].src_hi);
+    ts->src_lo    = nlo;
+    ts->src_hi    = nhi;
+    ts->used      = (uint32_t) dst;
+    ts->pde_count = 0;
+    return 1;
+}
+
 /* Stage the mip level at card address vm, len bytes, and return its byte
    offset in the arena, or R128_TEX_STAGE_NONE when there is no room (see
    r3d_stage_textures for what the caller then does). A failed read still
@@ -3674,6 +3749,7 @@ r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
 
         if (i >= 0 && ts->ent[i].gen == tg && !ts->ent[i].dead) {
             ts->n_hit++;
+            ts->ent[i].used_lap = ts->lap;
             off = ts->ent[i].arena_off;
             r128_texcache_unlock(ts);
             return off;
@@ -3775,6 +3851,7 @@ r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
             e->src_lo    = slo;
             e->src_hi    = shi;
             e->dead      = 0;
+            e->used_lap  = ts->lap;
             ts->ent_count++;
             r3d_tex_idx_insert(ts, ts->ent_count - 1u);
         } else

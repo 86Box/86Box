@@ -10813,6 +10813,55 @@ vectors_stage_arena(rage128_t *dev)
     }
     harness_gpu_fab_stage_ref(fab, 0);
 
+    /* A wrap keeps the cached levels used during the pass that ends:
+       stage new levels, each dropped by a store right after it is staged
+       except the sixth and the eighth, through two wraps, and sample the
+       sixth again throughout the second pass. The first wrap keeps both
+       survivors with their bytes; the second keeps the sixth and drops
+       the eighth, which no draw used during that pass. */
+    {
+        const uint32_t band = 0x00700000u;
+        uint64_t       wraps0 = ts->n_rec_wrap, kept0 = ts->n_wrap_kept, hit0;
+        uint32_t       off5 = R128_TEX_STAGE_NONE, used1 = 0;
+        uint8_t        snap[256];
+        int            i, hit5 = 1, bytes5 = 1;
+
+        for (i = 0; i < 400 && ts->n_rec_wrap < wraps0 + 2; i++) {
+            wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), (band + (uint32_t) i * 16384u) | (2u << 30));
+            rage128_raster_state_capture(dev, &rs);
+            if (i == 5) {
+                off5 = rs.prim_stage_off[0];
+                memcpy(snap, ts->arena + off5, sizeof(snap));
+            } else if (i != 7)
+                rage128_gpu_2d_barrier(dev, band + (uint32_t) i * 16384u + 128u, 4, 1);
+            if (ts->n_rec_wrap == wraps0 + 1) {
+                if (!used1)
+                    used1 = ts->used;
+                wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), (band + 5u * 16384u) | (2u << 30));
+                hit0 = ts->n_hit;
+                rage128_raster_state_capture(dev, &rs);
+                hit5 &= ts->n_hit == hit0 + 1;
+                bytes5 &= !memcmp(ts->arena + rs.prim_stage_off[0], snap, sizeof(snap));
+            }
+        }
+        check_true("gpu arena: keep-live leg wrapped twice, keeping both times",
+                   ts->n_rec_wrap == wraps0 + 2 && ts->n_wrap_kept == kept0 + 2);
+        check_true("gpu arena: the first wrap dropped the dead copies",
+                   used1 && used1 <= 4u * 16384u);
+        check_true("gpu arena: the kept level hits through the next pass, bytes intact",
+                   off5 != R128_TEX_STAGE_NONE && hit5 && bytes5);
+        wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), (band + 5u * 16384u) | (2u << 30));
+        hit0 = ts->n_hit;
+        rage128_raster_state_capture(dev, &rs);
+        check_true("gpu arena: a level used in the pass survives the second wrap",
+                   ts->n_hit == hit0 + 1);
+        wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), (band + 7u * 16384u) | (2u << 30));
+        hit0 = ts->n_hit;
+        rage128_raster_state_capture(dev, &rs);
+        check_true("gpu arena: a level unused for a whole pass is dropped at the wrap",
+                   ts->n_hit == hit0);
+    }
+
     fab_out(dev);
     harness_gpu_fab_free(fab);
 

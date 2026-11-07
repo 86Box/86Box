@@ -13848,11 +13848,12 @@ gpu_stats_core(rage128_t *dev, r128_gpu_t *g)
         gpu_log("RAGE128 GPU: flush causes:%s\n", line);
     }
     gpu_log("RAGE128 GPU: tex-arena: recycles draw=%llu flush=%llu wrap=%llu "
-            "grows=%llu hits=%llu kills=%llu full=%llu peak=%u cap=%u "
-            "cpu-in=%llu cpu-pgskip=%llu\n",
+            "wrap-kept=%llu grows=%llu hits=%llu kills=%llu full=%llu peak=%u "
+            "cap=%u cpu-in=%llu cpu-pgskip=%llu\n",
             (unsigned long long) dev->tex_stage.n_rec_draw,
             (unsigned long long) dev->tex_stage.n_rec_flush,
             (unsigned long long) dev->tex_stage.n_rec_wrap,
+            (unsigned long long) dev->tex_stage.n_wrap_kept,
             (unsigned long long) dev->tex_stage.n_grow,
             (unsigned long long) dev->tex_stage.n_hit,
             (unsigned long long) dev->tex_stage.n_kill,
