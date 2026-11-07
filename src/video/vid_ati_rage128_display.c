@@ -575,6 +575,31 @@ rage128_conv_16to32(svga_t *svga, uint16_t color, uint8_t bpp)
     return (video_16to32[color] & 0xff000000) | makecol(r, g, b);
 }
 
+/* The svga core lets a CPU store to the VGA window go straight to VRAM,
+   skipping its byte-at-a-time planar write path, under an identity
+   graphics controller (bit mask FFh, no logical operation, no
+   set/reset) and packed addressing, either chain-4 in the packed layout
+   or the framebuffer-only addressing of an extended mode. With write
+   mode 0, no rotate and all four planes enabled, which is how a packed
+   mode is set up, both paths store the same bytes; the core's test does
+   not look at those three. The core works the test out again only when
+   the graphics controller or sequencer memory mode register is written.
+   The switch between VGA and extended mode changes the packed and
+   framebuffer-only inputs without such a write, so the test is worked
+   out again here, with the core's own expression, each time this file
+   changes either input (modeled; the same recompute the Mach64 and
+   Banshee models make on their own extended-mode switches). Without it,
+   extended mode keeps the byte path the VGA mode left, and a return to
+   a chain-4 VGA mode can keep packed stores where the planes
+   interleave. */
+static void
+rage128_update_fast_write(svga_t *svga)
+{
+    svga->fast = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1])
+        && ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only)
+        && !(svga->adv_flags & FLAG_ADDR_BY8);
+}
+
 /* ------------------------------------------------------------------ */
 /* VGA aperture banking. MEM_VGA_WP_SEL and MEM_VGA_RP_SEL page the
    A0000 window. The guide enables them with CRTC_EXT_CNTL.VGA_MEM_PS_EN
@@ -610,6 +635,7 @@ rage128_update_banking(rage128_t *dev)
        scrambled although VRAM holds the right bytes (observed in the
        emulator). */
     svga->fb_only = !!(dev->crtc_gen_cntl & RAGE128_CRTC_EXT_DISP_EN);
+    rage128_update_fast_write(svga);
 
     if (paged) {
         dev->bank_w[0] = (dev->mem_vga_wp_sel & 0x3ff) * unit;
@@ -2114,6 +2140,7 @@ rage128_recalctimings(svga_t *svga)
            that readback. */
         svga->bpp           = 8;
         svga->packed_chain4 = 0;
+        rage128_update_fast_write(svga);
         svga->hoverride     = 0;
         svga->lut_map       = 0;
         svga->adv_flags |= FLAG_PANNING_ATI; /* per-line VGA pixel panning */
@@ -2182,6 +2209,7 @@ rage128_recalctimings(svga_t *svga)
        core's packed-linear addressing mode, for the A0000 window and for
        the scan address alike. */
     svga->packed_chain4 = 1;
+    rage128_update_fast_write(svga);
 
     /* Geometry. Horizontal fields count 8-pixel characters and vertical
        fields count lines (RRG: CRTC, p. 3-61 / PDF 79). Each holds the

@@ -2172,6 +2172,75 @@ vectors_vga_ppll_clock(rage128_t *dev)
 }
 
 /* ------------------------------------------------------------------ */
+/* The core's direct-store flag (a word or dword CPU store to the VGA  */
+/* window goes straight to VRAM instead of through the planar byte     */
+/* path) follows the extended-mode switch. The core derives it from    */
+/* the graphics controller state, chain-4, packed addressing and the   */
+/* framebuffer-only flag, but recomputes it only on GC and SEQ 4       */
+/* writes; the device must recompute it when it changes packed         */
+/* addressing or framebuffer-only. The shell implements no VGA, so the */
+/* GC and sequencer state a BIOS leaves for a packed 256-color mode is */
+/* set directly, with the flag as the core computed it at that time.   */
+/* ------------------------------------------------------------------ */
+static int
+harness_core_fast(const svga_t *svga)
+{
+    return (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1])
+        && ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only)
+        && !(svga->adv_flags & FLAG_ADDR_BY8);
+}
+
+static void
+vectors_vga_fast_write(rage128_t *dev)
+{
+    svga_t  *svga     = &dev->svga;
+    uint32_t gen_save = rd(dev, RAGE128_CRTC_GEN_CNTL);
+    uint8_t  gdc1 = svga->gdcreg[1], gdc3 = svga->gdcreg[3], gdc8 = svga->gdcreg[8];
+    int      chain4 = svga->chain4, fast = svga->fast;
+
+    /* VGA packed 256-color mode, as the BIOS leaves it: identity GC,
+       chain-4 on. In VGA mode the core's formula gives 0 (chain-4 is
+       interleaved, not packed). */
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save & ~RAGE128_CRTC_EXT_DISP_EN);
+    svga->gdcreg[1] = 0;
+    svga->gdcreg[3] = 0;
+    svga->gdcreg[8] = 0xff;
+    svga->chain4    = 8;
+    svga->fast      = harness_core_fast(svga);
+    check32("vga fast: VGA chain-4 mode, byte path", svga->fast, 0);
+
+    /* Switch to extended mode with no GC or sequencer write after. */
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save | RAGE128_CRTC_EXT_DISP_EN | RAGE128_CRTC_EN);
+    printf("vga fast: after ext switch fast=%u fb_only=%u packed_chain4=%u chain4=%u "
+           "gdc1=%02x gdc3=%02x gdc8=%02x formula=%d\n",
+           svga->fast, svga->fb_only, svga->packed_chain4, svga->chain4,
+           svga->gdcreg[1], svga->gdcreg[3], svga->gdcreg[8], harness_core_fast(svga));
+    check32("vga fast: extended mode takes the direct path", svga->fast, 1);
+
+    /* And back: a GC write in extended mode leaves the flag set, as the
+       core computes it then; leaving extended mode must restore the
+       chain-4 byte path, whose stores interleave across planes. */
+    svga->fast = harness_core_fast(svga);
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save & ~RAGE128_CRTC_EXT_DISP_EN);
+    printf("vga fast: after VGA switch fast=%u fb_only=%u packed_chain4=%u formula=%d\n",
+           svga->fast, svga->fb_only, svga->packed_chain4, harness_core_fast(svga));
+    check32("vga fast: VGA mode again takes the byte path", svga->fast, 0);
+
+    /* Control: a non-identity GC bit mask keeps the byte path in
+       extended mode too (the flag is the core's formula, not forced). */
+    svga->gdcreg[8] = 0x0f;
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save | RAGE128_CRTC_EXT_DISP_EN | RAGE128_CRTC_EN);
+    check32("vga fast: GC bit mask keeps the byte path in extended mode", svga->fast, 0);
+
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save);
+    svga->gdcreg[1] = gdc1;
+    svga->gdcreg[3] = gdc3;
+    svga->gdcreg[8] = gdc8;
+    svga->chain4    = chain4;
+    svga->fast      = fast;
+}
+
+/* ------------------------------------------------------------------ */
 /* a: HTOTAL_CNTL line slip reaches the core's fractional   */
 /* htotal multiplier: pixels always, PPLL phase slips of 0.2 px each   */
 /* gated by HTOT_CNTL_VGA_EN in VGA modes, SEQ_PCLKBY2 doubling.       */
@@ -13454,6 +13523,7 @@ run_agp_32mb(void)
     vectors_ppll_ref_src(dev);
     vectors_vga_ppll_clock(dev);
     vectors_htotal_slip(dev);
+    vectors_vga_fast_write(dev);
     vectors_test_clock_mux(dev);
     vectors_test_clock_elapsed(dev);
     vectors_cursor_lock(dev);
