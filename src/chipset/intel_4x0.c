@@ -105,7 +105,7 @@ i4x0_map(i4x0_t *dev, uint32_t addr, uint32_t size, int state)
          * IBM PC 7x0 BIOS switches F0000h from shadow RAM back to ROM this way
          * when it restarts.
          */
-        if (cr0 & (1 << 30))
+        if ((machines[machine].init == machine_at_ibm_pc700_init) && (cr0 & (1 << 30)))
             flushmmucache();
         else
             flushmmucache_nopc();
