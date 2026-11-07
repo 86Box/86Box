@@ -200,8 +200,23 @@ rage128_mpll_hz(const rage128_t *dev)
     return 2.0 * dev->ref_freq_hz * (double) n / (double) m;
 }
 
-/* Nominal PCI bus clock; the XCLK/MCLK muxes can select it. */
-#define RAGE128_PCICLK_HZ 33333333.0
+/* PCICLK, the bus clock input the XCLK and MCLK muxes can select. The
+   pin carries whatever clock the slot drives: "33 - 66 - 133 MHz
+   depending on the system bus type" (GCS: Detailed Pinout
+   Descriptions, PCICLK, p. C-1 / PDF 167). On an AGP slot that is the
+   AGP clock, which stays 66 MHz in 2x mode: 2x moves two transfers per
+   clock on the AD_STB strobes instead (Accelerated Graphics Port
+   Interface Specification 2.0, section 4.1.1). So the AGP board runs
+   this input at the system's AGP clock and the PCI board at its PCI
+   clock; a bus speed the core reports as 0 falls back to the nominal
+   rate of that bus. */
+static double
+rage128_pciclk_hz(const rage128_t *dev)
+{
+    if (dev->is_agp)
+        return cpu_agp_speed ? (double) cpu_agp_speed : 66666667.0;
+    return cpu_pci_speed ? (double) cpu_pci_speed : 33333333.0;
+}
 
 /* XCLK, the memory controller clock, chosen by XCLK_CNTL.XCLK_SRC_SEL
    [3:0]: 0 = inverted PCICLK (the same rate), 1 to 4 = XPllClk divided
@@ -213,7 +228,7 @@ rage128_xclk_hz(const rage128_t *dev)
 {
     switch (dev->pll_regs[RAGE128_PLL_XCLK_CNTL] & 0xf) {
         case 0:
-            return RAGE128_PCICLK_HZ;
+            return rage128_pciclk_hz(dev);
         case 1:
             return rage128_xpll_hz(dev);
         case 2:
@@ -236,7 +251,7 @@ rage128_mclk_hz(const rage128_t *dev)
 {
     switch (dev->pll_regs[RAGE128_PLL_MCLK_CNTL] & 0x7) {
         case 0:
-            return RAGE128_PCICLK_HZ;
+            return rage128_pciclk_hz(dev);
         case 1:
             return rage128_mpll_hz(dev);
         case 2:

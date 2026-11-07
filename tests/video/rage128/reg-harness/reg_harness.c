@@ -2392,6 +2392,29 @@ vectors_test_clock_mux(rage128_t *dev)
     wr(dev, RAGE128_TEST_DEBUG_MUX, 0);
 }
 
+/* XCLK and MCLK sourced from PCICLK count at the board's bus clock:
+   the AGP clock on the AGP board, the PCI clock on the PCI board (the
+   harness stubs model a 66 MHz host bus, so 66.67 and 33.33 MHz). Five
+   reads keep both counts under the 8-bit wrap and apart from each
+   other. */
+static void
+vectors_test_clock_pciclk(rage128_t *dev, const char *board, double bus_hz)
+{
+    char name[96];
+
+    pll_wr(dev, RAGE128_PLL_XCLK_CNTL, 0);      /* XCLK = PCICLK */
+    pll_wr(dev, RAGE128_PLL_MCLK_CNTL, 0);      /* MCLK = PCICLK */
+    wr(dev, RAGE128_TEST_DEBUG_MUX, 0x0f << 8); /* XCLK tap */
+    snprintf(name, sizeof(name), "pll: %s XCLK from PCICLK counts the bus clock", board);
+    check32(name, tc_run(dev, 5), tc_expect(bus_hz, 5));
+    wr(dev, RAGE128_TEST_DEBUG_MUX, 0x16 << 8); /* MCLK tap */
+    snprintf(name, sizeof(name), "pll: %s MCLK from PCICLK counts the bus clock", board);
+    check32(name, tc_run(dev, 5), tc_expect(bus_hz, 5));
+
+    pll_wr(dev, RAGE128_PLL_TEST_CNTL, 1 << 9);
+    wr(dev, RAGE128_TEST_DEBUG_MUX, 0);
+}
+
 /* Elapsed-time vectors drive the modeled test counter through the PLL
    aperture. Expected time uses the harness timer scale, including
    fractional microseconds, and access credit stays additive. */
@@ -14066,6 +14089,7 @@ run_agp_32mb(void)
     vectors_htotal_slip(dev);
     vectors_vga_fast_write(dev);
     vectors_test_clock_mux(dev);
+    vectors_test_clock_pciclk(dev, "AGP", (double) cpu_agp_speed);
     vectors_test_clock_elapsed(dev);
     vectors_cursor_lock(dev);
     vectors_4bpp_ext(dev);
@@ -14164,6 +14188,7 @@ run_pci_xpert128(void)
     harness_cfg_memory_mb = 32;
     dev = rage128_init(&ati_xpert128_pci_device);
     vectors_gart_force_pci(dev);
+    vectors_test_clock_pciclk(dev, "PCI", (double) cpu_pci_speed);
     close_dev(dev);
 }
 

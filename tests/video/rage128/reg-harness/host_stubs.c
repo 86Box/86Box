@@ -64,6 +64,8 @@ uint64_t  tsc;
 void     *cpu_f = NULL; /* no guest CPU: the telemetry header skips its line */
 void     *cpu_s = NULL;
 double    cpuclock = 100000000.0;
+int       cpu_pci_speed = 33333333; /* a 66 MHz host bus: PCI at half */
+int       cpu_agp_speed = 66666667; /* and AGP at the bus clock       */
 uint32_t  mem_size = 8192; /* KB; GART tables and rings live in ram[] */
 uint8_t  *ram;
 monitor_t monitors[MONITORS_NUM];
