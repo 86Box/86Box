@@ -47,6 +47,7 @@
 
 #include <stdatomic.h>
 #include <stdio.h>
+#include <string.h>
 #include <time.h>
 #include <86box/device.h>
 #include <86box/mem.h>
@@ -160,6 +161,11 @@ rage128_now_ns(void)
     return (uint64_t) ts.tv_sec * 1000000000ull + (uint64_t) ts.tv_nsec;
 #endif
 }
+
+/* Texture staging entry tables (rage128_t tex_stage): cached levels
+   across draws, and per-batch levels. */
+#define R128_TEX_CACHE_ENTS 1024u
+#define R128_TEX_BATCH_ENTS 256u
 
 typedef struct rage128_t {
     svga_t svga;
@@ -1123,9 +1129,21 @@ typedef struct rage128_t {
            CPU store barrier. */
         atomic_ullong n_cpu_in;
         atomic_ullong n_cpu_pgskip;
+        uint64_t n_full; /* cacheable stagings the full table could not
+                            record                                     */
         uint32_t peak_used;
+        /* Staged levels. A cached entry (ent, the GPU backend's levels in
+           local memory) serves later draws until a store lands in its
+           source bytes or the arena is reset; a per-batch entry (pde: AGP
+           levels, and every level without the GPU backend) serves only the
+           batch whose gen it carries. A dead cached entry keeps its slot
+           until the table fills, when the table is compacted; idx is an
+           open-addressed index of the cached entries by key, slot + 1 per
+           bucket, 0 = empty, so a lookup does not scan the table. */
         uint32_t ent_count;
-        struct {
+        uint32_t ent_dead;
+        uint32_t pde_count;
+        struct rage128_tex_ent {
             uint32_t vm_base;   /* texture offset register value as
                                    written, mode bits included (key)      */
             uint32_t len;       /* byte length of the staged level (key)  */
@@ -1136,21 +1154,22 @@ typedef struct rage128_t {
             uint32_t arena_off; /* byte offset into arena                 */
             uint32_t gen;       /* gen (per-batch entry) or tgen (cached
                                    entry) when it was staged              */
-            uint32_t pd;        /* 1 = valid for this batch only (AGP, or
-                                   no GPU backend), 0 = cached            */
             uint32_t src_lo;    /* card bytes [src_lo, src_hi) the level
                                    was copied from (a cached entry)       */
             uint32_t src_hi;
             uint32_t dead;      /* 1 = a store landed in the source bytes
                                    of this cached entry                   */
-        } ent[256];
+        } ent[R128_TEX_CACHE_ENTS];
+        struct rage128_tex_ent pde[R128_TEX_BATCH_ENTS];
+        uint16_t               idx[2 * R128_TEX_CACHE_ENTS];
         /* Orders tgen, src_lo, src_hi, cp_lo, cp_hi, cp_hit, n_kill and
-           the entry table between the CPU store check and the staging
-           thread. The entry table is written only by the staging thread,
-           and only under the lock, because a store on the CPU thread walks
-           it. Each locked section is short (at most one walk of the 256
-           entries), so a spin lock costs less than a mutex. All other
-           tex_stage fields are used by the submit thread only. */
+           the cached entry table between the CPU store check and the
+           staging thread. The table is written only by the staging
+           thread, and only under the lock, because a store on the CPU
+           thread walks it. A store reaches the walk only when its pages
+           hold a cached level, so a spin lock still costs less than a
+           mutex. All other tex_stage fields are used by the submit thread
+           only. */
         atomic_int lock;
     } tex_stage;
 
@@ -2903,6 +2922,19 @@ r128_texcache_pg_clear(struct rage128_tex_stage *ts)
         atomic_store_explicit(&ts->pg_live[w], 0, memory_order_relaxed);
 }
 
+/* Empty both entry tables and the index: the arena's bytes are being
+   reused. Under the lock. The index is cleared only when it can hold
+   anything, so a lane without cached levels pays nothing per draw. */
+static inline void
+r128_texcache_reset_locked(struct rage128_tex_stage *ts)
+{
+    if (ts->ent_count)
+        memset(ts->idx, 0, sizeof(ts->idx));
+    ts->ent_count = 0;
+    ts->ent_dead  = 0;
+    ts->pde_count = 0;
+}
+
 /* Returns 0 for a store outside the combined source range, 1 for one
    inside it whose pages hold no cached level (decided without the lock),
    2 for one that took the lock and walked the entry table. */
@@ -2943,11 +2975,12 @@ r128_texcache_dirty(rage128_t *dev, uint32_t lo, uint32_t len)
         /* Drop the live cached levels whose source the store overlaps,
            and shrink the combined range to the ones left. */
         for (uint32_t i = 0; i < ts->ent_count; i++) {
-            if (ts->ent[i].pd || ts->ent[i].dead || ts->ent[i].gen != ts->tgen)
+            if (ts->ent[i].dead || ts->ent[i].gen != ts->tgen)
                 continue;
             if (lo < ts->ent[i].src_hi && hi > ts->ent[i].src_lo) {
                 ts->ent[i].dead = 1;
-                hits            = 1;
+                ts->ent_dead++;
+                hits = 1;
                 continue;
             }
             if (nlo == nhi) {
@@ -2970,7 +3003,7 @@ r128_texcache_dirty(rage128_t *dev, uint32_t lo, uint32_t len)
             if (ts->cp_hi != ts->cp_lo)
                 r128_texcache_pg_set(ts, ts->cp_lo, ts->cp_hi);
             for (uint32_t i = 0; i < ts->ent_count; i++)
-                if (!ts->ent[i].pd && !ts->ent[i].dead && ts->ent[i].gen == ts->tgen)
+                if (!ts->ent[i].dead && ts->ent[i].gen == ts->tgen)
                     r128_texcache_pg_set(ts, ts->ent[i].src_lo, ts->ent[i].src_hi);
             ts->n_kill++;
         }

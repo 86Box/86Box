@@ -10728,6 +10728,43 @@ vectors_stage_arena(rage128_t *dev)
     check32("gpu arena: reclaimed arena restarts at offset zero",
             rs.prim_stage_off[0], 0);
 
+    /* More cached levels than the old 256-entry table held: 300 small
+       tiled levels (16x16 ARGB8888, one 1 KB tile row each) staged in
+       turn all stay cached, so a second pass over them stages nothing. */
+    {
+        uint32_t used0, off_first[300];
+        uint64_t hits0;
+        int      same = 0;
+
+        wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00004444);
+        for (int i = 0; i < 300; i++) {
+            wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0),
+               (SA_BAND + (uint32_t) i * 1024u) | (2u << 30));
+            rage128_raster_state_capture(dev, &rs);
+            off_first[i] = rs.prim_stage_off[0];
+        }
+        used0 = ts->used;
+        hits0 = ts->n_hit;
+        for (int i = 0; i < 300; i++) {
+            wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0),
+               (SA_BAND + (uint32_t) i * 1024u) | (2u << 30));
+            rage128_raster_state_capture(dev, &rs);
+            same += rs.prim_stage_off[0] == off_first[i]
+                && off_first[i] != R128_TEX_STAGE_NONE;
+        }
+        check32("gpu arena: 300 cached levels all hit on a second pass", same, 300);
+        check_true("gpu arena: the second pass stages nothing",
+                   ts->used == used0 && ts->n_hit == hits0 + 300 && ts->n_full == 0);
+        /* One store over the whole band drops all 300, leaving the
+           cache as the legs below expect it. */
+        rage128_gpu_2d_barrier(dev, SA_BAND, 300u * 1024u, 1);
+        check32("gpu arena: a store over the band drops every level in it",
+                ts->ent_dead, 300);
+        wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00000606);
+        wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), SA_TEX2 | (2u << 30));
+        rage128_raster_state_capture(dev, &rs);
+    }
+
     /* F: rendering into the texture kills the cache (capture-time RT
        plans are the third hook). */
     kill0 = ts->n_kill;
@@ -14652,7 +14689,8 @@ texcache_bench_fill(rage128_t *dev)
 
     r128_texcache_lock(ts);
     r128_texcache_pg_clear(ts);
-    ts->pg_tgen = ts->tgen;
+    ts->pg_tgen  = ts->tgen;
+    ts->ent_dead = 0;
     for (uint32_t i = 0; i < 256; i++) {
         uint32_t b = TCB_BASE + i * TCB_STEP;
 
