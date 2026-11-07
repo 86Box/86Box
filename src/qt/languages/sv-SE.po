@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-04 14:27+0000\n"
+"PO-Revision-Date: 2026-11-08 01:27+0000\n"
 "Last-Translator: toshineon <pettersson.mk11@gmail.com>\n"
 "Language-Team: Swedish <https://weblate.86box.net/projects/86box/86box/sv/>\n"
 "Language: sv-SE\n"
@@ -64,7 +64,7 @@ msgid "Re&nderer"
 msgstr "Re&nderare"
 
 msgid "&Qt (Software)"
-msgstr "&Qt (Mjukvara)"
+msgstr "&Qt (Programvara)"
 
 msgid "Open&GL"
 msgstr "Open&GL"
@@ -424,7 +424,7 @@ msgid "Local"
 msgstr "Lokal"
 
 msgid "UTC"
-msgstr ""
+msgstr "UTC"
 
 msgid "Date:"
 msgstr "Datum:"
@@ -490,7 +490,7 @@ msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 bildskärmsadapter"
 
 msgid "PowerVR PCX1/PCX2 Graphics"
-msgstr ""
+msgstr "PowerVR PCX1/PCX2-grafik"
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -1181,7 +1181,7 @@ msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG
 msgstr "En emulator av gamla datorer\n\nUpphovsmän: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, med flera.\n\nMed tidigare grundbidrag från Sarah Walker, leilei, JohnElliott, greatpsycho, med flera.\n\nSläppt under GNU General Public License upplaga 2 eller senare. Se LICENSE för mer information."
 
 msgid "Hardware not available"
-msgstr "Hårdvara ej tillgänglig"
+msgstr "Maskinvara ej tillgänglig"
 
 msgid "Don't show this message again"
 msgstr "Visa inte detta meddelande igen"
@@ -1202,7 +1202,16 @@ msgid "You are loading an unsupported configuration"
 msgstr "Du laddar en konfiguration som inte stöds"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
-msgstr "Filtrering av processortyp grundat på den valda maskinen är avaktiverat för denna emulerade maskin.\n\nDetta gör det möjligt att välja en processor som annars är oförenlig med den valda maskinen. Detta kan dock leda till oförenligheter med maskinens BIOS eller annan mjukvara\n\nAtt aktivera denna inställning stöds inte officiellt, och alla felrapporter som lämnas in kan komma att stängas som ogiltiga."
+msgstr ""
+"Filtrering av processortyp grundat på den valda maskinen är avaktiverat för "
+"denna emulerade maskin.\n"
+"\n"
+"Detta gör det möjligt att välja en processor som annars är oförenlig med den "
+"valda maskinen. Detta kan dock leda till oförenligheter med maskinens BIOS "
+"eller annan programvara\n"
+"\n"
+"Att aktivera denna inställning stöds inte officiellt, och alla felrapporter "
+"som lämnas in kan komma att stängas som ogiltiga."
 
 msgid "Continue"
 msgstr "Fortsätt"
@@ -1316,7 +1325,7 @@ msgid "Delete virtual machines to Recycle Bin"
 msgstr "Ta bort virtuella maskiner till Papperskorgen"
 
 msgid "Discord"
-msgstr ""
+msgstr "Discord"
 
 msgid "Show running machines in my Discord status"
 msgstr "Visa maskiner som körs i min Discord-status"
@@ -3078,7 +3087,7 @@ msgid "Brand:"
 msgstr "Märke:"
 
 msgid "Revision:"
-msgstr ""
+msgstr "Revision:"
 
 msgid "[Generic HDD] Device Configuration"
 msgstr "[Allmän hårddisk] Enhetskonfigurering"
@@ -3704,19 +3713,19 @@ msgstr ""
 "86Box."
 
 msgid "Disabled"
-msgstr ""
+msgstr "Avaktiverad"
 
 msgid "Unlimited capacity"
-msgstr ""
+msgstr "Obegränsad kapacitet"
 
 msgid "CD speed:"
-msgstr ""
+msgstr "CD-hastighet:"
 
 msgid "DVD speed:"
-msgstr ""
+msgstr "DVD-hastighet:"
 
 msgid "HD/BD speed:"
-msgstr ""
+msgstr "HD/BD-hastighet:"
 
 msgid "Software-initiated poweroff device (IBM 5140)"
-msgstr ""
+msgstr "Programvarustyrd avstängningsenhet (IBM 5140)"
