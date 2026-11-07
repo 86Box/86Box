@@ -924,10 +924,21 @@ mc_run(rage128_t *dev, const rage128_mc_cmd_t *c, const int16_t (*resid)[16])
     return (int) c->h;
 }
 
+/* Run the queued launches. 3D primitives issued before them may still
+   wait in the render workers' deferred batch, which draws into VRAM only
+   when it is flushed. The command FIFO runs operations in the order they
+   were issued (RRG: Memory Mapping, Figure 2-1, p. 2-4 / PDF 14), so the
+   batch is drawn first: a launch then reads the primitives' pixels, its
+   stores land after theirs, and a batched primitive samples the texels
+   from before the launch. Both the command thread and the CPU thread may
+   flush the batch. */
 static void
 rage128_mpeg_execute(rage128_t *dev)
 {
     int row = 0;
+
+    if (dev->mc.ncmd)
+        rage128_raster_flush(dev);
 
     for (int i = 0; i < dev->mc.ncmd; i++) {
         if (row + (int) dev->mc.cmd[i].h > 32)

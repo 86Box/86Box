@@ -13072,23 +13072,35 @@ vectors_mpeg_mb(rage128_t *dev)
 #undef MC_PX
 }
 
-/* MPEG motion compensation against 3D draws still queued on the GPU
-   backend. The command FIFO runs operations in the order they were
-   issued (RRG: Memory Mapping, Figure 2-1, p. 2-4 / PDF 14), so a launch
-   issued after a draw sees the draw's pixels and its stores land after
-   the draw's, and a draw issued before a launch samples the texels from
-   before it. With the backend on, a draw is only captured at submit and
-   runs at the next fence, so each leg issues the draw, then the launch
-   with no register write between them (a GUI register write drains the
-   engine), then fences. Every expected value is read back from a leg
-   that fences between the two operations. On the interpreter lanes the
-   draw lands at submit, and the legs pass trivially. */
+/* MPEG motion compensation against 3D draws still queued, on the GPU
+   backend or in the render workers' deferred batch. The command FIFO
+   runs operations in the order they were issued (RRG: Memory Mapping,
+   Figure 2-1, p. 2-4 / PDF 14), so a launch issued after a draw sees the
+   draw's pixels and its stores land after the draw's, and a draw issued
+   before a launch samples the texels from before it. With the backend
+   on, a draw is only captured at submit and runs at the next fence; with
+   two or more render threads it waits in the batch until the next flush.
+   So each leg issues the draw, then the launch with no register write
+   between them (a GUI register write drains the engine), then flushes
+   and fences. Every expected value is read back from a leg that fences
+   between the two operations. On a lane that draws at submit (one render
+   thread, no backend) the legs pass trivially. */
 #define MG_A    0x00700000u /* 3D color target, 64 px ARGB8888 = 256 B/row */
 #define MG_D    0x00710000u /* launch destination of the first leg         */
 #define MG_T    0x00720000u /* 16x16 ARGB8888 texture, 64 B/row            */
 #define MG_SEED 0x11223344u
 #define MG_TEXV 0xff102030u
 #define MG_PX(x, y) (*(uint32_t *) &dev->svga.vram[MG_A + ((y) * 64 + (x)) * 4])
+
+/* Draw the deferred batch, then fence the GPU backend. No host-newer
+   mark of all of VRAM here, unlike flush_sync: one leg checks that the
+   launch marks its own stores. */
+static void
+mg_fence(rage128_t *dev)
+{
+    rage128_raster_flush(dev);
+    gpu_sync(dev);
+}
 
 /* An intra 16x16 launch at dst whose one coefficient is a zero DC: every
    stored byte is the intra offset, 128. dcntl is the MC_DST_CNTL word the
@@ -13180,13 +13192,13 @@ vectors_mpeg_gpu_order(rage128_t *dev)
     flush_sync(dev);
     tl_draw_z(dev, 0.0f, 16.0f, 0xffc04020, 0.25f);
     mg_copy(dev, MG_D);
-    gpu_sync(dev);
-    check32("mpeg gpu: the draw painted the reference", MG_PX(0, 0), 0xffc04020);
+    mg_fence(dev);
+    check32("mpeg order: the draw painted the reference", MG_PX(0, 0), 0xffc04020);
     bad = 0;
     for (uint32_t r = 0; r < 16; r++)
         bad += memcmp(&dev->svga.vram[MG_D + r * 256],
                       &dev->svga.vram[MG_A + r * 256], 16) != 0;
-    check32("mpeg gpu: prediction reads the pixels of a queued draw", bad, 0);
+    check32("mpeg order: prediction reads the pixels of a queued draw", bad, 0);
 
     /* Write after write: the launch stores into the corner the queued
        draw paints, and its bytes are the last ones there. */
@@ -13195,13 +13207,13 @@ vectors_mpeg_gpu_order(rage128_t *dev)
     flush_sync(dev);
     tl_draw_z(dev, 0.0f, 16.0f, 0xffc04020, 0.25f);
     mg_intra(dev, MG_A, 2u << 30);
-    gpu_sync(dev);
+    mg_fence(dev);
     bad = 0;
     for (uint32_t r = 0; r < 16; r++)
         for (uint32_t x = 0; x < 16; x++)
             bad += dev->svga.vram[MG_A + r * 256 + x] != 128;
-    check32("mpeg gpu: launch stores land over a queued draw", bad, 0);
-    check32("mpeg gpu: the draw keeps the pixels past the launch",
+    check32("mpeg order: launch stores land over a queued draw", bad, 0);
+    check32("mpeg order: the draw keeps the pixels past the launch",
             MG_PX(8, 0), 0xffc04020);
 
     /* The texture legs: a 16x16 texture sampled with a replace color
@@ -13219,20 +13231,20 @@ vectors_mpeg_gpu_order(rage128_t *dev)
         MG_PX(i & 63, i >> 6) = MG_SEED;
     flush_sync(dev);
     tl_draw_tex(dev);
-    gpu_sync(dev);
+    mg_fence(dev);
     e_old = MG_PX(2, 2);
-    check32("mpeg gpu: the draw samples the seeded texel", e_old & 0xffffffu,
+    check32("mpeg order: the draw samples the seeded texel", e_old & 0xffffffu,
             MG_TEXV & 0xffffffu);
     /* Read after a launch's write, with nothing else storing between
        them: the draw sees the texels only if the launch marked its
        stores for the GPU backend's copy of VRAM. */
     mg_intra(dev, MG_T, 0);
     tl_draw_tex(dev);
-    gpu_sync(dev);
+    mg_fence(dev);
     e_new = MG_PX(2, 2);
     t_new = *(uint32_t *) &dev->svga.vram[MG_T];
-    check_true("mpeg gpu: the launch changes the sampled texel", e_new != e_old);
-    check32("mpeg gpu: a draw after a launch samples its stores",
+    check_true("mpeg order: the launch changes the sampled texel", e_new != e_old);
+    check32("mpeg order: a draw after a launch samples its stores",
             e_new & 0xffffffu, t_new & 0xffffffu);
 
     /* Write after read: the queued draw samples the texture, then the
@@ -13244,10 +13256,10 @@ vectors_mpeg_gpu_order(rage128_t *dev)
     flush_sync(dev);
     tl_draw_tex(dev);
     mg_intra(dev, MG_T, 0);
-    gpu_sync(dev);
-    check32("mpeg gpu: a queued draw samples the texels from before a launch",
+    mg_fence(dev);
+    check32("mpeg order: a queued draw samples the texels from before a launch",
             MG_PX(2, 2), e_old);
-    check32("mpeg gpu: the launch over the texture still lands",
+    check32("mpeg order: the launch over the texture still lands",
             *(uint32_t *) &dev->svga.vram[MG_T], t_new);
 
     for (size_t i = 0; i < sizeof(saved) / sizeof(saved[0]); i++)
@@ -15341,6 +15353,7 @@ run_agp_32mb_threaded(void)
     vectors_hazard_ranges(dev);
     vectors_poly_stipple(dev);
     vectors_tiled_3d(dev);
+    vectors_mpeg_gpu_order(dev);
     vectors_mag_blend(dev);
     vectors_sec_mag_blend(dev);
     vectors_comb_disable(dev);
