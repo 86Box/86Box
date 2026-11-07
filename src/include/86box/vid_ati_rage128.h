@@ -509,6 +509,10 @@ typedef struct rage128_t {
                                    change made on the CCE thread        */
     uint8_t     irq_state;      /* PCI INTA assert shadow (pci_set_irq) */
 
+    /* For each register-file dword, the block whose handler takes a
+       write to it, found at the first write (0 until then). */
+    atomic_uchar reg_wr_blk[0x4000 >> 2];
+
     /* 2D GUI engine context (vid_ati_rage128_2d.c). Registers hold the
        packed spec encodings; the executors decode on use. */
     uint32_t dp_gui_master_cntl;

@@ -1207,6 +1207,43 @@ rage128_cap_early_reg(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
     }
 }
 
+/* The register blocks a write can go to, in the order a write to a new
+   offset is offered to them, and the hand-off to one block. */
+enum {
+    RAGE128_WBLK_UNKNOWN = 0, /* offset not written yet */
+    RAGE128_WBLK_DISPLAY,     /* PLL, CRTC, DAC, palette */
+    RAGE128_WBLK_OV0,         /* hardware video overlay */
+    RAGE128_WBLK_SUBPIC,      /* DVD subpicture */
+    RAGE128_WBLK_2D,          /* 2D engine context */
+    RAGE128_WBLK_PM4,         /* CCE command processor and PCI GART */
+    RAGE128_WBLK_3D,          /* 3D engine context */
+    RAGE128_WBLK_MPEG,        /* MPEG-2 macroblock assist */
+    RAGE128_WBLK_NONE         /* no block claims the offset */
+};
+
+static inline int
+rage128_wblk_write(rage128_t *dev, int blk, uint32_t off, uint32_t val, uint32_t mask)
+{
+    switch (blk) {
+        case RAGE128_WBLK_DISPLAY:
+            return rage128_display_reg_write(dev, off, val, mask);
+        case RAGE128_WBLK_OV0:
+            return rage128_ov0_reg_write(dev, off, val, mask);
+        case RAGE128_WBLK_SUBPIC:
+            return rage128_subpic_reg_write(dev, off, val, mask);
+        case RAGE128_WBLK_2D:
+            return rage128_2d_reg_write(dev, off, val, mask);
+        case RAGE128_WBLK_PM4:
+            return rage128_pm4_reg_write(dev, off, val, mask);
+        case RAGE128_WBLK_3D:
+            return rage128_3d_reg_write(dev, off, val, mask);
+        case RAGE128_WBLK_MPEG:
+            return rage128_mpeg_reg_write(dev, off, val, mask);
+        default:
+            return 0;
+    }
+}
+
 /* Register file write. val is already shifted to its byte lanes and mask
    selects the lanes written. The guide allows byte and word access to
    the display and configuration registers but lists the GUI and
@@ -1652,30 +1689,33 @@ rage128_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
         rage128_cap_tick(dev);
     }
 
-    /* Display block: PLL / CRTC / DAC / palette. */
-    if (rage128_display_reg_write(dev, off, val, mask))
-        return;
-    /* OV0 hardware video overlay (vid_ati_rage128_ov0.c). */
-    if (rage128_ov0_reg_write(dev, off, val, mask))
-        return;
-    /* DVD subpicture block (vid_ati_rage128_ov0.c). */
-    if (rage128_subpic_reg_write(dev, off, val, mask))
-        return;
-    /* 2D GUI engine context (vid_ati_rage128_2d.c). */
-    if (rage128_2d_reg_write(dev, off, val, mask))
-        return;
-    /* PM4/CCE command processor + PCI GART (vid_ati_rage128_pm4.c). */
-    if (rage128_pm4_reg_write(dev, off, val, mask))
-        return;
-    /* 3D engine CCE context (vid_ati_rage128_3d.c). */
-    if (rage128_3d_reg_write(dev, off, val, mask))
-        return;
-    /* MPEG-2 macroblock assist (vid_ati_rage128_mpeg.c). */
-    if (rage128_mpeg_reg_write(dev, off, val, mask))
-        return;
+    /* The rest goes to the block that owns the offset. Each block's
+       handler claims a write by returning 1, and whether it claims one
+       depends on the offset alone, never on register state; a handler
+       that does not claim the offset changes nothing. So the owner of an
+       offset is found at its first write, by offering that write to the
+       blocks in a fixed order (display, overlay, subpicture, 2D, PM4,
+       3D, MPEG; the first claim wins), and remembered, and later writes
+       go straight to it instead of past every block before it. The 3D
+       context registers, most of a game's command stream, would
+       otherwise reach their handler only after five others. An offset
+       no block claims, the read-only copy of configuration space among
+       them, is remembered as such and the write is dropped. Either
+       thread can find an owner first; both store the same block, so the
+       entries are relaxed atomics. */
+    {
+        uint32_t idx = off >> 2;
+        int      blk = atomic_load_explicit(&dev->reg_wr_blk[idx], memory_order_relaxed);
 
-    if (off >= RAGE128_CONFIG_MIRROR_BASE && off <= RAGE128_CONFIG_MIRROR_END)
-        return; /* read-only mirror */
+        if (blk == RAGE128_WBLK_UNKNOWN) {
+            for (blk = RAGE128_WBLK_DISPLAY; blk < RAGE128_WBLK_NONE; blk++)
+                if (rage128_wblk_write(dev, blk, off, val, mask))
+                    break;
+            atomic_store_explicit(&dev->reg_wr_blk[idx], (unsigned char) blk,
+                                  memory_order_relaxed);
+        } else if (blk != RAGE128_WBLK_NONE)
+            rage128_wblk_write(dev, blk, off, val, mask);
+    }
 }
 
 /* A PM4 type-0 packet can write any register, so the packet executor
