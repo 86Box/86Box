@@ -576,7 +576,7 @@ fastreadw_fetch(uint32_t a)
 
 }
 
-static __inline uint32_t
+__attribute__((always_inline)) static inline uint32_t
 fastreadl_fetch(uint32_t a)
 {
     uint8_t *t;

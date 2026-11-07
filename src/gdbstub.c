@@ -15,6 +15,7 @@
 #include <inttypes.h>
 #include <stdarg.h>
 #include <stdint.h>
+#include <stdatomic.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -28,16 +29,26 @@
 #    endif
 #    include <winsock2.h>
 #    include <ws2tcpip.h>
+#    define sock_close       closesocket
+#    define sock_shutdown(s) shutdown(s, SD_BOTH)
+typedef SOCKET gdbstub_socket_t;
 #else
 #    include <unistd.h>
 #    include <arpa/inet.h>
 #    include <sys/socket.h>
 #    include <errno.h>
+#    define sock_close       close
+#    define sock_shutdown(s) shutdown(s, SHUT_RDWR)
+typedef int gdbstub_socket_t;
+#endif
+#ifndef MSG_NOSIGNAL
+#    define MSG_NOSIGNAL 0
 #endif
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include "cpu.h"
 #include "x86.h"
+#include "x86_flags.h"
 #include "x86seg.h"
 #include "x86seg_common.h"
 #include "x87_sf.h"
@@ -48,6 +59,11 @@
 #include <86box/plat.h>
 #include <86box/thread.h>
 #include <86box/gdbstub.h>
+#include <86box/debugger.h>
+#include "vx0_biu.h"
+#ifdef USE_DYNAREC
+#    include "codegen.h"
+#endif
 
 #define FAST_RESPONSE(s)         \
     strcpy(client->response, s); \
@@ -120,11 +136,11 @@ enum {
 };
 
 typedef struct _gdbstub_client_ {
-    int                socket;
+    gdbstub_socket_t   socket;
     struct sockaddr_in addr;
 
     char    packet[16384], response[16384];
-    uint8_t has_packet : 1;
+    atomic_int has_packet;
     uint8_t first_packet_received : 1;
     uint8_t ida_mode : 1;
     uint8_t waiting_stop : 1;
@@ -134,6 +150,7 @@ typedef struct _gdbstub_client_ {
 
     event_t *processed_event;
     event_t *response_event;
+    thread_t *thread;
 
     uint16_t last_io_base;
     uint16_t last_io_len;
@@ -144,10 +161,7 @@ typedef struct _gdbstub_client_ {
 
 typedef struct _gdbstub_breakpoint_ {
     uint32_t addr;
-    union {
-        uint8_t  orig_val;
-        uint32_t end;
-    };
+    uint64_t end;
 
     struct _gdbstub_breakpoint_ *next;
 } gdbstub_breakpoint_t;
@@ -335,7 +349,8 @@ static char      target_xml[]   = /* QEMU gdb-xml/i386-32bit.xml with modificati
 #ifdef _WIN32
 static WSADATA wsa;
 #endif
-static int      gdbstub_socket = -1;
+static gdbstub_socket_t gdbstub_socket  = -1;
+static int             listening_port;
 static int      stop_reason_len = 0;
 static int      in_gdbstub = 0;
 static uint32_t watch_addr;
@@ -343,7 +358,12 @@ static char     stop_reason[2048];
 
 static gdbstub_client_t *first_client = NULL;
 static gdbstub_client_t *last_client = NULL;
+static gdbstub_client_t *finished_clients;
 static mutex_t          *client_list_mutex;
+static thread_t         *server_thread;
+static atomic_int        stopping;
+static atomic_int        break_requested;
+static int               step_started;
 
 static void (*cpu_exec_shadow)(int32_t cycs);
 static gdbstub_breakpoint_t *first_swbreak = NULL;
@@ -351,17 +371,47 @@ static gdbstub_breakpoint_t *first_hwbreak = NULL;
 static gdbstub_breakpoint_t *first_rwatch = NULL;
 static gdbstub_breakpoint_t *first_wwatch = NULL;
 static gdbstub_breakpoint_t *first_awatch = NULL;
+static unsigned              client_generation, debug_generation;
 
 int      gdbstub_step = 0;
 int      gdbstub_next_asap = 0;
+int      gdbstub_active      = 0;
+int      gdbstub_debug       = 0;
+int      gdbstub_watching    = 0;
+int      gdbstub_cli_enabled = -1;
+int      gdbstub_cli_port    = 0;
 uint64_t gdbstub_watch_pages[(((uint32_t) -1) >> (MEM_GRANULARITY_BITS + 6)) + 1];
 
 static void
 gdbstub_break(void)
 {
     /* Pause CPU execution as soon as possible. */
-    if (gdbstub_step <= GDBSTUB_EXEC)
-        gdbstub_step = GDBSTUB_BREAK;
+    atomic_store(&break_requested, 1);
+}
+
+static void
+gdbstub_clear_breakpoints(void)
+{
+    gdbstub_breakpoint_t **lists[] = {
+        &first_swbreak, &first_hwbreak, &first_rwatch, &first_wwatch, &first_awatch
+    };
+    for (unsigned i = 0; i < sizeof(lists) / sizeof(lists[0]); i++) {
+        while (*lists[i]) {
+            gdbstub_breakpoint_t *next = (*lists[i])->next;
+            free(*lists[i]);
+            *lists[i] = next;
+        }
+    }
+    memset(gdbstub_watch_pages, 0, sizeof(gdbstub_watch_pages));
+    gdbstub_watching = 0;
+    mem_debug_update();
+    flushmmucache();
+}
+
+static uint32_t
+gdbstub_pc(void)
+{
+    return is286 ? cpu_state.pc : ip_808x();
 }
 
 static void
@@ -373,13 +423,6 @@ gdbstub_jump(uint32_t new_pc)
     else
         set_ip_808x(new_pc - cs);
     flushmmucache();
-}
-
-/* The linear address of the next instruction. */
-static uint32_t
-gdbstub_pc(void)
-{
-    return cs + (is286 ? cpu_state.pc : ip_808x());
 }
 
 static inline int
@@ -536,6 +579,10 @@ gdbstub_client_read_string(gdbstub_client_t *client, char *buf, int size, char t
 static int
 gdbstub_client_write_reg(int index, uint8_t *buf)
 {
+#ifdef USE_DYNAREC
+    if (cpu_use_dynarec && index >= GDB_REG_CS)
+        codegen_reset();
+#endif
     int width = 4;
     switch (index) {
         case GDB_REG_EAX ... GDB_REG_EDI:
@@ -549,15 +596,54 @@ gdbstub_client_write_reg(int index, uint8_t *buf)
         case GDB_REG_EFLAGS:
             cpu_state.flags  = AS_U16(buf[0]);
             cpu_state.eflags = AS_U16(buf[2]);
+            flags_extract();
+            if (cpu_state.eflags & VM_FLAG)
+                cpu_cur_status |= CPU_STATUS_V86;
+            else
+                cpu_cur_status &= ~CPU_STATUS_V86;
             break;
 
         case GDB_REG_CS ... GDB_REG_GS:
-            width = 2;
-            loadseg(*((uint16_t *) buf), segment_regs[index - GDB_REG_CS]);
-            flushmmucache();
-            if ((index == GDB_REG_CS) && !is286)
-                flush_prefetch_808x();
-            break;
+            {
+                x86seg  *segment       = segment_regs[index - GDB_REG_CS];
+                x86seg   saved_segment = *segment;
+                int      saved_status  = cpu_cur_status;
+                int      saved_use32 = use32, saved_stack32 = stack32, saved_oldcpl = oldcpl;
+                int      saved_abrt = cpu_state.abrt, saved_error = abrt_error;
+                uint32_t saved_cr2 = cr2;
+
+                width          = 2;
+                cpu_state.abrt = 0;
+                if (index == GDB_REG_CS) {
+                    loadcs(*((uint16_t *) buf));
+                    if (!(cr0 & 1) || (cpu_state.eflags & VM_FLAG)) {
+                        use32 = 0;
+                        cpu_cur_status &= ~CPU_STATUS_USE32;
+                    }
+                } else {
+                    loadseg(*((uint16_t *) buf), segment);
+                    if (index == GDB_REG_SS && (!(cr0 & 1) || (cpu_state.eflags & VM_FLAG))) {
+                        stack32 = 0;
+                        cpu_cur_status &= ~CPU_STATUS_STACK32;
+                    }
+                }
+                int failed     = cpu_state.abrt;
+                cpu_state.abrt = saved_abrt;
+                abrt_error     = saved_error;
+                cr2            = saved_cr2;
+                if (failed) {
+                    *segment       = saved_segment;
+                    cpu_cur_status = saved_status;
+                    use32          = saved_use32;
+                    stack32        = saved_stack32;
+                    oldcpl         = saved_oldcpl;
+                    return 0;
+                }
+                flushmmucache();
+                if ((index == GDB_REG_CS) && !is286)
+                    flush_prefetch_808x();
+                break;
+            }
 
 #if 0
         case GDB_REG_FS_BASE ... GDB_REG_GS_BASE:
@@ -573,10 +659,22 @@ gdbstub_client_write_reg(int index, uint8_t *buf)
                figure 4-3, PDF p. 113). */
             if ((index == GDB_REG_CR0) && is386 && !is486 && !isibm486)
                 cr0 &= 0x8000001f;
+            if (index == GDB_REG_CR0) {
+                if (cr0 & 1)
+                    cpu_cur_status |= CPU_STATUS_PMODE;
+                else
+                    cpu_cur_status &= ~CPU_STATUS_PMODE;
+                cpu_cache_int_enabled = hascache && !(cr0 & (1U << 30));
+                cpu_update_waitstates();
+                cpu_car_update();
+            }
+            if (index != GDB_REG_CR2 && (cr0 & 0x80000000) && (cr4 & CR4_PAE))
+                pae_load_pdptes();
             flushmmucache();
             break;
 
         case GDB_REG_EFER:
+            width        = 8;
             msr.amd_efer = *((uint64_t *) buf);
             break;
 
@@ -633,6 +731,29 @@ gdbstub_client_write_reg(int index, uint8_t *buf)
     return width;
 }
 
+static int
+gdbstub_send(gdbstub_client_t *client, const void *data, size_t length)
+{
+    const char *p = data;
+    while (length) {
+        int sent = send(client->socket, p, (int) length, MSG_NOSIGNAL);
+        if (sent <= 0) {
+#ifdef _WIN32
+            if (sent < 0 && WSAGetLastError() == WSAEINTR)
+#else
+            if (sent < 0 && errno == EINTR)
+#endif
+                continue;
+            sock_shutdown(client->socket);
+            thread_set_event(client->response_event);
+            return 0;
+        }
+        p += sent;
+        length -= sent;
+    }
+    return 1;
+}
+
 static void
 gdbstub_client_respond(gdbstub_client_t *client)
 {
@@ -650,10 +771,10 @@ gdbstub_client_respond(gdbstub_client_t *client)
     gdbstub_log("GDB Stub: Sending response: %s\n", client->response);
     client->response[994] = i;
 #endif
-    send(client->socket, "$", 1, 0);
-    send(client->socket, client->response, client->response_pos, 0);
+    if (!gdbstub_send(client, "$", 1) || !gdbstub_send(client, client->response, client->response_pos))
+        return;
     char response_cksum[3] = { '#', gdbstub_hex_encode((checksum >> 4) & 0x0f), gdbstub_hex_encode(checksum & 0x0f) };
-    send(client->socket, response_cksum, sizeof(response_cksum), 0);
+    gdbstub_send(client, response_cksum, sizeof(response_cksum));
 }
 
 static void
@@ -686,7 +807,7 @@ gdbstub_client_read_reg(int index, uint8_t *buf)
             break;
 
         case GDB_REG_EIP:
-            *((uint32_t *) buf) = gdbstub_pc();
+            *((uint32_t *) buf) = cs + gdbstub_pc();
             break;
 
         case GDB_REG_EFLAGS:
@@ -695,6 +816,7 @@ gdbstub_client_read_reg(int index, uint8_t *buf)
             break;
 
         case GDB_REG_CS ... GDB_REG_GS:
+            width               = 2;
             *((uint16_t *) buf) = segment_regs[index - GDB_REG_CS]->seg;
             break;
 
@@ -709,6 +831,7 @@ gdbstub_client_read_reg(int index, uint8_t *buf)
             break;
 
         case GDB_REG_EFER:
+            width               = 8;
             *((uint64_t *) buf) = msr.amd_efer;
             break;
 
@@ -890,6 +1013,7 @@ gdbstub_mem_enter(gdbstub_mem_state_t *state, uint32_t addr, int width)
     cpu_old_paging = 0;
     cpl_override   = 1;
     cpu_dr_armed   = 1;
+    mem_debug_update();
 }
 
 /* Answers whether the access faulted. */
@@ -953,6 +1077,7 @@ gdbstub_mem_leave(gdbstub_mem_state_t *state, uint32_t addr, uint8_t *buf, int w
     cpu_old_paging   = state->saved_cpu_old_paging;
     cpl_override     = state->saved_cpl_override;
     cpu_dr_armed     = state->saved_cpu_dr_armed;
+    mem_debug_update();
 
     return ret;
 }
@@ -1083,7 +1208,7 @@ gdbstub_client_packet(gdbstub_client_t *client)
         gdbstub_log("GDB Stub: Received packet with invalid checksum (expected %02X got %02X): %s\n", checksum, rcv_checksum, client->packet);
         client->packet[953] = i;
 #    endif
-        send(client->socket, "-", 1, 0);
+        gdbstub_send(client, "-", 1);
         return;
     }
 #endif
@@ -1095,7 +1220,8 @@ gdbstub_client_packet(gdbstub_client_t *client)
     gdbstub_log("GDB Stub: Received packet: %s\n", client->packet);
     client->packet[996] = i;
 #endif
-    send(client->socket, "+", 1, 0);
+    if (!gdbstub_send(client, "+", 1))
+        return;
 
     /* Block other responses from being written while this one (if any is produced) isn't acknowledged. */
     if ((client->packet[0] != 'c') && (client->packet[0] != 's') && (client->packet[0] != 'v')) {
@@ -1113,6 +1239,13 @@ gdbstub_client_packet(gdbstub_client_t *client)
             client->ida_mode = 1;
         }
     }
+
+    /* Commands execute outside translated code. Drop cached state assumptions
+       before debugger edits, even when the guest edits code through an alias. */
+#ifdef USE_DYNAREC
+    if (cpu_use_dynarec && client->packet[0] && strchr("GMX", client->packet[0]))
+        codegen_reset();
+#endif
 
     /* Parse command. */
     switch (client->packet[0]) {
@@ -1138,6 +1271,7 @@ gdbstub_client_packet(gdbstub_client_t *client)
             return;
 
         case 'D': /* detach */
+            gdbstub_clear_breakpoints();
             /* Resume emulation. */
             gdbstub_step = GDBSTUB_EXEC;
 
@@ -1570,6 +1704,8 @@ unknown:
                 gdbstub_client_read_word(client, &k);
             else
                 k = 1;
+            if (!k || (uint64_t) (uint32_t) j + (uint32_t) k > (1ULL << 32))
+                goto e22;
 
             /* Test writability of software breakpoint. */
             if (client->packet[1] == '0') {
@@ -1601,7 +1737,7 @@ unknown:
                 /* Allocate a new breakpoint. */
                 breakpoint       = calloc(1, sizeof(gdbstub_breakpoint_t));
                 breakpoint->addr = j;
-                breakpoint->end  = j + k;
+                breakpoint->end  = (uint64_t) (uint32_t) j + (uint32_t) k;
                 breakpoint->next = NULL;
 
                 /* Add the new breakpoint to the list. */
@@ -1622,10 +1758,7 @@ unknown:
 
             /* Update the page watchpoint map if we're dealing with a watchpoint. */
             if (client->packet[1] >= '2') {
-                /* Clear this watchpoint's corresponding page map groups,
-                   as everything is going to be recomputed soon anyway. */
-                memset(&gdbstub_watch_pages[j >> (MEM_GRANULARITY_BITS + 6)], 0,
-                       (((k - 1) >> (MEM_GRANULARITY_BITS + 6)) + 1) * sizeof(gdbstub_watch_pages[0]));
+                memset(gdbstub_watch_pages, 0, sizeof(gdbstub_watch_pages));
 
                 /* Go through all watchpoint lists. */
                 l          = 0;
@@ -1652,6 +1785,8 @@ unknown:
 
                 /* Drop cached lookups, so that accesses to the watched
                    pages go through the checked paths. */
+                gdbstub_watching = first_rwatch || first_wwatch || first_awatch;
+                mem_debug_update();
                 flushmmucache();
             }
 
@@ -1704,6 +1839,31 @@ gdbstub_process_clients(int report_stop)
     thread_release_mutex(client_list_mutex);
 }
 
+static void
+gdbstub_update_debug_state(void)
+{
+    thread_wait_mutex(client_list_mutex);
+    int      connected  = first_client != NULL;
+    unsigned generation = client_generation;
+    thread_release_mutex(client_list_mutex);
+    if (debug_generation != generation || (gdbstub_debug && !connected)) {
+        gdbstub_clear_breakpoints();
+        debug_generation = generation;
+        gdbstub_step     = connected ? GDBSTUB_BREAK : GDBSTUB_EXEC;
+    }
+    if (gdbstub_debug != connected) {
+        gdbstub_debug = connected;
+        if (!connected) {
+            gdbstub_step = GDBSTUB_EXEC;
+            atomic_store(&break_requested, 0);
+        }
+#ifdef USE_DYNAREC
+        if (cpu_use_dynarec)
+            codegen_reset();
+#endif
+    }
+}
+
 /* Serve clients while the CPU isn't being run, such as while an automation
    client holds the machine: they can read and write registers and memory
    and set breakpoints. A continue or step takes effect when the CPU runs
@@ -1711,10 +1871,11 @@ gdbstub_process_clients(int report_stop)
 void
 gdbstub_poll(void)
 {
-    if (gdbstub_socket == -1)
+    if (gdbstub_socket == (gdbstub_socket_t) -1)
         return;
 
     in_gdbstub = 1;
+    gdbstub_update_debug_state();
     gdbstub_process_clients(0);
     in_gdbstub = 0;
 }
@@ -1724,52 +1885,30 @@ gdbstub_cpu_exec(int32_t cycs)
 {
     /* Flag that we're now in the debugger context to avoid triggering watchpoints. */
     in_gdbstub = 1;
+    gdbstub_update_debug_state();
+    if (atomic_exchange(&break_requested, 0)) {
+        gdbstub_step = GDBSTUB_BREAK;
+    }
+
+    /* Check the initial/resume PC too, before an interpreter executes it. */
+    if (gdbstub_step == GDBSTUB_EXEC)
+        gdbstub_instruction();
 
     /* Handle CPU execution if it isn't paused. */
     if (gdbstub_step <= GDBSTUB_SSTEP) {
-        /* Swap in any software breakpoints. */
-        gdbstub_breakpoint_t *swbreak = first_swbreak;
-        int                   refetch = 0;
-        while (swbreak) {
-            /* Swap the INT 3 opcode into the address, where it can be read
-               (which an unmapped page answering 0xCC leaves as it is when
-               swapping back out). */
-            uint8_t val = 0xcc;
-            if (gdbstub_mem_rw(swbreak->addr, &swbreak->orig_val, 1, 0))
-                swbreak->orig_val = 0xcc;
-            else
-                gdbstub_mem_rw(swbreak->addr, &val, 1, 1);
-
-            /* The 8086 and 80186 may hold the original byte in their prefetch
-               queue (at most 6 bytes, and a preloaded opcode). */
-            if (!is286 && ((swbreak->addr - gdbstub_pc()) < 8))
-                refetch = 1;
-            swbreak = swbreak->next;
-        }
-        if (refetch)
-            flush_prefetch_808x();
-
+        step_started = 0;
         /* Call the original cpu_exec function outside the debugger context. */
         if ((gdbstub_step == GDBSTUB_SSTEP) && ((cycles + cycs) <= 0))
             cycs += -(cycles + cycs) + 1;
         in_gdbstub = 0;
-        cpu_exec_shadow(cycs);
+#ifdef USE_DYNAREC
+        if (debugger_attached && (cpu_exec_shadow == exec386_dynarec))
+            exec386(cycs);
+        else
+#endif
+            cpu_exec_shadow(cycs);
         in_gdbstub = 1;
-
-        /* Swap out any software breakpoints, and on the 8086 and 80186 drop
-           an INT 3 opcode the prefetch queue already took. */
-        swbreak = first_swbreak;
-        refetch = 0;
-        while (swbreak) {
-            uint8_t val;
-            if (!gdbstub_mem_rw(swbreak->addr, &val, 1, 0) && (val == 0xcc))
-                gdbstub_mem_rw(swbreak->addr, &swbreak->orig_val, 1, 1);
-            if (!is286 && ((swbreak->addr - gdbstub_pc()) < 8))
-                refetch = 1;
-            swbreak = swbreak->next;
-        }
-        if (refetch)
-            flush_prefetch_808x();
+        flags_rebuild();
     }
 
     /* Populate stop reason if we have stopped. */
@@ -1896,7 +2035,7 @@ gdbstub_client_thread(void *priv)
                             /* Small hack to speed up IDA instruction trace mode. */
                             if (*((uint32_t *) client->packet) == ('H' | ('c' << 8) | ('1' << 16) | ('#' << 24))) {
                                 /* Send pre-computed response. */
-                                send(client->socket, "+$OK#9A", 7, 0);
+                                gdbstub_send(client, "+$OK#9A", 7);
 
                                 /* Skip processing. */
                                 continue;
@@ -1905,7 +2044,7 @@ gdbstub_client_thread(void *priv)
                             /* Flag that a packet should be processed. */
                             client->packet[client->packet_pos] = '\0';
                             thread_reset_event(client->processed_event);
-                            gdbstub_next_asap = client->has_packet = 1;
+                            atomic_store(&client->has_packet, 1);
                         }
                     }
                     break;
@@ -1915,28 +2054,20 @@ gdbstub_client_thread(void *priv)
 
     gdbstub_log("GDB Stub: Connection with %s:%d broken\n", inet_ntoa(client->addr.sin_addr), client->addr.sin_port);
 
-    /* Close socket. */
-    if (client->socket != -1) {
-        close(client->socket);
-        client->socket = -1;
-    }
-
     /* Unblock anyone waiting on the response event. */
     thread_set_event(client->response_event);
 
     /* Remove this client from the list. */
     thread_wait_mutex(client_list_mutex);
-#ifdef GDBSTUB_ALLOW_MULTI_CLIENTS
+    sock_close(client->socket);
+    client->socket = -1;
     if (client == first_client) {
-#endif
         first_client = client->next;
         if (first_client == NULL) {
             last_client  = NULL;
-            gdbstub_step = GDBSTUB_EXEC; /* unpause CPU when all clients are disconnected */
         }
-#ifdef GDBSTUB_ALLOW_MULTI_CLIENTS
     } else {
-        other_client = first_client;
+        gdbstub_client_t *other_client = first_client;
         while (other_client) {
             if (other_client->next == client) {
                 if (last_client == client)
@@ -1947,22 +2078,38 @@ gdbstub_client_thread(void *priv)
             other_client = other_client->next;
         }
     }
-#endif
 
-    free(client);
+    client->next     = finished_clients;
+    finished_clients = client;
     thread_release_mutex(client_list_mutex);
+}
+
+static void
+gdbstub_reap_clients(void)
+{
+    thread_wait_mutex(client_list_mutex);
+    gdbstub_client_t *client = finished_clients;
+    finished_clients         = NULL;
+    thread_release_mutex(client_list_mutex);
+    while (client) {
+        gdbstub_client_t *next = client->next;
+        if (client->thread)
+            thread_wait(client->thread);
+        thread_destroy_event(client->processed_event);
+        thread_destroy_event(client->response_event);
+        free(client);
+        client = next;
+    }
 }
 
 static void
 gdbstub_server_thread(void *priv)
 {
-    /* Listen on GDB socket. */
-    listen(gdbstub_socket, 1);
-
     /* Accept connections. */
-    gdbstub_client_t *client;
+    gdbstub_client_t *client = NULL;
     socklen_t         sl = sizeof(struct sockaddr_in);
-    while (1) {
+    while (!atomic_load(&stopping)) {
+        gdbstub_reap_clients();
         /* Allocate client structure. */
         client = calloc(1, sizeof(gdbstub_client_t));
         memset(client, 0, sizeof(gdbstub_client_t));
@@ -1971,8 +2118,17 @@ gdbstub_server_thread(void *priv)
 
         /* Accept connection. */
         client->socket = accept(gdbstub_socket, (struct sockaddr *) &client->addr, &sl);
-        if (client->socket < 0)
+        if (client->socket == (gdbstub_socket_t) -1)
             break;
+        if (atomic_load(&stopping)) {
+            sock_close(client->socket);
+            break;
+        }
+#ifdef SO_NOSIGPIPE
+        int yes = 1;
+        if (setsockopt(client->socket, SOL_SOCKET, SO_NOSIGPIPE, &yes, sizeof(yes)) == -1)
+            fatal("GDB Stub: Failed to suppress SIGPIPE on client socket\n");
+#endif
 
         /* Add to client list. */
         thread_wait_mutex(client_list_mutex);
@@ -1981,25 +2137,34 @@ gdbstub_server_thread(void *priv)
             last_client->next = client;
             last_client       = client;
 #else
-            first_client->next = last_client = client;
-            close(first_client->socket);
+            for (gdbstub_client_t *old = first_client; old; old = old->next) {
+                sock_shutdown(old->socket);
+                thread_set_event(old->processed_event);
+                thread_set_event(old->response_event);
+            }
+            last_client->next = client;
+            last_client       = client;
 #endif
         } else {
             first_client = last_client = client;
         }
+        client_generation++;
         thread_release_mutex(client_list_mutex);
 
         /* Pause CPU execution. */
         gdbstub_break();
 
         /* Start client thread. */
-        thread_create(gdbstub_client_thread, client);
+        client->thread = thread_create(gdbstub_client_thread, client);
+        client         = NULL;
     }
 
     /* Deallocate the redundant client structure. */
-    thread_destroy_event(client->processed_event);
-    thread_destroy_event(client->response_event);
-    free(client);
+    if (client) {
+        thread_destroy_event(client->processed_event);
+        thread_destroy_event(client->response_event);
+        free(client);
+    }
 }
 
 void
@@ -2015,11 +2180,18 @@ gdbstub_cpu_init(void)
 int
 gdbstub_instruction(void)
 {
+    if (!gdbstub_active)
+        return 0;
+    if (atomic_exchange(&break_requested, 0)) {
+        gdbstub_step = GDBSTUB_BREAK;
+    }
+    if (gdbstub_step > GDBSTUB_SSTEP)
+        return 1;
     /* Check hardware breakpoints if any are present. */
     gdbstub_breakpoint_t *breakpoint = first_hwbreak;
     if (breakpoint) {
         /* Calculate the current instruction's address. */
-        uint32_t wanted_addr = gdbstub_pc();
+        uint32_t wanted_addr = cs + gdbstub_pc();
 
         /* Go through the list of software breakpoints. */
         do {
@@ -2038,8 +2210,30 @@ gdbstub_instruction(void)
         } while (breakpoint);
     }
 
+    for (breakpoint = first_swbreak; breakpoint; breakpoint = breakpoint->next) {
+        if (breakpoint->addr == cs + gdbstub_pc()) {
+            gdbstub_step = GDBSTUB_BREAK_SW;
+            return 1;
+        }
+    }
+
     /* No breakpoint found, continue execution or stop if execution is paused. */
     return gdbstub_step - GDBSTUB_EXEC;
+}
+
+int
+gdbstub_instruction_start(void)
+{
+    if (gdbstub_step == GDBSTUB_SSTEP && !step_started) {
+        /* The first boundary authorizes one instruction, not a stop. */
+        step_started = 1;
+        gdbstub_step = GDBSTUB_EXEC;
+        int stop     = !!gdbstub_instruction();
+        if (!stop)
+            gdbstub_step = GDBSTUB_SSTEP;
+        return stop;
+    }
+    return !!gdbstub_instruction();
 }
 
 int
@@ -2050,7 +2244,7 @@ gdbstub_int3(void)
     if (breakpoint) {
         /* Calculate the breakpoint instruction's address. */
         uint32_t new_pc = cpu_state.pc - 1;
-        if (cpu_state.op32)
+        if (!(cpu_state.op32 & 0x100))
             new_pc &= 0xffff;
         uint32_t wanted_addr = cs + new_pc;
 
@@ -2125,51 +2319,57 @@ gdbstub_mem_access(uint32_t *addrs, int access)
 void
 gdbstub_init(void)
 {
+    int enabled = gdbstub_cli_enabled < 0 ? gdbstub_enabled : gdbstub_cli_enabled;
+    int port    = gdbstub_cli_port ? gdbstub_cli_port : gdbstub_port;
+    if (enabled && (port < 1 || port > 65535))
+        fatal("GDB Stub: Invalid port %d (expected 1-65535)\n", port);
+    if (gdbstub_active && (!enabled || port != listening_port))
+        gdbstub_close();
+    if (gdbstub_active || !enabled)
+        return;
 #ifdef _WIN32
-    WSAStartup(MAKEWORD(2, 2), &wsa);
+    if (WSAStartup(MAKEWORD(2, 2), &wsa))
+        fatal("GDB Stub: WSAStartup failed\n");
 #endif
 
     /* Create GDB server socket. */
     if ((gdbstub_socket = socket(AF_INET, SOCK_STREAM, 0)) == -1) {
-        pclog("GDB Stub: Failed to create socket\n");
-        return;
+        fatal("GDB Stub: Failed to create socket\n");
     }
 
     int yes = 1;
-    if (setsockopt(gdbstub_socket, SOL_SOCKET, SO_REUSEADDR,
+    if (setsockopt(gdbstub_socket, SOL_SOCKET,
 #ifdef _WIN32
-                   (const char *) &yes,
+                   SO_EXCLUSIVEADDRUSE, (const char *) &yes,
 #else
-                   &yes,
+                   SO_REUSEADDR, &yes,
 #endif
                    sizeof(yes)) == -1) {
-        pclog("GDB Stub: setsockopt SO_REUSEADDR failed\n");
-        return;
+        sock_close(gdbstub_socket);
+        gdbstub_socket = -1;
+        fatal("GDB Stub: Failed to set socket address policy\n");
     }
-
-#ifdef _WIN32
-    if (setsockopt(gdbstub_socket, SOL_SOCKET, SO_EXCLUSIVEADDRUSE, (const char *) &yes, sizeof(yes)) == -1) {
-        pclog("GDB Stub: setsockopt SO_EXCLUSIVEADDRUSE failed\n");
-    }
-#endif
 
     /* Bind GDB server socket. */
-    int                port      = gdbstub_port;
     struct sockaddr_in bind_addr = {
         .sin_family = AF_INET,
         .sin_addr   = { .s_addr = INADDR_ANY },
         .sin_port   = htons(port)
     };
     if (bind(gdbstub_socket, (struct sockaddr *) &bind_addr, sizeof(bind_addr)) == -1) {
-        pclog("GDB Stub: Failed to bind on port %d (%d)\n", port,
 #ifdef _WIN32
-              WSAGetLastError()
+        int error = WSAGetLastError();
 #else
-              errno
+        int error = errno;
 #endif
-        );
+        sock_close(gdbstub_socket);
         gdbstub_socket = -1;
-        return;
+        fatal("GDB Stub: Failed to bind on port %d (%d)\n", port, error);
+    }
+    if (listen(gdbstub_socket, 1) == -1) {
+        sock_close(gdbstub_socket);
+        gdbstub_socket = -1;
+        fatal("GDB Stub: Failed to listen on port %d\n", port);
     }
 
     /* Create client list mutex. */
@@ -2179,37 +2379,76 @@ gdbstub_init(void)
     memset(gdbstub_watch_pages, 0, sizeof(gdbstub_watch_pages));
 
     /* Start server thread. */
-    pclog("GDB Stub: Listening on port %d\n", port);
-    thread_create(gdbstub_server_thread, NULL);
-
+    always_log("GDB Stub: Listening on port %d\n", port);
     /* Start the CPU paused. */
+    atomic_store(&stopping, 0);
     gdbstub_step = GDBSTUB_BREAK;
+    strcpy(stop_reason, "T02");
+    stop_reason_len = 3;
+    gdbstub_active   = 1;
+    listening_port  = port;
+    debug_generation = client_generation;
+    atomic_store(&break_requested, 0);
+    server_thread   = thread_create(gdbstub_server_thread, NULL);
 }
 
 void
 gdbstub_close(void)
 {
     /* Stop if the GDB server hasn't initialized. */
-    if (gdbstub_socket < 0)
+    if (gdbstub_socket == (gdbstub_socket_t) -1)
         return;
 
     /* Close GDB server socket. */
-    close(gdbstub_socket);
+    atomic_store(&stopping, 1);
+    sock_shutdown(gdbstub_socket);
+    sock_close(gdbstub_socket);
+    thread_wait(server_thread);
+    server_thread  = NULL;
+    gdbstub_socket = -1;
 
     /* Clear client list. */
     thread_wait_mutex(client_list_mutex);
     gdbstub_client_t *client = first_client;
-    int               socket;
+    gdbstub_socket_t  socket;
     while (client) {
         socket         = client->socket;
         if (client->waiting_stop) {
             FAST_RESPONSE("W00");
             gdbstub_client_respond(client);
         }
-        client->socket = -1;
-        close(socket);
+        sock_shutdown(socket);
+        thread_set_event(client->processed_event);
+        thread_set_event(client->response_event);
         client = client->next;
     }
     thread_release_mutex(client_list_mutex);
+    while (1) {
+        thread_wait_mutex(client_list_mutex);
+        client           = first_client;
+        thread_t *thread = client ? client->thread : NULL;
+        thread_release_mutex(client_list_mutex);
+        if (!thread)
+            break;
+        thread_wait(thread);
+        /* A joined worker moves itself onto finished_clients. */
+        thread_wait_mutex(client_list_mutex);
+        for (gdbstub_client_t *done = finished_clients; done; done = done->next)
+            if (done == client)
+                done->thread = NULL;
+        thread_release_mutex(client_list_mutex);
+    }
+    gdbstub_reap_clients();
     thread_close_mutex(client_list_mutex);
+    client_list_mutex = NULL;
+    gdbstub_clear_breakpoints();
+    gdbstub_active = gdbstub_debug = 0;
+    listening_port                = 0;
+    gdbstub_step                  = GDBSTUB_EXEC;
+    gdbstub_next_asap              = 0;
+    if (cpu_exec == gdbstub_cpu_exec)
+        cpu_exec = cpu_exec_shadow;
+#ifdef _WIN32
+    WSACleanup();
+#endif
 }

@@ -216,14 +216,10 @@ main_thread(UNUSED(void *param))
         /* See if it is time to run a frame of code. */
         new_time = SDL_GetTicks();
 
-#ifdef USE_GDBSTUB
         if (gdbstub_next_asap && (drawits <= 0))
             drawits = 10;
         else
             drawits += (new_time - old_time);
-#else
-        drawits += (new_time - old_time);
-#endif
 
         old_time = new_time;
         automation_poll();
