@@ -463,6 +463,14 @@ extern uint32_t op_old_pc;
 extern int codegen_flags_changed;
 /*Forgets the block's inline flags rebuilds (codegen_ops_helpers.c)*/
 extern void codegen_flags_known_reset(void);
+/*An inline flags rebuild of the block: its uops start..end-1 and the bits of
+  flags it writes*/
+typedef struct codegen_flags_inline_t {
+    int      start;
+    int      end;
+    uint16_t written;
+} codegen_flags_inline_t;
+extern int codegen_flags_inline_sites(const codegen_flags_inline_t **sites);
 
 /*Set while the block being recompiled is a V86 block entered with every
   segment limit 0..0xffff (CPU_STATUS_NOT64K clear): V86 segment loads keep

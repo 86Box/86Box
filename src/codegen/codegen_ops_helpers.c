@@ -15,6 +15,55 @@
 #include "codegen_ir_defs.h"
 #include "codegen_reg.h"
 #include "codegen_ops_helpers.h"
+#include "codegen_ops_jit_wrappers.h"
+
+JIT_WRAPPER void
+jit_flags_rebuild(void)
+{
+    flags_rebuild();
+}
+
+JIT_WRAPPER void
+jit_flags_rebuild_c(void)
+{
+    flags_rebuild_c();
+}
+
+JIT_WRAPPER void
+jit_flags_rebuild_zpna(void)
+{
+    flags_rebuild_zpna();
+}
+
+JIT_WRAPPER int
+jit_CF_SET(void)
+{
+    return CF_SET();
+}
+
+JIT_WRAPPER int
+jit_NF_SET(void)
+{
+    return NF_SET();
+}
+
+JIT_WRAPPER int
+jit_PF_SET(void)
+{
+    return PF_SET();
+}
+
+JIT_WRAPPER int
+jit_VF_SET(void)
+{
+    return VF_SET();
+}
+
+JIT_WRAPPER int
+jit_ZF_SET(void)
+{
+    return ZF_SET();
+}
 
 void
 LOAD_IMMEDIATE_FROM_RAM_16_unaligned(UNUSED(codeblock_t *block), ir_data_t *ir, int dest_reg, uint32_t addr)
@@ -49,11 +98,36 @@ static int flags_known_cf_kept[FLAGS_KNOWN_MAX];
 /*A use that could not be recorded: no loop of the block unrolls*/
 static int flags_known_full;
 
+/*The inline rebuilds themselves, for codegen_flags_dead_pass(). One not
+  recorded is only never left out*/
+#define FLAGS_INLINE_MAX 256
+static codegen_flags_inline_t flags_inline[FLAGS_INLINE_MAX];
+static int                    flags_inline_nr;
+
 void
 codegen_flags_known_reset(void)
 {
     flags_known_nr   = 0;
     flags_known_full = 0;
+    flags_inline_nr  = 0;
+}
+
+int
+codegen_flags_inline_sites(const codegen_flags_inline_t **sites)
+{
+    *sites = flags_inline;
+    return flags_inline_nr;
+}
+
+static void
+flags_inline_record(int start, int end, uint16_t written)
+{
+    if (flags_inline_nr == FLAGS_INLINE_MAX)
+        return;
+    flags_inline[flags_inline_nr].start   = start;
+    flags_inline[flags_inline_nr].end     = end;
+    flags_inline[flags_inline_nr].written = written;
+    flags_inline_nr++;
 }
 
 /*Records the use at ir->wr_pos with the uop that set the flags op; 0 when
@@ -156,7 +230,8 @@ int
 codegen_flags_rebuild_known(ir_data_t *ir, int carry_only)
 {
 #if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
-    int      op = codegen_flags_changed ? cpu_state.flags_op : FLAGS_UNKNOWN;
+    int      start = ir->wr_pos;
+    int      op    = codegen_flags_changed ? cpu_state.flags_op : FLAGS_UNKNOWN;
     int      is_add;
     int      is_sub;
     int      is_incdec;
@@ -265,6 +340,7 @@ codegen_flags_rebuild_known(ir_data_t *ir, int carry_only)
         uop_AND_IMM(ir, IREG_flags, IREG_flags, (uint16_t) ~C_FLAG);
         if (is_add || is_sub || (cf_bit >= 0))
             uop_OR(ir, IREG_flags, IREG_flags, IREG_temp1_W);
+        flags_inline_record(start, ir->wr_pos, C_FLAG);
         return 1;
     }
 
@@ -351,6 +427,7 @@ codegen_flags_rebuild_known(ir_data_t *ir, int carry_only)
     }
 
     uop_MOV_IMM(ir, IREG_flags_op, FLAGS_UNKNOWN);
+    flags_inline_record(start, ir->wr_pos, is_incdec ? (0x8d5 & ~C_FLAG) : 0x8d5);
     return 1;
 #else
     /*Other backends lack UOP_CMP_SET and UOP_TEST_SET*/

@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <string.h>
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
@@ -10,6 +11,12 @@
 #include "codegen_ir.h"
 #include "codegen_accumulate.h"
 #include "codegen_reg.h"
+#include "x86.h"
+#include "x86_flags.h"
+#include "x86seg_common.h"
+#include "x86seg.h"
+#include "codegen_ops_helpers.h"
+#include "codegen_ops_jit_wrappers.h"
 
 extern int       has_ea;
 static ir_data_t ir_block;
@@ -112,14 +119,534 @@ codegen_uop_is_lazy(const uop_t *uop)
 }
 #endif
 
+/*Flags rebuilds whose result nothing can see, left out of the block once it
+  is generated and unrolled: the C rebuild calls (with the reload of flags
+  and the flags_op write after them) and the inline rebuilds of
+  codegen_flags_rebuild_known(). A rebuild writes some bits of flags and,
+  unless it only rebuilds CF, sets flags_op to FLAGS_UNKNOWN. It is left out
+  when, on every path on from it:
+  - (flags_op written) no uop can see flags_op before a later uop writes it;
+  - (flags) each bit it wrote is rewritten without being read, or is one the
+    flags op written after it computes from flags_res/op1/op2 alone, before
+    anything can read that bit. When the flags op changes, the bits the old
+    op computed and the new one does not are rewritten first, so such a bit
+    never shows the rebuild's value again.
+  A memory access, a C call, any exit, the block end and every read of flags
+  or flags_op count as reads; an AND, OR or XOR of flags with itself keeps
+  the bits in place. A uop an in-block jump may skip only narrows what is
+  known. A rebuild between a jump and its destination stays, and so does a
+  call that is the first full barrier after a join: the join counts on it.*/
+enum {
+    FLAGS_SITE_CALL_FULL,
+    FLAGS_SITE_CALL_C,
+    FLAGS_SITE_CALL_ZPNA,
+    FLAGS_SITE_INLINE,
+    FLAGS_SITE_READ
+};
+
+#define FLAGS_SITE_MAX 1024
+static struct {
+    int      start;
+    int      end;
+    int      kind;
+    int      valid;
+    int      kept;
+    int      removed;
+    uint16_t written;
+} flags_site[FLAGS_SITE_MAX];
+static int     flags_site_nr;
+/*Per uop: 1 + the site it belongs to*/
+static int16_t flags_site_of[UOP_NR_MAX];
+static uint8_t flags_jump_dest[UOP_NR_MAX];
+/*Per uop, noted before the dead list removes any: 1 + the op of a MOV_IMM
+  of flags_op, -1 for any other write of flags_op, 0 otherwise*/
+static int16_t flags_op_write[UOP_NR_MAX];
+
+#define FLAGS_UNROLL_MAX 16
+static int flags_unroll_off[FLAGS_UNROLL_MAX];
+static int flags_unroll_nr;
+
+/*The bits of flags the op computes from flags_res/op1/op2 alone*/
+static uint16_t
+flags_op_computes(int op)
+{
+    switch (op) {
+        case FLAGS_ZN8:
+        case FLAGS_ZN16:
+        case FLAGS_ZN32:
+        case FLAGS_ADD8:
+        case FLAGS_ADD16:
+        case FLAGS_ADD32:
+        case FLAGS_SUB8:
+        case FLAGS_SUB16:
+        case FLAGS_SUB32:
+        case FLAGS_SHL8:
+        case FLAGS_SHL16:
+        case FLAGS_SHL32:
+        case FLAGS_SHR8:
+        case FLAGS_SHR16:
+        case FLAGS_SHR32:
+        case FLAGS_SAR8:
+        case FLAGS_SAR16:
+        case FLAGS_SAR32:
+        case FLAGS_ADC8:
+        case FLAGS_ADC16:
+        case FLAGS_ADC32:
+        case FLAGS_SBC8:
+        case FLAGS_SBC16:
+        case FLAGS_SBC32:
+        case FLAGS_SHRD16:
+        case FLAGS_SHRD32:
+            return 0x8d5;
+        case FLAGS_INC8:
+        case FLAGS_INC16:
+        case FLAGS_INC32:
+        case FLAGS_DEC8:
+        case FLAGS_DEC16:
+        case FLAGS_DEC32:
+            return 0x8d5 & ~C_FLAG;
+        case FLAGS_ROL8:
+        case FLAGS_ROL16:
+        case FLAGS_ROL32:
+        case FLAGS_ROR8:
+        case FLAGS_ROR16:
+        case FLAGS_ROR32:
+            return C_FLAG | V_FLAG;
+        default:
+            return 0;
+    }
+}
+
+static void
+codegen_flags_dead_note_ops(ir_data_t *ir)
+{
+    for (int c = 0; c < ir->wr_pos; c++) {
+        const uop_t *uop = &ir->uops[c];
+
+        flags_op_write[c] = 0;
+        if (ir_reg_is_invalid(uop->dest_reg_a) || (IREG_GET_REG(uop->dest_reg_a.reg) != IREG_GET_REG(IREG_flags_op)))
+            continue;
+        if (((uop->type & UOP_MASK) == (UOP_MOV_IMM & UOP_MASK)) && reg_is_native_size(uop->dest_reg_a) && (uop->imm_data <= FLAGS_SHRD32))
+            flags_op_write[c] = 1 + (int) uop->imm_data;
+        else
+            flags_op_write[c] = -1;
+    }
+}
+
+static int
+ir_reg_is(ir_reg_t ir_reg, int reg)
+{
+    return !ir_reg_is_invalid(ir_reg) && (IREG_GET_REG(ir_reg.reg) == IREG_GET_REG(reg));
+}
+
+/*How a uop outside the sites meets flags: 0 not at all, 1 reads flags or
+  flags_op, 2 keeps every bit of flags in place, 3 clears the bits of flags
+  not in *keep, 4 writes the whole of flags*/
+static int
+flags_dead_use(const uop_t *uop, uint16_t *keep)
+{
+    uint32_t t   = uop->type & UOP_MASK;
+    int      dst = ir_reg_is(uop->dest_reg_a, IREG_flags);
+    int      a   = ir_reg_is(uop->src_reg_a, IREG_flags);
+    int      b   = ir_reg_is(uop->src_reg_b, IREG_flags);
+    int      c   = ir_reg_is(uop->src_reg_c, IREG_flags);
+
+    if ((t == (UOP_MOV_REG_PTR & UOP_MASK)) || (t == (UOP_MOVZX_REG_PTR_8 & UOP_MASK)) || (t == (UOP_MOVZX_REG_PTR_16 & UOP_MASK))) {
+        if ((uop->p == (void *) &cpu_state.flags) || (uop->p == (void *) &cpu_state.flags_op))
+            return 1;
+    }
+    if (ir_reg_is(uop->src_reg_a, IREG_flags_op) || ir_reg_is(uop->src_reg_b, IREG_flags_op) || ir_reg_is(uop->src_reg_c, IREG_flags_op))
+        return 1;
+    if (!dst && !a && !b && !c)
+        return 0;
+    if (dst && reg_is_native_size(uop->dest_reg_a) && a && !b && !c) {
+        if (t == (UOP_AND_IMM & UOP_MASK)) {
+            *keep = (uint16_t) uop->imm_data;
+            return 3;
+        }
+        if ((t == (UOP_OR_IMM & UOP_MASK)) || (t == (UOP_XOR_IMM & UOP_MASK)) || (t == (UOP_OR & UOP_MASK)))
+            return 2;
+    }
+    if (dst && reg_is_native_size(uop->dest_reg_a) && !a && !b && !c)
+        return 4;
+    return 1;
+}
+
+static int
+flags_site_left_out(int s)
+{
+    return !flags_site[s].valid || flags_site[s].removed;
+}
+
+/*Whether site s can be left out (section comment above)*/
+static int
+flags_site_is_dead(ir_data_t *ir, int s)
+{
+    uint16_t vis    = flags_site[s].written;
+    uint16_t shadow = 0;
+    int      op     = (flags_site[s].kind == FLAGS_SITE_CALL_C) || ((flags_site[s].kind == FLAGS_SITE_INLINE) && (flags_site[s].written == C_FLAG)) ? -1 : FLAGS_UNKNOWN;
+    int      pend   = -1;
+    /*Until flags_op is written on every path*/
+    int      op_pending = (op == FLAGS_UNKNOWN);
+
+    for (int c = flags_site[s].end; c < ir->wr_pos; c++) {
+        const uop_t *uop = &ir->uops[c];
+        uint32_t     t   = uop->type & UOP_MASK;
+        int          new_op;
+        int          r;
+
+        if (flags_site_of[c]) {
+            int      s2   = flags_site_of[c] - 1;
+            int      k2   = flags_site[s2].kind;
+            int      at   = flags_site[s2].start;
+            uint16_t w    = 0;
+            int      sets = 0;
+
+            c = flags_site[s2].end - 1;
+            if (!flags_site[s2].valid)
+                continue;
+            if (k2 == FLAGS_SITE_READ) {
+                if (op_pending || (vis & ~shadow & flags_site[s2].written))
+                    return 0;
+                continue;
+            }
+            if (op_pending) {
+                if (flags_site_left_out(s2))
+                    continue;
+                return 0;
+            }
+            if (k2 == FLAGS_SITE_INLINE) {
+                /*Its bits come from the op it was compiled for*/
+                w    = flags_site[s2].written;
+                sets = (w != C_FLAG);
+            } else if ((op >= 0) && (op != FLAGS_UNKNOWN)) {
+                /*Only the bits the op computes are new: the rest are
+                  read from flags and written back as they were*/
+                w    = flags_op_computes(op) & flags_site[s2].written;
+                sets = (k2 != FLAGS_SITE_CALL_C);
+            } else {
+                /*No op pending, or not known: a call that may change
+                  nothing passes the bits on while it is kept*/
+                if (!flags_site_left_out(s2) && (vis & ~shadow))
+                    return 0;
+                sets = (k2 != FLAGS_SITE_CALL_C);
+            }
+            if (at >= pend)
+                vis &= ~w;
+            if (sets) {
+                if (at >= pend) {
+                    shadow = 0;
+                    op     = FLAGS_UNKNOWN;
+                } else {
+                    shadow = 0;
+                    op     = (op == FLAGS_UNKNOWN) ? op : -1;
+                }
+            }
+            if (!(vis & ~shadow))
+                return 1;
+            continue;
+        }
+        new_op = flags_op_write[c] ? ((flags_op_write[c] > 0) ? (flags_op_write[c] - 1) : -1) : -2;
+        if (new_op != -2) {
+            uint16_t computes = (new_op < 0) ? 0 : flags_op_computes(new_op);
+
+            if (c >= pend) {
+                shadow     = computes;
+                op         = new_op;
+                op_pending = 0;
+            } else {
+                shadow &= computes;
+                op = (op == new_op) ? op : -1;
+            }
+            if (!op_pending && !(vis & ~shadow))
+                return 1;
+            if ((t == UOP_INVALID) || (flags_op_write[c] > 0))
+                continue;
+        }
+        if (t == UOP_INVALID)
+            continue;
+        {
+            uint16_t keep = 0xffff;
+
+            switch (flags_dead_use(uop, &keep)) {
+                case 1:
+                    if (op_pending || (vis & ~shadow))
+                        return 0;
+                    break;
+                case 3:
+                    if (c >= pend)
+                        vis &= keep;
+                    break;
+                case 4:
+                    if (c >= pend)
+                        vis = 0;
+                    break;
+                default:
+                    break;
+            }
+            if (!op_pending && !(vis & ~shadow))
+                return 1;
+        }
+        if ((uop->type & UOP_TYPE_JUMP) && (uop->jump_dest_uop >= 0)) {
+            if (uop->jump_dest_uop > pend)
+                pend = uop->jump_dest_uop;
+            continue;
+        }
+        switch (t) {
+            case UOP_LOAD_FUNC_ARG_0 & UOP_MASK:
+            case UOP_LOAD_FUNC_ARG_1 & UOP_MASK:
+            case UOP_LOAD_FUNC_ARG_2 & UOP_MASK:
+            case UOP_LOAD_FUNC_ARG_3 & UOP_MASK:
+            case UOP_LOAD_FUNC_ARG_0_IMM & UOP_MASK:
+            case UOP_LOAD_FUNC_ARG_1_IMM & UOP_MASK:
+            case UOP_LOAD_FUNC_ARG_2_IMM & UOP_MASK:
+            case UOP_LOAD_FUNC_ARG_3_IMM & UOP_MASK:
+            case UOP_NOP_BARRIER & UOP_MASK:
+                r = 0;
+                break;
+            case UOP_CALL_INSTRUCTION_FUNC & UOP_MASK:
+            case UOP_MEM_LOAD_ABS & UOP_MASK:
+            case UOP_MEM_LOAD_REG & UOP_MASK:
+            case UOP_MEM_LOAD_REG_EA & UOP_MASK:
+            case UOP_MEM_LOAD_SINGLE & UOP_MASK:
+            case UOP_MEM_LOAD_DOUBLE & UOP_MASK:
+            case UOP_MEM_STORE_ABS & UOP_MASK:
+            case UOP_MEM_STORE_REG & UOP_MASK:
+            case UOP_MEM_STORE_IMM_8 & UOP_MASK:
+            case UOP_MEM_STORE_IMM_16 & UOP_MASK:
+            case UOP_MEM_STORE_IMM_32 & UOP_MASK:
+            case UOP_MEM_STORE_SINGLE & UOP_MASK:
+            case UOP_MEM_STORE_DOUBLE & UOP_MASK:
+            case UOP_CALL_FUNC & UOP_MASK:
+            case UOP_CALL_FUNC_ORDERED & UOP_MASK:
+            case UOP_CALL_FUNC_RESULT & UOP_MASK:
+            case UOP_CALL_FUNC_RESULT_ORDERED & UOP_MASK:
+            case UOP_LOAD_SEG & UOP_MASK:
+            case UOP_CALL_REP_STRING & UOP_MASK:
+                r = 1;
+                break;
+            default:
+                r = !!(uop->type & (UOP_TYPE_BARRIER | UOP_TYPE_ORDER_BARRIER));
+                break;
+        }
+        if (r && (op_pending || (vis & ~shadow)))
+            return 0;
+    }
+    return !op_pending && !(vis & ~shadow);
+}
+
+static void
+flags_site_add(int start, int end, int kind, uint16_t written)
+{
+    if (flags_site_nr == FLAGS_SITE_MAX)
+        return;
+    flags_site[flags_site_nr].start   = start;
+    flags_site[flags_site_nr].end     = end;
+    flags_site[flags_site_nr].kind    = kind;
+    flags_site[flags_site_nr].written = written;
+    flags_site_nr++;
+}
+
+static void
+flags_dead_unread(ir_reg_t ir_reg)
+{
+    if (!ir_reg_is_invalid(ir_reg))
+        reg_version[IREG_GET_REG(ir_reg.reg)][ir_reg.version].refcount--;
+}
+
+/*Leaves site s out: every uop goes but the last write of flags, which
+  becomes a move from the version before the site, so the uops after it read
+  the value they would have read had the site changed nothing. 0, changing
+  nothing, when a value the site makes is read after it some other way*/
+static int
+flags_site_remove(ir_data_t *ir, int s)
+{
+    int last_flags  = -1;
+    int first_flags = -1;
+    int before;
+
+    for (int c = flags_site[s].start; c < flags_site[s].end; c++) {
+        const uop_t *uop = &ir->uops[c];
+
+        if (ir_reg_is(uop->dest_reg_a, IREG_flags)) {
+            if (first_flags < 0)
+                first_flags = c;
+            if ((uop->type & UOP_MASK) != UOP_INVALID)
+                last_flags = c;
+        }
+        if (((uop->type & UOP_MASK) == UOP_INVALID) || ir_reg_is_invalid(uop->dest_reg_a) || ir_reg_is(uop->dest_reg_a, IREG_flags))
+            continue;
+        {
+            int reads = 0;
+
+            for (int d = c + 1; d < flags_site[s].end; d++) {
+                const uop_t *u = &ir->uops[d];
+
+                if ((u->type & UOP_MASK) == UOP_INVALID)
+                    continue;
+                if (!ir_reg_is_invalid(u->src_reg_a) && (IREG_GET_REG(u->src_reg_a.reg) == IREG_GET_REG(uop->dest_reg_a.reg)) && (u->src_reg_a.version == uop->dest_reg_a.version))
+                    reads++;
+                if (!ir_reg_is_invalid(u->src_reg_b) && (IREG_GET_REG(u->src_reg_b.reg) == IREG_GET_REG(uop->dest_reg_a.reg)) && (u->src_reg_b.version == uop->dest_reg_a.version))
+                    reads++;
+                if (!ir_reg_is_invalid(u->src_reg_c) && (IREG_GET_REG(u->src_reg_c.reg) == IREG_GET_REG(uop->dest_reg_a.reg)) && (u->src_reg_c.version == uop->dest_reg_a.version))
+                    reads++;
+            }
+            if (reg_version[IREG_GET_REG(uop->dest_reg_a.reg)][uop->dest_reg_a.version].refcount != reads)
+                return 0;
+        }
+    }
+    before = (first_flags < 0) ? -1 : (ir->uops[first_flags].dest_reg_a.version - 1);
+    if ((last_flags >= 0) && (reg_version[IREG_GET_REG(IREG_flags)][before].flags & REG_FLAGS_DEAD))
+        return 0;
+
+    for (int c = flags_site[s].start; c < flags_site[s].end; c++) {
+        uop_t *uop = &ir->uops[c];
+
+        if ((uop->type & UOP_MASK) == UOP_INVALID)
+            continue;
+        flags_dead_unread(uop->src_reg_a);
+        flags_dead_unread(uop->src_reg_b);
+        flags_dead_unread(uop->src_reg_c);
+        if (c == last_flags) {
+            uop->type              = UOP_MOV;
+            uop->src_reg_a.reg     = uop->dest_reg_a.reg;
+            uop->src_reg_a.version = before;
+            uop->src_reg_b         = invalid_ir_reg;
+            uop->src_reg_c         = invalid_ir_reg;
+            reg_version[IREG_GET_REG(IREG_flags)][before].refcount++;
+        } else
+            uop->type = UOP_INVALID;
+    }
+    return 1;
+}
+
+/*After the dead list: find the sites, judge them from the last back (so a
+  later site's fate is known), and leave the dead ones out*/
+static void
+codegen_flags_dead_pass(ir_data_t *ir, int unroll_start, int unroll_end)
+{
+    const codegen_flags_inline_t *inl;
+    int                           nr_inl   = codegen_flags_inline_sites(&inl);
+    int                           maxdest  = -1;
+    int                           join     = 0;
+    int                           si       = 0;
+
+    flags_site_nr = 0;
+    memset(flags_site_of, 0, sizeof(int16_t) * ir->wr_pos);
+    memset(flags_jump_dest, 0, ir->wr_pos);
+
+    /*The inline sites by first uop, the unrolled copies included*/
+    for (int i = 0; i < nr_inl; i++) {
+        if (inl[i].end > ir->wr_pos)
+            continue;
+        flags_site_of[inl[i].start] = i + 1;
+        if ((inl[i].start >= unroll_start) && (inl[i].end <= unroll_end)) {
+            for (int k = 0; k < flags_unroll_nr; k++) {
+                if ((inl[i].end + flags_unroll_off[k]) <= ir->wr_pos)
+                    flags_site_of[inl[i].start + flags_unroll_off[k]] = i + 1;
+            }
+        }
+    }
+    for (int c = 0; c < ir->wr_pos; c++) {
+        const uop_t *uop = &ir->uops[c];
+        uint32_t     t   = uop->type & UOP_MASK;
+
+        if (flags_site_of[c]) {
+            const codegen_flags_inline_t *site = &inl[flags_site_of[c] - 1];
+            int                           end  = c + site->end - site->start;
+
+            flags_site_add(c, end, FLAGS_SITE_INLINE, site->written);
+            c = end - 1;
+            continue;
+        }
+        if ((t == (UOP_CALL_FUNC & UOP_MASK)) || (t == (UOP_CALL_FUNC_ORDERED & UOP_MASK))) {
+            int kind;
+            int end = c + 1;
+
+            if (uop->p == (void *) jit_flags_rebuild)
+                kind = FLAGS_SITE_CALL_FULL;
+            else if (uop->p == (void *) jit_flags_rebuild_c)
+                kind = FLAGS_SITE_CALL_C;
+            else if (uop->p == (void *) jit_flags_rebuild_zpna)
+                kind = FLAGS_SITE_CALL_ZPNA;
+            else
+                continue;
+            /*The reload of flags and the flags_op write after the call*/
+            if ((end < ir->wr_pos) && ((ir->uops[end].type & UOP_MASK) == (UOP_MOVZX_REG_PTR_16 & UOP_MASK)) &&
+                ir_reg_is(ir->uops[end].dest_reg_a, IREG_flags) && (ir->uops[end].p == (void *) &cpu_state.flags))
+                end++;
+            if ((end < ir->wr_pos) && (flags_op_write[end] == 1 + FLAGS_UNKNOWN))
+                end++;
+            flags_site_add(c, end, kind,
+                           (kind == FLAGS_SITE_CALL_FULL) ? 0x8d5 : (kind == FLAGS_SITE_CALL_C) ? C_FLAG : (0x8d5 & ~(C_FLAG | V_FLAG)));
+            c = end - 1;
+        } else if ((t == (UOP_CALL_FUNC_RESULT & UOP_MASK)) || (t == (UOP_CALL_FUNC_RESULT_ORDERED & UOP_MASK))) {
+            uint16_t bit;
+
+            if (uop->p == (void *) jit_CF_SET)
+                bit = C_FLAG;
+            else if (uop->p == (void *) jit_VF_SET)
+                bit = V_FLAG;
+            else if (uop->p == (void *) jit_ZF_SET)
+                bit = Z_FLAG;
+            else if (uop->p == (void *) jit_NF_SET)
+                bit = N_FLAG;
+            else if (uop->p == (void *) jit_PF_SET)
+                bit = P_FLAG;
+            else
+                continue;
+            flags_site_add(c, c + 1, FLAGS_SITE_READ, bit);
+        }
+    }
+
+    memset(flags_site_of, 0, sizeof(int16_t) * ir->wr_pos);
+    for (int s = 0; s < flags_site_nr; s++) {
+        flags_site[s].valid   = 0;
+        flags_site[s].removed = 0;
+        for (int c = flags_site[s].start; c < flags_site[s].end; c++) {
+            flags_site_of[c] = s + 1;
+            if ((ir->uops[c].type & UOP_MASK) != UOP_INVALID)
+                flags_site[s].valid = 1;
+        }
+    }
+
+    /*Sites a jump may skip, and calls that would close a join*/
+    for (int c = 0; c < ir->wr_pos; c++) {
+        const uop_t *uop = &ir->uops[c];
+
+        if (flags_jump_dest[c])
+            join = 1;
+        while ((si < flags_site_nr) && (flags_site[si].start == c)) {
+            flags_site[si].kept = (maxdest > c) || (join && (uop->type & UOP_TYPE_BARRIER));
+            si++;
+        }
+        if (((uop->type & UOP_MASK) != UOP_INVALID) && (uop->type & UOP_TYPE_BARRIER))
+            join = 0;
+        if ((uop->type & UOP_TYPE_JUMP) && (uop->jump_dest_uop >= 0)) {
+            if (uop->jump_dest_uop > maxdest)
+                maxdest = uop->jump_dest_uop;
+            if (uop->jump_dest_uop < ir->wr_pos)
+                flags_jump_dest[uop->jump_dest_uop] = 1;
+        }
+    }
+
+    for (int s = flags_site_nr - 1; s >= 0; s--) {
+        if (!flags_site[s].valid || flags_site[s].kept || (flags_site[s].kind == FLAGS_SITE_READ))
+            continue;
+        if (flags_site_is_dead(ir, s))
+            flags_site[s].removed = flags_site_remove(ir, s);
+    }
+}
+
 void
 codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
 {
     int jump_target_at_end = -1;
     int c;
+    int unroll_end         = 0;
 
+    flags_unroll_nr = 0;
     if (codegen_unroll_count) {
-        int unroll_end;
         int taken_cycles;
 
         codegen_set_loop_start(ir, codegen_unroll_first_instruction);
@@ -128,6 +655,9 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
 
         for (int unroll_count = 1; unroll_count < codegen_unroll_count; unroll_count++) {
             int offset = ir->wr_pos - codegen_unroll_start;
+
+            if (flags_unroll_nr < FLAGS_UNROLL_MAX)
+                flags_unroll_off[flags_unroll_nr++] = offset;
             //                        pclog("Unroll from %i to %i, offset %i - iteration %i\n", codegen_unroll_start, ir->wr_pos, offset, unroll_count);
             for (c = codegen_unroll_start; c < unroll_end; c++) {
                 //                                pclog(" Duplicate uop %i\n", c);
@@ -140,7 +670,9 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
     }
 
     codegen_reg_mark_as_required();
+    codegen_flags_dead_note_ops(ir);
     codegen_reg_process_dead_list(ir);
+    codegen_flags_dead_pass(ir, codegen_unroll_count ? codegen_unroll_start : 0, unroll_end);
     block_write_data = codeblock_allocator_get_ptr(block->head_mem_block);
     block_pos        = 0;
     codegen_backend_prologue(block);
