@@ -135,6 +135,9 @@ harness_gpu_alloc(void)
         pthread_mutex_init(&g->flush_mtx, &fa);
         pthread_mutexattr_destroy(&fa);
     }
+    /* The lock that orders changes of the submitted-hull interval;
+       the submit and retire paths take it. */
+    pthread_mutex_init(&g->sub_mtx, NULL);
     return g;
 }
 
@@ -144,6 +147,7 @@ harness_gpu_dispose(r128_gpu_t *g)
     if (!g)
         return;
     pthread_mutex_destroy(&g->flush_mtx);
+    pthread_mutex_destroy(&g->sub_mtx);
     free(g->tuples);
     free(g);
 }
@@ -445,9 +449,10 @@ harness_gpu_texq_end(void *hp, rage128_t *dev, uint32_t lo, uint32_t hi,
     res->ovf_exact = gpu_pending_hit_2d(g, lo, hi, 1);
     g->texq_ovf    = ovf;
 
-    /* publish into slot 0 as the submit path does (ranges, list, then
-       the submitted flag) and retire the pending half, so the walk the
-       2D barrier takes over in-flight slots is what answers */
+    /* publish into slot 0 as the submit path does (ranges, list, the
+       widened submitted-hull interval, then the submitted flag) and
+       retire the pending half, so the walk the 2D barrier takes over
+       in-flight slots is what answers */
     sl        = &g->slot[0];
     sl->c_lo  = atomic_load(&g->c_lo); sl->c_hi = atomic_load(&g->c_hi);
     sl->z_lo  = atomic_load(&g->z_lo); sl->z_hi = atomic_load(&g->z_hi);
@@ -459,8 +464,11 @@ harness_gpu_texq_end(void *hp, rage128_t *dev, uint32_t lo, uint32_t hi,
     memcpy(sl->texq_lo, g->texq_lo, g->ntexq * sizeof(uint32_t));
     memcpy(sl->texq_hi, g->texq_hi, g->ntexq * sizeof(uint32_t));
     atomic_store(&g->pending, 0);
+    pthread_mutex_lock(&g->sub_mtx);
+    gpu_sub_add(g, sl);
     atomic_store(&g->inflight, 1);
     atomic_store(&sl->submitted, 1);
+    pthread_mutex_unlock(&g->sub_mtx);
     res->slot_ovf   = sl->texq_ovf;
     res->slot_hull  = gpu_range_hit(g, lo, hi, 1);
     res->slot_exact = gpu_range_hit_2d(g, lo, hi, 1);
@@ -469,6 +477,7 @@ harness_gpu_texq_end(void *hp, rage128_t *dev, uint32_t lo, uint32_t hi,
     res->real   = g->st_texq_real;
     atomic_store(&sl->submitted, 0);
     atomic_store(&g->inflight, 0);
+    gpu_sub_rebuild(g);
     dev->gpu = h->old;
 
     free(g->slot[0].b_spans.map);

@@ -1162,6 +1162,9 @@ typedef struct r128_gpu_t {
        reach a flush. Nested flushes are normal -- a stage write-back
        quiesces from inside one. */
     pthread_mutex_t flush_mtx;
+    /* Orders the changes of sub_st / sub_all: a dispatch's widening
+       together with its submitted store, and a retirement's rebuild. */
+    pthread_mutex_t sub_mtx;
     VkPipelineCache pcache;   /* persisted across sessions */
     VkShaderModule  seg_sm;   /* kept alive for lazy folded compiles */
     VkBuffer        vram_buf; /* imported svga.vram */
@@ -1427,6 +1430,17 @@ typedef struct r128_gpu_t {
        aperture store between two instructions cannot afford twelve
        slot cache lines to learn the GPU is idle. */
     atomic_uint inflight;
+    /* One interval over the hull ranges of every submitted slot, packed
+       hi << 32 | lo (0 = no slot): sub_st over the c, z and f hulls,
+       sub_all over those and the q and r hulls. Widened BEFORE a slot's
+       submitted flag rises and rebuilt only AFTER it clears, under
+       sub_mtx, so while a slot is submitted each of its hulls lies
+       inside the interval, and a range that misses the interval misses
+       every slot the scan would find. A slot whose work has finished
+       keeps its ranges until it is retired; with nothing submitting (a
+       DOS program after Windows) that may be never, and this test is
+       what keeps the twelve-slot scan off every guest store there. */
+    _Atomic uint64_t sub_st, sub_all;
 
     /* verify mode: shadow of the segment for interpreter replay */
     rage128_raster_state_t *v_states;
@@ -3103,13 +3117,19 @@ gpu_tail_mid_queued(const r128_gpu_t *g)
 
 /* CPU-thread barriers (aperture stores, scanout, present reads): pending
    accumulation plus every submitted slot, hull ranges only, since they
-   may run while the executor is still capturing. */
+   may run while the executor is still capturing. The slots are scanned
+   only when the range meets the interval over all submitted hulls
+   (sub_st / sub_all of r128_gpu_t). */
 static int
 gpu_range_hit(r128_gpu_t *g, uint32_t lo, uint32_t hi, int texture)
 {
+    uint64_t u;
+
     if (gpu_pending_hit(g, lo, hi, texture))
         return 1;
-    if (!atomic_load_explicit(&g->inflight, memory_order_acquire))
+    u = atomic_load_explicit(texture ? &g->sub_all : &g->sub_st,
+                             memory_order_acquire);
+    if (!rng_hit((uint32_t) u, (uint32_t) (u >> 32), lo, hi))
         return 0;
     for (unsigned i = 0; i < GPU_RING_SLOTS; i++) {
         const gpu_slot_t *sl = &g->slot[i];
@@ -4165,6 +4185,86 @@ gpu_inflight_count(const r128_gpu_t *g)
     return n;
 }
 
+/* sub_st / sub_all of r128_gpu_t: an interval as [lo, hi), widened by
+   a non-empty range, and packed with an empty interval as 0. */
+static void
+gpu_sub_ext(uint32_t *ulo, uint32_t *uhi, uint32_t lo, uint32_t hi)
+{
+    if (hi <= lo)
+        return;
+    if (lo < *ulo)
+        *ulo = lo;
+    if (hi > *uhi)
+        *uhi = hi;
+}
+
+static uint64_t
+gpu_sub_pack(uint32_t lo, uint32_t hi)
+{
+    return (hi > lo) ? ((uint64_t) hi << 32) | lo : 0;
+}
+
+static void
+gpu_sub_unpack(uint64_t u, uint32_t *lo, uint32_t *hi)
+{
+    *lo = u ? (uint32_t) u : 0xffffffffu;
+    *hi = u ? (uint32_t) (u >> 32) : 0;
+}
+
+static void
+gpu_sub_store(r128_gpu_t *g, uint32_t slo, uint32_t shi, uint32_t alo,
+              uint32_t ahi)
+{
+    atomic_store_explicit(&g->sub_st, gpu_sub_pack(slo, shi),
+                          memory_order_release);
+    atomic_store_explicit(&g->sub_all, gpu_sub_pack(alo, ahi),
+                          memory_order_release);
+}
+
+/* Widen sub_st / sub_all by the hulls of sl, which is about to be
+   submitted. Caller holds sub_mtx and stores submitted after this. */
+static void
+gpu_sub_add(r128_gpu_t *g, const gpu_slot_t *sl)
+{
+    uint32_t slo, shi, alo, ahi;
+
+    gpu_sub_unpack(atomic_load_explicit(&g->sub_st, memory_order_relaxed),
+                   &slo, &shi);
+    gpu_sub_unpack(atomic_load_explicit(&g->sub_all, memory_order_relaxed),
+                   &alo, &ahi);
+    gpu_sub_ext(&slo, &shi, sl->c_lo, sl->c_hi);
+    gpu_sub_ext(&slo, &shi, sl->z_lo, sl->z_hi);
+    gpu_sub_ext(&slo, &shi, sl->f_lo, sl->f_hi);
+    gpu_sub_ext(&alo, &ahi, slo, shi);
+    gpu_sub_ext(&alo, &ahi, sl->q_lo, sl->q_hi);
+    gpu_sub_ext(&alo, &ahi, sl->r_lo, sl->r_hi);
+    gpu_sub_store(g, slo, shi, alo, ahi);
+}
+
+/* Rebuild sub_st / sub_all from the slots still submitted, after a
+   slot's submitted flag has cleared. */
+static void
+gpu_sub_rebuild(r128_gpu_t *g)
+{
+    uint32_t slo = 0xffffffffu, shi = 0, alo = 0xffffffffu, ahi = 0;
+
+    pthread_mutex_lock(&g->sub_mtx);
+    for (unsigned i = 0; i < GPU_RING_SLOTS; i++) {
+        const gpu_slot_t *sl = &g->slot[i];
+
+        if (!atomic_load_explicit(&sl->submitted, memory_order_acquire))
+            continue;
+        gpu_sub_ext(&slo, &shi, sl->c_lo, sl->c_hi);
+        gpu_sub_ext(&slo, &shi, sl->z_lo, sl->z_hi);
+        gpu_sub_ext(&slo, &shi, sl->f_lo, sl->f_hi);
+        gpu_sub_ext(&alo, &ahi, sl->q_lo, sl->q_hi);
+        gpu_sub_ext(&alo, &ahi, sl->r_lo, sl->r_hi);
+    }
+    gpu_sub_ext(&alo, &ahi, slo, shi);
+    gpu_sub_store(g, slo, shi, alo, ahi);
+    pthread_mutex_unlock(&g->sub_mtx);
+}
+
 /* Executor busy time up to now: the closed busy periods plus the one
    still open; otherwise a period spanning several intervals would be
    counted whole in the interval where it ends. Read across threads,
@@ -4529,6 +4629,7 @@ gpu_slot_retire(r128_gpu_t *g, gpu_slot_t *sl, int cause)
     atomic_store_explicit(&sl->submitted, 0, memory_order_release);
     atomic_fetch_sub_explicit(&g->inflight, 1, memory_order_acq_rel);
     pthread_mutex_unlock(&sl->fence_mtx);
+    gpu_sub_rebuild(g);
     gpu_prof_interval(g, 0);
 }
 
@@ -5763,8 +5864,11 @@ gpu_dispatch(r128_gpu_t *g, gpu_slot_t *sl, uint32_t vram_mask,
     sl->timestamped = use_tq;
     sl->tq_bk_bits  = xq && tail ? g->xtqbits : g->tqbits;
     atomic_store_explicit(&sl->fence_seen, 0, memory_order_relaxed);
+    pthread_mutex_lock(&g->sub_mtx);
+    gpu_sub_add(g, sl);
     atomic_fetch_add_explicit(&g->inflight, 1, memory_order_acq_rel);
     atomic_store_explicit(&sl->submitted, 1, memory_order_release);
+    pthread_mutex_unlock(&g->sub_mtx);
     g->st_submits++;
     g->st_chained += prior != 0;
     {
@@ -11268,6 +11372,7 @@ gpu_tuples_prime(r128_gpu_t *g)
     }
     pthread_mutex_init(&g->fold_mtx, NULL);
     pthread_mutex_init(&g->queue_mtx, NULL);
+    pthread_mutex_init(&g->sub_mtx, NULL);
     {
         pthread_mutexattr_t fa;
 
@@ -12444,6 +12549,7 @@ gpu_close_vk(r128_gpu_t *g)
     if (g->ov0_pool)
         vkDestroyCommandPool(g->dev, g->ov0_pool, NULL);
     pthread_mutex_destroy(&g->queue_mtx);
+    pthread_mutex_destroy(&g->sub_mtx);
     pthread_mutex_destroy(&g->flush_mtx);
     vkDestroyShaderModule(g->dev, g->seg_sm, NULL);
     vkDestroyPipelineCache(g->dev, g->pcache, NULL);
