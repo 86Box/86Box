@@ -71,10 +71,11 @@
 #define ROM_SPEA_MIRAGE_P64            "roms/video/s3/S3_764VL_SPEAMirageP64VL_ver5_03.BIN"
 #define ROM_NUMBER9_9FX                "roms/video/s3/s3_764.bin"
 #define ROM_PHOENIX_TRIO64             "roms/video/s3/86c764x1.bin"
+#define ROM_EXPERTCOLOR_DSP3364P       "roms/video/s3/64V1506.ROM"
 #define ROM_DIAMOND_STEALTH64_764      "roms/video/s3/stealt64.bin"
 #define ROM_TRIO64V2_DX_VBE20          "roms/video/s3/86c775_2.bin"
 #define ROM_STB_POWERGRAPH_64_VIDEO    "roms/video/s3/VBIOS.BIN"
-#define ROM_PHOENIX_TRIO64VPLUS        "roms/video/s3/64V1506.ROM"
+#define ROM_PHOENIX_TRIO64VPLUS        "roms/video/s3/octekmirage64.VBI"
 #define ROM_CARDEX_TRIO64VPLUS         "roms/video/s3/S3T64VP.VBI"
 #define ROM_DIAMOND_STEALTH_SE         "roms/video/s3/DiamondStealthSE.VBI"
 #define ROM_ELSAWIN2KPROX_964          "roms/video/s3/elsaw20004m.BIN"
@@ -129,6 +130,7 @@ enum {
     S3_PHOENIX_TRIO64VPLUS,
     S3_PHOENIX_TRIO64VPLUS_ONBOARD,
     S3_CARDEX_TRIO64VPLUS,
+    S3_EXPERTCOLOR_DSP3364P,
     S3_DIAMOND_STEALTH_SE,
     S3_DIAMOND_STEALTH_VRAM_911,
     S3_DIAMOND_STEALTH_VRAM_924,
@@ -3568,6 +3570,7 @@ s3_in(uint16_t addr, void *priv)
                    S3 Trio64V+ BIOS to not get stuck in an infinite loop.
                  */
                 if (((s3->card_type == S3_STB_POWERGRAPH_64_VIDEO) ||
+                    (s3->card_type == S3_PHOENIX_TRIO64VPLUS) ||
                     (s3->card_type == S3_PHOENIX_TRIO64VPLUS_ONBOARD) ||
                     (s3->card_type == S3_CARDEX_TRIO64VPLUS) ||
                     (s3->card_type == S3_DIAMOND_TRIO64V) ||
@@ -10804,6 +10807,14 @@ s3_init(const device_t *info)
             else
                 video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb);
             break;
+        case S3_EXPERTCOLOR_DSP3364P:
+            bios_fn = ROM_EXPERTCOLOR_DSP3364P;
+            chip    = S3_TRIO64;
+            if (info->flags & DEVICE_PCI)
+                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_pci);
+            else
+                video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_s3_trio64_vlb);
+            break;
         case S3_CARDEX_TRIO64VPLUS:
             bios_fn = ROM_CARDEX_TRIO64VPLUS;
             chip    = S3_TRIO64V;
@@ -11456,6 +11467,7 @@ s3_init(const device_t *info)
 
         case S3_PHOENIX_TRIO64:
         case S3_PHOENIX_TRIO64_ONBOARD:
+        case S3_EXPERTCOLOR_DSP3364P:
         case S3_STB_POWERGRAPH_64_VIDEO:
         case S3_PHOENIX_TRIO64VPLUS:
         case S3_PHOENIX_TRIO64VPLUS_ONBOARD:
@@ -12680,6 +12692,16 @@ static const device_config_t s3_trio64_pci_config[] = {
                 .size          = 32768,
                 .flags         = BIOS_LIMIT_MAX_MEMORY | (2 << 8),
                 .files         = { ROM_DIAMOND_STEALTH64_764, "" }
+            },
+            {
+                .name          = "ExpertColor DSP-3364P",
+                .internal_name = "expertcolor_dsp3364p_pci",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = S3_EXPERTCOLOR_DSP3364P,
+                .size          = 32768,
+                .flags         = 0,
+                .files         = { ROM_EXPERTCOLOR_DSP3364P, "" }
             },
             {
                 .name          = "Number Nine 9FX Vision 330",

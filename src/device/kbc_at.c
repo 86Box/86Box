@@ -811,7 +811,7 @@ write_p2(atkbc_t *dev, uint8_t val)
         if (!(val & 0x01)) {  /* Pin 0 selected. */
             /* Pin 0 selected. */
             kbc_at_log("write_p2(): Pulse reset!\n");
-            softresetx86(); /* Pulse reset! */
+            softresetx86_from(SOFT_RESET_KBC); /* Pulse reset! */
             cpu_set_edx();
             flushmmucache();
             if ((kbc_ven == KBC_VEN_ALI) ||

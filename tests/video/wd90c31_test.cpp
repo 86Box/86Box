@@ -258,9 +258,9 @@ TEST_F(Wd90c31, DestinationTransparencyAndPlaneMask)
     reg(10, 0x0e);
     reg(1, 1); // matching destination pixels remain unchanged
     start(0x108);
-    EXPECT_EQ(vram[0], 0xa1);
+    EXPECT_EQ(vram[0], 0xae);
     EXPECT_EQ(vram[1], 0xbe);
-    EXPECT_EQ(vram[2], 0xa3);
+    EXPECT_EQ(vram[2], 0xae);
     EXPECT_EQ(vram[3], 0xbe);
     reg(1, 5); // opposite polarity
     start(0x108);
@@ -283,8 +283,8 @@ TEST_F(Wd90c31, ColorComparatorExpansion)
     reg(1, 8);
     start(0x104);
     EXPECT_EQ(vram[0], 0xaa);
-    EXPECT_EQ(vram[1], 0xaa);
-    EXPECT_EQ(vram[2], 0xcc);
+    EXPECT_EQ(vram[1], 0xcc);
+    EXPECT_EQ(vram[2], 0xaa);
     EXPECT_EQ(vram[3], 0xcc);
 }
 

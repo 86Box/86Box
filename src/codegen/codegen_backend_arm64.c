@@ -1113,7 +1113,7 @@ link_addr_exact(codeblock_t *block, int reg, const void *ptr)
 _Static_assert(offsetof(cpu_events_t, flush_pending) == 4 && offsetof(cpu_events_t, init) == 8
                    && offsetof(cpu_events_t, ne) == 12 && offsetof(cpu_events_t, force_interpreter) == 16
                    && offsetof(cpu_events_t, override_dynarec) == 20 && offsetof(cpu_events_t, dr_armed) == 24
-                   && offsetof(cpu_events_t, halted) == 28 && sizeof(cpu_events_t) == 32,
+                   && offsetof(cpu_events_t, halted) == 28 && sizeof(cpu_events_t) == 48,
                "cpu_events is loaded as two pairs of 64-bit words");
 
 /*Fields the routine loads together, with LDP or one wider load*/
@@ -1267,12 +1267,9 @@ build_link_routine(codeblock_t *block)
       word against W6. Only the C loop refreshes the PC24 and RC_NZ status
       bits from npxc, so they can be stale after an FLDCW in a linked block;
       the npxc compare decides them instead. Everything else that reads
-      those two bits runs after that refresh. The C loop also sets NOTFLATES
-      from ES before each lookup; it is compared as stored, since every
-      write to the ES base or limits sets it from the same test before the
-      next lookup (do_seg_load(), the loadseg() tail, null_data_seg(),
-      task_load_seg(), smm_seg_load(), LOADALL, the Cyrix descriptor loads,
-      reset_common()).*/
+      those two bits runs after that refresh. NOTFLATES is compared as
+      stored, since every write to the ES base or limits brings it in line
+      before the next lookup.*/
     offset = link_addr(block, REG_X4, &cpu_cur_status);
     host_arm64_LDRH_IMM(block, REG_W4, REG_X4, offset);
     host_arm64_LDRH_IMM(block, REG_W5, REG_CPUSTATE, rep_state_offset(&cpu_state.npxc));

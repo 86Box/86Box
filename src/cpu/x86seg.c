@@ -1671,7 +1671,7 @@ pmodeint(int num, int soft)
     if ((addr + 7) > idt.limit) {
         if (num == 0x08) {
             /* Triple fault - reset! */
-            softresetx86();
+            softresetx86_from(SOFT_RESET_SHUTDOWN);
             cpu_set_edx();
         } else if (num == 0x0d) {
             op_pmodeint(8, 0);

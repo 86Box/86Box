@@ -244,6 +244,11 @@ debugger_register_access(const char *name, uint32_t *val, uint32_t *seg_base, in
                     return 0;
                 value |= cr0 & 0xffff0000;
             }
+            /* As a MOV to CR0 stores it: on the 386 only PG and bits 4-0
+               (386 DX Microprocessor Programmer's Reference Manual, 1990,
+               figure 4-3, PDF p. 113). */
+            if (is386 && !is486 && !isibm486)
+                value &= 0x8000001f;
             if ((value & 0x80000001) == 0x80000000)
                 return 0;
             if ((value & 0x80000000) && !(cr0 & 0x80000000) && (cr4 & CR4_PAE) && pae_check_load(cr3))

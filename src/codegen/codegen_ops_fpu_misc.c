@@ -24,7 +24,12 @@ ropFFREE(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), uint
     int dest_reg = fetchdat & 7;
 
     uop_FP_ENTER(ir);
-    uop_MOV_IMM(ir, IREG_tag(dest_reg), TAG_EMPTY);
+    /*Tagged empty, the content unaffected (80387 PRM 1987, 4.8.13): an
+      extended denormal keeps TAG_DENORMAL (x87.h). A push into it later
+      fails its guard once and goes to the interpreter.*/
+    uop_MOV(ir, IREG_temp0, IREG_tag(dest_reg));
+    uop_AND_IMM(ir, IREG_temp0, IREG_temp0, TAG_DENORMAL);
+    uop_MOV(ir, IREG_tag(dest_reg), IREG_temp0);
 
     return op_pc;
 }

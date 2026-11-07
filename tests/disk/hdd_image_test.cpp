@@ -142,7 +142,7 @@ TEST_F(HddImage, IncreasingRawImageGeometryPreservesDataAndZeroFillsAddedCapacit
 } // namespace
 
 extern "C" {
-hard_disk_t hdd[HDD_NUM];
+hard_disk_t hdd[HDD_SLOTS];
 
 FILE *
 plat_fopen(const char *path, const char *mode)

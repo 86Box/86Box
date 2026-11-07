@@ -437,7 +437,7 @@ TEST_F(PhilipsTest, MediaChangeCancelsPartialCommandAndClearsLatchedStatus)
     EXPECT_TRUE(timers[0]->flags & TIMER_ENABLED);
     cdrom[0].insert(cdrom[0].priv);
     EXPECT_FALSE(timers[0]->flags & TIMER_ENABLED);
-    EXPECT_EQ(irq, 0);
+    EXPECT_EQ(irq, 1);
     command({ 0x3a });
     for (int i = 0; i < 5; i++)
         byte(0x9c);

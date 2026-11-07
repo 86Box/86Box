@@ -11,6 +11,7 @@
 #ifndef EMU_DEBUGGER_H
 #define EMU_DEBUGGER_H
 #include <stdint.h>
+#include <86box/cpu_events.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -48,7 +49,7 @@ enum {
 
 #define DEBUGGER_MAX_BREAKPOINTS 32
 
-extern volatile int debugger_attached;
+/* debugger_attached lives in cpu_events */
 
 /* Called by the instruction loops after each pass while attached; nonzero
    makes the loop return. partial: the pass did not finish the instruction

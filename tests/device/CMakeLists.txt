@@ -43,9 +43,11 @@ if(BUILD_TESTING)
     add_executable(mouse_microtouch_tests
         mouse_microtouch_test.cpp
         ../../src/device/mouse_microtouch_touchscreen.c
+        ../../src/device/serial_backend.c
+        ../../src/device/serial_host.c
         ../../src/utils/fifo8.c
     )
-
+    target_compile_definitions(mouse_microtouch_tests PRIVATE IS_TEST)
     target_include_directories(mouse_microtouch_tests PRIVATE
         ${PROJECT_SOURCE_DIR}/src/include
         ${PROJECT_SOURCE_DIR}/src/cpu

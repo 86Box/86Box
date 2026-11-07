@@ -71,8 +71,13 @@
  * and 3 make outputs, and 0x3 has the RS (bit 7) and WR# (bit 6) pins to
  * read and the EN pin (bit 0) to write. DIO2 is pins 1-15 of the DIO2
  * header, whose low and high nibbles control bits 0 and 1 make outputs.
- * Nothing is attached to either header, so their inputs read high, as does
- * the LCD bus.
+ *
+ * The LCD header is the onboard LCD bus, for an HD44780 LCD (a video card)
+ * whose port is set to it. In DIO mode the board leaves the LCD's RS and R/W
+ * pins to their pull-ups, so a pulse on EN is a data read, with the LCD
+ * driving pins 7-14 while EN is high. Without the LCD, the LCD header's
+ * inputs read high, as does the LCD bus; nothing is attached to DIO2, so its
+ * inputs read high too.
  *
  * Each "checked" jumper config value represents an installed jumper. The
  * board pulls the jumper pins up and an installed jumper grounds its pin,
@@ -117,6 +122,7 @@
 #define TS3X00_LCD_MODE      0x10 /* The LCD port is an LCD bus. */
 
 #define TS3X00_LCD_EN        0x01 /* In DIO mode, at 0x3. */
+#define TS3X00_LCD_E0        0x01 /* The LCD header's E line, E0 of the onboard LCD bus. */
 
 #define TS3X00_ADDR_SPACE    0x04000000 /* The 386EX's 26-bit address space. */
 #define TS3X00_SEL_SHIFT     MEM_GRANULARITY_BITS
@@ -139,6 +145,7 @@ typedef struct ts3x00_t {
     uint8_t dio2;    /* The DIO2 latch. */
     uint8_t lcd;     /* The LCD pin 7-14 latch. */
     uint8_t lcd_ctl; /* The LCD EN pin latch. */
+    uint8_t lcd_in;  /* In DIO mode, what the LCD drives onto pins 7-14 while EN is high. */
 
     nvr_t *nvr;
 
@@ -216,17 +223,28 @@ ts3x00_lcd_outputs(const ts3x00_t *dev)
     return ((dev->dio_ctrl & TS3X00_LCD_LOW_OUT) ? 0x0f : 0x00) | ((dev->dio_ctrl & TS3X00_LCD_HIGH_OUT) ? 0xf0 : 0x00);
 }
 
-/* An LCD bus cycle, with RS from A0. No LCD is attached, so the bus reads high. */
+/* An LCD bus cycle, with RS from A0. Without an LCD on the bus, it reads high. */
 static uint8_t
-ts3x00_lcd_bus_read(UNUSED(const ts3x00_t *dev), UNUSED(int rs))
+ts3x00_lcd_bus_read(UNUSED(const ts3x00_t *dev), int rs)
 {
-    return 0xff;
+    return hd44780_bus_read(TS3X00_LCD_E0, rs);
 }
 
 static void
-ts3x00_lcd_bus_write(UNUSED(ts3x00_t *dev), UNUSED(int rs), UNUSED(uint8_t val))
+ts3x00_lcd_bus_write(UNUSED(ts3x00_t *dev), int rs, uint8_t val)
 {
-    /* No LCD is attached. */
+    hd44780_bus_write(TS3X00_LCD_E0, rs, val);
+}
+
+/* In DIO mode, EN rising with RS and R/W pulled high is a data read, which
+   the LCD drives until EN falls. */
+static void
+ts3x00_lcd_set_en(ts3x00_t *dev, uint8_t en)
+{
+    if (en && !(dev->lcd_ctl & TS3X00_LCD_EN))
+        dev->lcd_in = hd44780_bus_read(TS3X00_LCD_E0, 1);
+
+    dev->lcd_ctl = en;
 }
 
 static uint8_t
@@ -241,7 +259,8 @@ ts3x00_read(uint16_t port, void *priv)
             if (dev->dio_ctrl & TS3X00_LCD_MODE)
                 ret = ts3x00_lcd_bus_read(dev, port & 1);
             else if (!(port & 1))
-                ret = ts3x00_port_pins(dev->lcd, ts3x00_lcd_outputs(dev), 0xff);
+                ret = ts3x00_port_pins(dev->lcd, ts3x00_lcd_outputs(dev),
+                                       (dev->lcd_ctl & TS3X00_LCD_EN) ? dev->lcd_in : 0xff);
             /* The RS and WR# pins, which nothing drives, read high, as does the rest. */
             break;
         case TS3X00_REG_PRODUCT:
@@ -278,7 +297,7 @@ ts3x00_write(uint16_t port, uint8_t val, void *priv)
             if (dev->dio_ctrl & TS3X00_LCD_MODE)
                 ts3x00_lcd_bus_write(dev, port & 1, val);
             else if (port & 1)
-                dev->lcd_ctl = val & TS3X00_LCD_EN;
+                ts3x00_lcd_set_en(dev, val & TS3X00_LCD_EN);
             else
                 dev->lcd = val;
             break;
@@ -401,8 +420,9 @@ const device_t ts3x00_device = {
  * Compact Flash socket and a flash chip on the PC/104 bus, with registers
  * in I/O 0x198-0x19F. The boards have no keyboard controller of their own,
  * and without one are run from a serial console, so one is fitted when a
- * video card is selected, with only its keyboard controller and registers
- * emulated:
+ * display card is selected, with only its keyboard controller and registers
+ * emulated. An HD44780 LCD is not a display card here: it hangs off a
+ * parallel port or the LCD header, not the TS-9500's VGA.
  *
  *   0x19A  Bit 0 LED (1 = on), bit 1 KB IRQ, bit 2 mouse IRQ, bit 6 JP1
  *          (write enable for the top 512k of the flash), bit 7 JP2 (user),
@@ -914,6 +934,18 @@ ts3x00_board_init(ts3x00_t *j, const ts3x00_model_t *ts, i386ex_t *ex)
     ts3x00_board = j;
 }
 
+/* Whether any selected video card is one the TS-9500's VGA stands for. */
+static int
+ts3x00_has_display_card(void)
+{
+    for (int i = 0; i < GFXCARD_MAX; i++) {
+        if ((gfxcard[i] != VID_NONE) && (video_card_getdevice(gfxcard[i]) != &hd44780_device))
+            return 1;
+    }
+
+    return 0;
+}
+
 static int
 ts3x00_init(const machine_t *model, const ts3x00_model_t *ts)
 {
@@ -945,9 +977,9 @@ ts3x00_init(const machine_t *model, const ts3x00_model_t *ts)
     ts3x00_board_init(j, ts, ex);
 
     /* The keyboard controller is on a TS-9500, which the BIOS has to find to
-       connect IRQ1. It is only fitted with a video card: without one, the
+       connect IRQ1. It is only fitted with a display card: without one, the
        board is run from its serial console. */
-    if (gfxcard[0] != VID_NONE)
+    if (ts3x00_has_display_card())
         device_add(&ts9500_device);
 
     return ret;

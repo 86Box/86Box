@@ -267,6 +267,10 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "ATI Rage Fury Pro AGP", .new = "ATI Rage 128 Pro (Fury Pro)" },
         { .old = "ATI Xpert 128 PCI", .new = "ATI Rage 128 (Xpert 128)" }, // pre-7.0
         { .old = "ATI Rage 128 (Xpert 128)", .new = "ATI Rage 128 GL PCI (Xpert 128)" },
+        { .old = "ATI 3D Rage IIC", .new = "ATI Rage IIc PCI" },
+        { .old = "ATI 3D Rage IIC AGP", .new = "ATI Rage IIc AGP" },
+        { .old = "ATI 3D Rage Pro Turbo AGP (On-Board)", .new = "ATI Rage Pro Turbo AGP (On-Board)" },
+        { .old = "Novell NE2100/NE1500T", .new = "Novell NE2100" },
         { 0 }
     };
 

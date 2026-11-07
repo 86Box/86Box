@@ -24,10 +24,12 @@
 #include <wchar.h>
 #include <86box/86box.h>
 #include <86box/device.h>
+#ifndef IS_TEST
 #include <86box/config.h>
 /* lpt.h declares lpt_t only if timer.h has been seen first. */
 #include <86box/timer.h>
 #include <86box/lpt.h>
+#endif
 #include <86box/hdd.h>
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
@@ -39,14 +41,20 @@
 #include <86box/cdrom_cm153.h>
 #include <86box/cdrom_mke.h>
 #include <86box/crc.h>
+#ifndef TEST
 #include <86box/log.h>
+#endif
 #include <86box/plat.h>
+#ifndef IS_TEST
 #include <86box/plat_cdrom_ioctl.h>
+#endif
 #include <86box/bswap.h>
+#ifndef IS_TEST
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_cdrom.h>
 #include <86box/sound.h>
+#endif
 #include <86box/ui.h>
 
 #define RAW_SECTOR_SIZE    2352
@@ -115,6 +123,7 @@ static int                  mult                  = 1;
 static int                  part                  = 0;
 static int                  ecc_diff              = 288;
 
+#ifndef IS_TEST
 static const device_t cdrom_interface_none_device = {
     .name          = "None",
     .internal_name = "none",
@@ -148,6 +157,7 @@ static const struct {
     { NULL                          }
     // clang-format on
 };
+#endif
 
 /* Private functions. */
 static void
@@ -196,7 +206,11 @@ cdrom_get_short_seek(const cdrom_t *dev)
 {
     switch (dev->cur_speed) {
         case 0:
+#ifdef IS_TEST
+            exit(-1);
+#else
             log_fatal(dev->log, "0x speed\n");
+#endif
             return 0.0;
         case 1:
             return 240.0;
@@ -248,7 +262,11 @@ cdrom_get_long_seek(const cdrom_t *dev)
 {
     switch (dev->cur_speed) {
         case 0:
+#ifdef IS_TEST
+            exit(-1);
+#else
             log_fatal(dev->log, "0x speed\n");
+#endif
             return 0.0;
         case 1:
             return 1446.0;
@@ -463,8 +481,11 @@ read_data(cdrom_t *dev, const uint32_t lba, int check)
 
         dev->formed_mode2  = 0;
 
-        ret = dev->ops->read_sector(dev->local,
-                                    dev->raw_buffer[dev->cur_buf ^ 1], lba);
+        if ((dev->ops != NULL) && (dev->ops->read_sector != NULL))
+            ret = dev->ops->read_sector(dev->local,
+                                        dev->raw_buffer[dev->cur_buf ^ 1], lba);
+        else
+            ret = 0;
 
         /* Sectors built by us are always good. */
         dev->edc_missing = (ret == 2);
@@ -1214,6 +1235,7 @@ cdrom_toc_dump(cdrom_t *dev)
 }
 #endif
 
+#ifndef IS_TEST
 /* Reset the CD-ROM Interface, whichever one that is. */
 void
 cdrom_interface_reset(void)
@@ -1223,7 +1245,7 @@ cdrom_interface_reset(void)
     if (machines[machine].init == machine_at_tandy_vis_init)
         device_add(&mitsumi_cdrom_vis_device);
     /* If we have a valid controller, add its device. */
-    else if ((cdrom_interface_current > 0) &&
+    else  if ((cdrom_interface_current > 0) &&
              controllers[cdrom_interface_current].device)
         device_add(controllers[cdrom_interface_current].device);
 
@@ -1282,6 +1304,7 @@ cdrom_interface_available(const int cdinterface)
 {
     return (device_available(controllers[cdinterface].device));
 }
+#endif
 
 char *
 cdrom_get_vendor(const int type)
@@ -1550,8 +1573,10 @@ cdrom_get_from_name(const char *s)
     }
 
     if (!found) {
-        if (strcmp(s, "none"))
+#ifndef IS_TEST
+        if (strcmp(s, "none") != 0)
             warning("WARNING: CD-ROM \"%s\" not found - contact 86Box support\n", s);
+#endif
         c = -1;
     }
 
@@ -3026,7 +3051,11 @@ cdrom_read_dvd_structure(const cdrom_t *dev, const uint8_t layer, const uint8_t 
     if (format < 0xc0) {
         if (dev->cd_status != CD_STATUS_DVD) {
             *info = format;
+#ifdef IS_TEST
+            ret   = -1;
+#else
             ret   = -(SENSE_ILLEGAL_REQUEST << 16) | (ASC_INCOMPATIBLE_FORMAT << 8);
+#endif
         } else if ((dev->ops != NULL) && (dev->ops->read_dvd_structure != NULL))
             ret   = dev->ops->read_dvd_structure(dev->local, layer, format, buffer, info);
     }
@@ -3040,11 +3069,19 @@ cdrom_read_dvd_structure(const cdrom_t *dev, const uint8_t layer, const uint8_t 
 
             if (layer > max_layer) {
                 *info = layer;
+#ifdef IS_TEST
+                ret   = -1;
+#else
                 ret   = -(SENSE_ILLEGAL_REQUEST << 16) | (ASC_INV_FIELD_IN_CMD_PACKET << 8);
+#endif
             } else {
                 if (total_sectors == 0) {
                     *info = 0x00000000;
+#ifdef IS_TEST
+                    ret   = -1;
+#else
                     ret   = -(SENSE_NOT_READY << 16) | (ASC_MEDIUM_NOT_PRESENT << 8);
+#endif
                 } else {
                     buffer[4] = 0x01;    /* DVD-ROM, part version 1. */
                     buffer[5] = 0x0f;    /* 120mm disc, minimum rate unspecified .*/
@@ -3137,7 +3174,11 @@ cdrom_read_dvd_structure(const cdrom_t *dev, const uint8_t layer, const uint8_t 
 
         default:
             *info = format;
+#ifdef IS_TEST
+            ret   = -1;
+#else
             ret   = -(SENSE_ILLEGAL_REQUEST << 16) | (ASC_INV_FIELD_IN_CMD_PACKET << 8);
+#endif
             break;
     }
 
@@ -3494,17 +3535,23 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
         strcpy(dev->image_path, fn);
 
     /* Open the target. */
+#ifndef IS_TEST
     if ((strlen(dev->image_path) != 0) &&
         (strstr(dev->image_path, "ioctl://") == dev->image_path))
         dev->local = ioctl_open(dev, dev->image_path);
-    else if (cdrom_image_is_chd(dev->image_path))
+    else
+    if (cdrom_image_is_chd(dev->image_path))
         dev->local = chd_image_open(dev, dev->image_path);
     else if (cdrom_image_is_aaru(dev->image_path))
         dev->local = aaru_image_open(dev, dev->image_path);
-    else {
+    else
+#endif
+    {
         dev->local = image_open(dev, dev->image_path);
+#ifndef IS_TEST
         if (!dev->local)
             dev->local = aaru_image_open(dev, dev->image_path);
+#endif
     }
 
     dev->cached_sector  = -1;
@@ -3514,9 +3561,11 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
         dev->ops           = NULL;
         dev->image_path[0] = 0;
 
+#ifndef IS_TEST
         plat_cdrom_ui_update(dev->id, 0);
 
         config_save();
+#endif
 
         ret = 1;
     } else {
@@ -3533,8 +3582,10 @@ cdrom_load(cdrom_t *dev, const char *fn, const int skip_insert)
 
             int rejected = cdrom_media_rejected(dev, media, capacity);
 
+#ifndef IS_TEST
             if (rejected)
                 warning(plat_get_string(STRING_CDROM_IMAGE_TOO_LARGE), fn);
+#endif
 
             if (media == 1) { /* DVD */
                 dev->cd_status = rejected ? CD_STATUS_DVD_REJECTED : CD_STATUS_DVD;
@@ -3598,6 +3649,7 @@ cdrom_hard_reset(void)
 {
     cdrom_assigned_letters = 0;
 
+#ifndef IS_TEST
     if (machines[machine].init == machine_at_tandy_vis_init) {
         bool mitsumi_bus_found = false;
         /* Ensure there's at least one Mitsumi bus type used. */
@@ -3631,6 +3683,7 @@ cdrom_hard_reset(void)
             }
         }
     }
+#endif
 
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
         cdrom_t *dev = &cdrom[i];
@@ -3660,19 +3713,25 @@ cdrom_hard_reset(void)
 
             cdrom_drive_reset(dev);
 
+#ifndef IS_TEST
             char n[1024] = { 0 };
 
             sprintf(n, "CD-ROM %i      ", i + 1);
             dev->log = log_open(n);
+#endif
 
             cdrom_log(dev->log, "Hard reset\n");
 
             switch (dev->bus_type) {
                 case CDROM_BUS_ATAPI:
                 case CDROM_BUS_SCSI:
+#ifndef IS_TEST
                     scsi_cdrom_drive_reset(i);
+#endif
+
                     break;
 
+#ifndef IS_TEST
                 case CDROM_BUS_LPT:
                     /*
                      * The bridge is not a device the user picks: assigning the drive
@@ -3689,6 +3748,7 @@ cdrom_hard_reset(void)
                         scsi_cdrom_drive_reset(i);
                     }
                     break;
+#endif
 
                 default:
                     break;
@@ -3720,7 +3780,9 @@ cdrom_hard_reset(void)
         }
     }
 
+#ifndef IS_TEST
     sound_cd_thread_reset();
+#endif
 }
 
 void
@@ -3729,8 +3791,10 @@ cdrom_close(void)
     for (uint8_t i = 0; i < CDROM_NUM; i++) {
         cdrom_t *dev = &cdrom[i];
 
+#ifndef IS_TEST
         if (dev->bus_type == CDROM_BUS_SCSI)
             memset(&scsi_devices[dev->scsi_device_id], 0x00, sizeof(scsi_device_t));
+#endif
 
         if (dev->close)
             dev->close(dev->priv);
@@ -3745,7 +3809,9 @@ cdrom_close(void)
         if (dev->log != NULL) {
             cdrom_log(dev->log, "Log closed\n");
 
+#ifndef IS_TEST
             log_close(dev->log);
+#endif
             dev->log = NULL;
         }
     }
@@ -3825,9 +3891,11 @@ cdrom_eject(const uint8_t id)
     if (strlen(dev->image_path) != 0) {
         cdrom_exit(id);
 
+#ifndef IS_TEST
         plat_cdrom_ui_update(id, 0);
 
         config_save();
+#endif
     }
 }
 
@@ -3866,7 +3934,9 @@ cdrom_reload(const uint8_t id)
         cdrom_load(dev, dev->image_path, 0);
     }
 
+#ifndef IS_TEST
     plat_cdrom_ui_update(id, 1);
 
     config_save();
+#endif
 }

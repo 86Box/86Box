@@ -297,7 +297,7 @@ opC0_a16(uint32_t fetchdat)
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-    c = readmemb(cs, cpu_state.pc) & 31;
+    c = readmemb_fetch(cs, cpu_state.pc) & 31;
     cpu_state.pc++;
     PREFETCH_PREFIX();
     temp = geteab();
@@ -317,7 +317,7 @@ opC0_a32(uint32_t fetchdat)
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-    c = readmemb(cs, cpu_state.pc) & 31;
+    c = readmemb_fetch(cs, cpu_state.pc) & 31;
     cpu_state.pc++;
     PREFETCH_PREFIX();
     temp = geteab();
@@ -337,7 +337,7 @@ opC1_w_a16(uint32_t fetchdat)
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-    c = readmemb(cs, cpu_state.pc) & 31;
+    c = readmemb_fetch(cs, cpu_state.pc) & 31;
     cpu_state.pc++;
     PREFETCH_PREFIX();
     temp = geteaw();
@@ -357,7 +357,7 @@ opC1_w_a32(uint32_t fetchdat)
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-    c = readmemb(cs, cpu_state.pc) & 31;
+    c = readmemb_fetch(cs, cpu_state.pc) & 31;
     cpu_state.pc++;
     PREFETCH_PREFIX();
     temp = geteaw();
@@ -377,7 +377,7 @@ opC1_l_a16(uint32_t fetchdat)
     fetch_ea_16(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-    c = readmemb(cs, cpu_state.pc) & 31;
+    c = readmemb_fetch(cs, cpu_state.pc) & 31;
     cpu_state.pc++;
     PREFETCH_PREFIX();
     temp = geteal();
@@ -397,7 +397,7 @@ opC1_l_a32(uint32_t fetchdat)
     fetch_ea_32(fetchdat);
     if (cpu_mod != 3)
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-    c = readmemb(cs, cpu_state.pc) & 31;
+    c = readmemb_fetch(cs, cpu_state.pc) & 31;
     cpu_state.pc++;
     PREFETCH_PREFIX();
     temp = geteal();

@@ -72,7 +72,7 @@ opF6_a16(uint32_t fetchdat)
     switch (rmdat & 0x38) {
         case 0x00: /*TEST b,#8*/
         case 0x08:
-            src = readmemb(cs, cpu_state.pc);
+            src = readmemb_fetch(cs, cpu_state.pc);
             cpu_state.pc++;
             if (cpu_state.abrt)
                 return 1;
@@ -190,7 +190,7 @@ opF6_a32(uint32_t fetchdat)
     switch (rmdat & 0x38) {
         case 0x00: /*TEST b,#8*/
         case 0x08:
-            src = readmemb(cs, cpu_state.pc);
+            src = readmemb_fetch(cs, cpu_state.pc);
             cpu_state.pc++;
             if (cpu_state.abrt)
                 return 1;
@@ -1095,7 +1095,7 @@ opLOADALL386(UNUSED(uint32_t fetchdat))
 {
     uint32_t la_addr = es + EDI;
 
-    cr0              = readmeml(0, la_addr);
+    cr0              = cpu_cr0_write_value(readmeml(0, la_addr));
     if (cr0 & 1)
         cpu_cur_status |= CPU_STATUS_PMODE;
     else

@@ -1099,6 +1099,10 @@ cpu_lapic_irr_live_set(uint8_t lapic_index, int any)
         cpu_lapic_irr_live |= 1u << lapic_index;
     else
         cpu_lapic_irr_live &= ~(1u << lapic_index);
+
+    /* As pic_notify(): the source is stored before the flag. */
+    if (any && (lapic_index == 0))
+        __atomic_store_n(&cpu_events.irq, 1, __ATOMIC_RELEASE);
 }
 
 static void
@@ -1117,6 +1121,9 @@ cpu_lapic_extint_live_set(uint8_t lapic_index, int pending)
 {
     if (lapic_index < IOAPIC_STATE_MAX_LAPICS)
         cpu_lapic_extint_live[lapic_index] = !!pending;
+
+    if (pending && (lapic_index == 0))
+        __atomic_store_n(&cpu_events.irq, 1, __ATOMIC_RELEASE);
 }
 
 uint32_t *

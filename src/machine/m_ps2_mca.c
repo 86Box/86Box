@@ -2146,12 +2146,12 @@ mem_encoding_write_cached(uint16_t addr, uint8_t val, UNUSED(void *priv))
             if (val & 0x01)
             {
                 ram_mid_mapping.flags |= MEM_MAPPING_ROM_WS;
-                cpu_override_dynarec   = 1;
+                cpu_override_dynarec  |= CPU_OVERRIDE_BOARD;
             }
             else
             {
                 ram_mid_mapping.flags &= ~MEM_MAPPING_ROM_WS;
-                cpu_override_dynarec   = 0;
+                cpu_override_dynarec  &= ~CPU_OVERRIDE_BOARD;
             }
             break;
         }

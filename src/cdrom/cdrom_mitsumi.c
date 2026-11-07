@@ -26,7 +26,9 @@
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#ifndef IS_TEST
 #include <86box/device.h>
+#endif
 #include <86box/io.h>
 #include <86box/pic.h>
 #include <86box/dma.h>
@@ -1489,6 +1491,7 @@ mitsumi_get_channel(void *priv, int channel)
                             ((!!(dev->cdrom_vols.att3)) | ((!!(dev->cdrom_vols.att2)) << 1));
 }
 
+#ifndef IS_TEST
 static void *
 mitsumi_cdrom_init(UNUSED(const device_t *info))
 {
@@ -1519,9 +1522,15 @@ mitsumi_cdrom_init(UNUSED(const device_t *info))
         dev->irq  = -1;
         dev->dma  = -1;
     } else {
+#ifdef IS_TEST
+        dev->base = 0x310;
+        dev->irq  = 5;
+        dev->dma  = 5;
+#else
         dev->base = (info->local & 1) ? 0x310 : device_get_config_hex16("base");
         dev->irq  = (info->local & 1) ? 5 : device_get_config_int("irq");
         dev->dma  = (info->local & 1) ? 5 : device_get_config_int("dma");
+#endif
 
         io_sethandler(dev->base, 4,
                       mitsumi_cdrom_in, NULL, NULL, mitsumi_cdrom_out, NULL, NULL, dev);
@@ -1569,7 +1578,9 @@ mitsumi_cdrom_device_reset(void *priv)
     if (dev)
         mitsumi_cdrom_reset(dev);
 }
+#endif
 
+#ifndef TEST
 static const device_config_t mitsumi_config[] = {
     // clang-format off
     {
@@ -1641,6 +1652,7 @@ const device_t mitsumi_cdrom_device = {
     .force_redraw  = NULL,
     .config        = mitsumi_config
 };
+#endif
 
 /* The interface's registers 0 and 1, for a host that has no I/O ports for it. */
 uint8_t
@@ -1655,6 +1667,7 @@ mitsumi_cdrom_host_write(void *priv, int reg, uint8_t val)
     mitsumi_cdrom_out((uint16_t) (reg & 3), val, priv);
 }
 
+#ifndef TEST
 const device_t mitsumi_cdrom_hosted_device = {
     .name          = "Mitsumi interface (hosted)",
     .internal_name = "mcd_hosted",
@@ -1682,3 +1695,4 @@ const device_t mitsumi_cdrom_vis_device = {
     .force_redraw  = NULL,
     .config        = NULL
 };
+#endif

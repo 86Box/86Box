@@ -1399,9 +1399,9 @@ build_link_routine(codeblock_t *block)
       word. Only the C loop refreshes the PC24 and RC_NZ status bits from
       npxc, so they can be stale after an FLDCW in a linked block; the npxc
       compare decides them instead. Everything else that reads those two
-      bits runs after that refresh. The C loop also sets NOTFLATES from ES
-      before each lookup, and not every ES load keeps it current, so it is
-      worked out again here from ES itself.*/
+      bits runs after that refresh. NOTFLATES is worked out again here from
+      ES itself; it equals the stored bit, which every write to the ES base
+      or limits brings in line before the next lookup.*/
     lx_abs(block, 0, 0, 0x0fb7, REG_R9, &cpu_cur_status);
     rx_alu_ri(block, 0, 4, REG_R9, ~(uint32_t) CPU_STATUS_NOTFLATES);
     rx_rm(block, 0, 0, 0x8b, REG_R12, REG_RBP, rx_state(&cpu_state.seg_es.base));
