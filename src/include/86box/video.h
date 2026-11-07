@@ -690,6 +690,10 @@ extern const device_t tandy_1000sl_video_device;
 /* Hitachi HD44780 character LCD */
 extern const device_t hd44780_device;
 extern const device_t hd44780_cobalt3k_device;
+/* The board's own LCD bus, for an HD44780 whose port is set to it: 'e' has a
+   bit for each E line a cycle drives, bit 0 for E0. */
+extern uint8_t hd44780_bus_read(uint8_t e, int rs);
+extern void    hd44780_bus_write(uint8_t e, int rs, uint8_t val);
 enum {
     HD44780_COLOR_GREEN = 0,
     HD44780_COLOR_BLUE,
