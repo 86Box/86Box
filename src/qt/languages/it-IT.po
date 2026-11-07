@@ -2,7 +2,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "POT-Creation-Date: \n"
-"PO-Revision-Date: 2026-10-30 19:02+0100\n"
+"PO-Revision-Date: 2026-11-07 01:26+0100\n"
 "Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Italian <https://weblate.86box.net/projects/86box/86box/it/>\n"
 "Language: it_IT\n"
@@ -417,7 +417,7 @@ msgid "Memory:"
 msgstr "Memoria:"
 
 msgid "Synchronize with host clock"
-msgstr "Sincronizzazione dell'ora con il sistema"
+msgstr "Sincronizza l'ora con il sistema"
 
 msgid "Time zone:"
 msgstr "Fuso orario:"
@@ -492,7 +492,7 @@ msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Scheda grafica IBM PS/55 Display Adapter"
 
 msgid "PowerVR PCX1/PCX2 Graphics"
-msgstr ""
+msgstr "Scheda grafica PowerVR PCX1/PCX2"
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -3800,19 +3800,19 @@ msgid "Authentication is required to prepare PCI devices for passthrough to 86Bo
 msgstr "È richiesta l'autenticazione per preparare i dispositivi PCI al passaggio diretto verso 86Box."
 
 msgid "Disabled"
-msgstr ""
+msgstr "Disabilitato"
 
 msgid "Unlimited capacity"
-msgstr ""
+msgstr "Capacità illimitata"
 
 msgid "CD speed:"
-msgstr ""
+msgstr "Velocità CD:"
 
 msgid "DVD speed:"
-msgstr ""
+msgstr "Velocità DVD:"
 
 msgid "HD/BD speed:"
-msgstr ""
+msgstr "Velocità HD/BD:"
 
 msgid "Software-initiated poweroff device (IBM 5140)"
-msgstr ""
+msgstr "Dispositivo per spegnimento via software (IBM 5140)"
