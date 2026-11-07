@@ -923,6 +923,13 @@ rage128_pm4_pump(rage128_t *dev)
             timer_set_delay_u64(&dev->cce_pump_timer, 100 * TIMER_USEC);
     }
 
+    /* After the read pointer test above: a packet that changed the
+       interrupt registers marked INTA stale before the executor moved
+       the retire pointer past it. Either the test saw that pointer
+       still behind and armed the timer, so a later pump comes back
+       here, or the mark is already visible to this sync. */
+    rage128_gen_int_sync(dev);
+
     return result;
 }
 

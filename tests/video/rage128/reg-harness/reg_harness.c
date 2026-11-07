@@ -58,6 +58,7 @@ extern int      harness_log_quiet;
 extern int      harness_ticks_override;
 extern uint32_t harness_ticks_ms;
 extern uint64_t harness_sysmem_stray;
+extern uint64_t harness_irq_offthread;
 extern void     harness_ram_alloc(void);
 extern void     harness_video_luts_init(void);
 extern uint8_t (*harness_pci_read)(int func, int addr, int len, void *priv);
@@ -5665,6 +5666,113 @@ vectors_pio_ingress(rage128_t *dev)
     check_true("pm4: PIO ingress never bus-masters", harness_sysmem_stray == 0);
 
     rr_reset(dev);
+}
+
+/* GEN_INT_CNTL, GEN_INT_STATUS and a manual snapshot written by packets.
+   A type-0 packet can name any register, these among them; the packets
+   run on the CCE thread, and the emulator's interrupt code is not
+   thread-safe, so the register values must change when the packet runs
+   but the INTA update must be made by the CPU thread: at its next
+   register read, or at the next ring pump. harness_irq_offthread
+   counts every line update made off the CPU thread. */
+#define PKT0_GEN_INT_CNTL   (RAGE128_GEN_INT_CNTL >> 2)
+#define PKT0_GEN_INT_STATUS (RAGE128_GEN_INT_STATUS >> 2)
+#define PKT0_SNAPSHOT_VIF   (RAGE128_SNAPSHOT_VIF_COUNT >> 2)
+
+static void
+vectors_cce_gen_int(rage128_t *dev)
+{
+    uint32_t *tbl  = (uint32_t *) (ram + GART_TABLE_PHYS);
+    uint32_t *ring = (uint32_t *) (ram + RING_PHYS);
+    uint32_t  pkt[2];
+    uint64_t  off0;
+
+    harness_ram_alloc();
+    harness_sysmem_stray = 0;
+    rr_reset(dev);
+    wr(dev, RAGE128_GEN_INT_CNTL, 0);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_ACK_MASK);
+    wr(dev, RAGE128_SNAPSHOT_VIF_COUNT, 0);
+    off0 = harness_irq_offthread;
+
+    /* PIO: the status is latched by the CPU, the enable comes from the
+       stream. */
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x70000000);
+    wr(dev, RAGE128_PM4_MICRO_CNTL, 0x40000000);
+    wr(dev, RAGE128_SNAPSHOT_VIF_COUNT, 1u << 25);
+    check32("cce int: unarmed snapshot leaves INTA low", (uint32_t) dev->irq_state, 0);
+    pkt[0] = PKT0_GEN_INT_CNTL;
+    pkt[1] = RAGE128_GIC_SNAPSHOT_EN;
+    pio_submit(dev, pkt, 2);
+    rr_quiesce(dev);
+    check32("cce int: a packet write of GEN_INT_CNTL lands",
+            rd(dev, RAGE128_GEN_INT_CNTL), RAGE128_GIC_SNAPSHOT_EN);
+    check32("cce int: arming from the stream asserts INTA by the next register read",
+            (uint32_t) dev->irq_state, 1);
+
+    /* The acknowledge from the stream drops the line. */
+    pkt[0] = PKT0_GEN_INT_STATUS;
+    pkt[1] = RAGE128_GIS_SNAPSHOT;
+    pio_submit(dev, pkt, 2);
+    rr_quiesce(dev);
+    check32("cce int: a packet acknowledge clears SNAPSHOT_INT",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_SNAPSHOT, 0);
+    check32("cce int: the packet acknowledge drops INTA", (uint32_t) dev->irq_state, 0);
+
+    /* An event latched by the CPU after the stream's acknowledge is not
+       lost to it. */
+    wr(dev, RAGE128_SNAPSHOT_VIF_COUNT, 1u << 25);
+    check32("cce int: a CPU event after the packet acknowledge asserts INTA",
+            (uint32_t) dev->irq_state, 1);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_SNAPSHOT);
+    check32("cce int: the CPU acknowledge drops INTA", (uint32_t) dev->irq_state, 0);
+
+    /* A snapshot taken by a packet latches SNAPSHOT_INT and, armed,
+       asserts INTA. */
+    pkt[0] = PKT0_SNAPSHOT_VIF;
+    pkt[1] = 1u << 25;
+    pio_submit(dev, pkt, 2);
+    rr_quiesce(dev);
+    check32("cce int: a packet snapshot latches SNAPSHOT_INT",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_SNAPSHOT, RAGE128_GIS_SNAPSHOT);
+    check32("cce int: the armed packet snapshot asserts INTA", (uint32_t) dev->irq_state, 1);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_SNAPSHOT);
+    wr(dev, RAGE128_GEN_INT_CNTL, 0);
+    wr(dev, RAGE128_SNAPSHOT_VIF_COUNT, 0);
+
+    /* Ring: the pump, which runs on the CPU thread, brings INTA up to
+       date with no register read in between. */
+    rr_reset(dev);
+    memset(ram + GART_TABLE_PHYS, 0, 0x1000);
+    memset(ram + RING_PHYS, 0, 0x1000);
+    tbl[RING_CARD_ADDR >> 12] = RING_PHYS;
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    gart_table_on(dev, GART_TABLE_PHYS);
+    wr(dev, RAGE128_AGP_BASE, 0);
+    wr(dev, RAGE128_PM4_BUFFER_OFFSET, RING_CARD_ADDR);
+    wr(dev, RAGE128_SNAPSHOT_VIF_COUNT, 1u << 25);
+    ring[0] = PKT0_GEN_INT_CNTL;
+    ring[1] = RAGE128_GIC_SNAPSHOT_EN;
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x80000003);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 2);
+    rr_quiesce(dev);
+    rage128_pm4_kick(dev);
+    check32("cce int: a ring write of GEN_INT_CNTL asserts INTA by the next pump",
+            (uint32_t) dev->irq_state, 1);
+    check32("cce int: the ring write lands",
+            rd(dev, RAGE128_GEN_INT_CNTL), RAGE128_GIC_SNAPSHOT_EN);
+
+    check32("cce int: no interrupt line update was made off the CPU thread",
+            (uint32_t) (harness_irq_offthread - off0), 0);
+    check_true("cce int: no stray bus-master access", harness_sysmem_stray == 0);
+
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_SNAPSHOT);
+    wr(dev, RAGE128_GEN_INT_CNTL, 0);
+    wr(dev, RAGE128_SNAPSHOT_VIF_COUNT, 0);
+    rr_reset(dev);
+    wr(dev, RAGE128_PCI_GART_PAGE, 1);
+    pci_wr8(0x04, 0x03);
 }
 
 /* ------------------------------------------------------------------ */
@@ -13576,6 +13684,7 @@ run_agp_32mb(void)
     vectors_pio_mode_gate(dev);
     vectors_ring_size_encode(dev);
     vectors_pio_ingress(dev);
+    vectors_cce_gen_int(dev);
     vectors_bm_chunk_tap(dev);
     vectors_modeset_tap(dev);
     vectors_early_arms(dev);

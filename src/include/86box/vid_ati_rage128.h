@@ -498,10 +498,16 @@ typedef struct rage128_t {
                                      pp. 3-70-3-71 / PDF 88-89)          */
     int vblank_save;              /* CRTC_STATUS[1] sticky vblank         */
 
-    /* Interrupt controller (GEN_INT_CNTL/STATUS 0x0040/0x0044). */
-    uint32_t gen_int_cntl;   /* enable mask                          */
-    uint32_t gen_int_status; /* latched events (write 1 to ack)      */
-    uint8_t  irq_state;      /* PCI INTA assert shadow (pci_set_irq) */
+    /* Interrupt controller (GEN_INT_CNTL/STATUS 0x0040/0x0044). Packets
+       write both registers on the CCE thread while the CPU thread latches
+       events into the status, so both are atomic. Only the CPU thread
+       drives INTA; a change made on the CCE thread marks the line stale
+       and the CPU thread brings it up to date. */
+    atomic_uint gen_int_cntl;   /* enable mask                          */
+    atomic_uint gen_int_status; /* latched events (write 1 to ack)      */
+    atomic_int  gen_int_stale;  /* INTA not yet re-evaluated after a
+                                   change made on the CCE thread        */
+    uint8_t     irq_state;      /* PCI INTA assert shadow (pci_set_irq) */
 
     /* 2D GUI engine context (vid_ati_rage128_2d.c). Registers hold the
        packed spec encodings; the executors decode on use. */
@@ -2079,6 +2085,7 @@ extern void     rage128_gui_trig_vline_tick(rage128_t *dev);
 extern void     rage128_conv_close(rage128_t *dev);
 extern void     rage128_vline_timer(void *priv);
 extern void     rage128_gen_int_update(rage128_t *dev);
+extern void     rage128_gen_int_sync(rage128_t *dev);
 extern void     rage128_gen_int_vblank(rage128_t *dev);
 extern void     rage128_gen_int_vsync(rage128_t *dev);
 

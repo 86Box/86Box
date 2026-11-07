@@ -2037,7 +2037,7 @@ rage128_vline_timer(void *priv)
 {
     rage128_t *dev = (rage128_t *) priv;
 
-    dev->gen_int_status |= RAGE128_GIS_VLINE;
+    atomic_fetch_or(&dev->gen_int_status, RAGE128_GIS_VLINE);
     rage128_gen_int_update(dev);
 }
 
@@ -2096,7 +2096,7 @@ rage128_snapshot_take(rage128_t *dev)
     dev->snapshot_vh_counts = rage128_snapshot_hcount(dev)
         | (((uint32_t) dev->svga.displine & 0x7ff) << 16);
     dev->snapshot_f_count = dev->frame_count & 0x1fffff;
-    dev->gen_int_status |= RAGE128_GIS_SNAPSHOT;
+    atomic_fetch_or(&dev->gen_int_status, RAGE128_GIS_SNAPSHOT);
     rage128_gen_int_update(dev);
 }
 

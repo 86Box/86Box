@@ -26,6 +26,7 @@
  *
  *          Copyright 2026 skiretic.
  */
+#include <pthread.h>
 #include <stdarg.h>
 #include <stdatomic.h>
 #include <stdint.h>
@@ -450,6 +451,14 @@ void (*harness_pci_write)(int func, int addr, int len, uint8_t val, void *priv);
 void   *harness_pci_priv;
 int     harness_irq_level; /* current INTA line state */
 
+/* The PIC and PCI interrupt code of the emulator takes no lock, so only
+   the emulation thread may drive an interrupt line. Here that thread is
+   the one that registers the card; every line update made from any
+   other thread is counted, so a vector can pin the count at zero. */
+static pthread_t harness_cpu_thread;
+static int       harness_cpu_thread_set;
+uint64_t         harness_irq_offthread;
+
 void
 pci_add_card(uint8_t add_type,
              uint8_t (*read)(int func, int addr, int len, void *priv),
@@ -457,6 +466,8 @@ pci_add_card(uint8_t add_type,
              void *priv, uint8_t *slot)
 {
     (void) add_type;
+    harness_cpu_thread     = pthread_self();
+    harness_cpu_thread_set = 1;
     harness_pci_read  = read;
     harness_pci_write = write;
     harness_pci_priv  = priv;
@@ -479,6 +490,8 @@ void
 pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
 {
     (void) slot; (void) pci_int; (void) level;
+    if (harness_cpu_thread_set && !pthread_equal(pthread_self(), harness_cpu_thread))
+        harness_irq_offthread++;
     harness_irq_level = !!set;
     *irq_state        = !!set;
 }
