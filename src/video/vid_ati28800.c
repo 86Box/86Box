@@ -79,6 +79,7 @@ typedef struct ati28800_t {
     int      ksc5601_mode_enabled;
 
     int type, type_korean;
+    int rom_paged;
 } ati28800_t;
 
 static video_timings_t timing_ati28800     = { .type = VIDEO_ISA, .write_b = 3, .write_w = 3, .write_l = 6, .read_b = 5, .read_w = 5, .read_l = 10 };
@@ -104,8 +105,8 @@ ati28800_log(const char *fmt, ...)
 
 static void ati28800_recalctimings(svga_t *svga);
 
-/* The VGA Wonder XL24 has a 64 KB BIOS (two 32 KB EPROMs) but decodes only the
-   32 KB its header declares. Register A5h pages the rest in, 4 KB at a time:
+/* The VGA Wonder XL and XL24 have a 64 KB BIOS but decode only the 32 KB its
+   header declares. Register A5h pages the rest in, 4 KB at a time:
    bits 3:0 pick the ROM page seen at C6000-C6FFF and bits 7:4 the one at
    C7000-C7FFF; 76h is the identity mapping. The BIOS selects page 9 (or Dh)
    for a multisync monitor: it holds the lookup for the 800x600 and 1024x768
@@ -142,6 +143,22 @@ ati28800_rom_window_recalc(ati28800_t *ati28800)
 
     /* The same addresses now hold different code. */
     mem_invalidate_range(0xc6000, 0xc7fff);
+}
+
+/* Call after loading the 64 KB image at C0000. */
+static void
+ati28800_rom_paging_init(ati28800_t *ati28800)
+{
+    mem_mapping_set_addr(&ati28800->bios_rom.mapping, 0xc0000, 0x6000);
+    for (int i = 0; i < 2; i++)
+        mem_mapping_add(&ati28800->rom_window[i], 0xc6000 + (i << 12), 0x1000,
+                        ati28800_rom_window_readb, ati28800_rom_window_readw, ati28800_rom_window_readl,
+                        NULL, NULL, NULL,
+                        NULL, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM_WS, ati28800);
+
+    ati28800->rom_paged  = 1;
+    ati28800->regs[0xa5] = 0x76;
+    ati28800_rom_window_recalc(ati28800);
 }
 
 static void
@@ -196,7 +213,7 @@ ati28800_out(uint16_t addr, uint8_t val, void *priv)
                     }
                     break;
                 case 0xa5:
-                    if ((ati28800->type == VGAWONDERXL24) && (old != val))
+                    if (ati28800->rom_paged && (old != val))
                         ati28800_rom_window_recalc(ati28800);
                     break;
                 case 0xb3:
@@ -706,8 +723,9 @@ ati28800_init(const device_t *info)
             ati28800->id = 5;
             rom_init(&ati28800->bios_rom,
                      BIOS_VGAXL_ROM_PATH,
-                     0xc0000, 0x8000, 0x7fff,
+                     0xc0000, 0x10000, 0xffff,
                      0, MEM_MAPPING_EXTERNAL);
+            ati28800_rom_paging_init(ati28800);
             ati28800->svga.ramdac = device_add(&sc11486_ramdac_device);
             break;
 
@@ -728,17 +746,8 @@ ati28800_init(const device_t *info)
                                  BIOS_XL24_ODD_PATH,
                                  0xc0000, 0x10000, 0xffff,
                                  0, MEM_MAPPING_EXTERNAL);
+            ati28800_rom_paging_init(ati28800);
             ati28800->svga.ramdac = device_add(&bt481_ramdac_device);
-
-            /* Only the first 32 KB are decoded, with 4 KB windows at C6000 and C7000. */
-            mem_mapping_set_addr(&ati28800->bios_rom.mapping, 0xc0000, 0x6000);
-            for (int i = 0; i < 2; i++)
-                mem_mapping_add(&ati28800->rom_window[i], 0xc6000 + (i << 12), 0x1000,
-                                ati28800_rom_window_readb, ati28800_rom_window_readw, ati28800_rom_window_readl,
-                                NULL, NULL, NULL,
-                                NULL, MEM_MAPPING_EXTERNAL | MEM_MAPPING_ROM_WS, ati28800);
-            ati28800->regs[0xa5] = 0x76;
-            ati28800_rom_window_recalc(ati28800);
             break;
 
         default:
@@ -861,7 +870,7 @@ static const device_config_t ati28800_5_config[] = {
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
                 .local         = VGAWONDERXL,
-                .size          = 32768,
+                .size          = 65536,
                 .flags         = 0,
                 .files         = { BIOS_VGAXL_ROM_PATH, "" }
             },
