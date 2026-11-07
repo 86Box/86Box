@@ -798,6 +798,32 @@ mc_slot_src2(const rage128_t *dev, uint32_t slot)
     return dev->mc.sec_off[slot + 1];
 }
 
+/* With the GPU backend on, 3D draws and queued 2D operations issued
+   before a launch may not have run yet: their stores reach VRAM only when
+   their segment completes, and a queued draw samples its textures only
+   when it runs. The command FIFO runs operations in the order they were
+   issued (RRG: Memory Mapping, Figure 2-1, p. 2-4 / PDF 14), so before a
+   launch touches VRAM it waits for GPU work that stores into the bytes it
+   reads or stores, and, for the bytes it stores, also for GPU work that
+   samples them. The wait is the 2D engine's per-surface barrier, which
+   also marks the stored bytes for the backend's copy of VRAM; it fits
+   because a launch runs where a 2D operation runs, on the command thread
+   or on the CPU thread once a GUI register write has drained that
+   thread. The launch addresses every byte through the VRAM mask, so a
+   range that passes the top of local memory continues at the bottom, and
+   then it waits on all of VRAM. */
+static void
+mc_gpu_wait(rage128_t *dev, uint32_t addr, uint32_t len, int writes)
+{
+    uint32_t size = dev->vram_mask + 1u;
+    uint32_t lo   = addr & dev->vram_mask;
+
+    if ((uint64_t) lo + len > size)
+        rage128_gpu_2d_barrier(dev, 0, size, writes);
+    else
+        rage128_gpu_2d_barrier(dev, lo, len, writes);
+}
+
 /* Run one queued launch. resid is its slice of the assembled residual (h
    rows of 16). Returns the rows used, so the next launch starts where this
    one stopped; the HAL checks the total against 32 (RE: atimcraa.dll
@@ -852,6 +878,22 @@ mc_run(rage128_t *dev, const rage128_mc_cmd_t *c, const int16_t (*resid)[16])
         if (c->sec_tex && c->slot2 >= 0)
             a2 = mc_slot_src2(dev, (uint32_t) c->slot2)
                 + (c->x2 >> 1) + (c->y2 >> 1) * p2;
+    }
+    if (dev->gpu) {
+        /* A source row spans w bytes plus one for a half-pel average in
+           X, and a half-pel average in Y reads one more row. */
+        if (c->pred) {
+            mc_gpu_wait(dev, a1,
+                        (c->h - 1u) * p1 + c->w + (c->x1 & 1)
+                            + ((c->y1 & 1) ? p1 : 0),
+                        0);
+            if (c->sec_tex && c->slot2 >= 0)
+                mc_gpu_wait(dev, a2,
+                            (c->h - 1u) * p2 + c->w + (c->x2 & 1)
+                                + ((c->y2 & 1) ? p2 : 0),
+                            0);
+        }
+        mc_gpu_wait(dev, dst, (c->h - 1u) * pd + c->w, 1);
     }
     for (uint32_t y = 0; y < c->h; y++) {
         for (uint32_t x = 0; x < c->w; x++) {

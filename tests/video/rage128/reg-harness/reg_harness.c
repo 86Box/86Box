@@ -13072,6 +13072,189 @@ vectors_mpeg_mb(rage128_t *dev)
 #undef MC_PX
 }
 
+/* MPEG motion compensation against 3D draws still queued on the GPU
+   backend. The command FIFO runs operations in the order they were
+   issued (RRG: Memory Mapping, Figure 2-1, p. 2-4 / PDF 14), so a launch
+   issued after a draw sees the draw's pixels and its stores land after
+   the draw's, and a draw issued before a launch samples the texels from
+   before it. With the backend on, a draw is only captured at submit and
+   runs at the next fence, so each leg issues the draw, then the launch
+   with no register write between them (a GUI register write drains the
+   engine), then fences. Every expected value is read back from a leg
+   that fences between the two operations. On the interpreter lanes the
+   draw lands at submit, and the legs pass trivially. */
+#define MG_A    0x00700000u /* 3D color target, 64 px ARGB8888 = 256 B/row */
+#define MG_D    0x00710000u /* launch destination of the first leg         */
+#define MG_T    0x00720000u /* 16x16 ARGB8888 texture, 64 B/row            */
+#define MG_SEED 0x11223344u
+#define MG_TEXV 0xff102030u
+#define MG_PX(x, y) (*(uint32_t *) &dev->svga.vram[MG_A + ((y) * 64 + (x)) * 4])
+
+/* An intra 16x16 launch at dst whose one coefficient is a zero DC: every
+   stored byte is the intra offset, 128. dcntl is the MC_DST_CNTL word the
+   packet carries. */
+static void
+mg_intra(rage128_t *dev, uint32_t dst, uint32_t dcntl)
+{
+    uint32_t pl[14];
+
+    pl[0] = 0x20;              /* mode: intra */
+    pl[1] = 7;                 /* record: DST + START */
+    pl[2] = dcntl;             /* DST_CNTL */
+    pl[3] = 0xc0000000u | dst; /* START: 16x16, slot 0, no prediction */
+    pl[4] = 1;                 /* record: four run-level pairs */
+    pl[5] = 0;
+    pl[6] = 0;
+    pl[7] = 0;
+    for (uint32_t i = 0; i < 6; i++)
+        pl[8 + i] = 0;         /* six end-of-block records */
+    rage128_mpeg_packet3(dev, 0x31u << 8, pl, 14);
+}
+
+/* An inter 16x16 launch at dst: full-pel prediction from source slot 0
+   with a zero residual, a byte copy of the reference's 16x16 corner. */
+static void
+mg_copy(rage128_t *dev, uint32_t dst)
+{
+    uint32_t pl[9];
+
+    pl[0] = 0;                 /* mode: inter */
+    pl[1] = 3;                 /* record: START only */
+    pl[2] = 0xc2000000u | dst; /* 16x16, prediction, slot 0 */
+    for (uint32_t i = 0; i < 6; i++)
+        pl[3 + i] = 0;
+    rage128_mpeg_packet3(dev, 0x31u << 8, pl, 9);
+}
+
+static void
+vectors_mpeg_gpu_order(rage128_t *dev)
+{
+    static const uint32_t saved_regs[] = {
+        RAGE128_DEFAULT_SC_BOTTOM_RIGHT, RAGE128_SC_TOP_LEFT,
+        RAGE128_SC_BOTTOM_RIGHT, RAGE128_DP_CNTL, RAGE128_DP_WRITE_MASK,
+        RAGE128_AUX_SC_CNTL, RAGE128_DP_DATATYPE, RAGE128_TEX_CNTL_C,
+        RAGE128_MISC_3D_STATE_CNTL, RAGE128_PLANE_3D_MASK_C,
+        RAGE128_SETUP_CNTL, RAGE128_WINDOW_XY_OFFSET, RAGE128_SCALE_3D_CNTL,
+        RAGE128_DST_PITCH_OFFSET_C, RAGE128_TEX_SIZE_PITCH_C,
+        RAGE128_PRIM_TEX_CNTL_C, RAGE128_PRIM_TEX_OFFSET_C(0),
+        RAGE128_PRIM_TEX_COMBINE_CNTL_C, RAGE128_SCALE_PITCH,
+        RAGE128_DST_PITCH, RAGE128_PRIM_TEX_OFFSET(0)
+    };
+    uint32_t saved[sizeof(saved_regs) / sizeof(saved_regs[0])];
+    uint32_t e_old, e_new, t_new;
+    int      bad;
+
+    for (size_t i = 0; i < sizeof(saved) / sizeof(saved[0]); i++)
+        saved[i] = rd(dev, saved_regs[i]);
+    flush_sync(dev);
+    /* 64x64 ARGB8888 target at MG_A, no Z, no texture. */
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0x00000000);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x003f003f);
+    wr(dev, RAGE128_DP_CNTL, 0x00000003);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0x00000000);
+    wr(dev, RAGE128_DP_DATATYPE, 0x00000006);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_SETUP_CNTL, 0x00000020);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (MG_A >> 5));
+    /* Launches: source 1 is the target itself at its 256-byte pitch. The
+       destination pitch base is DST_PITCH, which the 3D target's 64-pixel
+       pitch also sets: 8 units, 64 bytes for a launch, so a launch into
+       the target sets a pitch multiplier of 4 in MC_DST_CNTL. */
+    wr(dev, RAGE128_SCALE_PITCH, 256 / 8);
+    wr(dev, RAGE128_DST_PITCH, 64 / 8);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET(0), MG_A);
+    wr(dev, RAGE128_MC_SRC1_CNTL, RAGE128_MC_SRC1_IDCT_EN);
+    wr(dev, RAGE128_MC_DST_CNTL, 2u << 30);
+
+    /* Read after write: the prediction copies the target's corner while
+       the draw that paints it is still queued. */
+    for (uint32_t i = 0; i < 64 * 64; i++)
+        MG_PX(i & 63, i >> 6) = MG_SEED;
+    memset(&dev->svga.vram[MG_D], 0, 16 * 256);
+    flush_sync(dev);
+    tl_draw_z(dev, 0.0f, 16.0f, 0xffc04020, 0.25f);
+    mg_copy(dev, MG_D);
+    gpu_sync(dev);
+    check32("mpeg gpu: the draw painted the reference", MG_PX(0, 0), 0xffc04020);
+    bad = 0;
+    for (uint32_t r = 0; r < 16; r++)
+        bad += memcmp(&dev->svga.vram[MG_D + r * 256],
+                      &dev->svga.vram[MG_A + r * 256], 16) != 0;
+    check32("mpeg gpu: prediction reads the pixels of a queued draw", bad, 0);
+
+    /* Write after write: the launch stores into the corner the queued
+       draw paints, and its bytes are the last ones there. */
+    for (uint32_t i = 0; i < 64 * 64; i++)
+        MG_PX(i & 63, i >> 6) = MG_SEED;
+    flush_sync(dev);
+    tl_draw_z(dev, 0.0f, 16.0f, 0xffc04020, 0.25f);
+    mg_intra(dev, MG_A, 2u << 30);
+    gpu_sync(dev);
+    bad = 0;
+    for (uint32_t r = 0; r < 16; r++)
+        for (uint32_t x = 0; x < 16; x++)
+            bad += dev->svga.vram[MG_A + r * 256 + x] != 128;
+    check32("mpeg gpu: launch stores land over a queued draw", bad, 0);
+    check32("mpeg gpu: the draw keeps the pixels past the launch",
+            MG_PX(8, 0), 0xffc04020);
+
+    /* The texture legs: a 16x16 texture sampled with a replace color
+       combine, so a pixel's color channels are those of the texel it
+       samples (its alpha here is the vertex alpha), and launches into the
+       texture at its 64-byte pitch, multiplier 1. */
+    wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00004444);
+    wr(dev, RAGE128_PRIM_TEX_CNTL_C, 6u << 16);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), MG_T);
+    wr(dev, RAGE128_PRIM_TEX_COMBINE_CNTL_C, 0x00184041u);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000010);
+    for (uint32_t i = 0; i < 256; i++)
+        *(uint32_t *) &dev->svga.vram[MG_T + i * 4] = MG_TEXV;
+    for (uint32_t i = 0; i < 64 * 64; i++)
+        MG_PX(i & 63, i >> 6) = MG_SEED;
+    flush_sync(dev);
+    tl_draw_tex(dev);
+    gpu_sync(dev);
+    e_old = MG_PX(2, 2);
+    check32("mpeg gpu: the draw samples the seeded texel", e_old & 0xffffffu,
+            MG_TEXV & 0xffffffu);
+    /* Read after a launch's write, with nothing else storing between
+       them: the draw sees the texels only if the launch marked its
+       stores for the GPU backend's copy of VRAM. */
+    mg_intra(dev, MG_T, 0);
+    tl_draw_tex(dev);
+    gpu_sync(dev);
+    e_new = MG_PX(2, 2);
+    t_new = *(uint32_t *) &dev->svga.vram[MG_T];
+    check_true("mpeg gpu: the launch changes the sampled texel", e_new != e_old);
+    check32("mpeg gpu: a draw after a launch samples its stores",
+            e_new & 0xffffffu, t_new & 0xffffffu);
+
+    /* Write after read: the queued draw samples the texture, then the
+       launch overwrites it. The draw must see the texels from before. */
+    for (uint32_t i = 0; i < 256; i++)
+        *(uint32_t *) &dev->svga.vram[MG_T + i * 4] = MG_TEXV;
+    for (uint32_t i = 0; i < 64 * 64; i++)
+        MG_PX(i & 63, i >> 6) = MG_SEED;
+    flush_sync(dev);
+    tl_draw_tex(dev);
+    mg_intra(dev, MG_T, 0);
+    gpu_sync(dev);
+    check32("mpeg gpu: a queued draw samples the texels from before a launch",
+            MG_PX(2, 2), e_old);
+    check32("mpeg gpu: the launch over the texture still lands",
+            *(uint32_t *) &dev->svga.vram[MG_T], t_new);
+
+    for (size_t i = 0; i < sizeof(saved) / sizeof(saved[0]); i++)
+        wr(dev, saved_regs[i], saved[i]);
+}
+#undef MG_PX
+
 /* ------------------------------------------------------------------ */
 /* NEXT_VERTEX_BUNDLE (type-3 0x2e): index continuation of a           */
 /* 3D_RNDR_GEN_INDX_PRIM whose VC_CNTL NUM exceeds the index dwords    */
@@ -13811,6 +13994,7 @@ run_agp_32mb(void)
     vectors_vertex_page_straddle(dev);
     vectors_rt_geom_key(dev, 0); /* serial reference for the threaded run */
     vectors_mpeg_mb(dev);
+    vectors_mpeg_gpu_order(dev);
     vectors_3d_line_bresenham(dev);
     vectors_face_fn(dev);
     vectors_load_palette(dev);
