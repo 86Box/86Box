@@ -141,6 +141,7 @@ typedef struct svga_t {
     int ati_4color;
     int vblankend;
     int panning_blank;
+    int pan_latched; /* panning latched at the end of vertical retrace this frame */
     int render_line_offset;
     int start_retrace_latch;
     int vga_mode;
