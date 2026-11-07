@@ -22,7 +22,27 @@
  *
  *          Copyright 2026 skiretic.
  */
+#include <stdint.h>
+
+/* The capture's harness hook: the walked edge and depth values of each
+   span, kept so the vectors can check the plane seeds against them. */
+static void probe_span_tap(uint32_t i, int64_t e0, int64_t e1, int64_t e2, int64_t z);
+#define R128_GPU_SPAN_TAP(i, e0, e1, e2, z) probe_span_tap(i, e0, e1, e2, z)
+
 #include "../../../../src/video/vid_ati_rage128_gpu.c"
+
+#ifdef R128_GPU_HAVE_VULKAN
+static int64_t probe_walk[GPU_SPAN_CAP][4];
+
+static void
+probe_span_tap(uint32_t i, int64_t e0, int64_t e1, int64_t e2, int64_t z)
+{
+    probe_walk[i][0] = e0;
+    probe_walk[i][1] = e1;
+    probe_walk[i][2] = e2;
+    probe_walk[i][3] = z;
+}
+#endif
 
 #include "gpu_probe.h"
 
@@ -296,16 +316,32 @@ harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
         res->sctl = g->sctl_of[0];
         res->srm  = g->srm_of[0];
     }
+    /* The span record is packed and carries no edge or depth values;
+       they are computed here from the triangle's plane seeds as the
+       kernel computes them, so the vectors keep checking the values the
+       kernel starts each span from. */
     for (uint32_t i = 0; i < res->got; i++) {
-        out[i].x0   = sp[i].x0;
-        out[i].x1   = sp[i].x1;
-        out[i].py   = sp[i].py;
-        out[i].drow = sp[i].drow;
-        out[i].zrow = sp[i].zrow;
-        out[i].e0   = sp[i].e0;
-        out[i].e1   = sp[i].e1;
-        out[i].e2   = sp[i].e2;
-        out[i].zline = sp[i].zline;
+        const seg_tri_t *tt = &((const seg_tri_t *) g->slot[0].b_tris.map)[sp[i].pt >> 14];
+        uint64_t         x  = sp[i].xw & 0x3fffu;
+        uint64_t         y  = sp[i].pt & 0x3fffu;
+
+        out[i].x0    = (int32_t) x;
+        out[i].x1    = (int32_t) (x + ((sp[i].xw >> 14) & 0xffu));
+        out[i].py    = (int32_t) y;
+        out[i].drow  = sp[i].drow;
+        out[i].zrow  = sp[i].zrow;
+        out[i].e0    = (int64_t) ((uint64_t) tt->e0o + y * (uint64_t) tt->e0dyi
+                                  + x * (uint64_t) tt->e0dxi);
+        out[i].e1    = (int64_t) ((uint64_t) tt->e1o + y * (uint64_t) tt->e1dyi
+                                  + x * (uint64_t) tt->e1dxi);
+        out[i].e2    = (int64_t) ((uint64_t) tt->e2o + y * (uint64_t) tt->e2dyi
+                                  + x * (uint64_t) tt->e2dxi);
+        out[i].zline = (int64_t) ((uint64_t) tt->zo + y * (uint64_t) tt->dzy
+                                  + x * (uint64_t) tt->dZdx);
+        out[i].w_e0    = probe_walk[i][0];
+        out[i].w_e1    = probe_walk[i][1];
+        out[i].w_e2    = probe_walk[i][2];
+        out[i].w_zline = probe_walk[i][3];
     }
     if (g->ntris > 0) {
         const seg_tri_t *tt = (const seg_tri_t *) g->slot[0].b_tris.map;
@@ -358,7 +394,7 @@ harness_gpu_submit_probe(rage128_t *dev, const rage128_raster_state_t *rs,
     for (uint32_t i = 0; i < g->nspans; i++) {
         const seg_span_t *sp = &((const seg_span_t *) g->slot[0].b_spans.map)[i];
 
-        res->seg_px += (uint32_t) (sp->x1 - sp->x0 + 1);
+        res->seg_px += gpu_span_len(sp);
     }
     free(g->slot[0].b_spans.map);
     free(g->slot[0].b_tris.map);

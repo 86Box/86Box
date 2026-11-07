@@ -76,14 +76,19 @@ void harness_gpu_rng_fold(uint32_t vram_mask, int staged, uint32_t *lo,
    the state's own shape and not a residency artifact. */
 int harness_gpu_gate(rage128_t *dev, const rage128_raster_state_t *rs);
 
-/* One captured span record, as the kernel reads it: the column range and
-   row bases, plus the seeds the kernel starts the span from (the three
-   integer edge values and the fixed-point depth seed at x0). */
+/* One captured span record: the column range and row bases as the
+   kernel reads them; e0..zline, the three unbiased integer edge values
+   and the fixed-point depth at x0 as the kernel computes them from the
+   triangle's plane seeds; and w_e0..w_zline, the same values as the row
+   walk handed them to the capture, which the plane seeds must
+   reproduce. */
 typedef struct harness_gpu_span_t {
     int32_t  x0, x1, py;
     uint32_t drow, zrow;
     int64_t  e0, e1, e2;
     int64_t  zline;
+    int64_t  w_e0, w_e1, w_e2;
+    int64_t  w_zline;
     uint32_t group; /* the workgroup group the flush puts it in */
     uint32_t rank;  /* its position in that group's order */
     uint32_t level; /* the leveler's pass for it: a span that shares a

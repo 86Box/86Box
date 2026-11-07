@@ -1974,6 +1974,18 @@ typedef struct r128_jit_tri_t {
        biased edge value is one less than the true one, so compiled code
        adds these back before it converts an edge value to a weight. */
     int64_t e0b, e1b, e2b;
+    /* Plane seeds of the winding-normalized edge values and of the
+       fixed-point depth: the value at pixel (0, 0) and the per-row step.
+       Any pixel's value is seed + y * row step + x * column step in
+       wrapping 64-bit arithmetic, the same integers the row walk reaches
+       by adding the steps, because wrapping addition and multiplication
+       agree modulo 2^64 whatever the order. The edge seeds carry the
+       fill-rule bias as the walk's row values do. The GPU lane's span
+       capture records these once per triangle; compiled blocks do not
+       read them. */
+    int64_t e0o, e1o, e2o;
+    int64_t e0dyi, e1dyi, e2dyi;
+    int64_t zo, dzy;
 } r128_jit_tri_t;
 
 /* The interpreter's per-pixel texture-stage block (both stages, chroma

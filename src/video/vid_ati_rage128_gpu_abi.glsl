@@ -62,33 +62,41 @@
 #define GPU_BATCH_SLOTS (256 / GPU_SLOT_W)
 #define GPU_SLOT_MASK   (0xff & ~(GPU_SLOT_W - 1))
 
-/* One captured span: pixels x0..x1 of row py, from triangle tri. e0,
-   e1 and e2 are the three edge-function values at x0, and zline is the
-   fixed-point depth at x0 (r128_zfx in vid_ati_rage128.h: normalized
-   depth times 2^39). The host stores them as int64_t; here each is a
-   uvec2, low word first.
-   pad1 is not padding: the host sets it to 1 when all three edge values
-   stay within signed 32 bits across the whole span, and the shading
-   kernel then steps them as 32-bit integers instead of 64-bit ones.
+/* One captured span: pixels x0..x1 of row py, from triangle tri, packed
+   into two words. xw holds x0 in bits [13:0], x1 - x0 in bits [21:14]
+   and, in bit 31, the 32-bit edge flag: the host sets it when all three
+   edge values stay within signed 32 bits across the whole span, and the
+   shading kernel then computes them as 32-bit integers instead of
+   64-bit ones. pt holds py in bits [13:0] and tri in bits [26:14]. The
+   fields fit because the host clips x to the scissor (a 14-bit field
+   clamped at 0) and checks py against the 16384-row cap, cuts spans at
+   256 pixels, and holds a segment to at most 8192 triangles; the two
+   caps are compile-time asserts. The span carries no edge or depth values: the
+   kernel computes them from the triangle's plane seeds (seg_tri_t).
    drow and zrow are the byte addresses of the color row and the depth
    row. With bit 31 set, the row is in the staging buffers for an AGP
    render target (bindings 9 to 12) and the low 31 bits are an offset
-   into them rather than into VRAM. pad0 is unused. */
+   into them rather than into VRAM. */
 struct seg_span_t {
-    uvec2 e0, e1, e2;
-    uvec2 zline;
-    int   x0, x1, py, tri;
-    uint     drow, zrow;
-    uint     pad0, pad1;
+    uint xw, pt;
+    uint drow, zrow;
 };
 
 /* One triangle. Most fields are copies of the interpreter's triangle
    record (r128_jit_tri_t), draw state (rage128_draw_state_t) and
    texture context (r3d_texctx_t) under the same names;
    capture_tri_record in vid_ati_rage128_gpu.c fills the record.
-   e0dxi, e1dxi and e2dxi are the per-pixel x steps of the span's edge
-   values, and dZdx is the per-pixel step of the fixed-point depth,
-   both stored as in seg_span_t.
+   The 64-bit fields are uvec2, low word first. e0dxi, e1dxi and e2dxi
+   are the per-pixel x steps of the edge values and dZdx the per-pixel
+   step of the fixed-point depth (r128_zfx in vid_ati_rage128.h:
+   normalized depth times 2^39). e0o, e1o, e2o and zo are the values at
+   pixel (0, 0) and e0dyi, e1dyi, e2dyi and dzy the per-row steps, so
+   the edge value at pixel (x, y) is e0o + y * e0dyi + x * e0dxi, and
+   the depth zo + y * dzy + x * dZdx, in wrapping 64-bit arithmetic:
+   the same integers the host's row walk reaches by adding the steps.
+   The edge seeds are winding-normalized and carry back the fill-rule
+   bias, so these are the unbiased values the barycentric weights
+   take.
 
    st_cfg holds 8 words per texture stage: 0 texel datatype, plus bit 4
    when a fetched texel of an alpha-bearing datatype reads as alpha
@@ -107,6 +115,9 @@ struct seg_span_t {
 struct seg_tri_t {
     uvec2 e0dxi, e1dxi, e2dxi;
     uvec2 dZdx;
+    uvec2 e0o, e1o, e2o;
+    uvec2 e0dyi, e1dyi, e2dyi;
+    uvec2 zo, dzy;
     float invs, lod_bias;
     float    texw0, texh0, texw1, texh1;
     uint     zfn, z_wr;

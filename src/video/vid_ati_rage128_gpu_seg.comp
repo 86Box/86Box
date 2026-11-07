@@ -76,9 +76,10 @@
    subgroup size, only packing efficiency does.
 
    Depth: every renderer models depth as the same fixed-point plane
-   (r128_zfx in vid_ati_rage128.h), so a pixel's depth is the span's
-   zline plus i steps in 64-bit integers, the value the interpreter
-   reaches by stepping. zfx_at computes it per pixel.
+   (r128_zfx in vid_ati_rage128.h), so a pixel's depth is the
+   triangle's plane seed plus y row steps and x column steps in 64-bit
+   integers, the value the interpreter reaches by stepping. zfx_at
+   computes it per pixel.
 
    Bit-exactness rules:
    - every float local is `precise`, and the host sets
@@ -228,6 +229,37 @@ layout(std430, binding = 2) readonly buffer R { uint rows[]; };  /* pairs: batch
 layout(std430, binding = 3) readonly buffer O { uint slots[]; };
 layout(std430, binding = 4) readonly buffer S { seg_span_t spans[]; };
 layout(std430, binding = 5) readonly buffer T { seg_tri_t tris[]; };
+
+/* The packed span fields (seg_span_t in vid_ati_rage128_gpu_abi.glsl). */
+int
+span_x0(int si)
+{
+    return int(spans[si].xw & 0x3fffu);
+}
+
+uint
+span_len(int si)
+{
+    return ((spans[si].xw >> 14) & 0xffu) + 1u;
+}
+
+bool
+span_edge32(int si)
+{
+    return (spans[si].xw & 0x80000000u) != 0u;
+}
+
+int
+span_py(int si)
+{
+    return int(spans[si].pt & 0x3fffu);
+}
+
+int
+span_tri(int si)
+{
+    return int(spans[si].pt >> 14);
+}
 /* Imported tex_stage arena, word view: texture levels staged from AGP
    memory. A slot whose packed base has bit 31 set samples here with
    mask-then-add addressing (arena_off + (off & (slice - 1))), the
@@ -1249,12 +1281,13 @@ edge_i64(uvec2 e)
     return int64_t(uint64_t(e.x) | (uint64_t(e.y) << 32));
 }
 
-/* Fixed-point depth of pixel i of span si (r128_zfx), clamped to
-   [0, 1.0] = [0, 2^39] (r128_zfx_clamp). */
+/* Fixed-point depth (r128_zfx) of pixel (px, py) from the triangle's
+   plane seed, clamped to [0, 1.0] = [0, 2^39] (r128_zfx_clamp). */
 uint64_t
-zfx_at(int si, int ti, uint i)
+zfx_at(int ti, int px, int py)
 {
-    int64_t z = edge_i64(spans[si].zline) + int64_t(i) * edge_i64(tris[ti].dZdx);
+    int64_t z = edge_i64(tris[ti].zo) + int64_t(py) * edge_i64(tris[ti].dzy)
+              + int64_t(px) * edge_i64(tris[ti].dZdx);
 
     return (z < 0L) ? 0UL : ((z > (1L << 39)) ? (1UL << 39) : uint64_t(z));
 }
@@ -1269,7 +1302,8 @@ zfx_quant(uint64_t zc, uint zmax)
 void
 pixel(int si, int ti, uint i)
 {
-    int  px = spans[si].x0 + int(i);
+    int  px = span_x0(si) + int(i);
+    int  py = span_py(si);
     bool cdead = (C_FOLD != 0)
         ? (C_DEAD != 0)
         : (tris[ti].wmask == 0u
@@ -1280,38 +1314,46 @@ pixel(int si, int ti, uint i)
     /* The host clipped the span to the three edge inequalities, so every
        pixel in it is covered and the edges are not tested here. A draw
        with dead color needs no edge values; one with live color uses
-       them only for the barycentric weights. The capture sets pad1 when
-       all three edge values stay in signed 32-bit range across the span,
-       and the 32-bit path is then exact; otherwise the 64-bit path
+       them only for the barycentric weights. The capture sets the span's
+       32-bit edge flag when all three edge values stay in signed 32-bit
+       range across the span. The 32-bit path is then exact: it computes
+       the plane value modulo 2^32, which is the value itself when it
+       fits. The sum runs in unsigned arithmetic, whose wrap is defined
+       in every shading language the kernel is translated to (the seed
+       itself is usually outside 32 bits, so the partial sums do wrap),
+       and int() then keeps the bit pattern. Otherwise the 64-bit path
        runs. */
     if (!cdead) {
-        if ((B_FOLD & FB_EDGE) != 0 || spans[si].pad1 != 0u) {
-            int e0 = int(spans[si].e0.x) + int(i) * int(tris[ti].e0dxi.x);
-            int e1 = int(spans[si].e1.x) + int(i) * int(tris[ti].e1dxi.x);
-            int e2 = int(spans[si].e2.x) + int(i) * int(tris[ti].e2dxi.x);
+        if ((B_FOLD & FB_EDGE) != 0 || span_edge32(si)) {
+            int e0 = int(tris[ti].e0o.x + uint(py) * tris[ti].e0dyi.x
+                         + uint(px) * tris[ti].e0dxi.x);
+            int e1 = int(tris[ti].e1o.x + uint(py) * tris[ti].e1dyi.x
+                         + uint(px) * tris[ti].e1dxi.x);
+            int e2 = int(tris[ti].e2o.x + uint(py) * tris[ti].e2dyi.x
+                         + uint(px) * tris[ti].e2dxi.x);
 
             ef0 = float(e0);
             ef1 = float(e1);
             ef2 = float(e2);
         } else {
-            int64_t e0 = edge_i64(spans[si].e0)
-                       + int64_t(i) * edge_i64(tris[ti].e0dxi);
-            int64_t e1 = edge_i64(spans[si].e1)
-                       + int64_t(i) * edge_i64(tris[ti].e1dxi);
-            int64_t e2 = edge_i64(spans[si].e2)
-                       + int64_t(i) * edge_i64(tris[ti].e2dxi);
+            int64_t e0 = edge_i64(tris[ti].e0o) + int64_t(py) * edge_i64(tris[ti].e0dyi)
+                       + int64_t(px) * edge_i64(tris[ti].e0dxi);
+            int64_t e1 = edge_i64(tris[ti].e1o) + int64_t(py) * edge_i64(tris[ti].e1dyi)
+                       + int64_t(px) * edge_i64(tris[ti].e1dxi);
+            int64_t e2 = edge_i64(tris[ti].e2o) + int64_t(py) * edge_i64(tris[ti].e2dyi)
+                       + int64_t(px) * edge_i64(tris[ti].e2dxi);
 
             ef0 = float(e0);
             ef1 = float(e1);
             ef2 = float(e2);
         }
     }
-    if (!aux_pass(ti, px, spans[si].py))
+    if (!aux_pass(ti, px, py))
         return;
     /* A clear modeled stipple bit discards before depth and stencil;
        destination coordinates select the captured row and reversed bit. */
     if (tris[ti].stip_en != 0u
-        && ((tris[ti].stipple[spans[si].py & 31] >> (31 - (px & 31))) & 1u) == 0u)
+        && ((tris[ti].stipple[py & 31] >> (31 - (px & 31))) & 1u) == 0u)
         return;
 
     /* Barycentric weights only (three multiplies). The four Gouraud
@@ -1344,7 +1386,7 @@ pixel(int si, int ti, uint i)
     if (V_Z != 0) {
         uint zrw = spans[si].zrow;
 
-        zi    = zfx_quant(zfx_at(si, ti, i), zmax);
+        zi    = zfx_quant(zfx_at(ti, px, py), zmax);
         zstg  = (zrw & 0x80000000u) != 0u;
         zcell = zstg ? ((zrw & 0x7fffffffu) + uint(px) * zbpp)
                      : ((zrw + uint(px) * zbpp) & pc.vram_mask);
@@ -1592,7 +1634,7 @@ pixel(int si, int ti, uint i)
                (r128_zfx_fogpos), computed here, without a live depth
                cell, so the texture stages do not keep the operands
                live, as with Z writeback. */
-            uint64_t q  = (zfx_at(si, ti, i) * 255UL) >> 7;
+            uint64_t q  = (zfx_at(ti, px, py) * 255UL) >> 7;
             uint     fi = uint(q >> 32);
             uint     fr = uint(q);
             uint i1 = min(fi + 1u, 255u);
@@ -1759,7 +1801,7 @@ pixel(int si, int ti, uint i)
                   | (sat_u32(col[0] * 255.0 + 0.5) << 16)
                   | (sat_u32(col[1] * 255.0 + 0.5) << 8)
                   | sat_u32(col[2] * 255.0 + 0.5);
-        uint bidx = uint(spans[si].py & 3) * 4u + uint(px & 3);
+        uint bidx = uint(py & 3) * 4u + uint(px & 3);
 
         dst_write(daddr, tris[ti].dst_dt, outw,
                   tris[ti].dither != 0u ? int(BAYER4(bidx)) : -1,
@@ -1796,7 +1838,7 @@ pixel(int si, int ti, uint i)
             wcell = wstg ? ((wrw & 0x7fffffffu) + uint(px) * wbpp)
                          : ((wrw + uint(px) * wbpp) & pc.vram_mask);
             wua   = !wstg && (wcell & (wbpp - 1u)) != 0u;
-            wzi   = zfx_quant(zfx_at(si, ti, i), wmax);
+            wzi   = zfx_quant(zfx_at(ti, px, py), wmax);
         } else {
             wbpp = zbpp;  wshf = zshift; wmax = zmax; wstg = zstg;
             wcell = zcell; wua = zua;    wzi  = zi;
@@ -1837,8 +1879,8 @@ main()
         for (uint k = 0u; k < bc; k++) {
             int si = int(bb + k);
 
-            for (uint i = 0u; i < uint(spans[si].x1 - spans[si].x0 + 1); i++)
-                pixel(si, spans[si].tri, i);
+            for (uint i = 0u; i < span_len(si); i++)
+                pixel(si, span_tri(si), i);
         }
         return;
     }
@@ -1868,8 +1910,8 @@ main()
                invocation runs slower in the gputri bench when texture
                and Z are both live: the extra registers lower the number
                of workgroups the GPU keeps resident. */
-            if (i < uint(spans[si].x1 - spans[si].x0 + 1))
-                pixel(si, spans[si].tri, i);
+            if (i < span_len(si))
+                pixel(si, span_tri(si), i);
         }
     }
 }

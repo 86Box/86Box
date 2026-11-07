@@ -271,15 +271,42 @@ typedef struct r3d_texctx_t {
 /* ---- GPU-side records: must match vid_ati_rage128_gpu.c and the
    std430 blocks in vid_ati_rage128_gpu_seg.comp ---- */
 typedef struct seg_span_t {
-    int64_t  e0, e1, e2;
-    int64_t  zline;
-    int32_t  x0, x1, py, tri;
-    uint32_t drow, zrow, pad0, pad1;
+    /* x0 | (x1 - x0) << 14 | 32-bit edge flag << 31, py | tri << 14 */
+    uint32_t xw, pt;
+    uint32_t drow, zrow;
 } seg_span_t;
+
+static inline int32_t
+sp_x0(const seg_span_t *s)
+{
+    return (int32_t) (s->xw & 0x3fffu);
+}
+
+static inline int32_t
+sp_x1(const seg_span_t *s)
+{
+    return sp_x0(s) + (int32_t) ((s->xw >> 14) & 0xffu);
+}
+
+static inline int32_t
+sp_py(const seg_span_t *s)
+{
+    return (int32_t) (s->pt & 0x3fffu);
+}
+
+static inline int32_t
+sp_tri(const seg_span_t *s)
+{
+    return (int32_t) (s->pt >> 14);
+}
 
 typedef struct seg_tri_t {
     int64_t  e0dxi, e1dxi, e2dxi;
     int64_t  dZdx;
+    /* plane seeds: the values at pixel (0, 0) and the per-row steps */
+    int64_t  e0o, e1o, e2o;
+    int64_t  e0dyi, e1dyi, e2dyi;
+    int64_t  zo, dzy;
     float    invs, lod_bias;
     float    texw0, texh0, texw1, texh1;
     uint32_t zfn, z_wr;
@@ -318,13 +345,13 @@ typedef struct seg_tri_t {
     uint32_t stipple[32];
 } seg_tri_t;
 
-_Static_assert(sizeof(seg_span_t) == 64, "span layout drift");
-_Static_assert(sizeof(seg_tri_t) == 1344, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, stip_en) == 332, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, stipple) == 1216, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, cc) == 140, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, st_cfg) == 352, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, slot0) == 480, "tri layout drift");
+_Static_assert(sizeof(seg_span_t) == 16, "span layout drift");
+_Static_assert(sizeof(seg_tri_t) == 1408, "tri layout drift");
+_Static_assert(offsetof(seg_tri_t, stip_en) == 396, "tri layout drift");
+_Static_assert(offsetof(seg_tri_t, stipple) == 1280, "tri layout drift");
+_Static_assert(offsetof(seg_tri_t, cc) == 204, "tri layout drift");
+_Static_assert(offsetof(seg_tri_t, st_cfg) == 416, "tri layout drift");
+_Static_assert(offsetof(seg_tri_t, slot0) == 544, "tri layout drift");
 
 /* The device's fixed-point depth (vid_ati_rage128.h r128_zfx and its
    helpers), copied as this file copies the records above: normalized
@@ -1593,7 +1620,11 @@ typedef struct gbuf {
 #define BATCH_LEVEL_MAX 1024u
 
 #define FZ_SPAN_CAP 8192u
-#define FZ_TRI_CAP  2048u
+/* one triangle record per emitted row (seg_add), so as many as spans;
+   the span record's triangle field is 13 bits */
+#define FZ_TRI_CAP  8192u
+_Static_assert(FZ_TRI_CAP <= (1u << 13), "span tri overflows its field");
+_Static_assert(FZ_TRI_CAP >= FZ_SPAN_CAP, "a record per row needs a record per span");
 #define FZ_RUN_CAP  64u
 _Static_assert(FZ_SPAN_CAP <= (1u << 24), "span index overflows batch slot");
 _Static_assert(BATCH_SLOTS == 256u / SLOT_W, "slot table mis-sized");
@@ -3071,14 +3102,33 @@ seg_edge32_span(int64_t e, int64_t dx, int32_t n)
         && last >= INT32_MIN && last <= INT32_MAX;
 }
 
-/* append one draw: tri record, run split at kernel change, spans chunked
-   at 256 px with sequential double-stepping (device capture mirror) */
+/* splitmix64: row steps for the per-row records, without drawing from
+   the fuzz's random stream */
+static inline uint64_t
+fz_mix(uint64_t x)
+{
+    x += 0x9e3779b97f4a7c15ull;
+    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ull;
+    x = (x ^ (x >> 27)) * 0x94d049bb133111ebull;
+    return x ^ (x >> 31);
+}
+
+/* Append one draw: run split at kernel change, spans chunked at 256 px
+   (device capture mirror). The kernel computes a span's edge and depth
+   values from its triangle record's plane seeds, while the fuzz gives
+   every row its own values, which no single plane holds. So each
+   emitted row gets its own copy of the draw's record, seeded so the
+   plane passes through that row's values: the row steps come from a
+   hash, which exercises the kernel's row term, and the value at pixel
+   (0, 0) steps back from the row's start in wrapping arithmetic. */
 static void
 seg_add_draw(const fz_draw_t *dr)
 {
     seg_tri_t *tt = &((seg_tri_t *) b_tris.map)[ntris];
+    seg_tri_t  proto;
 
     fill_tri(tt, dr);
+    proto = *tt;
     /* the device's tuple key carries the stencil-live bit (sel[14]), so
        a folded draw splits the run when sten flips; unfolded draws run
        the uber's runtime selector and never split on it */
@@ -3138,7 +3188,6 @@ seg_add_draw(const fz_draw_t *dr)
     }
     for (int i = 0; i < dr->nrows; i++) {
         const fz_row_t *rw = &dr->row[i];
-        int64_t zc = rw->zline;
         int64_t e0 = rw->e0, e1 = rw->e1, e2 = rw->e2;
         int32_t lo = 0, hi = dr->x1 - dr->x0;
         int32_t cx, rx1;
@@ -3147,7 +3196,29 @@ seg_add_draw(const fz_draw_t *dr)
             || !seg_clip_edge(e1, dr->e1dxi, &lo, &hi)
             || !seg_clip_edge(e2, dr->e2dxi, &lo, &hi))
             continue;
-        zc += (int64_t) lo * dr->dzx;
+        if (nspans >= FZ_SPAN_CAP)
+            continue; /* no span would be emitted, so no record either */
+        {
+            seg_tri_t *rt = &((seg_tri_t *) b_tris.map)[ntris];
+            uint64_t   h  = fz_mix(ntris);
+            uint64_t   ry = (uint64_t) (int64_t) rw->py;
+            uint64_t   rx = (uint64_t) (int64_t) dr->x0;
+
+            if (rt != tt)
+                *rt = proto;
+            rt->e0dyi = (int64_t) (h & 0xffffffu) - 0x800000;
+            rt->e1dyi = (int64_t) ((h >> 24) & 0xffffffu) - 0x800000;
+            rt->e2dyi = (int64_t) ((h >> 48) & 0xffffu) - 0x8000;
+            rt->dzy   = (int64_t) (fz_mix(h) & 0xffffffffffull) - 0x8000000000ll;
+            rt->e0o = (int64_t) ((uint64_t) rw->e0 - ry * (uint64_t) rt->e0dyi
+                                 - rx * (uint64_t) dr->e0dxi);
+            rt->e1o = (int64_t) ((uint64_t) rw->e1 - ry * (uint64_t) rt->e1dyi
+                                 - rx * (uint64_t) dr->e1dxi);
+            rt->e2o = (int64_t) ((uint64_t) rw->e2 - ry * (uint64_t) rt->e2dyi
+                                 - rx * (uint64_t) dr->e2dxi);
+            rt->zo  = (int64_t) ((uint64_t) rw->zline - ry * (uint64_t) rt->dzy
+                                 - rx * (uint64_t) dr->dzx);
+        }
         e0 += (int64_t) lo * dr->e0dxi;
         e1 += (int64_t) lo * dr->e1dxi;
         e2 += (int64_t) lo * dr->e2dxi;
@@ -3160,22 +3231,17 @@ seg_add_draw(const fz_draw_t *dr)
 
             if (cw > 256)
                 cw = 256;
-            sp->e0 = e0; sp->e1 = e1; sp->e2 = e2;
-            sp->zline = zc;
-            sp->x0   = cx;
-            sp->x1   = cx + cw - 1;
-            sp->py   = rw->py;
-            sp->tri  = (int32_t) ntris;
+            sp->xw   = ((uint32_t) cx & 0x3fffu) | ((uint32_t) (cw - 1) << 14)
+                     | ((seg_edge32_span(e0, dr->e0dxi, cw)
+                         && seg_edge32_span(e1, dr->e1dxi, cw)
+                         && seg_edge32_span(e2, dr->e2dxi, cw)) ? 0x80000000u : 0u);
+            sp->pt   = ((uint32_t) rw->py & 0x3fffu) | (ntris << 14);
             sp->drow    = g_c_stg
                             ? (((uint32_t) rw->py * ROW_PITCH) | 0x80000000u)
                             : g_c_off + (uint32_t) rw->py * ROW_PITCH;
             sp->zrow    = g_z_stg
                             ? (((uint32_t) rw->py * ROW_PITCH) | 0x80000000u)
                             : g_z_off + (uint32_t) rw->py * ROW_PITCH;
-            sp->pad0    = 0;
-            sp->pad1    = seg_edge32_span(e0, dr->e0dxi, cw)
-                       && seg_edge32_span(e1, dr->e1dxi, cw)
-                       && seg_edge32_span(e2, dr->e2dxi, cw);
             py_of[nspans] = (uint16_t) rw->py;
             bb_of_fill(nspans, cx, cx + cw - 1, dr);
             nspans++;
@@ -3202,14 +3268,13 @@ seg_add_draw(const fz_draw_t *dr)
                         ru->z1 = zro + bb_of[si].z1;
                 }
             }
-            zc += (int64_t) cw * dr->dzx;
             e0 += (int64_t) cw * dr->e0dxi;
             e1 += (int64_t) cw * dr->e1dxi;
             e2 += (int64_t) cw * dr->e2dxi;
             cx += cw;
         }
+        ntris++; /* this row's record */
     }
-    ntris++;
 }
 
 typedef struct fz_disp_t {
@@ -3319,7 +3384,7 @@ leveled:
     for (uint32_t k = 0; k < c; k++) {
         uint32_t j    = bylv[k];
         uint32_t si   = ord[j];
-        uint32_t need = ((uint32_t) (sp[si].x1 - sp[si].x0) + SLOT_W)
+        uint32_t need = ((uint32_t) (sp_x1(&sp[si]) - sp_x0(&sp[si])) + SLOT_W)
                         >> SLOT_SHIFT;
         uint32_t open = 0;
 
@@ -3803,8 +3868,8 @@ dump_mismatch(const char *tag, int kern, int it)
 
         for (uint32_t i = 0; i < nspans && i < 16; i++)
             printf("  span%u: drow=%06x zrow=%06x py=%d x=%d..%d tri=%d\n",
-                   i, sp[i].drow, sp[i].zrow, sp[i].py, sp[i].x0, sp[i].x1,
-                   sp[i].tri);
+                   i, sp[i].drow, sp[i].zrow, sp_py(&sp[i]), sp_x0(&sp[i]),
+                   sp_x1(&sp[i]), sp_tri(&sp[i]));
     }
     {
         const seg_tri_t *tt = (const seg_tri_t *) b_tris.map;
@@ -4638,23 +4703,23 @@ fuzz_wrap(int iters)
 
             for (uint32_t a = 0; a < nspans; a++)
                 for (uint32_t b = a + 1; b < nspans; b++) {
-                    if (sp[a].py != sp[b].py)
+                    if (sp_py(&sp[a]) != sp_py(&sp[b]))
                         continue;
                     if (sctl_of[a] && sctl_of[a] == sctl_of[b]
                         && srm_of[a] == srm_of[b])
                         continue;
-                    uint64_t acb = (tt[sp[a].tri].dst_dt == 6u) ? 4u : 2u;
-                    uint64_t bcb = (tt[sp[b].tri].dst_dt == 6u) ? 4u : 2u;
-                    uint64_t ac0 = (uint64_t) sp[a].x0 * acb;
-                    uint64_t ac1 = ((uint64_t) sp[a].x1 + 1u) * acb;
-                    uint64_t bc0 = (uint64_t) sp[b].x0 * bcb;
-                    uint64_t bc1 = ((uint64_t) sp[b].x1 + 1u) * bcb;
-                    uint64_t azb = tt[sp[a].tri].zbpp;
-                    uint64_t bzb = tt[sp[b].tri].zbpp;
-                    uint64_t az0 = (uint64_t) sp[a].x0 * azb;
-                    uint64_t az1 = ((uint64_t) sp[a].x1 + 1u) * azb;
-                    uint64_t bz0 = (uint64_t) sp[b].x0 * bzb;
-                    uint64_t bz1 = ((uint64_t) sp[b].x1 + 1u) * bzb;
+                    uint64_t acb = (tt[sp_tri(&sp[a])].dst_dt == 6u) ? 4u : 2u;
+                    uint64_t bcb = (tt[sp_tri(&sp[b])].dst_dt == 6u) ? 4u : 2u;
+                    uint64_t ac0 = (uint64_t) sp_x0(&sp[a]) * acb;
+                    uint64_t ac1 = ((uint64_t) sp_x1(&sp[a]) + 1u) * acb;
+                    uint64_t bc0 = (uint64_t) sp_x0(&sp[b]) * bcb;
+                    uint64_t bc1 = ((uint64_t) sp_x1(&sp[b]) + 1u) * bcb;
+                    uint64_t azb = tt[sp_tri(&sp[a])].zbpp;
+                    uint64_t bzb = tt[sp_tri(&sp[b])].zbpp;
+                    uint64_t az0 = (uint64_t) sp_x0(&sp[a]) * azb;
+                    uint64_t az1 = ((uint64_t) sp_x1(&sp[a]) + 1u) * azb;
+                    uint64_t bz0 = (uint64_t) sp_x0(&sp[b]) * bzb;
+                    uint64_t bz1 = ((uint64_t) sp_x1(&sp[b]) + 1u) * bzb;
                     int      truth = (ac0 < bc1 && bc0 < ac1)
                                   || (az0 < bz1 && bz0 < az1);
 
@@ -4663,8 +4728,8 @@ fuzz_wrap(int iters)
                         if (fails <= 5)
                             printf("FAIL: wrap it=%d spans %u/%u overlap "
                                    "but alias=0 (x %d..%d / %d..%d)\n",
-                                   it, a, b, sp[a].x0, sp[a].x1,
-                                   sp[b].x0, sp[b].x1);
+                                   it, a, b, sp_x0(&sp[a]), sp_x1(&sp[a]),
+                                   sp_x0(&sp[b]), sp_x1(&sp[b]));
                     }
                 }
         }

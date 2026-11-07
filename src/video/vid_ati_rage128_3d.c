@@ -2693,6 +2693,26 @@ r3d_setup(rage128_t *dev, const rage128_raster_state_t *rs,
             jt->e1b       = e1b;
             jt->e2b       = e2b;
             jt->dzx       = dzx;
+            {
+                /* the row walk's value at column x0 of row y0 is the
+                   seed, so the value at (0, 0) steps back from it */
+                uint64_t s0 = (uint64_t) e0ri - (uint64_t) y0 * (uint64_t) e0dyi
+                    - (uint64_t) x0 * (uint64_t) e0dxi;
+                uint64_t s1 = (uint64_t) e1ri - (uint64_t) y0 * (uint64_t) e1dyi
+                    - (uint64_t) x0 * (uint64_t) e1dxi;
+                uint64_t s2 = (uint64_t) e2ri - (uint64_t) y0 * (uint64_t) e2dyi
+                    - (uint64_t) x0 * (uint64_t) e2dxi;
+
+                jt->e0o   = (int64_t) (jneg ? 0u - s0 : s0);
+                jt->e1o   = (int64_t) (jneg ? 0u - s1 : s1);
+                jt->e2o   = (int64_t) (jneg ? 0u - s2 : s2);
+                jt->e0dyi = (int64_t) (jneg ? 0u - (uint64_t) e0dyi : (uint64_t) e0dyi);
+                jt->e1dyi = (int64_t) (jneg ? 0u - (uint64_t) e1dyi : (uint64_t) e1dyi);
+                jt->e2dyi = (int64_t) (jneg ? 0u - (uint64_t) e2dyi : (uint64_t) e2dyi);
+                jt->zo    = (int64_t) ((uint64_t) z0fx - (uint64_t) y0 * (uint64_t) dzy
+                                       - (uint64_t) x0 * (uint64_t) dzx);
+                jt->dzy   = dzy;
+            }
             memcpy(jt->vca, vca, sizeof(jt->vca));
             memcpy(jt->vcb, vcb, sizeof(jt->vcb));
             memcpy(jt->vcc, vcc, sizeof(jt->vcc));

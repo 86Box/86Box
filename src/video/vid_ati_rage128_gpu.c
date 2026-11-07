@@ -262,8 +262,8 @@ gpu_tel_close(void)
     }
 }
 
-/* The 64-bit fields of seg_span_t/seg_tri_t (edge functions, zline,
-   FOG_TABLE) are written as host words and read as uvec2 limbs, low
+/* The 64-bit fields of seg_tri_t (edge steps and plane seeds, the
+   depth step, FOG_TABLE) are written as host words and read as uvec2 limbs, low
    half first -- the whole record ABI is little-endian by construction. */
 #    if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) \
         && __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
@@ -627,15 +627,19 @@ r128_vk_load_instance(VkInstance inst)
    ifaca, x}, where x is the texture-lighting word in stage 0 and unused
    in stage 1. */
 typedef struct seg_span_t {
-    int64_t  e0, e1, e2;
-    int64_t  zline; /* fixed-point depth at x0 (r128_zfx) */
-    int32_t  x0, x1, py, tri;
-    uint32_t drow, zrow, pad0, pad1;
+    /* x0 | (x1 - x0) << 14 | 32-bit edge flag << 31, and py | tri << 14
+       (gpu_span_pack) */
+    uint32_t xw, pt;
+    uint32_t drow, zrow;
 } seg_span_t;
 
 typedef struct seg_tri_t {
     int64_t  e0dxi, e1dxi, e2dxi;
-    int64_t  dZdx; /* per-pixel step of zline */
+    int64_t  dZdx; /* per-pixel step of the fixed-point depth */
+    /* plane seeds: the values at pixel (0, 0) and the per-row steps */
+    int64_t  e0o, e1o, e2o;
+    int64_t  e0dyi, e1dyi, e2dyi;
+    int64_t  zo, dzy;
     float    invs, lod_bias;
     float    texw0, texh0, texw1, texh1;
     uint32_t zfn, z_wr;
@@ -675,13 +679,35 @@ typedef struct seg_tri_t {
     uint32_t stipple[32];
 } seg_tri_t;
 
-_Static_assert(sizeof(seg_span_t) == 64, "span layout drift");
-_Static_assert(sizeof(seg_tri_t) == 1344, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, stip_en) == 332, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, stipple) == 1216, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, cc) == 140, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, st_cfg) == 352, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, slot0) == 480, "tri layout drift");
+_Static_assert(sizeof(seg_span_t) == 16, "span layout drift");
+_Static_assert(sizeof(seg_tri_t) == 1408, "tri layout drift");
+_Static_assert(offsetof(seg_tri_t, stip_en) == 396, "tri layout drift");
+_Static_assert(offsetof(seg_tri_t, stipple) == 1280, "tri layout drift");
+_Static_assert(offsetof(seg_tri_t, cc) == 204, "tri layout drift");
+_Static_assert(offsetof(seg_tri_t, st_cfg) == 416, "tri layout drift");
+_Static_assert(offsetof(seg_tri_t, slot0) == 544, "tri layout drift");
+/* The packed span fields: x0 and py in 14 bits (a scissor coordinate is
+   14 bits wide, RRG: SC_BOTTOM_RIGHT, p. 3-162 / PDF 180, and the row
+   cap covers the same range), the width less one in 8 bits (a span is
+   at most 256 pixels) and the triangle index in 13 bits. */
+_Static_assert(GPU_ROW_CAP <= (1u << 14), "span py overflows its field");
+_Static_assert(GPU_TRI_CAP <= (1u << 13), "span tri overflows its field");
+
+static inline void
+gpu_span_pack(seg_span_t *s, int32_t x0, int32_t x1, int32_t py, int32_t tri,
+              int edge32)
+{
+    s->xw = ((uint32_t) x0 & 0x3fffu) | (((uint32_t) (x1 - x0) & 0xffu) << 14)
+        | (edge32 ? 0x80000000u : 0u);
+    s->pt = ((uint32_t) py & 0x3fffu) | ((uint32_t) tri << 14);
+}
+
+/* pixels in the span */
+static inline uint32_t
+gpu_span_len(const seg_span_t *s)
+{
+    return ((s->xw >> 14) & 0xffu) + 1u;
+}
 /* a batch slot packs span index << 8 | pixel offset, and 0xffffffff is
    the idle marker: the span index must fit in 24 bits, and then no
    packed slot can equal the marker (the offset's low bits are 0 or the
@@ -1518,8 +1544,8 @@ typedef struct r128_gpu_t {
     uint64_t pr_ftl_max_period, pr_ftl_max_fence, pr_ftl_max_idle;
     uint64_t pr_ftl_max_draw;
     /* Capture shape (prof only): rows that survive the early-out, pixels
-       walked at the clip seed (the dependent double-add chain that steps
-       zline from the bounding-box edge to the covered edge) and total
+       walked at the clip seed (the edge-value step from the bounding-box
+       edge to the covered edge) and total
        bounding-box row width. capture_span is called per row, far too
        often to time with a clock, so these counts are kept instead. */
     uint64_t pr_cap_rows, pr_cap_lo, pr_cap_bbox;
@@ -4139,7 +4165,7 @@ leveled:
     for (uint32_t k = 0; k < c; k++) {
         uint32_t j    = g->bylv[k];
         uint32_t si   = ord[j];
-        uint32_t need = ((uint32_t) (sp[si].x1 - sp[si].x0) + GPU_SLOT_W)
+        uint32_t need = (gpu_span_len(&sp[si]) - 1u + GPU_SLOT_W)
             >> GPU_SLOT_SHIFT;
         uint32_t open = 0;
 
@@ -6032,7 +6058,7 @@ gpu_flush_body(rage128_t *dev, int cause)
         const seg_span_t *sp = (const seg_span_t *) sl->b_spans.map;
 
         for (uint32_t i = 0; i < g->nspans; i++)
-            g->pr_px += (uint64_t) (sp[i].x1 - sp[i].x0 + 1);
+            g->pr_px += gpu_span_len(&sp[i]);
         prof_t = prof_now();
     }
 
@@ -6082,7 +6108,7 @@ gpu_flush_body(rage128_t *dev, int cause)
                 g->pr_runs_k[kn]++;
                 g->pr_wg_k[kn]++;
                 for (uint32_t i = s0; i < s1; i++)
-                    g->pr_px_k[kn] += (uint64_t) (sp[i].x1 - sp[i].x0 + 1);
+                    g->pr_px_k[kn] += gpu_span_len(&sp[i]);
             }
             continue;
         }
@@ -6108,7 +6134,7 @@ gpu_flush_body(rage128_t *dev, int cause)
                 for (uint32_t j = g->beg[row]; j < count[row]; j++) {
                     uint32_t si = g->ord[j];
 
-                    row_px += (uint64_t) (sp[si].x1 - sp[si].x0 + 1);
+                    row_px += gpu_span_len(&sp[si]);
                     if (!g->sctl_of[si])
                         eligible = 0;
                     else if (!ctl) {
@@ -6150,7 +6176,7 @@ gpu_flush_body(rage128_t *dev, int cause)
             g->pr_wgh_cur[kn][prof_wgh_bin(nrows)] += run_px;
             g->pr_wgh_proj[kn][prof_wgh_bin(proj_wg)] += run_px;
             for (uint32_t i = s0; i < s1; i++) {
-                uint64_t w = (uint64_t) (sp[i].x1 - sp[i].x0 + 1);
+                uint64_t w = gpu_span_len(&sp[i]);
 
                 g->pr_px_k[kn] += w;
                 if (!r128_gpu_variants[kn].z)
@@ -6500,6 +6526,20 @@ capture_tri_record(r128_gpu_t *g, rage128_t *dev, const r3d_texctx_t *tc,
     tt->e1dxi = tri->e1dxi;
     tt->e2dxi = tri->e2dxi;
     memcpy(&tt->dZdx, &tri->dzx, 8);
+    /* The edge seeds take the fill-rule bias back out (wrapping, as the
+       kernel's sums wrap): the kernel uses the edge values only for the
+       barycentric weights, and every CPU lane adds the bias back before
+       its convert. A constant attribute then lands unscaled on small
+       triangles. The clip in the span capture uses the biased values, so
+       coverage keeps the fill rule. */
+    tt->e0o   = (int64_t) ((uint64_t) tri->e0o + (uint64_t) tri->e0b);
+    tt->e1o   = (int64_t) ((uint64_t) tri->e1o + (uint64_t) tri->e1b);
+    tt->e2o   = (int64_t) ((uint64_t) tri->e2o + (uint64_t) tri->e2b);
+    tt->e0dyi = tri->e0dyi;
+    tt->e1dyi = tri->e1dyi;
+    tt->e2dyi = tri->e2dyi;
+    tt->zo    = tri->zo;
+    tt->dzy   = tri->dzy;
     tt->invs     = tri->invs;
     tt->lod_bias = d->lod_bias;
     tt->texw0    = d->texw0;
@@ -7067,7 +7107,12 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
     e0 += (int64_t) lo * tri->e0dxi;
     e1 += (int64_t) lo * tri->e1dxi;
     e2 += (int64_t) lo * tri->e2dxi;
-    zline += (int64_t) lo * tri->dzx;
+    /* The kernel computes depth from the plane seed, so the walked depth
+       only feeds the register harness's hook below. x0, x1, py and the
+       256-pixel chunks below fit the packed span fields: the draw clips
+       x to the scissor, a signed 14-bit field clamped at 0, and py was
+       checked above. */
+    (void) zline;
 
     if (g->cur_tri < 0) {
         const rage128_draw_state_t *d  = &tc->rs->d;
@@ -7081,10 +7126,8 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
     }
 
     /* Split the row into chunks of at most 256 pixels, one per kernel
-       workgroup of 256 threads. Each chunk's depth seed is the
-       fixed-point plane value at its first pixel. */
+       workgroup of 256 threads. */
     {
-        int64_t zc = zline;
         int32_t cx = x0;
 
         g->st_px_total += (uint64_t) (x1 - x0 + 1);
@@ -7101,21 +7144,26 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
             if (cw > 256)
                 cw = 256;
             sp = &((seg_span_t *) g->slot[g->build_slot].b_spans.map)[g->nspans];
-            /* The clip above used the biased edge values, so coverage
-               keeps the fill rule. The shader reads the recorded edges
-               only for the barycentric weights, so the record takes the
-               unbiased values: the bias flags from the triangle record
-               added back, as every CPU lane does before its convert. A
-               constant attribute then lands unscaled on small
-               triangles. */
-            sp->e0 = e0 + tri->e0b;
-            sp->e1 = e1 + tri->e1b;
-            sp->e2 = e2 + tri->e2b;
-            sp->zline = zc;
-            sp->x0  = cx;
-            sp->x1  = cx + cw - 1;
-            sp->py  = py;
-            sp->tri = g->cur_tri;
+            /* The span records no edge or depth values: the kernel
+               computes them at each pixel from the triangle's plane
+               seeds, which give the unbiased edge values (e0 + e0b and
+               so on here, at cx) and the walked depth. The 32-bit flag
+               is tested on those unbiased values, which are what the
+               kernel computes; the clip above used the biased ones, so
+               coverage keeps the fill rule. */
+            {
+                int edge32 = gpu_edge32_span(e0 + tri->e0b, tri->e0dxi, cw)
+                    && gpu_edge32_span(e1 + tri->e1b, tri->e1dxi, cw)
+                    && gpu_edge32_span(e2 + tri->e2b, tri->e2dxi, cw);
+
+                gpu_span_pack(sp, cx, cx + cw - 1, py, g->cur_tri, edge32);
+#    ifdef R128_GPU_SPAN_TAP
+                /* the register harness's hook: the walked values the
+                   plane seeds must reproduce */
+                R128_GPU_SPAN_TAP(g->nspans, e0 + tri->e0b, e1 + tri->e1b, e2 + tri->e2b,
+                                  zline + (int64_t) (cx - tri->x0) * tri->dzx);
+#    endif
+            }
             /* A color or z target staged from AGP memory gets bit 31 and
                the row base relative to the stage arena (row address
                minus surface base, the interpreter's staged index); the
@@ -7151,12 +7199,6 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
                                 (uint32_t) cw * (uint32_t) dd->zbpp,
                                 dev->vram_mask);
             }
-            sp->pad0    = 0;
-            /* the 32-bit range test runs on the recorded values, which
-               are what the shader steps */
-            sp->pad1 = gpu_edge32_span(sp->e0, tri->e0dxi, cw)
-                && gpu_edge32_span(sp->e1, tri->e1dxi, cw)
-                && gpu_edge32_span(sp->e2, tri->e2dxi, cw);
             g->py_of[g->nspans] = (uint16_t) py;
             capture_span_class(g, g->nspans, &tc->rs->d, cx, cw, kdrow, kzrow,
                                dev->vram_mask);
@@ -7166,7 +7208,6 @@ rage128_gpu_capture_span(const r128_jit_tri_t *tri, int64_t e0, int64_t e1,
 
             /* Seed the next chunk only when one follows. */
             if (cx + cw <= x1) {
-                zc += (int64_t) cw * tri->dzx;
                 e0 += (int64_t) cw * tri->e0dxi;
                 e1 += (int64_t) cw * tri->e1dxi;
                 e2 += (int64_t) cw * tri->e2dxi;

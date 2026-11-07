@@ -8924,11 +8924,16 @@ gt_seed_leg(rage128_t *dev, const rage128_raster_state_t *trs,
             if (P->x0 != next || P->x1 < P->x0 || P->x1 > L->x1)
                 bad_part++;
             next = P->x1 + 1;
-            if (P->e0 != L->e0 + k * tc.edx[0]
-                || P->e1 != L->e1 + k * tc.edx[1]
-                || P->e2 != L->e2 + k * tc.edx[2])
+            /* the walked seeds of every tiled piece step from the linear
+               row's, and the plane seeds reproduce the walk on both */
+            if (P->w_e0 != L->w_e0 + k * tc.edx[0]
+                || P->w_e1 != L->w_e1 + k * tc.edx[1]
+                || P->w_e2 != L->w_e2 + k * tc.edx[2]
+                || P->e0 != P->w_e0 || P->e1 != P->w_e1 || P->e2 != P->w_e2
+                || L->e0 != L->w_e0 || L->e1 != L->w_e1 || L->e2 != L->w_e2)
                 bad_e++;
-            if (P->zline != L->zline + k * dz)
+            if (P->w_zline != L->w_zline + k * dz
+                || P->zline != P->w_zline || L->zline != L->w_zline)
                 bad_z++;
         }
         if (next != L->x1 + 1)
