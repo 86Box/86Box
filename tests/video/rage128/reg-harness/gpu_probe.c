@@ -32,7 +32,7 @@ static void probe_span_tap(uint32_t i, int64_t e0, int64_t e1, int64_t e2, int64
 #include "../../../../src/video/vid_ati_rage128_gpu.c"
 
 #ifdef R128_GPU_HAVE_VULKAN
-static int64_t probe_walk[GPU_SPAN_CAP][4];
+static int64_t probe_walk[GPU_SPAN_BUF][4]; /* indexed by span, every partition region */
 
 static void
 probe_span_tap(uint32_t i, int64_t e0, int64_t e1, int64_t e2, int64_t z)
@@ -41,6 +41,18 @@ probe_span_tap(uint32_t i, int64_t e0, int64_t e1, int64_t e2, int64_t z)
     probe_walk[i][1] = e1;
     probe_walk[i][2] = e2;
     probe_walk[i][3] = z;
+}
+
+/* The backend's span and pixel reservation for one triangle, without
+   the row range it also returns. */
+static void
+probe_tri_need(const rage128_raster_state_t *rs, const r3d_vtx_t *a,
+               const r3d_vtx_t *b, const r3d_vtx_t *c,
+               uint64_t *need_spans, uint64_t *need_px)
+{
+    int32_t y0, y1;
+
+    gpu_tri_need_y(rs, a, b, c, need_spans, need_px, &y0, &y1);
 }
 #endif
 
@@ -135,6 +147,7 @@ harness_gpu_alloc(void)
     g->cur_tri        = -1;
     g->cur_kernel     = 0;
     g->cur_tuple      = -1;
+    gpu_capw_setup(NULL, g, 1, 0); /* one partition, no copy-back maps */
     /* tuple book: heap-allocated in production init; the submit path
        interns into it (memo -1 = no last lookup, quiet = not traffic) */
     g->tuples       = calloc(GPU_TUPLE_CAP, sizeof(gpu_tuple_t));
@@ -168,6 +181,7 @@ harness_gpu_dispose(r128_gpu_t *g)
         return;
     pthread_mutex_destroy(&g->flush_mtx);
     pthread_mutex_destroy(&g->sub_mtx);
+    gpu_capw_free(g);
     free(g->tuples);
     free(g);
 }
@@ -233,7 +247,7 @@ harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
     g->slot[0].b_spans.map = calloc(GPU_SPAN_CAP, sizeof(seg_span_t));
     g->slot[0].b_tris.map  = calloc(GPU_TRI_CAP, sizeof(seg_tri_t));
     g->slot[0].b_draws.map = calloc(GPU_TRI_CAP, sizeof(seg_draw_t));
-    g->slot[0].b_pal.map   = calloc(GPU_PAL_CAP * 256, sizeof(uint32_t));
+    g->slot[0].b_pal.map   = calloc(GPU_PAL_BUF * 256, sizeof(uint32_t));
     if (!g->slot[0].b_spans.map || !g->slot[0].b_tris.map
         || !g->slot[0].b_draws.map
         || !g->slot[0].b_pal.map) {
@@ -249,6 +263,26 @@ harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
        segment in order, as consecutive submits of one state are: the
        bounds are the union of the triangles' own */
     res->clo = res->zlo = 0xffffffffu;
+    /* admission opens the run the spans land in (one kernel, one run);
+       this probe drives the capture walk directly */
+    capture_run_open(g);
+    {
+        gpu_capw_t *pw = &g->cw[0];
+        gpu_wrun_t *wr = &pw->run[g->nruns - 1];
+
+        wr->s0       = pw->nsp;
+        wr->s1       = pw->nsp;
+        wr->pymin    = INT32_MAX;
+        wr->pymax    = INT32_MIN;
+        wr->c0       = 0xffffffffu;
+        wr->z0       = 0xffffffffu;
+        wr->c1       = 0;
+        wr->z1       = 0;
+        wr->rowalias = 0;
+        pw->cap_run  = g->nruns - 1;
+        pw->cap_draw = 0;
+        pw->rec      = 1;
+    }
     for (uint32_t t = 0; t < (v ? ntri : 1u); t++) {
         const r3d_vtx_t *ta = v ? &v[3 * t] : a;
         const r3d_vtx_t *tb = v ? &v[3 * t + 1] : b;
@@ -256,7 +290,7 @@ harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
         uint64_t         ns, np;
         uint32_t         clo, chi, zlo, zhi;
 
-        gpu_tri_need(rs, ta, tb, tc, &ns, &np);
+        probe_tri_need(rs, ta, tb, tc, &ns, &np);
         res->need_spans += ns;
         res->need_px += np;
         prim_ranges(rs, dev->vram_mask, ta, tb, tc, &clo, &chi, &zlo, &zhi);
@@ -268,11 +302,15 @@ harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
             res->zlo = zlo;
         if (zhi > res->zhi)
             res->zhi = zhi;
-        dev->gpu   = g;
-        g->cur_tri = -1;
+        dev->gpu          = g;
+        g->cw[0].cur_tri = (int32_t) g->ntris++;
+        g->cw[0].spanned = 1; /* no command list here */
         rage128_3d_tri(dev, rs, 0, 0, ta, tb, tc, rage128_gpu_capture_span);
         dev->gpu = old;
     }
+    g->cw[0].run[g->nruns - 1].s1 = g->cw[0].nsp;
+    g->nspans                     = g->cw[0].nsp;
+    gpu_cap_merge(g);
 
     sp          = (const seg_span_t *) g->slot[0].b_spans.map;
     res->nspans = g->nspans;
@@ -286,20 +324,18 @@ harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
                                               GPU_BATCH_SLOTS * sizeof(uint32_t));
 
         for (uint32_t r = 0; slots && r < g->nruns; r++) {
-            uint32_t s0 = g->runs[r].span0;
-            uint32_t s1 = (r + 1 < g->nruns) ? g->runs[r + 1].span0 : g->nspans;
-            int      ng;
+            int ng;
 
-            if (s1 <= s0)
+            if (!gpu_run_nspans(g, r))
                 continue;
             res->rowalias |= (int) g->runs[r].rowalias;
-            ng = gpu_run_groups(g, r, s0, s1, g->cnt);
+            ng = gpu_run_groups(g, r, g->cnt);
             for (int k = 0; k < ng; k++) {
                 uint32_t c = g->cnt[k] - g->beg[k];
 
                 if (!c)
                     continue;
-                (void) gpu_batch_row(g, slots, 0, &g->ord[g->beg[k]], c);
+                (void) gpu_batch_row(g, &g->lc0, slots, 0, &g->ord[g->beg[k]], c);
                 for (uint32_t j = 0; j < c; j++) {
                     uint32_t si = g->ord[g->beg[k] + j];
 
@@ -376,7 +412,7 @@ harness_gpu_submit_probe(rage128_t *dev, const rage128_raster_state_t *rs,
     g->slot[0].b_spans.map = calloc(GPU_SPAN_CAP, sizeof(seg_span_t));
     g->slot[0].b_tris.map  = calloc(GPU_TRI_CAP, sizeof(seg_tri_t));
     g->slot[0].b_draws.map = calloc(GPU_TRI_CAP, sizeof(seg_draw_t));
-    g->slot[0].b_pal.map   = calloc(GPU_PAL_CAP * 256, sizeof(uint32_t));
+    g->slot[0].b_pal.map   = calloc(GPU_PAL_BUF * 256, sizeof(uint32_t));
     if (!g->slot[0].b_spans.map || !g->slot[0].b_tris.map
         || !g->slot[0].b_draws.map
         || !g->slot[0].b_pal.map) {
@@ -388,10 +424,11 @@ harness_gpu_submit_probe(rage128_t *dev, const rage128_raster_state_t *rs,
         return 0;
     }
 
-    gpu_tri_need(rs, a, b, c, &res->bound_spans, &res->bound_px);
+    probe_tri_need(rs, a, b, c, &res->bound_spans, &res->bound_px);
 
     dev->gpu      = g;
     res->accepted = rage128_gpu_submit_tri(dev, rs, a, b, c);
+    gpu_cap_catchup(dev, g); /* the capture admission deferred */
     dev->gpu      = old;
 
     res->reprice = g->st_reprice;
@@ -440,7 +477,7 @@ harness_gpu_texq_begin(rage128_t *dev)
     g->slot[0].b_spans.map = calloc(GPU_SPAN_CAP, sizeof(seg_span_t));
     g->slot[0].b_tris.map  = calloc(GPU_TRI_CAP, sizeof(seg_tri_t));
     g->slot[0].b_draws.map = calloc(GPU_TRI_CAP, sizeof(seg_draw_t));
-    g->slot[0].b_pal.map   = calloc(GPU_PAL_CAP * 256, sizeof(uint32_t));
+    g->slot[0].b_pal.map   = calloc(GPU_PAL_BUF * 256, sizeof(uint32_t));
     if (!g->slot[0].b_spans.map || !g->slot[0].b_tris.map
         || !g->slot[0].b_draws.map
         || !g->slot[0].b_pal.map) {

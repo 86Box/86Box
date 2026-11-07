@@ -407,20 +407,25 @@ r3d_decode_vertex(uint32_t fmt, const uint32_t *d, r3d_vtx_t *v)
 }
 
 /* Mark the VRAM pages of [addr, addr + len) changed for the display.
-   Runs on the raster workers and the CCE thread without a lock: every
-   writer stores the same value, and the only read-modify-write from
-   another thread (the decrement in svga_poll) can at worst lose one mark
-   until the page is written again. */
+   Runs on the raster workers, the GPU span capture's partitions and the
+   CCE thread without a lock: every writer stores the same value, and the
+   only read-modify-write from another thread (the decrement in
+   svga_poll) can at worst lose one mark until the page is written again.
+   The stores are relaxed atomics, plain byte stores on every host, so
+   two of these writers on one page are not a data race. */
 static void
 r3d_mark_dirty(rage128_t *dev, uint32_t addr, uint32_t len)
 {
     svga_t *svga = &dev->svga;
+    uint8_t v    = (uint8_t) svga->monitor->mon_changeframecount;
 
     /* Step by length and mask each address, so a run that wraps past
        the end of VRAM marks the pages it really touches. */
     for (uint32_t o = 0; o < len; o += 0x1000u)
-        svga->changedvram[((addr + o) & dev->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
-    svga->changedvram[((addr + len - 1u) & dev->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
+        __atomic_store_n(&svga->changedvram[((addr + o) & dev->vram_mask) >> 12], v,
+                         __ATOMIC_RELAXED);
+    __atomic_store_n(&svga->changedvram[((addr + len - 1u) & dev->vram_mask) >> 12], v,
+                     __ATOMIC_RELAXED);
 }
 
 /* Mark the pixels [rx0, rx1] of color row py changed. drow is the row's
@@ -2852,6 +2857,8 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
 
     if (!r3d_setup(dev, rs, a, b, c, jfn, ln, &st, &tctx, &jt))
         return;
+    if (jfn == rage128_gpu_capture_span)
+        rage128_gpu_capture_begin(dev, &tctx, &jt, thr_id);
     {
         /* the loop's locals, copied from the setup */
         uint32_t dst_dt   = st.dst_dt;

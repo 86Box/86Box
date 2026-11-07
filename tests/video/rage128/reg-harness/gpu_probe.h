@@ -99,7 +99,7 @@ typedef struct harness_gpu_span_t {
 typedef struct harness_gpu_cap_t {
     uint32_t nspans;     /* records written (may exceed the caller's array) */
     uint32_t got;        /* records copied out                             */
-    uint64_t need_spans; /* gpu_tri_need's accept-bound reservation         */
+    uint64_t need_spans; /* probe_tri_need's accept-bound reservation       */
     uint64_t need_px;
     uint32_t clo, chi;   /* prim_ranges color hazard interval             */
     uint32_t zlo, zhi;   /* ... and z                                      */
