@@ -150,6 +150,8 @@ SettingsCompleter::addMachine(int i, int j)
     addRow(machines[j].name, machines[j].name, 0, machine_types[machine_get_type(j)].id);
 
     int k = 0;
+    if (machines[j].aliases == NULL)
+        return;
     while (machines[j].aliases[k][0] != 0x00) {
         addRow(machines[j].name, machines[j].aliases[k], 0, machine_types[machine_get_type(j)].id);
         k++;
