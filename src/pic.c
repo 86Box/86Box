@@ -983,6 +983,23 @@ pic_toggle_latch(int is_ps2)
     }
 }
 
+/* Machine init must not inherit the previous board's PIC output hooks. */
+static void
+pic_clear_output_callback(void)
+{
+    pic.out_cb = pic2.out_cb = NULL;
+    pic.out_priv = pic2.out_priv = NULL;
+}
+
+uint8_t
+pic_any_pending(void)
+{
+    if (!cascade && i8018x_pcb_cascade)
+        return 0;
+
+    return pic.int_pending || (!cascade && pic2.int_pending);
+}
+
 /* PC-98 exposes the master PIC on even ports 00h-06h and the slave PIC on
  * even ports 08h-1eh.  A0 of each 8259 is CPU A1; the remaining addresses are
  * aliases caused by the PC-98 low-I/O decode. */
@@ -1012,22 +1029,6 @@ pic_init_pc98(void)
     for (uint16_t port = 0x0000; port <= 0x001e; port += 2)
         io_sethandler(port, 0x0001, pic_pc98_read, NULL, NULL,
                       pic_pc98_write, NULL, NULL, NULL);
-
-/* Machine init must not inherit the previous board's PIC output hooks. */
-static void
-pic_clear_output_callback(void)
-{
-    pic.out_cb = pic2.out_cb = NULL;
-    pic.out_priv = pic2.out_priv = NULL;
-}
-
-uint8_t
-pic_any_pending(void)
-{
-    if (!cascade && i8018x_pcb_cascade)
-        return 0;
-
-    return pic.int_pending || (!cascade && pic2.int_pending);
 }
 
 void
