@@ -481,8 +481,11 @@ read_data(cdrom_t *dev, const uint32_t lba, int check)
 
         dev->formed_mode2  = 0;
 
-        ret = dev->ops->read_sector(dev->local,
-                                    dev->raw_buffer[dev->cur_buf ^ 1], lba);
+        if ((dev->ops != NULL) && (dev->ops->read_sector != NULL))
+            ret = dev->ops->read_sector(dev->local,
+                                        dev->raw_buffer[dev->cur_buf ^ 1], lba);
+        else
+            ret = 0;
 
         /* Sectors built by us are always good. */
         dev->edc_missing = (ret == 2);

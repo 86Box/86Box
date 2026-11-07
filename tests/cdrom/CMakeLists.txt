@@ -89,10 +89,6 @@ if(BUILD_TESTING)
 
     add_executable(mitsumi_cdrom_tests
         cdrom_mitsumi_test.cpp
-        ../../src/cdrom/cdrom.c
-        ../../src/cdrom/cdrom_image.c
-        ../../src/utils/crc.c
-        ../../src/utils/crc32.c
     )
     target_compile_definitions(mitsumi_cdrom_tests PRIVATE IS_TEST)
     target_include_directories(mitsumi_cdrom_tests PRIVATE

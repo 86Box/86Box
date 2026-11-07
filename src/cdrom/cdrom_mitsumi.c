@@ -376,7 +376,6 @@ mitsumi_cdrom_insert(void *priv)
     mitsumi_raise_change_irq(dev);
 }
 
-#ifndef IS_TEST
 static void
 mitsumi_tray_callback(void *priv)
 {
@@ -387,7 +386,6 @@ mitsumi_tray_callback(void *priv)
     dev->change     = mitsumi_cdrom_has_disc(dev) ? 2 : 1;
     mitsumi_raise_change_irq(dev);
 }
-#endif
 
 static void
 mitsumi_print_cmd(mcd_t* dev, uint8_t command) {
@@ -785,7 +783,6 @@ mitsumi_dma_transfer(mcd_t *dev)
     return 3;
 }
 
-#ifndef IS_TEST
 static void
 mitsumi_dma_timeout_callback(void *priv)
 {
@@ -799,7 +796,6 @@ mitsumi_dma_timeout_callback(void *priv)
     dev->cmdbuf_count = 1;
     dev->cmdbuf[0]    = dev->stat;
 }
-#endif
 
 static void
 mitsumi_read_callback(void *priv)

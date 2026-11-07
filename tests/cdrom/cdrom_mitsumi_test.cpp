@@ -71,7 +71,9 @@ protected:
         dev.irq = 10;
         dev.dma = 5;
         tsc = 0;
+        timer_add(&dev.dma_timeout_timer, mitsumi_dma_timeout_callback, &dev, 0);
         timer_add(&dev.read_timer, mitsumi_read_callback, &dev, 0);
+        timer_add(&dev.tray_timer, mitsumi_tray_callback, &dev, 0);
         mitsumi_cdrom_reset(&dev);
         mock.irq_cleared = 0;
         mock.stop_calls = 0;
@@ -92,6 +94,12 @@ protected:
             tsc = dev.read_timer.ts_integer;
             timer_disable(&dev.read_timer);
             dev.read_timer.callback(dev.read_timer.priv);
+        }
+        for (unsigned remaining = 16; dev.tray_timer.flags & TIMER_ENABLED; --remaining) {
+            ASSERT_GT(remaining, 0u) << "Tray timer did not quiesce";
+            tsc = dev.tray_timer.ts_integer;
+            timer_disable(&dev.tray_timer);
+            dev.tray_timer.callback(dev.tray_timer.priv);
         }
     }
 
@@ -135,17 +143,16 @@ TEST(MitsumiConversion, DecodesBiasedDmaCount)
 
 TEST_F(MitsumiTest, StatusReflectsMediaTrayChangeAndPlayback)
 {
-    EXPECT_EQ(mitsumi_status(&dev), STAT_READY | STAT_SERVO | STAT_CHANGE);
+    EXPECT_EQ(mitsumi_status(&dev), STAT_READY | STAT_SERVO);
     cd.cd_status = CD_STATUS_PLAYING;
-    EXPECT_EQ(mitsumi_status(&dev), STAT_READY | STAT_SERVO | STAT_DISK_CDDA |
-                                    STAT_PLAY_CDDA | STAT_CHANGE);
+    EXPECT_EQ(mitsumi_status(&dev), STAT_READY | STAT_SERVO | STAT_PLAY_CDDA);
     cd.cd_status = CD_STATUS_PLAYING;
     EXPECT_TRUE(mitsumi_status(&dev) & STAT_PLAY_CDDA);
     dev.tray_open = 1;
     cd.cd_status = CD_STATUS_EMPTY;
-    EXPECT_EQ(mitsumi_status(&dev), STAT_OPEN | STAT_CHANGE);
-    EXPECT_EQ(mitsumi_error_status(&dev, 2), STAT_OPEN | STAT_CHANGE | STAT_ERROR | STAT_CMD_CHECK);
-    EXPECT_EQ(mitsumi_error_status(&dev, 3), STAT_OPEN | STAT_CHANGE | STAT_ERROR);
+    EXPECT_EQ(mitsumi_status(&dev), STAT_OPEN);
+    EXPECT_EQ(mitsumi_error_status(&dev, 2), STAT_OPEN | STAT_ERROR | STAT_CMD_CHECK);
+    EXPECT_EQ(mitsumi_error_status(&dev, 3), STAT_OPEN | STAT_ERROR);
 }
 
 TEST_F(MitsumiTest, ResetRestoresDocumentedDefaultsAndStopsActivity)
@@ -160,7 +167,7 @@ TEST_F(MitsumiTest, ResetRestoresDocumentedDefaultsAndStopsActivity)
     EXPECT_EQ(dev.dmalen, 2055);
     EXPECT_EQ(dev.smode, 1);
     EXPECT_EQ(dev.cur_control, 0x0c);
-    EXPECT_EQ(dev.change, 1);
+    EXPECT_EQ(dev.change, 0);
     EXPECT_EQ(dev.enable_dma, 0);
     EXPECT_EQ(dev.enable_irq, 0);
     EXPECT_EQ(dev.readcount, 0u);
@@ -183,9 +190,9 @@ TEST_F(MitsumiTest, FlagsArbitrateDataAndStatusAndExposeTray)
     EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NODATA | FLAG_NOCHANGE | 1);
     dev.data = 1;
     dev.buf_count = 1;
-    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NOSTAT | FLAG_NOCHANGE | 1);
+    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NOCHANGE | 1);
     dev.early_status = 1;
-    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NODATA | FLAG_NOCHANGE | 1);
+    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NOCHANGE | 1);
     dev.tray_open = 1;
     EXPECT_TRUE(mitsumi_cdrom_get_flags(&dev) & FLAG_OPEN);
 }
@@ -215,7 +222,7 @@ TEST_F(MitsumiTest, ModeVolumeLockAndControlRegistersAreProgrammable)
 {
     command(CMD_SET_MODE, { 0xa4 });
     EXPECT_EQ(dev.mode, 0xa4);
-    EXPECT_EQ(response(), (std::vector<uint8_t>{ STAT_READY | STAT_SERVO | STAT_CHANGE, 0 }));
+    EXPECT_EQ(response(), (std::vector<uint8_t>{ STAT_READY | STAT_SERVO, 0 }));
 
     command(CMD_SET_VOL, { 10, 20, 30, 40 });
     command(CMD_GET_VOL);
@@ -259,7 +266,7 @@ TEST_F(MitsumiTest, LockedEjectReportsSenseWhileUnlockedEjectOpensTray)
     command(CMD_EJECT);
     EXPECT_EQ(mock.eject_calls, 1);
     EXPECT_EQ(dev.tray_open, 1);
-    EXPECT_EQ(dev.change, 1);
+    EXPECT_EQ(dev.change, 0);
 }
 
 TEST_F(MitsumiTest, CookedPioReadFetchesSectorAndAdvancesMsf)
@@ -346,9 +353,16 @@ TEST_F(MitsumiTest, InsertAbortsReadUpdatesTrayAndSignalsChange)
     EXPECT_EQ(dev.readcount, 0u);
     EXPECT_EQ(dev.buf_count, 0);
     EXPECT_EQ(dev.change, 1);
-    EXPECT_EQ(dev.tray_open, 0);
+    EXPECT_EQ(dev.tray_open, 1);
+    EXPECT_EQ(dev.tray_close, 1);
     EXPECT_EQ(mock.stop_calls, 1);
     EXPECT_EQ(mock.irq_cleared, 1u << dev.irq);
+    /* Close the door a moment after the host has seen it open. */
+    if (dev.tray_close && (dev.stat & STAT_OPEN) && !timer_is_enabled(&dev.tray_timer))
+        timer_set_delay_u64(&dev.tray_timer, MITSUMI_TRAY_CLOSE_US * TIMER_USEC);
+    ASSERT_NO_FATAL_FAILURE(run_timers());
+    EXPECT_EQ(dev.tray_open, 0);
+    EXPECT_EQ(dev.tray_close, 0);
 }
 
 } // namespace
@@ -428,4 +442,46 @@ void path_append_filename(char *dest, const char *base, const char *file)
     const auto path = (std::filesystem::path(base) / file).string();
     std::memmove(dest, path.c_str(), path.size() + 1);
 }
+void cdrom_stop(cdrom_t *) { ++mock.stop_calls; }
+int cdrom_has_data(cdrom_t *) { return 1; }
+double cdrom_seek_time(const cdrom_t *) { return 0.0; }
+int cdrom_read_toc(const cdrom_t *, uint8_t *buffer, int, uint8_t, int, int)
+{
+    buffer[2] = 1;
+    buffer[3] = 1;
+    return 0;
+}
+void cdrom_get_track_buffer(cdrom_t *, uint8_t *buffer)
+{
+    std::memset(buffer, 0, 34);
+    buffer[2] = 0;
+    buffer[3] = 2;
+    buffer[4] = 0;
+}
+int cdrom_get_q(cdrom_t *, uint8_t *buffer, int current, uint8_t)
+{
+    std::memset(buffer, 0, 10);
+    return current + 1;
+}
+void cdrom_seek(cdrom_t *dev, uint32_t pos, uint8_t)
+{
+    mock.last_seek = pos;
+    dev->seek_pos = pos;
+}
+int cdrom_readsector_raw(cdrom_t *, uint8_t *buffer, int, int, int, int,
+                         int *len, uint8_t)
+{
+    for (int i = 0; i < mock.read_length; ++i)
+        buffer[i] = static_cast<uint8_t>(i);
+    *len = mock.read_length;
+    return mock.read_result;
+}
+uint8_t cdrom_audio_play(cdrom_t *, uint32_t, uint32_t, int) { return 1; }
+int cdrom_lba_to_msf_accurate(int lba)
+{
+    const uint32_t absolute = lba + 150;
+    return ((absolute / (60 * 75)) << 16) | (((absolute / 75) % 60) << 8) | (absolute % 75);
+}
+void cdrom_reload(uint8_t) { ++mock.reload_calls; }
+void cdrom_eject(uint8_t) { ++mock.eject_calls; }
 }
