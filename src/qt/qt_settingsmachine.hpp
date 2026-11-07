@@ -48,13 +48,10 @@ private slots:
     void on_radioButtonFixedYear_toggled(bool checked);
 
 private:
-<<<<<<< HEAD
-    void                 refreshCpuChoices(int machineId, int preferredFamily, int preferredSpeed);
-=======
+    void refreshCpuChoices(int machineId, int preferredFamily, int preferredSpeed);
     void updateGuestYearLabel();
     void updateTimeControlsEnabled();
     void timeSyncSettings(int &sync, int &offset_years, int &fixed_year, int &keep_date) const;
->>>>>>> upstream/master
     Ui::SettingsMachine *ui;
 
     int                  machine_cfg_changed;
