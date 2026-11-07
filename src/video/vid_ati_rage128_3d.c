@@ -3505,10 +3505,10 @@ r3d_stage_reserve(rage128_t *dev, uint32_t total)
        through the arena. */
     if (dev->gpu && ts->used && ts->used + total > ts->cap) {
         rage128_gpu_stage_quiesce(dev, 0);
-        ts->used      = 0;
-        ts->ent_count = 0;
+        ts->used = 0;
         ts->gen++;
         r128_texcache_lock(ts);
+        ts->ent_count = 0;
         ts->tgen++; /* the arena's bytes are gone, and the cached entries with them */
         ts->src_lo = 0;
         ts->src_hi = 0;
@@ -3553,38 +3553,69 @@ r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
     struct rage128_tex_stage *ts = &dev->tex_stage;
     uint32_t                  off;
     uint32_t                  tg;
-
-    /* Take tgen before any bytes are copied. A CPU store that
-       invalidates the cache during the copy bumps tgen past this value,
-       so the new entry is invalid from the start and can never serve
-       the image from before the store. */
-    r128_texcache_lock(ts);
-    tg = ts->tgen;
-    r128_texcache_unlock(ts);
+    uint32_t                  slo  = 0;
+    uint32_t                  shi  = 0;
+    int                       live = 0;
 
     /* key is the raw offset register value. Its tile-mode bits [31:30]
        tell a detiled staging from a linear one at the same address, so
        the two never share an entry; tiled_pb completes the key, because
        two shapes of the same byte length detile to different layouts.
        Per-draw entries are checked against gen and last one draw; cached
-       entries are checked against tgen and last until a store changes
-       their source bytes. */
+       entries are checked against the cache generation and last until a
+       store lands in their own source bytes or the arena is reset. The
+       lookup runs under the lock because a store on the CPU thread can
+       end an entry at any time. */
+    r128_texcache_lock(ts);
+    tg = ts->tgen;
     for (uint32_t i = 0; i < ts->ent_count; i++)
         if (ts->ent[i].gen == (ts->ent[i].pd ? ts->gen : tg)
-            && ts->ent[i].vm_base == key
+            && !ts->ent[i].dead && ts->ent[i].vm_base == key
             && ts->ent[i].len == len && ts->ent[i].tbpp == tbpp
             && ts->ent[i].tiled_pb == tiled_pb) {
             if (!ts->ent[i].pd)
                 ts->n_hit++;
-            return ts->ent[i].arena_off;
+            off = ts->ent[i].arena_off;
+            r128_texcache_unlock(ts);
+            return off;
         }
 
     /* Place levels on 16-byte boundaries: the GPU kernel reads the arena
        as 16-bit and 32-bit word arrays and needs aligned level bases
        (the CPU sampler is byte-addressed and does not care). */
     off = (ts->used + 15u) & ~15u;
-    if (!ts->arena || off + len > ts->cap || off < ts->used)
+    if (!ts->arena || off + len > ts->cap || off < ts->used) {
+        r128_texcache_unlock(ts);
         return R128_TEX_STAGE_NONE;
+    }
+
+    if (cacheable) {
+        /* Publish the source range before any bytes are copied, and
+           widen the combined source range over it, so a store during the
+           copy is seen: it marks the copy, which may then hold bytes from
+           before that store, and the copy is not cached. A tiled gather
+           reads whole tile rows, more than the linear image's size. */
+        slo = vm;
+        shi = vm + (tiled_pb ? r3d_level_bytes_tiled(tiled_pb, len / tiled_pb) : len);
+        ts->cp_lo  = slo;
+        ts->cp_hi  = shi;
+        ts->cp_hit = 0;
+        if (ts->pg_tgen != tg) {
+            r128_texcache_pg_clear(ts);
+            ts->pg_tgen = tg;
+        }
+        r128_texcache_pg_set(ts, slo, shi);
+        if (ts->src_hi == ts->src_lo) {
+            ts->src_lo = slo;
+            ts->src_hi = shi;
+        } else {
+            if (slo < ts->src_lo)
+                ts->src_lo = slo;
+            if (shi > ts->src_hi)
+                ts->src_hi = shi;
+        }
+    }
+    r128_texcache_unlock(ts);
 
     if (tiled_pb) {
         /* Tiled level: gather its detiled linear image, so every lane
@@ -3602,7 +3633,15 @@ r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
     if (ts->used > ts->peak_used)
         ts->peak_used = ts->used;
 
-    if (ts->ent_count < 256) {
+    r128_texcache_lock(ts);
+    if (cacheable) {
+        /* Cached only when no store landed in the source during the copy
+           and the arena was not reset meanwhile. */
+        live      = !ts->cp_hit && ts->tgen == tg;
+        ts->cp_lo = 0;
+        ts->cp_hi = 0;
+    }
+    if (ts->ent_count < 256 && (!cacheable || live)) {
         ts->ent[ts->ent_count].vm_base   = key;
         ts->ent[ts->ent_count].len       = len;
         ts->ent[ts->ent_count].tbpp      = tbpp;
@@ -3610,33 +3649,12 @@ r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
         ts->ent[ts->ent_count].arena_off = off;
         ts->ent[ts->ent_count].pd        = !cacheable;
         ts->ent[ts->ent_count].gen       = cacheable ? tg : ts->gen;
+        ts->ent[ts->ent_count].src_lo    = slo;
+        ts->ent[ts->ent_count].src_hi    = shi;
+        ts->ent[ts->ent_count].dead      = 0;
         ts->ent_count++;
-        if (cacheable) {
-            /* Widen the source range that CPU stores are checked
-               against. A tiled gather reads whole tile rows, more than
-               the linear image's size. Skipped when an invalidation
-               landed during the copy (the entry is already invalid):
-               widening the range for it would only delay reclaiming the
-               idle arena. */
-            uint32_t slen = tiled_pb
-                ? r3d_level_bytes_tiled(tiled_pb, len / tiled_pb)
-                : len;
-
-            r128_texcache_lock(ts);
-            if (ts->tgen == tg) {
-                if (ts->src_hi == ts->src_lo) {
-                    ts->src_lo = vm;
-                    ts->src_hi = vm + slen;
-                } else {
-                    if (vm < ts->src_lo)
-                        ts->src_lo = vm;
-                    if (vm + slen > ts->src_hi)
-                        ts->src_hi = vm + slen;
-                }
-            }
-            r128_texcache_unlock(ts);
-        }
     }
+    r128_texcache_unlock(ts);
     return off;
 }
 
@@ -4454,26 +4472,27 @@ rage128_raster_state_capture(rage128_t *dev, rage128_raster_state_t *rs)
             /* A serial CPU draw is finished by the time it returns. */
             if (dev->tex_stage.used)
                 dev->tex_stage.n_rec_draw++;
-            dev->tex_stage.used      = 0;
-            dev->tex_stage.ent_count = 0;
+            dev->tex_stage.used = 0;
             r128_texcache_lock(&dev->tex_stage);
-            dev->tex_stage.src_lo = 0;
-            dev->tex_stage.src_hi = 0;
+            dev->tex_stage.ent_count = 0;
+            dev->tex_stage.src_lo    = 0;
+            dev->tex_stage.src_hi    = 0;
             r128_texcache_unlock(&dev->tex_stage);
         } else {
             /* Keep the valid cached entries; drop the previous draw's
-               per-draw entries and any entry a tgen bump invalidated. */
+               per-draw entries and any entry that a store into its
+               source or an arena reset invalidated. */
             struct rage128_tex_stage *ts = &dev->tex_stage;
             uint32_t                  n  = 0;
             uint32_t                  tg;
 
             r128_texcache_lock(ts);
             tg = ts->tgen;
-            r128_texcache_unlock(ts);
             for (uint32_t i = 0; i < ts->ent_count; i++)
-                if (!ts->ent[i].pd && ts->ent[i].gen == tg)
+                if (!ts->ent[i].pd && !ts->ent[i].dead && ts->ent[i].gen == tg)
                     ts->ent[n++] = ts->ent[i];
             ts->ent_count = n;
+            r128_texcache_unlock(ts);
         }
         dev->tex_stage.gen++;
         /* The serial flush does nothing, so the previous serial draw's

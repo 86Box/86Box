@@ -10661,8 +10661,8 @@ vectors_stage_arena(rage128_t *dev)
                ts->used != 0 && ts->n_rec_flush == flush0
                    && rs.prim_stage_off[0] == off2);
 
-    /* D: only a store into the source bytes kills the cache. The two
-       barriers below are the production hooks, driven directly. */
+    /* D: only a store into a level's source bytes kills that level. The
+       two barriers below are the production hooks, driven directly. */
     kill0 = ts->n_kill;
     rage128_gpu_cpu_barrier(dev, TL_TEX + 64u, 4, 0);      /* read       */
     rage128_gpu_cpu_barrier(dev, 0x00100000u, 4, 1);       /* write, off */
@@ -10671,16 +10671,53 @@ vectors_stage_arena(rage128_t *dev)
     rage128_gpu_cpu_barrier(dev, TL_TEX + 64u, 4, 1);      /* write, hit */
     check_true("gpu arena: cpu store into the source kills the cache",
                ts->n_kill == kill0 + 1);
+    /* The page bits now hold only the live level, so further stores into
+       the dropped level's bytes are decided without the lock. */
+    check_true("gpu arena: a dropped level's pages leave the page bits",
+               !r128_texcache_pg_any(ts, TL_TEX, (uint64_t) TL_TEX + 4u)
+                   && r128_texcache_pg_any(ts, SA_TEX2, (uint64_t) SA_TEX2 + 4u));
+    /* The store hit only the first level: the second, the current
+       texture, still hits. */
+    hit0 = ts->n_hit;
+    rage128_raster_state_capture(dev, &rs);
+    check_true("gpu arena: a store into one level keeps the other cached",
+               rs.prim_stage_off[0] == off2 && ts->n_hit == hit0 + 1);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), TL_TEX | (2u << 30));
     rage128_raster_state_capture(dev, &rs);
     off3 = rs.prim_stage_off[0];
     check_true("gpu arena: killed level re-stages fresh",
                off3 > off2);
+    /* A store between the two levels, inside the range they span but in
+       neither level's bytes, keeps both. */
+    kill0 = ts->n_kill;
+    {
+        uint64_t in0 = atomic_load(&ts->n_cpu_in);
+        uint64_t sk0 = atomic_load(&ts->n_cpu_pgskip);
+
+        rage128_gpu_cpu_barrier(dev, (TL_TEX + SA_TEX2) / 2u, 4, 1);
+        check_true("gpu arena: the store between them is counted inside the "
+                   "range and decided by the page bits",
+                   atomic_load(&ts->n_cpu_in) == in0 + 1
+                       && atomic_load(&ts->n_cpu_pgskip) == sk0 + 1);
+    }
+    rage128_raster_state_capture(dev, &rs);
+    check_true("gpu arena: a store between two cached levels kills neither",
+               ts->n_kill == kill0 && rs.prim_stage_off[0] == off3);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), SA_TEX2 | (2u << 30));
+    rage128_raster_state_capture(dev, &rs);
+    check_true("gpu arena: control: the second level still hits",
+               rs.prim_stage_off[0] == off2);
 
     /* The 2D barrier is the second hook. */
     kill0 = ts->n_kill;
     rage128_gpu_2d_barrier(dev, SA_TEX2 + 128u, 4, 1);
     check_true("gpu arena: 2d store into the source kills the cache",
                ts->n_kill == kill0 + 1);
+    /* The first level is the last one cached; a store into it leaves the
+       cache empty for leg E. */
+    rage128_gpu_cpu_barrier(dev, TL_TEX + 64u, 4, 1);
+    check_true("gpu arena: the last cached level killed empties the range",
+               ts->src_lo == ts->src_hi);
 
     /* E: idle AND cache-free, the flush reclaim is free again. */
     flush0 = ts->n_rec_flush;
@@ -14590,6 +14627,103 @@ vectors_scan_starved_executor(rage128_t *dev)
 /* condition-variable form is checked the same way off the harness.    */
 /* ------------------------------------------------------------------ */
 #define TIMED_WAIT_CYCLES 200
+
+/* Texture-cache store check timing only, R128_TEXCACHE_BENCH=N stores
+   per case (0 or unset = off). The entry table is filled with 256 cached
+   4 KB levels 32 KB apart, as the staging code would leave it, and a
+   fabricated backend stands in for the GPU, so the cost measured is the
+   store check itself and the linear-aperture dword handler around it. */
+static uint64_t
+texcache_bench_now_ns(void)
+{
+    struct timespec ts;
+
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t) ts.tv_sec * 1000000000u + (uint64_t) ts.tv_nsec;
+}
+
+#define TCB_BASE 0x00400000u
+#define TCB_STEP 0x00008000u
+
+static void
+texcache_bench_fill(rage128_t *dev)
+{
+    struct rage128_tex_stage *ts = &dev->tex_stage;
+
+    r128_texcache_lock(ts);
+    r128_texcache_pg_clear(ts);
+    ts->pg_tgen = ts->tgen;
+    for (uint32_t i = 0; i < 256; i++) {
+        uint32_t b = TCB_BASE + i * TCB_STEP;
+
+        memset(&ts->ent[i], 0, sizeof(ts->ent[i]));
+        ts->ent[i].vm_base = b;
+        ts->ent[i].len     = 4096;
+        ts->ent[i].tbpp    = 4;
+        ts->ent[i].gen     = ts->tgen;
+        ts->ent[i].src_lo  = b;
+        ts->ent[i].src_hi  = b + 4096;
+        r128_texcache_pg_set(ts, b, b + 4096);
+    }
+    ts->ent_count = 256;
+    ts->src_lo    = TCB_BASE;
+    ts->src_hi    = TCB_BASE + 255 * TCB_STEP + 4096;
+    r128_texcache_unlock(ts);
+}
+
+static void
+texcache_bench(rage128_t *dev, uint32_t n)
+{
+    static const char *const name[4] = { "outside", "inside-no-entry",
+                                         "into-dead-level", "into-live-entry" };
+    struct rage128_tex_stage *ts  = &dev->tex_stage;
+    void                     *fab = harness_gpu_fab_alloc();
+    mem_mapping_t            *lm  = &dev->lfb_mapping;
+    const uint32_t            hot = TCB_BASE + 128 * TCB_STEP;
+
+    if (!fab)
+        return;
+    fab_in(dev, fab);
+    for (int c = 0; c < 4; c++) {
+        uint32_t base = c == 0 ? 0x00100000u : c == 1 ? TCB_BASE + 0x4000u : hot;
+        double   ns[2];
+
+        for (int path = 0; path < 2; path++) {
+            uint64_t t0;
+
+            texcache_bench_fill(dev);
+            if (c == 2)
+                r128_texcache_dirty(dev, hot, 4); /* the level dies first */
+            t0 = texcache_bench_now_ns();
+            for (uint32_t i = 0; i < n; i++) {
+                uint32_t a = base + ((i * 4u) & 0xffcu);
+
+                if (c == 3) {
+                    /* re-arm, so every store kills: the level and its
+                       page bit come back */
+                    ts->ent[128].dead = 0;
+                    r128_texcache_pg_set(ts, hot, (uint64_t) hot + 4096u);
+                }
+                if (path)
+                    lm->write_l(dev->lfb_base + a, i, dev);
+                else
+                    r128_texcache_dirty(dev, a, 4);
+            }
+            ns[path] = (double) (texcache_bench_now_ns() - t0) / (double) n;
+        }
+        printf("texcache bench: case=%s n=%u entries=256 check_ns=%.2f "
+               "lfb_writel_ns=%.2f kills=%llu\n",
+               name[c], n, ns[0], ns[1], (unsigned long long) ts->n_kill);
+    }
+    r128_texcache_lock(ts);
+    ts->ent_count = 0;
+    ts->src_lo    = 0;
+    ts->src_hi    = 0;
+    r128_texcache_pg_clear(ts);
+    r128_texcache_unlock(ts);
+    fab_out(dev);
+    harness_gpu_fab_free(fab);
+}
 
 static uint64_t
 timed_wait_now_ms(void)
@@ -25331,6 +25465,17 @@ main(int argc, char **argv)
         if (n) {
             dev = rage128_init(&ati_rage128_pro_device);
             harness_gpu_barrier_bench(dev, n);
+            close_dev(dev);
+            return 0;
+        }
+    }
+    if (getenv("R128_TEXCACHE_BENCH")) {
+        uint32_t   n = (uint32_t) strtoul(getenv("R128_TEXCACHE_BENCH"), NULL, 0);
+        rage128_t *dev;
+
+        if (n) {
+            dev = rage128_init(&ati_rage128_pro_device);
+            texcache_bench(dev, n);
             close_dev(dev);
             return 0;
         }
