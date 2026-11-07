@@ -457,21 +457,40 @@ plat_delay_ms(uint32_t count)
 
 static char harness_cache_dir[1024];
 
+/* Loader probes run in several harness processes at once, so each needs a
+   directory no other process can be handed. Directory creation is the only
+   atomic step: it fails with "already exists" rather than reusing a name.
+   On Windows the name carries the process id, which no other live process
+   has, plus a serial number that steps past any directory left behind by an
+   earlier process with the same id. A temporary file name is not usable
+   here: it must be deleted before a directory can take its place, and in
+   that gap another process can be handed the same name. */
 int
 harness_gpu_cache_begin(void)
 {
     if (harness_cache_dir[0])
         return 0;
 #ifdef _WIN32
-    char temp[MAX_PATH], path[MAX_PATH];
+    static unsigned serial;
+    char  temp[MAX_PATH];
+    DWORD n = GetTempPathA(sizeof(temp), temp);
 
-    if (!GetTempPathA(sizeof(temp), temp)
-        || !GetTempFileNameA(temp, "r128", 0, path))
+    if (!n || n >= sizeof(temp))
         return 0;
-    DeleteFileA(path);
-    if (!CreateDirectoryA(path, NULL))
-        return 0;
-    snprintf(harness_cache_dir, sizeof(harness_cache_dir), "%s", path);
+    for (unsigned tries = 0; tries < 4096; tries++) {
+        int len = snprintf(harness_cache_dir, sizeof(harness_cache_dir),
+                           "%sr128-harness-%lu-%u", temp,
+                           (unsigned long) GetCurrentProcessId(), serial++);
+
+        if (len < 0 || len >= (int) sizeof(harness_cache_dir))
+            break;
+        if (CreateDirectoryA(harness_cache_dir, NULL))
+            return 1;
+        if (GetLastError() != ERROR_ALREADY_EXISTS)
+            break;
+    }
+    harness_cache_dir[0] = '\0';
+    return 0;
 #else
     snprintf(harness_cache_dir, sizeof(harness_cache_dir),
              "/tmp/rage128-harness-XXXXXX");
@@ -479,8 +498,8 @@ harness_gpu_cache_begin(void)
         harness_cache_dir[0] = '\0';
         return 0;
     }
-#endif
     return 1;
+#endif
 }
 
 void
