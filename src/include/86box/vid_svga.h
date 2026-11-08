@@ -477,6 +477,7 @@ extern float   av9194_getclock(int clock, void *priv);
 
 extern void    bt481_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
 extern uint8_t bt481_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);
+extern void    bt481_recalctimings(void *priv, svga_t *svga);
 
 extern void    bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga);
 extern uint8_t bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga);
