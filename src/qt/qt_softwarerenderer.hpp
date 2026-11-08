@@ -9,10 +9,31 @@
 #include <QBackingStore>
 #include <array>
 #include <atomic>
+#include <memory>
 #include <mutex>
 #include "qt_renderercommon.hpp"
 
+class QPainter;
 class QThread;
+
+/* A thread with an event loop and an object living on it, to deliver work to.
+   Stopping it waits for the work in progress to finish. */
+class RendererWorker {
+public:
+    RendererWorker();
+    ~RendererWorker();
+    RendererWorker(const RendererWorker &)            = delete;
+    RendererWorker &operator=(const RendererWorker &) = delete;
+    RendererWorker(RendererWorker &&)                 = delete;
+    RendererWorker &operator=(RendererWorker &&)      = delete;
+
+    QObject *context() const { return ctx.get(); }
+    void     stop();
+
+private:
+    std::unique_ptr<QThread> thread;
+    std::unique_ptr<QObject> ctx;
+};
 
 class SoftwareRenderer :
     public QWidget,
@@ -20,7 +41,6 @@ class SoftwareRenderer :
     Q_OBJECT
 public:
     explicit SoftwareRenderer(QWidget *parent = nullptr);
-    ~SoftwareRenderer() override;
     void finalize() override final;
 
     void paintEvent(QPaintEvent *event) override;
@@ -36,7 +56,7 @@ public:
     /* Frames are scaled on a worker thread so that a large picture does not
        hold up the GUI thread, and with it the host's input. Connect the
        blit signal to this object, not to the renderer. */
-    QObject *blitContext() const { return worker_ctx; }
+    QObject *blitContext() const { return worker.context(); }
 
 public slots:
     /* Runs on the worker thread. */
@@ -58,26 +78,33 @@ protected:
     QScopedPointer<QBackingStore> m_backingStore;
 
 private:
-    void stopWorker();
+    /* Layout published by the GUI thread for the worker, in device pixels. */
+    struct Layout {
+        QRect dest;
+        QSize size;
+        qreal ratio = 1.0;
+        int   gen   = 0;
+    };
+
     /* Worker thread: scale the current frame into the back buffer, where dirty
        is the part of the window (device pixels) that changed. */
-    void scaleFrame(const QRegion &dirty, bool full);
-    void takeScreenshots(int x, int y, int w, int h);
+    void    scaleFrame(const QRegion &dirty, bool full);
+    QRegion paintBuffer(int back, const Layout &l, const QRegion &dirty, bool full, bool relayout);
+    void    presentBuffer(int back, const QRegion &painted);
+    void    takeScreenshots(int x, int y, int w, int h);
 
-    QThread *worker     = nullptr;
-    QObject *worker_ctx = nullptr;
+    Layout currentLayout();
+    void   publishLayout();
+    int    frontBuffer();
+    bool   drawFront(QPainter &painter, const QPaintDevice *device);
 
     /* Owned by the worker thread. */
     int   cur_image = -1;
     QRect wsource { 0, 0, 0, 0 };
     int   w_layout_gen = -1;
 
-    /* Layout published by the GUI thread for the worker. */
     std::mutex layout_mutex;
-    QRect      l_dest;
-    QSize      l_size;
-    qreal      l_ratio = 1.0;
-    int        l_gen   = 0;
+    Layout     layout;
 
     /* The scaled picture, double buffered. The worker writes the back buffer
        while the GUI thread copies the front one to the window; each buffer
@@ -87,6 +114,9 @@ private:
     std::array<QImage, 2>   scaled;
     std::array<QRegion, 2>  stale;
     int                     front = -1;
+
+    /* Declared last, so that it stops before anything it uses is destroyed. */
+    RendererWorker worker;
 };
 
 #endif // SOFTWARERENDERER_HPP

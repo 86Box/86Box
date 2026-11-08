@@ -24,7 +24,6 @@
 #include <QThread>
 #include <QTimer>
 #include <algorithm>
-#include <cmath>
 #include <cstring>
 #include "qt_util.hpp"
 #include "qt_osd.hpp"
@@ -51,12 +50,6 @@ SoftwareRenderer::SoftwareRenderer(QWidget *parent)
     /* Every paint covers the whole update region, so skip Qt's background erase. */
     this->setAttribute(Qt::WA_OpaquePaintEvent);
 
-    worker     = new QThread();
-    worker_ctx = new QObject();
-    worker_ctx->moveToThread(worker);
-    worker->setObjectName("SoftwareRenderer");
-    worker->start();
-
     /* The OSD animates and reacts to input even when the machine is paused, so
      * keep refreshing while it is on screen. */
     connect(new QTimer(this), &QTimer::timeout, this, [this]() {
@@ -70,28 +63,35 @@ SoftwareRenderer::SoftwareRenderer(QWidget *parent)
     });
 }
 
-SoftwareRenderer::~SoftwareRenderer()
+RendererWorker::RendererWorker()
+    : thread(std::make_unique<QThread>())
+    , ctx(std::make_unique<QObject>())
 {
-    stopWorker();
+    ctx->moveToThread(thread.get());
+    thread->setObjectName("SoftwareRenderer");
+    thread->start();
+}
+
+RendererWorker::~RendererWorker()
+{
+    stop();
 }
 
 void
-SoftwareRenderer::stopWorker()
+RendererWorker::stop()
 {
-    if (!worker)
+    if (!thread)
         return;
-    worker->quit();
-    worker->wait();
-    delete worker_ctx;
-    delete worker;
-    worker_ctx = nullptr;
-    worker     = nullptr;
+    thread->quit();
+    thread->wait();
+    ctx.reset();
+    thread.reset();
 }
 
 void
 SoftwareRenderer::finalize()
 {
-    stopWorker();
+    worker.stop();
     qt_osd_shutdown();
 }
 
@@ -165,11 +165,7 @@ SoftwareRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
     } else if ((top == 0) && (bottom == h)) {
         scaleFrame(QRegion(), true);
     } else if (top < bottom) {
-        QRect dest;
-        {
-            std::lock_guard<std::mutex> lk(layout_mutex);
-            dest = l_dest;
-        }
+        const QRect dest = currentLayout().dest;
         /* Filtering blends each row into its neighbours, so take a row more on either side. */
         top         = std::max(top - 1, 0);
         bottom      = std::min(bottom + 1, h);
@@ -188,72 +184,82 @@ SoftwareRenderer::scaleFrame(const QRegion &dirty, bool full)
     if (cur_image == -1)
         return;
 
-    QRect dest;
-    QSize size;
-    qreal ratio;
-    int   gen;
-    {
-        std::lock_guard<std::mutex> lk(layout_mutex);
-        dest  = l_dest;
-        size  = l_size;
-        ratio = l_ratio;
-        gen   = l_gen;
-    }
-    if (size.isEmpty())
+    const Layout l = currentLayout();
+    if (l.size.isEmpty())
         return;
-    /* A new layout or buffer repaints the window, borders included; a changed
-       frame only repaints the picture. */
-    bool relayout = false;
-    if (gen != w_layout_gen) {
-        w_layout_gen = gen;
-        relayout     = true;
-    }
+    /* A new layout repaints the window, borders included; a changed frame only
+       repaints the picture. */
+    const bool relayout = (l.gen != w_layout_gen);
+    w_layout_gen        = l.gen;
 
-    int back;
-    {
-        std::lock_guard<std::mutex> lk(idx_mutex);
-        back = (front == 0) ? 1 : 0;
-    }
-    const QRect all(QPoint(0, 0), size);
-    QRegion     painted;
-    {
-        /* Waits only while the GUI thread is still copying this buffer out. */
-        std::lock_guard<std::mutex> lk(scaled_mutex[back]);
-        QImage                     &img = scaled[back];
-        if (img.size() != size) {
-            img      = QImage(size, QImage::Format_RGB32);
-            relayout = true;
-        }
-        img.setDevicePixelRatio(ratio);
-        painted = relayout ? QRegion(all) : (((full ? QRegion(dest) : dirty) | stale[back]) & all);
-        if (!painted.isEmpty()) {
-            /* Paint in device pixels: the destination is laid out in them. */
-            img.setDevicePixelRatio(1.0);
-            QPainter painter(&img);
-            painter.setClipRegion(painted);
-            for (const QRect &r : painted)
-                painter.fillRect(r, Qt::black);
-            if (dest.intersects(painted.boundingRect())) {
-                painter.setRenderHint(QPainter::SmoothPixmapTransform, video_filter_method > 0);
-                /* The frame's alpha bytes are not set; adding it onto black ignores them
-                   and leaves the result opaque, so the GUI thread can copy it as is. */
-                painter.setCompositionMode(QPainter::CompositionMode_Plus);
-                painter.drawImage(QRectF(dest), *images[cur_image], QRectF(wsource));
-            }
-            painter.end();
-            img.setDevicePixelRatio(ratio);
-        }
-    }
-    {
-        std::lock_guard<std::mutex> lk(idx_mutex);
-        front       = back;
-        stale[back] = QRegion();
-        stale[back ^ 1] |= painted;
-    }
+    const int     back    = (frontBuffer() == 0) ? 1 : 0;
+    const QRegion painted = paintBuffer(back, l, dirty, full, relayout);
+    presentBuffer(back, painted);
 
-    const QRect r = painted.boundingRect();
+    const QRect r     = painted.boundingRect();
+    const qreal ratio = l.ratio;
     QMetaObject::invokeMethod(this, [this, r, ratio] {
         update(QRectF(r.x() / ratio, r.y() / ratio, r.width() / ratio, r.height() / ratio).toAlignedRect()); }, Qt::QueuedConnection);
+}
+
+QRegion
+SoftwareRenderer::paintBuffer(int back, const Layout &l, const QRegion &dirty, bool full, bool relayout)
+{
+    /* Waits only while the GUI thread is still copying this buffer out. */
+    std::scoped_lock lk(scaled_mutex[back]);
+    QImage          &img = scaled[back];
+    if (img.size() != l.size) {
+        img      = QImage(l.size, QImage::Format_RGB32);
+        relayout = true;
+    }
+
+    const QRect all(QPoint(0, 0), l.size);
+    QRegion     painted(all);
+    if (!relayout) {
+        const QRegion changed = full ? QRegion(l.dest) : dirty;
+        painted               = (changed | stale[back]) & all;
+    }
+
+    /* Paint in device pixels: the destination is laid out in them. */
+    img.setDevicePixelRatio(1.0);
+    if (!painted.isEmpty()) {
+        QPainter painter(&img);
+        painter.setClipRegion(painted);
+        for (const QRect &r : painted)
+            painter.fillRect(r, Qt::black);
+        if (l.dest.intersects(painted.boundingRect())) {
+            painter.setRenderHint(QPainter::SmoothPixmapTransform, video_filter_method > 0);
+            /* The frame's alpha bytes are not set; adding it onto black ignores them
+               and leaves the result opaque, so the GUI thread can copy it as is. */
+            painter.setCompositionMode(QPainter::CompositionMode_Plus);
+            painter.drawImage(QRectF(l.dest), *images[cur_image], QRectF(wsource));
+        }
+    }
+    img.setDevicePixelRatio(l.ratio);
+    return painted;
+}
+
+void
+SoftwareRenderer::presentBuffer(int back, const QRegion &painted)
+{
+    std::scoped_lock lk(idx_mutex);
+    front       = back;
+    stale[back] = QRegion();
+    stale[back ^ 1] |= painted;
+}
+
+SoftwareRenderer::Layout
+SoftwareRenderer::currentLayout()
+{
+    std::scoped_lock lk(layout_mutex);
+    return layout;
+}
+
+int
+SoftwareRenderer::frontBuffer()
+{
+    std::scoped_lock lk(idx_mutex);
+    return front;
 }
 
 void
@@ -322,16 +328,20 @@ SoftwareRenderer::layoutPicture()
     monitors[r_monitor_index].mon_res_x = destination.width() / pixelRatio;
     monitors[r_monitor_index].mon_res_y = destination.height() / pixelRatio;
 
-    {
-        std::lock_guard<std::mutex> lk(layout_mutex);
-        l_dest  = destination;
-        l_size  = QSize(std::lround(width() * pixelRatio), std::lround(height() * pixelRatio));
-        l_ratio = pixelRatio;
-        l_gen++;
-    }
+    publishLayout();
     /* Repaint the whole picture at the new layout, even while paused. */
-    if (worker_ctx)
-        QMetaObject::invokeMethod(worker_ctx, [this] { scaleFrame(QRegion(), true); }, Qt::QueuedConnection);
+    if (worker.context())
+        QMetaObject::invokeMethod(worker.context(), [this] { scaleFrame(QRegion(), true); }, Qt::QueuedConnection);
+}
+
+void
+SoftwareRenderer::publishLayout()
+{
+    std::scoped_lock lk(layout_mutex);
+    layout.dest  = destination;
+    layout.size  = QSize(qRound(width() * pixelRatio), qRound(height() * pixelRatio));
+    layout.ratio = pixelRatio;
+    layout.gen++;
 }
 
 void
@@ -353,35 +363,15 @@ SoftwareRenderer::event(QEvent *event)
 void
 SoftwareRenderer::onPaint(QPaintDevice *device)
 {
-    const bool osd = qt_osd_needs_render();
-    int        shown;
-    {
-        std::lock_guard<std::mutex> lk(idx_mutex);
-        shown = front;
-    }
+    const bool osd   = qt_osd_needs_render();
+    const int  shown = frontBuffer();
     /* Repaint when the OSD is up, or once more right after it closes so a
      * lingering overlay is cleared even while the machine is paused. */
     if (shown == -1 && !osd && !osd_drawn_last)
         return;
 
     QPainter painter(device);
-    bool     drawn = false;
-    if (shown != -1) {
-        /* The worker never writes the front buffer, so this lock is uncontended
-           unless the worker is just about to reuse it. */
-        std::unique_lock<std::mutex> idx(idx_mutex);
-        std::lock_guard<std::mutex>  lk(scaled_mutex[front]);
-        const QImage                &img = scaled[front];
-        idx.unlock();
-        if (img.size() == QSize(std::lround(device->width() * img.devicePixelRatio()),
-                                std::lround(device->height() * img.devicePixelRatio()))) {
-            painter.setCompositionMode(QPainter::CompositionMode_Source);
-            painter.drawImage(QPointF(0, 0), img);
-            painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-            drawn = true;
-        }
-    }
-    if (!drawn)
+    if ((shown == -1) || !drawFront(painter, device))
         painter.fillRect(0, 0, device->width(), device->height(), Qt::black);
 
     if (osd) {
@@ -398,6 +388,26 @@ SoftwareRenderer::onPaint(QPaintDevice *device)
      * keep refreshing while it is on screen. */
     if (qt_osd_needs_render() && !dopause)
         QTimer::singleShot(16, this, [this] { update(); });
+}
+
+bool
+SoftwareRenderer::drawFront(QPainter &painter, const QPaintDevice *device)
+{
+    /* Lock the front buffer while still holding the index, so that the worker
+       cannot pick it as its back buffer in between. The worker never writes
+       the front buffer, so this only waits if it is about to reuse it. */
+    std::unique_lock idx(idx_mutex);
+    std::scoped_lock lk(scaled_mutex[front]);
+    const QImage    &img = scaled[front];
+    idx.unlock();
+
+    const qreal ratio = img.devicePixelRatio();
+    if (img.size() != QSize(qRound(device->width() * ratio), qRound(device->height() * ratio)))
+        return false;
+    painter.setCompositionMode(QPainter::CompositionMode_Source);
+    painter.drawImage(QPointF(0, 0), img);
+    painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+    return true;
 }
 
 std::vector<std::tuple<uint8_t *, std::atomic_flag *>>
