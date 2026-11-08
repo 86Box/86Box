@@ -134,8 +134,15 @@ get_block_nr(codeblock_t *block)
     return ((uintptr_t) block - (uintptr_t) codeblock) / sizeof(codeblock_t);
 }
 
+/*Blocks are keyed by CS base and physical address, but blocks with the same
+  key can still differ in their linear address (the same physical code mapped
+  at another address in another process, such as a shared library).
+  codeblock_tree_add() puts each later one to the right of an equal key, so
+  the walk has to go on past a key that matches until the linear address
+  matches too. Stopping at the first one never found the others: every
+  lookup that missed the hash slot then compiled the code again.*/
 static inline codeblock_t *
-codeblock_tree_find(uint32_t phys, uint32_t _cs)
+codeblock_tree_find(uint32_t phys, uint32_t _cs, uint32_t pc)
 {
     codeblock_t *block;
     uint64_t     a = _cs | ((uint64_t) phys << 32);
@@ -147,7 +154,7 @@ codeblock_tree_find(uint32_t phys, uint32_t _cs)
     while (block) {
         uint64_t block_cmp = block->_cs | ((uint64_t) block->phys << 32);
         if (a == block_cmp) {
-            if (!((block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK)))
+            if ((block->pc == pc) && !((block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK)))
                 break;
         }
         if (a < block_cmp)

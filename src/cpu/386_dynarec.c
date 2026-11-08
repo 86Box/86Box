@@ -796,7 +796,7 @@ exec386_dynarec_dyn(const int dbg)
                 ((page->mem != page_ff) && (page->byte_code_present_mask[byte_offset] & byte_mask)))
             {
                 /* Walk page tree to see if we find the correct block */
-                codeblock_t *new_block = codeblock_tree_find(phys_addr, cs);
+                codeblock_t *new_block = codeblock_tree_find(phys_addr, cs, cs + cpu_state.pc);
                 if (new_block) {
                     valid_block = (codeblock_pc_cs(new_block) == key) && (new_block->phys == phys_addr) && !((new_block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((new_block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
                     if (valid_block) {
