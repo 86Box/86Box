@@ -16,25 +16,6 @@
 class QPainter;
 class QThread;
 
-/* A thread with an event loop and an object living on it, to deliver work to.
-   Stopping it waits for the work in progress to finish. */
-class RendererWorker {
-public:
-    RendererWorker();
-    ~RendererWorker();
-    RendererWorker(const RendererWorker &)            = delete;
-    RendererWorker &operator=(const RendererWorker &) = delete;
-    RendererWorker(RendererWorker &&)                 = delete;
-    RendererWorker &operator=(RendererWorker &&)      = delete;
-
-    QObject *context() const { return ctx.get(); }
-    void     stop();
-
-private:
-    std::unique_ptr<QThread> thread;
-    std::unique_ptr<QObject> ctx;
-};
-
 class SoftwareRenderer :
     public QWidget,
     public RendererCommon {
@@ -78,6 +59,25 @@ protected:
     QScopedPointer<QBackingStore> m_backingStore;
 
 private:
+    /* A thread with an event loop and an object living on it, to deliver work to.
+       Stopping it waits for the work in progress to finish. */
+    class Worker {
+    public:
+        Worker();
+        ~Worker();
+        Worker(const Worker &)            = delete;
+        Worker &operator=(const Worker &) = delete;
+        Worker(Worker &&)                 = delete;
+        Worker &operator=(Worker &&)      = delete;
+
+        QObject *context() const { return ctx.get(); }
+        void     stop();
+
+    private:
+        std::unique_ptr<QThread> thread;
+        std::unique_ptr<QObject> ctx;
+    };
+
     /* Layout published by the GUI thread for the worker, in device pixels. */
     struct Layout {
         QRect dest;
@@ -116,7 +116,7 @@ private:
     int                     front = -1;
 
     /* Declared last, so that it stops before anything it uses is destroyed. */
-    RendererWorker worker;
+    Worker worker;
 };
 
 #endif // SOFTWARERENDERER_HPP

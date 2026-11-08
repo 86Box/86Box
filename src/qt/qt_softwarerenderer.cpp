@@ -63,7 +63,7 @@ SoftwareRenderer::SoftwareRenderer(QWidget *parent)
     });
 }
 
-RendererWorker::RendererWorker()
+SoftwareRenderer::Worker::Worker()
     : thread(std::make_unique<QThread>())
     , ctx(std::make_unique<QObject>())
 {
@@ -72,13 +72,13 @@ RendererWorker::RendererWorker()
     thread->start();
 }
 
-RendererWorker::~RendererWorker()
+SoftwareRenderer::Worker::~Worker()
 {
     stop();
 }
 
 void
-RendererWorker::stop()
+SoftwareRenderer::Worker::stop()
 {
     if (!thread)
         return;
