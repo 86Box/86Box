@@ -25236,6 +25236,55 @@ const machine_t machines[] = {
     /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
        firmware. */
     {
+        .name              = "[i440BX] ASUS P2B-DS",
+        .internal_name     = "p2bds",
+        .type              = MACHINE_TYPE_SLOT1,
+        .chipset           = MACHINE_CHIPSET_INTEL_440BX,
+        .init              = machine_at_p2bds_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_SLOT1,
+            .block       = CPU_BLOCK(CPU_PENTIUMPRO),
+            .min_bus     = 50000000,
+            .max_bus     = 112121212,
+            .min_voltage = 1300,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
+            .max_multi   = 8.0
+        },
+        .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_USB, /* Machine has internal SCSI: Adaptec AIC-7890AB (not yet implemented) */
+        .ram       = {
+            .min  = 8192,
+            .max  = 1048576,
+            .step = 8192
+        },
+        .nvrmask                  = 255,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = NULL,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = NULL,
+        .nvr_params               = 0x00000000,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x00000cf0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &p2bds_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = NULL,
+        .snd_device               = NULL,
+        .net_device               = NULL,
+        .aliases                  = { "" }
+    },
+    /* Has a Winbond W83977EF Super I/O chip with on-chip KBC with AMIKey-2 KBC
+       firmware. */
+    {
         .name              = "[i440BX] ASUS P3B-F",
         .internal_name     = "p3bf",
         .type              = MACHINE_TYPE_SLOT1,
@@ -28334,5 +28383,4 @@ machine_get_nvr_name(void)
 {
     return machine_get_nvr_name_ex(machine);
 }
-
 
