@@ -12,8 +12,9 @@ run going, the traps, and how to use the socket as the evidence loop.
 
 Needs a build with `-D AUTOMATION=ON` (`cmake -DAUTOMATION=ON -S . -B build`).
 
-`automation.py` next to this file is a small client: `run()`, `screen()`,
-`memory()`, `log()`. Copy it beside your work.
+`automation.py` next to this file is a Python 3 client using only the standard
+library: `run()`, `screen()`, `memory()`, `log()`. Copy it beside your work.
+It supports UNIX sockets on Linux/macOS and TCP on all three platforms.
 
 ## Launch
 
@@ -21,18 +22,93 @@ Needs a build with `-D AUTOMATION=ON` (`cmake -DAUTOMATION=ON -S . -B build`).
 machine, and no socket ever appears. Launch detached; the socket is the
 interface, never wait on the process.
 
+### Linux and macOS
+
+Use a UNIX socket. The shell commands below work in both bash and zsh and do
+not require the Linux `setsid` utility. For a macOS app bundle, invoke the
+executable inside it rather than `open`, so the arguments reach 86Box directly.
+
 ```sh
-rm -f /tmp/86box.sock                     # a stale socket breaks the next launch
-cd build/src && setsid nohup ./86Box -P "/path/to/VM" \
+exe="$PWD/build/src/86Box"
+# macOS bundle build:
+# exe="$PWD/build/src/86Box.app/Contents/MacOS/86Box"
+rm -f /tmp/86box.sock                     # only after the previous VM has exited
+nohup "$exe" -P "/path/to/VM" \
     --automation unix:/tmp/86box.sock \
     --automation-hold --automation-seed 1 \
-    > /tmp/vm.log 2>&1 < /dev/null & disown
-until [ -S /tmp/86box.sock ]; do sleep 0.2; done    # ~6-8 s
+    > /tmp/vm.log 2>&1 < /dev/null &
+vm_pid=$!
+```
+
+### Windows (PowerShell)
+
+86Box's Windows server uses TCP, not UNIX sockets. Keep the listener on
+loopback and use its token file; the client authenticates each new connection.
+Quote paths in `-ArgumentList` as shown, including paths containing spaces.
+
+```powershell
+$vm = 'C:\path\to\VM'
+$env:AUTOMATION_ENDPOINT = 'tcp:127.0.0.1:7086'
+$env:AUTOMATION_TOKEN_FILE = Join-Path $vm 'automation.token'
+$vmProcess = Start-Process -FilePath 'C:\path\to\86Box.exe' -ArgumentList @(
+    '-P', "`"$vm`"",
+    '--automation', $env:AUTOMATION_ENDPOINT,
+    '--automation-token-file', "`"$env:AUTOMATION_TOKEN_FILE`"",
+    '--automation-hold', '--automation-seed', '1'
+) -WindowStyle Hidden -PassThru
+```
+
+### Connect
+
+Startup may take several seconds. With `automation.py` beside your script,
+wait for a successful request with a deadline rather than waiting indefinitely
+for a socket or token file to appear:
+
+```python
+import time
+import automation as a
+
+deadline = time.monotonic() + 30
+while True:
+    try:
+        status = a.run(["status"], timeout=1)[0][1]
+        if not status.get("ok"):
+            raise RuntimeError(status.get("error"))
+        break
+    except (OSError, ValueError):
+        if time.monotonic() >= deadline:
+            raise
+        time.sleep(0.2)
+```
+
+The default endpoint is `/tmp/86box.sock` on Linux/macOS and `tcp:7086` on
+Windows. Set `AUTOMATION_ENDPOINT` before importing the client to override it;
+`AUTOMATION_TOKEN_FILE` names the TCP token file. The Windows launch example
+sets both for the recipes below. For explicit settings, all four helpers also
+accept `sock_path=` and `token_file=`:
+
+```python
+a.run(["status"], sock_path="tcp:127.0.0.1:7086",
+      token_file=r"C:\path\to\VM\automation.token")
+```
+
+The command-line client accepts the same settings with `--endpoint` and
+`--token-file`, or reads them from the environment. From the repository root:
+
+```sh
+python3 doc/skills/automation/automation.py --endpoint unix:/tmp/86box.sock status
+```
+
+```powershell
+py -3 doc/skills/automation/automation.py status
 ```
 
 `--automation-hold` makes runs repeatable: no emulated time passes until a
 request asks for it, and `step` then runs unpaced (a 15 s boot costs seconds of
-wall clock). `QT_QPA_PLATFORM=offscreen` works without a display.
+wall clock). For Qt builds with the offscreen platform plugin available, set
+`QT_QPA_PLATFORM=offscreen` before launching to run without a display (`export
+QT_QPA_PLATFORM=offscreen` in bash/zsh; `$env:QT_QPA_PLATFORM = 'offscreen'` in
+PowerShell).
 
 State belongs to the machine, not the connection, so a fresh connection per
 command is fine — keep the script that way unless you need ordering *within* a
@@ -113,5 +189,8 @@ question, then turn it back off.
 `quit`, confirm the process is gone, rebuild, relaunch (removing the socket
 first), re-run the same scripted scenario. Never trust a build without it.
 
-End every run with `run(["quit"])` and `rm -f /tmp/86box.sock`; `quit` also
-works while held.
+End every run with `run(["quit"])`; `quit` also works while held. Wait for the
+process to exit (`wait "$vm_pid"` on Linux/macOS or `$vmProcess.WaitForExit()`
+on Windows). On Linux/macOS, remove a leftover socket with
+`rm -f /tmp/86box.sock` only after the process has exited. TCP has no socket
+file to remove; 86Box deletes its token file when it exits.
