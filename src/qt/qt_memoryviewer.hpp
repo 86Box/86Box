@@ -2,6 +2,7 @@
 #define QT_MEMORYVIEWER_HPP
 
 #include <QAbstractScrollArea>
+#include <QByteArray>
 #include <QDialog>
 #include <QStringList>
 #include <QVector>
@@ -39,9 +40,15 @@ public:
     uint32_t selectionEnd() const { return qMax(sel_, anchor_); }
     uint64_t selectionLen() const;
     void     refresh();
+    /* Search mapped memory for a run of bytes, selecting it when found.
+       From and to bound the search to an address range, both ends
+       inclusive; the defaults search the whole space. */
+    bool     find(const QByteArray &pattern, bool forward, uint32_t from = 0, uint32_t to = 0xffffffffU);
 
 signals:
     void status(const QString &msg);
+    /* The selection, as one line for the viewer's status row. */
+    void rangeReport(const QString &text);
     void dumpRequested(uint32_t start, uint32_t len);
     void disassembleRequested(uint32_t addr);
     void memoryWritten();
@@ -72,6 +79,7 @@ private:
     void     copySelection(bool ascii);
     void     fillSelection();
     QString  selectionText() const;
+    void     selectRange(uint32_t start, uint32_t len, bool cursorAtEnd);
 
     /* Build the list of mapped ranges for the current space. */
     void     rebuildMappedRanges();
@@ -91,6 +99,7 @@ private:
     QVector<uint8_t> cls_;
 
     bool dragging_ = false;
+    bool searching_ = false; /* a find is under way; not re-entered */
 
     int charW_ = 8;
     int lineH_ = 16;
@@ -127,11 +136,15 @@ private slots:
     void onDisasmGo();
     void onDisasmItemActivated(QTreeWidgetItem *item, int column);
     void onDump(uint32_t start, uint32_t len);
+    void onSearch(bool forward);
     void refreshAll();
     void executeCommand();
 
 private:
     struct DisasmView;
+
+    /* Build the bytes to search for from the search box. */
+    QByteArray searchPattern(QString *err) const;
 
     /* The read parts take the lock; the show parts only touch widgets, so
        a refresh can update them after letting the emulator go again. */
@@ -142,6 +155,9 @@ private:
     void    refreshCpu();
     void    refreshDisasm();
     void    updateStatus();
+    /* A transient message (an error, warning or result), shown at the
+       lower right of the window next to the selected range. */
+    void    notice(const QString &text);
     void    updateRunButton();
     void    refreshMappings();
 
@@ -149,6 +165,10 @@ private:
     QPushButton    *runBtn_;
     QComboBox      *spaceBox_;
     QLineEdit      *addrEdit_;
+    QComboBox      *searchTypeBox_;
+    QLineEdit      *searchEdit_;
+    QLineEdit      *rangeFromEdit_;
+    QLineEdit      *rangeToEdit_;
     QCheckBox      *liveBox_;
     QSpinBox       *stepCount_;
     QPlainTextEdit *cpuText_;
@@ -156,6 +176,9 @@ private:
     QLineEdit      *disasmEdit_;
     QCheckBox      *followBox_;
     QLabel         *statusLabel_;
+    /* The lower right: the latest message and the selection's range. */
+    QLabel         *messageLabel_;
+    QLabel         *rangeLabel_;
     QTimer         *timer_;
     QPlainTextEdit *commandOutput_;
     QLineEdit      *commandInput_;
