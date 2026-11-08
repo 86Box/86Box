@@ -1360,36 +1360,6 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
                 if (smi_line) {
                     const int before = in_smm;
 
-<<<<<<< HEAD
-                enter_smm_check(0);
-                if (in_smm != before)
-                    cpu_halted = 0;
-            } else if (NMI_TAKEABLE()) {
-                /* Out of a HLT that left pc on itself: "the saved CS:IP (or
-                   CS:EIP) value points to the instruction following the HLT
-                   instruction" (Pentium Vol. 3, HLT), NMI included. */
-                if (cpu_halted)
-                    cpu_state.pc++;
-                cpu_halted = 0;
-                oldcs = CS;
-                cpu_state.oldpc = cpu_state.pc;
-                x86_int(2);
-                nmi_enable = 0;
-#    ifdef OLD_NMI_BEHAVIOR
-                if (nmi_auto_clear) {
-                    nmi_auto_clear = 0;
-                    nmi            = 0;
-                }
-#    else
-                nmi = 0;
-#    endif
-            } else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending()) {
-                cpu_pc98_interrupt_wait();
-                vector = x86_external_interrupt_vector();
-                if (vector != -1) {
-                    /* An interrupt that came after the HLT looked: past the
-                       HLT, as above. */
-=======
                     enter_smm_check(0);
                     if (in_smm != before)
                         cpu_halted = 0;
@@ -1397,7 +1367,6 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
                     /* Out of a HLT that left pc on itself: "the saved CS:IP (or
                        CS:EIP) value points to the instruction following the HLT
                        instruction" (Pentium Vol. 3, HLT), NMI included. */
->>>>>>> upstream/master
                     if (cpu_halted)
                         cpu_state.pc++;
                     cpu_halted = 0;
@@ -1414,6 +1383,27 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
                     nmi = 0;
 #    endif
                 } else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending()) {
+                    vector = x86_external_interrupt_vector();
+                    if (vector != -1) {
+                        /* An interrupt that came after the HLT looked: past the
+                           HLT, as above. */
+                    if (cpu_halted)
+                        cpu_state.pc++;
+                    cpu_halted = 0;
+                    oldcs = CS;
+                    cpu_state.oldpc = cpu_state.pc;
+                    x86_int(2);
+                    nmi_enable = 0;
+#    ifdef OLD_NMI_BEHAVIOR
+                    if (nmi_auto_clear) {
+                        nmi_auto_clear = 0;
+                        nmi            = 0;
+                    }
+#    else
+                    nmi = 0;
+#    endif
+                } else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending()) {
+                    cpu_pc98_interrupt_wait();
                     vector = x86_external_interrupt_vector();
                     if (vector != -1) {
                         /* An interrupt that came after the HLT looked: past the
