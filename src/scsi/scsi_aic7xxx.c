@@ -997,6 +997,7 @@ typedef struct aic7xxx_t {
     uint8_t  intstat;
     uint8_t  error;
     uint8_t  dfcntrl;
+    uint8_t  dfcntrl_ack; /* SCSIENACK, HDMAENACK and DIRECTIONACK */
     uint8_t  dfwaddr[2];
     uint8_t  dfraddr[2];
     uint8_t  scbcnt;
@@ -1555,12 +1556,32 @@ aic_set_sstat0(aic7xxx_t *dev, uint8_t bits)
     aic_scsi_int(dev);
 }
 
-/* DMA owns the SCSI handshake while either SCSI-side enable is set,
-   even if firmware leaves SPIOEN enabled (SXFRCTL0, both data books). */
+/* What DFCNTRL shows: the enable bits as their acknowledge. The hardware
+   drops SCSIENACK by itself when the transfer it was doing has ended --
+   "the transfer is complete if either the last segment completes or the
+   target changes phase.  Both conditions will clear SCSIEN" -- and that
+   is what a firmware's poll loop and the "SCSIEN or SDMAEN override this
+   bit" rule of automatic PIO are written against. */
+static uint8_t
+aic_dfcntrl_value(const aic7xxx_t *dev)
+{
+    uint8_t val = dev->dfcntrl & ~(SCSIEN | HDMAEN | DIRECTION);
+
+    val |= dev->dfcntrl_ack & (SCSIEN | HDMAEN | DIRECTION);
+    /* FIFOFLUSH reads as one for as long as a flush is pending, and
+       PRELOADEN, which is a strobe, always reads zero. */
+    return val | (dev->fifo_flush ? FIFOFLUSH : 0);
+}
+
+/* DMA owns the SCSI handshake while either SCSI-side channel is up, even
+   if firmware leaves SPIOEN enabled (SXFRCTL0, both data books) -- and
+   "up" is the acknowledge, so the handshake comes back to automatic PIO
+   the moment the hardware has halted the transfer, which is what lets a
+   firmware take the status byte with SCSIDATL after the count ran out. */
 static int
 aic_pio_enabled(const aic7xxx_t *dev)
 {
-    return (dev->sxfrctl0 & SPIOEN) && !(dev->dfcntrl & (SCSIEN | SDMAEN));
+    return (dev->sxfrctl0 & SPIOEN) && !(dev->dfcntrl_ack & (SCSIEN | SDMAEN));
 }
 
 /* ---- the SCSI bus ------------------------------------------------------- */
@@ -2444,6 +2465,13 @@ aic_scsi_reset_bus(aic7xxx_t *dev)
         dev->req_wait  = 0;
         dev->atn       = 0;
         dev->datl_full = 0;
+        /* The transfer the reset ends is void on both sides. Whatever the
+           SCSI cell had already taken belongs to it, and a data-in the
+           engine never wrote out would otherwise be left at the head of
+           the FIFO, where the next command phase -- which pushes the SCB's
+           twelve byte CDB store through it -- sends it out first. */
+        aic_fifo_reset(dev);
+        dev->dfcntrl_ack &= ~(SCSIEN | HDMAEN);
         timer_stop(&dev->tgt_timer);
         timer_stop(&dev->req_timer);
     }
@@ -2537,7 +2565,7 @@ aic_fifo_threshold(const aic7xxx_t *dev, int dir)
 static void
 aic_fifo_autoflush(aic7xxx_t *dev)
 {
-    if (!(dev->dfcntrl & SCSIEN) || (dev->dfcntrl & DIRECTION) || (dev->sblkctl & AUTOFLUSHDIS))
+    if (!(dev->dfcntrl_ack & SCSIEN) || (dev->dfcntrl & DIRECTION) || (dev->sblkctl & AUTOFLUSHDIS))
         return;
     if (dev->fifo_cnt == 0)
         return;
@@ -2695,6 +2723,10 @@ aic_dma_host(aic7xxx_t *dev)
             dev->haddr += n;
             dev->hcnt -= n;
         }
+        /* HDONE: the host side of the count has run out, so HDMAENACK
+           comes down the same way SCSIENACK does. */
+        if (dev->hcnt == 0)
+            dev->dfcntrl_ack &= ~HDMAEN;
     }
 
     aic_sg_next(dev);
@@ -2762,6 +2794,29 @@ aic_dma_scsi(aic7xxx_t *dev)
             aic_sg_next(dev);
     }
     dev->in_dma = 0;
+
+    /* SDONE, or the target gone to another phase: either way the SCSI
+       side of the channel has nothing left to do, and the hardware takes
+       SCSIENACK down with it. The enable stays up until the firmware
+       clears it; the acknowledge is what the firmware's poll loop, the
+       next automatic PIO transfer and the next DFCNTRL write see. */
+    if ((dev->stcnt == 0) || (dev->tgt_phase != (dev->scsisigo & PHASE_MASK)))
+        dev->dfcntrl_ack &= ~SCSIEN;
+
+    /* A data-in can end inside this call: the engine answers REQs as the
+       target raises them, so a short transfer moves every byte in one
+       pump and the sequencer never runs between the last byte and the
+       phase change. The flush such a driver relies on -- its firmware
+       tests PHASEMIS on the instruction after it starts the transfer and
+       sets FIFOFLUSH if it has fired, which this one does at 1f7 -- is
+       then never issued, and the transfer's bytes sit in the FIFO with
+       HCNT untouched: the host side of it never reached memory, and the
+       residue was later sent out as the next command's CDB. Once the
+       count or the phase says the read is over, give the host engine
+       what the SCSI cell has already taken. It still stops at HCNT, so a
+       short transfer leaves the residual the firmware expects. */
+    if (!out && (dev->dfcntrl & HDMAEN) && dev->fifo_cnt && !dev->fifo_flush && ((dev->stcnt == 0) || (dev->tgt_phase != (dev->scsisigo & PHASE_MASK))))
+        dev->fifo_flush = 1;
 
     aic_dma_host(dev);
 }
@@ -3048,9 +3103,12 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
                count, and the whole transfer, stand at zero right now. A
                reload of STCNT takes them away, which a latch would not. */
             ret = dev->sstat0 & ~(SDONE | DMADONE);
-            /* SDONE wants the count at zero, no wrapping, and one of the
-               two transfer modes on. DMADONE is SDONE and HDONE. */
-            if ((dev->stcnt == 0) && !(dev->sxfrctl1 & SWRAPEN) && ((dev->dfcntrl & SDMAEN) || (dev->sxfrctl0 & SPIOEN))) {
+            /* "SDONE ... Occurs when the STCOUNT = 0, and SCSI data
+               transfers are enabled": the data engine's enable counts as
+               much as the EISA pseudo-DMA's, or a firmware that waits for
+               SDONE after a DMA read waits for ever. DMADONE is SDONE and
+               HDONE. */
+            if ((dev->stcnt == 0) && !(dev->sxfrctl1 & SWRAPEN) && ((dev->dfcntrl & (SCSIEN | SDMAEN)) || (dev->sxfrctl0 & SPIOEN))) {
                 ret |= SDONE;
                 if (dev->hcnt == 0)
                     ret |= DMADONE;
@@ -3348,9 +3406,7 @@ aic_read(aic7xxx_t *dev, uint8_t addr, int seq)
         case ERROR:
             return dev->error;
         case DFCNTRL:
-            /* FIFOFLUSH reads as one for as long as a flush is pending,
-               and PRELOADEN, which is a strobe, always reads zero. */
-            return (dev->dfcntrl & 0x7f) | (dev->fifo_flush ? FIFOFLUSH : 0);
+            return aic_dfcntrl_value(dev);
         case DFSTATUS:
             ret = 0;
             /* "Preload HADDR and HCNT Available", active high even out of
@@ -3566,6 +3622,27 @@ aic_cc_dma(aic7xxx_t *dev, uint8_t *sram, uint32_t size, int to_host)
         dma_bm_write(aic_cchaddr(dev), sram, n, 4);
     else
         dma_bm_read(aic_cchaddr(dev), sram, n, 4);
+
+    /* The host address runs on with the bytes it moved, the same way
+       DFWADDR and DFRADDR do. Firmware that posts the Done SCB queue
+       relies on it: the post routine loads CCHADDR with the address of
+       the entry, moves the entry, and the channel's own completion path
+       saves the register back for the next entry. Left standing, every
+       completion of a burst lands in the same slot -- with a driver whose
+       queue holds more than one command, all but the last of them are
+       lost, and each of those requests then sits out its timeout while
+       the chip happily reports the one that overwrote it. */
+    {
+        uint32_t carry = n;
+        int      i;
+
+        for (i = 0; (i < 8) && carry; i++) {
+            unsigned sum = dev->cchaddr[i] + (carry & 0xffU);
+
+            dev->cchaddr[i] = (uint8_t) sum;
+            carry           = (carry >> 8) + (sum >> 8);
+        }
+    }
     dev->cchcnt = 0;
 }
 
@@ -4214,14 +4291,33 @@ command_channel:
                the engine off with a read-modify-write, and a reset bit
                that stuck would empty the FIFO it is about to read. */
             dev->dfcntrl = val & ~(FIFORESET | FIFOFLUSH);
+            /* Enabling a channel puts its acknowledge up; clearing it
+               takes it down. DIRECTIONACK only moves with both enabled
+               channels idle, as above. */
+            if (val & SCSIEN)
+                dev->dfcntrl_ack |= SCSIEN;
+            else
+                dev->dfcntrl_ack &= ~SCSIEN;
+            if (val & HDMAEN)
+                dev->dfcntrl_ack |= HDMAEN;
+            else
+                dev->dfcntrl_ack &= ~HDMAEN;
+            if (!(dev->dfcntrl_ack & (SCSIEN | HDMAEN))) {
+                if (val & DIRECTION)
+                    dev->dfcntrl_ack |= DIRECTION;
+                else
+                    dev->dfcntrl_ack &= ~DIRECTION;
+            }
             /* "SCSIEN or SDMAEN override this bit": with a transfer
                engine on, a REQ is the engine's to answer, not automatic
                PIO's, and a SPIORDY standing from before must not read as
                SDONE against a count that has just been loaded. */
             if ((val & (SCSIEN | SDMAEN)) && !(was & (SCSIEN | SDMAEN)))
                 dev->sstat0 &= ~SPIORDY;
-            if (val & FIFORESET)
+            if (val & FIFORESET) {
                 aic_fifo_reset(dev);
+                dev->dfcntrl_ack &= ~(SCSIEN | HDMAEN);
+            }
             /* A flush by hand: nothing to do on an empty FIFO, and nothing
                on the way out to the SCSI bus. */
             if ((val & FIFOFLUSH) && dev->fifo_cnt && !(val & DIRECTION))
@@ -5005,7 +5101,7 @@ aic_seq_step(aic7xxx_t *dev)
     dev->trail[dev->trail_at].hcnt    = dev->hcnt;
     dev->trail[dev->trail_at].fifo    = dev->fifo_cnt;
     dev->trail[dev->trail_at].sstat1  = dev->sstat1;
-    dev->trail[dev->trail_at].dfcntrl = dev->dfcntrl;
+    dev->trail[dev->trail_at].dfcntrl = aic_dfcntrl_value(dev);
     dev->trail_at++;
 #endif
 
@@ -5598,7 +5694,8 @@ aic_chip_reset(aic7xxx_t *dev)
     dev->scbptr  = 0;
     dev->intstat = 0;
     dev->error   = 0;
-    dev->dfcntrl = 0;
+    dev->dfcntrl     = 0;
+    dev->dfcntrl_ack = 0;
     dev->scbcnt  = 0;
     dev->sfunct  = 0;
 
