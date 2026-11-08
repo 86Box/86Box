@@ -104,6 +104,9 @@ extern uint32_t *codeblock_hash;
 
 extern uint8_t *block_write_data;
 
+extern int     codegen_timing_peek;
+extern uint8_t codegen_peekb(uint32_t addr);
+
 
 /*Code block uses FPU*/
 #define CODEBLOCK_HAS_FPU 1

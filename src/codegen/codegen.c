@@ -1151,6 +1151,51 @@ codegen_fetchl_lookahead(uint32_t addr)
     return val;
 }
 
+static int
+codegen_is_prefix(uint8_t byte)
+{
+    return (byte == 0x26) || (byte == 0x2e) || (byte == 0x36) || (byte == 0x3e) || (byte == 0x64) || (byte == 0x65) ||
+           (byte == 0x66) || (byte == 0x67) || (byte == 0xf0) || (byte == 0xf2) || (byte == 0xf3);
+}
+
+/* Set while the timing model charges an instruction behind a LOCK it can't
+   take: what it reads of the instruction past opLOCK's bytes it takes with
+   codegen_peekb. */
+int codegen_timing_peek = 0;
+
+/* A code byte the compile pass needs only to classify and time an
+   instruction where the interpreter never reads it, read with nothing a
+   guest can see: the walk is mmutranslate_noabrt's, which sets no accessed
+   or dirty bit, adds no lookup entry and raises nothing, and pccache and the
+   code marks are left alone. From RAM or ROM, as a fetch finds it
+   (getpccache); 0 where the page is not mapped, as the lookahead reads it.
+   Anywhere else the byte is a device's: 0, and the block is not kept, as
+   after a fetch from there. */
+uint8_t
+codegen_peekb(uint32_t addr)
+{
+    uint64_t phys = addr;
+
+    /* The code page fastreadb would take it from without a walk. */
+    if ((addr >> 12) == pccache)
+        return *((uint8_t *) (((uintptr_t) &pccache2[addr] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
+    if (mem_a20_reset_line && !(cr0 >> 31) && ((addr & 0xfffffff0U) == 0xfffffff0U)) {
+        cpu_fetch_device = 1;
+        return 0;
+    }
+    if (cr0 >> 31) {
+        phys = mmutranslate_noabrt(addr, 0);
+        if (phys == 0xffffffffffffffffULL)
+            return 0;
+    }
+    phys &= rammask;
+    if (!_mem_exec[phys >> MEM_GRANULARITY_BITS]) {
+        cpu_fetch_device = 1;
+        return 0;
+    }
+    return _mem_exec[phys >> MEM_GRANULARITY_BITS][phys & MEM_GRANULARITY_MASK];
+}
+
 /* The instructions whose interpreter op can end the block on success, with
    a nonzero answer that leaves the block right after its call: a taken Jcc,
    LOOP or JCXZ, INT3, INT n, INTO and INT1, POP SS and MOV SS (they run the
@@ -1214,6 +1259,8 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     uint32_t     lock_walk          = 0;
     int          lock_walk_valid    = 0;
     int          lock_walk_cycles   = 0;
+    uint32_t     lock_read_end      = 0;
+    int          lock_opcode_read   = 1;
     int          jump_cycles        = 0;
 #ifdef DEBUG_EXTRA
     uint8_t last_prefix = 0;
@@ -1395,8 +1442,9 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
 
             case 0xf0: /*LOCK*/
                 if (!in_lock) {
-                    lock_pc     = op_pc;
-                    lock_cycles = codegen_block_cycles;
+                    lock_pc       = op_pc;
+                    lock_cycles   = codegen_block_cycles;
+                    lock_read_end = op_pc + 4;
                 }
                 in_lock         = 1;
                 break;
@@ -1438,7 +1486,36 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
           0F or the escape, which fetchdat already holds (the loop's fetch, a
           prefix's read at it, or MOV SS's fetch of the instruction after
           it): they are not read again*/
-        if ((opcode != 0x0f) && ((opcode & 0xf8) != 0xd8))
+        if (in_lock && (op_pc != lock_pc)) {
+            /*Past the LOCK's own read, opLOCK reads the byte after each
+              prefix up to 14 bytes past the LOCK, the byte after a 0F it
+              stops on, and the ModR/M of an opcode it can take: the prefix
+              ops' reads follow only when the LOCK is legal (generate_call).
+              The rest of the four bytes the lookahead would give, which only
+              the decoding and the timing here look at, are peeked. The
+              prefix timing takes bits 0-7 only*/
+            const uint32_t dist = (op_pc - 1) - lock_pc;
+            uint32_t       next;
+            uint32_t       modrm;
+
+            if ((opcode == 0x0f) || ((opcode & 0xf8) != 0xd8)) {
+                const int is_0f = (opcode == 0x0f);
+
+                lock_opcode_read = is_0f ? (dist <= 14) : (dist < 14);
+                next             = lock_opcode_read ? fastreadb(cs + op_pc) : codegen_peekb(cs + op_pc);
+                if (lock_opcode_read && ((op_pc + 1) > lock_read_end))
+                    lock_read_end = op_pc + 1;
+                if (!cpu_state.abrt && lock_opcode_read && (is_0f || (!codegen_is_prefix(next) && (next != 0x0f))) && x86_lock_opcode(is_0f, next)) {
+                    modrm = fastreadb(cs + op_pc + 1);
+                    if ((op_pc + 2) > lock_read_end)
+                        lock_read_end = op_pc + 2;
+                } else
+                    modrm = codegen_peekb(cs + op_pc + 1);
+                fetchdat = next | (modrm << 8) | ((uint32_t) codegen_peekb(cs + op_pc + 2) << 16);
+                if (!is_0f)
+                    fetchdat |= (uint32_t) codegen_peekb(cs + op_pc + 3) << 24;
+            }
+        } else if ((opcode != 0x0f) && ((opcode & 0xf8) != 0xd8))
             fetchdat = codegen_fetchl_lookahead(cs + op_pc);
         codegen_timing_prefix(opcode, fetchdat);
         codegen_accumulate_record(ACC_PREFIX, 0, opcode, fetchdat, 0, 0);
@@ -1473,6 +1550,17 @@ generate_call:
             lock_illegal = !x86_lock_legal(0, opcode, fetchdat & 0xff);
         else
             lock_illegal = 1;
+        /*A legal LOCK runs the prefix ops after it, which read four bytes
+          after each: the bytes of the last of those reads, which reach
+          furthest, as the op's fetchdat*/
+        if (!lock_illegal) {
+            if (over)
+                fetchdat = codegen_fetchl_lookahead(cs + op_pc - 2) >> 16;
+            else
+                fetchdat = codegen_fetchl_lookahead(cs + op_pc - 1) >> 8;
+            if (cpu_state.abrt)
+                return;
+        }
     }
 
     fetchdat_pc = op_pc + pc_off;
@@ -1535,7 +1623,11 @@ generate_call:
     codegen_instructions[block->ins].tag_valid    = codegen_fpu_tag_valid;
     codegen_instructions[block->ins].tag_empty    = codegen_fpu_tag_empty;
 
+    /*An instruction behind a LOCK it can't take is a hand-over, which no
+      unrolled copy repeats, so its event is not replayed*/
+    codegen_timing_peek = lock_illegal;
     codegen_timing_opcode(opcode, fetchdat, op_32, op_pc);
+    codegen_timing_peek = 0;
     codegen_accumulate_record(ACC_OPCODE, 0, opcode, fetchdat, op_32, op_pc);
 
     codegen_accumulate_timing(ir);
@@ -1557,8 +1649,9 @@ generate_call:
     }
 
     /*Only on a processor with 3DNow!: on the others 0F 0F is ILLEGAL in its
-      own table, and the check below leaves it to the interpreter's #UD*/
-    if (op_table == x86_dynarec_opcodes_0f && opcode == 0x0f && op_table[((opcode >> opcode_shift) | op_32) & opcode_mask] != dynarec_op_illegal) {
+      own table, and the check below leaves it to the interpreter's #UD. Not
+      behind a LOCK it can't take: opLOCK reads no suffix*/
+    if (op_table == x86_dynarec_opcodes_0f && opcode == 0x0f && !lock_illegal && op_table[((opcode >> opcode_shift) | op_32) & opcode_mask] != dynarec_op_illegal) {
         /*3DNow opcodes are stored after ModR/M, SIB and any offset*/
         uint8_t  modrm     = fetchdat & 0xff;
         uint8_t  sib       = (fetchdat >> 8) & 0xff;
@@ -1615,13 +1708,22 @@ generate_call:
     /*The prefixes and the opcode; an x87 escape's ModR/M too, as op_pc is
       already past it (pc_off is -1 for those only while op_pc is moved back
       to the ModR/M for the EA below). Bytes of the interpreter's own fetches,
-      whose walk is decided above*/
+      whose walk is decided above. Behind a LOCK it can't take, only those
+      opLOCK reads (lock_read_end), not what was only peeked*/
     codegen_fetch_walk_off = 1;
-    codegen_mark_code_present(block, cs + old_pc, op_pc - old_pc);
+    if (lock_illegal) {
+        uint32_t mark_end = op_pc;
+
+        if (mark_end > lock_read_end)
+            mark_end = lock_read_end;
+        codegen_mark_code_present(block, cs + old_pc, mark_end - old_pc);
+    } else
+        codegen_mark_code_present(block, cs + old_pc, op_pc - old_pc);
     codegen_fetch_walk_off = 0;
     /* Every escape stores its opcode, D8 00 (FADD m32 by [BX+SI] or [EAX])
-       included: the handlers and the FERR# checks read it */
-    if (is_fpu) {
+       included: the handlers and the FERR# checks read it. Not behind a LOCK
+       it can't take: opLOCK's #UD comes first, and its ModR/M isn't read */
+    if (is_fpu && !lock_illegal) {
         uop_MOV_IMM(ir, IREG_x87_op, op87);
     }
 
@@ -1725,7 +1827,9 @@ codegen_skip:
     else
         op = op_table[((opcode >> opcode_shift) | op_32) & opcode_mask];
 
-    if (!test_modrm || (op_table == x86_dynarec_opcodes && opcode_modrm[opcode]) || (op_table == x86_dynarec_opcodes_0f && opcode_0f_modrm[opcode]) || (op_table == x86_dynarec_opcodes_3DNOW)) {
+    /*A LOCK the instruction can't take is #UD before anything after the
+      bytes opLOCK reads: no EA*/
+    if (!lock_illegal && (!test_modrm || (op_table == x86_dynarec_opcodes && opcode_modrm[opcode]) || (op_table == x86_dynarec_opcodes_0f && opcode_0f_modrm[opcode]) || (op_table == x86_dynarec_opcodes_3DNOW))) {
         int stack_offset = 0;
 
         if (op_table == x86_dynarec_opcodes && opcode == 0x8f) /*POP*/
@@ -1859,6 +1963,9 @@ codegen_skip:
         /* After 0F the fetch that read it ends at the byte after the ModR/M. */
         if ((op_table == x86_dynarec_opcodes_0f) || (op_table == x86_dynarec_opcodes_3DNOW))
             fetch_len = 2;
+        /* Behind a LOCK it can't take, only what opLOCK read of them. */
+        if (lock_illegal)
+            fetch_len = (fetchdat_pc >= lock_read_end) ? 0 : (((lock_read_end - fetchdat_pc) < (uint32_t) fetch_len) ? (int) (lock_read_end - fetchdat_pc) : fetch_len);
         /* Those are the interpreter fetch's bytes, and the op fetches what
            lies past them itself: neither walks here */
         codegen_fetch_walk_off = 1;

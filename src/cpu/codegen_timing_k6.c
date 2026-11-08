@@ -2102,7 +2102,8 @@ codegen_timing_k6_opcode(uint8_t opcode, UNUSED(uint32_t fetchdat), int op_32, u
                     }
                 }
 
-                opcode = fastreadb(cs + opcode_pc);
+                /* Behind a LOCK it can't take, opLOCK reads no suffix. */
+                opcode = codegen_timing_peek ? codegen_peekb(cs + opcode_pc) : fastreadb(cs + opcode_pc);
 
                 ins_table = mod3 ? opcode_timings_k6_0f0f_mod3 : opcode_timings_k6_0f0f;
                 deps      = mod3 ? opcode_deps_0f0f_mod3 : opcode_deps_0f0f;
