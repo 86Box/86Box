@@ -80,11 +80,15 @@ enum {
 #define CPUID_3DNOWE (1UL << 30UL) /* Extended 3DNow! instructions */
 #define CPUID_3DNOW  (1UL << 31UL) /* 3DNow! instructions */
 
-/* APIC CPUID visibility is gated by both the CPU model and board policy. */
+/* APIC CPUID visibility is gated by both the CPU model and board policy, and
+   by IA32_APIC_BASE[11]: with the local APIC globally disabled the processor
+   is one without an on-chip APIC, and the CPUID flag reads 0 (Intel SDM vol.
+   3A, 10.4.3). Windows XP's PIC HALs clear that bit on a P6, and its
+   processr.sys takes the CPUID flag with the bit clear as a failure. */
 static uint32_t
 cpu_cpuid_apic_probe_flags(uint32_t edx)
 {
-    if (cpu_apic_feature_enabled())
+    if (cpu_apic_feature_enabled() && cpu_lapic_base_enabled_index(cpu_lapic_index_source()))
         edx |= CPUID_APIC;
 
     return edx;
