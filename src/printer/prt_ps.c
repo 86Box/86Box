@@ -515,7 +515,7 @@ ps_init(const device_t *info)
             "libgs.dylib",
             "/opt/homebrew/lib/libgs.dylib",   /* Homebrew, Apple Silicon */
             "/usr/local/lib/libgs.dylib",      /* Homebrew (Intel), MacPorts, manual install */
-            "/opt/local/lib/libggs.dylib"       /* MacPorts */
+            "/opt/local/lib/libgs.dylib"       /* MacPorts */
 #else
             "libgs.so.10", "libgs.so.9", "libgs.so"
 #endif
