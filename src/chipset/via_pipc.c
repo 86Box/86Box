@@ -760,7 +760,11 @@ pipc_reset_hard(void *priv)
                 dev->ac97_regs[i][0x40] = 0x01;
                 dev->ac97_regs[i][0x43] = 0x1c;
                 dev->ac97_regs[i][0x48] = 0x01;
-                dev->ac97_regs[i][0x4b] = 0x00;
+                /* Game port base 200h. The VT8231 datasheet documents this default;
+                   the XP VIA AC'97 driver reads it as the game port's I/O resource on
+                   revision 20h and later, and BIOSes such as the 6VIA90AP's leave it. */
+                dev->ac97_regs[i][0x4a] = 0x00;
+                dev->ac97_regs[i][0x4b] = 0x02;
             }
 
             pipc_sgd_handlers(dev, i);
