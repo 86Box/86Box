@@ -262,6 +262,10 @@ vnc_close(void)
 
         rfb = NULL;
     }
+
+    /* With the VNC renderer gone, nothing waits for a client any more.
+       Done after the cleanup, whose client-gone hooks pause again. */
+    runctl_resume(RUN_PAUSE_REMOTE);
 }
 
 void
