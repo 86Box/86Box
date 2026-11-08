@@ -567,7 +567,7 @@ void
 MediaMenu::floppyMount(int i, const QString &filename, bool wp)
 {
     const int was_paused = dopause;
-    plat_pause(1);
+    runctl_pause(RUN_PAUSE_REMOTE);
 
     fdd_drive_t *drv = &drives[i];
 
@@ -599,7 +599,7 @@ void
 MediaMenu::floppyEject(int i)
 {
     const int was_paused = dopause;
-    plat_pause(1);
+    runctl_pause(RUN_PAUSE_REMOTE);
 
     fdd_drive_t *drv = &drives[i];
 
