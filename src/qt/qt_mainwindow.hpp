@@ -223,6 +223,8 @@ private:
     friend class WindowsRawInputFilter; // Needed to reload renderers on style sheet changes.
 
     QString toolbar_text;
+    QString toolbar_base_text; /* the speed and mouse text, without the state suffixes */
+    void    refreshToolbarText();
     QLabel *toolbar_label, *caps_label, *scroll_label, *num_label, *kana_label;
     QIcon   caps_icon, scroll_icon, num_icon, kana_icon;
     QIcon   caps_icon_off, scroll_icon_off, num_icon_off, kana_icon_off;

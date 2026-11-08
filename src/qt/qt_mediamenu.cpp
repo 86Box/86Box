@@ -84,6 +84,7 @@ MediaMenu::MediaMenu(QWidget *parent)
 {
     parentWidget = parent;
     connect(this, &MediaMenu::onCdromUpdateUi, this, &MediaMenu::cdromUpdateUi, Qt::QueuedConnection);
+    connect(this, &MediaMenu::onFloppyUpdateUi, this, &MediaMenu::floppyUpdateUi, Qt::QueuedConnection);
 }
 
 void
@@ -600,6 +601,20 @@ MediaMenu::floppyEject(int i)
     floppyUpdateMenu(i);
     ui_sb_update_tip(SB_FLOPPY | i);
     config_save();
+}
+
+/* After the drive changed images from outside the menu (automation). */
+void
+MediaMenu::floppyUpdateUi(int i, const QString &prev)
+{
+    fdd_drive_t *drv = &drives[i];
+
+    if (prev != QString(drv->image_path))
+        mhm.addImageToHistory(i, ui::MediaType::Floppy, prev, drv->image_path);
+    ui_sb_update_icon_state(SB_FLOPPY | i, drv->image_path[0] ? 0 : 1);
+    ui_sb_update_icon_wp(SB_FLOPPY | i, drv->read_only);
+    floppyUpdateMenu(i);
+    ui_sb_update_tip(SB_FLOPPY | i);
 }
 
 void
@@ -1667,6 +1682,12 @@ void
 plat_cdrom_ui_update(uint8_t id, uint8_t reload)
 {
     emit MediaMenu::ptr->onCdromUpdateUi(id);
+}
+
+void
+plat_fdd_ui_update(uint8_t id, const char *prev)
+{
+    emit MediaMenu::ptr->onFloppyUpdateUi(id, QString(prev));
 }
 
 void

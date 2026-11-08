@@ -206,6 +206,8 @@ extern void     plat_delay_ms(uint32_t count);
 extern void     plat_pause(int p);
 /* Fast forward on or off from outside the UI (automation). */
 extern void     plat_fast_forward(int on);
+/* The automation client held (1) or released (0) the machine. */
+extern void     plat_automation_hold(int held);
 extern void     plat_mouse_capture(int on);
 extern int      plat_vidapi(const char *name);
 extern char    *plat_vidapi_name(int api);
@@ -245,6 +247,8 @@ extern void floppy_mount(uint8_t id, char *fn, uint8_t wp);
 extern void floppy_eject(uint8_t id);
 extern void cdrom_mount(uint8_t id, char *fn);
 extern void plat_cdrom_ui_update(uint8_t id, uint8_t reload);
+/* Floppy drive id changed images outside the UI; prev is the image it had. */
+extern void plat_fdd_ui_update(uint8_t id, const char *prev);
 extern void rdisk_eject(uint8_t id);
 extern void rdisk_mount(uint8_t id, char *fn, uint8_t wp);
 extern void rdisk_reload(uint8_t id);

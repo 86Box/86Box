@@ -76,7 +76,7 @@ startup), `frames` (frames rendered) and `held`.
 | Request | Effect |
 |---|---|
 | `status` | Protocol and emulator version, `ms`, `frames`, `held`, `paused` (UI pause), `ff` (fast forward), last frame size `w`/`h`, `bios_mode` (BIOS data area 0x449), `quantum_ms`. |
-| `hold` | Stop running the CPU between requests. |
+| `hold` | Stop running the CPU between requests. The toolbar shows " - HELD" until `release`, steps included. |
 | `release` | Resume normal real-time execution. |
 | `ff [on\|off]` | Fast forward on or off, as the UI's (no pacing to real time when the machine runs); with no argument, what it is. Reply has `ff`. |
 | `step <ms>` | Run exactly `ms` of emulated time, then reply. If held, runs without real-time pacing (as fast as the host allows), then holds again. |
@@ -108,8 +108,8 @@ startup), `frames` (frames rendered) and `held`.
 | `pciw <bus> <dev> <func> <reg> <hex> [<width>]` | Write configuration space the same way. Reply has `present`. |
 | `regs` | General registers, `eip`, `eflags`, segment selectors, `cs_base`, `cr0`. From the 286: each segment's descriptor cache (`ds_base`, `ds_limit`, `ds_ar` and so on, `ar` being descriptor bytes 5 and 6: the access byte, then G, D/B, AVL and limit 19:16), `gdtr_base`/`gdtr_limit`, `idtr_base`/`idtr_limit`, `ldtr` and `tr` with their base, limit and `ar`, and `cpl`. From the 386: `cr2` (the last page-fault address), `cr3` (the page directory base), `dr0`–`dr3`, `dr6`, `dr7` and `smm`. `cr4` and `tsc` on CPUs that have them. No x86 CPU has a CR1 (`MOV` to or from it is an invalid opcode, see `src/cpu/x86_ops_mov_ctrl.h`), so there is none. |
 | `fpu` | The x87: `fcw`, `fsw` (with TOP), `ftw` (the full tag word, two bits per register), `top`, and `st0`–`st7` as 20 hex digits each (sign and exponent, then the significand), as FSAVE would store them. With MMX, `mm0`–`mm7` as 16 hex digits. Fails without an FPU. |
-| `fdd load <drive> <path>` / `fdd eject <drive>` | Change floppy media (drive 0 = A:). |
-| `cd load <drive> <path>` / `cd eject <drive>` | Change CD-ROM media. |
+| `fdd load <drive> <path>` / `fdd eject <drive>` | Change floppy media (drive 0 = A:). The media menu, status bar and image history follow, as when the UI changes it. |
+| `cd load <drive> <path>` / `cd eject <drive>` | Change CD-ROM media. The media menu, status bar and image history follow, as when the UI changes it. |
 | `media put <name> <bytes>`, then the bytes | Receive a file from the client, for a client on another machine: the line is followed on the connection by exactly `<bytes>` raw bytes, saved as `automation-media/<name>` in the VM directory (created if needed), replacing a file of that name once all of it has arrived. `<name>` must stay in that folder: no `/`, `\` or `:`, and not `.` or `..`; any other name the OS refuses gets its error. Reply has `path`, to use with `fdd load` or `cd load`, and `bytes`. The machine runs on (or stays held) while the bytes arrive. If the name is bad or the file can't be written, the bytes are still read, and the reply is an error with the OS's reason; if `<bytes>` isn't a number, the connection is closed, since what follows can't be told from the next request. See [Media from a client](#media-from-a-client). |
 | `media remove <name>` | Delete a file received with `media put`. |
 | `log [<from> [<max>]]` | What 86Box has written to its log, from position `from` (bytes logged since startup; default 0) on, at most `max` bytes (default and limit 65536), as `text`: the last 64 KB are kept. With `from`, `next` (the `from` for the next read), `pos` (bytes logged so far) and `lost` (bytes asked for that were no longer kept). Includes warnings, which 86Box logs instead of showing them (see [Warnings](#warnings)); a release build logs little else. |

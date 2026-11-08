@@ -84,9 +84,11 @@ public:
 
 public slots:
     void cdromUpdateUi(int i);
+    void floppyUpdateUi(int i, const QString &prev);
 
 signals:
     void onCdromUpdateUi(int i);
+    void onFloppyUpdateUi(int i, const QString &prev);
 
 private:
     QWidget *parentWidget = nullptr;

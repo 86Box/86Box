@@ -2057,9 +2057,11 @@ handle_request(char *line)
                   dopause ? "true" : "false", fast_forward ? "true" : "false", frame_w, frame_h, mode, force_10ms ? 10 : 1);
     } else if (!strcmp(argv[0], "hold")) {
         held = 1;
+        plat_automation_hold(1);
         respond_ok_time();
     } else if (!strcmp(argv[0], "release")) {
         held = 0;
+        plat_automation_hold(0);
         respond_ok_time();
     } else if (!strcmp(argv[0], "ff") && (argc <= 2)) {
         /* ff [on|off]: fast forward, as the menu's; with no argument, what
@@ -2500,14 +2502,18 @@ handle_request(char *line)
         if ((id < 0) || (id >= FDD_NUM)) {
             respond_error("bad drive");
         } else if (!strcmp(argv[1], "eject")) {
+            char prev[sizeof(drives[id].image_path)];
+            strcpy(prev, drives[id].image_path);
             fdd_close(&drives[id]);
-            ui_sb_update_icon_state(SB_FLOPPY | id, 1);
+            plat_fdd_ui_update(id, prev);
             respond_ok_time();
         } else if (!strcmp(argv[1], "load") && (argc >= 4)) {
+            char prev[sizeof(drives[id].image_path)];
+            strcpy(prev, drives[id].image_path);
             fdd_close(&drives[id]);
             drives[id].read_only = 0;
             fdd_load(&drives[id], rest[3]);
-            ui_sb_update_icon_state(SB_FLOPPY | id, drives[id].image_path[0] ? 0 : 1);
+            plat_fdd_ui_update(id, prev);
             respond_ok_time();
         } else
             respond_error("usage: fdd load <drive> <path> | fdd eject <drive>");
@@ -2530,7 +2536,7 @@ handle_request(char *line)
                 if (was_empty)
                     cdrom[id].insert(cdrom[id].priv);
             }
-            ui_sb_update_icon_state(SB_CDROM | id, cdrom[id].image_path[0] ? 0 : 1);
+            plat_cdrom_ui_update(id, 0);
             if (cdrom[id].image_path[0])
                 respond_ok_time();
             else
@@ -2582,6 +2588,15 @@ automation_run_state(void)
     if (cmd != CMD_NONE)
         return cmd_was_held ? AUTOMATION_RUN : AUTOMATION_FREE;
     return held ? AUTOMATION_HOLD : AUTOMATION_FREE;
+}
+
+int
+automation_held(void)
+{
+    if (!enabled)
+        return 0;
+    /* What the client asked for: a step taken while held stays held. */
+    return (cmd != CMD_NONE) ? cmd_was_held : held;
 }
 
 void

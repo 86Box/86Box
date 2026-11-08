@@ -55,6 +55,7 @@ extern "C" {
 #include <86box/nvr.h>
 #include <86box/acpi.h>
 #include <86box/renderdefs.h>
+#include <86box/automation.h>
 
 #ifdef USE_VNC
 #    include <86box/vnc.h>
@@ -402,11 +403,8 @@ MainWindow::MainWindow(QWidget *parent)
     connect(this, &MainWindow::showMessageForNonQtThread, this, &MainWindow::showMessage_, Qt::QueuedConnection);
 
     connect(this, &MainWindow::setTitle, this, [this](const QString &title) {
-        if (hide_tool_bar)
-            return;
-        else
-            toolbar_text = title;
-        toolbar_label->setText(toolbar_label->fontMetrics().elidedText(toolbar_text, Qt::ElideRight, toolbar_label->width()));
+        toolbar_base_text = title;
+        refreshToolbarText();
     });
 
     connect(this, &MainWindow::updateMenuResizeOptions, [this]() {
@@ -2592,9 +2590,25 @@ MainWindow::setSendKeyboardInput(bool enabled)
     send_keyboard_input = enabled;
 }
 
+/* The toolbar text: the last speed report, then what stops the machine. */
+void
+MainWindow::refreshToolbarText()
+{
+    if (hide_tool_bar)
+        return;
+
+    toolbar_text = toolbar_base_text;
+    if (dopause)
+        toolbar_text += tr(" - PAUSED");
+    if (automation_held())
+        toolbar_text += tr(" - HELD");
+    toolbar_label->setText(toolbar_label->fontMetrics().elidedText(toolbar_text, Qt::ElideRight, toolbar_label->width()));
+}
+
 void
 MainWindow::updateUiPauseState()
 {
+    refreshToolbarText();
     const auto pause_icon   = dopause ? QIcon(":/menuicons/qt/icons/run.ico") : QIcon(":/menuicons/qt/icons/pause.ico");
     const auto tooltip_text = dopause ? QString(tr("Resume execution")) : QString(tr("Pause execution"));
     const auto menu_text    = dopause ? QString(tr("Re&sume")) : QString(tr("&Pause"));

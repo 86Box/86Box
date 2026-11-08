@@ -825,10 +825,7 @@ plat_pause(int p)
             plat_mouse_capture(0);
     }
 
-    QString title      = main_window->getTitle();
-    QString pausedText = QObject::tr(" - PAUSED");
-    emit main_window->setTitle(p ? title.append(pausedText) : title.left(title.indexOf(pausedText)));
-
+    /* Also adds or removes " - PAUSED" in the toolbar. */
     QTimer::singleShot(0, main_window, &MainWindow::updateUiPauseState);
 
 #ifdef Q_OS_WINDOWS
@@ -844,6 +841,14 @@ plat_fast_forward(int on)
 {
     fast_forward = !!on;
     QTimer::singleShot(0, main_window, &MainWindow::updateUiFastForwardState);
+}
+
+/* Shown in the toolbar the way a pause is. */
+void
+plat_automation_hold(int)
+{
+    if (main_window)
+        QTimer::singleShot(0, main_window, &MainWindow::updateUiPauseState);
 }
 
 void

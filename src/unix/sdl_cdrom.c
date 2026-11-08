@@ -124,6 +124,13 @@ floppy_eject(uint8_t id)
 }
 
 void
+plat_fdd_ui_update(uint8_t id, UNUSED(const char *prev))
+{
+    ui_sb_update_icon_state(SB_FLOPPY | id, drives[id].image_path[0] ? 0 : 1);
+    ui_sb_update_tip(SB_FLOPPY | id);
+}
+
+void
 plat_cdrom_ui_update(uint8_t id, UNUSED(uint8_t reload))
 {
     cdrom_t *drv = &cdrom[id];

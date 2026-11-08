@@ -459,6 +459,11 @@ plat_fast_forward(int on)
 }
 
 void
+plat_automation_hold(UNUSED(int held))
+{
+}
+
+void
 plat_pause(int p)
 {
     static char oldtitle[512];

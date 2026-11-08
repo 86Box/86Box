@@ -43,6 +43,9 @@ extern void automation_close(void);
 /* Called by the main loop on the CPU thread, once per scheduler pass. */
 extern void automation_poll(void);
 extern int  automation_run_state(void);
+/* Whether the client holds the machine, for the UI (any thread). Steps
+   taken while held do not clear it. */
+extern int  automation_held(void);
 /* Called by the main loop on the CPU thread after each pc_run(). */
 extern void automation_quantum(void);
 /* Called by the video core whenever a frame is handed to the renderer. */
@@ -71,6 +74,7 @@ extern void automation_fatal(const char *msg);
 #    define automation_close()
 #    define automation_poll()
 #    define automation_run_state() AUTOMATION_FREE
+#    define automation_held()      0
 #    define automation_quantum()
 #    define automation_frame(x, y, w, h, monitor_index)
 #    define automation_reset(hard)
