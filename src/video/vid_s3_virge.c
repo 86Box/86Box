@@ -73,11 +73,9 @@ static int dither[4][4] = {
 #define RB_SIZE 256
 #define RB_MASK (RB_SIZE - 1)
 
-#define S3D_RENDER_THREADS_MAX 4
-
-#define RB_ENTRIES(lane) (virge->s3d_write_idx - virge->s3d_read_idx[(lane)])
-#define RB_FULL(lane) (RB_ENTRIES(lane) >= RB_SIZE)
-#define RB_EMPTY(lane) (!RB_ENTRIES(lane))
+#define RB_ENTRIES (virge->s3d_write_idx - virge->s3d_read_idx)
+#define RB_FULL (RB_ENTRIES == RB_SIZE)
+#define RB_EMPTY (!RB_ENTRIES)
 
 #define FIFO_SIZE 65536
 #define FIFO_MASK (FIFO_SIZE - 1)
@@ -222,12 +220,11 @@ typedef struct virge_t {
     int dithering_enabled;
     int memory_size;
 
-    int pixel_count[S3D_RENDER_THREADS_MAX];
+    int pixel_count;
     int tri_count;
 
-    int       render_threads;
-    thread_t *render_thread[S3D_RENDER_THREADS_MAX];
-    event_t  *wake_render_thread[S3D_RENDER_THREADS_MAX];
+    thread_t *render_thread;
+    event_t  *wake_render_thread;
     event_t  *wake_main_thread;
     event_t  *not_full_event;
 
@@ -295,13 +292,9 @@ typedef struct virge_t {
     s3d_t s3d_tri;
 
     s3d_t      s3d_buffer[RB_SIZE];
-    uint8_t    s3d_parallel[RB_SIZE];
-    uint8_t    s3d_barrier[RB_SIZE];
-    uint8_t    s3d_batch_safe[RB_SIZE];
-    ATOMIC_INT s3d_read_idx[S3D_RENDER_THREADS_MAX];
+    ATOMIC_INT s3d_read_idx;
     ATOMIC_INT s3d_write_idx;
-    ATOMIC_INT s3d_barrier_release_idx;
-    ATOMIC_INT s3d_busy[S3D_RENDER_THREADS_MAX];
+    ATOMIC_INT s3d_busy;
 
     struct {
         uint32_t pri_ctrl;
@@ -405,33 +398,6 @@ wake_fifo_thread(virge_t *virge)
 {
     /* Wake up FIFO thread if moving from idle */
     thread_set_event(virge->wake_fifo_thread);
-}
-
-static __inline void
-wake_render_threads(virge_t *virge)
-{
-    for (int lane = 0; lane < virge->render_threads; lane++)
-        thread_set_event(virge->wake_render_thread[lane]);
-}
-
-static __inline int
-s3d_ring_full(virge_t *virge)
-{
-    for (int lane = 0; lane < virge->render_threads; lane++)
-        if (RB_FULL(lane))
-            return 1;
-
-    return 0;
-}
-
-static __inline int
-s3d_engine_busy(virge_t *virge)
-{
-    for (int lane = 0; lane < virge->render_threads; lane++)
-        if (virge->s3d_busy[lane] || !RB_EMPTY(lane))
-            return 1;
-
-    return 0;
 }
 
 static virge_t *reset_state = NULL;
@@ -1381,7 +1347,7 @@ s3_virge_mmio_read(uint32_t addr, void *priv)
             return ret;
         case 0x8505:
             ret = 0xc0;
-            if (s3d_engine_busy(virge) || virge->virge_busy || !FIFO_EMPTY)
+            if (virge->s3d_busy || virge->virge_busy || !FIFO_EMPTY)
                 ret |= 0x10;
             else
                 ret |= 0x30;
@@ -1425,7 +1391,7 @@ s3_virge_mmio_read_w(uint32_t addr, void *priv)
     switch (addr & 0xfffe) {
         case 0x8504:
             ret = 0xc000;
-            if (s3d_engine_busy(virge) || virge->virge_busy || !FIFO_EMPTY)
+            if (virge->s3d_busy || virge->virge_busy || !FIFO_EMPTY)
                 ret |= 0x1000;
             else
                 ret |= 0x3000;
@@ -1528,7 +1494,7 @@ s3_virge_mmio_read_l(uint32_t addr, void *priv)
 
         case 0x8504:
             ret = 0x0000c000;
-            if (s3d_engine_busy(virge) || virge->virge_busy || !FIFO_EMPTY)
+            if (virge->s3d_busy || virge->virge_busy || !FIFO_EMPTY)
                 ret |= 0x00001000;
             else
                 ret |= 0x00003000;
@@ -1992,7 +1958,7 @@ s3_virge_mmio_write_fifo_l(virge_t *virge, uint32_t addr, uint32_t val)
 }
 
 static void
-mach64_fifo_thread(void *param)
+fifo_thread(void *param)
 {
     virge_t *virge = (virge_t *) param;
 
@@ -3592,9 +3558,9 @@ skip_line:
         g = (val & 0xff00) >> 8;   \
         r = (val & 0xff0000) >> 16
 
-#define RGB15(r, g, b, dest, x, y)                  \
+#define RGB15(r, g, b, dest)                        \
         if (virge->dithering_enabled) {             \
-                int add = dither[(y) & 3][(x) & 3]; \
+                int add = dither[_y & 3][_x & 3];   \
                 int _r = (r > 248) ? 248 : r + add; \
                 int _g = (g > 248) ? 248 : g + add; \
                 int _b = (b > 248) ? 248 : b + add; \
@@ -3614,13 +3580,6 @@ typedef struct rgba_t {
     int b;
     int a;
 } rgba_t;
-
-struct s3d_state_t;
-struct s3d_texture_state_t;
-
-typedef void (*s3d_tex_read_func_t)(struct s3d_state_t *state, struct s3d_texture_state_t *texture_state, rgba_t *out);
-typedef void (*s3d_tex_sample_func_t)(struct s3d_state_t *state);
-typedef void (*s3d_dest_pixel_func_t)(struct s3d_state_t *state);
 
 typedef struct s3d_state_t {
     int32_t r;
@@ -3659,12 +3618,6 @@ typedef struct s3d_state_t {
     int y;
 
     rgba_t dest_rgba;
-
-    s3d_tex_read_func_t   tex_read;
-    s3d_tex_sample_func_t tex_sample;
-    s3d_dest_pixel_func_t dest_pixel;
-
-    int pixel_count;
 } s3d_state_t;
 
 typedef struct s3d_texture_state_t {
@@ -3675,8 +3628,15 @@ typedef struct s3d_texture_state_t {
     int32_t v;
 } s3d_texture_state_t;
 
+static void (*tex_read)(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out);
+static void (*tex_sample)(s3d_state_t *state);
+static void (*dest_pixel)(s3d_state_t *state);
+
 #define MAX(a, b) ((a) > (b) ? (a) : (b))
 #define MIN(a, b) ((a) < (b) ? (a) : (b))
+
+static int _x;
+static int _y;
 
 static void
 tex_ARGB1555(s3d_state_t *state, s3d_texture_state_t *texture_state, rgba_t *out)
@@ -3775,7 +3735,7 @@ tex_sample_normal(s3d_state_t *state)
     texture_state.u             = state->u + state->tbu;
     texture_state.v             = state->v + state->tbv;
 
-    state->tex_read(state, &texture_state, &state->dest_rgba);
+    tex_read(state, &texture_state, &state->dest_rgba);
 }
 
 static void
@@ -3794,21 +3754,21 @@ tex_sample_normal_filter(s3d_state_t *state)
 
     texture_state.u = state->u + state->tbu;
     texture_state.v = state->v + state->tbv;
-    state->tex_read(state, &texture_state, &tex_samples[0]);
+    tex_read(state, &texture_state, &tex_samples[0]);
     du = (texture_state.u >> (texture_state.texture_shift - 8)) & 0xff;
     dv = (texture_state.v >> (texture_state.texture_shift - 8)) & 0xff;
 
     texture_state.u = state->u + state->tbu + tex_offset;
     texture_state.v = state->v + state->tbv;
-    state->tex_read(state, &texture_state, &tex_samples[1]);
+    tex_read(state, &texture_state, &tex_samples[1]);
 
     texture_state.u = state->u + state->tbu;
     texture_state.v = state->v + state->tbv + tex_offset;
-    state->tex_read(state, &texture_state, &tex_samples[2]);
+    tex_read(state, &texture_state, &tex_samples[2]);
 
     texture_state.u = state->u + state->tbu + tex_offset;
     texture_state.v = state->v + state->tbv + tex_offset;
-    state->tex_read(state, &texture_state, &tex_samples[3]);
+    tex_read(state, &texture_state, &tex_samples[3]);
 
     d[0] = (256 - du) * (256 - dv);
     d[1] = du * (256 - dv);
@@ -3837,7 +3797,7 @@ tex_sample_mipmap(s3d_state_t *state)
     texture_state.u             = state->u + state->tbu;
     texture_state.v             = state->v + state->tbv;
 
-    state->tex_read(state, &texture_state, &state->dest_rgba);
+    tex_read(state, &texture_state, &state->dest_rgba);
 }
 
 static void
@@ -3858,21 +3818,21 @@ tex_sample_mipmap_filter(s3d_state_t *state)
 
     texture_state.u = state->u + state->tbu;
     texture_state.v = state->v + state->tbv;
-    state->tex_read(state, &texture_state, &tex_samples[0]);
+    tex_read(state, &texture_state, &tex_samples[0]);
     du = (texture_state.u >> (texture_state.texture_shift - 8)) & 0xff;
     dv = (texture_state.v >> (texture_state.texture_shift - 8)) & 0xff;
 
     texture_state.u = state->u + state->tbu + tex_offset;
     texture_state.v = state->v + state->tbv;
-    state->tex_read(state, &texture_state, &tex_samples[1]);
+    tex_read(state, &texture_state, &tex_samples[1]);
 
     texture_state.u = state->u + state->tbu;
     texture_state.v = state->v + state->tbv + tex_offset;
-    state->tex_read(state, &texture_state, &tex_samples[2]);
+    tex_read(state, &texture_state, &tex_samples[2]);
 
     texture_state.u = state->u + state->tbu + tex_offset;
     texture_state.v = state->v + state->tbv + tex_offset;
-    state->tex_read(state, &texture_state, &tex_samples[3]);
+    tex_read(state, &texture_state, &tex_samples[3]);
 
     d[0] = (256 - du) * (256 - dv);
     d[1] = du * (256 - dv);
@@ -3903,7 +3863,7 @@ tex_sample_persp_normal(s3d_state_t *state)
     texture_state.u             = (int32_t) (((int64_t) state->u * (int64_t) w) >> (12 + state->max_d)) + state->tbu;
     texture_state.v             = (int32_t) (((int64_t) state->v * (int64_t) w) >> (12 + state->max_d)) + state->tbv;
 
-    state->tex_read(state, &texture_state, &state->dest_rgba);
+    tex_read(state, &texture_state, &state->dest_rgba);
 }
 
 static void
@@ -3931,21 +3891,21 @@ tex_sample_persp_normal_filter(s3d_state_t *state)
 
     texture_state.u = u;
     texture_state.v = v;
-    state->tex_read(state, &texture_state, &tex_samples[0]);
+    tex_read(state, &texture_state, &tex_samples[0]);
     du = (u >> (texture_state.texture_shift - 8)) & 0xff;
     dv = (v >> (texture_state.texture_shift - 8)) & 0xff;
 
     texture_state.u = u + tex_offset;
     texture_state.v = v;
-    state->tex_read(state, &texture_state, &tex_samples[1]);
+    tex_read(state, &texture_state, &tex_samples[1]);
 
     texture_state.u = u;
     texture_state.v = v + tex_offset;
-    state->tex_read(state, &texture_state, &tex_samples[2]);
+    tex_read(state, &texture_state, &tex_samples[2]);
 
     texture_state.u = u + tex_offset;
     texture_state.v = v + tex_offset;
-    state->tex_read(state, &texture_state, &tex_samples[3]);
+    tex_read(state, &texture_state, &tex_samples[3]);
 
     d[0] = (256 - du) * (256 - dv);
     d[1] = du * (256 - dv);
@@ -3976,7 +3936,7 @@ tex_sample_persp_normal_375(s3d_state_t *state)
     texture_state.u             = (int32_t) (((int64_t) state->u * (int64_t) w) >> (8 + state->max_d)) + state->tbu;
     texture_state.v             = (int32_t) (((int64_t) state->v * (int64_t) w) >> (8 + state->max_d)) + state->tbv;
 
-    state->tex_read(state, &texture_state, &state->dest_rgba);
+    tex_read(state, &texture_state, &state->dest_rgba);
 }
 
 static void
@@ -4004,21 +3964,21 @@ tex_sample_persp_normal_filter_375(s3d_state_t *state)
 
     texture_state.u = u;
     texture_state.v = v;
-    state->tex_read(state, &texture_state, &tex_samples[0]);
+    tex_read(state, &texture_state, &tex_samples[0]);
     du = (u >> (texture_state.texture_shift - 8)) & 0xff;
     dv = (v >> (texture_state.texture_shift - 8)) & 0xff;
 
     texture_state.u = u + tex_offset;
     texture_state.v = v;
-    state->tex_read(state, &texture_state, &tex_samples[1]);
+    tex_read(state, &texture_state, &tex_samples[1]);
 
     texture_state.u = u;
     texture_state.v = v + tex_offset;
-    state->tex_read(state, &texture_state, &tex_samples[2]);
+    tex_read(state, &texture_state, &tex_samples[2]);
 
     texture_state.u = u + tex_offset;
     texture_state.v = v + tex_offset;
-    state->tex_read(state, &texture_state, &tex_samples[3]);
+    tex_read(state, &texture_state, &tex_samples[3]);
 
     d[0] = (256 - du) * (256 - dv);
     d[1] = du * (256 - dv);
@@ -4051,7 +4011,7 @@ tex_sample_persp_mipmap(s3d_state_t *state)
     texture_state.u             = (int32_t) (((int64_t) state->u * (int64_t) w) >> (12 + state->max_d)) + state->tbu;
     texture_state.v             = (int32_t) (((int64_t) state->v * (int64_t) w) >> (12 + state->max_d)) + state->tbv;
 
-    state->tex_read(state, &texture_state, &state->dest_rgba);
+    tex_read(state, &texture_state, &state->dest_rgba);
 }
 
 static void
@@ -4081,21 +4041,21 @@ tex_sample_persp_mipmap_filter(s3d_state_t *state)
 
     texture_state.u = u;
     texture_state.v = v;
-    state->tex_read(state, &texture_state, &tex_samples[0]);
+    tex_read(state, &texture_state, &tex_samples[0]);
     du = (u >> (texture_state.texture_shift - 8)) & 0xff;
     dv = (v >> (texture_state.texture_shift - 8)) & 0xff;
 
     texture_state.u = u + tex_offset;
     texture_state.v = v;
-    state->tex_read(state, &texture_state, &tex_samples[1]);
+    tex_read(state, &texture_state, &tex_samples[1]);
 
     texture_state.u = u;
     texture_state.v = v + tex_offset;
-    state->tex_read(state, &texture_state, &tex_samples[2]);
+    tex_read(state, &texture_state, &tex_samples[2]);
 
     texture_state.u = u + tex_offset;
     texture_state.v = v + tex_offset;
-    state->tex_read(state, &texture_state, &tex_samples[3]);
+    tex_read(state, &texture_state, &tex_samples[3]);
 
     d[0] = (256 - du) * (256 - dv);
     d[1] = du * (256 - dv);
@@ -4128,7 +4088,7 @@ tex_sample_persp_mipmap_375(s3d_state_t *state)
     texture_state.u             = (int32_t) (((int64_t) state->u * (int64_t) w) >> (8 + state->max_d)) + state->tbu;
     texture_state.v             = (int32_t) (((int64_t) state->v * (int64_t) w) >> (8 + state->max_d)) + state->tbv;
 
-    state->tex_read(state, &texture_state, &state->dest_rgba);
+    tex_read(state, &texture_state, &state->dest_rgba);
 }
 
 static void
@@ -4158,21 +4118,21 @@ tex_sample_persp_mipmap_filter_375(s3d_state_t *state)
 
     texture_state.u = u;
     texture_state.v = v;
-    state->tex_read(state, &texture_state, &tex_samples[0]);
+    tex_read(state, &texture_state, &tex_samples[0]);
     du = (u >> (texture_state.texture_shift - 8)) & 0xff;
     dv = (v >> (texture_state.texture_shift - 8)) & 0xff;
 
     texture_state.u = u + tex_offset;
     texture_state.v = v;
-    state->tex_read(state, &texture_state, &tex_samples[1]);
+    tex_read(state, &texture_state, &tex_samples[1]);
 
     texture_state.u = u;
     texture_state.v = v + tex_offset;
-    state->tex_read(state, &texture_state, &tex_samples[2]);
+    tex_read(state, &texture_state, &tex_samples[2]);
 
     texture_state.u = u + tex_offset;
     texture_state.v = v + tex_offset;
-    state->tex_read(state, &texture_state, &tex_samples[3]);
+    tex_read(state, &texture_state, &tex_samples[3]);
 
     d[0] = (256 - du) * (256 - dv);
     d[1] = du * (256 - dv);
@@ -4240,7 +4200,7 @@ dest_pixel_gouraud_shaded_triangle(s3d_state_t *state)
 static void
 dest_pixel_unlit_texture_triangle(s3d_state_t *state)
 {
-    state->tex_sample(state);
+    tex_sample(state);
 
     if (state->cmd_set & CMD_SET_ABC_SRC)
         state->dest_rgba.a = state->a >> 7;
@@ -4249,7 +4209,7 @@ dest_pixel_unlit_texture_triangle(s3d_state_t *state)
 static void
 dest_pixel_lit_texture_decal(s3d_state_t *state)
 {
-    state->tex_sample(state);
+    tex_sample(state);
 
     if (state->cmd_set & CMD_SET_ABC_SRC)
         state->dest_rgba.a = state->a >> 7;
@@ -4258,7 +4218,7 @@ dest_pixel_lit_texture_decal(s3d_state_t *state)
 static void
 dest_pixel_lit_texture_reflection(s3d_state_t *state)
 {
-    state->tex_sample(state);
+    tex_sample(state);
 
     state->dest_rgba.r += (state->r >> 7);
     state->dest_rgba.g += (state->g >> 7);
@@ -4277,7 +4237,7 @@ dest_pixel_lit_texture_modulate(s3d_state_t *state)
     int b = state->b >> 7;
     int a = state->a >> 7;
 
-    state->tex_sample(state);
+    tex_sample(state);
 
     CLAMP_RGBA(r, g, b, a);
 
@@ -4290,8 +4250,7 @@ dest_pixel_lit_texture_modulate(s3d_state_t *state)
 }
 
 static void
-tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int32_t dx1, int32_t dx2,
-    int render_lane, int render_lanes)
+tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int32_t dx1, int32_t dx2)
 {
     uint8_t *vram    = virge->svga.vram;
     int      x_dir   = s3d_tri->tlr ? 1 : -1;
@@ -4411,11 +4370,7 @@ tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int32_t dx1, int
                 }
             }
 
-            if (render_lane == 0)
-                virge->svga.changedvram[(dest_offset & virge->vram_mask) >> 12] = changeframecount;
-
-            if (((unsigned int) state->y & (unsigned int) (render_lanes - 1)) != (unsigned int) render_lane)
-                goto tri_skip_line;
+            virge->svga.changedvram[(dest_offset & virge->vram_mask) >> 12] = changeframecount;
 
             dest_addr = dest_offset + (x * (bpp + 1));
             z_addr    = z_offset + (x << 1);
@@ -4427,6 +4382,9 @@ tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int32_t dx1, int
                 int      update = 1;
                 uint16_t src_z  = 0;
 
+                _x = x;
+                _y = state->y;
+
                 if (use_z) {
                     src_z = Z_READ(z_addr);
                     Z_CLIP(src_z, z >> 16);
@@ -4435,7 +4393,7 @@ tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int32_t dx1, int
                 if (update) {
                     uint32_t dest_col;
 
-                    state->dest_pixel(state);
+                    dest_pixel(state);
 
                     if (s3d_tri->cmd_set & CMD_SET_FE) {
                         int a              = state->a >> 7;
@@ -4474,7 +4432,7 @@ tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int32_t dx1, int
                             /*Not implemented yet*/
                             break;
                         case 1: /*16 bpp*/
-                            RGB15(state->dest_rgba.r, state->dest_rgba.g, state->dest_rgba.b, dest_col, x, state->y);
+                            RGB15(state->dest_rgba.r, state->dest_rgba.g, state->dest_rgba.b, dest_col);
                             *(uint16_t *) &vram[dest_addr] = dest_col;
                             break;
                         case 2: /*24 bpp*/
@@ -4500,7 +4458,7 @@ tri(virge_t *virge, s3d_t *s3d_tri, s3d_state_t *state, int yc, int32_t dx1, int
                 state->w += s3d_tri->TdWdX;
                 dest_addr += x_offset;
                 z_addr += xz_offset;
-                state->pixel_count++;
+                virge->pixel_count++;
             }
         }
 
@@ -4524,245 +4482,13 @@ tri_skip_line:
 
 static int tex_size[8] = { 4 * 2, 2 * 2, 2 * 2, 1 * 2, 2 / 1, 2 / 1, 1 * 2, 1 * 2 };
 
-static __inline int
-s3d_ranges_overlap(uint64_t start_a, uint64_t end_a, uint64_t start_b, uint64_t end_b)
-{
-    return (start_a < end_b) && (start_b < end_a);
-}
-
-/*
- * Scanline workers are exact as long as each line owns distinct destination
- * and depth memory. Commands with a stable render-target layout can remain in
- * flight together; target changes and unified-memory aliases add a barrier.
- */
-static int
-s3d_triangle_parallel_safe(virge_t *virge, const s3d_t *s3d_tri)
-{
-    const int      render_command = (s3d_tri->cmd_set >> 27) & 0xf;
-    const int      bpp            = (s3d_tri->cmd_set >> 2) & 7;
-    const int      pixel_bytes    = bpp + 1;
-    const int      x_dir          = s3d_tri->tlr ? 1 : -1;
-    const int      use_z          = !(s3d_tri->cmd_set & CMD_SET_ZB_MODE);
-    const int      hard_clip      = !!(s3d_tri->cmd_set & CMD_SET_HC);
-    const uint64_t vram_size      = (uint64_t) virge->vram_mask + 1;
-    uint32_t       x1             = s3d_tri->txs;
-    uint32_t       x2             = s3d_tri->txend01;
-    int            y              = (int32_t) s3d_tri->tys;
-    int            min_x          = 4096;
-    int            max_x          = -1;
-    int            min_y          = 4096;
-    int            max_y          = -1;
-    int            drawn_lines    = 0;
-
-    if ((pixel_bytes < 1) || (pixel_bytes > 3))
-        return 0;
-
-    for (int half = 0; half < 2; half++) {
-        const int      line_count = half ? s3d_tri->ty12 : s3d_tri->ty01;
-        const uint32_t dx1        = s3d_tri->TdXdY02;
-        const uint32_t dx2        = half ? s3d_tri->TdXdY12 : s3d_tri->TdXdY01;
-
-        if (half)
-            x2 = s3d_tri->txend12;
-
-        for (int line = 0; line < line_count; line++) {
-            int draw_x;
-            int draw_xe;
-            int line_min;
-            int line_max;
-
-            if (hard_clip && ((y < s3d_tri->clip_t) || (y > s3d_tri->clip_b)))
-                goto next_line;
-
-            draw_x  = (int) (((int64_t) (int32_t) x1 + ((1 << 20) - 1)) >> 20);
-            draw_xe = (int) (((int64_t) (int32_t) x2 + ((1 << 20) - 1)) >> 20);
-            if (x_dir < 0) {
-                draw_x--;
-                draw_xe--;
-            }
-
-            if ((draw_x == draw_xe) || ((x_dir > 0) ? (draw_x > draw_xe) : (draw_x < draw_xe)))
-                goto next_line;
-
-            line_min = (x_dir > 0) ? draw_x : draw_xe + 1;
-            line_max = (x_dir > 0) ? draw_xe - 1 : draw_x;
-
-            if (hard_clip) {
-                if (line_min < s3d_tri->clip_l)
-                    line_min = s3d_tri->clip_l;
-                if (line_max > s3d_tri->clip_r)
-                    line_max = s3d_tri->clip_r;
-            }
-
-            if (line_min > line_max)
-                goto next_line;
-            if ((line_min < 0) || (line_max > 4095) || (y < 0) || (y > 4095))
-                return 0;
-
-            if (line_min < min_x)
-                min_x = line_min;
-            if (line_max > max_x)
-                max_x = line_max;
-            if (y < min_y)
-                min_y = y;
-            if (y > max_y)
-                max_y = y;
-            drawn_lines++;
-
-next_line:
-            x1 += dx1;
-            x2 += dx2;
-            y--;
-        }
-    }
-
-    if (drawn_lines < (virge->render_threads * 2))
-        return 0;
-
-    const uint64_t dest_span = (uint64_t) (max_x - min_x + 1) * pixel_bytes;
-    const uint64_t dest_start = (uint64_t) s3d_tri->dest_base +
-                                ((uint64_t) min_y * s3d_tri->dest_str) +
-                                ((uint64_t) min_x * pixel_bytes);
-    const uint64_t dest_end = (uint64_t) s3d_tri->dest_base +
-                              ((uint64_t) max_y * s3d_tri->dest_str) +
-                              ((uint64_t) (max_x + 1) * pixel_bytes);
-
-    if (((drawn_lines > 1) && (((uint64_t) s3d_tri->dest_str < dest_span) ||
-                               ((uint64_t) (max_x + 1) * pixel_bytes > s3d_tri->dest_str))) ||
-        (dest_end > vram_size))
-        return 0;
-
-    uint64_t z_start = 0;
-    uint64_t z_end   = 0;
-    if (use_z) {
-        const uint64_t z_span = (uint64_t) (max_x - min_x + 1) * 2;
-
-        z_start = (uint64_t) s3d_tri->z_base + ((uint64_t) min_y * s3d_tri->z_str) +
-                  ((uint64_t) min_x * 2);
-        z_end = (uint64_t) s3d_tri->z_base + ((uint64_t) max_y * s3d_tri->z_str) +
-                ((uint64_t) (max_x + 1) * 2);
-        if (((drawn_lines > 1) && (((uint64_t) s3d_tri->z_str < z_span) ||
-                                   ((uint64_t) (max_x + 1) * 2 > s3d_tri->z_str))) ||
-            (z_end > vram_size) || s3d_ranges_overlap(dest_start, dest_end, z_start, z_end))
-            return 0;
-    }
-
-    if ((render_command == 1) || (render_command == 2) ||
-        (render_command == 5) || (render_command == 6)) {
-        const int max_d  = (s3d_tri->cmd_set >> 8) & 15;
-        const int format = (s3d_tri->cmd_set >> 5) & 7;
-        uint64_t  texture_bytes = 0;
-
-        if (max_d > 9)
-            return 0;
-        for (int level = 0; level <= max_d; level++)
-            texture_bytes += ((uint64_t) 1 << (level * 2)) * tex_size[format] / 2;
-
-        const uint64_t texture_start = s3d_tri->tex_base;
-        const uint64_t texture_end   = texture_start + texture_bytes;
-
-        if ((texture_end > vram_size) ||
-            s3d_ranges_overlap(texture_start, texture_end, dest_start, dest_end) ||
-            (use_z && s3d_ranges_overlap(texture_start, texture_end, z_start, z_end)))
-            return 0;
-    }
-
-    return 1;
-}
-
-static int
-s3d_triangle_batch_safe(virge_t *virge, const s3d_t *s3d_tri)
-{
-    const int      render_command = (s3d_tri->cmd_set >> 27) & 0xf;
-    const int      bpp            = (s3d_tri->cmd_set >> 2) & 7;
-    const int      pixel_bytes    = bpp + 1;
-    const int      use_z          = !(s3d_tri->cmd_set & CMD_SET_ZB_MODE);
-    const uint64_t vram_size      = (uint64_t) virge->vram_mask + 1;
-
-    if (!(s3d_tri->cmd_set & CMD_SET_HC) || (pixel_bytes < 1) || (pixel_bytes > 3) ||
-        (s3d_tri->clip_l < 0) || (s3d_tri->clip_l > s3d_tri->clip_r) ||
-        (s3d_tri->clip_r > 4095) || (s3d_tri->clip_t < 0) ||
-        (s3d_tri->clip_t > s3d_tri->clip_b) || (s3d_tri->clip_b > 4095))
-        return 0;
-
-    const uint64_t dest_start = (uint64_t) s3d_tri->dest_base +
-                                ((uint64_t) s3d_tri->clip_t * s3d_tri->dest_str) +
-                                ((uint64_t) s3d_tri->clip_l * pixel_bytes);
-    const uint64_t dest_end = (uint64_t) s3d_tri->dest_base +
-                              ((uint64_t) s3d_tri->clip_b * s3d_tri->dest_str) +
-                              ((uint64_t) (s3d_tri->clip_r + 1) * pixel_bytes);
-
-    if (((uint64_t) (s3d_tri->clip_r + 1) * pixel_bytes > s3d_tri->dest_str) ||
-        (dest_end > vram_size))
-        return 0;
-
-    uint64_t z_start = 0;
-    uint64_t z_end   = 0;
-    if (use_z) {
-        z_start = (uint64_t) s3d_tri->z_base +
-                  ((uint64_t) s3d_tri->clip_t * s3d_tri->z_str) +
-                  ((uint64_t) s3d_tri->clip_l * 2);
-        z_end = (uint64_t) s3d_tri->z_base +
-                ((uint64_t) s3d_tri->clip_b * s3d_tri->z_str) +
-                ((uint64_t) (s3d_tri->clip_r + 1) * 2);
-        if (((uint64_t) (s3d_tri->clip_r + 1) * 2 > s3d_tri->z_str) ||
-            (z_end > vram_size) || s3d_ranges_overlap(dest_start, dest_end, z_start, z_end))
-            return 0;
-    }
-
-    if ((render_command == 1) || (render_command == 2) ||
-        (render_command == 5) || (render_command == 6)) {
-        const int max_d  = (s3d_tri->cmd_set >> 8) & 15;
-        const int format = (s3d_tri->cmd_set >> 5) & 7;
-        uint64_t  texture_bytes = 0;
-
-        if (max_d > 9)
-            return 0;
-        for (int level = 0; level <= max_d; level++)
-            texture_bytes += ((uint64_t) 1 << (level * 2)) * tex_size[format] / 2;
-
-        const uint64_t texture_start = s3d_tri->tex_base;
-        const uint64_t texture_end   = texture_start + texture_bytes;
-
-        if ((texture_end > vram_size) ||
-            s3d_ranges_overlap(texture_start, texture_end, dest_start, dest_end) ||
-            (use_z && s3d_ranges_overlap(texture_start, texture_end, z_start, z_end)))
-            return 0;
-    }
-
-    return 1;
-}
-
-static int
-s3d_triangles_batch_compatible(const s3d_t *previous, const s3d_t *current)
-{
-    const int previous_use_z = !(previous->cmd_set & CMD_SET_ZB_MODE);
-    const int current_use_z  = !(current->cmd_set & CMD_SET_ZB_MODE);
-
-    if (((previous->cmd_set ^ current->cmd_set) & (CMD_SET_FORMAT_MASK | CMD_SET_HC)) ||
-        (previous->dest_base != current->dest_base) ||
-        (previous->dest_str != current->dest_str) ||
-        (previous->clip_l != current->clip_l) || (previous->clip_r != current->clip_r) ||
-        (previous->clip_t != current->clip_t) || (previous->clip_b != current->clip_b) ||
-        (previous_use_z != current_use_z))
-        return 0;
-
-    if (current_use_z && ((previous->z_base != current->z_base) ||
-                          (previous->z_str != current->z_str)))
-        return 0;
-
-    return 1;
-}
-
 static void
-s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri, int render_lane, int render_lanes)
+s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri)
 {
     s3d_state_t state;
 
     uint32_t tex_base;
     int      c;
-
-    state.pixel_count = 0;
 
     state.tbu = s3d_tri->tbu << 11;
     state.tbv = s3d_tri->tbv << 11;
@@ -4792,19 +4518,19 @@ s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri, int render_lane, int render_la
 
     switch ((s3d_tri->cmd_set >> 27) & 0xf) {
         case 0:
-            state.dest_pixel = dest_pixel_gouraud_shaded_triangle;
+            dest_pixel = dest_pixel_gouraud_shaded_triangle;
             break;
         case 1:
         case 5:
             switch ((s3d_tri->cmd_set >> 15) & 0x3) {
                 case 0:
-                    state.dest_pixel = dest_pixel_lit_texture_reflection;
+                    dest_pixel = dest_pixel_lit_texture_reflection;
                     break;
                 case 1:
-                    state.dest_pixel = dest_pixel_lit_texture_modulate;
+                    dest_pixel = dest_pixel_lit_texture_modulate;
                     break;
                 case 2:
-                    state.dest_pixel = dest_pixel_lit_texture_decal;
+                    dest_pixel = dest_pixel_lit_texture_decal;
                     break;
                 default:
                     return;
@@ -4812,7 +4538,7 @@ s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri, int render_lane, int render_la
             break;
         case 2:
         case 6:
-            state.dest_pixel = dest_pixel_unlit_texture_triangle;
+            dest_pixel = dest_pixel_unlit_texture_triangle;
             break;
         default:
             return;
@@ -4821,305 +4547,113 @@ s3_virge_triangle(virge_t *virge, s3d_t *s3d_tri, int render_lane, int render_la
     switch (((s3d_tri->cmd_set >> 12) & 7) | ((s3d_tri->cmd_set & (1 << 29)) ? 8 : 0)) {
         case 0:
         case 1:
-            state.tex_sample = tex_sample_mipmap;
+            tex_sample = tex_sample_mipmap;
             break;
         case 2:
         case 3:
-            state.tex_sample = virge->bilinear_enabled ? tex_sample_mipmap_filter : tex_sample_mipmap;
+            tex_sample = virge->bilinear_enabled ? tex_sample_mipmap_filter : tex_sample_mipmap;
             break;
         case 4:
         case 5:
-            state.tex_sample = tex_sample_normal;
+            tex_sample = tex_sample_normal;
             break;
         case 6:
         case 7:
-            state.tex_sample = virge->bilinear_enabled ? tex_sample_normal_filter : tex_sample_normal;
+            tex_sample = virge->bilinear_enabled ? tex_sample_normal_filter : tex_sample_normal;
             break;
         case (0 | 8):
         case (1 | 8):
             if ((virge->chip == S3_VIRGEDX) || (virge->chip >= S3_VIRGEGX2))
-                state.tex_sample = tex_sample_persp_mipmap_375;
+                tex_sample = tex_sample_persp_mipmap_375;
             else
-                state.tex_sample = tex_sample_persp_mipmap;
+                tex_sample = tex_sample_persp_mipmap;
             break;
         case (2 | 8):
         case (3 | 8):
             if ((virge->chip == S3_VIRGEDX) || (virge->chip >= S3_VIRGEGX2))
-                state.tex_sample = virge->bilinear_enabled ? tex_sample_persp_mipmap_filter_375 :
-                                                             tex_sample_persp_mipmap_375;
+                tex_sample = virge->bilinear_enabled ? tex_sample_persp_mipmap_filter_375 :
+                                                       tex_sample_persp_mipmap_375;
             else
-                state.tex_sample = virge->bilinear_enabled ? tex_sample_persp_mipmap_filter :
-                                                             tex_sample_persp_mipmap;
+                tex_sample = virge->bilinear_enabled ? tex_sample_persp_mipmap_filter :
+                                                       tex_sample_persp_mipmap;
             break;
         case (4 | 8):
         case (5 | 8):
             if ((virge->chip == S3_VIRGEDX) || (virge->chip >= S3_VIRGEGX2))
-                state.tex_sample = tex_sample_persp_normal_375;
+                tex_sample = tex_sample_persp_normal_375;
             else
-                state.tex_sample = tex_sample_persp_normal;
+                tex_sample = tex_sample_persp_normal;
             break;
         case (6 | 8):
         case (7 | 8):
             if ((virge->chip == S3_VIRGEDX) || (virge->chip >= S3_VIRGEGX2))
-                state.tex_sample = virge->bilinear_enabled ? tex_sample_persp_normal_filter_375 :
-                                                             tex_sample_persp_normal_375;
+                tex_sample = virge->bilinear_enabled ? tex_sample_persp_normal_filter_375 :
+                                                       tex_sample_persp_normal_375;
             else
-                state.tex_sample = virge->bilinear_enabled ? tex_sample_persp_normal_filter :
-                                                             tex_sample_persp_normal;
+                tex_sample = virge->bilinear_enabled ? tex_sample_persp_normal_filter :
+                                                       tex_sample_persp_normal;
             break;
     }
 
     switch ((s3d_tri->cmd_set >> 5) & 7) {
         case 0:
-            state.tex_read = (s3d_tri->cmd_set & CMD_SET_TWE) ? tex_ARGB8888 : tex_ARGB8888_nowrap;
+            tex_read = (s3d_tri->cmd_set & CMD_SET_TWE) ? tex_ARGB8888 : tex_ARGB8888_nowrap;
             break;
         case 1:
-            state.tex_read = (s3d_tri->cmd_set & CMD_SET_TWE) ? tex_ARGB4444 : tex_ARGB4444_nowrap;
+            tex_read = (s3d_tri->cmd_set & CMD_SET_TWE) ? tex_ARGB4444 : tex_ARGB4444_nowrap;
             break;
         case 2:
-            state.tex_read = (s3d_tri->cmd_set & CMD_SET_TWE) ? tex_ARGB1555 : tex_ARGB1555_nowrap;
+            tex_read = (s3d_tri->cmd_set & CMD_SET_TWE) ? tex_ARGB1555 : tex_ARGB1555_nowrap;
             break;
         default:
-            state.tex_read = (s3d_tri->cmd_set & CMD_SET_TWE) ? tex_ARGB1555 : tex_ARGB1555_nowrap;
+            tex_read = (s3d_tri->cmd_set & CMD_SET_TWE) ? tex_ARGB1555 : tex_ARGB1555_nowrap;
             break;
     }
 
     state.y  = s3d_tri->tys;
     state.x1 = s3d_tri->txs;
     state.x2 = s3d_tri->txend01;
-    tri(virge, s3d_tri, &state, s3d_tri->ty01, s3d_tri->TdXdY02, s3d_tri->TdXdY01,
-        render_lane, render_lanes);
+    tri(virge, s3d_tri, &state, s3d_tri->ty01, s3d_tri->TdXdY02, s3d_tri->TdXdY01);
     state.x2 = s3d_tri->txend12;
-    tri(virge, s3d_tri, &state, s3d_tri->ty12, s3d_tri->TdXdY02, s3d_tri->TdXdY12,
-        render_lane, render_lanes);
+    tri(virge, s3d_tri, &state, s3d_tri->ty12, s3d_tri->TdXdY02, s3d_tri->TdXdY12);
 
-    virge->pixel_count[render_lane] += state.pixel_count;
-    if (render_lane == 0)
-        virge->tri_count++;
-}
-
-static int
-s3d_all_readers_at(virge_t *virge, int read_idx)
-{
-    for (int lane = 1; lane < virge->render_threads; lane++)
-        if (virge->s3d_read_idx[lane] != read_idx)
-            return 0;
-
-    return 1;
-}
-
-static int
-s3d_all_renderers_empty(virge_t *virge)
-{
-    for (int lane = 0; lane < virge->render_threads; lane++)
-        if (!RB_EMPTY(lane))
-            return 0;
-
-    return 1;
-}
-
-static __inline void
-s3d_spin_pause(void)
-{
-#if defined(__GNUC__) && (defined(__i386__) || defined(__x86_64__))
-    __asm__ __volatile__("pause");
-#else
-    atomic_signal_fence(memory_order_seq_cst);
-#endif
-}
-
-static int
-s3d_wait_for_helpers(virge_t *virge, int read_idx)
-{
-    for (int spin = 0; virge->render_thread_run &&
-                       !s3d_all_readers_at(virge, read_idx) &&
-                       (spin < 16384); spin++)
-        s3d_spin_pause();
-
-    while (virge->render_thread_run && !s3d_all_readers_at(virge, read_idx)) {
-        thread_reset_event(virge->wake_render_thread[0]);
-        if (virge->render_thread_run && !s3d_all_readers_at(virge, read_idx))
-            thread_wait_event(virge->wake_render_thread[0], -1);
-    }
-
-    return virge->render_thread_run;
-}
-
-static int
-s3d_wait_for_lane_zero(virge_t *virge, int lane, int read_idx)
-{
-    thread_set_event(virge->wake_render_thread[0]);
-
-    for (int spin = 0; virge->render_thread_run &&
-                       (virge->s3d_read_idx[0] <= read_idx) &&
-                       (spin < 16384); spin++)
-        s3d_spin_pause();
-
-    while (virge->render_thread_run && (virge->s3d_read_idx[0] <= read_idx)) {
-        thread_reset_event(virge->wake_render_thread[lane]);
-        if (virge->render_thread_run && (virge->s3d_read_idx[0] <= read_idx))
-            thread_wait_event(virge->wake_render_thread[lane], -1);
-    }
-
-    return virge->render_thread_run;
-}
-
-static int
-s3d_wait_for_batch_release(virge_t *virge, int lane, int read_idx)
-{
-    const int release_idx = read_idx + 1;
-
-    thread_set_event(virge->wake_render_thread[0]);
-
-    for (int spin = 0; virge->render_thread_run &&
-                       (virge->s3d_barrier_release_idx != release_idx) &&
-                       (spin < 16384); spin++)
-        s3d_spin_pause();
-
-    while (virge->render_thread_run &&
-           (virge->s3d_barrier_release_idx != release_idx)) {
-        thread_reset_event(virge->wake_render_thread[lane]);
-        if (virge->render_thread_run &&
-            (virge->s3d_barrier_release_idx != release_idx))
-            thread_wait_event(virge->wake_render_thread[lane], -1);
-    }
-
-    return virge->render_thread_run;
+    virge->tri_count++;
 }
 
 static void
-render_thread_common(void *param, int lane)
+render_thread(void *param)
 {
     virge_t *virge = (virge_t *) param;
 
     while (virge->render_thread_run) {
-        thread_reset_event(virge->wake_render_thread[lane]);
-        if (virge->render_thread_run && RB_EMPTY(lane))
-            thread_wait_event(virge->wake_render_thread[lane], -1);
-        if (!virge->render_thread_run)
-            break;
+        thread_wait_event(virge->wake_render_thread, -1);
+        thread_reset_event(virge->wake_render_thread);
+        virge->s3d_busy = 1;
+        while (!RB_EMPTY) {
+            s3_virge_triangle(virge, &virge->s3d_buffer[virge->s3d_read_idx & RB_MASK]);
+            virge->s3d_read_idx++;
 
-        virge->s3d_busy[lane] = 1;
-
-        for (;;) {
-            while (virge->render_thread_run && !RB_EMPTY(lane)) {
-                const int read_idx = virge->s3d_read_idx[lane];
-                const int slot     = read_idx & RB_MASK;
-                s3d_t   *s3d_tri   = &virge->s3d_buffer[slot];
-                const int parallel = virge->s3d_parallel[slot];
-
-                if (parallel) {
-                    if (virge->s3d_barrier[slot]) {
-                        if (lane == 0) {
-                            if (!s3d_wait_for_helpers(virge, read_idx))
-                                break;
-                            virge->s3d_barrier_release_idx = read_idx + 1;
-                            for (int helper = 1; helper < virge->render_threads; helper++)
-                                thread_set_event(virge->wake_render_thread[helper]);
-                        } else if (!s3d_wait_for_batch_release(virge, lane, read_idx)) {
-                            break;
-                        }
-                    }
-
-                    s3_virge_triangle(virge, s3d_tri, lane, virge->render_threads);
-                    virge->s3d_read_idx[lane]++;
-                } else if (lane == 0) {
-                    if (!s3d_wait_for_helpers(virge, read_idx))
-                        break;
-                    s3_virge_triangle(virge, s3d_tri, 0, 1);
-                    virge->s3d_read_idx[0]++;
-                    for (int helper = 1; helper < virge->render_threads; helper++)
-                        thread_set_event(virge->wake_render_thread[helper]);
-                } else if (!s3d_wait_for_lane_zero(virge, lane, read_idx)) {
-                    break;
-                } else {
-                    virge->s3d_read_idx[lane]++;
-                }
-
+            if (RB_ENTRIES == RB_MASK)
                 thread_set_event(virge->not_full_event);
-            }
-
-            if ((lane != 0) || !virge->render_thread_run || s3d_all_renderers_empty(virge))
-                break;
-
-            thread_reset_event(virge->wake_render_thread[0]);
-            if (!s3d_all_renderers_empty(virge))
-                thread_wait_event(virge->wake_render_thread[0], -1);
         }
-
-        virge->s3d_busy[lane] = 0;
-        if (lane != 0) {
-            thread_set_event(virge->wake_render_thread[0]);
-        } else if (virge->render_thread_run && s3d_all_renderers_empty(virge)) {
-            virge->subsys_stat |= INT_S3D_DONE;
-            virge->irq_pending++;
-        }
+        virge->s3d_busy = 0;
+        virge->subsys_stat |= INT_S3D_DONE;
+        virge->irq_pending++;
     }
-
-    virge->s3d_busy[lane] = 0;
-    if (lane != 0)
-        thread_set_event(virge->wake_render_thread[0]);
 }
-
-static void
-render_thread_0(void *param)
-{
-    render_thread_common(param, 0);
-}
-
-static void
-render_thread_1(void *param)
-{
-    render_thread_common(param, 1);
-}
-
-static void
-render_thread_2(void *param)
-{
-    render_thread_common(param, 2);
-}
-
-static void
-render_thread_3(void *param)
-{
-    render_thread_common(param, 3);
-}
-
-static void (*const render_thread_entry[S3D_RENDER_THREADS_MAX])(void *) = {
-    render_thread_0, render_thread_1, render_thread_2, render_thread_3
-};
 
 static void
 queue_triangle(virge_t *virge)
 {
-    while (s3d_ring_full(virge)) {
+    if (RB_FULL) {
         thread_reset_event(virge->not_full_event);
-        if (s3d_ring_full(virge))
+        if (RB_FULL)
             thread_wait_event(virge->not_full_event, -1); /*Wait for room in ringbuffer*/
     }
-
-    const int write_idx  = virge->s3d_write_idx;
-    const int slot       = write_idx & RB_MASK;
-    const int parallel   = (virge->render_threads > 1) &&
-                           s3d_triangle_parallel_safe(virge, &virge->s3d_tri);
-    const int batch_safe = parallel && s3d_triangle_batch_safe(virge, &virge->s3d_tri);
-    int       barrier    = 1;
-
-    if (batch_safe && write_idx) {
-        const int previous_slot = (write_idx - 1) & RB_MASK;
-
-        if (virge->s3d_batch_safe[previous_slot] &&
-            s3d_triangles_batch_compatible(&virge->s3d_buffer[previous_slot],
-                                           &virge->s3d_tri))
-            barrier = 0;
-    }
-
-    virge->s3d_buffer[slot]     = virge->s3d_tri;
-    virge->s3d_parallel[slot]   = parallel;
-    virge->s3d_barrier[slot]    = barrier;
-    virge->s3d_batch_safe[slot] = batch_safe;
+    virge->s3d_buffer[virge->s3d_write_idx & RB_MASK] = virge->s3d_tri;
     virge->s3d_write_idx++;
-    wake_render_threads(virge);
+    if (!virge->s3d_busy)
+        thread_set_event(virge->wake_render_thread); /*Wake up render thread if moving from idle*/
 }
 
 static void
@@ -5918,24 +5452,13 @@ s3_virge_reset(void *priv)
     virge_t *dev = (virge_t *) priv;
 
     if (reset_state != NULL) {
-        s3_virge_wait_fifo_idle(dev);
-        while (s3d_engine_busy(dev)) {
-            thread_reset_event(dev->not_full_event);
-            wake_render_threads(dev);
-            if (s3d_engine_busy(dev))
-                thread_wait_event(dev->not_full_event, 1);
-        }
-
         s3_virge_disable_handlers(dev);
-        dev->virge_busy     = 0;
-        dev->fifo_write_idx = 0;
-        dev->fifo_read_idx  = 0;
-        dev->s3d_write_idx  = 0;
-        dev->s3d_barrier_release_idx = 0;
-        for (int lane = 0; lane < dev->render_threads; lane++) {
-            dev->s3d_busy[lane]     = 0;
-            dev->s3d_read_idx[lane] = 0;
-        }
+        dev->virge_busy       = 0;
+        dev->fifo_write_idx   = 0;
+        dev->fifo_read_idx    = 0;
+        dev->s3d_busy         = 0;
+        dev->s3d_write_idx    = 0;
+        dev->s3d_read_idx     = 0;
         reset_state->pci_slot = dev->pci_slot;
 
         *dev = *reset_state;
@@ -5961,10 +5484,6 @@ s3_virge_init(const device_t *info)
 
     virge->bilinear_enabled  = device_get_config_int("bilinear");
     virge->dithering_enabled = device_get_config_int("dithering");
-    virge->render_threads    = device_get_config_int("render_threads");
-    if ((virge->render_threads != 1) && (virge->render_threads != 2) &&
-        (virge->render_threads != 4))
-        virge->render_threads = 4;
     if (virge->type >= S3_VIRGE_GX2)
         virge->memory_size = 4;
     else if (virge->type == S3_VIRGE_325 && local & 0x100)
@@ -6207,19 +5726,16 @@ s3_virge_init(const device_t *info)
 
     virge->svga.force_old_addr = 1;
 
-    virge->render_thread_run = 1;
-    for (int lane = 0; lane < virge->render_threads; lane++)
-        virge->wake_render_thread[lane] = thread_create_event();
-    virge->wake_main_thread = thread_create_event();
-    virge->not_full_event   = thread_create_event();
-    for (int lane = 0; lane < virge->render_threads; lane++)
-        virge->render_thread[lane] = thread_create_named(render_thread_entry[lane], virge,
-                                                         "s3_virge_render");
+    virge->render_thread_run  = 1;
+    virge->wake_render_thread = thread_create_event();
+    virge->wake_main_thread   = thread_create_event();
+    virge->not_full_event     = thread_create_event();
+    virge->render_thread      = thread_create(render_thread, virge);
 
     virge->fifo_thread_run     = 1;
     virge->wake_fifo_thread    = thread_create_event();
     virge->fifo_not_full_event = thread_create_event();
-    virge->fifo_thread         = thread_create(mach64_fifo_thread, virge);
+    virge->fifo_thread         = thread_create(fifo_thread, virge);
 
     timer_add(&virge->irq_timer, s3_virge_update_irq_timer, virge, 1);
 
@@ -6235,20 +5751,18 @@ s3_virge_close(void *priv)
 {
     virge_t *virge = (virge_t *) priv;
 
+    virge->render_thread_run = 0;
+    thread_set_event(virge->wake_render_thread);
+    thread_wait(virge->render_thread);
+    thread_destroy_event(virge->not_full_event);
+    thread_destroy_event(virge->wake_main_thread);
+    thread_destroy_event(virge->wake_render_thread);
+
     virge->fifo_thread_run = 0;
     thread_set_event(virge->wake_fifo_thread);
     thread_wait(virge->fifo_thread);
     thread_destroy_event(virge->fifo_not_full_event);
     thread_destroy_event(virge->wake_fifo_thread);
-
-    virge->render_thread_run = 0;
-    wake_render_threads(virge);
-    for (int lane = 0; lane < virge->render_threads; lane++)
-        thread_wait(virge->render_thread[lane]);
-    thread_destroy_event(virge->not_full_event);
-    thread_destroy_event(virge->wake_main_thread);
-    for (int lane = 0; lane < virge->render_threads; lane++)
-        thread_destroy_event(virge->wake_render_thread[lane]);
 
     svga_close(&virge->svga);
 
@@ -6294,24 +5808,6 @@ s3_virge_force_redraw(void *priv)
 
     virge->svga.fullchange = changeframecount;
 }
-
-#define S3_VIRGE_RENDER_THREADS_CONFIG                               \
-    {                                                                \
-        .name           = "render_threads",                          \
-        .description    = "Render threads",                          \
-        .type           = CONFIG_SELECTION,                          \
-        .default_string = NULL,                                      \
-        .default_int    = 4,                                         \
-        .file_filter    = NULL,                                      \
-        .spinner        = { 0 },                                     \
-        .selection      = {                                          \
-            { .description = "1", .value = 1 },                      \
-            { .description = "2", .value = 2 },                      \
-            { .description = "4", .value = 4 },                      \
-            { .description = ""              }                       \
-        },                                                           \
-        .bios = { { 0 } }                                            \
-    }
 
 static const device_config_t s3_virge_config[] = {
     // clang-format off
@@ -6360,7 +5856,6 @@ static const device_config_t s3_virge_config[] = {
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
-    S3_VIRGE_RENDER_THREADS_CONFIG,
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
@@ -6454,7 +5949,6 @@ static const device_config_t s3_virge_pci_config[] = {
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
-    S3_VIRGE_RENDER_THREADS_CONFIG,
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
@@ -6492,7 +5986,6 @@ static const device_config_t s3_virge_onboard_config[] = {
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
-    S3_VIRGE_RENDER_THREADS_CONFIG,
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
@@ -6577,7 +6070,6 @@ static const device_config_t s3_virge_vx_pci_config[] = {
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
-    S3_VIRGE_RENDER_THREADS_CONFIG,
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
@@ -6661,7 +6153,6 @@ static const device_config_t s3_virge_dx_pci_config[] = {
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
-    S3_VIRGE_RENDER_THREADS_CONFIG,
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
@@ -6714,7 +6205,6 @@ static const device_config_t s3_virge_gx2_pci_config[] = {
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
-    S3_VIRGE_RENDER_THREADS_CONFIG,
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
@@ -6799,7 +6289,6 @@ static const device_config_t s3_virge_gx2_agp_config[] = {
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
-    S3_VIRGE_RENDER_THREADS_CONFIG,
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
@@ -6854,7 +6343,6 @@ static const device_config_t s3_trio3d2x_config[] = {
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
-    S3_VIRGE_RENDER_THREADS_CONFIG,
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };
