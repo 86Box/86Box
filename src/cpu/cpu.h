@@ -882,6 +882,7 @@ extern void softresetx86_from(int src);
 extern void x86_reset_deferred(void);
 extern void hardresetx86(void);
 extern void x86_int(int num);
+extern int  x86_int_external;
 extern void x86_int_sw(int num);
 extern int  x86_int_sw_rm(int num);
 

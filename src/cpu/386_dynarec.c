@@ -604,10 +604,13 @@ exec386_dynarec_int_common(const int dbg)
             if (trap & 16)
                 dr[6] |= 0x2000;
             trap = 0;
-            /* RF must be set in the EFLAGS image x86gen() pushes, so the
-               handler's IRET resumes the instruction instead of faulting on it
-               again; delivery itself leaves RF clear for the handler. */
-            cpu_state.eflags |= RF_FLAG;
+            /* As the 80386 manual has it, RF is set in the EFLAGS image
+               x86gen() pushes, so the handler's IRET resumes the instruction
+               instead of faulting on it again. On P6-class CPUs and later the
+               image has RF as it is (clear) and the handler sets it, measured
+               on AMD and Intel alike. Delivery leaves RF clear either way. */
+            if (!is_p6)
+                cpu_state.eflags |= RF_FLAG;
             x86gen();
             cpu_state.eflags &= ~RF_FLAG;
             /* No instructions executed at this point. */
@@ -1391,7 +1394,9 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
                             cpu_state.pc++;
                         oldcs = CS;
                         cpu_state.oldpc = cpu_state.pc;
+                        x86_int_external = 1;
                         x86_int(vector);
+                        x86_int_external = 0;
                         cpu_halted = 0; /* out of HLT, into the handler */
                     }
                 }
@@ -1713,10 +1718,9 @@ exec386_common(int32_t cycs, const int dbg)
 
             /* Breakpoint fault has priority over other faults. */
             if (dbg && (cpu_state.abrt == 0) & ins_fetch_fault) {
-                /* RF must be set in the EFLAGS image x86gen() pushes, so the
-                   handler's IRET resumes the instruction instead of faulting on
-                   it again; delivery leaves RF clear for the handler. */
-                cpu_state.eflags |= RF_FLAG;
+                /* As above: RF set in the pushed image before the P6 only */
+                if (!is_p6)
+                    cpu_state.eflags |= RF_FLAG;
                 x86gen();
                 cpu_state.eflags &= ~RF_FLAG;
                 ins_fetch_fault = 0;
