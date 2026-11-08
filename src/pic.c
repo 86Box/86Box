@@ -407,6 +407,10 @@ pic_notify(void)
         pic_update_pending_dual();
     else
         update_pending();
+
+    /* May run off the CPU thread: int_pending is stored before the flag. */
+    if (pic.int_pending || pic2.int_pending)
+        __atomic_store_n(&cpu_events.irq, 1, __ATOMIC_RELEASE);
 }
 
 static void
@@ -1201,7 +1205,11 @@ picint_lines(uint16_t num, int level, int set, uint8_t *irq_state, int to_ioapic
 
             if (num & w) {
                 if ((!!*irq_state) != !!set) {
-                    set ? dev->lines[b]++ : dev->lines[b]--;
+                    /* Don't let an unmatched lower wrap the count. */
+                    if (set)
+                        dev->lines[b]++;
+                    else if (dev->lines[b])
+                        dev->lines[b]--;
 
                     if (to_ioapic) {
                         if (set)
@@ -1229,8 +1237,10 @@ picint_lines(uint16_t num, int level, int set, uint8_t *irq_state, int to_ioapic
    if (!slaves)
        apic_lines &= 0x00ff;
 
-   if (num & 0x0100)
-       acpi_rtc_status = !!set;
+   /* RTC_STS is set by the RTC's interrupt and stays set until software
+      writes 1 to it (ACPI 1.0 Table 4-9). */
+   if ((num & 0x0100) && set)
+       acpi_rtc_status = 1;
 
    if (num) {
        if (irq_callback != NULL)

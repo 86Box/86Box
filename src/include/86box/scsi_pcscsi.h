@@ -26,4 +26,8 @@ extern const device_t am53c974a_pci_device;
 extern const device_t dc390_pci_device;
 extern const device_t ncr53c90a_mca_device;
 
+/* The Am79C974 PCnet-SCSI's SCSI side (net_pcnet.c adds it). */
+extern const device_t am79c974_scsi_device;
+extern void           am79c974_scsi_add(int bios);
+
 #endif /*SCSI_SCSI_PCSCSI_H*/

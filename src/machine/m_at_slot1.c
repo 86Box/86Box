@@ -607,6 +607,10 @@ machine_at_optiplexgxa_init(const machine_t *model)
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
+    /* The on-board video; its BIOS is in the system BIOS. */
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
+
     return ret;
 }
 
@@ -1110,6 +1114,10 @@ machine_at_in440ex_init(const machine_t *model)
 
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
 
+    /* The on-board video; its BIOS is in the system BIOS. */
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
+
     return ret;
 }
 
@@ -1207,6 +1215,10 @@ machine_at_in440exd_init(const machine_t *model)
 
     if (sound_card_current[0] == SOUND_INTERNAL)
         machine_snd = device_add(machine_get_snd_device(machine));
+
+    /* The on-board video; its BIOS is in the system BIOS. */
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }
@@ -2111,6 +2123,10 @@ machine_at_optiplexgx1_init(const machine_t *model)
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x7, 256);
 
+    /* The on-board video; its BIOS is in the system BIOS. */
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
+
     return ret;
 }
 
@@ -2803,6 +2819,10 @@ machine_at_ms6147_init(const machine_t *model)
         device_add(machine_get_snd_device(machine));
         device_add(&ct1297_device);
     }
+
+    /* The on-board video; its BIOS is in the system BIOS. */
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
 
     return ret;
 }

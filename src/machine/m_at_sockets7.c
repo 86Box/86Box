@@ -285,6 +285,10 @@ machine_at_gwlucas_init(const machine_t *model)
         device_add(&cs4297_device);
     }
 
+    /* The on-board video; its BIOS is in the system BIOS. */
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
+
     return ret;
 }
 
@@ -1115,9 +1119,9 @@ machine_at_ga5smm_init(const machine_t *model)
     machine_at_common_init(model);
 
     pci_init(PCI_CONFIG_TYPE_1);
-    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     1, 2, 3, 4);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE,     0, 0, 0, 0);
     pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE,     0, 0, 0, 0);
-    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,       0, 0, 0, 0);
+    pci_register_slot(0x02, PCI_CARD_AGPBRIDGE,       1, 2, 3, 4);
     pci_register_slot(0x09, PCI_CARD_NORMAL,          1, 2, 3, 4);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,          2, 3, 4, 1);
     pci_register_slot(0x0D, PCI_CARD_NORMAL,          3, 4, 1, 2);

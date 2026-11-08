@@ -74,7 +74,9 @@ uint64_t RTCCONST;
 uint64_t ACPICONST;
 
 int refresh_at_enable = 1;
-int io_delay          = 5;
+
+int io_delay = 5;
+int io_delay_multi = 0;
 
 int64_t firsttime = 1;
 
@@ -756,7 +758,9 @@ uint64_t RTCCONST;
 uint64_t ACPICONST;
 
 int refresh_at_enable = 1;
-int io_delay          = 5;
+
+int io_delay = 5;
+int io_delay_multi = 0;
 
 int64_t firsttime = 1;
 
@@ -1964,9 +1968,11 @@ pit_set_clock(uint32_t clock)
     xt_cpu_multi <<= 32ULL;
 
     /* Delay for empty I/O ports. */
+#if 0
     io_delay = (int) round(((double) cpu_s->rspeed) / 3000000.0);
     if ((machines[machine].init == machine_xt_ibm5550_init) || (machines[machine].init == machine_xt_ibm5535_init))
         io_delay = 8;
+#endif
 
 #ifdef WRONG_MDACONST
     MDACONST  = (uint64_t) (cpuclock / 2032125.0 * (double) (1ULL << 32));

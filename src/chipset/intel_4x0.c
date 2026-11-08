@@ -99,7 +99,16 @@ i4x0_map(i4x0_t *dev, uint32_t addr, uint32_t size, int state)
     if (dev->mem_state[base] != state) {
         mem_set_mem_state_both(addr, size, states[state]);
         dev->mem_state[base] = state;
-        flushmmucache_nopc();
+        /*
+         * With the CPU cache disabled, the next instruction is fetched through
+         * the new mapping, so the current code page has to go as well: the
+         * IBM PC 7x0 BIOS switches F0000h from shadow RAM back to ROM this way
+         * when it restarts.
+         */
+        if ((machines[machine].init == machine_at_ibm_pc700_init) && (cr0 & (1 << 30)))
+            flushmmucache();
+        else
+            flushmmucache_nopc();
         /* Also invalidate the range for this block, properly fixes P2B-LS soft reset. */
         mem_invalidate_range(addr, addr + size - 1);
     }
@@ -334,7 +343,13 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                         break;
                     case INTEL_440LX:
                     case INTEL_440EX:
-                        regs[0x04] = val & 0x40;
+                        /* Only Parity Error Enable (bit 6) is writable; the
+                           reserved bits 2:1 keep their default of 1, as in
+                           the 0006h default (82443LX and 82443EX datasheets,
+                           PCICMD). Windows 98 takes a clear memory enable bit
+                           for a host bridge whose aperture is not decoded and
+                           moves APBASE. */
+                        regs[0x04] = (regs[0x04] & ~0x40) | (val & 0x40);
                         break;
                 }
                 break;
@@ -542,7 +557,10 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                         i4x0_mask_bar(regs, dev->agpgart);
                         break;
                     case INTEL_440GX:
-                        regs[0x51] = (regs[0x51] & 0xb0) | (val & 0x4f);
+                        /* Bit 15 (WSC# Handshake Disable) is read-write and
+                           bit 14 reserved, as on the 440BX (82443GX datasheet,
+                           NBXCFG). */
+                        regs[0x51] = (regs[0x51] & 0x70) | (val & 0x8f);
                         i4x0_mask_bar(regs, dev->agpgart);
                         break;
                     default:
@@ -1377,7 +1395,8 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 switch (dev->type) {
                     case INTEL_440LX:
                     case INTEL_440EX:
-                        regs[0xa7] = val & 0x1f;
+                        /* AGPSTAT's request depth is read-only (82443LX/EX
+                           datasheets, AGPSTAT). */
                         break;
                     default:
                         break;
@@ -1414,7 +1433,9 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                 switch (dev->type) {
                     case INTEL_440LX:
                     case INTEL_440EX:
-                        regs[0xb1] = (val & 0x22);
+                        /* CGAS (bit 13) and the expedite throttle timer
+                           (bits 9:8) (82443LX/EX datasheets, AGPCTRL). */
+                        regs[0xb1] = (val & 0x23);
                         break;
                     case INTEL_440BX:
                     case INTEL_440ZX:

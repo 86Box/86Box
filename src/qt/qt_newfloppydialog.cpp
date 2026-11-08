@@ -65,6 +65,7 @@ static const QStringList floppyTypes = {
     "2.88 MB",
 };
 
+#if 0
 static const QStringList rdiskTypes = {
     "ZIP 100",
     "ZIP 250",
@@ -91,8 +92,9 @@ static const QStringList moTypes = {
     "5.25\" 1 GB",
     "5.25\" 1.3 GB",
 };
+#endif
 
-NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent, int tape_drive_type)
+NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent, int drive_type)
     : QDialog(parent)
     , ui(new Ui::NewFloppyDialog)
     , mediaType_(type)
@@ -111,27 +113,45 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent, int tape_drive
 
             break;
         case MediaType::RDisk:
-            for (int i = 0; i < rdiskTypes.size(); ++i) {
-                Models::AddEntry(model, tr(rdiskTypes[i].toUtf8().data()), i);
+            ui->labelSize->setText(tr("Removable disk type:"));
+            for (int i = 0; i < KNOWN_RDISK_TYPES; ++i) {
+                if ((drive_type < 0) || (drive_type >= KNOWN_RDISK_DRIVE_TYPES) ||
+                    rdisk_drive_types[drive_type].supported_media[i])
+                    Models::AddEntry(model, tr(rdisk_types[i].name), i);
+            }
+            if ((drive_type >= 0) && (drive_type < KNOWN_RDISK_DRIVE_TYPES)) {
+                const auto matches = model->match(model->index(0, 0), Qt::UserRole,
+                                                  rdisk_drive_types[drive_type].default_media);
+                if (!matches.isEmpty())
+                    ui->comboBoxSize->setCurrentIndex(matches.first().row());
             }
             ui->fileField->setFilter(tr("Removable disk images") % util::DlgFilter({ "im?", "img", "rdi", "zdi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
             break;
         case MediaType::Mo:
-            for (int i = 0; i < moTypes.size(); ++i) {
-                Models::AddEntry(model, tr(moTypes[i].toUtf8().data()), i);
+            ui->labelSize->setText(tr("MO type:"));
+            for (int i = 0; i < KNOWN_MO_TYPES; ++i) {
+                if ((drive_type < 0) || (drive_type >= KNOWN_MO_DRIVE_TYPES) ||
+                    mo_drive_types[drive_type].supported_media[i])
+                    Models::AddEntry(model, tr(mo_types[i].name), i);
+            }
+            if ((drive_type >= 0) && (drive_type < KNOWN_MO_DRIVE_TYPES)) {
+                const auto matches = model->match(model->index(0, 0), Qt::UserRole,
+                                                  mo_drive_types[drive_type].default_media);
+                if (!matches.isEmpty())
+                    ui->comboBoxSize->setCurrentIndex(matches.first().row());
             }
             ui->fileField->setFilter(tr("MO images") % util::DlgFilter({ "im?", "img", "mdi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
             break;
         case MediaType::Tape:
             ui->labelSize->setText(tr("Tape type:"));
             for (int i = 0; i < KNOWN_TAPE_TYPES; ++i) {
-                if ((tape_drive_type < 0) || (tape_drive_type >= KNOWN_TAPE_DRIVE_TYPES) ||
-                    tape_drive_types[tape_drive_type].supported_media[i])
+                if ((drive_type < 0) || (drive_type >= KNOWN_TAPE_DRIVE_TYPES) ||
+                    tape_drive_types[drive_type].supported_media[i])
                     Models::AddEntry(model, tr(tape_types[i].name), i);
             }
-            if ((tape_drive_type >= 0) && (tape_drive_type < KNOWN_TAPE_DRIVE_TYPES)) {
+            if ((drive_type >= 0) && (drive_type < KNOWN_TAPE_DRIVE_TYPES)) {
                 const auto matches = model->match(model->index(0, 0), Qt::UserRole,
-                                                  tape_drive_types[tape_drive_type].default_media);
+                                                  tape_drive_types[drive_type].default_media);
                 if (!matches.isEmpty())
                     ui->comboBoxSize->setCurrentIndex(matches.first().row());
             }
@@ -210,11 +230,14 @@ NewFloppyDialog::onCreate()
             {
                 fileType = fi.suffix().toLower() == QStringLiteral("zdi") ? FileType::Zdi : FileType::Img;
 
+                // Fetch the actual global rdisk_types index from the combobox item's user data
+                int typeIndex = ui->comboBoxSize->currentData().toInt();
+                uint32_t sectors = rdisk_types[typeIndex].sectors;
+                uint32_t sector_bytes = rdisk_types[typeIndex].bytes_per_sector;
+
                 std::atomic_bool res;
-                std::thread      t([this, &res, filename, fileType, &progress] {
-                    res = createRDiskSectorImage(filename,
-                                                  rdisk_types[ui->comboBoxSize->currentIndex()].sectors,
-                                                  fileType, progress);
+                std::thread      t([this, &res, filename, fileType, sectors, sector_bytes, &progress] {
+                    res = createRDiskSectorImage(filename, sectors, sector_bytes, fileType, progress);
                 });
                 progress.exec();
                 t.join();
@@ -586,10 +609,9 @@ NewFloppyDialog::createSectorImage(const QString &filename, const disk_size_t &d
 }
 
 bool
-NewFloppyDialog::createRDiskSectorImage(const QString &filename, uint32_t total_sectors, FileType type, QProgressDialog &pbar)
+NewFloppyDialog::createRDiskSectorImage(const QString &filename, uint32_t total_sectors, uint32_t sector_bytes, FileType type, QProgressDialog &pbar)
 {
     uint64_t total_size    = 0;
-    const uint32_t sector_bytes = 512;
     uint16_t base          = 0x1000;
     uint64_t pbar_max      = 0;
 
@@ -620,6 +642,19 @@ NewFloppyDialog::createRDiskSectorImage(const QString &filename, uint32_t total_
 
     QByteArray bytes(1048576, 0);
     auto       empty = bytes.data();
+
+    /* The PC floppy formats a drive such as the LS-120 takes (640 KB, 720 KB, 1.2 MB, NEC 2HD, 1.44 MB, DMF)
+       get the same BPB as a floppy image of that size, from the floppy table.  MKELS120 only accepts a boot
+       sector whose BPB matches its profile for the medium (cluster size, root entries, media descriptor). */
+    const disk_size_t *fd = nullptr;
+    for (int k = 0; k < KNOWN_DISK_SIZES; k++) {
+        const disk_size_t &ds = disk_sizes[k];
+        if ((ds.sides <= 2) && ((uint32_t) (ds.sides * ds.tracks * ds.sectors) == total_sectors) &&
+            ((128u << ds.sector_len) == sector_bytes)) {
+            fd = &ds;
+            break;
+        }
+    }
 
     if (total_sectors == ZIP_SECTORS) {
         /* ZIP 100 */
@@ -746,6 +781,129 @@ NewFloppyDialog::createRDiskSectorImage(const QString &filename, uint32_t total_
 
         /* Root directory = 0x3FE00
         Data = 0x38200 */
+    } else if (fd != nullptr) {
+        /* PC floppy format: boot sector, FAT1 and FAT2 start markers. */
+        const uint16_t bps         = (uint16_t) sector_bytes;
+        const uint16_t res_sectors = 1;
+
+        empty[0x0000] = 0xEB;
+        empty[0x0001] = 0x3C;
+        empty[0x0002] = 0x90;
+        memcpy(&(empty[0x0003]), "86BOX", 5);
+        memset(&(empty[0x0008]), 0, 3);
+
+        *(uint16_t *) &(empty[0x000B]) = bps;
+        empty[0x000D]                  = (uint8_t) fd->spc;
+        *(uint16_t *) &(empty[0x000E]) = res_sectors;
+        empty[0x0010]                  = (uint8_t) fd->num_fats;
+        *(uint16_t *) &(empty[0x0011]) = (uint16_t) fd->root_dir_entries;
+        *(uint16_t *) &(empty[0x0013]) = (uint16_t) total_sectors;
+        empty[0x0015]                  = (uint8_t) fd->media_desc;
+        *(uint16_t *) &(empty[0x0016]) = (uint16_t) fd->spfat;
+        *(uint16_t *) &(empty[0x0018]) = (uint16_t) fd->sectors;
+        *(uint16_t *) &(empty[0x001A]) = (uint16_t) fd->sides;
+        *(uint32_t *) &(empty[0x001C]) = 0;
+        *(uint32_t *) &(empty[0x0020]) = 0;
+
+        empty[0x0024] = 0x00; /* Floppy drive number */
+        empty[0x0026] = 0x29; /* Boot signature, followed by a randomly-generated volume serial number. */
+        empty[0x0027] = random_generate();
+        empty[0x0028] = random_generate();
+        empty[0x0029] = random_generate();
+        empty[0x002A] = random_generate();
+
+        memset(&(empty[0x002B]), 0x20, 11);
+        memcpy(&(empty[0x0036]), "FAT12   ", 8);
+
+        *(uint16_t *) &(empty[0x01FE]) = 0xAA55;
+
+        for (int f = 0; f < fd->num_fats; f++) {
+            const uint32_t fat_offset = (res_sectors + (f * fd->spfat)) * bps;
+            empty[fat_offset]     = (uint8_t) fd->media_desc;
+            empty[fat_offset + 1] = 0xFF;
+            empty[fat_offset + 2] = 0xFF;
+        }
+    } else if ((total_sectors == SUPERDISK_SECTORS) || (total_sectors == SUPERDISK_240_SECTORS) ||
+               (total_sectors == FD32MB_SECTORS)    || (total_sectors == EZ135_SECTORS)) {
+        /* Superfloppy Boot Sector (LBA 0) for LS-120, LS-240 and compatible media */
+        const uint16_t bpb_bytes_per_sec   = 512;
+        const uint8_t  bpb_sec_per_cluster = (total_sectors == FD32MB_SECTORS) ? 4 :
+                                             (total_sectors == SUPERDISK_SECTORS) ? 4 :
+                                             (total_sectors == SUPERDISK_240_SECTORS) ? 8 :
+                                             (total_sectors == EZ135_SECTORS) ? 32 : 1;
+        const uint16_t bpb_res_sectors     = 1;
+        const uint8_t  bpb_num_fats        = 2;
+        const uint16_t bpb_root_entries    = 512;
+        const uint8_t  bpb_media           = 0xF8;
+        const uint16_t bpb_fat_size_16     = (total_sectors == SUPERDISK_SECTORS) ? 241 :
+                                             (total_sectors == SUPERDISK_240_SECTORS) ? 230 :
+                                             (total_sectors == FD32MB_SECTORS) ? 64 : 0;
+        /* The geometry the drive reports in its mode pages (rdisk.c): LS-120 963 x 8 x 32, LS-240 262 x 32 x 56,
+           FD32MB 1024 x 2 x 32, EZ135 512 x 16 x 32. */
+        const uint16_t bpb_sec_per_track   = (total_sectors == SUPERDISK_240_SECTORS) ? 56 : 32;
+        const uint16_t bpb_heads           = (total_sectors == SUPERDISK_SECTORS) ? 8 :
+                                             (total_sectors == SUPERDISK_240_SECTORS) ? 32 :
+                                             (total_sectors == FD32MB_SECTORS) ? 2 :
+                                             (total_sectors == EZ135_SECTORS) ? 16 : 64;
+        const uint32_t bpb_hidden_sec      = 0;
+        const uint8_t  bpb_drive_num       = 0x00; // Might be 0x80 on EZ135 or others
+
+        // Jump instruction (eb 3e 90) + OEM Name
+        empty[0x0000] = 0xEB;
+        empty[0x0001] = 0x3E; /* Used to be 0x58, pretty sure that's for FAT32 */
+        empty[0x0002] = 0x90;
+#if 0
+        memcpy(&(empty[0x0003]), "MSWIN4.0", 8);
+#else
+        memcpy(&(empty[0x0003]), "86BOX", 5);
+        memset(&(empty[0x0008]), 0, 3);
+#endif
+
+        *(uint16_t *) &(empty[0x000B]) = bpb_bytes_per_sec;
+        empty[0x000D]                  = bpb_sec_per_cluster;
+        *(uint16_t *) &(empty[0x000E]) = bpb_res_sectors;
+        empty[0x0010]                  = bpb_num_fats;
+        *(uint16_t *) &(empty[0x0011]) = bpb_root_entries;
+        *(uint16_t *) &(empty[0x0013]) = (total_sectors >= 65536) ? 0 : (uint16_t) total_sectors;
+        empty[0x0015]                  = bpb_media;
+        *(uint16_t *) &(empty[0x0016]) = bpb_fat_size_16;
+        *(uint16_t *) &(empty[0x0018]) = bpb_sec_per_track;
+        *(uint16_t *) &(empty[0x001A]) = bpb_heads;
+        *(uint32_t *) &(empty[0x001C]) = bpb_hidden_sec;
+        *(uint32_t *) &(empty[0x0020]) = total_sectors;
+
+        empty[0x0024] = bpb_drive_num;
+        empty[0x0025] = 0; // Reserved
+        empty[0x0026] = 0x29; /* Boot signature */
+        empty[0x0027] = random_generate();
+        empty[0x0028] = random_generate();
+        empty[0x0029] = random_generate();
+        empty[0x002A] = random_generate();
+
+        memset(&(empty[0x002B]), 0x00, 0x000B);
+        memset(&(empty[0x0036]), 0x20, 0x0008);
+
+#if 0
+            memcpy(&(empty[0x002B]), "NO NAME    ", 11);
+#else
+            memcpy(&(empty[0x002B]), "           ", 11);
+#endif
+
+        empty[0x0036] = 'F';
+        empty[0x0037] = 'A';
+        empty[0x0038] = 'T';
+        empty[0x0039] = (total_sectors <= 4080) ? '1' : '1';
+        empty[0x003A] = (total_sectors <= 4080) ? '2' : '6';
+        memset(&(empty[0x003B]), 0x20, 0x0003);
+
+        *(uint16_t *) &(empty[0x01FE]) = 0xAA55;
+
+        if (bpb_fat_size_16 > 0) {
+            /* Initialize FAT entries (FAT 1 and FAT 2 start markers) for formats using explicit FAT size */
+            *(uint32_t *) &(empty[0x0200]) = 0xFFFFFFF8;
+            uint32_t fat2_offset = (bpb_res_sectors + bpb_fat_size_16) * 512;
+            *(uint32_t *) &(empty[fat2_offset]) = 0xFFFFFFF8;
+        }
     }
 
     pbar.setMaximum(pbar_max);

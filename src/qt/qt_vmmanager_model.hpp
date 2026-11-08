@@ -57,9 +57,12 @@ public:
     int                                       getActiveMachineCount();
     void                                      refreshConfigs();
     void                                      sendGlobalConfigurationChanged();
+    void                                      loadFromCache(const QString &selectName = {});
+    void                                      startBackgroundDiscovery();
 
 signals:
     void systemDataChanged();
+    void selectionRestored(const QModelIndex &index);
     void globalConfigurationChanged();
 
 private:

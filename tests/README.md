@@ -127,6 +127,17 @@ Build `mach64_accel_tests` and `mach64_3d_tests` with `BUILD_TESTING=ON`, then r
 
 `video/vid_ati_mach64_3d_test.c` stubs the draw engine FIFO, the timing model and the render threads, so its card draws on one thread. It checks the 3D registers' fixed-point fields, the texture palette and keys, the texel path's packed forms (the 2x2 filter's blend two components at a time, every 16-bit texel unpacked through the expansion tables, and reads that wrap at the end of video memory), mip level selection, YUV and the scaler, then 1,077 draw cases through the registers against the whole frame and Z buffers: triangles of two trapezoids in ARGB1555, RGB565 and ARGB8888, shaded, textured and additive, in both directions and clipped; all eight Z tests; texel keys, alpha masks and the destination compare; the `DST_BRES_LNTH` commands of RRG-G02700 4-46; signed scissors; color and Z fields that wrap; textured lines; bilinear texel centers; and eight register streams of ATI3DCIF 4.03.2510's triangle setup against the color and depth planes of their vertices. The expected images are closed forms, not the engine's own helpers. The tests establish the documented register behavior and the engine's consistency, not the chip's undocumented rounding or dither.
 
+# 3dfx Voodoo LOD log2
+
+Build `voodoo_lod_log2_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^Voodoo.LodLog2$' --output-on-failure`.
+The test includes `vid_voodoo_render.c` for its private functions and checks
+the table log2 behind the LOD against libm's `log2()`: the table itself, exact
+powers of two, every table entry and the double just below it, and a million
+random samples over 129 octaves, each within the error bound the code claims.
+It also checks that the 8.8 LOD made from it differs from libm's by at most
+one step, and rarely. It does not render anything.
+
 # ATI Rage 128
 
 Build with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^Rage128\.'`. The tools live in `video/rage128/`, one directory each; each directory also builds on its own with its `build.sh`, and its README covers the options. The register and replay tools compile the device sources with host stubs; all of them need GCC or Clang. See [the Rage 128 hardware notes](../doc/hardware/ati-rage128.md) for the boards and their ROMs, what the device models, the render lanes and the environment switches.
@@ -269,6 +280,15 @@ and compares copied ISO files byte for byte. See the
 [Sony hardware guide](../doc/hardware/sony-cdrom.md) for prerequisites, resource
 settings, the five-version driver matrix, and validation limits.
 
+# IBM PC 730/750 power controller
+
+Build `ibm_pc700_power_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build --output-on-failure -R '^IbmPc700PowerTest\.'`.
+The tests drive the controller through ports 48h-49h the way the LQKT47A BIOS
+does: command framing, the power-off command, the BIOS's flag check, the wake
+reason reported at power-on, variable writes, and the status bit's busy time
+and heartbeat.
+
 # CPU cache and TLB diagnostics
 
 Build `cpu_tr_tests`, `cpu_cache_tests` and `vect486n_tests` with
@@ -302,3 +322,15 @@ ctest --test-dir build --output-on-failure -R '^Ini'
 ```
 
 Build with AddressSanitizer to check the long-name cases for memory errors.
+
+# Mach64 BIOS monitor detection
+
+`Mach64.Display` checks the on-chip DAC comparator used by ATI BIOS CRT
+probing, from CT through VT/GT-B (including the Rage Pro family), and its
+read-only output bit. It preserves external-RAMDAC GX behavior. This helper
+regression complements the boot and Windows driver tests; it does not model
+analog monitor voltages or replace end-to-end display testing.
+
+`Mach64.Palette` also checks Rage Pro `SCALE_OFF_ACC` bitmap expansion
+after a palette-cache upload has left a different source and accumulator
+state. It checks CI8 output pixels and byte, word and dword register writes.

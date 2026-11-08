@@ -9,6 +9,10 @@ extern uint32_t x87_pc_off;
 extern uint32_t x87_op_off;
 extern uint16_t x87_pc_seg;
 extern uint16_t x87_op_seg;
+/* The physical registers the softfloat core has stored to (FPU_save_regi,
+   FPU_save_regi_tag) since it was last cleared: the legacy FPU's bridge to
+   the softfloat handlers (x87_sf_to_legacy, x87_ops.h) reads it */
+extern uint8_t x87_sf_written;
 
 static __inline void
 x87_set_mmx(void)
@@ -90,8 +94,9 @@ x87_emms(void)
         fpu_state.tos = 0;
     } else {
         p  = (uint64_t *) cpu_state.tag;
-        /* Every tag empty: TAG_EMPTY, or the old recompiler's raw 11b */
-        *p = 0;
+        /* Every tag empty (TAG_VALID clear); a register keeps its contents,
+           TAG_DENORMAL (1 << 1) in each byte with them */
+        *p &= 0x0202020202020202ULL;
         cpu_state.TOP = 0; /* as the softfloat path */
     }
     cpu_state.ismmx = 0;
@@ -104,17 +109,38 @@ void     x87_settag(uint16_t new_tag);
 #define TAG_VALID (1 << 0)
 /*Hack for FPU copy. If set then MM[].q contains the 64-bit integer loaded by FILD*/
 #define TAG_UINT64 (1 << 7)
+/* With TAG_VALID: the register holds an extended value with a zero exponent
+   and a nonzero significand (a denormal or pseudo-denormal), which the
+   double register file holds as a zero of its sign; MM[].q holds the
+   significand. An arithmetic instruction that reads it runs as the
+   softfloat core does (x87_denormal_sf, x87_ops.h); a store, a copy or an
+   exchange does not look at it.
+   Without TAG_VALID: the same value in a register tagged empty. An empty
+   tag leaves the register as it was (FNINIT, 80387 PRM 1987 Table 6-1, p.
+   6-6; FFREE, 4.8.13; a pop, 4.3.3), and FLDENV or FRSTOR making it
+   nonempty again gives it back: "Subsequent operations on a nonempty
+   register always examine the value in the register, not the value in its
+   tag" (80387 PRM, Appendix C; Pentium Vol. 3, Jul 1995, 23.3.1.6). */
+#define TAG_DENORMAL (1 << 1)
 
 /*Old dynarec stuff.*/
 #define TAG_NOT_UINT64       0xfb
 
-/* ST(i) empty: an empty register's tag is TAG_EMPTY, any other's has
-   TAG_VALID set (TAG_VALID, or TAG_VALID | TAG_UINT64), which the
-   recompiler's stack-fault check tests alone (codegen_fpu_guard_stack) */
+/* ST(i) empty: TAG_VALID clear (TAG_EMPTY, or TAG_DENORMAL alone), any
+   other's has it set (TAG_VALID, TAG_VALID | TAG_UINT64 or TAG_VALID |
+   TAG_DENORMAL), which the recompiler's stack-fault check tests with
+   TAG_DENORMAL (codegen_fpu_guard_stack) */
 static inline int
 X87_ST_EMPTY(int i)
 {
-    return cpu_state.tag[(cpu_state.TOP + i) & 7] == TAG_EMPTY;
+    return !(cpu_state.tag[(cpu_state.TOP + i) & 7] & TAG_VALID);
+}
+
+/* ST(i) is nonempty and holds an extended denormal (TAG_DENORMAL) */
+static inline int
+X87_ST_DENORMAL(int i)
+{
+    return (cpu_state.tag[(cpu_state.TOP + i) & 7] & (TAG_VALID | TAG_DENORMAL)) == (TAG_VALID | TAG_DENORMAL);
 }
 
 #define X87_ROUNDING_NEAREST 0
@@ -285,6 +311,7 @@ static __inline void
 FPU_save_regi(extFloat80_t reg, int stnr)
 {
     fpu_state.st_space[(stnr + fpu_state.tos) & 7] = reg;
+    x87_sf_written |= 1 << ((stnr + fpu_state.tos) & 7);
     FPU_settagi_valid(stnr);
 }
 
@@ -292,6 +319,7 @@ static __inline void
 FPU_save_regi_tag(extFloat80_t reg, int tag, int stnr)
 {
     fpu_state.st_space[(stnr + fpu_state.tos) & 7] = reg;
+    x87_sf_written |= 1 << ((stnr + fpu_state.tos) & 7);
     FPU_settagi(tag, stnr);
 }
 
@@ -307,20 +335,23 @@ FPU_save_regi_tag(extFloat80_t reg, int tag, int stnr)
 /* A waiting instruction with an exception pending: with CR0.NE, #MF
    with the frame at the instruction. Without it, FERR# raises IRQ 13
    and the instruction waits (is restarted) until the handler clears the
-   error or writes port F0h, which asserts IGNNE# until ES clears. */
-#define FPU_check_pending_exceptions()          \
-    do {                                        \
-        if (!(fpu_state.swd & FPU_SW_Summary))  \
-            fpu_ignne = 0;                      \
-        else if (cr0 & 0x20) {                  \
-            cpu_state.pc = cpu_state.oldpc;     \
-            new_ne       = 1;                   \
-            return 1;                           \
-        } else if (!fpu_ignne) {                \
-            cpu_state.pc = cpu_state.oldpc;     \
-            x87_ferr_assert();                  \
-            return 1;                           \
-        }                                       \
+   error or writes port F0h, which asserts IGNNE# until ES clears. Either
+   way the instruction is not executed. */
+#define FPU_check_pending_exceptions()         \
+    do {                                       \
+        if (!(fpu_state.swd & FPU_SW_Summary)) \
+            fpu_ignne = 0;                     \
+        else if (cr0 & 0x20) {                 \
+            cpu_state.pc = cpu_state.oldpc;    \
+            new_ne       = 1;                  \
+            x87_op |= X87_OP_NOT_EXECUTED;     \
+            return 1;                          \
+        } else if (!fpu_ignne) {               \
+            cpu_state.pc = cpu_state.oldpc;    \
+            x87_ferr_assert();                 \
+            x87_op |= X87_OP_NOT_EXECUTED;     \
+            return 1;                          \
+        }                                      \
     } while (0)
 #endif
 

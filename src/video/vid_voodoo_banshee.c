@@ -3345,7 +3345,9 @@ banshee_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
             return;
 
         case 0x5c:
-            banshee->pci_regs[0x5c] = val & 0x27;
+            /* The rates the status register (58h) offers and 4G; 4x is
+               not one of them (AGP 2.0 6.1.10: unimplemented fields read 0). */
+            banshee->pci_regs[0x5c] = val & ((banshee->type == TYPE_BANSHEE) ? 0x21 : 0x23);
             return;
 
         case 0x5d:

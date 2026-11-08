@@ -96,6 +96,9 @@ public:
 
     ~VMManagerSystem() override;
 
+    // Load previously known VMs from vmm.ini cache (fast path, no recursive scan)
+    static QVector<VMManagerSystem *> loadFromCache();
+    static QStringList cachedConfigPaths();
     static QVector<VMManagerSystem *> scanForConfigs(QWidget *parent = nullptr, const QString &searchPath = {});
     static QString                    generateTemporaryFilename();
 

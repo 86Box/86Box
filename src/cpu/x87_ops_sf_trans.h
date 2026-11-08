@@ -13,7 +13,8 @@ sf_F2XM1(uint32_t fetchdat)
         goto next_ins;
     }
     status = i387cw_to_softfloat_status_word(i387_get_control_word() | FPU_PR_80_BITS);
-    result = f2xm1(FPU_read_regi(0), &status);
+    result = (fpu_type == FPU_387) ? f2xm1_387(FPU_read_regi(0), &status)
+                                   : f2xm1(FPU_read_regi(0), &status);
     if (!FPU_exception(fetchdat, status.softfloat_exceptionFlags, 0))
         FPU_save_regi(result, 0);
 

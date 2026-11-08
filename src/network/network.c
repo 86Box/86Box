@@ -104,12 +104,16 @@ static const NETWORK_CARD net_cards[] = {
     { &modem_device               },
     /* LPT */
     { &plip_device                },
+    { &pe1_device                 },
+    { &pe2_device                 },
     { &pe3_device                 },
     /* ISA16 */
     { &pcnet_am79c960_device      },
     { &pcnet_am79c961_device      },
+    { &pcnet_am79c961a_device     },
     { &de220p_device              },
     { &ne2000_compat_device       },
+    { &ne2100_novell_device       },
     { &pcnet_am79c960_eb_device   },
     /* EISA */
     { &threec592_device           },
@@ -127,8 +131,13 @@ static const NETWORK_CARD net_cards[] = {
     /* VLB */
     { &pcnet_am79c960_vlb_device  },
     /* PCI */
+    { &pcnet_am79c971_device      },
+    { &pcnet_am79c972_device      },
     { &pcnet_am79c973_device      },
+    { &pcnet_am79c975_device      },
+    { &pcnet_am79c970_device      },
     { &pcnet_am79c970a_device     },
+    { &pcnet_am79c974_device      },
     { &dec_tulip_21040_device     },
     { &dec_tulip_21140_device     },
     { &dec_tulip_device           },

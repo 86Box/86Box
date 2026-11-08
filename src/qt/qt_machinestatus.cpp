@@ -508,7 +508,9 @@ MachineStatus::iterateCDROM(const std::function<void(int)> &cb)
             (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
             continue;
         if ((cdrom[i].bus_type == CDROM_BUS_SONY || cdrom[i].bus_type == CDROM_BUS_CM100 || cdrom[i].bus_type == CDROM_BUS_PHILIPS || cdrom[i].bus_type == CDROM_BUS_HITACHI || cdrom[i].bus_type == CDROM_BUS_MITSUMI || cdrom[i].bus_type == CDROM_BUS_MKE) && (cdrom_interface_current == 0) &&
-            !((cdrom[i].bus_type == CDROM_BUS_MITSUMI) && (machines[machine].init == machine_at_tandy_vis_init)))
+            !((cdrom[i].bus_type == CDROM_BUS_MITSUMI) && (machines[machine].init == machine_at_tandy_vis_init)) &&
+            /* A Mitsumi drive behind a parallel port pod has no card either. */
+            !((cdrom[i].bus_type == CDROM_BUS_MITSUMI) && (cdrom[i].priv != NULL)))
             continue;
         if (cdrom[i].bus_type != 0) {
             cb(i);
@@ -522,7 +524,7 @@ MachineStatus::iterateRDisk(const std::function<void(int)> &cb)
     auto hdc_name = QString(hdc_get_internal_name(hdc_current[0]));
     for (size_t i = 0; i < RDISK_NUM; i++) {
         /* Could be Internal or External IDE.. */
-        if ((rdisk_drives[i].bus_type == RDISK_BUS_ATAPI) && !hasIDE() &&
+        if (((rdisk_drives[i].bus_type == RDISK_BUS_ATAPI) || (rdisk_drives[i].bus_type == RDISK_BUS_IDE)) && !hasIDE() &&
             !hdc_name.startsWith(QStringLiteral("ide")) &&
             !hdc_name.startsWith(QStringLiteral("xtide")) &&
 //            !hdc_name.startsWith(QStringLiteral("jride")) &&

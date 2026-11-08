@@ -17,7 +17,18 @@
 #ifndef CDROM_MITSUMI_H
 #define CDROM_MITSUMI_H
 
+#ifndef IS_TEST
 extern const device_t mitsumi_cdrom_device;
 extern const device_t mitsumi_cdrom_vis_device;
+#endif
+
+/* No I/O ports, IRQ or DMA: the host reaches registers 0 and 1. */
+#define MITSUMI_HOSTED 2
+#ifndef IS_TEST
+extern const device_t mitsumi_cdrom_hosted_device;
+#endif
+
+extern uint8_t mitsumi_cdrom_host_read(void *priv, int reg);
+extern void    mitsumi_cdrom_host_write(void *priv, int reg, uint8_t val);
 
 #endif /*CDROM_MITSUMI_H*/

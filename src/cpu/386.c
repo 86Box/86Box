@@ -344,7 +344,7 @@ exec386_2386(int32_t cycs)
                     x86_fault_in_delivery_2386(tempi, second_abrt);
                     if (cpu_state.abrt) {
                         cpu_state.abrt = 0;
-                        softresetx86();
+                        softresetx86_from(SOFT_RESET_SHUTDOWN);
                         cpu_set_edx();
 #ifdef ENABLE_386_LOG
                         x386_log("Triple fault - reset\n");

@@ -416,6 +416,16 @@ cga_comp_reload(int new_brightness, int new_saturation, int new_sharpness, int n
         thread_release_mutex(cga_comp_mutex);
 }
 
+/* The settings in effect, including a preview from the settings dialog. */
+void
+cga_comp_get(int *cur_brightness, int *cur_saturation, int *cur_hue, int *cur_contrast)
+{
+    *cur_brightness = (int) brightness;
+    *cur_saturation = (int) saturation;
+    *cur_hue        = (int) hue_offset;
+    *cur_contrast   = (int) contrast;
+}
+
 void
 cga_comp_init(int revision)
 {

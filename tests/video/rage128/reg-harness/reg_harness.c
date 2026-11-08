@@ -58,6 +58,10 @@ extern int      harness_log_quiet;
 extern int      harness_ticks_override;
 extern uint32_t harness_ticks_ms;
 extern uint64_t harness_sysmem_stray;
+extern uint64_t harness_irq_offthread;
+extern uint64_t harness_svga_offthread;
+extern uint64_t harness_svga_recalc_calls;
+extern uint64_t harness_svga_ramdac_calls;
 extern void     harness_ram_alloc(void);
 extern void     harness_video_luts_init(void);
 extern uint8_t (*harness_pci_read)(int func, int addr, int len, void *priv);
@@ -66,6 +70,7 @@ extern void *harness_pci_priv;
 extern char  harness_log_tail[];
 extern void  harness_log_tail_reset(void);
 extern int   harness_io_count(uint16_t port);
+extern int   harness_root_fopen_count(void);
 extern void (*harness_bm_write_hook)(uint32_t addr, uint32_t len);
 
 static int g_fail;
@@ -2172,6 +2177,75 @@ vectors_vga_ppll_clock(rage128_t *dev)
 }
 
 /* ------------------------------------------------------------------ */
+/* The core's direct-store flag (a word or dword CPU store to the VGA  */
+/* window goes straight to VRAM instead of through the planar byte     */
+/* path) follows the extended-mode switch. The core derives it from    */
+/* the graphics controller state, chain-4, packed addressing and the   */
+/* framebuffer-only flag, but recomputes it only on GC and SEQ 4       */
+/* writes; the device must recompute it when it changes packed         */
+/* addressing or framebuffer-only. The shell implements no VGA, so the */
+/* GC and sequencer state a BIOS leaves for a packed 256-color mode is */
+/* set directly, with the flag as the core computed it at that time.   */
+/* ------------------------------------------------------------------ */
+static int
+harness_core_fast(const svga_t *svga)
+{
+    return (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1])
+        && ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only)
+        && !(svga->adv_flags & FLAG_ADDR_BY8);
+}
+
+static void
+vectors_vga_fast_write(rage128_t *dev)
+{
+    svga_t  *svga     = &dev->svga;
+    uint32_t gen_save = rd(dev, RAGE128_CRTC_GEN_CNTL);
+    uint8_t  gdc1 = svga->gdcreg[1], gdc3 = svga->gdcreg[3], gdc8 = svga->gdcreg[8];
+    int      chain4 = svga->chain4, fast = svga->fast;
+
+    /* VGA packed 256-color mode, as the BIOS leaves it: identity GC,
+       chain-4 on. In VGA mode the core's formula gives 0 (chain-4 is
+       interleaved, not packed). */
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save & ~RAGE128_CRTC_EXT_DISP_EN);
+    svga->gdcreg[1] = 0;
+    svga->gdcreg[3] = 0;
+    svga->gdcreg[8] = 0xff;
+    svga->chain4    = 8;
+    svga->fast      = harness_core_fast(svga);
+    check32("vga fast: VGA chain-4 mode, byte path", svga->fast, 0);
+
+    /* Switch to extended mode with no GC or sequencer write after. */
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save | RAGE128_CRTC_EXT_DISP_EN | RAGE128_CRTC_EN);
+    printf("vga fast: after ext switch fast=%u fb_only=%u packed_chain4=%u chain4=%u "
+           "gdc1=%02x gdc3=%02x gdc8=%02x formula=%d\n",
+           svga->fast, svga->fb_only, svga->packed_chain4, svga->chain4,
+           svga->gdcreg[1], svga->gdcreg[3], svga->gdcreg[8], harness_core_fast(svga));
+    check32("vga fast: extended mode takes the direct path", svga->fast, 1);
+
+    /* And back: a GC write in extended mode leaves the flag set, as the
+       core computes it then; leaving extended mode must restore the
+       chain-4 byte path, whose stores interleave across planes. */
+    svga->fast = harness_core_fast(svga);
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save & ~RAGE128_CRTC_EXT_DISP_EN);
+    printf("vga fast: after VGA switch fast=%u fb_only=%u packed_chain4=%u formula=%d\n",
+           svga->fast, svga->fb_only, svga->packed_chain4, harness_core_fast(svga));
+    check32("vga fast: VGA mode again takes the byte path", svga->fast, 0);
+
+    /* Control: a non-identity GC bit mask keeps the byte path in
+       extended mode too (the flag is the core's formula, not forced). */
+    svga->gdcreg[8] = 0x0f;
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save | RAGE128_CRTC_EXT_DISP_EN | RAGE128_CRTC_EN);
+    check32("vga fast: GC bit mask keeps the byte path in extended mode", svga->fast, 0);
+
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save);
+    svga->gdcreg[1] = gdc1;
+    svga->gdcreg[3] = gdc3;
+    svga->gdcreg[8] = gdc8;
+    svga->chain4    = chain4;
+    svga->fast      = fast;
+}
+
+/* ------------------------------------------------------------------ */
 /* a: HTOTAL_CNTL line slip reaches the core's fractional   */
 /* htotal multiplier: pixels always, PPLL phase slips of 0.2 px each   */
 /* gated by HTOT_CNTL_VGA_EN in VGA modes, SEQ_PCLKBY2 doubling.       */
@@ -2314,6 +2388,29 @@ vectors_test_clock_mux(rage128_t *dev)
     pll_wr(dev, RAGE128_PLL_MCLK_CNTL, 0);
     pll_wr(dev, RAGE128_PLL_XCLK_CNTL, 0);
     pll_wr(dev, RAGE128_PLL_X_MPLL_REF_FB_DIV, 0);
+    pll_wr(dev, RAGE128_PLL_TEST_CNTL, 1 << 9);
+    wr(dev, RAGE128_TEST_DEBUG_MUX, 0);
+}
+
+/* XCLK and MCLK sourced from PCICLK count at the board's bus clock:
+   the AGP clock on the AGP board, the PCI clock on the PCI board (the
+   harness stubs model a 66 MHz host bus, so 66.67 and 33.33 MHz). Five
+   reads keep both counts under the 8-bit wrap and apart from each
+   other. */
+static void
+vectors_test_clock_pciclk(rage128_t *dev, const char *board, double bus_hz)
+{
+    char name[96];
+
+    pll_wr(dev, RAGE128_PLL_XCLK_CNTL, 0);      /* XCLK = PCICLK */
+    pll_wr(dev, RAGE128_PLL_MCLK_CNTL, 0);      /* MCLK = PCICLK */
+    wr(dev, RAGE128_TEST_DEBUG_MUX, 0x0f << 8); /* XCLK tap */
+    snprintf(name, sizeof(name), "pll: %s XCLK from PCICLK counts the bus clock", board);
+    check32(name, tc_run(dev, 5), tc_expect(bus_hz, 5));
+    wr(dev, RAGE128_TEST_DEBUG_MUX, 0x16 << 8); /* MCLK tap */
+    snprintf(name, sizeof(name), "pll: %s MCLK from PCICLK counts the bus clock", board);
+    check32(name, tc_run(dev, 5), tc_expect(bus_hz, 5));
+
     pll_wr(dev, RAGE128_PLL_TEST_CNTL, 1 << 9);
     wr(dev, RAGE128_TEST_DEBUG_MUX, 0);
 }
@@ -5595,6 +5692,224 @@ vectors_pio_ingress(rage128_t *dev)
     check_true("pm4: PIO ingress never bus-masters", harness_sysmem_stray == 0);
 
     rr_reset(dev);
+}
+
+/* GEN_INT_CNTL, GEN_INT_STATUS and a manual snapshot written by packets.
+   A type-0 packet can name any register, these among them; the packets
+   run on the CCE thread, and the emulator's interrupt code is not
+   thread-safe, so the register values must change when the packet runs
+   but the INTA update must be made by the CPU thread: at its next
+   register read, or at the next ring pump. harness_irq_offthread
+   counts every line update made off the CPU thread. */
+#define PKT0_GEN_INT_CNTL   (RAGE128_GEN_INT_CNTL >> 2)
+#define PKT0_GEN_INT_STATUS (RAGE128_GEN_INT_STATUS >> 2)
+#define PKT0_SNAPSHOT_VIF   (RAGE128_SNAPSHOT_VIF_COUNT >> 2)
+
+static void
+vectors_cce_gen_int(rage128_t *dev)
+{
+    uint32_t *tbl  = (uint32_t *) (ram + GART_TABLE_PHYS);
+    uint32_t *ring = (uint32_t *) (ram + RING_PHYS);
+    uint32_t  pkt[2];
+    uint64_t  off0;
+
+    harness_ram_alloc();
+    harness_sysmem_stray = 0;
+    rr_reset(dev);
+    wr(dev, RAGE128_GEN_INT_CNTL, 0);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_ACK_MASK);
+    wr(dev, RAGE128_SNAPSHOT_VIF_COUNT, 0);
+    off0 = harness_irq_offthread;
+
+    /* PIO: the status is latched by the CPU, the enable comes from the
+       stream. */
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x70000000);
+    wr(dev, RAGE128_PM4_MICRO_CNTL, 0x40000000);
+    wr(dev, RAGE128_SNAPSHOT_VIF_COUNT, 1u << 25);
+    check32("cce int: unarmed snapshot leaves INTA low", (uint32_t) dev->irq_state, 0);
+    pkt[0] = PKT0_GEN_INT_CNTL;
+    pkt[1] = RAGE128_GIC_SNAPSHOT_EN;
+    pio_submit(dev, pkt, 2);
+    rr_quiesce(dev);
+    check32("cce int: a packet write of GEN_INT_CNTL lands",
+            rd(dev, RAGE128_GEN_INT_CNTL), RAGE128_GIC_SNAPSHOT_EN);
+    check32("cce int: arming from the stream asserts INTA by the next register read",
+            (uint32_t) dev->irq_state, 1);
+
+    /* The acknowledge from the stream drops the line. */
+    pkt[0] = PKT0_GEN_INT_STATUS;
+    pkt[1] = RAGE128_GIS_SNAPSHOT;
+    pio_submit(dev, pkt, 2);
+    rr_quiesce(dev);
+    check32("cce int: a packet acknowledge clears SNAPSHOT_INT",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_SNAPSHOT, 0);
+    check32("cce int: the packet acknowledge drops INTA", (uint32_t) dev->irq_state, 0);
+
+    /* An event latched by the CPU after the stream's acknowledge is not
+       lost to it. */
+    wr(dev, RAGE128_SNAPSHOT_VIF_COUNT, 1u << 25);
+    check32("cce int: a CPU event after the packet acknowledge asserts INTA",
+            (uint32_t) dev->irq_state, 1);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_SNAPSHOT);
+    check32("cce int: the CPU acknowledge drops INTA", (uint32_t) dev->irq_state, 0);
+
+    /* A snapshot taken by a packet latches SNAPSHOT_INT and, armed,
+       asserts INTA. */
+    pkt[0] = PKT0_SNAPSHOT_VIF;
+    pkt[1] = 1u << 25;
+    pio_submit(dev, pkt, 2);
+    rr_quiesce(dev);
+    check32("cce int: a packet snapshot latches SNAPSHOT_INT",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_SNAPSHOT, RAGE128_GIS_SNAPSHOT);
+    check32("cce int: the armed packet snapshot asserts INTA", (uint32_t) dev->irq_state, 1);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_SNAPSHOT);
+    wr(dev, RAGE128_GEN_INT_CNTL, 0);
+    wr(dev, RAGE128_SNAPSHOT_VIF_COUNT, 0);
+
+    /* Ring: the pump, which runs on the CPU thread, brings INTA up to
+       date with no register read in between. */
+    rr_reset(dev);
+    memset(ram + GART_TABLE_PHYS, 0, 0x1000);
+    memset(ram + RING_PHYS, 0, 0x1000);
+    tbl[RING_CARD_ADDR >> 12] = RING_PHYS;
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    gart_table_on(dev, GART_TABLE_PHYS);
+    wr(dev, RAGE128_AGP_BASE, 0);
+    wr(dev, RAGE128_PM4_BUFFER_OFFSET, RING_CARD_ADDR);
+    wr(dev, RAGE128_SNAPSHOT_VIF_COUNT, 1u << 25);
+    ring[0] = PKT0_GEN_INT_CNTL;
+    ring[1] = RAGE128_GIC_SNAPSHOT_EN;
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x80000003);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 2);
+    rr_quiesce(dev);
+    rage128_pm4_kick(dev);
+    check32("cce int: a ring write of GEN_INT_CNTL asserts INTA by the next pump",
+            (uint32_t) dev->irq_state, 1);
+    check32("cce int: the ring write lands",
+            rd(dev, RAGE128_GEN_INT_CNTL), RAGE128_GIC_SNAPSHOT_EN);
+
+    check32("cce int: no interrupt line update was made off the CPU thread",
+            (uint32_t) (harness_irq_offthread - off0), 0);
+    check_true("cce int: no stray bus-master access", harness_sysmem_stray == 0);
+
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_SNAPSHOT);
+    wr(dev, RAGE128_GEN_INT_CNTL, 0);
+    wr(dev, RAGE128_SNAPSHOT_VIF_COUNT, 0);
+    rr_reset(dev);
+    wr(dev, RAGE128_PCI_GART_PAGE, 1);
+    pci_wr8(0x04, 0x03);
+}
+
+/* Display registers written by packets. The register value must change
+   when the packet runs, but the svga core calls (the timing
+   recalculation, the RAMDAC type) and the snapshot, which reads the
+   line timer, must run on the CPU thread: at its next register read or
+   at the next ring pump. harness_svga_offthread counts core calls made
+   off the CPU thread; a snapshot run on the CCE thread is seen by the
+   interrupt line it leaves stale. */
+static void
+vectors_cce_display(rage128_t *dev)
+{
+    svga_t   *svga     = &dev->svga;
+    uint32_t *tbl      = (uint32_t *) (ram + GART_TABLE_PHYS);
+    uint32_t *ring     = (uint32_t *) (ram + RING_PHYS);
+    uint32_t  gen_save = rd(dev, RAGE128_CRTC_GEN_CNTL);
+    uint32_t  htd_save = rd(dev, RAGE128_CRTC_H_TOTAL_DISP);
+    uint32_t  vss_save = rd(dev, RAGE128_CRTC_V_SYNC_STRT_WID);
+    uint32_t  dac_save = rd(dev, RAGE128_DAC_CNTL);
+    uint32_t  pkt[2];
+    uint64_t  off0;
+    uint64_t  calls0;
+
+    harness_ram_alloc();
+    harness_sysmem_stray = 0;
+    rr_reset(dev);
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save | RAGE128_CRTC_EXT_DISP_EN | RAGE128_CRTC_EN);
+    wr(dev, RAGE128_GEN_INT_CNTL, 0);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_ACK_MASK);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x70000000);
+    wr(dev, RAGE128_PM4_MICRO_CNTL, 0x40000000);
+    off0 = harness_svga_offthread;
+
+    /* A CRTC timing register: 31 character clocks per line, 8 shown. */
+    calls0 = harness_svga_recalc_calls;
+    pkt[0] = RAGE128_CRTC_H_TOTAL_DISP >> 2;
+    pkt[1] = (7u << 16) | 30u;
+    pio_submit(dev, pkt, 2);
+    rr_quiesce(dev);
+    check32("cce display: a packet write of CRTC_H_TOTAL_DISP lands",
+            rd(dev, RAGE128_CRTC_H_TOTAL_DISP), (7u << 16) | 30u);
+    check32("cce display: its recalculation runs on the CPU thread by the next register read",
+            (uint32_t) (harness_svga_recalc_calls - calls0), 1);
+    check32("cce display: the recalculated line is 31 character clocks",
+            (uint32_t) svga->htotal, 31);
+
+    /* DAC_CNTL: the RAMDAC width goes to the svga core. */
+    calls0 = harness_svga_ramdac_calls;
+    pkt[0] = RAGE128_DAC_CNTL >> 2;
+    pkt[1] = dac_save ^ RAGE128_DAC_8BIT_EN;
+    pio_submit(dev, pkt, 2);
+    rr_quiesce(dev);
+    check32("cce display: a packet write of DAC_CNTL lands",
+            rd(dev, RAGE128_DAC_CNTL) & RAGE128_DAC_8BIT_EN,
+            (dac_save ^ RAGE128_DAC_8BIT_EN) & RAGE128_DAC_8BIT_EN);
+    check32("cce display: the RAMDAC width is set on the CPU thread by the next register read",
+            (uint32_t) (harness_svga_ramdac_calls - calls0), 1);
+
+    /* MANUAL_SNAPSHOT_NOW from a packet: the capture is taken on the CPU
+       thread, at the raster position set here. */
+    svga->displine = 100;
+    svga->linepos  = 0;
+    pkt[0] = RAGE128_SNAPSHOT_VIF_COUNT >> 2;
+    pkt[1] = 1u << 25;
+    pio_submit(dev, pkt, 2);
+    rr_quiesce(dev);
+    check32("cce display: no snapshot was taken on the CCE thread",
+            (uint32_t) atomic_load(&dev->gen_int_stale), 0);
+    check32("cce display: the packet snapshot captures V and H counts",
+            rd(dev, RAGE128_SNAPSHOT_VH_COUNTS), (100u << 16) | 8u);
+    check32("cce display: the packet snapshot latches SNAPSHOT_INT",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_SNAPSHOT, RAGE128_GIS_SNAPSHOT);
+    check32("cce display: SNAPSHOT_VIF_COUNT holds the packet's write",
+            rd(dev, RAGE128_SNAPSHOT_VIF_COUNT), 1u << 25);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_SNAPSHOT);
+    wr(dev, RAGE128_SNAPSHOT_VIF_COUNT, 0);
+
+    /* Ring: the pump brings the timing up to date with no register read
+       in between. */
+    rr_reset(dev);
+    memset(ram + GART_TABLE_PHYS, 0, 0x1000);
+    memset(ram + RING_PHYS, 0, 0x1000);
+    tbl[RING_CARD_ADDR >> 12] = RING_PHYS;
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    gart_table_on(dev, GART_TABLE_PHYS);
+    wr(dev, RAGE128_AGP_BASE, 0);
+    wr(dev, RAGE128_PM4_BUFFER_OFFSET, RING_CARD_ADDR);
+    ring[0] = RAGE128_CRTC_V_SYNC_STRT_WID >> 2;
+    ring[1] = vss_save ^ 1u;
+    calls0  = harness_svga_recalc_calls;
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x80000003);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 2);
+    rr_quiesce(dev);
+    rage128_pm4_kick(dev);
+    check32("cce display: a ring timing write is recalculated by the next pump",
+            (uint32_t) (harness_svga_recalc_calls - calls0), 1);
+    check32("cce display: the ring write lands",
+            rd(dev, RAGE128_CRTC_V_SYNC_STRT_WID), vss_save ^ 1u);
+
+    check32("cce display: no svga core call was made off the CPU thread",
+            (uint32_t) (harness_svga_offthread - off0), 0);
+    check_true("cce display: no stray bus-master access", harness_sysmem_stray == 0);
+
+    rr_reset(dev);
+    wr(dev, RAGE128_PCI_GART_PAGE, 1);
+    pci_wr8(0x04, 0x03);
+    wr(dev, RAGE128_CRTC_V_SYNC_STRT_WID, vss_save);
+    wr(dev, RAGE128_CRTC_H_TOTAL_DISP, htd_save);
+    wr(dev, RAGE128_DAC_CNTL, dac_save);
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save);
 }
 
 /* ------------------------------------------------------------------ */
@@ -8924,11 +9239,16 @@ gt_seed_leg(rage128_t *dev, const rage128_raster_state_t *trs,
             if (P->x0 != next || P->x1 < P->x0 || P->x1 > L->x1)
                 bad_part++;
             next = P->x1 + 1;
-            if (P->e0 != L->e0 + k * tc.edx[0]
-                || P->e1 != L->e1 + k * tc.edx[1]
-                || P->e2 != L->e2 + k * tc.edx[2])
+            /* the walked seeds of every tiled piece step from the linear
+               row's, and the plane seeds reproduce the walk on both */
+            if (P->w_e0 != L->w_e0 + k * tc.edx[0]
+                || P->w_e1 != L->w_e1 + k * tc.edx[1]
+                || P->w_e2 != L->w_e2 + k * tc.edx[2]
+                || P->e0 != P->w_e0 || P->e1 != P->w_e1 || P->e2 != P->w_e2
+                || L->e0 != L->w_e0 || L->e1 != L->w_e1 || L->e2 != L->w_e2)
                 bad_e++;
-            if (P->zline != L->zline + k * dz)
+            if (P->w_zline != L->w_zline + k * dz
+                || P->zline != P->w_zline || L->zline != L->w_zline)
                 bad_z++;
         }
         if (next != L->x1 + 1)
@@ -10364,8 +10684,8 @@ vectors_stage_arena(rage128_t *dev)
                ts->used != 0 && ts->n_rec_flush == flush0
                    && rs.prim_stage_off[0] == off2);
 
-    /* D: only a store into the source bytes kills the cache. The two
-       barriers below are the production hooks, driven directly. */
+    /* D: only a store into a level's source bytes kills that level. The
+       two barriers below are the production hooks, driven directly. */
     kill0 = ts->n_kill;
     rage128_gpu_cpu_barrier(dev, TL_TEX + 64u, 4, 0);      /* read       */
     rage128_gpu_cpu_barrier(dev, 0x00100000u, 4, 1);       /* write, off */
@@ -10374,16 +10694,53 @@ vectors_stage_arena(rage128_t *dev)
     rage128_gpu_cpu_barrier(dev, TL_TEX + 64u, 4, 1);      /* write, hit */
     check_true("gpu arena: cpu store into the source kills the cache",
                ts->n_kill == kill0 + 1);
+    /* The page bits now hold only the live level, so further stores into
+       the dropped level's bytes are decided without the lock. */
+    check_true("gpu arena: a dropped level's pages leave the page bits",
+               !r128_texcache_pg_any(ts, TL_TEX, (uint64_t) TL_TEX + 4u)
+                   && r128_texcache_pg_any(ts, SA_TEX2, (uint64_t) SA_TEX2 + 4u));
+    /* The store hit only the first level: the second, the current
+       texture, still hits. */
+    hit0 = ts->n_hit;
+    rage128_raster_state_capture(dev, &rs);
+    check_true("gpu arena: a store into one level keeps the other cached",
+               rs.prim_stage_off[0] == off2 && ts->n_hit == hit0 + 1);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), TL_TEX | (2u << 30));
     rage128_raster_state_capture(dev, &rs);
     off3 = rs.prim_stage_off[0];
     check_true("gpu arena: killed level re-stages fresh",
                off3 > off2);
+    /* A store between the two levels, inside the range they span but in
+       neither level's bytes, keeps both. */
+    kill0 = ts->n_kill;
+    {
+        uint64_t in0 = atomic_load(&ts->n_cpu_in);
+        uint64_t sk0 = atomic_load(&ts->n_cpu_pgskip);
+
+        rage128_gpu_cpu_barrier(dev, (TL_TEX + SA_TEX2) / 2u, 4, 1);
+        check_true("gpu arena: the store between them is counted inside the "
+                   "range and decided by the page bits",
+                   atomic_load(&ts->n_cpu_in) == in0 + 1
+                       && atomic_load(&ts->n_cpu_pgskip) == sk0 + 1);
+    }
+    rage128_raster_state_capture(dev, &rs);
+    check_true("gpu arena: a store between two cached levels kills neither",
+               ts->n_kill == kill0 && rs.prim_stage_off[0] == off3);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), SA_TEX2 | (2u << 30));
+    rage128_raster_state_capture(dev, &rs);
+    check_true("gpu arena: control: the second level still hits",
+               rs.prim_stage_off[0] == off2);
 
     /* The 2D barrier is the second hook. */
     kill0 = ts->n_kill;
     rage128_gpu_2d_barrier(dev, SA_TEX2 + 128u, 4, 1);
     check_true("gpu arena: 2d store into the source kills the cache",
                ts->n_kill == kill0 + 1);
+    /* The first level is the last one cached; a store into it leaves the
+       cache empty for leg E. */
+    rage128_gpu_cpu_barrier(dev, TL_TEX + 64u, 4, 1);
+    check_true("gpu arena: the last cached level killed empties the range",
+               ts->src_lo == ts->src_hi);
 
     /* E: idle AND cache-free, the flush reclaim is free again. */
     flush0 = ts->n_rec_flush;
@@ -10393,6 +10750,43 @@ vectors_stage_arena(rage128_t *dev)
     rage128_raster_state_capture(dev, &rs);
     check32("gpu arena: reclaimed arena restarts at offset zero",
             rs.prim_stage_off[0], 0);
+
+    /* More cached levels than the old 256-entry table held: 300 small
+       tiled levels (16x16 ARGB8888, one 1 KB tile row each) staged in
+       turn all stay cached, so a second pass over them stages nothing. */
+    {
+        uint32_t used0, off_first[300];
+        uint64_t hits0;
+        int      same = 0;
+
+        wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00004444);
+        for (int i = 0; i < 300; i++) {
+            wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0),
+               (SA_BAND + (uint32_t) i * 1024u) | (2u << 30));
+            rage128_raster_state_capture(dev, &rs);
+            off_first[i] = rs.prim_stage_off[0];
+        }
+        used0 = ts->used;
+        hits0 = ts->n_hit;
+        for (int i = 0; i < 300; i++) {
+            wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0),
+               (SA_BAND + (uint32_t) i * 1024u) | (2u << 30));
+            rage128_raster_state_capture(dev, &rs);
+            same += rs.prim_stage_off[0] == off_first[i]
+                && off_first[i] != R128_TEX_STAGE_NONE;
+        }
+        check32("gpu arena: 300 cached levels all hit on a second pass", same, 300);
+        check_true("gpu arena: the second pass stages nothing",
+                   ts->used == used0 && ts->n_hit == hits0 + 300 && ts->n_full == 0);
+        /* One store over the whole band drops all 300, leaving the
+           cache as the legs below expect it. */
+        rage128_gpu_2d_barrier(dev, SA_BAND, 300u * 1024u, 1);
+        check32("gpu arena: a store over the band drops every level in it",
+                ts->ent_dead, 300);
+        wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00000606);
+        wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), SA_TEX2 | (2u << 30));
+        rage128_raster_state_capture(dev, &rs);
+    }
 
     /* F: rendering into the texture kills the cache (capture-time RT
        plans are the third hook). */
@@ -10441,6 +10835,55 @@ vectors_stage_arena(rage128_t *dev)
                    ts->n_rec_flush == flush0);
     }
     harness_gpu_fab_stage_ref(fab, 0);
+
+    /* A wrap keeps the cached levels used during the pass that ends:
+       stage new levels, each dropped by a store right after it is staged
+       except the sixth and the eighth, through two wraps, and sample the
+       sixth again throughout the second pass. The first wrap keeps both
+       survivors with their bytes; the second keeps the sixth and drops
+       the eighth, which no draw used during that pass. */
+    {
+        const uint32_t band = 0x00700000u;
+        uint64_t       wraps0 = ts->n_rec_wrap, kept0 = ts->n_wrap_kept, hit0;
+        uint32_t       off5 = R128_TEX_STAGE_NONE, used1 = 0;
+        uint8_t        snap[256];
+        int            i, hit5 = 1, bytes5 = 1;
+
+        for (i = 0; i < 400 && ts->n_rec_wrap < wraps0 + 2; i++) {
+            wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), (band + (uint32_t) i * 16384u) | (2u << 30));
+            rage128_raster_state_capture(dev, &rs);
+            if (i == 5) {
+                off5 = rs.prim_stage_off[0];
+                memcpy(snap, ts->arena + off5, sizeof(snap));
+            } else if (i != 7)
+                rage128_gpu_2d_barrier(dev, band + (uint32_t) i * 16384u + 128u, 4, 1);
+            if (ts->n_rec_wrap == wraps0 + 1) {
+                if (!used1)
+                    used1 = ts->used;
+                wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), (band + 5u * 16384u) | (2u << 30));
+                hit0 = ts->n_hit;
+                rage128_raster_state_capture(dev, &rs);
+                hit5 &= ts->n_hit == hit0 + 1;
+                bytes5 &= !memcmp(ts->arena + rs.prim_stage_off[0], snap, sizeof(snap));
+            }
+        }
+        check_true("gpu arena: keep-live leg wrapped twice, keeping both times",
+                   ts->n_rec_wrap == wraps0 + 2 && ts->n_wrap_kept == kept0 + 2);
+        check_true("gpu arena: the first wrap dropped the dead copies",
+                   used1 && used1 <= 4u * 16384u);
+        check_true("gpu arena: the kept level hits through the next pass, bytes intact",
+                   off5 != R128_TEX_STAGE_NONE && hit5 && bytes5);
+        wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), (band + 5u * 16384u) | (2u << 30));
+        hit0 = ts->n_hit;
+        rage128_raster_state_capture(dev, &rs);
+        check_true("gpu arena: a level used in the pass survives the second wrap",
+                   ts->n_hit == hit0 + 1);
+        wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), (band + 7u * 16384u) | (2u << 30));
+        hit0 = ts->n_hit;
+        rage128_raster_state_capture(dev, &rs);
+        check_true("gpu arena: a level unused for a whole pass is dropped at the wrap",
+                   ts->n_hit == hit0);
+    }
 
     fab_out(dev);
     harness_gpu_fab_free(fab);
@@ -12775,6 +13218,201 @@ vectors_mpeg_mb(rage128_t *dev)
 #undef MC_PX
 }
 
+/* MPEG motion compensation against 3D draws still queued, on the GPU
+   backend or in the render workers' deferred batch. The command FIFO
+   runs operations in the order they were issued (RRG: Memory Mapping,
+   Figure 2-1, p. 2-4 / PDF 14), so a launch issued after a draw sees the
+   draw's pixels and its stores land after the draw's, and a draw issued
+   before a launch samples the texels from before it. With the backend
+   on, a draw is only captured at submit and runs at the next fence; with
+   two or more render threads it waits in the batch until the next flush.
+   So each leg issues the draw, then the launch with no register write
+   between them (a GUI register write drains the engine), then flushes
+   and fences. Every expected value is read back from a leg that fences
+   between the two operations. On a lane that draws at submit (one render
+   thread, no backend) the legs pass trivially. */
+#define MG_A    0x00700000u /* 3D color target, 64 px ARGB8888 = 256 B/row */
+#define MG_D    0x00710000u /* launch destination of the first leg         */
+#define MG_T    0x00720000u /* 16x16 ARGB8888 texture, 64 B/row            */
+#define MG_SEED 0x11223344u
+#define MG_TEXV 0xff102030u
+#define MG_PX(x, y) (*(uint32_t *) &dev->svga.vram[MG_A + ((y) * 64 + (x)) * 4])
+
+/* Draw the deferred batch, then fence the GPU backend. No host-newer
+   mark of all of VRAM here, unlike flush_sync: one leg checks that the
+   launch marks its own stores. */
+static void
+mg_fence(rage128_t *dev)
+{
+    rage128_raster_flush(dev);
+    gpu_sync(dev);
+}
+
+/* An intra 16x16 launch at dst whose one coefficient is a zero DC: every
+   stored byte is the intra offset, 128. dcntl is the MC_DST_CNTL word the
+   packet carries. */
+static void
+mg_intra(rage128_t *dev, uint32_t dst, uint32_t dcntl)
+{
+    uint32_t pl[14];
+
+    pl[0] = 0x20;              /* mode: intra */
+    pl[1] = 7;                 /* record: DST + START */
+    pl[2] = dcntl;             /* DST_CNTL */
+    pl[3] = 0xc0000000u | dst; /* START: 16x16, slot 0, no prediction */
+    pl[4] = 1;                 /* record: four run-level pairs */
+    pl[5] = 0;
+    pl[6] = 0;
+    pl[7] = 0;
+    for (uint32_t i = 0; i < 6; i++)
+        pl[8 + i] = 0;         /* six end-of-block records */
+    rage128_mpeg_packet3(dev, 0x31u << 8, pl, 14);
+}
+
+/* An inter 16x16 launch at dst: full-pel prediction from source slot 0
+   with a zero residual, a byte copy of the reference's 16x16 corner. */
+static void
+mg_copy(rage128_t *dev, uint32_t dst)
+{
+    uint32_t pl[9];
+
+    pl[0] = 0;                 /* mode: inter */
+    pl[1] = 3;                 /* record: START only */
+    pl[2] = 0xc2000000u | dst; /* 16x16, prediction, slot 0 */
+    for (uint32_t i = 0; i < 6; i++)
+        pl[3 + i] = 0;
+    rage128_mpeg_packet3(dev, 0x31u << 8, pl, 9);
+}
+
+static void
+vectors_mpeg_gpu_order(rage128_t *dev)
+{
+    static const uint32_t saved_regs[] = {
+        RAGE128_DEFAULT_SC_BOTTOM_RIGHT, RAGE128_SC_TOP_LEFT,
+        RAGE128_SC_BOTTOM_RIGHT, RAGE128_DP_CNTL, RAGE128_DP_WRITE_MASK,
+        RAGE128_AUX_SC_CNTL, RAGE128_DP_DATATYPE, RAGE128_TEX_CNTL_C,
+        RAGE128_MISC_3D_STATE_CNTL, RAGE128_PLANE_3D_MASK_C,
+        RAGE128_SETUP_CNTL, RAGE128_WINDOW_XY_OFFSET, RAGE128_SCALE_3D_CNTL,
+        RAGE128_DST_PITCH_OFFSET_C, RAGE128_TEX_SIZE_PITCH_C,
+        RAGE128_PRIM_TEX_CNTL_C, RAGE128_PRIM_TEX_OFFSET_C(0),
+        RAGE128_PRIM_TEX_COMBINE_CNTL_C, RAGE128_SCALE_PITCH,
+        RAGE128_DST_PITCH, RAGE128_PRIM_TEX_OFFSET(0)
+    };
+    uint32_t saved[sizeof(saved_regs) / sizeof(saved_regs[0])];
+    uint32_t e_old, e_new, t_new;
+    int      bad;
+
+    for (size_t i = 0; i < sizeof(saved) / sizeof(saved[0]); i++)
+        saved[i] = rd(dev, saved_regs[i]);
+    flush_sync(dev);
+    /* 64x64 ARGB8888 target at MG_A, no Z, no texture. */
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0x00000000);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x003f003f);
+    wr(dev, RAGE128_DP_CNTL, 0x00000003);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0x00000000);
+    wr(dev, RAGE128_DP_DATATYPE, 0x00000006);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_SETUP_CNTL, 0x00000020);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (MG_A >> 5));
+    /* Launches: source 1 is the target itself at its 256-byte pitch. The
+       destination pitch base is DST_PITCH, which the 3D target's 64-pixel
+       pitch also sets: 8 units, 64 bytes for a launch, so a launch into
+       the target sets a pitch multiplier of 4 in MC_DST_CNTL. */
+    wr(dev, RAGE128_SCALE_PITCH, 256 / 8);
+    wr(dev, RAGE128_DST_PITCH, 64 / 8);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET(0), MG_A);
+    wr(dev, RAGE128_MC_SRC1_CNTL, RAGE128_MC_SRC1_IDCT_EN);
+    wr(dev, RAGE128_MC_DST_CNTL, 2u << 30);
+
+    /* Read after write: the prediction copies the target's corner while
+       the draw that paints it is still queued. */
+    for (uint32_t i = 0; i < 64 * 64; i++)
+        MG_PX(i & 63, i >> 6) = MG_SEED;
+    memset(&dev->svga.vram[MG_D], 0, 16 * 256);
+    flush_sync(dev);
+    tl_draw_z(dev, 0.0f, 16.0f, 0xffc04020, 0.25f);
+    mg_copy(dev, MG_D);
+    mg_fence(dev);
+    check32("mpeg order: the draw painted the reference", MG_PX(0, 0), 0xffc04020);
+    bad = 0;
+    for (uint32_t r = 0; r < 16; r++)
+        bad += memcmp(&dev->svga.vram[MG_D + r * 256],
+                      &dev->svga.vram[MG_A + r * 256], 16) != 0;
+    check32("mpeg order: prediction reads the pixels of a queued draw", bad, 0);
+
+    /* Write after write: the launch stores into the corner the queued
+       draw paints, and its bytes are the last ones there. */
+    for (uint32_t i = 0; i < 64 * 64; i++)
+        MG_PX(i & 63, i >> 6) = MG_SEED;
+    flush_sync(dev);
+    tl_draw_z(dev, 0.0f, 16.0f, 0xffc04020, 0.25f);
+    mg_intra(dev, MG_A, 2u << 30);
+    mg_fence(dev);
+    bad = 0;
+    for (uint32_t r = 0; r < 16; r++)
+        for (uint32_t x = 0; x < 16; x++)
+            bad += dev->svga.vram[MG_A + r * 256 + x] != 128;
+    check32("mpeg order: launch stores land over a queued draw", bad, 0);
+    check32("mpeg order: the draw keeps the pixels past the launch",
+            MG_PX(8, 0), 0xffc04020);
+
+    /* The texture legs: a 16x16 texture sampled with a replace color
+       combine, so a pixel's color channels are those of the texel it
+       samples (its alpha here is the vertex alpha), and launches into the
+       texture at its 64-byte pitch, multiplier 1. */
+    wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00004444);
+    wr(dev, RAGE128_PRIM_TEX_CNTL_C, 6u << 16);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), MG_T);
+    wr(dev, RAGE128_PRIM_TEX_COMBINE_CNTL_C, 0x00184041u);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000010);
+    for (uint32_t i = 0; i < 256; i++)
+        *(uint32_t *) &dev->svga.vram[MG_T + i * 4] = MG_TEXV;
+    for (uint32_t i = 0; i < 64 * 64; i++)
+        MG_PX(i & 63, i >> 6) = MG_SEED;
+    flush_sync(dev);
+    tl_draw_tex(dev);
+    mg_fence(dev);
+    e_old = MG_PX(2, 2);
+    check32("mpeg order: the draw samples the seeded texel", e_old & 0xffffffu,
+            MG_TEXV & 0xffffffu);
+    /* Read after a launch's write, with nothing else storing between
+       them: the draw sees the texels only if the launch marked its
+       stores for the GPU backend's copy of VRAM. */
+    mg_intra(dev, MG_T, 0);
+    tl_draw_tex(dev);
+    mg_fence(dev);
+    e_new = MG_PX(2, 2);
+    t_new = *(uint32_t *) &dev->svga.vram[MG_T];
+    check_true("mpeg order: the launch changes the sampled texel", e_new != e_old);
+    check32("mpeg order: a draw after a launch samples its stores",
+            e_new & 0xffffffu, t_new & 0xffffffu);
+
+    /* Write after read: the queued draw samples the texture, then the
+       launch overwrites it. The draw must see the texels from before. */
+    for (uint32_t i = 0; i < 256; i++)
+        *(uint32_t *) &dev->svga.vram[MG_T + i * 4] = MG_TEXV;
+    for (uint32_t i = 0; i < 64 * 64; i++)
+        MG_PX(i & 63, i >> 6) = MG_SEED;
+    flush_sync(dev);
+    tl_draw_tex(dev);
+    mg_intra(dev, MG_T, 0);
+    mg_fence(dev);
+    check32("mpeg order: a queued draw samples the texels from before a launch",
+            MG_PX(2, 2), e_old);
+    check32("mpeg order: the launch over the texture still lands",
+            *(uint32_t *) &dev->svga.vram[MG_T], t_new);
+
+    for (size_t i = 0; i < sizeof(saved) / sizeof(saved[0]); i++)
+        wr(dev, saved_regs[i], saved[i]);
+}
+#undef MG_PX
+
 /* ------------------------------------------------------------------ */
 /* NEXT_VERTEX_BUNDLE (type-3 0x2e): index continuation of a           */
 /* 3D_RNDR_GEN_INDX_PRIM whose VC_CNTL NUM exceeds the index dwords    */
@@ -13449,7 +14087,9 @@ run_agp_32mb(void)
     vectors_ppll_ref_src(dev);
     vectors_vga_ppll_clock(dev);
     vectors_htotal_slip(dev);
+    vectors_vga_fast_write(dev);
     vectors_test_clock_mux(dev);
+    vectors_test_clock_pciclk(dev, "AGP", (double) cpu_agp_speed);
     vectors_test_clock_elapsed(dev);
     vectors_cursor_lock(dev);
     vectors_4bpp_ext(dev);
@@ -13500,6 +14140,8 @@ run_agp_32mb(void)
     vectors_pio_mode_gate(dev);
     vectors_ring_size_encode(dev);
     vectors_pio_ingress(dev);
+    vectors_cce_gen_int(dev);
+    vectors_cce_display(dev);
     vectors_bm_chunk_tap(dev);
     vectors_modeset_tap(dev);
     vectors_early_arms(dev);
@@ -13511,6 +14153,7 @@ run_agp_32mb(void)
     vectors_vertex_page_straddle(dev);
     vectors_rt_geom_key(dev, 0); /* serial reference for the threaded run */
     vectors_mpeg_mb(dev);
+    vectors_mpeg_gpu_order(dev);
     vectors_3d_line_bresenham(dev);
     vectors_face_fn(dev);
     vectors_load_palette(dev);
@@ -13545,6 +14188,7 @@ run_pci_xpert128(void)
     harness_cfg_memory_mb = 32;
     dev = rage128_init(&ati_xpert128_pci_device);
     vectors_gart_force_pci(dev);
+    vectors_test_clock_pciclk(dev, "PCI", (double) cpu_pci_speed);
     close_dev(dev);
 }
 
@@ -14094,6 +14738,104 @@ vectors_scan_starved_executor(rage128_t *dev)
 /* condition-variable form is checked the same way off the harness.    */
 /* ------------------------------------------------------------------ */
 #define TIMED_WAIT_CYCLES 200
+
+/* Texture-cache store check timing only, R128_TEXCACHE_BENCH=N stores
+   per case (0 or unset = off). The entry table is filled with 256 cached
+   4 KB levels 32 KB apart, as the staging code would leave it, and a
+   fabricated backend stands in for the GPU, so the cost measured is the
+   store check itself and the linear-aperture dword handler around it. */
+static uint64_t
+texcache_bench_now_ns(void)
+{
+    struct timespec ts;
+
+    clock_gettime(CLOCK_MONOTONIC, &ts);
+    return (uint64_t) ts.tv_sec * 1000000000u + (uint64_t) ts.tv_nsec;
+}
+
+#define TCB_BASE 0x00400000u
+#define TCB_STEP 0x00008000u
+
+static void
+texcache_bench_fill(rage128_t *dev)
+{
+    struct rage128_tex_stage *ts = &dev->tex_stage;
+
+    r128_texcache_lock(ts);
+    r128_texcache_pg_clear(ts);
+    ts->pg_tgen  = ts->tgen;
+    ts->ent_dead = 0;
+    for (uint32_t i = 0; i < 256; i++) {
+        uint32_t b = TCB_BASE + i * TCB_STEP;
+
+        memset(&ts->ent[i], 0, sizeof(ts->ent[i]));
+        ts->ent[i].vm_base = b;
+        ts->ent[i].len     = 4096;
+        ts->ent[i].tbpp    = 4;
+        ts->ent[i].gen     = ts->tgen;
+        ts->ent[i].src_lo  = b;
+        ts->ent[i].src_hi  = b + 4096;
+        r128_texcache_pg_set(ts, b, b + 4096);
+    }
+    ts->ent_count = 256;
+    ts->src_lo    = TCB_BASE;
+    ts->src_hi    = TCB_BASE + 255 * TCB_STEP + 4096;
+    r128_texcache_unlock(ts);
+}
+
+static void
+texcache_bench(rage128_t *dev, uint32_t n)
+{
+    static const char *const name[4] = { "outside", "inside-no-entry",
+                                         "into-dead-level", "into-live-entry" };
+    struct rage128_tex_stage *ts  = &dev->tex_stage;
+    void                     *fab = harness_gpu_fab_alloc();
+    mem_mapping_t            *lm  = &dev->lfb_mapping;
+    const uint32_t            hot = TCB_BASE + 128 * TCB_STEP;
+
+    if (!fab)
+        return;
+    fab_in(dev, fab);
+    for (int c = 0; c < 4; c++) {
+        uint32_t base = c == 0 ? 0x00100000u : c == 1 ? TCB_BASE + 0x4000u : hot;
+        double   ns[2];
+
+        for (int path = 0; path < 2; path++) {
+            uint64_t t0;
+
+            texcache_bench_fill(dev);
+            if (c == 2)
+                r128_texcache_dirty(dev, hot, 4); /* the level dies first */
+            t0 = texcache_bench_now_ns();
+            for (uint32_t i = 0; i < n; i++) {
+                uint32_t a = base + ((i * 4u) & 0xffcu);
+
+                if (c == 3) {
+                    /* re-arm, so every store kills: the level and its
+                       page bit come back */
+                    ts->ent[128].dead = 0;
+                    r128_texcache_pg_set(ts, hot, (uint64_t) hot + 4096u);
+                }
+                if (path)
+                    lm->write_l(dev->lfb_base + a, i, dev);
+                else
+                    r128_texcache_dirty(dev, a, 4);
+            }
+            ns[path] = (double) (texcache_bench_now_ns() - t0) / (double) n;
+        }
+        printf("texcache bench: case=%s n=%u entries=256 check_ns=%.2f "
+               "lfb_writel_ns=%.2f kills=%llu\n",
+               name[c], n, ns[0], ns[1], (unsigned long long) ts->n_kill);
+    }
+    r128_texcache_lock(ts);
+    ts->ent_count = 0;
+    ts->src_lo    = 0;
+    ts->src_hi    = 0;
+    r128_texcache_pg_clear(ts);
+    r128_texcache_unlock(ts);
+    fab_out(dev);
+    harness_gpu_fab_free(fab);
+}
 
 static uint64_t
 timed_wait_now_ms(void)
@@ -14857,6 +15599,7 @@ run_agp_32mb_threaded(void)
     vectors_hazard_ranges(dev);
     vectors_poly_stipple(dev);
     vectors_tiled_3d(dev);
+    vectors_mpeg_gpu_order(dev);
     vectors_mag_blend(dev);
     vectors_sec_mag_blend(dev);
     vectors_comb_disable(dev);
@@ -24109,6 +24852,30 @@ vectors_gpu_tuple_reload(void)
         printf("SKIP GPU tuple reload: built without Vulkan headers\n");
         return;
     }
+    {
+        int empty_refused, private_joined;
+
+        ok = harness_gpu_cache_path_probe(&empty_refused, &private_joined);
+        check_true("GPU cache path: probe runs", ok);
+        check_true("GPU cache path: empty directory is refused, not the root",
+                   empty_refused);
+        check_true("GPU cache path: private directory joins the file name",
+                   private_joined);
+        printf("GPU cache path: empty_refused=%d private_joined=%d\n",
+               empty_refused, private_joined);
+    }
+    {
+        uint32_t queries, mismatch, hits;
+
+        ok = harness_gpu_pnd_summary_probe(0x866u, &queries, &mismatch, &hits);
+        check_true("GPU pending summary: probe runs", ok);
+        check32("GPU pending summary: range test agrees with the pending walk",
+                mismatch, 0);
+        check_true("GPU pending summary: some queries hit", hits > 0);
+        check_true("GPU pending summary: some queries miss", hits < queries);
+        printf("GPU pending summary: queries=%u hits=%u mismatch=%u\n",
+               queries, hits, mismatch);
+    }
     ok = harness_gpu_tuple_reload(22, 22, 0, 0, loaded, &exact);
     check_true("GPU tuple reload: opaque ARGB8888 pair loads", ok);
     check32("GPU tuple reload: opaque stage 0 selector", loaded[0], 22);
@@ -24673,6 +25440,64 @@ vectors_synctel_present_race(rage128_t *dev)
     check32("gpu telemetry: A, A: splits", synctel_present_splits(dev) - s0, 0);
 }
 
+/* The aperture handlers decide a miss from the backend's hazard summary
+   without calling into it; a possible hit still runs the full barrier.
+   A fabricated async backend owns one pending 2D store range: linear-
+   aperture accesses outside it must leave the segment pending and count
+   no barrier hit, a store inside it must quiesce and flush (the segment
+   leaves pending, one hit counted), and a read inside a re-armed
+   range must do the same, since a read conflicts with a GPU store. */
+static void
+vectors_gpu_aper_hull(void)
+{
+    rage128_t     *dev;
+    void          *fab;
+    mem_mapping_t *lm;
+    uint32_t       lb, lo = 0x100000u, hi = 0x100100u;
+    uint64_t       kicks, defers, served;
+    int            pend;
+
+    if (!harness_gpu_available()) {
+        printf("SKIP GPU aperture summary: built without Vulkan headers\n");
+        return;
+    }
+    dev = rage128_init(&ati_rage128_pro_device);
+    fab = harness_gpu_fab_alloc();
+    if (!fab) {
+        check_true("GPU aperture summary: fabricated backend", 0);
+        close_dev(dev);
+        return;
+    }
+    lm = &dev->lfb_mapping;
+    lb = dev->lfb_base;
+    fab_in(dev, fab);
+    harness_gpu_fab_scan_arm(fab, lo, hi);
+    lm->write_l(lb + 0x200000u, 0x11223344u, dev);
+    lm->write_b(lb + hi, 0x55, dev);
+    (void) lm->read_l(lb + lo - 4u, dev);
+    harness_gpu_fab_scan_read(fab, &pend, &kicks, &defers, &served);
+    check_true("GPU aperture summary: accesses outside leave the segment pending",
+               pend == 1);
+    check32("GPU aperture summary: accesses outside count no barrier hit",
+            (uint32_t) harness_gpu_fab_cpu_hits(fab), 0);
+    lm->write_l(lb + lo + 0x40u, 0x55667788u, dev);
+    harness_gpu_fab_scan_read(fab, &pend, &kicks, &defers, &served);
+    check_true("GPU aperture summary: a store inside flushes the segment",
+               pend == 0);
+    check32("GPU aperture summary: a store inside counts one barrier hit",
+            (uint32_t) harness_gpu_fab_cpu_hits(fab), 1);
+    harness_gpu_fab_scan_arm(fab, lo, hi);
+    (void) lm->read_w(lb + hi - 2u, dev);
+    harness_gpu_fab_scan_read(fab, &pend, &kicks, &defers, &served);
+    check_true("GPU aperture summary: a read inside flushes the segment",
+               pend == 0);
+    printf("GPU aperture summary: hits=%u pending=%d\n",
+           (uint32_t) harness_gpu_fab_cpu_hits(fab), pend);
+    fab_out(dev);
+    harness_gpu_fab_free(fab);
+    close_dev(dev);
+}
+
 static void
 run_synctel(void)
 {
@@ -24735,12 +25560,38 @@ main(int argc, char **argv)
     }
 
     if (unit_selected("gpu-tuple-reload")) {
+        vectors_gpu_aper_hull();
         vectors_gpu_tuple_reload();
         vectors_comb_seed();
         vectors_tuple_pair();
     }
 
     harness_video_luts_init();
+
+    /* Aperture-barrier miss timing only: R128_BARRIER_BENCH=N calls per
+       column (0 or unset = off) */
+    if (getenv("R128_BARRIER_BENCH")) {
+        uint32_t   n = (uint32_t) strtoul(getenv("R128_BARRIER_BENCH"), NULL, 0);
+        rage128_t *dev;
+
+        if (n) {
+            dev = rage128_init(&ati_rage128_pro_device);
+            harness_gpu_barrier_bench(dev, n);
+            close_dev(dev);
+            return 0;
+        }
+    }
+    if (getenv("R128_TEXCACHE_BENCH")) {
+        uint32_t   n = (uint32_t) strtoul(getenv("R128_TEXCACHE_BENCH"), NULL, 0);
+        rage128_t *dev;
+
+        if (n) {
+            dev = rage128_init(&ati_rage128_pro_device);
+            texcache_bench(dev, n);
+            close_dev(dev);
+            return 0;
+        }
+    }
 
     /* Native-box mode: only the parked x86-64 legs, a quick
        R128_JIT=verify run without the rest of the battery */
@@ -24802,6 +25653,10 @@ main(int argc, char **argv)
     if (getenv("R128_LANEGAP"))
         if (unit_selected("lanegap-expectedfail"))
             run_lanegap_expectedfail();
+
+    /* every unit has run: no device file was opened in a filesystem root */
+    check32("harness: files opened in a filesystem root",
+            (uint32_t) harness_root_fopen_count(), 0);
 
     printf("pass=%d fail=%d\n", g_pass, g_fail);
     return g_fail ? 1 : 0;

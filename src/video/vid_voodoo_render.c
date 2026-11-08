@@ -93,7 +93,7 @@ typedef struct voodoo_state_t {
 
     int lod_frac[2];
 
-    int stipple;
+    uint32_t stipple;
 } voodoo_state_t;
 
 #ifdef ENABLE_VOODOO_RENDER_LOG
@@ -213,6 +213,37 @@ voodoo_fls(uint16_t val)
 /*S/T/W values and their gradients carry 32 fraction bits.*/
 #define VOODOO_STW_FIXED_POINT_ONE 4294967296.0
 
+/*log2(1 + i / 256) for i = 0..256, for voodoo_fast_log2().*/
+static double voodoo_log2_table[257];
+
+void
+voodoo_lod_table_init(void)
+{
+    for (int i = 0; i <= 256; i++)
+        voodoo_log2_table[i] = log2(1.0 + i / 256.0);
+}
+
+/*log2 of a positive double: the exponent from its bits, the mantissa from the table, linearly interpolated.
+  Perspective-corrected textures need a new LOD every few pixels, so this is called far more often than libm's log2() can afford.
+  The result stays within 3e-6 of log2(); one step of the 8.8 LOD is 1/128 of log2(gradient_squared), so at most a value right on a step changes by 1.*/
+static inline double
+voodoo_fast_log2(double val)
+{
+    const int    mantissa_bits_below_index = 44;
+    const double index_fraction_scale      = 1.0 / (double) (1ULL << mantissa_bits_below_index);
+    uint64_t     bits;
+    int          exponent;
+    int          index;
+    double       fraction;
+
+    memcpy(&bits, &val, sizeof(bits));
+    exponent = (int) ((bits >> 52) & 0x7ff) - 1023;
+    index    = (int) ((bits >> mantissa_bits_below_index) & 0xff);
+    fraction = (double) (bits & ((1ULL << mantissa_bits_below_index) - 1)) * index_fraction_scale;
+
+    return exponent + voodoo_log2_table[index] + (voodoo_log2_table[index + 1] - voodoo_log2_table[index]) * fraction;
+}
+
 /*LOD in 8.8 fixed point from screen-space texture gradients: log2 of the longer of the X and Y gradient vectors.
   For perspective-corrected textures the gradients are still multiplied by W; voodoo_tmu_fetch() adds log2(1 / W) per pixel.*/
 static int
@@ -229,7 +260,7 @@ voodoo_lod_from_gradients(double dsdx, double dtdx, double dsdy, double dtdy)
         return lod_base_without_gradient;
 
     /*log2(sqrt(x)) = log2(x) / 2*/
-    log2_gradient = log2(gradient_squared) / 2.0;
+    log2_gradient = voodoo_fast_log2(gradient_squared) / 2.0;
 
     return (int) (log2_gradient * lod_fixed_point_one);
 }
@@ -565,12 +596,13 @@ voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *params, voodoo_sta
 
     voodoo_tmu_fetch(voodoo, params, state, 1, x);
 
+    /*TMU1 blends with its own reverse blend bits*/
     if ((params->textureMode[1] & TEXTUREMODE_TRILINEAR) && (state->lod & 1)) {
-        c_reverse = tc_reverse_blend;
-        a_reverse = tca_reverse_blend;
+        c_reverse = tc_reverse_blend_1;
+        a_reverse = tca_reverse_blend_1;
     } else {
-        c_reverse = !tc_reverse_blend;
-        a_reverse = !tca_reverse_blend;
+        c_reverse = !tc_reverse_blend_1;
+        a_reverse = !tca_reverse_blend_1;
     }
 #if 0
     c_reverse1 = c_reverse;
@@ -654,9 +686,9 @@ voodoo_tmu_fetch_and_blend(voodoo_t *voodoo, voodoo_params_t *params, voodoo_sta
                 break;
         }
         if (!a_reverse)
-            a = (-state->tex_a[1] * ((factor_a ^ 0xff) + 1)) >> 8;
-        else
             a = (-state->tex_a[1] * (factor_a + 1)) >> 8;
+        else
+            a = (-state->tex_a[1] * ((factor_a ^ 0xff) + 1)) >> 8;
         if (tca_add_clocal_1 || tca_add_alocal_1)
             a += state->tex_a[1];
         state->tex_a[1] = CLAMP(a);
@@ -1190,7 +1222,7 @@ voodoo_half_triangle(voodoo_t *voodoo, voodoo_params_t *params, voodoo_state_t *
                         if (params->fbzMode & FBZ_STIPPLE_PATT) {
                             int index = ((real_y & 3) << 3) | (~x & 7);
 
-                            if (!(state->stipple & (1 << index)))
+                            if (!(state->stipple & (1U << index)))
                                 goto skip_pixel;
                         } else {
                             state->stipple = (state->stipple << 1) | (state->stipple >> 31);

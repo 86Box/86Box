@@ -43,6 +43,9 @@
 Q_IMPORT_PLUGIN(QICOPlugin)
 #    ifdef Q_OS_WINDOWS
 Q_IMPORT_PLUGIN(QWindowsIntegrationPlugin)
+#        ifdef USE_AUTOMATION
+Q_IMPORT_PLUGIN(QOffscreenIntegrationPlugin)
+#        endif
 #        if QT_VERSION >= QT_VERSION_CHECK(6, 7, 0)
 /* Qt 6.7 renamed the windowsvista style plugin */
 Q_IMPORT_PLUGIN(QModernWindowsStylePlugin)
@@ -727,6 +730,9 @@ main(int argc, char *argv[])
             vmm_dark_mode_filter = darkModeFilter.get();
 #endif
             vmm_main_window->show();
+            QApplication::processEvents(); // let the window paint before loading the list
+            // Load cached list and start background discovery after the window is visible
+            vmm_main_window->startBackgroundDiscovery();
         });
         QApplication::exec();
         return 0;

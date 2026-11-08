@@ -344,6 +344,8 @@ void
 voodoo_flush(voodoo_t *voodoo)
 {
     voodoo->flush = 1;
+    if (voodoo->swap_pending)
+        thread_set_event(voodoo->wake_fifo_thread);
     if (!FIFO_EMPTY) {
         thread_wait_mutex(voodoo->fifo_mutex);
         voodoo_fifo_run(voodoo);
@@ -365,7 +367,6 @@ void
 voodoo_wait_for_swap_complete(voodoo_t *voodoo)
 {
     while (voodoo->swap_pending) {
-        /* Avoid waiting on wake_fifo_thread here; main thread may be draining the FIFO. */
         thread_wait_mutex(voodoo->swap_mutex);
         if ((voodoo->swap_pending && voodoo->flush) || FIFO_FULL) {
             /*Main thread is waiting for FIFO to empty, so skip vsync wait and just swap*/
@@ -378,13 +379,14 @@ voodoo_wait_for_swap_complete(voodoo_t *voodoo)
             break;
         } else
             thread_release_mutex(voodoo->swap_mutex);
-        /* Yield briefly while waiting for the swap to complete. */
-#ifdef _WIN32
-        /* Sleep(1) can add measurable stalls on Windows. */
-        plat_delay_ms(0);
-#else
-        plat_delay_ms(1);
-#endif
+        /* The vsync swap and voodoo_flush() both signal this event, so this thread
+           resumes at once: a late resume after each swap costs frame rate. Only the
+           FIFO thread gets here, as flush is set whenever the CPU thread runs the
+           FIFO, so the reset can't clear a wake-up meant for it. Testing after the
+           reset means a signal can't be lost; the timeout is only a backstop. */
+        thread_reset_event(voodoo->wake_fifo_thread);
+        if (voodoo->swap_pending && !voodoo->flush)
+            thread_wait_event(voodoo->wake_fifo_thread, 1);
     }
 }
 

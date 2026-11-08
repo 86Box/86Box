@@ -3,6 +3,7 @@
 
 #include <QAbstractScrollArea>
 #include <QDialog>
+#include <QStringList>
 #include <QVector>
 
 class QCheckBox;
@@ -115,6 +116,7 @@ public:
 
 protected:
     void closeEvent(QCloseEvent *event) override;
+    bool eventFilter(QObject *object, QEvent *event) override;
 
 private slots:
     void onRunToggle();
@@ -126,6 +128,7 @@ private slots:
     void onDisasmItemActivated(QTreeWidgetItem *item, int column);
     void onDump(uint32_t start, uint32_t len);
     void refreshAll();
+    void executeCommand();
 
 private:
     struct DisasmView;
@@ -140,6 +143,7 @@ private:
     void    refreshDisasm();
     void    updateStatus();
     void    updateRunButton();
+    void    refreshMappings();
 
     MemoryHexView  *hex_;
     QPushButton    *runBtn_;
@@ -153,6 +157,11 @@ private:
     QCheckBox      *followBox_;
     QLabel         *statusLabel_;
     QTimer         *timer_;
+    QPlainTextEdit *commandOutput_;
+    QLineEdit      *commandInput_;
+    QStringList    commandHistory_;
+    QString        commandDraft_;
+    int            historyIndex_ = 0;
 
     int      lastState_  = -1;
     uint32_t lastStops_  = 0;

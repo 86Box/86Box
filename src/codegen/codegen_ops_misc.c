@@ -147,8 +147,8 @@ ropF6(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchd
                 uop_AND(ir, IREG_flags_res_B, reg, IREG_temp1_B);
             } else {
                 imm_data = fastreadb(cs + op_pc + 1);
-                uop_AND_IMM(ir, IREG_flags_res_B, reg, imm_data);
                 codegen_mark_code_present(block, cs + op_pc + 1, 1);
+                uop_AND_IMM(ir, IREG_flags_res_B, reg, imm_data);
             }
             uop_MOVZX(ir, IREG_flags_res, IREG_flags_res_B);
             uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN8);
@@ -231,8 +231,8 @@ ropF7_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
                 uop_AND(ir, IREG_flags_res_W, reg, IREG_temp1_W);
             } else {
                 imm_data = fastreadw(cs + op_pc + 1);
-                uop_AND_IMM(ir, IREG_flags_res_W, reg, imm_data);
                 codegen_mark_code_present(block, cs + op_pc + 1, 2);
+                uop_AND_IMM(ir, IREG_flags_res_W, reg, imm_data);
             }
             uop_MOVZX(ir, IREG_flags_res, IREG_flags_res_W);
             uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN16);
@@ -315,8 +315,8 @@ ropF7_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
                 uop_AND(ir, IREG_flags_res, reg, IREG_temp1);
             } else {
                 imm_data = fastreadl(cs + op_pc + 1);
-                uop_AND_IMM(ir, IREG_flags_res, reg, imm_data);
                 codegen_mark_code_present(block, cs + op_pc + 1, 4);
+                uop_AND_IMM(ir, IREG_flags_res, reg, imm_data);
             }
             uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN32);
 
@@ -375,6 +375,9 @@ rebuild_c(ir_data_t *ir)
             case FLAGS_DEC8:
             case FLAGS_DEC16:
             case FLAGS_DEC32:
+                /*CF is already in the flags register: a copy of this
+                  instruction after another flags op would read it stale*/
+                codegen_flags_known_use(ir, 1);
                 needs_rebuild = 0;
                 break;
 
@@ -402,22 +405,26 @@ ropFF_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     int     src_reg;
     int     sp_reg;
 
-    if ((fetchdat & 0x38) != 0x00 && (fetchdat & 0x38) != 0x08 && (fetchdat & 0x38) != 0x10 && (fetchdat & 0x38) != 0x20 && (fetchdat & 0x38) != 0x28 && (fetchdat & 0x38) != 0x30)
+    if ((fetchdat & 0x38) != 0x00 && (fetchdat & 0x38) != 0x08 && (fetchdat & 0x38) != 0x10 && (fetchdat & 0x38) != 0x18 && (fetchdat & 0x38) != 0x20 && (fetchdat & 0x38) != 0x28 && (fetchdat & 0x38) != 0x30)
         return 0;
 
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0) {
-        if ((fetchdat & 0x38) == 0x28)
-            return 0;
+        if (((fetchdat & 0x38) == 0x18) || ((fetchdat & 0x38) == 0x28)) /*CALL and JMP far*/
+            return codegen_ud(ir);
         src_reg = IREG_16(fetchdat & 7);
     } else {
+        /*CALL far: the cycles so far are charged before anything can fault,
+          as they are before an interpreter call*/
+        if ((fetchdat & 0x38) == 0x18)
+            codegen_accumulate_flush(ir);
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
         if (!(fetchdat & 0x30)) /*INC/DEC*/
             codegen_check_seg_write(block, ir, target_seg);
         else
             codegen_check_seg_read(block, ir, target_seg);
-        CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, ((fetchdat & 0x38) == 0x28) ? 3 : 1); /*JMP far: the whole pointer*/
+        CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, (((fetchdat & 0x38) == 0x18) || ((fetchdat & 0x38) == 0x28)) ? 3 : 1); /*CALL and JMP far: the whole pointer*/
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, ireg_seg_base(target_seg), IREG_eaaddr);
         src_reg = IREG_temp0_W;
     }
@@ -471,9 +478,18 @@ ropFF_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
                 src_reg = IREG_temp2_W;
             }
             sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);
+            CHECK_STACK_LIMITS(block, ir, sp_reg, 2, IREG_temp3);
             uop_MEM_STORE_IMM_16(ir, IREG_SS_base, sp_reg, op_pc + 1);
             SUB_SP(ir, 2);
             uop_MOVZX(ir, IREG_pc, src_reg);
+            return -1;
+
+        case 0x18: /*CALL far*/
+            uop_MOVZX(ir, IREG_pc, src_reg);
+            uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, ireg_seg_base(target_seg), IREG_eaaddr, 2);
+            uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
+            uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 1);
+            uop_CALL_FUNC(ir, dynarec_call_far_w);
             return -1;
 
         case 0x20: /*JMP*/
@@ -486,12 +502,16 @@ ropFF_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
             uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 1);
             uop_CALL_FUNC(ir, loadcsjmp);
+            /*A task switch can keep the RF it loads*/
+            if (cpu_debug_regs_486)
+                uop_CALL_FUNC(ir, dynarec_rf_after_op);
             return -1;
 
         case 0x30: /*PUSH*/
             if ((fetchdat & 0xc0) == 0xc0)
                 uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
             sp_reg = LOAD_SP_WITH_OFFSET(ir, -2);
+            CHECK_STACK_LIMITS(block, ir, sp_reg, 2, IREG_temp3);
             uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, src_reg);
             SUB_SP(ir, 2);
             return op_pc + 1;
@@ -509,22 +529,26 @@ ropFF_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     int     src_reg;
     int     sp_reg;
 
-    if ((fetchdat & 0x38) != 0x00 && (fetchdat & 0x38) != 0x08 && (fetchdat & 0x38) != 0x10 && (fetchdat & 0x38) != 0x20 && (fetchdat & 0x38) != 0x28 && (fetchdat & 0x38) != 0x30)
+    if ((fetchdat & 0x38) != 0x00 && (fetchdat & 0x38) != 0x08 && (fetchdat & 0x38) != 0x10 && (fetchdat & 0x38) != 0x18 && (fetchdat & 0x38) != 0x20 && (fetchdat & 0x38) != 0x28 && (fetchdat & 0x38) != 0x30)
         return 0;
 
     codegen_mark_code_present(block, cs + op_pc, 1);
     if ((fetchdat & 0xc0) == 0xc0) {
-        if ((fetchdat & 0x38) == 0x28)
-            return 0;
+        if (((fetchdat & 0x38) == 0x18) || ((fetchdat & 0x38) == 0x28)) /*CALL and JMP far*/
+            return codegen_ud(ir);
         src_reg = IREG_32(fetchdat & 7);
     } else {
+        /*CALL far: the cycles so far are charged before anything can fault,
+          as they are before an interpreter call*/
+        if ((fetchdat & 0x38) == 0x18)
+            codegen_accumulate_flush(ir);
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
         if (!(fetchdat & 0x30)) /*INC/DEC*/
             codegen_check_seg_write(block, ir, target_seg);
         else
             codegen_check_seg_read(block, ir, target_seg);
-        CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, ((fetchdat & 0x38) == 0x28) ? 5 : 3); /*JMP far: the whole pointer*/
+        CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, (((fetchdat & 0x38) == 0x18) || ((fetchdat & 0x38) == 0x28)) ? 5 : 3); /*CALL and JMP far: the whole pointer*/
         uop_MEM_LOAD_REG(ir, IREG_temp0, ireg_seg_base(target_seg), IREG_eaaddr);
         src_reg = IREG_temp0;
     }
@@ -578,9 +602,18 @@ ropFF_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
                 src_reg = IREG_temp2;
             }
             sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);
+            CHECK_STACK_LIMITS(block, ir, sp_reg, 4, IREG_temp3);
             uop_MEM_STORE_IMM_32(ir, IREG_SS_base, sp_reg, op_pc + 1);
             SUB_SP(ir, 4);
             uop_MOV(ir, IREG_pc, src_reg);
+            return -1;
+
+        case 0x18: /*CALL far*/
+            uop_MOV(ir, IREG_pc, src_reg);
+            uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, ireg_seg_base(target_seg), IREG_eaaddr, 4);
+            uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
+            uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 1);
+            uop_CALL_FUNC(ir, dynarec_call_far_l);
             return -1;
 
         case 0x20: /*JMP*/
@@ -593,12 +626,15 @@ ropFF_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
             uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
             uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 1);
             uop_CALL_FUNC(ir, loadcsjmp);
+            if (cpu_debug_regs_486)
+                uop_CALL_FUNC(ir, dynarec_rf_after_op);
             return -1;
 
         case 0x30: /*PUSH*/
             if ((fetchdat & 0xc0) == 0xc0)
                 uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
             sp_reg = LOAD_SP_WITH_OFFSET(ir, -4);
+            CHECK_STACK_LIMITS(block, ir, sp_reg, 4, IREG_temp3);
             uop_MEM_STORE_REG(ir, IREG_SS_base, sp_reg, src_reg);
             SUB_SP(ir, 4);
             return op_pc + 1;
@@ -655,6 +691,7 @@ ropCWDE(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
             return 0;                                                                          \
                                                                                                \
         codegen_mark_code_present(block, cs + op_pc, 1);                                       \
+        codegen_accumulate_flush(ir); /*the cycles so far, before a load can fault*/           \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                          \
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0); \
         codegen_check_seg_read(block, ir, target_seg);                                         \
@@ -679,6 +716,7 @@ ropCWDE(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
             return 0;                                                                          \
                                                                                                \
         codegen_mark_code_present(block, cs + op_pc, 1);                                       \
+        codegen_accumulate_flush(ir); /*the cycles so far, before a load can fault*/           \
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);                                          \
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0); \
         codegen_check_seg_read(block, ir, target_seg);                                         \
@@ -795,7 +833,10 @@ ropCLI_STI(ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uin
         uop_MOV_IMM(ir, IREG_pc, op_pc);
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         uop_CALL_INSTRUCTION_FUNC(ir, x86_dynarec_opcodes[(opcode | op_32) & 0x3ff], fetchdat);
+        if (cpu_debug_regs_486)
+            uop_CALL_FUNC(ir, dynarec_rf_after_op);
         uop_JMP(ir, codegen_exit_rout);
+        codegen_exit_stamp(ir, 1);
         uop_set_jump_dest(ir, jump_uop);
     }
 
@@ -961,10 +1002,6 @@ bit_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32,
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
     }
-    if (imm_form) {
-        imm = fastreadb(cs + op_pc + 1) & mask;
-        codegen_mark_code_present(block, cs + op_pc + 1, 1);
-    }
 
     if (is_reg) {
         if (is32)
@@ -996,6 +1033,11 @@ bit_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32,
             uop_MEM_LOAD_REG(ir, IREG_temp3_W, ireg_seg_base(target_seg), IREG_eaaddr);
             uop_MOVZX(ir, IREG_temp0, IREG_temp3_W);
         }
+    }
+    /*The interpreter fetches the bit offset after it reads the operand*/
+    if (imm_form) {
+        imm = fastreadb(cs + op_pc + 1) & mask;
+        codegen_mark_code_present(block, cs + op_pc + 1, 1);
     }
 
     /*CF = the bit*/
@@ -1281,6 +1323,7 @@ ropWAIT(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
     uop_LOAD_FUNC_ARG_IMM(ir, 0, 7);
     uop_CALL_FUNC(ir, x86_int);
     uop_JMP(ir, codegen_exit_rout);
+    codegen_exit_stamp(ir, EXIT_FAULT_HELD);
     uop_set_jump_dest(ir, jump_uop);
     /* WAIT is where a pending unmasked exception is reported, as the
        interpreter's WAIT does it: #MF, or FERR# and the wait for IRQ 13.
@@ -1296,4 +1339,361 @@ ropWAIT(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSE
     uop_set_jump_dest(ir, jump_uop);
 
     return op_pc;
+}
+
+/*The 0F 01 group, as the interpreter's op0F01_common. SGDT and SIDT, and
+  LGDT and LIDT (#GP(0) in V86 mode and outside CPL 0 in protected mode), go
+  through dynarec_dtr, which makes the operand accesses and writes the
+  register in the op's order; the descriptor-table registers are not in the
+  block key, so the block goes on. SMSW and INVLPG are compiled. The register
+  forms of SGDT, SIDT, LGDT, LIDT and INVLPG, reg 5, and INVLPG before the 486
+  are #UD, raised before any operand access. LMSW, with the privilege test of
+  LGDT, writes the MSW through dynarec_lmsw. In real mode it can set PE, which
+  is in the block key, so the block ends after it; it can change EM and TS,
+  which the compiled FPU entry state assumes, so the next x87 or MMX
+  instruction checks them again.*/
+static uint32_t
+rop0F01_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    const uint32_t reg        = fetchdat & 0x38;
+    x86seg        *target_seg = NULL;
+    int            seg_nr;
+
+    codegen_mark_code_present(block, cs + op_pc, 1);
+    /*The op's fetch_ea comes first: its displacement's walk, then every test*/
+    if ((fetchdat & 0xc0) != 0xc0)
+        target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+    if ((reg == 0x28) || ((reg == 0x38) && !is486 && !isibm486) || (((fetchdat & 0xc0) == 0xc0) && (reg != 0x20) && (reg != 0x30)))
+        return codegen_ud(ir);
+
+    codegen_accumulate_flush(ir);
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+
+    if (reg == 0x20) {
+        /*SMSW: the MSW with the bits that read as set on this CPU; the register
+          form writes the low word whatever the operand size*/
+        uop_MOVZX_REG_PTR_16(ir, IREG_temp0, &msw);
+        uop_OR_IMM(ir, IREG_temp0, IREG_temp0, (is486 || isibm486) ? 0x10 : ((is386 && !cpu_16bitbus) ? 0xffe0 : 0xfff0));
+        if ((fetchdat & 0xc0) == 0xc0)
+            uop_MOV(ir, IREG_16(fetchdat & 7), IREG_temp0_W);
+        else {
+            codegen_check_seg_write(block, ir, target_seg);
+            CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
+            uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_temp0_W);
+        }
+        return op_pc + 1;
+    }
+
+    if (reg >= 0x10) {
+        /*LGDT, LIDT, LMSW and INVLPG are #GP(0) in V86 mode, where no such
+          block is kept (the compile pass faults too), and outside CPL 0 in
+          protected mode, read as the block runs*/
+        if (cpu_state.eflags & VM_FLAG) {
+            uop_JMP(ir, codegen_gpf_rout);
+            codegen_exit_stamp(ir, EXIT_FAULT_HELD);
+            return -1;
+        }
+        if (cr0 & 1) {
+            uop_MOVZX_REG_PTR_8(ir, IREG_temp0, &cpu_state.seg_cs.access);
+            uop_AND_IMM(ir, IREG_temp0, IREG_temp0, 0x60);
+            uop_MOV_IMM(ir, IREG_temp1, 0);
+            uop_CMP_JNBE(ir, IREG_temp0, IREG_temp1, codegen_gpf_rout);
+        }
+    }
+
+    if (reg == 0x30) {
+        if ((fetchdat & 0xc0) == 0xc0)
+            uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_16(fetchdat & 7));
+        else {
+            if (target_seg != &cpu_state.seg_cs) /*the op tests for the null selector only: an execute-only CS is read*/
+                codegen_check_seg_read(block, ir, target_seg);
+            CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
+            uop_MEM_LOAD_REG(ir, IREG_temp0_W, ireg_seg_base(target_seg), IREG_eaaddr);
+            uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp0_W);
+        }
+        uop_CALL_FUNC(ir, dynarec_lmsw);
+        codegen_fpu_entered = 0;
+        codegen_mmx_entered = 0;
+        if (!(cr0 & 1))
+            CPU_BLOCK_END();
+        return op_pc + 1;
+    }
+
+    if (reg == 0x38) {
+        /*INVLPG: the address is not used, as in the op. The flush can remap
+          the page the block runs from: the next block is looked up through
+          the tables*/
+        uop_CALL_FUNC(ir, flushmmucache_pc);
+        uop_CALL_FUNC(ir, flushmmucache_nopc);
+        CPU_BLOCK_END();
+        return op_pc + 1;
+    }
+
+    if (reg < 0x10)
+        codegen_check_seg_write(block, ir, target_seg);
+    else if (target_seg != &cpu_state.seg_cs) /*the op tests for the null selector only: an execute-only CS is read*/
+        codegen_check_seg_read(block, ir, target_seg);
+    if (target_seg == &cpu_state.seg_es)
+        seg_nr = 0;
+    else if (target_seg == &cpu_state.seg_cs)
+        seg_nr = 1;
+    else if (target_seg == &cpu_state.seg_ss)
+        seg_nr = 2;
+    else if (target_seg == &cpu_state.seg_ds)
+        seg_nr = 3;
+    else if (target_seg == &cpu_state.seg_fs)
+        seg_nr = 4;
+    else
+        seg_nr = 5;
+    uop_LOAD_FUNC_ARG_IMM(ir, 0, reg | (op_32 & 0x100) | (seg_nr << 9));
+    uop_CALL_FUNC_RESULT(ir, IREG_temp0, dynarec_dtr);
+    uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout);
+
+    return op_pc + 1;
+}
+
+uint32_t
+rop0F01_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    return rop0F01_common(block, ir, fetchdat, op_32, op_pc);
+}
+uint32_t
+rop0F01_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    return rop0F01_common(block, ir, fetchdat, op_32, op_pc);
+}
+
+/*MOV r32,CRx, MOV CRx,r32, MOV r32,DRx and MOV DRx,r32 (0F 20-23), as the
+  interpreter's opMOV_r_CRx, opMOV_CRx_r, opMOV_r_DRx and opMOV_DRx_r, for
+  either operand size. The register is the r/m field whatever the mod; with
+  a mod other than 3 the ops' fetch_ea decodes a memory operand they never
+  use, which takes its bytes into the length. All four are #GP(0) in
+  protected mode outside CPL 0, read as the block runs, before anything
+  else, and the control register forms with VM set too. VM is read as the
+  block runs as well, not taken from the block's key: a real-mode IRETD
+  can set VM without the key's V86 status, which a MOV CR0 setting PE then
+  keeps, so a protected-mode block can run with VM set and CPL 0. In real
+  mode none is #GP, VM set or not. The debug register forms
+  (dr) then raise general detect's #DB with DR6.BD under the 486 debug
+  registers option, before the EA.*/
+static void
+rop0F20_23_head(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t *op_pc, int dr)
+{
+    codegen_mark_code_present(block, cs + *op_pc, 1);
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+
+    if (cr0 & 1) {
+        uop_MOVZX_REG_PTR_8(ir, IREG_temp0, &cpu_state.seg_cs.access);
+        uop_AND_IMM(ir, IREG_temp0, IREG_temp0, 0x60);
+        if (!dr) {
+            uop_MOVZX(ir, IREG_temp1, IREG_eflags);
+            uop_AND_IMM(ir, IREG_temp1, IREG_temp1, VM_FLAG);
+            uop_OR(ir, IREG_temp0, IREG_temp0, IREG_temp1);
+        }
+        uop_MOV_IMM(ir, IREG_temp1, 0);
+        uop_CMP_JNBE(ir, IREG_temp0, IREG_temp1, codegen_gpf_rout);
+    }
+    if (dr && cpu_debug_regs_486) {
+        uop_CALL_FUNC_RESULT(ir, IREG_temp0, dynarec_mov_drx_gd);
+        uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout);
+    }
+    if ((fetchdat & 0xc0) != 0xc0)
+        codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, op_pc, op_32, 0);
+}
+
+/*CR0 with ET, and on the 386 the bits that read as set. Compiled code never
+  runs while a PG change is pending (cpu_flush_pending), whose PG the op's
+  read inverts. CR1, CR5-CR7, and CR4 on a CPU without it, are #UD.*/
+uint32_t
+rop0F20(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    const int dest_reg = IREG_32(fetchdat & 7);
+
+    rop0F20_23_head(block, ir, fetchdat, op_32, &op_pc, 0);
+
+    switch (fetchdat & 0x38) {
+        case 0x00:
+            uop_MOV_REG_PTR(ir, dest_reg, &cr0);
+            uop_OR_IMM(ir, dest_reg, dest_reg, (is486 || isibm486) ? 0x10 : (is386 ? 0x7fffffe0 : 0x7ffffff0));
+            break;
+        case 0x10:
+            uop_MOV_REG_PTR(ir, dest_reg, &cr2);
+            break;
+        case 0x18:
+            uop_MOV_REG_PTR(ir, dest_reg, &cr3);
+            break;
+        case 0x20:
+            if (!cpu_has_feature(CPU_FEATURE_CR4))
+                return codegen_ud(ir);
+            uop_MOV_REG_PTR(ir, dest_reg, &cr4);
+            break;
+        default:
+            return codegen_ud(ir);
+    }
+
+    return op_pc + 1;
+}
+
+/*The tests the op makes before a write in IR: cpu_cr0_invalid() (PG without
+  PE; NW without CD on the CPUs that function rejects it for, a fixed answer
+  per CPU) and the CR4 bits this CPU neither has nor ignores. The writes go
+  through the dynarec_mov_cr routines, which answer 1 for the #GP of a
+  failed PDPTE load. MOV CR0 can change PE, which the block is keyed on, the
+  paging, CD, which the loop tests before it runs a block, and MP, EM and
+  TS, which the compiled FPU entry assumes: the block ends after every one,
+  as after the hand-over. MOV CR3, and MOV CR4 when it changes PSE, PAE or
+  PGE, flush the translations and can remap the page the block runs from,
+  which the lookup checks only at a block's start: the block ends after
+  them too, after every MOV CR4 since the write is not known here.*/
+uint32_t
+rop0F22(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    const int src_reg = IREG_32(fetchdat & 7);
+
+    rop0F20_23_head(block, ir, fetchdat, op_32, &op_pc, 0);
+
+    switch (fetchdat & 0x38) {
+        case 0x00:
+            uop_AND_IMM(ir, IREG_temp0, src_reg, 0x80000001);
+            uop_CMP_IMM_JZ(ir, IREG_temp0, 0x80000000, codegen_gpf_rout);
+            if (cpu_cr0_invalid(0x20000000)) {
+                uop_AND_IMM(ir, IREG_temp0, src_reg, 0x60000000);
+                uop_CMP_IMM_JZ(ir, IREG_temp0, 0x20000000, codegen_gpf_rout);
+            }
+            uop_LOAD_FUNC_ARG_IMM(ir, 0, fetchdat & 7);
+            uop_CALL_FUNC_RESULT(ir, IREG_temp0, dynarec_mov_cr0);
+            uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_gpf_rout);
+            codegen_fpu_entered = 0;
+            codegen_mmx_entered = 0;
+            CPU_BLOCK_END();
+            break;
+        case 0x10:
+            uop_LOAD_FUNC_ARG_IMM(ir, 0, fetchdat & 7);
+            uop_CALL_FUNC(ir, dynarec_mov_cr2);
+            break;
+        case 0x18:
+            uop_LOAD_FUNC_ARG_IMM(ir, 0, fetchdat & 7);
+            uop_CALL_FUNC_RESULT(ir, IREG_temp0, dynarec_mov_cr3);
+            uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_gpf_rout);
+            CPU_BLOCK_END();
+            break;
+        case 0x20:
+            if (!cpu_has_feature(CPU_FEATURE_CR4))
+                return codegen_ud(ir);
+            if ((uint32_t) ~(cpu_CR4_mask | cpu_CR4_ignore)) {
+                uop_AND_IMM(ir, IREG_temp0, src_reg, (uint32_t) ~(cpu_CR4_mask | cpu_CR4_ignore));
+                uop_MOV_IMM(ir, IREG_temp1, 0);
+                uop_CMP_JNBE(ir, IREG_temp0, IREG_temp1, codegen_gpf_rout);
+            }
+            uop_LOAD_FUNC_ARG_IMM(ir, 0, fetchdat & 7);
+            uop_CALL_FUNC_RESULT(ir, IREG_temp0, dynarec_mov_cr4);
+            uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_gpf_rout);
+            CPU_BLOCK_END();
+            break;
+        default:
+            return codegen_ud(ir);
+    }
+
+    return op_pc + 1;
+}
+
+/*The debug registers through dynarec_mov_drx, which raises the #UD of DR4
+  and DR5 with CR4.DE itself and answers 1: the block is left then, as after
+  general detect's #DB (the head's). With the 486 debug register option a
+  write can arm or disarm a breakpoint, which the loop checks before each
+  block: the block ends after it, as after the op.*/
+static uint32_t
+rop0F21_23(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc, int write)
+{
+    rop0F20_23_head(block, ir, fetchdat, op_32, &op_pc, 1);
+
+    uop_LOAD_FUNC_ARG_IMM(ir, 0, ((fetchdat >> 3) & 7) | ((fetchdat & 7) << 3) | (write ? 0x40 : 0));
+    uop_CALL_FUNC_RESULT(ir, IREG_temp0, dynarec_mov_drx);
+    uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout);
+    if (write && cpu_debug_regs_486)
+        CPU_BLOCK_END();
+
+    return op_pc + 1;
+}
+
+uint32_t
+rop0F21(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    return rop0F21_23(block, ir, fetchdat, op_32, op_pc, 0);
+}
+uint32_t
+rop0F23(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    return rop0F21_23(block, ir, fetchdat, op_32, op_pc, 1);
+}
+
+/*ARPL, as the interpreter's opARPL: #UD in real and V86 mode, before the
+  operand is touched. In protected mode the flags are rebuilt; when the
+  destination's RPL is below the source's it takes the source's RPL and ZF
+  is set, else ZF is clear and the destination is not written (a memory
+  operand is stored only then, as the op stores it, and ZF changes only after
+  the store). Always a 16-bit operand.*/
+uint32_t
+ropARPL(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    x86seg *target_seg = NULL;
+    int     jump_uop;
+
+    if (!(msw & 1) || (cpu_state.eflags & VM_FLAG))
+        return codegen_ud(ir);
+
+#ifndef CODEGEN_BACKEND_HAS_INT_UOPS
+    return 0;
+#endif
+    /*Room for the register versions below (at most 1 of temp0, 6 of temp1,
+      4 of temp2, 2 of temp3, 2 of the flags) and for the flags rebuild
+      call_flags_rebuild() may emit (at most 22 of temp1, 4 of temp3, 9 of
+      the flags) without passing REG_VERSION_MAX, which only ends the block
+      after the current instruction*/
+    if ((reg_last_version[IREG_GET_REG(IREG_temp0)] + 4 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_temp1)] + 30 > REG_VERSION_MAX) ||
+        (reg_last_version[IREG_GET_REG(IREG_temp2)] + 6 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_temp3)] + 8 > REG_VERSION_MAX) ||
+        (reg_last_version[IREG_GET_REG(IREG_flags)] + 12 > REG_VERSION_MAX))
+        return 0;
+
+    codegen_mark_code_present(block, cs + op_pc, 1);
+    codegen_accumulate_flush(ir);
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    if ((fetchdat & 0xc0) == 0xc0)
+        uop_MOV(ir, IREG_temp0_W, IREG_16(fetchdat & 7));
+    else {
+        target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+        codegen_check_seg_write(block, ir, target_seg);
+        CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 1);
+        uop_MEM_LOAD_REG(ir, IREG_temp0_W, ireg_seg_base(target_seg), IREG_eaaddr);
+    }
+    call_flags_rebuild(ir, jit_flags_rebuild);
+
+    /*temp3 1 when the destination's RPL is below the source's, temp1 the
+      destination with the source's RPL*/
+    uop_MOVZX(ir, IREG_temp1, IREG_temp0_W);
+    uop_AND_IMM(ir, IREG_temp1, IREG_temp1, 3);
+    uop_MOVZX(ir, IREG_temp2, IREG_16((fetchdat >> 3) & 7));
+    uop_AND_IMM(ir, IREG_temp2, IREG_temp2, 3);
+    uop_CMP_SET(ir, IREG_temp3, IREG_temp1, IREG_temp2, UOP_CC_B);
+    uop_AND_IMM(ir, IREG_temp1_W, IREG_temp0_W, 0xfffc);
+    uop_OR(ir, IREG_temp1_W, IREG_temp1_W, IREG_temp2_W);
+    if ((fetchdat & 0xc0) == 0xc0) {
+        /*The register either way: m all ones when it is raised*/
+        uop_SHL_IMM(ir, IREG_temp2, IREG_temp3, 31);
+        uop_SAR_IMM(ir, IREG_temp2, IREG_temp2, 31);
+        uop_XOR(ir, IREG_temp1_W, IREG_temp1_W, IREG_temp0_W);
+        uop_AND(ir, IREG_temp1_W, IREG_temp1_W, IREG_temp2_W);
+        uop_XOR(ir, IREG_16(fetchdat & 7), IREG_16(fetchdat & 7), IREG_temp1_W);
+    } else {
+        jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp3, 0);
+        uop_MEM_STORE_REG(ir, ireg_seg_base(target_seg), IREG_eaaddr, IREG_temp1_W);
+        uop_NOP_BARRIER(ir);
+        uop_set_jump_dest(ir, jump_uop);
+    }
+    uop_AND_IMM(ir, IREG_flags, IREG_flags, ~Z_FLAG);
+    uop_SHL_IMM(ir, IREG_temp3, IREG_temp3, 6);
+    uop_OR(ir, IREG_flags, IREG_flags, IREG_temp3_W);
+    codegen_flags_changed = 0;
+
+    return op_pc + 1;
 }

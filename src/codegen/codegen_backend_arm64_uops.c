@@ -159,16 +159,29 @@ codegen_AND_IMM(codeblock_t *block, uop_t *uop)
 
     if (REG_IS_L(dest_size) && REG_IS_L(src_size)) {
         host_arm64_AND_IMM(block, dest_reg, src_reg, uop->imm_data);
-    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size)) {
+    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size) && dest_reg == src_reg) {
+        /*The widened mask keeps the other bits of the destination only when
+          it is also the source; with another source they would come from
+          that register, so the general case below inserts the result.*/
         host_arm64_AND_IMM(block, dest_reg, src_reg, uop->imm_data | 0xffff0000);
-    } else if (REG_IS_B(dest_size) && REG_IS_B(src_size)) {
+    } else if (REG_IS_B(dest_size) && REG_IS_B(src_size) && dest_reg == src_reg) {
         host_arm64_AND_IMM(block, dest_reg, src_reg, uop->imm_data | 0xffffff00);
+    } else if (REG_IS_BH(dest_size) && REG_IS_BH(src_size) && dest_reg == src_reg) {
+        host_arm64_AND_IMM(block, dest_reg, src_reg, (uop->imm_data << 8) | 0xffff00ff);
+    } else if (REG_IS_W(dest_size) && REG_IS_W(src_size)) {
+        host_arm64_AND_IMM(block, REG_TEMP, src_reg, uop->imm_data);
+        host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 16);
+    } else if (REG_IS_B(dest_size) && REG_IS_B(src_size)) {
+        host_arm64_AND_IMM(block, REG_TEMP, src_reg, uop->imm_data);
+        host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 8);
     } else if (REG_IS_B(dest_size) && REG_IS_BH(src_size)) {
         host_arm64_MOV_REG_LSR(block, REG_TEMP, src_reg, 8);
         host_arm64_AND_IMM(block, REG_TEMP, REG_TEMP, uop->imm_data);
         host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 8);
     } else if (REG_IS_BH(dest_size) && REG_IS_BH(src_size)) {
-        host_arm64_AND_IMM(block, dest_reg, src_reg, (uop->imm_data << 8) | 0xffff00ff);
+        host_arm64_MOV_REG_LSR(block, REG_TEMP, src_reg, 8);
+        host_arm64_AND_IMM(block, REG_TEMP, REG_TEMP, uop->imm_data);
+        host_arm64_BFI(block, dest_reg, REG_TEMP, 8, 8);
     } else
         fatal("AND_IMM %x %x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
 
@@ -191,6 +204,176 @@ codegen_ANDN(codeblock_t *block, uop_t *uop)
         fatal("ANDN %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
 
     return 0;
+}
+
+/*An exit that adds add to cycles first (uop->imm_data2), with no entry for it
+  (codegen_exit_dest): the add in its own arm, which the path that goes on
+  branches over. Every exit is an order barrier at least, so cycles is in
+  memory.*/
+#define EXIT_ARM_SIZE 48
+
+static void
+codegen_exit_add(codeblock_t *block, int add)
+{
+    const int offset = (uintptr_t) &cpu_state._cycles - (uintptr_t) &cpu_state;
+
+    host_arm64_LDR_IMM_W(block, REG_TEMP, REG_CPUSTATE, offset);
+    host_arm64_ADD_IMM(block, REG_TEMP, REG_TEMP, add);
+    host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, offset);
+}
+
+static void
+codegen_exit_arm(codeblock_t *block, int add, void *route)
+{
+    codegen_exit_add(block, add);
+    host_arm64_jump(block, (uintptr_t) route);
+}
+
+/*A lazy site's exit (codegen_lazy_site): the branch goes to a stub after the
+  block that makes the site's stores, then leaves as the exit would.
+  Identical stubs are emitted once.*/
+typedef struct lazy_stub_t {
+    uint32_t                  *patch;
+    const codegen_lazy_list_t *list;
+    void                      *route;
+    int                        add;
+    void                      *addr;
+} lazy_stub_t;
+
+static lazy_stub_t lazy_stubs[CODEGEN_LAZY_SITES_MAX];
+static int         nr_lazy_stubs;
+
+static void
+codegen_lazy_exit(uop_t *uop, uint32_t *patch, void *route)
+{
+    lazy_stub_t *stub;
+
+    /*One exit per lazy uop, and no more lazy uops with stores than lists*/
+    if (nr_lazy_stubs == CODEGEN_LAZY_SITES_MAX)
+        fatal("codegen_lazy_exit - out of stubs\n");
+    stub        = &lazy_stubs[nr_lazy_stubs++];
+    stub->patch = patch;
+    stub->list  = codegen_lazy_site;
+    stub->route = route;
+    stub->add   = uop->imm_data2;
+}
+
+static int
+lazy_stubs_match(const lazy_stub_t *a, const lazy_stub_t *b)
+{
+    if ((a->route != b->route) || (a->add != b->add) || (a->list->nr != b->list->nr))
+        return 0;
+    for (int i = 0; i < a->list->nr; i++) {
+        const codegen_lazy_store_t *sa = &a->list->stores[i];
+        const codegen_lazy_store_t *sb = &b->list->stores[i];
+
+        if ((sa->ireg != sb->ireg) || (sa->host_reg != sb->host_reg) || (sa->imm != sb->imm))
+            return 0;
+    }
+    return 1;
+}
+
+void
+codegen_lazy_stubs_emit(codeblock_t *block)
+{
+    for (int i = 0; i < nr_lazy_stubs; i++) {
+        lazy_stub_t *stub = &lazy_stubs[i];
+        int          j;
+
+        for (j = 0; j < i; j++) {
+            if (lazy_stubs_match(stub, &lazy_stubs[j]))
+                break;
+        }
+        if (j < i)
+            stub->addr = lazy_stubs[j].addr;
+        else {
+            void *dest = codegen_exit_dest(stub->route, stub->add);
+
+            codegen_alloc(block, 4);
+            stub->addr = &block_write_data[block_pos];
+            codegen_reg_lazy_stores(block, stub->list);
+            if (dest)
+                host_arm64_jump(block, (uintptr_t) dest);
+            else {
+                codegen_alloc(block, EXIT_ARM_SIZE);
+                codegen_exit_arm(block, stub->add, stub->route);
+            }
+        }
+        host_arm64_branch_set_offset(stub->patch, stub->addr);
+    }
+    nr_lazy_stubs = 0;
+}
+
+/*CBNZ reg to route, charging what uop->imm_data2 adds on the way*/
+static void
+codegen_exit_CBNZ(codeblock_t *block, uop_t *uop, int reg, void *route)
+{
+    void     *dest = codegen_exit_dest(route, uop->imm_data2);
+    uint32_t *skip;
+
+    if (codegen_lazy_site && codegen_lazy_site->nr) {
+        codegen_lazy_exit(uop, host_arm64_CBNZ_(block, reg), route);
+        return;
+    }
+    if (dest) {
+        host_arm64_CBNZ(block, reg, (uintptr_t) dest);
+        return;
+    }
+    codegen_alloc(block, EXIT_ARM_SIZE);
+    skip = host_arm64_CBZ_SHORT_(block, reg);
+    codegen_exit_arm(block, uop->imm_data2, route);
+    host_arm64_short_branch_set_offset(skip, &block_write_data[block_pos]);
+}
+
+/*B.EQ to uop->p, the same way*/
+static void
+codegen_exit_BEQ(codeblock_t *block, uop_t *uop)
+{
+    void     *dest = codegen_exit_dest(uop->p, uop->imm_data2);
+    uint32_t *skip;
+
+    if (codegen_lazy_site && codegen_lazy_site->nr) {
+        codegen_lazy_exit(uop, host_arm64_BEQ_(block), uop->p);
+        return;
+    }
+    if (dest) {
+        host_arm64_BEQ(block, dest);
+        return;
+    }
+    codegen_alloc(block, EXIT_ARM_SIZE);
+    skip = host_arm64_BNE_SHORT_(block);
+    codegen_exit_arm(block, uop->imm_data2, uop->p);
+    host_arm64_short_branch_set_offset(skip, &block_write_data[block_pos]);
+}
+
+/*A conditional branch to uop->p from branch (host_arm64_BCC_ and the like:
+  a B.cond over a B, which host_arm64_branch_set_offset turns into one
+  B.cond when it reaches), the same way. Without an entry the branch goes to
+  the arm, which the path that goes on jumps over.*/
+static void
+codegen_exit_Bcond(codeblock_t *block, uop_t *uop, uint32_t *(*branch)(codeblock_t *block))
+{
+    void     *dest = codegen_exit_dest(uop->p, uop->imm_data2);
+    uint32_t *jump_p;
+    uint32_t *skip;
+    void     *arm;
+
+    if (codegen_lazy_site && codegen_lazy_site->nr) {
+        codegen_lazy_exit(uop, branch(block), uop->p);
+        return;
+    }
+    if (dest) {
+        jump_p = branch(block);
+        host_arm64_branch_set_offset(jump_p, dest);
+        return;
+    }
+    codegen_alloc(block, 16 + EXIT_ARM_SIZE);
+    jump_p = branch(block);
+    skip   = host_arm64_B_(block);
+    arm    = &block_write_data[block_pos];
+    codegen_exit_arm(block, uop->imm_data2, uop->p);
+    host_arm64_branch_set_offset(skip, &block_write_data[block_pos]);
+    host_arm64_branch_set_offset(jump_p, arm);
 }
 
 static int
@@ -220,7 +403,7 @@ codegen_CALL_INSTRUCTION_FUNC(codeblock_t *block, uop_t *uop)
 {
     host_arm64_mov_imm(block, REG_ARG0, uop->imm_data);
     host_arm64_call(block, uop->p);
-    host_arm64_CBNZ(block, REG_X0, (uintptr_t) codegen_exit_rout);
+    codegen_exit_CBNZ(block, uop, REG_X0, codegen_exit_rout);
 
     return 0;
 }
@@ -231,6 +414,7 @@ codegen_CALL_INSTRUCTION_FUNC(codeblock_t *block, uop_t *uop)
 static int
 codegen_SMI_EXIT_IMM(codeblock_t *block, uop_t *uop)
 {
+    void     *dest = codegen_exit_dest(codegen_exit_rout, uop->imm_data2);
     uint32_t *branch_ptr;
 
     host_arm64_LDRB_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state._smi_line - (uintptr_t) &cpu_state);
@@ -240,7 +424,11 @@ codegen_SMI_EXIT_IMM(codeblock_t *block, uop_t *uop)
         host_arm64_mov_imm(block, REG_TEMP, uop->imm_data);
         host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.pc - (uintptr_t) &cpu_state);
     }
-    host_arm64_B(block, codegen_exit_rout);
+    /*Charging what the block's end would (uop->imm_data2)*/
+    if (dest)
+        host_arm64_B(block, dest);
+    else
+        codegen_exit_arm(block, uop->imm_data2, codegen_exit_rout);
     host_arm64_branch_set_offset(branch_ptr, &block_write_data[block_pos]);
 
     return 0;
@@ -256,7 +444,7 @@ codegen_CMP_IMM_JZ(codeblock_t *block, uop_t *uop)
         host_arm64_CMP_IMM(block, src_reg, uop->imm_data);
     } else
         fatal("CMP_IMM_JZ %02x\n", uop->src_reg_a_real);
-    host_arm64_BEQ(block, uop->p);
+    codegen_exit_BEQ(block, uop);
 
     return 0;
 }
@@ -305,15 +493,13 @@ codegen_CMP_JB(codeblock_t *block, uop_t *uop)
     int       src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
     int       src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int       src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
-    uint32_t *jump_p;
 
     if (REG_IS_L(src_size_a) && REG_IS_L(src_size_b)) {
         host_arm64_CMP_REG(block, src_reg_a, src_reg_b);
     } else
         fatal("CMP_JB %02x\n", uop->src_reg_a_real);
 
-    jump_p = host_arm64_BCC_(block);
-    host_arm64_branch_set_offset(jump_p, uop->p);
+    codegen_exit_Bcond(block, uop, host_arm64_BCC_);
 
     return 0;
 }
@@ -324,15 +510,13 @@ codegen_CMP_JNBE(codeblock_t *block, uop_t *uop)
     int       src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
     int       src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
     int       src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
-    uint32_t *jump_p;
 
     if (REG_IS_L(src_size_a) && REG_IS_L(src_size_b)) {
         host_arm64_CMP_REG(block, src_reg_a, src_reg_b);
     } else
         fatal("CMP_JNBE %02x\n", uop->src_reg_a_real);
 
-    jump_p = host_arm64_BHI_(block);
-    host_arm64_branch_set_offset(jump_p, uop->p);
+    codegen_exit_Bcond(block, uop, host_arm64_BHI_);
 
     return 0;
 }
@@ -349,7 +533,6 @@ codegen_CMP_JNWITHIN(codeblock_t *block, uop_t *uop)
     int       src_size = IREG_GET_SIZE(uop->src_reg_a_real);
     int       lo_size  = IREG_GET_SIZE(uop->src_reg_b_real);
     int       hi_size  = IREG_GET_SIZE(uop->src_reg_c_real);
-    uint32_t *jump_p;
 
     if (REG_IS_L(src_size) && REG_IS_L(lo_size) && REG_IS_L(hi_size)) {
         host_arm64_CMP_REG(block, src_reg, lo_reg);
@@ -361,8 +544,57 @@ codegen_CMP_JNWITHIN(codeblock_t *block, uop_t *uop)
     } else
         fatal("CMP_JNWITHIN %02x %02x %02x\n", uop->src_reg_a_real, uop->src_reg_b_real, uop->src_reg_c_real);
 
-    jump_p = host_arm64_BHI_(block);
-    host_arm64_branch_set_offset(jump_p, uop->p);
+    codegen_exit_Bcond(block, uop, host_arm64_BHI_);
+
+    return 0;
+}
+
+/*B.CS to uop->p as codegen_exit_Bcond, but as the one B.CS alone when its
+  target or the target's veneer is in range*/
+static void
+codegen_exit_BCS(codeblock_t *block, uop_t *uop)
+{
+    void *dest = codegen_exit_dest(uop->p, uop->imm_data2);
+
+    if (!(codegen_lazy_site && codegen_lazy_site->nr) && dest && host_arm64_BCS_near(block, dest))
+        return;
+    codegen_exit_Bcond(block, uop, host_arm64_BCS_);
+}
+
+static int
+codegen_CMN_IMM_JC(codeblock_t *block, uop_t *uop)
+{
+    int src_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    if (REG_IS_L(src_size))
+        host_arm64_CMN_IMM(block, src_reg, uop->imm_data);
+    else
+        fatal("CMN_IMM_JC %02x\n", uop->src_reg_a_real);
+
+    codegen_exit_BCS(block, uop);
+
+    return 0;
+}
+
+/*The compare with the low limit sets C when that passed; the conditional
+  compare-negative then sets C as the add of imm carries, and otherwise sets
+  C alone, which fails as the carry does*/
+static int
+codegen_CMP_JNWITHIN_TOP(codeblock_t *block, uop_t *uop)
+{
+    int src_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int lo_reg   = HOST_REG_GET(uop->src_reg_b_real);
+    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int lo_size  = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (REG_IS_L(src_size) && REG_IS_L(lo_size)) {
+        host_arm64_CMP_REG(block, src_reg, lo_reg);
+        host_arm64_CCMN_IMM_CS(block, src_reg, uop->imm_data, 2);
+    } else
+        fatal("CMP_JNWITHIN_TOP %02x %02x\n", uop->src_reg_a_real, uop->src_reg_b_real);
+
+    codegen_exit_BCS(block, uop);
 
     return 0;
 }
@@ -387,6 +619,147 @@ codegen_FCMP_JWITHIN_DEST(codeblock_t *block, uop_t *uop)
         fatal("FCMP_JWITHIN_DEST %02x %02x %02x\n", uop->src_reg_a_real, uop->src_reg_b_real, uop->src_reg_c_real);
 
     uop->p = host_arm64_BGT_(block);
+
+    return 0;
+}
+
+/*The exponent window of x87_divide_fast, 553 <= e <= 1493 for both operands,
+  a memory operand of the single kind held to the single's normal range
+  (e >= 897: a denormal single raises DE, which the software divide does);
+  a quotient with a zero fraction, a power of two, goes there as well*/
+static int
+codegen_FDIV_JSLOW_DEST(codeblock_t *block, uop_t *uop)
+{
+    int       num_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int       den_reg  = HOST_REG_GET(uop->src_reg_b_real);
+    int       q_reg    = HOST_REG_GET(uop->src_reg_c_real);
+    int       num_size = IREG_GET_SIZE(uop->src_reg_a_real);
+    int       den_size = IREG_GET_SIZE(uop->src_reg_b_real);
+    int       q_size   = IREG_GET_SIZE(uop->src_reg_c_real);
+    int       kind     = (uop->imm_data >> 11) & 3;
+    int       lo_num   = ((uop->imm_data & 0x200) && (kind == 1)) ? 897 : 553;
+    int       lo_den   = ((uop->imm_data & 0x400) && (kind == 1)) ? 897 : 553;
+    uint32_t *fail_num;
+    uint32_t *fail_den;
+    uint32_t *fail_q;
+    uint32_t *ok;
+
+    if (!(REG_IS_D(num_size) && REG_IS_D(den_size) && REG_IS_D(q_size)))
+        fatal("FDIV_JSLOW_DEST %02x %02x %02x\n", uop->src_reg_a_real, uop->src_reg_b_real, uop->src_reg_c_real);
+
+    host_arm64_FMOV_Q_D(block, REG_TEMP, num_reg);
+    host_arm64_UBFX_X(block, REG_TEMP, REG_TEMP, 52, 11);
+    host_arm64_SUB_IMM(block, REG_TEMP, REG_TEMP, lo_num);
+    host_arm64_CMP_IMM(block, REG_TEMP, 1493 - lo_num);
+    fail_num = host_arm64_BHI_(block);
+    host_arm64_FMOV_Q_D(block, REG_TEMP, den_reg);
+    host_arm64_UBFX_X(block, REG_TEMP, REG_TEMP, 52, 11);
+    host_arm64_SUB_IMM(block, REG_TEMP, REG_TEMP, lo_den);
+    host_arm64_CMP_IMM(block, REG_TEMP, 1493 - lo_den);
+    fail_den = host_arm64_BHI_(block);
+    /* the fraction: its upper 20 bits from the X view, the lower 32 from the S view */
+    host_arm64_FMOV_Q_D(block, REG_TEMP, q_reg);
+    host_arm64_UBFX_X(block, REG_TEMP, REG_TEMP, 32, 20);
+    host_arm64_FMOV_W_S(block, REG_TEMP2, q_reg);
+    host_arm64_ORR_REG(block, REG_TEMP, REG_TEMP, REG_TEMP2, 0);
+    host_arm64_CMP_IMM(block, REG_TEMP, 0);
+    fail_q = host_arm64_BEQ_(block);
+    ok = host_arm64_B_(block);
+
+    host_arm64_branch_set_offset(fail_num, &block_write_data[block_pos]);
+    host_arm64_branch_set_offset(fail_den, &block_write_data[block_pos]);
+    host_arm64_branch_set_offset(fail_q, &block_write_data[block_pos]);
+    uop->p = host_arm64_B_(block);
+    host_arm64_branch_set_offset(ok, &block_write_data[block_pos]);
+
+    return 0;
+}
+
+/*The status bits of a divide finished from the host quotient
+  (x87_divide_fast): r = num - q * den is exact inside the window, PE is
+  r != 0 and C1 a rounding up in magnitude, r and num of opposite signs. At
+  24 bits the quotient rounds once more, to single: a single-precision
+  midpoint with r != 0, or a single that is not normal, is the software
+  divide's; when the single differs from the quotient the flags are that
+  rounding's, C1 for the larger magnitude. PE raised while unmasked is the
+  software divide's too, which raises it as the interpreter does.*/
+static int
+codegen_FDIV_FLAGS_JSLOW_DEST(codeblock_t *block, uop_t *uop)
+{
+    int       dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int       q_reg     = HOST_REG_GET(uop->src_reg_a_real);
+    int       num_reg   = HOST_REG_GET(uop->src_reg_b_real);
+    int       den_reg   = HOST_REG_GET(uop->src_reg_c_real);
+    int       dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int       q_size    = IREG_GET_SIZE(uop->src_reg_a_real);
+    int       num_size  = IREG_GET_SIZE(uop->src_reg_b_real);
+    int       den_size  = IREG_GET_SIZE(uop->src_reg_c_real);
+    int       pc24      = uop->imm_data & 0x2000;
+    uint32_t *fail_mid  = NULL;
+    uint32_t *fail_sub  = NULL;
+    uint32_t *fail_pe;
+    uint32_t *same;
+    uint32_t *ok;
+
+    if (!(REG_IS_L(dest_size) && REG_IS_D(q_size) && REG_IS_D(num_size) && REG_IS_D(den_size)))
+        fatal("FDIV_FLAGS_JSLOW_DEST %02x %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real, uop->src_reg_c_real);
+
+    host_arm64_FMSUB_D(block, REG_V_TEMP, q_reg, den_reg, num_reg);
+    host_arm64_FMOV_Q_D(block, REG_TEMP, REG_V_TEMP);
+    host_arm64_UBFX_X(block, REG_TEMP, REG_TEMP, 63, 1);
+    host_arm64_FMOV_Q_D(block, REG_TEMP2, num_reg);
+    host_arm64_UBFX_X(block, REG_TEMP2, REG_TEMP2, 63, 1);
+    host_arm64_EOR_REG(block, REG_TEMP, REG_TEMP, REG_TEMP2, 0);
+    host_arm64_MOV_REG(block, REG_TEMP, REG_TEMP, 9);
+    host_arm64_ORR_IMM(block, REG_TEMP, REG_TEMP, FPU_SW_Precision);
+    if (pc24) {
+        /* zero below the single's midpoint bit: fraction bits 28..0 = 1 0...0 */
+        host_arm64_FMOV_W_S(block, REG_TEMP2, q_reg);
+        host_arm64_AND_IMM(block, REG_TEMP2, REG_TEMP2, 0x1fffffff);
+        host_arm64_EOR_IMM(block, REG_TEMP2, REG_TEMP2, 0x10000000);
+    }
+    host_arm64_FCMP_D_ZERO(block, REG_V_TEMP);
+    host_arm64_MOVZ_IMM(block, dest_reg, 0);
+    host_arm64_CSEL_NE(block, dest_reg, REG_TEMP, dest_reg);
+    if (pc24) {
+        /* with r == 0 the midpoint is no concern: REG_TEMP is not zero */
+        host_arm64_CSEL_NE(block, REG_TEMP2, REG_TEMP2, REG_TEMP);
+        host_arm64_CMP_IMM(block, REG_TEMP2, 0);
+        fail_mid = host_arm64_BEQ_(block);
+        host_arm64_FCVT_S_D(block, REG_V_TEMP, q_reg);
+        host_arm64_FMOV_W_S(block, REG_TEMP2, REG_V_TEMP);
+        host_arm64_UBFX(block, REG_TEMP2, REG_TEMP2, 23, 8);
+        host_arm64_SUB_IMM(block, REG_TEMP2, REG_TEMP2, 1);
+        host_arm64_CMP_IMM(block, REG_TEMP2, 253);
+        fail_sub = host_arm64_BHI_(block);
+        host_arm64_FCVT_D_S(block, REG_V_TEMP, REG_V_TEMP);
+        host_arm64_FCMP_D(block, REG_V_TEMP, q_reg);
+        same = host_arm64_BEQ_(block);
+        host_arm64_MOVZ_IMM(block, REG_TEMP2, FPU_SW_Precision);
+        host_arm64_ORR_IMM(block, REG_TEMP, REG_TEMP2, FPU_SW_C1);
+        host_arm64_CSEL_GT(block, dest_reg, REG_TEMP, REG_TEMP2);
+        host_arm64_CSEL_LT(block, REG_TEMP2, REG_TEMP, REG_TEMP2);
+        host_arm64_FMOV_Q_D(block, REG_TEMP, q_reg);
+        host_arm64_UBFX_X(block, REG_TEMP, REG_TEMP, 63, 1);
+        host_arm64_CMP_IMM(block, REG_TEMP, 0);
+        host_arm64_CSEL_NE(block, dest_reg, REG_TEMP2, dest_reg);
+        host_arm64_branch_set_offset(same, &block_write_data[block_pos]);
+    }
+    host_arm64_LDRH_IMM(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.npxc - (uintptr_t) &cpu_state);
+    host_arm64_EOR_IMM(block, REG_TEMP, REG_TEMP, FPU_SW_Precision);
+    host_arm64_AND_REG(block, REG_TEMP, REG_TEMP, dest_reg, 0);
+    host_arm64_AND_IMM(block, REG_TEMP, REG_TEMP, FPU_SW_Precision);
+    host_arm64_CMP_IMM(block, REG_TEMP, 0);
+    fail_pe = host_arm64_BNE_(block);
+    ok      = host_arm64_B_(block);
+
+    if (fail_mid)
+        host_arm64_branch_set_offset(fail_mid, &block_write_data[block_pos]);
+    if (fail_sub)
+        host_arm64_branch_set_offset(fail_sub, &block_write_data[block_pos]);
+    host_arm64_branch_set_offset(fail_pe, &block_write_data[block_pos]);
+    uop->p = host_arm64_B_(block);
+    host_arm64_branch_set_offset(ok, &block_write_data[block_pos]);
 
     return 0;
 }
@@ -796,6 +1169,63 @@ codegen_FCOM(codeblock_t *block, uop_t *uop)
     return 0;
 }
 static int
+codegen_FCOM_SIGNED_ZERO(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b  = HOST_REG_GET(uop->src_reg_b_real);
+    int dest_size  = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int src_size_a = IREG_GET_SIZE(uop->src_reg_a_real);
+    int src_size_b = IREG_GET_SIZE(uop->src_reg_b_real);
+
+    if (REG_IS_W(dest_size) && REG_IS_D(src_size_a) && REG_IS_D(src_size_b)) {
+        host_arm64_MOVZ_IMM(block, dest_reg, 0);
+        host_arm64_FCMP_D(block, src_reg_a, src_reg_b);
+        host_arm64_ORR_IMM(block, REG_TEMP, dest_reg, FPU_SW_C3);
+        host_arm64_ORR_IMM(block, REG_TEMP2, dest_reg, FPU_SW_C0);
+        host_arm64_CSEL_EQ(block, dest_reg, REG_TEMP, dest_reg);
+        host_arm64_ORR_IMM(block, REG_TEMP, dest_reg, FPU_SW_C0 | FPU_SW_C2 | FPU_SW_C3);
+        host_arm64_CSEL_CC(block, dest_reg, REG_TEMP2, dest_reg);
+        host_arm64_CSEL_VS(block, dest_reg, REG_TEMP, dest_reg);
+        /* On the images, b | (a << 1) is zero only when b is +0 and a is a
+           zero of either sign; a nonzero a is then -0. */
+        host_arm64_FMOV_Q_D(block, REG_TEMP, src_reg_a);
+        host_arm64_FMOV_Q_D(block, REG_TEMP2, src_reg_b);
+        host_arm64_ORRX_REG(block, REG_TEMP2, REG_TEMP2, REG_TEMP, 1);
+        host_arm64_CMPX_REG(block, REG_TEMP2, REG_XZR);
+        host_arm64_CCMPX_REG_EQ(block, REG_TEMP, REG_XZR, 4);
+        host_arm64_MOVZ_IMM(block, REG_TEMP, FPU_SW_C0);
+        host_arm64_CSEL_NE(block, dest_reg, REG_TEMP, dest_reg);
+    } else
+        fatal("codegen_FCOM_SIGNED_ZERO %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
+
+    return 0;
+}
+static int
+codegen_FCOM_CHKCOP(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+
+    if (uop->imm_data)
+        codegen_FCOM_SIGNED_ZERO(block, uop);
+    else
+        codegen_FCOM(block, uop);
+    /* C3 when a is the first image and b the first plus 2; the flags are
+       NE after the CCMP otherwise. */
+    host_arm64_FMOV_Q_D(block, REG_TEMP, src_reg_a);
+    host_arm64_MOVX_IMM(block, REG_TEMP2, 0x3fec1a6ff866a936ULL);
+    host_arm64_CMPX_REG(block, REG_TEMP, REG_TEMP2);
+    host_arm64_FMOV_Q_D(block, REG_TEMP, src_reg_b);
+    host_arm64_ADDX_IMM(block, REG_TEMP2, REG_TEMP2, 2);
+    host_arm64_CCMPX_REG_EQ(block, REG_TEMP, REG_TEMP2, 0);
+    host_arm64_MOVZ_IMM(block, REG_TEMP, FPU_SW_C3);
+    host_arm64_CSEL_EQ(block, dest_reg, REG_TEMP, dest_reg);
+
+    return 0;
+}
+static int
 codegen_FDIV(codeblock_t *block, uop_t *uop)
 {
     int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
@@ -861,6 +1291,13 @@ codegen_FP_ENTER(codeblock_t *block, uop_t *uop)
 
     host_arm64_mov_imm(block, REG_TEMP, uop->imm_data);
     host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.oldpc - (uintptr_t) &cpu_state);
+    /*The cycles accumulated so far, charged on this exit only (the uop is an
+      order barrier, so cycles is in memory)*/
+    if (uop->imm_data2) {
+        host_arm64_LDR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state._cycles - (uintptr_t) &cpu_state);
+        host_arm64_ADD_IMM(block, REG_TEMP, REG_TEMP, uop->imm_data2);
+        host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state._cycles - (uintptr_t) &cpu_state);
+    }
     host_arm64_mov_imm(block, REG_ARG0, 7);
     host_arm64_call(block, x86_int);
     host_arm64_B(block, codegen_exit_rout);
@@ -900,19 +1337,38 @@ codegen_MMX_ENTER(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*A jump within the block, to a uop: the branch is patched when the IR
+  reaches its destination (codegen_set_jump_dest)*/
+static int
+codegen_JMP_DEST(codeblock_t *block, uop_t *uop)
+{
+    uop->p = host_arm64_B_(block);
+
+    return 0;
+}
+
 static int
 codegen_JMP(codeblock_t *block, uop_t *uop)
 {
+    void *dest;
+
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
     /*An unconditional jump out of the block is an ordinary hand-off (UOP_JMP
       writes registers back), so it can link like the block's end. Fault
       paths reach codegen_exit_rout by conditional branches instead.*/
     if (codegen_block_link && (uop->p == codegen_exit_rout)) {
+        if (uop->imm_data2)
+            codegen_exit_add(block, uop->imm_data2);
         codegen_link_exit(block);
         return 0;
     }
 #    endif
-    host_arm64_jump(block, (uintptr_t) uop->p);
+    dest = codegen_exit_dest(uop->p, uop->imm_data2);
+    if (!dest) {
+        codegen_exit_add(block, uop->imm_data2);
+        dest = uop->p;
+    }
+    host_arm64_jump(block, (uintptr_t) dest);
 
     return 0;
 }
@@ -990,7 +1446,7 @@ codegen_LOAD_SEG(codeblock_t *block, uop_t *uop)
     host_arm64_MOVX_IMM(block, REG_ARG1, (uint64_t) uop->p);
     host_arm64_AND_IMM(block, REG_ARG0, src_reg, 0xffff);
     host_arm64_call(block, (void *) loadseg);
-    host_arm64_CBNZ(block, REG_X0, (uintptr_t) codegen_exit_rout);
+    codegen_exit_CBNZ(block, uop, REG_X0, codegen_exit_rout);
 
     return 0;
 }
@@ -1011,7 +1467,7 @@ codegen_MEM_LOAD_ABS(codeblock_t *block, uop_t *uop)
         host_arm64_call(block, codegen_mem_load_long);
     } else
         fatal("MEM_LOAD_ABS - %02x\n", uop->dest_reg_a_real);
-    host_arm64_CBNZ(block, REG_X1, (uintptr_t) codegen_exit_rout);
+    codegen_exit_CBNZ(block, uop, REG_X1, codegen_exit_rout);
     if (REG_IS_B(dest_size)) {
         host_arm64_BFI(block, dest_reg, REG_X0, 0, 8);
     } else if (REG_IS_BH(dest_size)) {
@@ -1041,7 +1497,7 @@ codegen_MEM_LOAD_REG_EA(codeblock_t *block, uop_t *uop)
         host_arm64_call(block, codegen_mem_load_long_ea);
     else
         fatal("MEM_LOAD_REG_EA - %02x\n", uop->dest_reg_a_real);
-    host_arm64_CBNZ(block, REG_X1, (uintptr_t) codegen_exit_rout);
+    codegen_exit_CBNZ(block, uop, REG_X1, codegen_exit_rout);
     if (REG_IS_W(dest_size))
         host_arm64_BFI(block, dest_reg, REG_X0, 0, 16);
     else
@@ -1072,7 +1528,7 @@ codegen_MEM_LOAD_REG(codeblock_t *block, uop_t *uop)
         host_arm64_call(block, codegen_mem_load_quad);
     } else
         fatal("MEM_LOAD_REG - %02x\n", uop->dest_reg_a_real);
-    host_arm64_CBNZ(block, REG_X1, (uintptr_t) codegen_exit_rout);
+    codegen_exit_CBNZ(block, uop, REG_X1, codegen_exit_rout);
     if (REG_IS_B(dest_size)) {
         host_arm64_BFI(block, dest_reg, REG_X0, 0, 8);
     } else if (REG_IS_BH(dest_size)) {
@@ -1102,7 +1558,7 @@ codegen_MEM_LOAD_DOUBLE(codeblock_t *block, uop_t *uop)
     if (uop->imm_data)
         host_arm64_ADD_IMM(block, REG_X0, REG_X0, uop->imm_data);
     host_arm64_call(block, codegen_mem_load_double);
-    host_arm64_CBNZ(block, REG_X1, (uintptr_t) codegen_exit_rout);
+    codegen_exit_CBNZ(block, uop, REG_X1, codegen_exit_rout);
     host_arm64_FMOV_D_D(block, dest_reg, REG_V_TEMP);
 
     return 0;
@@ -1122,7 +1578,7 @@ codegen_MEM_LOAD_SINGLE(codeblock_t *block, uop_t *uop)
     if (uop->imm_data)
         host_arm64_ADD_IMM(block, REG_X0, REG_X0, uop->imm_data);
     host_arm64_call(block, codegen_mem_load_single);
-    host_arm64_CBNZ(block, REG_X1, (uintptr_t) codegen_exit_rout);
+    codegen_exit_CBNZ(block, uop, REG_X1, codegen_exit_rout);
     host_arm64_FCVT_D_S(block, dest_reg, REG_V_TEMP);
 
     return 0;
@@ -1150,7 +1606,7 @@ codegen_MEM_STORE_ABS(codeblock_t *block, uop_t *uop)
         host_arm64_call(block, codegen_mem_store_long);
     } else
         fatal("MEM_STORE_ABS - %02x\n", uop->dest_reg_a_real);
-    host_arm64_CBNZ(block, REG_X1, (uintptr_t) codegen_exit_rout);
+    codegen_exit_CBNZ(block, uop, REG_X1, codegen_exit_rout);
 
     return 0;
 }
@@ -1182,7 +1638,7 @@ codegen_MEM_STORE_REG(codeblock_t *block, uop_t *uop)
         host_arm64_call(block, codegen_mem_store_quad);
     } else
         fatal("MEM_STORE_REG - %02x\n", uop->src_reg_c_real);
-    host_arm64_CBNZ(block, REG_X1, (uintptr_t) codegen_exit_rout);
+    codegen_exit_CBNZ(block, uop, REG_X1, codegen_exit_rout);
 
     return 0;
 }
@@ -1196,7 +1652,7 @@ codegen_MEM_STORE_IMM_8(codeblock_t *block, uop_t *uop)
     host_arm64_ADD_REG(block, REG_W0, seg_reg, addr_reg, 0);
     host_arm64_mov_imm(block, REG_W1, uop->imm_data);
     host_arm64_call(block, codegen_mem_store_byte);
-    host_arm64_CBNZ(block, REG_X1, (uintptr_t) codegen_exit_rout);
+    codegen_exit_CBNZ(block, uop, REG_X1, codegen_exit_rout);
 
     return 0;
 }
@@ -1209,7 +1665,7 @@ codegen_MEM_STORE_IMM_16(codeblock_t *block, uop_t *uop)
     host_arm64_ADD_REG(block, REG_W0, seg_reg, addr_reg, 0);
     host_arm64_mov_imm(block, REG_W1, uop->imm_data);
     host_arm64_call(block, codegen_mem_store_word);
-    host_arm64_CBNZ(block, REG_X1, (uintptr_t) codegen_exit_rout);
+    codegen_exit_CBNZ(block, uop, REG_X1, codegen_exit_rout);
 
     return 0;
 }
@@ -1222,7 +1678,7 @@ codegen_MEM_STORE_IMM_32(codeblock_t *block, uop_t *uop)
     host_arm64_ADD_REG(block, REG_W0, seg_reg, addr_reg, 0);
     host_arm64_mov_imm(block, REG_W1, uop->imm_data);
     host_arm64_call(block, codegen_mem_store_long);
-    host_arm64_CBNZ(block, REG_X1, (uintptr_t) codegen_exit_rout);
+    codegen_exit_CBNZ(block, uop, REG_X1, codegen_exit_rout);
 
     return 0;
 }
@@ -1243,7 +1699,7 @@ codegen_MEM_STORE_SINGLE(codeblock_t *block, uop_t *uop)
         host_arm64_ADD_IMM(block, REG_X0, REG_X0, uop->imm_data);
     host_arm64_FCVT_S_D(block, REG_V_TEMP, src_reg);
     host_arm64_call(block, codegen_mem_store_single);
-    host_arm64_CBNZ(block, REG_X1, (uintptr_t) codegen_exit_rout);
+    codegen_exit_CBNZ(block, uop, REG_X1, codegen_exit_rout);
 
     return 0;
 }
@@ -1263,7 +1719,7 @@ codegen_MEM_STORE_DOUBLE(codeblock_t *block, uop_t *uop)
         host_arm64_ADD_IMM(block, REG_X0, REG_X0, uop->imm_data);
     host_arm64_FMOV_D_D(block, REG_V_TEMP, src_reg);
     host_arm64_call(block, codegen_mem_store_double);
-    host_arm64_CBNZ(block, REG_X1, (uintptr_t) codegen_exit_rout);
+    codegen_exit_CBNZ(block, uop, REG_X1, codegen_exit_rout);
 
     return 0;
 }
@@ -1467,6 +1923,26 @@ codegen_MOV_INT_DOUBLE_64(codeblock_t *block, uop_t *uop)
         host_arm64_branch_set_offset(branch_offset, &block_write_data[block_pos]);
     } else
         fatal("MOV_INT_DOUBLE_64 %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
+
+    return 0;
+}
+static int
+codegen_FP_CONTROL_SET(codeblock_t *block, uop_t *uop)
+{
+    int src_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    if (REG_IS_W(src_size)) {
+        /*new_fp_control = RC << 3, the index codegen_fp_round branches on*/
+        host_arm64_UBFX(block, REG_TEMP, src_reg, 10, 2);
+        host_arm64_ORR_REG(block, REG_TEMP, REG_WZR, REG_TEMP, 3);
+        host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.new_fp_control - (uintptr_t) &cpu_state);
+        host_arm64_MOVX_IMM(block, REG_TEMP2, (uint64_t) (uintptr_t) &fpu_ferr);
+        host_arm64_STR_IMM_W(block, REG_WZR, REG_TEMP2, 0);
+        host_arm64_MOVX_IMM(block, REG_TEMP2, (uint64_t) (uintptr_t) &fpu_ignne);
+        host_arm64_STR_IMM_W(block, REG_WZR, REG_TEMP2, 0);
+    } else
+        fatal("FP_CONTROL_SET %02x\n", uop->src_reg_a_real);
 
     return 0;
 }
@@ -3440,6 +3916,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_JMP &
         UOP_MASK]
     = codegen_JMP,
+    [UOP_JMP_DEST &
+        UOP_MASK]
+    = codegen_JMP_DEST,
 
     [UOP_LOAD_SEG &
         UOP_MASK]
@@ -3540,6 +4019,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_MOV_INT_DOUBLE_64 &
         UOP_MASK]
     = codegen_MOV_INT_DOUBLE_64,
+    [UOP_FP_CONTROL_SET &
+        UOP_MASK]
+    = codegen_FP_CONTROL_SET,
     [UOP_MOV_REG_PTR &
         UOP_MASK]
     = codegen_MOV_REG_PTR,
@@ -3631,9 +4113,21 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_FCMP_JWITHIN_DEST &
         UOP_MASK]
     = codegen_FCMP_JWITHIN_DEST,
+    [UOP_FDIV_JSLOW_DEST &
+        UOP_MASK]
+    = codegen_FDIV_JSLOW_DEST,
+    [UOP_FDIV_FLAGS_JSLOW_DEST &
+        UOP_MASK]
+    = codegen_FDIV_FLAGS_JSLOW_DEST,
     [UOP_CMP_JNWITHIN &
         UOP_MASK]
     = codegen_CMP_JNWITHIN,
+    [UOP_CMN_IMM_JC &
+        UOP_MASK]
+    = codegen_CMN_IMM_JC,
+    [UOP_CMP_JNWITHIN_TOP &
+        UOP_MASK]
+    = codegen_CMP_JNWITHIN_TOP,
 
     [UOP_CMP_JNB_DEST &
         UOP_MASK]
@@ -3729,6 +4223,12 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_FCOM &
         UOP_MASK]
     = codegen_FCOM,
+    [UOP_FCOM_SIGNED_ZERO &
+        UOP_MASK]
+    = codegen_FCOM_SIGNED_ZERO,
+    [UOP_FCOM_CHKCOP &
+        UOP_MASK]
+    = codegen_FCOM_CHKCOP,
     [UOP_FDIV &
         UOP_MASK]
     = codegen_FDIV,

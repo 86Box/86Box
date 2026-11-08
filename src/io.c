@@ -459,7 +459,9 @@ inb(uint16_t port)
             amstrad_latch = AMSTRAD_SW9 | 0x80000000;
     }
 
-    if (!found || (machines[machine].init == machine_xt_ibm5550_init) || (machines[machine].init == machine_xt_ibm5535_init))
+    if (!found ||
+        (machines[machine].init == machine_xt_ibm5550_init) ||
+        (machines[machine].init == machine_xt_ibm5535_init))
         cycles -= io_delay;
 
     /* TriGem 486-BIOS MHz output. */
@@ -620,8 +622,15 @@ inw(uint16_t port)
             amstrad_latch = AMSTRAD_SW9 | 0x80000000;
     }
 
-    if (!found || (machines[machine].init == machine_xt_ibm5550_init) || (machines[machine].init == machine_xt_ibm5535_init))
-        cycles -= io_delay;
+    if (!found || (port == 0x84) ||
+        (machines[machine].init == machine_xt_ibm5550_init) ||
+        (machines[machine].init == machine_xt_ibm5535_init)) {
+        cycles -= (io_delay * (io_delay_multi ? 2 : 1));
+#ifdef USE_DYNAREC
+        if (cpu_use_dynarec && (port == 0x84))
+            update_tsc();
+#endif
+    }
 
     io_cycle = 0;
     io_log("[%04X:%08X] (%i, %i, %04i) in w(%04X) = %04X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
@@ -699,7 +708,7 @@ outw(uint16_t port, uint16_t val)
     }
 
     if (!found) {
-        cycles -= io_delay;
+        cycles -= (io_delay * (io_delay_multi ? 2 : 1));
 #ifdef USE_DYNAREC
         if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))
             update_tsc();
@@ -824,8 +833,10 @@ inl(uint16_t port)
             amstrad_latch = AMSTRAD_SW9 | 0x80000000;
     }
 
-    if (!found || (machines[machine].init == machine_xt_ibm5550_init) || (machines[machine].init == machine_xt_ibm5535_init))
-        cycles -= io_delay;
+    if (!found ||
+        (machines[machine].init == machine_xt_ibm5550_init) ||
+        (machines[machine].init == machine_xt_ibm5535_init))
+        cycles -= (io_delay * (io_delay_multi ? 4 : 1));
 
     io_cycle = 0;
     io_log("[%04X:%08X] (%i, %i, %04i) in l(%04X) = %08X\n", CS, cpu_state.pc, in_smm, found, qfound, port, ret);
@@ -920,7 +931,7 @@ outl(uint16_t port, uint32_t val)
     }
 
     if (!found) {
-        cycles -= io_delay;
+        cycles -= (io_delay * (io_delay_multi ? 4 : 1));
 #ifdef USE_DYNAREC
         if (cpu_use_dynarec && ((port == 0xeb) || (port == 0xed)))
             update_tsc();

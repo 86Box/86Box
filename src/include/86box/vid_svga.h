@@ -141,6 +141,7 @@ typedef struct svga_t {
     int ati_4color;
     int vblankend;
     int panning_blank;
+    int pan_latched; /* panning latched at the end of vertical retrace this frame */
     int render_line_offset;
     int start_retrace_latch;
     int vga_mode;
@@ -577,6 +578,7 @@ extern const device_t ati18811_1_28800_device;
 extern const device_t ati18810_mach32_device;
 extern const device_t ati18811_0_mach32_device;
 extern const device_t ati18811_1_mach32_device;
+extern const device_t ati18811_1_mach32_vga_device;
 extern const device_t ics2595_device;
 extern const device_t icd2047_20_device;
 extern const device_t icd2061_device;

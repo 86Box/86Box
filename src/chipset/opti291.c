@@ -147,6 +147,13 @@ opti291_init(UNUSED(const device_t *info))
     device_add(&port_92_device);
     opti291_recalc(dev);
 
+    /* CPURST is "active in response to RST1#, keyboard fast reset
+       emulation, or CPU shutdown cycles", port 92h's reset "is ORed with
+       the keyboard controller emulation reset signal", and NPRST "is
+       asserted along with CPU resets" (82C291 data sheet, pins CPURST and
+       NPRST, 4.2, 4.15, Table 5-15 p. 24). Its coprocessor is a 387SX. */
+    soft_reset_387 = SOFT_RESET_KBC | SOFT_RESET_SHUTDOWN | SOFT_RESET_PORT92;
+
     return dev;
 }
 

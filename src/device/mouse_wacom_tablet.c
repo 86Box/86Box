@@ -144,7 +144,7 @@ typedef struct mouse_wacom_t {
     double     reset_tsc;
     pc_timer_t report_timer;
 
-    serial_t *serial;
+    ser_port_t *serial;
 } mouse_wacom_t;
 
 /* TODO: What is this needed for? */
@@ -637,7 +637,7 @@ transmit_prepare:
 
 transmit:
     if (wacom->serial)
-        serial_write_fifo(wacom->serial, fifo8_pop(&wacom->data));
+        serial_port_receive(wacom->serial, fifo8_pop(&wacom->data));
     if (fifo8_num_used(&wacom->data) == 0) {
         wacom->old_tsc              = tsc;
     }
@@ -682,7 +682,7 @@ wacom_speed_changed(void *priv)
 {
     mouse_wacom_t *dev = (mouse_wacom_t *) priv;
 
-    wacom_callback(dev->serial, dev);
+    wacom_callback(NULL, dev);
 }
 
 static void
@@ -693,8 +693,8 @@ wacom_close(void *priv)
     fifo8_destroy(&dev->data);
 
     /* Detach serial port from the mouse. */
-    if (dev && dev->serial && dev->serial->sd)
-        memset(dev->serial->sd, 0, sizeof(serial_device_t));
+    if (dev && dev->serial)
+        serial_port_detach(dev->serial);
 
     free(dev);
 }

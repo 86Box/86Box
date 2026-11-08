@@ -99,9 +99,9 @@ typedef struct modem_phonebook_entry_t {
 } modem_phonebook_entry_t;
 
 typedef struct modem_t {
-    uint8_t   mac[6];
-    serial_t *serial;
-    uint32_t  baudrate;
+    uint8_t     mac[6];
+    ser_port_t *serial;
+    uint32_t    baudrate;
 
     modem_mode_t mode;
 
@@ -317,10 +317,6 @@ modem_speed_changed(void *priv)
     timer_stop(&dev->host_to_serial_timer);
     /* FIXME: do something to dev->baudrate */
     timer_on_auto(&dev->host_to_serial_timer, (1000000.0 / (double) dev->baudrate) * 9);
-#if 0
-    if (dev->serial)
-        serial_clear_fifo(dev->serial);
-#endif
 }
 
 static void
@@ -435,24 +431,17 @@ host_to_modem_cb(void *priv)
     if (modem->in_warmup || (modem->serial == NULL))
         goto no_write_to_machine;
 
-    if ((modem->serial->type >= SERIAL_16550) && modem->serial->fifo_enabled) {
-        if (fifo_get_full(modem->serial->rcvr_fifo)) {
-            goto no_write_to_machine;
-        }
-    } else {
-        if (modem->serial->lsr & 1) {
-            goto no_write_to_machine;
-        }
-    }
+    if (!serial_port_can_receive(modem->serial))
+        goto no_write_to_machine;
 
-    if (!((modem->serial->mctrl & 2) || modem->flowcontrol != 3))
+    if (!(serial_port_get_line(modem->serial, CHAR_COM_RTS) || modem->flowcontrol != 3))
         goto no_write_to_machine;
 
     if (modem->mode == MODEM_MODE_DATA && fifo8_num_used(&modem->rx_data) && !modem->cooldown) {
-        serial_write_fifo(modem->serial, fifo8_pop(&modem->rx_data));
+        serial_port_receive(modem->serial, fifo8_pop(&modem->rx_data));
     } else if (fifo8_num_used(&modem->data_pending)) {
         uint8_t val = fifo8_pop(&modem->data_pending);
-        serial_write_fifo(modem->serial, val);
+        serial_port_receive(modem->serial, val);
     }
 
     if (fifo8_num_used(&modem->data_pending) == 0) {
@@ -620,10 +609,10 @@ modem_enter_idle_state(modem_t *modem)
     }
 
     if (modem->serial != NULL) {
-        serial_set_cts(modem->serial, 1);
-        serial_set_dsr(modem->serial, 1);
-        serial_set_dcd(modem->serial, (!modem->dcdmode ? 1 : 0));
-        serial_set_ri(modem->serial, 0);
+        serial_port_set_line(modem->serial, CHAR_COM_RI, 0);
+        serial_port_set_line(modem->serial, CHAR_COM_CTS, 1);
+        serial_port_set_line(modem->serial, CHAR_COM_DSR, 1);
+        serial_port_set_line(modem->serial, CHAR_COM_DCD, (!modem->dcdmode ? 1 : 0));
     }
 }
 
@@ -642,8 +631,8 @@ modem_enter_connected_state(modem_t *modem)
     memset(&modem->telClient, 0, sizeof(modem->telClient));
 
     if (modem->serial != NULL) {
-        serial_set_dcd(modem->serial, 1);
-        serial_set_ri(modem->serial, 0);
+        serial_port_set_line(modem->serial, CHAR_COM_DCD, 1);
+        serial_port_set_line(modem->serial, CHAR_COM_RI, 0);
     }
 }
 
@@ -1336,10 +1325,6 @@ modem_rcr_cb(UNUSED(struct serial_s *serial), void *priv)
     timer_stop(&dev->host_to_serial_timer);
     /* FIXME: do something to dev->baudrate */
     timer_on_auto(&dev->host_to_serial_timer, (1000000.0 / (double) dev->baudrate) * (double) 9);
-#if 0
-    if (dev->serial)
-        serial_clear_fifo(dev->serial);
-#endif
 }
 
 static void
@@ -1402,7 +1387,7 @@ modem_cmdpause_timer_callback(void *priv)
                 modem->ringing = true;
                 modem_send_res(modem, ResRING);
                 if (modem->serial != NULL)
-                    serial_set_ri(modem->serial, !serial_get_ri(modem->serial));
+                    serial_port_set_line(modem->serial, CHAR_COM_RI, !serial_port_get_line(modem->serial, CHAR_COM_RI));
                 modem->ringtimer            = 3000;
                 modem->reg[MREG_RING_COUNT] = 0;
             }
@@ -1417,7 +1402,7 @@ modem_cmdpause_timer_callback(void *priv)
             }
             modem_send_res(modem, ResRING);
             if (modem->serial != NULL)
-                serial_set_ri(modem->serial, !serial_get_ri(modem->serial));
+                serial_port_set_line(modem->serial, CHAR_COM_RI, !serial_port_get_line(modem->serial, CHAR_COM_RI));
 
             modem->ringtimer = 3000;
         }

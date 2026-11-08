@@ -45,6 +45,8 @@ extern "C" {
 #include <86box/midi.h>
 #include <86box/mem.h>
 #include <86box/usb.h>
+#include <86box/thread.h>
+#include <86box/network.h>
 }
 
 #include <QStackedWidget>
@@ -368,6 +370,13 @@ int
 Settings::currentScsiCard(int i) const
 {
     return (storageControllers != nullptr) ? storageControllers->scsiCard(i) : scsi_card_current[i];
+}
+
+/* The network card in slot i (the PCnet-SCSI takes a SCSI bus). */
+int
+Settings::currentNetCard(int i) const
+{
+    return (network != nullptr) ? network->netCard(i) : net_cards_conf[i].device_num;
 }
 
 int

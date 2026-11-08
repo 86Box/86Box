@@ -139,7 +139,7 @@ null_data_seg(x86seg *s)
     s->base    = -1;
     s->checked = 0;
     if (s == &cpu_state.seg_ds)
-        cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+        cpu_cur_status |= CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTWIDEDS;
     if (s == &cpu_state.seg_es)
         cpu_cur_status |= CPU_STATUS_NOTFLATES;
 }
@@ -181,9 +181,14 @@ x86_doabrt(int x86_abrt)
 
     task_eip_pending = 0;
     if (msw & 1) {
+        /* A fault: the EFLAGS image the handler gets has RF set, so that its
+           IRET restarts the instruction without an instruction breakpoint on
+           it firing again. The handler itself runs with RF clear. */
+        cpu_state.eflags |= RF_FLAG;
         task_error_follows = 1;
         op_pmodeint(x86_abrt, 0);
         task_error_follows = 0;
+        cpu_state.eflags &= ~RF_FLAG;
     } else {
         uint32_t addr = (x86_abrt << 2) + idt.base;
         if (stack32) {
@@ -316,6 +321,8 @@ do_seg_load(x86seg *s, uint16_t *segdat)
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATSS;
     }
+    cpu_set_wide_status(s);
+    cpu_mark_64k_status(s);
 }
 #endif
 
@@ -413,7 +420,7 @@ loadseg(uint16_t seg, x86seg *s)
             s->base    = -1;
             s->checked = 0;
             if (s == &cpu_state.seg_ds)
-                cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+                cpu_cur_status |= CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTWIDEDS;
             if (s == &cpu_state.seg_es)
                 cpu_cur_status |= CPU_STATUS_NOTFLATES;
             return 0;
@@ -508,9 +515,9 @@ loadseg(uint16_t seg, x86seg *s)
         s->checked   = 0;
 #ifdef USE_DYNAREC
         if (s == &cpu_state.seg_ds)
-            codegen_flat_ds = 0;
+            codegen_flat_ds = codegen_wide_ds = 0;
         if (s == &cpu_state.seg_ss)
-            codegen_flat_ss = 0;
+            codegen_flat_ss = codegen_wide_ss = 0;
         if (s == &cpu_state.seg_es)
             codegen_flat_es = 0;
 #endif
@@ -527,9 +534,9 @@ loadseg(uint16_t seg, x86seg *s)
             do_seg_v86_init(s);
 #ifdef USE_DYNAREC
         if (s == &cpu_state.seg_ds)
-            codegen_flat_ds = 0;
+            codegen_flat_ds = codegen_wide_ds = 0;
         if (s == &cpu_state.seg_ss)
-            codegen_flat_ss = 0;
+            codegen_flat_ss = codegen_wide_ss = 0;
         if (s == &cpu_state.seg_es)
             codegen_flat_es = 0;
 #endif
@@ -555,6 +562,7 @@ loadseg(uint16_t seg, x86seg *s)
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATSS;
     }
+    cpu_set_wide_status(s);
 
     return cpu_state.abrt;
 }
@@ -616,7 +624,7 @@ loadcs(uint16_t seg)
             do_seg_load(&cpu_state.seg_cs, segdat);
             use32 = (segdat[3] & 0x40) ? 0x300 : 0;
             if ((CPL == 3) && (oldcpl != 3))
-                flushmmucache_nopc();
+                flushmmucache_ring3();
             oldcpl = CPL;
 
             cpl_override = 1;
@@ -640,7 +648,7 @@ loadcs(uint16_t seg)
         cpu_state.seg_cs.ar_high    = 0x10;
         cpu_state.seg_cs.checked    = 1;
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_nopc();
+            flushmmucache_ring3();
         oldcpl = CPL;
     }
 }
@@ -763,7 +771,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
 
             do_seg_load(&cpu_state.seg_cs, segdat);
             if ((CPL == 3) && (oldcpl != 3))
-                flushmmucache_nopc();
+                flushmmucache_ring3();
             oldcpl = CPL;
             cycles -= timing_jmp_pm;
         } else { /* System segment */
@@ -842,7 +850,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
                                 cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (jmp_cpl << 5);
                             }
                             if ((CPL == 3) && (oldcpl != 3))
-                                flushmmucache_nopc();
+                                flushmmucache_ring3();
                             oldcpl = CPL;
                             set_use32(segdat[3] & 0x40);
                             cpu_state.pc = newpc;
@@ -887,7 +895,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
         cpu_state.seg_cs.ar_high    = 0x10;
         cpu_state.seg_cs.checked    = 1;
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_nopc();
+            flushmmucache_ring3();
         oldcpl = CPL;
         cycles -= timing_jmp_rm;
     }
@@ -1082,7 +1090,7 @@ loadcscall(uint16_t seg, uint32_t old_pc)
             CS = seg;
             do_seg_load(&cpu_state.seg_cs, segdat);
             if ((CPL == 3) && (oldcpl != 3))
-                flushmmucache_nopc();
+                flushmmucache_ring3();
             oldcpl = CPL;
 #ifdef ENABLE_X86SEG_LOG
             x86seg_log("Complete\n");
@@ -1223,7 +1231,7 @@ loadcscall(uint16_t seg, uint32_t old_pc)
                                 CS = (seg2 & ~3) | DPL;
                                 do_seg_load(&cpu_state.seg_cs, segdat);
                                 if ((CPL == 3) && (oldcpl != 3))
-                                    flushmmucache_nopc();
+                                    flushmmucache_ring3();
                                 oldcpl = CPL;
                                 set_use32(segdat[3] & 0x0040);
                                 cpu_state.pc = newpc;
@@ -1337,7 +1345,7 @@ loadcscall(uint16_t seg, uint32_t old_pc)
                                 cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (call_cpl << 5);
                             }
                             if ((CPL == 3) && (oldcpl != 3))
-                                flushmmucache_nopc();
+                                flushmmucache_ring3();
                             oldcpl = CPL;
                             set_use32(segdat[3] & 0x0040);
                             cpu_state.pc = newpc;
@@ -1383,7 +1391,7 @@ loadcscall(uint16_t seg, uint32_t old_pc)
         cpu_state.seg_cs.ar_high    = 0x10;
         cpu_state.seg_cs.checked    = 1;
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_nopc();
+            flushmmucache_ring3();
         oldcpl = CPL;
     }
 }
@@ -1501,7 +1509,7 @@ pmoderetf(int is32, uint16_t off)
         do_seg_load(&cpu_state.seg_cs, segdat);
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~(3 << 5)) | ((CS & 3) << 5);
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_nopc();
+            flushmmucache_ring3();
         oldcpl = CPL;
         set_use32(segdat[3] & 0x0040);
 
@@ -1618,7 +1626,7 @@ pmoderetf(int is32, uint16_t off)
         CS           = seg;
         do_seg_load(&cpu_state.seg_cs, segdat);
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_nopc();
+            flushmmucache_ring3();
         oldcpl = CPL;
         set_use32(segdat[3] & 0x0040);
 
@@ -1668,7 +1676,7 @@ pmodeint(int num, int soft)
     if ((addr + 7) > idt.limit) {
         if (num == 0x08) {
             /* Triple fault - reset! */
-            softresetx86();
+            softresetx86_from(SOFT_RESET_SHUTDOWN);
             cpu_set_edx();
         } else if (num == 0x0d) {
             op_pmodeint(8, 0);
@@ -1911,7 +1919,7 @@ pmodeint(int num, int soft)
             CS                      = (seg & 0xfffc) | new_cpl;
             cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (new_cpl << 5);
             if ((CPL == 3) && (oldcpl != 3))
-                flushmmucache_nopc();
+                flushmmucache_ring3();
             oldcpl = CPL;
             if (type > 0x0800)
                 cpu_state.pc = segdat[0] | (segdat[3] << 16);
@@ -2113,7 +2121,7 @@ pmodeiret(int is32)
             do_seg_v86_init(&cpu_state.seg_es);
             op_loadseg(segs[1], &cpu_state.seg_ds);
             do_seg_v86_init(&cpu_state.seg_ds);
-            cpu_cur_status |= CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTFLATES;
+            cpu_cur_status |= CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTFLATES | CPU_STATUS_NOTWIDEDS;
             op_loadseg(segs[2], &cpu_state.seg_fs);
             do_seg_v86_init(&cpu_state.seg_fs);
             op_loadseg(segs[3], &cpu_state.seg_gs);
@@ -2129,13 +2137,14 @@ pmodeiret(int is32)
             cpu_state.seg_cs.ar_high    = 0x10;
             cpu_state.seg_cs.checked    = 1;
             if ((CPL == 3) && (oldcpl != 3))
-                flushmmucache_nopc();
+                flushmmucache_ring3();
             oldcpl = CPL;
 
             ESP = newsp;
             op_loadseg(newss, &cpu_state.seg_ss);
             do_seg_v86_init(&cpu_state.seg_ss);
-            cpu_cur_status |= CPU_STATUS_NOTFLATSS;
+            cpu_cur_status |= CPU_STATUS_NOTFLATSS | CPU_STATUS_NOTWIDESS;
+            cpu_update_64k_status();
             use32 = 0;
             cpu_cur_status &= ~CPU_STATUS_USE32;
             cpu_state.flags = (tempflags & 0xffd5) | 2;
@@ -2218,7 +2227,7 @@ pmodeiret(int is32)
         do_seg_load(&cpu_state.seg_cs, segdat);
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | ((CS & 0x0003) << 5);
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_nopc();
+            flushmmucache_ring3();
         oldcpl = CPL;
         set_use32(segdat[3] & 0x0040);
 
@@ -2305,7 +2314,7 @@ pmodeiret(int is32)
         do_seg_load(&cpu_state.seg_cs, segdat);
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | ((CS & 3) << 5);
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_nopc();
+            flushmmucache_ring3();
         oldcpl = CPL;
         set_use32(segdat[3] & 0x40);
 
@@ -2474,9 +2483,9 @@ task_load_seg(x86seg *s, uint16_t sel, const uint16_t *sd, uint32_t addr)
     }
 #ifdef USE_DYNAREC
     if (s == &cpu_state.seg_ds)
-        codegen_flat_ds = 0;
+        codegen_flat_ds = codegen_wide_ds = 0;
     if (s == &cpu_state.seg_ss)
-        codegen_flat_ss = 0;
+        codegen_flat_ss = codegen_wide_ss = 0;
     if (s == &cpu_state.seg_es)
         codegen_flat_es = 0;
 #endif
@@ -2498,6 +2507,7 @@ task_load_seg(x86seg *s, uint16_t sel, const uint16_t *sd, uint32_t addr)
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATSS;
     }
+    cpu_set_wide_status(s);
 }
 
 /* CS of the new task, its checks made. CPL is the selector's RPL: "The new
@@ -2892,6 +2902,7 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
 
     if (is386 ? !task_checks_386(&img, cpl, ext) : !task_checks_286(&img, cpl, ext))
         return;
+    cpu_update_64k_status();
 
     if (cpu_debug_regs_486 || !cpu_use_exec)
         rf_flag_no_clear = 1;
@@ -2961,9 +2972,9 @@ cyrix_load_seg_descriptor(uint32_t addr, x86seg *seg)
         seg->checked = 0;
 #ifdef USE_DYNAREC
         if (seg == &cpu_state.seg_ds)
-            codegen_flat_ds = 0;
+            codegen_flat_ds = codegen_wide_ds = 0;
         if (seg == &cpu_state.seg_ss)
-            codegen_flat_ss = 0;
+            codegen_flat_ss = codegen_wide_ss = 0;
         if (seg == &cpu_state.seg_es)
             codegen_flat_es = 0;
 #endif

@@ -1791,6 +1791,7 @@ load_hard_disks(void)
                 break;
 
             case HDD_BUS_IDE:
+            case HDD_BUS_LPT:
                 max_spt    = 255;
                 max_hpc    = 255;
                 max_tracks = 266305;
@@ -1817,6 +1818,7 @@ load_hard_disks(void)
             case HDD_BUS_ESDI:
             case HDD_BUS_ATAPI:
             case HDD_BUS_SCSI:
+            case HDD_BUS_LPT:
                 sprintf(tmp2, "1997_5400rpm");
                 break;
             default:
@@ -1865,6 +1867,21 @@ load_hard_disks(void)
 
             if (hdd[c].ide_channel >= IDE_DRIVES_MAX)
                 hdd[c].ide_channel = IDE_DRIVES_MAX - 1;
+        } else
+            ini_section_delete_var(cat, temp);
+
+        /* Parallel port */
+        sprintf(temp, "hdd_%02i_lpt_port", c + 1);
+        if (hdd[c].bus_type == HDD_BUS_LPT) {
+            hdd[c].channel = ini_section_get_int(cat, temp, 0);
+            if (hdd[c].channel >= PARALLEL_MAX)
+                hdd[c].channel = PARALLEL_MAX - 1;
+        } else
+            ini_section_delete_var(cat, temp);
+        sprintf(temp, "hdd_%02i_lpt_bridge", c + 1);
+        if (hdd[c].bus_type == HDD_BUS_LPT) {
+            p = ini_section_get_string(cat, temp, "on26");
+            hdd[c].lpt_bridge = hdd_lpt_bridge_get_from_internal_name(p);
         } else
             ini_section_delete_var(cat, temp);
 
@@ -1942,6 +1959,12 @@ load_hard_disks(void)
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "hdd_%02i_ide_channel", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            sprintf(temp, "hdd_%02i_lpt_port", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            sprintf(temp, "hdd_%02i_lpt_bridge", c + 1);
             ini_section_delete_var(cat, temp);
 
             sprintf(temp, "hdd_%02i_scsi_location", c + 1);
@@ -2162,6 +2185,13 @@ load_floppy_and_cdrom_drives(void)
 
             if (cdrom[c].res >= PARALLEL_MAX)
                 cdrom[c].res = PARALLEL_MAX - 1;
+
+            /* The bridge: the BackPack unless the configuration names one. */
+            sprintf(temp, "cdrom_%02i_lpt_bridge", c + 1);
+            p = ini_section_get_string(cat, temp, NULL);
+            cdrom[c].lpt_bridge = (p == NULL) ? HDD_LPT_BPCK : hdd_lpt_bridge_get_from_internal_name(p);
+            if (!cdrom_lpt_bridge_valid(cdrom[c].lpt_bridge))
+                cdrom[c].lpt_bridge = HDD_LPT_BPCK;
         } else if (cdrom[c].bus_type == CDROM_BUS_SCSI) {
             sprintf(temp, "cdrom_%02i_scsi_location", c + 1);
             sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c & 3);
@@ -2281,11 +2311,12 @@ load_other_removable_devices(void)
         sprintf(temp, "zip_%02i_parameters", c + 1);
         p = ini_section_get_string(cat, temp, NULL);
         if (p != NULL) {
-            sscanf(p, "%01u, %s", &rdisk_drives[c].type, s);
+            sscanf(p, "%u, %s", &rdisk_drives[c].type, s);
             legacy_zip_drives++;
         } else
             sscanf("0, none", "%01u, %s", &rdisk_drives[c].type, s);
         rdisk_drives[c].type++;
+        rdisk_drives[c].type = rdisk_type_from_config(rdisk_drives[c].type);
         rdisk_drives[c].bus_type = hdd_string_to_bus(s, 1);
 
         /* Default values, needed for proper operation of the Settings dialog. */
@@ -2387,16 +2418,17 @@ load_other_removable_devices(void)
         sprintf(temp, "rdisk_%02i_parameters", c + 1);
         p = ini_section_get_string(cat, temp, NULL);
         if (p != NULL) {
-            sscanf(p, "%01u, %s", &rdisk_drives[c].type, s);
+            sscanf(p, "%u, %s", &rdisk_drives[c].type, s);
             legacy_zip_drives++;
         } else
             sscanf("0, none", "%01u, %s", &rdisk_drives[c].type, s);
+        rdisk_drives[c].type = rdisk_type_from_config(rdisk_drives[c].type);
         rdisk_drives[c].bus_type = hdd_string_to_bus(s, 1);
 
         /* Default values, needed for proper operation of the Settings dialog. */
         rdisk_drives[c].ide_channel = rdisk_drives[c].scsi_device_id = c + 2;
 
-        if (rdisk_drives[c].bus_type == RDISK_BUS_ATAPI) {
+        if ((rdisk_drives[c].bus_type == RDISK_BUS_ATAPI) || (rdisk_drives[c].bus_type == RDISK_BUS_IDE)) {
             sprintf(temp, "rdisk_%02i_ide_channel", c + 1);
             sprintf(tmp2, "%u:%u", (c + 2) >> 1, (c + 2) & 1);
             p = ini_section_get_string(cat, temp, tmp2);
@@ -2414,6 +2446,15 @@ load_other_removable_devices(void)
 
             if (rdisk_drives[c].res >= PARALLEL_MAX)
                 rdisk_drives[c].res = PARALLEL_MAX - 1;
+
+            /* The bridge: the EPAT unless the configuration names one; the
+               ZIP drives have their own chip. */
+            sprintf(temp, "rdisk_%02i_lpt_bridge", c + 1);
+            p = ini_section_get_string(cat, temp, NULL);
+            rdisk_drives[c].lpt_bridge = (p == NULL) ? HDD_LPT_EPAT : hdd_lpt_bridge_get_from_internal_name(p);
+            if ((rdisk_drives[c].lpt_bridge >= HDD_LPT_BRIDGES) || (rdisk_drives[c].type == RDISK_TYPE_ZIP_100) ||
+                (rdisk_drives[c].type == RDISK_TYPE_ZIP_100_PLUS) || (rdisk_drives[c].type == RDISK_TYPE_ZIP_250))
+                rdisk_drives[c].lpt_bridge = HDD_LPT_EPAT;
         } else if (rdisk_drives[c].bus_type == RDISK_BUS_SCSI) {
             sprintf(temp, "rdisk_%02i_scsi_location", c + 1);
             sprintf(tmp2, "%01u:%02u", SCSI_BUS_MAX, c + 2);
@@ -2433,7 +2474,7 @@ load_other_removable_devices(void)
             }
         }
 
-        if (rdisk_drives[c].bus_type != RDISK_BUS_ATAPI) {
+        if ((rdisk_drives[c].bus_type != RDISK_BUS_ATAPI) && (rdisk_drives[c].bus_type != RDISK_BUS_IDE)) {
             sprintf(temp, "rdisk_%02i_ide_channel", c + 1);
             ini_section_delete_var(cat, temp);
         }
@@ -2467,7 +2508,9 @@ load_other_removable_devices(void)
         }
 
         for (int i = 0; i < MAX_PREV_IMAGES; i++) {
-            rdisk_drives[c].image_history[i] = (char *) calloc((MAX_IMAGE_PATH_LEN + 1) << 1, sizeof(char));
+            /* The legacy zip_ loop above has already allocated these. */
+            if (rdisk_drives[c].image_history[i] == NULL)
+                rdisk_drives[c].image_history[i] = (char *) calloc((MAX_IMAGE_PATH_LEN + 1) << 1, sizeof(char));
             sprintf(temp, "rdisk_%02i_image_history_%02i", c + 1, i + 1);
             p = ini_section_get_string(cat, temp, NULL);
             if (p) {
@@ -4558,6 +4601,18 @@ save_hard_disks(void)
             ini_section_set_string(cat, temp, tmp2);
         }
 
+        sprintf(temp, "hdd_%02i_lpt_port", c + 1);
+        if (!hdd_is_valid(c) || (hdd[c].bus_type != HDD_BUS_LPT))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_int(cat, temp, hdd[c].channel);
+
+        sprintf(temp, "hdd_%02i_lpt_bridge", c + 1);
+        if (!hdd_is_valid(c) || (hdd[c].bus_type != HDD_BUS_LPT))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_string(cat, temp, hdd_lpt_bridge_get_internal_name(hdd[c].lpt_bridge));
+
         sprintf(temp, "hdd_%02i_scsi_id", c + 1);
         ini_section_delete_var(cat, temp);
 
@@ -4599,25 +4654,28 @@ save_hard_disks(void)
         if (!hdd_is_valid(c) ||
             ((hdd[c].bus_type != HDD_BUS_MFM) && (hdd[c].bus_type != HDD_BUS_ESDI) &&
             (hdd[c].bus_type != HDD_BUS_IDE) && (hdd[c].bus_type != HDD_BUS_SCSI) &&
-            (hdd[c].bus_type != HDD_BUS_ATAPI)))
+            (hdd[c].bus_type != HDD_BUS_ATAPI) && (hdd[c].bus_type != HDD_BUS_LPT)))
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_string(cat, temp, hdd_preset_get_internal_name(hdd[c].speed_preset));
 
         sprintf(temp, "hdd_%02i_vendor", c + 1);
-        if ((hdd[c].bus_type == HDD_BUS_IDE || hdd[c].bus_type == HDD_BUS_ATAPI || hdd[c].bus_type == HDD_BUS_SCSI) &&
+        if ((hdd[c].bus_type == HDD_BUS_IDE || hdd[c].bus_type == HDD_BUS_ATAPI || hdd[c].bus_type == HDD_BUS_SCSI ||
+             hdd[c].bus_type == HDD_BUS_LPT) &&
             hdd_preset_is_generic(hdd[c].speed_preset) && hdd[c].custom_vendor[0])
             ini_section_set_string(cat, temp, hdd[c].custom_vendor);
         else
             ini_section_delete_var(cat, temp);
         sprintf(temp, "hdd_%02i_model", c + 1);
-        if ((hdd[c].bus_type == HDD_BUS_IDE || hdd[c].bus_type == HDD_BUS_ATAPI || hdd[c].bus_type == HDD_BUS_SCSI) &&
+        if ((hdd[c].bus_type == HDD_BUS_IDE || hdd[c].bus_type == HDD_BUS_ATAPI || hdd[c].bus_type == HDD_BUS_SCSI ||
+             hdd[c].bus_type == HDD_BUS_LPT) &&
             hdd_preset_is_generic(hdd[c].speed_preset) && hdd[c].custom_model[0])
             ini_section_set_string(cat, temp, hdd[c].custom_model);
         else
             ini_section_delete_var(cat, temp);
         sprintf(temp, "hdd_%02i_revision", c + 1);
-        if ((hdd[c].bus_type == HDD_BUS_IDE || hdd[c].bus_type == HDD_BUS_ATAPI || hdd[c].bus_type == HDD_BUS_SCSI) &&
+        if ((hdd[c].bus_type == HDD_BUS_IDE || hdd[c].bus_type == HDD_BUS_ATAPI || hdd[c].bus_type == HDD_BUS_SCSI ||
+             hdd[c].bus_type == HDD_BUS_LPT) &&
             hdd_preset_is_generic(hdd[c].speed_preset) && hdd[c].custom_version[0])
             ini_section_set_string(cat, temp, hdd[c].custom_version);
         else
@@ -4815,6 +4873,12 @@ save_floppy_and_cdrom_drives(void)
         else
             ini_section_set_int(cat, temp, cdrom[c].res);
 
+        sprintf(temp, "cdrom_%02i_lpt_bridge", c + 1);
+        if ((cdrom[c].bus_type != CDROM_BUS_LPT) || (cdrom[c].lpt_bridge == HDD_LPT_BPCK))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_string(cat, temp, hdd_lpt_bridge_get_internal_name(cdrom[c].lpt_bridge));
+
         sprintf(temp, "cdrom_%02i_image_path", c + 1);
         if ((cdrom[c].bus_type == 0) || (strlen(cdrom[c].image_path) == 0))
             ini_section_delete_var(cat, temp);
@@ -4847,13 +4911,13 @@ save_other_removable_devices(void)
         if (rdisk_drives[c].bus_type == 0) {
             ini_section_delete_var(cat, temp);
         } else {
-            sprintf(tmp2, "%u, %s", rdisk_drives[c].type,
+            sprintf(tmp2, "%u, %s", rdisk_type_to_config(rdisk_drives[c].type),
                     hdd_bus_to_string(rdisk_drives[c].bus_type, 1));
             ini_section_set_string(cat, temp, tmp2);
         }
 
         sprintf(temp, "rdisk_%02i_ide_channel", c + 1);
-        if (rdisk_drives[c].bus_type != RDISK_BUS_ATAPI)
+        if ((rdisk_drives[c].bus_type != RDISK_BUS_ATAPI) && (rdisk_drives[c].bus_type != RDISK_BUS_IDE))
             ini_section_delete_var(cat, temp);
         else {
             sprintf(tmp2, "%u:%u", rdisk_drives[c].ide_channel >> 1,
@@ -4881,6 +4945,12 @@ save_other_removable_devices(void)
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_int(cat, temp, rdisk_drives[c].res);
+
+        sprintf(temp, "rdisk_%02i_lpt_bridge", c + 1);
+        if ((rdisk_drives[c].bus_type != RDISK_BUS_LPT) || (rdisk_drives[c].lpt_bridge == HDD_LPT_EPAT))
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_string(cat, temp, hdd_lpt_bridge_get_internal_name(rdisk_drives[c].lpt_bridge));
 
         sprintf(temp, "rdisk_%02i_image_path", c + 1);
         if ((rdisk_drives[c].bus_type == 0) || (strlen(rdisk_drives[c].image_path) == 0))

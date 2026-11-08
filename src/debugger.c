@@ -33,8 +33,6 @@
 extern void cpu_386_flags_rebuild(void);
 extern const uint8_t opf_0f[256];
 
-volatile int debugger_attached = 0;
-
 /* Written by the viewer and read by the processor's thread, and the other
    way around: the ATOMIC_ accesses order them on hosts that need it. The
    breakpoint list is written before its count, so the processor's thread
@@ -665,6 +663,8 @@ debugger_decode_info(debugger_decode_info_t *info)
     info->fpu_trap = is286 && !!(cr0 & 0x0c);
     info->vpc      = !!is_vpc;
     info->fpu_ud   = is486 || isibm486;
+    info->invlpg   = is486 || isibm486;
+    info->emmi     = !!(ccr7 & 1);
 }
 
 /* The tables the running interpreter dispatches through, and what they hold
@@ -705,8 +705,12 @@ debugger_fpu_kind(uint8_t op, uint8_t modrm, int addr32)
           &x86_2386_opcodes_dc_a32, &x86_2386_opcodes_dd_a32, &x86_2386_opcodes_de_a32, &x86_2386_opcodes_df_a32 }
     };
 
-    if (!is286 || (op < 0xd8) || (op > 0xdf))
+    if ((op < 0xd8) || (op > 0xdf))
         return DEBUGGER_OP_NORMAL;
+    /* The 8086 class: the 8087 tables, for which an undefined opcode reads
+       the operand and does nothing. */
+    if (!is286)
+        return (hasfpu && fpu_8087_op_illegal(op, modrm)) ? DEBUGGER_OP_ILLEGAL : DEBUGGER_OP_NORMAL;
     addr32 = !!addr32;
 
     if (debugger_exec() == exec386_2386) {
@@ -754,6 +758,8 @@ debugger_opcode_kind(int map, uint8_t op, int opsize)
                                                                                                     DEBUGGER_OP_NORMAL;
         case 0x10 ... 0x13:
             return DEBUGGER_OP_UMOV;
+        case 0x50 ... 0x5f: /* 86Box has no SSE */
+            return DEBUGGER_OP_EMMI;
         case 0x36:
             return DEBUGGER_OP_RDSHR;
         case 0x37:
@@ -791,6 +797,16 @@ debugger_lock_legal(uint8_t op, uint8_t b1, uint8_t b2)
 }
 
 int
+debugger_3dnow_kind(uint8_t suffix)
+{
+    /* Only the 486 and later interpreter (386_dynarec.c) has 3DNow!. */
+    if (!x86_opcodes_3DNOW || (x86_opcodes_3DNOW[suffix] == x86_illegal_op))
+        return DEBUGGER_OP_ILLEGAL;
+
+    return DEBUGGER_OP_NORMAL;
+}
+
+int
 debugger_nec_0f_modrm(uint8_t op)
 {
     return opf_0f[op] & 1; /* OP_MRM */
@@ -819,7 +835,7 @@ debugger_cpu_info(debugger_cpu_info_t *info)
 
 /* FLAGS as an instruction would see them, without leaving the lazily
    evaluated flags rebuilt: the processor's state is put back as it was. */
-static uint16_t
+uint16_t
 debugger_flags(void)
 {
     int      op  = cpu_state.flags_op;
@@ -958,41 +974,4 @@ debugger_cpu_format(char *buf, int size)
         } else
             APPEND("MSW %04X\n", msw);
     }
-}
-
-int
-debugger_register(const char *name, uint32_t *val, uint32_t *seg_base)
-{
-    static const char *r32[8]  = { "eax", "ecx", "edx", "ebx", "esp", "ebp", "esi", "edi" };
-    static const char *r16[8]  = { "ax", "cx", "dx", "bx", "sp", "bp", "si", "di" };
-    static const char *segs[6] = { "cs", "ss", "ds", "es", "fs", "gs" };
-    const x86seg      *seg_regs[6] = { &cpu_state.seg_cs, &cpu_state.seg_ss, &cpu_state.seg_ds,
-                                       &cpu_state.seg_es, &cpu_state.seg_fs, &cpu_state.seg_gs };
-
-    for (int i = 0; i < 8; i++) {
-        if (is386 && !strcmp(name, r32[i])) {
-            *val = cpu_state.regs[i].l;
-            return 1;
-        }
-        if (!strcmp(name, r16[i])) {
-            *val = cpu_state.regs[i].w;
-            return 1;
-        }
-    }
-    if (!strcmp(name, "ip") || (is386 && !strcmp(name, "eip"))) {
-        *val = debugger_ip();
-        if (name[0] == 'i')
-            *val &= 0xffff;
-        return 1;
-    }
-    for (int i = 0; i < (is386 ? 6 : 4); i++) {
-        if (!strcmp(name, segs[i])) {
-            *val = seg_regs[i]->seg;
-            if (seg_base)
-                *seg_base = seg_regs[i]->base;
-            return 1;
-        }
-    }
-
-    return 0;
 }

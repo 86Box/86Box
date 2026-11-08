@@ -93,32 +93,6 @@ void paradise_remap(paradise_t *paradise);
 
 /* The SpeedStar BIOS probes the SS2410 ID after unlocking port 3c6.
    Its mode 72h writes 9eh (RGB888), modes 62h/63h write a0h (RGB555). */
-static uint8_t
-speedstar24x_ramdac_in(uint16_t addr, paradise_t *paradise)
-{
-    if (addr == 0x3c6) {
-        if (paradise->dac_reads == 4)
-            return 0x8e;
-        paradise->dac_reads++;
-    } else
-        paradise->dac_reads = 0;
-    return svga_in(addr, &paradise->svga);
-}
-
-static void
-speedstar24x_ramdac_out(uint16_t addr, uint8_t val, paradise_t *paradise)
-{
-    svga_t *svga = &paradise->svga;
-
-    if (addr == 0x3c6 && paradise->dac_reads == 4) {
-        paradise->dac_control = val;
-        svga->bpp             = (val & 0x80) ? ((val & 0x20) ? 15 : 24) : 8;
-        svga_recalctimings(svga);
-    } else
-        svga_out(addr, val, svga);
-    paradise->dac_reads = 0;
-}
-
 static void
 paradise_hwcursor_draw(svga_t *svga, int displine)
 {
@@ -209,7 +183,7 @@ paradise_in(uint16_t addr, void *priv)
         case 0x3c8:
         case 0x3c9:
             if (paradise->speedstar24x)
-                return speedstar24x_ramdac_in(addr, paradise);
+                return mu9c1880_ramdac_in(addr, 0, svga->ramdac, svga);
             if (paradise->att_dac)
                 return att49x_ramdac_in(addr, 0, svga->ramdac, svga);
             if (paradise->type == WD90C33)
@@ -273,9 +247,9 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
                 if (paradise->type >= WD90C31 && svga->seqaddr > 0x15)
                     return;
                 svga->seqregs[svga->seqaddr & 0x1f] = val;
-                if ((svga->seqaddr == 0x11) || ((paradise->type == WD90C33) && (svga->seqaddr == 0x14))) {
+                if ((svga->seqaddr == 0x11) || ((paradise->type == WD90C33) && (svga->seqaddr == 0x14)))
                     paradise_remap(paradise);
-                }
+
                 if (paradise->type >= WD90C31 && svga->seqaddr == 0x12)
                     svga_recalctimings(svga);
                 return;
@@ -287,7 +261,7 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
         case 0x3c8:
         case 0x3c9:
             if (paradise->speedstar24x)
-                speedstar24x_ramdac_out(addr, val, paradise);
+                mu9c1880_ramdac_out(addr, 0, val, svga->ramdac, svga);
             else if (paradise->att_dac)
                 att49x_ramdac_out(addr, 0, val, svga->ramdac, svga);
             else if (paradise->type == WD90C33)
@@ -356,13 +330,8 @@ paradise_out(uint16_t addr, uint8_t val, void *priv)
                     paradise_remap(paradise);
                     return;
                 case 0x0c:
-                    if (paradise->type < WD90C31)
-                        break;
-                    svga->gdcreg[0x0c] = val;
-                    svga_recalctimings(svga);
-                    return;
                 case 0x0e:
-                    svga->gdcreg[0x0e] = val;
+                    svga->gdcreg[svga->gdcaddr] = val;
                     svga_recalctimings(svga);
                     return;
 
@@ -438,19 +407,15 @@ paradise_remap(paradise_t *paradise)
         if ((svga->gdcreg[6] & 0x0c) == 0x00) {
             paradise->read_bank[2] = paradise->read_bank[1] + 0x8000;
             paradise->read_bank[3] = paradise->read_bank[2] + 0x8000;
-
             paradise->write_bank[2] = paradise->write_bank[1] + 0x8000;
             paradise->write_bank[3] = paradise->write_bank[2] + 0x8000;
         } else {
             if (svga->gdcreg[6] & 0x08) {
                 paradise->read_bank[1] = paradise->read_bank[0];
-
                 paradise->write_bank[1] = paradise->write_bank[0];
             }
-
             paradise->read_bank[2] = paradise->read_bank[0];
             paradise->read_bank[3] = paradise->read_bank[1];
-
             paradise->write_bank[2] = paradise->write_bank[0];
             paradise->write_bank[3] = paradise->write_bank[1];
         }
@@ -496,31 +461,26 @@ paradise_remap(paradise_t *paradise)
         if ((svga->gdcreg[6] & 0x0c) == 0x00) {
             paradise->read_bank[2] = paradise->read_bank[1] + 0x8000;
             paradise->read_bank[3] = paradise->read_bank[2] + 0x8000;
-
             paradise->write_bank[2] = paradise->write_bank[1] + 0x8000;
             paradise->write_bank[3] = paradise->write_bank[2] + 0x8000;
         } else {
             if (svga->gdcreg[6] & 0x08) {
                 paradise->read_bank[1] = paradise->read_bank[0];
-
                 paradise->write_bank[1] = paradise->write_bank[0];
             }
-
             paradise->read_bank[2] = paradise->read_bank[0];
             paradise->read_bank[3] = paradise->read_bank[1];
-
             paradise->write_bank[2] = paradise->write_bank[0];
             paradise->write_bank[3] = paradise->write_bank[1];
         }
    }
-
     /* There are separate drivers for 1M and 512K/256K versions of the PVGA chips. */
     if ((svga->gdcreg[0x0b] & 0xc0) < 0xc0) {
         paradise->read_bank[1] &= 0x7ffff;
         paradise->write_bank[1] &= 0x7ffff;
     } else {
-        paradise->read_bank[1] &= svga->decode_mask | 0xfffff;
-        paradise->write_bank[1] &= svga->decode_mask | 0xfffff;
+        paradise->read_bank[1] &= (svga->decode_mask | 0xfffff);
+        paradise->write_bank[1] &= (svga->decode_mask | 0xfffff);
     }
 }
 
@@ -636,6 +596,7 @@ paradise_recalctimings(svga_t *svga)
            256-colour modes use. */
         if ((paradise->type == WD90C33) && (svga->crtc[0x17] & 0x40))
             svga->packed_chain4 = 1;
+
         svga->fast = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1]) &&
                      ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only) &&
                      !(svga->adv_flags & FLAG_ADDR_BY8);
@@ -660,6 +621,14 @@ paradise_recalctimings(svga_t *svga)
         svga->interlace = !!(svga->crtc[0x2d] & 0x20);
 
     if (paradise->type < WD90C30) {
+        clk_sel = ((svga->miscout >> 2) & 0x03);
+        if (!(svga->gdcreg[0x0c] & 0x02))
+            clk_sel |= 0x04;
+
+        clk_sel |= (svga->seqregs[0x12] & 0x04) << 1;
+        clk_sel ^= 0x08; /*VGATTL*/
+
+        svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
         if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
             if ((svga->bpp >= 8) && !svga->lowres) {
                 svga->render = svga_render_8bpp_highres;
@@ -680,16 +649,14 @@ paradise_recalctimings(svga_t *svga)
         }
     } else {
         clk_sel = ((svga->miscout >> 2) & 0x03);
-        if (!paradise->speedstar24x) {
-            if (!(svga->gdcreg[0x0c] & 0x02))
-                clk_sel |= 0x04;
+        if (!(svga->gdcreg[0x0c] & 0x02))
+            clk_sel |= 0x04;
 
-            clk_sel |= (svga->seqregs[0x12] & 0x04) << 1;
-            clk_sel ^= 0x04; /*VGATTL*/
-        }
+        clk_sel |= (svga->seqregs[0x12] & 0x04) << 1;
+        clk_sel ^= 0x04; /*VGATTL*/
 
         svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
-        if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
+        if ((svga->gdcreg[6] & 0x01) || (svga->attrregs[0x10] & 0x01)) {
             if ((svga->bpp >= 8) && !svga->lowres) {
                 if (svga->bpp == 24) {
                     svga->render = svga_render_24bpp_highres;
@@ -968,6 +935,8 @@ paradise_init_ex(const device_t *info, uint32_t memory, int speedstar24x, int at
                       NULL);
             paradise->vram_mask = (memory << 10) - 1;
             svga->decode_mask   = (memory << 10) - 1;
+            svga->clock_gen     = device_add(&ics90c64a_903_device);
+            svga->getclock      = ics90c64a_vclk_getclock;
             break;
         case WD90C11:
         case WD90C20:
@@ -978,6 +947,8 @@ paradise_init_ex(const device_t *info, uint32_t memory, int speedstar24x, int at
                       NULL);
             paradise->vram_mask = (memory << 10) - 1;
             svga->decode_mask   = (memory << 10) - 1;
+            svga->clock_gen     = device_add(&ics90c64a_903_device);
+            svga->getclock      = ics90c64a_vclk_getclock;
             break;
         case WD90C30:
         case WD90C31:
@@ -990,7 +961,7 @@ paradise_init_ex(const device_t *info, uint32_t memory, int speedstar24x, int at
             paradise->vram_mask = (memory << 10) - 1;
             svga->decode_mask   = (memory << 10) - 1;
             /* Reuse the WD90C30's SC11487-compatible DAC for the generic ROM.
-               The WD90C30 board has a W82C487-80; Diamond uses an SS2410. */
+               The WD90C30 board has a W82C487-80; Diamond uses an SS2410 (OEM of MUSIC MU9C1880). */
             /* The WD90C33 BIOS's default DAC commands (80h, E0h and 60h for
                15, 16 and 24 bpp) are those of a Sierra SC15025. The
                WD90C33-ZZ card's and the TriGem 486G's BIOSes are set up for a
@@ -1001,7 +972,7 @@ paradise_init_ex(const device_t *info, uint32_t memory, int speedstar24x, int at
             else if ((info->local & 0xff) == WD90C33)
                 svga->ramdac = device_add(&sc1502x_ramdac_device);
             else
-                svga->ramdac = paradise->speedstar24x ? NULL : device_add(&sc11487_ramdac_device);
+                svga->ramdac = paradise->speedstar24x ? device_add(&mu9c1880_ramdac_device) : device_add(&sc11487_ramdac_device);
             svga->clock_gen     = device_add(paradise->speedstar24x ? &icd2061_device : &ics90c64a_903_device);
             svga->getclock      = paradise->speedstar24x ? icd2061_getclock : ics90c64a_vclk_getclock;
             if ((info->local & 0xff) == WD90C31) {

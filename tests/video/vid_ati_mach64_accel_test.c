@@ -117,6 +117,27 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
     return 0;
 }
 
+/* This suite isolates the legacy 2D/FIFO path. Bus-master transfers and
+   Pro setup are covered by the bus-master and 3D suites. */
+int
+mach64_3d_setup_write(mach64_t *mach64, int reg, uint32_t val)
+{
+    (void) mach64;
+    (void) reg;
+    (void) val;
+    return 0;
+}
+
+int
+mach64_ragepro_gui_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
+{
+    (void) mach64;
+    (void) addr;
+    (void) val;
+    (void) type;
+    return 0;
+}
+
 static mach64_t *
 card_create(void)
 {
@@ -132,7 +153,7 @@ card_create(void)
         exit(1);
     }
     mach64->svga.priv = mach64;
-    mach64->vram_size = VRAM_SIZE;
+    mach64->vram_size = VRAM_SIZE >> 20;
     mach64->vram_mask = VRAM_SIZE - 1;
     mach64->type      = MACH64_GTB;
     return mach64;
@@ -546,6 +567,7 @@ overlay_tests(void)
         const char *name;
     } cards[] = {
         { MACH64_VT2, "VT2" },
+        { MACH64_GT, "3D Rage" },
         { MACH64_GTB, "GT-B" }
     };
     static const uint32_t pairs[OVERLAY_W] = { 0x100000, 0x100000, 0x200000, 0x200000, 0x300000, 0x300000, 0x400000, 0x400000 };
@@ -646,12 +668,17 @@ timing_used(mach64_t *mach64, uint64_t now, int *busy)
 }
 
 static void
-timing_fifo_tests(void)
+timing_fifo_tests(int profile)
 {
     mach64_t        *mach64 = card_create();
     mach64_timing_t *timing = mach64->timing = mach64_timing_init();
+    mach64->rage2c = profile == 1;
+    mach64->ragepro = profile == 2;
     uint32_t         used;
     int              busy;
+
+    mach64->rage2c = profile == 1;
+    mach64->ragepro = profile == 2;
 
     /* The engine takes the first entry at once; the others wait for its
        10 ticks. */
@@ -681,6 +708,8 @@ timing_fifo_tests(void)
        it; until then it holds the entries behind it. */
     mach64 = card_create();
     timing = mach64->timing = mach64_timing_init();
+    mach64->rage2c = profile == 1;
+    mach64->ragepro = profile == 2;
     timing_push(timing, 0, 1, 3, 0);
     timing_push(timing, 0, 0, 0, 5);
     used = timing_used(mach64, 1000, &busy);
@@ -695,12 +724,14 @@ timing_fifo_tests(void)
     /* A write to a full FIFO waits for the engine to take an entry. */
     mach64 = card_create();
     timing = mach64->timing = mach64_timing_init();
-    for (int i = 0; i <= TIMING_FIFO_DEPTH; i++)
+    mach64->rage2c = profile == 1;
+    mach64->ragepro = profile == 2;
+    for (int i = 0; i <= mach64_fifo_depth(mach64); i++)
         timing_push(timing, 0, 0, 0, 100);
     tsc    = 0;
     cycles = 0;
     mach64_timing_before_write(mach64);
-    CHECK((timing->floor == 100) && (cycles == -100) && ((timing->tail - timing->head) == (TIMING_FIFO_DEPTH - 1)),
+    CHECK((timing->floor == 100) && (cycles == -100) && ((timing->tail - timing->head) == (mach64_fifo_depth(mach64) - 1)),
           "a full FIFO waited until %llu, %d cycles, %u used", (unsigned long long) timing->floor, cycles,
           timing->tail - timing->head);
     card_close(mach64);
@@ -708,7 +739,9 @@ timing_fifo_tests(void)
     /* Entries that a reset of the draw engine FIFO took away are dropped. */
     mach64 = card_create();
     timing = mach64->timing = mach64_timing_init();
-    for (int i = 0; i < TIMING_FIFO_DEPTH; i++)
+    mach64->rage2c = profile == 1;
+    mach64->ragepro = profile == 2;
+    for (int i = 0; i < mach64_fifo_depth(mach64); i++)
         timing_push(timing, 0, 1, 100 + i, 0);
     mach64_timing_before_write(mach64);
     CHECK(timing->tail == timing->head, "%u lost entries kept", timing->tail - timing->head);
@@ -727,23 +760,23 @@ timing_clock_tests(void)
     pll[3]   = 0x10; /* MCLK_SRC_SEL: PLLMCLK / 2 */
     pll[4]   = 0x96; /* MCLK_FB_DIV */
     pll[11]  = 0x00; /* XCLK = MCLK = the source, 2 * MCLK_FB_DIV */
-    c        = mach64_timing_pll_clocks(pll, 33333333.0);
+    c        = mach64_timing_pll_clocks(pll, 33333333.0, PLL_REF_HZ);
     pll_mclk = PLL_REF_HZ * 2.0 * 0x96 / 0x21;
     CHECK(near(c.mclk, pll_mclk / 2.0, 1.0) && near(c.xclk, pll_mclk / 2.0, 1.0), "MCLK %.0f, XCLK %.0f", c.mclk, c.xclk);
 
     pll[11] = 0x04; /* MFB_TIMES_4_2B */
     pll[3]  = 0x20; /* PLLMCLK / 4 */
-    c       = mach64_timing_pll_clocks(pll, 33333333.0);
+    c       = mach64_timing_pll_clocks(pll, 33333333.0, PLL_REF_HZ);
     CHECK(near(c.mclk, pll_mclk / 2.0, 1.0), "MFB_TIMES_4_2B: MCLK %.0f", c.mclk);
 
     pll[11] = 0x06; /* XCLK_MCLK_RATIO 2: XCLK the source / 2, MCLK / 3 */
-    c       = mach64_timing_pll_clocks(pll, 33333333.0);
+    c       = mach64_timing_pll_clocks(pll, 33333333.0, PLL_REF_HZ);
     CHECK(near(c.xclk, pll_mclk / 4.0, 1.0) && near(c.mclk, pll_mclk / 6.0, 1.0), "ratio 2: XCLK %.0f, MCLK %.0f", c.xclk,
           c.mclk);
 
     /* An unprogrammed PLL is taken as 60 MHz. */
     memset(pll, 0, sizeof(pll));
-    c = mach64_timing_pll_clocks(pll, 33333333.0);
+    c = mach64_timing_pll_clocks(pll, 33333333.0, PLL_REF_HZ);
     CHECK((c.mclk == 60000000.0) && (c.xclk == 60000000.0), "unprogrammed: MCLK %.0f, XCLK %.0f", c.mclk, c.xclk);
 
     /* 640x480 at 16 bpp and 25.175 MHz: 80 of 100 characters, 480 of 525
@@ -931,14 +964,75 @@ engine_reset_tests(void)
     card_close(mach64);
 }
 
+static void
+extended_raw_format_tests(void)
+{
+    static const unsigned formats[] = { 7, 8, 9, 11, 12, 14, 15 };
+    for (unsigned n = 0; n < sizeof(formats)/sizeof(formats[0]); n++) {
+        mach64_t *m = card_create();
+        unsigned fmt = formats[n];
+        unsigned bytes = fmt < 10 ? 1 : fmt == 15 ? 2 : 4;
+        m->ragepro = 1;
+        memset(m->svga.vram, 0x7e, 64);
+        write_reg(m, 0x2d0, fmt | (fmt << 8) | (fmt << 16));
+        write_reg(m, 0x100, 1u << 22); /* pitch 8 pixels */
+        write_reg(m, 0x2a8, 7u << 16);
+        write_reg(m, 0x2b4, 0);
+        write_reg(m, 0x2c8, ~0u);
+        write_reg(m, 0x2c4, 0x33333333);
+        write_reg(m, 0x2d8, 0x100); /* constant foreground */
+        write_reg(m, 0x2d4, 0x70007);
+        write_reg(m, 0x130, DST_X_DIR | DST_Y_DIR);
+        write_reg(m, 0x10c, 0);
+        write_reg(m, 0x118, 0x00040001);
+        fifo_run(m);
+        for (unsigned i = 0; i < 4 * bytes; i++)
+            CHECK(m->svga.vram[i] == 0x33, "format %u byte %u incorrectly addressed", fmt, i);
+        CHECK(m->svga.vram[4 * bytes] == 0x7e, "format %u overwrote the guard", fmt);
+        card_close(m);
+    }
+}
+
+static void
+xl_planar_overlay_test(void)
+{
+    mach64_t *m = card_create();
+    uint32_t out[4];
+    m->idct = mach64_idct_init();
+    m->scaler_format = 0xa;
+    m->overlay_base = 0x100;
+    m->svga.overlay.pitch = 8;
+    m->rp.blk1[0x1d4 >> 2] = 0x1000;
+    m->rp.blk1[0x1d8 >> 2] = 0x2000;
+    for (unsigned y = 0; y < 3; y++) {
+        for (unsigned x = 0; x < 4; x++)
+            m->svga.vram[0x100 + y*8+x] = 20+y*4+x;
+        m->svga.vram[0x1000 + (y>>1)*4] = 80+(y>>1)*8;
+        m->svga.vram[0x1001 + (y>>1)*4] = 90+(y>>1)*8;
+        m->svga.vram[0x2000 + (y>>1)*4] = 140+(y>>1)*8;
+        m->svga.vram[0x2001 + (y>>1)*4] = 150+(y>>1)*8;
+        mach64_overlay_decode(m, out, &m->svga.vram[0x100+y*8], NULL, 4);
+        for (unsigned x = 0; x < 4; x++) {
+            uint32_t expected = (20+y*4+x) | ((80+(x>>1)*10+(y>>1)*8)<<8) | ((140+(x>>1)*10+(y>>1)*8)<<16);
+            CHECK(out[x] == expected, "planar overlay %u,%u: %06x != %06x", x,y,out[x],expected);
+        }
+    }
+    mach64_idct_close(m->idct);
+    m->idct = NULL;
+    card_close(m);
+}
+
 int
 main(void)
 {
     key_tests();
+    extended_raw_format_tests();
+    xl_planar_overlay_test();
     gui_engine_tests();
     composite_tests();
     overlay_tests();
-    timing_fifo_tests();
+    for (int profile = 0; profile < 3; profile++)
+        timing_fifo_tests(profile);
     timing_clock_tests();
     timing_cost_tests();
     engine_reset_tests();

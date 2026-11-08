@@ -200,8 +200,23 @@ rage128_mpll_hz(const rage128_t *dev)
     return 2.0 * dev->ref_freq_hz * (double) n / (double) m;
 }
 
-/* Nominal PCI bus clock; the XCLK/MCLK muxes can select it. */
-#define RAGE128_PCICLK_HZ 33333333.0
+/* PCICLK, the bus clock input the XCLK and MCLK muxes can select. The
+   pin carries whatever clock the slot drives: "33 - 66 - 133 MHz
+   depending on the system bus type" (GCS: Detailed Pinout
+   Descriptions, PCICLK, p. C-1 / PDF 167). On an AGP slot that is the
+   AGP clock, which stays 66 MHz in 2x mode: 2x moves two transfers per
+   clock on the AD_STB strobes instead (Accelerated Graphics Port
+   Interface Specification 2.0, section 4.1.1). So the AGP board runs
+   this input at the system's AGP clock and the PCI board at its PCI
+   clock; a bus speed the core reports as 0 falls back to the nominal
+   rate of that bus. */
+static double
+rage128_pciclk_hz(const rage128_t *dev)
+{
+    if (dev->is_agp)
+        return cpu_agp_speed ? (double) cpu_agp_speed : 66666667.0;
+    return cpu_pci_speed ? (double) cpu_pci_speed : 33333333.0;
+}
 
 /* XCLK, the memory controller clock, chosen by XCLK_CNTL.XCLK_SRC_SEL
    [3:0]: 0 = inverted PCICLK (the same rate), 1 to 4 = XPllClk divided
@@ -213,7 +228,7 @@ rage128_xclk_hz(const rage128_t *dev)
 {
     switch (dev->pll_regs[RAGE128_PLL_XCLK_CNTL] & 0xf) {
         case 0:
-            return RAGE128_PCICLK_HZ;
+            return rage128_pciclk_hz(dev);
         case 1:
             return rage128_xpll_hz(dev);
         case 2:
@@ -236,7 +251,7 @@ rage128_mclk_hz(const rage128_t *dev)
 {
     switch (dev->pll_regs[RAGE128_PLL_MCLK_CNTL] & 0x7) {
         case 0:
-            return RAGE128_PCICLK_HZ;
+            return rage128_pciclk_hz(dev);
         case 1:
             return rage128_mpll_hz(dev);
         case 2:
@@ -404,6 +419,22 @@ rage128_pll_read(rage128_t *dev)
 }
 
 static void rage128_recalctimings_apply(rage128_t *dev);
+
+/* Display work that a packet on the CCE thread asks for and the CPU
+   thread runs: the timing recalculation, the RAMDAC width, and a manual
+   snapshot. */
+#define RAGE128_DISP_DEFER_RECALC   (1u << 0)
+#define RAGE128_DISP_DEFER_RAMDAC   (1u << 1)
+#define RAGE128_DISP_DEFER_SNAPSHOT (1u << 2)
+
+/* DAC_CNTL.DAC_8BIT_EN selects the RAMDAC width, 8 or 6 bits per gun
+   (RRG: DAC_CNTL, p. 3-124 / PDF 142). CPU thread only. */
+static void
+rage128_ramdac_apply(rage128_t *dev)
+{
+    svga_set_ramdac_type(&dev->svga,
+                         (dev->dac_cntl & RAGE128_DAC_8BIT_EN) ? RAMDAC_8BIT : RAMDAC_6BIT);
+}
 
 static void
 rage128_pll_write(rage128_t *dev, uint32_t val, uint32_t mask)
@@ -575,6 +606,31 @@ rage128_conv_16to32(svga_t *svga, uint16_t color, uint8_t bpp)
     return (video_16to32[color] & 0xff000000) | makecol(r, g, b);
 }
 
+/* The svga core lets a CPU store to the VGA window go straight to VRAM,
+   skipping its byte-at-a-time planar write path, under an identity
+   graphics controller (bit mask FFh, no logical operation, no
+   set/reset) and packed addressing, either chain-4 in the packed layout
+   or the framebuffer-only addressing of an extended mode. With write
+   mode 0, no rotate and all four planes enabled, which is how a packed
+   mode is set up, both paths store the same bytes; the core's test does
+   not look at those three. The core works the test out again only when
+   the graphics controller or sequencer memory mode register is written.
+   The switch between VGA and extended mode changes the packed and
+   framebuffer-only inputs without such a write, so the test is worked
+   out again here, with the core's own expression, each time this file
+   changes either input (modeled; the same recompute the Mach64 and
+   Banshee models make on their own extended-mode switches). Without it,
+   extended mode keeps the byte path the VGA mode left, and a return to
+   a chain-4 VGA mode can keep packed stores where the planes
+   interleave. */
+static void
+rage128_update_fast_write(svga_t *svga)
+{
+    svga->fast = (svga->gdcreg[8] == 0xff && !(svga->gdcreg[3] & 0x18) && !svga->gdcreg[1])
+        && ((svga->chain4 && (svga->packed_chain4 || svga->force_old_addr)) || svga->fb_only)
+        && !(svga->adv_flags & FLAG_ADDR_BY8);
+}
+
 /* ------------------------------------------------------------------ */
 /* VGA aperture banking. MEM_VGA_WP_SEL and MEM_VGA_RP_SEL page the
    A0000 window. The guide enables them with CRTC_EXT_CNTL.VGA_MEM_PS_EN
@@ -610,6 +666,7 @@ rage128_update_banking(rage128_t *dev)
        scrambled although VRAM holds the right bytes (observed in the
        emulator). */
     svga->fb_only = !!(dev->crtc_gen_cntl & RAGE128_CRTC_EXT_DISP_EN);
+    rage128_update_fast_write(svga);
 
     if (paged) {
         dev->bank_w[0] = (dev->mem_vga_wp_sel & 0x3ff) * unit;
@@ -1782,6 +1839,17 @@ rage128_recalctimings_apply(rage128_t *dev)
 {
     svga_t *svga = &dev->svga;
 
+    /* A type-0 or type-1 packet can write any register, the CRTC and PLL
+       registers among them, so a register write that needs this also
+       runs on the CCE thread. The svga core's timing state and the line
+       timer belong to the CPU thread, whose line poll reads them without
+       a lock, so there the request is only recorded; the register value
+       has already changed, and the CPU thread recalculates from the
+       registers as they then stand. */
+    if (rage128_on_cce_thread) {
+        atomic_fetch_or(&dev->disp_defer, RAGE128_DISP_DEFER_RECALC);
+        return;
+    }
     svga_recalctimings(&dev->svga);
     if (svga->timer.callback != rage128_svga_poll_timed)
         timer_set_callback(&svga->timer, rage128_svga_poll_timed);
@@ -1806,6 +1874,7 @@ rage128_vsync_callback(svga_t *svga)
     if (dev->svga.timer.callback != rage128_svga_poll_timed)
         timer_set_callback(&dev->svga.timer, rage128_svga_poll_timed);
 
+    rage128_display_sync(dev);
     rage128_pace_update(dev);
 
     if (dev->synctel)
@@ -2011,7 +2080,7 @@ rage128_vline_timer(void *priv)
 {
     rage128_t *dev = (rage128_t *) priv;
 
-    dev->gen_int_status |= RAGE128_GIS_VLINE;
+    atomic_fetch_or(&dev->gen_int_status, RAGE128_GIS_VLINE);
     rage128_gen_int_update(dev);
 }
 
@@ -2067,11 +2136,45 @@ rage128_snapshot_hcount(rage128_t *dev)
 static void
 rage128_snapshot_take(rage128_t *dev)
 {
+    /* The counts come from the svga line timer and line counter, which
+       the CPU thread advances, so a snapshot asked for by a packet is
+       taken by the CPU thread when it next catches up with the CCE
+       thread (a register read or a ring pump), at the raster position
+       of that moment. */
+    if (rage128_on_cce_thread) {
+        atomic_fetch_or(&dev->disp_defer, RAGE128_DISP_DEFER_SNAPSHOT);
+        return;
+    }
     dev->snapshot_vh_counts = rage128_snapshot_hcount(dev)
         | (((uint32_t) dev->svga.displine & 0x7ff) << 16);
     dev->snapshot_f_count = dev->frame_count & 0x1fffff;
-    dev->gen_int_status |= RAGE128_GIS_SNAPSHOT;
+    atomic_fetch_or(&dev->gen_int_status, RAGE128_GIS_SNAPSHOT);
     rage128_gen_int_update(dev);
+}
+
+/* Run the display work that packets asked for on the CCE thread. CPU
+   thread only. It runs at every register read, at the end of every ring
+   pump and at every vertical sync, so the work lands within one pump
+   period while ring work is outstanding (the bound the interrupt line
+   has), at the driver's next register read, or at the next frame,
+   whichever is first. Each action works from the current register
+   values, so several writes before a sync give one recalculation. The
+   mask is taken before the registers are read, so a request that lands
+   after that read stays in the mask for the next sync. */
+void
+rage128_display_sync(rage128_t *dev)
+{
+    uint32_t d;
+
+    if (!atomic_load_explicit(&dev->disp_defer, memory_order_relaxed))
+        return;
+    d = atomic_exchange(&dev->disp_defer, 0);
+    if (d & RAGE128_DISP_DEFER_RECALC)
+        rage128_recalctimings_apply(dev);
+    if (d & RAGE128_DISP_DEFER_RAMDAC)
+        rage128_ramdac_apply(dev);
+    if (d & RAGE128_DISP_DEFER_SNAPSHOT)
+        rage128_snapshot_take(dev);
 }
 
 /* ------------------------------------------------------------------ */
@@ -2114,6 +2217,7 @@ rage128_recalctimings(svga_t *svga)
            that readback. */
         svga->bpp           = 8;
         svga->packed_chain4 = 0;
+        rage128_update_fast_write(svga);
         svga->hoverride     = 0;
         svga->lut_map       = 0;
         svga->adv_flags |= FLAG_PANNING_ATI; /* per-line VGA pixel panning */
@@ -2182,6 +2286,7 @@ rage128_recalctimings(svga_t *svga)
        core's packed-linear addressing mode, for the A0000 window and for
        the scan address alike. */
     svga->packed_chain4 = 1;
+    rage128_update_fast_write(svga);
 
     /* Geometry. Horizontal fields count 8-pixel characters and vertical
        fields count lines (RRG: CRTC, p. 3-61 / PDF 79). Each holds the
@@ -2775,7 +2880,12 @@ rage128_display_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t m
                                                     | ((val >> 24) & m));
                     rage128_dac_mask_apply(dev);
                 }
-                svga_set_ramdac_type(svga, (dev->dac_cntl & RAGE128_DAC_8BIT_EN) ? RAMDAC_8BIT : RAMDAC_6BIT);
+                /* The RAMDAC width is svga core state, set on the CPU
+                   thread only (see the timing recalculation). */
+                if (rage128_on_cce_thread)
+                    atomic_fetch_or(&dev->disp_defer, RAGE128_DISP_DEFER_RAMDAC);
+                else
+                    rage128_ramdac_apply(dev);
                 return 1;
             }
         case RAGE128_CRTC_STATUS:

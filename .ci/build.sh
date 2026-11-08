@@ -111,6 +111,33 @@ make_tar() {
 	return $?
 }
 
+# Download and extract sources separately, retrying incomplete transfers and
+# keeping partially extracted sources out of the build cache.
+download_source() {
+	local url="$1"
+	local source_dir="$2"
+	local source_name=$(basename "$source_dir")
+	local retry tmp_dir
+	for retry in 0 5 10 20 40
+	do
+		sleep $retry
+		tmp_dir=$(mktemp -d "$cache_dir/source.XXXXXX") || return 1
+		echo "[-] Downloading sources from [$url]"
+		if curl --fail --location --silent --show-error --connect-timeout 15 --max-time 120 \
+			--output "$tmp_dir/source.tar.gz" "$url" &&
+			tar zxf "$tmp_dir/source.tar.gz" -C "$tmp_dir" &&
+			[ -d "$tmp_dir/$source_name" ] &&
+			mv "$tmp_dir/$source_name" "$source_dir"
+		then
+			rm -rf "$tmp_dir"
+			return 0
+		fi
+		rm -rf "$tmp_dir"
+	done
+	echo "[!] Source download or extraction failed for [$url]" >&2
+	return 1
+}
+
 cache_dir="$HOME/86box-build-cache"
 [ ! -d "$cache_dir" ] && mkdir -p "$cache_dir"
 check_buildtag() {
@@ -1077,7 +1104,7 @@ else
 	if [ ! -d "$prefix" ]
 	then
 		rm -rf "$cache_dir/rtmidi-"* # remove old versions
-		wget -qO - https://github.com/thestk/rtmidi/archive/refs/tags/6.0.0.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+		download_source https://github.com/thestk/rtmidi/archive/refs/tags/6.0.0.tar.gz "$prefix" || exit 99
 	fi
 	prefix_build="$prefix/build-$arch_deb-$cmake_build_type"
 	cmake -G Ninja -D RTMIDI_API_JACK=OFF -D "CMAKE_BUILD_TYPE=$cmake_build_type" -D "CMAKE_TOOLCHAIN_FILE=$toolchain_file" -D "CMAKE_INSTALL_PREFIX=$cwd_root/archive_tmp/usr" -S "$prefix" -B "$prefix_build" || exit 99
@@ -1090,7 +1117,7 @@ else
 	if [ ! -d "$prefix" ]
 	then
 		rm -rf "$cache_dir/fluidsynth-"* # remove old versions
-		wget -qO - https://github.com/FluidSynth/fluidsynth/archive/refs/tags/v2.6.1.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+		download_source https://github.com/FluidSynth/fluidsynth/archive/refs/tags/v2.6.1.tar.gz "$prefix" || exit 99
 	fi
 	sed -i -e 's/SndFile_WITH_EXTERNAL_LIBS/1/g' "$prefix/CMakeLists.txt" # patch to enable sf3 support with packaged libsndfile
 	prefix_build="$prefix/build-$arch_deb-$cmake_build_type"
@@ -1107,7 +1134,7 @@ else
 	if [ ! -d "$prefix" ]
 	then
 		rm -rf "$cache_dir/SDL"[23]-* # remove old versions
-		wget -qO - https://www.libsdl.org/release/SDL3-3.4.18.tar.gz | tar zxf - -C "$cache_dir" || rm -rf "$prefix"
+		download_source https://www.libsdl.org/release/SDL3-3.4.18.tar.gz "$prefix" || exit 99
 	fi
 	prefix_build="$prefix-build-$arch_deb-$cmake_build_type"
 	sdl_ui=OFF

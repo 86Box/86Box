@@ -33,6 +33,7 @@
 #include <86box/scsi.h>
 #include <86box/scsi_device.h>
 #include <86box/hdc_ide.h>
+#include <86box/hdd.h>
 #include <86box/scsi_cdrom.h>
 #include <86box/ui.h>
 
@@ -272,12 +273,28 @@ scsi_cdrom_log(void *priv, const char *format, ...)
 #    define scsi_cdrom_log(priv, format, ...)
 #endif
 
+/* An ATAPI drive on an IDE channel: on the IDE bus, or behind a parallel
+   port bridge that has an IDE board of its own (all but the BackPack). */
+static int
+scsi_cdrom_on_ide(const cdrom_t *drv)
+{
+    return (drv->bus_type == CDROM_BUS_ATAPI) ||
+           ((drv->bus_type == CDROM_BUS_LPT) && (drv->lpt_bridge != HDD_LPT_BPCK));
+}
+
+static int
+scsi_cdrom_ide_channel(const cdrom_t *drv)
+{
+    return (drv->bus_type == CDROM_BUS_LPT) ? ide_lpt_channel(drv->res & (PARALLEL_MAX - 1)) :
+                                              drv->ide_channel;
+}
+
 static void
 scsi_cdrom_set_callback(const scsi_cdrom_t *dev)
 {
     if (dev && dev->drv && (dev->drv->bus_type != CDROM_BUS_SCSI) &&
-        (dev->drv->bus_type != CDROM_BUS_LPT))
-        ide_set_callback(ide_drives[dev->drv->ide_channel], dev->callback);
+        ((dev->drv->bus_type != CDROM_BUS_LPT) || scsi_cdrom_on_ide(dev->drv)))
+        ide_set_callback(ide_drives[scsi_cdrom_ide_channel(dev->drv)], dev->callback);
 }
 
 static void
@@ -325,7 +342,7 @@ scsi_cdrom_current_mode(const scsi_cdrom_t *dev)
 {
     if (dev->drv->bus_type == CDROM_BUS_SCSI)
         return 2;
-    else if (dev->drv->bus_type == CDROM_BUS_LPT)
+    else if ((dev->drv->bus_type == CDROM_BUS_LPT) && !scsi_cdrom_on_ide(dev->drv))
         /*
          * A parallel-port bridge moves everything a byte at a time; there is
          * no DMA to offer. Saying so matters: an unrecognised bus falls
@@ -333,7 +350,7 @@ scsi_cdrom_current_mode(const scsi_cdrom_t *dev)
          * command with no data phase at all.
          */
         return 1;
-    else if (dev->drv->bus_type == CDROM_BUS_ATAPI) {
+    else if (scsi_cdrom_on_ide(dev->drv)) {
         scsi_cdrom_log(dev->log, "ATAPI drive, setting to %s\n",
                        (dev->tf->features & 1) ? "DMA" : "PIO",
                        dev->id);
@@ -657,8 +674,8 @@ scsi_cdrom_bus_speed(scsi_cdrom_t *dev)
 {
     double ret = -1.0;
 
-    if (dev && dev->drv && (dev->drv->bus_type == CDROM_BUS_ATAPI))
-        ret = ide_atapi_get_period(dev->drv->ide_channel);
+    if (dev && dev->drv && scsi_cdrom_on_ide(dev->drv))
+        ret = ide_atapi_get_period(scsi_cdrom_ide_channel(dev->drv));
 
     if (ret == -1.0) {
         if (dev)
@@ -3439,7 +3456,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
         case GPCMD_MODE_SENSE_10:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
 
-            if (dev->drv->bus_type == CDROM_BUS_ATAPI)
+            if (scsi_cdrom_on_ide(dev->drv))
                 block_desc = 0;
             else
                 block_desc = !((cdb[1] >> 3) & 1);
@@ -4617,7 +4634,39 @@ scsi_cdrom_drive_reset(const int c)
     drv->sector_size = 2048;
     (void) scsi_cdrom_update_sector_flags(dev);
 
-    if (drv->bus_type == CDROM_BUS_LPT) {
+    if ((drv->bus_type == CDROM_BUS_LPT) && (drv->lpt_bridge != HDD_LPT_BPCK)) {
+        /* Behind a bridge with an IDE board: an ATAPI drive, its master. */
+        ide_t *id = ide_get_drive(ide_lpt_channel(drv->res & (PARALLEL_MAX - 1)));
+
+        if (id) {
+            dev->ven_cmd               = NULL;
+            memset(dev->ven_cmd_is_data, 0x00, sizeof(dev->ven_cmd_is_data));
+            dev->use_cdb_9             = 0;
+            dev->ms_page_flags         = scsi_cdrom_ms_page_flags;
+            dev->ms_pages_default      = scsi_cdrom_ms_pages_default;
+            dev->ms_pages_changeable   = scsi_cdrom_ms_pages_changeable;
+
+            id->sc                     = (scsi_common_t *) dev;
+            dev->tf                    = id->tf;
+            IDE_ATAPI_IS_EARLY         = dev->drv->is_early;
+            id->get_max                = scsi_cdrom_get_max;
+            id->get_timings            = scsi_cdrom_get_timings;
+            id->identify               = scsi_cdrom_identify;
+            id->stop                   = scsi_cdrom_stop;
+            id->packet_command         = scsi_cdrom_command;
+            id->device_reset           = scsi_cdrom_reset;
+            id->phase_data_out         = scsi_cdrom_phase_data_out;
+            id->command_stop           = scsi_cdrom_command_stop;
+            id->bus_master_error       = scsi_cdrom_bus_master_error;
+            id->read                   = scsi_cdrom_read;
+            id->write                  = NULL;
+            id->interrupt_drq          = dev->drv->is_early;
+
+            valid = 1;
+
+            ide_atapi_attach(id);
+        }
+    } else if (drv->bus_type == CDROM_BUS_LPT) {
         /*
          * Parallel-port drive, reached through a bridge. There is no bus to
          * attach to: the bridge fetches the drive from lpt_cdrom_devices[] by

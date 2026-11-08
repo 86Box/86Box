@@ -172,7 +172,7 @@ keyb_filter(BMessage *message, BHandler **target, BMessageFilter *filter)
 static BMessageFilter *filter;
 #endif
 
-extern int cpu_force_interpreter;
+#include <86box/cpu_events.h>
 
 extern void     qt_mouse_capture(int);
 extern "C" void qt_blit(int x, int y, int w, int h, int monitor_index);
@@ -502,14 +502,21 @@ MainWindow::MainWindow(QWidget *parent)
             ui->toolBar->show();
         }
         if (!QApplication::platformName().contains("eglfs") && vid_resize != 1) {
-            w = static_cast<int>(w / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.));
+            /* Without HiDPI scaling the size is in device pixels. The window may come out
+               a pixel larger than that, and the renderer then draws the picture without
+               stretching it to fill the extra pixel. */
+            if (!dpi_scale) {
+                const qreal dpr = util::screenOfWidget(this)->devicePixelRatio();
+                w = util::logicalSizeForPixels(w, dpr);
+                h = util::logicalSizeForPixels(h, dpr);
+            }
 
-            const int modifiedHeight = static_cast<int>(h / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.))
+            const int modifiedHeight = h
                 + menuBar()->height()
                 + (statusBar()->height() * !hide_status_bar)
                 + (ui->toolBar->height() * !hide_tool_bar);
 
-            ui->stackedWidget->resize(w, static_cast<int>(h / (!dpi_scale ? util::screenOfWidget(this)->devicePixelRatio() : 1.)));
+            ui->stackedWidget->resize(w, h);
             setFixedSize(w, modifiedHeight);
         }
     });
@@ -519,11 +526,13 @@ MainWindow::MainWindow(QWidget *parent)
 #ifdef QT_RESIZE_DEBUG
             qDebug() << "Resize";
 #endif
-            w = static_cast<int>(w / (!dpi_scale ? util::screenOfWidget(renderers[monitor_index].get())->devicePixelRatio() : 1.));
+            if (!dpi_scale) {
+                const qreal dpr = util::screenOfWidget(renderers[monitor_index].get())->devicePixelRatio();
+                w = util::logicalSizeForPixels(w, dpr);
+                h = util::logicalSizeForPixels(h, dpr);
+            }
 
-            int modifiedHeight = static_cast<int>(h / (!dpi_scale ? util::screenOfWidget(renderers[monitor_index].get())->devicePixelRatio() : 1.));
-
-            renderers[monitor_index]->setFixedSize(w, modifiedHeight);
+            renderers[monitor_index]->setFixedSize(w, h);
         }
     });
 

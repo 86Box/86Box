@@ -98,7 +98,7 @@ typedef struct mouse_t {
 
     pc_timer_t timer;
 
-    serial_t *serial;
+    ser_port_t *serial;
 } mouse_t;
 
 #define FLAG_INPORT  0x80 /* device is MS InPort */
@@ -159,7 +159,7 @@ sermouse_transmit_byte(mouse_t *dev, int do_next)
             dev->buf[4] = delta_y; /* same as byte 2 */
         }
 
-        serial_write_fifo(dev->serial, dev->buf[dev->buf_pos]);
+        serial_port_receive(dev->serial, dev->buf[dev->buf_pos]);
     }
 
     if (do_next) {

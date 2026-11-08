@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-31 20:01+0000\n"
+"PO-Revision-Date: 2026-11-04 14:27+0000\n"
 "Last-Translator: nguyen <barnacl437@disroot.org>\n"
 "Language-Team: Vietnamese <https://weblate.86box.net/projects/86box/86box/vi/"
 ">\n"
@@ -437,13 +437,13 @@ msgid "Offset the year by:"
 msgstr ""
 
 msgid "(currently %1)"
-msgstr ""
+msgstr "(hiện tại %1)"
 
 msgid "Always use the year:"
-msgstr ""
+msgstr "Luôn sử dụng năm:"
 
 msgid "Do not synchronize the date"
-msgstr ""
+msgstr "Không đồng bộ ngày"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Sử dụng trình thông dịch 486 cho các bộ xử lý 286 và 386"
@@ -489,6 +489,9 @@ msgstr "Đồ họa XGA"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Đồ họa adaptor xuất hình IBM PS/55"
+
+msgid "PowerVR PCX1/PCX2 Graphics"
+msgstr ""
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -1310,13 +1313,13 @@ msgid "Delete virtual machines to Recycle Bin"
 msgstr "Xóa máy ảo vào Thùng rác"
 
 msgid "Discord"
-msgstr ""
+msgstr "Discord"
 
 msgid "Show running machines in my Discord status"
-msgstr ""
+msgstr "Hiện các máy ảo đang chạy trong trạng thái Discord của tôi"
 
 msgid "Details shown:"
-msgstr ""
+msgstr "Chi tiết được hiển thị:"
 
 msgid "Machine name and hardware"
 msgstr "Tên máy và phần cứng"
@@ -1325,18 +1328,18 @@ msgid "Hardware only"
 msgstr "Chỉ phần cứng"
 
 msgid "No details"
-msgstr ""
+msgstr "Không có chi tiết"
 
 msgid "Using %1"
-msgstr ""
+msgstr "Đang dùng %1"
 
 msgid "%n machine(s) active"
 msgid_plural "%n machines active"
-msgstr[0] ""
+msgstr[0] "%n máy đang hoạt động"
 
 msgid " (+%n more)"
 msgid_plural " (+%n more)"
-msgstr[0] ""
+msgstr[0] " (+%n mục nữa)"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -3141,7 +3144,7 @@ msgid "Key bindings"
 msgstr "Phím nóng"
 
 msgid "VM Manager"
-msgstr ""
+msgstr "Trình quản lý máy ảo"
 
 msgid "Action"
 msgstr "Thực hiện"
@@ -3595,6 +3598,9 @@ msgstr "Chỉnh tần số lấy mẫu giả lập như của thiết bị host.
 
 msgid "Rate the host input capture device is opened at.\n\n44100 divides evenly by SB16/AWE32 rates of 44.1/22/11 kHz."
 msgstr ""
+"Tần số lẫy mẫu của thiết bị âm thanh đầu vào của host.\n"
+"\n"
+"44100 chia hết cho các mức 44,1/22/11kHz của SB16/AWE32."
 
 msgid "CGA lightpen"
 msgstr "Bút ánh sáng CGA"
@@ -3604,36 +3610,48 @@ msgstr "Ngưỡng độ sáng (%)"
 
 msgid "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded."
 msgstr ""
+"VFIO: Không thể mở /dev/vfio/vfio: %s. Hãy chắc chắn rằng module vfio-pci "
+"được nạp."
 
 msgid "VFIO %s: Invalid device location."
-msgstr ""
+msgstr "VFIO %s: Vị trí thiết bị không hợp lệ."
 
 msgid "VFIO %s: Device not found."
-msgstr ""
+msgstr "VFIO %s: Không tìm thấy thiết bị."
 
 msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
+"VFIO %s: Thiết bị không có nhóm IOMMU. Hãy chắc chắn rằng VT-d hoặc IOMMU "
+"được bật trên hệ thống của bạn."
 
 msgid "VFIO %s: Device is not bound to vfio-pci."
-msgstr ""
+msgstr "VFIO %s: Thiết bị không được liên kết với vfio-pci."
 
 msgid "VFIO %s: Could not open IOMMU group %d: %s"
-msgstr ""
+msgstr "VFIO %s: Không thể mở nhóm IOMMU %d: %s"
 
 msgid "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci."
 msgstr ""
+"VFIO %s: Nhóm IOMMU %d không dùng được. Tất cả các thiết bị trong nhóm phải "
+"được liên kết đến vfio-pci."
 
 msgid "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low."
 msgstr ""
+"VFIO: Không thể ánh xạ bộ nhớ máy khách cho DMA: %s. Giới hạn bộ nhớ bị khóa "
+"(ulimit -l) có thể quá thấp."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
 msgstr ""
+"VFIO %s: Không đọc được tập tin ROM \"%s\"; sẽ dùng ROM tích hợp của thiết "
+"bị."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
-msgstr ""
+msgstr "VFIO %s: Không đọc được tập tin ROM \"%s\"; ROM đã bị vô hiệu hóa."
 
 msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
 msgstr ""
+"VFIO %s: ROM có vẻ không hợp lệ. Một bản ROM tùy chỉnh có thể nạp qua cài "
+"đặt VFIO."
 
 msgid "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?"
 msgstr ""
@@ -3657,4 +3675,22 @@ msgid "Prepare PCI devices for VFIO passthrough"
 msgstr ""
 
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
+msgstr ""
+
+msgid "Disabled"
+msgstr ""
+
+msgid "Unlimited capacity"
+msgstr ""
+
+msgid "CD speed:"
+msgstr ""
+
+msgid "DVD speed:"
+msgstr ""
+
+msgid "HD/BD speed:"
+msgstr ""
+
+msgid "Software-initiated poweroff device (IBM 5140)"
 msgstr ""

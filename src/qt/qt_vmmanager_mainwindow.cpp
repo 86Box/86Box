@@ -357,3 +357,15 @@ VMManagerMainWindow::on_actionDocumentation_triggered()
 {
     QDesktopServices::openUrl(QUrl(EMU_DOCS_URL));
 }
+
+void
+VMManagerMainWindow::startBackgroundDiscovery()
+{
+    if (vmm) {
+        const auto config = new VMManagerConfig(VMManagerConfig::ConfigType::General);
+        const auto lastSelection = config->getStringValue("last_selection");
+        delete config;
+        vmm->loadFromCache(lastSelection);
+        vmm->startBackgroundDiscovery();
+    }
+}

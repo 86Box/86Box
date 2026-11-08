@@ -10,6 +10,8 @@ void voodoo_codegen_init(voodoo_t *voodoo);
 void voodoo_codegen_close(voodoo_t *voodoo);
 #endif
 
+void voodoo_lod_table_init(void);
+
 #define DEPTH_TEST(comp_depth)                    \
     do {                                          \
         switch (depth_op) {                       \

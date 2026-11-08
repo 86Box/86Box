@@ -88,6 +88,8 @@ public slots:
 #ifdef Q_OS_WINDOWS
     void onDarkModeUpdated();
 #endif
+    void loadFromCache(const QString &selectName = {});
+    void startBackgroundDiscovery();
     int  getActiveMachineCount();
 
     QList<int> getPaneSizes() const;

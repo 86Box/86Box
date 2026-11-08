@@ -1312,11 +1312,37 @@ codegen_timing_pentium_block_end(void)
     }
 }
 
+/*Block start leaves the register mask and the x87 latencies as the block
+  before left them*/
+static void
+codegen_timing_pentium_save(codegen_timing_state_t *state)
+{
+    state->regmask_modified = regmask_modified;
+    state->fpu_latency      = fpu_latency;
+    memcpy(state->fpu_st_latency, fpu_st_latency, sizeof(fpu_st_latency));
+}
+
+static void
+codegen_timing_pentium_load(const codegen_timing_state_t *state)
+{
+    if (state) {
+        regmask_modified = state->regmask_modified;
+        fpu_latency      = state->fpu_latency;
+        memcpy(fpu_st_latency, state->fpu_st_latency, sizeof(fpu_st_latency));
+    } else {
+        regmask_modified = 0;
+        fpu_latency      = 0;
+        memset(fpu_st_latency, 0, sizeof(fpu_st_latency));
+    }
+}
+
 codegen_timing_t codegen_timing_pentium = {
     codegen_timing_pentium_start,
     codegen_timing_pentium_prefix,
     codegen_timing_pentium_opcode,
     codegen_timing_pentium_block_start,
     codegen_timing_pentium_block_end,
-    NULL
+    NULL,
+    codegen_timing_pentium_save,
+    codegen_timing_pentium_load
 };

@@ -28,6 +28,7 @@ class VMManagerMainWindow;
 class VMManagerMainWindow final : public QMainWindow {
     Q_OBJECT
 public:
+    void startBackgroundDiscovery();
     explicit VMManagerMainWindow(QWidget *parent = nullptr);
     ~VMManagerMainWindow() override;
     void updateSettings();

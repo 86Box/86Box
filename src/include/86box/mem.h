@@ -20,6 +20,9 @@
 #define EMU_MEM_H
 
 #include <stdint.h>
+#ifndef __cplusplus
+#include <stdatomic.h>
+#endif
 
 #define MEM_MAP_TO_SHADOW_RAM_MASK 1
 #define MEM_MAP_TO_RAM_ADDR_MASK   2
@@ -417,6 +420,8 @@ extern void mem_mapping_set_mask(mem_mapping_t *, uint32_t mask);
 extern void mem_mapping_disable(mem_mapping_t *);
 extern void mem_mapping_enable(mem_mapping_t *);
 extern void mem_mapping_recalc(uint64_t base, uint64_t size, uint32_t base_ignore);
+extern void mem_mapping_lock(void);
+extern void mem_mapping_unlock(void);
 
 extern void mem_set_wp(uint64_t base, uint64_t size, uint8_t flags, uint8_t wp);
 extern void mem_set_access(uint8_t bitmap, int mode, uint32_t base, uint32_t size, uint16_t access);
@@ -425,7 +430,10 @@ extern int  mem_bus_unbacked(uint32_t base, uint32_t size);
 
 extern const uint8_t *mem_phys_ptr(uint32_t addr, uint32_t len);
 extern const mem_mapping_t *mem_read_mapping_at(uint32_t addr);
-extern uint32_t       mem_mapping_gen;
+#ifndef __cplusplus
+/* C11's _Atomic is not C++'s std::atomic; no C++ source reads it. */
+extern _Atomic uint32_t mem_mapping_gen;
+#endif
 extern size_t         mem_ram_size(void);
 
 extern uint8_t  mem_readb_phys(uint32_t addr);
@@ -478,12 +486,16 @@ extern void     pae_load_pdptes(void);
 extern void flushmmucache_write(void);
 extern void flushmmucache_pc(void);
 extern void flushmmucache_nopc(void);
+extern void flushmmucache_ring3(void);
 
 extern void mem_debug_check_addr(uint32_t addr, int write);
 
 extern void mem_a20_init(void);
 extern void mem_a20_recalc(void);
 extern void mem_a20_reset_vector_bypass_once(void);
+extern int  mem_a20_reset_line;
+extern int  mem_a20_reset_line_fetch;
+extern void mem_a20_reset_line_arm(int open);
 
 extern void mem_init(void);
 extern void mem_close(void);
@@ -505,7 +517,8 @@ get_phys(uint32_t addr)
 {
     uint64_t pa64;
 
-    if (!((addr ^ get_phys_virt) & ~0xfff))
+    /*A page-unaligned get_phys_phys is codegen_flush()'s tag: no entry*/
+    if (!((addr ^ get_phys_virt) & ~0xfff) && !(get_phys_phys & 0xfff))
         return get_phys_phys | (addr & 0xfff);
 
     get_phys_virt = addr;

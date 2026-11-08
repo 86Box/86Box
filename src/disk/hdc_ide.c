@@ -45,6 +45,7 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdd.h>
+#include <86box/lpt.h>
 #include <86box/sound.h>
 #include <86box/rdisk.h>
 #include <86box/thread.h>
@@ -70,6 +71,9 @@
 #define MC_ERR    0x20 /* Media change */
 #define UNC_ERR   0x40 /* Uncorrectable data error */
 #define BBK_ERR   0x80 /* Bad block mark detected */
+/* Removable media (ATA-4 names), sharing bits with the ones above. */
+#define NM_ERR    0x02 /* No media */
+#define WP_ERR    0x40 /* Write protected */
 
 /* ATA Commands */
 #define WIN_NOP                        0x00
@@ -99,10 +103,18 @@
 #define WIN_SETIDLE1                   0xe3
 #define WIN_CHECKPOWERMODE1            0xe5
 #define WIN_SLEEP1                     0xe6
+#define WIN_GET_MEDIA_STATUS           0xda
+#define WIN_ACK_MEDIA_CHANGE           0xdb /* ATA-1 */
+#define WIN_POST_BOOT                  0xdc /* ATA-1 */
+#define WIN_PRE_BOOT                   0xdd /* ATA-1 */
+#define WIN_DOOR_LOCK                  0xde
+#define WIN_DOOR_UNLOCK                0xdf
+#define WIN_MEDIA_EJECT                0xed
 #define WIN_FLUSH_CACHE                0xe7
 #define WIN_IDENTIFY                   0xec /* Ask drive to identify itself */
 #define WIN_SET_FEATURES               0xef
 #define WIN_READ_NATIVE_MAX            0xf8
+#define WIN_SYQUEST_WRITE_PROTECT      0xc0 /* SyQuest; CFA ERASE elsewhere */
 #define WIN_INVALID                    0xff
 
 #define FEATURE_SET_TRANSFER_MODE      0x03
@@ -143,6 +155,10 @@ typedef struct ide_board_t {
 
     ide_t     *ide[2];
     ide_bm_t  *bm;
+
+    /* A parallel port bridge: INTRQ goes to it instead of the PIC. */
+    void     (*lpt_irq)(int set, void *priv);
+    void      *lpt_priv;
 } ide_board_t;
 
 typedef struct mcide_t {
@@ -152,6 +168,7 @@ typedef struct mcide_t {
 } mcide_t;
 
 ide_board_t *ide_boards[IDE_BUS_MAX] = { 0 };
+static int   ide_lpt_port[IDE_BUS_MAX]; /* LPT port + 1 of a parallel port bridge's board */
 
 static uint8_t ide_ter_pnp_rom[] = {
     /* BOX0001, serial 0, dummy checksum (filled in by isapnp_add_card) */
@@ -386,6 +403,7 @@ ide_wait_for_async_reads(void)
 
 static void ide_atapi_callback(ide_t *ide);
 static void ide_callback(void *priv);
+static void ide_drive_setup(ide_t *dev);
 
 #ifdef ENABLE_IDE_LOG
 int ide_do_log = ENABLE_IDE_LOG;
@@ -588,6 +606,8 @@ ide_irq_update(ide_board_t *dev, UNUSED(int log))
 
     if (!dev->force_ata3 && dev->bm && dev->bm->set_irq)
         dev->bm->set_irq(set << 2, dev->bm->priv);
+    else if (dev->lpt_irq != NULL)
+        dev->lpt_irq(set, dev->lpt_priv);
     else if (ide_boards[ide->board]->irq != -1)
         picint_common(1 << dev->irq, PIC_IRQ_EDGE, set, NULL);
 }
@@ -772,8 +792,8 @@ ide_hd_identify(const ide_t *ide)
         ide_padstr((char *) (ide->buffer + 27), model, 40);
     } else
         ide_padstr((char *) (ide->buffer + 27), device_identify, 40);
-    /* Fixed drive */
-    ide->buffer[0]  = (1 << 6);
+    /* Fixed drive, or removable cartridge drive */
+    ide->buffer[0]  = ide->removable ? (1 << 7) : (1 << 6);
     /* Buffer type */
     ide->buffer[20] = 3;
     /* Buffer size */
@@ -1216,6 +1236,7 @@ ide_zero(int d)
     dev->type                          = IDE_NONE;
     dev->hdd_num                       = -1;
     dev->is_jride                      = 0;
+    dev->removable                     = 0;
     dev->tf->atastat                   = DRDY_STAT | DSC_STAT;
     dev->service                       = 0;
     dev->board                         = d >> 1;
@@ -1248,6 +1269,32 @@ ide_atapi_attach(ide_t *ide)
     ide->cfg_spt = ide->cfg_hpc = 0;
     if (!IDE_ATAPI_IS_EARLY)
         ide->tf->atastat = 0;
+}
+
+/*
+   Attach an ATA removable cartridge drive (see rdisk.c) to channel ch, using
+   the reserved hard disk slot hdd_num for its geometry. Returns 0 if the
+   channel does not exist or is taken.
+ */
+int
+ide_ata_removable_attach(int ch, int hdd_num)
+{
+    ide_t *ide = ide_get_drive(ch);
+
+    if ((ide == NULL) || (ide->type != IDE_NONE) || !HDD_IS_RDISK_SLOT(hdd_num))
+        return 0;
+
+    ide->spt       = ide->cfg_spt = hdd[hdd_num].spt;
+    ide->hpc       = ide->cfg_hpc = hdd[hdd_num].hpc;
+    ide->tracks    = hdd[hdd_num].tracks;
+    ide->type      = IDE_HDD;
+    ide->hdd_num   = hdd_num;
+    ide->removable = 1;
+    if (ide->sector_buffer == NULL)
+        ide->sector_buffer = (uint8_t *) calloc(1, 256 * 512);
+
+    ide_drive_setup(ide);
+    return 1;
 }
 
 void
@@ -1901,6 +1948,98 @@ ide_reset_registers(ide_t *ide)
     ide_set_callback(ide, 0.0);
 }
 
+/*
+   The removable-media part of an ATA cartridge drive (SyQuest EZ135,
+   EZFlyer): the ATA-1 door lock, unlock, media change acknowledge and boot
+   hints, the later media eject and media status, and the errors of the
+   commands that touch the medium. Returns 1 when the command is complete
+   here.
+ */
+static int
+ide_ata_removable_command(ide_t *ide, const uint8_t val)
+{
+    const int slot  = ide->hdd_num - HDD_NUM;
+    uint8_t   err   = 0x00;
+    int       write = 0;
+
+    switch (val) {
+        case WIN_DOOR_LOCK:
+        case WIN_DOOR_UNLOCK:
+            if (!rdisk_ata_media_present(slot))
+                err = NM_ERR;
+            else
+                rdisk_ata_lock(slot, val == WIN_DOOR_LOCK);
+            break;
+
+        case WIN_MEDIA_EJECT:
+            if (rdisk_ata_eject(slot) < 0)
+                err = ABRT_ERR;
+            break;
+
+        case WIN_GET_MEDIA_STATUS:
+            if (!rdisk_ata_media_present(slot))
+                err = NM_ERR;
+            else {
+                if (rdisk_ata_take_media_change(slot))
+                    err |= MC_ERR;
+                if (rdisk_ata_write_protected(slot))
+                    err |= WP_ERR;
+            }
+            break;
+
+        case WIN_ACK_MEDIA_CHANGE:
+            (void) rdisk_ata_take_media_change(slot);
+            break;
+
+        case WIN_SYQUEST_WRITE_PROTECT:
+            if (!rdisk_ata_media_present(slot))
+                err = NM_ERR;
+            else if (rdisk_ata_soft_protect(slot, ide->tf->cylprecomp) < 0)
+                err = ABRT_ERR;
+            break;
+
+        /* ATA-1 boot hints; SQATDRVR.SYS sends post-boot once it is loaded. */
+        case WIN_POST_BOOT:
+        case WIN_PRE_BOOT:
+            break;
+
+        case WIN_WRITE:
+        case WIN_WRITE_NORETRY:
+        case WIN_WRITE_MULTIPLE:
+        case WIN_WRITE_DMA:
+        case WIN_WRITE_DMA_ALT:
+        case WIN_FORMAT:
+            write = 1;
+            fallthrough;
+        case WIN_RECAL ... 0x1f:
+        case WIN_READ:
+        case WIN_READ_NORETRY:
+        case WIN_READ_MULTIPLE:
+        case WIN_READ_DMA:
+        case WIN_READ_DMA_ALT:
+        case WIN_VERIFY:
+        case WIN_VERIFY_ONCE:
+        case WIN_SEEK ... 0x7f:
+            if (!rdisk_ata_media_present(slot))
+                err = NM_ERR;
+            else if (rdisk_ata_take_media_change(slot))
+                err = MC_ERR;
+            else if (write && rdisk_ata_write_protected(slot))
+                err = WP_ERR | ABRT_ERR;
+            else
+                return 0;
+            break;
+
+        default:
+            return 0;
+    }
+
+    ide->tf->atastat = DRDY_STAT | DSC_STAT | (err ? ERR_STAT : 0x00);
+    ide->tf->error   = err;
+    ide_irq_raise(ide);
+    return 1;
+}
+
 void
 ide_writeb(uint16_t addr, uint8_t val, void *priv)
 {
@@ -2044,6 +2183,9 @@ ide_writeb(uint16_t addr, uint8_t val, void *priv)
             ide->command = val;
 
             ide->tf->error = 0;
+
+            if (ide->removable && ide_ata_removable_command(ide, val))
+                break;
 
             switch (val) {
                 case WIN_RECAL ... 0x1f:
@@ -3303,6 +3445,40 @@ ide_board_close(int board)
     ide_boards[board] = NULL;
 }
 
+/* Power-on state of an attached drive. */
+static void
+ide_drive_setup(ide_t *dev)
+{
+    ide_allocate_buffer(dev);
+
+    ide_set_signature(dev);
+
+    dev->mdma_mode = (1 << ide_get_max(dev, TYPE_PIO));
+    dev->tf->error = 1;
+    if (dev->type != IDE_HDD)
+        dev->cfg_spt = dev->cfg_hpc = 0;
+    if (dev->type == IDE_HDD) {
+        dev->blocksize = hdd[dev->hdd_num].max_multiple_block;
+
+        /* Calculate the default heads and sectors. */
+        uint32_t d_hpc    = dev->hpc;
+        uint32_t d_spt    = dev->spt;
+
+        if ((dev->hpc > 16) || (dev->spt > 63)) {
+            /* HPC > 16, convert to 16 HPC. */
+            if (dev->hpc > 16)
+                d_hpc = 16;
+            if (dev->spt > 63)
+                d_spt = 63;
+        }
+
+        dev->cfg_spt = d_spt;
+        dev->cfg_hpc = d_hpc;
+    }
+
+    dev->params_specified = 0;
+}
+
 static void
 ide_board_setup(const int board)
 {
@@ -3319,10 +3495,11 @@ ide_board_setup(const int board)
 
     c = 0;
     for (d = 0; d < HDD_NUM; d++) {
-        const int is_ide   = (hdd[d].bus_type == HDD_BUS_IDE);
-        const int ch       = hdd[d].ide_channel;
+        const int lpt      = ide_lpt_port[board];
+        const int is_ide   = lpt ? (hdd[d].bus_type == HDD_BUS_LPT) : (hdd[d].bus_type == HDD_BUS_IDE);
+        const int ch       = lpt ? min_ch : hdd[d].ide_channel;
 
-        const int valid_ch = ((ch >= min_ch) && (ch <= max_ch));
+        const int valid_ch = lpt ? (hdd[d].channel == (lpt - 1)) : ((ch >= min_ch) && (ch <= max_ch));
 
         if (is_ide && valid_ch) {
             ide_log("Found IDE hard disk on channel %i\n", ch);
@@ -3344,34 +3521,7 @@ ide_board_setup(const int board)
         if (dev->type == IDE_NONE)
             continue;
 
-        ide_allocate_buffer(dev);
-
-        ide_set_signature(dev);
-
-        dev->mdma_mode = (1 << ide_get_max(dev, TYPE_PIO));
-        dev->tf->error = 1;
-        if (dev->type != IDE_HDD)
-            dev->cfg_spt = dev->cfg_hpc = 0;
-        if (dev->type == IDE_HDD) {
-            dev->blocksize = hdd[dev->hdd_num].max_multiple_block;
-
-            /* Calculate the default heads and sectors. */
-            uint32_t d_hpc    = dev->hpc;
-            uint32_t d_spt    = dev->spt;
-
-            if ((dev->hpc > 16) || (dev->spt > 63)) {
-                /* HPC > 16, convert to 16 HPC. */
-                if (dev->hpc > 16)
-                    d_hpc = 16;
-                if (dev->spt > 63)
-                    d_spt = 63;
-            }
-
-            dev->cfg_spt = d_spt;
-            dev->cfg_hpc = d_hpc;
-        }
-
-        dev->params_specified = 0;
+        ide_drive_setup(dev);
     }
 }
 
@@ -3612,6 +3762,81 @@ void
 ide_xtide_close(void)
 {
     ide_board_close(0);
+}
+
+/* The board of the parallel port to IDE bridge on LPT port (0-based),
+   counted down from the last: no I/O ports and no IRQ, and the bridge calls
+   ide_readb() and the others on it. Its master is the hard disk the user
+   put on that port (bus LPT). */
+static int
+ide_lpt_board(int port)
+{
+    return IDE_BUS_MAX - 1 - port;
+}
+
+void *
+ide_lpt_init(int port)
+{
+    const int board = ide_lpt_board(port);
+
+    if ((port < 0) || (port >= PARALLEL_MAX) || ide_board_claimed(board))
+        return NULL;
+
+    ide_lpt_port[board] = port + 1;
+    ide_board_init(board, -1, 0, 0, 0, 0);
+
+    return ide_boards[board];
+}
+
+/* The IDE channel of the master on the LPT board of the port: where an
+   ATAPI CD-ROM drive behind a bridge on that port attaches. */
+int
+ide_lpt_channel(int port)
+{
+    return ide_lpt_board(port) << 1;
+}
+
+/* The bridge's handler of INTRQ changes on the LPT board of the port. */
+void
+ide_lpt_set_irq(int port, void (*lpt_irq)(int set, void *priv), void *priv)
+{
+    ide_board_t *dev;
+
+    if ((port < 0) || (port >= PARALLEL_MAX))
+        return;
+
+    dev = ide_boards[ide_lpt_board(port)];
+    if (dev != NULL) {
+        dev->lpt_irq  = lpt_irq;
+        dev->lpt_priv = priv;
+    }
+}
+
+/* The INTRQ line of the drive selected on the LPT board, as nIEN gates it. */
+int
+ide_lpt_intrq(int port)
+{
+    const ide_board_t *dev;
+    const ide_t       *ide;
+
+    if ((port < 0) || (port >= PARALLEL_MAX))
+        return 0;
+
+    dev = ide_boards[ide_lpt_board(port)];
+    if (dev == NULL)
+        return 0;
+
+    ide = ide_drives[dev->cur_dev];
+    return (ide != NULL) && !(dev->devctl & 2) && ide->irqstat;
+}
+
+void
+ide_lpt_close(int port)
+{
+    if ((port >= 0) && (port < PARALLEL_MAX)) {
+        ide_board_close(ide_lpt_board(port));
+        ide_lpt_port[ide_lpt_board(port)] = 0;
+    }
 }
 
 void
@@ -3979,6 +4204,38 @@ ide_plan(ide_owner_t owners[IDE_BUS_MAX], int mach, const int hdc[], const int s
     for (int board = 0; board < IDE_BUS_MAX; board++) {
         if (plan.taken[board] && (board >= shown))
             shown = board + 1;
+    }
+
+    /* Last, the bridge of each hard disk on a parallel port, on a board of
+       its own that is not offered for IDE drives. */
+    for (int i = 0; i < PARALLEL_MAX; i++) {
+        for (int c = 0; c < HDD_NUM; c++) {
+            if (lpt_ports[i].enabled && hdd_is_valid(c) &&
+                (hdd[c].bus_type == HDD_BUS_LPT) && (hdd[c].channel == i)) {
+                ide_plan_claim(&plan, 1 << ide_lpt_board(i),
+                               hdd_lpt_bridge_device(hdd[c].lpt_bridge),
+                               i + 1, 0);
+                break;
+            }
+        }
+        for (int c = 0; c < RDISK_NUM; c++) {
+            if (lpt_ports[i].enabled && (rdisk_drives[c].bus_type == RDISK_BUS_LPT) &&
+                (rdisk_drives[c].res == i) && (rdisk_drives[c].lpt_bridge != HDD_LPT_EPAT)) {
+                ide_plan_claim(&plan, 1 << ide_lpt_board(i),
+                               hdd_lpt_bridge_device(rdisk_drives[c].lpt_bridge),
+                               i + 1, 0);
+                break;
+            }
+        }
+        for (int c = 0; c < CDROM_NUM; c++) {
+            if (lpt_ports[i].enabled && (cdrom[c].bus_type == CDROM_BUS_LPT) &&
+                (cdrom[c].res == i) && (cdrom[c].lpt_bridge != HDD_LPT_BPCK)) {
+                ide_plan_claim(&plan, 1 << ide_lpt_board(i),
+                               hdd_lpt_bridge_device(cdrom[c].lpt_bridge),
+                               i + 1, 0);
+                break;
+            }
+        }
     }
 
     return shown;
