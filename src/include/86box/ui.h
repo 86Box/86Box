@@ -64,6 +64,10 @@ extern void ui_progress_wait(const char *message, int total,
 #define SB_TEXT       0xA0
 
 extern void  ui_emu_status(int speed_percent);
+
+/* ui_notify() events; posted from any thread, handled on the UI thread. */
+#define UI_NOTIFY_RUN_STATE 1 /* see runctl.h */
+extern void  ui_notify(int what);
 extern void  ui_hard_reset_completed(void);
 extern void  ui_init_monitor(int monitor_index);
 extern void  ui_deinit_monitor(int monitor_index);

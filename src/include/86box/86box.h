@@ -335,9 +335,6 @@ extern void resub_cycles(int old_cycles);
 extern void sub_cycles_vx0(int c);
 extern void resub_cycles_vx0(int old_cycles);
 
-extern void ack_pause(void);
-extern void do_pause(int p);
-
 extern double isa_timing;
 extern int    io_delay;
 extern int    io_delay_multi;
