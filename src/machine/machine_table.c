@@ -2620,7 +2620,7 @@ const machine_t machines[] = {
         .aliases                  = { "" }
     },
     {
-        .name              = "[V20] Peter Kohlmann PC-XT", /* based on its ROM's BIOS */
+        .name              = "[V20] Peter Kohlmann PC-XT",
         .internal_name     = "v20xt",
         .type              = MACHINE_TYPE_8088,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
