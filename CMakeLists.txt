@@ -203,7 +203,7 @@ cmake_dependent_option(SOFTMODEM      "AC'97 Softmodem"                         
 
 # Defaults to DEV_BRANCH like the options above, but can also be enabled on its own
 option(RAGE128_MAXX "ATI Rage Fury MAXX" ${DEV_BRANCH})
-option(POWERVR_PCX_DEV "PowerVR PCX: developer/test settings in the device" ${DEV_BRANCH})
+option(POWERVR_PCX_DEV "PowerVR PCX: developer/test settings in the device" OFF)
 
 # Ditto but for Qt
 if(QT)

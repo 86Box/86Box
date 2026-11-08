@@ -169,6 +169,7 @@ enum {
     PCX_ACK_RESET_CLEARS  = 2
 };
 
+#ifdef USE_POWERVR_PCX_DEV
 enum {
     PCX_LOG_OFF     = 0,
     PCX_LOG_SUMMARY = 1, /* start-up, problems, and speed every 100 frames */
@@ -188,6 +189,7 @@ typedef struct pcx_dump_hdr_t {
     uint32_t pci_command;
     uint32_t reserved[6];
 } pcx_dump_hdr_t;
+#endif
 
 /* Worst case for the runs of one row: every other pixel written. */
 #define PCX_ROW_SPANS ((PCXR_MAX_W + 1) / 2)
@@ -240,7 +242,9 @@ typedef struct pcx_t {
     volatile int   render_quit;
     int            render_pending;
     atomic_int     render_ready;   /* set by the render thread when the frame is drawn */
+#ifdef USE_POWERVR_PCX_DEV
     double         render_late_us; /* emulated time the end of render was held back */
+#endif
     int            render_discard;
     uint32_t      *isp_buf;
     uint32_t      *rgb;
@@ -248,7 +252,9 @@ typedef struct pcx_t {
     pcxr_frame_t   job;
     pcxr_result_t  job_res;
     uint32_t       job_sofaddr, job_stride, job_packmode;
+#ifdef USE_POWERVR_PCX_DEV
     double         job_start_ms, job_ms; /* host time spent on the frame (render thread) */
+#endif
     /* Output prepared by the render thread: the frame packed to PACKMODE,
        and the runs of written pixels to bus-master to SOFADDR. */
     uint8_t       *out_buf; /* row y's bytes start at y * PCXR_MAX_W * 4 */
@@ -267,6 +273,7 @@ typedef struct pcx_t {
     uint16_t subsys_id;
     int      render_delay_us;
     int      ack_mode;
+#ifdef USE_POWERVR_PCX_DEV
     int      log_level;
     int      debug_tile;
     int      dump_limit;
@@ -279,8 +286,10 @@ typedef struct pcx_t {
     uint32_t frames;
     uint32_t dumps;
     uint32_t tex_writes_during_render;
+#endif
 } pcx_t;
 
+#ifdef USE_POWERVR_PCX_DEV
 static const char *
 pcx_reg_name(uint32_t idx)
 {
@@ -325,6 +334,9 @@ pcx_now_ms(void)
     timespec_get(&ts, TIME_UTC);
     return ts.tv_sec * 1000.0 + ts.tv_nsec / 1.0e6;
 }
+#else
+#    define pcx_log(pcx, level, fmt, ...)
+#endif
 
 /* ---------------------------------------------------------------------- */
 /* Interrupts                                                              */
@@ -378,6 +390,7 @@ pcx_bus_master_enabled(const pcx_t *pcx)
     return !!(pcx->pci_regs[PCI_REG_COMMAND_L] & PCI_COMMAND_L_BM);
 }
 
+#ifdef USE_POWERVR_PCX_DEV
 /* Debug aid: draws a 32x32 square at the top-left of the target surface,
    cycling colour each frame, to prove SOFADDR / LSTRIDE / PACKMODE land
    in the 2D card's frame buffer. */
@@ -477,6 +490,7 @@ pcx_dump_frame(pcx_t *pcx)
     pcx_log(pcx, PCX_LOG_SUMMARY, "PowerVR: dumped frame %u to %s (%u TLB pages of %u bytes)\n",
             pcx->frames, fn, hdr.tlb_entries, page_bytes);
 }
+#endif
 
 static void pcx_pack_rows(pcx_t *pcx, int first, int step);
 
@@ -602,14 +616,18 @@ pcx_render_thread(void *priv)
                 thread_set_event(pcx->helper[i].go);
             break;
         }
+#ifdef USE_POWERVR_PCX_DEV
         pcx->job_start_ms = pcx_now_ms();
+#endif
         memset(pcx->rgb, 0, PCXR_MAX_W * PCXR_MAX_H * sizeof(uint32_t));
         if (pcxr_prepare(pcx->rjob, &pcx->job, &pcx->job_res) > 0)
             pcx_run_phase(pcx, PCX_PHASE_TILES);
         pcx_pack_area(pcx);
         if (pcx->pack_y1 >= pcx->pack_y0)
             pcx_run_phase(pcx, PCX_PHASE_PACK);
+#ifdef USE_POWERVR_PCX_DEV
         pcx->job_ms = pcx_now_ms() - pcx->job_start_ms;
+#endif
         atomic_store(&pcx->render_ready, 1);
         thread_set_event(pcx->render_finished);
     }
@@ -669,7 +687,9 @@ pcx_render_frame(pcx_t *pcx)
 
     pcx->render_pending = 1;
     pcx->render_discard = 0;
+#ifdef USE_POWERVR_PCX_DEV
     pcx->render_late_us = 0.0;
+#endif
     atomic_store(&pcx->render_ready, 0);
     thread_set_event(pcx->render_go);
 }
@@ -717,12 +737,20 @@ pcx_render_done(void *priv)
        could drop timer interrupts, so games that count them ran in slow
        motion while reporting a normal frame rate. */
     if (pcx->render_pending && !atomic_load(&pcx->render_ready)) {
+#ifdef USE_POWERVR_PCX_DEV
         pcx->render_late_us += PCX_RENDER_POLL_US;
+#endif
         timer_on_auto(&pcx->render_timer, PCX_RENDER_POLL_US);
         return;
     }
 
     if (pcx->render_pending) {
+#ifndef USE_POWERVR_PCX_DEV
+        pcx_render_wait(pcx);
+        if (!pcx->render_discard)
+            pcx_render_output(pcx);
+    }
+#else
         double t0 = pcx_now_ms(), t1;
         pcx_render_wait(pcx);
         t1 = pcx_now_ms();
@@ -754,6 +782,7 @@ pcx_render_done(void *priv)
         pcx_draw_debug_tile(pcx);
         cycles = orig_cycles;
     }
+#endif
 
     pcx->render_busy = 0;
     pcx->int_status |= PCX_INT_FRAME_DONE;
@@ -766,7 +795,9 @@ pcx_render_done(void *priv)
 static void
 pcx_start_render(pcx_t *pcx)
 {
+#ifdef USE_POWERVR_PCX_DEV
     pcx->frames++;
+#endif
 
     if (pcx->render_busy)
         pcx_log(pcx, PCX_LOG_EVENTS, "PowerVR: STARTRENDER while frame %u still busy\n", pcx->frames - 1);
@@ -783,8 +814,10 @@ pcx_start_render(pcx_t *pcx)
             pcx->tlb_hiwater, pcx->regs[PCX_FOGAMOUNT], pcx->regs[PCX_FOGCOL], pcx->regs[PCX_CAMERA],
             pcx->regs[PCX_BILINEAR]);
 
+#ifdef USE_POWERVR_PCX_DEV
     if ((pcx->frames >= (uint32_t) pcx->dump_from) && (pcx->dumps < (uint32_t) pcx->dump_limit))
         pcx_dump_frame(pcx);
+#endif
 
     pcx_render_frame(pcx);
 
@@ -846,8 +879,10 @@ pcx_reg_read(pcx_t *pcx, uint32_t idx)
             break;
     }
 
+#ifdef USE_POWERVR_PCX_DEV
     if ((pcx->log_level >= PCX_LOG_ALL) || ((pcx->log_level >= PCX_LOG_EVENTS) && (idx == PCX_REVISION || idx == PCX_ID)))
         pclog("PowerVR: read  %-13s [%03x] = %08x\n", pcx_reg_name(idx), idx, val);
+#endif
 
     return val;
 }
@@ -855,6 +890,7 @@ pcx_reg_read(pcx_t *pcx, uint32_t idx)
 static void
 pcx_reg_write(pcx_t *pcx, uint32_t idx, uint32_t val)
 {
+#ifdef USE_POWERVR_PCX_DEV
     int table = (idx >= PCX_FOG_TABLE);
 
     /* At the events level, individual writes are logged only until the
@@ -865,6 +901,7 @@ pcx_reg_write(pcx_t *pcx, uint32_t idx, uint32_t val)
 
     if ((pcx->chip == PCX_CHIP_PCX1) && (idx >= PCX_IEEEFP) && (idx < 0x20))
         pcx_log(pcx, PCX_LOG_SUMMARY, "PowerVR: PCX2-only register %s written on PCX1\n", pcx_reg_name(idx));
+#endif
 
     if (pcx->chip == PCX_CHIP_PCX2) {
         if ((idx >= PCX_FOG_TABLE) && (idx < PCX_TLB))
@@ -985,6 +1022,7 @@ pcx_bar0_writeb(uint32_t addr, uint8_t val, void *priv)
 /* BAR1: texture memory                                                    */
 /* ---------------------------------------------------------------------- */
 
+#ifdef USE_POWERVR_PCX_DEV
 static void
 pcx_tex_write_check(pcx_t *pcx)
 {
@@ -992,6 +1030,9 @@ pcx_tex_write_check(pcx_t *pcx)
     if (pcx->render_busy && (pcx->tex_writes_during_render++ == 0))
         pcx_log(pcx, PCX_LOG_SUMMARY, "PowerVR: texture memory written during render (frame %u)\n", pcx->frames);
 }
+#else
+#    define pcx_tex_write_check(pcx)
+#endif
 
 static uint8_t
 pcx_bar1_readb(uint32_t addr, void *priv)
@@ -1208,23 +1249,22 @@ pcx_init(const device_t *info)
     pcx->pci_revision   = device_get_config_int("pci_revision");
     pcx->subsys_vendor  = device_get_config_hex16("subsys_vendor");
     pcx->subsys_id      = device_get_config_hex16("subsys_id");
+    pcx->log_level      = device_get_config_int("log_level");
+    pcx->dump_limit     = device_get_config_int("dump_frames");
+    pcx->dump_from      = device_get_config_int("dump_from");
+    pcx->dump_object_kb = 256;
 #else
     /* The Matrox m3D as measured. */
     pcx->chip           = PCX_CHIP_PCX2;
     pcx->revision_value = 1;
     pcx->render_delay_us = 7600;
     pcx->ack_mode       = PCX_ACK_READ_CLEARS;
-    pcx->debug_tile     = 0;
     pcx->pci_revision   = 1;
     pcx->subsys_vendor  = 0;
     pcx->subsys_id      = 0;
 #endif
     pcx->device_id      = (pcx->chip == PCX_CHIP_PCX1) ? PCX1_DEVICE_ID : PCX2_DEVICE_ID;
     pcx->id_value       = ((uint32_t) PCX_VENDOR_NEC << 16) | pcx->device_id; /* m3D reads 0x10330046 */
-    pcx->log_level      = device_get_config_int("log_level");
-    pcx->dump_limit     = device_get_config_int("dump_frames");
-    pcx->dump_from      = device_get_config_int("dump_from");
-    pcx->dump_object_kb = 256;
 
     pcx->tex_mem = calloc(1, PCX_TEXMEM_SIZE);
     if (pcx->chip == PCX_CHIP_PCX2) {
@@ -1279,7 +1319,9 @@ pcx_close(void *priv)
 {
     pcx_t *pcx = (pcx_t *) priv;
 
+#ifdef USE_POWERVR_PCX_DEV
     pclog("PowerVR: %u frames rendered, %u dumped\n", pcx->frames, pcx->dumps);
+#endif
     if (pcx->render_thread) {
         pcx_render_wait(pcx);
         pcx->render_quit = 1;
@@ -1420,7 +1462,6 @@ static const device_config_t pcx_config[] = {
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
-#endif
     {
         .name           = "log_level",
         .description    = "Logging",
@@ -1460,6 +1501,7 @@ static const device_config_t pcx_config[] = {
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
+#endif
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
