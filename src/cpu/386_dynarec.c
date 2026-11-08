@@ -796,7 +796,7 @@ exec386_dynarec_dyn(const int dbg)
                 ((page->mem != page_ff) && (page->byte_code_present_mask[byte_offset] & byte_mask)))
             {
                 /* Walk page tree to see if we find the correct block */
-                codeblock_t *new_block = codeblock_tree_find(phys_addr, cs, cs + cpu_state.pc);
+                codeblock_t *new_block = codeblock_tree_find(phys_addr, cs);
                 if (new_block) {
                     valid_block = (codeblock_pc_cs(new_block) == key) && (new_block->phys == phys_addr) && !((new_block->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) && ((new_block->status & cpu_cur_status & CPU_STATUS_MASK) == (cpu_cur_status & CPU_STATUS_MASK));
                     if (valid_block) {
@@ -1370,26 +1370,6 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
                     /* Out of a HLT that left pc on itself: "the saved CS:IP (or
                        CS:EIP) value points to the instruction following the HLT
                        instruction" (Pentium Vol. 3, HLT), NMI included. */
-                    if (cpu_halted)
-                        cpu_state.pc++;
-                    cpu_halted = 0;
-                    oldcs = CS;
-                    cpu_state.oldpc = cpu_state.pc;
-                    x86_int(2);
-                    nmi_enable = 0;
-#    ifdef OLD_NMI_BEHAVIOR
-                    if (nmi_auto_clear) {
-                        nmi_auto_clear = 0;
-                        nmi            = 0;
-                    }
-#    else
-                    nmi = 0;
-#    endif
-                } else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending()) {
-                    vector = x86_external_interrupt_vector();
-                    if (vector != -1) {
-                        /* An interrupt that came after the HLT looked: past the
-                           HLT, as above. */
                     if (cpu_halted)
                         cpu_state.pc++;
                     cpu_halted = 0;
