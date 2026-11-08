@@ -24,9 +24,7 @@
 #    include "x86seg.h"
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
 #        include <86box/nmi.h>
-#        include <86box/pic.h>
 #        include <86box/timer.h>
-#        include "x86_interrupt.h"
 #    endif
 
 #    if defined(__linux__) || defined(__APPLE__)
@@ -1271,6 +1269,8 @@ _Static_assert(offsetof(codegen_link_slot_t, exit_pc) == 0 && offsetof(codegen_l
 _Static_assert((uint32_t) (13u * 0xc4ec4ec5u) == 1 && (uint64_t) sizeof(codegen_link_slots) < 0x100000000ull,
                "the set lookup finds a slot's site from its 32-bit offset with the inverse of 13");
 _Static_assert(CODEGEN_LINK_SET_ONE >= CODEGEN_LINK_SETS, "the set lookup takes CODEGEN_LINK_SET_ONE for no set");
+_Static_assert(offsetof(codeblock_t, runs_left) == offsetof(codeblock_t, used) + 1,
+               "used and runs_left are loaded as one word");
 #        define LINK_SET_E(n) ((int32_t) offsetof(codegen_link_set_t, e[n]))
 
 /*op reg, [p] for a global p: RBP-relative when in reach, as globals in the
@@ -1309,7 +1309,7 @@ build_link_routine(codeblock_t *block)
     int32_t *nmi_set;
     int32_t *nmi_ok;
     int32_t *irq_ok;
-    int32_t *apic_set;
+    int32_t *used_set;
     int32_t *es_flat;
     int32_t *uncached;
     int32_t *no_paging;
@@ -1377,21 +1377,17 @@ build_link_routine(codeblock_t *block)
     nmi_set  = rx_jcc(block, RX_CC_NZ);
     nmi_done = rx_here();
 
-    /*Trap flag, and an interrupt the loop would take. With the APIC path
-      off x86_external_interrupt_pending() is pic.int_pending; with it on
-      it is 0 while pic.int_pending, local APIC 0's ExtINT and its IRR bit
-      are all clear, and anything else is left to the loop (out of line)*/
+    /*Trap flag, and an interrupt the loop would take. The loop looks for
+      one only while irq (0 or 1) is set, so with IF set that is a miss;
+      with IF clear it takes none*/
     rx_rm(block, 0, 0, 0x0fb7, REG_R9, REG_RBP, rx_state(&cpu_state.flags));
     rx_test_ri(block, REG_R9, T_FLAG);
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
     rx_test_ri(block, REG_R9, I_FLAG);
     irq_ok = rx_jcc(block, RX_CC_Z);
-    lx_abs(block, 0, 0, 0x0fb6, REG_R9, &pic.int_pending);
+    lx_abs(block, 0, 0, 0x0fb6, REG_R9, &cpu_events.irq);
     rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
-    lx_abs(block, 0, 0, 0x0fb6, REG_R9, &ioapic_irq_path_active);
-    rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
-    apic_set = rx_jcc(block, RX_CC_NZ);
     irq_done = rx_here();
     rx_patch(irq_ok, irq_done);
 
@@ -1496,10 +1492,13 @@ build_link_routine(codeblock_t *block)
     rx_rr(block, 0, 0, 0x31, REG_RCX, REG_RCX);
     lx_abs(block, 0, 0, 0x89, REG_RCX, &cpu_halted);
     lx_abs(block, 0, 0, 0x89, REG_RCX, &cpu_fetch_device);
-    rx_rr(block, 0, 0, 0xff, 0, REG_RCX);                       /*INC ECX*/
-    rx_rm(block, 0, 0, 0x88, REG_RCX, REG_RDI, LINK_BLOCK(used)); /*MOV block->used, CL*/
-    /*Linked entries bypass the dispatcher's SMC reuse countdown.*/
-    rx_rm(block, 0, 0, 0xd0, 5, REG_RDI, LINK_BLOCK(runs_left)); /*SHR byte, 1*/
+    /*The block is about to run: the eviction sweep passes it over once,
+      and a linked entry counts down runs_left as the dispatcher's does.
+      Both are stored only when that changes them: used 1 and runs_left 0
+      stay as they are*/
+    rx_rm(block, 0, 0, 0x0fb7, REG_RDX, REG_RDI, LINK_BLOCK(used)); /*MOVZX EDX, used and runs_left*/
+    rx_alu_ri(block, 0, 7, REG_RDX, 1);
+    used_set = rx_jcc(block, RX_CC_NZ);
     rx_bytes(block, jmp_r15, 3);
 
     /*Miss: the block's own epilogue, RAX still the slots*/
@@ -1535,15 +1534,12 @@ build_link_routine(codeblock_t *block)
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
     rx_patch(rx_jmp(block), nmi_done);
 
-    /*APIC path on: an ExtINT or an IRR vector at local APIC 0 is a miss*/
-    rx_patch(apic_set, rx_here());
-    lx_abs(block, 0, 0, 0x0fb6, REG_R9, cpu_lapic_extint_live);
-    rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
-    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
-    lx_abs(block, 0, 0, 0x8b, REG_R9, &cpu_lapic_irr_live);
-    rx_test_ri(block, REG_R9, 1);
-    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
-    rx_patch(rx_jmp(block), irq_done);
+    /*used or runs_left to change: RDI = the target block, ECX = 0*/
+    rx_patch(used_set, rx_here());
+    rx_rr(block, 0, 0, 0xff, 0, REG_RCX);                       /*INC ECX*/
+    rx_rm(block, 0, 0, 0x88, REG_RCX, REG_RDI, LINK_BLOCK(used)); /*MOV block->used, CL*/
+    rx_rm(block, 0, 0, 0xd0, 5, REG_RDI, LINK_BLOCK(runs_left)); /*SHR byte, 1*/
+    rx_bytes(block, jmp_r15, 3);
 
     /*get_phys() cache miss: it would store the full address in
       get_phys_virt, and translate through readlookup2[] with paging on or
