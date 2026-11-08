@@ -8,6 +8,7 @@
 
 #include <86box/86box.h>
 #include <86box/plat.h>
+#include <86box/runctl.h>
 #include <86box/plat_dynld.h>
 #include <86box/cdrom.h>
 #include <86box/version.h>
@@ -205,7 +206,7 @@ monitor_execute_line(char *line)
             endblit();
             device_force_redraw();
         } else if (strncasecmp(xargv[0], "pause", 5) == 0) {
-            plat_pause(dopause ^ 1);
+            runctl_pause_user_toggle();
             printf("%s", dopause ? "Paused.\n" : "Unpaused.\n");
         } else if (strncasecmp(xargv[0], "fastfwd", 7) == 0) {
             fast_forward ^= 1;

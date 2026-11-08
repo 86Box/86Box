@@ -227,7 +227,6 @@ private:
     QIcon   caps_icon, scroll_icon, num_icon, kana_icon;
     QIcon   caps_icon_off, scroll_icon_off, num_icon_off, kana_icon_off;
 
-    bool isShowMessage  = false;
     bool isNonPause     = false;
     bool window_blocked = false;
 
