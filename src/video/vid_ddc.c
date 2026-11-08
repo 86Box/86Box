@@ -127,6 +127,22 @@ typedef struct {
     uint8_t padding[15], checksum2;
 } edid_t;
 
+/* A DDC monitor: the EDID EEPROM on the card's I2C bus and the EDID
+   buffer backing it, which the EEPROM does not own. */
+typedef struct ddc_t {
+    void    *eeprom;
+    uint8_t *edid;
+} ddc_t;
+
+static void *
+ddc_attach(void *i2c, uint8_t *edid_bytes, size_t edid_size)
+{
+    ddc_t *ddc  = calloc(1, sizeof(ddc_t));
+    ddc->edid   = edid_bytes;
+    ddc->eeprom = i2c_eeprom_init(i2c, 0x50, edid_bytes, edid_size, 0);
+    return ddc;
+}
+
 size_t
 ddc_create_default_edid(uint8_t **out)
 {
@@ -222,9 +238,10 @@ ddc_create_default_edid(uint8_t **out)
         edid->checksum2 += edid_bytes[c];
     edid->checksum2 = 256 - edid->checksum2;
 
-    if (out) {
+    if (out)
         *out = edid_bytes;
-    }
+    else
+        free(edid_bytes);
 
     return sizeof(edid_t);
 }
@@ -266,11 +283,57 @@ ddc_init_with_custom_edid(char *edid_path, void *i2c)
     uint8_t *edid_bytes = calloc(1, size);
     memcpy(edid_bytes, buffer, size);
 
-    return i2c_eeprom_init(i2c, 0x50, edid_bytes, size, 0);
+    return ddc_attach(i2c, edid_bytes, size);
 }
 
+/* High resolution CRT monitor, used by default on cards whose drivers
+   benefit from a larger mode list than the generic 86Box Monitor offers
+   (Rage 128). EDID 1.3, 128 bytes, no extension blocks:
+   - manufacturer "BOX", product 0x0022, name "86Box R128v6";
+   - 40x30 cm analog RGB display, gamma 2.2, DPMS, GTF supported;
+   - preferred mode 1600x1200 @ 75 Hz (202.5 MHz);
+   - established timings up to 1280x1024 @ 75 Hz;
+   - standard timings for 1152x864 @ 75, 1280x960 @ 60, 1280x1024 @ 60/85,
+     1600x1200 @ 60/75/85, 1920x1080 @ 60, 1920x1200 @ 60,
+     1920x1440 @ 60 and 2048x1536 @ 60 Hz;
+   - range limits 50-150 Hz vertical, 30-108 kHz horizontal, 300 MHz. */
+const uint8_t ddc_edid_hires_crt[128] = {
+    0x00, 0xff, 0xff, 0xff, 0xff, 0xff, 0xff, 0x00, 0x09, 0xf8, 0x22, 0x00, 0x01, 0x00, 0x00, 0x00,
+    0x0a, 0x0a, 0x01, 0x03, 0x0e, 0x28, 0x1e, 0x78, 0xeb, 0xee, 0x91, 0xa3, 0x54, 0x4c, 0x99, 0x26,
+    0x0f, 0x50, 0x54, 0xff, 0xff, 0x00, 0xd1, 0xc0, 0xd1, 0x40, 0x81, 0x80, 0xe1, 0x40, 0xa9, 0x40,
+    0xa9, 0x4f, 0xa9, 0x59, 0xd1, 0x00, 0x1a, 0x4f, 0x40, 0x30, 0x62, 0xb0, 0x32, 0x40, 0x40, 0xc0,
+    0x13, 0x00, 0x90, 0x2c, 0x11, 0x00, 0x00, 0x1e, 0x00, 0x00, 0x00, 0xfa, 0x00, 0x71, 0x4f, 0x81,
+    0x40, 0x81, 0x99, 0x01, 0x01, 0x01, 0x01, 0x01, 0x01, 0x0a, 0x00, 0x00, 0x00, 0xfd, 0x00, 0x32,
+    0x96, 0x1e, 0x6c, 0x1e, 0x00, 0x0a, 0x20, 0x20, 0x20, 0x20, 0x20, 0x20, 0x00, 0x00, 0x00, 0xfc,
+    0x00, 0x38, 0x36, 0x42, 0x6f, 0x78, 0x20, 0x52, 0x31, 0x32, 0x38, 0x76, 0x36, 0x0a, 0x00, 0xdc
+};
+
+/* Returns the EDID a card presents when the user has not picked a custom
+   one: the card's own default if it supplies a valid one, otherwise the
+   generic 86Box Monitor EDID. The returned buffer is heap allocated and
+   handed to the EEPROM. */
+size_t
+ddc_get_default_edid(const uint8_t *card_edid, size_t card_edid_size, uint8_t **out)
+{
+    if (card_edid && ((card_edid_size == 128) || (card_edid_size == 256))) {
+        uint8_t *edid_bytes = malloc(card_edid_size);
+        memcpy(edid_bytes, card_edid, card_edid_size);
+        if (out)
+            *out = edid_bytes;
+        else
+            free(edid_bytes);
+        return card_edid_size;
+    }
+
+    return ddc_create_default_edid(out);
+}
+
+/* Attaches a DDC monitor to the given I2C bus. A custom EDID selected in
+   the display settings always wins; failing that, the card's default EDID
+   (card_edid, 128 or 256 bytes) is used, or the generic 86Box Monitor EDID
+   if the card passes NULL. */
 void *
-ddc_init(void *i2c)
+ddc_init_ex(void *i2c, const uint8_t *card_edid, size_t card_edid_size)
 {
     if (monitor_edid && monitor_edid_path[0]) {
         void *ret = ddc_init_with_custom_edid(monitor_edid_path, i2c);
@@ -281,13 +344,26 @@ ddc_init(void *i2c)
     }
 
     uint8_t *edid_bytes;
-    size_t   edid_size = ddc_create_default_edid(&edid_bytes);
-    return i2c_eeprom_init(i2c, 0x50, edid_bytes, edid_size, 0);
+    size_t   edid_size = ddc_get_default_edid(card_edid, card_edid_size, &edid_bytes);
+    return ddc_attach(i2c, edid_bytes, edid_size);
+}
+
+void *
+ddc_init(void *i2c)
+{
+    return ddc_init_ex(i2c, NULL, 0);
 }
 
 
 void
-ddc_close(void *eeprom)
+ddc_close(void *priv)
 {
-    i2c_eeprom_close(eeprom);
+    ddc_t *ddc = (ddc_t *) priv;
+
+    if (!ddc)
+        return;
+
+    i2c_eeprom_close(ddc->eeprom);
+    free(ddc->edid);
+    free(ddc);
 }

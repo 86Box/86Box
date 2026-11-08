@@ -2624,11 +2624,13 @@ rage128_chip_init(const device_t *info, const rage128_chip_cfg_t *cfg)
     /* DDC2 monitor channel. The driver bit-bangs it through GPIO_MONID
        to read the monitor's EDID, which gives it the list of modes and
        refresh rates; without it the driver is observed to fall back to a
-       1600x1200 default and to pan modes larger than that. The EDID is
-       86Box's shared monitor EDID, the one every DDC-capable card
-       presents. */
+       1600x1200 default and to pan modes larger than that. Unless the
+       user picked a custom EDID, the card presents the high resolution
+       CRT EDID (preferred 1600x1200 @ 75 Hz, modes up to 2048x1536)
+       rather than the generic 86Box Monitor one. */
     dev->i2c = i2c_gpio_init("ddc_ati_rage128");
-    dev->ddc = ddc_init(i2c_gpio_get_bus(dev->i2c));
+    dev->ddc = ddc_init_ex(i2c_gpio_get_bus(dev->i2c),
+                           ddc_edid_hires_crt, sizeof(ddc_edid_hires_crt));
 
     /* Rasterizer worker pool, size set by the render_threads option. The
        optional GPU backend draws the states it supports and hands the
