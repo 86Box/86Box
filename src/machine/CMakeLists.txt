@@ -32,20 +32,23 @@ add_library(mch OBJECT
     m_elt.c
     m_xt_olivetti.c
     m_xt_ibm5550.c
-    m_tandy.c
+    m_tandy1k.c
+    m_tandy2k.c
     m_v86p.c
     m_at_t3100e.c
+    m_at_tandy_vis.c
+    m_at_tvis_memcard.c
     m_ps1.c
     m_ps2_isa.c
     m_ps2_mca.c
     m_at_common.c
     m_at_286.c
     m_at_386sx.c
+    m_at_386ex.c
     m_at_m6117.c
     m_at_386dx.c
     m_at_486slc.c
     m_at_386dx_486.c
-    m_at_vect486n.c
     m_at_socket1.c
     m_at_socket2.c
     m_at_socket3.c
@@ -58,7 +61,6 @@ add_library(mch OBJECT
     m_at_eisa_pci.c
     m_at_socket7_3v.c
     m_at_socket7.c
-    m_at_ibm_pc700.c
     m_at_sockets7.c
     m_at_socket8.c
     m_at_slot1.c

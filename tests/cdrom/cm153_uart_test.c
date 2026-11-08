@@ -2,7 +2,7 @@
 #include <stdint.h>
 #include <stdio.h>
 #include <86box/cm100.h>
-#include "cm153_uart.h"
+#include <86box/cm153_uart.h>
 
 static uint64_t now_ns;
 

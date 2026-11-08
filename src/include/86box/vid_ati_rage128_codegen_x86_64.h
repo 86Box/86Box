@@ -80,8 +80,9 @@
  *                                resolved Z/stencil cell from the Z
  *                                block to the Z write-back
  *
- *   xmm2 zline (double)          xmm5..xmm7  vca/vcb/vcc
- *   xmm3 dZdx (double)           xmm8..xmm10 w0/w1/w2
+ *   xmm2 zline (fixed-point      xmm5..xmm7  vca/vcb/vcc
+ *        depth, raw int bits)
+ *   xmm3 its step, the same way  xmm8..xmm10 w0/w1/w2
  *   xmm4 invs (float)            xmm11       col
  *   xmm0, xmm1, xmm12..xmm15    scratch
  *
@@ -568,7 +569,6 @@ r128_x64_sse_rip(r128_x64_emit_t *e, uint8_t pfx, uint8_t xo, int xd,
 #define r128_x64_movss_ld(e, d, b, o)  r128_x64_sse_rm(e, 0xF3, 0x10, d, b, o)
 #define r128_x64_movsd_ld(e, d, b, o)  r128_x64_sse_rm(e, 0xF2, 0x10, d, b, o)
 #define r128_x64_movsd_st(e, s, b, o)  r128_x64_sse_rm(e, 0xF2, 0x11, s, b, o)
-#define r128_x64_movsd_rr(e, d, s)     r128_x64_sse_rr(e, 0xF2, 0x10, d, s)
 #define r128_x64_movups_ld(e, d, b, o) r128_x64_sse_rm(e, 0, 0x10, d, b, o)
 #define r128_x64_movaps_rr(e, d, s)    r128_x64_sse_rr(e, 0, 0x28, d, s)
 #define r128_x64_movaps_ld(e, d, b, o) r128_x64_sse_rm(e, 0, 0x28, d, b, o)
@@ -577,14 +577,11 @@ r128_x64_sse_rip(r128_x64_emit_t *e, uint8_t pfx, uint8_t xo, int xd,
 #define r128_x64_mulss(e, d, s)        r128_x64_sse_rr(e, 0xF3, 0x59, d, s)
 #define r128_x64_subss(e, d, s)        r128_x64_sse_rr(e, 0xF3, 0x5C, d, s)
 #define r128_x64_divss(e, d, s)        r128_x64_sse_rr(e, 0xF3, 0x5E, d, s)
-#define r128_x64_addsd(e, d, s)        r128_x64_sse_rr(e, 0xF2, 0x58, d, s)
-#define r128_x64_mulsd(e, d, s)        r128_x64_sse_rr(e, 0xF2, 0x59, d, s)
 #define r128_x64_addps(e, d, s)        r128_x64_sse_rr(e, 0, 0x58, d, s)
 #define r128_x64_mulps(e, d, s)        r128_x64_sse_rr(e, 0, 0x59, d, s)
 #define r128_x64_subps(e, d, s)        r128_x64_sse_rr(e, 0, 0x5C, d, s)
 #define r128_x64_xorps(e, d, s)        r128_x64_sse_rr(e, 0, 0x57, d, s)
 #define r128_x64_comiss(e, a, b)       r128_x64_sse_rr(e, 0, 0x2F, a, b)
-#define r128_x64_comisd(e, a, b)       r128_x64_sse_rr(e, 0x66, 0x2F, a, b)
 #define r128_x64_cvtdq2ps(e, d, s)     r128_x64_sse_rr(e, 0, 0x5B, d, s)
 #define r128_x64_cvtps2dq(e, d, s)     r128_x64_sse_rr(e, 0x66, 0x5B, d, s)
 #define r128_x64_cvttps2dq(e, d, s)    r128_x64_sse_rr(e, 0xF3, 0x5B, d, s)
@@ -593,6 +590,14 @@ r128_x64_sse_rip(r128_x64_emit_t *e, uint8_t pfx, uint8_t xo, int xd,
 #define r128_x64_paddd(e, d, s)        r128_x64_sse_rr(e, 0x66, 0xFE, d, s)
 #define r128_x64_movd_x_r(e, x, r)     r128_x64_sse_gpr(e, 0x6E, x, r, 0)
 #define r128_x64_movd_r_x(e, r, x)     r128_x64_sse_gpr(e, 0x7E, x, r, 0)
+/* 64-bit moves between an XMM register's low lane and a GPR, and the
+   two-lane 64-bit integer add, subtract and logical shifts, for the
+   fixed-point depth (r128_zfx), which the block keeps as raw integer
+   bits in an XMM register */
+#define r128_x64_movq_x_r(e, x, r)     r128_x64_sse_gpr(e, 0x6E, x, r, 1)
+#define r128_x64_movq_r_x(e, r, x)     r128_x64_sse_gpr(e, 0x7E, x, r, 1)
+#define r128_x64_paddq(e, d, s)        r128_x64_sse_rr(e, 0x66, 0xD4, d, s)
+#define r128_x64_psubq(e, d, s)        r128_x64_sse_rr(e, 0x66, 0xFB, d, s)
 
 static void
 r128_x64_sse_gpr(r128_x64_emit_t *e, uint8_t xo, int x, int r, int w)
@@ -602,6 +607,21 @@ r128_x64_sse_gpr(r128_x64_emit_t *e, uint8_t xo, int x, int r, int w)
     r128_x64_e8(e, 0x0F);
     r128_x64_e8(e, xo);
     r128_x64_modrm_reg(e, x, r);
+}
+
+/* The fixed-point depth in the low lane of xs (raw integer bits; xmm2
+   in the scalar loop) clamped to [0, 1.0] (r128_zfx_clamp) into the
+   64-bit GPR rd, using rt as scratch. */
+static void
+r128_x64_zfx_clamp(r128_x64_emit_t *e, int rd, int rt, int xs)
+{
+    r128_x64_movq_r_x(e, rd, xs);
+    r128_x64_alu_r_r(e, 0x31, 0, rt, rt); /* xor rt, rt */
+    r128_x64_alu_r_r(e, 0x85, 1, rd, rd); /* test rd, rd */
+    r128_x64_cmov(e, X64_CC_L, 1, rd, rt); /* z < 0 -> 0 */
+    r128_x64_mov_r64_imm64(e, rt, 1ull << R128_ZFX_BITS);
+    r128_x64_alu_r_r(e, 0x39, 1, rd, rt); /* cmp rd, rt */
+    r128_x64_cmov(e, X64_CC_G, 1, rd, rt); /* z > 1.0 -> 1.0 */
 }
 
 /* cvtsi2ss xd, r64: int64 to float, rounded to nearest, like ARM64
@@ -614,21 +634,6 @@ r128_x64_cvtsi2ss_r64(r128_x64_emit_t *e, int xd, int rs)
     r128_x64_e8(e, 0x0F);
     r128_x64_e8(e, 0x2A);
     r128_x64_modrm_reg(e, xd, rs);
-}
-
-/* cvttsd2si r64, xs: double to int64, truncating. Used for the depth
-   value zi, in 0..0xffffffff, and for the table-fog split, which
-   converts zc * 255 * 2^32, up to 255 * 2^32; the 64-bit form
-   converts both exactly, where the 32-bit form fails above
-   0x7fffffff. */
-static void
-r128_x64_cvttsd2si_r64(r128_x64_emit_t *e, int rd, int xs)
-{
-    r128_x64_e8(e, 0xF2);
-    r128_x64_e8(e, (uint8_t) (0x48 | (((rd >> 3) & 1) << 2) | ((xs >> 3) & 1)));
-    r128_x64_e8(e, 0x0F);
-    r128_x64_e8(e, 0x2C);
-    r128_x64_modrm_reg(e, rd, xs);
 }
 
 /* cvttss2si r32, xs: float to int32, truncating. NaN and anything
@@ -755,11 +760,7 @@ r128_x64_cvtsi2ss_r32(r128_x64_emit_t *e, int xd, int rs)
 #define R128_X64_CP_ONEF    (R128_X64_POOL_BASE + 32)  /* 4 x 1.0f    */
 #define R128_X64_CP_255I    (R128_X64_POOL_BASE + 48)  /* 4 x 255     */
 #define R128_X64_CP_ZERO    (R128_X64_POOL_BASE + 64)  /* 16 zero bytes */
-#define R128_X64_CP_ONED    (R128_X64_POOL_BASE + 80)  /* 1.0d, 0.5d  */
-#define R128_X64_CP_ZMAXD   (R128_X64_POOL_BASE + 96)  /* (double)zmax */
-#define R128_X64_CP_ONED2   (R128_X64_POOL_BASE + 112) /* 2 x 1.0d    */
-#define R128_X64_CP_HALFD2  (R128_X64_POOL_BASE + 128) /* 2 x 0.5d    */
-#define R128_X64_CP_ZMAXD2  (R128_X64_POOL_BASE + 144) /* 2 x (double)zmax */
+/* bytes 80..159 of the pool are unused (left zero) */
 #define R128_X64_CP_LANEIDX (R128_X64_POOL_BASE + 160) /* {0,1,2,3}   */
 #define R128_X64_CP_BIAS31  (R128_X64_POOL_BASE + 176) /* 4 x 1u<<31  */
 #define R128_X64_CP_LERPM   (R128_X64_POOL_BASE + 192) /* 4 x 0x00ff00ff */
@@ -779,8 +780,7 @@ r128_x64_cvtsi2ss_r32(r128_x64_emit_t *e, int xd, int rs)
 static void
 r128_x64_pool_init(r128_x64_emit_t *e, const rage128_draw_state_t *ds)
 {
-    float  f;
-    double d;
+    float f;
 
     memset(e->base, 0, R128_X64_POOL_END);
     /* jmp rel32 over the pool */
@@ -804,18 +804,6 @@ r128_x64_pool_init(r128_x64_emit_t *e, const rage128_draw_state_t *ds)
 
         memcpy(e->base + R128_X64_CP_255I + i * 4, &u, 4);
     }
-    d = 1.0;
-    memcpy(e->base + R128_X64_CP_ONED, &d, 8);
-    memcpy(e->base + R128_X64_CP_ONED2, &d, 8);
-    memcpy(e->base + R128_X64_CP_ONED2 + 8, &d, 8);
-    d = 0.5;
-    memcpy(e->base + R128_X64_CP_ONED + 8, &d, 8);
-    memcpy(e->base + R128_X64_CP_HALFD2, &d, 8);
-    memcpy(e->base + R128_X64_CP_HALFD2 + 8, &d, 8);
-    d = (double) ds->zmax;
-    memcpy(e->base + R128_X64_CP_ZMAXD, &d, 8);
-    memcpy(e->base + R128_X64_CP_ZMAXD2, &d, 8);
-    memcpy(e->base + R128_X64_CP_ZMAXD2 + 8, &d, 8);
     for (int i = 0; i < 4; i++) {
         uint32_t u = (uint32_t) i;
 
@@ -1264,8 +1252,8 @@ r128_x64_gen_setup(r128_x64_gen_t *g, uint8_t *code,
     g->bppsh        = bppsh;
     g->z_on         = z_on;
     /* Table fog reads interpolated depth even without the Z test, so
-       its scalar loop loads and steps the same double DDA without
-       enabling the Z test or its writes. */
+       its scalar loop loads and steps the same fixed-point depth
+       without enabling the Z test or its writes. */
     g->z_step       = z_on || (ds->fog_en && ds->fog_table_en);
     g->sten_on      = sten_on;
     g->dith_on      = dith_on;
@@ -1368,28 +1356,29 @@ r128_x64_gen_prologue(r128_x64_gen_t *g)
         r128_x64_mov_r_r(&g->e, 1, X64_RSI, X64_RDX);       /* e0             */
         r128_x64_mov_r_r(&g->e, 1, X64_RDI, X64_R8);        /* e1             */
         r128_x64_mov_r_r(&g->e, 1, X64_RBP, X64_R9);        /* e2             */
-        r128_x64_movsd_ld(&g->e, 2, X64_RSP, argb + 32);    /* zline */
+        r128_x64_movsd_ld(&g->e, 2, X64_RSP, argb + 32);    /* zline (raw bits) */
         r128_x64_ld(&g->e, 0, X64_R14, X64_RSP, argb + 40); /* drow  */
         r128_x64_ld(&g->e, 0, X64_R15, X64_RSP, argb + 48); /* zrow  */
         r128_x64_ld(&g->e, 0, X64_RCX, X64_RSP, argb + 56); /* py    */
     }
 #else
-    /* System V: rdi = tri, rsi = e0, rdx = e1, rcx = e2, r8d = drow,
-       r9d = zrow, xmm0 = zline, and py, the seventh integer argument,
-       on the stack 8 bytes above the rsp seen on entry (argb). The moves
-       are ordered so that no register is overwritten before it is read:
-       tri leaves rdi before e1 goes there, and e2 leaves rcx before py
-       is loaded into it. */
+    /* System V: rdi = tri, rsi = e0, rdx = e1, rcx = e2, r8 = zline,
+       r9d = drow, and zrow and py, the seventh and eighth integer
+       arguments, on the stack 8 and 16 bytes above the rsp seen on
+       entry (argb). The moves are ordered so that no register is
+       overwritten before it is read: tri leaves rdi before e1 goes
+       there, and e2 leaves rcx before py is loaded into it. zline goes
+       to xmm2 as raw integer bits. */
     {
         int argb = frame + R128_X64_NPUSH * 8 + 8;
 
-        r128_x64_mov_r_r(&g->e, 1, X64_RBX, X64_RDI);  /* tri            */
-        r128_x64_mov_r_r(&g->e, 1, X64_RDI, X64_RDX);  /* e1             */
-        r128_x64_mov_r_r(&g->e, 1, X64_R14, X64_R8);   /* drow           */
-        r128_x64_mov_r_r(&g->e, 1, X64_R15, X64_R9);   /* zrow           */
-        r128_x64_mov_r_r(&g->e, 1, X64_RBP, X64_RCX);  /* e2             */
-        r128_x64_ld(&g->e, 0, X64_RCX, X64_RSP, argb); /* py             */
-        r128_x64_movsd_rr(&g->e, 2, 0);                /* zline          */
+        r128_x64_mov_r_r(&g->e, 1, X64_RBX, X64_RDI);      /* tri            */
+        r128_x64_mov_r_r(&g->e, 1, X64_RDI, X64_RDX);      /* e1             */
+        r128_x64_movq_x_r(&g->e, 2, X64_R8);               /* zline          */
+        r128_x64_mov_r_r(&g->e, 1, X64_R14, X64_R9);       /* drow           */
+        r128_x64_ld(&g->e, 0, X64_R15, X64_RSP, argb);     /* zrow           */
+        r128_x64_mov_r_r(&g->e, 1, X64_RBP, X64_RCX);      /* e2             */
+        r128_x64_ld(&g->e, 0, X64_RCX, X64_RSP, argb + 8); /* py             */
     }
 #endif
 
@@ -1402,7 +1391,7 @@ r128_x64_gen_prologue(r128_x64_gen_t *g)
     r128_x64_movups_ld(&g->e, 6, X64_RBX, (int) offsetof(r128_jit_tri_t, vcb));
     r128_x64_movups_ld(&g->e, 7, X64_RBX, (int) offsetof(r128_jit_tri_t, vcc));
     if (g->z_step)
-        r128_x64_movsd_ld(&g->e, 3, X64_RBX, (int) offsetof(r128_jit_tri_t, dZdx));
+        r128_x64_movsd_ld(&g->e, 3, X64_RBX, (int) offsetof(r128_jit_tri_t, dzx));
     r128_x64_mov_r32_imm32(&g->e, X64_R9, 0xffffffffu); /* rx0 = -1 */
     r128_x64_mov_r32_imm32(&g->e, X64_RAX, 0xffffffffu);
     r128_x64_st(&g->e, 0, X64_RAX, X64_RSP, R128_X64_SP_RX1);
@@ -1622,39 +1611,21 @@ r128_x64_gen_zsten(r128_x64_gen_t *g)
     int                         b_zvram, b_zres;
 
     if (z_on) {
-        /* zc = zline clamped to 0..1 as the interpreter does it:
-           xmm15 = (zline > 0.0) ? zline : 0.0, then values above 1.0
-           become 1.0. comisd reports a NaN as unordered, which takes
-           the jbe, so a NaN zline becomes 0.0, as the C's
-           !(zc > 0.0) test makes it. */
-        r128_x64_xorps(&g->e, 15, 15); /* 0.0              */
-        r128_x64_comisd(&g->e, 2, 15);
-        {
-            int b1 = r128_x64_jcc(&g->e, X64_CC_BE);
+        /* zc = zline clamped to [0, 1.0] (r128_zfx_clamp) in rdx, then
+           zi = (zc * zmax + 2^38) >> 39 (r128_zfx_quant). zmax is
+           2^16 - 1 or 2^24 - 1, so zc * zmax is (zc << n) - zc. zi
+           ends in edx, where the depth test below reads it, and in the
+           stack slot the stencil block and the depth write read. */
+        int zn = (ds->zmax == 0xffffu) ? 16 : 24;
 
-            r128_x64_movsd_rr(&g->e, 15, 2); /* zc = zline       */
-            r128_x64_patch32(&g->e, b1, r128_x64_here(&g->e));
-        }
-        r128_x64_sse_rip(&g->e, 0xF2, 0x10, 14, R128_X64_CP_ONED);
-        r128_x64_comisd(&g->e, 15, 14);
-        {
-            int b1 = r128_x64_jcc(&g->e, X64_CC_BE);
-
-            r128_x64_movsd_rr(&g->e, 15, 14); /* zc = 1.0         */
-            r128_x64_patch32(&g->e, b1, r128_x64_here(&g->e));
-        }
-        /* zq = zc*zmax + 0.5, clamp zmax; zi = (uint32)zq */
-        r128_x64_sse_rip(&g->e, 0xF2, 0x10, 13, R128_X64_CP_ZMAXD);
-        r128_x64_mulsd(&g->e, 15, 13);
-        r128_x64_sse_rip(&g->e, 0xF2, 0x58, 15, R128_X64_CP_ONED + 8);
-        r128_x64_comisd(&g->e, 15, 13);
-        {
-            int b1 = r128_x64_jcc(&g->e, X64_CC_BE);
-
-            r128_x64_movsd_rr(&g->e, 15, 13); /* zq = zmax        */
-            r128_x64_patch32(&g->e, b1, r128_x64_here(&g->e));
-        }
-        r128_x64_cvttsd2si_r64(&g->e, X64_RDX, 15);
+        r128_x64_zfx_clamp(&g->e, X64_RDX, X64_RAX, 2);
+        r128_x64_mov_r_r(&g->e, 1, X64_RAX, X64_RDX);
+        r128_x64_shift_imm(&g->e, 4, 1, X64_RAX, zn);
+        r128_x64_alu_r_r(&g->e, 0x29, 1, X64_RAX, X64_RDX); /* sub rax, rdx */
+        r128_x64_mov_r64_imm64(&g->e, X64_RCX, 1ull << (R128_ZFX_BITS - 1));
+        r128_x64_alu_r_r(&g->e, 0x01, 1, X64_RAX, X64_RCX); /* add rax, rcx */
+        r128_x64_shift_imm(&g->e, 5, 1, X64_RAX, R128_ZFX_BITS);
+        r128_x64_mov_r_r(&g->e, 1, X64_RDX, X64_RAX);
         r128_x64_st(&g->e, 0, X64_RDX, X64_RSP, R128_X64_SP_ZI);
     }
 
@@ -1903,7 +1874,7 @@ r128_x64_gen_texture(r128_x64_gen_t *g)
         if (g->z_step) {
             r128_x64_movsd_ld(&g->e, 2, X64_RSP, R128_X64_SP_ZL);
             r128_x64_movsd_ld(&g->e, 3, X64_RBX,
-                              (int) offsetof(r128_jit_tri_t, dZdx));
+                              (int) offsetof(r128_jit_tri_t, dzx));
         }
 #if R128_X64_ABI_WIN
         r128_x64_movss_ld(&g->e, 4, X64_RBX,
@@ -1993,37 +1964,25 @@ r128_x64_gen_fog(r128_x64_gen_t *g)
         r128_x64_patch32(&g->e, b1, r128_x64_here(&g->e));
     } else {
         /* Table fog, split between entries as the interpreter splits
-           it. q = trunc(zc * 255 * 2^32), one cvttsd2si, gives the
-           entry i in the high dword and a 32-bit fraction fr in the low
-           dword. f = (T[i] + (T[i1] - T[i]) * t) / 255.0f, with
+           it. q = (zc * 255) >> 7 (r128_zfx_fogpos) gives the entry i
+           in the high dword and a 32-bit fraction fr in the low dword.
+           f = (T[i] + (T[i1] - T[i]) * t) / 255.0f, with
            t = (float)fr * 2^-32 and i1 = min(i + 1, 255). zc is
            recomputed from zline (xmm2) as in the Z block; table fog
-           keeps the serial double DDA live even with the Z test off.
+           keeps the fixed-point depth live even with the Z test off.
            The interpreter's factor clamp is not emitted here: the
            blend lies between two table bytes, so f is already in
            range. */
-        int    b1;
-        double d255  = 255.0;
-        double d2p32 = 4294967296.0;
-        float  f2m32 = 1.0f / 4294967296.0f;
-        int    c255d = r128_x64_pool_add(&g->e, &d255, 8, 8);
-        int    c2p32 = r128_x64_pool_add(&g->e, &d2p32, 8, 8);
-        int    c2m32 = r128_x64_pool_add(&g->e, &f2m32, 4, 4);
+        float f2m32 = 1.0f / 4294967296.0f;
+        int   c2m32 = r128_x64_pool_add(&g->e, &f2m32, 4, 4);
 
-        r128_x64_xorps(&g->e, 15, 15);
-        r128_x64_comisd(&g->e, 2, 15);
-        b1 = r128_x64_jcc(&g->e, X64_CC_BE);
-        r128_x64_movsd_rr(&g->e, 15, 2); /* zc = zline       */
-        r128_x64_patch32(&g->e, b1, r128_x64_here(&g->e));
-        r128_x64_sse_rip(&g->e, 0xF2, 0x10, 14, R128_X64_CP_ONED);
-        r128_x64_comisd(&g->e, 15, 14);
-        b1 = r128_x64_jcc(&g->e, X64_CC_BE);
-        r128_x64_movsd_rr(&g->e, 15, 14); /* zc = 1.0         */
-        r128_x64_patch32(&g->e, b1, r128_x64_here(&g->e));
-        r128_x64_sse_rip(&g->e, 0xF2, 0x59, 15, c255d); /* *255.0  */
-        r128_x64_sse_rip(&g->e, 0xF2, 0x59, 15, c2p32); /* *2^32   */
-        r128_x64_cvttsd2si_r64(&g->e, X64_RCX, 15);     /* q       */
-        r128_x64_mov_r_r(&g->e, 0, X64_RAX, X64_RCX);   /* fr      */
+        r128_x64_zfx_clamp(&g->e, X64_RCX, X64_RAX, 2);
+        r128_x64_mov_r_r(&g->e, 1, X64_RAX, X64_RCX);
+        r128_x64_shift_imm(&g->e, 4, 1, X64_RAX, 8);
+        r128_x64_alu_r_r(&g->e, 0x29, 1, X64_RAX, X64_RCX);  /* zc * 255 */
+        r128_x64_shift_imm(&g->e, 5, 1, X64_RAX, R128_ZFX_BITS - 32);
+        r128_x64_mov_r_r(&g->e, 1, X64_RCX, X64_RAX);        /* q       */
+        r128_x64_mov_r_r(&g->e, 0, X64_RAX, X64_RCX);        /* fr      */
         r128_x64_cvtsi2ss_r64(&g->e, 15, X64_RAX);      /* (float) */
         r128_x64_shift_imm(&g->e, 5, 1, X64_RCX, 32);   /* i       */
         r128_x64_ld(&g->e, 1, X64_RAX, X64_RBX,
@@ -2445,8 +2404,9 @@ r128_x64_gen_zwrite(r128_x64_gen_t *g)
 
 /* pix_skip, where every skip branch lands. Steps e0..e2, zline and px
    as the C loop's increment does, then jumps back to the loop head.
-   The serial double depth DDA advances whenever the Z test or table
-   fog reads it, including pixels rejected before shading. */
+   The fixed-point depth advances by one step on every pixel, including
+   pixels rejected before shading, so pixel k always holds start +
+   k * step. */
 static void
 r128_x64_gen_pixskip(r128_x64_gen_t *g)
 {
@@ -2461,7 +2421,7 @@ r128_x64_gen_pixskip(r128_x64_gen_t *g)
     r128_x64_alu_r_mem(&g->e, 0x03, 1, X64_RBP, X64_RBX,
                        (int) offsetof(r128_jit_tri_t, e2dxi));
     if (g->z_step)
-        r128_x64_addsd(&g->e, 2, 3);
+        r128_x64_paddq(&g->e, 2, 3);
     r128_x64_alu_r_imm(&g->e, 0, 0, X64_R12, 1);
     r128_x64_jmp_to(&g->e, g->loop_head);
 }

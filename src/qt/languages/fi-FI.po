@@ -150,6 +150,12 @@ msgstr "&Kokonaislukuskaalaus"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Kokonaislukuskaalaus"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "VGA-näyttö käänteisillä väreillä"
 
@@ -233,9 +239,6 @@ msgstr "&Ääni"
 
 msgid "&Preferences…"
 msgstr "&Sovellusasetukset…"
-
-msgid "Enable &Discord integration"
-msgstr "&Discord-integraatio"
 
 msgid "Sound &gain…"
 msgstr "&Äänitasot…"
@@ -411,17 +414,35 @@ msgstr "Mt"
 msgid "Memory:"
 msgstr "Muisti:"
 
-msgid "Time synchronization"
-msgstr "Kellon synkronointi"
+msgid "Synchronize with host clock"
+msgstr ""
 
-msgid "Disabled"
-msgstr "Ei käytössä"
+msgid "Time zone:"
+msgstr ""
 
-msgid "Enabled (local time)"
-msgstr "Käytössä (paikallinen)"
+msgid "Local"
+msgstr ""
 
-msgid "Enabled (UTC)"
-msgstr "Käytössä (UTC)"
+msgid "UTC"
+msgstr ""
+
+msgid "Date:"
+msgstr ""
+
+msgid "Match the host"
+msgstr ""
+
+msgid "Offset the year by:"
+msgstr ""
+
+msgid "(currently %1)"
+msgstr ""
+
+msgid "Always use the year:"
+msgstr ""
+
+msgid "Do not synchronize the date"
+msgstr ""
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Käytä 486-tulkintaa 286- ja 386-prosessoreille"
@@ -430,6 +451,12 @@ msgid "Dynamic recompiler"
 msgstr "Dynaaminen uudelleenkääntäjä"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
+
+msgid "Block linking on the dynamic recompiler"
+msgstr "Lohkojen linkitys dynaamisessa uudelleenkääntäjässä"
+
+msgid "Debug registers on 486 and later processors"
 msgstr ""
 
 msgid "CPU frame size"
@@ -461,6 +488,9 @@ msgstr "XGA-grafiikkasuoritin"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55-näyttöadapteri"
+
+msgid "PowerVR PCX1/PCX2 Graphics"
+msgstr ""
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -623,6 +653,12 @@ msgstr "Ohjain 4:"
 
 msgid "Cassette"
 msgstr "Kasettiasema"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Kiintolevyt:"
@@ -1276,6 +1312,35 @@ msgstr "Käytä säännöllisiä lausekkeita (regex) hakukentässä"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr ""
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -3082,6 +3147,9 @@ msgstr "Syöte"
 msgid "Key bindings"
 msgstr "Pikanäppäimet"
 
+msgid "VM Manager"
+msgstr ""
+
 msgid "Action"
 msgstr "Toiminto"
 
@@ -3596,4 +3664,22 @@ msgid "Prepare PCI devices for VFIO passthrough"
 msgstr ""
 
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
+msgstr ""
+
+msgid "Disabled"
+msgstr ""
+
+msgid "Unlimited capacity"
+msgstr ""
+
+msgid "CD speed:"
+msgstr ""
+
+msgid "DVD speed:"
+msgstr ""
+
+msgid "HD/BD speed:"
+msgstr ""
+
+msgid "Software-initiated poweroff device (IBM 5140)"
 msgstr ""

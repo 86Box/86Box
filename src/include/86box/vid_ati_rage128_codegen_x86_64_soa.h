@@ -73,7 +73,8 @@
  * XMM registers live across the whole vector loop:
  *   xmm4      invs in all four lanes (lane 0 is the scalar loop's invs)
  *   xmm5/6/7  vca/vcb/vcc, {r,g,b,a} each, loaded whole by the prologue
- *   xmm2/xmm3 zline accumulator / dZdx (shared with the scalar loop)
+ *   xmm2/xmm3 zline accumulator / its step, fixed-point integer bits
+ *             (shared with the scalar loop)
  * Per group:
  *   xmm8/9/10 w0/w1/w2 weight lanes; the blend stage reuses these
  *             registers after the last read of the weights
@@ -160,7 +161,6 @@ r128_x64_cmpp_imm(r128_x64_emit_t *e, uint8_t pfx, int xd, int xs, int pred)
 }
 
 #define r128_x64_cmpltps(e, d, s) r128_x64_cmpp_imm(e, 0, d, s, 1)
-#define r128_x64_cmpltpd(e, d, s) r128_x64_cmpp_imm(e, 0x66, d, s, 1)
 
 /* MOVMSKPS r32, xs: the sign bit of lane k goes to bit k, bits 4-31 are
    cleared. Applied to a compare mask, it gives the four-bit lane mask. */
@@ -511,11 +511,11 @@ r128_x64_soa_fogf(r128_x64_emit_t *e)
 
 /* Table fog factor lanes into xmm14, the interpreter's blend between
    adjacent table entries. Only untextured states with Z on get here
-   (r128_jit_soa_can). The raw zline lanes come from the frame slots
-   R128_X64_SP_SOA_TFA/TFB as two pairs of doubles and are clamped to
-   [0, 1] here, as the interpreter's zc is. zc * 255.0 * 2^32 is then
-   converted per lane by the 64-bit CVTTSD2SI, which gives q exactly:
-   the entry i in the high dword and the fraction fr in the low dword.
+   (r128_jit_soa_can). The raw fixed-point zline lanes come from the
+   frame slots R128_X64_SP_SOA_TFA/TFB as two pairs of 64-bit integers
+   and are clamped to [0, 1.0] per lane in general registers, as the
+   interpreter's zc is. q = (zc * 255) >> 7 (r128_zfx_fogpos) holds the
+   entry i in the high dword and the fraction fr in the low dword.
    With T the fog table, t = (float) fr * 2^-32 and i1 = min(i + 1, 255):
      f = (T[i] + (T[i1] - T[i]) * t) / 255.0f
    Lanes: xmm1 (float) fr, then t; xmm14 fd = T[i1] - T[i]; xmm15
@@ -523,45 +523,29 @@ r128_x64_soa_fogf(r128_x64_emit_t *e)
 static void
 r128_x64_soa_tfogf(r128_x64_emit_t *e)
 {
-    double d255  = 255.0;
-    double dd[2] = { d255, d255 };
-    double d2p32 = 4294967296.0;
-    double dp[2] = { d2p32, d2p32 };
-    float  f2m32 = 1.0f / 4294967296.0f;
-    float  fm[4] = { f2m32, f2m32, f2m32, f2m32 };
-    int    c255  = r128_x64_pool_add(e, dd, 16, 16);
-    int    c2p32 = r128_x64_pool_add(e, dp, 16, 16);
-    int    c2m32 = r128_x64_pool_add(e, fm, 16, 16);
+    float f2m32 = 1.0f / 4294967296.0f;
+    float fm[4] = { f2m32, f2m32, f2m32, f2m32 };
+    int   c2m32 = r128_x64_pool_add(e, fm, 16, 16);
 
     r128_x64_movaps_ld(e, 12, X64_RSP, R128_X64_SP_SOA_TFA);
     r128_x64_movaps_ld(e, 13, X64_RSP, R128_X64_SP_SOA_TFB);
-    for (int h = 0; h < 2; h++) {
-        int zv = h ? 13 : 12;
-
-        r128_x64_xorps(e, 0, 0);
-        r128_x64_cmpltpd(e, 0, zv); /* 0 < z                  */
-        r128_x64_pand(e, zv, 0);
-        r128_x64_sse_rip(e, 0, 0x28, 1, R128_X64_CP_ONED2);
-        r128_x64_movaps_rr(e, 0, 1);
-        r128_x64_cmpltpd(e, 0, zv); /* m = 1 < z              */
-        r128_x64_pand(e, 1, 0);
-        r128_x64_pandn(e, 0, zv);
-        r128_x64_por(e, 0, 1);                     /* zc                     */
-        r128_x64_sse_rip(e, 0x66, 0x59, 0, c255);  /* mulpd */
-        r128_x64_sse_rip(e, 0x66, 0x59, 0, c2p32); /* *2^32 */
-        r128_x64_movaps_rr(e, zv, 0);
-    }
     r128_x64_ld(e, 1, X64_RCX, X64_RBX,
                 (int) offsetof(r128_jit_tri_t, fog_table));
     for (int k = 0; k < 4; k++) {
         int zv = (k < 2) ? 12 : 13;
+        int xs = zv;
 
         if (k & 1) {
             r128_x64_movaps_rr(e, 0, zv);
             r128_x64_unpckhpd(e, 0, 0);
-            r128_x64_cvttsd2si_r64(e, X64_RAX, 0);
-        } else
-            r128_x64_cvttsd2si_r64(e, X64_RAX, zv); /* q       */
+            xs = 0;
+        }
+        r128_x64_zfx_clamp(e, X64_RAX, X64_RDX, xs);
+        r128_x64_mov_r_r(e, 1, X64_RDX, X64_RAX);
+        r128_x64_shift_imm(e, 4, 1, X64_RDX, 8);
+        r128_x64_alu_r_r(e, 0x29, 1, X64_RDX, X64_RAX); /* zc * 255 */
+        r128_x64_shift_imm(e, 5, 1, X64_RDX, R128_ZFX_BITS - 32);
+        r128_x64_mov_r_r(e, 1, X64_RAX, X64_RDX);   /* q       */
         r128_x64_mov_r_r(e, 0, X64_RDX, X64_RAX);   /* fr      */
         r128_x64_cvtsi2ss_r64(e, 0, X64_RDX);
         r128_x64_insertps(e, 1, 0, k, 0);         /* (float) */
@@ -1362,12 +1346,12 @@ r128_x64_soa_lp_aux(r128_x64_soa_lp_t *l)
     }
 }
 
-/* Z stage. The four zline lanes come from the same serial chain of
-   ADDSD as the C loop's zline += dZdx, so they are bit-exact: {z0, z1}
-   in xmm12 and {z2, z3} in xmm13. xmm2 advances to the next group's
-   zline here, so no bail may follow this point; the bails before it
-   leave xmm2 at the group base the scalar loop expects. Then the
-   quantize to zi and, without stencil, the Z test. */
+/* Z stage. The four zline lanes are the fixed-point depth plus 0..3
+   integer steps (PADDQ; only the low 64-bit lane of each register is
+   used): {z0, z1} in xmm12 and {z2, z3} in xmm13. xmm2 advances to the
+   next group's zline here, so no bail may follow this point; the bails
+   before it leave xmm2 at the group base the scalar loop expects. Then
+   the quantize to zi and, without stencil, the Z test. */
 static void
 r128_x64_soa_lp_z(r128_x64_soa_lp_t *l)
 {
@@ -1377,14 +1361,14 @@ r128_x64_soa_lp_z(r128_x64_soa_lp_t *l)
 
     r128_x64_movaps_rr(e, 12, 2);
     r128_x64_movaps_rr(e, 0, 2);
-    r128_x64_addsd(e, 0, 3); /* z1         */
+    r128_x64_paddq(e, 0, 3); /* z1         */
     r128_x64_unpcklpd(e, 12, 0);
     r128_x64_movaps_rr(e, 13, 0);
-    r128_x64_addsd(e, 13, 3); /* z2         */
+    r128_x64_paddq(e, 13, 3); /* z2         */
     r128_x64_movaps_rr(e, 1, 13);
-    r128_x64_addsd(e, 1, 3); /* z3         */
+    r128_x64_paddq(e, 1, 3); /* z3         */
     r128_x64_movaps_rr(e, 2, 1);
-    r128_x64_addsd(e, 2, 3); /* next zline */
+    r128_x64_paddq(e, 2, 3); /* next zline */
     r128_x64_unpcklpd(e, 13, 1);
 
     if (ds->fog_en && ds->fog_table_en) {
@@ -1395,42 +1379,29 @@ r128_x64_soa_lp_z(r128_x64_soa_lp_t *l)
     }
 
     if (zquant) {
-        /* zc: NaN and values <= 0 become 0 through an AND with the
-           "0 < z" mask, values above 1 become 1 through an
-           AND/ANDN/OR select. Then zq = zc * zmax + 0.5, clamped to
-           zmax, and zi = (uint32_t) zq by a per-lane 64-bit CVTTSD2SI,
-           the scalar loop's convert. */
-        for (int h = 0; h < 2; h++) {
-            int zv = h ? 13 : 12;
+        /* Per lane in general registers, the scalar loop's sequence:
+           clamp to [0, 1.0] (r128_zfx_clamp), then
+           zi = ((zc << n) - zc + 2^38) >> 39 (r128_zfx_quant; zmax is
+           2^n - 1). SSE4.1 has no signed 64-bit lane compare, so the
+           clamp runs on the extracted lane. */
+        int zn = (ds->zmax == 0xffffu) ? 16 : 24;
 
-            r128_x64_xorps(e, 0, 0);
-            r128_x64_cmpltpd(e, 0, zv);
-            r128_x64_pand(e, zv, 0);
-            r128_x64_sse_rip(e, 0, 0x28, 1, R128_X64_CP_ONED2);
-            r128_x64_movaps_rr(e, 0, 1);
-            r128_x64_cmpltpd(e, 0, zv); /* m = 1 < z  */
-            r128_x64_pand(e, 1, 0);
-            r128_x64_pandn(e, 0, zv);
-            r128_x64_por(e, 0, 1); /* zc         */
-            r128_x64_sse_rip(e, 0x66, 0x59, 0, R128_X64_CP_ZMAXD2);
-            r128_x64_sse_rip(e, 0x66, 0x58, 0, R128_X64_CP_HALFD2);
-            r128_x64_sse_rip(e, 0, 0x28, 1, R128_X64_CP_ZMAXD2);
-            r128_x64_movaps_rr(e, 14, 1);
-            r128_x64_cmpltpd(e, 14, 0); /* zmax < zq  */
-            r128_x64_pand(e, 1, 14);
-            r128_x64_pandn(e, 14, 0);
-            r128_x64_por(e, 14, 1); /* zq         */
-            r128_x64_movaps_rr(e, zv, 14);
-        }
         for (int k = 0; k < 4; k++) {
             int zv = (k < 2) ? 12 : 13;
+            int xs = zv;
 
             if (k & 1) {
                 r128_x64_movaps_rr(e, 0, zv);
                 r128_x64_unpckhpd(e, 0, 0);
-                r128_x64_cvttsd2si_r64(e, X64_RAX, 0);
-            } else
-                r128_x64_cvttsd2si_r64(e, X64_RAX, zv);
+                xs = 0;
+            }
+            r128_x64_zfx_clamp(e, X64_RDX, X64_RAX, xs);
+            r128_x64_mov_r_r(e, 1, X64_RAX, X64_RDX);
+            r128_x64_shift_imm(e, 4, 1, X64_RAX, zn);
+            r128_x64_alu_r_r(e, 0x29, 1, X64_RAX, X64_RDX); /* sub rax, rdx */
+            r128_x64_mov_r64_imm64(e, X64_RCX, 1ull << (R128_ZFX_BITS - 1));
+            r128_x64_alu_r_r(e, 0x01, 1, X64_RAX, X64_RCX); /* add rax, rcx */
+            r128_x64_shift_imm(e, 5, 1, X64_RAX, R128_ZFX_BITS);
             r128_x64_pinsrd(e, 11, X64_RAX, k);
         }
         r128_x64_movaps_st(e, 11, X64_RSP, R128_X64_SP_SOA_ZIV);

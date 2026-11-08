@@ -16,12 +16,13 @@
 /* rage128 GPU raster backend -- records shared by the host and the
    kernels.
 
-   The shading kernel (vid_ati_rage128_gpu_seg.comp) and the z-ladder
-   pre-pass (vid_ati_rage128_gpu_lad.comp) include this file. It holds
-   the batch slot constants and the two std430 records the host fills
+   The shading kernel (vid_ati_rage128_gpu_seg.comp) includes this
+   file. It holds
+   the batch slot constants and the three std430 records the host fills
    for each segment: seg_span_t, one per captured span, in binding 4,
-   and seg_tri_t, one per triangle, in binding 5.
-   vid_ati_rage128_gpu.c declares the same two records as C structs and
+   seg_tri_t, one per triangle, in binding 5, and seg_draw_t, one per
+   run of triangles with the same draw state, in binding 6.
+   vid_ati_rage128_gpu.c declares the same three records as C structs and
    checks their sizes and some field offsets with _Static_assert. A
    field added, removed or moved here must change there too, in the
    same position.
@@ -62,34 +63,73 @@
 #define GPU_BATCH_SLOTS (256 / GPU_SLOT_W)
 #define GPU_SLOT_MASK   (0xff & ~(GPU_SLOT_W - 1))
 
-/* One captured span: pixels x0..x1 of row py, from triangle tri. e0,
-   e1 and e2 are the three edge-function values at x0, and zline is the
-   depth at x0 as the bit pattern of a double. The host stores them as
-   int64_t and uint64_t; here each is a uvec2, low word first.
-   pad1 is not padding: the host sets it to 1 when all three edge values
-   stay within signed 32 bits across the whole span, and the shading
-   kernel then steps them as 32-bit integers instead of 64-bit ones.
+/* One captured span: pixels x0..x1 of row py, from triangle tri, packed
+   into two words. xw holds x0 in bits [13:0], x1 - x0 in bits [21:14]
+   and, in bit 31, the 32-bit edge flag: the host sets it when all three
+   edge values stay within signed 32 bits across the whole span, and the
+   shading kernel then computes them as 32-bit integers instead of
+   64-bit ones. pt holds py in bits [13:0] and tri in bits [26:14]. The
+   fields fit because the host clips x to the scissor (a 14-bit field
+   clamped at 0) and checks py against the 16384-row cap, cuts spans at
+   256 pixels, and holds a segment to at most 8192 triangles; the two
+   caps are compile-time asserts. The span carries no edge or depth values: the
+   kernel computes them from the triangle's plane seeds (seg_tri_t).
    drow and zrow are the byte addresses of the color row and the depth
    row. With bit 31 set, the row is in the staging buffers for an AGP
    render target (bindings 9 to 12) and the low 31 bits are an offset
-   into them rather than into VRAM. px_base is where the span's words
-   start in the z-ladder buffer (binding 6): one word per pixel, or two
-   for a table-fog draw. */
+   into them rather than into VRAM. */
 struct seg_span_t {
-    uvec2 e0, e1, e2;
-    uvec2 zline;
-    int   x0, x1, py, tri;
-    uint     drow, zrow;
-    uint     px_base, pad1;
+    uint xw, pt;
+    uint drow, zrow;
 };
 
-/* One triangle. Most fields are copies of the interpreter's triangle
-   record (r128_jit_tri_t), draw state (rage128_draw_state_t) and
-   texture context (r3d_texctx_t) under the same names;
-   capture_tri_record in vid_ati_rage128_gpu.c fills the record.
-   e0dxi, e1dxi and e2dxi are the per-pixel x steps of the span's edge
-   values, and dZdx is the per-pixel depth step as the bits of a double,
-   both stored as in seg_span_t.
+/* One triangle: the values that change from one triangle to the next.
+   Most fields are copies of the interpreter's triangle record
+   (r128_jit_tri_t) and texture context (r3d_texctx_t) under the same
+   names; capture_tri_record in vid_ati_rage128_gpu.c fills the record,
+   and draw indexes the triangle's seg_draw_t.
+   The 64-bit fields are uvec2, low word first. e0dxi, e1dxi and e2dxi
+   are the per-pixel x steps of the edge values and dZdx the per-pixel
+   step of the fixed-point depth (r128_zfx in vid_ati_rage128.h:
+   normalized depth times 2^39). e0o, e1o, e2o and zo are the values at
+   pixel (0, 0) and e0dyi, e1dyi, e2dyi and dzy the per-row steps, so
+   the edge value at pixel (x, y) is e0o + y * e0dyi + x * e0dxi, and
+   the depth zo + y * dzy + x * dZdx, in wrapping 64-bit arithmetic:
+   the same integers the host's row walk reaches by adding the steps.
+   The edge seeds are winding-normalized and carry back the fill-rule
+   bias, so these are the unbiased values the barycentric weights
+   take. */
+struct seg_tri_t {
+    uvec2 e0dxi, e1dxi, e2dxi;
+    uvec2 dZdx;
+    uvec2 e0o, e1o, e2o;
+    uvec2 e0dyi, e1dyi, e2dyi;
+    uvec2 zo, dzy;
+    float invs;
+    uint  draw; /* index of this triangle's seg_draw_t */
+    float vca[4], vcb[4], vcc[4];
+    float sta, stb, stc, tta, ttb, ttc;
+    float s2a, s2b, s2c, t2a, t2b, t2c;
+    float arhw, brhw, crhw;
+    float dSdx, dSdy, dTdx, dTdy, dWdx, dWdy;
+    float dS2dx, dS2dy, dT2dx, dT2dy;
+    /* The secondary stage's own W: a2rhw, b2rhw, c2rhw per vertex and
+       its screen gradients dW2dx, dW2dy (see persp2 and sel_w in
+       seg_draw_t). */
+    float a2rhw, b2rhw, c2rhw, dW2dx, dW2dy;
+    /* specular RGB and fog factors at the three vertices (see spec_en
+       and fog_en in seg_draw_t) */
+    float spa[3];
+    float spb[3];
+    float spc[3];
+    float fga, fgb, fgc;
+};
+
+/* The draw state the triangles of one draw share, in binding 6, copied
+   from the draw state (rage128_draw_state_t) and texture context under
+   the same names. The host appends a record only when it differs from
+   the last one it appended in the segment, so consecutive triangles of
+   a draw usually point at the same record.
 
    st_cfg holds 8 words per texture stage: 0 texel datatype, plus bit 4
    when a fetched texel of an alpha-bearing datatype reads as alpha
@@ -105,10 +145,8 @@ struct seg_span_t {
    TEX_CNTL_C bit 6, which the interpreter treats like a stage
    combine's fmsb bit, and bits [7:5] ALPHA_LIGHT_FN (SDK: Texture
    Mapping, p. 6-47 / PDF 159, Table 6-16). */
-struct seg_tri_t {
-    uvec2 e0dxi, e1dxi, e2dxi;
-    uvec2 dZdx;
-    float invs, lod_bias;
+struct seg_draw_t {
+    float    lod_bias;
     float    texw0, texh0, texw1, texh1;
     uint     zfn, z_wr;
     uint     atest_en, atest_fn, atest_ref;
@@ -119,19 +157,11 @@ struct seg_tri_t {
     int      aux_y0[3];
     int      aux_y1[3];
     float    cc[4];
-    float    vca[4], vcb[4], vcc[4];
-    float    sta, stb, stc, tta, ttb, ttc;
-    float    s2a, s2b, s2c, t2a, t2b, t2c;
-    float    arhw, brhw, crhw;
-    float    dSdx, dSdy, dTdx, dTdy, dWdx, dWdy;
-    float    dS2dx, dS2dy, dT2dx, dT2dy;
-    /* The secondary stage's own W: a2rhw, b2rhw, c2rhw per vertex and
-       its screen gradients dW2dx, dW2dy. persp2 is that stage's
-       perspective enable (SEC_TEX_CNTL_C SEC_TEX_PERSPECTIVE_DIS
-       clear) and sel_w says the W is the vertex rhw2 (SEC_SRC_SEL_W);
-       when the stage's enable equals persp and sel_w is clear it
-       divides by the primary rhw, as the interpreter does. */
-    float    a2rhw, b2rhw, c2rhw, dW2dx, dW2dy;
+    /* persp2 is the secondary stage's perspective enable
+       (SEC_TEX_CNTL_C SEC_TEX_PERSPECTIVE_DIS clear) and sel_w says its
+       W is the vertex rhw2 (SEC_SRC_SEL_W); when the stage's enable
+       equals persp and sel_w is clear it divides by the primary rhw,
+       as the interpreter does. */
     uint     persp2, sel_w, stip_en;
     uint     sec_sel, need_lod2;
     int      top0, top1;
@@ -177,30 +207,26 @@ struct seg_tri_t {
        R128_STEN_REF_MASK_C) with the field codes unchanged. */
     uint sten_ctl, sten_rm;
     /* Specular add, enabled by the TEX_CNTL_C bit xf86-video-r128 names
-       R128_SPEC_LIGHT_ENABLE. spa, spb and spc are the specular RGB at
-       the three vertices; the kernel interpolates them and adds the
-       result to the combined color, clamping each channel at 1.0.
-       Alpha is unchanged. */
-    float spa[3];
-    float spb[3];
-    float spc[3];
+       R128_SPEC_LIGHT_ENABLE. The kernel interpolates the triangle's
+       specular RGB (spa, spb and spc in seg_tri_t) and adds the result
+       to the combined color, clamping each channel at 1.0. Alpha is
+       unchanged. */
     uint  spec_en;
     /* Fog, applied after the specular add: C = f * C + (1 - f) * fog
        color, on RGB only. fog_en is the TEX_CNTL_C bit xf86-video-r128
        names R128_FOG_ENABLE; fogr, fogg and fogb are the fog color.
-       With ftab_en clear, f is interpolated from the per-vertex fog
-       factors fga, fgb and fgc. ftab_en is set when fog_en is on and
+       With ftab_en clear, f is interpolated from the triangle's
+       per-vertex fog factors (fga, fgb and fgc in seg_tri_t). ftab_en
+       is set when fog_en is on and
        MISC_3D_STATE_CNTL_REG.FOG_TABLE_EN, bit 14, selects the fog
        table (RRG: MISC_3D_STATE_CNTL_REG, p. 3-257 / PDF 275); f then
-       comes from fog_table. The z-ladder pre-pass splits the pixel's depth,
-       clamped to 0..1 and times 255, into a table index, stored in bits
-       [31:24] of the pixel's ladder word, and a 32-bit fraction, stored
-       in the word after it. The kernel interpolates between the table
-       entries at that index and the next one by the fraction. Table fog
-       therefore needs a depth cell: the host refuses a table-fog draw
-       with neither depth nor stencil enabled, and the interpreter draws
-       it. */
-    float fga, fgb, fgc;
+       comes from fog_table. The kernel splits the pixel's depth,
+       clamped to 0..1 and times 255, into a table index and a 32-bit
+       fraction (r128_zfx_fogpos in vid_ati_rage128.h), and interpolates
+       between the table entries at that index and the next one by the
+       fraction. The depth comes from the span's fixed-point plane, not
+       from a depth cell, so table fog also runs with depth and stencil
+       off. */
     float fogr, fogg, fogb;
     uint  fog_en, ftab_en;
     /* Stage 0 chroma key. The kernel takes the nearest texel before
@@ -231,7 +257,7 @@ struct seg_tri_t {
        entries, four per word, entry 0 in the low byte of word 0. Read
        only when ftab_en is set. */
     uint  fog_table[64];
-    /* The modeled pattern is captured per triangle so a segment can mix
+    /* The modeled pattern is captured per draw so a segment can mix
        patterns. Row y & 31 selects a word; bit 31 is the tile's left edge. */
     uint  stipple[32];
 };

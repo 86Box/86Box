@@ -7,8 +7,8 @@ ifeq ($(qt),6)
 	CMAKE_EXTRA += -DUSE_QT6=ON
 endif
 
-ifeq ($(dynarec),new)
-	CMAKE_EXTRA += -DNEW_DYNAREC=ON
+ifeq ($(dynarec),off)
+	CMAKE_EXTRA += -DDYNAREC=OFF
 endif
 
 define do_configure

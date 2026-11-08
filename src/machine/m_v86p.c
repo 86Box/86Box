@@ -61,7 +61,7 @@ static const device_config_t v86p_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "12/20/89",
+                .name          = "AwardBIOS S3.1 - Revision 12/20/89",
                 .internal_name = "v86p",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -72,7 +72,7 @@ static const device_config_t v86p_config[] = {
                                    "" }
             },
             {
-                .name          = "09/04/89",
+                .name          = "AwardBIOS S3.1 - Revision 09/04/89",
                 .internal_name = "v86p_090489",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -83,7 +83,7 @@ static const device_config_t v86p_config[] = {
                                    "" }
             },
             {
-                .name          = "09/04/89 (Alt)",
+                .name          = "AwardBIOS S3.1 - Revision 09/04/89 (alternate)",
                 .internal_name = "v86p_jvernet",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,

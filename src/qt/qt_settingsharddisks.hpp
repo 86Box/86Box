@@ -45,7 +45,6 @@ private:
     void                   populateAudioProfiles();
     void                   addRow(QAbstractItemModel *model, void *priv);
     void                   addDriveFromDialog(Ui::SettingsHarddisks *ui, const HarddiskDialog &dlg);
-    bool                   buschangeinprogress = false;
 
     int                    org_rows = 0;
 

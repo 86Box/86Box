@@ -107,6 +107,7 @@ typedef struct ide_s {
     int      mdma_mode;
     int      do_initial_read;
     uint8_t  is_jride;
+    uint8_t  removable;  /* ATA removable drive (hdd_num is an rdisk slot) */
     uint32_t drive;
     uint32_t cfg_spt;
     uint32_t cfg_hpc;
@@ -149,10 +150,13 @@ typedef struct ide_s {
     void *  get_timings;
     void *  identify;
     void *  stop;
+    void *  packet_command;
     void *  device_reset;
     void *  phase_data_out;
     void *  command_stop;
     void *  bus_master_error;
+    void *  read;
+    void *  write;
 #endif
 } ide_t;
 
@@ -187,15 +191,25 @@ enum {
     TIMINGS_PIO_FC = 2
 };
 
+extern int ide_turbo;
+
+extern void ide_turbo_update(void);
+
 #ifdef SCSI_DEVICE_H
 extern ide_t *ide_get_drive(int ch);
 extern void   ide_irq(ide_t *ide, int set, int log);
 extern void   ide_allocate_buffer(ide_t *dev);
 extern void   ide_atapi_attach(ide_t *dev);
+extern int    ide_ata_removable_attach(int ch, int hdd_num);
 #endif
 
 extern void *ide_xtide_init(void);
 extern void  ide_xtide_close(void);
+extern void *ide_lpt_init(int port);
+extern void  ide_lpt_close(int port);
+extern int   ide_lpt_intrq(int port);
+extern int   ide_lpt_channel(int port);
+extern void  ide_lpt_set_irq(int port, void (*lpt_irq)(int set, void *priv), void *priv);
 extern void  ide_xtide_set_is_jride(int is_jride);
 extern uint8_t *ide_get_pio_buffer(void *priv);
 extern void  ide_complete_pio_buffer_read(void *priv);

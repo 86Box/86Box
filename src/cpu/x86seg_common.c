@@ -57,6 +57,8 @@ seg_reset(x86seg *s)
             fatal("seg_reset(&cpu_state.seg.cs) without an initialized CPU\n");
         if (is6117)
             s->base = 0x00ff0000;
+        else if (is386ex)
+            s->base = 0x03ff0000;
         else
             s->base = is286 ? (cpu_16bitbus ? 0x00ff0000 : 0xffff0000) : 0x000ffff0;
         s->seg = is286 ? 0xf000 : 0xffff;

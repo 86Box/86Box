@@ -5,6 +5,7 @@
 #include <QImage>
 #include <QRect>
 #include <QRectF>
+#include <QSize>
 #include <QWidget>
 
 #include <atomic>
@@ -48,8 +49,12 @@ protected:
     bool eventDelegate(QEvent *event, bool &result);
     void drawStatusBarIcons(QPainter *painter);
 
+    /* Clips the destination to an output of the given size and crops the source to match. */
+    void visibleRects(int out_w, int out_h, QRect &visible_source, QRect &visible_destination) const;
+
     QRect    source { 0, 0, 0, 0 };
     QRect    destination;
+    QSize    output_size;
     QWidget *parentWidget { nullptr };
 
     double pixelRatio = 1.0;

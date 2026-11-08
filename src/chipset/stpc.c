@@ -524,6 +524,20 @@ stpc_isab_read(int func, int addr, int len, void *priv)
     return ret;
 }
 
+/* The USB controller uses PCI Interrupt A, which index 52h routes to the
+   8259 (STPC Atlas Programming Manual 22.3.1, p. 577 / PDF 577; 9.5.3,
+   p. 172 / PDF 172). */
+static void
+stpc_usb_irq(void *priv, int level)
+{
+    stpc_t *dev = (stpc_t *) priv;
+
+    if (level)
+        pci_set_irq(dev->usb_slot, PCI_INTA, &dev->usb_irq_state);
+    else
+        pci_clear_irq(dev->usb_slot, PCI_INTA, &dev->usb_irq_state);
+}
+
 static void
 stpc_usb_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
@@ -950,6 +964,14 @@ stpc_init(const device_t *info)
 
         dev->usb = device_add(&usb_device);
         pci_add_card(PCI_ADD_SOUTHBRIDGE_USB, stpc_usb_read, stpc_usb_write, dev, &dev->usb_slot);
+        ohci_set_irq_handler(dev->usb, stpc_usb_irq, dev);
+        ohci_hardwire_bus_master(dev->usb);
+        /* The programming manual gives the operational registers only a
+           one-line summary each (22.2, p. 574-576 / PDF 574-576), so the
+           OpenHCI behavior is used; its SMI registers have no USB source
+           (25.2.14-25.2.16, p. 620-623 / PDF 620-623). */
+        ohci_set_chip_flags(dev->usb, OHCI_CHIP_LST_0628H | OHCI_CHIP_RWC | OHCI_CHIP_NO_SMI | OHCI_CHIP_UE_RW | OHCI_CHIP_PTRS_RO |
+                                      OHCI_CHIP_POTPGT_RW);
     }
 
     dev->bm[0] = device_add_inst(&sff8038i_device, 1);

@@ -3,6 +3,7 @@ if(BUILD_TESTING)
         hdd_image_test.cpp
         ../../src/disk/hdd_image.c
     )
+    target_compile_definitions(hdd_image_tests PRIVATE IS_TEST)
     target_include_directories(hdd_image_tests PRIVATE
         ${PROJECT_SOURCE_DIR}/src/include
         ${PROJECT_BINARY_DIR}/src/include

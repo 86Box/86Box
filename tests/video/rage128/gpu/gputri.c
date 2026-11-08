@@ -11,7 +11,7 @@
  *
  *          The tool drives the production SPIR-V span-shading kernels
  *          (the twenty variants, each called a kernel here as in the
- *          device's kernel ids) and the depth pre-pass, the bytes in
+ *          device's kernel ids), the bytes in
  *          src/include/86box/vid_ati_rage128_gpu_spv.h that the emulator
  *          ships, through the device's row, order, span and triangle
  *          records, and compares their output byte for byte against the
@@ -234,7 +234,7 @@ typedef struct r128_jit_tri_t {
     int32_t  x0, x1;
     int64_t  e0dxi, e1dxi, e2dxi;
     float    invs;
-    double   dZdx;
+    int64_t  dzx;
     float    vca[4], vcb[4], vcc[4];
     void    *texctx;
     float    fog[4];
@@ -271,16 +271,58 @@ typedef struct r3d_texctx_t {
 /* ---- GPU-side records: must match vid_ati_rage128_gpu.c and the
    std430 blocks in vid_ati_rage128_gpu_seg.comp ---- */
 typedef struct seg_span_t {
-    int64_t  e0, e1, e2;
-    uint64_t zline;
-    int32_t  x0, x1, py, tri;
-    uint32_t drow, zrow, px_base, pad1;
+    /* x0 | (x1 - x0) << 14 | 32-bit edge flag << 31, py | tri << 14 */
+    uint32_t xw, pt;
+    uint32_t drow, zrow;
 } seg_span_t;
+
+static inline int32_t
+sp_x0(const seg_span_t *s)
+{
+    return (int32_t) (s->xw & 0x3fffu);
+}
+
+static inline int32_t
+sp_x1(const seg_span_t *s)
+{
+    return sp_x0(s) + (int32_t) ((s->xw >> 14) & 0xffu);
+}
+
+static inline int32_t
+sp_py(const seg_span_t *s)
+{
+    return (int32_t) (s->pt & 0x3fffu);
+}
+
+static inline int32_t
+sp_tri(const seg_span_t *s)
+{
+    return (int32_t) (s->pt >> 14);
+}
 
 typedef struct seg_tri_t {
     int64_t  e0dxi, e1dxi, e2dxi;
-    uint64_t dZdx;
-    float    invs, lod_bias;
+    int64_t  dZdx;
+    /* plane seeds: the values at pixel (0, 0) and the per-row steps */
+    int64_t  e0o, e1o, e2o;
+    int64_t  e0dyi, e1dyi, e2dyi;
+    int64_t  zo, dzy;
+    float    invs;
+    uint32_t draw;
+    float    vca[4], vcb[4], vcc[4];
+    float    sta, stb, stc, tta, ttb, ttc;
+    float    s2a, s2b, s2c, t2a, t2b, t2c;
+    float    arhw, brhw, crhw;
+    float    dSdx, dSdy, dTdx, dTdy, dWdx, dWdy;
+    float    dS2dx, dS2dy, dT2dx, dT2dy;
+    /* the secondary stage's own W per vertex and its screen gradients */
+    float    a2rhw, b2rhw, c2rhw, dW2dx, dW2dy;
+    float    spa[3], spb[3], spc[3];
+    float    fga, fgb, fgc;
+} seg_tri_t;
+
+typedef struct seg_draw_t {
+    float    lod_bias;
     float    texw0, texh0, texw1, texh1;
     uint32_t zfn, z_wr;
     uint32_t atest_en, atest_fn, atest_ref;
@@ -288,16 +330,8 @@ typedef struct seg_tri_t {
     uint32_t aux_cntl;
     int32_t  aux_x0[3], aux_x1[3], aux_y0[3], aux_y1[3];
     float    cc[4];
-    float    vca[4], vcb[4], vcc[4];
-    float    sta, stb, stc, tta, ttb, ttc;
-    float    s2a, s2b, s2c, t2a, t2b, t2c;
-    float    arhw, brhw, crhw;
-    float    dSdx, dSdy, dTdx, dTdy, dWdx, dWdy;
-    float    dS2dx, dS2dy, dT2dx, dT2dy;
-    /* the secondary stage's own W per vertex and its screen gradients,
-       its perspective enable, and whether that W is the vertex rhw2
-       (SEC_SRC_SEL_W) */
-    float    a2rhw, b2rhw, c2rhw, dW2dx, dW2dy;
+    /* the secondary stage's perspective enable, and whether its W is
+       the vertex rhw2 (SEC_SRC_SEL_W) */
     uint32_t persp2, sel_w, stip_en;
     uint32_t sec_sel, need_lod2;
     int32_t  top0, top1;
@@ -307,24 +341,72 @@ typedef struct seg_tri_t {
     uint32_t slot1[44];
     uint32_t dst_dt, wmask, dither, persp;
     uint32_t zbpp, zshift, sten_ctl, sten_rm;
-    float    spa[3], spb[3], spc[3];
     uint32_t spec_en;
-    float    fga, fgb, fgc;
     float    fogr, fogg, fogb;
     uint32_t fog_en, ftab_en;
     uint32_t ck3d_clr, ck3d_msk, ckc_clr, ckc_msk;
     uint32_t ck_ctl, pal_base;
     uint32_t fog_table[64];
     uint32_t stipple[32];
-} seg_tri_t;
+} seg_draw_t;
 
-_Static_assert(sizeof(seg_span_t) == 64, "span layout drift");
-_Static_assert(sizeof(seg_tri_t) == 1344, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, stip_en) == 332, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, stipple) == 1216, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, cc) == 140, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, st_cfg) == 352, "tri layout drift");
-_Static_assert(offsetof(seg_tri_t, slot0) == 480, "tri layout drift");
+_Static_assert(sizeof(seg_span_t) == 16, "span layout drift");
+_Static_assert(sizeof(seg_tri_t) == 320, "tri layout drift");
+_Static_assert(offsetof(seg_tri_t, vca) == 104, "tri layout drift");
+_Static_assert(offsetof(seg_tri_t, spa) == 272, "tri layout drift");
+_Static_assert(sizeof(seg_draw_t) == 1092, "draw layout drift");
+_Static_assert(offsetof(seg_draw_t, cc) == 104, "draw layout drift");
+_Static_assert(offsetof(seg_draw_t, st_cfg) == 148, "draw layout drift");
+_Static_assert(offsetof(seg_draw_t, slot0) == 276, "draw layout drift");
+_Static_assert(offsetof(seg_draw_t, stipple) == 964, "draw layout drift");
+
+/* The device's fixed-point depth (vid_ati_rage128.h r128_zfx and its
+   helpers), copied as this file copies the records above: normalized
+   depth times 2^39, clamped, quantized and split for table fog. */
+#define R128_ZFX_BITS     39
+#define R128_ZFX_ONE      (1ll << R128_ZFX_BITS)
+#define R128_ZFX_SEED_LIM (1ll << 60)
+#define R128_ZFX_GRAD_LIM (1ll << 47)
+
+static inline int64_t
+r128_zfx(double v, int64_t lim)
+{
+    double  s = v * (double) R128_ZFX_ONE;
+    int64_t t;
+    double  f;
+
+    if (!(s == s))
+        return 0;
+    if (s >= (double) lim)
+        return lim;
+    if (s <= -(double) lim)
+        return -lim;
+    t = (int64_t) s;
+    f = s - (double) t;
+    if (f >= 0.5)
+        t++;
+    else if (f <= -0.5)
+        t--;
+    return t;
+}
+
+static inline uint64_t
+r128_zfx_clamp(int64_t z)
+{
+    return (z < 0) ? 0 : ((z > R128_ZFX_ONE) ? (uint64_t) R128_ZFX_ONE : (uint64_t) z);
+}
+
+static inline uint32_t
+r128_zfx_quant(uint64_t zc, uint32_t zmax)
+{
+    return (uint32_t) ((zc * zmax + (1ull << (R128_ZFX_BITS - 1))) >> R128_ZFX_BITS);
+}
+
+static inline uint64_t
+r128_zfx_fogpos(uint64_t zc)
+{
+    return (zc * 255u) >> (R128_ZFX_BITS - 32);
+}
 
 #include <86box/vid_ati_rage128_gpu_spv.h>
 /* the device's own combine-tuple enumeration, so plbench builds exactly
@@ -1157,13 +1239,13 @@ ref_aux_pass(const rage128_draw_state_t *d, int x, int y)
 
 static uint64_t
 ref_span(const r128_jit_tri_t *t, const rage128_draw_state_t *d,
-         int64_t e0, int64_t e1, int64_t e2, double zline,
+         int64_t e0, int64_t e1, int64_t e2, int64_t zline,
          uint32_t drow, uint32_t zrow, int32_t py, const uint32_t stipple[32])
 {
     int32_t rx0 = -1, rx1 = -1;
 
     for (int32_t px = t->x0; px <= t->x1;
-         px++, e0 += t->e0dxi, e1 += t->e1dxi, e2 += t->e2dxi, zline += t->dZdx) {
+         px++, e0 += t->e0dxi, e1 += t->e1dxi, e2 += t->e2dxi, zline += t->dzx) {
         if (e0 < 0 || e1 < 0 || e2 < 0)
             continue;
         if (d->aux_on && !ref_aux_pass(d, px, py))
@@ -1175,9 +1257,7 @@ ref_span(const r128_jit_tri_t *t, const rage128_draw_state_t *d,
         float w1 = (float) e1 * t->invs;
         float w2 = (float) e2 * t->invs;
 
-        double zc = zline;
-        if (!(zc > 0.0)) zc = 0.0;
-        if (zc > 1.0) zc = 1.0;
+        uint64_t zc = r128_zfx_clamp(zline);
 
         uint32_t zi = 0;
         uint8_t *zcell = NULL;
@@ -1185,11 +1265,7 @@ ref_span(const r128_jit_tri_t *t, const rage128_draw_state_t *d,
         uint32_t sbuf = 0;
 
         if (d->z_en || d->sten_on) {
-            double zq = zc * (double) d->zmax + 0.5;
-
-            if (zq > (double) d->zmax)
-                zq = (double) d->zmax;
-            zi = (uint32_t) zq;
+            zi = r128_zfx_quant(zc, d->zmax);
             uint32_t zaddr = zrow + (uint32_t) px * d->zbpp;
             if (t->zptr) {
                 uint32_t zoff = zaddr - t->z_base;
@@ -1264,7 +1340,7 @@ ref_span(const r128_jit_tri_t *t, const rage128_draw_state_t *d,
 
             if (d->fog_table_en) {
                 /* sub-entry blend, same split as the interpreter */
-                uint64_t q  = (uint64_t) (zc * 255.0 * 4294967296.0);
+                uint64_t q  = r128_zfx_fogpos(zc);
                 uint32_t i  = (uint32_t) (q >> 32);
                 uint32_t i1 = i < 255 ? i + 1 : i;
                 float    tf = (float) (uint32_t) q * (1.0f / 4294967296.0f);
@@ -1551,16 +1627,18 @@ typedef struct gbuf {
 #define BATCH_LEVEL_MAX 1024u
 
 #define FZ_SPAN_CAP 8192u
-#define FZ_TRI_CAP  2048u
+/* one triangle record per emitted row (seg_add), so as many as spans;
+   the span record's triangle field is 13 bits */
+#define FZ_TRI_CAP  8192u
+_Static_assert(FZ_TRI_CAP <= (1u << 13), "span tri overflows its field");
+_Static_assert(FZ_TRI_CAP >= FZ_SPAN_CAP, "a record per row needs a record per span");
 #define FZ_RUN_CAP  64u
-#define FZ_PX_CAP   (FZ_SPAN_CAP * 512u) /* ladder words: 2 per px when every span is table-fogged */
 _Static_assert(FZ_SPAN_CAP <= (1u << 24), "span index overflows batch slot");
 _Static_assert(BATCH_SLOTS == 256u / SLOT_W, "slot table mis-sized");
 _Static_assert(SLOT_W == (1u << SLOT_SHIFT), "slot shift mismatch");
 
 static gbuf b_cstage, b_zstage;
-static gbuf b_vram, b_rows, b_order, b_spans, b_tris, b_lad, b_stage,
-            b_pal, b_fin, b_fout;
+static gbuf b_vram, b_rows, b_order, b_spans, b_tris, b_draws, b_stage, b_pal;
 
 /* GPUTRI_IMPORT=1 imports host allocations for the VRAM, texture-stage,
    and color/depth-stage arenas through Vulkan's external host-memory
@@ -1650,31 +1728,10 @@ mk_buf(gbuf *g, VkDeviceSize sz)
     g->sz = sz;
 }
 
-static VkShaderModule
-load_spv_file(const char *path)
-{
-    FILE *f = fopen(path, "rb");
-    if (!f) { fprintf(stderr, "%s not found in the working directory (build.sh compiles it)\n", path); exit(1); }
-    fseek(f, 0, SEEK_END);
-    long len = ftell(f);
-    fseek(f, 0, SEEK_SET);
-    uint32_t *spv = malloc(len);
-    if (fread(spv, 1, len, f) != (size_t) len) { fprintf(stderr, "spv read\n"); exit(1); }
-    fclose(f);
-    VkShaderModuleCreateInfo smci = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
-    smci.codeSize = len;
-    smci.pCode    = spv;
-    VkShaderModule sm;
-    VK_CHECK(vkCreateShaderModule(dev, &smci, NULL, &sm));
-    free(spv);
-    return sm;
-}
-
-static VkDescriptorSetLayout r_dsl, f_dsl;
-static VkPipelineLayout      r_plyt, f_plyt;
-static VkPipeline            r_pipes[N_KERNELS], r_pipes_serial[N_KERNELS],
-                             r_lad_pipe, f_pipe;
-static VkDescriptorSet       r_dset, f_dset;
+static VkDescriptorSetLayout r_dsl;
+static VkPipelineLayout      r_plyt;
+static VkPipeline            r_pipes[N_KERNELS], r_pipes_serial[N_KERNELS];
+static VkDescriptorSet       r_dset;
 static VkPipelineCache       plcache; /* file-persisted: repeat fuzz runs warm */
 
 /* ---- folded-pipeline pool (device combine-tuple mirror) ----
@@ -2086,14 +2143,12 @@ init_vulkan(void)
     mk_buf(&b_rows, FZ_SPAN_CAP * 2 * sizeof(uint32_t));
     mk_buf(&b_order, FZ_SPAN_CAP * BATCH_SLOTS * sizeof(uint32_t));
     mk_buf(&b_spans, FZ_SPAN_CAP * sizeof(seg_span_t));
-    mk_buf(&b_lad, FZ_PX_CAP * sizeof(uint32_t));
     mk_buf(&b_tris, FZ_TRI_CAP * sizeof(seg_tri_t));
+    mk_buf(&b_draws, FZ_TRI_CAP * sizeof(seg_draw_t));
     mkb(&b_stage, STAGE_SZ + 4); /* +4: same guard contract as vram */
     mkb(&b_cstage, CZSTG_SZ + 4);
     mkb(&b_zstage, CZSTG_SZ + 4);
     mk_buf(&b_pal, 4 * 256 * sizeof(uint32_t));
-    mk_buf(&b_fin, 4096 * 2 * 8);
-    mk_buf(&b_fout, 4096 * 3 * 8);
 
     /* raster: the production binding layout + 8-byte push constants */
     VkDescriptorSetLayoutBinding rb[13];
@@ -2108,8 +2163,6 @@ init_vulkan(void)
     dslci.bindingCount = 13;
     dslci.pBindings    = rb;
     VK_CHECK(vkCreateDescriptorSetLayout(dev, &dslci, NULL, &r_dsl));
-    dslci.bindingCount = 2;
-    VK_CHECK(vkCreateDescriptorSetLayout(dev, &dslci, NULL, &f_dsl));
 
     VkPushConstantRange pcr = { VK_SHADER_STAGE_COMPUTE_BIT, 0, 8 };
     VkPipelineLayoutCreateInfo plci = { VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO };
@@ -2118,10 +2171,6 @@ init_vulkan(void)
     plci.pushConstantRangeCount  = 1;
     plci.pPushConstantRanges     = &pcr;
     VK_CHECK(vkCreatePipelineLayout(dev, &plci, NULL, &r_plyt));
-    VkPushConstantRange fpcr = { VK_SHADER_STAGE_COMPUTE_BIT, 0, 4 };
-    plci.pSetLayouts         = &f_dsl;
-    plci.pPushConstantRanges = &fpcr;
-    VK_CHECK(vkCreatePipelineLayout(dev, &plci, NULL, &f_plyt));
 
     /* file-persisted pipeline cache: with the fixed fuzz seeds the
        folded-tuple set is deterministic, so repeat runs compile warm */
@@ -2153,10 +2202,6 @@ init_vulkan(void)
         free(blob);
     }
 
-    VkComputePipelineCreateInfo cpi = { VK_STRUCTURE_TYPE_COMPUTE_PIPELINE_CREATE_INFO };
-    cpi.stage.sType  = VK_STRUCTURE_TYPE_PIPELINE_SHADER_STAGE_CREATE_INFO;
-    cpi.stage.stage  = VK_SHADER_STAGE_COMPUTE_BIT;
-    cpi.stage.pName  = "main";
     /* one module, per-kernel specialization -- same shape as the device
        backend so what is fuzzed is what ships */
     {
@@ -2187,26 +2232,10 @@ init_vulkan(void)
         }
         vkDestroyShaderModule(dev, sm, NULL);
     }
-    {
-        VkShaderModuleCreateInfo smci = { VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO };
-        smci.codeSize = sizeof(r128_gpu_lad_spv);
-        smci.pCode    = (const uint32_t *) r128_gpu_lad_spv;
-        VkShaderModule sm;
-        VK_CHECK(vkCreateShaderModule(dev, &smci, NULL, &sm));
-        cpi.stage.module = sm;
-        cpi.layout       = r_plyt;
-        VK_CHECK(vkCreateComputePipelines(dev, plcache, 1, &cpi, NULL, &r_lad_pipe));
-        vkDestroyShaderModule(dev, sm, NULL);
-    }
-    VkShaderModule fsm = load_spv_file("f64test.spv");
-    cpi.stage.module = fsm;
-    cpi.layout       = f_plyt;
-    VK_CHECK(vkCreateComputePipelines(dev, plcache, 1, &cpi, NULL, &f_pipe));
-    vkDestroyShaderModule(dev, fsm, NULL);
 
-    VkDescriptorPoolSize dps = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 15 };
+    VkDescriptorPoolSize dps = { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, 13 };
     VkDescriptorPoolCreateInfo dpci = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO };
-    dpci.maxSets       = 2;
+    dpci.maxSets       = 1;
     dpci.poolSizeCount = 1;
     dpci.pPoolSizes    = &dps;
     VK_CHECK(vkCreateDescriptorPool(dev, &dpci, NULL, &dpool));
@@ -2215,17 +2244,17 @@ init_vulkan(void)
     dsai.descriptorSetCount = 1;
     dsai.pSetLayouts        = &r_dsl;
     VK_CHECK(vkAllocateDescriptorSets(dev, &dsai, &r_dset));
-    dsai.pSetLayouts = &f_dsl;
-    VK_CHECK(vkAllocateDescriptorSets(dev, &dsai, &f_dset));
 
     /* bindings 0/1 are both the vram buffer: u16 cell view and word view
-       (texture fetch plus the 4-byte color/Z cells); 7 is the staged
-       arena word view; 9-12 the staged c/z arenas (u16 + word view each) */
+       (texture fetch plus the 4-byte color/Z cells); 6 is read by no
+       kernel and holds the tri records, as in the device; 7 is the
+       staged arena word view; 9-12 the staged c/z arenas (u16 + word
+       view each) */
     gbuf *rbufs[13] = { &b_vram, &b_vram, &b_rows, &b_order, &b_spans, &b_tris,
-                        &b_lad, &b_stage, &b_pal,
+                        &b_draws, &b_stage, &b_pal,
                         &b_cstage, &b_cstage, &b_zstage, &b_zstage };
-    VkDescriptorBufferInfo dbi[15];
-    VkWriteDescriptorSet   wds[15];
+    VkDescriptorBufferInfo dbi[13];
+    VkWriteDescriptorSet   wds[13];
     for (int i = 0; i < 13; i++) {
         dbi[i] = (VkDescriptorBufferInfo) { rbufs[i]->b, 0, VK_WHOLE_SIZE };
         wds[i] = (VkWriteDescriptorSet) { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
@@ -2235,17 +2264,7 @@ init_vulkan(void)
         wds[i].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
         wds[i].pBufferInfo     = &dbi[i];
     }
-    dbi[13] = (VkDescriptorBufferInfo) { b_fin.b, 0, VK_WHOLE_SIZE };
-    dbi[14] = (VkDescriptorBufferInfo) { b_fout.b, 0, VK_WHOLE_SIZE };
-    for (int i = 13; i < 15; i++) {
-        wds[i] = (VkWriteDescriptorSet) { VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET };
-        wds[i].dstSet          = f_dset;
-        wds[i].dstBinding      = i - 13;
-        wds[i].descriptorCount = 1;
-        wds[i].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
-        wds[i].pBufferInfo     = &dbi[i];
-    }
-    vkUpdateDescriptorSets(dev, 15, wds, 0, NULL);
+    vkUpdateDescriptorSets(dev, 13, wds, 0, NULL);
 }
 
 static void
@@ -2257,166 +2276,6 @@ submit_wait(void)
     VK_CHECK(vkQueueSubmit(queue, 1, &si, fence));
     VK_CHECK(vkWaitForFences(dev, 1, &fence, VK_TRUE, UINT64_MAX));
     VK_CHECK(vkResetFences(dev, 1, &fence));
-}
-
-/* Run the f64test kernel over the first n pairs in b_fin; the results
-   land in b_fout as add, mul, zq16 per pair. */
-static void
-f64test_dispatch(uint32_t n)
-{
-    VK_CHECK(vkResetCommandBuffer(cb, 0));
-    VkCommandBufferBeginInfo cbbi = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-    cbbi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    VK_CHECK(vkBeginCommandBuffer(cb, &cbbi));
-    vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, f_pipe);
-    vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, f_plyt, 0, 1, &f_dset, 0, NULL);
-    vkCmdPushConstants(cb, f_plyt, VK_SHADER_STAGE_COMPUTE_BIT, 0, 4, &n);
-    vkCmdDispatch(cb, (n + 63) / 64, 1, 1);
-    VkMemoryBarrier mb = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
-    mb.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    mb.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
-    vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_HOST_BIT, 0, 1, &mb, 0, NULL, 0, NULL);
-    VK_CHECK(vkEndCommandBuffer(cb));
-    submit_wait();
-}
-
-/* ---- soft-f64 add on the exceptional classes: zeros of both signs,
-   subnormal and normal boundaries, cancellation into a subnormal,
-   signed infinities, NaN operands and generated NaNs, overflow. Only
-   the add result is compared (f64_mul keeps its finite-normal scope):
-   bit-exact for every non-NaN sum, by class for a NaN. ---- */
-static int
-f64_except_check(void)
-{
-    static const struct {
-        const char *name;
-        uint64_t    a, b;
-    } vec[] = {
-        { "+0 + -0",            0x0000000000000000ull, 0x8000000000000000ull },
-        { "-0 + -0",            0x8000000000000000ull, 0x8000000000000000ull },
-        { "-0 + +0",            0x8000000000000000ull, 0x0000000000000000ull },
-        { "minsub + minsub",    0x0000000000000001ull, 0x0000000000000001ull },
-        { "sub + sub carry",    0x0008000000000000ull, 0x0008000000000000ull },
-        { "minnorm - half",     0x0010000000000000ull, 0x8008000000000000ull },
-        { "norm cancel to sub", 0x0010000000000001ull, 0x8010000000000000ull },
-        { "sub exact cancel",   0x0000000000000005ull, 0x8000000000000005ull },
-        { "sub - smaller sub",  0x0000000000000005ull, 0x8000000000000003ull },
-        { "minnorm + minsub",   0x0010000000000000ull, 0x0000000000000001ull },
-        { "one + minsub",       0x3ff0000000000000ull, 0x0000000000000001ull },
-        { "minsub + one",       0x0000000000000001ull, 0x3ff0000000000000ull },
-        { "-minsub + -minsub",  0x8000000000000001ull, 0x8000000000000001ull },
-        { "one + tie",          0x3ff0000000000000ull, 0x3ca0000000000000ull },
-        { "one + tie + sticky", 0x3ff0000000000000ull, 0x3ca0000000000001ull },
-        { "max + max",          0x7fefffffffffffffull, 0x7fefffffffffffffull },
-        { "-max + -max",        0xffefffffffffffffull, 0xffefffffffffffffull },
-        { "max + half ulp",     0x7fefffffffffffffull, 0x7c90000000000000ull },
-        { "max + below half",   0x7fefffffffffffffull, 0x7c8fffffffffffffull },
-        { "+inf + +inf",        0x7ff0000000000000ull, 0x7ff0000000000000ull },
-        { "-inf + -inf",        0xfff0000000000000ull, 0xfff0000000000000ull },
-        { "+inf + -inf",        0x7ff0000000000000ull, 0xfff0000000000000ull },
-        { "-inf + +inf",        0xfff0000000000000ull, 0x7ff0000000000000ull },
-        { "+inf + one",         0x7ff0000000000000ull, 0x3ff0000000000000ull },
-        { "one + +inf",         0x3ff0000000000000ull, 0x7ff0000000000000ull },
-        { "-inf + one",         0xfff0000000000000ull, 0x3ff0000000000000ull },
-        { "+inf + -0",          0x7ff0000000000000ull, 0x8000000000000000ull },
-        { "+0 + -inf",          0x0000000000000000ull, 0xfff0000000000000ull },
-        { "+inf + minsub",      0x7ff0000000000000ull, 0x0000000000000001ull },
-        { "qnan + one",         0x7ff8000000000000ull, 0x3ff0000000000000ull },
-        { "one + qnan",         0x3ff0000000000000ull, 0x7ff8000000000000ull },
-        { "snan + one",         0x7ff0000000000001ull, 0x3ff0000000000000ull },
-        { "qnan + qnan",        0x7ff8000000000000ull, 0xfff8000000000000ull },
-        { "qnan + +inf",        0x7ff8000000000000ull, 0x7ff0000000000000ull },
-        { "qnan + +0",          0x7ff8000000000000ull, 0x0000000000000000ull },
-        { "-0 + qnan",          0x8000000000000000ull, 0x7ff8000000000000ull },
-    };
-    enum { NV = (int) (sizeof(vec) / sizeof(vec[0])) };
-    uint64_t *in  = b_fin.map;
-    uint64_t *out = b_fout.map;
-    int       bad = 0;
-
-    for (int i = 0; i < NV; i++) {
-        in[i * 2]     = vec[i].a;
-        in[i * 2 + 1] = vec[i].b;
-    }
-    f64test_dispatch(NV);
-    for (int i = 0; i < NV; i++) {
-        double   a, b, r;
-        uint64_t want, got = out[i * 3];
-        int      ok;
-
-        memcpy(&a, &vec[i].a, 8);
-        memcpy(&b, &vec[i].b, 8);
-        r = a + b;
-        memcpy(&want, &r, 8);
-        ok = isnan(r) ? ((got & 0x7fffffffffffffffull) > 0x7ff0000000000000ull)
-                      : got == want;
-        if (!ok)
-            printf("f64 add %-20s a=%016llx b=%016llx ref=%016llx got=%016llx\n",
-                   vec[i].name, (unsigned long long) vec[i].a,
-                   (unsigned long long) vec[i].b, (unsigned long long) want,
-                   (unsigned long long) got);
-        bad += !ok;
-    }
-    printf("f64 exceptional add: %d/%d mismatches\n", bad, NV);
-    return bad;
-}
-
-/* ---- soft-f64 selftest: GPU add/mul/zq16 vs host doubles ---- */
-static int
-f64_selftest(void)
-{
-    enum { N = 4096 };
-    double   *in  = b_fin.map;
-    uint64_t *out = b_fout.map;
-
-    for (int i = 0; i < N; i++) {
-        double a, b;
-
-        switch (i & 3) {
-            case 0:
-                a = (double) (int32_t) (rng() % 3000) / 2000.0 - 0.2;
-                b = ((double) (int32_t) rng() / 4e12);
-                break;
-            case 1:
-                a = ldexp((double) (rng() & 0xfffff) + 1.0, (int) (rng() % 45) - 41)
-                    * ((rng() & 1) ? -1.0 : 1.0);
-                b = ldexp((double) (rng() & 0xfffff) + 1.0, (int) (rng() % 45) - 41)
-                    * ((rng() & 1) ? -1.0 : 1.0);
-                break;
-            case 2:
-                a = (double) (int32_t) rng() / 1e6;
-                b = -a * (1.0 + ldexp((double) (rng() & 0xff), -52));
-                break;
-            default:
-                a = (rng() & 1) ? 0.0 : (double) (rng() & 0xffff) + 0.5;
-                b = (rng() & 1) ? -0.0 : ldexp(1.0, -(int) (rng() % 30));
-                break;
-        }
-        in[i * 2]     = a;
-        in[i * 2 + 1] = b;
-    }
-    f64test_dispatch(N);
-
-    int bad = 0;
-    for (int i = 0; i < N; i++) {
-        double a = in[i * 2], b = in[i * 2 + 1];
-        double radd = a + b, rmul = a * b;
-        double zc = a;
-        if (!(zc > 0.0)) zc = 0.0;
-        if (zc > 1.0) zc = 1.0;
-        double zq = zc * 65535.0 + 0.5;
-        if (zq > 65535.0) zq = 65535.0;
-        uint64_t ezq = (uint32_t) zq;
-        uint64_t eadd, emul;
-
-        memcpy(&eadd, &radd, 8);
-        memcpy(&emul, &rmul, 8);
-        if (out[i * 3] != eadd || out[i * 3 + 1] != emul || out[i * 3 + 2] != ezq)
-            bad++;
-    }
-    printf("f64 selftest: %d/%d mismatches\n", bad, N);
-    return bad;
 }
 
 /* ------------------------------------------------------------------------
@@ -2437,7 +2296,7 @@ static uint8_t stage_ref[STAGE_SZ + 4];
 typedef struct fz_row_t {
     int     py;
     int64_t e0, e1, e2;
-    double  zline;
+    int64_t zline; /* fixed-point depth at x0 (r128_zfx) */
 } fz_row_t;
 
 typedef struct fz_draw_t {
@@ -2450,7 +2309,7 @@ typedef struct fz_draw_t {
     int32_t              x0, x1;
     int64_t              e0dxi, e1dxi, e2dxi;
     float                invs;
-    double               dZdx;
+    int64_t              dzx; /* per-pixel step of zline */
     float                vca[4], vcb[4], vcc[4];
     float                spa[4], spb[4], spc[4];
     float                fog[4];
@@ -2807,8 +2666,8 @@ mk_state(int kern, rage128_draw_state_t *d)
     if (rhi(4) == 0)
         d->spec_en = 1;
     /* Fog factors exercise both clamp sides through out-of-range
-       interpolants. Table fog uses the ladder index and fraction on
-       every kernel, including draws without a live depth cell. */
+       interpolants. Table fog uses the depth's table index and fraction
+       on every kernel, including draws without a live depth cell. */
     if (rhi(4) == 0) {
         d->fog_en = 1;
         d->fogr   = (float) (rng() & 0xff) / 255.0f;
@@ -2914,7 +2773,7 @@ mk_draw(fz_draw_t *dr, int kern, int py_lim)
     dr->e1dxi = (int64_t) (int32_t) (rng() % 20000) - 10000;
     dr->e2dxi = -(dr->e0dxi + dr->e1dxi);
     dr->invs  = 1.0f / (float) area;
-    dr->dZdx  = ((double) (int32_t) rng() / 4e12);
+    dr->dzx   = r128_zfx((double) (int32_t) rng() / 4e12, R128_ZFX_GRAD_LIM);
     for (int k = 0; k < 4; k++) {
         dr->vca[k] = (float) (rng() & 0xff) / 255.0f;
         dr->vcb[k] = (float) (rng() & 0xff) / 255.0f;
@@ -2984,12 +2843,14 @@ mk_draw(fz_draw_t *dr, int kern, int py_lim)
         rw->e0 = (int64_t) (rng() % (uint32_t) area) - area / 8;
         rw->e1 = (int64_t) (rng() % (uint32_t) area) - area / 8;
         rw->e2 = area - rw->e0 - rw->e1 - (int64_t) rhi(4);
-        rw->zline = (double) (int32_t) (rng() % 3000) / 2000.0 - 0.2;
+        rw->zline = r128_zfx((double) (int32_t) (rng() % 3000) / 2000.0 - 0.2,
+                             R128_ZFX_SEED_LIM);
         if (dr->d.fog_en && dr->d.fog_table_en
             && !dr->d.z_en && !dr->d.sten_on) {
-            /* Z-off fog uses the ladder's serial double chain through
-               both clamp endpoints and nonfinite values. The existing
-               random span start selects probes without another RNG draw. */
+            /* Z-off fog follows the fixed-point depth through both clamp
+               endpoints and the conversion's NaN and infinity cases. The
+               existing random span start selects probes without another
+               RNG draw. */
             static const double depth[][2] = {
                 { 0.0, 0.125 }, { 1.0, -0.125 },
                 { -0.25, 0.125 }, { 1.25, -0.125 },
@@ -3001,8 +2862,8 @@ mk_draw(fz_draw_t *dr, int kern, int py_lim)
             unsigned probe = (unsigned) dr->x0 % 16u;
 
             if (probe < sizeof(depth) / sizeof(depth[0])) {
-                rw->zline = depth[probe][0];
-                dr->dZdx = depth[probe][1];
+                rw->zline = r128_zfx(depth[probe][0], R128_ZFX_SEED_LIM);
+                dr->dzx   = r128_zfx(depth[probe][1], R128_ZFX_GRAD_LIM);
             }
         }
     }
@@ -3023,7 +2884,7 @@ typedef struct fz_run_t {
     uint32_t c0, c1, z0, z1, q0, q1;
 } fz_run_t;
 
-static uint32_t nspans, ntris, nruns, seg_px;
+static uint32_t nspans, ntris, ndraws, nruns;
 static fz_run_t runs[FZ_RUN_CAP];
 static uint16_t py_of[FZ_SPAN_CAP];
 /* host shadow of span byte ranges for the leveler (device bb_of mirror).
@@ -3061,44 +2922,45 @@ bb_of_fill(uint32_t i, int32_t x0, int32_t x1, const fz_draw_t *dr)
 static void
 seg_reset(void)
 {
-    nspans = ntris = nruns = seg_px = 0;
+    nspans = ntris = ndraws = nruns = 0;
 }
 
-/* tri-record fill, mirroring rage128_gpu_capture_span */
+/* tri- and draw-record fill, mirroring capture_tri_record */
 static void
-fill_tri(seg_tri_t *tt, const fz_draw_t *dr)
+fill_tri(seg_tri_t *tt, seg_draw_t *dd, const fz_draw_t *dr)
 {
     const rage128_draw_state_t *d  = &dr->d;
     const r3d_texctx_t         *tc = &dr->tc;
 
     memset(tt, 0, sizeof(*tt));
+    memset(dd, 0, sizeof(*dd));
     tt->e0dxi = dr->e0dxi;
     tt->e1dxi = dr->e1dxi;
     tt->e2dxi = dr->e2dxi;
-    memcpy(&tt->dZdx, &dr->dZdx, 8);
+    tt->dZdx = dr->dzx;
     tt->invs      = dr->invs;
-    tt->lod_bias  = d->lod_bias;
-    tt->texw0     = d->texw0;
-    tt->texh0     = d->texh0;
-    tt->texw1     = d->texw1;
-    tt->texh1     = d->texh1;
+    dd->lod_bias  = d->lod_bias;
+    dd->texw0     = d->texw0;
+    dd->texh0     = d->texh0;
+    dd->texw1     = d->texw1;
+    dd->texh1     = d->texh1;
     /* stencil-only draw: cell live, depth compare pinned to always-pass,
        depth field never written (mirrors the device capture) */
-    tt->zfn       = d->z_en ? d->zfn : 7;
-    tt->z_wr      = (d->z_en && d->z_wr) ? 1 : 0;
-    tt->zbpp      = (uint32_t) d->zbpp;
-    tt->zshift    = (uint32_t) d->zshift;
+    dd->zfn       = d->z_en ? d->zfn : 7;
+    dd->z_wr      = (d->z_en && d->z_wr) ? 1 : 0;
+    dd->zbpp      = (uint32_t) d->zbpp;
+    dd->zshift    = (uint32_t) d->zshift;
     if (d->sten_on) {
-        tt->sten_ctl = 1u | (d->sfn << 4) | (d->sfail_op << 8)
+        dd->sten_ctl = 1u | (d->sfn << 4) | (d->sfail_op << 8)
                      | (d->zpass_op << 12) | (d->zfail_op << 16);
-        tt->sten_rm  = d->sref | (d->svmask << 8) | (d->swmask << 16);
+        dd->sten_rm  = d->sref | (d->svmask << 8) | (d->swmask << 16);
     }
-    tt->dst_dt    = d->dst_dt;
-    tt->wmask     = d->wmask;
-    tt->dither    = d->dither ? 1 : 0;
-    tt->persp     = (d->do_persp ? 1u : 0u)
+    dd->dst_dt    = d->dst_dt;
+    dd->wmask     = d->wmask;
+    dd->dither    = d->dither ? 1 : 0;
+    dd->persp     = (d->do_persp ? 1u : 0u)
         | ((d->sec_en && !d->tex_en) ? 2u : 0u);
-    tt->pal_base  = dr->pal_idx * 256u;
+    dd->pal_base  = dr->pal_idx * 256u;
     if (d->tex_en)
         tex_fmt_use[d->sh[0].dt & 15]++;
     if (d->sec_en)
@@ -3113,43 +2975,43 @@ fill_tri(seg_tri_t *tt, const fz_draw_t *dr)
         tex_aone_use++;
     if (d->light_on)
         tex_light_use++;
-    tt->spec_en   = d->spec_en ? 1 : 0;
+    dd->spec_en   = d->spec_en ? 1 : 0;
     memcpy(tt->spa, dr->spa, sizeof(tt->spa));
     memcpy(tt->spb, dr->spb, sizeof(tt->spb));
     memcpy(tt->spc, dr->spc, sizeof(tt->spc));
-    tt->fog_en    = d->fog_en ? 1 : 0;
-    tt->ftab_en   = (d->fog_en && d->fog_table_en) ? 1 : 0;
-    if (tt->ftab_en)
-        memcpy(tt->fog_table, dr->fog_table, 256);
+    dd->fog_en    = d->fog_en ? 1 : 0;
+    dd->ftab_en   = (d->fog_en && d->fog_table_en) ? 1 : 0;
+    if (dd->ftab_en)
+        memcpy(dd->fog_table, dr->fog_table, 256);
     tt->fga       = dr->fog[0];
     tt->fgb       = dr->fog[1];
     tt->fgc       = dr->fog[2];
-    tt->fogr      = d->fogr;
-    tt->fogg      = d->fogg;
-    tt->fogb      = d->fogb;
+    dd->fogr      = d->fogr;
+    dd->fogg      = d->fogg;
+    dd->fogb      = d->fogb;
     if (d->tex_en && d->need_ck) {
-        tt->ck_ctl   = (d->ck3d_on ? 1u : 0u) | (d->ckc_on ? 2u : 0u)
+        dd->ck_ctl   = (d->ck3d_on ? 1u : 0u) | (d->ckc_on ? 2u : 0u)
                      | (d->ckfn == 3 ? 4u : 0u);
-        tt->ck3d_clr = d->ck3d_clr;
-        tt->ck3d_msk = d->ck3d_msk;
-        tt->ckc_clr  = d->ckc_clr;
-        tt->ckc_msk  = d->ckc_msk;
+        dd->ck3d_clr = d->ck3d_clr;
+        dd->ck3d_msk = d->ck3d_msk;
+        dd->ckc_clr  = d->ckc_clr;
+        dd->ckc_msk  = d->ckc_msk;
     }
-    tt->atest_en  = d->atest_en ? 1 : 0;
-    tt->atest_fn  = d->atest_fn;
-    tt->atest_ref = d->atest_ref;
-    tt->bsrc      = d->bsrc;
-    tt->bdst      = d->bdst;
-    tt->bfcn      = d->bfcn;
-    tt->stip_en = d->stip_en ? 1 : 0;
-    if (tt->stip_en)
-        memcpy(tt->stipple, dr->stipple, sizeof(tt->stipple));
-    tt->aux_cntl  = d->aux_on ? d->aux_cntl : 0;
-    memcpy(tt->aux_x0, d->aux_x0, sizeof(tt->aux_x0));
-    memcpy(tt->aux_x1, d->aux_x1, sizeof(tt->aux_x1));
-    memcpy(tt->aux_y0, d->aux_y0, sizeof(tt->aux_y0));
-    memcpy(tt->aux_y1, d->aux_y1, sizeof(tt->aux_y1));
-    memcpy(tt->cc, d->cc, sizeof(tt->cc));
+    dd->atest_en  = d->atest_en ? 1 : 0;
+    dd->atest_fn  = d->atest_fn;
+    dd->atest_ref = d->atest_ref;
+    dd->bsrc      = d->bsrc;
+    dd->bdst      = d->bdst;
+    dd->bfcn      = d->bfcn;
+    dd->stip_en = d->stip_en ? 1 : 0;
+    if (dd->stip_en)
+        memcpy(dd->stipple, dr->stipple, sizeof(dd->stipple));
+    dd->aux_cntl  = d->aux_on ? d->aux_cntl : 0;
+    memcpy(dd->aux_x0, d->aux_x0, sizeof(dd->aux_x0));
+    memcpy(dd->aux_x1, d->aux_x1, sizeof(dd->aux_x1));
+    memcpy(dd->aux_y0, d->aux_y0, sizeof(dd->aux_y0));
+    memcpy(dd->aux_y1, d->aux_y1, sizeof(dd->aux_y1));
+    memcpy(dd->cc, d->cc, sizeof(dd->cc));
     memcpy(tt->vca, dr->vca, sizeof(tt->vca));
     memcpy(tt->vcb, dr->vcb, sizeof(tt->vcb));
     memcpy(tt->vcc, dr->vcc, sizeof(tt->vcc));
@@ -3171,46 +3033,46 @@ fill_tri(seg_tri_t *tt, const fz_draw_t *dr)
     tt->a2rhw     = tc->arhw;
     tt->b2rhw     = tc->brhw;
     tt->c2rhw     = tc->crhw;
-    tt->persp2    = d->do_persp ? 1 : 0;
-    tt->sec_sel   = d->sec_sel ? 1 : 0;
-    tt->need_lod2 = d->need_lod2 ? 1 : 0;
-    tt->top0      = d->sh[0].top;
-    tt->top1      = d->sh[1].top;
+    dd->persp2    = d->do_persp ? 1 : 0;
+    dd->sec_sel   = d->sec_sel ? 1 : 0;
+    dd->need_lod2 = d->need_lod2 ? 1 : 0;
+    dd->top0      = d->sh[0].top;
+    dd->top1      = d->sh[1].top;
     for (int st = 0; st < 2; st++) {
         const r3d_stage_hdr_t *h = &d->sh[st];
 
-        tt->st_cfg[st * 8 + 0] = h->dt | (h->aone ? 0x10u : 0u);
-        tt->st_cfg[st * 8 + 1] = h->s3tc;
-        tt->st_cfg[st * 8 + 2] = h->clamp_s;
-        tt->st_cfg[st * 8 + 3] = h->clamp_t;
-        tt->st_cfg[st * 8 + 4] = h->border;
-        tt->st_cfg[st * 8 + 5] = h->minb;
-        tt->st_cfg[st * 8 + 6] = h->mag;
-        tt->st_cfg[st * 8 + 7] = h->mipdis ? 1 : 0;
-        tt->comb_cfg[st * 8 + 0] = d->comb[st].comb;
-        tt->comb_cfg[st * 8 + 1] = d->comb[st].fmsb;
-        tt->comb_cfg[st * 8 + 2] = d->comb[st].cfac;
-        tt->comb_cfg[st * 8 + 3] = d->comb[st].ifac;
-        tt->comb_cfg[st * 8 + 4] = d->comb[st].comba;
-        tt->comb_cfg[st * 8 + 5] = d->comb[st].afac;
-        tt->comb_cfg[st * 8 + 6] = d->comb[st].ifaca;
+        dd->st_cfg[st * 8 + 0] = h->dt | (h->aone ? 0x10u : 0u);
+        dd->st_cfg[st * 8 + 1] = h->s3tc;
+        dd->st_cfg[st * 8 + 2] = h->clamp_s;
+        dd->st_cfg[st * 8 + 3] = h->clamp_t;
+        dd->st_cfg[st * 8 + 4] = h->border;
+        dd->st_cfg[st * 8 + 5] = h->minb;
+        dd->st_cfg[st * 8 + 6] = h->mag;
+        dd->st_cfg[st * 8 + 7] = h->mipdis ? 1 : 0;
+        dd->comb_cfg[st * 8 + 0] = d->comb[st].comb;
+        dd->comb_cfg[st * 8 + 1] = d->comb[st].fmsb;
+        dd->comb_cfg[st * 8 + 2] = d->comb[st].cfac;
+        dd->comb_cfg[st * 8 + 3] = d->comb[st].ifac;
+        dd->comb_cfg[st * 8 + 4] = d->comb[st].comba;
+        dd->comb_cfg[st * 8 + 5] = d->comb[st].afac;
+        dd->comb_cfg[st * 8 + 6] = d->comb[st].ifaca;
     }
     /* the light word in stage 0's spare slot, as the device's capture
        packs it */
-    tt->comb_cfg[7] = light_word(d);
+    dd->comb_cfg[7] = light_word(d);
     if (d->tex_en)
         for (int sl = 0; sl <= d->sh[0].top; sl++) {
-            tt->slot0[sl * 4 + 0] = dr->tc.sd0.slot[sl].lw;
-            tt->slot0[sl * 4 + 1] = dr->tc.sd0.slot[sl].lh;
-            tt->slot0[sl * 4 + 2] = slot_base_pack(&dr->tc.sd0.slot[sl]);
-            tt->slot0[sl * 4 + 3] = dr->tc.sd0.slot[sl].mask;
+            dd->slot0[sl * 4 + 0] = dr->tc.sd0.slot[sl].lw;
+            dd->slot0[sl * 4 + 1] = dr->tc.sd0.slot[sl].lh;
+            dd->slot0[sl * 4 + 2] = slot_base_pack(&dr->tc.sd0.slot[sl]);
+            dd->slot0[sl * 4 + 3] = dr->tc.sd0.slot[sl].mask;
         }
     if (d->sec_en)
         for (int sl = 0; sl <= d->sh[1].top; sl++) {
-            tt->slot1[sl * 4 + 0] = dr->tc.sd1.slot[sl].lw;
-            tt->slot1[sl * 4 + 1] = dr->tc.sd1.slot[sl].lh;
-            tt->slot1[sl * 4 + 2] = slot_base_pack(&dr->tc.sd1.slot[sl]);
-            tt->slot1[sl * 4 + 3] = dr->tc.sd1.slot[sl].mask;
+            dd->slot1[sl * 4 + 0] = dr->tc.sd1.slot[sl].lw;
+            dd->slot1[sl * 4 + 1] = dr->tc.sd1.slot[sl].lh;
+            dd->slot1[sl * 4 + 2] = slot_base_pack(&dr->tc.sd1.slot[sl]);
+            dd->slot1[sl * 4 + 3] = dr->tc.sd1.slot[sl].mask;
         }
 }
 
@@ -3249,14 +3111,36 @@ seg_edge32_span(int64_t e, int64_t dx, int32_t n)
         && last >= INT32_MIN && last <= INT32_MAX;
 }
 
-/* append one draw: tri record, run split at kernel change, spans chunked
-   at 256 px with sequential double-stepping (device capture mirror) */
+/* splitmix64: row steps for the per-row records, without drawing from
+   the fuzz's random stream */
+static inline uint64_t
+fz_mix(uint64_t x)
+{
+    x += 0x9e3779b97f4a7c15ull;
+    x = (x ^ (x >> 30)) * 0xbf58476d1ce4e5b9ull;
+    x = (x ^ (x >> 27)) * 0x94d049bb133111ebull;
+    return x ^ (x >> 31);
+}
+
+/* Append one draw: run split at kernel change, spans chunked at 256 px
+   (device capture mirror). The kernel computes a span's edge and depth
+   values from its triangle record's plane seeds, while the fuzz gives
+   every row its own values, which no single plane holds. So each
+   emitted row gets its own copy of the draw's record, seeded so the
+   plane passes through that row's values: the row steps come from a
+   hash, which exercises the kernel's row term, and the value at pixel
+   (0, 0) steps back from the row's start in wrapping arithmetic. */
 static void
 seg_add_draw(const fz_draw_t *dr)
 {
-    seg_tri_t *tt = &((seg_tri_t *) b_tris.map)[ntris];
+    seg_tri_t  *tt = &((seg_tri_t *) b_tris.map)[ntris];
+    seg_draw_t *dd = &((seg_draw_t *) b_draws.map)[ndraws];
+    seg_tri_t   proto;
 
-    fill_tri(tt, dr);
+    /* one draw record per draw, shared by every row's tri record */
+    fill_tri(tt, dd, dr);
+    tt->draw = ndraws++;
+    proto    = *tt;
     /* the device's tuple key carries the stencil-live bit (sel[14]), so
        a folded draw splits the run when sten flips; unfolded draws run
        the uber's runtime selector and never split on it */
@@ -3316,7 +3200,6 @@ seg_add_draw(const fz_draw_t *dr)
     }
     for (int i = 0; i < dr->nrows; i++) {
         const fz_row_t *rw = &dr->row[i];
-        double  zc = rw->zline;
         int64_t e0 = rw->e0, e1 = rw->e1, e2 = rw->e2;
         int32_t lo = 0, hi = dr->x1 - dr->x0;
         int32_t cx, rx1;
@@ -3325,8 +3208,29 @@ seg_add_draw(const fz_draw_t *dr)
             || !seg_clip_edge(e1, dr->e1dxi, &lo, &hi)
             || !seg_clip_edge(e2, dr->e2dxi, &lo, &hi))
             continue;
-        for (int32_t q = 0; q < lo; q++)
-            zc += dr->dZdx;
+        if (nspans >= FZ_SPAN_CAP)
+            continue; /* no span would be emitted, so no record either */
+        {
+            seg_tri_t *rt = &((seg_tri_t *) b_tris.map)[ntris];
+            uint64_t   h  = fz_mix(ntris);
+            uint64_t   ry = (uint64_t) (int64_t) rw->py;
+            uint64_t   rx = (uint64_t) (int64_t) dr->x0;
+
+            if (rt != tt)
+                *rt = proto;
+            rt->e0dyi = (int64_t) (h & 0xffffffu) - 0x800000;
+            rt->e1dyi = (int64_t) ((h >> 24) & 0xffffffu) - 0x800000;
+            rt->e2dyi = (int64_t) ((h >> 48) & 0xffffu) - 0x8000;
+            rt->dzy   = (int64_t) (fz_mix(h) & 0xffffffffffull) - 0x8000000000ll;
+            rt->e0o = (int64_t) ((uint64_t) rw->e0 - ry * (uint64_t) rt->e0dyi
+                                 - rx * (uint64_t) dr->e0dxi);
+            rt->e1o = (int64_t) ((uint64_t) rw->e1 - ry * (uint64_t) rt->e1dyi
+                                 - rx * (uint64_t) dr->e1dxi);
+            rt->e2o = (int64_t) ((uint64_t) rw->e2 - ry * (uint64_t) rt->e2dyi
+                                 - rx * (uint64_t) dr->e2dxi);
+            rt->zo  = (int64_t) ((uint64_t) rw->zline - ry * (uint64_t) rt->dzy
+                                 - rx * (uint64_t) dr->dzx);
+        }
         e0 += (int64_t) lo * dr->e0dxi;
         e1 += (int64_t) lo * dr->e1dxi;
         e2 += (int64_t) lo * dr->e2dxi;
@@ -3339,24 +3243,17 @@ seg_add_draw(const fz_draw_t *dr)
 
             if (cw > 256)
                 cw = 256;
-            sp->e0 = e0; sp->e1 = e1; sp->e2 = e2;
-            memcpy(&sp->zline, &zc, 8);
-            sp->x0   = cx;
-            sp->x1   = cx + cw - 1;
-            sp->py   = rw->py;
-            sp->tri  = (int32_t) ntris;
+            sp->xw   = ((uint32_t) cx & 0x3fffu) | ((uint32_t) (cw - 1) << 14)
+                     | ((seg_edge32_span(e0, dr->e0dxi, cw)
+                         && seg_edge32_span(e1, dr->e1dxi, cw)
+                         && seg_edge32_span(e2, dr->e2dxi, cw)) ? 0x80000000u : 0u);
+            sp->pt   = ((uint32_t) rw->py & 0x3fffu) | (ntris << 14);
             sp->drow    = g_c_stg
                             ? (((uint32_t) rw->py * ROW_PITCH) | 0x80000000u)
                             : g_c_off + (uint32_t) rw->py * ROW_PITCH;
             sp->zrow    = g_z_stg
                             ? (((uint32_t) rw->py * ROW_PITCH) | 0x80000000u)
                             : g_z_off + (uint32_t) rw->py * ROW_PITCH;
-            sp->px_base = seg_px;
-            sp->pad1    = seg_edge32_span(e0, dr->e0dxi, cw)
-                       && seg_edge32_span(e1, dr->e1dxi, cw)
-                       && seg_edge32_span(e2, dr->e2dxi, cw);
-            /* table-fog spans take two ladder words per pixel */
-            seg_px += (uint32_t) cw * ((dr->d.fog_en && dr->d.fog_table_en) ? 2u : 1u);
             py_of[nspans] = (uint16_t) rw->py;
             bb_of_fill(nspans, cx, cx + cw - 1, dr);
             nspans++;
@@ -3383,15 +3280,13 @@ seg_add_draw(const fz_draw_t *dr)
                         ru->z1 = zro + bb_of[si].z1;
                 }
             }
-            for (int q = 0; q < cw; q++)
-                zc += dr->dZdx;
             e0 += (int64_t) cw * dr->e0dxi;
             e1 += (int64_t) cw * dr->e1dxi;
             e2 += (int64_t) cw * dr->e2dxi;
             cx += cw;
         }
+        ntris++; /* this row's record */
     }
-    ntris++;
 }
 
 typedef struct fz_disp_t {
@@ -3501,7 +3396,7 @@ leveled:
     for (uint32_t k = 0; k < c; k++) {
         uint32_t j    = bylv[k];
         uint32_t si   = ord[j];
-        uint32_t need = ((uint32_t) (sp[si].x1 - sp[si].x0) + SLOT_W)
+        uint32_t need = ((uint32_t) (sp_x1(&sp[si]) - sp_x0(&sp[si])) + SLOT_W)
                         >> SLOT_SHIFT;
         uint32_t open = 0;
 
@@ -3634,158 +3529,6 @@ rng_isect(uint32_t lo, uint32_t hi, uint32_t a, uint32_t b)
     return hi > lo && b > a && a < hi && b > lo;
 }
 
-/* z-ladder pre-pass + barrier (device gpu_dispatch mirror) */
-static void
-rec_lad_prepass_nobar(void)
-{
-    uint32_t pcv[2] = { nspans, 0 };
-
-    vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, r_lad_pipe);
-    vkCmdPushConstants(cb, r_plyt, VK_SHADER_STAGE_COMPUTE_BIT, 0, 8, pcv);
-    vkCmdDispatch(cb, (nspans + 7u) / 8u, 1, 1);
-}
-
-/* The production ladder must match the interpreter's rounded double
-   chain across binade floors, including both packed table-fog words.
-   Exact increments and runs with no further steps cover the endpoint guards. */
-static int
-ladder_check(void)
-{
-    static const struct {
-        const char *name;
-        double      z, dz;
-        int         n;
-    } vectors[] = {
-        { "floor-one",       0x1.0000000000003p+0, -0x1.6p-52, 8 },
-        { "floor-half",      0x1.0000000000003p-1, -0x1.6p-53, 8 },
-        { "mirror-one",     -0x1.0000000000003p+0,  0x1.6p-52, 8 },
-        { "mirror-half",    -0x1.0000000000003p-1,  0x1.6p-53, 8 },
-        { "exact-one",       0x1.0000000000003p+0, -0x1p-52,   8 },
-        { "exact-half",      0x1.0000000000003p-1, -0x1p-53,   8 },
-        { "exact-mirror",   -0x1.0000000000003p-1,  0x1p-53,   8 },
-        { "zero-run",        0x1.0000000000002p-1, -0x1.ap-53, 8 },
-        { "lane-before",     0x1.000000000001fp-1, -0x1.6p-53, 65 },
-        { "lane-at",         0x1.0000000000020p-1, -0x1.6p-53, 65 },
-        { "lane-after",      0x1.0000000000021p-1, -0x1.6p-53, 65 },
-        { "lane-mirror",    -0x1.0000000000020p-1,  0x1.6p-53, 65 },
-        { "lane-exact",      0x1.0000000000020p-1, -0x1p-53,   65 },
-        { "lane-second",     0x1.0000000000040p-1, -0x1.6p-53, 256 },
-        /* Serial-fallback operand classes: constant positive infinity,
-           overflow from the largest finite double, negative infinity,
-           NaN, and a chain through subnormals to zero and below. */
-        { "inf-chain",       INFINITY,               INFINITY,   8 },
-        { "inf-step",        0x1.fffffffffffffp+1023, 0x1.fffffffffffffp+1023, 8 },
-        { "neg-inf-chain",  -INFINITY,               0x1p-3,     8 },
-        { "nan-chain",       NAN,                    0x1p-3,     8 },
-        { "nan-step",        0x1p-1,                 NAN,        8 },
-        { "sub-chain",       0x1p-1022,             -0x1p-1023,  8 },
-    };
-    enum { NV = sizeof(vectors) / sizeof(vectors[0]) };
-    uint32_t    expected[NV * 4 * 256 * 2];
-    uint32_t   *out = b_lad.map;
-    seg_span_t *sp = b_spans.map;
-    seg_tri_t  *tt = b_tris.map;
-    uint32_t    words = 0;
-    int         bad = 0;
-
-    nspans = 0;
-    for (int i = 0; i < NV; i++) {
-        for (int bpp = 2; bpp <= 4; bpp += 2) {
-            uint32_t zmax = bpp == 4 ? 16777215u : 65535u;
-
-            for (int fog = 0; fog <= 1; fog++) {
-                double z = vectors[i].z;
-
-                memset(&sp[nspans], 0, sizeof(sp[nspans]));
-                memset(&tt[nspans], 0, sizeof(tt[nspans]));
-                memcpy(&sp[nspans].zline, &z, sizeof(z));
-                memcpy(&tt[nspans].dZdx, &vectors[i].dz, sizeof(z));
-                sp[nspans].x1 = vectors[i].n - 1;
-                sp[nspans].tri = (int32_t) nspans;
-                sp[nspans].px_base = words;
-                tt[nspans].zbpp = (uint32_t) bpp;
-                tt[nspans].ftab_en = (uint32_t) fog;
-                nspans++;
-                for (int q = 0; q < vectors[i].n; q++) {
-                    double zc = z;
-
-                    if (!(zc > 0.0)) zc = 0.0;
-                    if (zc > 1.0) zc = 1.0;
-                    double zq = zc * (double) zmax + 0.5;
-                    if (zq > (double) zmax) zq = (double) zmax;
-                    uint32_t depth = (uint32_t) zq;
-                    uint64_t fx = fog ? (uint64_t) (zc * 255.0 * 4294967296.0) : 0;
-
-                    expected[words++] = depth | ((uint32_t) (fx >> 32) << 24);
-                    if (fog)
-                        expected[words++] = (uint32_t) fx;
-                    z += vectors[i].dz;
-                }
-            }
-        }
-    }
-    memset(out, 0xa5, (words + 1u) * sizeof(*out));
-    VK_CHECK(vkResetCommandBuffer(cb, 0));
-    VkCommandBufferBeginInfo cbbi = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
-    cbbi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
-    VK_CHECK(vkBeginCommandBuffer(cb, &cbbi));
-    vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, r_plyt, 0, 1, &r_dset, 0, NULL);
-    rec_lad_prepass_nobar();
-    VkMemoryBarrier mb = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
-    mb.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    mb.dstAccessMask = VK_ACCESS_HOST_READ_BIT;
-    vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_HOST_BIT, 0, 1, &mb, 0, NULL, 0, NULL);
-    VK_CHECK(vkEndCommandBuffer(cb));
-    submit_wait();
-
-    for (uint32_t s = 0; s < nspans; s++) {
-        uint32_t stride = tt[s].ftab_en ? 2u : 1u;
-        int      row_bad = 0;
-
-        for (int q = 0; q <= sp[s].x1; q++) {
-            for (uint32_t w = 0; w < stride; w++) {
-                uint32_t at = sp[s].px_base + stride * (uint32_t) q + w;
-
-                if (out[at] == expected[at])
-                    continue;
-                if (bad++ < 10)
-                    printf("ladder %s bpp=%u fog=%u q=%d word=%u ref=%08x got=%08x\n",
-                           vectors[s / 4u].name, tt[s].zbpp, tt[s].ftab_en,
-                           q, w, expected[at], out[at]);
-                row_bad++;
-            }
-        }
-        printf("ladder %s bpp=%u fog=%u: %d mismatches\n",
-               vectors[s / 4u].name, tt[s].zbpp, tt[s].ftab_en, row_bad);
-    }
-    if (out[words] != 0xa5a5a5a5u) {
-        printf("ladder guard overwritten: %08x\n", out[words]);
-        bad++;
-    }
-    printf("production ladder: %u spans, %u words, %d mismatches\n", nspans, words, bad);
-    nspans = 0;
-    return bad;
-}
-
-static void
-rec_lad_prepass(void)
-{
-    /* timing knob: an empty pre-pass (every thread exits) isolates the
-       dispatch + barrier launch floor from the walk itself */
-    uint32_t        pcv[2] = { getenv("GPUTRI_PREPASS_EMPTY") ? 0u : nspans, 0 };
-    VkMemoryBarrier mb     = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
-
-    vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, r_lad_pipe);
-    vkCmdPushConstants(cb, r_plyt, VK_SHADER_STAGE_COMPUTE_BIT, 0, 8, pcv);
-    vkCmdDispatch(cb, (nspans + 7u) / 8u, 1, 1);
-    mb.srcAccessMask = VK_ACCESS_SHADER_WRITE_BIT;
-    mb.dstAccessMask = VK_ACCESS_SHADER_READ_BIT;
-    vkCmdPipelineBarrier(cb, VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT,
-                         VK_PIPELINE_STAGE_COMPUTE_SHADER_BIT, 0,
-                         1, &mb, 0, NULL, 0, NULL);
-}
-
 /* dependency-chain dispatches, one submit, one fence (device mirror) */
 static void
 seg_exec(const fz_disp_t *disp, uint32_t ndisp)
@@ -3801,7 +3544,6 @@ seg_exec(const fz_disp_t *disp, uint32_t ndisp)
     cbbi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     VK_CHECK(vkBeginCommandBuffer(cb, &cbbi));
     vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, r_plyt, 0, 1, &r_dset, 0, NULL);
-    rec_lad_prepass();
     for (uint32_t i = 0; i < ndisp; i++) {
         uint32_t   pcv[2] = { VRAM_MASK, disp[i].rows_base };
         VkPipeline p      = disp[i].serial
@@ -3922,7 +3664,7 @@ ref_draw(const fz_draw_t *dr)
     t.e1dxi     = dr->e1dxi;
     t.e2dxi     = dr->e2dxi;
     t.invs      = dr->invs;
-    t.dZdx      = dr->dZdx;
+    t.dzx       = dr->dzx;
     memcpy(t.vca, dr->vca, sizeof(t.vca));
     memcpy(t.vcb, dr->vcb, sizeof(t.vcb));
     memcpy(t.vcc, dr->vcc, sizeof(t.vcc));
@@ -4021,11 +3763,11 @@ run_case(const fz_draw_t *dr, int nd, int fault)
     else if (fault == 2) {
         /* stencil fault: zero the GPU-side write mask so the kernel's
            stencil updates go dark while the reference's stand */
-        seg_tri_t *tt = (seg_tri_t *) b_tris.map;
+        seg_draw_t *dd = (seg_draw_t *) b_draws.map;
 
-        for (uint32_t i = 0; i < ntris; i++)
-            if (tt[i].sten_ctl & 1u)
-                tt[i].sten_rm ^= 0xff0000u;
+        for (uint32_t i = 0; i < ndraws; i++)
+            if (dd[i].sten_ctl & 1u)
+                dd[i].sten_rm ^= 0xff0000u;
     }
     g_serial_strip = (fault == 3 || fault == 4);
     ndisp = seg_sort(disp);
@@ -4138,19 +3880,23 @@ dump_mismatch(const char *tag, int kern, int it)
 
         for (uint32_t i = 0; i < nspans && i < 16; i++)
             printf("  span%u: drow=%06x zrow=%06x py=%d x=%d..%d tri=%d\n",
-                   i, sp[i].drow, sp[i].zrow, sp[i].py, sp[i].x0, sp[i].x1,
-                   sp[i].tri);
+                   i, sp[i].drow, sp[i].zrow, sp_py(&sp[i]), sp_x0(&sp[i]),
+                   sp_x1(&sp[i]), sp_tri(&sp[i]));
     }
     {
-        const seg_tri_t *tt = (const seg_tri_t *) b_tris.map;
+        const seg_tri_t  *tt = (const seg_tri_t *) b_tris.map;
+        const seg_draw_t *dd = (const seg_draw_t *) b_draws.map;
 
-        for (uint32_t i = 0; i < ntris; i++)
-            printf("  tri%u: dt=%u dith=%u wm=%08x zfn=%u zwr=%u zbpp=%u "
+        for (uint32_t i = 0; i < ntris; i++) {
+            const seg_draw_t *d = &dd[tt[i].draw];
+
+            printf("  tri%u: draw=%u dt=%u dith=%u wm=%08x zfn=%u zwr=%u zbpp=%u "
                    "zshift=%u sten=%05x/%06x atest=%u/%u/%u aux=%02x\n",
-                   i, tt[i].dst_dt, tt[i].dither, tt[i].wmask, tt[i].zfn,
-                   tt[i].z_wr, tt[i].zbpp, tt[i].zshift, tt[i].sten_ctl,
-                   tt[i].sten_rm, tt[i].atest_en, tt[i].atest_fn,
-                   tt[i].atest_ref, tt[i].aux_cntl);
+                   i, tt[i].draw, d->dst_dt, d->dither, d->wmask, d->zfn,
+                   d->z_wr, d->zbpp, d->zshift, d->sten_ctl,
+                   d->sten_rm, d->atest_en, d->atest_fn,
+                   d->atest_ref, d->aux_cntl);
+        }
     }
 }
 
@@ -4839,7 +4585,7 @@ fuzz_edge(void)
            still crosses the mask edge and guard. */
         mk_probe_draw(&d, leg < 2 ? gk : zk);
         d.x1 = 255;
-        d.row[0].zline = 0.5;
+        d.row[0].zline = R128_ZFX_ONE / 2;
         if (leg == 1) {
             d.d.dst_dt = 6;
             d.d.bpp    = 4;
@@ -4970,26 +4716,29 @@ fuzz_wrap(int iters)
         {
             const seg_span_t *sp = (const seg_span_t *) b_spans.map;
             const seg_tri_t  *tt = (const seg_tri_t *) b_tris.map;
+            const seg_draw_t *dd = (const seg_draw_t *) b_draws.map;
 
             for (uint32_t a = 0; a < nspans; a++)
                 for (uint32_t b = a + 1; b < nspans; b++) {
-                    if (sp[a].py != sp[b].py)
+                    if (sp_py(&sp[a]) != sp_py(&sp[b]))
                         continue;
                     if (sctl_of[a] && sctl_of[a] == sctl_of[b]
                         && srm_of[a] == srm_of[b])
                         continue;
-                    uint64_t acb = (tt[sp[a].tri].dst_dt == 6u) ? 4u : 2u;
-                    uint64_t bcb = (tt[sp[b].tri].dst_dt == 6u) ? 4u : 2u;
-                    uint64_t ac0 = (uint64_t) sp[a].x0 * acb;
-                    uint64_t ac1 = ((uint64_t) sp[a].x1 + 1u) * acb;
-                    uint64_t bc0 = (uint64_t) sp[b].x0 * bcb;
-                    uint64_t bc1 = ((uint64_t) sp[b].x1 + 1u) * bcb;
-                    uint64_t azb = tt[sp[a].tri].zbpp;
-                    uint64_t bzb = tt[sp[b].tri].zbpp;
-                    uint64_t az0 = (uint64_t) sp[a].x0 * azb;
-                    uint64_t az1 = ((uint64_t) sp[a].x1 + 1u) * azb;
-                    uint64_t bz0 = (uint64_t) sp[b].x0 * bzb;
-                    uint64_t bz1 = ((uint64_t) sp[b].x1 + 1u) * bzb;
+                    const seg_draw_t *da = &dd[tt[sp_tri(&sp[a])].draw];
+                    const seg_draw_t *db = &dd[tt[sp_tri(&sp[b])].draw];
+                    uint64_t acb = (da->dst_dt == 6u) ? 4u : 2u;
+                    uint64_t bcb = (db->dst_dt == 6u) ? 4u : 2u;
+                    uint64_t ac0 = (uint64_t) sp_x0(&sp[a]) * acb;
+                    uint64_t ac1 = ((uint64_t) sp_x1(&sp[a]) + 1u) * acb;
+                    uint64_t bc0 = (uint64_t) sp_x0(&sp[b]) * bcb;
+                    uint64_t bc1 = ((uint64_t) sp_x1(&sp[b]) + 1u) * bcb;
+                    uint64_t azb = da->zbpp;
+                    uint64_t bzb = db->zbpp;
+                    uint64_t az0 = (uint64_t) sp_x0(&sp[a]) * azb;
+                    uint64_t az1 = ((uint64_t) sp_x1(&sp[a]) + 1u) * azb;
+                    uint64_t bz0 = (uint64_t) sp_x0(&sp[b]) * bzb;
+                    uint64_t bz1 = ((uint64_t) sp_x1(&sp[b]) + 1u) * bzb;
                     int      truth = (ac0 < bc1 && bc0 < ac1)
                                   || (az0 < bz1 && bz0 < az1);
 
@@ -4998,8 +4747,8 @@ fuzz_wrap(int iters)
                         if (fails <= 5)
                             printf("FAIL: wrap it=%d spans %u/%u overlap "
                                    "but alias=0 (x %d..%d / %d..%d)\n",
-                                   it, a, b, sp[a].x0, sp[a].x1,
-                                   sp[b].x0, sp[b].x1);
+                                   it, a, b, sp_x0(&sp[a]), sp_x1(&sp[a]),
+                                   sp_x0(&sp[b]), sp_x1(&sp[b]));
                     }
                 }
         }
@@ -5133,7 +4882,7 @@ hr_build(void)
                 d->row[r].e0    = 1 << 20;
                 d->row[r].e1    = 1 << 20;
                 d->row[r].e2    = 1 << 20;
-                d->row[r].zline = 0.5;
+                d->row[r].zline = R128_ZFX_ONE / 2;
             }
         }
     }
@@ -5384,7 +5133,7 @@ bench_build(const bench_leg_t *lg)
                        span, aux off -- kill rate is exactly lg->zrej */
                     dr.d.zfn    = 2;
                     dr.d.aux_on = 0;
-                    dr.dZdx     = 0.0;
+                    dr.dzx      = 0;
                 } else
                     dr.d.zfn = 7;
             }
@@ -5405,12 +5154,12 @@ bench_build(const bench_leg_t *lg)
                 dr.row[r].e1 = area / 3;
                 dr.row[r].e2 = area - dr.row[r].e0 - dr.row[r].e1;
                 if (!lg->zctl)
-                    dr.row[r].zline = 0.4 + 0.0001 * r;
+                    dr.row[r].zline = r128_zfx(0.4 + 0.0001 * r, R128_ZFX_SEED_LIM);
                 else if (lg->zcoh == ZC_SPAN) {
                     rejspan         = (int) rhi(100) < lg->zrej;
-                    dr.row[r].zline = rejspan ? 0.9 : 0.1;
+                    dr.row[r].zline = r128_zfx(rejspan ? 0.9 : 0.1, R128_ZFX_SEED_LIM);
                 } else
-                    dr.row[r].zline = 0.5;
+                    dr.row[r].zline = R128_ZFX_ONE / 2;
                 if (lg->zctl) {
                     if (lg->zcoh == ZC_SPAN)
                         g_bench_rejpx += rejspan ? (uint64_t) W : 0u;
@@ -5459,40 +5208,21 @@ bench_exec(VkPipeline pipe, const fz_disp_t *disp, uint32_t ndisp, int reps)
     VkCommandBufferBeginInfo cbbi = { VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO };
     cbbi.flags = VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT;
     VK_CHECK(vkBeginCommandBuffer(cb, &cbbi));
-    /* Timing knobs isolate repeated segment costs. The ladder is identical
-       across repetitions, so one pre-pass supplies the same values.
-       Omitting inter-repetition barriers permits races and measures only
-       their timing cost; these legs do not compare output. */
-    static int noprep = -1, nobar, overlap;
+    /* Timing knob: omitting inter-repetition barriers permits races and
+       measures only their timing cost; these legs do not compare
+       output. */
+    static int nobar = -1;
 
-    if (noprep < 0) {
-        noprep  = getenv("GPUTRI_NOPREPASS") != NULL;
-        nobar   = getenv("GPUTRI_NOBARRIER") != NULL;
-        /* Overlap records the next repetition's pre-pass after the current
-           shading dispatch and before their shared barrier. It reads the
-           same spans/tris and rewrites identical ladder values because
-           repetitions share one workload. The next shading dispatch waits
-           for those writes through the barrier. */
-        overlap = getenv("GPUTRI_PREPASS_OVERLAP") != NULL;
-    }
+    if (nobar < 0)
+        nobar = getenv("GPUTRI_NOBARRIER") != NULL;
     vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, r_plyt, 0, 1, &r_dset, 0, NULL);
-    if (noprep || overlap)
-        rec_lad_prepass();
     for (int rep = 0; rep < reps; rep++) {
-        /* pre-pass per rep: a rep models one segment, and the segment
-           cost includes its ladder walk */
-        if (!noprep && !overlap)
-            rec_lad_prepass();
         vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, pipe);
         for (uint32_t i = 0; i < ndisp; i++) {
             uint32_t pcv[2] = { VRAM_MASK, disp[i].rows_base };
 
             vkCmdPushConstants(cb, r_plyt, VK_SHADER_STAGE_COMPUTE_BIT, 0, 8, pcv);
             vkCmdDispatch(cb, disp[i].nrows, 1, 1);
-            if (overlap && i + 1 == ndisp && rep + 1 < reps) {
-                rec_lad_prepass_nobar();
-                vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, pipe);
-            }
             if (!nobar && (rep + 1 < reps || i + 1 < ndisp)) {
                 VkMemoryBarrier mb = { VK_STRUCTURE_TYPE_MEMORY_BARRIER };
 
@@ -6252,28 +5982,8 @@ main(int argc, char **argv)
         menubench_run();
         return 0;
     }
-    if (argc > 1 && !strcmp(argv[1], "f64")) {
-        /* the soft-f64 and ladder checks alone, for a shader edit to
-           vid_ati_rage128_gpu_f64.glsl or the ladder kernel */
-        int bad = f64_selftest() + f64_except_check() + ladder_check();
-
-        printf("f64 mode: %d mismatches\n", bad);
-        return bad != 0;
-    }
     if (axes_matrix_check() != 0) {
         printf("FAIL: shipped kernel matrix is not the complete axis set\n");
-        return 1;
-    }
-    if (f64_selftest() != 0) {
-        printf("FAIL: soft-f64 diverges from host doubles\n");
-        return 1;
-    }
-    if (f64_except_check() != 0) {
-        printf("FAIL: soft-f64 add diverges from host doubles on an exceptional class\n");
-        return 1;
-    }
-    if (ladder_check() != 0) {
-        printf("FAIL: production ladder diverges from host doubles\n");
         return 1;
     }
     for (int k = 0; k < 4; k++)

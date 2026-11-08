@@ -55,6 +55,7 @@
 #include <86box/rom.h>
 #include <86box/sound.h>
 #include <86box/ui.h>
+#include <86box/usb.h>
 
 #define DEVICE_MAX 512 /* max # of devices */
 
@@ -242,6 +243,7 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Cirrus Logic GD5428 (MCA) (IBM SVGA Adapter/A)", .new = "Cirrus Logic GD5428 (MCA) (US/EMEA)" },
         { .old = "Cirrus Logic GD5426 (MCA) (Reply Video Adapter)", .new = "Cirrus Logic GD5426 (MCA)" },
         { .old = "3dfx Voodoo3 2000 (On-Board 8MB SGRAM)", .new = "3dfx Voodoo3 2000 (On-Board)" },
+        { .old = "SiS 6306 (5598/530/620) On-Board AGP", .new = "SiS 6306 (530/620) On-Board AGP" },
         { .old = "Gravis/Synergy Vipermax", .new = "Synergy ViperMAX" },
         { .old = "Colorplus", .new = "Plantronics Colorplus" },
         { .old = "Creative Sound Blaster PCI 128 (ES1373)", .new = "Sound Blaster PCI 128 (ES1373)" },
@@ -262,6 +264,13 @@ device_set_context(device_context_t *ctx, const device_t *dev, int inst)
         { .old = "Cirrus Logic GD5428 (MCA)", .new = "Cirrus Logic GD5428 (MCA) (US/EMEA)" },
         { .old = "ATI Mach64GX ISA", .new = "ATI Graphics Pro Turbo (Mach64GX) ISA" },
         { .old = "ATI Mach64GX VLB", .new = "ATI Graphics Pro Turbo (Mach64GX) VLB" },
+        { .old = "ATI Rage Fury Pro AGP", .new = "ATI Rage 128 Pro (Fury Pro)" },
+        { .old = "ATI Xpert 128 PCI", .new = "ATI Rage 128 (Xpert 128)" }, // pre-7.0
+        { .old = "ATI Rage 128 (Xpert 128)", .new = "ATI Rage 128 GL PCI (Xpert 128)" },
+        { .old = "ATI 3D Rage IIC", .new = "ATI Rage IIc PCI" },
+        { .old = "ATI 3D Rage IIC AGP", .new = "ATI Rage IIc AGP" },
+        { .old = "ATI 3D Rage Pro Turbo AGP (On-Board)", .new = "ATI Rage Pro Turbo AGP (On-Board)" },
+        { .old = "Novell NE2100/NE1500T", .new = "Novell NE2100" },
         { 0 }
     };
 
@@ -607,11 +616,13 @@ device_close_all(void)
     }
 }
 
+/* Close the devices that have all of match_flags and were added as instance inst, or as any instance if inst is -1. */
 void
-device_close_by_flags(uint32_t match_flags)
+device_close_by_flags_inst(uint32_t match_flags, int inst)
 {
     for (int16_t c = (DEVICE_MAX - 1); c >= 0; c--) {
-        if ((devices[c] != NULL) && ((devices[c]->flags & match_flags) == match_flags)) {
+        if ((devices[c] != NULL) && ((devices[c]->flags & match_flags) == match_flags) &&
+            ((inst == -1) || (device_state[c].inst == inst))) {
 #ifdef ENABLE_DEVICE_LOG
             if (devices[c]->name)
                 device_log("Closing device: \"%s\"...\n", devices[c]->name);
@@ -623,6 +634,12 @@ device_close_by_flags(uint32_t match_flags)
             memset(&(device_state[c]), 0x00, sizeof(device_state_t));
         }
     }
+}
+
+void
+device_close_by_flags(uint32_t match_flags)
+{
+    device_close_by_flags_inst(match_flags, -1);
 }
 
 void
@@ -1252,6 +1269,10 @@ device_is_valid(const device_t *device, int mch)
             ret = 0;
         else
             ret = machine_has_bus(mch, device->flags & DEVICE_BUS);
+
+        /* A PCI USB card brings a USB bus to a board without one. */
+        if (!ret && (device->flags & DEVICE_USB))
+            ret = usb_card_has_bus(mch);
     }
 
     return ret;

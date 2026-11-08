@@ -159,6 +159,16 @@ typedef struct chips_69000_t {
     void *i2c, *ddc;
 
     uint8_t st01;
+
+    /* Video playback (overlay) engine state, derived from the multimedia registers. */
+    struct {
+        int      video;
+        int      x_start, x_end;
+        int      y_top, y_bottom;
+        int      src_width;
+        uint32_t h_step, v_step;
+        uint8_t  cur_buffer;
+    } overlay;
 } chips_69000_t;
 
 static chips_69000_t *reset_state = NULL;
@@ -173,14 +183,129 @@ void chips_69000_writeb_linear(uint32_t addr, uint8_t val, void *priv);
 void chips_69000_writew_linear(uint32_t addr, uint16_t val, void *priv);
 void chips_69000_writel_linear(uint32_t addr, uint32_t val, void *priv);
 
+/* Playback memory pointer currently selected by MR20. */
+static uint32_t
+chips_69000_overlay_ptr(chips_69000_t* chips)
+{
+    const uint8_t *mr = chips->mm_regs;
+
+    if (chips->overlay.cur_buffer)
+        return mr[0x25] | (mr[0x26] << 8) | ((mr[0x27] & 0x3f) << 16);
+
+    return mr[0x22] | (mr[0x23] << 8) | ((mr[0x24] & 0x3f) << 16);
+}
+
+/* Recalculate the video playback window from the multimedia registers. */
+static void
+chips_69000_update_overlay(chips_69000_t* chips)
+{
+    svga_t        *svga = &chips->svga;
+    const uint8_t *mr   = chips->mm_regs;
+    int            x_left   = mr[0x2a] | ((mr[0x2b] & 7) << 8);
+    int            x_right  = mr[0x2c] | ((mr[0x2d] & 7) << 8);
+    int            y_top    = mr[0x2e] | ((mr[0x2f] & 7) << 8);
+    int            y_bottom = mr[0x30] | ((mr[0x31] & 7) << 8);
+    int            width_qw = (mr[0x20] & 0x40) ? mr[0x34] : mr[0x28];
+    int            skew_x;
+    int            skew_y;
+    int            first;
+
+    if ((chips->ext_regs[0x09] & 0x01) && (chips->flat_panel_regs[0x01] & 0x02)) {
+        /* In FP mode the window counts in the panel timings, from the end of the panel
+           display width less the pipeline delay, and from the end of FP vertical sync. */
+        const uint8_t *fr        = chips->flat_panel_regs;
+        int            fp_hdisp  = (fr[0x20] | ((fr[0x25] & 0x0f) << 8)) + 1;
+        int            fp_htotal = (fr[0x23] | ((fr[0x26] & 0x0f) << 8)) + 5;
+        int            fp_vdisp  = (fr[0x30] | ((fr[0x35] & 0x0f) << 8)) + 1;
+        int            fp_vss    = fr[0x31] | ((fr[0x35] & 0xf0) << 4);
+        int            fp_vse    = (fp_vss & ~0xf) | (fr[0x32] & 0xf);
+        int            fp_vtotal = fr[0x33] | ((fr[0x36] & 0x0f) << 8);
+
+        if (fp_vse < fp_vss)
+            fp_vse += 16;
+
+        skew_x = ((fp_htotal - fp_hdisp) << 3) - 9;
+        skew_y = fp_vtotal - fp_vse;
+
+        /* The panel centres smaller modes, which are shown here as they are, so the
+           centring border is taken off the window as well. */
+        if (((fr[0x40] & 0x03) == 0x03) && ((fp_hdisp << 3) > svga->hdisp))
+            skew_x += ((fp_hdisp << 3) - svga->hdisp) >> 1;
+        if (((fr[0x48] & 0x03) == 0x03) && (fp_vdisp > svga->dispend))
+            skew_y += (fp_vdisp - svga->dispend) >> 1;
+    } else {
+        /* On a CRT the window counts from the end of the blanking start character clock
+           less the pipeline delay, and from the end of vertical sync, which is how the
+           C&T Windows driver programs it. */
+        int vsync_start = svga->vsyncstart - 1;
+        int vsync_len   = ((svga->crtc[0x11] & 0xf) - vsync_start) & 0xf;
+        int vsync_end   = vsync_start + (vsync_len ? vsync_len : 16);
+
+        skew_x = (svga->htotal - svga->hblankstart - 1) * svga->char_width - 9;
+        skew_y = svga->vtotal - vsync_end - 2;
+    }
+
+    /* On an interlaced display the window counts frame lines, so the field lines from
+       the end of vertical sync count twice. */
+    if (svga->interlace)
+        skew_y <<= 1;
+
+    x_left   -= skew_x;
+    x_right  -= skew_x;
+    y_top    -= skew_y;
+    y_bottom -= skew_y;
+
+    chips->overlay.video     = (mr[0x3c] & 0x01) && (x_right >= x_left) && (y_bottom >= y_top) && (y_bottom >= 0);
+    chips->overlay.h_step    = (mr[0x1e] & 0x04) ? (mr[0x32] & 0xfc) : 0x100;
+    chips->overlay.v_step    = (mr[0x1e] & 0x08) ? (mr[0x33] & 0xfc) : 0x100;
+    if (!chips->overlay.h_step)
+        chips->overlay.h_step = 0x100;
+    if (!chips->overlay.v_step)
+        chips->overlay.v_step = 0x100;
+    chips->overlay.x_start   = x_left;
+    chips->overlay.x_end     = x_right;
+    chips->overlay.y_top     = y_top;
+    chips->overlay.y_bottom  = y_bottom;
+    chips->overlay.src_width = ((width_qw + 1) << 3) / 2;
+
+    svga->overlay.pitch = (mr[0x28] + 1) << 3;
+    svga->overlay.addr  = chips_69000_overlay_ptr(chips);
+    svga->overlay.yoff  = 0;
+
+    if (mr[0x3c] & 0x20) {
+        /* The display is blanked, see chips_69000_recalctimings(). */
+        svga->overlay.ena = 0;
+    } else if (mr[0x3c] & 0x80) {
+        /* The LSB disable acts on the whole display. */
+        svga->overlay.ena       = 1;
+        svga->overlay.y         = 0;
+        svga->overlay.cur_ysize = 4096;
+    } else if (chips->overlay.video) {
+        /* Fields start on even and odd lines, so start the window on an even one. */
+        first                   = (y_top < 0) ? 0 : (y_top & ~1);
+        svga->overlay.ena       = 1;
+        svga->overlay.y         = first;
+        svga->overlay.cur_ysize = y_bottom - first + 2;
+    } else
+        svga->overlay.ena = 0;
+}
+
 /* Multimedia handling. */
 uint8_t
 chips_69000_read_multimedia(chips_69000_t* chips)
 {
     switch (chips->mm_index) {
-        case 0:
-            /* Report no playback/capture capability. */
-            return 0;
+        case 0x00:
+            /* Report playback capability only, there is no video capture port. */
+            return 0x01;
+        case 0x01:
+            return 0x00;
+        case 0x21:
+            return chips->overlay.cur_buffer ? 0x02 : 0x00;
+        case 0x43:
+            return chips->svga.vc & 0xff;
+        case 0x44:
+            return (chips->svga.vc >> 8) & 0x0f;
         default:
             return chips->mm_regs[chips->mm_index];
     }
@@ -192,13 +317,44 @@ void
 chips_69000_write_multimedia(chips_69000_t* chips, uint8_t val)
 {
     switch (chips->mm_index) {
-        case 0:
+        case 0x00:
+        case 0x01:
+        case 0x21:
+        case 0x43:
+        case 0x44:
             return;
+        case 0x22:
+        case 0x25:
+            val &= 0xf8;
+            break;
+        case 0x24:
+        case 0x27:
+            val &= 0x3f;
+            break;
+        case 0x32:
+        case 0x33:
+            val &= 0xfc;
+            break;
+        case 0x20:
+            /* Without a double buffer trigger the CPU flag selects the buffer right away. */
+            if (!(val & 0x20))
+                chips->overlay.cur_buffer = !!(val & 0x10);
+            break;
+        case 0x3c:
+            /* Blanking the display picks the renderer. */
+            if ((chips->mm_regs[0x3c] ^ val) & 0x20) {
+                chips->mm_regs[0x3c] = val;
+                svga_recalctimings(&chips->svga);
+                return;
+            }
+            break;
         default:
-            chips->mm_regs[chips->mm_index] = val;
             break;
     }
     chips->mm_regs[chips->mm_index] = val;
+
+    if (chips->mm_index >= 0x1e && chips->mm_index <= 0x42)
+        chips_69000_update_overlay(chips);
 }
 
 /* Flat panel handling. */
@@ -1160,6 +1316,12 @@ chips_69000_recalctimings(svga_t *svga)
         svga->bpp = 8;
         svga->hoverride = 0;
     }
+
+    /* MR3C bit 5 blanks both graphics and video playback. */
+    if (chips->mm_regs[0x3c] & 0x20)
+        svga->render = svga_render_blank;
+
+    chips_69000_update_overlay(chips);
 }
 
 void
@@ -2120,10 +2282,23 @@ chips_69000_in(uint16_t addr, void *priv)
             temp = svga->crtcreg;
             break;
         case 0x3D5:
-            if (svga->crtcreg & 0x20)
-                temp = 0xff;
-            else
-                temp = svga->crtc[svga->crtcreg];
+            switch (svga->crtcreg) {
+                case 0x00 ... 0x18:
+                case 0x30 ... 0x33:
+                case 0x38:
+                case 0x3c:
+                case 0x40:
+                case 0x41:
+                case 0x70 ... 0x79:
+                    temp = svga->crtc[svga->crtcreg];
+                    break;
+                case 0x22:
+                    temp = svga_in(addr, svga);
+                    break;
+                default:
+                    temp = 0xff;
+                    break;
+            }
             break;
         case 0x3B6:
         case 0x3D6:
@@ -2631,10 +2806,224 @@ void
 chips_69000_vblank_start(svga_t *svga)
 {
     chips_69000_t  *chips  = (chips_69000_t *) svga->priv;
+    uint8_t        mr20   = chips->mm_regs[0x20];
+
     chips->mem_regs[1] |= 1 << 14;
     chips->svga.crtc[0x40] &= ~0x80;
 
+    /* Double buffered playback switches buffers on VSYNC. */
+    if (mr20 & 0x20) {
+        if (mr20 & 0x08)
+            chips->overlay.cur_buffer ^= 1;
+        else if (mr20 & 0x04)
+            chips->overlay.cur_buffer = !!(mr20 & 0x10);
+        chips_69000_update_overlay(chips);
+    }
+
     chips_69000_interrupt(chips);
+}
+
+static inline uint32_t
+chips_69000_yuv_to_rgb(int y, int u, int v)
+{
+    int r, g, b;
+
+    y = 298 * (y - 16);
+    r = (y + 409 * v + 128) >> 8;
+    g = (y - 100 * u - 208 * v + 128) >> 8;
+    b = (y + 516 * u + 128) >> 8;
+
+    r = (r < 0) ? 0 : ((r > 255) ? 255 : r);
+    g = (g < 0) ? 0 : ((g > 255) ? 255 : g);
+    b = (b < 0) ? 0 : ((b > 255) ? 255 : b);
+
+    return (r << 16) | (g << 8) | b;
+}
+
+/* Does the graphics pixel at this position match the overlay colour key? */
+static inline int
+chips_69000_overlay_key_match(chips_69000_t* chips, uint32_t gfx_ma, int x)
+{
+    const svga_t  *svga = &chips->svga;
+    const uint8_t *mr   = chips->mm_regs;
+    const uint8_t *vram = svga->vram;
+    uint32_t       mask = svga->vram_display_mask;
+    uint32_t       key  = (mr[0x3d] << 16) | (mr[0x3e] << 8) | mr[0x3f];
+    uint32_t       kmsk = (mr[0x40] << 16) | (mr[0x41] << 8) | mr[0x42];
+    uint32_t       val;
+    uint32_t       pix;
+
+    switch (svga->bpp) {
+        case 15:
+            gfx_ma += x << 1;
+            pix = vram[gfx_ma & mask] | (vram[(gfx_ma + 1) & mask] << 8);
+            val = ((pix & 0x7c00) << 9) | ((pix & 0x03e0) << 6) | ((pix & 0x001f) << 3);
+            /* The 16-bit overlay key is the otherwise unused top bit of the pixel. */
+            if (mr[0x3c] & 0x40)
+                val |= pix >> 15;
+            break;
+        case 16:
+            gfx_ma += x << 1;
+            pix = vram[gfx_ma & mask] | (vram[(gfx_ma + 1) & mask] << 8);
+            val = ((pix & 0xf800) << 8) | ((pix & 0x07e0) << 5) | ((pix & 0x001f) << 3);
+            if (mr[0x3c] & 0x40)
+                val = (val & ~1) | ((val >> 15) & 1);
+            break;
+        case 24:
+            gfx_ma += x * 3;
+            val = vram[gfx_ma & mask] | (vram[(gfx_ma + 1) & mask] << 8) | (vram[(gfx_ma + 2) & mask] << 16);
+            if (mr[0x3c] & 0x40)
+                val = (val & ~1) | ((val >> 15) & 1);
+            break;
+        case 32:
+            gfx_ma += x << 2;
+            val = vram[gfx_ma & mask] | (vram[(gfx_ma + 1) & mask] << 8) | (vram[(gfx_ma + 2) & mask] << 16);
+            if (mr[0x3c] & 0x40)
+                val = (val & ~1) | ((val >> 15) & 1);
+            break;
+        default:
+            /* Indexed modes carry the colour index on the blue channel. */
+            val = vram[(gfx_ma + x) & mask];
+            break;
+    }
+
+    return !((val ^ key) & ~kmsk & 0xffffff);
+}
+
+/* Fetch one playback pixel as RGB. */
+static inline uint32_t
+chips_69000_overlay_pixel(chips_69000_t* chips, uint32_t line, int sx)
+{
+    const svga_t  *svga = &chips->svga;
+    const uint8_t *mr   = chips->mm_regs;
+    const uint8_t *vram = svga->vram;
+    uint32_t       pa;
+    int            y, u, v;
+
+    if (sx >= chips->overlay.src_width)
+        sx = chips->overlay.src_width - 1;
+    pa = (mr[0x1e] & 0x01) ? (line - (sx << 1)) : (line + (sx << 1));
+
+    if (mr[0x1f] & 0x08) {
+        uint16_t pix = vram[pa & svga->vram_mask] | (vram[(pa + 1) & svga->vram_mask] << 8);
+
+        if (mr[0x1f] & 0x01)
+            return video_15to32[pix & 0x7fff];
+
+        return video_16to32[pix];
+    }
+
+    /* YUV 4:2:2, stored as Y0 U Y1 V. */
+    y = vram[pa & svga->vram_mask];
+    pa &= ~3;
+    u = vram[(pa + 1) & svga->vram_mask];
+    v = vram[(pa + 3) & svga->vram_mask];
+    if (mr[0x1f] & 0x01) {
+        int t = u;
+
+        u = v;
+        v = t;
+    }
+    if (mr[0x1f] & 0x02) {
+        u = (int8_t) u;
+        v = (int8_t) v;
+    } else {
+        u -= 128;
+        v -= 128;
+    }
+
+    return chips_69000_yuv_to_rgb(y, u, v);
+}
+
+/* Mix two RGB pixels, frac of 256 towards the second. */
+static inline uint32_t
+chips_69000_overlay_mix(uint32_t a, uint32_t b, uint32_t frac)
+{
+    uint32_t rb = ((a & 0xff00ff) * (256 - frac) + (b & 0xff00ff) * frac) >> 8;
+    uint32_t g  = ((a & 0x00ff00) * (256 - frac) + (b & 0x00ff00) * frac) >> 8;
+
+    return (rb & 0xff00ff) | (g & 0x00ff00);
+}
+
+static void
+chips_69000_overlay_draw(svga_t *svga, int displine)
+{
+    chips_69000_t *chips    = (chips_69000_t *) svga->priv;
+    const uint8_t *mr       = chips->mm_regs;
+    uint32_t      *p        = &svga->monitor->target_buffer->line[displine][svga->x_add];
+    /* The start of the graphics line just rendered, for the colour key. */
+    uint32_t       gfx_ma   = svga->memaddr_backup;
+    int            line     = svga->displine;
+    int            x_start  = chips->overlay.x_start;
+    int            x_end    = chips->overlay.x_end;
+    int            keyed    = mr[0x3c] & 0x02;
+    int            h_interp = mr[0x1f] & 0x20;
+    int            v_interp = mr[0x1f] & 0x80;
+    uint32_t       pitch    = svga->overlay_latch.pitch;
+    uint32_t       h_acc    = 0;
+    uint32_t       v_pos;
+    uint32_t       v_frac;
+    uint32_t       src;
+    uint32_t       next;
+    uint32_t       c;
+    int            idx;
+
+    if (chips->overlay.video && (line >= chips->overlay.y_top) && (line <= chips->overlay.y_bottom)) {
+        idx = line - chips->overlay.y_top;
+        /* Interlaced playback shows the alternate source lines in each field, otherwise
+           both fields show the same ones. */
+        if (svga->interlace && !(mr[0x1e] & 0x10))
+            idx >>= 1;
+
+        v_pos  = idx * chips->overlay.v_step;
+        v_frac = v_pos & 0xff;
+        if (mr[0x1e] & 0x02) {
+            src  = svga->overlay_latch.addr - (v_pos >> 8) * pitch;
+            next = src - pitch;
+        } else {
+            src  = svga->overlay_latch.addr + (v_pos >> 8) * pitch;
+            next = src + pitch;
+        }
+        /* Do not interpolate past the last line of the window. */
+        if (line == chips->overlay.y_bottom)
+            next = src;
+
+        if (x_start < 0) {
+            h_acc   = -x_start * chips->overlay.h_step;
+            x_start = 0;
+        }
+        if (x_end >= svga->hdisp)
+            x_end = svga->hdisp - 1;
+
+        for (int x = x_start; x <= x_end; x++, h_acc += chips->overlay.h_step) {
+            int sx = h_acc >> 8;
+
+            if (keyed && !chips_69000_overlay_key_match(chips, gfx_ma, x))
+                continue;
+
+            c = chips_69000_overlay_pixel(chips, src, sx);
+            if (h_interp && (h_acc & 0xff))
+                c = chips_69000_overlay_mix(c, chips_69000_overlay_pixel(chips, src, sx + 1), h_acc & 0xff);
+
+            if (v_interp) {
+                uint32_t n = chips_69000_overlay_pixel(chips, next, sx);
+
+                if (h_interp && (h_acc & 0xff))
+                    n = chips_69000_overlay_mix(n, chips_69000_overlay_pixel(chips, next, sx + 1), h_acc & 0xff);
+
+                /* Running average blends lines equally, de-blocking by position. */
+                c = chips_69000_overlay_mix(c, n, (mr[0x1f] & 0x40) ? 0x80 : v_frac);
+            }
+
+            p[x] = c;
+        }
+    }
+
+    if (mr[0x3c] & 0x80) {
+        /* Bit 0 of each colour is forced to 0 at the output, hiding a key in it. */
+        for (int x = 0; x < svga->hdisp; x++)
+            p[x] &= 0xfefefe;
+    }
 }
 
 static void
@@ -2831,7 +3220,7 @@ chips_69000_init(const device_t *info)
               chips_69000_recalctimings,
               chips_69000_in, chips_69000_out,
               chips_69000_hwcursor_draw,
-              NULL);
+              chips_69000_overlay_draw);
 
     io_sethandler(0x03a0, 0x0040, chips_69000_in, NULL, NULL, chips_69000_out, NULL, NULL, chips);
 

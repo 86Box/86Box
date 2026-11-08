@@ -17,6 +17,73 @@ Try to match your code's filename and append the type of test it is.
 
 ## Summary of current tests
 
+# CPU external interrupt polling
+
+Build `cpu_interrupt_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^CpuInterrupt\.' --output-on-failure`.
+The tests compare CPU-facing PIC polling with the real controller's pending
+predicate across cascaded, non-cascaded and 8018x configurations, and check
+APIC live-source and legacy-fallback arbitration with local APIC stubs.
+They do not emulate interrupt delivery or measure host performance.
+
+# Dynarec SMC reuse tracking
+
+Build `codegen_reuse_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^CodegenReuse\.' --output-on-failure`.
+The tests check that the byte-sized reuse mask requires exactly the configured
+number of right shifts, stays zero after payment, and preserves the restored
+and unrolled block thresholds. They do not execute generated code or measure
+host performance.
+
+# Dynarec register shifts by CL
+
+Build `codegen_shift_cl_tests` with `BUILD_TESTING=ON` and `DYNAREC=ON`, then run
+`ctest --test-dir build -R '^CodegenShiftCl\.' --output-on-failure`.
+The tests use the production translators for all register operands and
+supported shift/rotate encodings at 8, 16 and 32 bits. They check translation
+with zero and nonzero compile-time counts, including the first instruction
+in a block, and verify a local zero-count branch and conservative lazy-flag
+state at the join. Carry rotates retain their existing fallback.
+These are IR-generation checks, not generated-code execution tests.
+
+# MMU page translation
+
+Build `mmu_translation_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^PagingModes/MmuTranslationTest\.' --output-on-failure`.
+The tests link the production memory implementation and exercise ordinary and
+PAE page walks, accessed/dirty updates, missing entries, supervisor write
+protection, user permissions, large pages and preservation of prior aborts.
+These are translation/state checks, not host-performance measurements.
+
+# Network packet buffering
+
+Build `network_queue_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^network_queue$' --output-on-failure`.
+The tests exercise the shared queues, scheduler and SLiRP receive callbacks
+with timer, mutex and backend stubs. They cover bounded 255-frame capacity,
+wraparound, overflow counters, failed-swap ownership, burst retention,
+partial deferred merges, FIFO ordering, backend wakeups and unchanged
+16-frame batches and link pacing. They do not measure guest SMB throughput.
+
+# Realtek RTL8139C+ receive flow control
+
+Build `rtl8139_rx_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^rtl8139_rx$' --output-on-failure`.
+The test checks that, in C+ mode, a frame arriving with no guest-owned
+receive descriptor is refused for later retry instead of being counted as
+missed and discarded.
+
+# Realtek RTL8139C+ timer
+
+Build `rtl8139_timer_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^rtl8139_timer$' --output-on-failure`.
+The tests use the NIC's private timer implementation and the real timer engine,
+with PCI interrupt stubs. They cover counter polling without interrupts,
+match deadlines, wraparound, disabling/reprogramming interrupts, counter reset,
+clock halt/resume, guest TSC rewrites, speed changes, fractional PCI periods,
+late callbacks, and idle callback frequency. They are isolated regressions,
+not guest-driver integration tests or a host-performance benchmark.
+
 # TEAC CD-55A
 
 The `mke_cdrom_tests` target includes Panasonic regressions and TEAC protocol
@@ -60,6 +127,17 @@ Build `mach64_accel_tests` and `mach64_3d_tests` with `BUILD_TESTING=ON`, then r
 
 `video/vid_ati_mach64_3d_test.c` stubs the draw engine FIFO, the timing model and the render threads, so its card draws on one thread. It checks the 3D registers' fixed-point fields, the texture palette and keys, the texel path's packed forms (the 2x2 filter's blend two components at a time, every 16-bit texel unpacked through the expansion tables, and reads that wrap at the end of video memory), mip level selection, YUV and the scaler, then 1,077 draw cases through the registers against the whole frame and Z buffers: triangles of two trapezoids in ARGB1555, RGB565 and ARGB8888, shaded, textured and additive, in both directions and clipped; all eight Z tests; texel keys, alpha masks and the destination compare; the `DST_BRES_LNTH` commands of RRG-G02700 4-46; signed scissors; color and Z fields that wrap; textured lines; bilinear texel centers; and eight register streams of ATI3DCIF 4.03.2510's triangle setup against the color and depth planes of their vertices. The expected images are closed forms, not the engine's own helpers. The tests establish the documented register behavior and the engine's consistency, not the chip's undocumented rounding or dither.
 
+# 3dfx Voodoo LOD log2
+
+Build `voodoo_lod_log2_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build -R '^Voodoo.LodLog2$' --output-on-failure`.
+The test includes `vid_voodoo_render.c` for its private functions and checks
+the table log2 behind the LOD against libm's `log2()`: the table itself, exact
+powers of two, every table entry and the double just below it, and a million
+random samples over 129 octaves, each within the error bound the code claims.
+It also checks that the 8.8 LOD made from it differs from libm's by at most
+one step, and rarely. It does not render anything.
+
 # ATI Rage 128
 
 Build with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-failure -R '^Rage128\.'`. The tools live in `video/rage128/`, one directory each; each directory also builds on its own with its `build.sh`, and its README covers the options. The register and replay tools compile the device sources with host stubs; all of them need GCC or Clang. See [the Rage 128 hardware notes](../doc/hardware/ati-rage128.md) for the boards and their ROMs, what the device models, the render lanes and the environment switches.
@@ -68,7 +146,7 @@ Build with `BUILD_TESTING=ON`, then run `ctest --test-dir build --output-on-fail
 
 `Rage128.JitHost` runs the JIT host harness (`video/rage128/jit-harness`): the ARM64 span emitter, and on an x86-64 host the x86-64 one too, compile a fuzzed matrix of draw states, the blocks the host can execute run on synthetic buffers, and every pixel is compared with a C copy of the interpreter's pixel loop. The full run takes about 20 minutes on one core of an arm64 Mac and about 35 on an x86-64 workstation; `shard.sh` in that directory splits it across cores.
 
-`Rage128.GpuKernels` runs gputri (`video/rage128/gpu`): the production SPIR-V span-shading kernel (all twenty variants) and depth pre-pass kernel on the host's Vulkan device against a C copy of the interpreter, plus fault injection that every span variant must detect. The 2D and overlay kernels are checked by GpuVerify. It needs the Vulkan loader and `glslc` to build, and reports skipped on a host with no Vulkan device. `ladfuzz` and `fdivtest` in the same directory check the z-ladder's closed form and the kernels' correctly rounded divide.
+`Rage128.GpuKernels` runs gputri (`video/rage128/gpu`): the production SPIR-V span-shading kernel (all twenty variants) on the host's Vulkan device against a C copy of the interpreter, plus fault injection that every span variant must detect. The 2D and overlay kernels are checked by GpuVerify. It needs the Vulkan loader and `glslc` to build, and reports skipped on a host with no Vulkan device. `fdivtest` in the same directory checks the kernels' correctly rounded divide.
 
 The replay harness (`video/rage128/replay-harness`) is a tool: it replays a command stream recorded with the emulator's `RAGE128_CAPTURE` environment variable through the device sources, offline, so a fix can be tried against a recorded session without running the guest. `Rage128.ReplaySynth` generates its three synthetic captures (`synth/`, Python 3), replays them and checks their pixels, so the example that needs no recorded session keeps working.
 
@@ -202,6 +280,15 @@ and compares copied ISO files byte for byte. See the
 [Sony hardware guide](../doc/hardware/sony-cdrom.md) for prerequisites, resource
 settings, the five-version driver matrix, and validation limits.
 
+# IBM PC 730/750 power controller
+
+Build `ibm_pc700_power_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build --output-on-failure -R '^IbmPc700PowerTest\.'`.
+The tests drive the controller through ports 48h-49h the way the LQKT47A BIOS
+does: command framing, the power-off command, the BIOS's flag check, the wake
+reason reported at power-on, variable writes, and the status bit's busy time
+and heartbeat.
+
 # CPU cache and TLB diagnostics
 
 Build `cpu_tr_tests`, `cpu_cache_tests` and `vect486n_tests` with
@@ -235,3 +322,15 @@ ctest --test-dir build --output-on-failure -R '^Ini'
 ```
 
 Build with AddressSanitizer to check the long-name cases for memory errors.
+
+# Mach64 BIOS monitor detection
+
+`Mach64.Display` checks the on-chip DAC comparator used by ATI BIOS CRT
+probing, from CT through VT/GT-B (including the Rage Pro family), and its
+read-only output bit. It preserves external-RAMDAC GX behavior. This helper
+regression complements the boot and Windows driver tests; it does not model
+analog monitor voltages or replace end-to-end display testing.
+
+`Mach64.Palette` also checks Rage Pro `SCALE_OFF_ACC` bitmap expansion
+after a palette-cache upload has left a different source and accumulator
+state. It checks CI8 output pixels and byte, word and dword register writes.

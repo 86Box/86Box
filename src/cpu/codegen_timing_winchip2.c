@@ -400,7 +400,6 @@ static uint32_t opcode_timings_winchip2_81_mod3[8] = {
     // clang-format on
 };
 
-static int      timing_count;
 static uint8_t  last_prefix;
 static uint32_t regmask_modified;
 static int      decode_delay;
@@ -584,7 +583,6 @@ codegen_timing_winchip2_block_start(void)
 static void
 codegen_timing_winchip2_start(void)
 {
-    timing_count = 0;
     last_prefix  = 0;
 }
 
@@ -767,11 +765,33 @@ codegen_timing_winchip2_block_end(void)
     }
 }
 
+/*Block start leaves the x87 latencies as the block before left them*/
+static void
+codegen_timing_winchip2_save(codegen_timing_state_t *state)
+{
+    state->fpu_latency = fpu_latency;
+    memcpy(state->fpu_st_latency, fpu_st_latency, sizeof(fpu_st_latency));
+}
+
+static void
+codegen_timing_winchip2_load(const codegen_timing_state_t *state)
+{
+    if (state) {
+        fpu_latency = state->fpu_latency;
+        memcpy(fpu_st_latency, state->fpu_st_latency, sizeof(fpu_st_latency));
+    } else {
+        fpu_latency = 0;
+        memset(fpu_st_latency, 0, sizeof(fpu_st_latency));
+    }
+}
+
 codegen_timing_t codegen_timing_winchip2 = {
     codegen_timing_winchip2_start,
     codegen_timing_winchip2_prefix,
     codegen_timing_winchip2_opcode,
     codegen_timing_winchip2_block_start,
     codegen_timing_winchip2_block_end,
-    NULL
+    NULL,
+    codegen_timing_winchip2_save,
+    codegen_timing_winchip2_load
 };

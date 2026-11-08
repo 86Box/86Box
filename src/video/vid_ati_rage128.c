@@ -52,8 +52,17 @@
 #include <86box/vid_ati_rage128.h>
 #include <86box/vid_ati_rage128_regs.h>
 
+/* The device's routine log lines (mode changes, the speed line, startup
+   and close summaries) print only when logging is on. The build flag
+   ENABLE_RAGE128_LOG sets the default, and the RAGE128_LOG environment
+   variable overrides it at startup in any build ("1" on, "0" off), so a
+   tester can produce a full log without a special build. Real failures
+   print through pclog whatever this says. */
 #ifdef ENABLE_RAGE128_LOG
 int rage128_do_log = ENABLE_RAGE128_LOG;
+#else
+int rage128_do_log = 0;
+#endif
 
 void
 rage128_log(const char *fmt, ...)
@@ -66,13 +75,17 @@ rage128_log(const char *fmt, ...)
         va_end(ap);
     }
 }
-#endif
 
 /* Bus clocks per CPU access, which video_inform turns into CPU cycles.
    The framebuffer and register read handlers charge them: a read stalls
    the CPU for the whole bus transaction, and that cost is what limits
-   how fast a driver can poll a status register. */
-static video_timings_t timing_rage128 = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
+   how fast a driver can poll a status register. The counts are the same
+   on both boards; what differs is the clock they are counted in. The
+   PCI board runs at the PCI clock, while the AGP board's CPU accesses
+   cross the AGP bus at its own, faster clock, so the core scales its
+   counts by the AGP clock instead. */
+static video_timings_t timing_rage128     = { .type = VIDEO_PCI, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
+static video_timings_t timing_rage128_agp = { .type = VIDEO_AGP, .write_b = 2, .write_w = 2, .write_l = 1, .read_b = 20, .read_w = 20, .read_l = 21 };
 
 static void rage128_vga_decode_update(rage128_t *dev);
 
@@ -245,7 +258,7 @@ rage128_lfb_readb(uint32_t addr, void *priv)
     if (dev->synctel)
         rage128_synctel_cpu_read(dev, addr, 1);
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, addr, 1, 0);
+        rage128_gpu_cpu_access(dev, addr, 1, 0);
     if (t0)
         t2 = rage128_now_ns();
     cycles -= dev->svga.monitor->mon_video_timing_read_b;
@@ -303,7 +316,7 @@ rage128_lfb_read_n(uint32_t addr, void *priv, uint32_t len)
     if (dev->synctel)
         rage128_synctel_cpu_read(dev, addr, len);
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, addr, len, 0);
+        rage128_gpu_cpu_access(dev, addr, len, 0);
     if (t0)
         t2 = rage128_now_ns();
     cycles -= rage128_lfb_read_timing(dev, len);
@@ -347,11 +360,12 @@ rage128_lfb_writeb(uint32_t addr, uint8_t val, void *priv)
     if (dev->synctel)
         rage128_synctel_cpu_write(dev, addr, 1);
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, addr, 1, 1);
+        rage128_gpu_cpu_access(dev, addr, 1, 1);
     if (t0)
         t2 = rage128_now_ns();
     svga->vram[addr]              = val;
     svga->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
+    r128_vram_hnew(dev, addr, 1);
     if (t0)
         rage128_lfbt_leave(dev, t0, t1, t2, rage128_now_ns());
 }
@@ -387,7 +401,7 @@ rage128_lfb_write_n(uint32_t addr, uint32_t val, void *priv, uint32_t len)
     if (dev->synctel)
         rage128_synctel_cpu_write(dev, addr, len);
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, addr, len, 1);
+        rage128_gpu_cpu_access(dev, addr, len, 1);
     if (t0)
         t2 = rage128_now_ns();
     if (len == 2)
@@ -395,6 +409,7 @@ rage128_lfb_write_n(uint32_t addr, uint32_t val, void *priv, uint32_t len)
     else
         *(uint32_t *) &svga->vram[addr] = val;
     svga->changedvram[addr >> 12] = svga->monitor->mon_changeframecount;
+    r128_vram_hnew(dev, addr, len);
     if (t0)
         rage128_lfbt_leave(dev, t0, t1, t2, rage128_now_ns());
 }
@@ -731,14 +746,48 @@ static void    rage128_endian_apply(rage128_t *dev);
    its GEN_INT_STATUS bit set and released once none has. PCI interrupts
    are level-sensitive, so this is re-evaluated after every change to
    either register. pci_set_irq and pci_clear_irq drive INTA through the
-   irq_state shadow, as vid_ati_mach64.c does. */
+   irq_state shadow, as vid_ati_mach64.c does.
+
+   A type-0 or type-1 packet can write any register, these two among
+   them, so the register changes also arrive from the CCE thread. The emulator's PCI and PIC interrupt code takes
+   no lock and belongs to the CPU thread, so the CCE thread changes the
+   register value at once, atomically, but only marks the line stale;
+   the CPU thread re-evaluates it on its next call here or through the
+   sync below. The stale mark is cleared before the registers are read,
+   so a change that lands after that read marks the line stale again and
+   is picked up by the next sync rather than lost. */
 void
 rage128_gen_int_update(rage128_t *dev)
 {
-    if (dev->gen_int_cntl & dev->gen_int_status & RAGE128_GIC_SUPPORTED)
+    if (rage128_on_cce_thread) {
+        atomic_store(&dev->gen_int_stale, 1);
+        return;
+    }
+    atomic_store(&dev->gen_int_stale, 0);
+    if (atomic_load(&dev->gen_int_cntl) & atomic_load(&dev->gen_int_status)
+        & RAGE128_GIC_SUPPORTED)
         pci_set_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
     else
         pci_clear_irq(dev->pci_slot, PCI_INTA, &dev->irq_state);
+}
+
+/* Bring INTA up to date after a change made on the CCE thread. CPU
+   thread only. It runs at every register read and at the end of every
+   ring pump. While a ring packet is outstanding the pump timer runs
+   every 100 microseconds until the published read pointer passes the
+   packet, and the packet marks the line stale before that pointer
+   moves, so a packet's interrupt change reaches INTA within one pump
+   period, or at the driver's next register read if that comes sooner;
+   a driver feeding packets by PIO reads PM4_STAT before each pair.
+   Every vertical blank, vertical sync and vertical line event
+   re-evaluates the line as well. Register writes do not sync, so the
+   executor's register writes, which come through the same entry, carry
+   no extra test. */
+void
+rage128_gen_int_sync(rage128_t *dev)
+{
+    if (atomic_load_explicit(&dev->gen_int_stale, memory_order_relaxed))
+        rage128_gen_int_update(dev);
 }
 
 /* Move a pending busy-to-idle event of the engine into GUI_IDLE_INT,
@@ -746,15 +795,14 @@ rage128_gen_int_update(rage128_t *dev)
    guide does not describe the event, and raising it on the engine's
    busy-to-idle edge is modeled). The engine code only sets
    gui_idle_event, from whichever thread it runs on; this runs on the
-   CPU thread, so pci_set_irq is never called from another thread. It
-   runs on every GEN_INT_STATUS read and from the vertical blank and
-   sync callbacks, so an enabled interrupt is raised within a frame even
-   if the driver never polls. */
+   CPU thread. It runs on every GEN_INT_STATUS read and from the
+   vertical blank and sync callbacks, so an enabled interrupt is raised
+   within a frame even if the driver never polls. */
 static void
 rage128_gen_int_fold_gui_idle(rage128_t *dev)
 {
     if (atomic_exchange(&dev->gui_idle_event, 0)) {
-        dev->gen_int_status |= RAGE128_GIS_GUI_IDLE;
+        atomic_fetch_or(&dev->gen_int_status, RAGE128_GIS_GUI_IDLE);
         rage128_gen_int_update(dev);
     }
 }
@@ -769,7 +817,7 @@ void
 rage128_gen_int_vblank(rage128_t *dev)
 {
     rage128_gen_int_fold_gui_idle(dev);
-    dev->gen_int_status |= RAGE128_GIS_VBLANK;
+    atomic_fetch_or(&dev->gen_int_status, RAGE128_GIS_VBLANK);
     rage128_gen_int_update(dev);
 }
 
@@ -780,7 +828,7 @@ void
 rage128_gen_int_vsync(rage128_t *dev)
 {
     rage128_gen_int_fold_gui_idle(dev);
-    dev->gen_int_status |= RAGE128_GIS_VSYNC;
+    atomic_fetch_or(&dev->gen_int_status, RAGE128_GIS_VSYNC);
     rage128_gen_int_update(dev);
 }
 
@@ -805,6 +853,11 @@ static uint32_t
 rage128_reg_read32(rage128_t *dev, uint32_t off)
 {
     off &= 0x3ffc;
+
+    /* Register reads come from the CPU thread only. Display work comes
+       first: a deferred snapshot latches an interrupt status bit. */
+    rage128_display_sync(dev);
+    rage128_gen_int_sync(dev);
 
     if (dev->ftl_en) {
         /* Count an indexed read under the register it reaches, not
@@ -858,13 +911,13 @@ rage128_reg_read32(rage128_t *dev, uint32_t off)
         /* Chip-core configuration registers. The guide's page for each
            is cited next to its constant in vid_ati_rage128_regs.h. */
         case RAGE128_GEN_INT_CNTL:
-            return dev->gen_int_cntl;
+            return atomic_load(&dev->gen_int_cntl);
         case RAGE128_GEN_INT_STATUS:
             /* "Read shows current states" (RRG: GEN_INT_STATUS,
                p. 3-196 / PDF 214): a pending engine-idle event is
                folded in first. */
             rage128_gen_int_fold_gui_idle(dev);
-            return dev->gen_int_status;
+            return atomic_load(&dev->gen_int_status);
         case RAGE128_BUS_CNTL:
             return dev->bus_cntl;
         case RAGE128_BUS_CNTL1:
@@ -1155,6 +1208,43 @@ rage128_cap_early_reg(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
     }
 }
 
+/* The register blocks a write can go to, in the order a write to a new
+   offset is offered to them, and the hand-off to one block. */
+enum {
+    RAGE128_WBLK_UNKNOWN = 0, /* offset not written yet */
+    RAGE128_WBLK_DISPLAY,     /* PLL, CRTC, DAC, palette */
+    RAGE128_WBLK_OV0,         /* hardware video overlay */
+    RAGE128_WBLK_SUBPIC,      /* DVD subpicture */
+    RAGE128_WBLK_2D,          /* 2D engine context */
+    RAGE128_WBLK_PM4,         /* CCE command processor and PCI GART */
+    RAGE128_WBLK_3D,          /* 3D engine context */
+    RAGE128_WBLK_MPEG,        /* MPEG-2 macroblock assist */
+    RAGE128_WBLK_NONE         /* no block claims the offset */
+};
+
+static inline int
+rage128_wblk_write(rage128_t *dev, int blk, uint32_t off, uint32_t val, uint32_t mask)
+{
+    switch (blk) {
+        case RAGE128_WBLK_DISPLAY:
+            return rage128_display_reg_write(dev, off, val, mask);
+        case RAGE128_WBLK_OV0:
+            return rage128_ov0_reg_write(dev, off, val, mask);
+        case RAGE128_WBLK_SUBPIC:
+            return rage128_subpic_reg_write(dev, off, val, mask);
+        case RAGE128_WBLK_2D:
+            return rage128_2d_reg_write(dev, off, val, mask);
+        case RAGE128_WBLK_PM4:
+            return rage128_pm4_reg_write(dev, off, val, mask);
+        case RAGE128_WBLK_3D:
+            return rage128_3d_reg_write(dev, off, val, mask);
+        case RAGE128_WBLK_MPEG:
+            return rage128_mpeg_reg_write(dev, off, val, mask);
+        default:
+            return 0;
+    }
+}
+
 /* Register file write. val is already shifted to its byte lanes and mask
    selects the lanes written. The guide allows byte and word access to
    the display and configuration registers but lists the GUI and
@@ -1225,6 +1315,7 @@ rage128_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
                     rage128_gpu_cpu_barrier(dev, a, 4, 1);
                 *p                             = (*p & ~mask) | (val & mask);
                 dev->svga.changedvram[a >> 12] = dev->svga.monitor->mon_changeframecount;
+                r128_vram_hnew(dev, a, 4);
                 rage128_cap_early_reg(dev, off, val, mask);
                 return;
             }
@@ -1272,15 +1363,26 @@ rage128_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
             rage128_cap_early_reg(dev, off, val, mask);
             return;
         case RAGE128_GEN_INT_CNTL:
-            MERGE(dev->gen_int_cntl);
+            {
+                /* Merged in one atomic step: a packet on the CCE thread
+                   can write the register while a CPU write merges into
+                   it. */
+                uint32_t old = atomic_load(&dev->gen_int_cntl);
+
+                while (!atomic_compare_exchange_weak(&dev->gen_int_cntl, &old,
+                                                     (old & ~mask) | val))
+                    ;
+            }
             rage128_gen_int_update(dev);
             rage128_cap_early_reg(dev, off, val, mask);
             return;
         case RAGE128_GEN_INT_STATUS:
             /* "Write of 1 clears states" (RRG: GEN_INT_STATUS, p. 3-196 /
                PDF 214): each _AK bit written as 1 clears its status bit,
-               and a 0 leaves it alone. INTA is re-evaluated afterward. */
-            dev->gen_int_status &= ~(val & mask & RAGE128_GIS_ACK_MASK);
+               and a 0 leaves it alone. The clear is one atomic step, so
+               an event the other thread latches meanwhile survives it.
+               INTA is re-evaluated afterward. */
+            atomic_fetch_and(&dev->gen_int_status, ~(val & mask & RAGE128_GIS_ACK_MASK));
             rage128_gen_int_update(dev);
             rage128_cap_early_reg(dev, off, val, mask);
             return;
@@ -1588,30 +1690,33 @@ rage128_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
         rage128_cap_tick(dev);
     }
 
-    /* Display block: PLL / CRTC / DAC / palette. */
-    if (rage128_display_reg_write(dev, off, val, mask))
-        return;
-    /* OV0 hardware video overlay (vid_ati_rage128_ov0.c). */
-    if (rage128_ov0_reg_write(dev, off, val, mask))
-        return;
-    /* DVD subpicture block (vid_ati_rage128_ov0.c). */
-    if (rage128_subpic_reg_write(dev, off, val, mask))
-        return;
-    /* 2D GUI engine context (vid_ati_rage128_2d.c). */
-    if (rage128_2d_reg_write(dev, off, val, mask))
-        return;
-    /* PM4/CCE command processor + PCI GART (vid_ati_rage128_pm4.c). */
-    if (rage128_pm4_reg_write(dev, off, val, mask))
-        return;
-    /* 3D engine CCE context (vid_ati_rage128_3d.c). */
-    if (rage128_3d_reg_write(dev, off, val, mask))
-        return;
-    /* MPEG-2 macroblock assist (vid_ati_rage128_mpeg.c). */
-    if (rage128_mpeg_reg_write(dev, off, val, mask))
-        return;
+    /* The rest goes to the block that owns the offset. Each block's
+       handler claims a write by returning 1, and whether it claims one
+       depends on the offset alone, never on register state; a handler
+       that does not claim the offset changes nothing. So the owner of an
+       offset is found at its first write, by offering that write to the
+       blocks in a fixed order (display, overlay, subpicture, 2D, PM4,
+       3D, MPEG; the first claim wins), and remembered, and later writes
+       go straight to it instead of past every block before it. The 3D
+       context registers, most of a game's command stream, would
+       otherwise reach their handler only after five others. An offset
+       no block claims, the read-only copy of configuration space among
+       them, is remembered as such and the write is dropped. Either
+       thread can find an owner first; both store the same block, so the
+       entries are relaxed atomics. */
+    {
+        uint32_t idx = off >> 2;
+        int      blk = atomic_load_explicit(&dev->reg_wr_blk[idx], memory_order_relaxed);
 
-    if (off >= RAGE128_CONFIG_MIRROR_BASE && off <= RAGE128_CONFIG_MIRROR_END)
-        return; /* read-only mirror */
+        if (blk == RAGE128_WBLK_UNKNOWN) {
+            for (blk = RAGE128_WBLK_DISPLAY; blk < RAGE128_WBLK_NONE; blk++)
+                if (rage128_wblk_write(dev, blk, off, val, mask))
+                    break;
+            atomic_store_explicit(&dev->reg_wr_blk[idx], (unsigned char) blk,
+                                  memory_order_relaxed);
+        } else if (blk != RAGE128_WBLK_NONE)
+            rage128_wblk_write(dev, blk, off, val, mask);
+    }
 }
 
 /* A PM4 type-0 packet can write any register, so the packet executor
@@ -2329,8 +2434,8 @@ rage128_reset(void *priv)
        pp. 3-192-3-193 / PDF 210-211), so INTA is released. GUI_IDLE_INT
        resets to 1 and every other status bit to 0 (RRG: GEN_INT_STATUS,
        pp. 3-193-3-196 / PDF 211-214). */
-    dev->gen_int_cntl   = 0;
-    dev->gen_int_status = RAGE128_GIS_GUI_IDLE;
+    atomic_store(&dev->gen_int_cntl, 0);
+    atomic_store(&dev->gen_int_status, RAGE128_GIS_GUI_IDLE);
     atomic_store(&dev->gui_idle_event, 0);
     rage128_gen_int_update(dev);
 
@@ -2453,8 +2558,12 @@ rage128_reset(void *priv)
 rage128_t *
 rage128_chip_init(const device_t *info, const rage128_chip_cfg_t *cfg)
 {
-    rage128_t *dev  = calloc(1, sizeof(rage128_t));
-    svga_t    *svga = &dev->svga;
+    rage128_t  *dev  = calloc(1, sizeof(rage128_t));
+    svga_t     *svga = &dev->svga;
+    const char *log  = getenv("RAGE128_LOG");
+
+    if (log && log[0])
+        rage128_do_log = strcmp(log, "0") != 0;
 
     dev->is_agp = !!(info->flags & DEVICE_AGP);
     if (dev->is_agp) {
@@ -2492,7 +2601,7 @@ rage128_chip_init(const device_t *info, const rage128_chip_cfg_t *cfg)
     }
     dev->vram_mask = dev->vram_size - 1;
 
-    video_inform(VIDEO_FLAG_TYPE_SPECIAL, &timing_rage128);
+    video_inform(VIDEO_FLAG_TYPE_SPECIAL, dev->is_agp ? &timing_rage128_agp : &timing_rage128);
 
     svga_init(info, svga, dev, dev->vram_size,
               rage128_recalctimings,
@@ -2801,7 +2910,7 @@ const device_config_t rage128_config[] = {
 };
 
 const device_t ati_rage128_pro_device = {
-    .name          = "ATI Rage Fury Pro AGP",
+    .name          = "ATI Rage 128 Pro (Fury Pro)",
     .internal_name = "ati_rage128_pro",
     .flags         = DEVICE_AGP,
     .local         = 0,
@@ -2820,7 +2929,7 @@ const device_t ati_rage128_pro_device = {
    Windows 98 and Windows 2000 INFs list as "Xpert 128" (see
    RAGE128_PCI_VENDOR in vid_ati_rage128_regs.h). */
 const device_t ati_xpert128_pci_device = {
-    .name          = "ATI Xpert 128 PCI",
+    .name          = "ATI Rage 128 GL PCI (Xpert 128)",
     .internal_name = "ati_xpert128_pci",
     .flags         = DEVICE_PCI,
     .local         = 0,

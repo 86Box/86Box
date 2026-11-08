@@ -48,7 +48,9 @@ enum {
     FULLSCR_SCALE_43,
     FULLSCR_SCALE_KEEPRATIO,
     FULLSCR_SCALE_INT,
-    FULLSCR_SCALE_INT43
+    FULLSCR_SCALE_INT43,
+    FULLSCR_SCALE_CENTER,
+    FULLSCR_SCALE_CENTER43
 };
 
 enum {
@@ -59,7 +61,7 @@ enum {
     VIDEO_AGP
 };
 
-typedef enum video_font_format_e 
+typedef enum video_font_format_e
 {
     FONT_FORMAT_MDA = 0,
     FONT_FORMAT_PC200 = 1,
@@ -77,14 +79,12 @@ typedef enum video_font_format_e
 
 #define VIDEO_FLAG_TYPE_CGA     0
 #define VIDEO_FLAG_TYPE_MDA     1
-#define VIDEO_FLAG_TYPE_SPECIAL 2
-#define VIDEO_FLAG_TYPE_8514    3
+#define VIDEO_FLAG_TYPE_SEC     2
+#define VIDEO_FLAG_TYPE_DA2     3
 #define VIDEO_FLAG_TYPE_XGA     4
-#define VIDEO_FLAG_TYPE_DA2     5
+#define VIDEO_FLAG_TYPE_8514    5
 #define VIDEO_FLAG_TYPE_NONE    6
-#define VIDEO_FLAG_TYPE_MASK    7
-
-#define VIDEO_FLAG_TYPE_SECONDARY VIDEO_FLAG_TYPE_SPECIAL
+#define VIDEO_FLAG_TYPE_SPECIAL 7
 
 #define FONT_IBM_MDA_437_PATH        "roms/video/mda/mda.rom"
 #define FONT_IBM_MDA_437_NORDIC_PATH "roms/video/mda/4733197.bin"
@@ -290,6 +290,7 @@ extern int         video_is_mda(void);
 extern int         video_is_cga(void);
 extern int         video_card_get_flags(int card);
 extern int         video_get_primary_flags(int m, int card);
+extern int         video_card_is_secondary(int m, int primary_card, int secondary_card);
 /* Query the active video implementation before a memory transfer so
  * pin-level CPU cores can model READY without hardcoding a card. */
 extern unsigned    video_get_wait_states(uint32_t address, int write,
@@ -328,6 +329,8 @@ extern void    video_pre_reset(int card);
 extern void    video_reset(int card);
 extern void    video_post_reset(void);
 extern void    video_voodoo_init(void);
+extern void    video_set_override_handler(void *priv, void (*set_override)(void *priv, int val));
+extern int     video_set_override(int val);
 extern uint8_t video_force_resize_get_monitor(int monitor_index);
 extern void    video_force_resize_set_monitor(uint8_t res, int monitor_index);
 extern void    video_update_timing(void);
@@ -385,8 +388,19 @@ extern const device_t mach64ct_device;
 extern const device_t mach64ct_onboard_device;
 extern const device_t mach64vt_device;
 extern const device_t mach64vt2_device;
+extern const device_t mach64gt_device;
+extern const device_t mach64gt_onboard_device;
+extern const device_t mach64rage2_device;
+extern const device_t mach64rage2_onboard_device;
 extern const device_t mach64gtb_device;
 extern const device_t mach64gtb_onboard_device;
+extern const device_t mach64gtc_device;
+extern const device_t mach64gtc_agp_device;
+extern const device_t mach64ragepro_device;
+extern const device_t mach64ragepro_pci_device;
+extern const device_t mach64ragexl_pci_device;
+extern const device_t mach64ragelt_agp_device;
+extern const device_t mach64ragepro_onboard_device;
 extern const device_t mach64vt3_onboard_device;
 extern const device_t ati_rage128_pro_device;
 extern const device_t ati_xpert128_pci_device;
@@ -403,9 +417,7 @@ extern const device_t ati28800_wonder1024d_xl_plus_device;
 extern const device_t ati28800k_device;
 extern const device_t ati28800k_spc4620p_device;
 extern const device_t ati28800k_spc6033p_device;
-#    ifdef USE_XL24
 extern const device_t ati28800_wonderxl24_device;
-#    endif /* USE_XL24 */
 
 /* Bochs */
 extern const device_t bochs_svga_device;
@@ -413,6 +425,9 @@ extern const device_t bochs_svga_device;
 /* Chips & Technologies */
 extern const device_t chips_69000_device;
 extern const device_t chips_69000_onboard_device;
+extern const device_t chips_82c450_device;
+extern const device_t chips_82c451_device;
+extern const device_t chips_82c452_device;
 
 /* Cirrus Logic GD54xx */
 extern const device_t gd5401_isa_device;
@@ -555,7 +570,9 @@ extern void           paradise_wd90c20_vga_enable(void *priv, uint16_t port);
 extern const device_t paradise_wd90c30_device;
 extern const device_t paradise_wd90c31_device;
 extern const device_t paradise_wd90c31_onboard_device;
-extern const device_t paradise_speedstar24x_device;
+extern const device_t paradise_wd90c33_device;
+extern const device_t paradise_wd90c33_vlb_device;
+extern const device_t paradise_wd90c33_onboard_device;
 
 /* Quadram Quadcolor I / I + II */
 extern const device_t quadcolor_device;
@@ -611,6 +628,9 @@ extern const device_t s3_trio3d2x_agp_device;
 /* Sigma Color 400 */
 extern const device_t sigma_device;
 
+/* SiS */
+extern const device_t sis6306_onboard_device;
+
 /* Trident TGUI 94x0 */
 extern const device_t tgui9400cxi_device;
 extern const device_t tgui9440_vlb_device;
@@ -619,6 +639,11 @@ extern const device_t tgui9440_onboard_pci_device;
 extern const device_t tgui9660_pci_device;
 extern const device_t tgui9660_onboard_pci_device;
 extern const device_t tgui9680_pci_device;
+
+/* Weitek Power 9100 */
+extern const device_t p9100_viper_se_vlb_device; /* Not yet ready */
+extern const device_t p9100_viper_se_pci_device;
+extern const device_t p9100_papilio_pci_device;
 
 /* IBM PS/1 (S)VGA */
 extern const device_t ibm_ps1_2121_device;
@@ -648,6 +673,9 @@ extern const device_t voodoo_3_3500_agp_device;
 extern const device_t velocity_100_agp_device;
 extern const device_t velocity_200_agp_device;
 
+/* PowerVR PCX1/PCX2 */
+extern const device_t powervr_pcx_device;
+
 /* Wyse 700 */
 extern const device_t wy700_device;
 
@@ -662,6 +690,10 @@ extern const device_t tandy_1000sl_video_device;
 /* Hitachi HD44780 character LCD */
 extern const device_t hd44780_device;
 extern const device_t hd44780_cobalt3k_device;
+/* The board's own LCD bus, for an HD44780 whose port is set to it: 'e' has a
+   bit for each E line a cycle drives, bit 0 for E0. */
+extern uint8_t hd44780_bus_read(uint8_t e, int rs);
+extern void    hd44780_bus_write(uint8_t e, int rs, uint8_t val);
 enum {
     HD44780_COLOR_GREEN = 0,
     HD44780_COLOR_BLUE,

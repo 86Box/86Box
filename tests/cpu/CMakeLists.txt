@@ -1,18 +1,12 @@
 if(BUILD_TESTING)
-    add_executable(cpu_tr_tests
-        cpu_tr_test.cpp
-        ../../src/cpu/cpu.c
-    )
-    add_executable(cpu_cache_tests
-        cpu_cache_test.cpp
-        vl82c486_cache_test.c
-        ../../src/cpu/cpu.c
-        ../../src/mem/mem.c
-    )
-    add_executable(x87_fistp_tests x87_fistp_test.cpp)
-    add_executable(x87_fistp_new_tags_tests x87_fistp_test.cpp)
-    target_compile_definitions(x87_fistp_new_tags_tests PRIVATE X87_TEST_NEW_TAGS)
-    foreach(target cpu_tr_tests cpu_cache_tests x87_fistp_tests x87_fistp_new_tags_tests)
+    add_executable(x87_f2xm1_tests x87_f2xm1_test.cpp)
+    target_include_directories(x87_f2xm1_tests PRIVATE ${PROJECT_SOURCE_DIR}/src/cpu)
+    target_link_libraries(x87_f2xm1_tests PRIVATE softfloat3e)
+    add_test(NAME x87_f2xm1_tests COMMAND x87_f2xm1_tests)
+
+    add_executable(codegen_reuse_tests codegen_reuse_test.cpp)
+    set(cpu_test_targets codegen_reuse_tests)
+    foreach(target ${cpu_test_targets})
         target_include_directories(${target} PRIVATE
             ${PROJECT_SOURCE_DIR}/src/include
             ${PROJECT_SOURCE_DIR}/src/cpu
@@ -27,13 +21,6 @@ if(BUILD_TESTING)
         )
         target_link_libraries(${target} PRIVATE GTest::gtest_main)
         include(GoogleTest)
-        if(target MATCHES "^x87_fistp")
-            target_compile_options(${target} PRIVATE
-                $<$<CXX_COMPILER_ID:GNU,Clang,AppleClang>:-Wno-unused-function>
-            )
-            gtest_discover_tests(${target} TEST_PREFIX "${target}.")
-        else()
-            gtest_discover_tests(${target})
-        endif()
+        gtest_discover_tests(${target})
     endforeach()
 endif()

@@ -3205,7 +3205,7 @@ gus_input_sysex(void *priv, uint8_t *buffer, uint32_t len, int abort)
     }
     gus->sysex = 1;
     for (uint32_t i = 0; i < len; i++) {
-        if (gus->midi_r == gus->midi_w)
+        if (gus->midi_used >= 63)
             return (len - i);
         gus->midi_queue[gus->midi_w++] = buffer[i];
         gus->midi_w &= 63;

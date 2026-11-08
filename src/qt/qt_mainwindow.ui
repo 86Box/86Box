@@ -115,8 +115,6 @@
     <addaction name="actionSettings"/>
     <addaction name="actionUpdate_status_bar_icons"/>
     <addaction name="separator"/>
-    <addaction name="actionEnable_Discord_integration"/>
-    <addaction name="separator"/>
     <addaction name="actionTake_screenshot"/>
     <addaction name="actionTake_raw_screenshot"/>
     <addaction name="actionCopy_screenshot"/>
@@ -130,6 +128,7 @@
     <addaction name="actionEnd_trace"/>
     <addaction name="separator"/>
     <addaction name="actionMCA_devices"/>
+    <addaction name="actionMemory_viewer"/>
     <addaction name="separator"/>
     <addaction name="actionOpen_printer_tray"/>
     <addaction name="actionOpen_screenshots_folder"/>
@@ -178,6 +177,8 @@
      <addaction name="actionFullScreen_keepRatio"/>
      <addaction name="actionFullScreen_int"/>
      <addaction name="actionFullScreen_int43"/>
+     <addaction name="actionFullScreen_center"/>
+     <addaction name="actionFullScreen_center43"/>
     </widget>
     <widget class="QMenu" name="menuOpenGL_input_stretch_mode">
      <property name="title">
@@ -617,6 +618,22 @@
     <string>4:&amp;3 Integer scale</string>
    </property>
   </action>
+  <action name="actionFullScreen_center">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>&amp;Center</string>
+   </property>
+  </action>
+  <action name="actionFullScreen_center43">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>4:3 Cen&amp;ter</string>
+   </property>
+  </action>
   <action name="actionAbout_Qt">
    <property name="text">
     <string>About &amp;Qt</string>
@@ -726,14 +743,6 @@
     <enum>QAction::PreferencesRole</enum>
    </property>
   </action>
-  <action name="actionEnable_Discord_integration">
-   <property name="checkable">
-    <bool>true</bool>
-   </property>
-   <property name="text">
-    <string>Enable &amp;Discord integration</string>
-   </property>
-  </action>
   <action name="actionHide_tool_bar">
    <property name="checkable">
     <bool>true</bool>
@@ -804,6 +813,11 @@
   <action name="actionMCA_devices">
    <property name="text">
     <string>&amp;MCA devices…</string>
+   </property>
+  </action>
+  <action name="actionMemory_viewer">
+   <property name="text">
+    <string>Memory &amp;viewer</string>
    </property>
   </action>
   <action name="actionShow_non_primary_monitors">

@@ -20,18 +20,11 @@
 #ifdef OPS_286_386
 
 extern void x86_doabrt_2386(int x86_abrt);
-#ifdef USE_NEW_DYNAREC
+extern void x86_fault_in_delivery_2386(int first, int second);
 extern int  loadseg_2386(uint16_t seg, x86seg *s);
-#else
-extern void loadseg_2386(uint16_t seg, x86seg *s);
-#endif
 extern void loadcs_2386(uint16_t seg);
 extern void loadcsjmp_2386(uint16_t seg, uint32_t old_pc);
-#ifdef USE_NEW_DYNAREC
 extern void loadcscall_2386(uint16_t seg, uint32_t old_pc);
-#else
-extern void loadcscall_2386(uint16_t seg);
-#endif
 extern void pmoderetf_2386(int is32, uint16_t off);
 extern void pmodeint_2386(int num, int soft);
 extern void pmodeiret_2386(int is32);
@@ -52,20 +45,13 @@ extern void taskswitch286_2386(uint16_t seg, uint16_t *segdat, int is32);
 #else
 
 extern void x86_doabrt(int x86_abrt);
-#ifdef USE_NEW_DYNAREC
+extern void x86_fault_in_delivery(int first, int second);
 extern int  loadseg(uint16_t seg, x86seg *s);
-#else
-extern void loadseg(uint16_t seg, x86seg *s);
-#endif
 /* The prototype of loadcs_2386() is needed here for reset. */
 extern void loadcs_2386(uint16_t seg);
 extern void loadcs(uint16_t seg);
 extern void loadcsjmp(uint16_t seg, uint32_t old_pc);
-#ifdef USE_NEW_DYNAREC
 extern void loadcscall(uint16_t seg, uint32_t old_pc);
-#else
-extern void loadcscall(uint16_t seg);
-#endif
 extern void pmoderetf(int is32, uint16_t off);
 /* The prototype of pmodeint_2386() is needed here for 386_common.c interrupts. */
 extern void pmodeint_2386(int num, int soft);

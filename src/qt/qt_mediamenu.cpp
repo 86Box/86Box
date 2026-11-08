@@ -63,6 +63,8 @@ extern "C" {
 #include <86box/ui.h>
 #include <86box/thread.h>
 #include <86box/network.h>
+#include <86box/mem.h>
+#include <86box/usb.h>
 #include <86box/plat_floppy_ioctl.h>
 };
 
@@ -229,7 +231,39 @@ MediaMenu::refresh(QMenu *parentMenu)
     MachineStatus::iterateRDisk([this, parentMenu](int i) {
         auto *menu     = parentMenu->addMenu("");
         int   t        = rdisk_drives[i].type;
-		QIcon img_icon = ((t == RDISK_TYPE_ZIP_100) || (t == RDISK_TYPE_ZIP_250)) ? QIcon(":/settings/qt/icons/zip_image.ico") : ((t == RDISK_TYPE_JAZ_1GB) || (t == RDISK_TYPE_JAZ_2GB)) ? QIcon(":/settings/qt/icons/jaz_image.ico") : ((t == RDISK_TYPE_SYJET_1_5GB) || (t == RDISK_TYPE_SPARQ_1GB)) ? QIcon(":/settings/qt/icons/syquest_image.ico") : QIcon(":/settings/qt/icons/rdisk_image.ico");        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, New), tr("&New image…"), [this, i]() { rdiskNewImage(i); });
+        QString img_icon_name = QStringLiteral(":/settings/qt/icons/rdisk_image.ico");
+        switch (t) {
+            case RDISK_TYPE_ZIP_100:
+            case RDISK_TYPE_ZIP_100_PLUS:
+            case RDISK_TYPE_ZIP_250:
+            case RDISK_TYPE_ZIP_750:
+                img_icon_name = QStringLiteral(":/settings/qt/icons/zip_image.ico");
+                break;
+            case RDISK_TYPE_JAZ_1GB:
+            case RDISK_TYPE_JAZ_2GB:
+                img_icon_name = QStringLiteral(":/settings/qt/icons/jaz_image.ico");
+                break;
+            case RDISK_TYPE_SYJET_1_5GB:
+            case RDISK_TYPE_SYJET_S:
+            case RDISK_TYPE_SPARQ_1GB:
+            case RDISK_TYPE_SQ5200C:
+            case RDISK_TYPE_SQ3105S:
+            case RDISK_TYPE_EZ230S:
+            case RDISK_TYPE_EZ135A:
+            case RDISK_TYPE_EZ230A:
+            case RDISK_TYPE_SQ3105A:
+            case RDISK_TYPE_SQ3270A:
+            case RDISK_TYPE_EZ135S:
+            case RDISK_TYPE_SQ3270S:
+            case RDISK_TYPE_SQ5110C:
+            case RDISK_TYPE_SQ555:
+                img_icon_name = QStringLiteral(":/settings/qt/icons/syquest_image.ico");
+                break;
+            default:
+                break;
+        }
+        QIcon img_icon(img_icon_name);
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, New), tr("&New image…"), [this, i]() { rdiskNewImage(i); });
         menu->addSeparator();
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image…"), [this, i]() { rdiskSelectImage(i, false); });
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)…"), [this, i]() { rdiskSelectImage(i, true); });
@@ -294,6 +328,22 @@ MediaMenu::refresh(QMenu *parentMenu)
         netMenus[i] = menu;
         nicUpdateMenu(i);
     });
+
+    /* One submenu per USB device the machine has. The plug or unplug is
+       made on the emulation thread, so the check mark is read again each
+       time the submenu opens: the request while it is pending, else the
+       device's state. */
+    usbMenus.clear();
+    for (int slot = 0; slot < USB_SLOTS; slot++) {
+        if (usb_slot_device(slot) == nullptr)
+            continue;
+        auto *menu   = parentMenu->addMenu("");
+        auto *action = menu->addAction(tr("&Connected"), [this, slot] { usbToggle(slot); });
+        action->setCheckable(true);
+        connect(menu, &QMenu::aboutToShow, this, [this, slot] { usbUpdateMenu(slot); });
+        usbMenus[slot] = menu;
+        usbUpdateMenu(slot);
+    }
     parentMenu->addAction(tr("Clear image &history"), [this]() { clearImageHistory(); });
 }
 
@@ -669,7 +719,7 @@ MediaMenu::cdromMount(int i, int dir, const QString &arg)
     else {
         filename = QFileDialog::getOpenFileName(parentWidget, QString(),
                                                 getMediaOpenDirectory(),
-                                                tr("CD-ROM images") % util::DlgFilter({ "iso", "cue", "toc", "ccd", "mds", "mdx", "aaruf", "aaruformat", "aif", "chd" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+                                                tr("CD-ROM images") % util::DlgFilter({ "iso", "cue", "toc", "ccd", "mds", "mdx", "nrg", "aaruf", "aaruformat", "aif", "chd" }) % tr("All files") % util::DlgFilter({ "*" }, true));
     }
 
     if (filename.isEmpty())
@@ -968,12 +1018,13 @@ MediaMenu::cdromUpdateMenu(int i)
 void
 MediaMenu::rdiskNewImage(int i)
 {
-    NewFloppyDialog dialog(NewFloppyDialog::MediaType::RDisk, parentWidget);
+    NewFloppyDialog dialog(NewFloppyDialog::MediaType::RDisk, parentWidget, rdisk_drives[i].type);
     switch (dialog.exec()) {
         default:
             break;
         case QDialog::Accepted:
             QByteArray filename = dialog.fileName().toUtf8();
+            rdisk_drives[i].medium_type = dialog.mediaTypeIndex();
             rdiskMount(i, filename, false);
             break;
     }
@@ -986,7 +1037,7 @@ MediaMenu::rdiskSelectImage(int i, bool wp)
         parentWidget,
         QString(),
         QString(),
-        tr("Removable disk images") % util::DlgFilter({ "im?", "rdi", "zdi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+        tr("Removable disk images") % util::DlgFilter({ "im?", "rdi", "sdi", "zdi" }) % tr("All files") % util::DlgFilter({ "*" }, true));
 
     if (!filename.isEmpty())
         rdiskMount(i, filename, wp);
@@ -1020,7 +1071,9 @@ MediaMenu::rdiskMount(int i, const QString &filename, bool wp)
     mhm.addImageToHistory(i, ui::MediaType::RDisk, rdisk_drives[i].prev_image_path, rdisk_drives[i].image_path);
 
     ui_sb_update_icon_state(SB_RDISK | i, rdisk_drives[i].fp == nullptr);
-    ui_sb_update_icon_wp(SB_RDISK | i, wp);
+    /* rdisk_load() may have made the image read-only on its own (e.g. a ZIP 100 disk in a ZIP 750), so show
+       the drive's state rather than what was asked for. */
+    ui_sb_update_icon_wp(SB_RDISK | i, rdisk_drives[i].read_only);
     rdiskUpdateMenu(i);
     ui_sb_update_tip(SB_RDISK | i);
 
@@ -1127,6 +1180,9 @@ MediaMenu::rdiskUpdateMenu(int i)
     switch (rdisk_drives[i].bus_type) {
         default:
             break;
+        case RDISK_BUS_IDE:
+            busName = "IDE";
+            break;
         case RDISK_BUS_ATAPI:
             busName = "ATAPI";
             break;
@@ -1148,12 +1204,13 @@ MediaMenu::rdiskUpdateMenu(int i)
 void
 MediaMenu::moNewImage(int i)
 {
-    NewFloppyDialog dialog(NewFloppyDialog::MediaType::Mo, parentWidget);
+    NewFloppyDialog dialog(NewFloppyDialog::MediaType::Mo, parentWidget, mo_drives[i].type);
     switch (dialog.exec()) {
         default:
             break;
         case QDialog::Accepted:
             QByteArray filename = dialog.fileName().toUtf8();
+            mo_drives[i].medium_type = dialog.mediaTypeIndex();
             moMount(i, filename, false);
             break;
     }
@@ -1520,6 +1577,32 @@ MediaMenu::nicUpdateMenu(int i)
 
     menu->setTitle(tr("&NIC %1 (%2) %3").arg(QString::number(i + 1), netType, devName));
     menu->setToolTip(tr("NIC %1 (%2) %3").arg(QString::number(i + 1), netType, devName));
+}
+
+void
+MediaMenu::usbToggle(int slot)
+{
+    usb_slot_want(slot, !usb_slot_requested(slot));
+    config_save();
+}
+
+void
+MediaMenu::usbUpdateMenu(int slot)
+{
+    if (!usbMenus.contains(slot))
+        return;
+
+    const device_t *dev = usb_slot_device(slot);
+    if (dev == nullptr)
+        return;
+
+    auto *menu            = usbMenus[slot];
+    auto *connectedAction = menu->actions().value(0);
+    if (connectedAction != nullptr)
+        connectedAction->setChecked(usb_slot_requested(slot));
+
+    menu->setTitle(DeviceConfig::DeviceName(dev, dev->internal_name, 0));
+    menu->setToolTip(DeviceConfig::DeviceName(dev, dev->internal_name, 0));
 }
 
 QString

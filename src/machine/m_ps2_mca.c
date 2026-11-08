@@ -249,7 +249,7 @@ ps2_write_split_ram(uint32_t addr, uint8_t val, void *priv)
     uint32_t oldaddr = addr;
     addr             = ((addr - ps2.split_addr) & 0x000fffff) + ps2.split_phys;
     if (cpu_use_exec) {
-        addwritelookup(mem_logical_addr, addr);
+        addwritelookup_remapped(mem_logical_addr, oldaddr, addr);
         mem_write_ramb_page(addr, val, &pages[oldaddr >> 12]);
     } else
         ram[addr] = val;
@@ -260,7 +260,7 @@ ps2_write_split_ramw(uint32_t addr, uint16_t val, void *priv)
     uint32_t oldaddr = addr;
     addr             = ((addr - ps2.split_addr) & 0x000fffff) + ps2.split_phys;
     if (cpu_use_exec) {
-        addwritelookup(mem_logical_addr, addr);
+        addwritelookup_remapped(mem_logical_addr, oldaddr, addr);
         mem_write_ramw_page(addr, val, &pages[oldaddr >> 12]);
     } else
         *(uint16_t *) &ram[addr] = val;
@@ -271,7 +271,7 @@ ps2_write_split_raml(uint32_t addr, uint32_t val, void *priv)
     uint32_t oldaddr = addr;
     addr             = ((addr - ps2.split_addr) & 0x000fffff) + ps2.split_phys;
     if (cpu_use_exec) {
-        addwritelookup(mem_logical_addr, addr);
+        addwritelookup_remapped(mem_logical_addr, oldaddr, addr);
         mem_write_raml_page(addr, val, &pages[oldaddr >> 12]);
     } else
         *(uint32_t *) &ram[addr] = val;
@@ -1983,10 +1983,8 @@ mem_remap_top_ps2(int kb, uint32_t start, uint32_t phys_base)
             pages[c].write_w = mem_write_ramw_page;
             pages[c].write_l = mem_write_raml_page;
         }
-#ifdef USE_NEW_DYNAREC
         pages[c].byte_dirty_mask        = &byte_dirty_mask[(addr >> 12) * 64];
         pages[c].byte_code_present_mask = &byte_code_present_mask[(addr >> 12) * 64];
-#endif
     }
 
     flushmmucache();
@@ -2148,12 +2146,12 @@ mem_encoding_write_cached(uint16_t addr, uint8_t val, UNUSED(void *priv))
             if (val & 0x01)
             {
                 ram_mid_mapping.flags |= MEM_MAPPING_ROM_WS;
-                cpu_override_dynarec   = 1;
+                cpu_override_dynarec  |= CPU_OVERRIDE_BOARD;
             }
             else
             {
                 ram_mid_mapping.flags &= ~MEM_MAPPING_ROM_WS;
-                cpu_override_dynarec   = 0;
+                cpu_override_dynarec  &= ~CPU_OVERRIDE_BOARD;
             }
             break;
         }
@@ -2973,7 +2971,7 @@ static const device_config_t ps2_model_50_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "IBM PS/2 model 50",
+                .name          = "IBM PS/2 BIOS - Revision 0 (Model 50, 02/13/87)",
                 .internal_name = "ibmps2_m50",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 4,
@@ -2983,7 +2981,7 @@ static const device_config_t ps2_model_50_config[] = {
                                    "roms/machines/ibmps2_m50/90x7423.zm14", "roms/machines/ibmps2_m50/90x7426.zm16", "" }
             },
             {
-                .name          = "IBM PS/2 model 50Z",
+                .name          = "IBM PS/2 BIOS - Revision 3 (Model 50Z, 04/18/88)",
                 .internal_name = "ibmps2_m50z",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,

@@ -20,18 +20,10 @@ public:
     explicit PreferencesEmulator(QWidget *parent = nullptr);
     ~PreferencesEmulator();
 
-    int  changed();
     void save();
-
-private slots:
-    void on_pushButtonLanguage_released();
 
 private:
     Ui::PreferencesEmulator *ui;
-
-    SettingsCompleter       *scLanguage;
-
-    friend class MainWindow;
 };
 
 #endif // QT_PREFERENCESEMULATOR_HPP

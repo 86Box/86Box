@@ -143,14 +143,6 @@ add_test(NAME Rage128.JitHost COMMAND rage128_jit_host_test
          WORKING_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/jit)
 set_tests_properties(Rage128.JitHost PROPERTIES TIMEOUT 7200)
 
-# z-ladder closed-form check: plain C, no GPU.
-add_executable(rage128_ladfuzz gpu/ladfuzz.c)
-set_target_properties(rage128_ladfuzz PROPERTIES OUTPUT_NAME ladfuzz)
-target_compile_options(rage128_ladfuzz PRIVATE -O2 -ffp-contract=off)
-if(NOT WIN32 AND NOT APPLE)
-    target_link_libraries(rage128_ladfuzz PRIVATE m)
-endif()
-
 # gputri drives the production SPIR-V kernels on a real Vulkan device
 # against a C copy of the interpreter; fdivtest checks the kernels'
 # correctly rounded divide on its own. Both need the loader and glslc.
@@ -159,19 +151,15 @@ if(NOT Vulkan_FOUND OR NOT R128_GLSLC)
     return()
 endif()
 
-foreach(kernel IN ITEMS f64test fdivtest)
-    add_custom_command(
-        OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/${kernel}.spv
-        COMMAND ${R128_GLSLC} -O --target-env=vulkan1.2 -I ${R128_SRC}/video
-                -o ${CMAKE_CURRENT_BINARY_DIR}/${kernel}.spv
-                ${CMAKE_CURRENT_SOURCE_DIR}/gpu/${kernel}.comp
-        DEPENDS gpu/${kernel}.comp ${R128_SRC}/video/vid_ati_rage128_gpu_f64.glsl
-                ${R128_SRC}/video/vid_ati_rage128_gpu_fdiv.glsl
-        VERBATIM
-    )
-endforeach()
+add_custom_command(
+    OUTPUT ${CMAKE_CURRENT_BINARY_DIR}/fdivtest.spv
+    COMMAND ${R128_GLSLC} -O --target-env=vulkan1.2 -I ${R128_SRC}/video
+            -o ${CMAKE_CURRENT_BINARY_DIR}/fdivtest.spv
+            ${CMAKE_CURRENT_SOURCE_DIR}/gpu/fdivtest.comp
+    DEPENDS gpu/fdivtest.comp ${R128_SRC}/video/vid_ati_rage128_gpu_fdiv.glsl
+    VERBATIM
+)
 add_custom_target(rage128_gpu_spv DEPENDS
-    ${CMAKE_CURRENT_BINARY_DIR}/f64test.spv
     ${CMAKE_CURRENT_BINARY_DIR}/fdivtest.spv
 )
 
@@ -180,7 +168,6 @@ set_target_properties(rage128_gputri PROPERTIES OUTPUT_NAME gputri)
 target_include_directories(rage128_gputri PRIVATE ${R128_SRC}/include)
 target_compile_options(rage128_gputri PRIVATE -O2 -ffp-contract=off)
 target_link_libraries(rage128_gputri PRIVATE Vulkan::Vulkan Threads::Threads)
-add_dependencies(rage128_gputri rage128_gpu_spv)
 
 add_executable(rage128_fdivtest gpu/fdivtest.c)
 set_target_properties(rage128_fdivtest PROPERTIES OUTPUT_NAME fdivtest)
@@ -188,8 +175,8 @@ target_compile_options(rage128_fdivtest PRIVATE -O2 -ffp-contract=off)
 target_link_libraries(rage128_fdivtest PRIVATE Vulkan::Vulkan)
 add_dependencies(rage128_fdivtest rage128_gpu_spv)
 
-# gputri reads f64test.spv from its working directory and exits 77 when
-# the host has no Vulkan device, which CTest reports as skipped.
+# gputri exits 77 when the host has no Vulkan device, which CTest reports
+# as skipped.
 #
 # The timeout is sized for the first run on a host whose Vulkan driver
 # compiles pipelines one at a time. gputri primes 288 fold pipelines per

@@ -10,6 +10,8 @@
 #include <86box/plat_unused.h>
 
 int nmi_mask;
+void (*nmi_mask_changed)(void) = NULL;
+int (*nmi_line_level)(void)     = NULL;
 
 void
 nmi_write(UNUSED(uint16_t port), uint8_t val, UNUSED(void *priv))

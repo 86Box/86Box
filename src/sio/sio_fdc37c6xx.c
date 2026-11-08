@@ -41,6 +41,7 @@ typedef struct fdc37c6xx_t {
     int       cur_reg;
     int       com3_addr;
     int       com4_addr;
+    int       is_ct721;
     fdc_t    *fdc;
     serial_t *uart[2];
     lpt_t    *lpt;
@@ -78,8 +79,13 @@ set_serial_addr(fdc37c6xx_t *dev, int port)
     uint8_t shift     = (port << 2);
     double  clock_src = 24000000.0 / 13.0;
 
-    if (dev->regs[4] & (1 << (4 + port)))
-        clock_src = 24000000.0 / 12.0;
+    if (dev->is_ct721) {
+        if (!(dev->regs[4] & 1) && (port == 1))
+            clock_src = 24000000.0 / 12.0;
+    } else {
+        if (dev->regs[4] & (1 << (4 + port)))
+            clock_src = 24000000.0 / 12.0;
+    }
 
     serial_remove(dev->uart[port]);
     if (dev->regs[2] & (4 << shift)) {
@@ -241,14 +247,19 @@ fdc37c6xx_write(uint16_t port, uint8_t val, void *priv)
                         set_serial_addr(dev, 1);
                     break;
                 case 0x03:
-                    if (valxor & 0x02)
+                    if (!dev->is_ct721 && (valxor & 0x02))
                         fdc_update_enh_mode(dev->fdc, !!(dev->regs[0x03] & 0x02));
                     break;
                 case 0x04:
-                    if (valxor & 0x10)
-                        set_serial_addr(dev, 0);
-                    if (valxor & 0x20)
-                        set_serial_addr(dev, 1);
+                    if (dev->is_ct721) {
+                        if (valxor & 0x01)
+                            set_serial_addr(dev, 1);
+                    } else {
+                        if (valxor & 0x10)
+                            set_serial_addr(dev, 0);
+                        if (valxor & 0x20)
+                            set_serial_addr(dev, 1);
+                    }
                     break;
                 case 0x05:
                     if (valxor & 0x01)
@@ -320,7 +331,7 @@ fdc37c6xx_reset(fdc37c6xx_t *dev)
             dev->regs[0x0] = 0x2b;
             break;
         default:
-            dev->max_reg   = (dev->chip_id >= 0x61) ? 0x03 : 0x02;
+            dev->max_reg   = (dev->is_ct721) ? 0x04 : (dev->chip_id >= 0x61) ? 0x03 : 0x02;
             dev->regs[0x0] = 0x3f;
             break;
     }
@@ -336,6 +347,10 @@ fdc37c6xx_reset(fdc37c6xx_t *dev)
             dev->regs[0xe] = 0x02;
         else
             dev->regs[0xe] = 0x01;
+    }
+    if (dev->is_ct721) {
+        dev->regs[0x3] = 0x00;
+        dev->regs[0x4] = 0x01;
     }
 
     set_serial_addr(dev, 0);
@@ -369,6 +384,8 @@ fdc37c6xx_init(const device_t *info)
 
     dev->chip_id = info->local & 0xff;
     dev->has_ide = (info->local >> 8) & 0xff;
+
+    dev->is_ct721 = info->local & 0x800;
 
     if (dev->chip_id >= 0x63) {
         dev->uart[0] = device_add_inst(&ns16550_device, 1);

@@ -64,7 +64,12 @@ mach64_recalc_dp_set_engine(mach64_t *mach64)
     mach64->dp_pix_width = (mach64->dp_pix_width & ~(0xf << 8)) | ((mach64->dp_set_gui_engine & (1 << 6)) ? ((mach64->dp_pix_width & 7) << 8) : 0);
 
     mach64->dst_off_pitch = (262144 * ((mach64->dp_set_gui_engine >> 7) & 3)) & ((1 << 20) - 1);
-    mach64->dst_off_pitch |= (((pitches[(mach64->dp_set_gui_engine >> 10) & 0xF]) * ((mach64->dp_set_gui_engine & (1 << 14)) ? 2 : 1)) / 8) << 22;
+    if (mach64->ragepro && !((mach64->dp_set_gui_engine >> 10) & 0xf))
+        /* On the Rage Pro pitch 0 is USR_DST_PITCH's, in units of
+           8 pixels as DST_PITCH: its Windows driver sets 80h at 1024 wide. */
+        mach64->dst_off_pitch |= ((mach64->usr_dst_pitch * ((mach64->dp_set_gui_engine & (1 << 14)) ? 2 : 1)) & 0x3ff) << 22;
+    else
+        mach64->dst_off_pitch |= (((pitches[(mach64->dp_set_gui_engine >> 10) & 0xF]) * ((mach64->dp_set_gui_engine & (1 << 14)) ? 2 : 1)) / 8) << 22;
 
     mach64->src_off_pitch = 0;
     if (mach64->dp_set_gui_engine & (1 << 15))
@@ -375,6 +380,11 @@ start_blit_op:
             if (mach64->type >= MACH64_GTB)
                 WRITE8(addr - 2, mach64->dp_bkgd_clr, val);
             break;
+        case 0x2f0 ... 0x2f3:
+            /* USR_DST_PITCH, the Rage Pro's. */
+            if (mach64->ragepro)
+                WRITE8(addr, mach64->usr_dst_pitch, val);
+            break;
         case 0x2fc ... 0x2ff:
             WRITE8(addr, mach64->dp_set_gui_engine, val);
             mach64_recalc_dp_set_engine(mach64);
@@ -505,25 +515,66 @@ mach64_fifo_run_one(mach64_t *mach64)
     uint64_t      start_time = plat_timer_read();
     fifo_entry_t *fifo       = &mach64->fifo[mach64->fifo_read_idx & FIFO_MASK];
     uint32_t      val        = fifo->val;
+    uint32_t      addr       = fifo->addr_type & FIFO_ADDR;
+    uint32_t      type       = fifo->addr_type & FIFO_TYPE;
 
-    switch (fifo->addr_type & FIFO_TYPE) {
-        case FIFO_WRITE_BYTE:
-            mach64_accel_write_fifo(mach64, fifo->addr_type & FIFO_ADDR, val);
-            break;
-        case FIFO_WRITE_WORD:
-            mach64_accel_write_fifo_w(mach64, fifo->addr_type & FIFO_ADDR, val);
-            break;
-        case FIFO_WRITE_DWORD:
-            mach64_accel_write_fifo_l(mach64, fifo->addr_type & FIFO_ADDR, val);
-            break;
-        default:
-            break;
+    /* The 3D engine's registers, the setup engine's among them, are taken
+       here in turn with the 2D ones: a triangle is drawn by whichever thread
+       runs the write that starts it. */
+    if (mach64->gt3d && (addr & FIFO_ADDR_SETUP))
+        mach64_3d_setup_write(mach64, (addr & 0x3fc) >> 2, val);
+    else if (addr & FIFO_ADDR_IDCT_BM)
+        mach64_idct_bm_write(mach64, addr & 0x3fc, val);
+    else if (addr & FIFO_ADDR_IDCT)
+        mach64_idct_write(mach64, addr & 0x3fc, val);
+    else if (addr & FIFO_ADDR_IDCT_END)
+        mach64_idct_end_block(mach64);
+    else if (!mach64->gt3d || (type == FIFO_INVALID) || !mach64_3d_write(mach64, addr, val, type)) {
+        switch (type) {
+            case FIFO_WRITE_BYTE:
+                mach64_accel_write_fifo(mach64, addr, val);
+                break;
+            case FIFO_WRITE_WORD:
+                mach64_accel_write_fifo_w(mach64, addr, val);
+                break;
+            case FIFO_WRITE_DWORD:
+                mach64_accel_write_fifo_l(mach64, addr, val);
+                break;
+            default:
+                break;
+        }
     }
 
     fifo->addr_type = FIFO_INVALID;
     mach64->fifo_read_idx++;
 
     mach64->blitter_time += plat_timer_read() - start_time;
+}
+
+/* A short wait in a spin loop. */
+static inline void
+mach64_pause(void)
+{
+#if defined(__i386__) || defined(__x86_64__)
+    __builtin_ia32_pause();
+#elif defined(__aarch64__)
+    __asm__ __volatile__("yield");
+#endif
+}
+
+/*
+ * Waits until the engine thread has run FIFO entry idx, or the FIFO has
+ * emptied under it, running nothing itself: the CPU needs only that entry
+ * done, and the engine thread goes on with those after it while the CPU
+ * runs again.
+ */
+static void
+mach64_wait_fifo_entry(mach64_t *mach64, int idx)
+{
+    while (!FIFO_EMPTY && ((int) ((unsigned) mach64->fifo_read_idx - (unsigned) idx) <= 0)) {
+        mach64_wake_fifo_thread(mach64);
+        mach64_pause();
+    }
 }
 
 /* The emulated CPU needs the engine to have taken every queued write (a
@@ -575,7 +626,8 @@ mach64_fifo_thread(void *param)
  * Z-buffer clear reported 7600 Mpixels/s and took six real minutes for nine
  * emulated seconds. On the 3D Rage II+ every register write is an entry of a
  * model of the chip's 48-entry command FIFO, which leaves the FIFO when the
- * modeled engine is free. GUI_STAT and FIFO_STAT show its occupancy, and a
+ * modeled engine is free (The Rage Pro's is 64 to 192 entries,
+ * mach64_fifo_depth). GUI_STAT and FIFO_STAT show its occupancy, and a
  * write to a full FIFO makes the CPU wait, as a PCI retry does on the card.
  * The pixels are still drawn at once; only time is modeled.
  *
@@ -588,8 +640,7 @@ mach64_fifo_thread(void *param)
  * of the bandwidth. ATI gives no figures for the 3D engine, which takes the
  * same memory rule and a pixel per engine clock.
  */
-#define TIMING_FIFO_DEPTH 48
-#define TIMING_RING       64
+#define TIMING_RING       256 /* Room for the Rage Pro's 192 entries */
 #define TIMING_RING_MASK  (TIMING_RING - 1)
 #define TIMING_MAX_WAIT   50000000.0   /* ns charged to the CPU in one wait */
 #define TIMING_LOST       1000000000.0 /* ns of backlog the card cannot have */
@@ -641,7 +692,6 @@ struct mach64_timing_t {
     uint32_t               tail;
     uint64_t               free_at;              /* the engine is busy until then */
     double                 fifo_ns[TIMING_RING]; /* by draw engine FIFO index */
-    double                 pending_ns;           /* 3D drawn by this write */
     uint64_t               floor;                /* time already charged */
     uint32_t               clock_key;
     mach64_timing_clocks_t clocks;
@@ -676,7 +726,7 @@ mach64_timing_seconds(const mach64_timing_work_t *work, const mach64_timing_cloc
  * or out of reach of the chip is taken as 60 MHz.
  */
 static mach64_timing_clocks_t
-mach64_timing_pll_clocks(const uint8_t *pll_regs, double cpu_bus_hz)
+mach64_timing_pll_clocks(const uint8_t *pll_regs, double cpu_bus_hz, double ref_hz)
 {
     const mach64_timing_clocks_t fallback = { 60000000.0, 60000000.0, 0.0 };
     mach64_timing_clocks_t       c        = fallback;
@@ -690,7 +740,7 @@ mach64_timing_pll_clocks(const uint8_t *pll_regs, double cpu_bus_hz)
     if (!ref_div || !fb_div)
         return fallback;
 
-    pll_mclk = PLL_REF_HZ * ((xclk & 4) ? 4.0 : 2.0) * fb_div / ref_div;
+    pll_mclk = ref_hz * ((xclk & 4) ? 4.0 : 2.0) * fb_div / ref_div;
     switch ((gen_cntl >> 4) & 7) {
         case 0:
             src = pll_mclk;
@@ -709,7 +759,7 @@ mach64_timing_pll_clocks(const uint8_t *pll_regs, double cpu_bus_hz)
             break;
         case 6:
         case 7:
-            src = PLL_REF_HZ;
+            src = ref_hz;
             break;
         default:
             return fallback;
@@ -888,7 +938,8 @@ mach64_timing_now(mach64_timing_t *timing)
 static mach64_timing_clocks_t
 mach64_timing_measure(const mach64_t *mach64)
 {
-    mach64_timing_clocks_t clocks = mach64_timing_pll_clocks(mach64->pll_regs, (double) cpu_pci_speed);
+    mach64_timing_clocks_t clocks = mach64_timing_pll_clocks(mach64->pll_regs, (double) cpu_pci_speed,
+                                                             mach64->ragelt ? RAGELT_PLL_REF_HZ : PLL_REF_HZ);
 
     if (mach64->crtc_gen_cntl & (1u << 24)) {
         double pixel_clock = mach64->pll_freq[mach64->clock_cntl & 3];
@@ -1002,11 +1053,11 @@ mach64_timing_before_write(mach64_t *mach64)
     mach64_timing_t *timing = mach64->timing;
     uint64_t         now    = mach64_timing_update(mach64);
 
-    while ((timing->tail - timing->head) >= TIMING_FIFO_DEPTH) {
+    while ((timing->tail - timing->head) >= mach64_fifo_depth(mach64)) {
         if (timing->head == timing->fold) {
             /* The oldest entry's cost is known only once the engine thread
                has run it. */
-            mach64_wait_fifo_idle(mach64);
+            mach64_wait_fifo_entry(mach64, timing->ring[timing->head & TIMING_RING_MASK].fifo_idx);
             mach64_timing_fold(mach64);
             if (timing->head == timing->fold) {
                 /* The 2D FIFO was reset under these entries. */
@@ -1019,8 +1070,8 @@ mach64_timing_before_write(mach64_t *mach64)
     }
 }
 
-/* After it: the write as an entry. A 3D one costs the engine a clock to
-   take it and the time of anything it drew. */
+/* After it: the write as an entry. One the engine never sees, a bus master
+   setting, costs it a clock; a queued one's cost is known once it has run. */
 static void
 mach64_timing_after_write(mach64_t *mach64, int queued, int fifo_idx)
 {
@@ -1030,10 +1081,9 @@ mach64_timing_after_write(mach64_t *mach64, int queued, int fifo_idx)
 
     e->arrival         = mach64_timing_now(timing);
     e->start           = 0;
-    e->cost            = queued ? 0 : mach64_timing_ticks(take_ns + timing->pending_ns);
+    e->cost            = queued ? 0 : mach64_timing_ticks(take_ns);
     e->fifo_idx        = fifo_idx;
     e->queued          = queued;
-    timing->pending_ns = 0.0;
     timing->tail++;
 }
 
@@ -1108,13 +1158,18 @@ mach64_timing_op(mach64_t *mach64, int op)
     timing->fifo_ns[mach64->fifo_read_idx & TIMING_RING_MASK] += mach64_timing_seconds(&work, &clocks) * 1000000000.0;
 }
 
-/* A 3D draw, done at once on the CPU thread. */
+/* The cost of a 3D draw, added to the FIFO entry that started it, as a 2D
+   operation's is. */
 void
 mach64_timing_3d(mach64_t *mach64, const mach64_3d_work_t *work)
 {
-    mach64_timing_work_t engine = mach64_timing_3d_work(work);
+    mach64_timing_work_t   engine = mach64_timing_3d_work(work);
+    mach64_timing_clocks_t clocks;
 
-    mach64->timing->pending_ns += mach64_timing_seconds(&engine, mach64_timing_clocks(mach64)) * 1000000000.0;
+    if (!mach64->timing)
+        return;
+    clocks = mach64_timing_measure(mach64);
+    mach64->timing->fifo_ns[mach64->fifo_read_idx & TIMING_RING_MASK] += mach64_timing_seconds(&engine, &clocks) * 1000000000.0;
 }
 
 /* The modeled FIFO's entries in use and whether the engine is busy, for
@@ -1130,6 +1185,12 @@ mach64_timing_status(mach64_t *mach64, uint32_t *used, int *busy)
     /* A guest polling the FIFO waits for entries the engine has yet to run. */
     if ((mach64->fifo_write_idx != mach64->fifo_read_idx) && !mach64->blitter_busy)
         mach64_wake_fifo_thread(mach64);
+    /* The next entry to leave has no cost until the engine thread has run
+       it. That wait is the host's: spent in polls, which take emulated time,
+       it would make the engine seem slower the slower the host is. */
+    mach64_timing_fold(mach64);
+    if ((timing->head == timing->fold) && (timing->fold != timing->tail) && timing->ring[timing->fold & TIMING_RING_MASK].queued)
+        mach64_wait_fifo_entry(mach64, timing->ring[timing->fold & TIMING_RING_MASK].fifo_idx);
     now   = mach64_timing_update(mach64);
     *used = timing->tail - timing->head;
     *busy = (timing->tail != timing->head) || (timing->free_at > now);
@@ -1172,7 +1233,6 @@ mach64_reset_engine(mach64_t *mach64)
 
         timing->head = timing->fold = timing->tail;
         timing->free_at    = mach64_timing_now(timing);
-        timing->pending_ns = 0.0;
     }
 }
 
@@ -1233,22 +1293,27 @@ mach64_queue_fifo(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
         mach64_wake_fifo_thread(mach64);
 }
 
-/* A register write to the draw engine. The 3D Rage II+'s 3D and scaler
-   registers go to its 3D engine at once, the rest through the FIFO; its
-   timing model sees each as an entry of the chip's own FIFO. */
+/*
+ * A register write to the draw engine, through the FIFO: the 2D and 3D
+ * registers alike, and with FIFO_ADDR_SETUP a dword of the Rage Pro's setup
+ * engine. The Rage Pro's bus master settings are followed here, ahead of
+ * the FIFO, and a GUI master operation starts here
+ * (mach64_ragepro_gui_write). The timing model sees each write as an entry
+ * of the chip's own FIFO.
+ */
 void
 mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
 {
     int idx;
 
     if (!mach64->timing) {
-        if (!mach64->gt3d || !mach64_3d_write(mach64, addr, val, type))
+        if (!mach64_has_busmaster(mach64) || (addr & FIFO_ADDR_BLK1) || !mach64_ragepro_gui_write(mach64, addr, val, type))
             mach64_queue_fifo(mach64, addr, val, type);
         return;
     }
 
     mach64_timing_before_write(mach64);
-    if (mach64->gt3d && mach64_3d_write(mach64, addr, val, type)) {
+    if (mach64_has_busmaster(mach64) && !(addr & FIFO_ADDR_BLK1) && mach64_ragepro_gui_write(mach64, addr, val, type)) {
         mach64_timing_after_write(mach64, 0, 0);
         return;
     }
@@ -1293,7 +1358,6 @@ mach64_queue(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
             dest_dat = 0xffffffff;                               \
             break;                                               \
         case 0x3:                                                \
-            dest_dat = dest_dat;                                 \
             break;                                               \
         case 0x4:                                                \
             dest_dat = ~src_dat;                                 \
@@ -1521,12 +1585,37 @@ mach64_host_pixels(mach64_t *mach64, uint32_t val, int bits, uint32_t *out, uint
     return n;
 }
 
+/* XL RRG 5-49: the standard engine treats Y8/RGB8 intensity/RGB332 as
+   raw bytes and YUV422 as raw dwords. Do not truncate the extended pixel
+   format nibble and accidentally select mono/4-bit or 16-bit access. */
+static int
+mach64_draw_width(const mach64_t *mach64, unsigned format)
+{
+    if (mach64->ragepro) {
+        switch (format & 15) {
+            case 7:
+            case 8:
+            case 9:
+                return 2;
+            case 11:
+            case 12:
+            case 14:
+                return 6;
+            case 15:
+                return 4;
+            default:
+                break;
+        }
+    }
+    return format & 7;
+}
+
 static void
 mach64_accel_common(mach64_t *mach64)
 {
-    mach64->accel.dst_pix_width  = mach64->dp_pix_width & 7;
-    mach64->accel.src_pix_width  = (mach64->dp_pix_width >> 8) & 7;
-    mach64->accel.host_pix_width = (mach64->dp_pix_width >> 16) & 7;
+    mach64->accel.dst_pix_width  = mach64_draw_width(mach64, mach64->dp_pix_width);
+    mach64->accel.src_pix_width  = mach64_draw_width(mach64, mach64->dp_pix_width >> 8);
+    mach64->accel.host_pix_width = mach64_draw_width(mach64, mach64->dp_pix_width >> 16);
 
     mach64->accel.dst_size  = mach64_width[mach64->accel.dst_pix_width];
     mach64->accel.src_size  = mach64_width[mach64->accel.src_pix_width];
@@ -2056,7 +2145,15 @@ mach64_blit(uint32_t cpu_dat, int count, mach64_t *mach64)
                 }
             }
         }
-        mach64_pixel(mach64, pix[i]);
+        /* In packed 24 bpp (DST_24_ROT_EN) a mono host bit is a
+           whole pixel, its three bytes, as the pattern's bits are (PRG 4-7).
+           ATI's NT 4.0 miniport sends 32 bits for a 96-byte-wide glyph row and
+           then waits for the engine. */
+        if ((mach64->accel.source_mix == MONO_SRC_HOST) && (mach64->dst_cntl & DST_24_ROT_EN) && (mach64->accel.op == OP_RECT)) {
+            for (int k = 0; (k < 3) && mach64->accel.busy; k++)
+                mach64_pixel(mach64, pix[i]);
+        } else
+            mach64_pixel(mach64, pix[i]);
     }
 }
 
@@ -2243,6 +2340,15 @@ mach64_overlay_mask888(uint16_t mask, int format)
     return expanded;
 }
 
+/* XL's native DVD surfaces program independent chroma-plane addresses.
+   Leave the older packed YUV12 path in use when those are not supplied. */
+static int
+mach64_overlay_planar(const mach64_t *m)
+{
+    return m->idct && m->scaler_format == 0xa &&
+           (m->rp.blk1[0x1d4 >> 2] || m->rp.blk1[0x1d8 >> 2]);
+}
+
 /* One line of the source: RGB widened to 24 bits, YUV as decoded. */
 static void
 mach64_overlay_decode(mach64_t *mach64, uint32_t *out, uint8_t *src, uint8_t *uvsrc, int src_w)
@@ -2260,7 +2366,20 @@ mach64_overlay_decode(mach64_t *mach64, uint32_t *out, uint8_t *src, uint8_t *uv
             DECODE_ARGB8888();
             break;
         case 0xa:
-            DECODE_YUV12_PACKED();
+            if (mach64_overlay_planar(mach64)) {
+                const uint8_t *vram = mach64->svga.vram;
+                uint32_t mask = mach64->vram_mask;
+                uint32_t pitch = mach64->svga.overlay.pitch;
+                uint32_t y = pitch ? ((uint32_t) (src - vram) - mach64->overlay_base) / pitch : 0;
+                uint32_t u = mach64->rp.blk1[0x1d4 >> 2] + (y >> 1) * (pitch >> 1);
+                uint32_t v = mach64->rp.blk1[0x1d8 >> 2] + (y >> 1) * (pitch >> 1);
+                for (x = 0; x < src_w; x++)
+                    out[x] = vram[((uint32_t) (src - vram) + x) & mask] |
+                             ((uint32_t) vram[(u + (x >> 1)) & mask] << 8) |
+                             ((uint32_t) vram[(v + (x >> 1)) & mask] << 16);
+            } else {
+                DECODE_YUV12_PACKED();
+            }
             break;
         case 0xb:
             DECODE_VYUY422();
@@ -2381,7 +2500,7 @@ mach64_overlay_draw(svga_t *svga, int displine)
     int       v_acc      = mach64->overlay_v_acc;
     int       v_next     = MIN(v_acc + v_inc, v_max << 12);
     int       v_alpha    = vert_blend ? mach64_overlay_alpha(v_acc, v_next) : 0;
-    uint32_t  line_bytes = svga->overlay.pitch * ((mach64->scaler_format == 6) ? 4 : 2);
+    uint32_t  line_bytes = svga->overlay.pitch * (mach64_overlay_planar(mach64) ? 1 : ((mach64->scaler_format == 6) ? 4 : 2));
     uint32_t *line       = mach64->overlay_dat;
     uint32_t  blended[2048];
     uint32_t  scaled[2048];
@@ -2570,4 +2689,20 @@ mach64_overlay_draw(svga_t *svga, int displine)
 
     mach64->scaler_update = y_diff;
     mach64->overlay_cur_y += y_diff;
+}
+
+/* The timing model's state, to the log. */
+void
+mach64_timing_dump(mach64_t *mach64)
+{
+    mach64_timing_t *timing = mach64->timing;
+    uint64_t         now;
+
+    if (!timing)
+        return;
+    now = mach64_timing_update(mach64);
+    pclog("Mach64 timing: MCLK %.1f MHz XCLK %.1f MHz display %.0f%%, head %u fold %u tail %u, free_at %+.3f ms from now\n",
+          mach64_timing_clocks(mach64)->mclk / 1000000.0, mach64_timing_clocks(mach64)->xclk / 1000000.0,
+          mach64_timing_clocks(mach64)->crtc_fraction * 100.0, (unsigned) timing->head, (unsigned) timing->fold, (unsigned) timing->tail,
+          ((double) (int64_t) (timing->free_at - now)) * 1000.0 / cpuclock);
 }

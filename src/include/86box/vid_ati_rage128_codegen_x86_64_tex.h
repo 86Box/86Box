@@ -62,7 +62,7 @@
  *         subroutines' div takes its dividend in edx:eax and leaves the
  *         remainder in edx.
  *
- * XMM registers: xmm2..xmm10 (zline, dZdx, invs, vca, vcb, vcc and the
+ * XMM registers: xmm2..xmm10 (zline, its step, invs, vca, vcb, vcc and the
  * weights w0..w2) are not written; the weights are read all through the
  * stage, as ARM64 reads v16-v18. xmm11 carries the running color in and
  * the combined color out.

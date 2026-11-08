@@ -169,6 +169,7 @@ r128_card_write_block(rage128_t *dev, uint32_t vm, const uint8_t *src, uint32_t 
         for (uint32_t o = 0; o < loc; o += 0x1000u)
             svga->changedvram[((vm + o) & dev->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
         svga->changedvram[((vm + loc - 1u) & dev->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
+        r128_vram_hnew(dev, vm & dev->vram_mask, loc);
         if (loc == len)
             return 1;
         return rage128_pm4_bus_write_block(dev, R128_CARD_AGP_HALF,
@@ -431,6 +432,8 @@ r128_surf_map(rage128_t *dev, r128_surf_t *s, struct rage128_span_stage *st,
         s->rel  = 0;
         s->mask = dev->vram_mask;
         s->st   = NULL;
+        s->wlo  = off;
+        s->wlen = len;
         return 1;
     }
 
@@ -444,6 +447,8 @@ r128_surf_map(rage128_t *dev, r128_surf_t *s, struct rage128_span_stage *st,
     s->rel  = lo;
     s->mask = m - 1u;
     s->st   = st;
+    s->wlo  = 0;
+    s->wlen = 0;
     return 1;
 }
 
@@ -491,19 +496,24 @@ r128_surf_map_tiled(rage128_t *dev, r128_surf_t *s, struct rage128_span_stage *s
     s->rel  = lo;
     s->mask = m - 1u;
     s->st   = st;
+    s->wlo  = 0;
+    s->wlen = 0;
     return 1;
 }
 
 /* Finish a read-write window: write a staged copy back to guest memory
-   and release it. A local window was written in place and needs
-   nothing. */
+   and release it. A local window was written in place; its bytes are
+   marked host-newer for the GPU backend's mirror here, after the
+   operation's stores, since a flush between the window's map and those
+   stores can already have consumed the mark set when it was mapped. */
 void
 r128_surf_commit(rage128_t *dev, r128_surf_t *s)
 {
     if (s->st) {
         r128_span_stage_writeback(dev, s->st);
         s->st = NULL;
-    }
+    } else
+        r128_vram_hnew(dev, s->wlo, s->wlen);
 }
 
 /* Release a read-only window, dropping any staged copy without writing

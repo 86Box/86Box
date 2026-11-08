@@ -63,6 +63,20 @@ pit_fast_log(const char *fmt, ...)
 #    define pit_fast_log(fmt, ...)
 #endif
 
+/* The recompiler only advances the TSC at the end of a block, so bring it
+   up to date with the cycles spent so far before the counters are looked at.
+   Otherwise a count latched right after being loaded reads back unchanged,
+   and code that waits for the counter to move in a single block (such as
+   the delay loop in Fire & Ice) never sees it do so. */
+static __inline void
+pitf_sync_tsc(void)
+{
+#ifdef USE_DYNAREC
+    if (cpu_use_dynarec)
+        update_tsc();
+#endif
+}
+
 static void
 pitf_ctr_set_out(ctrf_t *ctr, int out, void *priv)
 {
@@ -423,6 +437,7 @@ pitf_write(uint16_t addr, uint8_t val, void *priv)
     pit_fast_log("[%04X:%08X] pit_write(%04X, %02X, %08X)\n", CS, cpu_state.pc, addr, val, priv);
 
     cycles -= ISA_CYCLES(8);
+    pitf_sync_tsc();
 
     switch (addr & 3) {
         case 3: /* control */
@@ -563,6 +578,7 @@ pitf_read(uint16_t addr, void *priv)
     ctrf_t *ctr;
 
     cycles -= ISA_CYCLES(8);
+    pitf_sync_tsc();
 
     switch (addr & 3) {
         case 3: /* Control. */

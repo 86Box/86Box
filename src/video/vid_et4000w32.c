@@ -88,7 +88,7 @@ typedef struct et4000w32p_t {
 
     svga_t svga;
 
-    uint8_t banking, banking2, adjust_cursor, rev, pci_slot;
+    uint8_t banking, banking2, adjust_cursor, rev, pci_slot, irq_state;
     uint8_t adjust_cursor_x;
 
     uint8_t regs[256], pci_regs[256];
@@ -146,8 +146,10 @@ typedef struct et4000w32p_t {
 
 static int et4000w32_vbus[4] = { 1, 2, 4, 4 };
 
-static int et4000w32_max_x[8]  = { 0, 0, 4, 8, 0x10, 0x20, 0x40, 0x70000000 };
-static int et4000w32_wrap_x[8] = { 0, 0, 3, 7, 0x0f, 0x1f, 0x3f, ~0 };
+/* Horizontal wrap 0 is documented as reserved, but at least on the W32 it
+   works like 1. */
+static int et4000w32_max_x[8]  = { 1, 1, 4, 8, 0x10, 0x20, 0x40, 0x70000000 };
+static int et4000w32_wrap_x[8] = { 1, 1, 3, 7, 0x0f, 0x1f, 0x3f, ~0 };
 static int et4000w32_wrap_y[8] = { 1, 2, 4, 8, ~0, ~0, ~0, ~0 };
 
 static video_timings_t timing_et4000w32_vlb = { .type = VIDEO_BUS, .write_b = 4, .write_w = 4, .write_l = 4, .read_b = 10, .read_w = 10, .read_l = 10 };
@@ -165,6 +167,17 @@ static void    et4000w32_blit(int count, int cpu_input, uint32_t src_dat, uint32
 static void    et4000w32p_blit(int count, uint32_t mix, uint32_t sdat, int cpu_input, et4000w32p_t *et4000);
 static void    et4000w32p_out(uint16_t addr, uint8_t val, void *priv);
 static uint8_t et4000w32p_in(uint16_t addr, void *priv);
+
+static void
+et4000w32p_vert_int_update(svga_t *svga)
+{
+    et4000w32p_t *et4000 = (et4000w32p_t *) svga->priv;
+
+    if (svga_vert_int_active(svga))
+        pci_set_irq(et4000->pci_slot, PCI_INTA, &et4000->irq_state);
+    else
+        pci_clear_irq(et4000->pci_slot, PCI_INTA, &et4000->irq_state);
+}
 
 #ifdef ENABLE_ET4000W32_LOG
 int et4000w32_do_log = ENABLE_ET4000W32_LOG;
@@ -264,6 +277,12 @@ et4000w32p_out(uint16_t addr, uint8_t val, void *priv)
                 val = (svga->crtc[7] & ~0x10) | (val & 0x10);
             old                       = svga->crtc[svga->crtcreg];
             svga->crtc[svga->crtcreg] = val;
+            if (svga->crtcreg == 0x11) {
+                svga_vert_int_crtc_write(svga);
+                /* The interrupt bits don't affect the timings */
+                if ((val & ~0x30) == (old & ~0x30))
+                    old = val;
+            }
             if (svga->crtcreg == 0x36) {
                 if (!(val & 0x10) && !(svga->gdcreg[6] & 0x08)) {
                     svga->write_bank = ((et4000->banking2 & 1) << 20) | ((et4000->banking & 0xf) * 65536);
@@ -540,6 +559,17 @@ et4000w32p_recalctimings(svga_t *svga)
         svga->dots_per_clock <<= 1;
     }
 
+    /* Interlace (CRTC 35 bit 7), the vertical registers count frame lines */
+    svga->interlace = svga->crtc[0x35] & 0x80;
+    if (svga->interlace) {
+        int shift = (svga->crtc[0x17] & 4) ? 2 : 1;
+
+        svga->vtotal >>= shift;
+        svga->vsyncstart >>= shift;
+        svga->vblankstart >>= shift;
+        svga->dispend >>= shift;
+    }
+
     et4000->adjust_cursor = 0;
     et4000->adjust_cursor_x = 0;
 
@@ -748,6 +778,31 @@ et4000w32p_recalcmapping(et4000w32p_t *et4000)
         mem_mapping_disable(&svga->mapping);
 }
 
+/* Start the operation set up in the queued registers. */
+static void
+et4000w32p_accel_start(et4000w32p_t *et4000)
+{
+    et4000->acl.internal = et4000->acl.queued;
+    if (et4000->rev >= ET4000W32P_REVB) {
+        et4000w32p_blit_start(et4000);
+        et4000w32_log("Destination Address write and start XY Block, xcnt = %i, ycnt = %i\n", et4000->acl.x_count + 1, et4000->acl.y_count + 1);
+        if (!(et4000->acl.queued.ctrl_routing & 0x43)) {
+            et4000w32p_blit(-1, 0xffffffff, 0, 0, et4000);
+        }
+        if ((et4000->acl.queued.ctrl_routing & 0x40) && !(et4000->acl.internal.ctrl_routing & 3)) {
+            et4000w32p_blit(4, 0xffffffff, 0, 0, et4000);
+        }
+    } else {
+        et4000w32_blit_start(et4000);
+        et4000->acl.cpu_input_num = 0;
+        if (!(et4000->acl.queued.ctrl_routing & 0x37)) {
+            et4000->acl.mmu_start = 1;
+            et4000w32_blit(-1, 0, 0, 0xffffffff, et4000);
+        } else
+            et4000->acl.mmu_start = 0;
+    }
+}
+
 static void
 et4000w32p_accel_write_fifo(et4000w32p_t *et4000, uint32_t addr, uint8_t val)
 {
@@ -851,25 +906,10 @@ et4000w32p_accel_write_fifo(et4000w32p_t *et4000, uint32_t addr, uint8_t val)
             break;
         case 0xa3:
             et4000->acl.queued.dest_addr = (et4000->acl.queued.dest_addr & 0x00ffffff) | (val << 24);
-            et4000->acl.internal = et4000->acl.queued;
-            if (et4000->rev >= ET4000W32P_REVB) {
-                et4000w32p_blit_start(et4000);
-                et4000w32_log("Destination Address write and start XY Block, xcnt = %i, ycnt = %i\n", et4000->acl.x_count + 1, et4000->acl.y_count + 1);
-                if (!(et4000->acl.queued.ctrl_routing & 0x43)) {
-                    et4000w32p_blit(-1, 0xffffffff, 0, 0, et4000);
-                }
-                if ((et4000->acl.queued.ctrl_routing & 0x40) && !(et4000->acl.internal.ctrl_routing & 3)) {
-                    et4000w32p_blit(4, 0xffffffff, 0, 0, et4000);
-                }
-            } else {
-                et4000w32_blit_start(et4000);
-                et4000->acl.cpu_input_num = 0;
-                if (!(et4000->acl.queued.ctrl_routing & 0x37)) {
-                    et4000->acl.mmu_start = 1;
-                    et4000w32_blit(-1, 0, 0, 0xffffffff, et4000);
-                } else
-                    et4000->acl.mmu_start = 0;
-            }
+            /* The W32 and W32i start from the operation state register, the
+               W32p here too when bit 4 of that is set. */
+            if ((et4000->rev >= ET4000W32P_REVB) && (et4000->acl.osr & 0x10))
+                et4000w32p_accel_start(et4000);
             break;
         case 0xa4:
             et4000->acl.queued.mix_addr = (et4000->acl.queued.mix_addr & 0xFFFFFF00) | val;
@@ -995,6 +1035,10 @@ et4000w32p_mmu_write(uint32_t addr, uint8_t val, void *priv)
             }
             break;
         case 0x6000:
+            /* The registers are only in the last 256 bytes */
+            if ((addr & 0xff00) != 0xff00)
+                break;
+
             if ((addr & 0xff) >= 0x80)
                 et4000w32p_accel_write_fifo(et4000, addr & 0x7fff, val);
             else {
@@ -1043,6 +1087,8 @@ et4000w32p_mmu_write(uint32_t addr, uint8_t val, void *priv)
                         break;
                     case 0x31:
                         et4000->acl.osr = val;
+                        if (val & 1)
+                            et4000w32p_accel_start(et4000);
                         break;
 
                     default:
@@ -1088,6 +1134,10 @@ et4000w32p_mmu_read(uint32_t addr, void *priv)
             return svga->vram[(addr & 0x1fff) + et4000->mmu.base[et4000->bank]];
 
         case 0x6000:
+            /* The registers are only in the last 256 bytes */
+            if ((addr & 0xff00) != 0xff00)
+                break;
+
             switch (addr & 0xff) {
                 case 0x00:
                     return et4000->mmu.base[0] & 0xff;
@@ -2954,6 +3004,12 @@ et4000w32p_init(const device_t *info)
     mem_mapping_add(&et4000->mmu_mapping, 0, 0, et4000w32p_mmu_read, NULL, NULL, et4000w32p_mmu_write, NULL, NULL, NULL, MEM_MAPPING_EXTERNAL, et4000);
 
     et4000w32p_io_set(et4000);
+
+    if (info->flags & DEVICE_PCI) {
+        /* Disabled at reset */
+        et4000->svga.vert_int_update = et4000w32p_vert_int_update;
+        et4000->svga.crtc[0x11] |= 0x20;
+    }
 
     if (info->flags & DEVICE_PCI)
         pci_add_card(et4000->onboard_vid ? PCI_ADD_VIDEO : PCI_ADD_NORMAL, et4000w32p_pci_read, et4000w32p_pci_write, et4000, &et4000->pci_slot);

@@ -73,6 +73,11 @@ typedef struct _ac97_via_ {
     uint8_t  irq_state;
     int      irq_pin;
 
+    /* The southbridge's view of the audio and modem interrupts, each on
+       its own (ac97_via_set_irq_hook). */
+    void   (*irq_hook)(void *priv, int modem, int set);
+    void    *irq_hook_priv;
+
     ac97_codec_t  *codec[2];
     ac97_codec_t  *audio_codec;
     ac97_codec_t  *modem_codec;
@@ -172,20 +177,36 @@ ac97_via_write_control(void *priv, uint8_t val)
     ac97_via_update_codec(dev);
 }
 
+void
+ac97_via_set_irq_hook(void *priv, void (*hook)(void *priv, int modem, int set), void *hook_priv)
+{
+    ac97_via_t *dev = (ac97_via_t *) priv;
+
+    dev->irq_hook      = hook;
+    dev->irq_hook_priv = hook_priv;
+}
+
 static void
 ac97_via_update_irqs(ac97_via_t *dev)
 {
-    /* Check interrupt flags in all SGDs. */
+    uint8_t pending[2] = { 0, 0 };
+
+    /* Check interrupt flags in all SGDs: 0-3 are the audio function's,
+       4-5 (40h-5Fh) the modem function's. */
     for (uint8_t i = 0x00; i < ((sizeof(dev->sgd) / sizeof(dev->sgd[0])) << 4); i += 0x10) {
-        /* Stop immediately if any flag is set. Doing it this way optimizes
-           rising edges for the playback SGD (0 - first to be checked). */
-        if (dev->sgd_regs[i] & (dev->sgd_regs[i | 0x2] & 0x03)) {
-            pci_set_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
-            return;
-        }
+        if (dev->sgd_regs[i] & (dev->sgd_regs[i | 0x2] & 0x03))
+            pending[i >= 0x40] = 1;
     }
 
-    pci_clear_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
+    if (dev->irq_hook) {
+        dev->irq_hook(dev->irq_hook_priv, 0, pending[0]);
+        dev->irq_hook(dev->irq_hook_priv, 1, pending[1]);
+    }
+
+    if (pending[0] || pending[1])
+        pci_set_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
+    else
+        pci_clear_irq(dev->pci_slot, dev->irq_pin, &dev->irq_state);
 }
 
 static void

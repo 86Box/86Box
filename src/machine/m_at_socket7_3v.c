@@ -12,6 +12,7 @@
  *
  *          Copyright 2016-2025 Miran Grca.
  */
+#include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -38,6 +39,9 @@
 #include <86box/fdd.h>
 #include <86box/fdc.h>
 #include <86box/nvr.h>
+#include <86box/nvr_ps2.h>
+#include <86box/nmc93cxx.h>
+#include <86box/crc.h>
 #include <86box/plat_unused.h>
 #include <86box/sound.h>
 
@@ -298,7 +302,7 @@ static const device_config_t vectra52_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "GU.07.02 (01/25/96)",
+                .name          = "PhoenixBIOS 4.05.K.00 - Revision GU.07.02 (01/25/96)",
                 .internal_name = "vectra52_0702",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -307,7 +311,7 @@ static const device_config_t vectra52_config[] = {
                 .files         = { "roms/machines/vectra52/d3653.bin", "" }
             },
             {
-                .name          = "GU.07.05 (08/06/96)",
+                .name          = "PhoenixBIOS 4.05.Z - Revision GU.07.05 (08/06/96)",
                 .internal_name = "vectra52_0705",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -400,6 +404,160 @@ machine_at_vectra54_init(const machine_t *model)
     device_add(&piix_device);
     device_add_params(&fdc37c93x_device, (void *) (FDC37XXX2 | FDC37C93X_NORMAL));
     device_add(&sst_flash_29ee010_device);
+
+    return ret;
+}
+
+/*
+ * IBM PC 730 (type 6877) and PC 750 (type 6887). The I/O map is from the
+ * Technical Information Manual (52H3381, page 9); the bit layouts it leaves
+ * out are taken from the LQKT47A BIOS.
+ */
+static nmc93cxx_eeprom_t *ibm_pc700_eeprom;
+static uint16_t           ibm_pc700_eeprom_default[64];
+static void              *ibm_pc700_flash;
+static uint8_t            ibm_pc700_a17;
+
+/*
+ * The 256 KB flash shows 128 KB at a time: GPIO 78h bit 4 drives its A17.
+ * The code that switches halves is the same in both.
+ */
+static void
+machine_at_ibm_pc700_set_a17(uint8_t a17)
+{
+    ibm_pc700_a17 = a17;
+    catalyst_flash_bios_set_addr_lines(ibm_pc700_flash, 0x20000, a17 ? 0x20000 : 0x00000);
+}
+
+/*
+ * GPIO 78h bits 3-0 are SW1, read as the index into the BIOS's speed table:
+ * bits 1-0 select 50, 66 or 60 MHz, bits 3-2 select 2.5x, 3x, 2x or 1.5x.
+ */
+static void
+machine_at_ibm_pc700_gpio_init(void)
+{
+    uint32_t gpio = 0xfffffff0;
+
+    if (cpu_busspeed > 60000000)
+        gpio |= 0x01;
+    else if (cpu_busspeed > 50000000)
+        gpio |= 0x02;
+
+    if (cpu_dmulti <= 1.5)
+        gpio |= 0x0c;
+    else if (cpu_dmulti <= 2.0)
+        gpio |= 0x08;
+    else if (cpu_dmulti > 2.5)
+        gpio |= 0x04;
+
+    machine_set_gpio_default(gpio);
+}
+
+uint32_t
+machine_at_ibm_pc700_gpio_handler(uint8_t write, uint32_t val)
+{
+    uint32_t ret = machine_get_gpio_default();
+
+    if (write) {
+        ret &= val;
+        machine_set_gpio(ret);
+
+        /* GPIO 79h bits 4-2 are the security EEPROM's DI, SK and CS. */
+        if (ibm_pc700_eeprom != NULL)
+            nmc93cxx_eeprom_write(ibm_pc700_eeprom, !!(ret & 0x0400), !!(ret & 0x0800), !!(ret & 0x1000));
+
+        if ((ibm_pc700_flash != NULL) && (!!(ret & 0x0010) != ibm_pc700_a17))
+            machine_at_ibm_pc700_set_a17(!!(ret & 0x0010));
+    } else {
+        ret = machine_get_gpio();
+
+        /* GPIO 79h bit 1 is the security EEPROM's DO. */
+        if ((ibm_pc700_eeprom != NULL) && !nmc93cxx_eeprom_read(ibm_pc700_eeprom))
+            ret &= ~0x0200;
+    }
+
+    return ret;
+}
+
+/*
+ * A new board's security EEPROM: no passwords, an empty VPD record in words
+ * 08h-28h with its CRC in word 07h, and in word 24h the CRC of the empty CMOS
+ * record at 42h, which the BIOS compares it with. Both are CRC-16/CCITT over
+ * the low then the high byte of each word.
+ */
+static void
+machine_at_ibm_pc700_eeprom_default(void)
+{
+    uint16_t crc_table[256];
+    crc_t    crc = { .word = 0xffff };
+
+    memset(ibm_pc700_eeprom_default, 0xff, sizeof(ibm_pc700_eeprom_default));
+    memset(&ibm_pc700_eeprom_default[0x08], 0x00, 0x21 * sizeof(uint16_t));
+
+    crc16_setup(crc_table, 0x1021);
+    crc16_calc(crc_table, 0x00, &crc);
+    ibm_pc700_eeprom_default[0x24] = crc.word;
+
+    crc.word = 0xffff;
+    for (uint8_t i = 0x08; i <= 0x28; i++) {
+        crc16_calc(crc_table, ibm_pc700_eeprom_default[i] & 0xff, &crc);
+        crc16_calc(crc_table, ibm_pc700_eeprom_default[i] >> 8, &crc);
+    }
+    ibm_pc700_eeprom_default[0x07] = crc.word;
+}
+
+int
+machine_at_ibm_pc700_init(const machine_t *model)
+{
+    nmc93cxx_eeprom_params_t params = { 0 };
+    int                      ret;
+
+    ret = bios_load_linear("roms/machines/ibm_pc700/LQKT47A.BIN",
+                           0x000c0000, 262144, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_at_common_init(model);
+    machine_at_ibm_pc700_gpio_init();
+
+    /*
+     * IBM's flash utility (FLASH2.EXE) programs the Intel, AMD and Catalyst
+     * 28F020 and the SGS-Thomson M28F201 at this size; it gained the Catalyst
+     * part in update LQJT40A, for later boards.
+     */
+    ibm_pc700_flash = device_add(&catalyst_28f020_flash_device);
+    machine_at_ibm_pc700_set_a17(!!(machine_get_gpio() & 0x0010));
+
+    machine_at_ibm_pc700_eeprom_default();
+    params.type            = NMC_93C46_x16_64;
+    params.filename        = "ibm_pc700_93c46.nvr";
+    params.default_content = ibm_pc700_eeprom_default;
+    ibm_pc700_eeprom       = device_add_params(&nmc93cxx_device, &params);
+
+    /*
+     * The BIOS routes INTA of device 06h to PIRQ C, of 07h to PIRQ B and of
+     * any other device to PIRQ A, and a card at 0Ch makes it crash. The riser
+     * has three slots; the third one's device number is not documented.
+     */
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x01, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x06, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x07, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x09, PCI_CARD_NORMAL,      1, 2, 3, 4);
+    pci_register_slot(0x08, PCI_CARD_VIDEO,       1, 0, 0, 0);
+
+    if (gfxcard[0] == VID_INTERNAL)
+        device_add(machine_get_vid_device(machine));
+
+    device_add(&i430fx_device);
+    device_add(&piix_rev02_device);
+    device_add_params(&pc87306_device, (void *) PCX730X_AMI);
+    /* The riser's battery-backed 8 KB NVRAM at 74h-76h. */
+    device_add(&ps2_nvr_8kb_device);
+    device_add(&ibm_pc700_readout_device);
+    device_add(&ibm_pc700_power_device);
 
     return ret;
 }

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-04 17:08+0000\n"
+"PO-Revision-Date: 2026-10-16 19:50+0000\n"
 "Last-Translator: MayuriNanako <gordonkoopaplays@gmail.com>\n"
 "Language-Team: Romanian <https://weblate.86box.net/projects/86box/86box/ro/>"
 "\n"
@@ -152,6 +152,12 @@ msgstr "Scalare &întreagă"
 msgid "4:&3 Integer scale"
 msgstr "Scalare întreagă la &4:3"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Monitor VGA inversat"
 
@@ -235,9 +241,6 @@ msgstr "S&unet"
 
 msgid "&Preferences…"
 msgstr "&Preferințe…"
-
-msgid "Enable &Discord integration"
-msgstr "Activează integrarea &Discord"
 
 msgid "Sound &gain…"
 msgstr "Câș&tig sunet…"
@@ -413,17 +416,35 @@ msgstr "MB"
 msgid "Memory:"
 msgstr "Memorie:"
 
-msgid "Time synchronization"
-msgstr "Sincronizarea timpului"
+msgid "Synchronize with host clock"
+msgstr ""
 
-msgid "Disabled"
-msgstr "Dezactivat"
+msgid "Time zone:"
+msgstr ""
 
-msgid "Enabled (local time)"
-msgstr "Activat (ora locală)"
+msgid "Local"
+msgstr ""
 
-msgid "Enabled (UTC)"
-msgstr "Activat (UTC)"
+msgid "UTC"
+msgstr ""
+
+msgid "Date:"
+msgstr ""
+
+msgid "Match the host"
+msgstr ""
+
+msgid "Offset the year by:"
+msgstr ""
+
+msgid "(currently %1)"
+msgstr ""
+
+msgid "Always use the year:"
+msgstr ""
+
+msgid "Do not synchronize the date"
+msgstr ""
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Folosește interpretorul 486 pentru procesoarele 286 și 386"
@@ -433,6 +454,12 @@ msgstr "Recompilator dinamic"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Mediu FPU precis pe recompilatorul dinamic"
+
+msgid "Block linking on the dynamic recompiler"
+msgstr "Legarea blocurilor pe recompilatorul dinamic"
+
+msgid "Debug registers on 486 and later processors"
+msgstr ""
 
 msgid "CPU frame size"
 msgstr "Dimensiunea cadre CPU"
@@ -463,6 +490,9 @@ msgstr "Grafică XGA"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Grafică adaptor de afișaj IBM PS/55"
+
+msgid "PowerVR PCX1/PCX2 Graphics"
+msgstr ""
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -625,6 +655,12 @@ msgstr "Controler 4:"
 
 msgid "Cassette"
 msgstr "Casetă"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Discuri dure:"
@@ -1328,6 +1364,35 @@ msgstr "Utilizează expresii regulate în bara de căutare"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "Șterge toate mașinile virtuale în Coșul de Reciclare"
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -2798,37 +2863,37 @@ msgid "Linear interpolation"
 msgstr "Interpolare liniară"
 
 msgid "Has secondary 8x8 character set"
-msgstr ""
+msgstr "Are set de caractere secundar 8x8"
 
 msgid "Has Quadcolor II daughter board"
-msgstr ""
+msgstr "Are placă fiică Quadcolor II"
 
 msgid "Alternate monochrome contrast"
-msgstr ""
+msgstr "Contrast monocrom alternativ"
 
 msgid "128 KB"
-msgstr ""
+msgstr "128 KB"
 
 msgid "Monochrome (5151/MDA) (white)"
-msgstr ""
+msgstr "Monocrom (5151/MDA) (alb)"
 
 msgid "Monochrome (5151/MDA) (green)"
-msgstr ""
+msgstr "Monocrom (5151/MDA) (verde)"
 
 msgid "Monochrome (5151/MDA) (amber)"
-msgstr ""
+msgstr "Monocrom (5151/MDA) (chihlimbar)"
 
 msgid "Color 40x25 (5153/CGA)"
-msgstr ""
+msgstr "Culoare 40x25 (5153/CGA)"
 
 msgid "Color 80x25 (5153/CGA)"
-msgstr ""
+msgstr "Culoare 80x25 (5153/CGA)"
 
 msgid "Enhanced Color - Normal Mode (5154/ECD)"
-msgstr ""
+msgstr "Culoare îmbunătățită - Mod normal (5154/ECD)"
 
 msgid "Enhanced Color - Enhanced Mode (5154/ECD)"
-msgstr ""
+msgstr "Culoare îmbunătățită - Modul îmbunătățit (5154/ECD)"
 
 msgid "IBM 8507 (1024x768, Monochrome)"
 msgstr ""
@@ -3188,6 +3253,9 @@ msgid "Input"
 msgstr ""
 
 msgid "Key bindings"
+msgstr ""
+
+msgid "VM Manager"
 msgstr ""
 
 msgid "Action"
@@ -3699,4 +3767,22 @@ msgid "Prepare PCI devices for VFIO passthrough"
 msgstr ""
 
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
+msgstr ""
+
+msgid "Disabled"
+msgstr ""
+
+msgid "Unlimited capacity"
+msgstr ""
+
+msgid "CD speed:"
+msgstr ""
+
+msgid "DVD speed:"
+msgstr ""
+
+msgid "HD/BD speed:"
+msgstr ""
+
+msgid "Software-initiated poweroff device (IBM 5140)"
 msgstr ""

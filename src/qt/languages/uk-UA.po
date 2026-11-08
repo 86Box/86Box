@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-02 04:16+0000\n"
-"Last-Translator: TheCawa <vos80584@gmail.com>\n"
+"PO-Revision-Date: 2026-11-08 13:36+0000\n"
+"Last-Translator: Broifonn_9 <molodchina812@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
 "Language: uk-UA\n"
@@ -152,6 +152,12 @@ msgstr "&Цілісночисленне масштабування"
 msgid "4:&3 Integer scale"
 msgstr "Цілісночисленне масштабування 4:&3"
 
+msgid "&Center"
+msgstr "По ц&ентру"
+
+msgid "4:3 Cen&ter"
+msgstr "По цен&тру, 4:3"
+
 msgid "Inverted VGA monitor"
 msgstr "Інвертувати кольори VGA"
 
@@ -235,9 +241,6 @@ msgstr "&Звук"
 
 msgid "&Preferences…"
 msgstr "&Параметри…"
-
-msgid "Enable &Discord integration"
-msgstr "Увімкнути інтеграцію &Discord"
 
 msgid "Sound &gain…"
 msgstr "&Посилення звуку…"
@@ -336,7 +339,7 @@ msgid "Disk size:"
 msgstr "Розмір диска:"
 
 msgid "RPM mode:"
-msgstr "RPM режим:"
+msgstr "RPM-режим:"
 
 msgid "Progress:"
 msgstr "Прогрес:"
@@ -378,10 +381,10 @@ msgid "Miscellaneous"
 msgstr "Різне"
 
 msgid "Machine:"
-msgstr "Системна плата:"
+msgstr "Плата:"
 
 msgid "Configure"
-msgstr "Налаштування"
+msgstr "Конфігурація"
 
 msgid "CPU:"
 msgstr "ЦП:"
@@ -413,17 +416,35 @@ msgstr "МБ"
 msgid "Memory:"
 msgstr "Пам'ять:"
 
-msgid "Time synchronization"
-msgstr "Синхронізація часу"
+msgid "Synchronize with host clock"
+msgstr "Синхронізувати з системним годинником"
 
-msgid "Disabled"
-msgstr "Відключити"
+msgid "Time zone:"
+msgstr "Часовий пояс:"
 
-msgid "Enabled (local time)"
-msgstr "Увімкнути (місцеве)"
+msgid "Local"
+msgstr "Місцевий"
 
-msgid "Enabled (UTC)"
-msgstr "Увімкнути (UTC)"
+msgid "UTC"
+msgstr "UTC"
+
+msgid "Date:"
+msgstr "Дата:"
+
+msgid "Match the host"
+msgstr "Відповідати системній"
+
+msgid "Offset the year by:"
+msgstr "Змістити рік до:"
+
+msgid "(currently %1)"
+msgstr "(наразі %1)"
+
+msgid "Always use the year:"
+msgstr "Завжди використовувати рік:"
+
+msgid "Do not synchronize the date"
+msgstr "Не синхронізувати дату"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Використовувати інтерпретатор 486 для процесорів 286 і 386"
@@ -433,6 +454,12 @@ msgstr "Динамічний рекомпілятор"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
 msgstr "Точне середовище FPU у динамічному рекомпіляторі"
+
+msgid "Block linking on the dynamic recompiler"
+msgstr "Зв'язування блоків у динамічному рекомпіляторі"
+
+msgid "Debug registers on 486 and later processors"
+msgstr "Налагодити регістри на процесорах 486 та пізніше"
 
 msgid "CPU frame size"
 msgstr "Розмір кадру ЦП"
@@ -463,6 +490,9 @@ msgstr "Прискорювач XGA"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Graphics"
+
+msgid "PowerVR PCX1/PCX2 Graphics"
+msgstr "Прискорювач PowerVR PCX1/PCX2"
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -546,7 +576,7 @@ msgid "FM synth driver:"
 msgstr "Драйвер FM-синтезатора:"
 
 msgid "Nuked (more accurate)"
-msgstr "Nuked (більш точний)"
+msgstr "Nuked (точніший)"
 
 msgid "YMFM (faster)"
 msgstr "YMFM (швидший)"
@@ -625,6 +655,14 @@ msgstr "Контролер 4:"
 
 msgid "Cassette"
 msgstr "Касета"
+
+msgid "Turbo IDE"
+msgstr "Turbo-IDE"
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
+"Прибирає ліміт швидкості режиму передачі даних IDE. Таймінги жорстких дисків "
+"та дисководів CD-ROM залишаються чинними."
 
 msgid "Hard disks:"
 msgstr "Жорсткі диски:"
@@ -714,7 +752,7 @@ msgid "3.5\" 2.88M 300/360 RPM"
 msgstr "3,5\" 2,88M 300/360 RPM"
 
 msgid "Turbo timings"
-msgstr "Турбо таймінги"
+msgstr "Турбо-таймінги"
 
 msgid "Check BPB"
 msgstr "Перевіряти BPB"
@@ -738,10 +776,10 @@ msgid "Removable disks:"
 msgstr "Знімні диски:"
 
 msgid "Tape drives"
-msgstr "Стрімери"
+msgstr "Стрічкові накопичувачі"
 
 msgid "Tape drives:"
-msgstr "Стрімери:"
+msgstr "Стрічкові накопичувачі:"
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -750,7 +788,7 @@ msgid "ISA Memory Expansion"
 msgstr "Карта розширення пам'яті (ISA)"
 
 msgid "ISA ROM Cards"
-msgstr "Карти ПЗУ ISA"
+msgstr "Карти ПЗП ISA"
 
 msgid "Card 1:"
 msgstr "Карта 1:"
@@ -765,13 +803,13 @@ msgid "Card 4:"
 msgstr "Карта 4:"
 
 msgid "Generic ISA ROM Board"
-msgstr "Стандартна плата ПЗУ ISA"
+msgstr "Стандартна плата ПЗП ISA"
 
 msgid "Generic Dual ISA ROM Board"
-msgstr "Стандартна плата на 2 ПЗУ ISA"
+msgstr "Стандартна плата на 2 ПЗП ISA"
 
 msgid "Generic Quad ISA ROM Board"
-msgstr "Стандартна плата на 4 ПЗУ ISA"
+msgstr "Стандартна плата на 4 ПЗП ISA"
 
 msgid "ISABugger device"
 msgstr "Пристрій ISABugger"
@@ -813,7 +851,11 @@ msgid "Image %1"
 msgstr "Образ %1"
 
 msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "%1 не зміг знайти жодного відповідного для використання файлу з ПЗУ.\n\nБудь ласка <a href=\"%2\">завантажте</a> набір ПЗУ і витягніть його в каталог «roms»."
+msgstr ""
+"%1 не зміг знайти жодного відповідного для використання файлу з ПЗП.\n"
+"\n"
+"Будь ласка <a href=\"%2\">завантажте</a> набір ПЗП і витягніть його в "
+"каталог «roms»."
 
 msgid "(empty)"
 msgstr "(порожньо)"
@@ -840,13 +882,19 @@ msgid "Surface images"
 msgstr "Образ поверхні"
 
 msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Системна плата «%s» недоступна через відсутність файлу її ПЗУ в каталозі roms/machines. Переключення на доступну системну плату."
+msgstr ""
+"Плата «%s» недоступна через відсутність файлу її ПЗУ в каталозі roms/"
+"machines. Переключення на доступну плату."
 
 msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Відеокарта «%s» недоступна через відсутність файлу її ПЗУ в каталозі roms/video. Переключення на доступну відеокарту."
+msgstr ""
+"Відеокарта «%s» недоступна через відсутність файлу її ПЗП в каталозі roms/"
+"video. Переключення на доступну відеокарту."
 
 msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Пристрій «%s» недоступний через відсутність файлу його ПЗУ. Ігнорування пристрою."
+msgstr ""
+"Пристрій «%s» недоступний через відсутність файлу його ПЗП. Ігнорування "
+"пристрою."
 
 msgid "Machine"
 msgstr "Комп'ютер"
@@ -1065,7 +1113,7 @@ msgid "Thrustmaster Formula T1/T2 without adapter"
 msgstr "Thrustmaster Formula T1/T2 без адаптера"
 
 msgid "None"
-msgstr "Ні"
+msgstr "Немає"
 
 msgid "%1 MB (CHS: %2, %3, %4)"
 msgstr "%1 МБ (CHS: %2, %3, %4)"
@@ -1128,7 +1176,7 @@ msgid "Exit"
 msgstr "Вихід"
 
 msgid "No ROMs found"
-msgstr "ПЗУ не знайдені"
+msgstr "ПЗП не знайдені"
 
 msgid "Do you want to save the settings?"
 msgstr "Чи бажаєте ви зберегти налаштування?"
@@ -1143,7 +1191,19 @@ msgid "About %1"
 msgstr "Про %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Емулятор старих комп'ютерів\n\nАвтори: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nЗ попередніми основними внесками Sarah Walker, leilei, JohnElliott, greatpsycho та інших.\n\nВипускаєтся під ліцензією GNU General Public License версії 2 або більше пізніше. Додадкову інформацію см. у файлі LICENSE."
+msgstr ""
+"Емулятор старих комп'ютерів\n"
+"\n"
+"Автори: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, "
+"coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin "
+"(elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen "
+"(waltje), Tiseno100, reenigne та ін.\n"
+"\n"
+"З попередніми основними внесками Sarah Walker, leilei, JohnElliott, "
+"greatpsycho та ін.\n"
+"\n"
+"Випускається під ліцензією GNU General Public License версії 2 або пізніше. "
+"Додаткову інформацію дивіться у файлі LICENSE."
 
 msgid "Hardware not available"
 msgstr "Обладнання недоступне"
@@ -1260,7 +1320,7 @@ msgid "VMs: %1"
 msgstr "Машин: %1"
 
 msgid "System Directory:"
-msgstr "Системна папка:"
+msgstr "Системна директорія:"
 
 msgid "Choose directory"
 msgstr "Вибрати папку"
@@ -1282,6 +1342,37 @@ msgstr "Використовувати регулярні вирази в пол
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr "Видалити віртуальні машини у кошик"
+
+msgid "Discord"
+msgstr "Discord"
+
+msgid "Show running machines in my Discord status"
+msgstr "Показати працюючі машини в моєму статусі Discord"
+
+msgid "Details shown:"
+msgstr "Показані подробиці:"
+
+msgid "Machine name and hardware"
+msgstr "Назва машини та її апаратне обладнання"
+
+msgid "Hardware only"
+msgstr "Тільки апаратне обладнання"
+
+msgid "No details"
+msgstr "Без подробиць"
+
+msgid "Using %1"
+msgstr "Використовується %1"
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] "%n машина активна"
+msgstr[1] "%n машини активні"
+msgstr[2] "%n машин активні"
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -1335,10 +1426,10 @@ msgid "Please enter a directory for the system"
 msgstr "Будь ласка, введіть папку для системи"
 
 msgid "Directory does not exist"
-msgstr "Папка не існує"
+msgstr "Теки не існує"
 
 msgid "A new directory for the system will be created in the selected directory above"
-msgstr "Нова папка для системи буде створена у вибраній папці вище"
+msgstr "Нова тека для системи буде створена у вибраній теці вище"
 
 msgid "System location:"
 msgstr "Розташування системи:"
@@ -1389,7 +1480,7 @@ msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Віртуальна машина «%1» (%2) буде клонована в:"
 
 msgid "Directory %1 already exists"
-msgstr "Папка %1 вже існує"
+msgstr "Тека %1 вже існує"
 
 msgid "You cannot use the following characters in the name: %1"
 msgstr "Ви не можете використовувати наступні символи в імені: %1"
@@ -1404,10 +1495,10 @@ msgid "Failed to clone VM."
 msgstr "Не вдалося клонувати віртуальну машину."
 
 msgid "Directory in use"
-msgstr "Папка використовується"
+msgstr "Тека використовується"
 
 msgid "The selected directory is already in use. Please select a different directory."
-msgstr "Вибрана папка вже використовується. Будь ласка, виберіть іншу папку."
+msgstr "Вибрана тека вже використовується. Будь ласка, виберіть іншу теку."
 
 msgid "Create directory failed"
 msgstr "Не вдалося створити папку"
@@ -1572,7 +1663,7 @@ msgid "The selected file will be overwritten. Are you sure you want to use it?"
 msgstr "Вибраний файл буде перезаписано. Ви впевнені, що хочете використовувати його?"
 
 msgid "Unsupported disk image"
-msgstr "Образ диска, що не підтримується"
+msgstr "Образ диска не підтримується"
 
 msgid "Unable to read device"
 msgstr "Неможливо зчитати пристрій"
@@ -1872,7 +1963,7 @@ msgid "Use target framerate:"
 msgstr "Використовувати цільову частоту кадрів:"
 
 msgid " fps"
-msgstr " fps"
+msgstr " кадр./c"
 
 msgid "VSync"
 msgstr "VSync"
@@ -2037,7 +2128,7 @@ msgid "OPL4-ML Daughterboard"
 msgstr "Дочірня плата OPL4-ML"
 
 msgid "System MIDI"
-msgstr "MIDI системи"
+msgstr "Системний MIDI"
 
 msgid "MIDI Input Device"
 msgstr "Пристрій введення MIDI"
@@ -2046,46 +2137,46 @@ msgid "BIOS file"
 msgstr "Файл BIOS"
 
 msgid "BIOS file (ROM #1)"
-msgstr "Файл BIOS (ПЗУ #1)"
+msgstr "Файл BIOS (ПЗП #1)"
 
 msgid "BIOS file (ROM #2)"
-msgstr "Файл BIOS (ПЗУ #2)"
+msgstr "Файл BIOS (ПЗП #2)"
 
 msgid "BIOS file (ROM #3)"
-msgstr "Файл BIOS (ПЗУ #3)"
+msgstr "Файл BIOS (ПЗП #3)"
 
 msgid "BIOS file (ROM #4)"
-msgstr "Файл BIOS (ПЗУ #4)"
+msgstr "Файл BIOS (ПЗП #4)"
 
 msgid "BIOS address"
 msgstr "Адреса BIOS"
 
 msgid "BIOS address (ROM #1)"
-msgstr "Адреса BIOS (ПЗУ #1)"
+msgstr "Адреса BIOS (ПЗП #1)"
 
 msgid "BIOS address (ROM #2)"
-msgstr "Адреса BIOS (ПЗУ #2)"
+msgstr "Адреса BIOS (ПЗП #2)"
 
 msgid "BIOS address (ROM #3)"
-msgstr "Адреса BIOS (ПЗУ #3)"
+msgstr "Адреса BIOS (ПЗП #3)"
 
 msgid "BIOS address (ROM #4)"
-msgstr "Адреса BIOS (ПЗУ #4)"
+msgstr "Адреса BIOS (ПЗП #4)"
 
 msgid "Enable BIOS extension ROM Writes"
-msgstr "Увімкнути розширення BIOS Записи в ПЗУ"
+msgstr "Увімкнути запис у ПЗП розширення BIOS"
 
 msgid "Enable BIOS extension ROM Writes (ROM #1)"
-msgstr "Увімкнути розширення BIOS Записи в ПЗУ (ПЗУ #1)"
+msgstr "Увімкнути запис у ПЗП розширення BIOS (ПЗП #1)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #2)"
-msgstr "Увімкнути розширення BIOS Записи в ПЗУ (ПЗУ #2)"
+msgstr "Увімкнути запис у ПЗП розширення BIOS (ПЗП #2)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #3)"
-msgstr "Увімкнути розширення BIOS Записи в ПЗУ (ПЗУ #3)"
+msgstr "Увімкнути запис у ПЗП розширення BIOS (ПЗП #3)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #4)"
-msgstr "Увімкнути розширення BIOS Записи в ПЗУ (ПЗУ #4)"
+msgstr "Увімкнути запис у ПЗП розширення BIOS (ПЗП #4)"
 
 msgid "Linear framebuffer base"
 msgstr "Лінійний фреймбуфер"
@@ -2121,10 +2212,10 @@ msgid "IBM 5161 Expansion Unit"
 msgstr "Блок розширення IBM 5161"
 
 msgid "IBM Cassette Basic"
-msgstr "Касетний бейсік IBM"
+msgstr "Касетний Basic IBM"
 
 msgid "Translate 26 -> 17"
-msgstr "Перекладіть 26 -> 17"
+msgstr "Перекласти 26 -> 17"
 
 msgid "Language"
 msgstr "Мова"
@@ -2139,16 +2230,16 @@ msgid "BIOS size"
 msgstr "Розмір BIOS"
 
 msgid "BIOS size (ROM #1)"
-msgstr "Розмір BIOS (ПЗУ 1)"
+msgstr "Розмір BIOS (ПЗП 1)"
 
 msgid "BIOS size (ROM #2)"
-msgstr "Розмір BIOS (ПЗУ 2)"
+msgstr "Розмір BIOS (ПЗП 2)"
 
 msgid "BIOS size (ROM #3)"
-msgstr "Розмір BIOS (ПЗУ 3)"
+msgstr "Розмір BIOS (ПЗП 3)"
 
 msgid "BIOS size (ROM #4)"
-msgstr "Розмір BIOS (ПЗУ 4)"
+msgstr "Розмір BIOS (ПЗП 4)"
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Зіставлення C0000-C7FFF як UMB"
@@ -2448,7 +2539,7 @@ msgid "Enable NMI for CGA emulation"
 msgstr "Увімкнути NMI для емуляції CGA"
 
 msgid "Voodoo type"
-msgstr "Тип вуду"
+msgstr "Тип Voodoo"
 
 msgid "Framebuffer memory size"
 msgstr "Розмір пам'яті фреймбуфера"
@@ -2667,7 +2758,7 @@ msgid "New"
 msgstr "Новий"
 
 msgid "Color (generic)"
-msgstr "Кольоровий (загальний)"
+msgstr "Кольоровий (звичайний)"
 
 msgid "Green Monochrome"
 msgstr "Зелений монохромний"
@@ -2688,7 +2779,7 @@ msgid "Simple doubling"
 msgstr "Просте подвоєння"
 
 msgid "sRGB interpolation"
-msgstr "sRGB інтерполяція"
+msgstr "sRGB-інтерполяція"
 
 msgid "Linear interpolation"
 msgstr "Лінійна інтерполяція"
@@ -2760,28 +2851,28 @@ msgid "Other languages"
 msgstr "Інші мови"
 
 msgid "Bochs latest"
-msgstr "Bochs останній"
+msgstr "Остання версія Bochs"
 
 msgid "Apply overscan deltas"
 msgstr "Застосувати дельти вильотів розгортки"
 
 msgid "Mono Interlaced"
-msgstr "Монохромний інтерлейсний"
+msgstr "Монохромний черезрядковий"
 
 msgid "Mono Non-Interlaced"
-msgstr "Монохромний неінтерлейсний"
+msgstr "Монохромний нечерезрядковий"
 
 msgid "Color Interlaced"
-msgstr "Кольоровий інтерлейсний"
+msgstr "Кольоровий черезрядковий"
 
 msgid "Color Non-Interlaced"
-msgstr "Кольоровий неінтерлейсний"
+msgstr "Кольоровий нечерезрядковий"
 
 msgid "3Dfx Voodoo Graphics"
-msgstr "Прискорювач 3Dfx Voodoo"
+msgstr "Прискорювач 3dfx Voodoo"
 
 msgid "3Dfx Voodoo 2"
-msgstr "3Dfx Voodoo 2"
+msgstr "3dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
 msgstr "Obsidian SB50 + Amethyst (2 TMU)"
@@ -2862,7 +2953,7 @@ msgid "Loopback Type"
 msgstr "Тип кабелю"
 
 msgid "Parallel cable"
-msgstr "LPT-кабель"
+msgstr "Кабель паралельного порту"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
 msgstr "Односпрямований (8 біт) / LapLink (4 біт)"
@@ -2922,7 +3013,7 @@ msgid "High performance impact"
 msgstr "Високий вплив на продуктивність"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Стандартний] Диск оперативної пам'яті (макс. швидкість)"
+msgstr "[Стандартний] ОЗП-диск (макс. швидкість)"
 
 msgid "[Generic] 1983 MFM (3600 RPM)"
 msgstr "[Стандартний] 1983 MFM (3600 RPM)"
@@ -3086,6 +3177,9 @@ msgstr "Введення"
 msgid "Key bindings"
 msgstr "Прив'язки клавіш"
 
+msgid "VM Manager"
+msgstr "Менеджер віртуальних машин"
+
 msgid "Action"
 msgstr "Дія"
 
@@ -3141,7 +3235,7 @@ msgid "Text files"
 msgstr "Текстові файли"
 
 msgid "ROM files"
-msgstr "Файли ПЗУ"
+msgstr "Файли ПЗП"
 
 msgid "SoundFont files"
 msgstr "Файли SoundFont"
@@ -3162,10 +3256,10 @@ msgid "Hostname:"
 msgstr "Ім'я хоста:"
 
 msgid "ISA RAM:"
-msgstr "ISA ОЗУ:"
+msgstr "ISA ОЗП:"
 
 msgid "ISA ROM:"
-msgstr "ISA ПЗУ:"
+msgstr "ISA-ПЗП:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Стерти NVRAM"
@@ -3315,7 +3409,7 @@ msgid "Color scheme"
 msgstr "Колірна гамма"
 
 msgid "Light"
-msgstr "Світло"
+msgstr "Світлий"
 
 msgid "Dark"
 msgstr "Темний"
@@ -3357,7 +3451,7 @@ msgid "Audio output device:"
 msgstr "Пристрій виведення звуку:"
 
 msgid "System Default"
-msgstr "Системний"
+msgstr "Системний за замовчуванням"
 
 msgid "Unable to open image or folder \"%s\"."
 msgstr "Неможливо відкрити файл або папку «%s»."
@@ -3429,13 +3523,13 @@ msgid "Paper Size"
 msgstr "Розмір паперу"
 
 msgid "Letter"
-msgstr "Letter"
+msgstr "Формат Letter"
 
 msgid "Legal (sideways)"
-msgstr "Legal (горизонтальний)"
+msgstr "Формат Legal (горизонтальний)"
 
 msgid "B4 (sideways)"
-msgstr "B4 (горизонтальний)"
+msgstr "Формат B4 (горизонтальний)"
 
 msgid "Quality"
 msgstr "Якість"
@@ -3510,7 +3604,7 @@ msgid "US (CP 437)"
 msgstr "США (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr "IBM Nordic (CP 437-Nordic)"
+msgstr "Скандинавський IBM (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
 msgstr "Чеська Kamenicky (CP 895) № 1"
@@ -3550,57 +3644,105 @@ msgstr "Поріг яскравості (%)"
 
 msgid "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded."
 msgstr ""
+"VFIO: Неможливо відкрити /dev/vfio/vfio: %s. Переконайтеся, що модуль vfio-"
+"pci завантажено."
 
 msgid "VFIO %s: Invalid device location."
-msgstr ""
+msgstr "VFIO %s: Неправильне розташування пристрою."
 
 msgid "VFIO %s: Device not found."
-msgstr ""
+msgstr "VFIO %s: Пристрій не знайдено."
 
 msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
+"VFIO %s: Пристрій не має группу IOMMU. Переконайтеся, що VT-d або IOMMU "
+"ввімкнено у вашій системі."
 
 msgid "VFIO %s: Device is not bound to vfio-pci."
-msgstr ""
+msgstr "VFIO %s: Пристрій не прив'язано до vfio-pci."
 
 msgid "VFIO %s: Could not open IOMMU group %d: %s"
-msgstr ""
+msgstr "VFIO %s: Неможливо відкрити группу IOMMU %d: %s"
 
 msgid "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci."
 msgstr ""
+"VFIO %s: Група IOMMU %d непридатна. Усі пристрої в групі повинні бути прив’"
+"язані до vfio-pci."
 
 msgid "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low."
 msgstr ""
+"VFIO: Не вдалося зіставити пам'ять гостя для DMA: %s. Можливо, ліміт "
+"заблокованої пам'яті (ulimit -l) занадто низький."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
 msgstr ""
+"VFIO %s: Неможливо прочитати файл ПЗП \"%s\"; буде використовуватися власний "
+"ПЗП-файл пристрою."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
-msgstr ""
+msgstr "VFIO %s: Неможливо прочитати файл ПЗП \"%s\"; ПЗП-файл вимкнено."
 
 msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
 msgstr ""
+"VFIO %s: ПЗП-файл виглядає недійсним. Власний ПЗП-файл можна завантажити "
+"через налаштування VFIO."
 
 msgid "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?"
 msgstr ""
+"VFIO: Ці пристрої потрібно прив'язати до vfio-pci, що потребує прав "
+"адміністратора:\n"
+"\n"
+"%s\n"
+"Прив'язати пристрої зараз?"
 
 msgid "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?"
 msgstr ""
+"VFIO: Для надання 86Box доступу до прокинутих пристроїв потрібні права "
+"адміністратора. Бажаєте продовжити?"
 
 msgid "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:"
 msgstr ""
+"Ці пристрої не було вибрані, але вони належать до однієї группи IOMMU з "
+"вибраним пристроєм, тому їх теж буде прив'язано:"
 
 msgid "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci."
 msgstr ""
+"VFIO %s: Група IOMMU %d містить %s, який потрібен основній системі. Групу не "
+"буде прив'язано до vfio-pci."
 
 msgid "VFIO: Could not prepare the devices for passthrough:\n%s"
 msgstr ""
+"VFIO %s: Не вдалося приготувати пристрої для прокидання:\n"
+"%s"
 
 msgid "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s"
 msgstr ""
+"VFIO %s: Права адміністратора не можуть бути запрошені. Для підготування "
+"пристроїв для прокидання, виконайте дану команду та перезавантажте систему.\n"
+"\n"
+"%s"
 
 msgid "Prepare PCI devices for VFIO passthrough"
-msgstr ""
+msgstr "Підготувати пристрої PCI для VFIO-прокидання"
 
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
 msgstr ""
+"Для підготовки пристроїв PCI до прокидання у 86Box потрібна автентифікація."
+
+msgid "Disabled"
+msgstr "Вимкнути"
+
+msgid "Unlimited capacity"
+msgstr "Необмежена ємність"
+
+msgid "CD speed:"
+msgstr "Швидкість CD:"
+
+msgid "DVD speed:"
+msgstr "Швидкість DVD:"
+
+msgid "HD/BD speed:"
+msgstr "Швидкість HD/BD:"
+
+msgid "Software-initiated poweroff device (IBM 5140)"
+msgstr "Пристрій програмного вимкнення живлення (IBM 5140)"

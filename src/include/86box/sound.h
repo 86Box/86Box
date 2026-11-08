@@ -162,7 +162,6 @@ extern int         sound_card_has_input(int card);
 extern const char *sound_card_get_internal_name(int card);
 extern int         sound_card_get_from_internal_name(const char *s);
 extern void        sound_card_init(void);
-extern void        sound_set_cd_volume(unsigned int vol_l, unsigned int vol_r);
 
 extern void sound_speed_changed(void);
 
@@ -207,15 +206,20 @@ extern bool        fast_forward;
 extern unsigned long long src_freqs[I_MAX];
 
 extern void        givealbuffer_common(const void *buf, const uint8_t src, const int size);
+/* Hands a block to the host backend, and first to the automation socket's
+   audio capture when it is built in. size counts values (2 per frame). */
+extern void        sound_give(const void *buf, const uint8_t src, const int size);
+extern int         sound_pending_frames(const uint8_t src);
+extern int         sound_stream_rate(const uint8_t src);
 
-#define givealbuffer(b)         givealbuffer_common(b, I_NORMAL, (sound_sample_rate / 50) << 1)
-#define givealbuffer_music(b)   givealbuffer_common(b, I_MUSIC, MUSICBUFLEN << 1)
-#define givealbuffer_ym2151(b)  givealbuffer_common(b, I_YM2151, YM2151BUFLEN << 1)
-#define givealbuffer_wt(b)      givealbuffer_common(b, I_WT, WTBUFLEN << 1)
-#define givealbuffer_cd(b)      givealbuffer_common(b, I_CD, CD_BUFLEN << 1)
-#define givealbuffer_fdd(b, s)  givealbuffer_common(b, I_FDD, s)
-#define givealbuffer_hdd(b, s)  givealbuffer_common(b, I_HDD, s)
-#define givealbuffer_midi(b, s) givealbuffer_common(b, I_MIDI, s)
+#define givealbuffer(b)         sound_give(b, I_NORMAL, (sound_sample_rate / 50) << 1)
+#define givealbuffer_music(b)   sound_give(b, I_MUSIC, MUSICBUFLEN << 1)
+#define givealbuffer_ym2151(b)  sound_give(b, I_YM2151, YM2151BUFLEN << 1)
+#define givealbuffer_wt(b)      sound_give(b, I_WT, WTBUFLEN << 1)
+#define givealbuffer_cd(b)      sound_give(b, I_CD, CD_BUFLEN << 1)
+#define givealbuffer_fdd(b, s)  sound_give(b, I_FDD, s)
+#define givealbuffer_hdd(b, s)  sound_give(b, I_HDD, s)
+#define givealbuffer_midi(b, s) sound_give(b, I_MIDI, s)
 
 #define sb_vibra16c_onboard_relocate_base sb_vibra16s_onboard_relocate_base
 #define sb_vibra16cl_onboard_relocate_base sb_vibra16s_onboard_relocate_base
@@ -349,6 +353,7 @@ extern const device_t imfc_device;
 
 /* IBM PS/1 Audio Card */
 extern const device_t ps1snd_device;
+extern const device_t ps1midi_device;
 
 /* Innovation SSI-2001 */
 extern const device_t ssi2001_device;
@@ -360,6 +365,9 @@ extern const device_t mmb_device;
 /* Media Vision */
 extern const device_t thunderboard_device;
 extern const device_t jazz16_device;
+
+/* Oak Technology OTI-601 */
+extern const device_t mozart_device;
 
 /* OPTi 82c93x */
 extern const device_t acermagic_s20_device;
@@ -388,6 +396,8 @@ extern const device_t pssj_1e0_device;
 extern const device_t tndy_device;
 
 /* Tandy Sensation */
+#define SENSATION_TANDY_VIS 0x01 /* VIS wiring: VIS DAC on IRQ 7 */
+
 extern const device_t sensationaud_device;
 
 /* TexElec SAAYM */

@@ -91,8 +91,10 @@ scsi_device_request_sense(scsi_device_t *dev, uint8_t *buffer, uint8_t alloc_len
 {
     if (dev->request_sense)
         dev->request_sense(dev->sc, buffer, alloc_length);
-    else
-        memcpy(buffer, scsi_null_device_sense, alloc_length);
+    else {
+        memset(buffer, 0, alloc_length);
+        memcpy(buffer, scsi_null_device_sense, MIN(alloc_length, sizeof(scsi_null_device_sense)));
+    }
 }
 
 void

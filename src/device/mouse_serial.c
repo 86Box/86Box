@@ -98,7 +98,7 @@ typedef struct mouse_t {
 
     pc_timer_t timer;
 
-    serial_t *serial;
+    ser_port_t *serial;
 } mouse_t;
 
 #define FLAG_INPORT  0x80 /* device is MS InPort */
@@ -159,7 +159,7 @@ sermouse_transmit_byte(mouse_t *dev, int do_next)
             dev->buf[4] = delta_y; /* same as byte 2 */
         }
 
-        serial_write_fifo(dev->serial, dev->buf[dev->buf_pos]);
+        serial_port_receive(dev->serial, dev->buf[dev->buf_pos]);
     }
 
     if (do_next) {
@@ -413,7 +413,7 @@ sermouse_report(mouse_t *dev)
 static void
 sermouse_transmit_report(mouse_t *dev, int from_report)
 {
-    if (mouse_capture && mouse_state_changed())
+    if ((mouse_capture || mouse_automation) && mouse_state_changed())
         sermouse_transmit(dev, sermouse_report(dev), from_report, 1);
     else {
         if (dev->prompt || dev->continuous)
@@ -441,7 +441,7 @@ sermouse_poll(void *priv)
 {
     mouse_t *dev = (mouse_t *) priv;
 
-    if (!mouse_capture || dev->prompt || !dev->continuous || (dev->state != STATE_IDLE))
+    if (!(mouse_capture || mouse_automation) || dev->prompt || !dev->continuous || (dev->state != STATE_IDLE))
         return 1;
 
     sermouse_transmit_report(dev, 0);

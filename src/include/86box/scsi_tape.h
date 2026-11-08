@@ -40,8 +40,8 @@ enum {
 #define TAPE_DRIVE_TYPE_ATAPI      TAPE_BUS_ATAPI
 #define TAPE_DRIVE_TYPE_SCSI       TAPE_BUS_SCSI
 #define TAPE_DRIVE_TYPE_FDC        TAPE_BUS_FDC
-#define TAPE_DRIVE_TYPE_SCSI_ATAPI -2
-#define TAPE_DRIVE_TYPE_NONE       -1
+#define TAPE_DRIVE_TYPE_SCSI_ATAPI (-2)
+#define TAPE_DRIVE_TYPE_NONE       (-1)
 
 /* Tape media type definitions. */
 typedef struct tape_type_t {
@@ -51,28 +51,44 @@ typedef struct tape_type_t {
     uint8_t     density_code;
 } tape_type_t;
 
+// TODO: Find other tape types
 #define KNOWN_TAPE_TYPES 20
 static const tape_type_t tape_types[KNOWN_TAPE_TYPES] = {
-    { "QIC-150",    157286400ULL, 512, 0x10 },
-    { "QIC-525",    549978112ULL, 512, 0x11 },
-    { "QIC-1000",  1073741824ULL, 512, 0x12 },
-    { "DDS-3",    12000000000ULL, 512, 0x25 },
-    { "DDS-4",    20000000000ULL, 512, 0x26 },
-    { "DAT-72",   36000000000ULL, 512, 0x47 },
-    { "DDS-2",     4000000000ULL, 512, 0x24 },
-    { "Ditto 2 GB",              1184366592ULL, 512, 0 },
-    { "Ditto 3 GB",              1776549888ULL, 512, 0 },
-    { "Ditto 5 GB",              2963275776ULL, 512, 0 },
-    { "Ditto Max 7 GB",          4147642368ULL, 512, 0 },
-    { "QIC-80, DC-2080 (205 ft)",  91750400ULL, 512, 0 },
-    { "QIC-80, DC-2120 (307.5 ft)",137625600ULL, 512, 0 },
-    { "QIC-80, 425 ft",           189923328ULL, 512, 0 },
-    { "QIC-80, 1100 ft",          492699648ULL, 512, 0 },
-    { "QIC-3010 (255 MB)",        281804800ULL, 512, 0 },
-    { "QIC-3020 (500 MB)",        553123840ULL, 512, 0 },
-    { "Travan TR-1 (400 MB)",     431751168ULL, 512, 0 },
-    { "Travan TR-2 (800 MB)",     707788800ULL, 512, 0 },
-    { "Travan TR-3 (1.6 GB)",    1389363200ULL, 512, 0 },
+    { "QIC-150",                      157286400ULL, 512, 0x10 },
+    { "QIC-525",                      549978112ULL, 512, 0x11 },
+    { "QIC-1000",                    1073741824ULL, 512, 0x12 },
+    { "DDS-3",                      12000000000ULL, 512, 0x25 },
+    { "DDS-4",                      20000000000ULL, 512, 0x26 },
+    { "DAT-72",                     36000000000ULL, 512, 0x47 },
+    { "DDS-2",                       4000000000ULL, 512, 0x24 },
+    { "Ditto 2 GB",                  1184366592ULL, 512, 0    },
+    { "Ditto 3 GB",                  1776549888ULL, 512, 0    }, // Max
+#if 0
+    // Not yet checked/correct
+    { "Ditto 3.7 GB",                2368733184ULL, 512, 0    },
+#endif
+    { "Ditto 5 GB",                  2963275776ULL, 512, 0    }, // Max
+    { "Ditto Max 7 GB",              4147642368ULL, 512, 0    },
+#if 0
+    // Not yet checked/correct
+    { "Ditto Max 10 GB",             5921832960ULL, 512, 0    },
+#endif
+    { "QIC-80, DC-2080 (205 ft)",      91750400ULL, 512, 0    },
+    { "QIC-80, DC-2120 (307.5 ft)",   137625600ULL, 512, 0    },
+    { "QIC-80, 425 ft",               189923328ULL, 512, 0    },
+    { "QIC-80, 1100 ft",              492699648ULL, 512, 0    },
+// QIC-3000
+    { "QIC-3010 (255 MB)",            281804800ULL, 512, 0    },
+    { "QIC-3020 (500 MB)",            553123840ULL, 512, 0    },
+    { "Travan TR-1 (400 MB)",         431751168ULL, 512, 0    },
+    { "Travan TR-2 (800 MB)",         707788800ULL, 512, 0    },
+    { "Travan TR-3 (1.6 GB)",        1389363200ULL, 512, 0    },
+#if 0
+    // Not yet checked/correct
+    { "Travan TR-4 (4 GB)",          4000000000ULL, 512, 0    },
+    { "Travan TR-5 / NS20 (10 GB)", 10000000000ULL, 512, 0    },
+    { "Travan TR-7 (20 GB)",        20000000000ULL, 512, 0    },
+#endif
 };
 
 /* Tape drive type definitions. */

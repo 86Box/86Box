@@ -151,6 +151,12 @@ msgstr "Heltallsskala"
 msgid "4:&3 Integer scale"
 msgstr "4:&3 Heltallsskala"
 
+msgid "&Center"
+msgstr ""
+
+msgid "4:3 Cen&ter"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Invertert VGA-skjerm"
 
@@ -234,9 +240,6 @@ msgstr "L&yd"
 
 msgid "&Preferences…"
 msgstr "&Valg…"
-
-msgid "Enable &Discord integration"
-msgstr "Aktiver &Discord-integrasjon"
 
 msgid "Sound &gain…"
 msgstr "Lyd&forsterkning…"
@@ -412,17 +415,35 @@ msgstr "MB"
 msgid "Memory:"
 msgstr "Minne:"
 
-msgid "Time synchronization"
-msgstr "Tids-synkronisering"
+msgid "Synchronize with host clock"
+msgstr ""
 
-msgid "Disabled"
-msgstr "Deaktivert"
+msgid "Time zone:"
+msgstr ""
 
-msgid "Enabled (local time)"
-msgstr "Aktivert (lokal tid)"
+msgid "Local"
+msgstr ""
 
-msgid "Enabled (UTC)"
-msgstr "Aktivert (UTC)"
+msgid "UTC"
+msgstr ""
+
+msgid "Date:"
+msgstr ""
+
+msgid "Match the host"
+msgstr ""
+
+msgid "Offset the year by:"
+msgstr ""
+
+msgid "(currently %1)"
+msgstr ""
+
+msgid "Always use the year:"
+msgstr ""
+
+msgid "Do not synchronize the date"
+msgstr ""
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Bruk 486-tolken for 286- og 386-prosessorer"
@@ -431,6 +452,12 @@ msgid "Dynamic recompiler"
 msgstr "Dynamisk recompilator"
 
 msgid "Accurate FPU environment on the dynamic recompiler"
+msgstr ""
+
+msgid "Block linking on the dynamic recompiler"
+msgstr "Blokklenking på dynamisk recompilator"
+
+msgid "Debug registers on 486 and later processors"
 msgstr ""
 
 msgid "CPU frame size"
@@ -462,6 +489,9 @@ msgstr "XGA-grafikk"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 skjermadapter-grafikk"
+
+msgid "PowerVR PCX1/PCX2 Graphics"
+msgstr ""
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -624,6 +654,12 @@ msgstr "Kontroller 4:"
 
 msgid "Cassette"
 msgstr "Kassett"
+
+msgid "Turbo IDE"
+msgstr ""
+
+msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
+msgstr ""
 
 msgid "Hard disks:"
 msgstr "Harddisker:"
@@ -1277,6 +1313,35 @@ msgstr "Bruk regulære uttrykk i søkeboksen"
 
 msgid "Delete virtual machines to Recycle Bin"
 msgstr ""
+
+msgid "Discord"
+msgstr ""
+
+msgid "Show running machines in my Discord status"
+msgstr ""
+
+msgid "Details shown:"
+msgstr ""
+
+msgid "Machine name and hardware"
+msgstr ""
+
+msgid "Hardware only"
+msgstr ""
+
+msgid "No details"
+msgstr ""
+
+msgid "Using %1"
+msgstr ""
+
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] ""
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] ""
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
@@ -3079,6 +3144,9 @@ msgstr "Inntasting"
 msgid "Key bindings"
 msgstr "Tastebindinger"
 
+msgid "VM Manager"
+msgstr ""
+
 msgid "Action"
 msgstr "Handling"
 
@@ -3593,4 +3661,22 @@ msgid "Prepare PCI devices for VFIO passthrough"
 msgstr ""
 
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
+msgstr ""
+
+msgid "Disabled"
+msgstr ""
+
+msgid "Unlimited capacity"
+msgstr ""
+
+msgid "CD speed:"
+msgstr ""
+
+msgid "DVD speed:"
+msgstr ""
+
+msgid "HD/BD speed:"
+msgstr ""
+
+msgid "Software-initiated poweroff device (IBM 5140)"
 msgstr ""

@@ -21,6 +21,10 @@ add_library(vid OBJECT
     video.c
     vid_table.c
 
+    # PowerVR PCX1/PCX2 add-on
+    vid_powervr_pcx.c
+    vid_powervr_pcx_render.c
+
     # RAMDAC (Should this be its own library?)
     ramdac/vid_ramdac_ati68860.c
     ramdac/vid_ramdac_ati68875.c 
@@ -72,8 +76,10 @@ add_library(vid OBJECT
 
     # PCjr/PC JX/Tandy
     vid_pcjr.c
+    vid_pcjr_comp.c
     vid_pcjx.c
-    vid_tandy.c
+    vid_tandy1k.c
+    vid_tandy2k.c
 
     # Hercules
     vid_mda.c
@@ -84,6 +90,7 @@ add_library(vid OBJECT
     # Other early CGA-era cards
     vid_3270pc.c
     vid_genius.c
+    vid_cyrix_gxm.c
     vid_sigma.c
 
     # PGC / IM1024 / WY700 high-resolution
@@ -120,6 +127,8 @@ add_library(vid OBJECT
     vid_ati_mach64.c
     vid_ati_mach64_accel.c
     vid_ati_mach64_3d.c
+    vid_ati_mach64_ragepro.c
+    vid_ati_mach64_idct.c
     vid_ati_rage128.c
     vid_ati_rage128_vga.c
     vid_ati_rage128_display.c
@@ -137,6 +146,7 @@ add_library(vid OBJECT
     vid_ati_rage128_maxx.c
 
     # Chips & Technologies
+    vid_chips_45x.c
     vid_chips_69000.c
 
     # Cirrus Logic
@@ -154,6 +164,7 @@ add_library(vid OBJECT
     # Paradise
     vid_paradise.c
     vid_wd90c31.c
+    vid_wd90c33.c
     vid_rtg310x.c
     vid_f82c425.c
     vid_ti_cf62011.c
@@ -166,6 +177,12 @@ add_library(vid OBJECT
     vid_s3.c 
     vid_s3_virge.c
 
+    # Weitek
+    vid_p9100.c
+
+    # SiS
+    vid_sis6306.c
+
     # Matrox
     vid_mga.c
 
@@ -175,6 +192,7 @@ add_library(vid OBJECT
     # Generic
     vid_bochs_vbe.c
     vid_hd44780.c
+    vid_tandy_vis.c
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")
@@ -185,6 +203,12 @@ if(G100)
     target_compile_definitions(vid PRIVATE USE_G100)
 endif()
 
+# PowerVR PCX: chip, revision, interrupt-ack, render-time and debug settings
+# for testing against hardware; ordinary builds use the measured m3D values.
+if(POWERVR_PCX_DEV)
+    target_compile_definitions(vid PRIVATE USE_POWERVR_PCX_DEV)
+endif()
+
 if(XL24)
     target_compile_definitions(vid PRIVATE USE_XL24)
 endif()
@@ -193,7 +217,7 @@ if(RAGE128_MAXX)
     target_compile_definitions(vid PRIVATE USE_RAGE128_MAXX)
 endif()
 
-option(ENABLE_RAGE128_LOG "Enable ATI Rage 128 debug logging" OFF)
+option(ENABLE_RAGE128_LOG "Turn ATI Rage 128 logging on by default (RAGE128_LOG overrides it at run time)" OFF)
 if(ENABLE_RAGE128_LOG)
     set_property(SOURCE
         vid_ati_rage128.c

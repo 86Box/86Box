@@ -407,20 +407,25 @@ r3d_decode_vertex(uint32_t fmt, const uint32_t *d, r3d_vtx_t *v)
 }
 
 /* Mark the VRAM pages of [addr, addr + len) changed for the display.
-   Runs on the raster workers and the CCE thread without a lock: every
-   writer stores the same value, and the only read-modify-write from
-   another thread (the decrement in svga_poll) can at worst lose one mark
-   until the page is written again. */
+   Runs on the raster workers, the GPU span capture's partitions and the
+   CCE thread without a lock: every writer stores the same value, and the
+   only read-modify-write from another thread (the decrement in
+   svga_poll) can at worst lose one mark until the page is written again.
+   The stores are relaxed atomics, plain byte stores on every host, so
+   two of these writers on one page are not a data race. */
 static void
 r3d_mark_dirty(rage128_t *dev, uint32_t addr, uint32_t len)
 {
     svga_t *svga = &dev->svga;
+    uint8_t v    = (uint8_t) svga->monitor->mon_changeframecount;
 
     /* Step by length and mask each address, so a run that wraps past
        the end of VRAM marks the pages it really touches. */
     for (uint32_t o = 0; o < len; o += 0x1000u)
-        svga->changedvram[((addr + o) & dev->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
-    svga->changedvram[((addr + len - 1u) & dev->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
+        __atomic_store_n(&svga->changedvram[((addr + o) & dev->vram_mask) >> 12], v,
+                         __ATOMIC_RELAXED);
+    __atomic_store_n(&svga->changedvram[((addr + len - 1u) & dev->vram_mask) >> 12], v,
+                     __ATOMIC_RELAXED);
 }
 
 /* Mark the pixels [rx0, rx1] of color row py changed. drow is the row's
@@ -903,6 +908,18 @@ r3d_texel(const uint8_t *texbase, uint32_t base, uint32_t mask, uint32_t lw, uin
             p     = &texbase[(base + R3D_TOFF((uint32_t) u, lw)) & mask];
             texel = *p;
             return (texel << 24) | (texel << 16) | (texel << 8) | texel | amask;
+        case 13: /* Not documented: none of the guides lists datatype 13.
+                    Modeled as 16 bpp alpha and intensity (8:8), alpha in
+                    the high byte and the intensity in the low byte,
+                    copied to R, G and B. That layout is what captured
+                    Windows 98 OpenGL traffic shows: 2 bytes per texel by
+                    the mip level offsets, and in a font texture the low
+                    byte holds the white glyphs while the high byte holds
+                    the glyphs plus their shadow outline, the coverage the
+                    blend needs. */
+            p     = &texbase[(base + R3D_TOFF((uint32_t) u * 2u, lw * 2u)) & mask];
+            texel = *(const uint16_t *) p;
+            return ((texel & 0xff00u) << 16) | ((texel & 0xffu) * 0x010101u) | amask;
         case 11: /* YUV 422 packed (VYUY): bytes Y0 U Y1 V, two texels */
         case 12:
             { /* YUV 422 packed (YVYU): bytes U Y0 V Y1. The guides
@@ -998,6 +1015,8 @@ r3d_ck_to_argb(uint32_t dt, uint32_t v)
             return 0xff000000 | ((v & 0xff) * 0x00010101u);
         case 9: /* RGB8 */
             return (v & 0xff) * 0x01010101u;
+        case 13: /* alpha and intensity 8:8, the texel fetch's mapping */
+            return ((v & 0xff00u) << 16) | ((v & 0xffu) * 0x010101u);
         case 11: /* YUV texels compare after conversion to RGB. The matrix
                     clamps, so two YUV keys can map to the same RGB
                     value. The key holds one texel: Y, U, (unused), V
@@ -1144,6 +1163,24 @@ r3d_stage_slot(rage128_t *dev, const rage128_raster_state_t *rs, int st,
         }
     }
     return sl;
+}
+
+void
+rage128_3d_slot_descs(rage128_t *dev, const rage128_raster_state_t *rs,
+                      r3d_stage_desc_t *sd0, r3d_stage_desc_t *sd1)
+{
+    const rage128_draw_state_t *ds = &rs->d;
+
+    if (ds->tex_en) {
+        r3d_stage_desc_init(rs, 0, sd0);
+        for (int sl = 0; sl <= ds->sh[0].top; sl++)
+            r3d_stage_slot(dev, rs, 0, sd0, sl);
+    }
+    if (ds->sec_en) {
+        r3d_stage_desc_init(rs, 1, sd1);
+        for (int sl = 0; sl <= ds->sh[1].top; sl++)
+            r3d_stage_slot(dev, rs, 1, sd1, sl);
+    }
 }
 
 /* Blend two ARGB8888 colors by w in [0, 256], two 8-bit lanes per
@@ -1951,35 +1988,31 @@ rage128_texstage_run(void *tcv, float w0, float w1, float w2, float *col)
    the piece. The block sees only a different x range and base.
 
    The split gives exactly the output of an unsplit walk: the edge seeds
-   are 64-bit integers, exact under multiplication, and the depth seed is
-   advanced by the same repeated add the block does per pixel, never by a
-   multiply. Returns the row's written column range, packed as the block
-   packs it. Exported because the JIT verify mode drives blocks through
-   this same walk.
+   and the fixed-point depth seed are 64-bit integers, so a piece's seeds
+   are the row's seeds plus k steps, the same values the block reaches
+   by stepping. Returns the row's written column range, packed as the
+   block packs it. Exported because the JIT verify mode drives blocks
+   through this same walk.
 
    The walked range is the triangle's (scissored) bounding box, so most
    pieces of a row hold no covered pixel. When the span is the GPU lane's
    capture, the row's covered columns [cl, ch] are known up front from the
    same exact integer edge clip the capture applies per piece, and the
    walk uses them: a row with none returns at once; a piece wholly left
-   of cl still advances the depth seed (the covered pieces' seeds depend
-   on those adds) but is not called, since its capture would reject it
-   with no effect; and the walk stops after the piece holding ch, since no
-   later piece is called and nothing reads the seed past it. Every piece
-   that is called receives the same seed from the same adds in the same
-   order, so the captured spans are unchanged. The JIT blocks report the
+   of cl is not called, since its capture would reject it with no
+   effect; and the walk stops after the piece holding ch, since no later
+   piece is called. The JIT blocks report the
    range they wrote (after the depth and alpha tests), not coverage, so
    for them the bounds stay the whole row. */
 uint64_t
 rage128_3d_jit_row(r128_jit_tri_t *jt, r128_jit_span_fn jfn, int64_t e0, int64_t e1,
-                   int64_t e2, double zline, uint32_t drow, uint32_t zrow, int32_t py,
+                   int64_t e2, int64_t zline, uint32_t drow, uint32_t zrow, int32_t py,
                    int c_tld, int z_tld, uint32_t bpp, uint32_t zbpp)
 {
     int32_t xs  = jt->x0;
     int32_t xe  = jt->x1;
     int32_t rx0 = -1, rx1 = -1;
     int32_t cl = xs, ch = xe; /* covered columns: whole row unless known */
-    double  zc = zline;
 
     if (!c_tld && !z_tld)
         return jfn(jt, e0, e1, e2, zline, drow, zrow, py);
@@ -2017,7 +2050,7 @@ rage128_3d_jit_row(r128_jit_tri_t *jt, r128_jit_span_fn jfn, int64_t e0, int64_t
             jt->x0 = xa;
             jt->x1 = xb;
             r      = jfn(jt, e0 + k * jt->e0dxi, e1 + k * jt->e1dxi, e2 + k * jt->e2dxi,
-                         zc, cb, zb, py);
+                         zline + k * jt->dzx, cb, zb, py);
             jr0    = (int32_t) (uint32_t) r;
             if (jr0 >= 0) {
                 if (rx0 < 0)
@@ -2026,16 +2059,9 @@ rage128_3d_jit_row(r128_jit_tri_t *jt, r128_jit_span_fn jfn, int64_t e0, int64_t
             }
         }
         /* nothing past the piece holding the last covered column is
-           called, so its seed is never read */
+           called */
         if (xb >= ch)
             break;
-        /* advance the depth DDA exactly as the block did, pixel by pixel
-           (a multiply here could differ in the last bit), but only when
-           another piece follows: nothing reads the seed past the last
-           piece, and most rows are a single piece */
-        if (xb < xe)
-            for (int32_t i = xa; i <= xb; i++)
-                zc += jt->dZdx;
         xa = xb + 1;
     }
     jt->x0 = xs;
@@ -2250,7 +2276,7 @@ typedef struct r3d_setup_t {
     int64_t e0dxi, e0dyi, e1dxi, e1dyi, e2dxi, e2dyi, e0ri, e1ri, e2ri;
     int     e0b, e1b, e2b; /* 1 where the fill rule biased that edge */
     float   invs;
-    double  zr_d, dZdx, dZdy;
+    int64_t z0fx, dzx, dzy; /* depth plane, fixed point (r128_zfx) */
     float   vca[4], vcb[4], vcc[4];
     float   spa[3], spb[3], spc[3];
     float   fga, fgb, fgc;
@@ -2470,8 +2496,21 @@ r3d_setup(rage128_t *dev, const rage128_raster_state_t *rs,
            per-triangle interpolants and sampler descriptors that
            rage128_texstage_run uses per pixel, called from here or from a
            compiled span through jt->texctx. */
-        int premult = ds->premult;
-        int dither  = ds->dither;
+        /* The S*W multiply of SETUP_CNTL TEXTURE_ST_FORMAT 0 is the first
+           half of perspective correction, and the per-pixel divide by the
+           interpolated W is the second. A stage with perspective correction
+           off (PRIM_TEX_PERSPECTIVE_DIS, and for the secondary stage its
+           own SEC_TEX_PERSPECTIVE_DIS; CCE 3D supplement, PRIM_TEX_CNTL_C
+           and SEC_TEX_CNTL_C) skips the divide, so it also skips the
+           multiply and interpolates S and T as stored. The guide does not
+           spell this pairing out; it is modeled on the Windows Direct3D
+           driver, which sends screen-space quads with perspective off,
+           TEXTURE_ST_FORMAT 0, raw coordinates and a W other than 1, and
+           expects them sampled unscaled. Multiplying without the divide
+           would scale every such coordinate by W. */
+        int premult  = ds->premult && ds->do_persp;
+        int premult2 = ds->premult && (ds->do_persp ^ ds->sec_persp_diff);
+        int dither   = ds->dither;
 
         {
             const r3d_vtx_t *vv[3]   = { a, b, c };
@@ -2520,35 +2559,53 @@ r3d_setup(rage128_t *dev, const rage128_raster_state_t *rs,
         /* The secondary stage's W: rhw2 under SEC_SRC_SEL_W, else the
            vertex rhw (see sel_w in r3d_draw_state_derive). Under
            premult the second coordinate set is multiplied by it, as
-           the first set is by rhw. */
+           the first set is by rhw. Under sec_first the second set's
+           interpolants are built from the first set's raw coordinates
+           instead (see sec_first in r3d_draw_state_derive). */
+        const float rs2a = ds->sec_first ? a->s : a->s2;
+        const float rs2b = ds->sec_first ? b->s : b->s2;
+        const float rs2c = ds->sec_first ? c->s : c->s2;
+        const float rt2a = ds->sec_first ? a->t : a->t2;
+        const float rt2b = ds->sec_first ? b->t : b->t2;
+        const float rt2c = ds->sec_first ? c->t : c->t2;
+
         tctx->a2rhw = ds->sel_w ? a->rhw2 : a->rhw;
         tctx->b2rhw = ds->sel_w ? b->rhw2 : b->rhw;
         tctx->c2rhw = ds->sel_w ? c->rhw2 : c->rhw;
-        tctx->s2a = premult ? a->s2 * tctx->a2rhw : a->s2;
-        tctx->s2b = premult ? b->s2 * tctx->b2rhw : b->s2;
-        tctx->s2c = premult ? c->s2 * tctx->c2rhw : c->s2;
-        tctx->t2a = premult ? a->t2 * tctx->a2rhw : a->t2;
-        tctx->t2b = premult ? b->t2 * tctx->b2rhw : b->t2;
-        tctx->t2c = premult ? c->t2 * tctx->c2rhw : c->t2;
-        if (premult && (ds->wrap_s0 | ds->wrap_t0 | ds->wrap_s1 | ds->wrap_t1)) {
+        tctx->s2a = premult2 ? rs2a * tctx->a2rhw : rs2a;
+        tctx->s2b = premult2 ? rs2b * tctx->b2rhw : rs2b;
+        tctx->s2c = premult2 ? rs2c * tctx->c2rhw : rs2c;
+        tctx->t2a = premult2 ? rt2a * tctx->a2rhw : rt2a;
+        tctx->t2b = premult2 ? rt2b * tctx->b2rhw : rt2b;
+        tctx->t2c = premult2 ? rt2c * tctx->c2rhw : rt2c;
+        if (ds->premult && (ds->wrap_s0 | ds->wrap_t0 | ds->wrap_s1 | ds->wrap_t1)) {
             /* Cylindrical wrap works on the raw coordinate, the stored value
-               when SETUP_CNTL TEXTURE_ST_FORMAT is 0 and the setup engine
-               multiplies by w; one period is +1.0 raw, which is +rhw on the
-               s/w interpolant. With TEXTURE_ST_FORMAT set (coordinates
-               already multiplied by w) "texture wrapping is not available"
-               (CCE 3D supplement, SETUP_CNTL), so the wrap enables are left
-               unapplied and the stored coordinates interpolate as they are. */
+               when SETUP_CNTL TEXTURE_ST_FORMAT is 0; one period is +1.0
+               raw. On a stage the setup engine multiplies by w that is +rhw
+               on the s/w interpolant, and on a stage with perspective
+               correction off (no multiply, see above) it is +1.0. With
+               TEXTURE_ST_FORMAT set (coordinates already multiplied by w)
+               "texture wrapping is not available" (CCE 3D supplement,
+               SETUP_CNTL), so the wrap enables are left unapplied and the
+               stored coordinates interpolate as they are. */
+            float pa  = premult ? a->rhw : 1.0f;
+            float pb  = premult ? b->rhw : 1.0f;
+            float pc  = premult ? c->rhw : 1.0f;
+            float pa2 = premult2 ? tctx->a2rhw : 1.0f;
+            float pb2 = premult2 ? tctx->b2rhw : 1.0f;
+            float pc2 = premult2 ? tctx->c2rhw : 1.0f;
+
             if (ds->wrap_s0)
-                r3d_cyl_wrap(a->s, b->s, c->s, a->rhw, b->rhw, c->rhw,
+                r3d_cyl_wrap(a->s, b->s, c->s, pa, pb, pc,
                              &tctx->sta, &tctx->stb, &tctx->stc);
             if (ds->wrap_t0)
-                r3d_cyl_wrap(a->t, b->t, c->t, a->rhw, b->rhw, c->rhw,
+                r3d_cyl_wrap(a->t, b->t, c->t, pa, pb, pc,
                              &tctx->tta, &tctx->ttb, &tctx->ttc);
             if (ds->wrap_s1)
-                r3d_cyl_wrap(a->s2, b->s2, c->s2, tctx->a2rhw, tctx->b2rhw, tctx->c2rhw,
+                r3d_cyl_wrap(rs2a, rs2b, rs2c, pa2, pb2, pc2,
                              &tctx->s2a, &tctx->s2b, &tctx->s2c);
             if (ds->wrap_t1)
-                r3d_cyl_wrap(a->t2, b->t2, c->t2, tctx->a2rhw, tctx->b2rhw, tctx->c2rhw,
+                r3d_cyl_wrap(rt2a, rt2b, rt2c, pa2, pb2, pc2,
                              &tctx->t2a, &tctx->t2b, &tctx->t2c);
         }
         tctx->arhw = a->rhw;
@@ -2575,16 +2632,19 @@ r3d_setup(rage128_t *dev, const rage128_raster_state_t *rs,
             tctx->dW2dx = inv * (tctx->a2rhw * e0dx + tctx->b2rhw * e1dx + tctx->c2rhw * e2dx);
             tctx->dW2dy = inv * (tctx->a2rhw * e0dy + tctx->b2rhw * e1dy + tctx->c2rhw * e2dy);
         }
-        /* Depth runs on its own double-precision DDA, not on the float
-           barycentric weights. Window z is linear in screen space, so a
-           plane DDA gives it exactly up to rounding, and stepping it in
-           double keeps the drift below 0.001 LSB of a 24-bit Z. dZdx and
+        /* Depth is its own plane, not the float barycentric weights.
+           Window z is linear in screen space, so the plane gives it
+           exactly up to the fixed-point rounding (see r128_zfx). dZdx and
            dZdy come from the exact integer edge gradients (the subpixel
            scale cancels against invd); the row seed zr_d was taken above
-           from the integer row seeds before the fill-rule bias. The chip's
-           depth precision is not documented. */
-        double dZdx = ((double) e0dxi * azd + (double) e1dxi * bzd + (double) e2dxi * czd) * invd;
-        double dZdy = ((double) e0dyi * azd + (double) e1dyi * bzd + (double) e2dyi * czd) * invd;
+           from the integer row seeds before the fill-rule bias. All three
+           are converted to fixed point once here, and every renderer
+           steps the converted values. */
+        double  dZdx = ((double) e0dxi * azd + (double) e1dxi * bzd + (double) e2dxi * czd) * invd;
+        double  dZdy = ((double) e0dyi * azd + (double) e1dyi * bzd + (double) e2dyi * czd) * invd;
+        int64_t z0fx = r128_zfx(zr_d, R128_ZFX_SEED_LIM);
+        int64_t dzx  = r128_zfx(dZdx, R128_ZFX_GRAD_LIM);
+        int64_t dzy  = r128_zfx(dZdy, R128_ZFX_GRAD_LIM);
         /* Gradients of the second coordinate set, for the secondary stage's
            LOD. They are computed only when that stage samples the second set
            (sec_sel); otherwise it uses the first set's gradients above. */
@@ -2655,7 +2715,27 @@ r3d_setup(rage128_t *dev, const rage128_raster_state_t *rs,
             jt->e0b       = e0b;
             jt->e1b       = e1b;
             jt->e2b       = e2b;
-            jt->dZdx      = dZdx;
+            jt->dzx       = dzx;
+            {
+                /* the row walk's value at column x0 of row y0 is the
+                   seed, so the value at (0, 0) steps back from it */
+                uint64_t s0 = (uint64_t) e0ri - (uint64_t) y0 * (uint64_t) e0dyi
+                    - (uint64_t) x0 * (uint64_t) e0dxi;
+                uint64_t s1 = (uint64_t) e1ri - (uint64_t) y0 * (uint64_t) e1dyi
+                    - (uint64_t) x0 * (uint64_t) e1dxi;
+                uint64_t s2 = (uint64_t) e2ri - (uint64_t) y0 * (uint64_t) e2dyi
+                    - (uint64_t) x0 * (uint64_t) e2dxi;
+
+                jt->e0o   = (int64_t) (jneg ? 0u - s0 : s0);
+                jt->e1o   = (int64_t) (jneg ? 0u - s1 : s1);
+                jt->e2o   = (int64_t) (jneg ? 0u - s2 : s2);
+                jt->e0dyi = (int64_t) (jneg ? 0u - (uint64_t) e0dyi : (uint64_t) e0dyi);
+                jt->e1dyi = (int64_t) (jneg ? 0u - (uint64_t) e1dyi : (uint64_t) e1dyi);
+                jt->e2dyi = (int64_t) (jneg ? 0u - (uint64_t) e2dyi : (uint64_t) e2dyi);
+                jt->zo    = (int64_t) ((uint64_t) z0fx - (uint64_t) y0 * (uint64_t) dzy
+                                       - (uint64_t) x0 * (uint64_t) dzx);
+                jt->dzy   = dzy;
+            }
             memcpy(jt->vca, vca, sizeof(jt->vca));
             memcpy(jt->vcb, vcb, sizeof(jt->vcb));
             memcpy(jt->vcc, vcc, sizeof(jt->vcc));
@@ -2741,9 +2821,9 @@ r3d_setup(rage128_t *dev, const rage128_raster_state_t *rs,
         st->e1b      = e1b;
         st->e2b      = e2b;
         st->invs     = invs;
-        st->zr_d     = zr_d;
-        st->dZdx     = dZdx;
-        st->dZdy     = dZdy;
+        st->z0fx     = z0fx;
+        st->dzx      = dzx;
+        st->dzy      = dzy;
         memcpy(st->vca, vca, sizeof(vca));
         memcpy(st->vcb, vcb, sizeof(vcb));
         memcpy(st->vcc, vcc, sizeof(vcc));
@@ -2777,6 +2857,8 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
 
     if (!r3d_setup(dev, rs, a, b, c, jfn, ln, &st, &tctx, &jt))
         return;
+    if (jfn == rage128_gpu_capture_span)
+        rage128_gpu_capture_begin(dev, &tctx, &jt, thr_id);
     {
         /* the loop's locals, copied from the setup */
         uint32_t dst_dt   = st.dst_dt;
@@ -2823,7 +2905,7 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
         int64_t      e1bias = st.e1b ? ((area2i > 0) ? -1 : 1) : 0;
         int64_t      e2bias = st.e2b ? ((area2i > 0) ? -1 : 1) : 0;
         float        invs   = st.invs;
-        double       zr_d = st.zr_d, dZdx = st.dZdx, dZdy = st.dZdy;
+        int64_t      zr_fx = st.z0fx, dzx = st.dzx, dzy = st.dzy;
         const float *vca = st.vca, *vcb = st.vcb, *vcc = st.vcc;
         const float *spa = st.spa, *spb = st.spb, *spc = st.spc;
         float        fga = st.fga, fgb = st.fgb, fgc = st.fgc;
@@ -2833,7 +2915,7 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
         uint64_t     js_rows = 0, js_px = 0, js_empty = 0;
         int32_t      lcur = st.lcur, lrem = st.lrem, lstep = st.lstep;
 
-        for (int py = y0; py <= y1; py++, e0ri += e0dyi, e1ri += e1dyi, e2ri += e2dyi, zr_d += dZdy) {
+        for (int py = y0; py <= y1; py++, e0ri += e0dyi, e1ri += e1dyi, e2ri += e2dyi, zr_fx += dzy) {
             /* Row ownership: a raster worker draws only the rows it owns.
                The edge and Z row values step in the loop increment either
                way, so the owned rows come out exactly as in a serial walk.
@@ -2841,7 +2923,7 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
             if (!r128_row_owned(py, thr_id, thr_mask))
                 continue;
             int64_t e0 = e0ri, e1 = e1ri, e2 = e2ri;
-            double  zline = zr_d;
+            int64_t zline = zr_fx;
             int     rxa = x0, rxb = x1; /* this row's column walk */
 
             if (ln) {
@@ -2874,15 +2956,15 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
                     rxb = x1;
                 if (rxa > rxb)
                     continue; /* scissored away */
-                /* Seed the run's first column: exact for the integer edges,
-                   and the same double depth seed every lane starts from. */
+                /* Seed the run's first column: exact for the integer
+                   edges and the fixed-point depth alike. */
                 {
                     int64_t k = rxa - x0;
 
                     e0 += k * e0dxi;
                     e1 += k * e1dxi;
                     e2 += k * e2dxi;
-                    zline = zr_d + (double) k * dZdx;
+                    zline = zr_fx + k * dzx;
                 }
                 jt.x0 = rxa;
                 jt.x1 = rxb;
@@ -2927,7 +3009,7 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
                                                   c_tld, z_tld);
             }
 
-            for (int px = rxa; px <= rxb; px++, e0 += e0dxi, e1 += e1dxi, e2 += e2dxi, zline += dZdx) {
+            for (int px = rxa; px <= rxb; px++, e0 += e0dxi, e1 += e1dxi, e2 += e2dxi, zline += dzx) {
                 float    w0, w1, w2;
                 float    col[4]; /* r,g,b,a 0..1 */
                 uint32_t zaddr = 0, zi = 0, zbuf;
@@ -2963,17 +3045,10 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
                 w1 = (float) (e1 - e1bias) * invs;
                 w2 = (float) (e2 - e2bias) * invs;
 
-                /* Depth comes from the double DDA (zline), not the float
-                   weights; see the dZdx / dZdy note in r3d_setup. zc is
-                   that value clamped to [0, 1]. */
-                double zc = zline;
-                if (!(zc > 0.0))
-                    zc = 0.0; /* written this way to catch NaN too,
-                                 which must not reach the fog-table
-                                 index or the z quantize: converting
-                                 NaN to an integer is undefined */
-                if (zc > 1.0)
-                    zc = 1.0;
+                /* Depth comes from the fixed-point plane (zline), not the
+                   float weights; see the depth note in r3d_setup. zc is
+                   that value clamped to [0, 1.0]. */
+                uint64_t zc = r128_zfx_clamp(zline);
 
                 /* Z and stencil tests. Stencil lives in the Z cell, and "if
                    the STENCIL_EN bit is set, Z reads will be done regardless
@@ -2989,18 +3064,7 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
                 uint32_t sbuf = 0;
 
                 if (z_en || sten_on) {
-                    /* Quantize in double: z * zmax + 0.5 is exact for zmax up
-                       to 0xffffffff, so z == 1.0 maps to exactly zmax. In
-                       float, 16777215.5 (the 24-bit case) is not representable
-                       and rounds up to zmax + 1, which would put far pixels one
-                       step past a buffer cleared to the far value, so they
-                       would fail a less-or-equal test. The clamp guards
-                       against z > 1. */
-                    double zq = zc * (double) zmax + 0.5;
-
-                    if (zq > (double) zmax)
-                        zq = (double) zmax;
-                    zi    = (uint32_t) zq;
+                    zi    = r128_zfx_quant(zc, zmax);
                     zaddr = zrow + (z_tld ? r128_tile_x((uint32_t) px * zbpp) : (uint32_t) px * zbpp);
                     /* Resolve the Z cell once. Staged Z is read in the arena
                        at zaddr - z_base, and an index outside the staged range
@@ -3086,13 +3150,13 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
                            Thief 2), which a plain lookup draws as nine flat
                            bands. */
                         /* The index and fraction come from one exact
-                           conversion: zc * 255 scaled by 2^32 and truncated
-                           gives the entry in the high word and a 32-bit
-                           fraction in the low word, which every lane (the
-                           JITs, the GPU path) reproduces exactly; the blend
-                           itself is float math. */
+                           integer step, r128_zfx_fogpos: the entry in the
+                           high word and a 32-bit fraction in the low word,
+                           which every lane (the JITs, the GPU path)
+                           reproduces exactly; the blend itself is float
+                           math. */
                         const uint8_t *ft = rs->t3d.fog_table;
-                        uint64_t       q  = (uint64_t) (zc * 255.0 * 4294967296.0);
+                        uint64_t       q  = r128_zfx_fogpos(zc);
                         uint32_t       i  = (uint32_t) (q >> 32);
                         uint32_t       i1 = i < 255 ? i + 1 : i;
                         float          t  = (float) (uint32_t) q * (1.0f / 4294967296.0f);
@@ -3366,13 +3430,14 @@ static int
 r3d_fetch_vertex(rage128_t *dev, uint32_t base, uint32_t stride,
                  uint32_t idx, uint32_t fmt, r3d_vtx_t *out)
 {
-    uint32_t vdw[20];
-    uint32_t j;
+    uint32_t        vdw[20];
+    uint32_t        j;
+    r128_bus_span_t sp = { 0 }; /* one vertex: one page, two when it straddles */
 
     if (stride == 0 || stride > 20)
         return 0;
     for (j = 0; j < stride; j++) {
-        if (!rage128_pm4_bus_read(dev, base + (idx * stride + j) * 4, &vdw[j]))
+        if (!rage128_pm4_span_read(dev, &sp, base + (idx * stride + j) * 4, &vdw[j]))
             return 0;
     }
     r3d_decode_vertex(fmt, vdw, out);
@@ -3447,6 +3512,8 @@ r3d_fetch_vertex_cached(rage128_t *dev, uint32_t base, uint32_t stride,
    segment holds a pointer into it, and the reset never overwrites a
    level of the current draw, because this runs before any of them is
    staged. Submit thread only. */
+static int r3d_stage_keep_live(struct rage128_tex_stage *ts, uint32_t total);
+
 static void
 r3d_stage_reserve(rage128_t *dev, uint32_t total)
 {
@@ -3462,16 +3529,22 @@ r3d_stage_reserve(rage128_t *dev, uint32_t total)
     /* GPU lane: the flush above reclaims only an idle arena. When the
        arena really wraps, the queued segments must retire before the
        offsets are reused; this is the one wait the lane pays per pass
-       through the arena. */
+       through the arena. The live cached levels are then kept, moved to
+       the front; only when they and this draw do not fit together is
+       the arena emptied, with every cached level. */
     if (dev->gpu && ts->used && ts->used + total > ts->cap) {
         rage128_gpu_stage_quiesce(dev, 0);
-        ts->used      = 0;
-        ts->ent_count = 0;
         ts->gen++;
         r128_texcache_lock(ts);
-        ts->tgen++; /* the arena's bytes are gone, and the cached entries with them */
-        ts->src_lo = 0;
-        ts->src_hi = 0;
+        if (r3d_stage_keep_live(ts, total))
+            ts->n_wrap_kept++;
+        else {
+            ts->used = 0;
+            r128_texcache_reset_locked(ts);
+            ts->tgen++; /* the arena's bytes are gone, and the cached entries with them */
+            ts->src_lo = 0;
+            ts->src_hi = 0;
+        }
         r128_texcache_unlock(ts);
     }
 
@@ -3501,6 +3574,147 @@ r3d_stage_reserve(rage128_t *dev, uint32_t total)
     }
 }
 
+/* Key of a staged level, and its first bucket in the cached-entry index
+   (a multiplicative hash; the index has twice as many buckets as the
+   table has entries, so a probe stays short). */
+static int
+r3d_tex_ent_is(const struct rage128_tex_ent *e, uint32_t key, uint32_t len,
+               uint32_t tbpp, uint32_t tiled_pb)
+{
+    return e->vm_base == key && e->len == len && e->tbpp == tbpp
+        && e->tiled_pb == tiled_pb;
+}
+
+static uint32_t
+r3d_tex_idx_hash(uint32_t key, uint32_t len, uint32_t tiled_pb)
+{
+    return ((key * 2654435761u) ^ (len * 2246822519u) ^ (tiled_pb * 3266489917u))
+        >> 21; /* 11 bits: 2 * R128_TEX_CACHE_ENTS buckets */
+}
+
+/* The cached entry with this key, or -1. A key has at most one bucket:
+   an insert of a key already present takes over its bucket. Under the
+   lock. */
+static int
+r3d_tex_idx_find(const struct rage128_tex_stage *ts, uint32_t key,
+                 uint32_t len, uint32_t tbpp, uint32_t tiled_pb)
+{
+    const uint32_t m = 2u * R128_TEX_CACHE_ENTS - 1u;
+
+    for (uint32_t b = r3d_tex_idx_hash(key, len, tiled_pb) & m;; b = (b + 1u) & m) {
+        uint32_t v = ts->idx[b];
+
+        if (!v)
+            return -1;
+        if (v <= ts->ent_count && r3d_tex_ent_is(&ts->ent[v - 1u], key, len, tbpp, tiled_pb))
+            return (int) (v - 1u);
+    }
+}
+
+static void
+r3d_tex_idx_insert(struct rage128_tex_stage *ts, uint32_t slot)
+{
+    const struct rage128_tex_ent *e = &ts->ent[slot];
+    const uint32_t                m = 2u * R128_TEX_CACHE_ENTS - 1u;
+
+    for (uint32_t b = r3d_tex_idx_hash(e->vm_base, e->len, e->tiled_pb) & m;;
+         b = (b + 1u) & m) {
+        uint32_t v = ts->idx[b];
+
+        if (!v || (v <= ts->ent_count
+                   && r3d_tex_ent_is(&ts->ent[v - 1u], e->vm_base, e->len, e->tbpp,
+                                     e->tiled_pb))) {
+            ts->idx[b] = (uint16_t) (slot + 1u);
+            return;
+        }
+    }
+}
+
+/* Drop the dead and stale cached entries and rebuild the index. Run only
+   when the table is full, so a dead entry costs nothing until then.
+   Under the lock. */
+static void
+r3d_tex_ent_compact(struct rage128_tex_stage *ts)
+{
+    uint32_t n = 0;
+
+    for (uint32_t i = 0; i < ts->ent_count; i++)
+        if (!ts->ent[i].dead && ts->ent[i].gen == ts->tgen)
+            ts->ent[n++] = ts->ent[i];
+    memset(ts->idx, 0, sizeof(ts->idx));
+    ts->ent_count = n;
+    ts->ent_dead  = 0;
+    for (uint32_t i = 0; i < n; i++)
+        r3d_tex_idx_insert(ts, i);
+}
+
+/* At an arena wrap, with no queued work left that samples the arena:
+   keep the cached levels that draws used during the pass that is ending,
+   instead of dropping every level. Most of a full arena is bytes no draw
+   reads again (per-batch levels, and the copies of levels a store has
+   dropped), while the levels in use are a few MB that later draws would
+   otherwise detile again. A level no draw used during the whole pass is
+   dropped, so the kept set follows the working set instead of growing
+   with every level ever staged. The kept levels move to the front, in
+   arena order, on the same 16-byte boundaries r3d_stage_level uses; the
+   index does not depend on where a level sits, and the page bits and the
+   combined source range are rebuilt for the levels kept. Returns 0,
+   leaving the caller to empty the arena, when the kept levels would take
+   more than half the arena or do not fit with need more bytes, or when
+   the table is not in arena order. Under the lock. */
+static int
+r3d_stage_keep_live(struct rage128_tex_stage *ts, uint32_t total)
+{
+    uint64_t dst  = 0;
+    uint32_t prev = 0;
+    uint32_t nlo  = 0;
+    uint32_t nhi  = 0;
+
+    for (uint32_t i = 0; i < ts->ent_count; i++)
+        if (ts->ent[i].used_lap != ts->lap && !ts->ent[i].dead) {
+            ts->ent[i].dead = 1;
+            ts->ent_dead++;
+        }
+    r3d_tex_ent_compact(ts);
+    ts->lap++;
+    for (uint32_t i = 0; i < ts->ent_count; i++) {
+        if (ts->ent[i].arena_off < prev)
+            return 0;
+        prev = ts->ent[i].arena_off;
+        dst  = ((dst + 15u) & ~15ull) + ts->ent[i].len;
+    }
+    if (!ts->ent_count || dst > ts->cap / 2u
+        || ((dst + 15u) & ~15ull) + total > ts->cap)
+        return 0;
+    dst = 0;
+    for (uint32_t i = 0; i < ts->ent_count; i++) {
+        struct rage128_tex_ent *e = &ts->ent[i];
+
+        dst = (dst + 15u) & ~15ull;
+        if (e->arena_off != (uint32_t) dst)
+            memmove(ts->arena + dst, ts->arena + e->arena_off, e->len);
+        e->arena_off = (uint32_t) dst;
+        dst += e->len;
+        if (nlo == nhi) {
+            nlo = e->src_lo;
+            nhi = e->src_hi;
+        } else {
+            if (e->src_lo < nlo)
+                nlo = e->src_lo;
+            if (e->src_hi > nhi)
+                nhi = e->src_hi;
+        }
+    }
+    r128_texcache_pg_clear(ts);
+    for (uint32_t i = 0; i < ts->ent_count; i++)
+        r128_texcache_pg_set(ts, ts->ent[i].src_lo, ts->ent[i].src_hi);
+    ts->src_lo    = nlo;
+    ts->src_hi    = nhi;
+    ts->used      = (uint32_t) dst;
+    ts->pde_count = 0;
+    return 1;
+}
+
 /* Stage the mip level at card address vm, len bytes, and return its byte
    offset in the arena, or R128_TEX_STAGE_NONE when there is no room (see
    r3d_stage_textures for what the caller then does). A failed read still
@@ -3513,38 +3727,78 @@ r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
     struct rage128_tex_stage *ts = &dev->tex_stage;
     uint32_t                  off;
     uint32_t                  tg;
-
-    /* Take tgen before any bytes are copied. A CPU store that
-       invalidates the cache during the copy bumps tgen past this value,
-       so the new entry is invalid from the start and can never serve
-       the image from before the store. */
-    r128_texcache_lock(ts);
-    tg = ts->tgen;
-    r128_texcache_unlock(ts);
+    uint32_t                  slo  = 0;
+    uint32_t                  shi  = 0;
+    int                       live = 0;
 
     /* key is the raw offset register value. Its tile-mode bits [31:30]
        tell a detiled staging from a linear one at the same address, so
        the two never share an entry; tiled_pb completes the key, because
        two shapes of the same byte length detile to different layouts.
-       Per-draw entries are checked against gen and last one draw; cached
-       entries are checked against tgen and last until a store changes
-       their source bytes. */
-    for (uint32_t i = 0; i < ts->ent_count; i++)
-        if (ts->ent[i].gen == (ts->ent[i].pd ? ts->gen : tg)
-            && ts->ent[i].vm_base == key
-            && ts->ent[i].len == len && ts->ent[i].tbpp == tbpp
-            && ts->ent[i].tiled_pb == tiled_pb) {
-            if (!ts->ent[i].pd)
-                ts->n_hit++;
-            return ts->ent[i].arena_off;
+       Per-batch entries are checked against gen and last one batch;
+       cached entries are checked against the cache generation and last
+       until a store lands in their own source bytes or the arena is
+       reset. A key is always cacheable or always not (the address decides
+       it), so each kind is looked up in its own table. The lookup runs
+       under the lock because a store on the CPU thread can end an entry
+       at any time. */
+    r128_texcache_lock(ts);
+    tg = ts->tgen;
+    if (cacheable) {
+        int i = r3d_tex_idx_find(ts, key, len, tbpp, tiled_pb);
+
+        if (i >= 0 && ts->ent[i].gen == tg && !ts->ent[i].dead) {
+            ts->n_hit++;
+            ts->ent[i].used_lap = ts->lap;
+            off = ts->ent[i].arena_off;
+            r128_texcache_unlock(ts);
+            return off;
         }
+    } else
+        for (uint32_t i = 0; i < ts->pde_count; i++)
+            if (ts->pde[i].gen == ts->gen
+                && r3d_tex_ent_is(&ts->pde[i], key, len, tbpp, tiled_pb)) {
+                off = ts->pde[i].arena_off;
+                r128_texcache_unlock(ts);
+                return off;
+            }
 
     /* Place levels on 16-byte boundaries: the GPU kernel reads the arena
        as 16-bit and 32-bit word arrays and needs aligned level bases
        (the CPU sampler is byte-addressed and does not care). */
     off = (ts->used + 15u) & ~15u;
-    if (!ts->arena || off + len > ts->cap || off < ts->used)
+    if (!ts->arena || off + len > ts->cap || off < ts->used) {
+        r128_texcache_unlock(ts);
         return R128_TEX_STAGE_NONE;
+    }
+
+    if (cacheable) {
+        /* Publish the source range before any bytes are copied, and
+           widen the combined source range over it, so a store during the
+           copy is seen: it marks the copy, which may then hold bytes from
+           before that store, and the copy is not cached. A tiled gather
+           reads whole tile rows, more than the linear image's size. */
+        slo = vm;
+        shi = vm + (tiled_pb ? r3d_level_bytes_tiled(tiled_pb, len / tiled_pb) : len);
+        ts->cp_lo  = slo;
+        ts->cp_hi  = shi;
+        ts->cp_hit = 0;
+        if (ts->pg_tgen != tg) {
+            r128_texcache_pg_clear(ts);
+            ts->pg_tgen = tg;
+        }
+        r128_texcache_pg_set(ts, slo, shi);
+        if (ts->src_hi == ts->src_lo) {
+            ts->src_lo = slo;
+            ts->src_hi = shi;
+        } else {
+            if (slo < ts->src_lo)
+                ts->src_lo = slo;
+            if (shi > ts->src_hi)
+                ts->src_hi = shi;
+        }
+    }
+    r128_texcache_unlock(ts);
 
     if (tiled_pb) {
         /* Tiled level: gather its detiled linear image, so every lane
@@ -3562,41 +3816,48 @@ r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
     if (ts->used > ts->peak_used)
         ts->peak_used = ts->used;
 
-    if (ts->ent_count < 256) {
-        ts->ent[ts->ent_count].vm_base   = key;
-        ts->ent[ts->ent_count].len       = len;
-        ts->ent[ts->ent_count].tbpp      = tbpp;
-        ts->ent[ts->ent_count].tiled_pb  = tiled_pb;
-        ts->ent[ts->ent_count].arena_off = off;
-        ts->ent[ts->ent_count].pd        = !cacheable;
-        ts->ent[ts->ent_count].gen       = cacheable ? tg : ts->gen;
-        ts->ent_count++;
-        if (cacheable) {
-            /* Widen the source range that CPU stores are checked
-               against. A tiled gather reads whole tile rows, more than
-               the linear image's size. Skipped when an invalidation
-               landed during the copy (the entry is already invalid):
-               widening the range for it would only delay reclaiming the
-               idle arena. */
-            uint32_t slen = tiled_pb
-                ? r3d_level_bytes_tiled(tiled_pb, len / tiled_pb)
-                : len;
-
-            r128_texcache_lock(ts);
-            if (ts->tgen == tg) {
-                if (ts->src_hi == ts->src_lo) {
-                    ts->src_lo = vm;
-                    ts->src_hi = vm + slen;
-                } else {
-                    if (vm < ts->src_lo)
-                        ts->src_lo = vm;
-                    if (vm + slen > ts->src_hi)
-                        ts->src_hi = vm + slen;
-                }
-            }
-            r128_texcache_unlock(ts);
-        }
+    r128_texcache_lock(ts);
+    if (cacheable) {
+        /* Cached only when no store landed in the source during the copy
+           and the arena was not reset meanwhile. */
+        live      = !ts->cp_hit && ts->tgen == tg;
+        ts->cp_lo = 0;
+        ts->cp_hi = 0;
     }
+    if (!cacheable) {
+        if (ts->pde_count < R128_TEX_BATCH_ENTS) {
+            struct rage128_tex_ent *e = &ts->pde[ts->pde_count++];
+
+            memset(e, 0, sizeof(*e));
+            e->vm_base   = key;
+            e->len       = len;
+            e->tbpp      = tbpp;
+            e->tiled_pb  = tiled_pb;
+            e->arena_off = off;
+            e->gen       = ts->gen;
+        }
+    } else if (live) {
+        if (ts->ent_count == R128_TEX_CACHE_ENTS && ts->ent_dead)
+            r3d_tex_ent_compact(ts);
+        if (ts->ent_count < R128_TEX_CACHE_ENTS) {
+            struct rage128_tex_ent *e = &ts->ent[ts->ent_count];
+
+            e->vm_base   = key;
+            e->len       = len;
+            e->tbpp      = tbpp;
+            e->tiled_pb  = tiled_pb;
+            e->arena_off = off;
+            e->gen       = tg;
+            e->src_lo    = slo;
+            e->src_hi    = shi;
+            e->dead      = 0;
+            e->used_lap  = ts->lap;
+            ts->ent_count++;
+            r3d_tex_idx_insert(ts, ts->ent_count - 1u);
+        } else
+            ts->n_full++;
+    }
+    r128_texcache_unlock(ts);
     return off;
 }
 
@@ -3972,7 +4233,7 @@ r3d_stage_hdr_init(const rage128_raster_state_t *rs, int st, r3d_stage_hdr_t *h)
        (R128_TEX_MAP_ALPHA_IN_TEXTURE in r128DDInitState) and keeps
        texel alpha out of the combine for GL_RGB textures. */
     h->aone = (h->dt == 0 || h->dt == 3 || h->dt == 6 || h->dt == 9
-               || h->dt == 14 || h->dt == 15)
+               || h->dt == 13 || h->dt == 14 || h->dt == 15)
         && !(rs->t3d.scale_3d_cntl & (1u << 30));
     h->border = st ? rs->t3d.sec_tex_border_color
                    : rs->t3d.prim_tex_border_color;
@@ -4208,6 +4469,9 @@ r3d_draw_state_derive(rage128_raster_state_t *rs)
                     coordinates are raw and are multiplied by rhw to form
                     the s/w interpolant. 1 means they are "already
                     pre-multiplied by W" (CCE 3D supplement, SETUP_CNTL).
+                    The triangle setup applies the multiply only on a
+                    stage that also divides (the next control), since the
+                    two halves of perspective correction go together.
          do_persp = the divide by the interpolated rhw, turned off by
                     PRIM_TEX_CNTL_C PRIM_TEX_PERSPECTIVE_DIS (bit 14) (CCE
                     3D supplement, PRIM_TEX_CNTL_C); it changes nothing
@@ -4276,18 +4540,35 @@ r3d_draw_state_derive(rage128_raster_state_t *rs)
     if (!ds->light_on)
         memset(&ds->lcomb, 0, sizeof(ds->lcomb)); /* keeps equal states equal */
     ds->sec_sel = rs->t3d.sec_tex_cntl & 1;       /* SEC_SRC_SEL_ST */
+    /* With SEC_SRC_SEL_ST clear the secondary stage samples the first
+       coordinate set, but under premult its interpolants are the raw
+       coordinates times the stage's own W when the stage divides, and
+       times nothing when it does not (see r3d_setup). When the stage's W
+       (sel_w) or perspective setting (sec_persp_diff) differs from the
+       primary's, the primary's interpolants of that set are scaled wrong
+       for it, so the setup fills the second set's interpolants from the
+       first set's raw coordinates and the stage samples those. Without
+       premult no stage multiplies, so the primary's interpolants serve
+       both stages. */
+    ds->sec_first = ds->sec_en && !ds->sec_sel && ds->premult
+        && (ds->sec_persp_diff || ds->sel_w);
+    if (ds->sec_first)
+        ds->sec_sel = 1;
     /* Cylindrical wrap enables per coordinate set: PRIM_TEX_WRAP_S and
        SEC_TEX_WRAP_S (bit 10), PRIM_TEX_WRAP_T and SEC_TEX_WRAP_T (bit 13)
        (CCE 3D supplement, PRIM_TEX_CNTL_C and SEC_TEX_CNTL_C). The primary
        stage always samples the first set; the secondary samples the
        second set only when SEC_SRC_SEL_ST is set, and otherwise its
        enables are ORed into the first set's. What the chip does when the
-       two stages disagree about one set is not documented. */
+       two stages disagree about one set is not documented. Under
+       sec_first the second set's interpolants hold the first set, so
+       they take the first set's enables. */
     {
         uint32_t pc = rs->t3d.prim_tex_cntl;
         uint32_t sc = ds->sec_en ? rs->t3d.sec_tex_cntl : 0;
-        uint32_t c1 = ds->sec_sel ? pc : (pc | sc);
-        uint32_t c2 = ds->sec_sel ? sc : 0;
+        int      s2 = ds->sec_sel && !ds->sec_first;
+        uint32_t c1 = s2 ? pc : (pc | sc);
+        uint32_t c2 = s2 ? sc : ds->sec_first ? (pc | sc) : 0;
 
         ds->wrap_s0 = (c1 >> 10) & 1;
         ds->wrap_t0 = (c1 >> 13) & 1;
@@ -4394,26 +4675,18 @@ rage128_raster_state_capture(rage128_t *dev, rage128_raster_state_t *rs)
             /* A serial CPU draw is finished by the time it returns. */
             if (dev->tex_stage.used)
                 dev->tex_stage.n_rec_draw++;
-            dev->tex_stage.used      = 0;
-            dev->tex_stage.ent_count = 0;
+            dev->tex_stage.used = 0;
             r128_texcache_lock(&dev->tex_stage);
+            r128_texcache_reset_locked(&dev->tex_stage);
             dev->tex_stage.src_lo = 0;
             dev->tex_stage.src_hi = 0;
             r128_texcache_unlock(&dev->tex_stage);
         } else {
-            /* Keep the valid cached entries; drop the previous draw's
-               per-draw entries and any entry a tgen bump invalidated. */
-            struct rage128_tex_stage *ts = &dev->tex_stage;
-            uint32_t                  n  = 0;
-            uint32_t                  tg;
-
-            r128_texcache_lock(ts);
-            tg = ts->tgen;
-            r128_texcache_unlock(ts);
-            for (uint32_t i = 0; i < ts->ent_count; i++)
-                if (!ts->ent[i].pd && ts->ent[i].gen == tg)
-                    ts->ent[n++] = ts->ent[i];
-            ts->ent_count = n;
+            /* Keep the cached entries (a dead one stays until the table
+               fills); drop the previous draw's per-batch entries. */
+            r128_texcache_lock(&dev->tex_stage);
+            dev->tex_stage.pde_count = 0;
+            r128_texcache_unlock(&dev->tex_stage);
         }
         dev->tex_stage.gen++;
         /* The serial flush does nothing, so the previous serial draw's
@@ -4426,6 +4699,7 @@ rage128_raster_state_capture(rage128_t *dev, rage128_raster_state_t *rs)
         rage128_c_stage_writeback(dev);
     }
 
+    dev->r3d_draw_seq++;
     rs->t3d        = dev->t3d;
     rs->dst_offset = dev->dst_offset;
     rs->dst_pitch  = dev->dst_pitch;
@@ -5021,17 +5295,12 @@ rage128_3d_packet3(rage128_t *dev, uint32_t hdr, const uint32_t *pl, uint32_t co
 
                 if (n > max)
                     n = max;
-#ifdef ENABLE_RAGE128_LOG
                 uint32_t wide = 0;
-#endif
 
                 for (uint32_t k = 0; k < n; k++) {
                     dev->scl_palette[k] = pl[k + 1];
-#ifdef ENABLE_RAGE128_LOG
                     wide |= pl[k + 1] >> 16;
-#endif
                 }
-#ifdef ENABLE_RAGE128_LOG
                 /* The ati2draa.drv display driver's 16 bpp path packs
                    its entries to RGB565 before sending them, unlike
                    ati2drau.drv's 24-bit entries. With no captured output
@@ -5046,7 +5315,6 @@ rage128_3d_packet3(rage128_t *dev, uint32_t hdr, const uint32_t *pl, uint32_t co
                                     "dst-packed payload, conversion unverified\n");
                     }
                 }
-#endif
             }
             return 1;
         case RAGE128_PM4_OP_NEXT_VERTEX_BUNDLE:

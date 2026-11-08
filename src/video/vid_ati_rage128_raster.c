@@ -305,9 +305,22 @@ rb_run_parallel(rage128_raster_t *rb)
    executor stores 1, so a drain can flush while the executor is on its
    way to its own idle flush. Both would write the same staged surface
    back to guest memory. With the lock, the second flush finds an empty
-   batch and an inactive stage and does nothing. */
-void
-rage128_raster_flush(rage128_t *dev)
+   batch and an inactive stage and does nothing.
+
+   recycle_tex selects whether the texture staging arena is recycled
+   after the batch is drawn. Every barrier recycles it except the flushes
+   the enqueue path makes: the primitive it is about to queue, and the
+   rest of its packet, which share one state capture, have their
+   textures staged in the arena already, and recycling it would let the
+   next draw stage its own levels over them before a worker reads them.
+   Those flushes leave the arena allocating upward,
+   and the next recycling flush, which runs after the primitive is
+   drawn, reclaims it. They still end every per-draw lookup entry, as a
+   recycle does: the batch they draw can render into a texture staged
+   earlier, so a later draw must stage it again rather than reuse the
+   copy from before the render. */
+static void
+rb_flush(rage128_t *dev, int recycle_tex)
 {
     rage128_raster_t *rb = (rage128_raster_t *) dev->raster;
 
@@ -329,7 +342,7 @@ rage128_raster_flush(rage128_t *dev)
        deferred command reads its staged texels through offsets into the
        arena, so the arena must not be reset or moved while such a
        command is queued. */
-    if (dev->tex_stage.used) {
+    if (recycle_tex && dev->tex_stage.used) {
         /* GPU backend: reclaim the arena only when no queued GPU work
            samples it (rage128_gpu_stage_idle) and it holds no levels
            cached across draws (src_lo == src_hi); reclaiming cached
@@ -342,8 +355,8 @@ rage128_raster_flush(rage128_t *dev)
             if (!dev->gpu
                 || dev->tex_stage.src_lo == dev->tex_stage.src_hi) {
                 dev->tex_stage.n_rec_flush++;
-                dev->tex_stage.used      = 0;
-                dev->tex_stage.ent_count = 0;
+                dev->tex_stage.used = 0;
+                r128_texcache_reset_locked(&dev->tex_stage);
                 dev->tex_stage.gen++;
                 dev->tex_stage.tgen++; /* cached levels lived in the arena */
                 dev->tex_stage.src_lo = 0;
@@ -351,6 +364,17 @@ rage128_raster_flush(rage128_t *dev)
             }
             r128_texcache_unlock(&dev->tex_stage);
         }
+    }
+    if (!recycle_tex && (dev->tex_stage.ent_count || dev->tex_stage.pde_count)) {
+        /* Keep the arena bytes and the entries cached across draws (a
+           store or a render into their source bytes ends one of those);
+           drop the per-batch entries and move gen past them. */
+        struct rage128_tex_stage *ts = &dev->tex_stage;
+
+        r128_texcache_lock(ts);
+        ts->pde_count = 0;
+        ts->gen++;
+        r128_texcache_unlock(ts);
     }
 
     /* Write a staged Z or color buffer that lives in AGP memory back to
@@ -370,6 +394,12 @@ rage128_raster_flush(rage128_t *dev)
     rage128_pm4_scratch_apply(dev);
 
     thread_release_mutex(dev->raster_flush_mtx);
+}
+
+void
+rage128_raster_flush(rage128_t *dev)
+{
+    rb_flush(dev, 1);
 }
 
 /* Drop the deferred batch without drawing it: a GUI soft reset
@@ -581,7 +611,7 @@ rb_guard_rt(rage128_t *dev, rage128_raster_t *rb, const rage128_raster_state_t *
             || (zt && rb->rt_z_valid
                 && (rs->t3d.z_offset != rb->rt_z_offset || zs != rb->rt_z_stride
                     || (uint32_t) rs->d.z_tiled != rb->rt_z_tiled))))
-        rage128_raster_flush(dev);
+        rb_flush(dev, 0); /* from the enqueue path: keep the staged levels */
 
     rb->rt_valid      = 1;
     rb->rt_dst_offset = rs->dst_offset;
@@ -729,12 +759,15 @@ rb_enqueue(rage128_t *dev, rage128_raster_t *rb,
     past = rb_prim_ranges(rs, v, n, y0, y1, &clo, &chi, &zlo, &zhi);
 
     if (past || rb_tex_hits(rs, clo, chi) || rb_tex_hits(rs, zlo, zhi)) {
-        rage128_raster_flush(dev);
+        /* One capture serves every primitive of a packet, so the ones
+           after this primitive are queued with the same staged offsets:
+           keep the arena for them. */
+        rb_flush(dev, 0);
         rb_run_inline(dev, rs, kind, v);
         return;
     }
     if (rb_tex_hits_written(rb, rs))
-        rage128_raster_flush(dev);
+        rb_flush(dev, 0); /* this primitive's levels are staged: keep them */
     rb_guard_rt(dev, rb, rs);
 
     cmd            = rb_alloc_cmd(rb);
@@ -806,6 +839,8 @@ rage128_raster_submit_tri(rage128_t *dev, const rage128_raster_state_t *rs,
        rather than batched. */
     if (dev->gpu && rage128_gpu_submit_tri(dev, rs, a, b, c))
         return;
+    if (dev->gpu)
+        rage128_gpu_cpu_prim(dev, rs, a, b, c);
 
     if (!rb || rb->nthreads <= 1) {
         rage128_3d_tri(dev, rs, 0, 0, a, b, c, rage128_jit_get_block(dev, &rs->d));
@@ -841,6 +876,8 @@ rage128_raster_submit_line(rage128_t *dev, const rage128_raster_state_t *rs,
 
     if (dev->gpu && rage128_gpu_submit_line(dev, rs, a, b))
         return;
+    if (dev->gpu)
+        rage128_gpu_cpu_prim(dev, rs, a, b, NULL);
 
     if (!rb || rb->nthreads <= 1) {
         rage128_3d_line(dev, rs, 0, 0, a, b, rage128_jit_get_block(dev, &rs->d));
@@ -873,6 +910,8 @@ rage128_raster_submit_point(rage128_t *dev, const rage128_raster_state_t *rs,
 
     if (dev->gpu && rage128_gpu_submit_point(dev, rs, v))
         return;
+    if (dev->gpu)
+        rage128_gpu_cpu_prim(dev, rs, v, NULL, NULL);
 
     if (!rb || rb->nthreads <= 1) {
         rage128_3d_point(dev, rs, 0, 0, v, rage128_jit_get_block(dev, &rs->d));

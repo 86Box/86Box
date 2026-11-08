@@ -137,6 +137,7 @@
 #define CIRRUS_BLT_BUSY      0x01
 #define CIRRUS_BLT_START     0x02
 #define CIRRUS_BLT_RESET     0x04
+#define CIRRUS_BLT_PROGRESS  0x08
 #define CIRRUS_BLT_FIFOUSED  0x10
 #define CIRRUS_BLT_PAUSED    0x20
 #define CIRRUS_BLT_APERTURE2 0x40
@@ -2031,17 +2032,8 @@ gd54xx_recalctimings(svga_t *svga)
     if (svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) {
         if (linedbl)
             svga->render = svga_render_8bpp_lowres;
-        else {
+        else
             svga->render = svga_render_8bpp_highres;
-            if ((svga->dispend == 512) && !svga->interlace && gd54xx_is_5434(svga)) {
-                if (svga->crtc[0x27] != CIRRUS_ID_CLGD5480) {
-                    svga->hdisp <<= 1;
-                    svga->dots_per_clock <<= 1;
-                    svga->clock *= 2.0;
-                }
-            }
-            //pclog("GD5480 Clocking: %02x, interlace=%x, clocksel=%d, hdisp=%d.\n", svga->seqregs[0x07] & (gd54xx_is_5434(svga) ? 0xe : 6), svga->interlace, clocksel, svga->hdisp);
-        }
     } else if (svga->gdcreg[5] & 0x40)
         svga->render = svga_render_8bpp_lowres;
 
@@ -2221,11 +2213,17 @@ gd54xx_recalctimings(svga_t *svga)
                     }
                     break;
                 case 6:
-                    if (svga->crtc[0x27] == CIRRUS_ID_CLGD5480) {
-                        if (svga->bpp == 8) {
-                            svga->hdisp <<= 1;
-                            svga->dots_per_clock <<= 1;
-                        }
+                    /*
+                       Clock-doubled 8 bpp mode, used for pixel rates above ~85 MHz:
+                       the sequencer uses the 16-bit data path with the palette DAC in
+                       8 bpp mode, VCLK is programmed to half the pixel rate and the DAC
+                       unpacks two pixels per VCLK, so each character clock is 16 pixels
+                       wide and the CRTC horizontal timings are programmed halved.
+                     */
+                    if (gd54xx_is_5434(svga) && (svga->bpp == 8)) {
+                        svga->render = svga_render_8bpp_highres;
+                        svga->hdisp <<= 1;
+                        svga->dots_per_clock <<= 1;
                     }
                     break;
                 default:
@@ -2237,15 +2235,6 @@ gd54xx_recalctimings(svga_t *svga)
     if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) && (((svga->gdcreg[6] >> 2) & 0x03) != 0x01)) {
         svga->extra_banks[0] = 0;
         svga->extra_banks[1] = 0x8000;
-    }
-
-    if ((svga->crtc[0x27] == CIRRUS_ID_CLGD5446) && linedbl &&
-        !svga->vertical_linedbl && (svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) &&
-        (svga->render == svga_render_8bpp_lowres) && (svga->dispend == 768)) {
-        svga->render = svga_render_8bpp_highres;
-        svga->hdisp <<= 1;
-        svga->dots_per_clock <<= 1;
-        svga->clock *= 2.0;
     }
 }
 
@@ -3081,6 +3070,26 @@ gd54xx_read(uint32_t addr, void *priv)
     return svga_read_linear(addr, svga);
 }
 
+/* For the memory viewer: the byte gd54xx_read() returns, without its side
+   effects; none while the processor would read the blitter's results. */
+static uint8_t *
+gd54xx_debug_ptr(uint32_t addr, int write, void *priv)
+{
+    svga_t         *svga   = (svga_t *) priv;
+    const gd54xx_t *gd54xx = (gd54xx_t *) svga->local;
+
+    if (!(svga->seqregs[0x07] & CIRRUS_SR7_BPP_SVGA) && (((svga->gdcreg[6] >> 2) & 0x03) != 0x01))
+        return svga_debug_ptr_common(addr, 0, write, svga);
+
+    if (gd54xx->countminusone && gd54xx->blt.ms_is_dest &&
+        !(gd54xx->blt.status & CIRRUS_BLT_PAUSED))
+        return NULL;
+
+    addr &= svga->banked_mask;
+    addr = (addr & 0x7fff) + svga->extra_banks[(addr >> 15) & 1];
+    return svga_debug_ptr_common(addr, 1, write, svga);
+}
+
 static uint16_t
 gd54xx_readw(uint32_t addr, void *priv)
 {
@@ -3486,7 +3495,8 @@ gd543x_mmio_write(uint32_t addr, uint8_t val, void *priv)
 
             case 0x40:
                 old                = gd54xx->blt.status;
-                gd54xx->blt.status = val;
+                /* The progress bit is read-only. */
+                gd54xx->blt.status = val & ~CIRRUS_BLT_PROGRESS;
                 gd543x_recalc_mapping(gd54xx);
                 if (!(old & CIRRUS_BLT_RESET) && (gd54xx->blt.status & CIRRUS_BLT_RESET))
                     gd54xx_reset_blit(gd54xx);
@@ -4671,6 +4681,10 @@ gd54xx_normal_blit(uint32_t count, gd54xx_t *gd54xx, svga_t *svga)
         }
     }
 
+    /* The address registers advance with the blit and end up past it. */
+    gd54xx->blt.dst_addr = dst_addr;
+    gd54xx->blt.src_addr = src_addr;
+
     /* Count exhausted, stuff still left to blit. */
     gd54xx_reset_blit(gd54xx);
 
@@ -5336,6 +5350,7 @@ gd54xx_init(const device_t *info)
     svga->readw = gd54xx_readw;
     svga->write = gd54xx_write;
     svga->writew = gd54xx_writew;
+    mem_debug_add(gd54xx_read, gd54xx_write, gd54xx_debug_ptr);
     if (gd54xx->bit32) {
         svga->readl = gd54xx_readl;
         svga->writel = gd54xx_writel;

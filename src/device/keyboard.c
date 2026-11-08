@@ -28,6 +28,7 @@
 #include <86box/device.h>
 #include <86box/keyboard.h>
 #include <86box/plat.h>
+#include <86box/thread.h>
 
 #include "cpu.h"
 
@@ -66,6 +67,7 @@ static keyboard_t keyboard_devices[] = {
     { &keyboard_ax_device              },
     { &keyboard_ps2_device             },
     { &keyboard_ps55_device            },
+    { &keyboard_usb_device             },
     { NULL                             }
     // clang-format on
 };
@@ -91,6 +93,10 @@ kbc_at_log(const char* fmt, ...)
 void (*keyboard_send)(uint16_t val);
 static void (*keyboard_input_handler)(uint16_t scan, int down, void *priv);
 static void *keyboard_input_priv;
+/* Host keys arrive on the GUI thread, while a hard reset on the emulation
+   thread can close the keyboard and unregister its input handler. The lock
+   makes the unregister wait for a call already in progress. */
+static mutex_t *keyboard_input_lock;
 
 static int recv_key[768] = { 0 }; /* keyboard input buffer */
 static int recv_key_ui[768] = { 0 }; /* keyboard input buffer */
@@ -149,6 +155,11 @@ keyboard_toggle_override(void)
 void
 keyboard_init(void)
 {
+    /* Created only once: a hard reset runs this function again while the
+       GUI thread may hold the lock. */
+    if (keyboard_input_lock == NULL)
+        keyboard_input_lock = thread_create_mutex();
+
     num_lock     = 0;
     caps_lock    = 0;
     scroll_lock  = 0;
@@ -181,8 +192,12 @@ keyboard_set_table(const scancode *ptr)
 void
 keyboard_set_input_handler(void (*handler)(uint16_t scan, int down, void *priv), void *priv)
 {
+    if (keyboard_input_lock != NULL)
+        thread_wait_mutex(keyboard_input_lock);
     keyboard_input_handler = handler;
     keyboard_input_priv    = handler ? priv : NULL;
+    if (keyboard_input_lock != NULL)
+        thread_release_mutex(keyboard_input_lock);
 }
 
 static uint8_t
@@ -212,17 +227,24 @@ key_process(uint16_t scan, int down)
 {
     const scancode *codes = scan_table;
     int             c;
+    int             handled;
 
     if (!keyboard_scan)
         return;
 
     scan = scancode_config_map[scan];
 
-    if (keyboard_input_handler) {
+    if (keyboard_input_lock != NULL)
+        thread_wait_mutex(keyboard_input_lock);
+    handled = (keyboard_input_handler != NULL);
+    if (handled) {
         oldkey[scan] = down;
         keyboard_input_handler(scan, down, keyboard_input_priv);
-        return;
     }
+    if (keyboard_input_lock != NULL)
+        thread_release_mutex(keyboard_input_lock);
+    if (handled)
+        return;
 
     if (!codes || !keyboard_send)
         return;
@@ -630,8 +652,11 @@ keyboard_get_ndev(void)
     return ((sizeof(keyboard_devices) / sizeof(keyboard_t)) - 1);
 }
 
+/* The keyboard on the 8042's keyboard port. A USB keyboard leaves the port
+   empty; pc_reset_hard_init() adds it after the USB controller exists. */
 void
 keyboard_add_device(void)
 {
-    device_add(keyboard_devices[keyboard_type].device);
+    if (keyboard_type != KEYBOARD_TYPE_USB)
+        device_add(keyboard_devices[keyboard_type].device);
 }

@@ -3988,7 +3988,7 @@ vfio_init(void)
         dev->host_func   = func_id;
 
         /* Apply device-specific settings. */
-        dev->rom_fn = conf->rom_fn[0] ? conf->rom_fn : NULL;
+        dev->rom_fn = (conf->rom_enable && conf->rom_fn[0]) ? conf->rom_fn : NULL;
 
         /* Add to linked device list. */
         if (prev_dev)

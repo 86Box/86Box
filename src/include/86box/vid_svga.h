@@ -141,6 +141,7 @@ typedef struct svga_t {
     int ati_4color;
     int vblankend;
     int panning_blank;
+    int pan_latched; /* panning latched at the end of vertical retrace this frame */
     int render_line_offset;
     int start_retrace_latch;
     int vga_mode;
@@ -236,6 +237,12 @@ typedef struct svga_t {
 
     /*Called at the start of vertical sync*/
     void (*vsync_callback)(struct svga_t *svga);
+
+    /* The VGA vertical retrace interrupt (CRTC 11 bits 4 and 5, Input Status 0
+       bit 7). A card that wires it up sets this, and it is called when the
+       interrupt may have changed. */
+    int vert_int;
+    void (*vert_int_update)(struct svga_t *svga);
 
     /* Called instead of the blank while the core is in DPMS mode, by a device whose monitors
        do not all sleep together and which therefore paints the sleep state itself. */
@@ -336,6 +343,8 @@ typedef struct svga_t {
     int border_override;
     int border_left;
     int border_top;
+    int hsync_ext;
+    int hblank_ext;
 
     /* Return a 32 bpp color from a 15/16 bpp color. */
     uint32_t (*conv_16to32)(struct svga_t *svga, uint16_t color, uint8_t bpp);
@@ -399,6 +408,8 @@ extern int  svga_init(const device_t *info, svga_t *svga, void *priv, int memsiz
                       void (*hwcursor_draw)(struct svga_t *svga, int displine),
                       void (*overlay_draw)(struct svga_t *svga, int displine));
 extern void svga_recalctimings(svga_t *svga);
+extern void svga_vert_int_crtc_write(svga_t *svga);
+extern int  svga_vert_int_active(const svga_t *svga);
 extern void svga_close(svga_t *svga);
 
 uint8_t  svga_read(uint32_t addr, void *priv);
@@ -409,6 +420,8 @@ void     svga_writew(uint32_t addr, uint16_t val, void *priv);
 void     svga_writel(uint32_t addr, uint32_t val, void *priv);
 uint8_t  svga_read_linear(uint32_t addr, void *priv);
 uint8_t  svga_readb_linear(uint32_t addr, void *priv);
+uint8_t *svga_debug_ptr_common(uint32_t addr, uint8_t linear, int write, svga_t *svga);
+void     svga_debug_add(void);
 uint16_t svga_readw_linear(uint32_t addr, void *priv);
 uint32_t svga_readl_linear(uint32_t addr, void *priv);
 void     svga_write_linear(uint32_t addr, uint8_t val, void *priv);
@@ -464,6 +477,7 @@ extern float   av9194_getclock(int clock, void *priv);
 
 extern void    bt481_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);
 extern uint8_t bt481_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga);
+extern void    bt481_recalctimings(void *priv, svga_t *svga);
 
 extern void    bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga);
 extern uint8_t bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga);
@@ -475,7 +489,10 @@ extern uint8_t ibm_rgb528_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *
 extern void    ibm_rgb528_recalctimings(void *priv, svga_t *svga);
 extern void    ibm_rgb528_hwcursor_draw(svga_t *svga, int displine);
 extern float   ibm_rgb528_getclock(int clock, void *priv);
+extern float   ibm_rgb528_getclock_pll(int clock, void *priv);
 extern void    ibm_rgb528_ramdac_set_ref_clock(void *priv, svga_t *svga, float ref_clock);
+extern void    ibm_rgb528_ramdac_set_port_sel_only(void *priv, svga_t *svga, int port_sel_only);
+extern int     ibm_rgb528_ramdac_set_render(void *priv, svga_t *svga, int bytes_pp);
 
 extern float icd2047_getclock(int clock, void *priv);
 
@@ -547,6 +564,7 @@ extern const device_t bt485_ramdac_device;
 extern const device_t att20c505_ramdac_device;
 extern const device_t bt485a_ramdac_device;
 extern const device_t gendac_ramdac_device;
+extern const device_t ibm_rgb525_ramdac_device;
 extern const device_t ibm_rgb528_ramdac_device;
 extern const device_t ch9201_device;
 extern const device_t ch9204_device;
@@ -561,6 +579,7 @@ extern const device_t ati18811_1_28800_device;
 extern const device_t ati18810_mach32_device;
 extern const device_t ati18811_0_mach32_device;
 extern const device_t ati18811_1_mach32_device;
+extern const device_t ati18811_1_mach32_vga_device;
 extern const device_t ics2595_device;
 extern const device_t icd2047_20_device;
 extern const device_t icd2061_device;
@@ -576,6 +595,7 @@ extern const device_t sc11487_nors2_ramdac_device;
 extern const device_t sc1502x_ramdac_device;
 extern const device_t sc1502x_rs2_ramdac_device;
 extern const device_t sdac_ramdac_device;
+extern const device_t stg1700_ramdac_device;
 extern const device_t stg1702_ramdac_device;
 extern const device_t stg1703_ramdac_device;
 extern const device_t tkd8001_ramdac_device;

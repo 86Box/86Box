@@ -15,8 +15,8 @@
 #          Copyright 2026 skiretic.
 #
 
-# Build gputri, fdivtest and ladfuzz, and compile the two test kernels the
-# first two load at run time (f64test.spv, fdivtest.spv).
+# Build gputri and fdivtest, and compile the test kernel fdivtest loads at
+# run time (fdivtest.spv).
 #
 # gputri compiles in the production SPIR-V header from src/include/86box,
 # so the kernels it checks are the bytes the emulator ships. Every C file
@@ -25,7 +25,7 @@
 #
 # Vulkan headers and loader come from VULKAN_SDK when it is set, else from
 # the compiler's own prefix, Homebrew, /usr/local or /usr; glslc from
-# VULKAN_SDK/bin or the PATH. ladfuzz needs neither and always builds.
+# VULKAN_SDK/bin or the PATH.
 set -euo pipefail
 cd "$(dirname "$0")"
 CC="${CC:-cc}"
@@ -39,9 +39,6 @@ SRC=../../../../src
 EXE=""
 VKLIB=vulkan
 case "$(uname -s)" in MINGW*|MSYS*|CYGWIN*) EXE=.exe; VKLIB=vulkan-1;; esac
-
-"$CC" -O2 -ffp-contract=off -Wall -o ladfuzz$EXE ladfuzz.c -lm
-echo "built $(pwd)/ladfuzz$EXE"
 
 VKDIR=""
 for d in "${VULKAN_SDK:-}" "${CCPREFIX:-/nonexistent}" /opt/homebrew /usr/local /usr; do
@@ -67,9 +64,7 @@ VKLINK="-L $VKDIR/lib -l$VKLIB"
 # Homebrew and SDK installs keep the loader outside the default search path.
 [ "$(uname -s)" = Darwin ] && VKLINK="$VKLINK -Wl,-rpath,$VKDIR/lib"
 
-for k in f64test fdivtest; do
-    "$GLSLC" -O --target-env=vulkan1.2 -I "$SRC/video" -o $k.spv $k.comp
-done
+"$GLSLC" -O --target-env=vulkan1.2 -I "$SRC/video" -o fdivtest.spv fdivtest.comp
 # shellcheck disable=SC2086
 "$CC" -O2 -ffp-contract=off -Wall $VKFLAGS -I "$SRC/include" -o gputri$EXE gputri.c $VKLINK -lpthread -lm
 echo "built $(pwd)/gputri$EXE"

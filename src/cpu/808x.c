@@ -22,13 +22,13 @@
 #include <stdio.h>
 #include <string.h>
 #include <wchar.h>
-
-#include "i8080.h"
-
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include <86box/device.h>
 #include "cpu.h"
 #include "x86.h"
+#include "i8080.h"
+#include <86box/i8018x.h>
 #include <86box/machine.h>
 #include <86box/io.h>
 #include <86box/mem.h>
@@ -38,8 +38,10 @@
 #include <86box/ppi.h>
 #include <86box/timer.h>
 #include <86box/gdbstub.h>
+#include <86box/debugger.h>
 #include <86box/plat_fallthrough.h>
 #include <86box/plat_unused.h>
+#include "x86_interrupt.h"
 #include "vx0_biu.h"
 #include "808x_marty_86box.h"
 
@@ -48,6 +50,13 @@ int is8086 = 0;
 
 uint8_t  use_custom_nmi_vector = 0;
 uint32_t custom_nmi_vector     = 0x00000000;
+
+/* The 80186's integrated controller halts DMA when it takes an NMI and lets it
+   run again when an IRET executes (270788-001 section 9.5.2.10). This core is
+   where both events happen; the peripheral control block reads them when it
+   next looks at its status register or moves a byte. */
+uint32_t cpu_dhlt_events     = 0;
+uint8_t  cpu_dhlt_last_event = 0;
 
 /* The prefetch queue (4 bytes for 8088, 6 bytes for 8086). */
 static uint8_t pfq[6];
@@ -98,6 +107,9 @@ static bool cpu_md_write_disable = 1;
 #define SEG_CHECK_READ(seg)
 #define SEG_CHECK_WRITE(seg)
 #define CHECK_READ(a, b, c)
+#define CHECK_READ_EA(n)
+#define PROBE_READ_EA(n)
+#define CHECK_WRITE_EA(n)
 #define CHECK_WRITE(a, b, c)
 #define UN_USED(x) (void) (x)
 #define fetch_ea_16(val)
@@ -777,6 +789,56 @@ set_ip(uint16_t new_ip)
     }
 }
 
+/* The IP of the next instruction. Between instructions the new BIU already
+   holds that instruction's opcode (finalize()), and IP has moved past it. */
+uint16_t
+ip_808x(void)
+{
+    return (cpu_state.pc - (is_new_biu && biu_queue_preload)) & 0xffff;
+}
+
+/* Refill the prefetch queue from CS:IP, as a jump does, after something
+   outside the instruction stream (a debugger) changed either of them or
+   the memory there. */
+void
+flush_prefetch_808x(void)
+{
+    if (is_new_biu) {
+        cpu_state.pc = ip_808x();
+        biu_suspend_fetch();
+        biu_queue_flush();
+    } else {
+        pfq_clear();
+        set_ip(cpu_state.pc);
+    }
+}
+
+/* The bytes the prefetch queue holds for the next instruction, oldest
+   first, without changing anything. The processor runs these rather than
+   what is in memory now. */
+int
+queue_peek_808x(uint8_t *buf, int max)
+{
+    int n = 0;
+
+    if (is_new_biu)
+        return biu_pfq_peek(buf, max);
+
+    for (int i = 0; (i < pfq_pos) && (n < max); i++)
+        buf[n++] = pfq[i];
+
+    return n;
+}
+
+/* Move to new_ip from outside the instruction stream (a debugger). */
+void
+set_ip_808x(uint16_t new_ip)
+{
+    biu_queue_preload = 0;
+    cpu_state.pc      = new_ip;
+    flush_prefetch_808x();
+}
+
 /* Memory refresh read - called by reads and writes on DMA channel 0. */
 void
 refreshread(void)
@@ -987,6 +1049,30 @@ seteaq(uint64_t val)
 #include "x87_ops.h"
 #undef tempc
 #undef FPU_8087
+
+/* For the debugger: whether the 8087 tables hold nothing for ESC op (D8-DF)
+   with ModR/M byte modrm. vx0.c and 808x_marty_86box.c dispatch through
+   their own copies of the same tables. */
+int
+fpu_8087_op_illegal(uint8_t op, uint8_t modrm)
+{
+    static const OpFn *const tables[2][8] = {
+        { ops_fpu_8087_d8, ops_fpu_8087_d9, ops_fpu_8087_da, ops_fpu_8087_db,
+          ops_fpu_8087_dc, ops_fpu_8087_dd, ops_fpu_8087_de, ops_fpu_8087_df },
+        { ops_sf_fpu_8087_d8, ops_sf_fpu_8087_d9, ops_sf_fpu_8087_da, ops_sf_fpu_8087_db,
+          ops_sf_fpu_8087_dc, ops_sf_fpu_8087_dd, ops_sf_fpu_8087_de, ops_sf_fpu_8087_df }
+    };
+    const OpFn *t;
+
+    if ((op < 0xd8) || (op > 0xdf))
+        return 0;
+
+    t = tables[!!fpu_softfloat][op - 0xd8];
+    /* Indexed as the cores do: D8 and DC by reg and mod only. */
+    if ((op == 0xd8) || (op == 0xdc))
+        return t[(modrm >> 3) & 0x1f] == FPU_ILLEGAL_a16;
+    return t[modrm] == FPU_ILLEGAL_a16;
+}
 
 /* Pushes a word to the stack. */
 static void
@@ -1226,8 +1312,11 @@ irq_pending(int nec_hlt)
     int     i_flag = (cpu_state.flags & I_FLAG) || nec_hlt;
 
     /* Isolate Convertible IRET compatibility; this is not a proven CMOS-only
-     * instruction difference. Other CPU models retain the upstream predicates. */
-    temp = (nmi && nmi_enable && nmi_mask) || ((cpu_state.flags & T_FLAG) && !noint) || (i_flag && pic.int_pending && (is80c88 ? !(noint & 1) : !noint));
+     * instruction difference. Other CPU models retain the upstream predicates.
+     * And 8018x's on-chip controller asks for service through the same maskable
+     * path the 8259 does. */
+    temp = (nmi && nmi_enable && nmi_mask) || ((cpu_state.flags & T_FLAG) && !noint) ||
+           (i_flag && (x86_external_interrupt_pending() || (i8018x_pcb_current != NULL && i8018x_pcb_icu_pending())) && (is80c88 ? !(noint & 1) : !noint));
 
     return temp;
 }
@@ -1252,19 +1341,31 @@ check_interrupts(int nec_hlt)
 #ifndef OLD_NMI_BEHAVIOR
             nmi = 0;
 #endif
+            /* An 80186 stops DMA from here until the handler's IRET. */
+            cpu_dhlt_events++;
+            cpu_dhlt_last_event = 1;
             return;
         }
-        if (i_flag && pic.int_pending && (is80c88 ? !(noint & 1) : !noint)) {
+        if (i_flag && (x86_external_interrupt_pending() || (i8018x_pcb_current != NULL && i8018x_pcb_icu_pending())) && (is80c88 ? !(noint & 1) : !noint)) {
+            int icu = (i8018x_pcb_current != NULL) && i8018x_pcb_icu_pending();
+
             repeating = 0;
             completed = 1;
             ovr_seg   = NULL;
             wait_cycs(3, 0);
-            /* ACK to PIC */
-            temp = pic_irq_ack();
+            /* The on-chip controller vectors internally, so it hands over the
+               type itself and the 8259 runs no acknowledge cycle for it. */
+            if (icu)
+                temp = i8018x_pcb_icu_int_type();
+            else if (!cascade)
+                temp = pic_irq_ack_instance(pic.int_pending ? &pic : &pic2);
+            else /* ACK to PIC */
+                temp = pic_irq_ack();
             wait_cycs(4, 1);
             wait_cycs(1, 0);
             /* ACK to PIC */
-            temp = pic_irq_ack();
+            if (!icu && cascade)
+                temp = pic_irq_ack();
             wait_cycs(4, 1);
             wait_cycs(1, 0);
             in_lock    = 0;
@@ -2617,7 +2718,7 @@ execx86_instruction(void)
 #else
                 wait_cycs(7, 0);
                 if (fpu_softfloat && (fpu_state.swd & FPU_SW_Summary) && !(fpu_state.cwd & FPU_SW_Summary))
-                    nmi = 1;
+                    fpu_int_set(1);
                 check_interrupts(0);
 #endif
                 break;
@@ -2852,6 +2953,14 @@ execx86_instruction(void)
                 break;
 
             case 0xcc:             /* INT 3 */
+#ifdef USE_GDBSTUB
+                /* A debugger breakpoint: stop on it, and fetch from it
+                   again once the original byte is back. */
+                if (gdbstub_int3()) {
+                    flush_prefetch_808x();
+                    break;
+                }
+#endif
                 interrupt(3);
                 break;
             case 0xcd:             /* INT */
@@ -2886,6 +2995,9 @@ execx86_instruction(void)
                  * legacy models keep their upstream interpretation of noint. */
                 noint      = 2;
                 nmi_enable = 1;
+                /* ... and an 80186 lets DMA run again from here. */
+                cpu_dhlt_events++;
+                cpu_dhlt_last_event = 2;
                 break;
 
             case 0xd0 ... 0xd3:    /* rot rm */
@@ -3454,5 +3566,7 @@ execx86(int cycs)
         if (gdbstub_instruction())
             return;
 #endif
+        if (DEBUGGER_INSTRUCTION_PASS(completed))
+            return;
     }
 }

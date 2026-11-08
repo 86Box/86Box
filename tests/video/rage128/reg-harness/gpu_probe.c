@@ -22,7 +22,39 @@
  *
  *          Copyright 2026 skiretic.
  */
+#include <stdint.h>
+
+/* The capture's harness hook: the walked edge and depth values of each
+   span, kept so the vectors can check the plane seeds against them. */
+static void probe_span_tap(uint32_t i, int64_t e0, int64_t e1, int64_t e2, int64_t z);
+#define R128_GPU_SPAN_TAP(i, e0, e1, e2, z) probe_span_tap(i, e0, e1, e2, z)
+
 #include "../../../../src/video/vid_ati_rage128_gpu.c"
+
+#ifdef R128_GPU_HAVE_VULKAN
+static int64_t probe_walk[GPU_SPAN_BUF][4]; /* indexed by span, every partition region */
+
+static void
+probe_span_tap(uint32_t i, int64_t e0, int64_t e1, int64_t e2, int64_t z)
+{
+    probe_walk[i][0] = e0;
+    probe_walk[i][1] = e1;
+    probe_walk[i][2] = e2;
+    probe_walk[i][3] = z;
+}
+
+/* The backend's span and pixel reservation for one triangle, without
+   the row range it also returns. */
+static void
+probe_tri_need(const rage128_raster_state_t *rs, const r3d_vtx_t *a,
+               const r3d_vtx_t *b, const r3d_vtx_t *c,
+               uint64_t *need_spans, uint64_t *need_px)
+{
+    int32_t y0, y1;
+
+    gpu_tri_need_y(rs, a, b, c, need_spans, need_px, &y0, &y1);
+}
+#endif
 
 #include "gpu_probe.h"
 
@@ -115,6 +147,7 @@ harness_gpu_alloc(void)
     g->cur_tri        = -1;
     g->cur_kernel     = 0;
     g->cur_tuple      = -1;
+    gpu_capw_setup(NULL, g, 1, 0); /* one partition, no copy-back maps */
     /* tuple book: heap-allocated in production init; the submit path
        interns into it (memo -1 = no last lookup, quiet = not traffic) */
     g->tuples       = calloc(GPU_TUPLE_CAP, sizeof(gpu_tuple_t));
@@ -135,6 +168,9 @@ harness_gpu_alloc(void)
         pthread_mutex_init(&g->flush_mtx, &fa);
         pthread_mutexattr_destroy(&fa);
     }
+    /* The lock that orders changes of the submitted-hull interval;
+       the submit and retire paths take it. */
+    pthread_mutex_init(&g->sub_mtx, NULL);
     return g;
 }
 
@@ -144,6 +180,8 @@ harness_gpu_dispose(r128_gpu_t *g)
     if (!g)
         return;
     pthread_mutex_destroy(&g->flush_mtx);
+    pthread_mutex_destroy(&g->sub_mtx);
+    gpu_capw_free(g);
     free(g->tuples);
     free(g);
 }
@@ -208,11 +246,14 @@ harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
        host memory here -- the capture path never touches Vulkan */
     g->slot[0].b_spans.map = calloc(GPU_SPAN_CAP, sizeof(seg_span_t));
     g->slot[0].b_tris.map  = calloc(GPU_TRI_CAP, sizeof(seg_tri_t));
-    g->slot[0].b_pal.map   = calloc(GPU_PAL_CAP * 256, sizeof(uint32_t));
+    g->slot[0].b_draws.map = calloc(GPU_TRI_CAP, sizeof(seg_draw_t));
+    g->slot[0].b_pal.map   = calloc(GPU_PAL_BUF * 256, sizeof(uint32_t));
     if (!g->slot[0].b_spans.map || !g->slot[0].b_tris.map
+        || !g->slot[0].b_draws.map
         || !g->slot[0].b_pal.map) {
         free(g->slot[0].b_spans.map);
         free(g->slot[0].b_tris.map);
+        free(g->slot[0].b_draws.map);
         free(g->slot[0].b_pal.map);
         harness_gpu_dispose(g);
         return 0;
@@ -222,6 +263,26 @@ harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
        segment in order, as consecutive submits of one state are: the
        bounds are the union of the triangles' own */
     res->clo = res->zlo = 0xffffffffu;
+    /* admission opens the run the spans land in (one kernel, one run);
+       this probe drives the capture walk directly */
+    capture_run_open(g);
+    {
+        gpu_capw_t *pw = &g->cw[0];
+        gpu_wrun_t *wr = &pw->run[g->nruns - 1];
+
+        wr->s0       = pw->nsp;
+        wr->s1       = pw->nsp;
+        wr->pymin    = INT32_MAX;
+        wr->pymax    = INT32_MIN;
+        wr->c0       = 0xffffffffu;
+        wr->z0       = 0xffffffffu;
+        wr->c1       = 0;
+        wr->z1       = 0;
+        wr->rowalias = 0;
+        pw->cap_run  = g->nruns - 1;
+        pw->cap_draw = 0;
+        pw->rec      = 1;
+    }
     for (uint32_t t = 0; t < (v ? ntri : 1u); t++) {
         const r3d_vtx_t *ta = v ? &v[3 * t] : a;
         const r3d_vtx_t *tb = v ? &v[3 * t + 1] : b;
@@ -229,7 +290,7 @@ harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
         uint64_t         ns, np;
         uint32_t         clo, chi, zlo, zhi;
 
-        gpu_tri_need(rs, ta, tb, tc, &ns, &np);
+        probe_tri_need(rs, ta, tb, tc, &ns, &np);
         res->need_spans += ns;
         res->need_px += np;
         prim_ranges(rs, dev->vram_mask, ta, tb, tc, &clo, &chi, &zlo, &zhi);
@@ -241,11 +302,15 @@ harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
             res->zlo = zlo;
         if (zhi > res->zhi)
             res->zhi = zhi;
-        dev->gpu   = g;
-        g->cur_tri = -1;
+        dev->gpu          = g;
+        g->cw[0].cur_tri = (int32_t) g->ntris++;
+        g->cw[0].spanned = 1; /* no command list here */
         rage128_3d_tri(dev, rs, 0, 0, ta, tb, tc, rage128_gpu_capture_span);
         dev->gpu = old;
     }
+    g->cw[0].run[g->nruns - 1].s1 = g->cw[0].nsp;
+    g->nspans                     = g->cw[0].nsp;
+    gpu_cap_merge(g);
 
     sp          = (const seg_span_t *) g->slot[0].b_spans.map;
     res->nspans = g->nspans;
@@ -259,20 +324,18 @@ harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
                                               GPU_BATCH_SLOTS * sizeof(uint32_t));
 
         for (uint32_t r = 0; slots && r < g->nruns; r++) {
-            uint32_t s0 = g->runs[r].span0;
-            uint32_t s1 = (r + 1 < g->nruns) ? g->runs[r + 1].span0 : g->nspans;
-            int      ng;
+            int ng;
 
-            if (s1 <= s0)
+            if (!gpu_run_nspans(g, r))
                 continue;
             res->rowalias |= (int) g->runs[r].rowalias;
-            ng = gpu_run_groups(g, r, s0, s1, g->cnt);
+            ng = gpu_run_groups(g, r, g->cnt);
             for (int k = 0; k < ng; k++) {
                 uint32_t c = g->cnt[k] - g->beg[k];
 
                 if (!c)
                     continue;
-                (void) gpu_batch_row(g, slots, 0, &g->ord[g->beg[k]], c);
+                (void) gpu_batch_row(g, &g->lc0, slots, 0, &g->ord[g->beg[k]], c);
                 for (uint32_t j = 0; j < c; j++) {
                     uint32_t si = g->ord[g->beg[k] + j];
 
@@ -292,16 +355,32 @@ harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
         res->sctl = g->sctl_of[0];
         res->srm  = g->srm_of[0];
     }
+    /* The span record is packed and carries no edge or depth values;
+       they are computed here from the triangle's plane seeds as the
+       kernel computes them, so the vectors keep checking the values the
+       kernel starts each span from. */
     for (uint32_t i = 0; i < res->got; i++) {
-        out[i].x0   = sp[i].x0;
-        out[i].x1   = sp[i].x1;
-        out[i].py   = sp[i].py;
-        out[i].drow = sp[i].drow;
-        out[i].zrow = sp[i].zrow;
-        out[i].e0   = sp[i].e0;
-        out[i].e1   = sp[i].e1;
-        out[i].e2   = sp[i].e2;
-        out[i].zline = sp[i].zline;
+        const seg_tri_t *tt = &((const seg_tri_t *) g->slot[0].b_tris.map)[sp[i].pt >> 14];
+        uint64_t         x  = sp[i].xw & 0x3fffu;
+        uint64_t         y  = sp[i].pt & 0x3fffu;
+
+        out[i].x0    = (int32_t) x;
+        out[i].x1    = (int32_t) (x + ((sp[i].xw >> 14) & 0xffu));
+        out[i].py    = (int32_t) y;
+        out[i].drow  = sp[i].drow;
+        out[i].zrow  = sp[i].zrow;
+        out[i].e0    = (int64_t) ((uint64_t) tt->e0o + y * (uint64_t) tt->e0dyi
+                                  + x * (uint64_t) tt->e0dxi);
+        out[i].e1    = (int64_t) ((uint64_t) tt->e1o + y * (uint64_t) tt->e1dyi
+                                  + x * (uint64_t) tt->e1dxi);
+        out[i].e2    = (int64_t) ((uint64_t) tt->e2o + y * (uint64_t) tt->e2dyi
+                                  + x * (uint64_t) tt->e2dxi);
+        out[i].zline = (int64_t) ((uint64_t) tt->zo + y * (uint64_t) tt->dzy
+                                  + x * (uint64_t) tt->dZdx);
+        out[i].w_e0    = probe_walk[i][0];
+        out[i].w_e1    = probe_walk[i][1];
+        out[i].w_e2    = probe_walk[i][2];
+        out[i].w_zline = probe_walk[i][3];
     }
     if (g->ntris > 0) {
         const seg_tri_t *tt = (const seg_tri_t *) g->slot[0].b_tris.map;
@@ -313,6 +392,7 @@ harness_gpu_capture_any(rage128_t *dev, const rage128_raster_state_t *rs,
     }
     free(g->slot[0].b_spans.map);
     free(g->slot[0].b_tris.map);
+    free(g->slot[0].b_draws.map);
     free(g->slot[0].b_pal.map);
     harness_gpu_dispose(g);
     return 1;
@@ -331,29 +411,38 @@ harness_gpu_submit_probe(rage128_t *dev, const rage128_raster_state_t *rs,
         return 0;
     g->slot[0].b_spans.map = calloc(GPU_SPAN_CAP, sizeof(seg_span_t));
     g->slot[0].b_tris.map  = calloc(GPU_TRI_CAP, sizeof(seg_tri_t));
-    g->slot[0].b_pal.map   = calloc(GPU_PAL_CAP * 256, sizeof(uint32_t));
+    g->slot[0].b_draws.map = calloc(GPU_TRI_CAP, sizeof(seg_draw_t));
+    g->slot[0].b_pal.map   = calloc(GPU_PAL_BUF * 256, sizeof(uint32_t));
     if (!g->slot[0].b_spans.map || !g->slot[0].b_tris.map
+        || !g->slot[0].b_draws.map
         || !g->slot[0].b_pal.map) {
         free(g->slot[0].b_spans.map);
         free(g->slot[0].b_tris.map);
+        free(g->slot[0].b_draws.map);
         free(g->slot[0].b_pal.map);
         harness_gpu_dispose(g);
         return 0;
     }
 
-    gpu_tri_need(rs, a, b, c, &res->bound_spans, &res->bound_px);
+    probe_tri_need(rs, a, b, c, &res->bound_spans, &res->bound_px);
 
     dev->gpu      = g;
     res->accepted = rage128_gpu_submit_tri(dev, rs, a, b, c);
+    gpu_cap_catchup(dev, g); /* the capture admission deferred */
     dev->gpu      = old;
 
     res->reprice = g->st_reprice;
     res->toobig  = g->st_toobig;
     res->miss    = g->st_reprice_miss;
     res->nspans  = g->nspans;
-    res->seg_px  = g->seg_px;
+    for (uint32_t i = 0; i < g->nspans; i++) {
+        const seg_span_t *sp = &((const seg_span_t *) g->slot[0].b_spans.map)[i];
+
+        res->seg_px += gpu_span_len(sp);
+    }
     free(g->slot[0].b_spans.map);
     free(g->slot[0].b_tris.map);
+    free(g->slot[0].b_draws.map);
     free(g->slot[0].b_pal.map);
     harness_gpu_dispose(g);
     return 1;
@@ -387,11 +476,14 @@ harness_gpu_texq_begin(rage128_t *dev)
     }
     g->slot[0].b_spans.map = calloc(GPU_SPAN_CAP, sizeof(seg_span_t));
     g->slot[0].b_tris.map  = calloc(GPU_TRI_CAP, sizeof(seg_tri_t));
-    g->slot[0].b_pal.map   = calloc(GPU_PAL_CAP * 256, sizeof(uint32_t));
+    g->slot[0].b_draws.map = calloc(GPU_TRI_CAP, sizeof(seg_draw_t));
+    g->slot[0].b_pal.map   = calloc(GPU_PAL_BUF * 256, sizeof(uint32_t));
     if (!g->slot[0].b_spans.map || !g->slot[0].b_tris.map
+        || !g->slot[0].b_draws.map
         || !g->slot[0].b_pal.map) {
         free(g->slot[0].b_spans.map);
         free(g->slot[0].b_tris.map);
+        free(g->slot[0].b_draws.map);
         free(g->slot[0].b_pal.map);
         harness_gpu_dispose(g);
         free(h);
@@ -441,9 +533,10 @@ harness_gpu_texq_end(void *hp, rage128_t *dev, uint32_t lo, uint32_t hi,
     res->ovf_exact = gpu_pending_hit_2d(g, lo, hi, 1);
     g->texq_ovf    = ovf;
 
-    /* publish into slot 0 as the submit path does (ranges, list, then
-       the submitted flag) and retire the pending half, so the walk the
-       2D barrier takes over in-flight slots is what answers */
+    /* publish into slot 0 as the submit path does (ranges, list, the
+       widened submitted-hull interval, then the submitted flag) and
+       retire the pending half, so the walk the 2D barrier takes over
+       in-flight slots is what answers */
     sl        = &g->slot[0];
     sl->c_lo  = atomic_load(&g->c_lo); sl->c_hi = atomic_load(&g->c_hi);
     sl->z_lo  = atomic_load(&g->z_lo); sl->z_hi = atomic_load(&g->z_hi);
@@ -455,8 +548,11 @@ harness_gpu_texq_end(void *hp, rage128_t *dev, uint32_t lo, uint32_t hi,
     memcpy(sl->texq_lo, g->texq_lo, g->ntexq * sizeof(uint32_t));
     memcpy(sl->texq_hi, g->texq_hi, g->ntexq * sizeof(uint32_t));
     atomic_store(&g->pending, 0);
+    pthread_mutex_lock(&g->sub_mtx);
+    gpu_sub_add(g, sl);
     atomic_store(&g->inflight, 1);
     atomic_store(&sl->submitted, 1);
+    pthread_mutex_unlock(&g->sub_mtx);
     res->slot_ovf   = sl->texq_ovf;
     res->slot_hull  = gpu_range_hit(g, lo, hi, 1);
     res->slot_exact = gpu_range_hit_2d(g, lo, hi, 1);
@@ -465,10 +561,12 @@ harness_gpu_texq_end(void *hp, rage128_t *dev, uint32_t lo, uint32_t hi,
     res->real   = g->st_texq_real;
     atomic_store(&sl->submitted, 0);
     atomic_store(&g->inflight, 0);
+    gpu_sub_rebuild(g);
     dev->gpu = h->old;
 
     free(g->slot[0].b_spans.map);
     free(g->slot[0].b_tris.map);
+    free(g->slot[0].b_draws.map);
     free(g->slot[0].b_pal.map);
     harness_gpu_dispose(g);
     free(h);
@@ -589,6 +687,34 @@ harness_gpu_fab_tiled(void *g)
 }
 
 uint64_t
+harness_gpu_carry_submits(void *g)
+{
+    return ((r128_gpu_t *) g)->st_carry;
+}
+
+int
+harness_gpu_carry_open(void *g)
+{
+    return ((r128_gpu_t *) g)->bkc_on;
+}
+
+int
+harness_gpu_async(void *g)
+{
+    return ((r128_gpu_t *) g)->async;
+}
+
+void
+harness_gpu_wait_submitted(void *gp)
+{
+    r128_gpu_t *g = (r128_gpu_t *) gp;
+
+    for (unsigned i = 0; i < GPU_RING_SLOTS; i++)
+        if (atomic_load_explicit(&g->slot[i].submitted, memory_order_acquire))
+            vkWaitForFences(g->dev, 1, &g->slot[i].fence, VK_TRUE, UINT64_MAX);
+}
+
+uint64_t
 harness_gpu_fab_fill_rects(void *g)
 {
     return ((r128_gpu_t *) g)->st_fill_rects;
@@ -621,6 +747,24 @@ harness_gpu_fab_fill_exec(void *gp, uint8_t *mem, uint32_t size,
     for (uint32_t i = 0; i < g->nfills; i++) {
         const gpu_fill_t *f = &g->fills[i];
 
+        /* A staged copy runs as a buffer copy does: len bytes per row
+           from the staging ring at src + row * spitch, with no alignment
+           rule. */
+        if (f->kind == 1 && f->mid < 0) {
+            const uint8_t *sp = (const uint8_t *) g->stage2d.map;
+
+            if (!sp)
+                return -1;
+            for (uint32_t r = 0; r < f->rows; r++) {
+                uint64_t a = (uint64_t) f->addr + (uint64_t) r * f->pitch;
+                uint64_t s = (uint64_t) f->src + (uint64_t) r * f->spitch;
+
+                if (a + f->len > size || s + f->len > GPU_2DSTAGE_SIZE)
+                    return -1;
+                memcpy(&mem[a], &sp[s], f->len);
+            }
+            continue;
+        }
         if (f->kind != 0 || f->mid >= 0 || (f->len & 3u))
             return -1;
         for (uint32_t r = 0; r < f->rows; r++) {
@@ -652,6 +796,12 @@ harness_gpu_fab_scan_arm(void *gp, uint32_t lo, uint32_t hi)
     rng_reset(g);
     gpu_f_add(g, lo, hi);
     atomic_store(&g->pending, 1);
+}
+
+uint64_t
+harness_gpu_fab_cpu_hits(void *gp)
+{
+    return ((r128_gpu_t *) gp)->st_cpu_barrier_hits;
 }
 
 void
@@ -779,7 +929,8 @@ harness_gpu_tuple_reload(uint32_t fmt0, uint32_t fmt1,
     if (!harness_gpu_cache_begin())
         goto done;
     cache_active = 1;
-    gpu_cache_path(path, sizeof(path), "r128gpu.tuples");
+    if (!gpu_cache_path(path, sizeof(path), "r128gpu.tuples"))
+        goto done;
     f = harness_gpu_open_output(path);
     if (!f)
         goto done;
@@ -803,6 +954,209 @@ done:
     free(g->learned);
     harness_gpu_dispose(g);
     return ok;
+}
+
+/* The pending summary against the walk it guards: random hulls are
+   published through rng_pub into a fabricated backend, then random
+   ranges are tested both by gpu_range_hit (summary first) and by
+   gpu_pending_hit alone (no slot is submitted, so that is the whole
+   answer). Returns the number of queries, the disagreements, and how
+   many queries hit. */
+int
+harness_gpu_pnd_summary_probe(uint32_t seed, uint32_t *queries,
+                              uint32_t *mismatch, uint32_t *hits)
+{
+    r128_gpu_t *g = harness_gpu_alloc();
+    uint32_t    x = seed ? seed : 1u;
+
+    *queries = *mismatch = *hits = 0;
+    if (!g)
+        return 0;
+    for (int trial = 0; trial < 400; trial++) {
+        int npub = (int) (x % 6u);
+
+        rng_reset(g);
+        for (int k = 0; k < npub; k++) {
+            uint32_t lo, len, which;
+
+            x ^= x << 13; x ^= x >> 17; x ^= x << 5;
+            lo = x & 0xfffff0u;
+            x ^= x << 13; x ^= x >> 17; x ^= x << 5;
+            len   = (x & 0xffffu) + 1u;
+            which = (x >> 16) % 5u;
+            switch (which) {
+                case 0: rng_pub(g, &g->c_lo, &g->c_hi, lo, lo + len, 1); break;
+                case 1: rng_pub(g, &g->z_lo, &g->z_hi, lo, lo + len, 1); break;
+                case 2: gpu_f_add(g, lo, lo + len); break;
+                case 3: rng_pub(g, &g->q_lo, &g->q_hi, lo, lo + len, 0); break;
+                default: rng_pub(g, &g->r_lo, &g->r_hi, lo, lo + len, 0); break;
+            }
+        }
+        atomic_store(&g->pending, (x & 0x100u) ? 0 : 1);
+        for (int q = 0; q < 64; q++) {
+            uint32_t lo, len;
+            int      tex = q & 1, ref, got;
+
+            x ^= x << 13; x ^= x >> 17; x ^= x << 5;
+            lo  = x & 0xffffffu;
+            len = 1u + ((x >> 24) & 7u) * ((q & 2) ? 4096u : 1u);
+            ref = gpu_pending_hit(g, lo, lo + len, tex);
+            got = gpu_range_hit(g, lo, lo + len, tex);
+            (*queries)++;
+            *mismatch += ref != got;
+            *hits += got;
+        }
+    }
+    rng_reset(g);
+    atomic_store(&g->pending, 0);
+    harness_gpu_dispose(g);
+    return 1;
+}
+
+/* The slot walk as it ran before the submitted-slot interval: every
+   guest store with any slot submitted read all twelve flags. Kept only
+   as the bench's reference column. */
+static int
+bench_range_hit_walk(r128_gpu_t *g, uint32_t lo, uint32_t hi, int texture)
+{
+    if (gpu_pending_hit(g, lo, hi, texture))
+        return 1;
+    if (!atomic_load_explicit(&g->inflight, memory_order_acquire))
+        return 0;
+    for (unsigned i = 0; i < GPU_RING_SLOTS; i++) {
+        const gpu_slot_t *sl = &g->slot[i];
+
+        if (!atomic_load_explicit(&sl->submitted, memory_order_acquire))
+            continue;
+        if (rng_hit(sl->c_lo, sl->c_hi, lo, hi)
+            || rng_hit(sl->z_lo, sl->z_hi, lo, hi)
+            || gpu_slot_f_hit(g, sl, lo, hi)
+            || (texture
+                && (rng_hit(sl->q_lo, sl->q_hi, lo, hi)
+                    || rng_hit(sl->r_lo, sl->r_hi, lo, hi))))
+            return 1;
+    }
+    return 0;
+}
+
+static volatile int bench_sink;
+
+/* Nanoseconds per call of fn over n calls, the address walking a 1 MB
+   window below the far hulls so every call is a miss. */
+#define BENCH_LOOP(expr)                                                  \
+    do {                                                                  \
+        uint64_t t0_ = prof_now();                                        \
+        int      acc_ = 0;                                                \
+        for (uint32_t i_ = 0; i_ < n; i_++) {                             \
+            uint32_t a = (i_ * 4u) & 0xffffcu;                            \
+            acc_ += (expr);                                               \
+        }                                                                 \
+        bench_sink += acc_;                                               \
+        ns = (double) (prof_now() - t0_) / (double) n;                    \
+    } while (0)
+
+void
+harness_gpu_barrier_bench(rage128_t *dev, uint32_t n)
+{
+    static const char *const state_name[4] = {
+        "idle", "pending", "slots", "pending+slots"
+    };
+    r128_gpu_t *g   = harness_gpu_alloc();
+    void       *old = dev->gpu;
+    const uint32_t flo = 0x800000u, fhi = 0x900000u;
+
+    if (!g)
+        return;
+    dev->gpu         = g;
+    dev->lfbt.sample = 0;
+    for (int st = 0; st < 4; st++) {
+        double ns, full_w, full_r, rng_w, rng_r, tcd, walk_w, lfb_w, lfb_r;
+
+        atomic_store(&g->pending, (st & 1) ? 1 : 0);
+        rng_reset(g);
+        if (st & 1) {
+            /* published as the submitter publishes them */
+            rng_pub(g, &g->c_lo, &g->c_hi, flo, fhi, 1);
+            rng_pub(g, &g->z_lo, &g->z_hi, flo, fhi, 1);
+            rng_pub(g, &g->f_lo, &g->f_hi, flo, fhi, 1);
+            rng_pub(g, &g->q_lo, &g->q_hi, flo, fhi, 0);
+            rng_pub(g, &g->r_lo, &g->r_hi, flo, fhi, 0);
+        }
+        for (unsigned i = 0; i < GPU_RING_SLOTS; i++) {
+            gpu_slot_t *sl = &g->slot[i];
+
+            sl->c_lo = sl->z_lo = sl->f_lo = sl->q_lo = sl->r_lo = flo;
+            sl->c_hi = sl->z_hi = sl->f_hi = sl->q_hi = sl->r_hi = fhi;
+            atomic_store(&sl->submitted, (st & 2) ? 1 : 0);
+        }
+        atomic_store(&g->inflight, (st & 2) ? GPU_RING_SLOTS : 0);
+        gpu_sub_rebuild(g);
+
+        BENCH_LOOP((rage128_gpu_cpu_barrier(dev, a, 4, 1), 0));
+        full_w = ns;
+        BENCH_LOOP((rage128_gpu_cpu_barrier(dev, a, 4, 0), 0));
+        full_r = ns;
+        BENCH_LOOP(gpu_range_hit(g, a, a + 4, 1));
+        rng_w = ns;
+        BENCH_LOOP(gpu_range_hit(g, a, a + 4, 0));
+        rng_r = ns;
+        BENCH_LOOP((r128_texcache_dirty(dev, a, 4), 0));
+        tcd = ns;
+        BENCH_LOOP(bench_range_hit_walk(g, a, a + 4, 1));
+        walk_w = ns;
+        /* the guest's path: the linear-aperture dword handlers, called
+           through the mapping as the CPU core calls them, with the store
+           itself and the page mark included */
+        BENCH_LOOP((dev->lfb_mapping.write_l(dev->lfb_base + a, a, dev), 0));
+        lfb_w = ns;
+        BENCH_LOOP((int) dev->lfb_mapping.read_l(dev->lfb_base + a, dev));
+        lfb_r = ns;
+        printf("barrier bench: state=%s n=%u barrier_store_ns=%.2f "
+               "barrier_read_ns=%.2f range_store_ns=%.2f range_read_ns=%.2f "
+               "texcache_ns=%.2f old_walk_store_ns=%.2f lfb_writel_ns=%.2f "
+               "lfb_readl_ns=%.2f\n",
+               state_name[st], n, full_w, full_r, rng_w, rng_r, tcd, walk_w,
+               lfb_w, lfb_r);
+    }
+    for (unsigned i = 0; i < GPU_RING_SLOTS; i++)
+        atomic_store(&g->slot[i].submitted, 0);
+    atomic_store(&g->inflight, 0);
+    atomic_store(&g->pending, 0);
+    gpu_sub_rebuild(g);
+    dev->gpu = old;
+    harness_gpu_dispose(g);
+    /* the floor: the same handlers with no GPU backend on the device */
+    if (!dev->gpu) {
+        double ns, lfb_w, lfb_r;
+
+        BENCH_LOOP((dev->lfb_mapping.write_l(dev->lfb_base + a, a, dev), 0));
+        lfb_w = ns;
+        BENCH_LOOP((int) dev->lfb_mapping.read_l(dev->lfb_base + a, dev));
+        lfb_r = ns;
+        printf("barrier bench: state=no-gpu n=%u lfb_writel_ns=%.2f "
+               "lfb_readl_ns=%.2f\n", n, lfb_w, lfb_r);
+    }
+}
+
+int
+harness_gpu_cache_path_probe(int *empty_refused, int *private_joined)
+{
+    char path[1088], dir[1024];
+
+    *empty_refused = *private_joined = 0;
+    /* without a private directory the harness supplies an empty one,
+       which the builder must refuse rather than join */
+    path[0]        = 'x';
+    *empty_refused = !gpu_cache_path(path, sizeof(path), "r128gpu.tuples")
+                     && !path[0];
+    if (!harness_gpu_cache_begin())
+        return 0;
+    plat_get_global_config_dir(dir, sizeof(dir));
+    *private_joined = gpu_cache_path(path, sizeof(path), "r128gpu.tuples")
+                      && dir[0] && !strncmp(path, dir, strlen(dir))
+                      && !strcmp(path + strlen(dir) + 1, "r128gpu.tuples");
+    harness_gpu_cache_end();
+    return 1;
 }
 
 int
@@ -846,7 +1200,8 @@ harness_gpu_tuple_pair(const uint32_t a[7], const uint32_t b[7],
     if (!harness_gpu_cache_begin())
         goto done;
     cache_active = 1;
-    gpu_cache_path(path, sizeof(path), "r128gpu.tuples");
+    if (!gpu_cache_path(path, sizeof(path), "r128gpu.tuples"))
+        goto done;
     f = harness_gpu_open_output(path);
     if (!f)
         goto done;
@@ -1162,6 +1517,28 @@ harness_gpu_tuple_reload(uint32_t fmt0, uint32_t fmt1,
 }
 
 int
+harness_gpu_pnd_summary_probe(uint32_t seed, uint32_t *queries,
+                              uint32_t *mismatch, uint32_t *hits)
+{
+    (void) seed;
+    *queries = *mismatch = *hits = 0;
+    return 0;
+}
+
+void
+harness_gpu_barrier_bench(rage128_t *dev, uint32_t n)
+{
+    (void) dev; (void) n;
+}
+
+int
+harness_gpu_cache_path_probe(int *empty_refused, int *private_joined)
+{
+    *empty_refused = *private_joined = 0;
+    return 0;
+}
+
+int
 harness_gpu_tuple_pair(const uint32_t a[7], const uint32_t b[7],
                        uint32_t *pairs, int *distinct)
 {
@@ -1315,6 +1692,33 @@ harness_gpu_fab_tiled(void *g)
 }
 
 uint64_t
+harness_gpu_carry_submits(void *g)
+{
+    (void) g;
+    return 0;
+}
+
+int
+harness_gpu_carry_open(void *g)
+{
+    (void) g;
+    return 0;
+}
+
+int
+harness_gpu_async(void *g)
+{
+    (void) g;
+    return 0;
+}
+
+void
+harness_gpu_wait_submitted(void *g)
+{
+    (void) g;
+}
+
+uint64_t
 harness_gpu_fab_fill_rects(void *g)
 {
     (void) g;
@@ -1352,6 +1756,13 @@ void
 harness_gpu_fab_scan_add(void *g, uint32_t lo, uint32_t hi)
 {
     (void) g; (void) lo; (void) hi;
+}
+
+uint64_t
+harness_gpu_fab_cpu_hits(void *g)
+{
+    (void) g;
+    return 0;
 }
 
 uint64_t

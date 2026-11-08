@@ -135,6 +135,7 @@ enum {
 #define BIOS_LIMIT_MAX_MEMORY            0x0200000000000000
 #define BIOS_LIMIT_MIN_MEMORY_2          0x0400000000000000
 #define BIOS_LIMIT_MAX_MEMORY_2          0x0800000000000000
+#define BIOS_FIXED_MEMORY                0x1000000000000000 /* Only the "memory" option's default. */
 
 typedef struct device_config_selection_t {
     const char *description;
@@ -236,6 +237,7 @@ extern void  device_close_inst_params(const device_t *device, int inst, void *pa
 extern void  device_close(const device_t *device);
 extern void  device_close_all(void);
 extern void  device_close_by_flags(uint32_t match_flags);
+extern void  device_close_by_flags_inst(uint32_t match_flags, int inst);
 extern void  device_reset_all(uint32_t match_flags);
 extern void *device_find_first_priv(uint32_t match_flags);
 extern void *device_get_priv(const device_t *dev);

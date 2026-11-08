@@ -26,7 +26,9 @@
  *
  *          Copyright 2026 skiretic.
  */
+#include <pthread.h>
 #include <stdarg.h>
+#include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -43,6 +45,7 @@
 #include <86box/device.h>
 #include <86box/io.h>
 #include <86box/mem.h>
+#include <86box/agpgart.h>
 #include <86box/pci.h>
 #include <86box/plat.h>
 #include <86box/rom.h>
@@ -61,6 +64,8 @@ uint64_t  tsc;
 void     *cpu_f = NULL; /* no guest CPU: the telemetry header skips its line */
 void     *cpu_s = NULL;
 double    cpuclock = 100000000.0;
+int       cpu_pci_speed = 33333333; /* a 66 MHz host bus: PCI at half */
+int       cpu_agp_speed = 66666667; /* and AGP at the bus clock       */
 uint32_t  mem_size = 8192; /* KB; GART tables and rings live in ram[] */
 uint8_t  *ram;
 monitor_t monitors[MONITORS_NUM];
@@ -144,9 +149,43 @@ path_abs(char *path)
 #endif
 }
 
+/* Opens of a file directly in a filesystem root, counted whether or not
+   the open succeeds. No device file belongs there, and a vector pins the
+   count at zero: an empty directory joined with a file name lands in the
+   root, which on Windows is the root of the current drive and is often
+   writable, so every harness process would share that one file. The
+   GPU backend saves its caches from a worker thread too, hence the
+   atomic counter. */
+static atomic_int harness_root_fopens;
+
+int
+harness_root_fopen_count(void)
+{
+    return atomic_load(&harness_root_fopens);
+}
+
+static int
+harness_path_at_root(const char *path)
+{
+    const char *p = path;
+
+#ifdef _WIN32
+    if (p[0] && p[1] == ':')
+        p += 2;
+    if (*p != '/' && *p != '\\')
+        return 0;
+    p++;
+    return *p && !strchr(p, '/') && !strchr(p, '\\');
+#else
+    return p[0] == '/' && p[1] && !strchr(p + 1, '/');
+#endif
+}
+
 FILE *
 plat_fopen(const char *path, const char *mode)
 {
+    if (harness_path_at_root(path))
+        atomic_fetch_add(&harness_root_fopens, 1);
     return fopen(path, mode);
 }
 
@@ -256,6 +295,21 @@ harness_ram_ok(uint32_t addr, uint32_t len)
         return 0;
     }
     return 1;
+}
+
+/* Host pointer into ram[] for a page-granular device read, the core
+   agpgart_bus_ptr. The register harness, whose dma_bm_read reads the same
+   ram[], serves the pointer so the fast path runs; a replay (read hook
+   set) returns NULL so every read goes through the hook as recorded. An
+   out-of-bounds page is NULL too, and dma_bm_read then counts the stray. */
+const uint8_t *
+agpgart_bus_ptr(uint32_t addr, uint32_t len)
+{
+    if (harness_bm_read_hook || (ram == NULL) || !len
+        || (((addr & 0xfffu) + len) > 0x1000u)
+        || ((uint64_t) addr + len > ((uint64_t) mem_size << 10)))
+        return NULL;
+    return ram + addr;
 }
 
 void
@@ -399,6 +453,32 @@ void (*harness_pci_write)(int func, int addr, int len, uint8_t val, void *priv);
 void   *harness_pci_priv;
 int     harness_irq_level; /* current INTA line state */
 
+/* The PIC and PCI interrupt code of the emulator takes no lock, so only
+   the emulation thread may drive an interrupt line. Here that thread is
+   the one that registers the card; every line update made from any
+   other thread is counted, so a vector can pin the count at zero. */
+static pthread_t harness_cpu_thread;
+static int       harness_cpu_thread_set;
+uint64_t         harness_irq_offthread;
+
+/* The svga core belongs to the emulation thread as well: its timing
+   state is read by the line poll, which takes no lock. Every call into
+   it made from another thread is counted the same way, and the calls
+   made from the emulation thread are counted too, so a vector can see
+   a deferred call land. */
+uint64_t harness_svga_offthread;
+uint64_t harness_svga_recalc_calls;
+uint64_t harness_svga_ramdac_calls;
+
+static void
+harness_svga_call(uint64_t *calls)
+{
+    if (harness_cpu_thread_set && !pthread_equal(pthread_self(), harness_cpu_thread))
+        harness_svga_offthread++;
+    else
+        (*calls)++;
+}
+
 void
 pci_add_card(uint8_t add_type,
              uint8_t (*read)(int func, int addr, int len, void *priv),
@@ -406,6 +486,8 @@ pci_add_card(uint8_t add_type,
              void *priv, uint8_t *slot)
 {
     (void) add_type;
+    harness_cpu_thread     = pthread_self();
+    harness_cpu_thread_set = 1;
     harness_pci_read  = read;
     harness_pci_write = write;
     harness_pci_priv  = priv;
@@ -428,6 +510,8 @@ void
 pci_irq(uint8_t slot, uint8_t pci_int, int level, int set, uint8_t *irq_state)
 {
     (void) slot; (void) pci_int; (void) level;
+    if (harness_cpu_thread_set && !pthread_equal(pthread_self(), harness_cpu_thread))
+        harness_irq_offthread++;
     harness_irq_level = !!set;
     *irq_state        = !!set;
 }
@@ -441,21 +525,40 @@ plat_delay_ms(uint32_t count)
 
 static char harness_cache_dir[1024];
 
+/* Loader probes run in several harness processes at once, so each needs a
+   directory no other process can be handed. Directory creation is the only
+   atomic step: it fails with "already exists" rather than reusing a name.
+   On Windows the name carries the process id, which no other live process
+   has, plus a serial number that steps past any directory left behind by an
+   earlier process with the same id. A temporary file name is not usable
+   here: it must be deleted before a directory can take its place, and in
+   that gap another process can be handed the same name. */
 int
 harness_gpu_cache_begin(void)
 {
     if (harness_cache_dir[0])
         return 0;
 #ifdef _WIN32
-    char temp[MAX_PATH], path[MAX_PATH];
+    static unsigned serial;
+    char  temp[MAX_PATH];
+    DWORD n = GetTempPathA(sizeof(temp), temp);
 
-    if (!GetTempPathA(sizeof(temp), temp)
-        || !GetTempFileNameA(temp, "r128", 0, path))
+    if (!n || n >= sizeof(temp))
         return 0;
-    DeleteFileA(path);
-    if (!CreateDirectoryA(path, NULL))
-        return 0;
-    snprintf(harness_cache_dir, sizeof(harness_cache_dir), "%s", path);
+    for (unsigned tries = 0; tries < 4096; tries++) {
+        int len = snprintf(harness_cache_dir, sizeof(harness_cache_dir),
+                           "%sr128-harness-%lu-%u", temp,
+                           (unsigned long) GetCurrentProcessId(), serial++);
+
+        if (len < 0 || len >= (int) sizeof(harness_cache_dir))
+            break;
+        if (CreateDirectoryA(harness_cache_dir, NULL))
+            return 1;
+        if (GetLastError() != ERROR_ALREADY_EXISTS)
+            break;
+    }
+    harness_cache_dir[0] = '\0';
+    return 0;
 #else
     snprintf(harness_cache_dir, sizeof(harness_cache_dir),
              "/tmp/rage128-harness-XXXXXX");
@@ -463,8 +566,8 @@ harness_gpu_cache_begin(void)
         harness_cache_dir[0] = '\0';
         return 0;
     }
-#endif
     return 1;
+#endif
 }
 
 void
@@ -483,9 +586,10 @@ harness_gpu_cache_end(void)
     harness_cache_dir[0] = '\0';
 }
 
-/* Persisted-cache paths use an empty directory by default, keeping the
-   harness away from the user's real config. Loader probes temporarily
-   select their own private directory. */
+/* The empty directory is the harness's "no cache" setting: the GPU cache
+   path builder refuses it, so devices neither load nor save the on-disk
+   caches and stay away from the user's real config. Loader probes
+   temporarily select their own private directory. */
 void
 plat_get_global_config_dir(char *outbuf, size_t len)
 {
@@ -716,6 +820,7 @@ svga_close(svga_t *svga)
 void
 svga_recalctimings(svga_t *svga)
 {
+    harness_svga_call(&harness_svga_recalc_calls);
     if (svga->recalctimings_ex)
         svga->recalctimings_ex(svga);
 
@@ -768,6 +873,7 @@ void
 svga_set_ramdac_type(svga_t *svga, int type)
 {
     (void) svga; (void) type;
+    harness_svga_call(&harness_svga_ramdac_calls);
 }
 
 /* Banked A0000 access: raw vram bytes only (no plane logic). */

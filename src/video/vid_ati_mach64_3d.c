@@ -24,7 +24,10 @@
  *          Copyright 2026 Avastrap2.
  */
 
+#include <math.h>
 #include "vid_ati_mach64.h"
+#include <86box/dma.h>
+#include <86box/agpgart.h>
 
 /* GUI registers, byte offsets in the register block. */
 #define DST_BRES_LNTH  0x120 /* also LEAD_BRES_LNTH */
@@ -133,8 +136,72 @@
 #define CI4_RGB_LOW_NIBBLE  (1u << 26)
 #define CI4_RGB_HIGH_NIBBLE (1u << 27)
 
-/* The GT-B's command FIFO has 48 entries. */
-#define GT_FIFO_DEPTH 48
+/* The GT-B's horizontal scissors are 14 bits, as the 2D engine
+   has them (vid_ati_mach64_accel.c): SC_RIGHT 1FFFh opens the scissor, where
+   13 bits would make it -1 and clip every scaled or 3D pixel (Midway
+   TouchMaster II's display server sets SC_LEFT_RIGHT to 1FFF3FFFh). */
+#define SC_X_BITS 14
+
+
+/* Block 0 registers of the Rage Pro (atiregs.h "GTPro"). */
+#define RP_ALPHA_TST_CNTL      0x150
+#define RP_SECONDARY_STW_EXP   0x158
+#define RP_SECONDARY_T_START   0x17c
+#define RP_BM_HOSTDATA         0x244
+#define RP_BM_ADDR             0x248
+#define RP_BM_GUI_TABLE_CMD    0x24c
+#define RP_STW_EXP             0x344
+#define RP_LOG_MAX_INC         0x348
+#define RP_W_X_INC             0x358
+#define RP_W_Y_INC             0x35c
+#define RP_W_START             0x360
+#define RP_TEX_CNTL            0x374
+#define RP_SECONDARY_TEX_OFF   0x378
+#define RP_SCALE_PITCH_BOTH    0x380
+#define RP_SCALE_OFF_ACC       0x388
+#define RP_SCALE_DST_Y_X       0x38c
+#define XL_SCALE_DST_HEIGHT_WIDTH 0x390
+#define RP_COMPOSITE_SHADOW_ID 0x398
+#define RP_SPECULAR_FIRST      0x39c
+#define RP_SPECULAR_LAST       0x3bc
+
+/* SETUP_CNTL */
+#define RP_DONT_START_TRI   (1u << 0)
+#define RP_DONT_START_ANY   (1u << 2)
+#define RP_FLAT_SHADE_SHIFT 3
+
+/* TEX_CNTL */
+#define RP_LOD_BIAS_SHIFT      0
+#define RP_COMP_FACTOR_SHIFT   4
+#define RP_TEXTURE_COMPOSITE   (1u << 8)
+#define RP_COMP_COMBINE_SHIFT  9
+#define RP_COMP_BLEND_BILINEAR (1u << 11)
+#define RP_COMP_FILTER_BILIN   (1u << 12)
+#define RP_COMP_ALPHA          (1u << 13)
+#define RP_TEXTURE_TILING      (1u << 14)
+#define RP_COMPOSITE_TEX_TILING (1u << 15)
+#define RP_TEXTURE_CLAMP_S     (1u << 17)
+#define RP_TEXTURE_CLAMP_T     (1u << 18)
+#define RP_TEX_ST_DIRECT       (1u << 19)
+#define RP_TEX_SRC_AGP         (1u << 20)
+#define RP_TEX_VQ              (1u << 21)
+#define RP_TEX_CACHE_FLUSH     (1u << 23)
+#define RP_TEX_CACHE_SIZE_SELECT (1u << 30)
+#define RP_SEC_TEX_CLAMP_S     (1u << 24)
+#define RP_SEC_TEX_CLAMP_T     (1u << 25)
+#define RP_SECONDARY_STW       (1u << 31)
+
+/* ALPHA_TST_CNTL */
+#define RP_ALPHA_TEST_EN       (1u << 0)
+#define RP_ALPHA_TEST_SHIFT    4
+#define RP_ALPHA_DST_SHIFT     8
+#define RP_ALPHA_TST_SRC_ALPHA (1u << 12)
+#define RP_IDCT_EN             (1u << 15) /* the Rage XL's */
+#define RP_REF_ALPHA_SHIFT     16
+#define RP_SPECULAR_LIGHT_EN   (1u << 31)
+
+/* SCALE_3D_CNTL bits that differ from the GT-B's. */
+#define RP_ALPHA_BLEND_SAT (1u << 13)
 
 /* S/T trajectory registers that hold the hidden accumulator bits. */
 #define TEX_HIDDEN_S_XINC  (1u << 0)
@@ -173,31 +240,50 @@ typedef struct mach64_3d_row_t {
 
 #define MACH64_3D_ROWS    128 /* rows walked before they are drawn */
 #define MACH64_3D_THREADS 4   /* the emulation thread and up to three helpers */
+#define MACH64_RP_AGP_PAGES 64
 
 typedef struct mach64_3d_rows_job_t mach64_3d_rows_job_t;
+typedef struct mach64_rp_tri_t      mach64_rp_tri_t;
+
+/* The AGP pages a triangle's texels have come from, direct mapped by page
+   number: the page's bus address with bit 0 set, and where it is in host
+   memory, NULL for a page read through the handlers. The guest runs only
+   between triangles, so they hold for one. Each drawing thread has its
+   own. */
+typedef struct mach64_rp_agp_cache_t {
+    uint32_t       tag[MACH64_RP_AGP_PAGES];
+    const uint8_t *ptr[MACH64_RP_AGP_PAGES];
+} mach64_rp_agp_cache_t;
+
+/* A row of a Rage Pro triangle: its pixels first to last, inclusive. */
+typedef struct mach64_rp_span_t {
+    int y;
+    int first;
+    int last;
+} mach64_rp_span_t;
 
 /* A helper thread, drawing every threads-th row from its index on. */
 typedef struct mach64_3d_helper_t {
-    struct mach64_3d_t *ctx;
-    int                 index;
-    thread_t           *thread;
-    event_t            *go;
-    atomic_int          sleeping;
-    unsigned            seen; /* the last batch it took, from its making on */
-    mach64_3d_dither_t  dither;
+    struct mach64_3d_t   *ctx;
+    int                   index;
+    thread_t             *thread;
+    event_t              *go;
+    atomic_int            sleeping;
+    unsigned              seen; /* the last batch it took, from its making on */
+    mach64_3d_dither_t    dither;
+    mach64_rp_agp_cache_t agp;
 } mach64_3d_helper_t;
 
 struct mach64_3d_t {
     mach64_t *mach64;
+    int       idct_render_intra;
     uint32_t  regs[256];            /* the register block, as dwords */
     uint32_t  texture_palette[256]; /* CI8 texels, 0x00RRGGBB */
+    uint8_t   texture_palette_ram[0x800]; /* Rage Pro texture cache palette image */
 
     /* The trailing edge is a live trajectory register, like DST_Y_X. */
     int trail_x;
     int trail_valid;
-
-    /* A write went to the draw engine FIFO since the last 3D one. */
-    int fifo_pending;
 
     /* TEX_HIDDEN_*: the S/T registers whose value is the live accumulator,
        wider than the register, until the guest writes them again. */
@@ -219,11 +305,28 @@ struct mach64_3d_t {
     int                         helpers_quit;
     mach64_3d_helper_t          helpers[MACH64_3D_THREADS - 1];
     const mach64_3d_rows_job_t *job;
+    const mach64_rp_tri_t      *rp_job; /* a Rage Pro triangle's spans instead */
     int                         job_threads;
     atomic_uint                 job_gen;
     atomic_int                  job_left;
     uint64_t                    spin_ticks;
+
+    /* The 3D Rage Pro's setup engine. Each vertex's S, T, W,
+       SPEC_ARGB, Z, ARGB and X_Y as written, by any of their addresses, and
+       its secondary S, T and W; SETUP_CNTL. */
+    uint32_t vtx[3][7];
+    uint32_t vtx_sec[3][3];
+    uint32_t setup_cntl;
+    uint32_t one_over_area;
+    /* The emulation thread's AGP pages, and the rows of a triangle found
+       and not yet drawn. */
+    mach64_rp_agp_cache_t agp;
+    mach64_rp_span_t      rp_spans[MACH64_3D_ROWS];
+    int                   rp_nspans;
 };
+
+static void mach64_rp_draw_spans(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, int first, int step, mach64_3d_dither_t *dither,
+                                 mach64_rp_agp_cache_t *agp);
 
 static int
 mach64_3d_clamp8(int v)
@@ -432,9 +535,18 @@ mach64_3d_vram_write(mach64_t *mach64, uint32_t addr, uint32_t val, int bpp)
 {
     uint32_t mask = mach64->vram_mask;
     uint8_t *vram = mach64->svga.vram;
+    uint32_t a    = addr & mask;
 
-    for (int i = 0; i < bpp; i++)
-        vram[(addr + i) & mask] = val >> (i * 8);
+    if ((bpp == 2) && (a < mask)) {
+        uint16_t v = val;
+
+        memcpy(&vram[a], &v, 2); /* little endian, as the loop stores it */
+    } else if ((bpp == 4) && (a < (mask - 2)))
+        memcpy(&vram[a], &val, 4);
+    else {
+        for (int i = 0; i < bpp; i++)
+            vram[(addr + i) & mask] = val >> (i * 8);
+    }
     mach64_3d_vram_changed(mach64, addr, bpp);
 }
 
@@ -627,6 +739,23 @@ mach64_3d_texture_palette_store(uint32_t *palette, uint32_t value)
     palette[value >> 24] = value & 0x00ffffff;
 }
 
+static void
+mach64_3d_texture_palette_cache_byte(mach64_3d_t *ctx, uint32_t addr, uint8_t value)
+{
+    unsigned offset = addr & 0x7ff;
+    unsigned slot   = (offset & 0x3ff) >> 2;
+    unsigned index  = slot >> 1;
+    uint16_t packed;
+
+    /* ATID3DR3 packs {low, low, high, high} RGB565 words in each
+       8-byte group; the second 0x400-byte half reverses low and high. */
+    ctx->texture_palette_ram[offset] = value;
+    index += ((((slot & 1) != 0) ^ (offset >= 0x400)) ? 128 : 0);
+    offset &= ~1u;
+    packed = ctx->texture_palette_ram[offset] | ((uint16_t) ctx->texture_palette_ram[offset + 1] << 8);
+    ctx->texture_palette[index] = mach64_3d_argb565(packed, 1) & 0x00ffffff;
+}
+
 /*
  * The color comparator (CLR_CMP_CNTL). CLR_CMP_FCN 1 is "always", 4 "not
  * equal" and 5 "equal"; a true compare keeps the destination, so the write
@@ -771,6 +900,7 @@ mach64_3d_unpack_argb(mach64_3d_t *ctx, int format, uint32_t raw, int source)
             return 0xff000000 | ((uint32_t) mach64_3d_expand_table[dynamic][3][(raw >> 5) & 7] << 16) |
                    ((uint32_t) mach64_3d_expand_table[dynamic][3][(raw >> 2) & 7] << 8) | mach64_3d_expand_table[dynamic][2][raw & 3];
         case 8:
+        case 9: /* RGB8 intensity, like Y8 on reads (XL RRG 5-45). */
             return 0xff000000 | ((raw & 0xff) * 0x010101);
         case 14:
             return mach64_3d_rgba_argb(mach64_3d_yuv_to_rgba(ctx, (raw >> 16) & 0xff, (raw >> 8) & 0xff, raw & 0xff, (raw >> 24) & 0xff));
@@ -791,13 +921,17 @@ mach64_3d_unpack(mach64_3d_t *ctx, int format, uint32_t raw, int source)
  * The reduction of the 24-bit pipeline to the frame buffer's pixel type,
  * SCALE_3D_CNTL 4:1: DITHER_EN dithers, by X error diffusion or, with
  * SCALE_DITHER, a fixed two-dimensional table; DITHER_INIT clears the error
- * at each scan line; ROUND_EN rounds when not dithering. The register guide
- * does not give the table, so a 4x4 Bayer matrix stands in for it.
+ * at each scan line; ROUND_EN rounds when not dithering.
+ *
+ * Two tables exist for SCALE_DITHER, one function each. The ordered
+ * (4x4 Bayer) table is the stand-in used for every chip and format that has no
+ * measurement. The Rage Pro 555 and 565 tables are used only on a Rage Pro
+ * writing a 16 bpp surface, the cases measured on a real card.
  */
 static const uint8_t mach64_3d_bayer4[16] = { 0, 8, 2, 10, 12, 4, 14, 6, 3, 11, 1, 9, 15, 7, 13, 5 };
 
-/* What the table adds before the low bits are dropped, by [bits dropped][Y
-   and X in the cell], made by mach64_3d_init. */
+/* What the Bayer table adds before the low bits are dropped, by [bits
+   dropped][Y and X in the cell], made by mach64_3d_dither_table_init. */
 static uint8_t mach64_3d_dither_add[8][16];
 
 static void
@@ -812,13 +946,65 @@ mach64_3d_dither_table_init(void)
 }
 
 static inline int
-mach64_3d_quantize_ordered(int v, int bits, int x, int y)
+mach64_3d_quantize_bayer(int v, int bits, int x, int y)
 {
     int drop = 8 - bits;
     int max  = (1 << bits) - 1;
     int q    = (mach64_3d_clamp8(v) + mach64_3d_dither_add[drop][((y & 3) << 2) | (x & 3)]) >> drop;
 
     return (q > max) ? max : q;
+}
+
+/*
+ * The Rage Pro 555 table. It is 4 pixels wide and 8 rows tall, indexed
+ * by the absolute screen X and Y, and holds a rank 0..15 per pixel. A real
+ * Rage Pro (ATI driver 5.30, 3DCIF 4.11.1.2692, 555 surface) reduces an
+ * 8-bit component v to min(31, (M(v) + rank) >> 4): M is v scaled to the
+ * output range in 4 fractional bits, and the rank is added in the last of
+ * them. M is not the exact quotient v * 31 * 16 / 255 but a shift-and-add
+ * form of it:
+ *   red, blue  M = 2 v - (v >> 4) + (v >> 7)
+ *   green      the same, less 1 where bit 3 of v is set and bit 6 is clear.
+ * Dithering off, the component is truncated, v >> 3.
+ */
+static const uint8_t mach64_3d_dither_rank[8][4] = {
+    { 15, 7, 13, 5 }, { 3, 11, 1, 9 }, { 12, 4, 14, 6 }, { 0, 8, 2, 10 },
+    { 13, 5, 15, 7 }, { 1, 9, 3, 11 }, { 14, 6, 12, 4 }, { 2, 10, 0, 8 }
+};
+
+static inline int
+mach64_3d_quantize_ragepro555(int v, int channel, int x, int y)
+{
+    int m;
+    int q;
+
+    v = mach64_3d_clamp8(v);
+    m = 2 * v - (v >> 4) + (v >> 7);
+    if (channel == 1)
+        m -= (v >> 3) & ~(v >> 6) & 1;
+    q = (m + mach64_3d_dither_rank[y & 7][x & 3]) >> 4;
+    return (q > 31) ? 31 : q;
+}
+
+/*
+ * The Rage Pro 565 table. Red and blue are the 555 table unchanged. Green has six
+ * bits: the same rank is added to v scaled to 0..63 in 4 fractional bits,
+ *   M = 4 v - (v >> 4) + (v >> 6)
+ * with no further correction, and the sum is shifted down by 4 and capped at
+ * 63. Read off the same real-card captures as the 555 table, drawing into a
+ * surface the driver was told is 565 (green: the count of pixels at the upper
+ * of two adjacent levels is M mod 16).
+ */
+static inline int
+mach64_3d_quantize_ragepro565_green(int v, int x, int y)
+{
+    int m;
+    int q;
+
+    v = mach64_3d_clamp8(v);
+    m = 4 * v - (v >> 4) + (v >> 6);
+    q = (m + mach64_3d_dither_rank[y & 7][x & 3]) >> 4;
+    return (q > 63) ? 63 : q;
 }
 
 static inline int
@@ -846,11 +1032,14 @@ mach64_3d_quantize_diffuse(int v, int bits, int *err)
 }
 
 static inline int
-mach64_3d_quantize(mach64_3d_dither_t *dither, uint32_t cntl, int v, int bits, int channel, int x, int y)
+mach64_3d_quantize(mach64_3d_dither_t *dither, uint32_t cntl, int measured, int v, int bits, int channel, int x, int y)
 {
     if (cntl & DITHER_EN) {
-        if (cntl & SCALE_DITHER)
-            return mach64_3d_quantize_ordered(v, bits, x, y);
+        if (cntl & SCALE_DITHER) {
+            if (!measured)
+                return mach64_3d_quantize_bayer(v, bits, x, y);
+            return (bits == 6) ? mach64_3d_quantize_ragepro565_green(v, x, y) : mach64_3d_quantize_ragepro555(v, channel, x, y);
+        }
         return mach64_3d_quantize_diffuse(v, bits, &dither->err[channel]);
     }
     if (cntl & ROUND_EN)
@@ -862,6 +1051,7 @@ static inline uint32_t
 mach64_3d_pack(mach64_3d_t *ctx, mach64_3d_dither_t *dither, int format, rgba_t c, int x, int y)
 {
     uint32_t cntl = ctx->regs[SCALE_3D_CNTL >> 2];
+    int      measured = ctx->mach64->ragepro && ((format == 3) || (format == 4));
     int      r;
     int      g;
     int      b;
@@ -887,29 +1077,33 @@ mach64_3d_pack(mach64_3d_t *ctx, mach64_3d_dither_t *dither, int format, rgba_t 
 
     switch (format) {
         case 3:
-            r = mach64_3d_quantize(dither, cntl, c.r, 5, 0, x, y);
-            g = mach64_3d_quantize(dither, cntl, c.g, 5, 1, x, y);
-            b = mach64_3d_quantize(dither, cntl, c.b, 5, 2, x, y);
+            r = mach64_3d_quantize(dither, cntl, measured, c.r, 5, 0, x, y);
+            g = mach64_3d_quantize(dither, cntl, measured, c.g, 5, 1, x, y);
+            b = mach64_3d_quantize(dither, cntl, measured, c.b, 5, 2, x, y);
             return ((c.a >= 128) ? 0x8000 : 0) | (r << 10) | (g << 5) | b;
         case 4:
-            r = mach64_3d_quantize(dither, cntl, c.r, 5, 0, x, y);
-            g = mach64_3d_quantize(dither, cntl, c.g, 6, 1, x, y);
-            b = mach64_3d_quantize(dither, cntl, c.b, 5, 2, x, y);
+            r = mach64_3d_quantize(dither, cntl, measured, c.r, 5, 0, x, y);
+            g = mach64_3d_quantize(dither, cntl, measured, c.g, 6, 1, x, y);
+            b = mach64_3d_quantize(dither, cntl, measured, c.b, 5, 2, x, y);
             return (r << 11) | (g << 5) | b;
         case 6:
             return ((uint32_t) c.a << 24) | (c.r << 16) | (c.g << 8) | c.b;
         case 7:
-            r = mach64_3d_quantize(dither, cntl, c.r, 3, 0, x, y);
-            g = mach64_3d_quantize(dither, cntl, c.g, 3, 1, x, y);
-            b = mach64_3d_quantize(dither, cntl, c.b, 2, 2, x, y);
+            r = mach64_3d_quantize(dither, cntl, measured, c.r, 3, 0, x, y);
+            g = mach64_3d_quantize(dither, cntl, measured, c.g, 3, 1, x, y);
+            b = mach64_3d_quantize(dither, cntl, measured, c.b, 2, 2, x, y);
             r = mach64_3d_rgb8_red_code(r, !!(cntl & DITHER_EN), !!(cntl & RED_DITHER_MAX));
             return (r << 5) | (g << 2) | b;
         case 8:
             return (c.r * 77 + c.g * 150 + c.b * 29) >> 8;
+        case 9: /* RGB8 intensity writes use the green channel. */
+            return c.g;
+        case 5: /* Packed BGR24, scaler destination only. */
+            return (c.r << 16) | (c.g << 8) | c.b;
         case 15:
-            r = mach64_3d_quantize(dither, cntl, c.r, 4, 0, x, y);
-            g = mach64_3d_quantize(dither, cntl, c.g, 4, 1, x, y);
-            b = mach64_3d_quantize(dither, cntl, c.b, 4, 2, x, y);
+            r = mach64_3d_quantize(dither, cntl, measured, c.r, 4, 0, x, y);
+            g = mach64_3d_quantize(dither, cntl, measured, c.g, 4, 1, x, y);
+            b = mach64_3d_quantize(dither, cntl, measured, c.b, 4, 2, x, y);
             return ((c.a >> 4) << 12) | (r << 8) | (g << 4) | b;
         default:
             return 0;
@@ -963,9 +1157,11 @@ mach64_3d_write_dst(mach64_3d_t *ctx, mach64_3d_dither_t *dither, uint32_t addr,
      * A blended 15/16-bpp pixel through the dither table: a component equal
      * to the destination's keeps the destination's bits. The table would
      * otherwise raise an already quantized component even where the blend
-     * added nothing, as with a black additive texel.
+     * added nothing, as with a black additive texel. A Rage Pro does not: it
+     * dithers the blended value like any other, which can land a level off
+     * the stored one.
      */
-    if (((format == 3) || (format == 4)) && (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND) &&
+    if (!mach64->ragepro && ((format == 3) || (format == 4)) && (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND) &&
         ((cntl & (DITHER_EN | SCALE_DITHER)) == (DITHER_EN | SCALE_DITHER))) {
         uint32_t old  = mach64_3d_vram_read16(mach64, addr);
         rgba_t   dst  = mach64_3d_unpack(ctx, format, old, 0);
@@ -1383,6 +1579,27 @@ mach64_3d_texel_key_inhibits(const mach64_3d_texture_t *map, uint32_t selected)
     }
 }
 
+/* What the texel key compares a texel by: the 16 and 8-bit RGB types by the
+   texel as stored, as a pseudo-color one by its index, before expansion to
+   8 bits a channel. ATI's Windows 9x driver keys black RGB565 and ARGB1555
+   textures with CLR_CMP_CLR 0 and CLR_CMP_MASK FFFFh (Forsaken), so a key on
+   the expanded color would take any pure red texel, whose low 16 bits are 0,
+   for the key. The other types keep their 24-bit color. */
+static inline uint32_t
+mach64_3d_texel_key_value(int format, uint32_t raw, uint32_t argb)
+{
+    switch (format) {
+        case 3:  /* ARGB 1555 */
+        case 4:  /* RGB 565 */
+        case 15: /* ARGB 4444 */
+            return raw & 0xffff;
+        case 7:  /* RGB 332 */
+            return raw & 0xff;
+        default:
+            return argb & 0x00ffffff;
+    }
+}
+
 /* The texel at u, v, and whether the key hides it: a pseudo-color texel by
    its index, any other by its color. The 16 and 32-bit types are unpacked
    here, the others by mach64_3d_unpack_argb. The 2x2 filter fetches four,
@@ -1397,16 +1614,19 @@ mach64_3d_texel_at(mach64_3d_t *ctx, const mach64_3d_texture_t *map, int u, int 
 
     switch (map->format) {
         case 3:
-            argb = mach64_3d_argb1555(mach64_3d_vram_read16(mach64, addr), map->dynamic_range);
+            raw  = mach64_3d_vram_read16(mach64, addr);
+            argb = mach64_3d_argb1555(raw, map->dynamic_range);
             break;
         case 4:
-            argb = mach64_3d_argb565(mach64_3d_vram_read16(mach64, addr), map->dynamic_range);
+            raw  = mach64_3d_vram_read16(mach64, addr);
+            argb = mach64_3d_argb565(raw, map->dynamic_range);
             break;
         case 6:
-            argb = mach64_3d_vram_read32(mach64, addr);
+            raw  = argb = mach64_3d_vram_read32(mach64, addr);
             break;
         case 15:
-            argb = mach64_3d_argb4444(mach64_3d_vram_read16(mach64, addr), map->dynamic_range);
+            raw  = mach64_3d_vram_read16(mach64, addr);
+            argb = mach64_3d_argb4444(raw, map->dynamic_range);
             break;
         case 11:
             raw  = mach64_3d_vram_read32(mach64, map->base + (v * map->width + (u & ~1)) * 2);
@@ -1421,7 +1641,7 @@ mach64_3d_texel_at(mach64_3d_t *ctx, const mach64_3d_texture_t *map, int u, int 
             }
             break;
     }
-    *inhibits = mach64_3d_texel_key_inhibits(map, argb & 0x00ffffff);
+    *inhibits = mach64_3d_texel_key_inhibits(map, mach64_3d_texel_key_value(map->format, raw, argb));
     return argb;
 }
 
@@ -1842,8 +2062,8 @@ mach64_3d_dst_init(mach64_t *mach64, mach64_3d_dst_t *dst)
     dst->bpp    = mach64_3d_bytes_per_pixel(dst->format);
     dst->base   = (mach64->dst_off_pitch & 0xfffff) << 3;
     dst->pitch  = ((mach64->dst_off_pitch >> 22) & 0x3ff) << 3;
-    dst->left   = mach64_3d_sign_extend(mach64->sc_left_right, 13);
-    dst->right  = mach64_3d_sign_extend(mach64->sc_left_right >> 16, 13);
+    dst->left   = mach64_3d_sign_extend(mach64->sc_left_right, SC_X_BITS);
+    dst->right  = mach64_3d_sign_extend(mach64->sc_left_right >> 16, SC_X_BITS);
     dst->top    = mach64_3d_sign_extend(mach64->sc_top_bottom, 15);
     dst->bottom = mach64_3d_sign_extend(mach64->sc_top_bottom >> 16, 15);
     if (!dst->pitch)
@@ -2180,8 +2400,12 @@ mach64_3d_helper_thread(void *param)
         seen = atomic_load(&ctx->job_gen);
         if (ctx->helpers_quit)
             break;
-        for (int i = helper->index; i < ctx->job->nrows; i += ctx->job_threads)
-            mach64_3d_draw_row(ctx, ctx->job, &ctx->rows[i], &helper->dither);
+        if (ctx->rp_job)
+            mach64_rp_draw_spans(ctx, ctx->rp_job, helper->index, ctx->job_threads, &helper->dither, &helper->agp);
+        else {
+            for (int i = helper->index; i < ctx->job->nrows; i += ctx->job_threads)
+                mach64_3d_draw_row(ctx, ctx->job, &ctx->rows[i], &helper->dither);
+        }
         atomic_fetch_sub(&ctx->job_left, 1);
     }
 }
@@ -2251,6 +2475,7 @@ mach64_3d_draw_rows(mach64_3d_t *ctx, const mach64_3d_rows_job_t *job, uint32_t 
     if (!ctx->helpers_made)
         mach64_3d_helpers_make(ctx);
     ctx->job         = job;
+    ctx->rp_job      = NULL;
     ctx->job_threads = threads;
     for (int i = 0; i < (threads - 1); i++)
         ctx->helpers[i].dither = ctx->dither;
@@ -2288,10 +2513,10 @@ mach64_3d_draw_trapezoid(mach64_3d_t *ctx, uint32_t cmd)
     int                  y;
     int                  lead_err;
     int                  trail_err;
-    int                  lead_inc   = (int32_t) mach64->dst_bres_inc;
-    int                  lead_dec   = (int32_t) mach64->dst_bres_dec;
-    int                  trail_inc  = (int32_t) ctx->regs[TRAIL_BRES_INC >> 2];
-    int                  trail_dec  = (int32_t) ctx->regs[TRAIL_BRES_DEC >> 2];
+    int                  lead_inc   = mach64_3d_sign_extend(mach64->dst_bres_inc, 18);
+    int                  lead_dec   = mach64_3d_sign_extend(mach64->dst_bres_dec, 18);
+    int                  trail_inc  = mach64_3d_sign_extend(ctx->regs[TRAIL_BRES_INC >> 2], 18);
+    int                  trail_dec  = mach64_3d_sign_extend(ctx->regs[TRAIL_BRES_DEC >> 2], 18);
     int                  y_dir      = (mach64->dst_cntl & DST_Y_DIR) ? 1 : -1;
     int                  lead_dir   = (mach64->dst_cntl & DST_X_DIR) ? 1 : -1;
     int                  trail_dir  = (mach64->dst_cntl & TRAIL_X_DIR) ? 1 : -1;
@@ -2320,8 +2545,11 @@ mach64_3d_draw_trapezoid(mach64_3d_t *ctx, uint32_t cmd)
         ctx->trail_valid = 1;
     }
     trail     = ctx->trail_x;
-    lead_err  = (int32_t) mach64->dst_bres_err;
-    trail_err = (int32_t) ctx->regs[TRAIL_BRES_ERR >> 2];
+    /* The leading and trailing Bresenham fields are signed 18-bit values,
+       just as for lines. Reserved high bits must not change an edge's
+       slope or turn a zero-extended negative error into an initial X walk. */
+    lead_err  = mach64_3d_sign_extend(mach64->dst_bres_err, 18);
+    trail_err = mach64_3d_sign_extend(ctx->regs[TRAIL_BRES_ERR >> 2], 18);
 
     if (!mach64_3d_dst_init(mach64, &job.dst))
         return;
@@ -2665,11 +2893,32 @@ mach64_scaler_mix(uint32_t src, uint32_t dst, unsigned function)
     }
 }
 
+/* The scaler's two YUV 422 types: 11, VYUY 422, pairs of Y0 U Y1 V from
+   the low byte up; 12, YVYU 422, pairs of Y0 V Y1 U. */
+static int
+mach64_scaler_yuv422(int format)
+{
+    return (format == 11) || (format == 12);
+}
+
 /* YUV 422 takes 2 bytes a pixel in the scaler, read in 4-byte pairs. */
 static int
 mach64_scaler_source_bpp(int format)
 {
-    return (format == 11) ? 2 : mach64_3d_bytes_per_pixel(format);
+    if (format == 9)
+        return 1;
+    return mach64_scaler_yuv422(format) ? 2 : mach64_3d_bytes_per_pixel(format);
+}
+
+/* And writes 2 bytes a pixel: its Y and the pair's U or V. */
+static int
+mach64_scaler_destination_bpp(int format)
+{
+    if (format == 5)
+        return 3;
+    if (format == 9)
+        return 1;
+    return mach64_scaler_yuv422(format) ? 2 : mach64_3d_bytes_per_pixel(format);
 }
 
 static int
@@ -2679,9 +2928,13 @@ mach64_scaler_destination_supported(int format)
         case 2:
         case 3:
         case 4:
+        case 5:
         case 6:
         case 7:
         case 8:
+        case 9:
+        case 11:
+        case 12:
         case 15:
             return 1;
         default:
@@ -2692,12 +2945,26 @@ mach64_scaler_destination_supported(int format)
 static rgba_t
 mach64_scaler_read_source(mach64_3d_t *ctx, int format, uint32_t base, uint32_t pitch, int x, int y)
 {
+    mach64_t *mach64 = ctx->mach64;
     int    bpp   = mach64_scaler_source_bpp(format);
     rgba_t black = { 0, 0, 0, 255 };
+    uint32_t addr;
+    uint32_t raw;
 
     if ((bpp != 1) && (bpp != 2) && (bpp != 4))
         return black;
-    return mach64_3d_unpack(ctx, format, mach64_3d_vram_read(ctx->mach64, base + (y * pitch + x) * bpp, bpp), 1);
+    addr = base + (y * pitch + x) * bpp;
+    raw  = mach64_3d_vram_read(mach64, addr, bpp);
+    if (mach64->ragepro && format == 8 && (ctx->regs[RP_TEX_CNTL >> 2] & RP_TEX_CACHE_SIZE_SELECT)) {
+        /* A cache fill brings in the whole line, including the bytes
+           between the scaler's samples (32 source bytes per pixel in
+           ATI's palette upload). */
+        for (unsigned i = 0; i < 32; i++) {
+            uint32_t fetch = (addr & ~31u) + i;
+            mach64_3d_texture_palette_cache_byte(ctx, fetch, mach64_3d_vram_read8(mach64, fetch));
+        }
+    }
+    return mach64_3d_unpack(ctx, format, raw, 1);
 }
 
 static uint32_t
@@ -2712,13 +2979,25 @@ mach64_scaler_yuyv_luma(mach64_t *mach64, uint32_t base, uint32_t pitch, int x, 
     return mach64_yuyv_y(mach64_scaler_yuyv_pair(mach64, base, pitch, x >> 1, y), x);
 }
 
+/* A pair's U and V as stored, by its type's byte order. */
 static void
-mach64_scaler_yuyv_chroma(mach64_t *mach64, uint32_t base, uint32_t pitch, int pair_x, int y, int signed_uv, int *u, int *v)
+mach64_scaler_yuv422_raw_uv(uint32_t raw, int format, uint8_t *u, uint8_t *v)
+{
+    *u = (format == 12) ? mach64_yuyv_v(raw) : mach64_yuyv_u(raw);
+    *v = (format == 12) ? mach64_yuyv_u(raw) : mach64_yuyv_v(raw);
+}
+
+static void
+mach64_scaler_yuyv_chroma(mach64_t *mach64, int format, uint32_t base, uint32_t pitch, int pair_x, int y, int signed_uv,
+                          int passthrough, int *u, int *v)
 {
     uint32_t raw = mach64_scaler_yuyv_pair(mach64, base, pitch, pair_x, y);
+    uint8_t  ru;
+    uint8_t  rv;
 
-    *u = mach64_yuv_chroma(mach64_yuyv_u(raw), signed_uv);
-    *v = mach64_yuv_chroma(mach64_yuyv_v(raw), signed_uv);
+    mach64_scaler_yuv422_raw_uv(raw, format, &ru, &rv);
+    *u = passthrough ? ru : mach64_yuv_chroma(ru, signed_uv);
+    *v = passthrough ? rv : mach64_yuv_chroma(rv, signed_uv);
 }
 
 /*
@@ -2727,8 +3006,9 @@ mach64_scaler_yuyv_chroma(mach64_t *mach64, uint32_t base, uint32_t pitch, int p
  * samples unless SCALE_PIX_REP replicates the nearest.
  */
 static rgba_t
-mach64_scaler_sample_yuyv(mach64_3d_t *ctx, uint32_t base, uint32_t pitch, int x, int x_next, int uv_x, int uv_x_next, int y,
-                          int y_next, unsigned h_fraction, unsigned uv_fraction, unsigned v_fraction, int replicate)
+mach64_scaler_sample_yuyv(mach64_3d_t *ctx, int format, int passthrough, uint32_t base, uint32_t pitch, int x, int x_next, int uv_x,
+                          int uv_x_next, int y, int y_next, unsigned h_fraction, unsigned uv_fraction, unsigned v_fraction,
+                          int replicate)
 {
     mach64_t *mach64    = ctx->mach64;
     int       signed_uv = !!(ctx->regs[SCALE_3D_CNTL >> 2] & APPLE_YUV_MODE);
@@ -2738,7 +3018,7 @@ mach64_scaler_sample_yuyv(mach64_3d_t *ctx, uint32_t base, uint32_t pitch, int x
     int       u;
     int       v;
 
-    mach64_scaler_yuyv_chroma(mach64, base, pitch, uv_x, y, signed_uv, &u00, &v00);
+    mach64_scaler_yuyv_chroma(mach64, format, base, pitch, uv_x, y, signed_uv, passthrough, &u00, &v00);
     if (replicate) {
         luma = mach64_scaler_yuyv_luma(mach64, base, pitch, x, y);
         u    = u00;
@@ -2755,14 +3035,20 @@ mach64_scaler_sample_yuyv(mach64_3d_t *ctx, uint32_t base, uint32_t pitch, int x
         int u11;
         int v11;
 
-        mach64_scaler_yuyv_chroma(mach64, base, pitch, uv_x_next, y, signed_uv, &u01, &v01);
-        mach64_scaler_yuyv_chroma(mach64, base, pitch, uv_x, y_next, signed_uv, &u10, &v10);
-        mach64_scaler_yuyv_chroma(mach64, base, pitch, uv_x_next, y_next, signed_uv, &u11, &v11);
+        mach64_scaler_yuyv_chroma(mach64, format, base, pitch, uv_x_next, y, signed_uv, passthrough, &u01, &v01);
+        mach64_scaler_yuyv_chroma(mach64, format, base, pitch, uv_x, y_next, signed_uv, passthrough, &u10, &v10);
+        mach64_scaler_yuyv_chroma(mach64, format, base, pitch, uv_x_next, y_next, signed_uv, passthrough, &u11, &v11);
         luma = mach64_scaler_lerp4(mach64_scaler_lerp4(y00, y10, v_fraction), mach64_scaler_lerp4(y01, y11, v_fraction), h_fraction);
         u    = mach64_scaler_lerp4_signed(mach64_scaler_lerp4_signed(u00, u10, v_fraction),
                                           mach64_scaler_lerp4_signed(u01, u11, v_fraction), uv_fraction);
         v    = mach64_scaler_lerp4_signed(mach64_scaler_lerp4_signed(v00, v10, v_fraction),
                                           mach64_scaler_lerp4_signed(v01, v11, v_fraction), uv_fraction);
+    }
+    if (passthrough) {
+        /* Y, U and V as stored, in the red, green and blue lanes. */
+        rgba_t c = { luma, mach64_3d_clamp8(u), mach64_3d_clamp8(v), 255 };
+
+        return c;
     }
     return mach64_3d_yuv_rgba(luma, u, v, 255);
 }
@@ -2782,12 +3068,14 @@ mach64_scaler_source_key_inhibits(mach64_3d_t *ctx, int format, uint32_t base, u
                                                mach64_3d_texture_palette_texel_index(mach64->dp_pix_width,
                                                                                      mach64_3d_vram_read8(mach64, base + y * pitch + x)));
 
-    if (format == 11) {
+    if (mach64_scaler_yuv422(format)) {
         uint32_t raw       = mach64_scaler_yuyv_pair(mach64, base, pitch, x >> 1, y);
         int      signed_uv = !!(ctx->regs[SCALE_3D_CNTL >> 2] & APPLE_YUV_MODE);
+        uint8_t  u;
+        uint8_t  v;
 
-        color = mach64_3d_yuv_rgba(mach64_yuyv_y(raw, x), mach64_yuv_chroma(mach64_yuyv_u(raw), signed_uv),
-                                   mach64_yuv_chroma(mach64_yuyv_v(raw), signed_uv), 255);
+        mach64_scaler_yuv422_raw_uv(raw, format, &u, &v);
+        color = mach64_3d_yuv_rgba(mach64_yuyv_y(raw, x), mach64_yuv_chroma(u, signed_uv), mach64_yuv_chroma(v, signed_uv), 255);
     } else
         color = mach64_scaler_read_source(ctx, format, base, pitch, x, y);
 
@@ -2841,20 +3129,133 @@ mach64_scaler_lerp_rgba(rgba_t first, rgba_t second, unsigned coefficient)
  * mixed by DP_MIX's foreground function and written through WRITE_MASK.
  * CLR_CMP_SRC 1 compares the scaled pixel itself; 3 is reserved.
  */
+/*
+ * A YUV 422 destination pixel: its Y, and U or V by its place in the pair
+ * (U first for VYUY, V first for YVYU). The pipeline carries Y, U and V in
+ * the red, green and blue lanes, as a YUV 422 source passes them on
+ * unconverted; an RGB source is converted. ATI's DirectDraw driver
+ * (macxdd32 4.11) does its MPEG motion compensation on packed YUV surfaces
+ * so: copies, ONE/ONE adds of the error blocks and averages (DP_MIX 17h).
+ */
+static int
+mach64_scaler_yuv422_pixel_is_v(uint32_t addr, int format)
+{
+    return ((addr >> 1) & 1) ^ (format == 12);
+}
+
+static rgba_t
+mach64_scaler_yuv422_read_dst(mach64_t *mach64, uint32_t addr, int format)
+{
+    uint32_t raw = mach64_3d_vram_read(mach64, addr, 2);
+    rgba_t   c   = { raw & 0xff, 128, 128, 255 };
+
+    if (mach64_scaler_yuv422_pixel_is_v(addr, format))
+        c.b = raw >> 8;
+    else
+        c.g = raw >> 8;
+    return c;
+}
+
+/* BT.601, full range, the inverse of mach64_yuv_centered_to_rgb(). */
+static rgba_t
+mach64_scaler_rgb_to_yuv(rgba_t c)
+{
+    int    r   = mach64_3d_clamp8(c.r);
+    int    g   = mach64_3d_clamp8(c.g);
+    int    b   = mach64_3d_clamp8(c.b);
+    int    y   = (77 * r + 150 * g + 29 * b + 128) >> 8;
+    rgba_t yuv = { y, mach64_3d_clamp8((((b - y) * 144) >> 8) + 128), mach64_3d_clamp8((((r - y) * 183) >> 8) + 128), c.a };
+
+    return yuv;
+}
+
+/* DP_MIX on a YUV 422 pixel works on its two bytes apart; 17h averages
+   each, as MPEG's bidirectional prediction wants. */
+static uint32_t
+mach64_scaler_mix_bytes(uint32_t src, uint32_t dst, unsigned function, int bytes)
+{
+    uint32_t ret = 0;
+
+    if ((function & 0x1f) != 0x17)
+        return mach64_scaler_mix(src, dst, function);
+    for (int i = 0; i < bytes; i++)
+        ret |= ((((src >> (i * 8)) & 0xff) + ((dst >> (i * 8)) & 0xff)) >> 1) << (i * 8);
+    return ret;
+}
+
+/*
+ * The Rage XL's IDCT_EN: the IDCT's residual sample takes the place of the
+ * destination in the blend, which becomes Src + Dst, clamped to 0-255
+ * (XL/XC RRG: ALPHA_TST_CNTL, p. 5-19 / PDF 163). It goes into every
+ * component the pixel has.
+ */
+static rgba_t
+mach64_scaler_add_residual(rgba_t src, int resid)
+{
+    src.r = mach64_3d_clamp8(src.r + resid);
+    src.g = mach64_3d_clamp8(src.g + resid);
+    src.b = mach64_3d_clamp8(src.b + resid);
+    return src;
+}
+
 static void
-mach64_scaler_write_pixel(mach64_3d_t *ctx, uint32_t addr, int format, int x, int y, rgba_t src, int source_inhibits)
+mach64_scaler_write_pixel_yuv422(mach64_3d_t *ctx, uint32_t addr, int format, rgba_t src, int src_is_yuv, int source_inhibits, int idct,
+                                 int resid)
+{
+    mach64_t *mach64 = ctx->mach64;
+    uint32_t  cntl   = ctx->regs[SCALE_3D_CNTL >> 2];
+    uint32_t  dst    = mach64_3d_vram_read(mach64, addr, 2);
+    int       is_v   = mach64_scaler_yuv422_pixel_is_v(addr, format);
+    uint32_t  packed;
+    uint32_t  result;
+    int       inhibits;
+
+    if (!src_is_yuv)
+        src = mach64_scaler_rgb_to_yuv(src);
+    if (idct)
+        src = mach64_scaler_add_residual(src, resid);
+    else if (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND)
+        src = mach64_3d_blend(cntl, src, mach64_scaler_yuv422_read_dst(mach64, addr, format));
+    packed = mach64_3d_clamp8(src.r) | ((uint32_t) mach64_3d_clamp8(is_v ? src.b : src.g) << 8);
+
+    switch ((mach64->clr_cmp_cntl >> 24) & 3) {
+        case 0:
+            inhibits = mach64_3d_color_compare_inhibits(mach64->clr_cmp_cntl, mach64->clr_cmp_clr, mach64->clr_cmp_mask, dst);
+            break;
+        case 1:
+            inhibits = mach64_3d_color_compare_inhibits(mach64->clr_cmp_cntl, mach64->clr_cmp_clr, mach64->clr_cmp_mask, packed);
+            break;
+        case 2:
+            inhibits = source_inhibits;
+            break;
+        default:
+            inhibits = 0;
+            break;
+    }
+    if (inhibits)
+        return;
+
+    result = mach64_scaler_mix_bytes(packed, dst, (mach64->dp_mix >> 16) & 0x1f, 2) & 0xffff;
+    result = (result & mach64->write_mask) | (dst & ~mach64->write_mask);
+    mach64_3d_vram_write(mach64, addr, result & 0xffff, 2);
+}
+
+static void
+mach64_scaler_write_pixel(mach64_3d_t *ctx, uint32_t addr, int format, int x, int y, rgba_t src, int source_inhibits, int idct, int resid)
 {
     mach64_t *mach64     = ctx->mach64;
     uint32_t  cntl       = ctx->regs[SCALE_3D_CNTL >> 2];
-    int       bpp        = mach64_3d_bytes_per_pixel(format);
-    uint32_t  pixel_mask = (bpp == 1) ? 0xff : ((bpp == 2) ? 0xffff : 0xffffffff);
+    int       bpp        = mach64_scaler_destination_bpp(format);
+    uint32_t  pixel_mask = bpp == 4 ? 0xffffffffu : ((1u << (bpp * 8)) - 1);
     uint32_t  dst        = mach64_3d_vram_read(mach64, addr, bpp);
     uint32_t  packed;
     uint32_t  result;
     int       inhibits;
 
-    if (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND)
-        src = mach64_3d_blend(cntl, src, mach64_3d_read_dst(ctx, addr, format));
+    if (idct)
+        src = mach64_scaler_add_residual(src, resid);
+    else if (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND)
+        src = mach64_3d_blend(cntl, src, mach64_3d_unpack(ctx, format, dst, 0));
 
     if (format == 2)
         packed = ((mach64_3d_clamp8(src.r) >> 5) << 5) | ((mach64_3d_clamp8(src.g) >> 5) << 2) | (mach64_3d_clamp8(src.b) >> 6);
@@ -2876,7 +3277,7 @@ mach64_scaler_write_pixel(mach64_3d_t *ctx, uint32_t addr, int format, int x, in
             inhibits = 0;
             break;
     }
-    if (inhibits || ((bpp != 1) && (bpp != 2) && (bpp != 4)))
+    if (inhibits || (bpp < 1) || (bpp > 4))
         return;
 
     result = mach64_scaler_mix(packed, dst, (mach64->dp_mix >> 16) & 0x1f) & pixel_mask;
@@ -2896,19 +3297,24 @@ mach64_scaler_draw(mach64_3d_t *ctx)
     mach64_t       *mach64     = ctx->mach64;
     const uint32_t *regs       = ctx->regs;
     int             replicate  = !!(regs[SCALE_3D_CNTL >> 2] & SCALE_PIX_REP);
-    uint32_t        src_base   = regs[SCALE_Y_OFF >> 2] & ~7;
+    uint32_t        src_base   = regs[SCALE_Y_OFF >> 2] & (mach64->ragepro ? ~3u : ~7u);
     int             src_width  = regs[SCALE_WIDTH >> 2] & 0x1fff;
     int             src_height = regs[SCALE_HEIGHT >> 2] & 0x1fff;
     uint32_t        src_pitch  = regs[SCALE_Y_PITCH >> 2] & 0x1fff;
-    uint32_t        x_inc      = regs[SCALE_X_INC >> 2] & 0x001ffff0;
-    uint32_t        xuv_inc    = regs[SCALE_XUV_INC >> 2] & 0x001ffff0;
-    uint32_t        y_inc      = regs[SCALE_Y_INC >> 2] & 0x001ffff0;
+    /* The increments are unsigned, 12 fraction bits and 8
+       integer ones (RAGE PRO and Derivatives Programmer's Guide 8-14, for
+       the RAGE II/II+/IIC; RED_X_INC's S.8.12, RRG-G02700 6-12). */
+    uint32_t        x_inc      = regs[SCALE_X_INC >> 2] & 0x00fffff0;
+    uint32_t        xuv_inc    = regs[SCALE_XUV_INC >> 2] & 0x00fffff0;
+    uint32_t        y_inc      = regs[SCALE_Y_INC >> 2] & 0x00fffff0;
     int32_t         h_start    = mach64_3d_sign_extend(regs[SCALE_HACC >> 2], 21);
     int32_t         uv_start   = mach64_3d_sign_extend(regs[SCALE_UV_HACC >> 2], 21);
     int32_t         v_start    = mach64_3d_sign_extend(regs[SCALE_VACC >> 2], 21);
     int             src_format = mach64_3d_src_format(mach64);
     int             dst_format = mach64_3d_dst_format(mach64);
-    int             dst_bpp    = mach64_3d_bytes_per_pixel(dst_format);
+    int             dst_bpp    = mach64_scaler_destination_bpp(dst_format);
+    /* YUV 422 in and out: Y, U and V go through as they are. */
+    int             passthrough = mach64_scaler_yuv422(src_format) && mach64_scaler_yuv422(dst_format);
     int             dst_pitch  = ((mach64->dst_off_pitch >> 22) & 0x3ff) << 3;
     uint32_t        dst_base   = (mach64->dst_off_pitch & 0xfffff) << 3;
     int             dst_x      = mach64_3d_sign_extend(mach64->dst_y_x >> 16, 13);
@@ -2917,15 +3323,29 @@ mach64_scaler_draw(mach64_3d_t *ctx)
     int             dst_height = mach64->dst_height_width & 0x1fff;
     int             x_dir      = (mach64->dst_cntl & DST_X_DIR) ? 1 : -1;
     int             y_dir      = (mach64->dst_cntl & DST_Y_DIR) ? 1 : -1;
-    int             sc_left    = mach64_3d_sign_extend(mach64->sc_left_right, 13);
-    int             sc_right   = mach64_3d_sign_extend(mach64->sc_left_right >> 16, 13);
+    int             sc_left    = mach64_3d_sign_extend(mach64->sc_left_right, SC_X_BITS);
+    int             sc_right   = mach64_3d_sign_extend(mach64->sc_left_right >> 16, SC_X_BITS);
     int             sc_top     = mach64_3d_sign_extend(mach64->sc_top_bottom, 15);
     int             sc_bottom  = mach64_3d_sign_extend(mach64->sc_top_bottom >> 16, 15);
     uint64_t        vram_size  = (uint64_t) mach64->vram_mask + 1;
+    uint32_t        cntl       = regs[SCALE_3D_CNTL >> 2];
+    int32_t         a_start    = mach64_3d_s8_12_decode(regs[ALPHA_START >> 2]);
+    int32_t         a_x_inc    = mach64_3d_s8_12_decode(regs[ALPHA_X_INC >> 2]);
+    int32_t         a_y_inc    = mach64_3d_s8_12_decode(regs[ALPHA_Y_INC >> 2]);
+    /* Inter draws add residuals to the scaled prediction; native intra
+       draws reconstruct around 128 even with alpha blending disabled. */
+    int             idct       = mach64->idct && (regs[RP_ALPHA_TST_CNTL >> 2] & RP_IDCT_EN) &&
+                                 ((((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND) || ctx->idct_render_intra);
     uint32_t        vacc_advanced;
 
+    /* XL RRG 5-45 permits packed 24-bit output only for scaling, without
+       alpha blending. Keep it out of the 3D pixel-width table. */
+    if (dst_format == 5 && (((cntl >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND))
+        return;
     if (src_width && src_height && src_pitch && dst_width && dst_height && mach64_scaler_source_bpp(src_format) && dst_bpp &&
         mach64_scaler_destination_supported(dst_format)) {
+        if (idct)
+            mach64_idct_draw_begin(mach64, dst_width, dst_height);
         for (int dy = 0; dy < dst_height; dy++) {
             int      y          = dst_y + dy * y_dir;
             int32_t  v_acc      = v_start + (int32_t) (dy * y_inc);
@@ -2946,6 +3366,7 @@ mach64_scaler_draw(mach64_3d_t *ctx)
                 unsigned h_fraction = mach64_scaler_accum_fraction4(h_acc);
                 int      src_x_next;
                 int      inhibits;
+                int      resid;
                 int64_t  addr;
                 rgba_t   src;
 
@@ -2961,9 +3382,14 @@ mach64_scaler_draw(mach64_3d_t *ctx)
                 inhibits = mach64_scaler_source_inhibits(ctx, src_format, src_base, src_pitch, src_x, src_x_next, src_y,
                                                          src_y_next, h_fraction, v_fraction, replicate);
 
-                if (src_format == 11) {
+                if (mach64_scaler_yuv422(src_format)) {
                     int      uv_width    = (src_width + 1) >> 1;
-                    int32_t  uv_acc      = uv_start + (int32_t) (dx * xuv_inc);
+                    /* Into a YUV 422 destination a pixel pair takes one
+                       chroma sample, at its first pixel: the second one's
+                       V (or U) comes from the same source pair. */
+                    int      pair_dx     = (passthrough && (((dst_base >> 1) + (uint32_t) (y * (dst_pitch >> 1)) + (uint32_t) x) & 1))
+                                               ? (dx - x_dir) : dx;
+                    int32_t  uv_acc      = uv_start + (int32_t) (pair_dx * xuv_inc);
                     int      uv_x        = mach64_scaler_accum_pixel(uv_acc);
                     unsigned uv_fraction = mach64_scaler_accum_fraction4(uv_acc);
                     int      uv_x_next;
@@ -2974,10 +3400,13 @@ mach64_scaler_draw(mach64_3d_t *ctx)
                         uv_x = uv_width - 1;
                     uv_x_next = (uv_x + 1 >= uv_width) ? (uv_width - 1) : (uv_x + 1);
 
-                    src = mach64_scaler_sample_yuyv(ctx, src_base, src_pitch, src_x, src_x_next, uv_x, uv_x_next, src_y,
-                                                    src_y_next, h_fraction, uv_fraction, v_fraction, replicate);
+                    src = mach64_scaler_sample_yuyv(ctx, src_format, passthrough, src_base, src_pitch, src_x, src_x_next, uv_x,
+                                                    uv_x_next, src_y, src_y_next, h_fraction, uv_fraction, v_fraction, replicate);
                 } else {
-                    src = mach64_scaler_read_source(ctx, src_format, src_base, src_pitch, src_x, src_y);
+                    rgba_t nearest;
+
+                    src     = mach64_scaler_read_source(ctx, src_format, src_base, src_pitch, src_x, src_y);
+                    nearest = src;
                     if (!replicate) {
                         rgba_t below       = mach64_scaler_read_source(ctx, src_format, src_base, src_pitch, src_x, src_y_next);
                         rgba_t right       = mach64_scaler_read_source(ctx, src_format, src_base, src_pitch, src_x_next, src_y);
@@ -2987,19 +3416,109 @@ mach64_scaler_draw(mach64_3d_t *ctx)
                         src = mach64_scaler_lerp_rgba(mach64_scaler_lerp_rgba(src, below, v_fraction),
                                                       mach64_scaler_lerp_rgba(right, below_right, v_fraction), h_fraction);
                     }
+
+                    /* The scaled pixel's alpha follows the texel
+                       rules: without TEX_MAP_AEN it is the interpolated alpha
+                       (ALPHA_START and its increments), and TEX_AMASK_AEN
+                       makes the source's alpha bit a mask, taken from the
+                       nearest source pixel. Midway TouchMaster II fades 1555
+                       images through ALPHA_START with the mask on, and masks
+                       its 1555 glyphs. */
+                    if (cntl & TEX_AMASK_AEN)
+                        src.a = nearest.a;
+                    if (!mach64_3d_texture_alpha(cntl, &src, mach64_3d_s8_12_color((int64_t) a_start + (int64_t) dx * a_x_inc +
+                                                                                       (int64_t) dy * a_y_inc)))
+                        continue;
                 }
 
+                if (idct && ctx->idct_render_intra) {
+                    src.r = src.g = src.b = 128;
+                    src.a = 255;
+                    inhibits = 0;
+                }
                 addr = (int64_t) dst_base + ((int64_t) y * dst_pitch + x) * dst_bpp;
                 if ((addr < 0) || (((uint64_t) addr + dst_bpp) > vram_size))
                     continue;
-                mach64_scaler_write_pixel(ctx, addr, dst_format, x, y, src, inhibits);
+                resid = idct ? mach64_idct_residual(mach64, dx, dy) : 0;
+                if (mach64_scaler_yuv422(dst_format))
+                    mach64_scaler_write_pixel_yuv422(ctx, addr, dst_format, src, passthrough, inhibits, idct, resid);
+                else
+                    mach64_scaler_write_pixel(ctx, addr, dst_format, x, y, src, inhibits, idct, resid);
             }
         }
+        if (idct)
+            mach64_idct_draw_end(mach64);
     }
 
     /* SCALE_VACC moves on by the lines drawn. */
     vacc_advanced              = (uint32_t) ((int64_t) v_start + (int64_t) dst_height * y_inc);
     ctx->regs[SCALE_VACC >> 2] = (ctx->regs[SCALE_VACC >> 2] & ~0x001ffff0) | (vacc_advanced & 0x001ffff0);
+}
+
+/* XL queues reconstruction rectangles ahead of their coefficient blocks.
+   Keep the submitted state until the IDCT producer has supplied each block. */
+#define XL_SCALER_FIELDS(X) \
+    X(dp_pix_width) X(dp_src) X(dp_mix) X(write_mask) X(dst_off_pitch) \
+    X(dst_y_x) X(dst_height_width) X(dst_cntl) X(sc_left_right) \
+    X(sc_top_bottom) X(clr_cmp_cntl) X(clr_cmp_clr) X(clr_cmp_mask)
+typedef struct xl_scaler_state_t {
+    uint32_t regs[256];
+    int intra;
+#define XL_DECLARE(f) uint32_t f;
+    XL_SCALER_FIELDS(XL_DECLARE)
+#undef XL_DECLARE
+} xl_scaler_state_t;
+
+static void
+xl_scaler_capture(mach64_3d_t *ctx, xl_scaler_state_t *s)
+{
+    memcpy(s->regs, ctx->regs, sizeof(s->regs));
+    s->intra = ctx->idct_render_intra;
+#define XL_CAPTURE(f) s->f = ctx->mach64->f;
+    XL_SCALER_FIELDS(XL_CAPTURE)
+#undef XL_CAPTURE
+}
+
+static void
+xl_scaler_restore(mach64_3d_t *ctx, const xl_scaler_state_t *s)
+{
+    memcpy(ctx->regs, s->regs, sizeof(s->regs));
+    ctx->idct_render_intra = s->intra;
+#define XL_RESTORE(f) ctx->mach64->f = s->f;
+    XL_SCALER_FIELDS(XL_RESTORE)
+#undef XL_RESTORE
+}
+#undef XL_SCALER_FIELDS
+
+static void
+xl_scaler_render(mach64_t *m, const void *state)
+{
+    mach64_3d_t *ctx = m->gt3d;
+    xl_scaler_state_t saved;
+    xl_scaler_capture(ctx, &saved);
+    xl_scaler_restore(ctx, state);
+    mach64_scaler_draw(ctx);
+    xl_scaler_restore(ctx, &saved);
+}
+
+static void
+mach64_scaler_submit(mach64_3d_t *ctx)
+{
+    mach64_t *m = ctx->mach64;
+    unsigned width = (m->dst_height_width >> 16) & 0x1fff;
+    unsigned height = m->dst_height_width & 0x1fff;
+    int intra = mach64_idct_intra(m);
+    if (m->idct && (ctx->regs[RP_ALPHA_TST_CNTL >> 2] & RP_IDCT_EN) &&
+        (intra || (((ctx->regs[SCALE_3D_CNTL >> 2] >> ALPHA_FOG_SHIFT) & 3) == ALPHA_FOG_BLEND))) {
+        xl_scaler_state_t *s = malloc(sizeof(*s));
+        if (!s)
+            return;
+        xl_scaler_capture(ctx, s);
+        s->intra = intra;
+        mach64_idct_defer(m, s, ((width + 7) / 8) * ((height + 7) / 8), xl_scaler_render);
+        return;
+    }
+    mach64_scaler_draw(ctx);
 }
 
 /* A write that completes its register, the last byte of a byte or word
@@ -3100,17 +3619,15 @@ mach64_3d_alias(uint32_t reg)
 }
 
 /*
- * The 3D registers are written at once, ahead of the 2D FIFO. Before one of
- * them after a write that went to the FIFO, the FIFO runs out, so a 3D draw
- * sees the 2D state written before it.
+ * The 3D registers, the setup engine's among them, are written through the
+ * FIFO in turn with the 2D ones, and a draw runs on the engine thread with
+ * the write that starts it. A read of one from the CPU waits for the FIFO
+ * to run out.
  */
 static void
 mach64_3d_sync(mach64_3d_t *ctx)
 {
-    if (!ctx->fifo_pending)
-        return;
     mach64_wait_fifo_idle(ctx->mach64);
-    ctx->fifo_pending = 0;
 }
 
 /*
@@ -3133,15 +3650,15 @@ mach64_3d_gui_stat(mach64_t *mach64)
     if (!mach64_timing_status(mach64, &used, &busy))
         busy = used || mach64->blitter_busy;
 
-    ret = ((used >= GT_FIFO_DEPTH) ? 0 : (GT_FIFO_DEPTH - used)) << 16;
+    ret = ((used >= mach64_fifo_depth(mach64)) ? 0 : (mach64_fifo_depth(mach64) - used)) << 16;
     if (busy || mach64->accel.busy)
         ret |= 0x01; /* GUI_ACTIVE */
 
     dst_x = mach64_3d_sign_extend(mach64->dst_y_x >> 16, 13);
     dst_y = mach64_3d_sign_extend(mach64->dst_y_x, 15);
-    if (dst_x < mach64_3d_sign_extend(mach64->sc_left_right, 13))
+    if (dst_x < mach64_3d_sign_extend(mach64->sc_left_right, SC_X_BITS))
         ret |= 0x10; /* DSTX_LT_SCISSOR_LEFT */
-    if (dst_x > mach64_3d_sign_extend(mach64->sc_left_right >> 16, 13))
+    if (dst_x > mach64_3d_sign_extend(mach64->sc_left_right >> 16, SC_X_BITS))
         ret |= 0x20; /* DSTX_GT_SCISSOR_RIGHT */
     if (dst_y < mach64_3d_sign_extend(mach64->sc_top_bottom, 15))
         ret |= 0x40; /* DSTY_LT_SCISSOR_TOP */
@@ -3150,6 +3667,8 @@ mach64_3d_gui_stat(mach64_t *mach64)
     return ret;
 }
 
+static int mach64_3d_ragepro_register(uint32_t reg);
+
 /*
  * Reads the GUI register at addr for the GT-B. Returns 0 to leave it to the
  * 2D engine; otherwise *val is the whole dword holding it.
@@ -3157,27 +3676,41 @@ mach64_3d_gui_stat(mach64_t *mach64)
 int
 mach64_3d_read(mach64_t *mach64, uint32_t addr, uint32_t *val)
 {
-    mach64_3d_t *ctx = mach64->gt3d;
-    uint32_t     reg = addr & 0x3fc;
-    uint32_t     used;
-    int          busy;
+    mach64_3d_t *ctx  = mach64->gt3d;
+    uint32_t     reg  = addr & 0x3fc;
+    uint32_t     used = 0;
+    int          busy = 0;
 
     switch (reg) {
         case GUI_STAT:
             *val = mach64_3d_gui_stat(mach64);
             return 1;
         case FIFO_STAT:
-            /* A bit for each of the 16 entries shown in use: of the timed
-               FIFO, as the 2D one empties at once. */
+            /* On the 3D RAGE FIFO_STAT has a bit for each full
+               entry past the first 16, "if there are 23 full entries, then
+               bits 6:0 will be set" (RRG-G02700 4-101); the free entries are
+               GUI_STAT's FIFO_CNT. Of the timed FIFO, as the 2D one empties
+               at once. */
             if (!mach64_timing_status(mach64, &used, &busy))
                 return 0;
+            if (mach64->ragepro || mach64->rage2c) {
+                /* The IIC/Pro's 16 bits stand for their whole FIFO, a
+                   sixteenth of it each, filling from bit 0 (the DRI
+                   driver waits for "slots <= 0x8000 >> entries"). */
+                uint32_t step = mach64_fifo_depth(mach64) / 16;
+
+                used = (used + step - 1) / step;
+                *val = (used >= 16) ? 0xffff : ((1u << used) - 1);
+                return 1;
+            }
+            used = (used > 16) ? (used - 16) : 0;
             *val = (used >= 16) ? 0xffff : ((1u << used) - 1);
             return 1;
         case DST_BRES_LNTH:
             /* The 2D line length, unless the last command was a 3D one. */
+            mach64_3d_sync(ctx);
             if (!(ctx->regs[DST_BRES_LNTH >> 2] & DRAW_TRAP))
                 return 0;
-            mach64_3d_sync(ctx);
             *val = ctx->regs[DST_BRES_LNTH >> 2];
             return 1;
         case LEAD_BRES_LNTH:
@@ -3185,6 +3718,11 @@ mach64_3d_read(mach64_t *mach64, uint32_t addr, uint32_t *val)
             *val = ctx->regs[DST_BRES_LNTH >> 2];
             return 1;
         default:
+            if (mach64->ragepro && mach64_3d_ragepro_register(reg)) {
+                mach64_3d_sync(ctx);
+                *val = ctx->regs[reg >> 2];
+                return 1;
+            }
             if (!mach64_3d_register(reg))
                 return 0;
             mach64_3d_sync(ctx);
@@ -3204,15 +3742,9 @@ mach64_3d_write_length(mach64_3d_t *ctx, uint32_t addr, uint32_t val, uint32_t t
 {
     mach64_t *mach64   = ctx->mach64;
     uint32_t  cmd      = mach64_3d_merge_write(ctx->regs[DST_BRES_LNTH >> 2], addr, val, type);
-    unsigned  fcn      = (ctx->regs[SCALE_3D_CNTL >> 2] >> SCALE_3D_FCN_SHIFT) & 3;
     int       complete = mach64_3d_write_complete(addr, type);
 
     if (complete) {
-        /* Whether the line is a 3D one depends on DP_SRC and DST_CNTL,
-           which may still be in the FIFO. */
-        if (!(cmd & (DRAW_TRAP | LINE_DIS)) && ((fcn == FCN_TEXTURE) || (fcn == FCN_SHADE)))
-            mach64_3d_sync(ctx);
-
         /* A line command loads TRAIL_X, LINE_DIS ones included; a trapezoid
            keeps it unless bit 31 is set (VT/RAGE RRG 4-46). */
         if (!(cmd & DRAW_TRAP) || (cmd & LINE_DIS)) {
@@ -3223,26 +3755,22 @@ mach64_3d_write_length(mach64_3d_t *ctx, uint32_t addr, uint32_t val, uint32_t t
         if (mach64_3d_is_line(ctx, cmd)) {
             ctx->regs[DST_BRES_LNTH >> 2] = cmd;
             mach64->dst_bres_lnth         = mach64_3d_merge_write(mach64->dst_bres_lnth, addr, val, type);
-            mach64_3d_sync(ctx);
             mach64_3d_draw_line(ctx, cmd);
             return 1;
         }
     }
 
     ctx->regs[DST_BRES_LNTH >> 2] = cmd;
-    if (!(cmd & DRAW_TRAP) && ((addr & ~3) != LEAD_BRES_LNTH)) {
-        ctx->fifo_pending = 1;
+    if (!(cmd & DRAW_TRAP) && ((addr & ~3) != LEAD_BRES_LNTH))
         return 0;
-    }
-    mach64_3d_sync(ctx);
     if ((cmd & DRAW_TRAP) && complete)
         mach64_3d_draw_trapezoid(ctx, cmd);
     return 1;
 }
 
 /*
- * Writes the GUI register at addr for the GT-B. Returns 0 for a register of
- * the 2D engine, which the caller queues.
+ * Writes the GUI register at addr for the GT-B, as the FIFO takes it.
+ * Returns 0 for a register of the 2D engine, which takes it then.
  */
 int
 mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
@@ -3254,9 +3782,46 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
     addr &= 0x3ff;
     reg = addr & ~3;
 
+    /* The Rage Pro's own block 0 registers; its bus master's
+       (vid_ati_mach64_ragepro.c) have been seen before the FIFO. */
+    if (mach64->ragepro) {
+        /* Native XL MCAM batches use the combined scaler aliases:
+           E0 pitches, E2 source/reset, E3 destination, E4 draw dimensions.
+           The E4 launch is present in ATIMCRAE's native command stream;
+           it is not a Rage Pro specular/triangle command. */
+        if (mach64->idct && reg == XL_SCALE_DST_HEIGHT_WIDTH) {
+            ctx->regs[reg >> 2] = mach64_3d_merge_write(ctx->regs[reg >> 2], addr, val, type);
+            if (mach64_3d_write_complete(addr, type)) {
+                mach64->dst_height_width = ctx->regs[reg >> 2];
+                if (((ctx->regs[SCALE_3D_CNTL >> 2] >> SCALE_3D_FCN_SHIFT) & 3) == FCN_SCALE)
+                    mach64_scaler_submit(ctx);
+            }
+            return 1;
+        }
+        if (mach64_3d_ragepro_register(reg)) {
+            ctx->regs[reg >> 2] = mach64_3d_merge_write(ctx->regs[reg >> 2], addr, val, type);
+            /* J5.30's CI8 GDI bitmap expansion uses the Rage Pro alias
+               to load a new source and restart both scaler accumulators.
+               Leaving these at the preceding palette-cache upload makes
+               ATI's display-property bitmaps sample the staging buffer. */
+            if ((reg == RP_SCALE_OFF_ACC) && mach64_3d_write_complete(addr, type)) {
+                ctx->regs[SCALE_Y_OFF >> 2] = ctx->regs[reg >> 2];
+                ctx->regs[SCALE_HACC >> 2] = 0;
+                ctx->regs[SCALE_VACC >> 2] = 0;
+            }
+            if (mach64->idct && mach64_3d_write_complete(addr, type)) {
+                if (reg == RP_SCALE_PITCH_BOTH) {
+                    ctx->regs[SCALE_Y_PITCH >> 2] = ctx->regs[reg >> 2] & 0x1fff;
+                    ctx->regs[0x368 >> 2] = (ctx->regs[reg >> 2] >> 16) & 0x1fff;
+                } else if (reg == RP_SCALE_DST_Y_X)
+                    mach64->dst_y_x = ctx->regs[reg >> 2];
+            }
+            return 1;
+        }
+    }
+
     /* A scaled rectangle, started from the destination's size. */
     if (mach64_scaler_start(addr, val, type) && (((ctx->regs[SCALE_3D_CNTL >> 2] >> SCALE_3D_FCN_SHIFT) & 3) == FCN_SCALE)) {
-        mach64_3d_sync(ctx);
         if (!(ctx->regs[SCALE_3D_CNTL >> 2] & SRC_3D_SEL) && (((mach64->dp_src >> 8) & 7) == SRC_3D)) {
             mach64_scaler_write_dst(mach64, addr, val, type);
             mach64_scaler_draw(ctx);
@@ -3267,14 +3832,12 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
     switch (reg) {
         case DST_Y_X_ALIAS:
             /* A write-only DST_Y_X; the HAL sets trapezoids up through it. */
-            mach64_3d_sync(ctx);
             mach64->dst_y_x = mach64_3d_merge_write(mach64->dst_y_x, addr, val, type);
             return 1;
         case DST_BRES_LNTH:
         case LEAD_BRES_LNTH:
             return mach64_3d_write_length(ctx, addr, val, type);
         case TEX_PALETTE:
-            mach64_3d_sync(ctx);
             ctx->regs[reg >> 2] = mach64_3d_merge_write(ctx->regs[reg >> 2], addr, val, type);
             if (mach64_3d_write_complete(addr, type))
                 mach64_3d_texture_palette_store(ctx->texture_palette, ctx->regs[reg >> 2]);
@@ -3283,13 +3846,10 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
             break;
     }
 
-    if (!mach64_3d_register(reg)) {
-        ctx->fifo_pending = 1;
+    if (!mach64_3d_register(reg))
         return 0;
-    }
 
     /* The register keeps only its own field, after every partial write. */
-    mach64_3d_sync(ctx);
     ctx->regs[reg >> 2] = mach64_3d_visible_reg(reg, mach64_3d_merge_write(ctx->regs[reg >> 2], addr, val, type));
     ctx->tex_hidden &= ~mach64_3d_tex_hidden_bit(reg);
     alias = mach64_3d_alias(reg);
@@ -3300,6 +3860,1988 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
     return 1;
 }
 
+/*
+ * The 3D Rage Pro's setup engine.
+ *
+ * The Rage Pro takes a triangle as its three vertices and the reciprocal of
+ * its doubled area, and works the edges and gradients out itself, where the
+ * GT-B wants trapezoids set up by the driver. Its registers are in block 1
+ * (MM index 190h-1CFh); ATI documents them in no manual we have, so the
+ * formats are those the open drivers write (XFree86/X.Org's mach64 driver,
+ * atimach64render.c and atiregs.h, and the DRI driver, mach64_tris.c):
+ *
+ *   VERTEX_n_X_Y      X in 31:16 and Y in 15:0, signed, quarter pixels
+ *   VERTEX_n_Z        Z in 31:16 with 16 fraction bits below (the DRI
+ *                     driver sends its 16.1 depth shifted left by 15)
+ *   VERTEX_n_ARGB     8:8:8:8 shading, VERTEX_n_SPEC_ARGB the specular
+ *                     color, its alpha the fog factor
+ *   VERTEX_n_S/T/W    IEEE single floats: S and T normalized to the map,
+ *                     W = 1/w; with TEX_ST_DIRECT (TEX_CNTL 19) S and T come
+ *                     multiplied by W, else the engine multiplies them
+ *   ONE_OVER_AREA     IEEE single, 1 / ((x1-x3)(y2-y3) - (y1-y3)(x2-x3)) in
+ *                     pixels: the sign gives the winding
+ *
+ * A write of ONE_OVER_AREA (at any of its three addresses, unless SETUP_CNTL
+ * has DONT_START_TRI or DONT_START_ANY) or of ONE_OVER_AREA_UC (always) draws
+ * the triangle of the vertices as they are: the drivers draw a quad's second
+ * half by rewriting vertex 1 only. MM 1ABh-1BFh hold the same registers again
+ * grouped by kind (all S, all T ... all X_Y), for packed DMA writes.
+ *
+ * The pixels are sampled at their centres with the top-left rule, and every
+ * value is interpolated in the plane its three vertices give it, the red,
+ * green and blue channels truncated to 8 bits and alpha rounded; S/W, T/W and W in screen space, then divided, which is the chip's
+ * perspective correction. (ATI's Windows 2000 driver, atidrab, adds half a
+ * pixel to Direct3D's coordinates: alphabox, sampling at the centres of
+ * those, matched Direct3D's software rasteriser pixel for pixel.) A pixel
+ * then goes through the texture
+ * (primary and, with TEX_CNTL TEXTURE_COMPOSITE, the composite one), the
+ * texture lighting, specular addition, fog, the alpha test, Z, blending and
+ * the dither of the GT-B's pipeline above.
+ */
+
+/* The attributes of a vertex as written. */
+enum {
+    RP_S,
+    RP_T,
+    RP_W,
+    RP_SPEC,
+    RP_Z,
+    RP_ARGB,
+    RP_XY
+};
+
+static float
+mach64_rp_float(uint32_t raw)
+{
+    float f;
+
+    memcpy(&f, &raw, sizeof(f));
+    return f;
+}
+
+/* Is reg (a block 0 offset) one of the Rage Pro's own 3D registers? */
+static int
+mach64_3d_ragepro_register(uint32_t reg)
+{
+    switch (reg) {
+        case RP_ALPHA_TST_CNTL:
+        case RP_SECONDARY_STW_EXP ... RP_SECONDARY_T_START:
+        case RP_STW_EXP:
+        case RP_LOG_MAX_INC:
+        case RP_W_X_INC:
+        case RP_W_Y_INC:
+        case RP_W_START:
+        case 0x368: /* SECONDARY_SCALE_PITCH */
+        case RP_TEX_CNTL:
+        case RP_SECONDARY_TEX_OFF:
+        case RP_SCALE_PITCH_BOTH ... (RP_SCALE_PITCH_BOTH + 0x0c): /* and SCALE_OFF_ACC, SCALE_DST_Y_X */
+        case RP_COMPOSITE_SHADOW_ID:
+        case RP_SPECULAR_FIRST ... RP_SPECULAR_LAST:
+            return 1;
+        default:
+            return 0;
+    }
+}
+
+/* A map of the Rage Pro's texture: its size from TEX_SIZE_PITCH (the
+   primary's in 11:0, the composite's in 27:16), clamps per axis. */
+typedef struct mach64_rp_map_t {
+    mach64_3d_texture_t tex; /* for mach64_3d_texel_at: base, width, format, key */
+    int                 w;   /* texels across: the pitch, 2^(3:0) */
+    int                 h;
+    int                 clamp_s;
+    int                 clamp_t;
+    int                 agp; /* TEX_SRC_AGP: in system memory, AGP_BASE + the offset */
+    int                 vq;  /* TEX_VQ: the map is a map of codebook indices, one per 2x2 texels */
+    const uint32_t     *tile_u; /* TEXTURE_TILING: where texel u, v of the map is, */
+    const uint32_t     *tile_v; /* as tile_u[u] ^ tile_v[v]; NULL when it is linear */
+} mach64_rp_map_t;
+
+/*
+ * Tiled textures (TEX_CNTL TEXTURE_TILING, and COMPOSITE_TEX_TILING for the
+ * composite one). No document we have describes the layout; this is what
+ * ATI's Windows 9x driver (macxw4 5.30) leaves in AGP memory, worked out
+ * from 3DMark 99's textures: 4x4 texel tiles, their texels in rows, and
+ * the tiles in Morton order, X first. As texel address bits, from the
+ * lowest: x0 x1 y0 y1, then x2 y2 x3 y3 and on, a map's missing bits left
+ * out, so a narrow map's remaining y bits (or a short one's x bits) come
+ * last; and x5's bit holds x5 XOR y5, which turns every other 32-row band
+ * of 32-texel blocks about (a bank swizzle). Checked on the font, the HUD
+ * and the wall textures of 3DMark 99 against their source images.
+ *
+ * 32 bpp textures (3DMark 99 on a 32 bpp desktop) are tiled otherwise: the
+ * texels wholly in Morton order, X first (x0 y0 x1 y1 and on), with y4
+ * holding y4 XOR x5. That is the same byte address bit as the 16 bpp x5,
+ * the swizzle being of memory, not of texels. Found by de-tiling 3DMark
+ * 99's 64x64 to 256x256 maps every way and keeping the smoothest, then
+ * telling it from its transpose by the HUD's lettering.
+ *
+ * 8 bpp uses x0 x1 y0 x2 y1 y2, then x3 y3 x4 y4 and so on,
+ * with y5 XOR x6. This matches all 65536 bytes of Forsaken's 256x256
+ * menu texture against its original bitmap. Each format's bank XOR
+ * therefore lands on byte address bit 11.
+ *
+ * mach64_rp_tile[depth][l2w][l2h] holds, for 8/16/32 bpp and a 2^l2w x 2^l2h map, each u's
+ * and each v's share of the texel index, to be XORed: 1024 entries for u,
+ * then 1024 for v.
+ */
+static uint32_t *mach64_rp_tile[3][11][11];
+
+static void
+mach64_rp_tile_init(void)
+{
+    if (mach64_rp_tile[0][0][0])
+        return;
+    for (int depth = 0; depth < 3; depth++)
+        for (int l2w = 0; l2w <= 10; l2w++)
+            for (int l2h = 0; l2h <= 10; l2h++) {
+                uint32_t *t     = calloc(2048, sizeof(uint32_t));
+                int       first = (depth == 2) ? 0 : ((depth == 0) ? 3 : 2);
+                int       xbit[10];
+                int       ybit[10];
+                int       pos = 0;
+
+                if (depth == 0) {
+                    /* 0..9 name X bits, 10..19 name Y bits. */
+                    static const int prefix[] = { 0, 1, 10, 2, 11, 12 };
+                    for (unsigned i = 0; i < sizeof(prefix) / sizeof(prefix[0]); i++) {
+                        int bit = prefix[i] % 10;
+                        if (prefix[i] < 10) {
+                            if (bit < l2w)
+                                xbit[bit] = pos++;
+                        } else if (bit < l2h)
+                            ybit[bit] = pos++;
+                    }
+                } else {
+                    for (int i = 0; i < first; i++)
+                        if (i < l2w)
+                            xbit[i] = pos++;
+                    for (int i = 0; i < first; i++)
+                        if (i < l2h)
+                            ybit[i] = pos++;
+                }
+                for (int i = first; i < 10; i++) {
+                    if (i < l2w)
+                        xbit[i] = pos++;
+                    if (i < l2h)
+                        ybit[i] = pos++;
+                }
+                for (int c = 0; c < 1024; c++)
+                    for (int i = 0; i < 10; i++) {
+                        if ((i < l2w) && ((c >> i) & 1))
+                            t[c] |= 1u << xbit[i];
+                        if ((i < l2h) && ((c >> i) & 1))
+                            t[1024 + c] |= 1u << ybit[i];
+                    }
+                /* The bank swizzle of byte address bit 11. */
+                if ((depth == 0) && (l2w > 6) && (l2h > 5))
+                    for (int c = 0; c < 1024; c++)
+                        if ((c >> 6) & 1)
+                            t[c] ^= 1u << ybit[5];
+                if ((depth == 1) && (l2w > 5) && (l2h > 5))
+                    for (int c = 0; c < 1024; c++)
+                        if ((c >> 5) & 1)
+                            t[1024 + c] ^= 1u << xbit[5];
+                if ((depth == 2) && (l2w > 5) && (l2h > 4))
+                    for (int c = 0; c < 1024; c++)
+                        if ((c >> 5) & 1)
+                            t[c] ^= 1u << ybit[4];
+                mach64_rp_tile[depth][l2w][l2h] = t;
+            }
+}
+
+static void
+mach64_rp_map_tiled(mach64_rp_map_t *map)
+{
+    int depth = (map->tex.bpp == 4) ? 2 : ((map->tex.bpp == 2) ? 1 : 0);
+    const uint32_t *t;
+
+    /* A VQ map's bytes are its index map, w/2 by h/2 of them. */
+    if (map->vq)
+        t = mach64_rp_tile[0][(map->w > 1) ? (log2i(map->w) - 1) : 0][(map->h > 1) ? (log2i(map->h) - 1) : 0];
+    else
+        t = mach64_rp_tile[depth][log2i(map->w)][log2i(map->h)];
+
+    map->tile_u = t;
+    map->tile_v = t + 1024;
+}
+
+typedef struct mach64_rp_texture_t {
+    int             levels; /* maps[0] the largest */
+    mach64_rp_map_t maps[11];
+    int             bilinear_mag;
+    int             blend_fcn; /* TEX_BLEND_FCN, or the composite's 2 or 0 */
+    double          lod_bias;  /* log2 of the threshold stride (the composite) */
+    int             bias16;    /* the LOD bias field, sixteenths of a level (the primary) */
+    int             lod_used;  /* there are levels, or the filters differ */
+} mach64_rp_texture_t;
+
+static void
+mach64_rp_map_level(mach64_3d_t *ctx, mach64_rp_map_t *map, int format, uint32_t base, int l2w, int l2h, int clamp_s, int clamp_t)
+{
+    mach64_t *mach64 = ctx->mach64;
+
+    memset(map, 0, sizeof(*map));
+    if (l2w < 0)
+        l2w = 0;
+    if (l2h < 0)
+        l2h = 0;
+    map->w                 = 1 << l2w;
+    map->h                 = 1 << l2h;
+    map->clamp_s           = clamp_s;
+    map->clamp_t           = clamp_t;
+    map->tex.format        = format;
+    map->tex.dynamic_range = !!(ctx->regs[SCALE_3D_CNTL >> 2] & SCALE_PIX_EXPAND);
+    map->tex.bpp           = mach64_3d_bytes_per_pixel(format);
+    map->tex.width         = map->w;
+    map->tex.width_mask    = map->w - 1;
+    map->tex.height_mask   = map->h - 1;
+    map->tex.base          = base;
+    map->tex.key_fcn       = (((mach64->clr_cmp_cntl >> 24) & 3) == 2) ? (mach64->clr_cmp_cntl & 7) : 0;
+    map->tex.key           = mach64->clr_cmp_clr & mach64->clr_cmp_mask;
+    map->tex.key_mask      = mach64->clr_cmp_mask;
+}
+
+/*
+ * VQ textures (TEX_CNTL TEX_VQ, Rage Pro only). The texture is a map of one
+ * byte indices, one for each 2x2 block of texels, and a codebook of 256
+ * blocks, each four 16-bit texels in the order upper left, upper right,
+ * lower left, lower right (the SDK's C3D_CODEBOOKENTRY). The index map is (w/2) x (h/2) bytes at
+ * TEX_n_OFF; a mip level takes an index map of its own, and the smallest
+ * levels all point at the same last index map.
+ *
+ * Measured on a real Rage Pro with ATI3DCIF 4.11.2692 (doc/hardware/
+ * ati-ragepro-vq.md):
+ *
+ * - The codebook goes into the 0x800 bytes of the texture cache palette
+ *   image the way a CI8 palette does (a Y8 scaler pass). The driver stages it
+ *   swizzled: for k below 128, offset 8k holds the upper words of block k
+ *   and the lower words of block k + 128, and offset 0x400 + 8k holds the
+ *   upper words of block k + 128 and the lower words of block k. The texel
+ *   fetch undoes that: see mach64_rp_vq_word_offset.
+ * - The codebook words are RGB565 when DP_PIX_WIDTH 31:28 is 2, which is what
+ *   the driver writes.
+ * - TEX_SIZE_PITCH gives the texture's size in texels, the index map is half
+ *   that on each axis.
+ *
+ * Not measured: whether TEXTURE_TILING tiles the index map (RP_VQ_TILED_INDEX_MAP
+ * assumes it does, as an 8 bpp map of w/2 by h/2), and the texel type for a
+ * DP_PIX_WIDTH 31:28 of 3, 4 or 15, which no driver we have writes for VQ.
+ */
+#define RP_VQ_TILED_INDEX_MAP 1
+
+/* The codebook texel type: DP_PIX_WIDTH 31:28 when it names a 16-bit type, else RGB565 (the driver writes 2). */
+static int
+mach64_rp_vq_texel_format(const mach64_t *mach64)
+{
+    int format = mach64_3d_src_format(mach64);
+
+    return ((format == 3) || (format == 4) || (format == 15)) ? format : 4;
+}
+
+/*
+ * Where in the palette image the word of codebook block i, row r (0 upper, 1
+ * lower) and column c is. The two halves of the image hold blocks i and
+ * i ^ 128 with their lower rows exchanged, so a lower row comes from the
+ * other half.
+ */
+static inline unsigned
+mach64_rp_vq_word_offset(unsigned i, unsigned r, unsigned c)
+{
+    return ((((i >> 7) & 1) ^ r) << 10) + ((i & 127) << 3) + (r << 2) + (c << 1);
+}
+
+/* The primary texture and its mip maps: level n is TEX_<size-n>_OFF. */
+static int
+mach64_rp_texture_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
+{
+    mach64_t *mach64   = ctx->mach64;
+    uint32_t  cntl     = ctx->regs[SCALE_3D_CNTL >> 2];
+    uint32_t  tex_cntl = ctx->regs[RP_TEX_CNTL >> 2];
+    uint32_t  tsp      = ctx->regs[TEX_SIZE_PITCH >> 2];
+    int       format   = mach64_3d_src_format(mach64);
+    int       l2w      = tsp & 15;
+    int       size     = (tsp >> 4) & 15;
+    int       l2h      = (tsp >> 8) & 15;
+    uint32_t  offsets[11];
+    int       lowest;
+    int       bias     = (tex_cntl >> RP_LOD_BIAS_SHIFT) & 15;
+    int       vq       = !!(tex_cntl & RP_TEX_VQ);
+
+    if (vq)
+        format = mach64_rp_vq_texel_format(mach64);
+    if (!mach64_3d_bytes_per_pixel(format))
+        return 0;
+    if (l2w > 10)
+        l2w = 10;
+    if (l2h > 10)
+        l2h = 10;
+    if (size > 10)
+        size = 10;
+    if (size < l2w)
+        size = l2w;
+    if (size < l2h)
+        size = l2h;
+    for (int level = 0; level <= 10; level++)
+        offsets[level] = ctx->regs[(TEX_0_OFF + (level << 2)) >> 2];
+
+    /* The levels follow the size field, not the offsets: level k of a size-s
+       map is read from TEX_(s-k)_OFF whatever those hold. Measured with
+       pointers into poison memory, the last map's pointer repeated, and NULL
+       (892 of the 904 triangles recorded per mode were analysed): the card's
+       frames match this on every triangle. So a driver that repeats the last
+       map's pointer gets that map again. That a level at 0 is fetched from
+       address 0 is inferred from the black the card shows for NULL levels;
+       no capture put distinguishable contents at address 0.
+       TEX_SIZE_PITCH 15:12 can still raise the smallest map. */
+    if (cntl & MIP_MAP_DISABLE)
+        lowest = size;
+    else {
+        lowest = (tsp >> 12) & 15;
+        if (lowest > size)
+            lowest = size;
+    }
+    tx->levels = size - lowest + 1;
+    for (int n = 0; n < tx->levels; n++) {
+        mach64_rp_map_level(ctx, &tx->maps[n], format, offsets[size - n], l2w - n, l2h - n, !!(tex_cntl & RP_TEXTURE_CLAMP_S),
+                            !!(tex_cntl & RP_TEXTURE_CLAMP_T));
+        tx->maps[n].agp = !!(tex_cntl & RP_TEX_SRC_AGP);
+        tx->maps[n].vq  = vq;
+        if ((tex_cntl & RP_TEXTURE_TILING) && (!vq || RP_VQ_TILED_INDEX_MAP))
+            mach64_rp_map_tiled(&tx->maps[n]);
+    }
+    tx->bilinear_mag = !!(cntl & BILINEAR_TEX_EN);
+    tx->blend_fcn    = (cntl >> TEX_BLEND_FCN) & 3;
+    tx->lod_bias     = 0.0;
+    tx->bias16       = bias;
+    tx->lod_used     = (tx->levels > 1) || (tx->bilinear_mag != (tx->blend_fcn >= 2));
+    return 1;
+}
+
+/* The composite texture: one map at SECONDARY_TEX_OFFSET, its format in
+   DP_PIX_WIDTH 7:4 (DP_COMPOSITE_PIX_WIDTH). */
+static int
+mach64_rp_composite_init(mach64_3d_t *ctx, mach64_rp_texture_t *tx)
+{
+    mach64_t *mach64   = ctx->mach64;
+    uint32_t  tex_cntl = ctx->regs[RP_TEX_CNTL >> 2];
+    uint32_t  tsp      = ctx->regs[TEX_SIZE_PITCH >> 2];
+    int       format   = (mach64->dp_pix_width >> 4) & 15;
+    int       l2w      = (tsp >> 16) & 15;
+    int       size     = (tsp >> 20) & 15;
+    int       l2h      = (tsp >> 24) & 15;
+    int       lowest   = (tsp >> 12) & 15;
+    uint32_t  base     = ctx->regs[RP_SECONDARY_TEX_OFF >> 2];
+
+    if (!mach64_3d_bytes_per_pixel(format))
+        return 0;
+    if (l2w > 10 || l2h > 10)
+        return 0;
+    if (size > 10)
+        size = 10;
+    if (size < l2w)
+        size = l2w;
+    if (size < l2h)
+        size = l2h;
+
+    /* Its mip maps have no TEX_n_OFF of their own: they follow the largest
+       one in memory, each straight after the one above, which is how ATI's
+       Windows 9x driver lays out every mip-mapped texture (3DMark 99's
+       texture filtering tunnel draws its checkerboard as the composite).
+       The smallest is the one TEX_SIZE_PITCH 15:12 names, as for the
+       primary texture; the driver fills nothing below it. */
+    if (ctx->regs[SCALE_3D_CNTL >> 2] & MIP_MAP_DISABLE)
+        lowest = size;
+    else if (lowest > size)
+        lowest = size;
+    tx->levels = size - lowest + 1;
+    for (int n = 0; n < tx->levels; n++) {
+        mach64_rp_map_level(ctx, &tx->maps[n], format, base, l2w - n, l2h - n, !!(tex_cntl & RP_SEC_TEX_CLAMP_S),
+                            !!(tex_cntl & RP_SEC_TEX_CLAMP_T));
+        tx->maps[n].agp = !!(tex_cntl & RP_TEX_SRC_AGP); /* both textures are local or both AGP */
+        if (tex_cntl & RP_COMPOSITE_TEX_TILING)
+            mach64_rp_map_tiled(&tx->maps[n]);
+        base += tx->maps[n].w * tx->maps[n].h * tx->maps[n].tex.bpp;
+    }
+    tx->bilinear_mag = !!(tex_cntl & RP_COMP_FILTER_BILIN);
+    tx->blend_fcn    = (tex_cntl & RP_COMP_BLEND_BILINEAR) ? 2 : 0;
+    tx->lod_bias     = 0.0;
+    tx->bias16       = 0;
+    tx->lod_used     = (tx->levels > 1) || (tx->bilinear_mag != (tx->blend_fcn >= 2));
+    return 1;
+}
+
+/* A coordinate of a map: wrapped, or with the clamp held at the edges. */
+static inline int
+mach64_rp_wrap(int i, int size, int clamp)
+{
+    if (clamp)
+        return (i < 0) ? 0 : ((i >= size) ? (size - 1) : i);
+    return i & (size - 1);
+}
+
+/* len bytes of AGP memory at bus address addr. The chipset's aperture
+   (agpgart.c) takes the read to system memory; a page that is plain memory
+   there is looked up once a triangle and read in place. */
+static inline void
+mach64_rp_agp_read(mach64_rp_agp_cache_t *agp, uint32_t addr, void *dst, unsigned len)
+{
+    uint32_t page = addr & ~0xfffu;
+    unsigned slot = (page >> 12) & (MACH64_RP_AGP_PAGES - 1);
+
+    if (((addr & 0xfff) + len) <= 0x1000) {
+        if (agp->tag[slot] != (page | 1)) {
+            agp->tag[slot] = page | 1;
+            agp->ptr[slot] = agpgart_bus_ptr(page, 0x1000);
+        }
+        if (agp->ptr[slot]) {
+            memcpy(dst, agp->ptr[slot] + (addr & 0xfff), len);
+            return;
+        }
+    }
+    dma_bm_read(addr, (uint8_t *) dst, len, len);
+}
+
+/* A VQ map's texel u, v, as 0xAARRGGBB: the codebook block its 2x2 index names. */
+static uint32_t
+mach64_rp_texel_vq(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_map_t *map, int u, int v, int *inhibits)
+{
+    mach64_t *mach64 = ctx->mach64;
+    int       iw     = (map->w > 1) ? (map->w >> 1) : 1;
+    int       iu     = u >> 1;
+    int       iv     = v >> 1;
+    uint32_t  off    = map->tile_u ? (map->tile_u[iu] ^ map->tile_v[iv]) : (uint32_t) (iv * iw + iu);
+    uint8_t   index  = 0;
+    uint32_t  raw;
+    uint32_t  argb;
+
+    if (map->agp)
+        mach64_rp_agp_read(agp, mach64->rp.agp_base + map->tex.base + off, &index, 1);
+    else
+        index = mach64_3d_vram_read8(mach64, map->tex.base + off);
+    off = mach64_rp_vq_word_offset(index, v & 1, u & 1);
+    raw = ctx->texture_palette_ram[off] | ((uint32_t) ctx->texture_palette_ram[off + 1] << 8);
+    switch (map->tex.format) {
+        case 3:
+            argb = mach64_3d_argb1555(raw, map->tex.dynamic_range);
+            break;
+        case 15:
+            argb = mach64_3d_argb4444(raw, map->tex.dynamic_range);
+            break;
+        default:
+            argb = mach64_3d_argb565(raw, map->tex.dynamic_range);
+            break;
+    }
+    *inhibits = mach64_3d_texel_key_inhibits(&map->tex, mach64_3d_texel_key_value(map->tex.format, raw, argb));
+    return argb;
+}
+
+/* A texel of a map in AGP memory, decoded as mach64_3d_texel_at does. */
+static uint32_t
+mach64_rp_texel_agp(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_3d_texture_t *map, int u, int v, int *inhibits)
+{
+    mach64_t *mach64 = ctx->mach64;
+    uint32_t  addr   = mach64->rp.agp_base + map->base + (v * map->width + u) * map->bpp;
+    uint32_t  raw    = 0;
+    uint32_t  argb;
+
+    switch (map->format) {
+        case 3:
+            mach64_rp_agp_read(agp, addr, &raw, 2);
+            argb = mach64_3d_argb1555(raw, map->dynamic_range);
+            break;
+        case 4:
+            mach64_rp_agp_read(agp, addr, &raw, 2);
+            argb = mach64_3d_argb565(raw, map->dynamic_range);
+            break;
+        case 6:
+            mach64_rp_agp_read(agp, addr, &raw, 4);
+            argb = raw;
+            break;
+        case 15:
+            mach64_rp_agp_read(agp, addr, &raw, 2);
+            argb = mach64_3d_argb4444(raw, map->dynamic_range);
+            break;
+        case 11:
+            mach64_rp_agp_read(agp, mach64->rp.agp_base + map->base + (v * map->width + (u & ~1)) * 2, &raw, 4);
+            argb = mach64_3d_rgba_argb(mach64_3d_yuv_to_rgba(ctx, mach64_yuyv_y(raw, u), mach64_yuyv_u(raw), mach64_yuyv_v(raw), 255));
+            break;
+        default:
+            mach64_rp_agp_read(agp, addr, &raw, map->bpp);
+            argb = mach64_3d_unpack_argb(ctx, map->format, raw, 1);
+            if (map->format == 2) {
+                *inhibits = mach64_3d_texel_key_inhibits(map, mach64_3d_texture_palette_texel_index(mach64->dp_pix_width, raw));
+                return argb;
+            }
+            break;
+    }
+    *inhibits = mach64_3d_texel_key_inhibits(map, mach64_3d_texel_key_value(map->format, raw, argb));
+    return argb;
+}
+
+static inline uint32_t
+mach64_rp_texel(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_map_t *map, int u, int v, int *inhibits)
+{
+    u = mach64_rp_wrap(u, map->w, map->clamp_s);
+    v = mach64_rp_wrap(v, map->h, map->clamp_t);
+    if (map->vq)
+        return mach64_rp_texel_vq(ctx, agp, map, u, v, inhibits);
+    if (map->tile_u) {
+        uint32_t i = map->tile_u[u] ^ map->tile_v[v];
+
+        u = i & (map->w - 1);
+        v = i / map->w;
+    }
+    if (map->agp)
+        return mach64_rp_texel_agp(ctx, agp, &map->tex, u, v, inhibits);
+    return mach64_3d_texel_at(ctx, &map->tex, u, v, inhibits);
+}
+
+/*
+ * The 2x2 filter's texels at u, v to u + 1, v + 1, as mach64_rp_texel gives
+ * them, in the order 00, 10, 01, 11: for CI8 and the 16 and 32-bit types the
+ * coordinates are wrapped, the type decoded and the key looked at once for
+ * the four. A texel's index in the map is v * w + u, or tile_u[u] ^
+ * tile_v[v] tiled. A CI8 texel's key is of its palette index.
+ */
+static inline void
+mach64_rp_texels_2x2(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_map_t *map, int u, int v, uint32_t *c, int *inh)
+{
+    mach64_t                  *mach64 = ctx->mach64;
+    const mach64_3d_texture_t *tex    = &map->tex;
+    int                        bpp    = tex->bpp;
+    int                        u0;
+    int                        u1;
+    int                        v0;
+    int                        v1;
+    uint32_t                   idx[4];
+    uint32_t                   raw[4] = { 0, 0, 0, 0 };
+
+    if (map->vq || ((tex->format != 2) && (tex->format != 3) && (tex->format != 4) && (tex->format != 6) && (tex->format != 15))) {
+        c[0] = mach64_rp_texel(ctx, agp, map, u, v, &inh[0]);
+        c[1] = mach64_rp_texel(ctx, agp, map, u + 1, v, &inh[1]);
+        c[2] = mach64_rp_texel(ctx, agp, map, u, v + 1, &inh[2]);
+        c[3] = mach64_rp_texel(ctx, agp, map, u + 1, v + 1, &inh[3]);
+        return;
+    }
+
+    u0 = mach64_rp_wrap(u, map->w, map->clamp_s);
+    u1 = mach64_rp_wrap(u + 1, map->w, map->clamp_s);
+    v0 = mach64_rp_wrap(v, map->h, map->clamp_t);
+    v1 = mach64_rp_wrap(v + 1, map->h, map->clamp_t);
+    if (map->tile_u) {
+        idx[0] = map->tile_u[u0] ^ map->tile_v[v0];
+        idx[1] = map->tile_u[u1] ^ map->tile_v[v0];
+        idx[2] = map->tile_u[u0] ^ map->tile_v[v1];
+        idx[3] = map->tile_u[u1] ^ map->tile_v[v1];
+    } else {
+        idx[0] = v0 * map->w + u0;
+        idx[1] = v0 * map->w + u1;
+        idx[2] = v1 * map->w + u0;
+        idx[3] = v1 * map->w + u1;
+    }
+
+    if (map->agp) {
+        uint32_t base = mach64->rp.agp_base + tex->base;
+
+        for (int i = 0; i < 4; i++)
+            mach64_rp_agp_read(agp, base + idx[i] * bpp, &raw[i], bpp);
+    } else if (bpp == 4) {
+        for (int i = 0; i < 4; i++)
+            raw[i] = mach64_3d_vram_read32(mach64, tex->base + idx[i] * 4);
+    } else if (bpp == 2) {
+        for (int i = 0; i < 4; i++)
+            raw[i] = mach64_3d_vram_read16(mach64, tex->base + idx[i] * 2);
+    } else {
+        for (int i = 0; i < 4; i++)
+            raw[i] = mach64_3d_vram_read8(mach64, tex->base + idx[i]);
+    }
+
+    switch (tex->format) {
+        case 2:
+            for (int i = 0; i < 4; i++) {
+                raw[i] = mach64_3d_texture_palette_texel_index(mach64->dp_pix_width, raw[i]);
+                c[i]   = 0xff000000 | (ctx->texture_palette[raw[i]] & 0x00ffffff);
+            }
+            if (!tex->key_fcn)
+                inh[0] = inh[1] = inh[2] = inh[3] = 0;
+            else {
+                for (int i = 0; i < 4; i++)
+                    inh[i] = mach64_3d_texel_key_inhibits(tex, raw[i]);
+            }
+            return;
+        case 3:
+            for (int i = 0; i < 4; i++)
+                c[i] = mach64_3d_argb1555(raw[i], tex->dynamic_range);
+            break;
+        case 4:
+            for (int i = 0; i < 4; i++)
+                c[i] = mach64_3d_argb565(raw[i], tex->dynamic_range);
+            break;
+        case 6:
+            for (int i = 0; i < 4; i++)
+                c[i] = raw[i];
+            break;
+        default:
+            for (int i = 0; i < 4; i++)
+                c[i] = mach64_3d_argb4444(raw[i], tex->dynamic_range);
+            break;
+    }
+
+    if (!tex->key_fcn)
+        inh[0] = inh[1] = inh[2] = inh[3] = 0;
+    else {
+        for (int i = 0; i < 4; i++)
+            inh[i] = mach64_3d_texel_key_inhibits(tex, mach64_3d_texel_key_value(tex->format, raw[i], c[i]));
+    }
+}
+
+/* floor() of a sample coordinate, without the library call: exact for any
+   value whose integer part an int64_t holds, the others go to floor(). */
+static inline double
+mach64_rp_floor(double v)
+{
+    if ((v > -9.0e15) && (v < 9.0e15)) {
+        double t = (double) (int64_t) v;
+
+        return (t > v) ? (t - 1.0) : t;
+    }
+    return floor(v);
+}
+
+/*
+ * The cell of a 2x2 filter's fraction. a is the coordinate in texels less
+ * half a texel, so a whole number is the centre of texel a. The fraction is
+ * quantised to bits bits, in cells (m / L, (m + 1) / L] with L = 1 << bits:
+ * the left texel is m >> bits and the weight of the right one is
+ * m & (L - 1) steps of 1 / L. A coordinate exactly on a cell edge, a texel
+ * centre included, takes the lower cell. Measured on a Rage Pro, for the
+ * magnification strips of RGB565, ARGB1555, ARGB4444, CI8, CI4, RGB332 and
+ * ARGB8888 textures (bits 4) and of VQ textures (bits 3), coordinates a
+ * multiple of 1 / 2048 texel apart.
+ *
+ * The coordinate is rounded to 1 / 4096 of a cell first. This is inferred,
+ * not measured: the card told the two sides of an edge apart at 1 / 2048 of
+ * a texel (1 / 128 of a cell at 16 steps), which is as fine as the captures
+ * went, and the plane evaluation here reaches an edge a hair off (about 1e-7
+ * of a texel), so without the rounding 14 of the 7656 probes of the plain
+ * strips differ. The effect is that a coordinate up to 1 / 8192 of a cell
+ * from an edge, which is 2^-17 texel at bits 4 and 2^-16 at bits 3, is taken
+ * for the edge, whichever side it is on, and a coordinate beyond that is not
+ * moved. A register-format model of the setup engine's S, T and W gradients
+ * (24 less the exponent of fraction bits, the low bits of which are not
+ * established) was not tried in its place.
+ *
+ * bits 8 is the 256 step weight and the floor of the coordinate that this
+ * filter had before the measurement, kept for the formats that were not
+ * measured.
+ */
+static inline void
+mach64_rp_filter_cell(double a, int bits, int *texel, unsigned *weight)
+{
+    if (bits >= 8) {
+        double f = mach64_rp_floor(a);
+
+        *texel  = (int) f;
+        *weight = (unsigned) ((a - f) * 256.0);
+        if (*weight > 255)
+            *weight = 255;
+    } else {
+        double  v = a * (double) (4096 << bits) + 0.5;
+        int64_t k = (int64_t) v; /* floor of v: v is far inside the range */
+        int64_t m;
+
+        if ((double) k > v)
+            k--;
+        m       = ((k + 4095) >> 12) - 1; /* ceil(k / 4096) - 1 */
+        *texel  = (int) (m >> bits);
+        *weight = (unsigned) (m & ((1 << bits) - 1)) << (8 - bits);
+    }
+}
+
+/* The fraction bits of a map's 2x2 filter: measured on a Rage Pro for the
+   formats it lists, 3 for a VQ map and 4 for the others; any other format
+   (Y8, YUV 4:2:2, AYUV 8888) keeps the 8 bit fraction the filter had before. */
+static inline int
+mach64_rp_filter_bits(const mach64_rp_map_t *map)
+{
+    if (map->vq)
+        return 3;
+    switch (map->tex.format) {
+        case 2:  /* CI8, CI4 */
+        case 3:  /* ARGB 1555 */
+        case 4:  /* RGB 565 */
+        case 6:  /* ARGB 8888 */
+        case 7:  /* RGB 332 */
+        case 15: /* ARGB 4444 */
+            return 4;
+        default:
+            return 8;
+    }
+}
+
+/* One map at s, t (0-1 across it): the nearest texel, or the 2x2 filter of
+   the four whose centers surround the point. */
+static uint32_t
+mach64_rp_sample_map(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_map_t *map, int bilinear, double s, double t,
+                     int *inhibits)
+{
+    double   fs = s * map->w;
+    double   ft = t * map->h;
+    int      inh[4];
+    uint32_t c[4];
+    int      u, v;
+    int      bits;
+    unsigned fu, fv;
+
+    if (map->clamp_s)
+        fs = (fs < 0.0) ? 0.0 : ((fs > map->w) ? map->w : fs);
+    if (map->clamp_t)
+        ft = (ft < 0.0) ? 0.0 : ((ft > map->h) ? map->h : ft);
+    if (!bilinear) {
+        /* Out of range coordinates still wrap in integers. The texel
+           coordinates are carried in fixed point with 16 fraction bits and
+           truncated a hair towards zero before rounding down, so a sample
+           exactly on a texel edge takes the texel below it (4.0 picks
+           texel 3, 0.0 texel 0), as Direct3D's software rasteriser does. */
+        const double k = 1.0 - 1.0 / (1 << 20);
+
+        if (fs > 1.0e9 || fs < -1.0e9)
+            fs = 0.0;
+        if (ft > 1.0e9 || ft < -1.0e9)
+            ft = 0.0;
+        fs = mach64_rp_floor(fs * 65536.0 + 0.5) / 65536.0;
+        ft = mach64_rp_floor(ft * 65536.0 + 0.5) / 65536.0;
+        return mach64_rp_texel(ctx, agp, map, (int) mach64_rp_floor(fs * k), (int) mach64_rp_floor(ft * k), inhibits);
+    }
+
+    fs -= 0.5;
+    ft -= 0.5;
+    if (fs > 1.0e9 || fs < -1.0e9)
+        fs = 0.0;
+    if (ft > 1.0e9 || ft < -1.0e9)
+        ft = 0.0;
+    bits = mach64_rp_filter_bits(map);
+    mach64_rp_filter_cell(fs, bits, &u, &fu);
+    mach64_rp_filter_cell(ft, bits, &v, &fv);
+    mach64_rp_texels_2x2(ctx, agp, map, u, v, c, inh);
+    *inhibits = inh[((fv >= 128) ? 2 : 0) + ((fu >= 128) ? 1 : 0)];
+    return mach64_3d_lerp_texel(mach64_3d_lerp_texel(c[0], c[1], fu), mach64_3d_lerp_texel(c[2], c[3], fu), fv);
+}
+
+/*
+ * A texture at s, t, with lod the log2 of the texels a pixel steps across in
+ * the largest map. TEX_BLEND_FCN picks the minifying filter: 0 the nearest
+ * texel of the nearest map, 1 the nearest texels of the two maps either side,
+ * blended, 2 the 2x2 filter of the nearest map, 3 trilinear; BILINEAR_TEX_EN
+ * filters a magnified one. The level steps where lod reaches the bias.
+ *
+ * The map is the one whose detail the sample has reached, lod truncated,
+ * not the nearest; and two maps are blended linearly in texels per pixel,
+ * not in its log (halfway from level 1, 2 texels a pixel, to level 2, 4, is
+ * 3), as a level read from a floating point exponent and mantissa would
+ * be. Both are what Direct3D's software rasteriser does, and what
+ * alphabox's Rage Pro matched it with, pixel for pixel.
+ */
+static uint32_t
+mach64_rp_sample(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_texture_t *tx, double s, double t, double lod,
+                 int *inhibits)
+{
+    int      top = tx->levels - 1;
+    int      level;
+    unsigned frac;
+    int      ia;
+    int      ib;
+    uint32_t a;
+    uint32_t b;
+
+    lod -= tx->lod_bias;
+    if ((lod <= 0.0) || !top)
+        return mach64_rp_sample_map(ctx, agp, &tx->maps[0], (lod <= 0.0) ? tx->bilinear_mag : (tx->blend_fcn >= 2), s, t, inhibits);
+
+    if (lod > top)
+        lod = top;
+    level = (int) lod;
+    frac  = (unsigned) ((exp2(lod - level) - 1.0) * 256.0);
+    if (frac > 255)
+        frac = 255;
+
+    switch (tx->blend_fcn) {
+        case 1:
+        case 3:
+            if (level >= top)
+                return mach64_rp_sample_map(ctx, agp, &tx->maps[top], tx->blend_fcn == 3, s, t, inhibits);
+            a = mach64_rp_sample_map(ctx, agp, &tx->maps[level], tx->blend_fcn == 3, s, t, &ia);
+            b = mach64_rp_sample_map(ctx, agp, &tx->maps[level + 1], tx->blend_fcn == 3, s, t, &ib);
+            *inhibits = (frac >= 128) ? ib : ia;
+            return mach64_3d_lerp_texel(a, b, frac);
+        case 2:
+            return mach64_rp_sample_map(ctx, agp, &tx->maps[level], 1, s, t, inhibits);
+        default:
+            return mach64_rp_sample_map(ctx, agp, &tx->maps[level], 0, s, t, inhibits);
+    }
+}
+
+/*
+ * The primary texture at s, t, with the level named by the triangle's
+ * LOG_MAX_INC less the LOD bias plus -log2 of the pixel's W, in 16.16 log2
+ * of texels per pixel: lmi.
+ *
+ * Measured on a Rage Pro (3DCIF 4.11.2692, mip chain registered): a single
+ * level filter shows the level above the value, ceil(lmi / 65536), where
+ * the 4 bits at 15:12 are a bit of the mantissa's top three, so any
+ * fraction at all steps to the next map. A filter that blends levels shows
+ * floor(lmi / 65536) blended toward the next by nibble / 16 (a weight of
+ * 16 nibble in 256, the one weight every gray ramp of the card's output
+ * agrees with). Nothing is minified at lmi <= 0.
+ */
+static uint32_t
+mach64_rp_sample_lmi(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp_texture_t *tx, double s, double t, int32_t lmi,
+                     int *inhibits)
+{
+    int      top = tx->levels - 1;
+    int      last;
+    int      level;
+    unsigned nibble;
+    unsigned frac;
+    int      ia;
+    int      ib;
+    uint32_t a;
+    uint32_t b;
+
+    if ((lmi <= 0) || !top)
+        return mach64_rp_sample_map(ctx, agp, &tx->maps[0], (lmi <= 0) ? tx->bilinear_mag : (tx->blend_fcn >= 2), s, t, inhibits);
+
+    /* A filter that is bilinear within a map stops two maps short of the
+       smallest: the card shows the 4x4 map of a 256 texture however far
+       the triangle shrinks it (measured for the filters 1, 2, 5 and 6 of
+       ATI3DCIF), where the point-sampled and blending ones reach the 1x1. */
+    last   = ((tx->blend_fcn >= 2) && (top >= 2)) ? (top - 2) : top;
+    level  = lmi >> 16;
+    nibble = (lmi >> 12) & 15;
+    switch (tx->blend_fcn) {
+        case 1:
+        case 3:
+            if (level >= last)
+                return mach64_rp_sample_map(ctx, agp, &tx->maps[last], tx->blend_fcn == 3, s, t, inhibits);
+            frac = nibble * 16;
+            a    = mach64_rp_sample_map(ctx, agp, &tx->maps[level], tx->blend_fcn == 3, s, t, &ia);
+            b    = mach64_rp_sample_map(ctx, agp, &tx->maps[level + 1], tx->blend_fcn == 3, s, t, &ib);
+            *inhibits = (frac >= 128) ? ib : ia;
+            return mach64_3d_lerp_texel(a, b, frac);
+        default:
+            if (lmi & 0xffff)
+                level++;
+            if (level > last)
+                level = last;
+            return mach64_rp_sample_map(ctx, agp, &tx->maps[level], tx->blend_fcn == 2, s, t, inhibits);
+    }
+}
+
+/*
+ * LOG_MAX_INC from the largest texel step across the triangle, texels of the
+ * largest map per pixel: the exponent in 23:16 and in 15:12 a nibble of the
+ * mantissa's top three bits j, 2 j + 1, or 0 for j = 0 (measured: the
+ * register reads exactly that for steps of 1 + k/64 times a power of two).
+ */
+static int32_t
+mach64_rp_log_max_inc(double step)
+{
+    int    e;
+    double m;
+    int    j;
+
+    if (!(step > 0.0) || !isfinite(step))
+        return -(128 << 16);
+    m = frexp(step, &e);
+    e--;
+    j = (int) floor(8.0 * (2.0 * m - 1.0));
+    if (j > 7)
+        j = 7;
+    if (e < -128)
+        return -(128 << 16);
+    if (e > 127)
+        e = 127;
+    return (int32_t) (e * 65536 + (j ? (2 * j + 1) : 0) * 4096);
+}
+
+/*
+ * -log2(w) of a positive W, 16.16, as the chip takes it per pixel: the
+ * exponent and, in 15:12, a nibble for the top three bits of the mantissa.
+ * The nibbles are measured, with the LOD bias as the probe: they are the
+ * ones where the level of a constant-W triangle drops (W 0.5 to 1 in sixteenths
+ * of an octave). They follow log2, where LOG_MAX_INC's follow 2 j + 1.
+ */
+static inline int32_t
+mach64_rp_w_term(double w)
+{
+    static const int8_t nibble[8] = { 0, 2, 5, 7, 9, 11, 13, 14 };
+    int                 e;
+    int                 j;
+    double              m = frexp(w * (1.0 + 1e-9), &e);
+
+    j = (int) floor(8.0 * (2.0 * m - 1.0));
+    if (j > 7)
+        j = 7;
+    return -((e - 1) * 65536 + nibble[j] * 4096);
+}
+
+/* A plane: value at the origin and its X and Y gradients. */
+typedef struct mach64_rp_plane_t {
+    double c, dx, dy;
+} mach64_rp_plane_t;
+
+static inline double
+mach64_rp_at(const mach64_rp_plane_t *p, double x, double y)
+{
+    return p->c + p->dx * x + p->dy * y;
+}
+
+/* RP_* plane indices */
+enum {
+    RPP_R,
+    RPP_G,
+    RPP_B,
+    RPP_A,
+    RPP_SR,
+    RPP_SG,
+    RPP_SB,
+    RPP_FOG,
+    RPP_Z,
+    RPP_W,
+    RPP_S,
+    RPP_T,
+    RPP_W2,
+    RPP_S2,
+    RPP_T2,
+    RPP_COUNT
+};
+
+/* Alpha blend factors of the Rage Pro: 0 zero, 1 one, 2 the other side's
+   color, 3 one minus it, 4 source alpha, 5 one minus it, 6 destination
+   alpha, 7 one minus it. */
+static int
+mach64_rp_blend_factor(int code, rgba_t src, rgba_t dst, int channel, int is_source, int saturate)
+{
+    int other = mach64_3d_component(is_source ? dst : src, channel);
+
+    switch (code) {
+        case 0:
+            return 0;
+        case 1:
+            return 255;
+        case 2:
+            return other;
+        case 3:
+            return 255 - other;
+        case 4:
+            if (saturate && is_source && (channel < 3))
+                return (src.a < (255 - dst.a)) ? src.a : (255 - dst.a);
+            return src.a;
+        case 5:
+            return 255 - src.a;
+        case 6:
+            return dst.a;
+        default:
+            return 255 - dst.a;
+    }
+}
+
+static rgba_t
+mach64_rp_blend(uint32_t cntl, rgba_t src, rgba_t dst)
+{
+    int    src_code = (cntl >> ALPHA_BLEND_SRC) & 7;
+    int    dst_code = (cntl >> ALPHA_BLEND_DST) & 7;
+    int    sat      = !!(cntl & RP_ALPHA_BLEND_SAT);
+    int    out[4];
+    rgba_t o;
+
+    for (int ch = 0; ch < 4; ch++) {
+        int s = mach64_3d_component(src, ch);
+        int d = mach64_3d_component(dst, ch);
+
+        /*
+         * The color channels of the two source-alpha blends a real Rage Pro
+         * was measured on, in 8 bits with the alpha taken as a/256 and
+         * (256 - a)/256 of the sides, each side's product truncated, rather
+         * than the exact division by 255 used for the other combinations.
+         */
+        if ((ch < 3) && !sat && (src_code == 4) && (dst_code == 5))
+            out[ch] = ((s * (src.a + 1)) >> 8) + ((d * (256 - src.a)) >> 8);
+        else if ((ch < 3) && !sat && (src_code == 4) && (dst_code == 1))
+            out[ch] = mach64_3d_clamp8(((s * (src.a + 1)) >> 8) + d);
+        else
+            out[ch] = mach64_3d_clamp8((s * mach64_rp_blend_factor(src_code, src, dst, ch, 1, sat) +
+                                        d * mach64_rp_blend_factor(dst_code, src, dst, ch, 0, sat) + 127) /
+                                       255);
+    }
+    o.r = out[0];
+    o.g = out[1];
+    o.b = out[2];
+    o.a = out[3];
+    return o;
+}
+
+/* Does dst's pixel type have an alpha channel? */
+static int
+mach64_rp_format_has_alpha(int format)
+{
+    return (format == 3) || (format == 6) || (format == 15);
+}
+
+/* ALPHA_DST_SEL: the alpha written with the pixel. */
+static int
+mach64_rp_dst_alpha(uint32_t alpha_tst, int src_a, int dst_a)
+{
+    switch ((alpha_tst >> RP_ALPHA_DST_SHIFT) & 7) {
+        case 0:
+            return 0;
+        case 1:
+            return 255;
+        case 4:
+            return src_a;
+        case 5:
+            return 255 - src_a;
+        case 6:
+            return dst_a;
+        case 7:
+            return 255 - dst_a;
+        default:
+            return src_a;
+    }
+}
+
+static int
+mach64_rp_edge_top_left(int64_t nx, int64_t ny)
+{
+    return (nx > 0) || ((nx == 0) && (ny > 0));
+}
+
+/* What a triangle draw shares. */
+struct mach64_rp_tri_t {
+    mach64_3d_dst_t     dst;
+    uint32_t            cntl;
+    uint32_t            tex_cntl;
+    uint32_t            alpha_tst;
+    uint32_t            z_cntl;
+    uint32_t            z_base;
+    int                 z_pitch;
+    int                 z_on;
+    int                 z_write;
+    int                 textured;
+    int                 composite;
+    int                 alpha_fog;
+    int                 dst_compare;
+    uint32_t            dst_compare_mask;
+    int                 dp_constant;
+    rgba_t              fog;
+    mach64_rp_plane_t   pl[RPP_COUNT];
+    mach64_rp_texture_t tex;
+    mach64_rp_texture_t tex2;
+    int32_t             lmi; /* LOG_MAX_INC: log2 of the largest texel step, 16.16 */
+    int                 w_const; /* W is the same at every pixel: its reciprocal and LOD term are per triangle */
+    double              w_rcp;
+    int32_t             w_term;
+};
+
+/* The plane through the three values a0, a1, a2 at the vertices, from the
+   triangle's 1/area as the driver gave it, X and Y in pixels. */
+static void
+mach64_rp_plane(mach64_rp_plane_t *p, const double *vx, const double *vy, double a0, double a1, double a2, double ooa)
+{
+    p->dx = ((a0 - a2) * (vy[1] - vy[2]) - (a1 - a2) * (vy[0] - vy[2])) * ooa;
+    p->dy = ((a1 - a2) * (vx[0] - vx[2]) - (a0 - a2) * (vx[1] - vx[2])) * ooa;
+    p->c  = a2 - p->dx * vx[2] - p->dy * vy[2];
+}
+
+/* An 8-bit plane at x, y, rounded and clamped; NaN is 0. */
+static inline int
+mach64_rp_at8(const mach64_rp_plane_t *p, double x, double y)
+{
+    double v = mach64_rp_at(p, x, y) + 0.5;
+
+    if (!(v >= 0.0))
+        return 0;
+    return (v >= 255.0) ? 255 : (int) v;
+}
+
+/* An 8-bit color plane at x, y, truncated and clamped; NaN is 0. A real Rage
+   Pro's Gouraud color steps to the next 8-bit value where the interpolant
+   reaches it, not half a step before. */
+static inline int
+mach64_rp_at8_floor(const mach64_rp_plane_t *p, double x, double y)
+{
+    double v = mach64_rp_at(p, x, y);
+
+    if (!(v >= 0.0))
+        return 0;
+    return (v >= 255.0) ? 255 : (int) v;
+}
+
+/* The level of detail at s, t: log2 of the texels of the largest map a
+   pixel steps across, along the screen axis that steps across more.
+   d(S/W)/dx = (dS/dx - s dW/dx) / W. */
+static double
+mach64_rp_lod(const mach64_rp_plane_t *ps, const mach64_rp_plane_t *pt, const mach64_rp_plane_t *pw, double s, double t, double rw,
+              const mach64_rp_map_t *largest)
+{
+    double dsdx = (ps->dx - s * pw->dx) * rw * largest->w;
+    double dtdx = (pt->dx - t * pw->dx) * rw * largest->h;
+    double dsdy = (ps->dy - s * pw->dy) * rw * largest->w;
+    double dtdy = (pt->dy - t * pw->dy) * rw * largest->h;
+    double rx   = dsdx * dsdx + dtdx * dtdx;
+    double ry   = dsdy * dsdy + dtdy * dtdy;
+    double rho2 = (rx > ry) ? rx : ry;
+
+    return (rho2 > 0.0) ? (0.5 * log2(rho2)) : -1.0;
+}
+
+/*
+ * What a span function knows of its triangles besides tri, so that the
+ * compiler drops what they do not do. RPK_SIMPLE: no composite texture,
+ * specular light, destination compare or constant DP_SRC, and a 1555
+ * destination, or 565 with RPK_565; RPK_TEX textured, RPK_Z with Z. Without
+ * RPK_SIMPLE, all is read from tri.
+ */
+#define RPK_SIMPLE (1u << 0)
+#define RPK_TEX    (1u << 1)
+#define RPK_Z      (1u << 2)
+#define RPK_565    (1u << 3)
+
+/*
+ * One colour channel of the modulate combine of a composite texture: the
+ * primary p and the secondary s, both 0 to 255. Measured on a Rage Pro for
+ * RGB565, ARGB1555 and ARGB4444 secondaries point sampled or bilinear, over a
+ * solid RGB565 primary, with the diffuse colour applied afterwards by the
+ * modulate light function (see mach64_rp_pixel). Only the top four bits n of s
+ * take part: the result is 0 when n is 0, and otherwise (16 (n + 1) p) >> 8;
+ * with a white primary that is s with its low four bits set. The diffuse
+ * channel d then gives (x (d + 1)) >> 8. Fitted to 1352 distinct
+ * secondary, primary and diffuse combinations of RGB565 (896 of ARGB1555, 448
+ * of ARGB4444), none of which was among the draws the form of the rule was
+ * first read from. Not measured, and left as they were: the alpha channel, the
+ * blend and add-specular combines, a VQ secondary, a primary that is filtered
+ * or not RGB565, and the other light functions.
+ */
+static inline int
+mach64_rp_modulate(int p, int s)
+{
+    int n = s >> 4;
+
+    return n ? ((16 * (n + 1) * p) >> 8) : 0;
+}
+
+/* A pixel of a triangle, through the whole pipeline, sampled at its centre. */
+__attribute__((always_inline)) static inline void
+mach64_rp_pixel(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, mach64_3d_dither_t *dither, mach64_rp_agp_cache_t *agp, int x, int y,
+                uint32_t addr, uint32_t z_addr, const unsigned k)
+{
+    mach64_t *mach64    = ctx->mach64;
+    const int simple    = !!(k & RPK_SIMPLE);
+    const int z_on      = simple ? !!(k & RPK_Z) : tri->z_on;
+    const int textured  = simple ? !!(k & RPK_TEX) : tri->textured;
+    const int composite = !simple && tri->composite;
+    const int format    = simple ? ((k & RPK_565) ? 4 : 3) : tri->dst.format;
+    double    fx        = x + 0.5;
+    double    fy        = y + 0.5;
+    rgba_t    shade;
+    rgba_t    src;
+    rgba_t    dst;
+    int       tex_a = 255;
+    int       inhibit;
+    uint16_t  depth  = 0;
+    int       spec_r = 0;
+    int       spec_g = 0;
+    int       spec_b = 0;
+    int       fog_f  = 255;
+
+    shade.r = mach64_rp_at8_floor(&tri->pl[RPP_R], fx, fy);
+    shade.g = mach64_rp_at8_floor(&tri->pl[RPP_G], fx, fy);
+    shade.b = mach64_rp_at8_floor(&tri->pl[RPP_B], fx, fy);
+    shade.a = mach64_rp_at8(&tri->pl[RPP_A], fx, fy);
+
+    if (z_on) {
+        double z = mach64_rp_at(&tri->pl[RPP_Z], fx, fy);
+
+        depth = (z <= 0.0) ? 0 : ((z >= 65535.0) ? 65535 : (uint16_t) z);
+        if (!mach64_3d_z_test(depth, mach64_3d_vram_read16(mach64, z_addr), (tri->z_cntl >> Z_TEST_SHIFT) & 7))
+            return;
+    }
+
+    src = shade;
+    if (textured) {
+        double   w    = tri->w_const ? tri->pl[RPP_W].c : mach64_rp_at(&tri->pl[RPP_W], fx, fy);
+        double   rw   = tri->w_const ? tri->w_rcp : ((w != 0.0) ? (1.0 / w) : 1.0);
+        double   s    = mach64_rp_at(&tri->pl[RPP_S], fx, fy) * rw;
+        double   t    = mach64_rp_at(&tri->pl[RPP_T], fx, fy) * rw;
+        uint32_t argb;
+        rgba_t   texel;
+        int      comp_mod = 0;
+
+        if (tri->tex.lod_used) {
+            int32_t w_term = tri->w_const ? tri->w_term : ((w > 0.0) ? mach64_rp_w_term(w) : 0);
+
+            argb = mach64_rp_sample_lmi(ctx, agp, &tri->tex, s, t, tri->lmi - 4096 * tri->tex.bias16 + w_term, &inhibit);
+        } else
+            argb = mach64_rp_sample(ctx, agp, &tri->tex, s, t, 0.0, &inhibit);
+
+        if (inhibit)
+            return;
+        texel = mach64_3d_argb_rgba(argb);
+
+        if (composite) {
+            double   w2  = mach64_rp_at(&tri->pl[RPP_W2], fx, fy);
+            double   rw2 = (w2 != 0.0) ? (1.0 / w2) : 1.0;
+            double   s2  = mach64_rp_at(&tri->pl[RPP_S2], fx, fy) * rw2;
+            double   t2  = mach64_rp_at(&tri->pl[RPP_T2], fx, fy) * rw2;
+            double   l2  = tri->tex2.lod_used ? mach64_rp_lod(&tri->pl[RPP_S2], &tri->pl[RPP_T2], &tri->pl[RPP_W2], s2, t2, rw2, &tri->tex2.maps[0]) : 0.0;
+            int      inh2;
+            uint32_t c2  = mach64_rp_sample(ctx, agp, &tri->tex2, s2, t2, l2, &inh2);
+            rgba_t   sec = mach64_3d_argb_rgba(c2);
+            int      f;
+
+            switch ((tri->tex_cntl >> RP_COMP_COMBINE_SHIFT) & 3) {
+                case 0: /* blend by COMP_FACTOR/16, or by the composite's alpha */
+                    f = (tri->tex_cntl & RP_COMP_ALPHA) ? sec.a : (((tri->tex_cntl >> RP_COMP_FACTOR_SHIFT) & 15) * 255 / 16);
+                    texel = mach64_3d_lerp(texel, sec, f);
+                    break;
+                case 1: /* modulate: see mach64_rp_modulate */
+                    texel.r = mach64_rp_modulate(texel.r, sec.r);
+                    texel.g = mach64_rp_modulate(texel.g, sec.g);
+                    texel.b = mach64_rp_modulate(texel.b, sec.b);
+                    texel.a = texel.a * sec.a / 255;
+                    comp_mod = 1;
+                    break;
+                default: /* specular addition: the primary lit, plus the composite */
+                    texel.r = mach64_3d_clamp8(texel.r * shade.r / 255 + sec.r);
+                    texel.g = mach64_3d_clamp8(texel.g * shade.g / 255 + sec.g);
+                    texel.b = mach64_3d_clamp8(texel.b * shade.b / 255 + sec.b);
+                    break;
+            }
+        }
+
+        tex_a = (ctx->regs[SCALE_3D_CNTL >> 2] & TEX_MAP_AEN) ? texel.a : 255;
+        if (!(tri->cntl & TEX_MAP_AEN))
+            texel.a = shade.a;
+        else if (tri->cntl & TEX_AMASK_AEN) {
+            int mask = texel.a & 1;
+
+            if (!(tri->cntl & TEX_AMASK_MODE)) {
+                if (!mask)
+                    return;
+                texel.a = shade.a;
+            } else
+                texel.a = mask ? 255 : shade.a;
+        }
+
+        if (composite && (((tri->tex_cntl >> RP_COMP_COMBINE_SHIFT) & 3) >= 2))
+            src = texel;
+        else {
+            switch ((tri->cntl >> TEX_LIGHT_FCN) & 3) {
+                case 1: /* modulate */
+                    if (comp_mod) {
+                        src.r = (texel.r * (shade.r + 1)) >> 8;
+                        src.g = (texel.g * (shade.g + 1)) >> 8;
+                        src.b = (texel.b * (shade.b + 1)) >> 8;
+                    } else {
+                        src.r = texel.r * shade.r / 255;
+                        src.g = texel.g * shade.g / 255;
+                        src.b = texel.b * shade.b / 255;
+                    }
+                    src.a = (tri->cntl & TEX_MAP_AEN) ? (texel.a * shade.a / 255) : shade.a;
+                    break;
+                case 2: /* alpha decal */
+                    src   = mach64_3d_lerp(shade, texel, texel.a);
+                    src.a = shade.a;
+                    break;
+                default: /* replace */
+                    src = texel;
+                    break;
+            }
+        }
+    }
+
+    if (!simple && (tri->alpha_tst & RP_SPECULAR_LIGHT_EN)) {
+        spec_r = mach64_rp_at8(&tri->pl[RPP_SR], fx, fy);
+        spec_g = mach64_rp_at8(&tri->pl[RPP_SG], fx, fy);
+        spec_b = mach64_rp_at8(&tri->pl[RPP_SB], fx, fy);
+        src.r  = mach64_3d_clamp8(src.r + spec_r);
+        src.g  = mach64_3d_clamp8(src.g + spec_g);
+        src.b  = mach64_3d_clamp8(src.b + spec_b);
+    }
+
+    if (tri->alpha_fog == ALPHA_FOG_FOG) {
+        int a = src.a;
+
+        fog_f = mach64_rp_at8(&tri->pl[RPP_FOG], fx, fy);
+        src   = mach64_3d_lerp(tri->fog, src, fog_f);
+        src.a = a;
+    }
+
+    if (tri->alpha_tst & RP_ALPHA_TEST_EN) {
+        int ref = (tri->alpha_tst >> RP_REF_ALPHA_SHIFT) & 0xff;
+        int a   = (tri->alpha_tst & RP_ALPHA_TST_SRC_ALPHA) ? src.a : tex_a;
+
+        if (!mach64_3d_z_test(a, ref, (tri->alpha_tst >> RP_ALPHA_TEST_SHIFT) & 7))
+            return;
+    }
+
+    dst.r = dst.g = dst.b = 0;
+    dst.a = 255;
+    if ((tri->alpha_fog == ALPHA_FOG_BLEND) || (((tri->alpha_tst >> RP_ALPHA_DST_SHIFT) & 6) == 6)) {
+        dst = mach64_3d_read_dst(ctx, addr, format);
+        if (!mach64_rp_format_has_alpha(format))
+            dst.a = 255;
+    }
+    if (tri->alpha_fog == ALPHA_FOG_BLEND) {
+        int a = src.a;
+
+        src   = mach64_rp_blend(tri->cntl, src, dst);
+        src.a = a;
+    }
+    src.a = mach64_rp_dst_alpha(tri->alpha_tst, src.a, dst.a);
+
+    if (!simple && tri->dst_compare &&
+        mach64_3d_destination_compare_inhibits(mach64->clr_cmp_cntl, mach64->clr_cmp_clr, mach64->clr_cmp_mask,
+                                               mach64_3d_vram_read(mach64, addr, tri->dst.bpp), tri->dst_compare_mask))
+        return;
+
+    if (!simple && tri->dp_constant)
+        mach64_3d_write_dst_raw(ctx, addr, format,
+                                mach64_3d_dp_select_source(mach64->dp_src, mach64->dp_bkgd_clr, mach64->dp_frgd_clr,
+                                                           mach64_3d_pack(ctx, dither, format, src, x, y)));
+    else
+        mach64_3d_write_dst(ctx, dither, addr, format, src, x, y);
+    if (z_on && tri->z_write)
+        mach64_3d_vram_write(mach64, z_addr, depth, 2);
+}
+
+/* n / d and its ceiling, d > 0, rounding towards minus and plus infinity. */
+static inline int64_t
+mach64_rp_div_floor(int64_t n, int64_t d)
+{
+    int64_t q = n / d;
+
+    return ((n % d) && (n < 0)) ? (q - 1) : q;
+}
+
+static inline int64_t
+mach64_rp_div_ceil(int64_t n, int64_t d)
+{
+    int64_t q = n / d;
+
+    return ((n % d) && (n > 0)) ? (q + 1) : q;
+}
+
+/* Every step-th span found, from the first-th on, knowing k of them. */
+__attribute__((always_inline)) static inline void
+mach64_rp_draw_spans_k(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, int first, int step, mach64_3d_dither_t *dither,
+                       mach64_rp_agp_cache_t *agp, const unsigned k)
+{
+    const int bpp  = (k & RPK_SIMPLE) ? 2 : tri->dst.bpp;
+    const int z_on = (k & RPK_SIMPLE) ? !!(k & RPK_Z) : tri->z_on;
+
+    for (int i = first; i < ctx->rp_nspans; i += step) {
+        const mach64_rp_span_t *sp     = &ctx->rp_spans[i];
+        uint32_t                addr   = tri->dst.base + (sp->y * tri->dst.pitch + sp->first) * bpp;
+        uint32_t                z_addr = z_on ? (tri->z_base + (sp->y * tri->z_pitch + sp->first) * 2) : 0;
+
+        for (int x = sp->first; x <= sp->last; x++) {
+            mach64_rp_pixel(ctx, tri, dither, agp, x, sp->y, addr, z_addr, k);
+            addr += bpp;
+            if (z_on)
+                z_addr += 2;
+        }
+    }
+}
+
+typedef void (*mach64_rp_spans_fn)(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, int first, int step, mach64_3d_dither_t *dither,
+                                   mach64_rp_agp_cache_t *agp);
+
+#define MACH64_RP_SPANS(k)                                                                                  \
+    static void mach64_rp_draw_spans_##k(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, int first, int step, \
+                                         mach64_3d_dither_t *dither, mach64_rp_agp_cache_t *agp)            \
+    {                                                                                                       \
+        mach64_rp_draw_spans_k(ctx, tri, first, step, dither, agp, k);                                      \
+    }
+MACH64_RP_SPANS(0)
+MACH64_RP_SPANS(1)
+MACH64_RP_SPANS(3)
+MACH64_RP_SPANS(5)
+MACH64_RP_SPANS(7)
+MACH64_RP_SPANS(9)
+MACH64_RP_SPANS(11)
+MACH64_RP_SPANS(13)
+MACH64_RP_SPANS(15)
+
+/* By RPK_* bits; without RPK_SIMPLE, the one for any triangle. */
+static const mach64_rp_spans_fn mach64_rp_spans_fns[16] = {
+    mach64_rp_draw_spans_0, mach64_rp_draw_spans_1,  mach64_rp_draw_spans_0, mach64_rp_draw_spans_3,
+    mach64_rp_draw_spans_0, mach64_rp_draw_spans_5,  mach64_rp_draw_spans_0, mach64_rp_draw_spans_7,
+    mach64_rp_draw_spans_0, mach64_rp_draw_spans_9,  mach64_rp_draw_spans_0, mach64_rp_draw_spans_11,
+    mach64_rp_draw_spans_0, mach64_rp_draw_spans_13, mach64_rp_draw_spans_0, mach64_rp_draw_spans_15,
+};
+
+/* The RPK_* bits that hold for a triangle. */
+static unsigned
+mach64_rp_known(const mach64_rp_tri_t *tri)
+{
+    if (tri->composite || tri->dst_compare || tri->dp_constant || (tri->alpha_tst & RP_SPECULAR_LIGHT_EN) ||
+        ((tri->dst.format != 3) && (tri->dst.format != 4)))
+        return 0;
+    return RPK_SIMPLE | (tri->textured ? RPK_TEX : 0) | (tri->z_on ? RPK_Z : 0) | ((tri->dst.format == 4) ? RPK_565 : 0);
+}
+
+static void
+mach64_rp_draw_spans(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, int first, int step, mach64_3d_dither_t *dither,
+                     mach64_rp_agp_cache_t *agp)
+{
+    mach64_rp_spans_fns[mach64_rp_known(tri)](ctx, tri, first, step, dither, agp);
+}
+
+/*
+ * Whether the spans may be drawn by several threads at once, which needs no
+ * pixel to read what another thread writes: as for a trapezoid's rows
+ * (mach64_3d_rows_shared), with the composite texture besides. A texture
+ * in AGP memory is in system memory, which the draw never writes.
+ */
+static int
+mach64_rp_spans_shared(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, uint32_t pixels)
+{
+    uint64_t size  = (uint64_t) ctx->mach64->vram_mask + 1;
+    int      y_min = ctx->rp_spans[0].y;
+    int      y_max = ctx->rp_spans[ctx->rp_nspans - 1].y;
+    int      x_min = ctx->rp_spans[0].first;
+    int      x_max = ctx->rp_spans[0].last + 1;
+    uint64_t dst_start;
+    uint64_t dst_len;
+    uint64_t z_start = 0;
+    uint64_t z_len   = 0;
+
+    if ((ctx->threads < 2) || (ctx->rp_nspans < 2) || (pixels < MACH64_3D_SHARED_PIXELS))
+        return 0;
+    if ((tri->cntl & DITHER_EN) && !(tri->cntl & SCALE_DITHER)) {
+        /* DITHER_INIT breaks the dependency between scanlines. */
+        if (!(tri->cntl & DITHER_INIT))
+            return 0;
+    }
+
+    for (int i = 1; i < ctx->rp_nspans; i++) {
+        const mach64_rp_span_t *sp = &ctx->rp_spans[i];
+
+        x_min = (sp->first < x_min) ? sp->first : x_min;
+        x_max = ((sp->last + 1) > x_max) ? (sp->last + 1) : x_max;
+    }
+
+    /* Rows of the destination or the Z buffer meet when a span is wider
+       than the pitch, or they wrap around video memory. */
+    if ((x_max - x_min) > tri->dst.pitch)
+        return 0;
+    dst_start = tri->dst.base + ((uint64_t) y_min * tri->dst.pitch + x_min) * tri->dst.bpp;
+    dst_len   = ((uint64_t) (y_max - y_min) * tri->dst.pitch + (x_max - x_min)) * tri->dst.bpp;
+    if (dst_len >= size)
+        return 0;
+    if (tri->z_on) {
+        if ((x_max - x_min) > tri->z_pitch)
+            return 0;
+        z_start = tri->z_base + ((uint64_t) y_min * tri->z_pitch + x_min) * 2;
+        z_len   = ((uint64_t) (y_max - y_min) * tri->z_pitch + (x_max - x_min)) * 2;
+        if ((z_len >= size) || mach64_3d_ranges_overlap(dst_start, dst_len, z_start, z_len, size))
+            return 0;
+    }
+    for (int n = 0; n < 2; n++) {
+        const mach64_rp_texture_t *tx = n ? &tri->tex2 : &tri->tex;
+
+        if (!tri->textured || (n && !tri->composite))
+            break;
+        for (int level = 0; level < tx->levels; level++) {
+            const mach64_rp_map_t *map = &tx->maps[level];
+            uint64_t               len = (uint64_t) map->w * map->h * map->tex.bpp + 4;
+
+            if (map->agp)
+                continue;
+            if ((len >= size) || mach64_3d_ranges_overlap(map->tex.base, len, dst_start, dst_len, size) ||
+                (tri->z_write && mach64_3d_ranges_overlap(map->tex.base, len, z_start, z_len, size)))
+                return 0;
+        }
+    }
+    return 1;
+}
+
+/* Draws the spans found so far, on the helpers as well when they may, as
+   mach64_3d_draw_rows does a trapezoid's rows. */
+static void
+mach64_rp_draw_batch(mach64_3d_t *ctx, const mach64_rp_tri_t *tri, uint32_t pixels)
+{
+    mach64_3d_dither_t own;
+    int                threads = ctx->threads;
+
+    if (!mach64_rp_spans_shared(ctx, tri, pixels)) {
+        mach64_rp_draw_spans(ctx, tri, 0, 1, &ctx->dither, &ctx->agp);
+        ctx->rp_nspans = 0;
+        return;
+    }
+
+    if (((tri->cntl & (DITHER_EN | SCALE_DITHER)) == DITHER_EN) && ctx->dither.valid &&
+        (ctx->dither.y > ctx->rp_spans[0].y) && (ctx->dither.y <= ctx->rp_spans[ctx->rp_nspans - 1].y)) {
+        /* Incoming error can belong to an interior row. Draw in order until
+           a colour is packed (resetting that error), or that row is passed.
+           Rejected pixels do not reset it. The remaining rows are independent. */
+        int done = 0;
+
+        do {
+            const mach64_rp_span_t *sp = &ctx->rp_spans[done];
+
+            mach64_rp_draw_spans(ctx, tri, done, ctx->rp_nspans, &ctx->dither, &ctx->agp);
+            pixels -= sp->last - sp->first + 1;
+            done++;
+        } while ((done < ctx->rp_nspans) && (ctx->dither.y > ctx->rp_spans[done - 1].y));
+        ctx->rp_nspans -= done;
+        memmove(ctx->rp_spans, ctx->rp_spans + done, ctx->rp_nspans * sizeof(ctx->rp_spans[0]));
+        if (ctx->rp_nspans)
+            mach64_rp_draw_batch(ctx, tri, pixels);
+        return;
+    }
+
+    if (!ctx->helpers_made)
+        mach64_3d_helpers_make(ctx);
+    ctx->job         = NULL;
+    ctx->rp_job      = tri;
+    ctx->job_threads = threads;
+    for (int i = 0; i < (threads - 1); i++)
+        ctx->helpers[i].dither = ctx->dither;
+    if ((tri->cntl & (DITHER_EN | SCALE_DITHER)) == DITHER_EN) {
+        for (int i = 0; i < (threads - 1); i++)
+            ctx->helpers[i].dither.valid = 0;
+    }
+    mach64_3d_helpers_start(ctx);
+
+    own = ctx->dither;
+    if (((tri->cntl & (DITHER_EN | SCALE_DITHER)) == DITHER_EN) && (own.y != ctx->rp_spans[0].y))
+        own.valid = 0;
+    mach64_rp_draw_spans(ctx, tri, 0, threads, &own, &ctx->agp);
+    while (atomic_load(&ctx->job_left))
+        mach64_3d_pause();
+
+    if ((tri->cntl & (DITHER_EN | SCALE_DITHER)) == DITHER_EN) {
+        /* A rejected pixel never packs a colour, and a whole lane can be
+           rejected. The last row that actually packed a pixel owns the
+           outgoing error, irrespective of which lane drew it. */
+        for (int i = 0; i < (threads - 1); i++) {
+            const mach64_3d_dither_t *d = &ctx->helpers[i].dither;
+
+            if (d->valid && (!own.valid || (d->y > own.y)))
+                own = *d;
+        }
+        if (own.valid)
+            ctx->dither = own;
+    } else {
+        for (int i = 0; i < (threads - 1); i++) {
+            if (!ctx->helpers[i].dither.valid)
+                own.valid = 0;
+        }
+        ctx->dither.valid = own.valid;
+    }
+    ctx->rp_nspans    = 0;
+}
+
+/* The triangle of the three vertices, ONE_OVER_AREA = ooa. */
+static void
+mach64_3d_ragepro_triangle(mach64_3d_t *ctx, uint32_t ooa_raw)
+{
+    mach64_t       *mach64 = ctx->mach64;
+    double          ooa    = mach64_rp_float(ooa_raw);
+    mach64_rp_tri_t tri;
+    int64_t         qx[3];
+    int64_t         qy[3];
+    double          vx[3];
+    double          vy[3];
+    int64_t         cross;
+    int64_t         nx[3];
+    int64_t         ny[3];
+    int64_t         ec[3];
+    int             bias[3];
+    int             fcn;
+    int             flat;
+    int             x0, x1, y0, y1;
+    uint32_t        pixels = 0;
+    uint32_t        batch  = 0;
+    uint32_t        rows   = 0;
+    double          a[RPP_COUNT][3];
+
+    fcn = (ctx->regs[SCALE_3D_CNTL >> 2] >> SCALE_3D_FCN_SHIFT) & 3;
+    if (!fcn || !isfinite(ooa) || (ooa == 0.0))
+        return;
+    if (!mach64_3d_bytes_per_pixel(mach64_3d_dst_format(mach64)) || !mach64_3d_dst_init(mach64, &tri.dst))
+        return;
+
+    for (int i = 0; i < 3; i++) {
+        uint32_t xy = ctx->vtx[i][RP_XY];
+
+        qx[i] = (int16_t) (xy >> 16);
+        qy[i] = (int16_t) (xy & 0xffff);
+        vx[i] = qx[i] / 4.0;
+        vy[i] = qy[i] / 4.0;
+    }
+    cross = (qx[0] - qx[2]) * (qy[1] - qy[2]) - (qy[0] - qy[2]) * (qx[1] - qx[2]);
+    if (!cross)
+        return;
+    /* ooa is 1/area in pixels; with the winding it has the sign of cross. */
+    if ((cross > 0) != (ooa > 0.0))
+        mach64_log("Rage Pro setup: ONE_OVER_AREA %g against a doubled area of %g\n", ooa, cross / 16.0);
+
+    tri.cntl      = ctx->regs[SCALE_3D_CNTL >> 2];
+    tri.tex_cntl  = ctx->regs[RP_TEX_CNTL >> 2];
+    tri.alpha_tst = ctx->regs[RP_ALPHA_TST_CNTL >> 2];
+    tri.z_cntl    = ctx->regs[Z_CNTL >> 2];
+    tri.z_base    = (ctx->regs[Z_OFF_PITCH >> 2] & 0xfffff) << 3;
+    tri.z_pitch   = ((ctx->regs[Z_OFF_PITCH >> 2] >> 22) & 0x3ff) << 3;
+    tri.z_on      = (tri.z_cntl & Z_EN) && tri.z_pitch;
+    tri.z_write   = tri.z_on && (tri.z_cntl & Z_MASK);
+    tri.textured  = (fcn == FCN_TEXTURE);
+    tri.alpha_fog = (tri.cntl >> ALPHA_FOG_SHIFT) & 3;
+    tri.fog.r     = (mach64->dp_frgd_clr >> 16) & 0xff;
+    tri.fog.g     = (mach64->dp_frgd_clr >> 8) & 0xff;
+    tri.fog.b     = mach64->dp_frgd_clr & 0xff;
+    tri.fog.a     = 255;
+    tri.dst_compare      = mach64_3d_destination_compare_enabled(mach64->clr_cmp_cntl);
+    tri.dst_compare_mask = (tri.dst.bpp == 1) ? 0xff : ((tri.dst.bpp == 2) ? 0xffff : 0xffffffff);
+    tri.dp_constant      = (((mach64->dp_src >> 16) & 3) == MONO_SRC_1) &&
+                      ((((mach64->dp_src >> 8) & 7) == SRC_BG) || (((mach64->dp_src >> 8) & 7) == SRC_FG));
+    tri.composite = 0;
+    if (tri.textured) {
+        if (!mach64_rp_texture_init(ctx, &tri.tex))
+            return;
+        tri.composite = (tri.tex_cntl & RP_TEXTURE_COMPOSITE) && mach64_rp_composite_init(ctx, &tri.tex2);
+        if (tri.tex_cntl & RP_TEX_SRC_AGP) {
+            memset(ctx->agp.tag, 0, sizeof(ctx->agp.tag));
+            for (int i = 0; i < (MACH64_3D_THREADS - 1); i++)
+                memset(ctx->helpers[i].agp.tag, 0, sizeof(ctx->helpers[i].agp.tag));
+        }
+    }
+
+    /* The vertices' values; FLAT_SHADE_VERTEX_n gives every vertex the
+       colors of vertex n. */
+    flat = (ctx->setup_cntl >> RP_FLAT_SHADE_SHIFT) & 3;
+    for (int i = 0; i < 3; i++) {
+        int      ci   = flat ? (flat - 1) : i;
+        uint32_t argb = ctx->vtx[ci][RP_ARGB];
+        uint32_t spec = ctx->vtx[ci][RP_SPEC];
+        double   w    = mach64_rp_float(ctx->vtx[i][RP_W]);
+        double   s    = mach64_rp_float(ctx->vtx[i][RP_S]);
+        double   t    = mach64_rp_float(ctx->vtx[i][RP_T]);
+        double   w2;
+        double   s2;
+        double   t2;
+
+        if (!isfinite(w))
+            w = 1.0;
+        if (!isfinite(s))
+            s = 0.0;
+        if (!isfinite(t))
+            t = 0.0;
+        a[RPP_A][i]   = (argb >> 24) & 0xff;
+        a[RPP_R][i]   = (argb >> 16) & 0xff;
+        a[RPP_G][i]   = (argb >> 8) & 0xff;
+        a[RPP_B][i]   = argb & 0xff;
+        a[RPP_FOG][i] = (spec >> 24) & 0xff;
+        a[RPP_SR][i]  = (spec >> 16) & 0xff;
+        a[RPP_SG][i]  = (spec >> 8) & 0xff;
+        a[RPP_SB][i]  = spec & 0xff;
+        a[RPP_Z][i]   = ctx->vtx[i][RP_Z] / 65536.0;
+        a[RPP_W][i]   = w;
+        a[RPP_S][i]   = (tri.tex_cntl & RP_TEX_ST_DIRECT) ? s : (s * w);
+        a[RPP_T][i]   = (tri.tex_cntl & RP_TEX_ST_DIRECT) ? t : (t * w);
+        /* The composite texture's own S, T and W with SECONDARY_STW, else
+           the primary's. */
+        if (tri.tex_cntl & RP_SECONDARY_STW) {
+            w2 = mach64_rp_float(ctx->vtx_sec[i][2]);
+            s2 = mach64_rp_float(ctx->vtx_sec[i][0]);
+            t2 = mach64_rp_float(ctx->vtx_sec[i][1]);
+            if (!isfinite(w2))
+                w2 = 1.0;
+            if (!isfinite(s2))
+                s2 = 0.0;
+            if (!isfinite(t2))
+                t2 = 0.0;
+            a[RPP_W2][i] = w2;
+            a[RPP_S2][i] = (tri.tex_cntl & RP_TEX_ST_DIRECT) ? s2 : (s2 * w2);
+            a[RPP_T2][i] = (tri.tex_cntl & RP_TEX_ST_DIRECT) ? t2 : (t2 * w2);
+        } else {
+            a[RPP_W2][i] = a[RPP_W][i];
+            a[RPP_S2][i] = a[RPP_S][i];
+            a[RPP_T2][i] = a[RPP_T][i];
+        }
+    }
+    for (int p = 0; p < RPP_COUNT; p++)
+        mach64_rp_plane(&tri.pl[p], vx, vy, a[p][0], a[p][1], a[p][2], ooa);
+    tri.w_const = tri.textured && (tri.pl[RPP_W].dx == 0.0) && (tri.pl[RPP_W].dy == 0.0);
+    if (tri.w_const) {
+        double w = tri.pl[RPP_W].c;
+
+        tri.w_rcp  = (w != 0.0) ? (1.0 / w) : 1.0;
+        tri.w_term = (w > 0.0) ? mach64_rp_w_term(w) : 0;
+    }
+
+    /* LOG_MAX_INC: the steepest of the four gradients of the texture
+       coordinates U = S / W and V = T / W across the screen, in texels of the
+       largest map, times the largest W of the vertices. */
+    tri.lmi = 0;
+    if (tri.textured) {
+        mach64_rp_plane_t pu;
+        mach64_rp_plane_t pv;
+        double            wmax = 0.0;
+        double            step;
+        double            rcp = ooa;
+
+        for (int i = 0; i < 3; i++) {
+            double w = a[RPP_W][i];
+
+            wmax = (w > wmax) ? w : wmax;
+        }
+        if (wmax <= 0.0)
+            wmax = 1.0;
+        {
+            double u[3];
+            double v[3];
+
+            for (int i = 0; i < 3; i++) {
+                u[i] = (a[RPP_W][i] != 0.0) ? (a[RPP_S][i] / a[RPP_W][i]) : 0.0;
+                v[i] = (a[RPP_W][i] != 0.0) ? (a[RPP_T][i] / a[RPP_W][i]) : 0.0;
+            }
+            /* Inferred approximation: the card's gradients seem to come from a
+               reciprocal a little below the true one. A triangle whose step is
+               exactly a power of two reads just under it, which moves
+               LOG_MAX_INC down a nibble (0x2f000 for a step of 8), and the
+               driver's own 1/area is rounded either way, so the one above is
+               taken a step down. The mechanism and the precision of the card's
+               reciprocal are not identified (any precision from 5 to 24
+               mantissa bits fits the readings), and two power-of-two vectors
+               are still not reproduced (known divergences in the tests). */
+            if (fabs(rcp * (cross / 16.0)) > 1.0)
+                rcp = (double) nextafterf((float) rcp, 0.0f);
+            mach64_rp_plane(&pu, vx, vy, u[0], u[1], u[2], rcp);
+            mach64_rp_plane(&pv, vx, vy, v[0], v[1], v[2], rcp);
+        }
+        step = fmax(fmax(fabs(pu.dx), fabs(pu.dy)) * tri.tex.maps[0].w, fmax(fabs(pv.dx), fabs(pv.dy)) * tri.tex.maps[0].h) * wmax;
+        tri.lmi = mach64_rp_log_max_inc(step);
+        ctx->regs[RP_LOG_MAX_INC >> 2] = ((uint32_t) (tri.lmi >> 16) & 0xff) << 16 | (((uint32_t) tri.lmi >> 12) & 15) << 12;
+    }
+
+    /* Edges as functions of quarter-pixel coordinates, positive inside. */
+    for (int e = 0; e < 3; e++) {
+        int     i  = e;
+        int     j  = (e + 1) % 3;
+        int64_t dx = qx[j] - qx[i];
+        int64_t dy = qy[j] - qy[i];
+
+        /* E(p) = dx (py - yi) - dy (px - xi): positive on the side of the
+           third vertex when cross > 0 (y down). */
+        nx[e] = -dy;
+        ny[e] = dx;
+        if (cross < 0) {
+            nx[e] = -nx[e];
+            ny[e] = -ny[e];
+        }
+        ec[e]   = -(nx[e] * qx[i] + ny[e] * qy[i]);
+        bias[e] = mach64_rp_edge_top_left(nx[e], ny[e]) ? 0 : -1;
+    }
+
+    x0 = (int) floor(fmin(vx[0], fmin(vx[1], vx[2])));
+    x1 = (int) ceil(fmax(vx[0], fmax(vx[1], vx[2])));
+    y0 = (int) floor(fmin(vy[0], fmin(vy[1], vy[2])));
+    y1 = (int) ceil(fmax(vy[0], fmax(vy[1], vy[2])));
+    if (x0 < tri.dst.left)
+        x0 = tri.dst.left;
+    if (x1 > tri.dst.right)
+        x1 = tri.dst.right;
+    if (y0 < tri.dst.top)
+        y0 = tri.dst.top;
+    if (y1 > tri.dst.bottom)
+        y1 = tri.dst.bottom;
+    /* Rows past the end of video memory would only wrap over it again. */
+    if ((y1 - y0) > (int) ((mach64->vram_mask + 1) / (uint32_t) (tri.dst.pitch * tri.dst.bpp)))
+        y1 = y0 + (int) ((mach64->vram_mask + 1) / (uint32_t) (tri.dst.pitch * tri.dst.bpp));
+    if ((x0 > x1) || (y0 > y1))
+        return;
+
+    /* Each row's span: edge k is in where a x + b >= 0, a = 4 nx, b the
+       rest of nx (4x + 2) + ny (4y + 2) + ec + bias. */
+    ctx->rp_nspans = 0;
+    for (int y = y0; y <= y1; y++) {
+        int first = x0;
+        int last  = x1;
+
+        for (int k = 0; (k < 3) && (first <= last); k++) {
+            int64_t a = nx[k] * 4;
+            int64_t b = nx[k] * 2 + ny[k] * ((int64_t) y * 4 + 2) + ec[k] + bias[k];
+
+            if (a > 0) {
+                int64_t lo = mach64_rp_div_ceil(-b, a);
+
+                if (lo > first)
+                    first = (lo > last) ? (last + 1) : (int) lo;
+            } else if (a < 0) {
+                int64_t hi = mach64_rp_div_floor(b, -a);
+
+                if (hi < last)
+                    last = (hi < first) ? (first - 1) : (int) hi;
+            } else if (b < 0)
+                last = first - 1;
+        }
+        if (first > last)
+            continue;
+
+        ctx->rp_spans[ctx->rp_nspans].y     = y;
+        ctx->rp_spans[ctx->rp_nspans].first = first;
+        ctx->rp_spans[ctx->rp_nspans].last  = last;
+        ctx->rp_nspans++;
+        batch += last - first + 1;
+        rows++;
+        if (ctx->rp_nspans == MACH64_3D_ROWS) {
+            mach64_rp_draw_batch(ctx, &tri, batch);
+            pixels += batch;
+            batch = 0;
+        }
+    }
+    if (ctx->rp_nspans) {
+        mach64_rp_draw_batch(ctx, &tri, batch);
+        pixels += batch;
+    }
+
+    if (mach64->rp.trace > 0) {
+        mach64->rp.trace--;
+        pclog("Rage Pro tri: %08X %08X %08X ooa %g cross %g bbox %d,%d-%d,%d: %u pixels\n", ctx->vtx[0][RP_XY], ctx->vtx[1][RP_XY],
+              ctx->vtx[2][RP_XY], ooa, cross / 16.0, x0, y0, x1, y1, pixels);
+    }
+    mach64->rp.triangles++;
+    mach64->rp.pixels += pixels;
+    mach64->rp.last_dst   = tri.dst.base;
+    mach64->rp.last_pitch = tri.dst.pitch * tri.dst.bpp;
+    if (pixels)
+        mach64_3d_report_work(ctx, pixels, rows);
+}
+
+/*
+ * A write to the setup engine's block 1 registers, reg the dword index in
+ * the block: 90h-A7h the vertices by vertex, A8h-AAh vertex 3's secondary
+ * S/T/W, ABh-BFh the same by kind, C0h ONE_OVER_AREA_UC, C1h SETUP_CNTL,
+ * CAh-CFh vertices 1 and 2's secondary S/T/W.
+ */
+int
+mach64_3d_setup_write(mach64_t *mach64, int reg, uint32_t val)
+{
+    mach64_3d_t *ctx = mach64->gt3d;
+    int          v;
+    int          k;
+
+    if (!ctx)
+        return 0;
+
+    if ((reg >= 0x90) && (reg <= 0xa7)) {
+        v = (reg - 0x90) >> 3;
+        k = (reg - 0x90) & 7;
+        if (k == 7) {
+            ctx->one_over_area = val;
+            if (!(ctx->setup_cntl & (RP_DONT_START_TRI | RP_DONT_START_ANY))) {
+                mach64_3d_ragepro_triangle(ctx, val);
+            }
+        } else
+            ctx->vtx[v][k] = val;
+        return 1;
+    }
+    if ((reg >= 0xa8) && (reg <= 0xaa)) {
+        ctx->vtx_sec[2][reg - 0xa8] = val;
+        return 1;
+    }
+    if ((reg >= 0xab) && (reg <= 0xbf)) {
+        k = reg - 0xab;
+        if (k < 9)
+            ctx->vtx[k / 3][RP_S + (k % 3)] = val;
+        else
+            ctx->vtx[(k - 9) % 3][RP_SPEC + (k - 9) / 3] = val;
+        return 1;
+    }
+    if (reg == 0xc0) {
+        /* ONE_OVER_AREA_UC starts the triangle whatever SETUP_CNTL says:
+           ATI3DCIF sets DONT_START_ANY (44h) and draws every triangle
+           with it. */
+        ctx->one_over_area = val;
+        mach64_3d_ragepro_triangle(ctx, val);
+        return 1;
+    }
+    if (reg == 0xc1) {
+        ctx->setup_cntl = val;
+        return 1;
+    }
+    if ((reg >= 0xca) && (reg <= 0xcf)) {
+        ctx->vtx_sec[(reg - 0xca) / 3][(reg - 0xca) % 3] = val;
+        return 1;
+    }
+    return 0;
+}
+
+int
+mach64_3d_setup_read(mach64_t *mach64, int reg, uint32_t *val)
+{
+    mach64_3d_t *ctx = mach64->gt3d;
+    int          k;
+
+    if (!ctx)
+        return 0;
+
+    if ((reg >= 0x90) && (reg <= 0xa7)) {
+        k    = (reg - 0x90) & 7;
+        *val = (k == 7) ? ctx->one_over_area : ctx->vtx[(reg - 0x90) >> 3][k];
+        return 1;
+    }
+    if ((reg >= 0xa8) && (reg <= 0xaa)) {
+        *val = ctx->vtx_sec[2][reg - 0xa8];
+        return 1;
+    }
+    if ((reg >= 0xab) && (reg <= 0xbf)) {
+        k    = reg - 0xab;
+        *val = (k < 9) ? ctx->vtx[k / 3][RP_S + (k % 3)] : ctx->vtx[(k - 9) % 3][RP_SPEC + (k - 9) / 3];
+        return 1;
+    }
+    if (reg == 0xc0) {
+        *val = ctx->one_over_area;
+        return 1;
+    }
+    if (reg == 0xc1) {
+        *val = ctx->setup_cntl;
+        return 1;
+    }
+    if ((reg >= 0xca) && (reg <= 0xcf)) {
+        *val = ctx->vtx_sec[(reg - 0xca) / 3][(reg - 0xca) % 3];
+        return 1;
+    }
+    return 0;
+}
+
+void
+mach64_3d_ragepro_dump(mach64_t *mach64)
+{
+    mach64_3d_t *ctx = mach64->gt3d;
+
+    if (!ctx)
+        return;
+    pclog("Rage Pro 3D: SCALE_3D_CNTL %08X TEX_CNTL %08X ALPHA_TST_CNTL %08X Z_CNTL %08X SETUP_CNTL %08X\n",
+          ctx->regs[SCALE_3D_CNTL >> 2], ctx->regs[RP_TEX_CNTL >> 2], ctx->regs[RP_ALPHA_TST_CNTL >> 2], ctx->regs[Z_CNTL >> 2],
+          ctx->setup_cntl);
+    pclog("Rage Pro 3D: TEX_SIZE_PITCH %08X TEX_0_OFF.. %08X %08X %08X SECONDARY_TEX_OFF %08X Z_OFF_PITCH %08X DP_PIX_WIDTH %08X\n",
+          ctx->regs[TEX_SIZE_PITCH >> 2], ctx->regs[TEX_0_OFF >> 2], ctx->regs[(TEX_0_OFF + 4) >> 2], ctx->regs[(TEX_0_OFF + 8) >> 2],
+          ctx->regs[RP_SECONDARY_TEX_OFF >> 2], ctx->regs[Z_OFF_PITCH >> 2], mach64->dp_pix_width);
+    for (int i = 0; i < 3; i++)
+        pclog("Rage Pro 3D: vertex %d: S %08X T %08X W %08X SPEC %08X Z %08X ARGB %08X X_Y %08X\n", i + 1, ctx->vtx[i][RP_S],
+              ctx->vtx[i][RP_T], ctx->vtx[i][RP_W], ctx->vtx[i][RP_SPEC], ctx->vtx[i][RP_Z], ctx->vtx[i][RP_ARGB], ctx->vtx[i][RP_XY]);
+    pclog("Rage Pro 3D: ONE_OVER_AREA %08X, %llu triangles, %llu pixels; last to %06X pitch %d; CRTC_OFF_PITCH %08X DST_OFF_PITCH %08X "
+          "SC %08X %08X DST_CNTL %08X\n",
+          ctx->one_over_area, (unsigned long long) mach64->rp.triangles, (unsigned long long) mach64->rp.pixels, mach64->rp.last_dst,
+          mach64->rp.last_pitch, mach64->crtc_off_pitch, mach64->dst_off_pitch, mach64->sc_left_right, mach64->sc_top_bottom,
+          mach64->dst_cntl);
+}
+
 mach64_3d_t *
 mach64_3d_init(mach64_t *mach64)
 {
@@ -3307,6 +5849,7 @@ mach64_3d_init(mach64_t *mach64)
 
     mach64_3d_expand_table_init();
     mach64_3d_dither_table_init();
+    mach64_rp_tile_init();
     ctx->mach64  = mach64;
     ctx->threads = ((mach64->render_threads == 2) || (mach64->render_threads == 4)) ? mach64->render_threads : 1;
     return ctx;

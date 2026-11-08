@@ -47,6 +47,7 @@ enum {
     STRING_CDROM_LOAD_MDSX_ERROR,     /* "Unable to load image \"%s\": %1 is missing..." */
     STRING_CDROM_LOAD_AARU_ERROR,     /* "Unable to load image \"%s\": %1 is missing..." */
     STRING_CDROM_DVD_IN_CD_DRIVE,     /* "DVD image \"%s\" in a CD-only drive..." */
+    STRING_CDROM_IMAGE_TOO_LARGE,     /* "Image \"%s\" exceeds drive capacity and will be ignored." */
     STRING_CHARDEV_CONNECT_ERROR,     /* "%s: Could not connect to %s: %s" */
     STRING_CHARDEV_CREATE_ERROR,      /* "%s: Could not create %s: %s" */
     STRING_CHARDEV_ATTACHED,          /* "%s: Attached to %s" */
@@ -99,6 +100,9 @@ enum {
     STRING_UNSUPPORTED_MEMORY,
     STRING_UNSUPPORTED_ROM,
     STRING_UNSUPPORTED_RTC,
+    /* A configured USB device that could not be attached at boot. */
+    STRING_USB_NO_PORT,
+    STRING_USB_NO_CONTROLLER,
 };
 
 struct plat_device_vol_locked_t
@@ -200,6 +204,8 @@ extern uint64_t plat_timer_read(void);
 extern uint32_t plat_get_ticks(void);
 extern void     plat_delay_ms(uint32_t count);
 extern void     plat_pause(int p);
+/* Fast forward on or off from outside the UI (automation). */
+extern void     plat_fast_forward(int on);
 extern void     plat_mouse_capture(int on);
 extern int      plat_vidapi(const char *name);
 extern char    *plat_vidapi_name(int api);

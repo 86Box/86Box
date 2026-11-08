@@ -57,6 +57,7 @@ opARPL_a32(uint32_t fetchdat)
     static int opLAR_##name(uint32_t fetchdat)                                                                          \
     {                                                                                                                   \
         int      valid;                                                                                                 \
+        uint32_t rights;                                                                                               \
         uint16_t sel, desc = 0;                                                                                         \
                                                                                                                         \
         NOTRM                                                                                                           \
@@ -73,7 +74,7 @@ opARPL_a32(uint32_t fetchdat)
             cpu_state.flags &= ~Z_FLAG;                                                                                 \
             return 0;                                                                                                   \
         } /*Null selector*/                                                                                             \
-        valid = (sel & ~7) < ((sel & 4) ? ldt.limit : gdt.limit);                                                       \
+        valid = (sel | 7) <= ((sel & 4) ? ldt.limit : gdt.limit); /*The whole descriptor in the table*/                 \
         if (valid) {                                                                                                    \
             cpl_override = 1;                                                                                           \
             desc         = readmemw(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 4);                             \
@@ -81,14 +82,8 @@ opARPL_a32(uint32_t fetchdat)
             if (cpu_state.abrt)                                                                                         \
                 return 1;                                                                                               \
         }                                                                                                               \
-        cpu_state.flags &= ~Z_FLAG;                                                                                     \
-        if ((desc & 0x1f00) == 0x000)                                                                                   \
-            valid = 0;                                                                                                  \
-        if ((desc & 0x1f00) == 0x800)                                                                                   \
-            valid = 0;                                                                                                  \
-        if ((desc & 0x1f00) == 0xa00)                                                                                   \
-            valid = 0;                                                                                                  \
-        if ((desc & 0x1f00) == 0xd00)                                                                                   \
+        /*System types: TSSs, LDT, call and task gates; not trap or interrupt gates*/                                   \
+        if (!(desc & 0x1000) && !(((is386 ? 0x1a3e : 0x003e) >> ((desc >> 8) & 0xf)) & 1)) /*no 386 types on a 286*/  \
             valid = 0;                                                                                                  \
         if ((desc & 0x1c00) < 0x1c00) /*Exclude conforming code segments*/                                              \
         {                                                                                                               \
@@ -97,14 +92,21 @@ opARPL_a32(uint32_t fetchdat)
                 valid = 0;                                                                                              \
         }                                                                                                               \
         if (valid) {                                                                                                    \
-            cpu_state.flags |= Z_FLAG;                                                                                  \
             cpl_override = 1;                                                                                           \
             if (is32)                                                                                                   \
-                cpu_state.regs[cpu_reg].l = readmeml(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 4) & 0xffff00; \
+                rights = readmeml(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 4) & 0xffff00;                     \
             else                                                                                                        \
-                cpu_state.regs[cpu_reg].w = readmemw(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 4) & 0xff00;   \
+                rights = desc & 0xff00;                                                                                \
             cpl_override = 0;                                                                                           \
-        }                                                                                                               \
+            if (cpu_state.abrt)                                                                                         \
+                return 1;                                                                                               \
+            if (is32)                                                                                                   \
+                cpu_state.regs[cpu_reg].l = rights;                                                                     \
+            else                                                                                                        \
+                cpu_state.regs[cpu_reg].w = rights;                                                                     \
+            cpu_state.flags |= Z_FLAG;                                                                                  \
+        } else                                                                                                          \
+            cpu_state.flags &= ~Z_FLAG;                                                                                 \
         CLOCK_CYCLES(11);                                                                                               \
         PREFETCH_RUN(11, 2, rmdat, 2, 0, 0, 0, ea32);                                                                   \
         return cpu_state.abrt;                                                                                          \
@@ -119,6 +121,8 @@ opLAR(w_a16, fetch_ea_16, 0, 0)
     static int opLSL_##name(uint32_t fetchdat)                                                                              \
     {                                                                                                                       \
         int      valid;                                                                                                     \
+        uint32_t limit;                                                                                                     \
+        uint8_t  limit_high;                                                                                                \
         uint16_t sel, desc = 0;                                                                                             \
                                                                                                                             \
         NOTRM                                                                                                               \
@@ -130,10 +134,11 @@ opLAR(w_a16, fetch_ea_16, 0, 0)
         if (cpu_state.abrt)                                                                                                 \
             return 1;                                                                                                       \
         flags_rebuild();                                                                                                    \
-        cpu_state.flags &= ~Z_FLAG;                                                                                         \
-        if (!(sel & 0xfffc))                                                                                                \
+        if (!(sel & 0xfffc)) {                                                                                              \
+            cpu_state.flags &= ~Z_FLAG;                                                                                     \
             return 0; /*Null selector*/                                                                                     \
-        valid = (sel & ~7) < ((sel & 4) ? ldt.limit : gdt.limit);                                                           \
+        }                                                                                                                   \
+        valid = (sel | 7) <= ((sel & 4) ? ldt.limit : gdt.limit); /*The whole descriptor in the table*/                     \
         if (valid) {                                                                                                        \
             cpl_override = 1;                                                                                               \
             desc         = readmemw(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 4);                                 \
@@ -141,12 +146,9 @@ opLAR(w_a16, fetch_ea_16, 0, 0)
             if (cpu_state.abrt)                                                                                             \
                 return 1;                                                                                                   \
         }                                                                                                                   \
-        if ((desc & 0x1400) == 0x400)                                                                                       \
-            valid = 0; /*Interrupt or trap or call gate*/                                                                   \
-        if ((desc & 0x1f00) == 0x000)                                                                                       \
-            valid = 0; /*Invalid*/                                                                                          \
-        if ((desc & 0x1f00) == 0xa00)                                                                                       \
-            valid = 0;                 /*Invalid*/                                                                          \
+        /*System types: TSSs and LDT only, no gates*/                                                                       \
+        if (!(desc & 0x1000) && !(((is386 ? 0x0a0e : 0x000e) >> ((desc >> 8) & 0xf)) & 1)) /*no 386 types on a 286*/      \
+            valid = 0;                                                                                                      \
         if ((desc & 0x1c00) != 0x1c00) /*Exclude conforming code segments*/                                                 \
         {                                                                                                                   \
             int rpl = (desc >> 13) & 3;                                                                                     \
@@ -154,19 +156,28 @@ opLAR(w_a16, fetch_ea_16, 0, 0)
                 valid = 0;                                                                                                  \
         }                                                                                                                   \
         if (valid) {                                                                                                        \
-            cpu_state.flags |= Z_FLAG;                                                                                      \
             cpl_override = 1;                                                                                               \
-            if (is32) {                                                                                                     \
-                cpu_state.regs[cpu_reg].l = readmemw(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7));                    \
-                cpu_state.regs[cpu_reg].l |= (readmemb(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 6) & 0xF) << 16; \
-                if (readmemb(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 6) & 0x80) {                               \
-                    cpu_state.regs[cpu_reg].l <<= 12;                                                                       \
-                    cpu_state.regs[cpu_reg].l |= 0xFFF;                                                                     \
-                }                                                                                                           \
-            } else                                                                                                          \
-                cpu_state.regs[cpu_reg].w = readmemw(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7));                    \
+            limit = readmemw(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7));                                            \
+            if (cpu_state.abrt) {                                                                                            \
+                cpl_override = 0;                                                                                           \
+                return 1;                                                                                                   \
+            }                                                                                                               \
+            limit_high = readmemb(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 6);                                    \
             cpl_override = 0;                                                                                               \
-        }                                                                                                                   \
+            if (cpu_state.abrt)                                                                                             \
+                return 1;                                                                                                   \
+            if (!is386)                                                                                                     \
+                limit_high = 0; /*the descriptor's last word is reserved on the 80286*/                                    \
+            limit |= (limit_high & 0xF) << 16;                                                                              \
+            if (limit_high & 0x80)                                                                                          \
+                limit = (limit << 12) | 0xFFF; /*Byte granular, the 16-bit form too*/                                       \
+            if (is32)                                                                                                       \
+                cpu_state.regs[cpu_reg].l = limit;                                                                          \
+            else                                                                                                            \
+                cpu_state.regs[cpu_reg].w = limit;                                                                          \
+            cpu_state.flags |= Z_FLAG;                                                                                      \
+        } else                                                                                                              \
+            cpu_state.flags &= ~Z_FLAG;                                                                                     \
         CLOCK_CYCLES(10);                                                                                                   \
         PREFETCH_RUN(10, 2, rmdat, 4, 0, 0, 0, ea32);                                                                       \
         return cpu_state.abrt;                                                                                              \
@@ -215,6 +226,21 @@ static int op0F00_common(uint32_t fetchdat, UNUSED(int ea32))
             sel = geteaw();
             if (cpu_state.abrt)
                 return 1;
+            if (!(sel & ~3)) {
+                /*Null selector: LDTR invalid, every LDT reference faults*/
+                ldt.seg     = sel;
+                ldt.base    = 0;
+                ldt.limit   = 0;
+                ldt.access  = 0;
+                ldt.ar_high = 0;
+                CLOCK_CYCLES(20);
+                PREFETCH_RUN(20, 2, rmdat, (cpu_mod == 3) ? 0 : 1, 2, 0, 0, ea32);
+                break;
+            }
+            if ((sel & 4) || ((sel | 7) > gdt.limit)) {
+                x86gpf(NULL, sel & 0xfffc);
+                return 1;
+            }
             addr        = (sel & ~7) + gdt.base;
             limit       = readmemw(0, addr) + ((readmemb(0, addr + 6) & 0xf) << 16);
             base        = (readmemw(0, addr + 2)) | (readmemb(0, addr + 4) << 16) | (readmemb(0, addr + 7) << 24);
@@ -223,6 +249,21 @@ static int op0F00_common(uint32_t fetchdat, UNUSED(int ea32))
             granularity = readmemb(0, addr + 6) & 0x80;
             if (cpu_state.abrt)
                 return 1;
+            if (!is386) {
+                /* The descriptor's last word is reserved on the 80286 */
+                limit &= 0xffff;
+                base &= 0xffffff;
+                ar_high     = 0;
+                granularity = 0;
+            }
+            if ((access & 0x1f) != 0x02) {
+                x86gpf(NULL, sel & 0xfffc);
+                return 1;
+            }
+            if (!(access & 0x80)) {
+                x86np("LLDT not present", sel & 0xfffc);
+                return 1;
+            }
             ldt.limit   = limit;
             ldt.access  = access;
             ldt.ar_high = ar_high;
@@ -245,6 +286,16 @@ static int op0F00_common(uint32_t fetchdat, UNUSED(int ea32))
             sel = geteaw();
             if (cpu_state.abrt)
                 return 1;
+            /* A null selector, one in the LDT, or one past the GDT's limit:
+               #GP (Pentium Vol. 3, LTR). */
+            if (!(sel & 0xfffc)) {
+                x86gpf(NULL, 0);
+                return 1;
+            }
+            if ((sel & 4) || ((uint32_t) (sel | 7) > gdt.limit)) {
+                x86gpf(NULL, sel & 0xfffc);
+                return 1;
+            }
             addr        = (sel & ~7) + gdt.base;
             limit       = readmemw(0, addr) + ((readmemb(0, addr + 6) & 0xf) << 16);
             base        = (readmemw(0, addr + 2)) | (readmemb(0, addr + 4) << 16) | (readmemb(0, addr + 7) << 24);
@@ -253,10 +304,36 @@ static int op0F00_common(uint32_t fetchdat, UNUSED(int ea32))
             granularity = readmemb(0, addr + 6) & 0x80;
             if (cpu_state.abrt)
                 return 1;
-            access |= 2;
-            writememb(0, addr + 5, access);
+            if (!is386) {
+                /* The descriptor's last word is reserved on the 80286 */
+                limit &= 0xffff;
+                base &= 0xffffff;
+                ar_high     = 0;
+                granularity = 0;
+            }
+            /* "#GP(selector) if the object named by the source selector is
+               not a TSS ...; #NP(selector) if the TSS is marked 'not
+               present'": a system descriptor of type 1, 3, 9 or 11 (the
+               busy bit is tested below, under LOCK#), before anything is
+               written to it. A 286 has no 386 TSS (types 9 and 11). */
+            if (((access & 0x15) != 0x01) || (!is386 && (access & 0x08))) {
+                x86gpf(NULL, sel & 0xfffc);
+                return 1;
+            }
+            if (!(access & 0x80)) {
+                x86np("LTR: TSS not present", sel & 0xfffc);
+                return 1;
+            }
+            /* A TSS already busy is the #GP LTR gives for one that is not
+               available (Pentium Vol. 3, LTR). */
+            if (access & 2) {
+                x86gpf(NULL, sel & 0xfffc);
+                return 1;
+            }
+            writememb(0, addr + 5, access | 2);
             if (cpu_state.abrt)
                 return 1;
+            access |= 2;
             tr.seg     = sel;
             tr.limit   = limit;
             tr.access  = access;
@@ -276,11 +353,19 @@ static int op0F00_common(uint32_t fetchdat, UNUSED(int ea32))
             if (cpu_state.abrt)
                 return 1;
             flags_rebuild();
-            cpu_state.flags &= ~Z_FLAG;
-            if (!(sel & 0xfffc))
+            if (!(sel & 0xfffc)) {
+                cpu_state.flags &= ~Z_FLAG;
                 return 0; /*Null selector*/
+            }
+            valid = (sel | 7) <= ((sel & 4) ? ldt.limit : gdt.limit);
+            if (!valid) {
+                /* Past the table limit: ZF=0, no descriptor read */
+                cpu_state.flags &= ~Z_FLAG;
+                CLOCK_CYCLES(20);
+                PREFETCH_RUN(20, 2, rmdat, (cpu_mod == 3) ? 1 : 2, 0, 0, 0, ea32);
+                break;
+            }
             cpl_override = 1;
-            valid        = (sel & ~7) < ((sel & 4) ? ldt.limit : gdt.limit);
             desc         = readmemw(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 4);
             cpl_override = 0;
             if (cpu_state.abrt)
@@ -297,6 +382,8 @@ static int op0F00_common(uint32_t fetchdat, UNUSED(int ea32))
                 valid = 0; /*Non-readable code*/
             if (valid)
                 cpu_state.flags |= Z_FLAG;
+            else
+                cpu_state.flags &= ~Z_FLAG;
             CLOCK_CYCLES(20);
             PREFETCH_RUN(20, 2, rmdat, (cpu_mod == 3) ? 1 : 2, 0, 0, 0, ea32);
             break;
@@ -307,11 +394,19 @@ static int op0F00_common(uint32_t fetchdat, UNUSED(int ea32))
             if (cpu_state.abrt)
                 return 1;
             flags_rebuild();
-            cpu_state.flags &= ~Z_FLAG;
-            if (!(sel & 0xfffc))
+            if (!(sel & 0xfffc)) {
+                cpu_state.flags &= ~Z_FLAG;
                 return 0; /*Null selector*/
+            }
+            valid = (sel | 7) <= ((sel & 4) ? ldt.limit : gdt.limit);
+            if (!valid) {
+                /* Past the table limit: ZF=0, no descriptor read */
+                cpu_state.flags &= ~Z_FLAG;
+                CLOCK_CYCLES(20);
+                PREFETCH_RUN(20, 2, rmdat, (cpu_mod == 3) ? 1 : 2, 0, 0, 0, ea32);
+                break;
+            }
             cpl_override = 1;
-            valid        = (sel & ~7) < ((sel & 4) ? ldt.limit : gdt.limit);
             desc         = readmemw(0, ((sel & 4) ? ldt.base : gdt.base) + (sel & ~7) + 4);
             cpl_override = 0;
             if (cpu_state.abrt)
@@ -327,6 +422,8 @@ static int op0F00_common(uint32_t fetchdat, UNUSED(int ea32))
                 valid = 0; /*Read-only data*/
             if (valid)
                 cpu_state.flags |= Z_FLAG;
+            else
+                cpu_state.flags &= ~Z_FLAG;
             CLOCK_CYCLES(20);
             PREFETCH_RUN(20, 2, rmdat, (cpu_mod == 3) ? 1 : 2, 0, 0, 0, ea32);
             break;
@@ -368,8 +465,8 @@ op0F01_common(UNUSED(uint32_t fetchdat), int is32, int is286, UNUSED(int ea32))
     switch (rmdat & 0x38) {
         case 0x00: /*SGDT*/
             ILLEGAL_ON(cpu_mod == 3);
-            if (cpu_mod != 3)
-                SEG_CHECK_WRITE(cpu_state.ea_seg);
+            SEG_CHECK_WRITE(cpu_state.ea_seg);
+            CHECK_WRITE_EA(6); /* the limit and the base */
             seteaw(gdt.limit);
             base = gdt.base; // is32 ? gdt.base : (gdt.base & 0xffffff);
             if (is286)
@@ -379,8 +476,9 @@ op0F01_common(UNUSED(uint32_t fetchdat), int is32, int is286, UNUSED(int ea32))
             PREFETCH_RUN(7, 2, rmdat, 0, 0, 1, 1, ea32);
             break;
         case 0x08: /*SIDT*/
-            if (cpu_mod != 3)
-                SEG_CHECK_WRITE(cpu_state.ea_seg);
+            ILLEGAL_ON(cpu_mod == 3);
+            SEG_CHECK_WRITE(cpu_state.ea_seg);
+            CHECK_WRITE_EA(6); /* the limit and the base */
             seteaw(idt.limit);
             base = idt.base;
             if (is286)
@@ -409,6 +507,7 @@ op0F01_common(UNUSED(uint32_t fetchdat), int is32, int is286, UNUSED(int ea32))
             PREFETCH_RUN(11, 2, rmdat, 1, 1, 0, 0, ea32);
             break;
         case 0x18: /*LIDT*/
+            ILLEGAL_ON(cpu_mod == 3);
             if ((CPL || cpu_state.eflags & VM_FLAG) && (cr0 & 1)) {
                 x86gpf(NULL, 0);
                 break;
@@ -432,14 +531,14 @@ op0F01_common(UNUSED(uint32_t fetchdat), int is32, int is286, UNUSED(int ea32))
                 SEG_CHECK_WRITE(cpu_state.ea_seg);
             if (is386 && is32 && (cpu_mod == 3)) {
                 if (is486 || isibm486)
-                    seteaw(cr0);
+                    seteaw(cr0 | 0x10); /* ET is hardwired to 1 from the 486 on */
                 else if (is386 && !cpu_16bitbus)
                     seteaw(cr0 | /* 0x7FFFFF00 */ 0x7FFFFFE0);
                 else
                     seteaw(cr0 | 0x7FFFFFF0);
             } else {
                 if (is486 || isibm486)
-                    seteaw(msw);
+                    seteaw(msw | 0x10); /* ET is hardwired to 1 from the 486 on */
                 else if (is386 && !cpu_16bitbus)
                     seteaw(msw | /* 0xFF00 */ 0xFFE0);
                 else
@@ -460,12 +559,9 @@ op0F01_common(UNUSED(uint32_t fetchdat), int is32, int is286, UNUSED(int ea32))
                 return 1;
             if (msw & 1)
                 tempw |= 1;
-            if (is386) {
-                tempw &= ~0x10;
-                tempw |= (msw & 0x10);
-            } else
-                tempw &= 0xF;
-            msw = tempw;
+            /* Only PE, MP, EM and TS load; PE can't be cleared, and every
+               other bit, ET and NE included, stays */
+            msw = (msw & ~0xF) | (tempw & 0xF);
             if (msw & 1)
                 cpu_cur_status |= CPU_STATUS_PMODE;
             else
@@ -475,11 +571,17 @@ op0F01_common(UNUSED(uint32_t fetchdat), int is32, int is286, UNUSED(int ea32))
 
         case 0x38: /*INVLPG*/
             if (is486 || isibm486) {
+                ILLEGAL_ON(cpu_mod == 3);
                 if ((CPL || cpu_state.eflags & VM_FLAG) && (cr0 & 1)) {
                     x86gpf(NULL, 0);
                     break;
                 }
-                SEG_CHECK_READ(cpu_state.ea_seg);
+                /* The fetch cache too: it may hold the page being invalidated.
+                   Under the recompiler it isn't the page of this INVLPG, which
+                   runs from a block; it is whatever page the interpreter last
+                   fetched from, so it can be a page the guest has since mapped
+                   elsewhere. */
+                flushmmucache_pc();
                 flushmmucache_nopc();
                 CLOCK_CYCLES(12);
                 PREFETCH_RUN(12, 2, rmdat, 0, 0, 0, 0, ea32);

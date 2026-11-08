@@ -1,0 +1,228 @@
+name: Pull request builds
+
+# Builds pull requests for all platforms with the same build script as
+# Jenkins (.ci/build.sh). Dev branch builds are only made for pull requests
+# with the "dev branch" label.
+#
+# The label name is also used in the concurrency group below, so keep both
+# in sync when renaming it.
+#
+# The macOS builds use the MacPorts installations cached by the MacPorts
+# cache workflow. Links to the builds are posted by the pull request build
+# links workflow, which can comment on pull requests from forks.
+#
+# Branches without a pull request can be built with a manual run, whose
+# builds are only available from the run's page.
+
+on:
+
+  pull_request:
+    types:
+      - opened
+      - reopened
+      - synchronize
+      - labeled
+      - closed
+    paths:
+      - src/**
+      - cmake/**
+      - "**/CMakeLists.txt"
+      - "CMakePresets.json"
+      - .ci/**
+      - .github/actions/setup-macports/**
+      - .github/workflows/pr_builds.yml
+      - vcpkg.json
+      - "!**/Makefile*"
+
+  workflow_dispatch:
+    inputs:
+      dev:
+        description: Also make dev branch builds
+        type: boolean
+        default: false
+
+# Cancel superseded runs for the same pull request. Adding any label other
+# than the dev branch one does not build anything, so it gets a unique group
+# so as to not cancel a build in progress, as do manual runs. Closing a pull
+# request (including merging it) builds nothing either, but only cancels the
+# build in progress.
+concurrency:
+  group: ${{ github.workflow }}-${{ (github.event.action != 'labeled' || github.event.label.name == 'dev branch') && github.event.pull_request.number || github.run_id }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+jobs:
+
+  # Determine the build ID once, so that it is the same across all builds of
+  # this run (including re-runs of failed builds, which reuse this output)
+  prepare:
+
+    name: Prepare build ID
+
+    if: github.event.action != 'closed' && (github.event.action != 'labeled' || github.event.label.name == 'dev branch')
+
+    runs-on: ubuntu-latest
+
+    outputs:
+      build_id: ${{ steps.build_id.outputs.build_id }}
+
+    steps:
+      # Manual runs are named after the branch, reduced to characters that
+      # are safe in file names and in the build.sh arguments
+      - name: Determine build ID
+        id: build_id
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+          BRANCH: ${{ github.ref_name }}
+        run: |
+          if [ -n "$PR_NUMBER" ]; then
+            name="pr$PR_NUMBER"
+          else
+            name=$(printf '%s' "$BRANCH" | tr -c 'A-Za-z0-9._-' '-')
+          fi
+          echo "build_id=$name.$(date -u +%Y%m%d-%H%M)" >> "$GITHUB_OUTPUT"
+
+  build:
+
+    name: "${{ matrix.target.os }} ${{ matrix.target.arch }} ${{ matrix.preset }}"
+
+    needs: prepare
+
+    runs-on: ${{ matrix.target.runner }}
+
+    defaults:
+      run:
+        shell: ${{ matrix.target.shell }}
+
+    strategy:
+      fail-fast: false
+      matrix:
+        preset: ${{ fromJSON((contains(github.event.pull_request.labels.*.name, 'dev branch') || inputs.dev) && '["Regular", "Dev"]' || '["Regular"]') }}
+        target:
+          - os: Windows
+            arch: "64"
+            msystem: UCRT64
+            runner: windows-2022
+            shell: msys2 {0}
+          - os: Windows
+            arch: ARM64
+            msystem: CLANGARM64
+            runner: windows-11-arm
+            shell: msys2 {0}
+          - os: Linux
+            arch: x86_64
+            runner: ubuntu-26.04
+            shell: bash
+          - os: Linux
+            arch: arm64
+            runner: ubuntu-26.04-arm
+            shell: bash
+          # Jenkins makes a single universal build, which requires both a
+          # native and an Intel MacPorts installation on one machine. Build
+          # each architecture on its own runner instead. Keep these in sync
+          # with the MacPorts cache workflow.
+          - os: macOS
+            arch: x86_64
+            runner: macos-15-intel
+            shell: bash
+          - os: macOS
+            arch: arm64
+            runner: macos-15
+            shell: bash
+
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          persist-credentials: false
+
+      # Pull requests can't save caches for other pull requests, and the few
+      # packages installed here are quick to download, so don't cache them
+      - name: Prepare MSYS2 environment
+        if: matrix.target.os == 'Windows'
+        uses: msys2/setup-msys2@66cd2cce69caa17b53920067426061ca1de3a884 #v2.32.0
+        with:
+          release: true
+          update: true
+          cache: false
+          msystem: ${{ matrix.target.msystem }}
+          install: >-
+            git
+            make
+
+      # build.sh packages Windows builds with the 7-Zip from Program Files
+      - name: Install 7-Zip
+        if: matrix.target.os == 'Windows'
+        shell: pwsh
+        run: |
+          if (-not (Test-Path "C:\Program Files\7-Zip\7z.exe")) {
+            choco install 7zip -y --no-progress
+          }
+
+      # Local actions are loaded from the checked out pull request, which may
+      # be based on a commit without them. Check them out from the commit this
+      # workflow runs from instead (the merge commit for pull requests), so
+      # that they always match it.
+      - name: Checkout actions
+        if: matrix.target.os == 'macOS'
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          path: _workflow
+          sparse-checkout: .github/actions
+          persist-credentials: false
+
+      - name: Set up MacPorts
+        if: matrix.target.os == 'macOS'
+        uses: ./_workflow/.github/actions/setup-macports
+        with:
+          arch: ${{ matrix.target.arch }}
+
+      # Only fixed strings and the build ID (made of the pull request number
+      # or the sanitized branch name, and a timestamp) end up in the build.sh
+      # arguments, as it evaluates its CMake flags with eval.
+      - name: Build
+        id: build
+        env:
+          TARGET_OS: ${{ matrix.target.os }}
+          ARCH: ${{ matrix.target.arch }}
+          PRESET: ${{ matrix.preset }}
+          BUILD_ID: ${{ needs.prepare.outputs.build_id }}
+        run: |
+          case $PRESET in
+            Regular)
+              slug=
+              preset_flags="-t --preset=regular -D CMAKE_BUILD_TYPE=Release"
+              ;;
+            Dev)
+              slug=-Dev
+              preset_flags="-t --preset=development -D CMAKE_BUILD_TYPE=Release"
+              ;;
+          esac
+
+          package="86Box$slug-$TARGET_OS-$ARCH-$BUILD_ID"
+          echo "package=$package" >> "$GITHUB_OUTPUT"
+
+          mkdir -p _output
+          cd _output
+          status=0
+          sh ../.ci/build.sh -b "$package" "$ARCH" $preset_flags \
+            -D DYNAREC=ON -D QT=ON \
+            -D BUILD_TYPE=alpha -D "EMU_BUILD=GitHub build $BUILD_ID" || status=$?
+
+          # Like on Jenkins, status 50 means the macOS build succeeded but
+          # could not be notarized
+          if [ $status -eq 50 ]; then
+            echo "::warning::The macOS build was not notarized."
+          elif [ $status -ne 0 ]; then
+            exit $status
+          fi
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          path: _output/${{ steps.build.outputs.package }}.*
+          archive: false
+          if-no-files-found: error

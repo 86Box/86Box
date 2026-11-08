@@ -6130,17 +6130,6 @@ static const device_config_t aha2944uw_config[] = {
             { .files_no = 0 }
         },
     },
-    {
-        .name           = "dev_timing",
-        .description    = "Device timing",
-        .type           = CONFIG_BINARY,
-        .default_string = NULL,
-        .default_int    = 0,
-        .file_filter    = NULL,
-        .spinner        = { 0 },
-        .selection      = { { 0 } },
-        .bios           = { { 0 } }
-    },
     { .name = "", .description = "", .type = CONFIG_END }
     // clang-format on
 };

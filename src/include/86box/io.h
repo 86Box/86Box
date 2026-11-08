@@ -101,6 +101,17 @@ extern void io_handler_interleaved(uint8_t set, uint16_t base, uint16_t size,
                                    void (*outl)(uint16_t port, uint32_t val, void *priv),
                                    void *priv);
 
+/* Ports where word and dword REP INS/OUTS cost one cycle per transfer. */
+extern uint8_t io_turbo_map[];
+
+/* Set by the main loop while the host cannot keep up; the shortcut is skipped then. */
+extern int io_turbo_throttle;
+
+#define IO_TURBO(port)              (!io_turbo_throttle && (io_turbo_map[(port) >> 3] & (1 << ((port) & 7))))
+#define IO_STR_CYCLES(port, cycles) (IO_TURBO(port) ? 1 : (cycles))
+
+extern void io_set_turbo(uint16_t port, int turbo);
+
 extern uint8_t  inb(uint16_t port);
 extern void     outb(uint16_t port, uint8_t val);
 extern uint16_t inw(uint16_t port);
@@ -112,5 +123,11 @@ extern void *io_trap_add(void (*func)(uint16_t size, uint16_t port, uint8_t writ
                          void *priv);
 extern void  io_trap_remap(void *handle, uint8_t enable, uint16_t port, uint16_t size);
 extern void  io_trap_remove(void *handle);
+
+/* Lets a chipset see each byte cycle at the port before the devices there.
+   When the claim function returns 1, the devices never see the cycle, and
+   a claimed read returns FFh. A NULL claim removes the port's claim. */
+extern void  io_set_claim(uint16_t port, int (*claim)(uint16_t port, uint8_t write, uint8_t val, void *priv),
+                          void *priv);
 
 #endif /*EMU_IO_H*/

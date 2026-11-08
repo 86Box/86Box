@@ -38,5 +38,6 @@ extern const device_t port_92_key_device;
 extern const device_t port_92_inv_device;
 extern const device_t port_92_word_device;
 extern const device_t port_92_pci_device;
+extern const device_t port_92_pci_one_device;
 
 #endif /*EMU_PORT_92_H*/

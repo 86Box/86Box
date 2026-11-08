@@ -12,7 +12,6 @@
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/build/artifacts",
                 "CMAKE_EXPORT_COMPILE_COMMANDS": true,
                 "DEV_BRANCH": false,
-                "NEW_DYNAREC": false,
                 "QT": true
             },
             "generator": "Ninja",
@@ -69,7 +68,6 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/out/build/${presetName}",
             "cacheVariables": {
-                "NEW_DYNAREC": true,
                 "QT": true,
                 "USE_QT6": false,
                 "Qt5_DIR": "/opt/homebrew/opt/qt@5/lib/cmake/Qt5",
@@ -86,7 +84,6 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/out/build/${presetName}",
             "cacheVariables": {
-                "NEW_DYNAREC": true,
                 "QT": true,
                 "USE_QT6": false,
                 "Qt5_DIR": "/opt/homebrew/opt/qt@5/lib/cmake/Qt5",
@@ -106,7 +103,6 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/out/build/${presetName}",
             "cacheVariables": {
-                "NEW_DYNAREC": true,
                 "CMAKE_BUILD_TYPE": "Debug",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}",
                 "CMAKE_CXX_FLAGS_DEBUG": "-g -O0 -DENABLE_VDE_LOG",
@@ -121,7 +117,6 @@
             "generator": "Ninja",
             "binaryDir": "${sourceDir}/out/build/${presetName}",
             "cacheVariables": {
-                "NEW_DYNAREC": true,
                 "CMAKE_BUILD_TYPE": "Release",
                 "CMAKE_INSTALL_PREFIX": "${sourceDir}/out/install/${presetName}"
             },
