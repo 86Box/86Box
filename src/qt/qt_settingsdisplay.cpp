@@ -502,6 +502,7 @@ SettingsDisplay::on_pushButtonExportDefault_clicked()
             auto     size  = ddc_create_default_edid(&bytes);
             file.write((char *) bytes, size);
             file.close();
+            free(bytes);
         }
     }
 }
