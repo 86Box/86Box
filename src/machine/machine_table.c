@@ -8077,7 +8077,7 @@ const machine_t machines[] = {
        second/slave 8259 PIC exists on this hardware - it's a genuine XT platform underneath,
        just with a 386-class CPU bolted on via a daughtercard. */
     {
-        .name              = "[ISA] IBM XT (Intel Inboard 386/PC)",
+        .name              = "[ISA] IBM XT (Inboard 386/PC)",
         .internal_name     = "ibmxt_inboard386",
         .type              = MACHINE_TYPE_386DX,
         .chipset           = MACHINE_CHIPSET_DISCRETE,

@@ -708,7 +708,7 @@ static const device_config_t ibmxt_inboard386_config[] = {
 };
 
 const device_t ibmxt_inboard386_device = {
-    .name          = "IBM XT (Intel Inboard 386/PC)",
+    .name          = "IBM XT (Inboard 386/PC)",
     .internal_name = "ibmxt_inboard386",
     .flags         = 0,
     .local         = 0,
