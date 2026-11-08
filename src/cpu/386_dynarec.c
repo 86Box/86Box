@@ -1698,7 +1698,6 @@ exec386_common(int32_t cycs, const int dbg)
     int32_t  oldcyc;
     int32_t  cycle_period;
     int32_t  ins_cycles;
-    uint64_t ins_tsc;
     uint32_t addr;
 
     cycles += cycs;
@@ -1723,7 +1722,6 @@ exec386_common(int32_t cycs, const int dbg)
             }
 
             ins_cycles = cycles;
-            ins_tsc             = tsc;
 
             oldcs  = CS;
             oldcpl = CPL;
@@ -1895,7 +1893,7 @@ block_ended:
             }
 
             ins_cycles -= cycles;
-            cpu_bus_retire(ins_cycles, ins_tsc);
+            tsc += ins_cycles;
 
             cycdiff = oldcyc - cycles;
 
