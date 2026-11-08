@@ -586,7 +586,7 @@ MediaMenu::floppyMount(int i, const QString &filename, bool wp)
         mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), QString(filenameBytes));
     } else
         mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), filename);
-    plat_pause(was_paused);
+    runctl_resume(RUN_PAUSE_SYNC);
 
     ui_sb_update_icon_state(SB_FLOPPY | i, drv->empty);
     ui_sb_update_icon_wp(SB_FLOPPY | i, drv->read_only);
@@ -605,7 +605,7 @@ MediaMenu::floppyEject(int i)
 
     mhm.addImageToHistory(i, ui::MediaType::Floppy, drv->image_path, QString());
     fdd_close(&drives[i]);
-    plat_pause(was_paused);
+    runctl_resume(RUN_PAUSE_SYNC);
     ui_sb_update_icon_state(SB_FLOPPY | i, 1);
     floppyUpdateMenu(i);
     ui_sb_update_tip(SB_FLOPPY | i);
