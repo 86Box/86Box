@@ -53,6 +53,11 @@ if (CMAKE_C_BYTE_ORDER STREQUAL "BIG_ENDIAN")
     message(FATAL_ERROR "Big-endian builds are not supported.")
 endif()
 
+# Make the build directory ignore itself in git, regardless of its name
+if(NOT CMAKE_BINARY_DIR STREQUAL CMAKE_SOURCE_DIR AND NOT EXISTS "${CMAKE_BINARY_DIR}/.gitignore")
+    file(WRITE "${CMAKE_BINARY_DIR}/.gitignore" "*\n")
+endif()
+
 include(CPack)
 include(CMakeDependentOption)
 include(FetchContent)
