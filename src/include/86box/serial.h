@@ -225,6 +225,11 @@ typedef struct serial_s {
     double     transmit_period;
     double     rx_period; /* 0 = receive follows the transmit divisor */
 
+    /* Told of every change of the LSR, for a chip that brings its status bits out. */
+    void  (*lsr_callback)(struct serial_s *serial, uint8_t lsr, void *priv);
+    void   *lsr_priv;
+    uint8_t lsr_told; /* The LSR lsr_callback was last told of. */
+
     /* The chip's end of the seam: backend, device callbacks and the ops the
        device side reaches this chip through. Owned by the chip, so it goes
        away with it. */
@@ -321,6 +326,14 @@ extern void      serial_set_dcd(serial_t *dev, uint8_t enabled);
 extern void      serial_set_ri(serial_t *dev, uint8_t enabled);
 extern int       serial_get_ri(serial_t *dev);
 extern uint8_t   serial_get_shadow(serial_t *dev);
+
+/*
+ * Calls callback with the LSR now and on every change of it, for a chip that
+ * brings the UART's status out to other units, like the Intel 386EX's DMA
+ * requests; NULL stops it. It can be called in the middle of a register
+ * access, before the access is done, so it must not access the UART.
+ */
+extern void      serial_set_lsr_callback(serial_t *dev, void (*callback)(serial_t *serial, uint8_t lsr, void *priv), void *priv);
 
 /* ------------------------------------------------------------------------ */
 /* Intel 8251A                                                              */
