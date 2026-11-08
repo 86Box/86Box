@@ -1488,9 +1488,9 @@ extern const device_t  optiplexe1_device;
 extern int             machine_at_optiplexe1_init(const machine_t *);
 extern int             machine_at_brio83xx_init(const machine_t *);
 #ifdef EMU_DEVICE_H
-extern const device_t  vectravec7_device;
+extern const device_t  vectravecs7_device;
 #endif
-extern int             machine_at_vectravec7_init(const machine_t *);
+extern int             machine_at_vectravecs7_init(const machine_t *);
 extern int             machine_at_p6i440e2_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  como_device;
@@ -1516,6 +1516,7 @@ extern int             machine_at_p3bf_init(const machine_t *);
 extern const device_t  optiplexgx1_device;
 #endif
 extern int             machine_at_optiplexgx1_init(const machine_t *);
+extern int             machine_at_vectrave6s8_init(const machine_t *);
 extern int             machine_at_ergox365_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  ax6bc_device;
