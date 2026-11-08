@@ -569,6 +569,16 @@ update_tsc(void)
     }
 }
 
+/* The TSC is about to be set to new_tsc (WRMSR), after update_tsc(). The
+   block-start value moves by the same step, so that tsc - tsc_old stays the
+   cycles already counted and the rest of the block's cycles are added to the
+   new count, whichever way it moved. */
+void
+update_tsc_write(uint64_t new_tsc)
+{
+    tsc_old += new_tsc - tsc;
+}
+
 /* dbg is a constant, cpu_debug_regs_486 as the block starts: each caller below
    gets a copy of the loop, and with the option off the debug register
    handling is not compiled in at all. */
@@ -1306,13 +1316,14 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
                 /* Linked blocks moved the loop-top state on; time is counted
                    from the last link. */
                 oldcyc = cycles_old;
-                oldtsc = tsc_old;
 #    endif
                 /* A CR0 paging toggle ends the block it is in, so it was the
                    last instruction executed. */
                 if (cpu_flush_pending == 1)
                     cpu_flush_pending++;
             }
+            /* Moved on by linked blocks, and by a TSC write (update_tsc_write()). */
+            oldtsc = tsc_old;
 
             /* Every test below fails while none of its inputs is set. */
             if (cpu_events_due()) {

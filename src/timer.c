@@ -268,8 +268,10 @@ timer_set_new_tsc(uint64_t new_tsc)
     pc_timer_t *timer = NULL;
     /* Run timers already expired. */
 #ifdef USE_DYNAREC
-    if (cpu_use_dynarec)
+    if (cpu_use_dynarec) {
         update_tsc();
+        update_tsc_write(new_tsc);
+    }
 #endif
 
     if (!timer_head) {

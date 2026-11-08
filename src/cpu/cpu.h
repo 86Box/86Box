@@ -905,6 +905,7 @@ extern void cpu_car_reset(void);
 extern void cpu_car_enable(void);
 
 extern void update_tsc(void);
+extern void update_tsc_write(uint64_t new_tsc);
 
 extern int sysenter(uint32_t fetchdat);
 extern int sysexit(uint32_t fetchdat);
