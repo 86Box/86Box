@@ -970,7 +970,9 @@ cpu_cr0_write_value(uint32_t value)
 {
     if (is386 && !is486 && !isibm486)
         return value & 0x8000001f;
-    return value;
+    /* 486 and later: PE MP EM TS ET NE WP AM NW CD PG; writes to the
+       reserved bits (6-15, 17, 19-28) are ignored */
+    return value & 0xe005003f;
 }
 
 static __inline int

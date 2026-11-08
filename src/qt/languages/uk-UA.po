@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-05 15:26+0000\n"
+"PO-Revision-Date: 2026-11-08 13:36+0000\n"
 "Last-Translator: Broifonn_9 <molodchina812@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
@@ -432,7 +432,7 @@ msgid "Date:"
 msgstr "Дата:"
 
 msgid "Match the host"
-msgstr "Відповідати системному"
+msgstr "Відповідати системній"
 
 msgid "Offset the year by:"
 msgstr "Змістити рік до:"
@@ -492,7 +492,7 @@ msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Graphics"
 
 msgid "PowerVR PCX1/PCX2 Graphics"
-msgstr ""
+msgstr "Прискорювач PowerVR PCX1/PCX2"
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -1344,7 +1344,7 @@ msgid "Delete virtual machines to Recycle Bin"
 msgstr "Видалити віртуальні машини у кошик"
 
 msgid "Discord"
-msgstr ""
+msgstr "Discord"
 
 msgid "Show running machines in my Discord status"
 msgstr "Показати працюючі машини в моєму статусі Discord"
@@ -3689,7 +3689,7 @@ msgstr ""
 
 msgid "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?"
 msgstr ""
-"VFIO: Ці пристрої потрібно прив'язати до vfio-pc, що потребує прав "
+"VFIO: Ці пристрої потрібно прив'язати до vfio-pci, що потребує прав "
 "адміністратора:\n"
 "\n"
 "%s\n"
@@ -3730,19 +3730,19 @@ msgstr ""
 "Для підготовки пристроїв PCI до прокидання у 86Box потрібна автентифікація."
 
 msgid "Disabled"
-msgstr ""
+msgstr "Вимкнути"
 
 msgid "Unlimited capacity"
-msgstr ""
+msgstr "Необмежена ємність"
 
 msgid "CD speed:"
-msgstr ""
+msgstr "Швидкість CD:"
 
 msgid "DVD speed:"
-msgstr ""
+msgstr "Швидкість DVD:"
 
 msgid "HD/BD speed:"
-msgstr ""
+msgstr "Швидкість HD/BD:"
 
 msgid "Software-initiated poweroff device (IBM 5140)"
-msgstr ""
+msgstr "Пристрій програмного вимкнення живлення (IBM 5140)"

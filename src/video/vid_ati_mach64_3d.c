@@ -3676,10 +3676,10 @@ static int mach64_3d_ragepro_register(uint32_t reg);
 int
 mach64_3d_read(mach64_t *mach64, uint32_t addr, uint32_t *val)
 {
-    mach64_3d_t *ctx = mach64->gt3d;
-    uint32_t     reg = addr & 0x3fc;
-    uint32_t     used;
-    int          busy;
+    mach64_3d_t *ctx  = mach64->gt3d;
+    uint32_t     reg  = addr & 0x3fc;
+    uint32_t     used = 0;
+    int          busy = 0;
 
     switch (reg) {
         case GUI_STAT:

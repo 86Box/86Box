@@ -591,7 +591,7 @@ prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int
     int pc = cpu_prefetch_cycles;
     if (!(machine_has_bus(machine, MACHINE_BUS_MCA | MACHINE_BUS_MCA32)) &&
         (cpu_prefetch_cycles == cpu_rom_prefetch_cycles) &&
-        (!is486 || !cpu_cache_int_enabled || (is_p6 && !(msr.mtrr_deftype & 0x800))))
+        ((is586 && !cpu_cache_int_enabled) || (is_p6 && !(msr.mtrr_deftype & 0x800))))
         pc *= cpu_prefetch_width;
 
     /* Fill up prefetch queue */
@@ -1896,10 +1896,17 @@ leave_smm(void)
    as it always did: discarding those recorded them afresh on every run. */
 int codegen_record_faulted;
 
+/* Set while x86_int() delivers an external interrupt, whose vector is never
+   a fault whatever its number */
+int x86_int_external = 0;
+
 void
 x86_int(int num)
 {
     uint32_t addr;
+    /* #DE, #BR, #UD, #NM and #MF are faults: as for those x86_doabrt()
+       delivers, the EFLAGS image the handler gets has RF set */
+    const int fault = !x86_int_external && ((num == 0) || (num == 5) || (num == 6) || (num == 7) || (num == 16));
 
     /* A fault did not retire the instruction being stepped. Drop its
        pending debug trap before entering the handler; a task switch may
@@ -1917,9 +1924,13 @@ x86_int(int num)
     if (num == 1)
         dr[7] &= ~0x2000;
 
-    if (msw & 1)
+    if (msw & 1) {
+        if (fault)
+            cpu_state.eflags |= RF_FLAG;
         cpu_use_exec ? pmodeint(num, 0) : pmodeint_2386(num, 0);
-    else {
+        if (fault)
+            cpu_state.eflags &= ~RF_FLAG;
+    } else {
         addr = (num << 2) + idt.base;
 
         if ((num << 2UL) + 3UL > idt.limit) {

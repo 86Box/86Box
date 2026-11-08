@@ -75,8 +75,9 @@ mu9c1880_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svg
             break;
         case 0x02:
             switch (ramdac->state) {
-                case 4:
+                case 6:
                     mu9c1880_ramdac_control(val, ramdac, svga);
+                    ramdac->state = 0;
                     break;
                 default:
                     svga_out(addr, val, svga);
@@ -112,18 +113,16 @@ mu9c1880_ramdac_in(uint16_t addr, int rs2, void *priv, svga_t *svga)
             break;
         case 0x02:
             switch (ramdac->state) {
-                case 1:
-                case 2:
-                case 3:
-                    temp = 0x00;
-                    ramdac->state++;
-                    break;
                 case 4:
                     temp = ramdac->ctrl;
                     ramdac->state++;
                     break;
                 case 5:
                     temp = 0x8e;
+                    ramdac->state++;
+                    break;
+                case 6:
+                    temp = svga_in(addr, svga);
                     ramdac->state = 0;
                     break;
                 default:

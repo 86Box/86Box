@@ -67,7 +67,7 @@ rage128_aper_read(uint32_t addr, void *priv)
     if (dev->synctel)
         rage128_synctel_cpu_read(dev, addr, 1);
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, addr, 1, 0);
+        rage128_gpu_cpu_access(dev, addr, 1, 0);
     return svga_read_linear(addr, &dev->svga);
 }
 
@@ -80,7 +80,7 @@ rage128_aper_readw(uint32_t addr, void *priv)
     if (dev->synctel)
         rage128_synctel_cpu_read(dev, addr, 2);
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, addr, 2, 0);
+        rage128_gpu_cpu_access(dev, addr, 2, 0);
     return svga_readw_linear(addr, &dev->svga);
 }
 
@@ -93,7 +93,7 @@ rage128_aper_readl(uint32_t addr, void *priv)
     if (dev->synctel)
         rage128_synctel_cpu_read(dev, addr, 4);
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, addr, 4, 0);
+        rage128_gpu_cpu_access(dev, addr, 4, 0);
     return svga_readl_linear(addr, &dev->svga);
 }
 
@@ -106,7 +106,7 @@ rage128_aper_write(uint32_t addr, uint8_t val, void *priv)
     if (dev->synctel)
         rage128_synctel_cpu_write(dev, addr, 1);
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, addr, 1, 1);
+        rage128_gpu_cpu_access(dev, addr, 1, 1);
     svga_write_linear(addr, val, &dev->svga);
     r128_vram_hnew_all(dev);
 }
@@ -120,7 +120,7 @@ rage128_aper_writew(uint32_t addr, uint16_t val, void *priv)
     if (dev->synctel)
         rage128_synctel_cpu_write(dev, addr, 2);
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, addr, 2, 1);
+        rage128_gpu_cpu_access(dev, addr, 2, 1);
     svga_writew_linear(addr, val, &dev->svga);
     r128_vram_hnew_all(dev);
 }
@@ -134,7 +134,7 @@ rage128_aper_writel(uint32_t addr, uint32_t val, void *priv)
     if (dev->synctel)
         rage128_synctel_cpu_write(dev, addr, 4);
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, addr, 4, 1);
+        rage128_gpu_cpu_access(dev, addr, 4, 1);
     svga_writel_linear(addr, val, &dev->svga);
     r128_vram_hnew_all(dev);
 }
@@ -153,7 +153,7 @@ rage128_bwin_read(uint32_t addr, void *priv)
     rage128_t *dev = (rage128_t *) priv;
 
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, 0, dev->vram_mask + 1u, 0);
+        rage128_gpu_cpu_access(dev, 0, dev->vram_mask + 1u, 0);
     return svga_read(addr, &dev->svga);
 }
 
@@ -163,7 +163,7 @@ rage128_bwin_readw(uint32_t addr, void *priv)
     rage128_t *dev = (rage128_t *) priv;
 
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, 0, dev->vram_mask + 1u, 0);
+        rage128_gpu_cpu_access(dev, 0, dev->vram_mask + 1u, 0);
     return svga_readw(addr, &dev->svga);
 }
 
@@ -173,7 +173,7 @@ rage128_bwin_readl(uint32_t addr, void *priv)
     rage128_t *dev = (rage128_t *) priv;
 
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, 0, dev->vram_mask + 1u, 0);
+        rage128_gpu_cpu_access(dev, 0, dev->vram_mask + 1u, 0);
     return svga_readl(addr, &dev->svga);
 }
 
@@ -183,7 +183,7 @@ rage128_bwin_write(uint32_t addr, uint8_t val, void *priv)
     rage128_t *dev = (rage128_t *) priv;
 
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, 0, dev->vram_mask + 1u, 1);
+        rage128_gpu_cpu_access(dev, 0, dev->vram_mask + 1u, 1);
     svga_write(addr, val, &dev->svga);
     r128_vram_hnew_all(dev);
 }
@@ -194,7 +194,7 @@ rage128_bwin_writew(uint32_t addr, uint16_t val, void *priv)
     rage128_t *dev = (rage128_t *) priv;
 
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, 0, dev->vram_mask + 1u, 1);
+        rage128_gpu_cpu_access(dev, 0, dev->vram_mask + 1u, 1);
     svga_writew(addr, val, &dev->svga);
     r128_vram_hnew_all(dev);
 }
@@ -205,7 +205,7 @@ rage128_bwin_writel(uint32_t addr, uint32_t val, void *priv)
     rage128_t *dev = (rage128_t *) priv;
 
     if (dev->gpu)
-        rage128_gpu_cpu_barrier(dev, 0, dev->vram_mask + 1u, 1);
+        rage128_gpu_cpu_access(dev, 0, dev->vram_mask + 1u, 1);
     svga_writel(addr, val, &dev->svga);
     r128_vram_hnew_all(dev);
 }

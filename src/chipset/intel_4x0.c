@@ -105,7 +105,7 @@ i4x0_map(i4x0_t *dev, uint32_t addr, uint32_t size, int state)
          * IBM PC 7x0 BIOS switches F0000h from shadow RAM back to ROM this way
          * when it restarts.
          */
-        if (cr0 & (1 << 30))
+        if ((machines[machine].init == machine_at_ibm_pc700_init) && (cr0 & (1 << 30)))
             flushmmucache();
         else
             flushmmucache_nopc();
@@ -343,7 +343,13 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                         break;
                     case INTEL_440LX:
                     case INTEL_440EX:
-                        regs[0x04] = val & 0x40;
+                        /* Only Parity Error Enable (bit 6) is writable; the
+                           reserved bits 2:1 keep their default of 1, as in
+                           the 0006h default (82443LX and 82443EX datasheets,
+                           PCICMD). Windows 98 takes a clear memory enable bit
+                           for a host bridge whose aperture is not decoded and
+                           moves APBASE. */
+                        regs[0x04] = (regs[0x04] & ~0x40) | (val & 0x40);
                         break;
                 }
                 break;

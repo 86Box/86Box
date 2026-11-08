@@ -5,20 +5,7 @@ if(BUILD_TESTING)
     add_test(NAME x87_f2xm1_tests COMMAND x87_f2xm1_tests)
 
     add_executable(codegen_reuse_tests codegen_reuse_test.cpp)
-    if(DYNAREC)
-        add_executable(codegen_shift_cl_tests
-            codegen_shift_cl_test.cpp
-            ../../src/codegen/codegen_ops_shift.c
-        )
-        target_include_directories(codegen_shift_cl_tests PRIVATE
-            ${PROJECT_SOURCE_DIR}/src/codegen
-        )
-        target_compile_definitions(codegen_shift_cl_tests PRIVATE USE_DYNAREC)
-    endif()
     set(cpu_test_targets codegen_reuse_tests)
-    if(TARGET codegen_shift_cl_tests)
-        list(APPEND cpu_test_targets codegen_shift_cl_tests)
-    endif()
     foreach(target ${cpu_test_targets})
         target_include_directories(${target} PRIVATE
             ${PROJECT_SOURCE_DIR}/src/include

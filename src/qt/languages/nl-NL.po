@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-30 16:05+0000\n"
+"PO-Revision-Date: 2026-11-07 15:13+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -490,7 +490,7 @@ msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Graphics"
 
 msgid "PowerVR PCX1/PCX2 Graphics"
-msgstr ""
+msgstr "PowerVR PCX1/PCX2 Graphics"
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -3703,19 +3703,19 @@ msgstr ""
 "86Box."
 
 msgid "Disabled"
-msgstr ""
+msgstr "Uitgeschakeld"
 
 msgid "Unlimited capacity"
-msgstr ""
+msgstr "Ongelimiteerde capaciteit"
 
 msgid "CD speed:"
-msgstr ""
+msgstr "CD-snelheid:"
 
 msgid "DVD speed:"
-msgstr ""
+msgstr "DVD-snelheid:"
 
 msgid "HD/BD speed:"
-msgstr ""
+msgstr "HD/BD-snelheid:"
 
 msgid "Software-initiated poweroff device (IBM 5140)"
-msgstr ""
+msgstr "Software-geïnitieerde apparaatuitschakeling (IBM 5140)"

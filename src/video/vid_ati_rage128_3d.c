@@ -407,20 +407,25 @@ r3d_decode_vertex(uint32_t fmt, const uint32_t *d, r3d_vtx_t *v)
 }
 
 /* Mark the VRAM pages of [addr, addr + len) changed for the display.
-   Runs on the raster workers and the CCE thread without a lock: every
-   writer stores the same value, and the only read-modify-write from
-   another thread (the decrement in svga_poll) can at worst lose one mark
-   until the page is written again. */
+   Runs on the raster workers, the GPU span capture's partitions and the
+   CCE thread without a lock: every writer stores the same value, and the
+   only read-modify-write from another thread (the decrement in
+   svga_poll) can at worst lose one mark until the page is written again.
+   The stores are relaxed atomics, plain byte stores on every host, so
+   two of these writers on one page are not a data race. */
 static void
 r3d_mark_dirty(rage128_t *dev, uint32_t addr, uint32_t len)
 {
     svga_t *svga = &dev->svga;
+    uint8_t v    = (uint8_t) svga->monitor->mon_changeframecount;
 
     /* Step by length and mask each address, so a run that wraps past
        the end of VRAM marks the pages it really touches. */
     for (uint32_t o = 0; o < len; o += 0x1000u)
-        svga->changedvram[((addr + o) & dev->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
-    svga->changedvram[((addr + len - 1u) & dev->vram_mask) >> 12] = svga->monitor->mon_changeframecount;
+        __atomic_store_n(&svga->changedvram[((addr + o) & dev->vram_mask) >> 12], v,
+                         __ATOMIC_RELAXED);
+    __atomic_store_n(&svga->changedvram[((addr + len - 1u) & dev->vram_mask) >> 12], v,
+                     __ATOMIC_RELAXED);
 }
 
 /* Mark the pixels [rx0, rx1] of color row py changed. drow is the row's
@@ -1158,6 +1163,24 @@ r3d_stage_slot(rage128_t *dev, const rage128_raster_state_t *rs, int st,
         }
     }
     return sl;
+}
+
+void
+rage128_3d_slot_descs(rage128_t *dev, const rage128_raster_state_t *rs,
+                      r3d_stage_desc_t *sd0, r3d_stage_desc_t *sd1)
+{
+    const rage128_draw_state_t *ds = &rs->d;
+
+    if (ds->tex_en) {
+        r3d_stage_desc_init(rs, 0, sd0);
+        for (int sl = 0; sl <= ds->sh[0].top; sl++)
+            r3d_stage_slot(dev, rs, 0, sd0, sl);
+    }
+    if (ds->sec_en) {
+        r3d_stage_desc_init(rs, 1, sd1);
+        for (int sl = 0; sl <= ds->sh[1].top; sl++)
+            r3d_stage_slot(dev, rs, 1, sd1, sl);
+    }
 }
 
 /* Blend two ARGB8888 colors by w in [0, 256], two 8-bit lanes per
@@ -2693,6 +2716,26 @@ r3d_setup(rage128_t *dev, const rage128_raster_state_t *rs,
             jt->e1b       = e1b;
             jt->e2b       = e2b;
             jt->dzx       = dzx;
+            {
+                /* the row walk's value at column x0 of row y0 is the
+                   seed, so the value at (0, 0) steps back from it */
+                uint64_t s0 = (uint64_t) e0ri - (uint64_t) y0 * (uint64_t) e0dyi
+                    - (uint64_t) x0 * (uint64_t) e0dxi;
+                uint64_t s1 = (uint64_t) e1ri - (uint64_t) y0 * (uint64_t) e1dyi
+                    - (uint64_t) x0 * (uint64_t) e1dxi;
+                uint64_t s2 = (uint64_t) e2ri - (uint64_t) y0 * (uint64_t) e2dyi
+                    - (uint64_t) x0 * (uint64_t) e2dxi;
+
+                jt->e0o   = (int64_t) (jneg ? 0u - s0 : s0);
+                jt->e1o   = (int64_t) (jneg ? 0u - s1 : s1);
+                jt->e2o   = (int64_t) (jneg ? 0u - s2 : s2);
+                jt->e0dyi = (int64_t) (jneg ? 0u - (uint64_t) e0dyi : (uint64_t) e0dyi);
+                jt->e1dyi = (int64_t) (jneg ? 0u - (uint64_t) e1dyi : (uint64_t) e1dyi);
+                jt->e2dyi = (int64_t) (jneg ? 0u - (uint64_t) e2dyi : (uint64_t) e2dyi);
+                jt->zo    = (int64_t) ((uint64_t) z0fx - (uint64_t) y0 * (uint64_t) dzy
+                                       - (uint64_t) x0 * (uint64_t) dzx);
+                jt->dzy   = dzy;
+            }
             memcpy(jt->vca, vca, sizeof(jt->vca));
             memcpy(jt->vcb, vcb, sizeof(jt->vcb));
             memcpy(jt->vcc, vcc, sizeof(jt->vcc));
@@ -2814,6 +2857,8 @@ r3d_raster(rage128_t *dev, const rage128_raster_state_t *rs, int thr_id, int thr
 
     if (!r3d_setup(dev, rs, a, b, c, jfn, ln, &st, &tctx, &jt))
         return;
+    if (jfn == rage128_gpu_capture_span)
+        rage128_gpu_capture_begin(dev, &tctx, &jt, thr_id);
     {
         /* the loop's locals, copied from the setup */
         uint32_t dst_dt   = st.dst_dt;
@@ -3467,6 +3512,8 @@ r3d_fetch_vertex_cached(rage128_t *dev, uint32_t base, uint32_t stride,
    segment holds a pointer into it, and the reset never overwrites a
    level of the current draw, because this runs before any of them is
    staged. Submit thread only. */
+static int r3d_stage_keep_live(struct rage128_tex_stage *ts, uint32_t total);
+
 static void
 r3d_stage_reserve(rage128_t *dev, uint32_t total)
 {
@@ -3482,16 +3529,22 @@ r3d_stage_reserve(rage128_t *dev, uint32_t total)
     /* GPU lane: the flush above reclaims only an idle arena. When the
        arena really wraps, the queued segments must retire before the
        offsets are reused; this is the one wait the lane pays per pass
-       through the arena. */
+       through the arena. The live cached levels are then kept, moved to
+       the front; only when they and this draw do not fit together is
+       the arena emptied, with every cached level. */
     if (dev->gpu && ts->used && ts->used + total > ts->cap) {
         rage128_gpu_stage_quiesce(dev, 0);
-        ts->used      = 0;
-        ts->ent_count = 0;
         ts->gen++;
         r128_texcache_lock(ts);
-        ts->tgen++; /* the arena's bytes are gone, and the cached entries with them */
-        ts->src_lo = 0;
-        ts->src_hi = 0;
+        if (r3d_stage_keep_live(ts, total))
+            ts->n_wrap_kept++;
+        else {
+            ts->used = 0;
+            r128_texcache_reset_locked(ts);
+            ts->tgen++; /* the arena's bytes are gone, and the cached entries with them */
+            ts->src_lo = 0;
+            ts->src_hi = 0;
+        }
         r128_texcache_unlock(ts);
     }
 
@@ -3521,6 +3574,147 @@ r3d_stage_reserve(rage128_t *dev, uint32_t total)
     }
 }
 
+/* Key of a staged level, and its first bucket in the cached-entry index
+   (a multiplicative hash; the index has twice as many buckets as the
+   table has entries, so a probe stays short). */
+static int
+r3d_tex_ent_is(const struct rage128_tex_ent *e, uint32_t key, uint32_t len,
+               uint32_t tbpp, uint32_t tiled_pb)
+{
+    return e->vm_base == key && e->len == len && e->tbpp == tbpp
+        && e->tiled_pb == tiled_pb;
+}
+
+static uint32_t
+r3d_tex_idx_hash(uint32_t key, uint32_t len, uint32_t tiled_pb)
+{
+    return ((key * 2654435761u) ^ (len * 2246822519u) ^ (tiled_pb * 3266489917u))
+        >> 21; /* 11 bits: 2 * R128_TEX_CACHE_ENTS buckets */
+}
+
+/* The cached entry with this key, or -1. A key has at most one bucket:
+   an insert of a key already present takes over its bucket. Under the
+   lock. */
+static int
+r3d_tex_idx_find(const struct rage128_tex_stage *ts, uint32_t key,
+                 uint32_t len, uint32_t tbpp, uint32_t tiled_pb)
+{
+    const uint32_t m = 2u * R128_TEX_CACHE_ENTS - 1u;
+
+    for (uint32_t b = r3d_tex_idx_hash(key, len, tiled_pb) & m;; b = (b + 1u) & m) {
+        uint32_t v = ts->idx[b];
+
+        if (!v)
+            return -1;
+        if (v <= ts->ent_count && r3d_tex_ent_is(&ts->ent[v - 1u], key, len, tbpp, tiled_pb))
+            return (int) (v - 1u);
+    }
+}
+
+static void
+r3d_tex_idx_insert(struct rage128_tex_stage *ts, uint32_t slot)
+{
+    const struct rage128_tex_ent *e = &ts->ent[slot];
+    const uint32_t                m = 2u * R128_TEX_CACHE_ENTS - 1u;
+
+    for (uint32_t b = r3d_tex_idx_hash(e->vm_base, e->len, e->tiled_pb) & m;;
+         b = (b + 1u) & m) {
+        uint32_t v = ts->idx[b];
+
+        if (!v || (v <= ts->ent_count
+                   && r3d_tex_ent_is(&ts->ent[v - 1u], e->vm_base, e->len, e->tbpp,
+                                     e->tiled_pb))) {
+            ts->idx[b] = (uint16_t) (slot + 1u);
+            return;
+        }
+    }
+}
+
+/* Drop the dead and stale cached entries and rebuild the index. Run only
+   when the table is full, so a dead entry costs nothing until then.
+   Under the lock. */
+static void
+r3d_tex_ent_compact(struct rage128_tex_stage *ts)
+{
+    uint32_t n = 0;
+
+    for (uint32_t i = 0; i < ts->ent_count; i++)
+        if (!ts->ent[i].dead && ts->ent[i].gen == ts->tgen)
+            ts->ent[n++] = ts->ent[i];
+    memset(ts->idx, 0, sizeof(ts->idx));
+    ts->ent_count = n;
+    ts->ent_dead  = 0;
+    for (uint32_t i = 0; i < n; i++)
+        r3d_tex_idx_insert(ts, i);
+}
+
+/* At an arena wrap, with no queued work left that samples the arena:
+   keep the cached levels that draws used during the pass that is ending,
+   instead of dropping every level. Most of a full arena is bytes no draw
+   reads again (per-batch levels, and the copies of levels a store has
+   dropped), while the levels in use are a few MB that later draws would
+   otherwise detile again. A level no draw used during the whole pass is
+   dropped, so the kept set follows the working set instead of growing
+   with every level ever staged. The kept levels move to the front, in
+   arena order, on the same 16-byte boundaries r3d_stage_level uses; the
+   index does not depend on where a level sits, and the page bits and the
+   combined source range are rebuilt for the levels kept. Returns 0,
+   leaving the caller to empty the arena, when the kept levels would take
+   more than half the arena or do not fit with need more bytes, or when
+   the table is not in arena order. Under the lock. */
+static int
+r3d_stage_keep_live(struct rage128_tex_stage *ts, uint32_t total)
+{
+    uint64_t dst  = 0;
+    uint32_t prev = 0;
+    uint32_t nlo  = 0;
+    uint32_t nhi  = 0;
+
+    for (uint32_t i = 0; i < ts->ent_count; i++)
+        if (ts->ent[i].used_lap != ts->lap && !ts->ent[i].dead) {
+            ts->ent[i].dead = 1;
+            ts->ent_dead++;
+        }
+    r3d_tex_ent_compact(ts);
+    ts->lap++;
+    for (uint32_t i = 0; i < ts->ent_count; i++) {
+        if (ts->ent[i].arena_off < prev)
+            return 0;
+        prev = ts->ent[i].arena_off;
+        dst  = ((dst + 15u) & ~15ull) + ts->ent[i].len;
+    }
+    if (!ts->ent_count || dst > ts->cap / 2u
+        || ((dst + 15u) & ~15ull) + total > ts->cap)
+        return 0;
+    dst = 0;
+    for (uint32_t i = 0; i < ts->ent_count; i++) {
+        struct rage128_tex_ent *e = &ts->ent[i];
+
+        dst = (dst + 15u) & ~15ull;
+        if (e->arena_off != (uint32_t) dst)
+            memmove(ts->arena + dst, ts->arena + e->arena_off, e->len);
+        e->arena_off = (uint32_t) dst;
+        dst += e->len;
+        if (nlo == nhi) {
+            nlo = e->src_lo;
+            nhi = e->src_hi;
+        } else {
+            if (e->src_lo < nlo)
+                nlo = e->src_lo;
+            if (e->src_hi > nhi)
+                nhi = e->src_hi;
+        }
+    }
+    r128_texcache_pg_clear(ts);
+    for (uint32_t i = 0; i < ts->ent_count; i++)
+        r128_texcache_pg_set(ts, ts->ent[i].src_lo, ts->ent[i].src_hi);
+    ts->src_lo    = nlo;
+    ts->src_hi    = nhi;
+    ts->used      = (uint32_t) dst;
+    ts->pde_count = 0;
+    return 1;
+}
+
 /* Stage the mip level at card address vm, len bytes, and return its byte
    offset in the arena, or R128_TEX_STAGE_NONE when there is no room (see
    r3d_stage_textures for what the caller then does). A failed read still
@@ -3533,38 +3727,78 @@ r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
     struct rage128_tex_stage *ts = &dev->tex_stage;
     uint32_t                  off;
     uint32_t                  tg;
-
-    /* Take tgen before any bytes are copied. A CPU store that
-       invalidates the cache during the copy bumps tgen past this value,
-       so the new entry is invalid from the start and can never serve
-       the image from before the store. */
-    r128_texcache_lock(ts);
-    tg = ts->tgen;
-    r128_texcache_unlock(ts);
+    uint32_t                  slo  = 0;
+    uint32_t                  shi  = 0;
+    int                       live = 0;
 
     /* key is the raw offset register value. Its tile-mode bits [31:30]
        tell a detiled staging from a linear one at the same address, so
        the two never share an entry; tiled_pb completes the key, because
        two shapes of the same byte length detile to different layouts.
-       Per-draw entries are checked against gen and last one draw; cached
-       entries are checked against tgen and last until a store changes
-       their source bytes. */
-    for (uint32_t i = 0; i < ts->ent_count; i++)
-        if (ts->ent[i].gen == (ts->ent[i].pd ? ts->gen : tg)
-            && ts->ent[i].vm_base == key
-            && ts->ent[i].len == len && ts->ent[i].tbpp == tbpp
-            && ts->ent[i].tiled_pb == tiled_pb) {
-            if (!ts->ent[i].pd)
-                ts->n_hit++;
-            return ts->ent[i].arena_off;
+       Per-batch entries are checked against gen and last one batch;
+       cached entries are checked against the cache generation and last
+       until a store lands in their own source bytes or the arena is
+       reset. A key is always cacheable or always not (the address decides
+       it), so each kind is looked up in its own table. The lookup runs
+       under the lock because a store on the CPU thread can end an entry
+       at any time. */
+    r128_texcache_lock(ts);
+    tg = ts->tgen;
+    if (cacheable) {
+        int i = r3d_tex_idx_find(ts, key, len, tbpp, tiled_pb);
+
+        if (i >= 0 && ts->ent[i].gen == tg && !ts->ent[i].dead) {
+            ts->n_hit++;
+            ts->ent[i].used_lap = ts->lap;
+            off = ts->ent[i].arena_off;
+            r128_texcache_unlock(ts);
+            return off;
         }
+    } else
+        for (uint32_t i = 0; i < ts->pde_count; i++)
+            if (ts->pde[i].gen == ts->gen
+                && r3d_tex_ent_is(&ts->pde[i], key, len, tbpp, tiled_pb)) {
+                off = ts->pde[i].arena_off;
+                r128_texcache_unlock(ts);
+                return off;
+            }
 
     /* Place levels on 16-byte boundaries: the GPU kernel reads the arena
        as 16-bit and 32-bit word arrays and needs aligned level bases
        (the CPU sampler is byte-addressed and does not care). */
     off = (ts->used + 15u) & ~15u;
-    if (!ts->arena || off + len > ts->cap || off < ts->used)
+    if (!ts->arena || off + len > ts->cap || off < ts->used) {
+        r128_texcache_unlock(ts);
         return R128_TEX_STAGE_NONE;
+    }
+
+    if (cacheable) {
+        /* Publish the source range before any bytes are copied, and
+           widen the combined source range over it, so a store during the
+           copy is seen: it marks the copy, which may then hold bytes from
+           before that store, and the copy is not cached. A tiled gather
+           reads whole tile rows, more than the linear image's size. */
+        slo = vm;
+        shi = vm + (tiled_pb ? r3d_level_bytes_tiled(tiled_pb, len / tiled_pb) : len);
+        ts->cp_lo  = slo;
+        ts->cp_hi  = shi;
+        ts->cp_hit = 0;
+        if (ts->pg_tgen != tg) {
+            r128_texcache_pg_clear(ts);
+            ts->pg_tgen = tg;
+        }
+        r128_texcache_pg_set(ts, slo, shi);
+        if (ts->src_hi == ts->src_lo) {
+            ts->src_lo = slo;
+            ts->src_hi = shi;
+        } else {
+            if (slo < ts->src_lo)
+                ts->src_lo = slo;
+            if (shi > ts->src_hi)
+                ts->src_hi = shi;
+        }
+    }
+    r128_texcache_unlock(ts);
 
     if (tiled_pb) {
         /* Tiled level: gather its detiled linear image, so every lane
@@ -3582,41 +3816,48 @@ r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
     if (ts->used > ts->peak_used)
         ts->peak_used = ts->used;
 
-    if (ts->ent_count < 256) {
-        ts->ent[ts->ent_count].vm_base   = key;
-        ts->ent[ts->ent_count].len       = len;
-        ts->ent[ts->ent_count].tbpp      = tbpp;
-        ts->ent[ts->ent_count].tiled_pb  = tiled_pb;
-        ts->ent[ts->ent_count].arena_off = off;
-        ts->ent[ts->ent_count].pd        = !cacheable;
-        ts->ent[ts->ent_count].gen       = cacheable ? tg : ts->gen;
-        ts->ent_count++;
-        if (cacheable) {
-            /* Widen the source range that CPU stores are checked
-               against. A tiled gather reads whole tile rows, more than
-               the linear image's size. Skipped when an invalidation
-               landed during the copy (the entry is already invalid):
-               widening the range for it would only delay reclaiming the
-               idle arena. */
-            uint32_t slen = tiled_pb
-                ? r3d_level_bytes_tiled(tiled_pb, len / tiled_pb)
-                : len;
-
-            r128_texcache_lock(ts);
-            if (ts->tgen == tg) {
-                if (ts->src_hi == ts->src_lo) {
-                    ts->src_lo = vm;
-                    ts->src_hi = vm + slen;
-                } else {
-                    if (vm < ts->src_lo)
-                        ts->src_lo = vm;
-                    if (vm + slen > ts->src_hi)
-                        ts->src_hi = vm + slen;
-                }
-            }
-            r128_texcache_unlock(ts);
-        }
+    r128_texcache_lock(ts);
+    if (cacheable) {
+        /* Cached only when no store landed in the source during the copy
+           and the arena was not reset meanwhile. */
+        live      = !ts->cp_hit && ts->tgen == tg;
+        ts->cp_lo = 0;
+        ts->cp_hi = 0;
     }
+    if (!cacheable) {
+        if (ts->pde_count < R128_TEX_BATCH_ENTS) {
+            struct rage128_tex_ent *e = &ts->pde[ts->pde_count++];
+
+            memset(e, 0, sizeof(*e));
+            e->vm_base   = key;
+            e->len       = len;
+            e->tbpp      = tbpp;
+            e->tiled_pb  = tiled_pb;
+            e->arena_off = off;
+            e->gen       = ts->gen;
+        }
+    } else if (live) {
+        if (ts->ent_count == R128_TEX_CACHE_ENTS && ts->ent_dead)
+            r3d_tex_ent_compact(ts);
+        if (ts->ent_count < R128_TEX_CACHE_ENTS) {
+            struct rage128_tex_ent *e = &ts->ent[ts->ent_count];
+
+            e->vm_base   = key;
+            e->len       = len;
+            e->tbpp      = tbpp;
+            e->tiled_pb  = tiled_pb;
+            e->arena_off = off;
+            e->gen       = tg;
+            e->src_lo    = slo;
+            e->src_hi    = shi;
+            e->dead      = 0;
+            e->used_lap  = ts->lap;
+            ts->ent_count++;
+            r3d_tex_idx_insert(ts, ts->ent_count - 1u);
+        } else
+            ts->n_full++;
+    }
+    r128_texcache_unlock(ts);
     return off;
 }
 
@@ -4434,26 +4675,18 @@ rage128_raster_state_capture(rage128_t *dev, rage128_raster_state_t *rs)
             /* A serial CPU draw is finished by the time it returns. */
             if (dev->tex_stage.used)
                 dev->tex_stage.n_rec_draw++;
-            dev->tex_stage.used      = 0;
-            dev->tex_stage.ent_count = 0;
+            dev->tex_stage.used = 0;
             r128_texcache_lock(&dev->tex_stage);
+            r128_texcache_reset_locked(&dev->tex_stage);
             dev->tex_stage.src_lo = 0;
             dev->tex_stage.src_hi = 0;
             r128_texcache_unlock(&dev->tex_stage);
         } else {
-            /* Keep the valid cached entries; drop the previous draw's
-               per-draw entries and any entry a tgen bump invalidated. */
-            struct rage128_tex_stage *ts = &dev->tex_stage;
-            uint32_t                  n  = 0;
-            uint32_t                  tg;
-
-            r128_texcache_lock(ts);
-            tg = ts->tgen;
-            r128_texcache_unlock(ts);
-            for (uint32_t i = 0; i < ts->ent_count; i++)
-                if (!ts->ent[i].pd && ts->ent[i].gen == tg)
-                    ts->ent[n++] = ts->ent[i];
-            ts->ent_count = n;
+            /* Keep the cached entries (a dead one stays until the table
+               fills); drop the previous draw's per-batch entries. */
+            r128_texcache_lock(&dev->tex_stage);
+            dev->tex_stage.pde_count = 0;
+            r128_texcache_unlock(&dev->tex_stage);
         }
         dev->tex_stage.gen++;
         /* The serial flush does nothing, so the previous serial draw's
@@ -4466,6 +4699,7 @@ rage128_raster_state_capture(rage128_t *dev, rage128_raster_state_t *rs)
         rage128_c_stage_writeback(dev);
     }
 
+    dev->r3d_draw_seq++;
     rs->t3d        = dev->t3d;
     rs->dst_offset = dev->dst_offset;
     rs->dst_pitch  = dev->dst_pitch;

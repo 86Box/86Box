@@ -76,6 +76,7 @@ Run the CMake commands at the repository root.
 | `R128_LANEGAP` | When set, adds the expected-failure polyline scissor-clamp vector. The modeled device does not implement that documented clamp. |
 | `R128_LANEGAP_LOG` | When set, exposes close-time JIT texture counters for the lane-gap and exceptional-coordinate devices. |
 | `R128_LANEGAP_TSAN` | When set, runs the two-writer texture-cache concurrency vector. Use a ThreadSanitizer build to check its synchronization. |
+| `R128_BARRIER_BENCH` | A call count N (nonzero) runs only the aperture-barrier timing probe: N miss calls per column on a fabricated GPU backend, idle, with a pending segment, with all ring slots submitted, and both, printed as nanoseconds per call; the linear-aperture dword handlers are timed the same way, and once with no backend as the floor. Needs Vulkan headers; prints nothing without them. |
 | `R128_X64LEGS` | When set, runs only the exceptional-coordinate device, honoring the caller's JIT mode. |
 | `R128_GPU_SYNC_TELEMETRY` | Selects the device's synchronization telemetry output. The telemetry runner redirects its own device to the null sink while testing counters. |
 

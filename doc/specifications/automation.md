@@ -9,8 +9,8 @@ Build with `-D AUTOMATION=ON`, then start 86Box with:
 86Box listens on the endpoint and accepts one client at a time.
 `--automation-hold` starts the machine **held**: no emulated time passes until
 a client asks for it. That makes runs repeatable and lets a slow client (a
-test harness, a script, an AI agent) take as long as it needs between
-moves.
+test harness, a script, an [AI agent](https://github.com/dafugg/86box-mcp)) take
+as long as it needs between moves.
 
 ## Transports and security
 

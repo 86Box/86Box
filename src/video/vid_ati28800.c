@@ -622,6 +622,9 @@ ati28800_recalctimings(svga_t *svga)
     }
 
     svga->hoverride = 1;
+
+    if (ati28800->type == VGAWONDERXL24)
+        bt481_recalctimings(svga->ramdac, svga);
 }
 
 static void

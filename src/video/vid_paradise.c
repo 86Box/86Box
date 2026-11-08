@@ -649,16 +649,14 @@ paradise_recalctimings(svga_t *svga)
         }
     } else {
         clk_sel = ((svga->miscout >> 2) & 0x03);
-        if (!paradise->speedstar24x) {
-            if (!(svga->gdcreg[0x0c] & 0x02))
-                clk_sel |= 0x04;
+        if (!(svga->gdcreg[0x0c] & 0x02))
+            clk_sel |= 0x04;
 
-            clk_sel |= (svga->seqregs[0x12] & 0x04) << 1;
-            clk_sel ^= 0x04; /*VGATTL*/
-        }
+        clk_sel |= (svga->seqregs[0x12] & 0x04) << 1;
+        clk_sel ^= 0x04; /*VGATTL*/
 
         svga->clock = (cpuclock * (double) (1ULL << 32)) / svga->getclock(clk_sel, svga->clock_gen);
-        if ((svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1)) {
+        if ((svga->gdcreg[6] & 0x01) || (svga->attrregs[0x10] & 0x01)) {
             if ((svga->bpp >= 8) && !svga->lowres) {
                 if (svga->bpp == 24) {
                     svga->render = svga_render_24bpp_highres;

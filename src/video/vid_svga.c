@@ -1513,6 +1513,47 @@ svga_do_render(svga_t *svga)
     }
 }
 
+/* Latch the horizontal pel panning for the next frame. On real VGA hardware (and in DOSBox)
+   this happens when vertical retrace ends, not at the start of the next frame: games write
+   the start address and the panning right after the end of retrace and expect both to take
+   effect on the same frame. */
+static void
+svga_latch_panning(svga_t *svga)
+{
+    if (svga->hoverride || svga->border_override || ((svga->adv_flags & FLAG_PANNING_ATI) && svga->panning_blank)) {
+        svga->scrollcache = 0;
+        svga->half_pixel  = 0;
+
+        svga->x_add       = svga->left_overscan;
+    } else {
+        svga->scrollcache = (svga->attrregs[0x13] & 0x0f);
+        if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
+            if (svga->seqregs[1] & 1)
+                svga->scrollcache &= 0x07;
+            else {
+                svga->scrollcache++;
+                if (svga->scrollcache > 8)
+                    svga->scrollcache = 0;
+            }
+            svga->half_pixel  = 0;
+        } else if ((svga->render == svga_render_2bpp_lowres) || (svga->render == svga_render_2bpp_highres) ||
+                   (svga->render == svga_render_4bpp_lowres) || (svga->render == svga_render_4bpp_highres)) {
+            svga->half_pixel  = 0;
+            svga->scrollcache &= 0x07;
+        } else {
+            if (svga->scrollcache > 7)
+                svga->scrollcache = 7;
+            svga->half_pixel  = svga->scrollcache & 0x01;
+            svga->scrollcache = (svga->scrollcache & 0x06) >> 1;
+        }
+
+        if ((svga->seqregs[1] & 8) || (svga->render == svga_render_8bpp_lowres))
+            svga->scrollcache <<= 1;
+
+        svga->x_add = svga->left_overscan - svga->scrollcache;
+    }
+}
+
 void
 svga_poll(void *priv)
 {
@@ -1599,8 +1640,16 @@ svga_poll(void *priv)
         svga->displine++;
         if (svga->interlace)
             svga->displine++;
-        if ((svga->cgastat & 8) && ((svga->displine & 15) == (svga->crtc[0x11] & 15)) && svga->vslines)
+        if ((svga->cgastat & 8) && ((svga->displine & 15) == (svga->crtc[0x11] & 15)) && svga->vslines) {
             svga->cgastat &= ~8;
+            /* Latch the panning in the same event that ends retrace, so that anything the guest
+               writes after seeing the retrace bit clear applies to the next frame. ATI keeps its
+               per-line latch. */
+            if (!(svga->adv_flags & FLAG_PANNING_ATI) && !svga->hoverride && !svga->border_override) {
+                svga_latch_panning(svga);
+                svga->pan_latched = 1;
+            }
+        }
         svga->vslines++;
         if (svga->displine > 2000)
             svga->displine = 0;
@@ -1808,38 +1857,10 @@ svga_poll(void *priv)
             svga->dispon   = 1;
             svga->displine = (svga->interlace && svga->oddeven) ? 1 : 0;
 
-            if (svga->hoverride || svga->border_override || ((svga->adv_flags & FLAG_PANNING_ATI) && svga->panning_blank)) {
-                svga->scrollcache = 0;
-                svga->half_pixel  = 0;
-
-                svga->x_add       = svga->left_overscan;
-            } else {
-                svga->scrollcache = (svga->attrregs[0x13] & 0x0f);
-                if (!(svga->gdcreg[6] & 1) && !(svga->attrregs[0x10] & 1)) { /*Text mode*/
-                    if (svga->seqregs[1] & 1)
-                        svga->scrollcache &= 0x07;
-                    else {
-                        svga->scrollcache++;
-                        if (svga->scrollcache > 8)
-                            svga->scrollcache = 0;
-                    }
-                    svga->half_pixel  = 0;
-                } else if ((svga->render == svga_render_2bpp_lowres) || (svga->render == svga_render_2bpp_highres) ||
-                           (svga->render == svga_render_4bpp_lowres) || (svga->render == svga_render_4bpp_highres)) {
-                    svga->half_pixel  = 0;
-                    svga->scrollcache &= 0x07;
-                } else {
-                    if (svga->scrollcache > 7)
-                        svga->scrollcache = 7;
-                    svga->half_pixel  = svga->scrollcache & 0x01;
-                    svga->scrollcache = (svga->scrollcache & 0x06) >> 1;
-                }
-
-                if ((svga->seqregs[1] & 8) || (svga->render == svga_render_8bpp_lowres))
-                    svga->scrollcache <<= 1;
-
-                svga->x_add = svga->left_overscan - svga->scrollcache;
-            }
+            if (svga->pan_latched)
+                svga->pan_latched = 0; /* Already latched at the end of vertical retrace. */
+            else
+                svga_latch_panning(svga);
 
             svga->linecountff = 0;
 

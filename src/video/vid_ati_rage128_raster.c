@@ -355,8 +355,8 @@ rb_flush(rage128_t *dev, int recycle_tex)
             if (!dev->gpu
                 || dev->tex_stage.src_lo == dev->tex_stage.src_hi) {
                 dev->tex_stage.n_rec_flush++;
-                dev->tex_stage.used      = 0;
-                dev->tex_stage.ent_count = 0;
+                dev->tex_stage.used = 0;
+                r128_texcache_reset_locked(&dev->tex_stage);
                 dev->tex_stage.gen++;
                 dev->tex_stage.tgen++; /* cached levels lived in the arena */
                 dev->tex_stage.src_lo = 0;
@@ -365,19 +365,14 @@ rb_flush(rage128_t *dev, int recycle_tex)
             r128_texcache_unlock(&dev->tex_stage);
         }
     }
-    if (!recycle_tex && dev->tex_stage.ent_count) {
+    if (!recycle_tex && (dev->tex_stage.ent_count || dev->tex_stage.pde_count)) {
         /* Keep the arena bytes and the entries cached across draws (a
-           store or a render into their source range invalidates those
-           through tgen); drop the per-draw entries and move gen past
-           them. */
+           store or a render into their source bytes ends one of those);
+           drop the per-batch entries and move gen past them. */
         struct rage128_tex_stage *ts = &dev->tex_stage;
-        uint32_t                  n  = 0;
 
         r128_texcache_lock(ts);
-        for (uint32_t i = 0; i < ts->ent_count; i++)
-            if (!ts->ent[i].pd)
-                ts->ent[n++] = ts->ent[i];
-        ts->ent_count = n;
+        ts->pde_count = 0;
         ts->gen++;
         r128_texcache_unlock(ts);
     }
