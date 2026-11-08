@@ -1435,10 +1435,13 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
             }
         }
         /*A 0F's op takes the bytes of the fetch that read the 0F, which ends
-          at the byte after the ModR/M: nothing past it is read here*/
+          at the byte after the ModR/M: nothing past it is read here. An
+          escape's op takes those of the fetch that read the escape, which
+          fetchdat already holds (the loop's fetch, or a prefix's read at the
+          escape): it is not read again*/
         if (opcode == 0x0f)
             fetchdat = codegen_fetchl_lookahead(cs + op_pc - 1) >> 8;
-        else
+        else if ((opcode & 0xf8) != 0xd8)
             fetchdat = codegen_fetchl_lookahead(cs + op_pc);
         codegen_timing_prefix(opcode, fetchdat);
         codegen_accumulate_record(ACC_PREFIX, 0, opcode, fetchdat, 0, 0);
@@ -1847,7 +1850,9 @@ codegen_skip:
        covers would claim the data that often follows an instruction such as
        RET or IRET, and every write to it would throw the block away. */
     {
-        int fetch_len = pc_off ? 4 : 3;
+        /* After an escape fetchdat starts at the ModR/M, and the fetch that
+           read the escape ends two bytes after it. */
+        int fetch_len = 3;
 
         /* A one-byte opcode that reads nothing after it (POPF, CLI, the
            string ops) or only an imm8/rel8 uses no more of fetchdat. */
