@@ -2620,7 +2620,7 @@ const machine_t machines[] = {
         .aliases                  = { "" }
     },
     {
-        .name              = "[V20] PC-XT",
+        .name              = "[V20] Peter Kohlmann PC-XT",
         .internal_name     = "v20xt",
         .type              = MACHINE_TYPE_8088,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -5841,7 +5841,7 @@ const machine_t machines[] = {
     },
     /* Has IBM AT KBC firmware. */
     {
-        .name              = "[SCAT] Samsung Deskmaster 286/12",
+        .name              = "[SCAT] Samsung DeskMaster 286/12",
         .internal_name     = "deskmaster286",
         .type              = MACHINE_TYPE_286,
         .chipset           = MACHINE_CHIPSET_SCAT,
@@ -5861,7 +5861,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2,
-        .flags     = MACHINE_IDE, /* Machine has internal video: C&T VGA 411 (not yet implemented) */
+        .flags     = MACHINE_IDE, /* Machine has internal video: C&T 82C451 (onboard variant not yet emulated) */
         .ram       = {
             .min  = 512, /* crashes and bootloops during POST with less */
             .max  = 8192,
@@ -5910,7 +5910,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_AT | MACHINE_BUS_PS2,
-        .flags     = MACHINE_IDE, /* Machine has internal video: C&T VGA 411 (not yet implemented) */
+        .flags     = MACHINE_IDE, /* Machine has internal video: C&T 82C451 (onboard variant not yet emulated) */
         .ram       = {
             .min  = 512, /* crashes and bootloops during POST with less */
             .max  = 8192,
@@ -8077,7 +8077,7 @@ const machine_t machines[] = {
        second/slave 8259 PIC exists on this hardware - it's a genuine XT platform underneath,
        just with a 386-class CPU bolted on via a daughtercard. */
     {
-        .name              = "[386DX] IBM XT (Inboard 386/PC)",
+        .name              = "[ISA] IBM XT (Inboard 386/PC)",
         .internal_name     = "ibmxt_inboard386",
         .type              = MACHINE_TYPE_386DX,
         .chipset           = MACHINE_CHIPSET_DISCRETE,
@@ -13838,7 +13838,7 @@ const machine_t machines[] = {
     /* Revision 1 has a Lance LT38C41L, revision 2 has a Holtek HT6542B.
        Another variant with a Bestkey KBC might exist as well. */
     {
-        .name              = "[SiS 496] Rise Computer R418",
+        .name              = "[SiS 496] Rise R418",
         .internal_name     = "r418",
         .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_SIS_496,
@@ -14543,7 +14543,7 @@ const machine_t machines[] = {
             .max_multi   = 1.0
         },
         .bus_flags = MACHINE_PS2_PCI,
-        .flags     = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: either ST STPC Atlas (not yet implemented) or CHIPS & Technologies B69000 */
+        .flags     = MACHINE_IDE_DUAL | MACHINE_APM, /* Machine has internal video: either ST STPC Atlas (not yet implemented) or C&T B69000 */
         .ram       = {
             .min  = 8192,
             .max  = 131072,
