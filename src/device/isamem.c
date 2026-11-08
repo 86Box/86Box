@@ -115,6 +115,7 @@
 #define ISAMEM_DEBUG           0
 
 #define RAM_TOPMEM             (640 << 10)  /* end of low memory */
+#define RAM_UMATOP             (960 << 10)  /* end of usable upper memory (generic XT) */
 #define RAM_UMAMEM             (384 << 10)  /* upper memory block */
 #define RAM_EXTMEM             (1024 << 10) /* start of high memory */
 
@@ -482,6 +483,7 @@ isamem_init(const device_t *info)
     uint32_t  t;
     uint32_t  addr;
     uint32_t  tot;
+    int       uma = 0;  /* RAM mapped into the upper memory area */
     /* EMS 3.2 cannot have more than 2048KB per board. */
     uint32_t  ems_max = EMS_MAXSIZE;
     uint8_t  *ptr;
@@ -660,6 +662,19 @@ isamem_init(const device_t *info)
          */
         t = (addr < RAM_TOPMEM) ? RAM_TOPMEM - addr : 0;
 
+        /*
+         * Generic PC/XT card: if the start address is at or above 640KB,
+         * map the RAM into the upper memory area (up to 960KB) instead of
+         * dropping it. Real 8-bit cards could do this (e.g. backfilling
+         * A0000-B7FFF on CGA systems for 704/736KB conventional memory,
+         * or providing RAM for UMBs). Configurations with a start address
+         * below 640KB behave exactly as before.
+         */
+        if ((dev->board == ISAMEM_GENXT_CARD) && (addr >= RAM_TOPMEM) && (addr < RAM_UMATOP)) {
+            t   = RAM_UMATOP - addr;
+            uma = 1;
+        }
+
         /* Check for Everex EV-159 cards in CS8220 backfill mode. */
         if ((addr == RAM_TOPMEM) && (dev->board == ISAMEM_EV159_CARD)) {
             /* Reserve 128K RAM for base memory. */
@@ -774,7 +789,9 @@ isamem_init(const device_t *info)
         addr += t;
     }
 
-    isa_mem_size += dev->total_size - (k >> 10);
+    /* Upper memory RAM is not conventional memory: don't count it. */
+    if (!uma)
+        isa_mem_size += dev->total_size - (k >> 10);
 
     /* If EMS is enabled, use the remainder for EMS. */
     if (dev->flags & FLAG_EMS) {
@@ -1067,7 +1084,7 @@ static const device_config_t genericxt_config[] = {
         .file_filter    = NULL,
         .spinner        = {
             .min  =   0,
-            .max  = 640,
+            .max  = 944,
             .step =  16
         },
         .selection      = { { 0 } },
