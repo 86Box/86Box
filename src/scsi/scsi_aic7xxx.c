@@ -5828,9 +5828,18 @@ aic_seeprom_build(const aic7xxx_t *dev, uint16_t *nvr)
        checksummed over words 32 to 62 with no signature word, and only
        falls back to the first half when that copy does not check out.
        The drivers read the first half, which carries the 0x250 signature
-       instead. Both are filled in, and they say the same thing. */
+       instead. Both are filled in, and they say the same thing.
+
+       Where the second half starts follows the part, not the layout: on
+       the 64-word 93C46 of the Ultra and Ultra Wide cards it is word 32,
+       and on the 128-word 93C56 the Ultra2 boards carry it is word 64.
+       Written at 32 on the larger part it is not a copy the AIC-7890's
+       BIOS ever looks at -- it reads 0 to 31 and 64 to 95 -- and the
+       image it did find failed its checksum and stopped the boot with
+       "SEEPROM checksum error has been corrected. Please press any key to
+       reboot.". */
     for (uint8_t half = 0; half < 2; half++) {
-        uint16_t *w = &nvr[half * 32];
+        uint16_t *w = &nvr[half * (dev->chip->ultra2 ? 64 : 32)];
 
         for (uint8_t i = 0; i < 16; i++)
             w[i] = flags;
@@ -6646,11 +6655,15 @@ aic_init(const device_t *info)
         aic_seeprom_build(dev, nvr);
         snprintf(fn, sizeof(fn), "nmc93cxx_eeprom_%s_%d.nvr", info->internal_name,
                  device_get_instance());
-        /* The cards carry a 93C46. The chip on this motherboard has a 93C56,
-           which is eight address bits rather than six, and a driver that
-           clocks out the wrong number of them reads rubbish. */
-        params.type            = (dev->board == BOARD_7880) ? NMC_93C56_x16_128
-                                                            : NMC_93C46_x16_64;
+        /* The cards carry a 93C46. The chips on the two motherboards have a
+           93C56, which is eight address bits rather than six, and a driver
+           that clocks out the wrong number of them reads rubbish. The
+           AIC-7890's BIOS clocks start, opcode, eight address bits and
+           sixteen data bits -- twenty-seven -- and reads words above
+           thirty-one, which a 93C46 has not got. */
+        params.type            = ((dev->board == BOARD_7880) || (dev->board == BOARD_7890))
+                                     ? NMC_93C56_x16_128
+                                     : NMC_93C46_x16_64;
         params.default_content = nvr;
         params.filename        = fn;
         dev->eeprom            = (nmc93cxx_eeprom_t *) device_add_inst_params(&nmc93cxx_device,
@@ -6683,7 +6696,7 @@ aic_init(const device_t *info)
        first free slot instead, device 10, where the BIOS saw an add-in
        card in "PCI Slot 3" and configured it whatever the switch said. */
     if (!dev->eisa)
-        pci_add_card((dev->board == BOARD_7880) ? PCI_ADD_SCSI : PCI_ADD_NORMAL,
+        pci_add_card(((dev->board == BOARD_7880) || (dev->board == BOARD_7890)) ? PCI_ADD_SCSI : PCI_ADD_NORMAL,
                      aic_pci_read, aic_pci_write, dev, &dev->pci_slot);
 
     /* The 2742s carry a floppy controller behind an enable jumper, off by
