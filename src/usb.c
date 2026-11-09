@@ -3388,7 +3388,9 @@ ohci_frame_stop(ohci_t *dev)
    PDF 118-119). At 0 with WritebackDoneHead clear, HccaDoneHead takes
    HcDoneHead, with its LSb set when another enabled status bit is set
    (s4.4.2.3, p. 35 / PDF 49). Otherwise the counter counts down; at 111b
-   or 0 it holds. */
+   or 0 it holds. The write-back needs a TD on the done queue (s6.4.5): a
+   driver that empties HcDoneHead, where the chip lets it, gets no
+   write-back and no WritebackDoneHead until another TD retires. */
 static void
 ohci_done_writeback(ohci_t *dev)
 {
@@ -3400,7 +3402,7 @@ ohci_done_writeback(ohci_t *dev)
             dev->di_count--;
         return;
     }
-    if ((dev->intsts & OHCI_INT_WDH) || !dev->bus_master)
+    if ((dev->intsts & OHCI_INT_WDH) || !dev->bus_master || !dev->done_head)
         return;
 
     head = dev->done_head;
