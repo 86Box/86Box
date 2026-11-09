@@ -313,6 +313,12 @@ extern const device_t ibm_ethernet_efe5_device;
 extern const device_t dp83815_device;
 extern const device_t dp83815_onboard_device;
 
+/* VIA Rhine */
+extern const device_t via_vt86c100a_device;
+extern const device_t via_vt6102_device;
+extern const device_t via_vt6105_device;
+extern const device_t via_vt6105m_device;
+
 #endif
 
 #ifdef __cplusplus
