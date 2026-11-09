@@ -11,7 +11,9 @@
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2021-2025 RichardG.
- */
+  *          Copyright 2026 Xeon3D.
+*/
+#include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -31,6 +33,8 @@
 #include <86box/timer.h>
 #include <86box/plat_unused.h>
 #include "cpu.h"
+
+#define AC97_VIA_IN_RING 16384 /* host input frames held for the record channel */
 
 typedef struct ac97_via_sgd_t {
     uint8_t            id;
@@ -68,6 +72,7 @@ typedef struct _ac97_via_ {
     uint8_t  fm_enabled : 1;
     uint8_t  modem_enabled : 1;
     uint8_t  vsr_enabled : 1;
+    uint8_t  link_enabled : 1; /* AC-link up (Rx41 bits 7:6 = 11b) */
     uint8_t  codec_shadow[256];
     uint8_t  pci_slot;
     uint8_t  irq_state;
@@ -87,6 +92,17 @@ typedef struct _ac97_via_ {
     int master_vol_r;
     int cd_vol_l;
     int cd_vol_r;
+
+    /* the audio record channel (SGD write channel, 10h-1Fh). The
+       host's input frames (at in_rate) wait in in_ring until the codec's
+       ADC, clocked at its own rate by sgd[1]'s poll timer, takes them. */
+    int16_t  in_ring[AC97_VIA_IN_RING * 2];
+    uint32_t in_wr;
+    uint32_t in_rd;
+    double   in_frac;
+    int      in_rate;
+    int      in_started;
+    int      in_primed;
 } ac97_via_t;
 
 #ifdef ENABLE_AC97_VIA_LOG
@@ -108,6 +124,7 @@ ac97_via_log(const char *fmt, ...)
 #endif
 
 static void ac97_via_sgd_process(void *priv);
+static void ac97_via_record_input(ac97_via_t *dev, int on);
 static void ac97_via_update_codec(ac97_via_t *dev);
 static void ac97_via_speed_changed(void *priv);
 static void ac97_via_filter_cd_audio(int channel, double *buffer, void *priv);
@@ -160,6 +177,9 @@ ac97_via_write_control(void *priv, uint8_t val)
 
     /* Set the variable sample rate flag. */
     dev->vsr_enabled = (val & 0xf8) == 0xc8;
+
+    /* the record channel only gets ADC frames while the link runs. */
+    dev->link_enabled = (val & 0xc0) == 0xc0;
 
     /* Start or stop PCM playback. */
     i = (val & 0xf4) == 0xc4;
@@ -366,6 +386,15 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
                         /* Start at the specified entry pointer. */
                         dev->sgd[addr >> 4].entry_ptr  = AS_U32(dev->sgd_regs[(addr & 0xf0) | 0x4]) & 0xfffffffe;
                         dev->sgd[addr >> 4].restart    = 2;
+
+                        /* the record channel starts with an empty FIFO,
+                           its ADC clock and the host's input. */
+                        if ((addr & 0xf0) == 0x10) {
+                            dev->sgd[1].fifo_pos = dev->sgd[1].fifo_end = 0;
+                            ac97_via_record_input(dev, 1);
+                            if (!timer_is_enabled(&dev->sgd[1].poll_timer))
+                                timer_set_delay_u64(&dev->sgd[1].poll_timer, dev->sgd[1].timer_latch);
+                        }
 
                         /* Start the actual SGD process. */
                         ac97_via_sgd_process(&dev->sgd[addr >> 4]);
@@ -648,8 +677,13 @@ ac97_via_sgd_process(void *priv)
     /* Schedule next run. */
     timer_on_auto(&sgd->dma_timer, 1.0);
 
-    /* Process SGD if it's active, and the FIFO has room or is disabled. */
-    if (((sgd_status & 0xc7) == 0x80) && (sgd->always_run || ((sgd->fifo_end - sgd->fifo_pos) <= (sizeof(sgd->fifo) - 4)))) {
+    /* Process SGD if it's active, and the FIFO has room or is disabled.
+       the record channel's FIFO is filled by the ADC (fifo_pos) and
+       emptied to memory a dword at a time (fifo_end): it moves only once
+       the ADC has a dword ready. */
+    if (((sgd_status & 0xc7) == 0x80) &&
+        ((sgd->id == 0x10) ? ((sgd->fifo_pos - sgd->fifo_end) >= 4) :
+                             (sgd->always_run || ((sgd->fifo_end - sgd->fifo_pos) <= (sizeof(sgd->fifo) - 4))))) {
         /* Move on to the next block if no entry is present. */
         if (sgd->restart) {
             /* (Re)load entry pointer if required. */
@@ -878,6 +912,221 @@ ac97_via_poll_modem_capture(void *priv)
     }
 }
 
+/* the host's input is opened only while the record channel runs. */
+static void
+ac97_via_record_input(ac97_via_t *dev, int on)
+{
+    if (on && !dev->in_started) {
+        dev->in_wr = dev->in_rd = 0;
+        dev->in_frac            = 0.0;
+        dev->in_primed          = 0;
+        sound_in_start_input();
+        dev->in_started = 1;
+    } else if (!on && dev->in_started) {
+        sound_in_stop_input();
+        dev->in_started = 0;
+    }
+}
+
+/* one frame of the host's input at the ADC's rate (linear
+   interpolation; silence while none has come). */
+static void
+ac97_via_record_host_frame(ac97_via_t *dev, double rate, int *l, int *r)
+{
+    const uint32_t i0    = dev->in_rd % AC97_VIA_IN_RING;
+    const uint32_t i1    = (dev->in_rd + 1) % AC97_VIA_IN_RING;
+    const uint32_t avail = dev->in_wr - dev->in_rd;
+    double         frac;
+
+    /* The host's input comes in blocks (20 ms); 40 ms in hand keeps the ADC
+       from running dry at the end of each block, which would slip samples. */
+    if (!dev->in_primed && dev->in_rate && (avail >= (uint32_t) (dev->in_rate / 25)))
+        dev->in_primed = 1;
+    if (!dev->in_primed || (avail < 2)) {
+        dev->in_primed = 0;
+        *l = *r = 0;
+        return;
+    }
+
+    frac = dev->in_frac;
+    *l   = (int) (dev->in_ring[i0 * 2] + ((dev->in_ring[i1 * 2] - dev->in_ring[i0 * 2]) * frac));
+    *r   = (int) (dev->in_ring[i0 * 2 + 1] + ((dev->in_ring[i1 * 2 + 1] - dev->in_ring[i0 * 2 + 1]) * frac));
+
+    dev->in_frac += (double) dev->in_rate / rate;
+    while ((dev->in_frac >= 1.0) && ((dev->in_wr - dev->in_rd) > 1)) {
+        dev->in_frac -= 1.0;
+        dev->in_rd++;
+    }
+    if (dev->in_frac >= 1.0)
+        dev->in_frac = 0.0;
+}
+
+/* what the codec's record select (1Ah) puts on one ADC channel.
+   The host's input is both the microphone (mono, with the mic's 20 dB
+   boost, 0Eh bit 6) and Line In; the stereo/mono mix is what the codec
+   mixes for its outputs: Line In and Mic at their volumes, and the PCM
+   and FM channels' output. CD, video, aux and phone have nothing. */
+static int
+ac97_via_record_source(ac97_via_t *dev, int sel, int right, int host_l, int host_r)
+{
+    ac97_codec_t *codec = dev->audio_codec;
+    const int     mic   = (host_l + host_r) / 2;
+    const int     host  = right ? host_r : host_l;
+    double        val;
+    int           vol_l;
+    int           vol_r;
+
+    switch (sel) {
+        case 0: /* Mic */
+            return (codec->regs[0x0e >> 1] & 0x0040) ? (mic * 10) : mic;
+
+        case 4: /* Line In */
+            return host;
+
+        case 5: /* Stereo Mix */
+        case 6: /* Mono Mix */
+            ac97_codec_getattn(codec, 0x10, &vol_l, &vol_r);
+            val = ((double) (sel == 6 ? ((host_l + host_r) / 2) : host) * (right ? vol_r : vol_l)) / 32767.0;
+            ac97_codec_getattn(codec, 0x0e, &vol_l, &vol_r);
+            val += ((double) ((codec->regs[0x0e >> 1] & 0x0040) ? (mic * 10) : mic) * vol_r) / 32767.0;
+            if (sel == 6) {
+                val += ((double) (dev->sgd[0].out_l + dev->sgd[0].out_r) * (dev->sgd[0].vol_l + dev->sgd[0].vol_r)) / (4.0 * 32767.0);
+                val += ((double) (dev->sgd[2].out_l + dev->sgd[2].out_r) * (dev->sgd[2].vol_l + dev->sgd[2].vol_r)) / (4.0 * 32767.0);
+            } else if (right) {
+                val += ((double) dev->sgd[0].out_r * dev->sgd[0].vol_r) / 32767.0;
+                val += ((double) dev->sgd[2].out_r * dev->sgd[2].vol_r) / 32767.0;
+            } else {
+                val += ((double) dev->sgd[0].out_l * dev->sgd[0].vol_l) / 32767.0;
+                val += ((double) dev->sgd[2].out_l * dev->sgd[2].vol_l) / 32767.0;
+            }
+            return (int) val;
+
+        default: /* CD, video, aux, phone */
+            return 0;
+    }
+}
+
+/* one ADC frame as the codec makes it: record select, record gain
+   (1Ch: mute, 0 to +22.5 dB in 1.5 dB steps), ADC powerdown (26h PR0). */
+static void
+ac97_via_record_frame(ac97_via_t *dev, double rate, int *l, int *r)
+{
+    ac97_codec_t *codec = dev->audio_codec;
+    int           host_l;
+    int           host_r;
+    uint16_t      sel;
+    uint16_t      gain;
+
+    ac97_via_record_host_frame(dev, rate, &host_l, &host_r);
+
+    if (!codec || (codec->regs[0x26 >> 1] & 0x0100) || (codec->regs[0x1c >> 1] & 0x8000)) {
+        *l = *r = 0;
+        return;
+    }
+
+    sel  = codec->regs[0x1a >> 1];
+    gain = codec->regs[0x1c >> 1];
+
+    *l = ac97_via_record_source(dev, (sel >> 8) & 7, 0, host_l, host_r);
+    *r = ac97_via_record_source(dev, sel & 7, 1, host_l, host_r);
+
+    *l = (int) (*l * pow(10.0, (((gain >> 8) & 0x0f) * 1.5) / 20.0));
+    *r = (int) (*r * pow(10.0, ((gain & 0x0f) * 1.5) / 20.0));
+
+    *l = (*l < -32768) ? -32768 : ((*l > 32767) ? 32767 : *l);
+    *r = (*r < -32768) ? -32768 : ((*r > 32767) ? 32767 : *r);
+}
+
+/* the record channel's ADC, one frame per tick at the codec's PCM
+   L/R ADC rate (32h with variable rate on, else 48 kHz). Frames go into
+   the channel's FIFO in the channel's format (12h: 8-bit unsigned or
+   16-bit signed, mono = left); a full FIFO (the channel paused, flagged or
+   stopped) loses them, as the hardware's does. */
+static void
+ac97_via_poll_record(void *priv)
+{
+    ac97_via_sgd_t *sgd = (ac97_via_sgd_t *) priv;
+    ac97_via_t     *dev = sgd->dev;
+    uint8_t         frame[4];
+    uint8_t         len;
+    int             l;
+    int             r;
+
+    /* Run only while the channel does; it gives the host's input back. */
+    if (!(dev->sgd_regs[0x10] & 0x80)) {
+        ac97_via_record_input(dev, 0);
+        return;
+    }
+
+    timer_advance_u64(&sgd->poll_timer, sgd->timer_latch);
+
+    if (!dev->link_enabled)
+        return;
+
+    ac97_via_record_frame(dev, (double) TIMER_USEC * 1000000.0 / (double) sgd->timer_latch, &l, &r);
+
+    switch (dev->sgd_regs[0x12] & 0x30) {
+        case 0x00: /* Mono, 8-bit PCM */
+            frame[0] = (l >> 8) ^ 0x80;
+            len      = 1;
+            break;
+        case 0x10: /* Stereo, 8-bit PCM */
+            frame[0] = (l >> 8) ^ 0x80;
+            frame[1] = (r >> 8) ^ 0x80;
+            len      = 2;
+            break;
+        case 0x20: /* Mono, 16-bit PCM */
+            frame[0] = l & 0xff;
+            frame[1] = (l >> 8) & 0xff;
+            len      = 2;
+            break;
+        default: /* Stereo, 16-bit PCM */
+            frame[0] = l & 0xff;
+            frame[1] = (l >> 8) & 0xff;
+            frame[2] = r & 0xff;
+            frame[3] = (r >> 8) & 0xff;
+            len      = 4;
+            break;
+    }
+
+    if ((sgd->fifo_pos - sgd->fifo_end) > (sizeof(sgd->fifo) - len))
+        return;
+
+    for (uint8_t i = 0; i < len; i++)
+        sgd->fifo[sgd->fifo_pos++ & (sizeof(sgd->fifo) - 1)] = frame[i];
+}
+
+/* the host's input, as sound.c hands it over (interleaved stereo at
+   the capture rate). Kept within a quarter second of the ADC. */
+static void
+ac97_via_put_buffer(int16_t *buffer, int len, void *priv)
+{
+    ac97_via_t *dev      = (ac97_via_t *) priv;
+    const int   cap_rate = al_capture_get_rate();
+    uint32_t    keep;
+
+    if (!dev->in_started)
+        return;
+
+    dev->in_rate = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
+
+    for (int c = 0; c < len; c++) {
+        const uint32_t i = dev->in_wr % AC97_VIA_IN_RING;
+
+        dev->in_ring[i * 2]     = buffer[c * 2];
+        dev->in_ring[i * 2 + 1] = buffer[c * 2 + 1];
+        dev->in_wr++;
+    }
+
+    keep = (uint32_t) (dev->in_rate / 4);
+    if (keep > (AC97_VIA_IN_RING / 2))
+        keep = AC97_VIA_IN_RING / 2;
+    if ((dev->in_wr - dev->in_rd) > keep) {
+        dev->in_rd   = dev->in_wr - (keep / 2);
+        dev->in_frac = 0.0;
+    }
+}
+
 static void
 ac97_via_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
@@ -922,6 +1171,16 @@ ac97_via_speed_changed(void *priv)
     dev->sgd[0].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / freq));
     dev->sgd[2].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / 24000.0)); /* FM operates at a fixed 24 KHz */
 
+    /* the record channel runs at the codec's PCM L/R ADC rate, which
+       is variable only with the codec's VRA (2Ah bit 0) on as well. */
+    if (dev->vsr_enabled && dev->audio_codec && (dev->audio_codec->regs[0x2a >> 1] & AC97_VRA))
+        freq = ac97_codec_getrate(dev->audio_codec, 0x32);
+    else
+        freq = (double) SOUND_FREQ;
+    if (freq < 1000.0)
+        freq = (double) SOUND_FREQ;
+    dev->sgd[1].timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / freq));
+
     if (dev->modem_codec)
         freq = ac97_codec_getrate(dev->modem_codec, 0x40);
     else
@@ -948,7 +1207,7 @@ ac97_via_init(UNUSED(const device_t *info))
         dev->sgd[i].dev = dev;
 
         /* Disable the FIFO on SGDs we don't care about. */
-        if ((i != 0) && (i != 2) && (i != 4) && (i != 5))
+        if ((i != 0) && (i != 1) && (i != 2) && (i != 4) && (i != 5)) /* 1, the record channel, too */
             dev->sgd[i].always_run = 1;
 
         timer_add(&dev->sgd[i].dma_timer, ac97_via_sgd_process, &dev->sgd[i], 0);
@@ -956,6 +1215,7 @@ ac97_via_init(UNUSED(const device_t *info))
 
     /* Set up playback pollers. */
     timer_add(&dev->sgd[0].poll_timer, ac97_via_poll_stereo, &dev->sgd[0], 0);
+    timer_add(&dev->sgd[1].poll_timer, ac97_via_poll_record, &dev->sgd[1], 0); /* */
     timer_add(&dev->sgd[2].poll_timer, ac97_via_poll_fm, &dev->sgd[2], 0);
     timer_add(&dev->sgd[4].poll_timer, ac97_via_poll_modem, &dev->sgd[4], 0);
     timer_add(&dev->sgd[5].poll_timer, ac97_via_poll_modem_capture, &dev->sgd[5], 0);
@@ -963,6 +1223,9 @@ ac97_via_init(UNUSED(const device_t *info))
 
     /* Set up playback handler. */
     sound_add_handler(ac97_via_get_buffer, dev);
+
+    /* and the record channel's input. */
+    sound_in_add_handler(ac97_via_put_buffer, dev);
 
     return dev;
 }
@@ -974,13 +1237,15 @@ ac97_via_close(void *priv)
 
     ac97_via_log("AC97 VIA: close()\n");
 
+    ac97_via_record_input(dev, 0); /* */
+
     free(dev);
 }
 
 const device_t ac97_via_device = {
     .name          = "VIA VT82C686 Integrated AC97 Controller",
     .internal_name = "ac97_via",
-    .flags         = DEVICE_PCI,
+    .flags         = DEVICE_PCI | DEVICE_AUDIO_IN,
     .local         = 0,
     .init          = ac97_via_init,
     .close         = ac97_via_close,

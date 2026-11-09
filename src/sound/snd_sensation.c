@@ -26,7 +26,8 @@
  *          Copyright 2016-2025 Miran Grca.
  *          Copyright 2018-2025 TheCollector1995.
  *          Copyright 2026 win2kgamer
- */
+  *          Copyright 2026 Xeon3D.
+*/
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>
@@ -46,6 +47,7 @@
 #include <86box/pic.h>
 #include <86box/sound.h>
 #include <86box/snd_opl.h>
+#include <86box/snd_ymz263b.h>
 #include <86box/plat_unused.h>
 #include "cpu.h"
 #include <86box/log.h>
@@ -154,6 +156,14 @@ typedef struct sensation_t {
     int    wave_vol_r;
 
     void * log; /* New logging system */
+
+    /* the MMA's recording side. */
+    mma_rec_t rec;
+    int       rec_on[2];
+    int       rec_count[2];
+    int       rec_dma_ch;   /* interleaved DMA: the channel whose unit goes next */
+    int       rec_dma_byte; /* bytes of that unit already gone */
+    int       rec_above[2];  /* the FIFO was above its level at the last check */
 } sensation_t;
 
 void sensation_mma_timer_poll(void *priv);
@@ -381,6 +391,180 @@ sensation_getsamp_dma(sensation_t *dev, int channel)
         sensation_update_mma_irq_status(dev);
         dma_set_drq(dev->mma_dma, 0);
     }
+}
+
+/* the MMA's recording (ADC). A channel records while GO is set with
+   P/R clear (interleaved, channel 1 follows channel 0's P/R, FREQ and GO).
+   Its samples go into the channel's FIFO in its data format; with ENB the
+   DMA takes them out (alternating channels by sample when interleaved), or
+   the CPU reads them from register 0Bh. The FIFO flag rises as more than
+   the FIFO INT level come to wait; a full FIFO drops samples and sets OV. */
+static int
+sensation_mma_fifo_fill(const sensation_t *dev, int ch)
+{
+    return (dev->sensation_mma_fifo_end[ch] - dev->sensation_mma_fifo_start[ch]) & 255;
+}
+
+static void
+sensation_mma_rec_flags(sensation_t *dev)
+{
+    for (int ch = 0; ch < 2; ch++) {
+        int above;
+
+        if (!dev->rec_on[ch])
+            continue;
+        /* The flag rises as the FIFO passes the level, not again while it
+           stays above: drivers read the status (clearing it) and leave the
+           FIFO to the DMA, and a flag raised anew at every sample made an
+           interrupt with nothing to say every sample period. */
+        above = sensation_mma_fifo_fill(dev, ch) > mma_rec_fifo_level(dev->sensation_mma_regs[ch][0xc]);
+        if (above && !dev->rec_above[ch])
+            dev->sensation_mma_status |= (1 << ch);
+        else if (!above)
+            dev->sensation_mma_status &= ~(1 << ch);
+        dev->rec_above[ch] = above;
+    }
+    sensation_update_mma_irq_status(dev);
+}
+
+static uint8_t
+sensation_mma_fifo_read(sensation_t *dev, int ch)
+{
+    uint8_t ret;
+
+    /* Only a recording channel gives its FIFO to the CPU; a playing one
+       reads back the register as before, so a stray read cannot take a
+       byte of a 12-bit pair from the playback FIFO. */
+    if (dev->sensation_mma_regs[ch][9] & MMA_R9_PLAY)
+        return dev->sensation_mma_regs[ch][0xb];
+    if (!sensation_mma_fifo_fill(dev, ch))
+        return 0x00;
+
+    ret                                = dev->sensation_mma_fifo[ch][dev->sensation_mma_fifo_start[ch]];
+    dev->sensation_mma_fifo_start[ch] = (dev->sensation_mma_fifo_start[ch] + 1) & 255;
+    sensation_mma_rec_flags(dev);
+
+    return ret;
+}
+
+/* Whether channel ch records, and the host's input open while any does. */
+static void
+sensation_mma_rec_update(sensation_t *dev)
+{
+    const uint8_t r9_0 = dev->sensation_mma_regs[0][9];
+    const int     ilv  = dev->sensation_mma_regs[0][0xc] & MMA_RC_ILV;
+    int           on[2];
+
+    on[0] = ((r9_0 & (MMA_R9_RST | MMA_R9_PLAY | MMA_R9_GO)) == MMA_R9_GO);
+    if (ilv)
+        on[1] = on[0];
+    else
+        on[1] = ((dev->sensation_mma_regs[1][9] & (MMA_R9_RST | MMA_R9_PLAY | MMA_R9_GO)) == MMA_R9_GO);
+
+    for (int ch = 0; ch < 2; ch++) {
+        if (on[ch] && !dev->rec_on[ch]) {
+            dev->rec_count[ch] = mma_rec_period(dev->sensation_mma_regs[ilv ? 0 : ch][9]);
+            mma_rec_adpcm_reset(&dev->rec, ch);
+            dev->rec_above[ch] = 0;
+            dev->rec_dma_ch   = 0;
+            dev->rec_dma_byte = 0;
+        } else if (!on[ch] && dev->rec_on[ch])
+            dev->sensation_mma_status &= ~(1 << ch);
+        dev->rec_on[ch] = on[ch];
+    }
+
+    mma_rec_input(&dev->rec, on[0] || on[1]);
+    if (!on[0] && !on[1])
+        sensation_update_mma_irq_status(dev);
+}
+
+/* The ADC's input for a channel: the host's input, left on channel 0 and
+   right on channel 1. Which of the VIS mixer's sources (mic, line, CD...)
+   reach the MMA's ADC, and through which MB87077 volume, is unknown. */
+static int
+sensation_mma_rec_source(sensation_t *dev, int ch)
+{
+    return ch ? dev->rec.r : dev->rec.l;
+}
+
+static void
+sensation_mma_rec_push(sensation_t *dev, int ch, uint8_t reg9)
+{
+    uint8_t   bytes[2];
+    const int n = mma_rec_encode(&dev->rec, ch, sensation_mma_rec_source(dev, ch), reg9,
+                                 dev->sensation_mma_regs[ch][0xc], bytes);
+
+    for (int i = 0; i < n; i++) {
+        if (sensation_mma_fifo_fill(dev, ch) >= 128) {
+            dev->sensation_mma_status |= 0x80; /* overrun */
+            break;
+        }
+        dev->sensation_mma_fifo[ch][dev->sensation_mma_fifo_end[ch]] = bytes[i];
+        dev->sensation_mma_fifo_end[ch]                              = (dev->sensation_mma_fifo_end[ch] + 1) & 255;
+    }
+}
+
+/* One byte from a channel's FIFO to the DMA; 0 when the DMA takes none. */
+static int
+sensation_mma_rec_dma_byte(sensation_t *dev, int ch)
+{
+    if (!sensation_mma_fifo_fill(dev, ch))
+        return 0;
+    if (dma_channel_write(dev->mma_dma, dev->sensation_mma_fifo[ch][dev->sensation_mma_fifo_start[ch]]) == DMA_NODATA)
+        return 0;
+    dev->sensation_mma_fifo_start[ch] = (dev->sensation_mma_fifo_start[ch] + 1) & 255;
+    return 1;
+}
+
+static void
+sensation_mma_rec_dma(sensation_t *dev, int ch)
+{
+    const int ilv = (ch == 0) && (dev->sensation_mma_regs[0][0xc] & MMA_RC_ILV);
+
+    if (!(dev->sensation_mma_regs[ch][0xc] & MMA_RC_ENB))
+        return;
+
+    dma_set_drq(dev->mma_dma, 1);
+    if (ilv) {
+        const int unit = mma_rec_unit(dev->sensation_mma_regs[0][9], dev->sensation_mma_regs[0][0xc]);
+
+        for (;;) {
+            const int c = dev->rec_dma_ch;
+
+            /* A unit only starts when both channels have one waiting. */
+            if (!dev->rec_dma_byte && ((sensation_mma_fifo_fill(dev, c) < unit) || (sensation_mma_fifo_fill(dev, c ^ 1) < unit)))
+                break;
+            if (!sensation_mma_rec_dma_byte(dev, c))
+                break;
+            if (++dev->rec_dma_byte >= unit) {
+                dev->rec_dma_byte = 0;
+                dev->rec_dma_ch ^= 1;
+            }
+        }
+    } else
+        while (sensation_mma_rec_dma_byte(dev, ch))
+            ;
+    if (!sensation_mma_fifo_fill(dev, ch))
+        dma_set_drq(dev->mma_dma, 0);
+}
+
+static void
+sensation_mma_rec_tick(sensation_t *dev, int ch)
+{
+    const int     ilv  = (ch == 0) && (dev->sensation_mma_regs[0][0xc] & MMA_RC_ILV);
+    const uint8_t reg9 = dev->sensation_mma_regs[ch][9];
+
+    /* Both channels sample the same input frame; channel 0 moves it on, or
+       channel 1 when it records alone. */
+    if ((ch == 0) || !dev->rec_on[0])
+        mma_rec_next_frame(&dev->rec, 1000000.0 / (mma_rec_period(reg9) * 1.88964));
+
+    sensation_mma_rec_push(dev, ch, reg9);
+    if (ilv)
+        sensation_mma_rec_push(dev, 1, reg9);
+
+    sensation_mma_rec_dma(dev, ch);
+    sensation_mma_rec_flags(dev);
 }
 
 /* The mixer registers: set 0 is CD (channels 0/1) and MIDI (2/3), set 1 is
@@ -616,7 +800,7 @@ sensation_mma_write(uint16_t addr, uint8_t val, void *priv)
                         sensation_update_mma_irq_status(dev);
                         dma_set_drq(dev->mma_dma, 0);
                     }
-                    if (val & 0x01) /*Start playback*/
+                    if ((val & 0x01) && (val & MMA_R9_PLAY)) /*Start playback; not when recording*/
                     {
                         if (!(dev->sensation_mma_regs[0][0x9] & 1))
                             dev->sensation_mma.voice_count[0] = dev->sensation_mma.voice_latch[0];
@@ -720,6 +904,8 @@ sensation_mma_write(uint16_t addr, uint8_t val, void *priv)
                     break;
             }
             dev->sensation_mma_regs[0][dev->sensation_mma_addr] = val;
+            if ((dev->sensation_mma_addr == 0x9) || (dev->sensation_mma_addr == 0xc))
+                sensation_mma_rec_update(dev);
             break;
         case 7:
             if (dev->sensation_mma_addr >= 0xe)
@@ -751,7 +937,7 @@ sensation_mma_write(uint16_t addr, uint8_t val, void *priv)
                         sensation_update_mma_irq_status(dev);
                         dma_set_drq(dev->mma_dma, 0);
                     }
-                    if (val & 0x01) /*Start playback*/
+                    if ((val & 0x01) && (val & MMA_R9_PLAY)) /*Start playback; not when recording*/
                     {
                         if (!(dev->sensation_mma_regs[1][0x9] & 1))
                             dev->sensation_mma.voice_count[1] = dev->sensation_mma.voice_latch[1];
@@ -787,6 +973,8 @@ sensation_mma_write(uint16_t addr, uint8_t val, void *priv)
                     break;
             }
             dev->sensation_mma_regs[1][dev->sensation_mma_addr] = val;
+            if ((dev->sensation_mma_addr == 0x9) || (dev->sensation_mma_addr == 0xc))
+                sensation_mma_rec_update(dev);
             break;
 
         default:
@@ -893,6 +1081,10 @@ sensation_mma_read(uint16_t addr, void *priv)
                     temp = dev->sensation_mma.timer2_read >> 8;
                     break;
 
+                case 0xb: /* PCM data (the record FIFO) */
+                    temp = sensation_mma_fifo_read(dev, 0);
+                    break;
+
                 case 0xe:
                     temp = 0;
                     if (dev->uart_in) {
@@ -916,6 +1108,8 @@ sensation_mma_read(uint16_t addr, void *priv)
         case 7:
             if (dev->sensation_mma_addr >= 0xf)
                 temp = 0xff;
+            else if (dev->sensation_mma_addr == 0xb) /* PCM data (the record FIFO) */
+                temp = sensation_mma_fifo_read(dev, 1);
             else
                 temp = dev->sensation_mma_regs[1][dev->sensation_mma_addr];
             break;
@@ -1042,14 +1236,26 @@ sensation_mma_timer_poll(void *priv)
         }
     }
 
-    if (dev->sensation_mma_enable[0]) {
+    /* a recording channel samples instead (an interleaved pair on
+       channel 0's clock). */
+    if (dev->rec_on[0]) {
+        if (--dev->rec_count[0] <= 0) {
+            dev->rec_count[0] = mma_rec_period(dev->sensation_mma_regs[0][9]);
+            sensation_mma_rec_tick(dev, 0);
+        }
+    } else if (dev->sensation_mma_enable[0]) {
         dev->sensation_mma.voice_count[0]--;
         if (!dev->sensation_mma.voice_count[0]) {
             dev->sensation_mma.voice_count[0] = dev->sensation_mma.voice_latch[0];
             sensation_mma_poll(dev, 0);
         }
     }
-    if (dev->sensation_mma_enable[1]) {
+    if (dev->rec_on[1]) {
+        if (!(dev->rec_on[0] && (dev->sensation_mma_regs[0][0xc] & MMA_RC_ILV)) && (--dev->rec_count[1] <= 0)) {
+            dev->rec_count[1] = mma_rec_period(dev->sensation_mma_regs[1][9]);
+            sensation_mma_rec_tick(dev, 1);
+        }
+    } else if (dev->sensation_mma_enable[1]) {
         dev->sensation_mma.voice_count[1]--;
         if (!dev->sensation_mma.voice_count[1]) {
             dev->sensation_mma.voice_count[1] = dev->sensation_mma.voice_latch[1];
@@ -1181,6 +1387,7 @@ sensation_init(const device_t *info)
     timer_add(&dev->visdac_timer_count, sensation_visdac_poll, dev, 1);
 
     sound_add_handler(sensation_get_buffer, dev);
+    sound_in_add_handler(mma_rec_put_buffer, &dev->rec); /* */
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, sensation_input_msg, sensation_input_sysex, sensation_input_remain, dev);
@@ -1227,6 +1434,8 @@ sensation_close(void *priv)
 {
     sensation_t *dev = (sensation_t *) priv;
 
+    mma_rec_input(&dev->rec, 0); /* */
+
     if (dev->log != NULL) {
         log_close(dev->log);
         dev->log = NULL;
@@ -1255,7 +1464,7 @@ static const device_config_t sensation_config[] = {
 const device_t sensationaud_device = {
     .name          = "Tandy Sensation/VIS audio",
     .internal_name = "sensationaud",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA | DEVICE_AUDIO_IN, /* MMA recording */
     .local         = 0,
     .init          = sensation_init,
     .close         = sensation_close,
