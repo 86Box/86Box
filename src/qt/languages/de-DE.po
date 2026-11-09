@@ -2479,7 +2479,7 @@ msgid "Snow emulation"
 msgstr "Schnee-Emulation"
 
 msgid "Display Enhancement Board (GO329)"
-msgstr "Anzeigenerweiterungskarte"
+msgstr "Anzeigenerweiterungskarte (GO329)"
 
 msgid "Monitor type"
 msgstr "Monitor-Typ"
