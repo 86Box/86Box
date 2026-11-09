@@ -181,9 +181,14 @@ x86_doabrt(int x86_abrt)
 
     task_eip_pending = 0;
     if (msw & 1) {
+        /* A fault: the EFLAGS image the handler gets has RF set, so that its
+           IRET restarts the instruction without an instruction breakpoint on
+           it firing again. The handler itself runs with RF clear. */
+        cpu_state.eflags |= RF_FLAG;
         task_error_follows = 1;
         op_pmodeint(x86_abrt, 0);
         task_error_follows = 0;
+        cpu_state.eflags &= ~RF_FLAG;
     } else {
         uint32_t addr = (x86_abrt << 2) + idt.base;
         if (stack32) {
@@ -619,7 +624,7 @@ loadcs(uint16_t seg)
             do_seg_load(&cpu_state.seg_cs, segdat);
             use32 = (segdat[3] & 0x40) ? 0x300 : 0;
             if ((CPL == 3) && (oldcpl != 3))
-                flushmmucache_nopc();
+                flushmmucache_ring3();
             oldcpl = CPL;
 
             cpl_override = 1;
@@ -643,7 +648,7 @@ loadcs(uint16_t seg)
         cpu_state.seg_cs.ar_high    = 0x10;
         cpu_state.seg_cs.checked    = 1;
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_nopc();
+            flushmmucache_ring3();
         oldcpl = CPL;
     }
 }
@@ -766,7 +771,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
 
             do_seg_load(&cpu_state.seg_cs, segdat);
             if ((CPL == 3) && (oldcpl != 3))
-                flushmmucache_nopc();
+                flushmmucache_ring3();
             oldcpl = CPL;
             cycles -= timing_jmp_pm;
         } else { /* System segment */
@@ -845,7 +850,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
                                 cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (jmp_cpl << 5);
                             }
                             if ((CPL == 3) && (oldcpl != 3))
-                                flushmmucache_nopc();
+                                flushmmucache_ring3();
                             oldcpl = CPL;
                             set_use32(segdat[3] & 0x40);
                             cpu_state.pc = newpc;
@@ -890,7 +895,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
         cpu_state.seg_cs.ar_high    = 0x10;
         cpu_state.seg_cs.checked    = 1;
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_nopc();
+            flushmmucache_ring3();
         oldcpl = CPL;
         cycles -= timing_jmp_rm;
     }
@@ -1085,7 +1090,7 @@ loadcscall(uint16_t seg, uint32_t old_pc)
             CS = seg;
             do_seg_load(&cpu_state.seg_cs, segdat);
             if ((CPL == 3) && (oldcpl != 3))
-                flushmmucache_nopc();
+                flushmmucache_ring3();
             oldcpl = CPL;
 #ifdef ENABLE_X86SEG_LOG
             x86seg_log("Complete\n");
@@ -1226,7 +1231,7 @@ loadcscall(uint16_t seg, uint32_t old_pc)
                                 CS = (seg2 & ~3) | DPL;
                                 do_seg_load(&cpu_state.seg_cs, segdat);
                                 if ((CPL == 3) && (oldcpl != 3))
-                                    flushmmucache_nopc();
+                                    flushmmucache_ring3();
                                 oldcpl = CPL;
                                 set_use32(segdat[3] & 0x0040);
                                 cpu_state.pc = newpc;
@@ -1340,7 +1345,7 @@ loadcscall(uint16_t seg, uint32_t old_pc)
                                 cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (call_cpl << 5);
                             }
                             if ((CPL == 3) && (oldcpl != 3))
-                                flushmmucache_nopc();
+                                flushmmucache_ring3();
                             oldcpl = CPL;
                             set_use32(segdat[3] & 0x0040);
                             cpu_state.pc = newpc;
@@ -1386,7 +1391,7 @@ loadcscall(uint16_t seg, uint32_t old_pc)
         cpu_state.seg_cs.ar_high    = 0x10;
         cpu_state.seg_cs.checked    = 1;
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_nopc();
+            flushmmucache_ring3();
         oldcpl = CPL;
     }
 }
@@ -1504,7 +1509,7 @@ pmoderetf(int is32, uint16_t off)
         do_seg_load(&cpu_state.seg_cs, segdat);
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~(3 << 5)) | ((CS & 3) << 5);
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_nopc();
+            flushmmucache_ring3();
         oldcpl = CPL;
         set_use32(segdat[3] & 0x0040);
 
@@ -1621,7 +1626,7 @@ pmoderetf(int is32, uint16_t off)
         CS           = seg;
         do_seg_load(&cpu_state.seg_cs, segdat);
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_nopc();
+            flushmmucache_ring3();
         oldcpl = CPL;
         set_use32(segdat[3] & 0x0040);
 
@@ -1671,7 +1676,7 @@ pmodeint(int num, int soft)
     if ((addr + 7) > idt.limit) {
         if (num == 0x08) {
             /* Triple fault - reset! */
-            softresetx86();
+            softresetx86_from(SOFT_RESET_SHUTDOWN);
             cpu_set_edx();
         } else if (num == 0x0d) {
             op_pmodeint(8, 0);
@@ -1914,7 +1919,7 @@ pmodeint(int num, int soft)
             CS                      = (seg & 0xfffc) | new_cpl;
             cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (new_cpl << 5);
             if ((CPL == 3) && (oldcpl != 3))
-                flushmmucache_nopc();
+                flushmmucache_ring3();
             oldcpl = CPL;
             if (type > 0x0800)
                 cpu_state.pc = segdat[0] | (segdat[3] << 16);
@@ -2132,7 +2137,7 @@ pmodeiret(int is32)
             cpu_state.seg_cs.ar_high    = 0x10;
             cpu_state.seg_cs.checked    = 1;
             if ((CPL == 3) && (oldcpl != 3))
-                flushmmucache_nopc();
+                flushmmucache_ring3();
             oldcpl = CPL;
 
             ESP = newsp;
@@ -2222,7 +2227,7 @@ pmodeiret(int is32)
         do_seg_load(&cpu_state.seg_cs, segdat);
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | ((CS & 0x0003) << 5);
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_nopc();
+            flushmmucache_ring3();
         oldcpl = CPL;
         set_use32(segdat[3] & 0x0040);
 
@@ -2309,7 +2314,7 @@ pmodeiret(int is32)
         do_seg_load(&cpu_state.seg_cs, segdat);
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | ((CS & 3) << 5);
         if ((CPL == 3) && (oldcpl != 3))
-            flushmmucache_nopc();
+            flushmmucache_ring3();
         oldcpl = CPL;
         set_use32(segdat[3] & 0x40);
 

@@ -87,6 +87,17 @@ enum {
 };
 #endif
 
+/* The bridge of a hard disk on bus LPT. */
+enum {
+    HDD_LPT_ON26 = 0, /* OnSpec 90c26 */
+    HDD_LPT_EPAT = 1, /* Shuttle EPAT */
+    HDD_LPT_EPIA = 2, /* Shuttle EPIA */
+    HDD_LPT_BPCK = 3, /* MicroSolutions BackPack */
+    HDD_LPT_FRPW = 4, /* Freecom Power */
+    HDD_LPT_FRIQ = 5, /* Freecom IQ */
+    HDD_LPT_BRIDGES
+};
+
 enum {
     HDD_OP_SEEK  = 0,
     HDD_OP_READ  = 2,
@@ -169,7 +180,7 @@ typedef struct hard_disk_t {
                                         READ-ONLY */
     uint8_t            raw_device;   /* Path is a raw block device
                                         (e.g. /dev/sdX, /dev/diskN) */
-    uint8_t            pad0;
+    uint8_t            lpt_bridge;   /* Bus LPT: HDD_LPT_* */
 
     void              *priv;
 
@@ -217,6 +228,14 @@ typedef struct hard_disk_t {
     double             head_switch_usec;
     double             cyl_switch_usec;
 } hard_disk_t;
+
+#ifdef EMU_DEVICE_H
+extern const device_t *hdd_lpt_bridge_device(int bridge);
+#endif
+extern const char *hdd_lpt_bridge_get_internal_name(int bridge);
+extern int         hdd_lpt_bridge_get_from_internal_name(const char *s);
+extern const char *hdd_lpt_bridge_get_name(int bridge);
+extern int         cdrom_lpt_bridge_valid(int bridge);
 
 extern hard_disk_t  hdd[HDD_SLOTS];
 extern unsigned int hdd_table[128][3];

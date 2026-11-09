@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-02 03:39+0000\n"
-"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
+"PO-Revision-Date: 2026-11-08 13:36+0000\n"
+"Last-Translator: Broifonn_9 <molodchina812@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
 "MIME-Version: 1.0\n"
@@ -152,10 +152,10 @@ msgid "4:&3 Integer scale"
 msgstr "4:&3 целочисленное масштабирование"
 
 msgid "&Center"
-msgstr ""
+msgstr "По ц&ентру"
 
 msgid "4:3 Cen&ter"
-msgstr ""
+msgstr "По цен&тру, 4:3"
 
 msgid "Inverted VGA monitor"
 msgstr "Инвертировать цвета VGA"
@@ -416,34 +416,34 @@ msgid "Memory:"
 msgstr "Память:"
 
 msgid "Synchronize with host clock"
-msgstr ""
+msgstr "Синхронизировать с системными часами"
 
 msgid "Time zone:"
-msgstr ""
+msgstr "Часовой пояс:"
 
 msgid "Local"
-msgstr ""
+msgstr "Местный"
 
 msgid "UTC"
-msgstr ""
+msgstr "UTC"
 
 msgid "Date:"
-msgstr ""
+msgstr "Дата:"
 
 msgid "Match the host"
-msgstr ""
+msgstr "Соответствовать системной"
 
 msgid "Offset the year by:"
-msgstr ""
+msgstr "Сместить год на:"
 
 msgid "(currently %1)"
-msgstr ""
+msgstr "(сейчас %1)"
 
 msgid "Always use the year:"
-msgstr ""
+msgstr "Всегда использовать год:"
 
 msgid "Do not synchronize the date"
-msgstr ""
+msgstr "Не синхронизировать дату"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Использовать интерпретатор 486 для процессоров 286 и 386"
@@ -458,7 +458,7 @@ msgid "Block linking on the dynamic recompiler"
 msgstr "Связывание блоков в динамическом рекомпиляторе"
 
 msgid "Debug registers on 486 and later processors"
-msgstr ""
+msgstr "Настроить регистры на процессорах 486 и новее"
 
 msgid "CPU frame size"
 msgstr "Размер кадра ЦП"
@@ -489,6 +489,9 @@ msgstr "Ускоритель XGA"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Graphics"
+
+msgid "PowerVR PCX1/PCX2 Graphics"
+msgstr "Ускоритель PowerVR PCX1/PCX2"
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -653,10 +656,12 @@ msgid "Cassette"
 msgstr "Кассетный магнитофон"
 
 msgid "Turbo IDE"
-msgstr ""
+msgstr "Турбо-IDE"
 
 msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
 msgstr ""
+"Убирает ограничение скорости режима передачи данных IDE. Тайминги жёстких "
+"дисков и CD-ROM все ещё применяются."
 
 msgid "Hard disks:"
 msgstr "Жёсткие диски:"
@@ -1328,29 +1333,31 @@ msgid "Delete virtual machines to Recycle Bin"
 msgstr "Удалять виртуальные машины в Корзину"
 
 msgid "Discord"
-msgstr ""
+msgstr "Discord"
 
 msgid "Show running machines in my Discord status"
-msgstr ""
+msgstr "Показать работающие машины в моём статусе Discord"
 
 msgid "Details shown:"
-msgstr ""
+msgstr "Показанные детали:"
 
 msgid "Machine name and hardware"
-msgstr ""
+msgstr "Название машины и её аппаратное обеспечение"
 
 msgid "Hardware only"
-msgstr ""
+msgstr "Только аппаратное обеспечение"
 
 msgid "No details"
-msgstr ""
+msgstr "Не показывать детали"
 
 msgid "Using %1"
-msgstr ""
+msgstr "Используется %1"
 
 msgid "%n machine(s) active"
 msgid_plural "%n machines active"
-msgstr[0] ""
+msgstr[0] "%n машина активна"
+msgstr[1] "%n машин активны"
+msgstr[2] "%n машин активно"
 
 msgid " (+%n more)"
 msgid_plural " (+%n more)"
@@ -3154,7 +3161,7 @@ msgid "Key bindings"
 msgstr "Привязки клавиш"
 
 msgid "VM Manager"
-msgstr ""
+msgstr "Менеджер виртуальных машин"
 
 msgid "Action"
 msgstr "Действие"
@@ -3618,57 +3625,513 @@ msgstr "Порог яркости (%)"
 
 msgid "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded."
 msgstr ""
+"VFIO: Невозможно открыть /dev/vfio/vfio: %s. Убедитесь, что модуль vfio-pci "
+"загружен."
 
 msgid "VFIO %s: Invalid device location."
-msgstr ""
+msgstr "VFIO %s: Неверное расположение устройства."
 
 msgid "VFIO %s: Device not found."
-msgstr ""
+msgstr "VFIO %s: Устройство не найдено."
 
 msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
+"VFIO %s: Устройство не имеет IOMMU-группу. Убедитесь, что в вашей системе "
+"включены VT-d или IOMMU."
 
 msgid "VFIO %s: Device is not bound to vfio-pci."
-msgstr ""
+msgstr "VFIO %s: Устройство не привязано к vfio-pci."
 
 msgid "VFIO %s: Could not open IOMMU group %d: %s"
-msgstr ""
+msgstr "VFIO %s: Невозможно открыть IOMMU-группу %d: %s"
 
 msgid "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci."
 msgstr ""
+"VFIO %s: IOMMU-группа %d неработоспособна. Все устройства в группе должны "
+"быть привязаны к vfio-pci."
 
 msgid "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low."
 msgstr ""
+"VFIO: Невозможно отобразить гостевую память для DMA: %s. Возможно, лимит "
+"заблокированной памяти (ulimit -l) слишком низкий."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
 msgstr ""
+"VFIO %s: Невозможно прочитать файл ПЗУ \"%s\"; будет использоваться "
+"собственный файл ПЗУ устройства."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
-msgstr ""
+msgstr "VFIO %s: Невозможно прочитать файл ПЗУ \"%s\"; ПЗУ-файл будет выключен."
 
 msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
 msgstr ""
+"VFIO %s: Файл ПЗУ выглядит недействительным. Через настройки VFIO можно "
+"загрузить собственный файл ПЗУ."
 
 msgid "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?"
 msgstr ""
+"VFIO: Эти устройства необходимо привязать к vfio-pci, что требует прав "
+"администратора:\n"
+"\n"
+"%s\n"
+"Привязать эти устройства сейчас?"
 
 msgid "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?"
 msgstr ""
+"VFIO: Для предоставления 86Box доступа к проброшенным устройствам необходимы "
+"права администратора. Продолжить?"
 
 msgid "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:"
 msgstr ""
+"Эти устройства не были выбраны, но они делят группу IOMMU с уже выбранным "
+"устройством, так что они также будут привязаны:"
 
 msgid "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci."
 msgstr ""
+"VFIO %s: IOMMU -группа %d также содержит %s, который требует основная "
+"система. Группа не будет привязана к vfio-pci."
 
 msgid "VFIO: Could not prepare the devices for passthrough:\n%s"
 msgstr ""
+"VFIO: Не удалось подготовить устройства для проброса:\n"
+"%s"
 
 msgid "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s"
 msgstr ""
+"VFIO: Не удалось запросить права администратора. Чтобы подготовить "
+"устройства для проброса, выполните эту команду, а затем перезагрузитесь:\n"
+"\n"
+"%s"
 
 msgid "Prepare PCI devices for VFIO passthrough"
-msgstr ""
+msgstr "Подготовить устройства PCI для VFIO-проброса"
 
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
+msgstr ""
+"Для подготовки устройств PCI для проброса в 86Box требуется аутентификация."
+
+msgid "Disabled"
+msgstr "Отключить"
+
+msgid "Unlimited capacity"
+msgstr "Неограниченная емкость"
+
+msgid "CD speed:"
+msgstr "Скорость CD:"
+
+msgid "DVD speed:"
+msgstr "Скорость DVD:"
+
+msgid "HD/BD speed:"
+msgstr "Скорость HD/BD:"
+
+msgid "Software-initiated poweroff device (IBM 5140)"
+msgstr "Программный выключатель питания (IBM 5140)"
+
+msgid "Memory &viewer"
+msgstr ""
+
+msgid "The emulator is busy; the memory view was not updated."
+msgstr ""
+
+msgid "The match is not on mapped memory; the selection and the view did not move."
+msgstr ""
+
+msgid "Only RAM and video memory can be written."
+msgstr ""
+
+msgid "not written (not writable RAM or video memory, or the emulator is busy)."
+msgstr ""
+
+msgid "The emulator is busy; try again."
+msgstr ""
+
+msgid "Copied %1 bytes from %2 to the clipboard"
+msgstr ""
+
+msgid " (%1 could not be read)"
+msgstr ""
+
+msgid " of a %1 byte selection"
+msgstr ""
+
+msgid "There is no mapped memory to search."
+msgstr ""
+
+msgid "There is no mapped memory in the requested range."
+msgstr ""
+
+msgid "The search is limited to %1 bytes."
+msgstr ""
+
+msgid "Searching memory..."
+msgstr ""
+
+msgid "The search was cancelled. The selection did not move."
+msgstr ""
+
+msgid "Found at %1."
+msgstr ""
+
+msgid "Not found. The selection did not move."
+msgstr ""
+
+msgid "Fill selection"
+msgstr ""
+
+msgid "Fill %1 bytes from %2 with (hex):"
+msgstr ""
+
+msgid "Enter a hex byte from 00 to FF."
+msgstr ""
+
+msgid "Filled %1 of %2 bytes with %3 (%4 were not writable RAM or video memory)."
+msgstr ""
+
+msgid " Selected: %1 bytes (%2 were skipped)."
+msgstr ""
+
+msgid "Edit byte"
+msgstr ""
+
+msgid "Copy selection (hex)"
+msgstr ""
+
+msgid "Copy selection (ASCII)"
+msgstr ""
+
+msgid "Fill selection..."
+msgstr ""
+
+msgid "Copy address"
+msgstr ""
+
+msgid "Disassemble here"
+msgstr ""
+
+msgid "Dump memory from here..."
+msgstr ""
+
+msgid "Memory viewer"
+msgstr ""
+
+msgid "Pause / Resume"
+msgstr ""
+
+msgid "Step"
+msgstr ""
+
+msgid "Run the given number of instructions (F11)"
+msgstr ""
+
+msgid "Instructions per step"
+msgstr ""
+
+msgid "Physical"
+msgstr ""
+
+msgid "Address, register or seg:off"
+msgstr ""
+
+msgid "Go"
+msgstr ""
+
+msgid "Live update"
+msgstr ""
+
+msgid "Dump..."
+msgstr ""
+
+msgid "Commands"
+msgstr ""
+
+msgid "Show or hide debugger commands (Ctrl+D)"
+msgstr ""
+
+msgid "Hex bytes"
+msgstr ""
+
+msgid "ASCII text"
+msgstr ""
+
+msgid "Value, byte"
+msgstr ""
+
+msgid "Value, word"
+msgstr ""
+
+msgid "Value, dword"
+msgstr ""
+
+msgid "What to look for: raw hex bytes, text, or a hex value stored little-endian, as in the hex view."
+msgstr ""
+
+msgid "Memory search"
+msgstr ""
+
+msgid "Ctrl+F focuses this box; Enter or F3 finds the next match, Shift+F3 the previous."
+msgstr ""
+
+msgid "Find previous"
+msgstr ""
+
+msgid "Search upwards from the selection (Shift+F3)"
+msgstr ""
+
+msgid "Find next"
+msgstr ""
+
+msgid "Search downwards from the selection (F3)"
+msgstr ""
+
+msgid "Range..."
+msgstr ""
+
+msgid "Search within an address range instead of all memory"
+msgstr ""
+
+msgid "From"
+msgstr ""
+
+msgid "Where the search starts (hex, register or seg:off; empty means the first mapped byte; . means the selection start)."
+msgstr ""
+
+msgid "To (inclusive)"
+msgstr ""
+
+msgid "Where the search ends, that address included (hex, register or seg:off; empty means the last mapped byte; . means the selection end)."
+msgstr ""
+
+msgid "Range from"
+msgstr ""
+
+msgid "to"
+msgstr ""
+
+msgid "RAM"
+msgstr ""
+
+msgid "Mapped, not RAM"
+msgstr ""
+
+msgid "Unmapped"
+msgstr ""
+
+msgid "Inaccessible"
+msgstr ""
+
+msgid "Inaccessible: only device handlers answer there (reading would have side effects), or the linear page is not present."
+msgstr ""
+
+msgid "Linear address, register or seg:off"
+msgstr ""
+
+msgid "Follow CS:IP"
+msgstr ""
+
+msgid "Bytes"
+msgstr ""
+
+msgid "Instruction"
+msgstr ""
+
+msgid "Note"
+msgstr ""
+
+msgid "Double-click a line to set or clear a breakpoint there"
+msgstr ""
+
+msgid "Disassembly"
+msgstr ""
+
+msgid "Disassembly (not available in this build)"
+msgstr ""
+
+msgid "Viewer message"
+msgstr ""
+
+msgid "Selected range"
+msgstr ""
+
+msgid "Debugger commands"
+msgstr ""
+
+msgid "Debugger command output"
+msgstr ""
+
+msgid "Debugger command"
+msgstr ""
+
+msgid "help — commands; Up/Down — history; . — selected address"
+msgstr ""
+
+msgid "Commands share the memory viewer's address space and selection. Type help for commands."
+msgstr ""
+
+msgid "Let the processor run (F5)"
+msgstr ""
+
+msgid "Stop the processor at the next instruction (F5)"
+msgstr ""
+
+msgid "Too many breakpoints."
+msgstr ""
+
+msgid "Stopped: %1"
+msgstr ""
+
+msgid "The emulator is busy; the view was not updated."
+msgstr ""
+
+msgid "Stopped at a breakpoint."
+msgstr ""
+
+msgid "Stopped after stepping."
+msgstr ""
+
+msgid "Stopped."
+msgstr ""
+
+msgid "Stepping..."
+msgstr ""
+
+msgid "Running."
+msgstr ""
+
+msgid "The emulator is paused; resume it to run or step."
+msgstr ""
+
+msgid "The dynamic recompiler is off while this window is open."
+msgstr ""
+
+msgid "Enter an address."
+msgstr ""
+
+msgid "The selector cannot be looked up."
+msgstr ""
+
+msgid "Unknown segment \"%1\"."
+msgstr ""
+
+msgid "Unknown offset \"%1\"."
+msgstr ""
+
+msgid "The linear address is not mapped to physical memory."
+msgstr ""
+
+msgid "\"%1\" is not an address or a register."
+msgstr ""
+
+msgid "Usage: %1"
+msgstr ""
+
+msgid "The selection is physical; use a linear address or switch to linear space."
+msgstr ""
+
+msgid "r name [hex-value]: read or edit a register supported by the current processor.\nEAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH DH BH\nIP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\nGDTR.base GDTR.limit IDTR.base IDTR.limit LDTR TR\nCS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (hidden descriptor cache)\nSelectors load descriptors without executing guest instructions; cache fields are literal edits.\nWrites require pause at a complete instruction boundary. NEC 8080-mode register edits are unavailable."
+msgstr ""
+
+msgid "Numbers are hexadecimal; step counts are decimal. Addresses accept registers and seg:off.\n. means the hex selection; omitted memory addresses use it.\nhelp | clear | refresh | regs\nrun | pause | step [count]\nspace physical|linear | goto address | db [address [length]] (max 1000 hex bytes)\nwrite address byte [byte ...] | dump (opens selection export)\ndbio [address [length]] | writeio address byte [byte ...] (device side effects; requires pause)\nu address (linear disassembly) | follow on|off\nbp address | bc address|all | bl (linear breakpoints)\nr [register [value]] (read/set; values are hex); help registers lists names\npeek port [b|w|d] | poke port value [b|w|d]\nRegister/memory writes and I/O require pause. I/O invokes device handlers, including read side effects."
+msgstr ""
+
+msgid "Register unavailable, value invalid, or processor not paused at a complete instruction boundary."
+msgstr ""
+
+msgid "Pause the processor before side-effecting memory access."
+msgstr ""
+
+msgid "Write exceeds 4096 bytes or wraps the address space."
+msgstr ""
+
+msgid "Pause the processor before writing memory."
+msgstr ""
+
+msgid "Issued %1 of %2 byte writes; devices may ignore writes. Untranslated addresses are skipped."
+msgstr ""
+
+msgid "Wrote %1 of %2 bytes; read-only or inaccessible bytes are skipped."
+msgstr ""
+
+msgid "Disassembly is not available in this build."
+msgstr ""
+
+msgid "Breakpoint %1 at %2."
+msgstr ""
+
+msgid "set"
+msgstr ""
+
+msgid "cleared"
+msgstr ""
+
+msgid "%1 breakpoint(s), linear addresses:"
+msgstr ""
+
+msgid "Pause the processor before accessing I/O ports."
+msgstr ""
+
+msgid "Unknown command or invalid arguments. Type help for syntax."
+msgstr ""
+
+msgid "Dump memory"
+msgstr ""
+
+msgid "Browse..."
+msgstr ""
+
+msgid "Start (hex, register or seg:off):"
+msgstr ""
+
+msgid "Length (hex bytes):"
+msgstr ""
+
+msgid "Address space:"
+msgstr ""
+
+msgid "Fill byte for memory that cannot be read:"
+msgstr ""
+
+msgid "File:"
+msgstr ""
+
+msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessible bytes are not read; the fill byte is written in their place."
+msgstr ""
+
+msgid "Binary files (*.bin);;All files (*)"
+msgstr ""
+
+msgid "The length must be a hex number above 0."
+msgstr ""
+
+msgid "The fill byte must be a hex number from 00 to FF."
+msgstr ""
+
+msgid "Could not open %1 for writing."
+msgstr ""
+
+msgid "Dumping memory..."
+msgstr ""
+
+msgid "Could not write to %1."
+msgstr ""
+
+msgid "Dumped %1 bytes from %2 to %3 (%4 bytes could not be read and were filled)."
+msgstr ""
+
+msgid "Enter hex bytes in pairs, e.g. \"8B 44 24 08\"."
+msgstr ""
+
+msgid "\"%1\" is not made of hex bytes."
+msgstr ""
+
+msgid "Enter a hex value from 0 to %1."
+msgstr ""
+
+msgid "The value is too large for %1 bytes."
+msgstr ""
+
+msgid "Enter something to search for."
+msgstr ""
+
+msgid "The range ends before it starts."
 msgstr ""

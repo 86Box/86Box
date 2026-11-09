@@ -35,7 +35,9 @@
 #    include <libgen.h>
 #endif
 #include <86box/86box.h>
+#ifndef IS_TEST
 #include <86box/log.h>
+#endif
 #include <86box/nvr.h>
 #include <86box/path.h>
 #include <86box/plat.h>
@@ -61,7 +63,9 @@
 #define CROSS_LEN           512
 
 static char temp_keyword[1024];
+#ifndef IS_TEST
 static char temp_file[260]     = { 0 };
+#endif
 
 #pragma pack(push, 1)
 struct sbi_replacement_ent
@@ -369,7 +373,9 @@ audio_init(const uint8_t id, const char *filename, UNUSED(int bom), int *error)
     char n[1024]        = { 0 };
 
     sprintf(n, "CD-ROM %i Audio", id + 1);
+#ifndef IS_TEST
     tf->log          = log_open(n);
+#endif
 
     memset(tf->fn, 0x00, sizeof(tf->fn));
     strncpy(tf->fn, filename, sizeof(tf->fn) - 1);
@@ -476,7 +482,9 @@ bin_close(void *priv)
 
     memset(tf->fn, 0x00, sizeof(tf->fn));
 
+#ifndef IS_TEST
     log_close(tf->log);
+#endif
     tf->log = NULL;
 
     free(priv);
@@ -496,7 +504,9 @@ bin_init(const uint8_t id, const char *filename, int *error)
     char n[1024]        = { 0 };
 
     sprintf(n, "CD-ROM %i Bin  ", id + 1);
+#ifndef IS_TEST
     tf->log          = log_open(n);
+#endif
 
     memset(tf->fn, 0x00, sizeof(tf->fn));
     strncpy(tf->fn, filename, sizeof(tf->fn) - 1);
@@ -526,7 +536,9 @@ bin_init(const uint8_t id, const char *filename, int *error)
             /* tf is freed by bin_close */
             bin_close(tf);
         } else {
+#ifndef IS_TEST
             log_close(tf->log);
+#endif
             tf->log = NULL;
 
             free(tf);
@@ -554,10 +566,12 @@ index_file_init(const uint8_t id, const char *filename, int *error, int *is_viso
             tf = NULL;
         }
 
+#ifndef IS_TEST
         tf  = viso_init(id, filename, error);
 
         if (!*error)
             *is_viso = 1;
+#endif
     }
 
     return tf;
@@ -572,7 +586,9 @@ index_file_close(track_index_t *idx)
     image_log(idx->file->log, "Log closed\n");
 
     if (idx->file->log != NULL) {
+#ifndef IS_TEST
         log_close(idx->file->log);
+#endif
         idx->file->log = NULL;
     }
 
@@ -976,8 +992,12 @@ image_process(cd_image_t *img)
        has gone wrong enough that the Cue sheet processing has been messed up.
      */
     if (pos != img->tracks_num)
+#ifdef IS_TEST
+        exit(-1);
+#else
         log_fatal(img->log, "Something has gone wrong and we have remappped %3i tracks "
                   "instead of the expected %3i\n", pos, img->tracks_num);
+#endif
 
     /*
        Pass 3 - adjusting the time lengths of each index of track according to the
@@ -1018,9 +1038,13 @@ image_process(cd_image_t *img)
                     image_log(img->log, "    [TRACK   ] %02X, INDEX %02X, ATTR %02X,\n",
                               ci->type, j,
                               ct->attr);
+#ifdef IS_TEST
+                    exit(-1);
+#else
                     log_fatal(img->log, "               Unrecognized index type during "
                               "Pass 3: %2i\n",
                               ci->type);
+#endif
                 } else if (ci->type == INDEX_NORMAL) {
                     /* Index was in the cue sheet and is present in the file. */
                     ci->file_length = tf_len - ci->file_start;
@@ -1086,9 +1110,13 @@ image_process(cd_image_t *img)
                     image_log(img->log, "    [TRACK   ] %02X, INDEX %02X, ATTR %02X,\n",
                               ci->type, j,
                               ct->attr);
+#ifdef IS_TEST
+                    exit(-1);
+#else
                     log_fatal(img->log, "               Unrecognized index type during "
                               "Pass 4: %2i\n",
                               ci->type);
+#endif
                 } else if (ci->type <= INDEX_NONE)
                     /* Index was not in the cue sheet, keep its length at zero. */
                     ci->start   = cur_pos;
@@ -1521,11 +1549,13 @@ image_load_iso(cd_image_t *img, const char *filename)
     if (success)
         image_process(img);
     else {
+#ifndef IS_TEST
 #ifdef ENABLE_IMAGE_LOG
         log_warning(img->log, "Unable to open image or folder \"%s\"\n",
                     filename);
 #else
         warning(plat_get_string(STRING_CDROM_OPEN_ISO_ERROR), filename);
+#endif
 #endif
         return 0;
     }
@@ -1533,6 +1563,7 @@ image_load_iso(cd_image_t *img, const char *filename)
     return success;
 }
 
+#ifndef IS_TEST
 static int compare_points(const void* a, const void* b)
 {
     int arg1 = ((raw_track_info_t*)a)->point;
@@ -1542,6 +1573,7 @@ static int compare_points(const void* a, const void* b)
     if (arg1 > arg2) return 1;
     return 0;
 }
+#endif
 
 static uint16_t
 read_uint16_nrg(FILE *infile)
@@ -1948,6 +1980,7 @@ image_load_nrg_fp(cd_image_t *img, FILE* file, const char* nrgfile)
     return 1 + !img->has_audio;
 }
 
+#ifndef IS_TEST
 static int
 image_load_ccd(cd_image_t *img, const char *ccdfile)
 {
@@ -2171,6 +2204,7 @@ image_load_ccd(cd_image_t *img, const char *ccdfile)
     free(img_path);
     return 0;
 }
+#endif
 
 typedef struct toc_track_t {
     char     filename[MAX_FILENAME_LENGTH];
@@ -2712,11 +2746,13 @@ image_load_cue_fp(cd_image_t *img, const char *cuefile, FILE *fp)
 
     if (success)
         image_process(img);
+#ifndef IS_TEST
     else
 #ifdef ENABLE_IMAGE_LOG
         log_warning(img->log, "    [CUE   ] Unable to open Cue sheet \"%s\"\n", cuefile);
 #else
         warning(plat_get_string(STRING_CDROM_OPEN_CUE_ERROR), cuefile);
+#endif
 #endif
 
     if (success) {
@@ -2787,6 +2823,7 @@ image_load_nrg(cd_image_t *img, const char *nrgfile)
     return ret;
 }
 
+#ifndef IS_TEST
 /*
    Converts UTF-16 string into UTF-8 string.
 
@@ -3181,6 +3218,12 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
         return 0;
     }
 
+#ifdef IS_TEST
+    if (mds_hdr.file_ver[0] == 0x02) {
+        if (fp != NULL)
+            fclose(fp);
+        return 0;
+#else
     if (mds_hdr.file_ver[0] == 0x02) {
         int mdsx = mdsx_init();
         if (!mdsx) {
@@ -3223,6 +3266,7 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
             }
         }
         image_log(img->log, "ret = %i\n", ret);
+#endif
     } else
         img->is_dvd = (mds_hdr.medium_type >= 0x10);
 
@@ -3584,15 +3628,19 @@ image_load_mds(cd_image_t *img, const char *mdsfile)
             }
         }
 #endif
-    } else
+    }
+#ifndef IS_TEST
+    else
 #ifdef ENABLE_IMAGE_LOG
         log_warning(img->log, "    [MDS   ] Unable to open MDS sheet \"%s\"\n", mdsfile);
 #else
         warning(plat_get_string(STRING_CDROM_OPEN_MDS_ERROR), mdsfile);
 #endif
+#endif
 
     return success;
 }
+#endif
 
 /* Root functions. */
 static void
@@ -3988,7 +4036,9 @@ image_close(void *local)
 
         image_log(img->log, "Log closed\n");
 
+#ifndef IS_TEST
         log_close(img->log);
+#endif
         img->log = NULL;
 
         if (img->bad_sectors != NULL)
@@ -3996,10 +4046,12 @@ image_close(void *local)
 
         free(img);
 
+#ifndef IS_TEST
         if (temp_file[0] != 0x00) {
             remove(nvr_path(temp_file));
             temp_file[0] = 0x00;
         }
+#endif
     }
 }
 
@@ -4045,26 +4097,35 @@ image_open(cdrom_t *dev, const char *path)
 
     if (img != NULL) {
         int       ret;
+#ifndef IS_TEST
         const int is_ccd  = ((ext == 4) && !stricmp(path + strlen(path) - ext + 1, "CCD"));
+#endif
         const int is_cue  = ((ext == 4) && !stricmp(path + strlen(path) - ext + 1, "CUE"));
         const int is_toc  = ((ext == 4) && !stricmp(path + strlen(path) - ext + 1, "TOC"));
         const int is_nrg  = ((ext == 4) && !stricmp(path + strlen(path) - ext + 1, "NRG"));
+#ifndef IS_TEST
         const int is_mds  = ((ext == 4) && (!stricmp(path + strlen(path) - ext + 1, "MDS") ||
                                             !stricmp(path + strlen(path) - ext + 1, "MDX")));
+#endif
         char      n[1024] = { 0 };
 
         sprintf(n, "CD-ROM %i Image", dev->id + 1);
+#ifndef IS_TEST
         img->log          = log_open(n);
+#endif
 
         img->dev          = dev;
         img->has_data     = 0;
 
+#ifndef IS_TEST
         if (is_ccd) {
             ret = image_load_ccd(img, path);
 
             if (ret >= 1)
                 img->is_dvd = 2;
-        } else if (is_toc) {
+        } else
+#endif
+        if (is_toc) {
             ret = image_load_toc(img, path);
 
             if (ret >= 2)
@@ -4074,6 +4135,7 @@ image_open(cdrom_t *dev, const char *path)
 
             if (ret >= 1)
                 img->is_dvd = 2;
+#ifndef IS_TEST
         } else if (is_mds) {
             ret = image_load_mds(img, path);
 
@@ -4081,6 +4143,7 @@ image_open(cdrom_t *dev, const char *path)
                 img->has_audio = 0;
             else if (ret)
                 img->has_audio = 1;
+#endif
         } else if (is_cue) {
             ret = image_load_cue(img, path);
 
@@ -4125,10 +4188,12 @@ image_open(cdrom_t *dev, const char *path)
 
             dev->ops = &image_ops;
         } else {
+#ifndef IS_TEST
 #ifdef ENABLE_IMAGE_LOG
             log_warning(img->log, "Unable to load CD-ROM image: %s\n", path);
 #else
             warning(plat_get_string(STRING_CDROM_LOAD_IMAGE_ERROR), path);
+#endif
 #endif
 
             image_close(img);

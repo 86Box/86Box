@@ -1,12 +1,24 @@
 #include <gtest/gtest.h>
 
+#include <gtest/gtest.h>
 #include <algorithm>
 #include <array>
+#include <cctype>
 #include <cstdint>
+#include <cstdio>
+#include <cstdlib>
 #include <cstring>
+#include <filesystem>
+#include <fstream>
+#include <string>
 #include <vector>
 
 extern "C" {
+#include <86box/86box.h>
+#include <86box/cdrom.h>
+#include <86box/cdrom_image.h>
+#include <86box/plat.h>
+#include <86box/plat_dynld.h>
 #define fallthrough [[fallthrough]]
 #define calloc(count, size) (mcd_t *) calloc(count, size)
 #include "../../src/cdrom/cdrom_mitsumi.c"
@@ -59,7 +71,9 @@ protected:
         dev.irq = 10;
         dev.dma = 5;
         tsc = 0;
+        timer_add(&dev.dma_timeout_timer, mitsumi_dma_timeout_callback, &dev, 0);
         timer_add(&dev.read_timer, mitsumi_read_callback, &dev, 0);
+        timer_add(&dev.tray_timer, mitsumi_tray_callback, &dev, 0);
         mitsumi_cdrom_reset(&dev);
         mock.irq_cleared = 0;
         mock.stop_calls = 0;
@@ -80,6 +94,12 @@ protected:
             tsc = dev.read_timer.ts_integer;
             timer_disable(&dev.read_timer);
             dev.read_timer.callback(dev.read_timer.priv);
+        }
+        for (unsigned remaining = 16; dev.tray_timer.flags & TIMER_ENABLED; --remaining) {
+            ASSERT_GT(remaining, 0u) << "Tray timer did not quiesce";
+            tsc = dev.tray_timer.ts_integer;
+            timer_disable(&dev.tray_timer);
+            dev.tray_timer.callback(dev.tray_timer.priv);
         }
     }
 
@@ -123,17 +143,16 @@ TEST(MitsumiConversion, DecodesBiasedDmaCount)
 
 TEST_F(MitsumiTest, StatusReflectsMediaTrayChangeAndPlayback)
 {
-    EXPECT_EQ(mitsumi_status(&dev), STAT_READY | STAT_SERVO | STAT_CHANGE);
+    EXPECT_EQ(mitsumi_status(&dev), STAT_READY | STAT_SERVO);
     cd.cd_status = CD_STATUS_PLAYING;
-    EXPECT_EQ(mitsumi_status(&dev), STAT_READY | STAT_SERVO | STAT_DISK_CDDA |
-                                    STAT_PLAY_CDDA | STAT_CHANGE);
+    EXPECT_EQ(mitsumi_status(&dev), STAT_READY | STAT_SERVO | STAT_PLAY_CDDA);
     cd.cd_status = CD_STATUS_PLAYING;
     EXPECT_TRUE(mitsumi_status(&dev) & STAT_PLAY_CDDA);
     dev.tray_open = 1;
     cd.cd_status = CD_STATUS_EMPTY;
-    EXPECT_EQ(mitsumi_status(&dev), STAT_OPEN | STAT_CHANGE);
-    EXPECT_EQ(mitsumi_error_status(&dev, 2), STAT_OPEN | STAT_CHANGE | STAT_ERROR | STAT_CMD_CHECK);
-    EXPECT_EQ(mitsumi_error_status(&dev, 3), STAT_OPEN | STAT_CHANGE | STAT_ERROR);
+    EXPECT_EQ(mitsumi_status(&dev), STAT_OPEN);
+    EXPECT_EQ(mitsumi_error_status(&dev, 2), STAT_OPEN | STAT_ERROR | STAT_CMD_CHECK);
+    EXPECT_EQ(mitsumi_error_status(&dev, 3), STAT_OPEN | STAT_ERROR);
 }
 
 TEST_F(MitsumiTest, ResetRestoresDocumentedDefaultsAndStopsActivity)
@@ -148,7 +167,7 @@ TEST_F(MitsumiTest, ResetRestoresDocumentedDefaultsAndStopsActivity)
     EXPECT_EQ(dev.dmalen, 2055);
     EXPECT_EQ(dev.smode, 1);
     EXPECT_EQ(dev.cur_control, 0x0c);
-    EXPECT_EQ(dev.change, 1);
+    EXPECT_EQ(dev.change, 0);
     EXPECT_EQ(dev.enable_dma, 0);
     EXPECT_EQ(dev.enable_irq, 0);
     EXPECT_EQ(dev.readcount, 0u);
@@ -166,14 +185,14 @@ TEST_F(MitsumiTest, FlagsArbitrateDataAndStatusAndExposeTray)
     dev.change = 0;
     dev.cmdbuf_count = 0;
     dev.buf_count = 0;
-    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NODATA | FLAG_NOSTAT | FLAG_UNK | 1);
+    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NODATA | FLAG_NOSTAT | FLAG_NOCHANGE | 1);
     dev.cmdbuf_count = 1;
-    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NODATA | FLAG_UNK | 1);
+    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NODATA | FLAG_NOCHANGE | 1);
     dev.data = 1;
     dev.buf_count = 1;
-    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NOSTAT | FLAG_UNK | 1);
+    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NOCHANGE | 1);
     dev.early_status = 1;
-    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NODATA | FLAG_UNK | 1);
+    EXPECT_EQ(mitsumi_cdrom_get_flags(&dev), FLAG_NOCHANGE | 1);
     dev.tray_open = 1;
     EXPECT_TRUE(mitsumi_cdrom_get_flags(&dev) & FLAG_OPEN);
 }
@@ -203,7 +222,7 @@ TEST_F(MitsumiTest, ModeVolumeLockAndControlRegistersAreProgrammable)
 {
     command(CMD_SET_MODE, { 0xa4 });
     EXPECT_EQ(dev.mode, 0xa4);
-    EXPECT_EQ(response(), (std::vector<uint8_t>{ STAT_READY | STAT_SERVO | STAT_CHANGE, 0 }));
+    EXPECT_EQ(response(), (std::vector<uint8_t>{ STAT_READY | STAT_SERVO, 0 }));
 
     command(CMD_SET_VOL, { 10, 20, 30, 40 });
     command(CMD_GET_VOL);
@@ -247,7 +266,7 @@ TEST_F(MitsumiTest, LockedEjectReportsSenseWhileUnlockedEjectOpensTray)
     command(CMD_EJECT);
     EXPECT_EQ(mock.eject_calls, 1);
     EXPECT_EQ(dev.tray_open, 1);
-    EXPECT_EQ(dev.change, 1);
+    EXPECT_EQ(dev.change, 0);
 }
 
 TEST_F(MitsumiTest, CookedPioReadFetchesSectorAndAdvancesMsf)
@@ -334,9 +353,16 @@ TEST_F(MitsumiTest, InsertAbortsReadUpdatesTrayAndSignalsChange)
     EXPECT_EQ(dev.readcount, 0u);
     EXPECT_EQ(dev.buf_count, 0);
     EXPECT_EQ(dev.change, 1);
-    EXPECT_EQ(dev.tray_open, 0);
+    EXPECT_EQ(dev.tray_open, 1);
+    EXPECT_EQ(dev.tray_close, 1);
     EXPECT_EQ(mock.stop_calls, 1);
     EXPECT_EQ(mock.irq_cleared, 1u << dev.irq);
+    /* Close the door a moment after the host has seen it open. */
+    if (dev.tray_close && (dev.stat & STAT_OPEN) && !timer_is_enabled(&dev.tray_timer))
+        timer_set_delay_u64(&dev.tray_timer, MITSUMI_TRAY_CLOSE_US * TIMER_USEC);
+    ASSERT_NO_FATAL_FAILURE(run_timers());
+    EXPECT_EQ(dev.tray_open, 0);
+    EXPECT_EQ(dev.tray_close, 0);
 }
 
 } // namespace
@@ -344,6 +370,7 @@ TEST_F(MitsumiTest, InsertAbortsReadUpdatesTrayAndSignalsChange)
 extern "C" {
 
 dma_t dma[8];
+cdrom_t cdrom[CDROM_NUM];
 uint8_t dma_e;
 uint8_t dma_m;
 uint64_t TIMER_USEC = 1ULL << 32;
@@ -354,6 +381,16 @@ volatile int is_quit;
 int hard_reset_pending;
 
 void ui_sb_update_icon(int, int) {}
+int device_get_config_int(const char *) { return 0; }
+void io_sethandler(uint16_t, uint16_t,
+                   uint8_t (*)(uint16_t, void *),
+                   uint16_t (*)(uint16_t, void *),
+                   uint32_t (*)(uint16_t, void *),
+                   void (*)(uint16_t, uint8_t, void *),
+                   void (*)(uint16_t, uint16_t, void *),
+                   void (*)(uint16_t, uint32_t, void *), void *)
+{
+}
 
 void picint_common(uint16_t mask, int, int set, uint8_t *)
 {
@@ -377,6 +414,44 @@ void timer_add(pc_timer_t *timer, void (*callback)(void *), void *priv, int star
     timer->callback = callback;
     timer->priv = priv;
     timer->flags = start ? TIMER_ENABLED : 0;
+}
+
+void *log_open(const char *) { return nullptr; }
+void log_close(void *) {}
+void log_fatal(void *, const char *, ...) { std::abort(); }
+void warning(const char *, ...) {}
+void fatal(const char *, ...) { std::abort(); }
+void pclog(const char *, ...) {}
+char *plat_get_string(int) { static char text[] = "image error"; return text; }
+char *nvr_path(char *path) { return path; }
+FILE *plat_fopen(const char *path, const char *mode) { return std::fopen(path, mode); }
+FILE *plat_fopen64(const char *path, const char *mode) { return std::fopen(path, mode); }
+FILE *rom_fopen(const char *path, char *mode) { return std::fopen(path, mode); }
+void *dynld_module(const char *, dllimp_t *) { return nullptr; }
+void dynld_close(void *) {}
+track_file_t *viso_init(uint8_t, const char *, int *error) { *error = 1; return nullptr; }
+void plat_tempfile(char *, char *, char *) { std::abort(); }
+void path_get_dirname(char *dest, const char *path)
+{
+    const auto dir = std::filesystem::path(path).parent_path().string();
+    std::memcpy(dest, dir.c_str(), dir.size() + 1);
+}
+#ifndef _WIN32
+int stricmp(const char *a, const char *b)
+{
+    while (*a && std::tolower(static_cast<unsigned char>(*a)) == std::tolower(static_cast<unsigned char>(*b))) {
+        ++a;
+        ++b;
+    }
+    return std::tolower(static_cast<unsigned char>(*a)) - std::tolower(static_cast<unsigned char>(*b));
+}
+#endif
+int path_abs(char *path) { return std::filesystem::path(path).is_absolute(); }
+void path_normalize(char *) {}
+void path_append_filename(char *dest, const char *base, const char *file)
+{
+    const auto path = (std::filesystem::path(base) / file).string();
+    std::memmove(dest, path.c_str(), path.size() + 1);
 }
 void cdrom_stop(cdrom_t *) { ++mock.stop_calls; }
 int cdrom_has_data(cdrom_t *) { return 1; }
@@ -420,5 +495,4 @@ int cdrom_lba_to_msf_accurate(int lba)
 }
 void cdrom_reload(uint8_t) { ++mock.reload_calls; }
 void cdrom_eject(uint8_t) { ++mock.eject_calls; }
-
 }

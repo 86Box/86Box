@@ -499,7 +499,8 @@ SettingsBusTracking::device_track(int set, uint8_t dev_type, int bus, int channe
             break;
 
         case TAPE_BUS_LPT:
-            mask = ((uint64_t) dev_type) << ((uint64_t) ((channel << 3) & 0x3f));
+            /* A hard disk's channel also holds its bridge: port | bridge << 2. */
+            mask = ((uint64_t) dev_type) << ((uint64_t) (((channel & 3) << 3) & 0x3f));
 
             if (set)
                 lpt_tracking |= mask;

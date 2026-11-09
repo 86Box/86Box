@@ -130,8 +130,10 @@ typedef union {
 static __inline double
 x87_pop(void)
 {
-    double t                         = cpu_state.ST[cpu_state.TOP & 7];
-    cpu_state.tag[cpu_state.TOP & 7] = TAG_EMPTY;
+    double t = cpu_state.ST[cpu_state.TOP & 7];
+    /* Tagged empty, the value left (80387 PRM 1987, 4.3.3): TAG_DENORMAL
+       stays */
+    cpu_state.tag[cpu_state.TOP & 7] &= TAG_DENORMAL;
     cpu_state.TOP++;
     return t;
 }
@@ -198,12 +200,12 @@ x87_ld_frstor(int reg)
         uint8_t  denormal;
         uint64_t signif;
 
-        cpu_state.tag[reg] &= ~(TAG_UINT64 | TAG_DENORMAL);
         /* MM[].q holds the significand already (readmemq above) */
         cpu_state.ST[reg] = x87_ld80(&denormal, &signif);
-        /* The tag word, loaded first, says whether the register is empty */
-        if (cpu_state.tag[reg] != TAG_EMPTY)
-            cpu_state.tag[reg] |= denormal;
+        /* The tag word, loaded first, says whether the register is empty;
+           the image gives its class, empty or not, since every register is
+           loaded (80387 PRM 1987, Appendix C) */
+        cpu_state.tag[reg] = (cpu_state.tag[reg] & TAG_VALID) | denormal;
     }
 }
 
@@ -652,28 +654,31 @@ x87_legacy_set_reg80(int reg, extFloat80_t r)
    by the softfloat core's handler for the same opcode (X87_CHECK_DENORMAL):
    the control and status words, TOP and the registers go to fpu_state, the
    handler runs from the instruction's ModR/M byte, and the registers it
-   wrote, TOP and the status word come back. A register it did not write
-   keeps its legacy form (a FILD integer stays exact). Writes are told by
-   the tag: every occupied register goes over tagged special (10b), which
-   the handlers here only test for empty, and a register they write
-   (FPU_save_regi) comes back valid (00b), whatever its value. The pointers
-   stay the escape wrapper's, as for any legacy instruction. */
+   wrote, TOP and the status word come back. Every register goes over with
+   its value, an empty one too, whose contents a later FLDENV can make
+   nonempty again (80387 PRM 1987, Appendix C); an occupied one tagged
+   special (10b), which the handlers here only test for empty. A register
+   the handler stored to (x87_sf_written) takes the stored value and its
+   class, whatever the handler left its tag (a result stored and then
+   popped, 4.4.2 and 4.3.3), even a value equal to the one handed over (an
+   SNaN goes over quieted by x87_to80, and a QNaN result must come back); a
+   register it did not store to keeps its legacy form exactly (a FILD
+   integer stays exact, an SNaN double stays one). The pointers stay the
+   escape wrapper's, as for any legacy instruction. */
 static __inline void
 x87_legacy_to_sf(void)
 {
-    fpu_state.cwd = cpu_state.npxc;
-    fpu_state.swd = cpu_state.npxs & ~FPU_SW_Top;
-    fpu_state.tos = cpu_state.TOP & 7;
-    fpu_state.tag = 0;
+    fpu_state.cwd  = cpu_state.npxc;
+    fpu_state.swd  = cpu_state.npxs & ~FPU_SW_Top;
+    fpu_state.tos  = cpu_state.TOP & 7;
+    fpu_state.tag  = 0;
+    x87_sf_written = 0;
     for (int i = 0; i < 8; i++) {
-        if (cpu_state.tag[i] == TAG_EMPTY) {
-            fpu_state.st_space[i].signExp = 0;
-            fpu_state.st_space[i].signif  = 0;
+        fpu_state.st_space[i] = x87_legacy_reg80(i);
+        if (!(cpu_state.tag[i] & TAG_VALID))
             fpu_state.tag |= X87_TAG_EMPTY << (i * 2);
-        } else {
-            fpu_state.st_space[i] = x87_legacy_reg80(i);
+        else
             fpu_state.tag |= X87_TAG_INVALID << (i * 2);
-        }
     }
 }
 
@@ -683,10 +688,14 @@ x87_sf_to_legacy(void)
     for (int i = 0; i < 8; i++) {
         const int tag = (fpu_state.tag >> (i * 2)) & 3;
 
-        if (tag == X87_TAG_EMPTY)
-            cpu_state.tag[i] = TAG_EMPTY;
-        else if (tag == X87_TAG_VALID)
+        if (x87_sf_written & (1 << i))
             x87_legacy_set_reg80(i, fpu_state.st_space[i]);
+        /* Empty or not as the handler left it; an empty register keeps its
+           value's TAG_DENORMAL */
+        if (tag == X87_TAG_EMPTY)
+            cpu_state.tag[i] &= TAG_DENORMAL;
+        else
+            cpu_state.tag[i] |= TAG_VALID;
     }
     /* TOP lives in cpu_state.TOP, which the legacy pushes and pops count
        without wrapping: it moves by what the handler pushed or popped. The

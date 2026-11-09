@@ -23,6 +23,7 @@
 #include <86box/hdd.h>
 #include <86box/path.h>
 #include <86box/plat.h>
+#include <86box/runctl.h>
 #include <86box/ui.h>
 #include <86box/version.h>
 #include "cpu.h"
@@ -447,7 +448,7 @@ plat_power_off(void)
        run before the main thread is terminated */
     cycles -= 99999999;
 
-    cpu_thread_run = 0;
+    runctl_request_stop();
 }
 
 extern bool fast_forward; /* sdl_main.c */
@@ -458,20 +459,23 @@ plat_fast_forward(int on)
     fast_forward = !!on;
 }
 
+/* Run state changes (runctl.h): mark the title while paused. */
 void
-plat_pause(int p)
+ui_notify(int what)
 {
     static char oldtitle[512];
+    static int  was_paused = 0;
     char        title[512];
 
-    if ((!!p) == dopause)
+    if (what != UI_NOTIFY_RUN_STATE)
         return;
 
-    if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
-        nvr_time_sync();
+    const int paused = (runctl_state() == RUN_PAUSED);
+    if (paused == was_paused)
+        return;
+    was_paused = paused;
 
-    do_pause(p);
-    if (p) {
+    if (paused) {
         strncpy(oldtitle, ui_window_title(NULL), sizeof(oldtitle) - 1);
         strcpy(title, oldtitle);
         strcat(title, " - PAUSED");

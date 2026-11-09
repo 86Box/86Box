@@ -980,9 +980,11 @@ rx_epilogue(codeblock_t *block)
   run does exactly what the interpreter's fast path does for each element. A
   run is copied with the host's REP MOVS or REP STOS, whose result is that of
   copying one element at a time, overlaps included. Any other element goes
-  through elem_func, which is the interpreter's loop body for one element.*/
+  through run_func, which runs the interpreter's loop for it and the elements
+  after it up to the next one a run can copy, the end of the count or the
+  cycle limit, and leaves the registers and the cycle count in cpu_state.*/
 static void
-build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*elem_func)(x86seg *seg))
+build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*run_func)(x86seg *seg, int32_t cycles_end))
 {
     int      size      = 1 << shift;
     int32_t  es_disp   = rx_state(&cpu_state.seg_es);
@@ -1185,27 +1187,24 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*ele
     to_break[0] = rx_jcc(block, RX_CC_L);
     rx_patch(rx_jmp(block), loop);
 
-    /*One element through the interpreter's loop body*/
+    /*Elements through the interpreter's loop*/
     for (int c = 0; c < nr_slow; c++)
         rx_patch(slow[c], rx_here());
     rx_writeback(block, is_stos, a32);
 #    if _WIN64
     rx_rr(block, 0, 1, 0x89, RX_SEG, REG_RCX);
+    rx_rr(block, 0, 0, 0x89, RX_END, REG_RDX);
 #    else
     rx_rr(block, 0, 1, 0x89, RX_SEG, REG_RDI);
+    rx_rr(block, 0, 0, 0x89, RX_END, REG_RSI);
 #    endif
-    rx_mov_ri64(block, REG_RAX, (uint64_t) (uintptr_t) elem_func);
+    rx_mov_ri64(block, REG_RAX, (uint64_t) (uintptr_t) run_func);
     rx_rr(block, 0, 0, 0xff, 2, REG_RAX); /*CALL RAX*/
-    /*The call does not keep R8-R11, and a misaligned access charges extra
-      cycles, so the guest registers and the cycle count are read back*/
+    /*The call does not keep R8-R11 and has stepped the guest registers and
+      the cycle count, so they are read back*/
     rx_load_regs(block, is_stos, a32);
     rx_rr(block, 0, 0, 0x85, REG_RAX, REG_RAX);
     to_abort = rx_jcc(block, RX_CC_NZ);
-    if (!is_stos)
-        rx_step_offset(block, RX_SRC, RX_STEP, a32);
-    rx_step_offset(block, RX_DST, RX_STEP, a32);
-    rx_alu_ri(block, 0, 5, RX_CNT, 1);
-    rx_rr(block, 0, 0, 0x29, RX_ELEMCYC, RX_CYCLES);
     /*An element that raised an SMI (a trapped write) ends the instruction,
       as the interpreter's loop does. Only these elements can: the runs copy
       RAM through direct lookups, which nothing traps.*/
@@ -1400,9 +1399,9 @@ build_link_routine(codeblock_t *block)
       word. Only the C loop refreshes the PC24 and RC_NZ status bits from
       npxc, so they can be stale after an FLDCW in a linked block; the npxc
       compare decides them instead. Everything else that reads those two
-      bits runs after that refresh. The C loop also sets NOTFLATES from ES
-      before each lookup, and not every ES load keeps it current, so it is
-      worked out again here from ES itself.*/
+      bits runs after that refresh. NOTFLATES is worked out again here from
+      ES itself; it equals the stored bit, which every write to the ES base
+      or limits brings in line before the next lookup.*/
     lx_abs(block, 0, 0, 0x0fb7, REG_R9, &cpu_cur_status);
     rx_alu_ri(block, 0, 4, REG_R9, ~(uint32_t) CPU_STATUS_NOTFLATES);
     rx_rm(block, 0, 0, 0x8b, REG_R12, REG_RBP, rx_state(&cpu_state.seg_es.base));
@@ -1799,7 +1798,7 @@ codegen_backend_init(void)
         for (int shift = 0; shift < 3; shift++) {
             for (int a32 = 0; a32 < 2; a32++) {
                 codegen_rep_rout[is_stos][shift][a32] = routine_start(block);
-                build_rep_routine(block, is_stos, shift, a32, codegen_rep_elem[is_stos][shift][a32]);
+                build_rep_routine(block, is_stos, shift, a32, codegen_rep_run[is_stos][shift][a32]);
             }
         }
     }

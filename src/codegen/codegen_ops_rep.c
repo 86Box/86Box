@@ -16,10 +16,8 @@
 #include "codegen_ops_rep.h"
 
 /*One element of each REP MOVS/STOS form, written as the loop body of the
-  interpreter's REP handlers in x86_ops_rep_dyn.h. The compiled REP routines
-  call these for any element they do not copy directly, and step the
-  registers and charge the cycles themselves. Returns non-zero if the element
-  faulted.*/
+  interpreter's REP handlers in x86_ops_rep_dyn.h, for the loops below.
+  Returns non-zero if the element faulted.*/
 #define REP_ELEM_OPS(size, SRC_REG, DEST_REG)                                                  \
     static int rep_movsb_##size(x86seg *seg)                                                    \
     {                                                                                           \
@@ -130,16 +128,72 @@
 REP_ELEM_OPS(a16, SI, DI)
 REP_ELEM_OPS(a32, ESI, EDI)
 
-int (*const codegen_rep_elem[2][3][2])(x86seg *seg) = {
+/*Whether the routine would copy the element at the given offsets itself:
+  aligned, with direct lookups for its pages*/
+static __inline int
+rep_direct(x86seg *seg, int is_stos, int shift, uint32_t src, uint32_t dst)
+{
+    uint32_t dst_lin = es + dst;
+
+    if ((dst_lin & ((1 << shift) - 1)) || (writelookup2[dst_lin >> 12] == (uintptr_t) LOOKUP_INV))
+        return 0;
+    if (!is_stos) {
+        uint32_t src_lin = seg->base + src;
+
+        if ((src_lin & ((1 << shift) - 1)) || (readlookup2[src_lin >> 12] == (uintptr_t) LOOKUP_INV))
+            return 0;
+    }
+    return 1;
+}
+
+/*Elements the compiled routine does not copy itself, each one as a pass of
+  the interpreter's loop in x86_ops_rep_dyn.h: the element, then the steps of
+  the registers, the count and the cycles. Carries on while the count is not
+  zero, the cycle count is not below cycles_end, no SMI is pending and the
+  next element is also one the routine would not copy, so that a string to a
+  page without a direct lookup (video memory, MMIO) does not go back to the
+  routine for each element. Returns non-zero if an element faulted, with the
+  registers left at that element.*/
+#define REP_RUN_OP(name, size, CNT_REG, SRC_REG, DEST_REG, is_stos, shift)                         \
+    static int rep_run_##name##_##size(x86seg *seg, int32_t cycles_end)                            \
+    {                                                                                              \
+        const int     elem_cycles = (is_stos) ? (is486 ? 4 : 5) : (is486 ? 3 : 4);                 \
+        const int32_t step        = (cpu_state.flags & D_FLAG) ? -(1 << (shift)) : (1 << (shift)); \
+                                                                                                   \
+        do {                                                                                       \
+            if (rep_##name##_##size(seg))                                                          \
+                return 1;                                                                          \
+            if (!(is_stos))                                                                        \
+                SRC_REG += step;                                                                   \
+            DEST_REG += step;                                                                      \
+            CNT_REG--;                                                                             \
+            cycles -= elem_cycles;                                                                 \
+        } while (CNT_REG && (cycles >= cycles_end) && !smi_line                                    \
+                 && !rep_direct(seg, is_stos, shift, SRC_REG, DEST_REG));                          \
+        return 0;                                                                                  \
+    }
+
+#define REP_RUN_OPS(size, CNT_REG, SRC_REG, DEST_REG)         \
+    REP_RUN_OP(movsb, size, CNT_REG, SRC_REG, DEST_REG, 0, 0) \
+    REP_RUN_OP(movsw, size, CNT_REG, SRC_REG, DEST_REG, 0, 1) \
+    REP_RUN_OP(movsl, size, CNT_REG, SRC_REG, DEST_REG, 0, 2) \
+    REP_RUN_OP(stosb, size, CNT_REG, SRC_REG, DEST_REG, 1, 0) \
+    REP_RUN_OP(stosw, size, CNT_REG, SRC_REG, DEST_REG, 1, 1) \
+    REP_RUN_OP(stosl, size, CNT_REG, SRC_REG, DEST_REG, 1, 2)
+
+REP_RUN_OPS(a16, CX, SI, DI)
+REP_RUN_OPS(a32, ECX, ESI, EDI)
+
+int (*const codegen_rep_run[2][3][2])(x86seg *seg, int32_t cycles_end) = {
     {
-        { rep_movsb_a16, rep_movsb_a32 },
-        { rep_movsw_a16, rep_movsw_a32 },
-        { rep_movsl_a16, rep_movsl_a32 },
+        { rep_run_movsb_a16, rep_run_movsb_a32 },
+        { rep_run_movsw_a16, rep_run_movsw_a32 },
+        { rep_run_movsl_a16, rep_run_movsl_a32 },
     },
     {
-        { rep_stosb_a16, rep_stosb_a32 },
-        { rep_stosw_a16, rep_stosw_a32 },
-        { rep_stosl_a16, rep_stosl_a32 },
+        { rep_run_stosb_a16, rep_run_stosb_a32 },
+        { rep_run_stosw_a16, rep_run_stosw_a32 },
+        { rep_run_stosl_a16, rep_run_stosl_a32 },
     },
 };
 

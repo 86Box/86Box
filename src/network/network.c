@@ -113,6 +113,7 @@ static const NETWORK_CARD net_cards[] = {
     { &pcnet_am79c961a_device     },
     { &de220p_device              },
     { &ne2000_compat_device       },
+    { &ne2100_novell_device       },
     { &pcnet_am79c960_eb_device   },
     /* EISA */
     { &threec592_device           },
@@ -130,12 +131,12 @@ static const NETWORK_CARD net_cards[] = {
     /* VLB */
     { &pcnet_am79c960_vlb_device  },
     /* PCI */
-    { &pcnet_am79c973_device      },
-    { &pcnet_am79c970a_device     },
-    { &pcnet_am79c970_device      },
     { &pcnet_am79c971_device      },
     { &pcnet_am79c972_device      },
+    { &pcnet_am79c973_device      },
     { &pcnet_am79c975_device      },
+    { &pcnet_am79c970_device      },
+    { &pcnet_am79c970a_device     },
     { &pcnet_am79c974_device      },
     { &dec_tulip_21040_device     },
     { &dec_tulip_21140_device     },
@@ -450,7 +451,8 @@ network_rx_queue(void *priv)
 {
     netcard_t *card = (netcard_t *) priv;
 
-    uint32_t new_link_state = net_cards_conf[card->card_num].link_state;
+    uint32_t new_link_state = card->internal_modem
+                            ? 0 : net_cards_conf[card->card_num].link_state;
     if (new_link_state != card->link_state) {
         if (card->set_link_state)
             card->set_link_state(card->card_drv, new_link_state);
@@ -502,8 +504,10 @@ network_rx_queue(void *priv)
     bool activity = rx_bytes || tx_bytes;
     bool led_on   = card->led_timer & 0x80000000;
     if ((activity && !led_on) || (card->led_timer & 0x7fffffff) >= 150000) {
-        ui_sb_update_icon(SB_NETWORK | card->card_num, !!(rx_bytes));
-        ui_sb_update_icon_write(SB_NETWORK | card->card_num, !!(tx_bytes));
+        if (!card->internal_modem) {
+            ui_sb_update_icon(SB_NETWORK | card->card_num, !!(rx_bytes));
+            ui_sb_update_icon_write(SB_NETWORK | card->card_num, !!(tx_bytes));
+        }
         card->led_timer = 0 | (activity << 31);
     }
 
@@ -517,11 +521,14 @@ network_rx_queue(void *priv)
  * finished initializing itself, to link itself to the platform support
  * modules.
  */
-netcard_t *
-network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_link_state)
+static netcard_t *
+network_attach_internal(void *card_drv, uint8_t *mac, NETRXCB rx,
+                        NETSETLINKSTATE set_link_state, int requested_net_type,
+                        bool internal_modem)
 {
     netcard_t *card       = calloc(1, sizeof(netcard_t));
-    int net_type          = net_cards_conf[net_card_current].net_type;
+    int net_type          = requested_net_type >= 0 ? requested_net_type
+                                                     : net_cards_conf[net_card_current].net_type;
     card->queued_pkt.data = calloc(1, NET_MAX_FRAME);
     card->card_drv        = card_drv;
     card->rx              = rx;
@@ -530,6 +537,8 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
     card->rx_mutex        = thread_create_mutex();
     card->card_num        = net_card_current;
     card->byte_period     = NET_PERIOD_10M;
+    card->internal_modem  = internal_modem;
+    card->slirp_force_auto_range = internal_modem;
 
     char net_drv_error[NET_DRV_ERRBUF_SIZE];
     char tempmsg[NET_DRV_ERRBUF_SIZE * 2];
@@ -538,8 +547,10 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
         network_queue_init(&card->queues[i]);
     }
 
-    const char *nic_name = network_card_get_internal_name(net_cards_conf[net_card_current].device_num);
-    if ((!strcmp(nic_name, "modem") || !strcmp(nic_name, "plip")) && (net_type >= NET_TYPE_PCAP)) {
+    const char *nic_name = internal_modem ? "modem"
+                           : network_card_get_internal_name(net_cards_conf[net_card_current].device_num);
+    if ((internal_modem || !strcmp(nic_name, "modem") || !strcmp(nic_name, "plip"))
+        && (net_type >= NET_TYPE_PCAP)) {
         /* Force SLiRP here. Modem and PLIP only operate on non-Ethernet frames. */
         net_type = NET_TYPE_SLIRP;
     }
@@ -581,7 +592,7 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
     // * Failure to init a specific driver (in which case card->host_drv.priv is null)
     if (!card->host_drv.priv) {
 
-        if(net_cards_conf[net_card_current].net_type != NET_TYPE_NONE) {
+        if (!internal_modem && net_cards_conf[net_card_current].net_type != NET_TYPE_NONE) {
             // We're here because of a failure
             snprintf(tempmsg, sizeof(tempmsg), plat_get_string(STRING_NET_ERROR), net_drv_error);
             ui_msgbox(MBX_ERROR, tempmsg);
@@ -592,8 +603,10 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
         card->host_drv      = net_null_drv;
         card->host_drv.priv = card->host_drv.init(card, mac, NULL, net_drv_error);
         // Set link state to disconnected by default
-        network_connect(card->card_num, 0);
-        ui_sb_update_icon_state(SB_NETWORK | card->card_num, 1);
+        if (!internal_modem) {
+            network_connect(card->card_num, 0);
+            ui_sb_update_icon_state(SB_NETWORK | card->card_num, 1);
+        }
 
         // If null fails, something is very wrong
         // Clean up and fatal
@@ -617,6 +630,18 @@ network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_lin
     timer_on_auto(&card->timer, 100);
 
     return card;
+}
+
+netcard_t *
+network_attach(void *card_drv, uint8_t *mac, NETRXCB rx, NETSETLINKSTATE set_link_state)
+{
+    return network_attach_internal(card_drv, mac, rx, set_link_state, -1, false);
+}
+
+netcard_t *
+network_attach_modem(void *card_drv, uint8_t *mac, NETRXCB rx)
+{
+    return network_attach_internal(card_drv, mac, rx, NULL, NET_TYPE_SLIRP, true);
 }
 
 void

@@ -24,7 +24,10 @@
 #include <86box/86box.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
+#include <86box/timer.h>
+#include <86box/device.h>
 #include <86box/hdd.h>
+#include <86box/lpt.h>
 #include <86box/cdrom.h>
 #include <86box/scsi_device.h>
 #include <86box/scsi_tape.h>
@@ -62,9 +65,9 @@ hdd_string_to_bus(char *str, int cdrom)
     if (!strcmp(str, "atapi"))
         return HDD_BUS_ATAPI;
 
-    /* Removable disks only: reached through a parallel-port bridge. */
-    if (!strcmp(str, "lpt") && cdrom)
-        return CDROM_BUS_LPT;
+    /* Reached through a parallel port bridge. */
+    if (!strcmp(str, "lpt"))
+        return HDD_BUS_LPT;
 
     if (!strcmp(str, "xta"))
         return HDD_BUS_XTA;
@@ -167,9 +170,8 @@ hdd_bus_to_string(int bus, int cdrom)
             break;
 
         /* Removable-mode only: the QIC-117 tape buses. */
-        case TAPE_BUS_LPT:
-            if (cdrom)
-                s = "lpt";
+        case HDD_BUS_LPT:
+            s = "lpt";
             break;
 
         case TAPE_BUS_FDC:
@@ -1225,4 +1227,61 @@ hdd_preset_apply(int hdd_id)
 
     hdd_zones_init(hd);
     hdd_cache_init(hd);
+}
+
+/* The bridges a hard disk on bus LPT can sit behind, by HDD_LPT_*. */
+static const struct {
+    const char     *internal_name;
+    const char     *name;
+    const device_t *device;
+} hdd_lpt_bridges[HDD_LPT_BRIDGES] = {
+    { "on26", "OnSpec 90c26", &lpt_on26_device },
+    { "epat", "Shuttle EPAT", &lpt_epat_device },
+    { "epia", "Shuttle EPIA", &lpt_epia_device },
+    { "bpck", "MicroSolutions BackPack", &lpt_bpck_device },
+    { "frpw", "Freecom Power", &lpt_frpw_device },
+    { "friq", "Freecom IQ", &lpt_friq_device }
+};
+
+/* Whether a CD-ROM drive on bus LPT can sit behind the bridge: the EPAT
+   model drives a removable disk of its own instead. */
+int
+cdrom_lpt_bridge_valid(int bridge)
+{
+    return (bridge >= 0) && (bridge < HDD_LPT_BRIDGES) && (bridge != HDD_LPT_EPAT);
+}
+
+static int
+hdd_lpt_bridge_valid(int bridge)
+{
+    return ((bridge >= 0) && (bridge < HDD_LPT_BRIDGES)) ? bridge : HDD_LPT_ON26;
+}
+
+const device_t *
+hdd_lpt_bridge_device(int bridge)
+{
+    return hdd_lpt_bridges[hdd_lpt_bridge_valid(bridge)].device;
+}
+
+const char *
+hdd_lpt_bridge_get_internal_name(int bridge)
+{
+    return hdd_lpt_bridges[hdd_lpt_bridge_valid(bridge)].internal_name;
+}
+
+const char *
+hdd_lpt_bridge_get_name(int bridge)
+{
+    return hdd_lpt_bridges[hdd_lpt_bridge_valid(bridge)].name;
+}
+
+int
+hdd_lpt_bridge_get_from_internal_name(const char *s)
+{
+    for (int i = 0; i < HDD_LPT_BRIDGES; i++) {
+        if (!strcmp(hdd_lpt_bridges[i].internal_name, s))
+            return i;
+    }
+
+    return HDD_LPT_ON26;
 }

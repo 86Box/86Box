@@ -311,7 +311,7 @@ dynarec_lmsw(uint16_t tempw)
 int
 dynarec_mov_cr0(uint32_t rm)
 {
-    const uint32_t val     = cpu_state.regs[rm].l;
+    const uint32_t val     = cpu_cr0_write_value(cpu_state.regs[rm].l);
     uint32_t       old_cr0 = cr0;
 
     if ((val & 0x80000000) && !(cr0 & 0x80000000) && (cr4 & CR4_PAE) && pae_check_load(cr3))

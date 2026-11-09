@@ -154,6 +154,7 @@ extern "C" {
 #include <86box/hdc_ide.h>
 #include <86box/hdd.h>
 #include <86box/ui.h>
+#include <86box/runctl.h>
 
 #include "../cpu/cpu.h"
 #include <86box/plat.h>
@@ -197,7 +198,7 @@ do_start(void)
 void
 do_stop(void)
 {
-    cpu_thread_run = 0;
+    runctl_request_stop();
 #if 0
     main_window->close();
 #endif
@@ -782,59 +783,58 @@ gamemode_session_bus_available(void)
 }
 #endif
 
-void
-plat_pause(int p)
+/* Host-side reactions to a run state change (runctl.h), on the GUI thread. */
+static void
+run_state_changed(void)
 {
-    if (!cpu_thread_running && p == 1) {
-        p = 2;
-    }
+    static bool was_paused = false;
+    const bool  paused     = (runctl_state() == RUN_PAUSED);
 
-    if ((!!p) == dopause) {
-        QTimer::singleShot(0, main_window, &MainWindow::updateUiPauseState);
-
-#ifdef Q_OS_WINDOWS
-        if (source_hwnd)
-            PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSTATUS, (WPARAM) !!p, (LPARAM) (HWND) main_window->winId());
-#endif
-        return;
-    }
-
-    if ((p == 0) && (time_sync & TIME_SYNC_ENABLED))
-        nvr_time_sync();
+    if (paused != was_paused) {
+        was_paused = paused;
 
 #if defined(Q_OS_WINDOWS) || defined(Q_OS_MACOS)
-    if (p)
-        enter_pause();
-    else
-        exit_pause();
+        if (paused)
+            enter_pause();
+        else
+            exit_pause();
 #endif
 
 #ifdef Q_OS_LINUX
-    static const bool gamemode_available = gamemode_session_bus_available();
-    if (gamemode_available) {
-        if (p)
-            gamemode_request_end();
-        else
-            gamemode_request_start();
-    }
+        static const bool gamemode_available = gamemode_session_bus_available();
+        if (gamemode_available) {
+            if (paused)
+                gamemode_request_end();
+            else
+                gamemode_request_start();
+        }
 #endif
 
-    do_pause(p);
-    if (p) {
-        if (mouse_capture)
+        if (paused && mouse_capture)
             plat_mouse_capture(0);
+
+        QString title      = main_window->getTitle();
+        QString pausedText = QObject::tr(" - PAUSED");
+        if (title.contains(pausedText))
+            title = title.left(title.indexOf(pausedText));
+        emit main_window->setTitle(paused ? title.append(pausedText) : title);
     }
 
-    QString title      = main_window->getTitle();
-    QString pausedText = QObject::tr(" - PAUSED");
-    emit main_window->setTitle(p ? title.append(pausedText) : title.left(title.indexOf(pausedText)));
-
-    QTimer::singleShot(0, main_window, &MainWindow::updateUiPauseState);
+    main_window->updateUiPauseState();
 
 #ifdef Q_OS_WINDOWS
     if (source_hwnd)
-        PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSTATUS, (WPARAM) !!p, (LPARAM) (HWND) main_window->winId());
+        PostMessage((HWND) (uintptr_t) source_hwnd, WM_SENDSTATUS, (WPARAM) paused, (LPARAM) (HWND) main_window->winId());
 #endif
+}
+
+void
+ui_notify(int what)
+{
+    if ((what != UI_NOTIFY_RUN_STATE) || !main_window)
+        return;
+
+    QMetaObject::invokeMethod(main_window, [] { run_state_changed(); }, Qt::QueuedConnection);
 }
 
 extern "C" bool fast_forward; /* qt_main.cpp */
@@ -860,7 +860,7 @@ plat_power_off(void)
        run before the main thread is terminated */
     cycles -= 99999999;
 
-    cpu_thread_run = 0;
+    runctl_request_stop();
     QTimer::singleShot(0, (const QWidget *) main_window, &QMainWindow::close);
 }
 

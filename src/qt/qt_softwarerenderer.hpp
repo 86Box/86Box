@@ -37,6 +37,7 @@ protected:
     bool                                   osd_drawn_last = false;
 
     void onPaint(QPaintDevice *device);
+    void layoutPicture();
     void resizeEvent(QResizeEvent *event) override;
     bool event(QEvent *event) override;
 

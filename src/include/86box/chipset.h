@@ -433,6 +433,9 @@ extern const device_t phoenix_486_jumper_pb430_device;
 extern const device_t ast_readout_device;
 extern const device_t ast_nvr_device;
 
+extern const device_t ibm_pc700_readout_device;
+extern const device_t ibm_pc700_power_device;
+
 extern const device_t radisys_config_device;
 
 extern const device_t zenith_scratchpad_device;

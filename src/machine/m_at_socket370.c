@@ -314,6 +314,10 @@ machine_at_acerv66ma_init(const machine_t *model)
     if (sound_card_current[0] == SOUND_INTERNAL)
         machine_snd = device_add(machine_get_snd_device(machine));
 
+    /* The on-board video; its BIOS is in the system BIOS. */
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
+
     return ret;
 }
 
@@ -350,6 +354,11 @@ machine_at_bl440zx_init(const machine_t *model)
     /* TODO: Implement Intel E28F200 flash */
     device_add(&intel_flash_bxt_device);
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
+
+    /* The on-board ATI Rage Pro Turbo AGP, bus 1 behind the
+       82443ZX's AGP bridge (TPS Table 30); its BIOS is in the system BIOS. */
+    if ((gfxcard[0] == VID_INTERNAL) && machine_get_vid_device(machine))
+        device_add(machine_get_vid_device(machine));
 
     if ((net_cards_conf[0].device_num == NET_INTERNAL) && machine_get_net_device(machine))
         device_add(machine_get_net_device(machine));
@@ -546,7 +555,7 @@ static const device_config_t in620_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "AwardBIOS v4.51PG - Retail v1.00",
+                .name          = "AwardBIOS v4.51PG - Revision 1.00",
                 .internal_name = "in620_100",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -555,7 +564,7 @@ static const device_config_t in620_config[] = {
                 .files         = { "roms/machines/in620/102100.BIN", "" }
             },
             {
-                .name          = "AwardBIOS v4.51PG - Packard Bell v1.08",
+                .name          = "AwardBIOS v4.51PG - Revision 1.08 (Packard Bell)",
                 .internal_name = "in620_108",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,
@@ -564,7 +573,7 @@ static const device_config_t in620_config[] = {
                 .files         = { "roms/machines/in620/724108.bin", "" }
             },
             {
-                .name          = "AwardBIOS v4.51PG - Monorail v1.20",
+                .name          = "AwardBIOS v4.51PG - Revision 1.20 (Monorail)",
                 .internal_name = "in620_120",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 1,

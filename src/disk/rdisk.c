@@ -61,6 +61,25 @@ rdisk_is_scsi(const rdisk_t *dev)
              (dev->drv->type == RDISK_TYPE_ZIP_250)));
 }
 
+/*
+ * An ATAPI drive on an IDE channel: on the IDE bus, or on the IDE board of a
+ * parallel port bridge other than the EPAT (whose model drives the drive
+ * itself, as the ZIP's chips do).
+ */
+static int
+rdisk_on_ide(const rdisk_drive_t *drv)
+{
+    return (drv->bus_type == RDISK_BUS_ATAPI) ||
+           ((drv->bus_type == RDISK_BUS_LPT) && (drv->lpt_bridge != HDD_LPT_EPAT));
+}
+
+static int
+rdisk_ide_channel(const rdisk_drive_t *drv)
+{
+    return (drv->bus_type == RDISK_BUS_LPT) ? ide_lpt_channel(drv->res & (PARALLEL_MAX - 1)) :
+                                              drv->ide_channel;
+}
+
 /* The SCSI device entry of a drive that talks SCSI. */
 static scsi_device_t *
 rdisk_scsi_device(const rdisk_t *dev)
@@ -1717,9 +1736,8 @@ rdisk_set_callback(const rdisk_t *dev)
      * here and indexing ide_drives with it would set a callback on an unrelated
      * drive. The bridge paces its own transfers.
      */
-    if ((dev->drv->bus_type != RDISK_BUS_SCSI) && (dev->drv->bus_type != RDISK_BUS_LPT) &&
-        (dev->drv->bus_type != RDISK_BUS_IDE))
-        ide_set_callback(ide_drives[dev->drv->ide_channel], dev->callback);
+    if (rdisk_on_ide(dev->drv))
+        ide_set_callback(ide_drives[rdisk_ide_channel(dev->drv)], dev->callback);
 }
 
 static void
@@ -1735,7 +1753,7 @@ rdisk_init(rdisk_t *dev)
         if (!rdisk_is_scsi(dev))
             dev->drv->bus_mode |= 1;
         /* The LS-120 COSM 05 is a PIO-only drive: bit 8 of word 49 of its IDENTIFY data is clear. */
-        if ((dev->drv->bus_type == RDISK_BUS_ATAPI) && IS_LS120_COSM05(dev->drv->type))
+        if (rdisk_on_ide(dev->drv) && IS_LS120_COSM05(dev->drv->type))
             dev->drv->bus_mode &= ~2;
         rdisk_log(dev->log, "Bus type %i, bus mode %i\n", dev->drv->bus_type, dev->drv->bus_mode);
         if (!rdisk_is_scsi(dev)) {
@@ -2387,8 +2405,8 @@ rdisk_bus_speed(rdisk_t *dev)
 {
     double ret = -1.0;
 
-    if (dev && dev->drv && (dev->drv->bus_type == RDISK_BUS_ATAPI))
-        ret = ide_atapi_get_period(dev->drv->ide_channel);
+    if (dev && dev->drv && rdisk_on_ide(dev->drv))
+        ret = ide_atapi_get_period(rdisk_ide_channel(dev->drv));
 
     if (ret == -1.0) {
         if (dev)
@@ -4200,7 +4218,7 @@ rdisk_command(scsi_common_t *sc, const uint8_t *cdb)
                     idx            = 128;
                 }
 
-                if (IS_LS120_COSM05(dev->drv->type) && (dev->drv->bus_type == RDISK_BUS_ATAPI)) {
+                if (IS_LS120_COSM05(dev->drv->type) && rdisk_on_ide(dev->drv)) {
                     /* A real drive: always 128 bytes, of which only the first 96 were captured.  The firmware's
                        second half is at 36, followed by the 03 C3 00 of the capture: DISKVSD.VXD of Windows 95 OSR2
                        reads 44 bytes of an ATAPI floppy and, if the additional length is at least 27h, takes bytes
@@ -5252,9 +5270,9 @@ rdisk_drive_reset(const int c)
         sd->phase_data_out = rdisk_phase_data_out;
         sd->command_stop   = rdisk_command_stop;
         sd->type           = SCSI_REMOVABLE_DISK;
-    } else if (rdisk_drives[c].bus_type == RDISK_BUS_ATAPI) {
-        /* ATAPI CD-ROM, attach to the IDE bus. */
-        ide_t         *id = ide_get_drive(rdisk_drives[c].ide_channel);
+    } else if (rdisk_on_ide(&rdisk_drives[c])) {
+        /* ATAPI drive, attach to the IDE bus or the bridge's IDE board. */
+        ide_t         *id = ide_get_drive(rdisk_ide_channel(&rdisk_drives[c]));
         /* If the IDE channel is initialized, we attach to it,
            otherwise, we do nothing - it's going to be a drive
            that's not attached to anything. */
@@ -5361,6 +5379,11 @@ rdisk_hard_reset(void)
                 (rdisk_drives[c].ide_channel >= IDE_DRIVES_MAX))
                 continue;
 
+            /* A bridge with an IDE board of its own: the board comes first,
+               the drive is an ATAPI drive on it. */
+            if ((rdisk_drives[c].bus_type == RDISK_BUS_LPT) && rdisk_on_ide(&rdisk_drives[c]))
+                device_add_inst(hdd_lpt_bridge_device(rdisk_drives[c].lpt_bridge), rdisk_drives[c].res + 1);
+
             rdisk_drive_reset(c);
 
             rdisk_t *dev = (rdisk_t *) rdisk_drives[c].priv;
@@ -5404,7 +5427,7 @@ rdisk_hard_reset(void)
              * configuration. Instantiate it here and let it claim the port with
              * lpt_attach() - first claim wins against any other LPT device.
              */
-            if (rdisk_drives[c].bus_type == RDISK_BUS_LPT) {
+            if ((rdisk_drives[c].bus_type == RDISK_BUS_LPT) && !rdisk_on_ide(&rdisk_drives[c])) {
                 const device_t *bridge = &lpt_epat_device;
 
                 if (rdisk_drives[c].type == RDISK_TYPE_ZIP_100)

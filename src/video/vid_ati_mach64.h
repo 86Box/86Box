@@ -64,6 +64,37 @@
 #define BIOS_ROMGT_PATH              "roms/video/mach64/3d_rage.bin"
 #define BIOS_ROMRAGE2_PATH           "roms/video/mach64/3d_rage_ii.bin"
 #define BIOS_ROMGTB_PATH              "roms/video/mach64/ARS2D.bin"
+/* 3D Rage IIC BIOSes: 32K images, some with 32K of EPROM padding. */
+#define BIOS_RAGE2C_61801_PATH        "roms/video/mach64/rage2c_pci_113-61801-101.bin"
+#define BIOS_RAGE2C_38816_PATH        "roms/video/mach64/rage2c_pci_113-38816-100.bin"
+#define BIOS_RAGE2C_40605_PATH "roms/video/mach64/rage2c_pci_113-40605-102.bin"
+#define BIOS_RAGE2C_40606_PATH "roms/video/mach64/rage2c_pci_113-40606-102.bin"
+#define BIOS_RAGE2C_52805_PATH "roms/video/mach64/rage2c_agp_113-52805-101.bin"
+#define BIOS_RAGE2C_48301_PATH "roms/video/mach64/rage2c_agp_113-48301-100.bin"
+#define BIOS_RAGE2C_48301_ALT_PATH "roms/video/mach64/rage2c_agp_113-48301-100_alt.bin"
+#define BIOS_RAGE2C_48303_PATH "roms/video/mach64/rage2c_agp_113-48303-100.bin"
+#define BIOS_RAGE2C_49302_PATH "roms/video/mach64/rage2c_agp_113-49302-100.bin"
+#define BIOS_RAGE2C_EV200_PATH "roms/video/mach64/rage2c_agp_113-ev200-h00.bin"
+#define BIOS_RAGE2C_EV205_PATH "roms/video/mach64/rage2c_agp_113-ev205-s00.bin"
+#define BIOS_RAGE2C_EDO_3096_PATH "roms/video/mach64/rage2c_agp_edo_3.096.bin"
+/* 3D Rage Pro (AGP, PCI ID GB, 4742h) BIOSes: 32K images, two from
+   27C512 EPROMs (lower half), two read out as 32K. */
+#define BIOS_RAGEPRO_TURBO_PATH       "roms/video/mach64/ragepro_agp_turbo_3.091.bin"
+#define BIOS_RAGEPRO_49801_2000_PATH  "roms/video/mach64/ragepro_agp_113-49801-101_2000.bin"
+#define BIOS_RAGEPRO_49801_1998_PATH  "roms/video/mach64/ragepro_agp_113-49801-101_1998.bin"
+#define BIOS_RAGEPRO_40212_PATH       "roms/video/mach64/ragepro_agp_113-40212-103.bin"
+/* 3D Rage Pro PCI (PQFP, PCI ID GP, 4750h), SGRAM: ATI 113-41901-104,
+   BK3.9.0/3.077, 1997/10/20 ("MACH64GPPCIMTSGU"), read out as 32K. */
+#define BIOS_RAGEPRO_PCI_41901_PATH   "roms/video/mach64/ragepro_pci_113-41901-104.bin"
+/* Rage XL PCI (BGA, PCI ID GR, 4752h), 8 MB SDRAM: ATI 113-72301-101,
+   BK4.3.04/4.330, 2001/01/04 ("MACH64GRPCIMTSDUN8"). The image is a copy
+   from shadow RAM after POST with its initialisation entry restored: 32K,
+   the size the BIOS leaves itself once it has run. */
+#define BIOS_RAGEXL_72301_PATH        "roms/video/mach64/ragexl_pci_113-72301-101.bin"
+/* Rage LT Pro AGP (BGA-312, PCI ID LB, 4C42h), SDRAM: ATI 113-55702-100,
+   BK4.1.3/4.154T, 1999/04/13 ("MACH64LBPCIMTSDU"), board 109-55700-01:
+   the full 64K flash image, with its cold-start initialization intact. */
+#define BIOS_RAGELT_55702_PATH        "roms/video/mach64/ragelt_agp_113-55702-100.bin"
 
 #define FIFO_SIZE         65536
 #define FIFO_MASK         (FIFO_SIZE - 1)
@@ -75,6 +106,11 @@
 
 #define FIFO_TYPE         0xff000000
 #define FIFO_ADDR         0x00ffffff
+#define FIFO_ADDR_SETUP   0x00000800 /* a dword of the Rage Pro's setup engine, block 1 */
+#define FIFO_ADDR_IDCT    0x00001000 /* a dword of the Rage XL's IDCT registers, block 1 */
+#define FIFO_ADDR_IDCT_END 0x00002000 /* the Rage XL's IDCT end-of-block request */
+#define FIFO_ADDR_IDCT_BM 0x00004000 /* IDCT data lane, bypasses the PIO initiator gate */
+#define FIFO_ADDR_BLK1    (FIFO_ADDR_SETUP | FIFO_ADDR_IDCT | FIFO_ADDR_IDCT_END)
 
 enum {
     FIFO_INVALID     = (0x00 << 24),
@@ -106,13 +142,28 @@ enum {
     MACH64_VT3
 };
 
-#define MACH64_FLAG_RAGE2   (1 << 20) /* GT-B before the II+ DVD (GT PCI ID) */
+#define MACH64_FLAG_RAGE2   (1 << 26) /* GT-B before the II+ DVD (GT PCI ID); not bit 20, the Rage IIC's */
 #define MACH64_FLAG_ONBOARD (1 << 19)
 #define MACH64_FLAG_DRAM    (1 << 17) /* the board's memory is DRAM (256Kx16), not VRAM */
+#define MACH64_FLAG_RAGE2C  (1 << 20) /* 3D Rage IIC, the GT-B under PCI ID GV (4756h) */
+#define MACH64_FLAG_RAGEPRO (1 << 21) /* 3D Rage Pro, the GT-B core plus its own setup engine, bus master and AGP */
+#define MACH64_FLAG_PQFP    (1 << 22) /* The Rage Pro's PCI PQFP package, PCI ID GP (4750h) */
+#define MACH64_FLAG_RAGEXL  (1 << 24) /* Rage XL, the Rage Pro core with the LT Pro's PLL and LCD registers */
+#define MACH64_FLAG_RAGELT  (1 << 25) /* Rage LT Pro, the mobile Rage Pro: LCD registers, shadow and second CRTC, power management */
 #define MACH64_PCI_IOCONFIG 0x40        // "User Defined Configuration"
+
+/* The Rage LT Pro card's PLL reference, a 29.498928 MHz crystal (as
+   on the LT Pro's notebooks; the "29MHz reference clock" of CONFIG_PANEL's
+   BL_CLK_SEL, LT Pro RRG 8-3): its BIOS programs the VGA's 25.175 and 28.322
+   MHz as 218 and 246 over a reference divider of 64, which only that gives. */
+#define RAGELT_PLL_REF_HZ 29498928.0
+
+/* The chips with the LT register block (LCD_INDEX/LCD_DATA, the extended VPLL). */
+#define MACH64_LT_REGS(m) ((m)->ragexl || (m)->ragelt)
 
 typedef struct mach64_3d_t     mach64_3d_t;
 typedef struct mach64_timing_t mach64_timing_t;
+typedef struct mach64_idct_t   mach64_idct_t;
 
 typedef struct mach64_t {
     mem_mapping_t linear_mapping;
@@ -140,6 +191,11 @@ typedef struct mach64_t {
     int     isa_irq_raised;
 
     uint8_t on_board;
+    uint8_t rage2c;  /* Rage IIC: shared bus master, without Pro setup/AGP textures */
+    uint8_t ragepro; /* 3D Rage Pro identity, setup engine and bus master */
+    uint8_t agp;     /* On the AGP: its capability and timings */
+    uint8_t ragexl;  /* Rage XL: extended VPLL, LCD_INDEX/LCD_DATA, subsystem IDs */
+    uint8_t ragelt;  /* Rage LT Pro: the XL's LT registers plus shadow/second CRTC and power management */
 
     uint8_t pci_regs[256];
     uint8_t int_line;
@@ -185,6 +241,7 @@ typedef struct mach64_t {
     uint32_t dp_pix_width;
     uint32_t dp_src;
     uint32_t dp_set_gui_engine;
+    uint32_t usr_dst_pitch; /* USR_DST_PITCH (Rage Pro), DP_SET_GUI_ENGINE's pitch 0 */
 
     uint32_t dst_bres_lnth;
     uint32_t dst_bres_dec;
@@ -335,12 +392,15 @@ typedef struct mach64_t {
     uint32_t config_chip_id;
     uint32_t block_decoded_io;
     int      use_block_decoded_io;
+    uint16_t fixed_io; /* Block I/O base pinned for software that hard-codes it (0 = BIOS) */
 
     int     pll_addr;
     uint8_t pll_regs[64];
     double  pll_freq[4];
 
     uint32_t config_stat0;
+
+    uint32_t mpp[4]; /* MPP_CONFIG, MPP_STROBE_SEQ, MPP_ADDR, MPP_DATA (VT and later) */
 
     uint32_t cur_clr0;
     uint32_t cur_clr1;
@@ -368,6 +428,7 @@ typedef struct mach64_t {
     uint32_t scaler_buf_offset[2];
     uint32_t scaler_buf_pitch;
     uint32_t overlay_exclusive_horz, overlay_exclusive_vert;
+    uint32_t gtb_capture[0x50 >> 2]; /* GT-B and later: block 1 40h-8Fh, the capture registers, kept as written */
 
     uint32_t vga_dsp_config;
     uint32_t vga_dsp_on_off;
@@ -388,12 +449,53 @@ typedef struct mach64_t {
     /* 3D Rage II+ (GT-B) */
     mach64_3d_t     *gt3d;        /* 3D engine and scaler, vid_ati_mach64_3d.c */
     mach64_timing_t *timing;      /* draw engine timing, vid_ati_mach64_accel.c */
+    mach64_idct_t   *idct;        /* the Rage XL's MPEG IDCT, vid_ati_mach64_idct.c */
     int              render_threads; /* threads drawing a large trapezoid's rows */
     mem_mapping_t    aux_mapping; /* the register aperture at BAR2 */
     uint32_t         aux_base;
     uint8_t          gtb_regs[256]; /* control registers kept as written */
+    uint32_t         lcd_regs[64];  /* Rage XL, LCD_DATA's indexed registers (LCD_INDEX 5:0) */
+    /* Rage LT Pro (LT Pro RRG 4-33..4-37, 6-5..6-9). */
+    uint32_t         lt_shadow[5];       /* the panel's shadow CRTC_H_TOTAL_DISP..CRTC_VLINE_CRNT_VLINE */
+    uint32_t         lt_crtc2[0x50 / 4]; /* the second CRTC's registers, by block 0 dword (00h-4Ch) */
+    uint8_t          lt_vga_shadow[0x18]; /* the shadowed VGA CRTC registers (3?5 00h-17h) */
+    uint8_t          lt_pmcsr;           /* PCI 60h: the power state */
     uint8_t          genena;        /* 46E8h */
     uint8_t          genvs;         /* 102h */
+
+    /* The 3D Rage Pro's bus master and its own block 1
+       registers (vid_ati_mach64_ragepro.c). */
+    struct {
+        uint32_t blk1[256];     /* block 1 as it reads back, for the Rage Pro's registers */
+        uint32_t src_cntl;      /* SRC_CNTL as written, ahead of the FIFO */
+        uint32_t dp_set_gui_engine; /* DP_SET_GUI_ENGINE as written, for its bus master bits */
+        uint32_t gui_table;     /* BM_GUI_TABLE: the next descriptor, and the circular buffer size (1:0) */
+        uint32_t system_table;  /* BM_SYSTEM_TABLE as written */
+        uint32_t frame_buf_offset; /* the descriptor being run: BM_FRAME_BUF_OFFSET */
+        uint32_t system_mem_addr;  /* BM_SYSTEM_MEM_ADDR */
+        uint32_t command;          /* BM_COMMAND */
+        uint32_t status;           /* BM_STATUS */
+        uint32_t agp_base;
+        uint32_t agp_cntl;
+        uint32_t gui_cntl;
+        int      pkt_count;     /* GUI master register packet: the writes left */
+        uint32_t pkt_reg;       /*   and the next register, as a MM offset index */
+        int      pkt_triplets;  /*   a Rage XL IDCT packet of RUN, LEVEL, LEVEL triplets: the next dword's place */
+        int      running;       /* a bus master transfer is being run */
+        uint64_t descriptors;   /* run since reset, for the debug dump */
+        uint64_t triangles;     /* setup engine triangles drawn */
+        uint64_t pixels;        /* and their pixels */
+        int      trace;         /* log the next N triangles */
+        int      wlog;          /* log the next N GUI register writes */
+        uint32_t last_dst;      /* the last triangle's destination base and pitch, bytes */
+        uint32_t last_pitch;
+        uint32_t i2c_cntl0;     /* I2C_CNTL_0 but for GO, which the engine clears */
+        uint32_t i2c_cntl1;     /* I2C_CNTL_1; its 7:0 are the data FIFO's port */
+        uint8_t  i2c_fifo[16];  /* the I2C engine's data FIFO */
+        int      i2c_wptr;      /* where the next byte written goes */
+        int      i2c_rptr;      /* and where the next one read comes from */
+        uint8_t  i2c_slave;     /* the address byte of the transfer's last start */
+    } rp;
 } mach64_t;
 
 static inline int
@@ -502,6 +604,44 @@ void     mach64_wake_fifo_thread(mach64_t *mach64);
 void     mach64_wait_fifo_idle(mach64_t *mach64);
 void     mach64_reset_engine(mach64_t *mach64);
 
+/* The 3D Rage Pro (vid_ati_mach64_ragepro.c). Block 1 offsets
+   are within the 1K block, 0-3FCh; the writes return 0 for a register that
+   is not the Rage Pro's own. */
+void     mach64_ragepro_reset(mach64_t *mach64);
+int      mach64_ragepro_blk1_write(mach64_t *mach64, uint32_t addr, uint32_t val, int bytes);
+int      mach64_ragepro_blk1_read(mach64_t *mach64, uint32_t addr, uint32_t *val);
+int      mach64_ragepro_gui_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type);
+void     mach64_ragepro_bm_eol(mach64_t *mach64);   /* in vid_ati_mach64.c: BUSMASTER_EOL_INT */
+void     mach64_ragepro_dump(mach64_t *mach64);
+uint8_t  mach64_ragepro_i2c_readb(mach64_t *mach64, uint32_t reg);
+void     mach64_ragepro_i2c_writeb(mach64_t *mach64, uint32_t reg, uint8_t val);
+void     mach64_timing_dump(mach64_t *mach64);
+
+/* The setup engine, in vid_ati_mach64_3d.c. reg is the dword index of the
+   block 1 register, 90h-CFh (VERTEX_1_S at 90h, as 190h in ATI's MM index). */
+int      mach64_3d_setup_write(mach64_t *mach64, int reg, uint32_t val);
+int      mach64_3d_setup_read(mach64_t *mach64, int reg, uint32_t *val);
+void     mach64_3d_ragepro_dump(mach64_t *mach64);
+
+/* The Rage XL's IDCT engine, in vid_ati_mach64_idct.c. reg is the byte
+   offset in block 1. The writes and the draws reach it through the FIFO. */
+mach64_idct_t *mach64_idct_init(void);
+void           mach64_idct_close(mach64_idct_t *idct);
+void           mach64_idct_reset(mach64_t *mach64);
+int            mach64_idct_auth_read(mach64_t *mach64, uint32_t reg, uint32_t *val);
+int            mach64_idct_auth_write(mach64_t *mach64, uint32_t reg, uint32_t val);
+int            mach64_idct_authenticated(const mach64_t *mach64);
+int            mach64_idct_intra(const mach64_t *mach64);
+int            mach64_idct_defer(mach64_t *mach64, void *state, unsigned blocks,
+                                void (*render)(mach64_t *, const void *));
+int            mach64_idct_reg(const mach64_t *mach64, uint32_t reg);
+void           mach64_idct_write(mach64_t *mach64, uint32_t reg, uint32_t val);
+void           mach64_idct_bm_write(mach64_t *mach64, uint32_t reg, uint32_t val);
+void           mach64_idct_end_block(mach64_t *mach64);
+void           mach64_idct_draw_begin(mach64_t *mach64, int width, int height);
+int            mach64_idct_residual(const mach64_t *mach64, int dx, int dy);
+void           mach64_idct_draw_end(mach64_t *mach64);
+
 uint8_t  mach64_readb_be(uint32_t addr, void *priv);
 void     mach64_writeb_be(uint32_t addr, uint8_t val, void *priv);
 
@@ -540,6 +680,34 @@ extern mach64_t* reset_state[2];
 
 
 
+/* The IIC and Pro share a descriptor bus master (PRG 8.10). */
+static inline int
+mach64_has_busmaster(const mach64_t *mach64)
+{
+    return mach64->rage2c || mach64->ragepro;
+}
+
+/* The command FIFO's entries. The II+ has 48, the IIC has 128; the Pro's
+   GUI_CNTL CMDFIFO_SIZE_MODE (1:0) makes it 192 (0, the default), 128 or 64
+   (the DRI driver's mach64_drv.h), and its Direct3D HAL waits for 128 free
+   in GUI_STAT. */
+static inline uint32_t
+mach64_fifo_depth(const mach64_t *mach64)
+{
+    if (mach64->rage2c)
+        return 128;
+    if (!mach64->ragepro)
+        return 48;
+    switch (mach64->rp.gui_cntl & 3) {
+        case 1:
+            return 128;
+        case 2:
+            return 64;
+        default:
+            return 192;
+    }
+}
+
 /* MEM_BNDRY (MEM_CNTL 17:16): 0, 256K, 512K or 1M, enabled by
    MEM_BNDRY_EN (bit 18), on the GX and CT (RRG 3-67). The VT's MEM_CNTL
    has no boundary: those bits are its refresh rate and DLL reset
@@ -574,6 +742,39 @@ mach64_mem_bndry(const mach64_t *mach64)
             break;                      \
     }
 
+/* The multimedia peripheral port (MPP_CONFIG ... MPP_DATA, block 0 ECh-FBh;
+   the Rage Pro's block 1 has them again at C0h-CFh). Nothing is on the port:
+   a transfer is over at once (MPP_BUSY, bit 30, never set) and data reads
+   float high. ATI's Rage Pro drivers (ati2vxae, 4.13) write MPP_CONFIG and
+   MPP_STROBE_SEQ, read them back and wait for MPP_BUSY to clear. */
+static inline uint32_t
+mach64_mpp_read(const mach64_t *mach64, int reg)
+{
+    return (reg == 3) ? 0xffffffff : mach64->mpp[reg];
+}
+
+static inline void
+mach64_mpp_write(mach64_t *mach64, int reg, uint32_t val, uint32_t mask)
+{
+    mach64->mpp[reg] = (mach64->mpp[reg] & ~mask) | (val & mask);
+    mach64->mpp[0] &= ~0x40000000;
+}
+
+/* Block 0's ECh-FBh, a byte at a time. */
+static inline uint8_t
+mach64_mpp_readb(const mach64_t *mach64, uint32_t addr)
+{
+    return mach64_mpp_read(mach64, ((addr + 4) & 0x0f) >> 2) >> ((addr & 3) * 8);
+}
+
+static inline void
+mach64_mpp_writeb(mach64_t *mach64, uint32_t addr, uint8_t val)
+{
+    const int shift = (addr & 3) * 8;
+
+    mach64_mpp_write(mach64, ((addr + 4) & 0x0f) >> 2, (uint32_t) val << shift, 0xffu << shift);
+}
+
 #define WRITE8(addr, var, val)                        \
     switch ((addr) &3) {                              \
         case 0:                                       \
@@ -589,3 +790,19 @@ mach64_mem_bndry(const mach64_t *mach64)
             var = (var & 0x00ffffff) | ((val) << 24); \
             break;                                    \
     }
+
+/* The on-chip DAC's comparator is present from CT onward, including
+ * Rage Pro/XL/LT Pro. Their BIOS uses it to detect the attached CRT before
+ * programming a display mode (LT Pro RRG 4-84). Bit 7 is read-only. */
+static inline uint8_t
+mach64_dac_cntl_low(mach64_t *mach64)
+{
+    uint8_t value = mach64->dac_cntl;
+
+    if (mach64->type >= MACH64_CT) {
+        value &= ~0x80;
+        if (svga_in(0x3c2, &mach64->svga) & 0x10)
+            value |= 0x80;
+    }
+    return value;
+}

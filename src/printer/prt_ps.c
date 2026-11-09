@@ -512,7 +512,10 @@ ps_init(const device_t *info)
 #ifdef _WIN32
             "gsdll64.dll", "libgs-10.dll", "libgs-9.dll"
 #elif defined(__APPLE__)
-            "libgs.dylib"
+            "libgs.dylib",
+            "/opt/homebrew/lib/libgs.dylib",   /* Homebrew, Apple Silicon */
+            "/usr/local/lib/libgs.dylib",      /* Homebrew (Intel), MacPorts, manual install */
+            "/opt/local/lib/libgs.dylib"       /* MacPorts */
 #else
             "libgs.so.10", "libgs.so.9", "libgs.so"
 #endif
@@ -567,7 +570,18 @@ pcl_init(const device_t *info)
 #ifdef _WIN32
             "gpcl6dll64.dll", "libgpcl6-10.dll", "libgpcl6-9.dll"
 #elif defined(__APPLE__)
-            "libgpcl6.dylib", "libgpcl6.9.dylib", "libgpcl6.9.54.dylib"
+            "libgpcl6.dylib",
+            "libgpcl6.9.dylib",
+            "libgpcl6.9.54.dylib",
+            "/opt/homebrew/lib/libgpcl6.dylib",        /* Homebrew, Apple Silicon */
+            "/opt/homebrew/lib/libgpcl6.9.dylib",      /* Homebrew, Apple Silicon */
+            "/opt/homebrew/lib/libgpcl6.9.54.dylib",   /* Homebrew, Apple Silicon */
+            "/usr/local/lib/libgpcl6.dylib",           /* Homebrew (Intel), MacPorts, manual install */
+            "/usr/local/lib/libgpcl6.9.dylib",         /* Homebrew (Intel), MacPorts, manual install */
+            "/usr/local/lib/libgpcl6.9.54.dylib",      /* Homebrew (Intel), MacPorts, manual install */
+            "/opt/local/lib/libgpcl6.dylib",           /* MacPorts */
+            "/opt/local/lib/libgpcl6.9.dylib",         /* MacPorts */
+            "/opt/local/lib/libgpcl6.9.54.dylib"       /* MacPorts */
 #else
             "libgpcl6.so.10", "libgpcl6.so.9", "libgpcl6.so"
 #endif

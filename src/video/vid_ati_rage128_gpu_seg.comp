@@ -28,7 +28,7 @@
      V_LOD   stage 0 computes a LOD (draw state need_lod)
      V_BLEND alpha blending reads the destination (alpha_en)
      V_Z     the depth/stencil cell is live: Z test, stencil, or both
-   Everything else is a runtime selector read from the triangle record:
+   Everything else is a runtime selector read from the draw record:
    texel format (every datatype the interpreter decodes, which is all
    but CI16), clamp and border modes, filter select (minb, mag,
    mipdis), the full combine code book for both stages, the auxiliary
@@ -76,9 +76,10 @@
    subgroup size, only packing efficiency does.
 
    Depth: every renderer models depth as the same fixed-point plane
-   (r128_zfx in vid_ati_rage128.h), so a pixel's depth is the span's
-   zline plus i steps in 64-bit integers, the value the interpreter
-   reaches by stepping. zfx_at computes it per pixel.
+   (r128_zfx in vid_ati_rage128.h), so a pixel's depth is the
+   triangle's plane seed plus y row steps and x column steps in 64-bit
+   integers, the value the interpreter reaches by stepping. zfx_at
+   computes it per pixel.
 
    Bit-exactness rules:
    - every float local is `precise`, and the host sets
@@ -136,7 +137,7 @@ layout(constant_id = 6) const int B_FOLD = 0;
 #define FOLDB(bit, v, c) (((B_FOLD & (bit)) != 0) ? uint(c) : (v))
 
 /* Combine fold, used by the device backend. C_FOLD = 0 keeps the
-   runtime per-triangle selectors: the base ("uber") pipelines, which
+   runtime per-draw selectors: the base ("uber") pipelines, which
    also run any draw whose combine tuple did not fit the host's tuple
    table. C_FOLD = 1 pins both stages' combine selectors to the
    constants below, so the compiler drops the unused branches of
@@ -160,14 +161,14 @@ layout(constant_id = 21) const int C_IFACA1 = 0;
 /* stg is a literal at both call sites, so this folds to one constant */
 #define FOLDC(stg, k, c0, c1) \
     ((C_FOLD != 0) ? uint((stg) == 0u ? (c0) : (c1)) \
-                   : tris[ti].comb_cfg[(stg) * 8u + (k)])
+                   : DS(ti).comb_cfg[(stg) * 8u + (k)])
 /* Texture-lighting word, carried in stage 0's spare comb_cfg slot:
    TEX_LIGHT_FN (SDK: Texture Mapping, p. 6-46 / PDF 158) in [3:0],
    TEX_CNTL_C bit 6 in [4] and ALPHA_LIGHT_FN (SDK: Texture Mapping,
    p. 6-47 / PDF 159) in [7:5]. A folded pipeline pins it with the
    stage selectors; 0 means no lighting pass. */
 layout(constant_id = 29) const int C_LIGHT = 0;
-#define FOLDL() ((C_FOLD != 0) ? uint(C_LIGHT) : tris[ti].comb_cfg[7])
+#define FOLDL() ((C_FOLD != 0) ? uint(C_LIGHT) : DS(ti).comb_cfg[7])
 
 /* Stencil fold. The host's combine tuple includes the draw's stencil
    enable, so a folded (C_FOLD = 1) pipeline only runs draws whose
@@ -228,14 +229,49 @@ layout(std430, binding = 2) readonly buffer R { uint rows[]; };  /* pairs: batch
 layout(std430, binding = 3) readonly buffer O { uint slots[]; };
 layout(std430, binding = 4) readonly buffer S { seg_span_t spans[]; };
 layout(std430, binding = 5) readonly buffer T { seg_tri_t tris[]; };
+layout(std430, binding = 6) readonly buffer D { seg_draw_t draws[]; };
+/* The draw state of triangle ti. Both buffers are read-only, so the
+   compiler can share the index load between the reads of one pixel. */
+#define DS(ti) draws[tris[ti].draw]
+
+/* The packed span fields (seg_span_t in vid_ati_rage128_gpu_abi.glsl). */
+int
+span_x0(int si)
+{
+    return int(spans[si].xw & 0x3fffu);
+}
+
+uint
+span_len(int si)
+{
+    return ((spans[si].xw >> 14) & 0xffu) + 1u;
+}
+
+bool
+span_edge32(int si)
+{
+    return (spans[si].xw & 0x80000000u) != 0u;
+}
+
+int
+span_py(int si)
+{
+    return int(spans[si].pt & 0x3fffu);
+}
+
+int
+span_tri(int si)
+{
+    return int(spans[si].pt >> 14);
+}
 /* Imported tex_stage arena, word view: texture levels staged from AGP
    memory. A slot whose packed base has bit 31 set samples here with
    mask-then-add addressing (arena_off + (off & (slice - 1))), the
    interpreter's staged scheme; resident slots use the VRAM
    add-then-mask form. */
 layout(std430, binding = 7) readonly buffer SW { uint stagew[]; };
-/* CI4/CI8 palette snapshots, 256 ARGB words each; tris[].pal_base picks
-   this draw's snapshot */
+/* CI4/CI8 palette snapshots, 256 ARGB words each; the draw record's
+   pal_base picks this draw's snapshot */
 layout(std430, binding = 8) readonly buffer PB { uint pal[]; };
 /* Color and Z render targets staged from AGP memory: the c_stage and
    z_stage arenas, imported without a copy, each with the same u16 and
@@ -563,7 +599,7 @@ cfg(int ti, uint stg, uint k)
         return 0u;
     if ((B_FOLD & FB_FILT) != 0 && k >= 5u)
         return k == 5u ? 3u : k == 6u ? 1u : 0u;
-    return tris[ti].st_cfg[stg * 8u + k];
+    return DS(ti).st_cfg[stg * 8u + k];
 }
 
 void
@@ -571,15 +607,15 @@ slot_of(int ti, uint stg, int cslot, out uint lw, out uint lh,
         out uint base, out uint mask, out bool stgd)
 {
     if (stg == 0u) {
-        lw   = tris[ti].slot0[cslot * 4 + 0];
-        lh   = tris[ti].slot0[cslot * 4 + 1];
-        base = tris[ti].slot0[cslot * 4 + 2];
-        mask = tris[ti].slot0[cslot * 4 + 3];
+        lw   = DS(ti).slot0[cslot * 4 + 0];
+        lh   = DS(ti).slot0[cslot * 4 + 1];
+        base = DS(ti).slot0[cslot * 4 + 2];
+        mask = DS(ti).slot0[cslot * 4 + 3];
     } else {
-        lw   = tris[ti].slot1[cslot * 4 + 0];
-        lh   = tris[ti].slot1[cslot * 4 + 1];
-        base = tris[ti].slot1[cslot * 4 + 2];
-        mask = tris[ti].slot1[cslot * 4 + 3];
+        lw   = DS(ti).slot1[cslot * 4 + 0];
+        lh   = DS(ti).slot1[cslot * 4 + 1];
+        base = DS(ti).slot1[cslot * 4 + 2];
+        mask = DS(ti).slot1[cslot * 4 + 3];
     }
     /* bit 31: the level lives in the stage arena; a resident base is a
        VRAM byte offset and never has it set */
@@ -785,7 +821,7 @@ tex_level(int ti, uint stg, int slot, float s, float t, bool linear,
     bool stgd;
     uint dt   = FOLDF(stg, F_DT0, F_DT1, 0u);
     uint s3tc = FOLDF(stg, F_S3TC0, F_S3TC1, 1u);
-    uint palb = tris[ti].pal_base;
+    uint palb = DS(ti).pal_base;
     uint cls  = cfg(ti, stg, 2u);
     uint clt  = cfg(ti, stg, 3u);
     uint bord = cfg(ti, stg, 4u);
@@ -854,7 +890,7 @@ tex_sample(int ti, uint stg, float s, float t, float lod, bool has_lod,
     uint minb   = cfg(ti, stg, 5u);
     uint mag    = cfg(ti, stg, 6u);
     uint mipdis = cfg(ti, stg, 7u);
-    int  top    = stg == 0u ? tris[ti].top0 : tris[ti].top1;
+    int  top    = stg == 0u ? DS(ti).top0 : DS(ti).top1;
     int  slotA  = top;
     int  slotB  = 0;
     bool linear = false;
@@ -914,8 +950,8 @@ tex_combine_sel(int ti, uint comb, uint fmsb, uint cfac, uint ifac,
     prev[0] = col[0]; prev[1] = col[1]; prev[2] = col[2]; prev[3] = col[3];
 
     switch (cfac) {
-        case 0u: fc[0] = tris[ti].cc[0];       fc[1] = tris[ti].cc[1];       fc[2] = tris[ti].cc[2];       break;
-        case 1u: fc[0] = 1.0 - tris[ti].cc[0]; fc[1] = 1.0 - tris[ti].cc[1]; fc[2] = 1.0 - tris[ti].cc[2]; break;
+        case 0u: fc[0] = DS(ti).cc[0];       fc[1] = DS(ti).cc[1];       fc[2] = DS(ti).cc[2];       break;
+        case 1u: fc[0] = 1.0 - DS(ti).cc[0]; fc[1] = 1.0 - DS(ti).cc[1]; fc[2] = 1.0 - DS(ti).cc[2]; break;
         case 5u: fc[0] = 1.0 - tr;             fc[1] = 1.0 - tg;             fc[2] = 1.0 - tb;             break;
         case 6u: fc[0] = fc[1] = fc[2] = ta;       break;
         case 7u: fc[0] = fc[1] = fc[2] = 1.0 - ta; break;
@@ -923,8 +959,8 @@ tex_combine_sel(int ti, uint comb, uint fmsb, uint cfac, uint ifac,
         default: fc[0] = tr; fc[1] = tg; fc[2] = tb; break;
     }
     switch (ifac) {
-        case 2u: ci[0] = tris[ti].cc[0]; ci[1] = tris[ti].cc[1]; ci[2] = tris[ti].cc[2]; break;
-        case 3u: ci[0] = ci[1] = ci[2] = tris[ti].cc[3]; break;
+        case 2u: ci[0] = DS(ti).cc[0]; ci[1] = DS(ti).cc[1]; ci[2] = DS(ti).cc[2]; break;
+        case 3u: ci[0] = ci[1] = ci[2] = DS(ti).cc[3]; break;
         case 5u: ci[0] = ci[1] = ci[2] = int_color[3]; break;
         case 8u: ci[0] = prev[0]; ci[1] = prev[1]; ci[2] = prev[2]; break;
         case 9u: ci[0] = ci[1] = ci[2] = prev[3]; break;
@@ -985,7 +1021,7 @@ tex_combine_sel(int ti, uint comb, uint fmsb, uint cfac, uint ifac,
             for (i = 0; i < 3; i++) col[i] = ci[i] * (1.0 - ta) + fc[i] * ta;
             break;
         case 10u:
-            for (i = 0; i < 3; i++) col[i] = ci[i] * (1.0 - tris[ti].cc[3]) + fc[i] * tris[ti].cc[3];
+            for (i = 0; i < 3; i++) col[i] = ci[i] * (1.0 - DS(ti).cc[3]) + fc[i] * DS(ti).cc[3];
             break;
         case 11u:
             for (i = 0; i < 3; i++) { col[i] = fc[i] + ci[i] * (1.0 - ta); if (col[i] > 1.0) col[i] = 1.0; }
@@ -1000,7 +1036,7 @@ tex_combine_sel(int ti, uint comb, uint fmsb, uint cfac, uint ifac,
             for (i = 0; i < 3; i++) { col[i] = (ci[i] + fc[i] - 0.5) * 2.0; col[i] = col[i] < 0.0 ? 0.0 : (col[i] > 1.0 ? 1.0 : col[i]); }
             break;
         case 15u:
-            for (i = 0; i < 3; i++) col[i] = ci[i] * (1.0 - tris[ti].cc[i]) + fc[i] * tris[ti].cc[i];
+            for (i = 0; i < 3; i++) col[i] = ci[i] * (1.0 - DS(ti).cc[i]) + fc[i] * DS(ti).cc[i];
             break;
         default:
             col[0] = ci[0] * fc[0]; col[1] = ci[1] * fc[1]; col[2] = ci[2] * fc[2];
@@ -1009,7 +1045,7 @@ tex_combine_sel(int ti, uint comb, uint fmsb, uint cfac, uint ifac,
 
     fa = (afac == 7u) ? (1.0 - ta) : ta;
     switch (ifaca) {
-        case 1u:  ia = tris[ti].cc[3]; break;
+        case 1u:  ia = DS(ti).cc[3]; break;
         case 2u:  ia = int_color[3];   break;
         default:  ia = prev[3];        break;
     }
@@ -1045,7 +1081,7 @@ tex_combine_sel(int ti, uint comb, uint fmsb, uint cfac, uint ifac,
     }
 }
 
-/* one texture stage: the folded (or per-triangle) selectors applied to
+/* one texture stage: the folded (or per-draw) selectors applied to
    the packed texel */
 void
 tex_combine(int ti, uint stg, precise inout float col[4], uint tx,
@@ -1188,22 +1224,22 @@ dst_write(uint daddr, uint dt, uint argb, int bay, uint pmask, bool dstg)
     }
 }
 
-/* ref_aux_pass on the per-triangle copies of the auxiliary scissor
+/* ref_aux_pass on the draw record's copies of the auxiliary scissor
    rectangles; aux_cntl is 0 when the draw has them off */
 bool
 aux_pass(int ti, int x, int y)
 {
     bool have_add = false, in_add = false;
 
-    if (FOLDB(FB_ZAUX, tris[ti].aux_cntl, 0u) == 0u)
+    if (FOLDB(FB_ZAUX, DS(ti).aux_cntl, 0u) == 0u)
         return true;
     for (int i = 0; i < 3; i++) {
-        if ((tris[ti].aux_cntl & (1u << (i * 2))) == 0u)
+        if ((DS(ti).aux_cntl & (1u << (i * 2))) == 0u)
             continue;
-        bool inr = x >= tris[ti].aux_x0[i] && x <= tris[ti].aux_x1[i]
-                && y >= tris[ti].aux_y0[i] && y <= tris[ti].aux_y1[i];
+        bool inr = x >= DS(ti).aux_x0[i] && x <= DS(ti).aux_x1[i]
+                && y >= DS(ti).aux_y0[i] && y <= DS(ti).aux_y1[i];
 
-        if ((tris[ti].aux_cntl & (2u << (i * 2))) != 0u) {
+        if ((DS(ti).aux_cntl & (2u << (i * 2))) != 0u) {
             if (inr)
                 return false;
         } else {
@@ -1249,12 +1285,13 @@ edge_i64(uvec2 e)
     return int64_t(uint64_t(e.x) | (uint64_t(e.y) << 32));
 }
 
-/* Fixed-point depth of pixel i of span si (r128_zfx), clamped to
-   [0, 1.0] = [0, 2^39] (r128_zfx_clamp). */
+/* Fixed-point depth (r128_zfx) of pixel (px, py) from the triangle's
+   plane seed, clamped to [0, 1.0] = [0, 2^39] (r128_zfx_clamp). */
 uint64_t
-zfx_at(int si, int ti, uint i)
+zfx_at(int ti, int px, int py)
 {
-    int64_t z = edge_i64(spans[si].zline) + int64_t(i) * edge_i64(tris[ti].dZdx);
+    int64_t z = edge_i64(tris[ti].zo) + int64_t(py) * edge_i64(tris[ti].dzy)
+              + int64_t(px) * edge_i64(tris[ti].dZdx);
 
     return (z < 0L) ? 0UL : ((z > (1L << 39)) ? (1UL << 39) : uint64_t(z));
 }
@@ -1269,49 +1306,58 @@ zfx_quant(uint64_t zc, uint zmax)
 void
 pixel(int si, int ti, uint i)
 {
-    int  px = spans[si].x0 + int(i);
+    int  px = span_x0(si) + int(i);
+    int  py = span_py(si);
     bool cdead = (C_FOLD != 0)
         ? (C_DEAD != 0)
-        : (tris[ti].wmask == 0u
-           && FOLDB(FB_ZAUX, tris[ti].atest_en, 0u) == 0u
-           && tris[ti].ck_ctl == 0u);
+        : (DS(ti).wmask == 0u
+           && FOLDB(FB_ZAUX, DS(ti).atest_en, 0u) == 0u
+           && DS(ti).ck_ctl == 0u);
     precise float ef0 = 0.0, ef1 = 0.0, ef2 = 0.0;
 
     /* The host clipped the span to the three edge inequalities, so every
        pixel in it is covered and the edges are not tested here. A draw
        with dead color needs no edge values; one with live color uses
-       them only for the barycentric weights. The capture sets pad1 when
-       all three edge values stay in signed 32-bit range across the span,
-       and the 32-bit path is then exact; otherwise the 64-bit path
+       them only for the barycentric weights. The capture sets the span's
+       32-bit edge flag when all three edge values stay in signed 32-bit
+       range across the span. The 32-bit path is then exact: it computes
+       the plane value modulo 2^32, which is the value itself when it
+       fits. The sum runs in unsigned arithmetic, whose wrap is defined
+       in every shading language the kernel is translated to (the seed
+       itself is usually outside 32 bits, so the partial sums do wrap),
+       and int() then keeps the bit pattern. Otherwise the 64-bit path
        runs. */
     if (!cdead) {
-        if ((B_FOLD & FB_EDGE) != 0 || spans[si].pad1 != 0u) {
-            int e0 = int(spans[si].e0.x) + int(i) * int(tris[ti].e0dxi.x);
-            int e1 = int(spans[si].e1.x) + int(i) * int(tris[ti].e1dxi.x);
-            int e2 = int(spans[si].e2.x) + int(i) * int(tris[ti].e2dxi.x);
+        if ((B_FOLD & FB_EDGE) != 0 || span_edge32(si)) {
+            int e0 = int(tris[ti].e0o.x + uint(py) * tris[ti].e0dyi.x
+                         + uint(px) * tris[ti].e0dxi.x);
+            int e1 = int(tris[ti].e1o.x + uint(py) * tris[ti].e1dyi.x
+                         + uint(px) * tris[ti].e1dxi.x);
+            int e2 = int(tris[ti].e2o.x + uint(py) * tris[ti].e2dyi.x
+                         + uint(px) * tris[ti].e2dxi.x);
 
             ef0 = float(e0);
             ef1 = float(e1);
             ef2 = float(e2);
         } else {
-            int64_t e0 = edge_i64(spans[si].e0)
-                       + int64_t(i) * edge_i64(tris[ti].e0dxi);
-            int64_t e1 = edge_i64(spans[si].e1)
-                       + int64_t(i) * edge_i64(tris[ti].e1dxi);
-            int64_t e2 = edge_i64(spans[si].e2)
-                       + int64_t(i) * edge_i64(tris[ti].e2dxi);
+            int64_t e0 = edge_i64(tris[ti].e0o) + int64_t(py) * edge_i64(tris[ti].e0dyi)
+                       + int64_t(px) * edge_i64(tris[ti].e0dxi);
+            int64_t e1 = edge_i64(tris[ti].e1o) + int64_t(py) * edge_i64(tris[ti].e1dyi)
+                       + int64_t(px) * edge_i64(tris[ti].e1dxi);
+            int64_t e2 = edge_i64(tris[ti].e2o) + int64_t(py) * edge_i64(tris[ti].e2dyi)
+                       + int64_t(px) * edge_i64(tris[ti].e2dxi);
 
             ef0 = float(e0);
             ef1 = float(e1);
             ef2 = float(e2);
         }
     }
-    if (!aux_pass(ti, px, spans[si].py))
+    if (!aux_pass(ti, px, py))
         return;
     /* A clear modeled stipple bit discards before depth and stencil;
        destination coordinates select the captured row and reversed bit. */
-    if (tris[ti].stip_en != 0u
-        && ((tris[ti].stipple[spans[si].py & 31] >> (31 - (px & 31))) & 1u) == 0u)
+    if (DS(ti).stip_en != 0u
+        && ((DS(ti).stipple[py & 31] >> (31 - (px & 31))) & 1u) == 0u)
         return;
 
     /* Barycentric weights only (three multiplies). The four Gouraud
@@ -1336,7 +1382,7 @@ pixel(int si, int ti, uint i)
        draw with stencil on and the Z test off arrives with zfn set to
        7 (always) and z_wr 0 by the capture side. */
     uint zi = 0u, zcell = 0u, zbuf = 0u;
-    uint zbpp = tris[ti].zbpp, zshift = tris[ti].zshift;
+    uint zbpp = DS(ti).zbpp, zshift = DS(ti).zshift;
     uint zmax = (zbpp == 4u) ? 0xffffffu : 0xffffu;
     bool zres = true, sres = true, sten = false, zstg = false, zua = false;
     uint sbuf = 0u, sshift = 0u;
@@ -1344,7 +1390,7 @@ pixel(int si, int ti, uint i)
     if (V_Z != 0) {
         uint zrw = spans[si].zrow;
 
-        zi    = zfx_quant(zfx_at(si, ti, i), zmax);
+        zi    = zfx_quant(zfx_at(ti, px, py), zmax);
         zstg  = (zrw & 0x80000000u) != 0u;
         zcell = zstg ? ((zrw & 0x7fffffffu) + uint(px) * zbpp)
                      : ((zrw + uint(px) * zbpp) & pc.vram_mask);
@@ -1356,10 +1402,10 @@ pixel(int si, int ti, uint i)
                     ? (((zua ? ldu32(zcell) : zw_ld(zstg, zcell >> 2))
                         >> zshift) & zmax)
                     : (zua ? ldu16(zcell) : z16_ld(zstg, zcell >> 1));
-        zres  = cmp_fn(FOLDB(FB_ZAUX, tris[ti].zfn, 2u), zi, zbuf) != 0;
+        zres  = cmp_fn(FOLDB(FB_ZAUX, DS(ti).zfn, 2u), zi, zbuf) != 0;
         sten  = (C_FOLD != 0)
             ? (S_STEN != 0)
-            : (FOLDB(FB_ZAUX, tris[ti].sten_ctl & 1u, 0u) != 0u);
+            : (FOLDB(FB_ZAUX, DS(ti).sten_ctl & 1u, 0u) != 0u);
         if (sten) {
             /* stencil sits in the byte the depth field leaves free: the top
            byte when depth is the low 24 bits (zshift 0), the layout the
@@ -1369,10 +1415,10 @@ pixel(int si, int ti, uint i)
             sbuf   = ((zua ? ldu32(zcell) : zw_ld(zstg, zcell >> 2))
                       >> sshift) & 0xffu;
             {
-                uint svm = (tris[ti].sten_rm >> 8) & 0xffu;
+                uint svm = (DS(ti).sten_rm >> 8) & 0xffu;
 
-                sres = cmp_fn((tris[ti].sten_ctl >> 4) & 7u,
-                              tris[ti].sten_rm & svm, sbuf & svm) != 0;
+                sres = cmp_fn((DS(ti).sten_ctl >> 4) & 7u,
+                              DS(ti).sten_rm & svm, sbuf & svm) != 0;
             }
         } else if (!zres)
             return;
@@ -1396,13 +1442,13 @@ pixel(int si, int ti, uint i)
         int_color[0] = col[0]; int_color[1] = col[1];
         int_color[2] = col[2]; int_color[3] = col[3];
 
-        /* Perspective divide, a runtime per-triangle selector. An affine
+        /* Perspective divide, a runtime per-draw selector. An affine
            draw (PRIM_TEX_CNTL_C bit 14, the Mesa r128 macro
            R128_TEX_PERSPECTIVE_DISABLE) never forms rhw and leaves ir at
            1.0, so S and T are the plain barycentric interpolation. This
            is the interpreter's !do_persp path, which also skips the
            rhw dot product. */
-        bool          persp = (tris[ti].persp & 1u) != 0u;
+        bool          persp = (DS(ti).persp & 1u) != 0u;
         precise float rhw = persp ? (w0 * tris[ti].arhw + w1 * tris[ti].brhw
                                      + w2 * tris[ti].crhw)
                                   : 0.0;
@@ -1413,7 +1459,7 @@ pixel(int si, int ti, uint i)
 
         /* A secondary-only draw keeps the iterated color for stage 1;
            bit 1 skips stage 0's sampler, chroma keys, and combine. */
-        if ((tris[ti].persp & 2u) == 0u) {
+        if ((DS(ti).persp & 2u) == 0u) {
             precise float sp = w0 * tris[ti].sta + w1 * tris[ti].stb + w2 * tris[ti].stc;
             precise float tp = w0 * tris[ti].tta + w1 * tris[ti].ttb + w2 * tris[ti].ttc;
             precise float s  = sp * ir;
@@ -1436,23 +1482,23 @@ pixel(int si, int ti, uint i)
                     dtx = tris[ti].dTdx; dty = tris[ti].dTdy;
                 }
 
-                dsx *= tris[ti].texw0;
-                dsy *= tris[ti].texw0;
-                dtx *= tris[ti].texh0;
-                dty *= tris[ti].texh0;
+                dsx *= DS(ti).texw0;
+                dsy *= DS(ti).texw0;
+                dtx *= DS(ti).texh0;
+                dty *= DS(ti).texh0;
                 {
                     precise float ax2  = dsx * dsx + dtx * dtx;
                     precise float ay2  = dsy * dsy + dty * dty;
                     precise float rho2 = ax2 > ay2 ? ax2 : ay2;
 
-                    lod = rho2 > 0.0 ? 0.5 * log2f_fast(rho2) + tris[ti].lod_bias
+                    lod = rho2 > 0.0 ? 0.5 * log2f_fast(rho2) + DS(ti).lod_bias
                                      : -1000.0;
                 }
             }
             {
                 uint tnear = 0u;
                 uint tx = tex_sample(ti, 0u, s, t, lod, V_LOD != 0,
-                                     tris[ti].ck_ctl != 0u, tnear);
+                                     DS(ti).ck_ctl != 0u, tnear);
 
                 /* Chroma key (stage 0 only), in interpreter order: it
                    compares the nearest texel before filtering and
@@ -1462,16 +1508,16 @@ pixel(int si, int ti, uint i)
                    bit 2 set rejects on equal (function 3) and clear on
                    not equal (function 2); bit 1 enables the texture
                    color-compare key, which rejects on equal. */
-                if ((tris[ti].ck_ctl & 1u) != 0u) {
-                    bool eq = (tnear & tris[ti].ck3d_msk)
-                           == (tris[ti].ck3d_clr & tris[ti].ck3d_msk);
+                if ((DS(ti).ck_ctl & 1u) != 0u) {
+                    bool eq = (tnear & DS(ti).ck3d_msk)
+                           == (DS(ti).ck3d_clr & DS(ti).ck3d_msk);
 
-                    if (((tris[ti].ck_ctl & 4u) != 0u) ? eq : !eq)
+                    if (((DS(ti).ck_ctl & 4u) != 0u) ? eq : !eq)
                         return;
                 }
-                if ((tris[ti].ck_ctl & 2u) != 0u
-                    && (tnear & tris[ti].ckc_msk)
-                       == (tris[ti].ckc_clr & tris[ti].ckc_msk))
+                if ((DS(ti).ck_ctl & 2u) != 0u
+                    && (tnear & DS(ti).ckc_msk)
+                       == (DS(ti).ckc_clr & DS(ti).ckc_msk))
                     return;
                 tex_combine(ti, 0u, col, tx, int_color);
             }
@@ -1479,15 +1525,15 @@ pixel(int si, int ti, uint i)
 
         /* ---- stage 1 (sec_sel and need_lod2 read at run time) ---- */
         if (V_TEX == 2) {
-            bool          sel  = FOLDB(FB_ZAUX, tris[ti].sec_sel, 0u) != 0u;
+            bool          sel  = FOLDB(FB_ZAUX, DS(ti).sec_sel, 0u) != 0u;
             /* The stage's own perspective enable and W, runtime
-               per-triangle selectors like persp. When they match the
+               per-draw selectors like persp. When they match the
                primary stage's, rhw and ir are the same values and are
                reused; otherwise the stage forms its own W dot product
                and reciprocal (1.0 with perspective off), the
                interpreter's rhw2 and ir2. */
-            bool          persp2 = tris[ti].persp2 != 0u;
-            bool          selw   = tris[ti].sel_w != 0u;
+            bool          persp2 = DS(ti).persp2 != 0u;
+            bool          selw   = DS(ti).sel_w != 0u;
             bool          own    = selw || persp2 != persp;
             precise float rhw2   = rhw;
             precise float ir2    = ir;
@@ -1497,7 +1543,7 @@ pixel(int si, int ti, uint i)
                                      : (w0 * tris[ti].tta + w1 * tris[ti].ttb + w2 * tris[ti].ttc);
             precise float s2, t2;
             precise float lod2 = 0.0;
-            bool          hl2  = FOLDB(FB_ZAUX, tris[ti].need_lod2, 1u) != 0u;
+            bool          hl2  = FOLDB(FB_ZAUX, DS(ti).need_lod2, 1u) != 0u;
 
             if (own) {
                 rhw2 = 0.0;
@@ -1532,16 +1578,16 @@ pixel(int si, int ti, uint i)
                     dsx = gsx; dsy = gsy; dtx = gtx; dty = gty;
                 }
 
-                dsx *= tris[ti].texw1;
-                dsy *= tris[ti].texw1;
-                dtx *= tris[ti].texh1;
-                dty *= tris[ti].texh1;
+                dsx *= DS(ti).texw1;
+                dsy *= DS(ti).texw1;
+                dtx *= DS(ti).texh1;
+                dty *= DS(ti).texh1;
                 {
                     precise float ax2  = dsx * dsx + dtx * dtx;
                     precise float ay2  = dsy * dsy + dty * dty;
                     precise float rho2 = ax2 > ay2 ? ax2 : ay2;
 
-                    lod2 = rho2 > 0.0 ? 0.5 * log2f_fast(rho2) + tris[ti].lod_bias
+                    lod2 = rho2 > 0.0 ? 0.5 * log2f_fast(rho2) + DS(ti).lod_bias
                                       : -1000.0;
                 }
             }
@@ -1565,7 +1611,7 @@ pixel(int si, int ti, uint i)
        R128_SPEC_LIGHT_ENABLE), in interpreter order: after the texture
        stages, before fog and the alpha test. RGB only, saturating;
        alpha is unchanged. */
-    if (!cdead && tris[ti].spec_en != 0u) {
+    if (!cdead && DS(ti).spec_en != 0u) {
         col[0] = col[0] + (w0 * tris[ti].spa[0] + w1 * tris[ti].spb[0] + w2 * tris[ti].spc[0]);
         col[1] = col[1] + (w0 * tris[ti].spa[1] + w1 * tris[ti].spb[1] + w2 * tris[ti].spc[1]);
         col[2] = col[2] + (w0 * tris[ti].spa[2] + w1 * tris[ti].spb[2] + w2 * tris[ti].spc[2]);
@@ -1584,22 +1630,22 @@ pixel(int si, int ti, uint i)
        operations:
        t = float(fr) * 2^-32, f = (T[i] + (T[i1] - T[i]) * t) / 255,
        with the divide correctly rounded. */
-    if (!cdead && tris[ti].fog_en != 0u) {
+    if (!cdead && DS(ti).fog_en != 0u) {
         precise float f;
 
-        if (tris[ti].ftab_en != 0u) {
+        if (DS(ti).ftab_en != 0u) {
             /* Index and fraction from the pixel's depth
                (r128_zfx_fogpos), computed here, without a live depth
                cell, so the texture stages do not keep the operands
                live, as with Z writeback. */
-            uint64_t q  = (zfx_at(si, ti, i) * 255UL) >> 7;
+            uint64_t q  = (zfx_at(ti, px, py) * 255UL) >> 7;
             uint     fi = uint(q >> 32);
             uint     fr = uint(q);
             uint i1 = min(fi + 1u, 255u);
             precise float t  = float(fr) * (1.0 / 4294967296.0);
-            precise float fa = float((tris[ti].fog_table[fi >> 2] >> ((fi & 3u) * 8u)) & 0xffu);
-            precise float fd = float(int((tris[ti].fog_table[i1 >> 2] >> ((i1 & 3u) * 8u)) & 0xffu)
-                                     - int((tris[ti].fog_table[fi >> 2] >> ((fi & 3u) * 8u)) & 0xffu));
+            precise float fa = float((DS(ti).fog_table[fi >> 2] >> ((fi & 3u) * 8u)) & 0xffu);
+            precise float fd = float(int((DS(ti).fog_table[i1 >> 2] >> ((i1 & 3u) * 8u)) & 0xffu)
+                                     - int((DS(ti).fog_table[fi >> 2] >> ((fi & 3u) * 8u)) & 0xffu));
             precise float fn = fa + fd * t;
 
             f = fdiv_cr(fn, 255.0);
@@ -1608,9 +1654,9 @@ pixel(int si, int ti, uint i)
             if (f < 0.0) f = 0.0;
             if (f > 1.0) f = 1.0;
         }
-        col[0] = col[0] * f + tris[ti].fogr * (1.0 - f);
-        col[1] = col[1] * f + tris[ti].fogg * (1.0 - f);
-        col[2] = col[2] * f + tris[ti].fogb * (1.0 - f);
+        col[0] = col[0] * f + DS(ti).fogr * (1.0 - f);
+        col[1] = col[1] * f + DS(ti).fogg * (1.0 - f);
+        col[2] = col[2] * f + DS(ti).fogb * (1.0 - f);
     }
 
     /* Alpha test, in interpreter order: after the texture stages,
@@ -1618,9 +1664,9 @@ pixel(int si, int ti, uint i)
        pixel that fails it changes none of them, while a pixel that
        failed the stencil or Z test still runs the stencil update
        below. */
-    if (FOLDB(FB_ZAUX, tris[ti].atest_en, 0u) != 0u
-        && cmp_fn(tris[ti].atest_fn, sat_u32(col[3] * 255.0 + 0.5),
-                  tris[ti].atest_ref) == 0)
+    if (FOLDB(FB_ZAUX, DS(ti).atest_en, 0u) != 0u
+        && cmp_fn(DS(ti).atest_fn, sat_u32(col[3] * 255.0 + 0.5),
+                  DS(ti).atest_ref) == 0)
         return;
 
     /* Stencil update, then the deferred discard. The op is picked by
@@ -1635,10 +1681,10 @@ pixel(int si, int ti, uint i)
        read-modify-write is safe; a straddling cell and the commutative
        class below need atomics. */
     if (V_Z != 0 && sten) {
-        uint sop  = !sres ? ((tris[ti].sten_ctl >> 8) & 7u)
-                          : (zres ? ((tris[ti].sten_ctl >> 12) & 7u)
-                                  : ((tris[ti].sten_ctl >> 16) & 7u));
-        uint swm  = (tris[ti].sten_rm >> 16) & 0xffu;
+        uint sop  = !sres ? ((DS(ti).sten_ctl >> 8) & 7u)
+                          : (zres ? ((DS(ti).sten_ctl >> 12) & 7u)
+                                  : ((DS(ti).sten_ctl >> 16) & 7u));
+        uint swm  = (DS(ti).sten_rm >> 16) & 0xffu;
         /* address the stencil byte, then the word holding it: for an
            aligned cell this is w = zcell >> 2 and ssw = sshift; for a
            straddling cell the byte can be in either word */
@@ -1657,14 +1703,14 @@ pixel(int si, int ti, uint i)
            compare-and-swap loop in any order gives the result of the
            serial order. The loop never changes the depth bits, so the
            Z test read above stays valid. */
-        uint zp_op = (tris[ti].sten_ctl >> 12) & 7u;
-        uint zf_op = (tris[ti].sten_ctl >> 16) & 7u;
+        uint zp_op = (DS(ti).sten_ctl >> 12) & 7u;
+        uint zf_op = (DS(ti).sten_ctl >> 16) & 7u;
         /* the zpass and zfail ops must also commute with each other
            (equal, or one of them keep): overlapping spans hit the same
            pixel with different Z results, so the pixel sees a mix of
            the two ops in any order */
-        bool s_atomic = cdead && tris[ti].z_wr == 0u
-                        && ((tris[ti].sten_ctl >> 4) & 7u) == 7u
+        bool s_atomic = cdead && DS(ti).z_wr == 0u
+                        && ((DS(ti).sten_ctl >> 4) & 7u) == 7u
                         && zp_op <= 4u && zf_op <= 4u
                         && (zp_op == zf_op || zp_op == 0u || zf_op == 0u);
 
@@ -1676,7 +1722,7 @@ pixel(int si, int ti, uint i)
 
                 switch (sop) {
                     case 1u: sn = 0u;                            break;
-                    case 2u: sn = tris[ti].sten_rm & 0xffu;      break;
+                    case 2u: sn = DS(ti).sten_rm & 0xffu;      break;
                     case 3u: sn = sb == 0xffu ? 0xffu : sb + 1u; break;
                     default: sn = sb == 0u ? 0u : sb - 1u;       break;
                 }
@@ -1694,7 +1740,7 @@ pixel(int si, int ti, uint i)
             switch (sop) {
                 case 0u:                                           break; /* KEEP     */
                 case 1u: snew = 0u;                                break; /* ZERO     */
-                case 2u: snew = tris[ti].sten_rm & 0xffu;          break; /* REPLACE  */
+                case 2u: snew = DS(ti).sten_rm & 0xffu;          break; /* REPLACE  */
                 case 3u: snew = sbuf == 0xffu ? 0xffu : sbuf + 1u; break; /* INC sat  */
                 case 4u: snew = sbuf == 0u ? 0u : sbuf - 1u;       break; /* DEC sat  */
                 case 5u: snew = ~sbuf & 0xffu;                     break; /* INVERT   */
@@ -1717,35 +1763,35 @@ pixel(int si, int ti, uint i)
             return;
     }
 
-    uint dbpp  = (tris[ti].dst_dt == 6u) ? 4u : 2u;
+    uint dbpp  = (DS(ti).dst_dt == 6u) ? 4u : 2u;
     uint drw   = spans[si].drow;
     bool dstg  = (drw & 0x80000000u) != 0u;
     uint daddr = dstg ? ((drw & 0x7fffffffu) + uint(px) * dbpp)
                       : ((drw + uint(px) * dbpp) & pc.vram_mask);
 
     if (V_BLEND != 0 && !cdead) {
-        uint          dst = dst_read(daddr, tris[ti].dst_dt, dstg);
+        uint          dst = dst_read(daddr, DS(ti).dst_dt, dstg);
         precise float dc[4], fs[4], fd[4];
 
         dc[0] = div255((dst >> 16) & 0xffu);
         dc[1] = div255((dst >> 8) & 0xffu);
         dc[2] = div255(dst & 0xffu);
         dc[3] = div255(dst >> 24);
-        if (FOLDB(FB_BLEND, tris[ti].bsrc, 0xbu) == 0xbu || FOLDB(FB_BLEND, tris[ti].bsrc, 0xbu) == 0xcu) {
-            precise float sa = (FOLDB(FB_BLEND, tris[ti].bsrc, 0xbu) == 0xbu) ? col[3] : 1.0 - col[3];
+        if (FOLDB(FB_BLEND, DS(ti).bsrc, 0xbu) == 0xbu || FOLDB(FB_BLEND, DS(ti).bsrc, 0xbu) == 0xcu) {
+            precise float sa = (FOLDB(FB_BLEND, DS(ti).bsrc, 0xbu) == 0xbu) ? col[3] : 1.0 - col[3];
 
             fs[0] = fs[1] = fs[2] = fs[3] = sa;
             fd[0] = fd[1] = fd[2] = fd[3] = 1.0 - sa;
         } else {
-            blend_factor(FOLDB(FB_BLEND, tris[ti].bsrc, 0xbu), col, dc, fs);
-            blend_factor(FOLDB(FB_BLEND, tris[ti].bdst, 0xcu), col, dc, fd);
+            blend_factor(FOLDB(FB_BLEND, DS(ti).bsrc, 0xbu), col, dc, fs);
+            blend_factor(FOLDB(FB_BLEND, DS(ti).bdst, 0xcu), col, dc, fd);
         }
         for (int c = 0; c < 4; c++) {
-            precise float v = (FOLDB(FB_BLEND, tris[ti].bfcn, 0u) & 2u) != 0u
+            precise float v = (FOLDB(FB_BLEND, DS(ti).bfcn, 0u) & 2u) != 0u
                             ? col[c] * fs[c] - dc[c] * fd[c]
                             : col[c] * fs[c] + dc[c] * fd[c];
 
-            if ((FOLDB(FB_BLEND, tris[ti].bfcn, 0u) & 1u) != 0u)
+            if ((FOLDB(FB_BLEND, DS(ti).bfcn, 0u) & 1u) != 0u)
                 v = div255(uint(sat_i32(roundEven(v * 255.0)) & 0xff));
             else
                 v = v < 0.0 ? 0.0 : (v > 1.0 ? 1.0 : v);
@@ -1759,11 +1805,11 @@ pixel(int si, int ti, uint i)
                   | (sat_u32(col[0] * 255.0 + 0.5) << 16)
                   | (sat_u32(col[1] * 255.0 + 0.5) << 8)
                   | sat_u32(col[2] * 255.0 + 0.5);
-        uint bidx = uint(spans[si].py & 3) * 4u + uint(px & 3);
+        uint bidx = uint(py & 3) * 4u + uint(px & 3);
 
-        dst_write(daddr, tris[ti].dst_dt, outw,
-                  tris[ti].dither != 0u ? int(BAYER4(bidx)) : -1,
-                  tris[ti].wmask, dstg);
+        dst_write(daddr, DS(ti).dst_dt, outw,
+                  DS(ti).dither != 0u ? int(BAYER4(bidx)) : -1,
+                  DS(ti).wmask, dstg);
     }
 
     /* Z writeback to the same cell the test read. At zbpp 4 the depth
@@ -1773,7 +1819,7 @@ pixel(int si, int ti, uint i)
        Z. A straddling cell merges all 4 bytes, reading its stencil byte
        again after the update above, and stores them with byte-lane
        atomics. */
-    if (V_Z != 0 && tris[ti].z_wr != 0u) {
+    if (V_Z != 0 && DS(ti).z_wr != 0u) {
         /* With stencil folded off, nothing between the test and here
            uses the cell state, so it is computed again: the address,
            widths and depth depend only on the same tris and spans
@@ -1789,14 +1835,14 @@ pixel(int si, int ti, uint i)
         if (C_FOLD != 0 && S_STEN == 0) {
             uint wrw = spans[si].zrow;
 
-            wbpp  = tris[ti].zbpp;
-            wshf  = tris[ti].zshift;
+            wbpp  = DS(ti).zbpp;
+            wshf  = DS(ti).zshift;
             wmax  = (wbpp == 4u) ? 0xffffffu : 0xffffu;
             wstg  = (wrw & 0x80000000u) != 0u;
             wcell = wstg ? ((wrw & 0x7fffffffu) + uint(px) * wbpp)
                          : ((wrw + uint(px) * wbpp) & pc.vram_mask);
             wua   = !wstg && (wcell & (wbpp - 1u)) != 0u;
-            wzi   = zfx_quant(zfx_at(si, ti, i), wmax);
+            wzi   = zfx_quant(zfx_at(ti, px, py), wmax);
         } else {
             wbpp = zbpp;  wshf = zshift; wmax = zmax; wstg = zstg;
             wcell = zcell; wua = zua;    wzi  = zi;
@@ -1837,8 +1883,8 @@ main()
         for (uint k = 0u; k < bc; k++) {
             int si = int(bb + k);
 
-            for (uint i = 0u; i < uint(spans[si].x1 - spans[si].x0 + 1); i++)
-                pixel(si, spans[si].tri, i);
+            for (uint i = 0u; i < span_len(si); i++)
+                pixel(si, span_tri(si), i);
         }
         return;
     }
@@ -1868,8 +1914,8 @@ main()
                invocation runs slower in the gputri bench when texture
                and Z are both live: the extra registers lower the number
                of workgroups the GPU keeps resident. */
-            if (i < uint(spans[si].x1 - spans[si].x0 + 1))
-                pixel(si, spans[si].tri, i);
+            if (i < span_len(si))
+                pixel(si, span_tri(si), i);
         }
     }
 }

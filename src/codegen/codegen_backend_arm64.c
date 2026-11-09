@@ -502,6 +502,23 @@ rep_patch_list(uint32_t **list, int nr, void *dest)
 }
 
 static void
+rep_load_regs(codeblock_t *block, int is_stos, int a32)
+{
+    if (a32) {
+        host_arm64_LDR_IMM_W(block, REP_CNT, REG_CPUSTATE, rep_state_offset(&ECX));
+        if (!is_stos)
+            host_arm64_LDR_IMM_W(block, REP_SRC, REG_CPUSTATE, rep_state_offset(&ESI));
+        host_arm64_LDR_IMM_W(block, REP_DST, REG_CPUSTATE, rep_state_offset(&EDI));
+    } else {
+        host_arm64_LDRH_IMM(block, REP_CNT, REG_CPUSTATE, rep_state_offset(&CX));
+        if (!is_stos)
+            host_arm64_LDRH_IMM(block, REP_SRC, REG_CPUSTATE, rep_state_offset(&SI));
+        host_arm64_LDRH_IMM(block, REP_DST, REG_CPUSTATE, rep_state_offset(&DI));
+    }
+    host_arm64_LDR_IMM_W(block, REP_CYCLES, REG_CPUSTATE, rep_state_offset(&cpu_state._cycles));
+}
+
+static void
 rep_writeback(codeblock_t *block, int is_stos, int a32)
 {
     if (a32) {
@@ -677,10 +694,12 @@ rep_step_offset(codeblock_t *block, int off_reg, int delta_reg, int a32)
   runs that stay inside one source page and one destination page, both with
   direct lookups, inside both segment limits and inside the cycle budget, so a
   run does exactly what the interpreter's fast path does for each element.
-  Any other element goes through elem_func, which is the interpreter's loop
-  body for one element.*/
+  Any other element goes through run_func, which runs the interpreter's loop
+  for it and the elements after it up to the next one a run can copy, the end
+  of the count or the cycle limit, and leaves the registers and the cycle
+  count in cpu_state.*/
 static void
-build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*elem_func)(x86seg *seg))
+build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*run_func)(x86seg *seg, int32_t cycles_end))
 {
     int       size = 1 << shift;
     int       es_offset = rep_state_offset(&cpu_state.seg_es);
@@ -706,18 +725,7 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*ele
     }
 
     /*Guest registers*/
-    if (a32) {
-        host_arm64_LDR_IMM_W(block, REP_CNT, REG_CPUSTATE, rep_state_offset(&ECX));
-        if (!is_stos)
-            host_arm64_LDR_IMM_W(block, REP_SRC, REG_CPUSTATE, rep_state_offset(&ESI));
-        host_arm64_LDR_IMM_W(block, REP_DST, REG_CPUSTATE, rep_state_offset(&EDI));
-    } else {
-        host_arm64_LDRH_IMM(block, REP_CNT, REG_CPUSTATE, rep_state_offset(&CX));
-        if (!is_stos)
-            host_arm64_LDRH_IMM(block, REP_SRC, REG_CPUSTATE, rep_state_offset(&SI));
-        host_arm64_LDRH_IMM(block, REP_DST, REG_CPUSTATE, rep_state_offset(&DI));
-    }
-    host_arm64_LDR_IMM_W(block, REP_CYCLES, REG_CPUSTATE, rep_state_offset(&cpu_state._cycles));
+    rep_load_regs(block, is_stos, a32);
 
     /*Cycle count at which the loop stops: one element only with the trap flag set*/
     host_arm64_SUB_REG(block, REP_END, REP_CYCLES, REG_W1, 0);
@@ -947,7 +955,7 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*ele
     to_break[0] = host_arm64_BLT_(block);
     host_arm64_B(block, loop);
 
-    /*One element through the interpreter's loop body*/
+    /*Elements through the interpreter's loop*/
     rep_patch_list(slow, nr_slow, &block_write_data[block_pos]);
     rep_writeback(block, is_stos, a32);
     host_arm64_STP_PREIDX_X(block, REG_X29, REG_X30, REG_XSP, -16);
@@ -958,7 +966,8 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*ele
     host_arm64_STP_PREIDX_X(block, REG_X14, REG_X15, REG_XSP, -16);
     host_arm64_STP_PREIDX_X(block, REG_X17, REG_X1, REG_XSP, -16);
     host_arm64_MOVX_REG(block, REG_X0, REP_SEG, 0);
-    host_arm64_call(block, (void *) elem_func);
+    host_arm64_MOV_REG(block, REG_W1, REP_END, 0);
+    host_arm64_call(block, (void *) run_func);
     host_arm64_LDP_POSTIDX_X(block, REG_X17, REG_X1, REG_XSP, 16);
     host_arm64_LDP_POSTIDX_X(block, REG_X14, REG_X15, REG_XSP, 16);
     host_arm64_LDP_POSTIDX_X(block, REG_X12, REG_X13, REG_XSP, 16);
@@ -966,15 +975,10 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*ele
     host_arm64_LDP_POSTIDX_X(block, REG_X8, REG_X9, REG_XSP, 16);
     host_arm64_LDP_POSTIDX_X(block, REG_X3, REG_X4, REG_XSP, 16);
     host_arm64_LDP_POSTIDX_X(block, REG_X29, REG_X30, REG_XSP, 16);
-    /*A misaligned access charges extra cycles*/
-    host_arm64_LDR_IMM_W(block, REP_CYCLES, REG_CPUSTATE, rep_state_offset(&cpu_state._cycles));
+    /*The call has stepped the guest registers and the cycle count*/
+    rep_load_regs(block, is_stos, a32);
     host_arm64_CMP_IMM(block, REG_W0, 0);
     to_abort = host_arm64_BNE_(block);
-    if (!is_stos)
-        rep_step_offset(block, REP_SRC, REP_STEP, a32);
-    rep_step_offset(block, REP_DST, REP_STEP, a32);
-    host_arm64_SUB_IMM(block, REP_CNT, REP_CNT, 1);
-    host_arm64_SUB_REG(block, REP_CYCLES, REP_CYCLES, REP_ELEMCYC, 0);
     /*An element that raised an SMI (a trapped write) ends the instruction,
       as the interpreter's loop does. Only these elements can: the runs copy
       RAM through direct lookups, which nothing traps.*/
@@ -1109,7 +1113,7 @@ link_addr_exact(codeblock_t *block, int reg, const void *ptr)
 _Static_assert(offsetof(cpu_events_t, flush_pending) == 4 && offsetof(cpu_events_t, init) == 8
                    && offsetof(cpu_events_t, ne) == 12 && offsetof(cpu_events_t, force_interpreter) == 16
                    && offsetof(cpu_events_t, override_dynarec) == 20 && offsetof(cpu_events_t, dr_armed) == 24
-                   && offsetof(cpu_events_t, halted) == 28 && sizeof(cpu_events_t) == 32,
+                   && offsetof(cpu_events_t, halted) == 28 && sizeof(cpu_events_t) == 48,
                "cpu_events is loaded as two pairs of 64-bit words");
 
 /*Fields the routine loads together, with LDP or one wider load*/
@@ -1263,12 +1267,9 @@ build_link_routine(codeblock_t *block)
       word against W6. Only the C loop refreshes the PC24 and RC_NZ status
       bits from npxc, so they can be stale after an FLDCW in a linked block;
       the npxc compare decides them instead. Everything else that reads
-      those two bits runs after that refresh. The C loop also sets NOTFLATES
-      from ES before each lookup; it is compared as stored, since every
-      write to the ES base or limits sets it from the same test before the
-      next lookup (do_seg_load(), the loadseg() tail, null_data_seg(),
-      task_load_seg(), smm_seg_load(), LOADALL, the Cyrix descriptor loads,
-      reset_common()).*/
+      those two bits runs after that refresh. NOTFLATES is compared as
+      stored, since every write to the ES base or limits brings it in line
+      before the next lookup.*/
     offset = link_addr(block, REG_X4, &cpu_cur_status);
     host_arm64_LDRH_IMM(block, REG_W4, REG_X4, offset);
     host_arm64_LDRH_IMM(block, REG_W5, REG_CPUSTATE, rep_state_offset(&cpu_state.npxc));
@@ -1706,7 +1707,7 @@ codegen_backend_init(void)
         for (int shift = 0; shift < 3; shift++) {
             for (int a32 = 0; a32 < 2; a32++) {
                 codegen_rep_rout[is_stos][shift][a32] = &block_write_data[block_pos];
-                build_rep_routine(block, is_stos, shift, a32, codegen_rep_elem[is_stos][shift][a32]);
+                build_rep_routine(block, is_stos, shift, a32, codegen_rep_run[is_stos][shift][a32]);
             }
         }
     }

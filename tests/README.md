@@ -280,6 +280,15 @@ and compares copied ISO files byte for byte. See the
 [Sony hardware guide](../doc/hardware/sony-cdrom.md) for prerequisites, resource
 settings, the five-version driver matrix, and validation limits.
 
+# IBM PC 730/750 power controller
+
+Build `ibm_pc700_power_tests` with `BUILD_TESTING=ON`, then run
+`ctest --test-dir build --output-on-failure -R '^IbmPc700PowerTest\.'`.
+The tests drive the controller through ports 48h-49h the way the LQKT47A BIOS
+does: command framing, the power-off command, the BIOS's flag check, the wake
+reason reported at power-on, variable writes, and the status bit's busy time
+and heartbeat.
+
 # CPU cache and TLB diagnostics
 
 Build `cpu_tr_tests`, `cpu_cache_tests` and `vect486n_tests` with
@@ -313,3 +322,15 @@ ctest --test-dir build --output-on-failure -R '^Ini'
 ```
 
 Build with AddressSanitizer to check the long-name cases for memory errors.
+
+# Mach64 BIOS monitor detection
+
+`Mach64.Display` checks the on-chip DAC comparator used by ATI BIOS CRT
+probing, from CT through VT/GT-B (including the Rage Pro family), and its
+read-only output bit. It preserves external-RAMDAC GX behavior. This helper
+regression complements the boot and Windows driver tests; it does not model
+analog monitor voltages or replace end-to-end display testing.
+
+`Mach64.Palette` also checks Rage Pro `SCALE_OFF_ACC` bitmap expansion
+after a palette-cache upload has left a different source and accumulator
+state. It checks CI8 output pixels and byte, word and dword register writes.

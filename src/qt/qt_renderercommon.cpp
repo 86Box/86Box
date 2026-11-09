@@ -132,7 +132,16 @@ RendererCommon::onResize(int width, int height)
     output_size = QSize(width, height);
 
     const auto &monitor = monitors[r_monitor_index];
-    if (!force_43 && force_device_aspect && monitor.mon_device_aspect_x > 0 && monitor.mon_device_aspect_y > 0) {
+    /* A window sized to the picture without HiDPI scaling can't always be made exactly
+       that many device pixels large, so show the picture at its own size instead of
+       stretching it by a pixel. */
+    const int  slack    = static_cast<int>(std::ceil(pixelRatio));
+    const bool unscaled = !apply_scale && !dpi_scale && (vid_resize == 0) &&
+                          (width >= monitor.mon_scrnsz_x) && (width - monitor.mon_scrnsz_x) <= slack &&
+                          (height >= monitor.mon_scrnsz_y) && (height - monitor.mon_scrnsz_y) <= slack;
+    if (unscaled)
+        destination.setRect(0, 0, monitor.mon_scrnsz_x, monitor.mon_scrnsz_y);
+    else if (!force_43 && force_device_aspect && monitor.mon_device_aspect_x > 0 && monitor.mon_device_aspect_y > 0) {
         int dw = width;
         int dh = qRound((double) width * monitor.mon_device_aspect_y / monitor.mon_device_aspect_x);
         if (dh > height) {

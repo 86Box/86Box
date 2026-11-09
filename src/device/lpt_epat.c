@@ -35,6 +35,7 @@
 #include <86box/scsi_device.h>
 #include <86box/hdc_ide.h>
 #include <86box/rdisk.h>
+#include <86box/hdd.h>
 #include <86box/plat_unused.h>
 #include <86box/log.h>
 
@@ -241,6 +242,17 @@ typedef struct epat_s {
     int        reset_us;
     int        in_reset;
     int        reset_abrt; /* a command was issued inside the settle window */
+
+    /*
+     * A hard disk behind the bridge (bus LPT, bridge EPAT), on an IDE board
+     * of its own: the task file, device control and the data stream go to
+     * the IDE emulation, a byte at a time, two of them to a 16-bit cycle.
+     */
+    void      *ide;
+    uint16_t   ide_rd;      /* the data word being read out */
+    uint8_t    ide_rd_half; /* its high byte is next */
+    uint8_t    ide_wr_lo;   /* the low byte of a data word being written */
+    uint8_t    ide_wr_half; /* the high byte is next */
 } epat_t;
 
 #define EPAT_REG_TASKFILE 0x18 /* cont 0 */
@@ -508,6 +520,9 @@ epat_attach_drive(epat_t *dev)
     if (dev->sd != NULL)
         return 1;
 
+    if (dev->ide != NULL)
+        return 0;
+
     if (dev->no_drive)
         return 0;
 
@@ -605,6 +620,25 @@ epat_irq_ready(void *priv)
 }
 
 /* ATA: INTRQ is asserted when the drive wants the host, unless nIEN is set. */
+/* INTRQ: the built-in drive's, or that of the hard disk on the IDE board. */
+static int
+epat_intrq(const epat_t *dev)
+{
+    if (dev->ide != NULL)
+        return ide_lpt_intrq(dev->port);
+
+    return dev->intrq;
+}
+
+static void epat_update_irq(epat_t *dev);
+
+/* INTRQ of the hard disk changed: the bridge passes it on to the port. */
+static void
+epat_ide_irq(UNUSED(int set), void *priv)
+{
+    epat_update_irq((epat_t *) priv);
+}
+
 static void
 epat_raise_intrq(epat_t *dev)
 {
@@ -769,6 +803,14 @@ epat_data_read(epat_t *dev)
         return ret;
     }
 
+    if (dev->ide != NULL) {
+        if (!dev->ide_rd_half)
+            dev->ide_rd = ide_readw(0, dev->ide);
+        ret               = dev->ide_rd_half ? (uint8_t) (dev->ide_rd >> 8) : (uint8_t) dev->ide_rd;
+        dev->ide_rd_half ^= 1;
+        return ret;
+    }
+
     sc = dev->sd->sc;
 
     if (epat_slave_selected(dev))
@@ -810,6 +852,15 @@ epat_data_write(epat_t *dev, const uint8_t val)
 
     if (dev->regs[EPAT_REG_TEST] & EPAT_TEST_PATTERN)
         return;
+
+    if (dev->ide != NULL) {
+        if (!dev->ide_wr_half)
+            dev->ide_wr_lo = val;
+        else
+            ide_writew(0, (uint16_t) (dev->ide_wr_lo | (val << 8)), dev->ide);
+        dev->ide_wr_half ^= 1;
+        return;
+    }
 
     sc = dev->sd->sc;
 
@@ -944,6 +995,7 @@ epat_alt_view(const epat_t *dev, const uint8_t addr)
            (addr <= (EPAT_REG_TASKFILE + 7));
 }
 
+
 static uint8_t
 epat_reg_read(epat_t *dev, const uint8_t addr)
 {
@@ -979,7 +1031,21 @@ epat_reg_read(epat_t *dev, const uint8_t addr)
     }
 
     if (addr == EPAT_REG_INTR)
-        return (dev->regs[addr] & ~EPAT_INTR_INTRQ) | (dev->intrq ? EPAT_INTR_INTRQ : 0x00);
+        return (dev->regs[addr] & ~EPAT_INTR_INTRQ) | (epat_intrq(dev) ? EPAT_INTR_INTRQ : 0x00);
+
+    if (dev->ide != NULL) {
+        if (addr == EPAT_REG_BLOCK)
+            return epat_data_read(dev);
+        if (addr == EPAT_REG_DEVCTL)
+            return ide_read_alt_status(0, dev->ide);
+        if ((addr >= EPAT_REG_TASKFILE) && (addr <= (EPAT_REG_TASKFILE + ATA_STATUS))) {
+            if (addr == (EPAT_REG_TASKFILE + ATA_DATA))
+                return epat_data_read(dev);
+            dev->ide_rd_half = dev->ide_wr_half = 0;
+            return ide_readb(addr - EPAT_REG_TASKFILE, dev->ide);
+        }
+        return dev->regs[addr];
+    }
 
     /*
      * Inside the settle window only status and error mean anything, and they
@@ -1043,6 +1109,18 @@ epat_reg_write(epat_t *dev, const uint8_t addr, const uint8_t val)
 
     if (addr == EPAT_REG_CHIP_DATA)
         dev->chip[dev->regs[EPAT_REG_CHIP_INDEX] & 0x1f] = val;
+
+    if (dev->ide != NULL) {
+        if (addr == EPAT_REG_DEVCTL)
+            ide_write_devctl(0, val, dev->ide);
+        else if (addr == (EPAT_REG_TASKFILE + ATA_DATA))
+            epat_data_write(dev, val);
+        else if ((addr > EPAT_REG_TASKFILE) && (addr <= (EPAT_REG_TASKFILE + ATA_STATUS))) {
+            dev->ide_rd_half = dev->ide_wr_half = 0;
+            ide_writeb(addr - EPAT_REG_TASKFILE, val, dev->ide);
+        }
+        return;
+    }
 
     epat_attach_drive(dev);
 
@@ -1119,7 +1197,7 @@ epat_update_irq(epat_t *dev)
 {
     const int want = (dev->regs[EPAT_REG_IRQCTL] & EPAT_IRQ_TEST) &&
                      (dev->data == EPAT_IRQ_TEST_DATA);
-    const int out  = want || (dev->irq_armed && dev->irq_ready && dev->intrq);
+    const int out  = want || (dev->irq_armed && dev->irq_ready && epat_intrq(dev));
 
     dev->irq_test = want;
     if (out != dev->irq_out) {
@@ -1166,7 +1244,7 @@ epat_write_data(uint8_t val, void *priv)
         else if ((dev->ucmd & 0xf8) == EPAT_CPP_UNIT_BYTE) {
             /* Read once, straight after the frame, with no strobe. Only unit 0 exists. */
             const int unit    = dev->ucmd & 0x07;
-            dev->unit_byte    = (dev->intrq && (unit == 0)) ?
+            dev->unit_byte    = (epat_intrq(dev) && (unit == 0)) ?
                                     (uint8_t) (0x80 | (unit << 4)) : 0x00;
             dev->unit_pending = 1;
             dev->ucmd_pending = 0;
@@ -1262,7 +1340,7 @@ epat_write_data(uint8_t val, void *priv)
              * it clear: SD120PPD.SYS writes device control without ever
              * setting SRST, and that must not reset the drive.
              */
-            if ((dev->reg_addr == EPAT_REG_DEVCTL) && (was & 0x04) && !(val & 0x04)) {
+            if ((dev->ide == NULL) && (dev->reg_addr == EPAT_REG_DEVCTL) && (was & 0x04) && !(val & 0x04)) {
                 if (dev->reset_us > 0) {
                     dev->in_reset   = 1;
                     dev->reset_abrt = 0;
@@ -1667,6 +1745,19 @@ epat_init(UNUSED(const device_t *info))
     lpt_set_ecp_write_data(dev->lpt, epat_ecp_write_data);
     lpt_set_ecp_write_addr(dev->lpt, epat_ecp_write_addr);
 
+    /* A hard disk on this port with the EPAT as its bridge. */
+    for (int c = 0; (dev->lpt != NULL) && (c < HDD_NUM); c++) {
+        if (hdd_is_valid(c) && (hdd[c].bus_type == HDD_BUS_LPT) &&
+            (hdd[c].channel == dev->port) && (hdd[c].lpt_bridge == HDD_LPT_EPAT)) {
+            dev->ide = ide_lpt_init(dev->port);
+            if (dev->ide != NULL)
+                ide_lpt_set_irq(dev->port, epat_ide_irq, dev);
+            epat_log(dev->log, "LPT%i hard disk attached%s\n", dev->port + 1,
+                     (dev->ide == NULL) ? " - no IDE board free" : "");
+            break;
+        }
+    }
+
     return dev;
 }
 
@@ -1676,6 +1767,8 @@ epat_close(void *priv)
     epat_t *dev = (epat_t *) priv;
 
     if (dev != NULL) {
+        if (dev->ide != NULL)
+            ide_lpt_close(dev->port);
         if (dev->log != NULL)
             log_close(dev->log);
         free(dev);

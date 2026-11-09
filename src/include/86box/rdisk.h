@@ -676,7 +676,8 @@ typedef struct rdisk_drive_t {
                                      Bit 1 = DMA supportd. */
     uint8_t            read_only; /* Struct variable reserved for
                                      media status. */
-    uint8_t            pad;
+    uint8_t            lpt_bridge; /* bus LPT: the bridge, HDD_LPT_*; the
+                                      EPAT, or the ZIP's own chip */
     uint8_t            pad0;
 
     FILE              *fp;

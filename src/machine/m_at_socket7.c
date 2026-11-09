@@ -1103,6 +1103,135 @@ machine_at_brio80xx_init(const machine_t *model)
     return ret;
 }
 
+static uint8_t
+ergoe452_speed_strap(void)
+{
+    uint32_t mhz = (uint32_t) (cpu_s->rspeed / 1000000);
+
+    switch (mhz) {
+        case 75:  return 0x3;
+        case 90:  return 0xb;
+        case 100: return 0x2;
+        case 120: return 0xa;
+        case 133: return 0x6;
+        case 150: return 0x8;
+        case 166: return 0x4;
+        case 180: return 0x9;
+        case 200: return 0x5;
+        case 233: return 0x7; /* shown as 100 MHz even on BIOS 1.21 */
+        default:  return 0xf; /* 60 MHz */
+    }
+}
+
+uint32_t
+machine_at_ergoe452_gpio_handler(uint8_t write, uint32_t val)
+{
+    static uint8_t sel = 3;
+    uint32_t       ret = 0xffffffff;
+
+    if (write)
+        sel = (val >> 8) & 0x03;
+    else if (sel == 0)
+        ret = 0xffff0fff | ((uint32_t) ergoe452_speed_strap() << 12);
+    else if (sel == 1)
+        ret = 0xffffcfff;
+
+    return ret;
+}
+
+static const device_config_t ergoe452_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "ergoe452",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "ICL BIOS #58 - Revision 1.11",
+                .internal_name = "ergoe452_111",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ergoe452/e452.bin", "" }
+            },
+            {
+                .name          = "ICL BIOS #58 - Revision 1.21",
+                .internal_name = "ergoe452_121",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ergoe452/B58_c.ldb", "" }
+            },
+            {
+                .name          = "ICL BIOS #58 - Revision 1.28",
+                .internal_name = "ergoe452",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 131072,
+                .files         = { "roms/machines/ergoe452/B58_G.LDB", "" }
+            },
+            { .files_no = 0 }
+        }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t ergoe452_device = {
+    .name          = "ICL ErgoPro e452/e652",
+    .internal_name = "ergoe452",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ergoe452_config
+};
+
+int
+machine_at_ergoe452_init(const machine_t *model)
+{
+    int         ret = 0;
+    const char *fn;
+
+    /* No ROMs available */
+    if (!device_available(model->device))
+        return ret;
+
+    device_context(model->device);
+    fn  = device_get_bios_file(machine_get_device(machine), device_get_config_bios("bios"), 0);
+    ret = bios_load_linear(fn, 0x000e0000, 131072, 0);
+    device_context_restore();
+
+    machine_at_common_init(model);
+
+    pci_init(PCI_CONFIG_TYPE_1);
+    pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
+    pci_register_slot(0x06, PCI_CARD_NORMAL,      2, 3, 4, 1);
+    pci_register_slot(0x07, PCI_CARD_NORMAL,      3, 4, 1, 2);
+    pci_register_slot(0x08, PCI_CARD_NORMAL,      4, 1, 2, 3);
+    pci_register_slot(0x0D, PCI_CARD_VIDEO,       4, 0, 0, 0);
+    pci_register_slot(0x0C, PCI_CARD_SOUTHBRIDGE, 0, 0, 0, 4);
+
+    device_add(&i430vx_device);
+    device_add(&piix3_device);
+    device_add_params(&pc87307_device, (void *) (PCX7307_PC87307 | PCX7307_RTC | FDC_FLAG_IGNORE_DENSEL_FORCE));
+    device_add(&intel_flash_bxt_device);
+
+    return ret;
+}
+
 static const device_config_t lgibmx52_config[] = {
     // clang-format off
     {

@@ -35,6 +35,8 @@ add_library(dev OBJECT
     i2c.c
     i2c_gpio.c
     ibm_5161.c
+    ibm_pc700_power.c
+    ibm_pc700_readout.c
     inboard386.c
     ibm_xma.c
     mcamem.c
@@ -53,6 +55,12 @@ add_library(dev OBJECT
     keyboard_xt.c
     lpt.c
     lpt_bpck.c
+    lpt_bpck_link.c
+    lpt_bpfdd.c
+    lpt_on26.c
+    lpt_epia.c
+    lpt_freecom.c
+    lpt_bpmcd.c
     lpt_ditto.c
     lpt_epat.c
     lpt_zip.c
@@ -84,6 +92,8 @@ add_library(dev OBJECT
     zenith_scratchpad.c
     lightpen_pxl380.c
 )
+
+add_subdirectory(modem)
 
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC)
     target_link_libraries(86Box atomic)

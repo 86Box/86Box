@@ -19,6 +19,7 @@
  *          Copyright 2026 Andreas Zdziarstek.
  */
 #include <math.h>
+#include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -84,6 +85,17 @@ thread_wait_event(UNUSED(event_t *arg), UNUSED(int timeout))
 void
 voodoo_use_texture(UNUSED(voodoo_t *voodoo), UNUSED(voodoo_params_t *params), UNUSED(int tmu))
 {
+}
+
+void
+fatal(const char *fmt, ...)
+{
+    va_list ap;
+
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
+    abort();
 }
 
 /* xorshift64, so the samples are the same on every host. */

@@ -134,6 +134,13 @@ rabbit_init(UNUSED(const device_t *info))
 
     io_sethandler(0x0022, 0x0002, rabbit_read, NULL, NULL, rabbit_write, NULL, NULL, dev);
 
+    /* CPURST is an "Active high output to reset both 80386 and 80387", and
+       "A low level at this input will cause the CPU to be reset" for the
+       KBRST# input, the 8042's reset pulse (85C310 v1.1 preliminary data
+       sheet, pin 87 and KBRST#). The sheet names no other source of CPURST:
+       a shutdown and port 92h leave the 387 as it was. */
+    soft_reset_387 = SOFT_RESET_KBC;
+
     return dev;
 }
 

@@ -99,7 +99,16 @@ i4x0_map(i4x0_t *dev, uint32_t addr, uint32_t size, int state)
     if (dev->mem_state[base] != state) {
         mem_set_mem_state_both(addr, size, states[state]);
         dev->mem_state[base] = state;
-        flushmmucache_nopc();
+        /*
+         * With the CPU cache disabled, the next instruction is fetched through
+         * the new mapping, so the current code page has to go as well: the
+         * IBM PC 7x0 BIOS switches F0000h from shadow RAM back to ROM this way
+         * when it restarts.
+         */
+        if ((machines[machine].init == machine_at_ibm_pc700_init) && (cr0 & (1 << 30)))
+            flushmmucache();
+        else
+            flushmmucache_nopc();
         /* Also invalidate the range for this block, properly fixes P2B-LS soft reset. */
         mem_invalidate_range(addr, addr + size - 1);
     }
@@ -334,7 +343,13 @@ i4x0_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
                         break;
                     case INTEL_440LX:
                     case INTEL_440EX:
-                        regs[0x04] = val & 0x40;
+                        /* Only Parity Error Enable (bit 6) is writable; the
+                           reserved bits 2:1 keep their default of 1, as in
+                           the 0006h default (82443LX and 82443EX datasheets,
+                           PCICMD). Windows 98 takes a clear memory enable bit
+                           for a host bridge whose aperture is not decoded and
+                           moves APBASE. */
+                        regs[0x04] = (regs[0x04] & ~0x40) | (val & 0x40);
                         break;
                 }
                 break;

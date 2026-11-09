@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-02 04:16+0000\n"
-"Last-Translator: TheCawa <vos80584@gmail.com>\n"
+"PO-Revision-Date: 2026-11-08 13:36+0000\n"
+"Last-Translator: Broifonn_9 <molodchina812@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
 "Language: uk-UA\n"
@@ -153,10 +153,10 @@ msgid "4:&3 Integer scale"
 msgstr "Цілісночисленне масштабування 4:&3"
 
 msgid "&Center"
-msgstr ""
+msgstr "По ц&ентру"
 
 msgid "4:3 Cen&ter"
-msgstr ""
+msgstr "По цен&тру, 4:3"
 
 msgid "Inverted VGA monitor"
 msgstr "Інвертувати кольори VGA"
@@ -339,7 +339,7 @@ msgid "Disk size:"
 msgstr "Розмір диска:"
 
 msgid "RPM mode:"
-msgstr "RPM режим:"
+msgstr "RPM-режим:"
 
 msgid "Progress:"
 msgstr "Прогрес:"
@@ -381,10 +381,10 @@ msgid "Miscellaneous"
 msgstr "Різне"
 
 msgid "Machine:"
-msgstr "Системна плата:"
+msgstr "Плата:"
 
 msgid "Configure"
-msgstr "Налаштування"
+msgstr "Конфігурація"
 
 msgid "CPU:"
 msgstr "ЦП:"
@@ -417,34 +417,34 @@ msgid "Memory:"
 msgstr "Пам'ять:"
 
 msgid "Synchronize with host clock"
-msgstr ""
+msgstr "Синхронізувати з системним годинником"
 
 msgid "Time zone:"
-msgstr ""
+msgstr "Часовий пояс:"
 
 msgid "Local"
-msgstr ""
+msgstr "Місцевий"
 
 msgid "UTC"
-msgstr ""
+msgstr "UTC"
 
 msgid "Date:"
-msgstr ""
+msgstr "Дата:"
 
 msgid "Match the host"
-msgstr ""
+msgstr "Відповідати системній"
 
 msgid "Offset the year by:"
-msgstr ""
+msgstr "Змістити рік до:"
 
 msgid "(currently %1)"
-msgstr ""
+msgstr "(наразі %1)"
 
 msgid "Always use the year:"
-msgstr ""
+msgstr "Завжди використовувати рік:"
 
 msgid "Do not synchronize the date"
-msgstr ""
+msgstr "Не синхронізувати дату"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Використовувати інтерпретатор 486 для процесорів 286 і 386"
@@ -459,7 +459,7 @@ msgid "Block linking on the dynamic recompiler"
 msgstr "Зв'язування блоків у динамічному рекомпіляторі"
 
 msgid "Debug registers on 486 and later processors"
-msgstr ""
+msgstr "Налагодити регістри на процесорах 486 та пізніше"
 
 msgid "CPU frame size"
 msgstr "Розмір кадру ЦП"
@@ -490,6 +490,9 @@ msgstr "Прискорювач XGA"
 
 msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 Display Adapter Graphics"
+
+msgid "PowerVR PCX1/PCX2 Graphics"
+msgstr "Прискорювач PowerVR PCX1/PCX2"
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -573,7 +576,7 @@ msgid "FM synth driver:"
 msgstr "Драйвер FM-синтезатора:"
 
 msgid "Nuked (more accurate)"
-msgstr "Nuked (більш точний)"
+msgstr "Nuked (точніший)"
 
 msgid "YMFM (faster)"
 msgstr "YMFM (швидший)"
@@ -654,10 +657,12 @@ msgid "Cassette"
 msgstr "Касета"
 
 msgid "Turbo IDE"
-msgstr ""
+msgstr "Turbo-IDE"
 
 msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
 msgstr ""
+"Прибирає ліміт швидкості режиму передачі даних IDE. Таймінги жорстких дисків "
+"та дисководів CD-ROM залишаються чинними."
 
 msgid "Hard disks:"
 msgstr "Жорсткі диски:"
@@ -747,7 +752,7 @@ msgid "3.5\" 2.88M 300/360 RPM"
 msgstr "3,5\" 2,88M 300/360 RPM"
 
 msgid "Turbo timings"
-msgstr "Турбо таймінги"
+msgstr "Турбо-таймінги"
 
 msgid "Check BPB"
 msgstr "Перевіряти BPB"
@@ -771,10 +776,10 @@ msgid "Removable disks:"
 msgstr "Знімні диски:"
 
 msgid "Tape drives"
-msgstr "Стрімери"
+msgstr "Стрічкові накопичувачі"
 
 msgid "Tape drives:"
-msgstr "Стрімери:"
+msgstr "Стрічкові накопичувачі:"
 
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
@@ -783,7 +788,7 @@ msgid "ISA Memory Expansion"
 msgstr "Карта розширення пам'яті (ISA)"
 
 msgid "ISA ROM Cards"
-msgstr "Карти ПЗУ ISA"
+msgstr "Карти ПЗП ISA"
 
 msgid "Card 1:"
 msgstr "Карта 1:"
@@ -798,13 +803,13 @@ msgid "Card 4:"
 msgstr "Карта 4:"
 
 msgid "Generic ISA ROM Board"
-msgstr "Стандартна плата ПЗУ ISA"
+msgstr "Стандартна плата ПЗП ISA"
 
 msgid "Generic Dual ISA ROM Board"
-msgstr "Стандартна плата на 2 ПЗУ ISA"
+msgstr "Стандартна плата на 2 ПЗП ISA"
 
 msgid "Generic Quad ISA ROM Board"
-msgstr "Стандартна плата на 4 ПЗУ ISA"
+msgstr "Стандартна плата на 4 ПЗП ISA"
 
 msgid "ISABugger device"
 msgstr "Пристрій ISABugger"
@@ -846,7 +851,11 @@ msgid "Image %1"
 msgstr "Образ %1"
 
 msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
-msgstr "%1 не зміг знайти жодного відповідного для використання файлу з ПЗУ.\n\nБудь ласка <a href=\"%2\">завантажте</a> набір ПЗУ і витягніть його в каталог «roms»."
+msgstr ""
+"%1 не зміг знайти жодного відповідного для використання файлу з ПЗП.\n"
+"\n"
+"Будь ласка <a href=\"%2\">завантажте</a> набір ПЗП і витягніть його в "
+"каталог «roms»."
 
 msgid "(empty)"
 msgstr "(порожньо)"
@@ -873,13 +882,19 @@ msgid "Surface images"
 msgstr "Образ поверхні"
 
 msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
-msgstr "Системна плата «%s» недоступна через відсутність файлу її ПЗУ в каталозі roms/machines. Переключення на доступну системну плату."
+msgstr ""
+"Плата «%s» недоступна через відсутність файлу її ПЗУ в каталозі roms/"
+"machines. Переключення на доступну плату."
 
 msgid "Video card \"%s\" is not available due to missing ROMs in the roms/video directory. Switching to an available video card."
-msgstr "Відеокарта «%s» недоступна через відсутність файлу її ПЗУ в каталозі roms/video. Переключення на доступну відеокарту."
+msgstr ""
+"Відеокарта «%s» недоступна через відсутність файлу її ПЗП в каталозі roms/"
+"video. Переключення на доступну відеокарту."
 
 msgid "Device \"%s\" is not available due to missing ROMs. Ignoring the device."
-msgstr "Пристрій «%s» недоступний через відсутність файлу його ПЗУ. Ігнорування пристрою."
+msgstr ""
+"Пристрій «%s» недоступний через відсутність файлу його ПЗП. Ігнорування "
+"пристрою."
 
 msgid "Machine"
 msgstr "Комп'ютер"
@@ -1098,7 +1113,7 @@ msgid "Thrustmaster Formula T1/T2 without adapter"
 msgstr "Thrustmaster Formula T1/T2 без адаптера"
 
 msgid "None"
-msgstr "Ні"
+msgstr "Немає"
 
 msgid "%1 MB (CHS: %2, %3, %4)"
 msgstr "%1 МБ (CHS: %2, %3, %4)"
@@ -1161,7 +1176,7 @@ msgid "Exit"
 msgstr "Вихід"
 
 msgid "No ROMs found"
-msgstr "ПЗУ не знайдені"
+msgstr "ПЗП не знайдені"
 
 msgid "Do you want to save the settings?"
 msgstr "Чи бажаєте ви зберегти налаштування?"
@@ -1176,7 +1191,19 @@ msgid "About %1"
 msgstr "Про %1"
 
 msgid "An emulator of old computers\n\nAuthors: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nWith previous core contributions from Sarah Walker, leilei, JohnElliott, greatpsycho, and others.\n\nReleased under the GNU General Public License version 2 or later. See LICENSE for more information."
-msgstr "Емулятор старих комп'ютерів\n\nАвтори: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin (elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen (waltje), Tiseno100, reenigne, and others.\n\nЗ попередніми основними внесками Sarah Walker, leilei, JohnElliott, greatpsycho та інших.\n\nВипускаєтся під ліцензією GNU General Public License версії 2 або більше пізніше. Додадкову інформацію см. у файлі LICENSE."
+msgstr ""
+"Емулятор старих комп'ютерів\n"
+"\n"
+"Автори: Miran Grča (OBattler), RichardG867, Jasmine Iwanek, TC1995, "
+"coldbrewed, Teemu Korhonen (Manaatti), Joakim L. Gilje, Adrien Moulin "
+"(elyosh), Daniel Balsom (gloriouscow), Cacodemon345, Fred N. van Kempen "
+"(waltje), Tiseno100, reenigne та ін.\n"
+"\n"
+"З попередніми основними внесками Sarah Walker, leilei, JohnElliott, "
+"greatpsycho та ін.\n"
+"\n"
+"Випускається під ліцензією GNU General Public License версії 2 або пізніше. "
+"Додаткову інформацію дивіться у файлі LICENSE."
 
 msgid "Hardware not available"
 msgstr "Обладнання недоступне"
@@ -1293,7 +1320,7 @@ msgid "VMs: %1"
 msgstr "Машин: %1"
 
 msgid "System Directory:"
-msgstr "Системна папка:"
+msgstr "Системна директорія:"
 
 msgid "Choose directory"
 msgstr "Вибрати папку"
@@ -1317,29 +1344,31 @@ msgid "Delete virtual machines to Recycle Bin"
 msgstr "Видалити віртуальні машини у кошик"
 
 msgid "Discord"
-msgstr ""
+msgstr "Discord"
 
 msgid "Show running machines in my Discord status"
-msgstr ""
+msgstr "Показати працюючі машини в моєму статусі Discord"
 
 msgid "Details shown:"
-msgstr ""
+msgstr "Показані подробиці:"
 
 msgid "Machine name and hardware"
-msgstr ""
+msgstr "Назва машини та її апаратне обладнання"
 
 msgid "Hardware only"
-msgstr ""
+msgstr "Тільки апаратне обладнання"
 
 msgid "No details"
-msgstr ""
+msgstr "Без подробиць"
 
 msgid "Using %1"
-msgstr ""
+msgstr "Використовується %1"
 
 msgid "%n machine(s) active"
 msgid_plural "%n machines active"
-msgstr[0] ""
+msgstr[0] "%n машина активна"
+msgstr[1] "%n машини активні"
+msgstr[2] "%n машин активні"
 
 msgid " (+%n more)"
 msgid_plural " (+%n more)"
@@ -1397,10 +1426,10 @@ msgid "Please enter a directory for the system"
 msgstr "Будь ласка, введіть папку для системи"
 
 msgid "Directory does not exist"
-msgstr "Папка не існує"
+msgstr "Теки не існує"
 
 msgid "A new directory for the system will be created in the selected directory above"
-msgstr "Нова папка для системи буде створена у вибраній папці вище"
+msgstr "Нова тека для системи буде створена у вибраній теці вище"
 
 msgid "System location:"
 msgstr "Розташування системи:"
@@ -1451,7 +1480,7 @@ msgid "Virtual machine \"%1\" (%2) will be cloned into:"
 msgstr "Віртуальна машина «%1» (%2) буде клонована в:"
 
 msgid "Directory %1 already exists"
-msgstr "Папка %1 вже існує"
+msgstr "Тека %1 вже існує"
 
 msgid "You cannot use the following characters in the name: %1"
 msgstr "Ви не можете використовувати наступні символи в імені: %1"
@@ -1466,10 +1495,10 @@ msgid "Failed to clone VM."
 msgstr "Не вдалося клонувати віртуальну машину."
 
 msgid "Directory in use"
-msgstr "Папка використовується"
+msgstr "Тека використовується"
 
 msgid "The selected directory is already in use. Please select a different directory."
-msgstr "Вибрана папка вже використовується. Будь ласка, виберіть іншу папку."
+msgstr "Вибрана тека вже використовується. Будь ласка, виберіть іншу теку."
 
 msgid "Create directory failed"
 msgstr "Не вдалося створити папку"
@@ -1634,7 +1663,7 @@ msgid "The selected file will be overwritten. Are you sure you want to use it?"
 msgstr "Вибраний файл буде перезаписано. Ви впевнені, що хочете використовувати його?"
 
 msgid "Unsupported disk image"
-msgstr "Образ диска, що не підтримується"
+msgstr "Образ диска не підтримується"
 
 msgid "Unable to read device"
 msgstr "Неможливо зчитати пристрій"
@@ -1934,7 +1963,7 @@ msgid "Use target framerate:"
 msgstr "Використовувати цільову частоту кадрів:"
 
 msgid " fps"
-msgstr " fps"
+msgstr " кадр./c"
 
 msgid "VSync"
 msgstr "VSync"
@@ -2099,7 +2128,7 @@ msgid "OPL4-ML Daughterboard"
 msgstr "Дочірня плата OPL4-ML"
 
 msgid "System MIDI"
-msgstr "MIDI системи"
+msgstr "Системний MIDI"
 
 msgid "MIDI Input Device"
 msgstr "Пристрій введення MIDI"
@@ -2108,46 +2137,46 @@ msgid "BIOS file"
 msgstr "Файл BIOS"
 
 msgid "BIOS file (ROM #1)"
-msgstr "Файл BIOS (ПЗУ #1)"
+msgstr "Файл BIOS (ПЗП #1)"
 
 msgid "BIOS file (ROM #2)"
-msgstr "Файл BIOS (ПЗУ #2)"
+msgstr "Файл BIOS (ПЗП #2)"
 
 msgid "BIOS file (ROM #3)"
-msgstr "Файл BIOS (ПЗУ #3)"
+msgstr "Файл BIOS (ПЗП #3)"
 
 msgid "BIOS file (ROM #4)"
-msgstr "Файл BIOS (ПЗУ #4)"
+msgstr "Файл BIOS (ПЗП #4)"
 
 msgid "BIOS address"
 msgstr "Адреса BIOS"
 
 msgid "BIOS address (ROM #1)"
-msgstr "Адреса BIOS (ПЗУ #1)"
+msgstr "Адреса BIOS (ПЗП #1)"
 
 msgid "BIOS address (ROM #2)"
-msgstr "Адреса BIOS (ПЗУ #2)"
+msgstr "Адреса BIOS (ПЗП #2)"
 
 msgid "BIOS address (ROM #3)"
-msgstr "Адреса BIOS (ПЗУ #3)"
+msgstr "Адреса BIOS (ПЗП #3)"
 
 msgid "BIOS address (ROM #4)"
-msgstr "Адреса BIOS (ПЗУ #4)"
+msgstr "Адреса BIOS (ПЗП #4)"
 
 msgid "Enable BIOS extension ROM Writes"
-msgstr "Увімкнути розширення BIOS Записи в ПЗУ"
+msgstr "Увімкнути запис у ПЗП розширення BIOS"
 
 msgid "Enable BIOS extension ROM Writes (ROM #1)"
-msgstr "Увімкнути розширення BIOS Записи в ПЗУ (ПЗУ #1)"
+msgstr "Увімкнути запис у ПЗП розширення BIOS (ПЗП #1)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #2)"
-msgstr "Увімкнути розширення BIOS Записи в ПЗУ (ПЗУ #2)"
+msgstr "Увімкнути запис у ПЗП розширення BIOS (ПЗП #2)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #3)"
-msgstr "Увімкнути розширення BIOS Записи в ПЗУ (ПЗУ #3)"
+msgstr "Увімкнути запис у ПЗП розширення BIOS (ПЗП #3)"
 
 msgid "Enable BIOS extension ROM Writes (ROM #4)"
-msgstr "Увімкнути розширення BIOS Записи в ПЗУ (ПЗУ #4)"
+msgstr "Увімкнути запис у ПЗП розширення BIOS (ПЗП #4)"
 
 msgid "Linear framebuffer base"
 msgstr "Лінійний фреймбуфер"
@@ -2183,10 +2212,10 @@ msgid "IBM 5161 Expansion Unit"
 msgstr "Блок розширення IBM 5161"
 
 msgid "IBM Cassette Basic"
-msgstr "Касетний бейсік IBM"
+msgstr "Касетний Basic IBM"
 
 msgid "Translate 26 -> 17"
-msgstr "Перекладіть 26 -> 17"
+msgstr "Перекласти 26 -> 17"
 
 msgid "Language"
 msgstr "Мова"
@@ -2201,16 +2230,16 @@ msgid "BIOS size"
 msgstr "Розмір BIOS"
 
 msgid "BIOS size (ROM #1)"
-msgstr "Розмір BIOS (ПЗУ 1)"
+msgstr "Розмір BIOS (ПЗП 1)"
 
 msgid "BIOS size (ROM #2)"
-msgstr "Розмір BIOS (ПЗУ 2)"
+msgstr "Розмір BIOS (ПЗП 2)"
 
 msgid "BIOS size (ROM #3)"
-msgstr "Розмір BIOS (ПЗУ 3)"
+msgstr "Розмір BIOS (ПЗП 3)"
 
 msgid "BIOS size (ROM #4)"
-msgstr "Розмір BIOS (ПЗУ 4)"
+msgstr "Розмір BIOS (ПЗП 4)"
 
 msgid "Map C0000-C7FFF as UMB"
 msgstr "Зіставлення C0000-C7FFF як UMB"
@@ -2510,7 +2539,7 @@ msgid "Enable NMI for CGA emulation"
 msgstr "Увімкнути NMI для емуляції CGA"
 
 msgid "Voodoo type"
-msgstr "Тип вуду"
+msgstr "Тип Voodoo"
 
 msgid "Framebuffer memory size"
 msgstr "Розмір пам'яті фреймбуфера"
@@ -2729,7 +2758,7 @@ msgid "New"
 msgstr "Новий"
 
 msgid "Color (generic)"
-msgstr "Кольоровий (загальний)"
+msgstr "Кольоровий (звичайний)"
 
 msgid "Green Monochrome"
 msgstr "Зелений монохромний"
@@ -2750,7 +2779,7 @@ msgid "Simple doubling"
 msgstr "Просте подвоєння"
 
 msgid "sRGB interpolation"
-msgstr "sRGB інтерполяція"
+msgstr "sRGB-інтерполяція"
 
 msgid "Linear interpolation"
 msgstr "Лінійна інтерполяція"
@@ -2822,28 +2851,28 @@ msgid "Other languages"
 msgstr "Інші мови"
 
 msgid "Bochs latest"
-msgstr "Bochs останній"
+msgstr "Остання версія Bochs"
 
 msgid "Apply overscan deltas"
 msgstr "Застосувати дельти вильотів розгортки"
 
 msgid "Mono Interlaced"
-msgstr "Монохромний інтерлейсний"
+msgstr "Монохромний черезрядковий"
 
 msgid "Mono Non-Interlaced"
-msgstr "Монохромний неінтерлейсний"
+msgstr "Монохромний нечерезрядковий"
 
 msgid "Color Interlaced"
-msgstr "Кольоровий інтерлейсний"
+msgstr "Кольоровий черезрядковий"
 
 msgid "Color Non-Interlaced"
-msgstr "Кольоровий неінтерлейсний"
+msgstr "Кольоровий нечерезрядковий"
 
 msgid "3Dfx Voodoo Graphics"
-msgstr "Прискорювач 3Dfx Voodoo"
+msgstr "Прискорювач 3dfx Voodoo"
 
 msgid "3Dfx Voodoo 2"
-msgstr "3Dfx Voodoo 2"
+msgstr "3dfx Voodoo 2"
 
 msgid "Obsidian SB50 + Amethyst (2 TMUs)"
 msgstr "Obsidian SB50 + Amethyst (2 TMU)"
@@ -2924,7 +2953,7 @@ msgid "Loopback Type"
 msgstr "Тип кабелю"
 
 msgid "Parallel cable"
-msgstr "LPT-кабель"
+msgstr "Кабель паралельного порту"
 
 msgid "Unidirectional (8-bit) / LapLink (4-bit)"
 msgstr "Односпрямований (8 біт) / LapLink (4 біт)"
@@ -2984,7 +3013,7 @@ msgid "High performance impact"
 msgstr "Високий вплив на продуктивність"
 
 msgid "[Generic] RAM Disk (max. speed)"
-msgstr "[Стандартний] Диск оперативної пам'яті (макс. швидкість)"
+msgstr "[Стандартний] ОЗП-диск (макс. швидкість)"
 
 msgid "[Generic] 1983 MFM (3600 RPM)"
 msgstr "[Стандартний] 1983 MFM (3600 RPM)"
@@ -3149,7 +3178,7 @@ msgid "Key bindings"
 msgstr "Прив'язки клавіш"
 
 msgid "VM Manager"
-msgstr ""
+msgstr "Менеджер віртуальних машин"
 
 msgid "Action"
 msgstr "Дія"
@@ -3206,7 +3235,7 @@ msgid "Text files"
 msgstr "Текстові файли"
 
 msgid "ROM files"
-msgstr "Файли ПЗУ"
+msgstr "Файли ПЗП"
 
 msgid "SoundFont files"
 msgstr "Файли SoundFont"
@@ -3227,10 +3256,10 @@ msgid "Hostname:"
 msgstr "Ім'я хоста:"
 
 msgid "ISA RAM:"
-msgstr "ISA ОЗУ:"
+msgstr "ISA ОЗП:"
 
 msgid "ISA ROM:"
-msgstr "ISA ПЗУ:"
+msgstr "ISA-ПЗП:"
 
 msgid "&Wipe NVRAM"
 msgstr "&Стерти NVRAM"
@@ -3380,7 +3409,7 @@ msgid "Color scheme"
 msgstr "Колірна гамма"
 
 msgid "Light"
-msgstr "Світло"
+msgstr "Світлий"
 
 msgid "Dark"
 msgstr "Темний"
@@ -3422,7 +3451,7 @@ msgid "Audio output device:"
 msgstr "Пристрій виведення звуку:"
 
 msgid "System Default"
-msgstr "Системний"
+msgstr "Системний за замовчуванням"
 
 msgid "Unable to open image or folder \"%s\"."
 msgstr "Неможливо відкрити файл або папку «%s»."
@@ -3494,13 +3523,13 @@ msgid "Paper Size"
 msgstr "Розмір паперу"
 
 msgid "Letter"
-msgstr "Letter"
+msgstr "Формат Letter"
 
 msgid "Legal (sideways)"
-msgstr "Legal (горизонтальний)"
+msgstr "Формат Legal (горизонтальний)"
 
 msgid "B4 (sideways)"
-msgstr "B4 (горизонтальний)"
+msgstr "Формат B4 (горизонтальний)"
 
 msgid "Quality"
 msgstr "Якість"
@@ -3575,7 +3604,7 @@ msgid "US (CP 437)"
 msgstr "США (CP 437)"
 
 msgid "IBM Nordic (CP 437-Nordic)"
-msgstr "IBM Nordic (CP 437-Nordic)"
+msgstr "Скандинавський IBM (CP 437-Nordic)"
 
 msgid "Czech Kamenicky (CP 895) #1"
 msgstr "Чеська Kamenicky (CP 895) № 1"
@@ -3615,57 +3644,513 @@ msgstr "Поріг яскравості (%)"
 
 msgid "VFIO: Could not open /dev/vfio/vfio: %s. Make sure the vfio-pci module is loaded."
 msgstr ""
+"VFIO: Неможливо відкрити /dev/vfio/vfio: %s. Переконайтеся, що модуль vfio-"
+"pci завантажено."
 
 msgid "VFIO %s: Invalid device location."
-msgstr ""
+msgstr "VFIO %s: Неправильне розташування пристрою."
 
 msgid "VFIO %s: Device not found."
-msgstr ""
+msgstr "VFIO %s: Пристрій не знайдено."
 
 msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
 msgstr ""
+"VFIO %s: Пристрій не має группу IOMMU. Переконайтеся, що VT-d або IOMMU "
+"ввімкнено у вашій системі."
 
 msgid "VFIO %s: Device is not bound to vfio-pci."
-msgstr ""
+msgstr "VFIO %s: Пристрій не прив'язано до vfio-pci."
 
 msgid "VFIO %s: Could not open IOMMU group %d: %s"
-msgstr ""
+msgstr "VFIO %s: Неможливо відкрити группу IOMMU %d: %s"
 
 msgid "VFIO %s: IOMMU group %d is not viable. All devices in the group must be bound to vfio-pci."
 msgstr ""
+"VFIO %s: Група IOMMU %d непридатна. Усі пристрої в групі повинні бути прив’"
+"язані до vfio-pci."
 
 msgid "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low."
 msgstr ""
+"VFIO: Не вдалося зіставити пам'ять гостя для DMA: %s. Можливо, ліміт "
+"заблокованої пам'яті (ulimit -l) занадто низький."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
 msgstr ""
+"VFIO %s: Неможливо прочитати файл ПЗП \"%s\"; буде використовуватися власний "
+"ПЗП-файл пристрою."
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; the ROM is disabled."
-msgstr ""
+msgstr "VFIO %s: Неможливо прочитати файл ПЗП \"%s\"; ПЗП-файл вимкнено."
 
 msgid "VFIO %s: The ROM looks invalid. A custom ROM can be loaded through the VFIO settings."
 msgstr ""
+"VFIO %s: ПЗП-файл виглядає недійсним. Власний ПЗП-файл можна завантажити "
+"через налаштування VFIO."
 
 msgid "VFIO: These devices must be bound to vfio-pci, which requires administrator rights:\n\n%s\nBind them now?"
 msgstr ""
+"VFIO: Ці пристрої потрібно прив'язати до vfio-pci, що потребує прав "
+"адміністратора:\n"
+"\n"
+"%s\n"
+"Прив'язати пристрої зараз?"
 
 msgid "VFIO: Administrator rights are required to give 86Box access to the passed-through devices. Continue?"
 msgstr ""
+"VFIO: Для надання 86Box доступу до прокинутих пристроїв потрібні права "
+"адміністратора. Бажаєте продовжити?"
 
 msgid "These devices were not selected, but share an IOMMU group with a selected device, so they will be bound as well:"
 msgstr ""
+"Ці пристрої не було вибрані, але вони належать до однієї группи IOMMU з "
+"вибраним пристроєм, тому їх теж буде прив'язано:"
 
 msgid "VFIO %s: IOMMU group %d also contains %s, which the host needs. The group will not be bound to vfio-pci."
 msgstr ""
+"VFIO %s: Група IOMMU %d містить %s, який потрібен основній системі. Групу не "
+"буде прив'язано до vfio-pci."
 
 msgid "VFIO: Could not prepare the devices for passthrough:\n%s"
 msgstr ""
+"VFIO %s: Не вдалося приготувати пристрої для прокидання:\n"
+"%s"
 
 msgid "VFIO: Administrator rights could not be requested. To prepare the devices for passthrough, run this command, then hard reset:\n\n%s"
 msgstr ""
+"VFIO %s: Права адміністратора не можуть бути запрошені. Для підготування "
+"пристроїв для прокидання, виконайте дану команду та перезавантажте систему.\n"
+"\n"
+"%s"
 
 msgid "Prepare PCI devices for VFIO passthrough"
-msgstr ""
+msgstr "Підготувати пристрої PCI для VFIO-прокидання"
 
 msgid "Authentication is required to prepare PCI devices for passthrough to 86Box."
+msgstr ""
+"Для підготовки пристроїв PCI до прокидання у 86Box потрібна автентифікація."
+
+msgid "Disabled"
+msgstr "Вимкнути"
+
+msgid "Unlimited capacity"
+msgstr "Необмежена ємність"
+
+msgid "CD speed:"
+msgstr "Швидкість CD:"
+
+msgid "DVD speed:"
+msgstr "Швидкість DVD:"
+
+msgid "HD/BD speed:"
+msgstr "Швидкість HD/BD:"
+
+msgid "Software-initiated poweroff device (IBM 5140)"
+msgstr "Пристрій програмного вимкнення живлення (IBM 5140)"
+
+msgid "Memory &viewer"
+msgstr ""
+
+msgid "The emulator is busy; the memory view was not updated."
+msgstr ""
+
+msgid "The match is not on mapped memory; the selection and the view did not move."
+msgstr ""
+
+msgid "Only RAM and video memory can be written."
+msgstr ""
+
+msgid "not written (not writable RAM or video memory, or the emulator is busy)."
+msgstr ""
+
+msgid "The emulator is busy; try again."
+msgstr ""
+
+msgid "Copied %1 bytes from %2 to the clipboard"
+msgstr ""
+
+msgid " (%1 could not be read)"
+msgstr ""
+
+msgid " of a %1 byte selection"
+msgstr ""
+
+msgid "There is no mapped memory to search."
+msgstr ""
+
+msgid "There is no mapped memory in the requested range."
+msgstr ""
+
+msgid "The search is limited to %1 bytes."
+msgstr ""
+
+msgid "Searching memory..."
+msgstr ""
+
+msgid "The search was cancelled. The selection did not move."
+msgstr ""
+
+msgid "Found at %1."
+msgstr ""
+
+msgid "Not found. The selection did not move."
+msgstr ""
+
+msgid "Fill selection"
+msgstr ""
+
+msgid "Fill %1 bytes from %2 with (hex):"
+msgstr ""
+
+msgid "Enter a hex byte from 00 to FF."
+msgstr ""
+
+msgid "Filled %1 of %2 bytes with %3 (%4 were not writable RAM or video memory)."
+msgstr ""
+
+msgid " Selected: %1 bytes (%2 were skipped)."
+msgstr ""
+
+msgid "Edit byte"
+msgstr ""
+
+msgid "Copy selection (hex)"
+msgstr ""
+
+msgid "Copy selection (ASCII)"
+msgstr ""
+
+msgid "Fill selection..."
+msgstr ""
+
+msgid "Copy address"
+msgstr ""
+
+msgid "Disassemble here"
+msgstr ""
+
+msgid "Dump memory from here..."
+msgstr ""
+
+msgid "Memory viewer"
+msgstr ""
+
+msgid "Pause / Resume"
+msgstr ""
+
+msgid "Step"
+msgstr ""
+
+msgid "Run the given number of instructions (F11)"
+msgstr ""
+
+msgid "Instructions per step"
+msgstr ""
+
+msgid "Physical"
+msgstr ""
+
+msgid "Address, register or seg:off"
+msgstr ""
+
+msgid "Go"
+msgstr ""
+
+msgid "Live update"
+msgstr ""
+
+msgid "Dump..."
+msgstr ""
+
+msgid "Commands"
+msgstr ""
+
+msgid "Show or hide debugger commands (Ctrl+D)"
+msgstr ""
+
+msgid "Hex bytes"
+msgstr ""
+
+msgid "ASCII text"
+msgstr ""
+
+msgid "Value, byte"
+msgstr ""
+
+msgid "Value, word"
+msgstr ""
+
+msgid "Value, dword"
+msgstr ""
+
+msgid "What to look for: raw hex bytes, text, or a hex value stored little-endian, as in the hex view."
+msgstr ""
+
+msgid "Memory search"
+msgstr ""
+
+msgid "Ctrl+F focuses this box; Enter or F3 finds the next match, Shift+F3 the previous."
+msgstr ""
+
+msgid "Find previous"
+msgstr ""
+
+msgid "Search upwards from the selection (Shift+F3)"
+msgstr ""
+
+msgid "Find next"
+msgstr ""
+
+msgid "Search downwards from the selection (F3)"
+msgstr ""
+
+msgid "Range..."
+msgstr ""
+
+msgid "Search within an address range instead of all memory"
+msgstr ""
+
+msgid "From"
+msgstr ""
+
+msgid "Where the search starts (hex, register or seg:off; empty means the first mapped byte; . means the selection start)."
+msgstr ""
+
+msgid "To (inclusive)"
+msgstr ""
+
+msgid "Where the search ends, that address included (hex, register or seg:off; empty means the last mapped byte; . means the selection end)."
+msgstr ""
+
+msgid "Range from"
+msgstr ""
+
+msgid "to"
+msgstr ""
+
+msgid "RAM"
+msgstr ""
+
+msgid "Mapped, not RAM"
+msgstr ""
+
+msgid "Unmapped"
+msgstr ""
+
+msgid "Inaccessible"
+msgstr ""
+
+msgid "Inaccessible: only device handlers answer there (reading would have side effects), or the linear page is not present."
+msgstr ""
+
+msgid "Linear address, register or seg:off"
+msgstr ""
+
+msgid "Follow CS:IP"
+msgstr ""
+
+msgid "Bytes"
+msgstr ""
+
+msgid "Instruction"
+msgstr ""
+
+msgid "Note"
+msgstr ""
+
+msgid "Double-click a line to set or clear a breakpoint there"
+msgstr ""
+
+msgid "Disassembly"
+msgstr ""
+
+msgid "Disassembly (not available in this build)"
+msgstr ""
+
+msgid "Viewer message"
+msgstr ""
+
+msgid "Selected range"
+msgstr ""
+
+msgid "Debugger commands"
+msgstr ""
+
+msgid "Debugger command output"
+msgstr ""
+
+msgid "Debugger command"
+msgstr ""
+
+msgid "help — commands; Up/Down — history; . — selected address"
+msgstr ""
+
+msgid "Commands share the memory viewer's address space and selection. Type help for commands."
+msgstr ""
+
+msgid "Let the processor run (F5)"
+msgstr ""
+
+msgid "Stop the processor at the next instruction (F5)"
+msgstr ""
+
+msgid "Too many breakpoints."
+msgstr ""
+
+msgid "Stopped: %1"
+msgstr ""
+
+msgid "The emulator is busy; the view was not updated."
+msgstr ""
+
+msgid "Stopped at a breakpoint."
+msgstr ""
+
+msgid "Stopped after stepping."
+msgstr ""
+
+msgid "Stopped."
+msgstr ""
+
+msgid "Stepping..."
+msgstr ""
+
+msgid "Running."
+msgstr ""
+
+msgid "The emulator is paused; resume it to run or step."
+msgstr ""
+
+msgid "The dynamic recompiler is off while this window is open."
+msgstr ""
+
+msgid "Enter an address."
+msgstr ""
+
+msgid "The selector cannot be looked up."
+msgstr ""
+
+msgid "Unknown segment \"%1\"."
+msgstr ""
+
+msgid "Unknown offset \"%1\"."
+msgstr ""
+
+msgid "The linear address is not mapped to physical memory."
+msgstr ""
+
+msgid "\"%1\" is not an address or a register."
+msgstr ""
+
+msgid "Usage: %1"
+msgstr ""
+
+msgid "The selection is physical; use a linear address or switch to linear space."
+msgstr ""
+
+msgid "r name [hex-value]: read or edit a register supported by the current processor.\nEAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH DH BH\nIP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\nGDTR.base GDTR.limit IDTR.base IDTR.limit LDTR TR\nCS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (hidden descriptor cache)\nSelectors load descriptors without executing guest instructions; cache fields are literal edits.\nWrites require pause at a complete instruction boundary. NEC 8080-mode register edits are unavailable."
+msgstr ""
+
+msgid "Numbers are hexadecimal; step counts are decimal. Addresses accept registers and seg:off.\n. means the hex selection; omitted memory addresses use it.\nhelp | clear | refresh | regs\nrun | pause | step [count]\nspace physical|linear | goto address | db [address [length]] (max 1000 hex bytes)\nwrite address byte [byte ...] | dump (opens selection export)\ndbio [address [length]] | writeio address byte [byte ...] (device side effects; requires pause)\nu address (linear disassembly) | follow on|off\nbp address | bc address|all | bl (linear breakpoints)\nr [register [value]] (read/set; values are hex); help registers lists names\npeek port [b|w|d] | poke port value [b|w|d]\nRegister/memory writes and I/O require pause. I/O invokes device handlers, including read side effects."
+msgstr ""
+
+msgid "Register unavailable, value invalid, or processor not paused at a complete instruction boundary."
+msgstr ""
+
+msgid "Pause the processor before side-effecting memory access."
+msgstr ""
+
+msgid "Write exceeds 4096 bytes or wraps the address space."
+msgstr ""
+
+msgid "Pause the processor before writing memory."
+msgstr ""
+
+msgid "Issued %1 of %2 byte writes; devices may ignore writes. Untranslated addresses are skipped."
+msgstr ""
+
+msgid "Wrote %1 of %2 bytes; read-only or inaccessible bytes are skipped."
+msgstr ""
+
+msgid "Disassembly is not available in this build."
+msgstr ""
+
+msgid "Breakpoint %1 at %2."
+msgstr ""
+
+msgid "set"
+msgstr ""
+
+msgid "cleared"
+msgstr ""
+
+msgid "%1 breakpoint(s), linear addresses:"
+msgstr ""
+
+msgid "Pause the processor before accessing I/O ports."
+msgstr ""
+
+msgid "Unknown command or invalid arguments. Type help for syntax."
+msgstr ""
+
+msgid "Dump memory"
+msgstr ""
+
+msgid "Browse..."
+msgstr ""
+
+msgid "Start (hex, register or seg:off):"
+msgstr ""
+
+msgid "Length (hex bytes):"
+msgstr ""
+
+msgid "Address space:"
+msgstr ""
+
+msgid "Fill byte for memory that cannot be read:"
+msgstr ""
+
+msgid "File:"
+msgstr ""
+
+msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessible bytes are not read; the fill byte is written in their place."
+msgstr ""
+
+msgid "Binary files (*.bin);;All files (*)"
+msgstr ""
+
+msgid "The length must be a hex number above 0."
+msgstr ""
+
+msgid "The fill byte must be a hex number from 00 to FF."
+msgstr ""
+
+msgid "Could not open %1 for writing."
+msgstr ""
+
+msgid "Dumping memory..."
+msgstr ""
+
+msgid "Could not write to %1."
+msgstr ""
+
+msgid "Dumped %1 bytes from %2 to %3 (%4 bytes could not be read and were filled)."
+msgstr ""
+
+msgid "Enter hex bytes in pairs, e.g. \"8B 44 24 08\"."
+msgstr ""
+
+msgid "\"%1\" is not made of hex bytes."
+msgstr ""
+
+msgid "Enter a hex value from 0 to %1."
+msgstr ""
+
+msgid "The value is too large for %1 bytes."
+msgstr ""
+
+msgid "Enter something to search for."
+msgstr ""
+
+msgid "The range ends before it starts."
 msgstr ""

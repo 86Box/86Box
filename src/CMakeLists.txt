@@ -26,6 +26,7 @@ endif()
 
 add_executable(86Box
     86box.c
+    runctl.c
     debugger.c
     debugger_register.c
     config.c

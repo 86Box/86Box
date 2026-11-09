@@ -618,6 +618,16 @@ extern int smi_block;
    the loop tests between two blocks, kept together in cpu_events */
 #include <86box/cpu_events.h>
 
+/* The chipset's ACPI clock control (acpi.c).  cpu_stpclk: STPCLK#
+   held by a P_LVL2/P_LVL3 read (C2/C3), no instruction runs until a break
+   event (an interrupt request, NMI or SMI).  cpu_throttle_run: STPCLK#
+   modulated (THT_EN), the processor running cpu_throttle_run parts of every
+   cpu_throttle_period, 0 = not throttled; cpu_throttle_break: a break event
+   ends the throttling (the PIIX4 before the PIIX4E). */
+extern int cpu_stpclk;
+extern int cpu_throttle_run;
+extern int cpu_throttle_period;
+extern int cpu_throttle_break;
 extern int cpu_is_p5(void);
 extern int cpu_init_keeps_state(void);
 extern int cpu_soft_reset_keeps_fpu(void);
@@ -868,9 +878,11 @@ extern void refreshread(void);
 extern void refreshread_vx0(void);
 extern void resetreadlookup(void);
 extern void softresetx86(void);
+extern void softresetx86_from(int src);
 extern void x86_reset_deferred(void);
 extern void hardresetx86(void);
 extern void x86_int(int num);
+extern int  x86_int_external;
 extern void x86_int_sw(int num);
 extern int  x86_int_sw_rm(int num);
 
@@ -939,6 +951,13 @@ extern uint32_t addr64a[8];
 extern uint32_t addr64a_2[8];
 
 extern int soft_reset_pci;
+
+/* The sources of a soft reset, for a board whose reset logic also resets
+   the 387 on them (soft_reset_387, set by its chipset) */
+#define SOFT_RESET_KBC      0x01 /* the 8042's reset pulse */
+#define SOFT_RESET_SHUTDOWN 0x02 /* a shutdown (triple fault) */
+#define SOFT_RESET_PORT92   0x04 /* port 92h's fast reset */
+extern int soft_reset_387;
 
 extern int reset_on_hlt;
 extern int hlt_reset_pending;

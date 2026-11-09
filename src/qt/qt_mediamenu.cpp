@@ -61,6 +61,7 @@ extern "C" {
 #include <86box/scsi_tape.h>
 #include <86box/sound.h>
 #include <86box/ui.h>
+#include <86box/runctl.h>
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/mem.h>
@@ -614,11 +615,11 @@ MediaMenu::floppyExportTo86f(int i)
     auto filename = QFileDialog::getSaveFileName(parentWidget, QString(), QString(), tr("Surface images") % util::DlgFilter({ "86f" }, true));
     if (!filename.isEmpty()) {
         QByteArray filenameBytes = filename.toUtf8();
-        plat_pause(1);
+        runctl_pause_wait(RUN_PAUSE_SYNC);
         if (d86f_export(&drives[i], filenameBytes.data()) == 0) {
             QMessageBox::critical(parentWidget, tr("Unable to write file"), tr("Make sure the file is being saved to a writable directory"));
         }
-        plat_pause(0);
+        runctl_resume(RUN_PAUSE_SYNC);
     }
 }
 

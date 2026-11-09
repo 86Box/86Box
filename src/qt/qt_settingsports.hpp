@@ -76,6 +76,8 @@ private:
     int                machineId = 0;
 
     void updateLptPortTracking(int i);
+    void updateLptPortControls(int i);
+    void updateComPortControls(int i);
     void updateUsbHubList();
     void updateUsbMsdList();
 

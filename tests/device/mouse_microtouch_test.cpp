@@ -76,17 +76,6 @@ nvr_fopen(char *str, char *mode)
     return fopen((nvr_dir / str).string().c_str(), mode);
 }
 
-serial_t *
-serial_attach_ex(int, void (*)(serial_t *, void *), void (*w)(serial_t *, void *, uint8_t),
-                 void (*)(serial_t *, void *, double), void (*)(serial_t *, void *, uint8_t), void *priv)
-{
-    memset(&port, 0, sizeof(port));
-    port.out_new = 0xffff;
-    dev_write    = w;
-    dev_priv     = priv;
-    return &port;
-}
-
 void serial_set_cts(serial_t *, uint8_t) { }
 void serial_set_dsr(serial_t *, uint8_t) { }
 void serial_set_dcd(serial_t *, uint8_t) { }

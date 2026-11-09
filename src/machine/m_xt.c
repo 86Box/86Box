@@ -1030,6 +1030,22 @@ machine_xt_clone_init(const machine_t *model, int fixed_floppy)
 }
 
 int
+machine_xt_cp1000_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/cp1000/NOVOTEC_V-2_0.U35",
+                           0x000fe000, 8192, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    machine_xt_clone_init(model, 0);
+
+    return ret;
+}
+
+int
 machine_xt_americxt_init(const machine_t *model)
 {
     int ret;
@@ -1293,6 +1309,23 @@ machine_xt_top88_init(const machine_t *model)
     int ret;
 
     ret = bios_load_linear("roms/machines/top88/Hyosung Topstar 88T - BIOS version 3.0.bin",
+                           0x000fc000, 16384, 0);
+
+    if (bios_only || !ret)
+        return ret;
+
+    /* On-board FDC cannot be disabled */
+    machine_xt_clone_init(model, 1);
+
+    return ret;
+}
+
+int
+machine_xt_ergodata_init(const machine_t *model)
+{
+    int ret;
+
+    ret = bios_load_linear("roms/machines/ergodatawxt/ERGODATA Wild XT.bin",
                            0x000fc000, 16384, 0);
 
     if (bios_only || !ret)

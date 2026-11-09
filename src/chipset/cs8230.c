@@ -159,6 +159,15 @@ cs8230_init(UNUSED(const device_t *info))
 
     io_sethandler(0x0022, 0x0002, cs8230_read, NULL, NULL, cs8230_write, NULL, NULL, cs8230);
 
+    /* RESET3 "is an active high output to the 80386 and the 80387 when
+       either RESET1 or RESET2 is active. It is also activated when a
+       shutdown condition in the CPU is detected", RESET2 being the 8042's
+       warm reset (CS8230/CS8231 data book, 82C301 pin 80, and RESET2). A
+       287 is not on it: "287 RESET is activated when either the system
+       reset (RESET4) or an I/O write to port F1H is performed" (C&T,
+       80386-to-coprocessor note for the CS8230, Rev 1.2, 3.2 item 2). */
+    soft_reset_387 = SOFT_RESET_KBC | SOFT_RESET_SHUTDOWN;
+
     if (mem_size > 768) {
         mem_mapping_set_addr(&ram_mid_mapping, 0xa0000, mem_size > 1024 ? 0x60000 : 0x20000 + (mem_size - 768) * 1024);
         mem_mapping_set_exec(&ram_mid_mapping, ram + 0xa0000);

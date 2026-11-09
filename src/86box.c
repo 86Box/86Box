@@ -19,7 +19,7 @@
  *          Copyright 2021      Laci bá'
  *          Copyright 2021      dob205
  *          Copyright 2021      Andreas J. Reichel.
- *          Copyright 2021-2025 Jasmine Iwanek.
+ *          Copyright 2021-2026 Jasmine Iwanek.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -115,6 +115,7 @@
 #include <86box/acpi.h>
 #include <86box/nv/vid_nv_rivatimer.h>
 #include <86box/vfio.h>
+#include <86box/runctl.h>
 
 /* Stuff that used to be globally declared in plat.h but is now extern there
    and declared here instead. */
@@ -396,8 +397,6 @@ int efscrnsz_y = SCREEN_RES_Y;
 
 __thread int is_cpu_thread = 0;
 
-static ATOMIC_INT do_pause_ack = 0;
-static ATOMIC_INT pause_ack = 0;
 
 #define LOG_SIZE_BUFFER 8192            /* Log size buffer */
 
@@ -553,7 +552,7 @@ fatal(const char *fmt, ...)
     dumpregs(1);
 #endif
 
-    do_pause(2);
+    runctl_pause(RUN_PAUSE_FATAL);
 
     /* A connected automation client would wait forever on a machine that has
        stopped, behind a dialog it can't answer: send it the message and close
@@ -604,7 +603,7 @@ fatal_ex(const char *fmt, va_list ap)
     dumpregs(1);
 #endif
 
-    do_pause(2);
+    runctl_pause(RUN_PAUSE_FATAL);
 
     /* A connected automation client would wait forever on a machine that has
        stopped, behind a dialog it can't answer: send it the message and close
@@ -653,7 +652,7 @@ warning(const char *fmt, ...)
     fflush(stdlog);
     va_end(ap);
 
-    do_pause(2);
+    runctl_pause(RUN_PAUSE_MESSAGE);
 
     /* With an automation client, nobody may be there to dismiss the dialog,
        and while it's up the machine and the socket are stuck (headless, for
@@ -664,7 +663,7 @@ warning(const char *fmt, ...)
     fflush(stdlog);
     free(temp);
 
-    do_pause(0);
+    runctl_resume(RUN_PAUSE_MESSAGE);
 }
 
 void
@@ -694,7 +693,7 @@ warning_ex(const char *fmt, va_list ap)
     automation_log_text(temp, 1);
     fflush(stdlog);
 
-    do_pause(2);
+    runctl_pause(RUN_PAUSE_MESSAGE);
 
     /* With an automation client, nobody may be there to dismiss the dialog,
        and while it's up the machine and the socket are stuck (headless, for
@@ -705,7 +704,7 @@ warning_ex(const char *fmt, va_list ap)
     fflush(stdlog);
     free(temp);
 
-    do_pause(0);
+    runctl_resume(RUN_PAUSE_MESSAGE);
 }
 
 #ifdef ENABLE_PC_LOG
@@ -1993,13 +1992,16 @@ pc_reset_hard_init(void)
     lpt_standalone_init();
     lpt_devices_init();
 
-    /* Reset and reconfigure the serial ports. */
-    /* note: SLIP COM side has to be initialized before the network side */
+    /* Reset the UARTs first. SLIP COM hardware needs its UART before the
+       network side, while char API modem backends attach after network cards
+       so their SLiRP ranges follow the ordinary network-card allocations. */
     serial_standalone_init();
-    serial_devices_init();
 
     /* Reset and reconfigure the Network Card layer. */
     network_reset();
+
+    /* Attach configured COM character devices after the network cards. */
+    serial_devices_init();
 
     /* Reset and reconfigure the MCA memory expansion boards. */
     mcamem_reset();
@@ -2206,15 +2208,6 @@ _ui_emu_status(void *s)
 #endif
 
 void
-ack_pause(void)
-{
-    if (ATOMIC_LOAD(do_pause_ack)) {
-        ATOMIC_STORE(do_pause_ack, 0);
-        ATOMIC_STORE(pause_ack, 1);
-    }
-}
-
-void
 pc_run(void)
 {
     /* Trigger a hard reset if one is pending. */
@@ -2238,8 +2231,13 @@ pc_run(void)
     /* Run a block of code: a millisecond (or ten) of the CPU's cycles, the
        remainder carried over (pc_block.h). */
     startblit();
-    debugger_cpu_exec(pc_block_cycles(&pc_block, cpu_s->rspeed, force_10ms ? 100 : 1000));
-    ack_pause();
+    /* In an ACPI sleeping state the CPU stays stopped and only the timers
+       run, until a wake event. */
+    if (acpi_sleeping && !debugger_stopped())
+        acpi_sleep_run(pc_block_cycles(&pc_block, cpu_s->rspeed, force_10ms ? 100 : 1000));
+    else
+        debugger_cpu_exec(pc_block_cycles(&pc_block, cpu_s->rspeed, force_10ms ? 100 : 1000));
+    runctl_quantum_done(force_10ms ? 10000 : 1000);
 #ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     if (gdbstub_step == GDBSTUB_EXEC) {
 #endif
@@ -2459,21 +2457,6 @@ set_screen_size_natural(void)
         set_screen_size(monitors[i].mon_unscaled_size_x, monitors[i].mon_unscaled_size_y);
 }
 
-
-void
-do_pause(int p)
-{
-    int old_p = dopause;
-
-    if ((p == 1) && !old_p)
-        do_pause_ack = p;
-    dopause = !!p;
-    if ((p == 1) && !old_p) {
-        while (!ATOMIC_LOAD(pause_ack))
-            ;
-    }
-    ATOMIC_STORE(pause_ack, 0);
-}
 
 // Helper to find an accelerator key and return it's index in acc_keys
 int FindAccelerator(const char *name) {

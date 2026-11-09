@@ -486,12 +486,16 @@ extern void     pae_load_pdptes(void);
 extern void flushmmucache_write(void);
 extern void flushmmucache_pc(void);
 extern void flushmmucache_nopc(void);
+extern void flushmmucache_ring3(void);
 
 extern void mem_debug_check_addr(uint32_t addr, int write);
 
 extern void mem_a20_init(void);
 extern void mem_a20_recalc(void);
 extern void mem_a20_reset_vector_bypass_once(void);
+extern int  mem_a20_reset_line;
+extern int  mem_a20_reset_line_fetch;
+extern void mem_a20_reset_line_arm(int open);
 
 extern void mem_init(void);
 extern void mem_close(void);

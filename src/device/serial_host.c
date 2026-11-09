@@ -143,7 +143,8 @@ serial_device_attach(int port)
 
     if ((pending[port].rcr_callback == NULL) && (pending[port].dev_write == NULL) &&
         (pending[port].dtr_callback == NULL) && (pending[port].lcr_callback == NULL) &&
-        (pending[port].transmit_period_callback == NULL))
+        (pending[port].transmit_period_callback == NULL) && (pending[port].control_callback == NULL) &&
+        (pending[port].format_callback == NULL))
         return;
 
     serial_endpoint_attach_device(sp->ep, &pending[port]);
@@ -173,6 +174,8 @@ serial_attach_ex(int port,
     sd->lcr_callback             = lcr_callback;
     sd->rcr_callback             = rcr_callback;
     sd->dtr_callback             = NULL;
+    sd->control_callback         = NULL;
+    sd->format_callback          = NULL;
     sd->priv                     = priv;
     sd->dev_write                = dev_write;
 
@@ -186,6 +189,18 @@ serial_attach_ex_2(int port,
                    void (*rcr_callback)(struct serial_s *serial, void *priv),
                    void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data),
                    void (*dtr_callback)(struct serial_s *serial, int status, void *priv),
+                   void *priv)
+{
+    return serial_attach_ex_3(port, rcr_callback, dev_write, dtr_callback, NULL, NULL, priv);
+}
+
+ser_port_t *
+serial_attach_ex_3(int port,
+                   void (*rcr_callback)(struct serial_s *serial, void *priv),
+                   void (*dev_write)(struct serial_s *serial, void *priv, uint8_t data),
+                   void (*dtr_callback)(struct serial_s *serial, int status, void *priv),
+                   void (*control_callback)(void *priv, uint32_t flags),
+                   void (*format_callback)(void *priv, int baud, int data_bits, int parity, int stop_bits),
                    void *priv)
 {
     if ((port < 0) || (port >= SERIAL_MAX))
@@ -202,6 +217,8 @@ serial_attach_ex_2(int port,
 
     sd->rcr_callback             = rcr_callback;
     sd->dtr_callback             = dtr_callback;
+    sd->control_callback         = control_callback;
+    sd->format_callback          = format_callback;
     sd->dev_write                = dev_write;
     sd->transmit_period_callback = NULL;
     sd->lcr_callback             = NULL;
@@ -230,6 +247,7 @@ serial_devices_init(void)
         serial_endpoint_attach_chardev(com_ports[i].ep, NULL);
 
         memset(&com_ports[i].char_port, 0, sizeof(com_ports[i].char_port));
+#ifndef IS_TEST
         if (com_ports[i].device) {
             com_ports[i].char_port.type = CHAR_PORT_COM;
             snprintf(com_ports[i].char_port.name, sizeof(com_ports[i].char_port.name), "COM%i", i + 1);
@@ -241,6 +259,7 @@ serial_devices_init(void)
             /* This port is hotunpluggable if the device allows it, unless further serial_attach attempts are made. */
             com_ports[i].hotunplug = (device->flags & DEVICE_HOTPLUG_OUT) ? CHAR_PORT_HOTUNPLUG : CHAR_PORT_NOHOTUNPLUG;
         }
+#endif
     }
 }
 
@@ -266,6 +285,7 @@ serial_devices_close(int hotplug)
 void
 serial_devices_reset(void)
 {
+#ifndef IS_TEST
     /* Only close the dropdown devices of the ports that serial_devices_close() and serial_devices_init()
        will go through. A port where another device also asked for the port, such as a serial mouse,
        is left alone by them, and closing its device would leave the port calling into it. */
@@ -273,6 +293,7 @@ serial_devices_reset(void)
         if (com_ports[i].hotunplug < CHAR_PORT_NOHOTUNPLUG)
             device_close_by_flags_inst(DEVICE_COM | DEVICE_HOTPLUG_OUT, i + 1);
     }
+#endif
 
     serial_devices_close(1);
     serial_devices_init();

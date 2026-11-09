@@ -1896,6 +1896,10 @@ piix_init(const device_t *info)
         acpi_set_trap_update(dev->acpi, piix_trap_update, dev);
         if (dev->type > 4)
             acpi_set_usb_sts_w1c(dev->acpi, 1);
+        /* The 82371AB's throttling, before the PIIX4E's (PIIX4
+           specification update nos. 13 and 14, pp. 16-17). */
+        else if (!(dev->rev & 0x08))
+            acpi_set_piix4_ab(dev->acpi, 1);
 
         dev->ddma = device_add(&ddma_device);
     } else

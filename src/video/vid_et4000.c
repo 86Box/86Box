@@ -676,6 +676,17 @@ et4000_recalctimings(svga_t *svga)
         svga->dots_per_clock <<= 1;
     }
 
+    /* Interlace (CRTC 35 bit 7), the vertical registers count frame lines */
+    svga->interlace = svga->crtc[0x35] & 0x80;
+    if (svga->interlace) {
+        int shift = (svga->crtc[0x17] & 0x04) ? 2 : 1;
+
+        svga->vtotal >>= shift;
+        svga->vsyncstart >>= shift;
+        svga->vblankstart >>= shift;
+        svga->dispend >>= shift;
+    }
+
     if (svga->getclock == NULL) {
         switch (clk_sel) {
             case 0:

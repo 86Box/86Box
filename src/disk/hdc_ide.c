@@ -45,6 +45,7 @@
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/hdd.h>
+#include <86box/lpt.h>
 #include <86box/sound.h>
 #include <86box/rdisk.h>
 #include <86box/thread.h>
@@ -154,6 +155,10 @@ typedef struct ide_board_t {
 
     ide_t     *ide[2];
     ide_bm_t  *bm;
+
+    /* A parallel port bridge: INTRQ goes to it instead of the PIC. */
+    void     (*lpt_irq)(int set, void *priv);
+    void      *lpt_priv;
 } ide_board_t;
 
 typedef struct mcide_t {
@@ -163,6 +168,7 @@ typedef struct mcide_t {
 } mcide_t;
 
 ide_board_t *ide_boards[IDE_BUS_MAX] = { 0 };
+static int   ide_lpt_port[IDE_BUS_MAX]; /* LPT port + 1 of a parallel port bridge's board */
 
 static uint8_t ide_ter_pnp_rom[] = {
     /* BOX0001, serial 0, dummy checksum (filled in by isapnp_add_card) */
@@ -600,6 +606,8 @@ ide_irq_update(ide_board_t *dev, UNUSED(int log))
 
     if (!dev->force_ata3 && dev->bm && dev->bm->set_irq)
         dev->bm->set_irq(set << 2, dev->bm->priv);
+    else if (dev->lpt_irq != NULL)
+        dev->lpt_irq(set, dev->lpt_priv);
     else if (ide_boards[ide->board]->irq != -1)
         picint_common(1 << dev->irq, PIC_IRQ_EDGE, set, NULL);
 }
@@ -3489,10 +3497,11 @@ ide_board_setup(const int board)
 
     c = 0;
     for (d = 0; d < HDD_NUM; d++) {
-        const int is_ide   = (hdd[d].bus_type == HDD_BUS_IDE);
-        const int ch       = hdd[d].ide_channel;
+        const int lpt      = ide_lpt_port[board];
+        const int is_ide   = lpt ? (hdd[d].bus_type == HDD_BUS_LPT) : (hdd[d].bus_type == HDD_BUS_IDE);
+        const int ch       = lpt ? min_ch : hdd[d].ide_channel;
 
-        const int valid_ch = ((ch >= min_ch) && (ch <= max_ch));
+        const int valid_ch = lpt ? (hdd[d].channel == (lpt - 1)) : ((ch >= min_ch) && (ch <= max_ch));
 
         if (is_ide && valid_ch) {
             ide_log("Found IDE hard disk on channel %i\n", ch);
@@ -3755,6 +3764,81 @@ void
 ide_xtide_close(void)
 {
     ide_board_close(0);
+}
+
+/* The board of the parallel port to IDE bridge on LPT port (0-based),
+   counted down from the last: no I/O ports and no IRQ, and the bridge calls
+   ide_readb() and the others on it. Its master is the hard disk the user
+   put on that port (bus LPT). */
+static int
+ide_lpt_board(int port)
+{
+    return IDE_BUS_MAX - 1 - port;
+}
+
+void *
+ide_lpt_init(int port)
+{
+    const int board = ide_lpt_board(port);
+
+    if ((port < 0) || (port >= PARALLEL_MAX) || ide_board_claimed(board))
+        return NULL;
+
+    ide_lpt_port[board] = port + 1;
+    ide_board_init(board, -1, 0, 0, 0, 0);
+
+    return ide_boards[board];
+}
+
+/* The IDE channel of the master on the LPT board of the port: where an
+   ATAPI CD-ROM drive behind a bridge on that port attaches. */
+int
+ide_lpt_channel(int port)
+{
+    return ide_lpt_board(port) << 1;
+}
+
+/* The bridge's handler of INTRQ changes on the LPT board of the port. */
+void
+ide_lpt_set_irq(int port, void (*lpt_irq)(int set, void *priv), void *priv)
+{
+    ide_board_t *dev;
+
+    if ((port < 0) || (port >= PARALLEL_MAX))
+        return;
+
+    dev = ide_boards[ide_lpt_board(port)];
+    if (dev != NULL) {
+        dev->lpt_irq  = lpt_irq;
+        dev->lpt_priv = priv;
+    }
+}
+
+/* The INTRQ line of the drive selected on the LPT board, as nIEN gates it. */
+int
+ide_lpt_intrq(int port)
+{
+    const ide_board_t *dev;
+    const ide_t       *ide;
+
+    if ((port < 0) || (port >= PARALLEL_MAX))
+        return 0;
+
+    dev = ide_boards[ide_lpt_board(port)];
+    if (dev == NULL)
+        return 0;
+
+    ide = ide_drives[dev->cur_dev];
+    return (ide != NULL) && !(dev->devctl & 2) && ide->irqstat;
+}
+
+void
+ide_lpt_close(int port)
+{
+    if ((port >= 0) && (port < PARALLEL_MAX)) {
+        ide_board_close(ide_lpt_board(port));
+        ide_lpt_port[ide_lpt_board(port)] = 0;
+    }
 }
 
 void
@@ -4122,6 +4206,38 @@ ide_plan(ide_owner_t owners[IDE_BUS_MAX], int mach, const int hdc[], const int s
     for (int board = 0; board < IDE_BUS_MAX; board++) {
         if (plan.taken[board] && (board >= shown))
             shown = board + 1;
+    }
+
+    /* Last, the bridge of each hard disk on a parallel port, on a board of
+       its own that is not offered for IDE drives. */
+    for (int i = 0; i < PARALLEL_MAX; i++) {
+        for (int c = 0; c < HDD_NUM; c++) {
+            if (lpt_ports[i].enabled && hdd_is_valid(c) &&
+                (hdd[c].bus_type == HDD_BUS_LPT) && (hdd[c].channel == i)) {
+                ide_plan_claim(&plan, 1 << ide_lpt_board(i),
+                               hdd_lpt_bridge_device(hdd[c].lpt_bridge),
+                               i + 1, 0);
+                break;
+            }
+        }
+        for (int c = 0; c < RDISK_NUM; c++) {
+            if (lpt_ports[i].enabled && (rdisk_drives[c].bus_type == RDISK_BUS_LPT) &&
+                (rdisk_drives[c].res == i) && (rdisk_drives[c].lpt_bridge != HDD_LPT_EPAT)) {
+                ide_plan_claim(&plan, 1 << ide_lpt_board(i),
+                               hdd_lpt_bridge_device(rdisk_drives[c].lpt_bridge),
+                               i + 1, 0);
+                break;
+            }
+        }
+        for (int c = 0; c < CDROM_NUM; c++) {
+            if (lpt_ports[i].enabled && (cdrom[c].bus_type == CDROM_BUS_LPT) &&
+                (cdrom[c].res == i) && (cdrom[c].lpt_bridge != HDD_LPT_BPCK)) {
+                ide_plan_claim(&plan, 1 << ide_lpt_board(i),
+                               hdd_lpt_bridge_device(cdrom[c].lpt_bridge),
+                               i + 1, 0);
+                break;
+            }
+        }
     }
 
     return shown;

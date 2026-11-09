@@ -48,6 +48,7 @@
 #include <QPushButton>
 #include <QRegularExpression>
 #include <QScrollBar>
+#include <QShortcut>
 #include <QSpinBox>
 #include <QSplitter>
 #include <QTimer>
@@ -90,6 +91,18 @@ writable(uint8_t cls)
     return (cls == DEBUGGER_MEM_RAM) || (cls == DEBUGGER_MEM_VIDEO);
 }
 
+/* Does the pattern match at this position? Every byte of the run must be
+   readable, so a match never spans a mapped gap. */
+static bool
+matchAt(const char *data, const char *cls, int pos, const QByteArray &pattern)
+{
+    for (int i = 0; i < pattern.size(); i++) {
+        if (!readable((uint8_t) cls[pos + i]) || (data[pos + i] != pattern[i]))
+            return false;
+    }
+    return true;
+}
+
 static QFont
 monoFont()
 {
@@ -115,6 +128,8 @@ MemoryHexView::MemoryHexView(QWidget *parent)
     /* address, 16 bytes with a gap after 8, the characters */
     setMinimumWidth(charW_ * (10 + (BYTES_PER_ROW * 3) + 1 + 1 + BYTES_PER_ROW + 2) + verticalScrollBar()->sizeHint().width());
     updateScrollBar();
+    /* Seed the viewer's range read-out with the starting selection. */
+    emit rangeReport(selectionText());
 }
 
 void
@@ -274,12 +289,14 @@ MemoryHexView::goTo(uint32_t addr)
     if (vrow < 0) {
         /* Unmapped; stay put or go to nearest? For now just select. */
         refresh();
+        emit rangeReport(selectionText());
         return;
     }
     /* Put the address a few rows down from the top, for context. */
     int64_t top = vrow - 2;
     verticalScrollBar()->setValue((int) std::clamp<int64_t>(top, 0, verticalScrollBar()->maximum()));
     refresh();
+    emit rangeReport(selectionText());
 }
 
 void
@@ -365,8 +382,51 @@ MemoryHexView::setSelection(uint32_t addr, bool extend)
         anchor_ = addr;
     sel_    = addr;
     nibble_ = 0;
-    emit status(selectionText());
+    emit rangeReport(selectionText());
     viewport()->update();
+}
+
+/* Select a run of bytes and scroll it into view: its middle row at
+   mid-screen when the run fits down the screen, its start near the top
+   when it is longer. The cursor lands at one end of it, so repeating a
+   search moves on instead of finding the same run again. The ends are
+   placed on a mapped row only after the run has been located there: if
+   the first byte is not on a mapped row, nothing changes at all. */
+void
+MemoryHexView::selectRange(uint32_t start, uint32_t len, bool cursorAtEnd)
+{
+    const uint32_t sel    = cursorAtEnd ? (start + (len - 1)) : start;
+    const uint32_t anchor = cursorAtEnd ? start : (start + (len - 1));
+
+    /* The rows the selection's two ends live on, checked before anything
+       moves: a match should not be on unmapped memory, but if it somehow
+       is, the selection and the view stay where they were. */
+    const int64_t vrowS = addrToVirtualRow(qMin(sel, anchor));
+    const int64_t vrowE = addrToVirtualRow(qMax(sel, anchor));
+    if (vrowS < 0 || vrowE < 0) {
+        emit status(tr("The match is not on mapped memory; the selection and the view did not move."));
+        return;
+    }
+
+    sel_    = sel;
+    anchor_ = anchor;
+    nibble_ = 0;
+
+    /* Fit the scrollbar to the map as it is now: its range comes from the
+       mapped rows, which may have moved since it was last sized, and a
+       stale one clamps the jump away from the match. */
+    updateScrollBar();
+
+    const int     vis   = visibleRows();
+    const int64_t run   = (vrowE > vrowS) ? (vrowE - vrowS + 1) : 1;
+    const int64_t first = (run <= vis) ? ((vrowS + vrowE + 1) / 2 - (vis / 2)) : (vrowS - (vis / 4));
+    verticalScrollBar()->setValue((int) std::clamp<int64_t>(first, 0, verticalScrollBar()->maximum()));
+
+    emit rangeReport(selectionText());
+    refresh();
+    /* Straight away, rather than at the mercy of the event queue, so the
+       found run is on screen as the search answers. */
+    viewport()->repaint();
 }
 
 void
@@ -599,7 +659,7 @@ MemoryHexView::keyPressEvent(QKeyEvent *event)
             }
             if (sel_ != anchor_) {
                 anchor_ = sel_;
-                emit status(selectionText());
+                emit rangeReport(selectionText());
                 viewport()->update();
                 return;
             }
@@ -731,6 +791,220 @@ MemoryHexView::copySelection(bool ascii)
     if (count < selLen)
         msg += tr(" of a %1 byte selection").arg(selLen);
     emit status(msg + QLatin1Char('.'));
+}
+
+/* Search mapped memory for a run of bytes. Forward scans the bytes after
+   the cursor onward (wrapping); backward scans the runs whose last byte
+   lies before the cursor, then wraps. From and to bound the scan to an
+   address range (both inclusive). A chunk at a time, letting the
+   emulator run in between, with an edge of already-read bytes kept so a
+   match crossing the border between two chunks is still seen. Only a hit
+   calls selectRange(), so a search that fails — nothing to scan, the
+   emulator busy, a cancel, or no match — leaves the selection and the
+   view exactly where they were. */
+bool
+MemoryHexView::find(const QByteArray &pattern, bool forward, uint32_t from, uint32_t to)
+{
+    const int plen = pattern.size();
+    if (!plen || searching_)
+        return false;
+
+    /* The ranges to scan: the mapped ones, clipped to the wanted span. */
+    QVector<MappedRange> scan;
+    const bool full = (from == 0) && (to == 0xffffffffU);
+    for (const auto &r : mappedRanges_) {
+        const uint64_t start = std::max<uint64_t>(r.start, from);
+        const uint64_t last  = std::min<uint64_t>((uint64_t) r.start + r.length - 1, to);
+        if (last >= start)
+            scan.append(MappedRange{(uint32_t) start, (uint32_t) (last - start + 1)});
+    }
+
+    if (scan.isEmpty()) {
+        emit status(full ? tr("There is no mapped memory to search.")
+                         : tr("There is no mapped memory in the requested range."));
+        return false;
+    }
+    if (plen > 0x10000) {
+        emit status(tr("The search is limited to %1 bytes.").arg(0x10000));
+        return false;
+    }
+
+    searching_ = true;
+
+    uint64_t scanTotal = 0;
+    for (const auto &r : scan)
+        scanTotal += r.length;
+    const int nr = (int) scan.size();
+
+    /* The range and address where the scan starts. Forward starts at the
+       first scanned byte after the cursor (the cursor usually sits on the
+       match just found, and the next one is wanted), backward before it;
+       past either end, wrap round. */
+    int      startIdx = -1;
+    uint32_t startPos = 0;
+    if (forward) {
+        const uint32_t from = sel_ + 1;
+        for (int i = 0; i < nr; i++) {
+            const auto &r = scan[i];
+            if ((uint64_t) from < (uint64_t) r.start) {
+                startIdx = i;
+                startPos = r.start;
+                break;
+            }
+            if ((uint64_t) r.start + r.length > (uint64_t) from) {
+                startIdx = i;
+                startPos = from;
+                break;
+            }
+        }
+        if (startIdx < 0) { /* at or past the last scanned byte */
+            startIdx = 0;
+            startPos = scan[0].start;
+        }
+    } else {
+        const uint32_t limit = sel_ - 1; /* matches end before the cursor */
+        for (int i = nr - 1; i >= 0; i--) {
+            const auto &r = scan[i];
+            if (((uint64_t) limit >= (uint64_t) r.start) && ((uint64_t) limit < ((uint64_t) r.start + r.length))) {
+                startIdx = i;
+                startPos = limit;
+                break;
+            }
+        }
+        if (startIdx < 0) { /* before the first scanned byte */
+            startIdx = nr - 1;
+            startPos = (uint32_t) ((uint64_t) scan[nr - 1].start + scan[nr - 1].length - 1);
+        }
+    }
+
+    QVector<uint8_t> rdata(0x10000), rcls(0x10000);
+    QByteArray       buf, clsBuf;
+    uint32_t         bufBase = 0; /* the address of buf[0] */
+    const int        keep    = plen - 1;
+
+    QProgressDialog progress(tr("Searching memory..."), tr("Cancel"), 0,
+                             (int) qMin<uint64_t>(0x7fffffff, (scanTotal + 0xffff) / 0x10000), this);
+    progress.setWindowModality(Qt::WindowModal);
+    progress.setMinimumDuration(500);
+
+    int  chunkNo = 0;
+    bool found   = false;
+
+    /* Through the ranges once, in the scan's direction: from the cursor to
+       the end of the range, then the beginning. The first range is cut to
+       the scan's side of the cursor, so no match reaches across it. */
+    for (int k = 0; !found && (k < nr); k++) {
+        const int   idx = forward ? ((startIdx + k) % nr) : ((startIdx - k + nr) % nr);
+        const auto &range = scan[idx];
+        uint64_t    lo    = (uint64_t) range.start;
+        uint64_t    hi    = (uint64_t) range.start + range.length;
+
+        if (k == 0) {
+            if (forward)
+                lo = qMax<uint64_t>(lo, startPos);
+            else
+                hi = qMin<uint64_t>(hi, (uint64_t) startPos + 1);
+        }
+
+        if (hi <= lo)
+            continue;
+
+        buf.clear();
+        clsBuf.clear();
+        bufBase = (uint32_t) lo;
+
+        if (forward) {
+            for (uint64_t pos = lo; pos < hi;) {
+                const uint32_t n = (uint32_t) std::min<uint64_t>(hi - pos, 0x10000ULL);
+                if (!MemoryViewer::lock()) {
+                    emit status(tr("The emulator is busy; try again."));
+                    searching_ = false;
+                    return false;
+                }
+                debugger_mem_read(space_, (uint32_t) pos, n, rdata.data(), rcls.data());
+                MemoryViewer::unlock();
+                buf.append((const char *) rdata.constData(), n);
+                clsBuf.append((const char *) rcls.constData(), n);
+                progress.setValue(qMin(++chunkNo, progress.maximum()));
+                if (progress.wasCanceled()) {
+                    emit status(tr("The search was cancelled. The selection did not move."));
+                    searching_ = false;
+                    return false;
+                }
+
+                int hit = -1;
+                for (int p = 0; (p + plen) <= buf.size(); p++) {
+                    if (matchAt(buf.constData(), clsBuf.constData(), p, pattern)) {
+                        hit = p;
+                        break;
+                    }
+                }
+                if (hit >= 0) {
+                    const uint32_t at = bufBase + (uint32_t) hit;
+                    selectRange(at, (uint32_t) plen, true);
+                    emit status(tr("Found at %1.").arg(QString::asprintf("%08X", at)));
+                    found = true;
+                    break;
+                }
+
+                if (buf.size() > keep) {
+                    const int drop = buf.size() - keep;
+                    buf.remove(0, drop);
+                    clsBuf.remove(0, drop);
+                    bufBase += (uint32_t) drop;
+                }
+                pos += n;
+            }
+        } else {
+            for (uint64_t top = hi; top > lo;) {
+                const uint32_t n = (uint32_t) std::min<uint64_t>(top - lo, 0x10000ULL);
+                top -= n;
+                if (!MemoryViewer::lock()) {
+                    emit status(tr("The emulator is busy; try again."));
+                    searching_ = false;
+                    return false;
+                }
+                debugger_mem_read(space_, (uint32_t) top, n, rdata.data(), rcls.data());
+                MemoryViewer::unlock();
+                buf.prepend((const char *) rdata.constData(), n);
+                clsBuf.prepend((const char *) rcls.constData(), n);
+                bufBase = (uint32_t) top;
+                progress.setValue(qMin(++chunkNo, progress.maximum()));
+                if (progress.wasCanceled()) {
+                    emit status(tr("The search was cancelled. The selection did not move."));
+                    searching_ = false;
+                    return false;
+                }
+
+                int hit = -1;
+                for (int p = buf.size() - plen; p >= 0; p--) {
+                    if (matchAt(buf.constData(), clsBuf.constData(), p, pattern)) {
+                        hit = p;
+                        break;
+                    }
+                }
+                if (hit >= 0) {
+                    const uint32_t at = bufBase + (uint32_t) hit;
+                    selectRange(at, (uint32_t) plen, false);
+                    emit status(tr("Found at %1.").arg(QString::asprintf("%08X", at)));
+                    found = true;
+                    break;
+                }
+
+                if (buf.size() > keep) {
+                    buf.truncate(keep);
+                    clsBuf.truncate(keep);
+                }
+            }
+        }
+    }
+
+    searching_ = false;
+    if (!found) {
+        emit status(tr("Not found. The selection did not move."));
+        return false;
+    }
+    return found;
 }
 
 /* Fill the selected bytes with one value. */
@@ -913,6 +1187,52 @@ MemoryViewer::MemoryViewer(QWidget *parent)
 
     hex_ = new MemoryHexView(this);
 
+    /* The search bar. Bytes can be given as raw hex pairs, as text, or as
+       a byte, word or dword value in the guest's little-endian order. */
+    searchTypeBox_ = new QComboBox(this);
+    searchTypeBox_->addItem(tr("Hex bytes"), QStringLiteral("hex"));
+    searchTypeBox_->addItem(tr("ASCII text"), QStringLiteral("ascii"));
+    searchTypeBox_->addItem(tr("Value, byte"), QStringLiteral("b"));
+    searchTypeBox_->addItem(tr("Value, word"), QStringLiteral("w"));
+    searchTypeBox_->addItem(tr("Value, dword"), QStringLiteral("d"));
+    searchTypeBox_->setToolTip(tr("What to look for: raw hex bytes, text, or a hex value stored little-endian, as in the hex view."));
+    searchEdit_ = new QLineEdit(this);
+    searchEdit_->setClearButtonEnabled(true);
+    searchEdit_->setPlaceholderText(tr("Search"));
+    searchEdit_->setAccessibleName(tr("Memory search"));
+    searchEdit_->setToolTip(tr("Ctrl+F focuses this box; Enter or F3 finds the next match, Shift+F3 the previous."));
+    auto *searchPrevBtn = new QPushButton(tr("Find previous"), this);
+    searchPrevBtn->setToolTip(tr("Search upwards from the selection (Shift+F3)"));
+    searchPrevBtn->setShortcut(QKeySequence(QStringLiteral("Shift+F3")));
+    auto *searchNextBtn = new QPushButton(tr("Find next"), this);
+    searchNextBtn->setToolTip(tr("Search downwards from the selection (F3)"));
+    searchNextBtn->setShortcut(QKeySequence(Qt::Key_F3));
+    auto *rangeBtn = new QPushButton(tr("Range..."), this);
+    rangeBtn->setCheckable(true);
+    rangeBtn->setToolTip(tr("Search within an address range instead of all memory"));
+    rangeFromEdit_ = new QLineEdit(this);
+    rangeFromEdit_->setPlaceholderText(tr("From"));
+    rangeFromEdit_->setToolTip(tr("Where the search starts (hex, register or seg:off; empty means the first mapped byte; . means the selection start)."));
+    rangeToEdit_ = new QLineEdit(this);
+    rangeToEdit_->setPlaceholderText(tr("To (inclusive)"));
+    rangeToEdit_->setToolTip(tr("Where the search ends, that address included (hex, register or seg:off; empty means the last mapped byte; . means the selection end)."));
+
+    auto *rangeBar = new QWidget(this);
+    auto *rangeLayout = new QHBoxLayout(rangeBar);
+    rangeLayout->setContentsMargins(0, 0, 0, 0);
+    rangeLayout->addWidget(new QLabel(tr("Range from"), this));
+    rangeLayout->addWidget(rangeFromEdit_, 1);
+    rangeLayout->addWidget(new QLabel(tr("to"), this));
+    rangeLayout->addWidget(rangeToEdit_, 1);
+    rangeBar->setVisible(false);
+
+    auto *searchBar = new QHBoxLayout;
+    searchBar->addWidget(searchTypeBox_);
+    searchBar->addWidget(searchEdit_, 1);
+    searchBar->addWidget(rangeBtn);
+    searchBar->addWidget(searchPrevBtn);
+    searchBar->addWidget(searchNextBtn);
+
     /* The legend. */
     auto *legend = new QHBoxLayout;
     auto  swatch = [this, legend](const QString &text, const QString &style) {
@@ -932,6 +1252,8 @@ MemoryViewer::MemoryViewer(QWidget *parent)
     auto *left       = new QWidget(this);
     auto *leftLayout = new QVBoxLayout(left);
     leftLayout->setContentsMargins(0, 0, 0, 0);
+    leftLayout->addLayout(searchBar);
+    leftLayout->addWidget(rangeBar);
     leftLayout->addWidget(hex_, 1);
     leftLayout->addLayout(legend);
     leftLayout->addWidget(legendNote);
@@ -982,7 +1304,18 @@ MemoryViewer::MemoryViewer(QWidget *parent)
     split->setSizes({ hex_->minimumWidth(), hex_->minimumWidth() });
     right->setSizes({ 360, 440 });
 
-    statusLabel_ = new QLabel(this);
+    /* The status row: the guest's state at the left; at the right, the
+       latest message (an error, warning or result) then the selection's
+       range at the corner. Only the message may not push the window
+       wider with long text: it is clipped, and the tooltip carries it
+       whole. The range is short, so it stays sized to its text. */
+    statusLabel_  = new QLabel(this);
+    messageLabel_ = new QLabel(this);
+    rangeLabel_   = new QLabel(this);
+    messageLabel_->setSizePolicy(QSizePolicy::Ignored, QSizePolicy::Fixed);
+    rangeLabel_->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Fixed);
+    messageLabel_->setAccessibleName(tr("Viewer message"));
+    rangeLabel_->setAccessibleName(tr("Selected range"));
 
     auto *commandBox = new QGroupBox(tr("Debugger commands"), this);
     auto *commandLayout = new QVBoxLayout(commandBox);
@@ -1014,10 +1347,20 @@ MemoryViewer::MemoryViewer(QWidget *parent)
             commandInput_->setFocus();
     });
 
+    auto *statusRow = new QHBoxLayout;
+    statusRow->addWidget(statusLabel_);
+    /* The message takes the middle with stretch 1: spare width goes to
+       it, so the range at the right keeps its end of the row. Its
+       Ignored policy means it is allotted none of it when the row is
+       tight, and what does not fit is clipped. */
+    statusRow->addWidget(messageLabel_, 1);
+    statusRow->addSpacing(12);
+    statusRow->addWidget(rangeLabel_);
+
     auto *layout = new QVBoxLayout(this);
     layout->addLayout(bar);
     layout->addWidget(panes, 1);
-    layout->addWidget(statusLabel_);
+    layout->addLayout(statusRow);
 
     // Return in an editor must not also activate a dialog default button.
     for (auto *button : findChildren<QPushButton *>())
@@ -1035,7 +1378,11 @@ MemoryViewer::MemoryViewer(QWidget *parent)
     connect(disasmEdit_, &QLineEdit::returnPressed, this, &MemoryViewer::onDisasmGo);
     connect(followBox_, &QCheckBox::toggled, this, [this](bool) { refreshDisasm(); });
     connect(disasm_, &QTreeWidget::itemDoubleClicked, this, &MemoryViewer::onDisasmItemActivated);
-    connect(hex_, &MemoryHexView::status, statusLabel_, &QLabel::setText);
+    connect(hex_, &MemoryHexView::status, this, &MemoryViewer::notice);
+    connect(hex_, &MemoryHexView::rangeReport, this, [this](const QString &text) {
+        rangeLabel_->setText(text);
+        rangeLabel_->setToolTip(text);
+    });
     connect(hex_, &MemoryHexView::dumpRequested, this, &MemoryViewer::onDump);
     connect(hex_, &MemoryHexView::memoryWritten, this, &MemoryViewer::refreshDisasm);
     connect(hex_, &MemoryHexView::disassembleRequested, this, [this](uint32_t addr) {
@@ -1044,6 +1391,20 @@ MemoryViewer::MemoryViewer(QWidget *parent)
         disasmEdit_->setText(QString::asprintf("%08X", addr));
         refreshDisasm();
     });
+    auto *findShortcut = new QShortcut(QKeySequence::Find, this);
+    findShortcut->setContext(Qt::WidgetWithChildrenShortcut);
+    connect(findShortcut, &QShortcut::activated, this, [this]() {
+        searchEdit_->setFocus();
+        searchEdit_->selectAll();
+    });
+    connect(searchEdit_, &QLineEdit::returnPressed, this, [this]() { onSearch(true); });
+    connect(rangeBtn, &QPushButton::toggled, this, [this, rangeBar](bool visible) {
+        rangeBar->setVisible(visible);
+        if (visible)
+            rangeFromEdit_->setFocus();
+    });
+    connect(searchNextBtn, &QPushButton::clicked, this, [this]() { onSearch(true); });
+    connect(searchPrevBtn, &QPushButton::clicked, this, [this]() { onSearch(false); });
 
     /* Attaching turns off the recompiler for as long as the window is open. */
     debugger_attach(1);
@@ -1120,7 +1481,7 @@ MemoryViewer::onGo()
     uint32_t addr;
     QString  err;
     if (!parseAddress(addrEdit_->text(), hex_->space(), &addr, &err)) {
-        statusLabel_->setText(err);
+        notice(err);
         return;
     }
     hex_->goTo(addr);
@@ -1132,7 +1493,7 @@ MemoryViewer::onDisasmGo()
     uint32_t addr;
     QString  err;
     if (!parseAddress(disasmEdit_->text(), DEBUGGER_SPACE_LINEAR, &addr, &err)) {
-        statusLabel_->setText(err);
+        notice(err);
         return;
     }
     followBox_->setChecked(false);
@@ -1147,7 +1508,7 @@ MemoryViewer::onDisasmItemActivated(QTreeWidgetItem *item, int)
         return;
     const uint32_t addr = item->data(1, Qt::UserRole).toUInt();
     if (debugger_breakpoint_toggle(addr) < 0)
-        statusLabel_->setText(tr("Too many breakpoints."));
+        notice(tr("Too many breakpoints."));
     refreshDisasm();
 }
 
@@ -1199,7 +1560,7 @@ MemoryViewer::refreshAll()
        are updated after it, as the emulator waits for as long as it is
        held. */
     if (!lock()) {
-        statusLabel_->setText(tr("The emulator is busy; the view was not updated."));
+        notice(tr("The emulator is busy; the view was not updated."));
         return;
     }
     hex_->refresh();
@@ -1212,6 +1573,15 @@ MemoryViewer::refreshAll()
     if (haveDisasm)
         showDisasm(view);
     updateStatus();
+}
+
+/* A transient message — an error, warning or result — goes to the lower
+   right of the status row, next to the selected range. */
+void
+MemoryViewer::notice(const QString &text)
+{
+    messageLabel_->setText(text);
+    messageLabel_->setToolTip(text);
 }
 
 void
@@ -1896,9 +2266,102 @@ MemoryViewer::onDump(uint32_t start, uint32_t len)
     }
     file.close();
 
-    statusLabel_->setText(tr("Dumped %1 bytes from %2 to %3 (%4 bytes could not be read and were filled).")
+    notice(tr("Dumped %1 bytes from %2 to %3 (%4 bytes could not be read and were filled).")
                               .arg(done)
                               .arg(QString::asprintf("%08X", addr))
                               .arg(file.fileName())
                               .arg(unreadable));
+}
+
+/* Build the bytes to look for from the search box: raw hex pairs, a line
+   of text, or a hex value in the guest's little-endian byte order. */
+QByteArray
+MemoryViewer::searchPattern(QString *err) const
+{
+    const QString type = searchTypeBox_->currentData().toString();
+    const QString text = searchEdit_->text().trimmed();
+
+    if (type == QStringLiteral("ascii"))
+        return text.toLatin1();
+
+    if (type == QStringLiteral("hex")) {
+        QString t = text;
+        t.remove(QLatin1Char(' '));
+        t.remove(QLatin1Char(','));
+        if (t.isEmpty() || (t.size() & 1)) {
+            *err = tr("Enter hex bytes in pairs, e.g. \"8B 44 24 08\".");
+            return QByteArray();
+        }
+        for (const QChar c : t) {
+            const char ch = c.toUpper().toLatin1();
+            if (!(((ch >= '0') && (ch <= '9')) || ((ch >= 'A') && (ch <= 'F')))) {
+                *err = tr("\"%1\" is not made of hex bytes.").arg(text);
+                return QByteArray();
+            }
+        }
+        return QByteArray::fromHex(t.toLatin1());
+    }
+
+    /* A byte, word or dword value, stored little-endian like the hex pane. */
+    const int      width = (type == QStringLiteral("b")) ? 1 : (type == QStringLiteral("w")) ? 2 : 4;
+    const uint32_t max   = (width == 1) ? 0xff : (width == 2) ? 0xffff : UINT32_MAX;
+    uint32_t       value;
+    if (!parseHex(text, &value)) {
+        *err = tr("Enter a hex value from 0 to %1.").arg(QString::asprintf("%X", max));
+        return QByteArray();
+    }
+    if (value > max) {
+        *err = tr("The value is too large for %1 bytes.").arg(width);
+        return QByteArray();
+    }
+    QByteArray bytes(width, Qt::Uninitialized);
+    for (int i = 0; i < width; i++)
+        bytes[i] = (char) ((value >> (i * 8)) & 0xff);
+    return bytes;
+}
+
+void
+MemoryViewer::onSearch(bool forward)
+{
+    QString          err;
+    const QByteArray pattern = searchPattern(&err);
+
+    if (pattern.isEmpty()) {
+        notice(err.isEmpty() ? tr("Enter something to search for.") : err);
+        return;
+    }
+    if (pattern.size() > 4096) {
+        notice(tr("The search is limited to %1 bytes.").arg(4096));
+        return;
+    }
+
+    /* An optional range, in whatever form the Go field takes. The ends
+       left empty mean the whole space; . means the selection. */
+    uint32_t from = 0, to = 0xffffffffU;
+    if (rangeFromEdit_->isVisibleTo(this) || rangeToEdit_->isVisibleTo(this)) {
+        const QString fromText = rangeFromEdit_->text().trimmed();
+        const QString toText   = rangeToEdit_->text().trimmed();
+        if (!fromText.isEmpty()) {
+            if (fromText == QStringLiteral("."))
+                from = hex_->selectionStart();
+            else if (!parseAddress(fromText, hex_->space(), &from, &err)) {
+                notice(err);
+                return;
+            }
+        }
+        if (!toText.isEmpty()) {
+            if (toText == QStringLiteral("."))
+                to = hex_->selectionEnd();
+            else if (!parseAddress(toText, hex_->space(), &to, &err)) {
+                notice(err);
+                return;
+            }
+        }
+        if (from > to) {
+            notice(tr("The range ends before it starts."));
+            return;
+        }
+    }
+
+    hex_->find(pattern, forward, from, to);
 }

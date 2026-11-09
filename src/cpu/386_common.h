@@ -103,35 +103,57 @@
         else                                                                                                                \
             *(uint64_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
 
-#    define do_mmut_rb(s, a, b)                                                                       \
-        if (readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF)) \
+/* With paging off and no debug register breakpoint armed, do_mmutranslate()
+   has nothing to do: the _no_mmut accessors only read the addresses it fills
+   in while paging is on. */
+#    define do_mmut_needed() ((cr0 >> 31) || cpu_dr_armed)
+
+#    define do_mmut_rb(s, a, b)                                                                                           \
+        if (do_mmut_needed() && (readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF))) \
         do_mmutranslate((s) + (a), b, 1, 0)
-#    define do_mmut_rw(s, a, b)                                                                                            \
-        if (readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) \
+#    define do_mmut_rw(s, a, b)                                                                                                                  \
+        if (do_mmut_needed() && (readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1))) \
         do_mmutranslate((s) + (a), b, 2, 0)
-#    define do_mmut_rl(s, a, b)                                                                                            \
-        if (readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) \
+#    define do_mmut_rl(s, a, b)                                                                                                                  \
+        if (do_mmut_needed() && (readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3))) \
         do_mmutranslate((s) + (a), b, 4, 0)
-#    define do_mmut_rb2(s, a, b)                                                                       \
-        if (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF)) \
+#    define do_mmut_rb2(s, a, b)                                                                                                       \
+        if (do_mmut_needed() && (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF))) \
         do_mmutranslate((s) + (a), b, 1, 0)
-#    define do_mmut_rw2(s, a, b)                                                                                            \
-        if (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) \
+#    define do_mmut_rw2(s, a, b)                                                                                                                              \
+        if (do_mmut_needed() && (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1))) \
         do_mmutranslate((s) + (a), b, 2, 0)
-#    define do_mmut_rl2(s, a, b)                                                                                            \
-        if (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) \
+#    define do_mmut_rl2(s, a, b)                                                                                                                              \
+        if (do_mmut_needed() && (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3))) \
         do_mmutranslate((s) + (a), b, 4, 0)
 
-#    define do_mmut_wb(s, a, b)                                                                        \
-        if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF)) \
+#    define do_mmut_wb(s, a, b)                                                                                            \
+        if (do_mmut_needed() && (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF))) \
         do_mmutranslate((s) + (a), b, 1, 1)
-#    define do_mmut_ww(s, a, b)                                                                                             \
-        if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) \
+#    define do_mmut_ww(s, a, b)                                                                                                                   \
+        if (do_mmut_needed() && (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1))) \
         do_mmutranslate((s) + (a), b, 2, 1)
-#    define do_mmut_wl(s, a, b)                                                                                             \
-        if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) \
+#    define do_mmut_wl(s, a, b)                                                                                                                   \
+        if (do_mmut_needed() && (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3))) \
         do_mmutranslate((s) + (a), b, 4, 1)
 #endif
+
+/* readmemb() of an immediate in the instruction stream: a code fetch, which
+   the window after RESET leaves unmasked (mem_a20_reset_line, mem.c). The
+   fetch mark is set for this one read and cleared after it, whatever the
+   read does. */
+static __inline uint8_t
+readmemb_fetch(uint32_t s, uint32_t a)
+{
+    uint8_t ret;
+
+    if (!mem_a20_reset_line)
+        return readmemb(s, a);
+    mem_a20_reset_line_fetch = 1;
+    ret                      = readmemb(s, a);
+    mem_a20_reset_line_fetch = 0;
+    return ret;
+}
 
 #define check_io_perm(port, size)                                    \
     if (msw & 1 && ((CPL > IOPL) || (cpu_state.eflags & VM_FLAG))) { \
@@ -350,6 +372,49 @@ fastreadl(uint32_t a)
     return ret;
 }
 #else
+/* A code fetch getpccache() hands to the read handlers. In the window after
+   RESET the fetch mark is set for this one read and cleared after it,
+   whatever the read does, so that only it reads the reset line unmasked
+   (mem_a20_reset_line, mem.c). */
+static __inline uint8_t
+readmembl_fetch(uint32_t a)
+{
+    uint8_t ret;
+
+    if (!mem_a20_reset_line)
+        return readmembl(a);
+    mem_a20_reset_line_fetch = 1;
+    ret                      = readmembl(a);
+    mem_a20_reset_line_fetch = 0;
+    return ret;
+}
+
+static __inline uint16_t
+readmemwl_fetch(uint32_t a)
+{
+    uint16_t ret;
+
+    if (!mem_a20_reset_line)
+        return readmemwl(a);
+    mem_a20_reset_line_fetch = 1;
+    ret                      = readmemwl(a);
+    mem_a20_reset_line_fetch = 0;
+    return ret;
+}
+
+static __inline uint32_t
+readmemll_fetch(uint32_t a)
+{
+    uint32_t ret;
+
+    if (!mem_a20_reset_line)
+        return readmemll(a);
+    mem_a20_reset_line_fetch = 1;
+    ret                      = readmemll(a);
+    mem_a20_reset_line_fetch = 0;
+    return ret;
+}
+
 static __inline uint8_t
 fastreadb(uint32_t a)
 {
@@ -362,7 +427,7 @@ fastreadb(uint32_t a)
     if (cpu_state.abrt)
         return 0;
     if (t == NULL)
-        return readmembl(a);
+        return readmembl_fetch(a);
     pccache  = a >> 12;
     pccache2 = t;
 
@@ -386,7 +451,7 @@ fastreadw(uint32_t a)
     if (cpu_state.abrt)
         return 0;
     if (t == NULL)
-        return readmemwl(a);
+        return readmemwl_fetch(a);
 
     pccache  = a >> 12;
     pccache2 = t;
@@ -405,7 +470,7 @@ fastreadl(uint32_t a)
             if (cpu_state.abrt)
                 return 0;
             if (t == NULL)
-                return readmemll(a);
+                return readmemll_fetch(a);
             pccache2 = t;
             pccache  = a >> 12;
         }
@@ -502,7 +567,7 @@ fastreadw_fetch(uint32_t a)
     if (cpu_state.abrt)
         return 0;
     if (t == NULL)
-        return readmemwl(a);
+        return readmemwl_fetch(a);
 
     pccache  = a >> 12;
     pccache2 = t;
@@ -522,7 +587,7 @@ fastreadl_fetch(uint32_t a)
             if (cpu_state.abrt)
                 return 0;
             if (t == NULL)
-                return readmemll(a);
+                return readmemll_fetch(a);
             pccache2 = t;
             pccache  = a >> 12;
         }
@@ -892,6 +957,22 @@ cpu_eflags_implemented(void)
         mask |= VID_FLAG;
 
     return mask;
+}
+
+/* The value a CR0 write stores. On the 386 bits 30-5 are reserved: its
+   CR0 has only PG and bits 4-0 (386 DX Microprocessor Programmer's
+   Reference Manual, 1990, figure 4-3, PDF p. 113; 386 SX Microprocessor
+   Programmer's Reference Manual, 1989, figure 4-3, PDF p. 110). Its CR0
+   read returns the reserved bits set, so a value read and written back
+   would otherwise turn on the 486's NE, WP, AM, NW and CD here. */
+static __inline uint32_t
+cpu_cr0_write_value(uint32_t value)
+{
+    if (is386 && !is486 && !isibm486)
+        return value & 0x8000001f;
+    /* 486 and later: PE MP EM TS ET NE WP AM NW CD PG; writes to the
+       reserved bits (6-15, 17, 19-28) are ignored */
+    return value & 0xe005003f;
 }
 
 static __inline int
