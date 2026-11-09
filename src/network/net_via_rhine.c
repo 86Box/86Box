@@ -33,6 +33,8 @@
  * Authors: 86Box contributors.
  *
  *          Copyright 2026 86Box contributors.
+ * 
+ *          Copyright 2026 Xeon3D
  */
 #include <stdarg.h>
 #include <stdint.h>
