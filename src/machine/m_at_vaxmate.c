@@ -265,6 +265,41 @@ vaxmate_win_wl(uint32_t addr, uint32_t val, void *priv)
     *(uint32_t *) &ram[(w->off + (addr - w->base)) & rammask] = val;
 }
 
+static void     *vaxmate_vid;
+static serial_t *vaxmate_com1;
+static uint8_t   vaxmate_spr_val;
+
+/* The special purpose register at 0C80 (TRM page 7-23) is a system register:
+   bit 3 hands the video block to the bus, bit 2 selects split baud rates
+   (receive fixed at 1200, transmit programmable), and the diskette
+   status bits are read-only and driven by the FDC. */
+static uint8_t
+vaxmate_spr_in(uint16_t addr, void *priv)
+{
+    (void) addr;
+    (void) priv;
+
+    return vaxmate_spr_val;
+}
+
+static void
+vaxmate_spr_out(uint16_t addr, uint8_t val, void *priv)
+{
+    (void) addr;
+    (void) priv;
+
+    vaxmate_spr_val = val;
+    vaxmate_video_spr_set(vaxmate_vid, val);
+    serial_set_split_rx(vaxmate_com1, (val & 0x04) ? 1200 : 0);
+}
+
+/* Some callers use an OUT DX,AX (16-bit) access for the special register. */
+static void
+vaxmate_spr_outw(uint16_t addr, uint16_t val, void *priv)
+{
+    vaxmate_spr_out(addr, (uint8_t) val, priv);
+}
+
 static const device_config_t vaxmate_config[] = {
     // clang-format off
     {
@@ -329,6 +364,10 @@ machine_at_vaxmate_init(const machine_t *model)
     int         macval;
     int         ret = 0;
 
+    vaxmate_vid     = NULL;
+    vaxmate_com1    = NULL;
+    vaxmate_spr_val = 0x08; /* video enabled at power-on */
+
     /* No ROMs available */
     if (!device_available(model->device))
         return ret;
@@ -372,7 +411,7 @@ machine_at_vaxmate_init(const machine_t *model)
 
     /* COM1 is a WD8250 ACE (EK-PC500-TD 3.7.2); the ns8250 model has no
        scratch register and no FIFO, which matches the part. */
-    device_add_inst(&ns8250_device, 1);
+    vaxmate_com1 = device_add_inst(&ns8250_device, 1);
 
     /* Serial printer port (EK-PC500-TD 3.6.2): a second WD8250 at 0CA0/IRQ11.
        It takes COM2's slot so the settings page can attach a backend, and
@@ -389,7 +428,7 @@ machine_at_vaxmate_init(const machine_t *model)
                       vaxmate_printer);
 
     if (gfxcard[0] == VID_INTERNAL)
-        device_add(machine_get_vid_device(machine));
+        vaxmate_vid = device_add(machine_get_vid_device(machine));
 
     /* On-board mouse at 0x0C40/IRQ12: standalone, takes no COM slot and bypasses com_ports[]. */
     void *vaxmate_mouse = device_add_params(&scn2661c_device, (void *) 0xff);
@@ -435,6 +474,11 @@ machine_at_vaxmate_init(const machine_t *model)
     io_sethandler(0x0c00, 0x0020,
                   vaxmate_csr_in, NULL, NULL,
                   vaxmate_csr_out, NULL, NULL,
+                  NULL);
+
+    io_sethandler(0x0c80, 0x0001,
+                  vaxmate_spr_in, NULL, NULL,
+                  vaxmate_spr_out, vaxmate_spr_outw, NULL,
                   NULL);
 
     vaxmate_ethrom_build();

@@ -886,25 +886,25 @@ vaxmate_vid_out(uint16_t addr, uint8_t val, void *priv)
     }
 }
 
-static uint8_t
-vaxmate_spr_in(uint16_t addr, void *priv)
+/* Special purpose register at 0C80 (TRM page 7-23) is a system register: the
+   machine layer owns the I/O port and calls these two so the video window
+   follows bit 3. The other bits (diskette status, split baud rates, ...)
+   never reach this device. */
+uint8_t
+vaxmate_video_spr(void *priv)
 {
     vaxmate_vid_t *vid = (vaxmate_vid_t *) priv;
 
-    (void) addr;
-
-    return vid->spr;
+    return vid ? vid->spr : 0xff;
 }
 
-/* Special purpose register at 0C80 (TRM page 7-23). Only the video related
-   bit is meaningful for this device; the diskette status bits are driven
-   by the machine layer. */
-static void
-vaxmate_spr_out(uint16_t addr, uint8_t val, void *priv)
+void
+vaxmate_video_spr_set(void *priv, uint8_t val)
 {
     vaxmate_vid_t *vid = (vaxmate_vid_t *) priv;
 
-    (void) addr;
+    if (vid == NULL)
+        return;
 
     vid->spr = val;
     /* Bit 3 = 1 keeps the video on the bus (power-on state); 0 takes
@@ -912,13 +912,6 @@ vaxmate_spr_out(uint16_t addr, uint8_t val, void *priv)
        handlers gate the access, so a disconnected window reads 0xFF and
        drops writes instead of falling through to anything behind it. */
     vid->video_disabled = (val & SPR_VIDEO_ENABLE) ? 0 : 1;
-}
-
-/* Some callers use an OUT DX,AX (16-bit) access for the special register. */
-static void
-vaxmate_spr_outw(uint16_t addr, uint16_t val, void *priv)
-{
-    vaxmate_spr_out(addr, (uint8_t) val, priv);
 }
 
 static void *
@@ -960,11 +953,6 @@ vaxmate_vid_init(UNUSED(const device_t *info))
     io_sethandler(0x03d0, 0x0010,
                   vaxmate_vid_in, NULL, NULL,
                   vaxmate_vid_out, NULL, NULL,
-                  vid);
-
-    io_sethandler(0x0c80, 0x0001,
-                  vaxmate_spr_in, NULL, NULL,
-                  vaxmate_spr_out, vaxmate_spr_outw, NULL,
                   vid);
 
     /* Power-on CRTC = the BIOS's own 80x25 text block (ROM F000:F13D + 0x10,
