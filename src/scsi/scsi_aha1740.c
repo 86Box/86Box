@@ -445,10 +445,11 @@ aha1740_run_ecb(aha1740_t *dev, uint32_t addr, uint8_t target)
     uint16_t       flags2;
     uint32_t       statusptr;
     uint32_t       senseptr;
-    uint32_t       want;
     uint8_t        lun;
     uint8_t        cdblen;
     uint8_t        senselen;
+    uint8_t        read_from_host;
+    uint8_t        write_to_host;
 
     dma_bm_read(addr, ecb, ECB_SIZE, 4);
 
@@ -498,36 +499,30 @@ aha1740_run_ecb(aha1740_t *dev, uint32_t addr, uint8_t target)
     }
 
     scsi_device_identify(sd, lun);
-    sd->buffer_length = -1;
+    sd->buffer_length = aha1740_datalen(ecb, flags1);
     scsi_device_command_phase0(sd, cdb);
+    read_from_host = ((sd->phase == SCSI_PHASE_DATA_OUT) && (((flags2 & (F2_DAT | F2_DIR)) == F2_DAT) || !(flags2 & F2_DAT)));
+    write_to_host  = ((sd->phase == SCSI_PHASE_DATA_IN) && (((flags2 & (F2_DAT | F2_DIR)) == (F2_DAT | F2_DIR)) || !(flags2 & F2_DAT)));
 
-    want = aha1740_datalen(ecb, flags1);
-
-    if ((sd->phase == SCSI_PHASE_DATA_IN) && (sd->buffer_length > 0)) {
-        uint32_t len = (uint32_t) sd->buffer_length;
-
-        if (len > want)
-            len = want;
-        if ((len > 0) && !(flags2 & F2_ST))
-            aha1740_move(ecb, flags1, sd->sc->temp_buffer, len, 1);
-        scsi_device_command_phase1(sd);
-    } else if ((sd->phase == SCSI_PHASE_DATA_OUT) && (sd->buffer_length > 0)) {
-        uint32_t len = (uint32_t) sd->buffer_length;
-
-        if (len > want)
-            len = want;
-        if ((len > 0) && !(flags2 & F2_ST))
-            aha1740_move(ecb, flags1, sd->sc->temp_buffer, len, 0);
+    if (!(flags2 & F2_ST) && (sd->phase != SCSI_PHASE_STATUS)) {
+        if (sd->buffer_length > 0) {
+            if (read_from_host)
+                aha1740_move(ecb, flags1, sd->sc->temp_buffer, sd->buffer_length, 0);
+            else if (write_to_host)
+                aha1740_move(ecb, flags1, sd->sc->temp_buffer, sd->buffer_length, 1);
+        }
         scsi_device_command_phase1(sd);
     }
 
-    scsi_device_identify(sd, SCSI_LUN_USE_CDB);
+    if (sd->type != SCSI_NONE)
+        scsi_device_identify(sd, SCSI_LUN_USE_CDB);
 
     if (sd->status == SCSI_STATUS_OK) {
         /* Done, no error. Bit zero of the first status byte is what the
            driver looks at before anything else. */
         if (!(flags1 & F1_DSB))
             aha1740_status(statusptr, 0x81, 0x00, 0x00, 0x00);
+
         aha1740_interrupt(dev, G2INTST_CCBGOOD, addr);
         return;
     }
@@ -540,17 +535,17 @@ aha1740_run_ecb(aha1740_t *dev, uint32_t addr, uint8_t target)
 
         if (len > sizeof(sense))
             len = sizeof(sense);
+
         memset(sense, 0, sizeof(sense));
         scsi_device_request_sense(sd, sense, len);
         dma_bm_write(senseptr, sense, len, 4);
     }
 
-    if (!(flags1 & F1_DSB)) {
-        /* Not done; additional status available and sense stored; no
-           adapter level fault, so the target's own status is what
-           matters. */
-        aha1740_status(statusptr, 0x00, 0x03, 0x00, sd->status);
-    }
+    /* Not done; additional status available and sense stored; no
+       adapter level fault, so the target's own status is what
+       matters. */
+    aha1740_status(statusptr, 0x00, 0x03, 0x00, sd->status);
+
     aha1740_interrupt(dev, G2INTST_CCBERROR, addr);
 }
 
