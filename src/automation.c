@@ -192,9 +192,6 @@ static uint32_t soft_resets;
 static uint64_t last_reset_ms;
 
 /* Emulation speed, sampled over each second of emulated time. */
-static uint32_t speed_wall_start;
-static uint64_t speed_emu_start;
-static int      speed_percent = -1;
 
 /* Most recent frame handed to the renderer for monitor 0. */
 static mutex_t  *frame_mutex;
@@ -847,7 +844,7 @@ cmd_info(void)
 #endif
     sb_printf(&resp, ",\"hard_resets\":%u,\"soft_resets\":%u,\"last_reset_ms\":%llu,\"speed_percent\":%d,"
                      "\"ms\":%llu,\"frames\":%llu,\"held\":%s,\"paused\":%s,\"w\":%d,\"h\":%d}",
-              hard_resets, soft_resets, (unsigned long long) last_reset_ms, speed_percent,
+              hard_resets, soft_resets, (unsigned long long) last_reset_ms, runctl_speed(),
               (unsigned long long) emu_ms, (unsigned long long) frame_count, held ? "true" : "false",
               dopause ? "true" : "false", frame_w, frame_h);
 }
@@ -2604,17 +2601,6 @@ automation_quantum(void)
 #endif
 
     emu_ms += force_10ms ? 10 : 1;
-
-    /* Speed while running, held steps included: emulated vs host time per
-       emulated second. Wall time spent held between requests is excluded. */
-    if (!speed_wall_start || (emu_ms - speed_emu_start) > 1000) {
-        speed_wall_start = plat_get_ticks();
-        speed_emu_start  = emu_ms;
-    } else if ((emu_ms - speed_emu_start) == 1000) {
-        uint32_t wall    = plat_get_ticks() - speed_wall_start;
-        speed_percent    = wall ? (int) (100000 / wall) : -1;
-        speed_wall_start = 0;
-    }
 
     if (cmd == CMD_NONE)
         return;

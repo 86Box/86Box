@@ -832,10 +832,19 @@ run_state_changed(void)
 void
 ui_notify(int what)
 {
-    if ((what != UI_NOTIFY_RUN_STATE) || !main_window)
+    if (!main_window)
         return;
 
-    QMetaObject::invokeMethod(main_window, [] { run_state_changed(); }, Qt::QueuedConnection);
+    switch (what) {
+        case UI_NOTIFY_RUN_STATE:
+            QMetaObject::invokeMethod(main_window, [] { run_state_changed(); }, Qt::QueuedConnection);
+            break;
+        case UI_NOTIFY_SPEED:
+            QMetaObject::invokeMethod(main_window, [] { ui_emu_status(runctl_speed()); }, Qt::QueuedConnection);
+            break;
+        default:
+            break;
+    }
 }
 
 void

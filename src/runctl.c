@@ -6,8 +6,8 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Emulation run control: CPU thread lifecycle, pause reasons
- *          and pacing mode.
+ *          Emulation run control: CPU thread lifecycle, pause reasons,
+ *          pacing mode and speed measurement.
  *
  * Authors: David Hrdlička, <hrdlickadavid@outlook.com>
  *
@@ -58,7 +58,10 @@ lock_release(void)
 static uint64_t
 host_now_us(void)
 {
-    return timer_freq ? (uint64_t) ((double) plat_timer_read() * 1000000.0 / (double) timer_freq) : 0;
+    /* Millisecond ticks: plat_timer_read() has no known frequency on Qt
+       (timer_freq is only set by the SDL frontend). A millisecond is plenty
+       for one-second speed samples. */
+    return (uint64_t) plat_get_ticks() * 1000;
 }
 
 /* Called with the lock held. */
@@ -297,5 +300,44 @@ runctl_speed_between(const run_status_t *older, const run_status_t *newer)
     if (newer->host_us < (older->host_us + 100000))
         return -1;
 
-    return (int) (((newer->emu_us - older->emu_us) * 100) / (newer->host_us - older->host_us));
+    const uint64_t host = newer->host_us - older->host_us;
+
+    return (int) (((newer->emu_us - older->emu_us) * 100 + host / 2) / host);
+}
+
+/* The published speed. Both ends of a sample are the host times at which a
+   quantum finished, not the times the sampling timer fired, so a late timer
+   callback doesn't show up as a dip followed by a rebound. */
+static atomic_int   speed = -1;
+static run_status_t speed_base; /* only touched by runctl_speed_update()'s caller */
+static int          speed_base_valid;
+
+void
+runctl_speed_update(void)
+{
+    run_status_t now;
+    int          pct = -1;
+
+    runctl_get_status(&now);
+    if (speed_base_valid)
+        pct = runctl_speed_between(&speed_base, &now);
+    speed_base       = now;
+    speed_base_valid = 1;
+
+    /* Paused, held, just resumed or switched modes: keep the last value. */
+    if (pct < 0)
+        return;
+
+#ifdef SCREENSHOT_MODE
+    pct = ((pct + 2) / 5) * 5;
+#endif
+
+    atomic_store_explicit(&speed, pct, memory_order_relaxed);
+    ui_notify(UI_NOTIFY_SPEED);
+}
+
+int
+runctl_speed(void)
+{
+    return atomic_load_explicit(&speed, memory_order_relaxed);
 }
