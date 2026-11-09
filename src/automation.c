@@ -85,6 +85,7 @@ typedef int sock_t;
 #include <86box/char.h>
 #include <86box/serial.h>
 #include <86box/automation.h>
+#include <86box/runctl.h>
 #include <zstd.h>
 #ifdef USE_GDBSTUB
 #    include <86box/gdbstub.h>
@@ -167,7 +168,6 @@ static strbuf_t   resp;
 
 /* CPU thread state. */
 static int      held;
-extern bool     fast_forward; /* the UI's (qt_main.cpp, sdl_main.c) */
 static int      cmd;          /* long-running command in progress */
 static int      cmd_was_held; /* hold again once the command finishes */
 static uint64_t cmd_deadline; /* emulated ms at which step/wait ends */
@@ -2054,7 +2054,7 @@ handle_request(char *line)
         sb_json_string(&resp, EMU_VERSION_FULL);
         sb_printf(&resp, ",\"ms\":%llu,\"frames\":%llu,\"held\":%s,\"paused\":%s,\"ff\":%s,\"w\":%d,\"h\":%d,\"bios_mode\":%d,\"quantum_ms\":%d}",
                   (unsigned long long) emu_ms, (unsigned long long) frame_count, held ? "true" : "false",
-                  dopause ? "true" : "false", fast_forward ? "true" : "false", frame_w, frame_h, mode, force_10ms ? 10 : 1);
+                  dopause ? "true" : "false", (runctl_mode() == RUN_MODE_FAST) ? "true" : "false", frame_w, frame_h, mode, force_10ms ? 10 : 1);
     } else if (!strcmp(argv[0], "hold")) {
         held = 1;
         respond_ok_time();
@@ -2068,10 +2068,10 @@ handle_request(char *line)
             respond_error("ff takes on or off");
         } else {
             if (argc == 2)
-                plat_fast_forward(!strcmp(argv[1], "on"));
+                runctl_set_mode(!strcmp(argv[1], "on") ? RUN_MODE_FAST : RUN_MODE_REALTIME);
             resp.len = 0;
             sb_printf(&resp, "{\"ok\":true,\"ff\":%s,\"ms\":%llu,\"frames\":%llu,\"held\":%s}",
-                      fast_forward ? "true" : "false", (unsigned long long) emu_ms,
+                      (runctl_mode() == RUN_MODE_FAST) ? "true" : "false", (unsigned long long) emu_ms,
                       (unsigned long long) frame_count, held ? "true" : "false");
         }
     } else if (!strcmp(argv[0], "step") && (argc == 2)) {

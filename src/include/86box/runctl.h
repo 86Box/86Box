@@ -6,7 +6,8 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Emulation run control: CPU thread lifecycle and pause reasons.
+ *          Emulation run control: CPU thread lifecycle, pause reasons
+ *          and pacing mode.
  *
  *          The machine runs only while the CPU thread is running and no
  *          pause reason is set. Each owner sets and clears only its own
@@ -50,12 +51,20 @@ typedef enum {
     RUN_PAUSE_DEBUG   = 1 << 8, /* GDB stub stop (not wired up yet) */
 } run_pause_t;
 
+/* How the CPU thread paces emulated time against host time. */
+typedef enum {
+    RUN_MODE_REALTIME = 0, /* emulated time follows host time */
+    RUN_MODE_FAST,         /* fast forward: as fast as the host allows, sound muted */
+    RUN_MODE_UNPACED       /* reserved for automation's held steps; not used yet */
+} run_mode_t;
+
 /* Reasons the user's Pause/Resume control clears. */
 #define RUN_PAUSE_USER_RESUMABLE (RUN_PAUSE_USER | RUN_PAUSE_FOCUS)
 
 typedef struct {
     run_state_t state;
     uint32_t    pause_reasons;
+    run_mode_t  mode;
     uint32_t    epoch;   /* bumps on every run state change */
     uint64_t    emu_us;  /* emulated time executed since startup */
     uint64_t    host_us; /* host monotonic time when emu_us was sampled */
@@ -72,6 +81,14 @@ extern void     runctl_resume(run_pause_t reason);
 extern void     runctl_pause_user_toggle(void); /* pause key and menu: USER on, or USER_RESUMABLE off */
 extern uint32_t runctl_pause_reasons(void);
 extern int      runctl_paused(void);
+
+/* Pacing mode; any thread. runctl_set_mode() takes only REALTIME or FAST;
+   unpaced will be a separate override. A change bumps the epoch and posts
+   ui_notify(UI_NOTIFY_RUN_STATE). runctl_mode() doesn't take the lock, so the
+   pacing loop and audio threads can poll it. */
+extern void       runctl_set_mode(run_mode_t mode);
+extern run_mode_t runctl_mode(void);
+extern void       runctl_fast_forward_toggle(void); /* menu, accelerator, SDL monitor */
 
 /* Lifecycle. */
 extern run_state_t runctl_state(void);

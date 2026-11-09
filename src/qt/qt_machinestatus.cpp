@@ -43,9 +43,9 @@ extern "C" {
 #include <86box/machine_status.h>
 #include <86box/config.h>
 #include <86box/board_led.h>
+#include <86box/runctl.h>
 
 extern volatile int fdcinited;
-extern bool         fast_forward;
 extern int          is_dynarec_active(void);
 };
 
@@ -659,7 +659,7 @@ MachineStatus::refreshIcons()
 
     /* Same for sound mute status. */
     if (d->sound)
-        d->sound->setPixmapIfChanged((sound_muted || fast_forward) ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
+        d->sound->setPixmapIfChanged((sound_muted || (runctl_mode() == RUN_MODE_FAST)) ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
 
     /* A USB device is plugged or unplugged on the emulation thread, and a
        plug can fail for want of a port, so its icon follows the device. It
@@ -1144,7 +1144,7 @@ MachineStatus::refresh(QStatusBar *sbar)
     }
 
     d->sound = std::make_unique<ClickableLabel>();
-    d->sound->setPixmapIfChanged((sound_muted || fast_forward) ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
+    d->sound->setPixmapIfChanged((sound_muted || (runctl_mode() == RUN_MODE_FAST)) ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
 
     connect(d->sound.get(), &ClickableLabel::clicked, this, [this](QPoint pos) {
         this->soundMenu->popup(pos - QPoint(0, this->soundMenu->sizeHint().height()));
@@ -1178,7 +1178,7 @@ void
 MachineStatus::updateSoundIcon()
 {
     if (d->sound)
-        d->sound->setPixmapIfChanged((sound_muted || fast_forward) ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
+        d->sound->setPixmapIfChanged((sound_muted || (runctl_mode() == RUN_MODE_FAST)) ? d->pixmaps.sound.disabled : d->pixmaps.sound.normal);
 }
 
 void
