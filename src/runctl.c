@@ -6,12 +6,14 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Emulation run control: CPU thread lifecycle and pause reasons.
+ *          Emulation run control: CPU thread lifecycle, pause reasons
+ *          and pacing mode.
  *
  * Authors: David Hrdlička, <hrdlickadavid@outlook.com>
  *
  *          Copyright 2026 David Hrdlička.
  */
+#include <assert.h>
 #include <stdatomic.h>
 #include <stdint.h>
 #include <stdio.h>
@@ -34,6 +36,8 @@ static uint32_t    reasons;
 static uint32_t    epoch;
 static uint64_t    emu_us;
 static uint64_t    host_us;
+
+static atomic_int mode = RUN_MODE_REALTIME; /* written under the lock */
 
 static atomic_uint seq;   /* odd while the snapshot is being written */
 static atomic_int  acked; /* CPU thread passed a safe point since it last ran */
@@ -149,6 +153,41 @@ runctl_pause_user_toggle(void)
         runctl_pause(RUN_PAUSE_USER);
 }
 
+void
+runctl_set_mode(run_mode_t new_mode)
+{
+    /* This is the user's mode. Unpaced will be a separate override owned by
+       automation, so a step never overwrites (or restores) the user's mode. */
+    assert((new_mode == RUN_MODE_REALTIME) || (new_mode == RUN_MODE_FAST));
+
+    lock_acquire();
+    if (atomic_load_explicit(&mode, memory_order_relaxed) == (int) new_mode) {
+        lock_release();
+        return;
+    }
+
+    /* A new epoch, so no speed sample spans two modes. */
+    write_begin();
+    atomic_store_explicit(&mode, new_mode, memory_order_relaxed);
+    epoch++;
+    write_end();
+    lock_release();
+
+    ui_notify(UI_NOTIFY_RUN_STATE);
+}
+
+run_mode_t
+runctl_mode(void)
+{
+    return (run_mode_t) atomic_load_explicit(&mode, memory_order_relaxed);
+}
+
+void
+runctl_fast_forward_toggle(void)
+{
+    runctl_set_mode((runctl_mode() == RUN_MODE_FAST) ? RUN_MODE_REALTIME : RUN_MODE_FAST);
+}
+
 uint32_t
 runctl_pause_reasons(void)
 {
@@ -238,6 +277,7 @@ runctl_get_status(run_status_t *out)
             ;
         out->state         = ((state == RUN_RUNNING) && reasons) ? RUN_PAUSED : state;
         out->pause_reasons = reasons;
+        out->mode          = (run_mode_t) atomic_load_explicit(&mode, memory_order_relaxed);
         out->epoch         = epoch;
         out->emu_us        = emu_us;
         out->host_us       = host_us;

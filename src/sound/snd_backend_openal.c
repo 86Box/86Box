@@ -30,6 +30,7 @@
 #include <86box/86box.h>
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
+#include <86box/runctl.h>
 
 typedef struct _openal_source_ {
     ALuint      source;
@@ -49,7 +50,7 @@ openal_give_buffer(void *priv, void *src, const void *buf, const int size, UNUSE
     const openal_t *       dev    = (openal_t *) priv;
     const openal_source_t *source = (openal_source_t *) src;
 
-    if (!fast_forward && (dev != NULL) && (source != NULL)) {
+    if ((runctl_mode() != RUN_MODE_FAST) && (dev != NULL) && (source != NULL)) {
         int    processed;
         int    state;
         ALuint buffer;
