@@ -235,6 +235,12 @@ plat_get_ticks(void)
 }
 
 uint64_t
+plat_get_ns(void)
+{
+    return elapsed_timer.nsecsElapsed();
+}
+
+uint64_t
 plat_timer_read(void)
 {
     return elapsed_timer.elapsed();

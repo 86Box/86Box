@@ -40,8 +40,6 @@
 #include <86box/version.h>
 #include <86box/video.h>
 #include <86box/ui.h>
-#include <86box/gdbstub.h>
-#include <86box/automation.h>
 
 #include "sdl_monitor.h"
 #include "sdl_render.h"
@@ -191,86 +189,31 @@ int             blitreq = 0;
 
 volatile int cpu_thread_run = 1;
 
+/* SDL resizes from the CPU thread, between passes of the pacing loop. */
+static void
+main_thread_pass(void)
+{
+    /* If needed, handle a screen resize. */
+    if (atomic_load(&doresize_monitors[0]) && !video_fullscreen && !is_quit) {
+
+        if (vid_resize & 2)
+            plat_resize(fixed_size_x, fixed_size_y, 0);
+        else
+            plat_resize(scrnsz_x, scrnsz_y, 0);
+
+        atomic_store(&doresize_monitors[0], 1);
+    }
+}
+
 void
 main_thread(UNUSED(void *param))
 {
-    uint32_t old_time;
-    uint32_t new_time;
-    int      drawits;
-    int      frames;
-
-    
-    is_cpu_thread = 1;
-    runctl_thread_started();
-
 #ifdef USE_SDL2_LIB
     SDL_SetThreadPriority(SDL_THREAD_PRIORITY_HIGH);
 #else
     SDL_SetCurrentThreadPriority(SDL_THREAD_PRIORITY_HIGH);
 #endif
-    framecountx = 0;
-    // title_update = 1;
-    old_time = SDL_GetTicks();
-    drawits = frames = 0;
-    while (!is_quit && cpu_thread_run)
-    {
-        /* See if it is time to run a frame of code. */
-        new_time = SDL_GetTicks();
-
-#ifdef USE_GDBSTUB
-        if (gdbstub_next_asap && (drawits <= 0))
-            drawits = 10;
-        else
-            drawits += (new_time - old_time);
-#else
-        drawits += (new_time - old_time);
-#endif
-
-        old_time = new_time;
-        automation_poll();
-        const int automation = automation_run_state();
-        if ((drawits > 0 || (runctl_mode() == RUN_MODE_FAST) || (automation == AUTOMATION_RUN)) && !dopause && (automation != AUTOMATION_HOLD)) {
-            /* Yes, so do one frame now. */
-            drawits -= force_10ms ? 10 : 1;
-            if (drawits > 50 || (runctl_mode() == RUN_MODE_FAST) || (automation == AUTOMATION_RUN))
-                drawits = 0;
-
-            /* Run a block of code. */
-            pc_run();
-            automation_quantum();
-            runctl_safe_point(); /* fast forward never idles */
-
-            /* Every 200 frames we save the machine status. */
-            if (++frames >= (force_10ms ? 200 : 2000) && nvr_dosave) {
-                nvr_save();
-                nvr_dosave = 0;
-                frames     = 0;
-            }
-        }
-        else {
-            runctl_safe_point();
-
-            /* Keep answering a GDB client while the machine isn't running. */
-            gdbstub_poll();
-
-            /* Just so we dont overload the host OS. */
-            SDL_Delay(1);
-        }
-
-        /* If needed, handle a screen resize. */
-        if (atomic_load(&doresize_monitors[0]) && !video_fullscreen && !is_quit) {
-
-            if (vid_resize & 2)
-                plat_resize(fixed_size_x, fixed_size_y, 0);
-            else
-                plat_resize(scrnsz_x, scrnsz_y, 0);
-
-            atomic_store(&doresize_monitors[0], 1);
-        }
-    }
-
-    is_quit = 1;
-    runctl_thread_exiting();
+    runctl_run_loop(main_thread_pass);
 }
 
 thread_t *thMain = NULL;

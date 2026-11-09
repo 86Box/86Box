@@ -62,7 +62,6 @@ extern "C" {
 #include <86box/ui.h>
 #include <86box/runctl.h>
 #include <86box/video.h>
-#include <86box/gdbstub.h>
 #include <86box/version.h>
 #include <86box/renderdefs.h>
 }
@@ -105,11 +104,7 @@ extern "C" {
 #include <86box/keyboard.h>
 #include "cpu.h"
 #include <86box/timer.h>
-#include <86box/io.h>
 #include <86box/nvr.h>
-#include <86box/automation.h>
-#include <86box/debugger.h>
-extern int  qt_nvr_save(void);
 #ifndef Q_OS_MACOS
 extern void exit_pause(void);
 #endif
@@ -458,8 +453,6 @@ static HHOOK llhook = NULL;
 void
 main_thread_fn()
 {
-    int frames;
-
     QThread::currentThread()->setPriority(QThread::HighestPriority);
 #ifdef Q_OS_MACOS
     /* QoS class, not just pthread priority: without it this thread is
@@ -468,99 +461,9 @@ main_thread_fn()
     pthread_set_qos_class_self_np(QOS_CLASS_USER_INTERACTIVE, 0);
 #endif
     plat_set_thread_name(nullptr, "main_thread");
-    framecountx = 0;
-    // title_update = 1;
-    qint64 old_ns = elapsed_timer.nsecsElapsed();
-    qint64 debt_ns;
-    int    turbo_ok_passes   = 0;
-    const qint64 quantum_ns  = force_10ms ? 10000000LL : 1000000LL;
-    const qint64 max_debt_ns = 50000000LL;
-    frames                   = 0;
-    debt_ns                  = 0;
-    is_cpu_thread            = 1;
-    runctl_thread_started();
-    while (!is_quit && cpu_thread_run) {
-        /* See if it is time to run a frame of code. */
-        const qint64 new_ns = elapsed_timer.nsecsElapsed();
-        debt_ns += (new_ns - old_ns);
-        old_ns = new_ns;
-        if (debt_ns > max_debt_ns)
-            debt_ns = max_debt_ns;
-#ifdef USE_GDBSTUB
-        if (gdbstub_next_asap && (debt_ns < quantum_ns))
-            debt_ns = quantum_ns;
-#endif
-        automation_poll();
-        const int automation = automation_run_state();
-        if (((debt_ns >= quantum_ns) || (runctl_mode() == RUN_MODE_FAST) || (automation == AUTOMATION_RUN)) && !dopause && (automation != AUTOMATION_HOLD)) {
-            /*
-             * Pace with one pc_run() per scheduler pass.
-             * We intentionally avoid burst catch-up (multi-frame loop) because it can
-             * overshoot after dips and amplify <100/>100 speed oscillation.
-             */
-#ifdef USE_INSTRUMENT
-            uint64_t start_time = elapsed_timer.nsecsElapsed();
-#endif
-            pc_run();
-            automation_quantum();
-            runctl_safe_point(); /* fast forward never idles */
-
-#ifdef USE_INSTRUMENT
-            if (instru_enabled) {
-                uint64_t elapsed_us       = (elapsed_timer.nsecsElapsed() - start_time) / 1000;
-                uint64_t total_elapsed_ms = (uint64_t) ((double) tsc / cpu_s->rspeed * 1000);
-                printf("[instrument] %llu, %llu\n", total_elapsed_ms, elapsed_us);
-                if (instru_run_ms && total_elapsed_ms >= instru_run_ms)
-                    debt_ns = 0;
-            }
-#endif
-            /* Every 2 emulated seconds we save the machine status. */
-            if (++frames >= (force_10ms ? 200 : 2000) && nvr_dosave) {
-                qt_nvr_save();
-                nvr_dosave = 0;
-                frames     = 0;
-            }
-
-            if (automation == AUTOMATION_RUN)
-                debt_ns = 0; /* unpaced automation steps must not cause catch-up later */
-            else if ((runctl_mode() != RUN_MODE_FAST) && debt_ns >= quantum_ns)
-                debt_ns -= quantum_ns;
-            else
-                debt_ns = 0;
-
-            /* Drop the Turbo IDE string-I/O shortcut while the host is behind, and bring it
-               back only after it has kept up for a while, so it cannot flap every frame. */
-            if (debt_ns >= (max_debt_ns / 2)) {
-                io_turbo_throttle = 1;
-                turbo_ok_passes   = 0;
-            } else if (io_turbo_throttle && (debt_ns < quantum_ns)) {
-                if (++turbo_ok_passes >= 500)
-                    io_turbo_throttle = 0;
-            }
-        } else {
-            /* Just so we dont overload the host OS. */
-
-            /* Trigger a hard reset if one is pending. */
-            if (hard_reset_pending) {
-                hard_reset_pending = 0;
-                debugger_reset_begin();
-                pc_reset_hard_close();
-                pc_reset_hard_init();
-                debugger_reset_end();
-            }
-
-            runctl_safe_point();
-
-            /* Keep answering a GDB client while the machine isn't running. */
-            gdbstub_poll();
-
-            plat_delay_ms(1);
-        }
-    }
+    runctl_run_loop(nullptr);
 
     cpu_thread_running = false;
-    is_quit            = 1;
-    runctl_thread_exiting();
     for (uint8_t i = 1; i < GFXCARD_MAX; i++) {
         if (gfxcard[i]) {
             ui_deinit_monitor(i);

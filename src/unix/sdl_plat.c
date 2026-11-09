@@ -425,6 +425,23 @@ plat_get_ticks(void)
     return (uint32_t) (plat_get_ticks_common() / 1000);
 }
 
+uint64_t
+plat_get_ns(void)
+{
+    static uint64_t start;
+    static uint64_t freq;
+
+    if (!freq) {
+        start = SDL_GetPerformanceCounter();
+        freq  = SDL_GetPerformanceFrequency();
+    }
+
+    const uint64_t t = SDL_GetPerformanceCounter() - start;
+
+    /* Split, so t * 1e9 can't overflow. */
+    return ((t / freq) * 1000000000ULL) + (((t % freq) * 1000000000ULL) / freq);
+}
+
 void
 plat_delay_ms(uint32_t count)
 {

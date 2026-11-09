@@ -101,6 +101,14 @@ extern void runctl_thread_exiting(void);  /* last thing on the CPU thread */
 extern void runctl_safe_point(void);      /* CPU thread, between quanta; runs queued requests */
 extern void runctl_quantum_done(uint32_t emu_us); /* CPU thread, after each quantum */
 
+/* The CPU thread's body: marks the calling thread as the CPU thread, then
+   runs quanta paced against host time (or as fast as possible in fast
+   forward and automation steps), idles while paused, and returns once a stop
+   or quit is requested, after runctl_thread_exiting(). The frontend creates
+   the thread, sets its priority and name, and calls this. pass, if not NULL,
+   runs on the CPU thread after every pass of the loop. */
+extern void runctl_run_loop(void (*pass)(void));
+
 /* Run fn(arg) on the CPU thread at its next safe point, between quanta, where
    it may touch machine state. Requests run in order, also while the machine
    is paused for any reason; a request doesn't resume it. On the CPU thread,
