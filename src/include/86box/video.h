@@ -401,6 +401,7 @@ extern const device_t mach64ragepro_pci_device;
 extern const device_t mach64ragexl_pci_device;
 extern const device_t mach64ragelt_agp_device;
 extern const device_t mach64ragepro_onboard_device;
+extern const device_t mach64ragepro_gd_onboard_device;
 extern const device_t mach64vt3_onboard_device;
 extern const device_t ati_rage128_pro_device;
 extern const device_t ati_xpert128_pci_device;
