@@ -2902,9 +2902,7 @@ MainWindow::on_actionACPI_Shutdown_triggered()
     }
 
     if (device_has_power_button()) {
-        runctl_pause_wait(RUN_PAUSE_SYNC); /* Park the CPU before changing device state. */
-        device_power_button();
-        runctl_resume(RUN_PAUSE_SYNC);
+        runctl_call_wait([](void *) { device_power_button(); }, nullptr);
         return;
     }
 

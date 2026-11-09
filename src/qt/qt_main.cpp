@@ -503,6 +503,7 @@ main_thread_fn()
 #endif
             pc_run();
             automation_quantum();
+            runctl_safe_point(); /* fast forward never idles */
 
 #ifdef USE_INSTRUMENT
             if (instru_enabled) {

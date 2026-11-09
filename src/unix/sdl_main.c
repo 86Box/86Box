@@ -238,6 +238,7 @@ main_thread(UNUSED(void *param))
             /* Run a block of code. */
             pc_run();
             automation_quantum();
+            runctl_safe_point(); /* fast forward never idles */
 
             /* Every 200 frames we save the machine status. */
             if (++frames >= (force_10ms ? 200 : 2000) && nvr_dosave) {
