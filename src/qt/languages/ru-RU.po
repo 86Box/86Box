@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-08 13:36+0000\n"
+"PO-Revision-Date: 2026-11-09 17:37+0000\n"
 "Last-Translator: Broifonn_9 <molodchina812@gmail.com>\n"
 "Language-Team: Russian <https://weblate.86box.net/projects/86box/86box/ru/>\n"
 "Language: ru-RU\n"
@@ -458,7 +458,7 @@ msgid "Block linking on the dynamic recompiler"
 msgstr "Связывание блоков в динамическом рекомпиляторе"
 
 msgid "Debug registers on 486 and later processors"
-msgstr "Настроить регистры на процессорах 486 и новее"
+msgstr "Отладочные регистры на процессорах 486 и новее"
 
 msgid "CPU frame size"
 msgstr "Размер кадра ЦП"
@@ -3753,13 +3753,13 @@ msgid "not written (not writable RAM or video memory, or the emulator is busy)."
 msgstr ""
 
 msgid "The emulator is busy; try again."
-msgstr ""
+msgstr "Эмулятор занят; попробуйте ещё раз."
 
 msgid "Copied %1 bytes from %2 to the clipboard"
-msgstr ""
+msgstr "Скопировано %1 байт из %2 в буфер обмена"
 
 msgid " (%1 could not be read)"
-msgstr ""
+msgstr " (%1 не может быть прочитан)"
 
 msgid " of a %1 byte selection"
 msgstr ""
@@ -3780,19 +3780,19 @@ msgid "The search was cancelled. The selection did not move."
 msgstr ""
 
 msgid "Found at %1."
-msgstr ""
+msgstr "Найдено в %1."
 
 msgid "Not found. The selection did not move."
-msgstr ""
+msgstr "Не найдено. Выбор не переместился."
 
 msgid "Fill selection"
-msgstr ""
+msgstr "Заполнить выбор"
 
 msgid "Fill %1 bytes from %2 with (hex):"
-msgstr ""
+msgstr "Заполнить %1 байт из %2 с (в Hex):"
 
 msgid "Enter a hex byte from 00 to FF."
-msgstr ""
+msgstr "Введите Hex-байт от 00 до FF."
 
 msgid "Filled %1 of %2 bytes with %3 (%4 were not writable RAM or video memory)."
 msgstr ""
@@ -4149,43 +4149,43 @@ msgid "Serial Plug and Play"
 msgstr ""
 
 msgid "Standard 9600 bps modem (PNPC100)"
-msgstr ""
+msgstr "Стандартный модем 9600 бит/с (PNPC100)"
 
 msgid "Standard 14400 bps modem (PNPC101)"
-msgstr ""
+msgstr "Стандартный модем 14400 бит/с (PNPC101)"
 
 msgid "Standard 28800 bps modem (PNPC102)"
-msgstr ""
+msgstr "Стандартный модем 28800 бит/с (PNPC102)"
 
 msgid "Standard modem (PNPC103)"
-msgstr ""
+msgstr "Стандартный модем (PNPC103)"
 
 msgid "Enhanced 9600 bps modem (PNPC104)"
-msgstr ""
+msgstr "Улучшенный модем 9600 бит/с (PNPC104)"
 
 msgid "Enhanced 14400 bps modem (PNPC105)"
-msgstr ""
+msgstr "Улучшенный модем 14400 бит/с (PNPC105)"
 
 msgid "Enhanced 28800 bps modem (PNPC106)"
-msgstr ""
+msgstr "Улучшенный модем 28800 бит/с (PNPC106)"
 
 msgid "Enhanced modem (PNPC107)"
-msgstr ""
+msgstr "Улучшенный модем (PNPC107)"
 
 msgid "Telephone Tone Region"
 msgstr ""
 
 msgid "North America"
-msgstr ""
+msgstr "Сев. Америка"
 
 msgid "United Kingdom"
-msgstr ""
+msgstr "Великобритания"
 
 msgid "Continental Europe"
-msgstr ""
+msgstr "Конт. Европа"
 
 msgid "Japan"
-msgstr ""
+msgstr "Япония"
 
 msgid "Handshake Modem Standard"
 msgstr ""
@@ -4194,22 +4194,22 @@ msgid "Automatic (from DTE speed)"
 msgstr ""
 
 msgid "Connection Type"
-msgstr ""
+msgstr "Тип подключения"
 
 msgid "Username"
-msgstr ""
+msgstr "Имя пользователя"
 
 msgid "Password"
-msgstr ""
+msgstr "Пароль"
 
 msgid "PPP Compression and Encryption"
-msgstr ""
+msgstr "Сжатие и шифрование PPP"
 
 msgid "Automatic"
-msgstr ""
+msgstr "Автоматически"
 
 msgid "Require MPPE"
-msgstr ""
+msgstr "Требовать MPPE"
 
 msgid "PPP Multilink Group (same on each link)"
 msgstr ""
@@ -4227,10 +4227,10 @@ msgid "Bidirectional"
 msgstr ""
 
 msgid "Transmit-Only"
-msgstr ""
+msgstr "Только передача"
 
 msgid "Receive-Only"
-msgstr ""
+msgstr "Только получение"
 
 msgid "Asymmetric Preferred"
 msgstr ""

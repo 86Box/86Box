@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-05 15:44+0000\n"
+"PO-Revision-Date: 2026-11-09 17:37+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -1572,10 +1572,10 @@ msgid "Hard disk (%1)"
 msgstr "硬盘 (%1)"
 
 msgid "Board LED"
-msgstr ""
+msgstr "板载LED"
 
 msgid "Board LED %1"
-msgstr ""
+msgstr "板载LED %1"
 
 msgid "Custom…"
 msgstr "自定义…"
@@ -3700,7 +3700,7 @@ msgid "Software-initiated poweroff device (IBM 5140)"
 msgstr "软控制关机设备（IBM 5140）"
 
 msgid "Memory &viewer"
-msgstr ""
+msgstr "内存查看器(&V)"
 
 msgid "The emulator is busy; the memory view was not updated."
 msgstr ""
@@ -3709,7 +3709,7 @@ msgid "The match is not on mapped memory; the selection and the view did not mov
 msgstr ""
 
 msgid "Only RAM and video memory can be written."
-msgstr ""
+msgstr "只有内存和显存区域可被写入。"
 
 msgid "not written (not writable RAM or video memory, or the emulator is busy)."
 msgstr ""
@@ -3784,7 +3784,7 @@ msgid "Dump memory from here..."
 msgstr ""
 
 msgid "Memory viewer"
-msgstr ""
+msgstr "内存查看器"
 
 msgid "Pause / Resume"
 msgstr ""
@@ -3820,10 +3820,10 @@ msgid "Show or hide debugger commands (Ctrl+D)"
 msgstr ""
 
 msgid "Hex bytes"
-msgstr ""
+msgstr "十六进制"
 
 msgid "ASCII text"
-msgstr ""
+msgstr "ASCII文本"
 
 msgid "Value, byte"
 msgstr ""
@@ -3844,13 +3844,13 @@ msgid "Ctrl+F focuses this box; Enter or F3 finds the next match, Shift+F3 the p
 msgstr ""
 
 msgid "Find previous"
-msgstr ""
+msgstr "查找上一个"
 
 msgid "Search upwards from the selection (Shift+F3)"
 msgstr ""
 
 msgid "Find next"
-msgstr ""
+msgstr "查找下一个"
 
 msgid "Search downwards from the selection (F3)"
 msgstr ""
@@ -3904,7 +3904,7 @@ msgid "Bytes"
 msgstr ""
 
 msgid "Instruction"
-msgstr ""
+msgstr "指令"
 
 msgid "Note"
 msgstr ""
@@ -4159,16 +4159,16 @@ msgid "Connection Type"
 msgstr ""
 
 msgid "Username"
-msgstr ""
+msgstr "用户名"
 
 msgid "Password"
-msgstr ""
+msgstr "密码"
 
 msgid "PPP Compression and Encryption"
 msgstr ""
 
 msgid "Automatic"
-msgstr ""
+msgstr "自动"
 
 msgid "Require MPPE"
 msgstr ""

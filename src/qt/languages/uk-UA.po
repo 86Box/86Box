@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-08 13:36+0000\n"
+"PO-Revision-Date: 2026-11-09 17:37+0000\n"
 "Last-Translator: Broifonn_9 <molodchina812@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
@@ -459,7 +459,7 @@ msgid "Block linking on the dynamic recompiler"
 msgstr "Зв'язування блоків у динамічному рекомпіляторі"
 
 msgid "Debug registers on 486 and later processors"
-msgstr "Налагодити регістри на процесорах 486 та пізніше"
+msgstr "Налагоджувальні регістри на процесорах 486 та пізніше"
 
 msgid "CPU frame size"
 msgstr "Розмір кадру ЦП"
