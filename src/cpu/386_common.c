@@ -83,9 +83,8 @@ int smi_latched = 0;
 int smm_in_hlt  = 0;
 int smi_block   = 0;
 
-/* ACPI clock control, see cpu.h. */
-int cpu_stpclk          = 0;
-int cpu_throttle_run    = 0;
+/* ACPI clock control, see cpu.h (cpu_stpclk and cpu_throttle_run live in
+   cpu_events). */
 int cpu_throttle_period = 8;
 int cpu_throttle_break  = 0;
 

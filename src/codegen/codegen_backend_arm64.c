@@ -1169,7 +1169,7 @@ link_base(codeblock_t *block, int reg, const void *ptr, int *offset)
 _Static_assert(offsetof(cpu_events_t, flush_pending) == 4 && offsetof(cpu_events_t, init) == 8
                    && offsetof(cpu_events_t, ne) == 12 && offsetof(cpu_events_t, force_interpreter) == 16
                    && offsetof(cpu_events_t, override_dynarec) == 20 && offsetof(cpu_events_t, dr_armed) == 24
-                   && offsetof(cpu_events_t, halted) == 28 && sizeof(cpu_events_t) == 48,
+                   && offsetof(cpu_events_t, halted) == 28 && sizeof(cpu_events_t) == 56,
                "cpu_events is loaded as two pairs of 64-bit words");
 _Static_assert(offsetof(codeblock_t, runs_left) == offsetof(codeblock_t, used) + 1 && !(offsetof(codeblock_t, used) & 1),
                "used and runs_left are loaded as one halfword");

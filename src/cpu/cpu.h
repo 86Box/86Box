@@ -623,9 +623,8 @@ extern int smi_block;
    event (an interrupt request, NMI or SMI).  cpu_throttle_run: STPCLK#
    modulated (THT_EN), the processor running cpu_throttle_run parts of every
    cpu_throttle_period, 0 = not throttled; cpu_throttle_break: a break event
-   ends the throttling (the PIIX4 before the PIIX4E). */
-extern int cpu_stpclk;
-extern int cpu_throttle_run;
+   ends the throttling (the PIIX4 before the PIIX4E).  cpu_stpclk and
+   cpu_throttle_run live in cpu_events. */
 extern int cpu_throttle_period;
 extern int cpu_throttle_break;
 extern int cpu_is_p5(void);
