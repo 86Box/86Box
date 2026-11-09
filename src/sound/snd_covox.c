@@ -11,8 +11,8 @@
  * Authors: Jasmine Iwanek, <jriwanek@gmail.com>
  *
  *          Copyright 2025 Jasmine Iwanek.
-  *          Copyright 2026 Xeon3D.
-*/
+ *          Copyright 2026 Xeon3D.
+ */
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>

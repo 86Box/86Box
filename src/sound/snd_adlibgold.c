@@ -1,4 +1,6 @@
-/* Copyright 2026 Xeon3D. */
+/*
+ * Copyright 2026 Xeon3D.
+ */
 
 #include <stdint.h>
 #include <stdio.h>

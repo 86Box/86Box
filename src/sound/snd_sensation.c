@@ -26,8 +26,8 @@
  *          Copyright 2016-2025 Miran Grca.
  *          Copyright 2018-2025 TheCollector1995.
  *          Copyright 2026 win2kgamer
-  *          Copyright 2026 Xeon3D.
-*/
+ *          Copyright 2026 Xeon3D.
+ */
 #include <math.h>
 #include <stdarg.h>
 #include <stdint.h>

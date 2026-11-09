@@ -10,8 +10,8 @@
  *          AdLib Gold and the Tandy Sensation/VIS audio: the host's input
  *          resampled to the MMA's sampling rate, and the MMA's record data
  *          formats (PCM 8/12-bit and 4-bit ADPCM).
-  *          Copyright 2026 Xeon3D.
-*/
+ *          Copyright 2026 Xeon3D.
+ */
 #ifndef SOUND_YMZ263B_H
 #define SOUND_YMZ263B_H
 

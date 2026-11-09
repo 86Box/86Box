@@ -19,8 +19,8 @@
  *          record flag rises when more than (7 - level) * 16 bytes wait --
  *          the SDTK's wave driver uses level 3 to be told "when more than
  *          64 bytes" are in the FIFO.
-  *          Copyright 2026 Xeon3D.
-*/
+ *          Copyright 2026 Xeon3D.
+ */
 #include <math.h>
 #include <stdint.h>
 #include <stdio.h>

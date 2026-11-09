@@ -19,8 +19,8 @@
  *          Copyright 2021      Miran Grca.
  *          Copyright 2024-2025 Jasmine Iwanek.
  *          Copyright 2024-2025 Cacodemon345.
-  *          Copyright 2026 Xeon3D.
-*/
+ *          Copyright 2026 Xeon3D.
+ */
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>

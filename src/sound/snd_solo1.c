@@ -11,8 +11,8 @@
  * Authors: mw308
  *
  *          Copyright 2026 mw308
-  *          Copyright 2026 Xeon3D.
-*/
+ *          Copyright 2026 Xeon3D.
+ */
 
 #include <math.h>
 #include <stdarg.h>

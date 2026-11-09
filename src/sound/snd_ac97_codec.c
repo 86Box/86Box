@@ -11,8 +11,8 @@
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2021-2025 RichardG.
-  *          Copyright 2026 Xeon3D.
-*/
+ *          Copyright 2026 Xeon3D.
+ */
 #include <stdarg.h>
 #include <stdint.h>
 #include <stdio.h>
