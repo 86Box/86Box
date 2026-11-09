@@ -156,6 +156,9 @@ msgstr "&Centrera"
 msgid "4:3 Cen&ter"
 msgstr "4:3 Cen&trera"
 
+msgid "4:3 Integer scale (&vertical)"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Inverterad VGA-skärm"
 

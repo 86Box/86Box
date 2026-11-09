@@ -156,6 +156,9 @@ msgstr "&Zentriert"
 msgid "4:3 Cen&ter"
 msgstr "4:3 zen&triert"
 
+msgid "4:3 Integer scale (&vertical)"
+msgstr "4:3 Integer-Skalierung (verti&kal)"
+
 msgid "Inverted VGA monitor"
 msgstr "Invertierte VGA-Anzeige"
 
