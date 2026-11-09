@@ -97,6 +97,7 @@ static const struct {
     { &ide_vlb_device                       },
     { &ide_vlb_2ch_device                   },
     { &ide_opti611_vlb_device               },
+    { &ide_qd6500_vlb_device                },
     { &ide_w83769f_vlb_device               }, /* TODO: to add implement W83759 IDE controller */
     /* PCI */
     { &ide_cmd640_pci_device                },
