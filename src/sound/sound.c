@@ -702,6 +702,22 @@ sound_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv),
 }
 
 void
+sound_remove_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
+{
+    for (uint8_t c = 0; c < sound_handlers_num; c++) {
+        if (sound_handlers[c].get_buffer == get_buffer
+            && sound_handlers[c].priv == priv) {
+            for (uint8_t i = c; i + 1 < sound_handlers_num; i++)
+                sound_handlers[i] = sound_handlers[i + 1];
+            sound_handlers_num--;
+            memset(&sound_handlers[sound_handlers_num], 0,
+                   sizeof(sound_handlers[sound_handlers_num]));
+            return;
+        }
+    }
+}
+
+void
 music_add_handler(void (*get_buffer)(int32_t *buffer, uint16_t len, void *priv), void *priv)
 {
     if (music_handlers_num >= NUM_MUSIC_HANDLERS) {
@@ -751,6 +767,22 @@ sound_in_add_handler(void (*put_buffer)(int16_t *buffer, int len, void *priv), v
     sound_in_handlers[sound_in_handlers_num].put_buffer = put_buffer;
     sound_in_handlers[sound_in_handlers_num].priv        = priv;
     sound_in_handlers_num++;
+}
+
+void
+sound_in_remove_handler(void (*put_buffer)(int16_t *buffer, int len, void *priv), void *priv)
+{
+    for (uint8_t c = 0; c < sound_in_handlers_num; c++) {
+        if (sound_in_handlers[c].put_buffer == put_buffer
+            && sound_in_handlers[c].priv == priv) {
+            for (uint8_t i = c; i + 1 < sound_in_handlers_num; i++)
+                sound_in_handlers[i] = sound_in_handlers[i + 1];
+            sound_in_handlers_num--;
+            memset(&sound_in_handlers[sound_in_handlers_num], 0,
+                   sizeof(sound_in_handlers[sound_in_handlers_num]));
+            return;
+        }
+    }
 }
 
 void

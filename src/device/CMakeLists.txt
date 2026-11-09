@@ -93,6 +93,8 @@ add_library(dev OBJECT
     lightpen_pxl380.c
 )
 
+add_subdirectory(modem)
+
 if(NOT CMAKE_CXX_COMPILER_ID MATCHES "Clang" AND NOT MSVC)
     target_link_libraries(86Box atomic)
 endif()
