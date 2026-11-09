@@ -305,8 +305,6 @@ aaru_image_get_track(const aaru_image_t *ioctl, const uint32_t sector)
 static void
 aaru_image_get_track_mode(const aaru_image_t *img, int64_t lba, uint8_t *mode, uint8_t *form)
 {
-    uint8_t  buffer[1024];
-    uint32_t length = 0;
     // Mode shall be determined by getting the type of the track.
     // Form is determined by reading the sector metadata.
     *mode = 0;
@@ -335,13 +333,8 @@ aaru_image_get_track_mode(const aaru_image_t *img, int64_t lba, uint8_t *mode, u
                 return;
             }
             // Mode Formless, try to extract the metadata.
-            length = 8;
             *mode  = 2;
             *form  = 0;
-            if (!f_aaruf_read_sector_tag(img->aaruf_context, (uint64_t) lba,
-                false, buffer, &length, kSectorTagCdSubHeader)) {
-                *form = 1 + !!(buffer[2] & (1 << 5));
-            }
         }
     }
     return;
@@ -380,13 +373,17 @@ aaru_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32
 
     memset(buffer, 0, 2448);
 
+    // For starters: Yes, negative numbers have the signed bit (here, bit 31) set.
+    if ((track & (1 << 31)))
+        return -1;
+
     if (sector == 0xFFFFFFFF)
         lba = ioctl->dev->seek_pos;
 
     /* Use the resolved LBA, not the raw sector argument (which may be ~0u). */
     aaru_image_get_track_mode(ioctl, (int64_t) lba, &mode, &form);
 
-    if (mode == 0) {
+    if (mode == 0 && !ioctl->is_dvd) {
         length = 2352;
         (void) f_aaruf_read_sector(ioctl->aaruf_context, lba,
                                    false, buffer, &length, &sector_status);
@@ -416,6 +413,10 @@ aaru_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32
                                     buffer + 16, &length, &sector_status))
                 return -1;
             goto generate_headers;
+        } else {
+            if (mode == 2 && form == 0) {
+                form = 1 + !!(buffer[0x12] & (1 << 5));
+            }
         }
     }
 
