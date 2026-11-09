@@ -53,6 +53,7 @@ add_executable(86Box
     usb_card.c
     usb_card_via.c
     usb_dev.c
+    usb_flash.c
     usb_hid.c
     usb_hub.c
     usb_legacy.c

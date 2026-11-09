@@ -70,6 +70,7 @@ extern "C" {
 };
 
 #include "qt_newfloppydialog.hpp"
+#include "qt_newflashdialog.hpp"
 #include "qt_util.hpp"
 #include "qt_deviceconfig.hpp"
 #include "qt_mediahistorymanager.hpp"
@@ -345,7 +346,44 @@ MediaMenu::refresh(QMenu *parentMenu)
         usbMenus[slot] = menu;
         usbUpdateMenu(slot);
     }
-    parentMenu->addAction(tr("Clear image &history"), [this]() { clearImageHistory(); });
+
+    /* One submenu per USB port, as for each CD-ROM drive: a flash drive
+       image goes into a port from here. The ports are known once the
+       machine has started; the items are made again each time the submenu
+       opens, from what is in the port then. */
+    usbPortMenus.clear();
+    usbPortParent  = parentMenu;
+    usbPortsBefore = parentMenu->addAction(tr("Clear image &history"), [this]() { clearImageHistory(); });
+    {
+        static usb_port_info_t ports[USB_PORTS_MAX];
+
+        usbPortMenusFollow(usb_ports_get(ports, USB_PORTS_MAX));
+    }
+}
+
+/* Ports can appear after the menus were made: a hub that was unplugged at
+   the start, with no port saved for it, lists its ports only once it is
+   plugged in. Each port up to n gets its submenu, made when it is first
+   needed; a submenu past n (its hub went away) is hidden. */
+void
+MediaMenu::usbPortMenusFollow(int n)
+{
+    if ((usbPortParent == nullptr) || (usbPortsBefore == nullptr))
+        return;
+
+    for (int k = 0; (k < n) && (k < USB_PORTS_MAX); k++) {
+        if (usbPortMenus.contains(k))
+            continue;
+        auto *menu = new QMenu(usbPortParent);
+        usbPortParent->insertMenu(usbPortsBefore, menu);
+        connect(menu, &QMenu::aboutToShow, this, [this, k] { usbPortUpdateMenu(k); });
+        usbPortMenus[k] = menu;
+        usbPortUpdateMenu(k);
+    }
+    for (auto it = usbPortMenus.begin(); it != usbPortMenus.end(); ++it) {
+        if (it.key() >= n)
+            it.value()->menuAction()->setVisible(false);
+    }
 }
 
 void
@@ -927,6 +965,8 @@ void
 MediaMenu::clearImageHistory()
 {
     mhm.clearImageHistory();
+    /* The USB flash drives keep their own recent list. */
+    usb_flash_history_clear();
     ui_sb_update_panes();
 }
 
@@ -1602,8 +1642,219 @@ MediaMenu::usbUpdateMenu(int slot)
     if (connectedAction != nullptr)
         connectedAction->setChecked(usb_slot_requested(slot));
 
-    menu->setTitle(DeviceConfig::DeviceName(dev, dev->internal_name, 0));
-    menu->setToolTip(DeviceConfig::DeviceName(dev, dev->internal_name, 0));
+    /* The name the port titles use, so the hub is "USB Hub" everywhere. */
+    const char   *own  = usb_slot_name(slot);
+    const QString name = (own != nullptr) ? QString::fromUtf8(own) : DeviceConfig::DeviceName(dev, dev->internal_name, 0);
+    menu->setTitle(name);
+    menu->setToolTip(name);
+}
+
+QString
+MediaMenu::usbPortTitle(const usb_port_info_t &p)
+{
+    QString what;
+
+    switch (p.state) {
+        case USB_PORT_FLASH:
+            what = QFileInfo(QString::fromUtf8(p.image)).fileName();
+            if (p.wp)
+                what = tr("%1 (write-protected)").arg(what);
+            break;
+        case USB_PORT_DEVICE:
+            what = QString::fromUtf8(p.name);
+            break;
+        case USB_PORT_OFF:
+            what = tr("(not available)");
+            break;
+        default:
+            what = tr("(empty)");
+            break;
+    }
+
+    return tr("%1: %2").arg(usbPortName(p), what);
+}
+
+/* A port's number and where it is, so a card's ports can be told from the
+   board's. */
+QString
+MediaMenu::usbPortName(const usb_port_info_t &p)
+{
+    QString where;
+
+    switch (p.where) {
+        case USB_PORT_ON_CARD:
+            where = tr("PCI card");
+            break;
+        case USB_PORT_ON_HUB:
+            where = tr("hub");
+            break;
+        default:
+            where = tr("board");
+            break;
+    }
+
+    return tr("USB port %1 (%2)").arg(QString::fromUtf8(p.label), where);
+}
+
+/* An empty port, or one with a flash drive, takes a new or existing image,
+   or a recent one; a flash drive can be unplugged. A port with another
+   device can unplug that device; it comes back from its own entry above. */
+void
+MediaMenu::usbPortUpdateMenu(int port)
+{
+    static usb_port_info_t ports[USB_PORTS_MAX];
+    const int              n = usb_ports_get(ports, USB_PORTS_MAX);
+
+    if (!usbPortMenus.contains(port))
+        return;
+
+    auto *menu = usbPortMenus[port];
+    menu->clear();
+    if (port >= n) {
+        menu->setTitle(tr("USB port"));
+        menu->addAction(tr("(not available)"))->setEnabled(false);
+        return;
+    }
+
+    const usb_port_info_t &p     = ports[port];
+    const QString          label = QString::fromUtf8(p.label);
+    const QString          title = usbPortTitle(p);
+    QIcon                  icon(":/settings/qt/icons/usb_flash.ico");
+
+    menu->setTitle(title);
+    menu->setToolTip(title);
+    /* A port the chipset has switched off is hidden; the status bar timer
+       shows it again if it is turned on. */
+    menu->menuAction()->setVisible(p.state != USB_PORT_OFF);
+
+    if (p.state == USB_PORT_OFF) {
+        menu->addAction(tr("(not available)"))->setEnabled(false);
+        return;
+    }
+
+    if (p.state == USB_PORT_DEVICE) {
+        const int  slot = p.slot;
+        const bool hub  = (slot >= 0) && usb_slot_is_hub(slot);
+        QAction   *a    = menu->addAction(tr("&Unplug %1").arg(QString::fromUtf8(p.name)), [slot] {
+            usb_slot_want(slot, 0);
+            config_save();
+        });
+        a->setEnabled(slot >= 0);
+
+        /* Every other working port is listed; one in use is grayed out with
+           what is in it. The hub goes on root ports only. */
+        auto *move = menu->addMenu(tr("&Move %1 to").arg(QString::fromUtf8(p.name)));
+        move->setEnabled(slot >= 0);
+        for (int k = 0; (k < n) && (slot >= 0); k++) {
+            const usb_port_info_t &q = ports[k];
+
+            if ((k == port) || (q.state == USB_PORT_OFF) || (hub && (q.where == USB_PORT_ON_HUB)))
+                continue;
+            const QString to = QString::fromUtf8(q.label);
+            auto         *t  = move->addAction((q.state == USB_PORT_EMPTY) ? usbPortName(q) : usbPortTitle(q), [slot, to] {
+                usb_slot_move(slot, to.toUtf8().constData());
+                config_save();
+            });
+            t->setEnabled(q.state == USB_PORT_EMPTY);
+        }
+        return;
+    }
+
+    menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, New), tr("&New flash drive…"), [this, label] { usbPortNewImage(label); });
+    menu->addSeparator();
+    menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image…"), [this, label] { usbPortSelectImage(label, false); });
+    menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)…"), [this, label] { usbPortSelectImage(label, true); });
+    menu->addSeparator();
+
+    /* An empty port takes any of the machine's USB devices: one in another
+       port moves here, one that was unplugged is plugged in here. The hub
+       cannot go on a hub port. */
+    if (p.state == USB_PORT_EMPTY) {
+        bool any = false;
+
+        for (int slot = 0; slot < USB_SLOTS; slot++) {
+            const device_t *dev = usb_slot_device(slot);
+            QString         now = tr("unplugged");
+
+            if ((dev == nullptr) || (usb_slot_is_hub(slot) && (p.where == USB_PORT_ON_HUB)))
+                continue;
+            for (int k = 0; k < n; k++) {
+                if ((ports[k].state == USB_PORT_DEVICE) && (ports[k].slot == slot))
+                    now = tr("now in port %1").arg(QString::fromUtf8(ports[k].label));
+            }
+            const char   *own  = usb_slot_name(slot);
+            const QString name = (own != nullptr) ? QString::fromUtf8(own) : DeviceConfig::DeviceName(dev, dev->internal_name, 0);
+            menu->addAction(tr("Plug in %1 (%2)").arg(name, now), [slot, label] {
+                usb_slot_move(slot, label.toUtf8().constData());
+                config_save();
+            });
+            any = true;
+        }
+        if (any)
+            menu->addSeparator();
+    }
+
+    for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+        char recent[MAX_IMAGE_PATH_LEN];
+
+        if (!usb_flash_history_get(i, recent, sizeof(recent)))
+            continue;
+        const QString fn = QString::fromUtf8(recent);
+
+        if (fn.isEmpty())
+            continue;
+        auto *a = menu->addAction(icon, QFileInfo(fn).fileName(), [this, label, fn] { usbPortPlug(label, fn, false); });
+        a->setToolTip(fn);
+        a->setCheckable(true);
+        a->setChecked((p.state == USB_PORT_FLASH) && (fn == QString::fromUtf8(p.image)));
+    }
+    menu->addSeparator();
+
+    if (p.state == USB_PORT_FLASH) {
+        menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Eject),
+                        tr("&Unplug %1").arg(QFileInfo(QString::fromUtf8(p.image)).fileName()),
+                        [label] {
+                            usb_port_flash_want(label.toUtf8().constData(), nullptr, 0);
+                            config_save();
+                        });
+    } else
+        menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Eject), tr("&Unplug"))->setEnabled(false);
+}
+
+/* The image must be a disk image; it may already be in another port, and
+   then it moves here. */
+void
+MediaMenu::usbPortPlug(const QString &label, const QString &fn, bool wp)
+{
+    QFileInfo fi(fn);
+
+    if (!fi.exists() || (fi.size() < 512)) {
+        QMessageBox::warning(parentWidget, tr("USB flash drive"), tr("%1 is not a disk image.").arg(fn));
+        return;
+    }
+
+    usb_port_flash_want(label.toUtf8().constData(), fn.toUtf8().constData(), wp ? 1 : 0);
+    config_save();
+}
+
+void
+MediaMenu::usbPortNewImage(const QString &label)
+{
+    NewFlashDialog dialog(parentWidget);
+
+    if (dialog.exec() == QDialog::Accepted)
+        usbPortPlug(label, dialog.fileName(), false);
+}
+
+void
+MediaMenu::usbPortSelectImage(const QString &label, bool wp)
+{
+    const QString fn = QFileDialog::getOpenFileName(parentWidget, QString(), getMediaOpenDirectory(),
+                                                    tr("Flash drive images") % util::DlgFilter({ "img", "ima", "bin", "raw" }) %
+                                                    tr("All files") % util::DlgFilter({ "*" }, true));
+
+    if (!fn.isEmpty())
+        usbPortPlug(label, fn, wp);
 }
 
 QString

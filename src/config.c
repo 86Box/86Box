@@ -1383,6 +1383,8 @@ load_ports(void)
     for (int i = 0; i < USB_SLOTS; i++) {
         sprintf(temp, "%s_connected", usb_slot_internal_name(i));
         usb_slot_want(i, !!ini_section_get_int(cat, temp, 1));
+        sprintf(temp, "%s_port", usb_slot_internal_name(i));
+        usb_slot_set_port(i, ini_section_get_string(cat, temp, ""));
     }
 
 #if 0
@@ -1510,6 +1512,51 @@ load_image_file(char *dest, char *p, uint8_t *ui_wp)
         free(above);
 
     return ret;
+}
+
+/* Load "USB flash drives" section: which image is in which USB port, and
+   the recent images. A write-protected stick's image path carries the
+   wp:// prefix, as removable media images do. */
+static void
+load_usb_flash_drives(void)
+{
+    ini_section_t cat = ini_find_section(config, "USB flash drives");
+    char         *p;
+    char         *port;
+    char          temp[512];
+    char          fn[MAX_IMAGE_PATH_LEN];
+    uint8_t       wp;
+
+    usb_flash_cfg_clear();
+
+    for (int c = 0; c < USB_PORTS_MAX; c++) {
+        sprintf(temp, "usb_flash_%02i_port", c + 1);
+        port = ini_section_get_string(cat, temp, "");
+        sprintf(temp, "usb_flash_%02i_fn", c + 1);
+        p = ini_section_get_string(cat, temp, "");
+        if ((port[0] == 0x00) || (p[0] == 0x00) || !strcmp(p, usr_path))
+            continue;
+
+        if (load_image_file(fn, p, NULL))
+            fatal("Configuration: Length of usb_flash_%02i_fn is more than %i\n", c + 1, MAX_IMAGE_PATH_LEN - 1);
+
+        wp = 0;
+        if (strstr(fn, "wp://") == fn) {
+            memmove(fn, fn + 5, strlen(fn + 5) + 1);
+            wp = 1;
+        }
+        usb_flash_cfg_set(c, port, fn, wp);
+    }
+
+    for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+        sprintf(temp, "usb_flash_image_history_%02i", i + 1);
+        p = ini_section_get_string(cat, temp, NULL);
+        if (p == NULL)
+            continue;
+        if (load_image_file(fn, p, NULL))
+            fatal("Configuration: Length of usb_flash_image_history_%02i is more than %i\n", i + 1, MAX_IMAGE_PATH_LEN - 1);
+        usb_flash_history_set(i, fn);
+    }
 }
 
 /* Load "Storage Controllers" section. */
@@ -3145,6 +3192,7 @@ config_load(void)
         load_sound();                   /* Sound */
         load_network();                 /* Network */
         load_ports();                   /* Ports (COM & LPT) */
+        load_usb_flash_drives();        /* USB flash drives */
         load_storage_controllers();     /* Storage controllers */
         load_hard_disks();              /* Hard disks */
         load_floppy_and_cdrom_drives(); /* Floppy and CD-ROM drives */
@@ -4131,13 +4179,22 @@ save_ports(void)
     else
         ini_section_set_string(cat, "usb_msd", usb_msd_get_internal_name(usb_msd_type));
 
-    /* Written only for a device the user unplugged. */
+    /* Written only for a device the user unplugged, or moved to a port. */
     for (int i = 0; i < USB_SLOTS; i++) {
+        char port[USB_PORT_LABEL];
+
         sprintf(temp, "%s_connected", usb_slot_internal_name(i));
         if (usb_slot_wanted(i))
             ini_section_delete_var(cat, temp);
         else
             ini_section_set_int(cat, temp, 0);
+
+        sprintf(temp, "%s_port", usb_slot_internal_name(i));
+        usb_slot_port(i, port);
+        if (port[0] == '\0')
+            ini_section_delete_var(cat, temp);
+        else
+            ini_section_set_string(cat, temp, port);
     }
 
 #if 0
@@ -4235,6 +4292,44 @@ save_image_file(char *cat, char *var, char *src)
 
     if (above != NULL)
         free(above);
+}
+
+/* Save "USB flash drives" section. */
+static void
+save_usb_flash_drives(void)
+{
+    ini_section_t cat = ini_find_or_create_section(config, "USB flash drives");
+    char          temp[512];
+    char          label[USB_PORT_LABEL];
+    char          fn[MAX_IMAGE_PATH_LEN];
+    char          path[MAX_IMAGE_PATH_LEN + 8];
+    uint8_t       wp;
+
+    for (int c = 0; c < USB_PORTS_MAX; c++) {
+        if (usb_flash_cfg_get(c, label, fn, &wp)) {
+            sprintf(temp, "usb_flash_%02i_port", c + 1);
+            ini_section_set_string(cat, temp, label);
+            sprintf(temp, "usb_flash_%02i_fn", c + 1);
+            snprintf(path, sizeof(path), "%s%s", wp ? "wp://" : "", fn);
+            save_image_file(cat, temp, path);
+        } else {
+            sprintf(temp, "usb_flash_%02i_port", c + 1);
+            ini_section_delete_var(cat, temp);
+            sprintf(temp, "usb_flash_%02i_fn", c + 1);
+            ini_section_delete_var(cat, temp);
+        }
+    }
+
+    for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+        sprintf(temp, "usb_flash_image_history_%02i", i + 1);
+        if (!usb_flash_history_get(i, path, sizeof(path)))
+            ini_section_delete_var(cat, temp);
+        else {
+            save_image_file(cat, temp, path);
+        }
+    }
+
+    ini_delete_section_if_empty(config, cat);
 }
 
 /* Save "Storage Controllers" section. */
@@ -5140,6 +5235,7 @@ config_save(void)
     save_sound();                   /* Sound */
     save_network();                 /* Network */
     save_ports();                   /* Ports (COM & LPT) */
+    save_usb_flash_drives();        /* USB flash drives */
     save_storage_controllers();     /* Storage controllers */
     save_hard_disks();              /* Hard disks */
     save_floppy_and_cdrom_drives(); /* Floppy and CD-ROM drives */

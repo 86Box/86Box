@@ -82,6 +82,15 @@ public:
     void usbToggle(int slot);
     void usbUpdateMenu(int slot);
 
+    /* USB ports: plug a flash drive into port, or swap or unplug it. */
+    void    usbPortMenusFollow(int n);
+    void    usbPortUpdateMenu(int port);
+    void    usbPortPlug(const QString &label, const QString &fn, bool wp);
+    void    usbPortNewImage(const QString &label);
+    void    usbPortSelectImage(const QString &label, bool wp);
+    static QString usbPortTitle(const struct usb_port_info_t &p);
+    static QString usbPortName(const struct usb_port_info_t &p);
+
 public slots:
     void cdromUpdateUi(int i);
 
@@ -100,6 +109,9 @@ private:
     QMap<int, QMenu *> tapeMenus;
     QMap<int, QMenu *> netMenus;
     QMap<int, QMenu *> usbMenus;
+    QMap<int, QMenu *> usbPortMenus;
+    QMenu             *usbPortParent  = nullptr;
+    QAction           *usbPortsBefore = nullptr; /* the port submenus go before it */
 
     QString                 getMediaOpenDirectory();
     ui::MediaHistoryManager mhm;
