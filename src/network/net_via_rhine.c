@@ -31,11 +31,11 @@
  *          Not emulated: Wake-on-LAN PME pin timing, half-duplex jam flow
  *          control, early receive/transmit, and the boot ROM.
  *
- * Authors: 86Box contributors.
+ * Authors: Xeon3D
+ *          Cacodemon345
  *
- *          Copyright 2026 86Box contributors.
- * 
  *          Copyright 2026 Xeon3D
+ *          Copyright 2026 Cacodemon345
  */
 #include <stdarg.h>
 #include <stdint.h>
