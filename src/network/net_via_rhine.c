@@ -21,14 +21,15 @@
  *          the descriptor rings (RX, TX; eight TX queues and the CAM on the
  *          VT6105M, with its checksum and VLAN tag insertion), interrupts
  *          (ISR/IMR and the Rhine II/III MISR/MIMR with the soft timers),
+ *          full-duplex PAUSE flow control and VT6105M MIB counters,
+ *          VT6105M Wake-on-LAN event matching and PME status,
  *          the MII management port with the built-in PHY (link up,
  *          auto-negotiation completes at once) and the 93C46 EEPROM
  *          (auto-load of the MAC address, subsystem IDs and configuration
  *          registers, and direct programming through EECSR).
  *
- *          Not emulated: wake-on-LAN events (the registers are kept),
- *          half-duplex jam flow control, early receive/transmit, the boot ROM and
- *          the MIB counters.
+ *          Not emulated: Wake-on-LAN PME pin timing, half-duplex jam flow
+ *          control, early receive/transmit, and the boot ROM.
  *
  * Authors: 86Box contributors.
  *
@@ -292,6 +293,9 @@ typedef struct rhine_t {
     uint8_t  eecsr;
     uint8_t  wol[4];
     uint8_t  pwrcsr[2];
+    uint8_t  wol_status[2];
+    uint8_t  wol_patterns[64];
+    uint8_t  wol_masks[64];
     uint16_t mib[12];
     uint8_t  mib_index;
     uint8_t  mib_byte;
@@ -330,6 +334,7 @@ typedef struct rhine_t {
 static void rhine_tx_run(rhine_t *dev);
 static void rhine_pause_timer_cb(void *priv);
 static void rhine_update_irq(rhine_t *dev);
+static uint32_t rhine_crc32_le(const uint8_t *buf, uint32_t size);
 
 enum {
     MIB_RX_NOBUF,
@@ -362,6 +367,69 @@ rhine_mib_event(rhine_t *dev, int counter)
         (dev->mib[counter] >= ((dev->regs[REG_MIBCR] & 0x20) ? 0x8000 : 0xC000)))
         dev->isr |= ISR_MIBOVF;
     rhine_update_irq(dev);
+}
+
+static void
+rhine_wol_event(rhine_t *dev, uint8_t bit)
+{
+    if (!dev->model->has_mgmt || !(dev->wol[0] & bit))
+        return;
+
+    dev->wol_status[0] |= bit;
+    dev->pci_conf[0x45] |= 0x80; /* PME_Status */
+}
+
+static bool
+rhine_wol_magic(const rhine_t *dev, const uint8_t *buf, int size)
+{
+    for (int start = 6; start + 16 * 6 <= size; start++) {
+        bool match = true;
+
+        if (start < 6 || memcmp(buf + start - 6, "\xff\xff\xff\xff\xff\xff", 6))
+            continue;
+        for (int i = 0; i < 16; i++)
+            if (memcmp(buf + start + i * 6, dev->mac, 6)) {
+                match = false;
+                break;
+            }
+        if (match)
+            return true;
+    }
+    return false;
+}
+
+static bool
+rhine_wol_pattern(const rhine_t *dev, const uint8_t *buf, int size, int pattern)
+{
+    uint8_t selected[128];
+    uint32_t crc;
+    int count = 0;
+
+    for (int i = 0; i < size && i < 128; i++) {
+        if (dev->wol_masks[pattern * 16 + (i >> 3)] & (1 << (i & 7)))
+            selected[count++] = buf[i];
+    }
+    if (!count)
+        return false;
+    crc = rhine_crc32_le(selected, count);
+    return crc == ((uint32_t) dev->wol_patterns[pattern * 4] |
+                   ((uint32_t) dev->wol_patterns[pattern * 4 + 1] << 8) |
+                   ((uint32_t) dev->wol_patterns[pattern * 4 + 2] << 16) |
+                   ((uint32_t) dev->wol_patterns[pattern * 4 + 3] << 24));
+}
+
+static void
+rhine_check_wol(rhine_t *dev, const uint8_t *buf, int size)
+{
+    if (!dev->model->has_mgmt || size < 6)
+        return;
+    if ((dev->wol[0] & 0x20) && rhine_wol_magic(dev, buf, size))
+        rhine_wol_event(dev, 0x20);
+    if ((dev->wol[0] & 0x10) && !memcmp(buf, dev->mac, 6))
+        rhine_wol_event(dev, 0x10);
+    for (int i = 0; i < 4; i++)
+        if ((dev->wol[0] & (1 << i)) && rhine_wol_pattern(dev, buf, size, i))
+            rhine_wol_event(dev, 1 << i);
 }
 
 static void
@@ -530,8 +598,14 @@ rhine_update_phy_state(rhine_t *dev, bool notify)
                           (dev->speed100 ? 0x0002 : 0) | (dev->full_duplex ? 0x0001 : 0);
 
     if (dev->phy_link_up != link) {
+        bool old_link = dev->phy_link_up;
+
         dev->phy_link_up = link;
         via_rhine_log("VIA Rhine: link is now %s\n", link ? "up" : "down");
+        if (old_link && !link)
+            rhine_wol_event(dev, 0x80);
+        else if (!old_link && link)
+            rhine_wol_event(dev, 0x40);
         if (notify)
             dev->isr |= ISR_SRCI;
     }
@@ -776,7 +850,10 @@ rhine_hard_reset(rhine_t *dev)
     dev->eecsr   = 0;
     memset(dev->wol, 0, sizeof(dev->wol));
     memset(dev->pwrcsr, 0, sizeof(dev->pwrcsr));
-    dev->wol[1] = 0x10; /* PWCFG: WOL pin signalling = button */
+    memset(dev->wol_status, 0, sizeof(dev->wol_status));
+    memset(dev->wol_patterns, 0, sizeof(dev->wol_patterns));
+    memset(dev->wol_masks, 0, sizeof(dev->wol_masks));
+    dev->pwrcsr[0] = 0x10; /* PWCFG: WOL pin signalling = button */
     dev->mcam_mask = dev->vcam_mask = 0;
     dev->camadd    = 0;
     dev->regs[REG_FCR1] = 0xD8;
@@ -885,6 +962,7 @@ rhine_rx_frame(rhine_t *dev, const uint8_t *buf, int size, bool loopback)
     if (size < 14)
         return 1;
 
+    rhine_check_wol(dev, buf, size);
     if (!loopback && rhine_receive_pause(dev, buf, size))
         return 1;
     if (size > RHINE_MAX_FRAME) {
@@ -1330,18 +1408,32 @@ rhine_read8(rhine_t *dev, uint32_t off)
             return dev->model->has_mgmt ? dev->camc : 0x00;
         case REG_CAMADD:
             return dev->model->has_mgmt ? dev->camadd : 0x00;
-        case 0xA0 ... 0xA7:
-            return dev->wol[off & 3];
+        case 0xA0:
+        case 0xA4:
+            return dev->wol[0];
+        case 0xA1:
+        case 0xA5:
+            return dev->pwrcsr[0];
+        case 0xA3:
+        case 0xA7:
+            return dev->wol[1];
         case 0xA8:
         case 0xA9:
+            return dev->wol_status[off - 0xA8];
         case 0xAC:
         case 0xAD:
-            return dev->pwrcsr[off & 1];
+            return dev->wol_status[off - 0xAC];
         case 0xAA:
         case 0xAB:
         case 0xAE:
         case 0xAF:
             return 0x00;
+        case 0xB0 ... 0xFF:
+            if (!dev->model->has_mgmt)
+                return 0x00;
+            if (off < 0xC0)
+                return dev->wol_patterns[off - 0xB0];
+            return dev->wol_masks[off - 0xC0];
         default:
             return dev->regs[off];
     }
@@ -1529,19 +1621,47 @@ rhine_write8(rhine_t *dev, uint32_t off, uint8_t val)
         case REG_TIMER1 + 1:
             dev->regs[off] = val;
             break;
-        case 0xA0 ... 0xA3:
-            dev->wol[off & 3] |= val;
+        case 0xA0:
+            if (dev->model->has_mgmt)
+                dev->wol[0] |= val;
             break;
-        case 0xA4 ... 0xA7:
-            dev->wol[off & 3] &= ~val;
+        case 0xA1:
+            if (dev->model->has_mgmt)
+                dev->pwrcsr[0] |= val & 0xB0;
+            break;
+        case 0xA3:
+            if (dev->model->has_mgmt)
+                dev->wol[1] |= val & 0xF0;
+            break;
+        case 0xA4:
+            if (dev->model->has_mgmt)
+                dev->wol[0] &= ~val;
+            break;
+        case 0xA5:
+            if (dev->model->has_mgmt)
+                dev->pwrcsr[0] &= ~(val & 0xB0);
+            break;
+        case 0xA7:
+            if (dev->model->has_mgmt)
+                dev->wol[1] &= ~(val & 0xF0);
             break;
         case 0xA8:
         case 0xA9:
-            dev->pwrcsr[off & 1] |= val;
+            if (dev->model->has_mgmt)
+                dev->wol_status[off - 0xA8] |= val;
             break;
         case 0xAC:
         case 0xAD:
-            dev->pwrcsr[off & 1] &= ~val;
+            if (dev->model->has_mgmt)
+                dev->wol_status[off - 0xAC] &= ~val;
+            break;
+        case 0xB0 ... 0xBF:
+            if (dev->model->has_mgmt)
+                dev->wol_patterns[off - 0xB0] = val;
+            break;
+        case 0xC0 ... 0xFF:
+            if (dev->model->has_mgmt)
+                dev->wol_masks[off - 0xC0] = val;
             break;
         case 0xAA:
         case 0xAB:
@@ -1757,8 +1877,11 @@ rhine_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void *
                 dev->pci_conf[addr] = val;
             break;
         case 0x45:
-            if (dev->model->has_pm)
-                dev->pci_conf[0x45] = val & 0x01; /* PME_En; PME_Status never set */
+            if (dev->model->has_pm) {
+                if (val & 0x80)
+                    dev->pci_conf[0x45] &= ~0x80; /* PME_Status is write-one-to-clear */
+                dev->pci_conf[0x45] = (dev->pci_conf[0x45] & 0x80) | (val & 0x01); /* PME_En */
+            }
             else
                 dev->pci_conf[addr] = val;
             break;
