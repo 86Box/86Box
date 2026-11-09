@@ -467,6 +467,23 @@ scn26x1_rx_try_read(scn26x1_t *dev)
     return 1;
 }
 
+/* Characters arriving while the receiver is off are lost, as on real
+   silicon; leaving them in the backend makes DECMOUSE.DRV fail its
+   self test when Windows is started a second time. */
+static void
+scn26x1_rx_discard(scn26x1_t *dev)
+{
+    int i;
+
+    if ((dev->ep.be == NULL) || (dev->ep.be->read_byte == NULL))
+        return;
+
+    for (i = 0; i < 64; i++) {
+        if (dev->ep.be->read_byte(dev->ep.be->priv) < 0)
+            break;
+    }
+}
+
 /* The chip has no receiver front end of its own, so while the receiver is
    enabled and the holding register is free, take whatever the backend has. */
 static void
@@ -483,7 +500,10 @@ scn26x1_rx_poll(void *priv)
         scn26x1_set_input_dcd(dev, (status & CHAR_COM_DCD) ? 0 : 1);
     }
 
-    scn26x1_rx_try_read(dev);
+    if (scn26x1_receiver_on(dev))
+        scn26x1_rx_try_read(dev);
+    else
+        scn26x1_rx_discard(dev);
 
     timer_advance_u64(&dev->rx_timer, 1000 * TIMER_USEC);
 }
