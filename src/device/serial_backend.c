@@ -135,6 +135,22 @@ device_dtr(void *priv, int on)
 }
 
 static void
+device_control(void *priv, uint32_t flags)
+{
+    serial_backend_store_t *store = (serial_backend_store_t *) priv;
+
+    store->sd->control_callback(store->sd->priv, flags);
+}
+
+static void
+device_set_format(void *priv, int baud, int data_bits, int parity, int stop_bits)
+{
+    serial_backend_store_t *store = (serial_backend_store_t *) priv;
+
+    store->sd->format_callback(store->sd->priv, baud, data_bits, parity, stop_bits);
+}
+
+static void
 device_transmit_period(void *priv, double period)
 {
     serial_backend_store_t *store = (serial_backend_store_t *) priv;
@@ -162,6 +178,8 @@ serial_backend_from_device(serial_t *serial, serial_device_t *sd, serial_backend
     store->be.priv            = store;
     store->be.rcr             = (sd->rcr_callback != NULL) ? device_rcr : NULL;
     store->be.dtr             = (sd->dtr_callback != NULL) ? device_dtr : NULL;
+    store->be.control         = (sd->control_callback != NULL) ? device_control : NULL;
+    store->be.set_format      = (sd->format_callback != NULL) ? device_set_format : NULL;
     store->be.set_lcr         = (sd->lcr_callback != NULL) ? device_set_lcr : NULL;
     store->be.write_byte      = (sd->dev_write != NULL) ? device_write_byte : NULL;
     store->be.transmit_period = (sd->transmit_period_callback != NULL) ? device_transmit_period : NULL;

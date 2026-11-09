@@ -72,6 +72,7 @@ static const struct {
     { &char_loopback_lpt_device },
 
     { &char_serial_passthrough_com_device },
+    { &char_modem_device },
     { &char_pipe_com_device },
     { &char_file_com_device },
     { &char_stdio_com_device },

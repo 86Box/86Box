@@ -3746,3 +3746,411 @@ msgstr "Швидкість HD/BD:"
 
 msgid "Software-initiated poweroff device (IBM 5140)"
 msgstr "Пристрій програмного вимкнення живлення (IBM 5140)"
+
+msgid "Memory &viewer"
+msgstr ""
+
+msgid "The emulator is busy; the memory view was not updated."
+msgstr ""
+
+msgid "The match is not on mapped memory; the selection and the view did not move."
+msgstr ""
+
+msgid "Only RAM and video memory can be written."
+msgstr ""
+
+msgid "not written (not writable RAM or video memory, or the emulator is busy)."
+msgstr ""
+
+msgid "The emulator is busy; try again."
+msgstr ""
+
+msgid "Copied %1 bytes from %2 to the clipboard"
+msgstr ""
+
+msgid " (%1 could not be read)"
+msgstr ""
+
+msgid " of a %1 byte selection"
+msgstr ""
+
+msgid "There is no mapped memory to search."
+msgstr ""
+
+msgid "There is no mapped memory in the requested range."
+msgstr ""
+
+msgid "The search is limited to %1 bytes."
+msgstr ""
+
+msgid "Searching memory..."
+msgstr ""
+
+msgid "The search was cancelled. The selection did not move."
+msgstr ""
+
+msgid "Found at %1."
+msgstr ""
+
+msgid "Not found. The selection did not move."
+msgstr ""
+
+msgid "Fill selection"
+msgstr ""
+
+msgid "Fill %1 bytes from %2 with (hex):"
+msgstr ""
+
+msgid "Enter a hex byte from 00 to FF."
+msgstr ""
+
+msgid "Filled %1 of %2 bytes with %3 (%4 were not writable RAM or video memory)."
+msgstr ""
+
+msgid " Selected: %1 bytes (%2 were skipped)."
+msgstr ""
+
+msgid "Edit byte"
+msgstr ""
+
+msgid "Copy selection (hex)"
+msgstr ""
+
+msgid "Copy selection (ASCII)"
+msgstr ""
+
+msgid "Fill selection..."
+msgstr ""
+
+msgid "Copy address"
+msgstr ""
+
+msgid "Disassemble here"
+msgstr ""
+
+msgid "Dump memory from here..."
+msgstr ""
+
+msgid "Memory viewer"
+msgstr ""
+
+msgid "Pause / Resume"
+msgstr ""
+
+msgid "Step"
+msgstr ""
+
+msgid "Run the given number of instructions (F11)"
+msgstr ""
+
+msgid "Instructions per step"
+msgstr ""
+
+msgid "Physical"
+msgstr ""
+
+msgid "Address, register or seg:off"
+msgstr ""
+
+msgid "Go"
+msgstr ""
+
+msgid "Live update"
+msgstr ""
+
+msgid "Dump..."
+msgstr ""
+
+msgid "Commands"
+msgstr ""
+
+msgid "Show or hide debugger commands (Ctrl+D)"
+msgstr ""
+
+msgid "Hex bytes"
+msgstr ""
+
+msgid "ASCII text"
+msgstr ""
+
+msgid "Value, byte"
+msgstr ""
+
+msgid "Value, word"
+msgstr ""
+
+msgid "Value, dword"
+msgstr ""
+
+msgid "What to look for: raw hex bytes, text, or a hex value stored little-endian, as in the hex view."
+msgstr ""
+
+msgid "Memory search"
+msgstr ""
+
+msgid "Ctrl+F focuses this box; Enter or F3 finds the next match, Shift+F3 the previous."
+msgstr ""
+
+msgid "Find previous"
+msgstr ""
+
+msgid "Search upwards from the selection (Shift+F3)"
+msgstr ""
+
+msgid "Find next"
+msgstr ""
+
+msgid "Search downwards from the selection (F3)"
+msgstr ""
+
+msgid "Range..."
+msgstr ""
+
+msgid "Search within an address range instead of all memory"
+msgstr ""
+
+msgid "From"
+msgstr ""
+
+msgid "Where the search starts (hex, register or seg:off; empty means the first mapped byte; . means the selection start)."
+msgstr ""
+
+msgid "To (inclusive)"
+msgstr ""
+
+msgid "Where the search ends, that address included (hex, register or seg:off; empty means the last mapped byte; . means the selection end)."
+msgstr ""
+
+msgid "Range from"
+msgstr ""
+
+msgid "to"
+msgstr ""
+
+msgid "RAM"
+msgstr ""
+
+msgid "Mapped, not RAM"
+msgstr ""
+
+msgid "Unmapped"
+msgstr ""
+
+msgid "Inaccessible"
+msgstr ""
+
+msgid "Inaccessible: only device handlers answer there (reading would have side effects), or the linear page is not present."
+msgstr ""
+
+msgid "Linear address, register or seg:off"
+msgstr ""
+
+msgid "Follow CS:IP"
+msgstr ""
+
+msgid "Bytes"
+msgstr ""
+
+msgid "Instruction"
+msgstr ""
+
+msgid "Note"
+msgstr ""
+
+msgid "Double-click a line to set or clear a breakpoint there"
+msgstr ""
+
+msgid "Disassembly"
+msgstr ""
+
+msgid "Disassembly (not available in this build)"
+msgstr ""
+
+msgid "Viewer message"
+msgstr ""
+
+msgid "Selected range"
+msgstr ""
+
+msgid "Debugger commands"
+msgstr ""
+
+msgid "Debugger command output"
+msgstr ""
+
+msgid "Debugger command"
+msgstr ""
+
+msgid "help — commands; Up/Down — history; . — selected address"
+msgstr ""
+
+msgid "Commands share the memory viewer's address space and selection. Type help for commands."
+msgstr ""
+
+msgid "Let the processor run (F5)"
+msgstr ""
+
+msgid "Stop the processor at the next instruction (F5)"
+msgstr ""
+
+msgid "Too many breakpoints."
+msgstr ""
+
+msgid "Stopped: %1"
+msgstr ""
+
+msgid "The emulator is busy; the view was not updated."
+msgstr ""
+
+msgid "Stopped at a breakpoint."
+msgstr ""
+
+msgid "Stopped after stepping."
+msgstr ""
+
+msgid "Stopped."
+msgstr ""
+
+msgid "Stepping..."
+msgstr ""
+
+msgid "Running."
+msgstr ""
+
+msgid "The emulator is paused; resume it to run or step."
+msgstr ""
+
+msgid "The dynamic recompiler is off while this window is open."
+msgstr ""
+
+msgid "Enter an address."
+msgstr ""
+
+msgid "The selector cannot be looked up."
+msgstr ""
+
+msgid "Unknown segment \"%1\"."
+msgstr ""
+
+msgid "Unknown offset \"%1\"."
+msgstr ""
+
+msgid "The linear address is not mapped to physical memory."
+msgstr ""
+
+msgid "\"%1\" is not an address or a register."
+msgstr ""
+
+msgid "Usage: %1"
+msgstr ""
+
+msgid "The selection is physical; use a linear address or switch to linear space."
+msgstr ""
+
+msgid "r name [hex-value]: read or edit a register supported by the current processor.\nEAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH DH BH\nIP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\nGDTR.base GDTR.limit IDTR.base IDTR.limit LDTR TR\nCS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (hidden descriptor cache)\nSelectors load descriptors without executing guest instructions; cache fields are literal edits.\nWrites require pause at a complete instruction boundary. NEC 8080-mode register edits are unavailable."
+msgstr ""
+
+msgid "Numbers are hexadecimal; step counts are decimal. Addresses accept registers and seg:off.\n. means the hex selection; omitted memory addresses use it.\nhelp | clear | refresh | regs\nrun | pause | step [count]\nspace physical|linear | goto address | db [address [length]] (max 1000 hex bytes)\nwrite address byte [byte ...] | dump (opens selection export)\ndbio [address [length]] | writeio address byte [byte ...] (device side effects; requires pause)\nu address (linear disassembly) | follow on|off\nbp address | bc address|all | bl (linear breakpoints)\nr [register [value]] (read/set; values are hex); help registers lists names\npeek port [b|w|d] | poke port value [b|w|d]\nRegister/memory writes and I/O require pause. I/O invokes device handlers, including read side effects."
+msgstr ""
+
+msgid "Register unavailable, value invalid, or processor not paused at a complete instruction boundary."
+msgstr ""
+
+msgid "Pause the processor before side-effecting memory access."
+msgstr ""
+
+msgid "Write exceeds 4096 bytes or wraps the address space."
+msgstr ""
+
+msgid "Pause the processor before writing memory."
+msgstr ""
+
+msgid "Issued %1 of %2 byte writes; devices may ignore writes. Untranslated addresses are skipped."
+msgstr ""
+
+msgid "Wrote %1 of %2 bytes; read-only or inaccessible bytes are skipped."
+msgstr ""
+
+msgid "Disassembly is not available in this build."
+msgstr ""
+
+msgid "Breakpoint %1 at %2."
+msgstr ""
+
+msgid "set"
+msgstr ""
+
+msgid "cleared"
+msgstr ""
+
+msgid "%1 breakpoint(s), linear addresses:"
+msgstr ""
+
+msgid "Pause the processor before accessing I/O ports."
+msgstr ""
+
+msgid "Unknown command or invalid arguments. Type help for syntax."
+msgstr ""
+
+msgid "Dump memory"
+msgstr ""
+
+msgid "Browse..."
+msgstr ""
+
+msgid "Start (hex, register or seg:off):"
+msgstr ""
+
+msgid "Length (hex bytes):"
+msgstr ""
+
+msgid "Address space:"
+msgstr ""
+
+msgid "Fill byte for memory that cannot be read:"
+msgstr ""
+
+msgid "File:"
+msgstr ""
+
+msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessible bytes are not read; the fill byte is written in their place."
+msgstr ""
+
+msgid "Binary files (*.bin);;All files (*)"
+msgstr ""
+
+msgid "The length must be a hex number above 0."
+msgstr ""
+
+msgid "The fill byte must be a hex number from 00 to FF."
+msgstr ""
+
+msgid "Could not open %1 for writing."
+msgstr ""
+
+msgid "Dumping memory..."
+msgstr ""
+
+msgid "Could not write to %1."
+msgstr ""
+
+msgid "Dumped %1 bytes from %2 to %3 (%4 bytes could not be read and were filled)."
+msgstr ""
+
+msgid "Enter hex bytes in pairs, e.g. \"8B 44 24 08\"."
+msgstr ""
+
+msgid "\"%1\" is not made of hex bytes."
+msgstr ""
+
+msgid "Enter a hex value from 0 to %1."
+msgstr ""
+
+msgid "The value is too large for %1 bytes."
+msgstr ""
+
+msgid "Enter something to search for."
+msgstr ""
+
+msgid "The range ends before it starts."
+msgstr ""

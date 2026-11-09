@@ -117,10 +117,16 @@ extern int sound_card_current[SOUND_CARD_MAX];
 extern void sound_add_handler(void (*get_buffer)(int32_t *buffer,
                                                  uint16_t len, void *priv),
                               void *priv);
+extern void sound_remove_handler(void (*get_buffer)(int32_t *buffer,
+                                                     uint16_t len, void *priv),
+                                 void *priv);
 
 extern void sound_in_add_handler(void (*put_buffer)(int16_t *buffer,
                                                      int len, void *priv),
                                  void *priv);
+extern void sound_in_remove_handler(void (*put_buffer)(int16_t *buffer,
+                                                        int len, void *priv),
+                                    void *priv);
 
 extern void sound_in_start_input(void);
 extern void sound_in_stop_input(void);
