@@ -765,6 +765,9 @@ extern int cpu_prefetch_cycles;
 extern int cpu_prefetch_width;
 extern int cpu_mem_prefetch_cycles;
 extern int cpu_rom_prefetch_cycles;
+/* The machine has an MCA bus: set by cpu_set(), which every machine change
+   reaches before an instruction runs. */
+extern int cpu_mca_bus;
 extern int cpu_waitstates;
 extern int io_waitstates;
 extern int reg_op_waitstates;

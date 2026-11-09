@@ -191,6 +191,7 @@ int cpu_prefetch_cycles;
 int cpu_prefetch_width;
 int cpu_mem_prefetch_cycles;
 int cpu_rom_prefetch_cycles;
+int cpu_mca_bus;
 int cpu_waitstates;
 int io_waitstates; /* Extra cycles added to IN/OUT instruction timing (x86_ops_io.h) -
                        cpu_waitstates only ever throttles memory bus cycles; this covers
@@ -781,6 +782,11 @@ cpu_set(void)
         cpu_rom_prefetch_cycles = (int) (6.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
     else
         cpu_rom_prefetch_cycles = (int) (8.0 * ((double) cpu_s->rspeed / (double) cpu_isa_speed));
+
+    /* MCA PS/2 boards copy the BIOS ROM to RAM after POST and disable the
+       ROM (PS/2 Model 70 Technical Reference, May 1988, p. 39 of the PDF),
+       so prefetch_run() does not stretch their ROM fetches. */
+    cpu_mca_bus = !!machine_has_bus(machine, MACHINE_BUS_MCA | MACHINE_BUS_MCA32);
 
     io_delay_multi = 0;
     if ((machines[machine].init == machine_xt_ibm5550_init) ||

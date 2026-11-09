@@ -588,7 +588,7 @@ prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int
     }
 
     int pc = cpu_prefetch_cycles;
-    if (!(machine_has_bus(machine, MACHINE_BUS_MCA | MACHINE_BUS_MCA32)) &&
+    if (!cpu_mca_bus &&
         (cpu_prefetch_cycles == cpu_rom_prefetch_cycles) &&
         ((is586 && !cpu_cache_int_enabled) || (is_p6 && !(msr.mtrr_deftype & 0x800))))
         pc *= cpu_prefetch_width;
