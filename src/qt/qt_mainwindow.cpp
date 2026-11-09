@@ -2595,7 +2595,7 @@ MainWindow::updateUiPauseState()
 /* Fast forward can be set from the menu, the accelerator or automation;
    the check and the muted sound icon follow runctl. */
 void
-MainWindow::updateUiRunMode()
+MainWindow::updateUiFastForwardState()
 {
     ui->actionFast_forward->setChecked(runctl_mode() == RUN_MODE_FAST);
     if (status)

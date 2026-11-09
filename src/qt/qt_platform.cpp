@@ -821,7 +821,7 @@ run_state_changed(void)
     }
 
     main_window->updateUiPauseState();
-    main_window->updateUiRunMode();
+    main_window->updateUiFastForwardState();
 
 #ifdef Q_OS_WINDOWS
     if (source_hwnd)
