@@ -39,7 +39,7 @@ static uint64_t    host_us;
 
 static atomic_int mode = RUN_MODE_REALTIME; /* written under the lock */
 
-static atomic_uint seq;  /* odd while the snapshot is being written */
+static atomic_uint seq;   /* odd while the snapshot is being written */
 static atomic_int  acked; /* CPU thread passed a safe point since it last ran */
 
 static void
