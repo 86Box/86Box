@@ -32,6 +32,7 @@ add_library(hdd OBJECT
     hdc_ide.c
     hdc_ide_ali5213.c
     hdc_ide_opti611.c
+    hdc_ide_qd6500.c
     hdc_ide_cmd640.c
     hdc_ide_cmd646.c
     hdc_ide_pdc202xx.c

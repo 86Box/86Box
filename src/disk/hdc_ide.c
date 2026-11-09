@@ -151,6 +151,12 @@ typedef struct ide_board_t {
     int        force_ata3;
     int        turbo_mapped;
 
+    /* Optional controller-local PIO data-port wait, in nanoseconds per 16-bit word. */
+    double     pio_wait_ns;
+
+    /* Optional controller-local gap for ordinary single-sector PIO commands. */
+    double     single_sector_gap_ns;
+
     pc_timer_t timer;
 
     ide_t     *ide[2];
@@ -169,6 +175,55 @@ typedef struct mcide_t {
 
 ide_board_t *ide_boards[IDE_BUS_MAX] = { 0 };
 static int   ide_lpt_port[IDE_BUS_MAX]; /* LPT port + 1 of a parallel port bridge's board */
+
+/* CPU clock in Hz, maintained by the core. */
+extern double cpuclock;
+
+/* Convert controller-local nanosecond delays to CPU cycles, preserving
+ * the rounding used by the calibrated QD6500A transfer timing. */
+static inline void
+ide_controller_wait_ns(double duration_ns)
+{
+    if ((duration_ns <= 0.0) || (cpuclock <= 0.0))
+        return;
+
+    const int wait_cycles = (int) (((duration_ns * cpuclock) / 1000000000.0) + 0.5);
+    if (wait_cycles > 0)
+        cycles -= wait_cycles;
+}
+
+static inline void
+ide_controller_pio_wait(const ide_board_t *dev, int words)
+{
+    if ((dev == NULL) || (dev->pio_wait_ns <= 0.0) || (words <= 0))
+        return;
+
+    ide_controller_wait_ns(dev->pio_wait_ns * (double) words);
+}
+
+static inline void
+ide_controller_single_sector_gap(const ide_t *ide)
+{
+    const ide_board_t *dev;
+
+    if ((ide == NULL) || (ide->board < 0) || (ide->board >= IDE_BUS_MAX))
+        return;
+
+    dev = ide_boards[ide->board];
+    if ((dev == NULL) || (dev->single_sector_gap_ns <= 0.0))
+        return;
+
+    /* READ/WRITE MULTIPLE amortise this controller setup over a block. */
+    if ((ide->command == WIN_READ_MULTIPLE) || (ide->command == WIN_WRITE_MULTIPLE))
+        return;
+
+    if ((ide->command != WIN_READ) && (ide->command != WIN_READ_NORETRY) &&
+        (ide->command != WIN_WRITE) && (ide->command != WIN_WRITE_NORETRY))
+        return;
+
+    ide_controller_wait_ns(dev->single_sector_gap_ns);
+}
+
 
 static uint8_t ide_ter_pnp_rom[] = {
     /* BOX0001, serial 0, dummy checksum (filled in by isapnp_add_card) */
@@ -1703,6 +1758,7 @@ ide_write_data(ide_t *ide, const uint16_t val)
             ide->tf->pos += 2;
 
             if (ide->tf->pos >= 512) {
+                ide_controller_single_sector_gap(ide);
                 ide->tf->pos     = 0;
                 ide->tf->atastat = BSY_STAT;
                 const double seek_time = ide_timing_write(&hdd[ide->hdd_num], ide_get_sector(ide), 1);
@@ -1786,6 +1842,7 @@ ide_writew(uint16_t addr, uint16_t val, void *priv)
 
     switch (addr) {
         case 0x0: /* Data */
+            ide_controller_pio_wait(dev, 1);
             ide_write_data(ide, val);
             break;
         case 0x7:
@@ -1820,6 +1877,7 @@ ide_writel(uint16_t addr, uint32_t val, void *priv)
 
     switch (addr) {
         case 0x0: /* Data */
+            ide_controller_pio_wait(dev, dev->bit32 ? 2 : 1);
             ide_write_data(ide, val & 0xffff);
             if (dev->bit32)
                 ide_write_data(ide, val >> 16);
@@ -2443,6 +2501,7 @@ ide_read_data(ide_t *ide)
         ide->tf->pos += 2;
 
         if (ide->tf->pos >= 512) {
+            ide_controller_single_sector_gap(ide);
             ide->tf->pos     = 0;
             ide->tf->atastat = DRDY_STAT | DSC_STAT;
             if (ide->type == IDE_ATAPI)
@@ -2660,6 +2719,7 @@ ide_readw(uint16_t addr, void *priv)
             ret = ide_readb(addr, priv) | (ide_readb(addr + 1, priv) << 8);
             break;
         case 0x0: /* Data */
+            ide_controller_pio_wait(dev, 1);
             ret = ide_read_data(ide);
             break;
         case 0x7:
@@ -2683,6 +2743,7 @@ ide_readl(uint16_t addr, void *priv)
 
     switch (addr & 0x7) {
         case 0x0: /* Data */
+            ide_controller_pio_wait(dev, dev->bit32 ? 2 : 1);
             ret = ide_read_data(ide);
             if (dev->bit32)
                 ret |= (ide_read_data(ide) << 16);
@@ -3324,6 +3385,20 @@ ide_set_irq(int board, int irq)
 
     if (ide_boards[board] != NULL)
         ide_boards[board]->irq = irq;
+}
+
+void
+ide_set_pio_wait_ns(int board, double ns_per_word)
+{
+    if ((board >= 0) && (board < IDE_BUS_MAX) && (ide_boards[board] != NULL))
+        ide_boards[board]->pio_wait_ns = (ns_per_word > 0.0) ? ns_per_word : 0.0;
+}
+
+void
+ide_set_single_sector_gap_ns(int board, double ns_per_sector)
+{
+    if ((board >= 0) && (board < IDE_BUS_MAX) && (ide_boards[board] != NULL))
+        ide_boards[board]->single_sector_gap_ns = (ns_per_sector > 0.0) ? ns_per_sector : 0.0;
 }
 
 static void
