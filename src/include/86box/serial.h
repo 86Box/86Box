@@ -223,6 +223,7 @@ typedef struct serial_s {
     pc_timer_t receive_timer;
     double     clock_src;
     double     transmit_period;
+    double     rx_period; /* 0 = receive follows the transmit divisor */
 
     /* The chip's end of the seam: backend, device callbacks and the ops the
        device side reaches this chip through. Owned by the chip, so it goes
@@ -307,6 +308,7 @@ extern void      serial_write_fifo(serial_t *dev, uint8_t dat);
 extern void      serial_set_next_inst(int ni);
 extern void      serial_standalone_init(void);
 extern void      serial_set_clock_src(serial_t *dev, double clock_src);
+extern void      serial_set_split_rx(serial_t *dev, int baud);
 extern void      serial_set_type(serial_t *dev, uint8_t type);
 extern void      serial_set_card_selected_feedback(serial_t *dev, uint8_t *reg_91);
 extern void      serial_reset_port(serial_t *dev);
