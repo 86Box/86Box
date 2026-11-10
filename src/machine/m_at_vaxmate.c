@@ -402,12 +402,13 @@ machine_at_vaxmate_init(const machine_t *model)
                     vaxmate_win_wb, vaxmate_win_ww, vaxmate_win_wl,
                     NULL, MEM_MAPPING_INTERNAL, (void *) &vaxmate_hi_win);
 
-    device_add(&nvr_at_device);
-
     device_add(&fdc_at_device);
 
+    /* The expansion unit carries a WD1003-WAH class adapter: WD1015 +
+       WD2010 + WD11C00A-22, with the standard AT task file at 1F0-1F7,
+       the hard disk register at 3F6 and IRQ14 (TRM Vol.1 chapter 12). */
     if (hdc_current[0] == HDC_INTERNAL)
-        device_add(&st506_wd2010_device);
+        device_add(&st506_at_wd1003_device);
 
     /* COM1 is a WD8250 ACE (EK-PC500-TD 3.7.2); the ns8250 model has no
        scratch register and no FIFO, which matches the part. */
