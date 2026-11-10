@@ -322,16 +322,16 @@ runctl_thread_exiting(void)
     /* Run what is still queued, and close the queue in the same critical
        section that finds it empty, so no request is left behind. From then
        on callers run their requests inline. */
-    for (;;) {
+    request_t *list;
+
+    do {
         lock_acquire();
-        request_t *list = queue_take_locked();
-        req_closed      = !list;
+        list       = queue_take_locked();
+        req_closed = !list;
         lock_release();
 
-        if (!list)
-            break;
         queue_run(list);
-    }
+    } while (list);
 
     change(0, 0, RUN_STOPPED);
 }
