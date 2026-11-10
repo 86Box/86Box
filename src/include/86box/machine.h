@@ -605,6 +605,15 @@ extern const device_t  tvis_memcard_device;
 #endif
 extern int             machine_at_tandy_vis_init(const machine_t *);
 
+/* m_at_vaxmate.c */
+#ifdef EMU_DEVICE_H
+extern const device_t  vaxmate_device;
+extern const device_t  vaxmate_video_device;
+#endif
+extern uint8_t         vaxmate_video_spr(void *priv);
+extern void            vaxmate_video_spr_set(void *priv, uint8_t val);
+extern int             machine_at_vaxmate_init(const machine_t *);
+
 /* m_at_386sx.c */
 /* ISA */
 extern int             machine_at_pc916sx_init(const machine_t *);

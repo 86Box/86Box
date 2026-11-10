@@ -451,14 +451,6 @@ plat_power_off(void)
     runctl_request_stop();
 }
 
-extern bool fast_forward; /* sdl_main.c */
-
-void
-plat_fast_forward(int on)
-{
-    fast_forward = !!on;
-}
-
 /* Run state changes (runctl.h): mark the title while paused. */
 void
 ui_notify(int what)

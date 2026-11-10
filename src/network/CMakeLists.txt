@@ -40,6 +40,7 @@ list(APPEND net_sources
     net_smc_epic100.c
     net_rtl8139.c
     net_dp83815.c
+    net_via_rhine.c
     net_i8255x.c
     net_l80225.c
     net_modem.c

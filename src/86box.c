@@ -2029,6 +2029,7 @@ pc_reset_hard_init(void)
     /* Reset and reconfigure the SCSI layer. */
     scsi_card_init();
     usb_msd_hard_reset();
+    usb_flash_hard_reset();
 
     scsi_disk_hard_reset();
 

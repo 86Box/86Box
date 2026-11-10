@@ -54,7 +54,6 @@ int             update_icons;
 int             kbd_req_capture;
 int             hide_status_bar;
 int             hide_tool_bar;
-bool            fast_forward = false;
 int             fixed_size_x = 640;
 int             fixed_size_y = 480;
 extern int      title_set;
@@ -230,10 +229,10 @@ main_thread(UNUSED(void *param))
         old_time = new_time;
         automation_poll();
         const int automation = automation_run_state();
-        if ((drawits > 0 || fast_forward || (automation == AUTOMATION_RUN)) && !dopause && (automation != AUTOMATION_HOLD)) {
+        if ((drawits > 0 || (runctl_mode() == RUN_MODE_FAST) || (automation == AUTOMATION_RUN)) && !dopause && (automation != AUTOMATION_HOLD)) {
             /* Yes, so do one frame now. */
             drawits -= force_10ms ? 10 : 1;
-            if (drawits > 50 || fast_forward || (automation == AUTOMATION_RUN))
+            if (drawits > 50 || (runctl_mode() == RUN_MODE_FAST) || (automation == AUTOMATION_RUN))
                 drawits = 0;
 
             /* Run a block of code. */

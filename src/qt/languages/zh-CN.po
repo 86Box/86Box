@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-05 15:44+0000\n"
+"PO-Revision-Date: 2026-11-09 17:37+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -1571,6 +1571,12 @@ msgstr "直接关机可能导致数据丢失，确定要继续吗？"
 msgid "Hard disk (%1)"
 msgstr "硬盘 (%1)"
 
+msgid "Board LED"
+msgstr "板载LED"
+
+msgid "Board LED %1"
+msgstr "板载LED %1"
+
 msgid "Custom…"
 msgstr "自定义…"
 
@@ -2467,6 +2473,9 @@ msgstr "线路倍增类型"
 
 msgid "Snow emulation"
 msgstr "雪花模拟"
+
+msgid "Display Enhancement Board (GO329)"
+msgstr ""
 
 msgid "Monitor type"
 msgstr "显示器类型"
@@ -3691,7 +3700,7 @@ msgid "Software-initiated poweroff device (IBM 5140)"
 msgstr "软控制关机设备（IBM 5140）"
 
 msgid "Memory &viewer"
-msgstr ""
+msgstr "内存查看器(&V)"
 
 msgid "The emulator is busy; the memory view was not updated."
 msgstr ""
@@ -3700,7 +3709,7 @@ msgid "The match is not on mapped memory; the selection and the view did not mov
 msgstr ""
 
 msgid "Only RAM and video memory can be written."
-msgstr ""
+msgstr "只有内存和显存区域可被写入。"
 
 msgid "not written (not writable RAM or video memory, or the emulator is busy)."
 msgstr ""
@@ -3775,7 +3784,7 @@ msgid "Dump memory from here..."
 msgstr ""
 
 msgid "Memory viewer"
-msgstr ""
+msgstr "内存查看器"
 
 msgid "Pause / Resume"
 msgstr ""
@@ -3811,10 +3820,10 @@ msgid "Show or hide debugger commands (Ctrl+D)"
 msgstr ""
 
 msgid "Hex bytes"
-msgstr ""
+msgstr "十六进制"
 
 msgid "ASCII text"
-msgstr ""
+msgstr "ASCII文本"
 
 msgid "Value, byte"
 msgstr ""
@@ -3835,13 +3844,13 @@ msgid "Ctrl+F focuses this box; Enter or F3 finds the next match, Shift+F3 the p
 msgstr ""
 
 msgid "Find previous"
-msgstr ""
+msgstr "查找上一个"
 
 msgid "Search upwards from the selection (Shift+F3)"
 msgstr ""
 
 msgid "Find next"
-msgstr ""
+msgstr "查找下一个"
 
 msgid "Search downwards from the selection (F3)"
 msgstr ""
@@ -3895,7 +3904,7 @@ msgid "Bytes"
 msgstr ""
 
 msgid "Instruction"
-msgstr ""
+msgstr "指令"
 
 msgid "Note"
 msgstr ""
@@ -4096,4 +4105,139 @@ msgid "Enter something to search for."
 msgstr ""
 
 msgid "The range ends before it starts."
+msgstr ""
+
+msgid "Serial Plug and Play"
+msgstr ""
+
+msgid "Standard 9600 bps modem (PNPC100)"
+msgstr ""
+
+msgid "Standard 14400 bps modem (PNPC101)"
+msgstr ""
+
+msgid "Standard 28800 bps modem (PNPC102)"
+msgstr ""
+
+msgid "Standard modem (PNPC103)"
+msgstr ""
+
+msgid "Enhanced 9600 bps modem (PNPC104)"
+msgstr ""
+
+msgid "Enhanced 14400 bps modem (PNPC105)"
+msgstr ""
+
+msgid "Enhanced 28800 bps modem (PNPC106)"
+msgstr ""
+
+msgid "Enhanced modem (PNPC107)"
+msgstr ""
+
+msgid "Telephone Tone Region"
+msgstr ""
+
+msgid "North America"
+msgstr ""
+
+msgid "United Kingdom"
+msgstr ""
+
+msgid "Continental Europe"
+msgstr ""
+
+msgid "Japan"
+msgstr ""
+
+msgid "Handshake Modem Standard"
+msgstr ""
+
+msgid "Automatic (from DTE speed)"
+msgstr ""
+
+msgid "Connection Type"
+msgstr ""
+
+msgid "Username"
+msgstr "用户名"
+
+msgid "Password"
+msgstr "密码"
+
+msgid "PPP Compression and Encryption"
+msgstr ""
+
+msgid "Automatic"
+msgstr "自动"
+
+msgid "Require MPPE"
+msgstr ""
+
+msgid "PPP Multilink Group (same on each link)"
+msgstr ""
+
+msgid "PPP Primary DNS Server"
+msgstr ""
+
+msgid "PPP Secondary DNS Server"
+msgstr ""
+
+msgid "CCP Directional Negotiation"
+msgstr ""
+
+msgid "Bidirectional"
+msgstr ""
+
+msgid "Transmit-Only"
+msgstr ""
+
+msgid "Receive-Only"
+msgstr ""
+
+msgid "Asymmetric Preferred"
+msgstr ""
+
+msgid "PPP Callback (Microsoft CBCP)"
+msgstr ""
+
+msgid "Offered (caller may decline)"
+msgstr ""
+
+msgid "Required (caller must accept)"
+msgstr ""
+
+msgid "PPP Keepalive Interval (seconds, 0 = off)"
+msgstr ""
+
+msgid "Report received DTMF to the host (<DLE>digit)"
+msgstr ""
+
+msgid "Off (only with +VDR=1)"
+msgstr ""
+
+msgid "Caller ID between emulator instances (enable on both)"
+msgstr ""
+
+msgid "Caller ID sent when dialling (number,name)"
+msgstr ""
+
+msgid "Network to guest queue limit (back-pressure)"
+msgstr ""
+
+msgid "Unlimited (legacy)"
+msgstr ""
+
+msgid "250 ms of line time"
+msgstr ""
+
+msgid "500 ms of line time"
+msgstr ""
+
+msgid "1 s of line time"
+msgstr ""
+
+msgid "2 s of line time"
+msgstr ""
+
+msgid "TCP send timeout"
 msgstr ""

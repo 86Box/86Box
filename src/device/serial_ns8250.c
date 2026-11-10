@@ -190,7 +190,7 @@ serial_clear_timeout(serial_t *dev)
 static double
 serial_receive_period(const serial_t *dev)
 {
-    return (double) /* (dev->bits ? dev->bits : 10) * */ dev->transmit_period;
+    return dev->rx_period ? dev->rx_period : dev->transmit_period;
 }
 
 static void
@@ -555,6 +555,18 @@ serial_set_clock_src(serial_t *dev, double clock_src)
 
     serial_transmit_period(dev);
     serial_update_speed(dev);
+}
+
+/* Split baud rates (VAXmate 0C80 bit 2): the receiver runs at a fixed rate
+   while the transmitter keeps following the DLL/DLM divisor. A baud of 0
+   clears the override. */
+void
+serial_set_split_rx(serial_t *dev, int baud)
+{
+    if (dev == NULL)
+        return;
+
+    dev->rx_period = baud ? (16000000.0 / (16.0 * (double) baud)) : 0.0;
 }
 
 void

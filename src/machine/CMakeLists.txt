@@ -38,6 +38,7 @@ add_library(mch OBJECT
     m_at_t3100e.c
     m_at_tandy_vis.c
     m_at_tvis_memcard.c
+    m_at_vaxmate.c
     m_ps1.c
     m_ps2_isa.c
     m_ps2_mca.c

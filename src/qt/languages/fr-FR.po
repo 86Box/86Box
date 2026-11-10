@@ -1591,6 +1591,12 @@ msgstr ""
 msgid "Hard disk (%1)"
 msgstr "Disque dur (%1)"
 
+msgid "Board LED"
+msgstr ""
+
+msgid "Board LED %1"
+msgstr ""
+
 msgid "Custom…"
 msgstr "Personnalisé…"
 
@@ -2485,6 +2491,9 @@ msgstr "Type de doublage de ligne"
 
 msgid "Snow emulation"
 msgstr "Émulation de neige"
+
+msgid "Display Enhancement Board (GO329)"
+msgstr ""
 
 msgid "Monitor type"
 msgstr "Type de moniteur"
@@ -4105,4 +4114,139 @@ msgid "Enter something to search for."
 msgstr ""
 
 msgid "The range ends before it starts."
+msgstr ""
+
+msgid "Serial Plug and Play"
+msgstr ""
+
+msgid "Standard 9600 bps modem (PNPC100)"
+msgstr ""
+
+msgid "Standard 14400 bps modem (PNPC101)"
+msgstr ""
+
+msgid "Standard 28800 bps modem (PNPC102)"
+msgstr ""
+
+msgid "Standard modem (PNPC103)"
+msgstr ""
+
+msgid "Enhanced 9600 bps modem (PNPC104)"
+msgstr ""
+
+msgid "Enhanced 14400 bps modem (PNPC105)"
+msgstr ""
+
+msgid "Enhanced 28800 bps modem (PNPC106)"
+msgstr ""
+
+msgid "Enhanced modem (PNPC107)"
+msgstr ""
+
+msgid "Telephone Tone Region"
+msgstr ""
+
+msgid "North America"
+msgstr ""
+
+msgid "United Kingdom"
+msgstr ""
+
+msgid "Continental Europe"
+msgstr ""
+
+msgid "Japan"
+msgstr ""
+
+msgid "Handshake Modem Standard"
+msgstr ""
+
+msgid "Automatic (from DTE speed)"
+msgstr ""
+
+msgid "Connection Type"
+msgstr ""
+
+msgid "Username"
+msgstr ""
+
+msgid "Password"
+msgstr ""
+
+msgid "PPP Compression and Encryption"
+msgstr ""
+
+msgid "Automatic"
+msgstr ""
+
+msgid "Require MPPE"
+msgstr ""
+
+msgid "PPP Multilink Group (same on each link)"
+msgstr ""
+
+msgid "PPP Primary DNS Server"
+msgstr ""
+
+msgid "PPP Secondary DNS Server"
+msgstr ""
+
+msgid "CCP Directional Negotiation"
+msgstr ""
+
+msgid "Bidirectional"
+msgstr ""
+
+msgid "Transmit-Only"
+msgstr ""
+
+msgid "Receive-Only"
+msgstr ""
+
+msgid "Asymmetric Preferred"
+msgstr ""
+
+msgid "PPP Callback (Microsoft CBCP)"
+msgstr ""
+
+msgid "Offered (caller may decline)"
+msgstr ""
+
+msgid "Required (caller must accept)"
+msgstr ""
+
+msgid "PPP Keepalive Interval (seconds, 0 = off)"
+msgstr ""
+
+msgid "Report received DTMF to the host (<DLE>digit)"
+msgstr ""
+
+msgid "Off (only with +VDR=1)"
+msgstr ""
+
+msgid "Caller ID between emulator instances (enable on both)"
+msgstr ""
+
+msgid "Caller ID sent when dialling (number,name)"
+msgstr ""
+
+msgid "Network to guest queue limit (back-pressure)"
+msgstr ""
+
+msgid "Unlimited (legacy)"
+msgstr ""
+
+msgid "250 ms of line time"
+msgstr ""
+
+msgid "500 ms of line time"
+msgstr ""
+
+msgid "1 s of line time"
+msgstr ""
+
+msgid "2 s of line time"
+msgstr ""
+
+msgid "TCP send timeout"
 msgstr ""

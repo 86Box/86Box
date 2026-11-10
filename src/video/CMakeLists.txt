@@ -80,6 +80,7 @@ add_library(vid OBJECT
     vid_pcjx.c
     vid_tandy1k.c
     vid_tandy2k.c
+    vid_tandy_vis.c
 
     # Hercules
     vid_mda.c
@@ -90,8 +91,8 @@ add_library(vid OBJECT
     # Other early CGA-era cards
     vid_3270pc.c
     vid_genius.c
-    vid_cyrix_gxm.c
     vid_sigma.c
+    vid_vaxmate.c
 
     # PGC / IM1024 / WY700 high-resolution
     vid_pgc.c
@@ -191,8 +192,8 @@ add_library(vid OBJECT
 
     # Generic
     vid_bochs_vbe.c
+    vid_cyrix_gxm.c
     vid_hd44780.c
-    vid_tandy_vis.c
 )
 
 if(CMAKE_SYSTEM_NAME STREQUAL "FreeBSD")

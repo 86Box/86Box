@@ -821,6 +821,7 @@ run_state_changed(void)
     }
 
     main_window->updateUiPauseState();
+    main_window->updateUiFastForwardState();
 
 #ifdef Q_OS_WINDOWS
     if (source_hwnd)
@@ -835,15 +836,6 @@ ui_notify(int what)
         return;
 
     QMetaObject::invokeMethod(main_window, [] { run_state_changed(); }, Qt::QueuedConnection);
-}
-
-extern "C" bool fast_forward; /* qt_main.cpp */
-
-void
-plat_fast_forward(int on)
-{
-    fast_forward = !!on;
-    QTimer::singleShot(0, main_window, &MainWindow::updateUiFastForwardState);
 }
 
 void

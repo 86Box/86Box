@@ -4145,6 +4145,54 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
+    /* Uses DEC KBC firmware. */
+    {
+        .name              = "[ISA] DEC VAXmate",
+        .internal_name     = "vaxmate",
+        .type              = MACHINE_TYPE_286,
+        .chipset           = MACHINE_CHIPSET_DISCRETE,
+        .init              = machine_at_vaxmate_init,
+        .p1_handler        = machine_generic_p1_handler,
+        .gpio_handler      = NULL,
+        .available_flag    = MACHINE_AVAILABLE,
+        .gpio_acpi_handler = NULL,
+        .cpu               = {
+            .package     = CPU_PKG_286,
+            .block       = CPU_BLOCK_NONE,
+            .min_bus     = 8000000,
+            .max_bus     = 0,
+            .min_voltage = 0,
+            .max_voltage = 0,
+            .min_multi   = 0,
+            .max_multi   = 0
+        },
+        .bus_flags = MACHINE_AT,
+        .flags     = MACHINE_VIDEO | MACHINE_MOUSE | MACHINE_MFM | MACHINE_NIC_PRI,
+        .ram       = {
+            .min  = 1024,
+            .max  = 3072,
+            .step = 2048
+        },
+        .nvrmask                  = 63,
+        .jumpered_ecp_dma         = 0,
+        .default_jumpered_ecp_dma = -1,
+        .kbc_device               = &kbc_at_device,
+        .kbc_params               = 0x00000000,
+        .nvr_device               = &nvr_at_device,
+        .nvr_params               = NVR_AT,
+        .sio_device               = NULL,
+        .sio_params               = 0x00000000,
+        .kbc_p1                   = 0x000004f0,
+        .gpio                     = 0xffffffff,
+        .gpio_acpi                = 0xffffffff,
+        .device                   = &vaxmate_device,
+        .kbd_device               = NULL,
+        .fdc_device               = NULL,
+        .vid_device               = &vaxmate_video_device,
+        .snd_device               = NULL,
+        .net_device               = &lance_vaxmate_device,
+        .aliases                  = { "DEC PC500", "DEC PC550", "" }
+    },
     /* Has IBM AT KBC firmware. Early AMIBIOS (Access Methods) that requires disk-based BIOS setup. */
     {
         .name              = "[ISA] Flying Triumph FT-286",
@@ -24730,7 +24778,7 @@ const machine_t machines[] = {
         .device                   = &in440ex_device,
         .kbd_device               = NULL,
         .fdc_device               = NULL,
-        .vid_device               = &mach64ragepro_onboard_device,
+        .vid_device               = &mach64ragepro_gd_onboard_device,
         .snd_device               = &ess_solo1_onboard_device,
         .net_device               = NULL,
         .aliases                  = { "Gobi Internet PC", "Toshiba Equium 3000M", "Sony Kokomo", "Sony Vaio PCV-E2xx", "" }

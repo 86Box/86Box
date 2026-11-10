@@ -179,6 +179,7 @@ static fdc_cards_t fdc_cards[] = {
     { &fdc_at_winbond_device     },
     { &fdc_xt_device             },
     { &fdc_xt_umc_um8398_device  },
+    { &fdc_qd6500_device         }, /* QDI VLB multifunction card FDC */
     { NULL                       }
     // clang-format on
 };

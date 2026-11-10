@@ -71,7 +71,6 @@ extern int qt_nvr_save(void);
 extern void nmi_raise(void);
 
 extern bool cpu_thread_running;
-extern bool fast_forward;
 };
 
 #include <QGuiApplication>
@@ -2386,7 +2385,7 @@ MainWindow::on_actionUpdate_mouse_every_CPU_frame_triggered()
 void
 MainWindow::on_actionFast_forward_triggered()
 {
-    fast_forward ^= 1;
+    runctl_fast_forward_toggle();
 }
 
 void
@@ -2593,11 +2592,14 @@ MainWindow::updateUiPauseState()
     emit vmmRunningStateChanged(static_cast<VMManagerProtocol::RunningState>(window_blocked ? (dopause ? VMManagerProtocol::RunningState::PausedWaiting : VMManagerProtocol::RunningState::RunningWaiting) : (VMManagerProtocol::RunningState) dopause));
 }
 
-/* The menu's check follows fast forward set from elsewhere (automation). */
+/* Fast forward can be set from the menu, the accelerator or automation;
+   the check and the muted sound icon follow runctl. */
 void
 MainWindow::updateUiFastForwardState()
 {
-    ui->actionFast_forward->setChecked(fast_forward);
+    ui->actionFast_forward->setChecked(runctl_mode() == RUN_MODE_FAST);
+    if (status)
+        status->updateSoundIcon();
 }
 
 void

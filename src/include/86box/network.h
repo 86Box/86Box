@@ -253,6 +253,7 @@ extern const device_t rtl8029as_device;
 
 /* AMD LANCE */
 extern const device_t ne2100_novell_device;
+extern const device_t lance_vaxmate_device;
 
 /* AMD PCnet */
 extern const device_t pcnet_am79c960_device;
@@ -311,6 +312,12 @@ extern const device_t ibm_ethernet_efe5_device;
 /* National Semiconductor */
 extern const device_t dp83815_device;
 extern const device_t dp83815_onboard_device;
+
+/* VIA Rhine */
+extern const device_t via_vt86c100a_device;
+extern const device_t via_vt6102_device;
+extern const device_t via_vt6105_device;
+extern const device_t via_vt6105m_device;
 
 #endif
 
