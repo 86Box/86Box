@@ -820,6 +820,8 @@ video_monitor_init(int index)
     monitors[index].mon_ysize                            = 480;
     monitors[index].mon_res_x                            = 640;
     monitors[index].mon_res_y                            = 480;
+    monitors[index].mon_picture_x                        = 640;
+    monitors[index].mon_picture_y                        = 480;
     monitors[index].mon_scrnsz_x                         = 640;
     monitors[index].mon_scrnsz_y                         = 480;
     monitors[index].mon_efscrnsz_y                       = 480;

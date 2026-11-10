@@ -144,6 +144,9 @@ typedef struct monitor_t {
     int                      mon_device_aspect_y;
     double                   mon_res_x;
     double                   mon_res_y;
+    /* Size of the picture on the host screen, set by the renderer; scales the mouse movement. */
+    double                   mon_picture_x;
+    double                   mon_picture_y;
     int                      mon_bpp;
     bitmap_t                *target_buffer;
     int                      mon_video_timing_read_b;

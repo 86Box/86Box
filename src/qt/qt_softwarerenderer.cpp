@@ -325,8 +325,8 @@ SoftwareRenderer::layoutPicture()
 
     /* Mouse movement is scaled by the size of the picture, which this renderer has
        always given in device-independent pixels. */
-    monitors[r_monitor_index].mon_res_x = destination.width() / pixelRatio;
-    monitors[r_monitor_index].mon_res_y = destination.height() / pixelRatio;
+    monitors[r_monitor_index].mon_picture_x = destination.width() / pixelRatio;
+    monitors[r_monitor_index].mon_picture_y = destination.height() / pixelRatio;
 
     publishLayout();
     /* Repaint the whole picture at the new layout, even while paused. */
