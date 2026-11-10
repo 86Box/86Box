@@ -1294,7 +1294,6 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
     int      tempi;
     int32_t  cycdiff;
     int32_t  oldcyc;
-    int32_t  oldcyc2;
     uint64_t oldtsc;
     uint64_t delta;
 
@@ -1320,7 +1319,7 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
             cpu_halted      = 0;
             oldcs           = CS;
             oldcpl          = CPL;
-            oldcyc = oldcyc2 = cycles;
+            oldcyc = cycles;
             cycles_old       = cycles;
             oldtsc           = tsc;
             tsc_old          = tsc;
@@ -1384,11 +1383,14 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
                 }
 
                 /* A P_LVL2/P_LVL3 read in the block, or throttling.  The
-                   stall is for everything since the loop top (oldcyc2): linked
-                   blocks run on without coming back here, and moved oldcyc. */
+                   stall is for the block that just ran, from its start
+                   (cycles_old): no block links to another while either is
+                   on, so that is every block run since the loop top, but a
+                   block that turned throttling on may have been entered
+                   through a link. */
                 if (cpu_stpclk || cpu_throttle_run) {
                     cpu_clock_control_check();
-                    cpu_throttle_stall(oldcyc2 - cycles);
+                    cpu_throttle_stall(cycles_old - cycles);
                 }
 
                 /* Read again: the tests above can raise an event. */

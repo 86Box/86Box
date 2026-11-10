@@ -1169,7 +1169,8 @@ link_base(codeblock_t *block, int reg, const void *ptr, int *offset)
 _Static_assert(offsetof(cpu_events_t, flush_pending) == 4 && offsetof(cpu_events_t, init) == 8
                    && offsetof(cpu_events_t, ne) == 12 && offsetof(cpu_events_t, force_interpreter) == 16
                    && offsetof(cpu_events_t, override_dynarec) == 20 && offsetof(cpu_events_t, dr_armed) == 24
-                   && offsetof(cpu_events_t, halted) == 28 && sizeof(cpu_events_t) == 56,
+                   && offsetof(cpu_events_t, halted) == 28 && offsetof(cpu_events_t, stpclk) == 48
+                   && offsetof(cpu_events_t, throttle_run) == 52 && sizeof(cpu_events_t) == 56,
                "cpu_events is loaded as two pairs of 64-bit words");
 _Static_assert(offsetof(codeblock_t, runs_left) == offsetof(codeblock_t, used) + 1 && !(offsetof(codeblock_t, used) & 1),
                "used and runs_left are loaded as one halfword");
@@ -1297,7 +1298,9 @@ build_link_routine(codeblock_t *block)
       check (dr_blocks_cache()). The seven event flags are the two pairs
       loaded from cpu_events, with halted shifted out of the last word;
       W7 = abrt and smi_line in its top half, W14 = cycles, W12 = nmi,
-      W17 = irq*/
+      W17 = irq. Clock control (stpclk and throttle_run, X10) is a miss too:
+      the loop stops the processor or stalls it after each block while it
+      is on, and a P_LVL2/P_LVL3 read by INS does not end its block*/
     host_arm64_LDP_IMM_W(block, REG_W7, REG_W14, REG_CPUSTATE, rep_state_offset(&cpu_state.abrt) - 2);
     base = link_base(block, REG_X9, &cpu_events, &off_events);
     /*ADDX_IMM emits nothing for an offset of 0*/
@@ -1309,7 +1312,9 @@ build_link_routine(codeblock_t *block)
     host_arm64_LDP_IMM_X(block, REG_X5, REG_X8, REG_X9, 16);
     host_arm64_LDR_IMM_W(block, REG_W12, REG_X9, offsetof(cpu_events_t, nmi_req));
     host_arm64_LDRB_IMM_W(block, REG_W17, REG_X9, offsetof(cpu_events_t, irq));
+    host_arm64_LDR_IMM_X(block, REG_X10, REG_X9, offsetof(cpu_events_t, stpclk));
     host_arm64_AND_IMM(block, REG_W7, REG_W7, 0xffff0000);
+    host_arm64_ORRX_REG(block, REG_X3, REG_X3, REG_X10, 0);
     host_arm64_ORRX_REG(block, REG_X3, REG_X3, REG_X4, 0);
     host_arm64_ORRX_REG(block, REG_X5, REG_X5, REG_X7, 0);
     host_arm64_ORRX_REG(block, REG_X3, REG_X3, REG_X8, 32);

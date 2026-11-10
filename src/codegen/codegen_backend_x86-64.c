@@ -1260,6 +1260,8 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*run
 
 _Static_assert(offsetof(codegen_link_slot_t, npxc) == offsetof(codegen_link_slot_t, status) + 2,
                "status and npxc are compared as one word");
+_Static_assert(offsetof(cpu_events_t, throttle_run) == offsetof(cpu_events_t, stpclk) + 4,
+               "stpclk and throttle_run are tested as one quadword");
 _Static_assert(offsetof(cpu_state_t, _smi_line) == offsetof(cpu_state_t, abrt) + 1,
                "abrt and smi_line are loaded as one word");
 _Static_assert(offsetof(codegen_link_slot_t, exit_pc) == 0 && offsetof(codegen_link_slot_t, exit_cs) == 4
@@ -1360,7 +1362,10 @@ build_link_routine(codeblock_t *block)
 
     /*Nothing pending for the loop, and the loop would pick the recompiler.
       An armed debug breakpoint is a miss, so the loop makes its per-block
-      check (dr_blocks_cache())*/
+      check (dr_blocks_cache()). Clock control (stpclk and throttle_run, one
+      quadword) is a miss too: the loop stops the processor or stalls it
+      after each block while it is on, and a P_LVL2/P_LVL3 read by INS does
+      not end its block*/
     rx_rm(block, 0, 0, 0x0fb7, REG_R9, REG_RBP, rx_state(&cpu_state.abrt)); /*abrt and smi_line*/
     lx_abs(block, 0, 0, 0x0b, REG_R9, &x86_was_reset);
     lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_flush_pending);
@@ -1369,6 +1374,7 @@ build_link_routine(codeblock_t *block)
     lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_force_interpreter);
     lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_override_dynarec);
     lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_dr_armed);
+    lx_abs(block, 0, 1, 0x0b, REG_R9, &cpu_stpclk); /*and throttle_run*/
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
 
     /*NMI_TAKEABLE(): nmi here, the rest out of line*/
