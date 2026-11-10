@@ -4282,28 +4282,28 @@ msgid "TCP send timeout"
 msgstr "TCP Sende-Timeout"
 
 msgid "Card:"
-msgstr ""
+msgstr "Karte:"
 
 msgid "Hub:"
 msgstr ""
 
 msgid "Mass storage:"
-msgstr ""
+msgstr "Massenspeicher:"
 
 msgid "Its drives are hard disks, CD-ROM drives and other removable devices set up on their own pages, on bus SCSI, in the channels named \"USB Mass Storage\". Each drive is one logical unit, in channel order."
-msgstr ""
+msgstr "Als Laufwerke dienen Festplatten, CD-ROM-Laufwerke und andere Wechseldatenträger, die auf eigenen Seiten über den SCSI-Bus in den Kanälen mit der Bezeichnung \"USB Massenspeicher\" eingerichtet sind. Jedes Laufwerk stellt eine logische Einheit dar, die in der Reihenfolge der Kanäle angeordnet ist."
 
 msgid "Hard disks…"
-msgstr ""
+msgstr "Festplatten…"
 
 msgid "CD-ROM drives…"
-msgstr ""
+msgstr "CD-ROM Laufwerke…"
 
 msgid "Other removable devices…"
-msgstr ""
+msgstr "Andere Wechseldatenträger…"
 
 msgid "4-port USB 1.1 hub"
 msgstr ""
 
 msgid "USB Mass Storage"
-msgstr ""
+msgstr "USB Massenspeicher"
