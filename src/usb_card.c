@@ -223,7 +223,8 @@ opti861_init(UNUSED(const device_t *info))
 {
     opti861_t *dev = (opti861_t *) calloc(1, sizeof(opti861_t));
 
-    dev->usb = device_add_inst(&usb_device, -1);
+    dev->usb       = device_add_inst(&usb_device, -1);
+    dev->usb->card = 1;
     /* No SMI handler: a PCI slot has no SMI#, IRQ1, IRQ12 or A20 line, so
        the chip's legacy pins (data book s3.2.4, p. 11 / PDF 19) reach
        nothing on a card. HcControl RWC is hardwired to 0 (p. 23 / PDF 31),

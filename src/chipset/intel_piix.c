@@ -542,14 +542,19 @@ piix_usb_update_irq(piix_t *dev)
 
     /* A legacy USB event is the USB interrupt with USBSMIEN, an enabled
        keyboard trap, or A20PTS with SMIEPTE; only a source that was not
-       already pending makes a new event. On the PIIX3, SMIEN bit 8 lets it set
-       SMIREQ bit 8 (RLUSB) and assert SMI# (PIIX3 2.2.19 and 2.2.22,
-       p. 44-46 / PDF 44-46). On the PIIX4 it sets GLBSTS LEGACY_USB_STS and
-       asserts SMI# whether or not GLBEN LEGACY_USB_EN is set, although the
-       datasheet makes that bit the enable (PIIX4 7.2.12, p. 144 / PDF 144):
-       the Award BIOS on the ABIT AB-BF6 runs USB legacy keyboard support from
-       this SMI and leaves the bit clear. No event is raised while an A20GATE
-       pass-through sequence runs (UHCI 1.1 s5.2.1 bit 5, p. 40 / PDF 46). */
+       already pending makes a new event. On both chips the event sets its
+       status bit and asserts SMI#, gated only by the SMI# gate, whether or not
+       the chip's legacy USB enable bit is set, although the datasheets make
+       that bit the enable: SMIEN bit 8 on the PIIX3 (2.2.19, p. 43 / PDF 43),
+       GLBEN LEGACY_USB_EN on the PIIX4 (7.2.12, p. 144 / PDF 144). The Award
+       BIOSes on the ECS P5VX-B (PIIX3) and ABIT AB-BF6 (PIIX4) run USB legacy
+       keyboard support from this SMI, arm only LEGSUP USBSMIEN and never set
+       the enable bit; the AMI BIOSes set it together with USBSMIEN and clear
+       it together with USBSMIEN, so LEGSUP alone decides for both. On the
+       PIIX3 the status is SMIREQ bit 8 (RLUSB), which marks an SMI caused by
+       the USB legacy keyboard logic (2.2.22, p. 46 / PDF 46). No event is
+       raised while an A20GATE pass-through sequence runs (UHCI 1.1 s5.2.1
+       bit 5, p. 40 / PDF 46). */
     sources = uhci_legsup_event(&fregs[0xc0], dev->usb_irq_level);
     smi     = (sources & ~dev->usb_smi_level) && !(fregs[0xc0] & 0x40);
     if (dev->type == 3) {
@@ -560,11 +565,9 @@ piix_usb_update_irq(piix_t *dev)
            end the SMI by toggling SMICNTL CSMIGATE. A sticky RLUSB would
            re-raise SMI# on every reopen of the gate (see the 0xa0 write). */
         if (smi) {
-            if (dev->regs[0][0xa3] & 0x01) {
-                dev->regs[0][0xab] |= 0x01;
-                if (dev->regs[0][0xa0] & 0x01)
-                    smi_raise();
-            }
+            dev->regs[0][0xab] |= 0x01;
+            if (dev->regs[0][0xa0] & 0x01)
+                smi_raise();
         } else if (!sources)
             dev->regs[0][0xab] &= ~0x01;
     } else if (dev->acpi != NULL) {

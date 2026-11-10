@@ -237,6 +237,9 @@ add_library(ui STATIC
     qt_newfloppydialog.cpp
     qt_newfloppydialog.hpp
     qt_newfloppydialog.ui
+
+    qt_newflashdialog.cpp
+    qt_newflashdialog.hpp
     qt_harddiskdialog.cpp
     qt_harddiskdialog.hpp
     qt_harddiskdialog.ui

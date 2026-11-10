@@ -32,6 +32,7 @@ typedef struct usb_t {
     int           ohci_enable;
     uint32_t      ohci_mem_base;
     mem_mapping_t ohci_mmio_mapping;
+    uint8_t       card; /* on a PCI USB card, not on the board */
 } usb_t;
 
 /* Global variables. */
@@ -46,6 +47,82 @@ extern const device_t *usb_msd_get_device(int msd);
 extern const char     *usb_msd_get_internal_name(int msd);
 extern int             usb_msd_get_from_internal_name(const char *s);
 extern void            usb_msd_hard_reset(void);
+/* USB ports, as the status bar shows them: the root ports of every
+   controller the chipset has wired up, numbered "1", "2", ... in
+   controller order, then the ports of a hub, "<its root port>.<n>". The
+   GUI reads a copy, which the emulation thread keeps current. */
+#define USB_PORTS_MAX     24
+#define USB_PORT_LABEL    8
+
+enum {
+    USB_PORT_EMPTY = 0,
+    USB_PORT_FLASH,  /* a flash drive */
+    USB_PORT_DEVICE, /* any other device */
+    USB_PORT_OFF     /* the controller or hub port is not working */
+};
+
+/* Where a port is, for its name in the GUI. */
+enum {
+    USB_PORT_ON_BOARD = 0,
+    USB_PORT_ON_CARD,
+    USB_PORT_ON_HUB
+};
+
+typedef struct usb_port_info_t {
+    char    label[USB_PORT_LABEL];
+    int     where;
+    int     state;
+    int     slot;          /* USB_PORT_DEVICE: its hot-plug slot, -1 for none */
+    char    name[64];      /* USB_PORT_DEVICE: the device name */
+    char    image[MAX_IMAGE_PATH_LEN]; /* USB_PORT_FLASH: its image file */
+    uint8_t wp;
+    uint8_t online;        /* USB_PORT_FLASH: the stick can reach the host */
+} usb_port_info_t;
+
+/* Copies the ports into ports (up to max); returns how many there are. */
+extern int usb_ports_get(usb_port_info_t *ports, int max);
+/* The image of the flash drive in port label as the ports were last listed;
+   returns 0 when there is none. */
+extern int usb_port_flash_image(const char *label, char *fn, int n);
+
+/* USB flash drives: a stick with a raw image, plugged into a port. The
+   user plugs, swaps and unplugs them from the GUI by port; the config
+   keeps which image is in which port, and the sticks go back there on the
+   next start. */
+#define USB_FLASH_MIN_SIZE (8ULL << 20)
+#define USB_FLASH_MAX_SIZE (32ULL << 30)
+enum {
+    USB_FLASH_FS_BLANK = 0,
+    USB_FLASH_FS_FAT16,
+    USB_FLASH_FS_FAT32
+};
+extern const device_t usb_flash_device;
+
+/* What the config holds: entry i, image fn in port label. */
+extern void usb_flash_cfg_clear(void);
+extern int  usb_flash_cfg_get(int i, char *label, char *fn, uint8_t *wp);
+extern void usb_flash_cfg_set(int i, const char *label, const char *fn, uint8_t wp);
+/* The hub moved from root port from to root port to: its sticks keep their
+   hub port numbers. */
+extern void usb_flash_cfg_rehome(const char *from, const char *to);
+/* Images used before, newest first, for the GUI's recent image lists:
+   entry i into fn (returns 0 when it is empty), set it, clear them all. */
+extern int  usb_flash_history_get(int i, char *fn, int n);
+extern void usb_flash_history_set(int i, const char *fn);
+extern void usb_flash_history_clear(void);
+/* GUI thread: put a stick with fn into port label (swapping out any stick
+   there), or with fn NULL or empty, unplug it. Done on the emulation
+   thread. */
+extern void usb_port_flash_want(const char *label, const char *fn, uint8_t wp);
+
+extern void usb_flash_hard_reset(void);
+/* Creates a raw image of bytes (a multiple of 512, USB_FLASH_MIN_SIZE to
+   USB_FLASH_MAX_SIZE): partitioned and formatted with fs, or all zeros for
+   USB_FLASH_FS_BLANK. Returns 1 on success. */
+extern int  usb_flash_create(const char *fn, uint64_t bytes, int fs);
+/* Whether a volume of that many bytes can be formatted with fs. */
+extern int  usb_flash_fs_ok(uint64_t bytes, int fs);
+extern int  usb_flash_fs_default(uint64_t bytes);
 /* A USB speaker, listed with the sound cards. */
 extern const device_t usb_speaker_device;
 /* The VIA VT83C572 PCI to USB controller on an add-in card. */
@@ -85,6 +162,8 @@ extern void            usb_card_reset(void);
 extern const char     *usb_slot_internal_name(int slot);
 /* The device that holds the slot, NULL when the machine has none. */
 extern const device_t *usb_slot_device(int slot);
+/* The device's own name, as the port titles show it; NULL without one. */
+extern const char     *usb_slot_name(int slot);
 /* Whether the device is attached to a port right now. */
 extern int             usb_slot_connected(int slot);
 /* Whether it reaches the host: attached, and so is every hub above it. */
@@ -95,7 +174,18 @@ extern void            usb_slot_want(int slot, int connected);
 /* What the Connected item shows: the request while it is pending, else
    usb_slot_connected(). */
 extern int             usb_slot_requested(int slot);
+/* The port the user put the slot's device in, "" for the first free one;
+   the config value. label holds USB_PORT_LABEL bytes. */
+extern void            usb_slot_port(int slot, char *label);
+extern void            usb_slot_set_port(int slot, const char *label);
+extern int             usb_slot_is_hub(int slot);
+/* GUI thread: move the slot's device to port label, plugging it in if it
+   was unplugged, and keep that port for the next start. Moving the hub
+   takes the devices on it along, with the same hub port numbers. */
+extern void            usb_slot_move(int slot, const char *label);
 extern void            usb_hotplug_process(void);
+/* A flash drive request is waiting for usb_hotplug_process(). */
+extern void            usb_hotplug_kick(void);
 
 /* Functions. */
 extern void uhci_update_io_mapping(usb_t *dev, uint8_t base_l, uint8_t base_h, int enable);
