@@ -69,15 +69,18 @@
 /* DMA control word (270788-001 Figure 67). The source and destination fields
    are three separate bits each: M/IO selects memory, INC/DEC move the pointer
    after every transfer. INT raises the channel's interrupt request at the
-   terminal count; W/B selects a word instead of a byte; SYN (bits 7-6) is
-   not modelled yet. */
+   terminal count; W/B selects a word instead of a byte; SYN (bits 7-6)
+   names the request source, and the unsynchronized encoding generates
+   its own requests (section 8.7). */
 #define I8018X_DMA_DST_MIO      0x8000u
 #define I8018X_DMA_DST_DEC      0x4000u
 #define I8018X_DMA_DST_INC      0x2000u
+#define I8018X_DMA_SRC_MIO      0x1000u
 #define I8018X_DMA_SRC_DEC      0x0800u
 #define I8018X_DMA_SRC_INC      0x0400u
 #define I8018X_DMA_TC           0x0200u
 #define I8018X_DMA_INT          0x0100u
+#define I8018X_DMA_SYN          0x00C0u /* 00 = none, 01 = source, 10 = destination, 11 = reserved */
 #define I8018X_DMA_CHG          0x0004u /* write only; always reads back as 0 */
 #define I8018X_DMA_ST           0x0002u
 #define I8018X_DMA_BW           0x0001u /* 0 = byte, 1 = word */
@@ -166,6 +169,7 @@ static uint8_t  i8018x_pcb_inb(uint16_t port, void *priv);
 static uint16_t i8018x_pcb_inw(uint16_t port, void *priv);
 static void     i8018x_pcb_outb(uint16_t port, uint8_t val, void *priv);
 static void     i8018x_pcb_outw(uint16_t port, uint16_t val, void *priv);
+static void     i8018x_pcb_dma_freerun(struct i8018x_pcb_t *dev, int slot);
 
 /* Timer control register (270788-001 Figure 56). EN and INH work as a pair: a
    write reaches the ENable bit only when it sets the INHibit bit alongside it,
@@ -738,6 +742,12 @@ i8018x_pcb_write_word(struct i8018x_pcb_t *dev, uint16_t off, uint16_t val)
             i8018x_pcb_tmr_restart(dev, i);
     }
 
+    /* A control word that arms an unsynchronized channel starts it at once
+       (270788-001 sections 8.2 and 8.7). */
+    if (((off == I8018X_DMA_CTRL(0)) || (off == I8018X_DMA_CTRL(1))) &&
+        (dev->regs[off / 2] & I8018X_DMA_ST))
+        i8018x_pcb_dma_freerun(dev, (off == I8018X_DMA_CTRL(0)) ? 0 : 1);
+
     /* Writing the status register sets or clears the individual timer request
        bits (270788-001 Figure 26) -- the ROM forces a request with 0x8001 and
        clears them again with 0x8000. */
@@ -863,11 +873,10 @@ i8018x_pcb_outw(uint16_t port, uint16_t val, void *priv)
    channel numbers it hands over here. A transfer is fetch + deposit, but the
    slave on the other side performs the half it owns: dma_channel_write() is a
    deposit from the slave into memory, dma_channel_read() a fetch out of it. */
-
-/* PCB channel driving an 86Box DMA channel, -1 when none does. */
 static int
 i8018x_pcb_dma_slot(struct i8018x_pcb_t *dev, int channel)
 {
+    /* PCB channel driving an 86Box DMA channel, -1 when none does. */
     for (int i = 0; i < 2; i++) {
         if ((dev->dma_ch[i] >= 0) && (dev->dma_ch[i] == channel))
             return i;
@@ -930,25 +939,32 @@ i8018x_pcb_dma_step_ptr(struct i8018x_pcb_t *dev, int slot, int dst)
 }
 
 /* Drop the transfer count by one and answer whether this transfer ended the
-   channel. A programmed count of zero means 65536 transfers, so the count may
-   wrap; with TC clear it keeps going instead of stopping (270788-001 section
-   8.2). A terminal count raises the channel's request in the interrupt
-   controller when INT is set; taking that request to the CPU is the
-   board's business, the same as for the other sources. */
+   channel. The count stops the channel when it runs out and either TC is set
+   or the channel is unsynchronized; with TC clear in a synchronized mode the
+   count wraps to 0xFFFF and transfers continue. An interrupt needs both INT
+   and TC (270788-001 section 8.2). A terminal count raises the channel's
+   request in the interrupt controller; taking that request to the CPU is
+   the board's business, the same as for the other sources. */
 static int
 i8018x_pcb_dma_count_down(struct i8018x_pcb_t *dev, int slot)
 {
+    uint16_t ctrl;
+
     dev->regs[I8018X_DMA_COUNT(slot)]--;
 
-    if ((dev->regs[I8018X_DMA_COUNT(slot)] != 0) ||
-        !(dev->regs[I8018X_DMA_CTRL(slot)] & I8018X_DMA_TC))
+    if (dev->regs[I8018X_DMA_COUNT(slot)] != 0)
+        return 0;
+
+    ctrl = dev->regs[I8018X_DMA_CTRL(slot)];
+
+    if (!(ctrl & I8018X_DMA_TC) && ((ctrl & I8018X_DMA_SYN) != 0x0000u))
         return 0;
 
     dev->regs[I8018X_DMA_CTRL(slot)] &= (uint16_t) ~I8018X_DMA_ST;
 
     /* A terminal count with INT set asks the interrupt controller
        for service (270788-001 Figure 67, section 8.2). */
-    if (dev->regs[I8018X_DMA_CTRL(slot)] & I8018X_DMA_INT)
+    if ((ctrl & I8018X_DMA_INT) && (ctrl & I8018X_DMA_TC))
         dev->icu_dma |= I8018X_ICU_SRC_DMA(slot);
 
     return 1;
@@ -1029,6 +1045,45 @@ i8018x_pcb_dma_write(int channel, uint16_t val, void *priv)
     i8018x_pcb_dma_step_ptr(dev, slot, 1);
 
     return i8018x_pcb_dma_count_down(dev, slot) ? DMA_OVER : 0;
+}
+
+/* An unsynchronized channel generates its own requests and moves the whole
+   block at once as soon as ST is set, keeping the bus to itself until the
+   count runs out (270788-001 sections 8.2 and 8.7). Both sides have to be
+   memory: with an I/O side the byte would come from a port, which a board
+   hands over through its own data handlers instead. */
+static void
+i8018x_pcb_dma_freerun(struct i8018x_pcb_t *dev, int slot)
+{
+    uint16_t ctrl = dev->regs[I8018X_DMA_CTRL(slot)];
+
+    if (((ctrl & I8018X_DMA_SYN) != 0x0000u) ||
+        !(ctrl & I8018X_DMA_SRC_MIO) || !(ctrl & I8018X_DMA_DST_MIO))
+        return;
+
+    /* The count is 16 bits, so the guard only keeps a misprogrammed
+       channel from holding the port write for good. */
+    for (uint32_t guard = 0; guard < 0x10000u; guard++) {
+        uint32_t src;
+        uint32_t dst;
+
+        if (!i8018x_pcb_dma_armed(dev, slot))
+            return;
+
+        src = i8018x_pcb_dma_ptr(dev, slot, 0);
+        dst = i8018x_pcb_dma_ptr(dev, slot, 1);
+
+        if (dev->regs[I8018X_DMA_CTRL(slot)] & I8018X_DMA_BW)
+            mem_writew_phys(dst, mem_readw_phys(src));
+        else
+            mem_writeb_phys(dst, mem_readb_phys(src));
+
+        i8018x_pcb_dma_step_ptr(dev, slot, 0);
+        i8018x_pcb_dma_step_ptr(dev, slot, 1);
+
+        if (i8018x_pcb_dma_count_down(dev, slot))
+            return;
+    }
 }
 
 static void
