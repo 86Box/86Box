@@ -6,8 +6,8 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Emulation run control: CPU thread lifecycle, pause reasons
- *          and pacing mode.
+ *          Emulation run control: CPU thread lifecycle, pause reasons,
+ *          pacing mode and speed measurement.
  *
  *          The machine runs only while the CPU thread is running and no
  *          pause reason is set. Each owner sets and clears only its own
@@ -105,6 +105,16 @@ extern void runctl_quantum_done(uint32_t emu_us); /* CPU thread, after each quan
 extern void runctl_get_status(run_status_t *out);
 /* Percent of real time between two snapshots, or -1 if not meaningful. */
 extern int runctl_speed_between(const run_status_t *older, const run_status_t *newer);
+
+/* The emulation speed every reader shows (title, OSD, automation status).
+   The frontend calls runctl_speed_update() about once a second, always from
+   the same thread; when it yields a new value, it is published and announced
+   with ui_notify(UI_NOTIFY_SPEED). While paused, held, or for the first
+   sample after a run state or mode change, the last value is kept.
+   runctl_speed() returns it as a percentage of real time, or -1 before the
+   first sample; any thread, lock-free. */
+extern void runctl_speed_update(void);
+extern int  runctl_speed(void);
 
 #ifdef __cplusplus
 }

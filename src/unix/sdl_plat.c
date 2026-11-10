@@ -459,6 +459,10 @@ ui_notify(int what)
     static int  was_paused = 0;
     char        title[512];
 
+    if (what == UI_NOTIFY_SPEED) {
+        ui_emu_status(runctl_speed());
+        return;
+    }
     if (what != UI_NOTIFY_RUN_STATE)
         return;
 
