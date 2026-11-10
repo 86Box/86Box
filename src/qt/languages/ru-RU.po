@@ -157,6 +157,9 @@ msgstr "По ц&ентру"
 msgid "4:3 Cen&ter"
 msgstr "По цен&тру, 4:3"
 
+msgid "4:3 Integer scale (&vertical)"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Инвертировать цвета VGA"
 

@@ -156,6 +156,9 @@ msgstr "&Na střed"
 msgid "4:3 Cen&ter"
 msgstr "Na s&třed 4:3"
 
+msgid "4:3 Integer scale (&vertical)"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Monitor VGA s převrácenými barvami"
 

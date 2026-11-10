@@ -157,6 +157,9 @@ msgstr "Căn &giữa"
 msgid "4:3 Cen&ter"
 msgstr "Că&n giữa 4:3"
 
+msgid "4:3 Integer scale (&vertical)"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "Đảo màu VGA"
 

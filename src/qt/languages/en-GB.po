@@ -150,3 +150,6 @@ msgstr "&Centre"
 
 msgid "4:3 Cen&ter"
 msgstr "4:3 Cen&tre"
+
+msgid "4:3 Integer scale (&vertical)"
+msgstr ""

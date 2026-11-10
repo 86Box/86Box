@@ -157,6 +157,9 @@ msgstr "置中(&C)"
 msgid "4:3 Cen&ter"
 msgstr "4:3 置中(&T)"
 
+msgid "4:3 Integer scale (&vertical)"
+msgstr ""
+
 msgid "Inverted VGA monitor"
 msgstr "VGA 監視器反色顯示"
 
