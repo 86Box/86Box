@@ -68,6 +68,25 @@ static int nr_lazy_pending;
 static codegen_lazy_list_t lazy_lists[CODEGEN_LAZY_SITES_MAX];
 static int                 nr_lazy_lists;
 codegen_lazy_list_t       *codegen_lazy_site;
+
+/*Bit r set while IR register r has an entry in lazy_pending[] (one at most)*/
+static uint64_t lazy_pending_mask[2];
+
+/*The tables below never change: codegen_reg_lazy_init() builds them once*/
+/*Registers of the guest's state that a stub can store from the host
+  register they are in: no C reached from a lazy uop on its way on reads
+  one, and the uop leaves its host register alone until its exit branch.
+  Never IREG_cycles, and never in a host register a C call does not
+  preserve (lazy_volatile_slots)*/
+static uint8_t ireg_lazy_deferrable[IREG_COUNT];
+/*IR registers an immediate is stored to at once rather than held*/
+static uint8_t ireg_imm_direct[IREG_COUNT];
+/*Bit j of ireg_mem_overlap[i] set when j's memory overlaps i's*/
+static uint64_t ireg_mem_overlap[IREG_COUNT][2];
+/*Integer host registers a C call does not preserve*/
+static uint16_t lazy_volatile_slots;
+
+static void codegen_reg_lazy_init(void);
 #endif
 
 enum {
@@ -345,6 +364,9 @@ codegen_check_regs(void)
             ireg_permanent_mask[i >> 6] |= 1ull << (i & 0x3f);
         ireg_mark_bytes[i] = ((i >= IREG_ESP) && (ireg_data[i].is_volatile == REG_PERMANENT)) ? 0xff : 0;
     }
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    codegen_reg_lazy_init();
+#endif
 
     for (i = 0; i < IREG_COUNT; i++) {
         if (ireg_data[i].is_volatile == REG_VOLATILE)
@@ -393,6 +415,7 @@ codegen_reg_reset(void)
 #ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
     nr_lazy_pending   = 0;
     nr_lazy_lists     = 0;
+    lazy_pending_mask[0] = lazy_pending_mask[1] = 0;
     codegen_lazy_site = NULL;
 #endif
 }
@@ -732,8 +755,43 @@ ireg_mem_overlaps(int ireg_a, int ireg_b)
 }
 
 static void
+codegen_reg_lazy_init(void)
+{
+    lazy_volatile_slots = 0;
+    for (int c = 0; c < CODEGEN_HOST_REGS; c++) {
+        if (codegen_host_reg_list[c].flags & HOST_REG_FLAG_VOLATILE)
+            lazy_volatile_slots |= (1 << c);
+    }
+
+    for (int i = 0; i < IREG_COUNT; i++) {
+        ireg_lazy_deferrable[i] = 0;
+        if ((i != IREG_cycles) && !ireg_data[i].is_volatile) {
+            switch (ireg_data[i].native_size) {
+                case REG_BYTE:
+                case REG_WORD:
+                case REG_DWORD:
+                case REG_POINTER:
+                    ireg_lazy_deferrable[i] = (uintptr_t) ireg_data[i].p >= 256;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        ireg_imm_direct[i] = ireg_data[i].is_volatile || ((uintptr_t) ireg_data[i].p < 256);
+
+        ireg_mem_overlap[i][0] = ireg_mem_overlap[i][1] = 0;
+        for (int j = 0; j < IREG_COUNT; j++) {
+            if (ireg_mem_overlaps(j, i))
+                ireg_mem_overlap[i][j >> 6] |= 1ull << (j & 0x3f);
+        }
+    }
+}
+
+static void
 lazy_pending_remove(int i)
 {
+    lazy_pending_mask[lazy_pending[i].ireg >> 6] &= ~(1ull << (lazy_pending[i].ireg & 0x3f));
     nr_lazy_pending--;
     for (; i < nr_lazy_pending; i++)
         lazy_pending[i] = lazy_pending[i + 1];
@@ -764,6 +822,8 @@ lazy_pending_store_overlapping(codeblock_t *block, int ireg)
 {
     int i = 0;
 
+    if (!((lazy_pending_mask[0] & ireg_mem_overlap[ireg][0]) | (lazy_pending_mask[1] & ireg_mem_overlap[ireg][1])))
+        return;
     while (i < nr_lazy_pending) {
         if (ireg_mem_overlaps(lazy_pending[i].ireg, ireg))
             lazy_pending_store(block, i);
@@ -777,6 +837,8 @@ lazy_pending_store_overlapping(codeblock_t *block, int ireg)
 static void
 lazy_pending_drop(int ireg)
 {
+    if (!(lazy_pending_mask[ireg >> 6] & (1ull << (ireg & 0x3f))))
+        return;
     for (int i = 0; i < nr_lazy_pending; i++) {
         if (lazy_pending[i].ireg == ireg) {
             lazy_pending_remove(i);
@@ -790,7 +852,7 @@ codegen_reg_defer_imm(codeblock_t *block, ir_reg_t ir_reg, uint32_t imm_data)
 {
     int ireg = IREG_GET_REG(ir_reg.reg);
 
-    if (ireg_data[ireg].is_volatile || ((uintptr_t) ireg_data[ireg].p < 256)) {
+    if (ireg_imm_direct[ireg]) {
         codegen_reg_write_imm(block, ir_reg, imm_data);
         return;
     }
@@ -800,6 +862,7 @@ codegen_reg_defer_imm(codeblock_t *block, ir_reg_t ir_reg, uint32_t imm_data)
     lazy_pending[nr_lazy_pending].ireg = ireg;
     lazy_pending[nr_lazy_pending].imm  = imm_data;
     nr_lazy_pending++;
+    lazy_pending_mask[ireg >> 6] |= 1ull << (ireg & 0x3f);
 }
 
 static void
@@ -1178,33 +1241,14 @@ codegen_reg_flush(UNUSED(ir_data_t *ir), codeblock_t *block)
 }
 
 #ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
-/*A register of the guest's state that a stub can store from the host
-  register it is in: no C reached from a lazy uop on its way on reads one,
-  and the uop leaves its host register alone until its exit branch*/
-static int
-lazy_can_defer(const host_reg_set_t *reg_set, int c)
-{
-    int ireg = IREG_GET_REG(reg_set->regs[c].reg);
-
-    if ((reg_set->reg_list[c].flags & HOST_REG_FLAG_VOLATILE) || (ireg == IREG_cycles) || ireg_data[ireg].is_volatile)
-        return 0;
-    switch (ireg_data[ireg].native_size) {
-        case REG_BYTE:
-        case REG_WORD:
-        case REG_DWORD:
-        case REG_POINTER:
-            return (uintptr_t) ireg_data[ireg].p >= 256;
-        default:
-            return 0;
-    }
-}
-
 void
 codegen_reg_flush_lazy(ir_data_t *ir, codeblock_t *block)
 {
     host_reg_set_t      *reg_set;
     codegen_lazy_list_t *list;
     int                  c;
+    uint16_t             deferred = 0;
+    uint16_t             written  = 0;
 
     codegen_lazy_site = NULL;
     if (nr_lazy_lists == CODEGEN_LAZY_SITES_MAX) {
@@ -1213,16 +1257,24 @@ codegen_reg_flush_lazy(ir_data_t *ir, codeblock_t *block)
     }
 
     /*What is not deferred goes first, as codegen_reg_flush does it, so the
-      pending immediates it stores are off the list*/
+      pending immediates it stores are off the list. A write-back changes
+      only its own host register's dirty flag, so the dirty registers can be
+      sorted before any is written back*/
     reg_set = &host_reg_set;
     for (c = 0; c < reg_set->nr_regs; c++) {
-        if (!ir_reg_is_invalid(reg_set->regs[c]) && reg_set->dirty[c] && !lazy_can_defer(reg_set, c))
-            codegen_reg_writeback(reg_set, block, c, 0);
-        if ((reg_set->reg_list[c].flags & HOST_REG_FLAG_VOLATILE) ||
-            (!ir_reg_is_invalid(reg_set->regs[c]) && (IREG_GET_REG(reg_set->regs[c].reg) == IREG_cycles))) {
-            host_reg_assign(reg_set, c, invalid_ir_reg);
-            reg_set->dirty[c] = 0;
+        if (!ir_reg_is_invalid(reg_set->regs[c]) && reg_set->dirty[c]) {
+            if (!(lazy_volatile_slots & (1 << c)) && ireg_lazy_deferrable[IREG_GET_REG(reg_set->regs[c].reg)])
+                deferred |= (1 << c);
+            else
+                written |= (1 << c);
         }
+    }
+    for (; written; written &= written - 1)
+        codegen_reg_writeback(reg_set, block, __builtin_ctz(written), 0);
+    for (uint16_t dropped = lazy_volatile_slots | reg_set->slots[IREG_cycles]; dropped; dropped &= dropped - 1) {
+        c = __builtin_ctz(dropped);
+        host_reg_assign(reg_set, c, invalid_ir_reg);
+        reg_set->dirty[c] = 0;
     }
 
     reg_set = &host_fp_reg_set;
@@ -1245,13 +1297,12 @@ codegen_reg_flush_lazy(ir_data_t *ir, codeblock_t *block)
         list->nr++;
     }
     reg_set = &host_reg_set;
-    for (c = 0; c < reg_set->nr_regs; c++) {
-        if (!ir_reg_is_invalid(reg_set->regs[c]) && reg_set->dirty[c] && lazy_can_defer(reg_set, c)) {
-            list->stores[list->nr].ireg     = IREG_GET_REG(reg_set->regs[c].reg);
-            list->stores[list->nr].host_reg = reg_set->reg_list[c].reg;
-            list->stores[list->nr].imm      = 0;
-            list->nr++;
-        }
+    for (; deferred; deferred &= deferred - 1) {
+        c = __builtin_ctz(deferred);
+        list->stores[list->nr].ireg     = IREG_GET_REG(reg_set->regs[c].reg);
+        list->stores[list->nr].host_reg = reg_set->reg_list[c].reg;
+        list->stores[list->nr].imm      = 0;
+        list->nr++;
     }
     if (list->nr) {
         nr_lazy_lists++;
