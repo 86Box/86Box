@@ -684,7 +684,8 @@ test_wrt_mask(void)
 
 /* Image transfer commands: rectangle fill, byte swap on (low byte first), wait for CPU data,
    +Y, X major, +X, draw (Trio32/64 13.3.3.4, p. 13-13). Bits 10-9 are the bus size. */
-#define CMD_XFER 0x51b1
+#define CMD_XFER  0x51b1
+#define CMD_PX_MD 0x0002 /* Across the plane, one bit per pixel */
 
 /* The images start at (XX, XY) and are XH lines high. */
 #define XX 40
@@ -796,6 +797,71 @@ test_xfer_through(void)
     }
 }
 
+/* A 13-pixel-wide glyph. The bits past the width are 1s, which would draw if they weren't
+   discarded. */
+static const uint8_t glyph[XH][2] = {
+    { 0xb5, 0x3f },
+    { 0x0f, 0xaf },
+    { 0xc3, 0x57 }
+};
+
+/* Image transfer across the plane: each CPU bit selects FRGD_MIX (1) or BKGD_MIX (0), here
+   FRGD_COLOR with NEW and BKGD_COLOR with XOR as in the books' example (86C928 11.3.5, p. 11-7;
+   Vision868 and Vision968 5.4.3.5, p. 5-17; Trio32/64 13.3.3.5, pp. 13-15 and 13-16; Trio64V+
+   15.4.3.5, p. 15-15). With bus size 11b only the bits to the next byte are discarded at the end
+   of a line, otherwise the rest of the write (Trio32/64 p. 18-12, Trio64V+ p. 20-9, Vision868 and
+   Vision968 p. 2-3). The books don't say which bit is the leftmost pixel; as in the code, it is
+   bit 7 of the first byte. */
+static void
+xfer_across(int unit, int mmio, int bus)
+{
+    uint8_t  data[64];
+    int      len = 0;
+    uint32_t old = 0x5a5a5a5a & depth_mask();
+    uint32_t bg  = 0x9669a55a & depth_mask();
+
+    for (int y = 0; y < XH; y++) {
+        for (int x = 0; x < 13; x++)
+            want[y][x] = ((glyph[y][x / 8] >> (7 - (x % 8))) & 1) ? color() : (old ^ bg);
+        data[len++] = glyph[y][0];
+        data[len++] = glyph[y][1];
+        while ((bus != 3) && (len % unit))
+            data[len++] = 0xff;
+    }
+    while (len % unit)
+        data[len++] = 0xff;
+
+    memset(vram, 0x5a, sizeof(vram));
+    port_w(0xbae8, 0x0027); /* FRGD_MIX: FRGD_COLOR, NEW */
+    port_w(0xb6e8, 0x0005); /* BKGD_MIX: BKGD_COLOR, XOR */
+    color_w(0xa6e8, color());
+    color_w(0xa2e8, bg);
+    port_w(0xbee8, 0xa080); /* PIX_CNTL: CPU data selects the mix */
+    xfer_start(13, CMD_XFER | CMD_PX_MD | (bus << 9));
+    pix_trans(data, len, unit, mmio);
+    check_image(13, old, (bus == 3) ? "across 11b" : "across", unit, mmio);
+}
+
+static void
+test_xfer_across(void)
+{
+    for (int unit = 1; unit <= 4; unit *= 2) {
+        if ((unit == 4) && !(cur_chip->bit & C_BUS32))
+            continue;
+        xfer_across(unit, 0, unit / 2);
+        if ((unit > 1) && (cur_chip->bit & C_MMIO))
+            xfer_across(unit, 1, unit / 2);
+    }
+}
+
+static void
+test_xfer_across_11b(void)
+{
+    xfer_across(4, 0, 3);
+    if (cur_chip->bit & C_MMIO)
+        xfer_across(4, 1, 3);
+}
+
 int
 main(int argc, char **argv)
 {
@@ -810,6 +876,8 @@ main(int argc, char **argv)
     run("mixes", test_mixes, C_ALL);
     run("wrt_mask", test_wrt_mask, C_ALL);
     run("xfer_through", test_xfer_through, C_ALL);
+    run("xfer_across", test_xfer_across, C_ALL);
+    run("xfer_across_11b", test_xfer_across_11b, C_TRIO32 | C_868 | C_968 | C_TRIO64V | C_TRIO64V2);
 
     if (verbose)
         print_matrix();
