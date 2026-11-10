@@ -4249,3 +4249,30 @@ msgstr ""
 
 msgid "TCP send timeout"
 msgstr ""
+
+msgid "Card:"
+msgstr ""
+
+msgid "Hub:"
+msgstr ""
+
+msgid "Mass storage:"
+msgstr ""
+
+msgid "Its drives are hard disks, CD-ROM drives and other removable devices set up on their own pages, on bus SCSI, in the channels named \"USB Mass Storage\". Each drive is one logical unit, in channel order."
+msgstr ""
+
+msgid "Hard disks…"
+msgstr ""
+
+msgid "CD-ROM drives…"
+msgstr ""
+
+msgid "Other removable devices…"
+msgstr ""
+
+msgid "4-port USB 1.1 hub"
+msgstr ""
+
+msgid "USB Mass Storage"
+msgstr ""
