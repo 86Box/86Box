@@ -1272,6 +1272,8 @@ es137x_outb(uint16_t port, uint8_t val, void *priv)
                 dev->int_status &= ~INT_STATUS_DAC1;
             if (!(dev->si_cr & SI_P2_INTR_EN))
                 dev->int_status &= ~INT_STATUS_DAC2;
+            if (!(dev->si_cr & SI_R1_INT_EN))
+                dev->int_status &= ~INT_STATUS_ADC;
 
             es137x_update_irqs(dev);
             break;
@@ -1317,6 +1319,10 @@ es137x_outw(uint16_t port, uint16_t val, void *priv)
                     dev->dac[1].ac = 0;
                 es137x_fetch(dev, 1);
             }
+            if (!(dev->int_ctrl & INT_ADC_EN) && (val & INT_ADC_EN))
+                es137x_adc_start(dev);
+            else if ((dev->int_ctrl & INT_ADC_EN) && !(val & INT_ADC_EN))
+                es137x_adc_input(dev, 0);
             // audiopci_log("INTCTRL 0x%02X\n", val & 0xff);
             dev->int_ctrl = (dev->int_ctrl & 0xffff0000) | val;
             es1370_calc_sample_rate(dev);
@@ -1379,6 +1385,8 @@ es137x_outw(uint16_t port, uint16_t val, void *priv)
                 dev->int_status &= ~INT_STATUS_DAC1;
             if (!(dev->si_cr & SI_P2_INTR_EN))
                 dev->int_status &= ~INT_STATUS_DAC2;
+            if (!(dev->si_cr & SI_R1_INT_EN))
+                dev->int_status &= ~INT_STATUS_ADC;
             es137x_update_irqs(dev);
             break;
         case 0x22:
@@ -1444,6 +1452,10 @@ es137x_outl(uint16_t port, uint32_t val, void *priv)
                         dev->dac[1].ac = 0;
                     es137x_fetch(dev, 1);
                 }
+                if (!(dev->int_ctrl & INT_ADC_EN) && (val & INT_ADC_EN))
+                    es137x_adc_start(dev);
+                else if ((dev->int_ctrl & INT_ADC_EN) && !(val & INT_ADC_EN))
+                    es137x_adc_input(dev, 0);
                 // audiopci_log("INTCTRL 0x%02X\n", val & 0xff);
                 dev->int_ctrl = val;
                 gameport_remap(dev->gameport, 0x200 | ((val & 0x03000000) >> 21));
@@ -1569,6 +1581,8 @@ es137x_outl(uint16_t port, uint32_t val, void *priv)
                 dev->int_status &= ~INT_STATUS_DAC1;
             if (!(dev->si_cr & SI_P2_INTR_EN))
                 dev->int_status &= ~INT_STATUS_DAC2;
+            if (!(dev->si_cr & SI_R1_INT_EN))
+                dev->int_status &= ~INT_STATUS_ADC;
             es137x_update_irqs(dev);
             break;
 
