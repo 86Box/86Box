@@ -554,12 +554,13 @@ solo1_a1_control(solo1_t *dev, uint8_t old, uint8_t val)
    overflow, reloads, interrupts if B1h bit 6 is set and, in normal (not
    auto-initialize) mode, stops until B8h bit 0 is toggled.
    Each transfer writes one byte past the DDMA's current address (the
-   buffer's start for the last one of a lap): byte n of the stream lands at
-   offset n + 1, and after n transfers the bytes up to offset n are in.
-   The drivers expect it: Linux's snd-es1938 copies from pos + 1
-   (capture_copy), and ESS's Windows 9x driver (ESSOLO.DRV) reads offsets
-   1 to size, the last byte from offset 0; its 16-bit recordings came out a
-   byte off (noise) without it. */
+   buffer's start for the last one of a lap, which also holds for the
+   terminal-count byte of a single, non-auto-initialize transfer): byte n
+   of the stream lands at offset n + 1, and after n transfers the bytes up
+   to offset n are in. The drivers expect it: Linux's snd-es1938 copies
+   from pos + 1 (capture_copy), and ESS's Windows 9x driver (ESSOLO.DRV)
+   reads offsets 1 to size, the last byte from offset 0; its 16-bit
+   recordings came out a byte off (noise) without it. */
 static void
 solo1_a1_drain(solo1_t *dev)
 {
@@ -567,7 +568,11 @@ solo1_a1_drain(solo1_t *dev)
            (dev->ess_regs[0xb2 - 0xa0] & 0x40) && solo1_ddma_ready(dev, 1)) {
         uint32_t addr;
 
-        if (!dev->dd_cur_count && (dev->dd_mode & 0x10))
+        /* With the count at zero (the lap's or the single transfer's last
+           byte) the write wraps to the region's start: the count is
+           base_count + 1 bytes, and the offset stays inside it in every
+           mode. Elsewhere the byte goes one past the current address. */
+        if (!dev->dd_cur_count)
             addr = dev->dd_base_addr;
         else
             addr = (dev->dd_mode & 0x20) ? (dev->dd_cur_addr - 1) : (dev->dd_cur_addr + 1);
