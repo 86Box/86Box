@@ -82,6 +82,42 @@ duplicate_uop(ir_data_t *ir, uop_t *uop, int offset)
     }
 }
 
+/*A copy of a flag read compiled in place of a call (codegen_flags_read_t).
+  Where the loop starts after the uop that set the flags op it was compiled
+  for, the copy runs after the loop's own flag changes and calls the
+  function, as the copy of the call would. Otherwise it is the same uop,
+  with the call's effects on the counts: its reads uncounted, the registers
+  marked as the copy of the call's barrier marks them*/
+static void
+duplicate_flags_read(ir_data_t *ir, uop_t *uop, const codegen_flags_read_t *rd)
+{
+    if ((rd->producer >= 0) && (rd->producer < codegen_unroll_start)) {
+#if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
+        const uint32_t type = UOP_CALL_FUNC_RESULT_ORDERED;
+#else
+        const uint32_t type = UOP_CALL_FUNC_RESULT;
+#endif
+        uop_t *new_uop = uop_alloc_unroll(ir, type);
+
+        new_uop->dest_reg_a = codegen_reg_write(uop->dest_reg_a.reg, ir->wr_pos - 1);
+        new_uop->type       = type;
+        new_uop->imm_data   = 0;
+        new_uop->imm_data2  = uop->imm_data2;
+        new_uop->p          = rd->func;
+        new_uop->pc         = uop->pc;
+#if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64 || defined __loongarch_lp64
+        new_uop->is_a16 = 0;
+#endif
+        return;
+    }
+    codegen_reg_mark_as_required();
+    if (!ir_reg_is_invalid(uop->src_reg_a))
+        codegen_reg_read_uncounted(uop->src_reg_a.reg);
+    if (!ir_reg_is_invalid(uop->src_reg_b))
+        codegen_reg_read_uncounted(uop->src_reg_b.reg);
+    duplicate_uop(ir, uop, 0);
+}
+
 #ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
 /*An order barrier whose C, if any, reads none of the guest's state on the
   way on, and whose only branch leaves the block for a fault: an access, or
@@ -527,6 +563,8 @@ codegen_flags_dead_pass(ir_data_t *ir, int unroll_start, int unroll_end)
 {
     const codegen_flags_inline_t *inl;
     int                           nr_inl   = codegen_flags_inline_sites(&inl);
+    const codegen_flags_read_t   *rd;
+    int                           nr_rd    = codegen_flags_read_sites(&rd);
     int                           maxdest  = -1;
     int                           join     = 0;
     int                           si       = 0;
@@ -547,10 +585,27 @@ codegen_flags_dead_pass(ir_data_t *ir, int unroll_start, int unroll_end)
             }
         }
     }
+    /*The flag reads compiled in place of calls, as negative indexes: each is
+      the read its call was, in the copies too*/
+    for (int i = 0; i < nr_rd; i++) {
+        if (rd[i].uop >= ir->wr_pos)
+            continue;
+        flags_site_of[rd[i].uop] = -(i + 1);
+        if ((rd[i].uop >= unroll_start) && (rd[i].uop < unroll_end)) {
+            for (int k = 0; k < flags_unroll_nr; k++) {
+                if ((rd[i].uop + flags_unroll_off[k]) < ir->wr_pos)
+                    flags_site_of[rd[i].uop + flags_unroll_off[k]] = -(i + 1);
+            }
+        }
+    }
     for (int c = 0; c < ir->wr_pos; c++) {
         const uop_t *uop = &ir->uops[c];
         uint32_t     t   = uop->type & UOP_MASK;
 
+        if (flags_site_of[c] < 0) {
+            flags_site_add(c, c + 1, FLAGS_SITE_READ, rd[-flags_site_of[c] - 1].read);
+            continue;
+        }
         if (flags_site_of[c]) {
             const codegen_flags_inline_t *site = &inl[flags_site_of[c] - 1];
             int                           end  = c + site->end - site->start;
@@ -608,6 +663,10 @@ codegen_flags_dead_pass(ir_data_t *ir, int unroll_start, int unroll_end)
             if ((ir->uops[c].type & UOP_MASK) != UOP_INVALID)
                 flags_site[s].valid = 1;
         }
+        /*A read stays a read when the dead list has taken its uop: the call
+          it stands for is a barrier, which the dead list keeps*/
+        if (flags_site[s].kind == FLAGS_SITE_READ)
+            flags_site[s].valid = 1;
     }
 
     /*Sites a jump may skip, and calls that would close a join*/
@@ -647,7 +706,9 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
 
     flags_unroll_nr = 0;
     if (codegen_unroll_count) {
-        int taken_cycles;
+        const codegen_flags_read_t *rd_sites;
+        int                         nr_rd = codegen_flags_read_sites(&rd_sites);
+        int                         taken_cycles;
 
         codegen_set_loop_start(ir, codegen_unroll_first_instruction);
         unroll_end = ir->wr_pos;
@@ -655,13 +716,19 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
 
         for (int unroll_count = 1; unroll_count < codegen_unroll_count; unroll_count++) {
             int offset = ir->wr_pos - codegen_unroll_start;
+            int rd     = 0;
 
             if (flags_unroll_nr < FLAGS_UNROLL_MAX)
                 flags_unroll_off[flags_unroll_nr++] = offset;
             //                        pclog("Unroll from %i to %i, offset %i - iteration %i\n", codegen_unroll_start, ir->wr_pos, offset, unroll_count);
             for (c = codegen_unroll_start; c < unroll_end; c++) {
                 //                                pclog(" Duplicate uop %i\n", c);
-                duplicate_uop(ir, &ir->uops[c], offset);
+                while ((rd < nr_rd) && (rd_sites[rd].uop < c))
+                    rd++;
+                if ((rd < nr_rd) && (rd_sites[rd].uop == c))
+                    duplicate_flags_read(ir, &ir->uops[c], &rd_sites[rd]);
+                else
+                    duplicate_uop(ir, &ir->uops[c], offset);
                 codegen_accumulate_copy(ir, c);
             }
             if (taken_cycles)

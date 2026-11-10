@@ -104,12 +104,26 @@ static int flags_known_full;
 static codegen_flags_inline_t flags_inline[FLAGS_INLINE_MAX];
 static int                    flags_inline_nr;
 
+/*The flag reads compiled in place of a call, in uop order. One that cannot
+  be recorded is not compiled: the call stays*/
+#define FLAGS_READ_MAX 256
+static codegen_flags_read_t flags_read[FLAGS_READ_MAX];
+static int                  flags_read_nr;
+
 void
 codegen_flags_known_reset(void)
 {
     flags_known_nr   = 0;
     flags_known_full = 0;
     flags_inline_nr  = 0;
+    flags_read_nr    = 0;
+}
+
+int
+codegen_flags_read_sites(const codegen_flags_read_t **sites)
+{
+    *sites = flags_read;
+    return flags_read_nr;
 }
 
 int
@@ -192,6 +206,131 @@ codegen_flags_known_use(ir_data_t *ir, int cf_kept)
         flags_known_full = 1;
 }
 
+/*Ready for one uop reading src_a and src_b (IREG_INVALID for none) in place
+  of an ordered C call that reads no register: room for its record and its
+  reads, which are left out of the counts that end the block and limit
+  unrolling, and the registers written after it marked as the call's barrier
+  marks them. 0, changing nothing, when there is no room or the backend has
+  no CMP_SET and TEST_SET: the call stays*/
+static int
+flags_read_begin(int src_a, int src_b)
+{
+#if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
+    if (flags_read_nr == FLAGS_READ_MAX)
+        return 0;
+    if (((src_a != IREG_INVALID) && !codegen_reg_read_has_room(src_a)) || ((src_b != IREG_INVALID) && !codegen_reg_read_has_room(src_b)))
+        return 0;
+    if (src_a != IREG_INVALID)
+        codegen_reg_read_uncounted(src_a);
+    if (src_b != IREG_INVALID)
+        codegen_reg_read_uncounted(src_b);
+    dirty_ir_regs[0] = dirty_ir_regs[1] = ~0ULL;
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+static void
+flags_read_end(ir_data_t *ir, uint16_t read, int producer, void *func)
+{
+    flags_read[flags_read_nr].uop      = ir->wr_pos - 1;
+    flags_read[flags_read_nr].read     = read;
+    flags_read[flags_read_nr].producer = producer;
+    flags_read[flags_read_nr].func     = func;
+    flags_read_nr++;
+}
+
+/*CF_SET() into dest_reg (L) as one uop, in place of
+  uop_CALL_FUNC_RESULT_ORDERED(ir, dest_reg, jit_CF_SET), when an instruction
+  of this block set a flags op whose carry is a single compare: ADD32, SUB8 to
+  SUB32, ZN8 to ZN32. 0, emitting nothing, otherwise. Unlike a Jcc this use
+  is not recorded for codegen_can_unroll_full(): an unrolled copy whose loop
+  starts after the producer calls jit_CF_SET instead (codegen_ir_compile())*/
+int
+codegen_flags_cf_known(ir_data_t *ir, int dest_reg)
+{
+    int src_a = IREG_INVALID;
+    int src_b = IREG_INVALID;
+    int producer;
+
+    if (!codegen_flags_changed)
+        return 0;
+    switch (cpu_state.flags_op) {
+        case FLAGS_ADD32:
+            src_a = IREG_flags_res;
+            src_b = IREG_flags_op1;
+            break;
+        case FLAGS_SUB8:
+        case FLAGS_SUB16:
+        case FLAGS_SUB32:
+            src_a = IREG_flags_op1;
+            src_b = IREG_flags_op2;
+            break;
+        case FLAGS_ZN8:
+        case FLAGS_ZN16:
+        case FLAGS_ZN32:
+            break;
+        default:
+            return 0;
+    }
+    for (producer = ir->wr_pos - 1; producer >= 0; producer--) {
+        if (IREG_GET_REG(ir->uops[producer].dest_reg_a.reg) == IREG_GET_REG(IREG_flags_op))
+            break;
+    }
+    if ((producer < 0) || !flags_read_begin(src_a, src_b))
+        return 0;
+    /*The stored values compared as CF_SET() compares them: res < op1 for
+      ADD32, op1 < op2 for SUB, 0 for ZN*/
+    if (src_a == IREG_INVALID)
+        uop_MOV_IMM(ir, dest_reg, 0);
+    else
+        uop_CMP_SET(ir, dest_reg, src_a, src_b, UOP_CC_B);
+    flags_read_end(ir, C_FLAG, producer, (void *) jit_CF_SET);
+    return 1;
+}
+
+/*For a ZN flags op an instruction of this block set: ZF_SET() (flag
+  Z_FLAG), NF_SET() ? 1 : 0 (N_FLAG) or VF_SET() ? 1 : 0 (V_FLAG) into
+  dest_reg (L) as one uop, in place of uop_CALL_FUNC_RESULT_ORDERED(ir,
+  dest_reg, func). 0, emitting nothing, for any other op. The Jcc using it
+  records its known op for codegen_can_unroll_full() as before*/
+int
+codegen_flags_zn_known(ir_data_t *ir, int dest_reg, int flag, void *func)
+{
+    int src;
+
+    if (!codegen_flags_changed)
+        return 0;
+    switch (cpu_state.flags_op) {
+        case FLAGS_ZN8:
+            src = (flag == N_FLAG) ? IREG_flags_res_B : IREG_flags_res;
+            break;
+        case FLAGS_ZN16:
+            src = (flag == N_FLAG) ? IREG_flags_res_W : IREG_flags_res;
+            break;
+        case FLAGS_ZN32:
+            src = IREG_flags_res;
+            break;
+        default:
+            return 0;
+    }
+    if (!flags_read_begin((flag == V_FLAG) ? IREG_INVALID : src, IREG_INVALID))
+        return 0;
+    /*ZF_SET() is !res on the whole stored value, NF_SET() its top bit at
+      the op's size, VF_SET() 0*/
+    if (flag == Z_FLAG)
+        uop_TEST_SET(ir, dest_reg, src, UOP_CC_Z);
+    else if (flag == N_FLAG)
+        uop_TEST_SET(ir, dest_reg, src, UOP_CC_S);
+    else
+        uop_MOV_IMM(ir, dest_reg, 0);
+    /*jit_ZF_SET is a read of ZF for the dead flags pass; NF_SET_01 and
+      VF_SET_01 are calls it takes to read any flag*/
+    flags_read_end(ir, (flag == Z_FLAG) ? Z_FLAG : 0xffff, -1, func);
+    return 1;
+}
+
 /*Whether the uops from start on set a flags op (other than INC and DEC with
   incdec_too clear): the loop body changes the flags a copied use reads. A C
   call may set it without a uop writing flags_op (a rebuild the inline
@@ -200,6 +339,10 @@ codegen_flags_known_use(ir_data_t *ir, int cf_kept)
 static int
 flags_op_set_from(ir_data_t *ir, int start, int incdec_too)
 {
+    int r = 0;
+
+    while ((r < flags_read_nr) && (flags_read[r].uop < start))
+        r++;
     for (int c = start; c < ir->wr_pos; c++) {
         uint32_t type = ir->uops[c].type & UOP_MASK;
         uint32_t op;
@@ -207,6 +350,12 @@ flags_op_set_from(ir_data_t *ir, int start, int incdec_too)
         if (incdec_too && ((type == (UOP_CALL_FUNC & UOP_MASK)) || (type == (UOP_CALL_FUNC_ORDERED & UOP_MASK)) ||
                            (type == (UOP_CALL_FUNC_RESULT & UOP_MASK)) || (type == (UOP_CALL_FUNC_RESULT_ORDERED & UOP_MASK))))
             return 1;
+        /*A flag read compiled in place of a call counts as the call*/
+        if ((r < flags_read_nr) && (flags_read[r].uop == c)) {
+            r++;
+            if (incdec_too)
+                return 1;
+        }
         if (IREG_GET_REG(ir->uops[c].dest_reg_a.reg) != IREG_GET_REG(IREG_flags_op))
             continue;
         if (incdec_too)

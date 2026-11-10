@@ -210,6 +210,8 @@ LOAD_IMMEDIATE_FROM_RAM_32(codeblock_t *block, ir_data_t *ir, int dest_reg, uint
 
 int codegen_flags_rebuild_known(ir_data_t *ir, int carry_only);
 void codegen_flags_known_use(ir_data_t *ir, int cf_kept);
+int  codegen_flags_cf_known(ir_data_t *ir, int dest_reg);
+int  codegen_flags_zn_known(ir_data_t *ir, int dest_reg, int flag, void *func);
 
 /*The instruction is #UD; returns the handler's -1*/
 uint32_t codegen_ud(ir_data_t *ir);

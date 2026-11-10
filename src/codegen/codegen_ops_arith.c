@@ -20,7 +20,8 @@
 static inline void
 get_cf(ir_data_t *ir, int dest_reg)
 {
-    uop_CALL_FUNC_RESULT_ORDERED(ir, dest_reg, jit_CF_SET);
+    if (!codegen_flags_cf_known(ir, dest_reg))
+        uop_CALL_FUNC_RESULT_ORDERED(ir, dest_reg, jit_CF_SET);
 }
 
 uint32_t

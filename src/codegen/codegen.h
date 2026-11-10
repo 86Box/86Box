@@ -474,6 +474,17 @@ typedef struct codegen_flags_inline_t {
     uint16_t written;
 } codegen_flags_inline_t;
 extern int codegen_flags_inline_sites(const codegen_flags_inline_t **sites);
+/*A flag read compiled as one uop in place of the one uop calling func: the
+  bits of flags the call reads as the dead flags pass sees it, and the uop
+  that set the flags op it was compiled for when an unrolled copy whose loop
+  starts after that uop must call func instead (-1 otherwise)*/
+typedef struct codegen_flags_read_t {
+    int      uop;
+    uint16_t read;
+    int      producer;
+    void    *func;
+} codegen_flags_read_t;
+extern int codegen_flags_read_sites(const codegen_flags_read_t **sites);
 
 /*Set while the block being recompiled is a V86 block entered with every
   segment limit 0..0xffff (CPU_STATUS_NOT64K clear): V86 segment loads keep

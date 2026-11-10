@@ -399,6 +399,7 @@ codegen_reg_reset(void)
     for (c = 0; c < IREG_COUNT; c++) {
         reg_last_version[c]        = 0;
         reg_version[c][0].refcount = 0;
+        reg_version[c][0].uncounted = 0;
     }
     for (c = 0; c < CODEGEN_HOST_REGS; c++) {
         host_reg_assign(&host_reg_set, c, invalid_ir_reg);

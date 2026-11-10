@@ -331,6 +331,9 @@ typedef struct {
     uint8_t refcount;
     /*Flags*/
     uint8_t flags;
+    /*Reads in refcount made by uops standing in for a C call that reads
+      nothing: left out where the count decides the block's end or unrolling*/
+    uint8_t uncounted;
     /*uOP that generated this register version*/
     uint16_t parent_uop;
     /*Pointer to next register version in dead register list*/
@@ -384,14 +387,31 @@ codegen_reg_read(int reg)
         fatal("codegen_reg_read - refcount overflow\n");
     else
 #endif
-        if (version->refcount > REG_REFCOUNT_MAX)
+        if ((version->refcount - version->uncounted) > REG_REFCOUNT_MAX)
         CPU_BLOCK_END();
-    if (version->refcount > max_version_refcount)
-        max_version_refcount = version->refcount;
+    if ((version->refcount - version->uncounted) > max_version_refcount)
+        max_version_refcount = version->refcount - version->uncounted;
 #if 0
     pclog("codegen_reg_read: %i %i %i\n", reg & IREG_REG_MASK, ireg.version, reg_version_refcount[IREG_GET_REG(ireg.reg)][ireg.version]);
 #endif
     return ireg;
+}
+
+/*Whether the version of reg the next read gets can take another read
+  without its 8-bit refcount wrapping*/
+static inline int
+codegen_reg_read_has_room(int reg)
+{
+    return reg_version[IREG_GET_REG(reg)][reg_last_version[IREG_GET_REG(reg)]].refcount < 254;
+}
+
+/*The next read of reg stands in for a C call that reads no register: it is
+  left out of the counts that end the block and limit unrolling, which stay
+  as they were with the call*/
+static inline void
+codegen_reg_read_uncounted(int reg)
+{
+    reg_version[IREG_GET_REG(reg)][reg_last_version[IREG_GET_REG(reg)]].uncounted++;
 }
 
 int reg_is_native_size(ir_reg_t ir_reg);
@@ -440,6 +460,7 @@ codegen_reg_write(int reg, int uop_nr)
     version             = &reg_version[IREG_GET_REG(reg)][ireg.version];
     version->refcount   = 0;
     version->flags      = 0;
+    version->uncounted  = 0;
     version->parent_uop = uop_nr;
 #if 0
     pclog("codegen_reg_write: %i\n", reg & IREG_REG_MASK);
