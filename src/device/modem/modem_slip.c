@@ -123,6 +123,22 @@ slip_encode_frame(const uint8_t *packet, size_t packet_len,
 }
 
 bool
+slip_packet_looks_like_ppp(const uint8_t *packet, size_t packet_len)
+{
+    size_t pos = 0;
+
+    if (!packet)
+        return false;
+
+    while (pos < packet_len && pos < 2 && packet[pos] == 0x7E)
+        pos++;
+    if (packet_len < pos + 2 || packet[pos] != 0xFF)
+        return false;
+    return packet[pos + 1] == 0x03
+        || (packet_len >= pos + 3 && packet[pos + 1] == 0x7D && packet[pos + 2] == 0x23);
+}
+
+bool
 slip_decode_frame_logged(void *log, const uint8_t *frame, size_t frame_len,
                          uint8_t *packet, size_t packet_capacity, size_t *packet_len)
 {

@@ -452,6 +452,7 @@ typedef struct modem_t {
 
     /* SLIP authentication */
     slip_auth_ctx_t *slip_auth_ctx;
+    bool             slip_ppp_warned;
 
     uint8_t fax_support;
     uint8_t fax_class;
@@ -1647,6 +1648,11 @@ process_tx_packet(modem_t *modem, uint8_t *p, uint32_t len)
         free(processed_tx_packet);
         return;
     }
+    if (!modem->slip_ppp_warned && slip_packet_looks_like_ppp(processed_tx_packet, received)) {
+        modem->slip_ppp_warned = true;
+        modem_log(modem->log, "SLIP: guest is sending PPP (HDLC flag, FF 03) but the connection type is SLIP. "
+                              "Set the connection type to PPP, or configure the guest dial-up connection as SLIP.\n");
+    }
 
     {
         uint8_t *ip_data    = processed_tx_packet;
@@ -2518,6 +2524,7 @@ modem_start_local_ip_connection(modem_t *modem)
         /* SLIP or CSLIP mode */
         modem->tcpIpMode    = false;
         modem->cslip_enabled = (modem->connection_type == MODEM_TYPE_CSLIP);
+        modem->slip_ppp_warned = false;
 
         /* A configured username enables SLIP authentication; the password may be empty. */
         if (modem->username[0]) {
