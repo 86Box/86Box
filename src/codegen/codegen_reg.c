@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <string.h>
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
@@ -255,19 +256,38 @@ static const uint8_t native_requested_sizes[9][8] =
   IREG_sf_exc come after the temporaries)*/
 uint64_t ireg_permanent_mask[2];
 
+/*0xff for each permanent register from IREG_ESP up, 0 for the others. Built
+  once with ireg_permanent_mask by codegen_check_regs(): ireg_data never
+  changes*/
+static uint8_t ireg_mark_bytes[IREG_COUNT];
+
+_Static_assert(sizeof(reg_last_version[0]) == 1, "codegen_reg_mark_as_required() reads reg_last_version 8 bytes at a time");
+_Static_assert((IREG_COUNT % 8) == 0, "codegen_reg_mark_as_required() reads reg_last_version 8 bytes at a time");
+
 void
 codegen_reg_mark_as_required(void)
 {
     /* This used to start from IREG_EAX, now only starts from IREG_ESP since the first 4 registers are never optimized out. */
     /* It also no longer iterates through volatile registers unnecessarily. */
-    for (uint8_t reg = IREG_ESP; reg < IREG_COUNT; reg++) {
-        if (!ireg_is_permanent(reg))
+    /*Most registers are not written in a block: a group of 8 with no
+      written one to mark is passed over whole. Only whether the 64-bit word
+      is zero is used, so the host's byte order does not matter, and the
+      registers are still visited in ascending order*/
+    for (int group = 0; group < IREG_COUNT; group += 8) {
+        uint64_t written;
+        uint64_t marked;
+
+        memcpy(&written, &reg_last_version[group], 8);
+        memcpy(&marked, &ireg_mark_bytes[group], 8);
+        if (!(written & marked))
             continue;
 
-        int last_version = reg_last_version[reg];
+        for (int reg = group; reg < (group + 8); reg++) {
+            int last_version = reg_last_version[reg];
 
-        if (last_version > 0)
-            reg_version[reg][last_version].flags |= REG_FLAGS_REQUIRED;
+            if (ireg_mark_bytes[reg] && (last_version > 0))
+                reg_version[reg][last_version].flags |= REG_FLAGS_REQUIRED;
+        }
     }
     dirty_ir_regs[0] = dirty_ir_regs[1] = 0;
 }
@@ -318,6 +338,14 @@ void
 codegen_check_regs(void)
 {
     int i = 0;
+
+    ireg_permanent_mask[0] = ireg_permanent_mask[1] = 0;
+    for (i = 0; i < IREG_COUNT; i++) {
+        if (ireg_data[i].is_volatile == REG_PERMANENT)
+            ireg_permanent_mask[i >> 6] |= 1ull << (i & 0x3f);
+        ireg_mark_bytes[i] = ((i >= IREG_ESP) && (ireg_data[i].is_volatile == REG_PERMANENT)) ? 0xff : 0;
+    }
+
     for (i = 0; i < IREG_COUNT; i++) {
         if (ireg_data[i].is_volatile == REG_VOLATILE)
             continue;
@@ -332,12 +360,6 @@ void
 codegen_reg_reset(void)
 {
     int c;
-
-    ireg_permanent_mask[0] = ireg_permanent_mask[1] = 0;
-    for (c = 0; c < IREG_COUNT; c++) {
-        if (ireg_data[c].is_volatile == REG_PERMANENT)
-            ireg_permanent_mask[c >> 6] |= 1ull << (c & 0x3f);
-    }
 
     host_reg_set.regs        = _host_regs;
     host_reg_set.dirty       = _host_reg_dirty;
