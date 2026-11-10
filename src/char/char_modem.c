@@ -5067,7 +5067,9 @@ static const device_config_t modem_config[] = {
             { .description = "PPP",                              .value = MODEM_TYPE_PPP },
             { .description = "SLIP",                             .value = MODEM_TYPE_SLIP },
             { .description = "CSLIP",                            .value = MODEM_TYPE_CSLIP },
+#ifdef ENABLE_VSERVER_NETBEUI
             { .description = "Microsoft RAS (WFW 3.11 / NT 3.1)", .value = MODEM_TYPE_RAS },
+#endif
             { .description = "" }
         },
         .bios           = { { 0 } }
