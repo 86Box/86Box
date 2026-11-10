@@ -900,9 +900,11 @@ fdd_close(void *priv)
         loaders[drv->driveloader].close(drv);
 
     drv->empty = 1;
+    drv->read_only = 0;
     fdd_set_head(drv, 0);
     drv->image_path[0] = 0;
     d86f_destroy(drv);
+    ui_sb_update_icon_wp(SB_FLOPPY | drv->id, 0);
     ui_sb_update_icon_state(SB_FLOPPY | drv->id, 1);
 }
 
