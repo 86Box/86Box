@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-10 09:12+0000\n"
+"PO-Revision-Date: 2026-11-10 10:50+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -158,7 +158,7 @@ msgid "4:3 Cen&ter"
 msgstr "4:3 置中(&T)"
 
 msgid "4:3 Integer scale (&vertical)"
-msgstr ""
+msgstr "4:3 (垂直) 整數比例(&V)"
 
 msgid "Inverted VGA monitor"
 msgstr "VGA 監視器反色顯示"
@@ -4212,7 +4212,7 @@ msgid "Automatic (from DTE speed)"
 msgstr "自動 (由 DTE 速率)"
 
 msgid "Connection Type"
-msgstr "連接形式"
+msgstr "連接型式"
 
 msgid "Username"
 msgstr "使用者名稱"
