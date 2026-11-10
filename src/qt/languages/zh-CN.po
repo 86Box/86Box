@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-10 12:04+0000\n"
+"PO-Revision-Date: 2026-11-10 18:59+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -2172,7 +2172,7 @@ msgid "Hard disk"
 msgstr "硬盘"
 
 msgid "BIOS Revision"
-msgstr "BIOS 修订版"
+msgstr "BIOS修订版本"
 
 msgid "BIOS Version"
 msgstr "BIOS 版本"
@@ -2313,7 +2313,7 @@ msgid "RTS toggle"
 msgstr "RTS 切换"
 
 msgid "Revision"
-msgstr "修订版"
+msgstr "修订版本"
 
 msgid "Controller"
 msgstr "控制器"

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-07 15:13+0000\n"
+"PO-Revision-Date: 2026-11-10 21:33+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -157,7 +157,7 @@ msgid "4:3 Cen&ter"
 msgstr "4:3 Cen&treren"
 
 msgid "4:3 Integer scale (&vertical)"
-msgstr ""
+msgstr "4:3 Integerschaal (&verticaal)"
 
 msgid "Inverted VGA monitor"
 msgstr "Geïnverteerde VGA-monitor"
@@ -1586,10 +1586,10 @@ msgid "Hard disk (%1)"
 msgstr "Harde schijf (%1)"
 
 msgid "Board LED"
-msgstr ""
+msgstr "Bord-LED"
 
 msgid "Board LED %1"
-msgstr ""
+msgstr "Bord-LED %1"
 
 msgid "Custom…"
 msgstr "Aangepast…"
@@ -2480,7 +2480,7 @@ msgid "Snow emulation"
 msgstr "Sneeuwemulatie"
 
 msgid "Display Enhancement Board (GO329)"
-msgstr ""
+msgstr "Display Enhancement Board (GO329)"
 
 msgid "Monitor type"
 msgstr "Type monitor"
@@ -3733,10 +3733,10 @@ msgid "Software-initiated poweroff device (IBM 5140)"
 msgstr "Software-geïnitieerde apparaatuitschakeling (IBM 5140)"
 
 msgid "Memory &viewer"
-msgstr ""
+msgstr "Geheugen&viewer"
 
 msgid "The emulator is busy; the memory view was not updated."
-msgstr ""
+msgstr "De emulator is bezig; de geheugenweergave is niet geüpdatet."
 
 msgid "The match is not on mapped memory; the selection and the view did not move."
 msgstr ""
