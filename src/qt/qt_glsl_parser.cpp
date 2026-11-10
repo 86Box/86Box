@@ -73,7 +73,8 @@ static inline int
 wx_config_get_bool(void *config, const char *name, int *dst, int defVal)
 {
     int res = ini_has_entry(ini_find_or_create_section((ini_t) config, ""), name);
-    *dst    = !!ini_get_int((ini_t) config, "", name, defVal);
+    /* Keep the default as it is when the key is missing, so -1 can mean "not set". */
+    *dst = res ? !!ini_get_int((ini_t) config, "", name, 0) : defVal;
     return res;
 }
 
@@ -263,6 +264,8 @@ glsl_parse(const char *f)
     shader->scale_x = shader->scale_y = 1.0f;
     strcpy(shader->scale_type_x, "source");
     strcpy(shader->scale_type_y, "source");
+    /* A bare shader doesn't set its input filtering, the global filter method applies. */
+    glslp->input_filter_linear = -1;
     get_parameters(glslp);
     return glslp;
 }
@@ -346,7 +349,7 @@ glslp_parse(const char *f)
         wx_config_get_string(cfg, s, shader->alias, sizeof(shader->alias), 0);
 
         snprintf(s, sizeof(s) - 1, "filter_linear%d", i + 1);
-        wx_config_get_bool(cfg, s, &shader->filter_linear, 0);
+        wx_config_get_bool(cfg, s, &shader->filter_linear, -1);
 
         snprintf(s, sizeof(s) - 1, "wrap_mode%d", i);
         wx_config_get_string(cfg, s, shader->wrap_mode, sizeof(shader->wrap_mode), 0);

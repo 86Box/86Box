@@ -491,7 +491,8 @@ OpenGLRenderer::setup_fbo(struct shader *shader, struct shader_fbo *fbo)
 {
     fbo->texture.internal_format = GL_RGB8;
     fbo->texture.format          = GL_RGB;
-    fbo->texture.min_filter = fbo->texture.mag_filter = shader->filter_linear ? GL_LINEAR : GL_NEAREST;
+    /* filter_linear is -1 when the preset doesn't set it, use nearest then. */
+    fbo->texture.min_filter = fbo->texture.mag_filter = (shader->filter_linear > 0) ? GL_LINEAR : GL_NEAREST;
     fbo->texture.width                                = 2048;
     fbo->texture.height                               = 2048;
     fbo->texture.type                                 = GL_UNSIGNED_BYTE;
@@ -513,7 +514,7 @@ OpenGLRenderer::setup_fbo(struct shader *shader, struct shader_fbo *fbo)
     }
 
     if (fbo->texture.mipmap)
-        fbo->texture.min_filter = shader->filter_linear ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST;
+        fbo->texture.min_filter = (shader->filter_linear > 0) ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST;
 
     create_fbo(fbo);
 }
@@ -698,6 +699,10 @@ OpenGLRenderer::load_glslp(glsl_t *glsl, int num_shader, const char *f)
             for (int i = 0; i < p->num_shaders; ++i) {
                 struct shader      *shader = &p->shaders[i];
                 struct shader_pass *pass   = &gshader->passes[i];
+
+                /* filter_linear0 is the filtering of the preset's input, filter_linearN that of the
+                   output of pass N-1, which is the input of pass N. */
+                pass->input_filter_linear = (i == 0) ? p->input_filter_linear : p->shaders[i - 1].filter_linear;
 
                 strcpy(pass->alias, shader->alias);
                 if (!strlen(pass->alias))
@@ -1608,6 +1613,21 @@ OpenGLRenderer::render()
             bool                resetFiltering = false;
             struct shader_pass *pass           = &shader->passes[i];
 
+            /* The preset's filtering for this pass's input if it sets one, otherwise the filter
+               method chosen in the menu. */
+            const int input_linear = (pass->input_filter_linear >= 0) ? pass->input_filter_linear : video_filter_method;
+
+            /* The first pass of a shader reads the scene or the previous shader's output. */
+            if (i == 0) {
+                input->fbo.texture.min_filter = input->fbo.texture.mag_filter = input_linear ? GL_LINEAR : GL_NEAREST;
+                if (input->fbo.texture.mipmap)
+                    input->fbo.texture.min_filter = input_linear ? GL_LINEAR_MIPMAP_LINEAR : GL_NEAREST_MIPMAP_NEAREST;
+                glw.glBindTexture(GL_TEXTURE_2D, input->fbo.texture.id);
+                glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, input->fbo.texture.min_filter);
+                glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, input->fbo.texture.mag_filter);
+                glw.glBindTexture(GL_TEXTURE_2D, 0);
+            }
+
             memcpy(pass->state.input_size, input->state.output_size, 2 * sizeof(GLfloat));
             memcpy(pass->state.input_texture_size, input->state.output_texture_size, 2 * sizeof(GLfloat));
 
@@ -1630,8 +1650,8 @@ OpenGLRenderer::render()
             } else {
                 resetFiltering = true;
                 glw.glBindTexture(GL_TEXTURE_2D, input->fbo.texture.id);
-                glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, video_filter_method ? GL_LINEAR : GL_NEAREST);
-                glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, video_filter_method ? GL_LINEAR : GL_NEAREST);
+                glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, input_linear ? GL_LINEAR : GL_NEAREST);
+                glw.glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, input_linear ? GL_LINEAR : GL_NEAREST);
                 glw.glBindTexture(GL_TEXTURE_2D, 0);
                 glw.glViewport(window_rect.x, window_rect.y, window_rect.w, window_rect.h);
             }
