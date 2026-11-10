@@ -1160,12 +1160,8 @@ wimage_flush(const void *local, const int multi_session)
 {
     cd_image_t *img = (cd_image_t *) local;
 
-    pclog("CDB: recording = %i, cue written = %i\n", img->recording, img->cue_written);
-
-    if ((multi_session & 0x0f) == 0x01) {
-        pclog("CDB: closing track...\n");
+    if ((multi_session & 0x0f) == 0x01)
         wimage_close_track(img);
-    }
 
     if (img->recording && (img->cue_written >= 0))
         return wimage_close_session(img, multi_session & 0x80);
@@ -1452,7 +1448,7 @@ wimage_finalize(cd_image_t *img)
                                 wimage_finalize_read, img);
 
     if (ret)
-        pclog("CD-R: Could not write image %s\n", img->path);
+        warning("CD-R: Could not write image %s\n", img->path);
     else {
         img->dirty = 0;
         plat_remove(img->state_path);
@@ -1603,7 +1599,7 @@ wimage_open(cdrom_t *dev, const char *path, const int type)
         return NULL;
 
     if (wimage_reset(img)) {
-        pclog("CD-R: Could not create %s\n", img->spool_path);
+        warning("CD-R: Could not create %s\n", img->spool_path);
         if (img->spool != NULL)
             fclose(img->spool);
         free(img);
