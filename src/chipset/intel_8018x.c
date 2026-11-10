@@ -69,8 +69,8 @@
 /* DMA control word (270788-001 Figure 67). The source and destination fields
    are three separate bits each: M/IO selects memory, INC/DEC move the pointer
    after every transfer. INT raises the channel's interrupt request at the
-   terminal count; SYN (bits 7-6) and W/B (bit 0) are not modelled, so
-   every transfer is a byte. */
+   terminal count; W/B selects a word instead of a byte; SYN (bits 7-6) is
+   not modelled yet. */
 #define I8018X_DMA_DST_MIO      0x8000u
 #define I8018X_DMA_DST_DEC      0x4000u
 #define I8018X_DMA_DST_INC      0x2000u
@@ -80,6 +80,7 @@
 #define I8018X_DMA_INT          0x0100u
 #define I8018X_DMA_CHG          0x0004u /* write only; always reads back as 0 */
 #define I8018X_DMA_ST           0x0002u
+#define I8018X_DMA_BW           0x0001u /* 0 = byte, 1 = word */
 
 /* Interrupt controller, master mode (270788-001 section 9.5, Figures 80-87). */
 #define I8018X_ICU_EOI          0x22u /* End of Interrupt Register */
@@ -150,6 +151,7 @@ struct i8018x_pcb_t {
     uint16_t icu_isr;       /* in-service register bits */
     uint32_t icu_dhlt;      /* CPU NMI/IRET events already applied to the halt bit */
     uint8_t  tmr_alt[3];    /* MAX COUNT register in use: 0 = A, 1 = B (ALT) */
+    uint32_t tmr_ext_div[3];  /* CPU clocks per TIMERIN edge, 0 = pin not driven */
     int      dma_ch[2];       /* 86Box DMA channel the on-chip channel drives, -1 = unused */
     uint8_t  dma_drq[2];      /* request pin state, recorded only */
     uint8_t  dma_adv_pend[2]; /* pointer step owed to the read_only/advance pair */
@@ -176,6 +178,7 @@ static void     i8018x_pcb_outw(uint16_t port, uint16_t val, void *priv);
 #define I8018X_TMR_CON_RIU     0x1000u
 #define I8018X_TMR_CON_MC      0x0020u
 #define I8018X_TMR_CON_P       0x0008u
+#define I8018X_TMR_CON_EXT     0x0004u
 #define I8018X_TMR_CON_ALT     0x0002u
 #define I8018X_TMR_CON_CONT    0x0001u
 
@@ -195,22 +198,29 @@ i8018x_pcb_tmr_max(struct i8018x_pcb_t *dev, int i)
 
     uint64_t m = (uint64_t) dev->regs[reg / 2];
 
-    /* A maximum count register of 0 means 65536, not 1. Treating it as 1 makes
-       a prescaled timer see a huge jump in its source-event count the moment
-       the MAX register is written, latching a spurious request (the ROM's
-       timer test treats an early request as a failure). */
-    return m ? (m + 1u) : 0x10000u;
+    /* The count resets when it equals this register, so a period lasts the
+       register value itself; only zero is special and stands for a full
+       16-bit period (270788-001 section 6.1). */
+    return m ? m : 0x10000u;
 }
 
-/* Clock events counted by a timer since it was last started. Timer 2 always
-   runs from the internal clock; timers 0 and 1 run from timer 2's
-   maximum-count output when the Prescaler bit (bit 3) is set. */
+/* Clock events counted by a timer since it was last started. Timer 2
+   always runs from the internal clock; timers 0 and 1 run from timer 2's
+   maximum-count output when the Prescaler bit (bit 3) is set, or from their
+   TIMERIN pin when the EXTernal bit (bit 2) is set (270788-001 section 6.3). */
 static uint64_t
 i8018x_pcb_tmr_events(struct i8018x_pcb_t *dev, int i)
 {
     uint64_t src;
 
-    if ((i != 2) && (dev->regs[I8018X_TMR_CON(i) / 2] & I8018X_TMR_CON_P))
+    if ((i != 2) && (dev->regs[I8018X_TMR_CON(i) / 2] & I8018X_TMR_CON_EXT)) {
+        /* Only TIMERIN edges advance the count, and nothing moves while no
+           rate is driven into the pin.  tsc advances three times per CPU
+           clock on this core, hence the factor of three. */
+        src = dev->tmr_ext_div[i]
+                  ? ((tsc - dev->tmr_base[i]) / ((uint64_t) dev->tmr_ext_div[i] * 3u))
+                  : 0u;
+    } else if ((i != 2) && (dev->regs[I8018X_TMR_CON(i) / 2] & I8018X_TMR_CON_P))
         src = i8018x_pcb_tmr_events(dev, 2) / i8018x_pcb_tmr_max(dev, 2);
     else
         src = (tsc - dev->tmr_base[i]) / I8018X_TMR_TSC_PER_EVENT;
@@ -556,6 +566,17 @@ i8018x_pcb_set_ext_ack(struct i8018x_pcb_t *pcb, int line, ext_ack_t ack, void *
     i8018x_pcb_cascade = (pcb->ext_ack[0] != NULL) || (pcb->ext_ack[1] != NULL);
 }
 
+/* Rate of the TIMERIN pin, in CPU clocks per edge. Only timers 0 and 1 have
+   one; timer 2 has no external input (270788-001 section 6.3). */
+void
+i8018x_pcb_set_timer_input(struct i8018x_pcb_t *pcb, int tmr, uint32_t cpu_clocks_per_event)
+{
+    if ((pcb == NULL) || (tmr < 0) || (tmr > 1))
+        return;
+
+    pcb->tmr_ext_div[tmr] = cpu_clocks_per_event;
+}
+
 /* A board that hangs its sources on the machine's 8259 instead of on the
    controller's own inputs declares which line stands for which input, and
    this watches the 8259 for those lines. The observer is a single slot for
@@ -683,10 +704,15 @@ i8018x_pcb_write_word(struct i8018x_pcb_t *dev, uint16_t off, uint16_t val)
         return;
     }
 
-    /* CHG/NOCHG gates the ST/STOP bit: a control word write that leaves it
-       clear keeps the channel running as it was (270788-001 section 8.2). */
-    if (((off == I8018X_DMA_CTRL(0)) || (off == I8018X_DMA_CTRL(1))) && !(val & I8018X_DMA_CHG))
-        val = (uint16_t) ((val & ~I8018X_DMA_ST) | (dev->regs[off / 2] & I8018X_DMA_ST));
+    /* CHG/NOCHG gates the ST/STOP bit: a control word write that leaves
+       it clear keeps the channel running as it was, and the bit itself is
+       write only, always reading back as zero (270788-001 section 8.2). */
+    if ((off == I8018X_DMA_CTRL(0)) || (off == I8018X_DMA_CTRL(1))) {
+        if (!(val & I8018X_DMA_CHG))
+            val = (uint16_t) ((val & ~I8018X_DMA_ST) | (dev->regs[off / 2] & I8018X_DMA_ST));
+
+        val &= (uint16_t) ~I8018X_DMA_CHG;
+    }
 
     /* A timer control register keeps neither its INHibit bit, which is what
        lets a write reach the ENable bit at all, nor its read-only RIU bit
@@ -872,12 +898,15 @@ i8018x_pcb_dma_ptr(struct i8018x_pcb_t *dev, int slot, int dst)
     uint16_t lo = (uint16_t) (dst ? I8018X_DMA_DST_LO(slot) : I8018X_DMA_SRC_LO(slot));
     uint16_t hi = (uint16_t) (dst ? I8018X_DMA_DST_HI(slot) : I8018X_DMA_SRC_HI(slot));
 
-    return ((uint32_t) dev->regs[lo]) | ((uint32_t) dev->regs[hi] << 16);
+    /* The high half carries address bits A19-A16 only (270788-001
+       section 8.2); the rest of that word is not implemented. */
+    return ((uint32_t) dev->regs[lo] | (((uint32_t) dev->regs[hi] & 0x000Fu) << 16)) & 0x000FFFFFu;
 }
 
-/* Move one pointer on as its INC/DEC bits ask; all 20 bits are affected. The
-   manual's third state, leaving the pointer alone, is what the ROM asks for
-   with both bits set, to keep a channel on the FDC's port (section 8.2). */
+/* Move one pointer on as its INC/DEC bits ask; all 20 bits are affected, and a
+   word transfer moves it by two. The manual's third state, leaving the pointer
+   alone, is what the ROM asks for with both bits set, to keep a channel on the
+   FDC's port (section 8.2). */
 static void
 i8018x_pcb_dma_step_ptr(struct i8018x_pcb_t *dev, int slot, int dst)
 {
@@ -887,11 +916,12 @@ i8018x_pcb_dma_step_ptr(struct i8018x_pcb_t *dev, int slot, int dst)
     uint16_t lo   = (uint16_t) (dst ? I8018X_DMA_DST_LO(slot) : I8018X_DMA_SRC_LO(slot));
     uint16_t hi   = (uint16_t) (dst ? I8018X_DMA_DST_HI(slot) : I8018X_DMA_SRC_HI(slot));
     uint32_t ptr  = i8018x_pcb_dma_ptr(dev, slot, dst);
+    uint32_t step = (ctrl & I8018X_DMA_BW) ? 2u : 1u;
 
     if ((ctrl & inc) && !(ctrl & dec))
-        ptr++;
+        ptr += step;
     else if ((ctrl & dec) && !(ctrl & inc))
-        ptr--;
+        ptr -= step;
 
     ptr &= 0x000FFFFFu;
 
@@ -944,7 +974,9 @@ i8018x_pcb_dma_read_only(int channel, void *priv)
 
     dev->dma_adv_pend[slot] = 1;
 
-    return mem_readb_phys(i8018x_pcb_dma_ptr(dev, slot, 0));
+    return (dev->regs[I8018X_DMA_CTRL(slot)] & I8018X_DMA_BW)
+               ? mem_readw_phys(i8018x_pcb_dma_ptr(dev, slot, 0))
+               : mem_readb_phys(i8018x_pcb_dma_ptr(dev, slot, 0));
 }
 
 static int
@@ -972,7 +1004,9 @@ i8018x_pcb_dma_read(int channel, void *priv)
     if ((slot < 0) || !i8018x_pcb_dma_armed(dev, slot))
         return DMA_NODATA;
 
-    ret = mem_readb_phys(i8018x_pcb_dma_ptr(dev, slot, 0));
+    ret = (dev->regs[I8018X_DMA_CTRL(slot)] & I8018X_DMA_BW)
+              ? mem_readw_phys(i8018x_pcb_dma_ptr(dev, slot, 0))
+              : mem_readb_phys(i8018x_pcb_dma_ptr(dev, slot, 0));
     i8018x_pcb_dma_step_ptr(dev, slot, 0);
 
     return ret | (i8018x_pcb_dma_count_down(dev, slot) ? DMA_OVER : 0);
@@ -987,7 +1021,11 @@ i8018x_pcb_dma_write(int channel, uint16_t val, void *priv)
     if ((slot < 0) || !i8018x_pcb_dma_armed(dev, slot))
         return DMA_NODATA;
 
-    mem_writeb_phys(i8018x_pcb_dma_ptr(dev, slot, 1), (uint8_t) val);
+    if (dev->regs[I8018X_DMA_CTRL(slot)] & I8018X_DMA_BW)
+        mem_writew_phys(i8018x_pcb_dma_ptr(dev, slot, 1), val);
+    else
+        mem_writeb_phys(i8018x_pcb_dma_ptr(dev, slot, 1), (uint8_t) val);
+
     i8018x_pcb_dma_step_ptr(dev, slot, 1);
 
     return i8018x_pcb_dma_count_down(dev, slot) ? DMA_OVER : 0;
