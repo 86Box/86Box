@@ -353,6 +353,25 @@ const device_t vaxmate_device = {
     .config        = vaxmate_config
 };
 
+uint8_t
+machine_vaxmate_p1_handler(void)
+{
+    /* Port 1 (TRM table 8-1): bit 2 = expansion box installed (0 = installed),
+       bit 1 = RAM option installed (0 = installed), bit 0 = RAM option parity
+       error (0 = error), bit 6 always 0. */
+    uint8_t ret = 0xbf;
+
+    /* The system board has 1 MB; the RAM option adds 2 MB. */
+    if (mem_size > 1024)
+        ret &= ~0x02;
+
+    /* The expansion box carries the hard disk controller and system clock. */
+    if (hdc_current[0] != HDC_NONE)
+        ret &= ~0x04;
+
+    return ret;
+}
+
 static mem_mapping_t vaxmate_hi_mapping;
 static mem_mapping_t vaxmate_priv_mapping;
 
