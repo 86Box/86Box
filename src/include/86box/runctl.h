@@ -98,8 +98,17 @@ extern void        runctl_request_stop(void); /* also clears cpu_thread_run */
 extern void runctl_thread_starting(void); /* before creating it */
 extern void runctl_thread_started(void);  /* first thing on the CPU thread */
 extern void runctl_thread_exiting(void);  /* last thing on the CPU thread */
-extern void runctl_safe_point(void);      /* CPU thread, between quanta, while not running a quantum */
+extern void runctl_safe_point(void);      /* CPU thread, between quanta; runs queued requests */
 extern void runctl_quantum_done(uint32_t emu_us); /* CPU thread, after each quantum */
+
+/* Run fn(arg) on the CPU thread at its next safe point, between quanta, where
+   it may touch machine state. Requests run in order, also while the machine
+   is paused for any reason; a request doesn't resume it. On the CPU thread,
+   or when there is no CPU thread, fn runs at once on the caller's thread.
+   runctl_call() returns at once; runctl_call_wait() returns after fn has
+   returned. Don't wait from a thread the CPU thread may itself block on. */
+extern void runctl_call(void (*fn)(void *arg), void *arg);
+extern void runctl_call_wait(void (*fn)(void *arg), void *arg);
 
 /* Status snapshot; any thread. */
 extern void runctl_get_status(run_status_t *out);
