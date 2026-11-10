@@ -732,14 +732,26 @@ i8018x_pcb_write_word(struct i8018x_pcb_t *dev, uint16_t off, uint16_t val)
         break;
     }
 
+    uint16_t old_val = dev->regs[off / 2];
+
     dev->regs[off / 2] = val;
 
-    /* A control or count-register write (re)starts the count cycle; the request
-       latch itself is only touched through the interrupt controller registers. */
+    /* Only the write that starts a timer restarts its cycle, and a new maximum
+       count takes effect on the fly; neither of them clears the count
+       (270788-001 section 6.1). The request latch itself is only
+       touched through the interrupt controller registers. */
     for (int i = 0; i < 3; i++) {
-        if ((off == I8018X_TMR_CON(i)) || (off == I8018X_TMR_COUNT(i)) ||
-            (off == I8018X_TMR_MAXA(i)) || (off == I8018X_TMR_MAXB(i)))
+        if (off == I8018X_TMR_COUNT(i)) {
             i8018x_pcb_tmr_restart(dev, i);
+        } else if ((off == I8018X_TMR_CON(i)) &&
+                   !(old_val & I8018X_TMR_CON_EN) && (val & I8018X_TMR_CON_EN)) {
+            i8018x_pcb_tmr_restart(dev, i);
+        } else if ((off == I8018X_TMR_MAXA(i)) || (off == I8018X_TMR_MAXB(i))) {
+            /* Rebase the completed cycles so the new maximum does not latch a
+               terminal count by itself. */
+            if (dev->regs[I8018X_TMR_CON(i) / 2] & I8018X_TMR_CON_EN)
+                dev->tmr_done[i] = i8018x_pcb_tmr_events(dev, i) / i8018x_pcb_tmr_max(dev, i);
+        }
     }
 
     /* A control word that arms an unsynchronized channel starts it at once
