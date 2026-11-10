@@ -636,31 +636,33 @@ wimage_decode_data_form(const uint8_t form, int *data_block_type, int *mode, int
             *data_block_type = 0;
             *generated       = 1;
             break;
-        case 0x10:
+        case 0x10 ... 0x14:
             *mode            = 1;
             *data_block_type = 8;
+            if (form & 0x01)
+                *data_block_type |= 32;
+            if (form & 0x06)
+                *data_block_type |= 16;
             break;
-        case 0x11:
-            *mode            = 1;
-            *data_block_type = 0;
-            break;
-        case 0x14:
-            *mode            = 1;
-            *data_block_type = 8;
-            *generated       = 1;
-            break;
-        case 0x20: case 0x30:
+        case 0x20 ... 0x23:
             *mode            = 2;
-            *data_block_type = 9;
+            *data_block_type = 13;
+            if (form & 0x01)
+                *data_block_type |= 32;
+            if (form & 0x02)
+                *data_block_type |= 16;
             break;
-        case 0x21: case 0x31:
+        case 0x24:
             *mode            = 2;
-            *data_block_type = 0;
+            *data_block_type = 0x1c;
             break;
-        case 0x24: case 0x34:
+        case 0x30 ... 0x34:
             *mode            = 2;
-            *data_block_type = 9;
-            *generated       = 1;
+            *data_block_type = 10;
+            if (form & 0x01)
+                *data_block_type |= 32;
+            if (form & 0x06)
+                *data_block_type |= 16;
             break;
     }
 
@@ -1158,8 +1160,15 @@ wimage_flush(const void *local, const int multi_session)
 {
     cd_image_t *img = (cd_image_t *) local;
 
+    pclog("CDB: recording = %i, cue written = %i\n", img->recording, img->cue_written);
+
+    if ((multi_session & 0x0f) == 0x01) {
+        pclog("CDB: closing track...\n");
+        wimage_close_track(img);
+    }
+
     if (img->recording && (img->cue_written >= 0))
-        return wimage_close_session(img, multi_session);
+        return wimage_close_session(img, multi_session & 0x80);
 
     /* The drive writes run-out, link, and run-in blocks after every packet. */
     if (img->packet_open) {

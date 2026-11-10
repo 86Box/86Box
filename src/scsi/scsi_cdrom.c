@@ -17,7 +17,6 @@
  */
 #include <inttypes.h>
 #include <math.h>
-#define ENABLE_SCSI_CDROM_LOG 2
 #ifdef ENABLE_SCSI_CDROM_LOG
 #include <stdarg.h>
 #endif
@@ -3881,22 +3880,24 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             scsi_cdrom_command_complete(dev);
             break;
 
-        case GPCMD_SYNCHRONIZE_CACHE:
+        case GPCMD_SYNCHRONIZE_CACHE: {
             scsi_cdrom_set_phase(dev, SCSI_PHASE_STATUS);
+
+            int write_type      = dev->ms_pages_saved.pages[GPMODE_CDROM_WRITE_PARAMETERS_PAGE][2] & 0x0f;
+            int multi_session   = dev->ms_pages_saved.pages[GPMODE_CDROM_WRITE_PARAMETERS_PAGE][3] & 0x80;
 
             /* Sectors reach the backing store as they arrive, this only ends SAO recordings. */
             if (scsi_cdrom_is_test_write(dev))
-                cdrom_write_to_toc(dev->drv, CD_WTOC_ABORT);
+                cdrom_write_to_toc(dev->drv, (write_type == 2) ? CD_WTOC_ABORT : 1);
             else
-                cdrom_flush_writes(dev->drv,
-                                   dev->ms_pages_saved.pages[GPMODE_CDROM_WRITE_PARAMETERS_PAGE][3] & 0x80);
+                cdrom_flush_writes(dev->drv, multi_session | write_type);
 
             dev->toc_cached = 0;
 
             scsi_cdrom_command_complete(dev);
             break;
 
-        case GPCMD_GET_CONFIGURATION:
+        } case GPCMD_GET_CONFIGURATION:
             scsi_cdrom_set_phase(dev, SCSI_PHASE_DATA_IN);
 
             /* XXX: Could result in alignment problems in some architectures */

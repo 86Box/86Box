@@ -340,10 +340,10 @@ aaru_image_get_track(const aaru_image_t *ioctl, const uint32_t sector)
 static void
 aaru_image_get_track_mode(const aaru_image_t *img, int64_t lba, uint8_t *mode, uint8_t *form)
 {
-    uint8_t  buffer[1024];
-    uint32_t length = 0;
-    // Mode shall be determined by getting the type of the track.
-    // Form is determined by reading the sector metadata.
+    /*
+       Mode shall be determined by getting the type of the track.
+       Form is determined by reading the sector metadata.
+     */
     *mode = 0;
     *form = 0;
     for (int i = 0; i < img->track_size; i++) {
@@ -369,14 +369,8 @@ aaru_image_get_track_mode(const aaru_image_t *img, int64_t lba, uint8_t *mode, u
                 *form = 2;
                 return;
             }
-            // Mode Formless, try to extract the metadata.
-            length = 8;
             *mode  = 2;
             *form  = 0;
-            if (!f_aaruf_read_sector_tag(img->aaruf_context, (uint64_t) lba,
-                false, buffer, &length, kSectorTagCdSubHeader)) {
-                *form = 1 + !!(buffer[2] & (1 << 5));
-            }
         }
     }
     return;
@@ -407,21 +401,26 @@ aaru_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32
     raw_track_info_t       *rti           = (raw_track_info_t *) (ioctl->full_toc + 4);
     const raw_track_info_t *ct            = &(rti[track]);
     const uint32_t          start         = (ct->pm * 60 * 75) + (ct->ps * 75) + ct->pf;
+    int                     ret           = 1;
     int                     m, s, f;
     uint8_t                 mode = 0, form = 0;
     int64_t                 pregap_length = 0;
     int32_t                 long_res;
-    int                     cooked        = 0;
 
     memset(buffer, 0, 2448);
+
+    /* For starters: Yes, negative numbers have the signed bit (here, bit 31) set. */
+    if (track & (1 << 31))
+        return -1;
 
     if (sector == 0xFFFFFFFF)
         lba = ioctl->dev->seek_pos;
 
     /* Use the resolved LBA, not the raw sector argument (which may be ~0u). */
     aaru_image_get_track_mode(ioctl, (int64_t) lba, &mode, &form);
+    pclog("mode = %i, form = %i\n", mode, form);
 
-    if (mode == 0) {
+    if ((mode == 0) && !ioctl->is_dvd) {
         length = 2352;
         (void) f_aaruf_read_sector(ioctl->aaruf_context, lba,
                                    false, buffer, &length, &sector_status);
@@ -432,7 +431,6 @@ aaru_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32
          * cooked payload at offset 16 and synthesize the header.
          */
         length  = 2048;
-        cooked  = 1;
         if (f_aaruf_read_sector(ioctl->aaruf_context, lba, false,
                                 buffer + 16, &length, &sector_status))
             return -1;
@@ -441,122 +439,137 @@ aaru_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32
         goto generate_headers;
     } else {
         length   = 2352;
+        pclog("Reading 2352 bytes of raw sector... ");
         long_res = f_aaruf_read_sector_long(ioctl->aaruf_context, lba,
                                             false, buffer, &length, &sector_status);
         if (long_res) {
             /* No raw frame in the image: cooked 2048 + synthetic header. */
             length = 2048;
-            cooked = 1;
+            pclog("no raw frame... ");
             if (f_aaruf_read_sector(ioctl->aaruf_context, lba, false,
-                                    buffer + 16, &length, &sector_status))
+                                    buffer + 16, &length, &sector_status)) {
+                pclog("error\n");
                 return -1;
+            } else
+                pclog("done\n");
             goto generate_headers;
+        } else {
+            if ((mode == 2) && (form == 0) && (buffer[0x0012] == buffer[0x0016])) {
+                pclog("adjusting form... ");
+                form = 1 + !!(buffer[0x0012] & (1 << 5));
+            }
+            pclog("done\n");
         }
     }
 
     length = 96;
+    pclog("Reading 96 bytes of raw subchannel... ");
     if (f_aaruf_read_sector_tag(ioctl->aaruf_context, lba, false, &buffer[2352],
                                 &length, kSectorTagCdSubchannel)) {
-
-generate_headers:
-        m = s = f = 0;
-        if (!cooked && (length == 96))
-            goto generate_subchannel;
-
-        buffer[0] = 0x00;
-        memset(&(buffer[1]), 0xff, 10);
-        buffer[11] = 0x00;
-
-        FRAMES_TO_MSF(lba + 150, &m, &s, &f);
-        buffer[12] = bin2bcd(m);
-        buffer[13] = bin2bcd(s);
-        buffer[14] = bin2bcd(f);
-        buffer[15] = mode;
-
-        if (form >= 1) {
-            uint8_t *subheader = buffer + 16;
-            subheader[2] = subheader[6] = (form - 1) << 5;
-        }
-
-        /* Construct sector header and sub-header. */
-        {
-            /* Sync bytes. */
-            buffer[0] = 0x00;
-            memset(&(buffer[1]), 0xff, 10);
-            buffer[11] = 0x00;
-
-            /* Sector header. */
-            FRAMES_TO_MSF(lba + 150, &m, &s, &f);
-            buffer[12] = bin2bcd(m);
-            buffer[13] = bin2bcd(s);
-            buffer[14] = bin2bcd(f);
-
-            /* Mode 1/Mode 2 data. */
-            buffer[15] = mode;
-            if (form >= 1) {
-                uint8_t *subheader = buffer + 16;
-                /* Construct the CD-I/XA sub-header. */
-                subheader[2] = subheader[6] = (form - 1) << 5;
-            }
-
-            uint32_t crc;
-
-            if ((mode == 2) && (form == 1)) {
-                crc = cdrom_crc32(0xffffffff, &(buffer[16]), 2056) ^ 0xffffffff;
-                memcpy(&(buffer[2072]), &crc, 4);
-            } else if ((mode == 2) && (form == 2)) {
-                crc = cdrom_crc32(0xffffffff, &(buffer[16]), 2332) ^ 0xffffffff;
-                memcpy(&(buffer[2348]), &crc, 4);
-            } else {
-                crc = cdrom_crc32(0xffffffff, buffer, 2064) ^ 0xffffffff;
-                memcpy(&(buffer[2064]), &crc, 4);
-            }
-
-            int m2f1 = (mode == 2) && (form == 1);
-
-            if ((mode == 1) || m2f1) {
-                /* Compute ECC P code. */
-                cdrom_compute_ecc_block(ioctl->dev, &(buffer[2076]),
-                                        &(buffer[12]), 86, 24, 2,
-                                        86, m2f1);
-
-                /* Compute ECC Q code. */
-                cdrom_compute_ecc_block(ioctl->dev, &(buffer[2248]),
-                                        &(buffer[12]), 52, 43, 86,
-                                        88, m2f1);
-            }
-        }
-
-generate_subchannel:
-        /* Construct Q. */
-        buffer[2352 + 0] = (ct->adr_ctl >> 4) | ((ct->adr_ctl & 0xf) << 4);
-        buffer[2352 + 1] = bin2bcd(ct->point);
-        pregap_length = aaru_image_get_pregap_length(ioctl, ct->point);
-        if (pregap_length && ((lba + 150) - start) < pregap_length) {
-            /*
-                Pre-gap sector relative frame addresses count from
-                the pregap length downwards.
-            */
-            buffer[2352 + 2] = 0;
-            FRAMES_TO_MSF((int32_t) ((pregap_length - 1) - (lba + 150 - start)), &m, &s, &f);
-        } else {
-            buffer[2352 + 2] = 1;
-            FRAMES_TO_MSF((int32_t) (lba + 150 - start), &m, &s, &f);
-        }
-        buffer[2352 + 3] = bin2bcd(m);
-        buffer[2352 + 4] = bin2bcd(s);
-        buffer[2352 + 5] = bin2bcd(f);
-        FRAMES_TO_MSF(lba + 150, &m, &s, &f);
-        buffer[2352 + 7] = bin2bcd(m);
-        buffer[2352 + 8] = bin2bcd(s);
-        buffer[2352 + 9] = bin2bcd(f);
-        *(uint16_t*)&buffer[2352 + 10] = bswap16(cdrom_crc16(0xffff, &buffer[2352], 10));
-        for (int i = 11; i >= 0; i--)
-            for (int j = 7; j >= 0; j--)
-                buffer[2352 + (i * 8) + j] = ((buffer[2352 + i] >> (7 - j)) & 0x01) << 6;
+        pclog("generating\n");
+        goto generate_subchannel;
+    } else {
+        pclog("done\n");
+        goto done;
     }
 
-    return 1;
+generate_headers:
+    ret = 2;
+    m = s = f = 0;
+    buffer[0] = 0x00;
+    memset(&(buffer[1]), 0xff, 10);
+    buffer[11] = 0x00;
+
+    FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+    buffer[12] = bin2bcd(m);
+    buffer[13] = bin2bcd(s);
+    buffer[14] = bin2bcd(f);
+    buffer[15] = mode;
+
+    if (form >= 1) {
+        uint8_t *subheader = buffer + 16;
+        subheader[2] = subheader[6] = (form - 1) << 5;
+    }
+
+    /* Construct sector header and sub-header. */
+
+    /* Sync bytes. */
+    buffer[0] = 0x00;
+    memset(&(buffer[1]), 0xff, 10);
+    buffer[11] = 0x00;
+
+    /* Sector header. */
+    FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+    buffer[12] = bin2bcd(m);
+    buffer[13] = bin2bcd(s);
+    buffer[14] = bin2bcd(f);
+
+    /* Mode 1/Mode 2 data. */
+    buffer[15] = mode;
+    if (form >= 1) {
+        uint8_t *subheader = buffer + 16;
+        /* Construct the CD-I/XA sub-header. */
+        subheader[2] = subheader[6] = (form - 1) << 5;
+    }
+
+    uint32_t crc;
+
+    if ((mode == 2) && (form == 1)) {
+        crc = cdrom_crc32(0xffffffff, &(buffer[16]), 2056) ^ 0xffffffff;
+        memcpy(&(buffer[2072]), &crc, 4);
+    } else if ((mode == 2) && (form == 2)) {
+        crc = cdrom_crc32(0xffffffff, &(buffer[16]), 2332) ^ 0xffffffff;
+        memcpy(&(buffer[2348]), &crc, 4);
+    } else {
+        crc = cdrom_crc32(0xffffffff, buffer, 2064) ^ 0xffffffff;
+        memcpy(&(buffer[2064]), &crc, 4);
+    }
+
+    int m2f1 = (mode == 2) && (form == 1);
+
+    if ((mode == 1) || m2f1) {
+        /* Compute ECC P code. */
+        cdrom_compute_ecc_block(ioctl->dev, &(buffer[2076]),
+                                &(buffer[12]), 86, 24, 2,
+                                86, m2f1);
+
+       /* Compute ECC Q code. */
+       cdrom_compute_ecc_block(ioctl->dev, &(buffer[2248]),
+                               &(buffer[12]), 52, 43, 86,
+                               88, m2f1);
+   }
+
+generate_subchannel:
+    /* Construct Q. */
+    buffer[2352 + 0] = (ct->adr_ctl >> 4) | ((ct->adr_ctl & 0xf) << 4);
+    buffer[2352 + 1] = bin2bcd(ct->point);
+    pregap_length = aaru_image_get_pregap_length(ioctl, ct->point);
+
+    if (pregap_length && ((lba + 150) - start) < pregap_length) {
+        /*
+           Pre-gap sector relative frame addresses count from
+           the pregap length downwards.
+         */
+        buffer[2352 + 2] = 0;
+        FRAMES_TO_MSF((int32_t) ((pregap_length - 1) - (lba + 150 - start)), &m, &s, &f);
+    } else {
+        buffer[2352 + 2] = 1;
+        FRAMES_TO_MSF((int32_t) (lba + 150 - start), &m, &s, &f);
+    }
+    buffer[2352 + 3] = bin2bcd(m);
+    buffer[2352 + 4] = bin2bcd(s);
+    buffer[2352 + 5] = bin2bcd(f);
+    FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+    buffer[2352 + 7] = bin2bcd(m);
+    buffer[2352 + 8] = bin2bcd(s);
+    buffer[2352 + 9] = bin2bcd(f);
+    *(uint16_t*)&buffer[2352 + 10] = bswap16(cdrom_crc16(0xffff, &buffer[2352], 10));
+    for (int i = 11; i >= 0; i--)
+        for (int j = 7; j >= 0; j--)
+            buffer[2352 + (i * 8) + j] = ((buffer[2352 + i] >> (7 - j)) & 0x01) << 6;
+
+done:
+    return ret;
 }
 
 static uint32_t

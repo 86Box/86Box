@@ -1240,6 +1240,19 @@ cdrom_toc_dump(cdrom_t *dev)
     fflush(fp);
     fclose(fp);
     cdrom_log(dev->log, "Written session TOC of %i bytes to %s\n", len, fn2);
+
+#ifdef DUMP_SECTOR_11H
+    memset(b, 0x00, 2448);
+    len      = 0;
+    int ret = cdrom_readsector_raw(dev, b, 0x00000011, 0,
+                                   0x00, 0x1f8, (int *) &len, 0);
+    fn2      = "d:\\86boxnew\\sector_11h.dmp";
+    fp        = fopen(fn2, "wb");
+    fwrite(b, 1, len, fp);
+    fflush(fp);
+    fclose(fp);
+    cdrom_log(dev->log, "Written sector 11h of %i bytes to %s (ret = %i)\n", len, fn2, ret);
+#endif
 }
 #endif
 
@@ -4277,7 +4290,7 @@ cdrom_build_raw_sector(cdrom_t *dev, uint8_t *b, const int lba, const int mode, 
     b[15] = mode;
 
     if (sub_header)
-        b[0x0012] = b[0x0016] = (form == 2) ? 0x20 : 0x08;
+        b[0x0012] = b[0x0016] = (form == 2) ? 0x28 : 0x08;
 
     if (mode == 1) {
         edc = cdrom_crc32(0xffffffff, b, 2064) ^ 0xffffffff;
@@ -4313,19 +4326,70 @@ cdrom_get_data_block_size(int data_block_type)
             block_size = 2448;
             break;
         case 8: case 10:
+        case 0x18: case 0x1a:
+        case 0x28: case 0x2a:
+        case 0x38: case 0x3a:
             block_size = 2048;
             break;
-        case 9:
+        case 9: case 0x19:
+        case 0x29: case 0x39:
             block_size = 2336;
             break;
         case 11:
+        case 0x1b:
             block_size = 2056;
             break;
         case 12:
+        case 0x1c:
             block_size = 2324;
             break;
         case 13:
+        case 0x1d:
+        case 0x2d:
+        case 0x3d:
             block_size = 2332;
+            break;
+    }
+
+    return block_size;
+}
+
+static int
+cdrom_get_data_block_size_sao(int data_block_type)
+{
+    int block_size      = 0;
+
+    if (data_block_type & 0x20)
+        block_size = 2352;
+    else  switch (data_block_type) {
+        case 0:
+            block_size = 2352;
+            break;
+        case 1:
+            block_size = 2368;
+            break;
+        case 2 ... 3:
+            block_size = 2448;
+            break;
+        case 8: case 10:
+        case 0x18: case 0x1a:
+            block_size = 2048;
+            break;
+        case 9:
+        case 0x19:
+            block_size = 2336;
+            break;
+        case 11:
+        case 0x1b:
+            block_size = 2056;
+            break;
+        case 12:
+        case 0x1c:
+            block_size = 0;
+            break;
+        case 13:
+        case 0x1d:
+            block_size = 2336;
             break;
     }
 
@@ -4343,9 +4407,17 @@ cdrom_get_data_block_start(int data_block_type)
             break;
         case 8 ... 9:
         case 11: case 13:
+        case 0x18 ... 0x19:
+        case 0x1b: case 0x1d:
+        case 0x28 ... 0x29:
+        case 0x38 ... 0x39:
+        case 0x2d: case 0x3d:
             block_start = 16;
             break;
         case 10: case 12:
+        case 0x1a: case 0x1c:
+        case 0x2a: case 0x2c:
+        case 0x3a: case 0x3c:
             block_start = 24;
             break;
     }
@@ -4360,6 +4432,8 @@ cdrom_get_write_block_size(const cdrom_t *dev, int sector, int write_type, int d
         if ((dev->ops == NULL) || (dev->ops->get_sao_block_type == NULL) ||
             dev->ops->get_sao_block_type(dev->local, sector, &data_block_type))
             return 0;
+        else
+            return cdrom_get_data_block_size_sao(data_block_type);
     }
 
     return cdrom_get_data_block_size(data_block_type);
@@ -4416,23 +4490,46 @@ cdrom_writesector(cdrom_t *dev, const uint8_t *buffer, int sector, int write_typ
                 mode = (sector_buffer[15] & 0x03);
             break;
         case 8:
+        case 0x18:
+        case 0x28:
+        case 0x38:
             mode = 1;
+            if (data_block_type & 0x10)
+                memset(&(sector_buffer[16]), 0x00, 2048);
             cdrom_build_raw_sector(dev, sector_buffer, sector, 1, 0, 0);
             break;
         case 9:
+        case 0x19:
+        case 0x29:
+        case 0x39:
             mode = 2;
+            if (data_block_type & 0x10)
+                memset(&(sector_buffer[16]), 0x00, 2336);
             cdrom_build_raw_sector(dev, sector_buffer, sector, 2, 0, 0);
             break;
         case 10: case 11:
+        case 0x1a: case 0x1b:
+        case 0x2a: case 0x2b:
+        case 0x3a: case 0x3b:
             mode = 2;
+            if (data_block_type & 0x10)
+                memset(&(sector_buffer[24]), 0x00, 2048);
             cdrom_build_raw_sector(dev, sector_buffer, sector, 2, 1, (data_block_type == 10));
             break;
         case 12:
+        case 0x1c:
             mode = 2;
+            if (data_block_type & 0x10)
+                memset(&(sector_buffer[24]), 0x00, 2324);
             cdrom_build_raw_sector(dev, sector_buffer, sector, 2, 2, 1);
             break;
         case 13:
+        case 0x1d:
+        case 0x2d:
+        case 0x3d:
             mode = 2;
+            if (data_block_type & 0x10)
+                memset(&(sector_buffer[24]), 0x00, (form == 2) ? 2324 : 2048);
             form = (sector_buffer[0x0012] & 0x20) ? 2 : 1;
             cdrom_build_raw_sector(dev, sector_buffer, sector, 2, form, 0);
             break;
