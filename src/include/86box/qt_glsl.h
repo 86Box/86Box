@@ -117,6 +117,7 @@ struct shader_pass {
         struct shader_vbo vbo;
         struct shader_state state;
         struct shader_scale scale;
+        int input_filter_linear; /* the preset's filtering of this pass's input: 1 linear, 0 nearest, -1 not set */
 };
 
 struct glsl_shader {
