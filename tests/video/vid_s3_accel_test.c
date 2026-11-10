@@ -174,6 +174,7 @@ static struct {
     uint16_t (*inw)(uint16_t port, void *priv);
     void (*outb)(uint16_t port, uint8_t val, void *priv);
     void (*outw)(uint16_t port, uint16_t val, void *priv);
+    void (*outl)(uint16_t port, uint32_t val, void *priv);
 } io[0x10000];
 
 void
@@ -188,6 +189,7 @@ io_sethandler(uint16_t base, uint16_t size, uint8_t (*inb)(uint16_t port, void *
         io[base + i].inw  = inw;
         io[base + i].outb = outb;
         io[base + i].outw = outw;
+        io[base + i].outl = outl;
     }
 }
 
@@ -275,6 +277,17 @@ port_w(uint16_t port, uint16_t val)
     }
 }
 
+static void
+port_l(uint16_t port, uint32_t val)
+{
+    if (io[port].outl)
+        io[port].outl(port, val, &s3);
+    else {
+        port_w(port, val);
+        port_w(port + 2, val >> 16);
+    }
+}
+
 static uint16_t
 port_r(uint16_t port)
 {
@@ -297,6 +310,16 @@ mmio_l(uint32_t addr, uint32_t val)
     check(map->enable && (addr >= map->base) && (addr < map->base + map->size), "no MMIO at %05X", addr);
     if (map->enable)
         s3_accel_write_l(addr, val, &s3);
+}
+
+static void
+mmio_w(uint32_t addr, uint16_t val)
+{
+    const mem_mapping_t *map = &s3.mmio_mapping;
+
+    check(map->enable && (addr >= map->base) && (addr < map->base + map->size), "no MMIO at %05X", addr);
+    if (map->enable)
+        s3_accel_write_w(addr, val, &s3);
 }
 
 static uint32_t
@@ -651,6 +674,128 @@ test_wrt_mask(void)
     check_small_rect((color() & mask) | (old & ~mask), old, "WRT_MASK", mask);
 }
 
+/* Chips with a 32-bit PIX_TRANS (CMD bits 10-9 = 10b): Vision864 p. 18-9, Vision964 p. 18-9,
+   Trio32/64 p. 18-12, Trio64V+ p. 20-9, S3.TXT lines 963-965. The 86C928 has bit 9 only, 8 or
+   16 bits (p. 10-10). */
+#define C_BUS32 (C_864 | C_964 | C_868 | C_968 | C_TRIO32 | C_TRIO64 | C_TRIO64V | C_TRIO64V2)
+/* Chips that have the image transfer window at A0000h-A7FFFh (Trio32/64 13.3.1, p. 13-4), the
+   ones test_bee8_mmio32() is asserted on. */
+#define C_MMIO (C_928 | C_928PCI | C_BUS32)
+
+/* Image transfer commands: rectangle fill, byte swap on (low byte first), wait for CPU data,
+   +Y, X major, +X, draw (Trio32/64 13.3.3.4, p. 13-13). Bits 10-9 are the bus size. */
+#define CMD_XFER 0x51b1
+
+/* The images start at (XX, XY) and are XH lines high. */
+#define XX 40
+#define XY 30
+#define XH 3
+
+static uint32_t want[XH][16];
+
+/* Send `len` bytes to PIX_TRANS, `unit` bytes per write, through E2E8h or the image transfer
+   window. */
+static void
+pix_trans(const uint8_t *data, int len, int unit, int mmio)
+{
+    for (int i = 0; i < len; i += unit) {
+        uint32_t val = 0;
+
+        for (int b = 0; b < unit; b++)
+            val |= (uint32_t) data[i + b] << (b * 8);
+        if (mmio && (unit == 4))
+            mmio_l(0xa0000 + i, val);
+        else if (mmio)
+            mmio_w(0xa0000 + i, val);
+        else if (unit == 4)
+            port_l(0xe2e8, val);
+        else if (unit == 2)
+            port_w(0xe2e8, val);
+        else
+            io[0xe2e8].outb(0xe2e8, val, &s3);
+    }
+}
+
+/* The image is `want` and the ring around it still holds `old`. */
+static void
+check_image(int width, uint32_t old, const char *what, int unit, int mmio)
+{
+    int bad = 0;
+
+    for (int y = XY - 1; y <= XY + XH; y++) {
+        for (int x = XX - 1; x <= XX + width; x++) {
+            int      inside = (x >= XX) && (x < XX + width) && (y >= XY) && (y < XY + XH);
+            uint32_t w      = inside ? want[y - XY][x - XX] : old;
+
+            if ((pix(x, y) != w) && !bad++)
+                check(0, "%s, %d-bit %s: pixel (%d, %d) is %X, not %X", what, unit * 8, mmio ? "MMIO" : "port",
+                      x - XX, y - XY, pix(x, y), w);
+        }
+    }
+}
+
+/* Start an image transfer of `width` pixels per line with the mixes set up. */
+static void
+xfer_start(int width, uint16_t cmd)
+{
+    port_w(0x86e8, XX);
+    port_w(0x82e8, XY);
+    port_w(0x96e8, width - 1);
+    port_w(0xbee8, 0x0000 | (XH - 1));
+    port_w(0x9ae8, cmd);
+}
+
+/* A colour image whose pixels differ. */
+static uint32_t
+image_pixel(int x, int y)
+{
+    return (0x9e3779b9 * (uint32_t) (y * 16 + x + 1)) & depth_mask();
+}
+
+/* Image transfer through the plane: CPU data is the colour, pixels in increasing addresses, each
+   line padded with dummy pixels to the bus width (86C928 11.3.4, p. 11-6; Vision868 and Vision968
+   5.4.3.4, p. 5-15; Trio32/64 13.3.3.4, pp. 13-13 and 13-14; Trio64V+ 15.4.3.4, p. 15-13). An
+   8-bit bus isn't for 16 and 32 bpp (Trio32/64 p. 13-14). 5 pixels need dummies at 8 bpp with 16
+   and 32 bits and at 16 bpp with 32 bits. */
+static void
+xfer_through(int unit, int mmio)
+{
+    uint8_t  data[256];
+    int      len = 0;
+    uint32_t old = 0x5a5a5a5a & depth_mask();
+
+    for (int y = 0; y < XH; y++) {
+        int start = len;
+
+        for (int x = 0; x < 5; x++) {
+            want[y][x] = image_pixel(x, y);
+            for (int b = 0; b < cur_bpp / 8; b++)
+                data[len++] = want[y][x] >> (b * 8);
+        }
+        while ((len - start) % unit)
+            data[len++] = 0xee;
+    }
+
+    memset(vram, 0x5a, sizeof(vram));
+    port_w(0xbae8, 0x0047); /* FRGD_MIX: CPU data, NEW */
+    port_w(0xbee8, 0xa000); /* PIX_CNTL: FRGD_MIX selects */
+    xfer_start(5, CMD_XFER | ((unit / 2) << 9));
+    pix_trans(data, len, unit, mmio);
+    check_image(5, old, "through", unit, mmio);
+}
+
+static void
+test_xfer_through(void)
+{
+    for (int unit = 1; unit <= 4; unit *= 2) {
+        if (((unit == 1) && (cur_bpp != 8)) || ((unit == 4) && !(cur_chip->bit & C_BUS32)))
+            continue;
+        xfer_through(unit, 0);
+        if ((unit > 1) && (cur_chip->bit & C_MMIO))
+            xfer_through(unit, 1);
+    }
+}
+
 int
 main(int argc, char **argv)
 {
@@ -664,6 +809,7 @@ main(int argc, char **argv)
     run("rect_scissors", test_rect_scissors, C_ALL);
     run("mixes", test_mixes, C_ALL);
     run("wrt_mask", test_wrt_mask, C_ALL);
+    run("xfer_through", test_xfer_through, C_ALL);
 
     if (verbose)
         print_matrix();
