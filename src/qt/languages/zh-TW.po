@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-30 04:21+0000\n"
+"PO-Revision-Date: 2026-11-10 09:12+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -494,7 +494,7 @@ msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "IBM PS/55 顯示介面卡圖形"
 
 msgid "PowerVR PCX1/PCX2 Graphics"
-msgstr ""
+msgstr "PowerVR PCX1/PCX2 圖形"
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -1590,10 +1590,10 @@ msgid "Hard disk (%1)"
 msgstr "硬碟 (%1)"
 
 msgid "Board LED"
-msgstr ""
+msgstr "板載 LED"
 
 msgid "Board LED %1"
-msgstr ""
+msgstr "板載 LED %1"
 
 msgid "Custom…"
 msgstr "自訂…"
@@ -2498,7 +2498,7 @@ msgid "Snow emulation"
 msgstr "雪花模擬"
 
 msgid "Display Enhancement Board (GO329)"
-msgstr ""
+msgstr "顯示增強板 (GO329)"
 
 msgid "Monitor type"
 msgstr "監視器類型"
@@ -3711,562 +3711,589 @@ msgid "Authentication is required to prepare PCI devices for passthrough to 86Bo
 msgstr "要求授權以設置 PCI 裝置透通予 86Box。"
 
 msgid "Disabled"
-msgstr ""
+msgstr "停用"
 
 msgid "Unlimited capacity"
-msgstr ""
+msgstr "容量無限制"
 
 msgid "CD speed:"
-msgstr ""
+msgstr "CD 速度:"
 
 msgid "DVD speed:"
-msgstr ""
+msgstr "DVD 速度:"
 
 msgid "HD/BD speed:"
-msgstr ""
+msgstr "HD/BD 速度:"
 
 msgid "Software-initiated poweroff device (IBM 5140)"
-msgstr ""
+msgstr "軟體觸發關機裝置 (IBM 5140)"
 
 msgid "Memory &viewer"
-msgstr ""
+msgstr "記憶體檢視器(&V)"
 
 msgid "The emulator is busy; the memory view was not updated."
-msgstr ""
+msgstr "模擬器忙碌中；記憶體檢視無法更新。"
 
 msgid "The match is not on mapped memory; the selection and the view did not move."
-msgstr ""
+msgstr "匹配非位於映射記憶體；選取及檢視不移動。"
 
 msgid "Only RAM and video memory can be written."
-msgstr ""
+msgstr "僅主記憶體及顯示記憶體可被寫入。"
 
 msgid "not written (not writable RAM or video memory, or the emulator is busy)."
-msgstr ""
+msgstr "未寫入 (非寫入主記憶體或顯示記憶體，或模擬器忙碌中)。"
 
 msgid "The emulator is busy; try again."
-msgstr ""
+msgstr "模擬器忙碌中，請再試一次。"
 
 msgid "Copied %1 bytes from %2 to the clipboard"
-msgstr ""
+msgstr "從 %2 拷貝 %1 位元組至剪貼簿"
 
 msgid " (%1 could not be read)"
-msgstr ""
+msgstr " (無法讀取 %1)"
 
 msgid " of a %1 byte selection"
-msgstr ""
+msgstr " 的 %1 位元組選取"
 
 msgid "There is no mapped memory to search."
-msgstr ""
+msgstr "無映射記憶體可搜尋。"
 
 msgid "There is no mapped memory in the requested range."
-msgstr ""
+msgstr "要求範圍內無映射記憶體。"
 
 msgid "The search is limited to %1 bytes."
-msgstr ""
+msgstr "限制於 %1 位元組中搜尋。"
 
 msgid "Searching memory..."
-msgstr ""
+msgstr "搜尋記憶體…"
 
 msgid "The search was cancelled. The selection did not move."
-msgstr ""
+msgstr "取消搜尋。不移動選取。"
 
 msgid "Found at %1."
-msgstr ""
+msgstr "在 %1 找到。"
 
 msgid "Not found. The selection did not move."
-msgstr ""
+msgstr "未找到。不移動選取。"
 
 msgid "Fill selection"
-msgstr ""
+msgstr "填入選取"
 
 msgid "Fill %1 bytes from %2 with (hex):"
-msgstr ""
+msgstr "以值從 %2 填入 %1 位元組 (16 進制):"
 
 msgid "Enter a hex byte from 00 to FF."
-msgstr ""
+msgstr "輸入從 00 到 FF 的 16 進位位元組。"
 
 msgid "Filled %1 of %2 bytes with %3 (%4 were not writable RAM or video memory)."
-msgstr ""
+msgstr "以 %3 填入 %2 位元組的 %1 (%4 為不可寫入之主記憶體或顯示記憶體)。"
 
 msgid " Selected: %1 bytes (%2 were skipped)."
-msgstr ""
+msgstr " 已選取: %1 位元組 (%2 被略過)。"
 
 msgid "Edit byte"
-msgstr ""
+msgstr "編輯位元組"
 
 msgid "Copy selection (hex)"
-msgstr ""
+msgstr "拷貝選取 (hex)"
 
 msgid "Copy selection (ASCII)"
-msgstr ""
+msgstr "拷貝選取 (ASCII)"
 
 msgid "Fill selection..."
-msgstr ""
+msgstr "填入選取…"
 
 msgid "Copy address"
-msgstr ""
+msgstr "拷貝位址"
 
 msgid "Disassemble here"
-msgstr ""
+msgstr "反組譯此處"
 
 msgid "Dump memory from here..."
-msgstr ""
+msgstr "從此處傾印記憶體…"
 
 msgid "Memory viewer"
-msgstr ""
+msgstr "記憶體檢視器"
 
 msgid "Pause / Resume"
-msgstr ""
+msgstr "暫停 / 恢復"
 
 msgid "Step"
-msgstr ""
+msgstr "單步"
 
 msgid "Run the given number of instructions (F11)"
-msgstr ""
+msgstr "執行給定數量指令 (F11)"
 
 msgid "Instructions per step"
-msgstr ""
+msgstr "單步執行之指令數量"
 
 msgid "Physical"
-msgstr ""
+msgstr "實體的"
 
 msgid "Address, register or seg:off"
-msgstr ""
+msgstr "位址，暫存器或區段:偏移 (SEG:OFF)"
 
 msgid "Go"
-msgstr ""
+msgstr "執行"
 
 msgid "Live update"
-msgstr ""
+msgstr "實時更新"
 
 msgid "Dump..."
-msgstr ""
+msgstr "傾印…"
 
 msgid "Commands"
-msgstr ""
+msgstr "命令"
 
 msgid "Show or hide debugger commands (Ctrl+D)"
-msgstr ""
+msgstr "顯示或隱藏除錯器命令 (Ctrl+D)"
 
 msgid "Hex bytes"
-msgstr ""
+msgstr "16 進制位元組"
 
 msgid "ASCII text"
-msgstr ""
+msgstr "ASCII 文字"
 
 msgid "Value, byte"
-msgstr ""
+msgstr "值，位元組"
 
 msgid "Value, word"
-msgstr ""
+msgstr "值，字元組"
 
 msgid "Value, dword"
-msgstr ""
+msgstr "值，雙字元組"
 
 msgid "What to look for: raw hex bytes, text, or a hex value stored little-endian, as in the hex view."
-msgstr ""
+msgstr "查找何者：16 進制位元組、文字、或小端序 16 進制值 (與 16 進制檢視相同)。"
 
 msgid "Memory search"
-msgstr ""
+msgstr "記憶體搜尋"
 
 msgid "Ctrl+F focuses this box; Enter or F3 finds the next match, Shift+F3 the previous."
-msgstr ""
+msgstr "Ctrl+F 移焦至此輸入框；Enter 或 F3 找尋下一個匹配，Shift+F3 找上一個。"
 
 msgid "Find previous"
-msgstr ""
+msgstr "找尋上一個"
 
 msgid "Search upwards from the selection (Shift+F3)"
-msgstr ""
+msgstr "在選取中往回搜尋 (Shift+F3)"
 
 msgid "Find next"
-msgstr ""
+msgstr "找尋下一個"
 
 msgid "Search downwards from the selection (F3)"
-msgstr ""
+msgstr "在選取中往後搜尋 (F3)"
 
 msgid "Range..."
-msgstr ""
+msgstr "範圍…"
 
 msgid "Search within an address range instead of all memory"
-msgstr ""
+msgstr "在位址範圍內搜尋而非所有記憶體"
 
 msgid "From"
-msgstr ""
+msgstr "從"
 
 msgid "Where the search starts (hex, register or seg:off; empty means the first mapped byte; . means the selection start)."
-msgstr ""
+msgstr "搜尋起點 (16進制，暫存器或區段:偏移；留空表示第一個映射位元組；. "
+"表示選取起點)。"
 
 msgid "To (inclusive)"
-msgstr ""
+msgstr "至 (包含)"
 
 msgid "Where the search ends, that address included (hex, register or seg:off; empty means the last mapped byte; . means the selection end)."
-msgstr ""
+msgstr "搜尋終點，包含指定位址 (16進制，暫存器或區段:偏移；留空表示第一個映射位元組；"
+". 表示選取起點)。"
 
 msgid "Range from"
-msgstr ""
+msgstr "範圍從"
 
 msgid "to"
-msgstr ""
+msgstr "至"
 
 msgid "RAM"
-msgstr ""
+msgstr "主記憶體"
 
 msgid "Mapped, not RAM"
-msgstr ""
+msgstr "映射，非主記憶體"
 
 msgid "Unmapped"
-msgstr ""
+msgstr "未映射"
 
 msgid "Inaccessible"
-msgstr ""
+msgstr "不可存取"
 
 msgid "Inaccessible: only device handlers answer there (reading would have side effects), or the linear page is not present."
-msgstr ""
+msgstr "不可存取：只有裝置處理程序回應 (讀取將有副作用)，或線性分頁不存在。"
 
 msgid "Linear address, register or seg:off"
-msgstr ""
+msgstr "線性位址，暫存器或區段:偏移"
 
 msgid "Follow CS:IP"
-msgstr ""
+msgstr "跟隨 CS:IP"
 
 msgid "Bytes"
-msgstr ""
+msgstr "位元組"
 
 msgid "Instruction"
-msgstr ""
+msgstr "指令"
 
 msgid "Note"
-msgstr ""
+msgstr "註記"
 
 msgid "Double-click a line to set or clear a breakpoint there"
-msgstr ""
+msgstr "雙擊一行以在該處設置或清除中斷點"
 
 msgid "Disassembly"
-msgstr ""
+msgstr "反組譯"
 
 msgid "Disassembly (not available in this build)"
-msgstr ""
+msgstr "反組譯 (在本建置中不可用)"
 
 msgid "Viewer message"
-msgstr ""
+msgstr "檢視器訊息"
 
 msgid "Selected range"
-msgstr ""
+msgstr "選取範圍"
 
 msgid "Debugger commands"
-msgstr ""
+msgstr "除錯器命令"
 
 msgid "Debugger command output"
-msgstr ""
+msgstr "除錯器命令輸出"
 
 msgid "Debugger command"
-msgstr ""
+msgstr "除錯器命令"
 
 msgid "help — commands; Up/Down — history; . — selected address"
-msgstr ""
+msgstr "help — 命令列表；Up/Down — 歷史記錄；. — 選取位址"
 
 msgid "Commands share the memory viewer's address space and selection. Type help for commands."
-msgstr ""
+msgstr "除錯器命令與記憶體檢視器共用位址空間及選取。輸入 help 以顯示命令列表。"
 
 msgid "Let the processor run (F5)"
-msgstr ""
+msgstr "讓處理器跑 (F5)"
 
 msgid "Stop the processor at the next instruction (F5)"
-msgstr ""
+msgstr "在下個指令停止處理器 (F5)"
 
 msgid "Too many breakpoints."
-msgstr ""
+msgstr "過多中斷點。"
 
 msgid "Stopped: %1"
-msgstr ""
+msgstr "停止: %1"
 
 msgid "The emulator is busy; the view was not updated."
-msgstr ""
+msgstr "模擬器忙碌；檢視未更新。"
 
 msgid "Stopped at a breakpoint."
-msgstr ""
+msgstr "在中斷點停止。"
 
 msgid "Stopped after stepping."
-msgstr ""
+msgstr "單步執行後停止。"
 
 msgid "Stopped."
-msgstr ""
+msgstr "停止。"
 
 msgid "Stepping..."
-msgstr ""
+msgstr "單步執行…"
 
 msgid "Running."
-msgstr ""
+msgstr "執行中。"
 
 msgid "The emulator is paused; resume it to run or step."
-msgstr ""
+msgstr "模擬器暫停中；恢復以繼續執行或單步執行。"
 
 msgid "The dynamic recompiler is off while this window is open."
-msgstr ""
+msgstr "當此視窗開啟時動態重編譯將停止。"
 
 msgid "Enter an address."
-msgstr ""
+msgstr "輸入位址。"
 
 msgid "The selector cannot be looked up."
-msgstr ""
+msgstr "選擇器無法被查找。"
 
 msgid "Unknown segment \"%1\"."
-msgstr ""
+msgstr "未知區段 \"%1\"。"
 
 msgid "Unknown offset \"%1\"."
-msgstr ""
+msgstr "未知位移 \"%1\"。"
 
 msgid "The linear address is not mapped to physical memory."
-msgstr ""
+msgstr "線性位址未被映射到實體記憶體。"
 
 msgid "\"%1\" is not an address or a register."
-msgstr ""
+msgstr "\"%1\" 不是位址或暫存器。"
 
 msgid "Usage: %1"
-msgstr ""
+msgstr "用法: %1"
 
 msgid "The selection is physical; use a linear address or switch to linear space."
-msgstr ""
+msgstr "選取為實體記憶位址；請使用線性位址或切換至線性空間。"
 
 msgid "r name [hex-value]: read or edit a register supported by the current processor.\nEAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH DH BH\nIP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\nGDTR.base GDTR.limit IDTR.base IDTR.limit LDTR TR\nCS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (hidden descriptor cache)\nSelectors load descriptors without executing guest instructions; cache fields are literal edits.\nWrites require pause at a complete instruction boundary. NEC 8080-mode register edits are unavailable."
 msgstr ""
+"r name [hex-value]: 讀取或編輯現處理器支援的存器。\n"
+"EAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH "
+"DH BH\n"
+"IP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\n"
+"GDTR.base GDTR.limit IDRT.base IDTR.limit LDTR TR\n"
+"CS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (隱藏的描述子快取欄位)"
+"\n"
+"區段選擇器載入描述子時不執行客指令；快取欄位為逐字編輯。\n"
+"寫入操作要求暫停於完整指令邊界時。未提供 NEC 8080 模態暫存器編輯。"
 
 msgid "Numbers are hexadecimal; step counts are decimal. Addresses accept registers and seg:off.\n. means the hex selection; omitted memory addresses use it.\nhelp | clear | refresh | regs\nrun | pause | step [count]\nspace physical|linear | goto address | db [address [length]] (max 1000 hex bytes)\nwrite address byte [byte ...] | dump (opens selection export)\ndbio [address [length]] | writeio address byte [byte ...] (device side effects; requires pause)\nu address (linear disassembly) | follow on|off\nbp address | bc address|all | bl (linear breakpoints)\nr [register [value]] (read/set; values are hex); help registers lists names\npeek port [b|w|d] | poke port value [b|w|d]\nRegister/memory writes and I/O require pause. I/O invokes device handlers, including read side effects."
 msgstr ""
+"數字為十六進制；單步計數為十進制。位址輸入亦可接受暫存器及區段:位移定址。\n"
+". 表示16進制選取；省略記憶位址時使用。\n"
+"help | clear | refresh | regs\n"
+"run | pause | step [count]\n"
+"space physical|linear | goto address | db [address [length]] (最大 1000 (16 "
+"進制) 位元組)\n"
+"write address byte [byte ...] | dump (opens selection export)\n"
+"dbio [address [length]] | writeio address byte [byte ...] "
+"(裝置副作用；要求暫停)\n"
+"u address (線性反組譯) | follow on|off\n"
+"bp address | bc address|all | bl (線性中斷點)\n"
+"r [register [value]] (讀取/設定；數值為 16 進位); help registers "
+"表列暫存器名稱\n"
+"peek port [b|w|d] | poke port value [b|w|d]\n"
+"暫存器/記憶體寫入及 I/O 要求暫停。I/O 觸發裝置操作，包括讀取的副作用。"
 
 msgid "Register unavailable, value invalid, or processor not paused at a complete instruction boundary."
-msgstr ""
+msgstr "暫存器不可用，數值不可用，或處理器未暫停於完整指令邊界。"
 
 msgid "Pause the processor before side-effecting memory access."
-msgstr ""
+msgstr "在記憶體存取副作用前暫停處理器。"
 
 msgid "Write exceeds 4096 bytes or wraps the address space."
-msgstr ""
+msgstr "寫入多於 4096 位元組或位址空間回捲。"
 
 msgid "Pause the processor before writing memory."
-msgstr ""
+msgstr "寫入記憶體前暫停處理器。"
 
 msgid "Issued %1 of %2 byte writes; devices may ignore writes. Untranslated addresses are skipped."
-msgstr ""
+msgstr "%2 位元組中 %1 寫入已發送；裝置可能忽略寫入。未轉換的位址已略過。"
 
 msgid "Wrote %1 of %2 bytes; read-only or inaccessible bytes are skipped."
-msgstr ""
+msgstr "%2 位元組中 %1 已寫入；唯讀或不可存取的位元組被略過。"
 
 msgid "Disassembly is not available in this build."
-msgstr ""
+msgstr "反組譯在此建置中不可用。"
 
 msgid "Breakpoint %1 at %2."
-msgstr ""
+msgstr "中斷點 %1 在 %2。"
 
 msgid "set"
-msgstr ""
+msgstr "設置"
 
 msgid "cleared"
-msgstr ""
+msgstr "已清除"
 
 msgid "%1 breakpoint(s), linear addresses:"
-msgstr ""
+msgstr "%1 中斷點，線性位址:"
 
 msgid "Pause the processor before accessing I/O ports."
-msgstr ""
+msgstr "存取 I/O 埠前暫停處理器。"
 
 msgid "Unknown command or invalid arguments. Type help for syntax."
-msgstr ""
+msgstr "未知的命令或不可用的參數。輸入 help 以取得語法。"
 
 msgid "Dump memory"
-msgstr ""
+msgstr "傾印記憶體"
 
 msgid "Browse..."
-msgstr ""
+msgstr "瀏覽…"
 
 msgid "Start (hex, register or seg:off):"
-msgstr ""
+msgstr "起始 (16 進制，暫存器或區段:偏移):"
 
 msgid "Length (hex bytes):"
-msgstr ""
+msgstr "長度 (16 進制位元組):"
 
 msgid "Address space:"
-msgstr ""
+msgstr "位址空間:"
 
 msgid "Fill byte for memory that cannot be read:"
-msgstr ""
+msgstr "不可讀取的記憶體以位元組填入:"
 
 msgid "File:"
-msgstr ""
+msgstr "檔案:"
 
 msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessible bytes are not read; the fill byte is written in their place."
-msgstr ""
+msgstr "僅主記憶體及其他直接映射記憶體被讀取。未映射及不可存取之位元組未被讀取；在其"
+"位置以充填位元組顯示。"
 
 msgid "Binary files (*.bin);;All files (*)"
-msgstr ""
+msgstr "二進位檔 (*.bin)；全部檔案 (*)"
 
 msgid "The length must be a hex number above 0."
-msgstr ""
+msgstr "長度必須為非 0 之 16 進制數。"
 
 msgid "The fill byte must be a hex number from 00 to FF."
-msgstr ""
+msgstr "充填位元組必須為從 00 到 FF 的 16 進制數值。"
 
 msgid "Could not open %1 for writing."
-msgstr ""
+msgstr "無法開啟 %1 以寫入。"
 
 msgid "Dumping memory..."
-msgstr ""
+msgstr "記憶體傾印中…"
 
 msgid "Could not write to %1."
-msgstr ""
+msgstr "無法寫入至 %1。"
 
 msgid "Dumped %1 bytes from %2 to %3 (%4 bytes could not be read and were filled)."
-msgstr ""
+msgstr "從 %2 傾印 %1 位元組至 %3 (%4 位元組無法讀取並使用充填位元組替代)。"
 
 msgid "Enter hex bytes in pairs, e.g. \"8B 44 24 08\"."
-msgstr ""
+msgstr "輸入成對 16 進制位元組，例如 \"8B 44 24 08\"。"
 
 msgid "\"%1\" is not made of hex bytes."
-msgstr ""
+msgstr "\"%1\" 不是由 16 進制位元組組成。"
 
 msgid "Enter a hex value from 0 to %1."
-msgstr ""
+msgstr "輸入從 0 到 %1 間之 16 進制數值。"
 
 msgid "The value is too large for %1 bytes."
-msgstr ""
+msgstr "數值大過於 %1 位元組上限。"
 
 msgid "Enter something to search for."
-msgstr ""
+msgstr "輸入點什麼東西來搜尋。"
 
 msgid "The range ends before it starts."
-msgstr ""
+msgstr "範圍結束點在起始點之前。"
 
 msgid "Serial Plug and Play"
-msgstr ""
+msgstr "序列隨插即用"
 
 msgid "Standard 9600 bps modem (PNPC100)"
-msgstr ""
+msgstr "標準 9600 bps 數據機 (PNPC100)"
 
 msgid "Standard 14400 bps modem (PNPC101)"
-msgstr ""
+msgstr "標準 14400 bps 數據機 (PNPC101)"
 
 msgid "Standard 28800 bps modem (PNPC102)"
-msgstr ""
+msgstr "標準 28800 bps 數據機 (PNPC102)"
 
 msgid "Standard modem (PNPC103)"
-msgstr ""
+msgstr "標準數據機 (PNPC103)"
 
 msgid "Enhanced 9600 bps modem (PNPC104)"
-msgstr ""
+msgstr "增強型 9600 bps 數據機 (PNPC104)"
 
 msgid "Enhanced 14400 bps modem (PNPC105)"
-msgstr ""
+msgstr "增強型 14400 bps 數據機 (PNPC105)"
 
 msgid "Enhanced 28800 bps modem (PNPC106)"
-msgstr ""
+msgstr "增強型 28800 bps 數據機 (PNPC106)"
 
 msgid "Enhanced modem (PNPC107)"
-msgstr ""
+msgstr "增強型數據機 (PNPC107)"
 
 msgid "Telephone Tone Region"
-msgstr ""
+msgstr "電話音調區域"
 
 msgid "North America"
-msgstr ""
+msgstr "北美洲"
 
 msgid "United Kingdom"
-msgstr ""
+msgstr "英國"
 
 msgid "Continental Europe"
-msgstr ""
+msgstr "歐陸"
 
 msgid "Japan"
-msgstr ""
+msgstr "日本"
 
 msgid "Handshake Modem Standard"
-msgstr ""
+msgstr "數據機握手標準"
 
 msgid "Automatic (from DTE speed)"
-msgstr ""
+msgstr "自動 (由 DTE 速率)"
 
 msgid "Connection Type"
-msgstr ""
+msgstr "連接形式"
 
 msgid "Username"
-msgstr ""
+msgstr "使用者名稱"
 
 msgid "Password"
-msgstr ""
+msgstr "密碼"
 
 msgid "PPP Compression and Encryption"
-msgstr ""
+msgstr "PPP 壓縮及加密"
 
 msgid "Automatic"
-msgstr ""
+msgstr "自動"
 
 msgid "Require MPPE"
-msgstr ""
+msgstr "要求 MPPE"
 
 msgid "PPP Multilink Group (same on each link)"
-msgstr ""
+msgstr "PPP 多重連接群組 (各別連接均相同)"
 
 msgid "PPP Primary DNS Server"
-msgstr ""
+msgstr "PPP 主要 DNS 伺服器"
 
 msgid "PPP Secondary DNS Server"
-msgstr ""
+msgstr "PPP 次要 DNS 伺服器"
 
 msgid "CCP Directional Negotiation"
-msgstr ""
+msgstr "CCP 定向協商"
 
 msgid "Bidirectional"
-msgstr ""
+msgstr "雙向"
 
 msgid "Transmit-Only"
-msgstr ""
+msgstr "只發送"
 
 msgid "Receive-Only"
-msgstr ""
+msgstr "只接收"
 
 msgid "Asymmetric Preferred"
-msgstr ""
+msgstr "非對稱優先"
 
 msgid "PPP Callback (Microsoft CBCP)"
-msgstr ""
+msgstr "PPP 回撥 (微軟 CBCP)"
 
 msgid "Offered (caller may decline)"
-msgstr ""
+msgstr "已提供 (呼叫端可拒絕)"
 
 msgid "Required (caller must accept)"
-msgstr ""
+msgstr "強制要求 (呼叫端必需接受)"
 
 msgid "PPP Keepalive Interval (seconds, 0 = off)"
-msgstr ""
+msgstr "PPP 存活檢測間隔 (秒，0 = 關閉)"
 
 msgid "Report received DTMF to the host (<DLE>digit)"
-msgstr ""
+msgstr "向主機報告接收到的 DTMF (<DLE>digit)"
 
 msgid "Off (only with +VDR=1)"
-msgstr ""
+msgstr "關閉 (僅與 +VDR=1)"
 
 msgid "Caller ID between emulator instances (enable on both)"
-msgstr ""
+msgstr "模擬器實例間呼叫者識別 (雙方皆啟用)"
 
 msgid "Caller ID sent when dialling (number,name)"
-msgstr ""
+msgstr "撥號時傳送呼叫者識別 (門號，名稱)"
 
 msgid "Network to guest queue limit (back-pressure)"
-msgstr ""
+msgstr "網路至客戶端佇列限制 (回壓機制)"
 
 msgid "Unlimited (legacy)"
-msgstr ""
+msgstr "無限制 (舊式)"
 
 msgid "250 ms of line time"
-msgstr ""
+msgstr "250 微秒傳輸時間"
 
 msgid "500 ms of line time"
-msgstr ""
+msgstr "500 微秒傳輸時間"
 
 msgid "1 s of line time"
-msgstr ""
+msgstr "1 秒傳輸時間"
 
 msgid "2 s of line time"
-msgstr ""
+msgstr "2 秒傳輸時間"
 
 msgid "TCP send timeout"
-msgstr ""
+msgstr "TCP 傳送逾時"
