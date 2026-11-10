@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-09 17:37+0000\n"
+"PO-Revision-Date: 2026-11-10 18:59+0000\n"
 "Last-Translator: Broifonn_9 <molodchina812@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
@@ -159,7 +159,7 @@ msgid "4:3 Cen&ter"
 msgstr "По цен&тру, 4:3"
 
 msgid "4:3 Integer scale (&vertical)"
-msgstr ""
+msgstr "Цілісночисленне масштабування 4:3 (&вертикально)"
 
 msgid "Inverted VGA monitor"
 msgstr "Інвертувати кольори VGA"
