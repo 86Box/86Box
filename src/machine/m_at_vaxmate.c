@@ -313,7 +313,7 @@ static const device_config_t vaxmate_config[] = {
         .selection      = { { 0 } },
         .bios           = {
             {
-                .name          = "DEC VAXmate BIOS 07/31/86",
+                .name          = "DEC VAXmate BIOS - Revision 07/31/86",
                 .internal_name = "vaxmate_073186",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
@@ -323,7 +323,7 @@ static const device_config_t vaxmate_config[] = {
                                    "roms/machines/vaxmate/23-199e6.bin", "" }
             },
             {
-                .name          = "DEC VAXmate BIOS 05/18/87",
+                .name          = "DEC VAXmate BIOS - Revision 05/18/87",
                 .internal_name = "vaxmate_051887",
                 .bios_type     = BIOS_NORMAL,
                 .files_no      = 2,
