@@ -96,6 +96,9 @@ typedef struct mfm_t {
     uint8_t  command;  /* 7: command/status */
     uint8_t  status;
     uint8_t  fdisk;    /* 8: control register */
+    uint8_t  hs3en;    /* 3F6 bit 3: SDH bit 3 selects a head */
+    uint8_t  longmode; /* READ/WRITE LONG: four ECC bytes follow the data */
+    uint8_t  ecc_count;/* ECC bytes of a long transfer transferred so far */
     uint16_t cylinder; /* 4/5: cylinder LOW and HIGH */
 
     int8_t reset;      /* controller in reset */
@@ -155,37 +158,45 @@ irq_update(mfm_t *mfm)
     picint_common(1 << 14, PIC_IRQ_EDGE, set, NULL);
 }
 
-/*
- * Return the sector offset for the current register values.
- *
- * According to the WD1002/WD1003 technical reference manual,
- * this is not done entirely correct. It specifies that the
- * parameters set with the SET_DRIVE_PARAMETERS command are
- * to be used only for multi-sector operations, and that any
- * such operation can only be executed AFTER these parameters
- * have been set. This would imply that for regular single
- * transfers, the controller uses (or, can use) the actual
- * geometry information...
- */
+/* SET PARAMETERS only affects multi-sector operations (WD1003 manual).
+   Single-sector commands use the drive's real geometry; a multi-sector
+   command without SET PARAMETERS has no geometry, so get_sector()
+   rejects it (the configured values are zero). */
+static int
+drive_spt(const drive_t *drive, int multi)
+{
+    return multi ? drive->cfg_spt : drive->spt;
+}
+
+static int
+drive_hpc(const drive_t *drive, int multi)
+{
+    return multi ? drive->cfg_hpc : drive->hpc;
+}
+
+/* A single-sector access needs no geometry: the controller seeks to
+   the given cylinder, selects the head and scans the track for an ID field
+   matching C/H/S. SET PARAMETERS only matters for multi-sector transfers. */
 static int
 get_sector(mfm_t *mfm, off64_t *addr)
 {
     const drive_t *drive = &mfm->drives[mfm->drvsel];
+    int            multi = (mfm->secount != 1);
 
     /* FIXME: See if this is even needed - if the code is present, IBM AT
               diagnostics v2.07 will error with: ERROR 152 - SYSTEM BOARD. */
     if (drive->curcyl != mfm->cylinder) {
-        st506_at_log("WD1003(%d) sector: wrong cylinder\n");
+        st506_at_log("WD1003(%d) sector: wrong cylinder\n", mfm->drvsel);
         return 1;
     }
 
-    if (mfm->head > drive->cfg_hpc) {
+    if (mfm->head > drive_hpc(drive, multi)) {
         st506_at_log("WD1003(%d) get_sector: past end of configured heads\n",
                      mfm->drvsel);
         return 1;
     }
 
-    if (mfm->sector >= (drive->cfg_spt + 1)) {
+    if (mfm->sector >= (drive_spt(drive, multi) + 1)) {
         st506_at_log("WD1003(%d) get_sector: past end of configured sectors\n",
                      mfm->drvsel);
         return 1;
@@ -202,7 +213,7 @@ get_sector(mfm_t *mfm, off64_t *addr)
         return 1;
     }
 
-    *addr = ((((off64_t) mfm->cylinder * drive->cfg_hpc) + mfm->head) * drive->cfg_spt) + (mfm->sector - 1);
+    *addr = ((((off64_t) mfm->cylinder * drive_hpc(drive, multi)) + mfm->head) * drive_spt(drive, multi)) + (mfm->sector - 1);
 
     return 0;
 }
@@ -215,11 +226,11 @@ get_sector_format(mfm_t *mfm, off64_t *addr)
     /* FIXME: See if this is even needed - if the code is present, IBM AT
               diagnostics v2.07 will error with: ERROR 152 - SYSTEM BOARD. */
     if (drive->curcyl != mfm->cylinder) {
-        st506_at_log("WD1003(%d) sector: wrong cylinder\n");
+        st506_at_log("WD1003(%d) sector: wrong cylinder\n", mfm->drvsel);
         return 1;
     }
 
-    if (mfm->head > drive->cfg_hpc) {
+    if (mfm->head > drive_hpc(drive, 0)) {
         st506_at_log("WD1003(%d) get_sector: past end of configured heads\n",
                      mfm->drvsel);
         return 1;
@@ -231,7 +242,7 @@ get_sector_format(mfm_t *mfm, off64_t *addr)
         return 1;
     }
 
-    *addr = ((((off64_t) mfm->cylinder * drive->cfg_hpc) + mfm->head) * drive->cfg_spt);
+    *addr = ((((off64_t) mfm->cylinder * drive_hpc(drive, 0)) + mfm->head) * drive_spt(drive, 0));
 
     return 0;
 }
@@ -242,9 +253,9 @@ next_sector(mfm_t *mfm)
 {
     drive_t *drive = &mfm->drives[mfm->drvsel];
 
-    if (++mfm->sector == (drive->cfg_spt + 1)) {
+    if (++mfm->sector == (drive_spt(drive, 1) + 1)) {
         mfm->sector = 1;
-        if (++mfm->head == drive->cfg_hpc) {
+        if (++mfm->head == drive_hpc(drive, 1)) {
             mfm->head = 0;
             mfm->cylinder++;
             if (drive->curcyl < drive->tracks)
@@ -269,8 +280,9 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
     }
 
     irq_lower(mfm);
-    mfm->command = val;
-    mfm->error   = 0;
+    mfm->command  = val;
+    mfm->error    = 0;
+    mfm->longmode = 0;
 
     switch (val & 0xf0) {
         case CMD_RESTORE:
@@ -297,12 +309,11 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
                     st506_at_log("WD1003(%d) read, opt=%d\n",
                                  mfm->drvsel, val & 0x03);
                     mfm->command &= 0xfc;
-                    if (val & 2)
-                        fatal("WD1003: READ with ECC\n");
+                    mfm->longmode = !!(val & 2);
                     mfm->status = STAT_BUSY;
                     {
                         /* Calculate seek time based on CHS position */
-                        off64_t seek_addr = ((((off64_t) mfm->cylinder * drive->cfg_hpc) + mfm->head) * drive->cfg_spt) + (mfm->sector - 1);
+                        off64_t seek_addr = ((((off64_t) mfm->cylinder * drive_hpc(drive, mfm->secount != 1)) + mfm->head) * drive_spt(drive, mfm->secount != 1)) + (mfm->sector - 1);
                         double  seek_us   = hdd_seek_get_time(&hdd[drive->hdd_num], (uint32_t) seek_addr, HDD_OP_READ, 0, 0.0);
                         uint64_t delay    = (seek_us > (200.0 * MFM_TIME / (double) TIMER_USEC))
                                             ? (uint64_t)(seek_us * TIMER_USEC) : 200 * MFM_TIME;
@@ -317,8 +328,7 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
                     st506_at_log("WD1003(%d) write, opt=%d\n",
                                  mfm->drvsel, val & 0x03);
                     mfm->command &= 0xfc;
-                    if (val & 2)
-                        fatal("WD1003: WRITE with ECC\n");
+                    mfm->longmode = !!(val & 2);
                     mfm->status = STAT_READY | STAT_DRQ | STAT_DSC;
                     mfm->pos    = 0;
                     break;
@@ -354,6 +364,22 @@ mfm_cmd(mfm_t *mfm, uint8_t val)
     }
 }
 
+/* The data field is in; hand the sector to the callback timer. */
+static void
+mfm_write_data_done(mfm_t *mfm)
+{
+    mfm->pos    = 0;
+    mfm->status = STAT_BUSY;
+    {
+        drive_t *wr_drive = &mfm->drives[mfm->drvsel];
+        off64_t  wr_addr  = ((((off64_t) mfm->cylinder * drive_hpc(wr_drive, mfm->secount != 1)) + mfm->head) * drive_spt(wr_drive, mfm->secount != 1)) + (mfm->sector - 1);
+        double   seek_us  = hdd_seek_get_time(&hdd[wr_drive->hdd_num], (uint32_t) wr_addr, HDD_OP_WRITE, 1, 0.0);
+        uint64_t delay    = (seek_us > (double)(SECTOR_TIME / TIMER_USEC))
+                            ? (uint64_t)(seek_us * TIMER_USEC) : SECTOR_TIME;
+        timer_set_delay_u64(&mfm->callback_timer, delay);
+    }
+}
+
 static void
 mfm_writew(uint16_t port, uint16_t val, void *priv)
 {
@@ -363,21 +389,22 @@ mfm_writew(uint16_t port, uint16_t val, void *priv)
         mfm_write(port, val & 0xff, priv);
         if (port != 0x01f7)
             mfm_write(port + 1, (val >> 8) & 0xff, priv);
+    } else if (mfm->longmode && (mfm->pos >= 512)) {
+        /* A long transfer has four ECC bytes after the data. */
+        mfm->ecc_count += 2;
+        if (mfm->ecc_count >= 4)
+            mfm_write_data_done(mfm);
     } else {
         mfm->buffer[mfm->pos >> 1] = val;
         mfm->pos += 2;
 
         if (mfm->pos >= 512) {
-            mfm->pos    = 0;
-            mfm->status = STAT_BUSY;
-            {
-                drive_t *wr_drive = &mfm->drives[mfm->drvsel];
-                off64_t  wr_addr  = ((((off64_t) mfm->cylinder * wr_drive->cfg_hpc) + mfm->head) * wr_drive->cfg_spt) + (mfm->sector - 1);
-                double   seek_us  = hdd_seek_get_time(&hdd[wr_drive->hdd_num], (uint32_t) wr_addr, HDD_OP_WRITE, 1, 0.0);
-                uint64_t delay    = (seek_us > (double)(SECTOR_TIME / TIMER_USEC))
-                                    ? (uint64_t)(seek_us * TIMER_USEC) : SECTOR_TIME;
-                timer_set_delay_u64(&mfm->callback_timer, delay);
-            }
+            if (mfm->longmode) {
+                /* Wait for the ECC bytes before completing the sector. */
+                mfm->ecc_count = 0;
+                mfm->status    = STAT_READY | STAT_DRQ | STAT_DSC;
+            } else
+                mfm_write_data_done(mfm);
         }
     }
 }
@@ -392,6 +419,11 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
 
     switch (port) {
         case 0x01f0: /* data */
+            if (mfm->longmode && (mfm->pos >= 512)) {
+                if (++mfm->ecc_count >= 4)
+                    mfm_write_data_done(mfm);
+                return;
+            }
             mfm_writew(port, val | (val << 8), priv);
             return;
 
@@ -412,11 +444,13 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
             return;
 
         case 0x01f5: /* cylinder high */
-            mfm->cylinder = (mfm->cylinder & 0xff) | (val << 8);
+            /* The task file carries a 10-bit cylinder number. */
+            mfm->cylinder = (mfm->cylinder & 0xff) | ((val & 0x03) << 8);
             return;
 
         case 0x01f6: /* drive/head */
-            mfm->head   = val & 0xF;
+            /* SDH bit 3 only reaches the drive when 3F6 bit 3 enables it. */
+            mfm->head   = mfm->hs3en ? (val & 0x0f) : (val & 0x07);
             mfm->drvsel = !!(val & 0x10);
             if (mfm->drives[mfm->drvsel].present)
                 mfm->status = STAT_READY | STAT_DSC;
@@ -430,6 +464,7 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
 
         case 0x03f6: /* device control */
             val &= 0x0f;
+            mfm->hs3en = !!(val & 0x08);
             if ((mfm->fdisk & 0x04) && !(val & 0x04)) {
                 timer_set_delay_u64(&mfm->callback_timer, 500 * MFM_TIME);
                 mfm->reset  = 1;
@@ -439,7 +474,7 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
                 timer_disable(&mfm->callback_timer);
                 mfm->status = STAT_BUSY;
             }
-            old = mfm->fdisk;
+            old        = mfm->fdisk;
             mfm->fdisk = val;
             if (!(val & 0x02) && (old & 0x02))
                 irq_update(mfm);
@@ -450,11 +485,35 @@ mfm_write(uint16_t port, uint8_t val, void *priv)
     }
 }
 
+/* The data field is out; finish the sector or continue with the next one. */
+static void
+mfm_read_data_done(mfm_t *mfm)
+{
+    mfm->pos    = 0;
+    mfm->status = STAT_READY | STAT_DSC;
+    if (mfm->command == CMD_READ) {
+        mfm->secount = (mfm->secount - 1) & 0xff;
+        if (mfm->secount) {
+            next_sector(mfm);
+            mfm->status = STAT_BUSY | STAT_READY | STAT_DSC;
+            {
+                drive_t *rd_drive = &mfm->drives[mfm->drvsel];
+                off64_t  rd_addr  = ((((off64_t) mfm->cylinder * drive_hpc(rd_drive, 1)) + mfm->head) * drive_spt(rd_drive, 1)) + (mfm->sector - 1);
+                double   seek_us  = hdd_seek_get_time(&hdd[rd_drive->hdd_num], (uint32_t) rd_addr, HDD_OP_READ, 1, 0.0);
+                uint64_t delay    = (seek_us > (double)(SECTOR_TIME / TIMER_USEC))
+                                    ? (uint64_t)(seek_us * TIMER_USEC) : SECTOR_TIME;
+                timer_set_delay_u64(&mfm->callback_timer, delay);
+            }
+        } else
+            ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
+    }
+}
+
 static uint16_t
 mfm_readw(uint16_t port, void *priv)
 {
     mfm_t   *mfm = (mfm_t *) priv;
-    uint16_t ret;
+    uint16_t ret = 0x0000;
 
     if (port > 0x01f0) {
         ret = mfm_read(port, priv);
@@ -462,28 +521,22 @@ mfm_readw(uint16_t port, void *priv)
             ret |= 0xff00;
         else
             ret |= (mfm_read(port + 1, priv) << 8);
+    } else if (mfm->longmode && (mfm->pos >= 512)) {
+        /* A long transfer has four ECC bytes after the data; the image
+           holds data fields only, so they read back as zero. */
+        mfm->ecc_count += 2;
+        if (mfm->ecc_count >= 4)
+            mfm_read_data_done(mfm);
     } else {
         ret = mfm->buffer[mfm->pos >> 1];
         mfm->pos += 2;
         if (mfm->pos >= 512) {
-            mfm->pos    = 0;
-            mfm->status = STAT_READY | STAT_DSC;
-            if (mfm->command == CMD_READ) {
-                mfm->secount = (mfm->secount - 1) & 0xff;
-                if (mfm->secount) {
-                    next_sector(mfm);
-                    mfm->status = STAT_BUSY | STAT_READY | STAT_DSC;
-                    {
-                        drive_t *rd_drive = &mfm->drives[mfm->drvsel];
-                        off64_t  rd_addr  = ((((off64_t) mfm->cylinder * rd_drive->cfg_hpc) + mfm->head) * rd_drive->cfg_spt) + (mfm->sector - 1);
-                        double   seek_us  = hdd_seek_get_time(&hdd[rd_drive->hdd_num], (uint32_t) rd_addr, HDD_OP_READ, 1, 0.0);
-                        uint64_t delay    = (seek_us > (double)(SECTOR_TIME / TIMER_USEC))
-                                            ? (uint64_t)(seek_us * TIMER_USEC) : SECTOR_TIME;
-                        timer_set_delay_u64(&mfm->callback_timer, delay);
-                    }
-                } else
-                    ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 0);
-            }
+            if (mfm->longmode) {
+                /* The host reads the ECC bytes before the next sector. */
+                mfm->ecc_count = 0;
+                mfm->status    = STAT_READY | STAT_DRQ | STAT_DSC;
+            } else
+                mfm_read_data_done(mfm);
         }
     }
 
@@ -498,6 +551,13 @@ mfm_read(uint16_t port, void *priv)
 
     switch (port) {
         case 0x01f0: /* data */
+            if (mfm->longmode && (mfm->pos >= 512)) {
+                /* The ECC bytes are transferred one at a time. */
+                if (++mfm->ecc_count >= 4)
+                    mfm_read_data_done(mfm);
+                ret = 0x00;
+                break;
+            }
             ret = mfm_readw(port, mfm) & 0xff;
             break;
 
@@ -518,7 +578,7 @@ mfm_read(uint16_t port, void *priv)
             break;
 
         case 0x01f5: /* Cylinder high */
-            ret = (uint8_t) (mfm->cylinder >> 8);
+            ret = (uint8_t) ((mfm->cylinder >> 8) & 0x03);
             break;
 
         case 0x01f6: /* drive/head */
@@ -527,6 +587,10 @@ mfm_read(uint16_t port, void *priv)
 
         case 0x01f7: /* Status */
             irq_lower(mfm);
+            ret = mfm->status;
+            break;
+
+        case 0x03f6: /* Alternate status: reading it does not acknowledge the IRQ */
             ret = mfm->status;
             break;
 
@@ -616,7 +680,8 @@ read_error:
                 goto read_error;
             }
 
-            mfm->pos    = 0;
+            mfm->pos       = 0;
+            mfm->ecc_count = 0;
             mfm->status = STAT_DRQ | STAT_READY | STAT_DSC;
             irq_raise(mfm);
             ui_sb_update_icon(SB_HDD | HDD_BUS_MFM, 1);
@@ -782,7 +847,7 @@ mfm_init(UNUSED(const device_t *info))
     io_sethandler(0x01f1, 7,
                   mfm_read, mfm_readw, NULL, mfm_write, mfm_writew, NULL, mfm);
     io_sethandler(0x03f6, 1,
-                  NULL, NULL, NULL, mfm_write, NULL, NULL, mfm);
+                  mfm_read, NULL, NULL, mfm_write, NULL, NULL, mfm);
 
     timer_add(&mfm->callback_timer, do_callback, mfm, 0);
 

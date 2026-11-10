@@ -2072,6 +2072,31 @@ write_cmd_phoenix(void *priv, uint8_t val)
 }
 
 static uint8_t
+write_cmd_dec(void *priv, uint8_t val)
+{
+    atkbc_t *dev = (atkbc_t *) priv;
+
+    switch (val) {
+        case 0xc0: { /* Read Port 1, bits 3-0 set to 1 (TRM 8-12) */
+            uint8_t p1 = machine_get_p1(0xff) | 0x0f;
+            kbc_at_log("ATkbc: DEC read P1 (C0): %02X\n", p1);
+            kbc_delay_to_ob(dev, p1, 0, 0x00);
+            return 0;
+        }
+
+        case 0xc1: { /* Read Port 1, P1 returned unmodified (TRM 8-12) */
+            uint8_t p1 = machine_get_p1(0xff);
+            kbc_at_log("ATkbc: DEC read P1 (C1): %02X\n", p1);
+            kbc_delay_to_ob(dev, p1, 0, 0x00);
+            return 0;
+        }
+
+        default:
+            return 1;
+    }
+}
+
+static uint8_t
 write_cmd_olivetti(void *priv, uint8_t val)
 {
     atkbc_t *dev = (atkbc_t *) priv;
@@ -2268,10 +2293,11 @@ read_p1(atkbc_t *dev)
        IBM PS/2 Model 30-286:                                                        x0xxx1xx
        Intel AMI Pentium BIOS'es with AMI MegaKey KB-5 keyboard controller:          x1x1xxxx
        Acer:                                                                         xxxxx0xx
-       Packard Bell PB450:                                                           xxxxx1xx
        P6RP4:                                                                        xx1xx1xx
+       Packard Bell PB450:                                                           xxxxx1xx
        Epson Action Tower 2600:                                                      xxxx01xx
        TriGem Hawk:                                                                  xxxx11xx
+       DEC VAXmate:                                                                  xxxxxxx1
 
        Machine input based on current code:                                          11111111
        Everything non-Green:    Pull down bit 7 if not PS/2 and keyboard is inhibited.
@@ -2292,6 +2318,10 @@ read_p1(atkbc_t *dev)
                                 Pull down bit 3 if CPU speed selected is slow (4 MHz).
                                 Pull down bit 2 if FPU is present.
                                 Pull down bits 1 and 0 always?
+       DEC VAXmate:             Pull down bit 2 if a hard disk controller is installed
+                                (expansion box), pull down bit 1 if the RAM option is
+                                fitted (3 MB), bit 0 always 1 (no error); the ROM
+                                tests bit 2 via C1h before accepting the clock.
 
        Bit 7: AT KBC only - keyboard inhibited (often physical lock): 0 = yes, 1 = no (also Compaq);
        Bit 6: Mostly, display: 0 = CGA, 1 = MDA, inverted on Xi8088 and Acer KBC's;
@@ -2325,14 +2355,17 @@ read_p1(atkbc_t *dev)
                   0, 1: Epson logo;
                   0, 0: Generic AMI logo.
               NCR: Unused;
+              DEC VAXmate: Expansion box installed: 0 = installed, 1 = not installed;
               IBM PS/2: Keyboard power: 0 = no power (fuse error), 1 = OK
               (for some reason, www.win.tue.nl has this in reverse);
               Compaq: FPU: 0 = 80287, 1 = none;
               Sometimes configured for clock switching;
-       Bit 1: PS/2: Auxiliary device data in;
+       Bit 1: DEC VAXmate: RAM option installed: 0 = installed, 1 = not installed;
+              PS/2: Auxiliary device data in;
               Compaq: Reserved;
               NCR: High/auto speed.
-       Bit 0: PS/2: Keyboard device data in;
+       Bit 0: DEC VAXmate: RAM option parity error: 0 = error, 1 = no error;
+              PS/2: Keyboard device data in;
               Compaq: Reserved;
               NCR: DMA mode.
      */
@@ -3057,6 +3090,10 @@ kbc_at_init(const device_t *info)
 
         case KBC_VEN_ACER:
             dev->write_cmd_ven = write_cmd_acer;
+            break;
+
+        case KBC_VEN_DEC_LK250:
+            dev->write_cmd_ven = write_cmd_dec;
             break;
 
         case KBC_VEN_OLIVETTI:

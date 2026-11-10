@@ -353,6 +353,25 @@ const device_t vaxmate_device = {
     .config        = vaxmate_config
 };
 
+uint8_t
+machine_vaxmate_p1_handler(void)
+{
+    /* Port 1 (TRM table 8-1): bit 2 = expansion box installed (0 = installed),
+       bit 1 = RAM option installed (0 = installed), bit 0 = RAM option parity
+       error (0 = error), bit 6 always 0. */
+    uint8_t ret = 0xbf;
+
+    /* The system board has 1 MB; the RAM option adds 2 MB. */
+    if (mem_size > 1024)
+        ret &= ~0x02;
+
+    /* The expansion box carries the hard disk controller and system clock. */
+    if (hdc_current[0] != HDC_NONE)
+        ret &= ~0x04;
+
+    return ret;
+}
+
 static mem_mapping_t vaxmate_hi_mapping;
 static mem_mapping_t vaxmate_priv_mapping;
 
@@ -402,12 +421,13 @@ machine_at_vaxmate_init(const machine_t *model)
                     vaxmate_win_wb, vaxmate_win_ww, vaxmate_win_wl,
                     NULL, MEM_MAPPING_INTERNAL, (void *) &vaxmate_hi_win);
 
-    device_add(&nvr_at_device);
-
     device_add(&fdc_at_device);
 
+    /* The expansion unit carries a WD1003-WAH class adapter: WD1015 +
+       WD2010 + WD11C00A-22, with the standard AT task file at 1F0-1F7,
+       the hard disk register at 3F6 and IRQ14 (TRM Vol.1 chapter 12). */
     if (hdc_current[0] == HDC_INTERNAL)
-        device_add(&st506_wd2010_device);
+        device_add(&st506_at_wd1003_device);
 
     /* COM1 is a WD8250 ACE (EK-PC500-TD 3.7.2); the ns8250 model has no
        scratch register and no FIFO, which matches the part. */
