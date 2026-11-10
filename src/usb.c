@@ -2251,7 +2251,8 @@ usb_ports_enum(usb_port_ref_t *out)
                 out[n].i     = i;
                 out[n].on    = out[r].on && usb_dev_on_bus(hub);
                 out[n].where = USB_PORT_ON_HUB;
-                snprintf(out[n].label, USB_PORT_LABEL, "%s.%i", out[r].label, i + 1);
+                /* Root port r is labeled r + 1. */
+                snprintf(out[n].label, USB_PORT_LABEL, "%i.%i", r + 1, i + 1);
             }
         }
     }

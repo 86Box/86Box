@@ -52,7 +52,9 @@ extern void            usb_msd_hard_reset(void);
    controller order, then the ports of a hub, "<its root port>.<n>". The
    GUI reads a copy, which the emulation thread keeps current. */
 #define USB_PORTS_MAX     24
-#define USB_PORT_LABEL    8
+/* Room for "%i.%i" with any two ints, so the compiler can see that a
+   label always fits; the labels in use are much shorter. */
+#define USB_PORT_LABEL    24
 
 enum {
     USB_PORT_EMPTY = 0,
