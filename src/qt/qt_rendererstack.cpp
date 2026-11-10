@@ -445,7 +445,8 @@ RendererStack::createRenderer(Renderer renderer)
             {
                 auto sw        = new SoftwareRenderer(this);
                 rendererWindow = sw;
-                connect(this, &RendererStack::blitToRenderer, sw, &SoftwareRenderer::onBlit, Qt::QueuedConnection);
+                /* Delivered on the renderer's worker thread. */
+                connect(this, &RendererStack::blitToRenderer, sw->blitContext(), [sw](int buf_idx, int x, int y, int w, int h) { sw->onBlit(buf_idx, x, y, w, h); }, Qt::QueuedConnection);
                 current.reset(sw);
             }
             break;
