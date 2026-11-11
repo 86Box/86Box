@@ -538,9 +538,6 @@ MainWindow::MainWindow(QWidget *parent)
         }
     });
 
-    connect(this, &MainWindow::updateStatusBarPanes, this, [this] {
-        refreshMediaMenu();
-    });
     connect(this, &MainWindow::updateStatusBarPanes, this, &MainWindow::refreshMediaMenu);
     connect(this, &MainWindow::updateStatusBarTip, status.get(), &MachineStatus::updateTip);
     connect(this, &MainWindow::statusBarMessage, status.get(), &MachineStatus::message, Qt::QueuedConnection);
