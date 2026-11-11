@@ -31,6 +31,9 @@ void jit_flags_rebuild_zpna(void);
 /*jit_flags_rebuild_zpna() in place, for each flags op it may run after*/
 extern void (*const jit_flags_rebuild_zpna_op[FLAGS_SHRD32 + 1])(void);
 int codegen_flags_is_rebuild_zpna(const void *p);
+/*jit_flags_rebuild_c() in place, for each flags op it may run after*/
+extern void (*const jit_flags_rebuild_c_op[FLAGS_SHRD32 + 1])(void);
+int codegen_flags_is_rebuild_c(const void *p);
 
 /*flags_rebuild() and flags_rebuild_zpna() write only flags and flags_op, which they leave at
   FLAGS_UNKNOWN. On arm64 and x86-64 they are called with the cached registers written back but

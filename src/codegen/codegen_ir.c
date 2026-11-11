@@ -627,7 +627,7 @@ codegen_flags_dead_pass(ir_data_t *ir, int unroll_start, int unroll_end)
               the same site as the full rebuild*/
             if ((uop->p == (void *) jit_flags_rebuild) || (uop->p == (void *) jit_flags_rebuild_v))
                 kind = FLAGS_SITE_CALL_FULL;
-            else if (uop->p == (void *) jit_flags_rebuild_c)
+            else if (codegen_flags_is_rebuild_c(uop->p))
                 kind = FLAGS_SITE_CALL_C;
             else if (codegen_flags_is_rebuild_zpna(uop->p))
                 kind = FLAGS_SITE_CALL_ZPNA;

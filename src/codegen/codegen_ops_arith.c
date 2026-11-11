@@ -2174,11 +2174,12 @@ rebuild_c(ir_data_t *ir)
     if (needs_rebuild && !codegen_flags_rebuild_known(ir, 1)) {
 #if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
         /*flags_rebuild_c() writes only flags, so the cached registers are
-          written back but left loaded, and flags is reloaded after it.*/
-        uop_CALL_FUNC_ORDERED(ir, jit_flags_rebuild_c);
+          written back but left loaded, and flags is reloaded after it. The
+          wrapper is the one for the op this pass runs after*/
+        uop_CALL_FUNC_ORDERED(ir, jit_flags_rebuild_c_op[cpu_state.flags_op]);
         uop_MOVZX_REG_PTR_16(ir, IREG_flags, &cpu_state.flags);
 #else
-        uop_CALL_FUNC(ir, jit_flags_rebuild_c);
+        uop_CALL_FUNC(ir, jit_flags_rebuild_c_op[cpu_state.flags_op]);
 #endif
     }
 }

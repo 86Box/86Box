@@ -162,6 +162,125 @@ codegen_flags_is_rebuild_zpna(const void *p)
     return 0;
 }
 
+/*flags_rebuild_c() for an op other than FLAGS_UNKNOWN, as the zpna ones*/
+#define JIT_FLAGS_REBUILD_C_OP(op)                     \
+    static JIT_WRAPPER_OP void                         \
+    jit_flags_rebuild_c_##op(void)                     \
+    {                                                  \
+        if (cpu_state.flags_op == op) {                \
+            if (CF_SET())                              \
+                cpu_state.flags |= C_FLAG;             \
+            else                                       \
+                cpu_state.flags &= ~C_FLAG;            \
+        } else                                         \
+            jit_flags_rebuild_c();                     \
+    }
+
+/*After INC, DEC and FLAGS_UNKNOWN flags_rebuild_c() leaves flags as they
+  are: CF_SET() is the C bit in flags itself*/
+#define JIT_FLAGS_REBUILD_C_KEPT(op)                   \
+    static JIT_WRAPPER_OP void                         \
+    jit_flags_rebuild_c_##op(void)                     \
+    {                                                  \
+        if (cpu_state.flags_op != op)                  \
+            jit_flags_rebuild_c();                     \
+    }
+
+JIT_FLAGS_REBUILD_C_KEPT(FLAGS_UNKNOWN)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ZN8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ZN16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ZN32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ADD8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ADD16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ADD32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SUB8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SUB16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SUB32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SHL8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SHL16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SHL32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SHR8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SHR16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SHR32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SAR8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SAR16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SAR32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ROL8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ROL16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ROL32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ROR8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ROR16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ROR32)
+JIT_FLAGS_REBUILD_C_KEPT(FLAGS_INC8)
+JIT_FLAGS_REBUILD_C_KEPT(FLAGS_INC16)
+JIT_FLAGS_REBUILD_C_KEPT(FLAGS_INC32)
+JIT_FLAGS_REBUILD_C_KEPT(FLAGS_DEC8)
+JIT_FLAGS_REBUILD_C_KEPT(FLAGS_DEC16)
+JIT_FLAGS_REBUILD_C_KEPT(FLAGS_DEC32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ADC8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ADC16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ADC32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SBC8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SBC16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SBC32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SHRD16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SHRD32)
+
+void (*const jit_flags_rebuild_c_op[FLAGS_SHRD32 + 1])(void) = {
+    [FLAGS_UNKNOWN] = jit_flags_rebuild_c_FLAGS_UNKNOWN,
+    [FLAGS_ZN8]     = jit_flags_rebuild_c_FLAGS_ZN8,
+    [FLAGS_ZN16]    = jit_flags_rebuild_c_FLAGS_ZN16,
+    [FLAGS_ZN32]    = jit_flags_rebuild_c_FLAGS_ZN32,
+    [FLAGS_ADD8]    = jit_flags_rebuild_c_FLAGS_ADD8,
+    [FLAGS_ADD16]   = jit_flags_rebuild_c_FLAGS_ADD16,
+    [FLAGS_ADD32]   = jit_flags_rebuild_c_FLAGS_ADD32,
+    [FLAGS_SUB8]    = jit_flags_rebuild_c_FLAGS_SUB8,
+    [FLAGS_SUB16]   = jit_flags_rebuild_c_FLAGS_SUB16,
+    [FLAGS_SUB32]   = jit_flags_rebuild_c_FLAGS_SUB32,
+    [FLAGS_SHL8]    = jit_flags_rebuild_c_FLAGS_SHL8,
+    [FLAGS_SHL16]   = jit_flags_rebuild_c_FLAGS_SHL16,
+    [FLAGS_SHL32]   = jit_flags_rebuild_c_FLAGS_SHL32,
+    [FLAGS_SHR8]    = jit_flags_rebuild_c_FLAGS_SHR8,
+    [FLAGS_SHR16]   = jit_flags_rebuild_c_FLAGS_SHR16,
+    [FLAGS_SHR32]   = jit_flags_rebuild_c_FLAGS_SHR32,
+    [FLAGS_SAR8]    = jit_flags_rebuild_c_FLAGS_SAR8,
+    [FLAGS_SAR16]   = jit_flags_rebuild_c_FLAGS_SAR16,
+    [FLAGS_SAR32]   = jit_flags_rebuild_c_FLAGS_SAR32,
+    [FLAGS_ROL8]    = jit_flags_rebuild_c_FLAGS_ROL8,
+    [FLAGS_ROL16]   = jit_flags_rebuild_c_FLAGS_ROL16,
+    [FLAGS_ROL32]   = jit_flags_rebuild_c_FLAGS_ROL32,
+    [FLAGS_ROR8]    = jit_flags_rebuild_c_FLAGS_ROR8,
+    [FLAGS_ROR16]   = jit_flags_rebuild_c_FLAGS_ROR16,
+    [FLAGS_ROR32]   = jit_flags_rebuild_c_FLAGS_ROR32,
+    [FLAGS_INC8]    = jit_flags_rebuild_c_FLAGS_INC8,
+    [FLAGS_INC16]   = jit_flags_rebuild_c_FLAGS_INC16,
+    [FLAGS_INC32]   = jit_flags_rebuild_c_FLAGS_INC32,
+    [FLAGS_DEC8]    = jit_flags_rebuild_c_FLAGS_DEC8,
+    [FLAGS_DEC16]   = jit_flags_rebuild_c_FLAGS_DEC16,
+    [FLAGS_DEC32]   = jit_flags_rebuild_c_FLAGS_DEC32,
+    [FLAGS_ADC8]    = jit_flags_rebuild_c_FLAGS_ADC8,
+    [FLAGS_ADC16]   = jit_flags_rebuild_c_FLAGS_ADC16,
+    [FLAGS_ADC32]   = jit_flags_rebuild_c_FLAGS_ADC32,
+    [FLAGS_SBC8]    = jit_flags_rebuild_c_FLAGS_SBC8,
+    [FLAGS_SBC16]   = jit_flags_rebuild_c_FLAGS_SBC16,
+    [FLAGS_SBC32]   = jit_flags_rebuild_c_FLAGS_SBC32,
+    [FLAGS_SHRD16]  = jit_flags_rebuild_c_FLAGS_SHRD16,
+    [FLAGS_SHRD32]  = jit_flags_rebuild_c_FLAGS_SHRD32
+};
+
+/*Whether p is jit_flags_rebuild_c or one of the wrappers in its place*/
+int
+codegen_flags_is_rebuild_c(const void *p)
+{
+    if (p == (const void *) jit_flags_rebuild_c)
+        return 1;
+    for (int op = 0; op <= FLAGS_SHRD32; op++) {
+        if (p == (const void *) jit_flags_rebuild_c_op[op])
+            return 1;
+    }
+    return 0;
+}
+
 JIT_WRAPPER int
 jit_CF_SET(void)
 {
