@@ -102,6 +102,7 @@ typedef struct _ac97_via_ {
     double   in_frac;
     int      in_rate;
     int      in_started;
+    int      in_idle;
     int      in_primed;
 } ac97_via_t;
 
@@ -392,8 +393,9 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
                         if ((addr & 0xf0) == 0x10) {
                             dev->sgd[1].fifo_pos = dev->sgd[1].fifo_end = 0;
                             ac97_via_record_input(dev, 1);
-                            if (!timer_is_enabled(&dev->sgd[1].poll_timer))
+                            if (dev->in_idle || !timer_is_enabled(&dev->sgd[1].poll_timer))
                                 timer_set_delay_u64(&dev->sgd[1].poll_timer, dev->sgd[1].timer_latch);
+                            dev->in_idle = 0;
                         }
 
                         /* Start the actual SGD process. */
@@ -1065,9 +1067,16 @@ ac97_via_poll_record(void *priv)
     int             l;
     int             r;
 
-    /* Run only while the channel does; it gives the host's input back. */
+    /* Drivers can re-arm the DMA channel after each short block. Keep the
+       host stream and its buffered samples through the re-arm gap. */
     if (!(dev->sgd_regs[0x10] & 0x80)) {
-        ac97_via_record_input(dev, 0);
+        if (dev->in_idle) {
+            dev->in_idle = 0;
+            ac97_via_record_input(dev, 0);
+        } else {
+            dev->in_idle = 1;
+            timer_advance_u64(&sgd->poll_timer, 100000 * TIMER_USEC);
+        }
         return;
     }
 
