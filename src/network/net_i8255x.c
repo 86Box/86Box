@@ -1270,6 +1270,17 @@ eepro100_read_mdi(eepro100_t *s)
 }
 
 static void
+eepro100_update_phy_link_status(void *priv)
+{
+    eepro100_t *s = priv;
+
+    if (!s->link_state)
+        s->mdimem[1] &= ~0x0004;
+    else
+        s->mdimem[1] |= 0x0004;
+}
+
+static void
 eepro100_write_mdi(eepro100_t *s)
 {
     uint32_t val = e100_read_reg4(s, SCBCtrlMDI);
@@ -1302,6 +1313,7 @@ eepro100_write_mdi(eepro100_t *s)
                     /* Reset status and control registers to default. */
                     s->mdimem[0] = eepro100_mdi_default[0];
                     s->mdimem[1] = eepro100_mdi_default[1];
+                    eepro100_update_phy_link_status(s);
                     data = s->mdimem[reg];
                 } else {
                     /* Restart Auto Configuration = Normal Operation */
@@ -1332,10 +1344,12 @@ eepro100_write_mdi(eepro100_t *s)
                     /* Reset status and control registers to default. */
                     s->mdimem[0] = eepro100_mdi_default[0];
                     s->mdimem[1] = eepro100_mdi_default[1];
+                    eepro100_update_phy_link_status(s);
                 }
                 break;
             case 1:            /* Status Register */
                 s->mdimem[reg] |= 0x0020;
+                eepro100_update_phy_link_status(s);
                 break;
             case 2:            /* PHY Identification Register (Word 1) */
             case 3:            /* PHY Identification Register (Word 2) */
@@ -1468,8 +1482,8 @@ eepro100_read1(eepro100_t *s, uint32_t addr)
         i8255x_log("addr=0x%02x val=0x%02x\n", addr, val);
         break;
     case SCBgstat:      /* General Status Register */
-        /* 100 Mbps full duplex, valid link */
-        val = 0x07;
+        /* 100 Mbps full duplex, link state follows emulator setting */
+        val = 0x06 | s->link_state;
         i8255x_log("addr=General Status val=0x%02x\n", val);
         break;
     default:
@@ -1984,9 +1998,9 @@ eepro100_set_link_status(void *priv, uint32_t link_state)
 {
     eepro100_t *s = priv;
 
-    s->link_state = link_state;
+    s->link_state = !(link_state & NET_LINK_DOWN);
 
-    return 1;
+    return 0;
 }
 
 static void
@@ -2312,6 +2326,8 @@ nic_init(const device_t *info)
     memcpy(&s->mdimem[0], &eepro100_mdi_default[0], sizeof(s->mdimem));
 
     s->nic = network_attach(s, s->bia, eepro100_do_receive, eepro100_set_link_status);
+    s->link_state = !(s->nic->link_state & NET_LINK_DOWN);
+    eepro100_update_phy_link_status(s);
     s->nic->byte_period = NET_PERIOD_100M;
     pci_add_card((info->local & 0x0100) ? PCI_ADD_NETWORK : PCI_ADD_NORMAL,
                  eepro100_pci_read, eepro100_pci_write, s, &s->pci_slot);
@@ -2350,6 +2366,7 @@ eepro100_reset(void *priv)
     e100_pci_reset(s, s->info);
 
     memcpy(&s->mdimem[0], &eepro100_mdi_default[0], sizeof(s->mdimem));
+    eepro100_update_phy_link_status(s);
 
     nic_reset(s);
 }
