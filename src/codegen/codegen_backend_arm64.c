@@ -112,6 +112,64 @@ host_reg_def_t codegen_host_fp_reg_list[CODEGEN_HOST_FP_REGS] = {
     { REG_V15, 0}
 };
 
+/*A misaligned load that stays inside its page and has a read lookup: what
+  readmemwl(), readmemll() and readmemql() do on their in-page branch, the
+  timing_misaligned charge under the same Cyrix alignment rule and the load
+  through the lookup. A page crossing or a missing lookup branches to the C
+  path through to_c[0] and to_c[1].
+  In - W0 = address, X1 = readlookup2[] entry*/
+static void
+build_load_misaligned(codeblock_t *block, int size, int is_float, uint32_t **to_c)
+{
+    uint32_t *skip   = NULL;
+    uint32_t *charge = NULL;
+
+    /*The last byte is in the next page when bit 12 differs*/
+    host_arm64_ADD_IMM(block, REG_W2, REG_W0, size - 1);
+    host_arm64_EOR_REG(block, REG_W2, REG_W2, REG_W0, 0);
+    to_c[0] = host_arm64_TBNZ_SHORT_(block, REG_W2, 12);
+    host_arm64_CMPX_IMM(block, REG_X1, -1);
+    to_c[1] = host_arm64_BEQ_SHORT_(block);
+
+    /*readmem*l() clears high_page on every call; checkio()'s I/O map read
+      through readmemw_n() does not and would see a stale one*/
+    host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) &high_page);
+    host_arm64_STRB_IMM(block, REG_WZR, REG_X2, 0);
+
+    if (size != 8) {
+        host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) &cpu_cyrix_alignment);
+        host_arm64_LDR_IMM_W(block, REG_W2, REG_X2, 0);
+        charge = host_arm64_CBZ_SHORT_(block, REG_W2);
+        host_arm64_AND_IMM(block, REG_W2, REG_W0, 7);
+        if (size == 2) {
+            host_arm64_CMP_IMM(block, REG_W2, 7);
+            skip = host_arm64_BNE_SHORT_(block);
+        } else {
+            host_arm64_CMP_IMM(block, REG_W2, 4);
+            skip = host_arm64_BLE_SHORT_(block);
+        }
+        host_arm64_short_branch_set_offset(charge, &block_write_data[block_pos]);
+    }
+    host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) &timing_misaligned);
+    host_arm64_LDR_IMM_W(block, REG_W2, REG_X2, 0);
+    codegen_direct_read_32(block, REG_W3, &cpu_state._cycles);
+    host_arm64_SUB_REG(block, REG_W3, REG_W3, REG_W2, 0);
+    codegen_direct_write_32(block, &cpu_state._cycles, REG_W3);
+    if (skip)
+        host_arm64_short_branch_set_offset(skip, &block_write_data[block_pos]);
+
+    if (size == 2)
+        host_arm64_LDRH_REG(block, REG_W0, REG_W1, REG_W0);
+    else if (size == 4 && !is_float)
+        host_arm64_LDR_REG(block, REG_W0, REG_W1, REG_W0);
+    else if (size == 4 && is_float)
+        host_arm64_LDR_REG_F32(block, REG_V_TEMP, REG_W1, REG_W0);
+    else
+        host_arm64_LDR_REG_F64(block, REG_V_TEMP, REG_W1, REG_W0);
+    host_arm64_MOVZ_IMM(block, REG_W1, 0);
+    host_arm64_RET(block, REG_X30);
+}
+
 /*ea_rule: take the direct load whenever the address is at most 0xffc into
   its page, aligned or not, as the interpreter's eal_r path does; readmemwl
   and readmemll charge timing_misaligned only on the slow path.*/
@@ -120,6 +178,8 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
 {
     uint32_t *branch_offset;
     uint32_t *misaligned_offset = NULL;
+    uint32_t *to_c[2];
+    int       has_misaligned = !ea_rule && (size != 1);
 
     /*In - W0 = address
       Out - W0 = data, W1 = abrt*/
@@ -137,7 +197,10 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
       LDP X29, X30, [SP, #-16]
       RET
     */
-    codegen_alloc(block, 80);
+    /*With the misaligned path, at most 55 instructions with every MOVX_IMM
+      at four and the C call through MOVX_IMM + BLR: one chunk, so the short
+      branches reach*/
+    codegen_alloc(block, has_misaligned ? 220 : 80);
     host_arm64_MOV_REG_LSR(block, REG_W1, REG_W0, 12);
     host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) readlookup2);
     host_arm64_LDRX_REG_LSL3(block, REG_X1, REG_X2, REG_X1);
@@ -164,8 +227,14 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
     host_arm64_MOVZ_IMM(block, REG_W1, 0);
     host_arm64_RET(block, REG_X30);
 
+    if (has_misaligned) {
+        host_arm64_branch_set_offset(misaligned_offset, &block_write_data[block_pos]);
+        build_load_misaligned(block, size, is_float, to_c);
+        host_arm64_short_branch_set_offset(to_c[0], &block_write_data[block_pos]);
+        host_arm64_short_branch_set_offset(to_c[1], &block_write_data[block_pos]);
+    }
     host_arm64_branch_set_offset(branch_offset, &block_write_data[block_pos]);
-    if (size != 1)
+    if (ea_rule)
         host_arm64_branch_set_offset(misaligned_offset, &block_write_data[block_pos]);
     host_arm64_STP_PREIDX_X(block, REG_X29, REG_X30, REG_XSP, -16);
     if (size == 1)
