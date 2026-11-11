@@ -3904,9 +3904,11 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             feature = (cdb[2] << 8) | cdb[3];
             max_len = (cdb[7] << 8) | cdb[8];
 
-            int is_invalid_writable = (!cdrom_is_writable(dev->drv->type)) && ((feature == 0x21) || (feature == 0x23) || (feature == 0x26) ||
-                                                                               (feature == 0x2d) || (feature == 0x2e));
-            int is_invalid_cdrw     = (!cdrom_is_cdrw(dev->drv->type)) && (feature == 0x27);
+                int feature_cdrw        = (feature == 0x27);
+                int feature_writable    = ((feature == 0x21) || (feature == 0x23) || (feature == 0x26) ||
+                                           (feature == 0x2d) || (feature == 0x2e));
+                int is_invalid_cdrw     = !(cdrom_is_cdrw(dev->drv->type) && feature_cdrw);
+                int is_invalid_writable = !(cdrom_is_writable(dev->drv->type) && feature_writable);
 
             /* Only feature 0 is supported */
             if ((feature > 3) && (feature != 0x010) && (feature != 0x1d) && (feature != 0x01e) &&
