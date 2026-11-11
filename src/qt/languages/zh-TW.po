@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-10 10:50+0000\n"
+"PO-Revision-Date: 2026-11-11 07:33+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -3741,7 +3741,7 @@ msgid "Only RAM and video memory can be written."
 msgstr "僅主記憶體及顯示記憶體可被寫入。"
 
 msgid "not written (not writable RAM or video memory, or the emulator is busy)."
-msgstr "未寫入 (非寫入主記憶體或顯示記憶體，或模擬器忙碌中)。"
+msgstr "未寫入 (非可寫入之主記憶體或顯示記憶體，或模擬器忙碌中)。"
 
 msgid "The emulator is busy; try again."
 msgstr "模擬器忙碌中，請再試一次。"
@@ -3983,7 +3983,7 @@ msgid "Stopped: %1"
 msgstr "停止: %1"
 
 msgid "The emulator is busy; the view was not updated."
-msgstr "模擬器忙碌；檢視未更新。"
+msgstr "模擬器忙碌中；檢視未更新。"
 
 msgid "Stopped at a breakpoint."
 msgstr "在中斷點停止。"
@@ -4299,28 +4299,31 @@ msgid "TCP send timeout"
 msgstr "TCP 傳送逾時"
 
 msgid "Card:"
-msgstr ""
+msgstr "界面卡:"
 
 msgid "Hub:"
-msgstr ""
+msgstr "集線器:"
 
 msgid "Mass storage:"
-msgstr ""
+msgstr "大容量儲存裝置:"
 
 msgid "Its drives are hard disks, CD-ROM drives and other removable devices set up on their own pages, on bus SCSI, in the channels named \"USB Mass Storage\". Each drive is one logical unit, in channel order."
 msgstr ""
+"磁碟機包含硬碟機、光碟機以及其他抽取式裝置，各自於 SCSI "
+"匯流排有其專屬設置頁面中名為 \"USB大容量儲存裝置\" "
+"通道內。每個磁碟機為一個邏輯單元並按照通道順序排列。"
 
 msgid "Hard disks…"
-msgstr ""
+msgstr "硬碟…"
 
 msgid "CD-ROM drives…"
-msgstr ""
+msgstr "光碟機…"
 
 msgid "Other removable devices…"
-msgstr ""
+msgstr "其他抽取式裝罝…"
 
 msgid "4-port USB 1.1 hub"
-msgstr ""
+msgstr "四埠 USB 1.1 集線器"
 
 msgid "USB Mass Storage"
-msgstr ""
+msgstr "USB 大容量儲存裝置"
