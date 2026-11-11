@@ -2108,12 +2108,9 @@ aic_tgt_take(aic7xxx_t *dev, uint8_t val)
                         return;
                     }
                     if ((n >= 2) && (dev->msgout[2] == 0x03)) { /* WDTR */
-                        reply[0]        = 0x01;
-                        reply[1]        = 0x02;
-                        reply[2]        = 0x03;
-                        reply[3]        = (dev->wide && dev->msgout[3]) ? 0x01 : 0x00;
+                        reply[0]        = 0x07; /* MESSAGE REJECT */
                         dev->msgout_len = 0;
-                        aic_msgin(dev, reply, 4, AFTER_NEXT);
+                        aic_msgin(dev, reply, 1, AFTER_NEXT);
                         /* And so does this one, for the same reason. */
                         aic_tgt_req_again(dev);
                         return;
@@ -4282,11 +4279,6 @@ command_channel:
             break;
         case DFCNTRL:
             was = dev->dfcntrl;
-            /* DIRECTIONACK cannot change while a transfer stays enabled
-               (DFCNTRL, both data books). A direction may be selected
-               when starting from idle or when clearing all enables. */
-            if ((was & (SCSIEN | SDMAEN | HDMAEN)) && (val & (SCSIEN | SDMAEN | HDMAEN)))
-                val = (val & ~DIRECTION) | (was & DIRECTION);
             /* FIFORESET is a strobe and reads back clear. Firmware turns
                the engine off with a read-modify-write, and a reset bit
                that stuck would empty the FIFO it is about to read. */
