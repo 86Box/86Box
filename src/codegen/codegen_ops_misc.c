@@ -1473,10 +1473,8 @@ rop0F01_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t f
   use, which takes its bytes into the length. All four are #GP(0) in
   protected mode outside CPL 0, read as the block runs, before anything
   else, and the control register forms with VM set too. VM is read as the
-  block runs as well, not taken from the block's key: a real-mode IRETD
-  can set VM without the key's V86 status, which a MOV CR0 setting PE then
-  keeps, so a protected-mode block can run with VM set and CPL 0. In real
-  mode none is #GP, VM set or not. The debug register forms
+  block runs as well, with CPL, so the test does not lean on the block's
+  key. In real mode none is #GP, VM set or not. The debug register forms
   (dr) then raise general detect's #DB with DR6.BD under the 486 debug
   registers option, before the EA.*/
 static void

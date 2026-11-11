@@ -472,6 +472,9 @@ typedef struct {
 #define CPU_STATUS_USE32   (1 << 0)
 #define CPU_STATUS_STACK32 (1 << 1)
 #define CPU_STATUS_PMODE   (1 << 2)
+/* EFLAGS.VM, whatever CR0.PE is (a real-mode IRETD, RSM or LOADALL can
+   set VM with PE clear, and the interpreter's ops that test VM alone then
+   act on it); V86 mode is PMODE and V86 together */
 #define CPU_STATUS_V86     (1 << 3)
 #define CPU_STATUS_SMM     (1 << 4)
 /* x87 precision control = 24-bit: the double-based FPU must round
@@ -671,6 +674,13 @@ cpu_update_64k_status(void)
         cpu_cur_status |= CPU_STATUS_NOT64K;
     else
         cpu_cur_status &= ~CPU_STATUS_NOT64K;
+}
+
+/* The V86 status bit from EFLAGS.VM, after a write of VM */
+static inline void
+cpu_set_v86_status(void)
+{
+    cpu_cur_status = (cpu_cur_status & ~CPU_STATUS_V86) | ((cpu_state.eflags & VM_FLAG) ? CPU_STATUS_V86 : 0);
 }
 
 extern uint64_t cpu_CR4_mask;

@@ -1840,11 +1840,9 @@ leave_smm(void)
     cpu_386_flags_extract();
     cpu_cur_status &= ~(CPU_STATUS_PMODE | CPU_STATUS_V86);
     cpu_cur_status &= ~CPU_STATUS_SMM;
-    if (cr0 & 1) {
+    if (cr0 & 1)
         cpu_cur_status |= CPU_STATUS_PMODE;
-        if (cpu_state.eflags & VM_FLAG)
-            cpu_cur_status |= CPU_STATUS_V86;
-    }
+    cpu_set_v86_status();
     cpu_update_64k_status();
 
     nmi_mask = 1;
