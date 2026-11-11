@@ -42,6 +42,7 @@
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/plat_dynld.h>
+#include <86box/version.h>
 
 #if defined(_WIN32)
 #define AARU_CALL                       __stdcall
@@ -124,6 +125,8 @@ typedef enum
 {
     kMediaTagFullToc          =  2,
 
+    kMediaTagCdMcn            =  6,
+
     kMediaTagDvdPfi           =  7,
     kMediaTagDvdCmi           =  8,
 
@@ -143,6 +146,10 @@ typedef enum
 {
     OpticalDisc               =  0
 } XmlMediaType;
+
+#define AARU_MEDIA_TYPE_CDR     19
+#define AARU_MEDIA_TYPE_CDRW    20
+#define AARU_SECTOR_STATUS_DUMPED 1
 
 int     (* AARU_CALL f_aaruf_identify)(const char *filename);
 void*   (* AARU_CALL f_aaruf_open)(const char *filepath, bool resume_mode,
@@ -178,6 +185,34 @@ static dllimp_t aaruf_imports[] = {
     { "aaruf_get_image_info",   &f_aaruf_get_image_info   },
     { NULL,                     NULL                      },
 };
+
+/* The write path is loaded apart, so that reading works on older libraries. */
+void*   (* AARU_CALL f_aaruf_create)(const char *filepath, uint32_t media_type, uint32_t sector_size,
+                                     uint64_t user_sectors, uint64_t negative_sectors,
+                                     uint64_t overflow_sectors, const char *options,
+                                     const uint8_t *application_name, uint8_t application_name_length,
+                                     uint8_t application_major_version, uint8_t application_minor_version,
+                                     bool is_tape);
+int32_t (* AARU_CALL f_aaruf_write_sector_long)(void *context, uint64_t sector_address, bool negative,
+                                                const uint8_t *data, uint8_t sector_status,
+                                                uint32_t length);
+int32_t (* AARU_CALL f_aaruf_write_media_tag)(void *context, const uint8_t *data, int32_t type,
+                                              uint32_t length);
+int     (* AARU_CALL f_aaruf_close_write)(void *context);
+int32_t (* AARU_CALL f_aaruf_set_comments)(void *context, const uint8_t *data, int32_t length);
+int32_t (* AARU_CALL f_aaruf_get_comments)(const void *context, uint8_t *buffer, int32_t *length);
+
+static dllimp_t aaruf_write_imports[] = {
+    { "aaruf_create",            &f_aaruf_create            },
+    { "aaruf_write_sector_long", &f_aaruf_write_sector_long },
+    { "aaruf_write_media_tag",   &f_aaruf_write_media_tag   },
+    { "aaruf_close",             &f_aaruf_close_write       },
+    { "aaruf_set_comments",      &f_aaruf_set_comments      },
+    { "aaruf_get_comments",      &f_aaruf_get_comments      },
+    { NULL,                      NULL                       },
+};
+
+static void *libaaruformat_write_handle = NULL;
 
 static volatile void* libaaruformat_handle = NULL;
 static bool load_failed = false;
@@ -305,10 +340,10 @@ aaru_image_get_track(const aaru_image_t *ioctl, const uint32_t sector)
 static void
 aaru_image_get_track_mode(const aaru_image_t *img, int64_t lba, uint8_t *mode, uint8_t *form)
 {
-    uint8_t  buffer[1024];
-    uint32_t length = 0;
-    // Mode shall be determined by getting the type of the track.
-    // Form is determined by reading the sector metadata.
+    /*
+       Mode shall be determined by getting the type of the track.
+       Form is determined by reading the sector metadata.
+     */
     *mode = 0;
     *form = 0;
     for (int i = 0; i < img->track_size; i++) {
@@ -334,14 +369,8 @@ aaru_image_get_track_mode(const aaru_image_t *img, int64_t lba, uint8_t *mode, u
                 *form = 2;
                 return;
             }
-            // Mode Formless, try to extract the metadata.
-            length = 8;
             *mode  = 2;
             *form  = 0;
-            if (!f_aaruf_read_sector_tag(img->aaruf_context, (uint64_t) lba,
-                false, buffer, &length, kSectorTagCdSubHeader)) {
-                *form = 1 + !!(buffer[2] & (1 << 5));
-            }
         }
     }
     return;
@@ -372,21 +401,26 @@ aaru_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32
     raw_track_info_t       *rti           = (raw_track_info_t *) (ioctl->full_toc + 4);
     const raw_track_info_t *ct            = &(rti[track]);
     const uint32_t          start         = (ct->pm * 60 * 75) + (ct->ps * 75) + ct->pf;
+    int                     ret           = 1;
     int                     m, s, f;
     uint8_t                 mode = 0, form = 0;
     int64_t                 pregap_length = 0;
     int32_t                 long_res;
-    int                     cooked        = 0;
 
     memset(buffer, 0, 2448);
+
+    /* For starters: Yes, negative numbers have the signed bit (here, bit 31) set. */
+    if (track & (1 << 31))
+        return -1;
 
     if (sector == 0xFFFFFFFF)
         lba = ioctl->dev->seek_pos;
 
     /* Use the resolved LBA, not the raw sector argument (which may be ~0u). */
     aaru_image_get_track_mode(ioctl, (int64_t) lba, &mode, &form);
+    pclog("mode = %i, form = %i\n", mode, form);
 
-    if (mode == 0) {
+    if ((mode == 0) && !ioctl->is_dvd) {
         length = 2352;
         (void) f_aaruf_read_sector(ioctl->aaruf_context, lba,
                                    false, buffer, &length, &sector_status);
@@ -397,7 +431,6 @@ aaru_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32
          * cooked payload at offset 16 and synthesize the header.
          */
         length  = 2048;
-        cooked  = 1;
         if (f_aaruf_read_sector(ioctl->aaruf_context, lba, false,
                                 buffer + 16, &length, &sector_status))
             return -1;
@@ -406,122 +439,137 @@ aaru_image_read_sector(const void *local, UNUSED(uint8_t *buffer), UNUSED(uint32
         goto generate_headers;
     } else {
         length   = 2352;
+        pclog("Reading 2352 bytes of raw sector... ");
         long_res = f_aaruf_read_sector_long(ioctl->aaruf_context, lba,
                                             false, buffer, &length, &sector_status);
         if (long_res) {
             /* No raw frame in the image: cooked 2048 + synthetic header. */
             length = 2048;
-            cooked = 1;
+            pclog("no raw frame... ");
             if (f_aaruf_read_sector(ioctl->aaruf_context, lba, false,
-                                    buffer + 16, &length, &sector_status))
+                                    buffer + 16, &length, &sector_status)) {
+                pclog("error\n");
                 return -1;
+            } else
+                pclog("done\n");
             goto generate_headers;
+        } else {
+            if ((mode == 2) && (form == 0) && (buffer[0x0012] == buffer[0x0016])) {
+                pclog("adjusting form... ");
+                form = 1 + !!(buffer[0x0012] & (1 << 5));
+            }
+            pclog("done\n");
         }
     }
 
     length = 96;
+    pclog("Reading 96 bytes of raw subchannel... ");
     if (f_aaruf_read_sector_tag(ioctl->aaruf_context, lba, false, &buffer[2352],
                                 &length, kSectorTagCdSubchannel)) {
-
-generate_headers:
-        m = s = f = 0;
-        if (!cooked && (length == 96))
-            goto generate_subchannel;
-
-        buffer[0] = 0x00;
-        memset(&(buffer[1]), 0xff, 10);
-        buffer[11] = 0x00;
-
-        FRAMES_TO_MSF(lba + 150, &m, &s, &f);
-        buffer[12] = bin2bcd(m);
-        buffer[13] = bin2bcd(s);
-        buffer[14] = bin2bcd(f);
-        buffer[15] = mode;
-
-        if (form >= 1) {
-            uint8_t *subheader = buffer + 16;
-            subheader[2] = subheader[6] = (form - 1) << 5;
-        }
-
-        /* Construct sector header and sub-header. */
-        {
-            /* Sync bytes. */
-            buffer[0] = 0x00;
-            memset(&(buffer[1]), 0xff, 10);
-            buffer[11] = 0x00;
-
-            /* Sector header. */
-            FRAMES_TO_MSF(lba + 150, &m, &s, &f);
-            buffer[12] = bin2bcd(m);
-            buffer[13] = bin2bcd(s);
-            buffer[14] = bin2bcd(f);
-
-            /* Mode 1/Mode 2 data. */
-            buffer[15] = mode;
-            if (form >= 1) {
-                uint8_t *subheader = buffer + 16;
-                /* Construct the CD-I/XA sub-header. */
-                subheader[2] = subheader[6] = (form - 1) << 5;
-            }
-
-            uint32_t crc;
-
-            if ((mode == 2) && (form == 1)) {
-                crc = cdrom_crc32(0xffffffff, &(buffer[16]), 2056) ^ 0xffffffff;
-                memcpy(&(buffer[2072]), &crc, 4);
-            } else if ((mode == 2) && (form == 2)) {
-                crc = cdrom_crc32(0xffffffff, &(buffer[16]), 2332) ^ 0xffffffff;
-                memcpy(&(buffer[2348]), &crc, 4);
-            } else {
-                crc = cdrom_crc32(0xffffffff, buffer, 2064) ^ 0xffffffff;
-                memcpy(&(buffer[2064]), &crc, 4);
-            }
-
-            int m2f1 = (mode == 2) && (form == 1);
-
-            if ((mode == 1) || m2f1) {
-                /* Compute ECC P code. */
-                cdrom_compute_ecc_block(ioctl->dev, &(buffer[2076]),
-                                        &(buffer[12]), 86, 24, 2,
-                                        86, m2f1);
-
-                /* Compute ECC Q code. */
-                cdrom_compute_ecc_block(ioctl->dev, &(buffer[2248]),
-                                        &(buffer[12]), 52, 43, 86,
-                                        88, m2f1);
-            }
-        }
-
-generate_subchannel:
-        /* Construct Q. */
-        buffer[2352 + 0] = (ct->adr_ctl >> 4) | ((ct->adr_ctl & 0xf) << 4);
-        buffer[2352 + 1] = bin2bcd(ct->point);
-        pregap_length = aaru_image_get_pregap_length(ioctl, ct->point);
-        if (pregap_length && ((lba + 150) - start) < pregap_length) {
-            /*
-                Pre-gap sector relative frame addresses count from
-                the pregap length downwards.
-            */
-            buffer[2352 + 2] = 0;
-            FRAMES_TO_MSF((int32_t) ((pregap_length - 1) - (lba + 150 - start)), &m, &s, &f);
-        } else {
-            buffer[2352 + 2] = 1;
-            FRAMES_TO_MSF((int32_t) (lba + 150 - start), &m, &s, &f);
-        }
-        buffer[2352 + 3] = bin2bcd(m);
-        buffer[2352 + 4] = bin2bcd(s);
-        buffer[2352 + 5] = bin2bcd(f);
-        FRAMES_TO_MSF(lba + 150, &m, &s, &f);
-        buffer[2352 + 7] = bin2bcd(m);
-        buffer[2352 + 8] = bin2bcd(s);
-        buffer[2352 + 9] = bin2bcd(f);
-        *(uint16_t*)&buffer[2352 + 10] = bswap16(cdrom_crc16(0xffff, &buffer[2352], 10));
-        for (int i = 11; i >= 0; i--)
-            for (int j = 7; j >= 0; j--)
-                buffer[2352 + (i * 8) + j] = ((buffer[2352 + i] >> (7 - j)) & 0x01) << 6;
+        pclog("generating\n");
+        goto generate_subchannel;
+    } else {
+        pclog("done\n");
+        goto done;
     }
 
-    return 1;
+generate_headers:
+    ret = 2;
+    m = s = f = 0;
+    buffer[0] = 0x00;
+    memset(&(buffer[1]), 0xff, 10);
+    buffer[11] = 0x00;
+
+    FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+    buffer[12] = bin2bcd(m);
+    buffer[13] = bin2bcd(s);
+    buffer[14] = bin2bcd(f);
+    buffer[15] = mode;
+
+    if (form >= 1) {
+        uint8_t *subheader = buffer + 16;
+        subheader[2] = subheader[6] = (form - 1) << 5;
+    }
+
+    /* Construct sector header and sub-header. */
+
+    /* Sync bytes. */
+    buffer[0] = 0x00;
+    memset(&(buffer[1]), 0xff, 10);
+    buffer[11] = 0x00;
+
+    /* Sector header. */
+    FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+    buffer[12] = bin2bcd(m);
+    buffer[13] = bin2bcd(s);
+    buffer[14] = bin2bcd(f);
+
+    /* Mode 1/Mode 2 data. */
+    buffer[15] = mode;
+    if (form >= 1) {
+        uint8_t *subheader = buffer + 16;
+        /* Construct the CD-I/XA sub-header. */
+        subheader[2] = subheader[6] = (form - 1) << 5;
+    }
+
+    uint32_t crc;
+
+    if ((mode == 2) && (form == 1)) {
+        crc = cdrom_crc32(0xffffffff, &(buffer[16]), 2056) ^ 0xffffffff;
+        memcpy(&(buffer[2072]), &crc, 4);
+    } else if ((mode == 2) && (form == 2)) {
+        crc = cdrom_crc32(0xffffffff, &(buffer[16]), 2332) ^ 0xffffffff;
+        memcpy(&(buffer[2348]), &crc, 4);
+    } else {
+        crc = cdrom_crc32(0xffffffff, buffer, 2064) ^ 0xffffffff;
+        memcpy(&(buffer[2064]), &crc, 4);
+    }
+
+    int m2f1 = (mode == 2) && (form == 1);
+
+    if ((mode == 1) || m2f1) {
+        /* Compute ECC P code. */
+        cdrom_compute_ecc_block(ioctl->dev, &(buffer[2076]),
+                                &(buffer[12]), 86, 24, 2,
+                                86, m2f1);
+
+       /* Compute ECC Q code. */
+       cdrom_compute_ecc_block(ioctl->dev, &(buffer[2248]),
+                               &(buffer[12]), 52, 43, 86,
+                               88, m2f1);
+   }
+
+generate_subchannel:
+    /* Construct Q. */
+    buffer[2352 + 0] = (ct->adr_ctl >> 4) | ((ct->adr_ctl & 0xf) << 4);
+    buffer[2352 + 1] = bin2bcd(ct->point);
+    pregap_length = aaru_image_get_pregap_length(ioctl, ct->point);
+
+    if (pregap_length && ((lba + 150) - start) < pregap_length) {
+        /*
+           Pre-gap sector relative frame addresses count from
+           the pregap length downwards.
+         */
+        buffer[2352 + 2] = 0;
+        FRAMES_TO_MSF((int32_t) ((pregap_length - 1) - (lba + 150 - start)), &m, &s, &f);
+    } else {
+        buffer[2352 + 2] = 1;
+        FRAMES_TO_MSF((int32_t) (lba + 150 - start), &m, &s, &f);
+    }
+    buffer[2352 + 3] = bin2bcd(m);
+    buffer[2352 + 4] = bin2bcd(s);
+    buffer[2352 + 5] = bin2bcd(f);
+    FRAMES_TO_MSF(lba + 150, &m, &s, &f);
+    buffer[2352 + 7] = bin2bcd(m);
+    buffer[2352 + 8] = bin2bcd(s);
+    buffer[2352 + 9] = bin2bcd(f);
+    *(uint16_t*)&buffer[2352 + 10] = bswap16(cdrom_crc16(0xffff, &buffer[2352], 10));
+    for (int i = 11; i >= 0; i--)
+        for (int j = 7; j >= 0; j--)
+            buffer[2352 + (i * 8) + j] = ((buffer[2352 + i] >> (7 - j)) & 0x01) << 6;
+
+done:
+    return ret;
 }
 
 static uint32_t
@@ -672,6 +720,16 @@ aaru_image_get_track_type(const void *local, const uint32_t sector)
     return ret;
 }
 
+static int
+aaru_image_get_mcn(const void *local, uint8_t *mcn)
+{
+    const aaru_image_t *img    = (const aaru_image_t *) local;
+    uint32_t            length = 13;
+
+    return !f_aaruf_read_media_tag(img->aaruf_context, mcn, kMediaTagCdMcn, &length) &&
+           (length == 13);
+}
+
 static const cdrom_ops_t aaru_image_ops = {
     aaru_image_get_track_info,
     aaru_image_get_raw_track_info,
@@ -683,9 +741,12 @@ static const cdrom_ops_t aaru_image_ops = {
     aaru_image_has_audio,
     aaru_image_has_data,
     NULL,
+    NULL,
+    NULL,
+    NULL,
     aaru_image_close,
     NULL,
-    NULL
+    aaru_image_get_mcn
 };
 
 static raw_track_info_t *
@@ -984,6 +1045,249 @@ cleanup_error:
     free(img);
 
     return NULL;
+}
+
+/* Disc writing. */
+int
+aaru_image_writer_available(void)
+{
+    if (!ensure_libaaruformat())
+        return 0;
+
+    if (libaaruformat_write_handle == NULL) {
+#ifdef _WIN32
+        libaaruformat_write_handle = dynld_module("libaaruformat.dll", aaruf_write_imports);
+#elif defined(__APPLE__)
+        libaaruformat_write_handle = dynld_module("libaaruformat.dylib", aaruf_write_imports);
+#else
+        libaaruformat_write_handle = dynld_module("libaaruformat.so", aaruf_write_imports);
+#endif
+    }
+
+    return (libaaruformat_write_handle != NULL);
+}
+
+static uint8_t
+aaru_image_track_type(const aaru_write_track_t *track)
+{
+    switch (track->mode) {
+        case 0:
+            return kTrackTypeAudio;
+        case 1:
+            return kTrackTypeCdMode1;
+        default:
+            /* Form 1 and Form 2 sectors may be mixed, the library tells them apart. */
+            return kTrackTypeCdMode2Formless;
+    }
+}
+
+/*
+   Writes a whole disc. An Aaru image has its size and its track list fixed before
+   the first sector, neither of which is known until the guest closes a session, so
+   each closed session rewrites the image, and the old one is only replaced once the
+   new one is complete. It is not compressed as this runs on the emulation thread.
+ */
+int
+aaru_image_write_disc(const char *path, const int rewritable, const char *state,
+                      const aaru_write_track_t *tracks, const int tracks_num,
+                      const uint8_t *full_toc, const uint32_t full_toc_len, const uint8_t *mcn,
+                      aaru_write_read_t read, void *priv)
+{
+    static const char app[] = "86Box";
+    char              temp[MAX_IMAGE_PATH_LEN + 8];
+    TrackEntry       *entries;
+    uint8_t           buffer[2352];
+    void             *ctx;
+    int32_t           sectors = 0;
+    int               ret     = 0;
+
+    if ((tracks_num < 1) || !aaru_image_writer_available())
+        return -1;
+
+    entries = (TrackEntry *) calloc(tracks_num, sizeof(TrackEntry));
+    if (entries == NULL)
+        return -1;
+
+    for (int i = 0; i < tracks_num; i++) {
+        entries[i].sequence = tracks[i].number;
+        entries[i].type     = aaru_image_track_type(&tracks[i]);
+        entries[i].start    = tracks[i].start;
+        entries[i].end      = tracks[i].end;
+        entries[i].pregap   = tracks[i].index1 - tracks[i].start;
+        entries[i].session  = tracks[i].session;
+        entries[i].flags    = tracks[i].ctl;
+        memcpy(entries[i].isrc, tracks[i].isrc, sizeof(tracks[i].isrc));
+
+        if ((tracks[i].end + 1) > sectors)
+            sectors = tracks[i].end + 1;
+    }
+
+    snprintf(temp, sizeof(temp), "%s.tmp", path);
+
+    ctx = f_aaruf_create(temp, rewritable ? AARU_MEDIA_TYPE_CDRW : AARU_MEDIA_TYPE_CDR, 2352,
+                         sectors, 0, 0, "compress=false",
+                         (const uint8_t *) app, sizeof(app) - 1, EMU_VERSION_MAJ, EMU_VERSION_MIN,
+                         false);
+    if (ctx == NULL) {
+        free(entries);
+        return -1;
+    }
+
+    ret = f_aaruf_set_tracks(ctx, entries, tracks_num);
+
+    /* The gaps between sessions were never recorded, so they are left out. */
+    for (int i = 0; (i < tracks_num) && !ret; i++)
+        for (int32_t lba = tracks[i].start; (lba <= tracks[i].end) && !ret; lba++) {
+            ret = read(priv, lba, buffer);
+            if (ret == 1)
+                ret = 0;
+            else if (!ret)
+                ret = f_aaruf_write_sector_long(ctx, lba, false, buffer,
+                                                AARU_SECTOR_STATUS_DUMPED, 2352);
+        }
+
+    if (!ret)
+        ret = f_aaruf_write_media_tag(ctx, full_toc, kMediaTagFullToc, full_toc_len);
+
+    if (!ret && (mcn != NULL) && mcn[0])
+        ret = f_aaruf_write_media_tag(ctx, mcn, kMediaTagCdMcn, 13);
+
+    if (!ret)
+        ret = f_aaruf_set_comments(ctx, (const uint8_t *) state, strlen(state));
+
+    if (f_aaruf_close_write(ctx) != 0)
+        ret = -1;
+
+    free(entries);
+
+    if (!ret) {
+        plat_remove((char *) path);
+        ret = rename(temp, path);
+    }
+
+    if (ret)
+        plat_remove(temp);
+
+    return ret ? -1 : 0;
+}
+
+/*
+   What a recorder needs to take a disc back: only images from here have it, dumps
+   of real discs stay read-only no matter what kind of disc they are.
+ */
+int
+aaru_image_get_disc_state(const char *path, int *rewritable, char *state, const int len)
+{
+    ImageInfo info;
+    void     *ctx;
+    int32_t   length = len - 1;
+    int       ret    = -1;
+
+    if (!aaru_image_writer_available())
+        return -1;
+
+    ctx = f_aaruf_open(path, false, NULL);
+    if (ctx == NULL)
+        return -1;
+
+    if (!f_aaruf_get_image_info(ctx, &info) && !strcmp(info.Application, "86Box") &&
+        ((info.MediaType == AARU_MEDIA_TYPE_CDR) || (info.MediaType == AARU_MEDIA_TYPE_CDRW)) &&
+        !f_aaruf_get_comments(ctx, (uint8_t *) state, &length)) {
+        state[length] = 0;
+        *rewritable   = (info.MediaType == AARU_MEDIA_TYPE_CDRW);
+        ret           = 0;
+    }
+
+    f_aaruf_close(ctx);
+
+    return ret;
+}
+
+void *
+aaru_image_source_open(const char *path, aaru_write_track_t *tracks, int *tracks_num, uint8_t *mcn)
+{
+    TrackEntry *entries = NULL;
+    size_t      length  = 0;
+    uint32_t    tag_len = 13;
+    void       *ctx;
+    int         num;
+
+    if (!aaru_image_writer_available())
+        return NULL;
+
+    ctx = f_aaruf_open(path, false, NULL);
+    if (ctx == NULL)
+        return NULL;
+
+    if (f_aaruf_get_tracks(ctx, NULL, &length) != AARUF_ERROR_BUFFER_TOO_SMALL)
+        goto error;
+
+    entries = (TrackEntry *) calloc(1, length);
+    if ((entries == NULL) || f_aaruf_get_tracks(ctx, (uint8_t *) entries, &length))
+        goto error;
+
+    num = length / sizeof(TrackEntry);
+    if (num > *tracks_num)
+        goto error;
+
+    for (int i = 0; i < num; i++) {
+        tracks[i].number  = entries[i].sequence;
+        tracks[i].session = entries[i].session;
+        tracks[i].ctl     = entries[i].flags;
+        tracks[i].packet  = 0;
+        tracks[i].start   = entries[i].start;
+        tracks[i].index1  = entries[i].start + entries[i].pregap;
+        tracks[i].end     = entries[i].end;
+        memcpy(tracks[i].isrc, entries[i].isrc, sizeof(tracks[i].isrc));
+
+        switch (entries[i].type) {
+            case kTrackTypeAudio:
+                tracks[i].mode = 0;
+                break;
+            case kTrackTypeCdMode1:
+                tracks[i].mode = 1;
+                break;
+            default:
+                tracks[i].mode = 2;
+                break;
+        }
+    }
+
+    if (f_aaruf_read_media_tag(ctx, mcn, kMediaTagCdMcn, &tag_len))
+        memset(mcn, 0x00, 13);
+
+    *tracks_num = num;
+    free(entries);
+
+    return ctx;
+
+error:
+    free(entries);
+    f_aaruf_close(ctx);
+
+    return NULL;
+}
+
+/* Returns 1 for sectors that were never recorded, and did not make it into the image. */
+int
+aaru_image_source_read(void *source, const int32_t lba, uint8_t *buffer)
+{
+    uint32_t length = 2352;
+    uint8_t  status = 0;
+
+    if (f_aaruf_read_sector_long(source, lba, false, buffer, &length, &status)) {
+        length = 2352;
+        if (f_aaruf_read_sector(source, lba, false, buffer, &length, &status))
+            return 1;
+    }
+
+    return (status == 0);
+}
+
+void
+aaru_image_source_close(void *source)
+{
+    f_aaruf_close(source);
 }
 
 static int aaruf_identify_local(const char *filename)

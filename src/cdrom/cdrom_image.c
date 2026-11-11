@@ -4079,6 +4079,9 @@ static const cdrom_ops_t image_ops = {
     image_has_audio,
     image_has_data,
     NULL,
+    NULL,
+    NULL,
+    NULL,
     image_close,
     NULL,
     image_get_mcn

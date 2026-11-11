@@ -1532,6 +1532,8 @@ ide_atapi_callback(ide_t *ide)
                                   ide->sc->sector_len * ide->sc->block_len,
                                   1, bm->priv);
 
+                    ide_log("PHASE_DATA_OUT_DMA: ret = %i (%08X, %i, %i)\n", ret, ide->sc->buffer_pos, ide->sc->block_len, ide->sc->sector_len);
+
                     if (ret & 1) {
                         if (ide->write != NULL)
                             ide->write(ide->sc);
