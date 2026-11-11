@@ -212,6 +212,9 @@ int codegen_flags_rebuild_known(ir_data_t *ir, int carry_only);
 void codegen_flags_known_use(ir_data_t *ir, int cf_kept);
 int  codegen_flags_cf_known(ir_data_t *ir, int dest_reg);
 int  codegen_flags_zn_known(ir_data_t *ir, int dest_reg, int flag, void *func);
+/*After SAHF's last uop: flags_op is FLAGS_UNKNOWN from here at run time*/
+void codegen_flags_unknown_from(ir_data_t *ir);
+int  codegen_flags_jcc_read(ir_data_t *ir, int flag);
 
 /*The instruction is #UD; returns the handler's -1*/
 uint32_t codegen_ud(ir_data_t *ir);

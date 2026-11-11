@@ -24,6 +24,7 @@
 /* --- flags_rebuild family (void → void) --- */
 
 void jit_flags_rebuild(void);
+void jit_flags_rebuild_v(void);
 void jit_flags_rebuild_c(void);
 void jit_flags_rebuild_zpna(void);
 

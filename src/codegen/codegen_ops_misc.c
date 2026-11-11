@@ -884,12 +884,13 @@ uint32_t
 ropSAHF(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     if (!codegen_flags_rebuild_known(ir, 0))
-        uop_CALL_FUNC(ir, jit_flags_rebuild);
+        uop_CALL_FUNC(ir, jit_flags_rebuild_v);
     uop_MOVZX(ir, IREG_temp0, IREG_AH);
     uop_AND_IMM(ir, IREG_temp0, IREG_temp0, 0xd5);
     uop_OR_IMM(ir, IREG_temp0, IREG_temp0, 0x02);
     uop_AND_IMM(ir, IREG_flags, IREG_flags, 0xff00);
     uop_OR(ir, IREG_flags, IREG_flags, IREG_temp0_W);
+    codegen_flags_unknown_from(ir);
     return op_pc;
 }
 

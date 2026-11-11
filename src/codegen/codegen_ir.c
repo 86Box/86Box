@@ -87,8 +87,10 @@ duplicate_uop(ir_data_t *ir, uop_t *uop, int offset)
   for, the copy runs after the loop's own flag changes and calls the
   function, as the copy of the call would. Otherwise it is the same uop,
   with the call's effects on the counts: its reads uncounted, the registers
-  marked as the copy of the call's barrier marks them*/
-static void
+  marked as the copy of the call's barrier marks them. Returns the register
+  the next uop must test in place of the one it tests (a pair whose copy
+  calls func), -1 when the next uop is copied as it is*/
+static int
 duplicate_flags_read(ir_data_t *ir, uop_t *uop, const codegen_flags_read_t *rd)
 {
     if ((rd->producer >= 0) && (rd->producer < codegen_unroll_start)) {
@@ -97,9 +99,10 @@ duplicate_flags_read(ir_data_t *ir, uop_t *uop, const codegen_flags_read_t *rd)
 #else
         const uint32_t type = UOP_CALL_FUNC_RESULT;
 #endif
-        uop_t *new_uop = uop_alloc_unroll(ir, type);
+        const int dest    = rd->pair ? IREG_GET_REG(uop->dest_reg_a.reg) : uop->dest_reg_a.reg;
+        uop_t    *new_uop = uop_alloc_unroll(ir, type);
 
-        new_uop->dest_reg_a = codegen_reg_write(uop->dest_reg_a.reg, ir->wr_pos - 1);
+        new_uop->dest_reg_a = codegen_reg_write(dest, ir->wr_pos - 1);
         new_uop->type       = type;
         new_uop->imm_data   = 0;
         new_uop->imm_data2  = uop->imm_data2;
@@ -108,7 +111,7 @@ duplicate_flags_read(ir_data_t *ir, uop_t *uop, const codegen_flags_read_t *rd)
 #if defined __ARM_EABI__ || defined _ARM_ || defined _M_ARM || defined __aarch64__ || defined _M_ARM64 || defined __loongarch_lp64
         new_uop->is_a16 = 0;
 #endif
-        return;
+        return rd->pair ? dest : -1;
     }
     codegen_reg_mark_as_required();
     if (!ir_reg_is_invalid(uop->src_reg_a))
@@ -116,6 +119,7 @@ duplicate_flags_read(ir_data_t *ir, uop_t *uop, const codegen_flags_read_t *rd)
     if (!ir_reg_is_invalid(uop->src_reg_b))
         codegen_reg_read_uncounted(uop->src_reg_b.reg);
     duplicate_uop(ir, uop, 0);
+    return -1;
 }
 
 #ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
@@ -618,7 +622,10 @@ codegen_flags_dead_pass(ir_data_t *ir, int unroll_start, int unroll_end)
             int kind;
             int end = c + 1;
 
-            if (uop->p == (void *) jit_flags_rebuild)
+            /*SAHF's jit_flags_rebuild_v rebuilds only OF, but SAHF writes
+              bits 0-7 next with nothing between that reads or can fault:
+              the same site as the full rebuild*/
+            if ((uop->p == (void *) jit_flags_rebuild) || (uop->p == (void *) jit_flags_rebuild_v))
                 kind = FLAGS_SITE_CALL_FULL;
             else if (uop->p == (void *) jit_flags_rebuild_c)
                 kind = FLAGS_SITE_CALL_C;
@@ -715,8 +722,9 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
         taken_cycles = codegen_accumulate_unroll(ir, codegen_get_loop_timing(codegen_unroll_first_instruction), codegen_unroll_start, codegen_unroll_branch);
 
         for (int unroll_count = 1; unroll_count < codegen_unroll_count; unroll_count++) {
-            int offset = ir->wr_pos - codegen_unroll_start;
-            int rd     = 0;
+            int offset   = ir->wr_pos - codegen_unroll_start;
+            int rd       = 0;
+            int pair_reg = -1;
 
             if (flags_unroll_nr < FLAGS_UNROLL_MAX)
                 flags_unroll_off[flags_unroll_nr++] = offset;
@@ -725,8 +733,14 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
                 //                                pclog(" Duplicate uop %i\n", c);
                 while ((rd < nr_rd) && (rd_sites[rd].uop < c))
                     rd++;
-                if ((rd < nr_rd) && (rd_sites[rd].uop == c))
-                    duplicate_flags_read(ir, &ir->uops[c], &rd_sites[rd]);
+                if (pair_reg >= 0) {
+                    uop_t test = ir->uops[c];
+
+                    test.src_reg_a.reg = pair_reg;
+                    duplicate_uop(ir, &test, offset);
+                    pair_reg = -1;
+                } else if ((rd < nr_rd) && (rd_sites[rd].uop == c))
+                    pair_reg = duplicate_flags_read(ir, &ir->uops[c], &rd_sites[rd]);
                 else
                     duplicate_uop(ir, &ir->uops[c], offset);
                 codegen_accumulate_copy(ir, c);

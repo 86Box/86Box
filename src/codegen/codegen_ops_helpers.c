@@ -23,6 +23,17 @@ jit_flags_rebuild(void)
     flags_rebuild();
 }
 
+/*flags_rebuild() for SAHF, which then replaces bits 0-7 of flags before
+  anything can read them: only OF has to come from the flags op*/
+JIT_WRAPPER void
+jit_flags_rebuild_v(void)
+{
+    if (cpu_state.flags_op != FLAGS_UNKNOWN) {
+        cpu_state.flags    = (cpu_state.flags & ~V_FLAG) | (VF_SET() ? V_FLAG : 0);
+        cpu_state.flags_op = FLAGS_UNKNOWN;
+    }
+}
+
 JIT_WRAPPER void
 jit_flags_rebuild_c(void)
 {
@@ -110,6 +121,10 @@ static int                    flags_inline_nr;
 static codegen_flags_read_t flags_read[FLAGS_READ_MAX];
 static int                  flags_read_nr;
 
+/*The last uop of an SAHF of this block: flags_op is FLAGS_UNKNOWN at run
+  time after it until a uop or a call sets it. -1 when there is none*/
+static int flags_unknown_at;
+
 void
 codegen_flags_known_reset(void)
 {
@@ -117,6 +132,13 @@ codegen_flags_known_reset(void)
     flags_known_full = 0;
     flags_inline_nr  = 0;
     flags_read_nr    = 0;
+    flags_unknown_at = -1;
+}
+
+void
+codegen_flags_unknown_from(ir_data_t *ir)
+{
+    flags_unknown_at = ir->wr_pos - 1;
 }
 
 int
@@ -232,12 +254,13 @@ flags_read_begin(int src_a, int src_b)
 }
 
 static void
-flags_read_end(ir_data_t *ir, uint16_t read, int producer, void *func)
+flags_read_end(ir_data_t *ir, uint16_t read, int producer, void *func, int pair)
 {
     flags_read[flags_read_nr].uop      = ir->wr_pos - 1;
     flags_read[flags_read_nr].read     = read;
     flags_read[flags_read_nr].producer = producer;
     flags_read[flags_read_nr].func     = func;
+    flags_read[flags_read_nr].pair     = pair;
     flags_read_nr++;
 }
 
@@ -286,7 +309,7 @@ codegen_flags_cf_known(ir_data_t *ir, int dest_reg)
         uop_MOV_IMM(ir, dest_reg, 0);
     else
         uop_CMP_SET(ir, dest_reg, src_a, src_b, UOP_CC_B);
-    flags_read_end(ir, C_FLAG, producer, (void *) jit_CF_SET);
+    flags_read_end(ir, C_FLAG, producer, (void *) jit_CF_SET, 0);
     return 1;
 }
 
@@ -327,8 +350,111 @@ codegen_flags_zn_known(ir_data_t *ir, int dest_reg, int flag, void *func)
         uop_MOV_IMM(ir, dest_reg, 0);
     /*jit_ZF_SET is a read of ZF for the dead flags pass; NF_SET_01 and
       VF_SET_01 are calls it takes to read any flag*/
-    flags_read_end(ir, (flag == Z_FLAG) ? Z_FLAG : 0xffff, -1, func);
+    flags_read_end(ir, (flag == Z_FLAG) ? Z_FLAG : 0xffff, -1, func, 0);
     return 1;
+}
+
+/*CF_SET() into temp0 as one uop for a shift flags op an instruction of this
+  block set with a constant count: the bit of flags_op1 shifted out last,
+  left in place (the Jcc only tests it against 0). SHL: bit width-count, none
+  past the width. SAR: the sign bit stands for every bit above width-1. 0,
+  emitting nothing, for any other op or count*/
+static int
+flags_shift_cf(ir_data_t *ir)
+{
+    int      op = cpu_state.flags_op;
+    int      width;
+    int      cf_bit;
+    uint32_t count;
+
+    if (!codegen_flags_changed)
+        return 0;
+    switch (op) {
+        case FLAGS_SHL8:
+        case FLAGS_SHR8:
+        case FLAGS_SAR8:
+            width = 8;
+            break;
+        case FLAGS_SHL16:
+        case FLAGS_SHR16:
+        case FLAGS_SAR16:
+            width = 16;
+            break;
+        case FLAGS_SHL32:
+        case FLAGS_SHR32:
+        case FLAGS_SAR32:
+            width = 32;
+            break;
+        default:
+            return 0;
+    }
+    count = flags_known_count(ir, op);
+    if (!count)
+        return 0;
+    if ((op == FLAGS_SHL8) || (op == FLAGS_SHL16) || (op == FLAGS_SHL32))
+        cf_bit = (count <= (uint32_t) width) ? (width - (int) count) : -1;
+    else if ((op == FLAGS_SHR8) || (op == FLAGS_SHR16) || (op == FLAGS_SHR32))
+        cf_bit = (int) count - 1;
+    else
+        cf_bit = ((int) count - 1 < width - 1) ? ((int) count - 1) : (width - 1);
+    if (!flags_read_begin((cf_bit >= 0) ? IREG_flags_op1 : IREG_INVALID, IREG_INVALID))
+        return 0;
+    if (cf_bit >= 0)
+        uop_AND_IMM(ir, IREG_temp0, IREG_flags_op1, 1u << cf_bit);
+    else
+        uop_MOV_IMM(ir, IREG_temp0, 0);
+    flags_read_end(ir, C_FLAG, -1, (void *) jit_CF_SET, 0);
+    return 1;
+}
+
+/*Whether flags_op is still FLAGS_UNKNOWN from the SAHF recorded in
+  flags_unknown_at: no jump from before it lands after it, and no uop after
+  it writes flags_op or runs C that may set it*/
+static int
+flags_unknown_holds(ir_data_t *ir)
+{
+    if (flags_unknown_at < 0)
+        return 0;
+    for (int c = 0; c < ir->wr_pos; c++) {
+        const uop_t   *uop  = &ir->uops[c];
+        const uint32_t type = uop->type & UOP_MASK;
+
+        if (c <= flags_unknown_at) {
+            if ((uop->type & UOP_TYPE_JUMP) && (uop->jump_dest_uop > flags_unknown_at))
+                return 0;
+            continue;
+        }
+        if ((type == (UOP_CALL_FUNC & UOP_MASK)) || (type == (UOP_CALL_FUNC_ORDERED & UOP_MASK)) || (type == (UOP_CALL_FUNC_RESULT & UOP_MASK)) ||
+            (type == (UOP_CALL_FUNC_RESULT_ORDERED & UOP_MASK)) || (type == (UOP_CALL_INSTRUCTION_FUNC & UOP_MASK)) ||
+            (type == (UOP_LOAD_SEG & UOP_MASK)) || (type == (UOP_CALL_REP_STRING & UOP_MASK)))
+            return 0;
+        if (!ir_reg_is_invalid(uop->dest_reg_a) && (IREG_GET_REG(uop->dest_reg_a.reg) == IREG_GET_REG(IREG_flags_op)))
+            return 0;
+    }
+    return 1;
+}
+
+/*CF_SET() (flag C_FLAG) or ZF_SET() (Z_FLAG) for a Jcc whose flags op is not
+  one it tests directly. One uop in place of uop_CALL_FUNC_RESULT_ORDERED(ir,
+  IREG_temp0, jit_CF_SET or jit_ZF_SET) for CF after a shift with a constant
+  count, and for either after an SAHF of this block (the bit in flags, as
+  both read it for FLAGS_UNKNOWN); the call otherwise. Returns the register
+  that is nonzero exactly when the flag is set: the Jcc's CMP_IMM_JZ/JNZ_DEST
+  of it must be the next uop*/
+int
+codegen_flags_jcc_read(ir_data_t *ir, int flag)
+{
+    void *func = (flag == C_FLAG) ? (void *) jit_CF_SET : (void *) jit_ZF_SET;
+
+    if ((flag == C_FLAG) && flags_shift_cf(ir))
+        return IREG_temp0;
+    if (flags_unknown_holds(ir) && flags_read_begin(IREG_flags, IREG_INVALID)) {
+        uop_AND_IMM(ir, IREG_temp0_W, IREG_flags, flag);
+        flags_read_end(ir, flag, flags_unknown_at, func, 1);
+        return IREG_temp0_W;
+    }
+    uop_CALL_FUNC_RESULT_ORDERED(ir, IREG_temp0, func);
+    return IREG_temp0;
 }
 
 /*Whether the uops from start on set a flags op (other than INC and DEC with
