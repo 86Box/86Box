@@ -1385,7 +1385,6 @@ build_link_routine(codeblock_t *block)
     int32_t *nmi_ok;
     int32_t *irq_ok;
     int32_t *used_set;
-    int32_t *es_flat;
     int32_t *uncached;
     int32_t *no_paging;
     int32_t *cached;
@@ -1474,19 +1473,10 @@ build_link_routine(codeblock_t *block)
       word. Only the C loop refreshes the PC24 and RC_NZ status bits from
       npxc, so they can be stale after an FLDCW in a linked block; the npxc
       compare decides them instead. Everything else that reads those two
-      bits runs after that refresh. NOTFLATES is worked out again here from
-      ES itself; it equals the stored bit, which every write to the ES base
-      or limits brings in line before the next lookup.*/
+      bits runs after that refresh. NOTFLATES is compared as stored, since
+      every write to the ES base or limits brings it in line before the next
+      lookup.*/
     lx_abs(block, 0, 0, 0x0fb7, REG_R9, &cpu_cur_status);
-    rx_alu_ri(block, 0, 4, REG_R9, ~(uint32_t) CPU_STATUS_NOTFLATES);
-    rx_rm(block, 0, 0, 0x8b, REG_R12, REG_RBP, rx_state(&cpu_state.seg_es.base));
-    rx_rm(block, 0, 0, 0x0b, REG_R12, REG_RBP, rx_state(&cpu_state.seg_es.limit_low));
-    rx_rm(block, 0, 0, 0x8b, REG_R13, REG_RBP, rx_state(&cpu_state.seg_es.limit_high));
-    rx_rr(block, 0, 0, 0xf7, 2, REG_R13);         /*NOT R13D*/
-    rx_rr(block, 0, 0, 0x09, REG_R13, REG_R12);   /*OR R12D, R13D: zero if ES is flat*/
-    es_flat = rx_jcc(block, RX_CC_Z);
-    rx_alu_ri(block, 0, 1, REG_R9, CPU_STATUS_NOTFLATES);
-    rx_patch(es_flat, rx_here());
     rx_rm(block, 0, 0, 0x0fb7, REG_R12, REG_RBP, rx_state(&cpu_state.npxc));
     rx_alu_ri(block, 0, 4, REG_R12, 0x0f00);
     rx_shift_ri(block, 4, REG_R12, 16);
