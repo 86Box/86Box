@@ -1992,6 +1992,13 @@ codegen_skip:
     if ((op_table == x86_dynarec_opcodes_0f) && (opcode == 0x22) && !(fetchdat & 0x38))
         CPU_BLOCK_END();
 
+    /*LOADALL386 loads CS:EIP, CR0, EFLAGS and every segment cache from its
+      image, which a later run can give other values: the block ends after
+      it. 0F 07 is #UD on the other tables but the K6 ones, where SYSRET
+      ends the block already*/
+    if ((op_table == x86_dynarec_opcodes_0f) && (opcode == 0x07))
+        CPU_BLOCK_END();
+
     codegen_endpc = (cs + cpu_state.pc) + 8;
 
 #if 0
