@@ -1346,6 +1346,11 @@ _Static_assert((uint32_t) (13u * 0xc4ec4ec5u) == 1 && (uint64_t) sizeof(codegen_
 _Static_assert(CODEGEN_LINK_SET_ONE >= CODEGEN_LINK_SETS, "the set lookup takes CODEGEN_LINK_SET_ONE for no set");
 _Static_assert(offsetof(codeblock_t, runs_left) == offsetof(codeblock_t, used) + 1,
                "used and runs_left are loaded as one word");
+_Static_assert(offsetof(cpu_events_t, flush_pending) == offsetof(cpu_events_t, was_reset) + 4
+                   && offsetof(cpu_events_t, ne) == offsetof(cpu_events_t, init) + 4
+                   && offsetof(cpu_events_t, override_dynarec) == offsetof(cpu_events_t, force_interpreter) + 4
+                   && offsetof(cpu_events_t, throttle_run) == offsetof(cpu_events_t, stpclk) + 4,
+               "the event flags are read as quadwords of two adjacent fields");
 #        define LINK_SET_E(n) ((int32_t) offsetof(codegen_link_set_t, e[n]))
 
 /*op reg, [p] for a global p: RBP-relative when in reach, as globals in the
@@ -1437,16 +1442,15 @@ build_link_routine(codeblock_t *block)
       check (dr_blocks_cache()). Clock control (stpclk and throttle_run, one
       quadword) is a miss too: the loop stops the processor or stalls it
       after each block while it is on, and a P_LVL2/P_LVL3 read by INS does
-      not end its block*/
+      not end its block. The seven event flags are read as three quadwords
+      and dr_armed alone, so halted, next to it, is not read; dr_armed goes
+      first, as a 32-bit OR clears R9's top half*/
     rx_rm(block, 0, 0, 0x0fb7, REG_R9, REG_RBP, rx_state(&cpu_state.abrt)); /*abrt and smi_line*/
-    lx_abs(block, 0, 0, 0x0b, REG_R9, &x86_was_reset);
-    lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_flush_pending);
-    lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_init);
-    lx_abs(block, 0, 0, 0x0b, REG_R9, &new_ne);
-    lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_force_interpreter);
-    lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_override_dynarec);
     lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_dr_armed);
-    lx_abs(block, 0, 1, 0x0b, REG_R9, &cpu_stpclk); /*and throttle_run*/
+    lx_abs(block, 0, 1, 0x0b, REG_R9, &x86_was_reset);         /*and cpu_flush_pending*/
+    lx_abs(block, 0, 1, 0x0b, REG_R9, &cpu_init);              /*and new_ne*/
+    lx_abs(block, 0, 1, 0x0b, REG_R9, &cpu_force_interpreter); /*and cpu_override_dynarec*/
+    lx_abs(block, 0, 1, 0x0b, REG_R9, &cpu_stpclk);            /*and throttle_run*/
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
 
     /*NMI_TAKEABLE(): nmi here, the rest out of line*/
