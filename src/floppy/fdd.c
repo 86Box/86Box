@@ -84,8 +84,6 @@ enum {
 /* BIOS boot status tracking */
 static bios_boot_status_t bios_boot_status = BIOS_BOOT_POST;
 
-static int fdd_notfound = 0;
-
 fdd_drive_t drives[FDD_NUM];
 
 static const struct
@@ -983,12 +981,6 @@ fdd_poll(void *priv)
     if (drv->poll)
         drv->poll((void *) drv);
 
-    if (fdd_notfound) {
-        fdd_notfound--;
-        if (!fdd_notfound)
-            fdc_noidam(fdc);
-    }
-
     if (drv->changed)
         fdc_diskchange_interrupt(fdc, drv->id);
 }
@@ -1082,10 +1074,14 @@ fdd_readsector(void *priv, const int sector, const int track, const int side,
         return;
     }
 
+    /* No diskette (or no drive): nothing passes the head, so there are no index
+       pulses, and the controller, which gives up on a sector only after two of
+       them, never ends the command. The BIOS times it out (80h, not ready).
+       Ending it with a missing address mark (02h) instead stopped BIOSes that
+       go on to the hard disk only after a timeout (Phoenix 386 1.10) when the
+       empty drive has no change line to check first (360K). */
     if (drv->readsector != NULL)
         drv->readsector(drv, sector, track, side, density, sector_size);
-    else
-        fdd_notfound = 1000;
 }
 
 void
@@ -1115,10 +1111,9 @@ fdd_writesector(void *priv, const int sector, const int track, const int side,
         return;
     }
 
+    /* No diskette: no index pulses, the command never ends (see fdd_readsector()). */
     if (drv->writesector != NULL)
         drv->writesector(drv, sector, track, side, density, sector_size);
-    else
-        fdd_notfound = 1000;
 }
 
 void
@@ -1145,10 +1140,9 @@ fdd_comparesector(void *priv, const int sector, const int track,const  int side,
         return;
     }
 
+    /* No diskette: no index pulses, the command never ends (see fdd_readsector()). */
     if (drv->comparesector != NULL)
         drv->comparesector(drv, sector, track, side, density, sector_size);
-    else
-        fdd_notfound = 1000;
 }
 
 void
@@ -1198,9 +1192,8 @@ fdd_format(void *priv, int side, int density, uint8_t fill)
         return;
     }
 
-    if (drv->format == NULL)
-        fdd_notfound = 1000;
-    else
+    /* No diskette: no index pulses, the command never ends (see fdd_readsector()). */
+    if (drv->format != NULL)
         drv->format(drv, side, density, fill);
 }
 
@@ -1220,7 +1213,6 @@ fdd_stop(void *priv)
         drv->seek_in_progress = 0;
         drv->pending.pending = 0;
         drv->pending.op = FDD_OP_NONE;
-        fdd_notfound = 0;
         if (was_seeking)
             fdd_do_seek(drv, drv->track);
     }
