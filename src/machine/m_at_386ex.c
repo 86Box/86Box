@@ -52,7 +52,8 @@
  * Its registers are a 16-byte I/O block on CS5#, which the BIOS puts at
  * 0x70, decoded from A3:0:
  *
- *   0x0-0x1  RTC (DS12887) index and data
+ *   0x0      Read: clock code; write: RTC (DS12887) index
+ *   0x1      RTC data
  *   0x2-0x3  LCD port, RS following A0 (instruction at 0x2, data at 0x3)
  *   0x4      Product code: 1 = TS-3100, 2 = TS-3200, 4 = TS-3400
  *   0x5      Options: bit 0 battery-backed SRAM, bit 1 RS-485 on COM1
@@ -64,6 +65,13 @@
  *            watchdog; what it does is not known
  *
  * None of the options are fitted. The rest of the block reads 0xFF.
+ *
+ * The clock code tells the BIOS the processor clock, from which it picks
+ * CLKPRS and RFSCIR out of a table: 0 = 20 MHz, 1 = 25 MHz, 2 = 33 MHz,
+ * 3 = 40 MHz and 4 = 32 MHz. The codes are not documented; they follow
+ * from the table, whose CLKPRS for each code divides that clock down to
+ * the 1 MHz the BIOS programs the timer for, and whose refresh intervals
+ * are 15.6 us at that clock.
  *
  * The LCD port is a bus to an HD44780-style LCD in LCD mode (control bit 4),
  * on which each access is a bus cycle with RS from A0, and the LCD header's
@@ -95,6 +103,7 @@
  * through an inverter, so it lights while P1.6 is low, as it is from reset
  * on its weak pull-down.
  */
+#define TS3X00_REG_CLOCK     0x0 /* On reads; writes are the RTC's. */
 #define TS3X00_REG_RTC       0x0
 #define TS3X00_REG_LCD_INST  0x2
 #define TS3X00_REG_LCD_DATA  0x3
@@ -111,6 +120,11 @@
 #define TS3100_PRODUCT       0x01
 #define TS3200_PRODUCT       0x02
 #define TS3400_PRODUCT       0x04
+
+#define TS3X00_CLOCK_20MHZ   0x00
+#define TS3X00_CLOCK_25MHZ   0x01
+#define TS3X00_CLOCK_33MHZ   0x02
+#define TS3X00_CLOCK_40MHZ   0x03
 
 #define TS3X00_JUMPERS_JP3   0x02
 #define TS3X00_JUMPERS_JP4   0x04
@@ -141,6 +155,7 @@ typedef struct ts3x00_t {
     uint8_t jp5;
 
     uint8_t product;
+    uint8_t clock; /* The clock code. */
     uint8_t dio_ctrl;
     uint8_t dio2;    /* The DIO2 latch. */
     uint8_t lcd;     /* The LCD pin 7-14 latch. */
@@ -254,6 +269,9 @@ ts3x00_read(uint16_t port, void *priv)
     uint8_t         ret = 0xff;
 
     switch (port & (TS3X00_REG_BLOCK - 1)) {
+        case TS3X00_REG_CLOCK:
+            ret = dev->clock;
+            break;
         case TS3X00_REG_LCD_INST:
         case TS3X00_REG_LCD_DATA:
             if (dev->dio_ctrl & TS3X00_LCD_MODE)
@@ -314,7 +332,8 @@ ts3x00_write(uint16_t port, uint8_t val, void *priv)
 
 /*
    CS5#: the board's register block, which repeats every 16 bytes of the
-   block CS5# selects. The RTC is the machine's, so it is mapped on its own.
+   block CS5# selects. The RTC is the machine's, so it is mapped on its own,
+   but for reads of its index port, which are the clock code.
  */
 static void
 ts3x00_cs5(void *priv, int set, int is_mem, uint32_t base, uint32_t size)
@@ -326,16 +345,12 @@ ts3x00_cs5(void *priv, int set, int is_mem, uint32_t base, uint32_t size)
 
     for (uint32_t blk = base; blk < (base + size); blk += TS3X00_REG_BLOCK) {
         uint32_t len = MIN(TS3X00_REG_BLOCK, base + size - blk);
-        uint32_t reg = blk;
 
-        /* The RTC's two registers, when the block has them. */
-        if (!(blk & (TS3X00_REG_BLOCK - 1)) && (len >= 2)) {
-            nvr_at_handler(set, blk + TS3X00_REG_RTC, dev->nvr);
-            reg += 2;
-        }
+        /* The RTC's two registers, when the block has them; the board's own read 0xFF at the data port. */
+        if (!(blk & (TS3X00_REG_BLOCK - 1)) && (len >= 2))
+            nvr_at_handler_ex(set, blk + TS3X00_REG_RTC, NVR_AT_INDEX_WO, dev->nvr);
 
-        if (reg < (blk + len))
-            io_handler(set, reg, blk + len - reg, ts3x00_read, NULL, NULL, ts3x00_write, NULL, NULL, dev);
+        io_handler(set, blk, len, ts3x00_read, NULL, NULL, ts3x00_write, NULL, NULL, dev);
     }
 }
 
@@ -851,6 +866,34 @@ static const ts3x00_model_t ts3400_model = {
     .shadow_base = 0x000e0000
 };
 
+/* The clock code for the processor clock, or for the nearest clock there is one for. */
+static uint8_t
+ts3x00_clock_code(void)
+{
+    static const struct {
+        uint32_t clock;
+        uint8_t  code;
+    } codes[] = {
+        { 20000000, TS3X00_CLOCK_20MHZ },
+        { 25000000, TS3X00_CLOCK_25MHZ },
+        { 33333333, TS3X00_CLOCK_33MHZ },
+        { 40000000, TS3X00_CLOCK_40MHZ }
+    };
+    uint8_t  code = codes[0].code;
+    uint32_t best = 0xffffffff;
+
+    for (size_t i = 0; i < (sizeof(codes) / sizeof(codes[0])); i++) {
+        uint32_t diff = (cpu_s->rspeed > codes[i].clock) ? (cpu_s->rspeed - codes[i].clock) : (codes[i].clock - cpu_s->rspeed);
+
+        if (diff < best) {
+            best = diff;
+            code = codes[i].code;
+        }
+    }
+
+    return code;
+}
+
 static void
 ts3x00_board_init(ts3x00_t *j, const ts3x00_model_t *ts, i386ex_t *ex)
 {
@@ -867,6 +910,7 @@ ts3x00_board_init(ts3x00_t *j, const ts3x00_model_t *ts, i386ex_t *ex)
     cfg.image_len = biosmask + 1;
 
     j->product = ts->product;
+    j->clock   = ts3x00_clock_code();
 
     j->flash = sst_flash_create(ts->flash, &cfg);
     sst_flash_set_write_protect(j->flash, !j->jp3);
