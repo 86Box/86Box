@@ -576,6 +576,25 @@ codegen_CMP_IMM_JZ_DEST(codeblock_t *block, uop_t *uop)
 
     return 0;
 }
+static int
+codegen_TEST_IMM_JZ_DEST(codeblock_t *block, uop_t *uop)
+{
+    int src_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    /*A word register's upper half is not part of its value: the immediate
+      tests the low 16 bits only*/
+    if (REG_IS_L(src_size))
+        host_x86_TEST32_REG_IMM(block, src_reg, uop->imm_data);
+    else if (REG_IS_W(src_size))
+        host_x86_TEST32_REG_IMM(block, src_reg, uop->imm_data & 0xffff);
+    else
+        fatal("TEST_IMM_JZ_DEST %02x\n", uop->src_reg_a_real);
+
+    uop->p = host_x86_JZ_long(block);
+
+    return 0;
+}
 
 static int
 codegen_CMP_JB(codeblock_t *block, uop_t *uop)
@@ -4270,6 +4289,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_FCMP_JWITHIN_DEST &
         UOP_MASK]
     = codegen_FCMP_JWITHIN_DEST,
+    [UOP_FCMP_JWITHIN_DEST_COLD &
+        UOP_MASK]
+    = codegen_FCMP_JWITHIN_DEST,
     [UOP_CMP_JNWITHIN &
         UOP_MASK]
     = codegen_CMP_JNWITHIN,
@@ -4323,6 +4345,12 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_CMP_IMM_JZ_DEST &
         UOP_MASK]
     = codegen_CMP_IMM_JZ_DEST,
+    [UOP_CMP_IMM_JZ_DEST_COLD &
+        UOP_MASK]
+    = codegen_CMP_IMM_JZ_DEST,
+    [UOP_TEST_IMM_JZ_DEST_COLD &
+        UOP_MASK]
+    = codegen_TEST_IMM_JZ_DEST,
 
     [UOP_TEST_JNS_DEST &
         UOP_MASK]
