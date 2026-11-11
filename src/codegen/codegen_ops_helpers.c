@@ -46,6 +46,122 @@ jit_flags_rebuild_zpna(void)
     flags_rebuild_zpna();
 }
 
+/*A rebuild for the flags op the block was compiled after: for that op, the
+  rebuild's body with the flag functions called from here, where flatten
+  inlines them and the test of cpu_state.flags_op leaves only that op's
+  case of each; for any other op, the plain wrapper. Each is the rebuild
+  itself for every op it runs after*/
+#define JIT_WRAPPER_OP __attribute__((noinline, used, flatten))
+
+/*flags_rebuild_zpna() for an op other than FLAGS_UNKNOWN*/
+#define JIT_FLAGS_REBUILD_ZPNA_OP(op)                                        \
+    static JIT_WRAPPER_OP void                                               \
+    jit_flags_rebuild_zpna_##op(void)                                        \
+    {                                                                        \
+        if (cpu_state.flags_op == op) {                                      \
+            uint16_t tempf = 0;                                              \
+            if (PF_SET())                                                    \
+                tempf |= P_FLAG;                                             \
+            if (AF_SET())                                                    \
+                tempf |= A_FLAG;                                             \
+            if (ZF_SET())                                                    \
+                tempf |= Z_FLAG;                                             \
+            if (NF_SET())                                                    \
+                tempf |= N_FLAG;                                             \
+            cpu_state.flags    = (cpu_state.flags & ~0xd4) | tempf;          \
+            cpu_state.flags_op = FLAGS_UNKNOWN;                              \
+        } else                                                               \
+            jit_flags_rebuild_zpna();                                        \
+    }
+
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_ZN8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_ZN16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_ZN32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_ADD8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_ADD16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_ADD32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SUB8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SUB16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SUB32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SHL8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SHL16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SHL32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SHR8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SHR16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SHR32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SAR8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SAR16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SAR32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_INC8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_INC16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_INC32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_DEC8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_DEC16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_DEC32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_ADC8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_ADC16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_ADC32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SBC8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SBC16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SBC32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SHRD16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SHRD32)
+
+/*ROL, ROR and FLAGS_UNKNOWN take the plain wrapper: flags_rebuild_zpna()
+  does nothing after them*/
+void (*const jit_flags_rebuild_zpna_op[FLAGS_SHRD32 + 1])(void) = {
+    [FLAGS_UNKNOWN] = jit_flags_rebuild_zpna,
+    [FLAGS_ZN8]     = jit_flags_rebuild_zpna_FLAGS_ZN8,
+    [FLAGS_ZN16]    = jit_flags_rebuild_zpna_FLAGS_ZN16,
+    [FLAGS_ZN32]    = jit_flags_rebuild_zpna_FLAGS_ZN32,
+    [FLAGS_ADD8]    = jit_flags_rebuild_zpna_FLAGS_ADD8,
+    [FLAGS_ADD16]   = jit_flags_rebuild_zpna_FLAGS_ADD16,
+    [FLAGS_ADD32]   = jit_flags_rebuild_zpna_FLAGS_ADD32,
+    [FLAGS_SUB8]    = jit_flags_rebuild_zpna_FLAGS_SUB8,
+    [FLAGS_SUB16]   = jit_flags_rebuild_zpna_FLAGS_SUB16,
+    [FLAGS_SUB32]   = jit_flags_rebuild_zpna_FLAGS_SUB32,
+    [FLAGS_SHL8]    = jit_flags_rebuild_zpna_FLAGS_SHL8,
+    [FLAGS_SHL16]   = jit_flags_rebuild_zpna_FLAGS_SHL16,
+    [FLAGS_SHL32]   = jit_flags_rebuild_zpna_FLAGS_SHL32,
+    [FLAGS_SHR8]    = jit_flags_rebuild_zpna_FLAGS_SHR8,
+    [FLAGS_SHR16]   = jit_flags_rebuild_zpna_FLAGS_SHR16,
+    [FLAGS_SHR32]   = jit_flags_rebuild_zpna_FLAGS_SHR32,
+    [FLAGS_SAR8]    = jit_flags_rebuild_zpna_FLAGS_SAR8,
+    [FLAGS_SAR16]   = jit_flags_rebuild_zpna_FLAGS_SAR16,
+    [FLAGS_SAR32]   = jit_flags_rebuild_zpna_FLAGS_SAR32,
+    [FLAGS_ROL8]    = jit_flags_rebuild_zpna,
+    [FLAGS_ROL16]   = jit_flags_rebuild_zpna,
+    [FLAGS_ROL32]   = jit_flags_rebuild_zpna,
+    [FLAGS_ROR8]    = jit_flags_rebuild_zpna,
+    [FLAGS_ROR16]   = jit_flags_rebuild_zpna,
+    [FLAGS_ROR32]   = jit_flags_rebuild_zpna,
+    [FLAGS_INC8]    = jit_flags_rebuild_zpna_FLAGS_INC8,
+    [FLAGS_INC16]   = jit_flags_rebuild_zpna_FLAGS_INC16,
+    [FLAGS_INC32]   = jit_flags_rebuild_zpna_FLAGS_INC32,
+    [FLAGS_DEC8]    = jit_flags_rebuild_zpna_FLAGS_DEC8,
+    [FLAGS_DEC16]   = jit_flags_rebuild_zpna_FLAGS_DEC16,
+    [FLAGS_DEC32]   = jit_flags_rebuild_zpna_FLAGS_DEC32,
+    [FLAGS_ADC8]    = jit_flags_rebuild_zpna_FLAGS_ADC8,
+    [FLAGS_ADC16]   = jit_flags_rebuild_zpna_FLAGS_ADC16,
+    [FLAGS_ADC32]   = jit_flags_rebuild_zpna_FLAGS_ADC32,
+    [FLAGS_SBC8]    = jit_flags_rebuild_zpna_FLAGS_SBC8,
+    [FLAGS_SBC16]   = jit_flags_rebuild_zpna_FLAGS_SBC16,
+    [FLAGS_SBC32]   = jit_flags_rebuild_zpna_FLAGS_SBC32,
+    [FLAGS_SHRD16]  = jit_flags_rebuild_zpna_FLAGS_SHRD16,
+    [FLAGS_SHRD32]  = jit_flags_rebuild_zpna_FLAGS_SHRD32
+};
+
+/*Whether p is jit_flags_rebuild_zpna or one of the wrappers in its place*/
+int
+codegen_flags_is_rebuild_zpna(const void *p)
+{
+    for (int op = 0; op <= FLAGS_SHRD32; op++) {
+        if (p == (const void *) jit_flags_rebuild_zpna_op[op])
+            return 1;
+    }
+    return 0;
+}
+
 JIT_WRAPPER int
 jit_CF_SET(void)
 {

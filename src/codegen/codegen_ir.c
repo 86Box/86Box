@@ -629,7 +629,7 @@ codegen_flags_dead_pass(ir_data_t *ir, int unroll_start, int unroll_end)
                 kind = FLAGS_SITE_CALL_FULL;
             else if (uop->p == (void *) jit_flags_rebuild_c)
                 kind = FLAGS_SITE_CALL_C;
-            else if (uop->p == (void *) jit_flags_rebuild_zpna)
+            else if (codegen_flags_is_rebuild_zpna(uop->p))
                 kind = FLAGS_SITE_CALL_ZPNA;
             else
                 continue;
