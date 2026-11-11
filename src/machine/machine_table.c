@@ -5251,7 +5251,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "TriGem TG-286M", "" }
+        .aliases                  = { "TriGem TG286M", "" }
     },
     /* 286 Multistation (non-AT) machine */
     {
@@ -12508,9 +12508,9 @@ const machine_t machines[] = {
         .vid_device               = &paradise_wd90c33_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "TriGem 486G", "" }
+        .aliases                  = { "TriGem TG486G", "TriGem TG486GM", "" }
     },
-    /* Has MR BIOS V307UT KBC firmware, which, bizarrely enough, is actually  a genuine AMI 'H'. */
+    /* Has MR BIOS V307UT KBC firmware, which, bizarrely enough, is actually a genuine AMI 'H'. */
     {
         .name              = "[SiS 471] Unknown VL-BUS 471 REV. A1",
         .internal_name     = "px471",
@@ -12704,7 +12704,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "TriGem 486GP", "" }
+        .aliases                  = { "TriGem TG486GP", "TriGem TG486HQ", "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
