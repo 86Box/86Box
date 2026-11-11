@@ -669,13 +669,18 @@ solo1_a1_input_frame(solo1_t *dev, double rate, double *l, double *r)
 }
 
 static int
-solo1_clamp16(double v)
+solo1_quantize(double v, int bits)
 {
-    if (v > 32767.0)
-        return 32767;
-    if (v < -32768.0)
-        return -32768;
-    return (int) v;
+    const int limit = 1 << (bits - 1);
+
+    /* Quantize around signed zero so sub-LSB input does not toggle
+       between the two codes on either side of silence. */
+    v /= 32768 / limit;
+    if (v >= limit - 1)
+        return limit - 1;
+    if (v <= -limit)
+        return -limit;
+    return (int) round(v);
 }
 
 /* one ADC sample frame. The host's input is the line input; the
@@ -689,6 +694,7 @@ solo1_a1_sample(solo1_t *dev, double rate)
     const uint8_t src = dev->mixer_regs[0x1c];
     const uint8_t fmt = dev->ess_regs[0xb7 - 0xa0];
     const uint8_t lvl = dev->ess_regs[0xb4 - 0xa0];
+    const int     bits = (fmt & 0x04) ? 16 : 8;
     double        in_l;
     double        in_r;
     double        l   = 0.0;
@@ -733,12 +739,12 @@ solo1_a1_sample(solo1_t *dev, double rate)
 
     l *= pow(10.0, ((mic ? 0.0 : -6.0) + 1.5 * (double) (lvl >> 4)) / 20.0);
     r *= pow(10.0, ((mic ? 0.0 : -6.0) + 1.5 * (double) (lvl & 0x0f)) / 20.0);
-    sl = solo1_clamp16(l);
-    sr = solo1_clamp16(r);
+    sl = solo1_quantize(l, bits);
+    sr = solo1_quantize(r, bits);
 
     if (!(fmt & 0x20)) {
-        sl ^= 0x8000;
-        sr ^= 0x8000;
+        sl += 1 << (bits - 1);
+        sr += 1 << (bits - 1);
     }
 
     if (fmt & 0x04) {
@@ -749,9 +755,9 @@ solo1_a1_sample(solo1_t *dev, double rate)
             solo1_a1_put_byte(dev, (uint8_t) (sr >> 8));
         }
     } else {
-        solo1_a1_put_byte(dev, (uint8_t) (sl >> 8));
+        solo1_a1_put_byte(dev, (uint8_t) sl);
         if (fmt & 0x08)
-            solo1_a1_put_byte(dev, (uint8_t) (sr >> 8));
+            solo1_a1_put_byte(dev, (uint8_t) sr);
     }
 }
 
