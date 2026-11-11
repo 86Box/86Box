@@ -133,6 +133,33 @@ mma_rec_unit(uint8_t reg9, uint8_t regc)
     return (regc & 0x60) ? 2 : 1;
 }
 
+int
+mma_play_bytes(uint8_t regc)
+{
+    const int fmt = (regc >> 5) & 3;
+
+    return ((fmt == 1) || (fmt == 2)) ? 2 : 1;
+}
+
+int16_t
+mma_play_decode(uint8_t regc, int offset8, uint8_t b0, uint8_t b1)
+{
+    int s12;
+
+    switch ((regc >> 5) & 3) {
+        case 1: /* 8 LSBs, then the 4 MSBs sign-extended */
+            s12 = b0 | ((b1 & 0x0f) << 8);
+            if (s12 & 0x800)
+                s12 -= 0x1000;
+            return (int16_t) (s12 * 16);
+        case 2: /* 4 LSBs in the high nibble, then the 8 MSBs */
+            return (int16_t) ((b1 << 8) | (b0 & 0xf0));
+
+        default: /* 0 (and the invalid 3): the 8 MSBs */
+            return (int16_t) ((offset8 ? (b0 - 0x80) : (int8_t) b0) * 256);
+    }
+}
+
 void
 mma_rec_adpcm_reset(mma_rec_t *rec, int ch)
 {
@@ -220,7 +247,7 @@ mma_rec_encode(mma_rec_t *rec, int ch, int sample, uint8_t reg9, uint8_t regc, u
             return 2;
 
         default: /* 0 (and the invalid 3): the 8 MSBs */
-            out[0] = (s12 >> 4) & 0xff;
+            out[0] = ((s12 >> 4) & 0xff) ^ (rec->offset8 ? 0x80 : 0x00);
             return 1;
     }
 }

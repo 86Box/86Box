@@ -34,6 +34,9 @@ extern const device_t ddma_device;
 
 /* Functions. */
 extern void ddma_update_io_mapping(ddma_t *dev, uint8_t ch, uint8_t base_l, uint8_t base_h, uint8_t enable);
+/* a PCI device decoding a DDMA slave of its own at base (16 bytes)
+   claims it, so the chipset's stand-in slave keeps off that range. */
+extern void ddma_claim_slave(uint16_t base, int claim);
 
 #ifdef __cplusplus
 }

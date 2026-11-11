@@ -69,7 +69,6 @@ typedef struct cmi8x38_dma_t {
     uint32_t fifo_end;
     int32_t  frame_count_dma;
     int32_t  frame_count_fragment;
-    int32_t  sample_count_out;
     uint8_t  fifo[256];
     uint8_t  restart;
 
@@ -94,8 +93,6 @@ typedef struct cmi8x38_dma_t {
     uint32_t in_rd;
     double   in_frac;
     int      in_primed;
-    uint32_t adc_word;
-    int      adc_bytes;
     uint8_t  irq_pending;
 
     pc_timer_t dma_timer;
@@ -637,8 +634,6 @@ cmi8x38_record_start(cmi8x38_dma_t *dma)
     dma->in_rd          = dev->in_started ? dev->in_wr : 0;
     dma->in_frac        = 0.0;
     dma->in_primed      = 0;
-    dma->adc_word       = 0;
-    dma->adc_bytes      = 0;
     dma->irq_pending    = 0;
     cmi8x38_adc_input(dev);
     timer_set_delay_u64(&dma->poll_timer, dma->timer_latch);
@@ -796,8 +791,9 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
             }
             break;
 
-        case 0x02:
-            /* Reset or start DMA channels if requested. */
+        case 0x02: {
+            const uint8_t old = dev->io_regs[addr];
+
             dev->io_regs[addr] = val & 0x0f;
             for (int i = 0; i < (sizeof(dev->dma) / sizeof(dev->dma[0])); i++) {
                 if (val & (0x04 << i)) {
@@ -813,10 +809,11 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
                     /* Reset Sound Blaster as well when resetting channel 0. */
                     if ((i == 0) && (dev->sb->dsp.sb_8_enable || dev->sb->dsp.sb_16_enable || dev->sb->dsp.sb_irq8 || dev->sb->dsp.sb_irq16))
                         dev->sb->dsp.sb_8_enable = dev->sb->dsp.sb_16_enable = dev->sb->dsp.sb_irq8 = dev->sb->dsp.sb_irq16 = 0;
-                } else if (val & (0x01 << i)) {
+                } else if ((val & ~old) & (0x01 << i)) {
                     /* Start DMA channel. */
                     cmi8x38_log("CMI8x38: DMA %d trigger\n", i);
                     dev->dma[i].restart = 1;
+                    dev->dma[i].fifo_pos = dev->dma[i].fifo_end;
                     cmi8x38_dma_process(&dev->dma[i]);
                 }
             }
@@ -830,6 +827,7 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
             /* Update interrupts. */
             cmi8x38_update_irqs(dev);
             break;
+        }
 
         case 0x04:
             /* Enable or disable the game port. */
@@ -1346,7 +1344,7 @@ cmi8x38_record_reload(cmi8x38_dma_t *dma)
 {
     const cmi8x38_t *dev = dma->dev;
     dma->sample_ptr = AS_U32(dev->io_regs[dma->reg]);
-    dma->frame_count_dma = dma->sample_count_out = AS_U16(dev->io_regs[dma->reg | 0x4]) + 1;
+    dma->frame_count_dma = AS_U16(dev->io_regs[dma->reg | 0x4]) + 1;
     dma->frame_count_fragment = AS_U16(dev->io_regs[dma->reg | 0x6]) + 1;
 }
 
@@ -1357,13 +1355,7 @@ cmi8x38_record_put_byte(cmi8x38_dma_t *dma, uint8_t val)
         dma->restart = 0;
         cmi8x38_record_reload(dma);
     }
-    dma->adc_word |= ((uint32_t) val) << (dma->adc_bytes * 8);
-    if (++dma->adc_bytes < 4)
-        return;
-    mem_writel_phys(dma->sample_ptr, dma->adc_word);
-    dma->sample_ptr += 4;
-    dma->adc_word = 0;
-    dma->adc_bytes = 0;
+    mem_writeb_phys(dma->sample_ptr++, val);
 }
 
 static void
@@ -1379,17 +1371,13 @@ cmi8x38_record_frame_done(cmi8x38_dma_t *dma)
             cmi8x38_update_irqs(dev);
         }
     }
-    dma->sample_count_out--;
     if (--dma->frame_count_fragment <= 0) {
         dma->frame_count_fragment = AS_U16(dev->io_regs[dma->reg | 0x6]) + 1;
         dma->irq_pending = 1;
     }
     if (--dma->frame_count_dma <= 0) {
-        for (int i = 0; i < dma->adc_bytes; i++)
-            mem_writeb_phys(dma->sample_ptr + i, (dma->adc_word >> (i * 8)) & 0xff);
-        dma->adc_word = 0;
-        dma->adc_bytes = 0;
-        cmi8x38_record_reload(dma);
+        dma->sample_ptr = AS_U32(dev->io_regs[dma->reg]);
+        dma->frame_count_dma = AS_U16(dev->io_regs[dma->reg | 0x4]) + 1;
     }
 }
 

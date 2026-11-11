@@ -264,11 +264,30 @@ ps1snd_write(uint16_t port, uint8_t val, void *priv)
             ps1snd->timer_latch = val;
             /* the 1 MHz timer overflows every reload + 1 us (the
                Technical Reference: "one cycle longer than the value
-               written", 256 us at most); 0 stops it. */
-            if (val)
-                timer_set_delay_u64(&ps1snd->timer_count, ((uint64_t) (val + 1) * TIMER_USEC));
-            else
+               written", 256 us at most); 0 stops it "and holds it in the 0
+               state". A write to the running timer changes only its reload
+               value: the count goes on, so rewriting the same value does not
+               put the next overflow off. IBM's Windows 3.1 driver (PS1.DLL)
+               rewrites it from its multimedia-timer callback more often than
+               it overflows while it plays: restarted at each write, the timer
+               never ran out and the FIFO stayed full (2043 bytes) for as long
+               as the driver kept writing. A lower value takes effect at once
+               when the count is already past it.
+               A write of 0 also empties the FIFO (its read address is set to
+               the write address); bytes written after it stay until the timer
+               runs again. Not in the Technical Reference, but both of IBM's
+               uses need it: PS1.DLL pauses a stream by writing 0 with up to
+               2 KB still queued and its close then waits for FIFO Empty
+               (status bit 2) before anything restarts the timer -- with the
+               bytes kept, Windows hung at Exit Windows after the exit sound --
+               while the PS/1 POST writes 0, then 32 bytes, and reports an
+               error when the FIFO reads empty before it starts the timer. */
+            if (!val) {
                 timer_disable(&ps1snd->timer_count);
+                ps1snd->fifo_read_idx = ps1snd->fifo_write_idx;
+            } else if (!timer_is_enabled(&ps1snd->timer_count) ||
+                     (timer_get_remaining_u64(&ps1snd->timer_count) > ((uint64_t) (val + 1) * TIMER_USEC)))
+                timer_set_delay_u64(&ps1snd->timer_count, ((uint64_t) (val + 1) * TIMER_USEC));
             break;
 
         case 4: /* almost empty */

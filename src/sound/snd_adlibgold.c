@@ -206,30 +206,33 @@ adgold_getsamp_dma(adgold_t *adgold, int channel)
 
     adgold->finish_dma = 0;
 
-    if ((adgold->adgold_mma_regs[channel][0xc] & 0x60) && (((adgold->adgold_mma_fifo_end[channel] - adgold->adgold_mma_fifo_start[channel]) & 255) >= 127)) {
+    /* room for a whole sample (8-bit too), and a DMA channel with
+       nothing to give ends a fill loop as a full FIFO does. */
+    if ((((adgold->adgold_mma_fifo_end[channel] - adgold->adgold_mma_fifo_start[channel]) & 255) + mma_play_bytes(adgold->adgold_mma_regs[channel][0xc])) > 128) {
         adgold->finish_dma = 1;
         return;
     }
 
     dma_set_drq(adgold->dma, 1);
     dma_dat = dma_channel_read(adgold->dma);
-    if (dma_dat == DMA_NODATA)
+    if (dma_dat == DMA_NODATA) {
+        adgold->finish_dma = 1;
         return;
+    }
 
     adgold->adgold_mma_fifo[channel][adgold->adgold_mma_fifo_end[channel]] = dma_dat;
     adgold->adgold_mma_fifo_end[channel] = (adgold->adgold_mma_fifo_end[channel] + 1) & 255;
-    if (adgold->adgold_mma_regs[channel][0xc] & 0x60) {
+    if (mma_play_bytes(adgold->adgold_mma_regs[channel][0xc]) == 2) {
         dma_dat = dma_channel_read(adgold->dma);
         if (dma_dat == DMA_NODATA)
             return;
         adgold->adgold_mma_fifo[channel][adgold->adgold_mma_fifo_end[channel]] = dma_dat;
         adgold->adgold_mma_fifo_end[channel]                                   = (adgold->adgold_mma_fifo_end[channel] + 1) & 255;
     }
-    if (((adgold->adgold_mma_fifo_end[channel] - adgold->adgold_mma_fifo_start[channel]) & 255) >= adgold->adgold_mma_intpos[channel]) {
-        adgold->adgold_mma_status &= ~(0x01 << channel);
-        adgold_update_irq_status(adgold);
+    /* the FIFO flag is a latch that only a status read clears;
+       dropped here, the IRQ could fall before the CPU takes it. */
+    if (((adgold->adgold_mma_fifo_end[channel] - adgold->adgold_mma_fifo_start[channel]) & 255) >= adgold->adgold_mma_intpos[channel])
         dma_set_drq(adgold->dma, 0);
-    }
 }
 
 /* the MMA's recording (ADC). A channel records while GO is set with
@@ -569,6 +572,7 @@ adgold_write(uint16_t addr, uint8_t val, void *priv)
                     }
                     if (val & 0x80) {
                         adgold->adgold_mma_enable[0]   = 0;
+                        adgold->adgold_mma_out[0]      = 0; /* no DC left behind */
                         adgold->adgold_mma_fifo_end[0] = adgold->adgold_mma_fifo_start[0] = 0;
                         adgold->adgold_mma_status &= ~0x01;
                         adgold_update_irq_status(adgold);
@@ -630,7 +634,7 @@ adgold_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0xc:
-                    adgold->adgold_mma_intpos[0] = (7 - ((val >> 2) & 7)) * 8;
+                    adgold->adgold_mma_intpos[0] = mma_rec_fifo_level(val); /* (7 - level) * 16, as the SDTK */
                     break;
 
                 case 0xd:
@@ -706,6 +710,7 @@ adgold_write(uint16_t addr, uint8_t val, void *priv)
                     }
                     if (val & 0x80) {
                         adgold->adgold_mma_enable[1]   = 0;
+                        adgold->adgold_mma_out[1]      = 0; /* no DC left behind */
                         adgold->adgold_mma_fifo_end[1] = adgold->adgold_mma_fifo_start[1] = 0;
                         adgold->adgold_mma_status &= ~0x02;
                         adgold_update_irq_status(adgold);
@@ -740,7 +745,7 @@ adgold_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0xc:
-                    adgold->adgold_mma_intpos[1] = (7 - ((val >> 2) & 7)) * 8;
+                    adgold->adgold_mma_intpos[1] = mma_rec_fifo_level(val); /* (7 - level) * 16, as the SDTK */
                     break;
 
                 default:
@@ -878,41 +883,32 @@ adgold_mma_poll(adgold_t *adgold, int channel)
 
     adgold_update(adgold);
 
-    if (adgold->adgold_mma_fifo_start[channel] != adgold->adgold_mma_fifo_end[channel]) {
-        switch (adgold->adgold_mma_regs[channel][0xc] & 0x60) {
-            case 0x00: /*8-bit*/
-                dat                                    = adgold->adgold_mma_fifo[channel][adgold->adgold_mma_fifo_start[channel]] * 256;
-                adgold->adgold_mma_out[channel]        = dat;
-                adgold->adgold_mma_fifo_start[channel] = (adgold->adgold_mma_fifo_start[channel] + 1) & 255;
-                break;
+    /* the data formats as the MMA records them. An empty FIFO only
+       holds the last sample: the channel plays on (asking for DMA) until the
+       driver clears GO, as a late DMA buffer must not end it. */
+    const uint8_t regc  = adgold->adgold_mma_regs[channel][0xc];
+    const int     bytes = mma_play_bytes(regc);
+    const int     start = adgold->adgold_mma_fifo_start[channel];
 
-            case 0x40: /*12-bit sensible format*/
-                if (((adgold->adgold_mma_fifo_end[channel] - adgold->adgold_mma_fifo_start[channel]) & 255) < 2)
-                    return;
+    if (adgold_mma_fifo_fill(adgold, channel) >= bytes) {
+        dat = mma_play_decode(regc, adgold->rec.offset8, adgold->adgold_mma_fifo[channel][start],
+                              adgold->adgold_mma_fifo[channel][(start + 1) & 255]);
+        adgold->adgold_mma_out[channel]        = dat;
+        adgold->adgold_mma_fifo_start[channel] = (start + bytes) & 255;
+    }
 
-                dat                                    = adgold->adgold_mma_fifo[channel][adgold->adgold_mma_fifo_start[channel]] & 0xf0;
-                adgold->adgold_mma_fifo_start[channel] = (adgold->adgold_mma_fifo_start[channel] + 1) & 255;
-                dat |= (adgold->adgold_mma_fifo[channel][adgold->adgold_mma_fifo_start[channel]] << 8);
-                adgold->adgold_mma_fifo_start[channel] = (adgold->adgold_mma_fifo_start[channel] + 1) & 255;
-                adgold->adgold_mma_out[channel]        = dat;
-                break;
-
-            default:
-                break;
-        }
-
-        if (adgold->adgold_mma_regs[channel][0xc] & 1) {
+    /* the MMA asks for DMA while its FIFO has room, so a FIFO run
+       low (at a DMA block's end) fills up again. */
+    if (regc & MMA_RC_ENB) {
+        for (int i = 0; i < 128; i++) {
             adgold_getsamp_dma(adgold, channel);
             if (adgold->finish_dma)
-                return;
-        }
-        if (((adgold->adgold_mma_fifo_end[channel] - adgold->adgold_mma_fifo_start[channel]) & 255) < adgold->adgold_mma_intpos[channel] && !(adgold->adgold_mma_status & 0x01)) {
-            adgold->adgold_mma_status |= (1 << channel);
-            adgold_update_irq_status(adgold);
+                break;
         }
     }
-    if (adgold->adgold_mma_fifo_start[channel] == adgold->adgold_mma_fifo_end[channel]) {
-        adgold->adgold_mma_enable[channel] = 0;
+    if ((adgold_mma_fifo_fill(adgold, channel) < adgold->adgold_mma_intpos[channel]) && !(adgold->adgold_mma_status & (1 << channel))) {
+        adgold->adgold_mma_status |= (1 << channel);
+        adgold_update_irq_status(adgold);
     }
 }
 

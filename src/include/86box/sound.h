@@ -130,6 +130,7 @@ extern void sound_in_remove_handler(void (*put_buffer)(int16_t *buffer,
 
 extern void sound_in_start_input(void);
 extern void sound_in_stop_input(void);
+extern void sound_in_set_test_tone(double hz, double dbfs); /* automation "audio tone" */
 
 extern void music_add_handler(void (*get_buffer)(int32_t *buffer,
                                                  uint16_t len, void *priv),

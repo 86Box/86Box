@@ -1138,7 +1138,7 @@ aud_stop(strbuf_t *sb)
         sb_printf(sb, "]}");
 }
 
-/* audio start <dir> | audio stop | audio level <ms> | audio read <stream> <ms> */
+/* audio start <dir> | audio stop | audio level <ms> | audio read <stream> <ms> | audio tone <hz> [<dBFS>] */
 static void
 handle_audio(int argc, char **argv, char **rest)
 {
@@ -1302,9 +1302,15 @@ handle_audio(int argc, char **argv, char **rest)
         sb_base64(&resp, (const uint8_t *) out, n * 2 * sizeof(int16_t));
         sb_printf(&resp, "\"}");
         free(out);
+    } else if (((argc == 3) || (argc == 4)) && !strcmp(argv[1], "tone")) {
+        /* audio tone <hz> [<dBFS>]: a sine (default -6 dBFS) replaces the
+           host's input (what cards record); audio tone 0 gives it back. */
+        sound_in_set_test_tone(strtod(argv[2], NULL), (argc == 4) ? strtod(argv[3], NULL) : -6.0);
+        resp.len = 0;
+        sb_printf(&resp, "{\"ok\":true,\"ms\":%llu}", (unsigned long long) emu_ms);
     } else
         respond_error("usage: audio start [<dir>] | audio stop | audio level <ms> | audio read <stream> <ms> | "
-                      "audio pull <stream> <from> [max_frames]");
+                      "audio pull <stream> <from> [max_frames] | audio tone <hz> [<dBFS>]");
 }
 
 /* wait sound / wait silence: arm the tap, or check it each quantum. */

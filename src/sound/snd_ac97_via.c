@@ -680,9 +680,11 @@ ac97_via_sgd_process(void *priv)
     /* Process SGD if it's active, and the FIFO has room or is disabled.
        the record channel's FIFO is filled by the ADC (fifo_pos) and
        emptied to memory a dword at a time (fifo_end): it moves only once
-       the ADC has a dword ready. */
+       the ADC has a dword ready -- or, at the end of a block whose byte
+       count is not a multiple of 4, the bytes left of it. */
+    const uint32_t need = (!sgd->restart && (sgd->sample_count > 0) && (sgd->sample_count < 4)) ? sgd->sample_count : 4;
     if (((sgd_status & 0xc7) == 0x80) &&
-        ((sgd->id == 0x10) ? ((sgd->fifo_pos - sgd->fifo_end) >= 4) :
+        ((sgd->id == 0x10) ? ((sgd->fifo_pos - sgd->fifo_end) >= need) :
                              (sgd->always_run || ((sgd->fifo_end - sgd->fifo_pos) <= (sizeof(sgd->fifo) - 4))))) {
         /* Move on to the next block if no entry is present. */
         if (sgd->restart) {
@@ -712,18 +714,29 @@ ac97_via_sgd_process(void *priv)
                          sgd->entry_ptr - 8, sgd->sample_ptr, sgd->sample_count, sgd->entry_flags);
         }
 
+        /* a dword at a time, but never past the end of the block: the
+           count is in bytes, and a block need not be a multiple of 4 (VIA's
+           Win2000 driver records 44.1 kHz mono or 8-bit in such blocks).
+           Moving whole dwords wrote (or played) the bytes past the block and
+           lost them from the stream at every block end. */
+        const uint32_t len  = ((sgd->sample_count > 0) && (sgd->sample_count < 4)) ? sgd->sample_count : 4;
+        const int      xfer = (len == 4) ? 4 : ((len == 2) ? 2 : 1);
+        uint8_t        data[4];
+
         if (sgd->id & 0x10) {
             /* Write channel: read data from FIFO. */
-            // mem_writel_phys(sgd->sample_ptr, AS_U32(sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)]));
-            dma_bm_write(sgd->sample_ptr, &sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)], 4, 4);
+            for (uint32_t i = 0; i < len; i++)
+                data[i] = sgd->fifo[(sgd->fifo_end + i) & (sizeof(sgd->fifo) - 1)];
+            dma_bm_write(sgd->sample_ptr, data, len, xfer);
         } else {
             /* Read channel: write data to FIFO. */
-            // AS_U32(sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)]) = mem_readl_phys(sgd->sample_ptr);
-            dma_bm_read(sgd->sample_ptr, &sgd->fifo[sgd->fifo_end & (sizeof(sgd->fifo) - 1)], 4, 4);
+            dma_bm_read(sgd->sample_ptr, data, len, xfer);
+            for (uint32_t i = 0; i < len; i++)
+                sgd->fifo[(sgd->fifo_end + i) & (sizeof(sgd->fifo) - 1)] = data[i];
         }
-        sgd->fifo_end += 4;
-        sgd->sample_ptr += 4;
-        sgd->sample_count -= 4;
+        sgd->fifo_end += len;
+        sgd->sample_ptr += len;
+        sgd->sample_count -= len;
 
         /* Check if we've hit the end of this block. */
         if (sgd->sample_count <= 0) {

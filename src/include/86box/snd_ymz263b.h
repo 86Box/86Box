@@ -38,6 +38,9 @@ typedef struct mma_rec_t {
     int      started;
     int      primed;
 
+    /* Format 0 (8-bit) is offset binary on this card (80h is 0), else signed. */
+    int      offset8;
+
     /* The frame the ADC sampled last (both channels see the same one). */
     int l;
     int r;
@@ -73,5 +76,10 @@ extern void mma_rec_adpcm_reset(mma_rec_t *rec, int ch);
 /* Encode one 16-bit sample in the channel's format; returns the number of
    bytes put in out (0 to 2: ADPCM gives a byte every second sample). */
 extern int mma_rec_encode(mma_rec_t *rec, int ch, int sample, uint8_t reg9, uint8_t regc, uint8_t *out);
+
+/* Playback: the bytes one sample takes in the channel's PCM format, and the
+   16-bit sample they hold. */
+extern int     mma_play_bytes(uint8_t regc);
+extern int16_t mma_play_decode(uint8_t regc, int offset8, uint8_t b0, uint8_t b1);
 
 #endif /*SOUND_YMZ263B_H*/

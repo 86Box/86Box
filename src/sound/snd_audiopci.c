@@ -2914,8 +2914,14 @@ es1371_init(const device_t *info)
     ac97_codec_count = 1;
     ac97_codec_id    = 0;
     /* Let the machine decide the codec on onboard implementations. */
-    if (!(info->local & 1))
-        device_add(ac97_codec_get(device_get_config_int("codec")));
+    if (!(info->local & 1)) {
+        int codec = device_get_config_int("codec");
+
+        /* Older AudioPCI configurations stored the AD1881 ID for the AK4540. */
+        if (codec == AC97_CODEC_AD1881)
+            codec = AC97_CODEC_AK4540;
+        device_add(ac97_codec_get(codec));
+    }
 
     es137x_reset(dev);
 

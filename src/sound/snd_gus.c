@@ -19,12 +19,6 @@
  *          Copyright      2026 mr b0nk 500
  */
 
-/*
- * TODO:
- * - Implement the 16-bit recording daughterboard for the GUS Classic: this has
- *   a CS4231 codec and can be jumpered for the following addresses: 530h, 604h,
- *   E80h or F40h. IRQ (3/4/5/6/7/9) and DMA (1/2/3) are also jumpered.
- */
 
 #include <stdarg.h>
 #include <stdint.h>
@@ -258,6 +252,7 @@ typedef struct gus_t {
     void   *gameport;
 
     uint8_t max_ctrl;
+    uint8_t daughter; /* 16-bit recording daughter card (CS4231) fitted */
 
     ad1848_t ad1848;
 
@@ -3064,7 +3059,7 @@ gus_get_buffer(int32_t *buffer, uint16_t len, void *priv)
 {
     gus_t *gus = (gus_t *) priv;
 
-    if (((gus->type == GUS_MAX) && (gus->max_ctrl)) || gus->type == GUS_INTERWAVE)
+    if (((gus->type == GUS_MAX) && (gus->max_ctrl)) || gus->type == GUS_INTERWAVE || gus->daughter)
         ad1848_update(&gus->ad1848);
 
     gus_update(gus);
@@ -3124,7 +3119,12 @@ gus_get_buffer(int32_t *buffer, uint16_t len, void *priv)
         }
     }
 
-    if (((gus->type == GUS_MAX) && (gus->max_ctrl)) || gus->type == GUS_INTERWAVE)
+    if (gus->daughter) {
+        for (uint16_t c = 0; c < len * 2; c++)
+            buffer[c] += gus->ad1848.buffer[c] / 2;
+    }
+
+    if (((gus->type == GUS_MAX) && (gus->max_ctrl)) || gus->type == GUS_INTERWAVE || gus->daughter)
         gus->ad1848.pos = 0;
 
     gus->pos = 0;
@@ -3707,6 +3707,24 @@ gus_init(UNUSED(const device_t *info))
                       ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &gus->ad1848);
     }
 
+    /* the 16-bit recording daughter card of the UltraSound (UltraSound SDK 2.22,
+       6.4): a CS4231 at 530h, 604h, E80h or F40h with its own jumpered IRQ (3/4/5/6/7/9)
+       and one 8-bit DMA channel (1-3), so no full duplex. */
+    if ((gus->type <= GUS_CLASSIC_37) && device_get_config_int("daughter")) {
+        const uint16_t codec_base = device_get_config_hex16("codec_base");
+
+        gus->daughter = 1;
+        ad1848_init(&gus->ad1848, AD1848_TYPE_CS4231);
+        ad1848_setirq(&gus->ad1848, device_get_config_int("codec_irq"));
+        ad1848_setdma(&gus->ad1848, device_get_config_int("codec_dma"));
+        ad1848_setdma2(&gus->ad1848, 4);
+        /* The CD audio stays with the base board (the CS4231's init took it over). */
+        if (gus->type == GUS_CLASSIC_37)
+            sound_set_cd_audio_filter(gus_filter_cd_audio, gus);
+        io_sethandler(codec_base, 4,
+                      ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &gus->ad1848);
+    }
+
     timer_add(&gus->samp_timer, gus_poll_wave, gus, 1);
     timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
     timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
@@ -3718,6 +3736,8 @@ gus_init(UNUSED(const device_t *info))
         sound_in_start_input();
     } else if (gus->type <= GUS_CLASSIC_37) {
         sound_in_add_handler(gus_put_buffer, gus);
+        if (gus->daughter)
+            sound_in_add_handler(iw_put_buffer, gus);
         sound_in_start_input();
     }
 
@@ -4144,9 +4164,75 @@ gus_speed_changed(void *priv)
     else
         gus->samp_latch = (uint64_t) (TIMER_USEC * (1000000.0 / gusfreqs[gus->voices - 14]));
 
-    if (((gus->type == GUS_MAX) && (gus->max_ctrl)) || gus->type == GUS_INTERWAVE)
+    if (((gus->type == GUS_MAX) && (gus->max_ctrl)) || gus->type == GUS_INTERWAVE || gus->daughter)
         ad1848_speed_changed(&gus->ad1848);
 }
+
+/* the 16-bit recording daughter card's jumpers (UltraSound SDK 2.22, 6.4). */
+#define GUS_DAUGHTER_CONFIG                                                  \
+    {                                                                        \
+        .name           = "daughter",                                        \
+        .description    = "16-bit recording daughter card",                  \
+        .type           = CONFIG_BINARY,                                     \
+        .default_string = NULL,                                              \
+        .default_int    = 0,                                                 \
+        .file_filter    = NULL,                                              \
+        .spinner        = { 0 },                                             \
+        .selection      = { { 0 } },                                         \
+        .bios           = { { 0 } }                                          \
+    },                                                                       \
+    {                                                                        \
+        .name           = "codec_base",                                      \
+        .description    = "Daughter card address",                           \
+        .type           = CONFIG_HEX16,                                      \
+        .default_string = NULL,                                              \
+        .default_int    = 0x530,                                             \
+        .file_filter    = NULL,                                              \
+        .spinner        = { 0 },                                             \
+        .selection      = {                                                  \
+            { .description = "530H", .value = 0x530 },                       \
+            { .description = "604H", .value = 0x604 },                       \
+            { .description = "E80H", .value = 0xe80 },                       \
+            { .description = "F40H", .value = 0xf40 },                       \
+            { NULL                                  }                        \
+        },                                                                   \
+        .bios           = { { 0 } }                                          \
+    },                                                                       \
+    {                                                                        \
+        .name           = "codec_irq",                                       \
+        .description    = "Daughter card IRQ",                               \
+        .type           = CONFIG_SELECTION,                                  \
+        .default_string = NULL,                                              \
+        .default_int    = 7,                                                 \
+        .file_filter    = NULL,                                              \
+        .spinner        = { 0 },                                             \
+        .selection      = {                                                  \
+            { .description = "IRQ 3", .value = 3 },                          \
+            { .description = "IRQ 4", .value = 4 },                          \
+            { .description = "IRQ 5", .value = 5 },                          \
+            { .description = "IRQ 6", .value = 6 },                          \
+            { .description = "IRQ 7", .value = 7 },                          \
+            { .description = "IRQ 9", .value = 9 },                          \
+            { .description = ""                  }                           \
+        },                                                                   \
+        .bios           = { { 0 } }                                          \
+    },                                                                       \
+    {                                                                        \
+        .name           = "codec_dma",                                       \
+        .description    = "Daughter card DMA",                               \
+        .type           = CONFIG_SELECTION,                                  \
+        .default_string = NULL,                                              \
+        .default_int    = 3,                                                 \
+        .file_filter    = NULL,                                              \
+        .spinner        = { 0 },                                             \
+        .selection      = {                                                  \
+            { .description = "DMA 1", .value = 1 },                          \
+            { .description = "DMA 2", .value = 2 },                          \
+            { .description = "DMA 3", .value = 3 },                          \
+            { .description = ""                  }                           \
+        },                                                                   \
+        .bios           = { { 0 } }                                          \
+    }
 
 static const device_config_t gus_config[] = {
     // clang-format off
@@ -4197,6 +4283,7 @@ static const device_config_t gus_config[] = {
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
+    GUS_DAUGHTER_CONFIG,
     {
         .name           = "receive_input",
         .description    = "Receive MIDI input",
@@ -4301,6 +4388,7 @@ static const device_config_t gus_max_config[] = {
         },
         .bios           = { { 0 } }
     },
+    GUS_DAUGHTER_CONFIG,
     {
         .name           = "receive_input",
         .description    = "Receive MIDI input",

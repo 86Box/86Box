@@ -30,6 +30,7 @@
 #include <86box/sound.h>
 #include <86box/timer.h>
 #include <86box/snd_sb.h>
+#include <86box/ddma.h>
 #include <86box/plat_unused.h>
 
 #define SOLO1_IN_RING 16384 /* host input frames held for the Audio 1 ADC */
@@ -1362,6 +1363,7 @@ solo1_update_native_mappings(solo1_t *dev)
         io_removehandler(dev->ddma_base_mapped, 0x10,
                          solo1_ddma_read, NULL, NULL,
                          solo1_ddma_write, NULL, NULL, dev);
+        ddma_claim_slave(dev->ddma_base_mapped, 0);
         dev->ddma_base_mapped = 0;
     }
 
@@ -1394,6 +1396,10 @@ solo1_update_native_mappings(solo1_t *dev)
         io_sethandler(ddma_base, 0x10,
                       solo1_ddma_read, NULL, NULL,
                       solo1_ddma_write, NULL, NULL, dev);
+        /* the chipset's DDMA channel registers point here when a
+           driver (ESS's for Windows 9x) sets up DDMA for the legacy DMA
+           channel; its stand-in slave must not answer here as well. */
+        ddma_claim_slave(ddma_base, 1);
     }
 
     /* Separate legacy core from PCI BARs to fix Win98 driver init */
