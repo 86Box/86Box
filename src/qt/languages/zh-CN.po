@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-10 18:59+0000\n"
+"PO-Revision-Date: 2026-11-11 07:33+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -3982,7 +3982,7 @@ msgid "The dynamic recompiler is off while this window is open."
 msgstr ""
 
 msgid "Enter an address."
-msgstr ""
+msgstr "请输入一个地址。"
 
 msgid "The selector cannot be looked up."
 msgstr ""
@@ -4036,10 +4036,10 @@ msgid "Breakpoint %1 at %2."
 msgstr ""
 
 msgid "set"
-msgstr ""
+msgstr "设置"
 
 msgid "cleared"
-msgstr ""
+msgstr "清除"
 
 msgid "%1 breakpoint(s), linear addresses:"
 msgstr ""
@@ -4051,16 +4051,16 @@ msgid "Unknown command or invalid arguments. Type help for syntax."
 msgstr ""
 
 msgid "Dump memory"
-msgstr ""
+msgstr "转储内存"
 
 msgid "Browse..."
-msgstr ""
+msgstr "浏览…"
 
 msgid "Start (hex, register or seg:off):"
 msgstr ""
 
 msgid "Length (hex bytes):"
-msgstr ""
+msgstr "长度（十六进制字节）："
 
 msgid "Address space:"
 msgstr ""
@@ -4069,7 +4069,7 @@ msgid "Fill byte for memory that cannot be read:"
 msgstr ""
 
 msgid "File:"
-msgstr ""
+msgstr "文件："
 
 msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessible bytes are not read; the fill byte is written in their place."
 msgstr ""
@@ -4087,10 +4087,10 @@ msgid "Could not open %1 for writing."
 msgstr ""
 
 msgid "Dumping memory..."
-msgstr ""
+msgstr "正在转储内存…"
 
 msgid "Could not write to %1."
-msgstr ""
+msgstr "无法写入%1。"
 
 msgid "Dumped %1 bytes from %2 to %3 (%4 bytes could not be read and were filled)."
 msgstr ""
@@ -4141,7 +4141,7 @@ msgid "Enhanced modem (PNPC107)"
 msgstr ""
 
 msgid "Telephone Tone Region"
-msgstr ""
+msgstr "电话提示音区域"
 
 msgid "North America"
 msgstr ""
@@ -4162,7 +4162,7 @@ msgid "Automatic (from DTE speed)"
 msgstr ""
 
 msgid "Connection Type"
-msgstr ""
+msgstr "连接类型"
 
 msgid "Username"
 msgstr "用户名"
@@ -4183,22 +4183,22 @@ msgid "PPP Multilink Group (same on each link)"
 msgstr ""
 
 msgid "PPP Primary DNS Server"
-msgstr ""
+msgstr "PPP主DNS服务器"
 
 msgid "PPP Secondary DNS Server"
-msgstr ""
+msgstr "PPP次DNS服务器"
 
 msgid "CCP Directional Negotiation"
 msgstr ""
 
 msgid "Bidirectional"
-msgstr ""
+msgstr "双向"
 
 msgid "Transmit-Only"
-msgstr ""
+msgstr "仅发送"
 
 msgid "Receive-Only"
-msgstr ""
+msgstr "仅接收"
 
 msgid "Asymmetric Preferred"
 msgstr ""
@@ -4246,31 +4246,34 @@ msgid "2 s of line time"
 msgstr ""
 
 msgid "TCP send timeout"
-msgstr ""
+msgstr "TCP发送超时"
 
 msgid "Card:"
-msgstr ""
+msgstr "扩展卡："
 
 msgid "Hub:"
-msgstr ""
+msgstr "集线器："
 
 msgid "Mass storage:"
-msgstr ""
+msgstr "大容量存储设备："
 
 msgid "Its drives are hard disks, CD-ROM drives and other removable devices set up on their own pages, on bus SCSI, in the channels named \"USB Mass Storage\". Each drive is one logical unit, in channel order."
 msgstr ""
+"驱动器包含硬盘、CD-"
+"ROM驱动器以及其他可移动设备；上述设备应在其各自配置页面中配置在SCSI总线上名为"
+"“USB大容量存储设备”的通道内。每个驱动器为一个逻辑单元，按通道顺序排列。"
 
 msgid "Hard disks…"
-msgstr ""
+msgstr "硬盘…"
 
 msgid "CD-ROM drives…"
-msgstr ""
+msgstr "CD-ROM驱动器…"
 
 msgid "Other removable devices…"
-msgstr ""
+msgstr "其它可移动设备…"
 
 msgid "4-port USB 1.1 hub"
-msgstr ""
+msgstr "四口USB 1.1集线器"
 
 msgid "USB Mass Storage"
-msgstr ""
+msgstr "USB大容量存储设备"

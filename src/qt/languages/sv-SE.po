@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-10 18:59+0000\n"
+"PO-Revision-Date: 2026-11-11 07:33+0000\n"
 "Last-Translator: toshineon <pettersson.mk11@gmail.com>\n"
 "Language-Team: Swedish <https://weblate.86box.net/projects/86box/86box/sv/>\n"
 "Language: sv-SE\n"
@@ -3793,163 +3793,174 @@ msgid "Not found. The selection did not move."
 msgstr "Hittades ej. Urvalet flyttades inte."
 
 msgid "Fill selection"
-msgstr ""
+msgstr "Fyll urval"
 
 msgid "Fill %1 bytes from %2 with (hex):"
-msgstr ""
+msgstr "Fyll %1 byte från %2 med (hex):"
 
 msgid "Enter a hex byte from 00 to FF."
-msgstr ""
+msgstr "Ange en hex-byte från 00 till FF."
 
 msgid "Filled %1 of %2 bytes with %3 (%4 were not writable RAM or video memory)."
 msgstr ""
+"Fyllde %1 av %2 byte med %3 (%4 var inte skrivbar till RAM eller videominne)."
 
 msgid " Selected: %1 bytes (%2 were skipped)."
-msgstr ""
+msgstr " Vald: %1 byte (%2 hoppades över)."
 
 msgid "Edit byte"
-msgstr ""
+msgstr "Redigera byte"
 
 msgid "Copy selection (hex)"
-msgstr ""
+msgstr "Kopiera urval (hex)"
 
 msgid "Copy selection (ASCII)"
-msgstr ""
+msgstr "Kopiera urval (ASCII)"
 
 msgid "Fill selection..."
-msgstr ""
+msgstr "Fyll urval..."
 
 msgid "Copy address"
-msgstr ""
+msgstr "Kopiera adress"
 
 msgid "Disassemble here"
-msgstr ""
+msgstr "Disassemblera här"
 
 msgid "Dump memory from here..."
-msgstr ""
+msgstr "Dumpa minne från här..."
 
 msgid "Memory viewer"
-msgstr ""
+msgstr "Minnesvy"
 
 msgid "Pause / Resume"
-msgstr ""
+msgstr "Pausa / Återuppta"
 
 msgid "Step"
-msgstr ""
+msgstr "Steppa"
 
 msgid "Run the given number of instructions (F11)"
-msgstr ""
+msgstr "Kör det givna antalet intruktioner (F11)"
 
 msgid "Instructions per step"
-msgstr ""
+msgstr "Intruktioner per steppning"
 
 msgid "Physical"
-msgstr ""
+msgstr "Fysisk"
 
 msgid "Address, register or seg:off"
-msgstr ""
+msgstr "Adress, register eller seg:off"
 
 msgid "Go"
-msgstr ""
+msgstr "Kör"
 
 msgid "Live update"
-msgstr ""
+msgstr "Liveuppdatering"
 
 msgid "Dump..."
-msgstr ""
+msgstr "Dumpa..."
 
 msgid "Commands"
-msgstr ""
+msgstr "Kommandon"
 
 msgid "Show or hide debugger commands (Ctrl+D)"
-msgstr ""
+msgstr "Visa eller dölj felsökningskommandon (Ctrl+D)"
 
 msgid "Hex bytes"
-msgstr ""
+msgstr "Hex-byte"
 
 msgid "ASCII text"
-msgstr ""
+msgstr "ASCII-text"
 
 msgid "Value, byte"
-msgstr ""
+msgstr "Värde, byte"
 
 msgid "Value, word"
-msgstr ""
+msgstr "Värde, ord"
 
 msgid "Value, dword"
-msgstr ""
+msgstr "Värde, dubbelord"
 
 msgid "What to look for: raw hex bytes, text, or a hex value stored little-endian, as in the hex view."
 msgstr ""
+"Att leta efter: råa hex-byte, text, eller ett hex-värde lagrat i little-"
+"endian, som i hex-vyn."
 
 msgid "Memory search"
-msgstr ""
+msgstr "Minnessökning"
 
 msgid "Ctrl+F focuses this box; Enter or F3 finds the next match, Shift+F3 the previous."
 msgstr ""
+"Ctrl+F sätter denna ruta i fokus, Enter eller F3 hittar nästa matchning, "
+"Shift+F3 den föregående."
 
 msgid "Find previous"
-msgstr ""
+msgstr "Hitta föregående"
 
 msgid "Search upwards from the selection (Shift+F3)"
-msgstr ""
+msgstr "Leta uppåt från utvalet (Shift+F3)"
 
 msgid "Find next"
-msgstr ""
+msgstr "Hitta nästa"
 
 msgid "Search downwards from the selection (F3)"
-msgstr ""
+msgstr "Leta nedåt från utvalet (F3)"
 
 msgid "Range..."
-msgstr ""
+msgstr "Spann..."
 
 msgid "Search within an address range instead of all memory"
-msgstr ""
+msgstr "Leta inom ett adresspann istället för i allt minne"
 
 msgid "From"
-msgstr ""
+msgstr "Från"
 
 msgid "Where the search starts (hex, register or seg:off; empty means the first mapped byte; . means the selection start)."
 msgstr ""
+"Där sökningen börjar (hex, register eller seg:off, tom innebär den första "
+"karlagda byten, . innebär början av urvalet)."
 
 msgid "To (inclusive)"
-msgstr ""
+msgstr "Till (inklusive)"
 
 msgid "Where the search ends, that address included (hex, register or seg:off; empty means the last mapped byte; . means the selection end)."
 msgstr ""
+"Där sökningen slutar, inklusive den adressen (hex, register eller seg:off, "
+"tom innebär den senaste karlagda byten, . innebär slutet av urvalet)."
 
 msgid "Range from"
-msgstr ""
+msgstr "Spann från"
 
 msgid "to"
-msgstr ""
+msgstr "till"
 
 msgid "RAM"
-msgstr ""
+msgstr "RAM"
 
 msgid "Mapped, not RAM"
-msgstr ""
+msgstr "Kartlagt, inte RAM"
 
 msgid "Unmapped"
-msgstr ""
+msgstr "okartlagt"
 
 msgid "Inaccessible"
-msgstr ""
+msgstr "Otillgänglig"
 
 msgid "Inaccessible: only device handlers answer there (reading would have side effects), or the linear page is not present."
 msgstr ""
+"Otillgänglig: endast enhetshanterare svarar där (läsning skulle få "
+"biverkningar), eller så är linjär tabell inte närvarande."
 
 msgid "Linear address, register or seg:off"
-msgstr ""
+msgstr "Linjär adress, register eller seg:off"
 
 msgid "Follow CS:IP"
-msgstr ""
+msgstr "Följ CS:IP"
 
 msgid "Bytes"
-msgstr ""
+msgstr "Byte"
 
 msgid "Instruction"
-msgstr ""
+msgstr "Instruktion"
 
 msgid "Note"
 msgstr ""

@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-02 12:32+0000\n"
-"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
+"PO-Revision-Date: 2026-11-11 10:11+0000\n"
+"Last-Translator: JanuSzaj <testowe07@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -152,13 +152,13 @@ msgid "4:&3 Integer scale"
 msgstr "Skalowanie całkowite 4:&3"
 
 msgid "&Center"
-msgstr ""
+msgstr "%Wyśrodkowany"
 
 msgid "4:3 Cen&ter"
-msgstr ""
+msgstr "4:3 Wyś%rodkowany"
 
 msgid "4:3 Integer scale (&vertical)"
-msgstr ""
+msgstr "4:3 Skalowanie całkowite (%pionowo)"
 
 msgid "Inverted VGA monitor"
 msgstr "Odwrócony monitor VGA"
@@ -419,34 +419,34 @@ msgid "Memory:"
 msgstr "Pamięć:"
 
 msgid "Synchronize with host clock"
-msgstr ""
+msgstr "Synchronizuj z zegarem hosta"
 
 msgid "Time zone:"
-msgstr ""
+msgstr "Strefa czasowa:"
 
 msgid "Local"
-msgstr ""
+msgstr "Lokalny"
 
 msgid "UTC"
-msgstr ""
+msgstr "UTC"
 
 msgid "Date:"
-msgstr ""
+msgstr "Data:"
 
 msgid "Match the host"
-msgstr ""
+msgstr "Dopasuj do hosta"
 
 msgid "Offset the year by:"
-msgstr ""
+msgstr "Przesuń rok o:"
 
 msgid "(currently %1)"
-msgstr ""
+msgstr "(obecny %1)"
 
 msgid "Always use the year:"
-msgstr ""
+msgstr "Zawsze używaj roku:"
 
 msgid "Do not synchronize the date"
-msgstr ""
+msgstr "Nie synchronizuj daty"
 
 msgid "Use the 486 interpreter for 286 and 386 processors"
 msgstr "Użyj interpretera 486 dla procesorów 286 i 386"
@@ -461,7 +461,7 @@ msgid "Block linking on the dynamic recompiler"
 msgstr "Łączenie bloków w dynamicznym rekompilatorze"
 
 msgid "Debug registers on 486 and later processors"
-msgstr ""
+msgstr "Rejestry debugowania w 486 i nowszych procesorach"
 
 msgid "CPU frame size"
 msgstr "Rozmiar ramki CPU"
@@ -494,7 +494,7 @@ msgid "IBM PS/55 Display Adapter Graphics"
 msgstr "Karta graficzna IBM PS/55"
 
 msgid "PowerVR PCX1/PCX2 Graphics"
-msgstr ""
+msgstr "Grafika PowerVR PCX/PCX2"
 
 msgid "SCSI:"
 msgstr "SCSI:"
@@ -659,10 +659,12 @@ msgid "Cassette"
 msgstr "Kaseta"
 
 msgid "Turbo IDE"
-msgstr ""
+msgstr "Turbo IDE"
 
 msgid "Removes the IDE transfer mode speed limit. Hard disk and CD-ROM drive timings still apply."
 msgstr ""
+"Zdejmuje ograniczenie prędkości trybu transferowego IDE. Timingi dysków "
+"twardych i napędów CD-ROM wciąż obowiązują."
 
 msgid "Hard disks:"
 msgstr "Dyski twarde:"
@@ -1325,26 +1327,28 @@ msgid "Discord"
 msgstr ""
 
 msgid "Show running machines in my Discord status"
-msgstr ""
+msgstr "Pokazuj uruchomione maszyny w moim statusie na Discord"
 
 msgid "Details shown:"
-msgstr ""
+msgstr "Pokazywane szczegóły:"
 
 msgid "Machine name and hardware"
-msgstr ""
+msgstr "Nazwa maszyny i sprzęt"
 
 msgid "Hardware only"
-msgstr ""
+msgstr "Tylko sprzęt"
 
 msgid "No details"
-msgstr ""
+msgstr "Bez szczegółów"
 
 msgid "Using %1"
-msgstr ""
+msgstr "Używa %1"
 
 msgid "%n machine(s) active"
 msgid_plural "%n machines active"
-msgstr[0] ""
+msgstr[0] "%n aktywna maszyna"
+msgstr[1] "%n aktywne maszyny"
+msgstr[2] "%n aktywnych maszyn"
 
 msgid " (+%n more)"
 msgid_plural " (+%n more)"
@@ -3164,7 +3168,7 @@ msgid "Key bindings"
 msgstr "Przypisania klawiszy"
 
 msgid "VM Manager"
-msgstr ""
+msgstr "Menedżer VM"
 
 msgid "Action"
 msgstr "Akcja"
