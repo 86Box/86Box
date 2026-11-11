@@ -205,11 +205,11 @@ MediaMenu::refresh(QMenu *parentMenu)
         QIcon cdrw_img_icon   = QIcon(":/settings/qt/icons/cdrw_image.ico");
         cdromMutePos = menu->children().count();
         menu->addAction(QIcon(":/settings/qt/icons/cdrom_mute.ico"), tr("&Mute"), [this, i]() { cdromMute(i); })->setCheckable(true);
-        if (cdrom_is_writable(i))
+        if (cdrom_is_writable(t))
             menu->addSeparator();
-        if (cdrom_is_cdr(i))
+        if (cdrom_is_cdr(t))
             menu->addAction(getIconWithIndicator(cdr_img_icon, pixmap_size, QIcon::Normal, New), tr("&New CD-R image…"), [this, i]() { cdromInsertBlank(i, CD_BLANK_CDR); })->setCheckable(false);
-        if (cdrom_is_cdrw(i))
+        if (cdrom_is_cdrw(t))
             menu->addAction(getIconWithIndicator(cdrw_img_icon, pixmap_size, QIcon::Normal, New), tr("New CD-R&W image…"), [this, i]() { cdromInsertBlank(i, CD_BLANK_CDRW); })->setCheckable(false);
         menu->addSeparator();
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Image…"), [this, i]() { cdromMount(i, 0, nullptr); })->setCheckable(false);
