@@ -173,20 +173,50 @@ MediaMenu::refresh(QMenu *parentMenu)
     MachineStatus::iterateCDROM([this, parentMenu](int i) {
         auto *menu        = parentMenu->addMenu("");
         int   t           = cdrom[i].type;
-        QIcon img_icon    = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom_image.ico")  : QIcon(":/settings/qt/icons/cdrom_image.ico");
-        QIcon folder_icon = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom_folder.ico") : QIcon(":/settings/qt/icons/cdrom_folder.ico");
-        QIcon host_icon   = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom_host.ico")   : QIcon(":/settings/qt/icons/cdrom_host.ico");
+        QIcon img_icon;
+        QIcon folder_icon;
+        QIcon host_icon;
+        if (cdrom_is_bd(t)) {
+            img_icon          = QIcon(":/settings/qt/icons/bdrom_image.ico");
+            folder_icon       = QIcon(":/settings/qt/icons/bdrom_folder.ico");
+            host_icon         = QIcon(":/settings/qt/icons/bdrom_host.ico");
+        } else if (cdrom_is_hd_dvd(t)) {
+            img_icon          = QIcon(":/settings/qt/icons/hd_dvdrom_image.ico");
+            folder_icon       = QIcon(":/settings/qt/icons/hd_dvdrom_folder.ico");
+            host_icon         = QIcon(":/settings/qt/icons/hd_dvdrom_host.ico");
+        } else if (cdrom_is_dvd(t)) {
+            img_icon          = QIcon(":/settings/qt/icons/dvdrom_image.ico");
+            folder_icon       = QIcon(":/settings/qt/icons/dvdrom_folder.ico");
+            host_icon         = QIcon(":/settings/qt/icons/dvdrom_host.ico");
+        } else if (cdrom_is_cdrw(t)) {
+            img_icon          = QIcon(":/settings/qt/icons/cdrw_image.ico");
+            folder_icon       = QIcon(":/settings/qt/icons/cdrw_folder.ico");
+            host_icon         = QIcon(":/settings/qt/icons/cdrw_host.ico");
+        } else if (cdrom_is_cdr(t)) {
+            img_icon          = QIcon(":/settings/qt/icons/cdr_image.ico");
+            folder_icon       = QIcon(":/settings/qt/icons/cdr_folder.ico");
+            host_icon         = QIcon(":/settings/qt/icons/cdr_host.ico");
+        } else {
+            img_icon          = QIcon(":/settings/qt/icons/cdrom_image.ico");
+            folder_icon       = QIcon(":/settings/qt/icons/cdrom_folder.ico");
+            host_icon         = QIcon(":/settings/qt/icons/cdrom_host.ico");
+        }
+        QIcon cdr_img_icon    = QIcon(":/settings/qt/icons/cdrw_image.ico");
+        QIcon cdrw_img_icon   = QIcon(":/settings/qt/icons/cdrw_image.ico");
         cdromMutePos = menu->children().count();
         menu->addAction(QIcon(":/settings/qt/icons/cdrom_mute.ico"), tr("&Mute"), [this, i]() { cdromMute(i); })->setCheckable(true);
         menu->addSeparator();
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Image…"), [this, i]() { cdromMount(i, 0, nullptr); })->setCheckable(false);
         menu->addAction(getIconWithIndicator(folder_icon, pixmap_size, QIcon::Normal, Browse), tr("&Folder…"), [this, i]() { cdromMount(i, 1, nullptr); })->setCheckable(false);
-        // Can make it only appear if the drive is a Yamaha?
-        menu->addAction(tr("Add &blank CD-R"), [this, i]() { cdromInsertBlank(i, CD_BLANK_CDR); })->setCheckable(false);
-        menu->addAction(tr("Add blank CD-R&W"), [this, i]() { cdromInsertBlank(i, CD_BLANK_CDRW); })->setCheckable(false);
+        if (cdrom_is_writable(i))
+            menu->addSeparator();
+        if (cdrom_is_cdr(i))
+            menu->addAction(getIconWithIndicator(cdr_img_icon, pixmap_size, QIcon::Normal, New), tr("&New CD-R image…"), [this, i]() { cdromInsertBlank(i, CD_BLANK_CDR); })->setCheckable(false);
+        if (cdrom_is_cdrw(i))
+            menu->addAction(getIconWithIndicator(cdrw_img_icon, pixmap_size, QIcon::Normal, New), tr("New CD-R&W image…"), [this, i]() { cdromInsertBlank(i, CD_BLANK_CDRW); })->setCheckable(false);
         menu->addSeparator();
-        menu->addAction(getIconWithIndicator(QIcon(":/settings/qt/icons/cdrom_image.ico"), pixmap_size, QIcon::Normal, Browse), tr("&Image…"), [this, i]() { cdromMount(i, 0, nullptr); })->setCheckable(false);
-        menu->addAction(getIconWithIndicator(QIcon(":/settings/qt/icons/cdrom_folder.ico"), pixmap_size, QIcon::Normal, Browse), tr("&Folder…"), [this, i]() { cdromMount(i, 1, nullptr); })->setCheckable(false);
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Image…"), [this, i]() { cdromMount(i, 0, nullptr); })->setCheckable(false);
+        menu->addAction(getIconWithIndicator(folder_icon, pixmap_size, QIcon::Normal, Browse), tr("&Folder…"), [this, i]() { cdromMount(i, 1, nullptr); })->setCheckable(false);
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             cdromImageHistoryPos[slot] = menu->children().count();
@@ -914,9 +944,34 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
             if (!cdromMenus.contains(index))
                 return;
             int   t           = cdrom[index].type;
-            QIcon img_icon    = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom_image.ico")  : QIcon(":/settings/qt/icons/cdrom_image.ico");
-            QIcon folder_icon = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom_folder.ico") : QIcon(":/settings/qt/icons/cdrom_folder.ico");
-            QIcon host_icon   = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom_host.ico")   : QIcon(":/settings/qt/icons/cdrom_host.ico");
+            QIcon img_icon;
+            QIcon folder_icon;
+            QIcon host_icon;
+            if (cdrom_is_bd(t)) {
+                img_icon          = QIcon(":/settings/qt/icons/bdrom_image.ico");
+                folder_icon       = QIcon(":/settings/qt/icons/bdrom_folder.ico");
+                host_icon         = QIcon(":/settings/qt/icons/bdrom_host.ico");
+            } else if (cdrom_is_hd_dvd(t)) {
+                img_icon          = QIcon(":/settings/qt/icons/hd_dvdrom_image.ico");
+                folder_icon       = QIcon(":/settings/qt/icons/hd_dvdrom_folder.ico");
+                host_icon         = QIcon(":/settings/qt/icons/hd_dvdrom_host.ico");
+            } else if (cdrom_is_dvd(t)) {
+                img_icon          = QIcon(":/settings/qt/icons/dvdrom_image.ico");
+                folder_icon       = QIcon(":/settings/qt/icons/dvdrom_folder.ico");
+                host_icon         = QIcon(":/settings/qt/icons/dvdrom_host.ico");
+            } else if (cdrom_is_cdrw(t)) {
+                img_icon          = QIcon(":/settings/qt/icons/cdrw_image.ico");
+                folder_icon       = QIcon(":/settings/qt/icons/cdrw_folder.ico");
+                host_icon         = QIcon(":/settings/qt/icons/cdrw_host.ico");
+            } else if (cdrom_is_cdr(t)) {
+                img_icon          = QIcon(":/settings/qt/icons/cdr_image.ico");
+                folder_icon       = QIcon(":/settings/qt/icons/cdr_folder.ico");
+                host_icon         = QIcon(":/settings/qt/icons/cdr_host.ico");
+            } else {
+                img_icon          = QIcon(":/settings/qt/icons/cdrom_image.ico");
+                folder_icon       = QIcon(":/settings/qt/icons/cdrom_folder.ico");
+                host_icon         = QIcon(":/settings/qt/icons/cdrom_host.ico");
+            }
             menu                  = cdromMenus[index];
             children              = menu->children();
             imageHistoryUpdatePos = dynamic_cast<QAction *>(children[cdromImageHistoryPos[slot]]);
@@ -1028,13 +1083,52 @@ MediaMenu::cdromUpdateMenu(int i)
     auto  childs = menu->children();
 
     int   t           = cdrom[i].type;
-    QIcon img_icon    = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom_image.ico")  : QIcon(":/settings/qt/icons/cdrom_image.ico");
-    QIcon folder_icon = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom_folder.ico") : QIcon(":/settings/qt/icons/cdrom_folder.ico");
-    QIcon host_icon   = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom_host.ico")   : QIcon(":/settings/qt/icons/cdrom_host.ico");
-    QIcon drv_icon    = cdrom_is_dvd(t) ? QIcon(":/settings/qt/icons/dvdrom.ico")        : QIcon(":/settings/qt/icons/cdrom.ico");
+    QIcon img_icon;
+    QIcon folder_icon;
+    QIcon host_icon;
+    QIcon unmute_icon;
+    QIcon drv_icon;
+    if (cdrom_is_bd(t)) {
+        img_icon          = QIcon(":/settings/qt/icons/bdrom_image.ico");
+        folder_icon       = QIcon(":/settings/qt/icons/bdrom_folder.ico");
+        host_icon         = QIcon(":/settings/qt/icons/bdrom_host.ico");
+        unmute_icon       = QIcon(":/settings/qt/icons/bdrom_unmute.ico");
+        drv_icon          = QIcon(":/settings/qt/icons/bdrom.ico");
+    } else if (cdrom_is_hd_dvd(t)) {
+        img_icon          = QIcon(":/settings/qt/icons/hd_dvdrom_image.ico");
+        folder_icon       = QIcon(":/settings/qt/icons/hd_dvdrom_folder.ico");
+        host_icon         = QIcon(":/settings/qt/icons/hd_dvdrom_host.ico");
+        unmute_icon       = QIcon(":/settings/qt/icons/hd_dvdrom_unmute.ico");
+        drv_icon          = QIcon(":/settings/qt/icons/hd_dvdrom.ico");
+    } else if (cdrom_is_dvd(t)) {
+        img_icon          = QIcon(":/settings/qt/icons/dvdrom_image.ico");
+        folder_icon       = QIcon(":/settings/qt/icons/dvdrom_folder.ico");
+        host_icon         = QIcon(":/settings/qt/icons/dvdrom_host.ico");
+        unmute_icon       = QIcon(":/settings/qt/icons/dvdrom_unmute.ico");
+        drv_icon          = QIcon(":/settings/qt/icons/dvdrom.ico");
+    } else if (cdrom_is_cdrw(t)) {
+        img_icon          = QIcon(":/settings/qt/icons/cdrw_image.ico");
+        folder_icon       = QIcon(":/settings/qt/icons/cdrw_folder.ico");
+        host_icon         = QIcon(":/settings/qt/icons/cdrw_host.ico");
+        unmute_icon       = QIcon(":/settings/qt/icons/cdrw_unmute.ico");
+        drv_icon          = QIcon(":/settings/qt/icons/cdrw.ico");
+    } else if (cdrom_is_cdr(t)) {
+        img_icon          = QIcon(":/settings/qt/icons/cdr_image.ico");
+        folder_icon       = QIcon(":/settings/qt/icons/cdr_folder.ico");
+        host_icon         = QIcon(":/settings/qt/icons/cdr_host.ico");
+        unmute_icon       = QIcon(":/settings/qt/icons/cdr.ico");
+        drv_icon          = QIcon(":/settings/qt/icons/cdr.ico");
+    } else {
+        img_icon          = QIcon(":/settings/qt/icons/cdrom_image.ico");
+        folder_icon       = QIcon(":/settings/qt/icons/cdrom_folder.ico");
+        host_icon         = QIcon(":/settings/qt/icons/cdrom_host.ico");
+        unmute_icon       = QIcon(":/settings/qt/icons/cdrom_unmute.ico");
+        drv_icon          = QIcon(":/settings/qt/icons/cdrom.ico");
+    }
+    QIcon mute_icon   = QIcon(":/settings/qt/icons/cdrom_mute.ico");
 
     auto *muteMenu = dynamic_cast<QAction *>(childs[cdromMutePos]);
-    muteMenu->setIcon(QIcon((cdrom[i].sound_on == 0) ? ":/settings/qt/icons/cdrom_unmute.ico" : ":/settings/qt/icons/cdrom_mute.ico"));
+    muteMenu->setIcon((cdrom[i].sound_on == 0) ? unmute_icon : mute_icon);
     muteMenu->setText((cdrom[i].sound_on == 0) ? tr("&Unmute") : tr("&Mute"));
 
     auto *ejectMenu = dynamic_cast<QAction *>(childs[cdromEjectPos]);

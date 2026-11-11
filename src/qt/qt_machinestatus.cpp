@@ -114,7 +114,11 @@ struct Pixmaps {
     PixmapSetEmptyActive floppy_525;
     PixmapSetEmptyActive floppy_35;
     PixmapSetEmptyActive cdrom;
+    PixmapSetEmptyActive cdr;
+    PixmapSetEmptyActive cdrw;
     PixmapSetEmptyActive dvdrom;
+    PixmapSetEmptyActive hd_dvdrom;
+    PixmapSetEmptyActive bdrom;
     PixmapSetEmptyActive rdisk_disabled;
     PixmapSetEmptyActive rdisk;
     PixmapSetEmptyActive zip;
@@ -368,7 +372,11 @@ struct MachineStatus::States {
         pixmaps.floppy_525.load(QIcon(":/settings/qt/icons/floppy_525.ico"));
         pixmaps.floppy_35.load(QIcon(":/settings/qt/icons/floppy_35.ico"));
         pixmaps.cdrom.load(QIcon(":/settings/qt/icons/cdrom.ico"));
+        pixmaps.cdr.load(QIcon(":/settings/qt/icons/cdr.ico"));
+        pixmaps.cdrw.load(QIcon(":/settings/qt/icons/cdrw.ico"));
         pixmaps.dvdrom.load(QIcon(":/settings/qt/icons/dvdrom.ico"));
+        pixmaps.hd_dvdrom.load(QIcon(":/settings/qt/icons/hd_dvdrom.ico"));
+        pixmaps.bdrom.load(QIcon(":/settings/qt/icons/bdrom.ico"));
         pixmaps.rdisk_disabled.normal                  = QIcon(":/settings/qt/icons/rdisk_disabled.ico").pixmap(pixmap_size);
         pixmaps.rdisk_disabled.active                  = pixmaps.rdisk_disabled.normal;
         pixmaps.rdisk_disabled.read_write_active       = pixmaps.rdisk_disabled.normal;
@@ -1005,8 +1013,16 @@ MachineStatus::refresh(QStatusBar *sbar)
 
     iterateCDROM([this, sbar](int i) {
         int t = cdrom[i].type;
-        if (cdrom_is_dvd(t))
+        if (cdrom_is_bd(t))
+            d->cdrom[i].pixmaps = &d->pixmaps.bdrom;
+        else if (cdrom_is_hd_dvd(t))
+            d->cdrom[i].pixmaps = &d->pixmaps.hd_dvdrom;
+        else if (cdrom_is_dvd(t))
             d->cdrom[i].pixmaps = &d->pixmaps.dvdrom;
+        else if (cdrom_is_cdrw(t))
+            d->cdrom[i].pixmaps = &d->pixmaps.cdrw;
+        else if (cdrom_is_cdr(t))
+            d->cdrom[i].pixmaps = &d->pixmaps.cdr;
         else
             d->cdrom[i].pixmaps = &d->pixmaps.cdrom;
         d->cdrom[i].label = std::make_unique<ClickableLabel>();

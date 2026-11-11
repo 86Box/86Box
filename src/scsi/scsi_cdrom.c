@@ -148,14 +148,14 @@ static uint64_t scsi_cdrom_ms_page_flags_sony_scsi = (GPMODEP_R_W_ERROR_PAGE | G
                                                       (1ULL << 0x0fULL) | GPMODEP_CAPABILITIES_PAGE |
                                                       GPMODEP_ALL_PAGES);
 
-static uint64_t scsi_cdrom_ms_page_flags_yamaha = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_DISCONNECT_PAGE |
-                                                      GPMODEP_FLEXIBLE_DISK_PAGE | GPMODEP_CACHING_PAGE |
-                                                      GPMODEP_CDROM_PAGE_SONY | GPMODEP_CDROM_AUDIO_PAGE_SONY |
-                                                      GPMODEP_CAPABILITIES_PAGE | GPMODEP_ALL_PAGES);
+static uint64_t scsi_cdrom_ms_page_flags_cdrw      = (GPMODEP_R_W_ERROR_PAGE | GPMODEP_DISCONNECT_PAGE |
+                                                       GPMODEP_FLEXIBLE_DISK_PAGE | GPMODEP_CACHING_PAGE |
+                                                       GPMODEP_CDROM_PAGE_SONY | GPMODEP_CDROM_AUDIO_PAGE_SONY |
+                                                       GPMODEP_CAPABILITIES_PAGE | GPMODEP_ALL_PAGES);
 
 
-static uint64_t scsi_cdrom_drive_status_page_flags    = ((1ULL << 0x01ULL) | (1ULL << 0x02ULL) |
-                                                         (1ULL << 0x0fULL) | GPMODEP_ALL_PAGES);
+static uint64_t scsi_cdrom_drive_status_page_flags = ((1ULL << 0x01ULL) | (1ULL << 0x02ULL) |
+                                                      (1ULL << 0x0fULL) | GPMODEP_ALL_PAGES);
 
 static const mode_sense_pages_t scsi_cdrom_drive_status_pages = {
     { [0x01] = { 0x01, 0x00, 0x02, 0x0f, 0xbf },    /* Drive Status Data Format */
@@ -265,7 +265,7 @@ static const mode_sense_pages_t scsi_cdrom_ms_pages_changeable_sony_scsi = {
                  0x00,                                0x00, 0x00, 0x00                         } }
 };
 
-static const mode_sense_pages_t scsi_cdrom_ms_pages_default_yamaha = {
+static const mode_sense_pages_t scsi_cdrom_ms_pages_default_cdrw = {
     { [0x01] = { GPMODE_R_W_ERROR_PAGE,               0x06, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00 },
       [0x02] = { GPMODE_DISCONNECT_PAGE,              0x0e, 0x10, 0xf0, 0x00, 0x00, 0x00, 0x00,
                                                       0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -290,7 +290,7 @@ static const mode_sense_pages_t scsi_cdrom_ms_pages_default_yamaha = {
 };
 
 // Not true values, need to check real hardware
-static const mode_sense_pages_t scsi_cdrom_ms_pages_changeable_yamaha = {
+static const mode_sense_pages_t scsi_cdrom_ms_pages_changeable_cdrw = {
     {
       [0x01] = { GPMODE_R_W_ERROR_PAGE,               0x06, 0x85, 0xff, 0x00, 0x00, 0x00, 0x00 },
       [0x02] = { GPMODE_DISCONNECT_PAGE,              0x0e, 0xff, 0x00, 0x00, 0x00, 0x00, 0x00,
@@ -3749,7 +3749,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             break;
 
         case GPCMD_BLANK:
-            if (!dev->drv->is_yamaha) {
+            if (!cdrom_is_writable(dev->drv->type)) {
                 scsi_cdrom_illegal_opcode(dev, dev->current_cdb[0]);
                 break;
             }
@@ -3768,7 +3768,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             break;
 
         case GPCMD_FORMAT_UNIT:
-            if (!dev->drv->is_yamaha) {
+            if (!cdrom_is_writable(dev->drv->type)) {
                 scsi_cdrom_illegal_opcode(dev, dev->current_cdb[0]);
                 break;
             }
@@ -3801,7 +3801,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             break;
 
         case GPCMD_READ_FORMAT_CAPACITIES:
-            if (!dev->drv->is_yamaha) {
+            if (!cdrom_is_writable(dev->drv->type)) {
                 scsi_cdrom_illegal_opcode(dev, dev->current_cdb[0]);
                 break;
             }
@@ -3820,7 +3820,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             break;
 
         case GPCMD_RESERVE_TRACK:
-            if (!dev->drv->is_yamaha) {
+            if (!cdrom_is_writable(dev->drv->type)) {
                 scsi_cdrom_illegal_opcode(dev, dev->current_cdb[0]);
                 break;
             }
@@ -3837,7 +3837,7 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             break;
 
         case GPCMD_SEND_OPC:
-            if (!dev->drv->is_yamaha) {
+            if (!cdrom_is_writable(dev->drv->type)) {
                 scsi_cdrom_illegal_opcode(dev, dev->current_cdb[0]);
                 break;
             }
@@ -3904,12 +3904,14 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
             feature = (cdb[2] << 8) | cdb[3];
             max_len = (cdb[7] << 8) | cdb[8];
 
+            int is_invalid_writable = (!cdrom_is_writable(dev->drv->type)) && ((feature == 0x21) || (feature == 0x23) || (feature == 0x26) ||
+                                                                               (feature == 0x2d) || (feature == 0x2e));
+            int is_invalid_cdrw     = (!cdrom_is_cdrw(dev->drv->type)) && (feature == 0x27);
+
             /* Only feature 0 is supported */
             if ((feature > 3) && (feature != 0x010) && (feature != 0x1d) && (feature != 0x01e) &&
                 (feature != 0x01f) && (feature != 0x40) && (feature != 0x50) &&
-                (feature != 0x103) &&
-                !(dev->drv->is_yamaha && ((feature == 0x21) || (feature == 0x23) || (feature == 0x26) ||
-                                          (feature == 0x27) || (feature == 0x2d) || (feature == 0x2e))))
+                (feature != 0x103) && is_invalid_writable && is_invalid_cdrw)
                 scsi_cdrom_invalid_field(dev, feature);
             else {
                 scsi_cdrom_buf_alloc(dev, 65536);
@@ -3926,10 +3928,11 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
 
                 local_profiles[max_profiles++] = MMC_PROFILE_CD_ROM;
 
-                if (dev->drv->is_yamaha) {
+                if (cdrom_is_writable(dev->drv->type))
                     local_profiles[max_profiles++] = MMC_PROFILE_CD_R;
+
+                if (cdrom_is_cdrw(dev->drv->type))
                     local_profiles[max_profiles++] = MMC_PROFILE_CD_RW;
-                }
 
                 if (cdrom_is_dvd(dev->drv->type))
                     local_profiles[max_profiles++] = MMC_PROFILE_DVD_ROM;
@@ -3956,9 +3959,9 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                         current_profile = MMC_PROFILE_BD_ROM;
                     else if (dev->drv->cd_status == CD_STATUS_DVD)
                         current_profile = MMC_PROFILE_DVD_ROM;
-                    else if (dev->drv->is_yamaha && (dev->drv->blank_media == CD_BLANK_CDRW))
+                    else if (cdrom_is_cdrw(dev->drv->type) && (dev->drv->blank_media == CD_BLANK_CDRW))
                         current_profile = MMC_PROFILE_CD_RW;
-                    else if (dev->drv->is_yamaha && dev->drv->blank_media)
+                    else if (cdrom_is_writable(dev->drv->type) && dev->drv->blank_media)
                         current_profile = MMC_PROFILE_CD_R;
                     else
                         current_profile = MMC_PROFILE_CD_ROM;
@@ -4071,9 +4074,11 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                     alloc_length += 4;
                     b += 4;
                 }
-                if (dev->drv->is_yamaha) {
+                if (cdrom_is_writable(dev->drv->type)) {
                     const int all      = ((cdb[1] & 3) < 2);
-                    const int rw       = (dev->drv->blank_media == CD_BLANK_CDRW);
+                    int rw             = 0;
+                    if (cdrom_is_cdrw(dev->drv->type))
+                        rw                 = (dev->drv->blank_media == CD_BLANK_CDRW);
                     const int writable = (dev->drv->blank_media != CD_BLANK_NOT);
                     const int cur      = writable ? 0x01 : 0x00;
 
@@ -4120,7 +4125,10 @@ scsi_cdrom_command(scsi_common_t *sc, const uint8_t *cdb)
                         b[1]  = 0x2d;
                         b[2]  = (2 << 2) | cur;
                         b[3]  = 4;
-                        b[4]  = 0x1f;                  /* R-W, test write, and CD-RW. */
+                        if (cdrom_is_cdrw(dev->drv->type))
+                            b[4]  = 0x1f;                  /* R-W, test write, and CD-RW. */
+                        else
+                            b[4]  = 0x1d;                  /* R-W and test write. */
                         b[6]  = 0x3f;                  /* Data block types 0-3 and 8-13. */
                         b[7]  = 0x0f;
 
@@ -5349,10 +5357,10 @@ scsi_cdrom_drive_reset(const int c)
             dev->ven_cmd_is_data[0xc6] = 1;
             dev->ven_cmd_is_data[0xc7] = 1;
             dev->use_cdb_9             = 1;
-        } else if (dev->drv->is_yamaha) {
-            dev->ms_page_flags         = scsi_cdrom_ms_page_flags_yamaha;
-            dev->ms_pages_default      = scsi_cdrom_ms_pages_default_yamaha;
-            dev->ms_pages_changeable   = scsi_cdrom_ms_pages_changeable_yamaha;
+        } else if (cdrom_is_writable(dev->drv->type)) {
+            dev->ms_page_flags         = scsi_cdrom_ms_page_flags_cdrw;
+            dev->ms_pages_default      = scsi_cdrom_ms_pages_default_cdrw;
+            dev->ms_pages_changeable   = scsi_cdrom_ms_pages_changeable_cdrw;
         }
 
         if (dev->tf == NULL)
@@ -5405,10 +5413,10 @@ scsi_cdrom_drive_reset(const int c)
             id->write                  = scsi_cdrom_write;
             id->interrupt_drq          = dev->drv->is_early;
 
-            if (dev->drv->is_yamaha) {
-                dev->ms_page_flags         = scsi_cdrom_ms_page_flags_yamaha;
-                dev->ms_pages_default      = scsi_cdrom_ms_pages_default_yamaha;
-                dev->ms_pages_changeable   = scsi_cdrom_ms_pages_changeable_yamaha;
+            if (cdrom_is_writable(dev->drv->type)) {
+                dev->ms_page_flags         = scsi_cdrom_ms_page_flags_cdrw;
+                dev->ms_pages_default      = scsi_cdrom_ms_pages_default_cdrw;
+                dev->ms_pages_changeable   = scsi_cdrom_ms_pages_changeable_cdrw;
             }
 
             valid = 1;

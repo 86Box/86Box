@@ -108,7 +108,18 @@ SettingsFloppyCDROM::setCDROMBus(QAbstractItemModel *model, const QModelIndex &i
         case CDROM_BUS_HITACHI:
         case CDROM_BUS_MKE:
         case CDROM_BUS_LPT:
-            icon = cdrom_is_dvd(type) ? dvdrom_icon : cdrom_icon;
+            if (cdrom_is_bd(type))
+                icon = bdrom_icon;
+            else if (cdrom_is_hd_dvd(type))
+                icon = hd_dvdrom_icon;
+            else if (cdrom_is_dvd(type))
+                icon = dvdrom_icon;
+            else if (cdrom_is_cdrw(type))
+                icon = cdrw_icon;
+            else if (cdrom_is_cdr(type))
+                icon = cdr_icon;
+            else
+                icon = cdrom_icon;
             break;
     }
 
@@ -138,15 +149,19 @@ CDROMName(int type)
     char temp[512];
     cdrom_get_name(type, temp);
     QString name = QObject::tr((const char *) temp);
-    int cd  = cdrom_get_speed(type);
-    int dvd = cdrom_get_dvd_speed(type);
-    int hd  = cdrom_get_hd_speed(type);
+    int cd   = cdrom_get_speed(type);
+    int cdr  = cdrom_is_cdr(type);
+    int cdrw = cdrom_is_cdrw(type);
+    int dvd  = cdrom_get_dvd_speed(type);
+    int hd   = cdrom_get_hd_speed(type);
     QStringList parts;
-    if (cd > 0 && cd != -1) parts << QString("%1x CD").arg(cd);
-    if (dvd > 0 && dvd != -1) parts << QString("%1x DVD").arg(dvd);
+    if (cd > 0 && cd != -1) parts << QString("%1x CD-ROM").arg(cd);
+    if (cdr) parts << QString("CD-R");
+    if (cdrw) parts << QString("CD-RW");
+    if (dvd > 0 && dvd != -1) parts << QString("%1x DVD-ROM").arg(dvd);
     if (hd > 0 && hd != -1) {
         if (cdrom_drive_types[type].hd_type == 1)
-            parts << QString("%1x HD DVD").arg(hd);
+            parts << QString("%1x HD DVD-ROM").arg(hd);
         else
             parts << QString("%1x Blu-ray").arg(hd);
     }
@@ -249,7 +264,11 @@ SettingsFloppyCDROM::SettingsFloppyCDROM(QWidget *parent)
 
     cdrom_disabled_icon = QIcon(":/settings/qt/icons/cdrom_disabled.ico");
     cdrom_icon          = QIcon(":/settings/qt/icons/cdrom.ico");
+    cdr_icon            = QIcon(":/settings/qt/icons/cdr.ico");
+    cdrw_icon           = QIcon(":/settings/qt/icons/cdrw.ico");
     dvdrom_icon         = QIcon(":/settings/qt/icons/dvdrom.ico");
+    hd_dvdrom_icon      = QIcon(":/settings/qt/icons/hd_dvdrom.ico");
+    bdrom_icon          = QIcon(":/settings/qt/icons/bdrom.ico");
 
     Harddrives::populateCDROMBuses(ui->comboBoxBus->model());
 

@@ -63,7 +63,11 @@ private:
     QIcon floppy_35_icon;
     QIcon cdrom_disabled_icon;
     QIcon cdrom_icon;
+    QIcon cdr_icon;
+    QIcon cdrw_icon;
     QIcon dvdrom_icon;
+    QIcon hd_dvdrom_icon;
+    QIcon bdrom_icon;
 
     SettingsCompleter *scFloppyType;
     SettingsCompleter *scCDROMType;

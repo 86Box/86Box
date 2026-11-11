@@ -1387,6 +1387,41 @@ cdrom_is_dvd(const int type)
 }
 
 int
+cdrom_is_hd_dvd(const int type)
+{
+    const int hd_capable = (cdrom_drive_types[type].hd_speed != 0);
+
+    return (hd_capable && (cdrom_drive_types[type].hd_type == 1));
+}
+
+int
+cdrom_is_bd(const int type)
+{
+    const int hd_capable = (cdrom_drive_types[type].hd_speed != 0);
+    const int is_ultra   = (strcmp(cdrom_get_internal_name(type), "86ultra") == 0);
+
+    return (hd_capable && (is_ultra || (cdrom_drive_types[type].hd_type == 0)));
+}
+
+int
+cdrom_is_cdr(const int type)
+{
+    return !!(cdrom_drive_types[type].supported_writable_media & CDROM_WM_CDR);
+}
+
+int
+cdrom_is_cdrw(const int type)
+{
+    return !!(cdrom_drive_types[type].supported_writable_media & CDROM_WM_CDRW);
+}
+
+int
+cdrom_is_writable(const int type)
+{
+    return !!(cdrom_drive_types[type].supported_writable_media);
+}
+
+int
 cdrom_is_generic(const int type)
 {
     return (cdrom_drive_types[type].speed == -1);
@@ -3969,7 +4004,6 @@ cdrom_hard_reset(void)
             dev->is_chinon  = !strcmp(vendor, "CHINON");
             dev->is_pioneer = !strcmp(vendor, "PIONEER");
             dev->is_plextor = !strcmp(vendor, "PLEXTOR");
-            dev->is_yamaha  = !strcmp(vendor, "YAMAHA");
             dev->is_sony    = (dev->bus_type == CDROM_BUS_SCSI) &&
                               (!strcmp(vendor, "DEC") ||
                                !strcmp(vendor, "ShinaKen") ||

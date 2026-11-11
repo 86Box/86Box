@@ -1,9 +1,19 @@
 <RCC>
     <qresource prefix="/settings">
+        <file>qt/icons/bdrom.ico</file>
+        <file>qt/icons/bdrom_unmute.ico</file>
+        <file>qt/icons/bdrom_image.ico</file>
+        <file>qt/icons/bdrom_folder.ico</file>
+        <file>qt/icons/bdrom_host.ico</file>
         <file>qt/icons/cartridge.ico</file>
         <file>qt/icons/cartridge_image.ico</file>
         <file>qt/icons/cassette_image.ico</file>
         <file>qt/icons/cassette.ico</file>
+        <file>qt/icons/cdr.ico</file>
+        <file>qt/icons/cdr_unmute.ico</file>
+        <file>qt/icons/cdr_image.ico</file>
+        <file>qt/icons/cdr_folder.ico</file>
+        <file>qt/icons/cdr_host.ico</file>
         <file>qt/icons/cdrom.ico</file>
         <file>qt/icons/cdrom_disabled.ico</file>
         <file>qt/icons/cdrom_mute.ico</file>
@@ -11,6 +21,11 @@
         <file>qt/icons/cdrom_image.ico</file>
         <file>qt/icons/cdrom_folder.ico</file>
         <file>qt/icons/cdrom_host.ico</file>
+        <file>qt/icons/cdrw.ico</file>
+        <file>qt/icons/cdrw_unmute.ico</file>
+        <file>qt/icons/cdrw_image.ico</file>
+        <file>qt/icons/cdrw_folder.ico</file>
+        <file>qt/icons/cdrw_host.ico</file>
         <file>qt/icons/display.ico</file>
         <file>qt/icons/dvdrom.ico</file>
         <file>qt/icons/dvdrom_unmute.ico</file>
@@ -30,6 +45,11 @@
         <file>qt/icons/general_storage_controllers.ico</file>
         <file>qt/icons/general_other_peripherals.ico</file>
         <file>qt/icons/hard_disk.ico</file>
+        <file>qt/icons/hd_dvdrom.ico</file>
+        <file>qt/icons/hd_dvdrom_unmute.ico</file>
+        <file>qt/icons/hd_dvdrom_image.ico</file>
+        <file>qt/icons/hd_dvdrom_folder.ico</file>
+        <file>qt/icons/hd_dvdrom_host.ico</file>
         <file>qt/icons/input_devices.ico</file>
         <file>qt/icons/isa_memory.ico</file>
         <file>qt/icons/isa_rom.ico</file>
