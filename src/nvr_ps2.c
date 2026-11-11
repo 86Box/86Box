@@ -140,7 +140,7 @@ ps2_nvr_init(const device_t *info)
         /* A file shorter than the device means the NVR used to be smaller;
            keep the 0xFF-filled tail rather than refusing to start. */
         if (cpu_s != NULL)
-            (void) fread(nvr->ram, 1, nvr->size, fp);
+            (void) !fread(nvr->ram, 1, nvr->size, fp);
         else
             /* Nothing was loaded, so RAM does not describe this file's content. */
             nvr->can_save = 0;

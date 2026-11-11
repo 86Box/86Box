@@ -3170,7 +3170,7 @@ epoch_ibm3477_init(epoch_t *epoch)
     /* Optional dump of the display's auxiliary fonts. */
     FILE *fp = fopen(EPOCH_FONTCARD_AUX_PATH_3477, "rb");
     if (fp != NULL) {
-        fread(epoch->gen, 1, EPOCH_GEN_BANKS * EPOCH_GEN_SIZE, fp);
+        (void) !fread(epoch->gen, 1, EPOCH_GEN_BANKS * EPOCH_GEN_SIZE, fp);
         fclose(fp);
     }
     mem_mapping_add(&epoch->hiram_map, EPOCH_HIRAM_BASE, EPOCH_HIRAM_SIZE,

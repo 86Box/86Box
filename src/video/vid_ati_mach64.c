@@ -3541,9 +3541,11 @@ mach64_writel_be(uint32_t addr, uint32_t val, void *priv)
    the request queue depth (31:24, here 8) is not in our documents. The
    command register keeps the rate (1:0), AGP_ENABLE (8), SBA_ENABLE (9)
    and the request depth (31:24) it is given (AGP Interface Specification
-   1.0, 6.1.4-6.1.5). */
-#define RAGEPRO_AGP_CAP    0x50
-#define RAGEPRO_AGP_STATUS 0x07000203
+   1.0, 6.1.4-6.1.5). The GD, the AGP 1x part (Controller Specifications
+   2.3.1, table 2-1), offers the 1x rate only. */
+#define RAGEPRO_AGP_CAP       0x50
+#define RAGEPRO_AGP_STATUS_GB 0x07000203
+#define RAGEPRO_AGP_STATUS_GD 0x07000201
 
 /* The Rage LT Pro's and Rage XL's PCI power management capability (LT
    Pro RRG 6-8, 6-9; XL/XC RRG 6-9, 6-10): ID 01h, the end of the list, D1
@@ -3574,6 +3576,9 @@ mach64_ragelt_pm_read(const mach64_t *mach64, int off)
    6.1.10: unimplemented fields read 0). */
 static const uint8_t ragepro_agp_cmd_mask[4] = { 0x03, 0x03, 0x00, 0xff };
 
+/* The GD's takes the 1x rate only. */
+static const uint8_t ragepro_gd_agp_cmd_mask[4] = { 0x01, 0x03, 0x00, 0xff };
+
 static uint8_t
 mach64_ragepro_agp_read(const mach64_t *mach64, int off)
 {
@@ -3587,7 +3592,7 @@ mach64_ragepro_agp_read(const mach64_t *mach64, int off)
         case 2:
             return 0x10; /* AGP revision 1.0 */
         case 4 ... 7:
-            return (RAGEPRO_AGP_STATUS >> ((off - 4) * 8)) & 0xff;
+            return ((mach64->gd ? RAGEPRO_AGP_STATUS_GD : RAGEPRO_AGP_STATUS_GB) >> ((off - 4) * 8)) & 0xff;
         case 8 ... 11:
             return mach64->pci_regs[RAGEPRO_AGP_CAP + off];
         default:
@@ -3797,8 +3802,11 @@ mach64_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void 
             break;
         case (RAGEPRO_AGP_CAP + 8) ... (RAGEPRO_AGP_CAP + 0x0b):
             /* The Rage Pro's AGP command register. */
-            if (mach64->agp && mach64->ragepro)
-                mach64->pci_regs[addr] = val & ragepro_agp_cmd_mask[addr - RAGEPRO_AGP_CAP - 8];
+            if (mach64->agp && mach64->ragepro) {
+                const uint8_t *cmd_mask = mach64->gd ? ragepro_gd_agp_cmd_mask : ragepro_agp_cmd_mask;
+
+                mach64->pci_regs[addr] = val & cmd_mask[addr - RAGEPRO_AGP_CAP - 8];
+            }
             break;
         case MACH64_PCI_IOCONFIG:
             /* The GT-B has bit 3 too, the lock of GENENA. */
@@ -4197,18 +4205,22 @@ mach64gtb_init(const device_t *info)
         /* The 3D Rage Pro: the GT-B's 2D and 3D engines and
            front-end scaler with its own setup engine, second texture, bus
            master and AGP (vid_ati_mach64_ragepro.c). "GB" (4742h) is the
-           BGA part on the AGP, "GP" (4750h) the PQFP one on the PCI (PRG
-           3.3.1's table of IDs). Revision 5Ch is what field reports of
-           4742h boards give; nothing we have checks it (diag compares
-           CONFIG_CHIP_ID 15:0, the BIOSes the type only). The memory is
-           SDRAM, CFG_MEM_TYPE 4, as on the Intel BL440ZX (TPS 1.7, "8 MB
-           SDRAM") and the "MACH64GB...SDU" BIOSes, or SGRAM, 5, for the
-           "SGU" ones (113-40212-103, and the PCI card's 113-41901-104).
-           Midway's TouchMaster II used the AGP chip: diag passes only 4742h
-           and its dl.r2c is built -DRAGEPROAGP. */
+           BGA part on the AGP 2x, "GD" (4744h) the BGA one on the AGP 1x
+           (Controller Specifications 2.3.1, table 2-1), and "GP" (4750h)
+           the PQFP one on the PCI (PRG 3.3.1's table of IDs). Revision
+           5Ch is what field reports of 4742h boards give; nothing we have
+           checks it (diag compares CONFIG_CHIP_ID 15:0, the BIOSes the
+           type only). The memory is SDRAM, CFG_MEM_TYPE 4, as on the
+           Intel BL440ZX (TPS 1.7, "8 MB SDRAM") and the "MACH64GB...SDU"
+           BIOSes, or SGRAM, 5, for the "SGU" ones (113-40212-103, and
+           the PCI card's 113-41901-104). Midway's TouchMaster II used
+           the AGP chip: diag passes only 4742h and its dl.r2c is built
+           -DRAGEPROAGP. */
         mach64->ragepro        = 1;
         mach64->agp            = !!(info->flags & DEVICE_AGP);
-        mach64->pci_id         = (info->local & MACH64_FLAG_PQFP) ? 0x4750 : 0x4742;
+        mach64->gd             = !!(info->local & MACH64_FLAG_GD);
+        mach64->pci_id         = (info->local & MACH64_FLAG_PQFP) ? 0x4750 :
+                                 (info->local & MACH64_FLAG_GD) ? 0x4744 : 0x4742;
         mach64->config_chip_id = 0x5c000000 | mach64->pci_id;
         if (!(info->local & (MACH64_FLAG_RAGEXL | MACH64_FLAG_RAGELT)))
             mach64->fixed_io = device_get_config_hex16("fixed_io") & 0xff00;
@@ -5597,6 +5609,23 @@ const device_t mach64ragepro_onboard_device = {
     .internal_name = "mach64_ragepro_onboard",
     .flags         = DEVICE_AGP,
     .local         = MACH64_GTB | MACH64_FLAG_RAGEPRO | MACH64_FLAG_ONBOARD,
+    .init          = mach64gtb_init,
+    .close         = mach64_close,
+    .reset         = mach64_reset,
+    .available     = NULL,
+    .speed_changed = mach64_speed_changed,
+    .force_redraw  = mach64_force_redraw,
+    .config        = mach64ragepro_onboard_config
+};
+
+/* The 3D Rage Pro (AGP 1x, on-board): the GD part (4744h), the OEM
+   boards' BGA chip with the 1x-only AGP (Controller Specifications
+   2.3.1, table 2-1), on a motherboard. */
+const device_t mach64ragepro_gd_onboard_device = {
+    .name          = "ATI 3D Rage Pro AGP 1x (On-Board)",
+    .internal_name = "mach64_ragepro_gd_onboard",
+    .flags         = DEVICE_AGP,
+    .local         = MACH64_GTB | MACH64_FLAG_RAGEPRO | MACH64_FLAG_GD | MACH64_FLAG_ONBOARD,
     .init          = mach64gtb_init,
     .close         = mach64_close,
     .reset         = mach64_reset,

@@ -207,7 +207,8 @@ vt83c572_init(UNUSED(const device_t *info))
 {
     vt83c572_t *dev = (vt83c572_t *) calloc(1, sizeof(vt83c572_t));
 
-    dev->usb = device_add_inst(&usb_device, -1);
+    dev->usb       = device_add_inst(&usb_device, -1);
+    dev->usb->card = 1;
     uhci_set_irq_handler(dev->usb, vt83c572_irq, dev);
 
     pci_add_card(PCI_ADD_NORMAL, vt83c572_read, vt83c572_write, dev, &dev->slot);

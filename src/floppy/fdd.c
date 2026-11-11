@@ -966,6 +966,8 @@ fdd_close(void *priv)
     d86f_destroy(drv);
     if (was_polling && drv->motoron && drv->fdc)
         timer_set_delay_u64(&drv->poll_time, 32ULL * TIMER_USEC);
+    drv->read_only = 0;
+    ui_sb_update_icon_wp(SB_FLOPPY | drv->id, 0);
     ui_sb_update_icon_state(SB_FLOPPY | drv->id, 1);
 }
 

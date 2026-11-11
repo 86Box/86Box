@@ -33,6 +33,7 @@
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
 #include <86box/thread.h>
+#include <86box/runctl.h>
 
 ALuint                    buffers[I_MAX][4]; /* front and back buffers */
 static ALuint             source[I_MAX];     /* audio sources */
@@ -460,7 +461,7 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size)
     int    state;
     ALuint buffer;
 
-    if (!initialized || fast_forward)
+    if (!initialized || (runctl_mode() == RUN_MODE_FAST))
         return;
 
     alGetSourcei(source[src], AL_SOURCE_STATE, &state);

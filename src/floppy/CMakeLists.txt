@@ -24,6 +24,7 @@ add_library(fdd OBJECT
     fdc_compaticard.c
     fdc_magitronic.c
     fdc_monster.c
+    fdc_qd6500.c
     fdc_pii15xb.c
     fdi2raw.c
     fdd_common.c

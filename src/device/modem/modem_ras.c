@@ -512,6 +512,7 @@ ras_parse_response(const uint8_t *message, size_t length,
             response_offset = 1 + username_length;
             if (length != message_length && length != MODEM_RAS_PADDED_PROTOCOL_MESSAGE_LENGTH)
                 return false;
+            view->use_nt_response = false;
             break;
 
         case MODEM_RAS_FRAME_RESPONSE_20:
@@ -547,8 +548,6 @@ ras_parse_response(const uint8_t *message, size_t length,
     view->username = message + 1;
     view->username_length = (size_t) (terminator - view->username);
     view->response = message + response_offset;
-    if (message[0] == MODEM_RAS_FRAME_RESPONSE)
-        view->use_nt_response = false;
     return true;
 }
 

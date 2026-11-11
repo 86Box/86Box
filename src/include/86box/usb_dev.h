@@ -107,6 +107,12 @@ typedef struct usb_dev_ops_t {
        so udev is suspended. resume: udev drives resume signaling (K). */
     int (*port_idle)(const usb_dev_t *dev, const usb_dev_t *udev);
     void (*resume)(usb_dev_t *dev, usb_dev_t *udev);
+    /* Hubs only: how many downstream ports there are, the device on port i
+       (0-based) or NULL, and attach udev to port i if it is free (returns 1
+       if it did). */
+    int (*n_ports)(usb_dev_t *dev);
+    usb_dev_t *(*port_dev)(usb_dev_t *dev, int i);
+    int (*attach_port)(usb_dev_t *dev, usb_dev_t *udev, int i);
 } usb_dev_ops_t;
 
 #define USB_DEV_INTERFACES 16
@@ -185,7 +191,22 @@ extern int  usb_dev_remote_wakeup(usb_dev_t *dev);
    root-hub port of any USB host controller, else to the first free port of
    a hub on one. */
 extern int  usb_attach(usb_dev_t *dev);
+/* The same without telling the user when there is no free port. */
+extern int  usb_attach_quiet(usb_dev_t *dev);
 extern void usb_detach(usb_dev_t *dev);
+/* Attach to the port with this label (see usb_ports_get()) if that port is
+   working and free. Returns 1 if it did. */
+extern int  usb_port_attach(usb_dev_t *dev, const char *label);
+/* The label of the port dev is on, "" when it is on none. */
+extern void usb_port_label(const usb_dev_t *dev, char *label, int n);
+/* Republishes the ports and slots for the GUI. Emulation thread only. */
+extern void usb_ports_refresh(void);
+
+/* Flash drives (usb_flash.c). Whether dev is one, and its image; and
+   making the sticks in the ports match what the user asked for, on the
+   emulation thread (at_reset: the machine is starting). */
+extern int  usb_flash_dev_info(const usb_dev_t *dev, char *fn, int n, uint8_t *wp);
+extern void usb_flash_reconcile(int at_reset);
 
 /* A device the machine has, called from its init and close. usb_dev_add
    gives it the hot-plug slot named by info's internal name, if there is

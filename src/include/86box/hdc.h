@@ -93,6 +93,7 @@ extern const device_t ide_pc87410_device;                       /* National Semi
 
 extern const device_t ide_opti611_vlb_device;                   /* OPTi 82c611/611A VLB */
 extern const device_t ide_opti611_vlb_sec_device;               /* OPTi 82c611/611A VLB (Secondary channel) */
+extern const device_t ide_qd6500_vlb_device;                    /* QDI Vision QD6500 VLB */
 
 extern const device_t ide_rz1000_pci_device;                    /* PC Technology RZ-1000 PCI */
 extern const device_t ide_rz1000_pci_single_channel_device;     /* PC Technology RZ-1000 PCI (Only primary channel) */

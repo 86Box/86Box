@@ -25,7 +25,7 @@ struct shader {
         char shader_fn[1024];
         char *shader_program;
         char alias[64];
-        int filter_linear;
+        int filter_linear; /* filtering of this pass's output: 1 linear, 0 nearest, -1 not set */
         int float_framebuffer;
         int srgb_framebuffer;
         int mipmap_input;
@@ -46,7 +46,7 @@ typedef struct glslp_t {
         int num_parameters;
         struct parameter parameters[MAX_PARAMETERS];
 
-        int input_filter_linear;
+        int input_filter_linear; /* filter_linear0: 1 linear, 0 nearest, -1 not set */
 } glslp_t;
 
 void get_glslp_name(const char *f, char *s, int size);

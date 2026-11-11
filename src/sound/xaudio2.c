@@ -34,6 +34,7 @@
 #include <86box/plat_dynld.h>
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
+#include <86box/runctl.h>
 
 #if defined(_WIN32) && !defined(USE_FAUDIO)
 static void *xaudio2_handle = NULL;
@@ -51,7 +52,6 @@ static IXAudio2               *xaudio2         = NULL;
 static IXAudio2MasteringVoice *mastervoice     = NULL;
 static IXAudio2SourceVoice    *srcvoice[I_MAX] = { 0 };
 
-extern bool fast_forward;
 
 #define FREQ   SOUND_FREQ
 #define BUFLEN SOUNDBUFLEN
@@ -390,7 +390,7 @@ closeal(void)
 void
 givealbuffer_common(const void *buf, const uint8_t src, const int size)
 {
-    if (!initialized || fast_forward || (srcvoice[src] == NULL))
+    if (!initialized || (runctl_mode() == RUN_MODE_FAST) || (srcvoice[src] == NULL))
         return;
 
     (void) IXAudio2MasteringVoice_SetVolume(mastervoice, sound_muted ? 0.0 : pow(10.0, (double) sound_gain / 20.0),

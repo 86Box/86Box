@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-07 15:13+0000\n"
+"PO-Revision-Date: 2026-11-10 21:33+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -155,6 +155,9 @@ msgstr "&Centreren"
 
 msgid "4:3 Cen&ter"
 msgstr "4:3 Cen&treren"
+
+msgid "4:3 Integer scale (&vertical)"
+msgstr "4:3 Integerschaal (&verticaal)"
 
 msgid "Inverted VGA monitor"
 msgstr "Geïnverteerde VGA-monitor"
@@ -1582,6 +1585,12 @@ msgstr ""
 msgid "Hard disk (%1)"
 msgstr "Harde schijf (%1)"
 
+msgid "Board LED"
+msgstr "Bord-LED"
+
+msgid "Board LED %1"
+msgstr "Bord-LED %1"
+
 msgid "Custom…"
 msgstr "Aangepast…"
 
@@ -2469,6 +2478,9 @@ msgstr "Type lijnverdubbeling"
 
 msgid "Snow emulation"
 msgstr "Sneeuwemulatie"
+
+msgid "Display Enhancement Board (GO329)"
+msgstr "Display Enhancement Board (GO329)"
 
 msgid "Monitor type"
 msgstr "Type monitor"
@@ -3721,10 +3733,10 @@ msgid "Software-initiated poweroff device (IBM 5140)"
 msgstr "Software-geïnitieerde apparaatuitschakeling (IBM 5140)"
 
 msgid "Memory &viewer"
-msgstr ""
+msgstr "Geheugen&viewer"
 
 msgid "The emulator is busy; the memory view was not updated."
-msgstr ""
+msgstr "De emulator is bezig; de geheugenweergave is niet geüpdatet."
 
 msgid "The match is not on mapped memory; the selection and the view did not move."
 msgstr ""
@@ -4126,4 +4138,166 @@ msgid "Enter something to search for."
 msgstr ""
 
 msgid "The range ends before it starts."
+msgstr ""
+
+msgid "Serial Plug and Play"
+msgstr ""
+
+msgid "Standard 9600 bps modem (PNPC100)"
+msgstr ""
+
+msgid "Standard 14400 bps modem (PNPC101)"
+msgstr ""
+
+msgid "Standard 28800 bps modem (PNPC102)"
+msgstr ""
+
+msgid "Standard modem (PNPC103)"
+msgstr ""
+
+msgid "Enhanced 9600 bps modem (PNPC104)"
+msgstr ""
+
+msgid "Enhanced 14400 bps modem (PNPC105)"
+msgstr ""
+
+msgid "Enhanced 28800 bps modem (PNPC106)"
+msgstr ""
+
+msgid "Enhanced modem (PNPC107)"
+msgstr ""
+
+msgid "Telephone Tone Region"
+msgstr ""
+
+msgid "North America"
+msgstr ""
+
+msgid "United Kingdom"
+msgstr ""
+
+msgid "Continental Europe"
+msgstr ""
+
+msgid "Japan"
+msgstr ""
+
+msgid "Handshake Modem Standard"
+msgstr ""
+
+msgid "Automatic (from DTE speed)"
+msgstr ""
+
+msgid "Connection Type"
+msgstr ""
+
+msgid "Username"
+msgstr ""
+
+msgid "Password"
+msgstr ""
+
+msgid "PPP Compression and Encryption"
+msgstr ""
+
+msgid "Automatic"
+msgstr ""
+
+msgid "Require MPPE"
+msgstr ""
+
+msgid "PPP Multilink Group (same on each link)"
+msgstr ""
+
+msgid "PPP Primary DNS Server"
+msgstr ""
+
+msgid "PPP Secondary DNS Server"
+msgstr ""
+
+msgid "CCP Directional Negotiation"
+msgstr ""
+
+msgid "Bidirectional"
+msgstr ""
+
+msgid "Transmit-Only"
+msgstr ""
+
+msgid "Receive-Only"
+msgstr ""
+
+msgid "Asymmetric Preferred"
+msgstr ""
+
+msgid "PPP Callback (Microsoft CBCP)"
+msgstr ""
+
+msgid "Offered (caller may decline)"
+msgstr ""
+
+msgid "Required (caller must accept)"
+msgstr ""
+
+msgid "PPP Keepalive Interval (seconds, 0 = off)"
+msgstr ""
+
+msgid "Report received DTMF to the host (<DLE>digit)"
+msgstr ""
+
+msgid "Off (only with +VDR=1)"
+msgstr ""
+
+msgid "Caller ID between emulator instances (enable on both)"
+msgstr ""
+
+msgid "Caller ID sent when dialling (number,name)"
+msgstr ""
+
+msgid "Network to guest queue limit (back-pressure)"
+msgstr ""
+
+msgid "Unlimited (legacy)"
+msgstr ""
+
+msgid "250 ms of line time"
+msgstr ""
+
+msgid "500 ms of line time"
+msgstr ""
+
+msgid "1 s of line time"
+msgstr ""
+
+msgid "2 s of line time"
+msgstr ""
+
+msgid "TCP send timeout"
+msgstr ""
+
+msgid "Card:"
+msgstr ""
+
+msgid "Hub:"
+msgstr ""
+
+msgid "Mass storage:"
+msgstr ""
+
+msgid "Its drives are hard disks, CD-ROM drives and other removable devices set up on their own pages, on bus SCSI, in the channels named \"USB Mass Storage\". Each drive is one logical unit, in channel order."
+msgstr ""
+
+msgid "Hard disks…"
+msgstr ""
+
+msgid "CD-ROM drives…"
+msgstr ""
+
+msgid "Other removable devices…"
+msgstr ""
+
+msgid "4-port USB 1.1 hub"
+msgstr ""
+
+msgid "USB Mass Storage"
 msgstr ""

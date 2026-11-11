@@ -349,10 +349,10 @@ aha1740_interrupt(aha1740_t *dev, uint8_t code, uint32_t ecb)
    and one are flags, byte two is the adapter's own error code, byte three
    is whatever the target said. */
 static void
-aha1740_status(uint32_t ptr, uint8_t f0, uint8_t f1, uint8_t code,
-               uint8_t scsi_status)
+aha1740_status(aha1740_t *dev, uint32_t ptr, uint8_t f0, uint8_t f1, uint8_t code,
+               uint8_t scsi_status, uint8_t senselen, uint8_t senselen_tx, uint8_t *cdb)
 {
-    uint8_t status[4];
+    uint8_t status[32];
 
     if (ptr == 0)
         return;
@@ -361,8 +361,23 @@ aha1740_status(uint32_t ptr, uint8_t f0, uint8_t f1, uint8_t code,
     status[1] = f1;
     status[2] = code;
     status[3] = scsi_status;
+    for (uint8_t i = 4; i < 12; i++)
+        status[i] = 0x00;
 
-    dma_bm_write(ptr, status, 4, 4);
+    status[12] = senselen;
+    status[13] = 0x00;
+    status[14] = senselen_tx;
+    for (uint8_t j = 15; j < 26; j++)
+        status[j] = 0x00;
+
+    status[26] = cdb[0];
+    status[27] = cdb[1];
+    status[28] = cdb[2];
+    status[29] = cdb[3];
+    status[30] = cdb[4];
+    status[31] = cdb[5];
+
+    dma_bm_write(ptr, status, 32, 4);
 }
 
 /* How much data the block describes, and where. A scatter-gather block
@@ -448,6 +463,10 @@ aha1740_run_ecb(aha1740_t *dev, uint32_t addr, uint8_t target)
     uint32_t       want;
     uint8_t        lun;
     uint8_t        cdblen;
+    uint8_t        read_from_host;
+    uint8_t        write_to_host;
+    uint8_t        sense[18];
+    uint8_t        senselen_tx;
     uint8_t        senselen;
 
     dma_bm_read(addr, ecb, ECB_SIZE, 4);
@@ -457,9 +476,14 @@ aha1740_run_ecb(aha1740_t *dev, uint32_t addr, uint8_t target)
     flags2    = *(uint16_t *) &ecb[ECB_FLAGS2];
     statusptr = *(uint32_t *) &ecb[ECB_STATUSPTR];
     senseptr  = *(uint32_t *) &ecb[ECB_SENSEPTR];
-    senselen  = ecb[ECB_SENSELEN];
+    senselen_tx = ecb[ECB_SENSELEN];
     cdblen    = ecb[ECB_CDBLEN];
     lun       = (uint8_t) (flags2 & F2_LUN);
+
+    memset(sense, 0, sizeof(sense));
+    senselen = senselen_tx;
+    if (senselen > sizeof(sense))
+        senselen = sizeof(sense);
 
     if (cdblen > 16)
         cdblen = 16;
@@ -474,15 +498,15 @@ aha1740_run_ecb(aha1740_t *dev, uint32_t addr, uint8_t target)
        does have them and a diagnostic might. */
     if (cmdw != CMD_INIT) {
         if (flags1 & F1_DSB)
-            aha1740_status(statusptr, 0x01, 0x00, 0x00, 0x00);
+            aha1740_status(dev, statusptr, 0x01, 0x00, 0x00, 0x00, 0x00, 0x00, cdb);
         else
-            aha1740_status(statusptr, 0x81, 0x00, 0x00, 0x00);
+            aha1740_status(dev, statusptr, 0x81, 0x00, 0x00, 0x00, 0x00, 0x00, cdb);
         aha1740_interrupt(dev, G2INTST_CCBGOOD, addr);
         return;
     }
 
     if (target > 15) {
-        aha1740_status(statusptr, 0x00, 0x18, 0x0a, 0x00);
+        aha1740_status(dev, statusptr, 0x00, 0x18, 0x0a, 0x00, sizeof(sense), senselen, cdb);
         aha1740_interrupt(dev, G2INTST_CCBERROR, addr);
         return;
     }
@@ -492,7 +516,7 @@ aha1740_run_ecb(aha1740_t *dev, uint32_t addr, uint8_t target)
     if (!scsi_device_present(sd) || (lun > 0)) {
         /* Nothing there: selection timed out, which the decoder reads as
            a bad target. */
-        aha1740_status(statusptr, 0x00, 0x18, 0x0a, 0x00);
+        aha1740_status(dev, statusptr, 0x00, 0x18, 0x0a, 0x00, sizeof(sense), senselen, cdb);
         aha1740_interrupt(dev, G2INTST_CCBERROR, addr);
         return;
     }
@@ -502,32 +526,42 @@ aha1740_run_ecb(aha1740_t *dev, uint32_t addr, uint8_t target)
     scsi_device_command_phase0(sd, cdb);
 
     want = aha1740_datalen(ecb, flags1);
+    read_from_host = ((sd->phase == SCSI_PHASE_DATA_OUT) && (((flags2 & (F2_DAT | F2_DIR)) == F2_DAT) || !(flags2 & F2_DAT)));
+    write_to_host  = ((sd->phase == SCSI_PHASE_DATA_IN) && (((flags2 & (F2_DAT | F2_DIR)) == (F2_DAT | F2_DIR)) || !(flags2 & F2_DAT)));
 
-    if ((sd->phase == SCSI_PHASE_DATA_IN) && (sd->buffer_length > 0)) {
-        uint32_t len = (uint32_t) sd->buffer_length;
+    aha1740_log("FLAGS2=%04x, FLAGS1=%04x, target=%d, cmd=%02x, status=%02x, phase=%02x, readfrom=%x, writeto=%x, len=%d, want=%d, senseptr=%08x, senselen=%d.\n", flags2, flags1, target, cdb[0], sd->status, sd->phase, read_from_host, write_to_host, sd->buffer_length, want, senseptr, senselen);
 
-        if (len > want)
-            len = want;
-        if ((len > 0) && !(flags2 & F2_ST))
-            aha1740_move(ecb, flags1, sd->sc->temp_buffer, len, 1);
-        scsi_device_command_phase1(sd);
-    } else if ((sd->phase == SCSI_PHASE_DATA_OUT) && (sd->buffer_length > 0)) {
-        uint32_t len = (uint32_t) sd->buffer_length;
+    if (sd->phase != SCSI_PHASE_STATUS) {
+        if (write_to_host && (sd->buffer_length > 0)) {
+            uint32_t len = (uint32_t) sd->buffer_length;
 
-        if (len > want)
-            len = want;
-        if ((len > 0) && !(flags2 & F2_ST))
-            aha1740_move(ecb, flags1, sd->sc->temp_buffer, len, 0);
-        scsi_device_command_phase1(sd);
+            if (len > want)
+                len = want;
+            if ((len > 0) && !(flags2 & F2_ST))
+                aha1740_move(ecb, flags1, sd->sc->temp_buffer, len, 1);
+
+            scsi_device_command_phase1(sd);
+        } else if (read_from_host && (sd->buffer_length > 0)) {
+            uint32_t len = (uint32_t) sd->buffer_length;
+
+            if (len > want)
+                len = want;
+            if ((len > 0) && !(flags2 & F2_ST))
+                aha1740_move(ecb, flags1, sd->sc->temp_buffer, len, 0);
+
+            scsi_device_command_phase1(sd);
+        }
     }
 
-    scsi_device_identify(sd, SCSI_LUN_USE_CDB);
+    if (sd->type != SCSI_NONE)
+        scsi_device_identify(sd, SCSI_LUN_USE_CDB);
 
     if (sd->status == SCSI_STATUS_OK) {
         /* Done, no error. Bit zero of the first status byte is what the
            driver looks at before anything else. */
         if (!(flags1 & F1_DSB))
-            aha1740_status(statusptr, 0x81, 0x00, 0x00, 0x00);
+            aha1740_status(dev, statusptr, 0x81, 0x00, 0x00, 0x00, 0x00, 0x00, cdb);
+
         aha1740_interrupt(dev, G2INTST_CCBGOOD, addr);
         return;
     }
@@ -535,22 +569,16 @@ aha1740_run_ecb(aha1740_t *dev, uint32_t addr, uint8_t target)
     /* Something to report. The card fetches the sense itself when asked
        to, which is why the driver never issues REQUEST SENSE. */
     if ((flags1 & F1_ARS) && (senseptr != 0) && (senselen > 0)) {
-        uint8_t sense[18];
-        uint8_t len = senselen;
+        scsi_device_request_sense(sd, sense, senselen_tx);
+        dma_bm_write(senseptr, sense, senselen_tx, 4);
 
-        if (len > sizeof(sense))
-            len = sizeof(sense);
-        memset(sense, 0, sizeof(sense));
-        scsi_device_request_sense(sd, sense, len);
-        dma_bm_write(senseptr, sense, len, 4);
-    }
-
-    if (!(flags1 & F1_DSB)) {
         /* Not done; additional status available and sense stored; no
            adapter level fault, so the target's own status is what
            matters. */
-        aha1740_status(statusptr, 0x00, 0x03, 0x00, sd->status);
-    }
+        aha1740_status(dev, statusptr, (flags1 & F1_DSB) ? 0x00 : 0x80, 0x03, 0x00, sd->status, sizeof(sense), senselen, cdb);
+    } else
+        aha1740_status(dev, statusptr, (flags1 & F1_DSB) ? 0x00 : 0x80, 0x00, 0x00, sd->status, sizeof(sense), senselen, cdb);
+
     aha1740_interrupt(dev, G2INTST_CCBERROR, addr);
 }
 

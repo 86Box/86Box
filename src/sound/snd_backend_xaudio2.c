@@ -35,6 +35,7 @@
 #include <86box/plat_dynld.h>
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
+#include <86box/runctl.h>
 
 #define FREQ   SOUND_FREQ
 #define BUFLEN SOUNDBUFLEN
@@ -244,7 +245,7 @@ xaudio2_give_buffer(void *priv, void *src, const void *buf, const int size, UNUS
     const xaudio2_t *       dev    = (xaudio2_t *) priv;
     const xaudio2_source_t *source = (xaudio2_source_t *) src;
 
-    if (fast_forward && (dev != NULL) && (source != NULL)) {
+    if ((runctl_mode() != RUN_MODE_FAST) && (dev != NULL) && (source != NULL)) {
         (void) IXAudio2MasteringVoice_SetVolume(dev->mastervoice,
                                                 sound_muted ? 0.0 :
                                                     pow(10.0, (double) sound_gain / 20.0),

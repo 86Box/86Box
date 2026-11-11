@@ -92,3 +92,19 @@ TEST(ModemSlip, RejectsOutputBufferOverflow)
                                    &packet_len));
     EXPECT_EQ(packet_len, 0u);
 }
+
+TEST(ModemSlip, RecognizesPppFramingInsideSlipPayloads)
+{
+    const std::vector<uint8_t> flagged_escaped = { 0x7E, 0xFF, 0x7D, 0x23, 0xC0, 0x21 };
+    const std::vector<uint8_t> double_flag = { 0x7E, 0x7E, 0xFF, 0x03, 0xC0, 0x21 };
+    const std::vector<uint8_t> plain = { 0xFF, 0x03, 0xC0, 0x21 };
+    const std::vector<uint8_t> ipv4 = { 0x45, 0x00, 0x00, 0x14 };
+    const std::vector<uint8_t> truncated = { 0x7E, 0xFF };
+
+    EXPECT_TRUE(slip_packet_looks_like_ppp(flagged_escaped.data(), flagged_escaped.size()));
+    EXPECT_TRUE(slip_packet_looks_like_ppp(double_flag.data(), double_flag.size()));
+    EXPECT_TRUE(slip_packet_looks_like_ppp(plain.data(), plain.size()));
+    EXPECT_FALSE(slip_packet_looks_like_ppp(ipv4.data(), ipv4.size()));
+    EXPECT_FALSE(slip_packet_looks_like_ppp(truncated.data(), truncated.size()));
+    EXPECT_FALSE(slip_packet_looks_like_ppp(nullptr, 0));
+}

@@ -49,6 +49,9 @@
 #define GPCMD_REQUEST_BLOCK_ADDRESS                   0x02
 #define GPCMD_REQUEST_SENSE                           0x03
 #define GPCMD_FORMAT_UNIT                             0x04
+#define GPCMD_RESERVE_TRACK                           0x53
+#define GPCMD_SEND_OPC                                0x54
+#define GPCMD_BLANK                                   0xa1
 #define GPCMD_READ_BLOCK_LIMITS                       0x05
 #define GPCMD_IOMEGA_SENSE                            0x06
 #define GPCMD_READ_6                                  0x08

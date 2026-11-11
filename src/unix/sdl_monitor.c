@@ -33,7 +33,6 @@ static dllimp_t libedit_imports[] = {
 #endif
 
 extern int exit_event, fullscreen_pending;
-extern bool fast_forward;
 
 void
 monitor_init(void)
@@ -209,8 +208,8 @@ monitor_execute_line(char *line)
             runctl_pause_user_toggle();
             printf("%s", dopause ? "Paused.\n" : "Unpaused.\n");
         } else if (strncasecmp(xargv[0], "fastfwd", 7) == 0) {
-            fast_forward ^= 1;
-            printf("%s", fast_forward ? "Fast forward on.\n" : "Fast forward off.\n");
+            runctl_fast_forward_toggle();
+            printf("%s", (runctl_mode() == RUN_MODE_FAST) ? "Fast forward on.\n" : "Fast forward off.\n");
         } else if (strncasecmp(xargv[0], "hardreset", 9) == 0) {
             pc_reset_hard();
         } else if (strncasecmp(xargv[0], "cdload", 6) == 0 && cmdargc >= 3) {

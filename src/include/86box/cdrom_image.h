@@ -33,6 +33,37 @@ typedef struct track_file_t {
     int motorola;
 } track_file_t;
 
+/* A track of a disc that is being recorded. */
+typedef struct aaru_write_track_t {
+    uint8_t number;
+    uint8_t session;
+    uint8_t ctl;
+    uint8_t mode;     /* 0 = audio, 1 = Mode 1, 2 = Mode 2. */
+    uint8_t packet;   /* Incremental, may stay open across media changes. */
+    char    isrc[12]; /* All zeros without one. */
+    int32_t start;    /* First sector, including the pre-gap. */
+    int32_t index1;   /* First sector of index 1. */
+    int32_t end;      /* Last sector, -1 if nothing has been written yet. */
+} aaru_write_track_t;
+
+/*
+   Fills a 2352-byte buffer with a sector of the disc. Returns 0 on success, 1 for a
+   sector that was never recorded and is left out of the image, and -1 on failure.
+ */
+typedef int (*aaru_write_read_t)(void *priv, const int32_t lba, uint8_t *buffer);
+
+extern int   aaru_image_writer_available(void);
+extern int   aaru_image_write_disc(const char *path, const int rewritable, const char *state,
+                                   const aaru_write_track_t *tracks, const int tracks_num,
+                                   const uint8_t *full_toc, const uint32_t full_toc_len,
+                                   const uint8_t *mcn, aaru_write_read_t read, void *priv);
+extern int   aaru_image_get_disc_state(const char *path, int *rewritable, char *state, const int len);
+/* Reads a disc back without copying it anywhere, for as long as nothing changes it. */
+extern void *aaru_image_source_open(const char *path, aaru_write_track_t *tracks, int *tracks_num,
+                                    uint8_t *mcn);
+extern int   aaru_image_source_read(void *source, const int32_t lba, uint8_t *buffer);
+extern void  aaru_image_source_close(void *source);
+
 extern void *image_open(cdrom_t *dev, const char *path);
 extern void *aaru_image_open(cdrom_t *dev, const char *path);
 extern void *chd_image_open(cdrom_t *dev, const char *path);

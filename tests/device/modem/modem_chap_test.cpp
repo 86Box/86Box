@@ -148,6 +148,56 @@ TEST(ModemChap, AcceptsRfc2433MschapAndDerivesMppeKeys)
     EXPECT_EQ(state_advances, 1);
 }
 
+TEST(ModemChap, AcceptsMschapLmOnlyResponseWithoutMppeKeys)
+{
+    const std::array<uint8_t, 8> challenge = {
+        0x10, 0x2D, 0xB5, 0xDF, 0x08, 0x5D, 0x30, 0x41
+    };
+    /* LM hash of "PASSWORD" (the upper-cased form of "password"). */
+    const std::array<uint8_t, 16> lm_hash = {
+        0xE5, 0x2C, 0xAC, 0x67, 0x41, 0x9A, 0x9A, 0x22,
+        0x4A, 0x3B, 0x10, 0x8F, 0x3F, 0xA6, 0xCB, 0x6D
+    };
+    std::array<uint8_t, 21> padded{};
+    std::memcpy(padded.data(), lm_hash.data(), lm_hash.size());
+    std::array<uint8_t, 24> lm_response{};
+    for (size_t i = 0; i < 3; i++)
+        modem_des_encrypt_block(padded.data() + i * 7, challenge.data(),
+                                lm_response.data() + i * 8);
+
+    auto make_packet = [&](const std::array<uint8_t, 24> &lm) {
+        std::vector<uint8_t> packet = { CHAP_CODE_RESPONSE, 7, 0, 0, 49 };
+        packet.resize(5 + 49, 0);
+        std::memcpy(packet.data() + 5, lm.data(), lm.size());
+        packet.insert(packet.end(), { 'U', 's', 'e', 'r' });
+        packet[2] = static_cast<uint8_t>(packet.size() >> 8);
+        packet[3] = static_cast<uint8_t>(packet.size());
+        return packet;
+    };
+    auto run = [&](const char *password, const std::vector<uint8_t> &packet, ppp_ctx_t &ctx) {
+        ctx.auth_type = PPP_AUTH_MSCHAP;
+        ctx.auth_id = 7;
+        ctx.chap_challenge_len = challenge.size();
+        std::memcpy(ctx.chap_challenge, challenge.data(), challenge.size());
+        std::strcpy(ctx.password, password);
+        state_advances = 0;
+        ppp_chap_process(&ctx, packet.data(), static_cast<int>(packet.size()));
+    };
+
+    ppp_ctx_t accepted{};
+    run("password", make_packet(lm_response), accepted);
+    EXPECT_EQ(sent_packet[0], CHAP_CODE_SUCCESS);
+    EXPECT_TRUE(accepted.auth_complete);
+    EXPECT_FALSE(accepted.mppe_keys_ready);
+    EXPECT_EQ(state_advances, 1);
+
+    ppp_ctx_t rejected{};
+    run("wrong", make_packet(lm_response), rejected);
+    EXPECT_EQ(sent_packet[0], CHAP_CODE_FAILURE);
+    EXPECT_FALSE(rejected.auth_complete);
+    EXPECT_EQ(state_advances, 0);
+}
+
 TEST(ModemChap, StripsDomainForMschapV2ChallengeHash)
 {
     static const uint8_t authenticator_challenge[16] = {

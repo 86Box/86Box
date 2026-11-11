@@ -65,6 +65,7 @@ extern "C" {
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/machine_status.h>
+#include <86box/runctl.h>
 
 #ifdef Q_OS_WINDOWS
 #    include <86box/win.h>
@@ -83,8 +84,6 @@ plat_delay_ms(uint32_t count)
 void
 ui_emu_status(int speed_percent)
 {
-    extern int osd_percentage;
-    osd_percentage = speed_percent;
     QString str = QString::number(speed_percent);
     if ((mouse_type == MOUSE_TYPE_NONE) || (mouse_input_mode >= 1))
         str += QStringLiteral("%");
@@ -92,6 +91,9 @@ ui_emu_status(int speed_percent)
         str += QStringLiteral("% - ") % main_window->mouseStringCaptured;
     else
         str += QStringLiteral("% - ") % main_window->mouseStringUncaptured;
+    /* A sample taken just before a pause may arrive after it. */
+    if (runctl_state() == RUN_PAUSED)
+        str += QObject::tr(" - PAUSED");
 
     emit main_window->setTitle(str);
 }

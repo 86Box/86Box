@@ -416,8 +416,12 @@ pitf_ctr_latch_count(ctrf_t *ctr)
     pit->ctrl |= 0x30;
 #endif
     ctr->rereadlatch = 0;
-    ctr->rm          = 3;
-    ctr->latched     = 1;
+    /* The latch holds as many bytes as the counter's read/write mode reads:
+       a counter set to LSB or MSB only releases it after one read. */
+    ctr->rm = (ctr->ctrl >> 4) & 3;
+    if (!ctr->rm)
+        ctr->rm = 3;
+    ctr->latched = 1;
 }
 
 static __inline void

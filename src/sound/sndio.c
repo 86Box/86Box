@@ -24,8 +24,8 @@
 #include <86box/86box.h>
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
+#include <86box/runctl.h>
 
-extern bool            fast_forward;
 static struct sio_hdl* audio[I_MAX] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 static struct sio_par  info[I_MAX];
 
@@ -211,7 +211,7 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size)
     int conv_size;
     double gain;
     int target_rate;
-    if (audio[src] == NULL || fast_forward)
+    if (audio[src] == NULL || (runctl_mode() == RUN_MODE_FAST))
         return;
 
     gain = sound_muted ? 0.0 : pow(10.0, (double) sound_gain / 20.0);

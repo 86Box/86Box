@@ -148,6 +148,7 @@ enum {
 #define MACH64_FLAG_RAGE2C  (1 << 20) /* 3D Rage IIC, the GT-B under PCI ID GV (4756h) */
 #define MACH64_FLAG_RAGEPRO (1 << 21) /* 3D Rage Pro, the GT-B core plus its own setup engine, bus master and AGP */
 #define MACH64_FLAG_PQFP    (1 << 22) /* The Rage Pro's PCI PQFP package, PCI ID GP (4750h) */
+#define MACH64_FLAG_GD      (1 << 23) /* The Rage Pro's AGP 1x-only BGA package, PCI ID GD (4744h) */
 #define MACH64_FLAG_RAGEXL  (1 << 24) /* Rage XL, the Rage Pro core with the LT Pro's PLL and LCD registers */
 #define MACH64_FLAG_RAGELT  (1 << 25) /* Rage LT Pro, the mobile Rage Pro: LCD registers, shadow and second CRTC, power management */
 #define MACH64_PCI_IOCONFIG 0x40        // "User Defined Configuration"
@@ -193,6 +194,7 @@ typedef struct mach64_t {
     uint8_t on_board;
     uint8_t rage2c;  /* Rage IIC: shared bus master, without Pro setup/AGP textures */
     uint8_t ragepro; /* 3D Rage Pro identity, setup engine and bus master */
+    uint8_t gd;      /* Rage Pro GD: the AGP 1x-only BGA part (4744h) */
     uint8_t agp;     /* On the AGP: its capability and timings */
     uint8_t ragexl;  /* Rage XL: extended VPLL, LCD_INDEX/LCD_DATA, subsystem IDs */
     uint8_t ragelt;  /* Rage LT Pro: the XL's LT registers plus shadow/second CRTC and power management */

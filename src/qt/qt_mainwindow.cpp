@@ -71,7 +71,6 @@ extern int qt_nvr_save(void);
 extern void nmi_raise(void);
 
 extern bool cpu_thread_running;
-extern bool fast_forward;
 };
 
 #include <QGuiApplication>
@@ -788,6 +787,9 @@ MainWindow::MainWindow(QWidget *parent)
         case FULLSCR_SCALE_CENTER43:
             ui->actionFullScreen_center43->setChecked(true);
             break;
+        case FULLSCR_SCALE_INT43_VERT:
+            ui->actionFullScreen_int43_vert->setChecked(true);
+            break;
     }
 
     actGroup = new QActionGroup(this);
@@ -826,6 +828,7 @@ MainWindow::MainWindow(QWidget *parent)
     actGroup->addAction(ui->actionFullScreen_int43);
     actGroup->addAction(ui->actionFullScreen_center);
     actGroup->addAction(ui->actionFullScreen_center43);
+    actGroup->addAction(ui->actionFullScreen_int43_vert);
     switch (video_gl_input_scale_mode) {
         default:
             break;
@@ -2258,6 +2261,7 @@ update_fullscreen_scale_checkboxes(Ui::MainWindow *ui, QAction *selected)
     ui->actionFullScreen_int43->setChecked(selected == ui->actionFullScreen_int43);
     ui->actionFullScreen_center->setChecked(selected == ui->actionFullScreen_center);
     ui->actionFullScreen_center43->setChecked(selected == ui->actionFullScreen_center43);
+    ui->actionFullScreen_int43_vert->setChecked(selected == ui->actionFullScreen_int43_vert);
 
     {
         auto widget = ui->stackedWidget->currentWidget();
@@ -2321,6 +2325,13 @@ MainWindow::on_actionFullScreen_center43_triggered()
 {
     video_fullscreen_scale = FULLSCR_SCALE_CENTER43;
     update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_center43);
+}
+
+void
+MainWindow::on_actionFullScreen_int43_vert_triggered()
+{
+    video_fullscreen_scale = FULLSCR_SCALE_INT43_VERT;
+    update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_int43_vert);
 }
 
 void
@@ -2394,7 +2405,7 @@ MainWindow::on_actionUpdate_mouse_every_CPU_frame_triggered()
 void
 MainWindow::on_actionFast_forward_triggered()
 {
-    fast_forward ^= 1;
+    runctl_fast_forward_toggle();
 }
 
 void
@@ -2601,11 +2612,14 @@ MainWindow::updateUiPauseState()
     emit vmmRunningStateChanged(static_cast<VMManagerProtocol::RunningState>(window_blocked ? (dopause ? VMManagerProtocol::RunningState::PausedWaiting : VMManagerProtocol::RunningState::RunningWaiting) : (VMManagerProtocol::RunningState) dopause));
 }
 
-/* The menu's check follows fast forward set from elsewhere (automation). */
+/* Fast forward can be set from the menu, the accelerator or automation;
+   the check and the muted sound icon follow runctl. */
 void
 MainWindow::updateUiFastForwardState()
 {
-    ui->actionFast_forward->setChecked(fast_forward);
+    ui->actionFast_forward->setChecked(runctl_mode() == RUN_MODE_FAST);
+    if (status)
+        status->updateSoundIcon();
 }
 
 void
@@ -2908,9 +2922,7 @@ MainWindow::on_actionACPI_Shutdown_triggered()
     }
 
     if (device_has_power_button()) {
-        runctl_pause_wait(RUN_PAUSE_SYNC); /* Park the CPU before changing device state. */
-        device_power_button();
-        runctl_resume(RUN_PAUSE_SYNC);
+        runctl_call_wait([](void *) { device_power_button(); }, nullptr);
         return;
     }
 

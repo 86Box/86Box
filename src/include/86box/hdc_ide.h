@@ -233,6 +233,8 @@ extern void win_cdrom_reload(uint8_t id);
 
 extern void ide_set_base_addr(int board, int base, uint16_t port);
 extern void ide_set_irq(int board, int irq);
+extern void ide_set_pio_wait_ns(int board, double ns_per_word);
+extern void ide_set_single_sector_gap_ns(int board, double ns_per_sector);
 
 extern void ide_handlers(uint8_t board, int set);
 

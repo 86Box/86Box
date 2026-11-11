@@ -205,10 +205,6 @@ extern void        al_capture_start(void);
 extern void        al_capture_stop(void);
 extern void        al_capture_get_data(int16_t *buf, size_t *len);
 
-#ifdef bool
-extern bool        fast_forward;
-#endif
-
 extern unsigned long long src_freqs[I_MAX];
 
 extern void        givealbuffer_common(const void *buf, const uint8_t src, const int size);

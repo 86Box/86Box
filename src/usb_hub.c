@@ -619,18 +619,45 @@ hub_resume(usb_dev_t *udev, usb_dev_t *dev)
     }
 }
 
+static int
+hub_n_ports(UNUSED(usb_dev_t *udev))
+{
+    return HUB_PORTS;
+}
+
+static usb_dev_t *
+hub_port_dev(usb_dev_t *udev, int i)
+{
+    return ((i >= 0) && (i < HUB_PORTS)) ? ((usb_hub_t *) udev->priv)->port[i].dev : NULL;
+}
+
+static int
+hub_attach_port(usb_dev_t *udev, usb_dev_t *dev, int i)
+{
+    usb_hub_t *hub = (usb_hub_t *) udev->priv;
+
+    if ((i < 0) || (i >= HUB_PORTS) || (hub->port[i].dev != NULL))
+        return 0;
+
+    hub_port_attach(udev, &hub->port[i], dev);
+    return 1;
+}
+
 static const usb_dev_ops_t hub_ops = {
-    .control    = hub_control,
-    .data_in    = hub_data_in,
-    .data_out   = NULL,
-    .reset      = hub_reset,
-    .configured = hub_configured,
-    .route      = hub_route,
-    .attach     = hub_attach,
-    .detach     = hub_detach,
-    .eof_babble = hub_eof_babble,
-    .port_idle  = hub_port_idle,
-    .resume     = hub_resume
+    .control     = hub_control,
+    .data_in     = hub_data_in,
+    .data_out    = NULL,
+    .reset       = hub_reset,
+    .configured  = hub_configured,
+    .route       = hub_route,
+    .attach      = hub_attach,
+    .detach      = hub_detach,
+    .eof_babble  = hub_eof_babble,
+    .port_idle   = hub_port_idle,
+    .resume      = hub_resume,
+    .n_ports     = hub_n_ports,
+    .port_dev    = hub_port_dev,
+    .attach_port = hub_attach_port
 };
 
 static void *

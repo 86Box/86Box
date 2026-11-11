@@ -245,7 +245,7 @@ mouse_scale_coord_x(double x, int mul)
     double ratio = 1.0;
 
     if (!mouse_raw)        
-        ratio = ((double) monitors[0].mon_unscaled_size_x) / monitors[0].mon_res_x;
+        ratio = ((double) monitors[0].mon_unscaled_size_x) / monitors[0].mon_picture_x;
 
     if (mul)
         x *= ratio;
@@ -261,7 +261,7 @@ mouse_scale_coord_y(double y, int mul)
     double ratio = 1.0;
 
     if (!mouse_raw)        
-        ratio = ((double) monitors[0].mon_efscrnsz_y) / monitors[0].mon_res_y;
+        ratio = ((double) monitors[0].mon_efscrnsz_y) / monitors[0].mon_picture_y;
 
     if (mul)
         y *= ratio;

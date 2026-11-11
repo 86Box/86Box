@@ -28,13 +28,13 @@
 #include <86box/86box.h>
 #include <86box/sound.h>
 #include <86box/plat_unused.h>
+#include <86box/runctl.h>
 
 #if defined(OpenBSD) && OpenBSD >= 201709
 #define USE_NEW_API
 #endif
 
 static int                audio[I_MAX] = { -1, -1, -1, -1, -1, -1, -1, -1 };
-extern bool               fast_forward;
 
 #ifdef USE_NEW_API
 static struct audio_swpar info[8];
@@ -269,7 +269,7 @@ givealbuffer_common(const void *buf, const uint8_t src, const int size)
     double gain;
     int target_rate;
 
-    if(audio[src] == -1 || fast_forward)
+    if(audio[src] == -1 || (runctl_mode() == RUN_MODE_FAST))
         return;
 
     gain = sound_muted ? 0.0 : pow(10.0, (double) sound_gain / 20.0);

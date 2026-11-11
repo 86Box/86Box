@@ -37,6 +37,7 @@ extern const device_t fdc_compaticard_ii_device;
 extern const device_t fdc_compaticard_iv_device;
 
 extern const device_t fdc_monster_device;
+extern const device_t fdc_qd6500_device;
 
 extern void fdc_card_init(void);
 

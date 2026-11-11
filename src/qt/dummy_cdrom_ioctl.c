@@ -200,6 +200,9 @@ static const cdrom_ops_t ioctl_ops = {
     ioctl_has_audio,
     ioctl_has_data,
     ioctl_is_empty,
+    NULL,
+    NULL,
+    NULL,
     ioctl_close,
     ioctl_load,
     NULL

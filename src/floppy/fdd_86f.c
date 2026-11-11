@@ -3777,6 +3777,7 @@ d86f_load(void *priv, char *fn)
         if (!dev->fp)
             goto fail;
         drv->writeprot = 1;
+        drv->read_only = 1;
     }
 
     if (drv->read_only)

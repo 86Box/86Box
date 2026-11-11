@@ -28,6 +28,7 @@ add_library(cdrom OBJECT
     cdrom_aaru.c
     cdrom_image.c
     cdrom_image_viso.c
+    cdrom_image_writable.c
     cdrom_mitsumi.c
     cdrom_mke.c
     cdrom_hitachi.c

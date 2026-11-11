@@ -1579,7 +1579,7 @@ static uint16_t
 read_uint16_nrg(FILE *infile)
 {
     uint16_t buffer;
-    fread(&buffer, 2, 1, infile);
+    (void) !fread(&buffer, 2, 1, infile);
     buffer = bswap16(buffer);
     return buffer;
 }
@@ -1588,7 +1588,7 @@ static uint32_t
 read_uint32_nrg(FILE *infile)
 {
     uint32_t buffer;
-    fread(&buffer, 4, 1, infile);
+    (void) !fread(&buffer, 4, 1, infile);
     buffer = bswap32(buffer);
     return buffer;
 }
@@ -1597,7 +1597,7 @@ static uint64_t
 read_uint64_nrg(FILE *infile)
 {
     uint64_t buffer;
-    fread(&buffer, 8, 1, infile);
+    (void) !fread(&buffer, 8, 1, infile);
     buffer = bswap64(buffer);
     return buffer;
 }
@@ -1639,7 +1639,7 @@ image_load_nrg_fp(cd_image_t *img, FILE* file, const char* nrgfile)
     nrg_cue_t* first = NULL;
 
     fseeko64(file, -12ll, SEEK_END);
-    fread(idbuffer, 12, 1, file);
+    (void) !fread(idbuffer, 12, 1, file);
     bool nero5 = (idbuffer[0] == 'N' && idbuffer[1] == 'E' && idbuffer[2] == 'R' && idbuffer[3] == '5');
     bool nero4 = false;
     if (!nero5)
@@ -1653,7 +1653,7 @@ image_load_nrg_fp(cd_image_t *img, FILE* file, const char* nrgfile)
             // Parse SINF chunks first to identify the sessions.
             // Also parse CUEX chunks to identify useful information.
             chunk_pos = ftello64(file);
-            fread(idbuffer, 4, 1, file);
+            (void) !fread(idbuffer, 4, 1, file);
             uint32_t chunk_size = read_uint32_nrg(file);
             if (memcmp(idbuffer, "TOCT", 4) == 0)
                 media_type = read_uint16_nrg(file);
@@ -1664,9 +1664,9 @@ image_load_nrg_fp(cd_image_t *img, FILE* file, const char* nrgfile)
             } else if (memcmp(idbuffer, "CUEX", 4) == 0) {
                 for (uint32_t i = 0; i < chunk_size; i += 8) {
                     nrg_cue_t* cue_point = calloc(1, sizeof(nrg_cue_t));
-                    fread(&cue_point->attr, 1, 1, file);
-                    fread(&cue_point->point, 1, 1, file);
-                    fread(&cue_point->index, 1, 1, file);
+                    (void) !fread(&cue_point->attr, 1, 1, file);
+                    (void) !fread(&cue_point->point, 1, 1, file);
+                    (void) !fread(&cue_point->index, 1, 1, file);
                     fseeko64(file, 1, SEEK_CUR);
                     cue_point->start = read_uint32_nrg(file) + 150;
                     cue_point->attr = ((cue_point->attr & 0xF) << 4) | ((cue_point->attr & 0xF0) >> 4);
@@ -1687,16 +1687,16 @@ image_load_nrg_fp(cd_image_t *img, FILE* file, const char* nrgfile)
                 for (uint32_t i = 0; i < chunk_size; i += 8) {
                     uint8_t m = 0, s = 0, f = 0;
                     nrg_cue_t* cue_point = calloc(1, sizeof(nrg_cue_t));
-                    fread(&cue_point->attr, 1, 1, file);
-                    fread(&cue_point->point, 1, 1, file);
-                    fread(&cue_point->index, 1, 1, file);
+                    (void) !fread(&cue_point->attr, 1, 1, file);
+                    (void) !fread(&cue_point->point, 1, 1, file);
+                    (void) !fread(&cue_point->index, 1, 1, file);
                     fseeko64(file, 2, SEEK_CUR);
                     cue_point->point = bcd2bin(cue_point->point);
                     cue_point->index = bcd2bin(cue_point->index);
 
-                    fread(&m, 1, 1, file);
-                    fread(&s, 1, 1, file);
-                    fread(&f, 1, 1, file);
+                    (void) !fread(&m, 1, 1, file);
+                    (void) !fread(&s, 1, 1, file);
+                    (void) !fread(&f, 1, 1, file);
 
                     m = bcd2bin(m);
                     s = bcd2bin(s);
@@ -1737,15 +1737,15 @@ image_load_nrg_fp(cd_image_t *img, FILE* file, const char* nrgfile)
                 uint8_t first_trk_num = 0;
                 uint8_t last_trk_num  = 0;
                 fseeko64(file, 20, SEEK_CUR);
-                fread(&first_trk_num, 1, 1, file);
-                fread(&last_trk_num, 1, 1, file);
+                (void) !fread(&first_trk_num, 1, 1, file);
+                (void) !fread(&last_trk_num, 1, 1, file);
 
                 for (real_track_num = first_trk_num; real_track_num <= last_trk_num; real_track_num++) {
                     fseeko64(file, 12, SEEK_CUR);
                     uint16_t sect_size = read_uint16_nrg(file);
                     uint8_t  mode_byte = 0;
                     // The mode is a single byte, followed by 3 unknown bytes.
-                    fread(&mode_byte, 1, 1, file);
+                    (void) !fread(&mode_byte, 1, 1, file);
                     uint16_t sect_mode = mode_byte;
                     fseeko64(file, 3, SEEK_CUR);
                     uint64_t sect_start_pregap = read_uint64_nrg(file);
@@ -2774,7 +2774,7 @@ image_load_cue_fp(cd_image_t *img, const char *cuefile, FILE *fp)
         }
 
         if (sbi_handle != NULL) {
-            (void)fread(ident, 1, 4, sbi_handle);
+            (void) !fread(ident, 1, 4, sbi_handle);
             if (!memcmp(ident, "SBI", 4)) {
                 /* Null character is implicit. */
                 fseek(sbi_handle, 0, SEEK_END);
@@ -4078,6 +4078,9 @@ static const cdrom_ops_t image_ops = {
     image_is_dvd,
     image_has_audio,
     image_has_data,
+    NULL,
+    NULL,
+    NULL,
     NULL,
     image_close,
     NULL,
