@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-10 21:33+0000\n"
+"PO-Revision-Date: 2026-11-11 23:18+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -3740,564 +3740,641 @@ msgstr "De emulator is bezig; de geheugenweergave is niet geüpdatet."
 
 msgid "The match is not on mapped memory; the selection and the view did not move."
 msgstr ""
+"De overeenkomst bevindt zich niet in het toegewezen geheugen; de selectie en "
+"de weergave zijn niet verplaatst."
 
 msgid "Only RAM and video memory can be written."
-msgstr ""
+msgstr "Schrijven kan alleen naar RAM en videogeheugen."
 
 msgid "not written (not writable RAM or video memory, or the emulator is busy)."
 msgstr ""
+"niet weggeschreven (niet schijfbare RAM of videogeheugen, of de emulator is "
+"bezig)."
 
 msgid "The emulator is busy; try again."
-msgstr ""
+msgstr "De emulator is bezig; probeer nogmaals."
 
 msgid "Copied %1 bytes from %2 to the clipboard"
-msgstr ""
+msgstr "%1 bytes van %2 gekopieerd naar het klembord"
 
 msgid " (%1 could not be read)"
-msgstr ""
+msgstr " (%1 kon niet gelezen worden)"
 
 msgid " of a %1 byte selection"
-msgstr ""
+msgstr " van een %1 byteselectie"
 
 msgid "There is no mapped memory to search."
-msgstr ""
+msgstr "Er is geen toegewezen geheugen om te doorzoeken."
 
 msgid "There is no mapped memory in the requested range."
-msgstr ""
+msgstr "Er is geen toegewezen geheugen in het opgevraagde bereik."
 
 msgid "The search is limited to %1 bytes."
-msgstr ""
+msgstr "De zoekopdracht is beperkt to %1 bytes."
 
 msgid "Searching memory..."
-msgstr ""
+msgstr "Geheugen aan het doorzoeken..."
 
 msgid "The search was cancelled. The selection did not move."
-msgstr ""
+msgstr "De zoekopdracht was afgebroken. De selectie is niet verplaatst."
 
 msgid "Found at %1."
-msgstr ""
+msgstr "Gevonden op %1."
 
 msgid "Not found. The selection did not move."
-msgstr ""
+msgstr "Niet gevonden. De selectie is niet verplaatst."
 
 msgid "Fill selection"
-msgstr ""
+msgstr "Vul selectie"
 
 msgid "Fill %1 bytes from %2 with (hex):"
-msgstr ""
+msgstr "Vul %1 bytes van %2 met (hex):"
 
 msgid "Enter a hex byte from 00 to FF."
-msgstr ""
+msgstr "Geef een hexdecimale byte in van 00 to FF."
 
 msgid "Filled %1 of %2 bytes with %3 (%4 were not writable RAM or video memory)."
 msgstr ""
+"Gevuld met %1 van %2 bytes met %3 (%4 waren niet schrijfbare RAM of "
+"videogeheugen)."
 
 msgid " Selected: %1 bytes (%2 were skipped)."
-msgstr ""
+msgstr " Geselecteerd: %1 bytes (%2 zijn ovegeslagen)."
 
 msgid "Edit byte"
-msgstr ""
+msgstr "Bewerk byte"
 
 msgid "Copy selection (hex)"
-msgstr ""
+msgstr "Kopieer selectie (hex)"
 
 msgid "Copy selection (ASCII)"
-msgstr ""
+msgstr "Kopieer selectie (ASCII)"
 
 msgid "Fill selection..."
-msgstr ""
+msgstr "Vul selectie..."
 
 msgid "Copy address"
-msgstr ""
+msgstr "Kopieer adres"
 
 msgid "Disassemble here"
-msgstr ""
+msgstr "Hier disassembleren"
 
 msgid "Dump memory from here..."
-msgstr ""
+msgstr "Dump geheugen vanaf hier..."
 
 msgid "Memory viewer"
-msgstr ""
+msgstr "Geheugenviewer"
 
 msgid "Pause / Resume"
-msgstr ""
+msgstr "Pauzeren / Hervatten"
 
 msgid "Step"
-msgstr ""
+msgstr "Stap"
 
 msgid "Run the given number of instructions (F11)"
-msgstr ""
+msgstr "Voer de gegeven aantal instructies uit (F11)"
 
 msgid "Instructions per step"
-msgstr ""
+msgstr "Instructies per stap"
 
 msgid "Physical"
-msgstr ""
+msgstr "Fysiek"
 
 msgid "Address, register or seg:off"
-msgstr ""
+msgstr "Adres, register of seg:off"
 
 msgid "Go"
-msgstr ""
+msgstr "Uitvoeren"
 
 msgid "Live update"
-msgstr ""
+msgstr "Live bijwerken"
 
 msgid "Dump..."
-msgstr ""
+msgstr "Dump..."
 
 msgid "Commands"
-msgstr ""
+msgstr "Opdrachten"
 
 msgid "Show or hide debugger commands (Ctrl+D)"
-msgstr ""
+msgstr "Toon of verberg debuggeropdrachten (Ctrl+D)"
 
 msgid "Hex bytes"
-msgstr ""
+msgstr "Hexadecimale bytes"
 
 msgid "ASCII text"
-msgstr ""
+msgstr "ASCII-tekst"
 
 msgid "Value, byte"
-msgstr ""
+msgstr "Waarde, byte"
 
 msgid "Value, word"
-msgstr ""
+msgstr "Waarde, word"
 
 msgid "Value, dword"
-msgstr ""
+msgstr "Waarde, dword"
 
 msgid "What to look for: raw hex bytes, text, or a hex value stored little-endian, as in the hex view."
 msgstr ""
+"Waarnaar zoeken: ruwe hexadecimale bytes, tekst of een hexadecimale waarde "
+"die little-endian is opgeslagen, zoals weergegeven in de hexweergave."
 
 msgid "Memory search"
-msgstr ""
+msgstr "Geheugen doorzoeken"
 
 msgid "Ctrl+F focuses this box; Enter or F3 finds the next match, Shift+F3 the previous."
 msgstr ""
+"Ctrl+F voor focus op dit veld; Enter of F3 voor de volgende "
+"zoekovereenkomst, Shift+F3 voor de vorige."
 
 msgid "Find previous"
-msgstr ""
+msgstr "Vind vorige"
 
 msgid "Search upwards from the selection (Shift+F3)"
-msgstr ""
+msgstr "Vooruit zoeken vanaf de selectie (Shift+F3)"
 
 msgid "Find next"
-msgstr ""
+msgstr "Vind volgende"
 
 msgid "Search downwards from the selection (F3)"
-msgstr ""
+msgstr "Achteruit zoeken vanaf de selectie (F3)"
 
 msgid "Range..."
-msgstr ""
+msgstr "Bereik..."
 
 msgid "Search within an address range instead of all memory"
-msgstr ""
+msgstr "Zoek in een adresbereik in plaats van het gehele geheugen"
 
 msgid "From"
-msgstr ""
+msgstr "Van"
 
 msgid "Where the search starts (hex, register or seg:off; empty means the first mapped byte; . means the selection start)."
 msgstr ""
+"Waar de zoekopdracht begint (hexadecimaal, register of seg:off; leeg "
+"betekent de eerste toegewezen byte; . betekent het begin van de selectie)."
 
 msgid "To (inclusive)"
-msgstr ""
+msgstr "Naar (inclusief)"
 
 msgid "Where the search ends, that address included (hex, register or seg:off; empty means the last mapped byte; . means the selection end)."
 msgstr ""
+"Waar de zoekopdracht eindigt, inclusief dit adres (hexadecimaal, register of "
+"seg:off; leeg betekent de laatste toegewezen byte; . betekent het einde van "
+"de selectie)."
 
 msgid "Range from"
-msgstr ""
+msgstr "Bereik vanaf"
 
 msgid "to"
-msgstr ""
+msgstr "naar"
 
 msgid "RAM"
-msgstr ""
+msgstr "RAM"
 
 msgid "Mapped, not RAM"
-msgstr ""
+msgstr "Toegewezen, niet RAM"
 
 msgid "Unmapped"
-msgstr ""
+msgstr "Niet toegewezen"
 
 msgid "Inaccessible"
-msgstr ""
+msgstr "Niet toegankelijk"
 
 msgid "Inaccessible: only device handlers answer there (reading would have side effects), or the linear page is not present."
 msgstr ""
+"Niet toegankelijk: alleen apparaatdrivers kunnen deze locatie uitlezen ("
+"omdat uitlezen neveneffecten zou hebben), of de lineaire geheugenpagina is "
+"niet aanwezig."
 
 msgid "Linear address, register or seg:off"
-msgstr ""
+msgstr "Lineair adres, register of sec:off"
 
 msgid "Follow CS:IP"
-msgstr ""
+msgstr "Volg CS:IP"
 
 msgid "Bytes"
-msgstr ""
+msgstr "Bytes"
 
 msgid "Instruction"
-msgstr ""
+msgstr "Instructie"
 
 msgid "Note"
-msgstr ""
+msgstr "Opmerking"
 
 msgid "Double-click a line to set or clear a breakpoint there"
 msgstr ""
+"Dubbelklik op een regel om daar een onderbrekingspunt in te stellen of te "
+"verwijderen"
 
 msgid "Disassembly"
-msgstr ""
+msgstr "Disassemblage"
 
 msgid "Disassembly (not available in this build)"
-msgstr ""
+msgstr "Disassemblage (niet beschikbaar in deze versie)"
 
 msgid "Viewer message"
-msgstr ""
+msgstr "Bericht van de viewer"
 
 msgid "Selected range"
-msgstr ""
+msgstr "Geselecteerd bereik"
 
 msgid "Debugger commands"
-msgstr ""
+msgstr "Debuggeropdrachten"
 
 msgid "Debugger command output"
-msgstr ""
+msgstr "Uitvoer van debuggeropdracht"
 
 msgid "Debugger command"
-msgstr ""
+msgstr "Debuggeropdracht"
 
 msgid "help — commands; Up/Down — history; . — selected address"
-msgstr ""
+msgstr "help — opdrachten; Omhoog/Omlaag — geschiedenis; . — geselecteerd adres"
 
 msgid "Commands share the memory viewer's address space and selection. Type help for commands."
 msgstr ""
+"Opdrachten delen de adresruimte en selectie van de geheugenviewer. Typ help "
+"voor een overzicht van de opdrachten."
 
 msgid "Let the processor run (F5)"
-msgstr ""
+msgstr "De processor laten uitvoeren (F5)"
 
 msgid "Stop the processor at the next instruction (F5)"
-msgstr ""
+msgstr "Stop de processor bij de volgende instructie (F5)"
 
 msgid "Too many breakpoints."
-msgstr ""
+msgstr "Te veel onderbrekingspunten."
 
 msgid "Stopped: %1"
-msgstr ""
+msgstr "Gestopt: %1"
 
 msgid "The emulator is busy; the view was not updated."
-msgstr ""
+msgstr "De emulator is bezig; de weergave is niet geüpdatet."
 
 msgid "Stopped at a breakpoint."
-msgstr ""
+msgstr "Gestopt bij onderbrekingspunt."
 
 msgid "Stopped after stepping."
-msgstr ""
+msgstr "Gestopt na stapsgewijs uitvoeren."
 
 msgid "Stopped."
-msgstr ""
+msgstr "Gestopt."
 
 msgid "Stepping..."
-msgstr ""
+msgstr "Stapsgewijs uitvoeren..."
 
 msgid "Running."
-msgstr ""
+msgstr "Actief."
 
 msgid "The emulator is paused; resume it to run or step."
 msgstr ""
+"De emulator is gepauzeerd. Hervat de uitvoering om door te gaan of "
+"stapsgewijs uit te voeren."
 
 msgid "The dynamic recompiler is off while this window is open."
 msgstr ""
+"De dynamische hercompiler is uitgeschakeld zolang dit venster geopend is."
 
 msgid "Enter an address."
-msgstr ""
+msgstr "Voer een adres in."
 
 msgid "The selector cannot be looked up."
-msgstr ""
+msgstr "De selector kan niet worden opgezocht."
 
 msgid "Unknown segment \"%1\"."
-msgstr ""
+msgstr "Onbekend segment \"%1\"."
 
 msgid "Unknown offset \"%1\"."
-msgstr ""
+msgstr "Onbekende offset \"%1\"."
 
 msgid "The linear address is not mapped to physical memory."
-msgstr ""
+msgstr "Het lineaire adres is niet toegewezen aan fysiek geheugen."
 
 msgid "\"%1\" is not an address or a register."
-msgstr ""
+msgstr "\"%1\" is geen adres of register."
 
 msgid "Usage: %1"
-msgstr ""
+msgstr "Gebruik: %1"
 
 msgid "The selection is physical; use a linear address or switch to linear space."
 msgstr ""
+"De selectie is fysiek. Gebruik een lineair adres of schakel over naar de "
+"lineaire adresruimte."
 
 msgid "r name [hex-value]: read or edit a register supported by the current processor.\nEAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH DH BH\nIP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\nGDTR.base GDTR.limit IDTR.base IDTR.limit LDTR TR\nCS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (hidden descriptor cache)\nSelectors load descriptors without executing guest instructions; cache fields are literal edits.\nWrites require pause at a complete instruction boundary. NEC 8080-mode register edits are unavailable."
 msgstr ""
+"r naam [hexadecimale waarde]: lees of bewerk een door de huidige processor "
+"ondersteunde register.\n"
+"EAX ECX EDX EBX ESP EBP ESI EDI; AX CX DX BX SP BP SI DI; AL CL DL BL AH CH "
+"DH BH\n"
+"IP EIP FLAGS EFLAGS; CS SS DS ES FS GS; MSW CR0 CR2 CR3 CR4; DR0..DR7\n"
+"GDTR.base GDTR.limit IDTR.base IDTR.limit LDTR TR\n"
+"CS/SS/DS/ES/FS/GS/LDTR/TR: .base .limit .access .flags (verborgen "
+"descriptorcache)\n"
+"Selectors laden descriptors zonder gastinstructies uit te voeren; "
+"cachevelden worden rechtstreeks gewijzigd.\n"
+"Schrijfbewerkingen vereisen dat de uitvoering is gepauzeerd op een volledige "
+"instructiegrens. NEC 8080-modus register bewerkingen niet beschikbaar."
 
 msgid "Numbers are hexadecimal; step counts are decimal. Addresses accept registers and seg:off.\n. means the hex selection; omitted memory addresses use it.\nhelp | clear | refresh | regs\nrun | pause | step [count]\nspace physical|linear | goto address | db [address [length]] (max 1000 hex bytes)\nwrite address byte [byte ...] | dump (opens selection export)\ndbio [address [length]] | writeio address byte [byte ...] (device side effects; requires pause)\nu address (linear disassembly) | follow on|off\nbp address | bc address|all | bl (linear breakpoints)\nr [register [value]] (read/set; values are hex); help registers lists names\npeek port [b|w|d] | poke port value [b|w|d]\nRegister/memory writes and I/O require pause. I/O invokes device handlers, including read side effects."
 msgstr ""
+"Getallen zijn hexadecimaal; stapaantallen zijn decimaal. Adressen kunnen "
+"registers en seg:off bevatten.\n"
+". staat voor de hexadecimale selectie; als een geheugenadres wordt "
+"weggelaten, wordt deze selectie gebruikt.\n"
+"help | clear | refresh | regs\n"
+"run | pause | step [aantal]\n"
+"space physical|linear | goto adres | db [adres [lengte]] (max. 1000 "
+"hexadecimale bytes)\n"
+"write address byte [byte ...] | dump (opent de export van de selectie)\n"
+"dbio [adres [lengte]] | writeio address byte [byte ...] (neveneffecten van "
+"apparaatbewerkingen; vereist pauzeren)\n"
+"u adres (lineaire disassemblage) | volgen aan|uit\n"
+"bp adres | bc adres|all | bl (lineaire onderbrekingspunten)\n"
+"r [register [waarde]] (lezen/instellen; waarden zijn hexadecimaal); help "
+"registers geeft een lijst met registernamen\n"
+"peek poort [b|w|d] | poke poort waarde [b|w|d]\n"
+"Voor het schrijven naar registers of geheugen en voor I/O-bewerkingen moet "
+"de uitvoering gepauzeerd zijn. I/O-bewerkingen roepen de apparaatdrivers "
+"aan, inclusief leesbewerkingen met neveneffecten."
 
 msgid "Register unavailable, value invalid, or processor not paused at a complete instruction boundary."
 msgstr ""
+"Register niet beschikbaar, ongeldige waarde of de processor is niet "
+"gepauzeerd op een volledige instructiegrens."
 
 msgid "Pause the processor before side-effecting memory access."
 msgstr ""
+"Pauzeer de processor voordat benadering van geheugen waarbij neveneffecten "
+"kunnen optreden."
 
 msgid "Write exceeds 4096 bytes or wraps the address space."
 msgstr ""
+"De schrijfbewerking overschrijdt 4096 bytes of loopt over de adresruimte "
+"heen."
 
 msgid "Pause the processor before writing memory."
-msgstr ""
+msgstr "Pauzeer de processor voordat naar geheugen geschreven wordt."
 
 msgid "Issued %1 of %2 byte writes; devices may ignore writes. Untranslated addresses are skipped."
 msgstr ""
+"%1 van de %2 byte-schrijfbewerkingen uitgevoerd; apparaten kunnen "
+"schrijfbewerkingen negeren. Niet vertaalde adressen worden overgeslagen."
 
 msgid "Wrote %1 of %2 bytes; read-only or inaccessible bytes are skipped."
 msgstr ""
+"%1 van de %2 bytes geschreven; alleen-lezen of niet-toegankelijke bytes "
+"worden overgeslagen."
 
 msgid "Disassembly is not available in this build."
-msgstr ""
+msgstr "Disassemblage is niet beschikbaar in deze versie."
 
 msgid "Breakpoint %1 at %2."
-msgstr ""
+msgstr "Onderbrekingspunt %1 van %2."
 
 msgid "set"
-msgstr ""
+msgstr "gezet"
 
 msgid "cleared"
-msgstr ""
+msgstr "gewist"
 
 msgid "%1 breakpoint(s), linear addresses:"
-msgstr ""
+msgstr "%1 onderbrekingspunt(en), lineaire adressen:"
 
 msgid "Pause the processor before accessing I/O ports."
-msgstr ""
+msgstr "Pauzeer de processor voordat I/O-poorten benaderd worden."
 
 msgid "Unknown command or invalid arguments. Type help for syntax."
-msgstr ""
+msgstr "Onbekende opdracht of ongeldige argumenten. Typ help voor de syntax."
 
 msgid "Dump memory"
-msgstr ""
+msgstr "Dump geheugen"
 
 msgid "Browse..."
-msgstr ""
+msgstr "Bladeren..."
 
 msgid "Start (hex, register or seg:off):"
-msgstr ""
+msgstr "Start (hexadecimaal, register of seg:off):"
 
 msgid "Length (hex bytes):"
-msgstr ""
+msgstr "Lengte (hexadecimale bytes):"
 
 msgid "Address space:"
-msgstr ""
+msgstr "Adresruimte:"
 
 msgid "Fill byte for memory that cannot be read:"
-msgstr ""
+msgstr "Opvulbyte voor geheugen dat niet kan worden uitgelezen:"
 
 msgid "File:"
-msgstr ""
+msgstr "Bestand:"
 
 msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessible bytes are not read; the fill byte is written in their place."
 msgstr ""
+"Alleen RAM en ander rechtstreeks toegewezen geheugen worden uitgelezen. Niet-"
+"toegewezen en niet-toegankelijke bytes worden niet uitgelezen; in plaats "
+"daarvan wordt de opvulbyte ingevuld."
 
 msgid "Binary files (*.bin);;All files (*)"
-msgstr ""
+msgstr "Binaire bestanden (*.bin);;Alle bestanden (*)"
 
 msgid "The length must be a hex number above 0."
-msgstr ""
+msgstr "De lengte moet een hexadecimaal getal groter dan 0 zijn."
 
 msgid "The fill byte must be a hex number from 00 to FF."
-msgstr ""
+msgstr "De opvulbyte moet een hexadecimaal getal in het bereik 00 en FF zijn."
 
 msgid "Could not open %1 for writing."
-msgstr ""
+msgstr "Kon %1 niet openen voor schrijfbewerking."
 
 msgid "Dumping memory..."
-msgstr ""
+msgstr "Geheugen aan het dumpen..."
 
 msgid "Could not write to %1."
-msgstr ""
+msgstr "Kon niet schrijven naar %1."
 
 msgid "Dumped %1 bytes from %2 to %3 (%4 bytes could not be read and were filled)."
 msgstr ""
+"%1 bytes gedumpt van %2 naar %3 (%4 bytes konden niet worden uitgelezen en "
+"zijn opgevuld)."
 
 msgid "Enter hex bytes in pairs, e.g. \"8B 44 24 08\"."
-msgstr ""
+msgstr "Voer paren van hexadecimale bytes in, b.v. \"8B 44 24 08\"."
 
 msgid "\"%1\" is not made of hex bytes."
-msgstr ""
+msgstr "\"%1\" bestaat niet uit hexadecimale bytes."
 
 msgid "Enter a hex value from 0 to %1."
-msgstr ""
+msgstr "Voer een hexadecimale waarde van 0 to %1 in."
 
 msgid "The value is too large for %1 bytes."
-msgstr ""
+msgstr "De waarde is te groot voor %1 bytes."
 
 msgid "Enter something to search for."
-msgstr ""
+msgstr "Voer een zoekterm in."
 
 msgid "The range ends before it starts."
-msgstr ""
+msgstr "Het eindadres ligt vóór het beginadres."
 
 msgid "Serial Plug and Play"
-msgstr ""
+msgstr "Seriële Plug and Play"
 
 msgid "Standard 9600 bps modem (PNPC100)"
-msgstr ""
+msgstr "Standaard 9600 bps modem (PNPC100)"
 
 msgid "Standard 14400 bps modem (PNPC101)"
-msgstr ""
+msgstr "Standaard 14400 bps modem (PNPC101)"
 
 msgid "Standard 28800 bps modem (PNPC102)"
-msgstr ""
+msgstr "Standaard 28800 bps modem (PNPC102)"
 
 msgid "Standard modem (PNPC103)"
-msgstr ""
+msgstr "Standaard modem (PNPC103)"
 
 msgid "Enhanced 9600 bps modem (PNPC104)"
-msgstr ""
+msgstr "Uitgebreide 9600 bps modem (PNPC104)"
 
 msgid "Enhanced 14400 bps modem (PNPC105)"
-msgstr ""
+msgstr "Uitgebreide 14400 bps modem (PNPC105)"
 
 msgid "Enhanced 28800 bps modem (PNPC106)"
-msgstr ""
+msgstr "Uitgebreide 28800 bps modem (PNPC106)"
 
 msgid "Enhanced modem (PNPC107)"
-msgstr ""
+msgstr "Uitgebreide modem (PNPC107)"
 
 msgid "Telephone Tone Region"
-msgstr ""
+msgstr "Telefoontoonregio"
 
 msgid "North America"
-msgstr ""
+msgstr "Noord America"
 
 msgid "United Kingdom"
-msgstr ""
+msgstr "Verenigd Koninkrijk"
 
 msgid "Continental Europe"
-msgstr ""
+msgstr "Continentaal Europa"
 
 msgid "Japan"
-msgstr ""
+msgstr "Japan"
 
 msgid "Handshake Modem Standard"
-msgstr ""
+msgstr "Modemstandaard voor handshakes"
 
 msgid "Automatic (from DTE speed)"
-msgstr ""
+msgstr "Automatisch (op basis van de DTE-snelheid)"
 
 msgid "Connection Type"
-msgstr ""
+msgstr "Verbindingtype"
 
 msgid "Username"
-msgstr ""
+msgstr "Gebruikersnaam"
 
 msgid "Password"
-msgstr ""
+msgstr "Wachtwoord"
 
 msgid "PPP Compression and Encryption"
-msgstr ""
+msgstr "PPP Compressie en Encryptie"
 
 msgid "Automatic"
-msgstr ""
+msgstr "Automatisch"
 
 msgid "Require MPPE"
-msgstr ""
+msgstr "MPPE verplicht stellen"
 
 msgid "PPP Multilink Group (same on each link)"
-msgstr ""
+msgstr "PPP-multilinkgroep (hetzelfde voor elke verbinding)"
 
 msgid "PPP Primary DNS Server"
-msgstr ""
+msgstr "PPP Primaire DNS Server"
 
 msgid "PPP Secondary DNS Server"
-msgstr ""
+msgstr "PPP Secondaire DNS Server"
 
 msgid "CCP Directional Negotiation"
-msgstr ""
+msgstr "CCP-onderhandeling per richting"
 
 msgid "Bidirectional"
-msgstr ""
+msgstr "Bidirectioneel"
 
 msgid "Transmit-Only"
-msgstr ""
+msgstr "Alleen Verzenden"
 
 msgid "Receive-Only"
-msgstr ""
+msgstr "Alleen Ontvangen"
 
 msgid "Asymmetric Preferred"
-msgstr ""
+msgstr "Asymmetrisch heeft de voorkeur"
 
 msgid "PPP Callback (Microsoft CBCP)"
-msgstr ""
+msgstr "PPP-terugbelverzoek (Microsoft CBCP)"
 
 msgid "Offered (caller may decline)"
-msgstr ""
+msgstr "Aangeboden (de beller kan weigeren)"
 
 msgid "Required (caller must accept)"
-msgstr ""
+msgstr "Verplicht (de beller moet accepteren)"
 
 msgid "PPP Keepalive Interval (seconds, 0 = off)"
-msgstr ""
+msgstr "PPP-keepalive-interval (seconden, 0 = uitgeschakeld)"
 
 msgid "Report received DTMF to the host (<DLE>digit)"
-msgstr ""
+msgstr "Ontvangen DTMF-tonen doorgeven aan de host(<DLE>cijfer)"
 
 msgid "Off (only with +VDR=1)"
-msgstr ""
+msgstr "Uit (alleen met +VDR=1)"
 
 msgid "Caller ID between emulator instances (enable on both)"
-msgstr ""
+msgstr "Beller-ID tussen emulatorinstanties (op beide inschakelen)"
 
 msgid "Caller ID sent when dialling (number,name)"
-msgstr ""
+msgstr "Beller-ID verzenden bij het bellen (nummer,naam)"
 
 msgid "Network to guest queue limit (back-pressure)"
-msgstr ""
+msgstr "Wachtrijlimiet voor netwerkverkeer naar de gast (terugdrukregeling)"
 
 msgid "Unlimited (legacy)"
-msgstr ""
+msgstr "Onbeperkt (verouderd)"
 
 msgid "250 ms of line time"
-msgstr ""
+msgstr "250 ms lijntijd"
 
 msgid "500 ms of line time"
-msgstr ""
+msgstr "500 ms lijntijd"
 
 msgid "1 s of line time"
-msgstr ""
+msgstr "1 s lijntijd"
 
 msgid "2 s of line time"
-msgstr ""
+msgstr "2 s lijntijd"
 
 msgid "TCP send timeout"
-msgstr ""
+msgstr "TCP-timeout voor verzenden"
 
 msgid "Card:"
-msgstr ""
+msgstr "Kaart:"
 
 msgid "Hub:"
-msgstr ""
+msgstr "Hub:"
 
 msgid "Mass storage:"
-msgstr ""
+msgstr "Massaopslag:"
 
 msgid "Its drives are hard disks, CD-ROM drives and other removable devices set up on their own pages, on bus SCSI, in the channels named \"USB Mass Storage\". Each drive is one logical unit, in channel order."
 msgstr ""
+"De stations zijn harde schijven, cd-romstations en andere verwisselbare "
+"apparaten die op hun eigen pagina's zijn geconfigureerd, op de SCSI-bus, in "
+"de kanalen met de naam \"USB Mass Storage\". Elk station vormt één logische "
+"eenheid, in de volgorde van de kanalen."
 
 msgid "Hard disks…"
-msgstr ""
+msgstr "Harde schijven…"
 
 msgid "CD-ROM drives…"
-msgstr ""
+msgstr "Cd-romstations…"
 
 msgid "Other removable devices…"
-msgstr ""
+msgstr "Andere verwisselbare apparaten…"
 
 msgid "4-port USB 1.1 hub"
-msgstr ""
+msgstr "4-poorts USB 1.1-hub"
 
 msgid "USB Mass Storage"
-msgstr ""
+msgstr "USB-massaopslag"
