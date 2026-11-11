@@ -6,11 +6,11 @@
  *
  *          This file is part of the distribution.
  *
- *          Yamaha YMZ263B (MMA) recording helpers, shared by the
+ *          Yamaha YMZ263B (MMA) audio helpers, shared by the
  *          AdLib Gold and the Tandy Sensation/VIS audio.
  *
  *          Rates (register 9 FREQ): 44.1, 22.05, 11.025 and 7.35 kHz in PCM
- *          mode; ADPCM halves them (22.05 down to 5.5125 kHz). Formats
+ *          mode; ADPCM uses 22.05, 11.025, 7.35 and 5.5125 kHz. Formats
  *          (register 0Ch DATA FMT, AdLib Gold SDTK manual): 0 is the 8 MSBs
  *          of the 12-bit sample in one byte; 1 is the 8 LSBs, then the 4
  *          MSBs sign-extended; 2 is the 4 LSBs in the high nibble, then the
@@ -110,7 +110,7 @@ mma_rec_next_frame(mma_rec_t *rec, double rate)
 }
 
 int
-mma_rec_period(uint8_t reg9)
+mma_sample_period(uint8_t reg9)
 {
     static const int pcm[4]   = { 12, 24, 48, 72 }; /* 44.1, 22.05, 11.025, 7.35 kHz */
     static const int adpcm[4] = { 24, 48, 72, 96 }; /* 22.05 ... 5.5125 kHz */
@@ -134,11 +134,11 @@ mma_rec_unit(uint8_t reg9, uint8_t regc)
 }
 
 int
-mma_play_bytes(uint8_t regc)
+mma_play_bytes(uint8_t reg9, uint8_t regc)
 {
     const int fmt = (regc >> 5) & 3;
 
-    return ((fmt == 1) || (fmt == 2)) ? 2 : 1;
+    return ((reg9 & MMA_R9_PCM) && ((fmt == 1) || (fmt == 2))) ? 2 : 1;
 }
 
 int16_t
@@ -169,46 +169,63 @@ mma_rec_adpcm_reset(mma_rec_t *rec, int ch)
     rec->adpcm_half[ch] = 0;
 }
 
-/* Yamaha's 4-bit ADPCM (as the Y8950 / YM2608 ADPCM-B, which the MMA's is
-   said to match): the decoder adds (2 * |code| + 1) * step / 8 with the
-   code's sign, and scales the step by 0.9 to 2.4. The encoder runs the same
-   decoder so it tracks what the playback side will rebuild. */
+/* Yamaha 4-bit ADPCM, shared by the playback and recording predictors. */
+static void
+mma_adpcm_apply(uint8_t code, int32_t *predictor, int32_t *step)
+{
+    static const int step_adj[8] = { 57, 57, 57, 57, 77, 102, 128, 153 };
+    const int        mag         = code & 7;
+    const int32_t    delta       = (((mag << 1) + 1) * *step) >> 3;
+
+    *predictor += (code & 8) ? -delta : delta;
+    if (*predictor > 32767)
+        *predictor = 32767;
+    else if (*predictor < -32768)
+        *predictor = -32768;
+
+    *step = (*step * step_adj[mag]) >> 6;
+    if (*step < 127)
+        *step = 127;
+    else if (*step > 24576)
+        *step = 24576;
+}
+
+void
+mma_play_adpcm_reset(mma_play_adpcm_t *state)
+{
+    state->predictor  = 0;
+    state->step       = 127;
+    state->low_nibble = 0;
+}
+
+int
+mma_play_adpcm_decode(mma_play_adpcm_t *state, uint8_t byte, int16_t *sample)
+{
+    const int consumed = state->low_nibble;
+
+    mma_adpcm_apply(consumed ? (byte & 0x0f) : (byte >> 4), &state->predictor, &state->step);
+    state->low_nibble ^= 1;
+    *sample = (int16_t) state->predictor;
+    return consumed;
+}
+
 static uint8_t
 mma_rec_adpcm_code(mma_rec_t *rec, int ch, int sample)
 {
-    static const int step_adj[8] = { 57, 57, 57, 57, 77, 102, 128, 153 }; /* / 64 */
-    int32_t          step        = rec->adpcm_step[ch];
-    int32_t          diff        = sample - rec->adpcm_x[ch];
-    uint8_t          code        = 0;
-    int32_t          delta;
+    int32_t diff = sample - rec->adpcm_x[ch];
+    uint8_t code = 0;
 
     if (diff < 0) {
         code = 8;
         diff = -diff;
     }
     /* |code| = the nearest of 0..7 to diff * 8 / step - 1, over 2. */
-    int mag = (int) (((int64_t) diff * 4) / step);
+    int mag = (int) (((int64_t) diff * 4) / rec->adpcm_step[ch]);
     if (mag > 7)
         mag = 7;
     code |= mag;
 
-    delta = (((mag << 1) + 1) * step) >> 3;
-    if (code & 8)
-        rec->adpcm_x[ch] -= delta;
-    else
-        rec->adpcm_x[ch] += delta;
-    if (rec->adpcm_x[ch] > 32767)
-        rec->adpcm_x[ch] = 32767;
-    else if (rec->adpcm_x[ch] < -32768)
-        rec->adpcm_x[ch] = -32768;
-
-    step = (step * step_adj[mag]) >> 6;
-    if (step < 127)
-        step = 127;
-    else if (step > 24576)
-        step = 24576;
-    rec->adpcm_step[ch] = step;
-
+    mma_adpcm_apply(code, &rec->adpcm_x[ch], &rec->adpcm_step[ch]);
     return code;
 }
 

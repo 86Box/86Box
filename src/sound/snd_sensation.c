@@ -157,6 +157,9 @@ typedef struct sensation_t {
 
     void * log; /* New logging system */
 
+    mma_play_adpcm_t play_adpcm[2];
+    int              play_dma_channel;
+
     /* the MMA's recording side. */
     mma_rec_t rec;
     int       rec_on[2];
@@ -360,16 +363,17 @@ sensation_update_mma_irq_status(sensation_t *dev)
     }
 }
 
-void
-sensation_getsamp_dma(sensation_t *dev, int channel)
+static void
+sensation_getsamp_dma(sensation_t *dev, int channel, uint8_t reg9)
 {
-    int dma_dat;
+    int       dma_dat;
+    const int bytes = mma_play_bytes(reg9, dev->sensation_mma_regs[channel][0xc]);
 
     dev->finish_dma = 0;
 
     /* room for a whole sample (8-bit too), and a DMA channel with
        nothing to give ends a fill loop as a full FIFO does. */
-    if ((((dev->sensation_mma_fifo_end[channel] - dev->sensation_mma_fifo_start[channel]) & 255) + mma_play_bytes(dev->sensation_mma_regs[channel][0xc])) > 128) {
+    if ((((dev->sensation_mma_fifo_end[channel] - dev->sensation_mma_fifo_start[channel]) & 255) + bytes) > 128) {
         dev->finish_dma = 1;
         return;
     }
@@ -383,7 +387,7 @@ sensation_getsamp_dma(sensation_t *dev, int channel)
 
     dev->sensation_mma_fifo[channel][dev->sensation_mma_fifo_end[channel]] = dma_dat;
     dev->sensation_mma_fifo_end[channel] = (dev->sensation_mma_fifo_end[channel] + 1) & 255;
-    if (mma_play_bytes(dev->sensation_mma_regs[channel][0xc]) == 2) {
+    if (bytes == 2) {
         dma_dat = dma_channel_read(dev->mma_dma);
         if (dma_dat == DMA_NODATA)
             return;
@@ -395,6 +399,28 @@ sensation_getsamp_dma(sensation_t *dev, int channel)
        spurious interrupt on the 8259), and Tandy's driver would wait on. */
     if (((dev->sensation_mma_fifo_end[channel] - dev->sensation_mma_fifo_start[channel]) & 255) >= dev->sensation_mma_intpos[channel])
         dma_set_drq(dev->mma_dma, 0);
+}
+
+static int
+sensation_mma_adpcm_interleaved(const sensation_t *dev, uint8_t reg9)
+{
+    return (reg9 & MMA_R9_PLAY) && !(reg9 & MMA_R9_PCM) &&
+           (dev->sensation_mma_regs[0][0xc] & MMA_RC_ILV);
+}
+
+static void
+sensation_mma_adpcm_dma(sensation_t *dev, uint8_t reg9)
+{
+    if (!(dev->sensation_mma_regs[0][0xc] & dev->sensation_mma_regs[1][0xc] & MMA_RC_ENB))
+        return;
+
+    /* Keep the byte order across DMA block boundaries. */
+    for (int i = 0; i < 256; i++) {
+        sensation_getsamp_dma(dev, dev->play_dma_channel, reg9);
+        if (dev->finish_dma)
+            break;
+        dev->play_dma_channel ^= 1;
+    }
 }
 
 /* the MMA's recording (ADC). A channel records while GO is set with
@@ -467,7 +493,7 @@ sensation_mma_rec_update(sensation_t *dev)
 
     for (int ch = 0; ch < 2; ch++) {
         if (on[ch] && !dev->rec_on[ch]) {
-            dev->rec_count[ch] = mma_rec_period(dev->sensation_mma_regs[ilv ? 0 : ch][9]);
+            dev->rec_count[ch] = mma_sample_period(dev->sensation_mma_regs[ilv ? 0 : ch][9]);
             mma_rec_adpcm_reset(&dev->rec, ch);
             dev->rec_above[ch] = 0;
             dev->rec_dma_ch   = 0;
@@ -561,7 +587,7 @@ sensation_mma_rec_tick(sensation_t *dev, int ch)
     /* Both channels sample the same input frame; channel 0 moves it on, or
        channel 1 when it records alone. */
     if ((ch == 0) || !dev->rec_on[0])
-        mma_rec_next_frame(&dev->rec, 1000000.0 / (mma_rec_period(reg9) * 1.88964));
+        mma_rec_next_frame(&dev->rec, 1000000.0 / (mma_sample_period(reg9) * 1.88964));
 
     sensation_mma_rec_push(dev, ch, reg9);
     if (ilv)
@@ -780,24 +806,14 @@ sensation_mma_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x9:
-                    switch (val & 0x18) {
-                        case 0x00:
-                            dev->sensation_mma.voice_latch[0] = 12;
-                            break; /*44100 Hz*/
-                        case 0x08:
-                            dev->sensation_mma.voice_latch[0] = 24;
-                            break; /*22050 Hz*/
-                        case 0x10:
-                            dev->sensation_mma.voice_latch[0] = 48;
-                            break; /*11025 Hz*/
-                        case 0x18:
-                            dev->sensation_mma.voice_latch[0] = 72;
-                            break; /* 7350 Hz*/
-
-                        default:
-                            break;
+                    dev->sensation_mma.voice_latch[0] = mma_sample_period(val);
+                    if ((val & MMA_R9_RST) || ((val ^ dev->sensation_mma_regs[0][9]) & (MMA_R9_PCM | MMA_R9_PLAY))) {
+                        mma_play_adpcm_reset(&dev->play_adpcm[0]);
+                        dev->play_dma_channel = 0;
+                        if (dev->sensation_mma_regs[0][0xc] & MMA_RC_ILV)
+                            mma_play_adpcm_reset(&dev->play_adpcm[1]);
                     }
-                    if (val & 0x80) {
+                    if (val & MMA_R9_RST) {
                         dev->sensation_mma_enable[0]   = 0;
                         dev->sensation_mma_out[0]      = 0; /* no DC left behind */
                         dev->sensation_mma_fifo_end[0] = dev->sensation_mma_fifo_start[0] = 0;
@@ -805,19 +821,21 @@ sensation_mma_write(uint16_t addr, uint8_t val, void *priv)
                         sensation_update_mma_irq_status(dev);
                         dma_set_drq(dev->mma_dma, 0);
                     }
-                    if ((val & 0x01) && (val & MMA_R9_PLAY)) /*Start playback; not when recording*/
-                    {
-                        if (!(dev->sensation_mma_regs[0][0x9] & 1))
+                    if ((val & MMA_R9_GO) && (val & MMA_R9_PLAY)) {
+                        if ((dev->sensation_mma_regs[0][9] & (MMA_R9_GO | MMA_R9_PLAY)) != (MMA_R9_GO | MMA_R9_PLAY) ||
+                            (val & MMA_R9_RST))
                             dev->sensation_mma.voice_count[0] = dev->sensation_mma.voice_latch[0];
 
-                        if (dev->sensation_mma_regs[0][0xc] & 1) {
+                        if (sensation_mma_adpcm_interleaved(dev, val)) {
+                            sensation_mma_adpcm_dma(dev, val);
+                        } else if (dev->sensation_mma_regs[0][0xc] & MMA_RC_ENB) {
                             if (dev->sensation_mma_regs[0][0xc] & 0x80) {
                                 dev->sensation_mma_enable[1]      = 1;
                                 dev->sensation_mma.voice_count[1] = dev->sensation_mma.voice_latch[1];
 
                                 while (((dev->sensation_mma_fifo_end[0] - dev->sensation_mma_fifo_start[0]) & 255) < 128) {
-                                    sensation_getsamp_dma(dev, 0);
-                                    sensation_getsamp_dma(dev, 1);
+                                    sensation_getsamp_dma(dev, 0, val);
+                                    sensation_getsamp_dma(dev, 1, val);
                                     if (dev->finish_dma)
                                         break;
                                 }
@@ -833,7 +851,7 @@ sensation_mma_write(uint16_t addr, uint8_t val, void *priv)
                                 }
                             } else {
                                 while (((dev->sensation_mma_fifo_end[0] - dev->sensation_mma_fifo_start[0]) & 255) < 128) {
-                                    sensation_getsamp_dma(dev, 0);
+                                    sensation_getsamp_dma(dev, 0, val);
                                     if (dev->finish_dma)
                                         break;
                                 }
@@ -918,24 +936,12 @@ sensation_mma_write(uint16_t addr, uint8_t val, void *priv)
             switch (dev->sensation_mma_addr) {
                 case 0x9:
                     sensation_mma_update(dev);
-                    switch (val & 0x18) {
-                        case 0x00:
-                            dev->sensation_mma.voice_latch[1] = 12;
-                            break; /*44100 Hz*/
-                        case 0x08:
-                            dev->sensation_mma.voice_latch[1] = 24;
-                            break; /*22050 Hz*/
-                        case 0x10:
-                            dev->sensation_mma.voice_latch[1] = 48;
-                            break; /*11025 Hz*/
-                        case 0x18:
-                            dev->sensation_mma.voice_latch[1] = 72;
-                            break; /* 7350 Hz*/
-
-                        default:
-                            break;
-                    }
-                    if (val & 0x80) {
+                    dev->sensation_mma.voice_latch[1] = mma_sample_period(val);
+                    if ((val & MMA_R9_RST) ||
+                        (!(dev->sensation_mma_regs[0][0xc] & MMA_RC_ILV) &&
+                         ((val ^ dev->sensation_mma_regs[1][9]) & (MMA_R9_PCM | MMA_R9_PLAY))))
+                        mma_play_adpcm_reset(&dev->play_adpcm[1]);
+                    if (val & MMA_R9_RST) {
                         dev->sensation_mma_enable[1]   = 0;
                         dev->sensation_mma_out[1]      = 0; /* no DC left behind */
                         dev->sensation_mma_fifo_end[1] = dev->sensation_mma_fifo_start[1] = 0;
@@ -943,14 +949,15 @@ sensation_mma_write(uint16_t addr, uint8_t val, void *priv)
                         sensation_update_mma_irq_status(dev);
                         dma_set_drq(dev->mma_dma, 0);
                     }
-                    if ((val & 0x01) && (val & MMA_R9_PLAY)) /*Start playback; not when recording*/
-                    {
-                        if (!(dev->sensation_mma_regs[1][0x9] & 1))
+                    if ((val & MMA_R9_GO) && (val & MMA_R9_PLAY)) {
+                        if ((dev->sensation_mma_regs[1][9] & (MMA_R9_GO | MMA_R9_PLAY)) != (MMA_R9_GO | MMA_R9_PLAY) ||
+                            (val & MMA_R9_RST))
                             dev->sensation_mma.voice_count[1] = dev->sensation_mma.voice_latch[1];
 
-                        if (dev->sensation_mma_regs[1][0xc] & 1) {
+                        if ((dev->sensation_mma_regs[1][0xc] & MMA_RC_ENB) &&
+                            !sensation_mma_adpcm_interleaved(dev, dev->sensation_mma_regs[0][9])) {
                             while (((dev->sensation_mma_fifo_end[1] - dev->sensation_mma_fifo_start[1]) & 255) < 128) {
-                                sensation_getsamp_dma(dev, 1);
+                                sensation_getsamp_dma(dev, 1, val);
                                 if (dev->finish_dma)
                                     break;
                             }
@@ -1144,40 +1151,64 @@ sensation_mma_update(sensation_t *dev)
     }
 }
 
-void
-sensation_mma_poll(sensation_t *dev, int channel)
+static void
+sensation_mma_play_sample(sensation_t *dev, int channel, uint8_t reg9)
 {
-    int16_t dat;
+    const uint8_t regc  = dev->sensation_mma_regs[channel][0xc];
+    const int     start = dev->sensation_mma_fifo_start[channel];
+    int           bytes = mma_play_bytes(reg9, regc);
+
+    /* Hold the last sample while waiting for more FIFO data. */
+    if (sensation_mma_fifo_fill(dev, channel) < bytes)
+        return;
+
+    const uint8_t b0 = dev->sensation_mma_fifo[channel][start];
+
+    if (reg9 & MMA_R9_PCM) {
+        const uint8_t b1 = dev->sensation_mma_fifo[channel][(start + 1) & 255];
+
+        dev->sensation_mma_out[channel] = mma_play_decode(regc, dev->rec.offset8, b0, b1);
+    } else {
+        bytes = mma_play_adpcm_decode(&dev->play_adpcm[channel], b0, &dev->sensation_mma_out[channel]);
+    }
+
+    dev->sensation_mma_fifo_start[channel] = (start + bytes) & 255;
+}
+
+static void
+sensation_mma_poll(sensation_t *dev, int channel, int interleaved)
+{
+    const uint8_t reg9_ch0 = dev->sensation_mma_regs[0][9];
+    const int     control  = ((dev->sensation_mma_regs[0][0xc] & MMA_RC_ILV) &&
+                              ((reg9_ch0 & (MMA_R9_GO | MMA_R9_PLAY)) == (MMA_R9_GO | MMA_R9_PLAY))) ? 0 : channel;
+    const uint8_t reg9     = dev->sensation_mma_regs[control][9];
+    const uint8_t regc     = dev->sensation_mma_regs[channel][0xc];
 
     sensation_mma_update(dev);
 
-    /* the data formats as the MMA records them (8-bit is offset
-       binary: Tandy's driver sends 8-bit WAV data as it is). An empty FIFO
-       only holds the last sample: the channel plays on (asking for DMA)
-       until the driver clears GO, as a late DMA buffer must not end it. */
-    const uint8_t regc  = dev->sensation_mma_regs[channel][0xc];
-    const int     bytes = mma_play_bytes(regc);
-    const int     start = dev->sensation_mma_fifo_start[channel];
-
-    if (sensation_mma_fifo_fill(dev, channel) >= bytes) {
-        dat = mma_play_decode(regc, dev->rec.offset8, dev->sensation_mma_fifo[channel][start],
-                              dev->sensation_mma_fifo[channel][(start + 1) & 255]);
-        dev->sensation_mma_out[channel]        = dat;
-        dev->sensation_mma_fifo_start[channel] = (start + bytes) & 255;
-    }
-
-    /* the MMA asks for DMA while its FIFO has room, so a FIFO run
-       low (at a DMA block's end) fills up again. */
-    if (regc & MMA_RC_ENB) {
-        for (int i = 0; i < 128; i++) {
-            sensation_getsamp_dma(dev, channel);
-            if (dev->finish_dma)
-                break;
+    if (interleaved) {
+        /* A short DMA block can leave only one channel with a new byte. */
+        if (sensation_mma_fifo_fill(dev, 0) && sensation_mma_fifo_fill(dev, 1)) {
+            sensation_mma_play_sample(dev, 0, reg9);
+            sensation_mma_play_sample(dev, 1, reg9);
+        }
+        sensation_mma_adpcm_dma(dev, reg9);
+    } else {
+        sensation_mma_play_sample(dev, channel, reg9);
+        if (regc & MMA_RC_ENB) {
+            for (int i = 0; i < 128; i++) {
+                sensation_getsamp_dma(dev, channel, reg9);
+                if (dev->finish_dma)
+                    break;
+            }
         }
     }
-    if ((sensation_mma_fifo_fill(dev, channel) < dev->sensation_mma_intpos[channel]) && !(dev->sensation_mma_status & (1 << channel))) {
-        dev->sensation_mma_status |= (1 << channel);
-        sensation_update_mma_irq_status(dev);
+
+    for (int ch = channel; ch <= (interleaved ? 1 : channel); ch++) {
+        if ((sensation_mma_fifo_fill(dev, ch) < dev->sensation_mma_intpos[ch]) && !(dev->sensation_mma_status & (1 << ch))) {
+            dev->sensation_mma_status |= (1 << ch);
+            sensation_update_mma_irq_status(dev);
+        }
     }
 }
 
@@ -1236,28 +1267,30 @@ sensation_mma_timer_poll(void *priv)
 
     /* a recording channel samples instead (an interleaved pair on
        channel 0's clock). */
+    const int adpcm_interleaved = sensation_mma_adpcm_interleaved(dev, dev->sensation_mma_regs[0][9]);
+
     if (dev->rec_on[0]) {
         if (--dev->rec_count[0] <= 0) {
-            dev->rec_count[0] = mma_rec_period(dev->sensation_mma_regs[0][9]);
+            dev->rec_count[0] = mma_sample_period(dev->sensation_mma_regs[0][9]);
             sensation_mma_rec_tick(dev, 0);
         }
     } else if (dev->sensation_mma_enable[0]) {
         dev->sensation_mma.voice_count[0]--;
         if (!dev->sensation_mma.voice_count[0]) {
             dev->sensation_mma.voice_count[0] = dev->sensation_mma.voice_latch[0];
-            sensation_mma_poll(dev, 0);
+            sensation_mma_poll(dev, 0, adpcm_interleaved);
         }
     }
     if (dev->rec_on[1]) {
         if (!(dev->rec_on[0] && (dev->sensation_mma_regs[0][0xc] & MMA_RC_ILV)) && (--dev->rec_count[1] <= 0)) {
-            dev->rec_count[1] = mma_rec_period(dev->sensation_mma_regs[1][9]);
+            dev->rec_count[1] = mma_sample_period(dev->sensation_mma_regs[1][9]);
             sensation_mma_rec_tick(dev, 1);
         }
-    } else if (dev->sensation_mma_enable[1]) {
+    } else if (!adpcm_interleaved && dev->sensation_mma_enable[1]) {
         dev->sensation_mma.voice_count[1]--;
         if (!dev->sensation_mma.voice_count[1]) {
             dev->sensation_mma.voice_count[1] = dev->sensation_mma.voice_latch[1];
-            sensation_mma_poll(dev, 1);
+            sensation_mma_poll(dev, 1, 0);
         }
     }
 }
@@ -1421,6 +1454,9 @@ sensation_init(const device_t *info)
     /* Set up audio filters */
     sound_set_cd_audio_filter(NULL, NULL);
     sound_set_cd_audio_filter(sensation_filter_cd_audio, dev);
+
+    mma_play_adpcm_reset(&dev->play_adpcm[0]);
+    mma_play_adpcm_reset(&dev->play_adpcm[1]);
 
     return dev;
 }

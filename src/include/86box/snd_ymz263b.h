@@ -6,10 +6,9 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Yamaha YMZ263B (MMA) recording helpers, shared by the
- *          AdLib Gold and the Tandy Sensation/VIS audio: the host's input
- *          resampled to the MMA's sampling rate, and the MMA's record data
- *          formats (PCM 8/12-bit and 4-bit ADPCM).
+ *          Yamaha YMZ263B (MMA) audio helpers, shared by the
+ *          AdLib Gold and the Tandy Sensation/VIS audio: PCM and ADPCM
+ *          playback and recording, with host input resampling.
  *          Copyright 2026 Xeon3D.
  */
 #ifndef SOUND_YMZ263B_H
@@ -27,6 +26,12 @@
 #define MMA_RC_ENB 0x01
 #define MMA_RC_MSK 0x02
 #define MMA_RC_ILV 0x80
+
+typedef struct mma_play_adpcm_t {
+    int32_t predictor;
+    int32_t step;
+    int     low_nibble;
+} mma_play_adpcm_t;
 
 typedef struct mma_rec_t {
     /* The host's input frames (at in_rate) until the ADC takes them. */
@@ -61,8 +66,8 @@ extern void mma_rec_put_buffer(int16_t *buffer, int len, void *priv);
 /* Take the next input frame at the given ADC rate into rec->l / rec->r. */
 extern void mma_rec_next_frame(mma_rec_t *rec, double rate);
 
-/* The ADC's sampling rate in ticks of the MMA's 1.88964 us clock. */
-extern int mma_rec_period(uint8_t reg9);
+/* The sample period in ticks of the MMA's 1.88964 us clock. */
+extern int mma_sample_period(uint8_t reg9);
 
 /* The FIFO fill above which a recording channel raises its FIFO flag. */
 extern int mma_rec_fifo_level(uint8_t regc);
@@ -77,9 +82,13 @@ extern void mma_rec_adpcm_reset(mma_rec_t *rec, int ch);
    bytes put in out (0 to 2: ADPCM gives a byte every second sample). */
 extern int mma_rec_encode(mma_rec_t *rec, int ch, int sample, uint8_t reg9, uint8_t regc, uint8_t *out);
 
-/* Playback: the bytes one sample takes in the channel's PCM format, and the
-   16-bit sample they hold. */
-extern int     mma_play_bytes(uint8_t regc);
+/* Playback DMA unit size and PCM sample decoding. */
+extern int     mma_play_bytes(uint8_t reg9, uint8_t regc);
 extern int16_t mma_play_decode(uint8_t regc, int offset8, uint8_t b0, uint8_t b1);
+
+extern void mma_play_adpcm_reset(mma_play_adpcm_t *state);
+
+/* Decode one nibble. Return the number of FIFO bytes consumed (0 or 1). */
+extern int mma_play_adpcm_decode(mma_play_adpcm_t *state, uint8_t byte, int16_t *sample);
 
 #endif /*SOUND_YMZ263B_H*/

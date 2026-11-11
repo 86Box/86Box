@@ -98,6 +98,9 @@ typedef struct adgold_t {
 
     int finish_dma;
 
+    mma_play_adpcm_t play_adpcm[2];
+    int              play_dma_channel;
+
     /* the MMA's recording side. */
     mma_rec_t rec;
     int       rec_on[2];
@@ -199,16 +202,17 @@ adgold_update_irq_status(adgold_t *adgold)
     adgold->adgold_irq_status = adgold->adgold_status ^ 0xf;
 }
 
-void
-adgold_getsamp_dma(adgold_t *adgold, int channel)
+static void
+adgold_getsamp_dma(adgold_t *adgold, int channel, uint8_t reg9)
 {
-    int dma_dat;
+    int       dma_dat;
+    const int bytes = mma_play_bytes(reg9, adgold->adgold_mma_regs[channel][0xc]);
 
     adgold->finish_dma = 0;
 
     /* room for a whole sample (8-bit too), and a DMA channel with
        nothing to give ends a fill loop as a full FIFO does. */
-    if ((((adgold->adgold_mma_fifo_end[channel] - adgold->adgold_mma_fifo_start[channel]) & 255) + mma_play_bytes(adgold->adgold_mma_regs[channel][0xc])) > 128) {
+    if ((((adgold->adgold_mma_fifo_end[channel] - adgold->adgold_mma_fifo_start[channel]) & 255) + bytes) > 128) {
         adgold->finish_dma = 1;
         return;
     }
@@ -222,7 +226,7 @@ adgold_getsamp_dma(adgold_t *adgold, int channel)
 
     adgold->adgold_mma_fifo[channel][adgold->adgold_mma_fifo_end[channel]] = dma_dat;
     adgold->adgold_mma_fifo_end[channel] = (adgold->adgold_mma_fifo_end[channel] + 1) & 255;
-    if (mma_play_bytes(adgold->adgold_mma_regs[channel][0xc]) == 2) {
+    if (bytes == 2) {
         dma_dat = dma_channel_read(adgold->dma);
         if (dma_dat == DMA_NODATA)
             return;
@@ -233,6 +237,28 @@ adgold_getsamp_dma(adgold_t *adgold, int channel)
        dropped here, the IRQ could fall before the CPU takes it. */
     if (((adgold->adgold_mma_fifo_end[channel] - adgold->adgold_mma_fifo_start[channel]) & 255) >= adgold->adgold_mma_intpos[channel])
         dma_set_drq(adgold->dma, 0);
+}
+
+static int
+adgold_mma_adpcm_interleaved(const adgold_t *adgold, uint8_t reg9)
+{
+    return (reg9 & MMA_R9_PLAY) && !(reg9 & MMA_R9_PCM) &&
+           (adgold->adgold_mma_regs[0][0xc] & MMA_RC_ILV);
+}
+
+static void
+adgold_mma_adpcm_dma(adgold_t *adgold, uint8_t reg9)
+{
+    if (!(adgold->adgold_mma_regs[0][0xc] & adgold->adgold_mma_regs[1][0xc] & MMA_RC_ENB))
+        return;
+
+    /* Keep the byte order across DMA block boundaries. */
+    for (int i = 0; i < 256; i++) {
+        adgold_getsamp_dma(adgold, adgold->play_dma_channel, reg9);
+        if (adgold->finish_dma)
+            break;
+        adgold->play_dma_channel ^= 1;
+    }
 }
 
 /* the MMA's recording (ADC). A channel records while GO is set with
@@ -305,7 +331,7 @@ adgold_mma_rec_update(adgold_t *adgold)
 
     for (int ch = 0; ch < 2; ch++) {
         if (on[ch] && !adgold->rec_on[ch]) {
-            adgold->rec_count[ch] = mma_rec_period(adgold->adgold_mma_regs[ilv ? 0 : ch][9]);
+            adgold->rec_count[ch] = mma_sample_period(adgold->adgold_mma_regs[ilv ? 0 : ch][9]);
             mma_rec_adpcm_reset(&adgold->rec, ch);
             adgold->rec_above[ch] = 0;
             adgold->rec_dma_ch   = 0;
@@ -409,7 +435,7 @@ adgold_mma_rec_tick(adgold_t *adgold, int ch)
     /* Both channels sample the same input frame; channel 0 moves it on, or
        channel 1 when it records alone. */
     if ((ch == 0) || !adgold->rec_on[0])
-        mma_rec_next_frame(&adgold->rec, 1000000.0 / (mma_rec_period(reg9) * 1.88964));
+        mma_rec_next_frame(&adgold->rec, 1000000.0 / (mma_sample_period(reg9) * 1.88964));
 
     adgold_mma_rec_push(adgold, ch, reg9);
     if (ilv)
@@ -553,24 +579,14 @@ adgold_write(uint16_t addr, uint8_t val, void *priv)
                     break;
 
                 case 0x9:
-                    switch (val & 0x18) {
-                        case 0x00:
-                            adgold->adgold_mma.voice_latch[0] = 12;
-                            break; /*44100 Hz*/
-                        case 0x08:
-                            adgold->adgold_mma.voice_latch[0] = 24;
-                            break; /*22050 Hz*/
-                        case 0x10:
-                            adgold->adgold_mma.voice_latch[0] = 48;
-                            break; /*11025 Hz*/
-                        case 0x18:
-                            adgold->adgold_mma.voice_latch[0] = 72;
-                            break; /* 7350 Hz*/
-
-                        default:
-                            break;
+                    adgold->adgold_mma.voice_latch[0] = mma_sample_period(val);
+                    if ((val & MMA_R9_RST) || ((val ^ adgold->adgold_mma_regs[0][9]) & (MMA_R9_PCM | MMA_R9_PLAY))) {
+                        mma_play_adpcm_reset(&adgold->play_adpcm[0]);
+                        adgold->play_dma_channel = 0;
+                        if (adgold->adgold_mma_regs[0][0xc] & MMA_RC_ILV)
+                            mma_play_adpcm_reset(&adgold->play_adpcm[1]);
                     }
-                    if (val & 0x80) {
+                    if (val & MMA_R9_RST) {
                         adgold->adgold_mma_enable[0]   = 0;
                         adgold->adgold_mma_out[0]      = 0; /* no DC left behind */
                         adgold->adgold_mma_fifo_end[0] = adgold->adgold_mma_fifo_start[0] = 0;
@@ -578,19 +594,21 @@ adgold_write(uint16_t addr, uint8_t val, void *priv)
                         adgold_update_irq_status(adgold);
                         dma_set_drq(adgold->dma, 0);
                     }
-                    if ((val & 0x01) && (val & MMA_R9_PLAY)) /*Start playback; not when recording*/
-                    {
-                        if (!(adgold->adgold_mma_regs[0][0x9] & 1))
+                    if ((val & MMA_R9_GO) && (val & MMA_R9_PLAY)) {
+                        if ((adgold->adgold_mma_regs[0][9] & (MMA_R9_GO | MMA_R9_PLAY)) != (MMA_R9_GO | MMA_R9_PLAY) ||
+                            (val & MMA_R9_RST))
                             adgold->adgold_mma.voice_count[0] = adgold->adgold_mma.voice_latch[0];
 
-                        if (adgold->adgold_mma_regs[0][0xc] & 1) {
+                        if (adgold_mma_adpcm_interleaved(adgold, val)) {
+                            adgold_mma_adpcm_dma(adgold, val);
+                        } else if (adgold->adgold_mma_regs[0][0xc] & MMA_RC_ENB) {
                             if (adgold->adgold_mma_regs[0][0xc] & 0x80) {
                                 adgold->adgold_mma_enable[1]      = 1;
                                 adgold->adgold_mma.voice_count[1] = adgold->adgold_mma.voice_latch[1];
 
                                 while (((adgold->adgold_mma_fifo_end[0] - adgold->adgold_mma_fifo_start[0]) & 255) < 128) {
-                                    adgold_getsamp_dma(adgold, 0);
-                                    adgold_getsamp_dma(adgold, 1);
+                                    adgold_getsamp_dma(adgold, 0, val);
+                                    adgold_getsamp_dma(adgold, 1, val);
                                     if (adgold->finish_dma)
                                         break;
                                 }
@@ -606,7 +624,7 @@ adgold_write(uint16_t addr, uint8_t val, void *priv)
                                 }
                             } else {
                                 while (((adgold->adgold_mma_fifo_end[0] - adgold->adgold_mma_fifo_start[0]) & 255) < 128) {
-                                    adgold_getsamp_dma(adgold, 0);
+                                    adgold_getsamp_dma(adgold, 0, val);
                                     if (adgold->finish_dma)
                                         break;
                                 }
@@ -691,24 +709,12 @@ adgold_write(uint16_t addr, uint8_t val, void *priv)
             switch (adgold->adgold_mma_addr) {
                 case 0x9:
                     adgold_update(adgold);
-                    switch (val & 0x18) {
-                        case 0x00:
-                            adgold->adgold_mma.voice_latch[1] = 12;
-                            break; /*44100 Hz*/
-                        case 0x08:
-                            adgold->adgold_mma.voice_latch[1] = 24;
-                            break; /*22050 Hz*/
-                        case 0x10:
-                            adgold->adgold_mma.voice_latch[1] = 48;
-                            break; /*11025 Hz*/
-                        case 0x18:
-                            adgold->adgold_mma.voice_latch[1] = 72;
-                            break; /* 7350 Hz*/
-
-                        default:
-                            break;
-                    }
-                    if (val & 0x80) {
+                    adgold->adgold_mma.voice_latch[1] = mma_sample_period(val);
+                    if ((val & MMA_R9_RST) ||
+                        (!(adgold->adgold_mma_regs[0][0xc] & MMA_RC_ILV) &&
+                         ((val ^ adgold->adgold_mma_regs[1][9]) & (MMA_R9_PCM | MMA_R9_PLAY))))
+                        mma_play_adpcm_reset(&adgold->play_adpcm[1]);
+                    if (val & MMA_R9_RST) {
                         adgold->adgold_mma_enable[1]   = 0;
                         adgold->adgold_mma_out[1]      = 0; /* no DC left behind */
                         adgold->adgold_mma_fifo_end[1] = adgold->adgold_mma_fifo_start[1] = 0;
@@ -716,14 +722,15 @@ adgold_write(uint16_t addr, uint8_t val, void *priv)
                         adgold_update_irq_status(adgold);
                         dma_set_drq(adgold->dma, 0);
                     }
-                    if ((val & 0x01) && (val & MMA_R9_PLAY)) /*Start playback; not when recording*/
-                    {
-                        if (!(adgold->adgold_mma_regs[1][0x9] & 1))
+                    if ((val & MMA_R9_GO) && (val & MMA_R9_PLAY)) {
+                        if ((adgold->adgold_mma_regs[1][9] & (MMA_R9_GO | MMA_R9_PLAY)) != (MMA_R9_GO | MMA_R9_PLAY) ||
+                            (val & MMA_R9_RST))
                             adgold->adgold_mma.voice_count[1] = adgold->adgold_mma.voice_latch[1];
 
-                        if (adgold->adgold_mma_regs[1][0xc] & 1) {
+                        if ((adgold->adgold_mma_regs[1][0xc] & MMA_RC_ENB) &&
+                            !adgold_mma_adpcm_interleaved(adgold, adgold->adgold_mma_regs[0][9])) {
                             while (((adgold->adgold_mma_fifo_end[1] - adgold->adgold_mma_fifo_start[1]) & 255) < 128) {
-                                adgold_getsamp_dma(adgold, 1);
+                                adgold_getsamp_dma(adgold, 1, val);
                                 if (adgold->finish_dma)
                                     break;
                             }
@@ -876,39 +883,64 @@ adgold_update(adgold_t *adgold)
     }
 }
 
-void
-adgold_mma_poll(adgold_t *adgold, int channel)
+static void
+adgold_mma_play_sample(adgold_t *adgold, int channel, uint8_t reg9)
 {
-    int16_t dat;
+    const uint8_t regc  = adgold->adgold_mma_regs[channel][0xc];
+    const int     start = adgold->adgold_mma_fifo_start[channel];
+    int           bytes = mma_play_bytes(reg9, regc);
+
+    /* Hold the last sample while waiting for more FIFO data. */
+    if (adgold_mma_fifo_fill(adgold, channel) < bytes)
+        return;
+
+    const uint8_t b0 = adgold->adgold_mma_fifo[channel][start];
+
+    if (reg9 & MMA_R9_PCM) {
+        const uint8_t b1 = adgold->adgold_mma_fifo[channel][(start + 1) & 255];
+
+        adgold->adgold_mma_out[channel] = mma_play_decode(regc, adgold->rec.offset8, b0, b1);
+    } else {
+        bytes = mma_play_adpcm_decode(&adgold->play_adpcm[channel], b0, &adgold->adgold_mma_out[channel]);
+    }
+
+    adgold->adgold_mma_fifo_start[channel] = (start + bytes) & 255;
+}
+
+static void
+adgold_mma_poll(adgold_t *adgold, int channel, int interleaved)
+{
+    const uint8_t reg9_ch0 = adgold->adgold_mma_regs[0][9];
+    const int     control  = ((adgold->adgold_mma_regs[0][0xc] & MMA_RC_ILV) &&
+                              ((reg9_ch0 & (MMA_R9_GO | MMA_R9_PLAY)) == (MMA_R9_GO | MMA_R9_PLAY))) ? 0 : channel;
+    const uint8_t reg9     = adgold->adgold_mma_regs[control][9];
+    const uint8_t regc     = adgold->adgold_mma_regs[channel][0xc];
 
     adgold_update(adgold);
 
-    /* the data formats as the MMA records them. An empty FIFO only
-       holds the last sample: the channel plays on (asking for DMA) until the
-       driver clears GO, as a late DMA buffer must not end it. */
-    const uint8_t regc  = adgold->adgold_mma_regs[channel][0xc];
-    const int     bytes = mma_play_bytes(regc);
-    const int     start = adgold->adgold_mma_fifo_start[channel];
-
-    if (adgold_mma_fifo_fill(adgold, channel) >= bytes) {
-        dat = mma_play_decode(regc, adgold->rec.offset8, adgold->adgold_mma_fifo[channel][start],
-                              adgold->adgold_mma_fifo[channel][(start + 1) & 255]);
-        adgold->adgold_mma_out[channel]        = dat;
-        adgold->adgold_mma_fifo_start[channel] = (start + bytes) & 255;
-    }
-
-    /* the MMA asks for DMA while its FIFO has room, so a FIFO run
-       low (at a DMA block's end) fills up again. */
-    if (regc & MMA_RC_ENB) {
-        for (int i = 0; i < 128; i++) {
-            adgold_getsamp_dma(adgold, channel);
-            if (adgold->finish_dma)
-                break;
+    if (interleaved) {
+        /* A short DMA block can leave only one channel with a new byte. */
+        if (adgold_mma_fifo_fill(adgold, 0) && adgold_mma_fifo_fill(adgold, 1)) {
+            adgold_mma_play_sample(adgold, 0, reg9);
+            adgold_mma_play_sample(adgold, 1, reg9);
+        }
+        adgold_mma_adpcm_dma(adgold, reg9);
+    } else {
+        adgold_mma_play_sample(adgold, channel, reg9);
+        if (regc & MMA_RC_ENB) {
+            for (int i = 0; i < 128; i++) {
+                adgold_getsamp_dma(adgold, channel, reg9);
+                if (adgold->finish_dma)
+                    break;
+            }
         }
     }
-    if ((adgold_mma_fifo_fill(adgold, channel) < adgold->adgold_mma_intpos[channel]) && !(adgold->adgold_mma_status & (1 << channel))) {
-        adgold->adgold_mma_status |= (1 << channel);
-        adgold_update_irq_status(adgold);
+
+    for (int ch = channel; ch <= (interleaved ? 1 : channel); ch++) {
+        if ((adgold_mma_fifo_fill(adgold, ch) < adgold->adgold_mma_intpos[ch]) && !(adgold->adgold_mma_status & (1 << ch))) {
+            adgold->adgold_mma_status |= (1 << ch);
+            adgold_update_irq_status(adgold);
+        }
     }
 }
 
@@ -967,28 +999,30 @@ adgold_timer_poll(void *priv)
 
     /* a recording channel samples instead (an interleaved pair on
        channel 0's clock). */
+    const int adpcm_interleaved = adgold_mma_adpcm_interleaved(adgold, adgold->adgold_mma_regs[0][9]);
+
     if (adgold->rec_on[0]) {
         if (--adgold->rec_count[0] <= 0) {
-            adgold->rec_count[0] = mma_rec_period(adgold->adgold_mma_regs[0][9]);
+            adgold->rec_count[0] = mma_sample_period(adgold->adgold_mma_regs[0][9]);
             adgold_mma_rec_tick(adgold, 0);
         }
     } else if (adgold->adgold_mma_enable[0]) {
         adgold->adgold_mma.voice_count[0]--;
         if (!adgold->adgold_mma.voice_count[0]) {
             adgold->adgold_mma.voice_count[0] = adgold->adgold_mma.voice_latch[0];
-            adgold_mma_poll(adgold, 0);
+            adgold_mma_poll(adgold, 0, adpcm_interleaved);
         }
     }
     if (adgold->rec_on[1]) {
         if (!(adgold->rec_on[0] && (adgold->adgold_mma_regs[0][0xc] & MMA_RC_ILV)) && (--adgold->rec_count[1] <= 0)) {
-            adgold->rec_count[1] = mma_rec_period(adgold->adgold_mma_regs[1][9]);
+            adgold->rec_count[1] = mma_sample_period(adgold->adgold_mma_regs[1][9]);
             adgold_mma_rec_tick(adgold, 1);
         }
-    } else if (adgold->adgold_mma_enable[1]) {
+    } else if (!adpcm_interleaved && adgold->adgold_mma_enable[1]) {
         adgold->adgold_mma.voice_count[1]--;
         if (!adgold->adgold_mma.voice_count[1]) {
             adgold->adgold_mma.voice_count[1] = adgold->adgold_mma.voice_latch[1];
-            adgold_mma_poll(adgold, 1);
+            adgold_mma_poll(adgold, 1, 0);
         }
     }
 }
@@ -1287,6 +1321,9 @@ adgold_init(UNUSED(const device_t *info))
 
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, adgold_input_msg, adgold_input_sysex, adgold_input_remain, adgold);
+
+    mma_play_adpcm_reset(&adgold->play_adpcm[0]);
+    mma_play_adpcm_reset(&adgold->play_adpcm[1]);
 
     return adgold;
 }
