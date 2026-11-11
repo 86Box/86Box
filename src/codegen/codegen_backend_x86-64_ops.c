@@ -291,6 +291,13 @@ host_x86_JZ(codeblock_t *block, void *p)
 }
 
 uint8_t *
+host_x86_JBE_short(codeblock_t *block)
+{
+    codegen_alloc_bytes(block, 2);
+    codegen_addbyte2(block, 0x76, 0); /*JBE*/
+    return &block_write_data[block_pos - 1];
+}
+uint8_t *
 host_x86_JNBE_short(codeblock_t *block)
 {
     codegen_alloc_bytes(block, 2);
@@ -1282,6 +1289,19 @@ host_x86_SUB64_REG_IMM(codeblock_t *block, int dst_reg, uint64_t imm_data)
     else
         fatal("SUB64_REG_IMM !is_imm8 %016" PRIx64 "\n", imm_data);
 }
+void
+host_x86_SUB32_ABS_REG(codeblock_t *block, void *p, int src_reg)
+{
+    int64_t offset = rbp_offset(p);
+
+    if (offset >= -128 && offset <= 127)
+        emit_mem(block, 0, 0, 0, 1, 0x29, src_reg, REG_RBP, NO_INDEX, 0, offset, DISP_8, 0, 0); /*SUB offset[RBP], src_reg*/
+    else if (fits_disp32(offset))
+        emit_mem(block, 0, 0, 0, 1, 0x29, src_reg, REG_RBP, NO_INDEX, 0, offset, DISP_32, 0, 0); /*SUB offset[RBP], src_reg*/
+    else
+        fatal("host_x86_SUB32_ABS_REG - out of range %p\n", p);
+}
+
 void
 host_x86_SUB8_REG_REG(codeblock_t *block, int dst_reg, int src_reg)
 {
