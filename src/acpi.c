@@ -2681,11 +2681,16 @@ acpi_update_io_mapping(acpi_t *dev, uint32_t base, int chipset_en)
     switch (dev->vendor) {
         default:
         case VEN_ALI:
-        case VEN_INTEL:
         case VEN_SIS_5582:
         case VEN_SIS_5595_1997:
         case VEN_SIS_5595:
             size = 0x040;
+            break;
+        case VEN_INTEL:
+            /* The registers end with GPOREG at 37h; nothing in the 64-byte
+               PMBA block answers at 38h-3Fh (PIIX4 3.4.1, Table 11,
+               p. 51-52 / PDF 51-52). */
+            size = 0x038;
             break;
         case VEN_SMC:
             size = 0x010;
