@@ -247,6 +247,9 @@ msgstr "&Tùy biến…"
 msgid "Sound &gain…"
 msgstr "Bộ &tăng âm…"
 
+msgid "M&IDI output device"
+msgstr ""
+
 msgid "Begin trace"
 msgstr "Bắt đầu dò"
 

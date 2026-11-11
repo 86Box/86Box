@@ -25,6 +25,7 @@
 
 #include "qt_specifydimensions.h"
 #include "qt_soundgain.hpp"
+#include "qt_models_common.hpp"
 #include "qt_preferences.hpp"
 #include "qt_mcadevicelist.hpp"
 #include "qt_memoryviewer.hpp"
@@ -56,6 +57,7 @@ extern "C" {
 #include <86box/nvr.h>
 #include <86box/acpi.h>
 #include <86box/renderdefs.h>
+#include <86box/midi.h>
 
 #ifdef USE_VNC
 #    include <86box/vnc.h>
@@ -217,6 +219,12 @@ MainWindow::MainWindow(QWidget *parent)
     main_window = this;
     ui->setupUi(this);
     status->setSoundMenu(ui->menuSound);
+    midiOutGroup = new QActionGroup(this);
+    midiOutGroup->setExclusive(true);
+    connect(ui->menuMIDI, &QMenu::aboutToShow, this, &MainWindow::refreshMidiOutMenu);
+    connect(midiOutGroup, &QActionGroup::triggered, this, [this](QAction *action) {
+        switchMidiOut(action->data().toInt());
+    });
     dynarecMenu = new QMenu(this);
     dynarecMenu->addAction(ui->actionForce_interpretation);
     status->setDynarecMenu(dynarecMenu);
@@ -2598,6 +2606,46 @@ MainWindow::on_actionSound_gain_triggered()
 {
     SoundGain gain(this);
     gain.exec();
+}
+
+/* The list is built each time the menu opens, as the settings may have
+   changed the device. Models::Devices() keeps the table until the settings
+   dialog closes, so the devices that have to look for files (ROMs, CLAP
+   plugins) are not checked again on every opening. */
+void
+MainWindow::refreshMidiOutMenu()
+{
+    for (QAction *action : midiOutGroup->actions())
+        delete action;
+
+    for (const auto &midi : Models::Devices(midi_out_device_getdevice, midi_out_device_get_internal_name,
+                                            midi_out_device_available, 0)) {
+        if (!midi.available)
+            continue;
+
+        QAction *action = ui->menuMIDI->addAction(midi.name);
+        action->setCheckable(true);
+        action->setChecked(midi.id == midi_output_device_current);
+        action->setData(midi.id);
+        midiOutGroup->addAction(action);
+    }
+}
+
+/* Like plugging a different module into the MIDI port: the new device starts
+   from its power-on state, while the rest of the machine keeps running. */
+void
+MainWindow::switchMidiOut(int device)
+{
+    if (device == midi_output_device_current)
+        return;
+
+    runctl_pause_wait(RUN_PAUSE_SYNC);
+    midi_output_device_current = device;
+    midi_config_changed();
+    config_save();
+    runctl_resume(RUN_PAUSE_SYNC);
+
+    emitVmmSignal();
 }
 
 void

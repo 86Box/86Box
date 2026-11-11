@@ -247,6 +247,9 @@ msgstr "&Preferências…"
 msgid "Sound &gain…"
 msgstr "&Ganho de som…"
 
+msgid "M&IDI output device"
+msgstr ""
+
 msgid "Begin trace"
 msgstr "Iniciar o rastreio"
 

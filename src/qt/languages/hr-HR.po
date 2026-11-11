@@ -248,6 +248,9 @@ msgstr "&Postavke…"
 msgid "Sound &gain…"
 msgstr "&Pojačavanje zvuka…"
 
+msgid "M&IDI output device"
+msgstr ""
+
 msgid "Begin trace"
 msgstr "Z&apočni praćenje"
 

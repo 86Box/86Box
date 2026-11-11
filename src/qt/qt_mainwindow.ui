@@ -109,9 +109,16 @@
      <property name="title">
       <string>S&amp;ound</string>
      </property>
+     <widget class="QMenu" name="menuMIDI">
+      <property name="title">
+       <string>M&amp;IDI output device</string>
+      </property>
+     </widget>
      <addaction name="actionMute_Unmute"/>
      <addaction name="separator"/>
      <addaction name="actionSound_gain"/>
+     <addaction name="separator"/>
+     <addaction name="menuMIDI"/>
     </widget>
     <addaction name="actionSettings"/>
     <addaction name="actionUpdate_status_bar_icons"/>

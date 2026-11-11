@@ -248,6 +248,9 @@ msgstr "&Preferințe…"
 msgid "Sound &gain…"
 msgstr "Câș&tig sunet…"
 
+msgid "M&IDI output device"
+msgstr ""
+
 msgid "Begin trace"
 msgstr "Începe urmărirea"
 

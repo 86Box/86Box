@@ -246,6 +246,9 @@ msgstr "&Předvolby…"
 msgid "Sound &gain…"
 msgstr "Ze&sílení zvuku…"
 
+msgid "M&IDI output device"
+msgstr ""
+
 msgid "Begin trace"
 msgstr "Zahájit trasování"
 

@@ -246,6 +246,9 @@ msgstr "&Tercihler…"
 msgid "Sound &gain…"
 msgstr "&Sesi artır…"
 
+msgid "M&IDI output device"
+msgstr ""
+
 msgid "Begin trace"
 msgstr "İzlemeyi başlat"
 

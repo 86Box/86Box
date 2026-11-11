@@ -247,6 +247,9 @@ msgstr "&Valg…"
 msgid "Sound &gain…"
 msgstr "Lyd&forsterkning…"
 
+msgid "M&IDI output device"
+msgstr ""
+
 msgid "Begin trace"
 msgstr "Start sporing"
 

@@ -246,6 +246,9 @@ msgstr "환경설정(&P)…"
 msgid "Sound &gain…"
 msgstr "음량 증폭(&G)…"
 
+msgid "M&IDI output device"
+msgstr ""
+
 msgid "Begin trace"
 msgstr "추적 시작하기"
 

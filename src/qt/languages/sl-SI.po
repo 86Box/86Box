@@ -248,6 +248,9 @@ msgstr "&Možnosti…"
 msgid "Sound &gain…"
 msgstr "&Ojačanje zvoka…"
 
+msgid "M&IDI output device"
+msgstr ""
+
 msgid "Begin trace"
 msgstr "Z&ačni sledenje"
 

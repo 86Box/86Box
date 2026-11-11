@@ -247,6 +247,9 @@ msgstr "偏好設定(&P)…"
 msgid "Sound &gain…"
 msgstr "音量增益(&G)…"
 
+msgid "M&IDI output device"
+msgstr ""
+
 msgid "Begin trace"
 msgstr "開始追踪"
 

@@ -248,6 +248,9 @@ msgstr "&Параметри…"
 msgid "Sound &gain…"
 msgstr "&Посилення звуку…"
 
+msgid "M&IDI output device"
+msgstr ""
+
 msgid "Begin trace"
 msgstr "Почати трасування"
 

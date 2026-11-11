@@ -17,6 +17,7 @@
 
 class MediaMenu;
 class RendererStack;
+class QActionGroup;
 
 namespace Ui {
 class MainWindow;
@@ -186,9 +187,12 @@ private:
     Ui::MainWindow                *ui;
     std::unique_ptr<MachineStatus> status;
     std::shared_ptr<MediaMenu>     mm;
-    QMenu                         *dynarecMenu = nullptr;
+    QMenu                         *dynarecMenu  = nullptr;
+    QActionGroup                  *midiOutGroup = nullptr;
 
     bool hasKanaLock();
+    void refreshMidiOutMenu();
+    void switchMidiOut(int device);
     void updateShortcuts();
     void updatePowerOffAction();
     void refreshDisplayRatioActions();

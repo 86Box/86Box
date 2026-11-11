@@ -248,6 +248,9 @@ msgstr "&Preferenze…"
 msgid "Sound &gain…"
 msgstr "Guadagno &suono…"
 
+msgid "M&IDI output device"
+msgstr ""
+
 msgid "Begin trace"
 msgstr "Inizio traccia"
 

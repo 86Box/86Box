@@ -247,6 +247,9 @@ msgstr "&Preferencje…"
 msgid "Sound &gain…"
 msgstr "Wzmocnienie &dźwięku…"
 
+msgid "M&IDI output device"
+msgstr ""
+
 msgid "Begin trace"
 msgstr "Rozpocznij śledzenie"
 

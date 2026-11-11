@@ -246,6 +246,9 @@ msgstr "&Einstellungen…"
 msgid "Sound &gain…"
 msgstr "&Klangverstärkung…"
 
+msgid "M&IDI output device"
+msgstr "M&IDI-Ausgabegerät"
+
 msgid "Begin trace"
 msgstr "Tracing starten"
 
