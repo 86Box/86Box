@@ -28,10 +28,42 @@ static int codegen_unroll_branch;
 
 extern int codegen_get_loop_timing(int first_instruction);
 
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+/*Per uop, 1 for the inline ES test codegen_generate_call adds in front of a
+  no-wait x87 instruction's FERR# call (and its copies in an unrolled loop):
+  left out of what decides the unrolling and of the dead-flags pass's joins,
+  so that both decide as they did with the bare call. Cleared up to
+  uncounted_end as a block starts*/
+static uint8_t codegen_uop_uncounted[UOP_NR_MAX];
+static int     uncounted_end;
+
+void
+codegen_ir_set_uncounted(int c)
+{
+    codegen_uop_uncounted[c] = 1;
+    if (c >= uncounted_end)
+        uncounted_end = c + 1;
+}
+
+int
+codegen_ir_uncounted_since(ir_data_t *ir, int start)
+{
+    int nr = 0;
+
+    for (int c = start; c < ir->wr_pos; c++)
+        nr += codegen_uop_uncounted[c];
+    return nr;
+}
+#endif
+
 ir_data_t *
 codegen_ir_init(void)
 {
     ir_block.wr_pos = 0;
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+    memset(codegen_uop_uncounted, 0, uncounted_end);
+    uncounted_end = 0;
+#endif
 
     codegen_unroll_count = 0;
     codegen_accumulate_begin();
@@ -335,6 +367,12 @@ flags_site_is_dead(ir_data_t *ir, int s)
         int          new_op;
         int          r;
 
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+        /*The FERR# test touches no flags state and its branch skips only
+          the call: passed over, as the bare call was*/
+        if (codegen_uop_uncounted[c])
+            continue;
+#endif
         if (flags_site_of[c]) {
             int      s2   = flags_site_of[c] - 1;
             int      k2   = flags_site[s2].kind;
@@ -688,6 +726,14 @@ codegen_flags_dead_pass(ir_data_t *ir, int unroll_start, int unroll_end)
         }
         if (((uop->type & UOP_MASK) != UOP_INVALID) && (uop->type & UOP_TYPE_BARRIER))
             join = 0;
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+        /*The FERR# test's branch skips only the call, which no flags site
+          sits in, and its destination counts on no later call (the
+          allocator is as it was at the branch there): passed over, as the
+          bare call was*/
+        if (codegen_uop_uncounted[c])
+            continue;
+#endif
         if ((uop->type & UOP_TYPE_JUMP) && (uop->jump_dest_uop >= 0)) {
             if (uop->jump_dest_uop > maxdest)
                 maxdest = uop->jump_dest_uop;
@@ -744,6 +790,31 @@ codegen_cold_check(ir_data_t *ir, const uop_t *uop, int c, int region_start, int
 }
 #endif
 
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+/*Whether the cold region the branch at c opens goes on at its destination:
+  one that leaves the block ends in an unconditional jump*/
+static int
+codegen_cold_rejoins(const ir_data_t *ir, int c)
+{
+    for (int d = ir->uops[c].jump_dest_uop - 1; d > c; d--) {
+        if ((ir->uops[d].type & UOP_MASK) != UOP_INVALID)
+            return (ir->uops[d].type & UOP_MASK) != (UOP_JMP & UOP_MASK);
+    }
+    return 0;
+}
+
+/*Before the branch over a region that goes on: the registers it writes
+  leave the allocator (codegen_reg_cold_drop)*/
+static void
+codegen_cold_drop_written(ir_data_t *ir, codeblock_t *block, int c)
+{
+    for (int d = c + 1; d < ir->uops[c].jump_dest_uop; d++) {
+        if (((ir->uops[d].type & UOP_MASK) != UOP_INVALID) && !ir_reg_is_invalid(ir->uops[d].dest_reg_a))
+            codegen_reg_cold_drop(block, IREG_GET_REG(ir->uops[d].dest_reg_a.reg));
+    }
+}
+#endif
+
 void
 codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
 {
@@ -751,8 +822,12 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
     int c;
     int unroll_end         = 0;
 #ifdef CODEGEN_BACKEND_HAS_COLD_REGION
-    /*The destination of the cold region being compiled*/
-    int cold_dest = -1;
+    /*The destination of the cold region being compiled, and whether the
+      region goes on there*/
+    int cold_dest   = -1;
+    int cold_rejoin = 0;
+    /*A branch over a cold region compiled as an order barrier instead*/
+    int cold_plain = 0;
 #    ifndef RELEASE_BUILD
     int cold_start     = -1;
     int cold_last_type = 0;
@@ -789,6 +864,16 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
                     pair_reg = -1;
                 } else if ((rd < nr_rd) && (rd_sites[rd].uop == c))
                     pair_reg = duplicate_flags_read(ir, &ir->uops[c], &rd_sites[rd]);
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+                else if (codegen_uop_uncounted[c]) {
+                    const uop_t *uop = &ir->uops[c];
+
+                    if (!ir_reg_is_invalid(uop->src_reg_a))
+                        codegen_reg_read_uncounted(uop->src_reg_a.reg);
+                    codegen_ir_set_uncounted(ir->wr_pos);
+                    duplicate_uop(ir, &ir->uops[c], offset);
+                }
+#endif
                 else
                     duplicate_uop(ir, &ir->uops[c], offset);
                 codegen_accumulate_copy(ir, c);
@@ -819,15 +904,20 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
 
 #ifdef CODEGEN_BACKEND_HAS_COLD_REGION
         /*Only the branch over the region gets here, which ran nothing
-          else: the allocator is as it was there. The branch lands before
-          anything this uop writes back, which the path that skips the
-          region has to write too*/
+          else: the allocator is as it was there. A region that goes on
+          loads that state first, on its own path. The branch lands after
+          those loads and before anything this uop writes back, which the
+          path that skips the region has to write too*/
         if (c == cold_dest) {
+            if (cold_rejoin)
+                codegen_reg_cold_rejoin(block);
+            else {
 #    ifndef RELEASE_BUILD
-            if ((cold_last_type & UOP_MASK) != (UOP_JMP & UOP_MASK))
-                fatal("cold region at %i: ends in %08x\n", cold_start, cold_last_type);
+                if ((cold_last_type & UOP_MASK) != (UOP_JMP & UOP_MASK))
+                    fatal("cold region at %i: ends in %08x\n", cold_start, cold_last_type);
 #    endif
-            codegen_reg_cold_restore();
+                codegen_reg_cold_restore();
+            }
             for (uop_t *uop_dest = uop; uop_dest->jump_list_next != -1;) {
                 uop_dest = &ir->uops[uop_dest->jump_list_next];
                 codegen_set_jump_dest(block, uop_dest->p);
@@ -915,10 +1005,18 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
                     codegen_reg_flush(ir, block);
             }
 #ifdef CODEGEN_BACKEND_HAS_COLD_REGION
-            /*A region at the block's end would have its branch land past
-              the end's write-back: written back here instead*/
-            if ((uop->type & UOP_TYPE_COLD) && (uop->jump_dest_uop >= ir->wr_pos))
-                codegen_reg_flush(ir, block);
+            if (uop->type & UOP_TYPE_COLD) {
+                /*An order barrier instead: for a region at the block's end,
+                  whose branch would land past the end's write-back, and for
+                  one that goes on when a register is held twice*/
+                cold_plain = (uop->jump_dest_uop >= ir->wr_pos);
+                if (!cold_plain && codegen_cold_rejoins(ir, c)) {
+                    codegen_cold_drop_written(ir, block, c);
+                    cold_plain = !codegen_reg_cold_can_rejoin();
+                }
+                if (cold_plain)
+                    codegen_reg_flush(ir, block);
+            }
 #endif
 
             if (uop->type & UOP_TYPE_PARAMS_REGS) {
@@ -940,11 +1038,12 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
             /*Nothing is written back: the path that skips the region goes
               on with the registers as they are, and the region starts from
               them too, storing what it needs before its own calls*/
-            if ((uop->type & UOP_TYPE_COLD) && (uop->jump_dest_uop >= ir->wr_pos))
+            if ((uop->type & UOP_TYPE_COLD) && cold_plain)
                 codegen_reg_drop_cycles();
             else if (uop->type & UOP_TYPE_COLD) {
                 codegen_reg_cold_snapshot();
-                cold_dest = uop->jump_dest_uop;
+                cold_dest   = uop->jump_dest_uop;
+                cold_rejoin = codegen_cold_rejoins(ir, c);
 #    ifndef RELEASE_BUILD
                 cold_start     = c;
                 cold_last_type = 0;

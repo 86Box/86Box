@@ -534,6 +534,13 @@ void codegen_reg_lazy_stores(codeblock_t *block, const codegen_lazy_list_t *list
 void codegen_reg_cold_snapshot(void);
 /*Take it back at the region's destination*/
 void codegen_reg_cold_restore(void);
+/*Before the branch over a region that goes on: ireg, which it writes, out of
+  the host registers and the held immediates*/
+void codegen_reg_cold_drop(codeblock_t *block, int ireg);
+/*Whether what the allocator holds can be loaded again after a call*/
+int codegen_reg_cold_can_rejoin(void);
+/*At the end of a region that goes on: load what the copy holds, take it back*/
+void codegen_reg_cold_rejoin(codeblock_t *block);
 #endif
 
 ir_host_reg_t codegen_reg_alloc_read_reg(codeblock_t *block, ir_reg_t ir_reg, int *host_reg_idx);

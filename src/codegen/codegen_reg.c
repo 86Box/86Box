@@ -1378,6 +1378,92 @@ codegen_reg_cold_restore(void)
 #    endif
 }
 
+/*Before the branch over a region that goes on at its destination, for each
+  register the region writes: it leaves the host registers and the held
+  immediates, stored first. After the region each path then finds its own
+  value of it in memory, as when the branch wrote everything back.*/
+void
+codegen_reg_cold_drop(codeblock_t *block, int ireg)
+{
+    host_reg_set_t *reg_set = (ireg_data[ireg].type == REG_INTEGER) ? &host_reg_set : &host_fp_reg_set;
+
+#    ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    lazy_pending_store_overlapping(block, ireg);
+#    endif
+    for (uint16_t slots = reg_set->slots[ireg]; slots; slots &= slots - 1) {
+        int c = __builtin_ctz(slots);
+
+        if (reg_set->dirty[c])
+            codegen_reg_writeback(reg_set, block, c, 0);
+        host_reg_assign(reg_set, c, invalid_ir_reg);
+        reg_set->dirty[c] = 0;
+    }
+}
+
+/*Whether the registers the allocator holds now can be loaded again from
+  memory after a call: not when an IR register is in two host registers,
+  two versions of which memory holds one*/
+int
+codegen_reg_cold_can_rejoin(void)
+{
+    for (int r = 0; r < IREG_COUNT; r++) {
+        if ((host_reg_set.slots[r] & (host_reg_set.slots[r] - 1)) || (host_fp_reg_set.slots[r] & (host_fp_reg_set.slots[r] - 1)))
+            return 0;
+    }
+    return 1;
+}
+
+/*The end of a region that goes on at its destination, after its call wrote
+  every register back and dropped them: each register the copy holds is
+  loaded into the host register it is in there (the call changes none of
+  them in memory), and the copy is taken back. A temporary no uop reads any
+  more is left out.*/
+void
+codegen_reg_cold_rejoin(codeblock_t *block)
+{
+#    ifndef RELEASE_BUILD
+    if (nr_lazy_pending)
+        fatal("codegen_reg_cold_rejoin - %i immediates held\n", nr_lazy_pending);
+    for (int c = 0; c < CODEGEN_HOST_REGS; c++) {
+        if (!ir_reg_is_invalid(host_reg_set.regs[c]) && host_reg_set.dirty[c] &&
+            (!ireg_data[IREG_GET_REG(host_reg_set.regs[c].reg)].is_volatile || ir_get_refcount(host_reg_set.regs[c])))
+            fatal("codegen_reg_cold_rejoin - %02x.%i not written back\n", host_reg_set.regs[c].reg, host_reg_set.regs[c].version);
+    }
+    for (int c = 0; c < CODEGEN_HOST_FP_REGS; c++) {
+        if (!ir_reg_is_invalid(host_fp_reg_set.regs[c]) && host_fp_reg_set.dirty[c] &&
+            (!ireg_data[IREG_GET_REG(host_fp_reg_set.regs[c].reg)].is_volatile || ir_get_refcount(host_fp_reg_set.regs[c])))
+            fatal("codegen_reg_cold_rejoin - %02x.%i not written back\n", host_fp_reg_set.regs[c].reg, host_fp_reg_set.regs[c].version);
+    }
+#    endif
+    for (int c = 0; c < CODEGEN_HOST_REGS; c++) {
+        ir_reg_t ir_reg = cold_state.regs[c];
+
+        if (ir_reg_is_invalid(ir_reg))
+            continue;
+        if (ireg_data[IREG_GET_REG(ir_reg.reg)].is_volatile && !ir_get_refcount(ir_reg)) {
+            cold_state.slots[IREG_GET_REG(ir_reg.reg)] &= ~(1 << c);
+            cold_state.regs[c]  = invalid_ir_reg;
+            cold_state.dirty[c] = 0;
+            continue;
+        }
+        codegen_reg_load(&host_reg_set, block, c, ir_reg);
+    }
+    for (int c = 0; c < CODEGEN_HOST_FP_REGS; c++) {
+        ir_reg_t ir_reg = cold_state.fp_regs[c];
+
+        if (ir_reg_is_invalid(ir_reg))
+            continue;
+        if (ireg_data[IREG_GET_REG(ir_reg.reg)].is_volatile && !ir_get_refcount(ir_reg)) {
+            cold_state.fp_slots[IREG_GET_REG(ir_reg.reg)] &= ~(1 << c);
+            cold_state.fp_regs[c]  = invalid_ir_reg;
+            cold_state.fp_dirty[c] = 0;
+            continue;
+        }
+        codegen_reg_load(&host_fp_reg_set, block, c, ir_reg);
+    }
+    codegen_reg_cold_restore();
+}
+
 #endif
 
 void

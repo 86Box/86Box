@@ -1769,8 +1769,31 @@ generate_call:
     /* A no-wait instruction asserts FERR# for an error not yet reported, and
        goes on (x87_ferr_nowait) */
     if (is_fpu && x87_op_is_nowait(x87_op)) {
-        uop_LOAD_FUNC_ARG_IMM(ir, 0, x87_op);
-        uop_CALL_FUNC(ir, x87_ferr_nowait);
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+        /* With ES clear there is no such error and the call returns at
+           once: it is made only with ES set, in a cold region that goes on
+           with the registers as they were */
+        if (!fpu_softfloat && codegen_reg_read_has_room(IREG_NPXS)) {
+            const int first = ir->wr_pos;
+            int       jump_uop;
+
+            /*One uop that writes no register: its read is left out of the
+              reference counts that end the block, and the uop out of what
+              limits unrolling (codegen_can_unroll_full), which stay as they
+              were with the bare call; the dead-flags pass passes over it
+              too*/
+            codegen_reg_read_uncounted(IREG_NPXS);
+            jump_uop = uop_TEST_IMM_JZ_DEST_COLD(ir, IREG_NPXS, FPU_SW_Summary);
+            codegen_ir_set_uncounted(first);
+            uop_LOAD_FUNC_ARG_IMM(ir, 0, x87_op);
+            uop_CALL_FUNC(ir, x87_ferr_nowait);
+            uop_set_jump_dest(ir, jump_uop);
+        } else
+#endif
+        {
+            uop_LOAD_FUNC_ARG_IMM(ir, 0, x87_op);
+            uop_CALL_FUNC(ir, x87_ferr_nowait);
+        }
     }
 
     /* A pending exception is taken only with ES set: the call only then. Once
@@ -1782,7 +1805,13 @@ generate_call:
         codegen_fpu_es_check = 0;
         uop_MOVZX(ir, IREG_temp3, IREG_NPXS);
         uop_AND_IMM(ir, IREG_temp3, IREG_temp3, FPU_SW_Summary);
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+        /* A cold region that goes on, when the helper answers 0, with the
+           registers as they were */
+        jump_uop = uop_CMP_IMM_JZ_DEST_COLD(ir, IREG_temp3, 0);
+#else
         jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp3, 0);
+#endif
         uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
         uop_CALL_FUNC_RESULT(ir, IREG_temp3, x87_legacy_pending_entry);
         codegen_exit_on_one(ir, IREG_temp3);

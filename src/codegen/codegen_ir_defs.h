@@ -32,10 +32,12 @@
   at compile time.*/
 #define UOP_TYPE_JUMP_DEST      (1 << 25)
 /*uOP is a jump over a cold region: the uOPs up to its destination run only
-  when it is not taken, and end in an unconditional jump out of the block.
-  The IR treats the jump as an order barrier; the register allocator writes
-  nothing back at it, compiles the region from a copy of its state there and
-  takes that copy back at the destination (codegen_ir_compile).*/
+  when it is not taken. They end in an unconditional jump out of the block,
+  or go on at the destination after a call. The IR treats the jump as an
+  order barrier; the register allocator writes nothing back at it, compiles
+  the region from a copy of its state there and takes that copy back at the
+  destination, a region that goes on loading the registers the copy holds
+  first (codegen_ir_compile).*/
 #define UOP_TYPE_COLD           (1 << 24)
 
 #ifdef CODEGEN_BACKEND_HAS_COLD_REGION
@@ -192,6 +194,9 @@
 #define UOP_CMP_IMM_JNZ_DEST (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0x61 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
 /*UOP_CMP_IMM_JZ_DEST_COLD - UOP_CMP_IMM_JZ_DEST over a cold region*/
 #define UOP_CMP_IMM_JZ_DEST_COLD (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0x6e | UOP_TYPE_COLD | UOP_TYPE_JUMP)
+/*UOP_TEST_IMM_JZ_DEST_COLD - if (!(src_reg_a & imm_data)) then jump to ptr, over a
+  cold region*/
+#define UOP_TEST_IMM_JZ_DEST_COLD (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0x7b | UOP_TYPE_COLD | UOP_TYPE_JUMP)
 
 /*UOP_CMP_JB_DEST - if (src_reg_a < src_reg_b) then jump to ptr*/
 #define UOP_CMP_JB_DEST (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0x62 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
@@ -1021,6 +1026,7 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
 #define uop_CMP_IMM_JNZ_DEST(ir, src_reg, imm)                   uop_gen_reg_src1_imm(UOP_CMP_IMM_JNZ_DEST, ir, src_reg, imm)
 #define uop_CMP_IMM_JZ_DEST(ir, src_reg, imm)                    uop_gen_reg_src1_imm(UOP_CMP_IMM_JZ_DEST, ir, src_reg, imm)
 #define uop_CMP_IMM_JZ_DEST_COLD(ir, src_reg, imm)               uop_gen_reg_src1_imm(UOP_CMP_IMM_JZ_DEST_COLD, ir, src_reg, imm)
+#define uop_TEST_IMM_JZ_DEST_COLD(ir, src_reg, imm)              uop_gen_reg_src1_imm(UOP_TEST_IMM_JZ_DEST_COLD, ir, src_reg, imm)
 
 #define uop_CMP_JB(ir, src_reg_a, src_reg_b, p)                  uop_gen_reg_src2_pointer(UOP_CMP_JB, ir, src_reg_a, src_reg_b, p)
 #define uop_CMP_JNBE(ir, src_reg_a, src_reg_b, p)                uop_gen_reg_src2_pointer(UOP_CMP_JNBE, ir, src_reg_a, src_reg_b, p)

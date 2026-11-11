@@ -11,6 +11,7 @@
 #include "386_common.h"
 #include "codegen.h"
 #include "codegen_accumulate.h"
+#include "codegen_backend.h"
 #include "codegen_ir.h"
 #include "codegen_ir_defs.h"
 #include "codegen_reg.h"
@@ -1072,7 +1073,11 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
         }
     }
 
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+    max_unroll = UNROLL_MAX_UOPS / ((ir->wr_pos - start - codegen_ir_uncounted_since(ir, start)) + 6);
+#else
     max_unroll = UNROLL_MAX_UOPS / ((ir->wr_pos - start) + 6);
+#endif
     if ((max_version_refcount != 0) && (max_unroll > (UNROLL_MAX_REG_REFERENCES / max_version_refcount)))
         max_unroll = (UNROLL_MAX_REG_REFERENCES / max_version_refcount);
     if (max_unroll > UNROLL_MAX_COUNT)
