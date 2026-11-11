@@ -104,6 +104,7 @@ extern bool cpu_thread_running;
 void qt_set_sequence_auto_mnemonic(bool b);
 
 #include <array>
+#include <utility>
 #include <memory>
 #include <unordered_map>
 
@@ -223,7 +224,28 @@ MainWindow::MainWindow(QWidget *parent)
     midiOutGroup->setExclusive(true);
     connect(ui->menuMIDI, &QMenu::aboutToShow, this, &MainWindow::refreshMidiOutMenu);
     connect(midiOutGroup, &QActionGroup::triggered, this, [this](QAction *action) {
-        switchMidiOut(action->data().toInt());
+        if (action->data().toInt() != midi_output_device_current)
+            switchMidiOut(action->data().toInt());
+    });
+    connect(ui->menuSound, &QMenu::aboutToShow, this, [this] {
+        ui->menuMIDI_command->setEnabled(midi_output_device_current > 0);
+    });
+    const std::pair<QAction *, int> midiCommands[] = {
+        { ui->actionMIDI_reset_GM,      MIDI_CMD_GM_ON         },
+        { ui->actionMIDI_reset_GS,      MIDI_CMD_GS_RESET      },
+        { ui->actionMIDI_reset_XG,      MIDI_CMD_XG_ON         },
+        { ui->actionMIDI_reset_MT32,    MIDI_CMD_MT32_RESET    },
+        { ui->actionMIDI_all_notes_off, MIDI_CMD_ALL_NOTES_OFF }
+    };
+    for (const auto &[action, cmd] : midiCommands) {
+        connect(action, &QAction::triggered, this, [cmd] {
+            runctl_pause_wait(RUN_PAUSE_SYNC);
+            midi_out_send_command(cmd);
+            runctl_resume(RUN_PAUSE_SYNC);
+        });
+    }
+    connect(ui->actionMIDI_restart_device, &QAction::triggered, this, [this] {
+        switchMidiOut(midi_output_device_current);
     });
     dynarecMenu = new QMenu(this);
     dynarecMenu->addAction(ui->actionForce_interpretation);
@@ -2618,34 +2640,46 @@ MainWindow::refreshMidiOutMenu()
     for (QAction *action : midiOutGroup->actions())
         delete action;
 
+    /* The devices go above the separator and "Restart device" from the .ui. */
+    QAction *first = ui->menuMIDI->actions().value(0);
+
     for (const auto &midi : Models::Devices(midi_out_device_getdevice, midi_out_device_get_internal_name,
                                             midi_out_device_available, 0)) {
         if (!midi.available)
             continue;
 
-        QAction *action = ui->menuMIDI->addAction(midi.name);
+        QAction *action = new QAction(midi.name, ui->menuMIDI);
+        ui->menuMIDI->insertAction(first, action);
         action->setCheckable(true);
         action->setChecked(midi.id == midi_output_device_current);
         action->setData(midi.id);
         midiOutGroup->addAction(action);
     }
+
+    /* System MIDI only reopens the host's port: a module on the other end
+       doesn't restart. */
+    ui->actionMIDI_restart_device->setEnabled((midi_output_device_current > 0)
+                                              && strcmp(midi_out_device_get_internal_name(midi_output_device_current),
+                                                        SYSTEM_MIDI_INTERNAL_NAME));
 }
 
-/* Like plugging a different module into the MIDI port: the new device starts
-   from its power-on state, while the rest of the machine keeps running. */
+/* Like plugging a module into the MIDI port, or switching it off and on
+   again when it's the same device: it starts from its power-on state, while
+   the rest of the machine keeps running. */
 void
 MainWindow::switchMidiOut(int device)
 {
-    if (device == midi_output_device_current)
-        return;
+    const bool changed = (device != midi_output_device_current);
 
     runctl_pause_wait(RUN_PAUSE_SYNC);
     midi_output_device_current = device;
     midi_config_changed();
-    config_save();
+    if (changed)
+        config_save();
     runctl_resume(RUN_PAUSE_SYNC);
 
-    emitVmmSignal();
+    if (changed)
+        emitVmmSignal();
 }
 
 void

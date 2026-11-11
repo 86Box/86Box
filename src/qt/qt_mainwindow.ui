@@ -113,12 +113,26 @@
       <property name="title">
        <string>M&amp;IDI output device</string>
       </property>
+      <addaction name="separator"/>
+      <addaction name="actionMIDI_restart_device"/>
+     </widget>
+     <widget class="QMenu" name="menuMIDI_command">
+      <property name="title">
+       <string>Send MIDI &amp;command</string>
+      </property>
+      <addaction name="actionMIDI_reset_GM"/>
+      <addaction name="actionMIDI_reset_GS"/>
+      <addaction name="actionMIDI_reset_XG"/>
+      <addaction name="actionMIDI_reset_MT32"/>
+      <addaction name="separator"/>
+      <addaction name="actionMIDI_all_notes_off"/>
      </widget>
      <addaction name="actionMute_Unmute"/>
      <addaction name="separator"/>
      <addaction name="actionSound_gain"/>
      <addaction name="separator"/>
      <addaction name="menuMIDI"/>
+     <addaction name="menuMIDI_command"/>
     </widget>
     <addaction name="actionSettings"/>
     <addaction name="actionUpdate_status_bar_icons"/>
@@ -747,6 +761,36 @@
   <action name="actionSound_gain">
    <property name="text">
     <string>Sound &amp;gain…</string>
+   </property>
+  </action>
+  <action name="actionMIDI_reset_GM">
+   <property name="text">
+    <string>&amp;GM System On</string>
+   </property>
+  </action>
+  <action name="actionMIDI_reset_GS">
+   <property name="text">
+    <string>G&amp;S Reset</string>
+   </property>
+  </action>
+  <action name="actionMIDI_reset_XG">
+   <property name="text">
+    <string>&amp;XG System On</string>
+   </property>
+  </action>
+  <action name="actionMIDI_reset_MT32">
+   <property name="text">
+    <string>&amp;MT-32 Reset</string>
+   </property>
+  </action>
+  <action name="actionMIDI_all_notes_off">
+   <property name="text">
+    <string>All &amp;notes off</string>
+   </property>
+  </action>
+  <action name="actionMIDI_restart_device">
+   <property name="text">
+    <string>Restart &amp;device</string>
    </property>
   </action>
   <action name="actionOpenGL">

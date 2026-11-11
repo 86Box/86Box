@@ -739,3 +739,68 @@ midi_reset(void)
     if (midi_out && midi_out->m_out_device && midi_out->m_out_device->reset)
         midi_out->m_out_device->reset();
 }
+
+/* Reset messages a sequencer would send down the MIDI cable. A module only
+   acts on those for its own family and ignores the others. */
+static const uint8_t midi_reset_gm[]   = { 0xf0, 0x7e, 0x7f, 0x09, 0x01, 0xf7 };                               /* GM System On */
+static const uint8_t midi_reset_gs[]   = { 0xf0, 0x41, 0x10, 0x42, 0x12, 0x40, 0x00, 0x7f, 0x00, 0x41, 0xf7 }; /* GS Reset */
+static const uint8_t midi_reset_xg[]   = { 0xf0, 0x43, 0x10, 0x4c, 0x00, 0x00, 0x7e, 0x00, 0xf7 };             /* XG System On */
+static const uint8_t midi_reset_mt32[] = { 0xf0, 0x41, 0x10, 0x16, 0x12, 0x7f, 0x00, 0x00, 0x00, 0x01, 0xf7 }; /* All parameters reset */
+
+static void
+midi_out_send_sysex(const uint8_t *sysex, unsigned int len)
+{
+    uint8_t buf[16];
+
+    if (midi_out->m_out_device->play_sysex && (len <= sizeof(buf))) {
+        memcpy(buf, sysex, len);
+        midi_out->m_out_device->play_sysex(buf, len);
+    }
+}
+
+/* Sends a command (a reset or All notes off) to the MIDI output device, from
+   outside the guest. The messages go straight to the device, past the parser that assembles the
+   guest's bytes, so a message the guest is in the middle of sending is
+   neither cut nor mixed with them. The caller must have the emulation paused,
+   as the device takes its messages from one thread at a time. */
+void
+midi_out_send_command(int cmd)
+{
+    uint8_t msg[4] = { 0 };
+
+    if (!midi_out || !midi_out->m_out_device)
+        return;
+
+    switch (cmd) {
+        case MIDI_CMD_GM_ON:
+            midi_out_send_sysex(midi_reset_gm, sizeof(midi_reset_gm));
+            break;
+        case MIDI_CMD_GS_RESET:
+            midi_out_send_sysex(midi_reset_gs, sizeof(midi_reset_gs));
+            break;
+        case MIDI_CMD_XG_ON:
+            midi_out_send_sysex(midi_reset_xg, sizeof(midi_reset_xg));
+            break;
+        case MIDI_CMD_MT32_RESET:
+            midi_out_send_sysex(midi_reset_mt32, sizeof(midi_reset_mt32));
+            break;
+        case MIDI_CMD_ALL_NOTES_OFF:
+            if (!midi_out->m_out_device->play_msg)
+                break;
+            /* Sustain off, All Sound Off, Reset All Controllers and All Notes
+               Off on every channel, as a sequencer's panic button does. */
+            for (uint8_t chan = 0; chan < 16; chan++) {
+                static const uint8_t controllers[] = { 0x40, 0x78, 0x79, 0x7b };
+
+                for (uint8_t i = 0; i < sizeof(controllers); i++) {
+                    msg[0] = 0xb0 | chan;
+                    msg[1] = controllers[i];
+                    msg[2] = 0x00;
+                    midi_out->m_out_device->play_msg(msg);
+                }
+            }
+            break;
+        default:
+            break;
+    }
+}

@@ -83,6 +83,16 @@ extern void midi_clear_buffer(void);
 extern void midi_poll(void);
 extern void midi_reset(void);
 
+enum {
+    MIDI_CMD_GM_ON = 0,
+    MIDI_CMD_GS_RESET,
+    MIDI_CMD_XG_ON,
+    MIDI_CMD_MT32_RESET,
+    MIDI_CMD_ALL_NOTES_OFF
+};
+
+extern void midi_out_send_command(int cmd);
+
 extern void midi_in_handler(int set,
                             void (*msg)(void *priv, uint8_t *msg, uint32_t len),
                             int (*sysex)(void *priv, uint8_t *buffer, uint32_t len, int abort),
