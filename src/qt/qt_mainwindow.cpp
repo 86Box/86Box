@@ -787,6 +787,9 @@ MainWindow::MainWindow(QWidget *parent)
         case FULLSCR_SCALE_CENTER43:
             ui->actionFullScreen_center43->setChecked(true);
             break;
+        case FULLSCR_SCALE_INT43_VERT:
+            ui->actionFullScreen_int43_vert->setChecked(true);
+            break;
     }
 
     actGroup = new QActionGroup(this);
@@ -825,6 +828,7 @@ MainWindow::MainWindow(QWidget *parent)
     actGroup->addAction(ui->actionFullScreen_int43);
     actGroup->addAction(ui->actionFullScreen_center);
     actGroup->addAction(ui->actionFullScreen_center43);
+    actGroup->addAction(ui->actionFullScreen_int43_vert);
     switch (video_gl_input_scale_mode) {
         default:
             break;
@@ -2249,6 +2253,7 @@ update_fullscreen_scale_checkboxes(Ui::MainWindow *ui, QAction *selected)
     ui->actionFullScreen_int43->setChecked(selected == ui->actionFullScreen_int43);
     ui->actionFullScreen_center->setChecked(selected == ui->actionFullScreen_center);
     ui->actionFullScreen_center43->setChecked(selected == ui->actionFullScreen_center43);
+    ui->actionFullScreen_int43_vert->setChecked(selected == ui->actionFullScreen_int43_vert);
 
     {
         auto widget = ui->stackedWidget->currentWidget();
@@ -2312,6 +2317,13 @@ MainWindow::on_actionFullScreen_center43_triggered()
 {
     video_fullscreen_scale = FULLSCR_SCALE_CENTER43;
     update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_center43);
+}
+
+void
+MainWindow::on_actionFullScreen_int43_vert_triggered()
+{
+    video_fullscreen_scale = FULLSCR_SCALE_INT43_VERT;
+    update_fullscreen_scale_checkboxes(ui, ui->actionFullScreen_int43_vert);
 }
 
 void
@@ -2902,9 +2914,7 @@ MainWindow::on_actionACPI_Shutdown_triggered()
     }
 
     if (device_has_power_button()) {
-        runctl_pause_wait(RUN_PAUSE_SYNC); /* Park the CPU before changing device state. */
-        device_power_button();
-        runctl_resume(RUN_PAUSE_SYNC);
+        runctl_call_wait([](void *) { device_power_button(); }, nullptr);
         return;
     }
 

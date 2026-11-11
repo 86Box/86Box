@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-09 17:37+0000\n"
+"PO-Revision-Date: 2026-11-10 18:59+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -156,6 +156,9 @@ msgstr "居中(&C)"
 
 msgid "4:3 Cen&ter"
 msgstr "4:3居中(&T)"
+
+msgid "4:3 Integer scale (&vertical)"
+msgstr "4:3 整数比例（垂直方向）(&V)"
 
 msgid "Inverted VGA monitor"
 msgstr "VGA 显示器反色显示"
@@ -2169,7 +2172,7 @@ msgid "Hard disk"
 msgstr "硬盘"
 
 msgid "BIOS Revision"
-msgstr "BIOS 修订版"
+msgstr "BIOS修订版本"
 
 msgid "BIOS Version"
 msgstr "BIOS 版本"
@@ -2310,7 +2313,7 @@ msgid "RTS toggle"
 msgstr "RTS 切换"
 
 msgid "Revision"
-msgstr "修订版"
+msgstr "修订版本"
 
 msgid "Controller"
 msgstr "控制器"
@@ -2475,7 +2478,7 @@ msgid "Snow emulation"
 msgstr "雪花模拟"
 
 msgid "Display Enhancement Board (GO329)"
-msgstr ""
+msgstr "显示增强板（GO329）"
 
 msgid "Monitor type"
 msgstr "显示器类型"
@@ -3703,10 +3706,10 @@ msgid "Memory &viewer"
 msgstr "内存查看器(&V)"
 
 msgid "The emulator is busy; the memory view was not updated."
-msgstr ""
+msgstr "模拟器正忙；内存视图未被更新。"
 
 msgid "The match is not on mapped memory; the selection and the view did not move."
-msgstr ""
+msgstr "匹配点不位于映射内存内；当前视图及选块未移动。"
 
 msgid "Only RAM and video memory can be written."
 msgstr "只有内存和显存区域可被写入。"
@@ -3715,46 +3718,46 @@ msgid "not written (not writable RAM or video memory, or the emulator is busy)."
 msgstr ""
 
 msgid "The emulator is busy; try again."
-msgstr ""
+msgstr "模拟器正忙；请重试。"
 
 msgid "Copied %1 bytes from %2 to the clipboard"
-msgstr ""
+msgstr "从%2拷贝%1个字节至剪贴板"
 
 msgid " (%1 could not be read)"
-msgstr ""
+msgstr " （无法读取%1）"
 
 msgid " of a %1 byte selection"
 msgstr ""
 
 msgid "There is no mapped memory to search."
-msgstr ""
+msgstr "当前没有可搜索的已映射内存。"
 
 msgid "There is no mapped memory in the requested range."
-msgstr ""
+msgstr "在请求范围内没有已映射的内存。"
 
 msgid "The search is limited to %1 bytes."
-msgstr ""
+msgstr "搜索被限制为%1字节。"
 
 msgid "Searching memory..."
-msgstr ""
+msgstr "正在搜索内存..."
 
 msgid "The search was cancelled. The selection did not move."
-msgstr ""
+msgstr "搜索已被取消。选块未被移动。"
 
 msgid "Found at %1."
-msgstr ""
+msgstr "在%1位置找到。"
 
 msgid "Not found. The selection did not move."
-msgstr ""
+msgstr "未找到。选块未移动。"
 
 msgid "Fill selection"
-msgstr ""
+msgstr "填充选块"
 
 msgid "Fill %1 bytes from %2 with (hex):"
 msgstr ""
 
 msgid "Enter a hex byte from 00 to FF."
-msgstr ""
+msgstr "输入一个从00到FF范围内的十六进制字节。"
 
 msgid "Filled %1 of %2 bytes with %3 (%4 were not writable RAM or video memory)."
 msgstr ""
@@ -3763,61 +3766,61 @@ msgid " Selected: %1 bytes (%2 were skipped)."
 msgstr ""
 
 msgid "Edit byte"
-msgstr ""
+msgstr "编辑字节"
 
 msgid "Copy selection (hex)"
-msgstr ""
+msgstr "复制选块（十六进制）"
 
 msgid "Copy selection (ASCII)"
-msgstr ""
+msgstr "复制选块（ASCII）"
 
 msgid "Fill selection..."
-msgstr ""
+msgstr "填充选块..."
 
 msgid "Copy address"
-msgstr ""
+msgstr "复制地址"
 
 msgid "Disassemble here"
-msgstr ""
+msgstr "对此处反汇编"
 
 msgid "Dump memory from here..."
-msgstr ""
+msgstr "从此处转储内存..."
 
 msgid "Memory viewer"
 msgstr "内存查看器"
 
 msgid "Pause / Resume"
-msgstr ""
+msgstr "暂停/恢复"
 
 msgid "Step"
-msgstr ""
+msgstr "单步"
 
 msgid "Run the given number of instructions (F11)"
-msgstr ""
+msgstr "运行指定数量的指令（F11）"
 
 msgid "Instructions per step"
-msgstr ""
+msgstr "每步指令数"
 
 msgid "Physical"
-msgstr ""
+msgstr "实际"
 
 msgid "Address, register or seg:off"
-msgstr ""
+msgstr "地址、寄存器或seg:off"
 
 msgid "Go"
 msgstr ""
 
 msgid "Live update"
-msgstr ""
+msgstr "实时更新"
 
 msgid "Dump..."
-msgstr ""
+msgstr "转储..."
 
 msgid "Commands"
-msgstr ""
+msgstr "命令"
 
 msgid "Show or hide debugger commands (Ctrl+D)"
-msgstr ""
+msgstr "显示或隐藏调试器命令（Ctrl+D）"
 
 msgid "Hex bytes"
 msgstr "十六进制"
@@ -3826,19 +3829,19 @@ msgid "ASCII text"
 msgstr "ASCII文本"
 
 msgid "Value, byte"
-msgstr ""
+msgstr "值（字节）"
 
 msgid "Value, word"
-msgstr ""
+msgstr "值（字）"
 
 msgid "Value, dword"
-msgstr ""
+msgstr "值（双字）"
 
 msgid "What to look for: raw hex bytes, text, or a hex value stored little-endian, as in the hex view."
 msgstr ""
 
 msgid "Memory search"
-msgstr ""
+msgstr "内存搜索"
 
 msgid "Ctrl+F focuses this box; Enter or F3 finds the next match, Shift+F3 the previous."
 msgstr ""
@@ -3856,28 +3859,30 @@ msgid "Search downwards from the selection (F3)"
 msgstr ""
 
 msgid "Range..."
-msgstr ""
+msgstr "范围..."
 
 msgid "Search within an address range instead of all memory"
-msgstr ""
+msgstr "在指定地址范围内搜索，而非搜索全部内存"
 
 msgid "From"
-msgstr ""
+msgstr "自"
 
 msgid "Where the search starts (hex, register or seg:off; empty means the first mapped byte; . means the selection start)."
-msgstr ""
+msgstr "搜索起始地址（十六进制、寄存器或seg:off；留空表示第一个已映射字节；.表示选区"
+"起始地址）。"
 
 msgid "To (inclusive)"
-msgstr ""
+msgstr "至（含）"
 
 msgid "Where the search ends, that address included (hex, register or seg:off; empty means the last mapped byte; . means the selection end)."
-msgstr ""
+msgstr "搜索结束地址（十六进制、寄存器或seg:off；留空表示第一个已映射字节；.表示选区"
+"结束地址）。"
 
 msgid "Range from"
-msgstr ""
+msgstr "范围起始"
 
 msgid "to"
-msgstr ""
+msgstr "至"
 
 msgid "RAM"
 msgstr ""
@@ -3886,22 +3891,23 @@ msgid "Mapped, not RAM"
 msgstr ""
 
 msgid "Unmapped"
-msgstr ""
+msgstr "未映射"
 
 msgid "Inaccessible"
-msgstr ""
+msgstr "不可访问"
 
 msgid "Inaccessible: only device handlers answer there (reading would have side effects), or the linear page is not present."
-msgstr ""
+msgstr "不可访问：该地址仅由设备处理函数响应（读取会产生副作用），或对应的线性页不存"
+"在。"
 
 msgid "Linear address, register or seg:off"
-msgstr ""
+msgstr "线性地址、寄存器或seg:off"
 
 msgid "Follow CS:IP"
-msgstr ""
+msgstr "跟随CS:IP"
 
 msgid "Bytes"
-msgstr ""
+msgstr "字节"
 
 msgid "Instruction"
 msgstr "指令"
@@ -3910,28 +3916,28 @@ msgid "Note"
 msgstr ""
 
 msgid "Double-click a line to set or clear a breakpoint there"
-msgstr ""
+msgstr "双击某行可在该地址设置或清除断点"
 
 msgid "Disassembly"
-msgstr ""
+msgstr "反汇编"
 
 msgid "Disassembly (not available in this build)"
-msgstr ""
+msgstr "反汇编（此版本中不可用）"
 
 msgid "Viewer message"
-msgstr ""
+msgstr "查看器消息"
 
 msgid "Selected range"
-msgstr ""
+msgstr "选取范围"
 
 msgid "Debugger commands"
-msgstr ""
+msgstr "调试器命令"
 
 msgid "Debugger command output"
-msgstr ""
+msgstr "调试器命令输出"
 
 msgid "Debugger command"
-msgstr ""
+msgstr "调试器命令"
 
 msgid "help — commands; Up/Down — history; . — selected address"
 msgstr ""
@@ -4240,4 +4246,31 @@ msgid "2 s of line time"
 msgstr ""
 
 msgid "TCP send timeout"
+msgstr ""
+
+msgid "Card:"
+msgstr ""
+
+msgid "Hub:"
+msgstr ""
+
+msgid "Mass storage:"
+msgstr ""
+
+msgid "Its drives are hard disks, CD-ROM drives and other removable devices set up on their own pages, on bus SCSI, in the channels named \"USB Mass Storage\". Each drive is one logical unit, in channel order."
+msgstr ""
+
+msgid "Hard disks…"
+msgstr ""
+
+msgid "CD-ROM drives…"
+msgstr ""
+
+msgid "Other removable devices…"
+msgstr ""
+
+msgid "4-port USB 1.1 hub"
+msgstr ""
+
+msgid "USB Mass Storage"
 msgstr ""

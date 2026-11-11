@@ -202,6 +202,7 @@ extern void    *plat_mmap(size_t size, uint8_t executable, uint8_t* large);
 extern void     plat_munmap(void *ptr, size_t size);
 extern uint64_t plat_timer_read(void);
 extern uint32_t plat_get_ticks(void);
+extern uint64_t plat_get_ns(void); /* monotonic host time; the pacing loop's clock */
 extern void     plat_delay_ms(uint32_t count);
 extern void     plat_mouse_capture(int on);
 extern int      plat_vidapi(const char *name);

@@ -586,6 +586,7 @@ endif()
 # based on https://stackoverflow.com/questions/35612687/cmake-macos-x-bundle-with-bundleutiliies-for-qt-application
 macro(install_qt5_plugin _qt_plugin_name _runtime_plugins_var _prefix)
     get_target_property(_qt_plugin_path "${_qt_plugin_name}" LOCATION)
+    get_filename_component(_qt_plugin_path "${_qt_plugin_path}" REALPATH) #adds a check to resolve any dylib symlinks so that the plugin is correctly copied to the bundle
     if(EXISTS "${_qt_plugin_path}")
         get_filename_component(_qt_plugin_file "${_qt_plugin_path}" NAME)
         get_filename_component(_qt_plugin_type "${_qt_plugin_path}" PATH)

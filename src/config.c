@@ -886,6 +886,8 @@ load_input_devices(void)
             keyboard_type = KEYBOARD_TYPE_PS55;
         else if (kbd == &keyboard_ax_device)
             keyboard_type = KEYBOARD_TYPE_AX;
+        else if (kbd == &keyboard_lk250_device)
+            keyboard_type = KEYBOARD_TYPE_INTERNAL;
         else if (machine_has_bus(machine, MACHINE_BUS_PS2_PORTS))
             keyboard_type = KEYBOARD_TYPE_PS2;
         else if (machine_has_bus(machine, MACHINE_BUS_ISA16) ||

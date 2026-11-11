@@ -196,6 +196,18 @@ RendererCommon::onResize(int width, int height)
                 dy = (hh - dh) / 2.0;
                 destination.setRect((int) dx, (int) dy, (int) dw, (int) dh);
                 break;
+            case FULLSCR_SCALE_INT43_VERT:
+                /* Like 4:3 integer scale, but the height is a whole multiple of the guest's line count
+                   and the width follows from the 4:3 ratio. Every guest line gets the same number of
+                   host lines, which scanline shaders need. */
+                dh = (r43 <= hsr) ? hh : (hw / r43);
+                integer_scale(&dh, &gh);
+                dw = std::round(dh * r43);
+
+                dx = (hw - dw) / 2.0;
+                dy = (hh - dh) / 2.0;
+                destination.setRect((int) dx, (int) dy, (int) dw, (int) dh);
+                break;
             case FULLSCR_SCALE_43:
             case FULLSCR_SCALE_KEEPRATIO:
                 if (temp_fullscreen_scale == FULLSCR_SCALE_43)
@@ -235,8 +247,9 @@ RendererCommon::onResize(int width, int height)
     if (destination.width() == 0) destination.setWidth(256);
     if (destination.height() == 0) destination.setHeight(256);
 
-    monitors[r_monitor_index].mon_res_x = (double) destination.width();
-    monitors[r_monitor_index].mon_res_y = (double) destination.height();
+    /* Mouse movement is scaled by the size of the picture in device-independent pixels. */
+    monitors[r_monitor_index].mon_picture_x = destination.width() / pixelRatio;
+    monitors[r_monitor_index].mon_picture_y = destination.height() / pixelRatio;
 
     destinationF.setRect((double) destination.x() / (double) width, (double) destination.y() / (double) height,
                          (double) destination.width() / (double) width, (double) destination.height() / (double) height);

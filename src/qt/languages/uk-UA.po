@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-09 17:37+0000\n"
+"PO-Revision-Date: 2026-11-10 18:59+0000\n"
 "Last-Translator: Broifonn_9 <molodchina812@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
@@ -157,6 +157,9 @@ msgstr "По ц&ентру"
 
 msgid "4:3 Cen&ter"
 msgstr "По цен&тру, 4:3"
+
+msgid "4:3 Integer scale (&vertical)"
+msgstr "Цілісночисленне масштабування 4:3 (&вертикально)"
 
 msgid "Inverted VGA monitor"
 msgstr "Інвертувати кольори VGA"
@@ -4297,4 +4300,31 @@ msgid "2 s of line time"
 msgstr ""
 
 msgid "TCP send timeout"
+msgstr ""
+
+msgid "Card:"
+msgstr ""
+
+msgid "Hub:"
+msgstr ""
+
+msgid "Mass storage:"
+msgstr ""
+
+msgid "Its drives are hard disks, CD-ROM drives and other removable devices set up on their own pages, on bus SCSI, in the channels named \"USB Mass Storage\". Each drive is one logical unit, in channel order."
+msgstr ""
+
+msgid "Hard disks…"
+msgstr ""
+
+msgid "CD-ROM drives…"
+msgstr ""
+
+msgid "Other removable devices…"
+msgstr ""
+
+msgid "4-port USB 1.1 hub"
+msgstr ""
+
+msgid "USB Mass Storage"
 msgstr ""

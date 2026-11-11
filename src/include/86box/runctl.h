@@ -6,8 +6,8 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          Emulation run control: CPU thread lifecycle, pause reasons
- *          and pacing mode.
+ *          Emulation run control: CPU thread lifecycle, pause reasons,
+ *          pacing mode and speed measurement.
  *
  *          The machine runs only while the CPU thread is running and no
  *          pause reason is set. Each owner sets and clears only its own
@@ -98,13 +98,40 @@ extern void        runctl_request_stop(void); /* also clears cpu_thread_run */
 extern void runctl_thread_starting(void); /* before creating it */
 extern void runctl_thread_started(void);  /* first thing on the CPU thread */
 extern void runctl_thread_exiting(void);  /* last thing on the CPU thread */
-extern void runctl_safe_point(void);      /* CPU thread, between quanta, while not running a quantum */
+extern void runctl_safe_point(void);      /* CPU thread, between quanta; runs queued requests */
 extern void runctl_quantum_done(uint32_t emu_us); /* CPU thread, after each quantum */
+
+/* The CPU thread's body: marks the calling thread as the CPU thread, then
+   runs quanta paced against host time (or as fast as possible in fast
+   forward and automation steps), idles while paused, and returns once a stop
+   or quit is requested, after runctl_thread_exiting(). The frontend creates
+   the thread, sets its priority and name, and calls this. pass, if not NULL,
+   runs on the CPU thread after every pass of the loop. */
+extern void runctl_run_loop(void (*pass)(void));
+
+/* Run fn(arg) on the CPU thread at its next safe point, between quanta, where
+   it may touch machine state. Requests run in order, also while the machine
+   is paused for any reason; a request doesn't resume it. On the CPU thread,
+   or when there is no CPU thread, fn runs at once on the caller's thread.
+   runctl_call() returns at once; runctl_call_wait() returns after fn has
+   returned. Don't wait from a thread the CPU thread may itself block on. */
+extern void runctl_call(void (*fn)(void *arg), void *arg);
+extern void runctl_call_wait(void (*fn)(void *arg), void *arg);
 
 /* Status snapshot; any thread. */
 extern void runctl_get_status(run_status_t *out);
 /* Percent of real time between two snapshots, or -1 if not meaningful. */
 extern int runctl_speed_between(const run_status_t *older, const run_status_t *newer);
+
+/* The emulation speed every reader shows (title, OSD, automation status).
+   The frontend calls runctl_speed_update() about once a second, always from
+   the same thread; when it yields a new value, it is published and announced
+   with ui_notify(UI_NOTIFY_SPEED). While paused, held, or for the first
+   sample after a run state or mode change, the last value is kept.
+   runctl_speed() returns it as a percentage of real time, or -1 before the
+   first sample; any thread, lock-free. */
+extern void runctl_speed_update(void);
+extern int  runctl_speed(void);
 
 #ifdef __cplusplus
 }

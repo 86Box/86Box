@@ -156,6 +156,9 @@ msgstr "&Zentriert"
 msgid "4:3 Cen&ter"
 msgstr "4:3 zen&triert"
 
+msgid "4:3 Integer scale (&vertical)"
+msgstr "4:3 Integer-Skalierung (verti&kal)"
+
 msgid "Inverted VGA monitor"
 msgstr "Invertierte VGA-Anzeige"
 
@@ -4277,3 +4280,30 @@ msgstr "2 s Leitungszeit"
 
 msgid "TCP send timeout"
 msgstr "TCP Sende-Timeout"
+
+msgid "Card:"
+msgstr "Karte:"
+
+msgid "Hub:"
+msgstr ""
+
+msgid "Mass storage:"
+msgstr "Massenspeicher:"
+
+msgid "Its drives are hard disks, CD-ROM drives and other removable devices set up on their own pages, on bus SCSI, in the channels named \"USB Mass Storage\". Each drive is one logical unit, in channel order."
+msgstr "Als Laufwerke dienen Festplatten, CD-ROM-Laufwerke und andere Wechseldatenträger, die auf eigenen Seiten über den SCSI-Bus in den Kanälen mit der Bezeichnung \"USB Massenspeicher\" eingerichtet sind. Jedes Laufwerk stellt eine logische Einheit dar, die in der Reihenfolge der Kanäle angeordnet ist."
+
+msgid "Hard disks…"
+msgstr "Festplatten…"
+
+msgid "CD-ROM drives…"
+msgstr "CD-ROM Laufwerke…"
+
+msgid "Other removable devices…"
+msgstr "Andere Wechseldatenträger…"
+
+msgid "4-port USB 1.1 hub"
+msgstr ""
+
+msgid "USB Mass Storage"
+msgstr "USB Massenspeicher"

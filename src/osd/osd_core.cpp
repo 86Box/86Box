@@ -44,6 +44,7 @@ extern "C"
 }
 #include <86box/plat.h>
 #include <86box/ui.h>
+#include <86box/runctl.h>
 
 #include "osd_core.hpp"
 #include "osd_explorer.hpp"
@@ -843,8 +844,6 @@ bool osd_core_build_ui(void)
     return keep_open && !dismissed;
 }
 
-int osd_percentage = 0;
-
 /* Single point of truth for whether the indicator layer has anything to show.
  * Indicators live alongside normal emulation, so this must never consult OSD
  * visibility. */
@@ -867,7 +866,7 @@ void osd_core_draw_indicators(void)
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
     if (ImGui::Begin("DrawWin", &open_ptr, window_flags)) {
-        ImGui::TextColored(ImVec4(0, 1, 0, 1.0), "%d%%", osd_percentage);
+        ImGui::TextColored(ImVec4(0, 1, 0, 1.0), "%d%%", runctl_speed());
         ImGui::End();
     }
 #endif

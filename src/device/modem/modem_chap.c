@@ -316,6 +316,29 @@ lm_password_hash(const char *password, uint8_t hash[16])
     return true;
 }
 
+/* Verify an MS-CHAP v1 LM-only response (RFC 2433). LM proofs derive no MPPE keys. */
+static bool
+chap_verify_mschap_lm(ppp_ctx_t *ctx, const uint8_t *response)
+{
+    uint8_t lm_hash[16];
+    uint8_t lm_hash_padded[21];
+    uint8_t expected[24];
+    bool    ok;
+
+    if (!lm_password_hash(ctx->password, lm_hash)) {
+        chap_log(ctx->log, "MS-CHAP: LM response cannot be computed for this password\n");
+        return false;
+    }
+    memset(lm_hash_padded, 0, sizeof(lm_hash_padded));
+    memcpy(lm_hash_padded, lm_hash, 16);
+    challenge_response_des(ctx->chap_challenge, lm_hash_padded, expected);
+    ok = modem_constant_time_equal(response, expected, 24);
+    memset(lm_hash, 0, sizeof(lm_hash));
+    memset(lm_hash_padded, 0, sizeof(lm_hash_padded));
+    chap_log(ctx->log, "MS-CHAP: LM response %s\n", ok ? "accepted" : "rejected");
+    return ok;
+}
+
 /* Verify MS-CHAP v1 response (RFC 2433) */
 static bool
 chap_verify_mschap(ppp_ctx_t *ctx, const uint8_t *response, int resp_len)
@@ -328,13 +351,9 @@ chap_verify_mschap(ppp_ctx_t *ctx, const uint8_t *response, int resp_len)
     if (resp_len != 49)
         return false;
 
-    /* We only verify the NT response (bytes 24-47), ignore LM */
-    uint8_t use_nt = response[48];
-    if (!use_nt) {
-        /* LM-only response - not supported */
-        chap_log(ctx->log, "MS-CHAP: LM-only not supported\n");
-        return false;
-    }
+    /* A zero flags byte selects the LM response (bytes 0-23); otherwise the NT response is used. */
+    if (!response[48])
+        return chap_verify_mschap_lm(ctx, response);
 
     nt_password_hash(ctx->password, nt_hash);
     memset(nt_hash_padded, 0, sizeof(nt_hash_padded));
