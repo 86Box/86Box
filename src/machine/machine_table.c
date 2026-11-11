@@ -12462,7 +12462,7 @@ const machine_t machines[] = {
     },
     /* TriGem AMIBIOS Pre-Color with TriGem AMI 'Z' keyboard controller */
     {
-        .name              = "[SiS 471] TriGem 486G",
+        .name              = "[SiS 471] TriGem Olympia-K",
         .internal_name     = "tg486g",
         .type              = MACHINE_TYPE_SOCKET3,
         .chipset           = MACHINE_CHIPSET_SIS_471,
@@ -12508,7 +12508,7 @@ const machine_t machines[] = {
         .vid_device               = &paradise_wd90c33_onboard_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "TriGem Olympia-K", "" }
+        .aliases                  = { "TriGem 486G", "" }
     },
     /* Has MR BIOS V307UT KBC firmware, which, bizarrely enough, is actually  a genuine AMI 'H'. */
     {
@@ -12660,7 +12660,7 @@ const machine_t machines[] = {
     },
     /* TriGem machine with M1429G and PhoenixBIOS */
     {
-        .name              = "[ALi M1429G] TriGem 486GP",
+        .name              = "[ALi M1429G] TriGem Talent",
         .internal_name     = "tg486gp",
         .type              = MACHINE_TYPE_SOCKET3_PCI,
         .chipset           = MACHINE_CHIPSET_ALI_M1429G,
@@ -12704,7 +12704,7 @@ const machine_t machines[] = {
         .vid_device               = NULL,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "TriGem Talent", "" }
+        .aliases                  = { "TriGem 486GP", "" }
     },
     /* This has an AMIKey-2, which is an updated version of type 'H'. */
     {
@@ -14271,7 +14271,7 @@ const machine_t machines[] = {
         .vid_device               = &tgui9440_onboard_pci_device,
         .snd_device               = NULL,
         .net_device               = NULL,
-        .aliases                  = { "Epson ActionPC 5500", "Epson Endeavor II", "TriGem SanJose" "TriGem TG486AP", "" }
+        .aliases                  = { "Epson ActionPC 5500", "Epson Endeavor II", "TriGem SanJose", "TriGem TG486AP", "" }
     },
     /* This has the UMC 88xx on-chip KBC. All the copies of the BIOS string I can find, end in
        in -H, so the UMC on-chip KBC likely emulates the AMI 'H' KBC firmware. */
@@ -25047,10 +25047,10 @@ const machine_t machines[] = {
             .package     = CPU_PKG_SLOT1,
             .block       = CPU_BLOCK(CPU_CYRIX3S),
             .min_bus     = 66666667,
-            .max_bus     = 83333333,
-            .min_voltage = 2050,
-            .max_voltage = 3100,
-            .min_multi   = 3.5,
+            .max_bus     = 66666667,
+            .min_voltage = 1800,
+            .max_voltage = 3500,
+            .min_multi   = 1.5,
             .max_multi   = 5.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
@@ -26185,7 +26185,7 @@ const machine_t machines[] = {
             .max_multi   = 8.0
         },
         .bus_flags = MACHINE_PS2_AGP | MACHINE_BUS_USB,
-        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_SOUND | MACHINE_USB | MACHINE_VIDEO, /* Machine has internal modem: PCTel PCT789T */
+        .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_SOUND | MACHINE_USB | MACHINE_VIDEO, /* Machine has internal modem: PCTel PCT789T (not yet emulated) */
         .ram       = {
             .min  = 8192,
             .max  = 1572864,
@@ -27399,7 +27399,7 @@ const machine_t machines[] = {
         .flags     = MACHINE_AGP_INTERNAL | MACHINE_IDE_DUAL | MACHINE_APM | MACHINE_ACPI | MACHINE_SOUND | MACHINE_VIDEO | MACHINE_USB,
         .ram       = {
             .min  = 8192,
-            .max  = 1048576, /* BIOS does not recognize more than this amount */
+            .max  = 1048576,
             .step = 8192
         },
         .nvrmask                  = 255,
@@ -27693,7 +27693,7 @@ const machine_t machines[] = {
             .min_multi   = 1.5,
             .max_multi   = 8.0
         },
-        .bus_flags = MACHINE_PS2_NOI97 | MACHINE_BUS_USB, /* Has Asus-proprietary LAN/SCSI slot */
+        .bus_flags = MACHINE_PS2_NOI97 | MACHINE_BUS_USB, /* Machine has proprietary ASUS LAN/SCSI slot */
         .flags     = MACHINE_IDE_DUAL | MACHINE_SOUND | MACHINE_APM | MACHINE_ACPI | MACHINE_GAMEPORT | MACHINE_USB,
         .ram       = {
             .min  = 16384,
