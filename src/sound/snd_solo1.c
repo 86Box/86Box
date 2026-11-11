@@ -33,6 +33,7 @@
 #include <86box/plat_unused.h>
 
 #define SOLO1_IN_RING 16384 /* host input frames held for the Audio 1 ADC */
+#define SOLO1_INPUT_STOP_DELAY_US 20000
 
 #ifdef ENABLE_SOLO1_LOG
 int solo1_do_log = ENABLE_SOLO1_LOG;
@@ -129,6 +130,7 @@ typedef struct solo1_t {
     uint8_t  a1_fifo_rd;
     uint16_t a1_fifo_count;
     pc_timer_t a1_timer;
+    pc_timer_t input_stop_timer;
     int16_t  in_ring[SOLO1_IN_RING * 2];
     uint32_t in_wr;
     uint32_t in_rd;
@@ -460,8 +462,10 @@ solo1_ddma_advance(solo1_t *dev)
        channel stops, masked, and the status reports the terminal count. ESS's
        Windows driver takes any nonzero status for a stopped transfer and
        restarts it, so auto-initialize's laps do not show there. */
+    /* The ESS Windows driver rearms single-cycle capture by writing only
+       the count. Rewind the address so it reuses the same DMA buffer. */
+    dev->dd_cur_addr = dev->dd_base_addr;
     if (dev->dd_mode & 0x10) {
-        dev->dd_cur_addr  = dev->dd_base_addr;
         dev->dd_cur_count = dev->dd_base_count;
     } else {
         dev->dd_status |= 0x0f;
@@ -495,8 +499,7 @@ solo1_a1_reload(const solo1_t *dev)
            ((uint32_t) dev->ess_regs[0xa5 - 0xa0] << 8);
 }
 
-/* the ADC runs while B8h has DMA enabled (bit 0) in ADC mode (bit 3).
-   The host's input is opened only while it does. */
+/* The ADC runs while B8h has DMA enabled (bit 0) in ADC mode (bit 3). */
 static int
 solo1_a1_recording(const solo1_t *dev)
 {
@@ -507,26 +510,38 @@ static void solo1_a1_fifo_reset(solo1_t *dev);
 static void solo1_a1_timer(void *priv);
 
 static void
-solo1_a1_update_input(solo1_t *dev)
+solo1_stop_input(void *priv)
 {
-    const int on = solo1_a1_recording(dev);
+    solo1_t *dev = (solo1_t *) priv;
 
-    if (on && !dev->in_started) {
-        dev->in_wr = dev->in_rd = 0;
-        dev->in_frac            = 0.0;
-        dev->in_primed          = 0;
-        sound_in_start_input();
-        dev->in_started = 1;
-    } else if (!on && dev->in_started) {
+    timer_disable(&dev->input_stop_timer);
+    if (dev->in_started) {
         sound_in_stop_input();
         dev->in_started = 0;
     }
+}
 
-    /* The sample clock runs while recording. */
-    if (on && !timer_is_enabled(&dev->a1_timer))
-        timer_set_delay_u64(&dev->a1_timer, (uint64_t) ((double) TIMER_USEC * (1000000.0 / solo1_a1_rate(dev))));
-    else if (!on)
+static void
+solo1_a1_update_input(solo1_t *dev)
+{
+    if (solo1_a1_recording(dev)) {
+        timer_disable(&dev->input_stop_timer);
+        if (!dev->in_started) {
+            dev->in_wr = dev->in_rd = 0;
+            dev->in_frac            = 0.0;
+            dev->in_primed          = 0;
+            sound_in_start_input();
+            dev->in_started = 1;
+        }
+        if (!timer_is_enabled(&dev->a1_timer))
+            timer_set_delay_u64(&dev->a1_timer, (uint64_t) ((double) TIMER_USEC * (1000000.0 / solo1_a1_rate(dev))));
+    } else {
         timer_disable(&dev->a1_timer);
+        /* The ESS driver briefly disables the ADC at each DMA interrupt.
+           Keep the host stream and its queued samples through that pause. */
+        if (dev->in_started && !timer_is_enabled(&dev->input_stop_timer))
+            timer_set_delay_u64(&dev->input_stop_timer, SOLO1_INPUT_STOP_DELAY_US * TIMER_USEC);
+    }
 }
 
 /* B8h written. DMA enable (bit 0) rising starts a transfer: the
@@ -554,8 +569,9 @@ solo1_a1_control(solo1_t *dev, uint8_t old, uint8_t val)
    overflow, reloads, interrupts if B1h bit 6 is set and, in normal (not
    auto-initialize) mode, stops until B8h bit 0 is toggled.
    Each transfer writes one byte past the DDMA's current address (the
-   buffer's start for the last one of a lap): byte n of the stream lands at
-   offset n + 1, and after n transfers the bytes up to offset n are in.
+   buffer's start at terminal count, even in single-cycle mode): byte n
+   of the stream lands at offset n + 1, and after n transfers the bytes
+   up to offset n are in.
    The drivers expect it: Linux's snd-es1938 copies from pos + 1
    (capture_copy), and ESS's Windows 9x driver (ESSOLO.DRV) reads offsets
    1 to size, the last byte from offset 0; its 16-bit recordings came out a
@@ -567,7 +583,7 @@ solo1_a1_drain(solo1_t *dev)
            (dev->ess_regs[0xb2 - 0xa0] & 0x40) && solo1_ddma_ready(dev, 1)) {
         uint32_t addr;
 
-        if (!dev->dd_cur_count && (dev->dd_mode & 0x10))
+        if (!dev->dd_cur_count)
             addr = dev->dd_base_addr;
         else
             addr = (dev->dd_mode & 0x20) ? (dev->dd_cur_addr - 1) : (dev->dd_cur_addr + 1);
@@ -1627,7 +1643,8 @@ solo1_reset(void *priv)
     dev->a1_irq_pending = 0;
     dev->a1_halted      = 0;
     solo1_a1_fifo_reset(dev);
-    solo1_a1_update_input(dev);
+    timer_disable(&dev->a1_timer);
+    solo1_stop_input(dev);
     solo1_update_irq(dev);
 
     solo1_update_legacy(dev);
@@ -1645,6 +1662,7 @@ solo1_init(const device_t *info)
     sound_add_handler(solo1_get_buffer, dev);
     sound_in_add_handler(solo1_put_buffer, dev); /* Audio 1 record */
     timer_add(&dev->a1_timer, solo1_a1_timer, dev, 0);
+    timer_add(&dev->input_stop_timer, solo1_stop_input, dev, 0);
 
     pci_add_card((info->local & 1) ? PCI_ADD_SOUND : PCI_ADD_NORMAL, solo1_pci_read, solo1_pci_write,
                  dev, &dev->pci_slot);
@@ -1665,11 +1683,8 @@ solo1_close(void *priv)
        freed by the gameport device.
      */
     ess->gameport = NULL;
-    timer_disable(&dev->a1_timer); /* */
-    if (dev->in_started) {
-        sound_in_stop_input();
-        dev->in_started = 0;
-    }
+    timer_disable(&dev->a1_timer);
+    solo1_stop_input(dev);
     solo1_update_native_mappings(dev);
     if (dev->legacy != NULL)
         ess_solo1_legacy_close(dev->legacy);
