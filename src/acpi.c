@@ -1477,6 +1477,24 @@ acpi_reg_write_ali(int size, uint16_t addr, uint8_t val, void *priv)
     }
 }
 
+/* Whether a device monitor trap status (DEVSTS TRP_STS_DEV[0-13], bits
+   16-29) is set with its trap enabled in DEVCTL (TRP_EN_DEV[0-11] in the odd
+   bits 1-23, TRP_EN_DEV12 and 13 in bits 24 and 25): an SMI request still
+   active, so setting EOS asserts SMI# again (PIIX4 7.2.11, p. 144 /
+   PDF 144; 7.2.14, p. 146 / PDF 146; 11.5.1, p. 262 / PDF 262). */
+static int
+acpi_intel_trap_pending(const acpi_t *dev)
+{
+    uint16_t trp_en = (dev->regs.devctl >> 12) & 0x3000;
+
+    for (int i = 0; i < 12; i++) {
+        if (dev->regs.devctl & (1 << ((i << 1) + 1)))
+            trp_en |= (1 << i);
+    }
+
+    return !!((dev->regs.devsts >> 16) & trp_en);
+}
+
 static void
 acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *priv)
 {
@@ -1553,12 +1571,13 @@ acpi_reg_write_intel(int size, uint16_t addr, uint8_t val, void *priv)
             /* A pending legacy USB status needs its GLBEN bit 0 only on the
                SLC90E66; the PIIX4 model raises it without LEGACY_USB_EN, as
                in intel_piix.c. */
-            /* So does an event routed to SMI# (acpi_legacy_pending()). */
+            /* So does an event routed to SMI# (acpi_legacy_pending()), and
+               a device monitor trap (acpi_intel_trap_pending()). */
             if (((dev->regs.glbctl & 0x00010001) == 0x00010001) &&
                 (((dev->regs.glbsts & 0x20) && dev->apm->do_smi) ||
                  ((dev->regs.glbsts & 0x01) && (dev->regs.glben & 0x02)) ||
                  ((dev->regs.glbsts & 0x02) && (!dev->usb_sts_w1c || (dev->regs.glben & 0x01))) ||
-                 acpi_legacy_pending(dev)))
+                 acpi_legacy_pending(dev) || acpi_intel_trap_pending(dev)))
                 acpi_raise_smi(dev, 1);
             /* A 1 written to BIOS_RLS sets GBL_STS, an SCI if GBL_EN is set. */
             if ((addr == 0x28) && (val & 0x02)) {
