@@ -205,9 +205,6 @@ MediaMenu::refresh(QMenu *parentMenu)
         QIcon cdrw_img_icon   = QIcon(":/settings/qt/icons/cdrw_image.ico");
         cdromMutePos = menu->children().count();
         menu->addAction(QIcon(":/settings/qt/icons/cdrom_mute.ico"), tr("&Mute"), [this, i]() { cdromMute(i); })->setCheckable(true);
-        menu->addSeparator();
-        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Image…"), [this, i]() { cdromMount(i, 0, nullptr); })->setCheckable(false);
-        menu->addAction(getIconWithIndicator(folder_icon, pixmap_size, QIcon::Normal, Browse), tr("&Folder…"), [this, i]() { cdromMount(i, 1, nullptr); })->setCheckable(false);
         if (cdrom_is_writable(i))
             menu->addSeparator();
         if (cdrom_is_cdr(i))
