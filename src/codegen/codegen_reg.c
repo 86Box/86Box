@@ -1312,6 +1312,74 @@ codegen_reg_flush_lazy(ir_data_t *ir, codeblock_t *block)
 }
 #endif
 
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+/*The allocator at a branch over a cold region (UOP_TYPE_COLD): what each
+  host register holds, whether it is dirty, and the immediates not stored
+  yet. Regions do not nest, so there is one copy. The versions' read counts
+  are not in it: after the region they count the reads the uops past it
+  make, which is what the path that skips the region still has to make.*/
+static struct {
+    ir_reg_t regs[CODEGEN_HOST_REGS];
+    uint8_t  dirty[CODEGEN_HOST_REGS];
+    uint16_t slots[IREG_COUNT];
+    ir_reg_t fp_regs[CODEGEN_HOST_FP_REGS];
+    uint8_t  fp_dirty[CODEGEN_HOST_FP_REGS];
+    uint16_t fp_slots[IREG_COUNT];
+#    ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    struct {
+        uint32_t imm;
+        uint8_t  ireg;
+    } lazy_pending[CODEGEN_LAZY_PENDING_MAX];
+    int      nr_lazy_pending;
+    uint64_t lazy_pending_mask[2];
+#    endif
+} cold_state;
+#    ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+_Static_assert(sizeof(cold_state.lazy_pending) == sizeof(lazy_pending), "cold_state.lazy_pending is a copy of lazy_pending");
+#    endif
+
+void
+codegen_reg_cold_snapshot(void)
+{
+    memcpy(cold_state.regs, host_reg_set.regs, sizeof(cold_state.regs));
+    memcpy(cold_state.dirty, host_reg_set.dirty, sizeof(cold_state.dirty));
+    memcpy(cold_state.slots, host_reg_set.slots, sizeof(cold_state.slots));
+    memcpy(cold_state.fp_regs, host_fp_reg_set.regs, sizeof(cold_state.fp_regs));
+    memcpy(cold_state.fp_dirty, host_fp_reg_set.dirty, sizeof(cold_state.fp_dirty));
+    memcpy(cold_state.fp_slots, host_fp_reg_set.slots, sizeof(cold_state.fp_slots));
+#    ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    memcpy(cold_state.lazy_pending, lazy_pending, sizeof(cold_state.lazy_pending));
+    cold_state.nr_lazy_pending      = nr_lazy_pending;
+    cold_state.lazy_pending_mask[0] = lazy_pending_mask[0];
+    cold_state.lazy_pending_mask[1] = lazy_pending_mask[1];
+#    endif
+}
+
+/*At the region's destination, which only the branch reaches: the host
+  registers hold there what they held at the branch, which ran nothing
+  else*/
+void
+codegen_reg_cold_restore(void)
+{
+    memcpy(host_reg_set.regs, cold_state.regs, sizeof(cold_state.regs));
+    memcpy(host_reg_set.dirty, cold_state.dirty, sizeof(cold_state.dirty));
+    memcpy(host_reg_set.slots, cold_state.slots, sizeof(cold_state.slots));
+    memcpy(host_fp_reg_set.regs, cold_state.fp_regs, sizeof(cold_state.fp_regs));
+    memcpy(host_fp_reg_set.dirty, cold_state.fp_dirty, sizeof(cold_state.fp_dirty));
+    memcpy(host_fp_reg_set.slots, cold_state.fp_slots, sizeof(cold_state.fp_slots));
+    host_reg_set.locked    = 0;
+    host_fp_reg_set.locked = 0;
+#    ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    memcpy(lazy_pending, cold_state.lazy_pending, sizeof(cold_state.lazy_pending));
+    nr_lazy_pending      = cold_state.nr_lazy_pending;
+    lazy_pending_mask[0] = cold_state.lazy_pending_mask[0];
+    lazy_pending_mask[1] = cold_state.lazy_pending_mask[1];
+    codegen_lazy_site    = NULL;
+#    endif
+}
+
+#endif
+
 void
 codegen_reg_flush_invalidate(UNUSED(ir_data_t *ir), codeblock_t *block)
 {

@@ -812,6 +812,15 @@ OpFn codegen_fpu_handler;
    stored when masked) and the block ends past the instruction. interp_pc
    is where that function starts (it steps past the ModR/M byte itself); a
    memory operand's address is in IREG_eaaddr already, in target_seg. */
+/* The branch over a guard's hand-over, which the block runs only for the
+   fault: a cold region (UOP_TYPE_COLD), whose stores are made on its way to
+   the interpreter's function only */
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+#    define uop_GUARD_JZ_DEST uop_CMP_IMM_JZ_DEST_COLD
+#else
+#    define uop_GUARD_JZ_DEST uop_CMP_IMM_JZ_DEST
+#endif
+
 /* The interpreter's version of the x87 instruction being compiled, then
    the block ends past it: for a case the compiled form hands over. interp_pc
    is where that function starts (it steps past the ModR/M byte itself); a
@@ -859,7 +868,7 @@ codegen_fpu_guard_empty(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32
     uop_MOVZX(ir, IREG_temp0, IREG_tag_B(0));
     /*Valid and not an extended denormal (codegen_fpu_guard_stack)*/
     uop_AND_IMM(ir, IREG_temp0, IREG_temp0, TAG_VALID | TAG_DENORMAL);
-    jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp0, TAG_VALID);
+    jump_uop = uop_GUARD_JZ_DEST(ir, IREG_temp0, TAG_VALID);
     codegen_fpu_handover(ir, fetchdat, op_32, interp_pc, target_seg);
     uop_set_jump_dest(ir, jump_uop);
     /*The block goes on only with ST(0) valid*/
@@ -919,7 +928,7 @@ codegen_fpu_guard_stack(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, uint32
             uop_OR(ir, IREG_temp0, IREG_temp0, IREG_temp1);
     }
     uop_AND_IMM(ir, IREG_temp0, IREG_temp0, TAG_VALID | TAG_DENORMAL);
-    jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp0, 0);
+    jump_uop = uop_GUARD_JZ_DEST(ir, IREG_temp0, 0);
     codegen_fpu_handover(ir, fetchdat, op_32, interp_pc, target_seg);
     uop_set_jump_dest(ir, jump_uop);
     /*The block goes on only with them valid, and a push's ST(7) empty*/
@@ -945,7 +954,11 @@ codegen_fpu_guard_int_range(ir_data_t *ir, uint32_t fetchdat, uint32_t op_32, ui
 #if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
     uop_MOV_REG_PTR(ir, IREG_temp1_D, (void *) &bounds[0]);
     uop_MOV_REG_PTR(ir, IREG_temp2_D, (void *) &bounds[1]);
+#    ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+    jump_uop = uop_FCMP_JWITHIN_DEST_COLD(ir, IREG_ST(0), IREG_temp1_D, IREG_temp2_D);
+#    else
     jump_uop = uop_FCMP_JWITHIN_DEST(ir, IREG_ST(0), IREG_temp1_D, IREG_temp2_D);
+#    endif
 #else
     /*Only the arm64 and x86-64 backends implement UOP_FCMP_JWITHIN_DEST*/
     uop_MOV_REG_PTR(ir, IREG_temp1_D, (void *) &bounds[1]);

@@ -31,6 +31,18 @@
 /*uOP is the destination of a jump, and must set the destination offset of the jump
   at compile time.*/
 #define UOP_TYPE_JUMP_DEST      (1 << 25)
+/*uOP is a jump over a cold region: the uOPs up to its destination run only
+  when it is not taken, and end in an unconditional jump out of the block.
+  The IR treats the jump as an order barrier; the register allocator writes
+  nothing back at it, compiles the region from a copy of its state there and
+  takes that copy back at the destination (codegen_ir_compile).*/
+#define UOP_TYPE_COLD           (1 << 24)
+
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+#    define UOP_TYPE_IR_ORDER (UOP_TYPE_BARRIER | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_COLD)
+#else
+#    define UOP_TYPE_IR_ORDER (UOP_TYPE_BARRIER | UOP_TYPE_ORDER_BARRIER)
+#endif
 
 #define UOP_LOAD_FUNC_ARG_0     (UOP_TYPE_PARAMS_REGS | 0x00)
 #define UOP_LOAD_FUNC_ARG_1     (UOP_TYPE_PARAMS_REGS | 0x01)
@@ -178,6 +190,8 @@
 #define UOP_CMP_IMM_JZ_DEST (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0x60 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
 /*UOP_CMP_IMM_JNZ_DEST - if (src_reg_a != imm_data) then jump to ptr*/
 #define UOP_CMP_IMM_JNZ_DEST (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0x61 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
+/*UOP_CMP_IMM_JZ_DEST_COLD - UOP_CMP_IMM_JZ_DEST over a cold region*/
+#define UOP_CMP_IMM_JZ_DEST_COLD (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0x6e | UOP_TYPE_COLD | UOP_TYPE_JUMP)
 
 /*UOP_CMP_JB_DEST - if (src_reg_a < src_reg_b) then jump to ptr*/
 #define UOP_CMP_JB_DEST (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0x62 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
@@ -383,6 +397,8 @@
 /*UOP_FCMP_JWITHIN_DEST - if (src_reg_b < src_reg_a < src_reg_c), all ordered (a NaN
   anywhere fails), then jump to ptr*/
 #define UOP_FCMP_JWITHIN_DEST (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_POINTER | 0xce | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
+/*UOP_FCMP_JWITHIN_DEST_COLD - UOP_FCMP_JWITHIN_DEST over a cold region*/
+#define UOP_FCMP_JWITHIN_DEST_COLD (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_POINTER | 0x6f | UOP_TYPE_COLD | UOP_TYPE_JUMP)
 /*UOP_CMP_JNWITHIN - if (src_reg_a < src_reg_b || src_reg_a + imm > src_reg_c), unsigned,
   then jump to ptr*/
 #define UOP_CMP_JNWITHIN (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0xcf | UOP_TYPE_ORDER_BARRIER)
@@ -555,7 +571,7 @@ uop_alloc(ir_data_t *ir, uint32_t uop_type)
     uop->jump_dest_uop  = -1;
     uop->jump_list_next = -1;
 
-    if (uop_type & (UOP_TYPE_BARRIER | UOP_TYPE_ORDER_BARRIER))
+    if (uop_type & UOP_TYPE_IR_ORDER)
         dirty_ir_regs[0] = dirty_ir_regs[1] = ~0ULL;
 
     return uop;
@@ -583,7 +599,7 @@ uop_alloc_unroll(ir_data_t *ir, uint32_t uop_type)
     uop->jump_dest_uop  = -1;
     uop->jump_list_next = -1;
 
-    if (uop_type & (UOP_TYPE_BARRIER | UOP_TYPE_ORDER_BARRIER))
+    if (uop_type & UOP_TYPE_IR_ORDER)
         codegen_reg_mark_as_required();
 
     return uop;
@@ -1004,6 +1020,7 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
 
 #define uop_CMP_IMM_JNZ_DEST(ir, src_reg, imm)                   uop_gen_reg_src1_imm(UOP_CMP_IMM_JNZ_DEST, ir, src_reg, imm)
 #define uop_CMP_IMM_JZ_DEST(ir, src_reg, imm)                    uop_gen_reg_src1_imm(UOP_CMP_IMM_JZ_DEST, ir, src_reg, imm)
+#define uop_CMP_IMM_JZ_DEST_COLD(ir, src_reg, imm)               uop_gen_reg_src1_imm(UOP_CMP_IMM_JZ_DEST_COLD, ir, src_reg, imm)
 
 #define uop_CMP_JB(ir, src_reg_a, src_reg_b, p)                  uop_gen_reg_src2_pointer(UOP_CMP_JB, ir, src_reg_a, src_reg_b, p)
 #define uop_CMP_JNBE(ir, src_reg_a, src_reg_b, p)                uop_gen_reg_src2_pointer(UOP_CMP_JNBE, ir, src_reg_a, src_reg_b, p)
@@ -1012,6 +1029,7 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
 #define uop_CMP_JNWITHIN_TOP(ir, src_reg, lo_reg, imm, p)        uop_gen_reg_src2_imm_pointer(UOP_CMP_JNWITHIN_TOP, ir, src_reg, lo_reg, imm, p)
 
 #define uop_FCMP_JWITHIN_DEST(ir, src_reg, lo_reg, hi_reg)      uop_gen_reg_src3(UOP_FCMP_JWITHIN_DEST, ir, src_reg, lo_reg, hi_reg)
+#define uop_FCMP_JWITHIN_DEST_COLD(ir, src_reg, lo_reg, hi_reg) uop_gen_reg_src3(UOP_FCMP_JWITHIN_DEST_COLD, ir, src_reg, lo_reg, hi_reg)
 #define uop_FP_CONTROL_SET(ir, src_reg)                         uop_gen_reg_src1(UOP_FP_CONTROL_SET, ir, src_reg)
 #define uop_FDIV_JSLOW_DEST(ir, num_reg, den_reg, q_reg, imm)   uop_gen_reg_src3_imm(UOP_FDIV_JSLOW_DEST, ir, num_reg, den_reg, q_reg, imm)
 #define uop_FDIV_FLAGS_JSLOW_DEST(ir, dst_reg, q_reg, num_reg, den_reg, imm) uop_gen_reg_dst_src3_imm(UOP_FDIV_FLAGS_JSLOW_DEST, ir, dst_reg, q_reg, num_reg, den_reg, imm)

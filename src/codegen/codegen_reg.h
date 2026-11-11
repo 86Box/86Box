@@ -529,6 +529,13 @@ void codegen_reg_flush_lazy(struct ir_data_t *ir, codeblock_t *block);
 void codegen_reg_lazy_stores(codeblock_t *block, const codegen_lazy_list_t *list);
 #endif
 
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+/*Keep the allocator's state at a branch over a cold region*/
+void codegen_reg_cold_snapshot(void);
+/*Take it back at the region's destination*/
+void codegen_reg_cold_restore(void);
+#endif
+
 ir_host_reg_t codegen_reg_alloc_read_reg(codeblock_t *block, ir_reg_t ir_reg, int *host_reg_idx);
 ir_host_reg_t codegen_reg_alloc_write_reg(codeblock_t *block, ir_reg_t ir_reg);
 

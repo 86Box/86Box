@@ -704,12 +704,60 @@ codegen_flags_dead_pass(ir_data_t *ir, int unroll_start, int unroll_end)
     }
 }
 
+#if defined(CODEGEN_BACKEND_HAS_COLD_REGION) && !defined(RELEASE_BUILD)
+/*Per uop, while a block is compiled: COLD_IN for the uops of a cold region,
+  COLD_DEST for a region's destination*/
+enum {
+    COLD_IN   = 1,
+    COLD_DEST = 2
+};
+static uint8_t cold_mark[UOP_NR_MAX + 1];
+
+/*A cold region (UOP_TYPE_COLD) as the allocator needs it: its branches stay
+  inside it, no other branch reaches its destination, it holds no other
+  region and ends in an unconditional jump out of the block; no uop past it
+  reads a register version written inside it, which the path that skips it
+  never made*/
+static void
+codegen_cold_check(ir_data_t *ir, const uop_t *uop, int c, int region_start, int region_dest)
+{
+    const ir_reg_t *src[3] = { &uop->src_reg_a, &uop->src_reg_b, &uop->src_reg_c };
+
+    if ((uop->type & UOP_TYPE_COLD) && (region_dest != -1))
+        fatal("cold region at %i: uop %i opens another\n", region_start, c);
+    if ((uop->type & UOP_TYPE_COLD) && ((uop->jump_dest_uop <= (c + 1)) || (uop->jump_dest_uop > ir->wr_pos)))
+        fatal("cold region at %i: destination %i\n", c, uop->jump_dest_uop);
+    if ((uop->type & UOP_TYPE_COLD) && (uop->jump_dest_uop < ir->wr_pos) && (ir->uops[uop->jump_dest_uop].type & UOP_TYPE_JUMP_DEST))
+        fatal("cold region at %i: destination %i has another branch\n", c, uop->jump_dest_uop);
+    if ((uop->type & UOP_TYPE_JUMP) && !(uop->type & UOP_TYPE_COLD) && (uop->jump_dest_uop >= 0)) {
+        if ((uop->jump_dest_uop <= ir->wr_pos) && (cold_mark[uop->jump_dest_uop] & COLD_DEST))
+            fatal("cold region: uop %i branches to destination %i\n", c, uop->jump_dest_uop);
+        if ((region_dest != -1) && ((uop->jump_dest_uop <= c) || (uop->jump_dest_uop >= region_dest)))
+            fatal("cold region at %i: uop %i branches out of it to %i\n", region_start, c, uop->jump_dest_uop);
+    }
+    if (region_dest != -1)
+        return;
+    for (int i = 0; i < 3; i++) {
+        if (!ir_reg_is_invalid(*src[i]) && src[i]->version && (cold_mark[reg_version[IREG_GET_REG(src[i]->reg)][src[i]->version].parent_uop] & COLD_IN))
+            fatal("cold region: uop %i reads %02x.%i, written inside one\n", c, src[i]->reg, src[i]->version);
+    }
+}
+#endif
+
 void
 codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
 {
     int jump_target_at_end = -1;
     int c;
     int unroll_end         = 0;
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+    /*The destination of the cold region being compiled*/
+    int cold_dest = -1;
+#    ifndef RELEASE_BUILD
+    int cold_start     = -1;
+    int cold_last_type = 0;
+#    endif
+#endif
 
     flags_unroll_nr = 0;
     if (codegen_unroll_count) {
@@ -757,22 +805,55 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
     block_write_data = codeblock_allocator_get_ptr(block->head_mem_block);
     block_pos        = 0;
     codegen_backend_prologue(block);
+#if defined(CODEGEN_BACKEND_HAS_COLD_REGION) && !defined(RELEASE_BUILD)
+    memset(cold_mark, 0, ir->wr_pos + 1);
+#endif
 
     for (c = 0; c < ir->wr_pos; c++) {
         uop_t *uop = &ir->uops[c];
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+        int at_cold = 0;
+#endif
 
         //                pclog("uOP %i : %08x\n", c, uop->type);
 
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+        /*Only the branch over the region gets here, which ran nothing
+          else: the allocator is as it was there. The branch lands before
+          anything this uop writes back, which the path that skips the
+          region has to write too*/
+        if (c == cold_dest) {
+#    ifndef RELEASE_BUILD
+            if ((cold_last_type & UOP_MASK) != (UOP_JMP & UOP_MASK))
+                fatal("cold region at %i: ends in %08x\n", cold_start, cold_last_type);
+#    endif
+            codegen_reg_cold_restore();
+            for (uop_t *uop_dest = uop; uop_dest->jump_list_next != -1;) {
+                uop_dest = &ir->uops[uop_dest->jump_list_next];
+                codegen_set_jump_dest(block, uop_dest->p);
+            }
+            cold_dest = -1;
+            at_cold   = 1;
+        }
+#endif
         if (uop->type & UOP_TYPE_BARRIER)
             codegen_reg_flush_invalidate(ir, block);
 #ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
         /*The jumps left memory current: what the path that falls through
           holds back since then is stored on that path, before the join*/
+#    ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+        else if ((uop->type & UOP_TYPE_JUMP_DEST) && !at_cold)
+#    else
         else if (uop->type & UOP_TYPE_JUMP_DEST)
+#    endif
             codegen_reg_flush(ir, block);
 #endif
 
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+        if ((uop->type & UOP_TYPE_JUMP_DEST) && !at_cold) {
+#else
         if (uop->type & UOP_TYPE_JUMP_DEST) {
+#endif
             uop_t *uop_dest = uop;
 
             while (uop_dest->jump_list_next != -1) {
@@ -783,6 +864,13 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
 
         if ((uop->type & UOP_MASK) == UOP_INVALID)
             continue;
+#if defined(CODEGEN_BACKEND_HAS_COLD_REGION) && !defined(RELEASE_BUILD)
+        codegen_cold_check(ir, uop, c, cold_start, cold_dest);
+        if (cold_dest != -1) {
+            cold_mark[c]   = COLD_IN;
+            cold_last_type = uop->type;
+        }
+#endif
 
 #ifdef CODEGEN_BACKEND_HAS_MOV_IMM
         if ((uop->type & UOP_MASK) == (UOP_MOV_IMM & UOP_MASK) && reg_is_native_size(uop->dest_reg_a) && !codegen_reg_is_loaded(uop->dest_reg_a) && reg_version[IREG_GET_REG(uop->dest_reg_a.reg)][uop->dest_reg_a.version].refcount <= 0) {
@@ -826,6 +914,12 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
 #endif
                     codegen_reg_flush(ir, block);
             }
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+            /*A region at the block's end would have its branch land past
+              the end's write-back: written back here instead*/
+            if ((uop->type & UOP_TYPE_COLD) && (uop->jump_dest_uop >= ir->wr_pos))
+                codegen_reg_flush(ir, block);
+#endif
 
             if (uop->type & UOP_TYPE_PARAMS_REGS) {
                 if (uop->dest_reg_a.reg != IREG_INVALID) {
@@ -842,6 +936,22 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
 #endif
             if (uop->type & UOP_TYPE_ORDER_BARRIER)
                 codegen_reg_drop_cycles();
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+            /*Nothing is written back: the path that skips the region goes
+              on with the registers as they are, and the region starts from
+              them too, storing what it needs before its own calls*/
+            if ((uop->type & UOP_TYPE_COLD) && (uop->jump_dest_uop >= ir->wr_pos))
+                codegen_reg_drop_cycles();
+            else if (uop->type & UOP_TYPE_COLD) {
+                codegen_reg_cold_snapshot();
+                cold_dest = uop->jump_dest_uop;
+#    ifndef RELEASE_BUILD
+                cold_start     = c;
+                cold_last_type = 0;
+                cold_mark[cold_dest] = COLD_DEST;
+#    endif
+            }
+#endif
         }
 
         if (uop->type & UOP_TYPE_JUMP) {

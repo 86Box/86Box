@@ -4113,6 +4113,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_FCMP_JWITHIN_DEST &
         UOP_MASK]
     = codegen_FCMP_JWITHIN_DEST,
+    [UOP_FCMP_JWITHIN_DEST_COLD &
+        UOP_MASK]
+    = codegen_FCMP_JWITHIN_DEST,
     [UOP_FDIV_JSLOW_DEST &
         UOP_MASK]
     = codegen_FDIV_JSLOW_DEST,
@@ -4170,6 +4173,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
         UOP_MASK]
     = codegen_CMP_IMM_JNZ_DEST,
     [UOP_CMP_IMM_JZ_DEST &
+        UOP_MASK]
+    = codegen_CMP_IMM_JZ_DEST,
+    [UOP_CMP_IMM_JZ_DEST_COLD &
         UOP_MASK]
     = codegen_CMP_IMM_JZ_DEST,
 
