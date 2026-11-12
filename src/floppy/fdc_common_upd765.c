@@ -40,6 +40,10 @@
 #include <86box/plat_unused.h>
 #include <86box/fifo.h>
 
+/* The drive and bitstream layers reach this controller through fdd_ctrl_t;
+   the table itself lives in fdc_common_ctrl.c. */
+extern const fdd_ctrl_t fdc_ctrl;
+
 const uint8_t command_has_drivesel[32] = {
     0, 0,
     1, /* READ TRACK */
@@ -3120,8 +3124,11 @@ fdc_close(void *priv)
 
     next_bus = 0;
 
-    for (int i = 0; i < 4; i++)
-        drives[fdc->bus + i].fdc = NULL;
+    for (int i = 0; i < 4; i++) {
+        drives[fdc->bus + i].fdc       = NULL;
+        drives[fdc->bus + i].ctrl      = NULL;
+        drives[fdc->bus + i].ctrl_priv = NULL;
+    }
 
     free(fdc);
 }
@@ -3136,7 +3143,9 @@ fdc_init(const device_t *info)
 
     for (int i = 0; i < 4; i++) {
         fdc->fdd[i] = &(drives[fdc->bus + i]);
-        drives[fdc->bus + i].fdc = fdc;
+        drives[fdc->bus + i].fdc       = fdc;
+        drives[fdc->bus + i].ctrl      = &fdc_ctrl;
+        drives[fdc->bus + i].ctrl_priv = fdc;
     }
 
     fdc->flags = (int) info->local;
