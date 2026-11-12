@@ -221,9 +221,11 @@ static double akm4531_gain_2dbstep_5bits[0x20];
 #define INT_ES1371_ADC_STOP       (1 << 13)
 
 #define SI_R1_LOOP_SEL            (1 << 15)
-#define SI_R1_INT_EN              (1 << 10)
+#define SI_P2_LOOP_SEL            (1 << 14)
+#define SI_P1_LOOP_SEL            (1 << 13)
 #define SI_P2_PAUSE               (1 << 12)
 #define SI_P1_PAUSE               (1 << 11)
+#define SI_R1_INT_EN              (1 << 10)
 #define SI_P2_INTR_EN             (1 << 9)
 #define SI_P1_INTR_EN             (1 << 8)
 
@@ -778,6 +780,7 @@ static void
 es137x_dac_start(es137x_t *dev, int dac_nr)
 {
     dev->dac[dac_nr].curr_samp_ct   = dev->dac[dac_nr].samp_ct;
+    dev->dac[dac_nr].stopped        = 0;
     dev->dac[dac_nr].addr           = dev->dac[dac_nr].addr_latch;
     dev->dac[dac_nr].buffer_pos     = 0;
     dev->dac[dac_nr].buffer_pos_end = 0;
@@ -2403,6 +2406,9 @@ es137x_sample_count(es137x_t *dev, int dac_nr)
         dev->int_status |= dac_nr ? INT_STATUS_DAC2 : INT_STATUS_DAC1;
         es137x_update_irqs(dev);
         dev->dac[dac_nr].curr_samp_ct = dev->dac[dac_nr].samp_ct;
+        /* Stop mode: the channel plays its last sample until restarted. */
+        if (dev->si_cr & (dac_nr ? SI_P2_LOOP_SEL : SI_P1_LOOP_SEL))
+            dev->dac[dac_nr].stopped = 1;
     }
 }
 
@@ -2440,7 +2446,7 @@ es1370_poll_dac(es137x_t *dev, int dac_nr)
     const uint32_t divider = dev->dac[dac_nr].clock_divider;
 
     dev->dac[dac_nr].ac += dev->dac[dac_nr].vf;
-    while (dev->dac[dac_nr].ac >= divider) {
+    while ((dev->dac[dac_nr].ac >= divider) && !dev->dac[dac_nr].stopped) {
         if (dev->dac[dac_nr].buffer_pos >= dev->dac[dac_nr].buffer_pos_end)
             es137x_fetch(dev, dac_nr);
 
@@ -2449,6 +2455,12 @@ es1370_poll_dac(es137x_t *dev, int dac_nr)
         dev->dac[dac_nr].buffer_pos++;
         dev->dac[dac_nr].ac -= divider;
         es137x_sample_count(dev, dac_nr);
+    }
+
+    if (dev->dac[dac_nr].stopped) {
+        dev->dac[dac_nr].out_l = dev->dac[dac_nr].prev_out_l;
+        dev->dac[dac_nr].out_r = dev->dac[dac_nr].prev_out_r;
+        return;
     }
 
     if (dev->dac[dac_nr].buffer_pos >= dev->dac[dac_nr].buffer_pos_end)
@@ -2660,8 +2672,9 @@ es137x_poll(void *priv)
         const uint32_t pause  = dac_nr ? SI_P2_PAUSE : SI_P1_PAUSE;
         const uint32_t bypass = dac_nr ? INT_DAC2_BYPASS : INT_DAC1_BYPASS;
 
-        /* Pause holds the last output sample, DMA position and sample count. */
-        if (!(dev->int_ctrl & enable) || (dev->si_cr & pause))
+        /* Pause holds the last output sample, DMA position and sample count,
+           and so does the end of a transfer in stop mode. */
+        if (!(dev->int_ctrl & enable) || (dev->si_cr & pause) || dev->dac[dac_nr].stopped)
             continue;
 
         if (dev->type == AUDIOPCI_ES1370) {
