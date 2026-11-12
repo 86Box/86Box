@@ -5645,7 +5645,7 @@ static const device_config_t modem_config[] = {
 // clang-format on
 
 const device_t modem_device = {
-    .name          = "Standard Hayes-compliant Modem (char API)",
+    .name          = "Standard Hayes-compliant Modem",
     .internal_name = "char_modem",
     .flags         = DEVICE_COM | DEVICE_HOTPLUG,
     .local         = 0,
