@@ -220,6 +220,8 @@ static double akm4531_gain_2dbstep_5bits[0x20];
 #define INT_ES1370_ADC_STOP       (1u << 31)
 #define INT_ES1371_ADC_STOP       (1 << 13)
 
+#define SI_P2_END_INC_SHIFT       19
+#define SI_P2_END_INC_MASK        (7 << SI_P2_END_INC_SHIFT)
 #define SI_R1_LOOP_SEL            (1 << 15)
 #define SI_P2_LOOP_SEL            (1 << 14)
 #define SI_P1_LOOP_SEL            (1 << 13)
@@ -2398,6 +2400,27 @@ es137x_update(es137x_t *dev)
     }
 }
 
+/* At the end of each loop, DAC2's sample address advances by P2_END_INC bytes
+   instead of the usual 1 (8-bit) or 2 (16-bit). Drivers set it higher to skip
+   the padding of a buffer whose length is not a whole number of longwords (the
+   frame size is in longwords): the DOS SB emulation does this for odd-sized
+   auto-init DMA buffers, alternating END_INC between 1 and 3 for an 8-bit
+   buffer of 4n + 2 bytes. */
+static void
+es137x_dac2_loop_end(es137x_t *dev)
+{
+    int format = (dev->si_cr >> 2) & 3;
+    int width  = (format & 2) ? 2 : 1; /* bytes per channel sample */
+    int frame  = width << (format & 1);
+    int skip   = ((int) ((dev->si_cr & SI_P2_END_INC_MASK) >> SI_P2_END_INC_SHIFT) - width) / frame;
+
+    while (skip-- > 0) {
+        if (dev->dac[1].buffer_pos >= dev->dac[1].buffer_pos_end)
+            es137x_fetch(dev, 1);
+        dev->dac[1].buffer_pos++;
+    }
+}
+
 static void
 es137x_sample_count(es137x_t *dev, int dac_nr)
 {
@@ -2409,6 +2432,8 @@ es137x_sample_count(es137x_t *dev, int dac_nr)
         /* Stop mode: the channel plays its last sample until restarted. */
         if (dev->si_cr & (dac_nr ? SI_P2_LOOP_SEL : SI_P1_LOOP_SEL))
             dev->dac[dac_nr].stopped = 1;
+        else if (dac_nr)
+            es137x_dac2_loop_end(dev);
     }
 }
 
