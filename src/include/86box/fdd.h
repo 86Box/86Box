@@ -82,19 +82,28 @@ extern int fdd_current_track(void *priv);
 
 typedef uint8_t d86f_format_id_t[4];
 
+/* The flux view of one surface: what the head sees, one bit cell at a time.
+   An 86F image implements this directly from its stored bit-cell arrays; the
+   sector images (img, imd, fdi, mfm, pcjs, td0) implement it by encoding their
+   sectors on the fly. Everything below the bitstream engine speaks this
+   interface, so adding a medium format does not touch the controller. */
 typedef struct d86f_handler_t {
+    /* Medium attributes: what this surface is, and its nominal timing. */
     uint16_t (*disk_flags)(void *priv);
     uint16_t (*side_flags)(void *priv);
     void (*writeback)(void *priv);
+    /* Sector and track level, for the formatter. */
     void (*set_sector)(void *priv, int side, uint8_t c, uint8_t h,
                        uint8_t r, uint8_t n);
     int (*format_track)(void *priv, int side,
                         const d86f_format_id_t *ids, uint16_t count,
                         uint8_t fill);
+    int (*format_conditions)(void *priv);
+    /* Flux: one bit cell at the given position on the surface. */
     uint8_t (*read_data)(void *priv, int side, uint16_t pos);
     void (*write_data)(void *priv, int side, uint16_t pos,
                        uint8_t data);
-    int (*format_conditions)(void *priv);
+    /* Revolution geometry, in bit cells. */
     int32_t (*extra_bit_cells)(void *priv, int side);
     uint16_t *(*encoded_data)(void *priv, int side);
     void (*read_revolution)(void *priv);
@@ -103,6 +112,90 @@ typedef struct d86f_handler_t {
 
     uint8_t check_crc;
 } d86f_handler_t;
+
+/* Same layout as sector_id_t in fdc.h, kept here so this header stays
+   standalone. */
+typedef union fdd_sector_id_t {
+    uint32_t dword;
+    uint8_t  byte_array[4];
+    struct {
+        uint8_t c;
+        uint8_t h;
+        uint8_t r;
+        uint8_t n;
+    } id;
+} fdd_sector_id_t;
+
+/* The seam between the drive layer and the controller. A drive reports its
+   mechanical state and the result of the decode to the controller through
+   these hooks, and asks the controller for the parameters the transfer runs
+   with. Two groups, following the hardware split:
+
+     mech  - the mechanical side: drive mapping, write protect, and the two
+             interrupts the drive raises.
+     flux  - the head side: bit timing and encoding, the data path, and every
+             event the bitstream engine reports (record found, CRC, RNF, ...).
+     cmd   - controller state the bitstream engine happens to read for now.
+             Temporary: these belong to the controller and will move there,
+             at which point the group goes away.
+
+   Every hook is optional; a controller that has nothing to say about one
+   leaves it NULL and the caller keeps its previous behaviour. */
+typedef struct fdd_ctrl_t {
+    /* ---- Mechanical side ------------------------------------------ */
+    /* Drive index this controller sees for `drive` (swap and gating). */
+    int         (*real_drive)(void *priv, int drive);
+    /* Software write-protect switch. */
+    uint8_t     (*get_swwp)(void *priv);
+    void        (*seek_complete_interrupt)(void *priv, int drive);
+    void        (*diskchange_interrupt)(void *priv, int drive);
+
+    /* ---- Flux side ------------------------------------------------ */
+    int         (*get_bit_rate)(void *priv);
+    int         (*get_bitcell_period)(void *priv);
+    int         (*is_mfm)(void *priv);
+    uint8_t     (*get_diswr)(void *priv);
+    int         (*get_gap)(void *priv);
+    int         (*get_gap2)(void *priv, int drive);
+
+    /* Data path: one byte at a time, in both directions. */
+    int         (*data)(void *priv, uint8_t data, int last);
+    int         (*getdata)(void *priv, int last);
+    int         (*data_available)(const void *priv);
+
+    /* Decode results and error conditions. */
+    void        (*sector_finishread)(void *priv);
+    void        (*sector_finishcompare)(void *priv, int satisfying);
+    void        (*track_finishread)(void *priv, int condition);
+    void        (*noidam)(void *priv);
+    void        (*nosector)(void *priv);
+    void        (*nodataam)(void *priv);
+    void        (*cannotformat)(void *priv);
+    void        (*datacrcerror)(void *priv);
+    void        (*headercrcerror)(void *priv);
+    void        (*writeprotect)(void *priv);
+    void        (*wrongcylinder)(void *priv);
+    void        (*badcylinder)(void *priv);
+    void        (*set_wrong_am)(void *priv);
+    void        (*sectorid)(void *priv, uint8_t track, uint8_t side,
+                            uint8_t sector, uint8_t size, uint8_t crc1,
+                            uint8_t crc2);
+
+    /* Read Address: the ID last found on the track. */
+    fdd_sector_id_t (*get_read_track_sector)(void *priv);
+    void        (*request_next_sector_id)(void *priv);
+    void        (*stop_id_request)(void *priv);
+
+    /* ---- Command context (temporary, see above) ------------------- */
+    int         (*get_dtl)(void *priv);
+    int         (*get_format_n)(void *priv);
+    int         (*get_format_sectors)(void *priv);
+    int         (*get_compare_condition)(void *priv);
+    int         (*is_dma)(void *priv);
+    int         (*is_verify)(void *priv);
+    int         (*is_sk)(void *priv);
+    int         (*is_deleted)(void *priv);
+} fdd_ctrl_t;
 
 typedef struct fdd_pending_op_t {
     int     pending;
@@ -191,8 +284,17 @@ typedef struct fdd_drive_t {
     void *             d86f_priv;
     void *             local;
 
+    /* The controller this drive reports to. `fdc` above is the concrete
+       uPD765 instance the old code reaches for; ctrl is the seam the drive
+       and the bitstream engine are meant to use, with ctrl_priv pointing at
+       the controller's own state. Until the call sites are converted both
+       are kept in step by the controller's init. */
     void *             fdc;
+    const fdd_ctrl_t * ctrl;
+    void *             ctrl_priv;
 
+    /* The mounted medium's command entry points (seek, sector access,
+       address read, format, hole sensor, byte timing). */
     void (*seek)(void *priv, int track);
     void (*readsector)(void *priv, int sector, int track, int side,
                        int density, int sector_size);
