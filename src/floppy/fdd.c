@@ -921,22 +921,14 @@ fdd_hole(void *priv)
 int
 fdd_index(void *priv)
 {
-    fdd_drive_t *drv   = (fdd_drive_t *) priv;
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
 
-    if ((drv == NULL) || !drv->motoron ||
-        drv->empty || (drv->d86f_handler.index_hole_pos == NULL) ||
-        (drv->d86f_handler.get_raw_size == NULL))
+    if ((drv == NULL) || !drv->motoron || drv->empty)
         return 0;
 
-    const int      side      = fdd_get_head(drv);
-    const uint32_t raw_size  = d86f_get_raw_size(drv, side);
-    if (raw_size == 0)
-        return 0;
-    const uint32_t index_pos = drv->d86f_handler.index_hole_pos(drv, side);
-    const uint32_t pulse_pos = (d86f_get_track_pos(drv) + raw_size - index_pos) % raw_size;
-
-    /* A typical index pulse is active for about 4 ms of a 200 ms revolution. */
-    return pulse_pos < (raw_size / 50);
+    /* The revolution phase belongs to the bitstream engine; the mechanical
+       layer only asks whether the pulse is active right now. */
+    return d86f_index(drv);
 }
 
 static __inline uint64_t

@@ -768,6 +768,29 @@ d86f_get_track_pos(void *priv)
     return ret;
 }
 
+/* Whether the index pulse is active right now. The revolution phase lives in
+   the bitstream engine, so this is the answer the mechanical layer asks for
+   instead of working the phase out from the drive-side fields. */
+int
+d86f_index(void *priv)
+{
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    if ((drv == NULL) || (drv->d86f_handler.index_hole_pos == NULL) ||
+        (drv->d86f_handler.get_raw_size == NULL))
+        return 0;
+
+    const int      side      = fdd_get_head(drv);
+    const uint32_t raw_size  = d86f_get_raw_size(drv, side);
+    if (raw_size == 0)
+        return 0;
+    const uint32_t index_pos = drv->d86f_handler.index_hole_pos(drv, side);
+    const uint32_t pulse_pos = (d86f_get_track_pos(drv) + raw_size - index_pos) % raw_size;
+
+    /* A typical index pulse is active for about 4 ms of a 200 ms revolution. */
+    return pulse_pos < (raw_size / 50);
+}
+
 uint32_t
 d86f_get_raw_size(void *priv, const int side)
 {

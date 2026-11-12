@@ -309,6 +309,8 @@ typedef struct fdd_drive_t {
     void (*readaddress)(void *priv, int side, int density);
     void (*format)(void *priv, int side, int density, uint8_t fill);
     int (*hole)(void *priv);
+    /* Flux parameter, not a mechanical one: the byte clock the controller
+       paces itself with, derived from the medium's bit cell timing. */
     uint64_t (*byteperiod)(void *priv);
     void (*stop)(void *priv);
     void (*poll)(void *priv);
