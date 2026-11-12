@@ -178,6 +178,8 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     ui->radioButtonLargerFrames->setChecked(force_10ms);
     ui->radioButtonSmallerFrames->setChecked(!force_10ms);
 
+    ui->checkBoxFastForwardOnStart->setChecked(fast_forward_on_start);
+
     ui->checkBoxOverrideInterpreter->setChecked(cpu_override_interpreter ? true : false);
     ui->checkBoxDebugRegs486->setChecked(cpu_debug_regs_486 ? true : false);
 
@@ -252,7 +254,11 @@ SettingsMachine::changed()
     has_changed |= (time_fixed_year   != fixed_year);
     has_changed |= (time_keep_date    != keep_date);
 
-    return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) : 0;
+    /* Only takes effect the next time the machine is started */
+    const int soft_changed = (fast_forward_on_start != (ui->checkBoxFastForwardOnStart->isChecked() ? 1 : 0));
+
+    return has_changed ? (SETTINGS_CHANGED | SETTINGS_REQUIRE_HARD_RESET) :
+                         (soft_changed ? SETTINGS_CHANGED : 0);
 }
 
 void
@@ -269,6 +275,8 @@ SettingsMachine::currentMachineId() const
 void
 SettingsMachine::save(int soft)
 {
+    fast_forward_on_start = ui->checkBoxFastForwardOnStart->isChecked() ? 1 : 0;
+
     if (soft)
         return;
 

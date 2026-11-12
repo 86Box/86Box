@@ -141,6 +141,7 @@ private slots:
     void on_actionPreferences_triggered();
     void on_actionRenderer_options_triggered();
     void on_actionFast_forward_triggered();
+    void on_actionFast_forward_on_start_triggered();
 
     void refreshMediaMenu();
     void showMessage_(int flags, const QString &header, const QString &message, bool richText, std::atomic_bool *done = nullptr);

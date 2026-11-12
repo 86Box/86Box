@@ -214,6 +214,7 @@ int      confirm_reset                          = 1;              /* (G) enable 
 int      confirm_exit                           = 1;              /* (G) enable exit confirmation */
 int      confirm_save                           = 1;              /* (G) enable save confirmation */
 int      chd_precache_level                     = 0;              /* (G) CHD precache level */
+int      fast_forward_new_machines              = 0;              /* (G) New machines start in fast forward */
 int      pit_mode                               = -1;             /* (C) force setting PIT mode */
 int      fm_driver                              = 0;              /* (C) select FM sound driver */
 int      open_dir_usr_path                      = 0;              /* (G) default file open dialog directory
@@ -224,6 +225,7 @@ int      do_auto_pause                          = 0;              /* (G) Auto-pa
                                                                          loss */
 int      do_auto_dialog_pause                   = 0;              /* (G) Auto-pause the emulator on dialog boxes */
 int      force_constant_mouse                   = 0;              /* (C) Force constant updating of the mouse */
+int      fast_forward_on_start                  = 0;              /* (C) Start the machine in fast forward */
 int      hook_enabled                           = 1;              /* (C) Keyboard hook is enabled */
 int      test_mode                              = 0;              /* (C) Test mode */
 char     uuid[MAX_UUID_LEN]                     = { '\0' };       /* (C) UUID or machine identifier */

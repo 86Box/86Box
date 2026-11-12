@@ -552,6 +552,7 @@ MainWindow::MainWindow(QWidget *parent)
     ui->actionHide_tool_bar->setChecked(hide_tool_bar);
     ui->actionShow_non_primary_monitors->setChecked(show_second_monitors);
     ui->actionUpdate_status_bar_icons->setChecked(update_icons);
+    ui->actionFast_forward_on_start->setChecked(fast_forward_on_start);
     ui->actionApply_fullscreen_stretch_mode_when_maximized->setChecked(video_fullscreen_scale_maximized);
 
 #ifdef Q_OS_MACOS
@@ -1435,6 +1436,8 @@ MainWindow::on_actionSettings_triggered()
         case QDialog::Rejected:
             break;
     }
+    /* Also changed by soft saves, which reject the dialog */
+    ui->actionFast_forward_on_start->setChecked(fast_forward_on_start);
     runctl_resume(RUN_PAUSE_SYNC);
 }
 
@@ -2395,6 +2398,14 @@ void
 MainWindow::on_actionFast_forward_triggered()
 {
     runctl_fast_forward_toggle();
+}
+
+void
+MainWindow::on_actionFast_forward_on_start_triggered()
+{
+    fast_forward_on_start ^= 1;
+    ui->actionFast_forward_on_start->setChecked(fast_forward_on_start);
+    config_save();
 }
 
 void

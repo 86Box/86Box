@@ -89,6 +89,7 @@
     <addaction name="actionToggle_OSD"/>
     <addaction name="separator"/>
     <addaction name="actionFast_forward"/>
+    <addaction name="actionFast_forward_on_start"/>
     <addaction name="actionForce_interpretation"/>
     <addaction name="separator"/>
     <addaction name="actionHard_Reset"/>
@@ -297,6 +298,14 @@
    <addaction name="actionTake_screenshot"/>
    <addaction name="actionCopy_screenshot"/>
   </widget>
+  <action name="actionFast_forward_on_start">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Fast forward at &amp;startup</string>
+   </property>
+  </action>
   <action name="actionForce_interpretation">
    <property name="icon">
     <iconset resource="../qt_resources.qrc">

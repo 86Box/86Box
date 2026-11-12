@@ -3441,6 +3441,18 @@ msgstr "&Дозволити рекомпіляцію"
 msgid "&Fast forward"
 msgstr "&Перемотай вперед"
 
+msgid "Fast forward at startup"
+msgstr ""
+
+msgid "Start new machines in fast forward"
+msgstr ""
+
+msgid "Only affects machines created from now on. Each machine can be changed in its settings, under Machine > Performance."
+msgstr ""
+
+msgid "Fast forward at &startup"
+msgstr ""
+
 msgid "Fast forward"
 msgstr "Перемотай вперед"
 

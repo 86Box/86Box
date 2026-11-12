@@ -79,6 +79,16 @@
     </widget>
    </item>
    <item>
+    <widget class="QCheckBox" name="checkBoxFastForwardNewMachines">
+     <property name="toolTip">
+      <string>Only affects machines created from now on. Each machine can be changed in its settings, under Machine &gt; Performance.</string>
+     </property>
+     <property name="text">
+      <string>Start new machines in fast forward</string>
+     </property>
+    </widget>
+   </item>
+   <item>
     <spacer name="verticalSpacer">
      <property name="orientation">
       <enum>Qt::Vertical</enum>

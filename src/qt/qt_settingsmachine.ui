@@ -689,6 +689,14 @@
       </item>
 
       <item>
+       <widget class="QCheckBox" name="checkBoxFastForwardOnStart">
+        <property name="text">
+         <string>Fast forward at startup</string>
+        </property>
+       </widget>
+      </item>
+
+      <item>
        <layout class="QHBoxLayout" name="groupBoxesLayout_2">
         <item>
          <layout class="QVBoxLayout" name="verticalLayoutCPUFrameSize">

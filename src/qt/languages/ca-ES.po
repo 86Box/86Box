@@ -3406,6 +3406,18 @@ msgstr "&Permetre recompilació"
 msgid "&Fast forward"
 msgstr "&Avançar ràpidament"
 
+msgid "Fast forward at startup"
+msgstr "Avançar ràpidament en engegar"
+
+msgid "Start new machines in fast forward"
+msgstr "Engega les màquines noves en avançament ràpid"
+
+msgid "Only affects machines created from now on. Each machine can be changed in its settings, under Machine > Performance."
+msgstr "Només afecta les màquines creades a partir d'ara. Cada màquina es pot canviar a la seva configuració, a Màquina > Rendiment."
+
+msgid "Fast forward at &startup"
+msgstr "Avançar ràpidament en en&gegar"
+
 msgid "Fast forward"
 msgstr "Avançar ràpidament"
 

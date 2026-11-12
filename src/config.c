@@ -181,6 +181,8 @@ load_global_emulator(void)
 
     chd_precache_level = ini_section_get_int(cat, "chd_precache_level", 0);
 
+    fast_forward_new_machines = !!ini_section_get_int(cat, "fast_forward_new_machines", 0);
+
     p = ini_section_get_string(cat, "vmm_path", NULL);
     if (p != NULL) {
         /* Convert relative paths to absolute in portable mode */
@@ -437,6 +439,7 @@ load_general(void)
     }
 
     force_constant_mouse = ini_section_get_int(cat, "force_constant_mouse", 0);
+    fast_forward_on_start = !!ini_section_get_int(cat, "fast_forward_on_start", 0);
     fdd_sounds_enabled = ini_section_get_int(cat, "fdd_sounds_enabled", 1);
 
     p = ini_section_get_string(cat, "uuid", NULL);
@@ -3117,6 +3120,7 @@ config_load(void)
         machine              = machine_get_machine_from_internal_name("ibmpc");
         dpi_scale            = 1;
         force_constant_mouse = 0;
+        fast_forward_on_start = fast_forward_new_machines;
 
         cpu_override_interpreter = 0;
         cpu_debug_regs_486       = 0;
@@ -3319,6 +3323,11 @@ save_global_emulator(void)
         ini_section_set_int(cat, "chd_precache_level", chd_precache_level);
     else
         ini_section_delete_var(cat, "chd_precache_level");
+
+    if (fast_forward_new_machines)
+        ini_section_set_int(cat, "fast_forward_new_machines", fast_forward_new_machines);
+    else
+        ini_section_delete_var(cat, "fast_forward_new_machines");
 
     if (vmm_disabled != 0)
         ini_section_set_int(cat, "vmm_disabled", vmm_disabled);
@@ -3595,6 +3604,11 @@ save_general(void)
         ini_section_set_int(cat, "force_constant_mouse", force_constant_mouse);
     else
         ini_section_delete_var(cat, "force_constant_mouse");
+
+    if (fast_forward_on_start)
+        ini_section_set_int(cat, "fast_forward_on_start", fast_forward_on_start);
+    else
+        ini_section_delete_var(cat, "fast_forward_on_start");
 
     if (fdd_sounds_enabled == 1)
         ini_section_delete_var(cat, "fdd_sounds_enabled");
