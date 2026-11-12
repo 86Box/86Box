@@ -5915,16 +5915,28 @@ s3_virge_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
             break;
 
         case 0x2c:
-            ret = 0x33;
+            if (virge->chip >= S3_VIRGEDX)
+                ret = svga->crtc[0x81];
+            else
+                ret = 0x33;
             break; /* Subsystem vendor ID */
         case 0x2d:
-            ret = 0x53;
+            if (virge->chip >= S3_VIRGEDX)
+                ret = svga->crtc[0x82];
+            else
+                ret = 0x53;
             break;
         case 0x2e:
-            ret = virge->virge_id_low;
+            if (virge->chip >= S3_VIRGEDX)
+                ret = svga->crtc[0x83];
+            else
+                ret = virge->virge_id_low;
             break;
         case 0x2f:
-            ret = virge->virge_id_high;
+            if (virge->chip >= S3_VIRGEDX)
+                ret = svga->crtc[0x84];
+            else
+                ret = virge->virge_id_high;
             break;
 
         case 0x30:

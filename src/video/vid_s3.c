@@ -10241,6 +10241,11 @@ s3_pci_read(UNUSED(int func), int addr, UNUSED(int len), void *priv)
             return ((s3->chip == S3_VISION868) || (s3->chip == S3_VISION968) || (s3->chip >= S3_TRIO64V)) ?
                        (svga->crtc[0x59] & 0xfc) : svga->crtc[0x59];
 
+        case 0x2c ... 0x2f:
+            if (s3->chip == S3_TRIO64V2)
+                return svga->crtc[0x81 + (addr & 0x03)];
+            break;
+
         case 0x30:
             return s3->has_bios ? (s3->pci_regs[0x30] & 0x01) : 0x00; /*BIOS ROM address*/
         case 0x31:
