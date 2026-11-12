@@ -196,6 +196,8 @@ typedef struct fdd_ctrl_t {
     int         (*get_dtl)(void *priv);
     /* Command byte running for now (seek timing looks at its low bits). */
     int         (*get_command)(void *priv);
+    /* Step rate the SPECIFY command selected (SRT, 0..15). */
+    int         (*get_step_rate)(void *priv);
     int         (*get_format_n)(void *priv);
     int         (*get_format_sectors)(void *priv);
     /* The four bytes the formatter is assembling from the data port. */

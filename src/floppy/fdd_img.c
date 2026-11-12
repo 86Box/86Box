@@ -39,7 +39,6 @@
 #include <86box/fdd.h>
 #include <86box/fdd_86f.h>
 #include <86box/fdd_img.h>
-#include <86box/fdc.h>
 #include <86box/plat_floppy_ioctl.h>
 
 typedef struct img_t {
@@ -528,12 +527,15 @@ format_conditions(void *priv)
     fdd_drive_t *drv = (fdd_drive_t *) priv;
     const img_t *dev = (img_t *) drv->local;
 
-    /* Allow bigger sector sizes because of HD_COPY. */
-    int          temp = (fdc_get_format_sectors(drv->fdc) == 3) ||
-                        (fdc_get_format_sectors(drv->fdc) == dev->sectors) ||
-                        (fdc_get_format_sectors(drv->fdc) == (dev->sectors + 1));
+    const int    fmt_sectors = drv->ctrl->get_format_sectors(drv->ctrl_priv);
+    const int    fmt_n       = drv->ctrl->get_format_n(drv->ctrl_priv);
 
-    temp = temp && (fdc_get_format_n(drv->fdc) == dev->sector_size);
+    /* Allow bigger sector sizes because of HD_COPY. */
+    int          temp = (fmt_sectors == 3) ||
+                        (fmt_sectors == dev->sectors) ||
+                        (fmt_sectors == (dev->sectors + 1));
+
+    temp = temp && (fmt_n == dev->sector_size);
     temp = temp && (dev->xdf_type == 0);
     temp = temp && (dev->track >= 0) && (dev->track < dev->tracks);
 
@@ -809,7 +811,7 @@ img_readaddress(void *priv, const int side, const int density)
     if (fdd_get_turbo(drv) && fdd_is_pcjx_360(drv) && !dev->xdf_type) {
         if ((dev->track < 0) || (dev->track >= dev->tracks) ||
             (side < 0) || (side >= dev->sides)) {
-            fdc_noidam(drv->fdc);
+            drv->ctrl->noidam(drv->ctrl_priv);
             return;
         }
         const uint8_t *id = dev->first_sector_id[side];

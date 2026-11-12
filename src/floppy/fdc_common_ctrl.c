@@ -247,6 +247,12 @@ fdc_ctrl_stop_id_request(void *priv)
 /* ------------------------------------------------------------------------- */
 
 static int
+fdc_ctrl_get_step_rate(void *priv)
+{
+    return (int) (((fdc_t *) priv)->specify[0] >> 4);
+}
+
+static int
 fdc_ctrl_get_command(void *priv)
 {
     return (int) ((fdc_t *) priv)->command;
@@ -359,6 +365,7 @@ const fdd_ctrl_t fdc_ctrl = {
     .get_format_sectors      = fdc_ctrl_get_format_sectors,
     .get_format_id           = fdc_ctrl_get_format_id,
     .get_format_n            = fdc_ctrl_get_format_n,
+    .get_step_rate           = fdc_ctrl_get_step_rate,
     .get_command             = fdc_ctrl_get_command,
     .get_dtl                 = fdc_ctrl_get_dtl,
     .is_dma                  = fdc_ctrl_is_dma,
