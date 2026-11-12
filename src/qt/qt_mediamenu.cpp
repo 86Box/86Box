@@ -655,7 +655,7 @@ MediaMenu::floppyMount(int i, const QString &filename, bool wp)
     } else
         mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), filename);
     ui_sb_update_icon_state(SB_FLOPPY | i, drv->empty);
-    ui_sb_update_icon_wp(SB_FLOPPY | i, drv->read_only);
+    ui_sb_update_icon_wp(SB_FLOPPY | i, drv->writeprot);
     floppyUpdateMenu(i);
     ui_sb_update_tip(SB_FLOPPY | i);
     config_save();

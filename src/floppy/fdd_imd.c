@@ -629,7 +629,6 @@ imd_load(void *priv, char *fn)
             return;
         }
         drv->writeprot = 1;
-        drv->read_only = 1;
     }
 
     if (drv->read_only)
