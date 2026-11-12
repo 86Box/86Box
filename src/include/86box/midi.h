@@ -91,6 +91,7 @@ enum {
     MIDI_CMD_ALL_NOTES_OFF
 };
 
+extern int  midi_out_device_is_open(void);
 extern void midi_out_send_command(int cmd);
 
 extern void midi_in_handler(int set,

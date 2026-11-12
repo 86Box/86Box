@@ -192,7 +192,7 @@ private:
 
     bool hasKanaLock();
     void refreshMidiOutMenu();
-    void switchMidiOut(int device);
+    void switchMidiOut(int device, int port = -1);
     void updateShortcuts();
     void updatePowerOffAction();
     void refreshDisplayRatioActions();

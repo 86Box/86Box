@@ -740,6 +740,14 @@ midi_reset(void)
         midi_out->m_out_device->reset();
 }
 
+/* Whether an output device is open: the configured one can fail to open,
+   for example when its ROMs or its plugin are missing. */
+int
+midi_out_device_is_open(void)
+{
+    return midi_out && midi_out->m_out_device;
+}
+
 /* Reset messages a sequencer would send down the MIDI cable. A module only
    acts on those for its own family and ignores the others. */
 static const uint8_t midi_reset_gm[]   = { 0xf0, 0x7e, 0x7f, 0x09, 0x01, 0xf7 };                               /* GM System On */

@@ -41,6 +41,7 @@
 
 extern "C" {
 #include <86box/86box.h>
+#include <86box/ini.h>
 #include <86box/config.h>
 #include <86box/device.h>
 #include <86box/keyboard.h>
@@ -58,6 +59,9 @@ extern "C" {
 #include <86box/acpi.h>
 #include <86box/renderdefs.h>
 #include <86box/midi.h>
+#ifdef USE_RTMIDI
+#    include <86box/midi_rtmidi.h>
+#endif
 
 #ifdef USE_VNC
 #    include <86box/vnc.h>
@@ -223,12 +227,8 @@ MainWindow::MainWindow(QWidget *parent)
     midiOutGroup = new QActionGroup(this);
     midiOutGroup->setExclusive(true);
     connect(ui->menuMIDI, &QMenu::aboutToShow, this, &MainWindow::refreshMidiOutMenu);
-    connect(midiOutGroup, &QActionGroup::triggered, this, [this](QAction *action) {
-        if (action->data().toInt() != midi_output_device_current)
-            switchMidiOut(action->data().toInt());
-    });
     connect(ui->menuSound, &QMenu::aboutToShow, this, [this] {
-        ui->menuMIDI_command->setEnabled(midi_output_device_current > 0);
+        ui->menuMIDI_command->setEnabled(midi_out_device_is_open());
     });
     const std::pair<QAction *, int> midiCommands[] = {
         { ui->actionMIDI_reset_GM,      MIDI_CMD_GM_ON         },
@@ -2641,38 +2641,91 @@ MainWindow::refreshMidiOutMenu()
         delete action;
 
     /* The devices go above the separator and "Restart device" from the .ui. */
-    QAction *first = ui->menuMIDI->actions().value(0);
+    QAction   *first      = ui->menuMIDI->actions().value(0);
+    const bool systemMidi = !strcmp(midi_out_device_get_internal_name(midi_output_device_current),
+                                    SYSTEM_MIDI_INTERNAL_NAME);
+    QAction   *none       = nullptr;
+    bool       listed     = false;
+
+    const auto addEntry = [&](const QString &name, int device, int port, bool current) {
+        auto *action = new QAction(name, ui->menuMIDI);
+        ui->menuMIDI->insertAction(first, action);
+        action->setCheckable(true);
+        action->setChecked(current);
+        midiOutGroup->addAction(action);
+        connect(action, &QAction::triggered, this, [this, device, port, current] {
+            if (!current)
+                switchMidiOut(device, port);
+        });
+        listed |= current;
+        return action;
+    };
+
+    /* The emulation sends to an open System MIDI port from its own thread,
+       through the RtMidi object that also lists the host's ports. */
+    if (systemMidi)
+        runctl_pause_wait(RUN_PAUSE_SYNC);
 
     for (const auto &midi : Models::Devices(midi_out_device_getdevice, midi_out_device_get_internal_name,
                                             midi_out_device_available, 0)) {
         if (!midi.available)
             continue;
 
-        QAction *action = new QAction(midi.name, ui->menuMIDI);
-        ui->menuMIDI->insertAction(first, action);
-        action->setCheckable(true);
-        action->setChecked(midi.id == midi_output_device_current);
-        action->setData(midi.id);
-        midiOutGroup->addAction(action);
+        const bool current = (midi.id == midi_output_device_current);
+#ifdef USE_RTMIDI
+        /* One entry for each port of the host, as the device's settings
+           list them. RtMidi opens the first port when the configured one
+           is gone. */
+        if (!strcmp(midi_out_device_get_internal_name(midi.id), SYSTEM_MIDI_INTERNAL_NAME)) {
+            const int ports = rtmidi_out_get_num_devs();
+            int       port  = config_get_int(SYSTEM_MIDI_NAME, "midi", 0);
+
+            if ((port < 0) || (port >= ports))
+                port = 0;
+            for (int i = 0; i < ports; i++) {
+                char name[512] = { 0 };
+
+                rtmidi_out_get_dev_name(i, name);
+                addEntry(QString("%1: %2").arg(midi.name, QString::fromUtf8(name).simplified()),
+                         midi.id, i, current && (i == port));
+            }
+            continue;
+        }
+#endif
+        QAction *action = addEntry(midi.name, midi.id, -1, current);
+        if (midi.id == 0)
+            none = action;
     }
+
+    if (systemMidi)
+        runctl_resume(RUN_PAUSE_SYNC);
+
+    /* As in the settings, a configured device that can't be used, for
+       example with its plugin missing, shows as None. */
+    if (!listed && none)
+        none->setChecked(true);
 
     /* System MIDI only reopens the host's port: a module on the other end
        doesn't restart. */
-    ui->actionMIDI_restart_device->setEnabled((midi_output_device_current > 0)
-                                              && strcmp(midi_out_device_get_internal_name(midi_output_device_current),
-                                                        SYSTEM_MIDI_INTERNAL_NAME));
+    ui->actionMIDI_restart_device->setEnabled(listed && (midi_output_device_current > 0) && !systemMidi);
 }
 
 /* Like plugging a module into the MIDI port, or switching it off and on
    again when it's the same device: it starts from its power-on state, while
-   the rest of the machine keeps running. */
+   the rest of the machine keeps running. A System MIDI port is chosen with
+   port 0 and up. */
 void
-MainWindow::switchMidiOut(int device)
+MainWindow::switchMidiOut(int device, int port)
 {
-    const bool changed = (device != midi_output_device_current);
+    bool changed = (device != midi_output_device_current);
+
+    if (port >= 0)
+        changed |= (port != config_get_int(SYSTEM_MIDI_NAME, "midi", 0));
 
     runctl_pause_wait(RUN_PAUSE_SYNC);
     midi_output_device_current = device;
+    if (port >= 0)
+        config_set_int(SYSTEM_MIDI_NAME, "midi", port);
     midi_config_changed();
     if (changed)
         config_save();
