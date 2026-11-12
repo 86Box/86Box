@@ -2305,6 +2305,8 @@ cpu_CPUID(void)
                 EAX = CPUID;
                 EBX = ECX = 0;
                 EDX       = CPUID_VME;
+                if (fpu_type == FPU_487SX)
+                    EDX |= CPUID_FPU;
             } else
                 EAX = EBX = ECX = EDX = 0;
             break;
