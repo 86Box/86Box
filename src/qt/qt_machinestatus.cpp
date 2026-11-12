@@ -1286,7 +1286,6 @@ MachineStatus::refresh(QStatusBar *sbar)
     d->dynarec->setPixmapIfChanged(!is_dynarec_active() ? d->pixmaps.dynarec.disabled : d->pixmaps.dynarec.normal);
     d->dynarec->setToolTip(is_dynarec_active() ? tr("Dynamic recompiler is active") :
                                                  tr("Dynamic recompiler is inactive"));
-    d->dynarec->setVisible(cpu_use_dynarec);
 
     connect(d->dynarec.get(), &ClickableLabel::clicked, this, [this](QPoint pos) {
         if (this->dynarecMenu)
@@ -1294,6 +1293,9 @@ MachineStatus::refresh(QStatusBar *sbar)
     });
 
     sbar->addWidget(d->dynarec.get());
+    /* Only after addWidget(): showing a widget that has no parent yet makes
+       it a top-level window, which flashes on screen until it is reparented. */
+    d->dynarec->setVisible(cpu_use_dynarec);
 
     d->text = std::make_unique<QLabel>();
     sbar->addWidget(d->text.get());
