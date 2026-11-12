@@ -432,12 +432,17 @@ fdc_int(fdc_t *fdc, int set_fintr)
     else if (!(fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)))
         ienable = !!(fdc->dor & 8);
 
-    if (ienable) {
+    /*
+       DMA GATE in the DOR only gates the INT output pin, the interrupt
+       itself is still pending and SENSE INTERRUPT STATUS still reports
+       it. NetBSD 1.3 probes its drives with the gate closed, and reads
+       the result of the RECALIBRATE through SENSE INTERRUPT STATUS.
+     */
+    if (ienable)
         fdc_irq(fdc, 1);
 
-        if (set_fintr)
-            fdc->fintr = 1;
-    }
+    if (set_fintr)
+        fdc->fintr = 1;
     fdc_log("fdc_int(%i): fdc->fintr = %i\n", set_fintr, fdc->fintr);
 }
 
