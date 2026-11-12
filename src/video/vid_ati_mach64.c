@@ -235,13 +235,17 @@ mach64_out(uint16_t addr, uint8_t val, void *priv)
             break;
         case 0x3c0:
         case 0x3c1:
-            /* The VGA palette address source also controls display blanking.
-               ATI's Windows 95 driver blanks through CRTC_DISPLAY_DIS before
-               a mode switch, then enables the display through ATTRX bit 5. */
-            if (!svga->attrff) {
+            /* ATI's Windows 95 driver blanks through CRTC_DISPLAY_DIS before
+               a mode switch, then enables the display through ATTRX bit 5.
+               Clearing the palette address source does not set the bit: the
+               Windows XP Rage II driver saves and restores the attribute
+               registers around its BIOS calls, leaving bit 5 clear, then
+               writes CRTC_GEN_CNTL back as it reads it, so the accelerator
+               mode it sets would stay blanked. */
+            if (!svga->attrff && (val & 0x20)) {
                 uint32_t old_cntl = mach64->crtc_gen_cntl;
 
-                mach64->crtc_gen_cntl = (old_cntl & ~0x40u) | ((val & 0x20) ? 0 : 0x40);
+                mach64->crtc_gen_cntl = old_cntl & ~0x40u;
                 if (mach64->crtc_gen_cntl != old_cntl) {
                     svga_recalctimings(svga);
                     svga->fullchange = svga->monitor->mon_changeframecount;
