@@ -1,6 +1,14 @@
+Motivation
+==========
+_Explain why you are making this change._
+
 Summary
 =======
 _Briefly describe what you are submitting._
+
+Testing instructions
+====================
+_Provide steps for others to verify that the functionality works as intended._
 
 Checklist
 =========
