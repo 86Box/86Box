@@ -576,8 +576,8 @@ fastreadw_fetch(uint32_t a)
 
 }
 
-static __inline uint32_t
-fastreadl_fetch(uint32_t a)
+static __attribute__((noinline, unused)) uint32_t
+fastreadl_fetch_slow(uint32_t a)
 {
     uint8_t *t;
     uint32_t val;
@@ -597,6 +597,17 @@ fastreadl_fetch(uint32_t a)
     if (opcode_length[val & 0xff] > 2)
         val |= (fastreadw(a + 2) << 16);
     return val;
+}
+
+/* The fetch from the cached code page is inline: the out of line part holds
+   the frame only a miss or a fetch at the page's end needs, and it tests the
+   page again, so its path is unchanged. */
+static __attribute__((always_inline)) inline uint32_t
+fastreadl_fetch(uint32_t a)
+{
+    if (((a & 0xFFF) < 0xFFD) && ((a >> 12) == pccache))
+        return *((uint32_t *) (((uintptr_t) &pccache2[a] & 0x00000000ffffffffULL) | ((uintptr_t) &pccache2[0] & 0xffffffff00000000ULL)));
+    return fastreadl_fetch_slow(a);
 }
 #endif
 

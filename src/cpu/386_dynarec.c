@@ -569,6 +569,16 @@ update_tsc(void)
     }
 }
 
+/* The TSC is about to be set to new_tsc (WRMSR), after update_tsc(). The
+   block-start value moves by the same step, so that tsc - tsc_old stays the
+   cycles already counted and the rest of the block's cycles are added to the
+   new count, whichever way it moved. */
+void
+update_tsc_write(uint64_t new_tsc)
+{
+    tsc_old += new_tsc - tsc;
+}
+
 /* dbg is a constant, cpu_debug_regs_486 as the block starts: each caller below
    gets a copy of the loop, and with the option off the debug register
    handling is not compiled in at all. */
@@ -1217,7 +1227,9 @@ exec386_dynarec_dyn(const int dbg)
 _Static_assert(offsetof(cpu_events_t, ne) == offsetof(cpu_events_t, init) + 4
                    && offsetof(cpu_events_t, irq) == offsetof(cpu_events_t, nmi_req) + 4
                    && offsetof(cpu_events_t, irq_pad) == offsetof(cpu_events_t, irq) + 1
-                   && offsetof(cpu_state_t, _smi_line) == offsetof(cpu_state_t, abrt) + 1,
+                   && offsetof(cpu_state_t, _smi_line) == offsetof(cpu_state_t, abrt) + 1
+                   && !(offsetof(cpu_events_t, stpclk) & 7)
+                   && offsetof(cpu_events_t, throttle_run) == offsetof(cpu_events_t, stpclk) + 4,
                "the event words are pairs of adjacent fields");
 
 static __inline int
@@ -1232,6 +1244,24 @@ cpu_events_due(void)
     memcpy(&abrt_smi, &cpu_state.abrt, sizeof(abrt_smi));
 
     return (init_ne | nmi_irq | abrt_smi) != 0;
+}
+
+/*As cpu_events_due(), and the clock control: nonzero when anything the loop
+  does after a block may have work*/
+static __inline int
+cpu_after_block_due(void)
+{
+    uint64_t init_ne;
+    uint64_t nmi_irq;
+    uint64_t clock;
+    uint16_t abrt_smi;
+
+    memcpy(&init_ne, &cpu_events.init, sizeof(init_ne));
+    memcpy(&nmi_irq, &cpu_events.nmi_req, sizeof(nmi_irq));
+    memcpy(&clock, &cpu_events.stpclk, sizeof(clock));
+    memcpy(&abrt_smi, &cpu_state.abrt, sizeof(abrt_smi));
+
+    return (init_ne | nmi_irq | clock | abrt_smi) != 0;
 }
 
 /*Any source x86_external_interrupt_pending() can answer yes from*/
@@ -1264,7 +1294,6 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
     int      tempi;
     int32_t  cycdiff;
     int32_t  oldcyc;
-    int32_t  oldcyc2;
     uint64_t oldtsc;
     uint64_t delta;
 
@@ -1290,7 +1319,7 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
             cpu_halted      = 0;
             oldcs           = CS;
             oldcpl          = CPL;
-            oldcyc = oldcyc2 = cycles;
+            oldcyc = cycles;
             cycles_old       = cycles;
             oldtsc           = tsc;
             tsc_old          = tsc;
@@ -1306,102 +1335,109 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
                 /* Linked blocks moved the loop-top state on; time is counted
                    from the last link. */
                 oldcyc = cycles_old;
-                oldtsc = tsc_old;
 #    endif
                 /* A CR0 paging toggle ends the block it is in, so it was the
                    last instruction executed. */
                 if (cpu_flush_pending == 1)
                     cpu_flush_pending++;
             }
+            /* Moved on by linked blocks, and by a TSC write (update_tsc_write()). */
+            oldtsc = tsc_old;
 
-            /* Every test below fails while none of its inputs is set. */
-            if (cpu_events_due()) {
-                if (cpu_init) {
-                    cpu_init = 0;
-                    resetx86();
-                }
+            /* Every test below fails while none of its inputs is set, the
+               clock control's included. */
+            if (cpu_after_block_due()) {
+                if (cpu_events_due()) {
+                    if (cpu_init) {
+                        cpu_init = 0;
+                        resetx86();
+                    }
 
-                if (cpu_state.abrt) {
-                    flags_rebuild();
-                    tempi          = cpu_state.abrt & ABRT_MASK;
-                    cpu_state.abrt = 0;
-                    x86_doabrt(tempi);
                     if (cpu_state.abrt) {
-                        int second_abrt = cpu_state.abrt & ABRT_MASK;
+                        flags_rebuild();
+                        tempi          = cpu_state.abrt & ABRT_MASK;
                         cpu_state.abrt = 0;
-                        cpu_state.pc   = cpu_state.oldpc;
-                        x86_fault_in_delivery(tempi, second_abrt);
+                        x86_doabrt(tempi);
                         if (cpu_state.abrt) {
+                            int second_abrt = cpu_state.abrt & ABRT_MASK;
                             cpu_state.abrt = 0;
-                            softresetx86_from(SOFT_RESET_SHUTDOWN);
-                            cpu_set_edx();
+                            cpu_state.pc   = cpu_state.oldpc;
+                            x86_fault_in_delivery(tempi, second_abrt);
+                            if (cpu_state.abrt) {
+                                cpu_state.abrt = 0;
+                                softresetx86_from(SOFT_RESET_SHUTDOWN);
+                                cpu_set_edx();
 #    ifdef ENABLE_386_DYNAREC_LOG
-                            x386_dynarec_log("Triple fault - reset\n");
+                                x386_dynarec_log("Triple fault - reset\n");
 #    endif
+                            }
                         }
                     }
-                }
 
-                if (new_ne) {
-                    oldcs = CS;
-                    cpu_state.oldpc = cpu_state.pc;
-                    new_ne = 0;
-                    x86_int(16);
-                }
-            }
-
-            /* A P_LVL2/P_LVL3 read in the block, or throttling.  The
-               stall is for everything since the loop top (oldcyc2): linked
-               blocks run on without coming back here, and moved oldcyc. */
-            if (cpu_stpclk || cpu_throttle_run) {
-                cpu_clock_control_check();
-                cpu_throttle_stall(oldcyc2 - cycles);
-            }
-
-            /* Read again: the tests above can raise an event. */
-            if (cpu_events_due()) {
-                if (smi_line) {
-                    const int before = in_smm;
-
-                    enter_smm_check(0);
-                    if (in_smm != before)
-                        cpu_halted = 0;
-                } else if (NMI_TAKEABLE()) {
-                    /* Out of a HLT that left pc on itself: "the saved CS:IP (or
-                       CS:EIP) value points to the instruction following the HLT
-                       instruction" (Pentium Vol. 3, HLT), NMI included. */
-                    if (cpu_halted)
-                        cpu_state.pc++;
-                    cpu_halted = 0;
-                    oldcs = CS;
-                    cpu_state.oldpc = cpu_state.pc;
-                    x86_int(2);
-                    nmi_enable = 0;
-#    ifdef OLD_NMI_BEHAVIOR
-                    if (nmi_auto_clear) {
-                        nmi_auto_clear = 0;
-                        nmi            = 0;
-                    }
-#    else
-                    nmi = 0;
-#    endif
-                } else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending()) {
-                    vector = x86_external_interrupt_vector();
-                    if (vector != -1) {
-                        /* An interrupt that came after the HLT looked: past the
-                           HLT, as above. */
-                        if (cpu_halted)
-                            cpu_state.pc++;
+                    if (new_ne) {
                         oldcs = CS;
                         cpu_state.oldpc = cpu_state.pc;
-                        x86_int_external = 1;
-                        x86_int(vector);
-                        x86_int_external = 0;
-                        cpu_halted = 0; /* out of HLT, into the handler */
+                        new_ne = 0;
+                        x86_int(16);
                     }
                 }
 
-                cpu_irq_drain();
+                /* A P_LVL2/P_LVL3 read in the block, or throttling.  The
+                   stall is for the block that just ran, from its start
+                   (cycles_old): no block links to another while either is
+                   on, so that is every block run since the loop top, but a
+                   block that turned throttling on may have been entered
+                   through a link. */
+                if (cpu_stpclk || cpu_throttle_run) {
+                    cpu_clock_control_check();
+                    cpu_throttle_stall(cycles_old - cycles);
+                }
+
+                /* Read again: the tests above can raise an event. */
+                if (cpu_events_due()) {
+                    if (smi_line) {
+                        const int before = in_smm;
+
+                        enter_smm_check(0);
+                        if (in_smm != before)
+                            cpu_halted = 0;
+                    } else if (NMI_TAKEABLE()) {
+                        /* Out of a HLT that left pc on itself: "the saved CS:IP (or
+                           CS:EIP) value points to the instruction following the HLT
+                           instruction" (Pentium Vol. 3, HLT), NMI included. */
+                        if (cpu_halted)
+                            cpu_state.pc++;
+                        cpu_halted = 0;
+                        oldcs = CS;
+                        cpu_state.oldpc = cpu_state.pc;
+                        x86_int(2);
+                        nmi_enable = 0;
+#    ifdef OLD_NMI_BEHAVIOR
+                        if (nmi_auto_clear) {
+                            nmi_auto_clear = 0;
+                            nmi            = 0;
+                        }
+#    else
+                        nmi = 0;
+#    endif
+                    } else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending()) {
+                        vector = x86_external_interrupt_vector();
+                        if (vector != -1) {
+                            /* An interrupt that came after the HLT looked: past the
+                               HLT, as above. */
+                            if (cpu_halted)
+                                cpu_state.pc++;
+                            oldcs = CS;
+                            cpu_state.oldpc = cpu_state.pc;
+                            x86_int_external = 1;
+                            x86_int(vector);
+                            x86_int_external = 0;
+                            cpu_halted = 0; /* out of HLT, into the handler */
+                        }
+                    }
+
+                    cpu_irq_drain();
+                }
             }
 
             cycdiff = oldcyc - cycles;

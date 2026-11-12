@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <string.h>
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
@@ -29,10 +30,28 @@ typedef struct host_reg_set_t {
     host_reg_def_t *reg_list;
     uint16_t        locked;
     int             nr_regs;
+    /*Bit c set while regs[c] holds a version of that IR register, so a
+      search for one visits only the host registers that hold it, in the
+      order a walk over all of them would*/
+    uint16_t        slots[IREG_COUNT];
 } host_reg_set_t;
 
 static host_reg_set_t host_reg_set;
 static host_reg_set_t host_fp_reg_set;
+
+/*Every store to regs[] goes through here to keep slots[] in step*/
+static inline void
+host_reg_assign(host_reg_set_t *reg_set, int c, ir_reg_t ir_reg)
+{
+    int old_reg = IREG_GET_REG(reg_set->regs[c].reg);
+    int new_reg = IREG_GET_REG(ir_reg.reg);
+
+    if (old_reg != IREG_INVALID)
+        reg_set->slots[old_reg] &= ~(1 << c);
+    if (new_reg != IREG_INVALID)
+        reg_set->slots[new_reg] |= (1 << c);
+    reg_set->regs[c] = ir_reg;
+}
 
 uint64_t dirty_ir_regs[2] = { 0, 0 };
 
@@ -49,6 +68,25 @@ static int nr_lazy_pending;
 static codegen_lazy_list_t lazy_lists[CODEGEN_LAZY_SITES_MAX];
 static int                 nr_lazy_lists;
 codegen_lazy_list_t       *codegen_lazy_site;
+
+/*Bit r set while IR register r has an entry in lazy_pending[] (one at most)*/
+static uint64_t lazy_pending_mask[2];
+
+/*The tables below never change: codegen_reg_lazy_init() builds them once*/
+/*Registers of the guest's state that a stub can store from the host
+  register they are in: no C reached from a lazy uop on its way on reads
+  one, and the uop leaves its host register alone until its exit branch.
+  Never IREG_cycles, and never in a host register a C call does not
+  preserve (lazy_volatile_slots)*/
+static uint8_t ireg_lazy_deferrable[IREG_COUNT];
+/*IR registers an immediate is stored to at once rather than held*/
+static uint8_t ireg_imm_direct[IREG_COUNT];
+/*Bit j of ireg_mem_overlap[i] set when j's memory overlaps i's*/
+static uint64_t ireg_mem_overlap[IREG_COUNT][2];
+/*Integer host registers a C call does not preserve*/
+static uint16_t lazy_volatile_slots;
+
+static void codegen_reg_lazy_init(void);
 #endif
 
 enum {
@@ -237,19 +275,38 @@ static const uint8_t native_requested_sizes[9][8] =
   IREG_sf_exc come after the temporaries)*/
 uint64_t ireg_permanent_mask[2];
 
+/*0xff for each permanent register from IREG_ESP up, 0 for the others. Built
+  once with ireg_permanent_mask by codegen_check_regs(): ireg_data never
+  changes*/
+static uint8_t ireg_mark_bytes[IREG_COUNT];
+
+_Static_assert(sizeof(reg_last_version[0]) == 1, "codegen_reg_mark_as_required() reads reg_last_version 8 bytes at a time");
+_Static_assert((IREG_COUNT % 8) == 0, "codegen_reg_mark_as_required() reads reg_last_version 8 bytes at a time");
+
 void
 codegen_reg_mark_as_required(void)
 {
     /* This used to start from IREG_EAX, now only starts from IREG_ESP since the first 4 registers are never optimized out. */
     /* It also no longer iterates through volatile registers unnecessarily. */
-    for (uint8_t reg = IREG_ESP; reg < IREG_COUNT; reg++) {
-        if (!ireg_is_permanent(reg))
+    /*Most registers are not written in a block: a group of 8 with no
+      written one to mark is passed over whole. Only whether the 64-bit word
+      is zero is used, so the host's byte order does not matter, and the
+      registers are still visited in ascending order*/
+    for (int group = 0; group < IREG_COUNT; group += 8) {
+        uint64_t written;
+        uint64_t marked;
+
+        memcpy(&written, &reg_last_version[group], 8);
+        memcpy(&marked, &ireg_mark_bytes[group], 8);
+        if (!(written & marked))
             continue;
 
-        int last_version = reg_last_version[reg];
+        for (int reg = group; reg < (group + 8); reg++) {
+            int last_version = reg_last_version[reg];
 
-        if (last_version > 0)
-            reg_version[reg][last_version].flags |= REG_FLAGS_REQUIRED;
+            if (ireg_mark_bytes[reg] && (last_version > 0))
+                reg_version[reg][last_version].flags |= REG_FLAGS_REQUIRED;
+        }
     }
     dirty_ir_regs[0] = dirty_ir_regs[1] = 0;
 }
@@ -300,6 +357,17 @@ void
 codegen_check_regs(void)
 {
     int i = 0;
+
+    ireg_permanent_mask[0] = ireg_permanent_mask[1] = 0;
+    for (i = 0; i < IREG_COUNT; i++) {
+        if (ireg_data[i].is_volatile == REG_PERMANENT)
+            ireg_permanent_mask[i >> 6] |= 1ull << (i & 0x3f);
+        ireg_mark_bytes[i] = ((i >= IREG_ESP) && (ireg_data[i].is_volatile == REG_PERMANENT)) ? 0xff : 0;
+    }
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    codegen_reg_lazy_init();
+#endif
+
     for (i = 0; i < IREG_COUNT; i++) {
         if (ireg_data[i].is_volatile == REG_VOLATILE)
             continue;
@@ -314,12 +382,6 @@ void
 codegen_reg_reset(void)
 {
     int c;
-
-    ireg_permanent_mask[0] = ireg_permanent_mask[1] = 0;
-    for (c = 0; c < IREG_COUNT; c++) {
-        if (ireg_data[c].is_volatile == REG_PERMANENT)
-            ireg_permanent_mask[c >> 6] |= 1ull << (c & 0x3f);
-    }
 
     host_reg_set.regs        = _host_regs;
     host_reg_set.dirty       = _host_reg_dirty;
@@ -337,13 +399,14 @@ codegen_reg_reset(void)
     for (c = 0; c < IREG_COUNT; c++) {
         reg_last_version[c]        = 0;
         reg_version[c][0].refcount = 0;
+        reg_version[c][0].uncounted = 0;
     }
     for (c = 0; c < CODEGEN_HOST_REGS; c++) {
-        host_reg_set.regs[c]  = invalid_ir_reg;
+        host_reg_assign(&host_reg_set, c, invalid_ir_reg);
         host_reg_set.dirty[c] = 0;
     }
     for (c = 0; c < CODEGEN_HOST_FP_REGS; c++) {
-        host_fp_reg_set.regs[c]  = invalid_ir_reg;
+        host_reg_assign(&host_fp_reg_set, c, invalid_ir_reg);
         host_fp_reg_set.dirty[c] = 0;
     }
 
@@ -353,6 +416,7 @@ codegen_reg_reset(void)
 #ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
     nr_lazy_pending   = 0;
     nr_lazy_lists     = 0;
+    lazy_pending_mask[0] = lazy_pending_mask[1] = 0;
     codegen_lazy_site = NULL;
 #endif
 }
@@ -477,7 +541,7 @@ codegen_reg_load(host_reg_set_t *reg_set, codeblock_t *block, int c, ir_reg_t ir
             fatal("codegen_reg_load - native_size=%i reg=%i\n", ireg_data[IREG_GET_REG(ir_reg.reg)].native_size, IREG_GET_REG(ir_reg.reg));
     }
 
-    reg_set->regs[c] = ir_reg;
+    host_reg_assign(reg_set, c, ir_reg);
 }
 
 static void
@@ -610,7 +674,7 @@ codegen_reg_writeback(host_reg_set_t *reg_set, codeblock_t *block, int c, int in
     }
 
     if (invalidate)
-        reg_set->regs[c] = invalid_ir_reg;
+        host_reg_assign(reg_set, c, invalid_ir_reg);
     reg_set->dirty[c] = 0;
 }
 
@@ -692,8 +756,43 @@ ireg_mem_overlaps(int ireg_a, int ireg_b)
 }
 
 static void
+codegen_reg_lazy_init(void)
+{
+    lazy_volatile_slots = 0;
+    for (int c = 0; c < CODEGEN_HOST_REGS; c++) {
+        if (codegen_host_reg_list[c].flags & HOST_REG_FLAG_VOLATILE)
+            lazy_volatile_slots |= (1 << c);
+    }
+
+    for (int i = 0; i < IREG_COUNT; i++) {
+        ireg_lazy_deferrable[i] = 0;
+        if ((i != IREG_cycles) && !ireg_data[i].is_volatile) {
+            switch (ireg_data[i].native_size) {
+                case REG_BYTE:
+                case REG_WORD:
+                case REG_DWORD:
+                case REG_POINTER:
+                    ireg_lazy_deferrable[i] = (uintptr_t) ireg_data[i].p >= 256;
+                    break;
+                default:
+                    break;
+            }
+        }
+
+        ireg_imm_direct[i] = ireg_data[i].is_volatile || ((uintptr_t) ireg_data[i].p < 256);
+
+        ireg_mem_overlap[i][0] = ireg_mem_overlap[i][1] = 0;
+        for (int j = 0; j < IREG_COUNT; j++) {
+            if (ireg_mem_overlaps(j, i))
+                ireg_mem_overlap[i][j >> 6] |= 1ull << (j & 0x3f);
+        }
+    }
+}
+
+static void
 lazy_pending_remove(int i)
 {
+    lazy_pending_mask[lazy_pending[i].ireg >> 6] &= ~(1ull << (lazy_pending[i].ireg & 0x3f));
     nr_lazy_pending--;
     for (; i < nr_lazy_pending; i++)
         lazy_pending[i] = lazy_pending[i + 1];
@@ -724,6 +823,8 @@ lazy_pending_store_overlapping(codeblock_t *block, int ireg)
 {
     int i = 0;
 
+    if (!((lazy_pending_mask[0] & ireg_mem_overlap[ireg][0]) | (lazy_pending_mask[1] & ireg_mem_overlap[ireg][1])))
+        return;
     while (i < nr_lazy_pending) {
         if (ireg_mem_overlaps(lazy_pending[i].ireg, ireg))
             lazy_pending_store(block, i);
@@ -737,6 +838,8 @@ lazy_pending_store_overlapping(codeblock_t *block, int ireg)
 static void
 lazy_pending_drop(int ireg)
 {
+    if (!(lazy_pending_mask[ireg >> 6] & (1ull << (ireg & 0x3f))))
+        return;
     for (int i = 0; i < nr_lazy_pending; i++) {
         if (lazy_pending[i].ireg == ireg) {
             lazy_pending_remove(i);
@@ -750,7 +853,7 @@ codegen_reg_defer_imm(codeblock_t *block, ir_reg_t ir_reg, uint32_t imm_data)
 {
     int ireg = IREG_GET_REG(ir_reg.reg);
 
-    if (ireg_data[ireg].is_volatile || ((uintptr_t) ireg_data[ireg].p < 256)) {
+    if (ireg_imm_direct[ireg]) {
         codegen_reg_write_imm(block, ir_reg, imm_data);
         return;
     }
@@ -760,6 +863,7 @@ codegen_reg_defer_imm(codeblock_t *block, ir_reg_t ir_reg, uint32_t imm_data)
     lazy_pending[nr_lazy_pending].ireg = ireg;
     lazy_pending[nr_lazy_pending].imm  = imm_data;
     nr_lazy_pending++;
+    lazy_pending_mask[ireg >> 6] |= 1ull << (ireg & 0x3f);
 }
 
 static void
@@ -807,17 +911,16 @@ static void
 alloc_reg(ir_reg_t ir_reg)
 {
     host_reg_set_t *reg_set = get_reg_set(ir_reg);
-    int             nr_regs = (reg_set == &host_reg_set) ? CODEGEN_HOST_REGS : CODEGEN_HOST_FP_REGS;
+    uint16_t        slots   = reg_set->slots[IREG_GET_REG(ir_reg.reg)];
 
-    for (int c = 0; c < nr_regs; c++) {
-        if (IREG_GET_REG(reg_set->regs[c].reg) == IREG_GET_REG(ir_reg.reg)) {
+    if (slots) {
+        int c = __builtin_ctz(slots);
+
 #ifndef RELEASE_BUILD
-            if (reg_set->regs[c].version != ir_reg.version)
-                fatal("alloc_reg - host_regs[c].version != ir_reg.version  %i %p %p  %i %i\n", c, reg_set, &host_reg_set, reg_set->regs[c].reg, ir_reg.reg);
+        if (reg_set->regs[c].version != ir_reg.version)
+            fatal("alloc_reg - host_regs[c].version != ir_reg.version  %i %p %p  %i %i\n", c, reg_set, &host_reg_set, reg_set->regs[c].reg, ir_reg.reg);
 #endif
-            reg_set->locked |= (1 << c);
-            return;
-        }
+        reg_set->locked |= (1 << c);
     }
 }
 
@@ -825,29 +928,28 @@ static void
 alloc_dest_reg(ir_reg_t ir_reg, int dest_reference)
 {
     host_reg_set_t *reg_set = get_reg_set(ir_reg);
-    int             nr_regs = (reg_set == &host_reg_set) ? CODEGEN_HOST_REGS : CODEGEN_HOST_FP_REGS;
+    uint16_t        slots   = reg_set->slots[IREG_GET_REG(ir_reg.reg)];
 
-    for (int c = 0; c < nr_regs; c++) {
-        if (IREG_GET_REG(reg_set->regs[c].reg) == IREG_GET_REG(ir_reg.reg)) {
-            if (reg_set->regs[c].version == ir_reg.version) {
-                reg_set->locked |= (1 << c);
-            } else {
-                /*The immediate prior version may have been
-                  optimised out, so search backwards to find the
-                  last valid version*/
-                int prev_version = ir_reg.version - 1;
-                while (prev_version >= 0) {
-                    const reg_version_t *regv = &reg_version[IREG_GET_REG(reg_set->regs[c].reg)][prev_version];
+    if (slots) {
+        int c = __builtin_ctz(slots);
 
-                    if (!(regv->flags & REG_FLAGS_DEAD) && regv->refcount == dest_reference) {
-                        reg_set->locked |= (1 << c);
-                        return;
-                    }
-                    prev_version--;
+        if (reg_set->regs[c].version == ir_reg.version) {
+            reg_set->locked |= (1 << c);
+        } else {
+            /*The immediate prior version may have been
+              optimised out, so search backwards to find the
+              last valid version*/
+            int prev_version = ir_reg.version - 1;
+            while (prev_version >= 0) {
+                const reg_version_t *regv = &reg_version[IREG_GET_REG(reg_set->regs[c].reg)][prev_version];
+
+                if (!(regv->flags & REG_FLAGS_DEAD) && regv->refcount == dest_reference) {
+                    reg_set->locked |= (1 << c);
+                    return;
                 }
-                fatal("codegen_reg_alloc_register - host_regs[c].version != dest_reg_a.version  %i,%i %i\n", reg_set->regs[c].version, ir_reg.version, dest_reference);
+                prev_version--;
             }
-            return;
+            fatal("codegen_reg_alloc_register - host_regs[c].version != dest_reg_a.version  %i,%i %i\n", reg_set->regs[c].version, ir_reg.version, dest_reference);
         }
     }
 }
@@ -885,17 +987,23 @@ codegen_reg_alloc_read_reg(codeblock_t *block, ir_reg_t ir_reg, int *host_reg_id
     int             c;
 
     /*Search for required register*/
-    for (c = 0; c < reg_set->nr_regs; c++) {
-        if (!ir_reg_is_invalid(reg_set->regs[c]) && IREG_GET_REG(reg_set->regs[c].reg) == IREG_GET_REG(ir_reg.reg) && reg_set->regs[c].version == ir_reg.version)
-            break;
+    c = reg_set->nr_regs;
+    for (uint16_t slots = reg_set->slots[IREG_GET_REG(ir_reg.reg)]; slots; slots &= slots - 1) {
+        int s = __builtin_ctz(slots);
 
-        if (!ir_reg_is_invalid(reg_set->regs[c]) && IREG_GET_REG(reg_set->regs[c].reg) == IREG_GET_REG(ir_reg.reg) && reg_set->regs[c].version <= ir_reg.version) {
-            reg_version[IREG_GET_REG(reg_set->regs[c].reg)][reg_set->regs[c].version].refcount++;
+        if (reg_set->regs[s].version == ir_reg.version) {
+            c = s;
+            break;
+        }
+
+        if (reg_set->regs[s].version <= ir_reg.version) {
+            reg_version[IREG_GET_REG(reg_set->regs[s].reg)][reg_set->regs[s].version].refcount++;
+            c = s;
             break;
         }
 
 #ifndef RELEASE_BUILD
-        if (!ir_reg_is_invalid(reg_set->regs[c]) && IREG_GET_REG(reg_set->regs[c].reg) == IREG_GET_REG(ir_reg.reg) && reg_version[IREG_GET_REG(reg_set->regs[c].reg)][reg_set->regs[c].version].refcount)
+        if (reg_version[IREG_GET_REG(reg_set->regs[s].reg)][reg_set->regs[s].version].refcount)
             fatal("codegen_reg_alloc_read_reg - version mismatch!\n");
 #endif
     }
@@ -965,22 +1073,23 @@ codegen_reg_alloc_write_reg(codeblock_t *block, ir_reg_t ir_reg)
                   ir_reg.reg, ir_reg.version);
 #endif
 
-        reg_set->regs[c].reg     = ir_reg.reg;
-        reg_set->regs[c].version = ir_reg.version;
-        reg_set->dirty[c]        = 1;
+        host_reg_assign(reg_set, c, ir_reg);
+        reg_set->dirty[c] = 1;
         return reg_set->reg_list[c].reg | IREG_GET_SIZE(ir_reg.reg);
     }
 
     /*Search for previous version in host register*/
-    for (c = 0; c < reg_set->nr_regs; c++) {
-        if (!ir_reg_is_invalid(reg_set->regs[c]) && IREG_GET_REG(reg_set->regs[c].reg) == IREG_GET_REG(ir_reg.reg)) {
-            if (reg_set->regs[c].version <= ir_reg.version - 1) {
+    c = reg_set->nr_regs;
+    for (uint16_t slots = reg_set->slots[IREG_GET_REG(ir_reg.reg)]; slots; slots &= slots - 1) {
+        int s = __builtin_ctz(slots);
+
+        if (reg_set->regs[s].version <= ir_reg.version - 1) {
 #ifndef RELEASE_BUILD
-                if (reg_version[IREG_GET_REG(reg_set->regs[c].reg)][reg_set->regs[c].version].refcount != 0)
-                    fatal("codegen_reg_alloc_write_reg - previous version refcount != 0\n");
+            if (reg_version[IREG_GET_REG(reg_set->regs[s].reg)][reg_set->regs[s].version].refcount != 0)
+                fatal("codegen_reg_alloc_write_reg - previous version refcount != 0\n");
 #endif
-                break;
-            }
+            c = s;
+            break;
         }
     }
 
@@ -1009,9 +1118,8 @@ codegen_reg_alloc_write_reg(codeblock_t *block, ir_reg_t ir_reg)
 #ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
     lazy_pending_drop(IREG_GET_REG(ir_reg.reg));
 #endif
-    reg_set->regs[c].reg     = ir_reg.reg;
-    reg_set->regs[c].version = ir_reg.version;
-    reg_set->dirty[c]        = 1;
+    host_reg_assign(reg_set, c, ir_reg);
+    reg_set->dirty[c] = 1;
     return reg_set->reg_list[c].reg | IREG_GET_SIZE(ir_reg.reg);
 }
 
@@ -1022,15 +1130,15 @@ codegen_reg_is_loaded(ir_reg_t ir_reg)
     const host_reg_set_t *reg_set = get_reg_set(ir_reg);
 
     /*Search for previous version in host register*/
-    for (int c = 0; c < reg_set->nr_regs; c++) {
-        if (!ir_reg_is_invalid(reg_set->regs[c]) && IREG_GET_REG(reg_set->regs[c].reg) == IREG_GET_REG(ir_reg.reg)) {
-            if (reg_set->regs[c].version <= ir_reg.version - 1) {
+    for (uint16_t slots = reg_set->slots[IREG_GET_REG(ir_reg.reg)]; slots; slots &= slots - 1) {
+        int c = __builtin_ctz(slots);
+
+        if (reg_set->regs[c].version <= ir_reg.version - 1) {
 #    ifndef RELEASE_BUILD
-                if (reg_version[IREG_GET_REG(reg_set->regs[c].reg)][reg_set->regs[c].version].refcount != 0)
-                    fatal("codegen_reg_alloc_write_reg - previous version refcount != 0\n");
+            if (reg_version[IREG_GET_REG(reg_set->regs[c].reg)][reg_set->regs[c].version].refcount != 0)
+                fatal("codegen_reg_alloc_write_reg - previous version refcount != 0\n");
 #    endif
-                return 1;
-            }
+            return 1;
         }
     }
     return 0;
@@ -1049,9 +1157,14 @@ codegen_reg_rename(codeblock_t *block, ir_reg_t src, ir_reg_t dst)
 #endif
 
     /*Search for required register*/
-    for (c = 0; c < reg_set->nr_regs; c++) {
-        if (!ir_reg_is_invalid(reg_set->regs[c]) && IREG_GET_REG(reg_set->regs[c].reg) == IREG_GET_REG(src.reg) && reg_set->regs[c].version == src.version)
+    c = reg_set->nr_regs;
+    for (uint16_t slots = reg_set->slots[IREG_GET_REG(src.reg)]; slots; slots &= slots - 1) {
+        int s = __builtin_ctz(slots);
+
+        if (reg_set->regs[s].version == src.version) {
+            c = s;
             break;
+        }
     }
 #ifndef RELEASE_BUILD
     if (c == reg_set->nr_regs)
@@ -1063,20 +1176,17 @@ codegen_reg_rename(codeblock_t *block, ir_reg_t src, ir_reg_t dst)
 #ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
     lazy_pending_drop(IREG_GET_REG(dst.reg));
 #endif
-    reg_set->regs[target]  = dst;
+    host_reg_assign(reg_set, target, dst);
     reg_set->dirty[target] = 1;
 #if 0
     pclog("renamed reg %i dest=%i.%i\n", target, dst.reg, dst.version);
 #endif
 
     /*Invalidate any stale copies of the dest register*/
-    for (c = 0; c < reg_set->nr_regs; c++) {
-        if (c == target)
-            continue;
-        if (!ir_reg_is_invalid(reg_set->regs[c]) && IREG_GET_REG(reg_set->regs[c].reg) == IREG_GET_REG(dst.reg)) {
-            reg_set->regs[c]  = invalid_ir_reg;
-            reg_set->dirty[c] = 0;
-        }
+    for (uint16_t slots = reg_set->slots[IREG_GET_REG(dst.reg)] & ~(1 << target); slots; slots &= slots - 1) {
+        c = __builtin_ctz(slots);
+        host_reg_assign(reg_set, c, invalid_ir_reg);
+        reg_set->dirty[c] = 0;
     }
 }
 
@@ -1091,7 +1201,7 @@ codegen_reg_drop_cycles(void)
 
     for (int c = 0; c < reg_set->nr_regs; c++) {
         if (!ir_reg_is_invalid(reg_set->regs[c]) && IREG_GET_REG(reg_set->regs[c].reg) == IREG_cycles && !reg_set->dirty[c])
-            reg_set->regs[c] = invalid_ir_reg;
+            host_reg_assign(reg_set, c, invalid_ir_reg);
     }
 }
 
@@ -1114,7 +1224,7 @@ codegen_reg_flush(UNUSED(ir_data_t *ir), codeblock_t *block)
           copy kept past it would be written back over them*/
         if ((reg_set->reg_list[c].flags & HOST_REG_FLAG_VOLATILE) ||
             (!ir_reg_is_invalid(reg_set->regs[c]) && (IREG_GET_REG(reg_set->regs[c].reg) == IREG_cycles))) {
-            reg_set->regs[c]  = invalid_ir_reg;
+            host_reg_assign(reg_set, c, invalid_ir_reg);
             reg_set->dirty[c] = 0;
         }
     }
@@ -1125,40 +1235,21 @@ codegen_reg_flush(UNUSED(ir_data_t *ir), codeblock_t *block)
             codegen_reg_writeback(reg_set, block, c, 0);
         }
         if (reg_set->reg_list[c].flags & HOST_REG_FLAG_VOLATILE) {
-            reg_set->regs[c]  = invalid_ir_reg;
+            host_reg_assign(reg_set, c, invalid_ir_reg);
             reg_set->dirty[c] = 0;
         }
     }
 }
 
 #ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
-/*A register of the guest's state that a stub can store from the host
-  register it is in: no C reached from a lazy uop on its way on reads one,
-  and the uop leaves its host register alone until its exit branch*/
-static int
-lazy_can_defer(const host_reg_set_t *reg_set, int c)
-{
-    int ireg = IREG_GET_REG(reg_set->regs[c].reg);
-
-    if ((reg_set->reg_list[c].flags & HOST_REG_FLAG_VOLATILE) || (ireg == IREG_cycles) || ireg_data[ireg].is_volatile)
-        return 0;
-    switch (ireg_data[ireg].native_size) {
-        case REG_BYTE:
-        case REG_WORD:
-        case REG_DWORD:
-        case REG_POINTER:
-            return (uintptr_t) ireg_data[ireg].p >= 256;
-        default:
-            return 0;
-    }
-}
-
 void
 codegen_reg_flush_lazy(ir_data_t *ir, codeblock_t *block)
 {
     host_reg_set_t      *reg_set;
     codegen_lazy_list_t *list;
     int                  c;
+    uint16_t             deferred = 0;
+    uint16_t             written  = 0;
 
     codegen_lazy_site = NULL;
     if (nr_lazy_lists == CODEGEN_LAZY_SITES_MAX) {
@@ -1167,16 +1258,24 @@ codegen_reg_flush_lazy(ir_data_t *ir, codeblock_t *block)
     }
 
     /*What is not deferred goes first, as codegen_reg_flush does it, so the
-      pending immediates it stores are off the list*/
+      pending immediates it stores are off the list. A write-back changes
+      only its own host register's dirty flag, so the dirty registers can be
+      sorted before any is written back*/
     reg_set = &host_reg_set;
     for (c = 0; c < reg_set->nr_regs; c++) {
-        if (!ir_reg_is_invalid(reg_set->regs[c]) && reg_set->dirty[c] && !lazy_can_defer(reg_set, c))
-            codegen_reg_writeback(reg_set, block, c, 0);
-        if ((reg_set->reg_list[c].flags & HOST_REG_FLAG_VOLATILE) ||
-            (!ir_reg_is_invalid(reg_set->regs[c]) && (IREG_GET_REG(reg_set->regs[c].reg) == IREG_cycles))) {
-            reg_set->regs[c]  = invalid_ir_reg;
-            reg_set->dirty[c] = 0;
+        if (!ir_reg_is_invalid(reg_set->regs[c]) && reg_set->dirty[c]) {
+            if (!(lazy_volatile_slots & (1 << c)) && ireg_lazy_deferrable[IREG_GET_REG(reg_set->regs[c].reg)])
+                deferred |= (1 << c);
+            else
+                written |= (1 << c);
         }
+    }
+    for (; written; written &= written - 1)
+        codegen_reg_writeback(reg_set, block, __builtin_ctz(written), 0);
+    for (uint16_t dropped = lazy_volatile_slots | reg_set->slots[IREG_cycles]; dropped; dropped &= dropped - 1) {
+        c = __builtin_ctz(dropped);
+        host_reg_assign(reg_set, c, invalid_ir_reg);
+        reg_set->dirty[c] = 0;
     }
 
     reg_set = &host_fp_reg_set;
@@ -1185,7 +1284,7 @@ codegen_reg_flush_lazy(ir_data_t *ir, codeblock_t *block)
             codegen_reg_writeback(reg_set, block, c, 0);
         }
         if (reg_set->reg_list[c].flags & HOST_REG_FLAG_VOLATILE) {
-            reg_set->regs[c]  = invalid_ir_reg;
+            host_reg_assign(reg_set, c, invalid_ir_reg);
             reg_set->dirty[c] = 0;
         }
     }
@@ -1199,19 +1298,172 @@ codegen_reg_flush_lazy(ir_data_t *ir, codeblock_t *block)
         list->nr++;
     }
     reg_set = &host_reg_set;
-    for (c = 0; c < reg_set->nr_regs; c++) {
-        if (!ir_reg_is_invalid(reg_set->regs[c]) && reg_set->dirty[c] && lazy_can_defer(reg_set, c)) {
-            list->stores[list->nr].ireg     = IREG_GET_REG(reg_set->regs[c].reg);
-            list->stores[list->nr].host_reg = reg_set->reg_list[c].reg;
-            list->stores[list->nr].imm      = 0;
-            list->nr++;
-        }
+    for (; deferred; deferred &= deferred - 1) {
+        c = __builtin_ctz(deferred);
+        list->stores[list->nr].ireg     = IREG_GET_REG(reg_set->regs[c].reg);
+        list->stores[list->nr].host_reg = reg_set->reg_list[c].reg;
+        list->stores[list->nr].imm      = 0;
+        list->nr++;
     }
     if (list->nr) {
         nr_lazy_lists++;
         codegen_lazy_site = list;
     }
 }
+#endif
+
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+/*The allocator at a branch over a cold region (UOP_TYPE_COLD): what each
+  host register holds, whether it is dirty, and the immediates not stored
+  yet. Regions do not nest, so there is one copy. The versions' read counts
+  are not in it: after the region they count the reads the uops past it
+  make, which is what the path that skips the region still has to make.*/
+static struct {
+    ir_reg_t regs[CODEGEN_HOST_REGS];
+    uint8_t  dirty[CODEGEN_HOST_REGS];
+    uint16_t slots[IREG_COUNT];
+    ir_reg_t fp_regs[CODEGEN_HOST_FP_REGS];
+    uint8_t  fp_dirty[CODEGEN_HOST_FP_REGS];
+    uint16_t fp_slots[IREG_COUNT];
+#    ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    struct {
+        uint32_t imm;
+        uint8_t  ireg;
+    } lazy_pending[CODEGEN_LAZY_PENDING_MAX];
+    int      nr_lazy_pending;
+    uint64_t lazy_pending_mask[2];
+#    endif
+} cold_state;
+#    ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+_Static_assert(sizeof(cold_state.lazy_pending) == sizeof(lazy_pending), "cold_state.lazy_pending is a copy of lazy_pending");
+#    endif
+
+void
+codegen_reg_cold_snapshot(void)
+{
+    memcpy(cold_state.regs, host_reg_set.regs, sizeof(cold_state.regs));
+    memcpy(cold_state.dirty, host_reg_set.dirty, sizeof(cold_state.dirty));
+    memcpy(cold_state.slots, host_reg_set.slots, sizeof(cold_state.slots));
+    memcpy(cold_state.fp_regs, host_fp_reg_set.regs, sizeof(cold_state.fp_regs));
+    memcpy(cold_state.fp_dirty, host_fp_reg_set.dirty, sizeof(cold_state.fp_dirty));
+    memcpy(cold_state.fp_slots, host_fp_reg_set.slots, sizeof(cold_state.fp_slots));
+#    ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    memcpy(cold_state.lazy_pending, lazy_pending, sizeof(cold_state.lazy_pending));
+    cold_state.nr_lazy_pending      = nr_lazy_pending;
+    cold_state.lazy_pending_mask[0] = lazy_pending_mask[0];
+    cold_state.lazy_pending_mask[1] = lazy_pending_mask[1];
+#    endif
+}
+
+/*At the region's destination, which only the branch reaches: the host
+  registers hold there what they held at the branch, which ran nothing
+  else*/
+void
+codegen_reg_cold_restore(void)
+{
+    memcpy(host_reg_set.regs, cold_state.regs, sizeof(cold_state.regs));
+    memcpy(host_reg_set.dirty, cold_state.dirty, sizeof(cold_state.dirty));
+    memcpy(host_reg_set.slots, cold_state.slots, sizeof(cold_state.slots));
+    memcpy(host_fp_reg_set.regs, cold_state.fp_regs, sizeof(cold_state.fp_regs));
+    memcpy(host_fp_reg_set.dirty, cold_state.fp_dirty, sizeof(cold_state.fp_dirty));
+    memcpy(host_fp_reg_set.slots, cold_state.fp_slots, sizeof(cold_state.fp_slots));
+    host_reg_set.locked    = 0;
+    host_fp_reg_set.locked = 0;
+#    ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    memcpy(lazy_pending, cold_state.lazy_pending, sizeof(cold_state.lazy_pending));
+    nr_lazy_pending      = cold_state.nr_lazy_pending;
+    lazy_pending_mask[0] = cold_state.lazy_pending_mask[0];
+    lazy_pending_mask[1] = cold_state.lazy_pending_mask[1];
+    codegen_lazy_site    = NULL;
+#    endif
+}
+
+/*Before the branch over a region that goes on at its destination, for each
+  register the region writes: it leaves the host registers and the held
+  immediates, stored first. After the region each path then finds its own
+  value of it in memory, as when the branch wrote everything back.*/
+void
+codegen_reg_cold_drop(codeblock_t *block, int ireg)
+{
+    host_reg_set_t *reg_set = (ireg_data[ireg].type == REG_INTEGER) ? &host_reg_set : &host_fp_reg_set;
+
+#    ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    lazy_pending_store_overlapping(block, ireg);
+#    endif
+    for (uint16_t slots = reg_set->slots[ireg]; slots; slots &= slots - 1) {
+        int c = __builtin_ctz(slots);
+
+        if (reg_set->dirty[c])
+            codegen_reg_writeback(reg_set, block, c, 0);
+        host_reg_assign(reg_set, c, invalid_ir_reg);
+        reg_set->dirty[c] = 0;
+    }
+}
+
+/*Whether the registers the allocator holds now can be loaded again from
+  memory after a call: not when an IR register is in two host registers,
+  two versions of which memory holds one*/
+int
+codegen_reg_cold_can_rejoin(void)
+{
+    for (int r = 0; r < IREG_COUNT; r++) {
+        if ((host_reg_set.slots[r] & (host_reg_set.slots[r] - 1)) || (host_fp_reg_set.slots[r] & (host_fp_reg_set.slots[r] - 1)))
+            return 0;
+    }
+    return 1;
+}
+
+/*The end of a region that goes on at its destination, after its call wrote
+  every register back and dropped them: each register the copy holds is
+  loaded into the host register it is in there (the call changes none of
+  them in memory), and the copy is taken back. A temporary no uop reads any
+  more is left out.*/
+void
+codegen_reg_cold_rejoin(codeblock_t *block)
+{
+#    ifndef RELEASE_BUILD
+    if (nr_lazy_pending)
+        fatal("codegen_reg_cold_rejoin - %i immediates held\n", nr_lazy_pending);
+    for (int c = 0; c < CODEGEN_HOST_REGS; c++) {
+        if (!ir_reg_is_invalid(host_reg_set.regs[c]) && host_reg_set.dirty[c] &&
+            (!ireg_data[IREG_GET_REG(host_reg_set.regs[c].reg)].is_volatile || ir_get_refcount(host_reg_set.regs[c])))
+            fatal("codegen_reg_cold_rejoin - %02x.%i not written back\n", host_reg_set.regs[c].reg, host_reg_set.regs[c].version);
+    }
+    for (int c = 0; c < CODEGEN_HOST_FP_REGS; c++) {
+        if (!ir_reg_is_invalid(host_fp_reg_set.regs[c]) && host_fp_reg_set.dirty[c] &&
+            (!ireg_data[IREG_GET_REG(host_fp_reg_set.regs[c].reg)].is_volatile || ir_get_refcount(host_fp_reg_set.regs[c])))
+            fatal("codegen_reg_cold_rejoin - %02x.%i not written back\n", host_fp_reg_set.regs[c].reg, host_fp_reg_set.regs[c].version);
+    }
+#    endif
+    for (int c = 0; c < CODEGEN_HOST_REGS; c++) {
+        ir_reg_t ir_reg = cold_state.regs[c];
+
+        if (ir_reg_is_invalid(ir_reg))
+            continue;
+        if (ireg_data[IREG_GET_REG(ir_reg.reg)].is_volatile && !ir_get_refcount(ir_reg)) {
+            cold_state.slots[IREG_GET_REG(ir_reg.reg)] &= ~(1 << c);
+            cold_state.regs[c]  = invalid_ir_reg;
+            cold_state.dirty[c] = 0;
+            continue;
+        }
+        codegen_reg_load(&host_reg_set, block, c, ir_reg);
+    }
+    for (int c = 0; c < CODEGEN_HOST_FP_REGS; c++) {
+        ir_reg_t ir_reg = cold_state.fp_regs[c];
+
+        if (ir_reg_is_invalid(ir_reg))
+            continue;
+        if (ireg_data[IREG_GET_REG(ir_reg.reg)].is_volatile && !ir_get_refcount(ir_reg)) {
+            cold_state.fp_slots[IREG_GET_REG(ir_reg.reg)] &= ~(1 << c);
+            cold_state.fp_regs[c]  = invalid_ir_reg;
+            cold_state.fp_dirty[c] = 0;
+            continue;
+        }
+        codegen_reg_load(&host_fp_reg_set, block, c, ir_reg);
+    }
+    codegen_reg_cold_restore();
+}
+
 #endif
 
 void
@@ -1228,7 +1480,7 @@ codegen_reg_flush_invalidate(UNUSED(ir_data_t *ir), codeblock_t *block)
         if (!ir_reg_is_invalid(reg_set->regs[c]) && reg_set->dirty[c]) {
             codegen_reg_writeback(reg_set, block, c, 1);
         }
-        reg_set->regs[c]  = invalid_ir_reg;
+        host_reg_assign(reg_set, c, invalid_ir_reg);
         reg_set->dirty[c] = 0;
     }
 
@@ -1237,7 +1489,7 @@ codegen_reg_flush_invalidate(UNUSED(ir_data_t *ir), codeblock_t *block)
         if (!ir_reg_is_invalid(reg_set->regs[c]) && reg_set->dirty[c]) {
             codegen_reg_writeback(reg_set, block, c, 1);
         }
-        reg_set->regs[c]  = invalid_ir_reg;
+        host_reg_assign(reg_set, c, invalid_ir_reg);
         reg_set->dirty[c] = 0;
     }
 }

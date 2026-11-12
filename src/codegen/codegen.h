@@ -104,6 +104,9 @@ extern uint32_t *codeblock_hash;
 
 extern uint8_t *block_write_data;
 
+extern int     codegen_timing_peek;
+extern uint8_t codegen_peekb(uint32_t addr);
+
 
 /*Code block uses FPU*/
 #define CODEBLOCK_HAS_FPU 1
@@ -463,6 +466,28 @@ extern uint32_t op_old_pc;
 extern int codegen_flags_changed;
 /*Forgets the block's inline flags rebuilds (codegen_ops_helpers.c)*/
 extern void codegen_flags_known_reset(void);
+/*An inline flags rebuild of the block: its uops start..end-1 and the bits of
+  flags it writes*/
+typedef struct codegen_flags_inline_t {
+    int      start;
+    int      end;
+    uint16_t written;
+} codegen_flags_inline_t;
+extern int codegen_flags_inline_sites(const codegen_flags_inline_t **sites);
+/*A flag read compiled as one uop in place of the one uop calling func: the
+  bits of flags the call reads as the dead flags pass sees it, and the uop
+  that set the flags op it was compiled for when an unrolled copy whose loop
+  starts after that uop must call func instead (-1 otherwise). pair: the uop
+  writes 16 bits of its register and the next uop, a CMP_IMM_JZ/JNZ_DEST,
+  tests them; a copy that calls func tests the whole result instead*/
+typedef struct codegen_flags_read_t {
+    int      uop;
+    uint16_t read;
+    int      producer;
+    void    *func;
+    int      pair;
+} codegen_flags_read_t;
+extern int codegen_flags_read_sites(const codegen_flags_read_t **sites);
 
 /*Set while the block being recompiled is a V86 block entered with every
   segment limit 0..0xffff (CPU_STATUS_NOT64K clear): V86 segment loads keep

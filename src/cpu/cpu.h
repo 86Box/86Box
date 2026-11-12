@@ -472,6 +472,9 @@ typedef struct {
 #define CPU_STATUS_USE32   (1 << 0)
 #define CPU_STATUS_STACK32 (1 << 1)
 #define CPU_STATUS_PMODE   (1 << 2)
+/* EFLAGS.VM, whatever CR0.PE is (a real-mode IRETD, RSM or LOADALL can
+   set VM with PE clear, and the interpreter's ops that test VM alone then
+   act on it); V86 mode is PMODE and V86 together */
 #define CPU_STATUS_V86     (1 << 3)
 #define CPU_STATUS_SMM     (1 << 4)
 /* x87 precision control = 24-bit: the double-based FPU must round
@@ -623,9 +626,8 @@ extern int smi_block;
    event (an interrupt request, NMI or SMI).  cpu_throttle_run: STPCLK#
    modulated (THT_EN), the processor running cpu_throttle_run parts of every
    cpu_throttle_period, 0 = not throttled; cpu_throttle_break: a break event
-   ends the throttling (the PIIX4 before the PIIX4E). */
-extern int cpu_stpclk;
-extern int cpu_throttle_run;
+   ends the throttling (the PIIX4 before the PIIX4E).  cpu_stpclk and
+   cpu_throttle_run live in cpu_events. */
 extern int cpu_throttle_period;
 extern int cpu_throttle_break;
 extern int cpu_is_p5(void);
@@ -672,6 +674,13 @@ cpu_update_64k_status(void)
         cpu_cur_status |= CPU_STATUS_NOT64K;
     else
         cpu_cur_status &= ~CPU_STATUS_NOT64K;
+}
+
+/* The V86 status bit from EFLAGS.VM, after a write of VM */
+static inline void
+cpu_set_v86_status(void)
+{
+    cpu_cur_status = (cpu_cur_status & ~CPU_STATUS_V86) | ((cpu_state.eflags & VM_FLAG) ? CPU_STATUS_V86 : 0);
 }
 
 extern uint64_t cpu_CR4_mask;
@@ -766,6 +775,9 @@ extern int cpu_prefetch_cycles;
 extern int cpu_prefetch_width;
 extern int cpu_mem_prefetch_cycles;
 extern int cpu_rom_prefetch_cycles;
+/* The machine has an MCA bus: set by cpu_set(), which every machine change
+   reaches before an instruction runs. */
+extern int cpu_mca_bus;
 extern int cpu_waitstates;
 extern int io_waitstates;
 extern int reg_op_waitstates;
@@ -905,6 +917,7 @@ extern void cpu_car_reset(void);
 extern void cpu_car_enable(void);
 
 extern void update_tsc(void);
+extern void update_tsc_write(uint64_t new_tsc);
 
 extern int sysenter(uint32_t fetchdat);
 extern int sysexit(uint32_t fetchdat);

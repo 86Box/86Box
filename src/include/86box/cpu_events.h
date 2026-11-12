@@ -30,7 +30,11 @@
    irq is set while the 8259 or local APIC 0 may hold an interrupt: every
    writer that can raise one stores it (release), and only the loop clears
    it, once all those sources read empty. irq_pad is never written: it is
-   read as part of the word that holds nmi and irq. */
+   read as part of the word that holds nmi and irq.
+
+   stpclk and throttle_run are the chipset's clock control (cpu.h): the
+   loop reads them as a fourth word, so that one test after a block covers
+   every input of the work it does there. */
 typedef struct cpu_events_t {
     int32_t          was_reset;
     int32_t          flush_pending;
@@ -45,6 +49,8 @@ typedef struct cpu_events_t {
     uint8_t          irq_pad[3];
     volatile int32_t debugger;
     int32_t          pad;
+    int32_t          stpclk;
+    int32_t          throttle_run;
 } cpu_events_t;
 
 #ifdef __cplusplus
@@ -65,6 +71,8 @@ extern cpu_events_t cpu_events;
 #define cpu_halted            cpu_events.halted
 #define nmi                   cpu_events.nmi_req
 #define debugger_attached     cpu_events.debugger
+#define cpu_stpclk            cpu_events.stpclk
+#define cpu_throttle_run      cpu_events.throttle_run
 
 /* cpu_override_dynarec holds a bit per writer, so that one clearing its own
    does not end another's: the board's (the PS/2 cache disable, the PIIX4

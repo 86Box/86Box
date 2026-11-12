@@ -35,6 +35,7 @@
 #include <86box/config.h>
 #include <86box/io.h>
 #include <86box/mem.h>
+#include <86box/agpgart.h>
 #include <86box/plat.h>
 #include <86box/rom.h>
 #include <86box/gdbstub.h>
@@ -186,9 +187,48 @@ mem_addr_is_ram(uint32_t addr)
            (mapping == &ram_mid_mapping2) || (mapping == &ram_remapped_mapping);
 }
 
+/* Linear pages whose writes go through an AGP aperture to RAM, so that a
+   word or dword write there can skip the page walk and the GART lookup.
+   Each entry keeps every value the walk and the GART lookup read for that
+   page, and a write uses it only while all of them still hold, so it does
+   exactly what the walk and the aperture handler would do. Kept apart from
+   the lookup tables: those writes are not added to them, charge no cycles
+   and mark the target page dirty on every write. CPU thread only. */
+#define MEM_AP_ENTRIES 64
+#define MEM_AP_VALID   0x00100000
+
+typedef struct mem_ap_entry_t {
+    uint32_t          tag;  /* linear page | MEM_AP_VALID */
+    uint32_t          gen;  /* mem_mapping_gen at fill */
+    uintptr_t         host; /* target host page - linear page address */
+    uint32_t         *pde_ptr;
+    uint32_t         *pte_ptr;
+    const uint32_t   *gart_ptr;
+    _Atomic uint32_t *gart_gen;
+    uint32_t          pde;
+    uint32_t          pte;
+    uint32_t          gart;
+    uint32_t          ra; /* target bus page */
+} mem_ap_entry_t;
+
+static mem_ap_entry_t mem_ap[MEM_AP_ENTRIES];
+static int            mem_ap_used;
+
+static void
+mem_ap_clear(void)
+{
+    if (mem_ap_used) {
+        for (int c = 0; c < MEM_AP_ENTRIES; c++)
+            mem_ap[c].tag = 0;
+        mem_ap_used = 0;
+    }
+}
+
 void
 resetreadlookup(void)
 {
+    mem_ap_clear();
+
     /* Initialize the page lookup table. */
     memset(page_lookup, 0x00, (1 << 20) * sizeof(page_t *));
 
@@ -234,6 +274,35 @@ static int      writelookup_ring0_num;
 static uint32_t mmu_walk_page = 0xffffffff;
 static uint32_t mmu_walk_flags;
 
+static void mem_ap_fill(uint32_t addr);
+
+/* The aperture entry for a write at linear addr, while every value it was
+   made from still holds; NULL for the walk and the handler to run. */
+static __inline const mem_ap_entry_t *
+mem_ap_lookup(uint32_t addr)
+{
+    const mem_ap_entry_t *e = &mem_ap[(addr >> 12) & (MEM_AP_ENTRIES - 1)];
+
+    if ((e->tag != ((addr >> 12) | MEM_AP_VALID)) || cpu_state.abrt || cpu_dr_armed)
+        return NULL;
+    /* The generations in agpgart_translate()'s order. */
+    if ((atomic_load_explicit(e->gart_gen, memory_order_acquire) != e->gen) || (mem_mapping_gen != e->gen))
+        return NULL;
+    if ((*e->pde_ptr != e->pde) || (*e->pte_ptr != e->pte) || (*e->gart_ptr != e->gart))
+        return NULL;
+    return e;
+}
+
+/* What the walk and the physical write leave behind, before the store. */
+static __inline void
+mem_ap_walked(const mem_ap_entry_t *e, uint32_t addr)
+{
+    mmu_walk_page    = addr >> 12;
+    mmu_walk_flags   = 6;
+    addr64a[0]       = (e->pte & ~0xfff) + (addr & 0xfff);
+    mem_logical_addr = 0xffffffff;
+}
+
 static void
 flush_read_lookup(void)
 {
@@ -258,6 +327,7 @@ flush_read_lookup(void)
 static void
 flush_write_lookup(void)
 {
+    mem_ap_clear();
     writelookup_ring0_num = 0;
 
     for (int c = 0; c < writel_used; c++) {
@@ -1235,6 +1305,7 @@ writememwl(uint32_t addr, uint16_t val)
 {
     mem_mapping_t *map;
     uint64_t       a;
+    uint32_t       va;
 
     addr64a[0] = addr;
     addr64a[1] = addr + 1;
@@ -1287,6 +1358,15 @@ writememwl(uint32_t addr, uint16_t val)
     }
 
     if (cr0 >> 31) {
+        const mem_ap_entry_t *ap = mem_ap_lookup(addr);
+
+        if (ap) {
+            mem_ap_walked(ap, addr);
+            *(uint16_t *) (ap->host + addr) = val;
+            mem_phys_written(ap->ra | (addr & 0xfff), 2);
+            return;
+        }
+
         a          = mmutranslate_write(addr);
         addr64a[0] = (uint32_t) a;
 
@@ -1294,12 +1374,15 @@ writememwl(uint32_t addr, uint16_t val)
             return;
     }
 
+    va   = addr;
     addr = addr64a[0] & rammask;
 
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
 
     if (map && map->write_w) {
         map->write_w(addr, val, map->priv);
+        if ((map->flags & MEM_MAPPING_EXTERNAL) && (cr0 >> 31))
+            mem_ap_fill(va);
         return;
     }
 
@@ -1496,6 +1579,7 @@ writememll(uint32_t addr, uint32_t val)
     mem_mapping_t *map;
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
+    uint32_t       va;
 
     for (i = 0; i < 4; i++)
         addr64a[i] = (uint64_t) (addr + i);
@@ -1559,6 +1643,15 @@ writememll(uint32_t addr, uint32_t val)
     }
 
     if (cr0 >> 31) {
+        const mem_ap_entry_t *ap = mem_ap_lookup(addr);
+
+        if (ap) {
+            mem_ap_walked(ap, addr);
+            *(uint32_t *) (ap->host + addr) = val;
+            mem_phys_written(ap->ra | (addr & 0xfff), 4);
+            return;
+        }
+
         a          = mmutranslate_write(addr);
         addr64a[0] = (uint32_t) a;
 
@@ -1566,12 +1659,15 @@ writememll(uint32_t addr, uint32_t val)
             return;
     }
 
+    va   = addr;
     addr = addr64a[0] & rammask;
 
     map = write_mapping[addr >> MEM_GRANULARITY_BITS];
 
     if (map && map->write_l) {
         map->write_l(addr, val, map->priv);
+        if ((map->flags & MEM_MAPPING_EXTERNAL) && (cr0 >> 31))
+            mem_ap_fill(va);
         return;
     }
     if (map && map->write_w) {
@@ -1956,6 +2052,80 @@ mem_phys_exec(const mem_mapping_t *map, uint32_t addr, uint32_t len)
         (((uintptr_t) p + len) > ((uintptr_t) ram + ram_size)))
         return NULL;
     return p;
+}
+
+/* After a write at linear addr took the walk and a mapping's handler: when
+   the page goes through an AGP aperture to RAM, record it for the next
+   write. Everything is read again here under the map lock and tested as
+   the walk and the aperture handler test it, so the entry holds what the
+   next walk and handler would find while its values stay the same. Only
+   pages the walk lets any CPL write, with the accessed and dirty bits
+   already set, so its stores to the paging entries change nothing. */
+static __attribute__((noinline)) void
+mem_ap_fill(uint32_t addr)
+{
+    mem_ap_entry_t      *e = &mem_ap[(addr >> 12) & (MEM_AP_ENTRIES - 1)];
+    const mem_mapping_t *map;
+    const uint32_t      *gart_ptr;
+    _Atomic uint32_t    *gart_gen;
+    uint32_t            *pde_ptr;
+    uint32_t            *pte_ptr;
+    uint32_t             pde_addr;
+    uint32_t             pte_addr;
+    uint32_t             pde;
+    uint32_t             pte;
+    uint32_t             gart;
+    uint32_t             ra;
+    uint8_t             *host;
+
+    if (cpu_state.abrt || !(cr0 >> 31) || (cr4 & CR4_PAE) || cpu_dr_armed || !cpu_use_exec || GDBSTUB_WATCHED(addr))
+        return;
+
+    mem_mapping_lock();
+
+    pde_addr = (cr3 & ~0xfff) + ((addr >> 20) & 0xffc);
+    if (_mem_exec[pde_addr >> MEM_GRANULARITY_BITS] == NULL)
+        goto done;
+    pde_ptr = &rammap(pde_addr);
+    pde     = *pde_ptr;
+    /* Present and accessed, and a page table whatever CR4.PSE says. */
+    if ((pde & 0xa1) != 0x21)
+        goto done;
+
+    pte_addr = (pde & ~0xfff) + ((addr >> 10) & 0xffc);
+    if (_mem_exec[pte_addr >> MEM_GRANULARITY_BITS] == NULL)
+        goto done;
+    pte_ptr = &rammap(pte_addr);
+    pte     = *pte_ptr;
+    if (((pte & 0x61) != 0x61) || ((pde & pte & 6) != 6))
+        goto done;
+
+    map      = write_mapping[((pte & ~0xfff) & rammask) >> MEM_GRANULARITY_BITS];
+    gart_ptr = agpgart_cpu_entry(map, (pte & ~0xfff) & rammask, &gart_gen, &gart, &ra);
+    if (gart_ptr == NULL)
+        goto done;
+
+    /* The physical write path's test, for the whole page. */
+    ra &= ~0xfff;
+    host = mem_phys_exec(write_mapping_bus[ra >> MEM_GRANULARITY_BITS], ra, 1);
+    if ((host == NULL) || (mem_phys_exec(write_mapping_bus[ra >> MEM_GRANULARITY_BITS], ra | 0xffc, 4) != (host + 0xffc)))
+        goto done;
+
+    e->tag      = (addr >> 12) | MEM_AP_VALID;
+    e->gen      = mem_mapping_gen;
+    e->host     = (uintptr_t) host - (addr & ~0xfff);
+    e->pde_ptr  = pde_ptr;
+    e->pte_ptr  = pte_ptr;
+    e->gart_ptr = gart_ptr;
+    e->gart_gen = gart_gen;
+    e->pde      = pde;
+    e->pte      = pte;
+    e->gart     = gart;
+    e->ra       = ra;
+    mem_ap_used = 1;
+
+done:
+    mem_mapping_unlock();
 }
 
 /* Where the len bytes at addr are, as the processor would read them, when

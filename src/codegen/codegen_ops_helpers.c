@@ -11,10 +11,306 @@
 #include "386_common.h"
 #include "codegen.h"
 #include "codegen_accumulate.h"
+#include "codegen_backend.h"
 #include "codegen_ir.h"
 #include "codegen_ir_defs.h"
 #include "codegen_reg.h"
 #include "codegen_ops_helpers.h"
+#include "codegen_ops_jit_wrappers.h"
+
+JIT_WRAPPER void
+jit_flags_rebuild(void)
+{
+    flags_rebuild();
+}
+
+/*flags_rebuild() for SAHF, which then replaces bits 0-7 of flags before
+  anything can read them: only OF has to come from the flags op*/
+JIT_WRAPPER void
+jit_flags_rebuild_v(void)
+{
+    if (cpu_state.flags_op != FLAGS_UNKNOWN) {
+        cpu_state.flags    = (cpu_state.flags & ~V_FLAG) | (VF_SET() ? V_FLAG : 0);
+        cpu_state.flags_op = FLAGS_UNKNOWN;
+    }
+}
+
+JIT_WRAPPER void
+jit_flags_rebuild_c(void)
+{
+    flags_rebuild_c();
+}
+
+JIT_WRAPPER void
+jit_flags_rebuild_zpna(void)
+{
+    flags_rebuild_zpna();
+}
+
+/*A rebuild for the flags op the block was compiled after: for that op, the
+  rebuild's body with the flag functions called from here, where flatten
+  inlines them and the test of cpu_state.flags_op leaves only that op's
+  case of each; for any other op, the plain wrapper. Each is the rebuild
+  itself for every op it runs after*/
+#define JIT_WRAPPER_OP __attribute__((noinline, used, flatten))
+
+/*flags_rebuild_zpna() for an op other than FLAGS_UNKNOWN*/
+#define JIT_FLAGS_REBUILD_ZPNA_OP(op)                                        \
+    static JIT_WRAPPER_OP void                                               \
+    jit_flags_rebuild_zpna_##op(void)                                        \
+    {                                                                        \
+        if (cpu_state.flags_op == op) {                                      \
+            uint16_t tempf = 0;                                              \
+            if (PF_SET())                                                    \
+                tempf |= P_FLAG;                                             \
+            if (AF_SET())                                                    \
+                tempf |= A_FLAG;                                             \
+            if (ZF_SET())                                                    \
+                tempf |= Z_FLAG;                                             \
+            if (NF_SET())                                                    \
+                tempf |= N_FLAG;                                             \
+            cpu_state.flags    = (cpu_state.flags & ~0xd4) | tempf;          \
+            cpu_state.flags_op = FLAGS_UNKNOWN;                              \
+        } else                                                               \
+            jit_flags_rebuild_zpna();                                        \
+    }
+
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_ZN8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_ZN16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_ZN32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_ADD8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_ADD16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_ADD32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SUB8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SUB16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SUB32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SHL8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SHL16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SHL32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SHR8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SHR16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SHR32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SAR8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SAR16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SAR32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_INC8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_INC16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_INC32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_DEC8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_DEC16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_DEC32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_ADC8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_ADC16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_ADC32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SBC8)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SBC16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SBC32)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SHRD16)
+JIT_FLAGS_REBUILD_ZPNA_OP(FLAGS_SHRD32)
+
+/*ROL, ROR and FLAGS_UNKNOWN take the plain wrapper: flags_rebuild_zpna()
+  does nothing after them*/
+void (*const jit_flags_rebuild_zpna_op[FLAGS_SHRD32 + 1])(void) = {
+    [FLAGS_UNKNOWN] = jit_flags_rebuild_zpna,
+    [FLAGS_ZN8]     = jit_flags_rebuild_zpna_FLAGS_ZN8,
+    [FLAGS_ZN16]    = jit_flags_rebuild_zpna_FLAGS_ZN16,
+    [FLAGS_ZN32]    = jit_flags_rebuild_zpna_FLAGS_ZN32,
+    [FLAGS_ADD8]    = jit_flags_rebuild_zpna_FLAGS_ADD8,
+    [FLAGS_ADD16]   = jit_flags_rebuild_zpna_FLAGS_ADD16,
+    [FLAGS_ADD32]   = jit_flags_rebuild_zpna_FLAGS_ADD32,
+    [FLAGS_SUB8]    = jit_flags_rebuild_zpna_FLAGS_SUB8,
+    [FLAGS_SUB16]   = jit_flags_rebuild_zpna_FLAGS_SUB16,
+    [FLAGS_SUB32]   = jit_flags_rebuild_zpna_FLAGS_SUB32,
+    [FLAGS_SHL8]    = jit_flags_rebuild_zpna_FLAGS_SHL8,
+    [FLAGS_SHL16]   = jit_flags_rebuild_zpna_FLAGS_SHL16,
+    [FLAGS_SHL32]   = jit_flags_rebuild_zpna_FLAGS_SHL32,
+    [FLAGS_SHR8]    = jit_flags_rebuild_zpna_FLAGS_SHR8,
+    [FLAGS_SHR16]   = jit_flags_rebuild_zpna_FLAGS_SHR16,
+    [FLAGS_SHR32]   = jit_flags_rebuild_zpna_FLAGS_SHR32,
+    [FLAGS_SAR8]    = jit_flags_rebuild_zpna_FLAGS_SAR8,
+    [FLAGS_SAR16]   = jit_flags_rebuild_zpna_FLAGS_SAR16,
+    [FLAGS_SAR32]   = jit_flags_rebuild_zpna_FLAGS_SAR32,
+    [FLAGS_ROL8]    = jit_flags_rebuild_zpna,
+    [FLAGS_ROL16]   = jit_flags_rebuild_zpna,
+    [FLAGS_ROL32]   = jit_flags_rebuild_zpna,
+    [FLAGS_ROR8]    = jit_flags_rebuild_zpna,
+    [FLAGS_ROR16]   = jit_flags_rebuild_zpna,
+    [FLAGS_ROR32]   = jit_flags_rebuild_zpna,
+    [FLAGS_INC8]    = jit_flags_rebuild_zpna_FLAGS_INC8,
+    [FLAGS_INC16]   = jit_flags_rebuild_zpna_FLAGS_INC16,
+    [FLAGS_INC32]   = jit_flags_rebuild_zpna_FLAGS_INC32,
+    [FLAGS_DEC8]    = jit_flags_rebuild_zpna_FLAGS_DEC8,
+    [FLAGS_DEC16]   = jit_flags_rebuild_zpna_FLAGS_DEC16,
+    [FLAGS_DEC32]   = jit_flags_rebuild_zpna_FLAGS_DEC32,
+    [FLAGS_ADC8]    = jit_flags_rebuild_zpna_FLAGS_ADC8,
+    [FLAGS_ADC16]   = jit_flags_rebuild_zpna_FLAGS_ADC16,
+    [FLAGS_ADC32]   = jit_flags_rebuild_zpna_FLAGS_ADC32,
+    [FLAGS_SBC8]    = jit_flags_rebuild_zpna_FLAGS_SBC8,
+    [FLAGS_SBC16]   = jit_flags_rebuild_zpna_FLAGS_SBC16,
+    [FLAGS_SBC32]   = jit_flags_rebuild_zpna_FLAGS_SBC32,
+    [FLAGS_SHRD16]  = jit_flags_rebuild_zpna_FLAGS_SHRD16,
+    [FLAGS_SHRD32]  = jit_flags_rebuild_zpna_FLAGS_SHRD32
+};
+
+/*Whether p is jit_flags_rebuild_zpna or one of the wrappers in its place*/
+int
+codegen_flags_is_rebuild_zpna(const void *p)
+{
+    for (int op = 0; op <= FLAGS_SHRD32; op++) {
+        if (p == (const void *) jit_flags_rebuild_zpna_op[op])
+            return 1;
+    }
+    return 0;
+}
+
+/*flags_rebuild_c() for an op other than FLAGS_UNKNOWN, as the zpna ones*/
+#define JIT_FLAGS_REBUILD_C_OP(op)                     \
+    static JIT_WRAPPER_OP void                         \
+    jit_flags_rebuild_c_##op(void)                     \
+    {                                                  \
+        if (cpu_state.flags_op == op) {                \
+            if (CF_SET())                              \
+                cpu_state.flags |= C_FLAG;             \
+            else                                       \
+                cpu_state.flags &= ~C_FLAG;            \
+        } else                                         \
+            jit_flags_rebuild_c();                     \
+    }
+
+/*After INC, DEC and FLAGS_UNKNOWN flags_rebuild_c() leaves flags as they
+  are: CF_SET() is the C bit in flags itself*/
+#define JIT_FLAGS_REBUILD_C_KEPT(op)                   \
+    static JIT_WRAPPER_OP void                         \
+    jit_flags_rebuild_c_##op(void)                     \
+    {                                                  \
+        if (cpu_state.flags_op != op)                  \
+            jit_flags_rebuild_c();                     \
+    }
+
+JIT_FLAGS_REBUILD_C_KEPT(FLAGS_UNKNOWN)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ZN8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ZN16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ZN32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ADD8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ADD16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ADD32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SUB8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SUB16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SUB32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SHL8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SHL16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SHL32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SHR8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SHR16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SHR32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SAR8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SAR16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SAR32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ROL8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ROL16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ROL32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ROR8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ROR16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ROR32)
+JIT_FLAGS_REBUILD_C_KEPT(FLAGS_INC8)
+JIT_FLAGS_REBUILD_C_KEPT(FLAGS_INC16)
+JIT_FLAGS_REBUILD_C_KEPT(FLAGS_INC32)
+JIT_FLAGS_REBUILD_C_KEPT(FLAGS_DEC8)
+JIT_FLAGS_REBUILD_C_KEPT(FLAGS_DEC16)
+JIT_FLAGS_REBUILD_C_KEPT(FLAGS_DEC32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ADC8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ADC16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_ADC32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SBC8)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SBC16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SBC32)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SHRD16)
+JIT_FLAGS_REBUILD_C_OP(FLAGS_SHRD32)
+
+void (*const jit_flags_rebuild_c_op[FLAGS_SHRD32 + 1])(void) = {
+    [FLAGS_UNKNOWN] = jit_flags_rebuild_c_FLAGS_UNKNOWN,
+    [FLAGS_ZN8]     = jit_flags_rebuild_c_FLAGS_ZN8,
+    [FLAGS_ZN16]    = jit_flags_rebuild_c_FLAGS_ZN16,
+    [FLAGS_ZN32]    = jit_flags_rebuild_c_FLAGS_ZN32,
+    [FLAGS_ADD8]    = jit_flags_rebuild_c_FLAGS_ADD8,
+    [FLAGS_ADD16]   = jit_flags_rebuild_c_FLAGS_ADD16,
+    [FLAGS_ADD32]   = jit_flags_rebuild_c_FLAGS_ADD32,
+    [FLAGS_SUB8]    = jit_flags_rebuild_c_FLAGS_SUB8,
+    [FLAGS_SUB16]   = jit_flags_rebuild_c_FLAGS_SUB16,
+    [FLAGS_SUB32]   = jit_flags_rebuild_c_FLAGS_SUB32,
+    [FLAGS_SHL8]    = jit_flags_rebuild_c_FLAGS_SHL8,
+    [FLAGS_SHL16]   = jit_flags_rebuild_c_FLAGS_SHL16,
+    [FLAGS_SHL32]   = jit_flags_rebuild_c_FLAGS_SHL32,
+    [FLAGS_SHR8]    = jit_flags_rebuild_c_FLAGS_SHR8,
+    [FLAGS_SHR16]   = jit_flags_rebuild_c_FLAGS_SHR16,
+    [FLAGS_SHR32]   = jit_flags_rebuild_c_FLAGS_SHR32,
+    [FLAGS_SAR8]    = jit_flags_rebuild_c_FLAGS_SAR8,
+    [FLAGS_SAR16]   = jit_flags_rebuild_c_FLAGS_SAR16,
+    [FLAGS_SAR32]   = jit_flags_rebuild_c_FLAGS_SAR32,
+    [FLAGS_ROL8]    = jit_flags_rebuild_c_FLAGS_ROL8,
+    [FLAGS_ROL16]   = jit_flags_rebuild_c_FLAGS_ROL16,
+    [FLAGS_ROL32]   = jit_flags_rebuild_c_FLAGS_ROL32,
+    [FLAGS_ROR8]    = jit_flags_rebuild_c_FLAGS_ROR8,
+    [FLAGS_ROR16]   = jit_flags_rebuild_c_FLAGS_ROR16,
+    [FLAGS_ROR32]   = jit_flags_rebuild_c_FLAGS_ROR32,
+    [FLAGS_INC8]    = jit_flags_rebuild_c_FLAGS_INC8,
+    [FLAGS_INC16]   = jit_flags_rebuild_c_FLAGS_INC16,
+    [FLAGS_INC32]   = jit_flags_rebuild_c_FLAGS_INC32,
+    [FLAGS_DEC8]    = jit_flags_rebuild_c_FLAGS_DEC8,
+    [FLAGS_DEC16]   = jit_flags_rebuild_c_FLAGS_DEC16,
+    [FLAGS_DEC32]   = jit_flags_rebuild_c_FLAGS_DEC32,
+    [FLAGS_ADC8]    = jit_flags_rebuild_c_FLAGS_ADC8,
+    [FLAGS_ADC16]   = jit_flags_rebuild_c_FLAGS_ADC16,
+    [FLAGS_ADC32]   = jit_flags_rebuild_c_FLAGS_ADC32,
+    [FLAGS_SBC8]    = jit_flags_rebuild_c_FLAGS_SBC8,
+    [FLAGS_SBC16]   = jit_flags_rebuild_c_FLAGS_SBC16,
+    [FLAGS_SBC32]   = jit_flags_rebuild_c_FLAGS_SBC32,
+    [FLAGS_SHRD16]  = jit_flags_rebuild_c_FLAGS_SHRD16,
+    [FLAGS_SHRD32]  = jit_flags_rebuild_c_FLAGS_SHRD32
+};
+
+/*Whether p is jit_flags_rebuild_c or one of the wrappers in its place*/
+int
+codegen_flags_is_rebuild_c(const void *p)
+{
+    if (p == (const void *) jit_flags_rebuild_c)
+        return 1;
+    for (int op = 0; op <= FLAGS_SHRD32; op++) {
+        if (p == (const void *) jit_flags_rebuild_c_op[op])
+            return 1;
+    }
+    return 0;
+}
+
+JIT_WRAPPER int
+jit_CF_SET(void)
+{
+    return CF_SET();
+}
+
+JIT_WRAPPER int
+jit_NF_SET(void)
+{
+    return NF_SET();
+}
+
+JIT_WRAPPER int
+jit_PF_SET(void)
+{
+    return PF_SET();
+}
+
+JIT_WRAPPER int
+jit_VF_SET(void)
+{
+    return VF_SET();
+}
+
+JIT_WRAPPER int
+jit_ZF_SET(void)
+{
+    return ZF_SET();
+}
 
 void
 LOAD_IMMEDIATE_FROM_RAM_16_unaligned(UNUSED(codeblock_t *block), ir_data_t *ir, int dest_reg, uint32_t addr)
@@ -49,11 +345,61 @@ static int flags_known_cf_kept[FLAGS_KNOWN_MAX];
 /*A use that could not be recorded: no loop of the block unrolls*/
 static int flags_known_full;
 
+/*The inline rebuilds themselves, for codegen_flags_dead_pass(). One not
+  recorded is only never left out*/
+#define FLAGS_INLINE_MAX 256
+static codegen_flags_inline_t flags_inline[FLAGS_INLINE_MAX];
+static int                    flags_inline_nr;
+
+/*The flag reads compiled in place of a call, in uop order. One that cannot
+  be recorded is not compiled: the call stays*/
+#define FLAGS_READ_MAX 256
+static codegen_flags_read_t flags_read[FLAGS_READ_MAX];
+static int                  flags_read_nr;
+
+/*The last uop of an SAHF of this block: flags_op is FLAGS_UNKNOWN at run
+  time after it until a uop or a call sets it. -1 when there is none*/
+static int flags_unknown_at;
+
 void
 codegen_flags_known_reset(void)
 {
     flags_known_nr   = 0;
     flags_known_full = 0;
+    flags_inline_nr  = 0;
+    flags_read_nr    = 0;
+    flags_unknown_at = -1;
+}
+
+void
+codegen_flags_unknown_from(ir_data_t *ir)
+{
+    flags_unknown_at = ir->wr_pos - 1;
+}
+
+int
+codegen_flags_read_sites(const codegen_flags_read_t **sites)
+{
+    *sites = flags_read;
+    return flags_read_nr;
+}
+
+int
+codegen_flags_inline_sites(const codegen_flags_inline_t **sites)
+{
+    *sites = flags_inline;
+    return flags_inline_nr;
+}
+
+static void
+flags_inline_record(int start, int end, uint16_t written)
+{
+    if (flags_inline_nr == FLAGS_INLINE_MAX)
+        return;
+    flags_inline[flags_inline_nr].start   = start;
+    flags_inline[flags_inline_nr].end     = end;
+    flags_inline[flags_inline_nr].written = written;
+    flags_inline_nr++;
 }
 
 /*Records the use at ir->wr_pos with the uop that set the flags op; 0 when
@@ -118,6 +464,235 @@ codegen_flags_known_use(ir_data_t *ir, int cf_kept)
         flags_known_full = 1;
 }
 
+/*Ready for one uop reading src_a and src_b (IREG_INVALID for none) in place
+  of an ordered C call that reads no register: room for its record and its
+  reads, which are left out of the counts that end the block and limit
+  unrolling, and the registers written after it marked as the call's barrier
+  marks them. 0, changing nothing, when there is no room or the backend has
+  no CMP_SET and TEST_SET: the call stays*/
+static int
+flags_read_begin(int src_a, int src_b)
+{
+#if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
+    if (flags_read_nr == FLAGS_READ_MAX)
+        return 0;
+    if (((src_a != IREG_INVALID) && !codegen_reg_read_has_room(src_a)) || ((src_b != IREG_INVALID) && !codegen_reg_read_has_room(src_b)))
+        return 0;
+    if (src_a != IREG_INVALID)
+        codegen_reg_read_uncounted(src_a);
+    if (src_b != IREG_INVALID)
+        codegen_reg_read_uncounted(src_b);
+    dirty_ir_regs[0] = dirty_ir_regs[1] = ~0ULL;
+    return 1;
+#else
+    return 0;
+#endif
+}
+
+static void
+flags_read_end(ir_data_t *ir, uint16_t read, int producer, void *func, int pair)
+{
+    flags_read[flags_read_nr].uop      = ir->wr_pos - 1;
+    flags_read[flags_read_nr].read     = read;
+    flags_read[flags_read_nr].producer = producer;
+    flags_read[flags_read_nr].func     = func;
+    flags_read[flags_read_nr].pair     = pair;
+    flags_read_nr++;
+}
+
+/*CF_SET() into dest_reg (L) as one uop, in place of
+  uop_CALL_FUNC_RESULT_ORDERED(ir, dest_reg, jit_CF_SET), when an instruction
+  of this block set a flags op whose carry is a single compare: ADD32, SUB8 to
+  SUB32, ZN8 to ZN32. 0, emitting nothing, otherwise. Unlike a Jcc this use
+  is not recorded for codegen_can_unroll_full(): an unrolled copy whose loop
+  starts after the producer calls jit_CF_SET instead (codegen_ir_compile())*/
+int
+codegen_flags_cf_known(ir_data_t *ir, int dest_reg)
+{
+    int src_a = IREG_INVALID;
+    int src_b = IREG_INVALID;
+    int producer;
+
+    if (!codegen_flags_changed)
+        return 0;
+    switch (cpu_state.flags_op) {
+        case FLAGS_ADD32:
+            src_a = IREG_flags_res;
+            src_b = IREG_flags_op1;
+            break;
+        case FLAGS_SUB8:
+        case FLAGS_SUB16:
+        case FLAGS_SUB32:
+            src_a = IREG_flags_op1;
+            src_b = IREG_flags_op2;
+            break;
+        case FLAGS_ZN8:
+        case FLAGS_ZN16:
+        case FLAGS_ZN32:
+            break;
+        default:
+            return 0;
+    }
+    for (producer = ir->wr_pos - 1; producer >= 0; producer--) {
+        if (IREG_GET_REG(ir->uops[producer].dest_reg_a.reg) == IREG_GET_REG(IREG_flags_op))
+            break;
+    }
+    if ((producer < 0) || !flags_read_begin(src_a, src_b))
+        return 0;
+    /*The stored values compared as CF_SET() compares them: res < op1 for
+      ADD32, op1 < op2 for SUB, 0 for ZN*/
+    if (src_a == IREG_INVALID)
+        uop_MOV_IMM(ir, dest_reg, 0);
+    else
+        uop_CMP_SET(ir, dest_reg, src_a, src_b, UOP_CC_B);
+    flags_read_end(ir, C_FLAG, producer, (void *) jit_CF_SET, 0);
+    return 1;
+}
+
+/*For a ZN flags op an instruction of this block set: ZF_SET() (flag
+  Z_FLAG), NF_SET() ? 1 : 0 (N_FLAG) or VF_SET() ? 1 : 0 (V_FLAG) into
+  dest_reg (L) as one uop, in place of uop_CALL_FUNC_RESULT_ORDERED(ir,
+  dest_reg, func). 0, emitting nothing, for any other op. The Jcc using it
+  records its known op for codegen_can_unroll_full() as before*/
+int
+codegen_flags_zn_known(ir_data_t *ir, int dest_reg, int flag, void *func)
+{
+    int src;
+
+    if (!codegen_flags_changed)
+        return 0;
+    switch (cpu_state.flags_op) {
+        case FLAGS_ZN8:
+            src = (flag == N_FLAG) ? IREG_flags_res_B : IREG_flags_res;
+            break;
+        case FLAGS_ZN16:
+            src = (flag == N_FLAG) ? IREG_flags_res_W : IREG_flags_res;
+            break;
+        case FLAGS_ZN32:
+            src = IREG_flags_res;
+            break;
+        default:
+            return 0;
+    }
+    if (!flags_read_begin((flag == V_FLAG) ? IREG_INVALID : src, IREG_INVALID))
+        return 0;
+    /*ZF_SET() is !res on the whole stored value, NF_SET() its top bit at
+      the op's size, VF_SET() 0*/
+    if (flag == Z_FLAG)
+        uop_TEST_SET(ir, dest_reg, src, UOP_CC_Z);
+    else if (flag == N_FLAG)
+        uop_TEST_SET(ir, dest_reg, src, UOP_CC_S);
+    else
+        uop_MOV_IMM(ir, dest_reg, 0);
+    /*jit_ZF_SET is a read of ZF for the dead flags pass; NF_SET_01 and
+      VF_SET_01 are calls it takes to read any flag*/
+    flags_read_end(ir, (flag == Z_FLAG) ? Z_FLAG : 0xffff, -1, func, 0);
+    return 1;
+}
+
+/*CF_SET() into temp0 as one uop for a shift flags op an instruction of this
+  block set with a constant count: the bit of flags_op1 shifted out last,
+  left in place (the Jcc only tests it against 0). SHL: bit width-count, none
+  past the width. SAR: the sign bit stands for every bit above width-1. 0,
+  emitting nothing, for any other op or count*/
+static int
+flags_shift_cf(ir_data_t *ir)
+{
+    int      op = cpu_state.flags_op;
+    int      width;
+    int      cf_bit;
+    uint32_t count;
+
+    if (!codegen_flags_changed)
+        return 0;
+    switch (op) {
+        case FLAGS_SHL8:
+        case FLAGS_SHR8:
+        case FLAGS_SAR8:
+            width = 8;
+            break;
+        case FLAGS_SHL16:
+        case FLAGS_SHR16:
+        case FLAGS_SAR16:
+            width = 16;
+            break;
+        case FLAGS_SHL32:
+        case FLAGS_SHR32:
+        case FLAGS_SAR32:
+            width = 32;
+            break;
+        default:
+            return 0;
+    }
+    count = flags_known_count(ir, op);
+    if (!count)
+        return 0;
+    if ((op == FLAGS_SHL8) || (op == FLAGS_SHL16) || (op == FLAGS_SHL32))
+        cf_bit = (count <= (uint32_t) width) ? (width - (int) count) : -1;
+    else if ((op == FLAGS_SHR8) || (op == FLAGS_SHR16) || (op == FLAGS_SHR32))
+        cf_bit = (int) count - 1;
+    else
+        cf_bit = ((int) count - 1 < width - 1) ? ((int) count - 1) : (width - 1);
+    if (!flags_read_begin((cf_bit >= 0) ? IREG_flags_op1 : IREG_INVALID, IREG_INVALID))
+        return 0;
+    if (cf_bit >= 0)
+        uop_AND_IMM(ir, IREG_temp0, IREG_flags_op1, 1u << cf_bit);
+    else
+        uop_MOV_IMM(ir, IREG_temp0, 0);
+    flags_read_end(ir, C_FLAG, -1, (void *) jit_CF_SET, 0);
+    return 1;
+}
+
+/*Whether flags_op is still FLAGS_UNKNOWN from the SAHF recorded in
+  flags_unknown_at: no jump from before it lands after it, and no uop after
+  it writes flags_op or runs C that may set it*/
+static int
+flags_unknown_holds(ir_data_t *ir)
+{
+    if (flags_unknown_at < 0)
+        return 0;
+    for (int c = 0; c < ir->wr_pos; c++) {
+        const uop_t   *uop  = &ir->uops[c];
+        const uint32_t type = uop->type & UOP_MASK;
+
+        if (c <= flags_unknown_at) {
+            if ((uop->type & UOP_TYPE_JUMP) && (uop->jump_dest_uop > flags_unknown_at))
+                return 0;
+            continue;
+        }
+        if ((type == (UOP_CALL_FUNC & UOP_MASK)) || (type == (UOP_CALL_FUNC_ORDERED & UOP_MASK)) || (type == (UOP_CALL_FUNC_RESULT & UOP_MASK)) ||
+            (type == (UOP_CALL_FUNC_RESULT_ORDERED & UOP_MASK)) || (type == (UOP_CALL_INSTRUCTION_FUNC & UOP_MASK)) ||
+            (type == (UOP_LOAD_SEG & UOP_MASK)) || (type == (UOP_CALL_REP_STRING & UOP_MASK)))
+            return 0;
+        if (!ir_reg_is_invalid(uop->dest_reg_a) && (IREG_GET_REG(uop->dest_reg_a.reg) == IREG_GET_REG(IREG_flags_op)))
+            return 0;
+    }
+    return 1;
+}
+
+/*CF_SET() (flag C_FLAG) or ZF_SET() (Z_FLAG) for a Jcc whose flags op is not
+  one it tests directly. One uop in place of uop_CALL_FUNC_RESULT_ORDERED(ir,
+  IREG_temp0, jit_CF_SET or jit_ZF_SET) for CF after a shift with a constant
+  count, and for either after an SAHF of this block (the bit in flags, as
+  both read it for FLAGS_UNKNOWN); the call otherwise. Returns the register
+  that is nonzero exactly when the flag is set: the Jcc's CMP_IMM_JZ/JNZ_DEST
+  of it must be the next uop*/
+int
+codegen_flags_jcc_read(ir_data_t *ir, int flag)
+{
+    void *func = (flag == C_FLAG) ? (void *) jit_CF_SET : (void *) jit_ZF_SET;
+
+    if ((flag == C_FLAG) && flags_shift_cf(ir))
+        return IREG_temp0;
+    if (flags_unknown_holds(ir) && flags_read_begin(IREG_flags, IREG_INVALID)) {
+        uop_AND_IMM(ir, IREG_temp0_W, IREG_flags, flag);
+        flags_read_end(ir, flag, flags_unknown_at, func, 1);
+        return IREG_temp0_W;
+    }
+    uop_CALL_FUNC_RESULT_ORDERED(ir, IREG_temp0, func);
+    return IREG_temp0;
+}
+
 /*Whether the uops from start on set a flags op (other than INC and DEC with
   incdec_too clear): the loop body changes the flags a copied use reads. A C
   call may set it without a uop writing flags_op (a rebuild the inline
@@ -126,6 +701,10 @@ codegen_flags_known_use(ir_data_t *ir, int cf_kept)
 static int
 flags_op_set_from(ir_data_t *ir, int start, int incdec_too)
 {
+    int r = 0;
+
+    while ((r < flags_read_nr) && (flags_read[r].uop < start))
+        r++;
     for (int c = start; c < ir->wr_pos; c++) {
         uint32_t type = ir->uops[c].type & UOP_MASK;
         uint32_t op;
@@ -133,6 +712,12 @@ flags_op_set_from(ir_data_t *ir, int start, int incdec_too)
         if (incdec_too && ((type == (UOP_CALL_FUNC & UOP_MASK)) || (type == (UOP_CALL_FUNC_ORDERED & UOP_MASK)) ||
                            (type == (UOP_CALL_FUNC_RESULT & UOP_MASK)) || (type == (UOP_CALL_FUNC_RESULT_ORDERED & UOP_MASK))))
             return 1;
+        /*A flag read compiled in place of a call counts as the call*/
+        if ((r < flags_read_nr) && (flags_read[r].uop == c)) {
+            r++;
+            if (incdec_too)
+                return 1;
+        }
         if (IREG_GET_REG(ir->uops[c].dest_reg_a.reg) != IREG_GET_REG(IREG_flags_op))
             continue;
         if (incdec_too)
@@ -156,7 +741,8 @@ int
 codegen_flags_rebuild_known(ir_data_t *ir, int carry_only)
 {
 #if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
-    int      op = codegen_flags_changed ? cpu_state.flags_op : FLAGS_UNKNOWN;
+    int      start = ir->wr_pos;
+    int      op    = codegen_flags_changed ? cpu_state.flags_op : FLAGS_UNKNOWN;
     int      is_add;
     int      is_sub;
     int      is_incdec;
@@ -265,6 +851,7 @@ codegen_flags_rebuild_known(ir_data_t *ir, int carry_only)
         uop_AND_IMM(ir, IREG_flags, IREG_flags, (uint16_t) ~C_FLAG);
         if (is_add || is_sub || (cf_bit >= 0))
             uop_OR(ir, IREG_flags, IREG_flags, IREG_temp1_W);
+        flags_inline_record(start, ir->wr_pos, C_FLAG);
         return 1;
     }
 
@@ -351,6 +938,7 @@ codegen_flags_rebuild_known(ir_data_t *ir, int carry_only)
     }
 
     uop_MOV_IMM(ir, IREG_flags_op, FLAGS_UNKNOWN);
+    flags_inline_record(start, ir->wr_pos, is_incdec ? (0x8d5 & ~C_FLAG) : 0x8d5);
     return 1;
 #else
     /*Other backends lack UOP_CMP_SET and UOP_TEST_SET*/
@@ -485,7 +1073,11 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
         }
     }
 
+#ifdef CODEGEN_BACKEND_HAS_COLD_REGION
+    max_unroll = UNROLL_MAX_UOPS / ((ir->wr_pos - start - codegen_ir_uncounted_since(ir, start)) + 6);
+#else
     max_unroll = UNROLL_MAX_UOPS / ((ir->wr_pos - start) + 6);
+#endif
     if ((max_version_refcount != 0) && (max_unroll > (UNROLL_MAX_REG_REFERENCES / max_version_refcount)))
         max_unroll = (UNROLL_MAX_REG_REFERENCES / max_version_refcount);
     if (max_unroll > UNROLL_MAX_COUNT)

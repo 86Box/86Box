@@ -150,10 +150,12 @@ dynarec_iret_pm(int is32)
 }
 
 /*The CS load and the tail of the compiled IRET's real-mode and CR4.VME
-  forms, which pop and merge the flags themselves*/
+  forms, which pop and merge the flags themselves. The real-mode IRETD can
+  load VM, ahead of the CS load as in the op*/
 void
 dynarec_iret_cs(uint16_t seg)
 {
+    cpu_set_v86_status();
     op_loadcs(seg);
     cycles -= timing_iret_rm;
     nmi_enable       = 1;

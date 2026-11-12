@@ -231,6 +231,43 @@ agpgart_bus_ptr(uint32_t addr, uint32_t len)
     return mem_phys_ptr(addr, len);
 }
 
+/* For a CPU write at bus address addr through mapping map: when map is an
+   aperture whose table is mapped at the current generation and the entry
+   for addr points outside the aperture, the entry's host address, with
+   the generation it holds under in *gen, the entry's value in *val and
+   the bus address that value sends the write to in *ra; NULL otherwise.
+   The entry is read once: a device may rewrite it at any time. While *gen
+   and the entry keep their values, agpgart_translate() finds the same
+   entry and the same address. The caller holds the map lock. CPU thread
+   only. */
+const uint32_t *
+agpgart_cpu_entry(const mem_mapping_t *map, uint32_t addr, _Atomic uint32_t **gen, uint32_t *val, uint32_t *ra)
+{
+    const uint8_t *p;
+    uint32_t       off;
+
+    for (int i = 0; i < AGPGART_MAX_INST; i++) {
+        agpgart_t *dev = agpgart_inst[i];
+
+        if ((dev == NULL) || (map != &dev->aperture_mapping))
+            continue;
+        if (atomic_load_explicit(&dev->gart_gen, memory_order_acquire) != mem_mapping_gen)
+            return NULL;
+        addr &= dev->aperture_mask;
+        off = (addr >> 10) & 0xfffffffc;
+        p   = atomic_load_explicit(&dev->gart_ptr, memory_order_relaxed);
+        if ((p == NULL) || (((uintptr_t) p + off + 4) > (uintptr_t) atomic_load_explicit(&dev->gart_end, memory_order_relaxed)))
+            return NULL;
+        *val = *(const uint32_t *) &(p[off]);
+        *ra  = agpgart_remap(dev, *val, addr);
+        if (*ra == AGPGART_NOWHERE)
+            return NULL;
+        *gen = &dev->gart_gen;
+        return (const uint32_t *) &(p[off]);
+    }
+    return NULL;
+}
+
 static uint8_t
 agpgart_aperture_readb(uint32_t addr, void *priv)
 {

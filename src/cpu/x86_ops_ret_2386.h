@@ -271,6 +271,7 @@ opIRETD(UNUSED(uint32_t fetchdat))
             cpu_state.eflags = readmemw(ss, (SP + 10) & 0xffff);
             SP += 12;
         }
+        cpu_set_v86_status();
         op_loadcs(new_cs);
         cycles -= timing_iret_rm;
     }

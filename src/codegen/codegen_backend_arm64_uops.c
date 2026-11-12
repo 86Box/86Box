@@ -487,6 +487,22 @@ codegen_CMP_IMM_JZ_DEST(codeblock_t *block, uop_t *uop)
 }
 
 static int
+codegen_TEST_IMM_JZ_DEST(codeblock_t *block, uop_t *uop)
+{
+    int src_reg  = HOST_REG_GET(uop->src_reg_a_real);
+    int src_size = IREG_GET_SIZE(uop->src_reg_a_real);
+
+    if (REG_IS_L(src_size) || REG_IS_W(src_size))
+        host_arm64_TST_IMM(block, src_reg, uop->imm_data);
+    else
+        fatal("TEST_IMM_JZ_DEST %02x\n", uop->src_reg_a_real);
+
+    uop->p = host_arm64_BEQ_(block);
+
+    return 0;
+}
+
+static int
 codegen_CMP_JB(codeblock_t *block, uop_t *uop)
 {
     int       src_reg_a  = HOST_REG_GET(uop->src_reg_a_real);
@@ -4113,6 +4129,9 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_FCMP_JWITHIN_DEST &
         UOP_MASK]
     = codegen_FCMP_JWITHIN_DEST,
+    [UOP_FCMP_JWITHIN_DEST_COLD &
+        UOP_MASK]
+    = codegen_FCMP_JWITHIN_DEST,
     [UOP_FDIV_JSLOW_DEST &
         UOP_MASK]
     = codegen_FDIV_JSLOW_DEST,
@@ -4172,6 +4191,12 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_CMP_IMM_JZ_DEST &
         UOP_MASK]
     = codegen_CMP_IMM_JZ_DEST,
+    [UOP_CMP_IMM_JZ_DEST_COLD &
+        UOP_MASK]
+    = codegen_CMP_IMM_JZ_DEST,
+    [UOP_TEST_IMM_JZ_DEST_COLD &
+        UOP_MASK]
+    = codegen_TEST_IMM_JZ_DEST,
 
     [UOP_TEST_JNS_DEST &
         UOP_MASK]

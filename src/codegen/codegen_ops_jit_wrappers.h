@@ -8,8 +8,10 @@
  * or may be eliminated entirely.
  *
  * Every static __inline function whose address is passed to uop_CALL_FUNC*
- * MUST have an noinline wrapper here.  The wrapper is what the JIT calls at
+ * MUST have an noinline wrapper.  The wrapper is what the JIT calls at
  * runtime — the real inline body is still available for normal C call sites.
+ * The wrappers are defined once, in codegen_ops_helpers.c, so a call uop can
+ * be recognized by its address.
  *
  * Include this header in each codegen_ops_*.c that needs one of the wrappers.
  * The including .c file MUST already include x86_flags.h before this header.
@@ -21,23 +23,17 @@
 
 /* --- flags_rebuild family (void → void) --- */
 
-static JIT_WRAPPER void
-jit_flags_rebuild(void)
-{
-    flags_rebuild();
-}
+void jit_flags_rebuild(void);
+void jit_flags_rebuild_v(void);
+void jit_flags_rebuild_c(void);
+void jit_flags_rebuild_zpna(void);
 
-static JIT_WRAPPER void
-jit_flags_rebuild_c(void)
-{
-    flags_rebuild_c();
-}
-
-static JIT_WRAPPER void
-jit_flags_rebuild_zpna(void)
-{
-    flags_rebuild_zpna();
-}
+/*jit_flags_rebuild_zpna() in place, for each flags op it may run after*/
+extern void (*const jit_flags_rebuild_zpna_op[FLAGS_SHRD32 + 1])(void);
+int codegen_flags_is_rebuild_zpna(const void *p);
+/*jit_flags_rebuild_c() in place, for each flags op it may run after*/
+extern void (*const jit_flags_rebuild_c_op[FLAGS_SHRD32 + 1])(void);
+int codegen_flags_is_rebuild_c(const void *p);
 
 /*flags_rebuild() and flags_rebuild_zpna() write only flags and flags_op, which they leave at
   FLAGS_UNKNOWN. On arm64 and x86-64 they are called with the cached registers written back but
@@ -58,34 +54,10 @@ call_flags_rebuild(ir_data_t *ir, void (*rebuild)(void))
 
 /* --- individual flag test functions (void → int) --- */
 
-static JIT_WRAPPER int
-jit_CF_SET(void)
-{
-    return CF_SET();
-}
-
-static JIT_WRAPPER int
-jit_NF_SET(void)
-{
-    return NF_SET();
-}
-
-static JIT_WRAPPER int
-jit_PF_SET(void)
-{
-    return PF_SET();
-}
-
-static JIT_WRAPPER int
-jit_VF_SET(void)
-{
-    return VF_SET();
-}
-
-static JIT_WRAPPER int
-jit_ZF_SET(void)
-{
-    return ZF_SET();
-}
+int jit_CF_SET(void);
+int jit_NF_SET(void);
+int jit_PF_SET(void);
+int jit_VF_SET(void);
+int jit_ZF_SET(void);
 
 #endif /* CODEGEN_OPS_JIT_WRAPPERS_H */

@@ -48,6 +48,11 @@
    back before each of those uops. */
 #define CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
 void codegen_lazy_stubs_emit(codeblock_t *block);
+/* CMP_IMM_JZ_DEST_COLD, TEST_IMM_JZ_DEST_COLD and FCMP_JWITHIN_DEST_COLD, the
+   branches over a cold region (UOP_TYPE_COLD). A backend without them writes
+   back before those branches (CMP_IMM_JZ_DEST, FCMP_JWITHIN_DEST), and makes
+   the no-wait FERR# call unconditionally. */
+#define CODEGEN_BACKEND_HAS_COLD_REGION
 
 /* Blocks jump straight to their successor when nothing between them needs
    the C loop (codegen_link.h). The option below adds work to every loop

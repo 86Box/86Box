@@ -24,9 +24,7 @@
 #    include "x86seg.h"
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
 #        include <86box/nmi.h>
-#        include <86box/pic.h>
 #        include <86box/timer.h>
-#        include "x86_interrupt.h"
 #    endif
 
 #    if defined(__linux__) || defined(__APPLE__)
@@ -120,6 +118,70 @@ host_reg_def_t codegen_host_fp_reg_list[CODEGEN_HOST_FP_REGS] = {
     { REG_XMM5, HOST_REG_FLAG_VOLATILE}
 };
 
+/*A misaligned load that stays inside its page and has a read lookup: what
+  readmemwl(), readmemll() and readmemql() do on their in-page branch, the
+  high_page clear they do on entry, the timing_misaligned charge under the
+  same Cyrix alignment rule and the load through the lookup. A page crossing
+  or a missing lookup jumps back to the C path at c_path.
+  In - ECX = address, RSI = readlookup2[] entry
+  Out - ECX or XMM_TEMP = data, ESI = 0
+  Corrupts EDI*/
+static void
+build_load_misaligned(codeblock_t *block, int size, int is_float, uint8_t *c_path)
+{
+    uint8_t *to_c[2];
+    uint8_t *charge = NULL;
+    uint8_t *skip   = NULL;
+
+    host_x86_MOV32_REG_REG(block, REG_EDI, REG_ECX);
+    host_x86_AND32_REG_IMM(block, REG_EDI, 0xfff);
+    host_x86_CMP32_REG_IMM(block, REG_EDI, 0x1000 - size);
+    to_c[0] = host_x86_JNBE_short(block);
+    host_x86_CMP64_REG_IMM(block, REG_RSI, (uint32_t) -1);
+    to_c[1] = host_x86_JZ_short(block);
+
+    /*readmem*l() clears high_page on every call; checkio()'s I/O map read
+      through readmemw_n() does not and would see a stale one*/
+    host_x86_MOV8_ABS_IMM(block, &high_page, 0);
+
+    /*The two globals are read through RDI: MOV32_REG_ABS may use R9*/
+    if (size != 8) {
+        host_x86_MOV64_REG_IMM(block, REG_RDI, (uint64_t) (uintptr_t) &cpu_cyrix_alignment);
+        host_x86_MOV32_REG_BASE_OFFSET(block, REG_EDI, REG_RDI, 0);
+        host_x86_TEST32_REG(block, REG_EDI, REG_EDI);
+        charge = host_x86_JZ_short(block);
+        host_x86_MOV32_REG_REG(block, REG_EDI, REG_ECX);
+        host_x86_AND32_REG_IMM(block, REG_EDI, 7);
+        if (size == 2) {
+            host_x86_CMP32_REG_IMM(block, REG_EDI, 7);
+            skip = host_x86_JNZ_short(block);
+        } else {
+            host_x86_CMP32_REG_IMM(block, REG_EDI, 4);
+            skip = host_x86_JBE_short(block);
+        }
+        *charge = (uint8_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) charge) - 1;
+    }
+    host_x86_MOV64_REG_IMM(block, REG_RDI, (uint64_t) (uintptr_t) &timing_misaligned);
+    host_x86_MOV32_REG_BASE_OFFSET(block, REG_EDI, REG_RDI, 0);
+    host_x86_SUB32_ABS_REG(block, &cpu_state._cycles, REG_EDI);
+    if (skip)
+        *skip = (uint8_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) skip) - 1;
+
+    if (size == 2 && !is_float)
+        host_x86_MOVZX_BASE_INDEX_32_16(block, REG_ECX, REG_RSI, REG_RCX);
+    else if (size == 4 && !is_float)
+        host_x86_MOV32_REG_BASE_INDEX(block, REG_ECX, REG_RSI, REG_RCX);
+    else if (size == 4 && is_float)
+        host_x86_CVTSS2SD_XREG_BASE_INDEX(block, REG_XMM_TEMP, REG_RSI, REG_RCX);
+    else
+        host_x86_MOVQ_XREG_BASE_INDEX(block, REG_XMM_TEMP, REG_RSI, REG_RCX);
+    host_x86_XOR32_REG_REG(block, REG_ESI, REG_ESI);
+    host_x86_RET(block);
+
+    for (int c = 0; c < 2; c++)
+        *to_c[c] = (uint8_t) ((uintptr_t) c_path - (uintptr_t) to_c[c]) - 1;
+}
+
 /*ea_rule: take the direct load whenever the address is at most 0xffc into
   its page, aligned or not, as the interpreter's eal_r path does; readmemwl
   and readmemll charge timing_misaligned only on the slow path.*/
@@ -128,6 +190,7 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
 {
     uint8_t *branch_offset;
     uint8_t *misaligned_offset = NULL;
+    uint8_t *c_path;
 
     /*In - ESI = address
       Out - ECX = data, ESI = abrt*/
@@ -180,8 +243,9 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
     host_x86_RET(block);
 
     *branch_offset = (uint8_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) branch_offset) - 1;
-    if (ea_rule || size != 1)
+    if (ea_rule)
         *misaligned_offset = (uint8_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) misaligned_offset) - 1;
+    c_path = &block_write_data[block_pos];
     host_x86_PUSH(block, REG_RAX);
     host_x86_PUSH(block, REG_RDX);
 #    if _WIN64
@@ -219,6 +283,11 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
     host_x86_POP(block, REG_RAX);
     host_x86_MOVZX_REG_ABS_32_8(block, REG_ESI, &cpu_state.abrt);
     host_x86_RET(block);
+
+    if (!ea_rule && size != 1) {
+        *misaligned_offset = (uint8_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) misaligned_offset) - 1;
+        build_load_misaligned(block, size, is_float, c_path);
+    }
 }
 
 #    if !defined(USE_GDBSTUB)
@@ -484,47 +553,49 @@ build_store_routine(codeblock_t *block, int size, int is_float)
 }
 
 /*The routines span more than one code chunk. Each routine starts in a chunk
-  with room for its first 0x80 bytes, which hold all of its short branches,
+  with room for its first size bytes, which hold all of its short branches,
   since those cannot cross the jump that links two chunks, and its address
-  is taken from the chunk being written, not from the first one.*/
+  is taken from the chunk being written, not from the first one. A load
+  routine with the misaligned path jumps back to its C path from its end,
+  so all of it, at most 167 bytes, has to fit.*/
 static void *
-routine_start(codeblock_t *block)
+routine_start(codeblock_t *block, int size)
 {
-    codegen_alloc(block, 0x80);
+    codegen_alloc(block, size);
     return &block_write_data[block_pos];
 }
 
 static void
 build_loadstore_routines(codeblock_t *block)
 {
-    codegen_mem_load_byte = routine_start(block);
+    codegen_mem_load_byte = routine_start(block, 0x80);
     build_load_routine(block, 1, 0, 0);
-    codegen_mem_load_word = routine_start(block);
+    codegen_mem_load_word = routine_start(block, 0xc0);
     build_load_routine(block, 2, 0, 0);
-    codegen_mem_load_long = routine_start(block);
+    codegen_mem_load_long = routine_start(block, 0xc0);
     build_load_routine(block, 4, 0, 0);
-    codegen_mem_load_quad = routine_start(block);
+    codegen_mem_load_quad = routine_start(block, 0xc0);
     build_load_routine(block, 8, 0, 0);
-    codegen_mem_load_single = routine_start(block);
+    codegen_mem_load_single = routine_start(block, 0xc0);
     build_load_routine(block, 4, 1, 0);
-    codegen_mem_load_double = routine_start(block);
+    codegen_mem_load_double = routine_start(block, 0xc0);
     build_load_routine(block, 8, 1, 0);
-    codegen_mem_load_word_ea = routine_start(block);
+    codegen_mem_load_word_ea = routine_start(block, 0x80);
     build_load_routine(block, 2, 0, 1);
-    codegen_mem_load_long_ea = routine_start(block);
+    codegen_mem_load_long_ea = routine_start(block, 0x80);
     build_load_routine(block, 4, 0, 1);
 
-    codegen_mem_store_byte = routine_start(block);
+    codegen_mem_store_byte = routine_start(block, 0x80);
     build_store_routine(block, 1, 0);
-    codegen_mem_store_word = routine_start(block);
+    codegen_mem_store_word = routine_start(block, 0x80);
     build_store_routine(block, 2, 0);
-    codegen_mem_store_long = routine_start(block);
+    codegen_mem_store_long = routine_start(block, 0x80);
     build_store_routine(block, 4, 0);
-    codegen_mem_store_quad = routine_start(block);
+    codegen_mem_store_quad = routine_start(block, 0x80);
     build_store_routine(block, 8, 0);
-    codegen_mem_store_single = routine_start(block);
+    codegen_mem_store_single = routine_start(block, 0x80);
     build_store_routine(block, 4, 1);
-    codegen_mem_store_double = routine_start(block);
+    codegen_mem_store_double = routine_start(block, 0x80);
     build_store_routine(block, 8, 1);
 }
 
@@ -1262,6 +1333,8 @@ build_rep_routine(codeblock_t *block, int is_stos, int shift, int a32, int (*run
 
 _Static_assert(offsetof(codegen_link_slot_t, npxc) == offsetof(codegen_link_slot_t, status) + 2,
                "status and npxc are compared as one word");
+_Static_assert(offsetof(cpu_events_t, throttle_run) == offsetof(cpu_events_t, stpclk) + 4,
+               "stpclk and throttle_run are tested as one quadword");
 _Static_assert(offsetof(cpu_state_t, _smi_line) == offsetof(cpu_state_t, abrt) + 1,
                "abrt and smi_line are loaded as one word");
 _Static_assert(offsetof(codegen_link_slot_t, exit_pc) == 0 && offsetof(codegen_link_slot_t, exit_cs) == 4
@@ -1271,6 +1344,13 @@ _Static_assert(offsetof(codegen_link_slot_t, exit_pc) == 0 && offsetof(codegen_l
 _Static_assert((uint32_t) (13u * 0xc4ec4ec5u) == 1 && (uint64_t) sizeof(codegen_link_slots) < 0x100000000ull,
                "the set lookup finds a slot's site from its 32-bit offset with the inverse of 13");
 _Static_assert(CODEGEN_LINK_SET_ONE >= CODEGEN_LINK_SETS, "the set lookup takes CODEGEN_LINK_SET_ONE for no set");
+_Static_assert(offsetof(codeblock_t, runs_left) == offsetof(codeblock_t, used) + 1,
+               "used and runs_left are loaded as one word");
+_Static_assert(offsetof(cpu_events_t, flush_pending) == offsetof(cpu_events_t, was_reset) + 4
+                   && offsetof(cpu_events_t, ne) == offsetof(cpu_events_t, init) + 4
+                   && offsetof(cpu_events_t, override_dynarec) == offsetof(cpu_events_t, force_interpreter) + 4
+                   && offsetof(cpu_events_t, throttle_run) == offsetof(cpu_events_t, stpclk) + 4,
+               "the event flags are read as quadwords of two adjacent fields");
 #        define LINK_SET_E(n) ((int32_t) offsetof(codegen_link_set_t, e[n]))
 
 /*op reg, [p] for a global p: RBP-relative when in reach, as globals in the
@@ -1309,8 +1389,7 @@ build_link_routine(codeblock_t *block)
     int32_t *nmi_set;
     int32_t *nmi_ok;
     int32_t *irq_ok;
-    int32_t *apic_set;
-    int32_t *es_flat;
+    int32_t *used_set;
     int32_t *uncached;
     int32_t *no_paging;
     int32_t *cached;
@@ -1360,15 +1439,18 @@ build_link_routine(codeblock_t *block)
 
     /*Nothing pending for the loop, and the loop would pick the recompiler.
       An armed debug breakpoint is a miss, so the loop makes its per-block
-      check (dr_blocks_cache())*/
+      check (dr_blocks_cache()). Clock control (stpclk and throttle_run, one
+      quadword) is a miss too: the loop stops the processor or stalls it
+      after each block while it is on, and a P_LVL2/P_LVL3 read by INS does
+      not end its block. The seven event flags are read as three quadwords
+      and dr_armed alone, so halted, next to it, is not read; dr_armed goes
+      first, as a 32-bit OR clears R9's top half*/
     rx_rm(block, 0, 0, 0x0fb7, REG_R9, REG_RBP, rx_state(&cpu_state.abrt)); /*abrt and smi_line*/
-    lx_abs(block, 0, 0, 0x0b, REG_R9, &x86_was_reset);
-    lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_flush_pending);
-    lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_init);
-    lx_abs(block, 0, 0, 0x0b, REG_R9, &new_ne);
-    lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_force_interpreter);
-    lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_override_dynarec);
     lx_abs(block, 0, 0, 0x0b, REG_R9, &cpu_dr_armed);
+    lx_abs(block, 0, 1, 0x0b, REG_R9, &x86_was_reset);         /*and cpu_flush_pending*/
+    lx_abs(block, 0, 1, 0x0b, REG_R9, &cpu_init);              /*and new_ne*/
+    lx_abs(block, 0, 1, 0x0b, REG_R9, &cpu_force_interpreter); /*and cpu_override_dynarec*/
+    lx_abs(block, 0, 1, 0x0b, REG_R9, &cpu_stpclk);            /*and throttle_run*/
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
 
     /*NMI_TAKEABLE(): nmi here, the rest out of line*/
@@ -1377,21 +1459,17 @@ build_link_routine(codeblock_t *block)
     nmi_set  = rx_jcc(block, RX_CC_NZ);
     nmi_done = rx_here();
 
-    /*Trap flag, and an interrupt the loop would take. With the APIC path
-      off x86_external_interrupt_pending() is pic.int_pending; with it on
-      it is 0 while pic.int_pending, local APIC 0's ExtINT and its IRR bit
-      are all clear, and anything else is left to the loop (out of line)*/
+    /*Trap flag, and an interrupt the loop would take. The loop looks for
+      one only while irq (0 or 1) is set, so with IF set that is a miss;
+      with IF clear it takes none*/
     rx_rm(block, 0, 0, 0x0fb7, REG_R9, REG_RBP, rx_state(&cpu_state.flags));
     rx_test_ri(block, REG_R9, T_FLAG);
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
     rx_test_ri(block, REG_R9, I_FLAG);
     irq_ok = rx_jcc(block, RX_CC_Z);
-    lx_abs(block, 0, 0, 0x0fb6, REG_R9, &pic.int_pending);
+    lx_abs(block, 0, 0, 0x0fb6, REG_R9, &cpu_events.irq);
     rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
-    lx_abs(block, 0, 0, 0x0fb6, REG_R9, &ioapic_irq_path_active);
-    rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
-    apic_set = rx_jcc(block, RX_CC_NZ);
     irq_done = rx_here();
     rx_patch(irq_ok, irq_done);
 
@@ -1399,19 +1477,10 @@ build_link_routine(codeblock_t *block)
       word. Only the C loop refreshes the PC24 and RC_NZ status bits from
       npxc, so they can be stale after an FLDCW in a linked block; the npxc
       compare decides them instead. Everything else that reads those two
-      bits runs after that refresh. NOTFLATES is worked out again here from
-      ES itself; it equals the stored bit, which every write to the ES base
-      or limits brings in line before the next lookup.*/
+      bits runs after that refresh. NOTFLATES is compared as stored, since
+      every write to the ES base or limits brings it in line before the next
+      lookup.*/
     lx_abs(block, 0, 0, 0x0fb7, REG_R9, &cpu_cur_status);
-    rx_alu_ri(block, 0, 4, REG_R9, ~(uint32_t) CPU_STATUS_NOTFLATES);
-    rx_rm(block, 0, 0, 0x8b, REG_R12, REG_RBP, rx_state(&cpu_state.seg_es.base));
-    rx_rm(block, 0, 0, 0x0b, REG_R12, REG_RBP, rx_state(&cpu_state.seg_es.limit_low));
-    rx_rm(block, 0, 0, 0x8b, REG_R13, REG_RBP, rx_state(&cpu_state.seg_es.limit_high));
-    rx_rr(block, 0, 0, 0xf7, 2, REG_R13);         /*NOT R13D*/
-    rx_rr(block, 0, 0, 0x09, REG_R13, REG_R12);   /*OR R12D, R13D: zero if ES is flat*/
-    es_flat = rx_jcc(block, RX_CC_Z);
-    rx_alu_ri(block, 0, 1, REG_R9, CPU_STATUS_NOTFLATES);
-    rx_patch(es_flat, rx_here());
     rx_rm(block, 0, 0, 0x0fb7, REG_R12, REG_RBP, rx_state(&cpu_state.npxc));
     rx_alu_ri(block, 0, 4, REG_R12, 0x0f00);
     rx_shift_ri(block, 4, REG_R12, 16);
@@ -1496,10 +1565,13 @@ build_link_routine(codeblock_t *block)
     rx_rr(block, 0, 0, 0x31, REG_RCX, REG_RCX);
     lx_abs(block, 0, 0, 0x89, REG_RCX, &cpu_halted);
     lx_abs(block, 0, 0, 0x89, REG_RCX, &cpu_fetch_device);
-    rx_rr(block, 0, 0, 0xff, 0, REG_RCX);                       /*INC ECX*/
-    rx_rm(block, 0, 0, 0x88, REG_RCX, REG_RDI, LINK_BLOCK(used)); /*MOV block->used, CL*/
-    /*Linked entries bypass the dispatcher's SMC reuse countdown.*/
-    rx_rm(block, 0, 0, 0xd0, 5, REG_RDI, LINK_BLOCK(runs_left)); /*SHR byte, 1*/
+    /*The block is about to run: the eviction sweep passes it over once,
+      and a linked entry counts down runs_left as the dispatcher's does.
+      Both are stored only when that changes them: used 1 and runs_left 0
+      stay as they are*/
+    rx_rm(block, 0, 0, 0x0fb7, REG_RDX, REG_RDI, LINK_BLOCK(used)); /*MOVZX EDX, used and runs_left*/
+    rx_alu_ri(block, 0, 7, REG_RDX, 1);
+    used_set = rx_jcc(block, RX_CC_NZ);
     rx_bytes(block, jmp_r15, 3);
 
     /*Miss: the block's own epilogue, RAX still the slots*/
@@ -1535,15 +1607,12 @@ build_link_routine(codeblock_t *block)
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
     rx_patch(rx_jmp(block), nmi_done);
 
-    /*APIC path on: an ExtINT or an IRR vector at local APIC 0 is a miss*/
-    rx_patch(apic_set, rx_here());
-    lx_abs(block, 0, 0, 0x0fb6, REG_R9, cpu_lapic_extint_live);
-    rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
-    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
-    lx_abs(block, 0, 0, 0x8b, REG_R9, &cpu_lapic_irr_live);
-    rx_test_ri(block, REG_R9, 1);
-    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
-    rx_patch(rx_jmp(block), irq_done);
+    /*used or runs_left to change: RDI = the target block, ECX = 0*/
+    rx_patch(used_set, rx_here());
+    rx_rr(block, 0, 0, 0xff, 0, REG_RCX);                       /*INC ECX*/
+    rx_rm(block, 0, 0, 0x88, REG_RCX, REG_RDI, LINK_BLOCK(used)); /*MOV block->used, CL*/
+    rx_rm(block, 0, 0, 0xd0, 5, REG_RDI, LINK_BLOCK(runs_left)); /*SHR byte, 1*/
+    rx_bytes(block, jmp_r15, 3);
 
     /*get_phys() cache miss: it would store the full address in
       get_phys_virt, and translate through readlookup2[] with paging on or
@@ -1743,7 +1812,7 @@ codegen_backend_init(void)
     block_write_data                        = codeblock[block_current].data;
     build_loadstore_routines(&codeblock[block_current]);
 
-    codegen_gpf_rout = routine_start(block);
+    codegen_gpf_rout = routine_start(block, 0x80);
 #    if _WIN64
     host_x86_XOR32_REG_REG(block, REG_ECX, REG_ECX);
     host_x86_XOR32_REG_REG(block, REG_EDX, REG_EDX);
@@ -1779,7 +1848,7 @@ codegen_backend_init(void)
     host_x86_RET(block);
 
     /*#SS(0): an operand through SS outside its limit (CHECK_SEG_LIMITS)*/
-    codegen_ss_rout = routine_start(block);
+    codegen_ss_rout = routine_start(block, 0x80);
 #    if _WIN64
     host_x86_XOR32_REG_REG(block, REG_ECX, REG_ECX);
     host_x86_XOR32_REG_REG(block, REG_EDX, REG_EDX);
@@ -1797,7 +1866,7 @@ codegen_backend_init(void)
     for (int is_stos = 0; is_stos < 2; is_stos++) {
         for (int shift = 0; shift < 3; shift++) {
             for (int a32 = 0; a32 < 2; a32++) {
-                codegen_rep_rout[is_stos][shift][a32] = routine_start(block);
+                codegen_rep_rout[is_stos][shift][a32] = routine_start(block, 0x80);
                 build_rep_routine(block, is_stos, shift, a32, codegen_rep_run[is_stos][shift][a32]);
             }
         }

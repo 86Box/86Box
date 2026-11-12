@@ -83,9 +83,8 @@ int smi_latched = 0;
 int smm_in_hlt  = 0;
 int smi_block   = 0;
 
-/* ACPI clock control, see cpu.h. */
-int cpu_stpclk          = 0;
-int cpu_throttle_run    = 0;
+/* ACPI clock control, see cpu.h (cpu_stpclk and cpu_throttle_run live in
+   cpu_events). */
 int cpu_throttle_period = 8;
 int cpu_throttle_break  = 0;
 
@@ -589,7 +588,7 @@ prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int
     }
 
     int pc = cpu_prefetch_cycles;
-    if (!(machine_has_bus(machine, MACHINE_BUS_MCA | MACHINE_BUS_MCA32)) &&
+    if (!cpu_mca_bus &&
         (cpu_prefetch_cycles == cpu_rom_prefetch_cycles) &&
         ((is586 && !cpu_cache_int_enabled) || (is_p6 && !(msr.mtrr_deftype & 0x800))))
         pc *= cpu_prefetch_width;
@@ -1841,11 +1840,9 @@ leave_smm(void)
     cpu_386_flags_extract();
     cpu_cur_status &= ~(CPU_STATUS_PMODE | CPU_STATUS_V86);
     cpu_cur_status &= ~CPU_STATUS_SMM;
-    if (cr0 & 1) {
+    if (cr0 & 1)
         cpu_cur_status |= CPU_STATUS_PMODE;
-        if (cpu_state.eflags & VM_FLAG)
-            cpu_cur_status |= CPU_STATUS_V86;
-    }
+    cpu_set_v86_status();
     cpu_update_64k_status();
 
     nmi_mask = 1;

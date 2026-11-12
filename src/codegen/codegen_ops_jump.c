@@ -514,7 +514,9 @@ static uint32_t
 iret_common(ir_data_t *ir, int is32, uint32_t op_pc)
 {
     const int pmode = !!(msw & 1);
-    const int v86   = !!(cpu_state.eflags & VM_FLAG);
+    /*V86 mode needs PE as well: with PE clear the interpreter takes the
+      real-mode form whatever VM is*/
+    const int v86   = pmode && (cpu_state.eflags & VM_FLAG);
 
     if (v86 || !pmode) {
 #ifndef CODEGEN_BACKEND_HAS_INT_UOPS

@@ -779,6 +779,14 @@ popf_common(ir_data_t *ir, uint32_t op_pc, int is32)
         uop_XOR(ir, IREG_temp2, IREG_temp0, IREG_temp1);
         uop_AND(ir, IREG_temp2, IREG_temp2, IREG_temp3);
         uop_XOR(ir, IREG_temp0, IREG_temp0, IREG_temp2);
+    } else if (v86 && !is32) {
+        /*Real mode with VM set: the VME form still keeps IOPL and IF (temp3
+          all ones below IOPL 3), as in the interpreter, which tests VM alone
+          there*/
+        uop_AND_IMM(ir, IREG_temp3, IREG_temp3, 0x3200);
+        uop_XOR(ir, IREG_temp2, IREG_temp0, IREG_temp1);
+        uop_AND(ir, IREG_temp2, IREG_temp2, IREG_temp3);
+        uop_XOR(ir, IREG_temp0, IREG_temp0, IREG_temp2);
     }
     uop_OR_IMM(ir, IREG_temp0, IREG_temp0, 2);
     uop_MOV(ir, IREG_flags, IREG_temp0_W);
