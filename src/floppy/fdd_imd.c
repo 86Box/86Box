@@ -946,7 +946,11 @@ imd_load(void *priv, char *fn)
     drv->d86f_handler.check_crc         = 1;
     d86f_set_version(drv, 0x0063);
 
-    drv->seek = imd_seek;
+    const fdd_format_t ops = {
+        .seek = imd_seek
+    };
+
+    fdd_format_set(drv, &ops);
 
     d86f_common_handlers(drv);
 }

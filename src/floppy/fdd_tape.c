@@ -2317,16 +2317,21 @@ fdd_tape_init(void)
     /* The tape drive takes over this drive select line from whatever
        floppy drive may have been configured on it. Note that it has no
        poll handler - the transfer clock is the drive's own. */
-    drv->seek          = tape_seek;
-    drv->readsector    = tape_readsector;
-    drv->writesector   = tape_writesector;
-    drv->comparesector = tape_comparesector;
-    drv->readaddress   = tape_readaddress;
-    drv->format        = tape_format;
-    drv->hole          = tape_hole;
-    drv->byteperiod    = tape_byteperiod;
-    drv->stop          = tape_stop;
-    drv->poll          = NULL;
+    fdd_format_clear(drv);
+
+    const fdd_format_t ops = {
+        .seek          = tape_seek,
+        .readsector    = tape_readsector,
+        .writesector   = tape_writesector,
+        .comparesector = tape_comparesector,
+        .readaddress   = tape_readaddress,
+        .format        = tape_format,
+        .hole          = tape_hole,
+        .byteperiod    = tape_byteperiod,
+        .stop          = tape_stop
+    };
+
+    fdd_format_set(drv, &ops);
 
     drv->empty = 0;
     drv->changed = 0;
@@ -2374,16 +2379,7 @@ fdd_tape_close(void)
        the idle branch of tape_clock() takes it back out of the list.
      */
     if (was_attached) {
-        drv->seek          = NULL;
-        drv->readsector    = NULL;
-        drv->writesector   = NULL;
-        drv->comparesector = NULL;
-        drv->readaddress   = NULL;
-        drv->format        = NULL;
-        drv->hole          = NULL;
-        drv->byteperiod    = NULL;
-        drv->stop          = NULL;
-        drv->poll          = NULL;
+        fdd_format_clear(drv);
 
         drv->empty = 1;
     }

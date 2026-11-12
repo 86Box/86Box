@@ -3710,15 +3710,19 @@ d86f_common_handlers(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
 
-    drv->readsector    = d86f_readsector;
-    drv->writesector   = d86f_writesector;
-    drv->comparesector = d86f_comparesector;
-    drv->readaddress   = d86f_readaddress;
-    drv->byteperiod    = d86f_byteperiod;
-    drv->poll          = d86f_poll;
-    drv->format        = d86f_proxy_format;
-    drv->stop          = d86f_stop;
-    drv->hole          = d86f_hole;
+    const fdd_format_t ops = {
+        .readsector    = d86f_readsector,
+        .writesector   = d86f_writesector,
+        .comparesector = d86f_comparesector,
+        .readaddress   = d86f_readaddress,
+        .byteperiod    = d86f_byteperiod,
+        .poll          = d86f_poll,
+        .format        = d86f_proxy_format,
+        .stop          = d86f_stop,
+        .hole          = d86f_hole
+    };
+
+    fdd_format_set(drv, &ops);
 }
 
 int
@@ -4003,9 +4007,14 @@ d86f_load(void *priv, char *fn)
 
     d86f_register_86f(drv);
 
-    drv->seek = d86f_seek;
     d86f_common_handlers(drv);
-    drv->format = d86f_format;
+
+    const fdd_format_t ops = {
+        .seek   = d86f_seek,
+        .format = d86f_format
+    };
+
+    fdd_format_set(drv, &ops);
 
     d86f_log("86F: Disk does%s have surface description data\n",
              d86f_has_surface_desc(drive) ? "" : " not");

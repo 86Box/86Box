@@ -486,7 +486,11 @@ mfm_load(void *priv, char *fn)
 
     d86f_common_handlers(drv);
 
-    drv->seek = mfm_seek;
+    const fdd_format_t ops = {
+        .seek = mfm_seek
+    };
+
+    fdd_format_set(drv, &ops);
 
     mfm_log("Loaded as MFM\n");
 }
@@ -502,7 +506,7 @@ mfm_close(void *priv)
 
     d86f_unregister(drv);
 
-    drv->seek = NULL;
+    drv->fmt.seek = NULL;
 
     if (dev->tracks)
         free(dev->tracks);

@@ -357,7 +357,11 @@ fdi_load(void *priv, char *fn)
 
     d86f_common_handlers(drv);
 
-    drv->seek = fdi_seek;
+    const fdd_format_t ops = {
+        .seek = fdi_seek
+    };
+
+    fdd_format_set(drv, &ops);
 
     fdi_log("Loaded as FDI\n");
 }
@@ -373,7 +377,7 @@ fdi_close(void *priv)
 
     d86f_unregister(drv);
 
-    drv->seek = NULL;
+    drv->fmt.seek = NULL;
 
     if (dev->h)
         fdi2raw_header_free(dev->h);

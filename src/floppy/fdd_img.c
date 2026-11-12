@@ -1530,10 +1530,14 @@ jump_if_fdf:
     drv->d86f_handler.check_crc         = 1;
     d86f_set_version(drv, 0x0063);
 
-    drv->seek = img_seek;
-
     d86f_common_handlers(drv);
-    drv->readaddress = img_readaddress;
+
+    const fdd_format_t ops = {
+        .seek        = img_seek,
+        .readaddress = img_readaddress
+    };
+
+    fdd_format_set(drv, &ops);
 }
 
 void
@@ -1650,10 +1654,14 @@ img_load_raw_device(void *priv, const char *device_path)
     };
     d86f_set_version(drv, 0x0063);
 
-    drv->seek = img_seek;
-
     d86f_common_handlers(drv);
-    drv->readaddress = img_readaddress;
+
+    const fdd_format_t ops = {
+        .seek        = img_seek,
+        .readaddress = img_readaddress
+    };
+
+    fdd_format_set(drv, &ops);
 
     drv->local = NULL;
 }

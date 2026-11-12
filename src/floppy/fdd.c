@@ -295,8 +295,8 @@ fdd_do_seek(void *priv, const int track)
 {
     const fdd_drive_t *drv = (fdd_drive_t *) priv;
 
-    if ((drv != NULL) && (drv->seek != NULL))
-        drv->seek(priv, track);
+    if ((drv != NULL) && (drv->fmt.seek != NULL))
+        drv->fmt.seek(priv, track);
 }
 
 static void
@@ -358,24 +358,24 @@ fdd_seek_complete_callback(void *priv)
 
         switch (po->op) {
             case FDD_OP_READ:
-                if (drv->readsector)
-                    drv->readsector(drv, po->sector, po->track, po->side, po->density, po->sector_size);
+                if (drv->fmt.readsector)
+                    drv->fmt.readsector(drv, po->sector, po->track, po->side, po->density, po->sector_size);
                 break;
             case FDD_OP_WRITE:
-                if (drv->writesector)
-                    drv->writesector(drv, po->sector, po->track, po->side, po->density, po->sector_size);
+                if (drv->fmt.writesector)
+                    drv->fmt.writesector(drv, po->sector, po->track, po->side, po->density, po->sector_size);
                 break;
             case FDD_OP_COMPARE:
-                if (drv->comparesector)
-                    drv->comparesector(drv, po->sector, po->track, po->side, po->density, po->sector_size);
+                if (drv->fmt.comparesector)
+                    drv->fmt.comparesector(drv, po->sector, po->track, po->side, po->density, po->sector_size);
                 break;
             case FDD_OP_READADDR:
-                if (drv->readaddress)
-                    drv->readaddress(drv, po->side, po->density);
+                if (drv->fmt.readaddress)
+                    drv->fmt.readaddress(drv, po->side, po->density);
                 break;
             case FDD_OP_FORMAT:
-                if (drv->format)
-                    drv->format(drv, po->side, po->density, po->fill);
+                if (drv->fmt.format)
+                    drv->fmt.format(drv, po->side, po->density, po->fill);
                 break;
             default:
                 break;
@@ -867,6 +867,41 @@ fdd_load(void *priv, char *fn)
 }
 
 void
+fdd_format_set(fdd_drive_t *drv, const fdd_format_t *fmt)
+{
+    if ((drv == NULL) || (fmt == NULL))
+        return;
+
+    if (fmt->seek != NULL)
+        drv->fmt.seek = fmt->seek;
+    if (fmt->readsector != NULL)
+        drv->fmt.readsector = fmt->readsector;
+    if (fmt->writesector != NULL)
+        drv->fmt.writesector = fmt->writesector;
+    if (fmt->comparesector != NULL)
+        drv->fmt.comparesector = fmt->comparesector;
+    if (fmt->readaddress != NULL)
+        drv->fmt.readaddress = fmt->readaddress;
+    if (fmt->format != NULL)
+        drv->fmt.format = fmt->format;
+    if (fmt->hole != NULL)
+        drv->fmt.hole = fmt->hole;
+    if (fmt->byteperiod != NULL)
+        drv->fmt.byteperiod = fmt->byteperiod;
+    if (fmt->stop != NULL)
+        drv->fmt.stop = fmt->stop;
+    if (fmt->poll != NULL)
+        drv->fmt.poll = fmt->poll;
+}
+
+void
+fdd_format_clear(fdd_drive_t *drv)
+{
+    if (drv != NULL)
+        memset(&drv->fmt, 0x00, sizeof(drv->fmt));
+}
+
+void
 fdd_close(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
@@ -879,16 +914,7 @@ fdd_close(void *priv)
 
     d86f_stop(drv); /* Call this first of all to make sure the 86F poll is back to idle state. */
 
-    drv->hole          = NULL;
-    drv->poll          = NULL;
-    drv->seek          = NULL;
-    drv->readsector    = NULL;
-    drv->writesector   = NULL;
-    drv->comparesector = NULL;
-    drv->readaddress   = NULL;
-    drv->format        = NULL;
-    drv->byteperiod    = NULL;
-    drv->stop          = NULL;
+    fdd_format_clear(drv);
     drv->seek_in_progress = 0;
 
     if (strstr(drv->image_path, "ioctl://") != NULL) {
@@ -912,8 +938,8 @@ fdd_hole(void *priv)
     fdd_drive_t *drv = (fdd_drive_t *) priv;
     int          ret = 0;
 
-    if ((drv != NULL) && (drv->hole != NULL))
-        ret = drv->hole(drv);
+    if ((drv != NULL) && (drv->fmt.hole != NULL))
+        ret = drv->fmt.hole(drv);
 
     return ret;
 }
@@ -937,8 +963,8 @@ fdd_byteperiod(void *priv)
     fdd_drive_t *drv = (fdd_drive_t *) priv;
     uint64_t     ret = 32ULL * TIMER_USEC;
 
-    if ((drv != NULL) && (drv->byteperiod != NULL))
-        ret = drv->byteperiod(drv);
+    if ((drv != NULL) && (drv->fmt.byteperiod != NULL))
+        ret = drv->fmt.byteperiod(drv);
 
     return ret;
 }
@@ -970,8 +996,8 @@ fdd_poll(void *priv)
 
     timer_advance_u64(&drv->poll_time, fdd_byteperiod((void *) drv));
 
-    if (drv->poll)
-        drv->poll((void *) drv);
+    if (drv->fmt.poll)
+        drv->fmt.poll((void *) drv);
 
     if (drv->changed)
         fdc_diskchange_interrupt(fdc, drv->id);
@@ -1072,8 +1098,8 @@ fdd_readsector(void *priv, const int sector, const int track, const int side,
        Ending it with a missing address mark (02h) instead stopped BIOSes that
        go on to the hard disk only after a timeout (Phoenix 386 1.10) when the
        empty drive has no change line to check first (360K). */
-    if (drv->readsector != NULL)
-        drv->readsector(drv, sector, track, side, density, sector_size);
+    if (drv->fmt.readsector != NULL)
+        drv->fmt.readsector(drv, sector, track, side, density, sector_size);
 }
 
 void
@@ -1104,8 +1130,8 @@ fdd_writesector(void *priv, const int sector, const int track, const int side,
     }
 
     /* No diskette: no index pulses, the command never ends (see fdd_readsector()). */
-    if (drv->writesector != NULL)
-        drv->writesector(drv, sector, track, side, density, sector_size);
+    if (drv->fmt.writesector != NULL)
+        drv->fmt.writesector(drv, sector, track, side, density, sector_size);
 }
 
 void
@@ -1133,8 +1159,8 @@ fdd_comparesector(void *priv, const int sector, const int track,const  int side,
     }
 
     /* No diskette: no index pulses, the command never ends (see fdd_readsector()). */
-    if (drv->comparesector != NULL)
-        drv->comparesector(drv, sector, track, side, density, sector_size);
+    if (drv->fmt.comparesector != NULL)
+        drv->fmt.comparesector(drv, sector, track, side, density, sector_size);
 }
 
 void
@@ -1158,8 +1184,8 @@ fdd_readaddress(void *priv, const int side, const int density)
         return;
     }
 
-    if (drv->readaddress != NULL)
-        drv->readaddress(drv, side, density);
+    if (drv->fmt.readaddress != NULL)
+        drv->fmt.readaddress(drv, side, density);
 }
 
 void
@@ -1185,8 +1211,8 @@ fdd_format(void *priv, int side, int density, uint8_t fill)
     }
 
     /* No diskette: no index pulses, the command never ends (see fdd_readsector()). */
-    if (drv->format != NULL)
-        drv->format(drv, side, density, fill);
+    if (drv->fmt.format != NULL)
+        drv->fmt.format(drv, side, density, fill);
 }
 
 void
@@ -1209,8 +1235,8 @@ fdd_stop(void *priv)
             fdd_do_seek(drv, drv->track);
     }
 
-    if (drv->stop != NULL)
-        drv->stop(drv);
+    if (drv->fmt.stop != NULL)
+        drv->fmt.stop(drv);
 }
 
 void
@@ -1219,10 +1245,8 @@ fdd_init(void)
     int i;
 
     for (i = 0; i < FDD_NUM; i++) {
-        drives[i].poll       = 0;
-        drives[i].seek       = 0;
-        drives[i].readsector = 0;
-        drives[i].id         = i;
+        fdd_format_clear(&drives[i]);
+        drives[i].id = i;
     }
 
     d86f_init();

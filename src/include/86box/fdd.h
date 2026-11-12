@@ -240,6 +240,27 @@ typedef struct {
 } multi_seek_state_t;
 #endif
 
+/* The mounted medium's command entry points. A format installs the ones
+   it provides with fdd_format_set(); the rest keep whatever the common
+   bitstream handlers put there. */
+typedef struct fdd_format_t {
+    void (*seek)(void *priv, int track);
+    void (*readsector)(void *priv, int sector, int track, int side,
+                       int density, int sector_size);
+    void (*writesector)(void *priv, int sector, int track, int side,
+                        int density, int sector_size);
+    void (*comparesector)(void *priv, int sector, int track, int side,
+                          int density, int sector_size);
+    void (*readaddress)(void *priv, int side, int density);
+    void (*format)(void *priv, int side, int density, uint8_t fill);
+    int (*hole)(void *priv);
+    /* Flux parameter, not a mechanical one: the byte clock the controller
+       paces itself with, derived from the medium's bit cell timing. */
+    uint64_t (*byteperiod)(void *priv);
+    void (*stop)(void *priv);
+    void (*poll)(void *priv);
+} fdd_format_t;
+
 typedef struct fdd_drive_t {
     uint8_t            id;
 
@@ -297,26 +318,17 @@ typedef struct fdd_drive_t {
     const fdd_ctrl_t * ctrl;
     void *             ctrl_priv;
 
-    /* The mounted medium's command entry points (seek, sector access,
-       address read, format, hole sensor, byte timing). */
-    void (*seek)(void *priv, int track);
-    void (*readsector)(void *priv, int sector, int track, int side,
-                       int density, int sector_size);
-    void (*writesector)(void *priv, int sector, int track, int side,
-                        int density, int sector_size);
-    void (*comparesector)(void *priv, int sector, int track, int side,
-                          int density, int sector_size);
-    void (*readaddress)(void *priv, int side, int density);
-    void (*format)(void *priv, int side, int density, uint8_t fill);
-    int (*hole)(void *priv);
-    /* Flux parameter, not a mechanical one: the byte clock the controller
-       paces itself with, derived from the medium's bit cell timing. */
-    uint64_t (*byteperiod)(void *priv);
-    void (*stop)(void *priv);
-    void (*poll)(void *priv);
+    /* Command entry points of whatever medium is mounted. */
+    fdd_format_t       fmt;
 } fdd_drive_t;
 
 extern fdd_drive_t drives[FDD_NUM];
+
+/* Merge the handlers a format provides into the drive's table;
+   NULL members leave the existing entry alone. */
+extern void fdd_format_set(fdd_drive_t *drv, const fdd_format_t *fmt);
+/* Drop every handler, as when a medium is unmounted. */
+extern void fdd_format_clear(fdd_drive_t *drv);
 
 extern int curdrive;
 
