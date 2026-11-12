@@ -243,78 +243,6 @@ fdc_ctrl_stop_id_request(void *priv)
 }
 
 /* ------------------------------------------------------------------------- */
-/* Command context                                                           */
-/* ------------------------------------------------------------------------- */
-
-static int
-fdc_ctrl_get_step_rate(void *priv)
-{
-    return (int) (((fdc_t *) priv)->specify[0] >> 4);
-}
-
-static int
-fdc_ctrl_get_command(void *priv)
-{
-    return (int) ((fdc_t *) priv)->command;
-}
-
-static int
-fdc_ctrl_get_dtl(void *priv)
-{
-    return fdc_get_dtl((fdc_t *) priv);
-}
-
-static int
-fdc_ctrl_get_compare_condition(void *priv)
-{
-    return fdc_get_compare_condition((fdc_t *) priv);
-}
-
-static int
-fdc_ctrl_get_format_n(void *priv)
-{
-    return fdc_get_format_n((fdc_t *) priv);
-}
-
-static int
-fdc_ctrl_get_format_sectors(void *priv)
-{
-    return fdc_get_format_sectors((fdc_t *) priv);
-}
-
-/* sector_id_t and fdd_sector_id_t share a layout, so the formatter can fill
-   the controller's four ID bytes in place. */
-static fdd_sector_id_t *
-fdc_ctrl_get_format_id(void *priv)
-{
-    return (fdd_sector_id_t *) &((fdc_t *) priv)->format_sector_id;
-}
-
-static int
-fdc_ctrl_is_dma(void *priv)
-{
-    return fdc_is_dma((fdc_t *) priv);
-}
-
-static int
-fdc_ctrl_is_verify(void *priv)
-{
-    return fdc_is_verify((fdc_t *) priv);
-}
-
-static int
-fdc_ctrl_is_sk(void *priv)
-{
-    return fdc_is_sk((fdc_t *) priv);
-}
-
-static int
-fdc_ctrl_is_deleted(void *priv)
-{
-    return fdc_is_deleted((fdc_t *) priv);
-}
-
-/* ------------------------------------------------------------------------- */
 /* The table                                                                 */
 /* ------------------------------------------------------------------------- */
 
@@ -358,18 +286,5 @@ const fdd_ctrl_t fdc_ctrl = {
 
     .get_read_track_sector   = fdc_ctrl_get_read_track_sector,
     .request_next_sector_id  = fdc_ctrl_request_next_sector_id,
-    .stop_id_request         = fdc_ctrl_stop_id_request,
-
-    /* Command context, temporary. */
-    .get_compare_condition   = fdc_ctrl_get_compare_condition,
-    .get_format_sectors      = fdc_ctrl_get_format_sectors,
-    .get_format_id           = fdc_ctrl_get_format_id,
-    .get_format_n            = fdc_ctrl_get_format_n,
-    .get_step_rate           = fdc_ctrl_get_step_rate,
-    .get_command             = fdc_ctrl_get_command,
-    .get_dtl                 = fdc_ctrl_get_dtl,
-    .is_dma                  = fdc_ctrl_is_dma,
-    .is_sk                   = fdc_ctrl_is_sk,
-    .is_verify               = fdc_ctrl_is_verify,
-    .is_deleted              = fdc_ctrl_is_deleted
+    .stop_id_request         = fdc_ctrl_stop_id_request
 };

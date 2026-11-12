@@ -848,9 +848,35 @@ fdc_seek_complete_interrupt(fdc_t *fdc, int drive)
     fdc_callback(fdc);
 }
 
+/* Hand the command parameters down to the drive. The controller owns them;
+   the medium works from this copy instead of calling back up for them. */
+static void
+fdc_xfer_sync(fdc_t *fdc)
+{
+    fdd_drive_t *drv = fdc->fdd[real_drive(fdc, fdc->drive)];
+
+    if (drv == NULL)
+        return;
+
+    drv->xfer.dtl            = fdc->dtl;
+    drv->xfer.dma            = (!(fdc->flags & (FDC_FLAG_PCJR | FDC_FLAG_PCJX)) &&
+                                fdc->dma) ? 1 : 0;
+    drv->xfer.sk             = (fdc->deleted & 0x20) ? 1 : 0;
+    drv->xfer.verify         = ((fdc->deleted & 2) &&
+                                (fdc->processed_cmd == 0x16)) ? 1 : 0;
+    drv->xfer.deleted        = fdc->deleted & 1;
+    drv->xfer.command        = fdc->command;
+    drv->xfer.compare        = (uint8_t) fdc_get_compare_condition(fdc);
+    drv->xfer.step_rate      = (uint8_t) (fdc->specify[0] >> 4);
+    drv->xfer.format_n       = (uint8_t) fdc->format_n;
+    drv->xfer.format_sectors = (uint8_t) fdc->format_sectors;
+    drv->xfer.format_id      = (fdd_sector_id_t *) &fdc->format_sector_id;
+}
+
 void
 fdc_seek(fdc_t *fdc, int drive, int params)
 {
+    fdc_xfer_sync(fdc);
     fdd_seek(fdc->fdd[real_drive(fdc, drive)], params);
     fdc->stat = (fdc->stat & 0x0F) | 0x10 | (1 << fdc->drive);
 }
@@ -1503,6 +1529,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                     fdc_noidam(fdc);
                                     return;
                                 }
+                                fdc_xfer_sync(fdc);
                                 fdd_readsector(fdc->fdd[real_drive(fdc, fdc->drive)],
                                                SECTOR_FIRST, fdc->params[1],
                                                fdc->head, fdc->rate,
@@ -1544,6 +1571,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                     fdc_noidam(fdc);
                                     return;
                                 }
+                                fdc_xfer_sync(fdc);
                                 fdd_writesector(fdc->fdd[real_drive(fdc, fdc->drive)],
                                                 fdc->sector, fdc->params[1],
                                                 fdc->head, fdc->rate,
@@ -1558,6 +1586,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                     fdc_noidam(fdc);
                                     return;
                                 }
+                                fdc_xfer_sync(fdc);
                                 fdd_comparesector(fdc->fdd[real_drive(fdc, fdc->drive)],
                                                   fdc->sector, fdc->params[1],
                                                   fdc->head, fdc->rate,
@@ -1586,6 +1615,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                     fdc_log("Verify-mode read!\n");
                                     fdc->deleted |= 2;
                                 }
+                                fdc_xfer_sync(fdc);
                                 fdd_readsector(fdc->fdd[real_drive(fdc, fdc->drive)],
                                                fdc->sector, fdc->params[1],
                                                fdc->head, fdc->rate,
@@ -1643,6 +1673,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                         fdc->stat = 0x70;
                                     else
                                         fdc->stat = 0x50;
+                                    fdc_xfer_sync(fdc);
                                     fdd_readaddress(fdc->fdd[real_drive(fdc, fdc->drive)],
                                                     fdc->head, fdc->rate);
                                 } else
@@ -2200,6 +2231,7 @@ fdc_callback(void *priv)
                 fdc_poll_readwrite_finish(fdc, 2);
                 return;
             } else {
+                fdc_xfer_sync(fdc);
                 fdd_readsector(fdc->fdd[real_drive(fdc, fdc->drive)], SECTOR_NEXT,
                                fdc->rw_track, fdc->head,
                                fdc->rate, fdc->params[4]);
@@ -2346,6 +2378,7 @@ fdc_callback(void *priv)
             switch (fdc->interrupt) {
                 case 5:
                 case 9:
+                    fdc_xfer_sync(fdc);
                     fdd_writesector(fdc->fdd[real_drive(fdc, fdc->drive)], fdc->sector,
                                     fdc->rw_track, fdc->head,
                                     fdc->rate, fdc->params[4]);
@@ -2362,6 +2395,7 @@ fdc_callback(void *priv)
                 case 6:
                 case 0xC:
                 case 0x16:
+                    fdc_xfer_sync(fdc);
                     fdd_readsector(fdc->fdd[real_drive(fdc, fdc->drive)], fdc->sector,
                                    fdc->rw_track, fdc->head,
                                    fdc->rate, fdc->params[4]);
@@ -2378,6 +2412,7 @@ fdc_callback(void *priv)
                 case 0x11:
                 case 0x19:
                 case 0x1D:
+                    fdc_xfer_sync(fdc);
                     fdd_comparesector(fdc->fdd[real_drive(fdc, fdc->drive)], fdc->sector,
                                       fdc->rw_track, fdc->head,
                                       fdc->rate, fdc->params[4]);
@@ -2420,6 +2455,7 @@ fdc_callback(void *priv)
                 fdc->format_state = 2;
                 timer_set_delay_u64(&fdc->timer, 8 * TIMER_USEC);
             } else if (fdc->format_state == 2) {
+                fdc_xfer_sync(fdc);
                 fdd_format(fdc->fdd[real_drive(fdc, fdc->drive)], fdc->head,
                            fdc->rate, fdc->params[4]);
                 fdc->format_state = 3;
@@ -3125,7 +3161,6 @@ fdc_close(void *priv)
     next_bus = 0;
 
     for (int i = 0; i < 4; i++) {
-        drives[fdc->bus + i].fdc       = NULL;
         drives[fdc->bus + i].ctrl      = NULL;
         drives[fdc->bus + i].ctrl_priv = NULL;
     }
@@ -3143,7 +3178,6 @@ fdc_init(const device_t *info)
 
     for (int i = 0; i < 4; i++) {
         fdc->fdd[i] = &(drives[fdc->bus + i]);
-        drives[fdc->bus + i].fdc       = fdc;
         drives[fdc->bus + i].ctrl      = &fdc_ctrl;
         drives[fdc->bus + i].ctrl_priv = fdc;
     }

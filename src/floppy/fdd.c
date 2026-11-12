@@ -480,7 +480,7 @@ fdd_seek(void *priv, const int track_diff)
 
         /* Get seek timings from audio profile configuration with direction awareness */
         const int step_count = ibm5140 && !degated &&
-                               ((drv->ctrl->get_command(drv->ctrl_priv) & 0x1f) == 0x07) ?
+                               ((drv->xfer.command & 0x1f) == 0x07) ?
                                actual_track_diff : abs(track_diff);
         double seek_time_us = ibm5140 ? 6000.0 * step_count :
                               fdd_audio_get_seek_time(drv, actual_track_diff,

@@ -586,9 +586,9 @@ format_conditions(void *priv)
     const imd_t *dev   = (imd_t *) drv->local;
     const int    track = dev->track;
     const int    side  = fdd_get_head(drv);
-    const int    temp  = (drv->ctrl->get_format_sectors(drv->ctrl_priv) ==
+    const int    temp  = (drv->xfer.format_sectors ==
                           dev->tracks[track][side].params[3]) &&
-                         (drv->ctrl->get_format_n(drv->ctrl_priv) ==
+                         (drv->xfer.format_n ==
                           dev->tracks[track][side].params[4]);
 
     return temp;

@@ -527,8 +527,8 @@ format_conditions(void *priv)
     fdd_drive_t *drv = (fdd_drive_t *) priv;
     const img_t *dev = (img_t *) drv->local;
 
-    const int    fmt_sectors = drv->ctrl->get_format_sectors(drv->ctrl_priv);
-    const int    fmt_n       = drv->ctrl->get_format_n(drv->ctrl_priv);
+    const int    fmt_sectors = drv->xfer.format_sectors;
+    const int    fmt_n       = drv->xfer.format_n;
 
     /* Allow bigger sector sizes because of HD_COPY. */
     int          temp = (fmt_sectors == 3) ||

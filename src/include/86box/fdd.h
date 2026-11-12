@@ -135,9 +135,6 @@ typedef union fdd_sector_id_t {
              interrupts the drive raises.
      flux  - the head side: bit timing and encoding, the data path, and every
              event the bitstream engine reports (record found, CRC, RNF, ...).
-     cmd   - controller state the bitstream engine happens to read for now.
-             Temporary: these belong to the controller and will move there,
-             at which point the group goes away.
 
    Every hook is optional; a controller that has nothing to say about one
    leaves it NULL and the caller keeps its previous behaviour. */
@@ -191,23 +188,24 @@ typedef struct fdd_ctrl_t {
     fdd_sector_id_t (*get_read_track_sector)(void *priv);
     void        (*request_next_sector_id)(void *priv);
     void        (*stop_id_request)(void *priv);
-
-    /* ---- Command context (temporary, see above) ------------------- */
-    int         (*get_dtl)(void *priv);
-    /* Command byte running for now (seek timing looks at its low bits). */
-    int         (*get_command)(void *priv);
-    /* Step rate the SPECIFY command selected (SRT, 0..15). */
-    int         (*get_step_rate)(void *priv);
-    int         (*get_format_n)(void *priv);
-    int         (*get_format_sectors)(void *priv);
-    /* The four bytes the formatter is assembling from the data port. */
-    fdd_sector_id_t *(*get_format_id)(void *priv);
-    int         (*get_compare_condition)(void *priv);
-    int         (*is_dma)(void *priv);
-    int         (*is_verify)(void *priv);
-    int         (*is_sk)(void *priv);
-    int         (*is_deleted)(void *priv);
 } fdd_ctrl_t;
+
+/* One command's parameters, as the controller holds them. The controller
+   copies this onto the drive it is addressing; the medium then work from
+   the copy, so nothing below the controller has to ask it back. */
+typedef struct fdd_xfer_t {
+    uint8_t          dtl;
+    uint8_t          dma;       /* data moves through the DMA channel */
+    uint8_t          sk;        /* skip deleted data address marks */
+    uint8_t          verify;    /* VERIFY: check the sector, move no data */
+    uint8_t          deleted;   /* write / accept a deleted DAM */
+    uint8_t          command;   /* command byte, for seek timing */
+    uint8_t          compare;   /* scan condition: 0 equal, 1 <=, 2 >= */
+    uint8_t          step_rate; /* SPECIFY SRT, 0..15 */
+    uint8_t          format_n;         /* N of the sectors being laid down */
+    uint8_t          format_sectors;   /* sectors per track to lay down */
+    fdd_sector_id_t *format_id;        /* ID bytes the formatter collects */
+} fdd_xfer_t;
 
 typedef struct fdd_pending_op_t {
     int     pending;
@@ -272,6 +270,11 @@ typedef struct fdd_format_t {
 typedef struct fdd_drive_t {
     uint8_t            id;
 
+    /* Parameters of the command the controller has just handed down. 
+       The controller owns them and refreshes this copy when it starts each
+       operation; the medium reads it and never asks the controller back. */
+    fdd_xfer_t         xfer;
+
     char               image_path[MAX_IMAGE_PATH_LEN];
     char *             image_history[FLOPPY_IMAGE_HISTORY];
 
@@ -317,12 +320,9 @@ typedef struct fdd_drive_t {
     void *             d86f_priv;
     void *             local;
 
-    /* The controller this drive reports to. `fdc` above is the concrete
-       uPD765 instance the old code reaches for; ctrl is the seam the drive
-       and the bitstream engine are meant to use, with ctrl_priv pointing at
-       the controller's own state. Until the call sites are converted both
-       are kept in step by the controller's init. */
-    void *             fdc;
+    /* The controller this drive reports to: the seam the drive
+       and the bitstream engine use, with ctrl_priv pointing
+       at the controller's own state. */
     const fdd_ctrl_t * ctrl;
     void *             ctrl_priv;
 

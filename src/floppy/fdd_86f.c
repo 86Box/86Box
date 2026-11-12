@@ -876,7 +876,7 @@ d86f_get_data_len(void *priv)
 
     if (dev->req_sector.id.n)
         ret = (uint32_t) 128 << dev->req_sector.id.n;
-    else if ((i = drv->ctrl->get_dtl(drv->ctrl_priv)) < 128)
+    else if ((i = drv->xfer.dtl) < 128)
         ret = i;
 
     return ret;
@@ -1652,7 +1652,7 @@ d86f_compare_byte(void *priv, const uint8_t received_byte, const uint8_t disk_by
     fdd_drive_t *drv = (fdd_drive_t *) priv;
     d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
-    switch (drv->ctrl->get_compare_condition(drv->ctrl_priv)) {
+    switch (drv->xfer.compare) {
         case 0: /* SCAN EQUAL */
             if ((received_byte == disk_byte) || (received_byte == 0xff))
                 dev->satisfying_bytes++;
@@ -2076,12 +2076,12 @@ d86f_format_track(void *priv, const int side, int do_write)
     gap_sizes[2]              = drv->ctrl->get_gap2(drv->ctrl_priv, drv->ctrl->real_drive(drv->ctrl_priv, drv->id));
     gap_sizes[3]              = drv->ctrl->get_gap(drv->ctrl_priv);
     sync_len                  = mfm ? 12 : 6;
-    sc                        = drv->ctrl->get_format_sectors(drv->ctrl_priv);
-    dtl                       = 128 << drv->ctrl->get_format_n(drv->ctrl_priv);
+    sc                        = drv->xfer.format_sectors;
+    dtl                       = 128 << drv->xfer.format_n;
     gap_fill                  = mfm ? 0x4e : 0xff;
 
     /* HD-COPY's "Is the data rate correct?" format. */
-    if ((dev->version == 0x0063) && (drv->ctrl->get_format_n(drv->ctrl_priv) == 3) && (sc == 2))
+    if ((dev->version == 0x0063) && (drv->xfer.format_n == 3) && (sc == 2))
         do_write = 0;
 
     switch (dev->format_state) {
@@ -2093,7 +2093,7 @@ d86f_format_track(void *priv, const int side, int do_write)
     }
 
     if (id_count < 4) {
-        fdd_sector_id_t *fid = drv->ctrl->get_format_id(drv->ctrl_priv);
+        fdd_sector_id_t *fid = drv->xfer.format_id;
         if (drv->ctrl->data_available(drv->ctrl_priv)) {
             int data = drv->ctrl->getdata(drv->ctrl_priv, 0);
             if (data != -1)
@@ -2169,7 +2169,7 @@ d86f_format_track(void *priv, const int side, int do_write)
             break;
 
         case FMT_SECTOR_ID: {
-            fdd_sector_id_t *fid = drv->ctrl->get_format_id(drv->ctrl_priv);
+            fdd_sector_id_t *fid = drv->xfer.format_id;
             max_len = 4;
             if ((dev->datac == 3) && (dev->format_id_count < 256)) {
                 memcpy(dev->format_ids[dev->format_id_count],
@@ -2423,15 +2423,15 @@ d86f_turbo_format(void *priv, const int side, int nop)
 {
     fdd_drive_t *  drv = (fdd_drive_t *) priv;
     d86f_t *       dev = (d86f_t *) drv->d86f_priv;
-    const uint16_t sc  = drv->ctrl->get_format_sectors(drv->ctrl_priv);
-    const uint16_t dtl = 128 << drv->ctrl->get_format_n(drv->ctrl_priv);
+    const uint16_t sc  = drv->xfer.format_sectors;
+    const uint16_t dtl = 128 << drv->xfer.format_n;
 
     /* HD-COPY's "Is the data rate correct?" format. */
-    if ((dev->version == 0x0063) && (drv->ctrl->get_format_n(drv->ctrl_priv) == 3) && (sc == 2))
+    if ((dev->version == 0x0063) && (drv->xfer.format_n == 3) && (sc == 2))
         nop = 1;
 
     if (dev->datac <= 3) {
-        fdd_sector_id_t *fid = drv->ctrl->get_format_id(drv->ctrl_priv);
+        fdd_sector_id_t *fid = drv->xfer.format_id;
         int dat = drv->ctrl->getdata(drv->ctrl_priv, 0);
         if (dat != -1)
             dat &= 0xff;
@@ -2627,7 +2627,7 @@ d86f_turbo_poll(void *priv, const int side)
         case STATE_0C_READ_DATA:
         case STATE_11_SCAN_DATA:
         case STATE_16_VERIFY_DATA:
-            if (drv->ctrl->is_dma(drv->ctrl_priv))
+            if (drv->xfer.dma)
                 for (int i = 0; i < (128 << dev->last_sector.id.n); i++)
                     d86f_turbo_read(drv, side);
             else
@@ -2636,7 +2636,7 @@ d86f_turbo_poll(void *priv, const int side)
 
         case STATE_05_WRITE_DATA:
         case STATE_09_WRITE_DATA:
-            if (drv->ctrl->is_dma(drv->ctrl_priv))
+            if (drv->xfer.dma)
                 for (int i = 0; i < (128 << dev->last_sector.id.n); i++)
                     d86f_turbo_write(drv, side);
             else
@@ -2644,7 +2644,7 @@ d86f_turbo_poll(void *priv, const int side)
             break;
 
         case STATE_0D_FORMAT_TRACK:
-            if (drv->ctrl->is_dma(drv->ctrl_priv))
+            if (drv->xfer.dma)
                 while (dev->state == STATE_0D_FORMAT_TRACK)
                     d86f_turbo_format(drv, side, (side && (d86f_get_sides(drv) != 2)));
             else
@@ -2743,11 +2743,11 @@ d86f_poll(void *priv)
             if (mfm)
                 d86f_find_address_mark_mfm(drv, side, &(dev->data_find), 0x5545,
                                            0x554a, 0x5554,
-                                           drv->ctrl->is_sk(drv->ctrl_priv) | 2);
+                                           drv->xfer.sk | 2);
             else
                 d86f_find_address_mark_fm(drv, side, &(dev->data_find), 0xf56f,
                                           0xf56a,0xf57e,
-                                          drv->ctrl->is_sk(drv->ctrl_priv) | 2);
+                                          drv->xfer.sk | 2);
             break;
 
         case STATE_05_FIND_DATA:
@@ -2762,11 +2762,11 @@ d86f_poll(void *priv)
             if (mfm)
                 d86f_find_address_mark_mfm(drv, side, &(dev->data_find), 0x554a,
                                            0x5545, 0x5554,
-                                           drv->ctrl->is_sk(drv->ctrl_priv) | 2);
+                                           drv->xfer.sk | 2);
             else
                 d86f_find_address_mark_fm(drv, side, &(dev->data_find), 0xf56a,
                                           0xf56f, 0xf57e,
-                                          drv->ctrl->is_sk(drv->ctrl_priv) | 2);
+                                          drv->xfer.sk | 2);
             break;
 
         case STATE_02_READ_DATA:
@@ -3498,8 +3498,8 @@ d86f_readsector(void *priv, const int sector, const int track, const int side,
     else if (sector == SECTOR_NEXT)
         dev->state = STATE_02_FIND_ID;
     else
-        dev->state = drv->ctrl->is_deleted(drv->ctrl_priv) ?
-                         STATE_0C_FIND_ID : (drv->ctrl->is_verify(drv->ctrl_priv) ?
+        dev->state = drv->xfer.deleted ?
+                         STATE_0C_FIND_ID : (drv->xfer.verify ?
                              STATE_16_FIND_ID : STATE_06_FIND_ID);
 }
 
@@ -3528,7 +3528,7 @@ d86f_writesector(void *priv, const int sector, const int track, const int side,
         if (fdd_get_turbo(drv))
             dev->track_pos = 0;
     } else
-        dev->state = drv->ctrl->is_deleted(drv->ctrl_priv) ? STATE_09_FIND_ID : STATE_05_FIND_ID;
+        dev->state = drv->xfer.deleted ? STATE_09_FIND_ID : STATE_05_FIND_ID;
 }
 
 void

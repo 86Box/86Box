@@ -25,7 +25,6 @@
 #include <86box/fdd.h>
 #include <86box/fdd_86f.h>
 #include <86box/fdd_mfm.h>
-#include <86box/fdc.h>
 
 #pragma pack(push, 1)
 typedef struct mfm_header_t {

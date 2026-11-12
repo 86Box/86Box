@@ -39,7 +39,6 @@
 #include <86box/fdd.h>
 #include <86box/fdd_86f.h>
 #include <86box/fdd_td0.h>
-#include <86box/fdc.h>
 #include "lzw/lzw.h"
 
 #define BUFSZ         512 /* new input buffer */

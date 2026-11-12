@@ -1355,7 +1355,7 @@ tape_step_interval_us(void *priv)
     if (drv->ctrl == NULL)
         return 2000;
 
-    srt      = drv->ctrl->get_step_rate(drv->ctrl_priv);
+    srt      = drv->xfer.step_rate;
     bit_rate = drv->ctrl->get_bit_rate(drv->ctrl_priv);
     if (bit_rate <= 0)
         bit_rate = 500;
@@ -1770,7 +1770,7 @@ tape_format(void *priv, UNUSED(int side), UNUSED(int density), UNUSED(uint8_t fi
         (drv->ctrl == NULL))
         return;
 
-    fdd_tape_log("Tape: format track, %i sectors\n", drv->ctrl->get_format_sectors(drv->ctrl_priv));
+    fdd_tape_log("Tape: format track, %i sectors\n", drv->xfer.format_sectors);
 
     if (!tape_has_cartridge() || tape.readonly) {
         drv->ctrl->writeprotect(drv->ctrl_priv);
@@ -1843,7 +1843,7 @@ tape_clock(void *priv)
             break;
 
         case TAPE_XFER_READ:
-            if (!drv->ctrl->is_verify(drv->ctrl_priv)) {
+            if (!drv->xfer.verify) {
                 /*
                    A -1 here means the host's DMA transfer has hit its
                    terminal count, which is how a multi-sector read
@@ -1912,7 +1912,7 @@ tape_clock(void *priv)
             const uint8_t received_byte = (uint8_t) (data & 0xff);
             const uint8_t tape_byte     = tape.buffer[tape.xfer_pos];
 
-            switch (drv->ctrl->get_compare_condition(drv->ctrl_priv)) {
+            switch (drv->xfer.compare) {
                 case 0: /* SCAN EQUAL */
                     if ((received_byte == tape_byte) || (received_byte == 0xFF))
                         satisfying_bytes++;
@@ -1942,7 +1942,7 @@ tape_clock(void *priv)
             /* The host feeds four ID bytes per sector through DMA; the
                sector itself is laid down blank. */
             if (tape.format_datac <= 3) {
-                fdd_sector_id_t *fid = drv->ctrl->get_format_id(drv->ctrl_priv);
+                fdd_sector_id_t *fid = drv->xfer.format_id;
 
                 data = drv->ctrl->getdata(drv->ctrl_priv, 0);
                 if (data == -1)
@@ -1986,7 +1986,7 @@ tape_clock(void *priv)
             if (tape.format_datac == 6) {
                 tape.format_datac = 0;
 
-                if (tape.format_count < drv->ctrl->get_format_sectors(drv->ctrl_priv))
+                if (tape.format_count < drv->xfer.format_sectors)
                     drv->ctrl->request_next_sector_id(drv->ctrl_priv);
                 else {
                     tape.xfer_state = TAPE_XFER_IDLE;
