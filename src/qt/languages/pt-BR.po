@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-11 19:37+0000\n"
+"PO-Revision-Date: 2026-11-12 21:11+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -3410,22 +3410,24 @@ msgid "&Allow recompilation"
 msgstr "&Permitir recompilação"
 
 msgid "&Fast forward"
-msgstr "&Avançar rapidamente"
+msgstr "&Avanço rápido"
 
 msgid "Fast forward at startup"
-msgstr ""
+msgstr "Avanço rápido na inicialização"
 
 msgid "Start new machines in fast forward"
-msgstr ""
+msgstr "Iniciar novas máquinas em avanço rápido"
 
 msgid "Only affects machines created from now on. Each machine can be changed in its settings, under Machine > Performance."
 msgstr ""
+"Afeta apenas máquinas criadas a partir de agora. Pode alterar em cada "
+"máquina nas suas configurações, em Máquina > Performance."
 
 msgid "Fast forward at &startup"
-msgstr ""
+msgstr "Avanço rápido na &inicialização"
 
 msgid "Fast forward"
-msgstr "Avançar rapidamente"
+msgstr "Avanço rápido"
 
 msgid "&Non-maskable interrupt"
 msgstr "Interrupção &não-mascarável"
@@ -4025,7 +4027,7 @@ msgid "Enter an address."
 msgstr "Insira um endereço."
 
 msgid "The selector cannot be looked up."
-msgstr ""
+msgstr "O seletor não pode ser localizado."
 
 msgid "Unknown segment \"%1\"."
 msgstr "Segmento desconhecido \"%1\"."
