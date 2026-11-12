@@ -3402,6 +3402,9 @@ msgstr "再コンパイルを許可する(&A)"
 msgid "&Fast forward"
 msgstr "早送り(&F)"
 
+msgid "Fast forward at &startup"
+msgstr ""
+
 msgid "Fast forward"
 msgstr "早送り"
 

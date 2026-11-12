@@ -3405,6 +3405,9 @@ msgstr "&Cho phép biên dịch lại"
 msgid "&Fast forward"
 msgstr "&Tăng tốc giả lập"
 
+msgid "Fast forward at &startup"
+msgstr ""
+
 msgid "Fast forward"
 msgstr "Tăng tốc giả lập"
 

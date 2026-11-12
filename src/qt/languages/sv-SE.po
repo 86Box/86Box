@@ -3421,6 +3421,9 @@ msgstr "&Tillåt omkompilering"
 msgid "&Fast forward"
 msgstr "&Spola fram"
 
+msgid "Fast forward at &startup"
+msgstr ""
+
 msgid "Fast forward"
 msgstr "Spola fram"
 

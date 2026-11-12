@@ -3432,6 +3432,9 @@ msgstr "允許重編譯(&A)"
 msgid "&Fast forward"
 msgstr "快轉(&F)"
 
+msgid "Fast forward at &startup"
+msgstr ""
+
 msgid "Fast forward"
 msgstr "快轉"
 

@@ -3407,6 +3407,9 @@ msgstr "&Tillat rekompilering"
 msgid "&Fast forward"
 msgstr "&Spol fremover"
 
+msgid "Fast forward at &startup"
+msgstr ""
+
 msgid "Fast forward"
 msgstr "Spol fremover"
 

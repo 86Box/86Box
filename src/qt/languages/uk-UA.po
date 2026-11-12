@@ -3441,6 +3441,9 @@ msgstr "&Дозволити рекомпіляцію"
 msgid "&Fast forward"
 msgstr "&Перемотай вперед"
 
+msgid "Fast forward at &startup"
+msgstr ""
+
 msgid "Fast forward"
 msgstr "Перемотай вперед"
 

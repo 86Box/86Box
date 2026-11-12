@@ -224,6 +224,7 @@ int      do_auto_pause                          = 0;              /* (G) Auto-pa
                                                                          loss */
 int      do_auto_dialog_pause                   = 0;              /* (G) Auto-pause the emulator on dialog boxes */
 int      force_constant_mouse                   = 0;              /* (C) Force constant updating of the mouse */
+int      fast_forward_on_start                  = 0;              /* (C) Start the machine in fast forward */
 int      hook_enabled                           = 1;              /* (C) Keyboard hook is enabled */
 int      test_mode                              = 0;              /* (C) Test mode */
 char     uuid[MAX_UUID_LEN]                     = { '\0' };       /* (C) UUID or machine identifier */

@@ -3468,6 +3468,9 @@ msgstr "&Να επιτρέπεται ανασύνταξη"
 msgid "&Fast forward"
 msgstr "&Γρήγορα μπροστά"
 
+msgid "Fast forward at &startup"
+msgstr ""
+
 msgid "Fast forward"
 msgstr "Γρήγορα μπροστά"
 

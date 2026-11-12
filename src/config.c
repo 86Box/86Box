@@ -437,6 +437,7 @@ load_general(void)
     }
 
     force_constant_mouse = ini_section_get_int(cat, "force_constant_mouse", 0);
+    fast_forward_on_start = !!ini_section_get_int(cat, "fast_forward_on_start", 0);
     fdd_sounds_enabled = ini_section_get_int(cat, "fdd_sounds_enabled", 1);
 
     p = ini_section_get_string(cat, "uuid", NULL);
@@ -3117,6 +3118,7 @@ config_load(void)
         machine              = machine_get_machine_from_internal_name("ibmpc");
         dpi_scale            = 1;
         force_constant_mouse = 0;
+        fast_forward_on_start = 0;
 
         cpu_override_interpreter = 0;
         cpu_debug_regs_486       = 0;
@@ -3595,6 +3597,11 @@ save_general(void)
         ini_section_set_int(cat, "force_constant_mouse", force_constant_mouse);
     else
         ini_section_delete_var(cat, "force_constant_mouse");
+
+    if (fast_forward_on_start)
+        ini_section_set_int(cat, "fast_forward_on_start", fast_forward_on_start);
+    else
+        ini_section_delete_var(cat, "fast_forward_on_start");
 
     if (fdd_sounds_enabled == 1)
         ini_section_delete_var(cat, "fdd_sounds_enabled");

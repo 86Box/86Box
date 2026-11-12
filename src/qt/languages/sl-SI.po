@@ -3420,6 +3420,9 @@ msgstr "&Dovoli prevajanje"
 msgid "&Fast forward"
 msgstr "&Hitro previj"
 
+msgid "Fast forward at &startup"
+msgstr ""
+
 msgid "Fast forward"
 msgstr "Hitro previj"
 

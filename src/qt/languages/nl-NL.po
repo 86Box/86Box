@@ -3408,6 +3408,9 @@ msgstr "Recompilatie &toestaan"
 msgid "&Fast forward"
 msgstr "&Snel vooruitspoelen"
 
+msgid "Fast forward at &startup"
+msgstr ""
+
 msgid "Fast forward"
 msgstr "Snel vooruitspoelen"
 

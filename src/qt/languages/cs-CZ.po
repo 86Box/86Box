@@ -3537,6 +3537,9 @@ msgstr "&Povolit rekompilaci"
 msgid "&Fast forward"
 msgstr "Zr&ychlený běh"
 
+msgid "Fast forward at &startup"
+msgstr ""
+
 msgid "Fast forward"
 msgstr "Zrychlený běh"
 

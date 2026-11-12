@@ -3416,6 +3416,9 @@ msgstr "&Omogući rekompilaciju"
 msgid "&Fast forward"
 msgstr "&Brzo naprijed"
 
+msgid "Fast forward at &startup"
+msgstr ""
+
 msgid "Fast forward"
 msgstr "Brzo naprijed"
 

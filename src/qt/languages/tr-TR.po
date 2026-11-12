@@ -3469,6 +3469,9 @@ msgstr "&Derlemeye izin ver"
 msgid "&Fast forward"
 msgstr "&İleri sar"
 
+msgid "Fast forward at &startup"
+msgstr ""
+
 msgid "Fast forward"
 msgstr "İleri sar"
 

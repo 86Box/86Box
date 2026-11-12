@@ -3419,6 +3419,9 @@ msgstr "&Zezwól na rekompilację"
 msgid "&Fast forward"
 msgstr "&Przewiń do przodu"
 
+msgid "Fast forward at &startup"
+msgstr ""
+
 msgid "Fast forward"
 msgstr "Przewiń do przodu"
 

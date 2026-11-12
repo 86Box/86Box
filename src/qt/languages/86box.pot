@@ -3389,6 +3389,9 @@ msgstr ""
 msgid "&Fast forward"
 msgstr ""
 
+msgid "Fast forward at &startup"
+msgstr ""
+
 msgid "Fast forward"
 msgstr ""
 

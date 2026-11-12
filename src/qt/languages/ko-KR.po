@@ -3476,6 +3476,9 @@ msgstr "재컴파일 허용(&A)"
 msgid "&Fast forward"
 msgstr "빠른 전진(&F)"
 
+msgid "Fast forward at &startup"
+msgstr ""
+
 msgid "Fast forward"
 msgstr "빠른 전진"
 

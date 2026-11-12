@@ -3413,6 +3413,9 @@ msgstr "&Povoliť rekompiláciu"
 msgid "&Fast forward"
 msgstr "&Rýchly posun dopredu"
 
+msgid "Fast forward at &startup"
+msgstr ""
+
 msgid "Fast forward"
 msgstr "Rýchly posun dopredu"
 

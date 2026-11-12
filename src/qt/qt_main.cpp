@@ -879,6 +879,9 @@ main(int argc, char *argv[])
             runctl_pause(RUN_PAUSE_REMOTE);
 #endif
 
+        if (fast_forward_on_start)
+            runctl_set_mode(RUN_MODE_FAST);
+
         cpu_thread_running = true;
         runctl_thread_starting();
         main_thread        = new std::thread(main_thread_fn);

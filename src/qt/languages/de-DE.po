@@ -3410,6 +3410,9 @@ msgstr "Recompilierung &zulassen"
 msgid "&Fast forward"
 msgstr "&Schnellvorlauf"
 
+msgid "Fast forward at &startup"
+msgstr ""
+
 msgid "Fast forward"
 msgstr "Schnellvorlauf"
 
