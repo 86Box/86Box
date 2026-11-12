@@ -145,6 +145,8 @@ typedef struct fdd_ctrl_t {
     /* ---- Mechanical side ------------------------------------------ */
     /* Drive index this controller sees for `drive` (swap and gating). */
     int         (*real_drive)(void *priv, int drive);
+    /* Physical cylinder the head is on, for the cylinder mismatch check. */
+    int         (*get_pcn)(void *priv, int head);
     /* Software write-protect switch. */
     uint8_t     (*get_swwp)(void *priv);
     void        (*seek_complete_interrupt)(void *priv, int drive);
@@ -190,6 +192,8 @@ typedef struct fdd_ctrl_t {
     int         (*get_dtl)(void *priv);
     int         (*get_format_n)(void *priv);
     int         (*get_format_sectors)(void *priv);
+    /* The four bytes the formatter is assembling from the data port. */
+    fdd_sector_id_t *(*get_format_id)(void *priv);
     int         (*get_compare_condition)(void *priv);
     int         (*is_dma)(void *priv);
     int         (*is_verify)(void *priv);

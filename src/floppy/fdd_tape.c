@@ -1749,7 +1749,7 @@ tape_readaddress(void *priv, UNUSED(int side), UNUSED(int density))
     fdd_drive_t *drv = (fdd_drive_t *) priv;
 
     if ((drv == NULL) || (drv->id != tape.drive) ||
-        (drv->fdc == NULL))
+        (drv->ctrl == NULL))
         return;
 
     if (!tape_has_cartridge()) {
@@ -1772,7 +1772,7 @@ tape_format(void *priv, UNUSED(int side), UNUSED(int density), UNUSED(uint8_t fi
     fdd_drive_t *drv = (fdd_drive_t *) priv;
 
     if ((drv == NULL) || (drv->id != tape.drive) ||
-        (drv->fdc == NULL))
+        (drv->ctrl == NULL))
         return;
 
     fdd_tape_log("Tape: format track, %i sectors\n", fdc_get_format_sectors(drv->fdc));
@@ -1828,7 +1828,7 @@ tape_clock(void *priv)
 
     timer_advance_u64(&tape_timer, tape_byte_period(priv));
 
-    if (drv->fdc == NULL) {
+    if (drv->ctrl == NULL) {
         tape_stop_clock();
         return;
     }

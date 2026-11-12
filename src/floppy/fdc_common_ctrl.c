@@ -38,6 +38,12 @@ fdc_ctrl_get_swwp(void *priv)
     return fdc_get_swwp((fdc_t *) priv);
 }
 
+static int
+fdc_ctrl_get_pcn(void *priv, int head)
+{
+    return (int) ((fdc_t *) priv)->pcn[head & 3];
+}
+
 static void
 fdc_ctrl_seek_complete_interrupt(void *priv, int drive)
 {
@@ -246,6 +252,14 @@ fdc_ctrl_get_format_sectors(void *priv)
     return fdc_get_format_sectors((fdc_t *) priv);
 }
 
+/* sector_id_t and fdd_sector_id_t share a layout, so the formatter can fill
+   the controller's four ID bytes in place. */
+static fdd_sector_id_t *
+fdc_ctrl_get_format_id(void *priv)
+{
+    return (fdd_sector_id_t *) &((fdc_t *) priv)->format_sector_id;
+}
+
 static int
 fdc_ctrl_is_dma(void *priv)
 {
@@ -278,6 +292,7 @@ const fdd_ctrl_t fdc_ctrl = {
     /* Mechanical side. */
     .real_drive              = fdc_ctrl_real_drive,
     .get_swwp                = fdc_ctrl_get_swwp,
+    .get_pcn                 = fdc_ctrl_get_pcn,
     .seek_complete_interrupt = fdc_ctrl_seek_complete_interrupt,
     .diskchange_interrupt    = fdc_ctrl_diskchange_interrupt,
 
@@ -315,6 +330,7 @@ const fdd_ctrl_t fdc_ctrl = {
     /* Command context, temporary. */
     .get_compare_condition   = fdc_ctrl_get_compare_condition,
     .get_format_sectors      = fdc_ctrl_get_format_sectors,
+    .get_format_id           = fdc_ctrl_get_format_id,
     .get_format_n            = fdc_ctrl_get_format_n,
     .get_dtl                 = fdc_ctrl_get_dtl,
     .is_dma                  = fdc_ctrl_is_dma,
