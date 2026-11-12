@@ -11,6 +11,7 @@
  * Authors: RichardG, <richardg867@gmail.com>
  *
  *          Copyright 2022 RichardG.
+ *          Copyright 2026 Xeon3D.
  */
 #include <stdarg.h>
 #include <stdio.h>
@@ -53,6 +54,8 @@ enum {
     TRAP_MAX
 };
 
+#define CMI8X38_IN_RING 16384 /* host input frames held for the ADC */
+
 typedef struct cmi8x38_dma_t {
     uint8_t           id;
     uint8_t           reg;
@@ -81,6 +84,16 @@ typedef struct cmi8x38_dma_t {
     int32_t  buffer[SOUNDBUFLEN * 2];
     uint64_t timer_latch;
     double   dma_latch;
+
+    /* the channel as a recording (ADC) channel. Each tick of the
+       poll timer makes one sample frame from the host's input (read from
+       the device's in_ring at in_rd), packed into longwords for memory. */
+    uint8_t  record_enabled;
+    double   rate;
+    uint32_t in_rd;
+    double   in_frac;
+    int      in_primed;
+    uint8_t  irq_pending;
 
     pc_timer_t dma_timer;
     pc_timer_t poll_timer;
@@ -114,6 +127,12 @@ typedef struct _cmi8x38_ {
     int master_vol_r;
     int cd_vol_l;
     int cd_vol_r;
+
+    /* the host's input frames (at in_rate) waiting for the ADC. */
+    int16_t  in_ring[CMI8X38_IN_RING * 2];
+    uint32_t in_wr;
+    int      in_rate;
+    int      in_started;
 } cmi8x38_t;
 
 #ifdef ENABLE_CMI8X38_LOG
@@ -587,11 +606,71 @@ cmi8x38_remap_traps(cmi8x38_t *dev)
     io_trap_remap(dev->io_traps[TRAP_PIC], (dev->io_regs[0x04] & 0x01) && (dev->io_regs[0x17] & 0x01), 0x0020, 2);
 }
 
+/* the host's input is opened while any channel records. */
+static void
+cmi8x38_adc_input(cmi8x38_t *dev)
+{
+    const int on = dev->dma[0].record_enabled || dev->dma[1].record_enabled;
+
+    if (on && !dev->in_started) {
+        dev->in_wr = 0;
+        sound_in_start_input();
+        dev->in_started = 1;
+    } else if (!on && dev->in_started) {
+        sound_in_stop_input();
+        dev->in_started = 0;
+    }
+}
+
+/* a recording channel starts (CHADC set, CHEN set) at its frame's
+   start, with the host's input taken from what arrives from now on. */
+static void
+cmi8x38_record_start(cmi8x38_dma_t *dma)
+{
+    cmi8x38_t *dev = dma->dev;
+
+    cmi8x38_log("CMI8x38: Recording on DMA %d at %.0f Hz\n", dma->id, dma->rate);
+    dma->record_enabled = 1;
+    dma->in_rd          = dev->in_started ? dev->in_wr : 0;
+    dma->in_frac        = 0.0;
+    dma->in_primed      = 0;
+    dma->irq_pending    = 0;
+    cmi8x38_adc_input(dev);
+    timer_set_delay_u64(&dma->poll_timer, dma->timer_latch);
+}
+
+static void
+cmi8x38_record_stop(cmi8x38_dma_t *dma)
+{
+    if (!dma->record_enabled)
+        return;
+
+    dma->record_enabled = 0;
+    if (!dma->playback_enabled)
+        timer_disable(&dma->poll_timer);
+    cmi8x38_adc_input(dma->dev);
+}
+
+/* a channel with CHADC set records while CHEN is set. */
+static void
+cmi8x38_update_record(cmi8x38_t *dev)
+{
+    for (int i = 0; i < 2; i++) {
+        if ((dev->io_regs[0x00] & (0x01 << i)) && (dev->io_regs[0x02] & (0x01 << i))) {
+            if (!dev->dma[i].record_enabled)
+                cmi8x38_record_start(&dev->dma[i]);
+        } else
+            cmi8x38_record_stop(&dev->dma[i]);
+    }
+}
+
 static void
 cmi8x38_start_playback(cmi8x38_t *dev)
 {
     uint8_t i;
     uint8_t val = dev->io_regs[0x00];
+
+    cmi8x38_update_record(dev);
 
     i = !(val & 0x01);
     if (!dev->dma[0].playback_enabled && i)
@@ -690,17 +769,31 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
         case 0x00:
             val &= 0x0f;
 
-            /* Don't care about recording DMA. */
-            dev->dma[0].always_run = val & 0x01;
-            dev->dma[1].always_run = val & 0x02;
+            /* a recording channel (CHADC) makes its own samples and
+               writes them to memory at its sample rate (cmi8x38_record_poll());
+               the DMA timer only serves playback channels. */
+            dev->dma[0].always_run = 0;
+            dev->dma[1].always_run = 0;
 
-            /* Start playback if requested. */
-            dev->io_regs[addr] = val;
-            cmi8x38_start_playback(dev);
+            /* Start playback or recording if requested. */
+            {
+                const uint8_t old = dev->io_regs[addr];
+
+                dev->io_regs[addr] = val;
+                cmi8x38_start_playback(dev);
+
+                /* A running channel turned from recording to playback needs
+                   its DMA timer again. */
+                for (int i = 0; i < 2; i++) {
+                    if ((old & (0x01 << i)) && !(val & (0x01 << i)) && (dev->io_regs[0x02] & (0x01 << i)))
+                        cmi8x38_dma_process(&dev->dma[i]);
+                }
+            }
             break;
 
-        case 0x02:
-            /* Reset or start DMA channels if requested. */
+        case 0x02: {
+            const uint8_t old = dev->io_regs[addr];
+
             dev->io_regs[addr] = val & 0x0f;
             for (int i = 0; i < (sizeof(dev->dma) / sizeof(dev->dma[0])); i++) {
                 if (val & (0x04 << i)) {
@@ -716,10 +809,11 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
                     /* Reset Sound Blaster as well when resetting channel 0. */
                     if ((i == 0) && (dev->sb->dsp.sb_8_enable || dev->sb->dsp.sb_16_enable || dev->sb->dsp.sb_irq8 || dev->sb->dsp.sb_irq16))
                         dev->sb->dsp.sb_8_enable = dev->sb->dsp.sb_16_enable = dev->sb->dsp.sb_irq8 = dev->sb->dsp.sb_irq16 = 0;
-                } else if (val & (0x01 << i)) {
+                } else if ((val & ~old) & (0x01 << i)) {
                     /* Start DMA channel. */
                     cmi8x38_log("CMI8x38: DMA %d trigger\n", i);
                     dev->dma[i].restart = 1;
+                    dev->dma[i].fifo_pos = dev->dma[i].fifo_end;
                     cmi8x38_dma_process(&dev->dma[i]);
                 }
             }
@@ -727,10 +821,13 @@ cmi8x38_write(uint16_t addr, uint8_t val, void *priv)
             /* Start playback along with DMA channels. */
             if (dev->io_regs[addr] & 0x03)
                 cmi8x38_start_playback(dev);
+            else
+                cmi8x38_update_record(dev); /* recording stops with CHEN */
 
             /* Update interrupts. */
             cmi8x38_update_irqs(dev);
             break;
+        }
 
         case 0x04:
             /* Enable or disable the game port. */
@@ -1107,6 +1204,10 @@ cmi8x38_dma_process(void *priv)
         return;
     }
 
+    /* a recording channel moves its data in cmi8x38_record_poll(). */
+    if (dev->io_regs[0x00] & dma_bit)
+        return;
+
     /* Schedule next run. */
     timer_on_auto(&dma->dma_timer, dma->dma_latch);
 
@@ -1178,6 +1279,170 @@ cmi8x38_dma_process(void *priv)
 }
 
 /* Byte at a time, as the FIFO pointers aren't aligned after a partial longword. */
+static void
+cmi8x38_record_input_frame(cmi8x38_dma_t *dma, int *l, int *r)
+{
+    const cmi8x38_t *dev = dma->dev;
+    const uint32_t i0 = dma->in_rd % CMI8X38_IN_RING;
+    const uint32_t i1 = (dma->in_rd + 1) % CMI8X38_IN_RING;
+    const uint32_t avail = dev->in_wr - dma->in_rd;
+
+    if (!dma->in_primed && dev->in_rate > 0 && avail >= (uint32_t) (dev->in_rate / 25))
+        dma->in_primed = 1;
+    if (!dma->in_primed || avail < 2) {
+        dma->in_primed = 0;
+        *l = *r = 0;
+        return;
+    }
+
+    *l = (int) (dev->in_ring[i0 * 2] + (dev->in_ring[i1 * 2] - dev->in_ring[i0 * 2]) * dma->in_frac);
+    *r = (int) (dev->in_ring[i0 * 2 + 1] + (dev->in_ring[i1 * 2 + 1] - dev->in_ring[i0 * 2 + 1]) * dma->in_frac);
+    dma->in_frac += (double) dev->in_rate / dma->rate;
+    while (dma->in_frac >= 1.0 && (dev->in_wr - dma->in_rd) > 1) {
+        dma->in_frac -= 1.0;
+        dma->in_rd++;
+    }
+    if (dma->in_frac >= 1.0)
+        dma->in_frac = 0.0;
+}
+
+static void
+cmi8x38_record_source(cmi8x38_dma_t *dma, int *l, int *r)
+{
+    cmi8x38_t *dev = dma->dev;
+    const sb_ct1745_mixer_t *mixer = &dev->sb->mixer_sb16;
+    const cmi8x38_dma_t *other = &dev->dma[!dma->id];
+    int in_l, in_r, mic;
+
+    cmi8x38_record_input_frame(dma, &in_l, &in_r);
+    mic = (in_l + in_r) / 2;
+    if (mixer->regs[0xf0] & 1)
+        mic *= 10;
+
+    if (mixer->input_selector_left & (INPUT_LINE_L | INPUT_LINE_R))
+        *l = ((mixer->input_selector_left & INPUT_LINE_L) ? in_l : 0)
+           + ((mixer->input_selector_left & INPUT_LINE_R) ? in_r : 0);
+    else
+        *l = (mixer->input_selector_left & INPUT_MIC) ? mic : 0;
+    if (mixer->input_selector_right & (INPUT_LINE_L | INPUT_LINE_R))
+        *r = ((mixer->input_selector_right & INPUT_LINE_L) ? in_l : 0)
+           + ((mixer->input_selector_right & INPUT_LINE_R) ? in_r : 0);
+    else
+        *r = (mixer->input_selector_right & INPUT_MIC) ? mic : 0;
+    if (other->playback_enabled) {
+        if (dev->io_regs[0x24] & 0x08)
+            *l += other->out_fl;
+        if (dev->io_regs[0x24] & 0x04)
+            *r += other->out_fr;
+    }
+    *l = (*l < -32768) ? -32768 : ((*l > 32767) ? 32767 : *l);
+    *r = (*r < -32768) ? -32768 : ((*r > 32767) ? 32767 : *r);
+}
+
+static void
+cmi8x38_record_reload(cmi8x38_dma_t *dma)
+{
+    const cmi8x38_t *dev = dma->dev;
+    dma->sample_ptr = AS_U32(dev->io_regs[dma->reg]);
+    dma->frame_count_dma = AS_U16(dev->io_regs[dma->reg | 0x4]) + 1;
+    dma->frame_count_fragment = AS_U16(dev->io_regs[dma->reg | 0x6]) + 1;
+}
+
+static void
+cmi8x38_record_put_byte(cmi8x38_dma_t *dma, uint8_t val)
+{
+    if (dma->restart) {
+        dma->restart = 0;
+        cmi8x38_record_reload(dma);
+    }
+    mem_writeb_phys(dma->sample_ptr++, val);
+}
+
+static void
+cmi8x38_record_frame_done(cmi8x38_dma_t *dma)
+{
+    cmi8x38_t *dev = dma->dev;
+    const uint8_t dma_bit = 1 << dma->id;
+
+    if (dma->irq_pending) {
+        dma->irq_pending = 0;
+        if (dev->io_regs[0x0e] & dma_bit) {
+            dev->io_regs[0x10] |= dma_bit;
+            cmi8x38_update_irqs(dev);
+        }
+    }
+    if (--dma->frame_count_fragment <= 0) {
+        dma->frame_count_fragment = AS_U16(dev->io_regs[dma->reg | 0x6]) + 1;
+        dma->irq_pending = 1;
+    }
+    if (--dma->frame_count_dma <= 0) {
+        dma->sample_ptr = AS_U32(dev->io_regs[dma->reg]);
+        dma->frame_count_dma = AS_U16(dev->io_regs[dma->reg | 0x4]) + 1;
+    }
+}
+
+static void
+cmi8x38_record_poll(cmi8x38_dma_t *dma)
+{
+    cmi8x38_t *dev = dma->dev;
+    int l, r;
+
+    if (!(dev->io_regs[0x02] & (1 << dma->id))) {
+        cmi8x38_record_stop(dma);
+        return;
+    }
+    timer_advance_u64(&dma->poll_timer, dma->timer_latch);
+    if (dev->io_regs[0x00] & (0x04 << dma->id))
+        return;
+
+    cmi8x38_record_source(dma, &l, &r);
+    switch ((dev->io_regs[0x08] >> (dma->id << 1)) & 3) {
+        case 0:
+            cmi8x38_record_put_byte(dma, (((l + r) / 2) >> 8) ^ 0x80);
+            break;
+        case 1:
+            cmi8x38_record_put_byte(dma, (l >> 8) ^ 0x80);
+            cmi8x38_record_put_byte(dma, (r >> 8) ^ 0x80);
+            break;
+        case 2:
+            l = (l + r) / 2;
+            cmi8x38_record_put_byte(dma, l & 0xff);
+            cmi8x38_record_put_byte(dma, (l >> 8) & 0xff);
+            break;
+        case 3:
+            cmi8x38_record_put_byte(dma, l & 0xff);
+            cmi8x38_record_put_byte(dma, (l >> 8) & 0xff);
+            cmi8x38_record_put_byte(dma, r & 0xff);
+            cmi8x38_record_put_byte(dma, (r >> 8) & 0xff);
+            break;
+    }
+    cmi8x38_record_frame_done(dma);
+}
+
+static void
+cmi8x38_put_buffer(int16_t *buffer, int len, void *priv)
+{
+    cmi8x38_t *dev = (cmi8x38_t *) priv;
+    const int cap_rate = al_capture_get_rate();
+    const uint32_t keep = ((cap_rate > 0) ? cap_rate : SOUND_FREQ) / 4;
+
+    if (!dev->in_started)
+        return;
+    dev->in_rate = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
+    for (int c = 0; c < len; c++) {
+        const uint32_t i = dev->in_wr % CMI8X38_IN_RING;
+        dev->in_ring[i * 2] = buffer[c * 2];
+        dev->in_ring[i * 2 + 1] = buffer[c * 2 + 1];
+        dev->in_wr++;
+    }
+    for (int i = 0; i < 2; i++) {
+        if (dev->dma[i].record_enabled && (dev->in_wr - dev->dma[i].in_rd) > keep) {
+            dev->dma[i].in_rd = dev->in_wr - (keep / 2);
+            dev->dma[i].in_frac = 0.0;
+        }
+    }
+}
+
 static int16_t
 cmi8x38_fifo_read16(cmi8x38_dma_t *dma)
 {
@@ -1196,6 +1461,12 @@ cmi8x38_poll(void *priv)
     int16_t       *out_r;
     int16_t       *out_ol;
     int16_t       *out_or; /* o = opposite */
+
+    /* a recording channel. */
+    if (dma->record_enabled) {
+        cmi8x38_record_poll(dma);
+        return;
+    }
 
     /* Schedule next run if playback is enabled. */
     if (dma->playback_enabled)
@@ -1380,6 +1651,7 @@ cmi8x38_speed_changed(void *priv)
         }
 
         /* Set polling timer period. */
+        dev->dma[i].rate        = freq; /* for the recording resampler */
         freq                    = 1000000.0 / freq;
         dev->dma[i].timer_latch = (uint64_t) ((double) TIMER_USEC * freq);
 
@@ -1457,6 +1729,7 @@ cmi8x38_reset(void *priv)
 
     /* Reset DMA channels. */
     for (int i = 0; i < (sizeof(dev->dma) / sizeof(dev->dma[0])); i++) {
+        cmi8x38_record_stop(&dev->dma[i]); /* */
         dev->dma[i].playback_enabled = 0;
         dev->dma[i].fifo_pos = dev->dma[i].fifo_end = 0;
         memset(dev->dma[i].fifo, 0, sizeof(dev->dma[i].fifo));
@@ -1509,6 +1782,7 @@ cmi8x38_init(const device_t *info)
     cmi8x38_speed_changed(dev);
 
     /* Initialize playback handler and CD audio filter. */
+    sound_in_add_handler(cmi8x38_put_buffer, dev); /* recording */
     sound_add_handler(cmi8x38_get_buffer, dev);
     sound_set_cd_audio_filter(sb16_awe32_filter_cd_audio, dev->sb);
 
@@ -1541,6 +1815,10 @@ cmi8x38_close(void *priv)
 
     for (int i = 0; i < TRAP_MAX; i++)
         io_trap_remove(dev->io_traps[i]);
+
+    /* release the host's input. */
+    dev->dma[0].record_enabled = dev->dma[1].record_enabled = 0;
+    cmi8x38_adc_input(dev);
 
     free(dev);
 }
@@ -1593,7 +1871,7 @@ static const device_config_t cmi8738_config[] = {
 const device_t cmi8338_device = {
     .name          = "C-Media CMI8338",
     .internal_name = "cmi8338",
-    .flags         = DEVICE_PCI,
+    .flags         = DEVICE_PCI | DEVICE_AUDIO_IN, /* audio input */
     .local         = CMEDIA_CMI8338,
     .init          = cmi8x38_init,
     .close         = cmi8x38_close,
@@ -1607,7 +1885,7 @@ const device_t cmi8338_device = {
 const device_t cmi8338_onboard_device = {
     .name          = "C-Media CMI8338 (On-Board)",
     .internal_name = "cmi8338_onboard",
-    .flags         = DEVICE_PCI,
+    .flags         = DEVICE_PCI | DEVICE_AUDIO_IN, /* audio input */
     .local         = CMEDIA_CMI8338 | (1 << 13),
     .init          = cmi8x38_init,
     .close         = cmi8x38_close,
@@ -1621,7 +1899,7 @@ const device_t cmi8338_onboard_device = {
 const device_t cmi8738_device = {
     .name          = "C-Media CMI8738",
     .internal_name = "cmi8738",
-    .flags         = DEVICE_PCI,
+    .flags         = DEVICE_PCI | DEVICE_AUDIO_IN, /* audio input */
     .local         = CMEDIA_CMI8738_6CH,
     .init          = cmi8x38_init,
     .close         = cmi8x38_close,
@@ -1635,7 +1913,7 @@ const device_t cmi8738_device = {
 const device_t cmi8738_onboard_device = {
     .name          = "C-Media CMI8738 (On-Board)",
     .internal_name = "cmi8738_onboard",
-    .flags         = DEVICE_PCI,
+    .flags         = DEVICE_PCI | DEVICE_AUDIO_IN, /* audio input */
     .local         = CMEDIA_CMI8738_4CH | (1 << 13),
     .init          = cmi8x38_init,
     .close         = cmi8x38_close,
@@ -1649,7 +1927,7 @@ const device_t cmi8738_onboard_device = {
 const device_t cmi8738_6ch_onboard_device = {
     .name          = "C-Media CMI8738-6CH (On-Board)",
     .internal_name = "cmi8738_6ch_onboard",
-    .flags         = DEVICE_PCI,
+    .flags         = DEVICE_PCI | DEVICE_AUDIO_IN, /* audio input */
     .local         = CMEDIA_CMI8738_6CH | (1 << 13),
     .init          = cmi8x38_init,
     .close         = cmi8x38_close,

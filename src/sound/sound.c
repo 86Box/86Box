@@ -136,6 +136,9 @@ static int sound_in_recover_attempts = 0;
 static int sound_in_good_ticks = 0;
 static int sound_in_wedge_attempts = 0;
 static int16_t      sound_input_buffer[SOUNDBUFLEN * 2];
+static double       sound_in_tone_hz    = 0.0; /* test tone instead of the host's input */
+static double       sound_in_tone_phase = 0.0;
+static double       sound_in_tone_amp   = 16384.0;
 
 static thread_t     *sound_fdd_thread_h = NULL;
 static event_t      *sound_fdd_event = NULL;
@@ -843,6 +846,17 @@ sound_reopen_output(void)
     sound_capture_resume(was_capturing);
 }
 
+/* replace the host's input with a sine of the given frequency and
+   level (dB below full scale, both channels); 0 Hz gives the host's input
+   back. */
+void
+sound_in_set_test_tone(double hz, double dbfs)
+{
+    sound_in_tone_hz    = (isfinite(hz) && (hz > 0.0)) ? hz : 0.0;
+    sound_in_tone_amp   = 32767.0 * pow(10.0, ((dbfs < 0.0) ? dbfs : 0.0) / 20.0);
+    sound_in_tone_phase = 0.0;
+}
+
 void
 sound_in_stop_input(void)
 {
@@ -976,6 +990,23 @@ sound_poll(UNUSED(void *priv))
                     sound_in_wedge_attempts   = 0;
                     sound_in_good_ticks       = 0;
                 }
+            }
+
+            /* a test tone in place of the host's input (automation's
+               "audio tone"), at the rate the cards take the input at. */
+            if (sound_in_tone_hz > 0.0) {
+                const double step = (2.0 * M_PI) * (fmod(sound_in_tone_hz, fill_rate) / fill_rate);
+
+                for (size_t f = 0; f < want; f++) {
+                    const int16_t v = (int16_t) (sound_in_tone_amp * sin(sound_in_tone_phase));
+
+                    sound_input_buffer[f * 2]     = v;
+                    sound_input_buffer[f * 2 + 1] = v;
+                    sound_in_tone_phase += step;
+                    if (sound_in_tone_phase >= (2.0 * M_PI))
+                        sound_in_tone_phase -= 2.0 * M_PI;
+                }
+                in_len = want;
             }
 
             if (in_len > 0) {

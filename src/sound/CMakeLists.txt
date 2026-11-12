@@ -62,6 +62,7 @@ add_library(snd OBJECT
     snd_ssi2001.c
     snd_wss.c
     snd_ym7128.c
+    snd_ymz263b.c
     snd_optimc.c
     snd_opl_esfm.c
     snd_ps1_midi.c

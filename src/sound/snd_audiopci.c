@@ -19,6 +19,7 @@
  *          Copyright 2021      Miran Grca.
  *          Copyright 2024-2025 Jasmine Iwanek.
  *          Copyright 2024-2025 Cacodemon345.
+ *          Copyright 2026 Xeon3D.
  */
 #include <stdarg.h>
 #include <stdint.h>
@@ -47,6 +48,8 @@
 #define N            16
 
 #define ES137x_NCoef 91
+
+#define ES137x_IN_RING 16384 /* host input frames held for the ADC */
 
 static float low_fir_es137x_coef[ES137x_NCoef];
 
@@ -122,7 +125,22 @@ typedef struct es137x_t {
 
         int32_t vol_l;
         int32_t vol_r;
+        uint8_t stopped;
     } dac[2], adc;
+
+    /* the record channel. The host's input frames (at in_rate) wait
+       in in_ring until the ADC, clocked at its own rate, takes them; the
+       bytes it makes go to memory a longword at a time. */
+    int16_t  in_ring[ES137x_IN_RING * 2];
+    uint32_t in_wr;
+    uint32_t in_rd;
+    double   in_frac;
+    int      in_rate;
+    int      in_started;
+    int      in_primed;
+    double   adc_phase;
+    uint32_t adc_word;
+    int      adc_bytes;
 
     int64_t dac_latch;
     int64_t dac_time;
@@ -197,8 +215,13 @@ static double akm4531_gain_2dbstep_5bits[0x20];
 #define INT_DAC2_BYPASS           (1 << 30)
 #define INT_DAC1_EN               (1 << 6)
 #define INT_DAC2_EN               (1 << 5)
+#define INT_ADC_EN                (1 << 4)
 #define INT_UART_EN               (1 << 3)
+#define INT_ES1370_ADC_STOP       (1u << 31)
+#define INT_ES1371_ADC_STOP       (1 << 13)
 
+#define SI_R1_LOOP_SEL            (1 << 15)
+#define SI_R1_INT_EN              (1 << 10)
 #define SI_P2_PAUSE               (1 << 12)
 #define SI_P1_PAUSE               (1 << 11)
 #define SI_P2_INTR_EN             (1 << 9)
@@ -211,6 +234,7 @@ static double akm4531_gain_2dbstep_5bits[0x20];
 #define INT_STATUS_UART           (1 << 3)
 #define INT_STATUS_DAC1           (1 << 2)
 #define INT_STATUS_DAC2           (1 << 1)
+#define INT_STATUS_ADC            (1 << 0)
 
 #define UART_CTRL_RXINTEN         (1 << 7)
 #define UART_CTRL_TXINTEN         (3 << 5)
@@ -228,6 +252,8 @@ static double akm4531_gain_2dbstep_5bits[0x20];
 #define FORMAT_STEREO_16          3
 
 static void es137x_fetch(es137x_t *dev, int dac_nr);
+static void es137x_adc_input(es137x_t *dev, int on);
+static void es137x_adc_start(es137x_t *dev);
 static void update_legacy(es137x_t *dev, uint32_t old_legacy_ctrl);
 
 #ifdef ENABLE_AUDIOPCI_LOG
@@ -256,6 +282,8 @@ es137x_update_irqs(es137x_t *dev)
     if ((dev->int_status & INT_STATUS_DAC1) && (dev->si_cr & SI_P1_INTR_EN))
         irq = 1;
     if ((dev->int_status & INT_STATUS_DAC2) && (dev->si_cr & SI_P2_INTR_EN))
+        irq = 1;
+    if ((dev->int_status & INT_STATUS_ADC) && (dev->si_cr & SI_R1_INT_EN))
         irq = 1;
 
     dev->int_status &= ~INT_STATUS_UART;
@@ -1098,6 +1126,10 @@ es137x_outb(uint16_t port, uint8_t val, void *priv)
         /* Interrupt/Chip Select Control Register, Address 00H
            Addressable as byte, word, longword */
         case 0x00:
+            if (!(dev->int_ctrl & INT_ADC_EN) && (val & INT_ADC_EN))
+                es137x_adc_start(dev);
+            else if ((dev->int_ctrl & INT_ADC_EN) && !(val & INT_ADC_EN))
+                es137x_adc_input(dev, 0);
             if (!(dev->int_ctrl & INT_DAC1_EN) && (val & INT_DAC1_EN)) {
                 dev->dac[0].addr           = dev->dac[0].addr_latch;
                 dev->dac[0].buffer_pos     = 0;
@@ -1240,6 +1272,8 @@ es137x_outb(uint16_t port, uint8_t val, void *priv)
                 dev->int_status &= ~INT_STATUS_DAC1;
             if (!(dev->si_cr & SI_P2_INTR_EN))
                 dev->int_status &= ~INT_STATUS_DAC2;
+            if (!(dev->si_cr & SI_R1_INT_EN))
+                dev->int_status &= ~INT_STATUS_ADC;
 
             es137x_update_irqs(dev);
             break;
@@ -1285,6 +1319,10 @@ es137x_outw(uint16_t port, uint16_t val, void *priv)
                     dev->dac[1].ac = 0;
                 es137x_fetch(dev, 1);
             }
+            if (!(dev->int_ctrl & INT_ADC_EN) && (val & INT_ADC_EN))
+                es137x_adc_start(dev);
+            else if ((dev->int_ctrl & INT_ADC_EN) && !(val & INT_ADC_EN))
+                es137x_adc_input(dev, 0);
             // audiopci_log("INTCTRL 0x%02X\n", val & 0xff);
             dev->int_ctrl = (dev->int_ctrl & 0xffff0000) | val;
             es1370_calc_sample_rate(dev);
@@ -1347,6 +1385,8 @@ es137x_outw(uint16_t port, uint16_t val, void *priv)
                 dev->int_status &= ~INT_STATUS_DAC1;
             if (!(dev->si_cr & SI_P2_INTR_EN))
                 dev->int_status &= ~INT_STATUS_DAC2;
+            if (!(dev->si_cr & SI_R1_INT_EN))
+                dev->int_status &= ~INT_STATUS_ADC;
             es137x_update_irqs(dev);
             break;
         case 0x22:
@@ -1412,6 +1452,10 @@ es137x_outl(uint16_t port, uint32_t val, void *priv)
                         dev->dac[1].ac = 0;
                     es137x_fetch(dev, 1);
                 }
+                if (!(dev->int_ctrl & INT_ADC_EN) && (val & INT_ADC_EN))
+                    es137x_adc_start(dev);
+                else if ((dev->int_ctrl & INT_ADC_EN) && !(val & INT_ADC_EN))
+                    es137x_adc_input(dev, 0);
                 // audiopci_log("INTCTRL 0x%02X\n", val & 0xff);
                 dev->int_ctrl = val;
                 gameport_remap(dev->gameport, 0x200 | ((val & 0x03000000) >> 21));
@@ -1537,6 +1581,8 @@ es137x_outl(uint16_t port, uint32_t val, void *priv)
                 dev->int_status &= ~INT_STATUS_DAC1;
             if (!(dev->si_cr & SI_P2_INTR_EN))
                 dev->int_status &= ~INT_STATUS_DAC2;
+            if (!(dev->si_cr & SI_R1_INT_EN))
+                dev->int_status &= ~INT_STATUS_ADC;
             es137x_update_irqs(dev);
             break;
 
@@ -2391,6 +2437,34 @@ es137x_sample_count(es137x_t *dev, int dac_nr)
 }
 
 static void
+es137x_adc_input(es137x_t *dev, int on)
+{
+    if (on && !dev->in_started) {
+        dev->in_wr = dev->in_rd = 0;
+        dev->in_frac = 0.0;
+        dev->in_primed = 0;
+        sound_in_start_input();
+        dev->in_started = 1;
+    } else if (!on && dev->in_started) {
+        sound_in_stop_input();
+        dev->in_started = 0;
+    }
+}
+
+static void
+es137x_adc_start(es137x_t *dev)
+{
+    dev->adc.addr = dev->adc.addr_latch;
+    dev->adc.count = 0;
+    dev->adc.curr_samp_ct = dev->adc.samp_ct;
+    dev->adc.stopped = 0;
+    dev->adc_phase = 0.0;
+    dev->adc_word = 0;
+    dev->adc_bytes = 0;
+    es137x_adc_input(dev, 1);
+}
+
+static void
 es1370_poll_dac(es137x_t *dev, int dac_nr)
 {
     const uint32_t divider = dev->dac[dac_nr].clock_divider;
@@ -2413,6 +2487,191 @@ es1370_poll_dac(es137x_t *dev, int dac_nr)
     const double fraction  = (double) dev->dac[dac_nr].ac / divider;
     dev->dac[dac_nr].out_l = lerp(dev->dac[dac_nr].prev_out_l, dev->dac[dac_nr].buffer_l[dev->dac[dac_nr].buffer_pos & 63], fraction);
     dev->dac[dac_nr].out_r = lerp(dev->dac[dac_nr].prev_out_r, dev->dac[dac_nr].buffer_r[dev->dac[dac_nr].buffer_pos & 63], fraction);
+}
+
+/* the record channel's sample rate. The ES1370's CODEC ADC runs on
+   DAC2's clock (1411200 / (PCLKDIV + 2)); the ES1371 family's comes from
+   the SRC's record registers: N (78h bits 8:4, up to 16) and VF (79h bits 15:10 and
+   7Bh, 17.15), giving 48000 * N / VF -- Ensoniq's reference driver writes
+   VF = N * 48000 / rate. */
+static double
+es137x_adc_rate(const es137x_t *dev)
+{
+    if (dev->type == AUDIOPCI_ES1370)
+        return 1411200.0 / (double) (((dev->int_ctrl >> 16) & 0x1fff) + 2);
+
+    const uint32_t n  = (dev->sr_ram[0x78] >> 4) & 0x1f;
+    const uint32_t vf = ((uint32_t) (dev->sr_ram[0x79] >> 10) << 15) | (dev->sr_ram[0x7b] & 0x7fff);
+
+    if (!vf)
+        return 48000.0;
+    return (48000.0 * 32768.0 * (n ? n : 1)) / (double) vf;
+}
+
+/* one frame of the host's input at the ADC's rate (linear
+   interpolation; silence while none has come). */
+static void
+es137x_adc_input_frame(es137x_t *dev, double rate, int *l, int *r)
+{
+    const uint32_t i0    = dev->in_rd % ES137x_IN_RING;
+    const uint32_t i1    = (dev->in_rd + 1) % ES137x_IN_RING;
+    const uint32_t avail = dev->in_wr - dev->in_rd;
+
+    /* The host's input comes in blocks (20 ms); 40 ms in hand keeps the ADC
+       from running dry at the end of each block, which would slip samples. */
+    if (!dev->in_primed && (avail >= (uint32_t) (dev->in_rate / 25)))
+        dev->in_primed = 1;
+    if (!dev->in_primed || (avail < 2)) {
+        dev->in_primed = 0;
+        *l = *r = 0;
+        return;
+    }
+
+    *l = (int) lerp(dev->in_ring[i0 * 2], dev->in_ring[i1 * 2], dev->in_frac);
+    *r = (int) lerp(dev->in_ring[i0 * 2 + 1], dev->in_ring[i1 * 2 + 1], dev->in_frac);
+
+    dev->in_frac += (double) dev->in_rate / rate;
+    while ((dev->in_frac >= 1.0) && ((dev->in_wr - dev->in_rd) > 1)) {
+        dev->in_frac -= 1.0;
+        dev->in_rd++;
+    }
+    if (dev->in_frac >= 1.0)
+        dev->in_frac = 0.0;
+}
+
+/* record bytes reach memory a longword at a time, as the CCB writes
+   them; ADC_STOP keeps them from the bus (the frame does not move). */
+static void
+es137x_adc_put_byte(es137x_t *dev, uint8_t val)
+{
+    const uint32_t adc_stop = (dev->type == AUDIOPCI_ES1370) ? INT_ES1370_ADC_STOP : INT_ES1371_ADC_STOP;
+
+    dev->adc_word |= ((uint32_t) val) << (dev->adc_bytes * 8);
+    if (++dev->adc_bytes < 4)
+        return;
+
+    if (!(dev->int_ctrl & adc_stop)) {
+        mem_writel_phys(dev->adc.addr, dev->adc_word);
+        dev->adc.addr += 4;
+        dev->adc.count++;
+        if (dev->adc.count > dev->adc.size) {
+            dev->adc.count = 0;
+            dev->adc.addr  = dev->adc.addr_latch;
+        }
+    }
+
+    dev->adc_word  = 0;
+    dev->adc_bytes = 0;
+}
+
+static void
+es137x_adc_sample(es137x_t *dev, double rate)
+{
+    int l;
+    int r;
+
+    es137x_adc_input_frame(dev, rate, &l, &r);
+
+    /* The ES1371 family's AC'97 record gain: mute, 0 to +22.5 dB. */
+    if (dev->type != AUDIOPCI_ES1370) {
+        const uint16_t gain = ac97_codec_readw(dev->codec, 0x1c);
+
+        if (gain & 0x8000)
+            l = r = 0;
+        else {
+            l = (int) (l * pow(10.0, (((gain >> 8) & 0x0f) * 1.5) / 20.0));
+            r = (int) (r * pow(10.0, ((gain & 0x0f) * 1.5) / 20.0));
+        }
+        l = (l < -32768) ? -32768 : ((l > 32767) ? 32767 : l);
+        r = (r < -32768) ? -32768 : ((r > 32767) ? 32767 : r);
+    }
+
+    /* R1 format; eight-bit samples have their msb inverted, mono records
+       the left channel. */
+    switch ((dev->si_cr >> 4) & 3) {
+        case FORMAT_MONO_8:
+            es137x_adc_put_byte(dev, (l >> 8) ^ 0x80);
+            break;
+        case FORMAT_STEREO_8:
+            es137x_adc_put_byte(dev, (l >> 8) ^ 0x80);
+            es137x_adc_put_byte(dev, (r >> 8) ^ 0x80);
+            break;
+        case FORMAT_MONO_16:
+            es137x_adc_put_byte(dev, l & 0xff);
+            es137x_adc_put_byte(dev, (l >> 8) & 0xff);
+            break;
+        case FORMAT_STEREO_16:
+            es137x_adc_put_byte(dev, l & 0xff);
+            es137x_adc_put_byte(dev, (l >> 8) & 0xff);
+            es137x_adc_put_byte(dev, r & 0xff);
+            es137x_adc_put_byte(dev, (r >> 8) & 0xff);
+            break;
+
+        default:
+            break;
+    }
+
+    /* Sample count: the interrupt if enabled; stop mode stops recording. */
+    if (--dev->adc.curr_samp_ct < 0) {
+        if (dev->si_cr & SI_R1_INT_EN) {
+            dev->int_status |= INT_STATUS_ADC;
+            es137x_update_irqs(dev);
+        }
+        if (dev->si_cr & SI_R1_LOOP_SEL) {
+            dev->adc.curr_samp_ct = 0;
+            dev->adc.stopped      = 1;
+        } else
+            dev->adc.curr_samp_ct = dev->adc.samp_ct;
+    }
+}
+
+/* the record channel, once per poll tick. */
+static void
+es137x_poll_adc(es137x_t *dev)
+{
+    if (!(dev->int_ctrl & INT_ADC_EN) || dev->adc.stopped)
+        return;
+
+    const double rate = es137x_adc_rate(dev);
+    const double tick = (dev->type == AUDIOPCI_ES1370) ? WT_FREQ : SOUND_FREQ;
+
+    dev->adc_phase += rate / tick;
+    while (dev->adc_phase >= 1.0) {
+        dev->adc_phase -= 1.0;
+        es137x_adc_sample(dev, rate);
+        if (dev->adc.stopped)
+            break;
+    }
+}
+
+/* the host's input, as sound.c hands it over (interleaved stereo at
+   the capture rate). Kept within a quarter second of the ADC. */
+static void
+es137x_put_buffer(int16_t *buffer, int len, void *priv)
+{
+    es137x_t *dev      = (es137x_t *) priv;
+    const int cap_rate = al_capture_get_rate();
+
+    if (!dev->in_started)
+        return;
+
+    dev->in_rate = (cap_rate > 0) ? cap_rate : SOUND_FREQ;
+
+    for (int c = 0; c < len; c++) {
+        const uint32_t i = dev->in_wr % ES137x_IN_RING;
+
+        dev->in_ring[i * 2]     = buffer[c * 2];
+        dev->in_ring[i * 2 + 1] = buffer[c * 2 + 1];
+        dev->in_wr++;
+    }
+
+    uint32_t keep = (uint32_t) (dev->in_rate / 4);
+    if (keep > (ES137x_IN_RING / 2))
+        keep = ES137x_IN_RING / 2;
+    if ((dev->in_wr - dev->in_rd) > keep) {
+        dev->in_rd   = dev->in_wr - (keep / 2);
+        dev->in_frac = 0.0;
+    }
 }
 
 static void
@@ -2464,6 +2723,8 @@ es137x_poll(void *priv)
             }
         }
     }
+
+    es137x_poll_adc(dev);
 }
 
 static void
@@ -2592,6 +2853,7 @@ es1370_init(const device_t *info)
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, es137x_input_msg, es137x_input_sysex, es137x_input_remain, dev);
 
+    sound_in_add_handler(es137x_put_buffer, dev);
     wavetable_add_handler(es137x_get_buffer, dev);
     sound_set_cd_audio_filter(es1370_filter_cd_audio, dev);
 
@@ -2635,6 +2897,7 @@ es1371_init(const device_t *info)
     if (device_get_config_int("receive_input"))
         midi_in_handler(1, es137x_input_msg, es137x_input_sysex, es137x_input_remain, dev);
 
+    sound_in_add_handler(es137x_put_buffer, dev);
     sound_add_handler(es137x_get_buffer, dev);
     sound_set_cd_audio_filter(es1371_filter_cd_audio, dev);
 
@@ -2651,8 +2914,14 @@ es1371_init(const device_t *info)
     ac97_codec_count = 1;
     ac97_codec_id    = 0;
     /* Let the machine decide the codec on onboard implementations. */
-    if (!(info->local & 1))
-        device_add(ac97_codec_get(device_get_config_int("codec")));
+    if (!(info->local & 1)) {
+        int codec = device_get_config_int("codec");
+
+        /* Older AudioPCI configurations stored the AD1881 ID for the AK4540. */
+        if (codec == AC97_CODEC_AD1881)
+            codec = AC97_CODEC_AK4540;
+        device_add(ac97_codec_get(codec));
+    }
 
     es137x_reset(dev);
 
@@ -2663,6 +2932,8 @@ static void
 es137x_close(void *priv)
 {
     es137x_t *dev = (es137x_t *) priv;
+
+    es137x_adc_input(dev, 0);
 
     free(dev);
 }
@@ -2809,7 +3080,7 @@ static const device_config_t es1371_onboard_config[] = {
 const device_t es1370_device = {
     .name          = "Ensoniq AudioPCI (ES1370)",
     .internal_name = "es1370",
-    .flags         = DEVICE_PCI,
+    .flags         = DEVICE_PCI | DEVICE_AUDIO_IN,
     .local         = AUDIOPCI_ES1370,
     .init          = es1370_init,
     .close         = es137x_close,
@@ -2824,7 +3095,7 @@ const device_t es1370_device = {
 const device_t es1371_device = {
     .name          = "Ensoniq AudioPCI (ES1371)",
     .internal_name = "es1371",
-    .flags         = DEVICE_PCI,
+    .flags         = DEVICE_PCI | DEVICE_AUDIO_IN,
     .local         = AUDIOPCI_ES1371,
     .init          = es1371_init,
     .close         = es137x_close,
@@ -2838,7 +3109,7 @@ const device_t es1371_device = {
 const device_t es1371_onboard_device = {
     .name          = "Ensoniq AudioPCI (ES1371) (On-Board)",
     .internal_name = "es1371_onboard",
-    .flags         = DEVICE_PCI,
+    .flags         = DEVICE_PCI | DEVICE_AUDIO_IN,
     .local         = AUDIOPCI_ES1371 | 1,
     .init          = es1371_init,
     .close         = es137x_close,
@@ -2852,7 +3123,7 @@ const device_t es1371_onboard_device = {
 const device_t es1373_device = {
     .name          = "Sound Blaster PCI 128 (ES1373)",
     .internal_name = "es1373",
-    .flags         = DEVICE_PCI,
+    .flags         = DEVICE_PCI | DEVICE_AUDIO_IN,
     .local         = AUDIOPCI_ES1373,
     .init          = es1371_init,
     .close         = es137x_close,
@@ -2867,7 +3138,7 @@ const device_t es1373_device = {
 const device_t es1373_onboard_device = {
     .name          = "Sound Blaster PCI 128 (ES1373) (On-Board)",
     .internal_name = "es1373_onboard",
-    .flags         = DEVICE_PCI,
+    .flags         = DEVICE_PCI | DEVICE_AUDIO_IN,
     .local         = AUDIOPCI_ES1373 | 1,
     .init          = es1371_init,
     .close         = es137x_close,
@@ -2881,7 +3152,7 @@ const device_t es1373_onboard_device = {
 const device_t ct5880_device = {
     .name          = "Sound Blaster PCI 4.1 (CT5880)",
     .internal_name = "ct5880",
-    .flags         = DEVICE_PCI,
+    .flags         = DEVICE_PCI | DEVICE_AUDIO_IN,
     .local         = AUDIOPCI_CT5880,
     .init          = es1371_init,
     .close         = es137x_close,
@@ -2896,7 +3167,7 @@ const device_t ct5880_device = {
 const device_t ct5880_onboard_device = {
     .name          = "Sound Blaster PCI 4.1 (CT5880) (On-Board)",
     .internal_name = "ct5880_onboard",
-    .flags         = DEVICE_PCI,
+    .flags         = DEVICE_PCI | DEVICE_AUDIO_IN,
     .local         = AUDIOPCI_CT5880 | 1,
     .init          = es1371_init,
     .close         = es137x_close,

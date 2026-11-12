@@ -52,6 +52,36 @@ ddma_log(const char *fmt, ...)
 #    define ddma_log(fmt, ...)
 #endif
 
+/* the chipset's DDMA channel registers name where the slave's DMA
+   registers are: a real DDMA master forwards the legacy 8237 accesses of
+   that channel there and never decodes the slave's base itself. The
+   handlers below stand in for a slave on cards that have none emulated;
+   on a card that decodes its own (the ESS Solo-1's DDMA) they must keep
+   off, or both answer: reads were ANDed with the 8237 channel's count --
+   the base count the driver wrote, as that channel never moves -- and
+   writes went to the 8237 too. ESS's Windows 9x driver then read the
+   Solo-1's count as 055Fh & 0ABFh = 001Fh at every other interrupt and
+   copied the half of its ring still being recorded (WAVs spliced every
+   62 ms at 22 kHz). */
+static unsigned int ddma_slave_claims[0x1000];
+
+void
+ddma_claim_slave(uint16_t base, int claim)
+{
+    unsigned int *claims = &ddma_slave_claims[base >> 4];
+
+    if (claim)
+        (*claims)++;
+    else if (*claims)
+        (*claims)--;
+}
+
+static int
+ddma_slave_is_real(uint16_t addr)
+{
+    return ddma_slave_claims[addr >> 4] != 0;
+}
+
 static uint8_t
 ddma_reg_read(uint16_t addr, void *priv)
 {
@@ -60,6 +90,9 @@ ddma_reg_read(uint16_t addr, void *priv)
     uint8_t               ch   = dev->channel;
     uint8_t               dmab = (ch >= 4) ? 0xc0 : 0x00;
     uint8_t               dmas = (ch >= 4) ? 0x01 : 0x00;
+
+    if (ddma_slave_is_real(addr))
+        return 0xff; /* the device's own slave answers */
 
     switch (addr & 0x0f) {
         case 0x00:
@@ -96,6 +129,9 @@ ddma_reg_write(uint16_t addr, uint8_t val, void *priv)
     uint8_t               page_regs[4] = { 7, 3, 1, 2 };
     uint8_t               dmab = (ch >= 4) ? 0xc0 : 0x00;
     uint8_t               dmas = (ch >= 4) ? 0x01 : 0x00;
+
+    if (ddma_slave_is_real(addr))
+        return; /* for the device's own slave only */
 
     switch (addr & 0x0f) {
         case 0x00:
