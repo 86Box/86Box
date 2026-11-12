@@ -2953,14 +2953,10 @@ execx86_instruction(void)
                 break;
 
             case 0xcc:             /* INT 3 */
-#ifdef USE_GDBSTUB
-                /* A debugger breakpoint: stop on it, and fetch from it
-                   again once the original byte is back. */
-                if (gdbstub_int3()) {
+                if (gdbstub_active && gdbstub_int3()) {
                     flush_prefetch_808x();
                     break;
                 }
-#endif
                 interrupt(3);
                 break;
             case 0xcd:             /* INT */
@@ -3562,10 +3558,8 @@ execx86(int cycs)
             cpu_alu_op = 0;
         }
 
-#ifdef USE_GDBSTUB
-        if (gdbstub_instruction())
+        if (gdbstub_active && gdbstub_instruction())
             return;
-#endif
         if (DEBUGGER_INSTRUCTION_PASS(completed))
             return;
     }

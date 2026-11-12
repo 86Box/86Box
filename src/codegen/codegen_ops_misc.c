@@ -19,6 +19,7 @@
 #include "codegen_ops_helpers.h"
 #include "codegen_ops_jit_wrappers.h"
 #include "codegen_ops_misc.h"
+#include <86box/gdbstub.h>
 
 extern int x87_legacy_pending(void);
 
@@ -856,6 +857,8 @@ ropCLI(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, uint32_t fetch
 uint32_t
 ropSTI(UNUSED(codeblock_t *block), ir_data_t *ir, uint8_t opcode, uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {
+    if (gdbstub_debug)
+        return 0;
     return ropCLI_STI(ir, opcode, fetchdat, op_32, op_pc, 1);
 }
 

@@ -7,6 +7,7 @@
 #    include <86box/86box.h>
 #    include "cpu.h"
 #    include <86box/mem.h>
+#    include <86box/gdbstub.h>
 #    include <86box/plat.h>
 
 #    include "codegen.h"
@@ -189,7 +190,6 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
     host_arm64_RET(block, REG_X30);
 }
 
-#    if !defined(USE_GDBSTUB)
 /*An aligned byte, word or dword store to a RAM page whose writes are tracked
   (page_lookup): what writemem*l() and mem_write_ram*_page() do, without the
   two calls. The store never reaches the next 64-byte chunk, so only one dirty
@@ -223,7 +223,7 @@ build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
     host_arm64_CMP_IMM(block, REG_W3, 0);
     to_c[nr_to_c++] = host_arm64_BNE_(block);
     /*An armed debug breakpoint needs writememll()'s check*/
-    host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) &cpu_dr_armed);
+    host_arm64_MOVX_IMM(block, REG_X3, (uint64_t) &mem_debug_active);
     host_arm64_LDR_IMM_W(block, REG_W3, REG_X3, 0);
     host_arm64_CMP_IMM(block, REG_W3, 0);
     to_c[nr_to_c++] = host_arm64_BNE_(block);
@@ -317,7 +317,6 @@ build_store_tracked(codeblock_t *block, int size, uint32_t **to_c)
 
     return nr_to_c;
 }
-#    endif
 
 static void
 build_store_routine(codeblock_t *block, int size, int is_float)
@@ -365,7 +364,6 @@ build_store_routine(codeblock_t *block, int size, int is_float)
     host_arm64_RET(block, REG_X30);
 
     host_arm64_branch_set_offset(branch_offset, &block_write_data[block_pos]);
-#    if !defined(USE_GDBSTUB)
     if (size <= 4 && !is_float) {
         uint32_t *to_c[6];
         int       nr_to_c = build_store_tracked(block, size, to_c);
@@ -373,7 +371,6 @@ build_store_routine(codeblock_t *block, int size, int is_float)
         for (int c = 0; c < nr_to_c; c++)
             host_arm64_branch_set_offset(to_c[c], &block_write_data[block_pos]);
     }
-#    endif
     if (size != 1)
         host_arm64_branch_set_offset(misaligned_offset, &block_write_data[block_pos]);
     host_arm64_STP_PREIDX_X(block, REG_X29, REG_X30, REG_XSP, -16);

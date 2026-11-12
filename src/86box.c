@@ -264,6 +264,7 @@ int      fdd_sounds_enabled = 1;                                  /* (C) Floppy 
 int      is_new_808x = 0;                                         /* (C) Use the new 808x code. */
 
 int      gdbstub_port = 12345;                                    /* (C) The GDB stub port. */
+int      gdbstub_enabled = 0;
 
 // Accelerator key array
 struct accelKey acc_keys[NUM_ACCELS];
@@ -796,6 +797,8 @@ pc_show_usage(void)
             "\nUsage: 86box [options] [cfg-file]\n\n"
             "Valid options are:\n\n"
             "-? or --help\t\t\t- show this information\n"
+            "--gdbstub / --no-gdbstub\t\t- enable / disable the guest GDB server\n"
+            "--gdbstub-port port\t\t- set the GDB server port (default 12345)\n"
 #ifdef USE_AUTOMATION
             "--automation endpoint\t\t- listen for automation commands: unix:path or\n"
             "\t\t\t\t   tcp:[host:]port (bare value: a path, or a port on Windows)\n"
@@ -978,6 +981,19 @@ usage:
             return 0;
         } else if (!strcasecmp(argv[c], "--lastvmpath") || !strcasecmp(argv[c], "-Z")) {
             lvmp = 1;
+        } else if (!strcasecmp(argv[c], "--gdbstub")) {
+            gdbstub_cli_enabled = 1;
+        } else if (!strcasecmp(argv[c], "--no-gdbstub")) {
+            gdbstub_cli_enabled = 0;
+        } else if (!strcasecmp(argv[c], "--gdbstub-port")) {
+            if ((c + 1) == argc)
+                fatal("--gdbstub-port requires a port between 1 and 65535\n");
+            const char *value = argv[++c];
+            char       *end;
+            long        port = strtol(value, &end, 10);
+            if (!*value || *end || port < 1 || port > 65535)
+                fatal("Invalid GDB stub port: %s (expected 1-65535)\n", value);
+            gdbstub_cli_port = (int) port;
 #ifdef _WIN32
         } else if (!strcasecmp(argv[c], "--debug") || !strcasecmp(argv[c], "-D")) {
             pc_debug_console();
@@ -2226,15 +2242,12 @@ pc_run(void)
     else
         debugger_cpu_exec(pc_block_cycles(&pc_block, cpu_s->rspeed, force_10ms ? 100 : 1000));
     runctl_quantum_done(force_10ms ? 10000 : 1000);
-#ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
+    /* Avoid a KBC FIFO overflow when CPU emulation is stalled. */
     if (gdbstub_step == GDBSTUB_EXEC) {
-#endif
         /* Likewise while the memory viewer holds the processor. */
         if (!mouse_timed && !debugger_stopped())
             mouse_process();
-#ifdef USE_GDBSTUB /* avoid a KBC FIFO overflow when CPU emulation is stalled */
     }
-#endif
     joystick_process(0); // Gameport 0
     endblit();
 

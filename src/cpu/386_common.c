@@ -18,6 +18,7 @@
 #include "x87.h"
 #include <86box/nmi.h>
 #include <86box/mem.h>
+#include <86box/gdbstub.h>
 #include <86box/smram.h>
 #include <86box/pic.h>
 #include <86box/pit.h>
@@ -2162,13 +2163,13 @@ cpu_386_flags_rebuild(void)
 void
 cpu_dr7_update(void)
 {
-    int armed = cpu_debug_regs_486 && is386 && (dr[7] & 0xff);
+    int armed     = cpu_debug_regs_486 && is386 && (dr[7] & 0xff);
+    int was_armed = cpu_dr_armed;
 
-    if (armed && !cpu_dr_armed) {
-        cpu_dr_armed = 1;
+    cpu_dr_armed = armed;
+    mem_debug_update();
+    if (armed && !was_armed)
         flushmmucache_nopc();
-    } else
-        cpu_dr_armed = armed;
 }
 
 extern uint64_t mmutranslate_noabrt_2386(uint32_t addr, int rw);
@@ -2437,6 +2438,8 @@ sysret(UNUSED(uint32_t fetchdat))
     /* First instruction after SYSRET will always execute, regardless of whether
        there is a pending interrupt, following the STI logic */
     cpu_end_block_after_ins = 2;
+    if (gdbstub_debug)
+        gdbstub_inhibit_irq();
 
     oldcs = CS;
     cpu_state.oldpc = cpu_state.pc;

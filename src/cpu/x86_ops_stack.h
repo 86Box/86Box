@@ -693,6 +693,12 @@ opPOP_SS_w(uint32_t fetchdat)
     CLOCK_CYCLES(is486 ? 3 : 7);
     PREFETCH_RUN(is486 ? 3 : 7, 1, -1, 0, 0, 1, 0, 0);
 
+    if (gdbstub_debug) {
+        gdbstub_inhibit_ss();
+        CPU_BLOCK_END();
+        return 1;
+    }
+
     cpu_state.oldpc  = cpu_state.pc;
     cpu_state.op32   = use32;
     cpu_state.ssegs  = 0;
@@ -724,6 +730,12 @@ opPOP_SS_l(uint32_t fetchdat)
     }
     CLOCK_CYCLES(is486 ? 3 : 7);
     PREFETCH_RUN(is486 ? 3 : 7, 1, -1, 0, 0, 1, 0, 0);
+
+    if (gdbstub_debug) {
+        gdbstub_inhibit_ss();
+        CPU_BLOCK_END();
+        return 1;
+    }
 
     cpu_state.oldpc  = cpu_state.pc;
     cpu_state.op32   = use32;

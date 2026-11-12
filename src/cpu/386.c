@@ -251,7 +251,20 @@ exec386_2386(int32_t cycs)
         oldcyc        = cycles;
         while (cycdiff < cycle_period) {
             int ins_fetch_fault = 0;
+            int gdb_stop = 0;
+            int gdb_resuming_events = 0;
             ins_cycles = cycles;
+            if (gdbstub_active && gdbstub_events_pending) {
+                gdbstub_events_pending = 0;
+                gdb_resuming_events = 1;
+                goto debug_resume_events;
+            }
+            if (gdbstub_active && gdbstub_instruction_begin()) {
+                gdb_stop = 1;
+                goto debug_instruction_account;
+            }
+            if (gdbstub_active)
+                cpu_halted = 0;
 
             oldcs  = CS;
             oldcpl = CPL;
@@ -274,7 +287,7 @@ exec386_2386(int32_t cycs)
                image and clear it, otherwise the epilogue raises a second #DB. A
                pending BS is always stale here - trap's TF bit is only set further
                down, once an instruction is about to retire - so it is dropped. */
-            if ((cpu_state.abrt == 0) && is386 && cpu_386_check_instruction_fault()) {
+            if ((!gdbstub_debug || !gdbstub_ss_inhibit) && (cpu_state.abrt == 0) && is386 && cpu_386_check_instruction_fault()) {
                 if (trap & 2)
                     dr[6] |= 0x8000;
                 if (trap & 16)
@@ -331,6 +344,8 @@ exec386_2386(int32_t cycs)
             if (cpu_end_block_after_ins)
                 cpu_end_block_after_ins--;
 
+            if (gdbstub_active)
+                gdbstub_instruction_end();
             if (cpu_state.abrt) {
                 flags_rebuild();
                 tempi          = cpu_state.abrt & ABRT_MASK;
@@ -371,9 +386,19 @@ exec386_2386(int32_t cycs)
                 x86_int(1);
             }
 
-            if (smi_line)
+            if (gdbstub_active)
+                gdb_stop = gdbstub_instruction();
+debug_resume_events:
+            if (!gdb_stop && (!gdbstub_active || !gdbstub_ss_inhibit) && smi_line) {
+                const int before = in_smm;
                 enter_smm_check(0);
-            else if (nmi && nmi_enable && nmi_mask) {
+                if (gdbstub_active && in_smm != before)
+                    cpu_halted = 0;
+            } else if (!gdb_stop && (!gdbstub_active || !gdbstub_ss_inhibit) && nmi && nmi_enable && nmi_mask) {
+                if (gdbstub_active && cpu_halted)
+                    cpu_state.pc++;
+                if (gdbstub_active)
+                    cpu_halted = 0;
                 oldcs = CS;
                 cpu_state.oldpc = cpu_state.pc;
                 x86_int(2);
@@ -386,9 +411,13 @@ exec386_2386(int32_t cycs)
 #else
                 nmi = 0;
 #endif
-            } else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending() && !cpu_end_block_after_ins) {
+            } else if (!gdb_stop && (!gdbstub_active || !gdbstub_irq_inhibit) && (cpu_state.flags & I_FLAG) && x86_external_interrupt_pending() && !cpu_end_block_after_ins) {
                 vector = x86_external_interrupt_vector();
                 if (vector != -1) {
+                    if (gdbstub_active && cpu_halted)
+                        cpu_state.pc++;
+                    if (gdbstub_active)
+                        cpu_halted = 0;
                     flags_rebuild();
                     if (msw & 1)
                         pmodeint_2386(vector, 0);
@@ -418,6 +447,7 @@ exec386_2386(int32_t cycs)
                 }
             }
 
+debug_instruction_account:
             ins_cycles -= cycles;
             tsc += ins_cycles;
 
@@ -432,10 +462,12 @@ exec386_2386(int32_t cycs)
             if (TIMER_VAL_LESS_THAN_VAL(timer_target, (uint64_t) tsc))
                 timer_process();
 
-#ifdef USE_GDBSTUB
-            if (gdbstub_instruction())
+            if (gdbstub_active && gdb_stop) {
+                gdbstub_events_pending = 1;
                 return;
-#endif
+            }
+            if (gdbstub_active && gdb_resuming_events)
+                continue;
             if (DEBUGGER_INSTRUCTION())
                 return;
         }

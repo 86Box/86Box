@@ -36,6 +36,7 @@
 #include <86box/io.h>
 #include <86box/keyboard.h>
 #include <86box/mem.h>
+#include <86box/gdbstub.h>
 #include <86box/rom.h>
 #include <86box/nmi.h>
 #include <86box/pic.h>
@@ -654,6 +655,8 @@ reset_common(int hard, int src)
 
     shadowbios = shadowbios_write = 0;
     alt_access = cpu_end_block_after_ins = 0;
+    if (gdbstub_active)
+        gdbstub_instruction_reset();
 
     if (hard) {
         reset_on_hlt = hlt_reset_pending = 0;
