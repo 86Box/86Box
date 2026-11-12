@@ -865,6 +865,14 @@ ccp_handle_config_request(ppp_ctx_t *ctx, const uint8_t *pkt, int total)
         return;
     }
 
+    if (selected_method == PPP_CCP_METHOD_MPPC && selected_bits == 0
+        && ctx->mppe_min_bits == 0
+        && (ctx->ccp_req_sent || ctx->ccp_ack_received)
+        && (ctx->ccp_request_bits & CCP_MPPE_KEY_BITS)) {
+        MODEM_DEBUG_LOG(ctx->log, "CCP: Peer requested MPPC without MPPE; requesting compression without optional encryption\n");
+        ppp_ccp_retry_mppc_without_mppe(ctx);
+    }
+
     if (rej_len > 0) {
         ccp_send_response(ctx, PPP_CODE_CONFIGURE_REJECT, pkt[1], rej, rej_len);
     } else if (nak_len > 0) {
