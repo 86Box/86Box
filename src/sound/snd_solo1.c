@@ -68,7 +68,6 @@ typedef struct solo1_t {
     uint16_t io_base_mapped;
     uint16_t sb_base_mapped;
     uint16_t mpu_base_mapped;
-    uint16_t gp_base_mapped;
     uint16_t ddma_base_mapped;
     uint8_t  io_regs[0x40];
     uint8_t  sb_regs[0x10];
@@ -85,7 +84,6 @@ typedef struct solo1_t {
     uint8_t  dsp_pending_data[2];
     uint8_t  mpu_regs[0x04];
     uint8_t  mpu_ack_pending;
-    uint8_t  gp_regs[0x04];
     uint8_t  ddma_regs[0x10];
 
     /* Real indexed ESS mixer state. */
@@ -1216,27 +1214,6 @@ solo1_mpu_write(uint16_t addr, uint8_t val, void *priv)
     ess_solo1_legacy_mpu_write(dev->legacy, off, val);
 }
 
-static uint8_t
-solo1_gp_read(uint16_t addr, void *priv)
-{
-    solo1_t *dev = (solo1_t *) priv;
-    uint8_t off = (uint8_t) (addr - dev->gp_base_mapped);
-    uint8_t ret = (off < sizeof(dev->gp_regs)) ? dev->gp_regs[off] : 0xff;
-
-    return ret;
-}
-
-static void
-solo1_gp_write(uint16_t addr, uint8_t val, void *priv)
-{
-    solo1_t *dev = (solo1_t *) priv;
-    uint8_t off = (uint8_t) (addr - dev->gp_base_mapped);
-
-    if (off < sizeof(dev->gp_regs))
-        dev->gp_regs[off] = val;
-
-}
-
 /* the DDMA registers: 0h-3h address (writes the base and the
    current, reads the current), 4h-5h count (likewise), 8h command (write) /
    status (read: TC in bits 3:0, cleared by the read; the DREQ bits 7:4 read
@@ -1359,12 +1336,6 @@ solo1_update_native_mappings(solo1_t *dev)
                          solo1_mpu_write, NULL, NULL, dev);
         dev->mpu_base_mapped = 0;
     }
-    if (dev->gp_base_mapped) {
-        io_removehandler(dev->gp_base_mapped, 0x04,
-                         solo1_gp_read, NULL, NULL,
-                         solo1_gp_write, NULL, NULL, dev);
-        dev->gp_base_mapped = 0;
-    }
     if (dev->ddma_base_mapped) {
         io_removehandler(dev->ddma_base_mapped, 0x10,
                          solo1_ddma_read, NULL, NULL,
@@ -1391,12 +1362,7 @@ solo1_update_native_mappings(solo1_t *dev)
                       solo1_mpu_read, NULL, NULL,
                       solo1_mpu_write, NULL, NULL, dev);
     }
-    if (pci_io && gp_base) {
-        dev->gp_base_mapped = gp_base;
-        io_sethandler(gp_base, 0x04,
-                      solo1_gp_read, NULL, NULL,
-                      solo1_gp_write, NULL, NULL, dev);
-    }
+    ess_solo1_legacy_native_gameport(dev->legacy, pci_io ? gp_base : 0);
     if (pci_io && ddma_enable && ddma_base) {
         dev->ddma_base_mapped = ddma_base;
         io_sethandler(ddma_base, 0x10,
@@ -1579,7 +1545,6 @@ solo1_reset(void *priv)
     memset(dev->sb_regs, 0x00, sizeof(dev->sb_regs));
     memset(dev->mpu_regs, 0x00, sizeof(dev->mpu_regs));
     dev->mpu_ack_pending = 0;
-    memset(dev->gp_regs, 0x00, sizeof(dev->gp_regs));
     memset(dev->ddma_regs, 0x00, sizeof(dev->ddma_regs));
     dev->sb_reset_asserted = 0;
     dev->sb_reset_response = 0;

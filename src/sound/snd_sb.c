@@ -7543,6 +7543,18 @@ ess_solo1_legacy_mpu_write(void *priv, uint16_t addr, uint8_t val)
     mpu401_write(addr, val, ess->mpu);
 }
 
+/* The native game port (PCI BAR4) is the same port as the legacy one. */
+void
+ess_solo1_legacy_native_gameport(void *priv, uint16_t addr)
+{
+    sb_t *ess = (sb_t *) priv;
+
+    if ((ess == NULL) || (ess->gameport == NULL))
+        return;
+
+    gameport_remap_alt(ess->gameport, addr, 0x04);
+}
+
 void
 ess_solo1_legacy_close(void *priv)
 {
