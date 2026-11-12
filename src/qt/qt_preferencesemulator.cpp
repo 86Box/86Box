@@ -32,6 +32,7 @@ PreferencesEmulator::PreferencesEmulator(QWidget *parent)
     ui->checkBoxConfirmSave->setChecked(confirm_save);
     ui->checkBoxConfirmHardReset->setChecked(confirm_reset);
     ui->checkBoxCHDPrecache->setChecked(chd_precache_level > 0);
+    ui->checkBoxFastForwardNewMachines->setChecked(fast_forward_new_machines);
 }
 
 PreferencesEmulator::~PreferencesEmulator()
@@ -49,4 +50,5 @@ PreferencesEmulator::save()
     confirm_save            = ui->checkBoxConfirmSave->isChecked() ? 1 : 0;
     confirm_reset           = ui->checkBoxConfirmHardReset->isChecked() ? 1 : 0;
     chd_precache_level      = ui->checkBoxCHDPrecache->isChecked() ? 1 : 0;
+    fast_forward_new_machines = ui->checkBoxFastForwardNewMachines->isChecked() ? 1 : 0;
 }

@@ -1436,6 +1436,8 @@ MainWindow::on_actionSettings_triggered()
         case QDialog::Rejected:
             break;
     }
+    /* Also changed by soft saves, which reject the dialog */
+    ui->actionFast_forward_on_start->setChecked(fast_forward_on_start);
     runctl_resume(RUN_PAUSE_SYNC);
 }
 
