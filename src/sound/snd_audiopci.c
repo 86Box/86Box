@@ -770,6 +770,20 @@ es137x_write_frame_reg(es137x_t *dev, int frame, int page, uint32_t val)
     }
 }
 
+/* A DAC channel being enabled starts over from its frame registers. */
+static void
+es137x_dac_start(es137x_t *dev, int dac_nr)
+{
+    dev->dac[dac_nr].addr           = dev->dac[dac_nr].addr_latch;
+    dev->dac[dac_nr].buffer_pos     = 0;
+    dev->dac[dac_nr].buffer_pos_end = 0;
+    dev->dac[dac_nr].prev_out_l     = 0;
+    dev->dac[dac_nr].prev_out_r     = 0;
+    if (dev->type == AUDIOPCI_ES1370)
+        dev->dac[dac_nr].ac = 0;
+    es137x_fetch(dev, dac_nr);
+}
+
 static uint8_t
 es137x_inb(uint16_t port, void *priv)
 {
@@ -1130,26 +1144,10 @@ es137x_outb(uint16_t port, uint8_t val, void *priv)
                 es137x_adc_start(dev);
             else if ((dev->int_ctrl & INT_ADC_EN) && !(val & INT_ADC_EN))
                 es137x_adc_input(dev, 0);
-            if (!(dev->int_ctrl & INT_DAC1_EN) && (val & INT_DAC1_EN)) {
-                dev->dac[0].addr           = dev->dac[0].addr_latch;
-                dev->dac[0].buffer_pos     = 0;
-                dev->dac[0].buffer_pos_end = 0;
-                dev->dac[0].prev_out_l     = 0;
-                dev->dac[0].prev_out_r     = 0;
-                if (dev->type == AUDIOPCI_ES1370)
-                    dev->dac[0].ac = 0;
-                es137x_fetch(dev, 0);
-            }
-            if (!(dev->int_ctrl & INT_DAC2_EN) && (val & INT_DAC2_EN)) {
-                dev->dac[1].addr           = dev->dac[1].addr_latch;
-                dev->dac[1].buffer_pos     = 0;
-                dev->dac[1].buffer_pos_end = 0;
-                dev->dac[1].prev_out_l     = 0;
-                dev->dac[1].prev_out_r     = 0;
-                if (dev->type == AUDIOPCI_ES1370)
-                    dev->dac[1].ac = 0;
-                es137x_fetch(dev, 1);
-            }
+            if (!(dev->int_ctrl & INT_DAC1_EN) && (val & INT_DAC1_EN))
+                es137x_dac_start(dev, 0);
+            if (!(dev->int_ctrl & INT_DAC2_EN) && (val & INT_DAC2_EN))
+                es137x_dac_start(dev, 1);
             // audiopci_log("INTCTRL 0x%02X\n", val & 0xff);
             dev->int_ctrl = (dev->int_ctrl & 0xffffff00) | val;
             break;
@@ -1299,26 +1297,10 @@ es137x_outw(uint16_t port, uint16_t val, void *priv)
         /* Interrupt/Chip Select Control Register, Address 00H
            Addressable as byte, word, longword */
         case 0x00:
-            if (!(dev->int_ctrl & INT_DAC1_EN) && (val & INT_DAC1_EN)) {
-                dev->dac[0].addr           = dev->dac[0].addr_latch;
-                dev->dac[0].buffer_pos     = 0;
-                dev->dac[0].buffer_pos_end = 0;
-                dev->dac[0].prev_out_l     = 0;
-                dev->dac[0].prev_out_r     = 0;
-                if (dev->type == AUDIOPCI_ES1370)
-                    dev->dac[0].ac = 0;
-                es137x_fetch(dev, 0);
-            }
-            if (!(dev->int_ctrl & INT_DAC2_EN) && (val & INT_DAC2_EN)) {
-                dev->dac[1].addr           = dev->dac[1].addr_latch;
-                dev->dac[1].buffer_pos     = 0;
-                dev->dac[1].buffer_pos_end = 0;
-                dev->dac[1].prev_out_l     = 0;
-                dev->dac[1].prev_out_r     = 0;
-                if (dev->type == AUDIOPCI_ES1370)
-                    dev->dac[1].ac = 0;
-                es137x_fetch(dev, 1);
-            }
+            if (!(dev->int_ctrl & INT_DAC1_EN) && (val & INT_DAC1_EN))
+                es137x_dac_start(dev, 0);
+            if (!(dev->int_ctrl & INT_DAC2_EN) && (val & INT_DAC2_EN))
+                es137x_dac_start(dev, 1);
             if (!(dev->int_ctrl & INT_ADC_EN) && (val & INT_ADC_EN))
                 es137x_adc_start(dev);
             else if ((dev->int_ctrl & INT_ADC_EN) && !(val & INT_ADC_EN))
@@ -1432,26 +1414,10 @@ es137x_outl(uint16_t port, uint32_t val, void *priv)
            Addressable as byte, word, longword */
         case 0x00:
             {
-                if (!(dev->int_ctrl & INT_DAC1_EN) && (val & INT_DAC1_EN)) {
-                    dev->dac[0].addr           = dev->dac[0].addr_latch;
-                    dev->dac[0].buffer_pos     = 0;
-                    dev->dac[0].buffer_pos_end = 0;
-                    dev->dac[0].prev_out_l     = 0;
-                    dev->dac[0].prev_out_r     = 0;
-                    if (dev->type == AUDIOPCI_ES1370)
-                        dev->dac[0].ac = 0;
-                    es137x_fetch(dev, 0);
-                }
-                if (!(dev->int_ctrl & INT_DAC2_EN) && (val & INT_DAC2_EN)) {
-                    dev->dac[1].addr           = dev->dac[1].addr_latch;
-                    dev->dac[1].buffer_pos     = 0;
-                    dev->dac[1].buffer_pos_end = 0;
-                    dev->dac[1].prev_out_l     = 0;
-                    dev->dac[1].prev_out_r     = 0;
-                    if (dev->type == AUDIOPCI_ES1370)
-                        dev->dac[1].ac = 0;
-                    es137x_fetch(dev, 1);
-                }
+                if (!(dev->int_ctrl & INT_DAC1_EN) && (val & INT_DAC1_EN))
+                    es137x_dac_start(dev, 0);
+                if (!(dev->int_ctrl & INT_DAC2_EN) && (val & INT_DAC2_EN))
+                    es137x_dac_start(dev, 1);
                 if (!(dev->int_ctrl & INT_ADC_EN) && (val & INT_ADC_EN))
                     es137x_adc_start(dev);
                 else if ((dev->int_ctrl & INT_ADC_EN) && !(val & INT_ADC_EN))
