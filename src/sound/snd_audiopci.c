@@ -770,10 +770,14 @@ es137x_write_frame_reg(es137x_t *dev, int frame, int page, uint32_t val)
     }
 }
 
-/* A DAC channel being enabled starts over from its frame registers. */
+/* A DAC channel being enabled starts over from its frame registers, and its
+   sample counter from the sample count register: the first interrupt comes
+   after SAMP_CT + 1 samples, not whenever the counter left by the previous
+   transfer runs out. */
 static void
 es137x_dac_start(es137x_t *dev, int dac_nr)
 {
+    dev->dac[dac_nr].curr_samp_ct   = dev->dac[dac_nr].samp_ct;
     dev->dac[dac_nr].addr           = dev->dac[dac_nr].addr_latch;
     dev->dac[dac_nr].buffer_pos     = 0;
     dev->dac[dac_nr].buffer_pos_end = 0;
