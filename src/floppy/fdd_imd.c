@@ -27,7 +27,6 @@
 #include <86box/fdd.h>
 #include <86box/fdd_86f.h>
 #include <86box/fdd_imd.h>
-#include <86box/fdc.h>
 
 typedef struct imd_track_t {
     uint8_t  is_present;
@@ -587,8 +586,10 @@ format_conditions(void *priv)
     const imd_t *dev   = (imd_t *) drv->local;
     const int    track = dev->track;
     const int    side  = fdd_get_head(drv);
-    const int    temp  = (fdc_get_format_sectors(drv->fdc) == dev->tracks[track][side].params[3]) &&
-                         (fdc_get_format_n(drv->fdc) == dev->tracks[track][side].params[4]);
+    const int    temp  = (drv->xfer.format_sectors ==
+                          dev->tracks[track][side].params[3]) &&
+                         (drv->xfer.format_n ==
+                          dev->tracks[track][side].params[4]);
 
     return temp;
 }
@@ -946,7 +947,11 @@ imd_load(void *priv, char *fn)
     drv->d86f_handler.check_crc         = 1;
     d86f_set_version(drv, 0x0063);
 
-    drv->seek = imd_seek;
+    const fdd_format_t ops = {
+        .seek = imd_seek
+    };
+
+    fdd_format_set(drv, &ops);
 
     d86f_common_handlers(drv);
 }

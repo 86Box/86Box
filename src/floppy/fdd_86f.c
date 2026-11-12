@@ -32,7 +32,6 @@
 #include <86box/random.h>
 #include <86box/plat.h>
 #include <86box/fdd.h>
-#include <86box/fdc.h>
 #include <86box/fdd_86f.h>
 
 /*
@@ -200,8 +199,8 @@ typedef struct d86f_t {
     uint32_t         dma_over;
     uint32_t         index_hole_pos[2];
     uint32_t         track_offset[512];
-    sector_id_t      last_sector;
-    sector_id_t      req_sector;
+    fdd_sector_id_t  last_sector;
+    fdd_sector_id_t  req_sector;
     find_t           id_find;
     find_t           data_find;
     crc_t            calc_crc;
@@ -701,7 +700,7 @@ d86f_valid_bit_rate(void *priv)
 {
     fdd_drive_t *drv  = (fdd_drive_t *) priv;
 
-    const int    rate = fdc_get_bit_rate(drv->fdc);
+    const int    rate = drv->ctrl->get_bit_rate(drv->ctrl_priv);
     const int    hole = (drv->d86f_handler.disk_flags(drv) & 6) >> 1;
 
     switch (hole) {
@@ -767,6 +766,29 @@ d86f_get_track_pos(void *priv)
         ret = dev->track_pos;
 
     return ret;
+}
+
+/* Whether the index pulse is active right now. The revolution phase lives in
+   the bitstream engine, so this is the answer the mechanical layer asks for
+   instead of working the phase out from the drive-side fields. */
+int
+d86f_index(void *priv)
+{
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+
+    if ((drv == NULL) || (drv->d86f_handler.index_hole_pos == NULL) ||
+        (drv->d86f_handler.get_raw_size == NULL))
+        return 0;
+
+    const int      side      = fdd_get_head(drv);
+    const uint32_t raw_size  = d86f_get_raw_size(drv, side);
+    if (raw_size == 0)
+        return 0;
+    const uint32_t index_pos = drv->d86f_handler.index_hole_pos(drv, side);
+    const uint32_t pulse_pos = (d86f_get_track_pos(drv) + raw_size - index_pos) % raw_size;
+
+    /* A typical index pulse is active for about 4 ms of a 200 ms revolution. */
+    return pulse_pos < (raw_size / 50);
 }
 
 uint32_t
@@ -854,7 +876,7 @@ d86f_get_data_len(void *priv)
 
     if (dev->req_sector.id.n)
         ret = (uint32_t) 128 << dev->req_sector.id.n;
-    else if ((i = fdc_get_dtl(drv->fdc)) < 128)
+    else if ((i = drv->xfer.dtl) < 128)
         ret = i;
 
     return ret;
@@ -970,8 +992,8 @@ d86f_can_format(void *priv)
     fdd_drive_t *drv = (fdd_drive_t *) priv;
     int          ret = !drv->writeprot;
 
-    ret = ret && !fdc_get_swwp(drv->fdc);
-    ret = ret && fdd_can_read_medium(&drives[real_drive(drv->fdc, drv->id)]);
+    ret = ret && !drv->ctrl->get_swwp(drv->ctrl_priv);
+    ret = ret && fdd_can_read_medium(&drives[drv->ctrl->real_drive(drv->ctrl_priv, drv->id)]);
     /* Allows proxied formats to add their own extra conditions to formatting. */
     ret = ret && drv->d86f_handler.format_conditions(drv);
     ret = ret && !d86f_wrong_densel(drv);
@@ -1087,7 +1109,7 @@ d86f_get_bitcell_period(void *priv)
         rate /= 2.0;
     size = (size * 250.0) / rate;
     size = (size * 300.0) / rpm;
-    size = (size * fdd_getrpm(&drives[real_drive(drv->fdc, drv->id)])) / 300.0;
+    size = (size * fdd_getrpm(&drives[drv->ctrl->real_drive(drv->ctrl_priv, drv->id)])) / 300.0;
 
     return (int) size;
 }
@@ -1096,10 +1118,10 @@ int
 d86f_can_read_address(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    int          ret = (fdc_get_bitcell_period(drv->fdc) == d86f_get_bitcell_period(drv));
+    int          ret = (drv->ctrl->get_bitcell_period(drv->ctrl_priv) == d86f_get_bitcell_period(drv));
 
-    ret = ret && fdd_can_read_medium(&drives[real_drive(drv->fdc, drv->id)]);
-    ret = ret && (fdc_is_mfm(drv->fdc) == d86f_is_mfm(drv));
+    ret = ret && fdd_can_read_medium(&drives[drv->ctrl->real_drive(drv->ctrl_priv, drv->id)]);
+    ret = ret && (drv->ctrl->is_mfm(drv->ctrl_priv) == d86f_is_mfm(drv));
     ret = ret && (d86f_get_encoding(drv) <= 1);
 
     return ret;
@@ -1164,7 +1186,7 @@ d86f_put_bit(void *priv, const int side, const int bit)
     uint16_t       surface_data = 0;
     uint16_t       encoded_data;
 
-    if (fdc_get_diswr(drv->fdc))
+    if (drv->ctrl->get_diswr(drv->ctrl_priv))
         return;
 
     uint32_t       track_word   = dev->track_pos >> 4;
@@ -1317,7 +1339,7 @@ d86f_find_address_mark_fm(void *priv, const int side, find_t *find,
         dev->data_find.bytes_obtained                            = 0;
         dev->error_condition                                     = 0;
         dev->state                                               = STATE_IDLE;
-        fdc_nodataam(drv->fdc);
+        drv->ctrl->nodataam(drv->ctrl_priv);
         return;
     }
 
@@ -1329,21 +1351,21 @@ d86f_find_address_mark_fm(void *priv, const int side, find_t *find,
         find->sync_pos                                                = 0xffffffff;
         if (ignore_other_am & 1) {
             /* Skip mode, let's go back to finding ID. */
-            fdc_set_wrong_am(drv->fdc);
+            drv->ctrl->set_wrong_am(drv->ctrl_priv);
             dev->data_find.sync_marks = dev->data_find.bits_obtained  =
                                         dev->data_find.bytes_obtained = 0;
             dev->error_condition                                      = 0;
             dev->state                                                = STATE_IDLE;
             if (dev->state == STATE_02_READ_DATA)
-                fdc_track_finishread(drv->fdc, dev->error_condition);
+                drv->ctrl->track_finishread(drv->ctrl_priv, dev->error_condition);
             else if (dev->state == STATE_11_SCAN_DATA)
-                fdc_sector_finishcompare(drv->fdc, (dev->satisfying_bytes ==
+                drv->ctrl->sector_finishcompare(drv->ctrl_priv, (dev->satisfying_bytes ==
                                          ((128 << ((uint32_t) dev->last_sector.id.n)) - 1)) ? 1 : 0);
             else
-                fdc_sector_finishread(drv->fdc);
+                drv->ctrl->sector_finishread(drv->ctrl_priv);
         } else {
             /* Not skip mode, process the sector anyway. */
-            fdc_set_wrong_am(drv->fdc);
+            drv->ctrl->set_wrong_am(drv->ctrl_priv);
             dev->preceding_bit[side] = dev->last_word[side] & 1;
             dev->state++;
         }
@@ -1402,7 +1424,7 @@ d86f_find_address_mark_mfm(void *priv, const int side, find_t *find,
         dev->data_find.bytes_obtained                            = 0;
         dev->error_condition                                     = 0;
         dev->state                                               = STATE_IDLE;
-        fdc_nodataam(drv->fdc);
+        drv->ctrl->nodataam(drv->ctrl_priv);
         return;
     }
 
@@ -1430,21 +1452,21 @@ d86f_find_address_mark_mfm(void *priv, const int side, find_t *find,
             find->sync_pos                                                = 0xffffffff;
             if (ignore_other_am & 1) {
                 /* Skip mode, let's go back to finding ID. */
-                fdc_set_wrong_am(drv->fdc);
+                drv->ctrl->set_wrong_am(drv->ctrl_priv);
                 dev->data_find.sync_marks = dev->data_find.bits_obtained  =
                                             dev->data_find.bytes_obtained = 0;
                 dev->error_condition                                                                     = 0;
                 dev->state                                                                               = STATE_IDLE;
                 if (dev->state == STATE_02_READ_DATA)
-                    fdc_track_finishread(drv->fdc, dev->error_condition);
+                    drv->ctrl->track_finishread(drv->ctrl_priv, dev->error_condition);
                 else if (dev->state == STATE_11_SCAN_DATA)
-                    fdc_sector_finishcompare(drv->fdc, (dev->satisfying_bytes ==
+                    drv->ctrl->sector_finishcompare(drv->ctrl_priv, (dev->satisfying_bytes ==
                                              ((128 << ((uint32_t) dev->last_sector.id.n)) - 1)) ? 1 : 0);
                 else
-                    fdc_sector_finishread(drv->fdc);
+                    drv->ctrl->sector_finishread(drv->ctrl_priv);
             } else {
                 /* Not skip mode, process the sector anyway. */
-                fdc_set_wrong_am(drv->fdc);
+                drv->ctrl->set_wrong_am(drv->ctrl_priv);
                 dev->preceding_bit[side] = dev->last_word[side] & 1;
                 dev->state++;
             }
@@ -1525,7 +1547,7 @@ d86f_read_sector_id(void *priv, const int side, const int match)
                     if ((dev->state != STATE_02_READ_ID) && (dev->state != STATE_0A_READ_ID)) {
                         dev->error_condition = 0;
                         dev->state           = STATE_IDLE;
-                        fdc_headercrcerror(drv->fdc);
+                        drv->ctrl->headercrcerror(drv->ctrl_priv);
                     } else if (dev->state == STATE_0A_READ_ID)
                         dev->state--;
                     else {
@@ -1537,7 +1559,7 @@ d86f_read_sector_id(void *priv, const int side, const int match)
                     /* CRC is valid and this is a read sector ID command. */
                     dev->id_find.sync_marks = dev->id_find.bits_obtained =
                     dev->id_find.bytes_obtained = dev->error_condition = 0;
-                    fdc_sectorid(drv->fdc,
+                    drv->ctrl->sectorid(drv->ctrl_priv,
                                  dev->last_sector.id.c, dev->last_sector.id.h,
                                  dev->last_sector.id.r, dev->last_sector.id.n, 0, 0);
                     dev->state = STATE_IDLE;
@@ -1559,13 +1581,13 @@ d86f_read_sector_id(void *priv, const int side, const int match)
                                                sector ID are compared, the R portion
                                                (the sector number) is ignored.
                              */
-                            if ((dev->last_sector.id.c != fdc_get_read_track_sector(drv->fdc).id.c) ||
-                                (dev->last_sector.id.h != fdc_get_read_track_sector(drv->fdc).id.h) ||
-                                (dev->last_sector.id.n != fdc_get_read_track_sector(drv->fdc).id.n)) {
+                            if ((dev->last_sector.id.c != drv->ctrl->get_read_track_sector(drv->ctrl_priv).id.c) ||
+                                (dev->last_sector.id.h != drv->ctrl->get_read_track_sector(drv->ctrl_priv).id.h) ||
+                                (dev->last_sector.id.n != drv->ctrl->get_read_track_sector(drv->ctrl_priv).id.n)) {
                                 /* Mark that the sector ID is not the one expected by the FDC. */
                                 dev->error_condition |= 4;
                                 /* Make sure we use the sector size from the FDC. */
-                                dev->last_sector.id.n = fdc_get_read_track_sector(drv->fdc).id.n;
+                                dev->last_sector.id.n = drv->ctrl->get_read_track_sector(drv->ctrl_priv).id.n;
                             }
 
                             /*
@@ -1609,7 +1631,7 @@ d86f_get_data(void *priv, const int base)
         byte_count = dev->data_find.bytes_obtained;
 
     if (byte_count < (d86f_get_data_len(drv) + base)) {
-        data = fdc_getdata(drv->fdc, byte_count == (d86f_get_data_len(drv) + base - 1));
+        data = drv->ctrl->getdata(drv->ctrl_priv, byte_count == (d86f_get_data_len(drv) + base - 1));
         if ((data & DMA_OVER) || (data == -1)) {
             dev->dma_over++;
             if (data == -1)
@@ -1630,7 +1652,7 @@ d86f_compare_byte(void *priv, const uint8_t received_byte, const uint8_t disk_by
     fdd_drive_t *drv = (fdd_drive_t *) priv;
     d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
-    switch (fdc_get_compare_condition(drv->fdc)) {
+    switch (drv->xfer.compare) {
         case 0: /* SCAN EQUAL */
             if ((received_byte == disk_byte) || (received_byte == 0xff))
                 dev->satisfying_bytes++;
@@ -1688,7 +1710,7 @@ d86f_read_sector_data(void *priv, const int side)
                 } else {
                     if (dev->data_find.bytes_obtained < d86f_get_data_len(drv)) {
                         if (dev->state != STATE_16_VERIFY_DATA) {
-                            const int read_status = fdc_data(drv->fdc, data,
+                            const int read_status = drv->ctrl->data(drv->ctrl_priv, data,
                                                     dev->data_find.bytes_obtained ==
                                                     (d86f_get_data_len(drv) - 1));
                             if (read_status == -1)
@@ -1702,7 +1724,7 @@ d86f_read_sector_data(void *priv, const int side)
                 decodefm(drv, dev->last_word[side]);
             dev->data_find.bytes_obtained++;
 
-            if (dev->data_find.bytes_obtained == (crc_pos + fdc_get_gap(drv->fdc))) {
+            if (dev->data_find.bytes_obtained == (crc_pos + drv->ctrl->get_gap(drv->ctrl_priv))) {
                 /* We've got the data. */
                 if ((dev->calc_crc.word != dev->track_crc.word) &&
                     (dev->state != STATE_02_READ_DATA)) {
@@ -1712,14 +1734,14 @@ d86f_read_sector_data(void *priv, const int side)
                                                 dev->data_find.bytes_obtained = 0;
                     dev->error_condition          = 0;
                     dev->state                    = STATE_IDLE;
-                    fdc_datacrcerror(drv->fdc);
+                    drv->ctrl->datacrcerror(drv->ctrl_priv);
                 } else if ((dev->calc_crc.word != dev->track_crc.word) &&
                            (dev->state == STATE_02_READ_DATA)) {
                     dev->data_find.sync_marks = dev->data_find.bits_obtained  =
                                                 dev->data_find.bytes_obtained = 0;
                     dev->error_condition |= 2; /* Mark that there was a data error. */
                     dev->state = STATE_IDLE;
-                    fdc_track_finishread(drv->fdc, dev->error_condition);
+                    drv->ctrl->track_finishread(drv->ctrl_priv, dev->error_condition);
                 } else {
                     /* CRC is valid. */
                     d86f_log("86F: Data CRC OK: %04X == %04X (%08X)\n",
@@ -1730,12 +1752,12 @@ d86f_read_sector_data(void *priv, const int side)
                     dev->error_condition                                                                     = 0;
                     dev->state                                                                               = STATE_IDLE;
                     if (dev->state == STATE_02_READ_DATA)
-                        fdc_track_finishread(drv->fdc, dev->error_condition);
+                        drv->ctrl->track_finishread(drv->ctrl_priv, dev->error_condition);
                     else if (dev->state == STATE_11_SCAN_DATA)
-                        fdc_sector_finishcompare(drv->fdc, (dev->satisfying_bytes ==
+                        drv->ctrl->sector_finishcompare(drv->ctrl_priv, (dev->satisfying_bytes ==
                                                  ((128 << ((uint32_t) dev->last_sector.id.n)) - 1)) ? 1 : 0);
                     else
-                        fdc_sector_finishread(drv->fdc);
+                        drv->ctrl->sector_finishread(drv->ctrl_priv);
                 }
             }
         }
@@ -1766,7 +1788,7 @@ d86f_write_sector_data(void *priv, const int side, const int mfm, const uint16_t
             } else if (dev->data_find.bytes_obtained < sector_len) {
                 /* We're in the data field of the sector, read byte from FDC and request new byte. */
                 dev->current_byte[side] = d86f_get_data(drv, 1);
-                if (!fdc_get_diswr(drv->fdc))
+                if (!drv->ctrl->get_diswr(drv->ctrl_priv))
                     drv->d86f_handler.write_data(drv, side,
                                                  dev->data_find.bytes_obtained - 1,
                                                  dev->current_byte[side]);
@@ -1832,12 +1854,12 @@ d86f_write_sector_data(void *priv, const int side, const int mfm, const uint16_t
         if ((dev->data_find.bits_obtained & 15) == 15) {
             dev->data_find.bytes_obtained++;
 
-            if (dev->data_find.bytes_obtained == (crc_pos + fdc_get_gap(drv->fdc))) {
+            if (dev->data_find.bytes_obtained == (crc_pos + drv->ctrl->get_gap(drv->ctrl_priv))) {
                 /* We've written the data. */
                 dev->data_find.sync_marks = dev->data_find.bits_obtained = dev->data_find.bytes_obtained = 0;
                 dev->error_condition                                                                     = 0;
                 dev->state                                                                               = STATE_IDLE;
-                fdc_sector_finishread(drv->fdc);
+                drv->ctrl->sector_finishread(drv->ctrl_priv);
                 return;
             }
         }
@@ -1912,7 +1934,7 @@ d86f_write_direct_common(void *priv, const int side, const uint16_t byte, const 
     decoded_t    dbyte;
     decoded_t    dpbyte;
 
-    if (fdc_get_diswr(drv->fdc))
+    if (drv->ctrl->get_diswr(drv->ctrl_priv))
         return;
 
     dbyte.byte  = byte & 0xff;
@@ -2004,9 +2026,9 @@ d86f_format_finish(void *priv, const int side, const int mfm, UNUSED(uint16_t sc
     dev->datac           = 0;
     dev->format_id_count = 0;
     if (format_ok)
-        fdc_sector_finishread(drv->fdc);
+        drv->ctrl->sector_finishread(drv->ctrl_priv);
     else
-        fdc_cannotformat(drv->fdc);
+        drv->ctrl->cannotformat(drv->ctrl_priv);
 }
 
 void
@@ -2028,9 +2050,9 @@ d86f_format_turbo_finish(void *priv, const int side, const int do_write)
     dev->datac           = 0;
     dev->format_id_count = 0;
     if (format_ok)
-        fdc_sector_finishread(drv->fdc);
+        drv->ctrl->sector_finishread(drv->ctrl_priv);
     else
-        fdc_cannotformat(drv->fdc);
+        drv->ctrl->cannotformat(drv->ctrl_priv);
 }
 
 void
@@ -2051,15 +2073,15 @@ d86f_format_track(void *priv, const int side, int do_write)
     am_len                    = mfm ? 4 : 1;
     gap_sizes[0]              = mfm ? 80 : 40;
     gap_sizes[1]              = mfm ? 50 : 26;
-    gap_sizes[2]              = fdc_get_gap2(drv->fdc, real_drive(drv->fdc, drv->id));
-    gap_sizes[3]              = fdc_get_gap(drv->fdc);
+    gap_sizes[2]              = drv->ctrl->get_gap2(drv->ctrl_priv, drv->ctrl->real_drive(drv->ctrl_priv, drv->id));
+    gap_sizes[3]              = drv->ctrl->get_gap(drv->ctrl_priv);
     sync_len                  = mfm ? 12 : 6;
-    sc                        = fdc_get_format_sectors(drv->fdc);
-    dtl                       = 128 << fdc_get_format_n(drv->fdc);
+    sc                        = drv->xfer.format_sectors;
+    dtl                       = 128 << drv->xfer.format_n;
     gap_fill                  = mfm ? 0x4e : 0xff;
 
     /* HD-COPY's "Is the data rate correct?" format. */
-    if ((dev->version == 0x0063) && (fdc_get_format_n(drv->fdc) == 3) && (sc == 2))
+    if ((dev->version == 0x0063) && (drv->xfer.format_n == 3) && (sc == 2))
         do_write = 0;
 
     switch (dev->format_state) {
@@ -2071,18 +2093,18 @@ d86f_format_track(void *priv, const int side, int do_write)
     }
 
     if (id_count < 4) {
-        fdc_t *fdc = (fdc_t *) drv->fdc;
-        if (fdc_data_available(fdc)) {
-            int data = fdc_getdata(fdc, 0);
+        fdd_sector_id_t *fid = drv->xfer.format_id;
+        if (drv->ctrl->data_available(drv->ctrl_priv)) {
+            int data = drv->ctrl->getdata(drv->ctrl_priv, 0);
             if (data != -1)
                 data &= 0xff;
             if ((data == -1) && (id_count < 3))
                 data = 0;
-            fdc->format_sector_id.byte_array[id_count] = data & 0xff;
+            fid->byte_array[id_count] = data & 0xff;
             if (id_count == 3)
-                fdc_stop_id_request(fdc);
+                drv->ctrl->stop_id_request(drv->ctrl_priv);
             else
-                fdc_request_next_sector_id(fdc);
+                drv->ctrl->request_next_sector_id(drv->ctrl_priv);
             id_count++;
         }
     }
@@ -2147,25 +2169,25 @@ d86f_format_track(void *priv, const int side, int do_write)
             break;
 
         case FMT_SECTOR_ID: {
-            fdc_t *fdc = (fdc_t *) drv->fdc;
+            fdd_sector_id_t *fid = drv->xfer.format_id;
             max_len = 4;
             if ((dev->datac == 3) && (dev->format_id_count < 256)) {
                 memcpy(dev->format_ids[dev->format_id_count],
-                       fdc->format_sector_id.byte_array,
+                       fid->byte_array,
                        sizeof(d86f_format_id_t));
                 dev->format_id_count++;
             }
             if (do_write) {
                 d86f_write_direct(drv, side,
-                                  fdc->format_sector_id.byte_array[dev->datac], 0);
-                d86f_calccrc(dev, fdc->format_sector_id.byte_array[dev->datac]);
+                                  fid->byte_array[dev->datac], 0);
+                d86f_calccrc(dev, fid->byte_array[dev->datac]);
             } else {
                 if (dev->datac == 3) {
                     drv->d86f_handler.set_sector(drv, side,
-                                                 fdc->format_sector_id.id.c,
-                                                 fdc->format_sector_id.id.h,
-                                                 fdc->format_sector_id.id.r,
-                                                 fdc->format_sector_id.id.n);
+                                                 fid->id.c,
+                                                 fid->id.h,
+                                                 fid->id.r,
+                                                 fid->id.n);
                 }
             }
             break;
@@ -2262,7 +2284,7 @@ d86f_format_track(void *priv, const int side, int do_write)
             case FMT_PRETRK_GAP1:
                 if (id_count == 4) {
                     id_count = 0;
-                    fdc_request_next_sector_id(drv->fdc);
+                    drv->ctrl->request_next_sector_id(drv->ctrl_priv);
                 }
                 break;
 
@@ -2329,7 +2351,7 @@ d86f_turbo_read(void *priv, const int side)
     } else {
         if (dev->turbo_pos < (128UL << dev->req_sector.id.n)) {
             if (dev->state != STATE_16_VERIFY_DATA) {
-                const int read_status = fdc_data(drv->fdc, dat,
+                const int read_status = drv->ctrl->data(drv->ctrl_priv, dat,
                                                  dev->turbo_pos == ((128UL << dev->req_sector.id.n) - 1));
                 if (read_status == -1)
                     dev->dma_over++;
@@ -2348,14 +2370,14 @@ d86f_turbo_read(void *priv, const int side)
 #endif
             dev->error_condition = 0;
             dev->state           = STATE_IDLE;
-            fdc_datacrcerror(drv->fdc);
+            drv->ctrl->datacrcerror(drv->ctrl_priv);
         } else if ((flags & SECTOR_CRC_ERROR) && (dev->state == STATE_02_READ_DATA)) {
 #ifdef ENABLE_D86F_LOG
             d86f_log("86F: Data CRC error in turbo mode at READ TRACK command\n");
 #endif
             dev->error_condition |= 2; /* Mark that there was a data error. */
             dev->state = STATE_IDLE;
-            fdc_track_finishread(drv->fdc, dev->error_condition);
+            drv->ctrl->track_finishread(drv->ctrl_priv, dev->error_condition);
         } else {
             /* CRC is valid. */
 #ifdef ENABLE_D86F_LOG
@@ -2364,11 +2386,11 @@ d86f_turbo_read(void *priv, const int side)
             dev->error_condition = 0;
             dev->state           = STATE_IDLE;
             if (dev->state == STATE_11_SCAN_DATA)
-                fdc_sector_finishcompare(drv->fdc,
+                drv->ctrl->sector_finishcompare(drv->ctrl_priv,
                                          (dev->satisfying_bytes ==
                                           ((128 << ((uint32_t) dev->last_sector.id.n)) - 1)) ? 1 : 0);
             else
-                fdc_sector_finishread(drv->fdc);
+                drv->ctrl->sector_finishread(drv->ctrl_priv);
         }
     }
 }
@@ -2392,7 +2414,7 @@ d86f_turbo_write(void *priv, const int side)
         dev->error_condition                                                                     = 0;
         dev->state                                                                               = STATE_IDLE;
         drv->d86f_handler.writeback(drv);
-        fdc_sector_finishread(drv->fdc);
+        drv->ctrl->sector_finishread(drv->ctrl_priv);
     }
 }
 
@@ -2401,32 +2423,32 @@ d86f_turbo_format(void *priv, const int side, int nop)
 {
     fdd_drive_t *  drv = (fdd_drive_t *) priv;
     d86f_t *       dev = (d86f_t *) drv->d86f_priv;
-    const uint16_t sc  = fdc_get_format_sectors(drv->fdc);
-    const uint16_t dtl = 128 << fdc_get_format_n(drv->fdc);
+    const uint16_t sc  = drv->xfer.format_sectors;
+    const uint16_t dtl = 128 << drv->xfer.format_n;
 
     /* HD-COPY's "Is the data rate correct?" format. */
-    if ((dev->version == 0x0063) && (fdc_get_format_n(drv->fdc) == 3) && (sc == 2))
+    if ((dev->version == 0x0063) && (drv->xfer.format_n == 3) && (sc == 2))
         nop = 1;
 
     if (dev->datac <= 3) {
-        fdc_t *fdc = (fdc_t *) drv->fdc;
-        int dat = fdc_getdata(fdc, 0);
+        fdd_sector_id_t *fid = drv->xfer.format_id;
+        int dat = drv->ctrl->getdata(drv->ctrl_priv, 0);
         if (dat != -1)
             dat &= 0xff;
         if ((dat == -1) && (dev->datac < 3))
             dat = 0;
-        fdc->format_sector_id.byte_array[dev->datac] = dat & 0xff;
+        fid->byte_array[dev->datac] = dat & 0xff;
         if (dev->datac == 3) {
-            fdc_stop_id_request(fdc);
+            drv->ctrl->stop_id_request(drv->ctrl_priv);
             if (dev->format_id_count < 256) {
                 memcpy(dev->format_ids[dev->format_id_count],
-                       fdc->format_sector_id.byte_array,
+                       fid->byte_array,
                        sizeof(d86f_format_id_t));
                 dev->format_id_count++;
             }
             drv->d86f_handler.set_sector(drv, side,
-                                         fdc->format_sector_id.id.c, fdc->format_sector_id.id.h,
-                                         fdc->format_sector_id.id.r, fdc->format_sector_id.id.n);
+                                         fid->id.c, fid->id.h,
+                                         fid->id.r, fid->id.n);
         }
     } else if (dev->datac == 4) {
         if (!nop) {
@@ -2444,7 +2466,7 @@ d86f_turbo_format(void *priv, const int side, int nop)
 
         if (dev->sector_count < sc) {
             /* Sector within allotted amount. */
-            fdc_request_next_sector_id(drv->fdc);
+            drv->ctrl->request_next_sector_id(drv->ctrl_priv);
         } else {
             dev->state = STATE_IDLE;
             d86f_format_turbo_finish(drv, side, !nop);
@@ -2486,7 +2508,7 @@ d86f_turbo_poll(void *priv, const int side)
             dev->id_find.sync_marks = dev->id_find.bits_obtained  =
                                       dev->id_find.bytes_obtained =
                                       dev->error_condition        = 0;
-            fdc_noidam(drv->fdc);
+            drv->ctrl->noidam(drv->ctrl_priv);
             dev->state = STATE_IDLE;
             return;
         }
@@ -2504,19 +2526,19 @@ d86f_turbo_poll(void *priv, const int side)
 
         case STATE_02_FIND_ID:
             if (!d86f_sector_is_present(drv, side,
-                                        fdc_get_read_track_sector(drv->fdc).id.c,
-                                        fdc_get_read_track_sector(drv->fdc).id.h,
-                                        fdc_get_read_track_sector(drv->fdc).id.r,
-                                        fdc_get_read_track_sector(drv->fdc).id.n)) {
+                                        drv->ctrl->get_read_track_sector(drv->ctrl_priv).id.c,
+                                        drv->ctrl->get_read_track_sector(drv->ctrl_priv).id.h,
+                                        drv->ctrl->get_read_track_sector(drv->ctrl_priv).id.r,
+                                        drv->ctrl->get_read_track_sector(drv->ctrl_priv).id.n)) {
                 dev->id_find.sync_marks = dev->id_find.bits_obtained = dev->id_find.bytes_obtained = dev->error_condition = 0;
-                fdc_nosector(drv->fdc);
+                drv->ctrl->nosector(drv->ctrl_priv);
                 dev->state = STATE_IDLE;
                 return;
             }
-            dev->last_sector.id.c = fdc_get_read_track_sector(drv->fdc).id.c;
-            dev->last_sector.id.h = fdc_get_read_track_sector(drv->fdc).id.h;
-            dev->last_sector.id.r = fdc_get_read_track_sector(drv->fdc).id.r;
-            dev->last_sector.id.n = fdc_get_read_track_sector(drv->fdc).id.n;
+            dev->last_sector.id.c = drv->ctrl->get_read_track_sector(drv->ctrl_priv).id.c;
+            dev->last_sector.id.h = drv->ctrl->get_read_track_sector(drv->ctrl_priv).id.h;
+            dev->last_sector.id.r = drv->ctrl->get_read_track_sector(drv->ctrl_priv).id.r;
+            dev->last_sector.id.n = drv->ctrl->get_read_track_sector(drv->ctrl_priv).id.n;
             drv->d86f_handler.set_sector(drv, side,
                                          dev->last_sector.id.c,
                                          dev->last_sector.id.h,
@@ -2532,7 +2554,8 @@ d86f_turbo_poll(void *priv, const int side)
         case STATE_0C_FIND_ID:
         case STATE_11_FIND_ID:
         case STATE_16_FIND_ID: {
-            fdc_t *fdc = (fdc_t *) drv->fdc;
+            const int pcn = drv->ctrl->get_pcn(drv->ctrl_priv,
+                                               dev->req_sector.id.h);
             if (!d86f_sector_is_present(drv, side,
                                         dev->req_sector.id.c,
                                         dev->req_sector.id.h,
@@ -2542,13 +2565,13 @@ d86f_turbo_poll(void *priv, const int side)
                                           dev->id_find.bytes_obtained =
                                           dev->error_condition        = 0;
                 if (d86f_sector_is_present(drv, side,
-                                           fdc->pcn[dev->req_sector.id.h],
+                                           pcn,
                                            dev->req_sector.id.h,
                                            dev->req_sector.id.r,
                                            dev->req_sector.id.n))
-                    fdc_wrongcylinder(fdc);
+                    drv->ctrl->wrongcylinder(drv->ctrl_priv);
                 else
-                    fdc_nosector(fdc);
+                    drv->ctrl->nosector(drv->ctrl_priv);
                 dev->state = STATE_IDLE;
                 return;
                                         } else if (d86f_sector_flags(drv, side,
@@ -2559,7 +2582,7 @@ d86f_turbo_poll(void *priv, const int side)
                                             dev->id_find.sync_marks = dev->id_find.bits_obtained  =
                                                                       dev->id_find.bytes_obtained =
                                                                       dev->error_condition        = 0;
-                                            fdc_noidam(fdc);
+                                            drv->ctrl->noidam(drv->ctrl_priv);
                                             dev->state = STATE_IDLE;
                                             return;
                                                                      }
@@ -2583,7 +2606,7 @@ d86f_turbo_poll(void *priv, const int side)
             dev->id_find.sync_marks = dev->id_find.bits_obtained  =
                                       dev->id_find.bytes_obtained =
                                       dev->error_condition        = 0;
-            fdc_sectorid(drv->fdc, dev->last_sector.id.c, dev->last_sector.id.h,
+            drv->ctrl->sectorid(drv->ctrl_priv, dev->last_sector.id.c, dev->last_sector.id.h,
                                    dev->last_sector.id.r, dev->last_sector.id.n,
                                    0, 0);
             dev->state = STATE_IDLE;
@@ -2604,7 +2627,7 @@ d86f_turbo_poll(void *priv, const int side)
         case STATE_0C_READ_DATA:
         case STATE_11_SCAN_DATA:
         case STATE_16_VERIFY_DATA:
-            if (fdc_is_dma(drv->fdc))
+            if (drv->xfer.dma)
                 for (int i = 0; i < (128 << dev->last_sector.id.n); i++)
                     d86f_turbo_read(drv, side);
             else
@@ -2613,7 +2636,7 @@ d86f_turbo_poll(void *priv, const int side)
 
         case STATE_05_WRITE_DATA:
         case STATE_09_WRITE_DATA:
-            if (fdc_is_dma(drv->fdc))
+            if (drv->xfer.dma)
                 for (int i = 0; i < (128 << dev->last_sector.id.n); i++)
                     d86f_turbo_write(drv, side);
             else
@@ -2621,7 +2644,7 @@ d86f_turbo_poll(void *priv, const int side)
             break;
 
         case STATE_0D_FORMAT_TRACK:
-            if (fdc_is_dma(drv->fdc))
+            if (drv->xfer.dma)
                 while (dev->state == STATE_0D_FORMAT_TRACK)
                     d86f_turbo_format(drv, side, (side && (d86f_get_sides(drv) != 2)));
             else
@@ -2645,7 +2668,7 @@ d86f_poll(void *priv)
     if (!fdd_is_double_sided(drv))
         side = 0;
 
-    const int mfm = fdc_is_mfm(drv->fdc);
+    const int mfm = drv->ctrl->is_mfm(drv->ctrl_priv);
 
     if ((dev->state & 0xF8) == 0xE8) {
         if (!d86f_can_format(drv))
@@ -2720,11 +2743,11 @@ d86f_poll(void *priv)
             if (mfm)
                 d86f_find_address_mark_mfm(drv, side, &(dev->data_find), 0x5545,
                                            0x554a, 0x5554,
-                                           fdc_is_sk(drv->fdc) | 2);
+                                           drv->xfer.sk | 2);
             else
                 d86f_find_address_mark_fm(drv, side, &(dev->data_find), 0xf56f,
                                           0xf56a,0xf57e,
-                                          fdc_is_sk(drv->fdc) | 2);
+                                          drv->xfer.sk | 2);
             break;
 
         case STATE_05_FIND_DATA:
@@ -2739,11 +2762,11 @@ d86f_poll(void *priv)
             if (mfm)
                 d86f_find_address_mark_mfm(drv, side, &(dev->data_find), 0x554a,
                                            0x5545, 0x5554,
-                                           fdc_is_sk(drv->fdc) | 2);
+                                           drv->xfer.sk | 2);
             else
                 d86f_find_address_mark_fm(drv, side, &(dev->data_find), 0xf56a,
                                           0xf56f, 0xf57e,
-                                          fdc_is_sk(drv->fdc) | 2);
+                                          drv->xfer.sk | 2);
             break;
 
         case STATE_02_READ_DATA:
@@ -2788,7 +2811,7 @@ d86f_poll(void *priv)
             case STATE_0A_FIND_ID:
             case STATE_SECTOR_NOT_FOUND:
                 dev->state = STATE_IDLE;
-                fdc_noidam(drv->fdc);
+                drv->ctrl->noidam(drv->ctrl_priv);
                 break;
 
             case STATE_02_FIND_DATA:
@@ -2799,7 +2822,7 @@ d86f_poll(void *priv)
             case STATE_09_FIND_DATA:
             case STATE_0C_FIND_DATA:
                 dev->state = STATE_IDLE;
-                fdc_nodataam(drv->fdc);
+                drv->ctrl->nodataam(drv->ctrl_priv);
                 break;
 
             case STATE_02_SPIN_TO_INDEX:
@@ -2823,15 +2846,15 @@ d86f_poll(void *priv)
                 if (dev->id_found) {
                     if (dev->error_condition & 0x18) {
                         if ((dev->error_condition & 0x18) == 0x08)
-                            fdc_badcylinder(drv->fdc);
+                            drv->ctrl->badcylinder(drv->ctrl_priv);
                         if ((dev->error_condition & 0x10) == 0x10)
-                            fdc_wrongcylinder(drv->fdc);
+                            drv->ctrl->wrongcylinder(drv->ctrl_priv);
                         else
-                            fdc_nosector(drv->fdc);
+                            drv->ctrl->nosector(drv->ctrl_priv);
                     } else
-                        fdc_nosector(drv->fdc);
+                        drv->ctrl->nosector(drv->ctrl_priv);
                 } else
-                    fdc_noidam(drv->fdc);
+                    drv->ctrl->noidam(drv->ctrl_priv);
                 break;
         }
     }
@@ -3414,7 +3437,7 @@ d86f_common_command(void *priv, const int sector, const int track, const int sid
 
     d86f_log("d86f_common_command (drive %i): fdc_period=%i img_period=%i rate=%i sector=%i "
              "track=%i side=%i\n", drive,
-             fdc_get_bitcell_period(drv->fdc), d86f_get_bitcell_period(drive), rate, sector,
+             drv->ctrl->get_bitcell_period(drv->ctrl_priv), d86f_get_bitcell_period(drive), rate, sector,
              track, side);
 
     dev->req_sector.id.c = track;
@@ -3428,7 +3451,7 @@ d86f_common_command(void *priv, const int sector, const int track, const int sid
     dev->req_sector.id.n = sector_size;
 
     if (fdd_get_head(drv) && (d86f_get_sides(drv) == 1)) {
-        fdc_noidam(drv->fdc);
+        drv->ctrl->noidam(drv->ctrl_priv);
         dev->state       = STATE_IDLE;
         dev->index_count = 0;
         return 0;
@@ -3460,7 +3483,7 @@ d86f_readsector(void *priv, const int sector, const int track, const int side,
 
         if (fdd_get_turbo(drv))
             dev->track_pos = 0;
-    } else if (fdc_is_mfm(drv->fdc) != d86f_is_mfm(drv)) {
+    } else if (drv->ctrl->is_mfm(drv->ctrl_priv) != d86f_is_mfm(drv)) {
         /* The controller is asking for sectors in the other encoding than the
            one this track was written with. No address mark of that kind can
            exist, so say so once instead of scanning: an FM search over an
@@ -3469,14 +3492,14 @@ d86f_readsector(void *priv, const int sector, const int track, const int side,
            until the guest gives up. */
         dev->state       = STATE_IDLE;
         dev->index_count = 0;
-        fdc_noidam(drv->fdc);
+        drv->ctrl->noidam(drv->ctrl_priv);
     } else if (sector == SECTOR_FIRST)
         dev->state = STATE_02_SPIN_TO_INDEX;
     else if (sector == SECTOR_NEXT)
         dev->state = STATE_02_FIND_ID;
     else
-        dev->state = fdc_is_deleted(drv->fdc) ?
-                         STATE_0C_FIND_ID : (fdc_is_verify(drv->fdc) ?
+        dev->state = drv->xfer.deleted ?
+                         STATE_0C_FIND_ID : (drv->xfer.verify ?
                              STATE_16_FIND_ID : STATE_06_FIND_ID);
 }
 
@@ -3488,8 +3511,8 @@ d86f_writesector(void *priv, const int sector, const int track, const int side,
     d86f_t *     dev = (d86f_t *) drv->d86f_priv;
     int          ret = 0;
 
-    if (drv->writeprot || fdc_get_swwp(drv->fdc)) {
-        fdc_writeprotect(drv->fdc);
+    if (drv->writeprot || drv->ctrl->get_swwp(drv->ctrl_priv)) {
+        drv->ctrl->writeprotect(drv->ctrl_priv);
         dev->state       = STATE_IDLE;
         dev->index_count = 0;
         return;
@@ -3505,7 +3528,7 @@ d86f_writesector(void *priv, const int sector, const int track, const int side,
         if (fdd_get_turbo(drv))
             dev->track_pos = 0;
     } else
-        dev->state = fdc_is_deleted(drv->fdc) ? STATE_09_FIND_ID : STATE_05_FIND_ID;
+        dev->state = drv->xfer.deleted ? STATE_09_FIND_ID : STATE_05_FIND_ID;
 }
 
 void
@@ -3536,7 +3559,7 @@ d86f_readaddress(void *priv, UNUSED(int side), UNUSED(int rate))
     d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
     if (fdd_get_head(drv) && (d86f_get_sides(drv) == 1)) {
-        fdc_noidam(drv->fdc);
+        drv->ctrl->noidam(drv->ctrl_priv);
         dev->state       = STATE_IDLE;
         dev->index_count = 0;
         return;
@@ -3594,15 +3617,15 @@ d86f_common_format(void *priv, const int side, UNUSED(int rate), const uint8_t f
     fdd_drive_t *drv = (fdd_drive_t *) priv;
     d86f_t *     dev = (d86f_t *) drv->d86f_priv;
 
-    if (drv->writeprot || fdc_get_swwp(drv->fdc)) {
-        fdc_writeprotect(drv->fdc);
+    if (drv->writeprot || drv->ctrl->get_swwp(drv->ctrl_priv)) {
+        drv->ctrl->writeprotect(drv->ctrl_priv);
         dev->state       = STATE_IDLE;
         dev->index_count = 0;
         return;
     }
 
     if (!d86f_can_format(drv)) {
-        fdc_cannotformat(drv->fdc);
+        drv->ctrl->cannotformat(drv->ctrl_priv);
         dev->state       = STATE_IDLE;
         dev->index_count = 0;
         return;
@@ -3613,7 +3636,7 @@ d86f_common_format(void *priv, const int side, UNUSED(int rate), const uint8_t f
             d86f_reset_index_hole_pos(drv, side);
 
             if (dev->cur_track > 256) {
-                fdc_writeprotect(drv->fdc);
+                drv->ctrl->writeprotect(drv->ctrl_priv);
                 dev->state       = STATE_IDLE;
                 dev->index_count = 0;
                 return;
@@ -3644,9 +3667,9 @@ d86f_common_format(void *priv, const int side, UNUSED(int rate), const uint8_t f
 
     if (!proxy) {
         dev->side_flags[side] = 0;
-        dev->side_flags[side] |= (fdd_getrpm(&(drives[real_drive(drv->fdc, drv->id)])) == 360) ? 0x20 : 0;
-        dev->side_flags[side] |= fdc_get_bit_rate(drv->fdc);
-        dev->side_flags[side] |= fdc_is_mfm(drv->fdc) ? 8 : 0;
+        dev->side_flags[side] |= (fdd_getrpm(&(drives[drv->ctrl->real_drive(drv->ctrl_priv, drv->id)])) == 360) ? 0x20 : 0;
+        dev->side_flags[side] |= drv->ctrl->get_bit_rate(drv->ctrl_priv);
+        dev->side_flags[side] |= drv->ctrl->is_mfm(drv->ctrl_priv) ? 8 : 0;
 
         dev->index_hole_pos[side] = 0;
     }
@@ -3687,15 +3710,19 @@ d86f_common_handlers(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
 
-    drv->readsector    = d86f_readsector;
-    drv->writesector   = d86f_writesector;
-    drv->comparesector = d86f_comparesector;
-    drv->readaddress   = d86f_readaddress;
-    drv->byteperiod    = d86f_byteperiod;
-    drv->poll          = d86f_poll;
-    drv->format        = d86f_proxy_format;
-    drv->stop          = d86f_stop;
-    drv->hole          = d86f_hole;
+    const fdd_format_t ops = {
+        .readsector    = d86f_readsector,
+        .writesector   = d86f_writesector,
+        .comparesector = d86f_comparesector,
+        .readaddress   = d86f_readaddress,
+        .byteperiod    = d86f_byteperiod,
+        .poll          = d86f_poll,
+        .format        = d86f_proxy_format,
+        .stop          = d86f_stop,
+        .hole          = d86f_hole
+    };
+
+    fdd_format_set(drv, &ops);
 }
 
 int
@@ -3980,9 +4007,14 @@ d86f_load(void *priv, char *fn)
 
     d86f_register_86f(drv);
 
-    drv->seek = d86f_seek;
     d86f_common_handlers(drv);
-    drv->format = d86f_format;
+
+    const fdd_format_t ops = {
+        .seek   = d86f_seek,
+        .format = d86f_format
+    };
+
+    fdd_format_set(drv, &ops);
 
     d86f_log("86F: Disk does%s have surface description data\n",
              d86f_has_surface_desc(drive) ? "" : " not");

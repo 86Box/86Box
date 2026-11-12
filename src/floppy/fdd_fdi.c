@@ -30,7 +30,6 @@
 #include <86box/fdd_86f.h>
 #include <86box/fdd_img.h>
 #include <86box/fdd_fdi.h>
-#include <86box/fdc.h>
 #include <fdi2raw.h>
 
 typedef struct fdi_t {
@@ -148,10 +147,10 @@ fdi_density(void *priv)
 {
     fdd_drive_t *drv        = (fdd_drive_t *) priv;
 
-    if (!fdc_is_mfm(drv->fdc))
+    if (!drv->ctrl->is_mfm(drv->ctrl_priv))
         return 0;
 
-    switch (fdc_get_bit_rate(drv->fdc)) {
+    switch (drv->ctrl->get_bit_rate(drv->ctrl_priv)) {
         case 0:
             return 2;
 
@@ -181,7 +180,7 @@ extra_bit_cells(void *priv, const int side)
 
     is_300_rpm = (fdd_getrpm(drv) == 300);
 
-    switch (fdc_get_bit_rate(drv->fdc)) {
+    switch (drv->ctrl->get_bit_rate(drv->ctrl_priv)) {
         case 0:
             raw_size = is_300_rpm ? 200000 : 166666;
             break;
@@ -357,7 +356,11 @@ fdi_load(void *priv, char *fn)
 
     d86f_common_handlers(drv);
 
-    drv->seek = fdi_seek;
+    const fdd_format_t ops = {
+        .seek = fdi_seek
+    };
+
+    fdd_format_set(drv, &ops);
 
     fdi_log("Loaded as FDI\n");
 }
@@ -373,7 +376,7 @@ fdi_close(void *priv)
 
     d86f_unregister(drv);
 
-    drv->seek = NULL;
+    drv->fmt.seek = NULL;
 
     if (dev->h)
         fdi2raw_header_free(dev->h);

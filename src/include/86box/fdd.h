@@ -82,19 +82,28 @@ extern int fdd_current_track(void *priv);
 
 typedef uint8_t d86f_format_id_t[4];
 
+/* The flux view of one surface: what the head sees, one bit cell at a time.
+   An 86F image implements this directly from its stored bit-cell arrays; the
+   sector images (img, imd, fdi, mfm, pcjs, td0) implement it by encoding their
+   sectors on the fly. Everything below the bitstream engine speaks this
+   interface, so adding a medium format does not touch the controller. */
 typedef struct d86f_handler_t {
+    /* Medium attributes: what this surface is, and its nominal timing. */
     uint16_t (*disk_flags)(void *priv);
     uint16_t (*side_flags)(void *priv);
     void (*writeback)(void *priv);
+    /* Sector and track level, for the formatter. */
     void (*set_sector)(void *priv, int side, uint8_t c, uint8_t h,
                        uint8_t r, uint8_t n);
     int (*format_track)(void *priv, int side,
                         const d86f_format_id_t *ids, uint16_t count,
                         uint8_t fill);
+    int (*format_conditions)(void *priv);
+    /* Flux: one bit cell at the given position on the surface. */
     uint8_t (*read_data)(void *priv, int side, uint16_t pos);
     void (*write_data)(void *priv, int side, uint16_t pos,
                        uint8_t data);
-    int (*format_conditions)(void *priv);
+    /* Revolution geometry, in bit cells. */
     int32_t (*extra_bit_cells)(void *priv, int side);
     uint16_t *(*encoded_data)(void *priv, int side);
     void (*read_revolution)(void *priv);
@@ -103,6 +112,100 @@ typedef struct d86f_handler_t {
 
     uint8_t check_crc;
 } d86f_handler_t;
+
+/* Same layout as sector_id_t in fdc.h, kept here so this header stays
+   standalone. */
+typedef union fdd_sector_id_t {
+    uint32_t dword;
+    uint8_t  byte_array[4];
+    struct {
+        uint8_t c;
+        uint8_t h;
+        uint8_t r;
+        uint8_t n;
+    } id;
+} fdd_sector_id_t;
+
+/* The seam between the drive layer and the controller. A drive reports its
+   mechanical state and the result of the decode to the controller through
+   these hooks, and asks the controller for the parameters the transfer runs
+   with. Two groups, following the hardware split:
+
+     mech  - the mechanical side: drive mapping, write protect, and the two
+             interrupts the drive raises.
+     flux  - the head side: bit timing and encoding, the data path, and every
+             event the bitstream engine reports (record found, CRC, RNF, ...).
+
+   Every hook is optional; a controller that has nothing to say about one
+   leaves it NULL and the caller keeps its previous behaviour. */
+typedef struct fdd_ctrl_t {
+    /* ---- Mechanical side ------------------------------------------ */
+    /* Drive index this controller sees for `drive` (swap and gating). */
+    int         (*real_drive)(void *priv, int drive);
+    /* Physical cylinder the head is on, for the cylinder mismatch check. */
+    int         (*get_pcn)(void *priv, int head);
+    /* Software write-protect switch. */
+    uint8_t     (*get_swwp)(void *priv);
+    /* Chip configuration the mechanical paths branch on. */
+    int         (*is_pcjx)(void *priv);
+    int         (*is_ibm5140)(void *priv);
+    int         (*is_interface_gated)(void *priv);
+    void        (*seek_complete_interrupt)(void *priv, int drive);
+    void        (*diskchange_interrupt)(void *priv, int drive);
+
+    /* ---- Flux side ------------------------------------------------ */
+    int         (*get_bit_rate)(void *priv);
+    int         (*get_bitcell_period)(void *priv);
+    int         (*is_mfm)(void *priv);
+    uint8_t     (*get_diswr)(void *priv);
+    int         (*get_gap)(void *priv);
+    int         (*get_gap2)(void *priv, int drive);
+
+    /* Data path: one byte at a time, in both directions. */
+    int         (*data)(void *priv, uint8_t data, int last);
+    int         (*getdata)(void *priv, int last);
+    int         (*data_available)(const void *priv);
+
+    /* Decode results and error conditions. */
+    void        (*sector_finishread)(void *priv);
+    void        (*sector_finishcompare)(void *priv, int satisfying);
+    void        (*track_finishread)(void *priv, int condition);
+    void        (*noidam)(void *priv);
+    void        (*nosector)(void *priv);
+    void        (*nodataam)(void *priv);
+    void        (*cannotformat)(void *priv);
+    void        (*datacrcerror)(void *priv);
+    void        (*headercrcerror)(void *priv);
+    void        (*writeprotect)(void *priv);
+    void        (*wrongcylinder)(void *priv);
+    void        (*badcylinder)(void *priv);
+    void        (*set_wrong_am)(void *priv);
+    void        (*sectorid)(void *priv, uint8_t track, uint8_t side,
+                            uint8_t sector, uint8_t size, uint8_t crc1,
+                            uint8_t crc2);
+
+    /* Read Address: the ID last found on the track. */
+    fdd_sector_id_t (*get_read_track_sector)(void *priv);
+    void        (*request_next_sector_id)(void *priv);
+    void        (*stop_id_request)(void *priv);
+} fdd_ctrl_t;
+
+/* One command's parameters, as the controller holds them. The controller
+   copies this onto the drive it is addressing; the medium then work from
+   the copy, so nothing below the controller has to ask it back. */
+typedef struct fdd_xfer_t {
+    uint8_t          dtl;
+    uint8_t          dma;       /* data moves through the DMA channel */
+    uint8_t          sk;        /* skip deleted data address marks */
+    uint8_t          verify;    /* VERIFY: check the sector, move no data */
+    uint8_t          deleted;   /* write / accept a deleted DAM */
+    uint8_t          command;   /* command byte, for seek timing */
+    uint8_t          compare;   /* scan condition: 0 equal, 1 <=, 2 >= */
+    uint8_t          step_rate; /* SPECIFY SRT, 0..15 */
+    uint8_t          format_n;         /* N of the sectors being laid down */
+    uint8_t          format_sectors;   /* sectors per track to lay down */
+    fdd_sector_id_t *format_id;        /* ID bytes the formatter collects */
+} fdd_xfer_t;
 
 typedef struct fdd_pending_op_t {
     int     pending;
@@ -143,8 +246,34 @@ typedef struct {
 } multi_seek_state_t;
 #endif
 
+/* The mounted medium's command entry points. A format installs the ones
+   it provides with fdd_format_set(); the rest keep whatever the common
+   bitstream handlers put there. */
+typedef struct fdd_format_t {
+    void (*seek)(void *priv, int track);
+    void (*readsector)(void *priv, int sector, int track, int side,
+                       int density, int sector_size);
+    void (*writesector)(void *priv, int sector, int track, int side,
+                        int density, int sector_size);
+    void (*comparesector)(void *priv, int sector, int track, int side,
+                          int density, int sector_size);
+    void (*readaddress)(void *priv, int side, int density);
+    void (*format)(void *priv, int side, int density, uint8_t fill);
+    int (*hole)(void *priv);
+    /* Flux parameter, not a mechanical one: the byte clock the controller
+       paces itself with, derived from the medium's bit cell timing. */
+    uint64_t (*byteperiod)(void *priv);
+    void (*stop)(void *priv);
+    void (*poll)(void *priv);
+} fdd_format_t;
+
 typedef struct fdd_drive_t {
     uint8_t            id;
+
+    /* Parameters of the command the controller has just handed down. 
+       The controller owns them and refreshes this copy when it starts each
+       operation; the medium reads it and never asks the controller back. */
+    fdd_xfer_t         xfer;
 
     char               image_path[MAX_IMAGE_PATH_LEN];
     char *             image_history[FLOPPY_IMAGE_HISTORY];
@@ -191,24 +320,23 @@ typedef struct fdd_drive_t {
     void *             d86f_priv;
     void *             local;
 
-    void *             fdc;
+    /* The controller this drive reports to: the seam the drive
+       and the bitstream engine use, with ctrl_priv pointing
+       at the controller's own state. */
+    const fdd_ctrl_t * ctrl;
+    void *             ctrl_priv;
 
-    void (*seek)(void *priv, int track);
-    void (*readsector)(void *priv, int sector, int track, int side,
-                       int density, int sector_size);
-    void (*writesector)(void *priv, int sector, int track, int side,
-                        int density, int sector_size);
-    void (*comparesector)(void *priv, int sector, int track, int side,
-                          int density, int sector_size);
-    void (*readaddress)(void *priv, int side, int density);
-    void (*format)(void *priv, int side, int density, uint8_t fill);
-    int (*hole)(void *priv);
-    uint64_t (*byteperiod)(void *priv);
-    void (*stop)(void *priv);
-    void (*poll)(void *priv);
+    /* Command entry points of whatever medium is mounted. */
+    fdd_format_t       fmt;
 } fdd_drive_t;
 
 extern fdd_drive_t drives[FDD_NUM];
+
+/* Merge the handlers a format provides into the drive's table;
+   NULL members leave the existing entry alone. */
+extern void fdd_format_set(fdd_drive_t *drv, const fdd_format_t *fmt);
+/* Drop every handler, as when a medium is unmounted. */
+extern void fdd_format_clear(fdd_drive_t *drv);
 
 extern int curdrive;
 
