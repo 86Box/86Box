@@ -43,7 +43,6 @@
 #include <86box/fdd_mfm.h>
 #include <86box/fdd_td0.h>
 #include <86box/fdd_tape.h>
-#include <86box/fdc.h>
 #include <86box/fdd_audio.h>
 #include <86box/plat_floppy_ioctl.h>
 
@@ -386,7 +385,7 @@ fdd_seek_complete_callback(void *priv)
     }
 
     if (!had_pending || fdd_tape_present(drv))
-        fdc_seek_complete_interrupt((fdc_t *) drv->fdc, drv->id & 3);
+        drv->ctrl->seek_complete_interrupt(drv->ctrl_priv, drv->id & 3);
 }
 
 /*
@@ -440,11 +439,11 @@ fdd_seek(void *priv, const int track_diff)
         return;
     }
 
-    fdc_t *fdc     = (fdc_t *) drv->fdc;
-
     int old_track = drv->track;
-    const int ibm5140 = (fdc != NULL) && (fdc->flags & FDC_FLAG_IBM5140);
-    const int degated = ibm5140 && fdc->drive_interface_gated;
+    const int ibm5140 = (drv->ctrl != NULL) &&
+                        drv->ctrl->is_ibm5140(drv->ctrl_priv);
+    const int degated = ibm5140 &&
+                        drv->ctrl->is_interface_gated(drv->ctrl_priv);
 
     if (!degated)
         drv->track += track_diff;
@@ -481,7 +480,7 @@ fdd_seek(void *priv, const int track_diff)
 
         /* Get seek timings from audio profile configuration with direction awareness */
         const int step_count = ibm5140 && !degated &&
-                               ((fdc->command & 0x1f) == 0x07) ?
+                               ((drv->ctrl->get_command(drv->ctrl_priv) & 0x1f) == 0x07) ?
                                actual_track_diff : abs(track_diff);
         double seek_time_us = ibm5140 ? 6000.0 * step_count :
                               fdd_audio_get_seek_time(drv, actual_track_diff,
@@ -989,7 +988,6 @@ static void
 fdd_poll(void *priv)
 {
     fdd_drive_t *drv   = (fdd_drive_t *) priv;
-    fdc_t       *fdc   = (fdc_t *) drv->fdc;
 
     if (drv == NULL)
         return;
@@ -1000,7 +998,7 @@ fdd_poll(void *priv)
         drv->fmt.poll((void *) drv);
 
     if (drv->changed)
-        fdc_diskchange_interrupt(fdc, drv->id);
+        drv->ctrl->diskchange_interrupt(drv->ctrl_priv, drv->id);
 }
 
 int
@@ -1219,12 +1217,11 @@ void
 fdd_stop(void *priv)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
-    fdc_t *      fdc = (fdc_t *) drv->fdc;
 
     if (drv == NULL)
         return;
 
-    if ((fdc != NULL) && (fdc->flags & FDC_FLAG_PCJX)) {
+    if ((drv->ctrl != NULL) && drv->ctrl->is_pcjx(drv->ctrl_priv)) {
         /* Abort the pending operation, not the physical head position. */
         const int was_seeking = drv->seek_in_progress;
         timer_disable(&drv->seek_timer);

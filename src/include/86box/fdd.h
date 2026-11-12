@@ -149,6 +149,10 @@ typedef struct fdd_ctrl_t {
     int         (*get_pcn)(void *priv, int head);
     /* Software write-protect switch. */
     uint8_t     (*get_swwp)(void *priv);
+    /* Chip configuration the mechanical paths branch on. */
+    int         (*is_pcjx)(void *priv);
+    int         (*is_ibm5140)(void *priv);
+    int         (*is_interface_gated)(void *priv);
     void        (*seek_complete_interrupt)(void *priv, int drive);
     void        (*diskchange_interrupt)(void *priv, int drive);
 
@@ -190,6 +194,8 @@ typedef struct fdd_ctrl_t {
 
     /* ---- Command context (temporary, see above) ------------------- */
     int         (*get_dtl)(void *priv);
+    /* Command byte running for now (seek timing looks at its low bits). */
+    int         (*get_command)(void *priv);
     int         (*get_format_n)(void *priv);
     int         (*get_format_sectors)(void *priv);
     /* The four bytes the formatter is assembling from the data port. */

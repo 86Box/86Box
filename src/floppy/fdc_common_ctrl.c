@@ -44,6 +44,24 @@ fdc_ctrl_get_pcn(void *priv, int head)
     return (int) ((fdc_t *) priv)->pcn[head & 3];
 }
 
+static int
+fdc_ctrl_is_pcjx(void *priv)
+{
+    return (((fdc_t *) priv)->flags & FDC_FLAG_PCJX) ? 1 : 0;
+}
+
+static int
+fdc_ctrl_is_ibm5140(void *priv)
+{
+    return (((fdc_t *) priv)->flags & FDC_FLAG_IBM5140) ? 1 : 0;
+}
+
+static int
+fdc_ctrl_is_interface_gated(void *priv)
+{
+    return ((fdc_t *) priv)->drive_interface_gated ? 1 : 0;
+}
+
 static void
 fdc_ctrl_seek_complete_interrupt(void *priv, int drive)
 {
@@ -229,6 +247,12 @@ fdc_ctrl_stop_id_request(void *priv)
 /* ------------------------------------------------------------------------- */
 
 static int
+fdc_ctrl_get_command(void *priv)
+{
+    return (int) ((fdc_t *) priv)->command;
+}
+
+static int
 fdc_ctrl_get_dtl(void *priv)
 {
     return fdc_get_dtl((fdc_t *) priv);
@@ -293,6 +317,9 @@ const fdd_ctrl_t fdc_ctrl = {
     .real_drive              = fdc_ctrl_real_drive,
     .get_swwp                = fdc_ctrl_get_swwp,
     .get_pcn                 = fdc_ctrl_get_pcn,
+    .is_pcjx                 = fdc_ctrl_is_pcjx,
+    .is_ibm5140              = fdc_ctrl_is_ibm5140,
+    .is_interface_gated      = fdc_ctrl_is_interface_gated,
     .seek_complete_interrupt = fdc_ctrl_seek_complete_interrupt,
     .diskchange_interrupt    = fdc_ctrl_diskchange_interrupt,
 
@@ -332,6 +359,7 @@ const fdd_ctrl_t fdc_ctrl = {
     .get_format_sectors      = fdc_ctrl_get_format_sectors,
     .get_format_id           = fdc_ctrl_get_format_id,
     .get_format_n            = fdc_ctrl_get_format_n,
+    .get_command             = fdc_ctrl_get_command,
     .get_dtl                 = fdc_ctrl_get_dtl,
     .is_dma                  = fdc_ctrl_is_dma,
     .is_sk                   = fdc_ctrl_is_sk,
