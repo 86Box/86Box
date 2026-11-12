@@ -133,7 +133,7 @@ TEST_F(ModemProfile, RestoresSettingsButNotTheLiveRingCounter)
 
 TEST_F(ModemProfile, MigratesLegacyProfilesWithoutDiscardingSettings)
 {
-    const auto path = nvr_dir / "machine_net_modem_1.nvr";
+    const auto path = nvr_dir / "machine_modem_1.nvr";
     Settings legacy;
     legacy.dcd = 0;
     legacy.reg[8] = 3;
@@ -171,14 +171,24 @@ TEST_F(ModemProfile, MigratesLegacyProfilesWithoutDiscardingSettings)
     EXPECT_EQ(std::filesystem::file_size(path), 5 + 11 + MODEM_REGS);
 }
 
-TEST_F(ModemProfile, SeparatesFrontendsInstancesAndMachines)
+TEST_F(ModemProfile, SharesFrontendsButSeparatesInstancesAndMachines)
 {
     Settings changed;
     modem_profile_t profile = {};
     modem_profile_init(&profile, changed.state(), "machine", "net", 1);
     changed.dcd = 0;
     modem_profile_save(&profile, changed.state());
-    for (const auto &identity : { std::pair{"machine", "char"}, {"other", "net"} }) {
+    Settings shared;
+    modem_profile_t char_profile = {};
+    modem_profile_init(&char_profile, shared.state(), "machine", "char", 1);
+    EXPECT_EQ(shared.dcd, 0);
+    shared.speaker = 3;
+    ASSERT_TRUE(modem_profile_write(&char_profile, shared.state()));
+    Settings net;
+    modem_profile_t net_profile = {};
+    modem_profile_init(&net_profile, net.state(), "machine", "net", 1);
+    EXPECT_EQ(net.speaker, 3);
+    for (const auto &identity : { std::pair{"other", "char"}, {"other", "net"} }) {
         Settings fresh;
         modem_profile_t other = {};
         modem_profile_init(&other, fresh.state(), identity.first, identity.second, 1);
@@ -189,6 +199,68 @@ TEST_F(ModemProfile, SeparatesFrontendsInstancesAndMachines)
     modem_profile_init(&other, fresh.state(), "machine", "net", 2);
     EXPECT_EQ(fresh.dcd, 1);
     EXPECT_EQ(errors, 0);
+}
+
+TEST_F(ModemProfile, ImportsLegacyFrontendAndPrefersSharedFile)
+{
+    Settings settings;
+    modem_profile_t profile = {};
+    modem_profile_init(&profile, settings.state(), "machine", "net", 1);
+    settings.dcd = 0;
+    ASSERT_TRUE(modem_profile_write(&profile, settings.state()));
+    const auto shared_path = nvr_dir / "machine_modem_1.nvr";
+    const auto legacy_path = nvr_dir / "machine_net_modem_1.nvr";
+    std::filesystem::rename(shared_path, legacy_path);
+
+    Settings restored;
+    modem_profile_t char_profile = {};
+    modem_profile_init(&char_profile, restored.state(), "machine", "char", 1);
+    EXPECT_EQ(restored.dcd, 0);
+    ASSERT_TRUE(std::filesystem::exists(shared_path));
+    EXPECT_TRUE(std::filesystem::exists(legacy_path));
+
+    restored.dcd = 1;
+    ASSERT_TRUE(modem_profile_write(&char_profile, restored.state()));
+    Settings reopened;
+    modem_profile_t net_profile = {};
+    modem_profile_init(&net_profile, reopened.state(), "machine", "net", 1);
+    EXPECT_EQ(reopened.dcd, 1);
+    EXPECT_EQ(errors, 0);
+}
+
+TEST_F(ModemProfile, ImportsMatchingLegacyFrontendWhenBothExist)
+{
+    Settings settings;
+    modem_profile_t profile = {};
+    modem_profile_init(&profile, settings.state(), "machine", "net", 1);
+    settings.dcd = 0;
+    ASSERT_TRUE(modem_profile_write(&profile, settings.state()));
+    const auto shared_path = nvr_dir / "machine_modem_1.nvr";
+    std::filesystem::copy_file(shared_path, nvr_dir / "machine_net_modem_1.nvr");
+    settings.dcd = 1;
+    settings.speaker = 3;
+    ASSERT_TRUE(modem_profile_write(&profile, settings.state()));
+    std::filesystem::rename(shared_path, nvr_dir / "machine_char_modem_1.nvr");
+
+    Settings restored;
+    modem_profile_t char_profile = {};
+    modem_profile_init(&char_profile, restored.state(), "machine", "char", 1);
+    EXPECT_EQ(restored.dcd, 1);
+    EXPECT_EQ(restored.speaker, 3);
+    EXPECT_EQ(errors, 0);
+}
+
+TEST_F(ModemProfile, DoesNotImportCorruptLegacyProfile)
+{
+    const auto legacy_path = nvr_dir / "machine_net_modem_1.nvr";
+    { std::ofstream file(legacy_path, std::ios::binary); file << "bad"; }
+    Settings settings;
+    modem_profile_t profile = {};
+    modem_profile_init(&profile, settings.state(), "machine", "char", 1);
+    EXPECT_EQ(errors, 1);
+    EXPECT_EQ(settings.dcd, 1);
+    EXPECT_FALSE(std::filesystem::exists(nvr_dir / "machine_modem_1.nvr"));
+    EXPECT_TRUE(std::filesystem::exists(legacy_path));
 }
 
 TEST_F(ModemProfile, ResetRestoresSavedSettingsAndFactoryRemainsSeparate)
@@ -248,7 +320,7 @@ TEST_F(ModemProfile, ResetRestoresSavedSettingsAndFactoryRemainsSeparate)
 
 TEST_F(ModemProfile, RejectsCorruptProfilesAndReportsSaveErrors)
 {
-    const auto path = nvr_dir / "machine_net_modem_1.nvr";
+    const auto path = nvr_dir / "machine_modem_1.nvr";
     { std::ofstream file(path, std::ios::binary); file << "bad"; }
     Settings settings;
     modem_profile_t profile = {};
@@ -277,7 +349,7 @@ TEST_F(ModemProfile, RejectsOutOfRangeStoredSettings)
     settings.dcd = 0;
     modem_profile_save(&profile, settings.state());
     ASSERT_EQ(errors, 0);
-    const auto path = nvr_dir / "machine_char_modem_2.nvr";
+    const auto path = nvr_dir / "machine_modem_2.nvr";
     {
         std::fstream file(path, std::ios::in | std::ios::out | std::ios::binary);
         ASSERT_TRUE(file);
@@ -296,7 +368,7 @@ TEST_F(ModemProfile, ExplicitWriteRecreatesProfileAndReportsErrors)
     Settings settings;
     modem_profile_t profile = {};
     modem_profile_init(&profile, settings.state(), "machine", "net", 1);
-    const auto path = nvr_dir / "machine_net_modem_1.nvr";
+    const auto path = nvr_dir / "machine_modem_1.nvr";
     EXPECT_TRUE(modem_profile_write(&profile, settings.state()));
     ASSERT_TRUE(std::filesystem::exists(path));
     std::filesystem::remove(path);
