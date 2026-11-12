@@ -36,7 +36,7 @@ machine_status_init(void)
         machine_status.fdd[i].empty        = (strlen(drv->image_path) == 0);
         machine_status.fdd[i].active       = false;
         machine_status.fdd[i].write_active = false;
-        machine_status.fdd[i].write_prot   = !!drv->read_only;
+        machine_status.fdd[i].write_prot   = !!drv->writeprot;
     }
     for (size_t i = 0; i < CDROM_NUM; ++i) {
         machine_status.cdrom[i].empty        = (strlen(cdrom[i].image_path) == 0);

@@ -996,7 +996,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         else if (QString(drv->image_path).left(5) == "wp://")
             d->fdd[i].setWriteProtected(true);
         else
-            d->fdd[i].setWriteProtected(drv->read_only);
+            d->fdd[i].setWriteProtected(drv->writeprot);
         d->fdd[i].setActive(false);
         d->fdd[i].setWriteActive(false);
         d->fdd[i].refresh();

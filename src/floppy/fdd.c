@@ -821,7 +821,7 @@ fdd_load(void *priv, char *fn)
 
         fdd_forced_seek(drv, 0);
         drv->changed = 1;
-        ui_sb_update_icon_wp(SB_FLOPPY | drv->id, drv->read_only);
+        ui_sb_update_icon_wp(SB_FLOPPY | drv->id, drv->writeprot);
         return;
     }
 
@@ -856,7 +856,7 @@ fdd_load(void *priv, char *fn)
                    here as well. */
                 if (drv->motoron)
                     timer_set_delay_u64(&drv->poll_time, fdd_byteperiod(drv));
-                ui_sb_update_icon_wp(SB_FLOPPY | drv->id, drv->read_only);
+                ui_sb_update_icon_wp(SB_FLOPPY | drv->id, drv->writeprot);
                 return;
             }
             c++;
