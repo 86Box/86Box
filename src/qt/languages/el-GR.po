@@ -2579,6 +2579,9 @@ msgstr "SLI"
 msgid "Start Address"
 msgstr "Διεύθυνση εκκίνησης"
 
+msgid "Allow RAM up to the system ROM"
+msgstr ""
+
 msgid "Contiguous Size"
 msgstr "Μέγεθος συνέχειας"
 

@@ -2647,6 +2647,9 @@ msgstr "SLI"
 msgid "Start Address"
 msgstr "Počáteční adresa"
 
+msgid "Allow RAM up to the system ROM"
+msgstr ""
+
 msgid "Contiguous Size"
 msgstr "Velikost souvislého bloku"
 

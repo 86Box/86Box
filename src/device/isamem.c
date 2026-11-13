@@ -669,10 +669,22 @@ isamem_init(const device_t *info)
          * A0000-B7FFF on CGA systems for 704/736KB conventional memory,
          * or providing RAM for UMBs). Configurations with a start address
          * below 640KB behave exactly as before.
+         *
+         * Optionally, on machines whose BIOS ROM starts above 960KB (for
+         * example the 16KB ROM at FC000 of the Amstrad PC1512), the RAM
+         * can go on up to the start of that ROM. Off by default: on some
+         * machines the ROM is only partially decoded and repeats there.
          */
-        if ((dev->board == ISAMEM_GENXT_CARD) && (addr >= RAM_TOPMEM) && (addr < RAM_UMATOP)) {
-            t   = RAM_UMATOP - addr;
-            uma = 1;
+        if (dev->board == ISAMEM_GENXT_CARD) {
+            uint32_t uma_top = RAM_UMATOP;
+
+            if (device_get_config_int("uma_to_rom") && (biosaddr > RAM_UMATOP))
+                uma_top = biosaddr;
+
+            if ((addr >= RAM_TOPMEM) && (addr < uma_top)) {
+                t   = uma_top - addr;
+                uma = 1;
+            }
         }
 
         /* Check for Everex EV-159 cards in CS8220 backfill mode. */
@@ -1087,6 +1099,17 @@ static const device_config_t genericxt_config[] = {
             .max  = 944,
             .step =  16
         },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "uma_to_rom",
+        .description    = "Allow RAM up to the system ROM",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
