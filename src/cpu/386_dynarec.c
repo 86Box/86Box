@@ -300,6 +300,7 @@ cpu_throttle_stall(int32_t ran)
     cycles -= stall;
 }
 
+#ifdef USE_DYNAREC
 /* Compiled blocks hold no debug-register checks. Data breakpoints can fire on
    any access, so they still disable the recompiler outright; an execution
    breakpoint only blocks the block covering it, and a block spans at most two
@@ -338,7 +339,6 @@ dr_blocks_cache(void)
 #define CACHE_ON_DBG(dbg) (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG) && !((dbg) && cpu_dr_armed && dr_blocks_cache()))
 #define CACHE_ON()        CACHE_ON_DBG(cpu_debug_regs_486)
 
-#ifdef USE_DYNAREC
 int32_t         cycles_main = 0;
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
 /* The block link routine does the loop-top stores itself. */
