@@ -293,7 +293,6 @@ ropOR_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
     uop_MOV(ir, IREG_flags_res, IREG_EAX);
 
     codegen_flags_changed = 1;
-    codegen_mark_code_present(block, cs + op_pc, 4);
     return op_pc + 4;
 }
 uint32_t
@@ -654,7 +653,6 @@ ropXOR_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
     uop_MOV(ir, IREG_flags_res, IREG_EAX);
 
     codegen_flags_changed = 1;
-    codegen_mark_code_present(block, cs + op_pc, 4);
     return op_pc + 4;
 }
 uint32_t

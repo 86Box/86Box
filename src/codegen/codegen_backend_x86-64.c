@@ -1344,8 +1344,8 @@ _Static_assert(offsetof(codegen_link_slot_t, exit_pc) == 0 && offsetof(codegen_l
 _Static_assert((uint32_t) (13u * 0xc4ec4ec5u) == 1 && (uint64_t) sizeof(codegen_link_slots) < 0x100000000ull,
                "the set lookup finds a slot's site from its 32-bit offset with the inverse of 13");
 _Static_assert(CODEGEN_LINK_SET_ONE >= CODEGEN_LINK_SETS, "the set lookup takes CODEGEN_LINK_SET_ONE for no set");
-_Static_assert(offsetof(codeblock_t, runs_left) == offsetof(codeblock_t, used) + 1,
-               "used and runs_left are loaded as one word");
+_Static_assert(sizeof(((codeblock_t *) 0)->used) == 1 && sizeof(((codeblock_t *) 0)->runs_left) == 8,
+               "used is loaded as a byte and runs_left as a qword");
 _Static_assert(offsetof(cpu_events_t, flush_pending) == offsetof(cpu_events_t, was_reset) + 4
                    && offsetof(cpu_events_t, ne) == offsetof(cpu_events_t, init) + 4
                    && offsetof(cpu_events_t, override_dynarec) == offsetof(cpu_events_t, force_interpreter) + 4
@@ -1404,7 +1404,9 @@ build_link_routine(codeblock_t *block)
     void    *xlat_2_done;
     void    *miss_dest;
     int32_t *key_miss[2];
+    int32_t *set_miss[2];
     void    *key_done;
+    void    *gen_done;
 
     /*Start in a fresh chunk, so the hit path has no chunk-linking jumps*/
     codegen_alloc(block, BLOCK_MAX - JMP_LEN_BYTES);
@@ -1436,6 +1438,7 @@ build_link_routine(codeblock_t *block)
     rx_rm(block, 0, 0, 0x8b, REG_R9, REG_RDI, LINK_BLOCK(link_gen));
     rx_rm(block, 0, 0, 0x3b, REG_R9, REG_RBX, LINK_SLOT(gen));
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    gen_done = rx_here();
 
     /*Nothing pending for the loop, and the loop would pick the recompiler.
       An armed debug breakpoint is a miss, so the loop makes its per-block
@@ -1569,8 +1572,9 @@ build_link_routine(codeblock_t *block)
       and a linked entry counts down runs_left as the dispatcher's does.
       Both are stored only when that changes them: used 1 and runs_left 0
       stay as they are*/
-    rx_rm(block, 0, 0, 0x0fb7, REG_RDX, REG_RDI, LINK_BLOCK(used)); /*MOVZX EDX, used and runs_left*/
-    rx_alu_ri(block, 0, 7, REG_RDX, 1);
+    rx_rm(block, 0, 0, 0x0fb6, REG_RDX, REG_RDI, LINK_BLOCK(used));      /*MOVZX EDX, used*/
+    rx_alu_ri(block, 0, 6, REG_RDX, 1);                                  /*XOR EDX, 1*/
+    rx_rm(block, 0, 1, 0x0b, REG_RDX, REG_RDI, LINK_BLOCK(runs_left));   /*OR RDX, runs_left*/
     used_set = rx_jcc(block, RX_CC_NZ);
     rx_bytes(block, jmp_r15, 3);
 
@@ -1611,7 +1615,7 @@ build_link_routine(codeblock_t *block)
     rx_patch(used_set, rx_here());
     rx_rr(block, 0, 0, 0xff, 0, REG_RCX);                       /*INC ECX*/
     rx_rm(block, 0, 0, 0x88, REG_RCX, REG_RDI, LINK_BLOCK(used)); /*MOV block->used, CL*/
-    rx_rm(block, 0, 0, 0xd0, 5, REG_RDI, LINK_BLOCK(runs_left)); /*SHR byte, 1*/
+    rx_rm(block, 0, 1, 0xd1, 5, REG_RDI, LINK_BLOCK(runs_left)); /*SHR qword, 1*/
     rx_bytes(block, jmp_r15, 3);
 
     /*get_phys() cache miss: it would store the full address in
@@ -1701,7 +1705,7 @@ build_link_routine(codeblock_t *block)
     rx_rr(block, 0, 0, 0x89, REG_R9, REG_R10); /*MOV R10D, R9D*/
     rx_alu_ri(block, 0, 5, REG_R10, 1);
     rx_alu_ri(block, 0, 7, REG_R10, CODEGEN_LINK_SETS - 2);
-    miss[nr_miss++] = rx_jcc(block, RX_CC_A);
+    set_miss[0] = rx_jcc(block, RX_CC_A);
     /*RDI = the set*/
     rx_mov_ri(block, REG_R10, sizeof(codegen_link_set_t));
     rx_rr(block, 0, 0, 0x0faf, REG_R9, REG_R10); /*IMUL R9D, R10D*/
@@ -1719,7 +1723,7 @@ build_link_routine(codeblock_t *block)
     rx_rm(block, 0, 1, 0x3b, REG_R8, REG_RDI, LINK_SET_E(2) + LINK_SLOT(exit_pc));
     rx_rr(block, 0, 0, 0x0f44, REG_RCX, REG_R14); /*CMOVE ECX, R14D*/
     rx_alu_ri(block, 0, 7, REG_RCX, 3);
-    miss[nr_miss++] = rx_jcc(block, RX_CC_Z);
+    set_miss[1] = rx_jcc(block, RX_CC_Z);
     /*order = codegen_link_set_mtf[order][ECX]*/
     rx_rm(block, 0, 0, 0x0fb6, REG_RDX, REG_RDI, offsetof(codegen_link_set_t, order));
     rx_shift_ri(block, 4, REG_RDX, 2);
@@ -1748,6 +1752,32 @@ build_link_routine(codeblock_t *block)
     }
     rx_rr(block, 0, 1, 0x89, REG_RBX, REG_RAX); /*MOV RAX, RBX*/
     rx_patch(rx_jmp(block), key_done);
+
+    /*No set, or not in it, with R8 = the key and ESI = cs + pc: the checks
+      go on with RBX = the record at the target's index in
+      codegen_link_mcache if it holds the key. RAX stays the slot, so a miss
+      from here returns it and the C loop fills it.*/
+    rx_patch(set_miss[0], rx_here());
+    rx_patch(set_miss[1], rx_here());
+#        ifdef CODEGEN_BACKEND_HAS_LINK_MCACHE
+    rx_rr(block, 0, 0, 0x89, REG_RSI, REG_R9); /*MOV R9D, ESI*/
+    rx_mov_ri(block, REG_R10, CODEGEN_LINK_MCACHE_MUL);
+    rx_rr(block, 0, 0, 0x0faf, REG_R9, REG_R10); /*IMUL R9D, R10D*/
+    rx_shift_ri(block, 5, REG_R9, 32 - CODEGEN_LINK_MCACHE_BITS);
+    rx_shift_ri(block, 4, REG_R9, CODEGEN_LINK_MCACHE_SHIFT);
+    rx_mov_ri64(block, REG_RBX, (uint64_t) (uintptr_t) codegen_link_mcache);
+    rx_rr(block, 0, 1, 0x01, REG_R9, REG_RBX); /*ADD RBX, R9*/
+    rx_rm(block, 0, 1, 0x3b, REG_R8, REG_RBX, LINK_SLOT(exit_pc));
+    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    /*The record is emptied when its block changes: no link_gen check*/
+    rx_rm(block, 0, 1, 0x8b, REG_R15, REG_RBX, LINK_SLOT(entry));
+    rx_rr(block, 0, 1, 0x85, REG_R15, REG_R15);
+    miss[nr_miss++] = rx_jcc(block, RX_CC_Z);
+    rx_rm(block, 0, 1, 0x8b, REG_RDI, REG_RBX, LINK_SLOT(block));
+    rx_patch(rx_jmp(block), gen_done);
+#        else
+    miss[nr_miss++] = rx_jmp(block);
+#        endif
 
     if (nr_miss > LINK_MAX_MISS)
         fatal("build_link_routine - too many miss branches\n");

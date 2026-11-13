@@ -20,6 +20,7 @@
 #include "codegen_backend.h"
 #include "codegen_ir.h"
 #include "codegen_ops.h"
+#include "codegen_ops_arith.h"
 #include "codegen_ops_helpers.h"
 
 static struct {
@@ -1717,6 +1718,33 @@ generate_call:
             recomp_opcode_mask = 0xff;
             opcode_mask        = 0xff;
         }
+    }
+    /*An ALU EAX,imm32 in a block that reads those opcodes as it runs: neither
+      the opcode nor the immediate is marked. Not the block's first
+      instruction, whose opcode keeps a byte of the first chunk marked*/
+    if ((block->flags & CODEBLOCK_NO_OPCODES) && block->ins && (op_table == x86_dynarec_opcodes) && ((opcode & 0xc7) == 0x05) && (op_32 & 0x100) &&
+        (op_pc == old_pc + 1) && !in_lock && !(((cs + old_pc + 4) ^ block->pc) & ~0xfff)) {
+        codegen_ea_target_seg   = NULL;
+        codegen_instr_pc        = old_pc;
+        codegen_instr_first_uop = ir->wr_pos;
+        codegen_alu_eax_imm_family(block, ir, old_pc, opcode);
+        block->flags |= CODEBLOCK_OPCODE_FAMILY;
+        {
+            uint32_t off = (cs + old_pc) - (block->pc & ~0x3f);
+
+            if (off < 128)
+                codegen_family_ops[off >> 6] |= (uint64_t) 1 << (off & 63);
+        }
+        uop_MOV_IMM(ir, IREG_pc, op_pc + 4);
+
+        codegen_endpc = (cs + cpu_state.pc) + 8;
+
+        block->ins++;
+
+        if (block->ins >= MAX_INSTRUCTION_COUNT)
+            CPU_BLOCK_END();
+
+        return;
     }
     /*The prefixes and the opcode; an x87 escape's ModR/M too, as op_pc is
       already past it (pc_off is -1 for those only while op_pc is moved back

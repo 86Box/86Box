@@ -1145,6 +1145,45 @@ codegen_reg_is_loaded(ir_reg_t ir_reg)
 }
 #endif
 
+/*dest was just loaded from its own location in cpu_state at its native size,
+  so memory already holds it and it need not be stored back. Leaving it dirty
+  would store it again before the next order barrier, where a helper may then
+  change that location and the generated code reload it: a store and reload
+  around another store that host store forwarding predicts badly.*/
+void
+codegen_reg_loaded_from_home(ir_reg_t dest, const void *p, int bytes)
+{
+    const int       reg_idx = IREG_GET_REG(dest.reg);
+    host_reg_set_t *reg_set;
+    int             native_bytes;
+
+    if (ireg_data[reg_idx].p != p || ireg_data[reg_idx].type != REG_INTEGER || !reg_is_native_size(dest))
+        return;
+    switch (ireg_data[reg_idx].native_size) {
+        case REG_BYTE:
+            native_bytes = 1;
+            break;
+        case REG_WORD:
+            native_bytes = 2;
+            break;
+        case REG_DWORD:
+            native_bytes = 4;
+            break;
+        default:
+            return;
+    }
+    if (native_bytes != bytes)
+        return;
+
+    reg_set = get_reg_set(dest);
+    for (int c = 0; c < reg_set->nr_regs; c++) {
+        if (!ir_reg_is_invalid(reg_set->regs[c]) && reg_set->regs[c].reg == dest.reg && reg_set->regs[c].version == dest.version) {
+            reg_set->dirty[c] = 0;
+            return;
+        }
+    }
+}
+
 void
 codegen_reg_rename(codeblock_t *block, ir_reg_t src, ir_reg_t dst)
 {

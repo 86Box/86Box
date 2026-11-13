@@ -64,6 +64,9 @@ void codegen_lazy_stubs_emit(codeblock_t *block);
 /* A slot whose target changes keeps the targets it held before in a set,
    tried after a key mismatch (codegen_link.h). */
 #    define CODEGEN_BACKEND_HAS_LINK_SETS
+/* After a set miss too, the routine tries a record keyed by the target in a
+   table shared by every exit (codegen_link.h). */
+#    define CODEGEN_BACKEND_HAS_LINK_MCACHE
 void codegen_link_exit(codeblock_t *block);
 /* 0: blocks end with the plain return and the loop never links them. */
 extern int codegen_block_link;

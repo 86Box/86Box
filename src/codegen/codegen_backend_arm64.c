@@ -1241,8 +1241,9 @@ _Static_assert(offsetof(cpu_events_t, flush_pending) == 4 && offsetof(cpu_events
                    && offsetof(cpu_events_t, halted) == 28 && offsetof(cpu_events_t, stpclk) == 48
                    && offsetof(cpu_events_t, throttle_run) == 52 && sizeof(cpu_events_t) == 56,
                "cpu_events is loaded as two pairs of 64-bit words");
-_Static_assert(offsetof(codeblock_t, runs_left) == offsetof(codeblock_t, used) + 1 && !(offsetof(codeblock_t, used) & 1),
-               "used and runs_left are loaded as one halfword");
+_Static_assert(sizeof(((codeblock_t *) 0)->used) == 1 && sizeof(((codeblock_t *) 0)->runs_left) == 8
+                   && !(offsetof(codeblock_t, runs_left) & 7),
+               "used is loaded as a byte and runs_left as an aligned doubleword");
 
 /*Fields the routine loads together, with LDP or one wider load*/
 _Static_assert(offsetof(codegen_link_slot_t, exit_cs) == offsetof(codegen_link_slot_t, exit_pc) + 4
@@ -1515,9 +1516,11 @@ build_link_routine(codeblock_t *block)
       and a linked entry counts down runs_left as the dispatcher's does.
       Both are stored only when that changes them: used 1 and runs_left 0
       stay as they are*/
-    host_arm64_LDRH_IMM(block, REG_W4, REG_X16, offsetof(codeblock_t, used));
-    host_arm64_CMP_IMM(block, REG_W4, 1);
-    used_set = host_arm64_BNE_SHORT_(block);
+    host_arm64_LDRB_IMM_W(block, REG_W4, REG_X16, offsetof(codeblock_t, used));
+    host_arm64_SUB_IMM(block, REG_W4, REG_W4, 1);
+    host_arm64_LDR_IMM_X(block, REG_X3, REG_X16, offsetof(codeblock_t, runs_left));
+    host_arm64_ORRX_REG(block, REG_X4, REG_X4, REG_X3, 0);
+    used_set = host_arm64_CBNZ_SHORT_(block, REG_X4);
     host_arm64_BR(block, REG_X15);
 
     /*Miss: the block's own epilogue, X0 still the slots. codegen_exit_rout
@@ -1548,9 +1551,9 @@ build_link_routine(codeblock_t *block)
     host_arm64_short_branch_set_offset(used_set, &block_write_data[block_pos]);
     host_arm64_MOVZ_IMM(block, REG_W4, 1);
     host_arm64_STRB_IMM(block, REG_W4, REG_X16, offsetof(codeblock_t, used));
-    host_arm64_LDRB_IMM_W(block, REG_W4, REG_X16, offsetof(codeblock_t, runs_left));
-    host_arm64_MOV_REG_LSR(block, REG_W4, REG_W4, 1);
-    host_arm64_STRB_IMM(block, REG_W4, REG_X16, offsetof(codeblock_t, runs_left));
+    host_arm64_LDR_IMM_X(block, REG_X4, REG_X16, offsetof(codeblock_t, runs_left));
+    host_arm64_UBFX_X(block, REG_X4, REG_X4, 1, 63); /*LSR X4, X4, #1*/
+    host_arm64_STR_IMM_Q(block, REG_X4, REG_X16, offsetof(codeblock_t, runs_left));
     host_arm64_BR(block, REG_X15);
 
     /*get_phys() cache miss: it would store the full address in

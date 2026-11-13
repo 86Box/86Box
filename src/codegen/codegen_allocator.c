@@ -20,6 +20,7 @@
 #include "codegen.h"
 #include "codegen_allocator.h"
 #include "codegen_backend.h"
+#include "codegen_free_set.h"
 
 struct mem_code_block_t;
 
@@ -82,7 +83,30 @@ typedef struct mem_block_t {
 } mem_block_t;
 
 static mem_block_t mem_blocks[MEM_BLOCK_NR];
-static uint32_t    mem_block_free_list;
+
+/*Free blocks, one bit each, and one summary bit per word that has any set.
+  The lowest numbered free block is handed out first, so live code stays
+  packed in as few pages as possible instead of spreading over whatever was
+  freed last.*/
+#define MEM_FREE_WORDS   ((MEM_BLOCK_NR + 63) / 64)
+#define MEM_FREE_SUMMARY ((MEM_FREE_WORDS + 63) / 64)
+static uint64_t mem_free_bits[MEM_FREE_WORDS];
+static uint64_t mem_free_summary[MEM_FREE_SUMMARY];
+static uint32_t mem_free_count;
+
+static inline void
+mem_block_set_free(uint32_t c)
+{
+    codegen_free_set_add(mem_free_bits, mem_free_summary, &mem_free_count, c);
+}
+
+/*Index of the lowest free block, taken off the free set. Only called while
+  mem_free_count is not 0.*/
+static inline uint32_t
+mem_block_take_free(void)
+{
+    return codegen_free_set_take_lowest(mem_free_bits, mem_free_summary, &mem_free_count);
+}
 static uint8_t    *mem_block_alloc = NULL;
 
 int codegen_allocator_usage = 0;
@@ -112,8 +136,6 @@ codegen_allocator_init(void)
 #ifdef MEM_BLOCK_VENEER_STRIDE
     /*The first block of every stride after the first holds the veneers, and
       is never handed out*/
-    uint32_t last_free = 0;
-
     for (uint32_t c = 0; c < MEM_BLOCK_NR; c++) {
         mem_blocks[c].offset     = c * MEM_BLOCK_SIZE;
         mem_blocks[c].code_block = BLOCK_INVALID;
@@ -121,22 +143,17 @@ codegen_allocator_init(void)
         mem_blocks[c].next       = 0;
         if (c && !(c % MEM_BLOCK_VENEER_STRIDE))
             continue;
-        if (last_free)
-            mem_blocks[last_free - 1].next = c + 1;
-        last_free = c + 1;
+        mem_block_set_free(c);
     }
 #else
     for (uint32_t c = 0; c < MEM_BLOCK_NR; c++) {
         mem_blocks[c].offset     = c * MEM_BLOCK_SIZE;
         mem_blocks[c].code_block = BLOCK_INVALID;
         mem_blocks[c].tail       = 0;
-        if (c < MEM_BLOCK_NR - 1)
-            mem_blocks[c].next = c + 2;
-        else
-            mem_blocks[c].next = 0;
+        mem_blocks[c].next       = 0;
+        mem_block_set_free(c);
     }
 #endif
-    mem_block_free_list = 1;
 }
 
 mem_block_t *
@@ -145,7 +162,7 @@ codegen_allocator_allocate(mem_block_t *parent, int code_block)
     mem_block_t *block;
     uint32_t     block_nr;
 
-    if (!mem_block_free_list) {
+    if (!mem_free_count) {
         if (mem_code_block_head == mem_code_block_tail) {
             fatal("Out of memory blocks!\n");
         } else {
@@ -161,7 +178,7 @@ codegen_allocator_allocate(mem_block_t *parent, int code_block)
                 mem_code_block = next;
             }
 
-            if (mem_block_free_list)
+            if (mem_free_count)
                 goto block_allocate;
 
             fatal("Out of memory blocks!\n");
@@ -170,9 +187,8 @@ codegen_allocator_allocate(mem_block_t *parent, int code_block)
 
 block_allocate:
     /*Remove from free list*/
-    block_nr            = mem_block_free_list;
-    block               = &mem_blocks[block_nr - 1];
-    mem_block_free_list = block->next;
+    block_nr = mem_block_take_free() + 1;
+    block    = &mem_blocks[block_nr - 1];
 
     block->code_block = code_block;
     if (parent) {
@@ -209,10 +225,10 @@ codegen_allocator_free(mem_block_t *block)
         int next_block_nr = block->next;
         codegen_allocator_usage--;
 
-        block->next         = mem_block_free_list;
-        block->code_block   = BLOCK_INVALID;
-        mem_block_free_list = block_nr;
-        block_nr            = next_block_nr;
+        block->next       = 0;
+        block->code_block = BLOCK_INVALID;
+        mem_block_set_free(block_nr - 1);
+        block_nr          = next_block_nr;
 
         if (block_nr)
             block = &mem_blocks[block_nr - 1];
@@ -234,10 +250,10 @@ codegen_allocator_free_version(mem_block_t *block)
         int next_block_nr = block->next;
         codegen_allocator_usage--;
 
-        block->next         = mem_block_free_list;
-        block->code_block   = BLOCK_INVALID;
-        mem_block_free_list = block_nr;
-        block_nr            = next_block_nr;
+        block->next       = 0;
+        block->code_block = BLOCK_INVALID;
+        mem_block_set_free(block_nr - 1);
+        block_nr          = next_block_nr;
 
         if (block_nr)
             block = &mem_blocks[block_nr - 1];
