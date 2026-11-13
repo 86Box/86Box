@@ -1022,7 +1022,12 @@ typedef struct gpu_fill_t {
    read (both hi-exclusive; empty = lo > hi). Staging-ring bytes are not
    VRAM and do not appear: the staged reservation protocol (write-once
    before queue, drain-all on wrap) plus the forced bar on a bounce's
-   second hop order them. */
+   second hop order them. Every interval is widened to whole 32-bit
+   words. The two compute kernels work a word at a time: at a row's
+   first and last word they load the word and store it back with the
+   bytes outside the row unchanged, so an op that only shares a word
+   with another one has to be ordered against it like an op that
+   shares bytes. */
 static void
 gpu_fill_vranges(const gpu_fill_t *f, uint64_t *wlo, uint64_t *whi,
                  uint64_t *rlo, uint64_t *rhi)
@@ -1037,21 +1042,21 @@ gpu_fill_vranges(const gpu_fill_t *f, uint64_t *wlo, uint64_t *whi,
     switch (f->kind) {
         case 0:
         case 1:
-            *wlo = f->addr;
-            *whi = f->addr + wext;
+            *wlo = f->addr & ~3ull;
+            *whi = (f->addr + wext + 3u) & ~3ull;
             break;
         case 2:
-            *wlo = f->addr;
-            *whi = f->addr + wext;
-            *rlo = f->src;
-            *rhi = f->src + rext;
+            *wlo = f->addr & ~3ull;
+            *whi = (f->addr + wext + 3u) & ~3ull;
+            *rlo = f->src & ~3ull;
+            *rhi = (f->src + rext + 3u) & ~3ull;
             break;
         case 3:
-            *rlo = f->src;
-            *rhi = f->src + rext;
+            *rlo = f->src & ~3ull;
+            *rhi = (f->src + rext + 3u) & ~3ull;
             break;
         case 4:
-            /* RMW reads and writes the dst window (rows rounded to words) */
+            /* RMW reads and writes the dst window */
             *wlo = f->addr & ~3ull;
             *whi = (f->addr + wext + 3u) & ~3ull;
             *rlo = *wlo;
@@ -1335,6 +1340,24 @@ typedef struct r128_gpu_t {
     VkDescriptorSetLayout rmw_dsl;
     VkPipelineLayout      rmw_plyt;
     VkDescriptorSet       rmw_dset;
+    /* 2D rectangle fill and copy kernel (vid_ati_rage128_gpu_r2d.comp):
+       its own 3-binding layout and 32-byte push range, for the same
+       reason. r2d_en is decided while the backend starts and never
+       changes afterwards: gpu_pipelines_create sets it when the staging
+       ring the kernel binds exists and the layouts and the pipeline
+       were created, and gpu_dsets_create clears it again when the
+       kernel's descriptor set cannot be allocated. The four handles
+       hold either a created object or the null handle. The head block
+       of a submit, where gpu_disp_fills records the dispatches, is
+       always recorded into the slot's command buffer for the queue
+       that runs the shading kernels, so a host whose copy batch sits
+       on a queue family without compute needs no further test. With
+       r2d_en clear every queued op keeps its buffer commands. */
+    VkPipeline            r2d_pipe;
+    VkDescriptorSetLayout r2d_dsl;
+    VkPipelineLayout      r2d_plyt;
+    VkDescriptorSet       r2d_dset;
+    int                   r2d_en;
     /* OV0 overlay compose: its own 2-binding layout, push block and
        command pool (the shared pool records on the CCE thread; this
        command buffer records on the vsync thread), and a fence created
@@ -1991,6 +2014,10 @@ typedef struct r128_gpu_t {
     uint32_t       stage2d_head;
     int            stage2d_ok;
     uint64_t       st_2ds_bytes, st_2ds_recycles, st_2ds_full;
+    /* What gpu_disp_fills recorded for the queued head ops: buffer fill
+       and copy commands, the regions of those copy commands, and
+       dispatches of the rectangle kernel. Written with flush_mtx held. */
+    uint64_t       st_q2d_cmds, st_q2d_regions, st_q2d_disp;
     uint64_t       st_reaped;
     /* present snapshots */
     gpu_snap_t  snaps[GPU_SNAPS];
@@ -3417,11 +3444,12 @@ gpu_mid_range_hit(const r128_gpu_t *g, uint32_t lo, uint32_t hi)
 
         if (g->fills[i].mid < 0)
             continue;
-        olo = g->fills[i].addr;
-        ohi = (uint64_t) g->fills[i].addr
-            + (uint64_t) (g->fills[i].rows - 1) * g->fills[i].pitch
-            + g->fills[i].len;
-        if (lo < ohi && hi > olo)
+        /* whole words on both sides, as in gpu_fill_vranges */
+        olo = g->fills[i].addr & ~3ull;
+        ohi = ((uint64_t) g->fills[i].addr
+               + (uint64_t) (g->fills[i].rows - 1) * g->fills[i].pitch
+               + g->fills[i].len + 3u) & ~3ull;
+        if ((lo & ~3ull) < ohi && (((uint64_t) hi + 3u) & ~3ull) > olo)
             return 1;
     }
     return 0;
@@ -3443,11 +3471,12 @@ gpu_mid_tail_hit(const r128_gpu_t *g, uint32_t lo, uint32_t hi)
 
         if (g->fills[i].mid < 0 || g->fills[i].pre)
             continue;
-        olo = g->fills[i].addr;
-        ohi = (uint64_t) g->fills[i].addr
-            + (uint64_t) (g->fills[i].rows - 1) * g->fills[i].pitch
-            + g->fills[i].len;
-        if (lo < ohi && hi > olo)
+        /* whole words on both sides, as in gpu_fill_vranges */
+        olo = g->fills[i].addr & ~3ull;
+        ohi = ((uint64_t) g->fills[i].addr
+               + (uint64_t) (g->fills[i].rows - 1) * g->fills[i].pitch
+               + g->fills[i].len + 3u) & ~3ull;
+        if ((lo & ~3ull) < ohi && (((uint64_t) hi + 3u) & ~3ull) > olo)
             return 1;
     }
     return 0;
@@ -5746,6 +5775,76 @@ gpu_mid_copy_cmd(VkCommandBuffer cb, int xq, VkBuffer sb, VkBuffer db,
                     VK_ACCESS_TRANSFER_WRITE_BIT, dst_access);
 }
 
+/* From this many rows on, a queued rectangle whose rows are separate
+   byte ranges is recorded as one dispatch of the rectangle kernel
+   instead of one buffer command or copy region per row. The value is
+   modeled, a host-cost choice with no hardware behind it: measured on
+   an Apple GPU through MoltenVK with 255 ops a submit, a 100-pixel
+   rectangle of 2 rows costs the same either way, and from 4 rows the
+   dispatch is the cheaper one by more than the spread of the
+   measurement (4 rows: about 20 us against 25 to 30 us), while the
+   per-row cost keeps growing with every row and the dispatch does
+   not. Both forms store the same bytes. */
+#    define GPU_R2D_ROWS 4u
+/* Can this queued head op be recorded as one dispatch of the rectangle
+   kernel (vid_ati_rage128_gpu_r2d.comp)? The kernel runs one thread per
+   destination word of one row, so two rows must not share a word: the
+   pitch has to be a multiple of 4 and at least the row's span in whole
+   words, the rule rage128_gpu_2d_rmw applies for its kernel. A fill
+   stores whole words, so its address and length must be word-aligned
+   as well; the queue side only queues such fills as kind 0. An op
+   whose rows form one contiguous run stays a single buffer command,
+   which is cheaper still. The last test keeps the group count inside
+   the 65535 every Vulkan implementation accepts in one dimension. */
+static int
+gpu_r2d_ok(const r128_gpu_t *g, const gpu_fill_t *f)
+{
+    uint32_t span = ((f->addr & 3u) + f->len + 3u) & ~3u;
+
+    if (!g->r2d_en || f->mid >= 0 || f->kind > 3 || f->rows < GPU_R2D_ROWS)
+        return 0;
+    if (f->pitch == f->len && (f->kind == 0 || f->spitch == f->len))
+        return 0;
+    if ((f->pitch & 3u) || f->pitch < span)
+        return 0;
+    if (f->kind == 0 && ((f->addr | f->len) & 3u))
+        return 0;
+    return (uint64_t) (span >> 2) * f->rows <= 65535ull * 256u;
+}
+
+/* Record one dispatch of the rectangle kernel for a queued op that
+   gpu_r2d_ok accepted. mirror: a fill also stores into the mirror, as
+   the buffer commands do for it. *bound says whether the kernel's
+   pipeline and descriptor set are still the ones bound. The caller
+   clears it when it binds another kernel, and also after every buffer
+   fill or copy command: a dispatch that followed a buffer fill without
+   a fresh bind has been observed to store nothing on an Apple GPU
+   through MoltenVK, which runs its buffer fill as a compute pass of its
+   own. Consecutive dispatches bind once. */
+static void
+gpu_r2d_cmd(r128_gpu_t *g, VkCommandBuffer cb, const gpu_fill_t *f, int mirror,
+            int *bound)
+{
+    /* mode: bit 0 copy, bit 1 fill the mirror too, bit 2 the source is
+       the staging ring, bit 3 the destination is the staging ring */
+    static const uint32_t kmode[4] = { 0u, 1u | 4u, 1u, 1u | 8u };
+    uint32_t pcv[8] = { kmode[f->kind] | ((f->kind == 0 && mirror) ? 2u : 0u),
+                        f->addr, f->pitch, f->len, f->rows, f->src, f->spitch,
+                        f->color };
+    uint32_t words  = ((f->addr & 3u) + f->len + 3u) >> 2;
+    uint64_t n      = (uint64_t) words * f->rows;
+
+    if (!*bound) {
+        vkCmdBindPipeline(cb, VK_PIPELINE_BIND_POINT_COMPUTE, g->r2d_pipe);
+        vkCmdBindDescriptorSets(cb, VK_PIPELINE_BIND_POINT_COMPUTE, g->r2d_plyt,
+                                0, 1, &g->r2d_dset, 0, NULL);
+        *bound = 1;
+    }
+    vkCmdPushConstants(cb, g->r2d_plyt, VK_SHADER_STAGE_COMPUTE_BIT, 0, 32, pcv);
+    vkCmdDispatch(cb, (uint32_t) ((n + 255u) / 256u), 1, 1);
+    g->st_q2d_disp++;
+}
+
 /* Head barrier against an in-flight slot. The source scope must include
    the transfer stage: an in-flight slot may have recorded 2D fills or
    copies, and a fill or copy on the same range, or a dispatch sampling
@@ -5774,10 +5873,17 @@ gpu_disp_head_barrier(r128_gpu_t *g, gpu_slot_t *sl)
 static void
 gpu_disp_fills(r128_gpu_t *g, gpu_slot_t *sl, uint32_t nd)
 {
-    int have_rmw = 0;
+    int have_rmw  = 0; /* a compute dispatch was recorded in this block */
+    int r2d_bound = 0;
 
     for (uint32_t i = 0; i < g->nfills; i++) {
         const gpu_fill_t *f = &g->fills[i];
+        /* rows that are separate byte ranges cost one command or one
+           region each */
+        uint32_t nrow = (f->rows == 1
+                         || (f->pitch == f->len
+                             && (f->kind == 0 || f->spitch == f->len)))
+            ? 1u : f->rows;
 
         if (f->mid >= 0)
             continue; /* recorded between the runs and at the tail */
@@ -5816,7 +5922,22 @@ gpu_disp_fills(r128_gpu_t *g, gpu_slot_t *sl, uint32_t nd)
             vkCmdPushConstants(sl->cb, g->rmw_plyt,
                                VK_SHADER_STAGE_COMPUTE_BIT, 0, 28, pcv);
             vkCmdDispatch(sl->cb, (uint32_t) ((n + 255u) / 256u), 1, 1);
+            have_rmw  = 1;
+            r2d_bound = 0;
+        } else if (gpu_r2d_ok(g, f)) {
+            /* One dispatch for the whole rectangle. A fill reaches the
+               mirror in the same dispatch under the condition the
+               buffer commands below use; a fill that cannot, and every
+               copy, marks its pages for the mirror down instead. */
+            int mir = f->kind == 0 && g->mirror_en
+                && (uint64_t) f->addr + (uint64_t) (f->rows - 1) * f->pitch
+                        + f->len
+                    <= (uint64_t) g->owner->vram_size;
+
+            gpu_r2d_cmd(g, sl->cb, f, mir, &r2d_bound);
             have_rmw = 1;
+            if (f->kind == 0 && !mir)
+                gpu_q2d_mark(g, f);
         } else if (f->kind) {
             /* the copy kinds share one region layout; only the buffer
                pair differs. kind 1: staging -> VRAM (spitch 0 =
@@ -5829,17 +5950,23 @@ gpu_disp_fills(r128_gpu_t *g, gpu_slot_t *sl, uint32_t nd)
             VkBuffer db = f->kind == 3 ? g->stage2d.b : g->vram_buf;
 
             gpu_fill_copy_cmd(sl->cb, sb, db, f);
+            g->st_q2d_cmds += (nrow + 63u) / 64u;
+            g->st_q2d_regions += nrow;
+            r2d_bound = 0;
         } else {
             gpu_fill_cmd(sl->cb, g->vram_buf, f);
+            g->st_q2d_cmds += nrow;
+            r2d_bound = 0;
             /* A solid fill has no input, so it is recorded into the
                mirror as well, where it crosses no bus, and its pages
                need no copy down afterwards. */
             if (g->mirror_en
                 && (uint64_t) f->addr + (uint64_t) (f->rows - 1) * f->pitch
                         + f->len
-                    <= (uint64_t) g->owner->vram_size)
+                    <= (uint64_t) g->owner->vram_size) {
                 gpu_fill_cmd(sl->cb, g->mirror_buf, f);
-            else
+                g->st_q2d_cmds += nrow;
+            } else
                 gpu_q2d_mark(g, f);
         }
         if (f->kind == 1 || f->kind == 2 || f->kind == 4)
@@ -7605,6 +7732,13 @@ gpu_fq_add(r128_gpu_t *g, uint32_t lo, uint32_t hi)
 static void
 gpu_f_add(r128_gpu_t *g, uint32_t lo, uint32_t hi)
 {
+    /* Published in whole 32-bit words. The rectangle and
+       read-modify-write kernels load and store the word at each end of
+       a row, so a CPU store to a byte that only shares such a word
+       must wait for the op like a store into its bytes: every CPU,
+       scanout and 2D barrier tests these ranges. */
+    lo &= ~3u;
+    hi = hi > 0xfffffffcu ? 0xffffffffu : (hi + 3u) & ~3u;
     gpu_f_begin(g);
     rng_pub(g, &g->f_lo, &g->f_hi, lo, hi, 1);
     gpu_fq_add(g, lo, hi);
@@ -11201,6 +11335,16 @@ rage128_gpu_2d_blit(rage128_t *dev, uint32_t addr, uint32_t pitch,
     gpu_fill_t *f;
     uint64_t    dend, send;
     uint32_t    soff = 0;
+    /* Row stride of a bounce in the staging ring: the row length rounded
+       up to a word, so two staged rows never share a word and the
+       rectangle kernel, which stores a word at a time, can write them.
+       The padding must not decide whether a blit bounces: one whose
+       rows fit the ring packed end to end, and only so, is staged at
+       stride len. Its first copy then fails the pitch test of
+       gpu_r2d_ok and is recorded as copy regions, which are byte
+       exact; its second copy only reads the ring, which the kernel
+       does at any alignment. */
+    uint32_t    slen = (len + 3u) & ~3u;
     int         overlap;
 
     if (!g || g->verify)
@@ -11220,14 +11364,20 @@ rage128_gpu_2d_blit(rage128_t *dev, uint32_t addr, uint32_t pitch,
         return 0;
     }
 
-    overlap = (uint64_t) addr < send && dend > (uint64_t) src;
+    /* Source and destination are compared as whole words: the rectangle
+       kernel must not read a word that it also stores. */
+    overlap = ((uint64_t) addr & ~3ull) < ((send + 3u) & ~3ull)
+        && ((dend + 3u) & ~3ull) > ((uint64_t) src & ~3ull);
     if (overlap) {
         /* Reserve the bounce space first: a ring wrap flushes and
            drains everything, so it has to come before the pending
            hazard checks. Only the GPU writes this reservation; the host
            never touches it. */
+        if ((uint64_t) rows * slen > GPU_2DSTAGE_SIZE)
+            slen = len;
         if (!g->stage2d_ok
-            || !rage128_gpu_2d_stage(dev, rows * len, &soff)) {
+            || (uint64_t) rows * slen > GPU_2DSTAGE_SIZE
+            || !rage128_gpu_2d_stage(dev, rows * slen, &soff)) {
             rage128_gpu_2d_qskip(dev, 3, 64);
             g->st_blit_cpu++;
             return 0;
@@ -11243,10 +11393,13 @@ rage128_gpu_2d_blit(rage128_t *dev, uint32_t addr, uint32_t pitch,
         g->st_copy_mid_split++;
         gpu_flush_cause(dev, GF_2DQ);
     }
+    /* the draw tests take the windows in whole words too */
     if (g->nfills >= GPU_FILL_CAP - 1
         || (gpu_seg_has_draws(dev, g)
-            && (gpu_pending_draw_hit(g, addr, (uint32_t) dend, 1)
-                || gpu_pending_draw_hit(g, src, (uint32_t) send, 0))))
+            && (gpu_pending_draw_hit(g, addr & ~3u,
+                                     (uint32_t) ((dend + 3u) & ~3ull), 1)
+                || gpu_pending_draw_hit(g, src & ~3u,
+                                        (uint32_t) ((send + 3u) & ~3ull), 0))))
         gpu_flush_cause(dev, GF_2DQ);
 
     if (!overlap) {
@@ -11264,11 +11417,11 @@ rage128_gpu_2d_blit(rage128_t *dev, uint32_t addr, uint32_t pitch,
         f->pre    = 0;
         g->nfills++;
     } else {
-        /* first copy: VRAM source -> staging, rows packed at stride len */
+        /* first copy: VRAM source -> staging, rows at stride slen */
         f         = &g->fills[g->nfills];
         f->kind   = 3;
         f->addr   = soff;
-        f->pitch  = len;
+        f->pitch  = slen;
         f->len    = len;
         f->rows   = rows;
         f->color  = 0;
@@ -11289,7 +11442,7 @@ rage128_gpu_2d_blit(rage128_t *dev, uint32_t addr, uint32_t pitch,
         f->rows   = rows;
         f->color  = 0;
         f->src    = soff;
-        f->spitch = len;
+        f->spitch = slen;
         f->bar    = 1;
         f->mid    = -1;
         f->pre    = 0;
@@ -11302,7 +11455,12 @@ rage128_gpu_2d_blit(rage128_t *dev, uint32_t addr, uint32_t pitch,
     /* the queued store never passes rage128_gpu_2d_barrier */
     r128_texcache_dirty(dev, addr, (uint32_t) (dend - addr));
     gpu_f_add(g, addr, (uint32_t) dend);
-    rng_pub(g, &g->r_lo, &g->r_hi, src, (uint32_t) send, 0);
+    /* The source is published in whole words, as gpu_f_add publishes
+       the destination: the rectangle kernel loads the 32-bit word
+       around each source byte, so a CPU store to a byte that only
+       shares a word with a source row must wait for the copy too. */
+    rng_pub(g, &g->r_lo, &g->r_hi, src & ~3u,
+            (uint32_t) ((send + 3u) & ~3ull), 0);
     atomic_store_explicit(&g->pending, 1, memory_order_release);
 
     if (g->verify2d) {
@@ -11322,7 +11480,7 @@ rage128_gpu_2d_blit(rage128_t *dev, uint32_t addr, uint32_t pitch,
             for (uint32_t r = 0; r < rows; r++)
                 memcpy(exp + (size_t) r * len,
                        overlap ? (uint8_t *) g->stage2d.map + soff
-                               + (size_t) r * len
+                               + (size_t) r * slen
                                : dev->svga.vram + src + (uint64_t) r * spitch,
                        len);
             for (uint32_t r = 0; r < rows; r++)
@@ -13127,6 +13285,85 @@ gpu_pipelines_create(r128_gpu_t *g)
         return "rmw pipeline failed";
     }
     vkDestroyShaderModule(g->dev, sm, NULL);
+    /* The rectangle kernel. A failure here is not fatal: the queued 2D
+       ops then keep their buffer commands, which store the same bytes.
+       A Vulkan create call that fails leaves its output handle
+       undefined unless the specification says otherwise, as it does
+       for a pipeline, whose handle is then null. So each handle is
+       reset to null when its call fails, the objects already created
+       are destroyed when a later step fails, and the backend keeps the
+       three handles only when every step succeeded. Destroying a null
+       handle does nothing, which is what the close path then does. */
+    {
+        VkDescriptorSetLayoutBinding    ddb[3];
+        VkDescriptorSetLayoutCreateInfo ddslci = {
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO
+        };
+        VkPushConstantRange        dpcr  = { VK_SHADER_STAGE_COMPUTE_BIT,
+                                             0, 32 };
+        VkPipelineLayoutCreateInfo dplci = {
+            VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO
+        };
+        VkDescriptorSetLayout ddsl  = VK_NULL_HANDLE;
+        VkPipelineLayout      dplyt = VK_NULL_HANDLE;
+        VkShaderModule        dsm   = VK_NULL_HANDLE;
+        VkPipeline            dpipe = VK_NULL_HANDLE;
+        const char           *dwhy  = NULL;
+
+        for (int i = 0; i < 3; i++) {
+            ddb[i].binding            = (uint32_t) i;
+            ddb[i].descriptorType     = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+            ddb[i].descriptorCount    = 1;
+            ddb[i].stageFlags         = VK_SHADER_STAGE_COMPUTE_BIT;
+            ddb[i].pImmutableSamplers = NULL;
+        }
+        ddslci.bindingCount          = 3;
+        ddslci.pBindings             = ddb;
+        dplci.setLayoutCount         = 1;
+        dplci.pSetLayouts            = &ddsl;
+        dplci.pushConstantRangeCount = 1;
+        dplci.pPushConstantRanges    = &dpcr;
+        smci.codeSize                = sizeof(r128_gpu_r2d_spv);
+        smci.pCode                   = (const uint32_t *) r128_gpu_r2d_spv;
+        if (!g->stage2d_ok)
+            dwhy = "no 2D staging ring";
+        else if (vkCreateDescriptorSetLayout(g->dev, &ddslci, NULL, &ddsl)
+                 != VK_SUCCESS) {
+            ddsl = VK_NULL_HANDLE;
+            dwhy = "descriptor layout failed";
+        } else if (vkCreatePipelineLayout(g->dev, &dplci, NULL, &dplyt)
+                   != VK_SUCCESS) {
+            dplyt = VK_NULL_HANDLE;
+            dwhy  = "pipeline layout failed";
+        } else if (vkCreateShaderModule(g->dev, &smci, NULL, &dsm)
+                   != VK_SUCCESS) {
+            dsm  = VK_NULL_HANDLE;
+            dwhy = "shader module failed";
+        } else {
+            cpi.stage.module = dsm;
+            cpi.layout       = dplyt;
+            if (vkCreateComputePipelines(g->dev, g->pcache, 1, &cpi, NULL,
+                                         &dpipe)
+                != VK_SUCCESS) {
+                dpipe = VK_NULL_HANDLE;
+                dwhy  = "pipeline failed";
+            }
+        }
+        /* the module is only needed while the pipeline is created */
+        vkDestroyShaderModule(g->dev, dsm, NULL);
+        if (dwhy) {
+            vkDestroyPipelineLayout(g->dev, dplyt, NULL);
+            vkDestroyDescriptorSetLayout(g->dev, ddsl, NULL);
+        } else {
+            g->r2d_dsl  = ddsl;
+            g->r2d_plyt = dplyt;
+            g->r2d_pipe = dpipe;
+        }
+        g->r2d_en = !dwhy;
+        gpu_log("RAGE128 GPU: 2D rectangle kernel: %s%s\n",
+                dwhy ? "off, queued 2D ops keep buffer commands: " : "on",
+                dwhy ? dwhy : "");
+    }
     {
         VkDescriptorSetLayoutBinding    odb[2];
         VkDescriptorSetLayoutCreateInfo odslci = {
@@ -13240,8 +13477,10 @@ gpu_dsets_create(r128_gpu_t *g)
 {
     VkDescriptorPoolSize dps = {
         /* + 2 = the RMW set's vram + staging bindings,
-           + 2 more = the OV0 set's vram + out bindings */
-        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, GPU_NBIND * GPU_RING_SLOTS + 4
+           + 2 more = the OV0 set's vram + out bindings,
+           + 3 more = the rectangle kernel's vram, mirror and staging
+           bindings */
+        VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, GPU_NBIND * GPU_RING_SLOTS + 7
     };
     VkDescriptorPoolCreateInfo dpci = {
         VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO
@@ -13250,7 +13489,7 @@ gpu_dsets_create(r128_gpu_t *g)
         VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO
     };
 
-    dpci.maxSets       = GPU_RING_SLOTS + 2; /* + the RMW and OV0 sets */
+    dpci.maxSets       = GPU_RING_SLOTS + 3; /* + the RMW, OV0 and rectangle sets */
     dpci.poolSizeCount = 1;
     dpci.pPoolSizes    = &dps;
     if (vkCreateDescriptorPool(g->dev, &dpci, NULL, &g->dpool) != VK_SUCCESS)
@@ -13341,6 +13580,42 @@ gpu_dsets_create(r128_gpu_t *g)
             rwr[i].pBufferInfo     = &rbi[i];
         }
         vkUpdateDescriptorSets(g->dev, 2, rwr, 0, NULL);
+    }
+    if (g->r2d_en) {
+        VkDescriptorSetAllocateInfo dai = {
+            VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO
+        };
+        /* Without a mirror the kernel is never asked to store into
+           binding 1; vram_buf keeps the set valid. */
+        VkDescriptorBufferInfo dbi[3] = {
+            { g->vram_buf,                                 0, VK_WHOLE_SIZE },
+            { g->mirror_buf ? g->mirror_buf : g->vram_buf, 0, VK_WHOLE_SIZE },
+            { g->stage2d.b,                                0, VK_WHOLE_SIZE },
+        };
+        VkWriteDescriptorSet dwr[3];
+
+        dai.descriptorPool     = g->dpool;
+        dai.descriptorSetCount = 1;
+        dai.pSetLayouts        = &g->r2d_dsl;
+        if (vkAllocateDescriptorSets(g->dev, &dai, &g->r2d_dset)
+            != VK_SUCCESS) {
+            /* the pipeline and its layouts stay, for the close path */
+            g->r2d_dset = VK_NULL_HANDLE;
+            g->r2d_en   = 0;
+            gpu_log("RAGE128 GPU: 2D rectangle kernel: off, queued 2D ops keep "
+                    "buffer commands: descriptor set failed\n");
+        } else {
+            for (int i = 0; i < 3; i++) {
+                memset(&dwr[i], 0, sizeof(dwr[i]));
+                dwr[i].sType           = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+                dwr[i].dstSet          = g->r2d_dset;
+                dwr[i].dstBinding      = (uint32_t) i;
+                dwr[i].descriptorCount = 1;
+                dwr[i].descriptorType  = VK_DESCRIPTOR_TYPE_STORAGE_BUFFER;
+                dwr[i].pBufferInfo     = &dbi[i];
+            }
+            vkUpdateDescriptorSets(g->dev, 3, dwr, 0, NULL);
+        }
     }
     {
         VkDescriptorSetAllocateInfo oai = {
@@ -14125,6 +14400,12 @@ gpu_stats_2d(r128_gpu_t *g)
     if (g->st_tiled_cpu)
         gpu_log("RAGE128 GPU: 2d tiled: cpu=%llu\n",
                 (unsigned long long) g->st_tiled_cpu);
+    if (g->st_q2d_cmds || g->st_q2d_disp)
+        gpu_log("RAGE128 GPU: 2d record: commands=%llu regions=%llu "
+                "rect-dispatches=%llu\n",
+                (unsigned long long) g->st_q2d_cmds,
+                (unsigned long long) g->st_q2d_regions,
+                (unsigned long long) g->st_q2d_disp);
     if (g->st_2ds_bytes)
         gpu_log("RAGE128 GPU: 2d stage: bytes=%llu recycles=%llu full=%llu\n",
                 (unsigned long long) g->st_2ds_bytes,
@@ -14451,6 +14732,9 @@ gpu_close_vk(r128_gpu_t *g)
     vkDestroyPipeline(g->dev, g->rmw_pipe, NULL);
     vkDestroyPipelineLayout(g->dev, g->rmw_plyt, NULL);
     vkDestroyDescriptorSetLayout(g->dev, g->rmw_dsl, NULL);
+    vkDestroyPipeline(g->dev, g->r2d_pipe, NULL);
+    vkDestroyPipelineLayout(g->dev, g->r2d_plyt, NULL);
+    vkDestroyDescriptorSetLayout(g->dev, g->r2d_dsl, NULL);
     vkDestroyPipeline(g->dev, g->ov0_pipe, NULL);
     vkDestroyPipelineLayout(g->dev, g->ov0_plyt, NULL);
     vkDestroyDescriptorSetLayout(g->dev, g->ov0_dsl, NULL);

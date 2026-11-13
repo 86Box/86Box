@@ -33,11 +33,13 @@
 #include <time.h>
 
 #ifdef _WIN32
-/* mingw has no POSIX setenv; _putenv_s always overwrites, which is what
-   every call site here wants. */
+/* mingw has no POSIX setenv or unsetenv; _putenv_s always overwrites,
+   which is what every setenv call site here wants, and an empty value
+   removes the variable from the C runtime's environment. */
 #    include <stdlib.h>
 #    include <windows.h>
 #    define setenv(k, v, ow) _putenv_s((k), (v))
+#    define unsetenv(k)      _putenv_s((k), "")
 #endif
 
 #include "../../../../src/video/vid_ati_rage128.c"
@@ -26707,6 +26709,555 @@ run_gpu_carry(void)
     setenv("R128_GPU", gprev, 1);
 }
 
+
+/* Queued 2D rectangles on the GPU lane: the bytes they leave must equal
+   the CPU walk's, whichever way the backend records them. Each scenario
+   is a seeded stream of register-started fills and screen copies. It
+   runs once on a device with the backend on and once on a device with
+   the backend off, and the surface, with a guard band on each side, is
+   compared byte for byte. The counter rows then pin down how a
+   rectangle is recorded: one dispatch of the rectangle kernel, not one
+   buffer command or copy region per row. */
+#define R2D_PXW   256u        /* surface width and pitch, pixels */
+#define R2D_ROWS  96u
+#define R2D_GUARD 256u        /* bytes compared before and after the surface */
+#define R2D_BASE  0x00200000u /* a multiple of 32: DST_OFFSET counts 32-byte units */
+
+static uint32_t
+r2d_rnd(uint32_t *s)
+{
+    *s ^= *s << 13;
+    *s ^= *s >> 17;
+    *s ^= *s << 5;
+    return *s;
+}
+
+static void
+r2d_fill(rage128_t *dev, uint32_t dt, uint32_t x, uint32_t y, uint32_t w, uint32_t h,
+         uint32_t color)
+{
+    wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+       0x00000003u | (13u << 4) | (dt << 8) | (0xf0u << 16) | (1u << 28) | (1u << 29)
+           | (1u << 30));
+    wr(dev, RAGE128_DP_BRUSH_FRGD_CLR, color);
+    wr(dev, RAGE128_DP_CNTL, 3);
+    wr(dev, RAGE128_DST_Y_X, (y << 16) | x);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (h << 16) | w);
+}
+
+/* A screen copy with the directions and start corners the X driver
+   uses (xf86-video-r128 r128_accel.c R128SetupForScreenToScreenCopy,
+   R128SubsequentScreenToScreenCopy): right to left when the source is
+   left of the destination on the same row, bottom to top when it is
+   above it. */
+static void
+r2d_copy(rage128_t *dev, uint32_t dt, uint32_t sx, uint32_t sy, uint32_t dx, uint32_t dy,
+         uint32_t w, uint32_t h)
+{
+    int xdir = (sx < dx && sy == dy) ? -1 : 1;
+    int ydir = (sy < dy) ? -1 : 1;
+
+    wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+       0x00000003u | (13u << 4) | (dt << 8) | (0xccu << 16) | (2u << 24) | (1u << 28)
+           | (1u << 29) | (1u << 30));
+    wr(dev, RAGE128_DP_CNTL, (xdir > 0 ? 1u : 0u) | (ydir > 0 ? 2u : 0u));
+    if (xdir < 0) {
+        sx += w - 1;
+        dx += w - 1;
+    }
+    if (ydir < 0) {
+        sy += h - 1;
+        dy += h - 1;
+    }
+    wr(dev, RAGE128_SRC_Y_X, (sy << 16) | sx);
+    wr(dev, RAGE128_DST_Y_X, (dy << 16) | dx);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (h << 16) | w);
+}
+
+enum { R2D_S_RANDOM, R2D_S_THIN, R2D_S_OVERLAP, R2D_S_WORD, R2D_S_END, R2D_S_TILED,
+       R2D_S_CPUSTORE, R2D_S_SRCSTORE };
+
+/* One CPU byte store through the linear aperture beside a copy that was
+   just queued. The store's barrier must submit the open segment, which
+   only says something when the copy was still pending right before the
+   store. *fired: 1 every store so far found work pending and left none,
+   0 one left work pending, -1 one found nothing pending (a verify mode
+   that flushes each blit as it queues), which makes the row untestable. */
+static void
+r2d_store(rage128_t *dev, uint32_t addr, uint8_t val, int *fired)
+{
+    int was = dev->gpu ? harness_gpu_pending(dev->gpu) : 0;
+
+    rage128_lfb_writeb(dev->lfb_base + addr, val, dev);
+    if (!dev->gpu || *fired < 0)
+        return;
+    if (!was)
+        *fired = -1;
+    else if (harness_gpu_pending(dev->gpu))
+        *fired = 0;
+}
+
+/* Run one scenario and return a malloc'd copy of the surface with its
+   guard bands. bpp is bytes per pixel. *nb gets the byte count, *fired
+   the r2d_store verdict of the two store scenarios on a device with the
+   backend (1 elsewhere). */
+static uint8_t *
+r2d_run(rage128_t *dev, int scen, uint32_t bpp, uint32_t *nb, int *fired)
+{
+    static const uint32_t dts[5] = { 0, 2, 4, 5, 6 };
+    uint32_t dt    = dts[bpp];
+    uint32_t pitch = R2D_PXW * bpp;
+    uint32_t size  = pitch * R2D_ROWS;
+    uint32_t base  = scen == R2D_S_END ? dev->vram_size - size : R2D_BASE;
+    uint32_t glo   = R2D_GUARD;
+    uint32_t ghi   = scen == R2D_S_END ? 0 : R2D_GUARD;
+    uint32_t seed  = 0x922u * 2654435761u + (uint32_t) scen * 97u + bpp;
+    /* the pitch field counts 8 pixels, or 8 bytes at 24 bpp (RRG:
+       DST_PITCH, p. 3-137 / PDF 155) */
+    uint32_t po    = (((bpp == 3 ? pitch : R2D_PXW) / 8u) << 21) | (base >> 5)
+        | (scen == R2D_S_TILED ? 0x80000000u : 0u);
+    uint8_t *out;
+
+    *fired = 1;
+    drain_sync(dev);
+    for (uint32_t i = 0; i < glo + size + ghi; i++)
+        dev->svga.vram[base - glo + i] = (uint8_t) (r2d_rnd(&seed) >> 11);
+    wr(dev, RAGE128_DST_PITCH_OFFSET, po);
+    wr(dev, RAGE128_SRC_PITCH_OFFSET, po);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+
+    if (scen == R2D_S_CPUSTORE) {
+        /* a copy whose rows start and end inside a word, then a CPU byte
+           store through the linear aperture to the byte before its first
+           row and to the byte after its last row, with no flush between */
+        uint32_t row0 = base + 40u * pitch + 101u * bpp;
+        uint32_t rowN = base + 47u * pitch + 131u * bpp;
+
+        r2d_copy(dev, dt, 10, 10, 101, 40, 30, 8);
+        r2d_store(dev, row0 - 1u, 0xa5, fired);
+        r2d_copy(dev, dt, 10, 10, 101, 40, 30, 8);
+        r2d_store(dev, rowN, 0x5a, fired);
+    } else if (scen == R2D_S_SRCSTORE) {
+        /* the same on the source side: the copy's source rows start and
+           end inside a word, and the stores go to the byte before the
+           first source row and to the byte after the last one. Neither
+           byte is copied or stored by the copy; the rectangle kernel
+           loads the words that hold them. */
+        uint32_t row0 = base + 10u * pitch + 9u * bpp;
+        uint32_t rowN = base + 17u * pitch + 39u * bpp;
+
+        r2d_copy(dev, dt, 9, 10, 101, 40, 30, 8);
+        r2d_store(dev, row0 - 1u, 0xa5, fired);
+        r2d_copy(dev, dt, 9, 10, 101, 40, 30, 8);
+        r2d_store(dev, rowN, 0x5a, fired);
+    } else
+        for (uint32_t op = 0; op < 240u; op++) {
+            uint32_t r = r2d_rnd(&seed);
+            uint32_t w, h, x, y, sx, sy;
+
+            if (scen == R2D_S_THIN) {
+                w = (r & 1u) ? 1u : 1u + (r >> 8) % 64u;
+                h = (r & 2u) ? 1u : 1u + (r >> 16) % 40u;
+                if ((r & 3u) == 0u)
+                    h = 1u + (r >> 16) % 40u, w = 1u;
+            } else if (scen == R2D_S_OVERLAP) {
+                w = 60u;
+                h = 30u;
+            } else if ((r & 7u) == 0u) {
+                w = 1u + (r >> 8) % 3u;
+                h = 1u + (r >> 16) % 3u;
+            } else {
+                w = 1u + (r >> 8) % 120u;
+                h = 1u + (r >> 16) % 40u;
+            }
+            r = r2d_rnd(&seed);
+            x = r % (R2D_PXW - w + 1u);
+            y = (r >> 12) % (R2D_ROWS - h + 1u);
+            if (scen == R2D_S_END && (op & 3u) == 0u) {
+                /* reach the last byte of video memory */
+                x = R2D_PXW - w;
+                y = R2D_ROWS - h;
+            }
+            r = r2d_rnd(&seed);
+            if (scen == R2D_S_TILED || (scen != R2D_S_OVERLAP && (r & 1u))) {
+                r2d_fill(dev, dt, x, y, w, h, r2d_rnd(&seed));
+                if (scen == R2D_S_WORD && x + 2u * w <= R2D_PXW)
+                    /* a second fill that starts where the first ends: at
+                       1, 2 and 3 bytes a pixel the two share a word */
+                    r2d_fill(dev, dt, x + w, y, w, h, r2d_rnd(&seed));
+                continue;
+            }
+            if (scen == R2D_S_OVERLAP) {
+                /* the source 5 pixels or rows away in each of the eight
+                   directions in turn */
+                static const int ox[8] = { 5, -5, 0, 0, 5, -5, 5, -5 };
+                static const int oy[8] = { 0, 0, 5, -5, 5, 5, -5, -5 };
+                int              tx    = (int) x + ox[op & 7u];
+                int              ty    = (int) y + oy[op & 7u];
+
+                if (tx < 0 || ty < 0 || tx + (int) w > (int) R2D_PXW
+                    || ty + (int) h > (int) R2D_ROWS)
+                    continue;
+                sx = (uint32_t) tx;
+                sy = (uint32_t) ty;
+            } else if ((r & 6u) == 0u) {
+                /* a source a few pixels and rows away */
+                int tx = (int) x + (int) ((r >> 4) % 13u) - 6;
+                int ty = (int) y + (int) ((r >> 9) % 13u) - 6;
+
+                if (tx < 0 || ty < 0 || tx + (int) w > (int) R2D_PXW
+                    || ty + (int) h > (int) R2D_ROWS)
+                    continue;
+                sx = (uint32_t) tx;
+                sy = (uint32_t) ty;
+            } else {
+                sx = (r >> 4) % (R2D_PXW - w + 1u);
+                sy = (r >> 16) % (R2D_ROWS - h + 1u);
+            }
+            r2d_copy(dev, dt, sx, sy, x, y, w, h);
+            if (scen == R2D_S_WORD && x + 2u * w <= R2D_PXW && sx + 2u * w <= R2D_PXW)
+                r2d_copy(dev, dt, sx + w, sy, x + w, y, w, h);
+        }
+    drain_sync(dev);
+    *nb = glo + size + ghi;
+    out = (uint8_t *) malloc(*nb);
+    if (out)
+        memcpy(out, &dev->svga.vram[base - glo], *nb);
+    return out;
+}
+
+/* A scroll whose rows fit the 2 MB staging ring only when they are
+   packed end to end: 4104 rows of 511 bytes are 2,097,144 bytes, and at
+   a stride rounded up to a word they are 2,101,248. One 8 bpp surface
+   512 pixels wide, source rows 0 to 4103, destination rows 1 to 4104.
+   Returns a malloc'd copy of the surface with its guard bands; with the
+   backend, d[0..1] get the growth of the bounce and CPU-walk counters
+   and d[2..4] of the recording counters. */
+#define R2D_BIG_W    512u
+#define R2D_BIG_ROWS 4105u
+
+static uint8_t *
+r2d_big_bounce(rage128_t *dev, uint32_t *nb, uint64_t d[5])
+{
+    uint32_t size = R2D_BIG_W * R2D_BIG_ROWS;
+    uint32_t seed = 0x922u * 40503u + 7u;
+    uint64_t b[5] = { 0, 0, 0, 0, 0 }, a[5] = { 0, 0, 0, 0, 0 };
+    uint8_t *out;
+
+    drain_sync(dev);
+    for (uint32_t i = 0; i < R2D_GUARD + size + R2D_GUARD; i++)
+        dev->svga.vram[R2D_BASE - R2D_GUARD + i] = (uint8_t) (r2d_rnd(&seed) >> 11);
+    wr(dev, RAGE128_DST_PITCH_OFFSET, ((R2D_BIG_W / 8u) << 21) | (R2D_BASE >> 5));
+    wr(dev, RAGE128_SRC_PITCH_OFFSET, ((R2D_BIG_W / 8u) << 21) | (R2D_BASE >> 5));
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    drain_sync(dev);
+    if (dev->gpu) {
+        harness_gpu_blit_rec(dev->gpu, &b[0], &b[1]);
+        harness_gpu_q2d_rec(dev->gpu, &b[2], &b[3], &b[4]);
+    }
+    r2d_copy(dev, 2, 0, 0, 0, 1, R2D_BIG_W - 1u, R2D_BIG_ROWS - 1u);
+    drain_sync(dev);
+    if (dev->gpu) {
+        harness_gpu_blit_rec(dev->gpu, &a[0], &a[1]);
+        harness_gpu_q2d_rec(dev->gpu, &a[2], &a[3], &a[4]);
+    }
+    for (int i = 0; i < 5; i++)
+        d[i] = a[i] - b[i];
+    *nb = R2D_GUARD + size + R2D_GUARD;
+    out = (uint8_t *) malloc(*nb);
+    if (out)
+        memcpy(out, &dev->svga.vram[R2D_BASE - R2D_GUARD], *nb);
+    return out;
+}
+
+/* How the backend recorded what one op queued: the three counters'
+   growth across the op and its flush. */
+static void
+r2d_rec(rage128_t *dev, uint64_t d[3], uint64_t before[3])
+{
+    uint64_t now[3];
+
+    drain_sync(dev);
+    harness_gpu_q2d_rec(dev->gpu, &now[0], &now[1], &now[2]);
+    for (int i = 0; i < 3; i++) {
+        d[i]      = now[i] - before[i];
+        before[i] = now[i];
+    }
+}
+
+static void
+vectors_r2d_counters(rage128_t *dev)
+{
+    uint64_t c[3], d[3];
+    uint32_t T = harness_gpu_r2d_rows();
+    char     name[160];
+
+    wr(dev, RAGE128_DST_PITCH_OFFSET, ((R2D_PXW / 8u) << 21) | (R2D_BASE >> 5));
+    wr(dev, RAGE128_SRC_PITCH_OFFSET, ((R2D_PXW / 8u) << 21) | (R2D_BASE >> 5));
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    drain_sync(dev);
+    if (!dev->gpu || !harness_gpu_async(dev->gpu)) {
+        printf("SKIP r2d counters: no async GPU backend on this host\n");
+        return;
+    }
+    if (!harness_gpu_r2d_on(dev->gpu)) {
+        printf("SKIP r2d counters: the host could not set up the rectangle kernel; "
+               "queued 2D ops keep their buffer commands\n");
+        return;
+    }
+    harness_gpu_q2d_rec(dev->gpu, &c[0], &c[1], &c[2]);
+
+    r2d_fill(dev, 6, 10, 0, 100, 60, 0x00112233);
+    r2d_rec(dev, d, c);
+    snprintf(name, sizeof(name),
+             "r2d: a 60-row fill is one dispatch (commands %llu regions %llu dispatches %llu)",
+             (unsigned long long) d[0], (unsigned long long) d[1], (unsigned long long) d[2]);
+    check_true(name, d[0] == 0 && d[1] == 0 && d[2] == 1);
+
+    r2d_copy(dev, 6, 10, 0, 130, 0, 100, 30);
+    r2d_rec(dev, d, c);
+    /* same rows, side by side: the byte hulls overlap, so it bounces */
+    snprintf(name, sizeof(name),
+             "r2d: a 30-row copy beside its source is two dispatches (commands %llu "
+             "regions %llu dispatches %llu)",
+             (unsigned long long) d[0], (unsigned long long) d[1], (unsigned long long) d[2]);
+    check_true(name, d[0] == 0 && d[1] == 0 && d[2] == 2);
+
+    r2d_copy(dev, 6, 10, 0, 10, 60, 100, 30);
+    r2d_rec(dev, d, c);
+    snprintf(name, sizeof(name),
+             "r2d: a 30-row copy below its source is one dispatch (commands %llu "
+             "regions %llu dispatches %llu)",
+             (unsigned long long) d[0], (unsigned long long) d[1], (unsigned long long) d[2]);
+    check_true(name, d[0] == 0 && d[1] == 0 && d[2] == 1);
+
+    r2d_copy(dev, 6, 10, 0, 14, 4, 100, 30);
+    r2d_rec(dev, d, c);
+    snprintf(name, sizeof(name),
+             "r2d: a 30-row copy over its source is two dispatches (commands %llu "
+             "regions %llu dispatches %llu)",
+             (unsigned long long) d[0], (unsigned long long) d[1], (unsigned long long) d[2]);
+    check_true(name, d[0] == 0 && d[1] == 0 && d[2] == 2);
+
+    /* controls: these keep their buffer commands on any recording */
+    r2d_fill(dev, 6, 0, 70, R2D_PXW, 10, 0x00445566);
+    r2d_rec(dev, d, c);
+    snprintf(name, sizeof(name),
+             "r2d: control: a full-pitch fill stays one command a buffer (commands %llu "
+             "dispatches %llu)",
+             (unsigned long long) d[0], (unsigned long long) d[2]);
+    check_true(name, (d[0] == 1 || d[0] == 2) && d[2] == 0);
+
+    r2d_copy(dev, 6, 10, 0, 10, 60, 100, T - 1u);
+    r2d_rec(dev, d, c);
+    snprintf(name, sizeof(name),
+             "r2d: control: a copy under the row threshold keeps a region a row "
+             "(rows %u regions %llu dispatches %llu)",
+             T - 1u, (unsigned long long) d[1], (unsigned long long) d[2]);
+    check_true(name, d[1] == T - 1u && d[2] == 0);
+}
+
+/* A queued copy with unaligned rows directly after the rows of a 3D
+   draw that is still pending: the draw's rows and the copy's bytes must
+   both be what each leaves alone. 64-pixel 32 bpp target at HZ_A. */
+static void
+vectors_r2d_after_draw(rage128_t *dev)
+{
+    uint32_t ref[32 * 64];
+    uint32_t dst = HZ_A + 32u * 256u + 1u;
+    uint32_t src = HZ_A + 48u * 256u + 2u;
+    int      ok_draw = 1, ok_copy = 1, ok_edge = 1;
+
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0x00000000);
+    wr(dev, 0x16f0, 0x001f003f);
+    wr(dev, 0x16c0, 0x00000003);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0x00000000);
+    wr(dev, 0x16c4, 0x00000006);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000 | (HZ_A >> 5));
+    wr(dev, RAGE128_Z_OFFSET_C, HZ_Z);
+    wr(dev, RAGE128_Z_PITCH_C, 0x00000008);
+    wr(dev, RAGE128_Z_STEN_CNTL_C, 0x00000070);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_SETUP_CNTL, 0x00000020);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+    hz_seed(dev, 0, 0);
+    hz_draw(dev, 0.0f, 31.0f, GC_A);
+    gpu_sync(dev);
+    if (!dev->gpu || !harness_gpu_async(dev->gpu)) {
+        printf("SKIP r2d after a draw: no async GPU backend on this host\n");
+        return;
+    }
+    memcpy(ref, &dev->svga.vram[HZ_A], sizeof(ref));
+
+    hz_seed(dev, 0, 0);
+    for (uint32_t i = 0; i < 8u * 64u; i++) /* rows 32 to 39, below the seeded 32 */
+        *(uint32_t *) &dev->svga.vram[HZ_A + 32u * 256u + i * 4u] = HZ_MARK;
+    for (uint32_t i = 0; i < 8u * 256u; i++)
+        dev->svga.vram[HZ_A + 48u * 256u + i] = (uint8_t) (i * 7u + 3u);
+    hz_draw(dev, 0.0f, 31.0f, GC_A);
+    check_true("r2d: a copy after a pending draw's rows queues",
+               rage128_gpu_2d_blit(dev, dst, 256u, src, 256u, 30u, 8u) == 1);
+    gpu_sync(dev);
+    if (memcmp(ref, &dev->svga.vram[HZ_A], sizeof(ref)))
+        ok_draw = 0;
+    for (uint32_t r = 0; r < 8u; r++) {
+        const uint8_t *d = &dev->svga.vram[dst + r * 256u];
+        const uint8_t *s = &dev->svga.vram[src + r * 256u];
+
+        if (memcmp(d, s, 30))
+            ok_copy = 0;
+        /* the marker's bytes on both sides of the row, in the row's own words */
+        if (d[-1] != (uint8_t) (HZ_MARK & 0xffu) || d[30] != (uint8_t) (HZ_MARK >> 24))
+            ok_edge = 0;
+    }
+    check_true("r2d: the pending draw's rows are as without the copy", ok_draw);
+    check_true("r2d: the copy after the draw's rows lands", ok_copy);
+    check_true("r2d: the bytes beside the copy's rows keep their values", ok_edge);
+}
+
+static void
+run_r2d(void)
+{
+    static const struct {
+        int         scen;
+        uint32_t    bpp;
+        const char *name;
+    } cases[] = {
+        { R2D_S_RANDOM, 1, "random fills and copies, 8 bpp" },
+        { R2D_S_RANDOM, 2, "random fills and copies, 16 bpp" },
+        { R2D_S_RANDOM, 3, "random fills and copies, 24 bpp" },
+        { R2D_S_RANDOM, 4, "random fills and copies, 32 bpp" },
+        { R2D_S_THIN, 1, "one-pixel, one-row and one-column rectangles, 8 bpp" },
+        { R2D_S_THIN, 3, "one-pixel, one-row and one-column rectangles, 24 bpp" },
+        { R2D_S_OVERLAP, 1, "copies overlapping their source in eight directions, 8 bpp" },
+        { R2D_S_OVERLAP, 4, "copies overlapping their source in eight directions, 32 bpp" },
+        { R2D_S_WORD, 1, "rectangles that share a word, 8 bpp" },
+        { R2D_S_WORD, 2, "rectangles that share a word, 16 bpp" },
+        { R2D_S_WORD, 3, "rectangles that share a word, 24 bpp" },
+        { R2D_S_END, 1, "rectangles at the last byte of video memory, 8 bpp" },
+        { R2D_S_END, 4, "rectangles at the last byte of video memory, 32 bpp" },
+        { R2D_S_TILED, 4, "fills of a tiled destination, 32 bpp" },
+        { R2D_S_CPUSTORE, 1, "CPU byte stores beside a queued copy's rows, 8 bpp" },
+        { R2D_S_SRCSTORE, 1, "CPU byte stores beside a queued copy's source rows, 8 bpp" },
+    };
+    enum { NC = sizeof(cases) / sizeof(cases[0]) };
+    uint8_t    *got[NC], *big, *bigw;
+    uint32_t    nb[NC], bign, bigwn;
+    uint64_t    bigd[5], bigdw[5];
+    int         fired[NC], dummy;
+    uint64_t    c0[3] = { 0, 0, 0 }, c1[3] = { 0, 0, 0 };
+    const char *genv = getenv("R128_GPU");
+    char        gprev[32] = "", name[160];
+    rage128_t  *dev;
+    int         have_gpu;
+
+    if (!harness_gpu_available()) {
+        printf("SKIP r2d: built without Vulkan headers\n");
+        return;
+    }
+    if (genv)
+        snprintf(gprev, sizeof(gprev), "%s", genv);
+    harness_cfg_memory_mb = 32;
+
+    setenv("R128_GPU", "1", 1);
+    dev = rage128_init(&ati_rage128_pro_device);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff); /* starts the backend */
+    drain_sync(dev);
+    have_gpu = dev->gpu && harness_gpu_async(dev->gpu);
+    if (!have_gpu) {
+        printf("SKIP r2d: no async GPU backend on this host\n");
+        close_dev(dev);
+        if (genv)
+            setenv("R128_GPU", gprev, 1);
+        else
+            unsetenv("R128_GPU");
+        return;
+    }
+    harness_gpu_q2d_rec(dev->gpu, &c0[0], &c0[1], &c0[2]);
+    for (int i = 0; i < NC; i++)
+        got[i] = r2d_run(dev, cases[i].scen, cases[i].bpp, &nb[i], &fired[i]);
+    harness_gpu_q2d_rec(dev->gpu, &c1[0], &c1[1], &c1[2]);
+    printf("r2d data: scenarios recorded commands=%llu regions=%llu dispatches=%llu\n",
+           (unsigned long long) (c1[0] - c0[0]), (unsigned long long) (c1[1] - c0[1]),
+           (unsigned long long) (c1[2] - c0[2]));
+    big = r2d_big_bounce(dev, &bign, bigd);
+    vectors_r2d_counters(dev);
+    vectors_r2d_after_draw(dev);
+    close_dev(dev);
+
+    setenv("R128_GPU", "0", 1);
+    dev = rage128_init(&ati_rage128_pro_device);
+    for (int i = 0; i < NC; i++) {
+        uint32_t n;
+        uint8_t *want = r2d_run(dev, cases[i].scen, cases[i].bpp, &n, &dummy);
+
+        snprintf(name, sizeof(name), "r2d: %s: equal to the CPU walk", cases[i].name);
+        check_true(name, got[i] && want && n == nb[i] && !memcmp(got[i], want, n));
+        if (got[i] && want && n == nb[i] && memcmp(got[i], want, n)) {
+            uint32_t first = 0, cnt = 0;
+
+            for (uint32_t k = n; k-- > 0;)
+                if (got[i][k] != want[k]) {
+                    first = k;
+                    cnt++;
+                }
+            printf("r2d data: %s: %u bytes differ, the first at surface byte %d "
+                   "(backend %02x, CPU walk %02x)\n",
+                   cases[i].name, cnt, (int) first - (int) R2D_GUARD, got[i][first],
+                   want[first]);
+        }
+        if (cases[i].scen == R2D_S_CPUSTORE || cases[i].scen == R2D_S_SRCSTORE) {
+            const char *row = cases[i].scen == R2D_S_CPUSTORE
+                ? "r2d: a CPU store into a queued copy's edge word waits for the copy"
+                : "r2d: a CPU store into a word a queued copy reads waits for the copy";
+
+            /* the copy must have been pending when the store came, or the
+               row would pass without the barrier doing anything */
+            if (fired[i] < 0)
+                printf("SKIP %s: no work was pending before the store (a verify mode "
+                       "flushes each blit as it queues)\n", row);
+            else
+                check_true(row, fired[i]);
+        }
+        free(want);
+        free(got[i]);
+    }
+    bigw = r2d_big_bounce(dev, &bigwn, bigdw);
+    printf("r2d data: ring-limit scroll: bounced %llu, to the CPU walk %llu, regions %llu, "
+           "dispatches %llu\n",
+           (unsigned long long) bigd[0], (unsigned long long) bigd[1],
+           (unsigned long long) bigd[3], (unsigned long long) bigd[4]);
+    snprintf(name, sizeof(name),
+             "r2d: a scroll that fits the staging ring only unpadded still bounces "
+             "(bounced %llu, to the CPU walk %llu; regions %llu dispatches %llu)",
+             (unsigned long long) bigd[0], (unsigned long long) bigd[1],
+             (unsigned long long) bigd[3], (unsigned long long) bigd[4]);
+    check_true(name, bigd[0] == 1 && bigd[1] == 0);
+    check_true("r2d: a scroll that fits the staging ring only unpadded: equal to the CPU walk",
+               big && bigw && bign == bigwn && !memcmp(big, bigw, bign));
+    free(bigw);
+    free(big);
+    close_dev(dev);
+    if (genv)
+        setenv("R128_GPU", gprev, 1);
+    else
+        unsetenv("R128_GPU");
+}
+
 static void
 run_lanegap(void)
 {
@@ -28620,7 +29171,7 @@ static const char *const shard_units[] = {
     "gpu2d-verify",
     "x64legs", "synctel", "yuv-border", "texture-alpha", "dither-init",
     "sec-persp", "sec-only", "dst-1555-4444", "zoff-tfog",
-    "stipple-fast", "lanegap-expectedfail", "gpu-carry"
+    "stipple-fast", "lanegap-expectedfail", "gpu-carry", "gpu-r2d"
 };
 static char *selected_units;
 
@@ -29327,6 +29878,8 @@ main(int argc, char **argv)
         run_gpu2d_verify();
     if (unit_selected("gpu-carry"))
         run_gpu_carry();
+    if (unit_selected("gpu-r2d"))
+        run_r2d();
     if (unit_selected("x64legs"))
         run_x64legs();
     if (unit_selected("synctel"))
