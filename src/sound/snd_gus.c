@@ -4383,7 +4383,6 @@ static const device_config_t gus_max_config[] = {
         },
         .bios           = { { 0 } }
     },
-    GUS_DAUGHTER_CONFIG,
     {
         .name           = "receive_input",
         .description    = "Receive MIDI input",
