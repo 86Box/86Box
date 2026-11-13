@@ -403,12 +403,18 @@ typedef struct virge_t {
 
     fifo_entry_t fifo[FIFO_SIZE];
     /* The FIFO thread writes fifo_read_idx and the emulation thread writes
-       fifo_write_idx once per entry: 128 bytes apart, the two never share
-       a cache line (128 bytes on Apple silicon, 64 on x86-64). */
+       fifo_write_idx once per entry. On arm64 hosts the two are kept 128
+       bytes apart, so they do not share a cache line of up to 128 bytes
+       (the size on Apple silicon). Other hosts keep them adjacent: the
+       padding made the queue slower on x86-64. */
+#if defined(__aarch64__) || defined(_M_ARM64)
     ATOMIC_INT   fifo_read_idx;
     uint8_t      fifo_read_idx_pad[124];
     ATOMIC_INT   fifo_write_idx;
     uint8_t      fifo_write_idx_pad[124];
+#else
+    ATOMIC_INT   fifo_read_idx, fifo_write_idx;
+#endif
     ATOMIC_INT   fifo_thread_run, render_thread_run;
 
     thread_t *fifo_thread;
