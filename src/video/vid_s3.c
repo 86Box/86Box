@@ -3267,11 +3267,17 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                         nmc93cxx_eeprom_write(s3->eeprom, !!(val & 0x80), !!(val & 0x40), !!(val & 0x10));
 
                     if ((s3->card_type == S3_PHOENIX_VISION868) || (s3->card_type == S3_PHOENIX_VISION968)) {
-                        if ((val & 0x20) && (!(svga->crtc[0x55] & 0x01) && !(svga->crtc[0x43] & 0x02)))
-                            svga->dac_addr |= 0x20;
+                        /* The Phoenix Vision868/968 BIOSes drive the DDC lines from the
+                           General Output Port: GOP4 is SDA and GOP5 is SCL. */
+                        i2c_gpio_set(s3->i2c, !!(val & 0x20), !!(val & 0x10));
                     } else if (s3->card_type == S3_MIROVIDEO40SV_ERGO_968) {
-                        if ((val & 0x80) && (!(svga->crtc[0x55] & 0x01) && !(svga->crtc[0x43] & 0x02)))
-                            svga->dac_addr |= 0x02;
+                        /* The miroVIDEO 40SV drives the DDC lines from the General
+                           Output Port: GOP6 is SDA and GOP7 is SCL. */
+                        i2c_gpio_set(s3->i2c, !!(val & 0x80), !!(val & 0x40));
+                    } else if (s3->card_type == S3_MIRO_TRIO64V) {
+                        /* The miroVIDEO 22SD drives the DDC lines from the General
+                           Output Port pins: GOP0 is SDA and GOP1 is SCL. */
+                        i2c_gpio_set(s3->i2c, !!(val & 0x02), !!(val & 0x01));
                     }
                     break;
 
@@ -3591,6 +3597,22 @@ s3_in(uint16_t addr, void *priv)
         case 0x3c7:
         case 0x3c8:
         case 0x3c9:
+            /* CR55 bit 2 turns a 3C8h read into a General Input Port read, where
+               the cards that drive DDC from the General Output Port read the lines
+               back: SDA on bit 0, and SCL on bit 1 (miro) or bit 5 (Phoenix). */
+            if ((addr == 0x3c8) && (svga->crtc[0x55] & 0x04)) {
+                switch (s3->card_type) {
+                    case S3_MIRO_TRIO64V:
+                    case S3_MIROVIDEO40SV_ERGO_968:
+                        return 0xfc | (i2c_gpio_get_scl(s3->i2c) << 1) | i2c_gpio_get_sda(s3->i2c);
+                    case S3_PHOENIX_VISION868:
+                    case S3_PHOENIX_VISION968:
+                        return 0xde | (i2c_gpio_get_scl(s3->i2c) << 5) | i2c_gpio_get_sda(s3->i2c);
+                    default:
+                        break;
+                }
+            }
+
             rs2 = (svga->crtc[0x55] & 0x01) || !!(svga->crtc[0x43] & 2);
             switch (s3->ramdac_type) {
                 case BUILT_IN:
@@ -11491,6 +11513,11 @@ s3_init(const device_t *info)
 
             if (s3->chip == S3_TRIO64V)
                 svga->crtc[0x53] = 0x08;
+
+            /* The miroMEDIA TV BIOS does its DDC through the serial port at I/O
+               port E2h, so the board straps it there. */
+            if (s3->card_type == S3_MIROMEDIA_TV)
+                svga->crtc[0x6f] = 0x02;
 
             svga->clock_gen = s3;
             svga->getclock  = s3_trio64_getclock;
