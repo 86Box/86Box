@@ -1243,6 +1243,13 @@ ac97_via_init(UNUSED(const device_t *info))
     timer_add(&dev->sgd[5].poll_timer, ac97_via_poll_modem_capture, &dev->sgd[5], 0);
     ac97_via_speed_changed(dev);
 
+    /* PCM playback starts by advancing the poll timer from its last timestamp,
+       which would put it on the same schedule as the sound poll timer. Timers
+       due together swap order on every tick, which makes the update write two
+       samples, then none, so start half a sample apart. */
+    timer_set_delay_u64(&dev->sgd[0].poll_timer, dev->sgd[0].timer_latch / 2);
+    timer_disable(&dev->sgd[0].poll_timer);
+
     /* Set up playback handler. */
     sound_add_handler(ac97_via_get_buffer, dev);
 
