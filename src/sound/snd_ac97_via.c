@@ -182,17 +182,9 @@ ac97_via_write_control(void *priv, uint8_t val)
     /* the record channel only gets ADC frames while the link runs. */
     dev->link_enabled = (val & 0xc0) == 0xc0;
 
-    /* Start or stop PCM playback. */
-    i = (val & 0xf4) == 0xc4;
-    if (i && !dev->pcm_enabled)
-        timer_advance_u64(&dev->sgd[0].poll_timer, dev->sgd[0].timer_latch);
-    dev->pcm_enabled = i;
-
-    /* Start or stop FM playback. */
-    i = (val & 0xf2) == 0xc2;
-    if (i && !dev->fm_enabled)
-        timer_advance_u64(&dev->sgd[2].poll_timer, dev->sgd[2].timer_latch);
-    dev->fm_enabled = i;
+    /* Start or stop PCM and FM playback. */
+    dev->pcm_enabled = (val & 0xf4) == 0xc4;
+    dev->fm_enabled  = (val & 0xf2) == 0xc2;
 
     /* Update audio codec state. */
     ac97_via_update_codec(dev);
@@ -455,8 +447,8 @@ ac97_via_sgd_write(uint16_t addr, uint8_t val, void *priv)
                         /* Start modem pollers. */
                         if (!dev->modem_enabled) {
                             dev->modem_enabled = 1;
-                            timer_advance_u64(&dev->sgd[4].poll_timer, dev->sgd[4].timer_latch);
-                            timer_advance_u64(&dev->sgd[5].poll_timer, dev->sgd[5].timer_latch);
+                            timer_set_delay_u64(&dev->sgd[4].poll_timer, dev->sgd[4].timer_latch);
+                            timer_set_delay_u64(&dev->sgd[5].poll_timer, dev->sgd[5].timer_latch);
                         }
                     } else if (!dev->audio_codec) {
                         dev->audio_codec = codec;
@@ -807,12 +799,14 @@ ac97_via_poll_stereo(void *priv)
     ac97_via_sgd_t *sgd = (ac97_via_sgd_t *) priv;
     ac97_via_t     *dev = sgd->dev;
 
-    /* Schedule next run if PCM playback is enabled. */
-    if (dev->pcm_enabled)
-        timer_advance_u64(&sgd->poll_timer, sgd->timer_latch);
+    timer_advance_u64(&sgd->poll_timer, sgd->timer_latch);
 
     /* Update stereo audio buffer. */
     ac97_via_update_stereo(dev, sgd);
+
+    /* Hold the last sample while PCM playback is stopped. */
+    if (!dev->pcm_enabled)
+        return;
 
     /* Feed next sample from the FIFO. */
     switch (dev->sgd_regs[sgd->id | 0x2] & 0x30) {
@@ -863,12 +857,14 @@ ac97_via_poll_fm(void *priv)
     ac97_via_sgd_t *sgd = (ac97_via_sgd_t *) priv;
     ac97_via_t     *dev = sgd->dev;
 
-    /* Schedule next run if FM playback is enabled. */
-    if (dev->fm_enabled)
-        timer_advance_u64(&sgd->poll_timer, sgd->timer_latch);
+    timer_advance_u64(&sgd->poll_timer, sgd->timer_latch);
 
     /* Update FM audio buffer. */
     ac97_via_update_stereo(dev, sgd);
+
+    /* Hold the last sample while FM playback is stopped. */
+    if (!dev->fm_enabled)
+        return;
 
     /* Feed next sample from the FIFO.
        The data format is not documented, but it probes as 16-bit stereo at 24 KHz. */
@@ -1243,12 +1239,11 @@ ac97_via_init(UNUSED(const device_t *info))
     timer_add(&dev->sgd[5].poll_timer, ac97_via_poll_modem_capture, &dev->sgd[5], 0);
     ac97_via_speed_changed(dev);
 
-    /* PCM playback starts by advancing the poll timer from its last timestamp,
-       which would put it on the same schedule as the sound poll timer. Timers
-       due together swap order on every tick, which makes the update write two
-       samples, then none, so start half a sample apart. */
+    /* The PCM and FM pollers run all the time, half a sample after the sound
+       poll timer: at the same rate, timers due together swap order on every
+       tick, which makes the update write two samples, then none. */
     timer_set_delay_u64(&dev->sgd[0].poll_timer, dev->sgd[0].timer_latch / 2);
-    timer_disable(&dev->sgd[0].poll_timer);
+    timer_set_delay_u64(&dev->sgd[2].poll_timer, dev->sgd[2].timer_latch / 2);
 
     /* Set up playback handler. */
     sound_add_handler(ac97_via_get_buffer, dev);
