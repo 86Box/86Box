@@ -599,6 +599,17 @@ typedef struct rage128_t {
                                  was last loaded with bit 27 clear */
     uint32_t gui_scratch[6];
     uint32_t scale_scr_height_width;
+    /* The front-end scaler's register-started stretch (0x1998 and
+       0x19a0-0x19b4, as written; the write to SCALE_DST_HEIGHT_WIDTH
+       starts it). SCALE_PITCH (0x199c) is the motion-compensation
+       block's mc.scale_pitch. */
+    uint32_t scale_offset_0;
+    uint32_t scale_x_inc;
+    uint32_t scale_y_inc;
+    uint32_t scale_hacc;
+    uint32_t scale_vacc;
+    uint32_t scale_dst_x_y;
+    uint32_t scale_dst_height_width;
     uint32_t scl_palette[256]; /* 2D scaler palette, loaded by the
                                   LOAD_PALETTE packet (0x2c; SDK:
                                   LOAD_PALETTE, p. F-46 / PDF 336) as

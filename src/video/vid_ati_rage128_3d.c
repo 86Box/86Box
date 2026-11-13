@@ -154,10 +154,11 @@ rage128_3d_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
     switch (off) {
         case RAGE128_SCALE_3D_CNTL:        MERGE(dev->t3d.scale_3d_cntl); return 1;
         case RAGE128_SCALE_3D_DATATYPE:
-            /* Latched only. The guides give this register no field list;
-               the CCE 3D supplement names parts of it as aliases of the
-               datatype and palette fields of PRIM_TEX_CNTL_C and
-               SEC_TEX_CNTL_C, and the 3D path reads those registers. */
+            /* The guides give this register no field list; the CCE 3D
+               supplement names parts of it as aliases of the datatype
+               and palette fields of PRIM_TEX_CNTL_C and SEC_TEX_CNTL_C,
+               and the 3D path reads those registers. The 2D engine's
+               register-started scale reads [3:0] as its source format. */
             MERGE(dev->t3d.scale_3d_datatype);
             return 1;
         case RAGE128_COMPOSITE_SHADOW_ID:

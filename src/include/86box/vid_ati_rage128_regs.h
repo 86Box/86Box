@@ -1198,9 +1198,15 @@
 #define RAGE128_FOG_TABLE_INDEX      0x1a14
 #define RAGE128_FOG_TABLE_DATA       0x1a18
 /* SCALE_3D_DATATYPE has no register page. The CCE 3D supplement gives
-   parts of it through aliases in PRIM_TEX_CNTL_C and SEC_TEX_CNTL_C, and
-   the SDK's scaled blit writes the destination pixel depth code into it
-   (SDK: Scaled Block Transfer, p. 4-12 / PDF 86). */
+   parts of it through aliases in PRIM_TEX_CNTL_C and SEC_TEX_CNTL_C.
+   Its [3:0] is the front-end scaler's SOURCE format, in the DP_DATATYPE
+   codes, set apart from the destination format in DP_DATATYPE: the
+   SDK's scaled blit writes the screen's depth code here because its
+   source and destination share that depth (SDK: Drawing Rectangles,
+   p. 4-12 / PDF 86), and a color-space-converting blit writes the
+   source's own code (15, 16 or 32 bpp RGB, or one of the packed YUV
+   4:2:2 orders) into a destination of another format. The
+   register-started scale reads [3:0] only. */
 #define RAGE128_SCALE_3D_DATATYPE    0x1a20
 #define RAGE128_CLR_CMP_CLR_3D       0x1a24
 #define RAGE128_CLR_CMP_MSK_3D       0x1a28
@@ -1286,7 +1292,10 @@
    motion-compensation driver writes the surface base to 0x1998 and the
    pitch >> 3 to 0x199c, and packs SCALE_SCR_HEIGHT_WIDTH and
    SCALE_DST_HEIGHT_WIDTH as (height << 16) | width (RE: ATIMCRAA.DLL
-   @b01103a0). */
+   @b01103a0). A write to SCALE_DST_HEIGHT_WIDTH starts a stretch from
+   these registers (SDK: Drawing Rectangles, pp. 4-12-4-13 / PDF 86-87;
+   the 2D engine's register-started scale describes each register's
+   fields). */
 #define RAGE128_SECONDARY_SCALE_PITCH  0x1980 /* [8:0] pitch in units of 8 pixels */
 #define RAGE128_SECONDARY_SCALE_X_INC  0x1984
 #define RAGE128_SECONDARY_SCALE_Y_INC  0x1988

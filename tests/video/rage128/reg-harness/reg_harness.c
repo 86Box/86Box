@@ -22644,6 +22644,360 @@ vectors_line_brush_905(rage128_t *dev)
               "VERIFY MISMATCH", 0);
 }
 
+/* 906: the register-started scale blit. The register sequence is the
+   one the guide's scaled-blit example programs (SDK: Drawing Rectangles,
+   pp. 4-12-4-13 / PDF 86-87), with the source format in
+   SCALE_3D_DATATYPE: DP_MIX, DP_DATATYPE, SCALE_3D_CNTL 0x40, TEX_CNTL,
+   MISC_3D_STATE_CNTL_REG, SCALE_3D_DATATYPE (source format),
+   CLR_CMP_MSK_3D, SCALE_SRC_HEIGHT_WIDTH, SCALE_OFFSET_0, SCALE_PITCH,
+   MC_SRC1_CNTL, SCALE_X_INC, SCALE_Y_INC, SCALE_HACC, SCALE_VACC,
+   SRC_Y_X, SCALE_DST_X_Y, and SCALE_DST_HEIGHT_WIDTH last, which starts
+   the op. The drawing cases that have a packet twin are also sent as a
+   0x96 packet with the same values in the slots of the same name, into a
+   second destination 128 KB away; both destinations are prefilled alike
+   and compared byte for byte over the whole 64-pixel-wide window, so the
+   guard band around each rect is compared too. The motion-compensation
+   planes and the SRC_Y_X case are checked against the source bytes; the
+   zero-size, gate and refused-format controls against untouched
+   storage. Old code: the register destination is never written. */
+#define S906_SRC   0x00380000u
+#define S906_DREG  0x003a0000u
+#define S906_DPKT  0x003c0000u
+#define S906_DPX   64u     /* destination pitch, pixels */
+#define S906_ROWS  24u     /* compared rows of each destination window */
+#define S906_FILL  0xa5u
+
+struct s906 {
+    uint32_t ddt, sdt_reg, sdt_pkt, soff, spitch8, sw, sh;
+    uint32_t xinc, yinc, hacc, vacc, s7, srcyx, dx, dy, dw, dh, misc;
+};
+
+static uint32_t
+s906_bpp(uint32_t dt)
+{
+    return (dt == 2 || dt == 7 || dt == 8 || dt == 9) ? 1u
+         : (dt == 6) ? 4u : 2u;
+}
+
+static void
+s906_prefill(rage128_t *dev, uint32_t base, uint32_t ddt)
+{
+    memset(&dev->svga.vram[base], S906_FILL, S906_DPX * s906_bpp(ddt) * S906_ROWS);
+}
+
+/* The register sequence above, in that order. cntl is SCALE_3D_CNTL. */
+static void
+s906_reg(rage128_t *dev, const struct s906 *c, uint32_t cntl)
+{
+    wr(dev, RAGE128_DST_OFFSET, S906_DREG);
+    wr(dev, RAGE128_DST_PITCH, S906_DPX / 8);
+    wr(dev, RAGE128_DP_MIX, 0x00cc0200u);                    /* SRCCOPY | DP_SRC_RECT */
+    wr(dev, RAGE128_DP_DATATYPE, c->ddt | (15u << 8) | (3u << 16));
+    wr(dev, RAGE128_SCALE_3D_CNTL, cntl);
+    wr(dev, RAGE128_TEX_CNTL, 0);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, c->misc);
+    wr(dev, RAGE128_SCALE_3D_DATATYPE, c->sdt_reg);
+    wr(dev, RAGE128_CLR_CMP_MSK_3D, 0xffffffffu);
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, (c->sh << 16) | c->sw);
+    wr(dev, RAGE128_SCALE_OFFSET_0, c->soff);
+    wr(dev, RAGE128_SCALE_PITCH, c->spitch8);
+    wr(dev, RAGE128_MC_SRC1_CNTL, 0);
+    wr(dev, RAGE128_SCALE_X_INC, c->xinc);
+    wr(dev, RAGE128_SCALE_Y_INC, c->yinc);
+    wr(dev, RAGE128_SCALE_HACC, c->hacc);
+    wr(dev, RAGE128_SCALE_VACC, c->vacc);
+    wr(dev, RAGE128_SRC_Y_X, c->srcyx);
+    wr(dev, RAGE128_SCALE_DST_X_Y, (c->dx << 16) | c->dy);
+    wr(dev, RAGE128_SCALE_DST_HEIGHT_WIDTH, (c->dh << 16) | c->dw);
+    flush_sync(dev);
+}
+
+/* The same stretch as a 0x96 packet into S906_DPKT. */
+static void
+s906_pkt(rage128_t *dev, const struct s906 *c)
+{
+    uint32_t pl[13];
+
+    pl[0]  = 0x00000002u | (15u << 4) | (c->ddt << 8) | (3u << 12)
+           | (0xccu << 16) | (2u << 24);
+    pl[1]  = ((S906_DPX / 8) << 21) | (S906_DPKT >> 5);
+    pl[2]  = c->misc;     pl[3] = 0x00800000u; pl[4] = 0x02180840u;
+    pl[5]  = c->sdt_pkt;  pl[6] = c->soff;     pl[7] = c->spitch8;
+    pl[8]  = c->s7;       pl[9] = c->xinc;     pl[10] = c->yinc;
+    pl[11] = (c->dx << 16) | c->dy;
+    pl[12] = (c->dh << 16) | c->dw;
+    rage128_2d_packet3(dev, 0x96u << 8, pl, 13);
+    flush_sync(dev);
+}
+
+/* 1 = the register destination equals the packet destination byte for
+   byte over the whole window and the packet drew something. */
+static int
+s906_same(rage128_t *dev, const struct s906 *c)
+{
+    uint32_t n = S906_DPX * s906_bpp(c->ddt) * S906_ROWS;
+    int      d = 0;
+
+    for (uint32_t i = 0; i < n; i++)
+        if (dev->svga.vram[S906_DPKT + i] != S906_FILL)
+            d = 1;
+    return d && memcmp(&dev->svga.vram[S906_DREG], &dev->svga.vram[S906_DPKT], n) == 0;
+}
+
+static int
+s906_pair(rage128_t *dev, const struct s906 *c, int *nq)
+{
+    s906_prefill(dev, S906_DREG, c->ddt);
+    s906_prefill(dev, S906_DPKT, c->ddt);
+    s906_reg(dev, c, 0x40u);
+    s906_pkt(dev, c);
+    *nq += 2;
+    return s906_same(dev, c);
+}
+
+static int
+s906_untouched(rage128_t *dev, uint32_t base, uint32_t ddt)
+{
+    for (uint32_t i = 0; i < S906_DPX * s906_bpp(ddt) * S906_ROWS; i++)
+        if (dev->svga.vram[base + i] != S906_FILL)
+            return 0;
+    return 1;
+}
+
+static uint32_t s906_rng = 0x906u;
+
+static void
+s906_src(rage128_t *dev, uint32_t nbytes)
+{
+    for (uint32_t i = 0; i < nbytes; i++) {
+        s906_rng = s906_rng * 1103515245u + 12345u;
+        dev->svga.vram[S906_SRC + i] = (uint8_t) (s906_rng >> 16);
+    }
+}
+
+/* The motion-compensation driver's plane copy, sent as type-0 packets
+   through the CCE PIO ports in the order ATI's Windows 98 motion
+   compensation DLL emits it (setup once, then per plane 0x1994, 0x1998,
+   0x199c, DST_PITCH_OFFSET, DST_OFFSET, 0x19b4). SCALE_DST_X_Y,
+   SCALE_HACC and SCALE_VACC are not written; this runs before any other
+   906 row writes them. Expected: an 8 bpp 1:1 copy of w x h from each
+   plane's base to its destination, nothing else in the window. */
+#define MC906_SRC   0x00390000u
+#define MC906_DST   0x003b0000u
+#define MC906_SPX   16u  /* SCALE_PITCH 2: 16 pixels */
+#define MC906_DPX   32u  /* DST_PITCH_OFFSET pitch: 32 pixels */
+#define P0(reg)     ((uint32_t) (reg) >> 2)
+
+static int
+mc906_planes(rage128_t *dev, int *nq)
+{
+    static const uint32_t pw[3] = { 16, 8, 8 }, ph[3] = { 4, 2, 2 };
+    uint32_t pkt[64], micro = rd(dev, RAGE128_PM4_MICRO_CNTL);
+    uint32_t n = 0;
+    int      ok = 1;
+
+    memset(&dev->svga.vram[MC906_DST], S906_FILL, 3 * 0x1000);
+    for (uint32_t i = 0; i < 3 * 0x1000; i++) {
+        s906_rng = s906_rng * 1103515245u + 12345u;
+        dev->svga.vram[MC906_SRC + i] = (uint8_t) (s906_rng >> 16);
+    }
+    pkt[n++] = P0(RAGE128_SCALE_3D_CNTL);     pkt[n++] = 0x40u;
+    pkt[n++] = P0(RAGE128_SCALE_3D_DATATYPE); pkt[n++] = 0x80008u;
+    pkt[n++] = P0(RAGE128_DP_DATATYPE);       pkt[n++] = 0x30d08u;
+    pkt[n++] = P0(RAGE128_DP_MIX);            pkt[n++] = 0xcc0200u;
+    pkt[n++] = P0(RAGE128_SCALE_X_INC);       pkt[n++] = 0x10000u;
+    pkt[n++] = P0(RAGE128_SCALE_Y_INC);       pkt[n++] = 0x10000u;
+    for (int p = 0; p < 3; p++) {
+        pkt[n++] = P0(RAGE128_SCALE_SCR_HEIGHT_WIDTH); pkt[n++] = (ph[p] << 16) | pw[p];
+        pkt[n++] = P0(RAGE128_SCALE_OFFSET_0);   pkt[n++] = MC906_SRC + (uint32_t) p * 0x1000u;
+        pkt[n++] = P0(RAGE128_SCALE_PITCH);      pkt[n++] = MC906_SPX >> 3;
+        pkt[n++] = P0(RAGE128_DST_PITCH_OFFSET); pkt[n++] = (MC906_DPX & ~7u) << 18;
+        pkt[n++] = P0(RAGE128_DST_OFFSET);       pkt[n++] = MC906_DST + (uint32_t) p * 0x1000u;
+        pkt[n++] = P0(RAGE128_SCALE_DST_HEIGHT_WIDTH); pkt[n++] = (ph[p] << 16) | pw[p];
+    }
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x70000000);
+    wr(dev, RAGE128_PM4_MICRO_CNTL, 0x40000000);
+    pio_submit(dev, pkt, n);
+    rr_quiesce(dev);
+    flush_sync(dev);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+    wr(dev, RAGE128_PM4_MICRO_CNTL, micro);
+    *nq += 3;
+    for (int p = 0; p < 3; p++) {
+        const uint8_t *s = &dev->svga.vram[MC906_SRC + (uint32_t) p * 0x1000u];
+        const uint8_t *d = &dev->svga.vram[MC906_DST + (uint32_t) p * 0x1000u];
+
+        for (uint32_t y = 0; y < 0x1000u / MC906_DPX; y++)
+            for (uint32_t x = 0; x < MC906_DPX; x++) {
+                uint8_t want = (y < ph[p] && x < pw[p]) ? s[y * MC906_SPX + x] : S906_FILL;
+
+                ok = ok && d[y * MC906_DPX + x] == want;
+            }
+    }
+    return ok;
+}
+#undef P0
+
+static void
+vectors_reg_scale_906(rage128_t *dev)
+{
+    struct s906 c;
+    uint64_t    q0 = 0, q1 = 0, b0 = 0, b1 = 0;
+    int         gpu = dev->gpu && rage128_gpu_2d_verifying(dev);
+    int         nq  = 0;
+
+    flush_sync(dev);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    if (gpu) {
+        harness_gpu_fab_q2d(dev->gpu, 5, &q0, NULL, NULL, NULL);
+        b0 = harness_gpu_q2d_bad(dev->gpu, 5);
+    }
+
+    /* 2a first: nothing has written SCALE_DST_X_Y, HACC or VACC yet */
+    check_true("2d 906: MC plane copies (type-0): three 8 bpp 1:1 copies, nothing outside",
+               mc906_planes(dev, &nq));
+
+    memset(&c, 0, sizeof(c));
+    s906_src(dev, 0x4000);
+
+    /* 1: 1:1, 8888, blend */
+    c.ddt = 6; c.sdt_reg = 6; c.sdt_pkt = 6; c.soff = S906_SRC; c.spitch8 = 2;
+    c.sw = 6; c.sh = 5; c.xinc = 0x10000u; c.yinc = 0x10000u;
+    c.dx = 4; c.dy = 4; c.dw = 6; c.dh = 5; c.misc = 0x100u;
+    check_true("2d 906: reg scale 1:1 8888 blend equals the 0x96 packet", s906_pair(dev, &c, &nq));
+
+    /* 2: enlarge 4x4 -> 9x7, 565, blend; increments as the SDK example
+       computes them (SDK: Drawing Rectangles, p. 4-12 / PDF 86) */
+    c.ddt = 4; c.sdt_reg = 4; c.sdt_pkt = 4; c.spitch8 = 2;
+    c.sw = 4; c.sh = 4; c.dw = 9; c.dh = 7;
+    c.xinc = (uint32_t) (4.0 / 9.0 * 65536.0); c.yinc = (uint32_t) (4.0 / 7.0 * 65536.0);
+    check_true("2d 906: reg scale enlarge 4x4 -> 9x7 565 blend equals the 0x96 packet",
+               s906_pair(dev, &c, &nq));
+
+    /* 3: shrink 8x8 -> 5x3, 8888, replicate */
+    c.ddt = 6; c.sdt_reg = 6; c.sdt_pkt = 6; c.sw = 8; c.sh = 8; c.dw = 5; c.dh = 3;
+    c.xinc = (uint32_t) (8.0 / 5.0 * 65536.0); c.yinc = (uint32_t) (8.0 / 3.0 * 65536.0);
+    c.misc = 0x500u;
+    check_true("2d 906: reg scale shrink 8x8 -> 5x3 8888 replicate equals the 0x96 packet",
+               s906_pair(dev, &c, &nq));
+
+    /* 4: CSC, 1555 source into a 565 destination */
+    c.ddt = 4; c.sdt_reg = 3; c.sdt_pkt = 3; c.sw = 6; c.sh = 4; c.dw = 6; c.dh = 4;
+    c.xinc = 0x10000u; c.yinc = 0x10000u; c.misc = 0x100u;
+    check_true("2d 906: CSC 1555 source into 565 equals the 0x96 packet", s906_pair(dev, &c, &nq));
+
+    /* 5: CSC, the two packed YUV 4:2:2 orders into 8888 */
+    c.ddt = 6; c.sdt_reg = 11; c.sdt_pkt = 11; c.sw = 8; c.dw = 8;
+    check_true("2d 906: CSC VYUY source into 8888 equals the 0x96 packet", s906_pair(dev, &c, &nq));
+    c.sdt_reg = 12; c.sdt_pkt = 12;
+    check_true("2d 906: CSC YVYU source into 8888 equals the 0x96 packet", s906_pair(dev, &c, &nq));
+
+    /* 6: only SCALE_3D_DATATYPE [3:0] is the source format */
+    c.sdt_reg = 0x80006u; c.sdt_pkt = 6; c.sw = 6; c.dw = 6;
+    check_true("2d 906: SCALE_3D_DATATYPE 0x80006 draws as source format 6", s906_pair(dev, &c, &nq));
+
+    /* 7: SRC_Y_X is not added to SCALE_OFFSET_0, which holds the row */
+    c.sdt_reg = 6; c.soff = S906_SRC + 4u * 16u * 4u; c.srcyx = 4u << 16;
+    c.sw = 4; c.sh = 2; c.dw = 4; c.dh = 2; c.dx = 0; c.dy = 0;
+    s906_prefill(dev, S906_DREG, 6);
+    s906_reg(dev, &c, 0x40u);
+    nq++;
+    check_true("2d 906: SRC_Y_X is not added: the copy starts at the SCALE_OFFSET_0 row",
+               memcmp(&dev->svga.vram[S906_DREG], &dev->svga.vram[S906_SRC + 4u * 64u], 16) == 0
+                   && memcmp(&dev->svga.vram[S906_DREG + S906_DPX * 4],
+                             &dev->svga.vram[S906_SRC + 5u * 64u], 16) == 0);
+    check_true("2d 906: control: the copy is not source row 8",
+               memcmp(&dev->svga.vram[S906_DREG], &dev->svga.vram[S906_SRC + 8u * 64u], 16) != 0);
+    c.soff = S906_SRC; c.srcyx = 0;
+
+    /* 8: HACC / VACC 0x8000 start the walk half a pixel in, as slot 7's
+       fraction bits do */
+    c.sw = 6; c.sh = 5; c.dw = 5; c.dh = 4; c.dx = 4; c.dy = 4;
+    c.hacc = 0x8000u; c.vacc = 0x8000u; c.s7 = 0x00010001u;
+    check_true("2d 906: HACC/VACC 0x8000 equal the packet's half-pixel slot 7 start",
+               s906_pair(dev, &c, &nq));
+    c.hacc = 0; c.vacc = 0; c.s7 = 0;
+
+    /* 9: SCALE_DST_X_Y holds x high */
+    c.dx = 10; c.dy = 3; c.sw = 2; c.sh = 2; c.dw = 2; c.dh = 2;
+    check_true("2d 906: SCALE_DST_X_Y x high equals the 0x96 packet", s906_pair(dev, &c, &nq));
+    check_true("2d 906: SCALE_DST_X_Y (10 << 16) | 3 lands at x 10, y 3",
+               memcmp(&dev->svga.vram[S906_DREG + (3u * S906_DPX + 10u) * 4], &dev->svga.vram[S906_SRC], 8) == 0);
+
+    /* 10: zero width or height draws nothing */
+    c.dx = 4; c.dy = 4; c.dw = 0; c.dh = 4;
+    s906_prefill(dev, S906_DREG, 6);
+    s906_reg(dev, &c, 0x40u);
+    check_true("2d 906: control: SCALE_DST_HEIGHT_WIDTH width 0 draws nothing",
+               s906_untouched(dev, S906_DREG, 6));
+    c.dw = 4; c.dh = 0;
+    s906_reg(dev, &c, 0x40u);
+    check_true("2d 906: control: SCALE_DST_HEIGHT_WIDTH height 0 draws nothing",
+               s906_untouched(dev, S906_DREG, 6));
+
+    /* 11: the op needs SCALE_3D_CNTL's function field at 1, scaling */
+    c.dh = 4;
+    s906_reg(dev, &c, 0x00u);
+    check_true("2d 906: control: SCALE_3D_CNTL function 0 starts nothing",
+               s906_untouched(dev, S906_DREG, 6));
+    s906_reg(dev, &c, 0x80u);
+    check_true("2d 906: control: SCALE_3D_CNTL function 2 starts nothing",
+               s906_untouched(dev, S906_DREG, 6));
+
+    /* 11b: a started op whose formats the stretch refuses (an 8888
+       source into an 8 bpp destination) draws nothing but still reports
+       the engine idle, as every register-started op does: GUI_IDLE_INT
+       in GEN_INT_STATUS. With the function field off, nothing starts
+       and no event is raised. The setup writes go first (a zero height),
+       the event is acknowledged, then only SCALE_DST_HEIGHT_WIDTH is
+       written. */
+    c.ddt = 2; c.dh = 0;
+    s906_prefill(dev, S906_DREG, 2);
+    s906_reg(dev, &c, 0x40u);
+    (void) rd(dev, RAGE128_GEN_INT_STATUS);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_GUI_IDLE);
+    wr(dev, RAGE128_SCALE_DST_HEIGHT_WIDTH, (4u << 16) | c.dw);
+    flush_sync(dev);
+    check_true("2d 906: refused pairing (8888 into 8 bpp) draws nothing",
+               s906_untouched(dev, S906_DREG, 2));
+    check32("2d 906: refused pairing still raises GUI_IDLE_INT",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_GUI_IDLE, RAGE128_GIS_GUI_IDLE);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0);
+    (void) rd(dev, RAGE128_GEN_INT_STATUS);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_GUI_IDLE);
+    wr(dev, RAGE128_SCALE_DST_HEIGHT_WIDTH, (4u << 16) | c.dw);
+    flush_sync(dev);
+    check32("2d 906: control: function field off raises no GUI_IDLE_INT",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_GUI_IDLE, 0);
+    c.ddt = 6; c.dh = 4;
+
+    /* 12: SCALE_PITCH stays the motion-compensation block's register */
+    check32("2d 906: SCALE_PITCH reads back after the op", rd(dev, RAGE128_SCALE_PITCH), 2);
+
+    /* 13: on the GPU lane every op above queues under the 2D oracle */
+    if (gpu) {
+        harness_gpu_fab_q2d(dev->gpu, 5, &q1, NULL, NULL, NULL);
+        b1 = harness_gpu_q2d_bad(dev->gpu, 5);
+        check32("2d 906: GPU: every register and packet stretch queued on table 5",
+                (uint32_t) (q1 - q0), (uint32_t) nq);
+        check32("2d 906: GPU: the table-5 oracle finds the queue equal to the walk",
+                (uint32_t) (b1 - b0), 0);
+    }
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, 0);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0);
+    wr(dev, RAGE128_SCALE_3D_DATATYPE, 0);
+}
+#undef MC906_SRC
+#undef MC906_DST
+#undef MC906_SPX
+#undef MC906_DPX
+
 /* a 24 bpp (DST_TYPE 5) color brush. Type 10 is 64 dwords, one
    pixel per dword in its low 3 bytes (SDK-G04000 F.7 Table F-2: "a
    24-BPP pixel is still represented by 4 bytes"); type 11 is 2*N = 6
@@ -23362,6 +23716,7 @@ run_gpu2d_verify(void)
     vectors_trans_scaling_dst_ref(dev);
     vectors_scale_inc_412(dev);
     vectors_scale_pitch_bit9(dev);
+    vectors_reg_scale_906(dev);
     if (gpu_lane)
         check_true("2d line: backend attached with the 2D oracle armed",
                    dev->gpu && rage128_gpu_2d_verifying(dev));

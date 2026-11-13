@@ -4233,44 +4233,26 @@ rage128_2d_stretch_rect(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
     rage128_2d_vq_end(dev);
 }
 
-/* Decode and run the 11-dword scaler data block of packets 0x96 and
-   0x97 (SDK: Table F-17, pp. F-27-F-28 / PDF 317-318). b[0] is
-   MISC_3D_STATE, b[1] and b[2] TEX_CNTL and TEX_COMB_CTL, b[3] the
-   source datatype, b[4] the source byte offset, b[5] the source pitch:
-   SCALE_PITCH in [8:0], units of 8 pixels, with [16:9] reserved and
-   SCALE_PITCH_ADJ in [31:30], 1 = x2 and 2 = x4 (SDK: Table F-21,
-   pp. F-32-F-33 / PDF 322-323).
-   b[6] is the source start, y in [29:16] and x in [13:0], read in half
-   pixels. The SDK calls this slot reserved and says to write 0, and the
-   Windows 98 display driver does. The Windows 2000 display driver
-   writes x << 1 | y << 17 (RE: ati2dvaa.dll @1096b), and the Windows 98
-   Direct3D driver's antialiasing resize writes 0x10001, half a pixel in
-   each direction (RE: ati3draa.dll @b00d28c0); half-pixel units are the
-   reading that fits both. The fraction bit starts the 16.16 walk at
-   0x8000.
-   b[7] and b[8] are the X and Y increments, 4.12 in [19:4] with [3:0]
-   and [31:20] reserved (SDK Table F-17; RRG: SECONDARY_SCALE_X_INC,
-   p. 3-160 / PDF 178, for the same layout). They are masked here, the
-   one place every walk path reads them.
-   b[9] is the destination position as SCALE_DST_X_Y lays it out, x in
-   [29:16] and y in [13:0]; both Windows 98 drivers build it as
-   left << 16 | top (RE: ati3draa.dll @b00bb3e0, from the DirectDraw
-   blit's destination rect; RE: ati2draa.drv @9017, a file offset, whose
-   bottom-to-top arm offsets the low word by the height). b[10] is
-   (height << 16) | width.
-   Returns 0 when the source datatype cannot be paired with the
-   destination format (the caller then reports the packet as
-   unhandled). */
-static int
-rage128_2d_scale_block(rage128_t *dev, const uint32_t *b)
+/* The source pitch in pixels from a SCALE_PITCH value: [8:0] in units of
+   8 pixels, times SCALE_PITCH_ADJ [31:30], 1 = x2 and 2 = x4 (SDK: Table
+   F-21, pp. F-32-F-33 / PDF 322-323). */
+static uint32_t
+rage128_2d_scale_pitch_px(uint32_t v)
 {
-    uint32_t depth  = b[3];
-    uint32_t spitch = (b[5] & 0x1ff) * 8;
+    uint32_t spitch = (v & 0x1ff) * 8;
 
-    if ((b[5] >> 30) == 1)
+    if ((v >> 30) == 1)
         spitch *= 2;
-    else if ((b[5] >> 30) == 2)
+    else if ((v >> 30) == 2)
         spitch *= 4;
+    return spitch;
+}
+
+/* 1 = the scaler can read source datatype depth at byte offset soff
+   into the current destination format. */
+static int
+rage128_2d_scale_pair_ok(rage128_t *dev, uint32_t depth, uint32_t soff)
+{
     /* RGB sources convert. An 8 bpp palette-index source (2) is copied
        raw to an 8 bpp destination, or looked up in the scaler palette
        (loaded by the LOAD_PALETTE packet, 0x2c) for a wider one. The
@@ -4316,7 +4298,7 @@ rage128_2d_scale_block(rage128_t *dev, const uint32_t *b)
                chroma from the wrong pixels, so it is refused (the
                guide requires source lines of whole qwords, RRG:
                SECONDARY_SCALE_PITCH, p. 3-160 / PDF 178). */
-            if (b[4] & 3)
+            if (soff & 3)
                 return 0;
             if (depth != rage128_dp_dst_dt(dev)
                 && rage128_2d_bpp(rage128_dp_dst_dt(dev)) == 1)
@@ -4329,7 +4311,46 @@ rage128_2d_scale_block(rage128_t *dev, const uint32_t *b)
         default:
             return 0;
     }
-    rage128_2d_stretch_rect(dev, b[4], spitch,
+    return 1;
+}
+
+/* Decode and run the 11-dword scaler data block of packets 0x96 and
+   0x97 (SDK: Table F-17, pp. F-27-F-28 / PDF 317-318). b[0] is
+   MISC_3D_STATE, b[1] and b[2] TEX_CNTL and TEX_COMB_CTL, b[3] the
+   source datatype, b[4] the source byte offset, b[5] the source pitch:
+   SCALE_PITCH in [8:0], units of 8 pixels, with [16:9] reserved and
+   SCALE_PITCH_ADJ in [31:30], 1 = x2 and 2 = x4 (SDK: Table F-21,
+   pp. F-32-F-33 / PDF 322-323).
+   b[6] is the source start, y in [29:16] and x in [13:0], read in half
+   pixels. The SDK calls this slot reserved and says to write 0, and the
+   Windows 98 display driver does. The Windows 2000 display driver
+   writes x << 1 | y << 17 (RE: ati2dvaa.dll @1096b), and the Windows 98
+   Direct3D driver's antialiasing resize writes 0x10001, half a pixel in
+   each direction (RE: ati3draa.dll @b00d28c0); half-pixel units are the
+   reading that fits both. The fraction bit starts the 16.16 walk at
+   0x8000.
+   b[7] and b[8] are the X and Y increments, 4.12 in [19:4] with [3:0]
+   and [31:20] reserved (SDK Table F-17; RRG: SECONDARY_SCALE_X_INC,
+   p. 3-160 / PDF 178, for the same layout). They are masked here,
+   before any walk path reads them; the register-started stretch masks
+   SCALE_X_INC and SCALE_Y_INC the same way (rage128_2d_scale_reg_op).
+   b[9] is the destination position as SCALE_DST_X_Y lays it out, x in
+   [29:16] and y in [13:0]; both Windows 98 drivers build it as
+   left << 16 | top (RE: ati3draa.dll @b00bb3e0, from the DirectDraw
+   blit's destination rect; RE: ati2draa.drv @9017, a file offset, whose
+   bottom-to-top arm offsets the low word by the height). b[10] is
+   (height << 16) | width.
+   Returns 0 when the source datatype cannot be paired with the
+   destination format (the caller then reports the packet as
+   unhandled). */
+static int
+rage128_2d_scale_block(rage128_t *dev, const uint32_t *b)
+{
+    uint32_t depth = b[3];
+
+    if (!rage128_2d_scale_pair_ok(dev, depth, b[4]))
+        return 0;
+    rage128_2d_stretch_rect(dev, b[4], rage128_2d_scale_pitch_px(b[5]),
                             (int) ((b[6] & 0x3fff) >> 1),
                             (int) (((b[6] >> 16) & 0x3fff) >> 1),
                             (b[6] & 1u) << 15,
@@ -5799,6 +5820,29 @@ rage128_2d_reg_read(rage128_t *dev, uint32_t off, uint32_t *val)
         case RAGE128_SCALE_SCR_HEIGHT_WIDTH:
             *val = dev->scale_scr_height_width;
             return 1;
+        /* The register-started scale's registers read back as written
+           (modeled; the guides give them no page). */
+        case RAGE128_SCALE_OFFSET_0:
+            *val = dev->scale_offset_0;
+            return 1;
+        case RAGE128_SCALE_X_INC:
+            *val = dev->scale_x_inc;
+            return 1;
+        case RAGE128_SCALE_Y_INC:
+            *val = dev->scale_y_inc;
+            return 1;
+        case RAGE128_SCALE_HACC:
+            *val = dev->scale_hacc;
+            return 1;
+        case RAGE128_SCALE_VACC:
+            *val = dev->scale_vacc;
+            return 1;
+        case RAGE128_SCALE_DST_X_Y:
+            *val = dev->scale_dst_x_y;
+            return 1;
+        case RAGE128_SCALE_DST_HEIGHT_WIDTH:
+            *val = dev->scale_dst_height_width;
+            return 1;
         /* Readback of the gradient registers at 0x1a40-0x1a60 (not
            named in the guides; see grad_start in vid_ati_rage128.h).
            The Windows 2000 display driver's gradient fill reads them
@@ -6346,7 +6390,7 @@ rage128_2d_gui_op_run(rage128_t *dev, int w, int h)
    never sees this op, and the busy-to-idle event behind GUI_IDLE_INT is
    raised here, as the executor raises it when it runs out of work. */
 static void
-rage128_2d_gui_op(rage128_t *dev, int w, int h)
+rage128_2d_reg_op_flush(rage128_t *dev)
 {
     /* Started from the ring (a type-0 register write run by the CCE
        thread): the op uses the same surfaces as any 3D batch still
@@ -6357,8 +6401,79 @@ rage128_2d_gui_op(rage128_t *dev, int w, int h)
         rage128_raster_flush(dev);
     if (dev->gpu)
         rage128_gpu_flush(dev, R128_GPU_2D_REG_GUI);
+}
+
+static void
+rage128_2d_gui_op(rage128_t *dev, int w, int h)
+{
+    rage128_2d_reg_op_flush(dev);
     if (rage128_2d_gui_op_run(dev, w, h))
         rage128_2d_dst_traj_advance(dev, w, h);
+    atomic_store(&dev->gui_idle_event, 1);
+}
+
+/* The front-end scaler started by register writes: the stretch the 0x96
+   packet runs, with each value taken from the register of the same name
+   instead of the packet slot. The SDK's scaled-blit example programs the
+   scaler this way and comments the SCALE_DST_HEIGHT_WIDTH write "Perform
+   the blt" (SDK: Drawing Rectangles, pp. 4-12-4-13 / PDF 86-87), so that
+   write starts the op, as a write to DST_HEIGHT_WIDTH starts a fill or a
+   copy.
+   - Source: the byte offset in SCALE_OFFSET_0, the pitch in SCALE_PITCH
+     (8-pixel units of the source format, x2 or x4 by [31:30], as in the
+     packet), the format in SCALE_3D_DATATYPE [3:0], the extent for the
+     blend's edge texels in SCALE_SCR_HEIGHT_WIDTH. The source position
+     is the offset alone: SRC_Y_X only latches here, because a program
+     that writes both puts the source row into SCALE_OFFSET_0 already,
+     and adding SRC_Y_X would read that far down a second time
+     (modeled; no guide says which one the scaler reads).
+   - Steps: SCALE_X_INC and SCALE_Y_INC, 4 integer and 12 fraction bits
+     in [19:4] (SDK: Drawing Rectangles, p. 4-12 / PDF 86; RRG:
+     SECONDARY_SCALE_Y_INC, p. 3-161 / PDF 179, for the same layout).
+     SCALE_HACC and SCALE_VACC set where the walk starts, as 16.16
+     values in the field widths of SECONDARY_SCALE_HACC [27:4] and
+     SECONDARY_SCALE_VACC [26:4] (RRG: SECONDARY_SCALE_HACC to
+     SECONDARY_SCALE_VACC, p. 3-161 / PDF 179); the guides give no page
+     for SCALE_HACC or SCALE_VACC, so these widths are modeled.
+   - Destination: x in SCALE_DST_X_Y [29:16] and y in [13:0], the same
+     layout the packet's destination slot uses; (height << 16) | width in
+     SCALE_DST_HEIGHT_WIDTH; the base, pitch, format, ROP, scissors and
+     write mask from the 2D engine's registers.
+   - SCALE_PIX_REP, MISC_3D_STATE_CNTL_REG bit 10, picks replication (1)
+     or a bilinear blend (0) (RRG: MISC_3D_STATE_CNTL_REG, p. 3-256 /
+     PDF 274).
+   The op runs only while the scale function is selected, SCALE_3D_CNTL
+   [7:6] = 1: the SDK's example writes that value before it programs the
+   scaler (SDK: Drawing Rectangles, p. 4-12 / PDF 86), and no guide
+   describes these registers acting with the field at another value. A
+   DP_GUI_MASTER_CNTL write with GMC_3D_FCN_EN clear zeroes the field
+   (rage128_2d_apply_gmc). The gate is modeled; the packets are not
+   gated on the field. */
+static void
+rage128_2d_scale_reg_op(rage128_t *dev)
+{
+    uint32_t sdt = dev->t3d.scale_3d_datatype & 0xf;
+    uint32_t dhw = dev->scale_dst_height_width;
+
+    if (((dev->t3d.scale_3d_cntl >> 6) & 3) != 1)
+        return;
+    /* A started op flushes and reports the engine idle again like any
+       other register-started op, also when its source and destination
+       formats are a pair the stretch does not draw. */
+    rage128_2d_reg_op_flush(dev);
+    if (rage128_2d_scale_pair_ok(dev, sdt, dev->scale_offset_0))
+        rage128_2d_stretch_rect(dev, dev->scale_offset_0,
+                                rage128_2d_scale_pitch_px(dev->mc.scale_pitch),
+                                0, 0,
+                                dev->scale_hacc & 0x0ffffff0u,
+                                dev->scale_vacc & 0x07fffff0u,
+                                dev->scale_x_inc & 0x000ffff0u,
+                                dev->scale_y_inc & 0x000ffff0u,
+                                rage128_sx14(dev->scale_dst_x_y >> 16),
+                                rage128_sx14(dev->scale_dst_x_y),
+                                (int) (dhw & 0x3fff), (int) ((dhw >> 16) & 0x3fff),
+                                (int) sdt,
+                                !((dev->t3d.misc_3d_state_cntl >> 10) & 1));
     atomic_store(&dev->gui_idle_event, 1);
 }
 
@@ -6601,6 +6716,32 @@ rage128_2d_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
                          nothing is waiting to be flushed */
         case RAGE128_SCALE_SCR_HEIGHT_WIDTH:
             MERGE(dev->scale_scr_height_width);
+            return 1;
+        /* The register-started scale (rage128_2d_scale_reg_op). SCALE_PITCH
+           (0x199c), written in the same sequence, belongs to the
+           motion-compensation block, which is offered a write after this
+           one, so it is read from there and not claimed here. */
+        case RAGE128_SCALE_OFFSET_0:
+            MERGE(dev->scale_offset_0);
+            return 1;
+        case RAGE128_SCALE_X_INC:
+            MERGE(dev->scale_x_inc);
+            return 1;
+        case RAGE128_SCALE_Y_INC:
+            MERGE(dev->scale_y_inc);
+            return 1;
+        case RAGE128_SCALE_HACC:
+            MERGE(dev->scale_hacc);
+            return 1;
+        case RAGE128_SCALE_VACC:
+            MERGE(dev->scale_vacc);
+            return 1;
+        case RAGE128_SCALE_DST_X_Y:
+            MERGE(dev->scale_dst_x_y);
+            return 1;
+        case RAGE128_SCALE_DST_HEIGHT_WIDTH:
+            MERGE(dev->scale_dst_height_width);
+            rage128_2d_scale_reg_op(dev);
             return 1;
         default:
             break;
