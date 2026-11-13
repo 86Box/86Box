@@ -7134,6 +7134,367 @@ f2u(float f)
     return c.u;
 }
 
+/* ------------------------------------------------------------------ */
+/* A 3D_RNDR_GEN_PRIM (type-3 0x25) with the ring walk whose COUNT is  */
+/* larger than its vertices need. The packet is modeled as taking      */
+/* VC_FORMAT, VC_CNTL and NUM_VERTEX vertices; the next dword is the   */
+/* next header. A client that ORs each batch's length into a header it */
+/* keeps across its batch loop sends this shape: the last batch of a   */
+/* long figure then claims more dwords than it carries.                */
+/* Every row feeds the real parser: the bus-master ring, the PIO FIFO  */
+/* ports and an indirect buffer, and the ring pump's framer must stay  */
+/* in step with the executor for the submit that follows.              */
+/* ------------------------------------------------------------------ */
+#define GPC_RING_CARD 0x00010000u /* two GART pages: card pages 16, 17 */
+#define GPC_RING_PHYS 0x00160000u
+#define GPC_IB_CARD   0x00020000u
+#define GPC_IB_PHYS   0x00162000u
+#define GPC_IB_DWORDS 64u
+#define GPC_MARK_HDR  0x00000578u /* type-0, one dword to GUI_SCRATCH_REG0 */
+#define GPC_TRAP_HDR  0x0000057cu /* type-0, one dword to GUI_SCRATCH_REG1 */
+#define GPC_MARK      0x6e6f7465u
+#define GPC_TRAP      0xbad0bad0u
+
+/* DST_PITCH_OFFSET_C and Z_OFFSET_C for the 64-pixel surfaces of
+   prep_surfaces, as ring_build writes them. */
+static int
+gpc_targets(uint32_t *s, int n)
+{
+    s[n++] = 0x00000720;
+    s[n++] = 0x01018000;
+    s[n++] = 0x00000724;
+    s[n++] = 0x00340000;
+    return n;
+}
+
+/* One 0x25 holding a single 16-pixel triangle (VC_FORMAT 0x08: x, y, z,
+   packed ARGB, four dwords a vertex) whose header claims `extra` body
+   dwords more than the 14 it carries. `cntl` carries the walk and the
+   vertex count. */
+static int
+gpc_tri(uint32_t *s, int n, uint32_t cntl, uint32_t extra)
+{
+    s[n++] = 0xc0002500u | ((13u + extra) << 16);
+    s[n++] = 0x00000008;
+    s[n++] = cntl;
+    s[n++] = 0x00000000; s[n++] = 0x00000000;
+    s[n++] = 0x3e800000; s[n++] = PIXVAL;
+    s[n++] = 0x41800000; s[n++] = 0x00000000;
+    s[n++] = 0x3e800000; s[n++] = PIXVAL;
+    s[n++] = 0x00000000; s[n++] = 0x41800000;
+    s[n++] = 0x3e800000; s[n++] = PIXVAL;
+    return n;
+}
+
+static int
+gpc_mark(uint32_t *s, int n, uint32_t hdr, uint32_t val)
+{
+    s[n++] = hdr;
+    s[n++] = val;
+    return n;
+}
+
+static int
+gpc_fill(uint32_t *s, int n, int k)
+{
+    while (k-- > 0)
+        s[n++] = 0x80000000;
+    return n;
+}
+
+/* Restart the ring at dword 0 in bus-master mode and run n dwords. The
+   write pointer moves at most 512 dwords at a time, as a driver's
+   submits do: a single move longer than half the ring reads as a
+   backward move, which the device takes for a ring reset. */
+static void
+gpc_ring_run(rage128_t *dev, int n)
+{
+    rr_reset(dev);
+    wr(dev, RAGE128_PM4_BUFFER_OFFSET, GPC_RING_CARD);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000a); /* 2048-dword ring */
+    for (int w = 0; w < n;) {
+        w = (n - w) > 512 ? w + 512 : n;
+        wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, (uint32_t) w);
+    }
+    drain_sync(dev);
+}
+
+static void
+gpc_leg_start(rage128_t *dev)
+{
+    wr(dev, RAGE128_COMPOSITE_SHADOW_ID, 0);
+    wr(dev, RAGE128_GUI_SCRATCH_REG0, 0);
+    wr(dev, RAGE128_GUI_SCRATCH_REG0 + 4, 0);
+    prep_surfaces(dev);
+}
+
+static uint32_t
+gpc_count(rage128_t *dev)
+{
+    return rd(dev, RAGE128_COMPOSITE_SHADOW_ID) & 0x00ffffff;
+}
+
+static void
+vectors_gen_prim_count(rage128_t *dev)
+{
+    uint32_t *tbl  = (uint32_t *) (ram + GART_TABLE_PHYS);
+    uint32_t *ring = (uint32_t *) (ram + GPC_RING_PHYS);
+    uint32_t *ib   = (uint32_t *) (ram + GPC_IB_PHYS);
+    uint32_t  buf[64];
+    uint32_t  wr0, grew;
+    int       n, lit;
+
+    harness_ram_alloc();
+    harness_sysmem_stray = 0;
+    memset(ram + GART_TABLE_PHYS, 0, 0x2000);
+    tbl[GPC_RING_CARD >> 12]       = GPC_RING_PHYS;
+    tbl[(GPC_RING_CARD >> 12) + 1] = GPC_RING_PHYS + 0x1000;
+    tbl[GPC_IB_CARD >> 12]         = GPC_IB_PHYS;
+
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    gart_table_on(dev, GART_TABLE_PHYS);
+    wr(dev, RAGE128_AGP_BASE, 0);
+
+    /* The 2D and 3D context vectors_cce_ring programs. */
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0x00000000);
+    wr(dev, 0x16f0, 0x1fff1fff);
+    wr(dev, 0x16c0, 0x00000003);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0x00000000);
+    wr(dev, 0x16c4, 0x00000006);
+    wr(dev, 0x1c94, 0x00000008);
+    wr(dev, 0x1c98, 0x00000010);
+    wr(dev, 0x1c9c, 0x00000003);
+    wr(dev, 0x1ca0, 0x00000000);
+    wr(dev, 0x1d44, 0xffffffff);
+    wr(dev, RAGE128_PM4_VC_FPU_SETUP,
+       RAGE128_FPU_BACKFACE_SOLID | RAGE128_FPU_FRONTFACE_SOLID | RAGE128_FPU_COLOR_GOURAUD);
+    wr(dev, 0x1bc4, 0x00000020);
+    wr(dev, 0x1bcc, 0x00000000);
+    wr(dev, 0x1a00, 0x00000000);
+    wr(dev, RAGE128_PM4_VC_DEBUG_CONFIG, 0);
+
+    /* Ring: a triangle whose header claims 200 dwords too many, a
+       marker, then fillers enough to cover the claim. */
+    gpc_leg_start(dev);
+    n = gpc_targets(ring, 0);
+    n = gpc_tri(ring, n, 0x00030034, 200);
+    n = gpc_mark(ring, n, GPC_MARK_HDR, GPC_MARK);
+    n = gpc_fill(ring, n, 400);
+    gpc_ring_run(dev, n);
+    check_true("gen prim count: ring, oversized COUNT draws its vertices",
+               clr_pix(dev) == PIXVAL && gpc_count(dev) == 1);
+    check32("gen prim count: ring, the packet after an oversized draw runs",
+            rd(dev, RAGE128_GUI_SCRATCH_REG0), GPC_MARK);
+
+    /* Controls: the exact COUNT. */
+    gpc_leg_start(dev);
+    n = gpc_targets(ring, 0);
+    n = gpc_tri(ring, n, 0x00030034, 0);
+    n = gpc_mark(ring, n, GPC_MARK_HDR, GPC_MARK);
+    gpc_ring_run(dev, n);
+    check_true("gen prim count: ring, exact COUNT draws",
+               clr_pix(dev) == PIXVAL && gpc_count(dev) == 1);
+    check32("gen prim count: ring, the packet after an exact draw runs",
+            rd(dev, RAGE128_GUI_SCRATCH_REG0), GPC_MARK);
+
+    /* COUNT smaller than the vertices: three vertices declared, the
+       header covers two. The packet takes its COUNT and draws nothing;
+       the marker right after that COUNT runs. */
+    gpc_leg_start(dev);
+    n = gpc_targets(ring, 0);
+    ring[n++] = 0xc0092500; /* body 10: VC_FORMAT, VC_CNTL, two vertices */
+    ring[n++] = 0x00000008;
+    ring[n++] = 0x00030034;
+    for (int i = 0; i < 8; i++)
+        ring[n++] = 0x3e800000;
+    n = gpc_mark(ring, n, GPC_MARK_HDR, GPC_MARK);
+    gpc_ring_run(dev, n);
+    check_true("gen prim count: ring, COUNT too small draws nothing",
+               clr_pix(dev) == 0 && gpc_count(dev) == 0);
+    check32("gen prim count: ring, COUNT too small is consumed whole",
+            rd(dev, RAGE128_GUI_SCRATCH_REG0), GPC_MARK);
+
+    /* A walk code other than the ring walk (2, the list walk) is not
+       drawn and its whole COUNT is taken: the trap header placed where
+       the vertices end is payload, the marker after COUNT runs. */
+    gpc_leg_start(dev);
+    n = gpc_targets(ring, 0);
+    n = gpc_tri(ring, n, 0x00030024, 20);
+    n = gpc_mark(ring, n, GPC_TRAP_HDR, GPC_TRAP);
+    n = gpc_fill(ring, n, 18);
+    n = gpc_mark(ring, n, GPC_MARK_HDR, GPC_MARK);
+    gpc_ring_run(dev, n);
+    check_true("gen prim count: ring, oversized COUNT with the list walk draws nothing",
+               clr_pix(dev) == 0 && gpc_count(dev) == 0);
+    check_true("gen prim count: ring, oversized COUNT with the list walk is consumed whole",
+               rd(dev, RAGE128_GUI_SCRATCH_REG0) == GPC_MARK
+                   && rd(dev, RAGE128_GUI_SCRATCH_REG0 + 4) == 0);
+
+    /* NUM_VERTEX 0 with the ring walk: the packet ends after VC_CNTL. */
+    gpc_leg_start(dev);
+    n = gpc_targets(ring, 0);
+    ring[n++] = 0xc0102500; /* claims 17 body dwords */
+    ring[n++] = 0x00000008;
+    ring[n++] = 0x00000034;
+    n = gpc_mark(ring, n, GPC_MARK_HDR, GPC_MARK);
+    n = gpc_fill(ring, n, 40);
+    gpc_ring_run(dev, n);
+    check_true("gen prim count: ring, NUM_VERTEX 0 ends after VC_CNTL",
+               rd(dev, RAGE128_GUI_SCRATCH_REG0) == GPC_MARK && gpc_count(dev) == 0);
+
+    /* PM4_VC_DEBUG_CONFIG DONT_START stops the drawing, not the parse:
+       an oversized draw still ends at its vertices. */
+    gpc_leg_start(dev);
+    wr(dev, RAGE128_PM4_VC_DEBUG_CONFIG, 0x00000001);
+    n = gpc_targets(ring, 0);
+    n = gpc_tri(ring, n, 0x00030034, 200);
+    n = gpc_mark(ring, n, GPC_MARK_HDR, GPC_MARK);
+    n = gpc_fill(ring, n, 400);
+    gpc_ring_run(dev, n);
+    check_true("gen prim count: ring, an inhibited oversized draw lets the next packet run",
+               rd(dev, RAGE128_GUI_SCRATCH_REG0) == GPC_MARK && clr_pix(dev) == 0
+                   && gpc_count(dev) == 0);
+    wr(dev, RAGE128_PM4_VC_DEBUG_CONFIG, 0);
+
+    /* Indirect buffer: the oversized draw and the marker inside one
+       buffer, fillers to its end. */
+    gpc_leg_start(dev);
+    n = gpc_targets(ib, 0);
+    n = gpc_tri(ib, n, 0x00030034, 200);
+    n = gpc_mark(ib, n, GPC_MARK_HDR, GPC_MARK);
+    gpc_fill(ib, n, (int) GPC_IB_DWORDS - n);
+    ring[0] = 0x000101ce; /* PM4_IW_INDOFF, PM4_IW_INDSIZE */
+    ring[1] = GPC_IB_CARD;
+    ring[2] = GPC_IB_DWORDS;
+    gpc_ring_run(dev, 3);
+    check_true("gen prim count: ib, oversized COUNT draws its vertices",
+               clr_pix(dev) == PIXVAL && gpc_count(dev) == 1);
+    check32("gen prim count: ib, the packet after an oversized draw runs",
+            rd(dev, RAGE128_GUI_SCRATCH_REG0), GPC_MARK);
+
+    /* The pump's framer: a buffer submit right behind an oversized draw
+       is spliced at the WPTR write. The witness is the FIFO write index,
+       which only the pump moves: inside that write it grows by the ring
+       dwords plus the 64 body dwords spliced behind the submit, or by the
+       ring dwords alone when the framer missed the submit. That holds
+       however far the executor has run. The page is also scribbled after
+       the write, so the marker can only come from the spliced copy. */
+    gpc_leg_start(dev);
+    n = gpc_mark(ib, 0, GPC_MARK_HDR, GPC_MARK);
+    gpc_fill(ib, n, (int) GPC_IB_DWORDS - n);
+    n = gpc_targets(ring, 0);
+    n = gpc_tri(ring, n, 0x00030034, 200);
+    ring[n++] = 0x000101ce;
+    ring[n++] = GPC_IB_CARD;
+    ring[n++] = GPC_IB_DWORDS;
+    n = gpc_fill(ring, n, 400);
+    rr_reset(dev);
+    wr(dev, RAGE128_PM4_BUFFER_OFFSET, GPC_RING_CARD);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000a);
+    wr0 = atomic_load(&dev->cce_fifo_wr);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, (uint32_t) n);
+    grew = atomic_load(&dev->cce_fifo_wr) - wr0;
+    memset(ram + GPC_IB_PHYS, 0xa5, GPC_IB_DWORDS * 4);
+    drain_sync(dev);
+    printf("gen prim count data: splice leg FIFO grew %u for %d ring dwords\n", grew, n);
+    check_true("gen prim count: ring, a buffer submit after an oversized draw is spliced",
+               grew == (uint32_t) n + GPC_IB_DWORDS
+                   && rd(dev, RAGE128_GUI_SCRATCH_REG0) == GPC_MARK);
+
+    /* Batched list: a 90-vertex triangle list of 10-dword vertices
+       (VC_FORMAT 0x1c9: x, y, z, rhw, diffuse, specular, two s/t pairs)
+       sent as 27, 27, 27 and 9 vertices under one header value, built
+       once with each batch's length ORed in, so the last header claims
+       352 body dwords for 92. Triangle i covers the 4x4 cell i of the
+       64x16 surface. Behind the list the leg sends a register write and
+       1026 filler dwords. */
+    gpc_leg_start(dev);
+    {
+        uint32_t hdr = 0xc0002500;
+        int      v   = 0;
+
+        n = gpc_targets(ring, 0);
+        while (v < 90) {
+            int k = (90 - v) > 27 ? 27 : 90 - v;
+
+            hdr |= (uint32_t) (k * 10 + 1) << 16;
+            ring[n++] = hdr;
+            ring[n++] = 0x000001c9;
+            ring[n++] = ((uint32_t) k << 16) | 0x34;
+            for (int j = 0; j < k; j++, v++) {
+                int   t  = v / 3;
+                float cx = (float) ((t % 16) * 4);
+                float cy = (float) ((t / 16) * 4);
+
+                ring[n++] = f2u(cx + ((v % 3) == 1 ? 4.0f : 0.0f));
+                ring[n++] = f2u(cy + ((v % 3) == 2 ? 4.0f : 0.0f));
+                ring[n++] = 0x3e800000; /* z 0.25 */
+                ring[n++] = 0x3f800000; /* rhw 1 */
+                ring[n++] = PIXVAL;
+                ring[n++] = 0;
+                ring[n++] = 0; ring[n++] = 0;
+                ring[n++] = 0; ring[n++] = 0;
+            }
+        }
+        check32("gen prim count: ring, the batched list's last header claims 352",
+                ((hdr >> 16) & 0x3fff) + 1, 352);
+        n = gpc_mark(ring, n, GPC_MARK_HDR, GPC_MARK);
+        n = gpc_fill(ring, n, 1026);
+        gpc_ring_run(dev, n);
+        lit = 0;
+        for (int t = 0; t < 30; t++)
+            lit += *(uint32_t *) &dev->svga.vram[0x300000
+                                                 + (((t / 16) * 4 + 1) * 64 + (t % 16) * 4 + 1) * 4]
+                == PIXVAL;
+        printf("gen prim count data: batched list cells lit=%d primitives=%u\n", lit, gpc_count(dev));
+        check_true("gen prim count: ring, the batched list in 27/27/27/9 draws 30 triangles",
+                   lit == 30 && gpc_count(dev) == 30);
+        check32("gen prim count: ring, the packet after the batched list's last batch runs",
+                rd(dev, RAGE128_GUI_SCRATCH_REG0), GPC_MARK);
+    }
+    check_true("gen prim count: no stray bus-master access", harness_sysmem_stray == 0);
+
+    /* PIO: the same packets through PM4_FIFO_DATA_EVEN / ODD. */
+    rr_reset(dev);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x70000000);
+    wr(dev, RAGE128_PM4_MICRO_CNTL, 0x40000000);
+    gpc_leg_start(dev);
+    n = gpc_targets(buf, 0);
+    pio_submit(dev, buf, (uint32_t) n);
+    for (int i = 0; i < 9; i++) {
+        n = 0;
+        if (i == 0) {
+            n = gpc_tri(buf, n, 0x00030034, 200);
+            n = gpc_mark(buf, n, GPC_MARK_HDR, GPC_MARK);
+        }
+        n = gpc_fill(buf, n, 64 - n);
+        pio_submit(dev, buf, (uint32_t) n);
+    }
+    rr_quiesce(dev);
+    check_true("gen prim count: pio, oversized COUNT draws its vertices",
+               clr_pix(dev) == PIXVAL && gpc_count(dev) == 1);
+    check32("gen prim count: pio, the packet after an oversized draw runs",
+            rd(dev, RAGE128_GUI_SCRATCH_REG0), GPC_MARK);
+
+    /* The oversized packet alone: the executor goes idle after its
+       vertices instead of waiting mid-packet for the claimed rest. Read
+       before any drain, which would abort a packet stuck waiting. */
+    gpc_leg_start(dev);
+    n = gpc_tri(buf, 0, 0x00030034, 200);
+    pio_submit(dev, buf, (uint32_t) n);
+    for (int i = 0; i < 300 && rage128_pm4_active(dev); i++)
+        lap_msleep(1);
+    check32("gen prim count: pio, an oversized packet ends at its vertices",
+            rd(dev, RAGE128_PM4_STAT), 0x40);
+    rr_quiesce(dev);
+
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+    wr(dev, RAGE128_PCI_GART_PAGE, 1);
+}
+
 /* Two triangles covering [0,w) x [0,h) at depth z under the live state. */
 static int
 ring_add_rect(uint32_t *ring, int n, uint32_t argb, float w, float h, float z)
@@ -14170,6 +14531,7 @@ run_agp_32mb(void)
     vectors_pio_mode_gate(dev);
     vectors_ring_size_encode(dev);
     vectors_pio_ingress(dev);
+    vectors_gen_prim_count(dev);
     vectors_cce_gen_int(dev);
     vectors_cce_display(dev);
     vectors_bm_chunk_tap(dev);

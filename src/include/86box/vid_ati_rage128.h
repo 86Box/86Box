@@ -665,6 +665,14 @@ typedef struct rage128_t {
                                 writes PM4_IW_INDOFF and PM4_IW_INDSIZE,
                                 2 = saw its address dword */
     uint32_t pump_ib_addr;
+    /* The first two body dwords of a 3D_RNDR_GEN_PRIM: pump_t3_pos is 1
+       once its header is seen and 2 once VC_FORMAT is, and 0 otherwise,
+       including for the vertices after VC_CNTL; pump_t3_fmt keeps
+       VC_FORMAT. The packet's length is known only at VC_CNTL, and the
+       framer must end it where the executor does (see
+       rage128_3d_gen_prim_dwords). */
+    uint32_t pump_t3_pos;
+    uint32_t pump_t3_fmt;
     uint32_t pump_stall_live; /* submits whose body found no FIFO room
                                  behind a flip stall and is read live */
 
@@ -2460,6 +2468,10 @@ extern _Atomic(void (*)(rage128_t *dev)) rage128_harness_idle_hook;
 extern int  rage128_3d_reg_read(rage128_t *dev, uint32_t off, uint32_t *val);
 extern int  rage128_3d_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask);
 extern int  rage128_3d_packet3(rage128_t *dev, uint32_t hdr, const uint32_t *pl, uint32_t count);
+/* Body dwords a 3D_RNDR_GEN_PRIM takes, from its VC_FORMAT and VC_CNTL
+   and the header's body length: the one rule the executor, the
+   indirect-buffer walk and the ring pump's framer all use. */
+extern uint32_t rage128_3d_gen_prim_dwords(uint32_t fmt, uint32_t cntl, uint32_t count);
 extern void rage128_3d_reset(rage128_t *dev);
 /* Write a staged Z or color buffer (AGP, or tiled) back to card or guest
    memory. Safe to call again. SUBMIT-THREAD ONLY, at the batch barrier. */

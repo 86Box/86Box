@@ -124,6 +124,8 @@ rage128_pm4_reset(rage128_t *dev)
     dev->pm4_ind_busy    = 0;
     dev->pm4_ind_pending = 0;
     dev->pump_frame_rem  = 0;
+    dev->pump_t3_pos     = 0;
+    dev->pump_t3_fmt     = 0;
     dev->pump_ib_state   = 0;
 }
 
@@ -833,7 +835,23 @@ rage128_pm4_pump(rage128_t *dev)
 
         if (dev->pump_frame_rem) {
             dev->pump_frame_rem--;
-            if (dev->pump_ib_state == 1) {
+            if (dev->pump_t3_pos) {
+                /* Inside a 3D_RNDR_GEN_PRIM: keep VC_FORMAT, and at
+                   VC_CNTL end the frame where the executor ends the
+                   packet, so the next header the framer reads is the one
+                   the executor reads. The two dwords already counted are
+                   added back to give the header's body length. */
+                if (++dev->pump_t3_pos == 2) {
+                    dev->pump_t3_fmt = v;
+                } else {
+                    dev->pump_frame_rem = rage128_3d_gen_prim_dwords(dev->pump_t3_fmt, v,
+                                                                     dev->pump_frame_rem + 2)
+                        - 2;
+                    dev->pump_t3_pos = 0;
+                }
+                if (!dev->pump_frame_rem) /* a body of one dword */
+                    dev->pump_t3_pos = 0;
+            } else if (dev->pump_ib_state == 1) {
                 /* Rounded as the PM4_IW_INDOFF write will round it, 24:0
                    with bits 2:0 zero, so the splice reads the body from
                    where the walk's register value points. */
@@ -861,6 +879,8 @@ rage128_pm4_pump(rage128_t *dev)
                     break;
                 case 3:
                     dev->pump_frame_rem = RAGE128_PM4_COUNT(v);
+                    if (RAGE128_PM4_T3_OPCODE(v) == RAGE128_PM4_OP_3D_RNDR_GEN_PRIM)
+                        dev->pump_t3_pos = 1;
                     break;
                 default: /* type 2 filler: no payload */
                     break;
@@ -1000,6 +1020,8 @@ rage128_pm4_gui_reset(rage128_t *dev)
     dev->pm4_ind_busy    = 0;
     dev->pm4_ind_pending = 0;
     dev->pump_frame_rem  = 0;
+    dev->pump_t3_pos     = 0;
+    dev->pump_t3_fmt     = 0;
     dev->pump_ib_state   = 0;
     /* The executor is parked, so its own cce_retire_pending is reset
        too; otherwise the next packet would publish the abandoned
@@ -1543,6 +1565,14 @@ rage128_cce_packet(rage128_t *dev, uint32_t hdr)
                         return;
                     if (i < n)
                         pl[i] = v;
+                    /* A 3D_RNDR_GEN_PRIM is as long as its vertices once
+                       VC_CNTL is in, which may be shorter than its COUNT
+                       (modeled; see rage128_3d_gen_prim_dwords). */
+                    if (i == 1 && RAGE128_PM4_T3_OPCODE(hdr) == RAGE128_PM4_OP_3D_RNDR_GEN_PRIM) {
+                        count = rage128_3d_gen_prim_dwords(pl[0], pl[1], count);
+                        if (n > count)
+                            n = count;
+                    }
                 }
                 /* The MPEG opcode first, then the 3D opcodes, then the 2D
                    dispatcher, which draws any deferred 3D batch first unless
@@ -1733,6 +1763,8 @@ rage128_pm4_thread_init(rage128_t *dev)
     dev->vc_bundle.idx     = calloc(4 + 32768, sizeof(uint32_t));
     dev->vc_bundle.pending = 0;
     dev->pump_frame_rem    = 0;
+    dev->pump_t3_pos       = 0;
+    dev->pump_t3_fmt       = 0;
     dev->pump_ib_state     = 0;
     dev->pump_stall_live   = 0;
     dev->cce_pop_tag       = 0;
@@ -2010,6 +2042,12 @@ chain:;
                         if (i < m)
                             pl[i] = v;
                         filled = i + 1;
+                        /* The same length rule as the ring executor. */
+                        if (i == 1 && RAGE128_PM4_T3_OPCODE(hdr) == RAGE128_PM4_OP_3D_RNDR_GEN_PRIM) {
+                            count = rage128_3d_gen_prim_dwords(pl[0], pl[1], count);
+                            if (m > count)
+                                m = count;
+                        }
                     }
                     /* A packet stops at the end of the buffer: the SDK and
                        the Linux DRM pad a buffer to an even length with a
@@ -2285,6 +2323,8 @@ rage128_pm4_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
             atomic_store(&dev->cce_retire_done, dev->pm4_rptr);
             atomic_store(&dev->cce_retire_held, 0);
             dev->pump_frame_rem     = 0;
+            dev->pump_t3_pos        = 0;
+            dev->pump_t3_fmt        = 0;
             dev->pump_ib_state      = 0;
             return 1;
         case RAGE128_PM4_BUFFER_DL_WPTR:
@@ -2322,6 +2362,8 @@ rage128_pm4_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
                     if (((owptr - nwptr) & wmask) < ((nwptr - owptr) & wmask)) {
                         dev->pm4_rptr       = nwptr;
                         dev->pump_frame_rem = 0;
+                        dev->pump_t3_pos    = 0;
+                        dev->pump_t3_fmt    = 0;
                         dev->pump_ib_state  = 0;
                     }
                 }

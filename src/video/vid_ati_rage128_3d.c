@@ -5212,12 +5212,51 @@ rage128_3d_draw_inline(rage128_t *dev, const uint32_t *pl, uint32_t count)
     num    = RAGE128_VC_NUM(cntl);
     stride = rage128_3d_vertex_dwords(fmt);
 
+    /* A header COUNT larger than the vertices need has already been cut
+       to them by the parser (rage128_3d_gen_prim_dwords), so any other
+       mismatch is a packet too short for its vertices, or not the ring
+       walk: no walk is guessed for it. */
     if (stride == 0 || walk != RAGE128_VC_WALK_RING
         || (uint64_t) num * stride != count - 2)
-        return; /* not the packet shape seen in traffic: do not guess a walk */
+        return;
 
     /* Primitive assembly from the inline vertices at pl[2]. */
     r3d_buffer_draw(dev, pl, count, 0, fmt, stride, prim, num, 0, &pl[2]);
+}
+
+/* How many body dwords a 3D_RNDR_GEN_PRIM (0x25) takes from the stream.
+   The packet is VC_FORMAT, VC_CNTL and NUM_VERTEX vertices of the
+   format's size (SDK: Table F-42, p. F-49 / PDF 339), and the header's
+   COUNT gives the body length (SDK: Type-0 CCE Packet, Table 4-12,
+   p. F-9 / PDF 299). The guide does not say what the chip does when
+   COUNT claims more than the vertices fill; it warns only that a
+   malformed packet hangs the chip (SDK: Cautions When Programming
+   RAGE 128 in CCE Mode, p. 5-8 / PDF 104). A sender that ORs each
+   batch's length into a header built once before its batch loop sends
+   that shape: the last, shorter batch of a long figure claims the
+   length of the batches before it, and the sender expects the whole
+   figure drawn. So with the ring walk the packet is modeled as
+   ending at its last vertex, and the next dword is read as the next
+   header. NUM_VERTEX 0 ends it after VC_CNTL. The rule only ever
+   shortens: a COUNT smaller than the vertices need, or any other walk,
+   keeps the header's length, and rage128_3d_draw_inline then refuses to
+   draw it.
+
+   The executor, the indirect-buffer walk and the ring pump's framer all
+   call this once VC_CNTL has arrived. They must agree, because the
+   stream position after a 0x25 is where each of them reads the next
+   header: the framer finds the indirect-buffer submits in the ring by
+   that position, and splices each buffer behind its submit for the
+   executor to run. */
+uint32_t
+rage128_3d_gen_prim_dwords(uint32_t fmt, uint32_t cntl, uint32_t count)
+{
+    uint64_t need;
+
+    if (RAGE128_VC_PRIM_WALK(cntl) != RAGE128_VC_WALK_RING)
+        return count;
+    need = 2 + (uint64_t) RAGE128_VC_NUM(cntl) * rage128_3d_vertex_dwords(fmt);
+    return need < count ? (uint32_t) need : count;
 }
 
 /* NEXT_VERTEX_BUNDLE (0x2e): the payload is index pairs only, a
