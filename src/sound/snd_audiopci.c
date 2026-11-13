@@ -2862,7 +2862,12 @@ es1370_init(const device_t *info)
 
     pci_add_card((info->local & 1) ? PCI_ADD_SOUND : PCI_ADD_NORMAL, es1370_pci_read, es1370_pci_write, dev, &dev->pci_slot);
 
-    timer_add(&dev->dac[1].timer, es137x_poll, dev, 1);
+    /* Run the poll half a sample behind the core poll timer: a timer started
+       together with it alternates order with it on every tick, which makes
+       es137x_update() write two samples, then none. */
+    timer_add(&dev->dac[1].timer, es137x_poll, dev, 0);
+    es137x_speed_changed(dev);
+    timer_set_delay_u64(&dev->dac[1].timer, dev->dac[1].latch / 2);
 
     generate_es137x_filter();
 
@@ -2906,7 +2911,12 @@ es1371_init(const device_t *info)
 
     pci_add_card((info->local & 1) ? PCI_ADD_SOUND : PCI_ADD_NORMAL, es1371_pci_read, es1371_pci_write, dev, &dev->pci_slot);
 
-    timer_add(&dev->dac[1].timer, es137x_poll, dev, 1);
+    /* Run the poll half a sample behind the core poll timer: a timer started
+       together with it alternates order with it on every tick, which makes
+       es137x_update() write two samples, then none. */
+    timer_add(&dev->dac[1].timer, es137x_poll, dev, 0);
+    es137x_speed_changed(dev);
+    timer_set_delay_u64(&dev->dac[1].timer, dev->dac[1].latch / 2);
 
     generate_es137x_filter();
 
