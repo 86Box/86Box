@@ -18,6 +18,7 @@
 class MediaMenu;
 class RendererStack;
 class QActionGroup;
+class QTimer;
 
 namespace Ui {
 class MainWindow;
@@ -51,6 +52,8 @@ public:
 signals:
     void paint(const QImage &image);
     void resizeContents(int w, int h);
+    /* As resizeContents, for a video mode change: resize_settle_ms apart */
+    void resizeContentsGuest(int w, int h);
     void resizeContentsMonitor(int w, int h, int monitor_index);
     void statusBarMessage(const QString &msg);
     void updateStatusBarPanes();
@@ -218,6 +221,14 @@ private:
 
     /* -1 until the menu keyboard state has been initialized. */
     int menu_keyboard_state = -1;
+
+    /* A video mode change resizes the window at most once in this long, to
+       the size asked for last (resizeContentsGuest) */
+    static constexpr int resize_settle_ms = 100;
+    QTimer              *resize_timer     = nullptr;
+    int                  resize_pending_w = 0;
+    int                  resize_pending_h = 0;
+    void                 applyResizeContents(int w, int h);
 
     /* Full screen ON and OFF signals */
     bool fs_on_signal  = false;
