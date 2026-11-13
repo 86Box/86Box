@@ -56,6 +56,25 @@
 #include <86box/vid_ati_rage128.h>
 #include <86box/vid_ati_rage128_regs.h>
 
+/* The blended stretch has a row loop that works on several pixels at a
+   time with the host's vector instructions (rage128_2d_stretch_row_v565
+   and rage128_2d_stretch_row_v8888). It is built for a little-endian
+   64-bit Arm host, where Advanced SIMD is part of the base instruction
+   set, and for an x86-64 host, where SSE2 is; the x86-64 loops use no
+   later instruction set, so neither host needs a run-time test. Any
+   other host, and a build that defines R128_STRETCH_NOVEC, has only the
+   one-pixel loop. */
+#if !defined(R128_STRETCH_NOVEC) && (defined(__aarch64__) || defined(_M_ARM64)) \
+    && !defined(__AARCH64EB__)
+#    include <arm_neon.h>
+#    define R128_STRETCH_VEC 1
+#elif !defined(R128_STRETCH_NOVEC) && (defined(__x86_64__) || defined(_M_X64))
+#    include <emmintrin.h>
+#    define R128_STRETCH_VEC 2
+#else
+#    define R128_STRETCH_VEC 0
+#endif
+
 /* The executors read the datapath registers DP_MIX and DP_DATATYPE, not
    DP_GUI_MASTER_CNTL. Several GMC fields are documented as "Mapped to"
    a DP_MIX or DP_DATATYPE field (RRG: DP_GUI_MASTER_CNTL,
@@ -4205,6 +4224,477 @@ rage128_2d_stretch_row(uint8_t *d, const uint8_t *s0, const uint8_t *s1,
 #undef R128_STRETCH_LANES
 }
 
+#if R128_STRETCH_VEC
+/* The number of leading columns of a blended stretch row whose right
+   neighbor texel is not clamped, out of w columns. Column col reads
+   texel sx0 + (xacc >> 16), xacc = xph + (col + xskip) * xinc, and its
+   neighbor is clamped once that index reaches sxlim. The caller has
+   checked that xacc does not wrap along the row, so the index never
+   decreases and the unclamped columns are a prefix of the row: those
+   with xacc below t = (sxlim - sx0) << 16. The positions j = col + xskip
+   with xph + j * xinc < t number ceil((t - xph) / xinc), counted from
+   j = 0; the first xskip of them lie left of the row. The count is the
+   same for every row of a stretch. */
+static int
+rage128_2d_stretch_unclamped(int w, int xskip, int sx0, uint32_t xph,
+                             uint32_t xinc, int sxlim)
+{
+    int64_t  k = (int64_t) sxlim - (int64_t) sx0;
+    uint64_t t, j;
+
+    if (k <= 0)
+        return 0;
+    t = (uint64_t) k << 16;
+    if ((uint64_t) xph >= t)
+        return 0;
+    if (!xinc)
+        return w;
+    j = (t - xph + xinc - 1) / xinc;
+    if (j <= (uint64_t) xskip)
+        return 0;
+    j -= (uint64_t) xskip;
+    return (j < (uint64_t) w) ? (int) j : w;
+}
+
+/* 1 = the an bytes at a and the bn bytes at b share no byte. */
+static inline int
+rage128_2d_stretch_disjoint(const uint8_t *a, size_t an, const uint8_t *b, size_t bn)
+{
+    uintptr_t ua = (uintptr_t) a;
+    uintptr_t ub = (uintptr_t) b;
+
+    return ua + an <= ub || ub + bn <= ua;
+}
+#endif
+
+#if R128_STRETCH_VEC == 1
+/* The vector row loops below produce the pixels of
+   rage128_2d_stretch_row for a blended row, several pixels a step. The
+   packing into vector lanes is the emulator's own. They rest on three
+   identities with the one-pixel helpers.
+
+   Blend. Each channel is an 8-bit lane, widened to 16 bits for the
+   arithmetic: t = (c0 << 8) + c1 * w - c0 * w, result t >> 8. The exact
+   value of t is c0 * (256 - w) + c1 * w, a weighted sum of two bytes
+   whose weights add to 256, so it lies in 0..65280 and fits 16 bits.
+   Sixteen-bit addition, subtraction and multiplication wrap modulo
+   65536, and the wrapped result of the whole expression equals its
+   exact value modulo 65536, which is the exact value itself; the
+   intermediate sum (c0 << 8) + c1 * w may wrap on the way. Each product
+   alone fits 16 bits (255 * 255), which the widening multiply needs.
+   The result is (c0 * (256 - w) + c1 * w) >> 8, the value
+   rage128_2d_lerp_lanes and rage128_2d_lerp_argb give for a channel.
+   The weights are 8-bit fields of the walk, 0..255.
+
+   RGB 565 expand. For a texel v with red in [15:11], green in [10:5]
+   and blue in [4:0], rage128_2d_val_argb gives red (r << 3) | (r >> 2),
+   green (g << 2) | (g >> 4), blue (b << 3) | (b >> 2). Here the byte
+   v >> 8 holds red in its top five bits; inserting that byte shifted
+   right by 5 into its own low three bits keeps r << 3 and adds r >> 2.
+   The byte (v >> 3) & 0xff holds green in its top six bits; inserting
+   it shifted right by 6 into its low two bits gives (g << 2) | (g >> 4).
+   The byte (v << 3) & 0xff is b << 3; inserting it shifted right by 5
+   adds b >> 2. Alpha is not carried: every expanded 565 texel has alpha
+   0xff, the blend of 0xff with 0xff is 0xff, and the 565 pack drops it.
+
+   RGB 565 pack. rage128_2d_argb_pack keeps the top five bits of red at
+   [15:11], the top six of green at [10:5] and the top five of blue at
+   [4:0]. Here red is placed in the high byte of a 16-bit lane; green,
+   placed likewise, is inserted shifted right by 5, which keeps red's
+   top five bits and writes green's eight bits at [10:3]; blue is
+   inserted shifted right by 11, which keeps [15:5] and writes blue's
+   top five bits at [4:0], leaving green's top six at [10:5].
+
+   An aRGB 8888 pixel is four independent bytes for the expand, the
+   blend and the pack (those helpers are the identity for that format,
+   and the blend treats alpha like a color), so its loop blends the
+   sixteen bytes of four pixels in place.
+
+   Texels are gathered with one small load per pixel per source row,
+   which reads the texel and its right neighbor together: exactly the
+   bytes the one-pixel loop reads for a column whose neighbor is not
+   clamped. No wider load touches a source row, and each step stores
+   exactly its own pixels, so the loops read and write nothing beyond
+   the runs the caller holds. Loads and stores have no alignment
+   requirement. The texel position is kept twice: as the scalar 16.16
+   value the indexes come from, and as a vector of its low 16 bits, one
+   lane per pixel, which a wrapping 16-bit add steps exactly and whose
+   high byte is the horizontal weight.
+
+   A step reads the texels of all its pixels before it stores any of
+   them, where the one-pixel loop stores each pixel before it reads the
+   next one's texels. The caller therefore uses these loops only for a
+   row whose destination bytes are disjoint from both source runs. n is
+   a multiple of the step, and every one of the n columns has an
+   unclamped neighbor. */
+static inline uint8x8_t
+rage128_2d_vlerp(uint8x8_t c0, uint8x8_t c1, uint8x8_t w)
+{
+    uint16x8_t t = vshll_n_u8(c0, 8);
+
+    t = vmlal_u8(t, c1, w);
+    t = vmlsl_u8(t, c0, w);
+    return vshrn_n_u16(t, 8);
+}
+
+static inline uint8x16_t
+rage128_2d_vlerp16(uint8x16_t c0, uint8x16_t c1, uint8x16_t w)
+{
+    uint16x8_t lo = vshll_n_u8(vget_low_u8(c0), 8);
+    uint16x8_t hi = vshll_high_n_u8(c0, 8);
+
+    lo = vmlal_u8(lo, vget_low_u8(c1), vget_low_u8(w));
+    lo = vmlsl_u8(lo, vget_low_u8(c0), vget_low_u8(w));
+    hi = vmlal_high_u8(hi, c1, w);
+    hi = vmlsl_high_u8(hi, c0, w);
+    return vshrn_high_n_u16(vshrn_n_u16(lo, 8), hi, 8);
+}
+
+/* Eight RGB 565 texels expanded to three vectors of 8-bit channels. */
+static inline void
+rage128_2d_vexpand565(uint16x8_t v, uint8x8_t *r, uint8x8_t *g, uint8x8_t *b)
+{
+    uint8x8_t r5 = vshrn_n_u16(v, 8);
+    uint8x8_t g6 = vshrn_n_u16(v, 3);
+    uint8x8_t b5 = vshl_n_u8(vmovn_u16(v), 3);
+
+    *r = vsri_n_u8(r5, r5, 5);
+    *g = vsri_n_u8(g6, g6, 6);
+    *b = vsri_n_u8(b5, b5, 5);
+}
+
+/* Eight pixels of 8-bit channels packed to RGB 565. */
+static inline uint16x8_t
+rage128_2d_vpack565(uint8x8_t r, uint8x8_t g, uint8x8_t b)
+{
+    uint16x8_t t = vshll_n_u8(r, 8);
+
+    t = vsriq_n_u16(t, vshll_n_u8(g, 8), 5);
+    return vsriq_n_u16(t, vshll_n_u8(b, 8), 11);
+}
+
+/* Two RGB 565 texel pairs (a texel and its right neighbor each) as one
+   64-bit value: the first pair in the low half. */
+static inline uint64_t
+rage128_2d_pair565(const uint8_t *p0, const uint8_t *p1)
+{
+    uint32_t a, b;
+
+    memcpy(&a, p0, 4);
+    memcpy(&b, p1, 4);
+    return (uint64_t) a | ((uint64_t) b << 32);
+}
+
+/* n columns of a blended RGB 565 row, 8 a step. */
+static inline void
+rage128_2d_stretch_row_v565(uint8_t *d, const uint8_t *s0, const uint8_t *s1,
+                            int n, int xskip, int sx0, uint32_t xph,
+                            uint32_t xinc, uint32_t wy)
+{
+    uint32_t         xa = xph + (uint32_t) xskip * xinc;
+    uint16_t         f[8];
+    uint16x8_t       xf;
+    const uint16x8_t xstep = vdupq_n_u16((uint16_t) (xinc * 8u));
+    const uint8x8_t  wyv   = vdup_n_u8((uint8_t) wy);
+
+    for (int i = 0; i < 8; i++)
+        f[i] = (uint16_t) (xa + (uint32_t) i * xinc);
+    xf = vld1q_u16(f);
+    for (int col = 0; col < n; col += 8, d += 16) {
+        uint64_t   p[4], q[4];
+        uint16x8_t a0, a1, b0, b1;
+        uint8x8_t  tlr, tlg, tlb, trr, trg, trb, blr, blg, blb, brr, brg, brb;
+        uint8x8_t  wx;
+
+        for (int i = 0; i < 4; i++) {
+            size_t o0, o1;
+
+            o0 = (size_t) (sx0 + (int) (xa >> 16)) * 2;
+            xa += xinc;
+            o1 = (size_t) (sx0 + (int) (xa >> 16)) * 2;
+            xa += xinc;
+            p[i] = rage128_2d_pair565(s0 + o0, s0 + o1);
+            q[i] = rage128_2d_pair565(s1 + o0, s1 + o1);
+        }
+        /* lanes: left 0, right 0, left 1, right 1, ...; the unzips
+           separate the eight left texels from the eight right ones */
+        a0 = vreinterpretq_u16_u64(vcombine_u64(vcreate_u64(p[0]), vcreate_u64(p[1])));
+        a1 = vreinterpretq_u16_u64(vcombine_u64(vcreate_u64(p[2]), vcreate_u64(p[3])));
+        b0 = vreinterpretq_u16_u64(vcombine_u64(vcreate_u64(q[0]), vcreate_u64(q[1])));
+        b1 = vreinterpretq_u16_u64(vcombine_u64(vcreate_u64(q[2]), vcreate_u64(q[3])));
+        rage128_2d_vexpand565(vuzp1q_u16(a0, a1), &tlr, &tlg, &tlb);
+        rage128_2d_vexpand565(vuzp2q_u16(a0, a1), &trr, &trg, &trb);
+        rage128_2d_vexpand565(vuzp1q_u16(b0, b1), &blr, &blg, &blb);
+        rage128_2d_vexpand565(vuzp2q_u16(b0, b1), &brr, &brg, &brb);
+        wx = vshrn_n_u16(xf, 8);
+        xf = vaddq_u16(xf, xstep);
+        tlr = rage128_2d_vlerp(rage128_2d_vlerp(tlr, trr, wx), rage128_2d_vlerp(blr, brr, wx), wyv);
+        tlg = rage128_2d_vlerp(rage128_2d_vlerp(tlg, trg, wx), rage128_2d_vlerp(blg, brg, wx), wyv);
+        tlb = rage128_2d_vlerp(rage128_2d_vlerp(tlb, trb, wx), rage128_2d_vlerp(blb, brb, wx), wyv);
+        vst1q_u8(d, vreinterpretq_u8_u16(rage128_2d_vpack565(tlr, tlg, tlb)));
+    }
+}
+
+/* n columns of a blended aRGB 8888 row, 4 a step. */
+static inline void
+rage128_2d_stretch_row_v8888(uint8_t *d, const uint8_t *s0, const uint8_t *s1,
+                             int n, int xskip, int sx0, uint32_t xph,
+                             uint32_t xinc, uint32_t wy)
+{
+    /* the high byte of each pixel's 16-bit position lane, on that
+       pixel's four bytes */
+    static const uint8_t wsel[16] = { 1, 1, 1, 1, 3, 3, 3, 3, 5, 5, 5, 5, 7, 7, 7, 7 };
+    uint32_t             xa       = xph + (uint32_t) xskip * xinc;
+    uint16_t             f[8];
+    uint16x8_t           xf;
+    const uint16x8_t     xstep = vdupq_n_u16((uint16_t) (xinc * 4u));
+    const uint8x16_t     wyv   = vdupq_n_u8((uint8_t) wy);
+    const uint8x16_t     sel   = vld1q_u8(wsel);
+
+    for (int i = 0; i < 8; i++)
+        f[i] = (uint16_t) (xa + (uint32_t) (i & 3) * xinc);
+    xf = vld1q_u16(f);
+    for (int col = 0; col < n; col += 4, d += 16) {
+        uint8x8_t  p[4], q[4];
+        uint32x4_t a0, a1, b0, b1;
+        uint8x16_t wx, top, bot;
+
+        for (int i = 0; i < 4; i++) {
+            size_t o = (size_t) (sx0 + (int) (xa >> 16)) * 4;
+
+            xa += xinc;
+            p[i] = vld1_u8(s0 + o);
+            q[i] = vld1_u8(s1 + o);
+        }
+        /* lanes: left 0, right 0, left 1, right 1; the unzips separate
+           the four left texels from the four right ones */
+        a0  = vreinterpretq_u32_u8(vcombine_u8(p[0], p[1]));
+        a1  = vreinterpretq_u32_u8(vcombine_u8(p[2], p[3]));
+        b0  = vreinterpretq_u32_u8(vcombine_u8(q[0], q[1]));
+        b1  = vreinterpretq_u32_u8(vcombine_u8(q[2], q[3]));
+        wx  = vqtbl1q_u8(vreinterpretq_u8_u16(xf), sel);
+        xf  = vaddq_u16(xf, xstep);
+        top = rage128_2d_vlerp16(vreinterpretq_u8_u32(vuzp1q_u32(a0, a1)),
+                                 vreinterpretq_u8_u32(vuzp2q_u32(a0, a1)), wx);
+        bot = rage128_2d_vlerp16(vreinterpretq_u8_u32(vuzp1q_u32(b0, b1)),
+                                 vreinterpretq_u8_u32(vuzp2q_u32(b0, b1)), wx);
+        vst1q_u8(d, rage128_2d_vlerp16(top, bot, wyv));
+    }
+}
+#endif
+
+#if R128_STRETCH_VEC == 2
+/* The same two row loops for an x86-64 host, written with SSE2
+   instructions only. The contract is the one stated for the Arm loops:
+   n is a multiple of the step, every one of the n columns has an
+   unclamped neighbor, and the row's destination bytes are disjoint from
+   both source runs. The texel gather is the same too: one 4-byte or
+   8-byte load per pixel per source row, the bytes the one-pixel loop
+   reads for that column, and one 16-byte store per step; no load or
+   store has an alignment requirement. The packing into vector lanes is
+   the emulator's own. What follows is how each step is computed here and
+   why it gives the one-pixel helpers' values.
+
+   Lanes. From the expand to the pack every channel sits in a 16-bit
+   lane with its value, 0..255, in the low byte.
+
+   Blend. t = (c0 << 8) + (c1 - c0) * w, result t >> 8 with a logical
+   shift. The subtraction, the multiply and the addition each keep the
+   low 16 bits of their result: c1 - c0 wraps when it is negative, and
+   the multiply returns the low half of the product, which is the same
+   whether the operands are read as signed or as unsigned. Arithmetic
+   modulo 65536 commutes with reduction, so t is
+   c0 * 256 + (c1 - c0) * w = c0 * (256 - w) + c1 * w modulo 65536. That
+   exact value is a weighted sum of two bytes whose weights add to 256,
+   so it lies in 0..65280, and t is the exact value itself. t >> 8 is
+   (c0 * (256 - w) + c1 * w) >> 8, the value rage128_2d_lerp_lanes and
+   rage128_2d_lerp_argb give for a channel. The weights are 8-bit fields
+   of the walk, 0..255. One multiply serves a blend.
+
+   RGB 565 expand, on a texel v in a 16-bit lane with red r in [15:11],
+   green g in [10:5] and blue b in [4:0]. Red is
+   ((v >> 8) & 0xf8) | (v >> 13): the first term is r << 3, the second
+   r >> 2. Green is ((v >> 3) & 0xfc) | ((v >> 9) & 0x03): g << 2 and
+   g >> 4. Blue is ((v << 3) & 0xf8) | ((v >> 2) & 0x07): b << 3 and
+   b >> 2. These are the channels of rage128_2d_val_argb. Alpha is not
+   carried, for the reason given above the Arm loops.
+
+   RGB 565 pack. ((r & 0xf8) << 8) | ((g & 0xfc) << 3) | (b >> 3) puts
+   the top five bits of red at [15:11], the top six of green at [10:5]
+   and the top five of blue at [4:0], as rage128_2d_argb_pack does.
+
+   Left and right texels. The gathered pairs lie in a vector as left,
+   right, left, right. Interleaving the low halves and the high halves
+   of two vectors, three times over for 16-bit lanes and twice for
+   32-bit lanes, brings the even lanes of the two together in one vector
+   and the odd lanes in another, each in its original order. Lanes are
+   only moved, so no value changes.
+
+   aRGB 8888. The sixteen bytes of four pixels are widened to 16-bit
+   lanes by interleaving them with zero bytes, low eight and high eight
+   apart, blended, and narrowed again with the unsigned saturating pack.
+   That pack reads a lane as a signed 16-bit value and clamps it to
+   0..255; every blend result is already in 0..255, so it never
+   saturates and returns the low byte of each lane, in lane order. The
+   four bytes of a pixel take the same weight.
+
+   Position. The low 16 bits of each pixel's 16.16 texel position sit in
+   a 16-bit lane, stepped by a wrapping 16-bit add, which is exact; a
+   logical shift right by 8 leaves the horizontal weight in the lane.
+   The 8888 loop keeps two such vectors, each pixel's position repeated
+   on the four lanes of its four bytes. */
+static inline __m128i
+rage128_2d_vlerp(__m128i c0, __m128i c1, __m128i w)
+{
+    __m128i t = _mm_mullo_epi16(_mm_sub_epi16(c1, c0), w);
+
+    return _mm_srli_epi16(_mm_add_epi16(_mm_slli_epi16(c0, 8), t), 8);
+}
+
+/* Eight RGB 565 texels expanded to three vectors of channels. */
+static inline void
+rage128_2d_vexpand565(__m128i v, __m128i *r, __m128i *g, __m128i *b)
+{
+    *r = _mm_or_si128(_mm_and_si128(_mm_srli_epi16(v, 8), _mm_set1_epi16(0xf8)),
+                      _mm_srli_epi16(v, 13));
+    *g = _mm_or_si128(_mm_and_si128(_mm_srli_epi16(v, 3), _mm_set1_epi16(0xfc)),
+                      _mm_and_si128(_mm_srli_epi16(v, 9), _mm_set1_epi16(0x03)));
+    *b = _mm_or_si128(_mm_and_si128(_mm_slli_epi16(v, 3), _mm_set1_epi16(0xf8)),
+                      _mm_and_si128(_mm_srli_epi16(v, 2), _mm_set1_epi16(0x07)));
+}
+
+/* Eight pixels of channels packed to RGB 565. */
+static inline __m128i
+rage128_2d_vpack565(__m128i r, __m128i g, __m128i b)
+{
+    __m128i hi = _mm_slli_epi16(_mm_and_si128(r, _mm_set1_epi16(0xf8)), 8);
+    __m128i mid = _mm_slli_epi16(_mm_and_si128(g, _mm_set1_epi16(0xfc)), 3);
+
+    return _mm_or_si128(_mm_or_si128(hi, mid), _mm_srli_epi16(b, 3));
+}
+
+/* Four RGB 565 texel pairs (a texel and its right neighbor each), at
+   the byte offsets o[0..3] of the source row s, as one vector: 16-bit
+   lanes left 0, right 0, left 1, right 1, and so on. */
+static inline __m128i
+rage128_2d_quad565(const uint8_t *s, const size_t *o)
+{
+    int32_t v[4];
+
+    for (int i = 0; i < 4; i++)
+        memcpy(&v[i], s + o[i], 4);
+    return _mm_unpacklo_epi64(_mm_unpacklo_epi32(_mm_cvtsi32_si128(v[0]), _mm_cvtsi32_si128(v[1])),
+                              _mm_unpacklo_epi32(_mm_cvtsi32_si128(v[2]), _mm_cvtsi32_si128(v[3])));
+}
+
+/* The sixteen 16-bit lanes of a0 then a1, split into the eight even
+   ones and the eight odd ones. */
+static inline void
+rage128_2d_vunzip16(__m128i a0, __m128i a1, __m128i *even, __m128i *odd)
+{
+    __m128i t0 = _mm_unpacklo_epi16(a0, a1); /* 0 8 1 9 2 10 3 11 */
+    __m128i t1 = _mm_unpackhi_epi16(a0, a1); /* 4 12 5 13 6 14 7 15 */
+    __m128i u0 = _mm_unpacklo_epi16(t0, t1); /* 0 4 8 12 1 5 9 13 */
+    __m128i u1 = _mm_unpackhi_epi16(t0, t1); /* 2 6 10 14 3 7 11 15 */
+
+    *even = _mm_unpacklo_epi16(u0, u1);
+    *odd  = _mm_unpackhi_epi16(u0, u1);
+}
+
+/* The eight 32-bit lanes of a0 then a1, split likewise. */
+static inline void
+rage128_2d_vunzip32(__m128i a0, __m128i a1, __m128i *even, __m128i *odd)
+{
+    __m128i t0 = _mm_unpacklo_epi32(a0, a1); /* 0 4 1 5 */
+    __m128i t1 = _mm_unpackhi_epi32(a0, a1); /* 2 6 3 7 */
+
+    *even = _mm_unpacklo_epi32(t0, t1);
+    *odd  = _mm_unpackhi_epi32(t0, t1);
+}
+
+/* n columns of a blended RGB 565 row, 8 a step. */
+static inline void
+rage128_2d_stretch_row_v565(uint8_t *d, const uint8_t *s0, const uint8_t *s1,
+                            int n, int xskip, int sx0, uint32_t xph,
+                            uint32_t xinc, uint32_t wy)
+{
+    uint32_t      xa = xph + (uint32_t) xskip * xinc;
+    uint16_t      pos[8];
+    __m128i       xf;
+    const __m128i xstep = _mm_set1_epi16((short) (uint16_t) (xinc * 8u));
+    const __m128i wyv   = _mm_set1_epi16((short) wy);
+
+    for (int i = 0; i < 8; i++)
+        pos[i] = (uint16_t) (xa + (uint32_t) i * xinc);
+    xf = _mm_loadu_si128((const __m128i *) pos);
+    for (int col = 0; col < n; col += 8, d += 16) {
+        size_t  o[8];
+        __m128i tl, tr, bl, br, wx;
+        __m128i tlr, tlg, tlb, trr, trg, trb, blr, blg, blb, brr, brg, brb;
+
+        for (int i = 0; i < 8; i++) {
+            o[i] = (size_t) (sx0 + (int) (xa >> 16)) * 2;
+            xa += xinc;
+        }
+        rage128_2d_vunzip16(rage128_2d_quad565(s0, o), rage128_2d_quad565(s0, o + 4), &tl, &tr);
+        rage128_2d_vunzip16(rage128_2d_quad565(s1, o), rage128_2d_quad565(s1, o + 4), &bl, &br);
+        rage128_2d_vexpand565(tl, &tlr, &tlg, &tlb);
+        rage128_2d_vexpand565(tr, &trr, &trg, &trb);
+        rage128_2d_vexpand565(bl, &blr, &blg, &blb);
+        rage128_2d_vexpand565(br, &brr, &brg, &brb);
+        wx  = _mm_srli_epi16(xf, 8);
+        xf  = _mm_add_epi16(xf, xstep);
+        tlr = rage128_2d_vlerp(rage128_2d_vlerp(tlr, trr, wx), rage128_2d_vlerp(blr, brr, wx), wyv);
+        tlg = rage128_2d_vlerp(rage128_2d_vlerp(tlg, trg, wx), rage128_2d_vlerp(blg, brg, wx), wyv);
+        tlb = rage128_2d_vlerp(rage128_2d_vlerp(tlb, trb, wx), rage128_2d_vlerp(blb, brb, wx), wyv);
+        _mm_storeu_si128((__m128i *) d, rage128_2d_vpack565(tlr, tlg, tlb));
+    }
+}
+
+/* n columns of a blended aRGB 8888 row, 4 a step. */
+static inline void
+rage128_2d_stretch_row_v8888(uint8_t *d, const uint8_t *s0, const uint8_t *s1,
+                             int n, int xskip, int sx0, uint32_t xph,
+                             uint32_t xinc, uint32_t wy)
+{
+    uint32_t      xa = xph + (uint32_t) xskip * xinc;
+    uint16_t      pos[16];
+    __m128i       xlo, xhi;
+    const __m128i xstep = _mm_set1_epi16((short) (uint16_t) (xinc * 4u));
+    const __m128i wyv   = _mm_set1_epi16((short) wy);
+    const __m128i zero  = _mm_setzero_si128();
+
+    for (int i = 0; i < 16; i++)
+        pos[i] = (uint16_t) (xa + (uint32_t) (i >> 2) * xinc);
+    xlo = _mm_loadu_si128((const __m128i *) pos);
+    xhi = _mm_loadu_si128((const __m128i *) (pos + 8));
+    for (int col = 0; col < n; col += 4, d += 16) {
+        __m128i p[4], q[4];
+        __m128i tl, tr, bl, br, wlo, whi, lo, hi;
+
+        for (int i = 0; i < 4; i++) {
+            size_t o = (size_t) (sx0 + (int) (xa >> 16)) * 4;
+
+            xa += xinc;
+            p[i] = _mm_loadl_epi64((const __m128i *) (s0 + o));
+            q[i] = _mm_loadl_epi64((const __m128i *) (s1 + o));
+        }
+        /* 32-bit lanes: left 0, right 0, left 1, right 1 in each vector */
+        rage128_2d_vunzip32(_mm_unpacklo_epi64(p[0], p[1]), _mm_unpacklo_epi64(p[2], p[3]), &tl, &tr);
+        rage128_2d_vunzip32(_mm_unpacklo_epi64(q[0], q[1]), _mm_unpacklo_epi64(q[2], q[3]), &bl, &br);
+        wlo = _mm_srli_epi16(xlo, 8);
+        whi = _mm_srli_epi16(xhi, 8);
+        xlo = _mm_add_epi16(xlo, xstep);
+        xhi = _mm_add_epi16(xhi, xstep);
+        lo  = rage128_2d_vlerp(rage128_2d_vlerp(_mm_unpacklo_epi8(tl, zero), _mm_unpacklo_epi8(tr, zero), wlo),
+                               rage128_2d_vlerp(_mm_unpacklo_epi8(bl, zero), _mm_unpacklo_epi8(br, zero), wlo), wyv);
+        hi  = rage128_2d_vlerp(rage128_2d_vlerp(_mm_unpackhi_epi8(tl, zero), _mm_unpackhi_epi8(tr, zero), whi),
+                               rage128_2d_vlerp(_mm_unpackhi_epi8(bl, zero), _mm_unpackhi_epi8(br, zero), whi), wyv);
+        _mm_storeu_si128((__m128i *) d, _mm_packus_epi16(lo, hi));
+    }
+}
+#endif
+
 /* Stretch blit (packet 0x96, R128_CCE_PACKET3_CNTL_SCALING). The walk
    runs over the destination and steps the source by 16.16 increments
    from (sx0, sy0), starting at the 16.16 fractions (xph, yph).
@@ -4364,6 +4854,20 @@ rage128_2d_stretch_rect(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
         && (uint64_t) xph + (uint64_t) (uint32_t) (w - 1 + xskip) * xinc <= 0xffffffffu;
     uint32_t srun = (uint32_t) (((blend && sxmax < sxlim) ? sxmax + 1 : sxmax) + 1)
         * (uint32_t) sbpp;
+#if R128_STRETCH_VEC
+    /* A blended row's leading columns with an unclamped neighbor, rounded
+       down to whole steps of the vector loop (8 pixels for 565, 4 for
+       8888), go to that loop when the row's destination bytes are
+       disjoint from both of its source runs; the one-pixel loop then
+       draws the rest of the row, starting after the columns the vector
+       loop drew on that row: nvec of them, or none when the row
+       overlaps its source. Such a row keeps the one-pixel loop for
+       every column, because that loop stores each pixel before it reads
+       the next one's texels. */
+    int nvec = (fast && blend)
+        ? (rage128_2d_stretch_unclamped(w, xskip, sx0, xph, xinc, sxlim) & ((ddt == 6) ? ~3 : ~7))
+        : 0;
+#endif
 
     for (int row = 0; row < h; row++) {
         uint32_t yacc  = yph + (uint32_t) (row + yskip) * yinc;
@@ -4380,15 +4884,27 @@ rage128_2d_stretch_rect(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
             uint8_t       *d  = r128_surf_run(&sdst, daddr, (uint32_t) w * (uint32_t) bpp);
 
             if (s0 && s1 && d) {
+                int nv = 0; /* columns the vector loop has drawn */
+
+#if R128_STRETCH_VEC
+                if (nvec && rage128_2d_stretch_disjoint(d, (size_t) w * (size_t) bpp, s0, srun)
+                    && rage128_2d_stretch_disjoint(d, (size_t) w * (size_t) bpp, s1, srun)) {
+                    nv = nvec;
+                    if (ddt == 6)
+                        rage128_2d_stretch_row_v8888(d, s0, s1, nv, xskip, sx0, xph, xinc, wy);
+                    else
+                        rage128_2d_stretch_row_v565(d, s0, s1, nv, xskip, sx0, xph, xinc, wy);
+                }
+#endif
                 if (ddt == 6 && blend)
-                    rage128_2d_stretch_row(d, s0, s1, 6, 1, w, xskip, sx0, xph,
-                                           xinc, wy, sxlim);
+                    rage128_2d_stretch_row(d + (size_t) nv * 4, s0, s1, 6, 1, w - nv,
+                                           xskip + nv, sx0, xph, xinc, wy, sxlim);
                 else if (ddt == 6)
                     rage128_2d_stretch_row(d, s0, s1, 6, 0, w, xskip, sx0, xph,
                                            xinc, wy, sxlim);
                 else if (blend)
-                    rage128_2d_stretch_row(d, s0, s1, 4, 1, w, xskip, sx0, xph,
-                                           xinc, wy, sxlim);
+                    rage128_2d_stretch_row(d + (size_t) nv * 2, s0, s1, 4, 1, w - nv,
+                                           xskip + nv, sx0, xph, xinc, wy, sxlim);
                 else
                     rage128_2d_stretch_row(d, s0, s1, 4, 0, w, xskip, sx0, xph,
                                            xinc, wy, sxlim);

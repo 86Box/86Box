@@ -25909,6 +25909,387 @@ vectors_stretch_rows_921(rage128_t *dev)
     wr(dev, RAGE128_DST_OFFSET, 0);
 }
 
+/* 930: the vector row loops of the blended stretch (8 pixels a step for
+   565, 4 for 8888) against the per-pixel walk, by the method of the 921
+   rows: the same stretch drawn with the aux scissors off, which takes
+   the row loop, and with AUX1 enabled as an additive rectangle, which
+   takes the per-pixel walk; the two windows are compared byte for byte.
+   Every stretch here is started by register writes, which gives the walk
+   a chosen 16.16 start in each direction (SCALE_HACC, SCALE_VACC; the
+   device reads both as multiples of 16, like the steps, so the low four
+   fraction bits of every position are zero) and the source any byte
+   offset. On a build without the vector loops both draws are scalar and
+   the rows pass; they fail when a vector step stores a different byte
+   anywhere in the window.
+   The three exhaustive rows draw 256, 256 and 4096 stretches of up to
+   32,768 pixels each. On the GPU lane every one of them is also queued
+   and checked by the 2D oracle, which costs 14 to 53 ms a stretch
+   there, so that lane draws a sample: 16, 8 and 34 stretches (the row
+   loop under test is the same code on every lane, and the other two
+   lanes draw them all). */
+#define F930_WIN 0x10000u /* compared bytes of the exhaustive rows' windows */
+
+static uint32_t f930_every = 1; /* above 1: the sampled form */
+
+struct f930 {
+    uint32_t dt, soff, sp8, dp8, hacc, vacc, xinc, yinc, dx, dy, dw, dh, scr;
+};
+
+static void
+f930_reg(rage128_t *dev, const struct f930 *c, uint32_t dbase, int walk)
+{
+    wr(dev, RAGE128_AUX_SC_CNTL, walk ? 0x00000001u : 0u); /* AUX1 on, additive */
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, c->scr);
+    wr(dev, RAGE128_DST_OFFSET, dbase);
+    wr(dev, RAGE128_DST_PITCH, c->dp8);
+    wr(dev, RAGE128_DP_MIX, 0x00cc0200u);
+    wr(dev, RAGE128_DP_DATATYPE, c->dt | (15u << 8) | (3u << 16));
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x40u);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000100u); /* blend */
+    wr(dev, RAGE128_SCALE_3D_DATATYPE, c->dt);
+    wr(dev, RAGE128_SCALE_OFFSET_0, c->soff);
+    wr(dev, RAGE128_SCALE_PITCH, c->sp8);
+    wr(dev, RAGE128_SCALE_X_INC, c->xinc);
+    wr(dev, RAGE128_SCALE_Y_INC, c->yinc);
+    wr(dev, RAGE128_SCALE_HACC, c->hacc);
+    wr(dev, RAGE128_SCALE_VACC, c->vacc);
+    wr(dev, RAGE128_SCALE_DST_X_Y, (c->dx << 16) | c->dy);
+    wr(dev, RAGE128_SCALE_DST_HEIGHT_WIDTH, (c->dh << 16) | c->dw);
+    flush_sync(dev);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+}
+
+/* Draw the case both ways into windows of n bytes prefilled alike. 1 =
+   the windows are equal; *drew is set when the row-loop window differs
+   from the prefill. */
+static int
+f930_both(rage128_t *dev, const struct f930 *c, uint32_t n, int *drew)
+{
+    memset(&dev->svga.vram[F921_DA], F921_FILL, n);
+    memset(&dev->svga.vram[F921_DB], F921_FILL, n);
+    f930_reg(dev, c, F921_DA, 0);
+    f930_reg(dev, c, F921_DB, 1);
+    if (!*drew)
+        for (uint32_t i = 0; i < n; i++)
+            if (dev->svga.vram[F921_DA + i] != F921_FILL) {
+                *drew = 1;
+                break;
+            }
+    return memcmp(&dev->svga.vram[F921_DA], &dev->svga.vram[F921_DB], n) == 0;
+}
+
+static void
+f930_base(struct f930 *c, uint32_t dt)
+{
+    memset(c, 0, sizeof(*c));
+    c->dt   = dt;
+    c->soff = F921_SRC;
+    c->sp8  = F921_PX / 8;
+    c->dp8  = F921_PX / 8;
+    c->yinc = 0xb000u;
+    c->vacc = 0x5000u;
+    c->dx   = 9;
+    c->dy   = 2;
+    c->dh   = 3;
+    c->scr  = (40u << 16) | 64u;
+}
+
+static const uint32_t f930_xinc[3] = { 0x00005550u, 0x00010000u, 0x00025550u };
+static const uint32_t f930_hacc[3] = { 0u, 0x00007000u, 0x00012340u };
+
+/* Every width from 1 to two steps and one more, at an enlarging, a 1:1
+   and a shrinking step, three start fractions, the scissor cutting 0 or
+   3 columns off the left (the walk then starts part-way along the row),
+   and the source extent either past every texel or unset (which clamps
+   the neighbor only in the trailing columns that read the row's final
+   texel; several columns can share it). */
+static int
+f930_widths(rage128_t *dev, uint32_t dt, uint32_t wmax)
+{
+    struct f930 c;
+    uint32_t    n  = F921_PX * (dt == 6 ? 4u : 2u) * F921_ROWS;
+    int         ok = 1, drew = 0;
+
+    for (uint32_t w = 1; w <= wmax; w++)
+        for (int xi = 0; xi < 3; xi++)
+            for (int hi = 0; hi < 3; hi++)
+                for (uint32_t cut = 0; cut <= 3; cut += 3)
+                    for (int ext = 0; ext < 2; ext++) {
+                        f930_base(&c, dt);
+                        c.dw   = w + cut;
+                        c.xinc = f930_xinc[xi];
+                        c.hacc = f930_hacc[hi];
+                        c.scr  = ext ? 0u : c.scr;
+                        wr(dev, RAGE128_SC_TOP_LEFT, c.dx + cut);
+                        ok = f930_both(dev, &c, n, &drew) && ok;
+                        /* a column left of the scissor is not drawn */
+                        if (cut)
+                            ok = ok && dev->svga.vram[F921_DA + (c.dy * F921_PX + c.dx) * (dt == 6 ? 4u : 2u)] == F921_FILL;
+                    }
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    return ok && drew;
+}
+
+/* The source extent's width goes from 1 to 64 texels under a row of dw
+   pixels, so the first column whose right neighbor is clamped falls on
+   every column of the row and past its end: the count of leading
+   unclamped columns takes every value from 0 to dw, so every remainder
+   of the step, below, at and above one step. At the 1:1 step with a zero
+   start that count is the extent's width less 1. */
+static int
+f930_clamp(rage128_t *dev, uint32_t dt, uint32_t dw)
+{
+    struct f930 c;
+    uint32_t    n  = F921_PX * (dt == 6 ? 4u : 2u) * F921_ROWS;
+    int         ok = 1, drew = 0;
+
+    for (uint32_t sw = 1; sw <= 64; sw++)
+        for (int xi = 0; xi < 3; xi++)
+            for (int hi = 0; hi < 3; hi++)
+                for (uint32_t cut = 0; cut <= 3; cut += 3) {
+                    f930_base(&c, dt);
+                    c.dw   = dw + cut;
+                    c.dh   = 2;
+                    c.xinc = f930_xinc[xi];
+                    c.hacc = f930_hacc[hi];
+                    c.scr  = (40u << 16) | sw;
+                    wr(dev, RAGE128_SC_TOP_LEFT, c.dx + cut);
+                    ok = f930_both(dev, &c, n, &drew) && ok;
+                }
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    return ok && drew;
+}
+
+/* The source base at every byte offset 0 to 15 of a 16-byte block, and
+   the destination row starting at every pixel of a 16-byte block (8
+   positions for 565, 4 for 8888): the destination offset register does
+   not keep its low four bits and a pixel position moves the row by
+   whole pixels, so a destination row cannot start at a byte address
+   that is not a multiple of the pixel size. */
+static int
+f930_offsets(rage128_t *dev, uint32_t dt, uint32_t dw)
+{
+    struct f930 c;
+    uint32_t    bpp = dt == 6 ? 4u : 2u;
+    uint32_t    n   = F921_PX * bpp * F921_ROWS;
+    int         ok = 1, drew = 0;
+
+    for (uint32_t so = 0; so < 16; so++)
+        for (uint32_t dp = 0; dp < 16 / bpp; dp++)
+            for (int xi = 0; xi < 3; xi++) {
+                f930_base(&c, dt);
+                c.soff = F921_SRC + so;
+                c.dx   = 8 + dp;
+                c.dw   = dw;
+                c.dh   = 2;
+                c.xinc = f930_xinc[xi];
+                c.hacc = f930_hacc[(so + dp) % 3];
+                ok     = f930_both(dev, &c, n, &drew) && ok;
+            }
+    return ok && drew;
+}
+
+/* Source and destination in one surface. The source rows start at pixel
+   (16, 8) of the window, plus 0 to bpp - 1 bytes; the destination starts
+   -step to +step pixels and -1, 0 or +1 rows from there, so its row lies
+   over the walk's own source row, over the blend's second row, or over
+   neither, and a stored pixel is a texel of a later pixel of the same
+   row. The two windows start with the same bytes and must end with the
+   same bytes; one is drawn by the row loop, one by the per-pixel walk,
+   which stores each pixel before it reads the next one's texels. */
+static int
+f930_overlap(rage128_t *dev, uint32_t dt, int step, uint32_t dw)
+{
+    struct f930 c;
+    uint32_t    bpp = dt == 6 ? 4u : 2u;
+    uint32_t    n   = F921_PX * bpp * F921_ROWS;
+    int         ok = 1, diff = 0;
+
+    for (int dp = -step; dp <= step; dp++)
+        for (int dr = -1; dr <= 1; dr++)
+            for (int xi = 0; xi < 3; xi++)
+                for (uint32_t sb = 0; sb < bpp; sb++) {
+                    static const uint32_t inc[3] = { 0x00008000u, 0x00010000u, 0x00018000u };
+
+                    f930_base(&c, dt);
+                    c.dx   = (uint32_t) (16 + dp);
+                    c.dy   = (uint32_t) (8 + dr);
+                    c.dw   = dw;
+                    c.dh   = 3;
+                    c.xinc = inc[xi];
+                    c.yinc = 0x00010000u;
+                    c.vacc = 0x00008000u;
+                    c.hacc = (dp & 1) ? 0x00004000u : 0u;
+                    memcpy(&dev->svga.vram[F921_DA], &dev->svga.vram[F921_SRC], n);
+                    memcpy(&dev->svga.vram[F921_DB], &dev->svga.vram[F921_SRC], n);
+                    c.soff = F921_DA + (8u * F921_PX + 16u) * bpp + sb;
+                    f930_reg(dev, &c, F921_DA, 0);
+                    c.soff = F921_DB + (8u * F921_PX + 16u) * bpp + sb;
+                    f930_reg(dev, &c, F921_DB, 1);
+                    ok   = ok && memcmp(&dev->svga.vram[F921_DA], &dev->svga.vram[F921_DB], n) == 0;
+                    diff = diff || memcmp(&dev->svga.vram[F921_DA], &dev->svga.vram[F921_SRC], n) != 0;
+                }
+    return ok && diff;
+}
+
+/* Every pair of byte values blended at every horizontal weight, 8888.
+   A source row is two texels; the step is 1/256 of a texel, so the 256
+   pixels of a destination row blend that one pair at the weights 0 to
+   255, and the vertical weight is 0, which leaves the horizontal blend
+   as the pixel. Each of the four bytes of a pixel is its own pair: one
+   stretch holds one left value against all 256 right values, placed at
+   byte positions that move from stretch to stretch. */
+static int
+f930_exh_h8888(rage128_t *dev)
+{
+    struct f930 c;
+    int         ok = 1, drew = 0;
+
+    f930_base(&c, 6);
+    c.sp8 = 1; c.dp8 = 32; c.dx = 0; c.dy = 0; c.dw = 256; c.dh = 64;
+    c.xinc = 0x100u; c.yinc = 0x10000u; c.hacc = 0; c.vacc = 0;
+    c.scr = (65u << 16) | 2u;
+    for (uint32_t l = 0; l < 256; l += f930_every > 1 ? 16u : 1u) {
+        for (uint32_t r = 0; r < 65; r++) {
+            uint8_t *p = &dev->svga.vram[F921_SRC + r * 32u];
+
+            for (uint32_t b = 0; b < 4; b++) {
+                p[b]     = (uint8_t) l;
+                p[4 + b] = (uint8_t) (r * 4u + b + l);
+            }
+        }
+        ok = f930_both(dev, &c, F930_WIN, &drew) && ok;
+    }
+    return ok && drew;
+}
+
+/* Every pair of byte values blended at every vertical weight, 8888. The
+   source is two rows of 64 texels; the vertical step is 1/256 of a row,
+   so the 256 destination rows blend the two rows at the weights 0 to
+   255, and the horizontal step is one texel with a zero start, which
+   makes the horizontal weight 0 and leaves each row's own texel. */
+static int
+f930_exh_v8888(rage128_t *dev)
+{
+    struct f930 c;
+    int         ok = 1, drew = 0;
+
+    f930_base(&c, 6);
+    c.sp8 = 9; c.dp8 = 8; c.dx = 0; c.dy = 0; c.dw = 64; c.dh = 256;
+    c.xinc = 0x10000u; c.yinc = 0x100u; c.hacc = 0; c.vacc = 0;
+    c.scr = (2u << 16) | 66u;
+    for (uint32_t t = 0; t < 256; t += f930_every > 1 ? 32u : 1u) {
+        for (uint32_t j = 0; j < 288; j++) {
+            dev->svga.vram[F921_SRC + j]        = (uint8_t) t;
+            dev->svga.vram[F921_SRC + 288u + j] = (uint8_t) (j + t);
+        }
+        ok = f930_both(dev, &c, F930_WIN, &drew) && ok;
+    }
+    return ok && drew;
+}
+
+/* Every 16-bit value as a 565 texel. First as the left and as the right
+   texel of a pair against 0x0000 and against 0xffff at every horizontal
+   weight (the vertical weight is 0): the weights sweep is what makes the
+   low bits the expand repeats into each channel visible after the pack.
+   Then as the left and as the right texel of the blend's second row at
+   16 horizontal weights with the vertical weight 255, against rows of
+   0x0000 and 0xffff. */
+static int
+f930_exh_565(rage128_t *dev)
+{
+    struct f930 c;
+    int         ok = 1, drew = 0;
+
+    f930_base(&c, 4);
+    c.sp8 = 1; c.dp8 = 32; c.dx = 0; c.dy = 0; c.dw = 256; c.dh = 128;
+    c.xinc = 0x100u; c.yinc = 0x10000u; c.hacc = 0; c.vacc = 0;
+    c.scr = (129u << 16) | 2u;
+    for (uint32_t t = 0; t < 2048; t += f930_every > 1 ? 127u : 1u) {
+        uint32_t k = (t & 1) ? 0xffffu : 0u;
+
+        for (uint32_t r = 0; r < 129; r++) {
+            uint8_t *p = &dev->svga.vram[F921_SRC + r * 16u];
+            uint32_t v = ((t >> 2) * 128u + r) & 0xffffu;
+            uint32_t a = (t & 2) ? k : v, b = (t & 2) ? v : k;
+
+            p[0] = (uint8_t) a; p[1] = (uint8_t) (a >> 8);
+            p[2] = (uint8_t) b; p[3] = (uint8_t) (b >> 8);
+        }
+        ok = f930_both(dev, &c, F930_WIN, &drew) && ok;
+    }
+    c.dp8 = 8; c.dw = 16; c.dh = 128;
+    c.xinc = 0x1000u; c.yinc = 0x20000u; c.hacc = 0x0800u; c.vacc = 0xff00u;
+    c.scr = (257u << 16) | 2u;
+    for (uint32_t t = 0; t < 2048; t += f930_every > 1 ? 127u : 1u) {
+        uint32_t k = (t & 1) ? 0xffffu : 0u;
+
+        for (uint32_t r = 0; r < 128; r++) {
+            uint8_t *p = &dev->svga.vram[F921_SRC + r * 32u];
+            uint32_t v = ((t >> 2) * 128u + r) & 0xffffu;
+            uint32_t a = (t & 2) ? k : v, b = (t & 2) ? v : k;
+            uint32_t e = ((r ^ t) & 1) ? 0xffffu : 0u;
+
+            p[0] = (uint8_t) e; p[1] = (uint8_t) (e >> 8);
+            p[2] = (uint8_t) ~e; p[3] = (uint8_t) (~e >> 8);
+            p[16] = (uint8_t) a; p[17] = (uint8_t) (a >> 8);
+            p[18] = (uint8_t) b; p[19] = (uint8_t) (b >> 8);
+        }
+        ok = f930_both(dev, &c, 64u * 2u * 128u, &drew) && ok;
+    }
+    return ok && drew;
+}
+
+static void
+vectors_stretch_rows_930(rage128_t *dev)
+{
+    flush_sync(dev);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    wr(dev, RAGE128_AUX1_SC_LEFT, 0);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 4, 7);  /* RIGHT */
+    wr(dev, RAGE128_AUX1_SC_LEFT + 8, 0);  /* TOP */
+    wr(dev, RAGE128_AUX1_SC_LEFT + 12, 7); /* BOTTOM */
+    f921_rng = 0x930u;
+    for (uint32_t i = 0; i < 0x8000u; i++) {
+        f921_rng = f921_rng * 1103515245u + 12345u;
+        dev->svga.vram[F921_SRC + i] = (uint8_t) (f921_rng >> 16);
+    }
+
+    check_true("2d 930: 565 blended, every width 1 to 17 at three steps: row loop equals the per-pixel walk",
+               f930_widths(dev, 4, 17));
+    check_true("2d 930: 8888 blended, every width 1 to 9 at three steps: row loop equals the per-pixel walk",
+               f930_widths(dev, 6, 9));
+    check_true("2d 930: 565 blended, the neighbor clamp starting at every column: row loop equals the walk",
+               f930_clamp(dev, 4, 40));
+    check_true("2d 930: 8888 blended, the neighbor clamp starting at every column: row loop equals the walk",
+               f930_clamp(dev, 6, 24));
+    check_true("2d 930: 565 blended, source at byte offsets 0 to 15, destination at 8 pixel positions: row loop equals the walk",
+               f930_offsets(dev, 4, 19));
+    check_true("2d 930: 8888 blended, source at byte offsets 0 to 15, destination at 4 pixel positions: row loop equals the walk",
+               f930_offsets(dev, 6, 11));
+    check_true("2d 930: 565 blended, destination over its own source, -8 to +8 pixels and -1 to +1 rows: row loop equals the walk",
+               f930_overlap(dev, 4, 8, 24));
+    check_true("2d 930: 8888 blended, destination over its own source, -4 to +4 pixels and -1 to +1 rows: row loop equals the walk",
+               f930_overlap(dev, 6, 4, 14));
+    f930_every = dev->gpu ? 2u : 1u;
+    check_true("2d 930: 8888 blend, every byte pair at every horizontal weight: row loop equals the walk",
+               f930_exh_h8888(dev));
+    check_true("2d 930: 8888 blend, every byte pair at every vertical weight: row loop equals the walk",
+               f930_exh_v8888(dev));
+    check_true("2d 930: 565 expand and blend, every texel value left, right and below: row loop equals the walk",
+               f930_exh_565(dev));
+
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, 0);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0);
+    wr(dev, RAGE128_SCALE_3D_DATATYPE, 0);
+    wr(dev, RAGE128_DST_OFFSET, 0);
+}
+
 /* ------------------------------------------------------------------ */
 /* Engine time of register-started ops. An op started by a CPU        */
 /* register write is drawn inside the write, and GUI_STAT then        */
@@ -27040,6 +27421,7 @@ run_gpu2d_verify(void)
     vectors_scale_pitch_bit9(dev);
     vectors_reg_scale_906(dev);
     vectors_stretch_rows_921(dev);
+    vectors_stretch_rows_930(dev);
     vectors_eng_time_918(dev);
     vectors_cce_status_follows_work(dev);
     if (gpu_lane)
