@@ -2089,8 +2089,12 @@ fifo_thread(void *param)
                     break;
             }
 
-            virge->fifo_read_idx++;
+            /* Scrub the slot before freeing it: once fifo_read_idx moves,
+               s3_virge_queue() may refill it. On x86 ATOMIC_INT is a plain
+               volatile, so only the fence keeps the store ahead of the increment. */
             fifo->addr_type = FIFO_INVALID;
+            atomic_thread_fence(memory_order_release);
+            virge->fifo_read_idx++;
 
             if (FIFO_ENTRIES > 0xe000)
                 thread_set_event(virge->fifo_not_full_event);
