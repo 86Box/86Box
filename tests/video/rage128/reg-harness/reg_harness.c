@@ -19106,12 +19106,29 @@ vectors_ov0_step_clamp(rage128_t *dev)
     target_free(svga, bm);
 }
 
+/* A horizontal accumulator start image the way the drivers build it:
+   the start pixel's position inside its fetch group plus 2.5 plus half
+   a source step (h_inc / 2^13), rounded to 1/32 of a pixel, with the
+   whole pixels in [31:28] and the fraction in [19:15] (SDK: Setting up
+   the Horizontal Accumulator, p. 7-19 / PDF 189; Multimedia supplement:
+   OV0_P1_H_ACCUM_INIT). */
+static uint32_t
+ov_crop_h_accum(int in_group, uint32_t h_inc)
+{
+    /* start in 1/32 pixels: in_group + 2.5 + h_inc / 2^13, rounded */
+    uint32_t s32 = (uint32_t) in_group * 32 + 80 + (h_inc + 128) / 256;
+
+    return ((s32 >> 5) << 28) | ((s32 & 31) << 15);
+}
+
 /* a planar source's Cr plane is positioned by OV0_P3_X_START_END, not
    P2's. YUV12 with flat Y and Cb and a Cr ramp (0x40 + 4 * x), chroma at
    half the luma step so output i samples chroma index i / 2. Moving P3's
-   start one pixel right shifts the picture two output pixels left (Cr
-   index + 1); moving P2's start instead moves only the flat Cb plane, so
-   the picture is unchanged. */
+   start s chroma pixels right, with P2's start left at 0, shifts the
+   picture 2 * s output pixels left. The start is a whole fetch group (2
+   chroma pixels) and the accumulator start carries no in-group term, so
+   the shift comes from P3's own start field alone. Moving P2's start
+   instead moves only the flat Cb plane, so the picture is unchanged. */
 static void
 vectors_ov0_p3_start(rage128_t *dev)
 {
@@ -19121,6 +19138,7 @@ vectors_ov0_p3_start(rage128_t *dev)
     uint32_t *p;
     uint32_t  a[64], b[64], c[64];
     int       ok_b = 1, ok_c = 1;
+    const int p3_s = 2; /* P3 start, a multiple of the 2-pixel chroma group */
 
     wr(dev, RAGE128_CRTC_H_TOTAL_DISP, (7u << 16) | 20u);
     wr(dev, RAGE128_CRTC_PITCH, 8);
@@ -19179,14 +19197,18 @@ vectors_ov0_p3_start(rage128_t *dev)
     memcpy(a, p, sizeof(a));
     check_true("ov0: control: the Cr ramp renders as a ramp", a[0] != a[2]);
 
-    /* B: Cr starts at 1 -> Cr index + 1 = two output pixels left */
-    wr(dev, RAGE128_OV0_P3_X_START_END, (1u << 16) | 31);
+    /* B: Cr starts at p3_s (a whole group), Cb stays at 0 -> output x
+       shows Cr x / 2 + p3_s, which is control pixel x + 2 * p3_s, clamped
+       at Cr 31 (control pixel 62) */
+    wr(dev, RAGE128_OV0_P3_X_START_END, ((uint32_t) p3_s << 16) | 31);
     memset(p, 0, 64 * sizeof(uint32_t));
     rage128_overlay_draw(svga, 0);
     memcpy(b, p, sizeof(b));
-    for (int x = 0; x < 62; x++)
-        ok_b = ok_b && b[x] == a[x + 2];
-    ok_b = ok_b && b[62] == a[62] && b[63] == a[62]; /* clamped at Cr 31 */
+    for (int x = 0; x < 64; x++) {
+        int src = x + 2 * p3_s;
+
+        ok_b = ok_b && b[x] == a[(src < 64) ? src : 62];
+    }
     check_true("ov0: P3 start moves the Cr plane", ok_b);
 
     /* C: Cb starts at 1 instead -> the flat plane moves, picture unchanged */
@@ -20585,7 +20607,10 @@ vectors_ov0_window_fields(rage128_t *dev)
     check_true("ov0: control: 1:1 window shows source index i at output i",
                p[0] == 0 && p[1] == 0x00010000 && p[5] == 0x445566 && p[63] == 0x003f0000);
 
-    /* P1: the combined word decodes to start 5, end 31 */
+    /* P1: the combined word decodes to start 5, end 31. The start
+       carries the in-group position of 5 (group 4 at STEP_BY 1), as the
+       drivers program it. */
+    wr(dev, RAGE128_OV0_P1_H_ACCUM_INIT, ov_crop_h_accum(5 % 4, 0x1000));
     wr(dev, RAGE128_OV0_P1_X_START_END, 0x0005001f);
     ov_window_line(dev, p);
     memcpy(ctl, p, sizeof(ctl));
@@ -20596,6 +20621,7 @@ vectors_ov0_window_fields(rage128_t *dev)
     check32("ov0: P1 reserved start and end bits, pixel 0 shows source 5", p[0], 0x445566);
     check_true("ov0: P1 reserved bits image equals the valid-field control",
                !memcmp(p, ctl, sizeof(ctl)));
+    wr(dev, RAGE128_OV0_P1_H_ACCUM_INIT, 0);
     wr(dev, RAGE128_OV0_P1_X_START_END, 0x0070001f); /* start-only reserved bits */
     ov_window_line(dev, p);
     check_true("ov0: P1 start-only reserved bits leave start 0",
@@ -20676,6 +20702,207 @@ vectors_ov0_window_fields(rage128_t *dev)
     wr(dev, RAGE128_OV0_P3_X_START_END, 31);
     wr(dev, RAGE128_OV0_SCALE_CNTL, 0);
     wr(dev, RAGE128_OV0_KEY_CNTL, 0);
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save);
+    target_free(svga, bm);
+}
+
+/* A source cropped at its left edge L, programmed the way the drivers
+   program it. The buffer base points at the octword that holds source
+   pixel L, OV0_P1_X_START (and OV0_P2_X_START and OV0_P3_X_START for
+   chroma) holds L's position inside that octword, and the horizontal
+   accumulator start holds L's position inside its fetch group plus 2.5
+   plus half a source step, rounded to 1/32 (SDK: Setting up the
+   Horizontal Accumulator, p. 7-19 / PDF 189; xf86-video-r128
+   r128_video.c R128DisplayVideo422 and R128DisplayVideo420). A fetch
+   group is 4 luma pixels with the two-tap filter (STEP_BY 1 and up), 2
+   with the four-tap filter (STEP_BY 0) and for 16 bpp RGB, and 2 chroma
+   pixels. The first displayed source pixel is L, so each row looks up
+   output pixel 0 in a table rendered from the uncropped source (L = 0,
+   the control) and compares the index it finds with L. */
+static int
+ov_crop_index(const uint32_t *ref, int n, uint32_t px)
+{
+    for (int k = 0; k < n; k++)
+        if (ref[k] == px)
+            return k;
+    return -1;
+}
+
+static void
+vectors_ov0_crop_start(rage128_t *dev)
+{
+    svga_t   *svga     = &dev->svga;
+    uint32_t  gen_save = rd(dev, RAGE128_CRTC_GEN_CNTL);
+    bitmap_t *bm;
+    uint32_t *p;
+    uint32_t  ref[64];
+    char      name[96];
+    int       distinct = 1;
+
+    wr(dev, RAGE128_CRTC_H_TOTAL_DISP, (7u << 16) | 20u);
+    wr(dev, RAGE128_CRTC_PITCH, 8);
+    wr(dev, RAGE128_CRTC_GEN_CNTL,
+       (gen_save & ~((7u << RAGE128_CRTC_PIX_WIDTH_SHIFT)
+                     | RAGE128_CRTC_DISP_REQ_EN_B))
+           | (4u << RAGE128_CRTC_PIX_WIDTH_SHIFT)
+           | RAGE128_CRTC_EXT_DISP_EN | RAGE128_CRTC_EN);
+
+    /* YUY2 source row: Y = 0x20 + 3x, neutral chroma */
+    for (int x = 0; x < 64; x++) {
+        svga->vram[0x500000 + x * 2]     = (uint8_t) (0x20 + 3 * x);
+        svga->vram[0x500000 + x * 2 + 1] = 0x80;
+    }
+    ov0_src_stored(dev, 0x500000, 128);
+    wr(dev, RAGE128_OV0_REG_LOAD_CNTL, 0);
+    wr(dev, RAGE128_OV0_SCALE_CNTL, 0);
+    wr(dev, RAGE128_OV0_AUTO_FLIP_CNTL, 0);
+    wr(dev, RAGE128_OV0_VID_BUF_PITCH0_VALUE, 128);
+    wr(dev, RAGE128_OV0_Y_X_START, 0);
+    wr(dev, RAGE128_OV0_Y_X_END, 63);
+    wr(dev, RAGE128_OV0_V_INC, 0x100000);
+    wr(dev, RAGE128_OV0_P1_V_ACCUM_INIT, 0);
+    wr(dev, RAGE128_OV0_P23_V_ACCUM_INIT, 0);
+    wr(dev, RAGE128_OV0_P1_BLANK_LINES_AT_TOP, 0);
+    wr(dev, RAGE128_OV0_P23_BLANK_LINES_AT_TOP, 0);
+    wr(dev, RAGE128_OV0_P2_X_START_END, 31);
+    wr(dev, RAGE128_OV0_P3_X_START_END, 31);
+    wr(dev, RAGE128_OV0_COLOUR_CNTL, 0);
+    wr(dev, RAGE128_OV0_KEY_CNTL, 0x11); /* video everywhere */
+    wr(dev, RAGE128_OV0_SCALE_CNTL,
+       RAGE128_OV0_SCALER_ENABLE
+           | (RAGE128_OV0_SCALER_SOURCE_VYUY422 << RAGE128_OV0_SCALER_FORMAT_SHIFT));
+
+    bm = target_alloc(svga, 2048, 8);
+    svga->y_add = svga->x_add = 0;
+    svga->overlay_latch.y = 0;
+    svga->memaddr = svga->memaddr_backup = 0;
+    p = bm->line[0];
+
+    /* luma, two-tap at 1:1 (group 4); L = 0 is the control */
+    wr(dev, RAGE128_OV0_H_INC, (0x0800u << 16) | 0x1000u);
+    wr(dev, RAGE128_OV0_STEP_BY, 0x0101);
+    wr(dev, RAGE128_OV0_P23_H_ACCUM_INIT, ov_crop_h_accum(0, 0x0800));
+    for (int l = 0; l <= 8; l++) {
+        int xs = l % 8;
+        int k;
+
+        wr(dev, RAGE128_OV0_VID_BUF0_BASE_ADRS, 0x00500000 + (uint32_t) (l & ~7) * 2);
+        wr(dev, RAGE128_OV0_P1_X_START_END, ((uint32_t) xs << 16) | (uint32_t) (xs + 40 - 1));
+        wr(dev, RAGE128_OV0_P1_H_ACCUM_INIT, ov_crop_h_accum(l % 4, 0x1000));
+        ov_window_line(dev, p);
+        if (l == 0) {
+            memcpy(ref, p, sizeof(ref));
+            for (int a = 0; a < 40; a++)
+                for (int b = a + 1; b < 40; b++)
+                    distinct = distinct && ref[a] != ref[b];
+            check_true("ov0 911: control: the uncropped luma ramp gives 40 distinct pixels",
+                       distinct);
+        }
+        k = ov_crop_index(ref, 40, p[0]);
+        snprintf(name, sizeof(name), "ov0 911: two-tap 1:1 L=%d first source pixel", l);
+        check32(name, (uint32_t) k, (uint32_t) l);
+    }
+
+    /* luma, four-tap at 2x (group 2) */
+    wr(dev, RAGE128_OV0_H_INC, (0x0400u << 16) | 0x0800u);
+    wr(dev, RAGE128_OV0_STEP_BY, 0);
+    wr(dev, RAGE128_OV0_P23_H_ACCUM_INIT, ov_crop_h_accum(0, 0x0400));
+    for (int l = 0; l <= 4; l++) {
+        int xs = l % 8;
+
+        wr(dev, RAGE128_OV0_VID_BUF0_BASE_ADRS, 0x00500000 + (uint32_t) (l & ~7) * 2);
+        wr(dev, RAGE128_OV0_P1_X_START_END, ((uint32_t) xs << 16) | (uint32_t) (xs + 40 - 1));
+        wr(dev, RAGE128_OV0_P1_H_ACCUM_INIT, ov_crop_h_accum(l % 2, 0x0800));
+        ov_window_line(dev, p);
+        snprintf(name, sizeof(name), "ov0 911: four-tap 2x L=%d first source pixel", l);
+        check32(name, (uint32_t) ov_crop_index(ref, 40, p[0]), (uint32_t) l);
+    }
+
+    /* 16 bpp RGB 565 at 1:1 (group 2): pixel x is green x */
+    for (int x = 0; x < 64; x++)
+        *(uint16_t *) &svga->vram[0x500000 + x * 2] = (uint16_t) (x << 5);
+    ov0_src_stored(dev, 0x500000, 128);
+    wr(dev, RAGE128_OV0_H_INC, (0x0800u << 16) | 0x1000u);
+    wr(dev, RAGE128_OV0_STEP_BY, 0x0101);
+    wr(dev, RAGE128_OV0_P23_H_ACCUM_INIT, ov_crop_h_accum(0, 0x0800));
+    wr(dev, RAGE128_OV0_SCALE_CNTL,
+       RAGE128_OV0_SCALER_ENABLE
+           | (RAGE128_OV0_SCALER_SOURCE_16BPP << RAGE128_OV0_SCALER_FORMAT_SHIFT));
+    for (int l = 0; l <= 3; l++) {
+        int xs = l % 8;
+
+        wr(dev, RAGE128_OV0_VID_BUF0_BASE_ADRS, 0x00500000 + (uint32_t) (l & ~7) * 2);
+        wr(dev, RAGE128_OV0_P1_X_START_END, ((uint32_t) xs << 16) | (uint32_t) (xs + 40 - 1));
+        wr(dev, RAGE128_OV0_P1_H_ACCUM_INIT, ov_crop_h_accum(l % 2, 0x1000));
+        ov_window_line(dev, p);
+        if (l == 0) {
+            memcpy(ref, p, sizeof(ref));
+            distinct = 1;
+            for (int a = 0; a < 40; a++)
+                for (int b = a + 1; b < 40; b++)
+                    distinct = distinct && ref[a] != ref[b];
+            check_true("ov0 911: control: the uncropped 565 ramp gives 40 distinct pixels",
+                       distinct);
+        }
+        snprintf(name, sizeof(name), "ov0 911: 16 bpp 1:1 L=%d first source pixel", l);
+        check32(name, (uint32_t) ov_crop_index(ref, 40, p[0]), (uint32_t) l);
+    }
+
+    /* planar 4:2:0 at 1:1: flat Y, Cb and Cr ramps; luma left edge
+       L = 2C, chroma left edge C (group 2); output 2k shows chroma k */
+    memset(&svga->vram[0x500000], 0x80, 128);
+    for (int x = 0; x < 32; x++) {
+        svga->vram[0x510000 + x] = (uint8_t) (0x40 + 4 * x);
+        svga->vram[0x520000 + x] = (uint8_t) (0xc0 - 4 * x);
+    }
+    ov0_src_stored(dev, 0x500000, 128);
+    ov0_src_stored(dev, 0x510000, 32);
+    ov0_src_stored(dev, 0x520000, 32);
+    wr(dev, RAGE128_OV0_VID_BUF1_BASE_ADRS, 0x00510001);
+    wr(dev, RAGE128_OV0_VID_BUF2_BASE_ADRS, 0x00520001);
+    wr(dev, RAGE128_OV0_VID_BUF_PITCH1_VALUE, 64);
+    wr(dev, RAGE128_OV0_COLOUR_CNTL, 0x00101000); /* unity saturation */
+    wr(dev, RAGE128_OV0_SCALE_CNTL,
+       RAGE128_OV0_SCALER_ENABLE
+           | (RAGE128_OV0_SCALER_SOURCE_YUV12 << RAGE128_OV0_SCALER_FORMAT_SHIFT));
+    for (int c = 0; c <= 3; c++) {
+        int l = 2 * c;
+
+        wr(dev, RAGE128_OV0_VID_BUF0_BASE_ADRS, 0x00500000 + (uint32_t) (l & ~15));
+        wr(dev, RAGE128_OV0_P1_X_START_END, ((uint32_t) (l % 16) << 16) | (uint32_t) (l % 16 + 40 - 1));
+        wr(dev, RAGE128_OV0_P1_H_ACCUM_INIT, ov_crop_h_accum(l % 4, 0x1000));
+        wr(dev, RAGE128_OV0_P2_X_START_END, ((uint32_t) (c % 16) << 16) | (uint32_t) (c % 16 + 20 - 1));
+        wr(dev, RAGE128_OV0_P3_X_START_END, ((uint32_t) (c % 16) << 16) | (uint32_t) (c % 16 + 20 - 1));
+        wr(dev, RAGE128_OV0_P23_H_ACCUM_INIT, ov_crop_h_accum(c % 2, 0x0800));
+        ov_window_line(dev, p);
+        if (c == 0) {
+            distinct = 1;
+            for (int k = 0; k < 16; k++)
+                ref[k] = p[2 * k];
+            for (int a = 0; a < 16; a++)
+                for (int b = a + 1; b < 16; b++)
+                    distinct = distinct && ref[a] != ref[b];
+            check_true("ov0 911: control: the uncropped chroma ramps give 16 distinct pixels",
+                       distinct);
+        }
+        snprintf(name, sizeof(name), "ov0 911: planar chroma C=%d first chroma pixel", c);
+        check32(name, (uint32_t) ov_crop_index(ref, 16, p[0]), (uint32_t) c);
+    }
+
+    wr(dev, RAGE128_OV0_SCALE_CNTL, 0);
+    wr(dev, RAGE128_OV0_KEY_CNTL, 0);
+    wr(dev, RAGE128_OV0_COLOUR_CNTL, 0);
+    wr(dev, RAGE128_OV0_H_INC, (0x0800u << 16) | 0x1000u);
+    wr(dev, RAGE128_OV0_STEP_BY, 0x0101);
+    wr(dev, RAGE128_OV0_P1_H_ACCUM_INIT, 0);
+    wr(dev, RAGE128_OV0_P23_H_ACCUM_INIT, 0);
+    wr(dev, RAGE128_OV0_VID_BUF0_BASE_ADRS, 0);
+    wr(dev, RAGE128_OV0_VID_BUF1_BASE_ADRS, 0);
+    wr(dev, RAGE128_OV0_VID_BUF2_BASE_ADRS, 0);
+    wr(dev, RAGE128_OV0_VID_BUF_PITCH1_VALUE, 0);
+    wr(dev, RAGE128_OV0_P1_X_START_END, 63);
+    wr(dev, RAGE128_OV0_P2_X_START_END, 31);
+    wr(dev, RAGE128_OV0_P3_X_START_END, 31);
     wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save);
     target_free(svga, bm);
 }
@@ -24586,6 +24813,7 @@ run_lanegap(void)
     vectors_ov0_flip_at_vblank(dev);
     vectors_ov0_pitch_field(dev);
     vectors_ov0_window_fields(dev);
+    vectors_ov0_crop_start(dev);
     vectors_ov0_v_accum_floor(dev);
     vectors_ov0_src_span_wrap(dev);
     vectors_ov0_src_wrap_bounds(dev);

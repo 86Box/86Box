@@ -830,19 +830,18 @@ rage128_overlay_draw(svga_t *svga, int displine)
     h_step_y = h_inc_y << step_y;
     h_step_c = h_inc_c << step_c;
 
-    /* Horizontal DDA starts. The DDX loads OV0_P1_H_ACCUM_INIT and
-       OV0_P23_H_ACCUM_INIT with the source-left fraction plus 2.5 plus
-       half a source step (R128DisplayVideo422), the start the chip's
-       four-tap filter wants. The model takes the nearest pixel instead,
-       so it subtracts that bias to make output pixel 0 land on the first
-       source pixel at 1:1.
-       The first source pixel within the line's first octword (16 bytes)
-       is OV0_P1_X_START [19:16], and the last is OV0_P1_X_END [10:0],
-       counted from pixel 0 of that octword (Multimedia supplement:
-       OV0_P1_X_START_END). P2 and P3 have the same start field and a
-       ten-bit end field, [9:0] (Multimedia supplement:
-       OV0_P2_X_START_END); the bits around these fields are reserved
-       and take no part. */
+    /* Horizontal DDA starts. The drivers load OV0_P1_H_ACCUM_INIT and
+       OV0_P23_H_ACCUM_INIT with 2.5 plus half a source step, the start
+       the chip's four-tap filter wants, plus the first source pixel's
+       position inside its fetch group and the fraction of the source
+       left edge (SDK: Setting up the Horizontal Accumulator, p. 7-19 /
+       PDF 189). The DDX does the same: it keeps the two low integer bits
+       of the luma left edge and the low integer bit of the chroma left
+       edge in the start (R128DisplayVideo422, R128DisplayVideo420). The
+       model takes the nearest pixel instead, so it subtracts the 2.5
+       plus half a step; what remains counts whole source pixels from
+       the first pixel of the fetch group, so at 1:1 output pixel 0
+       lands on the first source pixel. */
     uint32_t h_acc0_y = ov0_h_accum_init(OV0_ACT(dev, RAGE128_OV0_P1_H_ACCUM_INIT), 0xf);
     uint32_t h_acc0_c = ov0_h_accum_init(OV0_ACT(dev, RAGE128_OV0_P23_H_ACCUM_INIT), 0x7);
     /* The register keeps only bits [19:11] of the DDX's 16.16 start, so
@@ -856,20 +855,47 @@ rage128_overlay_draw(svga_t *svga, int displine)
     uint32_t h_rel0_y = (h_acc0_y > h_bias_y) ? h_acc0_y - h_bias_y : 0;
     uint32_t h_rel0_c = (h_acc0_c > h_bias_c) ? h_acc0_c - h_bias_c : 0;
 
-    /* Planar chroma: P2 positions the Cb plane and P3 the Cr plane. The
+    /* The first source pixel within the line's first octword (16 bytes)
+       is OV0_P1_X_START [19:16], and the last is OV0_P1_X_END [10:0],
+       counted from pixel 0 of that octword (Multimedia supplement:
+       OV0_P1_X_START_END). P2 and P3 have the same start field and a
+       ten-bit end field, [9:0] (Multimedia supplement:
+       OV0_P2_X_START_END); the bits around these fields are reserved
+       and take no part.
+       The scaler fetches source pixels in groups, and the drivers put
+       the start pixel's position inside its group into the accumulator
+       start (see above). The DDA origin is therefore the first pixel of
+       the group that holds the start field, the field rounded down to a
+       multiple of the group size; counting from the field itself would
+       add the in-group position twice. A luma group is 2 pixels for the
+       15 and 16 bpp RGB formats and with the four-tap filter, which the
+       drivers select with OV0_P1_H_STEP_BY 0, and 4 pixels otherwise; a
+       chroma group is 2 pixels in every mode. These are the values of
+       ATI's scaling table, which returns the group sizes alongside H_INC
+       and STEP_BY (SDK: Setting up the Horizontal Accumulator, p. 7-17 /
+       PDF 187). What the chip shows for a start field inside a group
+       with an accumulator start that carries no in-group term is not
+       documented; the group origin is modeled. The software loop below
+       and the GPU compose both take these aligned starts.
+       Planar chroma: P2 positions the Cb plane and P3 the Cr plane. The
        supplement requires the two to be programmed alike (Multimedia
        supplement: OV0_P3_X_START_END) and the DDX does so
        (R128DisplayVideo420). The model runs one chroma DDA for both and
        clamps each plane to its own end. */
-    uint32_t p1_se = OV0_ACT(dev, RAGE128_OV0_P1_X_START_END);
-    uint32_t p2_se = OV0_ACT(dev, RAGE128_OV0_P2_X_START_END);
-    uint32_t p3_se = OV0_ACT(dev, RAGE128_OV0_P3_X_START_END);
-    int      p1_x0 = (p1_se >> 16) & 0x0f;
-    int      p1_xe = p1_se & 0x07ff;
-    int      p2_x0 = (p2_se >> 16) & 0x0f;
-    int      p2_xe = p2_se & 0x03ff;
-    int      p3_x0 = (p3_se >> 16) & 0x0f;
-    int      p3_xe = p3_se & 0x03ff;
+    uint32_t p1_se  = OV0_ACT(dev, RAGE128_OV0_P1_X_START_END);
+    uint32_t p2_se  = OV0_ACT(dev, RAGE128_OV0_P2_X_START_END);
+    uint32_t p3_se  = OV0_ACT(dev, RAGE128_OV0_P3_X_START_END);
+    int      p1_grp = (fmt == RAGE128_OV0_SCALER_SOURCE_15BPP
+                       || fmt == RAGE128_OV0_SCALER_SOURCE_16BPP
+                       || (step_reg & 7) == 0)
+             ? 2
+             : 4;
+    int      p1_x0  = ((p1_se >> 16) & 0x0f) & ~(p1_grp - 1);
+    int      p1_xe  = p1_se & 0x07ff;
+    int      p2_x0  = ((p2_se >> 16) & 0x0f) & ~1;
+    int      p2_xe  = p2_se & 0x03ff;
+    int      p3_x0  = ((p3_se >> 16) & 0x0f) & ~1;
+    int      p3_xe  = p3_se & 0x03ff;
 
     /* Vertical DDA. OV0_V_INC is a 6.12 number at [25:8], so the whole
        register reads as a .20 value. The DDX loads OV0_P1_V_ACCUM_INIT
