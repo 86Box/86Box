@@ -4203,7 +4203,7 @@ gus_speed_changed(void *priv)
         .description    = "Daughter card IRQ",                               \
         .type           = CONFIG_SELECTION,                                  \
         .default_string = NULL,                                              \
-        .default_int    = 7,                                                 \
+        .default_int    = 5,                                                 \
         .file_filter    = NULL,                                              \
         .spinner        = { 0 },                                             \
         .selection      = {                                                  \
