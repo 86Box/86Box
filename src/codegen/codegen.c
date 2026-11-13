@@ -20,6 +20,7 @@
 #include "codegen_backend.h"
 #include "codegen_ir.h"
 #include "codegen_ops.h"
+#include "codegen_ops_arith.h"
 #include "codegen_ops_helpers.h"
 
 static struct {
@@ -113,6 +114,7 @@ void (*codegen_timing_block_end)(void);
 int (*codegen_timing_jump_cycles)(void);
 void (*codegen_timing_save)(codegen_timing_state_t *state);
 void (*codegen_timing_load)(const codegen_timing_state_t *state);
+void (*codegen_timing_snapshot)(codegen_timing_snapshot_t *snap, int load);
 
 void
 codegen_timing_set(codegen_timing_t *timing)
@@ -125,6 +127,7 @@ codegen_timing_set(codegen_timing_t *timing)
     codegen_timing_jump_cycles = timing->jump_cycles;
     codegen_timing_save        = timing->save;
     codegen_timing_load        = timing->load;
+    codegen_timing_snapshot    = timing->snapshot;
 }
 
 int codegen_in_recompile;
@@ -1305,6 +1308,7 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     int          fetch_walk_valid   = codegen_fetch_reach(block, cs + old_pc, (mov_ss_pair || (opcode_length[opcode] > 2)) ? 4 : opcode_length[opcode], &fetch_walk);
     const int    first_fetch_walk   = fetch_walk_valid;
     int          walk_cycles        = 0;
+    int          instr_cycles       = 0;
     uint32_t     lock_pc            = 0;
     int          lock_cycles        = 0;
     uint32_t     lock_walk          = 0;
@@ -1676,11 +1680,14 @@ generate_call:
 
     /*An instruction behind a LOCK it can't take is a hand-over, which no
       unrolled copy repeats, so its event is not replayed*/
+    if ((block->flags & CODEBLOCK_NO_OPCODES) && block->ins && (op_table == x86_dynarec_opcodes) && ((opcode & 0xc7) == 0x05))
+        codegen_accumulate_probe_mark();
     codegen_timing_peek = lock_illegal;
     codegen_timing_opcode(opcode, fetchdat, op_32, op_pc);
     codegen_timing_peek = 0;
     codegen_accumulate_record(ACC_OPCODE, 0, opcode, fetchdat, op_32, op_pc);
 
+    instr_cycles = codegen_block_cycles;
     codegen_accumulate_timing(ir);
 
     if ((op_table == x86_dynarec_opcodes && ((opcode & 0xf0) == 0x70 || (opcode & 0xfc) == 0xe0 || opcode == 0xc2 || (opcode & 0xfe) == 0xca || (opcode & 0xfc) == 0xcc || (opcode & 0xfc) == 0xe8 || (opcode == 0xff && ((fetchdat & 0x38) >= 0x10 && (fetchdat & 0x38) < 0x30)))) || (op_table == x86_dynarec_opcodes_0f && ((opcode & 0xf0) == 0x80))) {
@@ -1755,6 +1762,33 @@ generate_call:
             recomp_opcode_mask = 0xff;
             opcode_mask        = 0xff;
         }
+    }
+    /*An ALU EAX,imm32 in a block that reads those opcodes as it runs: neither
+      the opcode nor the immediate is marked. Not the block's first
+      instruction, whose opcode keeps a byte of the first chunk marked*/
+    if ((block->flags & CODEBLOCK_NO_OPCODES) && block->ins && (op_table == x86_dynarec_opcodes) && ((opcode & 0xc7) == 0x05) && (op_32 & 0x100) &&
+        (op_pc == old_pc + 1) && !in_lock && !(((cs + old_pc + 4) ^ block->pc) & ~0xfff)) {
+        codegen_ea_target_seg   = NULL;
+        codegen_instr_pc        = old_pc;
+        codegen_instr_first_uop = ir->wr_pos;
+        codegen_alu_eax_imm_family(block, ir, old_pc, opcode, instr_cycles);
+        block->flags |= CODEBLOCK_OPCODE_FAMILY;
+        {
+            uint32_t off = (cs + old_pc) - (block->pc & ~0x3f);
+
+            if (off < 128)
+                codegen_family_ops[off >> 6] |= (uint64_t) 1 << (off & 63);
+        }
+        uop_MOV_IMM(ir, IREG_pc, op_pc + 4);
+
+        codegen_endpc = (cs + cpu_state.pc) + 8;
+
+        block->ins++;
+
+        if (block->ins >= MAX_INSTRUCTION_COUNT)
+            CPU_BLOCK_END();
+
+        return;
     }
     /*The prefixes and the opcode; an x87 escape's ModR/M too, as op_pc is
       already past it (pc_off is -1 for those only while op_pc is moved back

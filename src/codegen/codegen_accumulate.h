@@ -32,3 +32,15 @@ void codegen_accumulate_timing(struct ir_data_t *ir);
 void codegen_accumulate_jump(struct ir_data_t *ir, int scale, int fallback);
 int  codegen_accumulate_unroll(struct ir_data_t *ir, int first, int start, int branch);
 void codegen_accumulate_copy(struct ir_data_t *ir, int pos);
+/*Notes the timing model's state before an opcode that may be probed is
+  timed*/
+void codegen_accumulate_probe_mark(void);
+/*The cycles the timing model charges for the last instruction timed, with
+  its opcode replaced by opcode, and a block end right after it, plus an
+  amount the same for every opcode of that instruction: only differences
+  mean anything. From the state codegen_accumulate_probe_mark() noted just
+  before its opcode, else by timing the block again from its start. Changes
+  the model's state: once done probing, codegen_accumulate_probe_done() puts
+  back the state the block's own instructions left*/
+int  codegen_accumulate_probe(int opcode);
+void codegen_accumulate_probe_done(void);

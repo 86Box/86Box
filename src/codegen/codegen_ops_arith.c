@@ -2409,3 +2409,117 @@ ropIMUL_l_ib(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t
 {
     return imul_common(block, ir, fetchdat, op_32, op_pc, 1, 1);
 }
+
+/*An unprefixed ALU EAX,imm32 instruction at cs+pc in a CODEBLOCK_NO_OPCODES
+  block: its opcode and immediate are read from memory as it runs, neither is
+  marked, and it does the one it finds there, as its handler does with
+  NO_IMMEDIATES, of ADD, OR, AND, SUB, XOR, ADC, SBB and CMP. The block's
+  cycles are those of the opcode it was compiled with: one that the timing
+  model charges differently also charges the difference, as the model gives
+  it for the instruction in its place with the block ending after it. Any
+  other byte leaves the block before the instruction, at pc, to be compiled
+  again (codegen_opcode_family_miss()), and the exit gives back the cycles
+  charged for the instruction it leaves undone. The flags op is not known
+  after it. The opcode found there while compiling is tested first: most runs
+  find it unchanged*/
+void
+codegen_alu_eax_imm_family(codeblock_t *block, ir_data_t *ir, uint32_t pc, uint8_t opcode, int instr_cycles)
+{
+    uint8_t        ops[8];
+    int            extra[8];
+    int            jump_end[8];
+    int            jump_next;
+    int            nr_ops    = 1;
+    const int      base      = codegen_accumulate_probe(opcode);
+    const uint32_t imm_addr  = cs + pc + 1;
+
+    ops[0]   = opcode;
+    extra[0] = 0;
+    for (int c = 0; c < 8; c++) {
+        const uint8_t op = (c << 3) | 0x05;
+
+        if (op != opcode) {
+            extra[nr_ops] = codegen_accumulate_probe(op) - base;
+            ops[nr_ops++] = op;
+        }
+    }
+    codegen_accumulate_probe_done();
+
+    LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp2, cs + pc);
+
+    for (int c = 0; c < nr_ops; c++) {
+        jump_next = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp2, ops[c]);
+
+        switch (ops[c]) {
+            case 0x05: /*ADD*/
+            case 0x2d: /*SUB*/
+                uop_MOV(ir, IREG_flags_op1, IREG_EAX);
+                LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp0, imm_addr);
+                if (ops[c] == 0x05)
+                    uop_ADD(ir, IREG_EAX, IREG_EAX, IREG_temp0);
+                else
+                    uop_SUB(ir, IREG_EAX, IREG_EAX, IREG_temp0);
+                uop_MOV(ir, IREG_flags_op2, IREG_temp0);
+                uop_MOV_IMM(ir, IREG_flags_op, (ops[c] == 0x05) ? FLAGS_ADD32 : FLAGS_SUB32);
+                uop_MOV(ir, IREG_flags_res, IREG_EAX);
+                break;
+            case 0x15: /*ADC*/
+            case 0x1d: /*SBB*/
+                get_cf(ir, IREG_temp0);
+                uop_MOV(ir, IREG_flags_op1, IREG_EAX);
+                LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp1, imm_addr);
+                if (ops[c] == 0x15) {
+                    uop_ADD(ir, IREG_EAX, IREG_EAX, IREG_temp1);
+                    uop_MOV(ir, IREG_flags_op2, IREG_temp1);
+                    uop_ADD(ir, IREG_EAX, IREG_EAX, IREG_temp0);
+                } else {
+                    uop_SUB(ir, IREG_EAX, IREG_EAX, IREG_temp1);
+                    uop_MOV(ir, IREG_flags_op2, IREG_temp1);
+                    uop_SUB(ir, IREG_EAX, IREG_EAX, IREG_temp0);
+                }
+                uop_MOV_IMM(ir, IREG_flags_op, (ops[c] == 0x15) ? FLAGS_ADC32 : FLAGS_SBC32);
+                uop_MOV(ir, IREG_flags_res, IREG_EAX);
+                break;
+            case 0x0d: /*OR*/
+            case 0x25: /*AND*/
+            case 0x35: /*XOR*/
+                LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp0, imm_addr);
+                if (ops[c] == 0x0d)
+                    uop_OR(ir, IREG_EAX, IREG_EAX, IREG_temp0);
+                else if (ops[c] == 0x25)
+                    uop_AND(ir, IREG_EAX, IREG_EAX, IREG_temp0);
+                else
+                    uop_XOR(ir, IREG_EAX, IREG_EAX, IREG_temp0);
+                uop_MOV_IMM(ir, IREG_flags_op, FLAGS_ZN32);
+                uop_MOV(ir, IREG_flags_res, IREG_EAX);
+                break;
+            default: /*CMP*/
+                uop_MOV(ir, IREG_flags_op1, IREG_EAX);
+                LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp0, imm_addr);
+                uop_SUB(ir, IREG_flags_res, IREG_EAX, IREG_temp0);
+                uop_MOV(ir, IREG_flags_op2, IREG_temp0);
+                uop_MOV_IMM(ir, IREG_flags_op, FLAGS_SUB32);
+                break;
+        }
+        if (extra[c])
+            uop_ADD_IMM(ir, IREG_cycles, IREG_cycles, -extra[c]);
+        jump_end[c] = uop_JMP_DEST(ir);
+        /*The destination must not be the next arm's compare: a jump uOP
+          can't also head the list of jumps to it (jump_list_next)*/
+        uop_set_jump_dest(ir, jump_next);
+        uop_NOP_BARRIER(ir);
+    }
+
+    uop_MOV_IMM(ir, IREG_pc, pc);
+    uop_LOAD_FUNC_ARG_IMM(ir, 0, get_block_nr(block));
+    uop_CALL_FUNC_RESULT(ir, IREG_temp3, codegen_opcode_family_miss);
+    codegen_accumulate(ir, ACCREG_cycles, instr_cycles);
+    codegen_exit_on_one(ir, IREG_temp3);
+    codegen_accumulate(ir, ACCREG_cycles, -instr_cycles);
+
+    uop_NOP_BARRIER(ir);
+    for (int c = 0; c < nr_ops; c++)
+        uop_set_jump_dest(ir, jump_end[c]);
+
+    codegen_flags_changed = 0;
+}
