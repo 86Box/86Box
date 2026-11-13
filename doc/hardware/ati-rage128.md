@@ -119,11 +119,27 @@ reach 15 and 16 bpp modes. The 64x64 hardware cursor uses the image
 format the Software Development Guide gives. A page flip through the
 CRTC offset register is latched at the flip point, with the offset lock
 honored. The monitor DDC channel is bit-banged through the monitor id
-GPIO register and serves 86Box's shared monitor EDID, so the driver
-reads the monitor's mode list. The video input port is not emulated: its
+GPIO register, so the driver reads the monitor's mode list from its EDID.
+The video input port is not emulated: its
 field counters read zero and automatic snapshots never fire, while a
 manual snapshot works. The memory checkerboarding controls are stored
 and read back only.
+
+By default every Rage 128 board, both MAXX chips included, presents a
+monitor of its own on that channel, the high-resolution CRT EDID kept in
+the shared DDC code (`src/video/vid_ddc.c`), in place of 86Box's regular
+built-in monitor, which other cards keep. It describes a CRT
+named "86Box R128v6" in one EDID 1.3 block: preferred timing 1600x1200
+at 75 Hz, standard timings up to 2048x1536 at 60 Hz, and range limits of
+50-150 Hz vertical, 30-108 kHz horizontal and a 300 MHz pixel clock.
+With it the Windows 98, Windows 2000 and Windows XP drivers offer
+2048x1536 and scan it unpanned. The 128-byte block sits in a 128-byte
+EEPROM, so a read past its end repeats it. A custom EDID file chosen
+under Settings, Display, Monitor EDID, Custom still takes precedence; if
+that file cannot be read, 86Box reports it and the board falls back to
+its own monitor. To give a Rage 128 the regular 86Box monitor instead,
+use Export next to Default to save the regular EDID to a file, then pick
+Custom and select that file.
 
 `vid_ati_rage128_mem.c` and the bus helpers in `vid_ati_rage128_pm4.c`
 give the engines one 64 MB card address space: the lower 32 MB is the

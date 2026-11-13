@@ -16843,6 +16843,252 @@ run_maxx(void)
     maxx_close(maxx);
 }
 
+/* ------------------------------------------------------------------ */
+/* Monitor EDID choice. A Rage 128 board passes the shared DDC code its
+   own monitor, the high-resolution CRT table ddc_edid_hires_crt, and the
+   shared code presents it unless the user sets a custom EDID file, which
+   takes precedence; a custom file that cannot be read raises the error
+   box and leaves the board on its own monitor. A card that passes no
+   monitor of its own (ddc_init with the bus alone) presents the regular
+   86Box monitor that ddc_create_default_edid builds, or the custom file
+   when one is set. The custom file reader is the host stub's:
+   monitor_edid, the path and harness_edid_file select what it returns.
+   Every read goes through the same bus the guest uses: GPIO_MONID
+   bit-banging for a board, the i2c bus calls for a bare bus, 256 bytes
+   from offset 0.
+
+   The sizes differ by source. The shared code attaches a card's 128-byte
+   table as a 128-byte EEPROM, and the EEPROM's address counter wraps at
+   its size, so a read past 127 repeats the block: addresses 128-255
+   return addresses 0-127 again. A 128-byte custom file is padded to a
+   256-byte EEPROM instead, whose second half reads zero. The card EDID
+   and a custom file holding the same bytes therefore agree over 0-127,
+   the one block a guest reads when byte 126 announces no extension
+   block, and differ over 128-255. That second half is how the shared DDC
+   code presents a card's 128-byte EDID; it is modeled by that code, not a
+   documented monitor behavior. */
+/* ------------------------------------------------------------------ */
+extern const uint8_t *harness_edid_file;
+extern size_t         harness_edid_file_len;
+extern int            harness_msgbox_count;
+
+static void
+ddc917_set(int custom, const char *path, const uint8_t *file, size_t len)
+{
+    monitor_edid = custom;
+    memset(monitor_edid_path, 0, sizeof(monitor_edid_path));
+    if (path)
+        snprintf(monitor_edid_path, sizeof(monitor_edid_path), "%s", path);
+    harness_edid_file     = file;
+    harness_edid_file_len = len;
+}
+
+/* The bytes a 'len'-byte EEPROM gives over a 256-byte read from 0. */
+static void
+ddc917_expect(uint8_t *out, const uint8_t *eeprom, size_t len)
+{
+    for (int i = 0; i < 256; i++)
+        out[i] = eeprom[i % len];
+}
+
+static int
+ddc917_board_read(rage128_t *dev, uint8_t *out)
+{
+    int ack;
+
+    wr(dev, RAGE128_GPIO_MONID, RAGE128_GPIO_MONID_MASK_DDC_CLK | RAGE128_GPIO_MONID_MASK_DDC_DAT);
+    memset(out, 0xaa, 256);
+    ack = monid_ddc_read(dev, out, 256);
+    wr(dev, RAGE128_GPIO_MONID, 0);
+    return ack;
+}
+
+static void
+ddc917_bus_read(void *bus, uint8_t *out)
+{
+    i2c_start(bus, 0x50, 0);
+    i2c_write(bus, 0x50, 0x00);
+    i2c_start(bus, 0x50, 1);
+    for (int i = 0; i < 256; i++)
+        out[i] = i2c_read(bus, 0x50);
+    i2c_stop(bus, 0x50);
+}
+
+/* One row: the board acknowledges and addresses 0 to len-1 hold 'want'.
+   Returns whether addresses 128-255 repeat 'want', the 128-byte EEPROM's
+   wrap, for the caller's row on the second half. */
+static int
+ddc917_check_board(const char *what, rage128_t *dev, const uint8_t *want, size_t len)
+{
+    uint8_t got[256];
+    int     ack = ddc917_board_read(dev, got);
+
+    check_true(what, ack && memcmp(got, want, len) == 0);
+    return ack && (len == 128) && (memcmp(got + 128, want, 128) == 0);
+}
+
+/* The four chips of the three boards, each against 'want' over addresses
+   0 to len-1, then the error boxes the four inits raised. With
+   'wraps' set, one more row requires every chip's addresses 128-255 to
+   repeat the 128 bytes of 'want'. */
+static void
+ddc917_check_boards(const char *tag, const uint8_t *want, size_t len, int wraps, int msgboxes_per_chip)
+{
+    char         what[128];
+    rage128_t   *dev;
+    r128_maxx_t *maxx;
+    int          box0;
+    int          wrapped = 1;
+
+    harness_cfg_memory_mb = 32;
+
+    box0 = harness_msgbox_count;
+    dev  = rage128_init(&ati_rage128_pro_device);
+    snprintf(what, sizeof(what), "ddc 917: AGP board, %s", tag);
+    wrapped &= ddc917_check_board(what, dev, want, len);
+    close_dev(dev);
+
+    dev = rage128_init(&ati_xpert128_pci_device);
+    snprintf(what, sizeof(what), "ddc 917: PCI board, %s", tag);
+    wrapped &= ddc917_check_board(what, dev, want, len);
+    close_dev(dev);
+
+    maxx = maxx_init(&ati_rage128_maxx_device);
+    snprintf(what, sizeof(what), "ddc 917: MAXX chip A, %s", tag);
+    wrapped &= ddc917_check_board(what, maxx->chip[MAXX_A], want, len);
+    snprintf(what, sizeof(what), "ddc 917: MAXX chip B, %s", tag);
+    wrapped &= ddc917_check_board(what, maxx->chip[MAXX_B], want, len);
+    maxx_close(maxx);
+
+    if (wraps) {
+        snprintf(what, sizeof(what), "ddc 917: every board, %s: 128-255 repeat 0-127", tag);
+        check_true(what, wrapped);
+    }
+
+    snprintf(what, sizeof(what), "ddc 917: error boxes, %s", tag);
+    check32(what, (uint32_t) (harness_msgbox_count - box0), (uint32_t) (4 * msgboxes_per_chip));
+}
+
+static void
+ddc917_check_bare_bus(const char *what, const uint8_t *want)
+{
+    void   *bus = i2c_addbus("ddc917");
+    void   *eep = ddc_init(bus);
+    uint8_t got[256];
+
+    ddc917_bus_read(bus, got);
+    check_true(what, memcmp(got, want, 256) == 0);
+    ddc_close(eep);
+    i2c_removebus(bus);
+}
+
+static void
+run_ddc_edid(void)
+{
+    const uint8_t *card     = ddc_edid_hires_crt;
+    const size_t   card_len = sizeof(ddc_edid_hires_crt);
+    uint8_t       *regular  = NULL;
+    size_t         regular_len;
+    uint8_t        regular256[256], custom[256], custom_want[256];
+    uint8_t        sum = 0;
+
+    /* The unit changes the EDID settings and the reader stub; it restores
+       what it found on exit, the error box count included. */
+    const int      saved_edid     = monitor_edid;
+    const uint8_t *saved_file     = harness_edid_file;
+    const size_t   saved_file_len = harness_edid_file_len;
+    const int      saved_msgboxes = harness_msgbox_count;
+    char           saved_path[sizeof(monitor_edid_path)];
+
+    memcpy(saved_path, monitor_edid_path, sizeof(saved_path));
+
+    /* The regular monitor as the shared code builds it, and the board's
+       own monitor as the shared code holds it. */
+    regular_len = ddc_create_default_edid(&regular);
+    check32("ddc 917: regular EDID is 256 bytes", (uint32_t) regular_len, 256);
+    ddc917_expect(regular256, regular, regular_len);
+    check32("ddc 917: card EDID is 128 bytes", (uint32_t) card_len, 128);
+    for (size_t i = 0; i < card_len; i++)
+        sum += card[i];
+    check32("ddc 917: card EDID block checksum", sum, 0);
+    check32("ddc 917: card EDID has no extension block", card[126], 0);
+    check_true("ddc 917: card EDID differs from the regular one",
+               memcmp(card, regular, card_len) != 0);
+
+    /* The custom file: the regular monitor with its serial number byte
+       changed, so it matches neither monitor. The reader path rewrites
+       both block checksums. */
+    memcpy(custom, regular, 256);
+    custom[12] ^= 0x5a;
+    memcpy(custom_want, custom, 256);
+    sum = 0;
+    for (int i = 0; i < 127; i++)
+        sum += custom_want[i];
+    custom_want[127] = (uint8_t) (0 - sum);
+    sum = 0;
+    for (int i = 128; i < 255; i++)
+        sum += custom_want[i];
+    custom_want[255] = (uint8_t) (0 - sum);
+
+    /* No EDID setting: the board's own monitor. */
+    ddc917_set(0, NULL, NULL, 0);
+    ddc917_check_boards("no EDID setting: card EDID over 0-127", card, card_len, 1, 0);
+
+    /* Custom selected with an empty path: the board's own monitor. */
+    ddc917_set(1, NULL, NULL, 0);
+    ddc917_check_boards("custom, empty path: card EDID over 0-127", card, card_len, 1, 0);
+
+    /* A custom file that cannot be read: the shared code raises the error
+       box once per chip and falls back to the board's own monitor. */
+    ddc917_set(1, "missing.edid", NULL, 0);
+    ddc917_check_boards("custom file missing: card EDID over 0-127", card, card_len, 1, 1);
+
+    /* A readable custom file wins, over all 256 addresses. */
+    ddc917_set(1, "custom.edid", custom, 256);
+    ddc917_check_boards("custom file: presented as set", custom_want, 256, 0, 0);
+
+    /* A custom file holding the card EDID's bytes, as a board configured
+       with that file by name has it: the same block as the board's own
+       monitor over 0-127. Its second half reads zero, so 128-255 differ
+       from the card EDID's wrap and are not compared. */
+    ddc917_set(1, "card.edid", card, card_len);
+    ddc917_check_boards("custom file of the card EDID bytes: same over 0-127", card, card_len, 0, 0);
+
+    /* A card with no monitor of its own. */
+    ddc917_set(0, NULL, NULL, 0);
+    ddc917_check_bare_bus("ddc 917: other card, no setting: regular EDID", regular256);
+    ddc917_set(1, "missing.edid", NULL, 0);
+    ddc917_check_bare_bus("ddc 917: other card, file missing: regular EDID", regular256);
+    ddc917_set(1, "custom.edid", custom, 256);
+    ddc917_check_bare_bus("ddc 917: other card, custom file: as set", custom_want);
+
+    /* R128_DDC_BASELINE names a saved copy of the regular EDID; when it is
+       set, the bare-bus bytes are compared with it too. */
+    {
+        const char *base = getenv("R128_DDC_BASELINE");
+        int         ok   = 1;
+
+        if (base && base[0]) {
+            FILE   *f = fopen(base, "rb");
+            uint8_t saved[257];
+            size_t  n = f ? fread(saved, 1, sizeof(saved), f) : 0;
+
+            if (f)
+                fclose(f);
+            ok = (n == 256) && (memcmp(saved, regular256, 256) == 0);
+            printf("ddc 917: baseline %s: %zu bytes, %s\n", base, n, ok ? "equal" : "DIFFERENT");
+        }
+        check_true("ddc 917: regular EDID equals the saved baseline (if set)", ok);
+    }
+
+    monitor_edid = saved_edid;
+    memcpy(monitor_edid_path, saved_path, sizeof(saved_path));
+    harness_edid_file     = saved_file;
+    harness_edid_file_len = saved_file_len;
+    harness_msgbox_count  = saved_msgboxes;
+    free(regular);
+}
+
 static void
 run_amcgpio(void)
 {
@@ -26883,7 +27129,7 @@ vectors_gpu_tuple_reload(void)
 static const char *const shard_units[] = {
     "gpu-tuple-reload", "inline-pace", "agp-oracle",
     "agp-16mb", "pci-xpert128", "pci-variant", "monid-mask", "amcgpio",
-    "maxx", "vga-decode", "lanegap", "lanegap-16mb", "gpu2d-verify",
+    "maxx", "ddc-edid", "vga-decode", "lanegap", "lanegap-16mb", "gpu2d-verify",
     "x64legs", "synctel", "yuv-border", "texture-alpha", "dither-init",
     "sec-persp", "sec-only", "dst-1555-4444", "zoff-tfog",
     "stipple-fast", "lanegap-expectedfail", "gpu-carry"
@@ -27577,6 +27823,8 @@ main(int argc, char **argv)
         run_amcgpio();
     if (unit_selected("maxx"))
         run_maxx();
+    if (unit_selected("ddc-edid"))
+        run_ddc_edid();
     if (unit_selected("vga-decode"))
         run_vga_decode();
     if (unit_selected("lanegap"))
