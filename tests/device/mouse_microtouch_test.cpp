@@ -44,6 +44,12 @@ std::filesystem::path nvr_dir;
 std::vector<pc_timer_t *> timers;
 std::vector<int> timer_on;
 
+// The chip end of COM1: takes the controller's bytes and always has room.
+serial_endpoint_t ep;
+int  ep_can_receive(void *) { return 1; }
+void ep_receive(void *, uint8_t dat) { out.push_back(dat); }
+const serial_port_ops_t ep_ops = { ep_can_receive, ep_receive, nullptr, nullptr };
+
 } // namespace
 
 extern "C" {
@@ -76,11 +82,6 @@ nvr_fopen(char *str, char *mode)
     return fopen((nvr_dir / str).string().c_str(), mode);
 }
 
-void serial_set_cts(serial_t *, uint8_t) { }
-void serial_set_dsr(serial_t *, uint8_t) { }
-void serial_set_dcd(serial_t *, uint8_t) { }
-void serial_write_fifo(serial_t *, uint8_t dat) { out.push_back(dat); }
-int  fifo_get_full(void *) { return 0; }
 
 int tablet_get_buttons_ex(void) { return g_but; }
 
@@ -165,7 +166,16 @@ protected:
         g_but = g_pressed = 0;
         timers.clear();
         timer_on.clear();
-        dev = mtouch_init(nullptr);
+        memset(&port, 0, sizeof(port));
+        port.out_new = 0xffff;
+        serial_endpoint_init(&ep, &port, &ep_ops);
+        ep.serial    = &port;
+        com_ports[0] = {};
+        com_ports[0].ep     = &ep;
+        com_ports[0].serial = &port;
+        dev       = mtouch_init(nullptr);
+        dev_write = ep.dev.dev_write;
+        dev_priv  = ep.dev.priv;
     }
 
     void close()
