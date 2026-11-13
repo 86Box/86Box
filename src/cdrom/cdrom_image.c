@@ -4184,7 +4184,7 @@ image_read_sector(const void *local, uint8_t *buffer,
     const blindwrite_block_t *block    = NULL;
     if (img->blindwrite_blocks != NULL) {
         block = blindwrite_find_block(img, (int32_t) lba);
-        stored = block != NULL && blindwrite_data_size(block->stride) == trk->sector_size;
+        stored = ((block != NULL) && (blindwrite_data_size(block->stride) == trk->sector_size));
         if (!stored && index != 0)
             return 0;
         if (stored)
