@@ -2815,12 +2815,21 @@ rage128_2d_line(rage128_t *dev, int x0, int y0, int x1, int y1,
    BRES_SIGN note below) the minor axis steps too and DST_BRES_DEC is
    added; DST_BRES_INC is added every pixel. The
    brush goes through the ROP3, scissor and write mask as in
-   rage128_2d_line: solid foreground, or for brush types 6 and 7 the
-   32x1 line pattern in BRUSH_DATA0 (foreground and background, or
-   foreground and leave alone), starting at the position in BRUSH_Y_X
-   [20:16]. Under POLY_LINE the line leaves that position advanced;
-   otherwise it is left alone (the X driver's dashed line writes it
-   before every segment). */
+   rage128_2d_line. The guide lists five brush types for patterned
+   lines (SDK: Drawing Lines, p. 4-15 / PDF 89): types 2 and 3, the 8x1
+   mono pattern in the low byte of BRUSH_DATA0; types 6 and 7, the 32x1
+   mono pattern in BRUSH_DATA0; and type 11, the 8x1 color pattern of
+   destination-format pixels packed from BRUSH_DATA0 on. Types 2 and 6
+   expand to foreground and background, 3 and 7 to foreground and leave
+   alone. Any other brush type draws the solid foreground. A pattern is
+   read along the line, not by screen position: the pointer starts at
+   BRUSH_Y_X [20:16], "initial value used for BRUSH_X pointer in drawing
+   Lines" (SDK: Table F-1, p. F-16 / PDF 306), and advances by one for
+   every pixel of the walk. A 32-pixel pattern takes it mod 32; an
+   8-pixel pattern taking it mod 8 is modeled, not documented. Under
+   POLY_LINE the line leaves that position advanced; otherwise it is
+   left alone (the X driver's dashed line writes it before every
+   segment). */
 /* DP_CNTL_XDIR_YDIR_YMAJOR holds the DP_CNTL [2:0] direction bits at
    other positions: DST_X_DIR [31], DST_Y_DIR [15], DST_Y_MAJOR [2]
    (RRG: DP_CNTL_XDIR_YDIR_YMAJOR, p. 3-170 / PDF 188; RRG: DP_CNTL,
@@ -2855,10 +2864,17 @@ rage128_2d_bres_line(rage128_t *dev, uint32_t dir)
     uint32_t wmask  = dev->dp_write_mask;
     int      aux_on = (dev->aux_sc_cntl & RAGE128_AUX_SC_ENB_MASK) != 0;
     int      bt     = rage128_dp_brush_dt(dev);
-    int      pat_en = (bt == 6 || bt == 7);
-    int      pat_la = (bt == 7);
-    uint32_t pat32  = dev->brush_data[0];
-    int      phase  = (int) ((dev->brush_yx >> 16) & 0x1f);
+    int      pat_en = (bt == 2 || bt == 3 || bt == 6 || bt == 7);
+    int      pat_la = (bt == 3 || bt == 7);
+    int      col_en = (bt == 11);
+    int      ptr_en = pat_en || col_en; /* the line pointer is in use */
+    /* The 8x1 mono row is the low byte of BRUSH_DATA0. Repeated in all
+       four bytes it reads, through the 32-pixel reader, as pixel
+       (pointer mod 8) of that byte under either byte order, so types 2
+       and 3 share the 32x1 walk. */
+    uint32_t pat32 = (bt == 2 || bt == 3) ? (dev->brush_data[0] & 0xffu) * 0x01010101u
+                                          : dev->brush_data[0];
+    int      phase = (int) ((dev->brush_yx >> 16) & 0x1f);
     int      ymajor = (dir & RAGE128_DP_LINE_Y_MAJOR) != 0;
     int      xstep  = (dir & RAGE128_DP_LINE_X_DIR) ? 1 : -1;
     int      ystep  = (dir & RAGE128_DP_LINE_Y_DIR) ? 1 : -1;
@@ -2926,7 +2942,7 @@ rage128_2d_bres_line(rage128_t *dev, uint32_t dir)
     if (xb > cx1)
         xb = cx1;
     if (ya > yb) { /* entirely outside the scissor in Y */
-        rage128_2d_line_phase_done(dev, pat_en, phase + n);
+        rage128_2d_line_phase_done(dev, ptr_en, phase + n);
         return;
     }
 
@@ -2935,8 +2951,10 @@ rage128_2d_bres_line(rage128_t *dev, uint32_t dir)
        foreground and background runs through the read-modify-write
        dispatch. The walk state is passed by value, so if the queue
        refuses, the CPU plot pass below runs from the same state, and a
-       refused read-modify-write op has recorded nothing. */
-    if (!cca && dev->gpu && !dev->synctel) {
+       refused read-modify-write op has recorded nothing. The queue
+       helpers know two colors only, so the 8x1 color brush always takes
+       the CPU walk. */
+    if (!cca && !col_en && dev->gpu && !dev->synctel) {
         int dind = rage128_2d_rop_dindep(rop)
             && rage128_2d_wmask_full(wmask, bpp) && bpp == 4;
         int bx0 = xa;
@@ -2970,7 +2988,7 @@ rage128_2d_bres_line(rage128_t *dev, uint32_t dir)
             if (dind)
                 rage128_gpu_2d_qdone(dev, 6);
             if (!vq) {
-                rage128_2d_line_phase_done(dev, pat_en, phase);
+                rage128_2d_line_phase_done(dev, ptr_en, phase);
                 return;
             }
             rage128_2d_vq_after(dev, 1);
@@ -2982,23 +3000,33 @@ rage128_2d_bres_line(rage128_t *dev, uint32_t dir)
     if (!rage128_2d_map_span(dev, &sd, &dev->s2d_dst, dev->dst_offset,
                              dev->dst_pitch, bpp, xa < cx0 ? cx0 : xa, ya, yb, xb)) {
         rage128_2d_vq_abort(dev);
-        rage128_2d_line_phase_done(dev, pat_en, phase + n);
+        rage128_2d_line_phase_done(dev, ptr_en, phase + n);
         return;
     }
 
     /* Pass 2: plot DST_BRES_LNTH pixels. */
     for (int i = 0; i < n; i++) {
-        int set = 1;
+        int      set   = 1;
+        uint32_t colpx = 0;
 
         if (pat_en) {
             set = rage128_2d_pat32_bit(dev, pat32, phase);
+            phase++;
+        } else if (col_en) {
+            /* 8x1 color: 8 destination-format pixels packed from
+               BRUSH_DATA0 on, the packet layout (SDK: Table F-2,
+               pp. F-16-F-17 / PDF 306-307); the pointer mod 8 picks
+               one, which is modeled, not documented */
+            memcpy(&colpx, (const uint8_t *) dev->brush_data + (phase & 7) * bpp,
+                   (size_t) bpp);
             phase++;
         }
         if ((set || !pat_la)
             && x >= cx0 && x <= cx1 && y >= cy0 && y <= cy1
             && (!aux_on || rage128_aux_sc_pass_2d(dev->aux_sc_cntl, dev->aux_sc_rect, x, y))) {
             uint32_t a   = dev->dst_offset + ((uint32_t) y * rage128_2d_dst_stride(dev, bpp) + x * bpp);
-            uint32_t pat = set ? dev->dp_brush_frgd_clr : dev->dp_brush_bkgd_clr;
+            uint32_t pat = col_en ? colpx
+                                  : (set ? dev->dp_brush_frgd_clr : dev->dp_brush_bkgd_clr);
             int      cok = 1;
 
             if (cca) {
@@ -3033,7 +3061,7 @@ rage128_2d_bres_line(rage128_t *dev, uint32_t dir)
     }
     r128_surf_commit(dev, &sd);
     rage128_2d_vq_end(dev);
-    rage128_2d_line_phase_done(dev, pat_en, phase);
+    rage128_2d_line_phase_done(dev, ptr_en, phase);
 }
 
 /* Queue a screen-to-screen blit under any ROP3 and write mask as one

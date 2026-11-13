@@ -22517,6 +22517,133 @@ vectors_hostdata_904(rage128_t *dev)
               "VERIFY MISMATCH", 0);
 }
 
+/* 905: a register-started Bresenham line with the 8-pixel line brushes
+   (SDK: Drawing Lines, p. 4-15 / PDF 89 lists them for patterned
+   lines): type 2 is 8x1 mono, frgd and bkgd; 3 is 8x1 mono, frgd and
+   leave alone; 11 is 8x1 color in the destination format (SDK: Table
+   F-2, pp. F-16-F-17 / PDF 306-307). The brush is read along the line:
+   pixel i of the line uses pointer p = BRUSH_Y_X [20:16] + i, taken
+   mod 8. Mono: the 8 pixels are the low byte of BRUSH_DATA0, pixel k =
+   bit 7 - k with DP_BYTE_PIX_ORDER clear, bit k with it set. Color:
+   the 8 pixels are packed from BRUSH_DATA0 on, pixel k at byte k * bpp.
+   Lines are 20 pixels: x-major (inc 0, never steps y), y-major, and a
+   diagonal (err 1, inc 0, dec 0: the minor axis steps every pixel).
+   The expected image is built here from the brush registers' values
+   and the pointer; every pixel off the line keeps the 0x99 prefill.
+   ROP F0 (PATCOPY), 64-px pitch at 0x300000. */
+static int
+line905_run(rage128_t *dev, uint32_t bt, int dst_dt, int bpp, int lsb,
+            int kind, int p0, int poly, const uint32_t *brush, int nbrush,
+            uint32_t *yx_after)
+{
+    const uint32_t fg = 0x00c08040u, bg = 0x00204060u;
+    const int      n = 20, x0 = kind == 3 ? 30 : 4, y0 = 4;
+    const int      sx = kind == 1 ? 0 : (kind == 3 ? -1 : 1);
+    const int      sy = kind == 0 ? 0 : 1;
+    uint8_t        want[64 * 32 * 4];
+    const uint8_t *bb = (const uint8_t *) brush;
+    uint32_t       stride = 64u * (uint32_t) bpp;
+    uint8_t       *vr     = &dev->svga.vram[0x00300000];
+    int            ok;
+
+    flush_sync(dev);
+    memset(vr, 0x99, sizeof(want));
+    memset(want, 0x99, sizeof(want));
+    for (int i = 0; i < nbrush; i++)
+        wr(dev, RAGE128_BRUSH_DATA0 + 4u * (uint32_t) i, brush[i]);
+    wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+       (1u << 1) | (1u << 3) | (bt << 4) | ((uint32_t) dst_dt << 8)
+           | ((uint32_t) lsb << 14) | (0xf0u << 16)
+           | (1u << 28) | (1u << 29) | (1u << 30));
+    if (!poly)
+        wr(dev, RAGE128_DP_CNTL, 0x00000003); /* POLY_LINE off */
+    wr(dev, RAGE128_DST_PITCH_OFFSET, (8u << 21) | (0x300000u >> 5));
+    wr(dev, RAGE128_BRUSH_Y_X, (uint32_t) p0 << 16);
+    wr(dev, 0x16d0, (sx < 0 ? 0u : (1u << 31)) | (1u << 15)
+                        | (kind == 1 ? (1u << 2) : 0u));
+    wr(dev, RAGE128_DST_Y_X, ((uint32_t) y0 << 16) | (uint32_t) x0);
+    wr(dev, 0x1628, kind == 2 || kind == 3 ? 1u : 0xffff8u); /* DST_BRES_ERR */
+    wr(dev, 0x162c, 0);                                        /* DST_BRES_INC */
+    wr(dev, 0x1630, kind == 2 || kind == 3 ? 0u : 0xffff8u); /* DST_BRES_DEC */
+    wr(dev, 0x1634, (uint32_t) n);                             /* LNTH fires */
+    flush_sync(dev);
+    *yx_after = rd(dev, RAGE128_BRUSH_Y_X);
+
+    for (int i = 0; i < n; i++) {
+        int      k = (p0 + i) % 32 % 8;
+        int      x = x0 + i * sx, y = y0 + i * sy;
+        uint8_t *w = &want[(uint32_t) y * stride + (uint32_t) x * (uint32_t) bpp];
+
+        if (bt == 11) {
+            memcpy(w, &bb[k * bpp], (size_t) bpp);
+        } else {
+            int set = lsb ? (bb[0] >> k) & 1 : (bb[0] >> (7 - k)) & 1;
+
+            if (set || bt == 2) {
+                uint32_t c = set ? fg : bg;
+
+                memcpy(w, &c, (size_t) bpp);
+            }
+        }
+    }
+    ok = memcmp(vr, want, sizeof(want)) == 0;
+    wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+       (1u << 1) | (1u << 3) | (13u << 4) | (6u << 8) | (0xf0u << 16)
+           | (1u << 28) | (1u << 29) | (1u << 30));
+    wr(dev, RAGE128_BRUSH_Y_X, 0);
+    return ok;
+}
+
+static void
+vectors_line_brush_905(rage128_t *dev)
+{
+    /* mono: low byte 0xb1 (not a bit-palindrome); the upper bytes differ
+       so a reading of the whole dword as a 32x1 pattern shows */
+    const uint32_t mono[1] = { 0x5a3c0fb1u };
+    uint32_t       col[8], yx;
+
+    for (int i = 0; i < 8; i++)
+        col[i] = 0x11223344u + 0x0b1d2f41u * (uint32_t) i;
+    flush_sync(dev);
+    harness_log_tail_reset();
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DP_BRUSH_FRGD_CLR, 0x00c08040u);
+    wr(dev, RAGE128_DP_BRUSH_BKGD_CLR, 0x00204060u);
+
+    /* kind: 0 x-major, 1 y-major, 2 diagonal, 3 diagonal right to left */
+    check_true("2d 905: line brush 2 (8x1 mono) x-major, MSB first, pointer 0",
+               line905_run(dev, 2, 6, 4, 0, 0, 0, 1, mono, 1, &yx));
+    check_true("2d 905: line brush 2 (8x1 mono) y-major, LSB first, pointer 5",
+               line905_run(dev, 2, 6, 4, 1, 1, 5, 1, mono, 1, &yx));
+    check_true("2d 905: line brush 2 (8x1 mono) diagonal, MSB first, pointer 19",
+               line905_run(dev, 2, 6, 4, 0, 2, 19, 1, mono, 1, &yx));
+    check32("2d 905: line brush 2 under POLY_LINE writes the end pointer back",
+            (yx >> 16) & 0x1f, (19 + 20) & 31);
+    check_true("2d 905: line brush 3 (8x1 mono, leave alone) x-major, LSB first, pointer 3",
+               line905_run(dev, 3, 6, 4, 1, 0, 3, 1, mono, 1, &yx));
+    check_true("2d 905: line brush 3 (8x1 mono, leave alone) diagonal right to left, MSB first",
+               line905_run(dev, 3, 6, 4, 0, 3, 0, 0, mono, 1, &yx));
+    check32("2d 905: control: line brush 3 with POLY_LINE off keeps the pointer",
+            yx, 0u);
+    check_true("2d 905: line brush 11 (8x1 color) at 8 bpp, x-major, pointer 0",
+               line905_run(dev, 11, 2, 1, 0, 0, 0, 1, col, 2, &yx));
+    check_true("2d 905: line brush 11 (8x1 color) at 16 bpp, y-major, pointer 6",
+               line905_run(dev, 11, 4, 2, 0, 1, 6, 1, col, 4, &yx));
+    check32("2d 905: line brush 11 under POLY_LINE writes the end pointer back",
+            (yx >> 16) & 0x1f, (6 + 20) & 31);
+    check_true("2d 905: line brush 11 (8x1 color) at 32 bpp, diagonal, pointer 19",
+               line905_run(dev, 11, 6, 4, 0, 2, 19, 0, col, 8, &yx));
+    check32("2d 905: control: line brush 11 with POLY_LINE off keeps the pointer",
+            (yx >> 16) & 0x1f, 19);
+    check_log("2d 905: the 2D oracle saw no queued line mismatch",
+              "VERIFY MISMATCH", 0);
+}
+
 /* a 24 bpp (DST_TYPE 5) color brush. Type 10 is 64 dwords, one
    pixel per dword in its low 3 bytes (SDK-G04000 F.7 Table F-2: "a
    24-BPP pixel is still represented by 4 bytes"); type 11 is 2*N = 6
@@ -23227,6 +23354,7 @@ run_gpu2d_verify(void)
     vectors_brush_reg32(dev);
     vectors_brush_903(dev);
     vectors_hostdata_904(dev);
+    vectors_line_brush_905(dev);
     vectors_brush10_24bpp(dev);
     vectors_rmw_24bpp_src_stride(dev);
     /* and the phased stretches through the stretch queue under the oracle */
