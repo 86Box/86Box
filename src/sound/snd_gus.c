@@ -3066,11 +3066,11 @@ gus_get_buffer(int32_t *buffer, uint16_t len, void *priv)
     for (uint16_t c = 0; c < len * 2; c += 2) {
         double temp_l = 0.0;
         double temp_r = 0.0;
-        if ((gus->type == GUS_CLASSIC_37) || (gus->type == GUS_MAX)) {
+        if ((gus->type == GUS_CLASSIC_37) || (gus->type == GUS_MAX) || gus->daughter) {
             temp_l = (double) gus->buffer[0][c >> 1];
             temp_r = (double) gus->buffer[1][c >> 1];
-            if (gus->type == GUS_MAX) {
-                if (gus->max_ctrl) {
+            if (gus->type == GUS_MAX || gus->daughter) {
+                if (gus->max_ctrl || gus->daughter) {
                     buffer[c]     += (int32_t) (gus->ad1848.buffer[c] / 2);
                     buffer[c + 1] += (int32_t) (gus->ad1848.buffer[c + 1] / 2);
                 }
@@ -3117,11 +3117,6 @@ gus_get_buffer(int32_t *buffer, uint16_t len, void *priv)
             buffer[c]     += (int32_t) gus->buffer[0][c >> 1];
             buffer[c + 1] += (int32_t) gus->buffer[1][c >> 1];
         }
-    }
-
-    if (gus->daughter) {
-        for (uint16_t c = 0; c < len * 2; c++)
-            buffer[c] += gus->ad1848.buffer[c] / 2;
     }
 
     if (((gus->type == GUS_MAX) && (gus->max_ctrl)) || gus->type == GUS_INTERWAVE || gus->daughter)
@@ -3718,9 +3713,8 @@ gus_init(UNUSED(const device_t *info))
         ad1848_setirq(&gus->ad1848, device_get_config_int("codec_irq"));
         ad1848_setdma(&gus->ad1848, device_get_config_int("codec_dma"));
         ad1848_setdma2(&gus->ad1848, 4);
-        /* The CD audio stays with the base board (the CS4231's init took it over). */
-        if (gus->type == GUS_CLASSIC_37)
-            sound_set_cd_audio_filter(gus_filter_cd_audio, gus);
+        /* The daughterboard has its own CD audio connector that routes through the CS4231 */
+        ad1848_set_cd_audio_channel(&gus->ad1848, AD1848_AUX2);
         io_sethandler(codec_base, 4,
                       ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &gus->ad1848);
     }
@@ -4203,7 +4197,7 @@ gus_speed_changed(void *priv)
         .description    = "Daughter card IRQ",                               \
         .type           = CONFIG_SELECTION,                                  \
         .default_string = NULL,                                              \
-        .default_int    = 7,                                                 \
+        .default_int    = 5,                                                 \
         .file_filter    = NULL,                                              \
         .spinner        = { 0 },                                             \
         .selection      = {                                                  \
@@ -4337,6 +4331,7 @@ static const device_config_t gus_v37_config[] = {
         },
         .bios           = { { 0 } }
     },
+    GUS_DAUGHTER_CONFIG,
     {
         .name           = "receive_input",
         .description    = "Receive MIDI input",
