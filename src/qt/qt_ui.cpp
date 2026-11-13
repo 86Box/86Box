@@ -129,7 +129,7 @@ plat_resize(int w, int h, int monitor_index)
     if (monitor_index >= 1)
         main_window->resizeContentsMonitor(w, h, monitor_index);
     else
-        main_window->resizeContents(w, h);
+        main_window->resizeContentsGuest(w, h);
 }
 
 #if defined _WIN32
