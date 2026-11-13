@@ -532,7 +532,9 @@ typedef struct rage128_t {
     uint32_t brush_data[32];       /* BRUSH_DATA0..31: dwords 0-1 = 8x8 mono
                                       pattern (byte n = row n); the full file
                                       is the 32x32 mono brush (dword n =
-                                      row n, MSB = leftmost pixel) */
+                                      row n, its low byte the leftmost 8
+                                      pixels; the bit order inside each
+                                      byte follows DP_BYTE_PIX_ORDER) */
     uint8_t brush_tile[8 * 8 * 4]; /* packet 8x1/1x8 brush expanded to the
                                       8x8 mono rows or color tile it repeats as */
     uint32_t dp_src_frgd_clr;

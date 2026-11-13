@@ -1024,6 +1024,22 @@ vectors_pat_blit(rage128_t *dev)
 #undef SPX
 }
 
+/* 903: pixel c (0-31) of a 32-pixel mono pattern dword, worked out
+   byte-wise from the guide's DP_BYTE_PIX_ORDER: "reverses the pixel
+   order within each byte" (RRG: DP_DATATYPE, p. 3-170 / PDF 188), so
+   the four bytes stay in memory order (byte 0 = pixels 0-7, the low
+   byte of the register) and only the bits inside a byte flip: bit 7
+   first with the order bit clear, bit 0 first with it set. Guest text
+   and logo bitmaps read correctly with this order. */
+static int
+pat32_bytewise_bit(uint32_t dw, int c, int lsb)
+{
+    uint32_t byte = (dw >> (8 * ((c & 31) / 8))) & 0xffu;
+    int      i    = (c & 31) % 8;
+
+    return (int) ((lsb ? byte >> i : byte >> (7 - i)) & 1u);
+}
+
 /* ------------------------------------------------------------------ */
 /* DP_BYTE_PIX_ORDER (GMC bit 14 / DP_DATATYPE[30]) reverses the */
 /* pixel order within each byte of the mono BRUSH too, as the XAA      */
@@ -1076,9 +1092,11 @@ vectors_pat_bit_order(rage128_t *dev)
     check32("2d: reg paint LSB-first clears column 2", DPX(2), 0x00404040);
     wr(dev, 0x16c4, 0x00000006);    /* back to MSB first */
 
-    /* 0x95 polyline, brush type 6 (32x1 frgd/bkgd), pattern 0x80000002:
-       pixel n of the line is dword bit n LSB-first, bit 31-n MSB-first,
-       so each order has one set pixel and the other order clears it. */
+    /* 0x95 polyline, brush type 6 (32x1 frgd/bkgd), pattern 0x00000082:
+       pixel n of the line is dword bit n LSB-first; MSB-first it is bit
+       7 - n of byte 0 (903: the bytes keep their order). Bits 7 and 1
+       are set, so each order sees one set and one clear pixel, and a
+       reader that starts at bit 31 sees two clear ones. */
     for (int order = 0; order < 2; order++) {
         memset(&dev->svga.vram[0x00300000], 0x99, 64 * 16 * 4);
         wr(dev, 0x1474, 0); /* the preceding leg's polyline left the phase at 8 */
@@ -1090,16 +1108,22 @@ vectors_pat_bit_order(rage128_t *dev)
         pl[3] = 0x1fff1fff;         /* SC_BOTTOM_RIGHT */
         pl[4] = 0x00404040u;        /* brush bkgd */
         pl[5] = 0x00808080u;        /* brush frgd */
-        pl[6] = 0x80000002u;        /* 32x1 line pattern */
+        pl[6] = 0x00000082u;        /* 32x1 line pattern */
         pl[7] = (2u << 16) | 0u;    /* (y 2, x 0) */
         pl[8] = (2u << 16) | 8u;    /* (y 2, x 8), endpoint excluded */
         rage128_2d_packet3(dev, 0x95u << 8, pl, 9);
         check32(order ? "2d: line pattern LSB-first: pixel 1 = bit 1 set"
-                      : "2d: line pattern MSB-first: pixel 0 = bit 31 set",
-                order ? DPX(1) : DPX(0), 0x00808080u);
+                      : "2d: line pattern MSB-first: pixel 0 = bit 7 set",
+                order ? DPX(1) : DPX(0),
+                order ? 0x00808080u
+                      : (pat32_bytewise_bit(0x00000082u, 0, 0) ? 0x00808080u
+                                                               : 0x00404040u));
         check32(order ? "2d: line pattern LSB-first: pixel 0 = bit 0 clear"
-                      : "2d: line pattern MSB-first: pixel 1 = bit 30 clear",
-                order ? DPX(0) : DPX(1), 0x00404040u);
+                      : "2d: line pattern MSB-first: pixel 1 = bit 6 clear",
+                order ? DPX(0) : DPX(1),
+                order ? 0x00404040u
+                      : (pat32_bytewise_bit(0x00000082u, 1, 0) ? 0x00808080u
+                                                               : 0x00404040u));
     }
 #undef DPX
 }
@@ -1164,21 +1188,24 @@ vectors_brush_anchor(rage128_t *dev)
     check32("2d: packet anchor (1,3) clears (0,0)", PX(0, 0), 0x00404040);
     check32("2d: packet anchor loads BRUSH_Y_X", rd(dev, 0x1474), 0x00000301);
 
-    /* 0x95 polyline, brush 6, pattern bit 30 only, anchor [20:16] = 1:
-       the phase starts at 1, so pixel 0 reads bit 30 (set), pixel 1 bit
-       29 (clear). */
+    /* 0x95 polyline, brush 6, pattern bit 6 only, anchor [20:16] = 1:
+       the phase starts at 1, so pixel 0 reads pattern pixel 1 and pixel
+       1 pattern pixel 2. With the order bit clear those are bits 6 and
+       5 of byte 0 (903): set, then clear. */
     memset(&dev->svga.vram[0x00300000], 0x99, 64 * 16 * 4);
     pl[0] = (1u << 1) | (1u << 3) | (6u << 4) | (6u << 8) | (0xf0u << 16)
         | (1u << 28) | (1u << 29) | (1u << 30) | (1u << 31);
     pl[4] = 0x00404040u;            /* brush bkgd */
     pl[5] = 0x00808080u;            /* brush frgd */
-    pl[6] = 0x40000000u;            /* 32x1 line pattern */
+    pl[6] = 0x00000040u;            /* 32x1 line pattern */
     pl[7] = 0x00010000u;            /* BRUSH_Y_X anchor: line phase 1 */
     pl[8] = (2u << 16) | 0u;        /* (y 2, x 0) */
     pl[9] = (2u << 16) | 8u;        /* (y 2, x 8), endpoint excluded */
     rage128_2d_packet3(dev, 0x95u << 8, pl, 10);
-    check32("2d: line phase seed 1: pixel 0 reads bit 30", PX(0, 2), 0x00808080);
-    check32("2d: line phase seed 1: pixel 1 reads bit 29", PX(1, 2), 0x00404040);
+    check32("2d: line phase seed 1: pixel 0 reads bit 6", PX(0, 2),
+            pat32_bytewise_bit(0x00000040u, 1, 0) ? 0x00808080u : 0x00404040u);
+    check32("2d: line phase seed 1: pixel 1 reads bit 5", PX(1, 2),
+            pat32_bytewise_bit(0x00000040u, 2, 0) ? 0x00808080u : 0x00404040u);
     wr(dev, 0x1474, 0);
 #undef PX
 }
@@ -1333,7 +1360,9 @@ vectors_bres_pattern(rage128_t *dev)
     wr(dev, 0x1478, 0x00404040);    /* brush bkgd */
     wr(dev, 0x1480, 0xaaaaaaaa);    /* BRUSH_DATA0: 32x1 pattern */
 
-    /* Brush 6 (frgd/bkgd), phase 0: pixel 0 = bit 31 set, pixel 1 clear. */
+    /* Brush 6 (frgd/bkgd), phase 0: pixel 0 = bit 7 of 0xaa set, pixel 1
+       clear (with the order bit clear, 0xaa in every byte gives the same
+       pixels whether a row is read byte by byte or from bit 31 down). */
     wr(dev, 0x146c, g | (6u << 4)); /* GMC: brush 6, forces POLY_LINE */
     wr(dev, 0x1474, 0x00000000);    /* BRUSH_Y_X */
     memset(&dev->svga.vram[0x00300000], 0x99, 64 * 16 * 4);
@@ -1351,7 +1380,8 @@ vectors_bres_pattern(rage128_t *dev)
             (rd(dev, 0x1474) >> 16) & 0x1f, 8);
 
     /* Brush 7 (leave-alone), phase 1, POLY_LINE cleared: pixel 0 reads
-       bit 30 (clear, untouched), pixel 1 bit 29 (set); phase untouched. */
+       pattern pixel 1 (clear, untouched), pixel 1 pattern pixel 2 (set);
+       phase untouched. */
     wr(dev, 0x146c, g | (7u << 4));
     wr(dev, 0x16c0, 0x00000003);    /* DP_CNTL: dirs only, POLY_LINE off */
     wr(dev, 0x1474, 0x00010000);
@@ -21954,7 +21984,8 @@ brush_types_paint(rage128_t *dev, uint32_t bt, uint32_t lsb, const uint32_t *br,
 
 /* Brush types 2-5, 8, 9, 11, and 12 parse at their Table F-2 size and draw: 8x1/1x8 mono and
    color repeat over the rect (Table F-4: the 8 pixels sit in [7:0]),
-   32x32 mono is one dword per row, bit 31 leftmost, anchored mod 32,
+   32x32 mono is one dword per row, read byte-wise (903: byte 0 bit 7
+   leftmost with the order bit clear), anchored mod 32,
    and reaches P on a 0x92 blit and both 0x94 stamps too (the CPU walk;
    the GPU queues refuse it). Reserved type 14 still draws nothing. */
 static void
@@ -22012,15 +22043,15 @@ vectors_brush_types(rage128_t *dev)
         br[2 + i] = 1u << (31 - i);
     brush_types_paint(dev, 8, 0, br, 34, 32, 32);
     BRUSH_TYPES_CHECK("2d: brush 8 (32x32 mono) paints its 32 rows", 0, 32, 32,
-               x == y ? fg : bg);
+               pat32_bytewise_bit(br[2 + y], x, 0) ? fg : bg);
     wr(dev, RAGE128_BRUSH_Y_X, 0x00000301);
     brush_types_paint(dev, 8, 0, br, 34, 32, 32);
     BRUSH_TYPES_CHECK("2d: brush 8 is anchored by BRUSH_Y_X mod 32", 0, 32, 32,
-               ((x + 1) & 31) == ((y + 3) & 31) ? fg : bg);
+               pat32_bytewise_bit(br[2 + ((y + 3) & 31)], x + 1, 0) ? fg : bg);
     wr(dev, RAGE128_BRUSH_Y_X, 0);
     brush_types_paint(dev, 9, 0, br + 1, 33, 32, 32);
     BRUSH_TYPES_CHECK("2d: brush 9 (32x32 mono) leaves clear cells alone", 0, 32, 32,
-               x == y ? fg : pre);
+               pat32_bytewise_bit(br[2 + y], x, 0) ? fg : pre);
 
     /* 8x1 / 1x8 color: 8 pixels, 2*N = 8 dwords at 8888 */
     for (int i = 0; i < 8; i++)
@@ -22036,7 +22067,8 @@ vectors_brush_types(rage128_t *dev)
     brush_types_paint(dev, 14, 0, br, 1, 8, 4);
     BRUSH_TYPES_CHECK("2d: control: reserved brush 14 still draws nothing", 0, 8, 4, pre);
 
-    /* 32x32 diagonal on the other consumers, rows 8-9: set at x 8, 9 */
+    /* 32x32 diagonal on the other consumers, rows 8-9 (byte-wise: row 8
+       is bit 23, set at x 16; row 9 bit 22, set at x 17) */
     for (int i = 0; i < 32; i++)
         br[2 + i] = 1u << (31 - i);
     memset(&dev->svga.vram[0x00300000], 0x99, 64 * 40 * 4);
@@ -22055,7 +22087,7 @@ vectors_brush_types(rage128_t *dev)
     rage128_2d_packet3(dev, 0x92u << 8, pl, n);
     flush_sync(dev);
     BRUSH_TYPES_CHECK("2d: brush 8 feeds P on a 0x92 blit", 8, 32, 2,
-               x == y ? fg : bg);
+               pat32_bytewise_bit(br[2 + y], x, 0) ? fg : bg);
 
     memset(&dev->svga.vram[0x00300000], 0x99, 64 * 40 * 4);
     n = 0;
@@ -22075,7 +22107,7 @@ vectors_brush_types(rage128_t *dev)
     rage128_2d_packet3(dev, 0x94u << 8, pl, n);
     flush_sync(dev);
     BRUSH_TYPES_CHECK("2d: brush 9 feeds P on a 0x94 mono stamp", 8, 32, 2,
-               x == y ? fg : pre);
+               pat32_bytewise_bit(br[2 + y], x, 0) ? fg : pre);
 
     memset(&dev->svga.vram[0x00300000], 0x99, 64 * 40 * 4);
     n = 0;
@@ -22096,7 +22128,7 @@ vectors_brush_types(rage128_t *dev)
     rage128_2d_packet3(dev, 0x94u << 8, pl, n);
     flush_sync(dev);
     BRUSH_TYPES_CHECK("2d: brush 8 feeds P on a 0x94 color stamp", 8, 32, 2,
-               x == y ? fg : bg);
+               pat32_bytewise_bit(br[2 + y], x, 0) ? fg : bg);
     /* GPU lane: the oracle's CPU re-walk owns the pixels read above, so
        a queued 32x32 brush drawn as an 8x8 tile shows only here. */
     check_log("2d: the 2D oracle saw no queued brush mismatch",
@@ -22116,8 +22148,8 @@ vectors_brush_types(rage128_t *dev)
    BRUSH_DATA dword is distinct and asymmetric, so a wrong row, column,
    phase or leave-alone shows. The expected bit is worked out here from
    the brush dwords: phase = screen coordinate + BRUSH_Y_X offset, mod
-   32; MSB first (bit 31 - phase) with DP_BYTE_PIX_ORDER clear, bit
-   phase with it set (the reader's order as the device has it today). */
+   32; with DP_BYTE_PIX_ORDER clear byte-wise (903: bit 7 - phase mod 8
+   of byte phase / 8), bit phase with it set. */
 static uint32_t
 brush_reg32_row(int i)
 {
@@ -22202,7 +22234,7 @@ vectors_brush_reg32(rage128_t *dev)
                             uint32_t row = brush_reg32_row(t32 ? (y + by) % 32 : 0);
                             int      ph  = (x + bx) % 32;
                             int      bit = lsb ? (int) ((row >> ph) & 1u)
-                                               : (int) ((row >> (31 - ph)) & 1u);
+                                               : pat32_bytewise_bit(row, ph, 0);
 
                             want = bit ? fg : (la ? pre : bg);
                         }
@@ -22216,6 +22248,134 @@ vectors_brush_reg32(rage128_t *dev)
     check_log("2d 902: the 2D oracle saw no queued 32-pixel brush mismatch",
               "VERIFY MISMATCH", 0);
 #undef BRUSH_REG32
+}
+
+/* 903: the bit order inside a 32-pixel mono pattern row, on the users
+   the earlier vectors do not cover at both settings of
+   DP_BYTE_PIX_ORDER: a packet 32x32 brush (0x9a, type 8), a packet
+   polyline (0x95, type 6) and a register Bresenham line (type 7, leave
+   alone). The rows use brush_reg32_row data, on which the byte-wise
+   reading and a whole dword read from bit 31 disagree on about half
+   the pixels. Expected pixels come
+   from pat32_bytewise_bit on those dwords. 8888 at 0x300000, 64-px
+   pitch, prefill 0x99. */
+static void
+vectors_brush_903(rage128_t *dev)
+{
+    const uint32_t fg = 0x00808080u, bg = 0x00404040u, pre = 0x99999999u;
+    uint32_t       br[34], pl[12];
+    static const char *const pkt32[2] = {
+        "2d 903: packet brush 8 (32x32 mono) rows read byte-wise, order bit 0",
+        "2d 903: packet brush 8 (32x32 mono) rows read bit 0 first, order bit 1"
+    };
+    static const char *const poly[2] = {
+        "2d 903: 0x95 polyline 32x1 pattern read byte-wise, order bit 0",
+        "2d 903: 0x95 polyline 32x1 pattern read bit 0 first, order bit 1"
+    };
+    static const char *const bres[2] = {
+        "2d 903: register line brush 7 pattern read byte-wise, order bit 0",
+        "2d 903: register line brush 7 pattern read bit 0 first, order bit 1"
+    };
+#define B903(x, y) (*(uint32_t *) &dev->svga.vram[0x00300000 + ((y) * 64 + (x)) * 4])
+
+    flush_sync(dev);
+    harness_log_tail_reset();
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DST_PITCH_OFFSET, (8u << 21) | (0x300000u >> 5));
+
+    /* packet 32x32 brush, 40x34 at (0,0), anchor (x 5, y 9) */
+    br[0] = bg;
+    br[1] = fg;
+    for (int i = 0; i < 32; i++)
+        br[2 + i] = brush_reg32_row(i);
+    wr(dev, RAGE128_BRUSH_Y_X, (9u << 8) | 5u);
+    for (int lsb = 0; lsb < 2; lsb++) {
+        int ok = 1;
+
+        brush_types_paint(dev, 8, (uint32_t) lsb, br, 34, 40, 34);
+        for (int y = 0; y < 36; y++)
+            for (int x = 0; x < 42; x++) {
+                uint32_t want = pre;
+
+                if (x < 40 && y < 34)
+                    want = pat32_bytewise_bit(br[2 + ((y + 9) & 31)], x + 5, lsb) ? fg : bg;
+                ok = ok && B903(x, y) == want;
+            }
+        check_true(pkt32[lsb], ok);
+    }
+    wr(dev, RAGE128_BRUSH_Y_X, 0);
+
+    /* 0x95 polyline (0,2) -> (40,2), endpoint excluded, phase seed 3 */
+    for (int lsb = 0; lsb < 2; lsb++) {
+        int ok = 1;
+
+        flush_sync(dev);
+        memset(&dev->svga.vram[0x00300000], 0x99, 64 * 16 * 4);
+        wr(dev, RAGE128_BRUSH_Y_X, 3u << 16);
+        pl[0] = (1u << 1) | (1u << 3) | (6u << 4) | (6u << 8)
+            | ((uint32_t) lsb << 14) | (0xf0u << 16)
+            | (1u << 28) | (1u << 29) | (1u << 30);
+        pl[1] = 0x01018000u;        /* DST_PITCH_OFFSET */
+        pl[2] = 0;                  /* SC_TOP_LEFT */
+        pl[3] = 0x1fff1fffu;        /* SC_BOTTOM_RIGHT */
+        pl[4] = bg;
+        pl[5] = fg;
+        pl[6] = brush_reg32_row(0); /* 32x1 line pattern */
+        pl[7] = (2u << 16) | 0u;    /* (y 2, x 0) */
+        pl[8] = (2u << 16) | 40u;   /* (y 2, x 40) */
+        rage128_2d_packet3(dev, 0x95u << 8, pl, 9);
+        flush_sync(dev);
+        for (int x = 0; x < 42; x++) {
+            uint32_t want = pre;
+
+            if (x < 40)
+                want = pat32_bytewise_bit(brush_reg32_row(0), 3 + x, lsb) ? fg : bg;
+            ok = ok && B903(x, 2) == want && B903(x, 1) == pre && B903(x, 3) == pre;
+        }
+        check_true(poly[lsb], ok);
+    }
+
+    /* register Bresenham line, brush 7, 40 px at y 2, phase seed 3 */
+    wr(dev, RAGE128_DP_BRUSH_FRGD_CLR, fg);
+    wr(dev, RAGE128_DP_BRUSH_BKGD_CLR, bg);
+    wr(dev, RAGE128_BRUSH_DATA0, brush_reg32_row(0));
+    for (int lsb = 0; lsb < 2; lsb++) {
+        int ok = 1;
+
+        flush_sync(dev);
+        memset(&dev->svga.vram[0x00300000], 0x99, 64 * 16 * 4);
+        wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+           (1u << 1) | (1u << 3) | (7u << 4) | (6u << 8) | ((uint32_t) lsb << 14)
+               | (0xf0u << 16) | (1u << 28) | (1u << 29) | (1u << 30));
+        wr(dev, RAGE128_BRUSH_Y_X, 3u << 16);
+        wr(dev, 0x16d0, (1u << 31) | (1u << 15)); /* L->R, T->B, X major */
+        wr(dev, RAGE128_DST_Y_X, (2u << 16) | 0u);
+        wr(dev, 0x1628, 0xffff8);                 /* DST_BRES_ERR -8 */
+        wr(dev, 0x162c, 0);                       /* DST_BRES_INC */
+        wr(dev, 0x1630, 0xffff8);                 /* DST_BRES_DEC -8 */
+        wr(dev, 0x1634, 40);                      /* DST_BRES_LNTH fires */
+        flush_sync(dev);
+        for (int x = 0; x < 42; x++) {
+            uint32_t want = pre;
+
+            if (x < 40 && pat32_bytewise_bit(brush_reg32_row(0), 3 + x, lsb))
+                want = fg;
+            ok = ok && B903(x, 2) == want;
+        }
+        check_true(bres[lsb], ok);
+    }
+    wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+       (1u << 1) | (1u << 3) | (13u << 4) | (6u << 8) | (0xf0u << 16)
+           | (1u << 28) | (1u << 29) | (1u << 30));
+    wr(dev, RAGE128_BRUSH_Y_X, 0);
+    check_log("2d 903: the 2D oracle saw no queued 32-pixel pattern mismatch",
+              "VERIFY MISMATCH", 0);
+#undef B903
 }
 
 /* a 24 bpp (DST_TYPE 5) color brush. Type 10 is 64 dwords, one
@@ -22926,6 +23086,7 @@ run_gpu2d_verify(void)
     /* on this device the GPU lane runs the brush-type paints through the 2D queues */
     vectors_brush_types(dev);
     vectors_brush_reg32(dev);
+    vectors_brush_903(dev);
     vectors_brush10_24bpp(dev);
     vectors_rmw_24bpp_src_stride(dev);
     /* and the phased stretches through the stretch queue under the oracle */

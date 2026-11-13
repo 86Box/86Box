@@ -134,11 +134,15 @@ rage128_2d_pat_row(const rage128_t *dev, int y)
    (RRG: DP_DATATYPE, p. 3-170 / PDF 188). The code applies it to the
    brush as well as the source: the X driver sets the bit for its
    stipples and dashes and passes the pattern bits LSB-first. So the 8x8
-   row byte reads bit c instead of bit 7 - c. The 32x1 line pattern is
-   read as a dword, bit 31 first; with the bit set it is read bit 0
-   first, which is what the X driver's dashed line expects
-   (xf86-video-r128 r128_accel.c, XAA version, R128SetupForDashedLine).
-   The guide does not say how the bit applies to a 32x1 pattern. */
+   row byte reads bit c instead of bit 7 - c. A 32-pixel row (the 32x1
+   pattern of brush types 6 and 7, and each row of the 32x32 pattern of
+   types 8 and 9) is four such bytes in memory order: pixels 0-7 come
+   from the low byte of the dword, pixels 24-31 from the high byte. The
+   bit flips the order only inside each byte, so with the bit clear
+   pixel c is bit 7 - (c mod 8) of byte c / 8, which is bit c XOR 7 of
+   the dword, and with the bit set it is bit c. With the bit set that
+   is what the X driver's dashed line expects (xf86-video-r128
+   r128_accel.c, XAA version, R128SetupForDashedLine). */
 static inline int
 rage128_2d_pat8_bit(const rage128_t *dev, uint8_t row, int x)
 {
@@ -151,7 +155,7 @@ static inline int
 rage128_2d_pat32_bit(const rage128_t *dev, uint32_t pat32, int phase)
 {
     return rage128_dp_lsb_first(dev) ? (pat32 >> (phase & 31)) & 1
-                                     : (pat32 >> (31 - (phase & 31))) & 1;
+                                     : (pat32 >> ((phase & 31) ^ 7)) & 1;
 }
 
 /* Brush types 8 and 9 are the 32x32 mono pattern (RRG: DP_DATATYPE,
@@ -2662,8 +2666,9 @@ rage128_2d_queue_bres_rmw(rage128_t *dev, int x, int y, int n, int32_t inc,
    polyline segments is drawn once (which matters under XOR), and the
    endpoint Windows GDI treats as excluded is never drawn. At 1 the last
    pixel is drawn and uses a pattern bit like any other pixel.
-   Brush types 6 and 7 are a 32x1 line pattern: each bit, MSB first,
-   picks foreground or background (6) or foreground or leave alone (7).
+   Brush types 6 and 7 are a 32x1 line pattern: each bit, in the
+   byte-wise pixel order of the 32-pixel pattern reader, picks
+   foreground or background (6) or foreground or leave alone (7).
    The pattern position advances per pixel and carries on into the next
    segment (POLY_LINE "implies BRUSH tiling", RRG: DP_CNTL, p. 3-166 /
    PDF 184). pat_en 0 = solid foreground. */
