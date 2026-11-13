@@ -1412,7 +1412,11 @@ sensation_init(const device_t *info)
     dev->visdac_freq = 44100;
     dev->visdac_timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) dev->visdac_freq));
     timer_add(&dev->sensation_mma_timer_count, sensation_mma_timer_poll, dev, 1);
-    timer_add(&dev->visdac_timer_count, sensation_visdac_poll, dev, 1);
+    /* Start half a sample after the sound poll timer: at the same rate, timers
+       due together swap order on every tick, which makes the VisDAC update
+       write two samples, then none. */
+    timer_add(&dev->visdac_timer_count, sensation_visdac_poll, dev, 0);
+    timer_set_delay_u64(&dev->visdac_timer_count, dev->visdac_timer_latch / 2);
 
     sound_add_handler(sensation_get_buffer, dev);
     dev->rec.offset8 = 1;
