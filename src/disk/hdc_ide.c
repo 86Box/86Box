@@ -16,6 +16,7 @@
  *          Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -226,6 +227,19 @@ ide_controller_pio_wait(const ide_board_t *dev, int words)
     ide_controller_wait_ns(dev->pio_wait_ns * (double) words);
 }
 
+/* As ide_controller_pio_wait(dev, 1) once for each of words: the wait
+   rounded per word, as each word's own call rounds it */
+static inline void
+ide_controller_pio_wait_each(const ide_board_t *dev, uint32_t words)
+{
+    if ((dev == NULL) || (dev->pio_wait_ns <= 0.0) || (cpuclock <= 0.0))
+        return;
+
+    const int wait_cycles = (int) (((dev->pio_wait_ns * cpuclock) / 1000000000.0) + 0.5);
+    if (wait_cycles > 0)
+        cycles -= wait_cycles * (int) words;
+}
+
 static inline void
 ide_controller_single_sector_gap(const ide_t *ide)
 {
@@ -348,13 +362,26 @@ int    ide_turbo           = 0;
  *
  * Keep this state outside ide_t: that structure is shared with controller and
  * chipset code, while the worker is an implementation detail of this module.
+ *
+ * A read the worker has not picked up by the time the callback wants it is
+ * done by the caller instead: waking the worker and then waiting for it to
+ * finish costs the emulation thread far more than a read that the host has
+ * cached, and on a guest reading the disk a lot that waiting is most of the
+ * emulation speed lost.
  */
+enum {
+    IDE_ASYNC_QUEUED, /* Not picked up yet */
+    IDE_ASYNC_WORKER, /* Being read, or read, by the worker */
+    IDE_ASYNC_CALLER  /* Taken back by ide_async_read_finish() */
+};
+
 typedef struct ide_async_read_s {
     ide_t    *ide;
     thread_t *thread;
     event_t  *request_event;
     event_t  *complete_event;
     volatile int running;
+    atomic_int   owner;
     int          pending;
     int          result;
     uint32_t     sector;
@@ -375,6 +402,12 @@ ide_async_read_worker(void *priv)
         if (!state->running)
             break;
 
+        /* Not if the caller has already taken it back (or for a wake-up
+           left over from one it did) */
+        int expected = IDE_ASYNC_QUEUED;
+        if (!atomic_compare_exchange_strong(&state->owner, &expected, IDE_ASYNC_WORKER))
+            continue;
+
         state->result = hdd_image_read(state->ide->hdd_num, state->sector,
                                        state->count, state->ide->sector_buffer);
         thread_set_event(state->complete_event);
@@ -394,6 +427,7 @@ ide_async_read_init(ide_t *ide)
         return;
 
     memset(state, 0, sizeof(*state));
+    atomic_init(&state->owner, IDE_ASYNC_CALLER);
     state->ide            = ide;
     state->request_event  = thread_create_event();
     state->complete_event = thread_create_event();
@@ -418,6 +452,7 @@ ide_async_read_start(ide_t *ide, uint32_t sector, uint32_t count)
     state->result  = -1;
     state->pending = 1;
     thread_reset_event(state->complete_event);
+    atomic_store(&state->owner, IDE_ASYNC_QUEUED);
     thread_set_event(state->request_event);
 }
 
@@ -434,11 +469,20 @@ ide_async_read_finish(ide_t *ide, int *result)
     if ((state->thread == NULL) || !state->pending)
         return 0;
 
-    thread_wait_event(state->complete_event, -1);
-    thread_reset_event(state->complete_event);
+    int expected = IDE_ASYNC_QUEUED;
+    if (atomic_compare_exchange_strong(&state->owner, &expected, IDE_ASYNC_CALLER)) {
+        /* The worker has not started it: read it here, unless it is only
+           being discarded */
+        if (result != NULL)
+            *result = hdd_image_read(state->ide->hdd_num, state->sector,
+                                     state->count, state->ide->sector_buffer);
+    } else {
+        thread_wait_event(state->complete_event, -1);
+        thread_reset_event(state->complete_event);
+        if (result != NULL)
+            *result = state->result;
+    }
     state->pending = 0;
-    if (result != NULL)
-        *result = state->result;
 
     return 1;
 }
@@ -3110,6 +3154,9 @@ ide_callback(void *priv)
         case WIN_FLUSH_CACHE:
             if (ide->type == IDE_ATAPI)
                 err = ABRT_ERR;
+            else if (hdd_image_flush(ide->hdd_num) < 0)
+                /* A write made before it failed on the host */
+                err = UNC_ERR;
             else {
                 ide->tf->atastat = DRDY_STAT | DSC_STAT;
                 ide_irq_raise(ide);
@@ -3562,6 +3609,92 @@ ide_read_ali_76(void)
     return ret;
 }
 
+/* The data port's block forms (io_set_string()). A word that only moves
+   through the drive's buffer, inside an ATA sector or an ATAPI data-in
+   transfer, is copied, with the position it moves on and the controller's
+   PIO wait; the word that ends the sector or transfer goes through
+   ide_readw()/ide_writew(), which do the rest as for any word. ATAPI data out
+   (a packet's or a command's) goes word by word. */
+static uint32_t
+ide_insw_block(uint16_t port, uint16_t *dst, uint32_t n, void *priv)
+{
+    const ide_board_t *dev = (ide_board_t *) priv;
+    ide_t             *ide = ide_drives[dev->cur_dev];
+    uint32_t           k   = 0;
+
+    if (n == 0)
+        return 0;
+    if ((ide != NULL) && (ide->type != IDE_NONE) && !(ide->type & IDE_SHADOW) && (ide->buffer != NULL) &&
+        (ide->command != WIN_INVALID)) {
+        uint32_t plain = 0; /* words before the one that ends the sector or transfer */
+
+        if (ide->command == WIN_PACKETCMD) {
+            const scsi_common_t *sc = ide->sc;
+
+            /* ide_atapi_packet_read(): a word ends the transfer when request_pos
+               reaches max_transfer_len or pos reaches packet_len */
+            if ((ide->type == IDE_ATAPI) && (sc != NULL) && (sc->temp_buffer != NULL) &&
+                (sc->packet_status == PHASE_DATA_IN) && (sc->max_transfer_len > sc->request_pos) &&
+                (sc->packet_len > ide->tf->pos) && !(ide->tf->pos & 1)) {
+                const uint32_t to_req = (sc->max_transfer_len - sc->request_pos + 1) / 2;
+                const uint32_t to_pkt = (sc->packet_len - ide->tf->pos + 1) / 2;
+
+                plain = ((to_req < to_pkt) ? to_req : to_pkt) - 1;
+                if (plain > n)
+                    plain = n;
+                if (plain) {
+                    memcpy(dst, &((const uint16_t *) sc->temp_buffer)[ide->tf->pos >> 1], plain * 2);
+                    ide->tf->pos += plain * 2;
+                    ide->sc->request_pos += plain * 2;
+                }
+            }
+        } else if ((ide->tf->pos < 510) && !(ide->tf->pos & 1)) {
+            /* ide_read_data(): the word that reaches 512 ends the sector */
+            plain = ((512 - ide->tf->pos) / 2) - 1;
+            if (plain > n)
+                plain = n;
+            if (plain) {
+                memcpy(dst, &((const uint16_t *) ide->buffer)[ide->tf->pos >> 1], plain * 2);
+                ide->tf->pos += plain * 2;
+            }
+        }
+        if (plain)
+            ide_controller_pio_wait_each(dev, plain);
+        k = plain;
+    }
+    if (k < n)
+        dst[k++] = ide_readw(port, priv);
+    return k;
+}
+
+static uint32_t
+ide_outsw_block(uint16_t port, const uint16_t *src, uint32_t n, void *priv)
+{
+    const ide_board_t *dev = (ide_board_t *) priv;
+    ide_t             *ide = ide_drives[dev->cur_dev];
+    uint32_t           k   = 0;
+
+    if (n == 0)
+        return 0;
+    /* ide_write_data(): the word that reaches 512 fills the sector */
+    if ((ide != NULL) && (ide->type != IDE_NONE) && !(ide->type & IDE_SHADOW) && (ide->buffer != NULL) &&
+        (ide->command != WIN_INVALID) && (ide->command != WIN_PACKETCMD) && (ide->tf->pos < 510) && !(ide->tf->pos & 1)) {
+        uint32_t plain = ((512 - ide->tf->pos) / 2) - 1;
+
+        if (plain > n)
+            plain = n;
+        if (plain) {
+            memcpy(&((uint16_t *) ide->buffer)[ide->tf->pos >> 1], src, plain * 2);
+            ide->tf->pos += plain * 2;
+            ide_controller_pio_wait_each(dev, plain);
+        }
+        k = plain;
+    }
+    if (k < n)
+        ide_writew(port, src[k++], priv);
+    return k;
+}
+
 void
 ide_handlers(uint8_t board, int set)
 {
@@ -3573,6 +3706,8 @@ ide_handlers(uint8_t board, int set)
                        ide_boards[board]);
             ide_boards[board]->turbo_mapped = set;
             io_set_turbo(ide_boards[board]->base[0], set && ide_turbo);
+            io_set_string(ide_boards[board]->base[0], set ? ide_insw_block : NULL, set ? ide_outsw_block : NULL,
+                          ide_boards[board]);
         }
 
         if (ide_boards[board]->base[1]) {
