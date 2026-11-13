@@ -47,4 +47,28 @@ if(BUILD_TESTING)
         ${PROJECT_BINARY_DIR}/src/include
     )
     add_test(NAME Pcmcia.slots COMMAND pcmcia_slots_tests)
+
+    add_executable(pcmcia_cf_tests
+        cf_test.c
+        cf_ide_stubs.c
+        ../../src/disk/hdc_ide.c
+        ../../src/pcmcia/pccard_cf.c
+        ../../src/pcmcia/pccard_cis.c
+    )
+    target_include_directories(pcmcia_cf_tests PRIVATE
+        ${PROJECT_SOURCE_DIR}/src/include
+        ${PROJECT_SOURCE_DIR}/src/cpu
+        ${PROJECT_BINARY_DIR}/src/include
+    )
+    if(NOT WIN32)
+        target_compile_definitions(pcmcia_cf_tests PRIVATE _FILE_OFFSET_BITS=64 _LARGEFILE_SOURCE=1 _LARGEFILE64_SOURCE=1)
+    endif()
+    target_compile_options(pcmcia_cf_tests PRIVATE
+        $<$<C_COMPILER_ID:GNU,Clang,AppleClang>:-ffunction-sections;-fdata-sections>
+    )
+    target_link_options(pcmcia_cf_tests PRIVATE
+        $<$<PLATFORM_ID:Darwin>:-Wl,-dead_strip>
+        $<$<AND:$<NOT:$<PLATFORM_ID:Darwin>>,$<C_COMPILER_ID:GNU,Clang>>:-Wl,--gc-sections>
+    )
+    add_test(NAME Pcmcia.cf COMMAND pcmcia_cf_tests)
 endif()

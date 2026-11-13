@@ -98,6 +98,7 @@ add_library(dev OBJECT
     ../pcmcia/pccard_cis.c
     ../pcmcia/pccard_mfc.c
     ../pcmcia/scsi_apa1460.c
+    ../pcmcia/pccard_cf.c
 )
 
 add_subdirectory(modem)

@@ -108,6 +108,7 @@ typedef struct ide_s {
     int      do_initial_read;
     uint8_t  is_jride;
     uint8_t  removable;  /* ATA removable drive (hdd_num is an rdisk slot) */
+    struct ide_cf_t *cf; /* private CompactFlash channel and image, if attached */
     uint32_t drive;
     uint32_t cfg_spt;
     uint32_t cfg_hpc;
@@ -223,6 +224,18 @@ extern void     ide_writeb(uint16_t addr, uint8_t val, void *priv);
 extern uint8_t  ide_readb(uint16_t addr, void *priv);
 extern uint8_t  ide_read_alt_status(uint16_t addr, void *priv);
 extern uint16_t ide_readw(uint16_t addr, void *priv);
+
+/* A private PIO ATA channel for a CompactFlash PC Card. The caller decodes
+   card addresses and owns the channel from insertion to removal. */
+typedef struct ide_cf_t ide_cf_t;
+extern int       ide_cf_image_valid(const char *fn);
+extern ide_cf_t *ide_cf_open(const char *fn, int wp, void (*irq)(int, void *), void *priv);
+extern void      ide_cf_close(ide_cf_t *cf);
+extern void      ide_cf_reset(ide_cf_t *cf);
+extern uint8_t   ide_cf_read(ide_cf_t *cf, int reg);
+extern void      ide_cf_write(ide_cf_t *cf, int reg, uint8_t val);
+extern uint16_t  ide_cf_read_data(ide_cf_t *cf);
+extern void      ide_cf_write_data(ide_cf_t *cf, uint16_t val);
 
 extern void ide_set_bus_master(int board,
                                int (*dma)(uint8_t *data, int transfer_length, int total_length, int out, void *priv),

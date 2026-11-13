@@ -87,8 +87,12 @@ SettingsPcmcia::SettingsPcmcia(QWidget *parent)
         row->addWidget(k.configure);
         form->addRow(label(labels[0]), row);
 
-        for (int c = 0; c < pcmcia_card_count(); c++)
+        for (int c = 0; c < pcmcia_card_count(); c++) {
+            /* A CompactFlash card is inserted with its image from the status bar. */
+            if (pcmcia_card_is_cf(c) && (c != pcmcia_card_type[s]))
+                continue;
             k.card->addItem((c == 0) ? tr("None") : DeviceConfig::DeviceName(pcmcia_card_get_device(c), pcmcia_card_get_internal_name(c), 0), c);
+        }
         k.card->setCurrentIndex(k.card->findData(pcmcia_card_type[s]));
 
         k.netLabel = label(labels[1]);
@@ -245,14 +249,15 @@ SettingsPcmcia::save(int soft)
 
     pcmcia_enabled = hasIsaBus(machineId) && enable->isChecked();
     for (int s = 0; s < PCMCIA_SOCKETS; s++) {
-        if (soft && (type[s] != pcmcia_card_type[s]))
-            pcmcia_request_card(s, type[s]);
-        pcmcia_card_type[s] = type[s];
         pcmcia_net_type[s]  = sock[s].netType->currentData().toInt();
         if ((pcmcia_net_type[s] == NET_TYPE_PCAP) && (hostIndex(s) >= 0))
             snprintf(pcmcia_net_host[s], sizeof(pcmcia_net_host[s]), "%s", network_devs[hostIndex(s)].device);
-        /* After the link settings, which the card reads when it goes back in. */
-        if (soft && again[s])
+        /* The incoming card reads these link settings when it goes in. */
+        if (!soft)
+            pcmcia_card_type[s] = type[s];
+        else if (type[s] != pcmcia_card_type[s])
+            pcmcia_request_card(s, type[s]);
+        else if (again[s])
             pcmcia_request_reinsert(s);
     }
 }

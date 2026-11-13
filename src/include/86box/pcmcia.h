@@ -29,8 +29,8 @@ extern "C" {
 /* A 16-bit PC Card as the socket sees it.  Addresses are card addresses:
    attribute and common memory from 0, I/O as the host port (a card decodes
    only its own low address lines).  reset is the RESET pin, and power-off
-   resets a card too.  A card without common memory leaves common_read and
-   common_write NULL; one without I/O, the io_ ones. */
+   resets a card too. Missing word handlers fall back to byte accesses.
+   Cards without common memory or I/O leave those handlers NULL. */
 typedef struct pccard_t {
     const char *name;   /* for the PC Card menu */
     uint8_t (*attr_read)(uint32_t addr, void *priv);
@@ -43,6 +43,8 @@ typedef struct pccard_t {
     void (*io_writew)(uint16_t port, uint16_t val, void *priv);
     void (*reset)(void *priv);
     void *priv;
+    uint16_t (*common_readw)(uint32_t addr, void *priv);
+    void (*common_writew)(uint32_t addr, uint16_t val, void *priv);
 } pccard_t;
 
 /* The controller: added once, by the PCMCIA settings or by an I/O board that
@@ -86,6 +88,18 @@ extern int         pcmcia_card_get_from_internal_name(const char *s);
 extern int         pcmcia_card_has_config(int card);
 extern int         pcmcia_card_is_network(int card);
 extern int         pcmcia_card_is_scsi(int card);
+extern int         pcmcia_card_is_cf(int card);
+
+/* CompactFlash media settings and hot-plug requests. */
+extern void pcmcia_cf_config_init(void);
+extern void pcmcia_cf_set_image(int socket, const char *fn, int wp);
+extern int  pcmcia_cf_get_image(int socket, char *fn, int n, int *wp);
+/* The image from the emulation thread's snapshot of the request. */
+extern const char *pcmcia_cf_target_image(int socket, int *wp);
+extern int  pcmcia_cf_insert_image(int socket, const char *fn, int wp);
+extern int  pcmcia_cf_history_get(int i, char *fn, int n);
+extern void pcmcia_cf_history_set(int i, const char *fn);
+extern void pcmcia_cf_history_clear(void);
 
 /* A SCSI card's bus: its socket's, kept from the first time a SCSI card is
    in it to the next hard reset (pcmcia.c); 0xFF when none is left. */

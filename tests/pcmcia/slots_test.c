@@ -57,6 +57,10 @@ const char *device_get_internal_name(const device_t *dev) { return dev->internal
 
 void    pcmcia_controller_add(void) { }
 uint8_t scsi_get_bus(void) { return 2; }
+mutex_t *thread_create_mutex(void) { return NULL; }
+int thread_wait_mutex(UNUSED(mutex_t *mutex)) { return 0; }
+int thread_release_mutex(UNUSED(mutex_t *mutex)) { return 0; }
+int ide_cf_image_valid(UNUSED(const char *fn)) { return 1; }
 
 netcard_conf_t net_cards_conf[NET_CONF_MAX];
 uint16_t       net_card_current;
@@ -102,6 +106,7 @@ const device_t device_none = { .name = "None", .internal_name = "none" };
 FAKE(threec589d_device, 1);
 FAKE(te100pc16_device, 2);
 FAKE(apa1460_device, 3);
+FAKE(pccard_cf_device, 4);
 
 static void
 poll(int n)
@@ -115,6 +120,7 @@ poll(int n)
 int
 main(void)
 {
+    pcmcia_cf_config_init();
     /* A hard reset: a 3C589D in A, B empty. */
     pcmcia_enabled      = 1;
     pcmcia_card_type[0] = 1;
@@ -170,6 +176,32 @@ main(void)
     CHECK((live[1] == 0) && (closed[1] == 3), "a card taken out goes at once");
     poll(SWAP_POLLS + 1);
     CHECK((live[1] == 0) && (opened[1] == 3), "and stays out");
+
+    char image[MAX_IMAGE_PATH_LEN];
+    int  wp;
+    CHECK(pcmcia_cf_insert_image(1, "card.img", 1), "request a CompactFlash image in B");
+    poll(1);
+    CHECK(live[1] == 4 && pcmcia_cf_get_image(1, image, sizeof(image), &wp) &&
+          !strcmp(image, "card.img") && wp, "B has the requested write-protected card");
+
+    CHECK(pcmcia_cf_insert_image(0, "card.img", 0), "move the image from B to A");
+    poll(1);
+    CHECK(!live[0] && !live[1], "the source card and the destination's old card are out");
+    poll(SWAP_POLLS - 1);
+    CHECK(live[0] == 4 && !live[1], "the moved image is inserted in A only");
+
+    CHECK(pcmcia_cf_insert_image(0, "other.img", 0), "replace a CompactFlash image");
+    poll(1);
+    CHECK(!live[0], "image replacement removes the old card first");
+    poll(SWAP_POLLS - 1);
+    CHECK(live[0] == 4 && pcmcia_cf_get_image(0, image, sizeof(image), &wp) &&
+          !strcmp(image, "other.img") && !wp, "the new writable card is inserted");
+
+    pcmcia_request_card(0, 0);
+    poll(1);
+    CHECK(!live[0] && !pcmcia_cf_get_image(0, image, sizeof(image), NULL), "removal clears the socket image");
+    CHECK(pcmcia_cf_history_get(0, image, sizeof(image)) && !strcmp(image, "other.img"),
+          "the removed image stays in recent images");
 
     printf("%d checks, %d failures\n", checks, failures);
     return failures ? 1 : 0;

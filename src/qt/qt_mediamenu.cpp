@@ -1065,6 +1065,7 @@ MediaMenu::clearImageHistory()
     mhm.clearImageHistory();
     /* The USB flash drives keep their own recent list. */
     usb_flash_history_clear();
+    pcmcia_cf_history_clear();
     ui_sb_update_panes();
 }
 

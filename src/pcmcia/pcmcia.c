@@ -12,6 +12,9 @@
  *               socket_a = te100pc16          card internal names
  *               socket_a_net_type = slirp     none, slirp or pcap
  *               socket_a_net_host = ...       the pcap host interface
+ *               socket_b = compactflash
+ *               socket_b_cf_image = ...      raw CompactFlash image
+ *               socket_b_cf_wp = 1           optional write protection
  *
  *             and each card's own settings in its device section, one
  *             instance per socket ("... #1" for A, "#2" for B).
@@ -63,11 +66,13 @@
 #include <86box/network.h>
 #include <86box/scsi.h>
 #include <86box/pcmcia.h>
+#include <86box/hdc_ide.h>
 #include <86box/plat_unused.h>
 
 extern const device_t te100pc16_device;
 extern const device_t threec589d_device;
 extern const device_t apa1460_device;
+extern const device_t pccard_cf_device;
 
 int  pcmcia_enabled;
 int  pcmcia_card_type[PCMCIA_SOCKETS];
@@ -84,6 +89,7 @@ static const struct {
     { &threec589d_device,       1, 0 },
     { &te100pc16_device,        1, 0 },
     { &apa1460_device,          0, 1 },
+    { &pccard_cf_device,        0, 0 },
     { NULL,                     0, 0 }
     // clang-format on
 };
@@ -92,11 +98,117 @@ static const struct {
 static int           slots_running;
 static int           live_type[PCMCIA_SOCKETS];
 static void         *live_priv[PCMCIA_SOCKETS];
-static volatile int  want_type[PCMCIA_SOCKETS];
-static volatile int  want_pending[PCMCIA_SOCKETS];
-static volatile int  want_again[PCMCIA_SOCKETS];   /* the same card out and in again */
+static int           want_pending[PCMCIA_SOCKETS];
+static int           want_again[PCMCIA_SOCKETS];   /* the same card out and in again */
+static int           target_type[PCMCIA_SOCKETS];
 static int           swap_wait[PCMCIA_SOCKETS];   /* polls until the new card goes in */
 static uint8_t       scsi_bus[PCMCIA_SOCKETS];   /* 0xFF: none kept yet */
+/* The UI publishes card changes and image settings together. The poll
+   snapshots both sockets before handling removals and insertions. */
+static mutex_t      *slots_mutex;
+static char          cf_image[PCMCIA_SOCKETS][MAX_IMAGE_PATH_LEN];
+static int           cf_wp[PCMCIA_SOCKETS];
+static char          cf_history[MAX_PREV_IMAGES][MAX_IMAGE_PATH_LEN];
+static char          target_image[PCMCIA_SOCKETS][MAX_IMAGE_PATH_LEN];
+static int           target_wp[PCMCIA_SOCKETS];
+
+void
+pcmcia_cf_config_init(void)
+{
+    if (!slots_mutex)
+        slots_mutex = thread_create_mutex();
+    memset(cf_image, 0, sizeof(cf_image));
+    memset(cf_wp, 0, sizeof(cf_wp));
+    memset(cf_history, 0, sizeof(cf_history));
+}
+
+void
+pcmcia_cf_set_image(int s, const char *fn, int wp)
+{
+    thread_wait_mutex(slots_mutex);
+    snprintf(cf_image[s], sizeof(cf_image[s]), "%s", fn);
+    cf_wp[s] = !!wp;
+    thread_release_mutex(slots_mutex);
+}
+
+int
+pcmcia_cf_get_image(int s, char *fn, int n, int *wp)
+{
+    thread_wait_mutex(slots_mutex);
+    snprintf(fn, n, "%s", cf_image[s]);
+    if (wp)
+        *wp = cf_wp[s];
+    thread_release_mutex(slots_mutex);
+    return fn[0] != '\0';
+}
+
+const char *
+pcmcia_cf_target_image(int s, int *wp)
+{
+    *wp = target_wp[s];
+    return target_image[s];
+}
+
+int
+pcmcia_cf_history_get(int i, char *fn, int n)
+{
+    thread_wait_mutex(slots_mutex);
+    snprintf(fn, n, "%s", cf_history[i]);
+    thread_release_mutex(slots_mutex);
+    return fn[0] != '\0';
+}
+
+void
+pcmcia_cf_history_set(int i, const char *fn)
+{
+    thread_wait_mutex(slots_mutex);
+    snprintf(cf_history[i], sizeof(cf_history[i]), "%s", fn);
+    thread_release_mutex(slots_mutex);
+}
+
+void
+pcmcia_cf_history_clear(void)
+{
+    thread_wait_mutex(slots_mutex);
+    memset(cf_history, 0, sizeof(cf_history));
+    thread_release_mutex(slots_mutex);
+}
+
+int
+pcmcia_cf_insert_image(int s, const char *fn, int wp)
+{
+    const int type = pcmcia_card_get_from_internal_name(pccard_cf_device.internal_name);
+    int       i;
+
+    if ((s < 0) || (s >= PCMCIA_SOCKETS) || !fn[0] || (strlen(fn) >= MAX_IMAGE_PATH_LEN) ||
+        !ide_cf_image_valid(fn))
+        return 0;
+
+    thread_wait_mutex(slots_mutex);
+    for (int other = 0; other < PCMCIA_SOCKETS; other++) {
+        if ((other != s) && pcmcia_card_is_cf(pcmcia_card_type[other]) && !strcmp(cf_image[other], fn)) {
+            pcmcia_card_type[other] = 0;
+            cf_image[other][0]      = '\0';
+            cf_wp[other]           = 0;
+            want_pending[other]    = 1;
+        }
+    }
+    if ((pcmcia_card_type[s] != type) || strcmp(cf_image[s], fn) || (cf_wp[s] != !!wp)) {
+        snprintf(cf_image[s], sizeof(cf_image[s]), "%s", fn);
+        cf_wp[s]           = !!wp;
+        pcmcia_card_type[s] = type;
+        want_again[s]      = 1;
+    }
+    /* Also retry an unchanged request if the previous open failed. */
+    want_pending[s] = 1;
+    for (i = 0; i < MAX_PREV_IMAGES - 1; i++)
+        if (!strcmp(cf_history[i], fn))
+            break;
+    memmove(cf_history[1], cf_history[0], (size_t) i * sizeof(cf_history[0]));
+    snprintf(cf_history[0], sizeof(cf_history[0]), "%s", fn);
+    thread_release_mutex(slots_mutex);
+    return 1;
+}
 
 static void
 card_close(int s)
@@ -117,7 +229,8 @@ card_open(int s, int type)
     live_priv[s] = cards[type].dev->init(cards[type].dev);
     device_context_restore();
     live_type[s] = live_priv[s] ? type : 0;
-    pclog("PCMCIA: socket %c: %s\n", 'A' + s, cards[type].dev->name);
+    if (live_priv[s])
+        pclog("PCMCIA: socket %c: %s\n", 'A' + s, cards[type].dev->name);
 }
 
 static void *
@@ -131,7 +244,8 @@ slots_init(UNUSED(const device_t *info))
     }
     for (int s = 0; s < PCMCIA_SOCKETS; s++) {
         want_pending[s] = 0;
-        want_type[s]    = pcmcia_card_type[s];
+        target_type[s]  = pcmcia_card_type[s];
+        pcmcia_cf_get_image(s, target_image[s], sizeof(target_image[s]), &target_wp[s]);
         want_again[s]   = 0;
         swap_wait[s]    = 0;
         card_open(s, pcmcia_card_type[s]);
@@ -184,9 +298,14 @@ pcmcia_request_card(int s, int type)
 {
     if ((s < 0) || (s >= PCMCIA_SOCKETS) || (type < 0) || (type >= pcmcia_card_count()))
         return;
+    thread_wait_mutex(slots_mutex);
+    if (!pcmcia_card_is_cf(type)) {
+        cf_image[s][0] = '\0';
+        cf_wp[s]       = 0;
+    }
     pcmcia_card_type[s] = type;
-    want_type[s]        = type;
     want_pending[s]     = 1;
+    thread_release_mutex(slots_mutex);
 }
 
 /* From the UI: the card in socket s with new settings (its own, or its
@@ -197,9 +316,10 @@ pcmcia_request_reinsert(int s)
 {
     if ((s < 0) || (s >= PCMCIA_SOCKETS))
         return;
-    want_type[s]    = pcmcia_card_type[s];
+    thread_wait_mutex(slots_mutex);
     want_again[s]   = 1;
     want_pending[s] = 1;
+    thread_release_mutex(slots_mutex);
 }
 
 /* On the emulation thread (the controller's poll, every 10 ms): carry the
@@ -210,25 +330,35 @@ pcmcia_request_reinsert(int s)
 void
 pcmcia_slots_poll(void)
 {
+    int change[PCMCIA_SOCKETS] = { 0 };
+
     if (!slots_running)
         return;
+    thread_wait_mutex(slots_mutex);
     for (int s = 0; s < PCMCIA_SOCKETS; s++) {
         if (want_pending[s]) {
-            const int again = want_again[s];
-
+            target_type[s]  = pcmcia_card_type[s];
+            memcpy(target_image[s], cf_image[s], sizeof(target_image[s]));
+            target_wp[s]   = cf_wp[s];
+            change[s]      = (target_type[s] != live_type[s]) || (want_again[s] && live_type[s]);
             want_pending[s] = 0;
             want_again[s]   = 0;
-            if ((want_type[s] != live_type[s]) || (again && live_type[s])) {
-                if (live_type[s] && want_type[s]) {
-                    card_close(s);
-                    swap_wait[s] = SWAP_POLLS;
-                } else if (!swap_wait[s])
-                    card_open(s, want_type[s]);
-            }
         }
+    }
+    thread_release_mutex(slots_mutex);
+
+    /* Close both sockets' outgoing cards before opening either incoming one. */
+    for (int s = 0; s < PCMCIA_SOCKETS; s++) {
+        if (change[s] && live_type[s]) {
+            card_close(s);
+            if (target_type[s])
+                swap_wait[s] = SWAP_POLLS;
+        }
+    }
+    for (int s = 0; s < PCMCIA_SOCKETS; s++) {
         /* Whatever was asked for meanwhile -- another card, or none -- goes in. */
-        if (swap_wait[s] && !--swap_wait[s])
-            card_open(s, want_type[s]);
+        if (swap_wait[s] ? !--swap_wait[s] : change[s])
+            card_open(s, target_type[s]);
     }
 }
 
@@ -279,6 +409,12 @@ int
 pcmcia_card_is_scsi(int card)
 {
     return (card > 0) && (card < pcmcia_card_count()) && cards[card].scsi;
+}
+
+int
+pcmcia_card_is_cf(int card)
+{
+    return (card > 0) && (card < pcmcia_card_count()) && (cards[card].dev == &pccard_cf_device);
 }
 
 /* The socket's SCSI bus, taken now if it has none yet; 0xFF: none left. */
