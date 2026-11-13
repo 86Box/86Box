@@ -1186,7 +1186,7 @@ d86f_put_bit(void *priv, const int side, const int bit)
     uint16_t       surface_data = 0;
     uint16_t       encoded_data;
 
-    if (drv->ctrl->get_diswr(drv->ctrl_priv))
+    if ((drv->ctrl != NULL) && drv->ctrl->get_diswr(drv->ctrl_priv))
         return;
 
     uint32_t       track_word   = dev->track_pos >> 4;
@@ -1788,7 +1788,7 @@ d86f_write_sector_data(void *priv, const int side, const int mfm, const uint16_t
             } else if (dev->data_find.bytes_obtained < sector_len) {
                 /* We're in the data field of the sector, read byte from FDC and request new byte. */
                 dev->current_byte[side] = d86f_get_data(drv, 1);
-                if (!drv->ctrl->get_diswr(drv->ctrl_priv))
+                if ((drv->ctrl == NULL) || !drv->ctrl->get_diswr(drv->ctrl_priv))
                     drv->d86f_handler.write_data(drv, side,
                                                  dev->data_find.bytes_obtained - 1,
                                                  dev->current_byte[side]);
@@ -1934,7 +1934,7 @@ d86f_write_direct_common(void *priv, const int side, const uint16_t byte, const 
     decoded_t    dbyte;
     decoded_t    dpbyte;
 
-    if (drv->ctrl->get_diswr(drv->ctrl_priv))
+    if ((drv->ctrl != NULL) && drv->ctrl->get_diswr(drv->ctrl_priv))
         return;
 
     dbyte.byte  = byte & 0xff;
