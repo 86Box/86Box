@@ -17089,6 +17089,324 @@ run_ddc_edid(void)
     free(regular);
 }
 
+/* ------------------------------------------------------------------ */
+/* The hardware-assisted I2C master at I2C_CNTL_0 (0x0090), I2C_CNTL_1
+   (0x0094) and I2C_DATA (0x0098), with nothing on its bus. Up to the
+   GO-low poll the client sequence is the Video Capture supplement's
+   write sample (Video Capture: Hardware Assisted I2C): clear the status
+   bits with I2C_SOFT_RST, load the address and data bytes, program the
+   counts and the enable, write GO, then poll byte 1 until GO is low.
+   The rows then read byte 0 for the DONE, NACK and HALT status bits
+   (Multimedia Registers: I2C_CNTL_0). The accesses go through the BAR2
+   byte and dword handlers. Clock values follow the supplement's formula
+   for 10 kHz with a 100 MHz XCLK: N = M = 0x32, time limit 2 N = 0x64
+   (Video Capture: Determining Timing Factors for the I2C Clock). */
+/* ------------------------------------------------------------------ */
+#define I2C909_CNTL_0 0x0090u
+#define I2C909_CNTL_1 0x0094u
+#define I2C909_DATA   0x0098u
+
+static void
+i2c909_wl(rage128_t *dev, uint32_t off, uint32_t val)
+{
+    rage128_mmio_writel(dev->mmio_base + off, val, dev);
+}
+
+static void
+i2c909_wb(rage128_t *dev, uint32_t off, uint8_t val)
+{
+    rage128_mmio_writeb(dev->mmio_base + off, val, dev);
+}
+
+static uint8_t
+i2c909_rb(rage128_t *dev, uint32_t off)
+{
+    return rage128_mmio_readb(dev->mmio_base + off, dev);
+}
+
+static uint32_t
+i2c909_rl(rage128_t *dev, uint32_t off)
+{
+    return rage128_mmio_readl(dev->mmio_base + off, dev);
+}
+
+/* The supplement's write sample with one data byte, start and stop:
+   GO write 0x32321340. */
+static void
+i2c909_set1(rage128_t *dev, uint8_t addr, uint8_t data)
+{
+    i2c909_wl(dev, I2C909_CNTL_0, 0x00000027);
+    i2c909_wl(dev, I2C909_DATA, addr);
+    i2c909_wb(dev, I2C909_DATA, data);
+    i2c909_wl(dev, I2C909_CNTL_1, 0x64020101);
+    i2c909_wl(dev, I2C909_CNTL_0, 0x32321340);
+}
+
+/* A one-byte read: the address alone in the buffer and
+   RECEIVE in the GO write, 0x32321740. */
+static void
+i2c909_get1(rage128_t *dev, uint8_t addr)
+{
+    i2c909_wl(dev, I2C909_CNTL_0, 0x00000027);
+    i2c909_wl(dev, I2C909_DATA, addr);
+    i2c909_wl(dev, I2C909_CNTL_1, 0x64020101);
+    i2c909_wl(dev, I2C909_CNTL_0, 0x32321740);
+}
+
+/* A test slave for the acknowledge path: it answers 7-bit address 0x38
+   (bytes 0x70 / 0x71), records what it is sent and returns 0x5a. */
+static struct {
+    int     starts, stops, writes;
+    uint8_t last;
+} i2c909_slave;
+
+static uint8_t
+i2c909_slave_start(void *bus, uint8_t addr, uint8_t read, void *priv)
+{
+    (void) bus; (void) addr; (void) read; (void) priv;
+    i2c909_slave.starts++;
+    return 1;
+}
+
+static uint8_t
+i2c909_slave_read(void *bus, uint8_t addr, void *priv)
+{
+    (void) bus; (void) addr; (void) priv;
+    return 0x5a;
+}
+
+static uint8_t
+i2c909_slave_write(void *bus, uint8_t addr, uint8_t data, void *priv)
+{
+    (void) bus; (void) addr; (void) priv;
+    i2c909_slave.writes++;
+    i2c909_slave.last = data;
+    return 1;
+}
+
+static void
+i2c909_slave_stop(void *bus, uint8_t addr, void *priv)
+{
+    (void) bus; (void) addr; (void) priv;
+    i2c909_slave.stops++;
+}
+
+static void
+vectors_i2c909(rage128_t *dev)
+{
+    uint32_t a, b, c, d, e;
+    uint8_t  r0, r1, r2, r3;
+
+    /* 1: every field resets to 0 */
+    a = i2c909_rl(dev, I2C909_CNTL_0);
+    b = i2c909_rl(dev, I2C909_CNTL_1);
+    c = i2c909_rl(dev, I2C909_DATA);
+    printf("i2c 909: reset %08x %08x %08x\n", a, b, c);
+    check_true("i2c 909: reset reads 0", a == 0 && b == 0 && c == 0);
+
+    /* 2: I2C_CNTL_1 keeps I2C_DATA_COUNT, I2C_ADDR_COUNT, I2C_SEL,
+       I2C_EN and I2C_TIME_LIMIT; the reserved bits read 0 */
+    i2c909_wl(dev, I2C909_CNTL_1, 0xffffffff);
+    check32("i2c 909: CNTL_1 latches defined fields", i2c909_rl(dev, I2C909_CNTL_1), 0xff03070f);
+    i2c909_wl(dev, I2C909_CNTL_1, 0x00000000);
+
+    /* 3: the control fields of I2C_CNTL_0 latch; I2C_SOFT_RST acts at the
+       write and reads 0 */
+    i2c909_wl(dev, I2C909_CNTL_0, 0x141407e0);
+    check32("i2c 909: CNTL_0 latches control fields", i2c909_rl(dev, I2C909_CNTL_0), 0x141407c0);
+
+    /* 4: a write to an empty bus: the address is not acknowledged. GO
+       is low at once, byte 0 is I2C_NACK | I2C_DRIVE_EN */
+    i2c909_set1(dev, 0x70, 0x00);
+    r1 = i2c909_rb(dev, I2C909_CNTL_0 + 1);
+    r0 = i2c909_rb(dev, I2C909_CNTL_0);
+    a  = i2c909_rl(dev, I2C909_CNTL_0);
+    printf("i2c 909: set 0x70: byte1 %02x byte0 %02x cntl_0 %08x\n", r1, r0, a);
+    check_true("i2c 909: one-byte write transfer to 0x70, empty bus: NACK",
+               (r1 & 0x10) == 0 && r0 == 0x42 && a == 0x32320342);
+
+    /* 5: a read from an empty bus */
+    i2c909_get1(dev, 0x71);
+    check32("i2c 909: one-byte read transfer from 0x71, empty bus: NACK", i2c909_rl(dev, I2C909_CNTL_0),
+            0x32320742);
+
+    /* 6: the status bits clear on a written 1 and ignore a written 0 */
+    i2c909_set1(dev, 0x70, 0x00);
+    i2c909_wb(dev, I2C909_CNTL_0, 0x40);
+    a = i2c909_rl(dev, I2C909_CNTL_0);
+    i2c909_wb(dev, I2C909_CNTL_0, 0x42);
+    b = i2c909_rl(dev, I2C909_CNTL_0);
+    i2c909_wl(dev, I2C909_CNTL_0, 0x00000027);
+    c = i2c909_rl(dev, I2C909_CNTL_0);
+    printf("i2c 909: w1c %08x %08x %08x\n", a, b, c);
+    check_true("i2c 909: status is write-1-to-clear",
+               a == 0x32320342 && b == 0x32320340 && c == 0x00000000);
+
+    /* 7: an abort: byte 1 rewritten with ABORT | GO. GO drops,
+       ABORT stays as written, no transfer runs, the old NACK stays */
+    i2c909_set1(dev, 0x70, 0x00);
+    r1 = i2c909_rb(dev, I2C909_CNTL_0 + 1);
+    i2c909_wb(dev, I2C909_CNTL_0 + 1, (uint8_t) ((r1 & 0xe7) | 0x18));
+    check32("i2c 909: abort drops GO, starts nothing", i2c909_rl(dev, I2C909_CNTL_0), 0x32320b42);
+
+    /* 8: the buffer returns bytes in the order written; I2C_SOFT_RST resets
+       both pointers */
+    i2c909_wl(dev, I2C909_CNTL_0, 0x00000020);
+    i2c909_wb(dev, I2C909_DATA, 0xa1);
+    i2c909_wb(dev, I2C909_DATA, 0xb2);
+    i2c909_wb(dev, I2C909_DATA, 0xc3);
+    r0 = i2c909_rb(dev, I2C909_DATA);
+    r1 = i2c909_rb(dev, I2C909_DATA);
+    r2 = i2c909_rb(dev, I2C909_DATA);
+    i2c909_wl(dev, I2C909_CNTL_0, 0x00000020);
+    i2c909_wb(dev, I2C909_DATA, 0xd4);
+    r3 = i2c909_rb(dev, I2C909_DATA);
+    printf("i2c 909: buffer %02x %02x %02x %02x\n", r0, r1, r2, r3);
+    check_true("i2c 909: buffer order and I2C_SOFT_RST",
+               r0 == 0xa1 && r1 == 0xb2 && r2 == 0xc3 && r3 == 0xd4);
+
+    /* 9: a NACK latches I2C_INT, GEN_INT_STATUS bit 17, which drives
+       INTA when GEN_INT_CNTL bit 17 is set; writing 1 clears it. With
+       the enable clear the bit latches and INTA stays low. */
+    wr(dev, RAGE128_GEN_INT_STATUS, 0x00020000);
+    wr(dev, RAGE128_GEN_INT_CNTL, 0x00020000);
+    i2c909_set1(dev, 0x70, 0x00);
+    a = rd(dev, RAGE128_GEN_INT_STATUS) & 0x00020000;
+    b = dev->irq_state;
+    wr(dev, RAGE128_GEN_INT_STATUS, 0x00020000);
+    c = rd(dev, RAGE128_GEN_INT_STATUS) & 0x00020000;
+    d = dev->irq_state;
+    wr(dev, RAGE128_GEN_INT_CNTL, 0x00000000);
+    i2c909_set1(dev, 0x70, 0x00);
+    e = (rd(dev, RAGE128_GEN_INT_STATUS) & 0x00020000) | dev->irq_state;
+    wr(dev, RAGE128_GEN_INT_STATUS, 0x00020000);
+    printf("i2c 909: int %08x %u %08x %u %08x\n", a, b, c, d, e);
+    check_true("i2c 909: NACK raises I2C_INT when enabled",
+               a == 0x00020000 && b == 1 && c == 0 && d == 0 && e == 0x00020000);
+
+    /* 10: the engine's bus is not the monitor DDC bus: the EDID EEPROM
+       answers 0xA0 on the GPIO_MONID lines only */
+    i2c909_set1(dev, 0xa0, 0x00);
+    check32("i2c 909: engine bus is not the DDC bus", i2c909_rl(dev, I2C909_CNTL_0), 0x32320342);
+
+    /* 13: GO with I2C_EN clear runs no transfer: GO drops and the
+       cleared status stays clear */
+    i2c909_wl(dev, I2C909_CNTL_0, 0x00000027);
+    i2c909_wl(dev, I2C909_DATA, 0x70);
+    i2c909_wl(dev, I2C909_CNTL_1, 0x64000101);
+    i2c909_wl(dev, I2C909_CNTL_0, 0x32321340);
+    check32("i2c 909: GO with EN clear starts nothing", i2c909_rl(dev, I2C909_CNTL_0), 0x32320340);
+
+    /* 11: with a slave on the bus the same sequences complete: the
+       transmit ends with DONE and the slave sees one start, the data
+       byte and one stop; the receive ends with DONE and the first
+       I2C_DATA read returns the byte the slave sent */
+    memset(&i2c909_slave, 0, sizeof(i2c909_slave));
+    i2c_sethandler(dev->mm_i2c, 0x38, 1, i2c909_slave_start, i2c909_slave_read,
+                   i2c909_slave_write, i2c909_slave_stop, NULL);
+    i2c909_set1(dev, 0x70, 0x5c);
+    a = i2c909_rl(dev, I2C909_CNTL_0);
+    i2c909_get1(dev, 0x71);
+    b  = i2c909_rl(dev, I2C909_CNTL_0);
+    r0 = i2c909_rb(dev, I2C909_DATA);
+    i2c_removehandler(dev->mm_i2c, 0x38, 1, i2c909_slave_start, i2c909_slave_read,
+                      i2c909_slave_write, i2c909_slave_stop, NULL);
+    printf("i2c 909: slave %08x %08x data %02x starts %d writes %d last %02x stops %d\n", a, b, r0,
+           i2c909_slave.starts, i2c909_slave.writes, i2c909_slave.last, i2c909_slave.stops);
+    check_true("i2c 909: attached slave acknowledges",
+               a == 0x32320341 && b == 0x32320741 && r0 == 0x5a && i2c909_slave.starts == 2
+                   && i2c909_slave.writes == 1 && i2c909_slave.last == 0x5c
+                   && i2c909_slave.stops == 2);
+
+    /* 11b: a repeated start. The transmit goes out with I2C_START and
+       without I2C_STOP (GO write 0x32321140), so the slave stays
+       addressed; the receive that follows starts again with no stop in
+       between, and its own I2C_STOP is the only stop the slave sees.
+       The receive is set up without I2C_SOFT_RST, which would release
+       the bus, so its address byte and the byte received follow the
+       transmit's two entries in the buffer */
+    memset(&i2c909_slave, 0, sizeof(i2c909_slave));
+    i2c_sethandler(dev->mm_i2c, 0x38, 1, i2c909_slave_start, i2c909_slave_read,
+                   i2c909_slave_write, i2c909_slave_stop, NULL);
+    i2c909_wl(dev, I2C909_CNTL_0, 0x00000027);
+    i2c909_wl(dev, I2C909_DATA, 0x70);
+    i2c909_wb(dev, I2C909_DATA, 0x5d);
+    i2c909_wl(dev, I2C909_CNTL_1, 0x64020101);
+    i2c909_wl(dev, I2C909_CNTL_0, 0x32321140);
+    a = i2c909_rl(dev, I2C909_CNTL_0);
+    c = (uint32_t) i2c909_slave.stops;
+    i2c909_wl(dev, I2C909_CNTL_0, 0x00000007);
+    i2c909_wl(dev, I2C909_DATA, 0x71);
+    i2c909_wl(dev, I2C909_CNTL_1, 0x64020101);
+    i2c909_wl(dev, I2C909_CNTL_0, 0x32321740);
+    b  = i2c909_rl(dev, I2C909_CNTL_0);
+    r0 = i2c909_rb(dev, I2C909_DATA);
+    printf("i2c 909: repeated start %08x %08x data %02x starts %d writes %d stops %u then %d\n", a,
+           b, r0, i2c909_slave.starts, i2c909_slave.writes, c, i2c909_slave.stops);
+    check_true("i2c 909: a start after a transfer without stop is a repeated start",
+               a == 0x32320141 && b == 0x32320741 && r0 == 0x5a && i2c909_slave.starts == 2
+                   && i2c909_slave.writes == 1 && c == 0 && i2c909_slave.stops == 1);
+
+    /* 11c: I2C_ABORT sends the stop that releases a slave a transfer
+       left addressed: the same transmit without I2C_STOP, then the
+       abort of row 7 (byte 1 rewritten with ABORT | GO) */
+    memset(&i2c909_slave, 0, sizeof(i2c909_slave));
+    i2c909_wl(dev, I2C909_CNTL_0, 0x00000027);
+    i2c909_wl(dev, I2C909_DATA, 0x70);
+    i2c909_wb(dev, I2C909_DATA, 0x5e);
+    i2c909_wl(dev, I2C909_CNTL_1, 0x64020101);
+    i2c909_wl(dev, I2C909_CNTL_0, 0x32321140);
+    c  = (uint32_t) i2c909_slave.stops;
+    r1 = i2c909_rb(dev, I2C909_CNTL_0 + 1);
+    i2c909_wb(dev, I2C909_CNTL_0 + 1, (uint8_t) ((r1 & 0xe7) | 0x18));
+    a = i2c909_rl(dev, I2C909_CNTL_0);
+    i2c_removehandler(dev->mm_i2c, 0x38, 1, i2c909_slave_start, i2c909_slave_read,
+                      i2c909_slave_write, i2c909_slave_stop, NULL);
+    printf("i2c 909: abort with a slave addressed %08x stops %u then %d\n", a, c,
+           i2c909_slave.stops);
+    check_true("i2c 909: abort sends the stop", a == 0x32320941 && c == 0
+                                                    && i2c909_slave.stops == 1);
+
+    /* 12: a chip reset clears all three registers and the buffer */
+    i2c909_wl(dev, I2C909_CNTL_1, 0xffffffff);
+    i2c909_wb(dev, I2C909_DATA, 0x5a);
+    a = i2c909_rl(dev, I2C909_CNTL_1);
+    rage128_reset(dev);
+    b = i2c909_rl(dev, I2C909_CNTL_1);
+    c = i2c909_rl(dev, I2C909_CNTL_0);
+    d = i2c909_rl(dev, I2C909_DATA);
+    printf("i2c 909: chip reset %08x -> %08x %08x %08x\n", a, b, c, d);
+    check_true("i2c 909: chip reset clears", a == 0xff03070f && b == 0 && c == 0 && d == 0);
+}
+
+/* 14: the two chips of the MAXX each have their own engine: a transfer
+   on chip B ends not acknowledged there and leaves chip A's registers
+   at reset */
+static void
+vectors_i2c909_maxx(void)
+{
+    r128_maxx_t *maxx = maxx_init(&ati_rage128_maxx_device);
+
+    i2c909_set1(maxx->chip[MAXX_B], 0x98, 0x40);
+    check32("i2c 909: MAXX chip B transfer ends NACK",
+            i2c909_rl(maxx->chip[MAXX_B], I2C909_CNTL_0), 0x32320342);
+    check32("i2c 909: MAXX chip A untouched by a chip B transfer",
+            i2c909_rl(maxx->chip[MAXX_A], I2C909_CNTL_0), 0);
+    maxx_close(maxx);
+}
+
+static void
+run_i2c909(void)
+{
+    rage128_t *dev;
+
+    harness_cfg_memory_mb = 32;
+    dev = rage128_init(&ati_rage128_pro_device);
+    vectors_i2c909(dev);
+    close_dev(dev);
+    vectors_i2c909_maxx();
+}
+
 static void
 run_amcgpio(void)
 {
@@ -27129,7 +27447,7 @@ vectors_gpu_tuple_reload(void)
 static const char *const shard_units[] = {
     "gpu-tuple-reload", "inline-pace", "agp-oracle",
     "agp-16mb", "pci-xpert128", "pci-variant", "monid-mask", "amcgpio",
-    "maxx", "ddc-edid", "vga-decode", "lanegap", "lanegap-16mb", "gpu2d-verify",
+    "maxx", "ddc-edid", "i2c-hw", "vga-decode", "lanegap", "lanegap-16mb", "gpu2d-verify",
     "x64legs", "synctel", "yuv-border", "texture-alpha", "dither-init",
     "sec-persp", "sec-only", "dst-1555-4444", "zoff-tfog",
     "stipple-fast", "lanegap-expectedfail", "gpu-carry"
@@ -27825,6 +28143,8 @@ main(int argc, char **argv)
         run_maxx();
     if (unit_selected("ddc-edid"))
         run_ddc_edid();
+    if (unit_selected("i2c-hw"))
+        run_i2c909();
     if (unit_selected("vga-decode"))
         run_vga_decode();
     if (unit_selected("lanegap"))

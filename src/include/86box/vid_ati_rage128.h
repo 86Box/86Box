@@ -1027,6 +1027,21 @@ typedef struct rage128_t {
     void (*amcgpio_notify)(struct rage128_t *dev, void *priv);
     void *amcgpio_priv;
 
+    /* Hardware-assisted I2C master (vid_ati_rage128_i2c.c). Every field
+       is read and written under i2c_mtx: a ring packet can write these
+       registers from the CCE thread while the CPU polls them. mm_i2c is
+       the master's own bus, separate from the DDC bus in i2c above;
+       i2c_slave is the 7-bit address of the slave a transfer left
+       addressed (no stop sent yet), -1 when none. */
+    uint32_t i2c_cntl_0;
+    uint32_t i2c_cntl_1;
+    uint8_t  i2c_buf[16];
+    uint8_t  i2c_wptr;
+    uint8_t  i2c_rptr;
+    int      i2c_slave;
+    void    *mm_i2c;
+    mutex_t *i2c_mtx;
+
     uint16_t pci_device_id;
     uint16_t pci_subsys_vendor; /* ADAPTER_ID (PCI config 0x2c): set from the ROM
                                    straps at reset, then by any write to the
@@ -2196,6 +2211,13 @@ extern int  rage128_mpeg_reg_write(rage128_t *dev, uint32_t off, uint32_t val,
 extern int  rage128_mpeg_packet3(rage128_t *dev, uint32_t hdr, const uint32_t *pl,
                                  uint32_t count);
 extern void rage128_mpeg_reset(rage128_t *dev);
+
+/* vid_ati_rage128_i2c.c: hardware-assisted I2C master. */
+extern void rage128_i2c_init(rage128_t *dev);
+extern void rage128_i2c_close(rage128_t *dev);
+extern void rage128_i2c_reset(rage128_t *dev);
+extern int  rage128_i2c_reg_read(rage128_t *dev, uint32_t off, uint32_t *val);
+extern int  rage128_i2c_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask);
 
 extern int  rage128_ov0_reg_read(rage128_t *dev, uint32_t off, uint32_t *val);
 extern int  rage128_ov0_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask);

@@ -1165,6 +1165,9 @@ rage128_reg_read32(rage128_t *dev, uint32_t off)
         /* MPEG-2 macroblock assist (vid_ati_rage128_mpeg.c). */
         if (rage128_mpeg_reg_read(dev, off, &v))
             return v;
+        /* Hardware-assisted I2C master (vid_ati_rage128_i2c.c). */
+        if (rage128_i2c_reg_read(dev, off, &v))
+            return v;
     }
 
     /* Read-only copy of PCI configuration space (RRG: Description of
@@ -1219,6 +1222,7 @@ enum {
     RAGE128_WBLK_PM4,         /* CCE command processor and PCI GART */
     RAGE128_WBLK_3D,          /* 3D engine context */
     RAGE128_WBLK_MPEG,        /* MPEG-2 macroblock assist */
+    RAGE128_WBLK_I2C,         /* hardware-assisted I2C master */
     RAGE128_WBLK_NONE         /* no block claims the offset */
 };
 
@@ -1240,6 +1244,8 @@ rage128_wblk_write(rage128_t *dev, int blk, uint32_t off, uint32_t val, uint32_t
             return rage128_3d_reg_write(dev, off, val, mask);
         case RAGE128_WBLK_MPEG:
             return rage128_mpeg_reg_write(dev, off, val, mask);
+        case RAGE128_WBLK_I2C:
+            return rage128_i2c_reg_write(dev, off, val, mask);
         default:
             return 0;
     }
@@ -1696,8 +1702,8 @@ rage128_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
        that does not claim the offset changes nothing. So the owner of an
        offset is found at its first write, by offering that write to the
        blocks in a fixed order (display, overlay, subpicture, 2D, PM4,
-       3D, MPEG; the first claim wins), and remembered, and later writes
-       go straight to it instead of past every block before it. The 3D
+       3D, MPEG, I2C; the first claim wins), and remembered, and later
+       writes go straight to it instead of past every block before it. The 3D
        context registers, most of a game's command stream, would
        otherwise reach their handler only after five others. An offset
        no block claims, the read-only copy of configuration space among
@@ -2556,6 +2562,7 @@ rage128_reset(void *priv)
     rage128_pm4_reset(dev);
     rage128_3d_reset(dev);
     rage128_mpeg_reset(dev);
+    rage128_i2c_reset(dev);
 
     rage128_vga_decode_update(dev);
 }
@@ -2639,6 +2646,10 @@ rage128_chip_init(const device_t *info, const rage128_chip_cfg_t *cfg)
     dev->i2c = i2c_gpio_init("ddc_ati_rage128");
     dev->ddc = ddc_init_ex(i2c_gpio_get_bus(dev->i2c),
                            ddc_edid_hires_crt, sizeof(ddc_edid_hires_crt));
+
+    /* The multimedia I2C master's own bus, empty on every board
+       (vid_ati_rage128_i2c.c). */
+    rage128_i2c_init(dev);
 
     /* Rasterizer worker pool, size set by the render_threads option. The
        optional GPU backend draws the states it supports and hands the
@@ -2796,6 +2807,7 @@ rage128_chip_close(rage128_t *dev)
                      rage128_vga_in, NULL, NULL,
                      rage128_vga_out, NULL, NULL, dev);
     ddc_close(dev->ddc);
+    rage128_i2c_close(dev);
     i2c_gpio_close(dev->i2c);
     svga_close(&dev->svga);
     free(dev);

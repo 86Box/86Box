@@ -191,9 +191,10 @@
    each source: VBLANK when vertical blank starts and VSYNC when vertical
    sync starts, a front porch later; VLINE from a one-shot timer each
    frame at the CRTC_VLINE line; SNAPSHOT on a MANUAL_SNAPSHOT_NOW write;
-   GUI_IDLE_INT when the engine goes from busy to idle. The flat panel,
-   I2C, bus master, MPP and VIP sources belong to blocks the device does
-   not have, so their bits read 0. */
+   GUI_IDLE_INT when the engine goes from busy to idle; I2C_INT when an
+   I2C transfer ends without an acknowledge (vid_ati_rage128_i2c.c). The
+   flat panel, bus master, MPP and VIP sources belong to blocks the
+   device does not have, so their bits read 0. */
 #define RAGE128_GEN_INT_CNTL    0x0040
 #define RAGE128_GEN_INT_STATUS  0x0044
 #define RAGE128_GIC_VBLANK_EN   (1u << 0)  /* CRTC_VBLANK_INT_EN */
@@ -206,12 +207,14 @@
 #define RAGE128_GIS_SNAPSHOT    (1u << 3)  /* SNAPSHOT_INT (R) / _AK (W1C) */
 #define RAGE128_GIC_GUI_IDLE_EN (1u << 19) /* GUI_IDLE_INT_EN */
 #define RAGE128_GIS_GUI_IDLE    (1u << 19) /* GUI_IDLE_INT (R), reset value 1 / _AK (W1C) */
+#define RAGE128_GIC_I2C_EN      (1u << 17) /* I2C_INT_EN */
+#define RAGE128_GIS_I2C         (1u << 17) /* I2C_INT (R) / I2C_INT_AK (W1C) */
 #define RAGE128_GIC_SUPPORTED   (RAGE128_GIC_VBLANK_EN | RAGE128_GIC_VLINE_EN \
                                  | RAGE128_GIC_VSYNC_EN | RAGE128_GIC_SNAPSHOT_EN \
-                                 | RAGE128_GIC_GUI_IDLE_EN) /* modeled sources */
+                                 | RAGE128_GIC_I2C_EN | RAGE128_GIC_GUI_IDLE_EN) /* modeled sources */
 #define RAGE128_GIS_ACK_MASK    (RAGE128_GIS_VBLANK | RAGE128_GIS_VLINE \
                                  | RAGE128_GIS_VSYNC | RAGE128_GIS_SNAPSHOT \
-                                 | RAGE128_GIS_GUI_IDLE)    /* W1C-able bits */
+                                 | RAGE128_GIS_I2C | RAGE128_GIS_GUI_IDLE) /* W1C-able bits */
 
 /* Bus control (RRG: BUS_CNTL, pp. 3-106-3-108 / PDF 124-126; RRG:
    BUS_CNTL1, pp. 3-191-3-192 / PDF 209-210). */
@@ -283,6 +286,35 @@
 #define RAGE128_AMCGPIO_Y        0x01a4
 #define RAGE128_AMCGPIO_EN       0x01a8
 #define RAGE128_AMCGPIO_PINS     0x03ffffff
+
+/* Hardware-assisted I2C master (vid_ati_rage128_i2c.c). The RRG lists
+   the group and its 16-entry buffer (RRG: Multimedia Registers, p. 2-3 /
+   PDF 13) and corrects the I2C_DATA address to 0x0098 (RRG: XPLL_CNTL,
+   p. B-5 / PDF 319, the address corrections), but has no field pages.
+   The fields come from the RAGE 128 Register Reference Supplement,
+   Multimedia Registers, pages I2C_CNTL_0, I2C_CNTL_1 and I2C_DATA, all
+   [RW] with every field 0 at reset. I2C_DONE, I2C_NACK and I2C_HALT are
+   status bits that a written 1 clears; I2C_PRESCALE is N in [31:24] and M
+   in [23:16]. */
+#define RAGE128_I2C_CNTL_0        0x0090
+#define RAGE128_I2C_CNTL_1        0x0094
+#define RAGE128_I2C_DATA          0x0098
+#define RAGE128_I2C_DONE          (1u << 0)
+#define RAGE128_I2C_NACK          (1u << 1)
+#define RAGE128_I2C_HALT          (1u << 2)
+#define RAGE128_I2C_STATUS        (RAGE128_I2C_DONE | RAGE128_I2C_NACK | RAGE128_I2C_HALT)
+#define RAGE128_I2C_SOFT_RST      (1u << 5)
+#define RAGE128_I2C_START         (1u << 8)
+#define RAGE128_I2C_STOP          (1u << 9)
+#define RAGE128_I2C_RECEIVE       (1u << 10)
+#define RAGE128_I2C_ABORT         (1u << 11)
+#define RAGE128_I2C_GO            (1u << 12)
+#define RAGE128_I2C_CNTL_0_LATCH  0xffff0fc0 /* DRIVE_EN to ABORT, I2C_PRESCALE */
+#define RAGE128_I2C_DATA_COUNT(v) ((v) & 0xf)
+#define RAGE128_I2C_ADDR_COUNT(v) (((v) >> 8) & 0x7)
+#define RAGE128_I2C_EN            (1u << 17)
+#define RAGE128_I2C_CNTL_1_MASK   0xff03070f /* counts, I2C_SEL, I2C_EN, I2C_TIME_LIMIT */
+#define RAGE128_I2C_BUF_SIZE      16
 
 /* CRTC / DAC control group (RRG: CRTC_GEN_CNTL, pp. 3-61-3-63 /
    PDF 79-81; RRG: CRTC_EXT_CNTL, pp. 3-63-3-65 / PDF 81-83; RRG:

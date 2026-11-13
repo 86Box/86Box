@@ -58,6 +58,7 @@ done
     "$SRC/video/vid_ati_rage128_pm4.c" \
     "$SRC/video/vid_ati_rage128_3d.c" \
     "$SRC/video/vid_ati_rage128_mpeg.c" \
+    "$SRC/video/vid_ati_rage128_i2c.c" \
     "$SRC/video/vid_ati_rage128_raster.c" \
     "$SRC/video/vid_ati_rage128_mem.c" \
     "$SRC/video/vid_ati_rage128_jit.c" \

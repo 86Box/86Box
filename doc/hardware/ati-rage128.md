@@ -70,7 +70,8 @@ The device lives in `src/video/vid_ati_rage128*.c` with its headers in
 the device shell, the legacy VGA path, the display block, surface
 access, the overlay, the 2D engine, the command processor, the 3D
 engine, the parallel rasterizer, the span recompiler, the GPU backend
-and its four compute kernels, the MPEG block and the MAXX pairing, plus
+and its four compute kernels, the MPEG block, the multimedia I2C
+master and the MAXX pairing, plus
 two diagnostic files (a draw-state census and fence telemetry). Register
 behavior follows the RAGE 128 PRO Register Reference Guide, the RAGE 128
 Software Development Guide, the RAGE 128 VR / RAGE 128 GL Graphics
@@ -253,6 +254,19 @@ and the source cites the routine for each piece. The inverse DCT is the
 double-precision reference transform IEEE 1180 measures against: the
 driver's model carries two different integer routines, so neither is
 taken as the chip's.
+
+`vid_ati_rage128_i2c.c` is the chip's hardware-assisted I2C master, the
+bus the chip uses to program multimedia parts such as video decoders and
+TV tuners: a 16-entry byte buffer behind I2C_DATA, byte counts and an
+enable in I2C_CNTL_1, and a GO bit plus DONE, NACK and HALT status in
+I2C_CNTL_0, with the I2C interrupt in GEN_INT_STATUS. A transfer runs to
+its end inside the write that starts it. The master has its own I2C bus,
+separate from the monitor DDC lines, and no board has anything on it, so
+every transfer that sends a byte ends with the address not acknowledged,
+the way a card with no tuner or decoder answers, so a client sees no part
+at that address. The field layouts come from the Multimedia Registers
+supplement and the programming sequence from the Video Capture
+programmer's guide supplement.
 
 `vid_ati_rage128_maxx.c` is the MAXX board: two chip instances plus the
 logic between them. The two chips share one monitor connector, and the
