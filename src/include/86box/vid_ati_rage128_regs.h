@@ -192,9 +192,10 @@
    sync starts, a front porch later; VLINE from a one-shot timer each
    frame at the CRTC_VLINE line; SNAPSHOT on a MANUAL_SNAPSHOT_NOW write;
    GUI_IDLE_INT when the engine goes from busy to idle; I2C_INT when an
-   I2C transfer ends without an acknowledge (vid_ati_rage128_i2c.c). The
-   flat panel, bus master, MPP and VIP sources belong to blocks the
-   device does not have, so their bits read 0. */
+   I2C transfer ends without an acknowledge (vid_ati_rage128_i2c.c);
+   BUSMASTER_EOL_INT when the descriptor-list bus master reaches the end
+   of a list (vid_ati_rage128_bm.c). The flat panel, MPP and VIP sources
+   belong to blocks the device does not have, so their bits read 0. */
 #define RAGE128_GEN_INT_CNTL    0x0040
 #define RAGE128_GEN_INT_STATUS  0x0044
 #define RAGE128_GIC_VBLANK_EN   (1u << 0)  /* CRTC_VBLANK_INT_EN */
@@ -209,12 +210,16 @@
 #define RAGE128_GIS_GUI_IDLE    (1u << 19) /* GUI_IDLE_INT (R), reset value 1 / _AK (W1C) */
 #define RAGE128_GIC_I2C_EN      (1u << 17) /* I2C_INT_EN */
 #define RAGE128_GIS_I2C         (1u << 17) /* I2C_INT (R) / I2C_INT_AK (W1C) */
+#define RAGE128_GIC_BUSMASTER_EOL_EN (1u << 16) /* BUSMASTER_EOL_INT_EN */
+#define RAGE128_GIS_BUSMASTER_EOL    (1u << 16) /* BUSMASTER_EOL_INT (R) / _AK (W1C) */
 #define RAGE128_GIC_SUPPORTED   (RAGE128_GIC_VBLANK_EN | RAGE128_GIC_VLINE_EN \
                                  | RAGE128_GIC_VSYNC_EN | RAGE128_GIC_SNAPSHOT_EN \
-                                 | RAGE128_GIC_I2C_EN | RAGE128_GIC_GUI_IDLE_EN) /* modeled sources */
+                                 | RAGE128_GIC_BUSMASTER_EOL_EN | RAGE128_GIC_I2C_EN \
+                                 | RAGE128_GIC_GUI_IDLE_EN) /* modeled sources */
 #define RAGE128_GIS_ACK_MASK    (RAGE128_GIS_VBLANK | RAGE128_GIS_VLINE \
                                  | RAGE128_GIS_VSYNC | RAGE128_GIS_SNAPSHOT \
-                                 | RAGE128_GIS_I2C | RAGE128_GIS_GUI_IDLE) /* W1C-able bits */
+                                 | RAGE128_GIS_BUSMASTER_EOL | RAGE128_GIS_I2C \
+                                 | RAGE128_GIS_GUI_IDLE) /* W1C-able bits */
 
 /* Bus control (RRG: BUS_CNTL, pp. 3-106-3-108 / PDF 124-126; RRG:
    BUS_CNTL1, pp. 3-191-3-192 / PDF 209-210). */
@@ -445,8 +450,10 @@
    which transfers each bit covers. Going by the names,
    BM_PM4_RD_FORCE_TO_PCI covers the CCE's own bus reads and
    BM_GLOBAL_FORCE_TO_PCI all of them; BM_PTR_FORCE_TO_PCI belongs to
-   the bus-master descriptor engine, which the device does not have. The
-   bit masks are next to the GART code in vid_ati_rage128.h. */
+   the descriptor-list bus master (vid_ati_rage128_bm.c), which reads
+   its tables and data at physical addresses whatever these bits say
+   (modeled). The bit masks are next to the GART code in
+   vid_ati_rage128.h. */
 #define RAGE128_BM_CHUNK_0_VAL         0x0a18
 #define RAGE128_BM_CHUNK_0_VAL_DEFAULT 0x000000ff /* BM_VIDCAP_CHUNK = FFh, force bits 0 */
 #define RAGE128_BM_CHUNK_1_VAL         0x0a1c
@@ -455,12 +462,49 @@
    BM-2). */
 #define RAGE128_BM_CHUNK_1_VAL_DEFAULT 0x0f0f0f0f
 /* BM_QUEUE_FREE_STATUS (read-only) at its reset value: each queue's
-   free-slot count at its default and no transfer active. The device has
-   no bus master queues, so the register always reads this. BM_VIP0_FREE
+   free-slot count at its default and no transfer active. The
+   descriptor-list bus master finishes every list inside the register
+   write that starts it (vid_ati_rage128_bm.c), so no queue is ever seen
+   busy and the register always reads this. BM_VIP0_FREE
    to BM_VIP3_FREE are 2 each, BM_VIDCAP_FREE is 8 and every _ACTIVE bit
    is 0 (RRG: BM_QUEUE_FREE_STATUS, pp. 3-223-3-224 / PDF 241-242). */
 #define RAGE128_BM_QUEUE_FREE_STATUS 0x0a14
 #define RAGE128_BM_QUEUE_FREE_IDLE   0x00802222
+/* Descriptor-list bus master (vid_ati_rage128_bm.c; Bus Master
+   supplement, pages BM-1 to BM-7). BM_FRAME_BUF_OFFSET to
+   BM_QUEUE_STATUS are read-only. Each of the four VIP channels has a
+   BUF register, [RW], that takes the trigger in [3:0] and the
+   paragraph-aligned physical address of a descriptor table in [31:4],
+   and an ACTIVE register, [R], with the same layout. The three capture
+   buffers, BM_VIDCAP_ACTIVE and BM_GUI have the same layout and are
+   [RW]. Every field resets to 0. */
+#define RAGE128_BM_FRAME_BUF_OFFSET  0x0a00
+#define RAGE128_BM_SYSTEM_MEM_ADDR   0x0a04
+#define RAGE128_BM_COMMAND           0x0a08
+#define RAGE128_BM_STATUS            0x0a0c
+#define RAGE128_BM_QUEUE_STATUS      0x0a10
+#define RAGE128_BM_VIP0_BUF          0x0a20 /* VIPn_BUF at 0x0a20 + n * 0x10 */
+#define RAGE128_BM_VIP0_ACTIVE       0x0a24 /* VIPn_ACTIVE at 0x0a24 + n * 0x10 */
+#define RAGE128_BM_VIP3_ACTIVE       0x0a54
+#define RAGE128_BM_VIDCAP_BUF0       0x0a60
+#define RAGE128_BM_VIDCAP_BUF1       0x0a64
+#define RAGE128_BM_VIDCAP_BUF2       0x0a68
+#define RAGE128_BM_VIDCAP_ACTIVE     0x0a6c
+#define RAGE128_BM_GUI               0x0a80
+#define RAGE128_BM_TRIGGER_MASK      0x0000000f
+#define RAGE128_BM_TRIG_SYS_TO_FB    0x0 /* System->Frame immediately */
+#define RAGE128_BM_TRIG_FB_TO_SYS    0x1 /* Frame->System immediately */
+#define RAGE128_BM_TABLE_ADDR_MASK   0xfffffff0
+/* The four-dword descriptor: FRAME_BUF_OFFSET, SYSTEM_MEM_ADDR, COMMAND,
+   reserved. The fields are those of the read-only registers of the same
+   names (Bus Master supplement, page BM-1). */
+#define RAGE128_BM_FB_OFFSET_MASK    0x07ffffff /* FRAME_BUF_OFFSET [26:0] */
+#define RAGE128_BM_BYTE_COUNT_MASK   0x001fffff /* BYTE_COUNT [20:0] */
+#define RAGE128_BM_INTERRUPT_DIS     (1u << 27)
+#define RAGE128_BM_TRANSFER_DEST     (1u << 28) /* 1 = to or from registers */
+#define RAGE128_BM_FORCE_TO_PCI      (1u << 29)
+#define RAGE128_BM_FRAME_OFFSET_HOLD (1u << 30)
+#define RAGE128_BM_END_OF_LIST       (1u << 31)
 #define RAGE128_CONFIG_MEMSIZE_MASK 0x03e00000 /* writable bits: 2 MB granularity */
 
 /* Test and debug (RRG: TEST_DEBUG_CNTL, p. 3-129 / PDF 147; RRG:

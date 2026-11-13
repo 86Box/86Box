@@ -782,10 +782,15 @@ rage128_gen_int_update(rage128_t *dev)
    Every vertical blank, vertical sync and vertical line event
    re-evaluates the line as well. Register writes do not sync, so the
    executor's register writes, which come through the same entry, carry
-   no extra test. */
+   no extra test. A bus-master list that a packet started is run here
+   too, before the line is brought up to date, because it can only run
+   on the CPU thread and its end raises BUSMASTER_EOL_INT
+   (vid_ati_rage128_bm.c). */
 void
 rage128_gen_int_sync(rage128_t *dev)
 {
+    if (atomic_load_explicit(&dev->bm_pend_mask, memory_order_relaxed))
+        rage128_bm_sync(dev);
     if (atomic_load_explicit(&dev->gen_int_stale, memory_order_relaxed))
         rage128_gen_int_update(dev);
 }
@@ -1168,6 +1173,9 @@ rage128_reg_read32(rage128_t *dev, uint32_t off)
         /* Hardware-assisted I2C master (vid_ati_rage128_i2c.c). */
         if (rage128_i2c_reg_read(dev, off, &v))
             return v;
+        /* Descriptor-list bus master (vid_ati_rage128_bm.c). */
+        if (rage128_bm_reg_read(dev, off, &v))
+            return v;
     }
 
     /* Read-only copy of PCI configuration space (RRG: Description of
@@ -1223,6 +1231,7 @@ enum {
     RAGE128_WBLK_3D,          /* 3D engine context */
     RAGE128_WBLK_MPEG,        /* MPEG-2 macroblock assist */
     RAGE128_WBLK_I2C,         /* hardware-assisted I2C master */
+    RAGE128_WBLK_BM,          /* descriptor-list bus master */
     RAGE128_WBLK_NONE         /* no block claims the offset */
 };
 
@@ -1246,6 +1255,8 @@ rage128_wblk_write(rage128_t *dev, int blk, uint32_t off, uint32_t val, uint32_t
             return rage128_mpeg_reg_write(dev, off, val, mask);
         case RAGE128_WBLK_I2C:
             return rage128_i2c_reg_write(dev, off, val, mask);
+        case RAGE128_WBLK_BM:
+            return rage128_bm_reg_write(dev, off, val, mask);
         default:
             return 0;
     }
@@ -1702,14 +1713,14 @@ rage128_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
        that does not claim the offset changes nothing. So the owner of an
        offset is found at its first write, by offering that write to the
        blocks in a fixed order (display, overlay, subpicture, 2D, PM4,
-       3D, MPEG, I2C; the first claim wins), and remembered, and later
-       writes go straight to it instead of past every block before it. The 3D
-       context registers, most of a game's command stream, would
-       otherwise reach their handler only after five others. An offset
-       no block claims, the read-only copy of configuration space among
-       them, is remembered as such and the write is dropped. Either
-       thread can find an owner first; both store the same block, so the
-       entries are relaxed atomics. */
+       3D, MPEG, I2C, bus master; the first claim wins), and remembered,
+       and later writes go straight to it instead of past every block
+       before it. The 3D context registers, most of a game's command
+       stream, would otherwise reach their handler only after five
+       others. An offset no block claims, the read-only copy of
+       configuration space among them, is remembered as such and the
+       write is dropped. Either thread can find an owner first; both
+       store the same block, so the entries are relaxed atomics. */
     {
         uint32_t idx = off >> 2;
         int      blk = atomic_load_explicit(&dev->reg_wr_blk[idx], memory_order_relaxed);
@@ -2563,6 +2574,7 @@ rage128_reset(void *priv)
     rage128_3d_reset(dev);
     rage128_mpeg_reset(dev);
     rage128_i2c_reset(dev);
+    rage128_bm_reset(dev);
 
     rage128_vga_decode_update(dev);
 }

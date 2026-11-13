@@ -230,7 +230,7 @@ rage128_cap_bus_read(rage128_t *dev, uint32_t bus_addr, uint32_t val)
         rage128_cap_run_add(dev, bus_addr, val);
 }
 
-static void
+void
 rage128_cap_bus_block(rage128_t *dev, uint32_t bus_addr, const uint8_t *src, uint32_t len)
 {
     if (!dev->cap_file)

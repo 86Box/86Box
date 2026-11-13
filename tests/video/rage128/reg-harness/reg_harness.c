@@ -17407,6 +17407,246 @@ run_i2c909(void)
     vectors_i2c909_maxx();
 }
 
+/* ------------------------------------------------------------------ */
+/* The descriptor-list bus master behind BM_VIP0_BUF to BM_VIP3_BUF
+   (0x0A20, 0x0A30, 0x0A40, 0x0A50). A descriptor is four dwords in a
+   contiguous table: frame buffer offset, physical system address,
+   command (BYTE_COUNT [20:0], INTERRUPT_DIS 27, end of list 31),
+   reserved (SDK: Creating a Descriptor Table, pp. 7-37-7-38 /
+   PDF 207-208; Bus Master supplement, BM_COMMAND, page BM-1). Writing
+   the table address with trigger 0 (system to frame buffer) or 1 (frame
+   buffer to system) starts the list, and the end of the list sets
+   BUSMASTER_EOL_INT, GEN_INT_STATUS bit 16 (SDK: Setting up a System Bus
+   Master Transfer, p. 7-39 / PDF 209). The client sequence is the one in
+   that SDK section: clear BUS_MASTER_DIS, enable the interrupt,
+   acknowledge it, write the table address, poll bit 16. Source bytes
+   are byte i = (i * 7 + 3) & 0xff at 0x00100000; the destination VRAM
+   is filled with 0x5a first. */
+/* ------------------------------------------------------------------ */
+#define BM910_VIP0_BUF  0x0a20u
+#define BM910_VIP1_BUF  0x0a30u
+#define BM910_VIP2_BUF  0x0a40u
+#define BM910_SRC       0x00100000u
+#define BM910_TABLE     0x00110000u
+#define BM910_SYS_OUT   0x00120000u
+#define BM910_FB        0x00200000u
+#define BM910_EOL       0x80000000u
+#define BM910_INT_DIS   0x08000000u
+#define BM910_EOL_INT   0x00010000u
+/* The modeled cap on a list with no end-of-list entry, in entries. */
+#define BM910_MAX_DESC  65536u
+
+static uint8_t
+bm910_pat(uint32_t i)
+{
+    return (uint8_t) ((i * 7u + 3u) & 0xffu);
+}
+
+static uint32_t
+bm910_pat32(uint32_t i)
+{
+    return (uint32_t) bm910_pat(i) | ((uint32_t) bm910_pat(i + 1) << 8)
+        | ((uint32_t) bm910_pat(i + 2) << 16) | ((uint32_t) bm910_pat(i + 3) << 24);
+}
+
+static void
+bm910_desc(uint32_t table, uint32_t n, uint32_t fb, uint32_t sys, uint32_t cmd)
+{
+    uint32_t d[4] = { fb, sys, cmd, 0 };
+
+    memcpy(ram + table + n * 16u, d, sizeof(d));
+}
+
+static uint32_t
+bm910_vram32(rage128_t *dev, uint32_t a)
+{
+    uint32_t v;
+
+    memcpy(&v, dev->svga.vram + a, 4);
+    return v;
+}
+
+static void
+vectors_bm910(rage128_t *dev)
+{
+    uint32_t a, b, c, d;
+    uint64_t off0, stray0;
+    uint8_t  vb[64];
+    uint32_t pkt[2];
+
+    harness_ram_alloc();
+    pci_wr8(0x04, pci_rd8(0x04) | 0x04);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    for (uint32_t i = 0; i < 960; i++)
+        ram[BM910_SRC + i] = bm910_pat(i);
+    memset(dev->svga.vram + BM910_FB, 0x5a, 0x2000);
+    wr(dev, RAGE128_GEN_INT_CNTL, 0);
+    wr(dev, RAGE128_GEN_INT_STATUS, BM910_EOL_INT);
+
+    /* 1-3, 5: one entry of 320 bytes, the end of the list. The write
+       that starts it reads back; the row lands at the frame buffer
+       offset and stops at its byte count; the end sets bit 16. */
+    bm910_desc(BM910_TABLE, 0, BM910_FB, BM910_SRC, 320u | BM910_EOL);
+    wr(dev, BM910_VIP0_BUF, BM910_TABLE);
+    check32("bm 910: VIP0_BUF reads back", rd(dev, BM910_VIP0_BUF), BM910_TABLE);
+    a = bm910_vram32(dev, BM910_FB);
+    b = bm910_vram32(dev, BM910_FB + 316);
+    printf("bm 910: one entry %08x %08x\n", a, b);
+    check_true("bm 910: one entry copies 320 bytes",
+               a == bm910_pat32(0) && b == bm910_pat32(316));
+    check32("bm 910: byte after the row untouched", bm910_vram32(dev, BM910_FB + 320),
+            0x5a5a5a5a);
+    check32("bm 910: end of list sets BUSMASTER_EOL",
+            rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT, BM910_EOL_INT);
+
+    /* 4, 6, 7: three entries, one 320-byte row each at a 640-byte pitch,
+       with the interrupt enabled: INTA rises at the end, and writing 1
+       to BUSMASTER_EOL_INT_AK clears the status and drops INTA. */
+    wr(dev, RAGE128_GEN_INT_STATUS, BM910_EOL_INT);
+    wr(dev, RAGE128_GEN_INT_CNTL, BM910_EOL_INT);
+    for (uint32_t k = 0; k < 3; k++)
+        bm910_desc(BM910_TABLE, k, BM910_FB + 640u * k, BM910_SRC + 320u * k,
+                   320u | (k == 2 ? BM910_EOL : 0));
+    wr(dev, BM910_VIP0_BUF, BM910_TABLE);
+    check32("bm 910: three entries at pitch 640", bm910_vram32(dev, BM910_FB + 1280),
+            bm910_pat32(640));
+    check32("bm 910: enabled EOL raises INTA", (uint32_t) dev->irq_state, 1);
+    wr(dev, RAGE128_GEN_INT_STATUS, BM910_EOL_INT);
+    a = rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT;
+    printf("bm 910: ack %08x irq %u\n", a, dev->irq_state);
+    check_true("bm 910: write 1 acks EOL", a == 0 && dev->irq_state == 0);
+
+    /* 8: two entries, the first without the end-of-list bit, the
+       second with it and INTERRUPT_DIS: no status at any point */
+    bm910_desc(BM910_TABLE, 0, BM910_FB + 0x800, BM910_SRC, 16u);
+    bm910_desc(BM910_TABLE, 1, BM910_FB + 0x810, BM910_SRC + 16, 16u | BM910_EOL | BM910_INT_DIS);
+    wr(dev, BM910_VIP0_BUF, BM910_TABLE);
+    check32("bm 910: no EOL before the last entry",
+            rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT, 0);
+    wr(dev, RAGE128_GEN_INT_CNTL, 0);
+
+    /* 9: the source address bits [1:0] replace the destination's: from
+       system 0x00100001 to frame buffer offset 0x00200402, 8 bytes land
+       at 0x00200401-0x00200408 */
+    bm910_desc(BM910_TABLE, 0, BM910_FB + 0x402, BM910_SRC + 1, 8u | BM910_EOL);
+    wr(dev, BM910_VIP0_BUF, BM910_TABLE);
+    wr(dev, RAGE128_GEN_INT_STATUS, BM910_EOL_INT);
+    a = dev->svga.vram[BM910_FB + 0x401];
+    b = dev->svga.vram[BM910_FB + 0x408];
+    c = dev->svga.vram[BM910_FB + 0x400];
+    d = dev->svga.vram[BM910_FB + 0x409];
+    printf("bm 910: alignment %02x %02x %02x %02x\n", a, b, c, d);
+    check_true("bm 910: source bits [1:0] pick the destination bytes",
+               a == bm910_pat(1) && b == bm910_pat(8) && c == 0x5a && d == 0x5a);
+
+    /* 10: with BUS_CNTL.BUS_MASTER_DIS set nothing moves and the list
+       does not end */
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) | RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    bm910_desc(BM910_TABLE, 0, BM910_FB + 0xe00, BM910_SRC, 64u | BM910_EOL);
+    wr(dev, BM910_VIP0_BUF, BM910_TABLE);
+    a = bm910_vram32(dev, BM910_FB + 0xe00);
+    b = rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT;
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    printf("bm 910: blocked %08x %08x\n", a, b);
+    check_true("bm 910: BUS_MASTER_DIS blocks the list", a == 0x5a5a5a5a && b == 0);
+
+    /* 11: a table with no end-of-list entry within the modeled cap:
+       the walk stops after BM910_MAX_DESC entries without reaching the
+       end-of-list entry placed just past them, reads nothing outside
+       RAM and sets no status */
+    memset(ram + 0x00400000, 0, (size_t) BM910_MAX_DESC * 16u + 16u);
+    bm910_desc(0x00400000, BM910_MAX_DESC, 0, 0, BM910_EOL);
+    stray0 = harness_sysmem_stray;
+    wr(dev, BM910_VIP1_BUF, 0x00400000);
+    a = rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT;
+    check_true("bm 910: list without end stops at the cap", a == 0 && harness_sysmem_stray == stray0);
+
+    /* 12: trigger 8, a VIP read-buffer trigger, stores the value and
+       starts nothing */
+    bm910_desc(BM910_TABLE, 0, BM910_FB + 0xf00, BM910_SRC, 64u | BM910_EOL);
+    wr(dev, BM910_VIP0_BUF, BM910_TABLE | 8u);
+    a = bm910_vram32(dev, BM910_FB + 0xf00);
+    b = rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT;
+    check_true("bm 910: VIP trigger 8 does nothing", a == 0x5a5a5a5a && b == 0);
+
+    /* 12b: only a write that includes byte 0, the trigger byte, starts a
+       list. With trigger 8 stored, a byte write of 0 to byte 0 makes the
+       trigger 0 and the list above runs. Then, with the trigger still 0
+       and the entry aimed at another offset, a word write to the upper
+       half of the register starts nothing. */
+    rage128_mmio_writeb(dev->mmio_base + BM910_VIP0_BUF, 0x00, dev);
+    a = bm910_vram32(dev, BM910_FB + 0xf00);
+    b = rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT;
+    wr(dev, RAGE128_GEN_INT_STATUS, BM910_EOL_INT);
+    bm910_desc(BM910_TABLE, 0, BM910_FB + 0x1e00, BM910_SRC + 4, 64u | BM910_EOL);
+    c = bm910_vram32(dev, BM910_FB + 0x1e00);
+    rage128_mmio_writew(dev->mmio_base + BM910_VIP0_BUF + 2, (uint16_t) (BM910_TABLE >> 16), dev);
+    d = rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT;
+    printf("bm 910: trigger byte %08x %08x, upper half %08x -> %08x %08x\n", a, b, c,
+           bm910_vram32(dev, BM910_FB + 0x1e00), d);
+    check_true("bm 910: a write of the trigger byte starts the list",
+               a == bm910_pat32(0) && b == BM910_EOL_INT);
+    check_true("bm 910: a write without the trigger byte starts nothing",
+               c != bm910_pat32(4) && bm910_vram32(dev, BM910_FB + 0x1e00) == c && d == 0
+                   && rd(dev, BM910_VIP0_BUF) == BM910_TABLE);
+
+    /* 13: trigger 1 on VIP2, frame buffer to system: 64 bytes from VRAM
+       offset 0x00300000 to system 0x00120000 */
+    for (uint32_t i = 0; i < 64; i++)
+        vb[i] = (uint8_t) (i * 13u + 5u);
+    memcpy(dev->svga.vram + 0x00300000, vb, 64);
+    memset(ram + BM910_SYS_OUT, 0, 64);
+    bm910_desc(BM910_TABLE, 0, 0x00300000, BM910_SYS_OUT, 64u | BM910_EOL);
+    wr(dev, BM910_VIP2_BUF, BM910_TABLE | 1u);
+    wr(dev, RAGE128_GEN_INT_STATUS, BM910_EOL_INT);
+    check_true("bm 910: frame->system copies VRAM to memory",
+               memcmp(ram + BM910_SYS_OUT, vb, 64) == 0);
+
+    /* 14: the same start written by a type-0 packet, which runs on the
+       CCE thread: the list runs on the CPU thread at its next register
+       read, and the interrupt line is never driven off the CPU thread */
+    bm910_desc(BM910_TABLE, 0, BM910_FB + 0x1000, BM910_SRC, 64u | BM910_EOL);
+    wr(dev, RAGE128_GEN_INT_STATUS, BM910_EOL_INT);
+    wr(dev, RAGE128_GEN_INT_CNTL, BM910_EOL_INT);
+    rr_reset(dev);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x70000000);
+    wr(dev, RAGE128_PM4_MICRO_CNTL, 0x40000000);
+    off0   = harness_irq_offthread;
+    pkt[0] = BM910_VIP0_BUF >> 2;
+    pkt[1] = BM910_TABLE;
+    pio_submit(dev, pkt, 2);
+    rr_quiesce(dev);
+    a = rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT;
+    b = bm910_vram32(dev, BM910_FB + 0x1000);
+    c = dev->irq_state;
+    printf("bm 910: ring kick %08x %08x irq %u offthread %llu\n", a, b, c,
+           (unsigned long long) (harness_irq_offthread - off0));
+    check_true("bm 910: ring-packet kick runs at the next read",
+               a == BM910_EOL_INT && b == bm910_pat32(0) && c == 1
+                   && harness_irq_offthread == off0);
+    rr_reset(dev);
+    wr(dev, RAGE128_GEN_INT_CNTL, 0);
+
+    /* 15: a chip reset clears the stored table address and the status */
+    wr(dev, BM910_VIP0_BUF, BM910_TABLE);
+    rage128_reset(dev);
+    a = rd(dev, BM910_VIP0_BUF);
+    b = rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT;
+    printf("bm 910: chip reset %08x %08x\n", a, b);
+    check_true("bm 910: reset clears BUF and EOL", a == 0 && b == 0);
+}
+
+static void
+run_bm910(void)
+{
+    rage128_t *dev;
+
+    harness_cfg_memory_mb = 32;
+    dev = rage128_init(&ati_rage128_pro_device);
+    vectors_bm910(dev);
+    close_dev(dev);
+}
+
 static void
 run_amcgpio(void)
 {
@@ -27447,7 +27687,8 @@ vectors_gpu_tuple_reload(void)
 static const char *const shard_units[] = {
     "gpu-tuple-reload", "inline-pace", "agp-oracle",
     "agp-16mb", "pci-xpert128", "pci-variant", "monid-mask", "amcgpio",
-    "maxx", "ddc-edid", "i2c-hw", "vga-decode", "lanegap", "lanegap-16mb", "gpu2d-verify",
+    "maxx", "ddc-edid", "i2c-hw", "bm-vip", "vga-decode", "lanegap", "lanegap-16mb",
+    "gpu2d-verify",
     "x64legs", "synctel", "yuv-border", "texture-alpha", "dither-init",
     "sec-persp", "sec-only", "dst-1555-4444", "zoff-tfog",
     "stipple-fast", "lanegap-expectedfail", "gpu-carry"
@@ -28145,6 +28386,8 @@ main(int argc, char **argv)
         run_ddc_edid();
     if (unit_selected("i2c-hw"))
         run_i2c909();
+    if (unit_selected("bm-vip"))
+        run_bm910();
     if (unit_selected("vga-decode"))
         run_vga_decode();
     if (unit_selected("lanegap"))

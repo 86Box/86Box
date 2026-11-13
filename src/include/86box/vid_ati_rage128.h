@@ -334,6 +334,23 @@ typedef struct rage128_t {
     uint32_t gui_debug0;
     uint32_t pc_gui_mode;
     uint32_t bm_chunk_val[2];
+    /* Descriptor-list bus master (vid_ati_rage128_bm.c). bm_buf holds
+       BM_VIP0_BUF to BM_VIP3_BUF, bm_vidcap BM_VIDCAP_BUF0 to
+       BM_VIDCAP_BUF2 and BM_VIDCAP_ACTIVE, bm_gui BM_GUI. A ring packet
+       can write these registers on the CCE thread, so every stored value
+       is an atomic. A start written by a packet is not run there: its
+       register value goes to bm_pend_val and its channel bit to
+       bm_pend_mask, and the CPU thread runs it (rage128_bm_sync).
+       bm_kicks, bm_logged and bm_running (set while a list runs) belong
+       to the CPU thread. */
+    atomic_uint bm_buf[4];
+    atomic_uint bm_vidcap[4];
+    atomic_uint bm_gui;
+    atomic_uint bm_pend_val[4];
+    atomic_uint bm_pend_mask;
+    uint32_t    bm_kicks;
+    uint32_t    bm_logged;
+    int         bm_running;
 
     /* Display block: PLL register file (vid_ati_rage128_display.c). */
     uint32_t pll_regs[0x20];      /* PLL_ADDR is 5 bits; defined 0x01-0x13 */
@@ -1972,6 +1989,10 @@ typedef struct r3d_texctx_t {
 extern void rage128_raster_state_capture(rage128_t *dev, rage128_raster_state_t *rs);
 /* Staging helpers (vid_ati_rage128_pm4.c / vid_ati_rage128_raster.c). */
 extern int rage128_pm4_bus_read_block(rage128_t *dev, uint32_t vm, uint8_t *dst, uint32_t len);
+/* Record a block of bytes the device read from the bus as a B record of
+   the command-stream capture, so a replay serves the same read. */
+extern void rage128_cap_bus_block(rage128_t *dev, uint32_t bus_addr, const uint8_t *src,
+                                  uint32_t len);
 extern int rage128_raster_nthreads(rage128_t *dev);
 /* Command-stream scratch writes held behind a deferred batch
    (vid_ati_rage128_pm4.c): hold one, apply them once the batch has been
@@ -2211,6 +2232,12 @@ extern int  rage128_mpeg_reg_write(rage128_t *dev, uint32_t off, uint32_t val,
 extern int  rage128_mpeg_packet3(rage128_t *dev, uint32_t hdr, const uint32_t *pl,
                                  uint32_t count);
 extern void rage128_mpeg_reset(rage128_t *dev);
+
+/* vid_ati_rage128_bm.c: descriptor-list bus master. */
+extern void rage128_bm_reset(rage128_t *dev);
+extern void rage128_bm_sync(rage128_t *dev);
+extern int  rage128_bm_reg_read(rage128_t *dev, uint32_t off, uint32_t *val);
+extern int  rage128_bm_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask);
 
 /* vid_ati_rage128_i2c.c: hardware-assisted I2C master. */
 extern void rage128_i2c_init(rage128_t *dev);
