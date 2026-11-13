@@ -217,6 +217,7 @@ opMOV_CRx_r_a16(uint32_t fetchdat)
             cr0 = new_cr0;
             if (cpu_16bitbus)
                 cr0 |= 0x10;
+            cpu_cur_status = (cpu_cur_status & ~CPU_STATUS_NOCACHE) | ((cr0 & (1 << 30)) ? CPU_STATUS_NOCACHE : 0);
             if (hascache && !(cr0 & (1 << 30)))
                 cpu_cache_int_enabled = 1;
             else
@@ -314,6 +315,7 @@ opMOV_CRx_r_a32(uint32_t fetchdat)
             cr0 = new_cr0;
             if (cpu_16bitbus)
                 cr0 |= 0x10;
+            cpu_cur_status = (cpu_cur_status & ~CPU_STATUS_NOCACHE) | ((cr0 & (1 << 30)) ? CPU_STATUS_NOCACHE : 0);
             if (hascache && !(cr0 & (1 << 30)))
                 cpu_cache_int_enabled = 1;
             else

@@ -12,11 +12,13 @@
 #    include "x87_sf.h"
 #    include "x87.h"
 #    include "386_common.h"
+#    include "x86_flags.h"
 #    include "codegen.h"
 #    include "codegen_backend.h"
 #    include "codegen_backend_arm64_defs.h"
 #    include "codegen_backend_arm64_ops.h"
 #    include "codegen_ir_defs.h"
+#    include "codegen_ir.h"
 
 #    define OFFSET19(offset)  (((offset >> 2) << 5) & 0x00ffffe0)
 
@@ -215,11 +217,7 @@ codegen_ANDN(codeblock_t *block, uop_t *uop)
 static void
 codegen_exit_add(codeblock_t *block, int add)
 {
-    const int offset = (uintptr_t) &cpu_state._cycles - (uintptr_t) &cpu_state;
-
-    host_arm64_LDR_IMM_W(block, REG_TEMP, REG_CPUSTATE, offset);
-    host_arm64_ADD_IMM(block, REG_TEMP, REG_TEMP, add);
-    host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, offset);
+    host_arm64_ADD_IMM(block, REG_CYCLES, REG_CYCLES, add);
 }
 
 static void
@@ -238,6 +236,7 @@ typedef struct lazy_stub_t {
     void                      *route;
     int                        add;
     void                      *addr;
+    int                        link; /*Leaves through a link exit of its own*/
 } lazy_stub_t;
 
 static lazy_stub_t lazy_stubs[CODEGEN_LAZY_SITES_MAX];
@@ -256,12 +255,25 @@ codegen_lazy_exit(uop_t *uop, uint32_t *patch, void *route)
     stub->list  = codegen_lazy_site;
     stub->route = route;
     stub->add   = uop->imm_data2;
+    stub->link  = 0;
 }
+
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+/*A block exit taken on one way of a branch (codegen_ir_compile's lazy
+  branch exits): the stub makes the stores, then links as the exit would
+  have, through a slot of its own*/
+static void
+codegen_lazy_exit_link(uop_t *uop, uint32_t *patch)
+{
+    codegen_lazy_exit(uop, patch, codegen_exit_rout);
+    lazy_stubs[nr_lazy_stubs - 1].link = 1;
+}
+#    endif
 
 static int
 lazy_stubs_match(const lazy_stub_t *a, const lazy_stub_t *b)
 {
-    if ((a->route != b->route) || (a->add != b->add) || (a->list->nr != b->list->nr))
+    if (a->link || b->link || (a->route != b->route) || (a->add != b->add) || (a->list->nr != b->list->nr))
         return 0;
     for (int i = 0; i < a->list->nr; i++) {
         const codegen_lazy_store_t *sa = &a->list->stores[i];
@@ -273,9 +285,180 @@ lazy_stubs_match(const lazy_stub_t *a, const lazy_stub_t *b)
     return 1;
 }
 
+/*A byte, word or dword load done in the block when the read lookup maps an
+  aligned address (codegen_MEM_LOAD_REG); the rest goes through the load routine,
+  from a stub after the block's code, which leaves on a fault as the uop
+  would have there and comes back to the instruction after the load*/
+#define LOAD_STUBS_MAX 64
+static void codegen_exit_CBNZ(codeblock_t *block, uop_t *uop, int reg, void *route);
+typedef struct load_stub_t {
+    uint32_t                  *patch;
+    uint8_t                   *ret;
+    const codegen_lazy_list_t *list;
+    int                        add;
+    int                        dest_reg;
+    int                        dest_size;
+    int                        addr_reg; /*-1 if the address is in W0 already*/
+} load_stub_t;
+
+/*The loaded value, in W0 (W17 inline), into the destination as the size says*/
+static void
+codegen_load_result(codeblock_t *block, int dest_reg, int dest_size, int src)
+{
+    if (REG_IS_B(dest_size))
+        host_arm64_BFI(block, dest_reg, src, 0, 8);
+    else if (REG_IS_BH(dest_size))
+        host_arm64_BFI(block, dest_reg, src, 8, 8);
+    else if (REG_IS_W(dest_size))
+        host_arm64_BFI(block, dest_reg, src, 0, 16);
+    else
+        host_arm64_MOV_REG(block, dest_reg, src, 0);
+}
+static load_stub_t load_stubs[LOAD_STUBS_MAX];
+static int         nr_load_stubs;
+
+/*A second page's walk (UOP_FETCH_WALK), out of line: it only runs with
+  paging on*/
+typedef struct walk_stub_t {
+    uint32_t                  *patch;
+    uint8_t                   *ret;
+    const codegen_lazy_list_t *list;
+    int                        add;
+    uint32_t                   addr;
+} walk_stub_t;
+#define WALK_STUBS_MAX 4
+static walk_stub_t walk_stubs[WALK_STUBS_MAX];
+static int         nr_walk_stubs;
+
+static void
+codegen_walk_stubs_emit(codeblock_t *block)
+{
+    for (int i = 0; i < nr_walk_stubs; i++) {
+        walk_stub_t               *stub  = &walk_stubs[i];
+        const codegen_lazy_list_t *saved = codegen_lazy_site;
+        uop_t                      fault = { 0 };
+
+        codegen_alloc(block, 4);
+        host_arm64_branch_set_offset(stub->patch, &block_write_data[block_pos]);
+        /*The page found present at this ring since the last flush
+          (mmutranslate_fetch()): no walk. Its entry less the key for rings
+          0-2 is 0 for those and 1 for ring 3, which (CPL + 1) >> 2 is*/
+        codegen_alloc(block, 48);
+        host_arm64_LDRB_IMM_W(block, REG_W16, REG_CPUSTATE, (uintptr_t) &cpu_state.seg_cs.access - (uintptr_t) &cpu_state);
+        host_arm64_UBFX(block, REG_W16, REG_W16, 5, 2);
+        host_arm64_ADD_IMM(block, REG_W16, REG_W16, 1);
+        host_arm64_MOV_REG_LSR(block, REG_W16, REG_W16, 2);
+        host_arm64_MOVX_IMM(block, REG_X17, (uint64_t) (uintptr_t) &fetch_walk_key[(stub->addr >> 12) & (FETCH_WALK_ENTRIES - 1)]);
+        host_arm64_LDR_IMM_W(block, REG_W17, REG_X17, 0);
+        host_arm64_mov_imm(block, REG_W0, ((stub->addr >> 12) << 1) + 1);
+        host_arm64_SUB_REG(block, REG_W17, REG_W17, REG_W0, 0);
+        host_arm64_CMP_REG(block, REG_W17, REG_W16);
+        host_arm64_branch_set_offset(host_arm64_BEQ_(block), stub->ret);
+        host_arm64_mov_imm(block, REG_W0, stub->addr);
+        host_arm64_call(block, (void *) dynarec_fetch_walk);
+        /*An int: its upper half is not the callee's to clear*/
+        host_arm64_MOV_REG(block, REG_W0, REG_W0, 0);
+        fault.imm_data2   = stub->add;
+        codegen_lazy_site = (codegen_lazy_list_t *) stub->list;
+        codegen_exit_CBNZ(block, &fault, REG_X0, codegen_exit_rout);
+        codegen_lazy_site = (codegen_lazy_list_t *) saved;
+        host_arm64_B(block, stub->ret);
+    }
+    nr_walk_stubs = 0;
+}
+
+static void
+codegen_load_stubs_emit(codeblock_t *block)
+{
+    for (int i = 0; i < nr_load_stubs; i++) {
+        load_stub_t               *stub  = &load_stubs[i];
+        const codegen_lazy_list_t *saved = codegen_lazy_site;
+        uop_t                      fault = { 0 };
+
+        codegen_alloc(block, 4);
+        host_arm64_branch_set_offset(stub->patch, &block_write_data[block_pos]);
+        if (stub->addr_reg != -1)
+            host_arm64_MOV_REG(block, REG_W0, stub->addr_reg, 0);
+        if (REG_IS_B(stub->dest_size) || REG_IS_BH(stub->dest_size))
+            host_arm64_call(block, codegen_mem_load_byte);
+        else if (REG_IS_W(stub->dest_size))
+            host_arm64_call(block, codegen_mem_load_word);
+        else
+            host_arm64_call(block, codegen_mem_load_long);
+        fault.imm_data2   = stub->add;
+        codegen_lazy_site = (codegen_lazy_list_t *) stub->list;
+        codegen_exit_CBNZ(block, &fault, REG_X1, codegen_exit_rout);
+        codegen_lazy_site = (codegen_lazy_list_t *) saved;
+        codegen_load_result(block, stub->dest_reg, stub->dest_size, REG_W0);
+        host_arm64_B(block, stub->ret);
+    }
+    nr_load_stubs = 0;
+}
+
+/*A byte, word or dword store done in the block when the write lookup maps
+  an aligned address, as the store routine's fast path does
+  (codegen_store_inline()); the rest goes through that routine, from a stub
+  after the block's code, which leaves on a fault as the uop would have
+  there and comes back to the instruction after the store*/
+#define STORE_STUBS_MAX 64
+typedef struct store_stub_t {
+    uint32_t                  *patch;
+    uint8_t                   *ret;
+    const codegen_lazy_list_t *list;
+    int                        add;
+    int                        size;      /*1, 2 or 4*/
+    int                        data_reg;  /*-1: the data is imm*/
+    int                        data_high; /*the data is bits 8-15 of data_reg*/
+    uint32_t                   imm;
+    int                        addr_reg;  /*-1 if the address is in W0 already*/
+} store_stub_t;
+static store_stub_t store_stubs[STORE_STUBS_MAX];
+static int          nr_store_stubs;
+
+static void
+codegen_store_stubs_emit(codeblock_t *block)
+{
+    for (int i = 0; i < nr_store_stubs; i++) {
+        store_stub_t              *stub  = &store_stubs[i];
+        const codegen_lazy_list_t *saved = codegen_lazy_site;
+        uop_t                      fault = { 0 };
+
+        codegen_alloc(block, 4);
+        host_arm64_branch_set_offset(stub->patch, &block_write_data[block_pos]);
+        if (stub->addr_reg != -1)
+            host_arm64_MOV_REG(block, REG_W0, stub->addr_reg, 0);
+        /*W1 = the data, as the routine's callers give it*/
+        if (stub->data_reg < 0)
+            host_arm64_mov_imm(block, REG_W1, stub->imm);
+        else if (stub->data_high)
+            host_arm64_UBFX(block, REG_W1, stub->data_reg, 8, 8);
+        else if (stub->size == 1)
+            host_arm64_AND_IMM(block, REG_W1, stub->data_reg, 0xff);
+        else if (stub->size == 2)
+            host_arm64_AND_IMM(block, REG_W1, stub->data_reg, 0xffff);
+        else
+            host_arm64_MOV_REG(block, REG_W1, stub->data_reg, 0);
+        if (stub->size == 1)
+            host_arm64_call(block, codegen_mem_store_slow_byte);
+        else if (stub->size == 2)
+            host_arm64_call(block, codegen_mem_store_slow_word);
+        else
+            host_arm64_call(block, codegen_mem_store_slow_long);
+        fault.imm_data2   = stub->add;
+        codegen_lazy_site = (codegen_lazy_list_t *) stub->list;
+        codegen_exit_CBNZ(block, &fault, REG_X1, codegen_exit_rout);
+        codegen_lazy_site = (codegen_lazy_list_t *) saved;
+        host_arm64_B(block, stub->ret);
+    }
+    nr_store_stubs = 0;
+}
+
 void
 codegen_lazy_stubs_emit(codeblock_t *block)
 {
+    codegen_load_stubs_emit(block);
+    codegen_store_stubs_emit(block);
+    codegen_walk_stubs_emit(block);
     for (int i = 0; i < nr_lazy_stubs; i++) {
         lazy_stub_t *stub = &lazy_stubs[i];
         int          j;
@@ -286,6 +469,16 @@ codegen_lazy_stubs_emit(codeblock_t *block)
         }
         if (j < i)
             stub->addr = lazy_stubs[j].addr;
+#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+        else if (stub->link) {
+            codegen_alloc(block, 4);
+            stub->addr = &block_write_data[block_pos];
+            codegen_reg_lazy_stores(block, stub->list);
+            if (stub->add)
+                codegen_exit_add(block, stub->add);
+            codegen_link_exit(block);
+        }
+#    endif
         else {
             void *dest = codegen_exit_dest(stub->route, stub->add);
 
@@ -1307,13 +1500,9 @@ codegen_FP_ENTER(codeblock_t *block, uop_t *uop)
 
     host_arm64_mov_imm(block, REG_TEMP, uop->imm_data);
     host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state.oldpc - (uintptr_t) &cpu_state);
-    /*The cycles accumulated so far, charged on this exit only (the uop is an
-      order barrier, so cycles is in memory)*/
-    if (uop->imm_data2) {
-        host_arm64_LDR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state._cycles - (uintptr_t) &cpu_state);
-        host_arm64_ADD_IMM(block, REG_TEMP, REG_TEMP, uop->imm_data2);
-        host_arm64_STR_IMM_W(block, REG_TEMP, REG_CPUSTATE, (uintptr_t) &cpu_state._cycles - (uintptr_t) &cpu_state);
-    }
+    /*The cycles accumulated so far, charged on this exit only*/
+    if (uop->imm_data2)
+        host_arm64_ADD_IMM(block, REG_CYCLES, REG_CYCLES, uop->imm_data2);
     host_arm64_mov_imm(block, REG_ARG0, 7);
     host_arm64_call(block, x86_int);
     host_arm64_B(block, codegen_exit_rout);
@@ -1373,8 +1562,28 @@ codegen_JMP(codeblock_t *block, uop_t *uop)
       writes registers back), so it can link like the block's end. Fault
       paths reach codegen_exit_rout by conditional branches instead.*/
     if (codegen_block_link && (uop->p == codegen_exit_rout)) {
+        /*A lazy branch exit (codegen_ir_compile): its stores and link exit
+          out of line*/
+        if (codegen_lazy_site && codegen_lazy_site->nr) {
+            codegen_alloc(block, 4);
+            codegen_lazy_exit_link(uop, host_arm64_B_(block));
+            return 0;
+        }
         if (uop->imm_data2)
             codegen_exit_add(block, uop->imm_data2);
+        /*The uop before set pc to a constant, and nothing jumps here past it;
+          or the JMP's own write did (CODEGEN_META_PC), after any join*/
+        {
+            const ir_data_t *ir   = codegen_get_ir_data();
+            const uop_t     *prev = (codegen_ir_uop_nr > 0) ? &ir->uops[codegen_ir_uop_nr - 1] : NULL;
+
+            if ((uop->meta_ev & CODEGEN_META_EV_PC) ||
+                (prev && !codegen_ir_uop_is_dest && ((prev->type & UOP_MASK) == (UOP_MOV_IMM & UOP_MASK)) &&
+                 (prev->dest_reg_a.reg == IREG_pc))) {
+                codegen_link_exit_direct(block);
+                return 0;
+            }
+        }
         codegen_link_exit(block);
         return 0;
     }
@@ -1397,6 +1606,8 @@ codegen_LOAD_FUNC_ARG0(codeblock_t *block, uop_t *uop)
 
     if (REG_IS_W(src_size)) {
         host_arm64_AND_IMM(block, REG_ARG0, src_reg, 0xffff);
+    } else if (REG_IS_L(src_size)) {
+        host_arm64_MOV_REG(block, REG_ARG0, src_reg, 0);
     } else
         fatal("codegen_LOAD_FUNC_ARG0 %02x\n", uop->src_reg_a_real);
 
@@ -1459,10 +1670,102 @@ codegen_LOAD_SEG(codeblock_t *block, uop_t *uop)
     if (!REG_IS_W(src_size))
         fatal("LOAD_SEG %02x %p\n", uop->src_reg_a_real, uop->p);
 
+    x86seg   *seg = (x86seg *) uop->p;
+    uint32_t *slow[10];
+    uint32_t *done = NULL;
+    int       nr_slow = 0;
+
+    /*In protected mode (fixed for the block, CPU_STATUS_PMODE and V86), a
+      DS, ES, FS or GS load whose descriptor loadseg() has in its cache, as
+      it is now: the cached register copied as loadseg() would, checked as
+      its first test does (the selector, the table's limit, one read
+      through the page's lookup, the CPL, the accessed bit set). Anything
+      else calls it.*/
+    if (((block->status & (CPU_STATUS_PMODE | CPU_STATUS_V86)) == CPU_STATUS_PMODE) &&
+        ((seg == &cpu_state.seg_ds) || (seg == &cpu_state.seg_es) || (seg == &cpu_state.seg_fs) || (seg == &cpu_state.seg_gs)) &&
+        !cpu_16bitbus && is486 && !israpidcad) {
+        const int seg_off = (int) ((uintptr_t) seg - (uintptr_t) &cpu_state);
+        uint32_t *use_gdt;
+
+        _Static_assert(offsetof(x86seg, base) == 0 && offsetof(x86seg, limit) == 4 && offsetof(x86seg, access) == 8 &&
+                       offsetof(x86seg, limit_low) == 12 && offsetof(x86seg, limit_high) == 16 && offsetof(x86seg, checked) == 20,
+                       "x86seg copied as five words");
+        _Static_assert(offsetof(seg_load_cache_t, seg) == 8 && offsetof(seg_load_cache_t, cpl) == 10 && offsetof(seg_load_cache_t, valid) == 11,
+                       "seg, cpl and valid read as one word");
+        codegen_alloc(block, 300);
+        host_arm64_AND_IMM(block, REG_W0, src_reg, 0xffff);
+        host_arm64_TST_IMM(block, REG_W0, 0xfffc);
+        slow[nr_slow++] = host_arm64_BEQ_SHORT_(block);
+        /*X1 = the table, W3 = the descriptor's address*/
+        host_arm64_MOVX_IMM(block, REG_X1, (uint64_t) (uintptr_t) &gdt);
+        use_gdt = host_arm64_TBZ_SHORT_(block, REG_W0, 2);
+        host_arm64_MOVX_IMM(block, REG_X1, (uint64_t) (uintptr_t) &ldt);
+        host_arm64_short_branch_set_offset(use_gdt, &block_write_data[block_pos]);
+        host_arm64_AND_IMM(block, REG_W3, REG_W0, 0xfff8);
+        host_arm64_LDR_IMM_W(block, REG_W4, REG_X1, offsetof(x86seg, limit));
+        host_arm64_ADD_IMM(block, REG_W5, REG_W3, 7);
+        host_arm64_CMP_REG(block, REG_W5, REG_W4);
+        slow[nr_slow++] = host_arm64_BHI_SHORT_(block);
+        host_arm64_LDR_IMM_W(block, REG_W4, REG_X1, offsetof(x86seg, base));
+        host_arm64_ADD_REG(block, REG_W3, REG_W3, REG_W4, 0);
+        host_arm64_AND_IMM(block, REG_W4, REG_W3, 0xfff);
+        host_arm64_CMP_IMM(block, REG_W4, 0xff8);
+        slow[nr_slow++] = host_arm64_BHI_SHORT_(block);
+        /*X6 = the descriptor*/
+        host_arm64_MOV_REG_LSR(block, REG_W4, REG_W3, 12);
+        host_arm64_MOVX_IMM(block, REG_X5, (uint64_t) (uintptr_t) readlookup2);
+        host_arm64_LDRX_REG_LSL3(block, REG_X5, REG_X5, REG_X4);
+        host_arm64_CMPX_IMM(block, REG_X5, -1);
+        slow[nr_slow++] = host_arm64_BEQ_SHORT_(block);
+        host_arm64_ADDX_REG_UXTW(block, REG_X5, REG_X5, REG_W3);
+        host_arm64_LDR_IMM_X(block, REG_X6, REG_X5, 0);
+        /*X5 = the cache entry*/
+        host_arm64_UBFX(block, REG_W4, REG_W0, 3, 9);
+        host_arm64_MOVX_IMM(block, REG_X5, (uint64_t) (uintptr_t) seg_load_cache);
+        host_arm64_ADDX_REG(block, REG_X5, REG_X5, REG_X4, 6);
+        host_arm64_LDR_IMM_X(block, REG_X7, REG_X5, offsetof(seg_load_cache_t, raw));
+        host_arm64_CMPX_REG(block, REG_X7, REG_X6);
+        slow[nr_slow++] = host_arm64_BNE_SHORT_(block);
+        slow[nr_slow++] = host_arm64_TBZ_SHORT_(block, REG_X6, 40); /*accessed*/
+        /*seg | CPL << 16 | valid << 24*/
+        host_arm64_LDRB_IMM_W(block, REG_W4, REG_CPUSTATE, (int) ((uintptr_t) &cpu_state.seg_cs.access - (uintptr_t) &cpu_state));
+        host_arm64_UBFX(block, REG_W4, REG_W4, 5, 2);
+        host_arm64_ORR_REG(block, REG_W4, REG_W0, REG_W4, 16);
+        host_arm64_ORR_IMM(block, REG_W4, REG_W4, 0x01000000);
+        host_arm64_LDR_IMM_W(block, REG_W7, REG_X5, offsetof(seg_load_cache_t, seg));
+        host_arm64_CMP_REG(block, REG_W7, REG_W4);
+        slow[nr_slow++] = host_arm64_BNE_SHORT_(block);
+        /*The register, up to checked, and checked 0*/
+        for (int c = 0; c < 20; c += 4) {
+            host_arm64_LDR_IMM_W(block, REG_W6, REG_X5, offsetof(seg_load_cache_t, state) + c);
+            host_arm64_STR_IMM_W(block, REG_W6, REG_CPUSTATE, seg_off + c);
+        }
+        host_arm64_STR_IMM_W(block, REG_WZR, REG_CPUSTATE, seg_off + offsetof(x86seg, checked));
+        /*cpu_cur_status: NOTFLATDS and NOTWIDEDS for DS, NOTFLATES for ES*/
+        if ((seg == &cpu_state.seg_ds) || (seg == &cpu_state.seg_es)) {
+            const int is_ds = (seg == &cpu_state.seg_ds);
+
+            host_arm64_MOVX_IMM(block, REG_X4, (uint64_t) (uintptr_t) &cpu_cur_status);
+            host_arm64_LDRH_IMM(block, REG_W6, REG_X4, 0);
+            host_arm64_AND_IMM(block, REG_W6, REG_W6, is_ds ? ~(uint32_t) (CPU_STATUS_NOTFLATDS | CPU_STATUS_NOTWIDEDS) : ~(uint32_t) CPU_STATUS_NOTFLATES);
+            host_arm64_LDRB_IMM_W(block, REG_W7, REG_X5, offsetof(seg_load_cache_t, notflat));
+            host_arm64_ORR_REG(block, REG_W6, REG_W6, REG_W7, is_ds ? 8 : 10);
+            if (is_ds) {
+                host_arm64_LDRB_IMM_W(block, REG_W7, REG_X5, offsetof(seg_load_cache_t, notwide));
+                host_arm64_ORR_REG(block, REG_W6, REG_W6, REG_W7, 11);
+            }
+            host_arm64_STRH_IMM(block, REG_W6, REG_X4, 0);
+        }
+        done = host_arm64_B_(block);
+        for (int c = 0; c < nr_slow; c++)
+            host_arm64_short_branch_set_offset(slow[c], &block_write_data[block_pos]);
+    }
     host_arm64_MOVX_IMM(block, REG_ARG1, (uint64_t) uop->p);
     host_arm64_AND_IMM(block, REG_ARG0, src_reg, 0xffff);
     host_arm64_call(block, (void *) loadseg);
     codegen_exit_CBNZ(block, uop, REG_X0, codegen_exit_rout);
+    if (done)
+        host_arm64_branch_set_offset(done, &block_write_data[block_pos]);
 
     return 0;
 }
@@ -1521,19 +1824,95 @@ codegen_MEM_LOAD_REG_EA(codeblock_t *block, uop_t *uop)
 
     return 0;
 }
+/*W0 = the address of a MEM_LOAD_REG, MEM_STORE_REG or MEM_STORE_IMM_x: with
+  no seg_reg (a flat segment, uop_gen_mem_load()) the linear one*/
+static void
+codegen_mem_address(codeblock_t *block, uop_t *uop, int addr_reg, int with_imm)
+{
+    if (ir_reg_is_invalid(uop->src_reg_a)) {
+        if (with_imm && uop->imm_data)
+            host_arm64_ADD_IMM(block, REG_W0, addr_reg, uop->imm_data);
+        else
+            host_arm64_MOV_REG(block, REG_W0, addr_reg, 0);
+    } else {
+        host_arm64_ADD_REG(block, REG_W0, HOST_REG_GET(uop->src_reg_a_real), addr_reg, 0);
+        if (with_imm && uop->imm_data)
+            host_arm64_ADD_IMM(block, REG_X0, REG_X0, uop->imm_data);
+    }
+}
+
+static int
+codegen_FETCH_WALK(codeblock_t *block, uop_t *uop)
+{
+    if (nr_walk_stubs == WALK_STUBS_MAX) {
+        const codegen_lazy_list_t *saved = codegen_lazy_site;
+
+        host_arm64_mov_imm(block, REG_W0, uop->imm_data);
+        host_arm64_call(block, (void *) dynarec_fetch_walk);
+        host_arm64_MOV_REG(block, REG_W0, REG_W0, 0);
+        codegen_exit_CBNZ(block, uop, REG_X0, codegen_exit_rout);
+        codegen_lazy_site = (codegen_lazy_list_t *) saved;
+        return 0;
+    }
+    walk_stub_t *stub = &walk_stubs[nr_walk_stubs++];
+
+    /*CR0.PG*/
+    host_arm64_LDR_IMM_W(block, REG_W16, REG_CPUSTATE, (uintptr_t) &cpu_state.CR0.l - (uintptr_t) &cpu_state);
+    host_arm64_TST_IMM(block, REG_W16, 0x80000000);
+    stub->patch = host_arm64_BNE_(block);
+    stub->ret   = &block_write_data[block_pos];
+    stub->list  = codegen_lazy_site;
+    stub->add   = uop->imm_data2;
+    stub->addr  = uop->imm_data;
+    return 0;
+}
+
 static int
 codegen_MEM_LOAD_REG(codeblock_t *block, uop_t *uop)
 {
     int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
-    int seg_reg   = HOST_REG_GET(uop->src_reg_a_real);
     int addr_reg  = HOST_REG_GET(uop->src_reg_b_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    /*A flat segment's address with nothing added is used where it is*/
+    int direct    = ir_reg_is_invalid(uop->src_reg_a) && !uop->imm_data && !uop->is_a16;
+    int addr      = direct ? addr_reg : REG_W0;
 
-    host_arm64_ADD_REG(block, REG_X0, seg_reg, addr_reg, 0);
-    if (uop->imm_data)
-        host_arm64_ADD_IMM(block, REG_X0, REG_X0, uop->imm_data);
-    if (uop->is_a16)
-        host_arm64_AND_IMM(block, REG_X0, REG_X0, 0xffff);
+    if (!direct) {
+        codegen_mem_address(block, uop, addr_reg, 1);
+        if (uop->is_a16)
+            host_arm64_AND_IMM(block, REG_X0, REG_X0, 0xffff);
+    }
+    if ((REG_IS_L(dest_size) || REG_IS_W(dest_size) || REG_IS_B(dest_size) || REG_IS_BH(dest_size)) && (nr_load_stubs < LOAD_STUBS_MAX)) {
+        load_stub_t *stub = &load_stubs[nr_load_stubs++];
+
+        /*X16 = readlookup2[addr >> 12]; misaligned or unmapped (-1) is Z*/
+        host_arm64_MOV_REG_LSR(block, REG_W16, addr, 12);
+        host_arm64_LDRX_REG_LSL3(block, REG_X16, REG_LOOKUP, REG_X16);
+        if (REG_IS_L(dest_size) || REG_IS_W(dest_size)) {
+            host_arm64_TST_IMM(block, addr, REG_IS_L(dest_size) ? 3 : 1);
+            host_arm64_CCMNX_IMM_EQ(block, REG_X16, 1, 4 /*Z*/);
+        } else
+            host_arm64_CMNX_IMM(block, REG_X16, 1);
+        stub->patch    = host_arm64_BEQ_(block);
+        stub->addr_reg = direct ? addr_reg : -1;
+        if (REG_IS_L(dest_size))
+            host_arm64_LDR_REG_UXTW(block, dest_reg, REG_X16, addr);
+        else {
+            if (REG_IS_W(dest_size))
+                host_arm64_LDRH_REG_UXTW(block, REG_W17, REG_X16, addr);
+            else
+                host_arm64_LDRB_REG_UXTW(block, REG_W17, REG_X16, addr);
+            codegen_load_result(block, dest_reg, dest_size, REG_W17);
+        }
+        stub->ret       = &block_write_data[block_pos];
+        stub->list      = codegen_lazy_site;
+        stub->add       = uop->imm_data2;
+        stub->dest_reg  = dest_reg;
+        stub->dest_size = dest_size;
+        return 0;
+    }
+    if (direct)
+        host_arm64_MOV_REG(block, REG_W0, addr_reg, 0);
     if (REG_IS_B(dest_size) || REG_IS_BH(dest_size)) {
         host_arm64_call(block, codegen_mem_load_byte);
     } else if (REG_IS_W(dest_size)) {
@@ -1600,6 +1979,82 @@ codegen_MEM_LOAD_SINGLE(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*The store routine's fast path in the block: X16 = writelookup2[addr >> 12],
+  the data stored through it when the address is aligned and mapped (not
+  -1), as the routine stores it; anything else goes to a stub that calls the
+  routine (codegen_store_stubs_emit()). writelookup2 is read from REG_LOOKUP
+  when it lies a whole number of 4K entries before or after readlookup2,
+  both static arrays (the 64-bit index wraps), else from its address. 0 if
+  no stub is free: the caller calls the routine itself*/
+static int
+codegen_store_inline(codeblock_t *block, uop_t *uop, int addr, int direct_reg, int size, int data_reg, int data_high, uint32_t imm)
+{
+    const intptr_t delta = ((intptr_t) (uintptr_t) writelookup2 - (intptr_t) (uintptr_t) readlookup2) / (intptr_t) sizeof(uintptr_t);
+    store_stub_t  *stub;
+    int            src = data_reg;
+
+    /*Not a byte store: code is patched a byte at a time (int_smc_ram_top),
+      and a store to a page holding code always misses the write lookup,
+      where the stub's way to the tracked path costs two more taken branches
+      than the routine's own. Word and dword stores mostly write data*/
+    if ((size == 1) || (nr_store_stubs == STORE_STUBS_MAX))
+        return 0;
+    stub = &store_stubs[nr_store_stubs++];
+
+    /*X16 = writelookup2[addr >> 12]; misaligned or unmapped (-1) is Z*/
+    host_arm64_MOV_REG_LSR(block, REG_W16, addr, 12);
+    if ((delta > 0) && !(delta & 0xfff) && !(delta & ~(intptr_t) 0xfff000)) {
+        host_arm64_ADDX_IMM(block, REG_X16, REG_X16, (uint64_t) delta);
+        host_arm64_LDRX_REG_LSL3(block, REG_X16, REG_LOOKUP, REG_X16);
+    } else if ((delta < 0) && !(-delta & 0xfff) && !(-delta & ~(intptr_t) 0xfff000)) {
+        host_arm64_SUBX_IMM_LSL12(block, REG_X16, REG_X16, (uint64_t) -delta);
+        host_arm64_LDRX_REG_LSL3(block, REG_X16, REG_LOOKUP, REG_X16);
+    } else {
+        host_arm64_MOVX_IMM(block, REG_X17, (uint64_t) (uintptr_t) writelookup2);
+        host_arm64_LDRX_REG_LSL3(block, REG_X16, REG_X17, REG_X16);
+    }
+    if (size > 1) {
+        host_arm64_TST_IMM(block, addr, size - 1);
+        host_arm64_CCMNX_IMM_EQ(block, REG_X16, 1, 4 /*Z*/);
+    } else
+        host_arm64_CMNX_IMM(block, REG_X16, 1);
+    stub->patch = host_arm64_BEQ_(block);
+    if (data_reg < 0) {
+        host_arm64_mov_imm(block, REG_W17, imm);
+        src = REG_W17;
+    } else if (data_high) {
+        host_arm64_UBFX(block, REG_W17, data_reg, 8, 8);
+        src = REG_W17;
+    }
+    if (size == 4)
+        host_arm64_STR_REG_UXTW(block, src, REG_X16, addr);
+    else if (size == 2)
+        host_arm64_STRH_REG_UXTW(block, src, REG_X16, addr);
+    else
+        host_arm64_STRB_REG_UXTW(block, src, REG_X16, addr);
+    stub->ret       = &block_write_data[block_pos];
+    stub->list      = codegen_lazy_site;
+    stub->add       = uop->imm_data2;
+    stub->size      = size;
+    stub->data_reg  = data_reg;
+    stub->data_high = data_high;
+    stub->imm       = imm;
+    stub->addr_reg  = direct_reg;
+    return 1;
+}
+
+/*The address of a store for codegen_store_inline(): a flat segment's with
+  nothing added where it is (direct), else in W0*/
+static int
+codegen_store_address(codeblock_t *block, uop_t *uop, int addr_reg, int with_imm, int *direct)
+{
+    *direct = ir_reg_is_invalid(uop->src_reg_a) && (!with_imm || !uop->imm_data);
+    if (*direct)
+        return addr_reg;
+    codegen_mem_address(block, uop, addr_reg, with_imm);
+    return REG_W0;
+}
+
 static int
 codegen_MEM_STORE_ABS(codeblock_t *block, uop_t *uop)
 {
@@ -1629,14 +2084,21 @@ codegen_MEM_STORE_ABS(codeblock_t *block, uop_t *uop)
 static int
 codegen_MEM_STORE_REG(codeblock_t *block, uop_t *uop)
 {
-    int seg_reg  = HOST_REG_GET(uop->src_reg_a_real);
     int addr_reg = HOST_REG_GET(uop->src_reg_b_real);
     int src_reg  = HOST_REG_GET(uop->src_reg_c_real);
     int src_size = IREG_GET_SIZE(uop->src_reg_c_real);
 
-    host_arm64_ADD_REG(block, REG_W0, seg_reg, addr_reg, 0);
-    if (uop->imm_data)
-        host_arm64_ADD_IMM(block, REG_X0, REG_X0, uop->imm_data);
+    if (REG_IS_L(src_size) || REG_IS_W(src_size) || REG_IS_B(src_size) || REG_IS_BH(src_size)) {
+        int direct;
+        int addr = codegen_store_address(block, uop, addr_reg, 1, &direct);
+        int size = REG_IS_L(src_size) ? 4 : REG_IS_W(src_size) ? 2 : 1;
+
+        if (codegen_store_inline(block, uop, addr, direct ? addr_reg : -1, size, src_reg, REG_IS_BH(src_size), 0))
+            return 0;
+        if (direct)
+            host_arm64_MOV_REG(block, REG_W0, addr_reg, 0);
+    } else
+        codegen_mem_address(block, uop, addr_reg, 1);
     if (REG_IS_B(src_size)) {
         host_arm64_AND_IMM(block, REG_W1, src_reg, 0xff);
         host_arm64_call(block, codegen_mem_store_byte);
@@ -1662,10 +2124,14 @@ codegen_MEM_STORE_REG(codeblock_t *block, uop_t *uop)
 static int
 codegen_MEM_STORE_IMM_8(codeblock_t *block, uop_t *uop)
 {
-    int seg_reg  = HOST_REG_GET(uop->src_reg_a_real);
     int addr_reg = HOST_REG_GET(uop->src_reg_b_real);
+    int direct;
+    int addr = codegen_store_address(block, uop, addr_reg, 0, &direct);
 
-    host_arm64_ADD_REG(block, REG_W0, seg_reg, addr_reg, 0);
+    if (codegen_store_inline(block, uop, addr, direct ? addr_reg : -1, 1, -1, 0, uop->imm_data & 0xff))
+        return 0;
+    if (direct)
+        host_arm64_MOV_REG(block, REG_W0, addr_reg, 0);
     host_arm64_mov_imm(block, REG_W1, uop->imm_data);
     host_arm64_call(block, codegen_mem_store_byte);
     codegen_exit_CBNZ(block, uop, REG_X1, codegen_exit_rout);
@@ -1675,10 +2141,14 @@ codegen_MEM_STORE_IMM_8(codeblock_t *block, uop_t *uop)
 static int
 codegen_MEM_STORE_IMM_16(codeblock_t *block, uop_t *uop)
 {
-    int seg_reg  = HOST_REG_GET(uop->src_reg_a_real);
     int addr_reg = HOST_REG_GET(uop->src_reg_b_real);
+    int direct;
+    int addr = codegen_store_address(block, uop, addr_reg, 0, &direct);
 
-    host_arm64_ADD_REG(block, REG_W0, seg_reg, addr_reg, 0);
+    if (codegen_store_inline(block, uop, addr, direct ? addr_reg : -1, 2, -1, 0, uop->imm_data & 0xffff))
+        return 0;
+    if (direct)
+        host_arm64_MOV_REG(block, REG_W0, addr_reg, 0);
     host_arm64_mov_imm(block, REG_W1, uop->imm_data);
     host_arm64_call(block, codegen_mem_store_word);
     codegen_exit_CBNZ(block, uop, REG_X1, codegen_exit_rout);
@@ -1688,10 +2158,14 @@ codegen_MEM_STORE_IMM_16(codeblock_t *block, uop_t *uop)
 static int
 codegen_MEM_STORE_IMM_32(codeblock_t *block, uop_t *uop)
 {
-    int seg_reg  = HOST_REG_GET(uop->src_reg_a_real);
     int addr_reg = HOST_REG_GET(uop->src_reg_b_real);
+    int direct;
+    int addr = codegen_store_address(block, uop, addr_reg, 0, &direct);
 
-    host_arm64_ADD_REG(block, REG_W0, seg_reg, addr_reg, 0);
+    if (codegen_store_inline(block, uop, addr, direct ? addr_reg : -1, 4, -1, 0, uop->imm_data))
+        return 0;
+    if (direct)
+        host_arm64_MOV_REG(block, REG_W0, addr_reg, 0);
     host_arm64_mov_imm(block, REG_W1, uop->imm_data);
     host_arm64_call(block, codegen_mem_store_long);
     codegen_exit_CBNZ(block, uop, REG_X1, codegen_exit_rout);
@@ -1962,13 +2436,26 @@ codegen_FP_CONTROL_SET(codeblock_t *block, uop_t *uop)
 
     return 0;
 }
+/*REG_TEMP as MOVZX_REG_PTR_8 or MOV_REG_PTR left it, holding temp_ptr, while
+  codegen_temp_ptr_valid says no uop since has changed it: a load from near
+  there (an immediate after its opcode, the next family instruction's
+  opcode) takes the address from it*/
+static uintptr_t temp_ptr;
+
 static int
 codegen_MOV_REG_PTR(codeblock_t *block, uop_t *uop)
 {
-    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
-    int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    int            dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int            dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
+    const intptr_t diff      = (intptr_t) ((uintptr_t) uop->p - temp_ptr);
 
+    if (REG_IS_L(dest_size) && codegen_temp_ptr_valid && (diff >= -256) && (diff <= 255)) {
+        host_arm64_LDUR_W(block, dest_reg, REG_TEMP, (int) diff);
+        return 0;
+    }
     host_arm64_MOVX_IMM(block, REG_TEMP, (uint64_t) uop->p);
+    codegen_temp_ptr_valid = REG_IS_L(dest_size);
+    temp_ptr               = (uintptr_t) uop->p;
     if (REG_IS_L(dest_size)) {
         host_arm64_LDR_IMM_W(block, dest_reg, REG_TEMP, 0);
     } else if (REG_IS_Q(dest_size) || REG_IS_D(dest_size)) {
@@ -1984,9 +2471,23 @@ codegen_MOVZX_REG_PTR_8(codeblock_t *block, uop_t *uop)
     int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
     int dest_size = IREG_GET_SIZE(uop->dest_reg_a_real);
 
+    if (REG_IS_L(dest_size) && codegen_temp_ptr_valid && ((uintptr_t) uop->p >= temp_ptr) && (((uintptr_t) uop->p - temp_ptr) < 4096)) {
+        const int diff = (int) ((uintptr_t) uop->p - temp_ptr);
+
+        /*Moved on when the immediate after it would be out of LDUR's reach*/
+        if (diff > 250) {
+            host_arm64_ADDX_IMM(block, REG_TEMP, REG_TEMP, diff);
+            temp_ptr = (uintptr_t) uop->p;
+            host_arm64_LDRB_IMM_W(block, dest_reg, REG_TEMP, 0);
+        } else
+            host_arm64_LDRB_IMM_W(block, dest_reg, REG_TEMP, diff);
+        return 0;
+    }
     host_arm64_MOVX_IMM(block, REG_TEMP, (uint64_t) uop->p);
     if (REG_IS_L(dest_size)) {
         host_arm64_LDRB_IMM_W(block, dest_reg, REG_TEMP, 0);
+        codegen_temp_ptr_valid = 1;
+        temp_ptr               = (uintptr_t) uop->p;
     } else if (REG_IS_W(dest_size)) {
         host_arm64_LDRB_IMM_W(block, REG_TEMP, REG_TEMP, 0);
         host_arm64_BFI(block, dest_reg, REG_TEMP, 0, 16);
@@ -3905,6 +4406,244 @@ codegen_XOR_IMM(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*The uop number of the last UOP_ALU_FAMILY_C, which leaves the flags op its
+  opcode names in W10 for the UOP_ALU_FAMILY_FLAGS_OP of the same
+  instruction, right after it or past its UOP_ALU_FAMILY_KEEP; -8 after a
+  UOP_ALU_FAMILY, which does not*/
+static int alu_family_c_uop = -8;
+
+static int
+codegen_ALU_FAMILY(codeblock_t *block, uop_t *uop)
+{
+    int       dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int       src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
+    int       src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+    int       op_reg    = HOST_REG_GET(uop->src_reg_c_real);
+    uint32_t *done[8];
+
+    if (!REG_IS_L(IREG_GET_SIZE(uop->dest_reg_a_real)) || !REG_IS_L(IREG_GET_SIZE(uop->src_reg_a_real)) ||
+        !REG_IS_L(IREG_GET_SIZE(uop->src_reg_b_real)) || !REG_IS_L(IREG_GET_SIZE(uop->src_reg_c_real)))
+        fatal("ALU_FAMILY %02x %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real, uop->src_reg_c_real);
+    alu_family_c_uop = -8;
+
+    /*The block's start made sure the opcode is one of the family: its op is
+      bits 3-5, which pick an entry of the table below, the op and a branch
+      past the table. A site's opcode seldom changes, so the branch is
+      predicted. The table's ADC and SBB entries are never taken here (they
+      are CODEBLOCK_ALU_FAMILY_C's), and CMP's result is only the flags'.
+      All in one allocator block, for the ADR.*/
+    static const int alu_op[8] = { 0, 1, 0, 2, 3, 2, 4, 2 }; /*ADD OR ADC SBB AND SUB XOR CMP*/
+
+    /*X16, leaving REG_TEMP to the next family instruction's address*/
+    codegen_alloc(block, (4 + 8 * 2) * 4);
+    host_arm64_UBFX(block, REG_TEMP2, op_reg, 3, 3);
+    host_arm64_ADR(block, REG_X16, 12);
+    host_arm64_ADDX_REG(block, REG_X16, REG_X16, REG_TEMP2, 3);
+    host_arm64_BR(block, REG_X16);
+    for (int c = 0; c < 8; c++) {
+        switch (alu_op[c]) {
+            case 0:
+                host_arm64_ADD_REG(block, dest_reg, src_reg_a, src_reg_b, 0);
+                break;
+            case 1:
+                host_arm64_ORR_REG(block, dest_reg, src_reg_a, src_reg_b, 0);
+                break;
+            case 2:
+                host_arm64_SUB_REG(block, dest_reg, src_reg_a, src_reg_b, 0);
+                break;
+            case 3:
+                host_arm64_AND_REG(block, dest_reg, src_reg_a, src_reg_b, 0);
+                break;
+            default:
+                host_arm64_EOR_REG(block, dest_reg, src_reg_a, src_reg_b, 0);
+                break;
+        }
+        done[c] = host_arm64_B_(block);
+    }
+    for (int c = 0; c < 8; c++)
+        host_arm64_branch_set_offset(done[c], &block_write_data[block_pos]);
+
+    return 0;
+}
+static int
+codegen_ALU_FAMILY_FLAGS_OP(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg = HOST_REG_GET(uop->dest_reg_a_real);
+    int op_reg   = HOST_REG_GET(uop->src_reg_a_real);
+    /*By the op in bits 3-5, a byte each: ADD OR ADC SBB AND SUB XOR CMP*/
+    static const uint8_t flags_op[8] = { FLAGS_ADD32, FLAGS_ZN32, FLAGS_ADC32, FLAGS_SBC32, FLAGS_ZN32, FLAGS_SUB32, FLAGS_ZN32, FLAGS_SUB32 };
+    uint64_t             packed      = 0;
+
+    if (!REG_IS_L(IREG_GET_SIZE(uop->dest_reg_a_real)) || !REG_IS_L(IREG_GET_SIZE(uop->src_reg_a_real)))
+        fatal("ALU_FAMILY_FLAGS_OP %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real);
+
+    if (((codegen_ir_uop_nr == alu_family_c_uop + 1) || (codegen_ir_uop_nr == alu_family_c_uop + 2)) && !codegen_ir_uop_is_dest) {
+        host_arm64_MOV_REG(block, dest_reg, REG_W10, 0);
+        return 0;
+    }
+    for (int c = 0; c < 8; c++)
+        packed |= (uint64_t) flags_op[c] << (8 * c);
+    /*The op's bits 3-5 are its byte's bit offset already. X16 and X17, not
+      REG_TEMP, which may hold the next family instruction's address*/
+    host_arm64_AND_IMM(block, REG_W16, op_reg, 0x38);
+    host_arm64_MOVX_IMM(block, REG_X17, packed);
+    host_arm64_LSRX(block, REG_X17, REG_X17, REG_X16);
+    host_arm64_AND_IMM(block, dest_reg, REG_W17, 0xff);
+
+    return 0;
+}
+static int
+codegen_ALU_FAMILY_KEEP(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+    int op_reg    = HOST_REG_GET(uop->src_reg_c_real);
+
+    if (!REG_IS_L(IREG_GET_SIZE(uop->dest_reg_a_real)) || !REG_IS_L(IREG_GET_SIZE(uop->src_reg_a_real)) ||
+        !REG_IS_L(IREG_GET_SIZE(uop->src_reg_b_real)) || !REG_IS_L(IREG_GET_SIZE(uop->src_reg_c_real)))
+        fatal("ALU_FAMILY_KEEP %02x %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real, uop->src_reg_c_real);
+
+    host_arm64_CMP_IMM(block, op_reg, 0x3d);
+    host_arm64_CSEL_EQ(block, dest_reg, src_reg_a, src_reg_b);
+
+    return 0;
+}
+
+_Static_assert(offsetof(cpu_state_t, alu_family_cf) < 4096 * 4, "alu_family_cf out of LDR and STR range of cpu_state");
+
+static int
+codegen_ALU_FAMILY_C(codeblock_t *block, uop_t *uop)
+{
+    int       dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int       src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
+    int       src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+    int       op_reg    = HOST_REG_GET(uop->src_reg_c_real);
+    uint32_t *done[8];
+
+    if (!REG_IS_L(IREG_GET_SIZE(uop->dest_reg_a_real)) || !REG_IS_L(IREG_GET_SIZE(uop->src_reg_a_real)) ||
+        !REG_IS_L(IREG_GET_SIZE(uop->src_reg_b_real)) || !REG_IS_L(IREG_GET_SIZE(uop->src_reg_c_real)))
+        fatal("ALU_FAMILY_C %02x %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real, uop->src_reg_c_real);
+
+    /*W8 = result, W9 = carry out, W10 = the flags op, W11 = carry in, from
+      cpu_state.alu_family_cf, for ADC and SBB. The carry out is the lazy flags' CF of the
+      op: res < op1 for ADD, op1 < op2 for SUB and CMP, and theirs with
+      the carry for ADC and SBB, which is the carry out of both steps.
+      The op is bits 3-5 of the opcode, which pick an entry of eight
+      instructions in the table below, as in codegen_ALU_FAMILY(); all in
+      one allocator block, for the ADR*/
+    static const uint8_t flags_op[8] = { FLAGS_ADD32, FLAGS_ZN32, FLAGS_ADC32, FLAGS_SBC32, FLAGS_ZN32, FLAGS_SUB32, FLAGS_ZN32, FLAGS_SUB32 };
+
+    alu_family_c_uop = codegen_ir_uop_nr;
+    codegen_alloc(block, (3 + 8 * 8 + 2) * 4);
+    host_arm64_UBFX(block, REG_W16, op_reg, 3, 3);
+    host_arm64_ADR(block, REG_X17, 12);
+    host_arm64_ADDX_REG(block, REG_X17, REG_X17, REG_X16, 5);
+    host_arm64_BR(block, REG_X17);
+    for (int c = 0; c < 8; c++) {
+        const int start = block_pos;
+
+        switch (c) {
+            case 0: /*ADD*/
+                host_arm64_ADDS_REG(block, REG_W8, src_reg_a, src_reg_b);
+                host_arm64_CSET(block, REG_W9, 0x2 /*CS*/);
+                break;
+            case 2: /*ADC*/
+                host_arm64_LDR_IMM_W(block, REG_W11, REG_CPUSTATE, (uintptr_t) &cpu_state.alu_family_cf - (uintptr_t) &cpu_state);
+                host_arm64_ADDS_REG(block, REG_W8, src_reg_a, src_reg_b);
+                host_arm64_CSET(block, REG_W9, 0x2 /*CS*/);
+                host_arm64_ADDS_REG(block, REG_W8, REG_W8, REG_W11);
+                host_arm64_CSET(block, REG_W11, 0x2 /*CS*/);
+                host_arm64_ORR_REG(block, REG_W9, REG_W9, REG_W11, 0);
+                break;
+            case 3: /*SBB*/
+                host_arm64_LDR_IMM_W(block, REG_W11, REG_CPUSTATE, (uintptr_t) &cpu_state.alu_family_cf - (uintptr_t) &cpu_state);
+                host_arm64_SUBS_REG(block, REG_W8, src_reg_a, src_reg_b);
+                host_arm64_CSET(block, REG_W9, 0x3 /*CC*/);
+                host_arm64_SUBS_REG(block, REG_W8, REG_W8, REG_W11);
+                host_arm64_CSET(block, REG_W11, 0x3 /*CC*/);
+                host_arm64_ORR_REG(block, REG_W9, REG_W9, REG_W11, 0);
+                break;
+            case 5: /*SUB*/
+            case 7: /*CMP*/
+                host_arm64_SUBS_REG(block, REG_W8, src_reg_a, src_reg_b);
+                host_arm64_CSET(block, REG_W9, 0x3 /*CC*/);
+                break;
+            case 1: /*OR*/
+                host_arm64_ORR_REG(block, REG_W8, src_reg_a, src_reg_b, 0);
+                host_arm64_MOVZ_IMM(block, REG_W9, 0);
+                break;
+            case 4: /*AND*/
+                host_arm64_AND_REG(block, REG_W8, src_reg_a, src_reg_b, 0);
+                host_arm64_MOVZ_IMM(block, REG_W9, 0);
+                break;
+            default: /*XOR*/
+                host_arm64_EOR_REG(block, REG_W8, src_reg_a, src_reg_b, 0);
+                host_arm64_MOVZ_IMM(block, REG_W9, 0);
+                break;
+        }
+        host_arm64_MOVZ_IMM(block, REG_W10, flags_op[c]);
+        done[c] = host_arm64_B_(block);
+        if (block_pos > start + 8 * 4)
+            fatal("ALU_FAMILY_C entry %i too long\n", c);
+        while (block_pos < start + 8 * 4)
+            host_arm64_NOP(block);
+    }
+    for (int c = 0; c < 8; c++)
+        host_arm64_branch_set_offset(done[c], &block_write_data[block_pos]);
+    host_arm64_STR_IMM_W(block, REG_W9, REG_CPUSTATE, (uintptr_t) &cpu_state.alu_family_cf - (uintptr_t) &cpu_state);
+    host_arm64_MOV_REG(block, dest_reg, REG_W8, 0);
+
+    return 0;
+}
+/*Where each fixed slot's op was put, for codegen_backend_alu_family_check()'s
+  record of them*/
+uint32_t *codegen_alu_family_fixed_at[CODEGEN_ALU_FAMILY_MAX];
+
+static int
+codegen_ALU_FAMILY_FIXED(codeblock_t *block, uop_t *uop)
+{
+    int dest_reg  = HOST_REG_GET(uop->dest_reg_a_real);
+    int src_reg_a = HOST_REG_GET(uop->src_reg_a_real);
+    int src_reg_b = HOST_REG_GET(uop->src_reg_b_real);
+
+    if (!REG_IS_L(IREG_GET_SIZE(uop->dest_reg_a_real)) || !REG_IS_L(IREG_GET_SIZE(uop->src_reg_a_real)) ||
+        !REG_IS_L(IREG_GET_SIZE(uop->src_reg_b_real)))
+        fatal("ALU_FAMILY_FIXED %02x %02x %02x\n", uop->dest_reg_a_real, uop->src_reg_a_real, uop->src_reg_b_real);
+
+    /*One instruction of the shifted-register form, which the rewrite keeps
+      the registers of (codegen_family_fix())*/
+    codegen_alloc(block, 4);
+    codegen_alu_family_fixed_at[uop->imm_data] = (uint32_t *) &block_write_data[block_pos];
+    switch (codegen_alu_family_op[uop->imm_data]) {
+        case 0x05:
+            host_arm64_ADD_REG(block, dest_reg, src_reg_a, src_reg_b, 0);
+            break;
+        case 0x0d:
+            host_arm64_ORR_REG(block, dest_reg, src_reg_a, src_reg_b, 0);
+            break;
+        case 0x25:
+            host_arm64_AND_REG(block, dest_reg, src_reg_a, src_reg_b, 0);
+            break;
+        case 0x2d:
+            host_arm64_SUB_REG(block, dest_reg, src_reg_a, src_reg_b, 0);
+            break;
+        default:
+            host_arm64_EOR_REG(block, dest_reg, src_reg_a, src_reg_b, 0);
+            break;
+    }
+
+    return 0;
+}
+static int
+codegen_ALU_FAMILY_CF_STORE(codeblock_t *block, uop_t *uop)
+{
+    int cf_reg = HOST_REG_GET(uop->src_reg_a_real);
+
+    host_arm64_STR_IMM_W(block, cf_reg, REG_CPUSTATE, (uintptr_t) &cpu_state.alu_family_cf - (uintptr_t) &cpu_state);
+
+    return 0;
+}
 const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_CALL_FUNC & UOP_MASK] = codegen_CALL_FUNC,
     [UOP_CALL_FUNC_RESULT &
@@ -4081,6 +4820,27 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_XOR &
         UOP_MASK]
     = codegen_XOR,
+    [UOP_ALU_FAMILY &
+        UOP_MASK]
+    = codegen_ALU_FAMILY,
+    [UOP_ALU_FAMILY_FLAGS_OP &
+        UOP_MASK]
+    = codegen_ALU_FAMILY_FLAGS_OP,
+    [UOP_ALU_FAMILY_KEEP &
+        UOP_MASK]
+    = codegen_ALU_FAMILY_KEEP,
+    [UOP_ALU_FAMILY_C &
+        UOP_MASK]
+    = codegen_ALU_FAMILY_C,
+    [UOP_ALU_FAMILY_CF_STORE &
+        UOP_MASK]
+    = codegen_ALU_FAMILY_CF_STORE,
+    [UOP_ALU_FAMILY_FIXED &
+        UOP_MASK]
+    = codegen_ALU_FAMILY_FIXED,
+    [UOP_FETCH_WALK &
+        UOP_MASK]
+    = codegen_FETCH_WALK,
     [UOP_XOR_IMM &
         UOP_MASK]
     = codegen_XOR_IMM,

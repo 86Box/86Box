@@ -582,7 +582,7 @@ op0F01_common(UNUSED(uint32_t fetchdat), int is32, int is286, UNUSED(int ea32))
                    fetched from, so it can be a page the guest has since mapped
                    elsewhere. */
                 flushmmucache_pc();
-                flushmmucache_nopc();
+                flushmmucache_invlpg(easeg + cpu_state.eaaddr);
                 CLOCK_CYCLES(12);
                 PREFETCH_RUN(12, 2, rmdat, 0, 0, 0, 0, ea32);
                 break;

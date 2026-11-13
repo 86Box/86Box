@@ -328,21 +328,24 @@ svga_render_text_80(svga_t *svga)
                     }
                 }
             } else {
-                if (svga->seqregs[1] & 1) {
-                    for (xx = 0; xx < 8; xx++) {
-                        col = (col << 4) | ((dat & (0x80 >> xx)) ? fg : bg);
-                        p[xx] = svga->pallook[svga->egapal[col & svga->plane_mask] & svga->dac_mask];
-                    }
-                } else {
-                    for (xx = 0; xx < 8; xx++) {
-                        col = (col << 4) | ((dat & (0x80 >> xx)) ? fg : bg);
-                        p[xx] = svga->pallook[svga->egapal[col & svga->plane_mask] & svga->dac_mask];
-                    }
-                    if ((chr & ~0x1F) != 0xC0 || !(svga->attrregs[0x10] & 4))
-                        col = (col << 4) | bg;
-                    else
-                        col = (col << 4) | ((dat & 1) ? fg : bg);
-                    p[8] = svga->pallook[svga->egapal[col & svga->plane_mask] & svga->dac_mask];
+                /*plane_mask is at most 0x0f, so col & plane_mask is the
+                  pixel's own colour, fg or bg: two lookups a character. col
+                  is still left with the last eight pixels, as the 256-colour
+                  branch above reads it*/
+                const uint32_t fgc = svga->pallook[svga->egapal[fg & svga->plane_mask] & svga->dac_mask];
+                const uint32_t bgc = svga->pallook[svga->egapal[bg & svga->plane_mask] & svga->dac_mask];
+
+                for (xx = 0; xx < 8; xx++) {
+                    const int on = dat & (0x80 >> xx);
+
+                    col   = (col << 4) | (on ? fg : bg);
+                    p[xx] = on ? fgc : bgc;
+                }
+                if (!(svga->seqregs[1] & 1)) {
+                    const int on = ((chr & ~0x1F) == 0xC0) && (svga->attrregs[0x10] & 4) && (dat & 1);
+
+                    col  = (col << 4) | (on ? fg : bg);
+                    p[8] = on ? fgc : bgc;
                 }
             }
 

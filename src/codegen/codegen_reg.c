@@ -14,6 +14,7 @@ int      max_version_refcount;
 uint16_t reg_dead_list = 0;
 
 uint8_t       reg_last_version[IREG_COUNT];
+uint64_t      reg_read_v0[(IREG_COUNT + 63) / 64];
 reg_version_t reg_version[IREG_COUNT][256];
 
 ir_reg_t invalid_ir_reg = { IREG_INVALID };
@@ -282,6 +283,26 @@ static uint8_t ireg_mark_bytes[IREG_COUNT];
 
 _Static_assert(sizeof(reg_last_version[0]) == 1, "codegen_reg_mark_as_required() reads reg_last_version 8 bytes at a time");
 _Static_assert((IREG_COUNT % 8) == 0, "codegen_reg_mark_as_required() reads reg_last_version 8 bytes at a time");
+/*How many versions every IR register has left before the block must end
+  (REG_VERSION_MAX)*/
+int
+codegen_reg_versions_left(void)
+{
+    int max = 0;
+
+    for (int reg = 0; reg < IREG_COUNT; reg++) {
+        if (reg_last_version[reg] > max)
+            max = reg_last_version[reg];
+    }
+#ifdef CODEGEN_META_PC
+    /*With the writes kept out of the IR*/
+    if ((reg_last_version[IREG_pc] + codegen_meta_versions[0]) > max)
+        max = reg_last_version[IREG_pc] + codegen_meta_versions[0];
+    if ((reg_last_version[IREG_oldpc] + codegen_meta_versions[1]) > max)
+        max = reg_last_version[IREG_oldpc] + codegen_meta_versions[1];
+#endif
+    return REG_VERSION_MAX - max;
+}
 
 void
 codegen_reg_mark_as_required(void)
@@ -396,11 +417,17 @@ codegen_reg_reset(void)
 
     dirty_ir_regs[0] = dirty_ir_regs[1] = 0;
 
+    /*Only registers this block read or wrote: reg_version[c] is 1.5 KB
+      apart from one register to the next, so going over all of them took
+      a cache line each*/
     for (c = 0; c < IREG_COUNT; c++) {
-        reg_last_version[c]        = 0;
-        reg_version[c][0].refcount = 0;
-        reg_version[c][0].uncounted = 0;
+        if (reg_last_version[c] || (reg_read_v0[c >> 6] & (1ull << (c & 63)))) {
+            reg_last_version[c]         = 0;
+            reg_version[c][0].refcount  = 0;
+            reg_version[c][0].uncounted = 0;
+        }
     }
+    memset(reg_read_v0, 0, sizeof(reg_read_v0));
     for (c = 0; c < CODEGEN_HOST_REGS; c++) {
         host_reg_assign(&host_reg_set, c, invalid_ir_reg);
         host_reg_set.dirty[c] = 0;
@@ -905,6 +932,49 @@ codegen_reg_lazy_stores(codeblock_t *block, const codegen_lazy_list_t *list)
             lazy_store_host(block, store->ireg, store->host_reg);
     }
 }
+
+#    ifdef CODEGEN_META_PC
+/*ireg's constant write follows a copy of it in a host register, which a
+  uop of the block wrote (codegen_meta_seen): a RET's pc, read by the check
+  after it, or in an unrolled loop's copies one from the copy before. A
+  dirty copy is stored first, as it would have been before the MOV_IMM's
+  store, and never again*/
+static void
+meta_write_back_host(codeblock_t *block, int ireg)
+{
+    for (int c = 0; c < host_reg_set.nr_regs; c++) {
+        if (!ir_reg_is_invalid(host_reg_set.regs[c]) && (IREG_GET_REG(host_reg_set.regs[c].reg) == ireg) && host_reg_set.dirty[c])
+            codegen_reg_writeback(&host_reg_set, block, c, 0);
+    }
+}
+
+static void
+meta_defer(codeblock_t *block, int ireg, int ev, uint32_t imm)
+{
+    ir_reg_t ir_reg;
+
+    if (codegen_meta_seen & ev)
+        meta_write_back_host(block, ireg);
+    ir_reg.reg     = ireg;
+    ir_reg.version = 0;
+    codegen_reg_defer_imm(block, ir_reg, imm);
+}
+
+void
+codegen_reg_meta_apply(codeblock_t *block, const uop_t *uop)
+{
+    if (uop->meta_ev & CODEGEN_META_EV_PC)
+        meta_defer(block, IREG_pc, CODEGEN_META_EV_PC, uop->meta_pc);
+    if (uop->meta_ev & CODEGEN_META_EV_OLDPC)
+        meta_defer(block, IREG_oldpc, CODEGEN_META_EV_OLDPC, uop->meta_oldpc);
+}
+
+void
+codegen_reg_store_pending(codeblock_t *block)
+{
+    lazy_pending_store_all(block);
+}
+#    endif
 #endif
 
 static void
@@ -986,6 +1056,16 @@ codegen_reg_alloc_read_reg(codeblock_t *block, ir_reg_t ir_reg, int *host_reg_id
     host_reg_set_t *reg_set = get_reg_set(ir_reg);
     int             c;
 
+#ifdef CODEGEN_BACKEND_PINNED_CYCLES
+    /*Always in its host register*/
+    if (IREG_GET_REG(ir_reg.reg) == IREG_cycles) {
+        reg_version[IREG_cycles][ir_reg.version].refcount--;
+        if (host_reg_idx)
+            *host_reg_idx = -1;
+        return CODEGEN_BACKEND_PINNED_CYCLES | IREG_GET_SIZE(ir_reg.reg);
+    }
+#endif
+
     /*Search for required register*/
     c = reg_set->nr_regs;
     for (uint16_t slots = reg_set->slots[IREG_GET_REG(ir_reg.reg)]; slots; slots &= slots - 1) {
@@ -1055,6 +1135,15 @@ codegen_reg_alloc_write_reg(codeblock_t *block, ir_reg_t ir_reg)
 {
     host_reg_set_t *reg_set = get_reg_set(ir_reg);
     int             c;
+
+#ifdef CODEGEN_BACKEND_PINNED_CYCLES
+    if (IREG_GET_REG(ir_reg.reg) == IREG_cycles) {
+#    ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+        lazy_pending_drop(IREG_cycles);
+#    endif
+        return CODEGEN_BACKEND_PINNED_CYCLES | IREG_GET_SIZE(ir_reg.reg);
+    }
+#endif
 
     if (!reg_is_native_size(ir_reg)) {
         /*Read in parent register so we can do partial accesses to it*/
@@ -1242,6 +1331,71 @@ codegen_reg_flush(UNUSED(ir_data_t *ir), codeblock_t *block)
 }
 
 #ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+/*The allocator's state at a jump over a block exit, put back after the
+  exit: what the exit stored, and the registers it let go, are so on its
+  own path only (codegen_ir_compile)*/
+static struct {
+    ir_reg_t regs[CODEGEN_HOST_REGS];
+    uint8_t  dirty[CODEGEN_HOST_REGS];
+    uint16_t slots[IREG_COUNT];
+    ir_reg_t fp_regs[CODEGEN_HOST_FP_REGS];
+    uint8_t  fp_dirty[CODEGEN_HOST_FP_REGS];
+    uint16_t fp_slots[IREG_COUNT];
+    uint16_t locked, fp_locked;
+    int      nr_lazy_pending;
+    uint64_t lazy_pending_mask[2];
+    struct {
+        uint32_t imm;
+        uint8_t  ireg;
+    } lazy_pending[CODEGEN_LAZY_PENDING_MAX];
+} reg_saved;
+
+void
+codegen_reg_save(void)
+{
+    memcpy(reg_saved.regs, host_reg_set.regs, sizeof(reg_saved.regs));
+    memcpy(reg_saved.dirty, host_reg_set.dirty, sizeof(reg_saved.dirty));
+    memcpy(reg_saved.slots, host_reg_set.slots, sizeof(reg_saved.slots));
+    memcpy(reg_saved.fp_regs, host_fp_reg_set.regs, sizeof(reg_saved.fp_regs));
+    memcpy(reg_saved.fp_dirty, host_fp_reg_set.dirty, sizeof(reg_saved.fp_dirty));
+    memcpy(reg_saved.fp_slots, host_fp_reg_set.slots, sizeof(reg_saved.fp_slots));
+    reg_saved.locked               = host_reg_set.locked;
+    reg_saved.fp_locked            = host_fp_reg_set.locked;
+    reg_saved.nr_lazy_pending      = nr_lazy_pending;
+    reg_saved.lazy_pending_mask[0] = lazy_pending_mask[0];
+    reg_saved.lazy_pending_mask[1] = lazy_pending_mask[1];
+    for (int c = 0; c < nr_lazy_pending; c++) {
+        reg_saved.lazy_pending[c].imm  = lazy_pending[c].imm;
+        reg_saved.lazy_pending[c].ireg = lazy_pending[c].ireg;
+    }
+}
+
+void
+codegen_reg_restore(void)
+{
+    memcpy(host_reg_set.regs, reg_saved.regs, sizeof(reg_saved.regs));
+    memcpy(host_reg_set.dirty, reg_saved.dirty, sizeof(reg_saved.dirty));
+    memcpy(host_reg_set.slots, reg_saved.slots, sizeof(reg_saved.slots));
+    memcpy(host_fp_reg_set.regs, reg_saved.fp_regs, sizeof(reg_saved.fp_regs));
+    memcpy(host_fp_reg_set.dirty, reg_saved.fp_dirty, sizeof(reg_saved.fp_dirty));
+    memcpy(host_fp_reg_set.slots, reg_saved.fp_slots, sizeof(reg_saved.fp_slots));
+    host_reg_set.locked    = reg_saved.locked;
+    host_fp_reg_set.locked = reg_saved.fp_locked;
+    nr_lazy_pending        = reg_saved.nr_lazy_pending;
+    lazy_pending_mask[0]   = reg_saved.lazy_pending_mask[0];
+    lazy_pending_mask[1]   = reg_saved.lazy_pending_mask[1];
+    for (int c = 0; c < nr_lazy_pending; c++) {
+        lazy_pending[c].imm  = reg_saved.lazy_pending[c].imm;
+        lazy_pending[c].ireg = reg_saved.lazy_pending[c].ireg;
+    }
+}
+
+int
+codegen_reg_lazy_sites_left(void)
+{
+    return nr_lazy_lists < CODEGEN_LAZY_SITES_MAX;
+}
+
 void
 codegen_reg_flush_lazy(ir_data_t *ir, codeblock_t *block)
 {
@@ -1466,6 +1620,30 @@ codegen_reg_cold_rejoin(codeblock_t *block)
 
 #endif
 
+/*The host copies of a segment register's fields are dropped: loadseg() has
+  just written them (UOP_LOAD_SEG, an order barrier, left everything else)*/
+void
+codegen_reg_drop_seg(const x86seg *seg)
+{
+    int iregs[4];
+
+    iregs[0] = ireg_seg_base((x86seg *) seg);
+    iregs[1] = ireg_seg_limit_low((x86seg *) seg);
+    iregs[2] = ireg_seg_limit_high((x86seg *) seg);
+    iregs[3] = iregs[0] + (IREG_CS_seg - IREG_CS_base);
+    for (int c = 0; c < host_reg_set.nr_regs; c++) {
+        if (ir_reg_is_invalid(host_reg_set.regs[c]))
+            continue;
+        for (int r = 0; r < 4; r++) {
+            if (IREG_GET_REG(host_reg_set.regs[c].reg) == iregs[r]) {
+                host_reg_assign(&host_reg_set, c, invalid_ir_reg);
+                host_reg_set.dirty[c] = 0;
+                break;
+            }
+        }
+    }
+}
+
 void
 codegen_reg_flush_invalidate(UNUSED(ir_data_t *ir), codeblock_t *block)
 {
@@ -1505,32 +1683,32 @@ codegen_reg_process_dead_list(ir_data_t *ir)
         reg_version_t *regv    = &reg_version[reg][version];
         uop_t         *uop     = &ir->uops[regv->parent_uop];
 
+        /*Off the list before the sources it frees go on at its head*/
+        reg_dead_list = regv->next;
+
         /*Barrier uOPs should be preserved*/
         if (!(uop->type & (UOP_TYPE_BARRIER | UOP_TYPE_ORDER_BARRIER))) {
+            const ir_reg_t *src[3] = { &uop->src_reg_a, &uop->src_reg_b, &uop->src_reg_c };
+
             uop->type = UOP_INVALID;
-            /*Adjust refcounts on source registers. If these drop to
-              zero then those registers can be considered for removal*/
-            if (uop->src_reg_a.reg != IREG_INVALID) {
-                reg_version_t *src_regv = &reg_version[IREG_GET_REG(uop->src_reg_a.reg)][uop->src_reg_a.version];
-                src_regv->refcount--;
-                if (!src_regv->refcount)
-                    add_to_dead_list(src_regv, IREG_GET_REG(uop->src_reg_a.reg), uop->src_reg_a.version);
-            }
-            if (uop->src_reg_b.reg != IREG_INVALID) {
-                reg_version_t *src_regv = &reg_version[IREG_GET_REG(uop->src_reg_b.reg)][uop->src_reg_b.version];
-                src_regv->refcount--;
-                if (!src_regv->refcount)
-                    add_to_dead_list(src_regv, IREG_GET_REG(uop->src_reg_b.reg), uop->src_reg_b.version);
-            }
-            if (uop->src_reg_c.reg != IREG_INVALID) {
-                reg_version_t *src_regv = &reg_version[IREG_GET_REG(uop->src_reg_c.reg)][uop->src_reg_c.version];
-                src_regv->refcount--;
-                if (!src_regv->refcount)
-                    add_to_dead_list(src_regv, IREG_GET_REG(uop->src_reg_c.reg), uop->src_reg_c.version);
+            /*Adjust refcounts on source registers. If these drop to zero
+              then those registers can be considered for removal, as
+              codegen_reg_write() considers a version it writes over: never
+              version 0, which no uOP of the block wrote, nor the guest's
+              first four registers, a version that must be kept, or one a
+              part write kept the rest of*/
+            for (int c = 0; c < 3; c++) {
+                if (src[c]->reg != IREG_INVALID) {
+                    const int      src_reg  = IREG_GET_REG(src[c]->reg);
+                    reg_version_t *src_regv = &reg_version[src_reg][src[c]->version];
+
+                    src_regv->refcount--;
+                    if (!src_regv->refcount && src[c]->version && (src_reg > IREG_EBX) &&
+                        !(src_regv->flags & (REG_FLAGS_REQUIRED | REG_FLAGS_PARTIAL | REG_FLAGS_DEAD)))
+                        add_to_dead_list(src_regv, src_reg, src[c]->version);
+                }
             }
             regv->flags |= REG_FLAGS_DEAD;
         }
-
-        reg_dead_list = regv->next;
     }
 }

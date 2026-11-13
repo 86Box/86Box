@@ -62,6 +62,9 @@ void codegen_allocator_owner(int code_block, int owns);
 uint8_t *codeblock_allocator_get_ptr(struct mem_block_t *block);
 /*Cache clean memory block list*/
 void codegen_allocator_clean_blocks(struct mem_block_t *block);
+/*As codegen_allocator_clean_blocks(), but only the first last_used bytes of
+  the last block in the list, all that was written there*/
+void codegen_allocator_clean_blocks_used(struct mem_block_t *block, int last_used);
 
 /* Branch classification helpers:
    - codegen_allocator_contains_host_ptr(): tells whether a host pointer targets

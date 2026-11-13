@@ -166,11 +166,23 @@ CHECK_STACK_LIMITS(codeblock_t *block, ir_data_t *ir, int addr_reg, int n, int t
   One that is not wholly on that page is compiled in and marked instead, as
   a Jcc displacement is (jcc_dynamic_start): the mark puts its page under
   the second-page checks, and a write to it recompiles the block.*/
+/*Not one in the second chunk of a byte-mask block starting in its page's
+  last chunk: that chunk's page is checked at the lookup as the first one
+  is, the block marking code there (codegen_imm_page2 sees that it does).*/
+/*So is one never written yet (codeblock_t::smc_written): rewrites have
+  been elsewhere in the block*/
+extern int codegen_imm_page2;
 static inline int
 immediate_off_first_page(codeblock_t *block, uint32_t addr, int len)
 {
-    if (!(((addr + len - 1) ^ block->pc) & ~0xfff))
+    if (!(((addr + len - 1) ^ block->pc) & ~0xfff)) {
+        if (codegen_block_written(block, addr, len))
+            return 0;
+    } else if ((block->flags & CODEBLOCK_BYTE_MASK) && ((block->pc & 0xfc0) == 0xfc0) &&
+               (((addr + len - 1) - (block->pc & ~0x3f)) < 128) && codegen_block_written(block, addr, len)) {
+        codegen_imm_page2 = 1 + ((addr + len - 1) & 0x3f);
         return 0;
+    }
     codegen_mark_code_present(block, addr, len);
     return 1;
 }
@@ -209,12 +221,17 @@ LOAD_IMMEDIATE_FROM_RAM_32(codeblock_t *block, ir_data_t *ir, int dest_reg, uint
 }
 
 int codegen_flags_rebuild_known(ir_data_t *ir, int carry_only);
+void codegen_flags_rebuild(ir_data_t *ir);
+int codegen_cf_known(ir_data_t *ir, int dest_reg);
+int codegen_call_is_flags_helper(const void *p);
 void codegen_flags_known_use(ir_data_t *ir, int cf_kept);
 int  codegen_flags_cf_known(ir_data_t *ir, int dest_reg);
 int  codegen_flags_zn_known(ir_data_t *ir, int dest_reg, int flag, void *func);
 /*After SAHF's last uop: flags_op is FLAGS_UNKNOWN from here at run time*/
 void codegen_flags_unknown_from(ir_data_t *ir);
 int  codegen_flags_jcc_read(ir_data_t *ir, int flag);
+void codegen_rebuild_c_call(ir_data_t *ir);
+uint32_t codegen_alu_family_eax_imm(codeblock_t *block, ir_data_t *ir, uint32_t op_pc);
 
 /*The instruction is #UD; returns the handler's -1*/
 uint32_t codegen_ud(ir_data_t *ir);
@@ -223,9 +240,6 @@ int codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, uint32_t next_pc,
 static inline int
 codegen_can_unroll(codeblock_t *block, ir_data_t *ir, uint32_t next_pc, uint32_t dest_addr)
 {
-    if (block->flags & CODEBLOCK_BYTE_MASK)
-        return 0;
-
     /*An unrolled loop's handler returns the loop's start, and a handler
       returning 0 means it compiled nothing: the instruction would run a
       second time through the interpreter. So never at offset 0.*/

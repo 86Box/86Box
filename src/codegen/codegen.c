@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <stdlib.h>
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
@@ -75,6 +76,7 @@ codegen_get_instruction_tags(int ins, uint8_t *tag_valid, uint8_t *tag_empty)
   a pair: its op compiles the next instruction into the block before running
   it (x86_ops_mov_seg.h). Good only until the next instruction is compiled*/
 int      codegen_mov_ss_pair_valid = 0;
+int      codegen_link_state_ins;
 uint32_t codegen_mov_ss_pair_pc    = 0;
 
 /*Room in the block for the instruction being compiled and the one after*/
@@ -114,9 +116,12 @@ int (*codegen_timing_jump_cycles)(void);
 void (*codegen_timing_save)(codegen_timing_state_t *state);
 void (*codegen_timing_load)(const codegen_timing_state_t *state);
 
+codegen_timing_t *codegen_timing_current;
+
 void
 codegen_timing_set(codegen_timing_t *timing)
 {
+    codegen_timing_current     = timing;
     codegen_timing_start       = timing->start;
     codegen_timing_prefix      = timing->prefix;
     codegen_timing_opcode      = timing->opcode;
@@ -128,6 +133,241 @@ codegen_timing_set(codegen_timing_t *timing)
 }
 
 int codegen_in_recompile;
+
+/*A block compiled with the caches off (CR0.CD, CPU_STATUS_NOCACHE): the
+  timing model charges nothing, and each instruction charges the cycles the
+  interpreter's cache-off timing gave it as the block was recorded
+  (codegen_nocache_ins_cycles()), memory wait states and prefetch included,
+  as interpreting it would*/
+int                      codegen_nocache;
+static codegen_timing_t *nocache_saved_timing;
+
+static void
+nocache_none(void)
+{
+}
+static void
+nocache_prefix(UNUSED(uint8_t prefix), UNUSED(uint32_t fetchdat))
+{
+}
+static void
+nocache_opcode(UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(int op_32), UNUSED(uint32_t op_pc))
+{
+}
+static codegen_timing_t codegen_timing_nocache = {
+    .start       = nocache_none,
+    .prefix      = nocache_prefix,
+    .opcode      = nocache_opcode,
+    .block_start = nocache_none,
+    .block_end   = nocache_none,
+    .jump_cycles = NULL,
+    .save        = NULL,
+    .load        = NULL
+};
+
+void
+codegen_nocache_end(void)
+{
+    if (!codegen_nocache)
+        return;
+    codegen_timing_set(nocache_saved_timing);
+    codegen_nocache = 0;
+}
+
+void
+codegen_nocache_begin(void)
+{
+    codegen_nocache_end();
+    if (!(cr0 & (1 << 30)))
+        return;
+    nocache_saved_timing = codegen_timing_current;
+    codegen_timing_set(&codegen_timing_nocache);
+    codegen_nocache = 1;
+}
+
+/*The cycles charge placed before a branch's exits, or -1*/
+static int nocache_branch_uop = -1;
+
+void
+codegen_nocache_ins_cycles(int cycles_used)
+{
+    if (codegen_nocache && codegen_in_recompile && (cycles_used > 0)) {
+        if (nocache_branch_uop >= 0)
+            codegen_get_ir_data()->uops[nocache_branch_uop].imm_data = (uint32_t) (codegen_get_ir_data()->uops[nocache_branch_uop].imm_data - cycles_used);
+        else
+            codegen_accumulate(codegen_get_ir_data(), ACCREG_cycles, -cycles_used);
+    }
+    nocache_branch_uop = -1;
+}
+
+/*Set when the recording went on into a direct near jump's or call's target
+  (codegen_follow_near()): the next instruction starts as a new block would,
+  for the timing*/
+int        codegen_followed_near;
+
+
+#ifdef CODEGEN_BACKEND_HAS_FAR_PAGE2
+/*The instruction being recorded is a near CALL (codegen_generate_call)*/
+static int codegen_recording_call;
+#endif
+
+/*A CALL out of the first 1000 bytes' reach is followed for this many of the
+  callee's instructions (codegen_call_budget): a short routine, or the start
+  of a longer one, goes into the caller's block without a copy of all of it
+  in every caller. A CALL in such a callee shares what is left of the count.
+  A RET back ends the count; running out ends the block.*/
+#define CODEGEN_CALL_BUDGET 24
+static int codegen_call_budget;
+
+int
+codegen_call_budget_out(void)
+{
+    if (!codegen_call_budget)
+        return 0;
+    return !--codegen_call_budget;
+}
+
+/*Set once the block's recording has gone back before its start
+  (codegen_follow_near(), codegen_follow_jcc())*/
+static int codegen_jcc_back_followed;
+/*How far before the block's start a JMP may go back to*/
+#define CODEGEN_JMP_BACK 128
+
+/*A direct near jump or call has just run while a block is recorded: 1 to go
+  on recording at its target in the same block. Only forward: a target at or
+  before the jump is a loop (unrolled, codegen_can_unroll()) or code the block
+  may hold already, and before its start the size check ends the block. The
+  recording loop's size check still ends a block grown past what its page
+  masks cover.*/
+int
+codegen_follow_near(void)
+{
+#ifdef CODEGEN_BACKEND_HAS_FAR_PAGE2
+    int back = 0;
+#endif
+
+    if (!codegen_in_recompile)
+        return 0;
+#ifdef CODEGEN_BACKEND_HAS_FAR_PAGE2
+    /*A CALL as far as the block's first 1000 bytes reach, as when that
+      bound ended every block: a function called from many places would be
+      compiled again into each caller's block. A JMP also back, to another
+      page: code the block can't hold already, and the recording checks the
+      page as it goes on (codegen_record_page_ok())*/
+    if (codegen_recording_call) {
+        if ((cpu_state.pc <= cpu_state.oldpc) || (((cs + cpu_state.pc) - codeblock[block_current].pc) >= 1000)) {
+            if (!codegen_record_page_ok(cs + cpu_state.pc, 0))
+                return 0;
+            if (!codegen_call_budget)
+                codegen_call_budget = CODEGEN_CALL_BUDGET + 1;
+        }
+    } else if ((cpu_state.pc <= cpu_state.oldpc) && !(((cs + cpu_state.pc) ^ (cs + cpu_state.oldpc)) & ~0xfff)) {
+        /*Back on the page only once a block, to just before the block's
+          start, as a Jcc may go (codegen_follow_jcc()): the head of a loop
+          the block entered after it, as a switch's case does when it jumps
+          back to the loop's test*/
+        const uint32_t start = codeblock[block_current].pc;
+        const uint32_t dest  = cs + cpu_state.pc;
+
+        if (codegen_jcc_back_followed || (codeblock[block_current].flags & CODEBLOCK_BYTE_MASK) || (dest >= start) ||
+            ((start - dest) > CODEGEN_JMP_BACK) || ((dest ^ start) & ~0xfff))
+            return 0;
+        back = 1;
+    }
+    if (!codegen_record_page_ok(cs + cpu_state.pc, 0))
+        return 0;
+    if (back)
+        codegen_jcc_back_followed = 1;
+#else
+    if (cpu_state.pc <= cpu_state.oldpc)
+        return 0;
+#endif
+    codegen_followed_near = 1;
+    return 1;
+}
+
+/*Set by a Jcc compiled to go on at its target, for its interpreted run*/
+static int codegen_jcc_follow_pending;
+
+/*A Jcc taken now while a block is recorded (its recompile function's
+  check): 1 to compile it so the block goes on at a forward target, its
+  not-taken way an exit*/
+/*Back too, once a block, to a loop's head just before the block's start (on
+  its page, CODEGEN_JCC_BACK bytes at most): a loop the block entered after
+  its head (the instruction after a CALL in it) goes on round to the CALL in
+  the same block, rather than through a block of its own. Never in a
+  byte-mask block, whose code must stay after its start.
+  CODEGEN_JCC_BACK is in codegen.h*/
+
+int
+codegen_follow_jcc(uint32_t next_pc, uint32_t dest_addr)
+{
+    if (!codegen_in_recompile)
+        return 0;
+    if (dest_addr <= next_pc) {
+        const uint32_t start = codeblock[block_current].pc;
+        const uint32_t dest  = cs + dest_addr;
+
+        if (codegen_jcc_back_followed || (codeblock[block_current].flags & CODEBLOCK_BYTE_MASK) || (dest >= start) ||
+            ((start - dest) > CODEGEN_JCC_BACK) || ((dest ^ start) & ~0xfff))
+            return 0;
+        codegen_jcc_back_followed = 1;
+    }
+#ifdef CODEGEN_BACKEND_HAS_FAR_PAGE2
+    if (!codegen_record_page_ok(cs + dest_addr, 0))
+        return 0;
+#endif
+    codegen_jcc_follow_pending = 1;
+    return 1;
+}
+
+/*A near RET has just run while a block is recorded: 1 to go on recording at
+  the address it returned to, which the next instruction's code checks
+  first, leaving the block when another address was popped. The recording
+  loop's size check ends the block if that address is outside its reach.*/
+static int      codegen_ret_guard_pending;
+static uint32_t codegen_ret_guard_pc;
+
+void
+codegen_follow_reset(void)
+{
+    codegen_jcc_follow_pending = 0;
+    codegen_ret_guard_pending  = 0;
+    codegen_call_budget        = 0;
+    codegen_jcc_back_followed  = 0;
+}
+
+int
+codegen_follow_ret(void)
+{
+    if (!codegen_in_recompile)
+        return 0;
+#ifdef CODEGEN_BACKEND_HAS_FAR_PAGE2
+    /*Only as far as the block's first 1000 bytes reach, as when that bound
+      ended every block: a RET goes back to code that many places call into,
+      and on another page each of those would carry a copy of it and the
+      second-page checks on every way in. Or to a page the block has already,
+      which the CALL it returns from came from*/
+    if ((((cs + cpu_state.pc) - codeblock[block_current].pc) >= 1000) && !codegen_record_page_held(cs + cpu_state.pc))
+        return 0;
+#endif
+    codegen_ret_guard_pending = 1;
+    codegen_ret_guard_pc      = cpu_state.pc;
+    codegen_call_budget       = 0;
+    codegen_followed_near     = 1;
+    return 1;
+}
+
+/*The interpreted run of a taken Jcc: 1 if it was compiled to go on*/
+int
+codegen_follow_jcc_taken(void)
+{
+    if (!codegen_jcc_follow_pending)
+        return 0;
+    codegen_jcc_follow_pending = 0;
+    codegen_followed_near      = 1;
+    return 1;
+}
 
 static int      last_op_ssegs;
 static x86seg  *last_op_ea_seg;
@@ -261,7 +501,9 @@ codegen_generate_ea_16_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                 base_reg = IREG_EDI;
                 break;
         }
-        uop_MOV(ir, IREG_eaaddr, base_reg);
+        /*The base register is not copied to eaaddr on its own: the first
+          uop after it takes it as its source (ea_src)*/
+        int ea_src = base_reg;
 
         if (!(cpu_rm & 4)) {
             if (!(cpu_rm & 1))
@@ -269,28 +511,37 @@ codegen_generate_ea_16_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
             else
                 index_reg = IREG_EDI;
 
-            uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, index_reg);
+            uop_ADD(ir, IREG_eaaddr, ea_src, index_reg);
+            ea_src = IREG_eaaddr;
         }
 
         switch (cpu_mod) {
             case 1:
                 if (dyn) {
+                    if (ea_src != IREG_eaaddr)
+                        uop_MOV(ir, IREG_eaaddr, ea_src);
+                    ea_src = IREG_eaaddr;
                     LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp0, cs + old_pc);
                     uop_MOVSX(ir, IREG_temp0, IREG_temp0_B);
                     uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_temp0);
                 } else {
                     offset = (int) (int8_t) ((fetchdat >> 8) & 0xff);
-                    uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, offset);
+                    uop_ADD_IMM(ir, IREG_eaaddr, ea_src, offset);
+                    ea_src = IREG_eaaddr;
                 }
                 (*op_pc)++;
                 break;
             case 2:
                 if (dyn) {
+                    if (ea_src != IREG_eaaddr)
+                        uop_MOV(ir, IREG_eaaddr, ea_src);
+                    ea_src = IREG_eaaddr;
                     LOAD_IMMEDIATE_FROM_RAM_16(block, ir, IREG_temp0, cs + old_pc);
                     uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_temp0);
                 } else {
                     offset = fastreadw(cs + old_pc);
-                    uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, offset);
+                    uop_ADD_IMM(ir, IREG_eaaddr, ea_src, offset);
+                    ea_src = IREG_eaaddr;
                 }
                 (*op_pc) += 2;
                 break;
@@ -299,7 +550,7 @@ codegen_generate_ea_16_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                 break;
         }
 
-        uop_AND_IMM(ir, IREG_eaaddr, IREG_eaaddr, 0xffff);
+        uop_AND_IMM(ir, IREG_eaaddr, ea_src, 0xffff);
 
         if (mod1seg[cpu_rm] == &ss && !op_ssegs) {
             op_ea_seg = &cpu_state.seg_ss;
@@ -321,6 +572,10 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
 
     if (cpu_rm == 4) {
         uint8_t sib = fetchdat >> 8;
+        /*A base register with no displacement is not copied to eaaddr on
+          its own: the first uop after it takes it as its source (ea_src),
+          and with a displacement one ADD_IMM makes eaaddr from it*/
+        int ea_src = IREG_eaaddr;
         (*op_pc)++;
 
         switch (cpu_mod) {
@@ -336,7 +591,7 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                     }
                     (*op_pc) += 4;
                 } else {
-                    uop_MOV(ir, IREG_eaaddr, sib & 7);
+                    ea_src      = sib & 7;
                     extra_bytes = 1;
                 }
                 break;
@@ -344,35 +599,39 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                 if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
                     LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp0, cs + (*op_pc) + 1);
                     uop_MOVSX(ir, IREG_eaaddr, IREG_temp0_B);
+                    uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, sib & 7);
                     extra_bytes = 1;
                 } else {
                     new_eaaddr = (uint32_t) (int8_t) fastreadb(cs + (*op_pc) + 1);
-                    uop_MOV_IMM(ir, IREG_eaaddr, new_eaaddr);
+                    uop_ADD_IMM(ir, IREG_eaaddr, sib & 7, new_eaaddr);
                     extra_bytes = 2;
                 }
-                uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, sib & 7);
                 (*op_pc)++;
                 break;
             case 2:
                 if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
                     LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_eaaddr, cs + (*op_pc) + 1);
+                    uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, sib & 7);
                     extra_bytes = 1;
                 } else {
                     new_eaaddr = fastreadl(cs + (*op_pc) + 1);
-                    uop_MOV_IMM(ir, IREG_eaaddr, new_eaaddr);
+                    uop_ADD_IMM(ir, IREG_eaaddr, sib & 7, new_eaaddr);
                     extra_bytes = 5;
                 }
                 (*op_pc) += 4;
-                uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, sib & 7);
                 break;
 
             default:
                 break;
         }
         if (stack_offset && (sib & 7) == 4 && (cpu_mod || (sib & 7) != 5)) { /*ESP*/
-            if (cpu_cur_status & CPU_STATUS_STACK32)
-                uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, stack_offset);
-            else {
+            if (cpu_cur_status & CPU_STATUS_STACK32) {
+                uop_ADD_IMM(ir, IREG_eaaddr, ea_src, stack_offset);
+                ea_src = IREG_eaaddr;
+            } else {
+                if (ea_src != IREG_eaaddr)
+                    uop_MOV(ir, IREG_eaaddr, ea_src);
+                ea_src = IREG_eaaddr;
                 /*The pop wraps SP before the 32-bit EA adds its displacement*/
                 uop_MOV(ir, IREG_temp0, IREG_ESP);
                 uop_ADD_IMM(ir, IREG_temp0_W, IREG_temp0_W, stack_offset);
@@ -385,22 +644,23 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
         if (((sib >> 3) & 7) != 4) {
             switch (sib >> 6) {
                 case 0:
-                    uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, (sib >> 3) & 7);
+                    uop_ADD(ir, IREG_eaaddr, ea_src, (sib >> 3) & 7);
                     break;
                 case 1:
-                    uop_ADD_LSHIFT(ir, IREG_eaaddr, IREG_eaaddr, (sib >> 3) & 7, 1);
+                    uop_ADD_LSHIFT(ir, IREG_eaaddr, ea_src, (sib >> 3) & 7, 1);
                     break;
                 case 2:
-                    uop_ADD_LSHIFT(ir, IREG_eaaddr, IREG_eaaddr, (sib >> 3) & 7, 2);
+                    uop_ADD_LSHIFT(ir, IREG_eaaddr, ea_src, (sib >> 3) & 7, 2);
                     break;
                 case 3:
-                    uop_ADD_LSHIFT(ir, IREG_eaaddr, IREG_eaaddr, (sib >> 3) & 7, 3);
+                    uop_ADD_LSHIFT(ir, IREG_eaaddr, ea_src, (sib >> 3) & 7, 3);
                     break;
 
                 default:
                     break;
             }
-        }
+        } else if (ea_src != IREG_eaaddr)
+            uop_MOV(ir, IREG_eaaddr, ea_src);
     } else {
         if (!cpu_mod && cpu_rm == 5) {
             if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
@@ -412,32 +672,35 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
             }
 
             (*op_pc) += 4;
-        } else {
+        } else if (!cpu_mod)
             uop_MOV(ir, IREG_eaaddr, cpu_rm);
-            if (cpu_mod) {
-                if (cpu_rm == 5 && !op_ssegs)
-                    op_ea_seg = &cpu_state.seg_ss;
-                if (cpu_mod == 1) {
-                    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
-                        LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp0, cs + (*op_pc) + 1);
-                        uop_MOVSX(ir, IREG_temp0, IREG_temp0_B);
-                        uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_temp0);
-                    } else {
-                        uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, (uint32_t) (int8_t) (fetchdat >> 8));
-                        extra_bytes = 1;
-                    }
-                    (*op_pc)++;
+        else {
+            /*With a displacement known now, one ADD_IMM from the base
+              register*/
+            if (cpu_rm == 5 && !op_ssegs)
+                op_ea_seg = &cpu_state.seg_ss;
+            if (cpu_mod == 1) {
+                if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+                    uop_MOV(ir, IREG_eaaddr, cpu_rm);
+                    LOAD_IMMEDIATE_FROM_RAM_8(block, ir, IREG_temp0, cs + (*op_pc) + 1);
+                    uop_MOVSX(ir, IREG_temp0, IREG_temp0_B);
+                    uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_temp0);
                 } else {
-                    if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
-                        LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp0, cs + (*op_pc) + 1);
-                        uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_temp0);
-                    } else {
-                        new_eaaddr = fastreadl(cs + (*op_pc) + 1);
-                        uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, new_eaaddr);
-                        extra_bytes = 4;
-                    }
-                    (*op_pc) += 4;
+                    uop_ADD_IMM(ir, IREG_eaaddr, cpu_rm, (uint32_t) (int8_t) (fetchdat >> 8));
+                    extra_bytes = 1;
                 }
+                (*op_pc)++;
+            } else {
+                if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+                    uop_MOV(ir, IREG_eaaddr, cpu_rm);
+                    LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp0, cs + (*op_pc) + 1);
+                    uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_temp0);
+                } else {
+                    new_eaaddr = fastreadl(cs + (*op_pc) + 1);
+                    uop_ADD_IMM(ir, IREG_eaaddr, cpu_rm, new_eaaddr);
+                    extra_bytes = 4;
+                }
+                (*op_pc) += 4;
             }
         }
     }
@@ -1209,6 +1472,218 @@ codegen_peekb(uint32_t addr)
     return _mem_exec[phys >> MEM_GRANULARITY_BITS][phys & MEM_GRANULARITY_MASK];
 }
 
+/*codegen_flags_dead(): the block's instruction count once the instruction
+  that writes over the flags is in it; the recording loop ends no block
+  before (386_dynarec.c)*/
+int codegen_flags_debt_ins;
+
+/*The length of a 32-bit ModR/M memory operand past the ModR/M byte: the
+  SIB byte and the displacement*/
+static int
+codegen_ea32_len(uint8_t modrm, uint8_t sib)
+{
+    const int mod = modrm >> 6;
+    int       len = 0;
+
+    if ((modrm & 7) == 4) {
+        len++;
+        if (!mod && ((sib & 7) == 5))
+            len += 4;
+    } else if (!mod && ((modrm & 7) == 5))
+        len += 4;
+    if (mod == 1)
+        len += 1;
+    else if (mod == 2)
+        len += 4;
+    return len;
+}
+
+/*The bytes of a ModR/M operand past the ModR/M byte, as
+  codegen_generate_ea() takes them: the SIB byte and the displacement*/
+int
+codegen_ea_extra_len(uint32_t fetchdat, uint32_t op_32)
+{
+    const int mod = (fetchdat >> 6) & 3;
+
+    if (mod == 3)
+        return 0;
+    if (op_32 & 0x200)
+        return codegen_ea32_len(fetchdat & 0xff, (fetchdat >> 8) & 0xff);
+    if (!mod && ((fetchdat & 7) == 6))
+        return 2;
+    return (mod == 1) ? 1 : (mod == 2) ? 2 : 0;
+}
+
+/*How many instructions codegen_flags_dead() looks past the one compiled*/
+#define FLAGS_DEAD_INS      4
+/*The register versions those instructions may use at most*/
+#define FLAGS_DEAD_VERSIONS 64
+
+/*Whether every arithmetic flag the instruction being compiled leaves is
+  written over before any is read, so that it need not work them out
+  (imul_common(), the 32-bit ROL and ROR). From addr, the linear address of
+  the next instruction, the instructions are decoded while each is one that
+  reads no flag and cannot fault or leave the block, up to one that writes
+  all six from its own operands. Only unprefixed register forms in 32-bit
+  code on addr - 1's page, in a block that does not read its code as it
+  runs, with room in the block for them all: an interrupt or a fault taken
+  between them would find the flags not worked out. Their bytes are marked
+  as code, so a write to them recompiles the block, and the recording loop
+  ends no block before the last of them is in it (codegen_flags_debt_ins)*/
+int
+codegen_flags_dead(codeblock_t *block, uint32_t addr)
+{
+    uint32_t pc = addr;
+
+    if ((block->flags & (CODEBLOCK_NO_IMMEDIATES | CODEBLOCK_BYTE_MASK)) || (use32 != 0x300) || (cpu_state.flags & T_FLAG) || trap ||
+        cpu_block_end || (codegen_reg_versions_left() < FLAGS_DEAD_VERSIONS))
+        return 0;
+
+    for (int n = 0; n < FLAGS_DEAD_INS; n++) {
+        const uint32_t lo       = codegen_fetchl_lookahead(pc);
+        const uint8_t  b0       = lo & 0xff;
+        const uint8_t  b1       = (lo >> 8) & 0xff;
+        const uint8_t  b2       = (lo >> 16) & 0xff;
+        const int      reg_form = (b1 >= 0xc0);
+        const int      reg      = (b1 >> 3) & 7;
+        int            len;
+        int            full = 0;
+
+        if (cpu_state.abrt)
+            return 0;
+        if (b0 == 0x0f) {
+            /*IMUL r32, r/m32 writes CF and OF only; MOVZX, MOVSX and BSWAP
+              no flag*/
+            if ((b1 == 0xaf) || (b1 == 0xb6) || (b1 == 0xb7) || (b1 == 0xbe) || (b1 == 0xbf)) {
+                if (b2 < 0xc0)
+                    return 0;
+                len = 3;
+            } else if ((b1 & 0xf8) == 0xc8)
+                len = 2;
+            else
+                return 0;
+        } else if (b0 < 0x40) {
+            /*ADD, OR, AND, SUB, XOR and CMP write all six; ADC and SBB read
+              CF*/
+            const int group = b0 >> 3;
+            const int low   = b0 & 7;
+
+            if ((group == 2) || (group == 3))
+                return 0;
+            if ((low <= 3) && reg_form)
+                len = 2;
+            else if (low == 4)
+                len = 2;
+            else if (low == 5)
+                len = 5;
+            else
+                return 0;
+            full = 1;
+        } else {
+            switch (b0) {
+                case 0x80:
+                case 0x83:
+                case 0x81:
+                    if (!reg_form || (reg == 2) || (reg == 3))
+                        return 0;
+                    len  = (b0 == 0x81) ? 6 : 3;
+                    full = 1;
+                    break;
+                case 0x84:
+                case 0x85: /*TEST*/
+                    if (!reg_form)
+                        return 0;
+                    len  = 2;
+                    full = 1;
+                    break;
+                case 0xa8:
+                    len  = 2;
+                    full = 1;
+                    break;
+                case 0xa9:
+                    len  = 5;
+                    full = 1;
+                    break;
+                case 0xf6:
+                case 0xf7:
+                    if (!reg_form)
+                        return 0;
+                    if (reg == 0) { /*TEST*/
+                        len  = (b0 == 0xf6) ? 3 : 6;
+                        full = 1;
+                    } else if (reg == 3) { /*NEG*/
+                        len  = 2;
+                        full = 1;
+                    } else if (reg == 2) /*NOT: no flag*/
+                        len = 2;
+                    else
+                        return 0;
+                    break;
+                case 0xc1: /*Shifts write all six, rotates CF and OF; a count of 0 none*/
+                    if (!reg_form || (reg == 2) || (reg == 3))
+                        return 0;
+                    len  = 3;
+                    full = (reg >= 4) && (b2 & 0x1f);
+                    break;
+                case 0xd1:
+                    if (!reg_form || (reg == 2) || (reg == 3))
+                        return 0;
+                    len  = 2;
+                    full = (reg >= 4);
+                    break;
+                case 0x69: /*IMUL: CF and OF only*/
+                    if (!reg_form)
+                        return 0;
+                    len = 6;
+                    break;
+                case 0x6b:
+                    if (!reg_form)
+                        return 0;
+                    len = 3;
+                    break;
+                case 0x88:
+                case 0x89:
+                case 0x8a:
+                case 0x8b: /*MOV*/
+                    if (!reg_form)
+                        return 0;
+                    len = 2;
+                    break;
+                case 0x8d: /*LEA reads no memory*/
+                    if (reg_form)
+                        return 0;
+                    len = 2 + codegen_ea32_len(b1, b2);
+                    break;
+                case 0x90 ... 0x97: /*NOP, XCHG eAX*/
+                    len = 1;
+                    break;
+                case 0xb0 ... 0xb7:
+                    len = 2;
+                    break;
+                case 0xb8 ... 0xbf:
+                    len = 5;
+                    break;
+                default:
+                    return 0;
+            }
+        }
+        if (((pc + len - 1) ^ (addr - 1)) & ~0xfff)
+            return 0;
+        pc += len;
+        if (full) {
+            /*The block's count ends it after an instruction, not before the
+              writer is in it*/
+            if ((block->ins + n + 1) >= MAX_INSTRUCTION_COUNT)
+                return 0;
+            codegen_mark_code_present(block, addr, pc - addr);
+            if ((block->ins + n + 2) > codegen_flags_debt_ins)
+                codegen_flags_debt_ins = block->ins + n + 2;
+            return 1;
+        }
+    }
+    return 0;
+}
+
 /* The instructions whose interpreter op can end the block on success, with
    a nonzero answer that leaves the block right after its call: a taken Jcc,
    LOOP or JCXZ, INT3, INT n, INTO and INT1, POP SS and MOV SS (they run the
@@ -1281,6 +1756,39 @@ codegen_generate_call(uint8_t opcode, OpFn op, uint32_t fetchdat, uint32_t new_p
     codegen_mov_ss_pair_valid = 0;
     op_ea_seg = &cpu_state.seg_ds;
     op_ssegs  = 0;
+#ifdef CODEGEN_BACKEND_HAS_FAR_PAGE2
+    codegen_recording_call = (opcode == 0xe8);
+#endif
+
+    /*After a followed jump or call: its pairing ends as at the end of a block,
+      and the timing goes on as in a new one, so the cycles come out as they
+      would with the two blocks apart*/
+    codegen_jcc_follow_pending = 0;
+    if (codegen_followed_near) {
+        codegen_followed_near = 0;
+        codegen_timing_block_end();
+#ifdef CODEGEN_BACKEND_HAS_ALU_FAMILY
+        /*Charged at once only when the guard below flushes them*/
+        codegen_family_retime_lump(ir, block, codegen_ret_guard_pending);
+#endif
+        codegen_accumulate(ir, ACCREG_cycles, -codegen_block_cycles);
+        codegen_block_cycles = 0;
+        codegen_timing_block_start();
+    }
+    /*After a followed RET: the address it popped (IREG_pc) must be the one
+      recorded, else the block is left there, as the RET would have left it*/
+    if (codegen_ret_guard_pending) {
+        int jump_uop;
+
+        codegen_ret_guard_pending = 0;
+        codegen_accumulate_flush(ir);
+        jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_pc, codegen_ret_guard_pc);
+        uop_JMP(ir, codegen_exit_rout);
+        uop_set_jump_dest(ir, jump_uop);
+    }
+#ifdef CODEGEN_BACKEND_HAS_ALU_FAMILY
+    codegen_family_retime_ins(ir, opcode);
+#endif
 
     codegen_timing_start();
 
@@ -1642,10 +2150,22 @@ generate_call:
     codegen_timing_opcode(opcode, fetchdat, op_32, op_pc);
     codegen_timing_peek = 0;
     codegen_accumulate_record(ACC_OPCODE, 0, opcode, fetchdat, op_32, op_pc);
+    /*IF and TF, which the link routine checks, are changed by these as they
+      are compiled, without calling C (CODEBLOCK_LINK_STATE)*/
+    if ((op_table == x86_dynarec_opcodes) && ((opcode == 0x9d) || (opcode == 0xfa) || (opcode == 0xfb) || (opcode == 0xcf)))
+        codegen_link_state_ins = 1;
 
     codegen_accumulate_timing(ir);
 
-    if ((op_table == x86_dynarec_opcodes && ((opcode & 0xf0) == 0x70 || (opcode & 0xfc) == 0xe0 || opcode == 0xc2 || (opcode & 0xfe) == 0xca || (opcode & 0xfc) == 0xcc || (opcode & 0xfc) == 0xe8 || (opcode == 0xff && ((fetchdat & 0x38) >= 0x10 && (fetchdat & 0x38) < 0x30)))) || (op_table == x86_dynarec_opcodes_0f && ((opcode & 0xf0) == 0x80))) {
+    nocache_branch_uop = -1;
+    if (codegen_nocache && ((op_table == x86_dynarec_opcodes && ((opcode & 0xf0) == 0x70 || (opcode & 0xfc) == 0xe0 || opcode == 0xc2 || (opcode & 0xfe) == 0xca || (opcode & 0xfc) == 0xcc || (opcode & 0xfc) == 0xe8 || (opcode == 0xff && ((fetchdat & 0x38) >= 0x10 && (fetchdat & 0x38) < 0x30)))) || (op_table == x86_dynarec_opcodes_0f && ((opcode & 0xf0) == 0x80)))) {
+        /*Its exits are not stamped: what the block owes so far is charged
+          before it, and the branch's own cycles, known once it has run,
+          with it (codegen_nocache_ins_cycles())*/
+        codegen_accumulate_flush(ir);
+        nocache_branch_uop = ir->wr_pos;
+        uop_ADD_IMM(ir, IREG_cycles, IREG_cycles, 0);
+    } else if (!codegen_nocache && ((op_table == x86_dynarec_opcodes && ((opcode & 0xf0) == 0x70 || (opcode & 0xfc) == 0xe0 || opcode == 0xc2 || (opcode & 0xfe) == 0xca || (opcode & 0xfc) == 0xcc || (opcode & 0xfc) == 0xe8 || (opcode == 0xff && ((fetchdat & 0x38) >= 0x10 && (fetchdat & 0x38) < 0x30)))) || (op_table == x86_dynarec_opcodes_0f && ((opcode & 0xf0) == 0x80)))) {
         /*On some CPUs (eg K6), a jump/branch instruction may be able to pair with
           subsequent instructions, so no cycles may have been deducted for it yet.
           To prevent having zero cycle blocks (eg with a jump instruction pointing
@@ -1848,6 +2368,19 @@ generate_call:
             }
             if (new_pc != -1)
                 uop_MOV_IMM(ir, IREG_pc, new_pc);
+#ifdef CODEGEN_BACKEND_HAS_SMC_EXIT
+            /*A byte-mask block's code is written while it runs: after a
+              store that changed a byte of code (cpu_state.code_written,
+              set by the write) it leaves here, past the instruction, rather
+              than run on the bytes it was compiled from. So a loop of it can
+              be unrolled though it stores (codegen_can_unroll_full())*/
+            if ((new_pc != -1) && (block->flags & CODEBLOCK_BYTE_MASK) && codegen_ir_stores(ir, first_uop)) {
+                uop_MOVZX_REG_PTR_8(ir, IREG_temp0, &cpu_state.code_written);
+                uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout);
+                codegen_exit_stamp(ir, 1);
+                codegen_ir_note_smc_check(ir->wr_pos - 1);
+            }
+#endif
 
             codegen_endpc = (cs + cpu_state.pc) + 8;
 

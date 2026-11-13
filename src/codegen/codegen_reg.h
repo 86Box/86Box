@@ -254,6 +254,8 @@ enum {
 
 #define IREG_TOP_diff_stack_offset (32 + CODEGEN_TEMP_BASE)
 
+void codegen_reg_drop_seg(const x86seg *seg);
+
 static inline int
 ireg_seg_base(x86seg *seg)
 {
@@ -311,8 +313,39 @@ ireg_seg_limit_high(x86seg *seg)
 }
 
 extern uint8_t reg_last_version[IREG_COUNT];
+extern int     codegen_reg_versions_left(void);
+/*Registers whose version 0 was read in this block: with the ones written
+  (reg_last_version), all whose reg_version[][0] codegen_reg_reset() resets*/
+extern uint64_t reg_read_v0[(IREG_COUNT + 63) / 64];
 extern uint64_t dirty_ir_regs[2];
 extern uint64_t ireg_permanent_mask[2];
+
+/*pc and oldpc set to constants are kept out of the IR: such a write is
+  recorded on the uop generated after it (uop_t::meta_ev), and the backend
+  makes it as that uop is compiled, as it would have the MOV_IMM's. Each
+  instruction sets both, so the uops they took were a large part of what a
+  block's compile does. A register written any other way (a RET's pc) is in
+  the IR from then until its next constant write (codegen_meta_ir).*/
+#if defined __aarch64__ || defined _M_ARM64
+#    define CODEGEN_META_PC
+#endif
+#define CODEGEN_META_EV_PC    1
+#define CODEGEN_META_EV_OLDPC 2
+#ifdef CODEGEN_META_PC
+/*The writes not yet on a uop, and their constants*/
+extern uint8_t  codegen_meta_ev;
+extern uint32_t codegen_meta_pc;
+extern uint32_t codegen_meta_oldpc;
+/*The registers (CODEGEN_META_EV_*) a uop has written since their last
+  constant write: a uop may read what it wrote*/
+extern uint8_t codegen_meta_ir;
+/*The registers a uop of the block has written at all: a host register may
+  hold one when a constant write is made (codegen_reg_meta_apply)*/
+extern uint8_t codegen_meta_seen;
+/*How many writes each has left out of the IR, versions it would have used
+  (codegen_reg_versions_left, max_version_refcount)*/
+extern int codegen_meta_versions[2];
+#endif
 
 static inline int
 ireg_is_permanent(int reg)
@@ -325,6 +358,9 @@ ireg_is_permanent(int reg)
 #define REG_FLAGS_REQUIRED (1 << 0)
 /*This register and the parent uOP have been optimised out.*/
 #define REG_FLAGS_DEAD (1 << 1)
+/*A write of part of the register followed this version, which it keeps the
+  rest of: read without a count (codegen_reg_write())*/
+#define REG_FLAGS_PARTIAL (1 << 2)
 
 typedef struct {
     /*Refcount of pending reads on this register version*/
@@ -377,8 +413,17 @@ codegen_reg_read(int reg)
     if (IREG_GET_REG(reg) == IREG_INVALID)
         fatal("codegen_reg_read - IREG_INVALID\n");
 #endif
+#ifdef CODEGEN_META_PC
+    /*Its last constant write may not be in memory yet, and no version of
+      the IR holds it*/
+    if (((IREG_GET_REG(reg) == IREG_pc) && !(codegen_meta_ir & CODEGEN_META_EV_PC)) ||
+        ((IREG_GET_REG(reg) == IREG_oldpc) && !(codegen_meta_ir & CODEGEN_META_EV_OLDPC)))
+        fatal("codegen_reg_read - pc or oldpc read while kept out of the IR\n");
+#endif
     ireg.reg       = reg;
     ireg.version   = reg_last_version[IREG_GET_REG(reg)];
+    if (!ireg.version)
+        reg_read_v0[IREG_GET_REG(reg) >> 6] |= 1ull << (IREG_GET_REG(reg) & 63);
     version        = &reg_version[IREG_GET_REG(ireg.reg)][ireg.version];
     version->flags = 0;
     version->refcount++;
@@ -411,6 +456,9 @@ codegen_reg_read_has_room(int reg)
 static inline void
 codegen_reg_read_uncounted(int reg)
 {
+    /*Version 0's count is reset at the next block only if it is marked*/
+    if (!reg_last_version[IREG_GET_REG(reg)])
+        reg_read_v0[IREG_GET_REG(reg) >> 6] |= 1ull << (IREG_GET_REG(reg) & 63);
     reg_version[IREG_GET_REG(reg)][reg_last_version[IREG_GET_REG(reg)]].uncounted++;
 }
 
@@ -435,6 +483,15 @@ codegen_reg_write(int reg, int uop_nr)
         codegen_fpu_tag_valid &= ~(1 << (IREG_GET_REG(reg) - IREG_tag0));
         codegen_fpu_tag_empty &= ~(1 << (IREG_GET_REG(reg) - IREG_tag0));
     }
+#ifdef CODEGEN_META_PC
+    if (IREG_GET_REG(reg) == IREG_pc) {
+        codegen_meta_ir |= CODEGEN_META_EV_PC;
+        codegen_meta_seen |= CODEGEN_META_EV_PC;
+    } else if (IREG_GET_REG(reg) == IREG_oldpc) {
+        codegen_meta_ir |= CODEGEN_META_EV_OLDPC;
+        codegen_meta_seen |= CODEGEN_META_EV_OLDPC;
+    }
+#endif
 
     if (dirty_ir_regs[(IREG_GET_REG(reg) >> 6) & 3] & (1ull << ((uint64_t)IREG_GET_REG(reg) & 0x3full))) {
         dirty_ir_regs[(IREG_GET_REG(reg) >> 6) & 3] &= ~(1ull << ((uint64_t)IREG_GET_REG(reg) & 0x3full));
@@ -449,6 +506,8 @@ codegen_reg_write(int reg, int uop_nr)
         if (reg_is_native_size(ireg)) /*Non-native size registers have an implicit dependency on the previous version, so don't add to dead list*/
             add_to_dead_list(&reg_version[IREG_GET_REG(reg)][last_version], IREG_GET_REG(reg), last_version);
     }
+    if (last_version && !reg_is_native_size(ireg))
+        reg_version[IREG_GET_REG(reg)][last_version].flags |= REG_FLAGS_PARTIAL;
 
     reg_last_version[IREG_GET_REG(reg)]++;
 
@@ -525,6 +584,12 @@ void codegen_reg_defer_imm(codeblock_t *block, ir_reg_t ir_reg, uint32_t imm_dat
 /*codegen_reg_flush for a lazy uop: the integer registers that a fault stub
   can store stay dirty, and go on its list with the pending immediates*/
 void codegen_reg_flush_lazy(struct ir_data_t *ir, codeblock_t *block);
+/*The allocator's state, saved at a jump over a block exit and put back after
+  the exit*/
+void codegen_reg_save(void);
+void codegen_reg_restore(void);
+/*Room for another lazy site's list*/
+int  codegen_reg_lazy_sites_left(void);
 /*Emit the stores of list*/
 void codegen_reg_lazy_stores(codeblock_t *block, const codegen_lazy_list_t *list);
 #endif
@@ -543,6 +608,27 @@ int codegen_reg_cold_can_rejoin(void);
 void codegen_reg_cold_rejoin(codeblock_t *block);
 #endif
 
+#ifdef CODEGEN_META_PC
+struct uop_t;
+/*The constant writes of pc and oldpc recorded on uop, made as a MOV_IMM's
+  would have been: held, as immediates not stored yet*/
+void codegen_reg_meta_apply(codeblock_t *block, const struct uop_t *uop);
+/*Store the immediates held*/
+void codegen_reg_store_pending(codeblock_t *block);
+#endif
+
+/*A register the backend keeps in a host register of its own
+  (CODEGEN_BACKEND_PINNED_CYCLES): never renamed or stored as an immediate*/
+static inline int
+codegen_reg_pinned(ir_reg_t ir_reg)
+{
+#ifdef CODEGEN_BACKEND_PINNED_CYCLES
+    return IREG_GET_REG(ir_reg.reg) == IREG_cycles;
+#else
+    (void) ir_reg;
+    return 0;
+#endif
+}
 ir_host_reg_t codegen_reg_alloc_read_reg(codeblock_t *block, ir_reg_t ir_reg, int *host_reg_idx);
 ir_host_reg_t codegen_reg_alloc_write_reg(codeblock_t *block, ir_reg_t ir_reg);
 

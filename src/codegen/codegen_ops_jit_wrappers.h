@@ -19,7 +19,12 @@
 #ifndef CODEGEN_OPS_JIT_WRAPPERS_H
 #define CODEGEN_OPS_JIT_WRAPPERS_H
 
-#define JIT_WRAPPER __attribute__((noinline, used))
+/* flatten: the flag helpers are inlined into the wrapper, which the compiler
+   would otherwise leave calling one shared out-of-line copy of CF_SET() etc.
+   One copy of each, in codegen_ops_helpers.c, so that a block calling only
+   these is known to call no C that could change what the link routine
+   checks (codegen_call_is_flags_helper()) */
+#define JIT_WRAPPER __attribute__((noinline, used, flatten))
 
 /* --- flags_rebuild family (void → void) --- */
 

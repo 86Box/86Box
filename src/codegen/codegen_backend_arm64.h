@@ -16,7 +16,7 @@
 #define HASH_SIZE   0x20000
 #define HASH_MASK   0x1ffff
 
-#define HASH(l)     ((l) &0x1ffff)
+#define HASH(l)     (((l) ^ ((l) >> 17)) & 0x1ffff)
 
 #define BLOCK_MAX   0x3e8
 
@@ -39,6 +39,8 @@
    leaves those cycles uncharged there, but for codegen_exit_on_one's, which
    it charges in the IR. */
 #define CODEGEN_BACKEND_HAS_EXIT_CYCLES
+/*A byte-mask block leaves after a store that changed code (codegen.c)*/
+#define CODEGEN_BACKEND_HAS_SMC_EXIT
 /* CMN_IMM_JC and CMP_JNWITHIN_TOP, the SS limit tests of a push or pop on a
    flat or wide 32-bit stack with the carry of its end. A backend without
    them makes those tests with an add and a compare (CHECK_STACK_LIMITS). */
@@ -49,6 +51,21 @@
    the block (codegen_lazy_stubs_emit). A backend without it writes them
    back before each of those uops. */
 #define CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+
+/* A branch's exit, the jump over it, the pc write and the exit's JMP, makes
+   its stores and links out of line, on its own way only: the way on keeps
+   its registers as they were (codegen_ir_compile) */
+#define CODEGEN_BACKEND_HAS_LAZY_BRANCH_EXIT
+
+/* A block's second page is any one page the recording reaches, not only
+   the next: codeblock_t::pc_2 says where it is (codegen_record_page_ok) */
+#define CODEGEN_BACKEND_HAS_FAR_PAGE2
+
+/* Blocks have no prologue of their own: C runs one through this routine,
+   which saves the registers blocks use, points X29 at cpu_state and
+   branches to the block at code. Every exit restores them and returns. */
+#define CODEGEN_BACKEND_HAS_ENTER_ROUT
+extern void *(*codegen_enter_block)(void *code);
 void codegen_lazy_stubs_emit(codeblock_t *block);
 /* CMP_IMM_JZ_DEST_COLD, TEST_IMM_JZ_DEST_COLD and FCMP_JWITHIN_DEST_COLD, the
    branches over a cold region (UOP_TYPE_COLD). A backend without them writes
@@ -66,7 +83,20 @@ void codegen_lazy_stubs_emit(codeblock_t *block);
 /* A slot whose target changes keeps the targets it held before in a set,
    tried after a key mismatch (codegen_link.h). */
 #    define CODEGEN_BACKEND_HAS_LINK_SETS
+/* Every record is also kept in a table by its key, tried after the set
+   (codegen_link.h). */
+#    define CODEGEN_BACKEND_HAS_LINK_TABLE
+/* Blocks rewritten between a few versions check their bytes as they are
+   entered (codegen.h). */
+#    define CODEGEN_BACKEND_HAS_POLY
+#endif
+/* UOP_ALU_FAMILY and the check at a CODEBLOCK_ALU_FAMILY block's start
+   (codegen_backend_alu_family_check()). */
+#define CODEGEN_BACKEND_HAS_ALU_FAMILY
+void codegen_backend_alu_family_check(codeblock_t *block);
+#if !defined(USE_GDBSTUB)
 void codegen_link_exit(codeblock_t *block);
+void codegen_link_exit_direct(codeblock_t *block);
 /* 0: blocks end with the plain return and the loop never links them. */
 extern int codegen_block_link;
 #endif

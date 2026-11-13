@@ -24,6 +24,7 @@
 #define HAVE_STDARG_H
 #include <86box/86box.h>
 #include <86box/io.h>
+#include <86box/mem.h>
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/machine.h>
@@ -77,6 +78,39 @@ typedef struct io_claim_t {
 static io_claim_t io_claims[IO_CLAIMS];
 static uint8_t    io_claimed[NPORTS / 8];
 
+/* Per port, whether a handler there is one a wider access reaches through a
+   narrower one: the loops below that call only those skip the list when the
+   port has none. Kept by io_narrow_update() wherever a list changes. */
+#define IO_NARROW_INB_W   0x01 /* inb, no inw: inw() */
+#define IO_NARROW_INB_WL  0x02 /* inb, no inw or inl: inl() */
+#define IO_NARROW_INW_L   0x04 /* inw, no inl: inl() */
+#define IO_NARROW_OUTB_W  0x10 /* outb, no outw: outw() */
+#define IO_NARROW_OUTB_WL 0x20 /* outb, no outw or outl: outl() */
+#define IO_NARROW_OUTW_L  0x40 /* outw, no outl: outl() */
+static uint8_t io_narrow[NPORTS];
+
+static void
+io_narrow_update(uint16_t port)
+{
+    uint8_t narrow = 0;
+
+    for (const io_t *p = io[port]; p; p = p->next) {
+        if (p->inb && !p->inw)
+            narrow |= IO_NARROW_INB_W;
+        if (p->inb && !p->inw && !p->inl)
+            narrow |= IO_NARROW_INB_WL;
+        if (p->inw && !p->inl)
+            narrow |= IO_NARROW_INW_L;
+        if (p->outb && !p->outw)
+            narrow |= IO_NARROW_OUTB_W;
+        if (p->outb && !p->outw && !p->outl)
+            narrow |= IO_NARROW_OUTB_WL;
+        if (p->outw && !p->outl)
+            narrow |= IO_NARROW_OUTW_L;
+    }
+    io_narrow[port] = narrow;
+}
+
 #ifdef ENABLE_IO_LOG
 uint8_t io_do_log = ENABLE_IO_LOG;
 
@@ -128,6 +162,7 @@ io_init(void)
 
     memset(io_claims, 0x00, sizeof(io_claims));
     memset(io_claimed, 0x00, sizeof(io_claimed));
+    memset(io_narrow, 0x00, sizeof(io_narrow));
 }
 
 void
@@ -211,6 +246,7 @@ io_sethandler_common(uint16_t base, uint16_t size,
         q->next = NULL;
 
         io_last[base + c] = q;
+        io_narrow_update(base + c);
 
         q = NULL;
     }
@@ -246,6 +282,7 @@ io_removehandler_common(uint16_t base, uint16_t size,
                     io_last[base + c] = p->prev;
                 free(p);
                 p = NULL;
+                io_narrow_update(base + c);
                 break;
             }
             p = q;
@@ -404,6 +441,8 @@ io_debug_check_addr(uint16_t port)
 uint8_t
 inb(uint16_t port)
 {
+    mem_idle_dirty = 1; /* an idle loop does no port access */
+
     uint8_t ret = 0xff;
     io_t   *p;
     io_t   *q;
@@ -482,6 +521,8 @@ inb(uint16_t port)
 void
 outb(uint16_t port, uint8_t val)
 {
+    mem_idle_dirty = 1; /* an idle loop does no port access */
+
     io_t   *p;
     io_t   *q;
     uint8_t found  = 0;
@@ -546,6 +587,8 @@ outb(uint16_t port, uint8_t val)
 uint16_t
 inw(uint16_t port)
 {
+    mem_idle_dirty = 1; /* an idle loop does no port access */
+
     io_t    *p;
     io_t    *q;
     uint16_t ret    = 0xffff;
@@ -597,7 +640,7 @@ inw(uint16_t port)
                 found |= 1;
                 continue;
             }
-            p = io[(port + i) & 0xffff];
+            p = (io_narrow[(port + i) & 0xffff] & IO_NARROW_INB_W) ? io[(port + i) & 0xffff] : NULL;
             while (p) {
                 q = p->next;
                 if (p->inb && !p->inw) {
@@ -644,6 +687,8 @@ inw(uint16_t port)
 void
 outw(uint16_t port, uint16_t val)
 {
+    mem_idle_dirty = 1; /* an idle loop does no port access */
+
     io_t   *p;
     io_t   *q;
     uint8_t found  = 0;
@@ -692,7 +737,7 @@ outw(uint16_t port, uint16_t val)
                 found |= 1;
                 continue;
             }
-            p = io[(port + i) & 0xffff];
+            p = (io_narrow[(port + i) & 0xffff] & IO_NARROW_OUTB_W) ? io[(port + i) & 0xffff] : NULL;
             while (p) {
                 q = p->next;
                 if (p->outb && !p->outw) {
@@ -725,6 +770,8 @@ outw(uint16_t port, uint16_t val)
 uint32_t
 inl(uint16_t port)
 {
+    mem_idle_dirty = 1; /* an idle loop does no port access */
+
     io_t    *p;
     io_t    *q;
     uint32_t ret = 0xffffffff;
@@ -772,7 +819,7 @@ inl(uint16_t port)
 
         ret16[0] = ret & 0xffff;
         ret16[1] = (ret >> 16) & 0xffff;
-        p        = io[port & 0xffff];
+        p        = (io_narrow[port & 0xffff] & IO_NARROW_INW_L) ? io[port & 0xffff] : NULL;
         while (p) {
             q = p->next;
             if (p->inw && !p->inl) {
@@ -785,7 +832,7 @@ inl(uint16_t port)
             p = q;
         }
 
-        p = io[(port + 2) & 0xffff];
+        p = (io_narrow[(port + 2) & 0xffff] & IO_NARROW_INW_L) ? io[(port + 2) & 0xffff] : NULL;
         while (p) {
             q = p->next;
             if (p->inw && !p->inl) {
@@ -808,7 +855,7 @@ inl(uint16_t port)
                 found |= 1;
                 continue;
             }
-            p = io[(port + i) & 0xffff];
+            p = (io_narrow[(port + i) & 0xffff] & IO_NARROW_INB_WL) ? io[(port + i) & 0xffff] : NULL;
             while (p) {
                 q = p->next;
                 if (p->inb && !p->inw && !p->inl) {
@@ -850,6 +897,8 @@ inl(uint16_t port)
 void
 outl(uint16_t port, uint32_t val)
 {
+    mem_idle_dirty = 1; /* an idle loop does no port access */
+
     io_t   *p;
     io_t   *q;
     uint8_t found  = 0;
@@ -896,7 +945,7 @@ outl(uint16_t port, uint32_t val)
         }
 
         for (uint8_t i = 0; i < 4; i += 2) {
-            p = io[(port + i) & 0xffff];
+            p = (io_narrow[(port + i) & 0xffff] & IO_NARROW_OUTW_L) ? io[(port + i) & 0xffff] : NULL;
             while (p) {
                 q = p->next;
                 if (p->outw && !p->outl) {
@@ -915,7 +964,7 @@ outl(uint16_t port, uint32_t val)
                 found |= 1;
                 continue;
             }
-            p = io[(port + i) & 0xffff];
+            p = (io_narrow[(port + i) & 0xffff] & IO_NARROW_OUTB_WL) ? io[(port + i) & 0xffff] : NULL;
             while (p) {
                 q = p->next;
                 if (p->outb && !p->outw && !p->outl) {

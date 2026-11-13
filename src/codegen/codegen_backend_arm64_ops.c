@@ -183,6 +183,9 @@
 #    define OPCODE_LDR_LITERAL_X      (0x58000000)
 #    define OPCODE_LDRB_REG           (0x38606800)
 #    define OPCODE_LDRH_REG           (0x78606800)
+#    define OPCODE_LDR_REG_UXTW       (0xb8604800)
+#    define OPCODE_LDRB_REG_UXTW      (0x38604800)
+#    define OPCODE_LDRH_REG_UXTW      (0x78604800)
 #    define OPCODE_LDRX_REG_LSL3      (0xf8607800)
 #    define OPCODE_LDR_REG_F32        (0xbc606800)
 #    define OPCODE_LDR_REG_F64        (0xfc606800)
@@ -224,6 +227,9 @@
 #    define OPCODE_STR_REG            (0xb8206800)
 #    define OPCODE_STRB_REG           (0x38206800)
 #    define OPCODE_STRH_REG           (0x78206800)
+#    define OPCODE_STR_REG_UXTW       (0xb8204800)
+#    define OPCODE_STRB_REG_UXTW      (0x38204800)
+#    define OPCODE_STRH_REG_UXTW      (0x78204800)
 #    define OPCODE_STR_REG_F32        (0xbc206800)
 #    define OPCODE_STR_REG_F64        (0xfc206800)
 #    define OPCODE_STR_REG_F64_S      (0xfc207800)
@@ -339,11 +345,15 @@ imm_is_movn16(uint32_t imm_data)
 }
 
 static void codegen_allocate_new_block(codeblock_t *block);
+static int  branch19_islands(uint32_t *at);
+/*Bytes kept at the end of the allocator block for its islands*/
+static int branch19_reserve;
+extern int codegen_branch19_on;
 
 static inline void
 codegen_addlong(codeblock_t *block, uint32_t val)
 {
-    if (block_pos >= (BLOCK_MAX - 4))
+    if (block_pos >= (BLOCK_MAX - 4 - branch19_reserve))
         codegen_allocate_new_block(block);
     *(uint32_t *) &block_write_data[block_pos] = val;
     block_pos += 4;
@@ -361,6 +371,8 @@ codegen_allocate_new_block(codeblock_t *block)
         fatal("codegen_allocate_new_block - offset out of range %x\n", offset);
     /*Add a jump instruction to the new block*/
     *(uint32_t *) &block_write_data[block_pos] = OPCODE_B | OFFSET26(offset);
+    if (codegen_branch19_on)
+        branch19_islands((uint32_t *) &block_write_data[block_pos + 4]);
 
     /*Set write address to start of new block*/
     block_pos        = 0;
@@ -370,8 +382,110 @@ codegen_allocate_new_block(codeblock_t *block)
 void
 codegen_alloc(codeblock_t *block, int size)
 {
-    if (block_pos >= (BLOCK_MAX - size))
+    if (block_pos >= (BLOCK_MAX - size - branch19_reserve))
         codegen_allocate_new_block(block);
+}
+
+/*A forward branch of a compiled block, host_arm64_B??_() or a CBZ/CBNZ, is
+  one B.cond or CBZ/CBNZ to its destination, not one past a B with the
+  condition inverted, which left a NOP on the way once patched: its slow
+  path is mostly in the block's last allocator block, within the 1 MB the
+  instruction reaches. One still to be patched when its allocator block is
+  left (codegen_allocate_new_block()), or patched to further than it
+  reaches, goes through a B after that block's code, an island, which each
+  of them has a word kept for (branch19_reserve). Not in the routines, built
+  outside a compile, which keep the two-instruction form*/
+#define BRANCH19_MAX 256
+typedef struct branch19_t {
+    uint32_t *insn;
+    uint32_t *island; /*NULL while in the allocator block being written*/
+    void     *dest;   /*Set when patched out of reach, for the island*/
+    int       direct; /*Patched within reach: needs no island*/
+} branch19_t;
+static branch19_t branch19[BRANCH19_MAX * 8];
+static int        branch19_nr;    /*All of the compile's*/
+static int        branch19_first; /*The first in the allocator block being written*/
+int               codegen_branch19_on;
+
+void
+codegen_branch19_start(void)
+{
+    branch19_nr        = 0;
+    branch19_first     = 0;
+    branch19_reserve   = 0;
+    codegen_branch19_on = 1;
+}
+
+static branch19_t *
+branch19_find(uint32_t *insn)
+{
+    for (int c = branch19_nr - 1; c >= 0; c--) {
+        if (branch19[c].insn == insn)
+            return &branch19[c];
+    }
+    return NULL;
+}
+
+/*The islands of the allocator block being left, after the B that leaves it
+  (at block_write_data[block_pos]), or after the end of the compile's code*/
+static int
+branch19_islands(uint32_t *at)
+{
+    int nr = 0;
+
+    for (int c = branch19_first; c < branch19_nr; c++) {
+        branch19_t *b = &branch19[c];
+
+        if (b->direct)
+            continue;
+        b->island = &at[nr++];
+        if (b->dest)
+            *b->island = OPCODE_B | OFFSET26(((intptr_t) b->dest - (intptr_t) b->island));
+        else
+            *b->island = OPCODE_B; /*to itself until patched*/
+        *b->insn = (*b->insn & ~0x00ffffe0u) | OFFSET19(((intptr_t) b->island - (intptr_t) b->insn));
+    }
+    branch19_first   = branch19_nr;
+    branch19_reserve = 0;
+    return nr;
+}
+
+void
+codegen_branch19_end(void)
+{
+    if (codegen_branch19_on)
+        block_pos += 4 * branch19_islands((uint32_t *) &block_write_data[block_pos]);
+    codegen_branch19_on = 0;
+}
+
+static uint32_t *
+branch19_(codeblock_t *block, uint32_t skip_insn)
+{
+    uint32_t insn;
+
+    if (!codegen_branch19_on || (branch19_nr >= (int) (sizeof(branch19) / sizeof(branch19[0])))) {
+        codegen_alloc(block, 12);
+        codegen_addlong(block, skip_insn);
+        codegen_addlong(block, OPCODE_B);
+        return (uint32_t *) &block_write_data[block_pos - 4];
+    }
+    /*The condition the skip had inverted: B.cond's lowest bit, CBZ/CBNZ's
+      bit 24*/
+    if ((skip_insn & 0xff000010u) == OPCODE_BCOND)
+        insn = (skip_insn ^ 1u) & ~0x00ffffe0u;
+    else
+        insn = (skip_insn ^ (1u << 24)) & ~0x00ffffe0u;
+    if ((branch19_nr - branch19_first) >= BRANCH19_MAX)
+        codegen_allocate_new_block(block);
+    codegen_alloc(block, 8);
+    branch19_reserve += 4;
+    codegen_addlong(block, insn);
+    branch19[branch19_nr].insn   = (uint32_t *) &block_write_data[block_pos - 4];
+    branch19[branch19_nr].island = NULL;
+    branch19[branch19_nr].dest   = NULL;
+    branch19[branch19_nr].direct = 0;
+    branch19_nr++;
+    return (uint32_t *) &block_write_data[block_pos - 4];
 }
 
 
@@ -408,6 +522,14 @@ host_arm64_ADDX_IMM(codeblock_t *block, int dst_reg, int src_n_reg, uint64_t imm
     } else
         fatal("ADD_IMM_X %016" PRIu64 "\n", imm_data);
 }
+/*SUB Xd, Xn, #imm, LSL #12: imm_data a multiple of 4096 below 16M*/
+void
+host_arm64_SUBX_IMM_LSL12(codeblock_t *block, int dst_reg, int src_n_reg, uint64_t imm_data)
+{
+    if ((imm_data & 0xfff) || (imm_data & ~0xfff000ull))
+        fatal("SUBX_IMM_LSL12 %016" PRIu64 "\n", imm_data);
+    codegen_addlong(block, OPCODE_SUBX_IMM | Rd(dst_reg) | Rn(src_n_reg) | IMM12((imm_data >> 12) & 0xfff) | DATPROC_IMM_SHIFT(1));
+}
 void
 host_arm64_ADDX_REG_UXTW(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
 {
@@ -417,6 +539,11 @@ void
 host_arm64_ADD_REG(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int shift)
 {
     codegen_addlong(block, OPCODE_ADD_LSL | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg) | DATPROC_SHIFT(shift));
+}
+void
+host_arm64_ADDX_REG(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int shift)
+{
+    codegen_addlong(block, OPCODE_ADDX_LSL | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg) | DATPROC_SHIFT(shift));
 }
 void
 host_arm64_ADD_REG_LSR(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int shift)
@@ -557,128 +684,100 @@ host_arm64_BLR(codeblock_t *block, int addr_reg)
 uint32_t *
 host_arm64_BCC_(codeblock_t *block)
 {
-    codegen_alloc(block, 12);
-    codegen_addlong(block, OPCODE_BCOND | COND_CS | OFFSET19(8));
-    codegen_addlong(block, OPCODE_B);
-    return (uint32_t *) &block_write_data[block_pos - 4];
+    return branch19_(block, OPCODE_BCOND | COND_CS | OFFSET19(8));
 }
 uint32_t *
 host_arm64_BCS_(codeblock_t *block)
 {
-    codegen_alloc(block, 12);
-    codegen_addlong(block, OPCODE_BCOND | COND_CC | OFFSET19(8));
-    codegen_addlong(block, OPCODE_B);
-    return (uint32_t *) &block_write_data[block_pos - 4];
+    return branch19_(block, OPCODE_BCOND | COND_CC | OFFSET19(8));
 }
 uint32_t *
 host_arm64_BEQ_(codeblock_t *block)
 {
-    codegen_alloc(block, 12);
-    codegen_addlong(block, OPCODE_BCOND | COND_NE | OFFSET19(8));
-    codegen_addlong(block, OPCODE_B);
-    return (uint32_t *) &block_write_data[block_pos - 4];
+    return branch19_(block, OPCODE_BCOND | COND_NE | OFFSET19(8));
 }
 uint32_t *
 host_arm64_BGE_(codeblock_t *block)
 {
-    codegen_alloc(block, 12);
-    codegen_addlong(block, OPCODE_BCOND | COND_LT | OFFSET19(8));
-    codegen_addlong(block, OPCODE_B);
-    return (uint32_t *) &block_write_data[block_pos - 4];
+    return branch19_(block, OPCODE_BCOND | COND_LT | OFFSET19(8));
 }
 uint32_t *
 host_arm64_BGT_(codeblock_t *block)
 {
-    codegen_alloc(block, 12);
-    codegen_addlong(block, OPCODE_BCOND | COND_LE | OFFSET19(8));
-    codegen_addlong(block, OPCODE_B);
-    return (uint32_t *) &block_write_data[block_pos - 4];
+    return branch19_(block, OPCODE_BCOND | COND_LE | OFFSET19(8));
 }
 uint32_t *
 host_arm64_BHI_(codeblock_t *block)
 {
-    codegen_alloc(block, 12);
-    codegen_addlong(block, OPCODE_BCOND | COND_LS | OFFSET19(8));
-    codegen_addlong(block, OPCODE_B);
-    return (uint32_t *) &block_write_data[block_pos - 4];
+    return branch19_(block, OPCODE_BCOND | COND_LS | OFFSET19(8));
 }
 uint32_t *
 host_arm64_BLE_(codeblock_t *block)
 {
-    codegen_alloc(block, 12);
-    codegen_addlong(block, OPCODE_BCOND | COND_GT | OFFSET19(8));
-    codegen_addlong(block, OPCODE_B);
-    return (uint32_t *) &block_write_data[block_pos - 4];
+    return branch19_(block, OPCODE_BCOND | COND_GT | OFFSET19(8));
 }
 uint32_t *
 host_arm64_BLS_(codeblock_t *block)
 {
-    codegen_alloc(block, 12);
-    codegen_addlong(block, OPCODE_BCOND | COND_HI | OFFSET19(8));
-    codegen_addlong(block, OPCODE_B);
-    return (uint32_t *) &block_write_data[block_pos - 4];
+    return branch19_(block, OPCODE_BCOND | COND_HI | OFFSET19(8));
 }
 uint32_t *
 host_arm64_BLT_(codeblock_t *block)
 {
-    codegen_alloc(block, 12);
-    codegen_addlong(block, OPCODE_BCOND | COND_GE | OFFSET19(8));
-    codegen_addlong(block, OPCODE_B);
-    return (uint32_t *) &block_write_data[block_pos - 4];
+    return branch19_(block, OPCODE_BCOND | COND_GE | OFFSET19(8));
 }
 uint32_t *
 host_arm64_BMI_(codeblock_t *block)
 {
-    codegen_alloc(block, 12);
-    codegen_addlong(block, OPCODE_BCOND | COND_PL | OFFSET19(8));
-    codegen_addlong(block, OPCODE_B);
-    return (uint32_t *) &block_write_data[block_pos - 4];
+    return branch19_(block, OPCODE_BCOND | COND_PL | OFFSET19(8));
 }
 uint32_t *
 host_arm64_BNE_(codeblock_t *block)
 {
-    codegen_alloc(block, 12);
-    codegen_addlong(block, OPCODE_BCOND | COND_EQ | OFFSET19(8));
-    codegen_addlong(block, OPCODE_B);
-    return (uint32_t *) &block_write_data[block_pos - 4];
+    return branch19_(block, OPCODE_BCOND | COND_EQ | OFFSET19(8));
 }
 uint32_t *
 host_arm64_BPL_(codeblock_t *block)
 {
-    codegen_alloc(block, 12);
-    codegen_addlong(block, OPCODE_BCOND | COND_MI | OFFSET19(8));
-    codegen_addlong(block, OPCODE_B);
-    return (uint32_t *) &block_write_data[block_pos - 4];
+    return branch19_(block, OPCODE_BCOND | COND_MI | OFFSET19(8));
 }
 uint32_t *
 host_arm64_BVC_(codeblock_t *block)
 {
-    codegen_alloc(block, 12);
-    codegen_addlong(block, OPCODE_BCOND | COND_VS | OFFSET19(8));
-    codegen_addlong(block, OPCODE_B);
-    return (uint32_t *) &block_write_data[block_pos - 4];
+    return branch19_(block, OPCODE_BCOND | COND_VS | OFFSET19(8));
 }
 uint32_t *
 host_arm64_BVS_(codeblock_t *block)
 {
-    codegen_alloc(block, 12);
-    codegen_addlong(block, OPCODE_BCOND | COND_VC | OFFSET19(8));
-    codegen_addlong(block, OPCODE_B);
-    return (uint32_t *) &block_write_data[block_pos - 4];
+    return branch19_(block, OPCODE_BCOND | COND_VC | OFFSET19(8));
 }
 /*CBNZ Xreg in the same template: a CBZ over the B*/
 uint32_t *
 host_arm64_CBNZ_(codeblock_t *block, int reg)
 {
-    codegen_alloc(block, 12);
-    codegen_addlong(block, OPCODE_CBZ | OFFSET19(8) | Rt(reg));
-    codegen_addlong(block, OPCODE_B);
-    return (uint32_t *) &block_write_data[block_pos - 4];
+    return branch19_(block, OPCODE_CBZ | OFFSET19(8) | Rt(reg));
 }
 
 void
 host_arm64_branch_set_offset(uint32_t *opcode, void *dest)
 {
+    if (codegen_branch19_on) {
+        branch19_t *b = branch19_find(opcode);
+
+        if (b) {
+            if (codegen_allocator_can_branch_imm19((uint8_t *) opcode, dest)) {
+                *opcode   = (*opcode & ~0x00ffffe0u) | OFFSET19(((intptr_t) dest - (intptr_t) opcode));
+                b->direct = 1;
+            } else if (b->island) {
+                *opcode   = (*opcode & ~0x00ffffe0u) | OFFSET19(((intptr_t) b->island - (intptr_t) opcode));
+                *b->island = OPCODE_B | OFFSET26(((intptr_t) dest - (intptr_t) b->island));
+            } else {
+                b->dest   = dest;
+                b->direct = 0;
+            }
+            return;
+        }
+    }
     uint32_t *cond_opcode        = opcode - 1;
     uint32_t  branch_insn        = *opcode;
     uint32_t  cond_insn          = *cond_opcode;
@@ -770,6 +869,12 @@ uint32_t *
 host_arm64_BNE_SHORT_(codeblock_t *block)
 {
     codegen_addlong(block, OPCODE_BCOND | COND_NE);
+    return (uint32_t *) &block_write_data[block_pos - 4];
+}
+uint32_t *
+host_arm64_BHI_SHORT_(codeblock_t *block)
+{
+    codegen_addlong(block, OPCODE_BCOND | COND_HI);
     return (uint32_t *) &block_write_data[block_pos - 4];
 }
 uint32_t *
@@ -1042,6 +1147,14 @@ host_arm64_CCMN_IMM_CS(codeblock_t *block, int src_n_reg, uint32_t imm_data, int
         fatal("CCMN_IMM_CS %08x\n", imm_data);
     codegen_addlong(block, OPCODE_CCMN_IMM | (imm_data << 16) | CSEL_COND(COND_CS) | Rn(src_n_reg) | nzcv);
 }
+/*64-bit CCMN: the flags of src_n_reg + imm_data when EQ holds, else nzcv*/
+void
+host_arm64_CCMNX_IMM_EQ(codeblock_t *block, int src_n_reg, uint32_t imm_data, int nzcv)
+{
+    if (imm_data > 0x1f)
+        fatal("CCMNX_IMM_EQ %08x\n", imm_data);
+    codegen_addlong(block, OPCODE_CCMN_IMM | (1u << 31) | (imm_data << 16) | CSEL_COND(COND_EQ) | Rn(src_n_reg) | nzcv);
+}
 /*64-bit CCMP: the flags of src_n_reg compared with src_m_reg when EQ holds, else nzcv*/
 void
 host_arm64_CCMPX_REG_EQ(codeblock_t *block, int src_n_reg, int src_m_reg, int nzcv)
@@ -1118,6 +1231,11 @@ host_arm64_CSELX_EQ(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_re
     codegen_addlong(block, OPCODE_CSEL | (1u << 31) | CSEL_COND(COND_EQ) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
 }
 void
+host_arm64_CSELX_GT(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_CSEL | (1u << 31) | CSEL_COND(COND_GT) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+void
 host_arm64_CSEL_NE(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
 {
     codegen_addlong(block, OPCODE_CSEL | CSEL_COND(COND_NE) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
@@ -1174,6 +1292,21 @@ host_arm64_EOR_IMM(codeblock_t *block, int dst_reg, int src_n_reg, uint32_t imm_
         host_arm64_mov_imm(block, REG_W16, imm_data);
         codegen_addlong(block, OPCODE_EOR_LSL | Rd(dst_reg) | Rn(src_n_reg) | Rm(REG_W16) | DATPROC_SHIFT(0));
     }
+}
+void
+host_arm64_ADDS_REG(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, (0x158 << 21) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg) | DATPROC_SHIFT(0));
+}
+void
+host_arm64_SUBS_REG(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_CMP_LSL | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg) | DATPROC_SHIFT(0));
+}
+void
+host_arm64_EORX_REG(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
+{
+    codegen_addlong(block, OPCODE_EOR_LSL | (1u << 31) | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg) | DATPROC_SHIFT(0));
 }
 void
 host_arm64_EOR_REG(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg, int shift)
@@ -1499,6 +1632,22 @@ host_arm64_LDRH_REG(codeblock_t *block, int dest_reg, int base_reg, int offset_r
 }
 
 void
+host_arm64_LDR_REG_UXTW(codeblock_t *block, int dest_reg, int base_reg, int offset_reg)
+{
+    codegen_addlong(block, OPCODE_LDR_REG_UXTW | Rn(base_reg) | Rm(offset_reg) | Rt(dest_reg));
+}
+void
+host_arm64_LDRB_REG_UXTW(codeblock_t *block, int dest_reg, int base_reg, int offset_reg)
+{
+    codegen_addlong(block, OPCODE_LDRB_REG_UXTW | Rn(base_reg) | Rm(offset_reg) | Rt(dest_reg));
+}
+void
+host_arm64_LDRH_REG_UXTW(codeblock_t *block, int dest_reg, int base_reg, int offset_reg)
+{
+    codegen_addlong(block, OPCODE_LDRH_REG_UXTW | Rn(base_reg) | Rm(offset_reg) | Rt(dest_reg));
+}
+
+void
 host_arm64_LDRX_REG_LSL3(codeblock_t *block, int dest_reg, int base_reg, int offset_reg)
 {
     codegen_addlong(block, OPCODE_LDRX_REG_LSL3 | Rn(base_reg) | Rm(offset_reg) | Rt(dest_reg));
@@ -1577,6 +1726,18 @@ host_arm64_MOV_REG_ROR(codeblock_t *block, int dst_reg, int src_m_reg, int shift
 void
 host_arm64_MOVX_IMM(codeblock_t *block, int reg, uint64_t imm_data)
 {
+    /*An address within 4 GB of the code (the program's globals, with the
+      code memory mapped next to them): ADRP and an ADD, not three or four
+      moves. Room for both first, so the ADRP is worked out where it goes.*/
+    if ((imm_data >> 32) && (reg != REG_XSP)) {
+        codegen_alloc(block, 8);
+        if (host_arm64_ADRP_in_range((uintptr_t) imm_data)) {
+            host_arm64_ADRP(block, reg, (uintptr_t) imm_data);
+            if (imm_data & 0xfff)
+                codegen_addlong(block, OPCODE_ADDX_IMM | Rd(reg) | Rn(reg) | IMM12(imm_data & 0xfff) | DATPROC_IMM_SHIFT(0));
+            return;
+        }
+    }
     codegen_addlong(block, OPCODE_MOVZ_X | MOV_WIDE_HW(0) | IMM16(imm_data & 0xffff) | Rd(reg));
     if ((imm_data >> 16) & 0xffff)
         codegen_addlong(block, OPCODE_MOVK_X | MOV_WIDE_HW(1) | IMM16((imm_data >> 16) & 0xffff) | Rd(reg));
@@ -1637,6 +1798,27 @@ void
 host_arm64_MUL_W(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_reg)
 {
     codegen_addlong(block, OPCODE_MUL_W | Rd(dst_reg) | Rn(src_n_reg) | Rm(src_m_reg));
+}
+
+/*PRFM PLDL1KEEP, [Xn, #offset]: offset a multiple of 8 below 32768*/
+/*LDUR Wt, [Xn, #offset]: any byte offset from -256 to 255*/
+void
+host_arm64_LDUR_W(codeblock_t *block, int dest_reg, int base_reg, int offset)
+{
+    if ((offset < -256) || (offset > 255))
+        fatal("host_arm64_LDUR_W out of range %i\n", offset);
+    codegen_addlong(block, 0xb8400000 | (((uint32_t) offset & 0x1ff) << 12) | Rn(base_reg) | Rt(dest_reg));
+}
+void
+host_arm64_PRFM_IMM(codeblock_t *block, int base_reg, int offset)
+{
+    codegen_addlong(block, 0xf9800000 | ((uint32_t) (offset >> 3) << 10) | Rn(base_reg));
+}
+/*PRFM PLIL1KEEP, [Xn, #offset]: code about to run*/
+void
+host_arm64_PRFM_I_IMM(codeblock_t *block, int base_reg, int offset)
+{
+    codegen_addlong(block, 0xf9800000 | ((uint32_t) (offset >> 3) << 10) | Rn(base_reg) | 8);
 }
 
 void
@@ -1861,6 +2043,22 @@ void
 host_arm64_STR_REG(codeblock_t *block, int src_reg, int base_reg, int offset_reg)
 {
     codegen_addlong(block, OPCODE_STR_REG | Rn(base_reg) | Rm(offset_reg) | Rt(src_reg));
+}
+
+void
+host_arm64_STR_REG_UXTW(codeblock_t *block, int src_reg, int base_reg, int offset_reg)
+{
+    codegen_addlong(block, OPCODE_STR_REG_UXTW | Rn(base_reg) | Rm(offset_reg) | Rt(src_reg));
+}
+void
+host_arm64_STRB_REG_UXTW(codeblock_t *block, int src_reg, int base_reg, int offset_reg)
+{
+    codegen_addlong(block, OPCODE_STRB_REG_UXTW | Rn(base_reg) | Rm(offset_reg) | Rt(src_reg));
+}
+void
+host_arm64_STRH_REG_UXTW(codeblock_t *block, int src_reg, int base_reg, int offset_reg)
+{
+    codegen_addlong(block, OPCODE_STRH_REG_UXTW | Rn(base_reg) | Rm(offset_reg) | Rt(src_reg));
 }
 
 void
@@ -2106,6 +2304,15 @@ host_arm64_ZIP2_V2S(codeblock_t *block, int dst_reg, int src_n_reg, int src_m_re
 }
 
 
+#ifdef CODEGEN_BACKEND_PINNED_CYCLES
+static void
+host_arm64_call_c(codeblock_t *block, void *dst_addr)
+{
+    host_arm64_MOVX_IMM(block, REG_X16, (uint64_t) dst_addr);
+    host_arm64_BLR(block, REG_X16);
+}
+#endif
+
 void
 host_arm64_call(codeblock_t *block, void *dst_addr)
 {
@@ -2114,9 +2321,19 @@ host_arm64_call(codeblock_t *block, void *dst_addr)
 
     /* Prefer direct BL for local in-range JIT targets; otherwise preserve
        existing absolute MOVX+BLR fallback for correctness. */
+    is_local   = codegen_allocator_contains_host_ptr(dst_addr);
+#ifdef CODEGEN_BACKEND_PINNED_CYCLES
+    /*C has cycles in cpu_state._cycles, and may change it there*/
+    if (!is_local) {
+        codegen_alloc(block, 28);
+        host_arm64_STR_IMM_W(block, REG_CYCLES, REG_CPUSTATE, (uintptr_t) &cpu_state._cycles - (uintptr_t) &cpu_state);
+        host_arm64_call_c(block, dst_addr);
+        host_arm64_LDR_IMM_W(block, REG_CYCLES, REG_CPUSTATE, (uintptr_t) &cpu_state._cycles - (uintptr_t) &cpu_state);
+        return;
+    }
+#endif
     codegen_alloc(block, 4);
     branch_src = &block_write_data[block_pos];
-    is_local   = codegen_allocator_contains_host_ptr(dst_addr);
     if (is_local && codegen_allocator_can_branch_imm26(branch_src, dst_addr)) {
         intptr_t offset = (intptr_t) ((uint8_t *) dst_addr - branch_src);
         codegen_addlong(block, OPCODE_BL | OFFSET26(offset));
