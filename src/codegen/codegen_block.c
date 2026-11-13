@@ -1100,6 +1100,7 @@ invalidate_block(codeblock_t *block)
     if (block->flags & CODEBLOCK_WAS_RECOMPILED) {
         page_t *page = &pages[block->phys >> 12];
 
+        page->code_rewritten = codegen_page_stamp(tsc);
         smc_thrash_rewritten(&block->smc_strikes, &page->smc_strikes,
                              codeblock_ran(block->runs_left, SMC_THRASH_MIN_RUNS),
                              tsc, &block->smc_cooldown_until);
@@ -1375,6 +1376,7 @@ codegen_block_init(uint32_t phys_addr)
     block->next = block->prev = BLOCK_INVALID;
     block->next_2 = block->prev_2 = BLOCK_INVALID;
     block->page_mask = block->page_mask2 = 0;
+    block->page2_delta                   = 1;
     block->flags                         = CODEBLOCK_STATIC_TOP;
     block->status                        = cpu_cur_status;
 #ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
@@ -1439,8 +1441,10 @@ codegen_block_start_recompile(codeblock_t *block)
     block->runs_left = CODEBLOCK_RUNS_NEW; /* not yet run from block->data */
 
     block->page_mask = block->page_mask2 = 0;
+    block->page2_delta                   = 1;
     block->ins                           = 0;
     codegen_family_ops[0] = codegen_family_ops[1] = 0;
+    codegen_trace_reset(block);
 
     cpu_block_end = 0;
 
@@ -1521,10 +1525,10 @@ codegen_block_generate_end_mask_recompile(void)
     if (block->page_mask2) {
         /*The second chunk or page is the one the lookup checks
           (386_dynarec.c): the next 64 bytes of a byte-mask block, else the
-          next page. Not codegen_endpc, which guesses where the last
+          page codeblock_pc_2() names. Not codegen_endpc, which guesses where the last
           instruction ends from where it starts: one of 11 bytes or more
           marks bytes past the guess, in a chunk or page it doesn't name.*/
-        uint32_t pc_2 = block->pc + ((block->flags & CODEBLOCK_BYTE_MASK) ? 0x40 : 0x400);
+        uint32_t pc_2 = codeblock_pc_2(block);
 
         block->phys_2 = get_phys_noabrt(pc_2);
         if (block->phys_2 != -1) {
@@ -1597,8 +1601,9 @@ codegen_block_generate_end_mask_mark(void)
     if ((p->dirty_mask & block->page_mask) && !page_in_evict_list(p))
         page_add_to_evict_list(p);
 
-    block->phys_2     = -1;
-    block->page_mask2 = 0;
+    block->phys_2      = -1;
+    block->page_mask2  = 0;
+    block->page2_delta = 1;
     block->next_2 = block->prev_2 = BLOCK_INVALID;
     if ((block->pc ^ codegen_endpc) & ~0xfff) {
         block->phys_2 = get_phys_noabrt(codegen_endpc);
@@ -1702,6 +1707,7 @@ block_version_apply(codeblock_t *block, uint16_t nr)
     block->data           = codeblock_allocator_get_ptr(v->head_mem_block);
     block->page_mask      = v->page_mask;
     block->page_mask2     = v->page_mask2;
+    block->page2_delta    = 1;
     block->status         = v->status;
     block->TOP            = v->TOP;
     block->dirty_mask     = &page->byte_dirty_mask[(block->phys >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK];

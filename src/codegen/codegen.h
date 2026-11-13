@@ -46,7 +46,11 @@ typedef struct codeblock_t {
       slot relies on changed; never 0. See codegen_link.h.*/
     uint32_t link_gen;
 #endif
-    int      valid;
+    uint16_t valid;
+    /*A block with page_mask2 and without CODEBLOCK_BYTE_MASK: its second
+      page is this many pages on from the first (codeblock_pc_2). 1 unless a
+      JMP was compiled on through onto another page (codegen_trace_jump)*/
+    int16_t page2_delta;
 
     /*Pointers for codeblock tree, used to search for blocks when hash lookup
       fails.*/
@@ -171,6 +175,30 @@ extern uint8_t codegen_peekb(uint32_t addr);
 #define BLOCK_PC_INVALID        0xffffffff
 
 #define BLOCK_INVALID           0
+
+/*A linear address on the second page of a block with page_mask2*/
+static inline uint32_t
+codeblock_pc_2(const codeblock_t *block)
+{
+    if (block->flags & CODEBLOCK_BYTE_MASK)
+        return block->pc + 0x40;
+    return (block->pc & ~0xfffu) + ((uint32_t) (int32_t) block->page2_delta << 12);
+}
+
+/*page_t::code_rewritten: bits 16-31 of the TSC. A page counts as rewritten
+  for 2^24 TSC ticks after (some ms; one that looks recent again after the
+  16 bits wrap only loses a JMP trace)*/
+static inline uint16_t
+codegen_page_stamp(uint64_t now)
+{
+    return (uint16_t) (now >> 16);
+}
+
+static inline int
+codegen_page_rewritten(const page_t *page, uint64_t now)
+{
+    return (uint16_t) (codegen_page_stamp(now) - page->code_rewritten) < 256;
+}
 
 static inline int
 get_block_nr(const codeblock_t *block)
@@ -600,5 +628,10 @@ extern int  dynarec_mov_drx(uint32_t op);
 extern int      codegen_mov_ss_pair_valid;
 extern uint32_t codegen_mov_ss_pair_pc;
 extern int      codegen_instruction_room(void);
+extern int      codegen_trace_count;
+extern int      codegen_trace_taken;
+extern uint32_t codegen_trace_bytes;
+extern void     codegen_trace_reset(const codeblock_t *block);
+extern int      codegen_trace_ends(uint32_t addr);
 
 #endif

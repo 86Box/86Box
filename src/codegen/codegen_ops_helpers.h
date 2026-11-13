@@ -223,7 +223,7 @@ int codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, uint32_t next_pc,
 static inline int
 codegen_can_unroll(codeblock_t *block, ir_data_t *ir, uint32_t next_pc, uint32_t dest_addr)
 {
-    if (block->flags & CODEBLOCK_BYTE_MASK)
+    if ((block->flags & CODEBLOCK_BYTE_MASK) || codegen_trace_count)
         return 0;
 
     /*An unrolled loop's handler returns the loop's start, and a handler

@@ -869,7 +869,7 @@ exec386_dynarec_dyn(const int dbg)
                    allow the first page to be interpreted and for
                    the page fault to occur when the page boundary
                    is actually crossed.*/
-                uint32_t phys_addr_2 = get_phys_noabrt(block->pc + ((block->flags & CODEBLOCK_BYTE_MASK) ? 0x40 : 0x400));
+                uint32_t phys_addr_2 = get_phys_noabrt(codeblock_pc_2(block));
                 page_t *page_2 = &pages[phys_addr_2 >> 12];
 
                 if ((block->phys_2 ^ phys_addr_2) & ~0xfff)
@@ -1044,6 +1044,16 @@ exec386_dynarec_dyn(const int dbg)
 
                 if (x86_was_reset)
                     break;
+
+                /* A JMP the block was compiled on through (codegen_trace_jump):
+                   the block goes on at its target. */
+                if (codegen_trace_taken) {
+                    codegen_trace_taken = 0;
+                    if (!dbg && !cpu_state.abrt) {
+                        cpu_block_end = 0;
+                        start_pc      = cs + cpu_state.pc;
+                    }
+                }
             }
 
             if (dbg && !cpu_state.abrt) {
@@ -1056,7 +1066,9 @@ exec386_dynarec_dyn(const int dbg)
                    will prevent any block from spanning more than
                    2 pages. In practice this limit will never be
                    hit, as host block size is only 2kB*/
-            if (((cs + cpu_state.pc) - start_pc) >= max_block_size)
+            if ((((cs + cpu_state.pc) - start_pc) + codegen_trace_bytes) >= max_block_size)
+                CPU_BLOCK_END();
+            if (codegen_trace_count && codegen_trace_ends(cs + cpu_state.pc))
                 CPU_BLOCK_END();
 
             if (cpu_init)

@@ -85,6 +85,105 @@ codegen_instruction_room(void)
     return (codeblock[block_current].ins + 1) < MAX_INSTRUCTION_COUNT;
 }
 
+/*A block compiled on through a JMP rel to its target (codegen_trace_jump)
+  instead of ending there and leaving the target to a block of its own: each
+  ended block costs the next one's lookup. Every byte it compiles stays on
+  two pages: its first and, on x86-64, a second one anywhere, which a JMP
+  onto it picks (codeblock_t.page2_delta; the other backends' link routines
+  take the next page for it). At most CODEGEN_TRACE_MAX times. The ranges
+  compiled before each one, so the block ends rather than compile an
+  instruction a second time*/
+#define CODEGEN_TRACE_MAX 4
+int             codegen_trace_count;
+int             codegen_trace_taken;
+uint32_t        codegen_trace_bytes;
+static uint32_t codegen_trace_start;
+static uint32_t codegen_trace_range[CODEGEN_TRACE_MAX][2];
+/*A JMP has picked the block's second page*/
+static int      codegen_trace_page2;
+
+void
+codegen_trace_reset(const codeblock_t *block)
+{
+    codegen_trace_count = 0;
+    codegen_trace_taken = 0;
+    codegen_trace_bytes = 0;
+    codegen_trace_start = block->pc;
+    codegen_trace_page2 = 0;
+}
+
+/*Whether a traced block ends before the instruction at addr: one starting
+  in the page's last 16 bytes can run on into the next page, and one compiled
+  already would be compiled again*/
+int
+codegen_trace_ends(uint32_t addr)
+{
+    if ((addr & 0xfff) >= 0xff0)
+        return 1;
+    for (int c = 0; c < codegen_trace_count; c++) {
+        if ((addr - codegen_trace_range[c][0]) < (codegen_trace_range[c][1] - codegen_trace_range[c][0]))
+            return 1;
+    }
+    return 0;
+}
+
+/*A JMP rel ending at end (linear) that jumps to target. The block goes on
+  at the target if it can; for the timing models the block ends at the jump
+  and the target starts a new one, so the cycles charged are those of the two
+  blocks. Unrolling a loop is left out of a traced block: its timing replays
+  the block's from the loop's head and takes the block for one range. Not
+  with the 486 debug registers, whose blocks the dispatcher ends at a jump*/
+static void
+codegen_trace_jump(codeblock_t *block, ir_data_t *ir, uint32_t end, uint32_t target)
+{
+    if ((block->flags & (CODEBLOCK_BYTE_MASK | CODEBLOCK_NO_IMMEDIATES | CODEBLOCK_NO_OPCODES)) || codegen_ir_unrolling() ||
+        (codegen_trace_count >= CODEGEN_TRACE_MAX) || ((block->ins + 2) >= MAX_INSTRUCTION_COUNT) || cpu_debug_regs_486)
+        return;
+    /*Pages: the first, and the second once it has bytes or a JMP picked it*/
+    const uint32_t page_1     = block->pc & ~0xfffu;
+    const int      has_page_2 = block->page_mask2 || codegen_trace_page2;
+    const uint32_t page_2     = page_1 + ((uint32_t) (int32_t) block->page2_delta << 12);
+    const uint32_t end_page   = (end - 1) & ~0xfffu;
+    const uint32_t tgt_page   = target & ~0xfffu;
+    int32_t        new_delta  = 0;
+
+    if ((end_page != page_1) && !(has_page_2 && (end_page == page_2)))
+        return;
+    if ((tgt_page != page_1) && !(has_page_2 && (tgt_page == page_2))) {
+#if defined __amd64__ || defined _M_X64
+        /*Not from a page that is being written to: code there is compiled
+          again often, and each time would compile the target's code with it*/
+        if (has_page_2 || codegen_page_rewritten(&pages[block->phys >> 12], tsc))
+            return;
+        new_delta = (int32_t) (tgt_page - page_1) >> 12;
+        if ((new_delta < INT16_MIN) || (new_delta > INT16_MAX))
+            return;
+#else
+        return;
+#endif
+    }
+    if ((target - codegen_trace_start) < (end - codegen_trace_start))
+        return;
+    if (codegen_trace_ends(target))
+        return;
+
+    if (new_delta) {
+        block->page2_delta  = (int16_t) new_delta;
+        codegen_trace_page2 = 1;
+    }
+
+    codegen_trace_range[codegen_trace_count][0] = codegen_trace_start;
+    codegen_trace_range[codegen_trace_count][1] = end;
+    codegen_trace_count++;
+    codegen_trace_bytes += end - codegen_trace_start;
+    codegen_trace_start = target;
+    codegen_trace_taken = 1;
+
+    codegen_accumulate_block_end();
+    codegen_accumulate_timing(ir);
+    codegen_accumulate_block_start();
+}
+
 
 void
 codegen_set_loop_start(ir_data_t *ir, int first_instruction)
@@ -1876,6 +1975,8 @@ generate_call:
             }
             if (new_pc != -1)
                 uop_MOV_IMM(ir, IREG_pc, new_pc);
+            if ((new_pc != -1) && !mov_ss_pair && (op_table == x86_dynarec_opcodes) && ((opcode == 0xeb) || (opcode == 0xe9)))
+                codegen_trace_jump(block, ir, cs + op_pc + ((opcode == 0xeb) ? 1 : ((op_32 & 0x100) ? 4 : 2)), cs + new_pc);
 
             codegen_endpc = (cs + cpu_state.pc) + 8;
 

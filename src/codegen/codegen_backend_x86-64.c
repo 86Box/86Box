@@ -1396,6 +1396,7 @@ build_link_routine(codeblock_t *block)
     int32_t *two_page;
     int32_t *one_page;
     int32_t *byte_mask;
+    int32_t *pc_2_done;
     int32_t *no_paging_2;
     void    *nmi_done;
     void    *irq_done;
@@ -1650,13 +1651,20 @@ build_link_routine(codeblock_t *block)
     rx_rm(block, 0, 1, 0x8b, REG_RDX, REG_RDX, 0);
     rx_rr(block, 0, 1, 0x85, REG_RCX, REG_RDX);
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    /*codeblock_pc_2(): pc + 0x40 for a byte-mask block, else the page
+      page2_delta pages on from pc's*/
     rx_rm(block, 0, 0, 0x8b, REG_RCX, REG_RDI, LINK_BLOCK(pc));
     rx_rm(block, 0, 0, 0x0fb7, REG_RDX, REG_RDI, LINK_BLOCK(flags));
-    rx_alu_ri(block, 0, 0, REG_RCX, 0x400);
     rx_test_ri(block, REG_RDX, CODEBLOCK_BYTE_MASK);
     byte_mask = rx_jcc(block, RX_CC_Z);
-    rx_alu_ri(block, 0, 5, REG_RCX, 0x400 - 0x40);
+    rx_alu_ri(block, 0, 0, REG_RCX, 0x40);
+    pc_2_done = rx_jmp(block);
     rx_patch(byte_mask, rx_here());
+    rx_rm(block, 0, 0, 0x0fbf, REG_RDX, REG_RDI, LINK_BLOCK(page2_delta)); /*MOVSX EDX, word*/
+    rx_alu_ri(block, 0, 4, REG_RCX, 0xfffff000);
+    rx_shift_ri(block, 4, REG_RDX, 12);
+    rx_rr(block, 0, 0, 0x01, REG_RDX, REG_RCX); /*ADD ECX, EDX*/
+    rx_patch(pc_2_done, rx_here());
     rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
     no_paging_2 = rx_jcc(block, RX_CC_NS);
     rx_rr(block, 0, 0, 0x89, REG_RCX, REG_RDX); /*MOV EDX, ECX*/
