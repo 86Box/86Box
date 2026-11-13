@@ -24816,7 +24816,10 @@ vectors_reg_scale_906(rage128_t *dev)
        in GEN_INT_STATUS. With the function field off, nothing starts
        and no event is raised. The setup writes go first (a zero height),
        the event is acknowledged, then only SCALE_DST_HEIGHT_WIDTH is
-       written. */
+       written. The harness clock is moved on first, so the engine time
+       of the stretches above has run out and the event is not held
+       behind them. */
+    tsc += 1000000;
     c.ddt = 2; c.dh = 0;
     s906_prefill(dev, S906_DREG, 2);
     s906_reg(dev, &c, 0x40u);
@@ -24853,6 +24856,304 @@ vectors_reg_scale_906(rage128_t *dev)
     wr(dev, RAGE128_SCALE_3D_CNTL, 0);
     wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0);
     wr(dev, RAGE128_SCALE_3D_DATATYPE, 0);
+}
+
+/* ------------------------------------------------------------------ */
+/* Engine time of register-started ops. An op started by a CPU        */
+/* register write is drawn inside the write, and GUI_STAT then        */
+/* reports the engine busy for the time the op takes: 16 bytes of     */
+/* frame-buffer traffic per cycle of the engine clock, two pixels per */
+/* cycle for the scaler. A register write that arrives meanwhile      */
+/* holds one of the 64 command FIFO entries until the engine gets to  */
+/* it (RRG: GUI_STAT, p. 3-244 / PDF 262). The 64 entries and the     */
+/* two waits are in the development guide                             */
+/* (SDK: Engine Command Queue Maintenance, pp. 4-2-4-3 / PDF 76-77).  */
+/* The rows set the engine clock to 120 MHz; the harness clock counts */
+/* 10 cycles per microsecond and stands still unless a row moves it,  */
+/* so 12 engine clocks, 192 bytes, pass per harness cycle. A 64 x 48  */
+/* fill at 4 bytes per pixel is 12,288 bytes: 768 engine clocks, 64   */
+/* cycles.                                                            */
+/* ------------------------------------------------------------------ */
+#define E918_DST 0x003e0000u
+#define E918_PX  64u
+#define E918_BUSY 0x8c000000u /* GUI_ACTIVE, ENG_2D_BUSY, ENG_2D_SM_BUSY */
+
+/* GUI_STAT once the CCE executor thread is at rest. A soft reset or a
+   drain wakes that thread, and until it has gone back to sleep the
+   register reads PM4_BUSY, which is not what these rows are about. */
+static uint32_t
+e918_stat(rage128_t *dev)
+{
+    rr_quiesce(dev);
+    return rd(dev, RAGE128_GUI_STAT);
+}
+
+static void
+e918_gmc(rage128_t *dev, uint32_t rop, uint32_t src)
+{
+    wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+       0x00000003u | (13u << 4) | (6u << 8) | (rop << 16) | (src << 24)
+           | (1u << 28) | (1u << 29) | (1u << 30));
+    wr(dev, RAGE128_DP_BRUSH_FRGD_CLR, 0x00918918u);
+}
+
+static void
+vectors_eng_time_918(rage128_t *dev)
+{
+    uint64_t tsc_save = tsc;
+    uint32_t xm_save  = pll_rd(dev, RAGE128_PLL_X_MPLL_REF_FB_DIV);
+    uint32_t mc_save  = pll_rd(dev, RAGE128_PLL_MCLK_CNTL);
+    uint32_t po       = ((E918_PX / 8) << 21) | (E918_DST >> 5);
+    uint32_t *d       = (uint32_t *) &dev->svga.vram[E918_DST];
+    struct s906 c;
+
+    flush_sync(dev);
+    /* MPllClk = 2 * 20 * 27 MHz / 9 = 120 MHz, MCLK = MPllClk */
+    pll_wr(dev, RAGE128_PLL_X_MPLL_REF_FB_DIV, (20u << 16) | (20u << 8) | 9u);
+    pll_wr(dev, RAGE128_PLL_MCLK_CNTL, (mc_save & ~7u) | 1u);
+    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+    wr(dev, RAGE128_GEN_RESET_CNTL, 0);
+    tsc = 1000000;
+    wr(dev, RAGE128_DST_PITCH_OFFSET, po);
+    wr(dev, RAGE128_SRC_PITCH_OFFSET, po);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_DP_CNTL, 3);
+    check32("eng 918: control: GUI_STAT idle, 64 free", e918_stat(dev), 0x40);
+
+    /* 1: a fill is busy for its 64 cycles, and its pixels are there at once */
+    memset(d, 0, E918_PX * 64 * 4);
+    e918_gmc(dev, 0xf0, 0);
+    (void) rd(dev, RAGE128_GEN_INT_STATUS);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_GUI_IDLE);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    check32("eng 918: fill: GUI_STAT busy right after the start, 64 free",
+            e918_stat(dev), E918_BUSY | 0x40);
+    flush_sync(dev);
+    check_true("eng 918: control: the fill's pixels are in memory while it reads busy",
+               d[0] == 0x00918918u && d[47 * E918_PX + 63] == 0x00918918u);
+    check32("eng 918: fill: PC_GUI_CTLSTAT busy while the op runs",
+            rd(dev, RAGE128_PC_GUI_CTLSTAT), 0xa0000000u);
+    check32("eng 918: fill: no GUI_IDLE_INT while the op runs",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_GUI_IDLE, 0);
+    /* 2: three register writes behind it take three entries */
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DP_BRUSH_FRGD_CLR, 0x00918918u);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    check32("eng 918: fill: 3 writes behind a running op leave 61 free",
+            e918_stat(dev), E918_BUSY | 61);
+    tsc += 63;
+    check32("eng 918: fill: still busy one cycle before the end",
+            e918_stat(dev), E918_BUSY | 61);
+    tsc += 1;
+    check32("eng 918: fill: idle and 64 free after 64 cycles", e918_stat(dev), 0x40);
+    check32("eng 918: fill: PC_GUI_CTLSTAT idle after the op", rd(dev, RAGE128_PC_GUI_CTLSTAT), 0);
+    check32("eng 918: fill: GUI_IDLE_INT raised when the op's time is up",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_GUI_IDLE, RAGE128_GIS_GUI_IDLE);
+
+    /* 3: a second op queued behind the first starts when the first ends */
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    check32("eng 918: queue: the second op's two writes wait, 62 free",
+            e918_stat(dev), E918_BUSY | 62);
+    tsc += 64;
+    check32("eng 918: queue: first op done, FIFO empty, second op running",
+            e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 63;
+    check32("eng 918: queue: second op still running at 127 cycles",
+            e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 1;
+    check32("eng 918: queue: idle after both, 128 cycles", e918_stat(dev), 0x40);
+
+    /* 4: more writes than entries: the count stops at 0 */
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    for (int i = 0; i < 63; i++)
+        wr(dev, RAGE128_DST_Y_X, 0);
+    check32("eng 918: full: 63 waiting writes leave 1 free",
+            e918_stat(dev), E918_BUSY | 1);
+    for (int i = 0; i < 7; i++)
+        wr(dev, RAGE128_DST_Y_X, 0);
+    check32("eng 918: full: 70 waiting writes read 0 free",
+            e918_stat(dev), E918_BUSY | 0);
+    tsc += 64;
+    check32("eng 918: full: all 64 free again when the op ends", e918_stat(dev), 0x40);
+
+    /* 5: a copy reads its source: twice the traffic, 128 cycles */
+    e918_gmc(dev, 0xcc, 2);
+    wr(dev, RAGE128_SRC_Y_X, 0);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    tsc += 127;
+    check32("eng 918: copy: busy at 127 cycles", e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 1;
+    check32("eng 918: copy: idle at 128 cycles", e918_stat(dev), 0x40);
+
+    /* 5b: the X driver's solid fill: the source select stays on the
+       frame buffer, the ROP uses the brush alone, so no source is
+       read: 64 cycles */
+    e918_gmc(dev, 0xf0, 2);
+    wr(dev, RAGE128_SRC_Y_X, 0);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    tsc += 63;
+    check32("eng 918: PATCOPY with a memory source select: busy at 63 cycles",
+            e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 1;
+    check32("eng 918: PATCOPY with a memory source select: idle at 64 cycles",
+            e918_stat(dev), 0x40);
+
+    /* 6: a fill whose ROP reads the destination: 128 cycles */
+    e918_gmc(dev, 0x5a, 0);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    tsc += 127;
+    check32("eng 918: PATINVERT fill: busy at 127 cycles",
+            e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 1;
+    check32("eng 918: PATINVERT fill: idle at 128 cycles", e918_stat(dev), 0x40);
+
+    /* 7: a copy whose ROP reads the destination too: 192 cycles */
+    e918_gmc(dev, 0x66, 2);
+    wr(dev, RAGE128_SRC_Y_X, 0);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    tsc += 191;
+    check32("eng 918: SRCINVERT copy: busy at 191 cycles",
+            e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 1;
+    check32("eng 918: SRCINVERT copy: idle at 192 cycles", e918_stat(dev), 0x40);
+
+    /* 8: zero size: nothing drawn, no time, the idle event at once */
+    e918_gmc(dev, 0xf0, 0);
+    (void) rd(dev, RAGE128_GEN_INT_STATUS);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_GUI_IDLE);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 0u);
+    check32("eng 918: control: a zero-width op leaves GUI_STAT idle",
+            e918_stat(dev), 0x40);
+    check32("eng 918: control: a zero-width op raises GUI_IDLE_INT at once",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_GUI_IDLE, RAGE128_GIS_GUI_IDLE);
+
+    /* 9: SOFT_RESET_GUI drops the queued work */
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    check32("eng 918: reset: busy with 1 waiting write before the pulse",
+            e918_stat(dev), E918_BUSY | 63);
+    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+    wr(dev, RAGE128_GEN_RESET_CNTL, 0);
+    check32("eng 918: reset: SOFT_RESET_GUI leaves GUI_STAT idle, 64 free",
+            e918_stat(dev), 0x40);
+
+    /* 10: the same write run by the CCE executor's thread is not on
+       the timeline: that thread's own progress is the status */
+    (void) rd(dev, RAGE128_GEN_INT_STATUS);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_GUI_IDLE);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    rage128_on_cce_thread = 1;
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    rage128_on_cce_thread = 0;
+    check32("eng 918: control: an op run by the executor thread adds no engine time",
+            e918_stat(dev), 0x40);
+    check32("eng 918: control: and raises GUI_IDLE_INT at once",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_GUI_IDLE, RAGE128_GIS_GUI_IDLE);
+
+    /* 11: the scaler op: two pixels per engine clock, 64 x 48 pixels
+       = 1,536 clocks = 128 cycles */
+    memset(&c, 0, sizeof(c));
+    s906_src(dev, 0x4000);
+    c.ddt = 6; c.sdt_reg = 6; c.sdt_pkt = 6; c.soff = S906_SRC; c.spitch8 = 2;
+    c.sw = 6; c.sh = 5; c.xinc = 0x1800u; c.yinc = 0x1aaau;
+    c.dx = 0; c.dy = 0; c.dw = 64; c.dh = 48; c.misc = 0x100u;
+    s906_reg(dev, &c, 0x40u);
+    check32("eng 918: scale: busy right after SCALE_DST_HEIGHT_WIDTH",
+            e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 127;
+    check32("eng 918: scale: busy at 127 cycles", e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 1;
+    check32("eng 918: scale: idle at 128 cycles", e918_stat(dev), 0x40);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0);
+
+    /* 12: half the engine clock, twice the time */
+    pll_wr(dev, RAGE128_PLL_MCLK_CNTL, (mc_save & ~7u) | 2u);
+    e918_gmc(dev, 0xf0, 0);
+    wr(dev, RAGE128_DST_PITCH_OFFSET, po);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    tsc += 127;
+    check32("eng 918: MCLK 60 MHz: fill busy at 127 cycles",
+            e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 1;
+    check32("eng 918: MCLK 60 MHz: fill idle at 128 cycles", e918_stat(dev), 0x40);
+
+    /* 12b: an op whose time ran out unseen went idle before the next
+       one started: its event is not lost behind the new op */
+    pll_wr(dev, RAGE128_PLL_MCLK_CNTL, (mc_save & ~7u) | 1u);
+    (void) rd(dev, RAGE128_GEN_INT_STATUS);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_GUI_IDLE);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    tsc += 65;
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    rr_quiesce(dev);
+    check32("eng 918: event: GUI_IDLE_INT of an op that ended unseen, next op running",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_GUI_IDLE, RAGE128_GIS_GUI_IDLE);
+    check32("eng 918: event: the next op reads busy", e918_stat(dev), E918_BUSY | 0x40);
+    /* 12c: PM4_STAT's GUI_ACTIVE follows the same engine, PM4_BUSY does
+       not; a write to a register the device handles ahead of the 2D
+       block takes a FIFO entry like any other */
+    check32("eng 918: PM4_STAT GUI_ACTIVE set, PM4_BUSY clear, while the op runs",
+            rd(dev, RAGE128_PM4_STAT) & 0x80010000u, 0x80000000u);
+    wr(dev, RAGE128_PC_GUI_MODE, rd(dev, RAGE128_PC_GUI_MODE));
+    wr(dev, RAGE128_GUI_DEBUG0, rd(dev, RAGE128_GUI_DEBUG0));
+    check32("eng 918: PC_GUI_MODE and GUI_DEBUG0 writes each take an entry, 62 free",
+            e918_stat(dev), E918_BUSY | 62);
+    tsc += 64;
+    check32("eng 918: PM4_STAT GUI_ACTIVE clear when the op ends",
+            rd(dev, RAGE128_PM4_STAT) & 0x80010000u, 0);
+    check32("eng 918: control: idle again", e918_stat(dev), 0x40);
+
+    /* 12d: the timeline's clock wraps (cycle count times 256): an op
+       started 32 cycles before the wrap is busy for its 64 cycles */
+    tsc = (1ull << 56) - 32;
+    (void) e918_stat(dev);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    check32("eng 918: wrap: busy right after a start before the wrap",
+            e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 63;
+    check32("eng 918: wrap: still busy 31 cycles past the wrap", e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 1;
+    check32("eng 918: wrap: idle at 64 cycles", e918_stat(dev), 0x40);
+    tsc = 2000000;
+    (void) e918_stat(dev);
+
+    /* 13: a clock set back (a guest can write its cycle counter) ends
+       the queued work instead of leaving the engine busy until the
+       clock catches up */
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    check32("eng 918: clock: busy with 1 waiting write before the clock moves",
+            e918_stat(dev), E918_BUSY | 63);
+    tsc -= 500000;
+    rr_quiesce(dev);
+    check32("eng 918: clock: set back, PC_GUI_CTLSTAT reads idle at the first read",
+            rd(dev, RAGE128_PC_GUI_CTLSTAT), 0);
+    check32("eng 918: clock: set back, GUI_STAT reads idle, 64 free",
+            e918_stat(dev), 0x40);
+
+    pll_wr(dev, RAGE128_PLL_X_MPLL_REF_FB_DIV, xm_save);
+    pll_wr(dev, RAGE128_PLL_MCLK_CNTL, mc_save);
+    tsc = tsc_save;
+    (void) rd(dev, RAGE128_GUI_STAT);
 }
 #undef MC906_SRC
 #undef MC906_DST
@@ -25579,6 +25880,7 @@ run_gpu2d_verify(void)
     vectors_scale_inc_412(dev);
     vectors_scale_pitch_bit9(dev);
     vectors_reg_scale_906(dev);
+    vectors_eng_time_918(dev);
     if (gpu_lane)
         check_true("2d line: backend attached with the 2D oracle armed",
                    dev->gpu && rage128_gpu_2d_verifying(dev));

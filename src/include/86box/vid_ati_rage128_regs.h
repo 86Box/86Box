@@ -839,6 +839,11 @@
                                       (RRG: WAIT_UNTIL, p. 3-239 / PDF 257) */
 #define RAGE128_PC_GUI_MODE 0x1744
 #define RAGE128_GUI_STAT_IDLE 0x00000040
+#define RAGE128_GUI_STAT_FIFO_ENTRIES 64    /* command FIFO depth (SDK: Engine Command
+                                               Queue Maintenance, p. 4-2 / PDF 76) */
+#define RAGE128_GUI_STAT_ENG_2D  0x8c000000 /* GUI_ACTIVE [31], ENG_2D_BUSY [27] and
+                                               ENG_2D_SM_BUSY [26]: the 2D engine is
+                                               running a register-started op */
 #define RAGE128_GUI_STAT_ACTIVE 0x80000040 /* GUI_ACTIVE [31] only: the ring is drained
                                               but the 3D engine is still drawing */
 

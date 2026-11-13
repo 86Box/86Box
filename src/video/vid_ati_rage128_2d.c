@@ -421,6 +421,7 @@ rage128_2d_reset(rage128_t *dev)
        174-175). */
     dev->aux_sc_cntl = 0;
     memset(dev->aux_sc_rect, 0, sizeof(dev->aux_sc_rect));
+    rage128_2d_eng_reset(dev);
 }
 
 /* DST_PITCH in pixels: the [9:0] field times 8, times the DST_PITCH_ADJ
@@ -5858,12 +5859,15 @@ rage128_2d_reg_read(rage128_t *dev, uint32_t off, uint32_t *val)
         case RAGE128_SRC_SC_BOTTOM: *val = dev->src_sc_bottom; return 1;
         case RAGE128_PC_GUI_CTLSTAT:
             /* Pixel cache status: PC_BUSY [31] and PC_BUSY_GUI [29] are
-               set while the CCE thread has fetched or running work, and
-               clear otherwise (RRG: PC_GUI_CTLSTAT, p. 3-253 / PDF 271).
+               set while the CCE thread has fetched or running work or a
+               register-started op has engine time left, and clear
+               otherwise (RRG: PC_GUI_CTLSTAT, p. 3-253 / PDF 271).
                The guide gives these bits no description; treating
                PC_BUSY as an OR of the busy bits follows GUI_ACTIVE, "'OR'
                of the above bits" (RRG: GUI_STAT, p. 3-244 / PDF 262). */
-            *val = rage128_pm4_active(dev) ? 0xa0000000u : 0;
+            *val = (rage128_pm4_active(dev)
+                    || (!rage128_on_cce_thread && rage128_2d_eng_busy(dev)))
+                ? 0xa0000000u : 0;
             return 1;
         case RAGE128_SCALE_SCR_HEIGHT_WIDTH:
             *val = dev->scale_scr_height_width;
@@ -6300,6 +6304,199 @@ rage128_2d_dst_traj_advance(rage128_t *dev, int w, int h)
                                                   + ((dev->dp_cntl & RAGE128_DP_CNTL_DST_Y_DIR) ? h : -h)));
 }
 
+/* Engine time for ops started by CPU register writes.
+
+   An op started by a register write is drawn to the end inside that
+   write, so its pixels are in memory at once. The chip takes time over
+   the same op, and programs pace themselves on that time: before each
+   group of register writes they poll GUI_STAT until GUI_FIFOCNT, the
+   "Number of free CMDFIFO entries", is large enough, and before they
+   touch the frame buffer they wait for GUI_ACTIVE to clear (RRG:
+   GUI_STAT, p. 3-244 / PDF 262; SDK: Engine Command Queue Maintenance,
+   pp. 4-2-4-3 / PDF 76-77). A program that draws in an endless loop with
+   only the FIFO wait between two ops runs as fast as the engine lets
+   it. With an engine that is never busy, such a loop starts hundreds of
+   thousands of ops in an emulated second, and the host has to draw
+   every one of them.
+
+   So the device keeps a timeline in emulated time. Nothing here delays
+   a pixel; the timeline only decides what the status registers report.
+   - eng_done is when the engine finishes the work accepted so far. An
+     op starts when the engine is free and adds its length.
+   - A CPU write to a FIFO'd register, the GUI block from 0x1400 up,
+     that arrives while the engine is busy waits in the command FIFO
+     until the engine gets to it, and holds one of the 64 entries until
+     then. GUI_FIFOCNT is 64 minus the writes still waiting. A write that
+     arrives with all 64 entries taken is applied like any other and the
+     count stays 0; what the chip does with such a write is not
+     documented.
+   - GUI_ACTIVE, ENG_2D_BUSY and ENG_2D_SM_BUSY read 1 until eng_done.
+     Which of the busy bits the chip sets for which op is not
+     documented; the two 2D engine bits are modeled for every
+     register-started op, the scaler op included.
+   - The busy-to-idle event behind GUI_IDLE_INT is raised at eng_done.
+
+   How long an op takes is modeled from two documented figures. The 2D
+   engine has a "128-bits wide" pixel datapath "drawing multiple pixels
+   per clock" (GCS: 2D Engine, p. 4-3 / PDF 51), taken here as 16 bytes of
+   frame-buffer traffic per cycle of the engine clock MCLK (RRG:
+   MCLK_CNTL, p. 3-103 / PDF 121): the destination bytes written, the
+   same number again when the ROP uses a source that is read from the
+   frame buffer, and again when the ROP uses the destination. The X
+   driver leaves the source select on the frame buffer for its solid
+   fills, whose ROP uses the brush alone; such a fill is charged for
+   its destination only. At the 120 MHz the video
+   BIOS programs this is 1.92 gigabytes a second, the memory bandwidth
+   the controller specification gives for the 128-bit interface (GCS:
+   Memory Support, p. 2-6 / PDF 20). The scaler op goes through the 3D
+   pixel pipeline, taken as two pixels per engine clock. Solid fills by
+   SGRAM block write, which the 2D engine can do faster, are charged
+   like any other fill, and an op is charged for the rectangle it asks
+   for, clipped or not.
+
+   Ops run by the CCE thread, from the ring or an indirect buffer, are
+   not on this timeline: that thread's own progress is what the status
+   registers report for them.
+
+   Emulated time is the processor's cycle count, which a guest can set
+   to any value. When it is found behind the last value seen here, the
+   times on the timeline mean nothing any more, so the queued work is
+   taken as done. The count times 256 does not fit 64 bits for ever, so
+   two times are compared by the sign of their difference, which stays
+   right across the wrap. */
+static inline int
+rage128_2d_eng_after(uint64_t a, uint64_t b)
+{
+    return (int64_t) (a - b) > 0;
+}
+
+static uint64_t
+rage128_2d_eng_now(rage128_t *dev)
+{
+    uint64_t now = tsc << 8;
+
+    if (rage128_2d_eng_after(dev->eng_seen, now)) {
+        dev->eng_done   = now;
+        dev->eng_fifo_n = 0;
+    }
+    dev->eng_seen = now;
+    return now;
+}
+
+static void
+rage128_2d_eng_retire(rage128_t *dev, uint64_t now)
+{
+    while (dev->eng_fifo_n && !rage128_2d_eng_after(dev->eng_fifo_pop[dev->eng_fifo_head], now)) {
+        dev->eng_fifo_head = (dev->eng_fifo_head + 1) % RAGE128_GUI_STAT_FIFO_ENTRIES;
+        dev->eng_fifo_n--;
+    }
+}
+
+void
+rage128_2d_eng_reset(rage128_t *dev)
+{
+    dev->eng_done      = tsc << 8;
+    dev->eng_seen      = dev->eng_done;
+    dev->eng_fifo_head = 0;
+    dev->eng_fifo_n    = 0;
+    dev->eng_idle_due  = 0;
+}
+
+int
+rage128_2d_eng_busy(rage128_t *dev)
+{
+    uint64_t now = rage128_2d_eng_now(dev);
+
+    return rage128_2d_eng_after(dev->eng_done, now);
+}
+
+void
+rage128_2d_eng_poll(rage128_t *dev)
+{
+    if (dev->eng_idle_due && !rage128_2d_eng_busy(dev)) {
+        dev->eng_idle_due = 0;
+        atomic_store(&dev->gui_idle_event, 1);
+    }
+}
+
+uint32_t
+rage128_2d_eng_stat(rage128_t *dev)
+{
+    uint64_t now = rage128_2d_eng_now(dev);
+
+    rage128_2d_eng_retire(dev, now);
+    rage128_2d_eng_poll(dev);
+    return (RAGE128_GUI_STAT_FIFO_ENTRIES - dev->eng_fifo_n)
+        | (rage128_2d_eng_after(dev->eng_done, now) ? RAGE128_GUI_STAT_ENG_2D : 0);
+}
+
+void
+rage128_2d_eng_fifo_write(rage128_t *dev)
+{
+    uint64_t now = rage128_2d_eng_now(dev);
+
+    rage128_2d_eng_retire(dev, now);
+    if (!rage128_2d_eng_after(dev->eng_done, now))
+        return; /* a free engine takes the write at once */
+    if (dev->eng_fifo_n == RAGE128_GUI_STAT_FIFO_ENTRIES) {
+        dev->eng_fifo_head = (dev->eng_fifo_head + 1) % RAGE128_GUI_STAT_FIFO_ENTRIES;
+        dev->eng_fifo_n--;
+    }
+    dev->eng_fifo_pop[(dev->eng_fifo_head + dev->eng_fifo_n) % RAGE128_GUI_STAT_FIFO_ENTRIES]
+        = dev->eng_done;
+    dev->eng_fifo_n++;
+}
+
+/* An op that takes this many engine clocks has just been drawn. On the
+   CPU thread it goes on the timeline; on the CCE thread, or inside an
+   indirect-buffer parse, the busy-to-idle event is raised at once, as
+   that thread does for its own work. A stopped engine clock adds no
+   time (modeled). */
+static void
+rage128_2d_eng_op(rage128_t *dev, double clocks)
+{
+    uint64_t now;
+    double   hz;
+
+    if (rage128_on_cce_thread || rage128_in_indirect) {
+        atomic_store(&dev->gui_idle_event, 1);
+        return;
+    }
+    /* An earlier op whose time ran out with nobody looking went idle
+       before this one starts: that event is raised first. */
+    rage128_2d_eng_poll(dev);
+    now = rage128_2d_eng_now(dev);
+    hz  = rage128_mclk_hz(dev);
+    if (!rage128_2d_eng_after(dev->eng_done, now))
+        dev->eng_done = now;
+    if (hz > 0.0 && clocks > 0.0)
+        dev->eng_done += (uint64_t) (clocks * (double) TIMER_USEC
+                                     * (1000000.0 * 256.0 / 4294967296.0) / hz);
+    dev->eng_idle_due = 1;
+}
+
+/* Engine clocks of a register-started 2D op over w x h pixels: 16 bytes
+   a clock, counting the destination write, a source read from the frame
+   buffer when from_mem is set and the ROP uses the source, and the
+   destination read of a ROP that uses it. A ROP3 code holds one result
+   bit per pattern, source and destination bit triple, the source at
+   weight 2 of the index, so it ignores the source when every bit
+   equals the bit two places up. */
+static double
+rage128_2d_eng_rect_clocks(const rage128_t *dev, int w, int h, int from_mem)
+{
+    double  bytes;
+    uint8_t rop;
+
+    if (w <= 0 || h <= 0)
+        return 0.0;
+    bytes = (double) w * (double) h * (double) rage128_2d_bpp((uint32_t) rage128_dp_dst_dt(dev));
+    rop = rage128_dp_rop3(dev);
+    return bytes * (double) (1 + ((from_mem && ((rop ^ (rop >> 2)) & 0x33)) ? 1 : 0)
+                             + (rage128_2d_rop_dindep(rop) ? 0 : 1))
+        / 16.0;
+}
+
 /* One dword written to HOST_DATA0-7 or HOST_DATA_LAST. It is added to
    the waiting op's buffer; the HOST_DATA_LAST write ends the data, so
    the op is painted and closed. Writes with no op waiting are
@@ -6316,7 +6513,8 @@ rage128_2d_hostdata_word(rage128_t *dev, uint32_t off, uint32_t val)
         dev->hostdata_ndw    = 0;
         dev->hostdata_active = 0;
         rage128_2d_dst_traj_advance(dev, dev->hostdata_w, dev->hostdata_h);
-        atomic_store(&dev->gui_idle_event, 1);
+        rage128_2d_eng_op(dev, rage128_2d_eng_rect_clocks(dev, dev->hostdata_w,
+                                                          dev->hostdata_h, 0));
     }
 }
 
@@ -6435,8 +6633,9 @@ rage128_2d_gui_op_run(rage128_t *dev, int w, int h)
    registers first waits for the CCE executor thread to go idle and then
    applies the value (rage128_reg_write in vid_ati_rage128.c;
    rage128_pm4_drain_wait in vid_ati_rage128_pm4.c), so the executor
-   never sees this op, and the busy-to-idle event behind GUI_IDLE_INT is
-   raised here, as the executor raises it when it runs out of work. */
+   never sees this op. Each caller then puts the op on the engine
+   timeline (rage128_2d_eng_op), which raises the busy-to-idle event
+   behind GUI_IDLE_INT when the op's time is up. */
 static void
 rage128_2d_reg_op_flush(rage128_t *dev)
 {
@@ -6454,10 +6653,17 @@ rage128_2d_reg_op_flush(rage128_t *dev)
 static void
 rage128_2d_gui_op(rage128_t *dev, int w, int h)
 {
+    /* A host-data op is only set up here: it draws, and is charged, on
+       its HOST_DATA_LAST write. */
+    int from_mem = !(dev->dp_gui_master_cntl & RAGE128_GMC_3D_FCN_EN)
+        && rage128_dp_src_source(dev) == 2;
+    int drawn;
+
     rage128_2d_reg_op_flush(dev);
-    if (rage128_2d_gui_op_run(dev, w, h))
+    drawn = rage128_2d_gui_op_run(dev, w, h);
+    if (drawn)
         rage128_2d_dst_traj_advance(dev, w, h);
-    atomic_store(&dev->gui_idle_event, 1);
+    rage128_2d_eng_op(dev, drawn ? rage128_2d_eng_rect_clocks(dev, w, h, from_mem) : 0.0);
 }
 
 /* The front-end scaler started by register writes: the stretch the 0x96
@@ -6500,16 +6706,18 @@ rage128_2d_gui_op(rage128_t *dev, int w, int h)
 static void
 rage128_2d_scale_reg_op(rage128_t *dev)
 {
-    uint32_t sdt = dev->t3d.scale_3d_datatype & 0xf;
-    uint32_t dhw = dev->scale_dst_height_width;
+    uint32_t sdt   = dev->t3d.scale_3d_datatype & 0xf;
+    uint32_t dhw   = dev->scale_dst_height_width;
+    int      drawn = 0;
 
     if (((dev->t3d.scale_3d_cntl >> 6) & 3) != 1)
         return;
-    /* A started op flushes and reports the engine idle again like any
+    /* A started op flushes and goes on the engine timeline like any
        other register-started op, also when its source and destination
        formats are a pair the stretch does not draw. */
     rage128_2d_reg_op_flush(dev);
-    if (rage128_2d_scale_pair_ok(dev, sdt, dev->scale_offset_0))
+    if (rage128_2d_scale_pair_ok(dev, sdt, dev->scale_offset_0)) {
+        drawn = 1;
         rage128_2d_stretch_rect(dev, dev->scale_offset_0,
                                 rage128_2d_scale_pitch_px(dev->mc.scale_pitch),
                                 0, 0,
@@ -6522,7 +6730,10 @@ rage128_2d_scale_reg_op(rage128_t *dev)
                                 (int) (dhw & 0x3fff), (int) ((dhw >> 16) & 0x3fff),
                                 (int) sdt,
                                 !((dev->t3d.misc_3d_state_cntl >> 10) & 1));
-    atomic_store(&dev->gui_idle_event, 1);
+    }
+    /* two pixels per engine clock; a pair that is not drawn takes no time */
+    rage128_2d_eng_op(dev, drawn ? (double) (dhw & 0x3fff) * (double) ((dhw >> 16) & 0x3fff) / 2.0
+                                 : 0.0);
 }
 
 int
@@ -6722,7 +6933,8 @@ rage128_2d_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
             if (dev->gpu)
                 rage128_gpu_flush(dev, R128_GPU_2D_REG_BRES);
             rage128_2d_bres_line(dev, rage128_2d_line_dir(dev));
-            atomic_store(&dev->gui_idle_event, 1);
+            rage128_2d_eng_op(dev, rage128_2d_eng_rect_clocks(dev, (int) (dev->bres_lnth & 0x3fff),
+                                                              1, 0));
             return 1;
             /* clang-format off */
         case RAGE128_DP_BRUSH_BKGD_CLR: MERGE(dev->dp_brush_bkgd_clr); return 1;

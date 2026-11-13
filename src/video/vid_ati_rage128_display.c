@@ -246,7 +246,7 @@ rage128_xclk_hz(const rage128_t *dev)
    0 = PCICLK, 1 to 4 = MPllClk divided by 1, 2, 4 or 8, 5 = XCLK,
    6 reserved, 7 = XTALIN (RRG: MCLK_CNTL, p. 3-103 / PDF 121). The
    reserved code reads as stopped. */
-static double
+double
 rage128_mclk_hz(const rage128_t *dev)
 {
     switch (dev->pll_regs[RAGE128_PLL_MCLK_CNTL] & 0x7) {

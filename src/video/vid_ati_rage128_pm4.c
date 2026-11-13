@@ -1043,6 +1043,7 @@ rage128_pm4_gui_reset(rage128_t *dev)
     dev->hostdata_active     = 0;
     dev->hostdata_ndw        = 0;
     dev->pm4_vc_debug_config = 0;
+    rage128_2d_eng_reset(dev); /* the register path's queued work goes too */
     /* Released only now: every store above has to be done before the
        executor may look at the FIFO again. */
     if (dev->cce_thread) {
@@ -2209,6 +2210,12 @@ rage128_pm4_reg_read(rage128_t *dev, uint32_t off, uint32_t *val)
                 *val = (used < room) ? room - used : 0;
                 if (rage128_pm4_active(dev))
                     *val |= RAGE128_PM4_STAT_BUSY | RAGE128_PM4_STAT_GUI_ACTIVE;
+                /* GUI_ACTIVE is the OR of the engine busy bits, so it
+                   is also set while an op started by a CPU register
+                   write has engine time left (vid_ati_rage128_2d.c,
+                   engine time); PM4_BUSY is not. */
+                else if (!rage128_on_cce_thread && rage128_2d_eng_busy(dev))
+                    *val |= RAGE128_PM4_STAT_GUI_ACTIVE;
             }
             return 1;
         case RAGE128_PM4_MICROCODE_ADDR:

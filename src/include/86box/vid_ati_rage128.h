@@ -637,6 +637,21 @@ typedef struct rage128_t {
                                   ati2drau.drv @0004:5373). An 8 bpp
                                   stretch source reads its colors here. */
 
+    /* Engine time for ops started by CPU register writes (see the
+       engine time comment in vid_ati_rage128_2d.c). All of it is in
+       emulated time, CPU cycles times 256, and belongs to the CPU
+       thread. eng_done is when the engine finishes the work accepted so
+       far. eng_fifo_pop holds, oldest first from eng_fifo_head, when
+       each of the eng_fifo_n register writes still waiting in the
+       64-entry command FIFO leaves it. eng_idle_due is set while a
+       busy-to-idle event is owed at eng_done. eng_seen is the last
+       time read, to notice a clock that was set back. */
+    uint64_t eng_done;
+    uint64_t eng_seen;
+    uint64_t eng_fifo_pop[64];
+    uint32_t eng_fifo_head;
+    uint32_t eng_fifo_n;
+    int      eng_idle_due;
     /* Host-data stream started by a register write, the path the XFree86
        XAA driver uses for color expansion. A register-triggered op whose
        DP_GUI_MASTER_CNTL source field DP_SRC_SOURCE is 3 or 4 (data
@@ -2295,6 +2310,17 @@ rage128_sx14(uint32_t v)
 extern void rage128_2d_packet3(rage128_t *dev, uint32_t hdr, const uint32_t *pl, uint32_t count);
 extern void rage128_2d_set_pitch_offset(rage128_t *dev, int is_dst, uint32_t val);
 extern void rage128_2d_reset(rage128_t *dev);
+/* Engine time of register-started ops (vid_ati_rage128_2d.c): the GUI_STAT
+   value it gives, 1 while it is busy, the hook for a CPU write to a
+   FIFO'd register, the check that raises a due busy-to-idle event, and
+   the reset. CPU thread only. */
+extern uint32_t rage128_2d_eng_stat(rage128_t *dev);
+extern int      rage128_2d_eng_busy(rage128_t *dev);
+extern void     rage128_2d_eng_fifo_write(rage128_t *dev);
+extern void     rage128_2d_eng_poll(rage128_t *dev);
+extern void     rage128_2d_eng_reset(rage128_t *dev);
+/* MCLK, the engine clock, in Hz (vid_ati_rage128_display.c). */
+extern double rage128_mclk_hz(const rage128_t *dev);
 
 /* PM4/CCE command processor (vid_ati_rage128_pm4.c). */
 extern int  rage128_pm4_reg_read(rage128_t *dev, uint32_t off, uint32_t *val);

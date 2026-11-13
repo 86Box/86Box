@@ -806,6 +806,7 @@ rage128_gen_int_sync(rage128_t *dev)
 static void
 rage128_gen_int_fold_gui_idle(rage128_t *dev)
 {
+    rage128_2d_eng_poll(dev);
     if (atomic_exchange(&dev->gui_idle_event, 0)) {
         atomic_fetch_or(&dev->gen_int_status, RAGE128_GIS_GUI_IDLE);
         rage128_gen_int_update(dev);
@@ -1103,16 +1104,24 @@ rage128_reg_read32(rage128_t *dev, uint32_t off)
         case RAGE128_GUI_STAT:
             /* Read-only engine status (RRG: GUI_STAT, p. 3-244 / PDF 262).
                It reads GUI_ACTIVE and PM4_BUSY while the CCE thread holds
-               fetched work it has not executed, GUI_ACTIVE alone while
+               fetched work it has not executed, and GUI_ACTIVE while
                the ring is drained but the optional GPU backend is still
-               drawing, and idle otherwise. GUI_ACTIVE is the OR of the
-               engine busy bits, so it stays set until the last pixels
-               are written, and a driver's idle poll waits for that in
-               guest time. GUI_FIFOCNT always reads 64 free entries. */
-            if (rage128_pm4_active(dev))
-                return RAGE128_GUI_STAT_BUSY;
-            return rage128_gpu_engine_busy(dev) ? RAGE128_GUI_STAT_ACTIVE
-                                                : RAGE128_GUI_STAT_IDLE;
+               drawing. GUI_ACTIVE is the OR of the engine busy bits, so
+               it stays set until the last pixels are written, and a
+               driver's idle poll waits for that in guest time.
+               GUI_FIFOCNT and the 2D engine's busy bits come from the
+               engine time of ops started by CPU register writes
+               (vid_ati_rage128_2d.c): CCE work is queued on the host
+               side and takes no entry of the 64. */
+            {
+                uint32_t stat = rage128_2d_eng_stat(dev);
+
+                if (rage128_pm4_active(dev))
+                    return stat | (RAGE128_GUI_STAT_BUSY & ~0xfffu);
+                if (rage128_gpu_engine_busy(dev))
+                    return stat | (RAGE128_GUI_STAT_ACTIVE & ~0xfffu);
+                return stat;
+            }
         case RAGE128_PC_GUI_MODE:
             return dev->pc_gui_mode;
         default:
@@ -1273,6 +1282,12 @@ rage128_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
 {
     off &= 0x3ffc;
     val &= mask;
+
+    /* A CPU write to a FIFO'd register takes its place in the command
+       FIFO behind the engine's running work, before any handler below
+       starts an op of its own (vid_ati_rage128_2d.c, engine time). */
+    if (off >= 0x1400 && off < 0x2000 && !rage128_on_cce_thread && !rage128_in_indirect)
+        rage128_2d_eng_fifo_write(dev);
 
     /* A write to the CCE and GUI engine registers from 0x1000 up (RRG:
        Description of Mapped Memory Apertures, Table 2-1, p. 2-5 / PDF 15)
