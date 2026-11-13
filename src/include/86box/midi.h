@@ -111,9 +111,7 @@ extern void midi_in_sysex(uint8_t *buffer, uint32_t len);
 #ifdef EMU_DEVICE_H
 extern const device_t rtmidi_output_device;
 extern const device_t rtmidi_input_device;
-#    ifdef USE_OPL4ML
 extern const device_t opl4_midi_device;
-#    endif /* USE_OPL4ML */
 #    ifdef USE_FLUIDSYNTH
 extern const device_t fluidsynth_device;
 #    endif /* USE_FLUIDSYNTH */
