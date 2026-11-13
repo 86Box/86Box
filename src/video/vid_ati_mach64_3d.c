@@ -150,6 +150,7 @@
 #define RP_BM_HOSTDATA         0x244
 #define RP_BM_ADDR             0x248
 #define RP_BM_GUI_TABLE_CMD    0x24c
+#define RP_TEX_PALETTE_INDEX   0x340
 #define RP_STW_EXP             0x344
 #define RP_LOG_MAX_INC         0x348
 #define RP_W_X_INC             0x358
@@ -164,6 +165,8 @@
 #define RP_COMPOSITE_SHADOW_ID 0x398
 #define RP_SPECULAR_FIRST      0x39c
 #define RP_SPECULAR_LAST       0x3bc
+
+#define RP_TEX_PALETTE_INDEX_MASK 0x3ffu
 
 /* SETUP_CNTL */
 #define RP_DONT_START_TRI   (1u << 0)
@@ -280,6 +283,7 @@ struct mach64_3d_t {
     uint32_t  regs[256];            /* the register block, as dwords */
     uint32_t  texture_palette[256]; /* CI8 texels, 0x00RRGGBB */
     uint8_t   texture_palette_ram[0x800]; /* Rage Pro texture cache palette image */
+    uint32_t  texture_palette_index;
 
     /* The trailing edge is a live trajectory register, like DST_Y_X. */
     int trail_x;
@@ -732,11 +736,17 @@ mach64_3d_texture_palette_texel_index(uint32_t dp_pix_width, uint8_t texel)
     return (bank << 4) | ((ci4 == CI4_RGB_HIGH_NIBBLE) ? (texel >> 4) : (texel & 0x0f));
 }
 
-/* TEX_PALETTE takes one entry at a time, the index in bits 31:24. */
+/* On pre-Pro chips TEX_PALETTE takes one entry at a time, with the index in bits 31:24. */
 static void
 mach64_3d_texture_palette_store(uint32_t *palette, uint32_t value)
 {
     palette[value >> 24] = value & 0x00ffffff;
+}
+
+static uint16_t
+mach64_3d_texture_palette_word(const mach64_3d_t *ctx, unsigned offset)
+{
+    return ctx->texture_palette_ram[offset] | ((uint16_t) ctx->texture_palette_ram[offset + 1] << 8);
 }
 
 static void
@@ -752,7 +762,7 @@ mach64_3d_texture_palette_cache_byte(mach64_3d_t *ctx, uint32_t addr, uint8_t va
     ctx->texture_palette_ram[offset] = value;
     index += ((((slot & 1) != 0) ^ (offset >= 0x400)) ? 128 : 0);
     offset &= ~1u;
-    packed = ctx->texture_palette_ram[offset] | ((uint16_t) ctx->texture_palette_ram[offset + 1] << 8);
+    packed = mach64_3d_texture_palette_word(ctx, offset);
     ctx->texture_palette[index] = mach64_3d_argb565(packed, 1) & 0x00ffffff;
 }
 
@@ -3718,6 +3728,16 @@ mach64_3d_read(mach64_t *mach64, uint32_t addr, uint32_t *val)
             *val = ctx->regs[DST_BRES_LNTH >> 2];
             return 1;
         default:
+            if (mach64->ragepro && (reg == RP_TEX_PALETTE_INDEX || reg == TEX_PALETTE)) {
+                mach64_3d_sync(ctx);
+                if (reg == RP_TEX_PALETTE_INDEX)
+                    *val = ctx->texture_palette_index;
+                else {
+                    *val = mach64_3d_texture_palette_word(ctx, ctx->texture_palette_index * 2);
+                    ctx->texture_palette_index = (ctx->texture_palette_index + 1) & RP_TEX_PALETTE_INDEX_MASK;
+                }
+                return 1;
+            }
             if (mach64->ragepro && mach64_3d_ragepro_register(reg)) {
                 mach64_3d_sync(ctx);
                 *val = ctx->regs[reg >> 2];
@@ -3785,6 +3805,14 @@ mach64_3d_write(mach64_t *mach64, uint32_t addr, uint32_t val, uint32_t type)
     /* The Rage Pro's own block 0 registers; its bus master's
        (vid_ati_mach64_ragepro.c) have been seen before the FIFO. */
     if (mach64->ragepro) {
+        if (reg == RP_TEX_PALETTE_INDEX) {
+            ctx->texture_palette_index = mach64_3d_merge_write(ctx->texture_palette_index, addr, val, type) &
+                                         RP_TEX_PALETTE_INDEX_MASK;
+            return 1;
+        }
+        if (reg == TEX_PALETTE)
+            return 1; /* Read-only on Rage Pro. */
+
         /* Native XL MCAM batches use the combined scaler aliases:
            E0 pitches, E2 source/reset, E3 destination, E4 draw dimensions.
            The E4 launch is present in ATIMCRAE's native command stream;
@@ -4320,7 +4348,7 @@ mach64_rp_texel_vq(mach64_3d_t *ctx, mach64_rp_agp_cache_t *agp, const mach64_rp
     else
         index = mach64_3d_vram_read8(mach64, map->tex.base + off);
     off = mach64_rp_vq_word_offset(index, v & 1, u & 1);
-    raw = ctx->texture_palette_ram[off] | ((uint32_t) ctx->texture_palette_ram[off + 1] << 8);
+    raw = mach64_3d_texture_palette_word(ctx, off);
     switch (map->tex.format) {
         case 3:
             argb = mach64_3d_argb1555(raw, map->tex.dynamic_range);

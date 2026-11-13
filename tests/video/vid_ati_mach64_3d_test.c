@@ -1435,8 +1435,36 @@ ragepro_palette_upload_tests(void)
         (void) mach64_scaler_read_source(ctx, 8, staging, 0x400, i, 0);
     CHECK(!memcmp(saved, ctx->texture_palette, sizeof(saved)));
     m->ragepro = 1;
-    /* 0x340 is not an auto-increment selector for packed TEX_PALETTE. */
-    mach64_3d_write(m, 0x340, 7, FIFO_WRITE_DWORD);
+    uint32_t value;
+    mach64_3d_write(m, RP_TEX_PALETTE_INDEX, 0xfffffc00u, FIFO_WRITE_DWORD);
+    CHECK(mach64_3d_read(m, RP_TEX_PALETTE_INDEX, &value));
+    expect_u32("palette index masks reserved bits", value, 0);
+    for (unsigned i = 0; i < 1024; i++) {
+        unsigned entry = (i & 0x1ff) >> 2;
+        uint16_t packed = ((entry + 1) << 8) | entry;
+        if (((i >> 1) ^ (i >> 9)) & 1)
+            packed ^= 0xffff;
+        CHECK(mach64_3d_read(m, TEX_PALETTE, &value));
+        expect_u32("palette register reads uploaded RGB565 word", value, packed);
+    }
+    CHECK(mach64_3d_read(m, RP_TEX_PALETTE_INDEX, &value));
+    expect_u32("palette index wraps after 1024 reads", value, 0);
+
+    mach64_3d_write(m, RP_TEX_PALETTE_INDEX, 0x34, FIFO_WRITE_BYTE);
+    mach64_3d_write(m, RP_TEX_PALETTE_INDEX + 1, 0xfe, FIFO_WRITE_BYTE);
+    mach64_3d_write(m, TEX_PALETTE, 0x9a123456, FIFO_WRITE_DWORD);
+    CHECK(mach64_3d_read(m, RP_TEX_PALETTE_INDEX, &value));
+    expect_u32("palette index accepts byte writes and is stable on read", value, 0x234);
+    CHECK(!memcmp(saved, ctx->texture_palette, sizeof(saved)));
+    CHECK(mach64_3d_read(m, TEX_PALETTE, &value));
+    expect_u32("read-only palette RAM word survives write", value, 0xf1f2);
+    CHECK(mach64_3d_read(m, RP_TEX_PALETTE_INDEX, &value));
+    expect_u32("palette read increments the index once", value, 0x235);
+
+    m->ragepro = 0;
+    mach64_3d_write(m, S_X_INC2, 7, FIFO_WRITE_DWORD);
+    CHECK(mach64_3d_read(m, S_X_INC2, &value));
+    expect_u32("older chip keeps S_X_INC2 at 0x340", value, 7);
     mach64_3d_write(m, TEX_PALETTE, 0x9a123456, FIFO_WRITE_DWORD);
     expect_u32("packed palette keeps its explicit index", ctx->texture_palette[0x9a], 0x123456);
     card_close(m);
