@@ -3272,6 +3272,10 @@ s3_out(uint16_t addr, uint8_t val, void *priv)
                     } else if (s3->card_type == S3_MIROVIDEO40SV_ERGO_968) {
                         if ((val & 0x80) && (!(svga->crtc[0x55] & 0x01) && !(svga->crtc[0x43] & 0x02)))
                             svga->dac_addr |= 0x02;
+                    } else if (s3->card_type == S3_MIRO_TRIO64V) {
+                        /* The miroVIDEO 22SD drives the DDC lines from the General
+                           Output Port pins: GOP0 is SDA and GOP1 is SCL. */
+                        i2c_gpio_set(s3->i2c, !!(val & 0x02), !!(val & 0x01));
                     }
                     break;
 
@@ -3591,6 +3595,12 @@ s3_in(uint16_t addr, void *priv)
         case 0x3c7:
         case 0x3c8:
         case 0x3c9:
+            /* CR55 bit 2 turns a 3C8h read into a General Input Port read; the
+               miroVIDEO 22SD reads the DDC lines back there, SDA on bit 0 and
+               SCL on bit 1. */
+            if ((addr == 0x3c8) && (svga->crtc[0x55] & 0x04) && (s3->card_type == S3_MIRO_TRIO64V))
+                return 0xfc | (i2c_gpio_get_scl(s3->i2c) << 1) | i2c_gpio_get_sda(s3->i2c);
+
             rs2 = (svga->crtc[0x55] & 0x01) || !!(svga->crtc[0x43] & 2);
             switch (s3->ramdac_type) {
                 case BUILT_IN:
