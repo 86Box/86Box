@@ -675,16 +675,19 @@ isamem_init(const device_t *info)
          * can go on up to the start of that ROM. Off by default: on some
          * machines the ROM is only partially decoded and repeats there.
          */
-        if (dev->board == ISAMEM_GENXT_CARD) {
+        if ((dev->board == ISAMEM_GENXT_CARD) && (addr >= RAM_TOPMEM) && (addr < 0x100000)) {
             uint32_t uma_top = RAM_UMATOP;
 
             if (device_get_config_int("uma_to_rom") && (biosaddr > RAM_UMATOP))
                 uma_top = biosaddr;
 
-            if ((addr >= RAM_TOPMEM) && (addr < uma_top)) {
-                t   = uma_top - addr;
-                uma = 1;
-            }
+            /*
+             * Only the upper memory area is used: nothing is mapped
+             * at or above uma_top, and any RAM left over is unused
+             * (never mapped as extended memory below 1MB).
+             */
+            t   = (addr < uma_top) ? (uma_top - addr) : 0;
+            uma = 1;
         }
 
         /* Check for Everex EV-159 cards in CS8220 backfill mode. */
@@ -779,7 +782,7 @@ isamem_init(const device_t *info)
      * real mode (so, not by DOS, for example) but it can be used in
      * protected mode.
      */
-    if (is286 && addr > 0 && tot > 0) {
+    if (is286 && !uma && addr > 0 && tot > 0) {
         t = tot;
         isamem_log("ISAMEM: RAM at %05iKB (%iKB)\n", addr >> 10, t >> 10);
 
@@ -1096,7 +1099,7 @@ static const device_config_t genericxt_config[] = {
         .file_filter    = NULL,
         .spinner        = {
             .min  =   0,
-            .max  = 944,
+            .max  = 992,
             .step =  16
         },
         .selection      = { { 0 } },
