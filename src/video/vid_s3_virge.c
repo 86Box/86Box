@@ -402,7 +402,13 @@ typedef struct virge_t {
     } clock;
 
     fifo_entry_t fifo[FIFO_SIZE];
-    ATOMIC_INT   fifo_read_idx, fifo_write_idx;
+    /* The FIFO thread writes fifo_read_idx and the emulation thread writes
+       fifo_write_idx once per entry: 128 bytes apart, the two never share
+       a cache line (128 bytes on Apple silicon, 64 on x86-64). */
+    ATOMIC_INT   fifo_read_idx;
+    uint8_t      fifo_read_idx_pad[124];
+    ATOMIC_INT   fifo_write_idx;
+    uint8_t      fifo_write_idx_pad[124];
     ATOMIC_INT   fifo_thread_run, render_thread_run;
 
     thread_t *fifo_thread;
