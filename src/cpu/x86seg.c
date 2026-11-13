@@ -478,8 +478,8 @@ check_seg_valid(x86seg *s)
         op_loadseg(0, s);
 }
 
-static void
-read_descriptor(uint32_t addr, uint16_t *segdat, uint32_t *segdat32, int override)
+static void __attribute__((noinline))
+read_descriptor_slow(uint32_t addr, uint16_t *segdat, uint32_t *segdat32, int override)
 {
     if (override)
         cpl_override = 1;
@@ -494,6 +494,26 @@ read_descriptor(uint32_t addr, uint16_t *segdat, uint32_t *segdat32, int overrid
     }
     if (override)
         cpl_override = 0;
+}
+
+/* A descriptor sits in one page when it is 8-aligned, so a mapped page
+   is read with a single lookup and load, as readmeml()'s own fast path
+   would for each half. */
+static void __attribute__((noinline))
+read_descriptor(uint32_t addr, uint16_t *segdat, uint32_t *segdat32, int override)
+{
+#ifndef OPS_286_386
+    if (!cpu_16bitbus && !(addr & 7)) {
+        const uintptr_t page = readlookup2[addr >> 12];
+
+        if (page != (uintptr_t) LOOKUP_INV) {
+            /* Guest memory is little-endian, like the doubleword pair */
+            memcpy(segdat32, (const void *) (page + addr), 8);
+            return;
+        }
+    }
+#endif
+    read_descriptor_slow(addr, segdat, segdat32, override);
 }
 
 int
@@ -643,27 +663,28 @@ loadseg(uint16_t seg, x86seg *s)
 #endif
         if (s == &cpu_state.seg_ss && (cpu_state.eflags & VM_FLAG))
             set_stack32(0);
-    }
 
-    if (s == &cpu_state.seg_ds) {
-        if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
-            cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
-        else
-            cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+        /* do_seg_load() sets these for a protected mode load */
+        if (s == &cpu_state.seg_ds) {
+            if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
+                cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
+            else
+                cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+        }
+        if (s == &cpu_state.seg_es) {
+            if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
+                cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
+            else
+                cpu_cur_status |= CPU_STATUS_NOTFLATES;
+        }
+        if (s == &cpu_state.seg_ss) {
+            if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
+                cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
+            else
+                cpu_cur_status |= CPU_STATUS_NOTFLATSS;
+        }
+        cpu_set_wide_status(s);
     }
-    if (s == &cpu_state.seg_es) {
-        if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
-            cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
-        else
-            cpu_cur_status |= CPU_STATUS_NOTFLATES;
-    }
-    if (s == &cpu_state.seg_ss) {
-        if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
-            cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
-        else
-            cpu_cur_status |= CPU_STATUS_NOTFLATSS;
-    }
-    cpu_set_wide_status(s);
 
     return cpu_state.abrt;
 }
