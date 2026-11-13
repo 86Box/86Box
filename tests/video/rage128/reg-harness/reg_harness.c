@@ -18368,18 +18368,290 @@ vectors_i2c909(rage128_t *dev)
 
 /* 14: the two chips of the MAXX each have their own engine: a transfer
    on chip B ends not acknowledged there and leaves chip A's registers
-   at reset */
+   at reset. The address is one the board has no part at. */
 static void
 vectors_i2c909_maxx(void)
 {
     r128_maxx_t *maxx = maxx_init(&ati_rage128_maxx_device);
 
-    i2c909_set1(maxx->chip[MAXX_B], 0x98, 0x40);
+    i2c909_set1(maxx->chip[MAXX_B], 0x70, 0x40);
     check32("i2c 909: MAXX chip B transfer ends NACK",
             i2c909_rl(maxx->chip[MAXX_B], I2C909_CNTL_0), 0x32320342);
     check32("i2c 909: MAXX chip A untouched by a chip B transfer",
             i2c909_rl(maxx->chip[MAXX_A], I2C909_CNTL_0), 0);
     maxx_close(maxx);
+}
+
+/* The 8-bit A/D and D/A converter on the Rage Fury MAXX, a PCF8591 at
+   7-bit address 0x4C on chip B's bus (address bytes 0x98 to write and
+   0x99 to read). The transmit is the sequence the ATI Windows 98 driver
+   uses for it: I2C_CNTL_0 = 0x14140027 (the status bits cleared,
+   I2C_SOFT_RST, N = M = 0x14), I2C_CNTL_1 = 0x28030100 with the number
+   of bytes after the address in I2C_DATA_COUNT, the bytes to I2C_DATA,
+   then I2C_CNTL_0 rewritten as read with I2C_GO, I2C_STOP and I2C_START
+   added. The receive is the same with the address alone in the buffer
+   and I2C_RECEIVE added to the last write.
+
+   The value I2C_CNTL_0 must read afterwards is worked out from the
+   engine's rules, not typed: a write keeps I2C_DRIVE_EN to I2C_ABORT and
+   I2C_PRESCALE, so the first write leaves the prescale alone; the second
+   adds the control bits it sets; I2C_GO reads 0 once the transfer has
+   ended; and the transfer adds I2C_DONE when every byte is acknowledged
+   or I2C_NACK when one is not. */
+#define I2C920_CLEAR 0x14140027u
+#define I2C920_CNTL1 0x28030100u
+
+static uint32_t
+i2c920_want(uint32_t added, uint32_t status)
+{
+    uint32_t kept = I2C920_CLEAR & RAGE128_I2C_CNTL_0_LATCH;
+
+    return ((kept | added) & RAGE128_I2C_CNTL_0_LATCH) | status;
+}
+
+static uint32_t
+i2c920_send(rage128_t *dev, const uint8_t *bytes, uint32_t n)
+{
+    const uint32_t go = RAGE128_I2C_GO | RAGE128_I2C_STOP | RAGE128_I2C_START;
+
+    i2c909_wl(dev, I2C909_CNTL_0, I2C920_CLEAR);
+    i2c909_wl(dev, I2C909_CNTL_1, I2C920_CNTL1 | (n - 1));
+    for (uint32_t i = 0; i < n; i++)
+        i2c909_wl(dev, I2C909_DATA, bytes[i]);
+    i2c909_wl(dev, I2C909_CNTL_0, i2c909_rl(dev, I2C909_CNTL_0) | go);
+    return i2c909_rl(dev, I2C909_CNTL_0);
+}
+
+/* Receive n bytes from the address byte given; they are left in the
+   buffer after the address, for the caller to read from I2C_DATA. */
+static uint32_t
+i2c920_recv(rage128_t *dev, uint8_t addr, uint32_t n)
+{
+    const uint32_t go = RAGE128_I2C_GO | RAGE128_I2C_RECEIVE | RAGE128_I2C_STOP | RAGE128_I2C_START;
+
+    i2c909_wl(dev, I2C909_CNTL_0, I2C920_CLEAR);
+    i2c909_wl(dev, I2C909_CNTL_1, I2C920_CNTL1 | n);
+    i2c909_wl(dev, I2C909_DATA, addr);
+    i2c909_wl(dev, I2C909_CNTL_0, i2c909_rl(dev, I2C909_CNTL_0) | go);
+    return i2c909_rl(dev, I2C909_CNTL_0);
+}
+
+/* What the converter holds: the control register in bits 15:8 and the
+   DAC data register in bits 7:0. The part cannot be read back over the
+   bus (a read returns A/D results), so the rows look at the board's
+   copy. */
+static uint32_t
+i2c920_part(const r128_maxx_t *maxx)
+{
+    return ((uint32_t) maxx->pcf8591.control << 8) | maxx->pcf8591.dac;
+}
+
+/* The A/D channel the part's next conversion takes, also the board's
+   copy. */
+static uint32_t
+i2c920_channel(const r128_maxx_t *maxx)
+{
+    return maxx->pcf8591.channel;
+}
+
+static void
+vectors_i2c920_maxx(void)
+{
+    static const uint8_t dac_7f[]   = { 0x98, 0x40, 0x7f };
+    static const uint8_t dac_00[]   = { 0x98, 0x40, 0x00 };
+    static const uint8_t dac_two[]  = { 0x98, 0x40, 0x11, 0x22 };
+    static const uint8_t ctl_only[] = { 0x98, 0x00 };
+    static const uint8_t below[]    = { 0x96, 0x40, 0x7f };
+    static const uint8_t above[]    = { 0x9a, 0x40, 0x7f };
+    const uint32_t       tx         = RAGE128_I2C_GO | RAGE128_I2C_STOP | RAGE128_I2C_START;
+    const uint32_t       rx         = tx | RAGE128_I2C_RECEIVE;
+    const uint32_t       tx_done    = i2c920_want(tx, RAGE128_I2C_DONE);
+    const uint32_t       tx_nack    = i2c920_want(tx, RAGE128_I2C_NACK);
+    const uint32_t       rx_done    = i2c920_want(rx, RAGE128_I2C_DONE);
+    r128_maxx_t         *maxx       = maxx_init(&ati_rage128_maxx_device);
+    rage128_t           *a          = maxx->chip[MAXX_A];
+    rage128_t           *b          = maxx->chip[MAXX_B];
+    uint32_t             c0, c1, p0, p1, st, irq;
+    uint8_t              r0, r1, r2;
+
+    printf("maxx i2c: derived I2C_CNTL_0: transmit done %08x, transmit nack %08x, receive done %08x\n",
+           tx_done, tx_nack, rx_done);
+
+    /* 13: at power-on the control register is all zeros; the DAC data
+       register is modeled at 0x00 */
+    check32("maxx i2c: the control and DAC registers power on at 0", i2c920_part(maxx), 0x0000);
+
+    /* 1: the driver's D/A write, address, control byte 0x40 (analog
+       output enable) and one value, is acknowledged byte by byte */
+    c0 = i2c920_send(b, dac_7f, sizeof(dac_7f));
+    printf("maxx i2c: 98 40 7f on chip B: cntl_0 %08x part %08x\n", c0, i2c920_part(maxx));
+    check32("maxx i2c: the D/A write is acknowledged on chip B", c0, tx_done);
+
+    /* 2: the second byte is the control byte and the third the D/A
+       value; a second write replaces the value */
+    p0 = i2c920_part(maxx);
+    i2c920_send(b, dac_00, sizeof(dac_00));
+    p1 = i2c920_part(maxx);
+    check_true("maxx i2c: the DAC data register holds the last data byte",
+               p0 == 0x407f && p1 == 0x4000);
+
+    /* 3: every byte after the control byte is a D/A value; the last one
+       sent stays */
+    c0 = i2c920_send(b, dac_two, sizeof(dac_two));
+    p0 = i2c920_part(maxx);
+    printf("maxx i2c: 98 40 11 22: cntl_0 %08x part %08x\n", c0, p0);
+    check_true("maxx i2c: later data bytes each load the DAC register",
+               c0 == tx_done && p0 == 0x4022);
+
+    /* 4: a write that ends after the control byte changes the control
+       register and leaves the D/A value alone */
+    c0 = i2c920_send(b, ctl_only, sizeof(ctl_only));
+    p0 = i2c920_part(maxx);
+    printf("maxx i2c: 98 00: cntl_0 %08x part %08x\n", c0, p0);
+    check_true("maxx i2c: a control byte alone is acknowledged", c0 == tx_done && p0 == 0x0022);
+
+    /* 5: the first byte the part sends after power-on is 80h */
+    c0 = i2c920_recv(b, 0x99, 1);
+    r0 = i2c909_rb(b, I2C909_DATA);
+    printf("maxx i2c: first read: cntl_0 %08x data %02x\n", c0, r0);
+    check_true("maxx i2c: the first byte read after power-on is 80h", c0 == rx_done && r0 == 0x80);
+
+    /* 6: I2C_INT is for a transfer that ends without an acknowledge; one
+       that is acknowledged leaves GEN_INT_STATUS bit 17 and INTA alone */
+    wr(b, RAGE128_GEN_INT_STATUS, RAGE128_GIS_I2C);
+    wr(b, RAGE128_GEN_INT_CNTL, RAGE128_GIC_I2C_EN);
+    i2c920_send(b, dac_7f, sizeof(dac_7f));
+    st  = rd(b, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_I2C;
+    irq = (uint32_t) b->irq_state;
+    wr(b, RAGE128_GEN_INT_STATUS, RAGE128_GIS_I2C);
+    wr(b, RAGE128_GEN_INT_CNTL, 0x00000000);
+    printf("maxx i2c: after an acknowledged transfer: I2C_INT %08x INTA %u\n", st, irq);
+    check_true("maxx i2c: an acknowledged transfer raises no I2C_INT", st == 0 && irq == 0);
+
+    /* 7: the part answers its own address only: the addresses on either
+       side of it are not acknowledged and do not reach its registers */
+    p0 = i2c920_part(maxx);
+    c0 = i2c920_send(b, below, sizeof(below));
+    c1 = i2c920_send(b, above, sizeof(above));
+    p1 = i2c920_part(maxx);
+    printf("maxx i2c: 96 and 9a on chip B: cntl_0 %08x %08x part %08x -> %08x\n", c0, c1, p0, p1);
+    check_true("maxx i2c: only address 0x4C answers on chip B",
+               c0 == tx_nack && c1 == tx_nack && p0 == p1);
+
+    /* 8: the part is on chip B's bus; the same write on chip A is not
+       acknowledged and the part does not see it */
+    i2c920_send(b, dac_7f, sizeof(dac_7f));
+    p0 = i2c920_part(maxx);
+    c0 = i2c920_send(a, dac_00, sizeof(dac_00));
+    p1 = i2c920_part(maxx);
+    printf("maxx i2c: 98 40 00 on chip A: cntl_0 %08x part %08x -> %08x\n", c0, p0, p1);
+    check_true("maxx i2c: chip A's bus has no part", c0 == tx_nack && p0 == p1);
+
+    /* 10: the part has no reset pin, so the board's bus reset, which
+       resets both chips, leaves its registers as they are */
+    p0 = i2c920_part(maxx);
+    maxx_reset(maxx);
+    c0 = i2c909_rl(b, I2C909_CNTL_0);
+    p1 = i2c920_part(maxx);
+    printf("maxx i2c: bus reset: chip B cntl_0 %08x part %08x -> %08x\n", c0, p0, p1);
+    check_true("maxx i2c: a bus reset does not reset the part",
+               c0 == 0 && p0 == 0x407f && p1 == 0x407f);
+
+    /* 11: a read address starts an A/D conversion and the first byte
+       sent is the result of the one before it; each byte the master
+       acknowledges starts another. The four analog inputs are modeled at
+       0 V and convert to 0x00. The part kept the conversion that row 5's
+       read started across the bus reset, so this read begins with it. */
+    c0 = i2c920_recv(b, 0x99, 3);
+    r0 = i2c909_rb(b, I2C909_DATA);
+    r1 = i2c909_rb(b, I2C909_DATA);
+    r2 = i2c909_rb(b, I2C909_DATA);
+    printf("maxx i2c: second read: cntl_0 %08x data %02x %02x %02x\n", c0, r0, r1, r2);
+    check_true("maxx i2c: later reads return the conversion of inputs at 0 V",
+               c0 == rx_done && r0 == 0x00 && r1 == 0x00 && r2 == 0x00);
+
+    /* 12: the A/D channel number. With the auto-increment flag set it
+       goes up by one per conversion and returns to 0 after the highest
+       channel of the input programming: five conversions from channel 0
+       of four single-ended inputs (control byte 0x44) end on channel 1,
+       and three from channel 0 of the mixed arrangement, which has
+       channels 0 to 2 (0x24), end on channel 0 again. A channel the
+       input programming does not have selects the highest one it has:
+       channel 3 of three differential inputs (0x13) selects channel 2,
+       and channel 3 of two differential inputs (0x33) selects channel 1
+       and stays there with the flag clear; with the flag set as well
+       (0x37) one conversion moves it to channel 0. No bus byte shows
+       the channel while every input converts to 0x00, so the row reads
+       the board's copy. */
+    {
+        static const uint8_t ctl_44[] = { 0x98, 0x44 };
+        static const uint8_t ctl_24[] = { 0x98, 0x24 };
+        static const uint8_t ctl_13[] = { 0x98, 0x13 };
+        static const uint8_t ctl_33[] = { 0x98, 0x33 };
+        static const uint8_t ctl_37[] = { 0x98, 0x37 };
+        uint32_t             ch[6];
+
+        i2c920_send(b, ctl_44, sizeof(ctl_44));
+        ch[0] = i2c920_channel(maxx);
+        i2c920_recv(b, 0x99, 5);
+        ch[1] = i2c920_channel(maxx);
+        i2c920_send(b, ctl_24, sizeof(ctl_24));
+        i2c920_recv(b, 0x99, 3);
+        ch[2] = i2c920_channel(maxx);
+        i2c920_send(b, ctl_13, sizeof(ctl_13));
+        ch[3] = i2c920_channel(maxx);
+        i2c920_send(b, ctl_33, sizeof(ctl_33));
+        i2c920_recv(b, 0x99, 2);
+        ch[4] = i2c920_channel(maxx);
+        i2c920_send(b, ctl_37, sizeof(ctl_37));
+        i2c920_recv(b, 0x99, 1);
+        ch[5] = i2c920_channel(maxx);
+        printf("maxx i2c: channel: 44 %u, +5 reads %u; 24 +3 reads %u; 13 %u; 33 +2 reads %u; 37 +1 read %u\n",
+               ch[0], ch[1], ch[2], ch[3], ch[4], ch[5]);
+        check_true("maxx i2c: auto-increment steps the channel within the input mode",
+                   ch[0] == 0 && ch[1] == 1 && ch[2] == 0 && ch[3] == 2 && ch[4] == 1 && ch[5] == 0);
+    }
+
+    maxx_close(maxx);
+
+    /* 14: the conversion starts at the acknowledge of the read address,
+       whether or not a byte is read. On a board just powered on, with
+       the auto-increment flag set (control byte 0x44), a receive of no
+       data byte is acknowledged and makes one conversion: the channel
+       number goes from 0 to 1. A one-byte read after it sends that
+       conversion's result, 0x00, where the first byte after power-on
+       would be 80h, and makes one more conversion, so the channel number
+       reads 2. */
+    {
+        static const uint8_t ctl_44[] = { 0x98, 0x44 };
+        uint32_t             ch0, ch1, ch2;
+
+        maxx = maxx_init(&ati_rage128_maxx_device);
+        b    = maxx->chip[MAXX_B];
+        i2c920_send(b, ctl_44, sizeof(ctl_44));
+        ch0 = i2c920_channel(maxx);
+        c0  = i2c920_recv(b, 0x99, 0);
+        ch1 = i2c920_channel(maxx);
+        c1  = i2c920_recv(b, 0x99, 1);
+        r0  = i2c909_rb(b, I2C909_DATA);
+        ch2 = i2c920_channel(maxx);
+        printf("maxx i2c: address-only read: cntl_0 %08x channel %u -> %u; then one byte: cntl_0 %08x data %02x channel %u\n",
+               c0, ch0, ch1, c1, r0, ch2);
+        check_true("maxx i2c: a read address alone starts a conversion",
+                   c0 == rx_done && ch0 == 0 && ch1 == 1 && c1 == rx_done && r0 == 0x00 && ch2 == 2);
+        maxx_close(maxx);
+    }
+}
+
+/* 9: a single card has no such part: the same write ends not
+   acknowledged */
+static void
+vectors_i2c920_single(rage128_t *dev)
+{
+    static const uint8_t dac_7f[] = { 0x98, 0x40, 0x7f };
+
+    check32("i2c: a single card has nothing at 0x98", i2c920_send(dev, dac_7f, sizeof(dac_7f)),
+            i2c920_want(RAGE128_I2C_GO | RAGE128_I2C_STOP | RAGE128_I2C_START, RAGE128_I2C_NACK));
 }
 
 static void
@@ -18390,8 +18662,10 @@ run_i2c909(void)
     harness_cfg_memory_mb = 32;
     dev = rage128_init(&ati_rage128_pro_device);
     vectors_i2c909(dev);
+    vectors_i2c920_single(dev);
     close_dev(dev);
     vectors_i2c909_maxx();
+    vectors_i2c920_maxx();
 }
 
 /* ------------------------------------------------------------------ */
