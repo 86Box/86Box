@@ -22106,6 +22106,118 @@ vectors_brush_types(rage128_t *dev)
 #undef BRUSH_TYPES
 }
 
+/* 902: a register-started fill (DST_HEIGHT_WIDTH) with the 32-pixel
+   mono brushes, the way a client draws text and patterns. Types 6
+   and 7 are 32x1 (BRUSH_DATA0 on every row), 8 and 9 are 32x32
+   (BRUSH_DATA0-31, a dword per row); 6 and 8 expand to frgd and bkgd,
+   7 and 9 leave clear cells alone (RRG: DP_DATATYPE, p. 3-169 / PDF
+   187). Both forms: no source, and source 2 with ROP F0 (PATCOPY).
+   The 40x34 rect at (3,2) crosses a 32-pixel period both ways; every
+   BRUSH_DATA dword is distinct and asymmetric, so a wrong row, column,
+   phase or leave-alone shows. The expected bit is worked out here from
+   the brush dwords: phase = screen coordinate + BRUSH_Y_X offset, mod
+   32; MSB first (bit 31 - phase) with DP_BYTE_PIX_ORDER clear, bit
+   phase with it set (the reader's order as the device has it today). */
+static uint32_t
+brush_reg32_row(int i)
+{
+    uint32_t v = 0x2c1b3c6du * (uint32_t) (i + 1);
+
+    return v ^ (v >> 13) ^ 0x80000001u * (uint32_t) (i & 1) ^ 0x00f00000u;
+}
+
+static void
+vectors_brush_reg32(rage128_t *dev)
+{
+    const uint32_t fg = 0x00808080u, bg = 0x00404040u, pre = 0x99999999u;
+    const int      X0 = 3, Y0 = 2, W = 40, H = 34;
+    static const char *const names[4][2][2] = {
+        { { "2d 902: reg fill brush 6 (32x1 mono), MSB first",
+            "2d 902: reg fill brush 6 (32x1 mono), LSB first" },
+          { "2d 902: reg blit PATCOPY brush 6 (32x1 mono), MSB first",
+            "2d 902: reg blit PATCOPY brush 6 (32x1 mono), LSB first" } },
+        { { "2d 902: reg fill brush 7 (32x1 mono, leave alone), MSB first",
+            "2d 902: reg fill brush 7 (32x1 mono, leave alone), LSB first" },
+          { "2d 902: reg blit PATCOPY brush 7 (32x1 mono, leave alone), MSB first",
+            "2d 902: reg blit PATCOPY brush 7 (32x1 mono, leave alone), LSB first" } },
+        { { "2d 902: reg fill brush 8 (32x32 mono), MSB first",
+            "2d 902: reg fill brush 8 (32x32 mono), LSB first" },
+          { "2d 902: reg blit PATCOPY brush 8 (32x32 mono), MSB first",
+            "2d 902: reg blit PATCOPY brush 8 (32x32 mono), LSB first" } },
+        { { "2d 902: reg fill brush 9 (32x32 mono, leave alone), MSB first",
+            "2d 902: reg fill brush 9 (32x32 mono, leave alone), LSB first" },
+          { "2d 902: reg blit PATCOPY brush 9 (32x32 mono, leave alone), MSB first",
+            "2d 902: reg blit PATCOPY brush 9 (32x32 mono, leave alone), LSB first" } },
+    };
+#define BRUSH_REG32(x, y) (*(uint32_t *) &dev->svga.vram[0x00300000 + ((y) * 64 + (x)) * 4])
+
+    flush_sync(dev);
+    harness_log_tail_reset();
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DST_PITCH_OFFSET, (8u << 21) | (0x300000u >> 5));
+    wr(dev, RAGE128_SRC_PITCH_OFFSET, (8u << 21) | (0x310000u >> 5));
+    wr(dev, RAGE128_DP_CNTL, 0x00000003); /* left to right, top to bottom */
+    wr(dev, RAGE128_DP_BRUSH_FRGD_CLR, fg);
+    wr(dev, RAGE128_DP_BRUSH_BKGD_CLR, bg);
+    for (int i = 0; i < 32; i++)
+        wr(dev, RAGE128_BRUSH_DATA0 + 4u * (uint32_t) i, brush_reg32_row(i));
+    /* source pixels PATCOPY must ignore */
+    for (int i = 0; i < 64 * 40; i++)
+        *(uint32_t *) &dev->svga.vram[0x00310000 + i * 4] = 0x00123456u + (uint32_t) i;
+
+    for (int ti = 0; ti < 4; ti++) {
+        uint32_t bt  = 6u + (uint32_t) ti;
+        int      t32 = bt >= 8;   /* 32x32: one dword per row */
+        int      la  = bt & 1;    /* 7 and 9 leave clear cells alone */
+
+        for (int form = 0; form < 2; form++)
+            for (int lsb = 0; lsb < 2; lsb++) {
+                /* an anchor in half the rows of each type and form */
+                int bx = (form ^ lsb) ? 19 : 0, by = (form ^ lsb) ? 11 : 0;
+                int ok = 1;
+
+                flush_sync(dev);
+                memset(&dev->svga.vram[0x00300000], 0x99, 64 * 40 * 4);
+                wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+                   0x00000003u | (bt << 4) | (6u << 8) | (3u << 12) | (0xf0u << 16)
+                       | ((form ? 2u : 0u) << 24) | (1u << 28) | (1u << 29) | (1u << 30));
+                wr(dev, RAGE128_DP_DATATYPE,
+                   6u | (bt << 8) | (3u << 16) | ((uint32_t) lsb << 30));
+                wr(dev, RAGE128_DP_MIX, (0xf0u << 16) | ((form ? 2u : 0u) << 8));
+                wr(dev, RAGE128_BRUSH_Y_X, ((uint32_t) by << 8) | (uint32_t) bx);
+                wr(dev, RAGE128_SRC_Y_X, (1u << 16) | 1u);
+                wr(dev, RAGE128_DST_Y_X, ((uint32_t) Y0 << 16) | (uint32_t) X0);
+                wr(dev, RAGE128_DST_HEIGHT_WIDTH, ((uint32_t) H << 16) | (uint32_t) W);
+                flush_sync(dev);
+                for (int y = 0; y < Y0 + H + 2; y++)
+                    for (int x = 0; x < X0 + W + 2; x++) {
+                        uint32_t want = pre;
+
+                        if (x >= X0 && x < X0 + W && y >= Y0 && y < Y0 + H) {
+                            uint32_t row = brush_reg32_row(t32 ? (y + by) % 32 : 0);
+                            int      ph  = (x + bx) % 32;
+                            int      bit = lsb ? (int) ((row >> ph) & 1u)
+                                               : (int) ((row >> (31 - ph)) & 1u);
+
+                            want = bit ? fg : (la ? pre : bg);
+                        }
+                        ok = ok && BRUSH_REG32(x, y) == want;
+                    }
+                check_true(names[ti][form][lsb], ok);
+            }
+    }
+    wr(dev, RAGE128_BRUSH_Y_X, 0);
+    /* GPU lane: a 32-pixel brush queued as an 8x8 tile shows only here */
+    check_log("2d 902: the 2D oracle saw no queued 32-pixel brush mismatch",
+              "VERIFY MISMATCH", 0);
+#undef BRUSH_REG32
+}
+
 /* a 24 bpp (DST_TYPE 5) color brush. Type 10 is 64 dwords, one
    pixel per dword in its low 3 bytes (SDK-G04000 F.7 Table F-2: "a
    24-BPP pixel is still represented by 4 bytes"); type 11 is 2*N = 6
@@ -22813,6 +22925,7 @@ run_gpu2d_verify(void)
     vectors_bres_negative_x_verify_window(dev);
     /* on this device the GPU lane runs the brush-type paints through the 2D queues */
     vectors_brush_types(dev);
+    vectors_brush_reg32(dev);
     vectors_brush10_24bpp(dev);
     vectors_rmw_24bpp_src_stride(dev);
     /* and the phased stretches through the stretch queue under the oracle */

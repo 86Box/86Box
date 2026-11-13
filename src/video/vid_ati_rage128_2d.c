@@ -157,8 +157,7 @@ rage128_2d_pat32_bit(const rage128_t *dev, uint32_t pat32, int phase)
 /* Brush types 8 and 9 are the 32x32 mono pattern (RRG: DP_DATATYPE,
    p. 3-169 / PDF 187). The mono pointer then points at 32 dwords, one
    per row, each read like the 32x1 line pattern, with BRUSH_Y_X taken
-   mod 32. The GPU queue paths model only the 8x8 tile and refuse this
-   brush. */
+   mod 32. */
 static inline int
 rage128_2d_brush_32x32(const rage128_t *dev)
 {
@@ -167,15 +166,34 @@ rage128_2d_brush_32x32(const rage128_t *dev)
     return bt == 8 || bt == 9;
 }
 
-/* One mono brush pixel at screen (x, y). */
+/* Brush types 6 to 9 are the 32-pixel-wide mono patterns: 6 and 7 the
+   32x1 pattern, 8 and 9 the 32x32 one (RRG: DP_DATATYPE, p. 3-169 /
+   PDF 187). A rectangle fill started from the registers hands either
+   one to the mono reader. The GPU queue paths model only the 8x8 tile,
+   so they refuse a mono pointer under any of these types and the CPU
+   walk draws it. */
+static inline int
+rage128_2d_brush_mono32(const rage128_t *dev)
+{
+    int bt = rage128_dp_brush_dt(dev);
+
+    return bt >= 6 && bt <= 9;
+}
+
+/* One mono brush pixel at screen (x, y). The 32x1 pattern is the first
+   dword of the mono pointer, the same on every row; as a fill pattern
+   it lines up with the screen column offset by the BRUSH_Y_X x
+   alignment, mod 32, which is modeled, not documented. */
 static inline int
 rage128_2d_mono_bit(const rage128_t *dev, const uint8_t *mono, int x, int y)
 {
-    if (rage128_2d_brush_32x32(dev)) {
+    if (rage128_2d_brush_mono32(dev)) {
         const uint32_t *rows = (const uint32_t *) (const void *) mono;
+        int             row  = rage128_2d_brush_32x32(dev)
+                       ? (y + (int) ((dev->brush_yx >> 8) & 0x1f)) & 31
+                       : 0;
 
-        return rage128_2d_pat32_bit(dev,
-                                    rows[(y + (int) ((dev->brush_yx >> 8) & 0x1f)) & 31],
+        return rage128_2d_pat32_bit(dev, rows[row],
                                     x + (int) (dev->brush_yx & 0x1f));
     }
     return rage128_2d_pat8_bit(dev, mono[rage128_2d_pat_row(dev, y)], x);
@@ -1118,7 +1136,7 @@ rage128_2d_queue_pat_rmw(rage128_t *dev, int x, int y, int w, int h,
 {
     if (rage128_2d_tiled_any(dev))
         return 0; /* tiled surfaces take the CPU walk */
-    if (mono8x8 && rage128_2d_brush_32x32(dev))
+    if (mono8x8 && rage128_2d_brush_mono32(dev))
         return 0;
     uint32_t pitch = rage128_2d_dst_stride(dev, bpp);
     uint32_t base  = dev->dst_offset
@@ -1234,7 +1252,7 @@ rage128_2d_queue_mono(rage128_t *dev, int x, int y, int w, int h,
 {
     if (rage128_2d_tiled_any(dev))
         return 0; /* tiled surfaces take the CPU walk */
-    if (pat8x8 && rage128_2d_brush_32x32(dev))
+    if (pat8x8 && rage128_2d_brush_mono32(dev))
         return 0;
     uint32_t v_set = rage128_rop3(rop, dev->dp_brush_frgd_clr,
                                   dev->dp_src_frgd_clr, 0);
@@ -1634,7 +1652,7 @@ rage128_2d_queue_mono_rmw(rage128_t *dev, int x, int y, int w, int h,
 {
     if (rage128_2d_tiled_any(dev))
         return 0; /* tiled surfaces take the CPU walk */
-    if (pat8x8 && rage128_2d_brush_32x32(dev))
+    if (pat8x8 && rage128_2d_brush_mono32(dev))
         return 0;
     int      cx0, cy0, cx1, cy1, rx0, ry0, rx1, ry1, aux;
     uint32_t base, len, rows, pitch, npx, soff;
@@ -1739,7 +1757,7 @@ rage128_2d_queue_hostc_rmw(rage128_t *dev, int x, int y, int w, int h,
 {
     if (rage128_2d_tiled_any(dev))
         return 0; /* tiled surfaces take the CPU walk */
-    if (pat8x8 && rage128_2d_brush_32x32(dev))
+    if (pat8x8 && rage128_2d_brush_mono32(dev))
         return 0;
     uint32_t stride = (uint32_t) w * (uint32_t) bpp;
     int      cx0, cy0, cx1, cy1, rx0, ry0, rx1, ry1, aux;
@@ -1837,7 +1855,7 @@ rage128_2d_queue_pat(rage128_t *dev, int x, int y, int w, int h,
 {
     if (rage128_2d_tiled_any(dev))
         return 0; /* tiled surfaces take the CPU walk */
-    if (mono8x8 && rage128_2d_brush_32x32(dev))
+    if (mono8x8 && rage128_2d_brush_mono32(dev))
         return 0;
     uint32_t pitch = rage128_2d_dst_stride(dev, bpp);
     uint32_t base  = dev->dst_offset
@@ -2061,13 +2079,14 @@ rage128_2d_wmask_full(uint32_t wmask, int bpp)
    mono pattern (0 = foreground and background, 1 = foreground and leave
    alone); brush type 10 is an 8x8 color pattern in the destination
    pixel format (RRG: DP_GUI_MASTER_CNTL, p. 3-173 / PDF 191).
-   mono8x8 points at the two pattern dwords, byte n holding row n, MSB
-   first within the row (the Windows 98 display driver packs rows 0-3
-   into the first dword, RE: ati2draa.drv @6f9a, a file offset), or at
-   the 32 row dwords of brush types 8 and 9 (rage128_2d_mono_bit).
-   col8x8 points at 64 destination-format pixels, row by row. Both are
-   NULL for a solid brush. Patterns line up with the screen, offset by
-   BRUSH_Y_X. */
+   The mono pattern pointer points at the two 8x8 pattern dwords, byte
+   n holding row n, MSB first within the row (the Windows 98 display
+   driver packs rows 0-3 into the first dword, RE: ati2draa.drv @6f9a,
+   a file offset), at the one row dword of brush types 6 and 7, or at
+   the 32 row dwords of brush types 8 and 9 (RRG: DP_DATATYPE, p. 3-169
+   / PDF 187). The color pattern pointer points at 64
+   destination-format pixels, row by row. Both are NULL for a solid
+   brush. Patterns line up with the screen, offset by BRUSH_Y_X. */
 static void
 rage128_2d_paint_rect(rage128_t *dev, int x, int y, int w, int h,
                       const uint8_t *mono8x8, const uint8_t *col8x8, int mono_la)
@@ -3031,7 +3050,7 @@ rage128_2d_queue_blit_rmw(rage128_t *dev, int sx, int sy, int dx, int dy,
 {
     if (rage128_2d_tiled_any(dev))
         return 0; /* tiled surfaces take the CPU walk */
-    if (pat8x8 && rage128_2d_brush_32x32(dev))
+    if (pat8x8 && rage128_2d_brush_mono32(dev))
         return 0;
     uint32_t dpb   = rage128_2d_dst_stride(dev, bpp);
     uint32_t daddr = dev->dst_offset
@@ -6231,16 +6250,16 @@ rage128_2d_gui_op_run(rage128_t *dev, int w, int h)
             sy -= h - 1;
             dy -= h - 1;
         }
-        /* brush types 0 and 1: the 8x8 mono pattern in BRUSH_DATA0 and
-           BRUSH_DATA1, as for the register-started paint below */
+        /* the mono brush types from the brush registers, as for the
+           register-started paint below */
         {
             uint32_t bt       = (uint32_t) rage128_dp_brush_dt(dev);
-            int      pat_mono = (bt == 0 || bt == 1);
+            int      pat_mono = (bt <= 1 || (bt >= 6 && bt <= 9));
 
             rage128_2d_blit_rect_pat(dev, sx, sy, dx, dy, w, h,
                                      pat_mono ? (const uint8_t *) dev->brush_data
                                               : NULL,
-                                     NULL, bt == 1);
+                                     NULL, bt == 1 || bt == 7 || bt == 9);
         }
     } else if (src >= 3) {
         /* Set up a host-data op (the X driver's color expansion). The
@@ -6257,17 +6276,22 @@ rage128_2d_gui_op_run(rage128_t *dev, int w, int h)
         dev->hostdata_ndw    = 0;
         return 0;
     } else {
-        /* Brush types 0 and 1: the 8x8 mono pattern in BRUSH_DATA0 and
-           BRUSH_DATA1 (a packet carries its pattern inline; a
-           register-started op uses what the registers hold). Other
-           pattern types paint the solid foreground: no driver traffic
-           seen uses them on this path. */
+        /* A packet carries its pattern inline; a register-started op
+           uses what the brush registers hold (RRG: DP_DATATYPE, p. 3-169
+           / PDF 187). Types 0 and 1 are the 8x8 mono pattern in
+           BRUSH_DATA0 and BRUSH_DATA1, types 6 and 7 the 32x1 mono
+           pattern in BRUSH_DATA0, repeated on every row, and types 8 and
+           9 the 32x32 mono pattern in BRUSH_DATA0-31, a dword per row.
+           Types 0, 6 and 8 expand clear bits to the background color;
+           1, 7 and 9 leave the destination alone there. The other
+           pattern types paint the solid foreground on this path, which
+           is modeled, not documented. */
         uint32_t bt       = (uint32_t) rage128_dp_brush_dt(dev);
-        int      pat_mono = (bt == 0 || bt == 1);
+        int      pat_mono = (bt <= 1 || (bt >= 6 && bt <= 9));
 
         rage128_2d_paint_rect(dev, dev->gui_dst_x, dev->gui_dst_y, w, h,
                               pat_mono ? (const uint8_t *) dev->brush_data : NULL,
-                              NULL, bt == 1);
+                              NULL, bt == 1 || bt == 7 || bt == 9);
     }
     return 1;
 }
