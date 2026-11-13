@@ -592,12 +592,11 @@ mfm_read(uint16_t port, void *priv)
             ret = (uint8_t) ((mfm->cylinder >> 8) & 0x03);
             break;
 
-        case 0x01f6: {
+        case 0x01f6:
             /* drive/head */
-            int head = mfm->head & (mfm->hs3en ? 0x0f : 0x07);
-            ret      = (uint8_t) (0xa0 | head | (mfm->drvsel ? 0x10 : 0));
+            ret      = (uint8_t) (0xa0 | mfm->head | (mfm->drvsel ? 0x10 : 0));
             break;
-        }
+
         case 0x01f7: /* Status */
             irq_lower(mfm);
             ret = mfm->status;
