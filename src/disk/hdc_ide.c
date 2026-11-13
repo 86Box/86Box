@@ -16,6 +16,7 @@
  *          Copyright 2016-2020 Miran Grca.
  */
 #include <stdarg.h>
+#include <stdatomic.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdint.h>
@@ -323,13 +324,26 @@ int    ide_turbo           = 0;
  *
  * Keep this state outside ide_t: that structure is shared with controller and
  * chipset code, while the worker is an implementation detail of this module.
+ *
+ * A read the worker has not picked up by the time the callback wants it is
+ * done by the caller instead: waking the worker and then waiting for it to
+ * finish costs the emulation thread far more than a read that the host has
+ * cached, and on a guest reading the disk a lot that waiting is most of the
+ * emulation speed lost.
  */
+enum {
+    IDE_ASYNC_QUEUED, /* Not picked up yet */
+    IDE_ASYNC_WORKER, /* Being read, or read, by the worker */
+    IDE_ASYNC_CALLER  /* Taken back by ide_async_read_finish() */
+};
+
 typedef struct ide_async_read_s {
     ide_t    *ide;
     thread_t *thread;
     event_t  *request_event;
     event_t  *complete_event;
     volatile int running;
+    atomic_int   owner;
     int          pending;
     int          result;
     uint32_t     sector;
@@ -350,6 +364,12 @@ ide_async_read_worker(void *priv)
         if (!state->running)
             break;
 
+        /* Not if the caller has already taken it back (or for a wake-up
+           left over from one it did) */
+        int expected = IDE_ASYNC_QUEUED;
+        if (!atomic_compare_exchange_strong(&state->owner, &expected, IDE_ASYNC_WORKER))
+            continue;
+
         state->result = hdd_image_read(state->ide->hdd_num, state->sector,
                                        state->count, state->ide->sector_buffer);
         thread_set_event(state->complete_event);
@@ -369,6 +389,7 @@ ide_async_read_init(ide_t *ide)
         return;
 
     memset(state, 0, sizeof(*state));
+    atomic_init(&state->owner, IDE_ASYNC_CALLER);
     state->ide            = ide;
     state->request_event  = thread_create_event();
     state->complete_event = thread_create_event();
@@ -393,6 +414,7 @@ ide_async_read_start(ide_t *ide, uint32_t sector, uint32_t count)
     state->result  = -1;
     state->pending = 1;
     thread_reset_event(state->complete_event);
+    atomic_store(&state->owner, IDE_ASYNC_QUEUED);
     thread_set_event(state->request_event);
 }
 
@@ -409,11 +431,20 @@ ide_async_read_finish(ide_t *ide, int *result)
     if ((state->thread == NULL) || !state->pending)
         return 0;
 
-    thread_wait_event(state->complete_event, -1);
-    thread_reset_event(state->complete_event);
+    int expected = IDE_ASYNC_QUEUED;
+    if (atomic_compare_exchange_strong(&state->owner, &expected, IDE_ASYNC_CALLER)) {
+        /* The worker has not started it: read it here, unless it is only
+           being discarded */
+        if (result != NULL)
+            *result = hdd_image_read(state->ide->hdd_num, state->sector,
+                                     state->count, state->ide->sector_buffer);
+    } else {
+        thread_wait_event(state->complete_event, -1);
+        thread_reset_event(state->complete_event);
+        if (result != NULL)
+            *result = state->result;
+    }
     state->pending = 0;
-    if (result != NULL)
-        *result = state->result;
 
     return 1;
 }
@@ -2889,6 +2920,9 @@ ide_callback(void *priv)
         case WIN_FLUSH_CACHE:
             if (ide->type == IDE_ATAPI)
                 err = ABRT_ERR;
+            else if (hdd_image_flush(ide->hdd_num) < 0)
+                /* A write made before it failed on the host */
+                err = UNC_ERR;
             else {
                 ide->tf->atastat = DRDY_STAT | DSC_STAT;
                 ide_irq_raise(ide);
