@@ -25097,6 +25097,284 @@ vectors_reg_scale_906(rage128_t *dev)
     wr(dev, RAGE128_SCALE_3D_DATATYPE, 0);
 }
 
+/* 921: the stretch walk's row loop for the common case (no compare, no
+   aux scissor, open write mask, ROP3 0xCC, source and destination both
+   565 or both 8888) against the per-pixel walk. The same stretch is
+   drawn twice into two destinations prefilled alike: once with the aux
+   scissors off, which takes the row loop, and once with AUX1 enabled as
+   an additive rectangle. An additive rectangle never clips a 2D op (RRG:
+   AUX_SC_CNTL, pp. 3-156-3-157 / PDF 174-175), but an enabled aux
+   scissor sends every pixel through the per-pixel walk, so the second
+   draw is the reference. The two windows are compared byte for byte,
+   guard band included. The random cases come from a fixed seed, so every
+   run draws the same stretches. On code without the row loop both draws
+   take the per-pixel walk and the rows pass; they fail when the row loop
+   stores a different byte anywhere in the window. */
+#define F921_SRC   S906_SRC
+#define F921_DA    S906_DREG
+#define F921_DB    S906_DPKT
+#define F921_PX    64u /* source and destination pitch, pixels */
+#define F921_ROWS  40u /* compared rows of each destination window */
+#define F921_FILL  0x5au
+
+struct f921 {
+    uint32_t dt, blend, sw, sh, xinc, yinc, s7, dx, dy, dw, dh;
+    uint32_t clip, sc_tl, sc_br; /* clip: the packet carries its scissor */
+};
+
+static uint32_t f921_rng = 0x921u;
+
+static uint32_t
+f921_rand(uint32_t n)
+{
+    f921_rng = f921_rng * 1103515245u + 12345u;
+    return ((f921_rng >> 16) & 0x7fffu) % n;
+}
+
+static uint32_t
+f921_inc(uint32_t s, uint32_t d)
+{
+    uint32_t v = (s << 16) / d;
+
+    return (v > 0xf0000u ? 0xf0000u : v) & 0x000ffff0u;
+}
+
+static void
+f921_case(struct f921 *c, uint32_t dt, uint32_t blend)
+{
+    memset(c, 0, sizeof(*c));
+    c->dt    = dt;
+    c->blend = blend;
+    c->dw    = 1 + f921_rand(48);
+    c->dh    = 1 + f921_rand(30);
+    c->dx    = f921_rand(F921_PX - c->dw + 1);
+    c->dy    = f921_rand(F921_ROWS - c->dh + 1);
+    c->sw    = 2 + f921_rand(46);
+    c->sh    = 2 + f921_rand(38);
+    c->xinc  = f921_inc(c->sw, c->dw);
+    c->yinc  = f921_inc(c->sh, c->dh);
+    /* source start in half pixels: x in [13:0], y in [29:16] */
+    c->s7    = f921_rand(8) | (f921_rand(8) << 16);
+}
+
+/* One stretch as a 0x96 packet into the window at base. scr is the
+   SCALE_SCR_HEIGHT_WIDTH value (the extent the blend's neighbor texels
+   are clamped to). */
+static void
+f921_pkt(rage128_t *dev, const struct f921 *c, uint32_t base, uint32_t scr)
+{
+    uint32_t pl[15], n = 0;
+
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, scr);
+    flush_sync(dev);
+    pl[n++] = 0x00000002u | (c->clip ? RAGE128_GMC_DST_CLIP_LEAVE : 0u) | (15u << 4)
+            | (c->dt << 8) | (3u << 12) | (0xccu << 16) | (2u << 24);
+    pl[n++] = ((F921_PX / 8) << 21) | (base >> 5);
+    if (c->clip) {
+        pl[n++] = c->sc_tl;
+        pl[n++] = c->sc_br;
+    }
+    pl[n++] = c->blend ? 0x00000100u : 0x00000500u; /* SCALE_PIX_REP, bit 10 */
+    pl[n++] = 0x00800000u;
+    pl[n++] = 0x02180840u;
+    pl[n++] = c->dt;
+    pl[n++] = F921_SRC;
+    pl[n++] = F921_PX / 8;
+    pl[n++] = c->s7;
+    pl[n++] = c->xinc;
+    pl[n++] = c->yinc;
+    pl[n++] = (c->dx << 16) | c->dy;
+    pl[n++] = (c->dh << 16) | c->dw;
+    rage128_2d_packet3(dev, 0x96u << 8, pl, n);
+    flush_sync(dev);
+}
+
+/* Draw the case both ways. 1 = the two windows are equal byte for byte;
+   *drew is set when the row-loop window differs from the prefill. */
+static int
+f921_both(rage128_t *dev, const struct f921 *c, uint32_t scr, int *drew)
+{
+    uint32_t n = F921_PX * (c->dt == 6 ? 4u : 2u) * F921_ROWS;
+
+    memset(&dev->svga.vram[F921_DA], F921_FILL, n);
+    memset(&dev->svga.vram[F921_DB], F921_FILL, n);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    f921_pkt(dev, c, F921_DA, scr);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0x00000001u); /* AUX1 on, additive */
+    f921_pkt(dev, c, F921_DB, scr);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    flush_sync(dev);
+    for (uint32_t i = 0; i < n; i++)
+        if (dev->svga.vram[F921_DA + i] != F921_FILL)
+            *drew = 1;
+    return memcmp(&dev->svga.vram[F921_DA], &dev->svga.vram[F921_DB], n) == 0;
+}
+
+static int
+f921_random(rage128_t *dev, uint32_t dt, uint32_t blend)
+{
+    struct f921 c;
+    int         ok = 1, drew = 0;
+
+    for (int i = 0; i < 64; i++) {
+        f921_case(&c, dt, blend);
+        ok = f921_both(dev, &c, (c.sh << 16) | c.sw, &drew) && ok;
+    }
+    return ok && drew;
+}
+
+static void
+vectors_stretch_rows_921(rage128_t *dev)
+{
+    struct f921 c;
+    int         ok, drew;
+
+    flush_sync(dev);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    wr(dev, RAGE128_AUX1_SC_LEFT, 0);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 4, 7);  /* RIGHT */
+    wr(dev, RAGE128_AUX1_SC_LEFT + 8, 0);  /* TOP */
+    wr(dev, RAGE128_AUX1_SC_LEFT + 12, 7); /* BOTTOM */
+    for (uint32_t i = 0; i < 0x8000u; i++) {
+        f921_rng = f921_rng * 1103515245u + 12345u;
+        dev->svga.vram[F921_SRC + i] = (uint8_t) (f921_rng >> 16);
+    }
+
+    check_true("2d 921: 64 random 565 blended stretches: row loop equals the per-pixel walk",
+               f921_random(dev, 4, 1));
+    check_true("2d 921: 64 random 565 replicated stretches: row loop equals the per-pixel walk",
+               f921_random(dev, 4, 0));
+    check_true("2d 921: 64 random 8888 blended stretches: row loop equals the per-pixel walk",
+               f921_random(dev, 6, 1));
+    check_true("2d 921: 64 random 8888 replicated stretches: row loop equals the per-pixel walk",
+               f921_random(dev, 6, 0));
+
+    /* The scissor cuts the left and top of the rect, so the walk starts
+       part-way into the source on both axes, and the right and bottom. */
+    ok = 1; drew = 0;
+    for (int i = 0; i < 32; i++) {
+        f921_case(&c, (i & 1) ? 6 : 4, (i >> 1) & 1);
+        c.dw = 20 + f921_rand(28); c.dh = 12 + f921_rand(18);
+        c.dx = f921_rand(F921_PX - c.dw + 1); c.dy = f921_rand(F921_ROWS - c.dh + 1);
+        c.xinc = f921_inc(c.sw, c.dw); c.yinc = f921_inc(c.sh, c.dh);
+        c.clip  = 1;
+        c.sc_tl = ((c.dy + 1 + f921_rand(5)) << 16) | (c.dx + 1 + f921_rand(9));
+        c.sc_br = ((c.dy + c.dh - 2) << 16) | (c.dx + c.dw - 3);
+        ok = f921_both(dev, &c, (c.sh << 16) | c.sw, &drew) && ok;
+        /* the rect's own first pixel lies outside the scissor */
+        ok = ok && dev->svga.vram[F921_DA + (c.dy * F921_PX + c.dx) * (c.dt == 6 ? 4u : 2u)] == F921_FILL;
+    }
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    check_true("2d 921: 32 stretches cut by the scissor on all four sides: row loop equals the walk",
+               ok && drew);
+
+    /* The source extent is smaller than the span the walk covers, so the
+       blend's right and bottom neighbors are clamped inside the rect. */
+    ok = 1; drew = 0;
+    for (int i = 0; i < 32; i++) {
+        f921_case(&c, (i & 1) ? 6 : 4, 1);
+        ok = f921_both(dev, &c, ((1 + f921_rand(c.sh)) << 16) | (1 + f921_rand(c.sw)), &drew) && ok;
+    }
+    check_true("2d 921: 32 blended stretches with the neighbor clamp inside the rect: row loop equals the walk",
+               ok && drew);
+
+    /* One-pixel-wide and one-pixel-high rects and sources. */
+    ok = 1; drew = 0;
+    for (int i = 0; i < 32; i++) {
+        f921_case(&c, (i & 1) ? 6 : 4, (i >> 1) & 1);
+        if (i & 4)
+            c.dw = 1;
+        else
+            c.dh = 1;
+        if (i & 8)
+            c.sw = 1;
+        if (i & 16)
+            c.sh = 1;
+        c.dx = f921_rand(F921_PX - c.dw + 1); c.dy = f921_rand(F921_ROWS - c.dh + 1);
+        c.xinc = f921_inc(c.sw, c.dw); c.yinc = f921_inc(c.sh, c.dh);
+        ok = f921_both(dev, &c, (c.sh << 16) | c.sw, &drew) && ok;
+    }
+    check_true("2d 921: 32 stretches one pixel wide or high: row loop equals the walk", ok && drew);
+
+    /* A destination that starts 8 pixels left of card address 0 (x = -8
+       at destination offset 0, the scissor's left edge negative so it
+       clips nothing): the first row's stores wrap to the top of video
+       memory, so that row is not one contiguous run and must take the
+       per-pixel walk, which wraps. The reference is the same stretch
+       drawn at x = 8 in a destination that does not wrap. */
+    {
+        uint32_t vs   = (uint32_t) dev->vram_size;
+        uint8_t *save = (uint8_t *) malloc(0x2000);
+
+        ok = 0;
+        if (save) {
+            memcpy(save, dev->svga.vram, 0x1000);
+            memcpy(save + 0x1000, &dev->svga.vram[vs - 0x1000u], 0x1000);
+            memset(&c, 0, sizeof(c));
+            c.dt = 6; c.blend = 1; c.sw = 12; c.sh = 9; c.dw = 20; c.dh = 4; c.dx = 8; c.dy = 0;
+            c.xinc = f921_inc(c.sw, c.dw); c.yinc = f921_inc(c.sh, c.dh);
+            memset(&dev->svga.vram[F921_DA], F921_FILL, F921_PX * 4u * F921_ROWS);
+            f921_pkt(dev, &c, F921_DA, (c.sh << 16) | c.sw);
+            memset(dev->svga.vram, F921_FILL, 0x1000);
+            memset(&dev->svga.vram[vs - 0x1000u], F921_FILL, 0x1000);
+            wr(dev, RAGE128_SC_TOP_LEFT, 0x3f9cu); /* x = -100, y = 0 */
+            wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+            wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, (c.sh << 16) | c.sw);
+            wr(dev, RAGE128_DST_OFFSET, 0);
+            wr(dev, RAGE128_DST_PITCH, F921_PX / 8);
+            wr(dev, RAGE128_DP_MIX, 0x00cc0200u);
+            wr(dev, RAGE128_DP_DATATYPE, 6u | (15u << 8) | (3u << 16));
+            wr(dev, RAGE128_SCALE_3D_CNTL, 0x40u);
+            wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000100u);
+            wr(dev, RAGE128_SCALE_3D_DATATYPE, 6);
+            wr(dev, RAGE128_SCALE_OFFSET_0, F921_SRC);
+            wr(dev, RAGE128_SCALE_PITCH, F921_PX / 8);
+            wr(dev, RAGE128_SCALE_X_INC, c.xinc);
+            wr(dev, RAGE128_SCALE_Y_INC, c.yinc);
+            wr(dev, RAGE128_SCALE_HACC, 0);
+            wr(dev, RAGE128_SCALE_VACC, 0);
+            wr(dev, RAGE128_SCALE_DST_X_Y, (0x3ff8u << 16) | 0u); /* x = -8 */
+            wr(dev, RAGE128_SCALE_DST_HEIGHT_WIDTH, (c.dh << 16) | c.dw);
+            flush_sync(dev);
+            ok = 1;
+            for (uint32_t y = 0; y < c.dh; y++)
+                for (uint32_t i = 0; i < c.dw * 4u; i++) {
+                    uint32_t w = (y * F921_PX * 4u - 32u + i) & dev->vram_mask;
+                    uint32_t r = (y * F921_PX + c.dx) * 4u + i;
+
+                    ok = ok && dev->svga.vram[w] == dev->svga.vram[F921_DA + r];
+                }
+            /* control: the reference drew, and the wrapped pixels of row 0
+               landed at the top of video memory */
+            ok = ok && memcmp(&dev->svga.vram[vs - 32u], &dev->svga.vram[F921_DA + 32u], 32) == 0
+                && dev->svga.vram[vs - 33u] == F921_FILL;
+            {
+                int d2 = 0;
+
+                for (uint32_t i = 0; i < 32; i++)
+                    d2 = d2 || dev->svga.vram[vs - 32u + i] != F921_FILL;
+                ok = ok && d2;
+            }
+            memcpy(dev->svga.vram, save, 0x1000);
+            memcpy(&dev->svga.vram[vs - 0x1000u], save + 0x1000, 0x1000);
+            free(save);
+        }
+        wr(dev, RAGE128_SC_TOP_LEFT, 0);
+        check_true("2d 921: a destination row that wraps the end of video memory takes the per-pixel walk",
+                   ok);
+    }
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, 0);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0);
+    wr(dev, RAGE128_SCALE_3D_DATATYPE, 0);
+    wr(dev, RAGE128_DST_OFFSET, 0);
+}
+
 /* ------------------------------------------------------------------ */
 /* Engine time of register-started ops. An op started by a CPU        */
 /* register write is drawn inside the write, and GUI_STAT then        */
@@ -26227,6 +26505,7 @@ run_gpu2d_verify(void)
     vectors_scale_inc_412(dev);
     vectors_scale_pitch_bit9(dev);
     vectors_reg_scale_906(dev);
+    vectors_stretch_rows_921(dev);
     vectors_eng_time_918(dev);
     vectors_cce_status_follows_work(dev);
     if (gpu_lane)

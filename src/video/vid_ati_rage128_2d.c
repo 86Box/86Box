@@ -4034,6 +4034,58 @@ refuse:
     return 0;
 }
 
+/* One destination row of a same-format stretch, source and destination
+   both RGB 565 (datatype 4) or both aRGB 8888 (datatype 6), stored as
+   whole pixels. s0 is the source row the walk is on, s1 the blend's
+   second row: the row below it, or the same row again where the walk
+   is on the last row of the source extent (unused without a blend), d
+   the first destination pixel; all three are contiguous runs. The
+   texel positions, the blend weights, the neighbor clamp at sxlim, the
+   expand, the lerps and the pack are the ones
+   rage128_2d_stretch_resolve uses, in the same order, so the pixel
+   value is the same; every texel of a pixel is read before that pixel
+   is stored, as the per-pixel walk does, so a source that overlaps the
+   destination behaves the same too. dt is a constant at each call,
+   which lets the compiler drop the format switches. */
+static inline __attribute__((always_inline)) void
+rage128_2d_stretch_row(uint8_t *d, const uint8_t *s0, const uint8_t *s1,
+                       int dt, int blend, int w, int xskip, int sx0,
+                       uint32_t xph, uint32_t xinc, uint32_t wy, int sxlim)
+{
+    const size_t bpp = (dt == 6) ? 4 : 2;
+
+#define R128_STRETCH_LOAD(p)                                                    \
+    ((dt == 6) ? ((uint32_t) (p)[0] | ((uint32_t) (p)[1] << 8)                  \
+                  | ((uint32_t) (p)[2] << 16) | ((uint32_t) (p)[3] << 24))      \
+               : ((uint32_t) (p)[0] | ((uint32_t) (p)[1] << 8)))
+    for (int col = 0; col < w; col++) {
+        uint32_t xacc = xph + (uint32_t) (col + xskip) * xinc;
+        size_t   sx   = (size_t) (sx0 + (int) (xacc >> 16));
+        uint32_t c    = rage128_2d_val_argb(R128_STRETCH_LOAD(s0 + sx * bpp), dt);
+        uint8_t *dp   = d + (size_t) col * bpp;
+
+        if (blend) {
+            size_t   sxb = ((int) sx < sxlim) ? sx + 1 : sx;
+            uint32_t wx  = (xacc & 0xffff) >> 8;
+            uint32_t top = rage128_2d_lerp_argb(
+                c, rage128_2d_val_argb(R128_STRETCH_LOAD(s0 + sxb * bpp), dt), wx);
+            uint32_t bot = rage128_2d_lerp_argb(
+                rage128_2d_val_argb(R128_STRETCH_LOAD(s1 + sx * bpp), dt),
+                rage128_2d_val_argb(R128_STRETCH_LOAD(s1 + sxb * bpp), dt), wx);
+
+            c = rage128_2d_lerp_argb(top, bot, wy);
+        }
+        c     = rage128_2d_argb_pack(c, dt);
+        dp[0] = (uint8_t) c;
+        dp[1] = (uint8_t) (c >> 8);
+        if (dt == 6) {
+            dp[2] = (uint8_t) (c >> 16);
+            dp[3] = (uint8_t) (c >> 24);
+        }
+    }
+#undef R128_STRETCH_LOAD
+}
+
 /* Stretch blit (packet 0x96, R128_CCE_PACKET3_CNTL_SCALING). The walk
    runs over the destination and steps the source by 16.16 increments
    from (sx0, sy0), starting at the 16.16 fractions (xph, yph).
@@ -4173,6 +4225,27 @@ rage128_2d_stretch_rect(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
     uint32_t spb = rage128_2d_span_stride(dev, &dev->s2d_src, soff,
                                           spitch_px, sbpp);
 
+    /* The common stretch takes a row loop that produces the same bytes as
+       the per-pixel walk below (this split is the emulator's, not the
+       chip's). It applies when nothing but the texel decides a stored
+       pixel: no color compare or key, no aux scissor, the write mask
+       open, a ROP3 of 0xCC (the source as it is), no palette lookup, and
+       source and destination both RGB 565 or both aRGB 8888. With those
+       the per-byte ROP and mask stage stores the packed pixel unchanged,
+       so the row loop stores it whole. The source origin must not be
+       negative and the X accumulator must not wrap, so the texel index
+       only grows along a row and the last texel a row can read is known:
+       it ends srun bytes from the start of the source row. A row is
+       taken only when that source span and the destination row are each
+       one contiguous run of the mapped surface.
+       Any other row, and any other stretch, goes through the walk. */
+    int      fast = !cca && !aux_on && !usepal && rop == 0xcc
+        && rage128_2d_wmask_full(wmask, bpp) && sdt == ddt && (ddt == 4 || ddt == 6)
+        && sx0 >= 0 && sy0 >= 0
+        && (uint64_t) xph + (uint64_t) (uint32_t) (w - 1 + xskip) * xinc <= 0xffffffffu;
+    uint32_t srun = (uint32_t) (((blend && sxmax < sxlim) ? sxmax + 1 : sxmax) + 1)
+        * (uint32_t) sbpp;
+
     for (int row = 0; row < h; row++) {
         uint32_t yacc  = yph + (uint32_t) (row + yskip) * yinc;
         int      sy    = sy0 + (int) (yacc >> 16);
@@ -4182,6 +4255,22 @@ rage128_2d_stretch_rect(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
         uint32_t sbddr = soff + (uint32_t) syb * spb;
         uint32_t daddr = dev->dst_offset + ((uint32_t) (dy + row) * rage128_2d_dst_stride(dev, bpp) + (uint32_t) dx * (uint32_t) bpp);
 
+        if (fast) {
+            const uint8_t *s0 = r128_surf_run(&ssrc, saddr, srun);
+            const uint8_t *s1 = blend ? r128_surf_run(&ssrc, sbddr, srun) : s0;
+            uint8_t       *d  = r128_surf_run(&sdst, daddr, (uint32_t) w * (uint32_t) bpp);
+
+            if (s0 && s1 && d) {
+                if (ddt == 6)
+                    rage128_2d_stretch_row(d, s0, s1, 6, blend, w, xskip, sx0, xph,
+                                           xinc, wy, sxlim);
+                else
+                    rage128_2d_stretch_row(d, s0, s1, 4, blend, w, xskip, sx0, xph,
+                                           xinc, wy, sxlim);
+                rage128_2d_mark_dirty(dev, &sdst, daddr, (uint32_t) w * bpp);
+                continue;
+            }
+        }
         for (int col = 0; col < w; col++) {
             uint32_t da = daddr + (uint32_t) col * (uint32_t) bpp;
             uint32_t spx;
