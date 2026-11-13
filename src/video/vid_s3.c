@@ -11504,6 +11504,11 @@ s3_init(const device_t *info)
             if (s3->chip == S3_TRIO64V)
                 svga->crtc[0x53] = 0x08;
 
+            /* The miroMEDIA TV BIOS does its DDC through the serial port at I/O
+               port E2h, so the board straps it there. */
+            if (s3->card_type == S3_MIROMEDIA_TV)
+                svga->crtc[0x6f] = 0x02;
+
             svga->clock_gen = s3;
             svga->getclock  = s3_trio64_getclock;
             break;
