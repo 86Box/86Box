@@ -467,6 +467,85 @@ chips_45x_xr_read(chips_45x_t *chips)
     return ret;
 }
 
+/* 82C452 graphics cursor (XR30-XR3A). */
+static void
+chips_45x_update_cursor(chips_45x_t *chips)
+{
+    svga_t *svga = &chips->svga;
+    int     x;
+
+    svga->hwcursor.ena = (chips->type == CHIPS_82C452) && (chips->xr[0x37] & 0x01);
+
+    /* Bit 7 of XR33 makes the position negative, with the lower six bits of
+       XR34 as the 2's complement value. */
+    if (chips->xr[0x33] & 0x80)
+        x = (chips->xr[0x34] & 0x3f) - 0x40;
+    else
+        x = ((chips->xr[0x33] & 0x0f) << 8) | chips->xr[0x34];
+    svga->hwcursor.x    = x;
+    svga->hwcursor.y    = ((chips->xr[0x35] & 0x0f) << 8) | chips->xr[0x36];
+    svga->hwcursor.xoff = svga->hwcursor.yoff = 0;
+
+    /* The start address is in display memory bytes per plane, bits 17-2. */
+    svga->hwcursor.addr = (chips->xr[0x30] << 10) | (chips->xr[0x31] << 2);
+
+    /* Each scan line takes 4 bytes per plane. The pattern ends on the line
+       whose address bits 9-2 match XR32. */
+    svga->hwcursor.cur_xsize = (chips->xr[0x37] & 0x04) ? 64 : 32;
+    svga->hwcursor.cur_ysize = ((chips->xr[0x32] - chips->xr[0x31]) & 0xff) + 1;
+}
+
+static void
+chips_45x_hwcursor_draw(svga_t *svga, int displine)
+{
+    const chips_45x_t *chips = (chips_45x_t *) svga->priv;
+    const uint8_t     *vram  = svga->vram;
+    uint32_t           addr  = svga->hwcursor_latch.addr;
+    uint32_t          *line  = svga->monitor->target_buffer->line[displine];
+    int                zoom  = (chips->xr[0x37] & 0x04) ? 1 : 0;
+    uint32_t           dat[2];
+    uint32_t           col[2];
+    int                x;
+    int                b0;
+    int                b1;
+
+    /* Blinking alternates between showing the cursor and leaving it out. */
+    svga->hwcursor_latch.addr += 4;
+    if ((chips->xr[0x37] & 0x08) && (svga->blink & ((chips->xr[0x37] & 0x10) ? 0x10 : 0x08)))
+        return;
+
+    /*
+       Planes 0 and 1 hold pattern bit 0 and planes 2 and 3 hold pattern bit 1,
+       taken from every other byte: plane 0 byte 0, plane 1 byte 0, plane 0
+       byte 2, plane 1 byte 2 from left to right, most significant bit first.
+    */
+    dat[0] = (vram[((addr << 2) | 0) & svga->vram_mask] << 24) |
+             (vram[((addr << 2) | 1) & svga->vram_mask] << 16) |
+             (vram[(((addr + 2) << 2) | 0) & svga->vram_mask] << 8) |
+             vram[(((addr + 2) << 2) | 1) & svga->vram_mask];
+    dat[1] = (vram[((addr << 2) | 2) & svga->vram_mask] << 24) |
+             (vram[((addr << 2) | 3) & svga->vram_mask] << 16) |
+             (vram[(((addr + 2) << 2) | 2) & svga->vram_mask] << 8) |
+             vram[(((addr + 2) << 2) | 3) & svga->vram_mask];
+
+    col[0] = svga->pallook[chips->xr[0x39] & svga->dac_mask];
+    col[1] = svga->pallook[chips->xr[0x3a] & svga->dac_mask];
+
+    for (int i = 0; i < (32 << zoom); i++) {
+        b0 = (dat[0] >> (31 - (i >> zoom))) & 1;
+        b1 = (dat[1] >> (31 - (i >> zoom))) & 1;
+        x  = svga->hwcursor_latch.x + i;
+        if ((x < 0) || (x >= svga->hdisp))
+            continue;
+
+        /* 00: unchanged, 01: inverted, 10: color 0, 11: color 1. */
+        if (b1)
+            line[svga->x_add + x] = col[b0];
+        else if (b0)
+            line[svga->x_add + x] ^= 0xffffff;
+    }
+}
+
 static void
 chips_45x_xr_write(chips_45x_t *chips, uint8_t val)
 {
@@ -525,6 +604,9 @@ chips_45x_xr_write(chips_45x_t *chips, uint8_t val)
         case 0x7e:
             if (old != val)
                 chips_45x_emu_apply(chips);
+            break;
+        case 0x30 ... 0x3a:
+            chips_45x_update_cursor(chips);
             break;
         case 0x05:
         case 0x0c:
@@ -1083,7 +1165,7 @@ chips_45x_init(const device_t *info)
     svga_init(info, &chips->svga, chips, chips->vram_size << 10,
               chips_45x_recalctimings,
               chips_45x_in, chips_45x_out,
-              NULL,
+              chips_45x_hwcursor_draw,
               NULL);
 
     mem_mapping_set_handler(&chips->svga.mapping,
