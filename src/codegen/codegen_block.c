@@ -50,6 +50,11 @@ int      op_ssegs;
 uint32_t op_old_pc;
 
 uint32_t recomp_page = -1;
+/*The page of a block's second chunk or page while the block is compiled,
+  once code there is compiled: writes to it take the tracked path as well
+  (addwritelookup()), so that a store into bytes already compiled from it
+  marks them dirty, as on the first page. -1 when there is none.*/
+uint32_t recomp_page2 = -1;
 
 int        block_current = 0;
 static int block_num;
@@ -1346,6 +1351,7 @@ invalidate_block(codeblock_t *block)
     if (block->flags & CODEBLOCK_WAS_RECOMPILED) {
         page_t *page = &pages[block->phys >> 12];
 
+        page->code_rewritten = codegen_page_stamp(tsc);
         smc_thrash_rewritten(&block->smc_strikes, &page->smc_strikes,
                              codeblock_ran(block->runs_left, SMC_THRASH_MIN_RUNS),
                              tsc, &block->smc_cooldown_until);
@@ -1726,13 +1732,15 @@ codegen_block_init(uint32_t phys_addr)
     block->next = block->prev = BLOCK_INVALID;
     block->next_2 = block->prev_2 = BLOCK_INVALID;
     block->page_mask = block->page_mask2 = 0;
+    block->page2_delta                   = 1;
     block->flags                         = CODEBLOCK_STATIC_TOP;
     block->status                        = cpu_cur_status;
 #ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
     codegen_link_block_changed(block);
 #endif
 
-    recomp_page = block->phys & ~0xfff;
+    recomp_page  = block->phys & ~0xfff;
+    recomp_page2 = -1;
     codeblock_tree_add(block);
 }
 
@@ -1778,9 +1786,8 @@ codegen_block_start_recompile(codeblock_t *block)
         block_version_free(block_version_cur[block_current]);
         block_version_cur[block_current] = 0;
     }
-    /*Only blocks whose second chunk is in the same page get versions: writes
-      to the next page during the compile are not tracked (recomp_page covers
-      this page only), and a mapping change there can drop page_mask2.*/
+    /*Only blocks whose second chunk is in the same page get versions: a
+      mapping change on the next page can drop page_mask2.*/
     block_version_start_ok = 0;
     if ((block->flags & CODEBLOCK_BYTE_MASK) && (block->flags & CODEBLOCK_NO_IMMEDIATES) && ((block->pc & 0xfff) < 0xfc0)) {
         block_version_start_exec   = block_version_read_chunk(block->phys, block_version_start_code);
@@ -1804,15 +1811,18 @@ codegen_block_start_recompile(codeblock_t *block)
     block->runs_left = CODEBLOCK_RUNS_NEW; /* not yet run from block->data */
 
     block->page_mask = block->page_mask2 = 0;
+    block->page2_delta                   = 1;
     block->ins                           = 0;
     codegen_family_ops[0] = codegen_family_ops[1] = 0;
+    codegen_trace_reset(block);
 
     cpu_block_end = 0;
 
     codegen_block_cycles = 0;
     codegen_timing_block_start();
 
-    recomp_page = block->phys & ~0xfff;
+    recomp_page  = block->phys & ~0xfff;
+    recomp_page2 = -1;
 
     codegen_flags_changed = 0;
     codegen_flags_known_reset();
@@ -1862,7 +1872,8 @@ codegen_block_remove(void)
 
     delete_block(block);
 
-    recomp_page = -1;
+    recomp_page  = -1;
+    recomp_page2 = -1;
 }
 
 void
@@ -1895,10 +1906,10 @@ codegen_block_generate_end_mask_recompile(void)
     if (block->page_mask2) {
         /*The second chunk or page is the one the lookup checks
           (386_dynarec.c): the next 64 bytes of a byte-mask block, else the
-          next page. Not codegen_endpc, which guesses where the last
+          page codeblock_pc_2() names. Not codegen_endpc, which guesses where the last
           instruction ends from where it starts: one of 11 bytes or more
           marks bytes past the guess, in a chunk or page it doesn't name.*/
-        uint32_t pc_2 = block->pc + ((block->flags & CODEBLOCK_BYTE_MASK) ? 0x40 : 0x400);
+        uint32_t pc_2 = codeblock_pc_2(block);
 
         block->phys_2 = get_phys_noabrt(pc_2);
         if (block->phys_2 != -1) {
@@ -1936,7 +1947,8 @@ codegen_block_generate_end_mask_recompile(void)
         }
     }
 
-    recomp_page = -1;
+    recomp_page  = -1;
+    recomp_page2 = -1;
 }
 
 void
@@ -1973,8 +1985,9 @@ codegen_block_generate_end_mask_mark(void)
     if ((p->dirty_mask & block->page_mask) && !page_in_evict_list(p))
         page_add_to_evict_list(p);
 
-    block->phys_2     = -1;
-    block->page_mask2 = 0;
+    block->phys_2      = -1;
+    block->page_mask2  = 0;
+    block->page2_delta = 1;
     block->next_2 = block->prev_2 = BLOCK_INVALID;
     if ((block->pc ^ codegen_endpc) & ~0xfff) {
         block->phys_2 = get_phys_noabrt(codegen_endpc);
@@ -2011,7 +2024,8 @@ codegen_block_generate_end_mask_mark(void)
         }
     }
 
-    recomp_page = -1;
+    recomp_page  = -1;
+    recomp_page2 = -1;
 }
 
 void
@@ -2131,6 +2145,7 @@ block_version_apply(codeblock_t *block, uint16_t nr)
     block->data           = codeblock_allocator_get_ptr(v->head_mem_block);
     block->page_mask      = v->page_mask;
     block->page_mask2     = v->page_mask2;
+    block->page2_delta    = 1;
     block->status         = v->status;
     block->TOP            = v->TOP;
     block->dirty_mask     = &page->byte_dirty_mask[(block->phys >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK];
@@ -2632,9 +2647,28 @@ codegen_fetch_walk(uint32_t addr)
     uop_CALL_INSTRUCTION_FUNC(ir, dynarec_fetch_walk, addr);
 }
 
+/*The block being compiled has its first code in its second chunk or page:
+  track writes to that page from now on (recomp_page2). Its direct write
+  lookups are dropped, as codegen_block_start_recompile() does for the
+  first page, so that the next write there adds a tracked one.*/
+static void
+codegen_block_track_page2(codeblock_t *block)
+{
+    const uint32_t pc_2   = codeblock_pc_2(block);
+    const uint32_t phys_2 = get_phys_noabrt(pc_2);
+
+    if ((phys_2 == 0xffffffff) || ((phys_2 & ~0xfff) == recomp_page))
+        return;
+    recomp_page2 = phys_2 & ~0xfff;
+    if (!pages[phys_2 >> 12].block && !pages[phys_2 >> 12].block_2)
+        mem_flush_write_page(phys_2, pc_2);
+}
+
 void
 codegen_mark_code_present_multibyte(codeblock_t *block, uint32_t start_pc, int len)
 {
+    const uint64_t had_page_2 = block->page_mask2;
+
     if (len) {
         uint32_t end_pc = start_pc + (len - 1);
 
@@ -2680,4 +2714,6 @@ codegen_mark_code_present_multibyte(codeblock_t *block, uint32_t start_pc, int l
             }
         }
     }
+    if (!had_page_2 && block->page_mask2)
+        codegen_block_track_page2(block);
 }

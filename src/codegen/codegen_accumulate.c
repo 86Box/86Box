@@ -81,6 +81,21 @@ codegen_accumulate_jump(UNUSED(ir_data_t *ir), int scale, int fallback)
     acc_regs[ACCREG_cycles].count += scale * jump_cycles;
 }
 
+void
+codegen_accumulate_block_end(void)
+{
+    codegen_accumulate_record(ACC_BLOCK_END, 0, 0, 0, 0, 0);
+    codegen_timing_block_end();
+}
+
+void
+codegen_accumulate_block_start(void)
+{
+    codegen_accumulate_record(ACC_BLOCK_START, 0, 0, 0, 0, 0);
+    codegen_block_cycles = 0;
+    codegen_timing_block_start();
+}
+
 static void
 codegen_unroll_exit(ir_data_t *ir, int branch, int pending, int copy)
 {
@@ -170,6 +185,13 @@ codegen_accumulate_unroll(ir_data_t *ir, int first, int start, int branch)
                 copy_cycles[event->pos].imm_data2 = pending + deferred -
                     ((event->a && codegen_timing_jump_cycles) ? codegen_timing_jump_cycles() : 0);
                 break;
+            case ACC_BLOCK_END:
+                codegen_timing_block_end();
+                break;
+            case ACC_BLOCK_START:
+                codegen_block_cycles = 0;
+                codegen_timing_block_start();
+                break;
             case ACC_ROUTE:
                 copy_cycles[event->pos].imm_data2 = deferred;
                 break;
@@ -223,6 +245,14 @@ codegen_accumulate_replay(int opcode, int end)
             case ACC_TIMING:
                 total += codegen_block_cycles;
                 codegen_block_cycles = 0;
+                break;
+            case ACC_BLOCK_END:
+                codegen_timing_block_end();
+                break;
+            case ACC_BLOCK_START:
+                total += codegen_block_cycles;
+                codegen_block_cycles = 0;
+                codegen_timing_block_start();
                 break;
             default:
                 break;
