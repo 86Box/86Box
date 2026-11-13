@@ -3066,11 +3066,11 @@ gus_get_buffer(int32_t *buffer, uint16_t len, void *priv)
     for (uint16_t c = 0; c < len * 2; c += 2) {
         double temp_l = 0.0;
         double temp_r = 0.0;
-        if ((gus->type == GUS_CLASSIC_37) || (gus->type == GUS_MAX)) {
+        if ((gus->type == GUS_CLASSIC_37) || (gus->type == GUS_MAX) || gus->daughter) {
             temp_l = (double) gus->buffer[0][c >> 1];
             temp_r = (double) gus->buffer[1][c >> 1];
-            if (gus->type == GUS_MAX) {
-                if (gus->max_ctrl) {
+            if (gus->type == GUS_MAX || gus->daughter) {
+                if (gus->max_ctrl || gus->daughter) {
                     buffer[c]     += (int32_t) (gus->ad1848.buffer[c] / 2);
                     buffer[c + 1] += (int32_t) (gus->ad1848.buffer[c + 1] / 2);
                 }
@@ -3117,11 +3117,6 @@ gus_get_buffer(int32_t *buffer, uint16_t len, void *priv)
             buffer[c]     += (int32_t) gus->buffer[0][c >> 1];
             buffer[c + 1] += (int32_t) gus->buffer[1][c >> 1];
         }
-    }
-
-    if (gus->daughter) {
-        for (uint16_t c = 0; c < len * 2; c++)
-            buffer[c] += gus->ad1848.buffer[c] / 2;
     }
 
     if (((gus->type == GUS_MAX) && (gus->max_ctrl)) || gus->type == GUS_INTERWAVE || gus->daughter)
