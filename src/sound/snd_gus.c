@@ -3718,9 +3718,8 @@ gus_init(UNUSED(const device_t *info))
         ad1848_setirq(&gus->ad1848, device_get_config_int("codec_irq"));
         ad1848_setdma(&gus->ad1848, device_get_config_int("codec_dma"));
         ad1848_setdma2(&gus->ad1848, 4);
-        /* The CD audio stays with the base board (the CS4231's init took it over). */
-        if (gus->type == GUS_CLASSIC_37)
-            sound_set_cd_audio_filter(gus_filter_cd_audio, gus);
+        /* The daughterboard has its own CD audio connector that routes through the CS4231 */
+        ad1848_set_cd_audio_channel(&gus->ad1848, AD1848_AUX2);
         io_sethandler(codec_base, 4,
                       ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &gus->ad1848);
     }
