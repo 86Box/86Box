@@ -3719,7 +3719,11 @@ gus_init(UNUSED(const device_t *info))
                       ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &gus->ad1848);
     }
 
-    timer_add(&gus->samp_timer, gus_poll_wave, gus, 1);
+    /* Start half a sample after the sound poll timer: at the same rate, timers
+       due together swap order on every tick, which makes gus_update() write
+       two samples, then none. */
+    timer_add(&gus->samp_timer, gus_poll_wave, gus, 0);
+    timer_set_delay_u64(&gus->samp_timer, gus->samp_latch / 2);
     timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
     timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
     timer_add(&gus->sample_timer, gus_input_poll, gus, 0);
@@ -3846,7 +3850,11 @@ gus_extreme_init(UNUSED(const device_t *info))
 
     gus->base = 0;
 
-    timer_add(&gus->samp_timer, gus_poll_wave, gus, 1);
+    /* Start half a sample after the sound poll timer: at the same rate, timers
+       due together swap order on every tick, which makes gus_update() write
+       two samples, then none. */
+    timer_add(&gus->samp_timer, gus_poll_wave, gus, 0);
+    timer_set_delay_u64(&gus->samp_timer, gus->samp_latch / 2);
     timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
     timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
 
@@ -4017,7 +4025,11 @@ gus_pnp_init(const device_t *info)
     ad1848_setdma(&gus->ad1848, 0);
 
 
-    timer_add(&gus->samp_timer, gus_poll_wave, gus, 1);
+    /* Start half a sample after the sound poll timer: at the same rate, timers
+       due together swap order on every tick, which makes gus_update() write
+       two samples, then none. */
+    timer_add(&gus->samp_timer, gus_poll_wave, gus, 0);
+    timer_set_delay_u64(&gus->samp_timer, gus->samp_latch / 2);
     timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
     timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
     timer_add(&gus->sample_timer, gus_input_poll, gus, 0);
