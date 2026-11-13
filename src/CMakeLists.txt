@@ -59,6 +59,7 @@ add_executable(86Box
     usb_legacy.c
     usb_msd.c
     device.c
+    upi42.c
     nvr.c
     nvr_at.c
     nvr_ps2.c
