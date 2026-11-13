@@ -35,7 +35,11 @@ signals:
 
 private:
     void buildMenu();
+    QString socketCardName(int socket) const;
+    void addCompactFlashMenu(QMenu *menu, int socket);
+    void insertCompactFlash(int socket, const QString &fn, bool wp);
 
+    QWidget *m_parent;
     QMenu *m_menu;
 };
 

@@ -357,7 +357,7 @@ test_common_memory(void)
     CHECK(memrb(0xd2010) == 0x77, "common memory through a window (%02X)", memrb(0xd2010));
     memwb(0xd3abc, 0x42);
     CHECK(card_common[0x1abc] == 0x42, "a write reaches the card's common memory");
-    CHECK(card_attr[0x1abc] != 0x42, "and not its attribute memory");
+    CHECK(card_attr_read(0x1abc, NULL) == 0xff, "that address is outside attribute memory");
     CHECK(memrb(0xd0000) == card_attr[0], "the attribute window beside it still reads the CIS");
     setreg(0, 0x1d, ((off >> 8) & 0x3f) | 0x80);
     memwb(0xd2010, 0x00);

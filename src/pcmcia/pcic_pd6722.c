@@ -374,6 +374,14 @@ pcic_mem_readb(uint32_t addr, void *priv)
 static uint16_t
 pcic_mem_readw(uint32_t addr, void *priv)
 {
+    const pcic_win_t *win = (pcic_win_t *) priv;
+    uint32_t          caddr;
+
+    if (pcic_mem_card_addr(win, addr, &caddr) == 0) {
+        const pccard_t *card = win->pcic->sock[win->socket].card;
+        if (card->common_readw)
+            return card->common_readw(caddr, card->priv);
+    }
     return pcic_mem_readb(addr, priv) | (pcic_mem_readb(addr + 1, priv) << 8);
 }
 
@@ -406,6 +414,19 @@ pcic_mem_writeb(uint32_t addr, uint8_t val, void *priv)
 static void
 pcic_mem_writew(uint32_t addr, uint16_t val, void *priv)
 {
+    const pcic_win_t *win = (pcic_win_t *) priv;
+    const uint8_t    *r   = &win->pcic->reg[win->socket][REG_MEM_BASE + (win->win << 3)];
+    uint32_t          caddr;
+
+    if (r[5] & 0x80)
+        return;
+    if (pcic_mem_card_addr(win, addr, &caddr) == 0) {
+        const pccard_t *card = win->pcic->sock[win->socket].card;
+        if (card->common_writew) {
+            card->common_writew(caddr, val, card->priv);
+            return;
+        }
+    }
     pcic_mem_writeb(addr, val & 0xff, priv);
     pcic_mem_writeb(addr + 1, val >> 8, priv);
 }

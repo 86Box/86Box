@@ -6,7 +6,7 @@
  *
  *          This file is part of the 86Box distribution.
  *
- *          New USB flash drive image dialog.
+ *          New flash image dialog.
  *
  * Authors: skiretic, <skiretic@proton.me>
  *
@@ -40,10 +40,10 @@ extern "C" {
 /* Size presets in MB; 0 is Custom. */
 static const int flash_presets[] = { 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768, 0 };
 
-NewFlashDialog::NewFlashDialog(QWidget *parent)
+NewFlashDialog::NewFlashDialog(QWidget *parent, const QString &title)
     : QDialog(parent)
 {
-    setWindowTitle(tr("New USB flash drive"));
+    setWindowTitle(title.isEmpty() ? tr("New USB flash drive") : title);
 
     auto *form = new QFormLayout(this);
 
@@ -165,7 +165,7 @@ NewFlashDialog::accept()
     const int       fs    = comboBoxFormat->currentData().toInt();
 
     if (QFileInfo::exists(name) &&
-        (QMessageBox::warning(this, tr("New USB flash drive"), tr("%1 already exists. Replace it?").arg(name),
+        (QMessageBox::warning(this, windowTitle(), tr("%1 already exists. Replace it?").arg(name),
                               QMessageBox::Yes | QMessageBox::No, QMessageBox::No) != QMessageBox::Yes))
         return;
 
@@ -174,7 +174,7 @@ NewFlashDialog::accept()
     unsetCursor();
 
     if (!ok) {
-        QMessageBox::critical(this, tr("New USB flash drive"), tr("Could not create %1.").arg(name));
+        QMessageBox::critical(this, windowTitle(), tr("Could not create %1.").arg(name));
         return;
     }
 
