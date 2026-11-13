@@ -27568,6 +27568,216 @@ vectors_lanegap_rmw_cap(rage128_t *dev)
     wr(dev, RAGE128_DP_GUI_MASTER_CNTL, 0);
 }
 
+/* The stretch queue holds one copy per run, 256 at most. A stretch with
+   no key and no auxiliary scissor cutting its rectangle is one run per
+   destination row, so its row count alone says whether it fits, and the
+   queue must refuse a taller one before it works anything out: nothing
+   staged, nothing queued, one refusal counted as the run cap, and the
+   CPU walk draws it. A keyed stretch, or one an enabled subtractive
+   rectangle cuts, has a run count only its pixels decide (whole rows can
+   drop out), so it must still go through the queue path at any height.
+
+   Each leg draws the same 2x stretch twice from the same prefill: once
+   with no backend, which is the CPU walk and the reference image, and
+   once on a fresh fabricated backend, whose counters are then read. The
+   expected run and byte counts are counted off the reference image. When
+   the queue took the stretch, its queued copies are executed on the
+   destination the way the GPU executes them, so both outcomes end in a
+   byte compare against the reference. */
+#define SCAP_DST   0x00400000u /* 64 px rows */
+#define SCAP_SRC   0x00440000u /* 8 px rows */
+#define SCAP_ROWS  304
+#define SCAP_LEN   (SCAP_ROWS * 64 * 4)
+#define SCAP_DX    2
+#define SCAP_DY    1
+#define SCAP_W     8
+#define SCAP_FILL  0x11111111u
+#define SCAP_KEY   0x00c0ffeeu
+
+struct scap_leg {
+    uint64_t queued, runs, staged, cap, other;
+    uint32_t ref_runs, ref_rows, ref_px;
+    uint32_t h;    /* rows the packet asked for */
+    int      exec; /* queued records executed; -1 = one could not be */
+    int      same; /* the destination equals the reference byte for byte */
+};
+
+static uint8_t g_scap_ref[SCAP_LEN];
+
+static void
+scap_leg_run(rage128_t *dev, const char *name, int h, uint32_t misc, struct scap_leg *l)
+{
+    /* stretch GMC: destination pitch and offset from the packet, no
+       brush, 8888, color source from memory, ROP3 0xCC */
+    const uint32_t g = 0x00000002u | (15u << 4) | (6u << 8) | (3u << 12)
+                     | (0xccu << 16) | (2u << 24);
+    uint8_t *dst = &dev->svga.vram[SCAP_DST];
+    uint32_t pl[13], flo = 0, fhi = 0;
+    uint64_t full = 0;
+    void    *fab;
+
+    pl[0]  = g;
+    pl[1]  = (8u << 21) | (SCAP_DST >> 5);
+    pl[2]  = misc;
+    pl[3]  = 0x00800000u;
+    pl[4]  = 0x02180840u;
+    pl[5]  = 6u;
+    pl[6]  = SCAP_SRC;
+    pl[7]  = 1u;
+    pl[8]  = 0;
+    pl[9]  = 0x00008000u;
+    pl[10] = 0x00008000u;
+    pl[11] = ((uint32_t) SCAP_DX << 16) | (uint32_t) SCAP_DY;
+    pl[12] = ((uint32_t) h << 16) | (uint32_t) SCAP_W;
+
+    memset(l, 0, sizeof(*l));
+    l->h = (uint32_t) h;
+    for (uint32_t i = 0; i < SCAP_LEN; i += 4)
+        *(uint32_t *) &dst[i] = SCAP_FILL;
+    fab_in(dev, NULL);
+    rage128_2d_packet3(dev, 0x96u << 8, pl, 13);
+    fab_out(dev);
+    memcpy(g_scap_ref, dst, SCAP_LEN);
+    for (int y = 0; y < SCAP_ROWS; y++) {
+        int in = 0, any = 0;
+
+        for (int x = 0; x < 64; x++) {
+            uint32_t px;
+            int      drawn;
+
+            memcpy(&px, &g_scap_ref[(y * 64 + x) * 4], sizeof(px));
+            drawn = px != SCAP_FILL;
+            l->ref_px += (uint32_t) drawn;
+            l->ref_runs += (uint32_t) (drawn && !in);
+            any |= drawn;
+            in = drawn;
+        }
+        l->ref_rows += (uint32_t) any;
+    }
+
+    for (uint32_t i = 0; i < SCAP_LEN; i += 4)
+        *(uint32_t *) &dst[i] = SCAP_FILL;
+    fab = harness_gpu_fab_alloc();
+    fab_in(dev, fab);
+    rage128_2d_packet3(dev, 0x96u << 8, pl, 13);
+    harness_gpu_fab_q2d(fab, 5, &l->queued, &l->runs, NULL, NULL);
+    harness_gpu_fab_2ds(fab, &full, &l->staged, NULL);
+    for (int b = 0; b < 7; b++) {
+        if (b == 3)
+            l->cap = harness_gpu_fab_qskip(fab, 5, b);
+        else
+            l->other += harness_gpu_fab_qskip(fab, 5, b);
+    }
+    l->other += full + harness_gpu_fab_tiled(fab);
+    l->exec = harness_gpu_fab_fill_exec(fab, dev->svga.vram, dev->vram_size, &flo, &fhi);
+    fab_out(dev);
+    harness_gpu_fab_free(fab);
+    l->same = memcmp(dst, g_scap_ref, SCAP_LEN) == 0;
+    printf("gpu 2d stretch cap: data: %s rows=%d: queued=%llu runs=%llu staged=%llu cap=%llu other=%llu exec=%d same=%d, cpu draw runs=%u rows=%u px=%u\n",
+           name, h, (unsigned long long) l->queued, (unsigned long long) l->runs,
+           (unsigned long long) l->staged, (unsigned long long) l->cap,
+           (unsigned long long) l->other, l->exec, l->same, l->ref_runs, l->ref_rows,
+           l->ref_px);
+    fflush(stdout); /* a leg that kills the process must not take the earlier legs' lines */
+}
+
+/* 1 = the queue took the whole stretch: one operation, no refusal, as
+   many copies queued and executed as the CPU draw has runs, as many
+   bytes staged as it stores, and the executed copies give its image. */
+static int
+scap_leg_queued(const struct scap_leg *l)
+{
+    return l->queued == 1 && l->cap == 0 && l->other == 0 && l->ref_runs != 0
+        && l->runs == l->ref_runs && l->exec == (int) l->ref_runs
+        && l->staged == (uint64_t) l->ref_px * 4u && l->same;
+}
+
+/* 1 = the queue refused the stretch before working anything out: no
+   byte staged, no copy queued or executed, and the one refusal counted
+   is the run cap. */
+static int
+scap_leg_refused(const struct scap_leg *l)
+{
+    return l->staged == 0 && l->runs == 0 && l->queued == 0 && l->exec == 0
+        && l->cap == 1 && l->other == 0;
+}
+
+static void
+vectors_lanegap_stretch_cap(rage128_t *dev)
+{
+    struct scap_leg fit, keyed, cut, edge, tall;
+
+    if (!harness_gpu_available()) {
+        printf("SKIP gpu 2d stretch cap: (built without Vulkan headers)\n");
+        return;
+    }
+    flush_sync(dev);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, 0);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    /* 150 rows of texels, every one distinct, none the prefill or the key */
+    for (int y = 0; y < 150; y++)
+        for (int x = 0; x < 8; x++)
+            *(uint32_t *) &dev->svga.vram[SCAP_SRC + (uint32_t) (y * 8 + x) * 4u]
+                = 0xff000000u | ((uint32_t) y << 12) | ((uint32_t) x << 4) | 0x5u;
+
+    /* A blended stretch of exactly 256 rows fits: one run per row. */
+    scap_leg_run(dev, "plain", 256, 0x100u, &fit);
+    check_true("gpu 2d stretch cap: a 256-row plain stretch queues whole, one run per row",
+               scap_leg_queued(&fit) && fit.ref_runs == fit.h && fit.ref_rows == fit.h
+                   && fit.ref_px == fit.h * SCAP_W);
+
+    /* A subtractive rectangle over the first 50 rows and a 2 px notch in
+       two more: 300 rows, but fewer runs than the cap. */
+    wr(dev, RAGE128_AUX1_SC_LEFT, 0);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 4, 0x1fff);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 8, SCAP_DY);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 12, SCAP_DY + 49);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 16, SCAP_DX + 3);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 20, SCAP_DX + 4);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 24, SCAP_DY + 60);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 28, SCAP_DY + 61);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0x0000000f);
+    scap_leg_run(dev, "aux-cut", 300, 0x100u, &cut);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+
+    /* The same with a source key: 25 texel rows of the key and one key
+       texel further down, replicated. */
+    for (int y = 0; y < 25; y++)
+        for (int x = 0; x < 8; x++)
+            *(uint32_t *) &dev->svga.vram[SCAP_SRC + (uint32_t) (y * 8 + x) * 4u] = SCAP_KEY;
+    *(uint32_t *) &dev->svga.vram[SCAP_SRC + (30 * 8 + 1) * 4] = SCAP_KEY;
+    wr(dev, RAGE128_CLR_CMP_CLR_SRC, SCAP_KEY);
+    wr(dev, RAGE128_CLR_CMP_MASK, 0xffffffff);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0x01000005);
+    scap_leg_run(dev, "keyed", 300, 0x500u, &keyed);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    check_true("gpu 2d stretch cap: a keyed and an aux-cut 300-row stretch still take the queue path",
+               scap_leg_queued(&keyed) && keyed.ref_runs != keyed.ref_rows
+                   && scap_leg_queued(&cut) && cut.ref_runs != cut.ref_rows);
+
+    /* The plain stretch one row past the cap, and at 300 rows: refused
+       at entry, drawn by the walk. */
+    scap_leg_run(dev, "plain", 257, 0x100u, &edge);
+    scap_leg_run(dev, "plain", 300, 0x100u, &tall);
+    check_true("gpu 2d stretch cap: a 257-row and a 300-row plain stretch stage nothing and count one cap refusal each",
+               scap_leg_refused(&edge) && scap_leg_refused(&tall));
+    check_true("gpu 2d stretch cap: their video memory equals the CPU draw byte for byte",
+               edge.same && edge.ref_rows == edge.h && edge.ref_px == edge.h * SCAP_W
+                   && tall.same && tall.ref_rows == tall.h && tall.ref_px == tall.h * SCAP_W);
+}
+#undef SCAP_DST
+#undef SCAP_SRC
+#undef SCAP_ROWS
+#undef SCAP_LEN
+#undef SCAP_DX
+#undef SCAP_DY
+#undef SCAP_W
+#undef SCAP_FILL
+#undef SCAP_KEY
+
 /* An aliased card write marks the installed-VRAM pages it changes.
    On the 16 MB device, stores above installed VRAM wrap to the same bytes
    as their masked addresses. Tiled and linear paths check both the landed
@@ -28488,6 +28698,7 @@ run_lanegap(void)
     vectors_solid_shade(dev);
     vectors_pitch_adj_every_load(dev);
     vectors_lanegap_rmw_cap(dev);
+    vectors_lanegap_stretch_cap(dev);
     vectors_lanegap_aux_split(dev);
     vectors_lanegap_ov0_key(dev);
     vectors_ov0_key_fn(dev);

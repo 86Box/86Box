@@ -3913,6 +3913,10 @@ rage128_2d_stretch_resolve(rage128_t *dev, const r128_surf_t *ssrc,
     return 1;
 }
 
+/* The most runs one stretch may queue. A stretch that needs more is
+   refused as too fragmented and drawn by the CPU walk. */
+#define R128_STRETCH_RUN_CAP 256
+
 /* Queue a stretch blit. With a ROP that does not use the destination,
    every stored byte depends only on the brush and the texel, so the
    walk runs here against the mapped source (only its GPU barrier is
@@ -3959,6 +3963,24 @@ rage128_2d_queue_stretch(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
         || dend > (uint64_t) dev->vram_size || (h > 1 && dpb < rowlen)
         || ((uint64_t) daddr0 < shi && dend > (uint64_t) soff)) {
         rage128_gpu_2d_qskip(dev, 5, 32);
+        return 0;
+    }
+    /* A stretch with no key, over a rectangle that no enabled
+       subtractive auxiliary scissor reaches, stores every pixel, so each
+       destination row is exactly one run and the row count is the run
+       count. When that is over the cap the refusal is already decided
+       here, so it is taken before the source is mapped and before any
+       row is worked out: the row loop below would compute and queue the
+       first rows up to the cap, refuse at the next one, and leave the
+       CPU walk to draw every row again after waiting for the copies it
+       queued. It is counted as that same run-cap refusal. With a key or
+       a cutting scissor the run count depends on the texels and on the
+       scissor geometry (whole rows can drop out), so those stretches go
+       through the loop at any height. This split is the emulator's, not
+       the chip's. */
+    if (key_skip < 0 && h > R128_STRETCH_RUN_CAP
+        && !rage128_2d_aux_seg(dev, dx, dy, dx + w - 1, dy + h - 1)) {
+        rage128_gpu_2d_qskip(dev, 5, 8);
         return 0;
     }
     if (!rage128_2d_map_span(dev, &ssrc, &dev->s2d_src, soff, spitch_px,
@@ -4016,7 +4038,7 @@ rage128_2d_queue_stretch(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
                 uint32_t so;
                 uint8_t *st;
 
-                if (++nruns > 256) {
+                if (++nruns > R128_STRETCH_RUN_CAP) {
                     rage128_gpu_2d_qskip(dev, 5, 8);
                     goto refuse;
                 }
