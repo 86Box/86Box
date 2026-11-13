@@ -22378,6 +22378,145 @@ vectors_brush_903(rage128_t *dev)
 #undef B903
 }
 
+/* 904: mono host data of an op started by register writes. With
+   DP_SRC_SOURCE 3 ("loaded thru hostdata (linear trajectory)", RRG:
+   DP_MIX, p. 3-171 / PDF 189) the data is one bit stream, w bits per
+   row, rows back to back with no padding. The stream is read as bytes
+   in memory order (dword n holds bytes 4n to 4n + 3, low byte first),
+   bits within a byte MSB first, or LSB first with DP_BYTE_PIX_ORDER
+   set. Expected pixels are worked out here from the data dwords:
+   pixel (c, r) is stream bit r * w + c. Two ways to start the op:
+   DST_X_Y + DST_WIDTH_HEIGHT with the default offset and pitch (as the
+   SDK's mono expansion example does, SDK: Monochrome Expansion, p. 4-17
+   / PDF 91) and DST_Y_X + DST_HEIGHT_WIDTH
+   with DST_PITCH_OFFSET (as the X driver does). ROP CC (source copy),
+   8888 at 0x300000, 128-px pitch, prefill 0x99. */
+static uint32_t
+hostdata904_dw(int i)
+{
+    uint32_t v = 0x9e3779b9u * (uint32_t) (i + 7);
+
+    return v ^ (v >> 15) ^ (0x01020408u << (i & 3));
+}
+
+static int
+hostdata904_bit(const uint32_t *dw, uint32_t k, int lsb)
+{
+    uint32_t byte = (dw[k / 32] >> (8 * ((k / 8) % 4))) & 0xffu;
+
+    return (int) ((lsb ? byte >> (k % 8) : byte >> (7 - k % 8)) & 1u);
+}
+
+/* One register-started op. start 0 = DST_X_Y + DST_WIDTH_HEIGHT with
+   the defaults, 1 = DST_Y_X + DST_HEIGHT_WIDTH with DST_PITCH_OFFSET.
+   src = DP_SRC_SOURCE (3 or 4), srcdt 0 = frgd/bkgd, 1 = frgd/leave
+   alone. nd dwords are sent, the last through HOST_DATA_LAST. clipw
+   (0 = none) narrows the scissor to x 0..clipw-1, the X driver's way
+   of drawing a width it padded to 32. pitch = stream bits per row the
+   check expects; rows = rows expected painted. */
+static int
+hostdata904_run(rage128_t *dev, int start, uint32_t src, int srcdt, int lsb,
+                int w, int h, const uint32_t *dw, uint32_t nd, int clipw,
+                uint32_t pitch, int rows)
+{
+    const uint32_t fg = 0x00c08040u, bg = 0x00203040u, pre = 0x99999999u;
+    int            ok = 1;
+#define H904(x, y) (*(uint32_t *) &dev->svga.vram[0x00300000 + ((y) * 128 + (x)) * 4])
+
+    flush_sync(dev);
+    memset(&dev->svga.vram[0x00300000], 0x99, 128 * 16 * 4);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT,
+       clipw ? (0x1fffu << 16) | (uint32_t) (clipw - 1) : 0x1fff1fffu);
+    wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+       (start ? 0x00000003u : 0u) | (1u << 3) | (15u << 4) | (6u << 8)
+           | ((uint32_t) srcdt << 12) | ((uint32_t) lsb << 14) | (0xccu << 16)
+           | (src << 24) | (1u << 28) | (1u << 29) | (1u << 30));
+    wr(dev, RAGE128_DP_CNTL, 0x00000003);
+    wr(dev, RAGE128_DP_SRC_FRGD_CLR, fg);
+    wr(dev, RAGE128_DP_SRC_BKGD_CLR, bg);
+    if (start) {
+        wr(dev, RAGE128_DST_Y_X, (1u << 16) | 2u);
+        wr(dev, RAGE128_DST_HEIGHT_WIDTH, ((uint32_t) h << 16) | (uint32_t) w);
+    } else {
+        wr(dev, RAGE128_DST_X_Y, (2u << 16) | 1u);
+        wr(dev, RAGE128_DST_WIDTH_HEIGHT, ((uint32_t) w << 16) | (uint32_t) h);
+    }
+    for (uint32_t i = 0; i + 1 < nd; i++)
+        wr(dev, RAGE128_HOST_DATA0 + 4u * (i & 7), dw[i]);
+    wr(dev, RAGE128_HOST_DATA_LAST, dw[nd - 1]);
+    flush_sync(dev);
+    for (int y = 0; y < h + 3; y++)
+        for (int x = 0; x < w + 4; x++) {
+            uint32_t want = pre;
+            int      c = x - 2, r = y - 1;
+
+            if (c >= 0 && c < w && r >= 0 && r < rows && (!clipw || x < clipw)) {
+                int set = hostdata904_bit(dw, (uint32_t) r * pitch + (uint32_t) c, lsb);
+
+                want = set ? fg : (srcdt ? pre : bg);
+            }
+            ok = ok && H904(x, y) == want;
+        }
+#undef H904
+    return ok;
+}
+
+static void
+vectors_hostdata_904(rage128_t *dev)
+{
+    uint32_t dw[64];
+
+    for (int i = 0; i < 64; i++)
+        dw[i] = hostdata904_dw(i);
+    flush_sync(dev);
+    harness_log_tail_reset();
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DEFAULT_OFFSET, 0x00300000);
+    wr(dev, RAGE128_DEFAULT_PITCH, 16);
+    wr(dev, RAGE128_DST_PITCH_OFFSET, (16u << 21) | (0x300000u >> 5));
+
+    /* widths that are not a multiple of 32: the stream runs on across
+       rows (17 x 6 = 102 bits = 4 dwords, 33 x 5 = 165 bits = 6) */
+    check_true("2d 904: host data 17 wide, DST_X_Y start, frgd/bkgd, LSB first, one stream",
+               hostdata904_run(dev, 0, 3, 0, 1, 17, 6, dw, 4, 0, 17, 6));
+    check_true("2d 904: host data 17 wide, DST_Y_X start, leave alone, MSB first, one stream",
+               hostdata904_run(dev, 1, 3, 1, 0, 17, 6, dw, 4, 0, 17, 6));
+    check_true("2d 904: host data 33 wide, DST_X_Y start, frgd/bkgd, MSB first, one stream",
+               hostdata904_run(dev, 0, 3, 0, 0, 33, 5, dw, 6, 0, 33, 5));
+    check_true("2d 904: host data 33 wide, DST_Y_X start, leave alone, LSB first, one stream",
+               hostdata904_run(dev, 1, 3, 1, 1, 33, 5, dw, 6, 0, 33, 5));
+    /* short data: 2 dwords = 64 bits hold 3 whole 17-bit rows; the rest
+       of the op is not painted */
+    check_true("2d 904: host data 17 wide, 2 of 4 dwords sent, paints the 3 whole rows",
+               hostdata904_run(dev, 0, 3, 0, 1, 17, 6, dw, 2, 0, 17, 3));
+    /* widths that are a multiple of 32: a row ends on a dword, so the
+       stream and dword-padded rows are the same bits */
+    check_true("2d 904: control: host data 32 wide, DST_Y_X start, frgd/bkgd, LSB first",
+               hostdata904_run(dev, 1, 3, 0, 1, 32, 4, dw, 4, 0, 32, 4));
+    check_true("2d 904: control: host data 64 wide, DST_X_Y start, leave alone, MSB first",
+               hostdata904_run(dev, 0, 3, 1, 0, 64, 3, dw, 6, 0, 64, 3));
+    /* the X driver's form: a 20-pixel glyph run padded to 32 and cut
+       back by the scissor */
+    check_true("2d 904: control: X driver width padded to 32 and clipped to 20",
+               hostdata904_run(dev, 1, 3, 1, 1, 32, 4, dw, 4, 22, 32, 4));
+    /* source 4 (byte-aligned host data) keeps dword-padded rows: 17
+       wide reads 32 bits per row, 4 rows from 4 dwords (modeled) */
+    check_true("2d 904: control: source 4 keeps dword-padded rows",
+               hostdata904_run(dev, 1, 4, 0, 1, 17, 4, dw, 4, 0, 32, 4));
+
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+       0x00000003u | (13u << 4) | (6u << 8) | (0xf0u << 16)
+           | (1u << 28) | (1u << 29) | (1u << 30));
+    check_log("2d 904: the 2D oracle saw no queued host-data mismatch",
+              "VERIFY MISMATCH", 0);
+}
+
 /* a 24 bpp (DST_TYPE 5) color brush. Type 10 is 64 dwords, one
    pixel per dword in its low 3 bytes (SDK-G04000 F.7 Table F-2: "a
    24-BPP pixel is still represented by 4 bytes"); type 11 is 2*N = 6
@@ -23087,6 +23226,7 @@ run_gpu2d_verify(void)
     vectors_brush_types(dev);
     vectors_brush_reg32(dev);
     vectors_brush_903(dev);
+    vectors_hostdata_904(dev);
     vectors_brush10_24bpp(dev);
     vectors_rmw_24bpp_src_stride(dev);
     /* and the phased stretches through the stretch queue under the oracle */

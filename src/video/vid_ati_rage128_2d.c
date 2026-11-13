@@ -6104,14 +6104,21 @@ rage128_2d_fill_gradient(rage128_t *dev, int x, int y, int w, int h)
 }
 
 /* Paint the host data streamed for an op started by register writes.
-   The op latched the destination rect and the source datatype;
-   hostdata_buf holds the dwords the driver wrote to HOST_DATA0 through
-   HOST_DATA7 and HOST_DATA_LAST (RRG: HOST_DATA0, pp. 3-151-3-153 / PDF
-   169-171). Each scanline is padded to a dword, as the X driver's
-   color expansion sends it (xf86-video-r128 r128_accel.c, XAA version,
-   R128SubsequentScanlineCPUToScreenColorExpandFill: (w + 31) >> 5
-   dwords per scanline); the 0x19 packet path packs mono rows back to
-   back instead. The mono and color executors do the drawing. */
+   The op latched the destination rect, the source and the source
+   datatype; the data buffer holds the dwords the driver wrote to
+   HOST_DATA0 through HOST_DATA7 and HOST_DATA_LAST (RRG: HOST_DATA0,
+   pp. 3-151-3-153 / PDF 169-171). Source 3 is "loaded thru hostdata
+   (linear trajectory)" (RRG: DP_MIX, p. 3-171 / PDF 189): mono data is
+   then one bit stream, w bits per row and rows back to back with no
+   padding, as the 0x19 packet path reads it. The X driver always pads
+   the blit width to a multiple of 32 and cuts the extra pixels with the
+   scissor (xf86-video-r128 r128_accel.c, XAA version,
+   R128SubsequentScanlineCPUToScreenColorExpandFill), so each of its
+   rows ends on a dword and the stream gives the same bits as rows
+   padded to a dword boundary. Source 4 adds "byte-aligned" to the same
+   text; the code pads each of its mono rows to a dword boundary, which
+   is modeled, not documented. The mono and color executors do the
+   drawing. */
 static void
 rage128_2d_hostdata_paint(rage128_t *dev)
 {
@@ -6129,14 +6136,15 @@ rage128_2d_hostdata_paint(rage128_t *dev)
         rage128_2d_host_color_rect(dev, dev->hostdata_x, dev->hostdata_y, w, h,
                                    (const uint8_t *) dev->hostdata_buf, have * 4, NULL, NULL, 0);
     } else {
-        /* Mono: w bits per scanline, each scanline padded to a dword, so
-           bitpitch is the padded width in bits. If fewer dwords arrived
-           than the whole op needs, only the complete rows are painted. */
-        uint32_t dpw      = ((uint32_t) w + 31) >> 5; /* dwords per scanline */
-        uint32_t bitpitch = dpw * 32;
+        /* Mono: bitpitch is w for the source-3 stream and the width
+           padded to a dword otherwise. If fewer dwords arrived than the
+           whole op needs, only the rows whose bits all arrived are
+           painted. */
+        uint32_t bitpitch = (dev->hostdata_src == 3) ? (uint32_t) w
+                                                     : (((uint32_t) w + 31) & ~31u);
 
-        if (have < dpw * (uint32_t) h)
-            h = (int) (have / dpw);
+        if ((uint64_t) have * 32 < (uint64_t) bitpitch * (uint32_t) h)
+            h = (int) (((uint64_t) have * 32) / bitpitch);
         if (h > 0)
             rage128_2d_mono_rect(dev, dev->hostdata_x, dev->hostdata_y, w, h,
                                  (const uint8_t *) dev->hostdata_buf, bitpitch,
@@ -6268,15 +6276,16 @@ rage128_2d_gui_op_run(rage128_t *dev, int w, int h)
         }
     } else if (src >= 3) {
         /* Set up a host-data op (the X driver's color expansion). The
-           destination rect and the source datatype are latched; the data
-           dwords then arrive through HOST_DATA0-7 and HOST_DATA_LAST
-           (rage128_2d_reg_write) and are painted on the HOST_DATA_LAST
-           write. */
+           destination rect, the source and the source datatype are
+           latched; the data dwords then arrive through HOST_DATA0-7 and
+           HOST_DATA_LAST (rage128_2d_reg_write) and are painted on the
+           HOST_DATA_LAST write. */
         dev->hostdata_active = 1;
         dev->hostdata_x      = dev->gui_dst_x;
         dev->hostdata_y      = dev->gui_dst_y;
         dev->hostdata_w      = w;
         dev->hostdata_h      = h;
+        dev->hostdata_src    = src;
         dev->hostdata_srcdt  = (uint32_t) rage128_dp_src_dt(dev);
         dev->hostdata_ndw    = 0;
         return 0;

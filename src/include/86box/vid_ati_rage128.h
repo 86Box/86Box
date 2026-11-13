@@ -613,12 +613,14 @@ typedef struct rage128_t {
        XAA driver uses for color expansion. A register-triggered op whose
        DP_GUI_MASTER_CNTL source field DP_SRC_SOURCE is 3 or 4 (data
        through HOST_DATA; RRG: DP_GUI_MASTER_CNTL, p. 3-174 / PDF 192)
-       records the destination rectangle and source datatype here. The
-       raster dwords then arrive through HOST_DATA0-7 (0x17c0-0x17dc) and
-       HOST_DATA_LAST (0x17e0), and the HOST_DATA_LAST write paints them
-       (RRG: HOST_DATA_LAST, p. 3-153 / PDF 171). */
+       records the destination rectangle, the source and the source
+       datatype here. The raster dwords then arrive through HOST_DATA0-7
+       (0x17c0-0x17dc) and HOST_DATA_LAST (0x17e0), and the
+       HOST_DATA_LAST write paints them (RRG: HOST_DATA_LAST, p. 3-153 /
+       PDF 171). */
     int      hostdata_active;
     int      hostdata_x, hostdata_y, hostdata_w, hostdata_h;
+    int      hostdata_src;
     int      hostdata_srcdt;
     uint32_t hostdata_ndw;
     uint32_t hostdata_buf[1024];
