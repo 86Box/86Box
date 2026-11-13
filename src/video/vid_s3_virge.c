@@ -3291,6 +3291,81 @@ s3_virge_mmio_write_l(uint32_t addr, uint32_t val, void *priv)
         }                                                                        \
     } while (0)
 
+/* A BitBLT that only copies source to destination (ROP 0xCC, no host data,
+   no transparency) between areas that do not overlap gives the same VRAM as
+   the pixel loop when each row is copied at once. Returns 0, changing
+   nothing, when the command needs the pixel loop. */
+static int
+s3_virge_bitblt_copy_rows(virge_t *virge, int x_mul, int x_inc, int y_inc)
+{
+    uint8_t *vram  = virge->svga.vram;
+    uint32_t mask  = virge->vram_mask;
+    int      w     = virge->s3d.r_width + 1;
+    int      h     = virge->s3d.r_height;
+    int      len   = w * x_mul;
+    int      sx    = (x_inc > 0) ? virge->s3d.rsrc_x : (virge->s3d.rsrc_x - (w - 1));
+    int      dx    = (x_inc > 0) ? virge->s3d.rdest_x : (virge->s3d.rdest_x - (w - 1));
+    int      sy    = virge->s3d.rsrc_y;
+    int      dy    = virge->s3d.rdest_y;
+    int      sy_lo = (y_inc > 0) ? sy : (sy - (h - 1));
+    int      dy_lo = (y_inc > 0) ? dy : (dy - (h - 1));
+    uint32_t s_lo  = 0xffffffff;
+    uint32_t s_hi  = 0;
+    uint32_t d_lo  = 0xffffffff;
+    uint32_t d_hi  = 0;
+
+    if ((virge->s3d.cmd_set & (CMD_SET_IDS | CMD_SET_TP)) || (virge->s3d.rop != 0xcc) || (x_mul > 2) || (h <= 0))
+        return 0;
+    /* The pixel loop wraps x at 0x7ff and never wraps y. */
+    if ((sx < 0) || (dx < 0) || ((sx + w - 1) > 0x7ff) || ((dx + w - 1) > 0x7ff) || (sy_lo < 0) || (dy_lo < 0))
+        return 0;
+    if ((virge->s3d.cmd_set & CMD_SET_HC) &&
+        ((dx < virge->s3d.clip_l) || ((dx + w - 1) > virge->s3d.clip_r) ||
+         (dy_lo < virge->s3d.clip_t) || ((dy_lo + h - 1) > virge->s3d.clip_b)))
+        return 0;
+
+    /* Each row must stay inside VRAM without wrapping, and the source and
+       destination spans must be disjoint. */
+    for (int i = 0; i < h; i++) {
+        uint32_t s = (virge->s3d.src_base + (sx * x_mul) + ((sy_lo + i) * virge->s3d.src_str)) & mask;
+        uint32_t d = (virge->s3d.dest_base + (dx * x_mul) + ((dy_lo + i) * virge->s3d.dest_str)) & mask;
+
+        if (((s + len - 1) > mask) || ((d + len - 1) > mask))
+            return 0;
+        if (s < s_lo)
+            s_lo = s;
+        if ((s + len) > s_hi)
+            s_hi = s + len;
+        if (d < d_lo)
+            d_lo = d;
+        if ((d + len) > d_hi)
+            d_hi = d + len;
+    }
+    if ((s_lo < d_hi) && (d_lo < s_hi))
+        return 0;
+
+    /* Rows go in the pixel loop's order: destination rows may overlap each
+       other when the stride is shorter than a row. */
+    for (int i = 0; i < h; i++) {
+        uint32_t s = (virge->s3d.src_base + (sx * x_mul) + ((sy + (i * y_inc)) * virge->s3d.src_str)) & mask;
+        uint32_t d = (virge->s3d.dest_base + (dx * x_mul) + ((dy + (i * y_inc)) * virge->s3d.dest_str)) & mask;
+
+        memcpy(&vram[d], &vram[s], len);
+        /* The pixel loop marks the page each pixel starts in. */
+        for (uint32_t page = d >> 12; page <= ((d + len - x_mul) >> 12); page++)
+            virge->svga.changedvram[page] = changeframecount;
+    }
+
+    /* Leave the engine where the pixel loop would. */
+    virge->s3d.src_x  = virge->s3d.rsrc_x;
+    virge->s3d.dest_x = virge->s3d.rdest_x;
+    virge->s3d.w      = virge->s3d.r_width;
+    virge->s3d.src_y  = sy + (y_inc * h);
+    virge->s3d.dest_y = dy + (y_inc * h);
+    virge->s3d.h      = 0;
+    return 1;
+}
+
 static void
 s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
 {
@@ -3380,6 +3455,8 @@ s3_virge_bitblt(virge_t *virge, int count, uint32_t cpu_dat)
                 virge->s3d.data_left_count = 0;
 
                 if (virge->s3d.cmd_set & CMD_SET_IDS)
+                    return;
+                if (s3_virge_bitblt_copy_rows(virge, x_mul, x_inc, y_inc))
                     return;
             }
             if (!virge->s3d.h)
