@@ -16438,6 +16438,494 @@ vectors_cce_status_batch_writeback(rage128_t *dev)
 #undef WB_Z_PHYS
 #undef WB_LIMIT_MS
 
+/* ------------------------------------------------------------------ */
+/* The walk hold. An indirect buffer submitted by a direct             */
+/* PM4_IW_INDSIZE write is walked by the submitting thread, which      */
+/* queues its triangles into the render workers' batch itself, so for  */
+/* the length of the walk the executor must start no pass: a pass that */
+/* pops nothing still flushes that batch. Each group submits a buffer  */
+/* of two triangles (A green at x 0 to 16, B blue at x 32 to 48) from  */
+/* a helper thread and forces the pass that would overlap:             */
+/*   A  a pass owed when the second triangle's header is read;         */
+/*   B  a pass already running when the hold is taken;                 */
+/*   C  a register write between the triangles, whose drain needs the  */
+/*      executor, then a pass owed after that drain;                   */
+/*   D  a reset pulse written by the buffer, with the executor backed  */
+/*      off when it comes.                                             */
+/* Limits: each poll of the vector (WH_WAIT, the settle test) gives up */
+/* after 2 s. A submit that has not returned after 8 s is ended by     */
+/* clearing the hold from this thread (the rescue), and the run exits  */
+/* if it has not returned 8 s after that, so a device that leaves the  */
+/* submit stuck fails rows instead of hanging the run. The drains the  */
+/* vector makes on this thread around each submit (drain_sync and the  */
+/* register writes of the setup and the cleanup) have no limit of      */
+/* their own: a device that cannot drain with no walk under way hangs  */
+/* the run there.                                                      */
+/*                                                                     */
+/* Reads of device state. The batch count is written by a flush, under */
+/* the flush mutex, by the thread that appends a primitive, and by the */
+/* thread that writes a reset pulse. The accessor takes the flush      */
+/* mutex. While a submit is under way only the submitting thread       */
+/* appends or resets (the executor is handed no draw packet), and this */
+/* thread's own reset pulses in the setup come before that thread      */
+/* exists. So the count is read only on the submitting thread itself,  */
+/* or on this thread while no submitting thread exists. No poll reads  */
+/* it: polls load atomics only. The target's pixels are written by the */
+/* render workers inside a flush and are read with the same mutex      */
+/* held.                                                               */
+/* ------------------------------------------------------------------ */
+extern _Atomic(void (*)(rage128_t *dev, int site)) rage128_harness_walk_hook;
+extern uint32_t rage128_harness_raster_cmd_count(rage128_t *dev);
+extern int (*harness_bm_read_hook)(uint32_t addr, uint8_t *dst, uint32_t len);
+
+#define WH_AGP_BASE 0x00400000u
+#define WH_IB_CARD  0x00010000u
+#define WH_IB_PHYS  (WH_AGP_BASE + WH_IB_CARD)
+#define WH_TGT      0x00480000u /* local VRAM color target, 64 px ARGB8888 */
+#define WH_COL_A    0xff00ff00u
+#define WH_COL_B    0xff0000ffu
+#define WH_LIMIT_MS 2000.0
+
+enum { WH_OFF, WH_A, WH_B, WH_C, WH_D };
+enum { WH_H_OFF, WH_H_ARMED, WH_H_HOLDING, WH_H_RELEASED, WH_H_TIMED_OUT };
+
+static rage128_t *wh_dev;
+static atomic_int wh_group;
+static atomic_int wh_hold;       /* the idle hook's hold of the executor */
+static atomic_int wh_idle_calls; /* executor passes that reached the idle flush */
+static atomic_int wh_backoffs;   /* executor passes that backed off */
+static atomic_int wh_site0_done;
+static atomic_int wh_running;    /* group B: a pass stood before its idle flush at the hold */
+static atomic_int wh_pass_in_walk;
+static atomic_int wh_timeouts;
+static atomic_int wh_done;
+static int        wh_nib;
+static uint32_t   wh_hdr_b, wh_hdr_r;
+static uint32_t   wh_cnt_b, wh_pa_b;
+static int        wh_idle_at_b;
+
+static void
+wh_usleep(long us)
+{
+    struct timespec ts = { us / 1000000, (us % 1000000) * 1000L };
+
+    nanosleep(&ts, NULL);
+}
+
+/* Poll until the condition holds or WH_LIMIT_MS has passed. The
+   condition may load atomics only: another thread can be running. */
+#define WH_WAIT(cond)                                              \
+    do {                                                           \
+        double wh_t0 = slow_now_ms();                              \
+        while (!(cond) && slow_now_ms() - wh_t0 < WH_LIMIT_MS)     \
+            wh_usleep(50);                                         \
+    } while (0)
+
+/* One pixel of row 2 of the target, read with the flush mutex held:
+   the render workers write the target only inside a flush, and a flush
+   holds that mutex from before it wakes them until they have finished. */
+static uint32_t
+wh_pixel(rage128_t *dev, int x)
+{
+    uint32_t v;
+
+    thread_wait_mutex(dev->raster_flush_mtx);
+    v = *(volatile uint32_t *) &dev->svga.vram[WH_TGT + (2 * 64 + x) * 4];
+    thread_release_mutex(dev->raster_flush_mtx);
+    return v;
+}
+
+static void
+wh_hold_release(void)
+{
+    for (;;) {
+        int expect = WH_H_HOLDING;
+
+        if (atomic_compare_exchange_strong(&wh_hold, &expect, WH_H_RELEASED))
+            return;
+        if (expect != WH_H_ARMED)
+            return;
+        if (atomic_compare_exchange_strong(&wh_hold, &expect, WH_H_OFF))
+            return;
+    }
+}
+
+/* Executor, out of work, before its idle flush. */
+static void
+wh_idle_hook(rage128_t *dev)
+{
+    int expect = WH_H_ARMED;
+
+    (void) dev;
+    atomic_fetch_add(&wh_idle_calls, 1);
+    if (!atomic_compare_exchange_strong(&wh_hold, &expect, WH_H_HOLDING))
+        return;
+    WH_WAIT(atomic_load(&wh_hold) != WH_H_HOLDING);
+    expect = WH_H_HOLDING;
+    atomic_compare_exchange_strong(&wh_hold, &expect, WH_H_TIMED_OUT);
+}
+
+/* Site 0: the submitting thread, before it takes the hold. Site 1: the
+   same thread, when it finds a pass running. Site 2: the executor, when
+   it backs off. Group B uses the first two to stand a pass before its
+   idle flush at the moment the hold is taken, and to let it go once the
+   submitting thread waits for it. */
+static void
+wh_walk_hook(rage128_t *dev, int site)
+{
+    int expect = 0;
+
+    if (site == 2) {
+        atomic_fetch_add(&wh_backoffs, 1);
+        return;
+    }
+    if (atomic_load(&wh_group) != WH_B)
+        return;
+    if (site == 1) {
+        wh_hold_release();
+        return;
+    }
+    if (!atomic_compare_exchange_strong(&wh_site0_done, &expect, 1))
+        return;
+    atomic_store(&wh_hold, WH_H_ARMED);
+    thread_set_event(dev->cce_wake_event);
+    WH_WAIT(atomic_load(&wh_hold) != WH_H_ARMED);
+    atomic_store(&wh_running, atomic_load(&wh_hold) == WH_H_HOLDING
+                                  && atomic_load(&dev->cce_executing));
+    expect = WH_H_ARMED;
+    atomic_compare_exchange_strong(&wh_hold, &expect, WH_H_OFF);
+}
+
+/* Give the executor a pass to make now, from inside the walk, and wait
+   until it has either reached its idle flush and ended the pass, or
+   backed off. Both events are set: an executor asleep out of work takes
+   the wake, one already backed off takes the other and backs off again.
+   Returns the number of idle flushes it started. */
+static int
+wh_force_pass(void)
+{
+    int i0 = atomic_load(&wh_idle_calls);
+    int b0 = atomic_load(&wh_backoffs);
+
+    thread_set_event(wh_dev->cce_wake_event);
+    thread_set_event(wh_dev->cce_hold_event);
+    WH_WAIT(atomic_load(&wh_backoffs) != b0
+            || (atomic_load(&wh_idle_calls) != i0 && !atomic_load(&wh_dev->cce_executing)));
+    if (atomic_load(&wh_backoffs) == b0 && atomic_load(&wh_idle_calls) == i0)
+        atomic_fetch_add(&wh_timeouts, 1);
+    return atomic_load(&wh_idle_calls) - i0;
+}
+
+/* The submitting thread's reads of the buffer. Always returns 0: the
+   read itself is served from ram[]. */
+static int
+wh_read_hook(uint32_t addr, uint8_t *dst, uint32_t len)
+{
+    int group = atomic_load(&wh_group);
+
+    (void) dst;
+    (void) len;
+    if (group == WH_OFF || rage128_on_cce_thread || addr < WH_IB_PHYS
+        || addr >= WH_IB_PHYS + 0x100u)
+        return 0;
+    if (group == WH_D && addr == wh_hdr_r)
+        wh_force_pass(); /* the pulse finds the executor backed off */
+    if (addr != wh_hdr_b)
+        return 0;
+    /* On the submitting thread, the only one that appends here. */
+    wh_cnt_b = rage128_harness_raster_cmd_count(wh_dev);
+    wh_pa_b  = wh_pixel(wh_dev, 2);
+    if (group == WH_B) {
+        /* A pass still standing at its idle flush was not waited for:
+           let it flush now, inside the walk, as it would have. */
+        if (atomic_load(&wh_hold) == WH_H_HOLDING) {
+            atomic_store(&wh_pass_in_walk, 1);
+            wh_hold_release();
+            WH_WAIT(!atomic_load(&wh_dev->cce_executing));
+        }
+        return 0;
+    }
+    wh_idle_at_b = wh_force_pass();
+    /* The pass that goes on after the walk stands at its idle flush
+       until the state at the write's return has been read. */
+    atomic_store(&wh_hold, WH_H_ARMED);
+    return 0;
+}
+
+static void *
+wh_submit_thread(void *priv)
+{
+    wr((rage128_t *) priv, RAGE128_PM4_IW_INDSIZE, (uint32_t) wh_nib);
+    atomic_store(&wh_done, 1);
+    return NULL;
+}
+
+/* The executor asleep, found without a drain: no pass under way and no
+   new idle flush over 1 ms. */
+static int
+wh_settle(rage128_t *dev)
+{
+    int    run = 0;
+    int    c   = atomic_load(&wh_idle_calls);
+    double t0  = slow_now_ms();
+
+    while (run < 5 && slow_now_ms() - t0 < WH_LIMIT_MS) {
+        int c1 = atomic_load(&wh_idle_calls);
+
+        run = (atomic_load(&dev->cce_executing) || c1 != c) ? 0 : run + 1;
+        c   = c1;
+        wh_usleep(200);
+    }
+    return run >= 5;
+}
+
+static int
+wh_add_tri(uint32_t *ib, int n, uint32_t x0, uint32_t x1, uint32_t argb)
+{
+    ib[n++] = 0xc00d2500;
+    ib[n++] = 0x00000008;
+    ib[n++] = 0x00030034;
+    ib[n++] = x0; ib[n++] = 0x00000000;
+    ib[n++] = 0x3e800000; ib[n++] = argb;
+    ib[n++] = x1; ib[n++] = 0x00000000;
+    ib[n++] = 0x3e800000; ib[n++] = argb;
+    ib[n++] = x0; ib[n++] = 0x41800000;
+    ib[n++] = 0x3e800000; ib[n++] = argb;
+    return n;
+}
+
+typedef struct wh_res_t {
+    int      setup;    /* the executor was asleep before the submit */
+    int      rescued;  /* the submit returned only after the hold was cleared from here */
+    uint32_t cnt_b;    /* batch count at the read of B's header */
+    uint32_t pa_b;     /* pixel A at that read */
+    int      idle_at_b;
+    uint32_t cnt_ret;  /* at the write's return */
+    int      pend_ret;
+    int      settled;
+    uint32_t cnt_end, pa, pb, stat;
+    int      pend_end;
+    int      running, pass_in_walk, timeouts, backoffs;
+} wh_res_t;
+
+static void
+wh_run(rage128_t *dev, int group, wh_res_t *r)
+{
+    uint32_t *ib = (uint32_t *) (ram + WH_IB_PHYS);
+    pthread_t th;
+    double    t0;
+    int       n = 0;
+
+    memset(r, 0, sizeof(*r));
+    wh_hdr_r = 0;
+    n        = wh_add_tri(ib, n, 0x00000000, 0x41800000, WH_COL_A); /* x 0 to 16 */
+    if (group == WH_C) {
+        ib[n++] = 0x000005b3; /* PACKET0(DP_WRITE_MASK, 1): a FIFOed register */
+        ib[n++] = 0xffffffff;
+    } else if (group == WH_D) {
+        wh_hdr_r = WH_IB_PHYS + (uint32_t) n * 4;
+        ib[n++]  = 0x0000003c; /* PACKET0(GEN_RESET_CNTL, 1) */
+        ib[n++]  = RAGE128_GEN_SOFT_RESET_GUI;
+        ib[n++]  = 0x0000003c;
+        ib[n++]  = 0x00000000;
+    }
+    wh_hdr_b = WH_IB_PHYS + (uint32_t) n * 4;
+    n        = wh_add_tri(ib, n, 0x42000000, 0x42400000, WH_COL_B); /* x 32 to 48 */
+    wh_nib   = n;
+
+    drain_sync(dev);
+    memset(&dev->svga.vram[WH_TGT], 0, 64 * 32 * 4);
+    atomic_store(&wh_hold, WH_H_OFF);
+    atomic_store(&wh_site0_done, 0);
+    atomic_store(&wh_running, 0);
+    atomic_store(&wh_pass_in_walk, 0);
+    atomic_store(&wh_timeouts, 0);
+    atomic_store(&wh_backoffs, 0);
+    atomic_store(&wh_done, 0);
+    wh_cnt_b     = 0xffffffffu;
+    wh_pa_b      = 0;
+    wh_idle_at_b = -1;
+    wr(dev, RAGE128_PM4_IW_INDOFF, WH_IB_CARD); /* drains: before any wake is set */
+    /* No submitting thread exists yet, so nothing appends. */
+    r->setup = wh_settle(dev) && rage128_harness_raster_cmd_count(dev) == 0
+        && !atomic_load(&dev->cce_batch_pending);
+
+    atomic_store(&wh_group, group);
+    if (pthread_create(&th, NULL, wh_submit_thread, dev) != 0) {
+        atomic_store(&wh_group, WH_OFF);
+        r->setup = 0;
+        return;
+    }
+    t0 = slow_now_ms();
+    while (!atomic_load(&wh_done) && slow_now_ms() - t0 < 4 * WH_LIMIT_MS)
+        wh_usleep(100);
+    if (!atomic_load(&wh_done)) {
+        /* The submit is stuck in a wait that needs the executor: clear
+           the hold from here so the executor runs, and let the hooks'
+           holds go. */
+        r->rescued = 1;
+        t0         = slow_now_ms();
+        while (!atomic_load(&wh_done) && slow_now_ms() - t0 < 4 * WH_LIMIT_MS) {
+            atomic_store(&dev->cce_walk_hold, 0);
+            thread_set_event(dev->cce_hold_event);
+            wh_hold_release();
+            wh_usleep(1000);
+        }
+        if (!atomic_load(&wh_done)) {
+            printf("FAIL cpu walk: group %d: the submit never returned; stopping the run\n", group);
+            fflush(stdout);
+            exit(1);
+        }
+    }
+    pthread_join(th, NULL);
+
+    /* The submitting thread has ended: nothing appends from here on, and
+       the executor's flushes are shut out by the accessor's mutex. */
+    r->cnt_ret  = rage128_harness_raster_cmd_count(dev);
+    r->pend_ret = atomic_load(&dev->cce_batch_pending);
+    wh_hold_release();
+    /* Whatever pass is owed runs by itself: no wake and no drain here.
+       Group B leaves none owed, and its batch stays queued. The poll
+       loads the three atomics the flush and the pass store, never the
+       batch count, which the executor's flush can be storing meanwhile:
+       the flush clears the count before it drops cce_batch_pending, and
+       the rows read the count afterwards, through the accessor. */
+    if (group != WH_B)
+        WH_WAIT(!atomic_load(&dev->cce_batch_pending)
+                && !atomic_load(&dev->cce_batch_flushing) && !atomic_load(&dev->cce_executing));
+    r->settled  = wh_settle(dev);
+    r->cnt_end  = rage128_harness_raster_cmd_count(dev);
+    r->pend_end = atomic_load(&dev->cce_batch_pending);
+    r->pa       = wh_pixel(dev, 2);
+    r->pb       = wh_pixel(dev, 34);
+    r->stat     = rd(dev, RAGE128_GUI_STAT);
+
+    r->cnt_b        = wh_cnt_b;
+    r->pa_b         = wh_pa_b;
+    r->idle_at_b    = wh_idle_at_b;
+    r->running      = atomic_load(&wh_running);
+    r->pass_in_walk = atomic_load(&wh_pass_in_walk);
+    r->timeouts     = atomic_load(&wh_timeouts);
+    r->backoffs     = atomic_load(&wh_backoffs);
+
+    /* Leave nothing asleep or queued behind a red row. */
+    atomic_store(&wh_group, WH_OFF);
+    wh_hold_release();
+    atomic_store(&wh_hold, WH_H_OFF);
+    atomic_store(&dev->cce_walk_hold, 0);
+    thread_set_event(dev->cce_hold_event);
+    drain_sync(dev);
+    printf("cpu walk: data: group %c: setup=%d rescued=%d at B: count=%u A=%08x idle flushes=%d; "
+           "return: count=%u flag=%d; after: count=%u flag=%d A=%08x B=%08x GUI_STAT=%08x; "
+           "running=%d pass in walk=%d back-offs=%d timeouts=%d\n",
+           'A' + group - WH_A, r->setup, r->rescued, r->cnt_b, r->pa_b, r->idle_at_b, r->cnt_ret,
+           r->pend_ret, r->cnt_end, r->pend_end, r->pa, r->pb, r->stat, r->running,
+           r->pass_in_walk, r->backoffs, r->timeouts);
+}
+
+static void
+vectors_cpu_walk_hold(rage128_t *dev)
+{
+    wh_res_t r;
+
+    if (rage128_raster_nthreads(dev) <= 1)
+        return;
+    wh_dev = dev;
+    harness_ram_alloc();
+    harness_sysmem_stray = 0;
+
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    wr(dev, RAGE128_PCI_GART_PAGE, 1);
+    wr(dev, RAGE128_AGP_BASE, WH_AGP_BASE);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+    wr(dev, RAGE128_GEN_RESET_CNTL, 0);
+    /* The local-VRAM draw context of the fence-order vector. */
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0);
+    wr(dev, 0x16f0, 0x001f003f);
+    wr(dev, 0x16c0, 3);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0);
+    wr(dev, 0x16c4, 6);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000 | (WH_TGT >> 5));
+    wr(dev, RAGE128_TEX_CNTL_C, 0);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_PM4_VC_FPU_SETUP,
+       RAGE128_FPU_BACKFACE_SOLID | RAGE128_FPU_FRONTFACE_SOLID | RAGE128_FPU_COLOR_GOURAUD);
+    wr(dev, RAGE128_SETUP_CNTL, 0x20);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0);
+    scan_exec_quiesce(dev);
+
+    atomic_store(&wh_group, WH_OFF);
+    atomic_store(&rage128_harness_idle_hook, wh_idle_hook);
+    atomic_store(&rage128_harness_walk_hook, wh_walk_hook);
+    harness_bm_read_hook = wh_read_hook;
+
+    wh_run(dev, WH_A, &r);
+    check_true("cpu walk: control: the first triangle is queued when the second header is read",
+               r.setup && r.cnt_b == 1);
+    check_true("cpu walk: no executor idle flush starts inside the walk",
+               r.idle_at_b == 0 && !r.timeouts);
+    check_true("cpu walk: both triangles queued, batch flag set at the write's return",
+               r.cnt_ret == 2 && r.pend_ret == 1);
+    check_true("cpu walk: after the owed pass both are drawn and the engine is idle",
+               r.settled && r.pa == WH_COL_A && r.pb == WH_COL_B && r.cnt_end == 0
+                   && !r.pend_end && r.stat == 0x00000040u);
+
+    wh_run(dev, WH_B, &r);
+    check_true("cpu walk: control: a pass stood before its idle flush when the hold was taken",
+               r.setup && r.running);
+    check_true("cpu walk: that pass was waited out: both queued, flag set at the return",
+               !r.pass_in_walk && r.cnt_b == 1 && r.cnt_ret == 2 && r.pend_ret == 1);
+
+    wh_run(dev, WH_C, &r);
+    check_true("cpu walk: a register write behind a queued triangle returns, triangle drawn",
+               r.setup && !r.rescued && r.cnt_b == 0 && r.pa_b == WH_COL_A);
+    check_true("cpu walk: a pass owed after that drain stays out of the walk",
+               r.idle_at_b == 0 && !r.timeouts && r.cnt_ret == 1 && r.pend_ret == 1);
+    check_true("cpu walk: after that walk both are drawn and the engine is idle",
+               r.settled && r.pa == WH_COL_A && r.pb == WH_COL_B && r.cnt_end == 0
+                   && !r.pend_end && r.stat == 0x00000040u);
+
+    wh_run(dev, WH_D, &r);
+    check_true("cpu walk: a reset pulse written by the buffer returns", r.setup && !r.rescued);
+    check_true("cpu walk: after the pulse the first triangle is dropped, the second drawn, idle",
+               r.settled && r.pa == 0 && r.pb == WH_COL_B && r.cnt_end == 0 && !r.pend_end
+                   && r.stat == 0x00000040u);
+
+    harness_bm_read_hook = NULL;
+    atomic_store(&rage128_harness_walk_hook, NULL);
+    drain_sync(dev);
+    atomic_store(&rage128_harness_idle_hook, NULL);
+    printf("cpu walk: data: stray bus accesses=%llu\n", (unsigned long long) harness_sysmem_stray);
+    /* Flushed here: an existing leg that drains inside a CPU-thread walk
+       comes later in the run, and a device that fails the rows above can
+       hang there with these lines still in the buffer. */
+    fflush(stdout);
+}
+
+/* Its own device: the vector reprograms the draw context and the AGP
+   addressing, and must come before the vectors that share one. */
+static void
+run_cpu_walk_hold(void)
+{
+    rage128_t *dev;
+
+    harness_cfg_render_threads = 2;
+    dev                        = rage128_init(&ati_rage128_pro_device);
+    vectors_cpu_walk_hold(dev);
+    close_dev(dev);
+    harness_cfg_render_threads = 1;
+}
+#undef WH_AGP_BASE
+#undef WH_IB_CARD
+#undef WH_IB_PHYS
+#undef WH_TGT
+
 static void
 run_agp_32mb_threaded(void)
 {
@@ -29896,6 +30384,8 @@ main(int argc, char **argv)
         run_agp_16mb();
     if (unit_selected("pci-xpert128"))
         run_pci_xpert128();
+    if (unit_selected("agp-oracle"))
+        run_cpu_walk_hold();
     if (unit_selected("agp-oracle"))
         run_agp_32mb_threaded();
     if (unit_selected("pci-variant"))

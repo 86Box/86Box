@@ -820,6 +820,14 @@ typedef struct rage128_t {
                                      pointers, so the CPU thread's reset stores
                                      cannot race it. cce_executing does not tell
                                      that, since it also drops between packets. */
+    atomic_int cce_walk_hold;     /* CPU thread is walking an indirect buffer it
+                                     was handed by a direct PM4_IW_INDSIZE
+                                     write, and queues primitives itself. The
+                                     executor loads this at the top of every
+                                     pass and starts none while it is set (see
+                                     rage128_pm4_walk_hold in
+                                     vid_ati_rage128_pm4.c). Written by the CPU
+                                     thread only */
     atomic_int gui_idle_event;    /* engine went from busy to idle since the last
                                      check; turned into GEN_INT_STATUS bit 19 on
                                      the CPU thread only */
@@ -852,6 +860,8 @@ typedef struct rage128_t {
     event_t   *cce_wake_event; /* work queued                   */
     event_t   *cce_idle_event; /* FIFO drained + engine idle    */
     event_t   *cce_flip_event; /* vsync consumed a pending flip */
+    event_t   *cce_hold_event; /* cce_walk_hold dropped, a reset
+                                  pulse, or the thread closing  */
     pc_timer_t cce_pump_timer; /* resumes ring->FIFO copy       */
 
     /* Emulation speed window, kept by the display block: at each vsync,

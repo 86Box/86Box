@@ -87,6 +87,98 @@ static _Thread_local int rage128_ring_fetch    = 0;
    payload instead of one record per dword. */
 static _Thread_local int rage128_cap_in_block = 0;
 
+/* The walk hold. An indirect buffer submitted by a direct write to
+   PM4_IW_INDSIZE is walked by the CPU thread, which then queues the
+   buffer's primitives into the render workers' deferred batch itself.
+   The queue takes no lock, and the CCE thread empties the same batch
+   whenever a pass of its loop runs a flush, so for the length of such a
+   walk the CCE thread must start no pass at all. The drain that precedes
+   the submit does not give that: it returns once the CCE thread reads as
+   stopped, and a wake set earlier (the release after a reset pulse, a
+   drain's own nudge, a queued register write) starts a pass after it.
+
+   The CPU thread sets cce_walk_hold and then waits while cce_executing
+   reads 1. The CCE thread stores cce_executing = 1 at the top of a pass
+   and then loads cce_walk_hold; when it is set the thread leaves the
+   pass before it looks at any work and sleeps on cce_hold_event. Each
+   side stores its own flag before it loads the other's, and both use
+   sequentially consistent accesses, so at least one of them sees the
+   other: either the CCE thread backs off, or the CPU thread waits until
+   the pass has ended. Every flush the CCE thread makes lies inside a
+   pass, between those two stores of cce_executing, so none can run
+   while the CPU thread queues. The pass waited for is a short one. Only
+   the CPU thread fills the command FIFO, and the drain before the submit
+   either left it empty or gave up on a hung engine, whose executor
+   consumes nothing more: its hung test ends the pass before any pop. So
+   that pass pops nothing and waits for nothing the CPU thread owes.
+
+   Dropping the hold clears the flag first and sets the event second. A
+   CCE thread that backed off then starts its loop from the top: it
+   stores cce_executing again, tests for an abort and loads the flag
+   before it looks at any work. That pass first runs whatever the
+   command FIFO holds by then, a WAIT_UNTIL the buffer queued or ring
+   words a pump copied in, and when it is out of work its idle flush
+   draws what the walk queued. A release that finds nobody backed off
+   wakes nobody. Unless a pass is already on its way to the hold test,
+   in which case it finds the flag clear and runs, the batch then stays
+   queued, and the engine busy, until the next wake or drain. The CCE
+   thread resets the event after its wait, so a set that lands between
+   the wait and the reset is lost.
+   That costs nothing, because the thread loads the flag next and acts
+   on what it then reads: clear, and the pass goes on, or set again by a
+   new hold, and it backs off again until that hold's release sets the
+   event.
+
+   rage128_walk_hold_owner is the device whose hold the calling thread
+   has taken, so a submit nested in the walk does not take or drop the
+   hold a second time, and a drain knows whether it runs inside a walk
+   without loading the shared flag. */
+static _Thread_local rage128_t *rage128_walk_hold_owner = NULL;
+
+#ifdef REG_HARNESS
+/* Register-harness probe points of the walk hold: site 0 on the CPU
+   thread before it sets the flag, site 1 on the CPU thread each time it
+   finds a pass still running, site 2 on the CCE thread when it backs
+   off. Null outside the vectors that use it. */
+_Atomic(void (*)(rage128_t *dev, int site)) rage128_harness_walk_hook;
+
+static void
+rage128_pm4_walk_site(rage128_t *dev, int site)
+{
+    void (*hook)(rage128_t *dev, int site) = atomic_load(&rage128_harness_walk_hook);
+
+    if (hook)
+        hook(dev, site);
+}
+#else
+#    define rage128_pm4_walk_site(dev, site) ((void) 0)
+#endif
+
+static void
+rage128_pm4_walk_hold(rage128_t *dev)
+{
+    rage128_pm4_walk_site(dev, 0);
+    atomic_store(&dev->cce_walk_hold, 1);
+    for (;;) {
+        /* Reset before the test: the CCE thread sets the event after it
+           drops cce_executing, so a pass that ends after the test still
+           ends the wait. The timeout covers a pass that ends without
+           the event. */
+        thread_reset_event(dev->cce_idle_event);
+        if (!dev->cce_thread_run || !atomic_load(&dev->cce_executing))
+            break;
+        rage128_pm4_walk_site(dev, 1);
+        thread_wait_event(dev->cce_idle_event, 1);
+    }
+}
+
+static void
+rage128_pm4_walk_release(rage128_t *dev)
+{
+    atomic_store(&dev->cce_walk_hold, 0);
+    thread_set_event(dev->cce_hold_event);
+}
+
 void
 rage128_pm4_reset(rage128_t *dev)
 {
@@ -663,6 +755,12 @@ rage128_cce_fifo_reserve(rage128_t *dev, uint32_t wr, uint32_t need)
             stalled = 1;
             break;
         }
+        /* A pump made from inside a CPU-thread walk (a queued WAIT_UNTIL,
+           or a BUS_CNTL write that re-enables bus mastering): the walk
+           hold keeps the executor from popping anything, so no room will
+           appear. Leave at once, as when the wait runs out. */
+        if (atomic_load(&dev->cce_walk_hold))
+            break;
         thread_reset_event(dev->cce_idle_event);
         if (rage128_cce_fifo_space(dev, wr) >= need)
             break;
@@ -1011,6 +1109,11 @@ rage128_pm4_gui_reset(rage128_t *dev)
         atomic_store(&dev->cce_parked, 0);
         atomic_store(&dev->cce_abort, 1);
         thread_set_event(dev->cce_wake_event);
+        /* A pulse written by an indirect buffer that this thread is
+           walking finds the executor backed off behind the walk hold,
+           asleep on cce_hold_event. It tests cce_abort before the hold,
+           so once awake it parks like any other. */
+        thread_set_event(dev->cce_hold_event);
         /* A WAIT_UNTIL flip stall waits for this thread to latch the
            flip. The cce_abort test in its loop is what ends it; the event
            only saves it waiting out its 1 ms timeout. */
@@ -1103,11 +1206,9 @@ rage128_pm4_reg_in_fetch_block(uint32_t reg, uint32_t nregs)
 int (*rage128_harness_drain_hook)(rage128_t *dev);
 _Atomic(void (*)(rage128_t *dev)) rage128_harness_idle_hook;
 
-void
-rage128_pm4_drain_wait(rage128_t *dev)
+static void
+rage128_pm4_drain_run(rage128_t *dev)
 {
-    if (!dev->cce_thread || rage128_on_cce_thread)
-        return;
     if (!rage128_pm4_active(dev)) {
         /* Executor idle: draw any deferred 3D batch so the caller's
            direct access sees the finished pixels. The flush is safe here
@@ -1206,6 +1307,33 @@ rage128_pm4_drain_wait(rage128_t *dev)
     /* Engine idle: draw any deferred 3D batch. */
     rage128_raster_flush(dev);
     atomic_store(&dev->cce_drain_req, 0);
+}
+
+/* A drain made from inside a CPU-thread walk, by a register write in the
+   buffer, a page flip or the GPU backend's barrier, needs the executor:
+   with primitives queued the engine reads busy until the executor's idle
+   flush has drawn them, and a WAIT_UNTIL the buffer queued has to run.
+   The walk hold is dropped for the length of the drain, during which
+   this thread queues nothing, and taken again before the walk goes on.
+   The owner mark is cleared meanwhile so that a drain entered from
+   inside this one leaves the hold alone. */
+void
+rage128_pm4_drain_wait(rage128_t *dev)
+{
+    int in_walk;
+
+    if (!dev->cce_thread || rage128_on_cce_thread)
+        return;
+    in_walk = rage128_walk_hold_owner == dev;
+    if (in_walk) {
+        rage128_walk_hold_owner = NULL;
+        rage128_pm4_walk_release(dev);
+    }
+    rage128_pm4_drain_run(dev);
+    if (in_walk) {
+        rage128_pm4_walk_hold(dev);
+        rage128_walk_hold_owner = dev;
+    }
 }
 
 /* The display moved something a WAIT_UNTIL stall waits on: vsync latched
@@ -1645,6 +1773,23 @@ rage128_cce_thread(void *priv)
             continue;
         }
         atomic_store(&dev->cce_parked, 0);
+        /* The CPU thread is walking an indirect buffer of its own and
+           queues primitives itself: start no pass (see
+           rage128_pm4_walk_hold). The test comes after the store of
+           cce_executing above, which is what lets the CPU thread see a
+           pass that got past it, and after the abort test, because a
+           reset pulse written by that buffer waits for cce_parked. The
+           wait has no timeout: every store that clears the flag is
+           followed by a set of the event, and so are the reset pulse and
+           the close. */
+        if (atomic_load(&dev->cce_walk_hold)) {
+            atomic_store(&dev->cce_executing, 0);
+            rage128_pm4_walk_site(dev, 2);
+            thread_set_event(dev->cce_idle_event);
+            thread_wait_event(dev->cce_hold_event, -1);
+            thread_reset_event(dev->cce_hold_event);
+            continue;
+        }
         /* Hung engine: start nothing more. Only the reset pulse, through
            the abort above, clears it. The engine reads busy through
            cce_hung from here on, so cce_work is dropped: the wait below
@@ -1671,7 +1816,9 @@ rage128_cce_thread(void *priv)
             /* Out of submitted work: draw any deferred 3D batch now, so
                the finished frame is in VRAM before scanout shows it. This
                covers clients that flip without a WAIT_UNTIL. It runs on
-               the CCE thread, so it cannot race a submit. The retire
+               the CCE thread, and a pass gets here only while the CPU
+               thread holds no walk hold, so it cannot race a submit from
+               either thread. The retire
                pointer held behind the batch catches up once the pixels
                are in memory; the pump timer, armed while the published
                pointer lags the fetch pointer, carries it to the host. */
@@ -1810,6 +1957,7 @@ rage128_pm4_thread_init(rage128_t *dev)
     atomic_store(&dev->cce_flip_stalled, 0);
     atomic_store(&dev->cce_abort, 0);
     atomic_store(&dev->cce_parked, 0);
+    atomic_store(&dev->cce_walk_hold, 0);
     atomic_store(&dev->cce_starved, 0);
     atomic_store(&dev->cce_hung, 0);
     atomic_store(&dev->gui_idle_event, 0);
@@ -1876,6 +2024,7 @@ rage128_pm4_thread_init(rage128_t *dev)
     dev->cce_wake_event = thread_create_event();
     dev->cce_idle_event = thread_create_event();
     dev->cce_flip_event = thread_create_event();
+    dev->cce_hold_event = thread_create_event();
     dev->cce_thread_run = 1;
     dev->cce_thread     = thread_create_named(rage128_cce_thread, dev, "rage128_cce");
 }
@@ -1891,12 +2040,15 @@ rage128_pm4_thread_close(rage128_t *dev)
     dev->cce_thread_run = 0;
     thread_set_event(dev->cce_wake_event);
     thread_set_event(dev->cce_flip_event);
+    thread_set_event(dev->cce_hold_event);
     thread_wait(dev->cce_thread);
     dev->cce_thread = NULL;
     thread_destroy_event(dev->cce_wake_event);
     thread_destroy_event(dev->cce_idle_event);
     thread_destroy_event(dev->cce_flip_event);
+    thread_destroy_event(dev->cce_hold_event);
     dev->cce_wake_event = dev->cce_idle_event = dev->cce_flip_event = NULL;
+    dev->cce_hold_event = NULL;
     free(dev->cce_fifo);
     dev->cce_fifo = NULL;
     free(dev->cce_fifo_rptr);
@@ -2471,7 +2623,25 @@ rage128_pm4_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
                PM4_IW_INDOFF first and PM4_IW_INDSIZE second. */
             MERGE(dev->pm4_iw_indsize);
             dev->pm4_iw_indsize &= RAGE128_PM4_IW_INDSIZE_MASK;
-            rage128_pm4_run_indirect(dev);
+            {
+                /* A direct submit: this thread walks the buffer, so it
+                   takes the walk hold for the length of the walk. Not on
+                   the CCE thread, whose own passes run its walks, and
+                   not for a submit written by the buffer being walked,
+                   which runs under the hold already taken. */
+                rage128_t *prev = rage128_walk_hold_owner;
+                int        hold = !rage128_on_cce_thread && dev->cce_thread && prev != dev;
+
+                if (hold) {
+                    rage128_pm4_walk_hold(dev);
+                    rage128_walk_hold_owner = dev;
+                }
+                rage128_pm4_run_indirect(dev);
+                if (hold) {
+                    rage128_walk_hold_owner = prev;
+                    rage128_pm4_walk_release(dev);
+                }
+            }
             return 1;
         case RAGE128_WAIT_UNTIL:
             /* EVENT_CRTC_OFFSET [0]: "stall cmdfifo" until the display
