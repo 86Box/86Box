@@ -196,7 +196,7 @@ fetch_ea_16_long(uint32_t rmdat)
 #define PREFETCH_RUN(instr_cycles, bytes, modrm, reads, reads_l, writes, writes_l, ea32)      \
     do {                                                                                      \
         if (cpu_prefetch_cycles)                                                              \
-            prefetch_run(instr_cycles, bytes, modrm, reads, reads_l, writes, writes_l, ea32); \
+            prefetch_run_inline(instr_cycles, bytes, modrm, reads, reads_l, writes, writes_l, ea32); \
     } while (0)
 
 #define PREFETCH_PREFIX()        \
@@ -580,6 +580,48 @@ update_tsc_write(uint64_t new_tsc)
     tsc_old += new_tsc - tsc;
 }
 
+/*The events the loop takes after a block, read as three words: nonzero when
+  any may be due. cpu_events.irq stands for the interrupt sources below.*/
+_Static_assert(offsetof(cpu_events_t, ne) == offsetof(cpu_events_t, init) + 4
+                   && offsetof(cpu_events_t, irq) == offsetof(cpu_events_t, nmi_req) + 4
+                   && offsetof(cpu_events_t, irq_pad) == offsetof(cpu_events_t, irq) + 1
+                   && offsetof(cpu_state_t, _smi_line) == offsetof(cpu_state_t, abrt) + 1
+                   && !(offsetof(cpu_events_t, stpclk) & 7)
+                   && offsetof(cpu_events_t, throttle_run) == offsetof(cpu_events_t, stpclk) + 4,
+               "the event words are pairs of adjacent fields");
+
+static __inline int
+cpu_events_due(void)
+{
+    uint64_t init_ne;
+    uint64_t nmi_irq;
+    uint16_t abrt_smi;
+
+    memcpy(&init_ne, &cpu_events.init, sizeof(init_ne));
+    memcpy(&nmi_irq, &cpu_events.nmi_req, sizeof(nmi_irq));
+    memcpy(&abrt_smi, &cpu_state.abrt, sizeof(abrt_smi));
+
+    return (init_ne | nmi_irq | abrt_smi) != 0;
+}
+
+/*As cpu_events_due(), and the clock control: nonzero when anything the loop
+  does after a block may have work*/
+static __inline int
+cpu_after_block_due(void)
+{
+    uint64_t init_ne;
+    uint64_t nmi_irq;
+    uint64_t clock;
+    uint16_t abrt_smi;
+
+    memcpy(&init_ne, &cpu_events.init, sizeof(init_ne));
+    memcpy(&nmi_irq, &cpu_events.nmi_req, sizeof(nmi_irq));
+    memcpy(&clock, &cpu_events.stpclk, sizeof(clock));
+    memcpy(&abrt_smi, &cpu_state.abrt, sizeof(abrt_smi));
+
+    return (init_ne | nmi_irq | clock | abrt_smi) != 0;
+}
+
 /* dbg is a constant, cpu_debug_regs_486 as the block starts: each caller below
    gets a copy of the loop, and with the option off the debug register
    handling is not compiled in at all. */
@@ -679,24 +721,29 @@ exec386_dynarec_int_common(const int dbg)
                 CPU_BLOCK_END();
         }
 
-        if (cpu_init)
+        if (trap)
             CPU_BLOCK_END();
+        /* The tests below all fail while the event words are clear, as the
+           loop after a block takes them: cpu_events.irq is set while any
+           source x86_external_interrupt_pending() reads may hold one. */
+        else if (cpu_after_block_due()) {
+            if (cpu_init)
+                CPU_BLOCK_END();
 
-        if (cpu_state.abrt)
-            CPU_BLOCK_END();
-        if (smi_line)
-            CPU_BLOCK_END();
-        else if (new_ne)
-            CPU_BLOCK_END();
-        else if (trap)
-            CPU_BLOCK_END();
-        else if (NMI_TAKEABLE())
-            CPU_BLOCK_END();
-        else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending() && !cpu_end_block_after_ins)
-            CPU_BLOCK_END();
-        /* A P_LVL2/P_LVL3 read stopped the processor. */
-        if (cpu_stpclk)
-            CPU_BLOCK_END();
+            if (cpu_state.abrt)
+                CPU_BLOCK_END();
+            if (smi_line)
+                CPU_BLOCK_END();
+            else if (new_ne)
+                CPU_BLOCK_END();
+            else if (NMI_TAKEABLE())
+                CPU_BLOCK_END();
+            else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending() && !cpu_end_block_after_ins)
+                CPU_BLOCK_END();
+            /* A P_LVL2/P_LVL3 read stopped the processor. */
+            if (cpu_stpclk)
+                CPU_BLOCK_END();
+        }
     }
 
 block_ended:
@@ -1267,48 +1314,6 @@ exec386_dynarec_dyn(const int dbg)
     } else
         cpu_state.oldpc = cpu_state.pc;
 
-}
-
-/*The events the loop takes after a block, read as three words: nonzero when
-  any may be due. cpu_events.irq stands for the interrupt sources below.*/
-_Static_assert(offsetof(cpu_events_t, ne) == offsetof(cpu_events_t, init) + 4
-                   && offsetof(cpu_events_t, irq) == offsetof(cpu_events_t, nmi_req) + 4
-                   && offsetof(cpu_events_t, irq_pad) == offsetof(cpu_events_t, irq) + 1
-                   && offsetof(cpu_state_t, _smi_line) == offsetof(cpu_state_t, abrt) + 1
-                   && !(offsetof(cpu_events_t, stpclk) & 7)
-                   && offsetof(cpu_events_t, throttle_run) == offsetof(cpu_events_t, stpclk) + 4,
-               "the event words are pairs of adjacent fields");
-
-static __inline int
-cpu_events_due(void)
-{
-    uint64_t init_ne;
-    uint64_t nmi_irq;
-    uint16_t abrt_smi;
-
-    memcpy(&init_ne, &cpu_events.init, sizeof(init_ne));
-    memcpy(&nmi_irq, &cpu_events.nmi_req, sizeof(nmi_irq));
-    memcpy(&abrt_smi, &cpu_state.abrt, sizeof(abrt_smi));
-
-    return (init_ne | nmi_irq | abrt_smi) != 0;
-}
-
-/*As cpu_events_due(), and the clock control: nonzero when anything the loop
-  does after a block may have work*/
-static __inline int
-cpu_after_block_due(void)
-{
-    uint64_t init_ne;
-    uint64_t nmi_irq;
-    uint64_t clock;
-    uint16_t abrt_smi;
-
-    memcpy(&init_ne, &cpu_events.init, sizeof(init_ne));
-    memcpy(&nmi_irq, &cpu_events.nmi_req, sizeof(nmi_irq));
-    memcpy(&clock, &cpu_events.stpclk, sizeof(clock));
-    memcpy(&abrt_smi, &cpu_state.abrt, sizeof(abrt_smi));
-
-    return (init_ne | nmi_irq | clock | abrt_smi) != 0;
 }
 
 /*Any source x86_external_interrupt_pending() can answer yes from*/

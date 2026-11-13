@@ -552,40 +552,30 @@ is_lock_legal(uint32_t fetchdat)
 */
 static int prefetch_bytes = 0;
 
-void
-prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int writes, int writes_l, int ea32)
-{
-    int mem_cycles = reads * cpu_cycles_read + reads_l * cpu_cycles_read_l + writes * cpu_cycles_write + writes_l * cpu_cycles_write_l;
+/* The bytes the modrm (and SIB) byte adds, as the original decode gave them:
+   for a SIB with base 5 it is 5 whatever the mod. */
+#define PF_EA16(m) ((((m) & 0xc7) == 0x06) ? 2 : ((((m) & 0xc0) != 0xc0) ? (((m) & 0xc0) >> 6) : 0))
+#define PF_EA32(m)                                                                                      \
+    ((((m) & 7) == 4) ? ((((m) & 0x700) == 0x500) ? 5 : ((((m) & 0xc0) == 0x40) ? 2 : ((((m) & 0xc0) == 0x80) ? 5 : 0))) \
+                      : ((((m) & 0xc7) == 0x05) ? 4 : ((((m) & 0xc0) == 0x40) ? 1 : ((((m) & 0xc0) == 0x80) ? 4 : 0))))
+#define PF_R4(f, b)    f(b), f((b) + 1), f((b) + 2), f((b) + 3)
+#define PF_R16(f, b)   PF_R4(f, b), PF_R4(f, (b) + 4), PF_R4(f, (b) + 8), PF_R4(f, (b) + 12)
+#define PF_R64(f, b)   PF_R16(f, b), PF_R16(f, (b) + 16), PF_R16(f, (b) + 32), PF_R16(f, (b) + 48)
+#define PF_R256(f, b)  PF_R64(f, b), PF_R64(f, (b) + 64), PF_R64(f, (b) + 128), PF_R64(f, (b) + 192)
+#define PF_R1024(f, b) PF_R256(f, b), PF_R256(f, (b) + 256), PF_R256(f, (b) + 512), PF_R256(f, (b) + 768)
 
+const uint8_t prefetch_ea16_len[256]  = { PF_R256(PF_EA16, 0) };
+const uint8_t prefetch_ea32_len[2048] = { PF_R1024(PF_EA32, 0), PF_R1024(PF_EA32, 1024) };
+
+/* The out of line part of PREFETCH_RUN(): bytes includes the modrm's. */
+void
+prefetch_run(int instr_cycles, int mem_cycles, int bytes)
+{
     if (instr_cycles < mem_cycles)
         instr_cycles = mem_cycles;
 
     prefetch_bytes -= prefetch_prefixes;
     prefetch_bytes -= bytes;
-    if (modrm != -1) {
-        if (ea32) {
-            if ((modrm & 7) == 4) {
-                if ((modrm & 0x700) == 0x500)
-                    prefetch_bytes -= 5;
-                else if ((modrm & 0xc0) == 0x40)
-                    prefetch_bytes -= 2;
-                else if ((modrm & 0xc0) == 0x80)
-                    prefetch_bytes -= 5;
-            } else {
-                if ((modrm & 0xc7) == 0x05)
-                    prefetch_bytes -= 4;
-                else if ((modrm & 0xc0) == 0x40)
-                    prefetch_bytes--;
-                else if ((modrm & 0xc0) == 0x80)
-                    prefetch_bytes -= 4;
-            }
-        } else {
-            if ((modrm & 0xc7) == 0x06)
-                prefetch_bytes -= 2;
-            else if ((modrm & 0xc0) != 0xc0)
-                prefetch_bytes -= ((modrm & 0xc0) >> 6);
-        }
-    }
 
     int pc = cpu_prefetch_cycles;
     if (!cpu_mca_bus &&

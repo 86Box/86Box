@@ -1243,7 +1243,22 @@ extern int  inrecomp;
 extern void mmx_init(void);
 extern void prefetch_flush(void);
 
-extern void prefetch_run(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int writes, int writes_l, int ea32);
+extern void prefetch_run(int instr_cycles, int mem_cycles, int bytes);
+
+extern const uint8_t prefetch_ea16_len[256];
+extern const uint8_t prefetch_ea32_len[2048];
+
+/* The operands are mostly constants: what folds with them stays in the
+   handler. */
+static __attribute__((always_inline)) inline void
+prefetch_run_inline(int instr_cycles, int bytes, int modrm, int reads, int reads_l, int writes, int writes_l, int ea32)
+{
+    int mem_cycles = reads * cpu_cycles_read + reads_l * cpu_cycles_read_l + writes * cpu_cycles_write + writes_l * cpu_cycles_write_l;
+
+    if (modrm != -1)
+        bytes += ea32 ? prefetch_ea32_len[modrm & 0x7ff] : prefetch_ea16_len[modrm & 0xff];
+    prefetch_run(instr_cycles, mem_cycles, bytes);
+}
 
 extern int lock_legal[256];
 extern int lock_legal_0f[256];
