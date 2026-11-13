@@ -16198,6 +16198,244 @@ vectors_fence_order(rage128_t *dev)
     pci_wr8(0x04, 0x03);
 }
 
+/* ------------------------------------------------------------------ */
+/* The status registers stay busy until a deferred batch is in guest   */
+/* memory, whoever draws it. An indirect buffer submitted by a direct  */
+/* PM4_IW_INDSIZE write runs on the CPU thread; with render workers    */
+/* its triangle is queued, so the write returns with a batch pending,  */
+/* the FIFO empty and the executor asleep. The next wake of the        */
+/* executor, here one that brings no work, makes it draw that batch    */
+/* in a pass that pops nothing. The color and depth buffers are in     */
+/* AGP memory, so the draw reaches the guest only when the flush       */
+/* writes the staged copies back, after the workers have finished. A   */
+/* driver that reads the engine idle goes on to read or reuse the      */
+/* surface, so GUI_STAT, PM4_STAT and PC_GUI_CTLSTAT have to read busy */
+/* through that write-back (RRG: GUI_STAT, p. 3-244 / PDF 262). The    */
+/* bus-master write hook holds the executor at its first write into    */
+/* the two surfaces, before the bytes land, until the CPU thread has   */
+/* read the registers and lets it go. Only a device with render        */
+/* workers defers a draw; with one render thread the leg does not run. */
+/* The vector puts back every register, hook and guest memory byte it  */
+/* changes. The reset pulse it starts with is not undone: it drops     */
+/* queued engine work, of which there is none at that point.           */
+/* ------------------------------------------------------------------ */
+#define WB_AGP_BASE 0x00400000u /* guest address of the AGP aperture */
+#define WB_IB_CARD  0x00010000u /* card addresses below; the guest address
+                                   is the aperture base plus bits 24:0 */
+#define WB_COL_PHYS (WB_AGP_BASE + (AGP_COL_A & 0x01ffffffu))
+#define WB_Z_PHYS   (WB_AGP_BASE + (AGP_Z_A & 0x01ffffffu))
+#define WB_LIMIT_MS 60000 /* gives up, loudly, on a hold or a wait this long */
+
+enum {
+    WB_OFF,      /* the hook lets every write through */
+    WB_ARMED,    /* the next matching write of the executor is held */
+    WB_HOLDING,  /* the executor is inside the hook */
+    WB_RELEASED, /* the CPU thread has read the registers and let go */
+    WB_TIMED_OUT /* the hold ran into WB_LIMIT_MS and ended by itself */
+};
+static atomic_int wb_state;
+
+/* Holds one write: the executor's first into color buffer A or depth
+   buffer A after the vector arms the hook. The hold lasts until the
+   vector releases it, however long the CPU thread takes, so host load
+   cannot end it early. WB_LIMIT_MS only keeps a broken device from
+   hanging the run; reaching it is recorded in wb_state and reported by
+   the vector as a failure of its own. Whatever ends the hold, no later
+   write is held. */
+static void
+wb_write_hook(uint32_t addr, uint32_t len)
+{
+    int in_col = addr >= WB_COL_PHYS && addr < WB_COL_PHYS + 0x2000u;
+    int in_z   = addr >= WB_Z_PHYS && addr < WB_Z_PHYS + 0x2000u;
+    int expect = WB_ARMED;
+
+    (void) len;
+    if (!rage128_on_cce_thread || (!in_col && !in_z)
+        || !atomic_compare_exchange_strong(&wb_state, &expect, WB_HOLDING))
+        return;
+    for (int ms = 0; ms < WB_LIMIT_MS && atomic_load(&wb_state) == WB_HOLDING; ms++)
+        lap_msleep(1);
+    expect = WB_HOLDING;
+    atomic_compare_exchange_strong(&wb_state, &expect, WB_TIMED_OUT);
+}
+
+static void
+vectors_cce_status_batch_writeback(rage128_t *dev)
+{
+    /* The registers the vector changes, restored in reverse order at
+       the end. The first four are the indirect buffer's doing: its
+       DST_PITCH_OFFSET_C write, which reads back only as DST_OFFSET and
+       DST_PITCH, its Z_OFFSET_C write, and the shadow id the draw
+       advances. */
+    static const uint32_t regs[] = {
+        RAGE128_DST_OFFSET, RAGE128_DST_PITCH, RAGE128_Z_OFFSET_C, RAGE128_COMPOSITE_SHADOW_ID,
+        RAGE128_BUS_CNTL, RAGE128_PCI_GART_PAGE, RAGE128_AGP_BASE, RAGE128_PM4_BUFFER_CNTL,
+        RAGE128_PM4_VC_DEBUG_CONFIG,
+        RAGE128_GEN_RESET_CNTL, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, RAGE128_SC_TOP_LEFT,
+        RAGE128_SC_BOTTOM_RIGHT, RAGE128_DP_CNTL, RAGE128_DP_WRITE_MASK, RAGE128_AUX_SC_CNTL,
+        RAGE128_DP_DATATYPE, RAGE128_Z_PITCH_C, RAGE128_Z_STEN_CNTL_C, RAGE128_TEX_CNTL_C,
+        RAGE128_MISC_3D_STATE_CNTL, RAGE128_PLANE_3D_MASK_C, RAGE128_PM4_VC_FPU_SETUP,
+        RAGE128_SETUP_CNTL, RAGE128_WINDOW_XY_OFFSET, RAGE128_SCALE_3D_CNTL
+    };
+    enum { NREGS = sizeof(regs) / sizeof(regs[0]) };
+    static uint8_t ram_ib[128], ram_col[0x2000], ram_z[0x2000];
+    void         (*hook_save)(uint32_t addr, uint32_t len);
+    uint32_t       reg_save[NREGS];
+    uint32_t       indoff_save, indsize_save;
+    uint64_t       stray_save;
+    uint8_t        pci_cmd_save;
+    uint32_t      *ib;
+    uint32_t      *pix;
+    uint32_t       st[3] = { 0, 0, 0 };
+    uint32_t       room, pix_held = 0, pix_after, stat_after;
+    int            n = 0;
+    int            queued, arrived = 0, held = 0, batch_held = 0, state_end, stray_ok;
+    int            expect;
+
+    if (rage128_raster_nthreads(dev) <= 1)
+        return;
+
+    harness_ram_alloc();
+    ib  = (uint32_t *) (ram + WB_AGP_BASE + WB_IB_CARD);
+    pix = (uint32_t *) (ram + WB_COL_PHYS + (2 * 64 + 2) * 4);
+    rr_quiesce(dev);
+    for (int i = 0; i < NREGS; i++)
+        reg_save[i] = rd(dev, regs[i]);
+    indoff_save  = dev->pm4_iw_indoff;
+    indsize_save = dev->pm4_iw_indsize;
+    pci_cmd_save = pci_rd8(0x04);
+    stray_save   = harness_sysmem_stray;
+    hook_save    = harness_bm_write_hook;
+    memcpy(ram_ib, ib, sizeof(ram_ib));
+    memcpy(ram_col, ram + WB_COL_PHYS, sizeof(ram_col));
+    memcpy(ram_z, ram + WB_Z_PHYS, sizeof(ram_z));
+
+    harness_sysmem_stray = 0;
+    memset(ram + WB_COL_PHYS, 0, 0x2000);
+    for (int i = 0; i < 0x1000; i++)
+        *(uint16_t *) (ram + WB_Z_PHYS + i * 2) = 0x8000;
+
+    /* The buffer: target A, depth ZA, one green triangle. Nothing
+       follows the triangle, so nothing in the buffer flushes it. */
+    ib[n++] = 0x00000720; /* DST_PITCH_OFFSET_C */
+    ib[n++] = 0x01000000 | (AGP_COL_A >> 5);
+    ib[n++] = 0x00000724; /* Z_OFFSET_C */
+    ib[n++] = AGP_Z_A;
+    n       = ring_add_tri(ib, n, 0xff00ff00);
+
+    /* AGP addressing through the chipset aperture, not the on-chip
+       table: the device then writes the staged surfaces back through
+       the host's bus-master write, where the hook can hold it. */
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    wr(dev, RAGE128_PCI_GART_PAGE, 1);
+    wr(dev, RAGE128_AGP_BASE, WB_AGP_BASE);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+    /* Engine time over and nothing queued, then the draw context of the
+       render-target vector: a scissor that bounds each staged surface to
+       one page, depth test and write on, Gouraud, no texture. */
+    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+    wr(dev, RAGE128_GEN_RESET_CNTL, 0);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0x00000000);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x000f003f);
+    wr(dev, RAGE128_DP_CNTL, 0x00000003);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0x00000000);
+    wr(dev, RAGE128_DP_DATATYPE, 0x00000006);
+    wr(dev, RAGE128_Z_PITCH_C, 0x00000008);
+    wr(dev, RAGE128_Z_STEN_CNTL_C, 0x00000010);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000003);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_PM4_VC_FPU_SETUP,
+       RAGE128_FPU_BACKFACE_SOLID | RAGE128_FPU_FRONTFACE_SOLID | RAGE128_FPU_COLOR_GOURAUD);
+    wr(dev, RAGE128_SETUP_CNTL, 0x00000020);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+    scan_exec_quiesce(dev);
+    room = rage128_pm4_fifo_dwords(dev);
+
+    /* The submit, on this thread. */
+    wr(dev, RAGE128_PM4_IW_INDOFF, WB_IB_CARD);
+    wr(dev, RAGE128_PM4_IW_INDSIZE, (uint32_t) n);
+    queued = atomic_load(&dev->cce_batch_pending) && !atomic_load(&dev->cce_executing)
+        && atomic_load(&dev->cce_fifo_rd) == atomic_load(&dev->cce_fifo_wr) && *pix == 0;
+
+    if (queued) {
+        /* A wake that brings no work; the executor's pass draws the
+           batch and is held at its first write-back write. The wait
+           for it sleeps: the hold does not end until this thread ends
+           it, so there is no window to miss. */
+        atomic_store(&wb_state, WB_ARMED);
+        harness_bm_write_hook = wb_write_hook;
+        thread_set_event(dev->cce_wake_event);
+        for (int ms = 0; ms < WB_LIMIT_MS && atomic_load(&wb_state) == WB_ARMED; ms++)
+            lap_msleep(1);
+        arrived    = atomic_load(&wb_state) == WB_HOLDING;
+        held       = arrived && atomic_load(&dev->cce_executing)
+            && atomic_load(&dev->cce_fifo_rd) == atomic_load(&dev->cce_fifo_wr);
+        batch_held = atomic_load(&dev->cce_batch_pending);
+        pix_held   = *pix;
+        st[0]      = rd(dev, RAGE128_GUI_STAT);
+        st[1]      = rd(dev, RAGE128_PM4_STAT);
+        st[2]      = rd(dev, RAGE128_PC_GUI_CTLSTAT);
+        /* Still holding after the reads: the executor stood at the
+           write for all three. */
+        expect = WB_HOLDING;
+        held   = held && atomic_compare_exchange_strong(&wb_state, &expect, WB_RELEASED);
+    }
+    state_end = atomic_load(&wb_state);
+    if (queued && state_end != WB_RELEASED) {
+        /* Not a row result: the hold itself did not happen as built. */
+        printf("TIMEOUT cce status: batch write-back: %s after %d ms; the rows below are void\n",
+               state_end == WB_ARMED ? "the executor did not reach the write-back"
+                                     : "the hold ended by its limit before the reads were done",
+               WB_LIMIT_MS);
+        atomic_store(&wb_state, WB_OFF);
+    }
+    rr_quiesce(dev);
+    atomic_store(&wb_state, WB_OFF);
+    harness_bm_write_hook = hook_save;
+    stat_after            = rd(dev, RAGE128_GUI_STAT);
+    pix_after             = *pix;
+    stray_ok              = harness_sysmem_stray == 0;
+
+    /* Everything back as it was found. PM4_IW_INDSIZE is put back in
+       the device, not through the register: a write of the register
+       would run the buffer it names. */
+    for (int i = NREGS - 1; i >= 0; i--)
+        wr(dev, regs[i], reg_save[i]);
+    dev->pm4_iw_indoff  = indoff_save;
+    dev->pm4_iw_indsize = indsize_save;
+    pci_wr8(0x04, pci_cmd_save);
+    rr_quiesce(dev);
+    harness_sysmem_stray = stray_save;
+    memcpy(ib, ram_ib, sizeof(ram_ib));
+    memcpy(ram + WB_COL_PHYS, ram_col, sizeof(ram_col));
+    memcpy(ram + WB_Z_PHYS, ram_z, sizeof(ram_z));
+
+    printf("cce status: data: batch write-back: queued=%d held=%d batch flag=%d pixel=%08x "
+           "GUI_STAT=%08x PM4_STAT=%08x PC_GUI_CTLSTAT=%08x; after: pixel=%08x GUI_STAT=%08x\n",
+           queued, held, batch_held, pix_held, st[0], st[1], st[2], pix_after, stat_after);
+    check_true("cce status: control: a CPU-thread submit leaves a deferred batch, FIFO empty",
+               queued);
+    check_true("cce status: control: executor held in the write-back, pixel not in guest memory",
+               held && pix_held == 0);
+    check32("cce status: GUI_STAT busy while a batch is written back", st[0],
+            RAGE128_GUI_STAT_BUSY);
+    check32("cce status: PM4_STAT busy while a batch is written back", st[1],
+            room | RAGE128_PM4_STAT_BUSY | RAGE128_PM4_STAT_GUI_ACTIVE);
+    check32("cce status: PC_GUI_CTLSTAT busy while a batch is written back", st[2], 0xa0000000u);
+    check_true("cce status: the draw is in guest memory after the flush, GUI_STAT idle",
+               pix_after == 0xff00ff00 && stat_after == 0x40 && stray_ok);
+}
+#undef WB_AGP_BASE
+#undef WB_IB_CARD
+#undef WB_COL_PHYS
+#undef WB_Z_PHYS
+#undef WB_LIMIT_MS
+
 static void
 run_agp_32mb_threaded(void)
 {
@@ -16207,6 +16445,7 @@ run_agp_32mb_threaded(void)
     dev = rage128_init(&ati_rage128_pro_device);
     vectors_fence_order(dev);
     vectors_raster_rt_switch(dev);
+    vectors_cce_status_batch_writeback(dev);
     vectors_gui_reset_batch(dev);
     vectors_gui_reset_residue(dev);
     vectors_gui_reset_burst(dev);
@@ -25160,6 +25399,114 @@ vectors_eng_time_918(rage128_t *dev)
 #undef MC906_SPX
 #undef MC906_DPX
 
+/* ------------------------------------------------------------------ */
+/* The status registers follow the work the CCE holds, not its thread. */
+/* PM4_BUSY is the "State of PROMO_4 engine" and GUI_ACTIVE the OR of  */
+/* the busy bits (RRG: GUI_STAT, p. 3-244 / PDF 262). The executor     */
+/* thread makes a pass of its loop on every wake, and a wake can bring */
+/* no work: the release after a reset pulse, the nudge of a drain wait */
+/* that found the executor running. During such a pass the engine is   */
+/* idle and GUI_STAT, PM4_STAT and PC_GUI_CTLSTAT have to read idle.   */
+/* A pass is far too short to hit with a read, so the executor's idle  */
+/* hook, which runs in the pass once it has found the FIFO empty,      */
+/* holds the thread there while the CPU thread reads the registers.    */
+/* The same hold after a real packet catches the executor before it    */
+/* has published idle for that packet: there the registers still read  */
+/* busy. No register in the GUI block is written while the executor    */
+/* is held, because such a write waits for the executor to finish.     */
+/* ------------------------------------------------------------------ */
+static atomic_int  cs_arrived;
+static atomic_int  cs_go;
+static atomic_uint cs_want_rd;
+
+/* Holds only the pass that finds the FIFO read index where the leg
+   expects it, so an earlier wake's pass cannot be taken for the one the
+   leg is about. */
+static void
+cs_idle_hook(rage128_t *dev)
+{
+    if (atomic_load(&cs_go) || atomic_load(&dev->cce_fifo_rd) != atomic_load(&cs_want_rd))
+        return;
+    atomic_store(&cs_arrived, 1);
+    while (!atomic_load(&cs_go))
+        ;
+}
+
+/* Arms the hook for the pass that ends with the FIFO read index at
+   want_rd. The caller then causes that pass and calls cs_held. */
+static void
+cs_arm(uint32_t want_rd)
+{
+    atomic_store(&cs_arrived, 0);
+    atomic_store(&cs_go, 0);
+    atomic_store(&cs_want_rd, want_rd);
+    atomic_store(&rage128_harness_idle_hook, cs_idle_hook);
+}
+
+/* Waits for the executor to reach the hook, reads the three registers
+   into st, lets the executor go and waits for it to settle. Returns 1
+   when the executor was held, executing, with the FIFO empty at
+   want_rd. */
+static int
+cs_held(rage128_t *dev, uint32_t st[3])
+{
+    long spins;
+    int  held;
+
+    for (spins = 0; spins < 2000000000L && !atomic_load(&cs_arrived); spins++)
+        ;
+    held = atomic_load(&cs_arrived) && atomic_load(&dev->cce_executing)
+        && atomic_load(&dev->cce_fifo_rd) == atomic_load(&cs_want_rd)
+        && atomic_load(&dev->cce_fifo_wr) == atomic_load(&cs_want_rd);
+    st[0] = rd(dev, RAGE128_GUI_STAT);
+    st[1] = rd(dev, RAGE128_PM4_STAT);
+    st[2] = rd(dev, RAGE128_PC_GUI_CTLSTAT);
+    atomic_store(&cs_go, 1);
+    atomic_store(&rage128_harness_idle_hook, NULL);
+    rr_quiesce(dev);
+    return held;
+}
+
+static void
+vectors_cce_status_follows_work(rage128_t *dev)
+{
+    uint32_t idle[3], work[3];
+    uint32_t room, wr0;
+    int      held_idle, held_work;
+
+    /* Nothing queued, no GPU segment pending, engine time over. */
+    flush_sync(dev);
+    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+    wr(dev, RAGE128_GEN_RESET_CNTL, 0);
+    rr_quiesce(dev);
+    room = rage128_pm4_fifo_dwords(dev);
+
+    /* 1: a wake that brings no work */
+    cs_arm(atomic_load(&dev->cce_fifo_wr));
+    thread_set_event(dev->cce_wake_event);
+    held_idle = cs_held(dev, idle);
+
+    /* 2: a queued WAIT_UNTIL with no event bit, a two-dword packet the
+       executor runs at once; it is held after the packet, before the
+       idle flush and the busy-to-idle event */
+    wr0 = atomic_load(&dev->cce_fifo_wr);
+    cs_arm(wr0 + 2);
+    wr(dev, RAGE128_WAIT_UNTIL, 0);
+    held_work = cs_held(dev, work);
+
+    printf("cce status: data: no work: held=%d GUI_STAT=%08x PM4_STAT=%08x PC_GUI_CTLSTAT=%08x; "
+           "after a packet: held=%d GUI_STAT=%08x PM4_STAT=%08x PC_GUI_CTLSTAT=%08x\n",
+           held_idle, idle[0], idle[1], idle[2], held_work, work[0], work[1], work[2]);
+    check_true("cce status: control: executor held in a pass with an empty FIFO", held_idle);
+    check32("cce status: GUI_STAT idle, 64 free, in a pass with no work", idle[0], 0x40);
+    check32("cce status: PM4_STAT idle in a pass with no work", idle[1], room);
+    check32("cce status: PC_GUI_CTLSTAT idle in a pass with no work", idle[2], 0);
+    check_true("cce status: busy after a packet until idle is published",
+               held_work && work[0] == RAGE128_GUI_STAT_BUSY
+                   && work[1] == (room | RAGE128_PM4_STAT_BUSY | RAGE128_PM4_STAT_GUI_ACTIVE)
+                   && work[2] == 0xa0000000u);
+}
+
 /* a 24 bpp (DST_TYPE 5) color brush. Type 10 is 64 dwords, one
    pixel per dword in its low 3 bytes (SDK-G04000 F.7 Table F-2: "a
    24-BPP pixel is still represented by 4 bytes"); type 11 is 2*N = 6
@@ -25881,6 +26228,7 @@ run_gpu2d_verify(void)
     vectors_scale_pitch_bit9(dev);
     vectors_reg_scale_906(dev);
     vectors_eng_time_918(dev);
+    vectors_cce_status_follows_work(dev);
     if (gpu_lane)
         check_true("2d line: backend attached with the 2D oracle armed",
                    dev->gpu && rage128_gpu_2d_verifying(dev));

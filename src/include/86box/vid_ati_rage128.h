@@ -781,7 +781,14 @@ typedef struct rage128_t {
                                      read-pointer copy; CPU (submit) thread    */
     uint32_t  *cce_pl;            /* type-3 payload, ring executor  */
     uint32_t  *ind_pl;            /* type-3 payload, indirect parse */
-    atomic_int cce_executing;     /* CCE thread is inside a packet */
+    atomic_int cce_executing;     /* CCE thread is inside a pass of its loop,
+                                     whether or not the pass finds a packet */
+    atomic_int cce_work;          /* CCE thread has taken work off the FIFO and
+                                     has not yet reported the engine idle for it.
+                                     Set before the first pop, cleared where the
+                                     thread runs out of work. The status
+                                     registers read this, not cce_executing, so
+                                     a wake that brings no work reads idle */
     atomic_int cce_starved;       /* CCE thread is blocked waiting for more FIFO
                                      dwords: lets the drain wait tell a packet
                                      that can never complete from one still running
@@ -795,6 +802,15 @@ typedef struct rage128_t {
                                  is 0) and before the flush, so a status poll
                                  does not read idle while workers still owe
                                  pixels (render_threads > 1).               */
+    atomic_int cce_batch_flushing; /* a flush has taken the pending batch and
+                                 has not finished: set before the workers
+                                 run, cleared once the staged surfaces are
+                                 written back to the guest and the scratch
+                                 fences are visible. Keeps the status
+                                 registers busy after cce_batch_pending
+                                 drops. Written only by the flush, under
+                                 raster_flush_mtx; queuing a primitive does
+                                 not touch it                               */
     atomic_int cce_drain_req;     /* CPU thread is waiting for idle */
     atomic_int cce_flip_stalled;  /* executor is inside a WAIT_UNTIL flip stall */
     atomic_int cce_abort;         /* dead bus or engine reset: drop the current
@@ -2516,19 +2532,50 @@ rage128_pm4_fifo_dwords(rage128_t *dev)
     }
 }
 
-/* Engine has queued or in-flight work (any thread may ask). The unfetched-
-   ring term is gated on the engine running: a stopped CCE will never fetch
-   [rptr,wptr), so during a ring reset (rptr transiently != wptr while
-   stopped) the engine is idle, not active. */
+/* Engine has queued or in-flight work (any thread may ask). This is what
+   the status registers report as PM4_BUSY, "State of PROMO_4 engine" (RRG:
+   GUI_STAT, p. 3-244 / PDF 262). It has no term for the CCE thread being
+   awake: that thread also runs a pass of its loop when a wake brings no
+   work, and the chip's engine is idle then. The FIFO pointers are loaded
+   before cce_work, because the thread sets cce_work before the pop that
+   can empty the FIFO: a reader that finds the FIFO empty then sees the
+   flag. In the same way cce_batch_pending is loaded before
+   cce_batch_flushing: the flush sets the second before it clears the
+   first, so a reader that finds no batch pending because a flush has
+   just taken it then sees the flush still under way, until the batch is
+   in guest memory. The unfetched-ring term is gated on the engine
+   running: a stopped CCE will never fetch [rptr,wptr), so during a ring
+   reset (rptr transiently != wptr while stopped) the engine is idle, not
+   busy. */
+static inline int
+rage128_pm4_busy(rage128_t *dev)
+{
+    return (atomic_load(&dev->cce_fifo_rd) != atomic_load(&dev->cce_fifo_wr))
+        || atomic_load(&dev->cce_work)
+        || atomic_load(&dev->cce_hung)
+        || atomic_load(&dev->cce_batch_pending)
+        || atomic_load(&dev->cce_batch_flushing)
+        || (rage128_pm4_ring_bm(dev)
+            && dev->pm4_rptr != (dev->pm4_wptr & rage128_pm4_ring_mask(dev)));
+}
+
+/* The engine is busy or the CCE thread is inside a pass (any thread may
+   ask). The drain wait and the GPU backend ask this before they touch
+   engine state from another thread. A pass that pops nothing can still
+   have things to do: it draws a batch the CPU thread left queued,
+   writes staged surfaces back, releases the retire pointer and answers
+   a scanout request of the GPU backend. While it draws a queued batch
+   the status registers read busy as well, through cce_batch_pending
+   and then cce_batch_flushing, until the batch's write-back has ended;
+   in the other cases they read idle. The test is a snapshot, not a
+   lock: a wake already set can bring the CCE thread into a pass right
+   after it reads 0, so the callers that then flush rely on
+   raster_flush_mtx, and on the backend's flush mutex, to keep two
+   flushes apart. */
 static inline int
 rage128_pm4_active(rage128_t *dev)
 {
-    return (atomic_load(&dev->cce_fifo_rd) != atomic_load(&dev->cce_fifo_wr))
-        || atomic_load(&dev->cce_executing)
-        || atomic_load(&dev->cce_hung)
-        || atomic_load(&dev->cce_batch_pending)
-        || (rage128_pm4_ring_bm(dev)
-            && dev->pm4_rptr != (dev->pm4_wptr & rage128_pm4_ring_mask(dev)));
+    return rage128_pm4_busy(dev) || atomic_load(&dev->cce_executing);
 }
 
 /* 3D engine (vid_ati_rage128_3d.c). rage128_3d_packet3 returns 1 when the

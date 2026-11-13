@@ -1017,6 +1017,15 @@ rage128_pm4_gui_reset(rage128_t *dev)
     }
     atomic_store(&dev->cce_fifo_rd, atomic_load(&dev->cce_fifo_wr));
     atomic_store(&dev->cce_hung, 0);
+    /* The work the executor had taken is abandoned with the rest. It
+       stores cce_work only in a pass that has seen cce_abort clear, so
+       this store cannot race it while it is parked. The pulse leaves
+       the FIFO empty, so the pass the executor makes after the release
+       sets the flag again only if a write queued new work in the
+       meantime, and then the engine is busy with that work. With
+       nothing queued the status registers read idle as soon as the
+       pulse returns, whenever that pass runs. */
+    atomic_store(&dev->cce_work, 0);
     dev->pm4_ind_busy    = 0;
     dev->pm4_ind_pending = 0;
     dev->pump_frame_rem  = 0;
@@ -1612,9 +1621,11 @@ rage128_cce_thread(void *priv)
     while (dev->cce_thread_run) {
         uint32_t hdr;
 
-        /* Marked busy before the FIFO is checked, so a status read never
-           sees idle between popping a packet's last dword and finishing
-           the packet. */
+        /* Marked inside a pass before the FIFO is checked, so a thread
+           that waits for this one to stop (the drain wait, a reset)
+           never takes it for stopped while it is about to pop a packet.
+           The status registers do not read this flag; they read
+           cce_work, set below once the pass has found work. */
         atomic_store(&dev->cce_executing, 1);
         /* Abort pending: start no further packet and set cce_parked.
            cce_executing drops between packets on its own, so a resetting
@@ -1631,8 +1642,13 @@ rage128_cce_thread(void *priv)
         }
         atomic_store(&dev->cce_parked, 0);
         /* Hung engine: start nothing more. Only the reset pulse, through
-           the abort above, clears it. */
+           the abort above, clears it. The engine reads busy through
+           cce_hung from here on, so cce_work is dropped: the wait below
+           has no timeout, and a device reset clears cce_hung without
+           waking this thread, which would leave the flag set with nobody
+           to clear it. */
         if (atomic_load(&dev->cce_hung)) {
+            atomic_store(&dev->cce_work, 0);
             atomic_store(&dev->cce_executing, 0);
             thread_set_event(dev->cce_idle_event);
             thread_wait_event(dev->cce_wake_event, -1);
@@ -1663,13 +1679,18 @@ rage128_cce_thread(void *priv)
                GEN_INT_STATUS, p. 3-196 / PDF 214): set only when
                the engine goes from busy to idle, so a spurious wake does
                not set again a bit the driver has acknowledged. It is set
-               before cce_executing drops, so a status read that sees idle
+               before cce_work drops, so a status read that sees idle
                also sees the event. The CPU thread folds it into
                GEN_INT_STATUS. */
             if (did_work) {
                 did_work = 0;
                 atomic_store(&dev->gui_idle_event, 1);
             }
+            /* The work taken since the last time through here is drawn
+               and reported: the status registers read idle from this
+               store on. cce_executing drops after it, so the drain wait,
+               which needs both clear, returns only with idle published. */
+            atomic_store(&dev->cce_work, 0);
             atomic_store(&dev->cce_executing, 0);
             thread_set_event(dev->cce_idle_event);
             if (dev->ftl_en) {
@@ -1699,6 +1720,13 @@ rage128_cce_thread(void *priv)
             }
             continue;
         }
+        /* The FIFO holds work. It is marked taken before the first dword
+           is popped, so a status read never sees idle between the pop of
+           a packet's last dword and the end of the packet: a reader that
+           finds the FIFO empty loads the flag after this store. The flag
+           stays set across the packets that follow, and across the gaps
+           between them, until the out-of-work branch above clears it. */
+        atomic_store(&dev->cce_work, 1);
         if (rage128_cce_get(dev, &hdr)) {
             rage128_cce_packet(dev, hdr);
             did_work = 1;
@@ -1758,6 +1786,7 @@ rage128_pm4_thread_init(rage128_t *dev)
     atomic_store(&dev->cce_retire_rptr, 0);
     dev->cce_retire_pending = 0;
     atomic_store(&dev->cce_batch_pending, 0);
+    atomic_store(&dev->cce_batch_flushing, 0);
     dev->cce_shadow_last   = 0xffffffffu;
     dev->cce_pl            = calloc(RAGE128_PM4_MAX_PAYLOAD, sizeof(uint32_t));
     dev->ind_pl            = calloc(RAGE128_PM4_MAX_PAYLOAD, sizeof(uint32_t));
@@ -1772,6 +1801,7 @@ rage128_pm4_thread_init(rage128_t *dev)
     atomic_store(&dev->cce_fifo_rd, 0);
     atomic_store(&dev->cce_fifo_wr, 0);
     atomic_store(&dev->cce_executing, 0);
+    atomic_store(&dev->cce_work, 0);
     atomic_store(&dev->cce_drain_req, 0);
     atomic_store(&dev->cce_flip_stalled, 0);
     atomic_store(&dev->cce_abort, 0);
@@ -2187,8 +2217,10 @@ rage128_pm4_reg_read(rage128_t *dev, uint32_t off, uint32_t *val)
             return 1;
         case RAGE128_PM4_STAT:
             /* CCE status (CCE 3D supplement, PM4_STAT). PM4_BUSY and
-               GUI_ACTIVE are set while rage128_pm4_active reports work,
-               whose ring term counts only while the CCE is in a
+               GUI_ACTIVE are set while rage128_pm4_busy reports work
+               queued or taken and not yet finished; the CCE thread
+               running a pass that found none does not count. Its ring
+               term counts only while the CCE is in a
                bus-master mode. The Windows 2000 driver has been observed
                stopping the CCE during a mode set with a packet still
                unfetched and then waiting, with no timeout, for idle; a
@@ -2208,7 +2240,7 @@ rage128_pm4_reg_read(rage128_t *dev, uint32_t off, uint32_t *val)
                     - atomic_load(&dev->cce_fifo_rd);
 
                 *val = (used < room) ? room - used : 0;
-                if (rage128_pm4_active(dev))
+                if (rage128_pm4_busy(dev))
                     *val |= RAGE128_PM4_STAT_BUSY | RAGE128_PM4_STAT_GUI_ACTIVE;
                 /* GUI_ACTIVE is the OR of the engine busy bits, so it
                    is also set while an op started by a CPU register

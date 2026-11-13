@@ -327,6 +327,17 @@ rb_flush(rage128_t *dev, int recycle_tex)
     thread_wait_mutex(dev->raster_flush_mtx);
 
     if (rb && rb->nthreads > 1 && rb->cmd_count != 0) {
+        /* This flush takes the pending batch. cce_batch_flushing is set
+           before the workers run and stays set until the end of this
+           function, so the status registers read busy from the moment
+           cce_batch_pending drops below until the staged surfaces and
+           the scratch fences are where the guest reads them
+           (rage128_pm4_busy loads cce_batch_pending first, then this
+           flag). Only this function writes the flag, with the flush
+           mutex held; the enqueue path does not, so a primitive queued
+           while a flush is under way can neither clear it nor be hidden
+           by its clear. */
+        atomic_store(&dev->cce_batch_flushing, 1);
         rb_run_parallel(rb);
 
         rb->cmd_count   = 0;
@@ -392,6 +403,16 @@ rb_flush(rage128_t *dev, int recycle_tex)
        after the write-back above, so a driver that sees one also finds
        the pixels of a target in AGP memory in guest memory. */
     rage128_pm4_scratch_apply(dev);
+
+    /* The batch this flush took is in guest memory and its fences are
+       visible: the engine stops reading busy on its account. The flag
+       is the only busy term left at this point when the batch came from
+       an indirect buffer the CPU thread ran and the executor drew it in
+       a pass that popped nothing; cleared any earlier, it would let a
+       driver read the engine idle and then read a color or depth buffer
+       in AGP memory that the write-back above had not reached. */
+    if (atomic_load(&dev->cce_batch_flushing))
+        atomic_store(&dev->cce_batch_flushing, 0);
 
     thread_release_mutex(dev->raster_flush_mtx);
 }

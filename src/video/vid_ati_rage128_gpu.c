@@ -10098,9 +10098,13 @@ rage128_gpu_scan_hazard(rage128_t *dev, uint32_t lo, uint32_t len)
    submitted here without waiting for it. This poll is the driver
    waiting for its work to finish and nothing else would submit the
    segment, so answering busy without submitting would keep the guest
-   polling forever. Called on the CPU thread with the CCE idle (the
-   caller tested rage128_pm4_active), so after the drain wait this
-   thread is the only submitter. No reap: retirement belongs to the
+   polling forever. Called on the CPU thread with no CCE work queued or
+   taken (the caller tested rage128_pm4_busy); the CCE thread may still
+   be inside a pass that found none, and the drain wait below waits
+   that pass out. A wake still owed to the CCE thread can start another
+   such pass afterwards, so this thread is not guaranteed to be the
+   only one that flushes: the backend's flush mutex is what keeps two
+   flushes apart (gpu_flush_cause). No reap: retirement belongs to the
    submit side, and a signaled fence reads as idle without one. */
 int
 rage128_gpu_engine_busy(rage128_t *dev)

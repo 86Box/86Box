@@ -5864,8 +5864,9 @@ rage128_2d_reg_read(rage128_t *dev, uint32_t off, uint32_t *val)
                otherwise (RRG: PC_GUI_CTLSTAT, p. 3-253 / PDF 271).
                The guide gives these bits no description; treating
                PC_BUSY as an OR of the busy bits follows GUI_ACTIVE, "'OR'
-               of the above bits" (RRG: GUI_STAT, p. 3-244 / PDF 262). */
-            *val = (rage128_pm4_active(dev)
+               of the above bits" (RRG: GUI_STAT, p. 3-244 / PDF 262).
+               The CCE thread awake with no work is not busy. */
+            *val = (rage128_pm4_busy(dev)
                     || (!rage128_on_cce_thread && rage128_2d_eng_busy(dev)))
                 ? 0xa0000000u : 0;
             return 1;

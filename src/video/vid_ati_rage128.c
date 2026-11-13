@@ -1106,7 +1106,15 @@ rage128_reg_read32(rage128_t *dev, uint32_t off)
                It reads GUI_ACTIVE and PM4_BUSY while the CCE thread holds
                fetched work it has not executed, and GUI_ACTIVE while
                the ring is drained but the optional GPU backend is still
-               drawing. GUI_ACTIVE is the OR of the engine busy bits, so
+               drawing. PM4_BUSY is the "State of PROMO_4 engine", so it
+               follows the work held (rage128_pm4_busy), not whether the
+               CCE thread is awake: that thread makes a pass of its loop
+               on every wake, and a wake can bring no work (the release
+               after a reset pulse, a drain wait's nudge). The GPU
+               backend's test therefore also runs while such a pass is
+               under way; with a segment pending it waits for the pass
+               to end before it submits (rage128_gpu_engine_busy).
+               GUI_ACTIVE is the OR of the engine busy bits, so
                it stays set until the last pixels are written, and a
                driver's idle poll waits for that in guest time.
                GUI_FIFOCNT and the 2D engine's busy bits come from the
@@ -1116,7 +1124,7 @@ rage128_reg_read32(rage128_t *dev, uint32_t off)
             {
                 uint32_t stat = rage128_2d_eng_stat(dev);
 
-                if (rage128_pm4_active(dev))
+                if (rage128_pm4_busy(dev))
                     return stat | (RAGE128_GUI_STAT_BUSY & ~0xfffu);
                 if (rage128_gpu_engine_busy(dev))
                     return stat | (RAGE128_GUI_STAT_ACTIVE & ~0xfffu);
