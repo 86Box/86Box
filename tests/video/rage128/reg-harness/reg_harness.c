@@ -25303,6 +25303,50 @@ vectors_stretch_rows_921(rage128_t *dev)
     }
     check_true("2d 921: 32 stretches one pixel wide or high: row loop equals the walk", ok && drew);
 
+    /* A source base 1, 2 and 3 bytes off a 4-byte boundary, so the
+       texels sit at unaligned host addresses: the register-started path,
+       both formats, blended and replicated. The destination offset is
+       written with the same low bits, which that register does not
+       keep (its low four bits read as zero), so the destination stays
+       aligned; the guest cannot place it otherwise. */
+    ok = 1; drew = 0;
+    for (int i = 0; i < 36; i++) {
+        uint32_t so = 1 + (uint32_t) (i % 3), dof = 1 + (uint32_t) ((i / 3) % 3);
+        uint32_t n;
+
+        f921_case(&c, (i & 1) ? 6 : 4, (i >> 1) & 1);
+        n = F921_PX * (c.dt == 6 ? 4u : 2u) * F921_ROWS + 4u;
+        memset(&dev->svga.vram[F921_DA], F921_FILL, n);
+        memset(&dev->svga.vram[F921_DB], F921_FILL, n);
+        for (int pass = 0; pass < 2; pass++) {
+            wr(dev, RAGE128_AUX_SC_CNTL, pass ? 0x00000001u : 0u);
+            wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, (c.sh << 16) | c.sw);
+            wr(dev, RAGE128_DST_OFFSET, (pass ? F921_DB : F921_DA) + dof);
+            wr(dev, RAGE128_DST_PITCH, F921_PX / 8);
+            wr(dev, RAGE128_DP_MIX, 0x00cc0200u);
+            wr(dev, RAGE128_DP_DATATYPE, c.dt | (15u << 8) | (3u << 16));
+            wr(dev, RAGE128_SCALE_3D_CNTL, 0x40u);
+            wr(dev, RAGE128_MISC_3D_STATE_CNTL, c.blend ? 0x00000100u : 0x00000500u);
+            wr(dev, RAGE128_SCALE_3D_DATATYPE, c.dt);
+            wr(dev, RAGE128_SCALE_OFFSET_0, F921_SRC + so);
+            wr(dev, RAGE128_SCALE_PITCH, F921_PX / 8);
+            wr(dev, RAGE128_SCALE_X_INC, c.xinc);
+            wr(dev, RAGE128_SCALE_Y_INC, c.yinc);
+            wr(dev, RAGE128_SCALE_HACC, 0);
+            wr(dev, RAGE128_SCALE_VACC, 0);
+            wr(dev, RAGE128_SCALE_DST_X_Y, (c.dx << 16) | c.dy);
+            wr(dev, RAGE128_SCALE_DST_HEIGHT_WIDTH, (c.dh << 16) | c.dw);
+            flush_sync(dev);
+        }
+        wr(dev, RAGE128_AUX_SC_CNTL, 0);
+        for (uint32_t k = 0; k < n; k++)
+            if (dev->svga.vram[F921_DA + k] != F921_FILL)
+                drew = 1;
+        ok = ok && memcmp(&dev->svga.vram[F921_DA], &dev->svga.vram[F921_DB], n) == 0;
+    }
+    check_true("2d 928: 36 stretches with the source at byte offsets 1 to 3: row loop equals the walk",
+               ok && drew);
+
     /* A destination that starts 8 pixels left of card address 0 (x = -8
        at destination offset 0, the scissor's left edge negative so it
        clips nothing): the first row's stores wrap to the top of video

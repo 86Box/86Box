@@ -4034,19 +4034,145 @@ refuse:
     return 0;
 }
 
+/* A 16- or 32-bit pixel read from or stored to video memory as one
+   unit, low byte first, which is the card's byte order. A run of pixels
+   can start at any byte address, so the access goes through memcpy,
+   which has no alignment requirement and which the compiler turns into
+   a single load or store. A host whose own byte order is not
+   little-endian assembles the bytes one at a time instead. */
+static inline uint32_t
+rage128_2d_get_px(const uint8_t *p, size_t bpp)
+{
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) \
+    && __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+    return (bpp == 4) ? ((uint32_t) p[0] | ((uint32_t) p[1] << 8)
+                         | ((uint32_t) p[2] << 16) | ((uint32_t) p[3] << 24))
+                      : ((uint32_t) p[0] | ((uint32_t) p[1] << 8));
+#else
+    if (bpp == 4) {
+        uint32_t v;
+
+        memcpy(&v, p, 4);
+        return v;
+    } else {
+        uint16_t v;
+
+        memcpy(&v, p, 2);
+        return v;
+    }
+#endif
+}
+
+static inline void
+rage128_2d_put_px(uint8_t *p, uint32_t c, size_t bpp)
+{
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) \
+    && __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+    p[0] = (uint8_t) c;
+    p[1] = (uint8_t) (c >> 8);
+    if (bpp == 4) {
+        p[2] = (uint8_t) (c >> 16);
+        p[3] = (uint8_t) (c >> 24);
+    }
+#else
+    if (bpp == 4)
+        memcpy(p, &c, 4);
+    else {
+        uint16_t v = (uint16_t) c;
+
+        memcpy(p, &v, 2);
+    }
+#endif
+}
+
+/* The row loop of the stretch blends with the four channels of a pixel
+   side by side in one 64-bit word, each in the low byte of its own
+   16-bit lane: blue in bits [7:0], red in [23:16], green in [39:32],
+   alpha in [55:48]. This packing is the emulator's own; it gives the
+   same pixel as rage128_2d_lerp_argb, which blends the channels two at
+   a time in 32 bits. The three helpers below convert to the lanes,
+   blend, and convert back. */
+static inline uint64_t
+rage128_2d_lanes(uint32_t argb)
+{
+    return (uint64_t) (argb & 0x00ff00ffu) | ((uint64_t) (argb & 0xff00ff00u) << 24);
+}
+
+static inline uint32_t
+rage128_2d_unlanes(uint64_t x)
+{
+    return (uint32_t) (x & 0x00ff00ffu) | (uint32_t) ((x >> 24) & 0xff00ff00u);
+}
+
+/* Blend two pixels held in lanes, weight w in [0,255] on x1 and
+   256 - w on x0. One 64-bit multiply scales all four channels: a lane
+   holds c0 * (256 - w) + c1 * w, which is at most 255 * 256 = 65280
+   and so fits its 16 bits; no lane carries into the next. The shift by
+   8 leaves each channel's result in the low byte of its lane, with the
+   low byte of the lane above shifted into the byte over it; the mask
+   clears that. Each channel is therefore
+   (c0 * (256 - w) + c1 * w) >> 8, the value rage128_2d_lerp_argb
+   gives for it. */
+static inline uint64_t
+rage128_2d_lerp_lanes(uint64_t x0, uint64_t x1, uint32_t w)
+{
+    return ((x0 * (uint64_t) (256 - w) + x1 * (uint64_t) w) >> 8) & 0x00ff00ff00ff00ffull;
+}
+
+/* An RGB 565 pixel expanded to aRGB 8888 and laid out in lanes, as two
+   table lookups ORed together: one indexed by the pixel's low byte, one
+   by its high byte. It equals the lanes of rage128_2d_val_argb's
+   result because every bit of that result comes from one byte of the
+   pixel alone. Blue is the low byte's bits [4:0] with their top three
+   bits repeated below them. Red is the high byte's bits [7:3], likewise.
+   Green is the six bits made of the high byte's [2:0] above the low
+   byte's [7:5]; its expansion is those six bits shifted up two places,
+   to which each byte contributes its own bits at fixed positions, and
+   the top two green bits repeated at the bottom, which are the high
+   byte's bits [2:1]. Alpha is the constant 0xff. The two contributions
+   never set the same bit, so the OR joins them. */
+#define R128_LANES565_LO(l)                                                      \
+    ((uint64_t) ((((l) & 31) << 3) | (((l) & 31) >> 2)) | ((uint64_t) (((l) >> 5) << 2) << 32))
+#define R128_LANES565_HI(h)                                                      \
+    (((uint64_t) 0xff << 48) | ((uint64_t) ((((h) >> 3) << 3) | ((h) >> 5)) << 16) \
+     | ((uint64_t) ((((h) & 7) << 5) | (((h) & 7) >> 1)) << 32))
+#define R128_TAB4(f, n)   f(n), f((n) + 1), f((n) + 2), f((n) + 3)
+#define R128_TAB16(f, n)  R128_TAB4(f, n), R128_TAB4(f, (n) + 4), R128_TAB4(f, (n) + 8), R128_TAB4(f, (n) + 12)
+#define R128_TAB64(f, n)  R128_TAB16(f, n), R128_TAB16(f, (n) + 16), R128_TAB16(f, (n) + 32), R128_TAB16(f, (n) + 48)
+#define R128_TAB256(f)    R128_TAB64(f, 0), R128_TAB64(f, 64), R128_TAB64(f, 128), R128_TAB64(f, 192)
+static const uint64_t rage128_2d_lanes565[2][256] = {
+    { R128_TAB256(R128_LANES565_LO) },
+    { R128_TAB256(R128_LANES565_HI) }
+};
+#undef R128_TAB256
+#undef R128_TAB64
+#undef R128_TAB16
+#undef R128_TAB4
+#undef R128_LANES565_HI
+#undef R128_LANES565_LO
+
 /* One destination row of a same-format stretch, source and destination
    both RGB 565 (datatype 4) or both aRGB 8888 (datatype 6), stored as
    whole pixels. s0 is the source row the walk is on, s1 the blend's
    second row: the row below it, or the same row again where the walk
    is on the last row of the source extent (unused without a blend), d
    the first destination pixel; all three are contiguous runs. The
-   texel positions, the blend weights, the neighbor clamp at sxlim, the
-   expand, the lerps and the pack are the ones
-   rage128_2d_stretch_resolve uses, in the same order, so the pixel
-   value is the same; every texel of a pixel is read before that pixel
+   texel positions, the blend weights, the neighbor clamp at sxlim and
+   the order of the three blends are those of
+   rage128_2d_stretch_resolve. A blended pixel is worked out in lanes:
+   the four texels are expanded straight into lanes (a 565 texel
+   through the tables, an 8888 texel by rage128_2d_lanes), blended by
+   rage128_2d_lerp_lanes, and converted back for the pack; each step
+   gives the value of the 32-bit form it stands for, so the pixel is
+   the same. A pixel that is not blended goes through the expand and
+   the pack as before. Every texel of a pixel is read before that pixel
    is stored, as the per-pixel walk does, so a source that overlaps the
-   destination behaves the same too. dt is a constant at each call,
-   which lets the compiler drop the format switches. */
+   destination behaves the same too. Texels are read and pixels stored
+   through rage128_2d_get_px and rage128_2d_put_px (a 565 texel that is
+   blended is read as its two bytes, which index the tables), so no
+   access depends on the host's byte order or on the alignment of a
+   run. dt and blend are constants at each call, which lets the
+   compiler drop the format switches and the blend test. */
 static inline __attribute__((always_inline)) void
 rage128_2d_stretch_row(uint8_t *d, const uint8_t *s0, const uint8_t *s1,
                        int dt, int blend, int w, int xskip, int sx0,
@@ -4054,36 +4180,29 @@ rage128_2d_stretch_row(uint8_t *d, const uint8_t *s0, const uint8_t *s1,
 {
     const size_t bpp = (dt == 6) ? 4 : 2;
 
-#define R128_STRETCH_LOAD(p)                                                    \
-    ((dt == 6) ? ((uint32_t) (p)[0] | ((uint32_t) (p)[1] << 8)                  \
-                  | ((uint32_t) (p)[2] << 16) | ((uint32_t) (p)[3] << 24))      \
-               : ((uint32_t) (p)[0] | ((uint32_t) (p)[1] << 8)))
+#define R128_STRETCH_LANES(p)                                                   \
+    ((dt == 6) ? rage128_2d_lanes(rage128_2d_get_px(p, 4))                      \
+               : (rage128_2d_lanes565[0][(p)[0]] | rage128_2d_lanes565[1][(p)[1]]))
     for (int col = 0; col < w; col++) {
         uint32_t xacc = xph + (uint32_t) (col + xskip) * xinc;
         size_t   sx   = (size_t) (sx0 + (int) (xacc >> 16));
-        uint32_t c    = rage128_2d_val_argb(R128_STRETCH_LOAD(s0 + sx * bpp), dt);
         uint8_t *dp   = d + (size_t) col * bpp;
+        uint32_t c;
 
         if (blend) {
             size_t   sxb = ((int) sx < sxlim) ? sx + 1 : sx;
             uint32_t wx  = (xacc & 0xffff) >> 8;
-            uint32_t top = rage128_2d_lerp_argb(
-                c, rage128_2d_val_argb(R128_STRETCH_LOAD(s0 + sxb * bpp), dt), wx);
-            uint32_t bot = rage128_2d_lerp_argb(
-                rage128_2d_val_argb(R128_STRETCH_LOAD(s1 + sx * bpp), dt),
-                rage128_2d_val_argb(R128_STRETCH_LOAD(s1 + sxb * bpp), dt), wx);
+            uint64_t top = rage128_2d_lerp_lanes(R128_STRETCH_LANES(s0 + sx * bpp),
+                                                 R128_STRETCH_LANES(s0 + sxb * bpp), wx);
+            uint64_t bot = rage128_2d_lerp_lanes(R128_STRETCH_LANES(s1 + sx * bpp),
+                                                 R128_STRETCH_LANES(s1 + sxb * bpp), wx);
 
-            c = rage128_2d_lerp_argb(top, bot, wy);
-        }
-        c     = rage128_2d_argb_pack(c, dt);
-        dp[0] = (uint8_t) c;
-        dp[1] = (uint8_t) (c >> 8);
-        if (dt == 6) {
-            dp[2] = (uint8_t) (c >> 16);
-            dp[3] = (uint8_t) (c >> 24);
-        }
+            c = rage128_2d_unlanes(rage128_2d_lerp_lanes(top, bot, wy));
+        } else
+            c = rage128_2d_val_argb(rage128_2d_get_px(s0 + sx * bpp, bpp), dt);
+        rage128_2d_put_px(dp, rage128_2d_argb_pack(c, dt), bpp);
     }
-#undef R128_STRETCH_LOAD
+#undef R128_STRETCH_LANES
 }
 
 /* Stretch blit (packet 0x96, R128_CCE_PACKET3_CNTL_SCALING). The walk
@@ -4261,11 +4380,17 @@ rage128_2d_stretch_rect(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
             uint8_t       *d  = r128_surf_run(&sdst, daddr, (uint32_t) w * (uint32_t) bpp);
 
             if (s0 && s1 && d) {
-                if (ddt == 6)
-                    rage128_2d_stretch_row(d, s0, s1, 6, blend, w, xskip, sx0, xph,
+                if (ddt == 6 && blend)
+                    rage128_2d_stretch_row(d, s0, s1, 6, 1, w, xskip, sx0, xph,
+                                           xinc, wy, sxlim);
+                else if (ddt == 6)
+                    rage128_2d_stretch_row(d, s0, s1, 6, 0, w, xskip, sx0, xph,
+                                           xinc, wy, sxlim);
+                else if (blend)
+                    rage128_2d_stretch_row(d, s0, s1, 4, 1, w, xskip, sx0, xph,
                                            xinc, wy, sxlim);
                 else
-                    rage128_2d_stretch_row(d, s0, s1, 4, blend, w, xskip, sx0, xph,
+                    rage128_2d_stretch_row(d, s0, s1, 4, 0, w, xskip, sx0, xph,
                                            xinc, wy, sxlim);
                 rage128_2d_mark_dirty(dev, &sdst, daddr, (uint32_t) w * bpp);
                 continue;
