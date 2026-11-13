@@ -306,7 +306,9 @@ nmc93cxx_eeprom_init(const device_t *info)
     snprintf(dev->filename, sizeof(dev->filename), "%s", params_details->filename);
     FILE *fp = nvr_fopen(dev->filename, "rb");
     if (fp) {
-        fill_default = !fread(dev->array_data, (size_t) dev->data_bits / 8, dev->cells, fp);
+        /* A short file leaves the rest of the part as calloc left it:
+           only a read that filled every cell counts as an image. */
+        fill_default = fread(dev->array_data, (size_t) dev->data_bits / 8, dev->cells, fp) != dev->cells;
         fclose(fp);
     }
     if (fill_default && params_details->default_content) {
@@ -566,10 +568,15 @@ nmc93cxx_eeprom_handle_event(nmc93cxx_eeprom_t *dev, EepromEvent event)
             if (event == EVENT_CLK_RISING_EDGE) {
                 uint32_t bit_index = dev->bits_accum++;
 
-                /* Wrapping the address on multi-read */
-                if (((bit_index % dev->data_bits) == 0) && (bit_index == 0))
+                /* Wrapping the address on multi-read: the part carries
+                   on into the next cell once sixteen bits are out, and
+                   the Adaptec firmware reads a whole configuration that
+                   way. Only the first word used to load, every bit after
+                   it shifted in as a one, and a block read came back as
+                   one real word followed by FFFF. */
+                if ((bit_index % dev->data_bits) == 0)
                 {
-                    uint32_t addr = (dev->address + dev->bits_accum / dev->data_bits) & ((1 << dev->address_bits) - 1);
+                    uint32_t addr = (dev->address + bit_index / dev->data_bits) & ((1 << dev->address_bits) - 1);
                     uint32_t data = nmc93cxx_eeprom_cell_read(dev, addr);
 
                     nmc93cxx_eeprom_log(dev, 1, "EEPROM: RD %08lX --> %X\n", addr, data);

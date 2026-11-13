@@ -40,6 +40,7 @@
 #include <86box/timer.h>
 #include <86box/thread.h>
 #include <86box/network.h>
+#include <86box/scsi.h>
 #include <86box/scsi_ncr53c8xx.h>
 
 /* ALi ALADDiN V */
@@ -198,7 +199,8 @@ machine_at_cobalt3k_init(const machine_t *model)
     device_add(&ali1541_device);
     device_add(&ali1543c_device); /* +0 */
     device_add(&intel_flash_e28f0xx_cobalt3k_device);
-    device_add(machine_get_scsi_device(machine));
+    if ((scsi_card_current[0] == SCSI_CARD_INTERNAL) && machine_get_scsi_device(machine))
+        device_add(machine_get_scsi_device(machine));
     spd_register(SPD_TYPE_SDRAM, 0x3, 256);
     device_add(&lm77_0_48_device);
     device_add_params(&hd44780_cobalt3k_device, (void *) (uintptr_t) model->device->local);
