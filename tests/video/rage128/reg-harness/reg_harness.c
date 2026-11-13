@@ -14816,14 +14816,155 @@ run_pci_xpert128(void)
     close_dev(dev);
 }
 
-/* , deferred-batch leg: a ring-submitted draw pulsed with
-   SOFT_RESET_GUI before the drain leaves the surface untouched; the
-   next batch draws normally. Threaded device so submits defer. */
+/* ------------------------------------------------------------------ */
+/* The SOFT_RESET_GUI vectors below each need the executor at a known  */
+/* point of the command stream when the pulse goes out. A free-running */
+/* executor is at no known point: it takes a few microseconds to run   */
+/* what a vector submits, and the host decides how long this thread is */
+/* off the processor between the submit and the pulse. So each vector  */
+/* puts a WAIT_UNTIL EVENT_CRTC_OFFSET write at the point it wants,    */
+/* with a flip armed by a CRTC_OFFSET write beforehand: the event      */
+/* stalls the command FIFO until the display has taken the new offset  */
+/* (RRG: WAIT_UNTIL, p. 3-239 / PDF 257), and here nothing takes it    */
+/* until the vector calls the vertical blank itself. The executor      */
+/* stands inside that write, with every later dword still queued,      */
+/* until the pulse arrives; the pulse ends the stall itself. Register  */
+/* writes that drain the engine would end the stall too, so between    */
+/* the submit and the pulse a vector writes only PM4_BUFFER_DL_WPTR    */
+/* and GEN_RESET_CNTL and reads device state directly.                 */
+/*                                                                     */
+/* Both waits are bounded and neither decides a row: the stall, once   */
+/* entered, lasts until the pulse, and the pass counted after the      */
+/* pulse is one the executor always makes. A wait that runs out turns  */
+/* the row that names the position red.                                */
+/*                                                                     */
+/* The write that asserts SOFT_RESET_GUI lets the executor go again    */
+/* before it returns, so from that return on the executor may be       */
+/* running, and on a device whose pulse left work behind it is writing */
+/* the very registers a vector reads as witnesses. A vector therefore  */
+/* reads a register the executor can write only at a point the         */
+/* executor has been seen to reach and stop at: in the stall before    */
+/* the pulse, and after the pulse once the executor has run out of     */
+/* work. When either wait runs out the register is not read at all and */
+/* the row fails on the wait.                                          */
+/* ------------------------------------------------------------------ */
+#define RESET_WAIT_MS 10000
+
+/* Wait for the executor to enter the flip stall. */
+static int
+reset_wait_stalled(rage128_t *dev)
+{
+    for (int i = 0; i < RESET_WAIT_MS && !atomic_load(&dev->cce_flip_stalled); i++)
+        lap_msleep(1);
+    return atomic_load(&dev->cce_flip_stalled);
+}
+
+/* The pulse waits, with no bound, for the executor to park, and an
+   executor in the stall parks only because the stall gives way to the
+   pulse. A stall that ignored the pulse would hang the run at the first
+   pulse instead of turning a row red. So the stall is tried first with
+   the pulse's stop request set directly, which cannot hang: a stall
+   from a direct WAIT_UNTIL write, the request, and a bounded wait for
+   the executor to park. Tried once; every vector reads the answer into
+   its precondition row, and a vector that got a no does not pulse into
+   the stall (see the pulse helper below). */
+static int
+reset_stall_yields(rage128_t *dev)
+{
+    static int yields = -1;
+    int        stalled;
+
+    if (yields >= 0)
+        return yields;
+    drain_sync(dev);
+    wr(dev, RAGE128_CRTC_OFFSET, 0x00300000); /* arm a pending flip */
+    wr(dev, RAGE128_WAIT_UNTIL, 1);           /* queued to the executor, which stalls */
+    stalled = reset_wait_stalled(dev);
+    atomic_store(&dev->cce_parked, 0);
+    atomic_store(&dev->cce_abort, 1);
+    thread_set_event(dev->cce_wake_event);
+    thread_set_event(dev->cce_flip_event);
+    for (int i = 0; i < RESET_WAIT_MS && !atomic_load(&dev->cce_parked); i++)
+        lap_msleep(1);
+    yields = stalled && atomic_load(&dev->cce_parked);
+    atomic_store(&dev->cce_abort, 0);
+    thread_set_event(dev->cce_wake_event);
+    rage128_vblank_start(&dev->svga); /* latch the flip, release the stall */
+    drain_sync(dev);
+    return yields;
+}
+
+/* The first half of the pulse. With a stall that does not give way the
+   flip is latched first, so the executor is running again and the pulse
+   returns; the rows behind the red precondition row then say nothing. */
+static void
+reset_pulse(rage128_t *dev, int yields)
+{
+    if (!yields)
+        rage128_vblank_start(&dev->svga);
+    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+}
+
+/* The executor calls the idle hook in a pass that found the FIFO empty.
+   While it is stalled or parked for the pulse it makes no such pass, so
+   a count armed before the pulse goes up only after the pulse has let
+   the executor go and it has run everything still queued. */
+static atomic_int reset_idle_passes;
+
+static void
+reset_idle_hook(rage128_t *dev)
+{
+    (void) dev;
+    atomic_fetch_add(&reset_idle_passes, 1);
+}
+
+static void
+reset_settle_arm(void)
+{
+    atomic_store(&reset_idle_passes, 0);
+    atomic_store(&rage128_harness_idle_hook, reset_idle_hook);
+}
+
+/* After the pulse: wait for the executor to run out of work and stop.
+   Returns 1 once it has, so what the caller reads next is final. */
+static int
+reset_settled(rage128_t *dev)
+{
+    int done = 0;
+
+    for (int i = 0; i < RESET_WAIT_MS && !done; i++) {
+        done = atomic_load(&reset_idle_passes) && !atomic_load(&dev->cce_executing);
+        if (!done)
+            lap_msleep(1);
+    }
+    atomic_store(&rage128_harness_idle_hook, NULL);
+    return done;
+}
+
+/* A ring-submitted batch of draws that the pulse catches before the
+   executor has taken any of it leaves the surface untouched, and the
+   next batch draws normally. The executor is held in a WAIT_UNTIL
+   stall ahead of the batch, so all 79 batch dwords are in the FIFO at
+   the pulse, and what the row proves is that the pulse drops packets
+   still in the FIFO. It does not reach the other place a draw can be
+   waiting, the render workers' batch of primitives the executor has
+   already taken: a stall cannot go behind the batch, because a
+   WAIT_UNTIL draws whatever is deferred before it stalls. That case
+   has its own rows, on the device of the walk-hold vector, where a
+   batch can be left taken with the executor asleep. Threaded device. */
 static void
 vectors_gui_reset_batch(rage128_t *dev)
 {
+    uint32_t *ring   = (uint32_t *) (ram + RING_PHYS);
+    uint32_t  base;
+    int       stalled;
+    int       yields = reset_stall_yields(dev);
+
     harness_ram_alloc();
     ring_build();
+    memmove(ring + 2, ring, BATCH_DWORDS * 4);
+    ring[0]  = LAP_WAIT_HDR;
+    ring[1]  = 0x00000001; /* EVENT_CRTC_OFFSET */
     g_kicked = 0;
 
     pci_wr8(0x04, 0x07);
@@ -14853,18 +14994,31 @@ vectors_gui_reset_batch(rage128_t *dev)
     wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 0);
     wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000a);
 
-    /* Submit one batch, pulse the reset before any drain, then drain:
-       the deferred draws must be abandoned wherever the pulse caught
-       them (FIFO, mid-parse, or the deferred batch). */
+    /* Submit the stall and one batch, wait for the stall, pulse, then
+       latch the flip and drain. The first row is the precondition: red
+       there means the batch was not all queued at the pulse, and the
+       second row says nothing. */
     prep_surfaces(dev);
-    g_kicked++;
-    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, g_kicked * BATCH_DWORDS);
-    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+    wr(dev, RAGE128_CRTC_OFFSET, 0x00300000); /* arm a pending flip */
+    base = atomic_load(&dev->cce_fifo_wr);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, BATCH_DWORDS + 2);
+    stalled = reset_wait_stalled(dev);
+    check_true("cce reset: executor stalled with the whole batch queued",
+               stalled && yields && atomic_load(&dev->cce_fifo_rd) == base + 2
+                   && atomic_load(&dev->cce_fifo_wr) == base + 2 + BATCH_DWORDS);
+    reset_pulse(dev, yields);
     wr(dev, RAGE128_GEN_RESET_CNTL, 0);
+    rage128_vblank_start(&dev->svga); /* latch the flip armed for the stall */
     drain_sync(dev);
-    check32("cce reset: reset abandons the deferred batch", clr_pix(dev), 0);
+    check32("cce reset: reset drops the batch packets still in the FIFO", clr_pix(dev), 0);
 
-    /* Control: the next batch draws normally. */
+    /* Control: the same batch draws when it is submitted again. The ring
+       is set up afresh, as a driver does after the pulse. */
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+    wr(dev, RAGE128_PM4_BUFFER_DL_RPTR, 0);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 0);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000a);
+    ring_build();
     prep_surfaces(dev);
     kick(dev);
     check32("cce reset: next batch draws after reset", clr_pix(dev), PIXVAL);
@@ -14894,29 +15048,26 @@ vectors_gui_reset_batch(rage128_t *dev)
 }
 
 /* ------------------------------------------------------------------ */
-/* SOFT_RESET_GUI must quiesce an executor that still has FIFO   */
-/* residue behind it. Half of a long type-3 NOP's payload is submitted */
-/* first, so the executor parks inside the packet (cce_starved with    */
-/* cce_executing still 1 -- no timing assumption); the rest of the ring */
-/* then goes in and the pulse follows with no drain between them. The  */
-/* residue carries a GUI_SCRATCH_REG0 write: the pulse abandons it, so  */
-/* the register must never see the value. Ring is 16384 dwords         */
-/* (PM4_BUFFER_CNTL log2 field 13) over 16 GART pages.                 */
-/* The second submit wakes the executor, which pops the 8000-dword     */
-/* residue in tens of microseconds; a host preemption of this thread   */
-/* between that submit and the pulse lets it run the witness first,    */
-/* after which there is nothing to abandon (the real part would show   */
-/* the same). The executor's FIFO position is sampled just before the  */
-/* pulse and the abandon rows count only when the witness was still   */
-/* ahead of it by a margin, otherwise they are SKIPped, not failed.    */
+/* SOFT_RESET_GUI must stop an executor that still has FIFO residue    */
+/* behind it, and drop that residue. The ring holds a long type-3 NOP, */
+/* a WAIT_UNTIL stall, type-2 fillers and last a GUI_SCRATCH_REG0      */
+/* write, the witness. The header and 8000 of the NOP's 8002 payload   */
+/* dwords are submitted first, so the executor waits inside the packet */
+/* for the rest. The second submit then carries the NOP's last two     */
+/* dwords and everything behind them: the executor finishes the NOP    */
+/* and stops in the stall, with 7996 fillers and the witness queued    */
+/* behind it, and stays there until the pulse. The pulse abandons the  */
+/* residue, so the register must never see the witness value. Ring is  */
+/* 16384 dwords (PM4_BUFFER_CNTL log2 field 13) over 16 GART pages.    */
 /* ------------------------------------------------------------------ */
 #define RESET_FIFO_CARD_ADDR 0x00030000u
 #define RESET_FIFO_PHYS      0x00300000u
 #define RESET_FIFO_PAGES     16
 #define RESET_FIFO_PAYLOAD   16000
 #define RESET_FIFO_HALF      8000
-#define RESET_FIFO_AHEAD     256 /* dwords still ahead of the executor at the pulse */
 
+/* One long type-3 NOP and a witness behind it, for the vectors that
+   need an executor waiting inside a packet with nothing to stall on. */
 static void
 reset_fifo_ring_build(void)
 {
@@ -14936,19 +15087,49 @@ reset_fifo_ring_build(void)
     ring[n++] = LAP_SCRATCH_VAL;
 }
 
+/* The residue vector's ring: the same length, 16003 dwords, with the
+   NOP ending two dwords past the first submit and the stall right
+   behind it. */
+#define RESET_FIFO_NOP_END (RESET_FIFO_HALF + 3) /* first dword past the NOP */
+
+static void
+reset_fifo_stall_build(void)
+{
+    uint32_t *tbl  = (uint32_t *) (ram + GART_TABLE_PHYS);
+    uint32_t *ring = (uint32_t *) (ram + RESET_FIFO_PHYS);
+    uint32_t  n    = 0;
+
+    memset(ram + GART_TABLE_PHYS, 0, 0x1000);
+    for (uint32_t p = 0; p < RESET_FIFO_PAGES; p++)
+        tbl[(RESET_FIFO_CARD_ADDR >> 12) + p] = RESET_FIFO_PHYS + p * 0x1000;
+
+    ring[n++] = 0xc0000000u | ((RESET_FIFO_HALF + 2 - 1) << 16)
+        | (RAGE128_PM4_OP_NOP << 8);
+    while (n < RESET_FIFO_NOP_END)
+        ring[n++] = 0x00000000u;
+    ring[n++] = LAP_WAIT_HDR;
+    ring[n++] = 0x00000001u; /* EVENT_CRTC_OFFSET */
+    while (n <= RESET_FIFO_PAYLOAD)
+        ring[n++] = 0x80000000u; /* type-2 filler */
+    ring[n++] = LAP_SCRATCH_HDR;
+    ring[n++] = LAP_SCRATCH_VAL;
+}
+
 static void
 vectors_gui_reset_residue(rage128_t *dev)
 {
+    uint32_t base;
     uint32_t rd0;
     uint32_t wr0;
-    uint32_t rd_pre;
-    uint32_t rd_a;
-    int      inside;
+    uint32_t s0;
+    int      stalled;
+    int      settled;
+    int      yields = reset_stall_yields(dev);
     int      i;
 
     harness_ram_alloc();
     harness_sysmem_stray = 0;
-    reset_fifo_ring_build();
+    reset_fifo_stall_build();
     /* Never initialized by rage128_pm4_thread_init and deliberately left
        set on both abort returns, so the mid-packet witness below must not
        inherit it from an earlier vector. */
@@ -14963,111 +15144,125 @@ vectors_gui_reset_residue(rage128_t *dev)
     wr(dev, RAGE128_PM4_BUFFER_DL_RPTR, 0);
     wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 0);
     wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000d);
+    wr(dev, RAGE128_CRTC_OFFSET, 0x00300000); /* arm a pending flip */
     dev->gui_scratch[0] = 0;
+    base                = atomic_load(&dev->cce_fifo_wr);
 
-    /* The whole race needs a real executor thread; rage128_init creates
+    /* The whole vector needs a real executor thread; the device creates
        one in every configuration, harness included. */
     check_true("cce reset: device runs a CCE thread", dev->cce_thread != NULL);
 
-    /* Header + half the payload: the packet cannot complete, so the
-       executor is stuck in the empty-FIFO wait holding cce_executing. */
+    /* Header + 8000 payload dwords: the packet cannot complete, so the
+       executor waits on the empty FIFO in the middle of a pass. */
     wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, RESET_FIFO_HALF + 1);
-    for (i = 0; i < 2000 && !atomic_load(&dev->cce_starved); i++)
+    for (i = 0; i < RESET_WAIT_MS
+         && !(atomic_load(&dev->cce_starved)
+              && atomic_load(&dev->cce_fifo_rd) == base + RESET_FIFO_HALF + 1);
+         i++)
         lap_msleep(1);
     check_true("cce reset: executor parked mid-packet",
                atomic_load(&dev->cce_starved) && atomic_load(&dev->cce_executing));
 
-    /* Rest of the ring, then the pulse -- no drain in between. */
-    rd_pre = atomic_load(&dev->cce_fifo_rd);
+    /* Rest of the ring. The abandon rows below assert a scratch register
+       stayed 0, which is also true if the residue never arrived or had
+       already run. Pin the precondition: the executor stands in the stall
+       two dwords past the NOP, and the fillers and the witness are all
+       published behind it. */
     wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, RESET_FIFO_PAYLOAD + 3);
-    /* The abandon rows below assert a scratch register stayed 0, which is
-       also true if the residue never arrived. Pin the precondition: the
-       second submit must have published the rest of the payload plus the
-       witness packet behind the parked executor. */
-    check_true("cce reset: residue queued behind the parked executor",
-               atomic_load(&dev->cce_fifo_wr) - rd_pre > RESET_FIFO_PAYLOAD - RESET_FIFO_HALF);
-    /* Where the executor stood as the pulse went out. Sampled last before
-       the write: the abort store is the pulse's first act, so only a
-       preemption inside that gap can move the executor past the margin. */
-    rd_a = atomic_load(&dev->cce_fifo_rd);
-    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+    stalled = reset_wait_stalled(dev);
+    check_true("cce reset: residue queued behind the stalled executor",
+               stalled && yields
+                   && atomic_load(&dev->cce_fifo_rd) == base + RESET_FIFO_NOP_END + 2
+                   && atomic_load(&dev->cce_fifo_wr) == base + RESET_FIFO_PAYLOAD + 3);
+
+    /* The pulse parks the executor, empties the FIFO and lets the
+       executor go again, all before the asserting write returns. The two
+       FIFO indices are atomics and are sampled at that return. */
+    reset_settle_arm();
+    reset_pulse(dev, yields);
     rd0 = atomic_load(&dev->cce_fifo_rd);
     wr0 = atomic_load(&dev->cce_fifo_wr);
     wr(dev, RAGE128_GEN_RESET_CNTL, 0);
-    inside = wr0 - rd_a >= 2 + RESET_FIFO_AHEAD;
 
     check_true("cce reset: pulse drops the FIFO residue", rd0 == wr0);
-    if (inside)
-        check_true("cce reset: abandoned scratch write did not run",
-                   dev->gui_scratch[0] == 0);
-    else
-        printf("SKIP cce reset: residue ran before the pulse (%u of %u dwords left)\n",
-               wr0 - rd_a, RESET_FIFO_PAYLOAD + 3 - (RESET_FIFO_HALF + 1));
 
-    /* And nothing pops afterwards: a thread still walking the FIFO would
-       move cce_fifo_rd off the value the pulse published. cce_executing is
-       read here rather than straight after the pulse -- releasing the abort
-       wakes the executor, whose first act at the loop top is to set the
-       flag before it discovers the FIFO is empty, so an immediate read
-       races the wake instead of measuring anything. */
-    lap_msleep(50);
+    /* And nothing pops afterwards: an executor let go with the residue
+       still queued runs it, moves the FIFO read index off the value the
+       pulse published and writes the witness. The witness register is
+       read only once the executor has made its pass over the FIFO after
+       the pulse and stopped; an executor that never gets there fails the
+       rows without the register being read. */
+    settled = reset_settled(dev);
+    s0      = settled ? dev->gui_scratch[0] : 0xffffffffu;
+    check_true("cce reset: abandoned scratch write did not run", s0 == 0);
     check_true("cce reset: no pop after the pulse",
                atomic_load(&dev->cce_fifo_rd) == rd0);
-    if (inside)
-        check_true("cce reset: scratch still clean after the pulse",
-                   dev->gui_scratch[0] == 0);
-    check_true("cce reset: executor idle once the pulse has settled",
-               !atomic_load(&dev->cce_executing));
+    check_true("cce reset: scratch still clean after the pulse", s0 == 0);
+    check_true("cce reset: executor idle once the pulse has settled", settled);
     check_true("cce reset: ring fetches all resolved in RAM",
-               harness_sysmem_stray == 0);
+               settled && harness_sysmem_stray == 0);
 
+    rage128_vblank_start(&dev->svga); /* latch the flip armed for the stall */
+    drain_sync(dev);
     wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
     wr(dev, RAGE128_PCI_GART_PAGE, 1);
     pci_wr8(0x04, 0x03);
 }
 
 /* ------------------------------------------------------------------ */
-/* The pulse must also stop the packet IN flight, at the pop. The       */
-/* residue vector above cannot see that: its witness is a separate      */
-/* packet, which the loop-top park protects on its own. Here the packet */
-/* being executed is itself the witness -- a one-register-mode type-0   */
-/* burst to GUI_SCRATCH_REG0 whose payload dword i carries i + 1, so    */
-/* the register always names the last dword the executor ran. An        */
-/* executor that ignores the abort at the pop runs the burst out while  */
-/* the pulse waits for the park, and the register ends on the last      */
-/* value. Dwords popped between the second submit and the pulse are     */
-/* legitimate, hence "stopped short" and not "kept the first half".     */
-/* Same ring geometry and the same precondition shape as above.         */
+/* The pulse must also stop the packet in flight, at the pop of its    */
+/* next dword. The residue vector above cannot see that: its witness   */
+/* is a separate packet, which the executor's test between packets     */
+/* protects on its own. Here the packet being executed is itself the   */
+/* witness: a type-1 packet, which carries two register writes         */
+/* (SDK: Type 1 CCE Packet, p. F-5 / PDF 295): one to WAIT_UNTIL, then */
+/* one to GUI_SCRATCH_REG0. The executor stalls in the first           */
+/* write with the second write's dword queued, so the pulse lands      */
+/* between the two. An executor that ignores the pulse at the pop      */
+/* takes that dword once the pulse has ended the stall and writes the  */
+/* register before it parks. Type-2 fillers and a GUI_SCRATCH_REG1     */
+/* write behind the packet are the residue. Same ring geometry as      */
+/* above.                                                              */
 /* ------------------------------------------------------------------ */
+#define RESET_T1_FILL   16
+#define RESET_T1_DWORDS (3 + RESET_T1_FILL + 2)
+#define RESET_T1_BEHIND 0x12345678u
+
 static void
-reset_fifo_burst_build(void)
+reset_fifo_type1_build(void)
 {
     uint32_t *tbl  = (uint32_t *) (ram + GART_TABLE_PHYS);
     uint32_t *ring = (uint32_t *) (ram + RESET_FIFO_PHYS);
+    uint32_t  n    = 0;
 
     memset(ram + GART_TABLE_PHYS, 0, 0x1000);
     for (uint32_t p = 0; p < RESET_FIFO_PAGES; p++)
         tbl[(RESET_FIFO_CARD_ADDR >> 12) + p] = RESET_FIFO_PHYS + p * 0x1000;
 
-    ring[0] = ((RESET_FIFO_PAYLOAD - 1) << 16) | 0x8000u | (RAGE128_GUI_SCRATCH_REG0 >> 2);
-    for (uint32_t i = 0; i < RESET_FIFO_PAYLOAD; i++)
-        ring[1 + i] = i + 1;
+    ring[n++] = 0x40000000u | ((RAGE128_GUI_SCRATCH_REG0 >> 2) << 11) | (RAGE128_WAIT_UNTIL >> 2);
+    ring[n++] = 0x00000001u; /* EVENT_CRTC_OFFSET */
+    ring[n++] = LAP_SCRATCH_VAL;
+    while (n < 3 + RESET_T1_FILL)
+        ring[n++] = 0x80000000u; /* type-2 filler */
+    ring[n++] = LAP_SCRATCH_HDR + 1; /* PACKET0(GUI_SCRATCH_REG1, 1) */
+    ring[n++] = RESET_T1_BEHIND;
 }
 
 static void
-vectors_gui_reset_burst(rage128_t *dev)
+vectors_gui_reset_type1(rage128_t *dev)
 {
-    uint32_t rd_pre;
-    uint32_t rd_a;
+    uint32_t base;
+    uint32_t rd0;
     uint32_t wr0;
-    uint32_t held;
-    int      inside;
-    int      i;
+    uint32_t s0;
+    uint32_t s1;
+    int      stalled;
+    int      settled;
+    int      yields = reset_stall_yields(dev);
 
     harness_ram_alloc();
     harness_sysmem_stray = 0;
-    reset_fifo_burst_build();
-    atomic_store(&dev->cce_starved, 0);
+    reset_fifo_type1_build();
 
     pci_wr8(0x04, 0x07);
     wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
@@ -15078,52 +15273,46 @@ vectors_gui_reset_burst(rage128_t *dev)
     wr(dev, RAGE128_PM4_BUFFER_DL_RPTR, 0);
     wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 0);
     wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000d);
+    wr(dev, RAGE128_CRTC_OFFSET, 0x00300000); /* arm a pending flip */
     dev->gui_scratch[0] = 0;
+    dev->gui_scratch[1] = 0;
+    base                = atomic_load(&dev->cce_fifo_wr);
 
-    /* Header + the first half. The starve flag alone can be a transient
-       from the executor catching the pump up mid-copy, so the FIFO must
-       read drained as well before the register is sampled. */
-    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, RESET_FIFO_HALF + 1);
-    for (i = 0; i < 2000
-         && !(atomic_load(&dev->cce_starved)
-              && atomic_load(&dev->cce_fifo_rd) == atomic_load(&dev->cce_fifo_wr));
-         i++)
-        lap_msleep(1);
-    check_true("cce reset: burst executor parked mid-burst",
-               atomic_load(&dev->cce_starved) && atomic_load(&dev->cce_executing));
-    check32("cce reset: burst first half landed", dev->gui_scratch[0], RESET_FIFO_HALF);
+    /* One submit. The precondition: the executor is inside the packet,
+       header and first dword popped, and the second dword and the
+       residue are published behind it. */
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, RESET_T1_DWORDS);
+    stalled = reset_wait_stalled(dev);
+    check_true("cce reset: executor stalled inside the type-1 packet",
+               stalled && yields && atomic_load(&dev->cce_executing)
+                   && atomic_load(&dev->cce_fifo_rd) == base + 2
+                   && atomic_load(&dev->cce_fifo_wr) == base + RESET_T1_DWORDS);
 
-    /* Second half, then the pulse -- no drain in between. */
-    rd_pre = atomic_load(&dev->cce_fifo_rd);
-    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, RESET_FIFO_PAYLOAD + 1);
-    check_true("cce reset: burst second half queued behind the executor",
-               atomic_load(&dev->cce_fifo_wr) - rd_pre == RESET_FIFO_PAYLOAD - RESET_FIFO_HALF);
-    rd_a = atomic_load(&dev->cce_fifo_rd);
-    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
-    wr0  = atomic_load(&dev->cce_fifo_wr);
-    held = dev->gui_scratch[0];
+    /* An executor that takes the second dword does so on its way out of
+       the stall, before it parks for the pulse, so the register is
+       written by the time the asserting write returns. That write also
+       lets the executor go again, so both registers are read only once
+       the executor has run out of work and stopped. */
+    reset_settle_arm();
+    reset_pulse(dev, yields);
+    rd0 = atomic_load(&dev->cce_fifo_rd);
+    wr0 = atomic_load(&dev->cce_fifo_wr);
     wr(dev, RAGE128_GEN_RESET_CNTL, 0);
-    inside = wr0 - rd_a >= RESET_FIFO_AHEAD;
 
-    /* Precondition-shaped, as above: a preemption between the submit and
-       the pulse lets the burst finish first, and then nothing was cut. */
-    if (inside) {
-        check_true("cce reset: burst stopped short at the pulse", held < RESET_FIFO_PAYLOAD);
-        if (held >= RESET_FIFO_PAYLOAD)
-            printf("     cce reset: burst ended on %u of %u, %u dwords were left at the pulse\n",
-                   held, RESET_FIFO_PAYLOAD, wr0 - rd_a);
-    } else
-        printf("SKIP cce reset: burst ran out before the pulse (%u of %u dwords left)\n",
-               wr0 - rd_a, RESET_FIFO_PAYLOAD - RESET_FIFO_HALF);
+    check_true("cce reset: pulse drops the dwords behind the type-1 stall", rd0 == wr0);
 
-    lap_msleep(50);
-    if (inside)
-        check32("cce reset: burst value held after the pulse", dev->gui_scratch[0], held);
-    check_true("cce reset: burst executor idle once the pulse has settled",
-               !atomic_load(&dev->cce_executing));
-    check_true("cce reset: burst ring fetches all resolved in RAM",
-               harness_sysmem_stray == 0);
+    settled = reset_settled(dev);
+    s0      = settled ? dev->gui_scratch[0] : 0xffffffffu;
+    s1      = settled ? dev->gui_scratch[1] : 0xffffffffu;
+    check32("cce reset: type-1 second write did not run", s0, 0);
+    check32("cce reset: type-1 second write still not run once settled", s0, 0);
+    check32("cce reset: packet behind the type-1 packet did not run", s1, 0);
+    check_true("cce reset: type-1 executor idle once the pulse has settled", settled);
+    check_true("cce reset: type-1 ring fetches all resolved in RAM",
+               settled && harness_sysmem_stray == 0);
 
+    rage128_vblank_start(&dev->svga); /* latch the flip armed for the stall */
+    drain_sync(dev);
     wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
     wr(dev, RAGE128_PCI_GART_PAGE, 1);
     pci_wr8(0x04, 0x03);
@@ -15832,19 +16021,23 @@ vectors_vline_stall_flush(rage128_t *dev)
 
 /* ------------------------------------------------------------------ */
 /* The reset pulse must abandon an indirect buffer too. The Linux DRM  */
-/* submits every vertex and blit buffer as an IB, so a walk that       */
-/* ignores cce_abort runs exactly the work the pulse drops. A long     */
-/* body (100000 two-dword register packets) walks in about 2 ms, so    */
-/* the wait for it to start spins: a sleeping wait cannot resolve      */
-/* finer than the host timer granularity and would spend the window.   */
-/* The walk's own progress counter, sampled just before the pulse,     */
-/* says the walk was still running then. The pulse                     */
-/* goes through GEN_RESET_CNTL: even an unfixed walk ends in           */
-/* milliseconds, so the wait cannot wedge.                             */
+/* submits every vertex and blit buffer as an indirect buffer, so a    */
+/* walk that ignores the pulse runs exactly the work the pulse drops.  */
+/* The body is 4096 two-dword register packets: each writes its own    */
+/* index plus one to GUI_SCRATCH_REG1, a progress counter, except      */
+/* packet 2000, which is a WAIT_UNTIL stall, and the last, which       */
+/* writes the witness to GUI_SCRATCH_REG0. The walk stops in the       */
+/* stall, so the counter reads 2000 for as long as the walk stands     */
+/* there, and the pulse lands on a walk with half its body still to    */
+/* run. A walk that ignores the pulse goes on once the pulse has ended */
+/* the stall, and the pulse returns only after it has run the witness. */
+/* The pulse goes through GEN_RESET_CNTL: even such a walk ends in     */
+/* microseconds, so the pulse cannot wedge.                            */
 /* ------------------------------------------------------------------ */
 #define RESET_IB_CARD_ADDR 0x00200000u
 #define RESET_IB_PHYS      0x00400000u
-#define RESET_IB_PACKETS   100000u
+#define RESET_IB_PACKETS   4096u
+#define RESET_IB_STALL_PKT 2000u
 #define RESET_IB_DWORDS    (RESET_IB_PACKETS * 2)
 #define RESET_IB_PAGES     ((RESET_IB_DWORDS * 4 + 0xfff) / 0x1000)
 #define RESET_IB_SCRATCH1  0x00000579u /* PACKET0(GUI_SCRATCH_REG1, 1) */
@@ -15865,11 +16058,14 @@ reset_ib_ib_build(void)
     ring[1] = RESET_IB_CARD_ADDR;
     ring[2] = RESET_IB_DWORDS;
 
-    /* Body: a progress counter, then the witness as the very last packet. */
+    /* Body: a progress counter with the stall in the middle, then the
+       witness as the very last packet. */
     for (uint32_t i = 0; i < RESET_IB_PACKETS - 1; i++) {
         ib[i * 2]     = RESET_IB_SCRATCH1;
         ib[i * 2 + 1] = i + 1;
     }
+    ib[RESET_IB_STALL_PKT * 2]         = LAP_WAIT_HDR;
+    ib[RESET_IB_STALL_PKT * 2 + 1]     = 0x00000001u; /* EVENT_CRTC_OFFSET */
     ib[(RESET_IB_PACKETS - 1) * 2]     = LAP_SCRATCH_HDR;
     ib[(RESET_IB_PACKETS - 1) * 2 + 1] = LAP_SCRATCH_VAL;
 }
@@ -15879,7 +16075,10 @@ vectors_gui_reset_indirect(rage128_t *dev)
 {
     uint32_t pre;
     uint32_t prog;
-    int      i;
+    uint32_t s0;
+    int      stalled;
+    int      settled;
+    int      yields = reset_stall_yields(dev);
 
     harness_ram_alloc();
     harness_sysmem_stray = 0;
@@ -15894,40 +16093,43 @@ vectors_gui_reset_indirect(rage128_t *dev)
     wr(dev, RAGE128_PM4_BUFFER_DL_RPTR, 0);
     wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 0);
     wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000a);
+    wr(dev, RAGE128_CRTC_OFFSET, 0x00300000); /* arm a pending flip */
     dev->gui_scratch[0] = 0;
     dev->gui_scratch[1] = 0;
 
-    /* Submit: the body is spliced whole behind its submit packet, so the
-       walk cannot start until the pump has published all of it. */
+    /* Submit: the body is copied whole into the FIFO behind its submit
+       packet, and the executor walks it from there up to the stall. */
     wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 3);
-    /* Spin, do not sleep. The whole body walks in about 2 ms, so one 1 ms
-       sleep already eats most of the window, and a host whose millisecond
-       sleep rounds up to a scheduler quantum (Windows Sleep(1) is ~15 ms
-       without timeBeginPeriod) misses the walk entirely. The spin sees the
-       counter within microseconds of it crossing; the sleep loop stays as
-       the backstop for a walk that never starts. */
-    for (i = 0; i < 10000000 && LAP_SCRATCH_R(dev, 1) < 100; i++)
-        ;
-    for (i = 0; i < 4000 && LAP_SCRATCH_R(dev, 1) < 100; i++)
-        lap_msleep(1);
+    stalled = reset_wait_stalled(dev);
 
-    /* Sampled right before the pulse: started (>= 100) and not yet at the
-       last counter value. This row is the precondition, not a device
-       verdict -- red here means the walk was not caught running, so the
-       two rows below say nothing about the abort. */
-    pre = LAP_SCRATCH_R(dev, 1);
+    /* The precondition, not a device verdict: the walk stands in the
+       stall packet, having written the counter for every packet before
+       it and none after. Red here means the walk was not held there, so
+       the two rows below say nothing about the pulse. The counter is
+       read only with the walk seen in the stall, where it writes
+       nothing. */
+    pre = stalled ? dev->gui_scratch[1] : 0xffffffffu;
     check_true("cce reset: IB walk was running at the pulse",
-               pre >= 100 && pre < RESET_IB_PACKETS - 1);
-    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
-    prog = dev->gui_scratch[1];
+               stalled && yields && atomic_load(&dev->cce_executing)
+                   && pre == RESET_IB_STALL_PKT);
+    /* A walk that goes on does so before the executor parks for the
+       pulse: by the time the asserting write returns it has moved the
+       counter and, at its end, written the witness. That write also lets
+       the executor go again, so both registers are read only once the
+       executor has run out of work and stopped. */
+    reset_settle_arm();
+    reset_pulse(dev, yields);
     wr(dev, RAGE128_GEN_RESET_CNTL, 0);
+    settled = reset_settled(dev);
+    prog    = settled ? dev->gui_scratch[1] : 0xffffffffu;
+    s0      = settled ? dev->gui_scratch[0] : 0xffffffffu;
 
-    check_true("cce reset: IB walk abandoned at the pulse",
-               prog < RESET_IB_PACKETS - 1);
-    check_true("cce reset: IB tail write did not run", dev->gui_scratch[0] == 0);
+    check32("cce reset: IB walk abandoned at the pulse", prog, RESET_IB_STALL_PKT);
+    check_true("cce reset: IB tail write did not run", s0 == 0);
     check_true("cce reset: IB body fetches all resolved in RAM",
-               harness_sysmem_stray == 0);
+               settled && harness_sysmem_stray == 0);
 
+    rage128_vblank_start(&dev->svga); /* latch the flip armed for the stall */
     drain_sync(dev);
     wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
     wr(dev, RAGE128_PCI_GART_PAGE, 1);
@@ -16452,6 +16654,16 @@ vectors_cce_status_batch_writeback(rage128_t *dev)
 /*      executor, then a pass owed after that drain;                   */
 /*   D  a reset pulse written by the buffer, with the executor backed  */
 /*      off when it comes.                                             */
+/* A fifth run, E, is not about the hold. It repeats B, whose submit   */
+/* returns with both triangles in the render workers' batch, the       */
+/* executor asleep and no pass owed, and then writes a SOFT_RESET_GUI  */
+/* pulse to GEN_RESET_CNTL from this thread. That is the one state in  */
+/* which a batch the executor side has already taken stands in front   */
+/* of a register-written pulse on every run, so its rows carry the     */
+/* reset vectors' names. The pulse must empty the batch. The pass the  */
+/* executor makes once the pulse lets it go is stood before its idle   */
+/* flush until the batch has been read, or for 2 s at most, so a batch */
+/* the pulse left behind is still there to be seen, not already drawn. */
 /* Limits: each poll of the vector (WH_WAIT, the settle test) gives up */
 /* after 2 s. A submit that has not returned after 8 s is ended by     */
 /* clearing the hold from this thread (the rescue), and the run exits  */
@@ -16472,7 +16684,10 @@ vectors_cce_status_batch_writeback(rage128_t *dev)
 /* or on this thread while no submitting thread exists. No poll reads  */
 /* it: polls load atomics only. The target's pixels are written by the */
 /* render workers inside a flush and are read with the same mutex      */
-/* held.                                                               */
+/* held. Run E's pulse is written by this thread after the submitting  */
+/* thread has ended, and its reads follow the same rule: the count     */
+/* through the accessor, the pixels under the mutex, everything else   */
+/* an atomic.                                                          */
 /* ------------------------------------------------------------------ */
 extern _Atomic(void (*)(rage128_t *dev, int site)) rage128_harness_walk_hook;
 extern uint32_t rage128_harness_raster_cmd_count(rage128_t *dev);
@@ -16486,7 +16701,7 @@ extern int (*harness_bm_read_hook)(uint32_t addr, uint8_t *dst, uint32_t len);
 #define WH_COL_B    0xff0000ffu
 #define WH_LIMIT_MS 2000.0
 
-enum { WH_OFF, WH_A, WH_B, WH_C, WH_D };
+enum { WH_OFF, WH_A, WH_B, WH_C, WH_D, WH_E };
 enum { WH_H_OFF, WH_H_ARMED, WH_H_HOLDING, WH_H_RELEASED, WH_H_TIMED_OUT };
 
 static rage128_t *wh_dev;
@@ -16579,7 +16794,7 @@ wh_walk_hook(rage128_t *dev, int site)
         atomic_fetch_add(&wh_backoffs, 1);
         return;
     }
-    if (atomic_load(&wh_group) != WH_B)
+    if (atomic_load(&wh_group) != WH_B && atomic_load(&wh_group) != WH_E)
         return;
     if (site == 1) {
         wh_hold_release();
@@ -16635,7 +16850,7 @@ wh_read_hook(uint32_t addr, uint8_t *dst, uint32_t len)
     /* On the submitting thread, the only one that appends here. */
     wh_cnt_b = rage128_harness_raster_cmd_count(wh_dev);
     wh_pa_b  = wh_pixel(wh_dev, 2);
-    if (group == WH_B) {
+    if (group == WH_B || group == WH_E) {
         /* A pass still standing at its idle flush was not waited for:
            let it flush now, inside the walk, as it would have. */
         if (atomic_load(&wh_hold) == WH_H_HOLDING) {
@@ -16706,6 +16921,9 @@ typedef struct wh_res_t {
     uint32_t cnt_end, pa, pb, stat;
     int      pend_end;
     int      running, pass_in_walk, timeouts, backoffs;
+    /* Run E: at the pulse, and with the pulse returned. */
+    int      asleep_pre, exec_pre, pend_pre, held, pend_pulse;
+    uint32_t cnt_pre, cnt_pulse;
 } wh_res_t;
 
 static void
@@ -16790,10 +17008,33 @@ wh_run(rage128_t *dev, int group, wh_res_t *r)
        batch count, which the executor's flush can be storing meanwhile:
        the flush clears the count before it drops cce_batch_pending, and
        the rows read the count afterwards, through the accessor. */
-    if (group != WH_B)
+    if (group != WH_B && group != WH_E)
         WH_WAIT(!atomic_load(&dev->cce_batch_pending)
                 && !atomic_load(&dev->cce_batch_flushing) && !atomic_load(&dev->cce_executing));
     r->settled  = wh_settle(dev);
+    if (group == WH_E) {
+        /* The executor is asleep with the batch taken and nothing owed.
+           The state is sampled last before the pulse; the GEN_RESET_CNTL
+           write does not drain, so the pulse meets that state. */
+        r->asleep_pre = r->settled;
+        r->cnt_pre    = rage128_harness_raster_cmd_count(dev);
+        r->pend_pre   = atomic_load(&dev->cce_batch_pending);
+        r->exec_pre   = atomic_load(&dev->cce_executing);
+        /* Armed before the pulse: the executor makes no pass until the
+           pulse has parked it and let it go, and that pass then stands
+           before its idle flush, which would draw a batch the pulse
+           left behind. The stand ends by itself after 2 s. */
+        atomic_store(&wh_hold, WH_H_ARMED);
+        wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+        WH_WAIT(atomic_load(&wh_hold) != WH_H_ARMED);
+        r->cnt_pulse  = rage128_harness_raster_cmd_count(dev);
+        r->pend_pulse = atomic_load(&dev->cce_batch_pending);
+        r->held       = atomic_load(&wh_hold) == WH_H_HOLDING;
+        wh_hold_release();
+        wr(dev, RAGE128_GEN_RESET_CNTL, 0);
+        drain_sync(dev);
+        r->settled = wh_settle(dev);
+    }
     r->cnt_end  = rage128_harness_raster_cmd_count(dev);
     r->pend_end = atomic_load(&dev->cce_batch_pending);
     r->pa       = wh_pixel(dev, 2);
@@ -16815,6 +17056,11 @@ wh_run(rage128_t *dev, int group, wh_res_t *r)
     atomic_store(&dev->cce_walk_hold, 0);
     thread_set_event(dev->cce_hold_event);
     drain_sync(dev);
+    if (group == WH_E)
+        printf("cpu walk: data: group E: at the pulse: count=%u flag=%d executing=%d; pulse "
+               "returned: count=%u flag=%d pass stood=%d\n",
+               r->cnt_pre, r->pend_pre, r->exec_pre || !r->asleep_pre, r->cnt_pulse, r->pend_pulse,
+               r->held);
     printf("cpu walk: data: group %c: setup=%d rescued=%d at B: count=%u A=%08x idle flushes=%d; "
            "return: count=%u flag=%d; after: count=%u flag=%d A=%08x B=%08x GUI_STAT=%08x; "
            "running=%d pass in walk=%d back-offs=%d timeouts=%d\n",
@@ -16897,6 +17143,18 @@ vectors_cpu_walk_hold(rage128_t *dev)
                r.settled && r.pa == 0 && r.pb == WH_COL_B && r.cnt_end == 0 && !r.pend_end
                    && r.stat == 0x00000040u);
 
+    /* The first row is the precondition: red there means the pulse did
+       not meet a taken batch, and the two rows below say nothing. */
+    wh_run(dev, WH_E, &r);
+    check_true("cce reset: two primitives taken, batch flag set, executor asleep at the pulse",
+               r.setup && !r.rescued && r.running && !r.pass_in_walk && r.asleep_pre
+                   && r.cnt_ret == 2 && r.pend_ret == 1 && r.cnt_pre == 2 && r.pend_pre == 1
+                   && !r.exec_pre);
+    check_true("cce reset: reset abandons the taken batch", r.cnt_pulse == 0 && !r.pend_pulse);
+    check_true("cce reset: nothing of the taken batch is drawn after the pulse, engine idle",
+               r.settled && r.pa == 0 && r.pb == 0 && r.cnt_end == 0 && !r.pend_end
+                   && r.stat == 0x00000040u);
+
     harness_bm_read_hook = NULL;
     atomic_store(&rage128_harness_walk_hook, NULL);
     drain_sync(dev);
@@ -16938,7 +17196,7 @@ run_agp_32mb_threaded(void)
     vectors_cce_status_batch_writeback(dev);
     vectors_gui_reset_batch(dev);
     vectors_gui_reset_residue(dev);
-    vectors_gui_reset_burst(dev);
+    vectors_gui_reset_type1(dev);
     vectors_scan_starved_executor(dev);
     vectors_scan_ib_chain(dev);
     vectors_scan_asleep_executor(dev);
