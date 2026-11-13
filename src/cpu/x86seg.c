@@ -326,6 +326,22 @@ do_seg_load(x86seg *s, uint16_t *segdat)
 }
 #endif
 
+#ifndef OPS_286_386
+/* Descriptors loadseg() has loaded through its protected-mode path, by
+   selector and whether into SS (whose checks differ): the descriptor as read,
+   the CPL it was loaded at, and what it made of the register (x86seg up to
+   checked, which comes from the descriptor alone) */
+/* seg_load_cache_t is in x86seg.h: the arm64 dynarec checks it inline */
+seg_load_cache_t seg_load_cache[SEG_LOAD_CACHE_SIZE];
+_Static_assert(sizeof(seg_load_cache_t) == 64, "a cache entry is one line");
+
+static inline seg_load_cache_t *
+seg_load_cache_entry(uint16_t seg, const x86seg *s)
+{
+    return &seg_load_cache[((seg >> 3) ^ ((s == &cpu_state.seg_ss) ? 0x155 : 0)) & (SEG_LOAD_CACHE_SIZE - 1)];
+}
+#endif
+
 static inline void
 do_seg_v86_init(x86seg *s)
 {
@@ -407,6 +423,9 @@ loadseg(uint16_t seg, x86seg *s)
     uint32_t     *segdat32 = (uint32_t *) segdat;
     int           dpl;
     const x86seg *dt;
+    /*Where the flat checks at the end read the register from: a copy just
+      made from the cache is read from the cache, not back from the stores*/
+    const x86seg *flat = s;
 
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG)) {
         if (!(seg & 0xfffc)) {
@@ -435,6 +454,35 @@ loadseg(uint16_t seg, x86seg *s)
         read_descriptor(addr, segdat, segdat32, 1);
         if (cpu_state.abrt)
             return 1;
+#ifndef OPS_286_386
+        /* A selector loaded before, at the same CPL, whose descriptor is
+           the same again: every check below passes as it did then and the
+           register comes out the same, so it is copied. The descriptor is
+           still read, so a change to it is seen; one with its accessed bit
+           clear takes the full path, which sets it (a 386 always writes it
+           back). */
+        if (s != &cpu_state.seg_cs) {
+            const seg_load_cache_t *c = seg_load_cache_entry(seg, s);
+
+            if (c->valid && (c->seg == seg) && (c->raw[0] == segdat32[0]) && (c->raw[1] == segdat32[1]) && (c->cpl == CPL) &&
+                (segdat[2] & 0x0100) && is486 && !israpidcad) {
+                memcpy(s, &c->state, offsetof(x86seg, checked));
+                flat = &c->state;
+                if (s == &cpu_state.seg_ss)
+                    set_stack32((segdat[3] & 0x40) ? 1 : 0);
+                s->checked = 0;
+#    ifdef USE_DYNAREC
+                if (s == &cpu_state.seg_ds)
+                    codegen_flat_ds = codegen_wide_ds = 0;
+                if (s == &cpu_state.seg_ss)
+                    codegen_flat_ss = codegen_wide_ss = 0;
+                if (s == &cpu_state.seg_es)
+                    codegen_flat_es = 0;
+#    endif
+                goto loaded;
+            }
+        }
+#endif
         dpl = (segdat[2] >> 13) & 3;
         if (s == &cpu_state.seg_ss) {
             if (!(seg & 0xfffc)) {
@@ -521,6 +569,20 @@ loadseg(uint16_t seg, x86seg *s)
         if (s == &cpu_state.seg_es)
             codegen_flat_es = 0;
 #endif
+#ifndef OPS_286_386
+        if (s != &cpu_state.seg_cs) {
+            seg_load_cache_t *c = seg_load_cache_entry(seg, s);
+
+            c->raw[0] = segdat32[0];
+            c->raw[1] = segdat32[1];
+            c->seg    = seg;
+            c->cpl    = CPL;
+            c->state  = *s;
+            c->notflat = !((s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff));
+            c->notwide = !((s->limit_high == 0xffffffff) && ((s->access & 0x0a) == 0x02) && (s->base != 0xffffffff));
+            c->valid  = 1;
+        }
+#endif
     } else {
         s->access  = 0xe2;
         s->ar_high = 0x10;
@@ -544,20 +606,23 @@ loadseg(uint16_t seg, x86seg *s)
             set_stack32(0);
     }
 
+#ifndef OPS_286_386
+loaded:
+#endif
     if (s == &cpu_state.seg_ds) {
-        if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
+        if (flat->base == 0 && flat->limit_low == 0 && flat->limit_high == 0xffffffff)
             cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATDS;
     }
     if (s == &cpu_state.seg_es) {
-        if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
+        if (flat->base == 0 && flat->limit_low == 0 && flat->limit_high == 0xffffffff)
             cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATES;
     }
     if (s == &cpu_state.seg_ss) {
-        if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
+        if (flat->base == 0 && flat->limit_low == 0 && flat->limit_high == 0xffffffff)
             cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATSS;
@@ -1002,12 +1067,72 @@ POPL(void)
     return templ;
 }
 
+#ifndef OPS_286_386
+/* The last direct far call's CS (no gate), as retf_cache is for a return */
+static struct {
+    uint16_t seg;
+    uint8_t  cpl;
+    uint8_t  valid;
+    uint32_t raw[2];
+    x86seg   state;
+} callf_cache;
+
+/* A protected-mode far CALL to the code segment of the last direct one, at
+   the same CPL, with its descriptor as it was and in RAM the lookup maps:
+   loadcscall()'s checks pass as they did then, so the register is copied.
+   0, with nothing done, otherwise. */
+static __inline int
+callf_fast(uint16_t seg)
+{
+    const x86seg  *dt;
+    uint32_t       addr;
+    uintptr_t      dl;
+    uint32_t       raw[2];
+
+    if (!callf_cache.valid || cpu_16bitbus || (seg != callf_cache.seg) || (CPL != callf_cache.cpl))
+        return 0;
+    dt = (seg & 0x0004) ? &ldt : &gdt;
+    if (((seg & 0xfff8) + 7) > dt->limit)
+        return 0;
+    addr = dt->base + (seg & 0xfff8);
+    dl   = readlookup2[addr >> 12];
+    if ((dl == (uintptr_t) LOOKUP_INV) || ((addr & 0xfff) > 0xff8))
+        return 0;
+    memcpy(raw, (const void *) (dl + addr), 8);
+    if ((raw[0] != callf_cache.raw[0]) || (raw[1] != callf_cache.raw[1]))
+        return 0;
+    set_use32(raw[1] & 0x400000);
+    memcpy(&cpu_state.seg_cs, &callf_cache.state, offsetof(x86seg, checked));
+    cpu_state.seg_cs.checked = 0;
+    /*The limits from the copy's source: read back from seg_cs, they wait
+      for the stores just made*/
+    cpu_mark_64k_status(&callf_cache.state);
+    if ((CPL == 3) && (oldcpl != 3))
+        flushmmucache_ring3();
+    oldcpl = CPL;
+    cycles -= timing_call_pm;
+    return 1;
+}
+#endif
+
 #ifdef OPS_286_386
 void
 loadcscall_2386(uint16_t seg, uint32_t old_pc)
 #else
+static __attribute__((noinline)) void loadcscall_full(uint16_t seg, uint32_t old_pc);
+
+/* callf_fast() first, outside the full path, whose frame (every
+   callee-saved register and the descriptor buffers) it does not need */
 void
 loadcscall(uint16_t seg, uint32_t old_pc)
+{
+    if ((msw & 1) && !(cpu_state.eflags & VM_FLAG) && callf_fast(seg))
+        return;
+    loadcscall_full(seg, old_pc);
+}
+
+static __attribute__((noinline)) void
+loadcscall_full(uint16_t seg, uint32_t old_pc)
 #endif
 {
     uint16_t      seg2;
@@ -1031,6 +1156,10 @@ loadcscall(uint16_t seg, uint32_t old_pc)
 
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG)) {
         x86seg_log("Protected mode CS load! %04X\n", seg);
+#ifndef OPS_286_386
+        const uint16_t in_seg  = seg;
+        const int      old_cpl = CPL;
+#endif
         if (!(seg & 0xfffc)) {
             x86gpf("loadcscall(): Protected mode selector is zero", 0);
             return;
@@ -1045,6 +1174,9 @@ loadcscall(uint16_t seg, uint32_t old_pc)
         read_descriptor(addr, segdat, segdat32, 1);
         if (cpu_state.abrt)
             return;
+#ifndef OPS_286_386
+        const uint32_t raw[2] = { segdat32[0], segdat32[1] };
+#endif
         type  = segdat[2] & 0x0f00;
         newpc = segdat[0];
         if (type & 0x0800)
@@ -1094,6 +1226,17 @@ loadcscall(uint16_t seg, uint32_t old_pc)
             oldcpl = CPL;
 #ifdef ENABLE_X86SEG_LOG
             x86seg_log("Complete\n");
+#endif
+#ifndef OPS_286_386
+            /*For callf_fast() next time, as retf_cache is for a return*/
+            if ((raw[1] & 0x100) && is486 && !israpidcad && !cpu_16bitbus) {
+                callf_cache.seg    = in_seg;
+                callf_cache.cpl    = old_cpl;
+                callf_cache.raw[0] = raw[0];
+                callf_cache.raw[1] = raw[1];
+                memcpy(&callf_cache.state, &cpu_state.seg_cs, offsetof(x86seg, checked));
+                callf_cache.valid  = 1;
+            }
 #endif
             cycles -= timing_call_pm;
         } else {
@@ -1396,11 +1539,103 @@ loadcscall(uint16_t seg, uint32_t old_pc)
     }
 }
 
-void
+#ifndef OPS_286_386
+/* The last same-privilege far return's CS: its selector, the descriptor as
+   read, the CPL and the register it made */
+static struct {
+    uint16_t seg;
+    uint8_t  cpl;
+    uint8_t  valid;
+    uint32_t raw[2];
+    x86seg   state;
+} retf_cache;
+
+/* A protected-mode RETF back to the CS of the last same-privilege one, at
+   the same CPL, with its descriptor as it was and the stack and descriptor
+   in RAM the lookups map: every check pmoderetf() makes passes as it did
+   then, so the register is copied. 0, with nothing done, otherwise. */
+static __inline int
+retf_fast(int is32, uint16_t off)
+{
+    const int      n   = is32 ? 8 : 4;
+    const uint32_t sp  = stack32 ? ESP : SP;
+    uint32_t       lin;
+    uintptr_t      sl;
+    uint32_t       newpc;
+    uint16_t       seg;
+
+    if (!retf_cache.valid || cpu_16bitbus || (ss == 0xffffffff) || (!stack32 && ((sp + n) > 0x10000)))
+        return 0;
+    lin = ss + sp;
+    sl  = readlookup2[lin >> 12];
+    if ((sl == (uintptr_t) LOOKUP_INV) || ((lin & 0xfff) > (0x1000 - n)))
+        return 0;
+    if (is32) {
+        uint32_t v[2];
+
+        memcpy(v, (const void *) (sl + lin), 8);
+        newpc = v[0];
+        seg   = v[1];
+    } else {
+        uint16_t v[2];
+
+        memcpy(v, (const void *) (sl + lin), 4);
+        newpc = v[0];
+        seg   = v[1];
+    }
+    if ((seg != retf_cache.seg) || (CPL != retf_cache.cpl) || ((seg & 3) != CPL))
+        return 0;
+    {
+        const x86seg  *dt   = (seg & 0x0004) ? &ldt : &gdt;
+        const uint32_t addr = dt->base + (seg & 0xfff8);
+        uintptr_t      dl;
+        uint32_t       raw[2];
+
+        if (((seg & 0xfff8) + 7) > dt->limit)
+            return 0;
+        dl = readlookup2[addr >> 12];
+        if ((dl == (uintptr_t) LOOKUP_INV) || ((addr & 0xfff) > 0xff8))
+            return 0;
+        memcpy(raw, (const void *) (dl + addr), 8);
+        if ((raw[0] != retf_cache.raw[0]) || (raw[1] != retf_cache.raw[1]))
+            return 0;
+    }
+    if (stack32)
+        ESP += n + off;
+    else
+        SP += n + off;
+    cpu_state.pc = newpc;
+    CS           = seg;
+    memcpy(&cpu_state.seg_cs, &retf_cache.state, offsetof(x86seg, checked));
+    cpu_state.seg_cs.checked = 0;
+    /*From the copy's source, as in callf_fast()*/
+    cpu_mark_64k_status(&retf_cache.state);
+    if ((CPL == 3) && (oldcpl != 3))
+        flushmmucache_ring3();
+    oldcpl = CPL;
+    set_use32(retf_cache.raw[1] & 0x400000);
+    cycles -= timing_retf_pm;
+    return 1;
+}
+#endif
+
 #ifdef OPS_286_386
+void
 pmoderetf_2386(int is32, uint16_t off)
 #else
+static __attribute__((noinline)) void pmoderetf_full(int is32, uint16_t off);
+
+/* retf_fast() first, outside the full path's frame, as loadcscall() */
+void
 pmoderetf(int is32, uint16_t off)
+{
+    if (retf_fast(is32, off))
+        return;
+    pmoderetf_full(is32, off);
+}
+
+static __attribute__((noinline)) void
+pmoderetf_full(int is32, uint16_t off)
 #endif
 {
     uint16_t      segdat[4];
@@ -1456,6 +1691,9 @@ pmoderetf(int is32, uint16_t off)
         return;
     }
     oaddr = addr;
+#ifndef OPS_286_386
+    const uint32_t raw[2] = { segdat32[0], segdat32[1] };
+#endif
 
     x86seg_log("CPL %i RPL %i %i\n", CPL, seg & 0x0003, is32);
 
@@ -1513,6 +1751,18 @@ pmoderetf(int is32, uint16_t off)
         oldcpl = CPL;
         set_use32(segdat[3] & 0x0040);
 
+#ifndef OPS_286_386
+        /*The return as it came out, for retf_fast() next time: only with the
+          accessed bit already set, which a 486 then leaves as it is*/
+        if ((raw[1] & 0x100) && is486 && !israpidcad && !cpu_16bitbus) {
+            retf_cache.seg   = seg;
+            retf_cache.cpl   = CPL;
+            retf_cache.raw[0] = raw[0];
+            retf_cache.raw[1] = raw[1];
+            memcpy(&retf_cache.state, &cpu_state.seg_cs, offsetof(x86seg, checked));
+            retf_cache.valid = 1;
+        }
+#endif
         cycles -= timing_retf_pm;
     } else {
         switch (segdat[2] & 0x1f00) {
