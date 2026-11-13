@@ -121,6 +121,9 @@ ropFLDCW(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     uop_AND_IMM(ir, IREG_NPXS, IREG_NPXS, ~0x8080); /*ES and B*/
     uop_FP_CONTROL_SET(ir, IREG_NPXC);
     codegen_fpu_class_dirty = 1;
+    /*The rounding bits the link routine's records hold change without C:
+      the full way compares them after it (codegen_link_state_sync())*/
+    codegen_link_state_ins = 1;
 
     return op_pc + 1;
 }
