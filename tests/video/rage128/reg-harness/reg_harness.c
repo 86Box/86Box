@@ -8464,6 +8464,102 @@ vectors_gmc_3d_fcn_clear(rage128_t *dev)
     wr(dev, 0x16f0, 0x1fff1fff);
 }
 
+/* DST_PITCH_OFFSET_C, DP_GUI_MASTER_CNTL_C, SC_TOP_LEFT_C and
+   SC_BOTTOM_RIGHT_C are write-only aliases of DST_PITCH_OFFSET,
+   DP_GUI_MASTER_CNTL, SC_TOP_LEFT and SC_BOTTOM_RIGHT (RRG:
+   DST_PITCH_OFFSET_C, p. 3-145 / PDF 163; RRG: DP_GUI_MASTER_CNTL_C,
+   p. 3-175 / PDF 193; RRG: SC_TOP_LEFT_C, p. 3-162 / PDF 180; RRG:
+   SC_BOTTOM_RIGHT_C, p. 3-162 / PDF 180). A write through the alias
+   lands on the 2D state; a read of the alias returns 0, through the
+   memory-mapped window and through the MM_INDEX / MM_DATA pair alike. DST_PITCH_OFFSET is itself write-only (RRG:
+   DST_PITCH_OFFSET, p. 3-137 / PDF 155), so its write is seen through
+   the readable DST_OFFSET (offset [20:0] in 32-byte units) and
+   DST_PITCH (pitch [9:0] in units of 8 pixels, tile [16]); the
+   scissor writes are seen through SC_TOP_LEFT and SC_BOTTOM_RIGHT, and
+   the master-control write through the readable DP_GUI_MASTER_CNTL. A
+   scissor or master-control write stores the merge of the old value and
+   the written bytes, and these writes enable all four bytes, so the 2D
+   register holds the whole written value. The master-control value
+   keeps GMC_3D_FCN_EN set, so it leaves the 3D state alone, but like
+   any master-control write it reloads the source offset, pitch and
+   clip, sets both write masks, clears the color-compare functions and
+   the auxiliary clip enables, rewrites DP_MIX and DP_DATATYPE and sets
+   the DP_CNTL direction bits. The vector saves every register those
+   writes reach and puts back each one that differs, the master control
+   first, since putting it back is itself a master-control write. */
+static void
+vectors_3d_c_alias_read(rage128_t *dev)
+{
+    static const struct {
+        const char *name;
+        uint32_t    off_c, off_2d, val;
+    } sc[] = {
+        { "SC_TOP_LEFT_C", RAGE128_SC_TOP_LEFT_C, RAGE128_SC_TOP_LEFT, 0x00200010u },
+        { "SC_BOTTOM_RIGHT_C", RAGE128_SC_BOTTOM_RIGHT_C, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fffu },
+    };
+    /* the master control first: see above */
+    static const uint32_t state[] = {
+        RAGE128_DP_GUI_MASTER_CNTL, RAGE128_DST_OFFSET, RAGE128_DST_PITCH,
+        RAGE128_SRC_OFFSET, RAGE128_SRC_PITCH, RAGE128_SRC_SC_RIGHT,
+        RAGE128_SRC_SC_BOTTOM, RAGE128_SC_TOP_LEFT, RAGE128_SC_BOTTOM_RIGHT,
+        RAGE128_DP_WRITE_MASK, RAGE128_CLR_CMP_MASK, RAGE128_CLR_CMP_CNTL,
+        RAGE128_AUX_SC_CNTL, RAGE128_DP_MIX, RAGE128_DP_DATATYPE,
+        RAGE128_DP_CNTL, RAGE128_SCALE_3D_CNTL, RAGE128_MISC_3D_STATE_CNTL,
+        RAGE128_TEX_CNTL_C, RAGE128_MM_INDEX
+    };
+    const size_t   n_state = sizeof(state) / sizeof(state[0]);
+    const uint32_t dpo     = 0x0a012345u;
+    const uint32_t gmc     = 0x7acc36d2u;
+    const uint32_t wr_mask = 0xffffffffu; /* the byte enables wr() passes */
+    uint32_t       save[sizeof(state) / sizeof(state[0])], save_gmc;
+    int            save_grad_valid;
+    char           what[96];
+
+    flush_sync(dev);
+    for (size_t i = 0; i < n_state; i++)
+        save[i] = rd(dev, state[i]);
+    save_gmc        = save[0];
+    /* not a register: putting a master control with GMC_3D_FCN_EN clear
+       back drops it, so it is put back directly */
+    save_grad_valid = dev->grad_valid;
+
+    /* DST_PITCH_OFFSET_C has read 0 all along, by way of the write-only
+       DST_PITCH_OFFSET it aliases; this row is a control that passes
+       before and after the scissor change. */
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, dpo);
+    check32("3d 913: control: DST_PITCH_OFFSET_C reads 0 after a write",
+            rd(dev, RAGE128_DST_PITCH_OFFSET_C), 0);
+    check32("3d 913: DST_PITCH_OFFSET_C write lands on DST_OFFSET",
+            rd(dev, RAGE128_DST_OFFSET), (dpo & 0x001fffffu) << 5);
+    check32("3d 913: DST_PITCH_OFFSET_C write lands on DST_PITCH",
+            rd(dev, RAGE128_DST_PITCH) & 0x000103ffu,
+            ((dpo >> 21) & 0x3ffu) | (((dpo >> 31) & 1u) << 16));
+    for (int i = 0; i < 2; i++) {
+        wr(dev, sc[i].off_c, sc[i].val);
+        snprintf(what, sizeof(what), "3d 913: %s reads 0 after a write", sc[i].name);
+        check32(what, rd(dev, sc[i].off_c), 0);
+        snprintf(what, sizeof(what), "3d 913: %s write lands on its 2D register", sc[i].name);
+        check32(what, rd(dev, sc[i].off_2d), sc[i].val);
+    }
+    wr(dev, RAGE128_MM_INDEX, RAGE128_SC_BOTTOM_RIGHT_C);
+    check32("3d 913: SC_BOTTOM_RIGHT_C reads 0 through MM_INDEX / MM_DATA",
+            rd(dev, RAGE128_MM_DATA), 0);
+
+    wr(dev, RAGE128_DP_GUI_MASTER_CNTL_C, gmc);
+    check32("3d 913: DP_GUI_MASTER_CNTL_C reads 0 after a write",
+            rd(dev, RAGE128_DP_GUI_MASTER_CNTL_C), 0);
+    check32("3d 913: DP_GUI_MASTER_CNTL_C write lands on DP_GUI_MASTER_CNTL",
+            rd(dev, RAGE128_DP_GUI_MASTER_CNTL), (save_gmc & ~wr_mask) | (gmc & wr_mask));
+    wr(dev, RAGE128_MM_INDEX, RAGE128_DP_GUI_MASTER_CNTL_C);
+    check32("3d 913: DP_GUI_MASTER_CNTL_C reads 0 through MM_INDEX / MM_DATA",
+            rd(dev, RAGE128_MM_DATA), 0);
+
+    for (size_t i = 0; i < n_state; i++)
+        if (rd(dev, state[i]) != save[i])
+            wr(dev, state[i], save[i]);
+    dev->grad_valid = save_grad_valid;
+}
+
 /* ------------------------------------------------------------------ */
 /* PRIM_MAG_BLEND_FCN code book, SDK-G04000 6.6.3 Table 6-5: codes 0/2/4    */
 /* pick nearest in the largest map, 1/3/5 bilinear in the largest map  */
@@ -24797,6 +24893,7 @@ run_lanegap(void)
     vectors_surf_map_span_crosses_agp(dev);
     vectors_scissor_signed_3d(dev);
     vectors_gmc_3d_fcn_clear(dev);
+    vectors_3d_c_alias_read(dev);
     vectors_fpu_supersample(dev);
     vectors_solid_shade(dev);
     vectors_pitch_adj_every_load(dev);

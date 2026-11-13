@@ -115,20 +115,20 @@ rage128_3d_reg_read(rage128_t *dev, uint32_t off, uint32_t *val)
         case RAGE128_PLANE_3D_MASK_C:      *val = dev->t3d.plane_3d_mask; return 1;
 
         /* The _C copies of 2D datapath registers in the CCE 3D context
-           block are aliases of the 2D registers (RRG: DST_PITCH_OFFSET_C,
-           p. 3-145 / PDF 163; RRG: DP_GUI_MASTER_CNTL_C, p. 3-177 /
-           PDF 195; RRG: SC_TOP_LEFT_C, p. 3-162 / PDF 180; RRG:
-           SC_BOTTOM_RIGHT_C, p. 3-163 / PDF 181), so they read back the
-           2D state. */
+           block are aliases of the 2D registers: a write lands on the 2D
+           register (the write path below). All four are write-only
+           (RRG: DST_PITCH_OFFSET_C, p. 3-145 / PDF 163; RRG:
+           DP_GUI_MASTER_CNTL_C, p. 3-175 / PDF 193; RRG: SC_TOP_LEFT_C,
+           p. 3-162 / PDF 180; RRG: SC_BOTTOM_RIGHT_C, p. 3-162 /
+           PDF 180), so a read of any of them returns 0 and does not
+           come from the 2D register; the 0 follows the write-only tag
+           and is modeled. */
         case RAGE128_DST_PITCH_OFFSET_C:
         case RAGE128_DP_GUI_MASTER_CNTL_C:
         case RAGE128_SC_TOP_LEFT_C:
         case RAGE128_SC_BOTTOM_RIGHT_C:
-            return rage128_2d_reg_read(dev,
-                (off == RAGE128_DP_GUI_MASTER_CNTL_C) ? RAGE128_DP_GUI_MASTER_CNTL
-              : (off == RAGE128_SC_TOP_LEFT_C)        ? RAGE128_SC_TOP_LEFT
-              : (off == RAGE128_SC_BOTTOM_RIGHT_C)    ? RAGE128_SC_BOTTOM_RIGHT
-              : RAGE128_DST_PITCH_OFFSET, val);
+            *val = 0;
+            return 1;
 
         default:
             break;
