@@ -26548,6 +26548,441 @@ vectors_stretch_rows_930(rage128_t *dev)
     wr(dev, RAGE128_DST_OFFSET, 0);
 }
 
+/* 929: the screen-to-screen blit's row store for a solid fill whose
+   ROP3 reads neither source nor destination (0x00, 0x0F, 0xF0, 0xFF;
+   solid brush, write mask open, no compare, aux scissors off) against
+   the blit's per-byte walk. The same op is drawn twice into two windows
+   prefilled alike with random bytes: once with the aux scissors off,
+   which takes the row store, and once with AUX1 enabled as an additive
+   rectangle. An additive rectangle never clips a 2D op (RRG:
+   AUX_SC_CNTL, pp. 3-156-3-157 / PDF 174-175), but an enabled aux
+   scissor keeps every row of the blit on the per-byte walk, so the
+   second draw is the reference. The two windows are compared byte for
+   byte, guard band included, and each row also requires that a first
+   window changed. The cases come from a fixed seed, so every run draws
+   the same ops. On code without the row store both draws take the
+   per-byte walk and the rows pass; they fail when the row store puts a
+   different byte anywhere in the window. */
+#define F929_SRC  S906_SRC
+#define F929_DA   S906_DREG
+#define F929_DB   S906_DPKT
+#define F929_PX   64u /* source and destination pitch, pixels */
+#define F929_ROWS 40u /* compared rows of each destination window */
+
+struct f929 {
+    uint32_t dt, rop, color, mask;
+    uint32_t x, y, w, h, sx, sy;
+    int      rtl, btt; /* register form: start at the right / bottom edge */
+    int      pkt;      /* 1 = a 0x92 packet instead of register writes */
+    int      kind;     /* 0 solid brush; 2 source compare active;
+                          3 8x8 mono brush; 4 8x8 color brush (packet) */
+};
+
+static const uint32_t f929_dts[4] = { 2, 4, 5, 6 }; /* 8, 16, 24, 32 bpp */
+static uint32_t       f929_rng    = 0x929u;
+static uint8_t        f929_pre[F929_PX * 4u * F929_ROWS];
+
+static uint32_t
+f929_rand(uint32_t n)
+{
+    f929_rng = f929_rng * 1103515245u + 12345u;
+    return ((f929_rng >> 16) & 0x7fffu) % n;
+}
+
+static uint32_t
+f929_bpp(uint32_t dt)
+{
+    return dt == 6 ? 4u : dt == 5 ? 3u : dt == 4 ? 2u : 1u;
+}
+
+/* A random rect inside the window, a random source position that keeps
+   the source rect inside the source surface, a random color; ROP3 0xF0,
+   write mask open. */
+static void
+f929_case(struct f929 *c, uint32_t dt, uint32_t wmin, uint32_t hmin)
+{
+    memset(c, 0, sizeof(*c));
+    c->dt    = dt;
+    c->rop   = 0xf0u;
+    c->mask  = 0xffffffffu;
+    c->w     = wmin + f929_rand(F929_PX - wmin + 1);
+    c->h     = hmin + f929_rand(F929_ROWS - hmin + 1);
+    c->x     = f929_rand(F929_PX - c->w + 1);
+    c->y     = f929_rand(F929_ROWS - c->h + 1);
+    c->sx    = f929_rand(F929_PX - c->w + 1);
+    c->sy    = f929_rand(F929_ROWS - c->h + 1);
+    c->color = (f929_rand(0x8000) << 17) | (f929_rand(0x8000) << 2) | f929_rand(4);
+}
+
+/* One op into the window at base: by register writes with the source
+   select on memory (DP_MIX 0x200), the op starting on the
+   DST_HEIGHT_WIDTH write, or as a 0x92 packet. The register form moves
+   the start corner to the far edge for a right-to-left or bottom-to-top
+   walk, as DP_CNTL asks (RRG: DP_CNTL, p. 3-165 / PDF 183). */
+static void
+f929_draw(rage128_t *dev, const struct f929 *c, uint32_t base)
+{
+    uint32_t bpp = f929_bpp(c->dt);
+    /* the pitch field counts 8 pixels, at 24 bpp 8 bytes */
+    uint32_t pf = (bpp == 3 ? F929_PX * 3u : F929_PX) / 8u;
+    uint32_t bt = c->kind == 3 ? 0u : c->kind == 4 ? 10u : 13u;
+
+    wr(dev, RAGE128_DP_WRITE_MASK, c->mask);
+    /* source compare, function 5: draw where the source pixel differs
+       from the key under the compare mask */
+    wr(dev, RAGE128_CLR_CMP_CNTL, c->kind == 2 ? 0x01000005u : 0);
+    if (c->pkt) {
+        uint32_t pl[72], n = 0;
+
+        pl[n++] = 0x00000003u | (bt << 4) | (c->dt << 8) | (3u << 12)
+                | (c->rop << 16) | (2u << 24);
+        pl[n++] = (pf << 21) | (F929_SRC >> 5);
+        pl[n++] = (pf << 21) | (base >> 5);
+        if (bt == 10)
+            for (uint32_t i = 0; i < 64; i++)
+                pl[n++] = c->color ^ (i * 0x01030507u);
+        else
+            pl[n++] = c->color;
+        pl[n++] = (c->sx << 16) | c->sy;
+        pl[n++] = (c->x << 16) | c->y;
+        pl[n++] = (c->w << 16) | c->h;
+        rage128_2d_packet3(dev, 0x92u << 8, pl, n);
+    } else {
+        wr(dev, RAGE128_DST_OFFSET, base);
+        wr(dev, RAGE128_DST_PITCH, pf);
+        wr(dev, RAGE128_SRC_OFFSET, F929_SRC);
+        wr(dev, RAGE128_SRC_PITCH, pf);
+        wr(dev, RAGE128_DP_DATATYPE, c->dt | (bt << 8) | (3u << 16));
+        wr(dev, RAGE128_DP_MIX, (c->rop << 16) | 0x00000200u);
+        wr(dev, RAGE128_DP_BRUSH_FRGD_CLR, c->color);
+        wr(dev, RAGE128_DP_BRUSH_BKGD_CLR, ~c->color);
+        wr(dev, RAGE128_BRUSH_DATA0, c->color ^ 0x5a3cc3a5u);
+        wr(dev, RAGE128_BRUSH_DATA0 + 4, ~c->color ^ 0x0ff0a55au);
+        wr(dev, RAGE128_DP_CNTL, (c->rtl ? 0u : RAGE128_DP_CNTL_DST_X_DIR)
+                                     | (c->btt ? 0u : RAGE128_DP_CNTL_DST_Y_DIR));
+        wr(dev, RAGE128_SRC_Y_X, ((c->sy + (c->btt ? c->h - 1 : 0)) << 16)
+                                     | (c->sx + (c->rtl ? c->w - 1 : 0)));
+        wr(dev, RAGE128_DST_Y_X, ((c->y + (c->btt ? c->h - 1 : 0)) << 16)
+                                     | (c->x + (c->rtl ? c->w - 1 : 0)));
+        wr(dev, RAGE128_DST_HEIGHT_WIDTH, (c->h << 16) | c->w);
+    }
+    flush_sync(dev);
+}
+
+/* Draw the case into both windows, prefilled alike: the first with the
+   aux scissors off, the second with AUX_SC_CNTL set to aux_b. */
+static void
+f929_pair(rage128_t *dev, const struct f929 *c, uint32_t aux_b)
+{
+    uint32_t n = F929_PX * f929_bpp(c->dt) * F929_ROWS;
+
+    for (uint32_t i = 0; i < n; i++) {
+        f929_rng    = f929_rng * 1103515245u + 12345u;
+        f929_pre[i] = (uint8_t) (f929_rng >> 16);
+    }
+    memcpy(&dev->svga.vram[F929_DA], f929_pre, n);
+    memcpy(&dev->svga.vram[F929_DB], f929_pre, n);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    f929_draw(dev, c, F929_DA);
+    wr(dev, RAGE128_AUX_SC_CNTL, aux_b);
+    f929_draw(dev, c, F929_DB);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    flush_sync(dev);
+}
+
+/* Draw the case both ways, the second with AUX1 on as an additive
+   rectangle. 1 = the two windows are equal byte for byte; *drew is set
+   when the first window differs from its prefill. */
+static int
+f929_both(rage128_t *dev, const struct f929 *c, int *drew)
+{
+    uint32_t n = F929_PX * f929_bpp(c->dt) * F929_ROWS;
+
+    f929_pair(dev, c, 0x00000001u);
+    if (memcmp(&dev->svga.vram[F929_DA], f929_pre, n) != 0)
+        *drew = 1;
+    return memcmp(&dev->svga.vram[F929_DA], &dev->svga.vram[F929_DB], n) == 0;
+}
+
+/* 64 fills at one depth. Five in eight are the plain case, one of them
+   under a write mask that is open on the pixel's own bytes only. The
+   other three must stay on the per-byte walk and still equal the
+   reference: one bit of the pixel closed in the write mask, a source
+   compare that passes about half of the pixels, an 8x8 mono brush. */
+static int
+f929_random(rage128_t *dev, uint32_t dt)
+{
+    struct f929 c;
+    int         ok = 1, drew = 0;
+
+    for (int i = 0; i < 64; i++) {
+        f929_case(&c, dt, 1, 1);
+        switch (i & 7) {
+            case 4:
+                c.mask = 0xffffffffu >> (32u - f929_bpp(dt) * 8u);
+                break;
+            case 5:
+                c.mask = ~(1u << f929_rand(f929_bpp(dt) * 8u));
+                break;
+            case 6:
+                c.kind = 2;
+                break;
+            case 7:
+                c.kind = 3;
+                break;
+            default:
+                break;
+        }
+        ok = f929_both(dev, &c, &drew) && ok;
+    }
+    return ok && drew;
+}
+
+static void
+vectors_fill_rows_929(rage128_t *dev)
+{
+    static const uint32_t saved[] = {
+        RAGE128_DP_WRITE_MASK, RAGE128_CLR_CMP_CNTL, RAGE128_CLR_CMP_CLR_SRC,
+        RAGE128_CLR_CMP_MASK, RAGE128_DP_CNTL, RAGE128_BRUSH_DATA0,
+        RAGE128_BRUSH_DATA0 + 4, RAGE128_BRUSH_Y_X, RAGE128_DST_OFFSET,
+        RAGE128_DST_PITCH, RAGE128_SRC_OFFSET, RAGE128_SRC_PITCH,
+        RAGE128_DP_DATATYPE, RAGE128_DP_MIX, RAGE128_DP_BRUSH_FRGD_CLR,
+        RAGE128_DP_BRUSH_BKGD_CLR, RAGE128_SC_TOP_LEFT, RAGE128_SC_BOTTOM_RIGHT,
+        RAGE128_AUX_SC_CNTL, RAGE128_AUX1_SC_LEFT, RAGE128_AUX1_SC_LEFT + 4,
+        RAGE128_AUX1_SC_LEFT + 8, RAGE128_AUX1_SC_LEFT + 12
+    };
+    uint32_t    was[sizeof(saved) / sizeof(saved[0])];
+    struct f929 c;
+    int         ok, drew;
+
+    flush_sync(dev);
+    for (uint32_t i = 0; i < sizeof(saved) / sizeof(saved[0]); i++)
+        was[i] = rd(dev, saved[i]);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_CLR_CMP_CLR_SRC, 0);
+    wr(dev, RAGE128_CLR_CMP_MASK, 1); /* the compare looks at bit 0 only */
+    wr(dev, RAGE128_BRUSH_Y_X, 0);
+    wr(dev, RAGE128_AUX1_SC_LEFT, 0);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 4, 7);  /* RIGHT */
+    wr(dev, RAGE128_AUX1_SC_LEFT + 8, 0);  /* TOP */
+    wr(dev, RAGE128_AUX1_SC_LEFT + 12, 7); /* BOTTOM */
+    for (uint32_t i = 0; i < 0x8000u; i++) {
+        f929_rng = f929_rng * 1103515245u + 12345u;
+        dev->svga.vram[F929_SRC + i] = (uint8_t) (f929_rng >> 16);
+    }
+
+    check_true("2d 929: 64 random solid fills at 8 bpp, memory source select: row store equals the per-byte walk",
+               f929_random(dev, 2));
+    check_true("2d 929: 64 random solid fills at 16 bpp, memory source select: row store equals the per-byte walk",
+               f929_random(dev, 4));
+    check_true("2d 929: 64 random solid fills at 24 bpp, memory source select: row store equals the per-byte walk",
+               f929_random(dev, 5));
+    check_true("2d 929: 64 random solid fills at 32 bpp, memory source select: row store equals the per-byte walk",
+               f929_random(dev, 6));
+
+    /* The other three ROP3 codes that read neither source nor
+       destination: 0x00 stores zeros, 0xFF ones, 0x0F the inverted
+       brush color. With them 0x3C (brush XOR source) and 0x5A (brush
+       XOR destination), which read one of the two and so must stay on
+       the per-byte walk. */
+    ok = 1; drew = 0;
+    for (int i = 0; i < 120; i++) {
+        static const uint32_t rops[5] = { 0x00u, 0x0fu, 0xffu, 0x3cu, 0x5au };
+
+        f929_case(&c, f929_dts[i & 3], 1, 1);
+        c.rop = rops[(i >> 2) % 5];
+        ok = f929_both(dev, &c, &drew) && ok;
+    }
+    check_true("2d 929: ROP3 0x00, 0x0F and 0xFF fills at the four depths, 0x3C and 0x5A on the walk: row store equals the per-byte walk",
+               ok && drew);
+
+    /* The scissor cuts the rect on all four sides, so the stored rows
+       start part-way into the rect and end short of its edges. */
+    ok = 1; drew = 0;
+    for (int i = 0; i < 32; i++) {
+        uint32_t bpp, first, last;
+
+        f929_case(&c, f929_dts[i & 3], 12, 8);
+        bpp   = f929_bpp(c.dt);
+        first = (c.y * F929_PX + c.x) * bpp;
+        last  = ((c.y + c.h - 1) * F929_PX + c.x + c.w - 1) * bpp;
+        wr(dev, RAGE128_SC_TOP_LEFT, ((c.y + 1 + f929_rand(3)) << 16) | (c.x + 1 + f929_rand(5)));
+        wr(dev, RAGE128_SC_BOTTOM_RIGHT, ((c.y + c.h - 2) << 16) | (c.x + c.w - 3));
+        ok = f929_both(dev, &c, &drew) && ok;
+        /* the rect's own first and last pixels lie outside the scissor */
+        ok = ok && memcmp(&dev->svga.vram[F929_DA + first], &f929_pre[first], bpp) == 0
+            && memcmp(&dev->svga.vram[F929_DA + last], &f929_pre[last], bpp) == 0;
+    }
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    /* A subtractive aux rectangle inside the rect cuts its area out of
+       the fill (RRG: AUX_SC_CNTL, pp. 3-156-3-157 / PDF 174-175), so
+       that op must stay on the per-byte walk. The first window is the
+       same fill with the aux scissors off: the second must keep its
+       prefill inside the cut and equal the first everywhere else. */
+    for (int i = 0; i < 8; i++) {
+        uint32_t bpp, l, r, t, b;
+        int      cut = 0;
+
+        f929_case(&c, f929_dts[i & 3], 12, 8);
+        bpp = f929_bpp(c.dt);
+        l   = c.x + 2 + f929_rand(3);
+        r   = c.x + c.w - 3;
+        t   = c.y + 1 + f929_rand(3);
+        b   = c.y + c.h - 2;
+        wr(dev, RAGE128_AUX1_SC_LEFT, l);
+        wr(dev, RAGE128_AUX1_SC_LEFT + 4, r);
+        wr(dev, RAGE128_AUX1_SC_LEFT + 8, t);
+        wr(dev, RAGE128_AUX1_SC_LEFT + 12, b);
+        f929_pair(dev, &c, 0x00000003u); /* AUX1 on, subtractive */
+        for (uint32_t y = 0; y < F929_ROWS; y++)
+            for (uint32_t x = 0; x < F929_PX; x++) {
+                uint32_t o  = (y * F929_PX + x) * bpp;
+                int      in = x >= l && x <= r && y >= t && y <= b;
+
+                ok = ok && memcmp(&dev->svga.vram[F929_DB + o],
+                                  in ? &f929_pre[o] : &dev->svga.vram[F929_DA + o], bpp) == 0;
+                if (in && memcmp(&dev->svga.vram[F929_DA + o], &f929_pre[o], bpp) != 0)
+                    cut = 1;
+            }
+        /* control: the fill without the cut changed a pixel inside it */
+        ok = ok && cut;
+    }
+    wr(dev, RAGE128_AUX1_SC_LEFT, 0);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 4, 7);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 8, 0);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 12, 7);
+    check_true("2d 929: 32 fills cut by the scissor on all four sides, 8 by a subtractive aux rectangle: row store equals the per-byte walk",
+               ok && drew);
+
+    /* One pixel wide, one row high, the full width of the surface, and
+       the whole window. */
+    ok = 1; drew = 0;
+    for (int i = 0; i < 48; i++) {
+        f929_case(&c, f929_dts[i & 3], 1, 1);
+        if (i % 3 == 0)
+            c.w = 1;
+        else if (i % 3 == 1)
+            c.h = 1;
+        else
+            c.w = F929_PX;
+        if (i >= 44) {
+            c.w = F929_PX;
+            c.h = F929_ROWS;
+        }
+        c.x  = f929_rand(F929_PX - c.w + 1);
+        c.y  = f929_rand(F929_ROWS - c.h + 1);
+        c.sx = f929_rand(F929_PX - c.w + 1);
+        c.sy = f929_rand(F929_ROWS - c.h + 1);
+        ok   = f929_both(dev, &c, &drew) && ok;
+    }
+    check_true("2d 929: 48 fills one pixel wide, one row high, full width or the whole window: row store equals the walk",
+               ok && drew);
+
+    /* A destination that starts 8 pixels left of card address 0 (x = -8
+       at destination offset 0, the scissor's left edge negative so it
+       clips nothing): the first row's stores wrap to the top of video
+       memory, so that row is not one contiguous run and must take the
+       per-byte walk, which wraps. The rows below it are contiguous. The
+       reference is the same fill drawn at x = 0 in a window that does
+       not wrap, on the per-byte walk: byte o of that window stands for
+       the byte 8 pixels below o in the wrapped one. */
+    {
+        uint32_t vs   = (uint32_t) dev->vram_size;
+        uint8_t *save = (uint8_t *) malloc(0x2000);
+
+        ok = 0; drew = 0;
+        if (save) {
+            int top = 1;
+
+            memcpy(save, dev->svga.vram, 0x1000);
+            memcpy(save + 0x1000, &dev->svga.vram[vs - 0x1000u], 0x1000);
+            ok = 1;
+            for (int i = 0; i < 4; i++) {
+                uint32_t bpp, n, back;
+                int      t = 0;
+
+                f929_case(&c, f929_dts[i], 1, 1);
+                bpp  = f929_bpp(c.dt);
+                n    = 7u * F929_PX * bpp;
+                back = 8u * bpp;
+                c.y = 0; c.w = 40; c.h = 6; c.sx = 0; c.sy = 0;
+                for (uint32_t o = 0; o < n; o++) {
+                    f929_rng    = f929_rng * 1103515245u + 12345u;
+                    f929_pre[o] = (uint8_t) (f929_rng >> 16);
+                    dev->svga.vram[(o - back) & dev->vram_mask] = f929_pre[o];
+                }
+                memcpy(&dev->svga.vram[F929_DB], f929_pre, n);
+                wr(dev, RAGE128_SC_TOP_LEFT, 0x3f9cu); /* x = -100, y = 0 */
+                wr(dev, RAGE128_AUX_SC_CNTL, 0);
+                c.x = 0x3ff8u; /* x = -8 */
+                f929_draw(dev, &c, 0);
+                wr(dev, RAGE128_SC_TOP_LEFT, 0);
+                wr(dev, RAGE128_AUX_SC_CNTL, 0x00000001u);
+                c.x = 0;
+                f929_draw(dev, &c, F929_DB);
+                wr(dev, RAGE128_AUX_SC_CNTL, 0);
+                flush_sync(dev);
+                for (uint32_t o = 0; o < n; o++) {
+                    uint8_t got = dev->svga.vram[(o - back) & dev->vram_mask];
+
+                    ok = ok && got == dev->svga.vram[F929_DB + o];
+                    if (got != f929_pre[o]) {
+                        drew = 1;
+                        if (o < back)
+                            t = 1; /* a wrapped byte of row 0 */
+                    }
+                }
+                top = top && t;
+            }
+            /* control: at every depth the first 8 pixels of row 0 landed
+               at the top of video memory */
+            ok = ok && top;
+            memcpy(dev->svga.vram, save, 0x1000);
+            memcpy(&dev->svga.vram[vs - 0x1000u], save + 0x1000, 0x1000);
+            free(save);
+        }
+        check_true("2d 929: a destination row that wraps the end of video memory takes the per-byte walk",
+                   ok && drew);
+    }
+
+    /* The same fills as 0x92 packets, and by register writes from the
+       other three start corners; the last four are packets with an 8x8
+       color brush, which must stay on the per-byte walk. */
+    ok = 1; drew = 0;
+    for (int i = 0; i < 68; i++) {
+        f929_case(&c, i < 64 ? f929_dts[i & 3] : 6u, 1, 1);
+        if (i >= 64) {
+            c.pkt  = 1;
+            c.kind = 4;
+        } else
+            switch ((i >> 2) & 3) {
+                case 0:
+                    c.pkt = 1;
+                    break;
+                case 1:
+                    c.rtl = 1;
+                    break;
+                case 2:
+                    c.btt = 1;
+                    break;
+                default:
+                    c.rtl = 1;
+                    c.btt = 1;
+                    break;
+            }
+        ok = f929_both(dev, &c, &drew) && ok;
+    }
+    check_true("2d 929: the fills as 0x92 packets and from the other start corners: row store equals the per-byte walk",
+               ok && drew);
+
+    for (uint32_t i = 0; i < sizeof(saved) / sizeof(saved[0]); i++)
+        wr(dev, saved[i], was[i]);
+    flush_sync(dev);
+}
+
 /* ------------------------------------------------------------------ */
 /* Engine time of register-started ops. An op started by a CPU        */
 /* register write is drawn inside the write, and GUI_STAT then        */
@@ -27890,6 +28325,7 @@ run_gpu2d_verify(void)
     vectors_reg_scale_906(dev);
     vectors_stretch_rows_921(dev);
     vectors_stretch_rows_930(dev);
+    vectors_fill_rows_929(dev);
     vectors_eng_time_918(dev);
     vectors_cce_status_follows_work(dev);
     if (gpu_lane)

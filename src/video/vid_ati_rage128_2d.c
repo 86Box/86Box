@@ -3311,11 +3311,49 @@ rage128_2d_blit_rect_pat(rage128_t *dev, int sx, int sy, int dx, int dy,
     int fast = !aux_on && rage128_2d_wmask_full(wmask, bpp) && rop == 0xccu
         && !cca && !(pat8x8 && mono_la);
 
+    /* Row store for a solid fill that arrives with the source select on
+       memory. A guest that initializes the engine as the development
+       guide does leaves the source select there (SDK: Step 4:
+       Initialize the GUI Engine, p. 3-27 / PDF 73) and then draws a
+       rectangle by writing only the data type, the brush color and the
+       destination (SDK: Drawing Rectangles, pp. 4-4-4-5 / PDF 78-79),
+       so its fills come to this executor and not to the paint. A ROP3
+       code that reads neither the source nor the destination (0x00,
+       0x0F, 0xF0 and 0xFF: each even bit of the code equals the odd bit
+       above it, and bits 0, 1, 4 and 5 each equal the bit two places
+       up) gives one result per brush byte. With a solid brush, the
+       write mask open on every byte of the pixel, no color compare
+       taking part and the aux scissors off, the walk below has nothing
+       left to test per pixel, so each row is filled with that one pixel
+       and its source row is not copied. That stores the same bytes as
+       the walk: the stored byte is rop3(rop, pb, s, d) for any s and d,
+       and the mask byte is 0xff. The source window stays mapped, so the
+       op is drawn or skipped in the same cases either way. A row that
+       is not one contiguous run in the destination window takes the
+       walk, which wraps. */
+    int     fill = !aux_on && rage128_2d_wmask_full(wmask, bpp)
+        && rage128_2d_rop_dindep(rop) && !((rop ^ (rop >> 2)) & 0x33)
+        && !cca && !pat8x8 && !col8x8;
+    uint8_t fpx[4];
+
+    if (fill)
+        for (int b = 0; b < bpp; b++)
+            fpx[b] = (uint8_t) rage128_rop3(rop, (pat >> ((b & 3) * 8)) & 0xff, 0, 0);
+
     for (int i = 0; i < h; i++) {
         int      row   = top_down ? i : (h - 1 - i);
         uint32_t saddr = dev->src_offset + ((uint32_t) (sy + row) * rage128_2d_src_stride(dev, bpp) + sx * bpp);
         uint32_t daddr = dev->dst_offset + ((uint32_t) (dy + row) * rage128_2d_dst_stride(dev, bpp) + dx * bpp);
 
+        if (fill) {
+            uint8_t *run = r128_surf_run(&sdst, daddr, (uint32_t) w * bpp);
+
+            if (run) {
+                r128_row_fill(run, fpx, bpp, w);
+                rage128_2d_mark_dirty(dev, &sdst, daddr, (uint32_t) w * bpp);
+                continue;
+            }
+        }
         for (int b = 0; b < w * bpp; b++)
             rowbuf[b] = *r128_surf_at(&ssrc, saddr + (uint32_t) b);
         if (fast) {
