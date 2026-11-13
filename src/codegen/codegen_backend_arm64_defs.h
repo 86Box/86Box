@@ -105,13 +105,30 @@
 #define REG_ARG3             REG_X3
 
 #define REG_CPUSTATE         REG_X29
+/*readlookup2, set as a block is entered and kept by every routine*/
+#define REG_LOOKUP           REG_X28
+/*cpu_state._cycles while JIT code runs (CODEGEN_BACKEND_PINNED_CYCLES)*/
+#define REG_CYCLES           CODEGEN_BACKEND_PINNED_CYCLES
 
 #define REG_TEMP             REG_X7
 #define REG_TEMP2            REG_X6
 
 #define REG_V_TEMP           REG_V0
 
-#define CODEGEN_HOST_REGS    10
+/*IREG_cycles lives in a host register while JIT code runs (REG_CYCLES),
+  not in cpu_state._cycles, which holds it only across calls to C and
+  outside: W18 where it is an ordinary register that C may clobber (Linux;
+  every call to C reloads it), else W27, taken from the allocator*/
+#if defined(__linux__)
+#    define CODEGEN_BACKEND_PINNED_CYCLES 18
+#else
+#    define CODEGEN_BACKEND_PINNED_CYCLES 27
+#endif
+#if CODEGEN_BACKEND_PINNED_CYCLES == 27
+#    define CODEGEN_HOST_REGS 8
+#else
+#    define CODEGEN_HOST_REGS 9
+#endif
 #define CODEGEN_HOST_FP_REGS 8
 
 extern void *codegen_mem_load_byte;
@@ -129,6 +146,12 @@ extern void *codegen_mem_store_long;
 extern void *codegen_mem_store_quad;
 extern void *codegen_mem_store_single;
 extern void *codegen_mem_store_double;
+/*The store routines past their write lookup, for a store the block's own
+  fast path found misaligned or unmapped (codegen_store_inline()): W0 = the
+  address, W1 = the data*/
+extern void *codegen_mem_store_slow_byte;
+extern void *codegen_mem_store_slow_word;
+extern void *codegen_mem_store_slow_long;
 
 extern void *codegen_fp_round;
 extern void *codegen_fp_round_quad;
