@@ -2170,6 +2170,7 @@ extern int      rage128_display_reg_write(rage128_t *dev, uint32_t off, uint32_t
 extern void     rage128_display_reset(rage128_t *dev);
 extern void     rage128_recalctimings(svga_t *svga);
 extern void     rage128_dac_mask_apply(rage128_t *dev);
+extern void     rage128_dac_power_state_written(rage128_t *dev, uint8_t old_pmcsr);
 extern void     rage128_vblank_start(svga_t *svga);
 extern void     rage128_hwcursor_draw(svga_t *svga, int displine);
 extern uint32_t rage128_conv_16to32(svga_t *svga, uint16_t color, uint8_t bpp);

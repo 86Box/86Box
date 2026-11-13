@@ -2368,8 +2368,16 @@ rage128_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void
                PMI_PMCSR_REG, p. 3-190 / PDF 208; PMI_D2_SUPPORT is 0,
                RRG: PMI_PMC_REG, p. 3-190 / PDF 208). */
             val &= 0x03;
-            if (val != RAGE128_PMI_POWER_STATE_D2)
+            if (val != RAGE128_PMI_POWER_STATE_D2) {
+                const uint8_t old = dev->pci_regs[addr];
+
                 dev->pci_regs[addr] = val;
+                /* Outside D0 the analog DAC powers down by itself (RRG:
+                   DAC_CNTL, p. 3-125 / PDF 143); the display block
+                   redraws when that changes what the DAC puts out.
+                   Nothing else follows the power state. */
+                rage128_dac_power_state_written(dev, old);
+            }
             break;
         default:
             break;

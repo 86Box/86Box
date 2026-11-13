@@ -13062,6 +13062,139 @@ vectors_dac_output(rage128_t *dev)
     video_force_resize_set_monitor(0, svga->monitor_index);
 }
 
+/* The DAC macro is powered down automatically while PMI_POWER_STATE, PCI
+   configuration 0x60 [1:0], is not D0, as it is by DAC_PDWN (RRG:
+   DAC_CNTL, p. 3-125 / PDF 143; RRG: PMI_PMCSR_REG, p. 3-190 / PDF 208).
+   D1 or D3 puts out black, D0 brings the same pixels back, and a D2
+   write is not accepted, so it changes neither the stored state nor the
+   picture. Either cause alone keeps the output black. A write that moves
+   the state into or out of D0 repaints, as a DAC_PDWN change does, when
+   it changes whether the DAC is powered down; with DAC_PDWN set it does
+   not, and neither does a write between two powered-down states. The
+   line is the packed 4-bpp line of vectors_dac_output; each look at it
+   draws it afresh, so what it shows does not depend on the repaint
+   marks. */
+static uint32_t
+dac_pmi_pixel(rage128_t *dev, uint32_t *p)
+{
+    svga_t *svga = &dev->svga;
+
+    /* the line renderer skips lines with no change; the repaint rows
+       check the change marks themselves, so this draw forces one */
+    p[0]             = 0xdeadbeef;
+    svga->memaddr    = 0;
+    svga->fullchange = 2;
+    svga->render(svga);
+    return p[0];
+}
+
+static void
+vectors_dac_pmi(rage128_t *dev)
+{
+    svga_t        *svga     = &dev->svga;
+    uint32_t       gen_save = rd(dev, RAGE128_CRTC_GEN_CNTL);
+    uint32_t       dac_save = rd(dev, RAGE128_DAC_CNTL);
+    uint32_t       htd_save = rd(dev, RAGE128_CRTC_H_TOTAL_DISP);
+    uint8_t        pm_save  = pci_rd8(0x60);
+    const uint32_t black    = makecol32(0, 0, 0);
+    uint32_t       live;
+    bitmap_t      *bm;
+    uint32_t      *p;
+
+    check_true("display 912: control: the PCI helper reaches this device",
+               harness_pci_priv == (void *) dev);
+    wr(dev, RAGE128_CRTC_H_TOTAL_DISP, (7u << 16) | 20u);
+    wr(dev, RAGE128_CRTC_PITCH, 8);
+    wr(dev, RAGE128_OVR_CLR, 0x00224466);
+    wr(dev, RAGE128_CRTC_GEN_CNTL,
+       (gen_save & ~((7u << RAGE128_CRTC_PIX_WIDTH_SHIFT)
+                     | RAGE128_CRTC_DISP_REQ_EN_B))
+           | (1u << RAGE128_CRTC_PIX_WIDTH_SHIFT)
+           | RAGE128_CRTC_EXT_DISP_EN | RAGE128_CRTC_EN);
+    for (int i = 0; i < 4; i++)
+        svga->pallook[i] = 0xff000000u | (uint32_t) (0x101010 * (i + 1));
+    svga->vram[0] = 0x12;
+    svga->vram[1] = 0x12;
+    pci_wr8(0x60, 0x00);
+    wr(dev, RAGE128_DAC_CNTL, dac_save & ~RAGE128_DAC_PDWN);
+
+    bm                                  = target_alloc(svga, 2048, 8);
+    svga->monitor->mon_changeframecount = 2;
+    svga->displine                      = 0;
+    svga->y_add = svga->x_add = 0;
+    svga->fullchange          = 2;
+    p                         = bm->line[0];
+    live                      = svga->pallook[1];
+    check32("display 912: control: D0 with the DAC live shows the picture",
+            dac_pmi_pixel(dev, p), live);
+    check32("display 912: control: the border is OVR_CLR in D0",
+            svga->overscan_color, 0xff000000u | 0x00224466u);
+
+    svga->fullchange = 0;
+    pci_wr8(0x60, 0x01);
+    check32("display 912: D1 reads back", pci_rd8(0x60), 0x01);
+    check32("display 912: entering D1 repaints", (uint32_t) svga->fullchange, 2);
+    check32("display 912: D1 puts out black", dac_pmi_pixel(dev, p), black);
+    check32("display 912: the border goes dark in D1", svga->overscan_color, black);
+
+    svga->fullchange = 0;
+    pci_wr8(0x60, 0x03);
+    check32("display 912: D3 reads back", pci_rd8(0x60), 0x03);
+    check32("display 912: control: D1 to D3 does not repaint", (uint32_t) svga->fullchange, 0);
+    check32("display 912: D3 puts out black", dac_pmi_pixel(dev, p), black);
+
+    svga->fullchange = 0;
+    pci_wr8(0x60, 0x00);
+    check32("display 912: D0 reads back", pci_rd8(0x60), 0x00);
+    check32("display 912: returning to D0 repaints", (uint32_t) svga->fullchange, 2);
+    check32("display 912: D0 brings the same pixels back",
+            dac_pmi_pixel(dev, p), live);
+    check32("display 912: and the line continues as before", p[3], svga->pallook[2]);
+    check32("display 912: the border color comes back in D0",
+            svga->overscan_color, 0xff000000u | 0x00224466u);
+
+    svga->fullchange = 0;
+    pci_wr8(0x60, 0x02);
+    check32("display 912: control: a D2 write leaves D0 stored", pci_rd8(0x60), 0x00);
+    check32("display 912: control: a D2 write does not repaint", (uint32_t) svga->fullchange, 0);
+    check32("display 912: control: a D2 write leaves the picture",
+            dac_pmi_pixel(dev, p), live);
+
+    wr(dev, RAGE128_DAC_CNTL, dac_save | RAGE128_DAC_PDWN);
+    check32("display 912: control: DAC_PDWN in D0 puts out black",
+            dac_pmi_pixel(dev, p), black);
+    wr(dev, RAGE128_DAC_CNTL, dac_save & ~RAGE128_DAC_PDWN);
+
+    /* D1 first, then DAC_PDWN set and cleared: black until D0 */
+    pci_wr8(0x60, 0x01);
+    wr(dev, RAGE128_DAC_CNTL, dac_save | RAGE128_DAC_PDWN);
+    wr(dev, RAGE128_DAC_CNTL, dac_save & ~RAGE128_DAC_PDWN);
+    check32("display 912: D1 keeps the output black after DAC_PDWN clears",
+            dac_pmi_pixel(dev, p), black);
+    pci_wr8(0x60, 0x00);
+    check32("display 912: then D0 brings the picture back",
+            dac_pmi_pixel(dev, p), live);
+
+    /* DAC_PDWN first, then D1 and D0: black until DAC_PDWN clears */
+    wr(dev, RAGE128_DAC_CNTL, dac_save | RAGE128_DAC_PDWN);
+    pci_wr8(0x60, 0x01);
+    pci_wr8(0x60, 0x00);
+    check32("display 912: DAC_PDWN keeps the output black after D0",
+            dac_pmi_pixel(dev, p), black);
+    wr(dev, RAGE128_DAC_CNTL, dac_save & ~RAGE128_DAC_PDWN);
+    check32("display 912: then clearing DAC_PDWN brings the picture back",
+            dac_pmi_pixel(dev, p), live);
+
+    target_free(svga, bm);
+    pci_wr8(0x60, pm_save);
+    wr(dev, RAGE128_DAC_CNTL, dac_save);
+    wr(dev, RAGE128_OVR_CLR, 0);
+    wr(dev, RAGE128_CRTC_PITCH, 0);
+    wr(dev, RAGE128_CRTC_H_TOTAL_DISP, htd_save);
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save);
+    video_force_resize_set_monitor(0, svga->monitor_index);
+}
+
 /* ------------------------------------------------------------------ */
 /* DAC_CRC_EN arms a one-field/frame capture of    */
 /* the composed DAC output at the next vertical blank; the following   */
@@ -14583,6 +14716,7 @@ run_agp_32mb(void)
     vectors_overscan(dev);
     vectors_dac_vga_adr_en(dev);
     vectors_dac_output(dev);
+    vectors_dac_pmi(dev);
     vectors_dac_crc(dev);
     vectors_vblank_phase(dev);
     vectors_snapshot(dev);
