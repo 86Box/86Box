@@ -384,7 +384,7 @@ fdd_seek_complete_callback(void *priv)
         po->op      = FDD_OP_NONE;
     }
 
-    if (!had_pending || fdd_tape_present(drv))
+    if ((drv->ctrl != NULL) && (!had_pending || fdd_tape_present(drv)))
         drv->ctrl->seek_complete_interrupt(drv->ctrl_priv, drv->id & 3);
 }
 
