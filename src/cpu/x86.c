@@ -246,11 +246,13 @@ extern void lapic_index_board_reset(uint8_t index);
 static int reset_init;
 
 /* Common reset function. */
+#ifdef USE_DYNAREC
 /* 1 soft, 2 hard: a reset raised inside a recompiled block, done once the
    block has returned (x86_reset_deferred), with the sources of its soft
    resets */
 static int reset_deferred;
 static int reset_deferred_src;
+#endif
 
 /* A 387 beside the CPU, taken through RESET with it by the board. It comes
    out as FNINIT leaves it, but with IM clear and IE, ES and B set (80387
