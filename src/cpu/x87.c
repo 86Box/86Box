@@ -597,7 +597,7 @@ x87_divide_fast(double num, double den, double *res, unsigned *flags)
     double r;
     int    up;
 
-    if ((cpu_state.npxc & 0xc00) || (ea < 553) || (ea > 1493) || (eb < 553) || (eb > 1493))
+    if ((ea < 553) || (ea > 1493) || (eb < 553) || (eb > 1493))
         return 0;
     q.d = num / den;
     if (!(q.u & UINT64_C(0x000fffffffffffff)))
@@ -621,6 +621,50 @@ x87_divide_fast(double num, double den, double *res, unsigned *flags)
         r  = (num - p) - e;
     }
 #    endif
+    /* Rounding down, up or toward zero, at 53 or 64 bits: the result is q or
+       its neighbour on x's side, as x - q = r / den says, and is the same at
+       both precisions (the software divide rounds to 64 bits, then to 53, in
+       the same direction, which comes to rounding once to 53). PE is x not on
+       the grid of the control word's precision, and C1 the rounding going
+       away from zero: down for a negative x, up for a positive one. */
+    if (cpu_state.npxc & 0xc00) {
+        const int rc    = (cpu_state.npxc >> 10) & 3;
+        const int below = (r != 0.0) && (signbit(r) != signbit(den)); /* x < q */
+        const int above = (r != 0.0) && !below;                       /* x > q */
+        int       inexact;
+
+        switch (cpu_state.npxc & 0x300) {
+            case 0x200:
+                inexact = (r != 0.0);
+                break;
+            case 0x300:
+                inexact = 0;
+                if (r != 0.0) {
+                    double t, n;
+
+                    ulp.u = (q.u & UINT64_C(0x7ff0000000000000)) - (UINT64_C(63) << 52);
+                    t     = (r / den) / ulp.d;
+                    n     = nearbyint(t);
+                    if ((fabs(n) >= 1024.0) || (fabs(t - n) < 0x1p-20))
+                        return 0;
+                    inexact = 1;
+                }
+                break;
+            default:
+                return 0;
+        }
+        if ((rc == 1) && below)
+            *res = nextafter(q.d, -INFINITY);
+        else if ((rc == 2) && above)
+            *res = nextafter(q.d, INFINITY);
+        else if ((rc == 3) && (signbit(q.d) ? above : below))
+            *res = nextafter(q.d, 0.0);
+        else
+            *res = q.d;
+        *flags = inexact ? (FPU_SW_Precision | ((((rc == 1) && signbit(q.d)) || ((rc == 2) && !signbit(q.d))) ? FPU_SW_C1 : 0)) : 0;
+        return 1;
+    }
+
     /* |x| > |q|: x - q has the quotient's sign */
     up = (r != 0.0) && (signbit(r) != signbit(num));
 
