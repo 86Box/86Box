@@ -3,13 +3,15 @@
             uint8_t temp_orig = temp;                                                                                            \
             if (!c)                                                                                                              \
                 return 0;                                                                                                        \
-            flags_rebuild();                                                                                                     \
+            /* RCL/RCR read CF and set CF/OF in flags: they rebuild them all. ROL/ROR                                            \
+               keep ZF/SF/PF/AF as they were, the other shifts set every flag. */                                                \
             switch (rmdat & 0x38) {                                                                                              \
                 case 0x00: /*ROL b, c*/                                                                                          \
                     temp = (temp << (c & 7)) | (temp >> (8 - (c & 7)));                                                          \
                     seteab(temp);                                                                                                \
                     if (cpu_state.abrt)                                                                                          \
                         return 1;                                                                                                \
+                    flags_rebuild_zpna();                                                                                        \
                     set_flags_rotate(FLAGS_ROL8, temp);                                                                          \
                     CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                                                        \
                     PREFETCH_RUN((cpu_mod == 3) ? 3 : 7, 2, rmdat, (cpu_mod == 3) ? 0 : 1, 0, (cpu_mod == 3) ? 0 : 1, 0, ea32);  \
@@ -19,11 +21,13 @@
                     seteab(temp);                                                                                                \
                     if (cpu_state.abrt)                                                                                          \
                         return 1;                                                                                                \
+                    flags_rebuild_zpna();                                                                                        \
                     set_flags_rotate(FLAGS_ROR8, temp);                                                                          \
                     CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                                                        \
                     PREFETCH_RUN((cpu_mod == 3) ? 3 : 7, 2, rmdat, (cpu_mod == 3) ? 0 : 1, 0, (cpu_mod == 3) ? 0 : 1, 0, ea32);  \
                     break;                                                                                                       \
                 case 0x10: /*RCL b,CL*/                                                                                          \
+                    flags_rebuild();                                                                                             \
                     temp2 = cpu_state.flags & C_FLAG;                                                                            \
                     if (is486)                                                                                                   \
                         CLOCK_CYCLES_ALWAYS(c);                                                                                  \
@@ -45,6 +49,7 @@
                     PREFETCH_RUN((cpu_mod == 3) ? 9 : 10, 2, rmdat, (cpu_mod == 3) ? 0 : 1, 0, (cpu_mod == 3) ? 0 : 1, 0, ea32); \
                     break;                                                                                                       \
                 case 0x18: /*RCR b,CL*/                                                                                          \
+                    flags_rebuild();                                                                                             \
                     temp2 = cpu_state.flags & C_FLAG;                                                                            \
                     if (is486)                                                                                                   \
                         CLOCK_CYCLES_ALWAYS(c);                                                                                  \
@@ -99,13 +104,15 @@
             uint16_t temp_orig = temp;                                                                                           \
             if (!c)                                                                                                              \
                 return 0;                                                                                                        \
-            flags_rebuild();                                                                                                     \
+            /* RCL/RCR read CF and set CF/OF in flags: they rebuild them all. ROL/ROR                                            \
+               keep ZF/SF/PF/AF as they were, the other shifts set every flag. */                                                \
             switch (rmdat & 0x38) {                                                                                              \
                 case 0x00: /*ROL w, c*/                                                                                          \
                     temp = (temp << (c & 15)) | (temp >> (16 - (c & 15)));                                                       \
                     seteaw(temp);                                                                                                \
                     if (cpu_state.abrt)                                                                                          \
                         return 1;                                                                                                \
+                    flags_rebuild_zpna();                                                                                        \
                     set_flags_rotate(FLAGS_ROL16, temp);                                                                         \
                     CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                                                        \
                     PREFETCH_RUN((cpu_mod == 3) ? 3 : 7, 2, rmdat, (cpu_mod == 3) ? 0 : 1, 0, (cpu_mod == 3) ? 0 : 1, 0, ea32);  \
@@ -115,11 +122,13 @@
                     seteaw(temp);                                                                                                \
                     if (cpu_state.abrt)                                                                                          \
                         return 1;                                                                                                \
+                    flags_rebuild_zpna();                                                                                        \
                     set_flags_rotate(FLAGS_ROR16, temp);                                                                         \
                     CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                                                        \
                     PREFETCH_RUN((cpu_mod == 3) ? 3 : 7, 2, rmdat, (cpu_mod == 3) ? 0 : 1, 0, (cpu_mod == 3) ? 0 : 1, 0, ea32);  \
                     break;                                                                                                       \
                 case 0x10: /*RCL w, c*/                                                                                          \
+                    flags_rebuild();                                                                                             \
                     temp2 = cpu_state.flags & C_FLAG;                                                                            \
                     if (is486)                                                                                                   \
                         CLOCK_CYCLES_ALWAYS(c);                                                                                  \
@@ -141,6 +150,7 @@
                     PREFETCH_RUN((cpu_mod == 3) ? 9 : 10, 2, rmdat, (cpu_mod == 3) ? 0 : 1, 0, (cpu_mod == 3) ? 0 : 1, 0, ea32); \
                     break;                                                                                                       \
                 case 0x18: /*RCR w, c*/                                                                                          \
+                    flags_rebuild();                                                                                             \
                     temp2 = cpu_state.flags & C_FLAG;                                                                            \
                     if (is486)                                                                                                   \
                         CLOCK_CYCLES_ALWAYS(c);                                                                                  \
@@ -195,13 +205,15 @@
             uint32_t temp_orig = temp;                                                                                           \
             if (!c)                                                                                                              \
                 return 0;                                                                                                        \
-            flags_rebuild();                                                                                                     \
+            /* RCL/RCR read CF and set CF/OF in flags: they rebuild them all. ROL/ROR                                            \
+               keep ZF/SF/PF/AF as they were, the other shifts set every flag. */                                                \
             switch (rmdat & 0x38) {                                                                                              \
                 case 0x00: /*ROL l, c*/                                                                                          \
                     temp = (temp << c) | (temp >> (32 - c));                                                                     \
                     seteal(temp);                                                                                                \
                     if (cpu_state.abrt)                                                                                          \
                         return 1;                                                                                                \
+                    flags_rebuild_zpna();                                                                                        \
                     set_flags_rotate(FLAGS_ROL32, temp);                                                                         \
                     CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                                                        \
                     PREFETCH_RUN((cpu_mod == 3) ? 3 : 7, 2, rmdat, (cpu_mod == 3) ? 0 : 1, 0, (cpu_mod == 3) ? 0 : 1, 0, ea32);  \
@@ -211,11 +223,13 @@
                     seteal(temp);                                                                                                \
                     if (cpu_state.abrt)                                                                                          \
                         return 1;                                                                                                \
+                    flags_rebuild_zpna();                                                                                        \
                     set_flags_rotate(FLAGS_ROR32, temp);                                                                         \
                     CLOCK_CYCLES((cpu_mod == 3) ? 3 : 7);                                                                        \
                     PREFETCH_RUN((cpu_mod == 3) ? 3 : 7, 2, rmdat, (cpu_mod == 3) ? 0 : 1, 0, (cpu_mod == 3) ? 0 : 1, 0, ea32);  \
                     break;                                                                                                       \
                 case 0x10: /*RCL l, c*/                                                                                          \
+                    flags_rebuild();                                                                                             \
                     temp2 = CF_SET();                                                                                            \
                     if (is486)                                                                                                   \
                         CLOCK_CYCLES_ALWAYS(c);                                                                                  \
@@ -237,6 +251,7 @@
                     PREFETCH_RUN((cpu_mod == 3) ? 9 : 10, 2, rmdat, 0, (cpu_mod == 3) ? 0 : 1, 0, (cpu_mod == 3) ? 0 : 1, ea32); \
                     break;                                                                                                       \
                 case 0x18: /*RCR l, c*/                                                                                          \
+                    flags_rebuild();                                                                                             \
                     temp2 = cpu_state.flags & C_FLAG;                                                                            \
                     if (is486)                                                                                                   \
                         CLOCK_CYCLES_ALWAYS(c);                                                                                  \
