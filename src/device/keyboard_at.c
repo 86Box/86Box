@@ -5758,12 +5758,14 @@ keyboard_at_write(void *priv)
                     case 0x8a:
                         /* Sets 81h/82h/8Ah only exist on the Japanese 5576
                            keyboards; other keyboards answer resend and keep
-                           their current set (J-DOS then reports BIOS-102). */
+                           their current set (J-DOS then reports BIOS-102).
+                           Go back to scanning instead of waiting for another
+                           parameter: the host may give up after the resend
+                           (MS-DOS KEYB tries F0 82 three times, then sends
+                           nothing more), which would leave the keyboard dead. */
                         if ((val >= 0x81) && !dev->ps55) {
                             kbc_at_dev_queue_add(dev, 0xfe, 0); /* Resend */
                             keyboard_at_log("%s: Set scan code set [%02X] not supported - resend\n", dev->name, val);
-                            dev->flags |= FLAG_CTRLDAT;
-                            dev->state = DEV_STATE_MAIN_WANT_IN;
                             break;
                         }
                         kbc_at_dev_queue_add(dev, 0xfa, 0); /* ACK */
