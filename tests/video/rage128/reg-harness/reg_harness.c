@@ -21355,9 +21355,10 @@ vectors_scale_half_px_phase(rage128_t *dev)
         }
     check_true("2d scale phase: the general compare keys the phased texel", ok);
 
-    /* 0x97 keyed stretch, CLR_CMP_FN_SRC 5 (draw when not equal) */
+    /* 0x97 keyed stretch, CLR_CMP_FN_SRC 5 (draw when not equal), in the
+       20-dword form, whose GMC carries all four setup bits */
     memset(&dev->svga.vram[0x00300000], 0x11, 64 * 12 * 4);
-    pl[0]  = g6;          pl[1] = 0;           pl[2] = 0x01018000u;
+    pl[0]  = g6 | 0xfu;   pl[1] = 0;           pl[2] = 0x01018000u;
     pl[3]  = 0;           pl[4] = 0;           pl[5] = 0x1fff1fffu;
     pl[6]  = 0x01000005u; pl[7] = SCALE_PHASE_KEY;    pl[8] = 0xffffffffu;
     pl[9]  = 0x500u;      pl[10] = 0x00800000u; pl[11] = 0x02180840u;
@@ -21480,6 +21481,243 @@ vectors_trans_scaling_dst_ref(rage128_t *dev)
     wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, 0);
 #undef TRANS_SCALE_DST
 }
+
+/* Packet 0x97 finds its setup dwords by the GUI_CONTROL bits: bit 0
+   source pitch/offset, bit 1 destination pitch/offset, bit 2 the source
+   scissor, bit 3 the destination scissor pair, then the brush data its
+   brush type asks for and BRUSH_Y_X when bit 31 is set (SDK: Table 4-16,
+   pp. F-12-F-14 / PDF 302-304; SDK: Table F-1, pp. F-14-F-16 / PDF 304-306).
+   CLR_CMP_CNTL, the two reference colors and the 11-dword scaler block
+   follow (SDK: Table F-24, pp. F-36-F-37 / PDF 326-327). Every short form
+   below draws the same keyed 4x4 to 8x8 stretch as the form with all
+   four bits; a clear bit takes its value from the reload the GMC write
+   does, DEFAULT_OFFSET and DEFAULT_PITCH for the destination and 0 and
+   DEFAULT_SC_BOTTOM_RIGHT for the scissor (RRG: DP_GUI_MASTER_CNTL,
+   p. 3-172 / PDF 190), which this test points at the same surface. The
+   key is texel (1,0), so four destination pixels must keep the fill. */
+#define T907_DST   0x00300000u
+#define T907_TEX   0x00310000u
+#define T907_BYTES (64u * 12u * 4u)
+#define T907_FILL  0x11111111u
+#define T907_PX(x, y) (*(uint32_t *) &dev->svga.vram[T907_DST + ((y) * 64u + (x)) * 4u])
+
+static uint32_t t907_tex[8 * 8];
+
+static uint32_t
+t907_build(uint32_t *pl, uint32_t bits, uint32_t brush, uint32_t sc_tl, uint32_t sc_br,
+           uint32_t key)
+{
+    const uint32_t g = (15u << 4) | (6u << 8) | (3u << 12) | (0xccu << 16) | (2u << 24);
+    uint32_t       n = 0;
+
+    pl[n++] = brush ? ((g & ~0xf0u) | (13u << 4) | RAGE128_GMC_LD_BRUSH_Y_X | bits) : (g | bits);
+    if (bits & RAGE128_GMC_SRC_PITCH_OFFSET_LEAVE)
+        pl[n++] = 0x00a5a5a5u; /* a stale source surface the scaler never reads */
+    if (bits & RAGE128_GMC_DST_PITCH_OFFSET_LEAVE)
+        pl[n++] = 0x01018000u; /* 0x300000, 64 pixels */
+    if (bits & RAGE128_GMC_SRC_CLIP_LEAVE)
+        pl[n++] = 0x00070007u;
+    if (bits & RAGE128_GMC_DST_CLIP_LEAVE) {
+        pl[n++] = sc_tl;
+        pl[n++] = sc_br;
+    }
+    if (brush) {
+        pl[n++] = 0x00c0ffeeu; /* type 13: the foreground color */
+        pl[n++] = 0x00000503u; /* BRUSH_Y_X */
+    }
+    pl[n++] = 0x01000005u;
+    pl[n++] = key;
+    pl[n++] = 0;
+    pl[n++] = 0x500u;
+    pl[n++] = 0x00800000u;
+    pl[n++] = 0x02180840u;
+    pl[n++] = 6u;
+    pl[n++] = T907_TEX;
+    pl[n++] = 1u;
+    pl[n++] = 0x00010001u;
+    pl[n++] = 0x7fffu;
+    pl[n++] = 0x7fffu;
+    pl[n++] = (2u << 16) | 2u;
+    pl[n++] = (8u << 16) | 8u;
+    return n;
+}
+
+/* Fill the destination, send the packet, and report whether the device
+   logged it as unhandled. */
+static int
+t907_run(rage128_t *dev, const uint32_t *pl, uint32_t n)
+{
+    flush_sync(dev);
+    memset(&dev->svga.vram[T907_DST], 0x11, T907_BYTES);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffffu);
+    harness_log_tail_reset();
+    rage128_2d_packet3(dev, 0x97u << 8, pl, n);
+    flush_sync(dev);
+    return strstr(harness_log_tail, "[r128 UNHANDLED] op=97") != NULL;
+}
+
+/* The expected destination for the stretch at (2,2), 8x8, clipped to the
+   inclusive scissor (x0,y0)-(x1,y1); also checks that the keyed pixels
+   inside the clip (four unclipped, two under the test's scissor) kept
+   the fill. */
+static int
+t907_expected(rage128_t *dev, int x0, int y0, int x1, int y1)
+{
+    int keyed = 0;
+
+    for (int y = 0; y < 12; y++)
+        for (int x = 0; x < 64; x++) {
+            uint32_t want = T907_FILL;
+
+            if (x >= 2 && x < 10 && y >= 2 && y < 10 && x >= x0 && x <= x1 && y >= y0 && y <= y1) {
+                uint32_t t = t907_tex[((y - 2) >> 1) * 8 + ((x - 2) >> 1)];
+
+                if (t == t907_tex[1])
+                    keyed++;
+                else
+                    want = t;
+            }
+            if (T907_PX(x, y) != want)
+                return 0;
+        }
+    return keyed > 0;
+}
+
+static int
+t907_untouched(rage128_t *dev)
+{
+    for (uint32_t i = 0; i < T907_BYTES; i++)
+        if (dev->svga.vram[T907_DST + i] != 0x11u)
+            return 0;
+    return 1;
+}
+
+static void
+vectors_trans_scaling_907(rage128_t *dev)
+{
+    static uint8_t ref[T907_BYTES], ref_clip[T907_BYTES];
+    const uint32_t sc_tl = (3u << 16) | 4u; /* x 4, y 3 */
+    const uint32_t sc_br = (6u << 16) | 7u; /* x 7, y 6 */
+    const uint32_t all = 0xfu;
+    uint32_t       pl[24], n, def_off, def_pitch, gmc0, key0;
+    uint64_t       q0 = 0, q1 = 0, b0 = 0, b1 = 0;
+    int            gpu = dev->gpu && rage128_gpu_2d_verifying(dev);
+    int            unh;
+
+    flush_sync(dev);
+    def_off   = rd(dev, RAGE128_DEFAULT_OFFSET);
+    def_pitch = rd(dev, RAGE128_DEFAULT_PITCH);
+    wr(dev, RAGE128_DEFAULT_OFFSET, T907_DST);
+    wr(dev, RAGE128_DEFAULT_PITCH, 64u / 8u);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, 0xffffffffu);
+    wr(dev, RAGE128_CLR_CMP_MASK, 0xffffffffu);
+    for (int y = 0; y < 8; y++)
+        for (int x = 0; x < 8; x++) {
+            t907_tex[y * 8 + x] = 0xff400000u | ((uint32_t) y << 12) | ((uint32_t) x << 4);
+            *(uint32_t *) &dev->svga.vram[T907_TEX + y * 32 + x * 4] = t907_tex[y * 8 + x];
+        }
+    if (gpu) {
+        harness_gpu_fab_q2d(dev->gpu, 5, &q0, NULL, NULL, NULL);
+        b0 = harness_gpu_q2d_bad(dev->gpu, 5);
+    }
+
+    /* the controls: all four setup bits, 20 dwords, without and with a
+       scissor that clips */
+    n   = t907_build(pl, all, 0, 0, 0x1fff1fffu, t907_tex[1]);
+    unh = t907_run(dev, pl, n);
+    check_true("2d 907: control: 20 dwords, all four setup bits, draws the keyed stretch",
+               n == 20 && !unh && t907_expected(dev, 0, 0, 0x1fff, 0x1fff));
+    memcpy(ref, &dev->svga.vram[T907_DST], T907_BYTES);
+    n   = t907_build(pl, all, 0, sc_tl, sc_br, t907_tex[1]);
+    unh = t907_run(dev, pl, n);
+    check_true("2d 907: control: 20 dwords with a scissor draws only (4,3)-(7,6)",
+               n == 20 && !unh && t907_expected(dev, 4, 3, 7, 6));
+    memcpy(ref_clip, &dev->svga.vram[T907_DST], T907_BYTES);
+
+    /* no setup bits: the 15-dword form */
+    n   = t907_build(pl, 0, 0, 0, 0, t907_tex[1]);
+    unh = t907_run(dev, pl, n);
+    check_true("2d 907: no setup bits (15 dwords) equals the 20-dword form",
+               n == 15 && !unh && memcmp(&dev->svga.vram[T907_DST], ref, T907_BYTES) == 0
+                   && t907_expected(dev, 0, 0, 0x1fff, 0x1fff));
+
+    n   = t907_build(pl, RAGE128_GMC_DST_PITCH_OFFSET_LEAVE, 0, 0, 0, t907_tex[1]);
+    unh = t907_run(dev, pl, n);
+    check_true("2d 907: destination pitch/offset bit only (16 dwords) equals the 20-dword form",
+               n == 16 && !unh && memcmp(&dev->svga.vram[T907_DST], ref, T907_BYTES) == 0
+                   && t907_expected(dev, 0, 0, 0x1fff, 0x1fff));
+
+    n   = t907_build(pl, RAGE128_GMC_DST_CLIP_LEAVE, 0, sc_tl, sc_br, t907_tex[1]);
+    unh = t907_run(dev, pl, n);
+    check_true("2d 907: destination clip bit only (17 dwords) clips as the 20-dword form",
+               n == 17 && !unh && memcmp(&dev->svga.vram[T907_DST], ref_clip, T907_BYTES) == 0
+                   && t907_expected(dev, 4, 3, 7, 6));
+
+    n   = t907_build(pl, RAGE128_GMC_SRC_PITCH_OFFSET_LEAVE | RAGE128_GMC_DST_PITCH_OFFSET_LEAVE,
+                     0, 0, 0, t907_tex[1]);
+    unh = t907_run(dev, pl, n);
+    check_true("2d 907: source and destination pitch/offset bits (17 dwords) equal the 20-dword form",
+               n == 17 && !unh && memcmp(&dev->svga.vram[T907_DST], ref, T907_BYTES) == 0
+                   && t907_expected(dev, 0, 0, 0x1fff, 0x1fff));
+
+    n   = t907_build(pl, RAGE128_GMC_SRC_PITCH_OFFSET_LEAVE | RAGE128_GMC_DST_PITCH_OFFSET_LEAVE
+                         | RAGE128_GMC_DST_CLIP_LEAVE,
+                     0, sc_tl, sc_br, t907_tex[1]);
+    unh = t907_run(dev, pl, n);
+    check_true("2d 907: three setup bits, no source clip (19 dwords), clips as the 20-dword form",
+               n == 19 && !unh && memcmp(&dev->svga.vram[T907_DST], ref_clip, T907_BYTES) == 0
+                   && t907_expected(dev, 4, 3, 7, 6));
+
+    /* brush type 13 and BRUSH_Y_X sit between the setup dwords and the
+       compare dwords; SRCCOPY does not read the pattern */
+    n   = t907_build(pl, RAGE128_GMC_DST_PITCH_OFFSET_LEAVE, 1, 0, 0, t907_tex[1]);
+    unh = t907_run(dev, pl, n);
+    check_true("2d 907: brush 13 and BRUSH_Y_X after the setup dwords (18 dwords) equal the 20-dword form",
+               n == 18 && !unh && memcmp(&dev->svga.vram[T907_DST], ref, T907_BYTES) == 0
+                   && t907_expected(dev, 0, 0, 0x1fff, 0x1fff));
+    check32("2d 907: the brush 13 dword loads DP_BRUSH_FRGD_CLR",
+            rd(dev, RAGE128_DP_BRUSH_FRGD_CLR), 0x00c0ffeeu);
+    check32("2d 907: the BRUSH_Y_X dword loads BRUSH_Y_X", rd(dev, RAGE128_BRUSH_Y_X), 0x00000503u);
+
+    /* one dword short of what the bits ask for: unhandled, nothing drawn,
+       neither the GMC nor the key latched */
+    gmc0 = rd(dev, RAGE128_DP_GUI_MASTER_CNTL);
+    key0 = rd(dev, RAGE128_CLR_CMP_CLR_SRC);
+    n    = t907_build(pl, 0, 0, 0, 0, 0x00badbadu);
+    unh  = t907_run(dev, pl, n - 1);
+    check_true("2d 907: no setup bits, 14 dwords: unhandled, destination untouched",
+               unh && t907_untouched(dev));
+    check_true("2d 907: no setup bits, 14 dwords: GMC and source key not latched",
+               rd(dev, RAGE128_DP_GUI_MASTER_CNTL) == gmc0 && rd(dev, RAGE128_CLR_CMP_CLR_SRC) == key0);
+    n   = t907_build(pl, all, 0, sc_tl, sc_br, 0x00badbadu);
+    unh = t907_run(dev, pl, n - 1);
+    check_true("2d 907: all four setup bits, 19 dwords: unhandled, destination untouched",
+               unh && t907_untouched(dev));
+    check_true("2d 907: all four setup bits, 19 dwords: GMC and source key not latched",
+               rd(dev, RAGE128_DP_GUI_MASTER_CNTL) == gmc0 && rd(dev, RAGE128_CLR_CMP_CLR_SRC) == key0);
+
+    if (gpu) {
+        harness_gpu_fab_q2d(dev->gpu, 5, &q1, NULL, NULL, NULL);
+        b1 = harness_gpu_q2d_bad(dev->gpu, 5);
+        check_true("2d 907: GPU: the keyed stretches queue on table 5", q1 > q0);
+        check32("2d 907: GPU: the table-5 oracle finds the queue equal to the walk",
+                (uint32_t) (b1 - b0), 0);
+    }
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    wr(dev, RAGE128_CLR_CMP_CLR_SRC, 0);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_DEFAULT_OFFSET, def_off);
+    wr(dev, RAGE128_DEFAULT_PITCH, def_pitch);
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, 0);
+}
+#undef T907_DST
+#undef T907_TEX
+#undef T907_BYTES
+#undef T907_FILL
+#undef T907_PX
 
 /* SCALE_X_INC / SCALE_Y_INC are 4.12 in [19:4], other bits
    reserved (SDK-G04000 F.13 Table F-17 ordinals 8/9; RRG
@@ -23714,6 +23952,7 @@ run_gpu2d_verify(void)
     /* and the phased stretches through the stretch queue under the oracle */
     vectors_scale_half_px_phase(dev);
     vectors_trans_scaling_dst_ref(dev);
+    vectors_trans_scaling_907(dev);
     vectors_scale_inc_412(dev);
     vectors_scale_pitch_bit9(dev);
     vectors_reg_scale_906(dev);

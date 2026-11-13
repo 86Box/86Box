@@ -5507,19 +5507,29 @@ pkt3_scaling(rage128_t *dev, uint32_t g, const uint32_t *pl, uint32_t count)
 }
 
 /* Packet 0x97 (R128_CCE_PACKET3_CNTL_TRANS_SCALING in xf86-video-r128):
-   a color-keyed stretch blit. The SDK layout is the GMC,
-   its setup dwords, then CLR_CMP_CNTL, the source and destination
-   reference colors and the 11-dword scaler block of 0x96 (SDK: Table
-   F-24, pp. F-36-F-37 / PDF 326-327). The code handles only the 20-dword
-   form, with all four setup bits set, that the Windows 98
-   DirectDraw/Direct3D driver sends when a
-   DirectDraw blit asks for a source color key and a stretch at once
-   (RE: ati3draa.dll @b00ba7ea, header 0xc0139700); it is to 0x96 what
-   0x9c is to 0x92. The slot map comes from the shared slot builder (RE:
-   ati3draa.dll @b00bb3e0): p2 is the destination surface in every form,
-   and p1, the source surface, is written only by the 0x92 and 0x9c
-   paths. The stretch paths leave p1 holding an earlier blit's source,
-   so nothing is taken from it:
+   a color-keyed stretch blit; it is to 0x96 what 0x9c is to 0x92. The
+   body is the GMC, then the setup dwords its bits 0-3 ask for (source
+   pitch/offset, destination pitch/offset, the source scissor's
+   bottom-right, the destination scissor pair), the brush data its brush
+   type asks for and BRUSH_Y_X when bit 31 is set (SDK: Table 4-16,
+   pp. F-12-F-14 / PDF 302-304; SDK: Table F-1, pp. F-14-F-16 / PDF
+   304-306), then CLR_CMP_CNTL, the source and destination reference
+   colors and the 11-dword scaler block of 0x96 (SDK: Table F-24,
+   pp. F-36-F-37 / PDF 326-327). With no setup bits and brush type 15
+   that is 15 dwords; a clear setup bit leaves the value the GMC write
+   reloads.
+   The Windows 98 DirectDraw/Direct3D driver sends the packet when a
+   DirectDraw blit asks for a source color key and a stretch at once,
+   always with all four setup bits, brush type 15 and no BRUSH_Y_X: 20
+   dwords (RE: ati3draa.dll @b00ba7ea, header 0xc0139700). The slot map
+   comes from the shared slot builder (RE: ati3draa.dll @b00bb3e0): p2
+   is the destination surface in every form, and p1, the source surface,
+   is written only by the 0x92 and 0x9c paths. The stretch paths leave
+   p1 holding an earlier blit's source, so the source pitch/offset dword
+   is skipped, not latched; the scaler reads its source from p13 and
+   p14, never from SRC_PITCH_OFFSET. The source scissor dword is skipped
+   as well, as in 0x96. Skipping both is modeled: no document says
+   whether the chip latches them. In the driver's form:
      p0 GMC                p1  (stale SRC_PITCH_OFFSET)
      p2 DST_PITCH_OFFSET   p3  SRC_SC_BOTTOM_RIGHT
      p4 SC_TOP_LEFT (0)    p5  SC_BOTTOM_RIGHT (destination rect)
@@ -5531,21 +5541,59 @@ pkt3_scaling(rage128_t *dev, uint32_t g, const uint32_t *pl, uint32_t count)
    equal) in the form the driver sends without p8; the form with p8 ORs
    in 0x400 (CLR_CMP_FN_DST 4) and sets CLR_CMP_SRC 2. The driver always
    writes 0x500 (replicate) in the scaler block's MISC_3D_STATE. The
-   executor uses the latched color compare state directly; the scaler
-   reads its source from p13 and p14, never from SRC_PITCH_OFFSET. */
+   executor uses the latched color compare state directly.
+   The length the setup bits need is checked before anything is
+   latched, so a packet too short for its bits changes no state. Brush
+   data is sized by its type, so brush data that runs into the last 14
+   dwords is found only after the GMC and the setup dwords are latched,
+   and, when only the BRUSH_Y_X dword is missing, after the brush
+   colors of the types that carry them are latched as well. */
 static int
 pkt3_trans_scaling(rage128_t *dev, uint32_t g, const uint32_t *pl, uint32_t count)
 {
-    if (count < 20)
+    const uint8_t *pat = NULL;
+    const uint8_t *col = NULL;
+    int            mono_la, line_en;
+    uint32_t       linepat;
+    uint32_t       p    = 1;
+    uint32_t       need = 1 + 3 + 11;
+
+    if (g & RAGE128_GMC_SRC_PITCH_OFFSET_LEAVE)
+        need++;
+    if (g & RAGE128_GMC_DST_PITCH_OFFSET_LEAVE)
+        need++;
+    if (g & RAGE128_GMC_SRC_CLIP_LEAVE)
+        need++;
+    if (g & RAGE128_GMC_DST_CLIP_LEAVE)
+        need += 2;
+    if (count < need)
         return 0;
-    rage128_2d_apply_gmc(dev, g);               /* p0 */
-    rage128_2d_set_pitch_offset(dev, 1, pl[2]); /* p2 DST_PITCH_OFFSET */
-    dev->sc_top_left     = pl[4];               /* p4 SC_TOP_LEFT */
-    dev->sc_bottom_right = pl[5];               /* p5 SC_BOTTOM_RIGHT */
-    dev->clr_cmp_cntl    = pl[6];
-    dev->clr_cmp_clr_src = pl[7];
-    dev->clr_cmp_clr_dst = pl[8];
-    if (!rage128_2d_scale_block(dev, &pl[9]))
+    rage128_2d_apply_gmc(dev, g);
+    if (g & RAGE128_GMC_SRC_PITCH_OFFSET_LEAVE)
+        p++; /* stale source surface, not latched */
+    if (g & RAGE128_GMC_DST_PITCH_OFFSET_LEAVE)
+        rage128_2d_set_pitch_offset(dev, 1, pl[p++]);
+    if (g & RAGE128_GMC_SRC_CLIP_LEAVE)
+        p++; /* source scissor bottom-right, not latched */
+    if (g & RAGE128_GMC_DST_CLIP_LEAVE) {
+        dev->sc_top_left     = pl[p++];
+        dev->sc_bottom_right = pl[p++];
+    }
+    /* The brush data must end before the 14 compare and scaler dwords.
+       The stretch takes its pattern operand from DP_BRUSH_FRGD_CLR, so
+       only the latched brush state matters, not the returned pointers. */
+    if (!rage128_2d_brush_block(dev, g, pl, count - 14, &p,
+                                &pat, &col, &mono_la, &linepat, &line_en))
+        return 0;
+    (void) pat;
+    (void) col;
+    (void) mono_la;
+    (void) linepat;
+    (void) line_en;
+    dev->clr_cmp_cntl    = pl[p];
+    dev->clr_cmp_clr_src = pl[p + 1];
+    dev->clr_cmp_clr_dst = pl[p + 2];
+    if (!rage128_2d_scale_block(dev, &pl[p + 3]))
         return 0;
     return 1;
 }
