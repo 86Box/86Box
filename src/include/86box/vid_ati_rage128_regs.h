@@ -1369,6 +1369,10 @@
    pp. 3-160-3-161 / PDF 178-179). The registers at 0x1994-0x19b4
    appear only in the list of registers added in RRG Rev 0.03, with no
    fields (RRG: Revision History, pp. B-4-B-5 / PDF 318-319). That list
+   spells the register at 0x1994 SCALE_SCR_HEIGHT_WIDTH; it holds the
+   source size, and the SDK's scaled blit writes it under the name
+   SCALE_SRC_HEIGHT_WIDTH (SDK: Drawing Rectangles, p. 4-12 / PDF 86).
+   The list also
    gives SCALE_OFFSET_0 and SCALE_PITCH the same address, 0x1998; ATI's
    motion-compensation driver writes the surface base to 0x1998 and the
    pitch >> 3 to 0x199c, and packs SCALE_SCR_HEIGHT_WIDTH and
@@ -1467,9 +1471,10 @@
    3D_RNDR_GEN_INDX_PRIM (0x23) and LOAD_PALETTE (0x2c) in its Appendix F
    and lists PURGE (0x2d) and NEXT_VERTEX_BUNDLE (0x2e) in its packet
    summary (SDK: Summary of the CEE Packets, Table 4-13, pp. F-10-F-11 /
-   PDF 300-301). 0x20 and 0x21 appear only as macro names in
-   xf86-video-r128 (R128_CCE_PACKET3_3D_SAVE_CONTEXT and
-   R128_CCE_PACKET3_3D_PLAY_CONTEXT). */
+   PDF 300-301). 0x20 and 0x21 are not in the SDK. xf86-video-r128
+   names them (R128_CCE_PACKET3_3D_SAVE_CONTEXT and
+   R128_CCE_PACKET3_3D_PLAY_CONTEXT) and no open-source driver sends
+   either one; what their bodies hold is not documented. */
 #define RAGE128_PM4_OP_3D_SAVE_CONTEXT       0x20
 #define RAGE128_PM4_OP_3D_PLAY_CONTEXT       0x21
 #define RAGE128_PM4_OP_3D_RNDR_GEN_INDX_PRIM 0x23

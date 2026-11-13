@@ -4525,8 +4525,10 @@ r3d_draw_state_derive(rage128_raster_state_t *rs)
        Direct3D driver uses it for a SUBTRACT in this pass on a Pro. The
        function codes are the SDK's; the xf86-video-r128 header numbers
        them differently (R128_LIGHT_MODULATE is 2, R128_LIGHT_ADD 3, and
-       so on; only 0, disable, agrees). The supplement says the functions
-       are ignored when
+       so on; only 0, disable, agrees). Disable is the one value an
+       open-source driver programs (mesa r128_state.c r128DDInitState),
+       so that numbering is never exercised; the model follows the SDK's
+       tables. The supplement says the functions are ignored when
        TEX_EN is 0; the model runs the pass only when a texture stage is
        enabled. */
     ds->lcomb.comb  = (tc >> 14) & 0xf;

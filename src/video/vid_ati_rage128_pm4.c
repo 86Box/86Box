@@ -907,10 +907,14 @@ rage128_pm4_pump(rage128_t *dev)
        once this pointer has passed it, so a fetch pointer here lets it
        overwrite buffers not yet drawn. The executor advances
        cce_retire_rptr; the write itself stays on the CPU thread. The
-       supplement calls the address a
-       32 MB AGP/PCI pointer, but the Windows drivers have been observed
-       programming a host physical address beyond the 32 MB GART range,
-       so it is written there directly. */
+       address is a host physical address and is written to directly, on
+       the AGP board and the PCI board alike: the SDK's ring setup takes
+       the physical address of a variable in the program's own memory
+       before it separates the AGP and PCI GART cases, and writes that
+       to the register after them (SDK: Load the CCE Registers,
+       pp. 5-7-5-8 / PDF 103-104). The supplement calls the register a
+       32 MB AGP/PCI pointer; the Windows drivers have been observed
+       programming a host physical address beyond the 32 MB GART range. */
     {
         uint32_t retire = atomic_load(&dev->cce_retire_rptr);
 
