@@ -2126,14 +2126,17 @@ s3_virge_queue(virge_t *virge, uint32_t addr, uint32_t val, uint32_t type)
         }
     }
 
+    /* Wait in a loop: the FIFO thread signals fifo_not_full_event per entry
+       it frees near the full mark, so a signal can land after the reset below
+       and end the wait with the queue still full. */
     if (limit) {
-        if (FIFO_ENTRIES >= 16) {
+        while (FIFO_ENTRIES >= 16) {
             thread_reset_event(virge->fifo_not_full_event);
             if (FIFO_ENTRIES >= 16)
                 thread_wait_event(virge->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
         }
     } else {
-        if (FIFO_FULL) {
+        while (FIFO_FULL) {
             thread_reset_event(virge->fifo_not_full_event);
             if (FIFO_FULL)
                 thread_wait_event(virge->fifo_not_full_event, -1); /*Wait for room in ringbuffer*/
