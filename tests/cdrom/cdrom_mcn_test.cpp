@@ -23,8 +23,11 @@ protected:
 
     void SetUp() override
     {
-        dir = std::filesystem::temp_directory_path() /
-              ("86box-mcn-" + std::to_string(reinterpret_cast<uintptr_t>(this)));
+        /* CTest runs the tests in processes of their own, possibly at the same time, where the fixture can have
+           the same address (on macOS it does), so the name of the test keeps their directories apart. */
+        const std::string test = ::testing::UnitTest::GetInstance()->current_test_info()->name();
+
+        dir = std::filesystem::temp_directory_path() / ("86box-mcn-" + test + "-" + std::to_string(reinterpret_cast<uintptr_t>(this)));
         std::filesystem::create_directories(dir);
         std::ofstream data(dir / "track.bin", std::ios::binary);
         data.seekp(640 * 2048 - 1);

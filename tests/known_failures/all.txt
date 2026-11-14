@@ -1,0 +1,18 @@
+# Tests that fail in every job of the Tests workflow. See README.md.
+
+# Crash: the test no longer stubs serial_attach_ex(), which recorded the
+# touchscreen's write callback, so the tests call a null pointer. To fix.
+MicroTouch.BinaryIsPolled
+MicroTouch.BinaryStreamAndZone
+MicroTouch.CalibrateExtended
+MicroTouch.CalibrateNewDecimalAcknowledgements
+MicroTouch.DecimalHexadecimalAndModeStatus
+MicroTouch.ModesApplyToTablet
+MicroTouch.ParameterLockSurvivesPowerCycle
+MicroTouch.QuickTapBetweenPolls
+MicroTouch.RawUntilReset
+MicroTouch.ResetIdentityStatus
+MicroTouch.RestoreDefaults
+MicroTouch.Smt2DefaultsAndPowerOnFlag
+MicroTouch.TabletStream
+MicroTouch.TouchPenUnitTypeResetFlag
