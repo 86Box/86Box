@@ -1856,6 +1856,7 @@ codegen_backend_init(void)
     build_link_set_routine(block);
 #    endif
 
+    codegen_allocator_written(block_write_data, block_pos);
     block_write_data = NULL;
 
     codegen_allocator_clean_blocks(block->head_mem_block);
@@ -1942,6 +1943,7 @@ codegen_backend_epilogue(codeblock_t *block)
     if (codegen_block_link) {
         codegen_link_exit(block);
         codegen_lazy_stubs_emit(block);
+        codegen_allocator_written(block_write_data, block_pos);
         codegen_allocator_clean_blocks(block->head_mem_block);
         return;
     }
@@ -1955,6 +1957,7 @@ codegen_backend_epilogue(codeblock_t *block)
     host_arm64_RET(block, REG_X30);
 
     codegen_lazy_stubs_emit(block);
+    codegen_allocator_written(block_write_data, block_pos);
     codegen_allocator_clean_blocks(block->head_mem_block);
 }
 

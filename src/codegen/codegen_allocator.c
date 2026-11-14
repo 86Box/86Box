@@ -79,6 +79,7 @@ typedef struct mem_block_t {
     uint32_t next;
     uint32_t tail;
     uint32_t code_block;
+    uint32_t written; /*End of the bytes written since the last clean, 0 if not known*/
 } mem_block_t;
 
 static mem_block_t mem_blocks[MEM_BLOCK_NR];
@@ -272,10 +273,33 @@ codeblock_allocator_get_ptr(mem_block_t *block)
 #    define CODEGEN_HOST_CLEAR_CACHE __clear_cache
 #endif
 
+/*The allocator block at ptr has had its bytes up to ptr + len written*/
+void
+codegen_allocator_written(const uint8_t *ptr, uint32_t len)
+{
+    mem_block_t *block = &mem_blocks[(ptr - mem_block_alloc) / MEM_BLOCK_SIZE];
+
+    if (len > block->written)
+        block->written = len;
+}
+
 void
 codegen_allocator_clean_blocks(UNUSED(struct mem_block_t *block))
 {
-#if defined __ARM_EABI__ || defined __aarch64__ || defined _M_ARM64 || defined(__loongarch_lp64)
+#if defined __aarch64__ || defined _M_ARM64
+    /*Only the locations written need the clean (ARM DDI 0487 M.d p. B2-252);
+      a block with no end recorded is cleaned whole*/
+    while (1) {
+        const uint32_t len = block->written ? block->written : MEM_BLOCK_SIZE;
+
+        CODEGEN_HOST_CLEAR_CACHE(&mem_block_alloc[block->offset], &mem_block_alloc[block->offset + len]);
+        block->written = 0;
+        if (block->next)
+            block = &mem_blocks[block->next - 1];
+        else
+            break;
+    }
+#elif defined __ARM_EABI__ || defined(__loongarch_lp64)
     while (1) {
         CODEGEN_HOST_CLEAR_CACHE(&mem_block_alloc[block->offset], &mem_block_alloc[block->offset + MEM_BLOCK_SIZE]);
         if (block->next)

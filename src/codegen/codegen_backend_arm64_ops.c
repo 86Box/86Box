@@ -361,6 +361,7 @@ codegen_allocate_new_block(codeblock_t *block)
         fatal("codegen_allocate_new_block - offset out of range %x\n", offset);
     /*Add a jump instruction to the new block*/
     *(uint32_t *) &block_write_data[block_pos] = OPCODE_B | OFFSET26(offset);
+    codegen_allocator_written(block_write_data, block_pos + 4);
 
     /*Set write address to start of new block*/
     block_pos        = 0;
