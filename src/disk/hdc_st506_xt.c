@@ -1681,8 +1681,9 @@ st506_init(const device_t *info)
             break;
 
         case ST506_XT_TYPE_DTC_5150X: /* DTC5150 (MFM) */
-            fn            = DTC_BIOS_FILE;
-            dev->switches = 0xff;
+            fn             = DTC_BIOS_FILE;
+            dev->switches  = 0xff;
+            dev->bios_addr = device_get_config_hex20("bios_addr");
             break;
 
         case ST506_XT_TYPE_ST11R: /* Seagate ST-11R (RLL) */
@@ -1812,6 +1813,10 @@ st506_init(const device_t *info)
         default:
             break;
     }
+
+    /* A BIOS address of 0 means the BIOS ROM is disabled. */
+    if (dev->bios_addr == 0)
+        fn = NULL;
 
     /* Load the ROM BIOS. */
     loadrom(dev, fn);
