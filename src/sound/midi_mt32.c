@@ -107,7 +107,7 @@ static const mt32emu_report_handler_i handler_mt32  = { &handler_mt32_v0 };
 static const mt32emu_report_handler_i handler_cm32l = { &handler_cm32l_v0 };
 
 static mt32emu_context context         = NULL;
-static int             roms_present[2] = { -1, -1 };
+static int             roms_present[4] = { -1, -1, -1, -1 };
 
 mt32emu_return_code
 mt32_check(UNUSED(const char *func), mt32emu_return_code ret, mt32emu_return_code expected)
@@ -129,25 +129,25 @@ mt32_old_available(void)
 int
 mt32_new_available(void)
 {
-    if (roms_present[0] < 0)
-        roms_present[0] = (rom_present(MT32_NEW_CTRL_ROM) && rom_present(MT32_NEW_PCM_ROM));
-    return roms_present[0];
+    if (roms_present[1] < 0)
+        roms_present[1] = (rom_present(MT32_NEW_CTRL_ROM) && rom_present(MT32_NEW_PCM_ROM));
+    return roms_present[1];
 }
 
 int
 cm32l_available(void)
 {
-    if (roms_present[1] < 0)
-        roms_present[1] = (rom_present(CM32L_CTRL_ROM) && rom_present(CM32L_PCM_ROM));
-    return roms_present[1];
+    if (roms_present[2] < 0)
+        roms_present[2] = (rom_present(CM32L_CTRL_ROM) && rom_present(CM32L_PCM_ROM));
+    return roms_present[2];
 }
 
 int
 cm32ln_available(void)
 {
-    if (roms_present[1] < 0)
-        roms_present[1] = (rom_present(CM32LN_CTRL_ROM) && rom_present(CM32LN_PCM_ROM));
-    return roms_present[1];
+    if (roms_present[3] < 0)
+        roms_present[3] = (rom_present(CM32LN_CTRL_ROM) && rom_present(CM32LN_PCM_ROM));
+    return roms_present[3];
 }
 
 static thread_t *thread_h    = NULL;
@@ -178,8 +178,9 @@ display_mt32_message(UNUSED(void *instance_data), const char *message)
     sz     = snprintf(NULL, 0, "MT-32: %s", message);
     ui_msg = calloc(sz + 1, 1);
     if (ui_msg) {
-        snprintf(ui_msg, sz, "MT-32: %s", message);
+        snprintf(ui_msg, sz + 1, "MT-32: %s", message);
         ui_sb_mt32lcd(ui_msg);
+        free(ui_msg);
     }
 }
 
