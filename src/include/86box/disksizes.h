@@ -36,6 +36,8 @@ typedef struct disk_size_t {
 } disk_size_t;
 
 #define KNOWN_DISK_SIZES 14
+#define FLOPPY_PC98_1250 7
+
 static const disk_size_t disk_sizes[KNOWN_DISK_SIZES] = {
 // clang-format off
 #if 0

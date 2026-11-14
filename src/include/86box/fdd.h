@@ -64,6 +64,7 @@ extern void fdd_set_check_bpb(void *priv, int check_bpb);
 extern int  fdd_get_check_bpb(void *priv);
 
 extern void fdd_set_type(void *priv, int type);
+extern int  fdd_type_supports_pc98(int type);
 extern int  fdd_get_type(void *priv);
 
 /* New audio profile accessors */
@@ -289,6 +290,7 @@ typedef struct fdd_drive_t {
     int                check_bpb;
     int                seek_in_progress;
     int                driveloader;
+    int                folder_image;
     int                audio_profile;
     /*
        The image is write-protected (is either an advanced sector-based image, has

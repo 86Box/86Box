@@ -133,6 +133,7 @@ if(INSTRUMENT)
 endif()
 
 target_link_libraries(86Box
+    media_archive
     cpu
     char
     chipset
