@@ -853,6 +853,7 @@ else
 fi
 (cd "$prefix" && cargo build -j $build_threads -p librashader-capi --target "$arch_rust" --profile release --no-default-features --features runtime-vulkan) || exit 99
 librashader_target="$prefix/target/$arch_rust/release"
+cmake_flags_extra="$cmake_flags_extra -D LIBRASHADER=ON"
 if is_windows
 then
 	export CMAKE_LIBRARY_PATH="$librashader_target"
