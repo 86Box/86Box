@@ -250,6 +250,7 @@ int is386;
 int is6117;
 int is386ex;
 int retf_checks_eip_limit;
+int retf_stack_test;
 int is486 = 1;
 int is586 = 0;
 int cpu_isintel;
@@ -750,6 +751,39 @@ cpu_set(void)
             break;
         default:
             retf_checks_eip_limit = 0;
+            break;
+    }
+
+    /* Protected mode far RET tests the stack items it pops against the SS
+       limits (#SS(0)) only on the processors whose own manuals give the
+       place of that test among the other checks. */
+    switch (cpu_s->cpu_type) {
+        case CPU_386SX:
+        case CPU_386DX:
+            /* Not the Am386 or the M6117. */
+            retf_stack_test = !strcmp(cpu_f->manufacturer, "Intel") ? RETF_STACK_TEST_FRAME_FIRST : RETF_STACK_TEST_NONE;
+            break;
+        case CPU_286:
+        case CPU_i486SX:
+        case CPU_Am486SX:
+        case CPU_i486DX:
+        case CPU_Am486DX:
+        case CPU_Am486DXL:
+        case CPU_i486SX_SLENH:
+        case CPU_i486DX_SLENH:
+        case CPU_ENH_Am486DX:
+        case CPU_P24T:
+        case CPU_PENTIUM:
+            retf_stack_test = RETF_STACK_TEST_FRAME_FIRST;
+            break;
+        case CPU_PENTIUMMMX:
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            retf_stack_test = RETF_STACK_TEST_CS_FIRST;
+            break;
+        default:
+            retf_stack_test = RETF_STACK_TEST_NONE;
             break;
     }
 

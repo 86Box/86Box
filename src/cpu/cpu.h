@@ -582,11 +582,16 @@ extern int (*cpu_clock_stop_query)(void);
 extern int is8086;
 extern int is80c88;
 extern int is186;
+#define RETF_STACK_TEST_NONE        0
+#define RETF_STACK_TEST_FRAME_FIRST 1 /* outer frame before the return CS is examined */
+#define RETF_STACK_TEST_CS_FIRST    2 /* outer frame after the return CS checks */
+
 extern int is286;
 extern int is386;
 extern int is6117;
 extern int is386ex;
 extern int retf_checks_eip_limit;
+extern int retf_stack_test;
 extern int is486;
 extern int is586;
 extern int is_am486;

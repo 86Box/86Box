@@ -1103,6 +1103,18 @@ POPL(void)
     return templ;
 }
 
+/* Whether the stack item a far RET pops d bytes above sp lies within the
+   SS limits, as one access of the item's full size. The item's offset wraps
+   at the stack's width as the pops form it. */
+static int
+retf_item_in_limits(uint32_t sp, uint32_t d, int is32)
+{
+    const uint32_t n = is32 ? 4 : 2;
+    const uint32_t a = stack32 ? (sp + d) : ((sp + d) & 0xffff);
+
+    return (a >= cpu_state.seg_ss.limit_low) && (((uint64_t) a + n - 1) <= cpu_state.seg_ss.limit_high);
+}
+
 #ifdef OPS_286_386
 void
 loadcscall_2386(uint16_t seg, uint32_t old_pc)
@@ -1516,9 +1528,26 @@ pmoderetf(int is32, uint16_t off)
     uint32_t     *segdat32  = (uint32_t *) segdat;
     uint32_t     *segdat232 = (uint32_t *) segdat2;
     const x86seg *dt;
+    const uint32_t width     = is32 ? 4 : 2;
+    int            ip_inside = 1;
 
     x86seg_log("RETF %i %04X:%04X  %08X %04X\n", is32, CS, cpu_state.pc, cr0, cpu_state.eflags);
-    if (is32) {
+    if (retf_stack_test) {
+        if (!retf_item_in_limits(oldsp, width, is32)) {
+            x86ss(NULL, 0);
+            return;
+        }
+        ip_inside = retf_item_in_limits(oldsp, 0, is32);
+    }
+    if (!ip_inside) {
+        /* Not read here: its own test comes later */
+        newpc = 0;
+        if (stack32)
+            ESP += width;
+        else
+            SP += width;
+        seg = is32 ? POPL() : POPW();
+    } else if (is32) {
         newpc = POPL();
         seg   = POPL();
     } else {
@@ -1536,6 +1565,12 @@ pmoderetf(int is32, uint16_t off)
     if ((seg & 0x0003) < CPL) {
         ESP = oldsp;
         x86gpf("pmoderetf(): seg < CPL", seg & 0xfffc);
+        return;
+    }
+    if ((retf_stack_test == RETF_STACK_TEST_FRAME_FIRST) && ((seg & 0x0003) > CPL) &&
+        !(ip_inside && retf_item_in_limits(oldsp, 2 * width + off, is32) && retf_item_in_limits(oldsp, 3 * width + off, is32))) {
+        ESP = oldsp;
+        x86ss(NULL, 0);
         return;
     }
     if (!(seg & 0xfffc)) {
@@ -1598,9 +1633,31 @@ pmoderetf(int is32, uint16_t off)
             x86np("RETF CS not present", seg & 0xfffc);
             return;
         }
+        if (!ip_inside) {
+            const uint32_t sp_after = ESP;
+
+            if (retf_stack_test == RETF_STACK_TEST_FRAME_FIRST) {
+                ESP = oldsp;
+                x86ss(NULL, 0);
+                return;
+            }
+            /* The EIP limit test comes first and needs the value */
+            ESP   = oldsp;
+            newpc = is32 ? POPL() : POPW();
+            if (cpu_state.abrt) {
+                ESP = oldsp;
+                return;
+            }
+            ESP = sp_after;
+        }
         if (retf_checks_eip_limit && (newpc > desc_limit(segdat))) {
             ESP = oldsp;
             x86gpf("pmoderetf(): EIP past the CS limit", 0);
+            return;
+        }
+        if (!ip_inside) {
+            ESP = oldsp;
+            x86ss(NULL, 0);
             return;
         }
 
@@ -1652,6 +1709,12 @@ pmoderetf(int is32, uint16_t off)
         if (!(segdat[2] & 0x8000)) {
             ESP = oldsp;
             x86np("RETF CS not present", seg & 0xfffc);
+            return;
+        }
+        if ((retf_stack_test == RETF_STACK_TEST_CS_FIRST) &&
+            !(ip_inside && retf_item_in_limits(oldsp, 2 * width + off, is32) && retf_item_in_limits(oldsp, 3 * width + off, is32))) {
+            ESP = oldsp;
+            x86ss(NULL, 0);
             return;
         }
         if (is32) {
