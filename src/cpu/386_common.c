@@ -1539,6 +1539,19 @@ enter_smm(int in_hlt)
         in_smm = 1;
         smram_backup_all();
         smram_recalc_all(0);
+
+        /* A20 is unmasked before the save state is written: SMRAM above
+           1 MiB with bit 20 set in its address (e.g. FFFE0000h) must be
+           reachable for an SMI raised with the A20 gate closed. RSM puts
+           the mask back after it has read the save state (leave_smm()). */
+        if (unmask_a20_in_smm) {
+            old_rammask = rammask;
+            rammask     = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
+            if (is6117 || is386ex)
+                rammask |= 0x3000000;
+
+            flushmmucache();
+        }
     }
 
     if (is_cxsmm) {
@@ -1672,15 +1685,6 @@ enter_smm(int in_hlt)
 
     smm_in_hlt = in_hlt;
 
-    if (unmask_a20_in_smm && !nested) {
-        old_rammask = rammask;
-        rammask     = cpu_16bitbus ? 0xFFFFFF : 0xFFFFFFFF;
-        if (is6117 || is386ex)
-            rammask |= 0x3000000;
-
-        flushmmucache();
-    }
-
     oldcpl = 0;
 
     cpu_cur_status &= ~(CPU_STATUS_PMODE | CPU_STATUS_V86);
@@ -1785,6 +1789,8 @@ leave_smm(void)
     }
     cpl_override = 0;
 
+    /* The save state was read above with A20 still unmasked, as it was
+       written (enter_smm()); only now does the mask go back. */
     if (unmask_a20_in_smm && !nested) {
         rammask = old_rammask;
 
