@@ -424,6 +424,7 @@ src_interp(const float *hist, double phase)
    (see wt_bank_run). Mute is taken as zero: -102 dB is below the
    16-bit output's last bit. mix_mant_tab and mix_exp_tab split the
    output gains for the output stage (see mix_run). */
+static void  init_wt_gain(void);
 static float mix_gain_tab[256];
 static float mix_mant_tab[256], mix_shift_tab[256];
 
@@ -435,6 +436,7 @@ init_tables(void)
     if (done)
         return;
     init_src_fir();
+    init_wt_gain();
     for (int b = 0; b < 256; b++) {
         if (b == 0x80)
             mix_gain_tab[b] = mix_mant_tab[b] = mix_shift_tab[b] = 0.0f;
@@ -1147,7 +1149,7 @@ mix_run(v2_chip_t *c, int m, float *out)
 /*               u = (byte - 0xcf) / 16 (fitted to the real card's      */
 /*               echoes, test-suite run 14: 0xc2 = 4.7 kHz, 0xac =       */
 /*               1.2 kHz, 0x84 = 250 Hz); 0xcf and above = open         */
-/*   bits 23-16  gain, 0x10 per 6 dB, 0xcf = unity, 0 = silent         */
+/*   bits 23-16  gain, 4e4m, 0x10 per 6 dB, 0xcf = unity, 0 = silent   */
 /*   bits 15-0   rate: e = bits 15-13, m = bits 12-0,                  */
 /*               rate = 48 kHz * 2^(e-5) * (1 + m/8192)  (confirmed     */
 /*               against measured DMA consumption)                     */
@@ -1161,11 +1163,37 @@ mix_run(v2_chip_t *c, int m, float *out)
 /* with less headroom (see wt_bank_run).                                */
 /* ------------------------------------------------------------------ */
 
+/* Gain byte, 4-bit exponent over 4-bit mantissa. The chip expands it to
+   a linear value with an implicit leading one followed by the mantissa's
+   bits repeated to fill every place below it (exponent 0: the mantissa
+   alone), which puts 0xcf at exactly 0xffff = unity (Strong: the method
+   is Aureal's, relayed with a register map of the chip; it is also the
+   inverse of the driver's encoding, since its reflectance steps 0.75,
+   0.35 and 0.1 decode to 2.50, 9.19 and 19.96 dB below 0x93, and the
+   real card's echoes fell by those amounts within the 1 dB the
+   measurement allows). Within 0.4 dB of 2^((g - 0xcf) / 16). */
+static float wt_gain_tab[256];
+
+static void
+init_wt_gain(void)
+{
+    for (int g = 0; g < 256; g++) {
+        int      e = g >> 4, m = g & 15;
+        uint32_t v = m;
+        if (e) {
+            int n = 4 + e - 1; /* places below the leading one */
+            v     = 1u << n;
+            for (int i = 0; i < n; i++)
+                v |= (uint32_t) ((m >> (3 - i % 4)) & 1) << (n - 1 - i);
+        }
+        wt_gain_tab[g] = (float) v / 65535.0f;
+    }
+}
+
 static inline float
 wt_gain(uint32_t p)
 {
-    int g = (p >> 16) & 0xff;
-    return g ? powf(2.0f, (float) (g - 0xcf) / 16.0f) : 0.0f;
+    return wt_gain_tab[(p >> 16) & 0xff];
 }
 
 /* Treble low-pass for one voice: RBJ low-pass biquad, unity at DC. The
