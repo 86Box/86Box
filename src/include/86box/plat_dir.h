@@ -167,8 +167,8 @@ extern const char *plat_dir_get_path(plat_dir_t *context);
 static inline int
 plat_dir_read(plat_dir_t *context)
 {
-    context->path[context->path_dir_len] = '\0';
     while (FindNextFileA(context->find, &context->data)) {
+        context->path[context->path_dir_len] = '\0';
         if (!plat_dir_is_special_entry(context->data.cFileName)) {
             /* If this entry is a symlink, follow it and fill the target's attributes instead. */
             if ((context->data.dwFileAttributes & FILE_ATTRIBUTE_REPARSE_POINT) && (context->data.dwReserved0 == IO_REPARSE_TAG_SYMLINK)) {
@@ -604,6 +604,7 @@ plat_dir_open(plat_dir_t *context, const char *path)
     context->stats_valid = !stat(path, &context->stats);
     if (UNLIKELY(!context->stats_valid || !S_ISDIR(context->stats.st_mode))) {
         closedir(context->find);
+        context->find = NULL;
         return 0;
     }
 

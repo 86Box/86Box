@@ -13,6 +13,21 @@
 #include <memory>
 #include <string_view>
 
+#include <86box/86box.h>
+#include <86box/plat.h>
+#include <86box/plat_dir.h>
+
+/* plat_dir can include native open flags. SdFat uses its own flag values. */
+#undef O_RDONLY
+#undef O_WRONLY
+#undef O_RDWR
+#undef O_APPEND
+#undef O_CREAT
+#undef O_TRUNC
+#undef O_EXCL
+#undef O_SYNC
+#undef O_ACCMODE
+
 #include <FatLib/FatVolume.h>
 
 #include <86box/disksizes.h>
@@ -22,6 +37,12 @@
 namespace {
 
 constexpr size_t sector_bytes = 512;
+
+struct HostDirectory {
+    plat_dir_t context = PLAT_DIR_INIT;
+
+    ~HostDirectory() { plat_dir_close(&context); }
+};
 
 class RamFloppy final : public FsBlockDeviceInterface {
 public:
@@ -114,28 +135,39 @@ valid_name(std::string_view name)
 }
 
 fdd_folder_result_t
-copy_directory(const std::filesystem::path &path, FatFile &directory,
+copy_directory(const char *path, FatFile &directory,
                std::array<char, 4096> &buffer)
 {
-    for (const auto &entry : std::filesystem::directory_iterator(path)) {
-        const auto status = entry.symlink_status();
-        if (!std::filesystem::is_directory(status) && !std::filesystem::is_regular_file(status))
+    HostDirectory host;
+    auto *context = &host.context;
+    if (!plat_dir_open(context, path))
+        return FDD_FOLDER_READ_ERROR;
+
+    while (plat_dir_read(context)) {
+        const bool is_directory = plat_dir_is_dir(context);
+        if (!is_directory && !plat_dir_is_file(context))
             continue;
 
-        const auto name = entry.path().filename().u8string();
+        const char *entry_path = plat_dir_get_path(context);
+        const auto source = std::filesystem::u8path(entry_path);
+        /* Some plat_dir backends report the type of a symlink's target. */
+        if (std::filesystem::is_symlink(std::filesystem::symlink_status(source)))
+            continue;
+
+        const char *name = plat_dir_get_name(context);
         if (!valid_name(name))
             return FDD_FOLDER_INVALID_NAME;
 
         FatFile file;
         fdd_folder_result_t result;
-        if (std::filesystem::is_directory(status)) {
-            if (!file.mkdir(&directory, name.c_str(), false))
+        if (is_directory) {
+            if (!file.mkdir(&directory, name, false))
                 return FDD_FOLDER_CANNOT_CREATE;
-            result = copy_directory(entry.path(), file, buffer);
+            result = copy_directory(entry_path, file, buffer);
         } else {
-            if (!file.open(&directory, name.c_str(), O_WRONLY | O_CREAT | O_EXCL))
+            if (!file.open(&directory, name, O_WRONLY | O_CREAT | O_EXCL))
                 return FDD_FOLDER_CANNOT_CREATE;
-            result = copy_file(entry.path(), file, buffer);
+            result = copy_file(source, file, buffer);
         }
         if (!file.close() && result == FDD_FOLDER_OK)
             result = FDD_FOLDER_FULL;
@@ -232,9 +264,11 @@ fdd_folder_create(const char *path, const disk_size_t *format, uint8_t **image)
         return FDD_FOLDER_CANNOT_CREATE;
 
     try {
-        const auto source = std::filesystem::u8path(path);
         fdd_folder_result_t result;
-        if (media_archive_path(path) && !std::filesystem::is_directory(source)) {
+        if (plat_dir_check(const_cast<char *>(path))) {
+            std::array<char, 4096> buffer;
+            result = copy_directory(path, root, buffer);
+        } else if (media_archive_path(path)) {
             std::unique_ptr<void, decltype(&media_archive_close)> archive(media_archive_open(path), &media_archive_close);
             if (!archive)
                 return FDD_FOLDER_READ_ERROR;
@@ -242,8 +276,7 @@ fdd_folder_create(const char *path, const disk_size_t *format, uint8_t **image)
             uint64_t remaining = device.sectorCount() * sector_bytes;
             result = copy_archive(archive.get(), 0, root, remaining, buffer, 0);
         } else {
-            std::array<char, 4096> buffer;
-            result = copy_directory(source, root, buffer);
+            return FDD_FOLDER_READ_ERROR;
         }
         if (result != FDD_FOLDER_OK)
             return result;
