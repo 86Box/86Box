@@ -39,6 +39,7 @@
 #include <86box/usb.h>
 #include <86box/usb_dev.h>
 #include <86box/usb_msd.h>
+#include <86box/exfat_upcase.h>
 
 #define FLASH_BLOCK 512
 
@@ -132,6 +133,19 @@ flash_put_le32(uint8_t *p, uint32_t v)
     p[1] = (v >> 8) & 0xff;
     p[2] = (v >> 16) & 0xff;
     p[3] = v >> 24;
+}
+
+static void
+flash_put_le64(uint8_t *p, uint64_t v)
+{
+    p[0] = v & 0xff;
+    p[1] = (v >> 8) & 0xff;
+    p[2] = (v >> 16) & 0xff;
+    p[3] = (v >> 24) & 0xff;
+    p[4] = (v >> 32) & 0xff;
+    p[5] = (v >> 40) & 0xff;
+    p[6] = (v >> 48) & 0xff;
+    p[7] = v >> 56;
 }
 
 static void
@@ -947,11 +961,16 @@ static const flash_spc_t flash_fat32_spc[] = {
     { 0xffffffff, 64 }
 };
 
+static const flash_spc_t flash_exfat_spc[] = {
+    { 65536, 0}, { 262144, 8 }, { 1048576, 16 }, { 4194304, 32 }, { 0xffffffff, 64 }
+};
+
 /* Lays out the volume; returns 0 when the type cannot hold the size. */
 static int
 flash_layout(uint64_t bytes, int fs, flash_layout_t *l)
 {
     const flash_spc_t *t = (fs == USB_FLASH_FS_FAT32) ? flash_fat32_spc : flash_fat16_spc;
+    const flash_spc_t *exfat_t = flash_exfat_spc;
     uint32_t           root_secs;
     uint32_t           tmp1;
     uint32_t           tmp2;
@@ -972,6 +991,17 @@ flash_layout(uint64_t bytes, int fs, flash_layout_t *l)
 
     if (fs == USB_FLASH_FS_BLANK)
         return 1;
+
+    if (fs == USB_FLASH_FS_EXFAT) {
+        l->part = l->total - FLASH_PART_START;
+        while (l->part > exfat_t->size)
+            exfat_t++;
+        l->spc = exfat_t->spc;
+        if (l->spc == 0)
+            return 0;
+        l->clusters = l->part / l->spc;
+        return (l->clusters >= 1);
+    }
 
     l->part = l->total - FLASH_PART_START;
     while (l->part > t->size)
@@ -1018,6 +1048,8 @@ usb_flash_fs_default(uint64_t bytes)
         return USB_FLASH_FS_FAT16;
     if (usb_flash_fs_ok(bytes, USB_FLASH_FS_FAT32))
         return USB_FLASH_FS_FAT32;
+    if (usb_flash_fs_ok(bytes, USB_FLASH_FS_EXFAT))
+        return USB_FLASH_FS_EXFAT;
     return USB_FLASH_FS_BLANK;
 }
 
@@ -1099,6 +1131,53 @@ flash_boot_sector(const flash_layout_t *l, int fs, uint32_t vol_id, uint8_t *b)
     b[511]          = 0xaa;
 }
 
+static uint32_t
+exfat_boot_checksum(const uint8_t *sectors, uint32_t sector_size)
+{
+    uint32_t bytes = sector_size * 11;
+    uint32_t sum   = 0;
+
+    for (uint32_t i = 0; i < bytes; i++) {
+        if (i == 106 || i == 107 || i == 112)
+            continue;
+        sum = ((sum & 1) ? 0x80000000u : 0) + (sum >> 1) + sectors[i];
+    }
+    return sum;
+}
+
+static void
+exfat_boot_sector(const flash_layout_t *l, uint32_t vol_id,
+                  uint32_t fat_offset, uint32_t fat_length,
+                  uint32_t cluster_heap_offset, uint32_t clusters,
+                  uint32_t root_cluster, uint8_t *b)
+{
+    uint8_t spc_shift = 0;
+
+    for (uint32_t s = l->spc; s > 1; s >>= 1)
+        spc_shift++;
+
+    memset(b, 0x00, FLASH_BLOCK);
+    b[0] = 0xeb; b[1] = 0x76; b[2] = 0x90;
+    memcpy(b + 3, "EXFAT   ", 8);
+    flash_put_le64(b + 64, FLASH_PART_START);     /* PartitionOffset */
+    flash_put_le64(b + 72, l->part);              /* VolumeLength */
+    flash_put_le32(b + 80, fat_offset);           /* FatOffset */
+    flash_put_le32(b + 84, fat_length);           /* FatLength */
+    flash_put_le32(b + 88, cluster_heap_offset);  /* ClusterHeapOffset */
+    flash_put_le32(b + 92, clusters);             /* ClusterCount */
+    flash_put_le32(b + 96, root_cluster);         /* RootDirectoryCluster */
+    flash_put_le32(b + 100, vol_id);              /* VolumeSerialNumber */
+    flash_put_le16(b + 104, 0x0100);              /* FileSystemRevision */
+    flash_put_le16(b + 106, 0x0000);              /* VolumeFlags: clean */
+    b[108] = 0x09;                                /* BytesPerSectorShift */
+    b[109] = spc_shift;                           /* SectorsPerClusterShift */
+    b[110] = 0x01;                                /* NumberOfFats */
+    b[111] = 0x80;                                /* DriveSelect */
+    b[112] = 0xff;                                /* PercentInUse (uknown) */
+    b[510] = 0x55;
+    b[511] = 0xaa;
+}
+
 int
 usb_flash_create(const char *fn, uint64_t bytes, int fs)
 {
@@ -1130,7 +1209,9 @@ usb_flash_create(const char *fn, uint64_t bytes, int fs)
            LBA types (0Eh, 0Ch) when the partition ends past what CHS can
            address. */
         end = FLASH_PART_START + l.part - 1;
-        if (fs == USB_FLASH_FS_FAT32)
+        if (fs == USB_FLASH_FS_EXFAT)
+            type = 0x07;
+        else if (fs == USB_FLASH_FS_FAT32)
             type = (end < (1024 * l.heads * 63)) ? 0x0b : 0x0c;
         else if (end >= (1024 * l.heads * 63))
             type = 0x0e;
@@ -1152,43 +1233,219 @@ usb_flash_create(const char *fn, uint64_t bytes, int fs)
         sec[511] = 0xaa;
         ok       = flash_write_sector(fp, 0, sec);
 
-        flash_boot_sector(&l, fs, vol_id, boot);
-        ok = ok && flash_write_sector(fp, FLASH_PART_START, boot);
+        if (fs == USB_FLASH_FS_EXFAT) {
+            uint32_t       fat_offset;
+            uint32_t       fat_length;
+            uint32_t       cluster_heap_offset;
+            uint32_t       clusters;
+            uint8_t        boot_region[12 * FLASH_BLOCK];
+            uint32_t       boot_checksum;
 
-        if (fs == USB_FLASH_FS_FAT32) {
-            /* FSInfo, and the backup boot sector and FSInfo copy at 6 and
-               7 (FAT 1.03, "FAT32 FSInfo Sector Structure and Backup Boot
-               Sector"). Cluster 2 holds the empty root directory. */
-            memset(sec, 0x00, sizeof(sec));
-            flash_put_le32(sec, 0x41615252);
-            flash_put_le32(sec + 484, 0x61417272);
-            flash_put_le32(sec + 488, l.clusters - 1);
-            flash_put_le32(sec + 492, 3);
-            flash_put_le32(sec + 508, 0xaa550000);
-            ok = ok && flash_write_sector(fp, FLASH_PART_START + 1, sec);
-            ok = ok && flash_write_sector(fp, FLASH_PART_START + 6, boot);
-            ok = ok && flash_write_sector(fp, FLASH_PART_START + 7, sec);
-        }
+            fat_offset = 24;
 
-        /* FAT[0] holds the media byte with every other bit set, FAT[1] the
-           end-of-chain mark with the clean-shutdown bit set; on FAT32 the
-           root directory's cluster 2 is one cluster long (FAT 1.03, "FAT
-           Data Structure"). */
-        memset(sec, 0x00, sizeof(sec));
-        if (fs == USB_FLASH_FS_FAT32) {
-            flash_put_le32(sec, 0x0ffffff8);
-            flash_put_le32(sec + 4, 0x0fffffff);
-            flash_put_le32(sec + 8, 0x0fffffff);
+            clusters = (l.part - fat_offset) / l.spc;
+            if (clusters < 4)
+                clusters = 4;
+
+            fat_length = (((clusters + 2) * 4) + FLASH_BLOCK - 1) / FLASH_BLOCK;
+            if (fat_length < 1)
+                fat_length = 1;
+
+            cluster_heap_offset = fat_offset + fat_length;
+            clusters = (l.part - cluster_heap_offset) / l.spc;
+            if (clusters < 4)
+                goto fail;
+
+            uint32_t bitmap_bytes = (clusters + 7) / 8;
+            uint32_t cluster_size = l.spc * FLASH_BLOCK;
+            uint32_t bitmap_clusters = (bitmap_bytes + cluster_size - 1) / cluster_size;
+            uint32_t upcase_clusters = (EXFAT_UPCASE_TABLE_SIZE + cluster_size - 1) / cluster_size;
+            uint32_t bitmap_cluster = 2;
+            uint32_t upcase_cluster = bitmap_cluster + bitmap_clusters;
+            uint32_t root_cluster = upcase_cluster + upcase_clusters;
+
+            memset(boot_region, 0x00, sizeof(boot_region));
+
+            exfat_boot_sector(&l, vol_id, fat_offset, fat_length,
+                              cluster_heap_offset, clusters, root_cluster,
+                              boot_region);
+
+            for (int s = 1; s <= 8; s++) {
+                uint8_t *eb = boot_region + s * FLASH_BLOCK;
+                eb[FLASH_BLOCK - 4] = 0x00;
+                eb[FLASH_BLOCK - 3] = 0x00;
+                eb[FLASH_BLOCK - 2] = 0x55;
+                eb[FLASH_BLOCK - 1] = 0xaa;
+            }
+
+            boot_checksum = exfat_boot_checksum(boot_region, FLASH_BLOCK);
+            {
+                uint8_t *cs = boot_region + 11 * FLASH_BLOCK;
+                for (uint32_t i = 0; i < FLASH_BLOCK; i += 4)
+                    flash_put_le32(cs + i, boot_checksum);
+            }
+
+            /* Write main and backup boot regions */
+            for (int s = 0; s < 12; s++) {
+                ok = ok && flash_write_sector(fp, FLASH_PART_START + s,
+                                              boot_region + s * FLASH_BLOCK);
+                ok = ok && flash_write_sector(fp, FLASH_PART_START + 12 + s,
+                                              boot_region + s * FLASH_BLOCK);
+            }
+
+            memset(sec, 0x00, FLASH_BLOCK);
+            flash_put_le32(sec + 0, 0xfffffff8);
+            flash_put_le32(sec + 4, 0xffffffff);
+            for (uint32_t i = 0; i < bitmap_clusters; i++) {
+                uint32_t clu = bitmap_cluster + i;
+                uint32_t entry = clu * 4;
+                if (entry < FLASH_BLOCK) {
+                    uint32_t next = (i + 1 < bitmap_clusters) ? (clu + 1) : 0xffffffff;
+                    flash_put_le32(sec + entry, next);
+                }
+            }
+            for (uint32_t i = 0; i < upcase_clusters; i++) {
+                uint32_t clu = upcase_cluster + i;
+                uint32_t entry = clu * 4;
+                if (entry < FLASH_BLOCK) {
+                    uint32_t next = (i + 1 < upcase_clusters) ? (clu + 1) : 0xffffffff;
+                    flash_put_le32(sec + entry, next);
+                }
+            }
+            {
+                uint32_t entry = root_cluster * 4;
+                if (entry < FLASH_BLOCK)
+                    flash_put_le32(sec + entry, 0xffffffff);
+            }
+
+            ok = ok && flash_write_sector(fp, FLASH_PART_START + fat_offset, sec);
+
+            /* Allocation bitmap */
+            {
+                uint32_t off = 0;
+                uint32_t cluster = bitmap_cluster;
+                uint32_t used_end = root_cluster + 1;
+
+                while (off < bitmap_bytes) {
+                    uint32_t n = bitmap_bytes - off;
+                    if (n > FLASH_BLOCK)
+                        n = FLASH_BLOCK;
+
+                    memset(sec, 0x00, FLASH_BLOCK);
+
+                    for (uint32_t bit = 0; bit < n * 8; bit++) {
+                        uint32_t clu = 2 + off * 8 + bit;
+                        if (clu < used_end)
+                            sec[bit / 8] |= (1u << (bit % 8));
+                        /* bits for clu > clusters + 1 stay 0 (reserved) */
+                    }
+
+                    uint32_t sector_in_cluster = (off / FLASH_BLOCK) % l.spc;
+                    ok = ok && flash_write_sector(fp,
+                                                  FLASH_PART_START + cluster_heap_offset
+                                                  + (cluster - 2) * l.spc
+                                                  + sector_in_cluster,
+                                                  sec);
+
+                    off += n;
+                    if ((off % cluster_size) == 0)
+                        cluster++;
+                }
+            }
+
+            /* Write an up-case table */
+            {
+                uint8_t *table = malloc(EXFAT_UPCASE_TABLE_SIZE);
+                memcpy(table, exfat_upcase_table, EXFAT_UPCASE_TABLE_SIZE);
+
+                uint32_t off = 0;
+                uint32_t cluster = upcase_cluster;
+                uint32_t cluster_size = l.spc * FLASH_BLOCK;
+
+                while (off < EXFAT_UPCASE_TABLE_SIZE) {
+                    uint32_t n = EXFAT_UPCASE_TABLE_SIZE - off;
+                    if (n > FLASH_BLOCK)
+                        n = FLASH_BLOCK;
+
+                    memset(sec, 0x00, FLASH_BLOCK);
+                    memcpy(sec, table + off, n);
+
+                    uint32_t sector_in_cluster = (off / FLASH_BLOCK) % l.spc;
+                    uint32_t lba = FLASH_PART_START + cluster_heap_offset
+                        + (cluster - 2) * l.spc
+                        + sector_in_cluster;
+
+                    ok = ok && flash_write_sector(fp, lba, sec);
+
+                    off += n;
+                    if ((off % cluster_size) == 0)
+                        cluster++;
+                }
+            }
+
+            {
+                uint32_t root_lba = FLASH_PART_START + cluster_heap_offset
+                    + (root_cluster - 2) * l.spc;
+                memset(sec, 0x00, FLASH_BLOCK);
+                for (uint32_t s = 0; s < l.spc; s++)
+                    ok = ok && flash_write_sector(fp, root_lba + s, sec);
+            }
+
+            /* Root directory */
+            memset(sec, 0x00, FLASH_BLOCK);
+            sec[0]  = 0x83;
+            sec[32] = 0x81;
+            flash_put_le32(sec + 32 + 20, bitmap_cluster);
+            flash_put_le64(sec + 32 + 24, bitmap_bytes);
+            sec[64] = 0x82;
+            flash_put_le32(sec + 64 + 4, EXFAT_UPCASE_TABLE_CHKSUM);
+            flash_put_le32(sec + 64 + 20, upcase_cluster);
+            flash_put_le64(sec + 64 + 24, EXFAT_UPCASE_TABLE_SIZE);
+
+            ok = ok && flash_write_sector(fp, FLASH_PART_START
+                                          + cluster_heap_offset
+                                          + (root_cluster - 2) * l.spc,
+                                          sec);
         } else {
-            flash_put_le16(sec, 0xfff8);
-            flash_put_le16(sec + 2, 0xffff);
-        }
-        for (int i = 0; i < 2; i++) {
-            fat = FLASH_PART_START + l.rsvd + (i * l.fat_sz);
-            ok  = ok && flash_write_sector(fp, fat, sec);
+            flash_boot_sector(&l, fs, vol_id, boot);
+            ok = ok && flash_write_sector(fp, FLASH_PART_START, boot);
+
+            if (fs == USB_FLASH_FS_FAT32) {
+                /* FSInfo, and the backup boot sector and FSInfo copy at 6 and
+                   7 (FAT 1.03, "FAT32 FSInfo Sector Structure and Backup Boot
+                   Sector"). Cluster 2 holds the empty root directory. */
+                memset(sec, 0x00, sizeof(sec));
+                flash_put_le32(sec, 0x41615252);
+                flash_put_le32(sec + 484, 0x61417272);
+                flash_put_le32(sec + 488, l.clusters - 1);
+                flash_put_le32(sec + 492, 3);
+                flash_put_le32(sec + 508, 0xaa550000);
+                ok = ok && flash_write_sector(fp, FLASH_PART_START + 1, sec);
+                ok = ok && flash_write_sector(fp, FLASH_PART_START + 6, boot);
+                ok = ok && flash_write_sector(fp, FLASH_PART_START + 7, sec);
+            }
+
+            /* FAT[0] holds the media byte with every other bit set, FAT[1] the
+               end-of-chain mark with the clean-shutdown bit set; on FAT32 the
+               root directory's cluster 2 is one cluster long (FAT 1.03, "FAT
+               Data Structure"). */
+            memset(sec, 0x00, sizeof(sec));
+            if (fs == USB_FLASH_FS_FAT32) {
+                flash_put_le32(sec, 0x0ffffff8);
+                flash_put_le32(sec + 4, 0x0fffffff);
+                flash_put_le32(sec + 8, 0x0fffffff);
+            } else {
+                flash_put_le16(sec, 0xfff8);
+                flash_put_le16(sec + 2, 0xffff);
+            }
+            for (int i = 0; i < 2; i++) {
+                fat = FLASH_PART_START + l.rsvd + (i * l.fat_sz);
+                ok  = ok && flash_write_sector(fp, fat, sec);
+            }
         }
     }
 
+  fail:
     if (fclose(fp) != 0)
         ok = 0;
     return ok;

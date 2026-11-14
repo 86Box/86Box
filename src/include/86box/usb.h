@@ -96,7 +96,8 @@ extern int usb_port_flash_image(const char *label, char *fn, int n);
 enum {
     USB_FLASH_FS_BLANK = 0,
     USB_FLASH_FS_FAT16,
-    USB_FLASH_FS_FAT32
+    USB_FLASH_FS_FAT32,
+    USB_FLASH_FS_EXFAT
 };
 extern const device_t usb_flash_device;
 
