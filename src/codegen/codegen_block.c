@@ -708,6 +708,9 @@ typedef struct page_blocks_t {
     /*A block's dirty mask is not where the page's masks are now: the chunk
       lists can not tell which blocks a write hit, so all are checked.*/
     uint8_t mixed;
+    /*Most of span[], kept while the entry has blocks: a dirty chunk can
+      only be covered from this many chunks below it*/
+    uint8_t maxspan;
     /*Most chunks past its own a block on each list covers*/
     uint8_t  span[64];
     uint32_t head[64];
@@ -729,6 +732,7 @@ page_blocks_alloc(page_t *page)
         page_blocks_free = page_blocks[nr].next_free;
         pb               = &page_blocks[nr];
         pb->mixed        = 0;
+        pb->maxspan      = 0;
         pb->byte_dirty   = page->byte_dirty_mask;
         return nr;
     }
@@ -886,6 +890,8 @@ add_to_block_list(codeblock_t *block)
     pb->used |= (uint64_t) 1 << chunk;
     if (span > pb->span[chunk])
         pb->span[chunk] = span;
+    if (span > pb->maxspan)
+        pb->maxspan = span;
     pb->count++;
     block->flags |= CODEBLOCK_IN_PAGE_LIST;
 
@@ -1262,6 +1268,33 @@ codegen_check_flush(page_t *page, UNUSED(uint64_t mask), UNUSED(uint32_t phys_ad
         int            all    = pb->mixed || (page->mem == page_ff) || (page->byte_dirty_mask != pb->byte_dirty);
 
         words = all ? UINT64_MAX : pb->byte_used;
+
+        /* Only lists starting at most maxspan chunks below a dirty chunk can
+           cover it, and of the byte mask lists only those with their word
+           dirty: most writes dirty one or two of a page's chunks. */
+        if (!all) {
+            uint64_t reach = page->dirty_mask;
+            uint64_t bytes = pb->byte_used;
+            uint64_t bdirty = 0;
+            int      done  = 0;
+
+            while (done < pb->maxspan) {
+                int s = done + 1;
+
+                if (s > (pb->maxspan - done))
+                    s = pb->maxspan - done;
+                reach |= reach >> s;
+                done += s;
+            }
+            while (bytes) {
+                int c = __builtin_ctzll(bytes);
+
+                bytes &= bytes - 1;
+                if (page->byte_dirty_mask[c])
+                    bdirty |= (uint64_t) 1 << c;
+            }
+            used &= reach | bdirty;
+        }
 
         /* A list's byte mask blocks check the byte mask word of its chunk,
            the rest page->dirty_mask over the chunks the list covers. The
