@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-11 23:18+0000\n"
+"PO-Revision-Date: 2026-11-14 02:27+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -3409,16 +3409,18 @@ msgid "&Fast forward"
 msgstr "&Snel vooruitspoelen"
 
 msgid "Fast forward at startup"
-msgstr ""
+msgstr "Snel vooruitspoelen vanaf opstarten"
 
 msgid "Start new machines in fast forward"
-msgstr ""
+msgstr "Start nieuwe machines met versneld vooruitspoelen"
 
 msgid "Only affects machines created from now on. Each machine can be changed in its settings, under Machine > Performance."
 msgstr ""
+"Heeft alleen effect op vanaf nu gecreëerde machines. De instellingen van "
+"elke machine kunnen gewijzigd worden onder Machine > Prestaties."
 
 msgid "Fast forward at &startup"
-msgstr ""
+msgstr "Snel vooruitspoelen vanaf op&starten"
 
 msgid "Fast forward"
 msgstr "Snel vooruitspoelen"

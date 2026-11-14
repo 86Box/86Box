@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-11 07:33+0000\n"
+"PO-Revision-Date: 2026-11-14 02:27+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -281,7 +281,7 @@ msgid "&Rewind to the beginning"
 msgstr "倒迴至起頭(&R)"
 
 msgid "&Fast forward to the end"
-msgstr "快進至結尾(&F)"
+msgstr "快轉至結尾(&F)"
 
 msgid "E&ject"
 msgstr "退出(&J)"
@@ -3433,16 +3433,16 @@ msgid "&Fast forward"
 msgstr "快轉(&F)"
 
 msgid "Fast forward at startup"
-msgstr ""
+msgstr "啟動時快轉"
 
 msgid "Start new machines in fast forward"
-msgstr ""
+msgstr "開始新機器時快轉"
 
 msgid "Only affects machines created from now on. Each machine can be changed in its settings, under Machine > Performance."
-msgstr ""
+msgstr "僅影響現在及之後創建的機器。各別機器可於「機器 > 效能」設定頁中修改此一設定。"
 
 msgid "Fast forward at &startup"
-msgstr ""
+msgstr "啟動時快轉(&S)"
 
 msgid "Fast forward"
 msgstr "快轉"
