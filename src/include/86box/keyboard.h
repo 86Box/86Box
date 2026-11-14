@@ -19,6 +19,8 @@
 #ifndef EMU_KEYBOARD_H
 #define EMU_KEYBOARD_H
 
+#include <stdint.h>
+
 #define FLAG_AT        0x00  /* dev is AT         */
 #define FLAG_AX        0x08  /* dev is AX         */
 #define FLAG_PS2_KBD   0x10  /* dev is PS/2       */
@@ -159,6 +161,9 @@ typedef struct scancode {
 #define KBC_FLAG_IS_GREEN  0x20000000
 #define KBC_FLAG_IS_TYPE2  0x10000000
 
+/* UPI-42 keyboard controller firmware image, relative to the ROM path. */
+#define KBC_UPI42_ROM_IBM_1983 "roms/kbc/ibm/1503033.bin"
+
 #ifdef __cplusplus
 extern "C" {
 #endif
@@ -209,6 +214,8 @@ extern const device_t kbc_xt_jukost_device;
 extern const device_t kbc_xtclone_device;
 
 extern const device_t kbc_at_device;
+extern const device_t kbc_at_upi42_device;
+extern int            kbc_at_upi42_available(const char *rom_path);
 extern const device_t kbc_at_vectra_device;
 extern const device_t kbc_ps2_m25_device;
 extern const device_t kbc_tvis_device;

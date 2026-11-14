@@ -376,6 +376,9 @@ typedef struct _machine_ {
     void                  *kbc_device;
 #endif /* EMU_DEVICE_H */
     uintptr_t              kbc_params;
+    /* Explicit UPI-42 keyboard controller firmware image path; NULL disables
+     * the firmware-based KBC for this machine. */
+    const char            *kbc_fwvers;
 #ifdef EMU_DEVICE_H
     const device_t        *nvr_device;
 #else
@@ -756,6 +759,7 @@ extern int             machine_at_fic4386vcv_init(const machine_t *);
 
 /* m_at_common.c */
 extern void            machine_at_common_init(const machine_t *);
+extern void            machine_at_add_kbc(const machine_t *);
 extern void            machine_at_init(const machine_t *);
 extern void            machine_at_ps2_init(const machine_t *);
 extern void            machine_at_common_ide_init(const machine_t *);
