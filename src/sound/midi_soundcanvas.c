@@ -306,8 +306,8 @@ soundcanvas_thread(void *param)
                     double dr = (double) r;
                     filter_midi(0, &dl, filter_midi_p);
                     filter_midi(1, &dr, filter_midi_p);
-                    l = (float) l;
-                    r = (float) r;
+                    l = (float) dl;
+                    r = (float) dr;
                 }
 
                 if (l >  32767.0f) l =  32767.0f;
