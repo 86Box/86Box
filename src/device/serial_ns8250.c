@@ -1237,8 +1237,13 @@ serial_set_next_inst(int ni)
 void
 serial_standalone_init(void)
 {
+    /* IBM 5150 and 5160 machines used the 8250(-B) based Asynchronous Communications Adapter,
+       while IBM 5170 machines used the 16450 based Serial/Parallel Adapter. The 8250(-B) has no
+       scratch register, and IBM OS/2's COM01.SYS would reject a 286 machine fitted with an 8250. */
+    const device_t *uart = (machine_get_type(machine) >= MACHINE_TYPE_286) ? &ns16450_device : &ns8250_device;
+
     while (next_inst < (SERIAL_MAX - 1))
-        device_add_inst(&ns8250_device, next_inst + 1);
+        device_add_inst(uart, next_inst + 1);
 }
 
 const device_t ns8250_device = {
