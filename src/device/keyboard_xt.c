@@ -606,9 +606,9 @@ static const device_config_t keyboard_pc_xt_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "83",          .value = KBD_83_KEY  },
-            { .description = "101 (ANSI)",  .value = KBD_101_KEY },
-            { .description = "102 (ISO)",   .value = KBD_102_KEY }
+            { .description = "83 (Model F)", .value = KBD_83_KEY  },
+            { .description = "101 (ANSI)",   .value = KBD_101_KEY },
+            { .description = "102 (ISO)",    .value = KBD_102_KEY }
         },
         .bios           = { { 0 } }
     },

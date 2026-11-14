@@ -6247,12 +6247,12 @@ static const device_config_t keyboard_at_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "84",          .value = KBD_84_KEY  },
-            { .description = "101 (ANSI)",  .value = KBD_101_KEY },
-            { .description = "102 (ISO)",   .value = KBD_102_KEY },
-            { .description = "106 (JIS)",   .value = KBD_JIS     },
-            { .description = "103 (KSC)",   .value = KBD_KSC     },
-            { .description = "104 (ABNT2)", .value = KBD_ABNT2   }
+            { .description = "84 (Model F)", .value = KBD_84_KEY  },
+            { .description = "101 (ANSI)",   .value = KBD_101_KEY },
+            { .description = "102 (ISO)",    .value = KBD_102_KEY },
+            { .description = "106 (JIS)",    .value = KBD_JIS     },
+            { .description = "103 (KSC)",    .value = KBD_KSC     },
+            { .description = "104 (ABNT2)",  .value = KBD_ABNT2   }
         },
         .bios           = { { 0 } }
     },
