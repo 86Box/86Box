@@ -26,6 +26,7 @@
 #include <86box/cassette.h>
 #include <86box/cartridge.h>
 #include <86box/fdd.h>
+#include <86box/fdd_folder.h>
 #include <86box/hdd.h>
 #include <86box/scsi_device.h>
 #include <86box/cdrom.h>
@@ -97,10 +98,17 @@ void
 floppy_mount(uint8_t id, char *fn, uint8_t wp)
 {
     fdd_drive_t *drv = &drives[id];
+    const int prefixed_wp = fn && !strncmp(fn, "wp://", 5);
+    char *path = prefixed_wp ? fn + 5 : fn;
 
-    fdd_close(drv);
-    drv->read_only = wp;
-    fdd_load(&drives[id], fn);
+    if (path && plat_dir_check(path)) {
+        if (fdd_mount_folder(drv, path, wp || prefixed_wp) != FDD_FOLDER_OK)
+            return;
+    } else {
+        fdd_close(drv);
+        drv->read_only = wp;
+        fdd_load(drv, fn);
+    }
 
     ui_sb_update_icon_state(SB_FLOPPY | id, strlen(drv->image_path) ? 0 : 1);
 

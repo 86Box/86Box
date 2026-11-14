@@ -44,8 +44,10 @@ private slots:
 private:
     Ui::NewFloppyDialog *ui;
     MediaType            mediaType_;
+    bool                 pc98ImageCreation_;
 
     bool create86f(const QString &filename, const disk_size_t &disk_size, uint8_t rpm_mode);
+    static bool createPc98Image(const QString &filename, FileType type);
     bool createSectorImage(const QString &filename, const disk_size_t &disk_size, FileType type);
     bool createRDiskSectorImage(const QString &filename, uint32_t total_sectors, uint32_t sector_bytes, FileType type, QProgressDialog &pbar);
     bool createMoSectorImage(const QString &filename, int8_t disk_size, FileType type, QProgressDialog &pbar);

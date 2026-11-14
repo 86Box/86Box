@@ -44,6 +44,8 @@
 #include <86box/fdd_td0.h>
 #include <86box/fdd_tape.h>
 #include <86box/fdd_audio.h>
+#include <86box/fdd_folder.h>
+#include <86box/media_archive.h>
 #include <86box/plat_floppy_ioctl.h>
 
 /* Flags:
@@ -633,6 +635,8 @@ fdd_set_type(void *priv, int type)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
 
+    if (drv->folder_image && drv->type != type)
+        fdd_close(drv);
     if (fdd_type_invert_densel(drv->type) != fdd_type_invert_densel(type))
         drv->densel ^= 1;
     drv->type = type;
@@ -644,6 +648,17 @@ fdd_get_type(void *priv)
     fdd_drive_t *drv = (fdd_drive_t *) priv;
 
     return drv->type;
+}
+
+int
+fdd_type_supports_pc98(int type)
+{
+    if (type < 0 || type >= (int) (sizeof(drive_types) / sizeof(drive_types[0]) - 1))
+        return 0;
+
+    const int required = FLAG_RPM_300 | FLAG_RPM_360 | FLAG_DS | FLAG_HOLE1;
+    return drive_types[type].max_track >= disk_sizes[FLOPPY_PC98_1250].tracks &&
+           (drive_types[type].flags & required) == required;
 }
 
 int
@@ -773,6 +788,75 @@ fdd_get_densel(void *priv)
 
 static __inline uint64_t fdd_byteperiod(void *priv);
 
+static void
+fdd_media_inserted(fdd_drive_t *drv)
+{
+    drv->empty = 0;
+    fdd_forced_seek(drv, 0);
+    drv->changed = 1;
+    /* A drive with its motor already running may have no poll timer. */
+    if (drv->motoron)
+        timer_set_delay_u64(&drv->poll_time, fdd_byteperiod(drv));
+    ui_sb_update_icon_wp(SB_FLOPPY | drv->id, drv->writeprot);
+}
+
+fdd_folder_result_t
+fdd_mount_folder(void *priv, const char *path, int read_only)
+{
+    fdd_drive_t *drv = (fdd_drive_t *) priv;
+    const int flags = fdd_get_flags(drv);
+    char mounted_path[MAX_IMAGE_PATH_LEN];
+
+    if (fdd_tape_present(drv) || drive_types[drv->type].max_track <= 0)
+        return FDD_FOLDER_UNSUPPORTED;
+    if (strlen(path) >= sizeof(mounted_path) - (read_only ? 5 : 0))
+        return FDD_FOLDER_READ_ERROR;
+    snprintf(mounted_path, sizeof(mounted_path), "%s%s", read_only ? "wp://" : "", path);
+
+    disk_size_t format;
+    if (flags & FLAG_525) {
+        if (flags & FLAG_HOLE1)
+            format = disk_sizes[6]; /* 1.2M */
+        else if (!(flags & FLAG_DS))
+            format = disk_sizes[1]; /* 180K */
+        else
+            format = disk_sizes[(flags & FLAG_DOUBLE_STEP) ? 5 : 3]; /* 720K or 360K */
+    } else if (flags & FLAG_HOLE2)
+        format = disk_sizes[11]; /* 2.88M */
+    else if (flags & FLAG_HOLE1)
+        format = disk_sizes[(flags & FLAG_INVERT_DENSEL) ? FLOPPY_PC98_1250 : 8]; /* PC-98 1.25M or 1.44M */
+    else if (fdd_is_pcjx_360(drv))
+        format = disk_sizes[3]; /* PC JX 40-cylinder, double-sided 360K */
+    else {
+        format = disk_sizes[5]; /* 720K */
+        if (!(flags & FLAG_DS)) {
+            format = disk_sizes[3]; /* 80-cylinder, single-sided 360K */
+            format.tracks = 80;
+            format.sides = 1;
+            format.media_desc = 0xf9;
+        }
+    }
+
+    uint8_t *image = NULL;
+    const fdd_folder_result_t result = fdd_folder_create(path, &format, &image);
+    if (result != FDD_FOLDER_OK)
+        return result;
+
+    if (drv->d86f_priv)
+        fdd_close(drv);
+    d86f_setup(drv);
+    drv->read_only = !!read_only;
+    if (!img_load_ram(drv, image, &format)) {
+        free(image);
+        fdd_close(drv);
+        return FDD_FOLDER_NO_MEMORY;
+    }
+    strcpy(drv->image_path, mounted_path);
+    fdd_media_inserted(drv);
+    ui_sb_update_icon_state(SB_FLOPPY | drv->id, 0);
+    return FDD_FOLDER_OK;
+}
+
 void
 fdd_load(void *priv, char *fn)
 {
@@ -822,6 +906,12 @@ fdd_load(void *priv, char *fn)
         return;
     }
 
+    if (plat_dir_check(fn) || media_archive_path(fn)) {
+        if (fdd_mount_folder(drv, fn, drv->read_only) == FDD_FOLDER_OK)
+            return;
+        goto load_failed;
+    }
+
     const char *p = path_get_extension(fn);
     if (p == NULL)
         return;
@@ -842,23 +932,13 @@ fdd_load(void *priv, char *fn)
                 }
                 d86f_setup(drv);
                 loaders[c].load(drv, drv->image_path + offs);
-                drv->empty = 0;
-                fdd_forced_seek(drv, 0);
-                drv->changed = 1;
-                /* The flux engine is driven by the drive poll timer, which the motor enable
-                   only starts on a 0 -> 1 transition. On boards without a DOR (the Tandy 2000
-                   keeps the motor on all the time) the motor is already spinning when the disk
-                   is inserted, so that transition never happens again and the drive would stay
-                   unpolled, leaving READ ID and every other command unanswered. Kick the timer
-                   here as well. */
-                if (drv->motoron)
-                    timer_set_delay_u64(&drv->poll_time, fdd_byteperiod(drv));
-                ui_sb_update_icon_wp(SB_FLOPPY | drv->id, drv->writeprot);
+                fdd_media_inserted(drv);
                 return;
             }
             c++;
         }
     }
+load_failed:
     drv->empty = 1;
     fdd_set_head(drv, 0);
     memset(drv->image_path, 0, sizeof(drv->image_path));
@@ -916,7 +996,10 @@ fdd_close(void *priv)
     fdd_format_clear(drv);
     drv->seek_in_progress = 0;
 
-    if (strstr(drv->image_path, "ioctl://") != NULL) {
+    if (drv->folder_image) {
+        img_close(drv);
+        drv->folder_image = 0;
+    } else if (strstr(drv->image_path, "ioctl://") != NULL) {
         floppy_ioctl_close(drv);
         img_close(drv);
     } else if (loaders[drv->driveloader].close)

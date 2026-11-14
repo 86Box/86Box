@@ -1,0 +1,12 @@
+[package]
+name = "media-archive"
+version = "0.1.0"
+edition = "2024"
+license = "GPL-2.0-or-later"
+
+[lib]
+crate-type = ["staticlib"]
+
+[dependencies]
+zip = { version = "=9.1.0", default-features = false, features = ["deflate"] }
+sevenz-rust2 = { version = "=0.24.1", default-features = false, features = ["bzip2", "deflate", "ppmd"] }

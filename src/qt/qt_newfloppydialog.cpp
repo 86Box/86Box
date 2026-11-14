@@ -28,6 +28,9 @@ extern "C" {
 #include <86box/random.h>
 #include <86box/scsi_device.h>
 #include <86box/disksizes.h>
+#include <86box/timer.h>
+#include <86box/fdd.h>
+#include <86box/fdd_folder.h>
 #include <86box/rdisk.h>
 #include <86box/mo.h>
 #include <86box/scsi_tape.h>
@@ -35,11 +38,13 @@ extern "C" {
 
 #include <cstdio>
 #include <cstdlib>
+#include <memory>
 
 #include <QFile>
 #include <QFileInfo>
 #include <QMessageBox>
 #include <QProgressDialog>
+#include <QSaveFile>
 #include <thread>
 #include <QStringBuilder>
 
@@ -98,6 +103,7 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent, int drive_type
     : QDialog(parent)
     , ui(new Ui::NewFloppyDialog)
     , mediaType_(type)
+    , pc98ImageCreation_(type == MediaType::Floppy && fdd_type_supports_pc98(drive_type))
 {
     ui->setupUi(this);
     ui->fileField->setCreateFile(true);
@@ -106,10 +112,21 @@ NewFloppyDialog::NewFloppyDialog(MediaType type, QWidget *parent, int drive_type
     switch (type) {
         case MediaType::Floppy:
             for (int i = 0; i < floppyTypes.size(); ++i) {
-                Models::AddEntry(model, tr(floppyTypes[i].toUtf8().data()), i);
+                const auto label = pc98ImageCreation_ && i == FLOPPY_PC98_1250
+                    ? tr("1.25 MB (NEC PC-98)")
+                    : tr(floppyTypes[i].toUtf8().data());
+                Models::AddEntry(model, label, i);
             }
-            ui->fileField->setFilter(
-                tr("All images") % util::DlgFilter({ "86f", "dsk", "flp", "im?", "img", "*fd?" }) % tr("Basic sector images") % util::DlgFilter({ "dsk", "flp", "im?", "img", "*fd?" }) % tr("Surface images") % util::DlgFilter({ "86f" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+            if (pc98ImageCreation_ && qstrcmp(fdd_get_internal_name(drive_type), "35_2hd_nec") == 0)
+                ui->comboBoxSize->setCurrentIndex(FLOPPY_PC98_1250);
+            {
+                QString filter = tr("All images") % util::DlgFilter({ "86f", "dsk", "flp", "im?", "img", "*fd?" }) %
+                                 tr("Basic sector images") % util::DlgFilter({ "dsk", "flp", "im?", "img", "*fd?" });
+                if (pc98ImageCreation_)
+                    filter = filter % tr("NEC PC-98 floppy images") % util::DlgFilter({ "fdi", "hdm" });
+                ui->fileField->setFilter(filter % tr("Surface images") % util::DlgFilter({ "86f" }) %
+                                         tr("All files") % util::DlgFilter({ "*" }, true));
+            }
 
             break;
         case MediaType::RDisk:
@@ -214,18 +231,28 @@ NewFloppyDialog::onCreate()
     connect(this, &NewFloppyDialog::fileProgress, &progress, &QProgressDialog::setValue);
     connect(this, &NewFloppyDialog::fileProgress, [] { QApplication::processEvents(); });
     switch (mediaType_) {
-        case MediaType::Floppy:
-            if (fi.suffix().toLower() == QStringLiteral("86f")) {
-                if (create86f(filename, disk_sizes[ui->comboBoxSize->currentIndex()], ui->comboBoxRpm->currentIndex())) {
+        case MediaType::Floppy: {
+            const auto suffix = fi.suffix().toLower();
+            const int format = mediaTypeIndex();
+            const bool pc98 = pc98ImageCreation_ && format == FLOPPY_PC98_1250;
+            if (suffix == QStringLiteral("fdi") && !pc98) {
+                QMessageBox::critical(this, tr("Unsupported floppy format"),
+                                      tr("FDI creation requires a compatible 300/360 RPM drive and the 1.25 MB (NEC PC-98) size."));
+                reject();
+                return;
+            }
+            if (suffix == QStringLiteral("86f")) {
+                if (create86f(filename, disk_sizes[format], ui->comboBoxRpm->currentIndex()))
                     return;
-                }
             } else {
-                fileType = fi.suffix().toLower() == QStringLiteral("zdi") ? FileType::Fdi : FileType::Img;
-                if (createSectorImage(filename, disk_sizes[ui->comboBoxSize->currentIndex()], fileType)) {
+                const bool fdi = suffix == QStringLiteral("zdi") || suffix == QStringLiteral("fdi");
+                fileType = fdi ? FileType::Fdi : FileType::Img;
+                if (pc98 ? createPc98Image(filename, fileType)
+                         : createSectorImage(filename, disk_sizes[format], fileType))
                     return;
-                }
             }
             break;
+        }
         case MediaType::RDisk:
             {
                 fileType = fi.suffix().toLower() == QStringLiteral("zdi") ? FileType::Zdi : FileType::Img;
@@ -391,6 +418,35 @@ NewFloppyDialog::create86f(const QString &filename, const disk_size_t &disk_size
 #if __GNUC__ >= 11
 #    pragma GCC diagnostic ignored "-Wstringop-overflow"
 #endif
+
+bool
+NewFloppyDialog::createPc98Image(const QString &filename, FileType type)
+{
+    const auto &disk_size = disk_sizes[FLOPPY_PC98_1250];
+    uint8_t *data = nullptr;
+    if (fdd_folder_create(nullptr, &disk_size, &data) != FDD_FOLDER_OK)
+        return false;
+    const std::unique_ptr<uint8_t, decltype(&std::free)> image(data, &std::free);
+    const quint32 sector_size = 128u << disk_size.sector_len;
+    const quint32 size = sector_size * disk_size.tracks * disk_size.sides * disk_size.sectors;
+
+    QSaveFile file(filename);
+    if (!file.open(QIODevice::WriteOnly))
+        return false;
+
+    if (type == FileType::Fdi) {
+        constexpr quint32 header_size = 0x1000;
+        constexpr quint32 fdi_type_2hd = 0x90;
+        QDataStream stream(&file);
+        stream.setByteOrder(QDataStream::LittleEndian);
+        stream << quint32(0) << fdi_type_2hd << header_size << size << sector_size
+               << quint32(disk_size.sectors) << quint32(disk_size.sides) << quint32(disk_size.tracks);
+        const QByteArray padding(header_size - 8 * sizeof(quint32), 0);
+        if (stream.status() != QDataStream::Ok || file.write(padding) != padding.size())
+            return false;
+    }
+    return file.write(reinterpret_cast<const char *>(image.get()), size) == size && file.commit();
+}
 
 bool
 NewFloppyDialog::createSectorImage(const QString &filename, const disk_size_t &disk_size, FileType type)
