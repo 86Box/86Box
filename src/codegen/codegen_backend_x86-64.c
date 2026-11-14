@@ -74,6 +74,8 @@ static void *codegen_ss_charged[EXIT_CHARGED_SS];
 codegen_link_slot_t codegen_link_slots[BLOCK_SIZE][CODEGEN_LINK_SLOTS];
 
 static void *codegen_link_rout;
+static void *codegen_link_miss_rout;
+static void *codegen_link_jmp_rout;
 /*Exits emitted so far for the block being compiled; each gets its own slot*/
 static int link_site;
 #    endif
@@ -1344,8 +1346,8 @@ _Static_assert(offsetof(codegen_link_slot_t, exit_pc) == 0 && offsetof(codegen_l
 _Static_assert((uint32_t) (13u * 0xc4ec4ec5u) == 1 && (uint64_t) sizeof(codegen_link_slots) < 0x100000000ull,
                "the set lookup finds a slot's site from its 32-bit offset with the inverse of 13");
 _Static_assert(CODEGEN_LINK_SET_ONE >= CODEGEN_LINK_SETS, "the set lookup takes CODEGEN_LINK_SET_ONE for no set");
-_Static_assert(offsetof(codeblock_t, runs_left) == offsetof(codeblock_t, used) + 1,
-               "used and runs_left are loaded as one word");
+_Static_assert(sizeof(((codeblock_t *) 0)->used) == 1 && sizeof(((codeblock_t *) 0)->runs_left) == 8,
+               "used is loaded as a byte and runs_left as a qword");
 _Static_assert(offsetof(cpu_events_t, flush_pending) == offsetof(cpu_events_t, was_reset) + 4
                    && offsetof(cpu_events_t, ne) == offsetof(cpu_events_t, init) + 4
                    && offsetof(cpu_events_t, override_dynarec) == offsetof(cpu_events_t, force_interpreter) + 4
@@ -1368,21 +1370,26 @@ lx_abs(codeblock_t *block, int p66, int w, uint16_t op, int reg, void *p)
     }
 }
 
-/*Entered by a jump from the end of a block, with RAX = the exit's slot and
+/*Entered by a call from the end of a block, with RAX = the exit's slot and
   RBP = &cpu_state + 128. Repeats what exec386_dynarec() and
   exec386_dynarec_dyn() do between that block and the next one, assuming
   nothing in that stretch has anything to do: if any check fails it returns
-  to C exactly as the block's own epilogue did, before any store. On a hit
-  it does the stores the C loop would have done and jumps to the next
-  block's link entry, which runs on the frame this block's prologue built.
+  with ZF set, before any store, and the exit jumps to the block epilogue at
+  codegen_link_miss_rout, which returns to C. On a hit it does the stores
+  the C loop would have done and returns with ZF clear and R15 = the next
+  block's link entry, which the exit jumps to and which runs on the frame
+  this block's prologue built.
 
   Every other register is free: the block has written every guest register
   back, and a miss restores the saved ones from the frame. All branches are
-  rel32, so the routine may run across code chunks.*/
+  rel32, so the routine may run across code chunks.
+
+  With call = 0 it builds the jmp-style variant instead, for the exits
+  codegen_link_exit_shared() picks: entered by a jump, it ends a hit with
+  its own JMP R15 and a miss runs straight into the epilogue.*/
 static void
-build_link_routine(codeblock_t *block)
+build_link_routine(codeblock_t *block, int call)
 {
-    static const uint8_t jmp_r15[3]   = { 0x41, 0xff, 0xe7 };       /*JMP R15*/
     static const uint8_t load_xlat[4] = { 0x49, 0x8b, 0x14, 0xd3 }; /*MOV RDX, [R11 + RDX*8]*/
     int32_t *miss[LINK_MAX_MISS];
     int      nr_miss = 0;
@@ -1396,6 +1403,7 @@ build_link_routine(codeblock_t *block)
     int32_t *two_page;
     int32_t *one_page;
     int32_t *byte_mask;
+    int32_t *pc_2_done;
     int32_t *no_paging_2;
     void    *nmi_done;
     void    *irq_done;
@@ -1403,12 +1411,18 @@ build_link_routine(codeblock_t *block)
     void    *two_page_done;
     void    *xlat_2_done;
     void    *miss_dest;
+    void    *miss_epilogue;
     int32_t *key_miss[2];
+    int32_t *set_miss[2];
     void    *key_done;
+    void    *gen_done;
 
     /*Start in a fresh chunk, so the hit path has no chunk-linking jumps*/
     codegen_alloc(block, BLOCK_MAX - JMP_LEN_BYTES);
-    codegen_link_rout = rx_here();
+    if (call)
+        codegen_link_rout = rx_here();
+    else
+        codegen_link_jmp_rout = rx_here();
 
     /*RBX = the exit's slot, whose exit_pc and exit_cs must match cpu_state.pc
       and the CS base and whose entry must be set; R15 = its entry;
@@ -1436,6 +1450,7 @@ build_link_routine(codeblock_t *block)
     rx_rm(block, 0, 0, 0x8b, REG_R9, REG_RDI, LINK_BLOCK(link_gen));
     rx_rm(block, 0, 0, 0x3b, REG_R9, REG_RBX, LINK_SLOT(gen));
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    gen_done = rx_here();
 
     /*Nothing pending for the loop, and the loop would pick the recompiler.
       An armed debug breakpoint is a miss, so the loop makes its per-block
@@ -1569,13 +1584,26 @@ build_link_routine(codeblock_t *block)
       and a linked entry counts down runs_left as the dispatcher's does.
       Both are stored only when that changes them: used 1 and runs_left 0
       stay as they are*/
-    rx_rm(block, 0, 0, 0x0fb7, REG_RDX, REG_RDI, LINK_BLOCK(used)); /*MOVZX EDX, used and runs_left*/
-    rx_alu_ri(block, 0, 7, REG_RDX, 1);
+    rx_rm(block, 0, 0, 0x0fb6, REG_RDX, REG_RDI, LINK_BLOCK(used));      /*MOVZX EDX, used*/
+    rx_alu_ri(block, 0, 6, REG_RDX, 1);                                  /*XOR EDX, 1*/
+    rx_rm(block, 0, 1, 0x0b, REG_RDX, REG_RDI, LINK_BLOCK(runs_left));   /*OR RDX, runs_left*/
     used_set = rx_jcc(block, RX_CC_NZ);
-    rx_bytes(block, jmp_r15, 3);
+    /*Back to the exit site with ZF clear, which jumps to R15 itself: each
+      exit then has a branch target of its own to predict, not this one
+      shared jump.*/
+    if (call) {
+        rx_rr(block, 0, 1, 0x85, REG_R15, REG_R15); /*TEST R15, R15*/
+        host_x86_RET(block);
+    } else {
+        static const uint8_t jmp_r15[3] = { 0x41, 0xff, 0xe7 }; /*JMP R15*/
+        rx_bytes(block, jmp_r15, 3);
+    }
 
-    /*Miss: the block's own epilogue, RAX still the slots*/
-    miss_dest = rx_here();
+    /*The block's own epilogue, which a miss returns to, RAX still the
+      slots*/
+    miss_epilogue = rx_here();
+    if (call)
+        codegen_link_miss_rout = miss_epilogue;
 #        ifdef _WIN64
     host_x86_MOVDQU_XREG_BASE_OFFSET(block, REG_XMM6, REG_RSP, CODEGEN_XMM6_SAVE);
     host_x86_MOVDQU_XREG_BASE_OFFSET(block, REG_XMM7, REG_RSP, CODEGEN_XMM7_SAVE);
@@ -1595,6 +1623,17 @@ build_link_routine(codeblock_t *block)
     host_x86_POP(block, REG_RBX);
     host_x86_RET(block);
 
+    /*Miss: back to the exit site with ZF set, which jumps to the epilogue.
+      Every return stays paired with its call for the host's return
+      predictor, and each exit predicts its own hits and misses. The
+      epilogue's POP restores R15.*/
+    if (call) {
+        miss_dest = rx_here();
+        rx_rr(block, 0, 0, 0x31, REG_R15, REG_R15); /*XOR R15D, R15D*/
+        host_x86_RET(block);
+    } else
+        miss_dest = miss_epilogue;
+
     /*nmi set: miss if nmi_mask, or bit 1 (an NMI from the local APIC, not
       gated by port 70h), and nmi_enable too. R9 = nmi*/
     rx_patch(nmi_set, rx_here());
@@ -1611,8 +1650,14 @@ build_link_routine(codeblock_t *block)
     rx_patch(used_set, rx_here());
     rx_rr(block, 0, 0, 0xff, 0, REG_RCX);                       /*INC ECX*/
     rx_rm(block, 0, 0, 0x88, REG_RCX, REG_RDI, LINK_BLOCK(used)); /*MOV block->used, CL*/
-    rx_rm(block, 0, 0, 0xd0, 5, REG_RDI, LINK_BLOCK(runs_left)); /*SHR byte, 1*/
-    rx_bytes(block, jmp_r15, 3);
+    rx_rm(block, 0, 1, 0xd1, 5, REG_RDI, LINK_BLOCK(runs_left)); /*SHR qword, 1*/
+    if (call) {
+        rx_rr(block, 0, 1, 0x85, REG_R15, REG_R15); /*TEST R15, R15*/
+        host_x86_RET(block);
+    } else {
+        static const uint8_t jmp_r15[3] = { 0x41, 0xff, 0xe7 }; /*JMP R15*/
+        rx_bytes(block, jmp_r15, 3);
+    }
 
     /*get_phys() cache miss: it would store the full address in
       get_phys_virt, and translate through readlookup2[] with paging on or
@@ -1646,13 +1691,20 @@ build_link_routine(codeblock_t *block)
     rx_rm(block, 0, 1, 0x8b, REG_RDX, REG_RDX, 0);
     rx_rr(block, 0, 1, 0x85, REG_RCX, REG_RDX);
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    /*codeblock_pc_2(): pc + 0x40 for a byte-mask block, else the page
+      page2_delta pages on from pc's*/
     rx_rm(block, 0, 0, 0x8b, REG_RCX, REG_RDI, LINK_BLOCK(pc));
     rx_rm(block, 0, 0, 0x0fb7, REG_RDX, REG_RDI, LINK_BLOCK(flags));
-    rx_alu_ri(block, 0, 0, REG_RCX, 0x400);
     rx_test_ri(block, REG_RDX, CODEBLOCK_BYTE_MASK);
     byte_mask = rx_jcc(block, RX_CC_Z);
-    rx_alu_ri(block, 0, 5, REG_RCX, 0x400 - 0x40);
+    rx_alu_ri(block, 0, 0, REG_RCX, 0x40);
+    pc_2_done = rx_jmp(block);
     rx_patch(byte_mask, rx_here());
+    rx_rm(block, 0, 0, 0x0fbf, REG_RDX, REG_RDI, LINK_BLOCK(page2_delta)); /*MOVSX EDX, word*/
+    rx_alu_ri(block, 0, 4, REG_RCX, 0xfffff000);
+    rx_shift_ri(block, 4, REG_RDX, 12);
+    rx_rr(block, 0, 0, 0x01, REG_RDX, REG_RCX); /*ADD ECX, EDX*/
+    rx_patch(pc_2_done, rx_here());
     rx_rr(block, 0, 0, 0x85, REG_R9, REG_R9);
     no_paging_2 = rx_jcc(block, RX_CC_NS);
     rx_rr(block, 0, 0, 0x89, REG_RCX, REG_RDX); /*MOV EDX, ECX*/
@@ -1701,7 +1753,7 @@ build_link_routine(codeblock_t *block)
     rx_rr(block, 0, 0, 0x89, REG_R9, REG_R10); /*MOV R10D, R9D*/
     rx_alu_ri(block, 0, 5, REG_R10, 1);
     rx_alu_ri(block, 0, 7, REG_R10, CODEGEN_LINK_SETS - 2);
-    miss[nr_miss++] = rx_jcc(block, RX_CC_A);
+    set_miss[0] = rx_jcc(block, RX_CC_A);
     /*RDI = the set*/
     rx_mov_ri(block, REG_R10, sizeof(codegen_link_set_t));
     rx_rr(block, 0, 0, 0x0faf, REG_R9, REG_R10); /*IMUL R9D, R10D*/
@@ -1719,7 +1771,7 @@ build_link_routine(codeblock_t *block)
     rx_rm(block, 0, 1, 0x3b, REG_R8, REG_RDI, LINK_SET_E(2) + LINK_SLOT(exit_pc));
     rx_rr(block, 0, 0, 0x0f44, REG_RCX, REG_R14); /*CMOVE ECX, R14D*/
     rx_alu_ri(block, 0, 7, REG_RCX, 3);
-    miss[nr_miss++] = rx_jcc(block, RX_CC_Z);
+    set_miss[1] = rx_jcc(block, RX_CC_Z);
     /*order = codegen_link_set_mtf[order][ECX]*/
     rx_rm(block, 0, 0, 0x0fb6, REG_RDX, REG_RDI, offsetof(codegen_link_set_t, order));
     rx_shift_ri(block, 4, REG_RDX, 2);
@@ -1748,6 +1800,32 @@ build_link_routine(codeblock_t *block)
     }
     rx_rr(block, 0, 1, 0x89, REG_RBX, REG_RAX); /*MOV RAX, RBX*/
     rx_patch(rx_jmp(block), key_done);
+
+    /*No set, or not in it, with R8 = the key and ESI = cs + pc: the checks
+      go on with RBX = the record at the target's index in
+      codegen_link_mcache if it holds the key. RAX stays the slot, so a miss
+      from here returns it and the C loop fills it.*/
+    rx_patch(set_miss[0], rx_here());
+    rx_patch(set_miss[1], rx_here());
+#        ifdef CODEGEN_BACKEND_HAS_LINK_MCACHE
+    rx_rr(block, 0, 0, 0x89, REG_RSI, REG_R9); /*MOV R9D, ESI*/
+    rx_mov_ri(block, REG_R10, CODEGEN_LINK_MCACHE_MUL);
+    rx_rr(block, 0, 0, 0x0faf, REG_R9, REG_R10); /*IMUL R9D, R10D*/
+    rx_shift_ri(block, 5, REG_R9, 32 - CODEGEN_LINK_MCACHE_BITS);
+    rx_shift_ri(block, 4, REG_R9, CODEGEN_LINK_MCACHE_SHIFT);
+    rx_mov_ri64(block, REG_RBX, (uint64_t) (uintptr_t) codegen_link_mcache);
+    rx_rr(block, 0, 1, 0x01, REG_R9, REG_RBX); /*ADD RBX, R9*/
+    rx_rm(block, 0, 1, 0x3b, REG_R8, REG_RBX, LINK_SLOT(exit_pc));
+    miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    /*The record is emptied when its block changes: no link_gen check*/
+    rx_rm(block, 0, 1, 0x8b, REG_R15, REG_RBX, LINK_SLOT(entry));
+    rx_rr(block, 0, 1, 0x85, REG_R15, REG_R15);
+    miss[nr_miss++] = rx_jcc(block, RX_CC_Z);
+    rx_rm(block, 0, 1, 0x8b, REG_RDI, REG_RBX, LINK_SLOT(block));
+    rx_patch(rx_jmp(block), gen_done);
+#        else
+    miss[nr_miss++] = rx_jmp(block);
+#        endif
 
     if (nr_miss > LINK_MAX_MISS)
         fatal("build_link_routine - too many miss branches\n");
@@ -1873,7 +1951,8 @@ codegen_backend_init(void)
     }
 
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
-    build_link_routine(block);
+    build_link_routine(block, 1);
+    build_link_routine(block, 0);
 #    endif
 
     block_write_data = NULL;
@@ -1939,6 +2018,18 @@ codegen_backend_prologue(codeblock_t *block)
 }
 
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+/* Code that gets written to is recompiled often, and a freshly compiled
+   block's own JMP R15 has no prediction history yet: for blocks on pages
+   with pending code writes, or already moved up an SMC mode, the shared
+   jump at the end of the jmp-style routine predicts better and the exit is
+   smaller. Every other block gets its own predicted jump. */
+static inline int
+codegen_link_exit_shared(const codeblock_t *block)
+{
+    return (block->flags & (CODEBLOCK_BYTE_MASK | CODEBLOCK_NO_IMMEDIATES | CODEBLOCK_NO_OPCODES)) ||
+           pages[block->phys >> 12].dirty_mask;
+}
+
 /*Leave the block with every register written back and cpu_state.pc set, as
   at its end. The link routine returns through the same register restores on
   a miss. Each exit has a slot of its own, so the block's end and its taken
@@ -1949,8 +2040,18 @@ codegen_link_exit(codeblock_t *block)
 {
     codegen_link_slot_t *slot = &codegen_link_slots[get_block_nr(block)][link_site++ % CODEGEN_LINK_SLOTS];
 
+    static const uint8_t jmp_r15[3] = { 0x41, 0xff, 0xe7 }; /*JMP R15*/
+
     host_x86_MOV64_REG_ADDR(block, REG_RAX, slot);
-    host_x86_JMP(block, codegen_link_rout);
+    if (codegen_link_exit_shared(block)) {
+        host_x86_JMP(block, codegen_link_jmp_rout);
+        return;
+    }
+    codegen_alloc_bytes(block, 5 + 6 + 3); /*CALL, JZ and JMP R15 in one chunk; the routine is in the arena, in CALL rel32 range*/
+    host_x86_CALL(block, codegen_link_rout);
+    host_x86_JZ(block, codegen_link_miss_rout);
+    for (int c = 0; c < 3; c++)
+        codegen_addbyte(block, jmp_r15[c]);
 }
 #    endif
 

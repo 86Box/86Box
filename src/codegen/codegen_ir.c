@@ -1029,6 +1029,19 @@ codegen_ir_compile(ir_data_t *ir, codeblock_t *block)
                 fatal("!uop_handlers[uop->type & UOP_MASK] %08x\n", uop->type);
 #endif
             uop_handlers[uop->type & UOP_MASK](block, uop);
+            switch (uop->type & UOP_MASK) {
+                case (UOP_MOV_REG_PTR & UOP_MASK):
+                    codegen_reg_loaded_from_home(uop->dest_reg_a, uop->p, 4);
+                    break;
+                case (UOP_MOVZX_REG_PTR_16 & UOP_MASK):
+                    codegen_reg_loaded_from_home(uop->dest_reg_a, uop->p, 2);
+                    break;
+                case (UOP_MOVZX_REG_PTR_8 & UOP_MASK):
+                    codegen_reg_loaded_from_home(uop->dest_reg_a, uop->p, 1);
+                    break;
+                default:
+                    break;
+            }
 #ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
             codegen_lazy_site = NULL;
 #endif

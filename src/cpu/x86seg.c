@@ -282,47 +282,67 @@ do_seg_load(x86seg *s, uint16_t *segdat)
     /* The descriptor's last word is reserved on the 80286 ("The Intel
        reserved bytes in the segment descriptor must be set to 0 for
        compatibility with the 80386", 80286 PRM 7.4) and
-       ignored there: no limit[19:16], G, D/B or base[31:24]. */
-    const uint16_t word3 = is386 ? segdat[3] : 0;
+       ignored there: no limit[19:16], G, D/B or base[31:24].
 
-    s->limit = segdat[0] | ((word3 & 0x000f) << 16);
+       The descriptor is read as the two doublewords read_descriptor()
+       stores: 16-bit loads from inside those 32-bit stores are not
+       forwarded from the store buffer and stall on the host. */
+    uint32_t       lo;
+    uint32_t       hi;
+    memcpy(&lo, segdat, 4);
+    memcpy(&hi, segdat + 2, 4);
+    const uint16_t word2 = hi & 0xffff;
+    const uint16_t word3 = is386 ? (hi >> 16) : 0;
+    uint32_t       limit = (lo & 0xffff) | ((word3 & 0x000f) << 16);
+    uint32_t       base  = (lo >> 16) | ((word2 & 0x00ff) << 16) | ((uint32_t) (word3 >> 8) << 24);
+    uint32_t       limit_low;
+    uint32_t       limit_high;
+    int            flat;
+
     if (word3 & 0x0080)
-        s->limit = (s->limit << 12) | 0xfff;
-    s->base = segdat[1] | ((segdat[2] & 0x00ff) << 16);
-    s->base |= ((word3 >> 8) << 24);
-    s->access  = segdat[2] >> 8;
+        limit = (limit << 12) | 0xfff;
+    s->limit   = limit;
+    s->base    = base;
+    s->access  = word2 >> 8;
     s->ar_high = word3 & 0xff;
     s->checked = 0;
 
-    if (((segdat[2] & 0x1800) != 0x1000) || !(segdat[2] & (1 << 10))) {
+    if (((word2 & 0x1800) != 0x1000) || !(word2 & (1 << 10))) {
         /* Expand-down */
-        s->limit_high = s->limit;
-        s->limit_low  = 0;
+        limit_high = limit;
+        limit_low  = 0;
     } else {
-        s->limit_high = (word3 & 0x40) ? 0xffffffff : 0xffff;
-        s->limit_low  = s->limit + 1;
+        limit_high = (word3 & 0x40) ? 0xffffffff : 0xffff;
+        limit_low  = limit + 1;
     }
+    s->limit_high = limit_high;
+    s->limit_low  = limit_low;
 
+    /* Tested on the locals: limit_low and limit_high read back from *s as one
+       64-bit load cannot be forwarded from the two stores just made, and
+       stalls on the host. */
+    flat = (base == 0) && (limit_low == 0) && (limit_high == 0xffffffff);
     if (s == &cpu_state.seg_ds) {
-        if ((s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff))
+        if (flat)
             cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATDS;
     }
     if (s == &cpu_state.seg_es) {
-        if ((s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff))
+        if (flat)
             cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATES;
     }
     if (s == &cpu_state.seg_ss) {
-        if ((s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff))
+        if (flat)
             cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
         else
             cpu_cur_status |= CPU_STATUS_NOTFLATSS;
     }
     cpu_set_wide_status(s);
-    cpu_mark_64k_status(s);
+    if (limit_low || (limit_high != 0xffff))
+        cpu_cur_status |= CPU_STATUS_NOT64K;
 }
 #endif
 
@@ -377,22 +397,46 @@ check_seg_valid(x86seg *s)
         op_loadseg(0, s);
 }
 
-static void
-read_descriptor(uint32_t addr, uint16_t *segdat, uint32_t *segdat32, int override)
+static void __attribute__((noinline))
+read_descriptor_slow(uint32_t addr, uint16_t *segdat, uint32_t *segdat32, int override)
 {
     if (override)
         cpl_override = 1;
     if (cpu_16bitbus) {
-        segdat[0] = readmemw(0, addr);
-        segdat[1] = readmemw(0, addr + 2);
-        segdat[2] = readmemw(0, addr + 4);
-        segdat[3] = readmemw(0, addr + 6);
+        /* Stored as doublewords as well, for do_seg_load() */
+        const uint32_t w0 = readmemw(0, addr);
+        const uint32_t w1 = readmemw(0, addr + 2);
+        const uint32_t w2 = readmemw(0, addr + 4);
+        const uint32_t w3 = readmemw(0, addr + 6);
+
+        segdat32[0] = w0 | (w1 << 16);
+        segdat32[1] = w2 | (w3 << 16);
     } else {
         segdat32[0] = readmeml(0, addr);
         segdat32[1] = readmeml(0, addr + 4);
     }
     if (override)
         cpl_override = 0;
+}
+
+/* A descriptor sits in one page when it is 8-aligned, so a mapped page
+   is read with a single lookup and load, as readmeml()'s own fast path
+   would for each half. */
+static void __attribute__((noinline))
+read_descriptor(uint32_t addr, uint16_t *segdat, uint32_t *segdat32, int override)
+{
+#ifndef OPS_286_386
+    if (!cpu_16bitbus && !(addr & 7)) {
+        const uintptr_t page = readlookup2[addr >> 12];
+
+        if (page != (uintptr_t) LOOKUP_INV) {
+            /* Guest memory is little-endian, like the doubleword pair */
+            memcpy(segdat32, (const void *) (page + addr), 8);
+            return;
+        }
+    }
+#endif
+    read_descriptor_slow(addr, segdat, segdat32, override);
 }
 
 int
@@ -542,27 +586,28 @@ loadseg(uint16_t seg, x86seg *s)
 #endif
         if (s == &cpu_state.seg_ss && (cpu_state.eflags & VM_FLAG))
             set_stack32(0);
-    }
 
-    if (s == &cpu_state.seg_ds) {
-        if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
-            cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
-        else
-            cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+        /* do_seg_load() sets these for a protected mode load */
+        if (s == &cpu_state.seg_ds) {
+            if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
+                cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
+            else
+                cpu_cur_status |= CPU_STATUS_NOTFLATDS;
+        }
+        if (s == &cpu_state.seg_es) {
+            if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
+                cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
+            else
+                cpu_cur_status |= CPU_STATUS_NOTFLATES;
+        }
+        if (s == &cpu_state.seg_ss) {
+            if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
+                cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
+            else
+                cpu_cur_status |= CPU_STATUS_NOTFLATSS;
+        }
+        cpu_set_wide_status(s);
     }
-    if (s == &cpu_state.seg_es) {
-        if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
-            cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
-        else
-            cpu_cur_status |= CPU_STATUS_NOTFLATES;
-    }
-    if (s == &cpu_state.seg_ss) {
-        if (s->base == 0 && s->limit_low == 0 && s->limit_high == 0xffffffff)
-            cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
-        else
-            cpu_cur_status |= CPU_STATUS_NOTFLATSS;
-    }
-    cpu_set_wide_status(s);
 
     return cpu_state.abrt;
 }

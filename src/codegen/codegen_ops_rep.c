@@ -1,7 +1,9 @@
 #include <stdint.h>
+#include <string.h>
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
+#include <86box/gdbstub.h>
 #include <86box/plat_unused.h>
 
 #include "x86.h"
@@ -260,14 +262,119 @@ rep_run_room(x86seg *seg, int is_stos, int shift, uint32_t mask, uint32_t cnt, u
     return n;
 }
 
+/*Whether every element offset in [off, off + len - 1] passes the limit and
+  present checks of CHECK_READ_REP/CHECK_WRITE_REP: the limit check holds for
+  all of a range if it holds at both ends.*/
+static __inline int
+rep_seg_range_ok(const x86seg *chseg, uint32_t off, uint32_t len)
+{
+    uint32_t last = off + len - 1;
+
+    if ((chseg->base == 0xffffffff) || (last < off))
+        return 0;
+    if ((off < chseg->limit_low) || (last > chseg->limit_high))
+        return 0;
+    if ((msw & 1) && !(cpu_state.eflags & VM_FLAG) && !(chseg->access & 0x80))
+        return 0;
+    return 1;
+}
+
+/*A run of forward elements into a RAM page that holds code (one written
+  through page_lookup and its mem_write_ram*_page handlers), from a page with
+  a direct read lookup, done at once: up to max elements, all within the two
+  pages and the segment limits, none of which could fault. Each element is
+  written and marked dirty as its handler would, only where it changes the
+  page; the page goes on the evict list once at the end if a written byte
+  holds code, as the handler would have put it there at that byte. Returns
+  the number of elements done, 0 if the next element is not such a one.*/
+static __inline uint32_t
+rep_tracked_run(x86seg *seg, int is_stos, int shift, uint32_t src, uint32_t dst, uint32_t max, int a32)
+{
+    const uint32_t size    = 1 << shift;
+    const uint32_t dst_lin = es + dst;
+    const uint8_t *s       = NULL;
+    uint8_t       *d;
+    page_t        *page;
+    uint32_t       n;
+    uint32_t       val     = (shift == 2) ? EAX : ((shift == 1) ? AX : AL);
+    uint64_t       written = 0;
+    uint64_t       line    = 0;
+    uint32_t       cur     = 64;
+    int            evict   = 0;
+
+    if ((cpu_state.flags & D_FLAG) || (dst_lin & (size - 1)) || (writelookup2[dst_lin >> 12] != (uintptr_t) LOOKUP_INV))
+        return 0;
+    page = page_lookup[dst_lin >> 12];
+    if ((page == NULL) || (page->mem == NULL) || (page->mem == page_ff) || (page->byte_dirty_mask == NULL))
+        return 0;
+    if ((page->write_b != mem_write_ramb_page) || (page->write_w != mem_write_ramw_page) || (page->write_l != mem_write_raml_page))
+        return 0;
+    if (cpu_dr_armed || GDBSTUB_WATCHED(dst_lin))
+        return 0;
+
+    n = (0x1000 - (dst_lin & 0xfff)) >> shift;
+    if (!a32 && (((0x10000 - dst) >> shift) < n))
+        n = (0x10000 - dst) >> shift;
+    if (!is_stos) {
+        const uint32_t src_lin = seg->base + src;
+
+        if ((src_lin & (size - 1)) || (readlookup2[src_lin >> 12] == (uintptr_t) LOOKUP_INV))
+            return 0;
+        if (((0x1000 - (src_lin & 0xfff)) >> shift) < n)
+            n = (0x1000 - (src_lin & 0xfff)) >> shift;
+        if (!a32 && (((0x10000 - src) >> shift) < n))
+            n = (0x10000 - src) >> shift;
+        s = (const uint8_t *) (readlookup2[src_lin >> 12] + (uintptr_t) src_lin);
+    }
+    if (max < n)
+        n = max;
+    if (!n)
+        return 0;
+
+    if (SEG_NOT_WRITABLE(&cpu_state.seg_es) || !rep_seg_range_ok(&cpu_state.seg_es, dst, n << shift))
+        return 0;
+    if (!is_stos && !rep_seg_range_ok(seg, src, n << shift))
+        return 0;
+
+    d = page->mem + (dst_lin & 0xfff);
+    for (uint32_t off = dst_lin & 0xfff, i = 0; i < n; i++, off += size) {
+        uint32_t v = val;
+
+        if (!is_stos)
+            memcpy(&v, s + (i << shift), size);
+        if (!memcmp(d + (i << shift), &v, size))
+            continue;
+        memcpy(d + (i << shift), &v, size);
+        if ((off >> PAGE_BYTE_MASK_SHIFT) != cur) {
+            if (line && (page->byte_code_present_mask[cur] & line))
+                evict = 1;
+            cur  = off >> PAGE_BYTE_MASK_SHIFT;
+            line = 0;
+        }
+        line |= (((uint64_t) 1 << size) - 1) << (off & PAGE_BYTE_MASK_MASK);
+        page->byte_dirty_mask[cur] |= (((uint64_t) 1 << size) - 1) << (off & PAGE_BYTE_MASK_MASK);
+        written |= (uint64_t) 1 << cur;
+    }
+    if (line && (page->byte_code_present_mask[cur] & line))
+        evict = 1;
+    if (written) {
+        page->dirty_mask |= written;
+        if ((evict || (page->code_present_mask & written)) && !page_in_evict_list(page))
+            page_add_to_evict_list(page);
+    }
+    mem_logical_addr = dst_lin + ((n - 1) << shift);
+    return n;
+}
+
 /*Elements the compiled routine does not copy itself, each one as a pass of
   the interpreter's loop in x86_ops_rep_dyn.h: the element, then the steps of
   the registers, the count and the cycles. Carries on while the count is not
   zero, the cycle count is not below cycles_end, no SMI is pending and the
   next element is also one the routine would not copy, so that a string to a
   page without a direct lookup (video memory, MMIO) does not go back to the
-  routine for each element. The elements go in runs (rep_run_room()) whose
-  checks are made once; an element no run takes makes its own. Returns
+  routine for each element. A run into a RAM page that holds code is done at
+  once (rep_tracked_run()); other elements go in runs (rep_run_room()) whose
+  checks are made once, and an element no run takes makes its own. Returns
   non-zero if an element faulted, with the registers left at that element.*/
 #define REP_RUN_OP(name, size, CNT_REG, SRC_REG, DEST_REG, is_stos, shift, mask)                   \
     static int rep_run_##name##_##size(x86seg *seg, int32_t cycles_end)                            \
@@ -277,8 +384,27 @@ rep_run_room(x86seg *seg, int is_stos, int shift, uint32_t mask, uint32_t cnt, u
         const int     pg          = cr0 >> 31;                                                     \
                                                                                                    \
         for (;;) {                                                                                 \
-            const uint32_t run  = rep_run_room(seg, is_stos, shift, mask, CNT_REG, SRC_REG, DEST_REG); \
-            uint32_t       left = run ? run : 1;                                                   \
+            const uint32_t budget = (cycles >= cycles_end)                                         \
+                                        ? (uint32_t) ((cycles - cycles_end) / elem_cycles) + 1     \
+                                        : 1;                                                       \
+            uint32_t       run    = rep_tracked_run(seg, is_stos, shift, SRC_REG, DEST_REG,        \
+                                                    (CNT_REG < budget) ? CNT_REG : budget,         \
+                                                    sizeof(CNT_REG) == 4);                         \
+            uint32_t       left;                                                                   \
+                                                                                                   \
+            if (run) {                                                                             \
+                if (!(is_stos))                                                                    \
+                    SRC_REG += step * (int32_t) run;                                               \
+                DEST_REG += step * (int32_t) run;                                                  \
+                CNT_REG -= run;                                                                    \
+                cycles -= elem_cycles * (int32_t) run;                                             \
+                if (!CNT_REG || (cycles < cycles_end) || smi_line                                  \
+                    || rep_direct(seg, is_stos, shift, SRC_REG, DEST_REG))                         \
+                    return 0;                                                                      \
+                continue;                                                                          \
+            }                                                                                      \
+            run  = rep_run_room(seg, is_stos, shift, mask, CNT_REG, SRC_REG, DEST_REG);            \
+            left = run ? run : 1;                                                                  \
                                                                                                    \
             do {                                                                                   \
                 if (rep_##name##_##size(seg, run != 0, pg))                                        \
