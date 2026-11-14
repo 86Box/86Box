@@ -12,11 +12,13 @@
  *          Cacodemon345
  *          Teemu Korhonen
  *          dob205
+ *          Marcos Alves
  *
  *          Copyright 2021 Joakim L. Gilje
  *          Copyright 2021-2022 Cacodemon345
  *          Copyright 2021-2022 Teemu Korhonen
  *          Copyright 2022 dob205
+ *          Copyright 2026 Marcos Alves
  */
 #include <QDebug>
 
@@ -107,6 +109,7 @@ void qt_set_sequence_auto_mnemonic(bool b);
 
 #include "qt_settings.hpp"
 #include "qt_about.hpp"
+#include "qt_pccard_menu.hpp"
 #include "qt_machinestatus.hpp"
 #include "qt_mediamenu.hpp"
 #include "qt_util.hpp"
@@ -220,6 +223,8 @@ MainWindow::MainWindow(QWidget *parent)
     dynarecMenu = new QMenu(this);
     dynarecMenu->addAction(ui->actionForce_interpretation);
     status->setDynarecMenu(dynarecMenu);
+    pcCardMenu = new PcCardMenu(this);
+    status->setPcCardMenu(pcCardMenu);
     ui->actionMute_Unmute->setText(sound_muted ? tr("&Unmute") : tr("&Mute"));
     ui->stackedWidget->setMouseTracking(true);
     statusBar()->setVisible(!hide_status_bar);
@@ -1878,6 +1883,7 @@ MainWindow::refreshMediaMenu()
     mm->refresh(ui->menuMedia);
     status->setSoundMenu(ui->menuSound);
     status->setDynarecMenu(dynarecMenu);
+    status->setPcCardMenu(pcCardMenu);
     status->refresh(ui->statusbar);
     ui->actionMCA_devices->setVisible(machine_has_bus(machine, MACHINE_BUS_MCA));
     updatePowerOffAction();

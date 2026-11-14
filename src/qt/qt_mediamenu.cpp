@@ -66,6 +66,7 @@ extern "C" {
 #include <86box/network.h>
 #include <86box/mem.h>
 #include <86box/usb.h>
+#include <86box/pcmcia.h>
 #include <86box/plat_floppy_ioctl.h>
 };
 
@@ -1064,6 +1065,7 @@ MediaMenu::clearImageHistory()
     mhm.clearImageHistory();
     /* The USB flash drives keep their own recent list. */
     usb_flash_history_clear();
+    pcmcia_cf_history_clear();
     ui_sb_update_panes();
 }
 
@@ -1720,8 +1722,12 @@ MediaMenu::nicUpdateMenu(int i)
     if (!netMenus.contains(i))
         return;
 
+    /* A PC network card (pcmcia.c): its socket's link and the card in it. */
+    const bool pccard = (i >= NET_CARD_MAX);
+    const int  socket = i - NET_CARD_MAX;
+
     QString netType;
-    switch (net_cards_conf[i].net_type) {
+    switch (pccard ? pcmcia_net_type[socket] : net_cards_conf[i].net_type) {
         default:
             netType = tr("Null Driver");
             break;
@@ -1745,15 +1751,21 @@ MediaMenu::nicUpdateMenu(int i)
             break;
     }
 
-    QString devName = DeviceConfig::DeviceName(network_card_getdevice(net_cards_conf[i].device_num), network_card_get_internal_name(net_cards_conf[i].device_num), 1);
+    QString devName = pccard ? QString::fromUtf8(pcmcia_card_get_name(pcmcia_card_type[socket])) :
+                               DeviceConfig::DeviceName(network_card_getdevice(net_cards_conf[i].device_num), network_card_get_internal_name(net_cards_conf[i].device_num), 1);
 
     auto *menu            = netMenus[i];
     auto  childs          = menu->children();
     auto *connectedAction = dynamic_cast<QAction *>(childs[netDisconnPos]);
     connectedAction->setChecked(network_is_connected(i));
 
-    menu->setTitle(tr("&NIC %1 (%2) %3").arg(QString::number(i + 1), netType, devName));
-    menu->setToolTip(tr("NIC %1 (%2) %3").arg(QString::number(i + 1), netType, devName));
+    if (pccard) {
+        menu->setTitle(tr("PC Card &%1 (%2) %3").arg(QChar('A' + socket), netType, devName));
+        menu->setToolTip(tr("PC Card %1 (%2) %3").arg(QChar('A' + socket), netType, devName));
+    } else {
+        menu->setTitle(tr("&NIC %1 (%2) %3").arg(QString::number(i + 1), netType, devName));
+        menu->setToolTip(tr("NIC %1 (%2) %3").arg(QString::number(i + 1), netType, devName));
+    }
 }
 
 void

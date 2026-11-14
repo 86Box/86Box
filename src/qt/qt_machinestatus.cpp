@@ -10,9 +10,11 @@
  *
  * Authors: Joakim L. Gilje <jgilje@jgilje.net>
  *          Cacodemon345
+ *          Marcos Alves
  *
  *          Copyright 2021 Joakim L. Gilje
  *          Copyright 2021-2022 Cacodemon345
+ *          Copyright 2026 Marcos Alves
  */
 #include "qt_machinestatus.hpp"
 
@@ -39,6 +41,7 @@ extern "C" {
 #include <86box/network.h>
 #include <86box/mem.h>
 #include <86box/usb.h>
+#include <86box/pcmcia.h>
 #include <86box/ui.h>
 #include <86box/machine_status.h>
 #include <86box/config.h>
@@ -63,6 +66,7 @@ extern int          is_dynarec_active(void);
 #include "qt_soundgain.hpp"
 #include "qt_preferences.hpp"
 #include "qt_iconindicators.hpp"
+#include "qt_pccard_menu.hpp"
 
 #include <array>
 
@@ -133,6 +137,7 @@ struct Pixmaps {
     PixmapSetEmpty       usb_port;
     PixmapSetDisabled    sound;
     PixmapSetDisabled    dynarec;
+    PixmapSetDisabled    pccard;
 };
 
 struct StateActive {
@@ -402,6 +407,7 @@ struct MachineStatus::States {
         pixmaps.sound.load(QIcon(":/settings/qt/icons/sound.ico"));
         pixmaps.dynarec.normal                          = QIcon(":/menuicons/qt/icons/recompiler.ico").pixmap(pixmap_size);
         pixmaps.dynarec.disabled                        = QIcon(":/menuicons/qt/icons/interpreter.ico").pixmap(pixmap_size);
+        pixmaps.pccard.load(QIcon(":/settings/qt/icons/pcmcia.ico"));
 
         cartridge[0].pixmaps = &pixmaps.cartridge;
         cartridge[1].pixmaps = &pixmaps.cartridge;
@@ -514,11 +520,12 @@ struct MachineStatus::States {
     std::array<StateEmptyActive, MO_NUM>       mo;
     std::array<StateEmptyActive, TAPE_NUM>     tape;
     std::array<StateActive, HDD_BUS_USB>       hdds;
-    std::array<StateEmptyActive, NET_CARD_MAX> net;
+    std::array<StateEmptyActive, NET_CONF_MAX> net; /* then a PC Card NIC per socket */
     std::unique_ptr<ClickableLabel>            usb;
     std::unique_ptr<QMenu>                     usbMenu;
     std::unique_ptr<ClickableLabel>            sound;
     std::unique_ptr<ClickableLabel>            dynarec;
+    std::unique_ptr<ClickableLabel>            pccard;
     std::unique_ptr<QLabel>                    text;
 
     std::array<std::unique_ptr<QLabel>, BOARD_LED_MAX> board_leds;
@@ -550,6 +557,33 @@ MachineStatus::setDynarecMenu(QMenu *menu)
     dynarecMenu = menu;
 }
 
+/* The PC Card icon, with the sockets' menu behind it. */
+void
+MachineStatus::setPcCardMenu(PcCardMenu *menu)
+{
+    if (pcCardMenu == menu)
+        return;
+    pcCardMenu = menu;
+    connect(menu, &PcCardMenu::changed, this, [this]() {
+        updatePcCardIcon();
+        /* A card went in or came out: a network card's icon, or a SCSI card's
+           drives, come or go with it. */
+        ui_sb_update_panes();
+    });
+}
+
+void
+MachineStatus::updatePcCardIcon()
+{
+    if (!d->pccard || !pcCardMenu)
+        return;
+    bool any = false;
+    for (int s = 0; s < PCMCIA_SOCKETS; s++)
+        any |= (pcmcia_card_type[s] > 0);
+    d->pccard->setPixmap(any ? d->pixmaps.pccard.normal : d->pixmaps.pccard.disabled);
+    d->pccard->setToolTip(pcCardMenu->toolTip());
+}
+
 bool
 MachineStatus::hasCassette()
 {
@@ -566,6 +600,33 @@ bool
 MachineStatus::hasSCSI()
 {
     return (machine_has_flags(machine, MACHINE_SCSI) > 0) || other_scsi_present;
+}
+
+/* Any SCSI bus at all -- the machine's, a SCSI card's, or that of a SCSI PC
+   Card in a socket (the APA-1460), whose drives belong in the status bar and
+   the Media menu too. */
+bool
+MachineStatus::hasAnySCSI()
+{
+    if (hasSCSI())
+        return true;
+    for (int i = 0; i < SCSI_CARD_MAX; i++) {
+        if (scsi_card_current[i] != 0)
+            return true;
+    }
+    return pcmciaHasSCSI();
+}
+
+bool
+MachineStatus::pcmciaHasSCSI()
+{
+    if (!pcmcia_enabled)
+        return false;
+    for (int s = 0; s < PCMCIA_SOCKETS; s++) {
+        if (pcmcia_card_is_scsi(pcmcia_card_type[s]))
+            return true;
+    }
+    return false;
 }
 
 void
@@ -593,9 +654,7 @@ MachineStatus::iterateCDROM(const std::function<void(int)> &cb)
 //            !hdc_name.startsWith(QStringLiteral("jride")) &&
             !hdc_name.startsWith(QStringLiteral("mcide")))
             continue;
-        if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !hasSCSI() &&
-            (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
-            (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
+        if ((cdrom[i].bus_type == CDROM_BUS_SCSI) && !hasAnySCSI())
             continue;
         if ((cdrom[i].bus_type == CDROM_BUS_SONY || cdrom[i].bus_type == CDROM_BUS_CM100 || cdrom[i].bus_type == CDROM_BUS_PHILIPS || cdrom[i].bus_type == CDROM_BUS_HITACHI || cdrom[i].bus_type == CDROM_BUS_MITSUMI || cdrom[i].bus_type == CDROM_BUS_MKE) && (cdrom_interface_current == 0) &&
             !((cdrom[i].bus_type == CDROM_BUS_MITSUMI) && (machines[machine].init == machine_at_tandy_vis_init)) &&
@@ -620,9 +679,7 @@ MachineStatus::iterateRDisk(const std::function<void(int)> &cb)
 //            !hdc_name.startsWith(QStringLiteral("jride")) &&
             !hdc_name.startsWith(QStringLiteral("mcide")))
             continue;
-        if ((rdisk_drives[i].bus_type == RDISK_BUS_SCSI) && !hasSCSI() &&
-            (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
-            (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
+        if ((rdisk_drives[i].bus_type == RDISK_BUS_SCSI) && !hasAnySCSI())
             continue;
         if (rdisk_drives[i].bus_type != 0) {
             cb(i);
@@ -642,9 +699,7 @@ MachineStatus::iterateMO(const std::function<void(int)> &cb)
 //            !hdc_name.startsWith(QStringLiteral("jride")) &&
             !hdc_name.startsWith(QStringLiteral("mcide")))
             continue;
-        if ((mo_drives[i].bus_type == MO_BUS_SCSI) && !hasSCSI() &&
-            (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
-            (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
+        if ((mo_drives[i].bus_type == MO_BUS_SCSI) && !hasAnySCSI())
             continue;
         if (mo_drives[i].bus_type != 0) {
             cb(i);
@@ -664,9 +719,7 @@ MachineStatus::iterateTape(const std::function<void(int)> &cb)
 //            !hdc_name.startsWith(QStringLiteral("jride")) &&
             !hdc_name.startsWith(QStringLiteral("mcide")))
             continue;
-        if ((tape_drives[i].bus_type == TAPE_BUS_SCSI) && !hasSCSI() &&
-            (scsi_card_current[0] == 0) && (scsi_card_current[1] == 0) &&
-            (scsi_card_current[2] == 0) && (scsi_card_current[3] == 0))
+        if ((tape_drives[i].bus_type == TAPE_BUS_SCSI) && !hasAnySCSI())
             continue;
         /* A parallel-port tape needs the port it sits on to exist. */
         if ((tape_drives[i].bus_type == TAPE_BUS_LPT) &&
@@ -685,6 +738,11 @@ MachineStatus::iterateNIC(const std::function<void(int)> &cb)
         if (network_dev_available(i)) {
             cb(i);
         }
+    }
+    /* A PC network card: its socket's link, after the Network settings' four. */
+    for (int s = 0; s < PCMCIA_SOCKETS; s++) {
+        if (pcmcia_enabled && pcmcia_card_is_network(pcmcia_card_type[s]))
+            cb(NET_CARD_MAX + s);
     }
 }
 
@@ -731,7 +789,7 @@ MachineStatus::refreshEmptyIcons()
     d->cassette.setEmpty(machine_status.cassette.empty);
     d->cassette.setWriteProtected(machine_status.cassette.write_prot);
 
-    for (size_t i = 0; i < NET_CARD_MAX; i++)
+    for (size_t i = 0; i < NET_CONF_MAX; i++)
         d->net[i].setEmpty(machine_status.net[i].empty);
 
     for (int i = 0; i < 2; ++i)
@@ -854,7 +912,7 @@ MachineStatus::refreshIcons()
             ui_sb_update_icon_write(SB_HDD | i, 0);
     }
 
-    for (size_t i = 0; i < NET_CARD_MAX; i++) {
+    for (size_t i = 0; i < NET_CONF_MAX; i++) {
         d->net[i].setActive(machine_status.net[i].active);
         d->net[i].setWriteActive(machine_status.net[i].write_active);
     }
@@ -929,7 +987,7 @@ MachineStatus::refresh(QStatusBar *sbar)
     for (size_t i = 0; i < HDD_BUS_USB; i++) {
         sbar->removeWidget(d->hdds[i].label.get());
     }
-    for (size_t i = 0; i < NET_CARD_MAX; i++) {
+    for (size_t i = 0; i < NET_CONF_MAX; i++) {
         sbar->removeWidget(d->net[i].label.get());
     }
     sbar->removeWidget(d->usb.get());
@@ -941,6 +999,7 @@ MachineStatus::refresh(QStatusBar *sbar)
         sbar->removeWidget(d->board_leds[i].get());
         d->board_leds[i].reset();
     }
+    sbar->removeWidget(d->pccard.get());
 
     if (cassette_enable) {
         d->cassette.label = std::make_unique<ClickableLabel>();
@@ -1244,10 +1303,7 @@ MachineStatus::refresh(QStatusBar *sbar)
             sbar->addWidget(d->hdds[HDD_BUS_ATAPI].label.get());
         }
     }
-    if ((hasSCSI() ||
-        (scsi_card_current[0] != 0) || (scsi_card_current[1] != 0) ||
-        (scsi_card_current[2] != 0) || (scsi_card_current[3] != 0)) &&
-        (c_scsi > 0)) {
+    if (hasAnySCSI() && (c_scsi > 0)) {
         d->hdds[HDD_BUS_SCSI].label = std::make_unique<QLabel>();
         d->hdds[HDD_BUS_SCSI].setActive(false);
         d->hdds[HDD_BUS_SCSI].setWriteActive(false);
@@ -1270,6 +1326,19 @@ MachineStatus::refresh(QStatusBar *sbar)
         d->board_leds[i]->setPixmap(d->board_led_shown[i] ? d->board_led_on : d->board_led_off);
         d->board_leds[i]->setToolTip((board_led_count() > 1) ? tr("Board LED %1").arg(i + 1) : tr("Board LED"));
         sbar->addWidget(d->board_leds[i].get());
+    }
+
+    /* The PC Card icon, while a PC Card controller is fitted: a click opens
+       the sockets' menu. */
+    d->pccard.reset();
+    if (pcmcia_enabled && pcCardMenu) {
+        d->pccard = std::make_unique<ClickableLabel>();
+        connect(d->pccard.get(), &ClickableLabel::clicked, this, [this](QPoint pos) {
+            QMenu *m = this->pcCardMenu->menu();
+            m->popup(pos - QPoint(0, m->sizeHint().height()));
+        });
+        sbar->addWidget(d->pccard.get());
+        updatePcCardIcon();
     }
 
     d->sound = std::make_unique<ClickableLabel>();
