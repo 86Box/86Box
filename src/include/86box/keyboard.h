@@ -64,6 +64,15 @@ enum {
     KEYBOARD_TYPE_USB
 };
 
+/* Open-collector keyboard clock/data lines shared by the firmware KBC and the
+   keyboard device. A line is high only when neither side pulls it low. */
+typedef struct {
+    uint8_t kbc_clk;
+    uint8_t kbc_data;
+    uint8_t kbd_clk;
+    uint8_t kbd_data;
+} kbc_upi42_bus_t;
+
 /* Used by the AT / PS/2 keyboard controller, common device, keyboard, and mouse. */
 typedef struct kbc_at_port_t {
     uint8_t wantcmd;
@@ -194,6 +203,7 @@ extern int     mouse_cmd_queue_end;
 extern int     mouse_scan;
 
 extern kbc_at_port_t     *kbc_at_ports[2];
+extern kbc_upi42_bus_t   *kbc_at_upi42_bus;
 
 #ifdef EMU_DEVICE_H
 extern const device_t kbc_pc_device;

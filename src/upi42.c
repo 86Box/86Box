@@ -1057,7 +1057,13 @@ upi42_run(upi42_t *upi42, uint32_t cycles)
     while (cycles > 0) {
         int cost = upi42_step(upi42);
 
-        if (cost == 0)
+        /* A suspended core does not consume any cycles. */
+        if (cost <= 0)
+            break;
+
+        /* The last instruction may overshoot the budget; do not let the
+           unsigned subtraction wrap around. */
+        if ((uint32_t) cost >= cycles)
             break;
 
         cycles -= (uint32_t) cost;
