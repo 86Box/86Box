@@ -18,15 +18,8 @@
 #          All rights reserved.
 #
 
-FetchContent_Declare(sdfat
-    GIT_REPOSITORY https://github.com/adafruit/SdFat.git
-    GIT_TAG 20f3ffa005c1db4e8184735329afbf7e5c90a66a
-    SOURCE_SUBDIR src
-)
-FetchContent_MakeAvailable(sdfat)
-
 # Build the FAT filesystem and block device support without the Arduino drivers.
-set(sdfat_src "${sdfat_SOURCE_DIR}/src")
+set(sdfat_src "${CMAKE_CURRENT_SOURCE_DIR}/vendor/sdfat/src")
 add_library(sdfat STATIC
     fdd_folder.cpp
     "${sdfat_src}/FatLib/FatFile.cpp"
