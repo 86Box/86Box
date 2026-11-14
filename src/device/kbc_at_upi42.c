@@ -11,7 +11,8 @@
  *          both directions of the emulated open-collector keyboard bus are
  *          implemented: 11-bit serial frames from the keyboard and clocked
  *          command transfers from the controller, including the data line
- *          acknowledge pulse.
+ *          acknowledge pulse. The P2 control line drive the A20 gate,
+ *          the CPU reset pulse and IRQ1.
  *
  * Authors: WNT50, <wnt2195@gmail.com>
  *
@@ -29,36 +30,46 @@
 #include <86box/machine.h>
 #include <86box/timer.h>
 #include <86box/upi42.h>
+#include "cpu.h"
 #include <86box/io.h>
 #include <86box/mem.h>
+#include <86box/pic.h>
 #include <86box/rom.h>
 
-#define KBC_AT_UPI42_ROM_SIZE      2048
-#define KBC_AT_UPI42_TICK_US       10 /* 100 kHz */
-#define KBC_AT_UPI42_CYCLES        8  /* 12 MHz / 15 = 800 kHz, 10 us = 8 cycles */
-#define KBC_AT_UPI42_KBD_POLL      10 /* keyboard port polled every 100 us */
-#define KBC_AT_UPI42_KBD_BIT_TICKS 10 /* 100 us per bit, 10 kHz clock */
-#define KBC_AT_UPI42_KBD_BITS      11 /* start, 8 data, parity, stop */
-#define KBC_AT_UPI42_KBD_RX_BITS   10 /* 8 data, parity, stop */
-#define KBC_AT_UPI42_KBD_ACK_TICKS 4  /* data line acknowledge hold time */
+#define KBC_AT_UPI42_ROM_SIZE        2048
+#define KBC_AT_UPI42_TICK_US         10 /* 100 kHz */
+#define KBC_AT_UPI42_CYCLES          8  /* 12 MHz / 15 = 800 kHz, 10 us = 8 cycles */
+#define KBC_AT_UPI42_KBD_POLL        10 /* keyboard port polled every 100 us */
+#define KBC_AT_UPI42_KBD_BIT_TICKS   25 /* 1 us sub-steps, 25 us per bit */
+#define KBC_AT_UPI42_KBD_BITS        11 /* start, 8 data, parity, stop */
+#define KBC_AT_UPI42_KBD_RX_BITS     10 /* 8 data, parity, stop */
+#define KBC_AT_UPI42_KBD_ACK_US      60 /* data line acknowledge hold time */
+#define KBC_AT_UPI42_KBD_START_TICKS 100 /* clock held low before a frame */
+#define KBC_AT_UPI42_KBD_GAP_TICKS   200 /* idle time between frames */
 
 typedef struct {
     upi42_t   *mcu;
     pc_timer_t tick;
     uint8_t   *rom;
     uint8_t    p1;
+    uint8_t    p1_in;
     uint8_t    p2;
     int        irq;
+    uint8_t    irq_state;
     uint16_t   kbd_frame;
     uint8_t    kbd_bit;
     uint8_t    kbd_phase;
     uint8_t    kbd_sending;
     uint8_t    kbd_wait;
     uint8_t    kbd_poll;
+    uint16_t   kbd_gap;
+    uint16_t   kbd_wait_cnt;
     uint16_t   kbd_rx_frame;
     uint8_t    kbd_rx_state;
     uint8_t    kbd_rx_phase;
     uint8_t    kbd_rx_bit;
+    uint16_t   kbd_ack;
+    int16_t    kbd_cyc;
     kbc_upi42_bus_t bus;
 } kbc_upi42_t;
 
@@ -112,7 +123,8 @@ kbc_upi42_load_rom(uint8_t *rom, const char *rom_path)
     memset(rom, 0x00, KBC_AT_UPI42_ROM_SIZE);
 
     if (fp == NULL) {
-        kbc_at_upi42_log("KBC-UPI42: firmware image not found\n");
+        kbc_at_upi42_log("KBC-UPI42: firmware image '%s' not found\n",
+                         (rom_path != NULL) ? rom_path : "(null)");
         return 0;
     }
 
@@ -147,7 +159,9 @@ kbc_upi42_p1_in(void *priv)
 {
     kbc_upi42_t *dev = (kbc_upi42_t *) priv;
 
-    return dev->p1;
+    /* External state of the quasi-bidirectional P1 pins: display type and
+       keyboard lock. The core ANDs this with the output latch. */
+    return dev->p1_in;
 }
 
 static uint8_t
@@ -168,12 +182,38 @@ kbc_upi42_port_out(void *priv, int port, uint8_t val)
             dev->p1 = val;
             break;
 
-        case 2:
+        case 2: {
+            uint8_t old = dev->p2;
             dev->p2 = val;
+
             /* P2.6 drives the keyboard clock (inverted), P2.7 the data line. */
             dev->bus.kbc_clk  = !(val & 0x40);
             dev->bus.kbc_data = !!(val & 0x80);
+
+            /* P2.1 gates A20. */
+            if ((mem_a20_key ^ val) & 0x02) {
+                mem_a20_key = val & 0x02;
+                mem_a20_recalc();
+                flushmmucache();
+            }
+
+            /* P2.0 pulses the CPU reset line (active low). */
+            if (!cpu_cpurst_on_sr && ((old ^ val) & 0x01) && !(val & 0x01)) {
+                kbc_at_upi42_log("KBC-UPI42: pulse reset\n");
+                softresetx86_from(SOFT_RESET_KBC);
+                cpu_set_edx();
+                flushmmucache();
+            }
+
+            /* P2.4 is the hardware OBF flag and drives IRQ1. */
+            if ((old ^ val) & 0x10) {
+                if (val & 0x10)
+                    picintlevel(1 << 1, &dev->irq_state);
+                else
+                    picintclevel(1 << 1, &dev->irq_state);
+            }
             break;
+        }
 
         default:
             break;
@@ -189,7 +229,6 @@ kbc_upi42_irq_out(void *priv, int level)
 
     dev->irq = level;
 
-    /* M1: not wired to the PIC yet. */
     kbc_at_upi42_log("KBC-UPI42: INT %i\n", level);
 }
 
@@ -219,10 +258,10 @@ kbc_upi42_kbd_send(kbc_upi42_t *dev, uint8_t val)
     dev->kbd_sending = 1;
     dev->kbd_wait    = 1;
 
-    /* Pull the data line low to signal that the keyboard wants to send,
-       the controller releases the clock in response. */
-    dev->bus.kbd_clk  = 1;
-    dev->bus.kbd_data = 0;
+    /* Hold the clock line low to request a transmission and keep the data
+       line released until the controller is ready to receive. */
+    dev->bus.kbd_clk  = 0;
+    dev->bus.kbd_data = 1;
 
     kbc_at_upi42_log("KBC-UPI42: keyboard sends %02X\n", val);
 }
@@ -241,8 +280,17 @@ kbc_upi42_kbd_poll(kbc_upi42_t *dev)
     if (dev->kbd_sending || (dev->kbd_rx_state != 0) || (port->out_new == -1))
         return;
 
+    /* Leave the bus idle for a while after each frame so the controller can
+       hand the previous byte over to the host. */
+    if (dev->kbd_gap >= KBC_AT_UPI42_KBD_POLL) {
+        dev->kbd_gap -= KBC_AT_UPI42_KBD_POLL;
+        return;
+    }
+
     val           = (uint8_t) port->out_new;
     port->out_new = -1;
+
+    dev->kbd_gap = 0;
 
     kbc_upi42_kbd_send(dev, val);
 }
@@ -253,13 +301,28 @@ kbc_upi42_kbd_tick(kbc_upi42_t *dev)
     if (!dev->kbd_sending)
         return;
 
-    /* The start bit is already on the line; wait for the controller to
-       release the clock before clocking the frame out. */
+    /* Hold the clock low until the controller releases it and stays idle
+       for a while, so the firmware is inside its receive loop before the
+       frame starts. */
     if (dev->kbd_wait) {
-        if (!dev->bus.kbc_clk)
-            return;
+        dev->bus.kbd_clk  = 0;
+        dev->bus.kbd_data = 1;
 
-        dev->kbd_wait = 0;
+        if (!dev->bus.kbc_clk) {
+            dev->kbd_wait_cnt = 0;
+            return;
+        }
+
+        if (dev->kbd_wait_cnt < KBC_AT_UPI42_KBD_START_TICKS) {
+            dev->kbd_wait_cnt++;
+            return;
+        }
+
+        dev->kbd_wait     = 0;
+        dev->kbd_wait_cnt = 0;
+        dev->kbd_phase    = 0;
+        dev->kbd_bit      = 0;
+        dev->bus.kbd_data = (dev->kbd_frame >> 0) & 0x01;
     } else if (!dev->bus.kbc_clk) {
         /* The controller holds the clock line low to inhibit the keyboard. */
         return;
@@ -267,24 +330,27 @@ kbc_upi42_kbd_tick(kbc_upi42_t *dev)
 
     switch (dev->kbd_phase) {
         case 0:
-            dev->bus.kbd_data = (dev->kbd_frame >> dev->kbd_bit) & 0x01;
-            dev->bus.kbd_clk  = 1;
-            break;
-
-        case 2:
+            /* Falling edge: the controller samples the current bit a few
+               cycles after this edge. */
             dev->bus.kbd_clk = 0;
             break;
 
-        case 7:
+        case KBC_AT_UPI42_KBD_BIT_TICKS / 2:
+            /* Rising edge. */
             dev->bus.kbd_clk = 1;
             break;
 
-        case KBC_AT_UPI42_KBD_BIT_TICKS - 1:
+        case KBC_AT_UPI42_KBD_BIT_TICKS - 4:
+            /* Load the next bit a few microseconds before the next falling
+               edge, so it is stable when the controller samples it. */
             dev->kbd_bit++;
             if (dev->kbd_bit == KBC_AT_UPI42_KBD_BITS) {
+                dev->kbd_gap      = KBC_AT_UPI42_KBD_GAP_TICKS;
                 dev->kbd_sending  = 0;
                 dev->bus.kbd_clk  = 1;
                 dev->bus.kbd_data = 1;
+            } else {
+                dev->bus.kbd_data = (dev->kbd_frame >> dev->kbd_bit) & 0x01;
             }
             break;
 
@@ -308,12 +374,13 @@ kbc_upi42_kbd_rx_tick(kbc_upi42_t *dev)
 
     switch (dev->kbd_rx_state) {
         case 0:
-            /* Do not take over the bus while a frame is being sent. */
-            if (dev->kbd_sending)
-                return;
-
             if (!dev->bus.kbc_clk && !dev->bus.kbc_data) {
+                /* The controller is starting a command transfer; it waits
+                   for the keyboard to clock the bits, so drop any frame we
+                   were sending and take over. */
                 dev->kbd_rx_state = 1;
+                dev->kbd_sending  = 0;
+                dev->kbd_wait     = 0;
                 dev->bus.kbd_clk  = 1;
                 dev->bus.kbd_data = 1;
             }
@@ -322,11 +389,11 @@ kbc_upi42_kbd_rx_tick(kbc_upi42_t *dev)
         case 1:
             /* The controller releases the clock, the keyboard takes over. */
             if (dev->bus.kbc_clk) {
+                dev->kbd_ack      = 0;
                 dev->kbd_rx_bit   = 0;
                 dev->kbd_rx_state = 2;
                 dev->kbd_rx_phase = 0;
                 dev->kbd_rx_frame = 0;
-                kbc_at_upi42_log("KBC-UPI42: keyboard command transfer\n");
             }
             break;
 
@@ -341,7 +408,7 @@ kbc_upi42_kbd_rx_tick(kbc_upi42_t *dev)
                         dev->bus.kbd_clk = 1;
                         break;
 
-                    case (KBC_AT_UPI42_KBD_BIT_TICKS / 2) + 2:
+                    case (KBC_AT_UPI42_KBD_BIT_TICKS / 2) + 5:
                         if (dev->bus.kbc_data)
                             dev->kbd_rx_frame |= 1u << dev->kbd_rx_bit;
                         dev->kbd_rx_bit++;
@@ -351,12 +418,12 @@ kbc_upi42_kbd_rx_tick(kbc_upi42_t *dev)
                         break;
                 }
             } else {
-                /* Acknowledge the byte by holding the data line low. */
-                if (dev->kbd_rx_phase == 0)
+                if (dev->kbd_ack == 0) {
+                    /* The controller polls the data line after the last bit
+                       to see the acknowledge; hold it low long enough. */
                     dev->bus.kbd_data = 0;
-                else if (dev->kbd_rx_phase == KBC_AT_UPI42_KBD_ACK_TICKS)
-                    dev->bus.kbd_data = 1;
-                else if (dev->kbd_rx_phase == (KBC_AT_UPI42_KBD_BIT_TICKS - 1)) {
+                    dev->kbd_ack      = KBC_AT_UPI42_KBD_ACK_US;
+                } else if (--dev->kbd_ack == 0) {
                     dev->bus.kbd_data = 1;
                     dev->kbd_rx_state = 0;
 
@@ -446,16 +513,38 @@ static void
 kbc_upi42_tick(void *priv)
 {
     kbc_upi42_t *dev = (kbc_upi42_t *) priv;
+    int          i;
 
-    kbc_upi42_kbd_rx_tick(dev);
-    kbc_upi42_kbd_tick(dev);
+    if (dev->kbd_sending || (dev->kbd_rx_state != 0)) {
+        /* Advance the wire one microsecond at a time so the firmware sees
+           the clock and data edges with sub-tick resolution. */
+        for (i = 0; i < KBC_AT_UPI42_TICK_US; i++) {
+            kbc_upi42_kbd_rx_tick(dev);
+            kbc_upi42_kbd_tick(dev);
+
+            dev->kbd_cyc += KBC_AT_UPI42_CYCLES;
+            while (dev->kbd_cyc >= KBC_AT_UPI42_TICK_US) {
+                int cost = upi42_step(dev->mcu);
+
+                if (cost <= 0) {
+                    dev->kbd_cyc = 0;
+                    break;
+                }
+
+                dev->kbd_cyc -= (int16_t) (cost * KBC_AT_UPI42_TICK_US);
+            }
+        }
+    } else {
+        dev->kbd_cyc = 0;
+        kbc_upi42_kbd_tick(dev);
+        kbc_upi42_kbd_rx_tick(dev);
+        upi42_run(dev->mcu, KBC_AT_UPI42_CYCLES);
+    }
 
     if (++dev->kbd_poll >= KBC_AT_UPI42_KBD_POLL) {
         dev->kbd_poll = 0;
         kbc_upi42_kbd_poll(dev);
     }
-
-    upi42_run(dev->mcu, KBC_AT_UPI42_CYCLES);
 
     timer_advance_u64(&dev->tick, KBC_AT_UPI42_TICK_US * TIMER_USEC);
 }
@@ -505,8 +594,9 @@ kbc_upi42_init(const device_t *info)
 
     upi42_attach(dev->mcu, &kbc_upi42_hooks, dev);
 
-    dev->p1 = 0xff;
-    dev->p2 = 0xff;
+    dev->p1_in = machine_get_p1(0xff);
+    dev->p1    = 0xff;
+    dev->p2    = 0xff;
 
     dev->bus.kbc_clk  = 1;
     dev->bus.kbc_data = 1;
@@ -548,6 +638,9 @@ kbc_upi42_close(void *priv)
     io_removehandler(0x0064, 1, kbc_upi42_status_r, NULL, NULL, kbc_upi42_cmd_w, NULL, NULL, dev);
 
     timer_disable(&dev->tick);
+
+    /* Do not leave IRQ1 asserted behind us. */
+    picintclevel(1 << 1, &dev->irq_state);
 
     if (kbc_at_ports[DEV_KBD] != NULL) {
         free(kbc_at_ports[DEV_KBD]);
