@@ -1128,8 +1128,10 @@ codegen_addr_bound(ir_data_t *ir, int addr_reg, uint32_t *bound, int *is_const)
     uop = &ir->uops[parent];
     if ((IREG_GET_REG(uop->dest_reg_a.reg) != reg) || (IREG_GET_SIZE(uop->dest_reg_a.reg) != IREG_SIZE_L) || (uop->dest_reg_a.version != version))
         return 0;
-    for (int c = 0; c < ir->wr_pos; c++) {
-        if ((ir->uops[c].type & UOP_TYPE_JUMP) && (ir->uops[c].jump_dest_uop > parent) && (ir->uops[c].jump_dest_uop <= ir->wr_pos))
+    for (int i = 0; i < ir->nr_jump_uops; i++) {
+        const uop_t *jump = &ir->uops[ir->jump_uops[i]];
+
+        if ((jump->type & UOP_TYPE_JUMP) && (jump->jump_dest_uop > parent) && (jump->jump_dest_uop <= ir->wr_pos))
             return 0;
     }
 

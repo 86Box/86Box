@@ -498,6 +498,10 @@ typedef struct ir_data_t {
     uop_t               uops[UOP_NR_MAX];
     int                 wr_pos;
     struct codeblock_t *block;
+    /*Every uop allocated with UOP_TYPE_JUMP, in order. No uop gains the type
+      later*/
+    int                 jump_uops[UOP_NR_MAX];
+    int                 nr_jump_uops;
 } ir_data_t;
 
 /* What an exit taken before the block's end adds to cycles: the cycles
@@ -560,6 +564,8 @@ uop_alloc(ir_data_t *ir, uint32_t uop_type)
         fatal("Exceeded uOP max\n");
 
     uop = &ir->uops[ir->wr_pos++];
+    if (uop_type & UOP_TYPE_JUMP)
+        ir->jump_uops[ir->nr_jump_uops++] = ir->wr_pos - 1;
 
     uop->is_a16     = 0;
     uop->imm_data2  = uop_type_can_fault(uop_type) ? codegen_exit_cycles(EXIT_FAULT_HELD) : 0;
@@ -591,6 +597,8 @@ uop_alloc_unroll(ir_data_t *ir, uint32_t uop_type)
         fatal("Exceeded uOP max\n");
 
     uop = &ir->uops[ir->wr_pos++];
+    if (uop_type & UOP_TYPE_JUMP)
+        ir->jump_uops[ir->nr_jump_uops++] = ir->wr_pos - 1;
 
     uop->is_a16     = 0;
 
