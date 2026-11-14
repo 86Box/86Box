@@ -290,16 +290,33 @@ set_use32(int u)
         cpu_cur_status &= ~CPU_STATUS_USE32;
 }
 
+/* The descriptor's last word is reserved on the 80286 ("The Intel
+   reserved bytes in the segment descriptor must be set to 0 for
+   compatibility with the 80386", 80286 PRM 7.4) and
+   ignored there: no limit[19:16], G, D/B or base[31:24]. */
+static inline uint16_t
+desc_word3(const uint16_t *segdat)
+{
+    return is386 ? segdat[3] : 0;
+}
+
+static inline uint32_t
+desc_limit(const uint16_t *segdat)
+{
+    const uint16_t word3 = desc_word3(segdat);
+    uint32_t       limit = segdat[0] | ((word3 & 0x000f) << 16);
+
+    if (word3 & 0x0080)
+        limit = (limit << 12) | 0xfff;
+    return limit;
+}
+
 #ifndef OPS_286_386
 /* The hidden part of a segment register from the four words of its
    descriptor */
 __attribute__((always_inline)) static inline void
 seg_load_fields(x86seg *s, uint16_t word0, uint16_t word1, uint16_t word2, uint16_t word3)
 {
-    /* The descriptor's last word is reserved on the 80286 ("The Intel
-       reserved bytes in the segment descriptor must be set to 0 for
-       compatibility with the 80386", 80286 PRM 7.4) and
-       ignored there: no limit[19:16], G, D/B or base[31:24]. */
     if (!is386)
         word3 = 0;
 
@@ -1581,6 +1598,11 @@ pmoderetf(int is32, uint16_t off)
             x86np("RETF CS not present", seg & 0xfffc);
             return;
         }
+        if (retf_checks_eip_limit && (newpc > desc_limit(segdat))) {
+            ESP = oldsp;
+            x86gpf("pmoderetf(): EIP past the CS limit", 0);
+            return;
+        }
 
         cpl_override = 1;
         x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
@@ -1689,6 +1711,11 @@ pmoderetf(int is32, uint16_t off)
         if (!(segdat2[2] & 0x8000)) {
             ESP = oldsp;
             x86ss("RETF loading SS not present", newss & 0xfffc);
+            return;
+        }
+        if (retf_checks_eip_limit && (newpc > desc_limit(segdat))) {
+            ESP = oldsp;
+            x86gpf("pmoderetf(): EIP past the CS limit", 0);
             return;
         }
         SS = newss;

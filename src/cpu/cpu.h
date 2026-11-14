@@ -586,6 +586,7 @@ extern int is286;
 extern int is386;
 extern int is6117;
 extern int is386ex;
+extern int retf_checks_eip_limit;
 extern int is486;
 extern int is586;
 extern int is_am486;

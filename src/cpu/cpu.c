@@ -249,6 +249,7 @@ int is286;
 int is386;
 int is6117;
 int is386ex;
+int retf_checks_eip_limit;
 int is486 = 1;
 int is586 = 0;
 int cpu_isintel;
@@ -713,6 +714,44 @@ cpu_set(void)
 
     is6117  = !strcmp(cpu_f->manufacturer, "ALi");
     is386ex = (cpu_f->package == CPU_PKG_386EX);
+
+    /* Far RET tests the return EIP against the new CS limit (#GP(0)) only on
+       the processors whose own manuals state that test. */
+    switch (cpu_s->cpu_type) {
+        case CPU_286:
+        case CPU_386DX:
+        case CPU_i486SX:
+        case CPU_Am486SX:
+        case CPU_i486DX:
+        case CPU_Am486DX:
+        case CPU_Am486DXL:
+        case CPU_i486SX_SLENH:
+        case CPU_i486DX_SLENH:
+        case CPU_ENH_Am486DX:
+        case CPU_P24T:
+        case CPU_PENTIUM:
+        case CPU_PENTIUMMMX:
+        case CPU_Cx6x86:
+        case CPU_Cx6x86MX:
+        case CPU_Cx6x86L:
+        case CPU_CxGX1:
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            retf_checks_eip_limit = 1;
+            break;
+        case CPU_386SX:
+            retf_checks_eip_limit = !is6117;
+            break;
+        case CPU_486SLC:
+        case CPU_486DLC:
+            /* Not the clock-doubled Cx486SRx2 / DRx2 (DIR0 06h / 07h). */
+            retf_checks_eip_limit = (cpu_s->cyrix_id <= 0x0001);
+            break;
+        default:
+            retf_checks_eip_limit = 0;
+            break;
+    }
 
     cpu_isintel = !strcmp(cpu_f->manufacturer, "Intel");
     cpu_iscyrix = !strcmp(cpu_f->manufacturer, "Cyrix") || !strcmp(cpu_f->manufacturer, "ST");
