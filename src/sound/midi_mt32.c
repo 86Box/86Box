@@ -9,6 +9,7 @@
 #include <86box/device.h>
 #include <86box/mem.h>
 #include <86box/midi.h>
+#include <86box/midi_lcd.h>
 #include <86box/plat.h>
 #include <86box/thread.h>
 #include <86box/rom.h>
@@ -29,8 +30,10 @@ extern void al_set_midi(int freq, int buf_size);
 
 static mt32emu_report_handler_version get_mt32_report_handler_version(mt32emu_report_handler_i i);
 static void                           display_mt32_message(void *instance_data, const char *message);
+static void                           mt32_lcd_updated(void *instance_data);
+static void                           mt32_led_updated(void *instance_data, mt32emu_boolean led_state);
 
-static const mt32emu_report_handler_i_v0 handler_mt32_v0 = {
+static const mt32emu_report_handler_i_v1 handler_mt32_v1 = {
     /** Returns the actual interface version ID */
     get_mt32_report_handler_version, // mt32emu_report_handler_version (*getVersionID)(mt32emu_report_handler_i i);
 
@@ -64,10 +67,14 @@ static const mt32emu_report_handler_i_v0 handler_mt32_v0 = {
     /** Callbacks for reporting various information */
     NULL, // void (*onPolyStateChanged)(void *instance_data, mt32emu_bit8u part_num);
     NULL, // void (*onProgramChanged)(void *instance_data, mt32emu_bit8u part_num, const char *sound_group_name, const char *patch_name);
+    /** Callback for reporting a change of the emulated LCD state */
+    mt32_lcd_updated, // void (*onLCDStateUpdated)(void *instance_data);
+    /** Callback for reporting a change of the MIDI MESSAGE LED */
+    mt32_led_updated, // void (*onMidiMessageLEDStateUpdated)(void *instance_data, mt32emu_boolean led_state);
 };
 
 /** Alternate report handler for Roland CM-32L/CM-32LN */
-static const mt32emu_report_handler_i_v0 handler_cm32l_v0 = {
+static const mt32emu_report_handler_i_v1 handler_cm32l_v1 = {
     /** Returns the actual interface version ID */
     get_mt32_report_handler_version, // mt32emu_report_handler_version (*getVersionID)(mt32emu_report_handler_i i);
 
@@ -101,10 +108,14 @@ static const mt32emu_report_handler_i_v0 handler_cm32l_v0 = {
     /** Callbacks for reporting various information */
     NULL, // void (*onPolyStateChanged)(void *instance_data, mt32emu_bit8u part_num);
     NULL, // void (*onProgramChanged)(void *instance_data, mt32emu_bit8u part_num, const char *sound_group_name, const char *patch_name);
+    /** Callback for reporting a change of the emulated LCD state */
+    mt32_lcd_updated, // void (*onLCDStateUpdated)(void *instance_data);
+    /** Callback for reporting a change of the MIDI MESSAGE LED */
+    mt32_led_updated, // void (*onMidiMessageLEDStateUpdated)(void *instance_data, mt32emu_boolean led_state);
 };
 
-static const mt32emu_report_handler_i handler_mt32  = { &handler_mt32_v0 };
-static const mt32emu_report_handler_i handler_cm32l = { &handler_cm32l_v0 };
+static const mt32emu_report_handler_i handler_mt32  = { .v1 = &handler_mt32_v1 };
+static const mt32emu_report_handler_i handler_cm32l = { .v1 = &handler_cm32l_v1 };
 
 static mt32emu_context context         = NULL;
 static int             roms_present[4] = { -1, -1, -1, -1 };
@@ -166,7 +177,7 @@ static int16_t *buffer_int16 = NULL;
 static mt32emu_report_handler_version
 get_mt32_report_handler_version(UNUSED(mt32emu_report_handler_i i))
 {
-    return MT32EMU_REPORT_HANDLER_VERSION_0;
+    return MT32EMU_REPORT_HANDLER_VERSION_1;
 }
 
 static void
@@ -182,6 +193,24 @@ display_mt32_message(UNUSED(void *instance_data), const char *message)
         ui_sb_mt32lcd(ui_msg);
         free(ui_msg);
     }
+}
+
+/* Called from the render thread. munt calls it again only after the state was
+   read, so read it here every time. */
+static void
+mt32_lcd_updated(UNUSED(void *instance_data))
+{
+    char text[21] = { 0 };
+    int  led;
+
+    led = mt32emu_get_display_state(context, text, MT32EMU_BOOL_FALSE);
+    midi_lcd_set_mt32(text, led);
+}
+
+static void
+mt32_led_updated(UNUSED(void *instance_data), mt32emu_boolean led_state)
+{
+    midi_lcd_set_mt32(NULL, led_state);
 }
 
 void
@@ -302,6 +331,11 @@ mt32emu_init(char *control_rom, char *pcm_rom)
     if (!mt32_check("mt32emu_open_synth", mt32emu_open_synth(context), MT32EMU_RC_OK))
         return 0;
 
+    /* The CM-32L and CM-32LN have no LCD, but munt emulates one for them as
+       well, so show it for every model. */
+    midi_lcd_set_type(MIDI_LCD_MT32);
+    mt32_lcd_updated(NULL);
+
     samplerate = mt32emu_get_actual_stereo_output_samplerate(context);
     /* buf_size = samplerate/RENDER_RATE*2; */
     if (sound_is_float) {
@@ -389,6 +423,7 @@ mt32_close(void *priv)
     }
     context = NULL;
 
+    midi_lcd_set_type(MIDI_LCD_NONE);
     ui_sb_mt32lcd("");
 
     if (buffer)

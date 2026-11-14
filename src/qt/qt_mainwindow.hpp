@@ -24,6 +24,7 @@ class MainWindow;
 }
 
 class MachineStatus;
+class MidiLcdWindow;
 
 class MainWindow : public QMainWindow {
     Q_OBJECT
@@ -189,10 +190,12 @@ private:
     std::shared_ptr<MediaMenu>     mm;
     QMenu                         *dynarecMenu  = nullptr;
     QActionGroup                  *midiOutGroup = nullptr;
+    MidiLcdWindow                 *midiLcd      = nullptr;
 
     bool hasKanaLock();
     void refreshMidiOutMenu();
     void switchMidiOut(int device, int port = -1);
+    void showMidiLcd(bool show);
     void updateShortcuts();
     void updatePowerOffAction();
     void refreshDisplayRatioActions();

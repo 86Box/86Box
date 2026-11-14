@@ -24,6 +24,8 @@ add_library(snd OBJECT
     snd_opl_ymfm.cpp
     snd_resid.cpp
     midi.c
+    midi_lcd.c
+    midi_lcd_mt32.c
     snd_speaker.c
     snd_lpt_adlipt.c
     snd_lpt_cms.c
