@@ -24,6 +24,7 @@
 #include <86box/device.h>
 #include <86box/pci.h>
 #include <86box/chipset.h>
+#include <86box/ioapic_routes.h>
 #include <86box/hdc.h>
 #include <86box/hdc_ide.h>
 #include <86box/keyboard.h>
@@ -1930,9 +1931,55 @@ const device_t p2bls_device = {
     .config        = p2bls_config
 };
 
-int
-machine_at_p2bls_init(const machine_t *model)
+static const device_config_t p2bds_config[] = {
+    // clang-format off
+    {
+        .name           = "bios",
+        .description    = "BIOS Version",
+        .type           = CONFIG_BIOS,
+        .default_string = "p2bds",
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
+        .bios           = {
+            {
+                .name          = "AwardBIOS v4.51PG - Revision 1014 Beta 003",
+                .internal_name = "p2bds",
+                .bios_type     = BIOS_NORMAL,
+                .files_no      = 1,
+                .local         = 0,
+                .size          = 262144,
+                .files         = { "roms/machines/p2bds/1014ds.003", "" }
+            },
+            { .files_no = 0 }
+        },
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+    // clang-format on
+};
+
+const device_t p2bds_device = {
+    .name          = "ASUS P2B-DS",
+    .internal_name = "p2bds",
+    .flags         = 0,
+    .local         = 0,
+    .init          = NULL,
+    .close         = NULL,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = p2bds_config
+};
+
+static int
+machine_at_p2b_init(const machine_t *model, int dual_scsi)
 {
+    static const ioapic_legacy_irq_routing_t p2bds_irq_routing = {
+        .irq_to_intin  = IOAPIC_LEGACY_IRQ_ROUTE_ISA,
+        .pirq_to_intin = IOAPIC_PIRQ_ROUTE_82093AA
+    };
     int         ret = 0;
     const char *bios;
     const char *fn;
@@ -1951,7 +1998,7 @@ machine_at_p2bls_init(const machine_t *model)
         return ret;
 
     /* coreboot keeps its stack and data in the cache before DRAM is up. */
-    if (!strcmp(bios, "p2bls_coreboot"))
+    if (!dual_scsi && !strcmp(bios, "p2bls_coreboot"))
         cpu_car_enable();
 
     machine_at_common_init(model);
@@ -1960,7 +2007,8 @@ machine_at_p2bls_init(const machine_t *model)
     pci_register_slot(0x00, PCI_CARD_NORTHBRIDGE, 0, 0, 0, 0);
     pci_register_slot(0x04, PCI_CARD_SOUTHBRIDGE, 1, 2, 3, 4);
     pci_register_slot(0x06, PCI_CARD_SCSI,        4, 1, 2, 3);
-    pci_register_slot(0x07, PCI_CARD_NETWORK,     3, 4, 1, 2);
+    if (!dual_scsi)
+        pci_register_slot(0x07, PCI_CARD_NETWORK, 3, 4, 1, 2);
     pci_register_slot(0x0B, PCI_CARD_NORMAL,      2, 3, 4, 1);
     pci_register_slot(0x0C, PCI_CARD_NORMAL,      1, 2, 3, 4);
     pci_register_slot(0x09, PCI_CARD_NORMAL,      4, 1, 2, 3);
@@ -1979,10 +2027,29 @@ machine_at_p2bls_init(const machine_t *model)
     hwm_values.temperatures[1] = 0;  /* unused */
     hwm_values.temperatures[2] -= 3; /* CPU offset */
 
-    if ((net_cards_conf[0].device_num == NET_INTERNAL) && machine_get_net_device(machine))
+    if (!dual_scsi && (net_cards_conf[0].device_num == NET_INTERNAL) &&
+        machine_get_net_device(machine))
         device_add(machine_get_net_device(machine));
 
+    if (dual_scsi) {
+        void *ioapic = device_add_params(&ioapic_device,
+                                         (void *) IOAPIC_TOPOLOGY_UP_APIC_DEFAULT);
+        ioapic_set_legacy_irq_routing(ioapic, &p2bds_irq_routing);
+    }
+
     return ret;
+}
+
+int
+machine_at_p2bls_init(const machine_t *model)
+{
+    return machine_at_p2b_init(model, 0);
+}
+
+int
+machine_at_p2bds_init(const machine_t *model)
+{
+    return machine_at_p2b_init(model, 1);
 }
 
 int

@@ -1521,6 +1521,10 @@ extern int             machine_at_bx6_init(const machine_t *);
 extern const device_t  p2bls_device;
 #endif
 extern int             machine_at_p2bls_init(const machine_t *);
+#ifdef EMU_DEVICE_H
+extern const device_t  p2bds_device;
+#endif
+extern int             machine_at_p2bds_init(const machine_t *);
 extern int             machine_at_p3bf_init(const machine_t *);
 #ifdef EMU_DEVICE_H
 extern const device_t  optiplexgx1_device;
