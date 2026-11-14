@@ -571,6 +571,10 @@ chips_45x_xr_write(chips_45x_t *chips, uint8_t val)
         case 0x0c:
             val &= (chips->type == CHIPS_82C452) ? 0x03 : 0x01;
             break;
+        case 0x0e:
+            if (chips->type == CHIPS_82C452)
+                val &= 0x03;
+            break;
         case 0x10:
         case 0x11:
             if (chips->type == CHIPS_82C452)
@@ -610,6 +614,7 @@ chips_45x_xr_write(chips_45x_t *chips, uint8_t val)
             break;
         case 0x05:
         case 0x0c:
+        case 0x0e:
         case 0x18 ... 0x1e:
         case 0x28:
             if (old != val) {
@@ -1074,6 +1079,82 @@ chips_45x_render_1bpp(svga_t *svga)
     }
 }
 
+/*
+   82C452 extended text mode (XR0E bit 0), which the BIOS turns on for the
+   132-column modes: plane 2 holds the font by scanline, 256 bytes apart,
+   one byte per character, so a scanline of a text row is fetched from one
+   DRAM page. Only one font is supported.
+*/
+static void
+chips_45x_render_text_ext(svga_t *svga)
+{
+    uint32_t *p;
+    uint32_t  addr;
+    uint32_t  charaddr;
+    uint32_t  fg;
+    uint32_t  bg;
+    uint8_t   chr;
+    uint8_t   attr;
+    uint8_t   dat;
+    int       drawcursor;
+    int       xinc;
+
+    if (((svga->displine + svga->y_add) < 0) ||
+        (svga->monitor->target_buffer == NULL) ||
+        (svga->monitor->target_buffer->line[svga->displine + svga->y_add] == NULL))
+        return;
+
+    if (svga->firstline_draw == 2000)
+        svga->firstline_draw = svga->displine;
+    svga->lastline_draw = svga->displine;
+
+    if (!svga->fullchange)
+        return;
+
+    p    = &svga->monitor->target_buffer->line[(svga->displine + svga->y_add) & 2047][(svga->x_add) & 2047];
+    xinc = (svga->seqregs[1] & 1) ? 8 : 9;
+
+    for (int x = 0; x < (svga->hdisp + svga->scrollcache); x += xinc) {
+        addr = svga->remap_func(svga, svga->memaddr) & svga->vram_display_mask;
+
+        drawcursor = ((svga->memaddr == svga->cursoraddr) && svga->cursorvisible && svga->cursoron);
+
+        chr  = svga->vram[addr];
+        attr = svga->vram[addr + 1];
+
+        if (drawcursor) {
+            bg = attr & 15;
+            fg = attr >> 4;
+        } else {
+            fg = attr & 15;
+            bg = attr >> 4;
+            if ((attr & 0x80) && (svga->attrregs[0x10] & 8)) {
+                bg = (attr >> 4) & 7;
+                if (svga->blink & 16)
+                    fg = bg;
+            }
+        }
+        fg = svga->pallook[svga->egapal[fg & svga->plane_mask] & svga->dac_mask];
+        bg = svga->pallook[svga->egapal[bg & svga->plane_mask] & svga->dac_mask];
+
+        charaddr = svga->charseta + (svga->scanline << 10) + (chr << 2);
+        dat      = svga->vram[charaddr & svga->vram_mask];
+
+        for (int xx = 0; xx < 8; xx++)
+            p[xx] = (dat & (0x80 >> xx)) ? fg : bg;
+        if (xinc == 9) {
+            if (((chr & ~0x1f) == 0xc0) && (svga->attrregs[0x10] & 4))
+                p[8] = (dat & 1) ? fg : bg;
+            else
+                p[8] = bg;
+        }
+
+        svga->memaddr += 4;
+        p += xinc;
+    }
+    svga->memaddr &= svga->vram_display_mask;
+}
+
 static void
 chips_45x_recalctimings(svga_t *svga)
 {
@@ -1090,6 +1171,9 @@ chips_45x_recalctimings(svga_t *svga)
         svga->memaddr_latch |= (chips->xr[0x0c] & 0x01) << 16;
 
     graphics = (svga->gdcreg[6] & 1) || (svga->attrregs[0x10] & 1);
+
+    if ((chips->type == CHIPS_82C452) && (chips->xr[0x0e] & 0x01) && (svga->render == svga_render_text_80))
+        svga->render = chips_45x_render_text_ext;
 
     if (((emu == EMU_CGA) && graphics && (chips->cga_mode & 0x10)) || ((emu == EMU_HERC) && graphics)) {
         if (emu == EMU_CGA)
