@@ -247,6 +247,30 @@ msgstr "首选项(&P)…"
 msgid "Sound &gain…"
 msgstr "音量增益(&G)…"
 
+msgid "M&IDI output device"
+msgstr ""
+
+msgid "Restart &device"
+msgstr ""
+
+msgid "Send MIDI &command"
+msgstr ""
+
+msgid "&GM System On"
+msgstr ""
+
+msgid "G&S Reset"
+msgstr ""
+
+msgid "&XG System On"
+msgstr ""
+
+msgid "&MT-32 Reset"
+msgstr ""
+
+msgid "All &notes off"
+msgstr ""
+
 msgid "Begin trace"
 msgstr "开始追踪"
 
