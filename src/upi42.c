@@ -107,11 +107,26 @@ struct upi42 {
 #endif
 };
 
+static uint8_t
+upi42_port_output(const upi42_t *upi42, int port)
+{
+    uint8_t val = upi42->ports_out[port];
+
+    if ((port == 2) && upi42->flags) {
+        if (!(upi42->sts & 0x01))
+            val &= ~UPI42_P2_OBF;
+        if (upi42->sts & 0x02)
+            val &= ~UPI42_P2_NIBF;
+    }
+
+    return val;
+}
+
 static void
-upi42_port_out(upi42_t *upi42, int port, uint8_t val)
+upi42_update_port(upi42_t *upi42, int port)
 {
     if (upi42->hooks.port_out != NULL)
-        upi42->hooks.port_out(upi42->hpriv, port, val);
+        upi42->hooks.port_out(upi42->hpriv, port, upi42_port_output(upi42, port));
 }
 
 static void
@@ -132,21 +147,6 @@ upi42_compose_sts(upi42_t *upi42)
     return (upi42->sts & 0x03) | ((upi42->psw & 0x20) >> 3) | (upi42->f1 ? 0x08 : 0) | (upi42->sts & 0xf0);
 }
 
-/* Drive P2 and keep the external port notification in sync. */
-static void
-upi42_p2_drive(upi42_t *upi42, uint8_t val)
-{
-    upi42->ports_out[2] = val;
-    upi42_port_out(upi42, 2, val);
-}
-
-/* Bits firmware may write to P2: the flag outputs are owned by hardware. */
-static uint8_t
-upi42_p2_write_mask(upi42_t *upi42)
-{
-    return upi42->flags ? (uint8_t) ~(UPI42_P2_OBF | UPI42_P2_NIBF) : 0xff;
-}
-
 /* Apply a latched master write at the next execution boundary. */
 static void
 upi42_apply_pending(upi42_t *upi42)
@@ -162,7 +162,7 @@ upi42_apply_pending(upi42_t *upi42)
         upi42->sts |= 0x02;
 
         if (upi42->flags)
-            upi42_p2_drive(upi42, upi42->ports_out[2] & ~UPI42_P2_NIBF);
+            upi42_update_port(upi42, 2);
 
         if (upi42->i)
             upi42->i_raise = 1;
@@ -186,7 +186,7 @@ upi42_port_pins(upi42_t *upi42, int port)
     else
         in = upi42->ports_in[port];
 
-    return in & upi42->ports_out[port];
+    return in & upi42_port_output(upi42, port);
 }
 
 static int
@@ -343,9 +343,8 @@ upi42_op_IN_A_DBB(upi42_t *upi42, UNUSED(uint32_t fetchdat))
     upi42->a = upi42->dbb_in;
     upi42->sts &= ~0x02; /* clear IBF */
 
-    /* Input buffer is empty again: release /IBF on P2 if flags are enabled. */
     if (upi42->flags)
-        upi42_p2_drive(upi42, upi42->ports_out[2] | UPI42_P2_NIBF);
+        upi42_update_port(upi42, 2);
 
     return 1;
 }
@@ -353,11 +352,10 @@ upi42_op_IN_A_DBB(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 static int
 upi42_op_OUTL_Pp_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
-    int     port = fetchdat & 3;
-    uint8_t mask = (port == 2) ? upi42_p2_write_mask(upi42) : 0xff;
+    int port = fetchdat & 3;
 
-    upi42->ports_out[port] = (upi42->ports_out[port] & ~mask) | (upi42->a & mask);
-    upi42_port_out(upi42, port, upi42->ports_out[port]);
+    upi42->ports_out[port] = upi42->a;
+    upi42_update_port(upi42, port);
     upi42->cycs--;
     return 1;
 }
@@ -368,9 +366,8 @@ upi42_op_OUT_DBB_A(upi42_t *upi42, UNUSED(uint32_t fetchdat))
     upi42->dbb_out = upi42->a;
     upi42->sts |= 0x01; /* set OBF */
 
-    /* Output buffer is full: assert OBF on P2 if flags are enabled. */
     if (upi42->flags)
-        upi42_p2_drive(upi42, upi42->ports_out[2] | UPI42_P2_OBF);
+        upi42_update_port(upi42, 2);
 
     return 1;
 }
@@ -389,7 +386,7 @@ upi42_op_MOVD_Pp_A(upi42_t *upi42, uint32_t fetchdat)
 {
     int port = 4 | (fetchdat & 3);
     upi42->ports_out[port] = upi42->a & 0x0f;
-    upi42_port_out(upi42, port, upi42->ports_out[port]);
+    upi42_update_port(upi42, port);
     upi42->cycs--;
     return 1;
 }
@@ -463,12 +460,10 @@ upi42_op_XRL_A_imm(upi42_t *upi42, uint32_t fetchdat)
 static int
 upi42_op_ANL_Pp_imm(upi42_t *upi42, uint32_t fetchdat)
 {
-    int     port = fetchdat & 3;
-    uint8_t mask = (port == 2) ? upi42_p2_write_mask(upi42) : 0xff;
+    int port = fetchdat & 3;
 
-    upi42->ports_out[port] = (upi42->ports_out[port] & ~mask)
-                           | (upi42->ports_out[port] & (fetchdat >> 8) & mask);
-    upi42_port_out(upi42, port, upi42->ports_out[port]);
+    upi42->ports_out[port] &= fetchdat >> 8;
+    upi42_update_port(upi42, port);
     upi42->cycs--;
     return 2;
 }
@@ -476,12 +471,10 @@ upi42_op_ANL_Pp_imm(upi42_t *upi42, uint32_t fetchdat)
 static int
 upi42_op_ORL_Pp_imm(upi42_t *upi42, uint32_t fetchdat)
 {
-    int     port = fetchdat & 3;
-    uint8_t mask = (port == 2) ? upi42_p2_write_mask(upi42) : 0xff;
+    int port = fetchdat & 3;
 
-    upi42->ports_out[port] = (upi42->ports_out[port] & ~mask)
-                           | ((upi42->ports_out[port] | (fetchdat >> 8)) & mask);
-    upi42_port_out(upi42, port, upi42->ports_out[port]);
+    upi42->ports_out[port] |= fetchdat >> 8;
+    upi42_update_port(upi42, port);
     upi42->cycs--;
     return 2;
 }
@@ -491,7 +484,7 @@ upi42_op_ANLD_Pp_A(upi42_t *upi42, uint32_t fetchdat)
 {
     int port = 4 | (fetchdat & 3);
     upi42->ports_out[port] &= upi42->a;
-    upi42_port_out(upi42, port, upi42->ports_out[port]);
+    upi42_update_port(upi42, port);
     upi42->cycs--;
     return 1;
 }
@@ -501,7 +494,7 @@ upi42_op_ORLD_Pp_A(upi42_t *upi42, uint32_t fetchdat)
 {
     int port = 4 | (fetchdat & 3);
     upi42->ports_out[port] |= upi42->a;
-    upi42_port_out(upi42, port, upi42->ports_out[port]);
+    upi42_update_port(upi42, port);
     upi42->cycs--;
     return 1;
 }
@@ -897,11 +890,7 @@ static int
 upi42_op_EN_FLAGS(upi42_t *upi42, UNUSED(uint32_t fetchdat))
 {
     upi42->flags = 1;
-
-    /* Sync the hardware-owned P2 bits with the current buffer state. */
-    upi42_p2_drive(upi42, (upi42->ports_out[2] & ~(UPI42_P2_OBF | UPI42_P2_NIBF))
-                            | ((upi42->sts & 0x01) ? UPI42_P2_OBF : 0)
-                            | ((upi42->sts & 0x02) ? 0 : UPI42_P2_NIBF));
+    upi42_update_port(upi42, 2);
     return 1;
 }
 
@@ -1113,9 +1102,8 @@ upi42_master_read_data(upi42_t *upi42)
     upi42_log("UPI42: dbb_read() = %02X\n", ret);
     upi42->sts &= ~0x01; /* clear OBF */
 
-    /* Release the OBF flag on P2 if flags are enabled. */
     if (upi42->flags)
-        upi42_p2_drive(upi42, upi42->ports_out[2] & ~UPI42_P2_OBF);
+        upi42_update_port(upi42, 2);
 
     return ret;
 }
@@ -1216,7 +1204,7 @@ upi42_do_init(upi42_t *upi42, uint32_t type, uint8_t *rom)
         upi42->ops[0x33] = NULL; /* EN A20 */
         upi42->ops[0x63] = NULL; /* SEL PMB0 */
         upi42->ops[0x73] = NULL; /* SEL PMB1 */
-        upi42->ops[0x42] = NULL; /* SUSPEND */
+        upi42->ops[0x82] = NULL; /* SUSPEND */
         upi42->ops[0xe2] = NULL; /* SUSPEND */
     }
 
