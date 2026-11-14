@@ -19,7 +19,8 @@
         "rtmidi",
         "libslirp",
         "fluidsynth",
-        "libsndfile"
+        "libsndfile",
+        "minizip"
     ],
     "features": {
         "qt-ui": {

@@ -20,7 +20,11 @@
 #include <7zCrc.h>
 #include <Lzma2Dec.h>
 #include <LzmaDec.h>
-#include <miniz.h>
+#if __has_include(<minizip/unzip.h>)
+#    include <minizip/unzip.h>
+#else
+#    include <unzip.h>
+#endif
 
 #include <86box/media_archive.h>
 #include <86box/plat.h>
@@ -67,12 +71,48 @@ SRes stream_seek(ISeekInStreamPtr stream, Int64 *position, ESzSeek origin)
     return *position < 0 ? SZ_ERROR_READ : SZ_OK;
 }
 
-size_t zip_read(void *opaque, mz_uint64 offset, void *buffer, size_t count)
+size_t read_at(FILE *file, uint64_t offset, void *buffer, size_t count)
 {
-    auto file = static_cast<FILE *>(opaque);
     if (offset > INT64_MAX || fseeko64(file, offset, SEEK_SET) != 0)
         return 0;
     return std::fread(buffer, 1, count, file);
+}
+
+/* Reuse the emulator's UTF-8-aware file open and keep ownership of the
+   FILE in Archive when minizip opens or closes its stream. */
+voidpf ZCALLBACK zip_open(voidpf file, const void *, int)
+{
+    return fseeko64(static_cast<FILE *>(file), 0, SEEK_SET) == 0 ? file : nullptr;
+}
+
+uLong ZCALLBACK zip_read(voidpf, voidpf file, void *buffer, uLong count)
+{
+    return std::fread(buffer, 1, count, static_cast<FILE *>(file));
+}
+
+ZPOS64_T ZCALLBACK zip_tell(voidpf, voidpf file)
+{
+    return ftello64(static_cast<FILE *>(file));
+}
+
+long ZCALLBACK zip_seek(voidpf, voidpf file, ZPOS64_T offset, int origin)
+{
+    switch (origin) {
+        case ZLIB_FILEFUNC_SEEK_SET: return offset > INT64_MAX ? -1 : fseeko64(static_cast<FILE *>(file), offset, SEEK_SET);
+        case ZLIB_FILEFUNC_SEEK_CUR: return fseeko64(static_cast<FILE *>(file), static_cast<int64_t>(offset), SEEK_CUR);
+        case ZLIB_FILEFUNC_SEEK_END: return fseeko64(static_cast<FILE *>(file), static_cast<int64_t>(offset), SEEK_END);
+        default: return -1;
+    }
+}
+
+int ZCALLBACK zip_close(voidpf, voidpf)
+{
+    return 0;
+}
+
+int ZCALLBACK zip_error(voidpf, voidpf file)
+{
+    return std::ferror(static_cast<FILE *>(file));
 }
 
 bool valid_utf8(std::string_view name)
@@ -203,10 +243,10 @@ public:
 
     ~Archive()
     {
-        if (zip_iterator)
-            mz_zip_reader_extract_iter_free(zip_iterator);
-        if (zip.m_pState)
-            mz_zip_reader_end(&zip);
+        if (zip_member_open)
+            unzCloseCurrentFile(zip);
+        if (zip)
+            unzClose(zip);
         reset_seven();
         SzArEx_Free(&seven, &sdk_allocator);
         std::fclose(stream.file);
@@ -227,8 +267,9 @@ private:
     void reset_seven();
 
     ArchiveStream stream;
-    mz_zip_archive zip{};
-    mz_zip_reader_extract_iter_state *zip_iterator = nullptr;
+    unzFile zip = nullptr;
+    std::vector<unz64_file_pos> zip_members;
+    bool zip_member_open = false;
     UInt32 zip_index = 0;
     uint64_t zip_position = 0;
 
@@ -289,36 +330,43 @@ bool Archive::insert(std::string_view path, UInt32 index, uint64_t size, bool di
 
 bool Archive::list_zip()
 {
-    if (fseeko64(stream.file, 0, SEEK_END) != 0)
-        return false;
-    const auto length = ftello64(stream.file);
-    zip.m_pRead = zip_read;
-    zip.m_pIO_opaque = stream.file;
-    if (length < 0 || !mz_zip_reader_init(&zip, length, 0))
+    zlib_filefunc64_def callbacks{};
+    callbacks.zopen64_file = zip_open;
+    callbacks.zread_file = zip_read;
+    callbacks.ztell64_file = zip_tell;
+    callbacks.zseek64_file = zip_seek;
+    callbacks.zclose_file = zip_close;
+    callbacks.zerror_file = zip_error;
+    callbacks.opaque = stream.file;
+    zip = unzOpen2_64(nullptr, &callbacks);
+    if (!zip)
         return false;
 
-    for (mz_uint index = 0; index < mz_zip_reader_get_num_files(&zip); index++) {
-        mz_zip_archive_file_stat info;
-        if (!mz_zip_reader_file_stat(&zip, index, &info))
+    int result = unzGoToFirstFile(zip);
+    for (; result == UNZ_OK; result = unzGoToNextFile(zip)) {
+        unz_file_info64 info{};
+        if (unzGetCurrentFileInfo64(zip, &info, nullptr, 0, nullptr, 0, nullptr, 0) != UNZ_OK)
             return false;
-        const auto mode = info.m_external_attr >> 16;
+        const auto mode = info.external_fa >> 16;
         if ((mode & 0170000) == 0120000)
             continue;
-        if (!info.m_is_supported || info.m_is_encrypted)
+        if ((info.flag & 1) || (info.compression_method != 0 && info.compression_method != Z_DEFLATED))
             return false;
-        const mz_uint length = mz_zip_reader_get_filename(&zip, index, nullptr, 0);
-        if (!length)
+        std::string bytes(info.size_filename, '\0');
+        if (unzGetCurrentFileInfo64(zip, nullptr, bytes.data(), info.size_filename,
+                                    nullptr, 0, nullptr, 0) != UNZ_OK)
             return false;
-        std::string bytes(length, '\0');
-        if (mz_zip_reader_get_filename(&zip, index, bytes.data(), length) != length)
+        const bool directory = (info.external_fa & 0x10) || (mode & 0170000) == 0040000 ||
+                               (!bytes.empty() && (bytes.back() == '/' || bytes.back() == '\\'));
+        const std::string name = zip_name(bytes, (info.flag & (1 << 11)) != 0);
+        unz64_file_pos position;
+        if (zip_members.size() >= UINT32_MAX || unzGetFilePos64(zip, &position) != UNZ_OK ||
+            !valid_utf8(name) || !insert(name, static_cast<UInt32>(zip_members.size()),
+                                         directory ? 0 : info.uncompressed_size, directory))
             return false;
-        bytes.pop_back();
-        const std::string name = zip_name(bytes, (info.m_bit_flag & (1 << 11)) != 0);
-        if (!valid_utf8(name) ||
-            !insert(name, index, info.m_is_directory ? 0 : info.m_uncomp_size, info.m_is_directory))
-            return false;
+        zip_members.push_back(position);
     }
-    return true;
+    return result == UNZ_END_OF_LIST_OF_FILE;
 }
 
 bool Archive::list_seven()
@@ -370,29 +418,36 @@ bool Archive::open()
 
 bool Archive::read_zip(const Entry &entry, uint64_t offset, uint8_t *buffer, size_t count)
 {
-    if (!zip_iterator || zip_index != entry.index || offset < zip_position) {
-        if (zip_iterator)
-            mz_zip_reader_extract_iter_free(zip_iterator);
-        zip_iterator = mz_zip_reader_extract_iter_new(&zip, entry.index, 0);
-        if (!zip_iterator)
+    if (!zip_member_open || zip_index != entry.index || offset < zip_position) {
+        if (zip_member_open)
+            unzCloseCurrentFile(zip);
+        zip_member_open = unzGoToFilePos64(zip, &zip_members[entry.index]) == UNZ_OK &&
+                          unzOpenCurrentFile(zip) == UNZ_OK;
+        if (!zip_member_open)
             return false;
         zip_index = entry.index;
         zip_position = 0;
     }
     while (zip_position < offset) {
         const size_t skip = std::min<uint64_t>(discard.size(), offset - zip_position);
-        if (mz_zip_reader_extract_iter_read(zip_iterator, discard.data(), skip) != skip)
+        if (unzReadCurrentFile(zip, discard.data(), static_cast<unsigned>(skip)) != static_cast<int>(skip))
             break;
         zip_position += skip;
     }
-    const bool ok = zip_position == offset &&
-                    mz_zip_reader_extract_iter_read(zip_iterator, buffer, count) == count;
-    if (ok)
-        zip_position += count;
-    if (!ok || zip_position == entry.size) {
-        const bool complete = mz_zip_reader_extract_iter_free(zip_iterator);
-        zip_iterator = nullptr;
-        return ok && complete;
+    size_t remaining = count;
+    while (zip_position >= offset && remaining) {
+        const auto chunk = static_cast<int>(std::min(remaining, chunk_size));
+        const int received = unzReadCurrentFile(zip, buffer, chunk);
+        if (received <= 0)
+            break;
+        zip_position += received;
+        remaining -= received;
+        buffer += received;
+    }
+    if (remaining || zip_position == entry.size) {
+        const int result = unzCloseCurrentFile(zip);
+        zip_member_open = false;
+        return !remaining && result == UNZ_OK;
     }
     return true;
 }
@@ -522,7 +577,7 @@ bool Archive::read_seven(const Entry &entry, uint64_t offset, uint8_t *buffer, s
     }
     if (method == Method::copy) {
         return target <= INT64_MAX && packed_start <= INT64_MAX - target &&
-               zip_read(stream.file, packed_start + target, buffer, count) == count;
+               read_at(stream.file, packed_start + target, buffer, count) == count;
     }
     while (unpack_position < target) {
         if (!read_seven_bytes(discard.data(), std::min<uint64_t>(discard.size(), target - unpack_position))) {
@@ -541,7 +596,7 @@ bool Archive::read(const Entry &entry, uint64_t offset, uint8_t *buffer, size_t 
 {
     if (entry.directory || offset > entry.size || count > entry.size - offset)
         return false;
-    return !count || (zip.m_pState ? read_zip(entry, offset, buffer, count)
+    return !count || (zip ? read_zip(entry, offset, buffer, count)
                                   : read_seven(entry, offset, buffer, count));
 }
 

@@ -51,6 +51,7 @@ runs:
           freetype:p
           sdl3:p
           zlib:p
+          minizip:p
           libpng:p
           openal:p
           rtmidi:p
