@@ -805,13 +805,13 @@ fdd_mount_folder(void *priv, const char *path, int read_only)
 {
     fdd_drive_t *drv = (fdd_drive_t *) priv;
     const int flags = fdd_get_flags(drv);
-    char mounted_path[MAX_IMAGE_PATH_LEN];
+    char mounted_path[sizeof(drv->image_path)];
 
     if (fdd_tape_present(drv) || drive_types[drv->type].max_track <= 0)
         return FDD_FOLDER_UNSUPPORTED;
-    if (strlen(path) >= sizeof(mounted_path) - (read_only ? 5 : 0))
+    const int path_length = snprintf(mounted_path, sizeof(mounted_path), "%s%s", read_only ? "wp://" : "", path);
+    if (path_length < 0 || (size_t) path_length >= sizeof(mounted_path))
         return FDD_FOLDER_READ_ERROR;
-    snprintf(mounted_path, sizeof(mounted_path), "%s%s", read_only ? "wp://" : "", path);
 
     disk_size_t format;
     if (flags & FLAG_525) {
@@ -851,7 +851,7 @@ fdd_mount_folder(void *priv, const char *path, int read_only)
         fdd_close(drv);
         return FDD_FOLDER_NO_MEMORY;
     }
-    strcpy(drv->image_path, mounted_path);
+    memcpy(drv->image_path, mounted_path, (size_t) path_length + 1);
     fdd_media_inserted(drv);
     ui_sb_update_icon_state(SB_FLOPPY | drv->id, 0);
     return FDD_FOLDER_OK;

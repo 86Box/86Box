@@ -201,7 +201,7 @@ extern "C" fdd_folder_result_t
 fdd_folder_create(const char *path, const disk_size_t *format, uint8_t **image)
 {
     const auto sectors = static_cast<uint16_t>(format->tracks * format->sides * format->sectors);
-    const int multiplier = 1 << (format->sector_len - 2);
+    const size_t multiplier = size_t{1} << (format->sector_len - 2);
     std::unique_ptr<uint8_t, decltype(&std::free)> data(
         static_cast<uint8_t *>(std::calloc(sectors * multiplier, sector_bytes)), &std::free);
     if (!data)
