@@ -237,7 +237,7 @@ if(QT)
         option(MOLTENVK "Use MoltenVK libraries for Vulkan support on macOS. Requires a Vulkan-enabled QT." OFF)
     endif()
 
-    option(LIBRASHADER "Build with librashader support" ON)
+    option(LIBRASHADER "Build with librashader support" OFF)
 
     if(LIBRASHADER)
         option(LIBRASHADER_STATIC "Statically link with librashader" OFF)

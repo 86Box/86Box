@@ -600,10 +600,10 @@ VulkanWindowRenderer::finalize()
 #endif
 
     shaderLibraFilterChains.clear();
-#endif
 
 #ifndef LIBRASHADER_STATIC
 clean_up_rest:
+#endif
 #endif
     m_devFuncs->vkDestroyImageView(logi_device, src_image_view, nullptr);
     vmaDestroyImage(allocator, src_image, img_allocation);
@@ -1658,9 +1658,9 @@ VulkanWindowRenderer::initialize()
                         }
                     }
                 }
-#endif
 #ifndef LIBRASHADER_STATIC
 skip_shaders:
+#endif
 #endif
                 if (video_framerate != -1) {
                     renderTimer->setTimerType(Qt::PreciseTimer);
