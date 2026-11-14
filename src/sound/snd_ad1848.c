@@ -692,6 +692,21 @@ readonly_i:
 }
 
 void
+ad1848_update_cd_vol(ad1848_t *ad1848)
+{
+    if (ad1848->cd_vol_reg > -1) {
+        if (ad1848->regs[ad1848->cd_vol_reg] & 0x80)
+            ad1848->cd_vol_l = 0;
+        else
+            ad1848->cd_vol_l = ad1848_vols_5bits_aux_gain[ad1848->regs[ad1848->cd_vol_reg] & 0x1f];
+        if (ad1848->regs[ad1848->cd_vol_reg + 1] & 0x80)
+            ad1848->cd_vol_r = 0;
+        else
+            ad1848->cd_vol_r = ad1848_vols_5bits_aux_gain[ad1848->regs[ad1848->cd_vol_reg + 1] & 0x1f];
+    }
+}
+
+void
 ad1848_speed_changed(ad1848_t *ad1848)
 {
     ad1848->timer_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 / (double) ad1848->freq));
