@@ -4285,17 +4285,13 @@ image_read_sector(const void *local, uint8_t *buffer,
                     /* Construct Q. */
                     q[0] = (trk->attr >> 4) | ((trk->attr & 0xf) << 4);
                     q[1] = bin2bcd(trk->point);
-                    q[2] = index;
-                    if (index == 0) {
-                        /*
-                           Pre-gap sector relative frame addresses count from
-                           00:01:74 downwards.
-                         */
-                        const uint64_t pregap = img->blindwrite_blocks ? idx->length : 150;
-                        FRAMES_TO_MSF((int32_t) (pregap - 1 - (lba + 150 - idx->start)), &m, &s, &f);
-                    } else {
-                        FRAMES_TO_MSF((int32_t) (lba + 150 - idx->start), &m, &s, &f);
-                    }
+                    q[2] = bin2bcd(index);
+                    const uint64_t track_start = trk->idx[1].start;
+                    const uint64_t frame = (uint32_t) (lba + 150);
+                    /* Track-relative time counts down through index 00 and up from index 01. */
+                    const int32_t relative = (index == 0) ? (track_start - frame - 1) :
+                                                           (frame - track_start);
+                    FRAMES_TO_MSF(relative, &m, &s, &f);
                     q[3] = bin2bcd(m & 0xff);
                     q[4] = bin2bcd(s & 0xff);
                     q[5] = bin2bcd(f & 0xff);
