@@ -16,12 +16,12 @@
  *          space is enabled by a write sequence to ports 22h and 23h,
  *          which sets REMAPCFG's ESE bit.
  *
- *          The interrupt controllers, timer and DMA controller are the
- *          machine's usual AT ones, which the chip only maps. The DMA
- *          controller, Port 92 and the other on-chip units (SSIO, power
- *          management, pin configuration) do not appear in the expanded
- *          I/O space, except for PWRCON, which is stored. The chip-select,
- *          refresh control and watchdog timer units have their own files.
+ *          The interrupt controllers and timer are the machine's usual AT
+ *          ones, which the chip only maps. Port 92 and the other on-chip
+ *          units (SSIO, power management, pin configuration) do not appear
+ *          in the expanded I/O space, except for PWRCON, which is stored.
+ *          The chip-select, refresh control, watchdog timer and DMA units
+ *          have their own files; the DMA unit replaces the AT's 8237As.
  *
  *          The three I/O ports are the machine's GPIO pins, P1 in bits
  *          7:0, P2 in bits 15:8 and P3 in bits 23:16: the chip hands what
@@ -36,10 +36,12 @@
  *          either: the peripherals only appear at their usual addresses.
  *
  *          CLKPRS clocks the timer, whose OUT1 and OUT2 are hardwired to
- *          the slave's IR2 and IR3 and still drive the refresh request bit
+ *          the slave's IR2 and IR3 and to the DMA unit's channel 0 and 1
+ *          request connections, and still drive the refresh request bit
  *          and the speaker as on an AT. The other configuration registers
- *          are stored but have no effect, but for INTCFG's IR3 and IR4 bits
- *          and SIOCFG, which are the serial ports'.
+ *          are stored but have no effect, but for DMACFG, which is the DMA
+ *          unit's, INTCFG's IR3 and IR4 bits and SIOCFG, which are the
+ *          serial ports'.
  *
  *          SIOCFG picks the UART baud-rate clocks, from SERCLK or the COMCLK
  *          pin, which the board drives. SIO0 interrupts on the master's IR4
@@ -48,6 +50,10 @@
  *          OUT2 bit is. While the bit is set, OUT2 picks between the UART
  *          (OUT2 set) and the INT9 or INT8 pin (OUT2 clear), so the UART's
  *          interrupt is gated by OUT2 as on a PC; the pins are not emulated.
+ *          Each UART's receive buffer full and transmit buffer empty status
+ *          bits also go to the DMA unit, as RBFDMAn and TXEDMAn, whatever
+ *          its IER is; RBFDMAn is held down while the LSR has an error bit
+ *          set (section 11.2.6.2).
  *
  * Authors: Nathan Lewis, <git@nrlewis.dev>
  *
@@ -144,6 +150,7 @@ struct i386ex_t {
     uint8_t weak; /* Ports whose weak resistors are still on, by bit. */
 
     i386ex_csu_t *csu;
+    i386ex_dma_t *dma;
     i386ex_rcu_t *rcu;
     i386ex_wdt_t *wdt;
     serial_t     *uart[2];
@@ -169,6 +176,9 @@ i386ex_log(const char *fmt, ...)
 #else
 #    define i386ex_log(fmt, ...)
 #endif
+
+/* The chip, for the timer outputs, whose functions are handed the timer. */
+static i386ex_t *i386ex_inst = NULL;
 
 static const uint16_t uart_base[2]   = { RBR0_PC, RBR1_PC };
 static const uint16_t uart_ex[2]     = { RBR0, RBR1 };
@@ -317,6 +327,17 @@ i386ex_uart_connect(const i386ex_t *dev)
     }
 }
 
+/* RBFDMAn is the LSR's DR bit, held down while OE, PE, FE or BI is set, and TXEDMAn its THRE bit. */
+static void
+i386ex_uart_lsr(serial_t *uart, uint8_t lsr, void *priv)
+{
+    const i386ex_t *dev = (i386ex_t *) priv;
+    int             n   = (uart == dev->uart[1]);
+
+    i386ex_dma_set_source(dev->dma, n ? I386EX_DMA_RBF1 : I386EX_DMA_RBF0, (lsr & 0x01) && !(lsr & 0x1e));
+    i386ex_dma_set_source(dev->dma, n ? I386EX_DMA_TXE1 : I386EX_DMA_TXE0, !!(lsr & 0x20));
+}
+
 /* PSCLK, which clocks the timer, is the internal clock divided by CLKPRS + 2. */
 static void
 i386ex_timer_clock(const i386ex_t *dev)
@@ -325,11 +346,14 @@ i386ex_timer_clock(const i386ex_t *dev)
         pit_devs[0].set_pit_const(pit_devs[0].data, ((uint64_t) (dev->clkprs & 0x01ff) + 2) << 32);
 }
 
-/* TMROUT1 and TMROUT2 are hardwired to the slave's IR2 and IR3. */
+/* TMROUT1 and TMROUT2 are hardwired to the slave's IR2 and IR3, and to the DMA unit's request connections. */
 static void
 i386ex_tmrout1(int new_out, int old_out, void *priv)
 {
     pit_refresh_timer_at(new_out, old_out, priv);
+
+    if (i386ex_inst != NULL)
+        i386ex_dma_set_source(i386ex_inst->dma, I386EX_DMA_OUT1, new_out);
 
     if (new_out && !old_out)
         picint(1 << 10);
@@ -341,6 +365,9 @@ static void
 i386ex_tmrout2(int new_out, int old_out, void *priv)
 {
     pit_speaker_timer(new_out, old_out, priv);
+
+    if (i386ex_inst != NULL)
+        i386ex_dma_set_source(i386ex_inst->dma, I386EX_DMA_OUT2, new_out);
 
     if (new_out && !old_out)
         picint(1 << 11);
@@ -356,6 +383,8 @@ i386ex_map_peripherals(i386ex_t *dev, int set, int expanded, uint16_t mask)
         io_handler(set, expanded ? ICW1M : ICW1M_PC, 2, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic);
     if (mask & REMAP_ISR)
         io_handler(set, expanded ? ICW1S : ICW1S_PC, 2, pic_read, NULL, NULL, pic_write, NULL, NULL, &pic2);
+    if (mask & REMAP_DR)
+        i386ex_dma_handler(dev->dma, set, expanded);
     if ((mask & REMAP_TR) && (pit_devs[0].data != NULL))
         io_handler(set, expanded ? TMR0 : TMR0_PC, 4,
                    pit_devs[0].read, NULL, NULL, pit_devs[0].write, NULL, NULL, pit_devs[0].data);
@@ -383,7 +412,7 @@ i386ex_expanded(i386ex_t *dev, int set)
 {
     i386ex_log("386EX: expanded I/O space %s\n", set ? "enabled" : "disabled");
 
-    i386ex_map_peripherals(dev, set, 1, REMAP_IMR | REMAP_ISR | REMAP_TR | REMAP_S0R | REMAP_S1R);
+    i386ex_map_peripherals(dev, set, 1, REMAP_IMR | REMAP_ISR | REMAP_DR | REMAP_TR | REMAP_S0R | REMAP_S1R);
 
     io_handler(set, PWRCON, 1, i386ex_config_read, NULL, NULL, i386ex_config_write, NULL, NULL, dev);
     io_handler(set, CLKPRS, 2, i386ex_config_read, NULL, NULL, i386ex_config_write, NULL, NULL, dev);
@@ -413,11 +442,8 @@ i386ex_remapcfg_set(i386ex_t *dev, uint16_t val)
 
     i386ex_log("386EX: REMAPCFG = %04X\n", dev->remapcfg);
 
-    if (changed & REMAP_DR)
-        i386ex_log("386EX: DMA remapping is not emulated\n");
-
     /* A peripheral is in the DOS I/O space while its remap bit is clear. */
-    if (changed & REMAP_MASK & ~REMAP_DR) {
+    if (changed & REMAP_MASK) {
         i386ex_map_peripherals(dev, 0, 0, changed & dev->remapcfg);
         i386ex_map_peripherals(dev, 1, 0, changed & old);
     }
@@ -528,10 +554,12 @@ i386ex_config_write(uint16_t port, uint8_t val, void *priv)
             break;
         case DMACFG:
             dev->dmacfg = val;
+            i386ex_dma_set_cfg(dev->dma, val);
             break;
         case INTCFG:
             dev->intcfg = val;
             i386ex_uart_connect(dev);
+            i386ex_dma_set_intcfg(dev->dma, val);
             break;
         case TMRCFG:
             dev->tmrcfg = val;
@@ -550,6 +578,12 @@ i386ex_csu_t *
 i386ex_get_csu(i386ex_t *dev)
 {
     return dev->csu;
+}
+
+void
+i386ex_set_dma_channels(i386ex_t *dev, int drq0, int drq1)
+{
+    i386ex_dma_set_channels(dev->dma, drq0, drq1);
 }
 
 void
@@ -623,6 +657,7 @@ i386ex_init(const device_t *info)
     i386ex_t *dev = (i386ex_t *) calloc(1, sizeof(i386ex_t));
 
     dev->csu = device_add(&i386ex_csu_device);
+    dev->dma = device_add(&i386ex_dma_device);
     dev->rcu = device_add(&i386ex_rcu_device);
     dev->wdt = device_add(&i386ex_wdt_device);
 
@@ -632,12 +667,17 @@ i386ex_init(const device_t *info)
     if (info->local & I386EX_SIO1)
         dev->uart[1] = device_add_inst(&ns16450_device, 2);
 
-    i386ex_map_peripherals(dev, 1, 0, REMAP_S0R | REMAP_S1R);
+    i386ex_map_peripherals(dev, 1, 0, REMAP_DR | REMAP_S0R | REMAP_S1R);
+    for (int n = 0; n < 2; n++) {
+        if (i386ex_uart_present(dev, n))
+            serial_set_lsr_callback(dev->uart[n], i386ex_uart_lsr, dev);
+    }
     i386ex_uart_connect(dev);
     i386ex_uart_clock(dev);
     i386ex_timer_clock(dev);
 
-    /* OUT1 and OUT2 still request refresh and drive the speaker, as on an AT. */
+    /* OUT1 and OUT2 go to the DMA unit, and still request refresh and drive the speaker, as on an AT. */
+    i386ex_inst = dev;
     if (pit_devs[0].set_out_func != NULL) {
         pit_devs[0].set_out_func(pit_devs[0].data, 1, i386ex_tmrout1);
         pit_devs[0].set_out_func(pit_devs[0].data, 2, i386ex_tmrout2);
@@ -656,9 +696,13 @@ i386ex_init(const device_t *info)
     return dev;
 }
 
+/* The UARTs and the DMA unit, added after the chip, are closed before it. */
 static void
 i386ex_close(void *priv)
 {
+    if (i386ex_inst == priv)
+        i386ex_inst = NULL;
+
     free(priv);
 }
 
