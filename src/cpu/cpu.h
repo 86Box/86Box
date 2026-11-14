@@ -639,33 +639,47 @@ extern int cpu_soft_reset_keeps_fpu(void);
 extern uint16_t cpu_cur_status;
 
 /* The NOTWIDEDS/NOTWIDESS bit of a segment just loaded, set wherever its
-   NOTFLAT bit is */
-static inline void
-cpu_set_wide_status(const x86seg *s)
+   NOTFLAT bit is: status with that bit updated */
+__attribute__((always_inline)) static inline uint16_t
+cpu_wide_status(const x86seg *s, uint16_t status)
 {
     if (s == &cpu_state.seg_ds) {
         /*A base of 0xffffffff is the null selector's mark, faulted on
           every access (SEG_CHECK_READ/WRITE) whatever the descriptor*/
         if ((s->limit_high == 0xffffffff) && ((s->access & 0x0a) == 0x02) && (s->base != 0xffffffff))
-            cpu_cur_status &= ~CPU_STATUS_NOTWIDEDS;
+            status &= ~CPU_STATUS_NOTWIDEDS;
         else
-            cpu_cur_status |= CPU_STATUS_NOTWIDEDS;
+            status |= CPU_STATUS_NOTWIDEDS;
     } else if (s == &cpu_state.seg_ss) {
         if (s->limit_high == 0xffffffff)
-            cpu_cur_status &= ~CPU_STATUS_NOTWIDESS;
+            status &= ~CPU_STATUS_NOTWIDESS;
         else
-            cpu_cur_status |= CPU_STATUS_NOTWIDESS;
+            status |= CPU_STATUS_NOTWIDESS;
     }
+    return status;
+}
+
+static inline void
+cpu_set_wide_status(const x86seg *s)
+{
+    cpu_cur_status = cpu_wide_status(s, cpu_cur_status);
 }
 
 /* A segment's limits were just written: other than 0..0xffff, NOT64K is
    set. Any descriptor may be passed; one that is not a segment register
    only sets the bit when it needn't */
+__attribute__((always_inline)) static inline uint16_t
+cpu_64k_status(const x86seg *s, uint16_t status)
+{
+    if (s->limit_low || (s->limit_high != 0xffff))
+        status |= CPU_STATUS_NOT64K;
+    return status;
+}
+
 static inline void
 cpu_mark_64k_status(const x86seg *s)
 {
-    if (s->limit_low || (s->limit_high != 0xffff))
-        cpu_cur_status |= CPU_STATUS_NOT64K;
+    cpu_cur_status = cpu_64k_status(s, cpu_cur_status);
 }
 
 /* NOT64K from the six segment registers themselves */

@@ -1461,7 +1461,10 @@ codegen_LOAD_SEG(codeblock_t *block, uop_t *uop)
 
     host_arm64_MOVX_IMM(block, REG_ARG1, (uint64_t) uop->p);
     host_arm64_AND_IMM(block, REG_ARG0, src_reg, 0xffff);
-    host_arm64_call(block, (void *) loadseg);
+    if ((uop->p == &cpu_state.seg_ds) || (uop->p == &cpu_state.seg_es) || (uop->p == &cpu_state.seg_fs) || (uop->p == &cpu_state.seg_gs))
+        host_arm64_call(block, (void *) loadseg_pm_fast);
+    else
+        host_arm64_call(block, (void *) loadseg);
     codegen_exit_CBNZ(block, uop, REG_X0, codegen_exit_rout);
 
     return 0;

@@ -291,25 +291,28 @@ set_use32(int u)
 }
 
 #ifndef OPS_286_386
-void
-do_seg_load(x86seg *s, uint16_t *segdat)
+/* The hidden part of a segment register from the four words of its
+   descriptor */
+__attribute__((always_inline)) static inline void
+seg_load_fields(x86seg *s, uint16_t word0, uint16_t word1, uint16_t word2, uint16_t word3)
 {
     /* The descriptor's last word is reserved on the 80286 ("The Intel
        reserved bytes in the segment descriptor must be set to 0 for
        compatibility with the 80386", 80286 PRM 7.4) and
        ignored there: no limit[19:16], G, D/B or base[31:24]. */
-    const uint16_t word3 = is386 ? segdat[3] : 0;
+    if (!is386)
+        word3 = 0;
 
-    s->limit = segdat[0] | ((word3 & 0x000f) << 16);
+    s->limit = word0 | ((word3 & 0x000f) << 16);
     if (word3 & 0x0080)
         s->limit = (s->limit << 12) | 0xfff;
-    s->base = segdat[1] | ((segdat[2] & 0x00ff) << 16);
+    s->base = word1 | ((word2 & 0x00ff) << 16);
     s->base |= ((word3 >> 8) << 24);
-    s->access  = segdat[2] >> 8;
+    s->access  = word2 >> 8;
     s->ar_high = word3 & 0xff;
     s->checked = 0;
 
-    if (((segdat[2] & 0x1800) != 0x1000) || !(segdat[2] & (1 << 10))) {
+    if (((word2 & 0x1800) != 0x1000) || !(word2 & (1 << 10))) {
         /* Expand-down */
         s->limit_high = s->limit;
         s->limit_low  = 0;
@@ -317,27 +320,31 @@ do_seg_load(x86seg *s, uint16_t *segdat)
         s->limit_high = (word3 & 0x40) ? 0xffffffff : 0xffff;
         s->limit_low  = s->limit + 1;
     }
+}
 
-    if (s == &cpu_state.seg_ds) {
-        if ((s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff))
-            cpu_cur_status &= ~CPU_STATUS_NOTFLATDS;
-        else
-            cpu_cur_status |= CPU_STATUS_NOTFLATDS;
-    }
-    if (s == &cpu_state.seg_es) {
-        if ((s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff))
-            cpu_cur_status &= ~CPU_STATUS_NOTFLATES;
-        else
-            cpu_cur_status |= CPU_STATUS_NOTFLATES;
-    }
-    if (s == &cpu_state.seg_ss) {
-        if ((s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff))
-            cpu_cur_status &= ~CPU_STATUS_NOTFLATSS;
-        else
-            cpu_cur_status |= CPU_STATUS_NOTFLATSS;
-    }
-    cpu_set_wide_status(s);
-    cpu_mark_64k_status(s);
+/* status with the NOTFLAT, NOTWIDE and NOT64K bits of a segment register
+   whose hidden part was just loaded */
+__attribute__((always_inline)) static inline uint16_t
+seg_load_status(const x86seg *s, uint16_t status)
+{
+    const int flat = (s->base == 0) && (s->limit_low == 0) && (s->limit_high == 0xffffffff);
+
+    if (s == &cpu_state.seg_ds)
+        status = flat ? (status & ~CPU_STATUS_NOTFLATDS) : (status | CPU_STATUS_NOTFLATDS);
+    if (s == &cpu_state.seg_es)
+        status = flat ? (status & ~CPU_STATUS_NOTFLATES) : (status | CPU_STATUS_NOTFLATES);
+    if (s == &cpu_state.seg_ss)
+        status = flat ? (status & ~CPU_STATUS_NOTFLATSS) : (status | CPU_STATUS_NOTFLATSS);
+    status = cpu_wide_status(s, status);
+
+    return cpu_64k_status(s, status);
+}
+
+void
+do_seg_load(x86seg *s, uint16_t *segdat)
+{
+    seg_load_fields(s, segdat[0], segdat[1], segdat[2], segdat[3]);
+    cpu_cur_status = seg_load_status(s, cpu_cur_status);
 }
 #endif
 
@@ -581,6 +588,68 @@ loadseg(uint16_t seg, x86seg *s)
 
     return cpu_state.abrt;
 }
+
+#if !defined(OPS_286_386) && defined(USE_DYNAREC)
+/* loadseg() for DS, ES, FS or GS, called from recompiled code. The common
+   protected-mode load is done here: a non-null selector inside its table,
+   an aligned descriptor whose page is in the read lookup, a data or
+   readable code segment that passes the privilege check, present, with
+   the Accessed bit already set on a 486 or later. That is the path on
+   which loadseg() raises no fault, walks no page table, writes no memory
+   and charges no cycles, and this leaves the same state it does. Any other
+   load goes to loadseg() before anything is written. */
+int
+loadseg_pm_fast(uint16_t seg, x86seg *s)
+{
+    const x86seg *dt   = (seg & 0x0004) ? &ldt : &gdt;
+    uint32_t      addr = seg & 0xfff8;
+    uintptr_t     lookup;
+    uint32_t      lo;
+    uint32_t      hi;
+    uint32_t      type;
+    int           dpl;
+
+    /* read_descriptor() reads in words on a 16-bit bus; x86seg_set_accessed()
+       always writes on a 386 and the RapidCAD */
+    if (!(msw & 1) || (cpu_state.eflags & VM_FLAG) || cpu_state.abrt || !(seg & 0xfffc) || cpu_16bitbus || !is486 ||
+        israpidcad || ((addr + 7) > dt->limit) || (s == &cpu_state.seg_ss) || (s == &cpu_state.seg_cs))
+        return loadseg(seg, s);
+    addr += dt->base;
+
+    /* The readmeml() hit of read_descriptor(); both dwords are in one page */
+    lookup = readlookup2[addr >> 12];
+    if ((lookup == (uintptr_t) LOOKUP_INV) || (addr & 7))
+        return loadseg(seg, s);
+    lo = *(uint32_t *) (lookup + addr);
+    hi = *(uint32_t *) (lookup + (addr + 4));
+
+    /* loadseg()'s type switch as bit masks: types 0x10-0x17 (data), 0x1a and
+       0x1b (readable non-conforming code) need DPL >= RPL and DPL >= CPL,
+       0x1e and 0x1f (readable conforming code) load at any level. Then
+       present, and Accessed set so x86seg_set_accessed() writes nothing. */
+    type = (hi >> 8) & 0x1f;
+    dpl  = (int) ((hi >> 13) & 3);
+    if (!((0xccff0000u >> type) & 1) || (((0x0cff0000u >> type) & 1) && (((seg & 0x0003) > dpl) || ((CPL) > dpl))) ||
+        ((hi & 0x8100) != 0x8100))
+        return loadseg(seg, s);
+
+    x86seg_log("Seg data %04X %04X %04X %04X\n", lo & 0xffff, lo >> 16, hi & 0xffff, hi >> 16);
+    x86seg_log("Seg type %03X\n", hi & 0x1f00);
+    cpl_override = 0;
+    s->seg       = seg;
+    /* do_seg_load(), built from the same two helpers; its NOTFLATDS,
+       NOTFLATES and NOTWIDEDS are what the end of loadseg() recomputes
+       from the same fields */
+    seg_load_fields(s, lo & 0xffff, lo >> 16, hi & 0xffff, hi >> 16);
+    cpu_cur_status = seg_load_status(s, cpu_cur_status);
+    if (s == &cpu_state.seg_ds)
+        codegen_flat_ds = codegen_wide_ds = 0;
+    if (s == &cpu_state.seg_es)
+        codegen_flat_es = 0;
+
+    return 0;
+}
+#endif
 
 void
 #ifdef OPS_286_386

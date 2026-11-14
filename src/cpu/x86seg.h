@@ -47,6 +47,9 @@ extern void taskswitch286_2386(uint16_t seg, uint16_t *segdat, int is32);
 extern void x86_doabrt(int x86_abrt);
 extern void x86_fault_in_delivery(int first, int second);
 extern int  loadseg(uint16_t seg, x86seg *s);
+#ifdef USE_DYNAREC
+extern int  loadseg_pm_fast(uint16_t seg, x86seg *s);
+#endif
 /* The prototype of loadcs_2386() is needed here for reset. */
 extern void loadcs_2386(uint16_t seg);
 extern void loadcs(uint16_t seg);
