@@ -138,6 +138,8 @@ add_library(vid OBJECT
     vid_ati_rage128_pm4.c
     vid_ati_rage128_3d.c
     vid_ati_rage128_mpeg.c
+    vid_ati_rage128_i2c.c
+    vid_ati_rage128_bm.c
     vid_ati_rage128_raster.c
     vid_ati_rage128_mem.c
     vid_ati_rage128_jit.c
@@ -229,6 +231,8 @@ if(ENABLE_RAGE128_LOG)
         vid_ati_rage128_pm4.c
         vid_ati_rage128_3d.c
         vid_ati_rage128_mpeg.c
+        vid_ati_rage128_i2c.c
+        vid_ati_rage128_bm.c
         vid_ati_rage128_raster.c
         vid_ati_rage128_mem.c
         vid_ati_rage128_jit.c
@@ -254,6 +258,8 @@ if(NOT MSVC)
         vid_ati_rage128_pm4.c
         vid_ati_rage128_3d.c
         vid_ati_rage128_mpeg.c
+        vid_ati_rage128_i2c.c
+        vid_ati_rage128_bm.c
         vid_ati_rage128_raster.c
         vid_ati_rage128_mem.c
         vid_ati_rage128_jit.c

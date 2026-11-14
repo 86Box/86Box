@@ -70,13 +70,15 @@ The device lives in `src/video/vid_ati_rage128*.c` with its headers in
 the device shell, the legacy VGA path, the display block, surface
 access, the overlay, the 2D engine, the command processor, the 3D
 engine, the parallel rasterizer, the span recompiler, the GPU backend
-and its four compute kernels, the MPEG block and the MAXX pairing, plus
+and its four compute kernels, the MPEG block, the multimedia I2C
+master, the descriptor-list bus master and the MAXX pairing, plus
 two diagnostic files (a draw-state census and fence telemetry). Register
 behavior follows the RAGE 128 PRO Register Reference Guide, the RAGE 128
 Software Development Guide, the RAGE 128 VR / RAGE 128 GL Graphics
 Controller Specifications (the chip specification, for the board straps
-and the block overviews) and the two 1999 register supplements
-(Multimedia Registers, and Registers for CCE 3D Packets). Where those
+and the block overviews) and the three 1999 register supplements
+(Multimedia Registers, Bus Master Registers, and Registers for CCE 3D
+Packets). Where those
 leave a datapath detail out, the sources say which earlier document (the
 RAGE PRO Programmer's Guide) or which open-source driver supplied it:
 the Linux r128 DRM, Mesa's r128 driver and xf86-video-r128, the XFree86
@@ -119,11 +121,27 @@ reach 15 and 16 bpp modes. The 64x64 hardware cursor uses the image
 format the Software Development Guide gives. A page flip through the
 CRTC offset register is latched at the flip point, with the offset lock
 honored. The monitor DDC channel is bit-banged through the monitor id
-GPIO register and serves 86Box's shared monitor EDID, so the driver
-reads the monitor's mode list. The video input port is not emulated: its
+GPIO register, so the driver reads the monitor's mode list from its EDID.
+The video input port is not emulated: its
 field counters read zero and automatic snapshots never fire, while a
 manual snapshot works. The memory checkerboarding controls are stored
 and read back only.
+
+By default every Rage 128 board, both MAXX chips included, presents a
+monitor of its own on that channel, the high-resolution CRT EDID kept in
+the shared DDC code (`src/video/vid_ddc.c`), in place of 86Box's regular
+built-in monitor, which other cards keep. It describes a CRT
+named "86Box R128v6" in one EDID 1.3 block: preferred timing 1600x1200
+at 75 Hz, standard timings up to 2048x1536 at 60 Hz, and range limits of
+50-150 Hz vertical, 30-108 kHz horizontal and a 300 MHz pixel clock.
+With it the Windows 98, Windows 2000 and Windows XP drivers offer
+2048x1536 and scan it unpanned. The 128-byte block sits in a 128-byte
+EEPROM, so a read past its end repeats it. A custom EDID file chosen
+under Settings, Display, Monitor EDID, Custom still takes precedence; if
+that file cannot be read, 86Box reports it and the board falls back to
+its own monitor. To give a Rage 128 the regular 86Box monitor instead,
+use Export next to Default to save the regular EDID to a file, then pick
+Custom and select that file.
 
 `vid_ati_rage128_mem.c` and the bus helpers in `vid_ati_rage128_pm4.c`
 give the engines one 64 MB card address space: the lower 32 MB is the
@@ -237,6 +255,38 @@ and the source cites the routine for each piece. The inverse DCT is the
 double-precision reference transform IEEE 1180 measures against: the
 driver's model carries two different integer routines, so neither is
 taken as the chip's.
+
+`vid_ati_rage128_i2c.c` is the chip's hardware-assisted I2C master, the
+bus the chip uses to program multimedia parts such as video decoders and
+TV tuners: a 16-entry byte buffer behind I2C_DATA, byte counts and an
+enable in I2C_CNTL_1, and a GO bit plus DONE, NACK and HALT status in
+I2C_CNTL_0, with the I2C interrupt in GEN_INT_STATUS. A transfer runs to
+its end inside the write that starts it. The master has its own I2C bus,
+separate from the monitor DDC lines, and no board has anything on it, so
+every transfer that sends a byte ends with the address not acknowledged,
+the way a card with no tuner or decoder answers, so a client sees no part
+at that address. The field layouts come from the Multimedia Registers
+supplement and the programming sequence from the Video Capture
+programmer's guide supplement.
+
+`vid_ati_rage128_bm.c` is the chip's descriptor-list bus master, which
+moves blocks between system memory and the frame buffer without the CPU.
+A client builds a table of four-dword descriptors in system memory (frame
+buffer offset, physical system address, a command dword with the byte
+count and an end-of-list bit, and a reserved dword), then writes the
+table's address and a trigger to one of the four VIP channel registers,
+BM_VIP0_BUF to BM_VIP3_BUF. Trigger 0 copies system memory to the frame
+buffer and trigger 1 the other way; the end of the list sets the bus
+master interrupt in GEN_INT_STATUS. The list runs to its end inside the
+write that starts it, only while the PCI command register and BUS_CNTL
+allow bus mastering, and its frame buffer stores take the same path as
+CPU stores through the linear aperture, so the screen and the GPU
+backend see them. A start written by a ring packet runs on
+the emulation thread at its next register read. The other triggers, the
+capture buffers and the GUI channel are stored and start nothing. The
+register fields come from the Bus Master Registers supplement and the
+descriptor layout and start sequence from the Software Development
+Guide.
 
 `vid_ati_rage128_maxx.c` is the MAXX board: two chip instances plus the
 logic between them. The two chips share one monitor connector, and the

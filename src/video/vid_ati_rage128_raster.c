@@ -103,10 +103,15 @@ typedef struct rage128_raster_t {
     int mask;     /* row map for r128_row_owned: n-1 or -n    */
     int run;      /* cleared at close to stop the workers     */
 
-    /* Deferred batch, appended to on the CCE executor thread. Workers
-       read it only inside rage128_raster_flush, and the flush's callers
-       guarantee no primitive is submitted meanwhile, so it does not
-       change while they run. */
+    /* Deferred batch. Two threads append to it, never at the same time:
+       the CCE executor thread for ring traffic, and the CPU thread while
+       it walks an indirect buffer submitted by a direct PM4_IW_INDSIZE
+       write. The CPU thread keeps the executor out of its passes for the
+       length of that walk (cce_walk_hold in vid_ati_rage128_pm4.c), so
+       the thread that appends is also the only one that can start a
+       flush. Workers read the batch only inside rage128_raster_flush,
+       between its wake and their done signals, so it does not change
+       while they run. */
     rb_cmd_t *cmds;
     uint32_t  cmd_count;
     uint32_t  cmd_cap;
@@ -155,6 +160,29 @@ typedef struct rage128_raster_t {
 } rage128_raster_t;
 
 static void rb_reset_written(rage128_raster_t *rb);
+
+#ifdef REG_HARNESS
+/* Number of primitives in the deferred batch, for the register harness.
+   The count is read with raster_flush_mtx held, which shuts out the one
+   writer that can run on a thread the caller does not control: a flush,
+   which clears the count under that mutex. The other two writers take
+   no lock, the thread that appends a primitive and the thread that
+   writes a reset pulse, so the caller must either be that thread or
+   know that no thread is submitting. */
+uint32_t
+rage128_harness_raster_cmd_count(rage128_t *dev)
+{
+    rage128_raster_t *rb = (rage128_raster_t *) dev->raster;
+    uint32_t          n;
+
+    if (!rb)
+        return 0;
+    thread_wait_mutex(dev->raster_flush_mtx);
+    n = rb->cmd_count;
+    thread_release_mutex(dev->raster_flush_mtx);
+    return n;
+}
+#endif
 
 static void
 rb_worker_thread(void *priv)
@@ -295,9 +323,15 @@ rb_run_parallel(rage128_raster_t *rb)
         thread_reset_event(rb->workers[i].done);
 }
 
-/* Draw the current batch and empty it. The caller guarantees that no
-   primitive is submitted meanwhile: either it is the CCE executor
-   itself, or the drain that calls this has stopped the executor.
+/* Draw the current batch and empty it. No primitive is submitted
+   meanwhile. The CCE executor flushes only inside a pass of its loop,
+   and it starts no pass while the CPU thread walks an indirect buffer of
+   its own: the CPU thread sets cce_walk_hold and waits out a pass
+   already running before it appends, and the executor tests the flag at
+   the top of every pass. The CPU thread flushes either from inside such
+   a walk, with the executor held out, or from a drain, where the command
+   FIFO is empty, only the CPU thread can refill it, and it appends
+   nothing itself.
 
    Two flushes can still overlap, and no caller can rule that out, so
    this takes raster_flush_mtx. The drain's idle test reads
@@ -327,6 +361,17 @@ rb_flush(rage128_t *dev, int recycle_tex)
     thread_wait_mutex(dev->raster_flush_mtx);
 
     if (rb && rb->nthreads > 1 && rb->cmd_count != 0) {
+        /* This flush takes the pending batch. cce_batch_flushing is set
+           before the workers run and stays set until the end of this
+           function, so the status registers read busy from the moment
+           cce_batch_pending drops below until the staged surfaces and
+           the scratch fences are where the guest reads them
+           (rage128_pm4_busy loads cce_batch_pending first, then this
+           flag). Only this function writes the flag, with the flush
+           mutex held; the enqueue path does not, so a primitive queued
+           while a flush is under way can neither clear it nor be hidden
+           by its clear. */
+        atomic_store(&dev->cce_batch_flushing, 1);
         rb_run_parallel(rb);
 
         rb->cmd_count   = 0;
@@ -392,6 +437,16 @@ rb_flush(rage128_t *dev, int recycle_tex)
        after the write-back above, so a driver that sees one also finds
        the pixels of a target in AGP memory in guest memory. */
     rage128_pm4_scratch_apply(dev);
+
+    /* The batch this flush took is in guest memory and its fences are
+       visible: the engine stops reading busy on its account. The flag
+       is the only busy term left at this point when the batch came from
+       an indirect buffer the CPU thread ran and the executor drew it in
+       a pass that popped nothing; cleared any earlier, it would let a
+       driver read the engine idle and then read a color or depth buffer
+       in AGP memory that the write-back above had not reached. */
+    if (atomic_load(&dev->cce_batch_flushing))
+        atomic_store(&dev->cce_batch_flushing, 0);
 
     thread_release_mutex(dev->raster_flush_mtx);
 }

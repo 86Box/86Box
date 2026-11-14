@@ -29,6 +29,12 @@
  *          @0002:702a, segment 2 offset 702a of that 16-bit DLL). The pin
  *          table is below.
  *
+ *          The board also carries a Philips PCF8591, an 8-bit A/D and D/A
+ *          converter with an I2C interface, which the driver programs
+ *          through chip B's hardware I2C master. It is modeled here as a
+ *          device on chip B's multimedia I2C bus; chip A's bus, like a
+ *          single card's, has nothing on it.
+ *
  *          Outside this file the board needs pci_register_sibling_slot in
  *          pci.c and its vid_table.c entry. The chip side gives it the
  *          AMCGPIO registers, the amcgpio_in / amcgpio_notify hooks and
@@ -45,6 +51,10 @@
  *              Controller Specifications", GCS-C04100 Rev 0.05, November
  *              1998 (the board straps). Cited as "GCS: ...".
  *
+ *          [3] NXP Semiconductors, "PCF8591 8-bit A/D and D/A converter",
+ *              product data sheet, Rev. 7, 27 June 2013. Cited as
+ *              "PCF8591 data sheet, <section, table or figure>".
+ *
  * Authors: skiretic.
  *
  *          Copyright 2026 skiretic.
@@ -55,10 +65,12 @@
 #include <string.h>
 #include <86box/86box.h>
 #include <86box/device.h>
+#include <86box/i2c.h>
 #include <86box/mem.h>
 #include <86box/pci.h>
 #include <86box/plat.h>
 #include <86box/rom.h>
+#include <86box/thread.h>
 #include <86box/timer.h>
 #include <86box/video.h>
 #include <86box/vid_svga.h>
@@ -116,6 +128,39 @@
 enum { MAXX_A = 0,
        MAXX_B = 1 };
 
+/* The PCF8591 on the board, an 8-bit D/A converter with four A/D
+   inputs. Its address byte is 1 0 0 1 A2 A1 A0 R/W, with A2 to A0 set
+   by three pins (PCF8591 data sheet, Table 5 I2C slave address byte).
+   The ATI Windows 98 driver (driver CD 1.10) sends it address byte 0x98
+   through chip B's I2C master, so it is modeled on chip B's bus at
+   7-bit address 0x4C, the pins strapped 1 0 0. The chip documents do
+   not describe this part of the board; the bus and the strap are taken
+   from what the driver sends.
+
+   The driver uses the D/A half only. Each of its writes is the address,
+   the control byte 0x40, which turns the analog output on (data sheet,
+   Fig 4 Control byte), and one D/A value. What the output voltage feeds
+   on the board is not documented, and nothing in the emulator takes it:
+   the model keeps the part's registers and answers the bus the way the
+   data sheet describes, and no pixel depends on either register. */
+#define MAXX_PCF8591_ADDR     0x4c
+#define MAXX_PCF8591_AUTO_INC (1u << 2)
+
+typedef struct maxx_pcf8591_t {
+    uint8_t control;     /* control register: the last control byte */
+    uint8_t dac;         /* DAC data register: the last D/A value */
+    uint8_t adc;         /* ADC data register: the result of the last
+                            A/D conversion */
+    uint8_t tx;          /* the result being sent in a read: the ADC data
+                            register as it stood before the conversion
+                            now running */
+    uint8_t tx_first;    /* a read has started and none of its bytes
+                            has been sent yet */
+    uint8_t channel;     /* the A/D channel the next conversion takes */
+    uint8_t got_control; /* this write has stored its control byte, so
+                            the bytes that follow are D/A values */
+} maxx_pcf8591_t;
+
 typedef struct r128_maxx_t {
     rage128_t *chip[2];
     void (*chip_vsync)(svga_t *svga); /* the chips' own vsync callback */
@@ -129,7 +174,152 @@ typedef struct r128_maxx_t {
                          lock changes and BIOS_1_SCRATCH */
 
     uint32_t scratch1[2]; /* BIOS_1_SCRATCH last logged, per chip */
+
+    maxx_pcf8591_t pcf8591; /* the converter on chip B's I2C bus */
 } r128_maxx_t;
+
+/* The state the part comes up in when the board is powered. The
+   control register is all zeros after a power-on reset, which leaves
+   the analog output off and selects channel 0 (data sheet, 8.2 Control
+   byte), and the first byte read after power-on is 80h (data sheet, 8.4
+   A/D conversion). The data sheet does not give the power-on value of
+   the DAC data register; 0x00 is modeled. */
+static void
+maxx_pcf8591_power_on(maxx_pcf8591_t *part)
+{
+    part->control     = 0x00;
+    part->dac         = 0x00;
+    part->adc         = 0x80;
+    part->tx          = 0x80;
+    part->tx_first    = 0;
+    part->channel     = 0;
+    part->got_control = 0;
+}
+
+/* The highest A/D channel the control register's input programming has:
+   four single-ended inputs give channels 0 to 3, three differential
+   inputs and the mixed arrangement give 0 to 2, and two differential
+   inputs give 0 and 1 (data sheet, Fig 4 Control byte, bits 5:4). */
+static uint8_t
+maxx_pcf8591_top_channel(const maxx_pcf8591_t *part)
+{
+    static const uint8_t top[4] = { 3, 2, 2, 1 };
+
+    return top[(part->control >> 4) & 3];
+}
+
+/* One A/D conversion of the selected channel. The four analog inputs
+   are modeled at 0 V, the level of the analog ground pin, so every
+   channel converts to 0x00, single-ended or differential (data sheet,
+   Fig 9 and Fig 10, the A/D conversion characteristics). What the board
+   wires to the inputs is not documented, and the driver never reads the
+   part. With the auto-increment flag set the channel number then goes
+   up by one, and from the highest channel of the input programming back
+   to 0 (data sheet, 8.2 Control byte). */
+static void
+maxx_pcf8591_convert(maxx_pcf8591_t *part)
+{
+    part->adc = 0x00;
+    if (part->control & MAXX_PCF8591_AUTO_INC)
+        part->channel = (part->channel >= maxx_pcf8591_top_channel(part)) ? 0 : part->channel + 1;
+}
+
+/* The three bus callbacks: start, write and read. The part needs none
+   for the stop condition. The chip's I2C master calls them for 7-bit
+   address 0x4C only, with its own mutex held, from the CPU thread or,
+   for a register write that arrives in a command packet, from that
+   chip's command thread. They touch nothing but the part's own state,
+   so the master's mutex is the only lock they need.
+
+   The part acknowledges its address in both directions. A start opens
+   a new transfer, so a write begins again at the control byte. A read
+   address starts an A/D conversion at its acknowledge, and the
+   conversion runs while the result of the one before it is sent (data
+   sheet, 8.4 A/D conversion, and Fig 8 A/D conversion sequence): the
+   ADC data register as it stands is taken as the first byte to send,
+   then the conversion replaces it. This happens whether or not the
+   master goes on to read a byte. */
+static uint8_t
+maxx_pcf8591_start(UNUSED(void *bus), UNUSED(uint8_t addr), uint8_t read, void *priv)
+{
+    maxx_pcf8591_t *part = (maxx_pcf8591_t *) priv;
+
+    if (read) {
+        part->tx       = part->adc;
+        part->tx_first = 1;
+        maxx_pcf8591_convert(part);
+    } else
+        part->got_control = 0;
+    return 1;
+}
+
+/* A write is the address, the control byte, then any number of data
+   bytes, each acknowledged (data sheet, Fig 15 Bus protocol for write
+   mode, D/A conversion). The first byte after the address goes to the
+   control register (8.2 Control byte). Its low two bits pick the A/D
+   channel; a channel number the input programming does not have picks
+   the highest one it has. Every later byte goes to the DAC data
+   register (8.3 D/A conversion), so the last one sent is the value the
+   output holds. Bits 7 and 3 of the control byte must be written 0;
+   what a 1 does is not documented, and both are kept as written with no
+   effect. */
+static uint8_t
+maxx_pcf8591_write(UNUSED(void *bus), UNUSED(uint8_t addr), uint8_t data, void *priv)
+{
+    maxx_pcf8591_t *part = (maxx_pcf8591_t *) priv;
+
+    if (!part->got_control) {
+        uint8_t top;
+
+        part->control     = data;
+        part->got_control = 1;
+        top               = maxx_pcf8591_top_channel(part);
+        part->channel     = ((data & 3) > top) ? top : (data & 3);
+    } else
+        part->dac = data;
+    return 1;
+}
+
+/* The bytes of a read (data sheet, Fig 16 Bus protocol for read mode,
+   A/D conversion). The first byte is the result that was waiting when
+   the read address arrived: what the last read left behind, or 80h
+   after power-on (8.4 A/D conversion). The master's acknowledge of a
+   byte starts the next conversion, and the byte that follows is the
+   result of the conversion before that one (Fig 8 A/D conversion
+   sequence); a master that asks for another byte has acknowledged the
+   last, so the step is taken here, before the byte is sent. A read of
+   one or more bytes, n of them, therefore makes n conversions, one at
+   the address and one per byte acknowledged, and sends the result from
+   before the read followed by the first n - 1 of its own. A read
+   address with no byte after it still makes the one conversion at the
+   address. */
+static uint8_t
+maxx_pcf8591_read(UNUSED(void *bus), UNUSED(uint8_t addr), void *priv)
+{
+    maxx_pcf8591_t *part = (maxx_pcf8591_t *) priv;
+
+    if (!part->tx_first) {
+        part->tx = part->adc;
+        maxx_pcf8591_convert(part);
+    }
+    part->tx_first = 0;
+    return part->tx;
+}
+
+/* Put the part on chip B's bus, or take it off. The bus keeps its
+   device list without a lock of its own and the master walks that list
+   with its mutex held, so the list changes under the same mutex: a
+   transfer that chip B's command thread is running finishes first. */
+static void
+maxx_pcf8591_attach(r128_maxx_t *maxx, int attach)
+{
+    rage128_t *b = maxx->chip[MAXX_B];
+
+    thread_wait_mutex(b->i2c_mtx);
+    i2c_handler(attach, b->mm_i2c, MAXX_PCF8591_ADDR, 1, maxx_pcf8591_start, maxx_pcf8591_read,
+                maxx_pcf8591_write, NULL, &maxx->pcf8591);
+    thread_release_mutex(b->i2c_mtx);
+}
 
 static int
 maxx_chip_index(const r128_maxx_t *maxx, const rage128_t *dev)
@@ -280,6 +470,10 @@ maxx_vsync(svga_t *svga)
     }
 }
 
+/* The bus reset, which resets both chips and the logic between them.
+   The PCF8591 has no reset pin (data sheet, Table 4 Pin description);
+   the one reset it has is its own power-on reset (8.2 Control byte).
+   So its registers are left as they are. */
 static void
 maxx_reset(void *priv)
 {
@@ -348,6 +542,12 @@ maxx_init(const device_t *info)
         maxx->scratch1[n]                  = 0;
     }
 
+    /* The emulator creates the board when the machine is powered on,
+       and again on a hard reset, so the converter starts in its
+       power-on state here. */
+    maxx_pcf8591_power_on(&maxx->pcf8591);
+    maxx_pcf8591_attach(maxx, 1);
+
     maxx->shown  = MAXX_A;
     maxx->want   = MAXX_A;
     maxx->locked = 0;
@@ -363,6 +563,8 @@ maxx_close(void *priv)
 {
     r128_maxx_t *maxx = (r128_maxx_t *) priv;
 
+    /* Chip B's close removes its I2C bus, so the part comes off first. */
+    maxx_pcf8591_attach(maxx, 0);
     rage128_chip_close(maxx->chip[MAXX_B]);
     rage128_chip_close(maxx->chip[MAXX_A]);
     free(maxx);

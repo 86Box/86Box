@@ -279,6 +279,19 @@ uint64_t harness_gpu_fab_tiled(void *g);
 uint64_t harness_gpu_carry_submits(void *g);
 int      harness_gpu_carry_open(void *g);
 int      harness_gpu_async(void *g);
+/* The 2D rectangle kernel: 1 when the backend records queued
+   rectangles with it, 0 when the host could not set it up (the ops then
+   keep their buffer commands); the row count it starts at; what the
+   head-op recorder has recorded so far (buffer commands, copy regions,
+   rectangle dispatches); whether the open segment holds work not yet
+   submitted; and how many screen copies were queued through the
+   staging ring and how many were left to the CPU walk. */
+int      harness_gpu_r2d_on(void *g);
+unsigned harness_gpu_r2d_rows(void);
+void     harness_gpu_q2d_rec(void *g, uint64_t *cmds, uint64_t *regions,
+                             uint64_t *disp);
+int      harness_gpu_pending(void *g);
+void     harness_gpu_blit_rec(void *g, uint64_t *bounce, uint64_t *cpu);
 void     harness_gpu_wait_submitted(void *g);
 uint64_t harness_gpu_fab_fill_rects(void *g);
 uint64_t harness_gpu_fab_fill_cpu(void *g);

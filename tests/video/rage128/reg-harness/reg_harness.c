@@ -33,11 +33,13 @@
 #include <time.h>
 
 #ifdef _WIN32
-/* mingw has no POSIX setenv; _putenv_s always overwrites, which is what
-   every call site here wants. */
+/* mingw has no POSIX setenv or unsetenv; _putenv_s always overwrites,
+   which is what every setenv call site here wants, and an empty value
+   removes the variable from the C runtime's environment. */
 #    include <stdlib.h>
 #    include <windows.h>
 #    define setenv(k, v, ow) _putenv_s((k), (v))
+#    define unsetenv(k)      _putenv_s((k), "")
 #endif
 
 #include "../../../../src/video/vid_ati_rage128.c"
@@ -1024,6 +1026,22 @@ vectors_pat_blit(rage128_t *dev)
 #undef SPX
 }
 
+/* 903: pixel c (0-31) of a 32-pixel mono pattern dword, worked out
+   byte-wise from the guide's DP_BYTE_PIX_ORDER: "reverses the pixel
+   order within each byte" (RRG: DP_DATATYPE, p. 3-170 / PDF 188), so
+   the four bytes stay in memory order (byte 0 = pixels 0-7, the low
+   byte of the register) and only the bits inside a byte flip: bit 7
+   first with the order bit clear, bit 0 first with it set. Guest text
+   and logo bitmaps read correctly with this order. */
+static int
+pat32_bytewise_bit(uint32_t dw, int c, int lsb)
+{
+    uint32_t byte = (dw >> (8 * ((c & 31) / 8))) & 0xffu;
+    int      i    = (c & 31) % 8;
+
+    return (int) ((lsb ? byte >> i : byte >> (7 - i)) & 1u);
+}
+
 /* ------------------------------------------------------------------ */
 /* DP_BYTE_PIX_ORDER (GMC bit 14 / DP_DATATYPE[30]) reverses the */
 /* pixel order within each byte of the mono BRUSH too, as the XAA      */
@@ -1076,9 +1094,11 @@ vectors_pat_bit_order(rage128_t *dev)
     check32("2d: reg paint LSB-first clears column 2", DPX(2), 0x00404040);
     wr(dev, 0x16c4, 0x00000006);    /* back to MSB first */
 
-    /* 0x95 polyline, brush type 6 (32x1 frgd/bkgd), pattern 0x80000002:
-       pixel n of the line is dword bit n LSB-first, bit 31-n MSB-first,
-       so each order has one set pixel and the other order clears it. */
+    /* 0x95 polyline, brush type 6 (32x1 frgd/bkgd), pattern 0x00000082:
+       pixel n of the line is dword bit n LSB-first; MSB-first it is bit
+       7 - n of byte 0 (903: the bytes keep their order). Bits 7 and 1
+       are set, so each order sees one set and one clear pixel, and a
+       reader that starts at bit 31 sees two clear ones. */
     for (int order = 0; order < 2; order++) {
         memset(&dev->svga.vram[0x00300000], 0x99, 64 * 16 * 4);
         wr(dev, 0x1474, 0); /* the preceding leg's polyline left the phase at 8 */
@@ -1090,16 +1110,22 @@ vectors_pat_bit_order(rage128_t *dev)
         pl[3] = 0x1fff1fff;         /* SC_BOTTOM_RIGHT */
         pl[4] = 0x00404040u;        /* brush bkgd */
         pl[5] = 0x00808080u;        /* brush frgd */
-        pl[6] = 0x80000002u;        /* 32x1 line pattern */
+        pl[6] = 0x00000082u;        /* 32x1 line pattern */
         pl[7] = (2u << 16) | 0u;    /* (y 2, x 0) */
         pl[8] = (2u << 16) | 8u;    /* (y 2, x 8), endpoint excluded */
         rage128_2d_packet3(dev, 0x95u << 8, pl, 9);
         check32(order ? "2d: line pattern LSB-first: pixel 1 = bit 1 set"
-                      : "2d: line pattern MSB-first: pixel 0 = bit 31 set",
-                order ? DPX(1) : DPX(0), 0x00808080u);
+                      : "2d: line pattern MSB-first: pixel 0 = bit 7 set",
+                order ? DPX(1) : DPX(0),
+                order ? 0x00808080u
+                      : (pat32_bytewise_bit(0x00000082u, 0, 0) ? 0x00808080u
+                                                               : 0x00404040u));
         check32(order ? "2d: line pattern LSB-first: pixel 0 = bit 0 clear"
-                      : "2d: line pattern MSB-first: pixel 1 = bit 30 clear",
-                order ? DPX(0) : DPX(1), 0x00404040u);
+                      : "2d: line pattern MSB-first: pixel 1 = bit 6 clear",
+                order ? DPX(0) : DPX(1),
+                order ? 0x00404040u
+                      : (pat32_bytewise_bit(0x00000082u, 1, 0) ? 0x00808080u
+                                                               : 0x00404040u));
     }
 #undef DPX
 }
@@ -1164,21 +1190,24 @@ vectors_brush_anchor(rage128_t *dev)
     check32("2d: packet anchor (1,3) clears (0,0)", PX(0, 0), 0x00404040);
     check32("2d: packet anchor loads BRUSH_Y_X", rd(dev, 0x1474), 0x00000301);
 
-    /* 0x95 polyline, brush 6, pattern bit 30 only, anchor [20:16] = 1:
-       the phase starts at 1, so pixel 0 reads bit 30 (set), pixel 1 bit
-       29 (clear). */
+    /* 0x95 polyline, brush 6, pattern bit 6 only, anchor [20:16] = 1:
+       the phase starts at 1, so pixel 0 reads pattern pixel 1 and pixel
+       1 pattern pixel 2. With the order bit clear those are bits 6 and
+       5 of byte 0 (903): set, then clear. */
     memset(&dev->svga.vram[0x00300000], 0x99, 64 * 16 * 4);
     pl[0] = (1u << 1) | (1u << 3) | (6u << 4) | (6u << 8) | (0xf0u << 16)
         | (1u << 28) | (1u << 29) | (1u << 30) | (1u << 31);
     pl[4] = 0x00404040u;            /* brush bkgd */
     pl[5] = 0x00808080u;            /* brush frgd */
-    pl[6] = 0x40000000u;            /* 32x1 line pattern */
+    pl[6] = 0x00000040u;            /* 32x1 line pattern */
     pl[7] = 0x00010000u;            /* BRUSH_Y_X anchor: line phase 1 */
     pl[8] = (2u << 16) | 0u;        /* (y 2, x 0) */
     pl[9] = (2u << 16) | 8u;        /* (y 2, x 8), endpoint excluded */
     rage128_2d_packet3(dev, 0x95u << 8, pl, 10);
-    check32("2d: line phase seed 1: pixel 0 reads bit 30", PX(0, 2), 0x00808080);
-    check32("2d: line phase seed 1: pixel 1 reads bit 29", PX(1, 2), 0x00404040);
+    check32("2d: line phase seed 1: pixel 0 reads bit 6", PX(0, 2),
+            pat32_bytewise_bit(0x00000040u, 1, 0) ? 0x00808080u : 0x00404040u);
+    check32("2d: line phase seed 1: pixel 1 reads bit 5", PX(1, 2),
+            pat32_bytewise_bit(0x00000040u, 2, 0) ? 0x00808080u : 0x00404040u);
     wr(dev, 0x1474, 0);
 #undef PX
 }
@@ -1333,7 +1362,9 @@ vectors_bres_pattern(rage128_t *dev)
     wr(dev, 0x1478, 0x00404040);    /* brush bkgd */
     wr(dev, 0x1480, 0xaaaaaaaa);    /* BRUSH_DATA0: 32x1 pattern */
 
-    /* Brush 6 (frgd/bkgd), phase 0: pixel 0 = bit 31 set, pixel 1 clear. */
+    /* Brush 6 (frgd/bkgd), phase 0: pixel 0 = bit 7 of 0xaa set, pixel 1
+       clear (with the order bit clear, 0xaa in every byte gives the same
+       pixels whether a row is read byte by byte or from bit 31 down). */
     wr(dev, 0x146c, g | (6u << 4)); /* GMC: brush 6, forces POLY_LINE */
     wr(dev, 0x1474, 0x00000000);    /* BRUSH_Y_X */
     memset(&dev->svga.vram[0x00300000], 0x99, 64 * 16 * 4);
@@ -1351,7 +1382,8 @@ vectors_bres_pattern(rage128_t *dev)
             (rd(dev, 0x1474) >> 16) & 0x1f, 8);
 
     /* Brush 7 (leave-alone), phase 1, POLY_LINE cleared: pixel 0 reads
-       bit 30 (clear, untouched), pixel 1 bit 29 (set); phase untouched. */
+       pattern pixel 1 (clear, untouched), pixel 1 pattern pixel 2 (set);
+       phase untouched. */
     wr(dev, 0x146c, g | (7u << 4));
     wr(dev, 0x16c0, 0x00000003);    /* DP_CNTL: dirs only, POLY_LINE off */
     wr(dev, 0x1474, 0x00010000);
@@ -7104,6 +7136,367 @@ f2u(float f)
     return c.u;
 }
 
+/* ------------------------------------------------------------------ */
+/* A 3D_RNDR_GEN_PRIM (type-3 0x25) with the ring walk whose COUNT is  */
+/* larger than its vertices need. The packet is modeled as taking      */
+/* VC_FORMAT, VC_CNTL and NUM_VERTEX vertices; the next dword is the   */
+/* next header. A client that ORs each batch's length into a header it */
+/* keeps across its batch loop sends this shape: the last batch of a   */
+/* long figure then claims more dwords than it carries.                */
+/* Every row feeds the real parser: the bus-master ring, the PIO FIFO  */
+/* ports and an indirect buffer, and the ring pump's framer must stay  */
+/* in step with the executor for the submit that follows.              */
+/* ------------------------------------------------------------------ */
+#define GPC_RING_CARD 0x00010000u /* two GART pages: card pages 16, 17 */
+#define GPC_RING_PHYS 0x00160000u
+#define GPC_IB_CARD   0x00020000u
+#define GPC_IB_PHYS   0x00162000u
+#define GPC_IB_DWORDS 64u
+#define GPC_MARK_HDR  0x00000578u /* type-0, one dword to GUI_SCRATCH_REG0 */
+#define GPC_TRAP_HDR  0x0000057cu /* type-0, one dword to GUI_SCRATCH_REG1 */
+#define GPC_MARK      0x6e6f7465u
+#define GPC_TRAP      0xbad0bad0u
+
+/* DST_PITCH_OFFSET_C and Z_OFFSET_C for the 64-pixel surfaces of
+   prep_surfaces, as ring_build writes them. */
+static int
+gpc_targets(uint32_t *s, int n)
+{
+    s[n++] = 0x00000720;
+    s[n++] = 0x01018000;
+    s[n++] = 0x00000724;
+    s[n++] = 0x00340000;
+    return n;
+}
+
+/* One 0x25 holding a single 16-pixel triangle (VC_FORMAT 0x08: x, y, z,
+   packed ARGB, four dwords a vertex) whose header claims `extra` body
+   dwords more than the 14 it carries. `cntl` carries the walk and the
+   vertex count. */
+static int
+gpc_tri(uint32_t *s, int n, uint32_t cntl, uint32_t extra)
+{
+    s[n++] = 0xc0002500u | ((13u + extra) << 16);
+    s[n++] = 0x00000008;
+    s[n++] = cntl;
+    s[n++] = 0x00000000; s[n++] = 0x00000000;
+    s[n++] = 0x3e800000; s[n++] = PIXVAL;
+    s[n++] = 0x41800000; s[n++] = 0x00000000;
+    s[n++] = 0x3e800000; s[n++] = PIXVAL;
+    s[n++] = 0x00000000; s[n++] = 0x41800000;
+    s[n++] = 0x3e800000; s[n++] = PIXVAL;
+    return n;
+}
+
+static int
+gpc_mark(uint32_t *s, int n, uint32_t hdr, uint32_t val)
+{
+    s[n++] = hdr;
+    s[n++] = val;
+    return n;
+}
+
+static int
+gpc_fill(uint32_t *s, int n, int k)
+{
+    while (k-- > 0)
+        s[n++] = 0x80000000;
+    return n;
+}
+
+/* Restart the ring at dword 0 in bus-master mode and run n dwords. The
+   write pointer moves at most 512 dwords at a time, as a driver's
+   submits do: a single move longer than half the ring reads as a
+   backward move, which the device takes for a ring reset. */
+static void
+gpc_ring_run(rage128_t *dev, int n)
+{
+    rr_reset(dev);
+    wr(dev, RAGE128_PM4_BUFFER_OFFSET, GPC_RING_CARD);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000a); /* 2048-dword ring */
+    for (int w = 0; w < n;) {
+        w = (n - w) > 512 ? w + 512 : n;
+        wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, (uint32_t) w);
+    }
+    drain_sync(dev);
+}
+
+static void
+gpc_leg_start(rage128_t *dev)
+{
+    wr(dev, RAGE128_COMPOSITE_SHADOW_ID, 0);
+    wr(dev, RAGE128_GUI_SCRATCH_REG0, 0);
+    wr(dev, RAGE128_GUI_SCRATCH_REG0 + 4, 0);
+    prep_surfaces(dev);
+}
+
+static uint32_t
+gpc_count(rage128_t *dev)
+{
+    return rd(dev, RAGE128_COMPOSITE_SHADOW_ID) & 0x00ffffff;
+}
+
+static void
+vectors_gen_prim_count(rage128_t *dev)
+{
+    uint32_t *tbl  = (uint32_t *) (ram + GART_TABLE_PHYS);
+    uint32_t *ring = (uint32_t *) (ram + GPC_RING_PHYS);
+    uint32_t *ib   = (uint32_t *) (ram + GPC_IB_PHYS);
+    uint32_t  buf[64];
+    uint32_t  wr0, grew;
+    int       n, lit;
+
+    harness_ram_alloc();
+    harness_sysmem_stray = 0;
+    memset(ram + GART_TABLE_PHYS, 0, 0x2000);
+    tbl[GPC_RING_CARD >> 12]       = GPC_RING_PHYS;
+    tbl[(GPC_RING_CARD >> 12) + 1] = GPC_RING_PHYS + 0x1000;
+    tbl[GPC_IB_CARD >> 12]         = GPC_IB_PHYS;
+
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    gart_table_on(dev, GART_TABLE_PHYS);
+    wr(dev, RAGE128_AGP_BASE, 0);
+
+    /* The 2D and 3D context vectors_cce_ring programs. */
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0x00000000);
+    wr(dev, 0x16f0, 0x1fff1fff);
+    wr(dev, 0x16c0, 0x00000003);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0x00000000);
+    wr(dev, 0x16c4, 0x00000006);
+    wr(dev, 0x1c94, 0x00000008);
+    wr(dev, 0x1c98, 0x00000010);
+    wr(dev, 0x1c9c, 0x00000003);
+    wr(dev, 0x1ca0, 0x00000000);
+    wr(dev, 0x1d44, 0xffffffff);
+    wr(dev, RAGE128_PM4_VC_FPU_SETUP,
+       RAGE128_FPU_BACKFACE_SOLID | RAGE128_FPU_FRONTFACE_SOLID | RAGE128_FPU_COLOR_GOURAUD);
+    wr(dev, 0x1bc4, 0x00000020);
+    wr(dev, 0x1bcc, 0x00000000);
+    wr(dev, 0x1a00, 0x00000000);
+    wr(dev, RAGE128_PM4_VC_DEBUG_CONFIG, 0);
+
+    /* Ring: a triangle whose header claims 200 dwords too many, a
+       marker, then fillers enough to cover the claim. */
+    gpc_leg_start(dev);
+    n = gpc_targets(ring, 0);
+    n = gpc_tri(ring, n, 0x00030034, 200);
+    n = gpc_mark(ring, n, GPC_MARK_HDR, GPC_MARK);
+    n = gpc_fill(ring, n, 400);
+    gpc_ring_run(dev, n);
+    check_true("gen prim count: ring, oversized COUNT draws its vertices",
+               clr_pix(dev) == PIXVAL && gpc_count(dev) == 1);
+    check32("gen prim count: ring, the packet after an oversized draw runs",
+            rd(dev, RAGE128_GUI_SCRATCH_REG0), GPC_MARK);
+
+    /* Controls: the exact COUNT. */
+    gpc_leg_start(dev);
+    n = gpc_targets(ring, 0);
+    n = gpc_tri(ring, n, 0x00030034, 0);
+    n = gpc_mark(ring, n, GPC_MARK_HDR, GPC_MARK);
+    gpc_ring_run(dev, n);
+    check_true("gen prim count: ring, exact COUNT draws",
+               clr_pix(dev) == PIXVAL && gpc_count(dev) == 1);
+    check32("gen prim count: ring, the packet after an exact draw runs",
+            rd(dev, RAGE128_GUI_SCRATCH_REG0), GPC_MARK);
+
+    /* COUNT smaller than the vertices: three vertices declared, the
+       header covers two. The packet takes its COUNT and draws nothing;
+       the marker right after that COUNT runs. */
+    gpc_leg_start(dev);
+    n = gpc_targets(ring, 0);
+    ring[n++] = 0xc0092500; /* body 10: VC_FORMAT, VC_CNTL, two vertices */
+    ring[n++] = 0x00000008;
+    ring[n++] = 0x00030034;
+    for (int i = 0; i < 8; i++)
+        ring[n++] = 0x3e800000;
+    n = gpc_mark(ring, n, GPC_MARK_HDR, GPC_MARK);
+    gpc_ring_run(dev, n);
+    check_true("gen prim count: ring, COUNT too small draws nothing",
+               clr_pix(dev) == 0 && gpc_count(dev) == 0);
+    check32("gen prim count: ring, COUNT too small is consumed whole",
+            rd(dev, RAGE128_GUI_SCRATCH_REG0), GPC_MARK);
+
+    /* A walk code other than the ring walk (2, the list walk) is not
+       drawn and its whole COUNT is taken: the trap header placed where
+       the vertices end is payload, the marker after COUNT runs. */
+    gpc_leg_start(dev);
+    n = gpc_targets(ring, 0);
+    n = gpc_tri(ring, n, 0x00030024, 20);
+    n = gpc_mark(ring, n, GPC_TRAP_HDR, GPC_TRAP);
+    n = gpc_fill(ring, n, 18);
+    n = gpc_mark(ring, n, GPC_MARK_HDR, GPC_MARK);
+    gpc_ring_run(dev, n);
+    check_true("gen prim count: ring, oversized COUNT with the list walk draws nothing",
+               clr_pix(dev) == 0 && gpc_count(dev) == 0);
+    check_true("gen prim count: ring, oversized COUNT with the list walk is consumed whole",
+               rd(dev, RAGE128_GUI_SCRATCH_REG0) == GPC_MARK
+                   && rd(dev, RAGE128_GUI_SCRATCH_REG0 + 4) == 0);
+
+    /* NUM_VERTEX 0 with the ring walk: the packet ends after VC_CNTL. */
+    gpc_leg_start(dev);
+    n = gpc_targets(ring, 0);
+    ring[n++] = 0xc0102500; /* claims 17 body dwords */
+    ring[n++] = 0x00000008;
+    ring[n++] = 0x00000034;
+    n = gpc_mark(ring, n, GPC_MARK_HDR, GPC_MARK);
+    n = gpc_fill(ring, n, 40);
+    gpc_ring_run(dev, n);
+    check_true("gen prim count: ring, NUM_VERTEX 0 ends after VC_CNTL",
+               rd(dev, RAGE128_GUI_SCRATCH_REG0) == GPC_MARK && gpc_count(dev) == 0);
+
+    /* PM4_VC_DEBUG_CONFIG DONT_START stops the drawing, not the parse:
+       an oversized draw still ends at its vertices. */
+    gpc_leg_start(dev);
+    wr(dev, RAGE128_PM4_VC_DEBUG_CONFIG, 0x00000001);
+    n = gpc_targets(ring, 0);
+    n = gpc_tri(ring, n, 0x00030034, 200);
+    n = gpc_mark(ring, n, GPC_MARK_HDR, GPC_MARK);
+    n = gpc_fill(ring, n, 400);
+    gpc_ring_run(dev, n);
+    check_true("gen prim count: ring, an inhibited oversized draw lets the next packet run",
+               rd(dev, RAGE128_GUI_SCRATCH_REG0) == GPC_MARK && clr_pix(dev) == 0
+                   && gpc_count(dev) == 0);
+    wr(dev, RAGE128_PM4_VC_DEBUG_CONFIG, 0);
+
+    /* Indirect buffer: the oversized draw and the marker inside one
+       buffer, fillers to its end. */
+    gpc_leg_start(dev);
+    n = gpc_targets(ib, 0);
+    n = gpc_tri(ib, n, 0x00030034, 200);
+    n = gpc_mark(ib, n, GPC_MARK_HDR, GPC_MARK);
+    gpc_fill(ib, n, (int) GPC_IB_DWORDS - n);
+    ring[0] = 0x000101ce; /* PM4_IW_INDOFF, PM4_IW_INDSIZE */
+    ring[1] = GPC_IB_CARD;
+    ring[2] = GPC_IB_DWORDS;
+    gpc_ring_run(dev, 3);
+    check_true("gen prim count: ib, oversized COUNT draws its vertices",
+               clr_pix(dev) == PIXVAL && gpc_count(dev) == 1);
+    check32("gen prim count: ib, the packet after an oversized draw runs",
+            rd(dev, RAGE128_GUI_SCRATCH_REG0), GPC_MARK);
+
+    /* The pump's framer: a buffer submit right behind an oversized draw
+       is spliced at the WPTR write. The witness is the FIFO write index,
+       which only the pump moves: inside that write it grows by the ring
+       dwords plus the 64 body dwords spliced behind the submit, or by the
+       ring dwords alone when the framer missed the submit. That holds
+       however far the executor has run. The page is also scribbled after
+       the write, so the marker can only come from the spliced copy. */
+    gpc_leg_start(dev);
+    n = gpc_mark(ib, 0, GPC_MARK_HDR, GPC_MARK);
+    gpc_fill(ib, n, (int) GPC_IB_DWORDS - n);
+    n = gpc_targets(ring, 0);
+    n = gpc_tri(ring, n, 0x00030034, 200);
+    ring[n++] = 0x000101ce;
+    ring[n++] = GPC_IB_CARD;
+    ring[n++] = GPC_IB_DWORDS;
+    n = gpc_fill(ring, n, 400);
+    rr_reset(dev);
+    wr(dev, RAGE128_PM4_BUFFER_OFFSET, GPC_RING_CARD);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000a);
+    wr0 = atomic_load(&dev->cce_fifo_wr);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, (uint32_t) n);
+    grew = atomic_load(&dev->cce_fifo_wr) - wr0;
+    memset(ram + GPC_IB_PHYS, 0xa5, GPC_IB_DWORDS * 4);
+    drain_sync(dev);
+    printf("gen prim count data: splice leg FIFO grew %u for %d ring dwords\n", grew, n);
+    check_true("gen prim count: ring, a buffer submit after an oversized draw is spliced",
+               grew == (uint32_t) n + GPC_IB_DWORDS
+                   && rd(dev, RAGE128_GUI_SCRATCH_REG0) == GPC_MARK);
+
+    /* Batched list: a 90-vertex triangle list of 10-dword vertices
+       (VC_FORMAT 0x1c9: x, y, z, rhw, diffuse, specular, two s/t pairs)
+       sent as 27, 27, 27 and 9 vertices under one header value, built
+       once with each batch's length ORed in, so the last header claims
+       352 body dwords for 92. Triangle i covers the 4x4 cell i of the
+       64x16 surface. Behind the list the leg sends a register write and
+       1026 filler dwords. */
+    gpc_leg_start(dev);
+    {
+        uint32_t hdr = 0xc0002500;
+        int      v   = 0;
+
+        n = gpc_targets(ring, 0);
+        while (v < 90) {
+            int k = (90 - v) > 27 ? 27 : 90 - v;
+
+            hdr |= (uint32_t) (k * 10 + 1) << 16;
+            ring[n++] = hdr;
+            ring[n++] = 0x000001c9;
+            ring[n++] = ((uint32_t) k << 16) | 0x34;
+            for (int j = 0; j < k; j++, v++) {
+                int   t  = v / 3;
+                float cx = (float) ((t % 16) * 4);
+                float cy = (float) ((t / 16) * 4);
+
+                ring[n++] = f2u(cx + ((v % 3) == 1 ? 4.0f : 0.0f));
+                ring[n++] = f2u(cy + ((v % 3) == 2 ? 4.0f : 0.0f));
+                ring[n++] = 0x3e800000; /* z 0.25 */
+                ring[n++] = 0x3f800000; /* rhw 1 */
+                ring[n++] = PIXVAL;
+                ring[n++] = 0;
+                ring[n++] = 0; ring[n++] = 0;
+                ring[n++] = 0; ring[n++] = 0;
+            }
+        }
+        check32("gen prim count: ring, the batched list's last header claims 352",
+                ((hdr >> 16) & 0x3fff) + 1, 352);
+        n = gpc_mark(ring, n, GPC_MARK_HDR, GPC_MARK);
+        n = gpc_fill(ring, n, 1026);
+        gpc_ring_run(dev, n);
+        lit = 0;
+        for (int t = 0; t < 30; t++)
+            lit += *(uint32_t *) &dev->svga.vram[0x300000
+                                                 + (((t / 16) * 4 + 1) * 64 + (t % 16) * 4 + 1) * 4]
+                == PIXVAL;
+        printf("gen prim count data: batched list cells lit=%d primitives=%u\n", lit, gpc_count(dev));
+        check_true("gen prim count: ring, the batched list in 27/27/27/9 draws 30 triangles",
+                   lit == 30 && gpc_count(dev) == 30);
+        check32("gen prim count: ring, the packet after the batched list's last batch runs",
+                rd(dev, RAGE128_GUI_SCRATCH_REG0), GPC_MARK);
+    }
+    check_true("gen prim count: no stray bus-master access", harness_sysmem_stray == 0);
+
+    /* PIO: the same packets through PM4_FIFO_DATA_EVEN / ODD. */
+    rr_reset(dev);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x70000000);
+    wr(dev, RAGE128_PM4_MICRO_CNTL, 0x40000000);
+    gpc_leg_start(dev);
+    n = gpc_targets(buf, 0);
+    pio_submit(dev, buf, (uint32_t) n);
+    for (int i = 0; i < 9; i++) {
+        n = 0;
+        if (i == 0) {
+            n = gpc_tri(buf, n, 0x00030034, 200);
+            n = gpc_mark(buf, n, GPC_MARK_HDR, GPC_MARK);
+        }
+        n = gpc_fill(buf, n, 64 - n);
+        pio_submit(dev, buf, (uint32_t) n);
+    }
+    rr_quiesce(dev);
+    check_true("gen prim count: pio, oversized COUNT draws its vertices",
+               clr_pix(dev) == PIXVAL && gpc_count(dev) == 1);
+    check32("gen prim count: pio, the packet after an oversized draw runs",
+            rd(dev, RAGE128_GUI_SCRATCH_REG0), GPC_MARK);
+
+    /* The oversized packet alone: the executor goes idle after its
+       vertices instead of waiting mid-packet for the claimed rest. Read
+       before any drain, which would abort a packet stuck waiting. */
+    gpc_leg_start(dev);
+    n = gpc_tri(buf, 0, 0x00030034, 200);
+    pio_submit(dev, buf, (uint32_t) n);
+    for (int i = 0; i < 300 && rage128_pm4_active(dev); i++)
+        lap_msleep(1);
+    check32("gen prim count: pio, an oversized packet ends at its vertices",
+            rd(dev, RAGE128_PM4_STAT), 0x40);
+    rr_quiesce(dev);
+
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+    wr(dev, RAGE128_PCI_GART_PAGE, 1);
+}
+
 /* Two triangles covering [0,w) x [0,h) at depth z under the live state. */
 static int
 ring_add_rect(uint32_t *ring, int n, uint32_t argb, float w, float h, float z)
@@ -8071,6 +8464,102 @@ vectors_gmc_3d_fcn_clear(rage128_t *dev)
     wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000);
     wr(dev, 0x16ec, 0x00000000);
     wr(dev, 0x16f0, 0x1fff1fff);
+}
+
+/* DST_PITCH_OFFSET_C, DP_GUI_MASTER_CNTL_C, SC_TOP_LEFT_C and
+   SC_BOTTOM_RIGHT_C are write-only aliases of DST_PITCH_OFFSET,
+   DP_GUI_MASTER_CNTL, SC_TOP_LEFT and SC_BOTTOM_RIGHT (RRG:
+   DST_PITCH_OFFSET_C, p. 3-145 / PDF 163; RRG: DP_GUI_MASTER_CNTL_C,
+   p. 3-175 / PDF 193; RRG: SC_TOP_LEFT_C, p. 3-162 / PDF 180; RRG:
+   SC_BOTTOM_RIGHT_C, p. 3-162 / PDF 180). A write through the alias
+   lands on the 2D state; a read of the alias returns 0, through the
+   memory-mapped window and through the MM_INDEX / MM_DATA pair alike. DST_PITCH_OFFSET is itself write-only (RRG:
+   DST_PITCH_OFFSET, p. 3-137 / PDF 155), so its write is seen through
+   the readable DST_OFFSET (offset [20:0] in 32-byte units) and
+   DST_PITCH (pitch [9:0] in units of 8 pixels, tile [16]); the
+   scissor writes are seen through SC_TOP_LEFT and SC_BOTTOM_RIGHT, and
+   the master-control write through the readable DP_GUI_MASTER_CNTL. A
+   scissor or master-control write stores the merge of the old value and
+   the written bytes, and these writes enable all four bytes, so the 2D
+   register holds the whole written value. The master-control value
+   keeps GMC_3D_FCN_EN set, so it leaves the 3D state alone, but like
+   any master-control write it reloads the source offset, pitch and
+   clip, sets both write masks, clears the color-compare functions and
+   the auxiliary clip enables, rewrites DP_MIX and DP_DATATYPE and sets
+   the DP_CNTL direction bits. The vector saves every register those
+   writes reach and puts back each one that differs, the master control
+   first, since putting it back is itself a master-control write. */
+static void
+vectors_3d_c_alias_read(rage128_t *dev)
+{
+    static const struct {
+        const char *name;
+        uint32_t    off_c, off_2d, val;
+    } sc[] = {
+        { "SC_TOP_LEFT_C", RAGE128_SC_TOP_LEFT_C, RAGE128_SC_TOP_LEFT, 0x00200010u },
+        { "SC_BOTTOM_RIGHT_C", RAGE128_SC_BOTTOM_RIGHT_C, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fffu },
+    };
+    /* the master control first: see above */
+    static const uint32_t state[] = {
+        RAGE128_DP_GUI_MASTER_CNTL, RAGE128_DST_OFFSET, RAGE128_DST_PITCH,
+        RAGE128_SRC_OFFSET, RAGE128_SRC_PITCH, RAGE128_SRC_SC_RIGHT,
+        RAGE128_SRC_SC_BOTTOM, RAGE128_SC_TOP_LEFT, RAGE128_SC_BOTTOM_RIGHT,
+        RAGE128_DP_WRITE_MASK, RAGE128_CLR_CMP_MASK, RAGE128_CLR_CMP_CNTL,
+        RAGE128_AUX_SC_CNTL, RAGE128_DP_MIX, RAGE128_DP_DATATYPE,
+        RAGE128_DP_CNTL, RAGE128_SCALE_3D_CNTL, RAGE128_MISC_3D_STATE_CNTL,
+        RAGE128_TEX_CNTL_C, RAGE128_MM_INDEX
+    };
+    const size_t   n_state = sizeof(state) / sizeof(state[0]);
+    const uint32_t dpo     = 0x0a012345u;
+    const uint32_t gmc     = 0x7acc36d2u;
+    const uint32_t wr_mask = 0xffffffffu; /* the byte enables wr() passes */
+    uint32_t       save[sizeof(state) / sizeof(state[0])], save_gmc;
+    int            save_grad_valid;
+    char           what[96];
+
+    flush_sync(dev);
+    for (size_t i = 0; i < n_state; i++)
+        save[i] = rd(dev, state[i]);
+    save_gmc        = save[0];
+    /* not a register: putting a master control with GMC_3D_FCN_EN clear
+       back drops it, so it is put back directly */
+    save_grad_valid = dev->grad_valid;
+
+    /* DST_PITCH_OFFSET_C has read 0 all along, by way of the write-only
+       DST_PITCH_OFFSET it aliases; this row is a control that passes
+       before and after the scissor change. */
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, dpo);
+    check32("3d 913: control: DST_PITCH_OFFSET_C reads 0 after a write",
+            rd(dev, RAGE128_DST_PITCH_OFFSET_C), 0);
+    check32("3d 913: DST_PITCH_OFFSET_C write lands on DST_OFFSET",
+            rd(dev, RAGE128_DST_OFFSET), (dpo & 0x001fffffu) << 5);
+    check32("3d 913: DST_PITCH_OFFSET_C write lands on DST_PITCH",
+            rd(dev, RAGE128_DST_PITCH) & 0x000103ffu,
+            ((dpo >> 21) & 0x3ffu) | (((dpo >> 31) & 1u) << 16));
+    for (int i = 0; i < 2; i++) {
+        wr(dev, sc[i].off_c, sc[i].val);
+        snprintf(what, sizeof(what), "3d 913: %s reads 0 after a write", sc[i].name);
+        check32(what, rd(dev, sc[i].off_c), 0);
+        snprintf(what, sizeof(what), "3d 913: %s write lands on its 2D register", sc[i].name);
+        check32(what, rd(dev, sc[i].off_2d), sc[i].val);
+    }
+    wr(dev, RAGE128_MM_INDEX, RAGE128_SC_BOTTOM_RIGHT_C);
+    check32("3d 913: SC_BOTTOM_RIGHT_C reads 0 through MM_INDEX / MM_DATA",
+            rd(dev, RAGE128_MM_DATA), 0);
+
+    wr(dev, RAGE128_DP_GUI_MASTER_CNTL_C, gmc);
+    check32("3d 913: DP_GUI_MASTER_CNTL_C reads 0 after a write",
+            rd(dev, RAGE128_DP_GUI_MASTER_CNTL_C), 0);
+    check32("3d 913: DP_GUI_MASTER_CNTL_C write lands on DP_GUI_MASTER_CNTL",
+            rd(dev, RAGE128_DP_GUI_MASTER_CNTL), (save_gmc & ~wr_mask) | (gmc & wr_mask));
+    wr(dev, RAGE128_MM_INDEX, RAGE128_DP_GUI_MASTER_CNTL_C);
+    check32("3d 913: DP_GUI_MASTER_CNTL_C reads 0 through MM_INDEX / MM_DATA",
+            rd(dev, RAGE128_MM_DATA), 0);
+
+    for (size_t i = 0; i < n_state; i++)
+        if (rd(dev, state[i]) != save[i])
+            wr(dev, state[i], save[i]);
+    dev->grad_valid = save_grad_valid;
 }
 
 /* ------------------------------------------------------------------ */
@@ -12575,6 +13064,139 @@ vectors_dac_output(rage128_t *dev)
     video_force_resize_set_monitor(0, svga->monitor_index);
 }
 
+/* The DAC macro is powered down automatically while PMI_POWER_STATE, PCI
+   configuration 0x60 [1:0], is not D0, as it is by DAC_PDWN (RRG:
+   DAC_CNTL, p. 3-125 / PDF 143; RRG: PMI_PMCSR_REG, p. 3-190 / PDF 208).
+   D1 or D3 puts out black, D0 brings the same pixels back, and a D2
+   write is not accepted, so it changes neither the stored state nor the
+   picture. Either cause alone keeps the output black. A write that moves
+   the state into or out of D0 repaints, as a DAC_PDWN change does, when
+   it changes whether the DAC is powered down; with DAC_PDWN set it does
+   not, and neither does a write between two powered-down states. The
+   line is the packed 4-bpp line of vectors_dac_output; each look at it
+   draws it afresh, so what it shows does not depend on the repaint
+   marks. */
+static uint32_t
+dac_pmi_pixel(rage128_t *dev, uint32_t *p)
+{
+    svga_t *svga = &dev->svga;
+
+    /* the line renderer skips lines with no change; the repaint rows
+       check the change marks themselves, so this draw forces one */
+    p[0]             = 0xdeadbeef;
+    svga->memaddr    = 0;
+    svga->fullchange = 2;
+    svga->render(svga);
+    return p[0];
+}
+
+static void
+vectors_dac_pmi(rage128_t *dev)
+{
+    svga_t        *svga     = &dev->svga;
+    uint32_t       gen_save = rd(dev, RAGE128_CRTC_GEN_CNTL);
+    uint32_t       dac_save = rd(dev, RAGE128_DAC_CNTL);
+    uint32_t       htd_save = rd(dev, RAGE128_CRTC_H_TOTAL_DISP);
+    uint8_t        pm_save  = pci_rd8(0x60);
+    const uint32_t black    = makecol32(0, 0, 0);
+    uint32_t       live;
+    bitmap_t      *bm;
+    uint32_t      *p;
+
+    check_true("display 912: control: the PCI helper reaches this device",
+               harness_pci_priv == (void *) dev);
+    wr(dev, RAGE128_CRTC_H_TOTAL_DISP, (7u << 16) | 20u);
+    wr(dev, RAGE128_CRTC_PITCH, 8);
+    wr(dev, RAGE128_OVR_CLR, 0x00224466);
+    wr(dev, RAGE128_CRTC_GEN_CNTL,
+       (gen_save & ~((7u << RAGE128_CRTC_PIX_WIDTH_SHIFT)
+                     | RAGE128_CRTC_DISP_REQ_EN_B))
+           | (1u << RAGE128_CRTC_PIX_WIDTH_SHIFT)
+           | RAGE128_CRTC_EXT_DISP_EN | RAGE128_CRTC_EN);
+    for (int i = 0; i < 4; i++)
+        svga->pallook[i] = 0xff000000u | (uint32_t) (0x101010 * (i + 1));
+    svga->vram[0] = 0x12;
+    svga->vram[1] = 0x12;
+    pci_wr8(0x60, 0x00);
+    wr(dev, RAGE128_DAC_CNTL, dac_save & ~RAGE128_DAC_PDWN);
+
+    bm                                  = target_alloc(svga, 2048, 8);
+    svga->monitor->mon_changeframecount = 2;
+    svga->displine                      = 0;
+    svga->y_add = svga->x_add = 0;
+    svga->fullchange          = 2;
+    p                         = bm->line[0];
+    live                      = svga->pallook[1];
+    check32("display 912: control: D0 with the DAC live shows the picture",
+            dac_pmi_pixel(dev, p), live);
+    check32("display 912: control: the border is OVR_CLR in D0",
+            svga->overscan_color, 0xff000000u | 0x00224466u);
+
+    svga->fullchange = 0;
+    pci_wr8(0x60, 0x01);
+    check32("display 912: D1 reads back", pci_rd8(0x60), 0x01);
+    check32("display 912: entering D1 repaints", (uint32_t) svga->fullchange, 2);
+    check32("display 912: D1 puts out black", dac_pmi_pixel(dev, p), black);
+    check32("display 912: the border goes dark in D1", svga->overscan_color, black);
+
+    svga->fullchange = 0;
+    pci_wr8(0x60, 0x03);
+    check32("display 912: D3 reads back", pci_rd8(0x60), 0x03);
+    check32("display 912: control: D1 to D3 does not repaint", (uint32_t) svga->fullchange, 0);
+    check32("display 912: D3 puts out black", dac_pmi_pixel(dev, p), black);
+
+    svga->fullchange = 0;
+    pci_wr8(0x60, 0x00);
+    check32("display 912: D0 reads back", pci_rd8(0x60), 0x00);
+    check32("display 912: returning to D0 repaints", (uint32_t) svga->fullchange, 2);
+    check32("display 912: D0 brings the same pixels back",
+            dac_pmi_pixel(dev, p), live);
+    check32("display 912: and the line continues as before", p[3], svga->pallook[2]);
+    check32("display 912: the border color comes back in D0",
+            svga->overscan_color, 0xff000000u | 0x00224466u);
+
+    svga->fullchange = 0;
+    pci_wr8(0x60, 0x02);
+    check32("display 912: control: a D2 write leaves D0 stored", pci_rd8(0x60), 0x00);
+    check32("display 912: control: a D2 write does not repaint", (uint32_t) svga->fullchange, 0);
+    check32("display 912: control: a D2 write leaves the picture",
+            dac_pmi_pixel(dev, p), live);
+
+    wr(dev, RAGE128_DAC_CNTL, dac_save | RAGE128_DAC_PDWN);
+    check32("display 912: control: DAC_PDWN in D0 puts out black",
+            dac_pmi_pixel(dev, p), black);
+    wr(dev, RAGE128_DAC_CNTL, dac_save & ~RAGE128_DAC_PDWN);
+
+    /* D1 first, then DAC_PDWN set and cleared: black until D0 */
+    pci_wr8(0x60, 0x01);
+    wr(dev, RAGE128_DAC_CNTL, dac_save | RAGE128_DAC_PDWN);
+    wr(dev, RAGE128_DAC_CNTL, dac_save & ~RAGE128_DAC_PDWN);
+    check32("display 912: D1 keeps the output black after DAC_PDWN clears",
+            dac_pmi_pixel(dev, p), black);
+    pci_wr8(0x60, 0x00);
+    check32("display 912: then D0 brings the picture back",
+            dac_pmi_pixel(dev, p), live);
+
+    /* DAC_PDWN first, then D1 and D0: black until DAC_PDWN clears */
+    wr(dev, RAGE128_DAC_CNTL, dac_save | RAGE128_DAC_PDWN);
+    pci_wr8(0x60, 0x01);
+    pci_wr8(0x60, 0x00);
+    check32("display 912: DAC_PDWN keeps the output black after D0",
+            dac_pmi_pixel(dev, p), black);
+    wr(dev, RAGE128_DAC_CNTL, dac_save & ~RAGE128_DAC_PDWN);
+    check32("display 912: then clearing DAC_PDWN brings the picture back",
+            dac_pmi_pixel(dev, p), live);
+
+    target_free(svga, bm);
+    pci_wr8(0x60, pm_save);
+    wr(dev, RAGE128_DAC_CNTL, dac_save);
+    wr(dev, RAGE128_OVR_CLR, 0);
+    wr(dev, RAGE128_CRTC_PITCH, 0);
+    wr(dev, RAGE128_CRTC_H_TOTAL_DISP, htd_save);
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save);
+    video_force_resize_set_monitor(0, svga->monitor_index);
+}
+
 /* ------------------------------------------------------------------ */
 /* DAC_CRC_EN arms a one-field/frame capture of    */
 /* the composed DAC output at the next vertical blank; the following   */
@@ -14096,6 +14718,7 @@ run_agp_32mb(void)
     vectors_overscan(dev);
     vectors_dac_vga_adr_en(dev);
     vectors_dac_output(dev);
+    vectors_dac_pmi(dev);
     vectors_dac_crc(dev);
     vectors_vblank_phase(dev);
     vectors_snapshot(dev);
@@ -14140,6 +14763,7 @@ run_agp_32mb(void)
     vectors_pio_mode_gate(dev);
     vectors_ring_size_encode(dev);
     vectors_pio_ingress(dev);
+    vectors_gen_prim_count(dev);
     vectors_cce_gen_int(dev);
     vectors_cce_display(dev);
     vectors_bm_chunk_tap(dev);
@@ -14192,14 +14816,155 @@ run_pci_xpert128(void)
     close_dev(dev);
 }
 
-/* , deferred-batch leg: a ring-submitted draw pulsed with
-   SOFT_RESET_GUI before the drain leaves the surface untouched; the
-   next batch draws normally. Threaded device so submits defer. */
+/* ------------------------------------------------------------------ */
+/* The SOFT_RESET_GUI vectors below each need the executor at a known  */
+/* point of the command stream when the pulse goes out. A free-running */
+/* executor is at no known point: it takes a few microseconds to run   */
+/* what a vector submits, and the host decides how long this thread is */
+/* off the processor between the submit and the pulse. So each vector  */
+/* puts a WAIT_UNTIL EVENT_CRTC_OFFSET write at the point it wants,    */
+/* with a flip armed by a CRTC_OFFSET write beforehand: the event      */
+/* stalls the command FIFO until the display has taken the new offset  */
+/* (RRG: WAIT_UNTIL, p. 3-239 / PDF 257), and here nothing takes it    */
+/* until the vector calls the vertical blank itself. The executor      */
+/* stands inside that write, with every later dword still queued,      */
+/* until the pulse arrives; the pulse ends the stall itself. Register  */
+/* writes that drain the engine would end the stall too, so between    */
+/* the submit and the pulse a vector writes only PM4_BUFFER_DL_WPTR    */
+/* and GEN_RESET_CNTL and reads device state directly.                 */
+/*                                                                     */
+/* Both waits are bounded and neither decides a row: the stall, once   */
+/* entered, lasts until the pulse, and the pass counted after the      */
+/* pulse is one the executor always makes. A wait that runs out turns  */
+/* the row that names the position red.                                */
+/*                                                                     */
+/* The write that asserts SOFT_RESET_GUI lets the executor go again    */
+/* before it returns, so from that return on the executor may be       */
+/* running, and on a device whose pulse left work behind it is writing */
+/* the very registers a vector reads as witnesses. A vector therefore  */
+/* reads a register the executor can write only at a point the         */
+/* executor has been seen to reach and stop at: in the stall before    */
+/* the pulse, and after the pulse once the executor has run out of     */
+/* work. When either wait runs out the register is not read at all and */
+/* the row fails on the wait.                                          */
+/* ------------------------------------------------------------------ */
+#define RESET_WAIT_MS 10000
+
+/* Wait for the executor to enter the flip stall. */
+static int
+reset_wait_stalled(rage128_t *dev)
+{
+    for (int i = 0; i < RESET_WAIT_MS && !atomic_load(&dev->cce_flip_stalled); i++)
+        lap_msleep(1);
+    return atomic_load(&dev->cce_flip_stalled);
+}
+
+/* The pulse waits, with no bound, for the executor to park, and an
+   executor in the stall parks only because the stall gives way to the
+   pulse. A stall that ignored the pulse would hang the run at the first
+   pulse instead of turning a row red. So the stall is tried first with
+   the pulse's stop request set directly, which cannot hang: a stall
+   from a direct WAIT_UNTIL write, the request, and a bounded wait for
+   the executor to park. Tried once; every vector reads the answer into
+   its precondition row, and a vector that got a no does not pulse into
+   the stall (see the pulse helper below). */
+static int
+reset_stall_yields(rage128_t *dev)
+{
+    static int yields = -1;
+    int        stalled;
+
+    if (yields >= 0)
+        return yields;
+    drain_sync(dev);
+    wr(dev, RAGE128_CRTC_OFFSET, 0x00300000); /* arm a pending flip */
+    wr(dev, RAGE128_WAIT_UNTIL, 1);           /* queued to the executor, which stalls */
+    stalled = reset_wait_stalled(dev);
+    atomic_store(&dev->cce_parked, 0);
+    atomic_store(&dev->cce_abort, 1);
+    thread_set_event(dev->cce_wake_event);
+    thread_set_event(dev->cce_flip_event);
+    for (int i = 0; i < RESET_WAIT_MS && !atomic_load(&dev->cce_parked); i++)
+        lap_msleep(1);
+    yields = stalled && atomic_load(&dev->cce_parked);
+    atomic_store(&dev->cce_abort, 0);
+    thread_set_event(dev->cce_wake_event);
+    rage128_vblank_start(&dev->svga); /* latch the flip, release the stall */
+    drain_sync(dev);
+    return yields;
+}
+
+/* The first half of the pulse. With a stall that does not give way the
+   flip is latched first, so the executor is running again and the pulse
+   returns; the rows behind the red precondition row then say nothing. */
+static void
+reset_pulse(rage128_t *dev, int yields)
+{
+    if (!yields)
+        rage128_vblank_start(&dev->svga);
+    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+}
+
+/* The executor calls the idle hook in a pass that found the FIFO empty.
+   While it is stalled or parked for the pulse it makes no such pass, so
+   a count armed before the pulse goes up only after the pulse has let
+   the executor go and it has run everything still queued. */
+static atomic_int reset_idle_passes;
+
+static void
+reset_idle_hook(rage128_t *dev)
+{
+    (void) dev;
+    atomic_fetch_add(&reset_idle_passes, 1);
+}
+
+static void
+reset_settle_arm(void)
+{
+    atomic_store(&reset_idle_passes, 0);
+    atomic_store(&rage128_harness_idle_hook, reset_idle_hook);
+}
+
+/* After the pulse: wait for the executor to run out of work and stop.
+   Returns 1 once it has, so what the caller reads next is final. */
+static int
+reset_settled(rage128_t *dev)
+{
+    int done = 0;
+
+    for (int i = 0; i < RESET_WAIT_MS && !done; i++) {
+        done = atomic_load(&reset_idle_passes) && !atomic_load(&dev->cce_executing);
+        if (!done)
+            lap_msleep(1);
+    }
+    atomic_store(&rage128_harness_idle_hook, NULL);
+    return done;
+}
+
+/* A ring-submitted batch of draws that the pulse catches before the
+   executor has taken any of it leaves the surface untouched, and the
+   next batch draws normally. The executor is held in a WAIT_UNTIL
+   stall ahead of the batch, so all 79 batch dwords are in the FIFO at
+   the pulse, and what the row proves is that the pulse drops packets
+   still in the FIFO. It does not reach the other place a draw can be
+   waiting, the render workers' batch of primitives the executor has
+   already taken: a stall cannot go behind the batch, because a
+   WAIT_UNTIL draws whatever is deferred before it stalls. That case
+   has its own rows, on the device of the walk-hold vector, where a
+   batch can be left taken with the executor asleep. Threaded device. */
 static void
 vectors_gui_reset_batch(rage128_t *dev)
 {
+    uint32_t *ring   = (uint32_t *) (ram + RING_PHYS);
+    uint32_t  base;
+    int       stalled;
+    int       yields = reset_stall_yields(dev);
+
     harness_ram_alloc();
     ring_build();
+    memmove(ring + 2, ring, BATCH_DWORDS * 4);
+    ring[0]  = LAP_WAIT_HDR;
+    ring[1]  = 0x00000001; /* EVENT_CRTC_OFFSET */
     g_kicked = 0;
 
     pci_wr8(0x04, 0x07);
@@ -14229,18 +14994,31 @@ vectors_gui_reset_batch(rage128_t *dev)
     wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 0);
     wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000a);
 
-    /* Submit one batch, pulse the reset before any drain, then drain:
-       the deferred draws must be abandoned wherever the pulse caught
-       them (FIFO, mid-parse, or the deferred batch). */
+    /* Submit the stall and one batch, wait for the stall, pulse, then
+       latch the flip and drain. The first row is the precondition: red
+       there means the batch was not all queued at the pulse, and the
+       second row says nothing. */
     prep_surfaces(dev);
-    g_kicked++;
-    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, g_kicked * BATCH_DWORDS);
-    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+    wr(dev, RAGE128_CRTC_OFFSET, 0x00300000); /* arm a pending flip */
+    base = atomic_load(&dev->cce_fifo_wr);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, BATCH_DWORDS + 2);
+    stalled = reset_wait_stalled(dev);
+    check_true("cce reset: executor stalled with the whole batch queued",
+               stalled && yields && atomic_load(&dev->cce_fifo_rd) == base + 2
+                   && atomic_load(&dev->cce_fifo_wr) == base + 2 + BATCH_DWORDS);
+    reset_pulse(dev, yields);
     wr(dev, RAGE128_GEN_RESET_CNTL, 0);
+    rage128_vblank_start(&dev->svga); /* latch the flip armed for the stall */
     drain_sync(dev);
-    check32("cce reset: reset abandons the deferred batch", clr_pix(dev), 0);
+    check32("cce reset: reset drops the batch packets still in the FIFO", clr_pix(dev), 0);
 
-    /* Control: the next batch draws normally. */
+    /* Control: the same batch draws when it is submitted again. The ring
+       is set up afresh, as a driver does after the pulse. */
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+    wr(dev, RAGE128_PM4_BUFFER_DL_RPTR, 0);
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 0);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000a);
+    ring_build();
     prep_surfaces(dev);
     kick(dev);
     check32("cce reset: next batch draws after reset", clr_pix(dev), PIXVAL);
@@ -14270,29 +15048,26 @@ vectors_gui_reset_batch(rage128_t *dev)
 }
 
 /* ------------------------------------------------------------------ */
-/* SOFT_RESET_GUI must quiesce an executor that still has FIFO   */
-/* residue behind it. Half of a long type-3 NOP's payload is submitted */
-/* first, so the executor parks inside the packet (cce_starved with    */
-/* cce_executing still 1 -- no timing assumption); the rest of the ring */
-/* then goes in and the pulse follows with no drain between them. The  */
-/* residue carries a GUI_SCRATCH_REG0 write: the pulse abandons it, so  */
-/* the register must never see the value. Ring is 16384 dwords         */
-/* (PM4_BUFFER_CNTL log2 field 13) over 16 GART pages.                 */
-/* The second submit wakes the executor, which pops the 8000-dword     */
-/* residue in tens of microseconds; a host preemption of this thread   */
-/* between that submit and the pulse lets it run the witness first,    */
-/* after which there is nothing to abandon (the real part would show   */
-/* the same). The executor's FIFO position is sampled just before the  */
-/* pulse and the abandon rows count only when the witness was still   */
-/* ahead of it by a margin, otherwise they are SKIPped, not failed.    */
+/* SOFT_RESET_GUI must stop an executor that still has FIFO residue    */
+/* behind it, and drop that residue. The ring holds a long type-3 NOP, */
+/* a WAIT_UNTIL stall, type-2 fillers and last a GUI_SCRATCH_REG0      */
+/* write, the witness. The header and 8000 of the NOP's 8002 payload   */
+/* dwords are submitted first, so the executor waits inside the packet */
+/* for the rest. The second submit then carries the NOP's last two     */
+/* dwords and everything behind them: the executor finishes the NOP    */
+/* and stops in the stall, with 7996 fillers and the witness queued    */
+/* behind it, and stays there until the pulse. The pulse abandons the  */
+/* residue, so the register must never see the witness value. Ring is  */
+/* 16384 dwords (PM4_BUFFER_CNTL log2 field 13) over 16 GART pages.    */
 /* ------------------------------------------------------------------ */
 #define RESET_FIFO_CARD_ADDR 0x00030000u
 #define RESET_FIFO_PHYS      0x00300000u
 #define RESET_FIFO_PAGES     16
 #define RESET_FIFO_PAYLOAD   16000
 #define RESET_FIFO_HALF      8000
-#define RESET_FIFO_AHEAD     256 /* dwords still ahead of the executor at the pulse */
 
+/* One long type-3 NOP and a witness behind it, for the vectors that
+   need an executor waiting inside a packet with nothing to stall on. */
 static void
 reset_fifo_ring_build(void)
 {
@@ -14312,19 +15087,49 @@ reset_fifo_ring_build(void)
     ring[n++] = LAP_SCRATCH_VAL;
 }
 
+/* The residue vector's ring: the same length, 16003 dwords, with the
+   NOP ending two dwords past the first submit and the stall right
+   behind it. */
+#define RESET_FIFO_NOP_END (RESET_FIFO_HALF + 3) /* first dword past the NOP */
+
+static void
+reset_fifo_stall_build(void)
+{
+    uint32_t *tbl  = (uint32_t *) (ram + GART_TABLE_PHYS);
+    uint32_t *ring = (uint32_t *) (ram + RESET_FIFO_PHYS);
+    uint32_t  n    = 0;
+
+    memset(ram + GART_TABLE_PHYS, 0, 0x1000);
+    for (uint32_t p = 0; p < RESET_FIFO_PAGES; p++)
+        tbl[(RESET_FIFO_CARD_ADDR >> 12) + p] = RESET_FIFO_PHYS + p * 0x1000;
+
+    ring[n++] = 0xc0000000u | ((RESET_FIFO_HALF + 2 - 1) << 16)
+        | (RAGE128_PM4_OP_NOP << 8);
+    while (n < RESET_FIFO_NOP_END)
+        ring[n++] = 0x00000000u;
+    ring[n++] = LAP_WAIT_HDR;
+    ring[n++] = 0x00000001u; /* EVENT_CRTC_OFFSET */
+    while (n <= RESET_FIFO_PAYLOAD)
+        ring[n++] = 0x80000000u; /* type-2 filler */
+    ring[n++] = LAP_SCRATCH_HDR;
+    ring[n++] = LAP_SCRATCH_VAL;
+}
+
 static void
 vectors_gui_reset_residue(rage128_t *dev)
 {
+    uint32_t base;
     uint32_t rd0;
     uint32_t wr0;
-    uint32_t rd_pre;
-    uint32_t rd_a;
-    int      inside;
+    uint32_t s0;
+    int      stalled;
+    int      settled;
+    int      yields = reset_stall_yields(dev);
     int      i;
 
     harness_ram_alloc();
     harness_sysmem_stray = 0;
-    reset_fifo_ring_build();
+    reset_fifo_stall_build();
     /* Never initialized by rage128_pm4_thread_init and deliberately left
        set on both abort returns, so the mid-packet witness below must not
        inherit it from an earlier vector. */
@@ -14339,111 +15144,125 @@ vectors_gui_reset_residue(rage128_t *dev)
     wr(dev, RAGE128_PM4_BUFFER_DL_RPTR, 0);
     wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 0);
     wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000d);
+    wr(dev, RAGE128_CRTC_OFFSET, 0x00300000); /* arm a pending flip */
     dev->gui_scratch[0] = 0;
+    base                = atomic_load(&dev->cce_fifo_wr);
 
-    /* The whole race needs a real executor thread; rage128_init creates
+    /* The whole vector needs a real executor thread; the device creates
        one in every configuration, harness included. */
     check_true("cce reset: device runs a CCE thread", dev->cce_thread != NULL);
 
-    /* Header + half the payload: the packet cannot complete, so the
-       executor is stuck in the empty-FIFO wait holding cce_executing. */
+    /* Header + 8000 payload dwords: the packet cannot complete, so the
+       executor waits on the empty FIFO in the middle of a pass. */
     wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, RESET_FIFO_HALF + 1);
-    for (i = 0; i < 2000 && !atomic_load(&dev->cce_starved); i++)
+    for (i = 0; i < RESET_WAIT_MS
+         && !(atomic_load(&dev->cce_starved)
+              && atomic_load(&dev->cce_fifo_rd) == base + RESET_FIFO_HALF + 1);
+         i++)
         lap_msleep(1);
     check_true("cce reset: executor parked mid-packet",
                atomic_load(&dev->cce_starved) && atomic_load(&dev->cce_executing));
 
-    /* Rest of the ring, then the pulse -- no drain in between. */
-    rd_pre = atomic_load(&dev->cce_fifo_rd);
+    /* Rest of the ring. The abandon rows below assert a scratch register
+       stayed 0, which is also true if the residue never arrived or had
+       already run. Pin the precondition: the executor stands in the stall
+       two dwords past the NOP, and the fillers and the witness are all
+       published behind it. */
     wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, RESET_FIFO_PAYLOAD + 3);
-    /* The abandon rows below assert a scratch register stayed 0, which is
-       also true if the residue never arrived. Pin the precondition: the
-       second submit must have published the rest of the payload plus the
-       witness packet behind the parked executor. */
-    check_true("cce reset: residue queued behind the parked executor",
-               atomic_load(&dev->cce_fifo_wr) - rd_pre > RESET_FIFO_PAYLOAD - RESET_FIFO_HALF);
-    /* Where the executor stood as the pulse went out. Sampled last before
-       the write: the abort store is the pulse's first act, so only a
-       preemption inside that gap can move the executor past the margin. */
-    rd_a = atomic_load(&dev->cce_fifo_rd);
-    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+    stalled = reset_wait_stalled(dev);
+    check_true("cce reset: residue queued behind the stalled executor",
+               stalled && yields
+                   && atomic_load(&dev->cce_fifo_rd) == base + RESET_FIFO_NOP_END + 2
+                   && atomic_load(&dev->cce_fifo_wr) == base + RESET_FIFO_PAYLOAD + 3);
+
+    /* The pulse parks the executor, empties the FIFO and lets the
+       executor go again, all before the asserting write returns. The two
+       FIFO indices are atomics and are sampled at that return. */
+    reset_settle_arm();
+    reset_pulse(dev, yields);
     rd0 = atomic_load(&dev->cce_fifo_rd);
     wr0 = atomic_load(&dev->cce_fifo_wr);
     wr(dev, RAGE128_GEN_RESET_CNTL, 0);
-    inside = wr0 - rd_a >= 2 + RESET_FIFO_AHEAD;
 
     check_true("cce reset: pulse drops the FIFO residue", rd0 == wr0);
-    if (inside)
-        check_true("cce reset: abandoned scratch write did not run",
-                   dev->gui_scratch[0] == 0);
-    else
-        printf("SKIP cce reset: residue ran before the pulse (%u of %u dwords left)\n",
-               wr0 - rd_a, RESET_FIFO_PAYLOAD + 3 - (RESET_FIFO_HALF + 1));
 
-    /* And nothing pops afterwards: a thread still walking the FIFO would
-       move cce_fifo_rd off the value the pulse published. cce_executing is
-       read here rather than straight after the pulse -- releasing the abort
-       wakes the executor, whose first act at the loop top is to set the
-       flag before it discovers the FIFO is empty, so an immediate read
-       races the wake instead of measuring anything. */
-    lap_msleep(50);
+    /* And nothing pops afterwards: an executor let go with the residue
+       still queued runs it, moves the FIFO read index off the value the
+       pulse published and writes the witness. The witness register is
+       read only once the executor has made its pass over the FIFO after
+       the pulse and stopped; an executor that never gets there fails the
+       rows without the register being read. */
+    settled = reset_settled(dev);
+    s0      = settled ? dev->gui_scratch[0] : 0xffffffffu;
+    check_true("cce reset: abandoned scratch write did not run", s0 == 0);
     check_true("cce reset: no pop after the pulse",
                atomic_load(&dev->cce_fifo_rd) == rd0);
-    if (inside)
-        check_true("cce reset: scratch still clean after the pulse",
-                   dev->gui_scratch[0] == 0);
-    check_true("cce reset: executor idle once the pulse has settled",
-               !atomic_load(&dev->cce_executing));
+    check_true("cce reset: scratch still clean after the pulse", s0 == 0);
+    check_true("cce reset: executor idle once the pulse has settled", settled);
     check_true("cce reset: ring fetches all resolved in RAM",
-               harness_sysmem_stray == 0);
+               settled && harness_sysmem_stray == 0);
 
+    rage128_vblank_start(&dev->svga); /* latch the flip armed for the stall */
+    drain_sync(dev);
     wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
     wr(dev, RAGE128_PCI_GART_PAGE, 1);
     pci_wr8(0x04, 0x03);
 }
 
 /* ------------------------------------------------------------------ */
-/* The pulse must also stop the packet IN flight, at the pop. The       */
-/* residue vector above cannot see that: its witness is a separate      */
-/* packet, which the loop-top park protects on its own. Here the packet */
-/* being executed is itself the witness -- a one-register-mode type-0   */
-/* burst to GUI_SCRATCH_REG0 whose payload dword i carries i + 1, so    */
-/* the register always names the last dword the executor ran. An        */
-/* executor that ignores the abort at the pop runs the burst out while  */
-/* the pulse waits for the park, and the register ends on the last      */
-/* value. Dwords popped between the second submit and the pulse are     */
-/* legitimate, hence "stopped short" and not "kept the first half".     */
-/* Same ring geometry and the same precondition shape as above.         */
+/* The pulse must also stop the packet in flight, at the pop of its    */
+/* next dword. The residue vector above cannot see that: its witness   */
+/* is a separate packet, which the executor's test between packets     */
+/* protects on its own. Here the packet being executed is itself the   */
+/* witness: a type-1 packet, which carries two register writes         */
+/* (SDK: Type 1 CCE Packet, p. F-5 / PDF 295): one to WAIT_UNTIL, then */
+/* one to GUI_SCRATCH_REG0. The executor stalls in the first           */
+/* write with the second write's dword queued, so the pulse lands      */
+/* between the two. An executor that ignores the pulse at the pop      */
+/* takes that dword once the pulse has ended the stall and writes the  */
+/* register before it parks. Type-2 fillers and a GUI_SCRATCH_REG1     */
+/* write behind the packet are the residue. Same ring geometry as      */
+/* above.                                                              */
 /* ------------------------------------------------------------------ */
+#define RESET_T1_FILL   16
+#define RESET_T1_DWORDS (3 + RESET_T1_FILL + 2)
+#define RESET_T1_BEHIND 0x12345678u
+
 static void
-reset_fifo_burst_build(void)
+reset_fifo_type1_build(void)
 {
     uint32_t *tbl  = (uint32_t *) (ram + GART_TABLE_PHYS);
     uint32_t *ring = (uint32_t *) (ram + RESET_FIFO_PHYS);
+    uint32_t  n    = 0;
 
     memset(ram + GART_TABLE_PHYS, 0, 0x1000);
     for (uint32_t p = 0; p < RESET_FIFO_PAGES; p++)
         tbl[(RESET_FIFO_CARD_ADDR >> 12) + p] = RESET_FIFO_PHYS + p * 0x1000;
 
-    ring[0] = ((RESET_FIFO_PAYLOAD - 1) << 16) | 0x8000u | (RAGE128_GUI_SCRATCH_REG0 >> 2);
-    for (uint32_t i = 0; i < RESET_FIFO_PAYLOAD; i++)
-        ring[1 + i] = i + 1;
+    ring[n++] = 0x40000000u | ((RAGE128_GUI_SCRATCH_REG0 >> 2) << 11) | (RAGE128_WAIT_UNTIL >> 2);
+    ring[n++] = 0x00000001u; /* EVENT_CRTC_OFFSET */
+    ring[n++] = LAP_SCRATCH_VAL;
+    while (n < 3 + RESET_T1_FILL)
+        ring[n++] = 0x80000000u; /* type-2 filler */
+    ring[n++] = LAP_SCRATCH_HDR + 1; /* PACKET0(GUI_SCRATCH_REG1, 1) */
+    ring[n++] = RESET_T1_BEHIND;
 }
 
 static void
-vectors_gui_reset_burst(rage128_t *dev)
+vectors_gui_reset_type1(rage128_t *dev)
 {
-    uint32_t rd_pre;
-    uint32_t rd_a;
+    uint32_t base;
+    uint32_t rd0;
     uint32_t wr0;
-    uint32_t held;
-    int      inside;
-    int      i;
+    uint32_t s0;
+    uint32_t s1;
+    int      stalled;
+    int      settled;
+    int      yields = reset_stall_yields(dev);
 
     harness_ram_alloc();
     harness_sysmem_stray = 0;
-    reset_fifo_burst_build();
-    atomic_store(&dev->cce_starved, 0);
+    reset_fifo_type1_build();
 
     pci_wr8(0x04, 0x07);
     wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
@@ -14454,52 +15273,46 @@ vectors_gui_reset_burst(rage128_t *dev)
     wr(dev, RAGE128_PM4_BUFFER_DL_RPTR, 0);
     wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 0);
     wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000d);
+    wr(dev, RAGE128_CRTC_OFFSET, 0x00300000); /* arm a pending flip */
     dev->gui_scratch[0] = 0;
+    dev->gui_scratch[1] = 0;
+    base                = atomic_load(&dev->cce_fifo_wr);
 
-    /* Header + the first half. The starve flag alone can be a transient
-       from the executor catching the pump up mid-copy, so the FIFO must
-       read drained as well before the register is sampled. */
-    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, RESET_FIFO_HALF + 1);
-    for (i = 0; i < 2000
-         && !(atomic_load(&dev->cce_starved)
-              && atomic_load(&dev->cce_fifo_rd) == atomic_load(&dev->cce_fifo_wr));
-         i++)
-        lap_msleep(1);
-    check_true("cce reset: burst executor parked mid-burst",
-               atomic_load(&dev->cce_starved) && atomic_load(&dev->cce_executing));
-    check32("cce reset: burst first half landed", dev->gui_scratch[0], RESET_FIFO_HALF);
+    /* One submit. The precondition: the executor is inside the packet,
+       header and first dword popped, and the second dword and the
+       residue are published behind it. */
+    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, RESET_T1_DWORDS);
+    stalled = reset_wait_stalled(dev);
+    check_true("cce reset: executor stalled inside the type-1 packet",
+               stalled && yields && atomic_load(&dev->cce_executing)
+                   && atomic_load(&dev->cce_fifo_rd) == base + 2
+                   && atomic_load(&dev->cce_fifo_wr) == base + RESET_T1_DWORDS);
 
-    /* Second half, then the pulse -- no drain in between. */
-    rd_pre = atomic_load(&dev->cce_fifo_rd);
-    wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, RESET_FIFO_PAYLOAD + 1);
-    check_true("cce reset: burst second half queued behind the executor",
-               atomic_load(&dev->cce_fifo_wr) - rd_pre == RESET_FIFO_PAYLOAD - RESET_FIFO_HALF);
-    rd_a = atomic_load(&dev->cce_fifo_rd);
-    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
-    wr0  = atomic_load(&dev->cce_fifo_wr);
-    held = dev->gui_scratch[0];
+    /* An executor that takes the second dword does so on its way out of
+       the stall, before it parks for the pulse, so the register is
+       written by the time the asserting write returns. That write also
+       lets the executor go again, so both registers are read only once
+       the executor has run out of work and stopped. */
+    reset_settle_arm();
+    reset_pulse(dev, yields);
+    rd0 = atomic_load(&dev->cce_fifo_rd);
+    wr0 = atomic_load(&dev->cce_fifo_wr);
     wr(dev, RAGE128_GEN_RESET_CNTL, 0);
-    inside = wr0 - rd_a >= RESET_FIFO_AHEAD;
 
-    /* Precondition-shaped, as above: a preemption between the submit and
-       the pulse lets the burst finish first, and then nothing was cut. */
-    if (inside) {
-        check_true("cce reset: burst stopped short at the pulse", held < RESET_FIFO_PAYLOAD);
-        if (held >= RESET_FIFO_PAYLOAD)
-            printf("     cce reset: burst ended on %u of %u, %u dwords were left at the pulse\n",
-                   held, RESET_FIFO_PAYLOAD, wr0 - rd_a);
-    } else
-        printf("SKIP cce reset: burst ran out before the pulse (%u of %u dwords left)\n",
-               wr0 - rd_a, RESET_FIFO_PAYLOAD - RESET_FIFO_HALF);
+    check_true("cce reset: pulse drops the dwords behind the type-1 stall", rd0 == wr0);
 
-    lap_msleep(50);
-    if (inside)
-        check32("cce reset: burst value held after the pulse", dev->gui_scratch[0], held);
-    check_true("cce reset: burst executor idle once the pulse has settled",
-               !atomic_load(&dev->cce_executing));
-    check_true("cce reset: burst ring fetches all resolved in RAM",
-               harness_sysmem_stray == 0);
+    settled = reset_settled(dev);
+    s0      = settled ? dev->gui_scratch[0] : 0xffffffffu;
+    s1      = settled ? dev->gui_scratch[1] : 0xffffffffu;
+    check32("cce reset: type-1 second write did not run", s0, 0);
+    check32("cce reset: type-1 second write still not run once settled", s0, 0);
+    check32("cce reset: packet behind the type-1 packet did not run", s1, 0);
+    check_true("cce reset: type-1 executor idle once the pulse has settled", settled);
+    check_true("cce reset: type-1 ring fetches all resolved in RAM",
+               settled && harness_sysmem_stray == 0);
 
+    rage128_vblank_start(&dev->svga); /* latch the flip armed for the stall */
+    drain_sync(dev);
     wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
     wr(dev, RAGE128_PCI_GART_PAGE, 1);
     pci_wr8(0x04, 0x03);
@@ -15208,19 +16021,23 @@ vectors_vline_stall_flush(rage128_t *dev)
 
 /* ------------------------------------------------------------------ */
 /* The reset pulse must abandon an indirect buffer too. The Linux DRM  */
-/* submits every vertex and blit buffer as an IB, so a walk that       */
-/* ignores cce_abort runs exactly the work the pulse drops. A long     */
-/* body (100000 two-dword register packets) walks in about 2 ms, so    */
-/* the wait for it to start spins: a sleeping wait cannot resolve      */
-/* finer than the host timer granularity and would spend the window.   */
-/* The walk's own progress counter, sampled just before the pulse,     */
-/* says the walk was still running then. The pulse                     */
-/* goes through GEN_RESET_CNTL: even an unfixed walk ends in           */
-/* milliseconds, so the wait cannot wedge.                             */
+/* submits every vertex and blit buffer as an indirect buffer, so a    */
+/* walk that ignores the pulse runs exactly the work the pulse drops.  */
+/* The body is 4096 two-dword register packets: each writes its own    */
+/* index plus one to GUI_SCRATCH_REG1, a progress counter, except      */
+/* packet 2000, which is a WAIT_UNTIL stall, and the last, which       */
+/* writes the witness to GUI_SCRATCH_REG0. The walk stops in the       */
+/* stall, so the counter reads 2000 for as long as the walk stands     */
+/* there, and the pulse lands on a walk with half its body still to    */
+/* run. A walk that ignores the pulse goes on once the pulse has ended */
+/* the stall, and the pulse returns only after it has run the witness. */
+/* The pulse goes through GEN_RESET_CNTL: even such a walk ends in     */
+/* microseconds, so the pulse cannot wedge.                            */
 /* ------------------------------------------------------------------ */
 #define RESET_IB_CARD_ADDR 0x00200000u
 #define RESET_IB_PHYS      0x00400000u
-#define RESET_IB_PACKETS   100000u
+#define RESET_IB_PACKETS   4096u
+#define RESET_IB_STALL_PKT 2000u
 #define RESET_IB_DWORDS    (RESET_IB_PACKETS * 2)
 #define RESET_IB_PAGES     ((RESET_IB_DWORDS * 4 + 0xfff) / 0x1000)
 #define RESET_IB_SCRATCH1  0x00000579u /* PACKET0(GUI_SCRATCH_REG1, 1) */
@@ -15241,11 +16058,14 @@ reset_ib_ib_build(void)
     ring[1] = RESET_IB_CARD_ADDR;
     ring[2] = RESET_IB_DWORDS;
 
-    /* Body: a progress counter, then the witness as the very last packet. */
+    /* Body: a progress counter with the stall in the middle, then the
+       witness as the very last packet. */
     for (uint32_t i = 0; i < RESET_IB_PACKETS - 1; i++) {
         ib[i * 2]     = RESET_IB_SCRATCH1;
         ib[i * 2 + 1] = i + 1;
     }
+    ib[RESET_IB_STALL_PKT * 2]         = LAP_WAIT_HDR;
+    ib[RESET_IB_STALL_PKT * 2 + 1]     = 0x00000001u; /* EVENT_CRTC_OFFSET */
     ib[(RESET_IB_PACKETS - 1) * 2]     = LAP_SCRATCH_HDR;
     ib[(RESET_IB_PACKETS - 1) * 2 + 1] = LAP_SCRATCH_VAL;
 }
@@ -15255,7 +16075,10 @@ vectors_gui_reset_indirect(rage128_t *dev)
 {
     uint32_t pre;
     uint32_t prog;
-    int      i;
+    uint32_t s0;
+    int      stalled;
+    int      settled;
+    int      yields = reset_stall_yields(dev);
 
     harness_ram_alloc();
     harness_sysmem_stray = 0;
@@ -15270,40 +16093,43 @@ vectors_gui_reset_indirect(rage128_t *dev)
     wr(dev, RAGE128_PM4_BUFFER_DL_RPTR, 0);
     wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 0);
     wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x8000000a);
+    wr(dev, RAGE128_CRTC_OFFSET, 0x00300000); /* arm a pending flip */
     dev->gui_scratch[0] = 0;
     dev->gui_scratch[1] = 0;
 
-    /* Submit: the body is spliced whole behind its submit packet, so the
-       walk cannot start until the pump has published all of it. */
+    /* Submit: the body is copied whole into the FIFO behind its submit
+       packet, and the executor walks it from there up to the stall. */
     wr(dev, RAGE128_PM4_BUFFER_DL_WPTR, 3);
-    /* Spin, do not sleep. The whole body walks in about 2 ms, so one 1 ms
-       sleep already eats most of the window, and a host whose millisecond
-       sleep rounds up to a scheduler quantum (Windows Sleep(1) is ~15 ms
-       without timeBeginPeriod) misses the walk entirely. The spin sees the
-       counter within microseconds of it crossing; the sleep loop stays as
-       the backstop for a walk that never starts. */
-    for (i = 0; i < 10000000 && LAP_SCRATCH_R(dev, 1) < 100; i++)
-        ;
-    for (i = 0; i < 4000 && LAP_SCRATCH_R(dev, 1) < 100; i++)
-        lap_msleep(1);
+    stalled = reset_wait_stalled(dev);
 
-    /* Sampled right before the pulse: started (>= 100) and not yet at the
-       last counter value. This row is the precondition, not a device
-       verdict -- red here means the walk was not caught running, so the
-       two rows below say nothing about the abort. */
-    pre = LAP_SCRATCH_R(dev, 1);
+    /* The precondition, not a device verdict: the walk stands in the
+       stall packet, having written the counter for every packet before
+       it and none after. Red here means the walk was not held there, so
+       the two rows below say nothing about the pulse. The counter is
+       read only with the walk seen in the stall, where it writes
+       nothing. */
+    pre = stalled ? dev->gui_scratch[1] : 0xffffffffu;
     check_true("cce reset: IB walk was running at the pulse",
-               pre >= 100 && pre < RESET_IB_PACKETS - 1);
-    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
-    prog = dev->gui_scratch[1];
+               stalled && yields && atomic_load(&dev->cce_executing)
+                   && pre == RESET_IB_STALL_PKT);
+    /* A walk that goes on does so before the executor parks for the
+       pulse: by the time the asserting write returns it has moved the
+       counter and, at its end, written the witness. That write also lets
+       the executor go again, so both registers are read only once the
+       executor has run out of work and stopped. */
+    reset_settle_arm();
+    reset_pulse(dev, yields);
     wr(dev, RAGE128_GEN_RESET_CNTL, 0);
+    settled = reset_settled(dev);
+    prog    = settled ? dev->gui_scratch[1] : 0xffffffffu;
+    s0      = settled ? dev->gui_scratch[0] : 0xffffffffu;
 
-    check_true("cce reset: IB walk abandoned at the pulse",
-               prog < RESET_IB_PACKETS - 1);
-    check_true("cce reset: IB tail write did not run", dev->gui_scratch[0] == 0);
+    check32("cce reset: IB walk abandoned at the pulse", prog, RESET_IB_STALL_PKT);
+    check_true("cce reset: IB tail write did not run", s0 == 0);
     check_true("cce reset: IB body fetches all resolved in RAM",
-               harness_sysmem_stray == 0);
+               settled && harness_sysmem_stray == 0);
 
+    rage128_vblank_start(&dev->svga); /* latch the flip armed for the stall */
     drain_sync(dev);
     wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
     wr(dev, RAGE128_PCI_GART_PAGE, 1);
@@ -15576,6 +16402,788 @@ vectors_fence_order(rage128_t *dev)
     pci_wr8(0x04, 0x03);
 }
 
+/* ------------------------------------------------------------------ */
+/* The status registers stay busy until a deferred batch is in guest   */
+/* memory, whoever draws it. An indirect buffer submitted by a direct  */
+/* PM4_IW_INDSIZE write runs on the CPU thread; with render workers    */
+/* its triangle is queued, so the write returns with a batch pending,  */
+/* the FIFO empty and the executor asleep. The next wake of the        */
+/* executor, here one that brings no work, makes it draw that batch    */
+/* in a pass that pops nothing. The color and depth buffers are in     */
+/* AGP memory, so the draw reaches the guest only when the flush       */
+/* writes the staged copies back, after the workers have finished. A   */
+/* driver that reads the engine idle goes on to read or reuse the      */
+/* surface, so GUI_STAT, PM4_STAT and PC_GUI_CTLSTAT have to read busy */
+/* through that write-back (RRG: GUI_STAT, p. 3-244 / PDF 262). The    */
+/* bus-master write hook holds the executor at its first write into    */
+/* the two surfaces, before the bytes land, until the CPU thread has   */
+/* read the registers and lets it go. Only a device with render        */
+/* workers defers a draw; with one render thread the leg does not run. */
+/* The vector puts back every register, hook and guest memory byte it  */
+/* changes. The reset pulse it starts with is not undone: it drops     */
+/* queued engine work, of which there is none at that point.           */
+/* ------------------------------------------------------------------ */
+#define WB_AGP_BASE 0x00400000u /* guest address of the AGP aperture */
+#define WB_IB_CARD  0x00010000u /* card addresses below; the guest address
+                                   is the aperture base plus bits 24:0 */
+#define WB_COL_PHYS (WB_AGP_BASE + (AGP_COL_A & 0x01ffffffu))
+#define WB_Z_PHYS   (WB_AGP_BASE + (AGP_Z_A & 0x01ffffffu))
+#define WB_LIMIT_MS 60000 /* gives up, loudly, on a hold or a wait this long */
+
+enum {
+    WB_OFF,      /* the hook lets every write through */
+    WB_ARMED,    /* the next matching write of the executor is held */
+    WB_HOLDING,  /* the executor is inside the hook */
+    WB_RELEASED, /* the CPU thread has read the registers and let go */
+    WB_TIMED_OUT /* the hold ran into WB_LIMIT_MS and ended by itself */
+};
+static atomic_int wb_state;
+
+/* Holds one write: the executor's first into color buffer A or depth
+   buffer A after the vector arms the hook. The hold lasts until the
+   vector releases it, however long the CPU thread takes, so host load
+   cannot end it early. WB_LIMIT_MS only keeps a broken device from
+   hanging the run; reaching it is recorded in wb_state and reported by
+   the vector as a failure of its own. Whatever ends the hold, no later
+   write is held. */
+static void
+wb_write_hook(uint32_t addr, uint32_t len)
+{
+    int in_col = addr >= WB_COL_PHYS && addr < WB_COL_PHYS + 0x2000u;
+    int in_z   = addr >= WB_Z_PHYS && addr < WB_Z_PHYS + 0x2000u;
+    int expect = WB_ARMED;
+
+    (void) len;
+    if (!rage128_on_cce_thread || (!in_col && !in_z)
+        || !atomic_compare_exchange_strong(&wb_state, &expect, WB_HOLDING))
+        return;
+    for (int ms = 0; ms < WB_LIMIT_MS && atomic_load(&wb_state) == WB_HOLDING; ms++)
+        lap_msleep(1);
+    expect = WB_HOLDING;
+    atomic_compare_exchange_strong(&wb_state, &expect, WB_TIMED_OUT);
+}
+
+static void
+vectors_cce_status_batch_writeback(rage128_t *dev)
+{
+    /* The registers the vector changes, restored in reverse order at
+       the end. The first four are the indirect buffer's doing: its
+       DST_PITCH_OFFSET_C write, which reads back only as DST_OFFSET and
+       DST_PITCH, its Z_OFFSET_C write, and the shadow id the draw
+       advances. */
+    static const uint32_t regs[] = {
+        RAGE128_DST_OFFSET, RAGE128_DST_PITCH, RAGE128_Z_OFFSET_C, RAGE128_COMPOSITE_SHADOW_ID,
+        RAGE128_BUS_CNTL, RAGE128_PCI_GART_PAGE, RAGE128_AGP_BASE, RAGE128_PM4_BUFFER_CNTL,
+        RAGE128_PM4_VC_DEBUG_CONFIG,
+        RAGE128_GEN_RESET_CNTL, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, RAGE128_SC_TOP_LEFT,
+        RAGE128_SC_BOTTOM_RIGHT, RAGE128_DP_CNTL, RAGE128_DP_WRITE_MASK, RAGE128_AUX_SC_CNTL,
+        RAGE128_DP_DATATYPE, RAGE128_Z_PITCH_C, RAGE128_Z_STEN_CNTL_C, RAGE128_TEX_CNTL_C,
+        RAGE128_MISC_3D_STATE_CNTL, RAGE128_PLANE_3D_MASK_C, RAGE128_PM4_VC_FPU_SETUP,
+        RAGE128_SETUP_CNTL, RAGE128_WINDOW_XY_OFFSET, RAGE128_SCALE_3D_CNTL
+    };
+    enum { NREGS = sizeof(regs) / sizeof(regs[0]) };
+    static uint8_t ram_ib[128], ram_col[0x2000], ram_z[0x2000];
+    void         (*hook_save)(uint32_t addr, uint32_t len);
+    uint32_t       reg_save[NREGS];
+    uint32_t       indoff_save, indsize_save;
+    uint64_t       stray_save;
+    uint8_t        pci_cmd_save;
+    uint32_t      *ib;
+    uint32_t      *pix;
+    uint32_t       st[3] = { 0, 0, 0 };
+    uint32_t       room, pix_held = 0, pix_after, stat_after;
+    int            n = 0;
+    int            queued, arrived = 0, held = 0, batch_held = 0, state_end, stray_ok;
+    int            expect;
+
+    if (rage128_raster_nthreads(dev) <= 1)
+        return;
+
+    harness_ram_alloc();
+    ib  = (uint32_t *) (ram + WB_AGP_BASE + WB_IB_CARD);
+    pix = (uint32_t *) (ram + WB_COL_PHYS + (2 * 64 + 2) * 4);
+    rr_quiesce(dev);
+    for (int i = 0; i < NREGS; i++)
+        reg_save[i] = rd(dev, regs[i]);
+    indoff_save  = dev->pm4_iw_indoff;
+    indsize_save = dev->pm4_iw_indsize;
+    pci_cmd_save = pci_rd8(0x04);
+    stray_save   = harness_sysmem_stray;
+    hook_save    = harness_bm_write_hook;
+    memcpy(ram_ib, ib, sizeof(ram_ib));
+    memcpy(ram_col, ram + WB_COL_PHYS, sizeof(ram_col));
+    memcpy(ram_z, ram + WB_Z_PHYS, sizeof(ram_z));
+
+    harness_sysmem_stray = 0;
+    memset(ram + WB_COL_PHYS, 0, 0x2000);
+    for (int i = 0; i < 0x1000; i++)
+        *(uint16_t *) (ram + WB_Z_PHYS + i * 2) = 0x8000;
+
+    /* The buffer: target A, depth ZA, one green triangle. Nothing
+       follows the triangle, so nothing in the buffer flushes it. */
+    ib[n++] = 0x00000720; /* DST_PITCH_OFFSET_C */
+    ib[n++] = 0x01000000 | (AGP_COL_A >> 5);
+    ib[n++] = 0x00000724; /* Z_OFFSET_C */
+    ib[n++] = AGP_Z_A;
+    n       = ring_add_tri(ib, n, 0xff00ff00);
+
+    /* AGP addressing through the chipset aperture, not the on-chip
+       table: the device then writes the staged surfaces back through
+       the host's bus-master write, where the hook can hold it. */
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    wr(dev, RAGE128_PCI_GART_PAGE, 1);
+    wr(dev, RAGE128_AGP_BASE, WB_AGP_BASE);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+    /* Engine time over and nothing queued, then the draw context of the
+       render-target vector: a scissor that bounds each staged surface to
+       one page, depth test and write on, Gouraud, no texture. */
+    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+    wr(dev, RAGE128_GEN_RESET_CNTL, 0);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0x00000000);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x000f003f);
+    wr(dev, RAGE128_DP_CNTL, 0x00000003);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0x00000000);
+    wr(dev, RAGE128_DP_DATATYPE, 0x00000006);
+    wr(dev, RAGE128_Z_PITCH_C, 0x00000008);
+    wr(dev, RAGE128_Z_STEN_CNTL_C, 0x00000010);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000003);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_PM4_VC_FPU_SETUP,
+       RAGE128_FPU_BACKFACE_SOLID | RAGE128_FPU_FRONTFACE_SOLID | RAGE128_FPU_COLOR_GOURAUD);
+    wr(dev, RAGE128_SETUP_CNTL, 0x00000020);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+    scan_exec_quiesce(dev);
+    room = rage128_pm4_fifo_dwords(dev);
+
+    /* The submit, on this thread. */
+    wr(dev, RAGE128_PM4_IW_INDOFF, WB_IB_CARD);
+    wr(dev, RAGE128_PM4_IW_INDSIZE, (uint32_t) n);
+    queued = atomic_load(&dev->cce_batch_pending) && !atomic_load(&dev->cce_executing)
+        && atomic_load(&dev->cce_fifo_rd) == atomic_load(&dev->cce_fifo_wr) && *pix == 0;
+
+    if (queued) {
+        /* A wake that brings no work; the executor's pass draws the
+           batch and is held at its first write-back write. The wait
+           for it sleeps: the hold does not end until this thread ends
+           it, so there is no window to miss. */
+        atomic_store(&wb_state, WB_ARMED);
+        harness_bm_write_hook = wb_write_hook;
+        thread_set_event(dev->cce_wake_event);
+        for (int ms = 0; ms < WB_LIMIT_MS && atomic_load(&wb_state) == WB_ARMED; ms++)
+            lap_msleep(1);
+        arrived    = atomic_load(&wb_state) == WB_HOLDING;
+        held       = arrived && atomic_load(&dev->cce_executing)
+            && atomic_load(&dev->cce_fifo_rd) == atomic_load(&dev->cce_fifo_wr);
+        batch_held = atomic_load(&dev->cce_batch_pending);
+        pix_held   = *pix;
+        st[0]      = rd(dev, RAGE128_GUI_STAT);
+        st[1]      = rd(dev, RAGE128_PM4_STAT);
+        st[2]      = rd(dev, RAGE128_PC_GUI_CTLSTAT);
+        /* Still holding after the reads: the executor stood at the
+           write for all three. */
+        expect = WB_HOLDING;
+        held   = held && atomic_compare_exchange_strong(&wb_state, &expect, WB_RELEASED);
+    }
+    state_end = atomic_load(&wb_state);
+    if (queued && state_end != WB_RELEASED) {
+        /* Not a row result: the hold itself did not happen as built. */
+        printf("TIMEOUT cce status: batch write-back: %s after %d ms; the rows below are void\n",
+               state_end == WB_ARMED ? "the executor did not reach the write-back"
+                                     : "the hold ended by its limit before the reads were done",
+               WB_LIMIT_MS);
+        atomic_store(&wb_state, WB_OFF);
+    }
+    rr_quiesce(dev);
+    atomic_store(&wb_state, WB_OFF);
+    harness_bm_write_hook = hook_save;
+    stat_after            = rd(dev, RAGE128_GUI_STAT);
+    pix_after             = *pix;
+    stray_ok              = harness_sysmem_stray == 0;
+
+    /* Everything back as it was found. PM4_IW_INDSIZE is put back in
+       the device, not through the register: a write of the register
+       would run the buffer it names. */
+    for (int i = NREGS - 1; i >= 0; i--)
+        wr(dev, regs[i], reg_save[i]);
+    dev->pm4_iw_indoff  = indoff_save;
+    dev->pm4_iw_indsize = indsize_save;
+    pci_wr8(0x04, pci_cmd_save);
+    rr_quiesce(dev);
+    harness_sysmem_stray = stray_save;
+    memcpy(ib, ram_ib, sizeof(ram_ib));
+    memcpy(ram + WB_COL_PHYS, ram_col, sizeof(ram_col));
+    memcpy(ram + WB_Z_PHYS, ram_z, sizeof(ram_z));
+
+    printf("cce status: data: batch write-back: queued=%d held=%d batch flag=%d pixel=%08x "
+           "GUI_STAT=%08x PM4_STAT=%08x PC_GUI_CTLSTAT=%08x; after: pixel=%08x GUI_STAT=%08x\n",
+           queued, held, batch_held, pix_held, st[0], st[1], st[2], pix_after, stat_after);
+    check_true("cce status: control: a CPU-thread submit leaves a deferred batch, FIFO empty",
+               queued);
+    check_true("cce status: control: executor held in the write-back, pixel not in guest memory",
+               held && pix_held == 0);
+    check32("cce status: GUI_STAT busy while a batch is written back", st[0],
+            RAGE128_GUI_STAT_BUSY);
+    check32("cce status: PM4_STAT busy while a batch is written back", st[1],
+            room | RAGE128_PM4_STAT_BUSY | RAGE128_PM4_STAT_GUI_ACTIVE);
+    check32("cce status: PC_GUI_CTLSTAT busy while a batch is written back", st[2], 0xa0000000u);
+    check_true("cce status: the draw is in guest memory after the flush, GUI_STAT idle",
+               pix_after == 0xff00ff00 && stat_after == 0x40 && stray_ok);
+}
+#undef WB_AGP_BASE
+#undef WB_IB_CARD
+#undef WB_COL_PHYS
+#undef WB_Z_PHYS
+#undef WB_LIMIT_MS
+
+/* ------------------------------------------------------------------ */
+/* The walk hold. An indirect buffer submitted by a direct             */
+/* PM4_IW_INDSIZE write is walked by the submitting thread, which      */
+/* queues its triangles into the render workers' batch itself, so for  */
+/* the length of the walk the executor must start no pass: a pass that */
+/* pops nothing still flushes that batch. Each group submits a buffer  */
+/* of two triangles (A green at x 0 to 16, B blue at x 32 to 48) from  */
+/* a helper thread and forces the pass that would overlap:             */
+/*   A  a pass owed when the second triangle's header is read;         */
+/*   B  a pass already running when the hold is taken;                 */
+/*   C  a register write between the triangles, whose drain needs the  */
+/*      executor, then a pass owed after that drain;                   */
+/*   D  a reset pulse written by the buffer, with the executor backed  */
+/*      off when it comes.                                             */
+/* A fifth run, E, is not about the hold. It repeats B, whose submit   */
+/* returns with both triangles in the render workers' batch, the       */
+/* executor asleep and no pass owed, and then writes a SOFT_RESET_GUI  */
+/* pulse to GEN_RESET_CNTL from this thread. That is the one state in  */
+/* which a batch the executor side has already taken stands in front   */
+/* of a register-written pulse on every run, so its rows carry the     */
+/* reset vectors' names. The pulse must empty the batch. The pass the  */
+/* executor makes once the pulse lets it go is stood before its idle   */
+/* flush until the batch has been read, or for 2 s at most, so a batch */
+/* the pulse left behind is still there to be seen, not already drawn. */
+/* Limits: each poll of the vector (WH_WAIT, the settle test) gives up */
+/* after 2 s. A submit that has not returned after 8 s is ended by     */
+/* clearing the hold from this thread (the rescue), and the run exits  */
+/* if it has not returned 8 s after that, so a device that leaves the  */
+/* submit stuck fails rows instead of hanging the run. The drains the  */
+/* vector makes on this thread around each submit (drain_sync and the  */
+/* register writes of the setup and the cleanup) have no limit of      */
+/* their own: a device that cannot drain with no walk under way hangs  */
+/* the run there.                                                      */
+/*                                                                     */
+/* Reads of device state. The batch count is written by a flush, under */
+/* the flush mutex, by the thread that appends a primitive, and by the */
+/* thread that writes a reset pulse. The accessor takes the flush      */
+/* mutex. While a submit is under way only the submitting thread       */
+/* appends or resets (the executor is handed no draw packet), and this */
+/* thread's own reset pulses in the setup come before that thread      */
+/* exists. So the count is read only on the submitting thread itself,  */
+/* or on this thread while no submitting thread exists. No poll reads  */
+/* it: polls load atomics only. The target's pixels are written by the */
+/* render workers inside a flush and are read with the same mutex      */
+/* held. Run E's pulse is written by this thread after the submitting  */
+/* thread has ended, and its reads follow the same rule: the count     */
+/* through the accessor, the pixels under the mutex, everything else   */
+/* an atomic.                                                          */
+/* ------------------------------------------------------------------ */
+extern _Atomic(void (*)(rage128_t *dev, int site)) rage128_harness_walk_hook;
+extern uint32_t rage128_harness_raster_cmd_count(rage128_t *dev);
+extern int (*harness_bm_read_hook)(uint32_t addr, uint8_t *dst, uint32_t len);
+
+#define WH_AGP_BASE 0x00400000u
+#define WH_IB_CARD  0x00010000u
+#define WH_IB_PHYS  (WH_AGP_BASE + WH_IB_CARD)
+#define WH_TGT      0x00480000u /* local VRAM color target, 64 px ARGB8888 */
+#define WH_COL_A    0xff00ff00u
+#define WH_COL_B    0xff0000ffu
+#define WH_LIMIT_MS 2000.0
+
+enum { WH_OFF, WH_A, WH_B, WH_C, WH_D, WH_E };
+enum { WH_H_OFF, WH_H_ARMED, WH_H_HOLDING, WH_H_RELEASED, WH_H_TIMED_OUT };
+
+static rage128_t *wh_dev;
+static atomic_int wh_group;
+static atomic_int wh_hold;       /* the idle hook's hold of the executor */
+static atomic_int wh_idle_calls; /* executor passes that reached the idle flush */
+static atomic_int wh_backoffs;   /* executor passes that backed off */
+static atomic_int wh_site0_done;
+static atomic_int wh_running;    /* group B: a pass stood before its idle flush at the hold */
+static atomic_int wh_pass_in_walk;
+static atomic_int wh_timeouts;
+static atomic_int wh_done;
+static int        wh_nib;
+static uint32_t   wh_hdr_b, wh_hdr_r;
+static uint32_t   wh_cnt_b, wh_pa_b;
+static int        wh_idle_at_b;
+
+static void
+wh_usleep(long us)
+{
+    struct timespec ts = { us / 1000000, (us % 1000000) * 1000L };
+
+    nanosleep(&ts, NULL);
+}
+
+/* Poll until the condition holds or WH_LIMIT_MS has passed. The
+   condition may load atomics only: another thread can be running. */
+#define WH_WAIT(cond)                                              \
+    do {                                                           \
+        double wh_t0 = slow_now_ms();                              \
+        while (!(cond) && slow_now_ms() - wh_t0 < WH_LIMIT_MS)     \
+            wh_usleep(50);                                         \
+    } while (0)
+
+/* One pixel of row 2 of the target, read with the flush mutex held:
+   the render workers write the target only inside a flush, and a flush
+   holds that mutex from before it wakes them until they have finished. */
+static uint32_t
+wh_pixel(rage128_t *dev, int x)
+{
+    uint32_t v;
+
+    thread_wait_mutex(dev->raster_flush_mtx);
+    v = *(volatile uint32_t *) &dev->svga.vram[WH_TGT + (2 * 64 + x) * 4];
+    thread_release_mutex(dev->raster_flush_mtx);
+    return v;
+}
+
+static void
+wh_hold_release(void)
+{
+    for (;;) {
+        int expect = WH_H_HOLDING;
+
+        if (atomic_compare_exchange_strong(&wh_hold, &expect, WH_H_RELEASED))
+            return;
+        if (expect != WH_H_ARMED)
+            return;
+        if (atomic_compare_exchange_strong(&wh_hold, &expect, WH_H_OFF))
+            return;
+    }
+}
+
+/* Executor, out of work, before its idle flush. */
+static void
+wh_idle_hook(rage128_t *dev)
+{
+    int expect = WH_H_ARMED;
+
+    (void) dev;
+    atomic_fetch_add(&wh_idle_calls, 1);
+    if (!atomic_compare_exchange_strong(&wh_hold, &expect, WH_H_HOLDING))
+        return;
+    WH_WAIT(atomic_load(&wh_hold) != WH_H_HOLDING);
+    expect = WH_H_HOLDING;
+    atomic_compare_exchange_strong(&wh_hold, &expect, WH_H_TIMED_OUT);
+}
+
+/* Site 0: the submitting thread, before it takes the hold. Site 1: the
+   same thread, when it finds a pass running. Site 2: the executor, when
+   it backs off. Group B uses the first two to stand a pass before its
+   idle flush at the moment the hold is taken, and to let it go once the
+   submitting thread waits for it. */
+static void
+wh_walk_hook(rage128_t *dev, int site)
+{
+    int expect = 0;
+
+    if (site == 2) {
+        atomic_fetch_add(&wh_backoffs, 1);
+        return;
+    }
+    if (atomic_load(&wh_group) != WH_B && atomic_load(&wh_group) != WH_E)
+        return;
+    if (site == 1) {
+        wh_hold_release();
+        return;
+    }
+    if (!atomic_compare_exchange_strong(&wh_site0_done, &expect, 1))
+        return;
+    atomic_store(&wh_hold, WH_H_ARMED);
+    thread_set_event(dev->cce_wake_event);
+    WH_WAIT(atomic_load(&wh_hold) != WH_H_ARMED);
+    atomic_store(&wh_running, atomic_load(&wh_hold) == WH_H_HOLDING
+                                  && atomic_load(&dev->cce_executing));
+    expect = WH_H_ARMED;
+    atomic_compare_exchange_strong(&wh_hold, &expect, WH_H_OFF);
+}
+
+/* Give the executor a pass to make now, from inside the walk, and wait
+   until it has either reached its idle flush and ended the pass, or
+   backed off. Both events are set: an executor asleep out of work takes
+   the wake, one already backed off takes the other and backs off again.
+   Returns the number of idle flushes it started. */
+static int
+wh_force_pass(void)
+{
+    int i0 = atomic_load(&wh_idle_calls);
+    int b0 = atomic_load(&wh_backoffs);
+
+    thread_set_event(wh_dev->cce_wake_event);
+    thread_set_event(wh_dev->cce_hold_event);
+    WH_WAIT(atomic_load(&wh_backoffs) != b0
+            || (atomic_load(&wh_idle_calls) != i0 && !atomic_load(&wh_dev->cce_executing)));
+    if (atomic_load(&wh_backoffs) == b0 && atomic_load(&wh_idle_calls) == i0)
+        atomic_fetch_add(&wh_timeouts, 1);
+    return atomic_load(&wh_idle_calls) - i0;
+}
+
+/* The submitting thread's reads of the buffer. Always returns 0: the
+   read itself is served from ram[]. */
+static int
+wh_read_hook(uint32_t addr, uint8_t *dst, uint32_t len)
+{
+    int group = atomic_load(&wh_group);
+
+    (void) dst;
+    (void) len;
+    if (group == WH_OFF || rage128_on_cce_thread || addr < WH_IB_PHYS
+        || addr >= WH_IB_PHYS + 0x100u)
+        return 0;
+    if (group == WH_D && addr == wh_hdr_r)
+        wh_force_pass(); /* the pulse finds the executor backed off */
+    if (addr != wh_hdr_b)
+        return 0;
+    /* On the submitting thread, the only one that appends here. */
+    wh_cnt_b = rage128_harness_raster_cmd_count(wh_dev);
+    wh_pa_b  = wh_pixel(wh_dev, 2);
+    if (group == WH_B || group == WH_E) {
+        /* A pass still standing at its idle flush was not waited for:
+           let it flush now, inside the walk, as it would have. */
+        if (atomic_load(&wh_hold) == WH_H_HOLDING) {
+            atomic_store(&wh_pass_in_walk, 1);
+            wh_hold_release();
+            WH_WAIT(!atomic_load(&wh_dev->cce_executing));
+        }
+        return 0;
+    }
+    wh_idle_at_b = wh_force_pass();
+    /* The pass that goes on after the walk stands at its idle flush
+       until the state at the write's return has been read. */
+    atomic_store(&wh_hold, WH_H_ARMED);
+    return 0;
+}
+
+static void *
+wh_submit_thread(void *priv)
+{
+    wr((rage128_t *) priv, RAGE128_PM4_IW_INDSIZE, (uint32_t) wh_nib);
+    atomic_store(&wh_done, 1);
+    return NULL;
+}
+
+/* The executor asleep, found without a drain: no pass under way and no
+   new idle flush over 1 ms. */
+static int
+wh_settle(rage128_t *dev)
+{
+    int    run = 0;
+    int    c   = atomic_load(&wh_idle_calls);
+    double t0  = slow_now_ms();
+
+    while (run < 5 && slow_now_ms() - t0 < WH_LIMIT_MS) {
+        int c1 = atomic_load(&wh_idle_calls);
+
+        run = (atomic_load(&dev->cce_executing) || c1 != c) ? 0 : run + 1;
+        c   = c1;
+        wh_usleep(200);
+    }
+    return run >= 5;
+}
+
+static int
+wh_add_tri(uint32_t *ib, int n, uint32_t x0, uint32_t x1, uint32_t argb)
+{
+    ib[n++] = 0xc00d2500;
+    ib[n++] = 0x00000008;
+    ib[n++] = 0x00030034;
+    ib[n++] = x0; ib[n++] = 0x00000000;
+    ib[n++] = 0x3e800000; ib[n++] = argb;
+    ib[n++] = x1; ib[n++] = 0x00000000;
+    ib[n++] = 0x3e800000; ib[n++] = argb;
+    ib[n++] = x0; ib[n++] = 0x41800000;
+    ib[n++] = 0x3e800000; ib[n++] = argb;
+    return n;
+}
+
+typedef struct wh_res_t {
+    int      setup;    /* the executor was asleep before the submit */
+    int      rescued;  /* the submit returned only after the hold was cleared from here */
+    uint32_t cnt_b;    /* batch count at the read of B's header */
+    uint32_t pa_b;     /* pixel A at that read */
+    int      idle_at_b;
+    uint32_t cnt_ret;  /* at the write's return */
+    int      pend_ret;
+    int      settled;
+    uint32_t cnt_end, pa, pb, stat;
+    int      pend_end;
+    int      running, pass_in_walk, timeouts, backoffs;
+    /* Run E: at the pulse, and with the pulse returned. */
+    int      asleep_pre, exec_pre, pend_pre, held, pend_pulse;
+    uint32_t cnt_pre, cnt_pulse;
+} wh_res_t;
+
+static void
+wh_run(rage128_t *dev, int group, wh_res_t *r)
+{
+    uint32_t *ib = (uint32_t *) (ram + WH_IB_PHYS);
+    pthread_t th;
+    double    t0;
+    int       n = 0;
+
+    memset(r, 0, sizeof(*r));
+    wh_hdr_r = 0;
+    n        = wh_add_tri(ib, n, 0x00000000, 0x41800000, WH_COL_A); /* x 0 to 16 */
+    if (group == WH_C) {
+        ib[n++] = 0x000005b3; /* PACKET0(DP_WRITE_MASK, 1): a FIFOed register */
+        ib[n++] = 0xffffffff;
+    } else if (group == WH_D) {
+        wh_hdr_r = WH_IB_PHYS + (uint32_t) n * 4;
+        ib[n++]  = 0x0000003c; /* PACKET0(GEN_RESET_CNTL, 1) */
+        ib[n++]  = RAGE128_GEN_SOFT_RESET_GUI;
+        ib[n++]  = 0x0000003c;
+        ib[n++]  = 0x00000000;
+    }
+    wh_hdr_b = WH_IB_PHYS + (uint32_t) n * 4;
+    n        = wh_add_tri(ib, n, 0x42000000, 0x42400000, WH_COL_B); /* x 32 to 48 */
+    wh_nib   = n;
+
+    drain_sync(dev);
+    memset(&dev->svga.vram[WH_TGT], 0, 64 * 32 * 4);
+    atomic_store(&wh_hold, WH_H_OFF);
+    atomic_store(&wh_site0_done, 0);
+    atomic_store(&wh_running, 0);
+    atomic_store(&wh_pass_in_walk, 0);
+    atomic_store(&wh_timeouts, 0);
+    atomic_store(&wh_backoffs, 0);
+    atomic_store(&wh_done, 0);
+    wh_cnt_b     = 0xffffffffu;
+    wh_pa_b      = 0;
+    wh_idle_at_b = -1;
+    wr(dev, RAGE128_PM4_IW_INDOFF, WH_IB_CARD); /* drains: before any wake is set */
+    /* No submitting thread exists yet, so nothing appends. */
+    r->setup = wh_settle(dev) && rage128_harness_raster_cmd_count(dev) == 0
+        && !atomic_load(&dev->cce_batch_pending);
+
+    atomic_store(&wh_group, group);
+    if (pthread_create(&th, NULL, wh_submit_thread, dev) != 0) {
+        atomic_store(&wh_group, WH_OFF);
+        r->setup = 0;
+        return;
+    }
+    t0 = slow_now_ms();
+    while (!atomic_load(&wh_done) && slow_now_ms() - t0 < 4 * WH_LIMIT_MS)
+        wh_usleep(100);
+    if (!atomic_load(&wh_done)) {
+        /* The submit is stuck in a wait that needs the executor: clear
+           the hold from here so the executor runs, and let the hooks'
+           holds go. */
+        r->rescued = 1;
+        t0         = slow_now_ms();
+        while (!atomic_load(&wh_done) && slow_now_ms() - t0 < 4 * WH_LIMIT_MS) {
+            atomic_store(&dev->cce_walk_hold, 0);
+            thread_set_event(dev->cce_hold_event);
+            wh_hold_release();
+            wh_usleep(1000);
+        }
+        if (!atomic_load(&wh_done)) {
+            printf("FAIL cpu walk: group %d: the submit never returned; stopping the run\n", group);
+            fflush(stdout);
+            exit(1);
+        }
+    }
+    pthread_join(th, NULL);
+
+    /* The submitting thread has ended: nothing appends from here on, and
+       the executor's flushes are shut out by the accessor's mutex. */
+    r->cnt_ret  = rage128_harness_raster_cmd_count(dev);
+    r->pend_ret = atomic_load(&dev->cce_batch_pending);
+    wh_hold_release();
+    /* Whatever pass is owed runs by itself: no wake and no drain here.
+       Group B leaves none owed, and its batch stays queued. The poll
+       loads the three atomics the flush and the pass store, never the
+       batch count, which the executor's flush can be storing meanwhile:
+       the flush clears the count before it drops cce_batch_pending, and
+       the rows read the count afterwards, through the accessor. */
+    if (group != WH_B && group != WH_E)
+        WH_WAIT(!atomic_load(&dev->cce_batch_pending)
+                && !atomic_load(&dev->cce_batch_flushing) && !atomic_load(&dev->cce_executing));
+    r->settled  = wh_settle(dev);
+    if (group == WH_E) {
+        /* The executor is asleep with the batch taken and nothing owed.
+           The state is sampled last before the pulse; the GEN_RESET_CNTL
+           write does not drain, so the pulse meets that state. */
+        r->asleep_pre = r->settled;
+        r->cnt_pre    = rage128_harness_raster_cmd_count(dev);
+        r->pend_pre   = atomic_load(&dev->cce_batch_pending);
+        r->exec_pre   = atomic_load(&dev->cce_executing);
+        /* Armed before the pulse: the executor makes no pass until the
+           pulse has parked it and let it go, and that pass then stands
+           before its idle flush, which would draw a batch the pulse
+           left behind. The stand ends by itself after 2 s. */
+        atomic_store(&wh_hold, WH_H_ARMED);
+        wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+        WH_WAIT(atomic_load(&wh_hold) != WH_H_ARMED);
+        r->cnt_pulse  = rage128_harness_raster_cmd_count(dev);
+        r->pend_pulse = atomic_load(&dev->cce_batch_pending);
+        r->held       = atomic_load(&wh_hold) == WH_H_HOLDING;
+        wh_hold_release();
+        wr(dev, RAGE128_GEN_RESET_CNTL, 0);
+        drain_sync(dev);
+        r->settled = wh_settle(dev);
+    }
+    r->cnt_end  = rage128_harness_raster_cmd_count(dev);
+    r->pend_end = atomic_load(&dev->cce_batch_pending);
+    r->pa       = wh_pixel(dev, 2);
+    r->pb       = wh_pixel(dev, 34);
+    r->stat     = rd(dev, RAGE128_GUI_STAT);
+
+    r->cnt_b        = wh_cnt_b;
+    r->pa_b         = wh_pa_b;
+    r->idle_at_b    = wh_idle_at_b;
+    r->running      = atomic_load(&wh_running);
+    r->pass_in_walk = atomic_load(&wh_pass_in_walk);
+    r->timeouts     = atomic_load(&wh_timeouts);
+    r->backoffs     = atomic_load(&wh_backoffs);
+
+    /* Leave nothing asleep or queued behind a red row. */
+    atomic_store(&wh_group, WH_OFF);
+    wh_hold_release();
+    atomic_store(&wh_hold, WH_H_OFF);
+    atomic_store(&dev->cce_walk_hold, 0);
+    thread_set_event(dev->cce_hold_event);
+    drain_sync(dev);
+    if (group == WH_E)
+        printf("cpu walk: data: group E: at the pulse: count=%u flag=%d executing=%d; pulse "
+               "returned: count=%u flag=%d pass stood=%d\n",
+               r->cnt_pre, r->pend_pre, r->exec_pre || !r->asleep_pre, r->cnt_pulse, r->pend_pulse,
+               r->held);
+    printf("cpu walk: data: group %c: setup=%d rescued=%d at B: count=%u A=%08x idle flushes=%d; "
+           "return: count=%u flag=%d; after: count=%u flag=%d A=%08x B=%08x GUI_STAT=%08x; "
+           "running=%d pass in walk=%d back-offs=%d timeouts=%d\n",
+           'A' + group - WH_A, r->setup, r->rescued, r->cnt_b, r->pa_b, r->idle_at_b, r->cnt_ret,
+           r->pend_ret, r->cnt_end, r->pend_end, r->pa, r->pb, r->stat, r->running,
+           r->pass_in_walk, r->backoffs, r->timeouts);
+}
+
+static void
+vectors_cpu_walk_hold(rage128_t *dev)
+{
+    wh_res_t r;
+
+    if (rage128_raster_nthreads(dev) <= 1)
+        return;
+    wh_dev = dev;
+    harness_ram_alloc();
+    harness_sysmem_stray = 0;
+
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    wr(dev, RAGE128_PCI_GART_PAGE, 1);
+    wr(dev, RAGE128_AGP_BASE, WH_AGP_BASE);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+    wr(dev, RAGE128_GEN_RESET_CNTL, 0);
+    /* The local-VRAM draw context of the fence-order vector. */
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0);
+    wr(dev, 0x16f0, 0x001f003f);
+    wr(dev, 0x16c0, 3);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0);
+    wr(dev, 0x16c4, 6);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000 | (WH_TGT >> 5));
+    wr(dev, RAGE128_TEX_CNTL_C, 0);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_PM4_VC_FPU_SETUP,
+       RAGE128_FPU_BACKFACE_SOLID | RAGE128_FPU_FRONTFACE_SOLID | RAGE128_FPU_COLOR_GOURAUD);
+    wr(dev, RAGE128_SETUP_CNTL, 0x20);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0);
+    scan_exec_quiesce(dev);
+
+    atomic_store(&wh_group, WH_OFF);
+    atomic_store(&rage128_harness_idle_hook, wh_idle_hook);
+    atomic_store(&rage128_harness_walk_hook, wh_walk_hook);
+    harness_bm_read_hook = wh_read_hook;
+
+    wh_run(dev, WH_A, &r);
+    check_true("cpu walk: control: the first triangle is queued when the second header is read",
+               r.setup && r.cnt_b == 1);
+    check_true("cpu walk: no executor idle flush starts inside the walk",
+               r.idle_at_b == 0 && !r.timeouts);
+    check_true("cpu walk: both triangles queued, batch flag set at the write's return",
+               r.cnt_ret == 2 && r.pend_ret == 1);
+    check_true("cpu walk: after the owed pass both are drawn and the engine is idle",
+               r.settled && r.pa == WH_COL_A && r.pb == WH_COL_B && r.cnt_end == 0
+                   && !r.pend_end && r.stat == 0x00000040u);
+
+    wh_run(dev, WH_B, &r);
+    check_true("cpu walk: control: a pass stood before its idle flush when the hold was taken",
+               r.setup && r.running);
+    check_true("cpu walk: that pass was waited out: both queued, flag set at the return",
+               !r.pass_in_walk && r.cnt_b == 1 && r.cnt_ret == 2 && r.pend_ret == 1);
+
+    wh_run(dev, WH_C, &r);
+    check_true("cpu walk: a register write behind a queued triangle returns, triangle drawn",
+               r.setup && !r.rescued && r.cnt_b == 0 && r.pa_b == WH_COL_A);
+    check_true("cpu walk: a pass owed after that drain stays out of the walk",
+               r.idle_at_b == 0 && !r.timeouts && r.cnt_ret == 1 && r.pend_ret == 1);
+    check_true("cpu walk: after that walk both are drawn and the engine is idle",
+               r.settled && r.pa == WH_COL_A && r.pb == WH_COL_B && r.cnt_end == 0
+                   && !r.pend_end && r.stat == 0x00000040u);
+
+    wh_run(dev, WH_D, &r);
+    check_true("cpu walk: a reset pulse written by the buffer returns", r.setup && !r.rescued);
+    check_true("cpu walk: after the pulse the first triangle is dropped, the second drawn, idle",
+               r.settled && r.pa == 0 && r.pb == WH_COL_B && r.cnt_end == 0 && !r.pend_end
+                   && r.stat == 0x00000040u);
+
+    /* The first row is the precondition: red there means the pulse did
+       not meet a taken batch, and the two rows below say nothing. */
+    wh_run(dev, WH_E, &r);
+    check_true("cce reset: two primitives taken, batch flag set, executor asleep at the pulse",
+               r.setup && !r.rescued && r.running && !r.pass_in_walk && r.asleep_pre
+                   && r.cnt_ret == 2 && r.pend_ret == 1 && r.cnt_pre == 2 && r.pend_pre == 1
+                   && !r.exec_pre);
+    check_true("cce reset: reset abandons the taken batch", r.cnt_pulse == 0 && !r.pend_pulse);
+    check_true("cce reset: nothing of the taken batch is drawn after the pulse, engine idle",
+               r.settled && r.pa == 0 && r.pb == 0 && r.cnt_end == 0 && !r.pend_end
+                   && r.stat == 0x00000040u);
+
+    harness_bm_read_hook = NULL;
+    atomic_store(&rage128_harness_walk_hook, NULL);
+    drain_sync(dev);
+    atomic_store(&rage128_harness_idle_hook, NULL);
+    printf("cpu walk: data: stray bus accesses=%llu\n", (unsigned long long) harness_sysmem_stray);
+    /* Flushed here: an existing leg that drains inside a CPU-thread walk
+       comes later in the run, and a device that fails the rows above can
+       hang there with these lines still in the buffer. */
+    fflush(stdout);
+}
+
+/* Its own device: the vector reprograms the draw context and the AGP
+   addressing, and must come before the vectors that share one. */
+static void
+run_cpu_walk_hold(void)
+{
+    rage128_t *dev;
+
+    harness_cfg_render_threads = 2;
+    dev                        = rage128_init(&ati_rage128_pro_device);
+    vectors_cpu_walk_hold(dev);
+    close_dev(dev);
+    harness_cfg_render_threads = 1;
+}
+#undef WH_AGP_BASE
+#undef WH_IB_CARD
+#undef WH_IB_PHYS
+#undef WH_TGT
+
 static void
 run_agp_32mb_threaded(void)
 {
@@ -15585,9 +17193,10 @@ run_agp_32mb_threaded(void)
     dev = rage128_init(&ati_rage128_pro_device);
     vectors_fence_order(dev);
     vectors_raster_rt_switch(dev);
+    vectors_cce_status_batch_writeback(dev);
     vectors_gui_reset_batch(dev);
     vectors_gui_reset_residue(dev);
-    vectors_gui_reset_burst(dev);
+    vectors_gui_reset_type1(dev);
     vectors_scan_starved_executor(dev);
     vectors_scan_ib_chain(dev);
     vectors_scan_asleep_executor(dev);
@@ -16219,6 +17828,1084 @@ run_maxx(void)
     maxx = maxx_init(&ati_rage128_maxx_device);
     vectors_maxx(maxx);
     maxx_close(maxx);
+}
+
+/* ------------------------------------------------------------------ */
+/* Monitor EDID choice. A Rage 128 board passes the shared DDC code its
+   own monitor, the high-resolution CRT table ddc_edid_hires_crt, and the
+   shared code presents it unless the user sets a custom EDID file, which
+   takes precedence; a custom file that cannot be read raises the error
+   box and leaves the board on its own monitor. A card that passes no
+   monitor of its own (ddc_init with the bus alone) presents the regular
+   86Box monitor that ddc_create_default_edid builds, or the custom file
+   when one is set. The custom file reader is the host stub's:
+   monitor_edid, the path and harness_edid_file select what it returns.
+   Every read goes through the same bus the guest uses: GPIO_MONID
+   bit-banging for a board, the i2c bus calls for a bare bus, 256 bytes
+   from offset 0.
+
+   The sizes differ by source. The shared code attaches a card's 128-byte
+   table as a 128-byte EEPROM, and the EEPROM's address counter wraps at
+   its size, so a read past 127 repeats the block: addresses 128-255
+   return addresses 0-127 again. A 128-byte custom file is padded to a
+   256-byte EEPROM instead, whose second half reads zero. The card EDID
+   and a custom file holding the same bytes therefore agree over 0-127,
+   the one block a guest reads when byte 126 announces no extension
+   block, and differ over 128-255. That second half is how the shared DDC
+   code presents a card's 128-byte EDID; it is modeled by that code, not a
+   documented monitor behavior. */
+/* ------------------------------------------------------------------ */
+extern const uint8_t *harness_edid_file;
+extern size_t         harness_edid_file_len;
+extern int            harness_msgbox_count;
+
+static void
+ddc917_set(int custom, const char *path, const uint8_t *file, size_t len)
+{
+    monitor_edid = custom;
+    memset(monitor_edid_path, 0, sizeof(monitor_edid_path));
+    if (path)
+        snprintf(monitor_edid_path, sizeof(monitor_edid_path), "%s", path);
+    harness_edid_file     = file;
+    harness_edid_file_len = len;
+}
+
+/* The bytes a 'len'-byte EEPROM gives over a 256-byte read from 0. */
+static void
+ddc917_expect(uint8_t *out, const uint8_t *eeprom, size_t len)
+{
+    for (int i = 0; i < 256; i++)
+        out[i] = eeprom[i % len];
+}
+
+static int
+ddc917_board_read(rage128_t *dev, uint8_t *out)
+{
+    int ack;
+
+    wr(dev, RAGE128_GPIO_MONID, RAGE128_GPIO_MONID_MASK_DDC_CLK | RAGE128_GPIO_MONID_MASK_DDC_DAT);
+    memset(out, 0xaa, 256);
+    ack = monid_ddc_read(dev, out, 256);
+    wr(dev, RAGE128_GPIO_MONID, 0);
+    return ack;
+}
+
+static void
+ddc917_bus_read(void *bus, uint8_t *out)
+{
+    i2c_start(bus, 0x50, 0);
+    i2c_write(bus, 0x50, 0x00);
+    i2c_start(bus, 0x50, 1);
+    for (int i = 0; i < 256; i++)
+        out[i] = i2c_read(bus, 0x50);
+    i2c_stop(bus, 0x50);
+}
+
+/* One row: the board acknowledges and addresses 0 to len-1 hold 'want'.
+   Returns whether addresses 128-255 repeat 'want', the 128-byte EEPROM's
+   wrap, for the caller's row on the second half. */
+static int
+ddc917_check_board(const char *what, rage128_t *dev, const uint8_t *want, size_t len)
+{
+    uint8_t got[256];
+    int     ack = ddc917_board_read(dev, got);
+
+    check_true(what, ack && memcmp(got, want, len) == 0);
+    return ack && (len == 128) && (memcmp(got + 128, want, 128) == 0);
+}
+
+/* The four chips of the three boards, each against 'want' over addresses
+   0 to len-1, then the error boxes the four inits raised. With
+   'wraps' set, one more row requires every chip's addresses 128-255 to
+   repeat the 128 bytes of 'want'. */
+static void
+ddc917_check_boards(const char *tag, const uint8_t *want, size_t len, int wraps, int msgboxes_per_chip)
+{
+    char         what[128];
+    rage128_t   *dev;
+    r128_maxx_t *maxx;
+    int          box0;
+    int          wrapped = 1;
+
+    harness_cfg_memory_mb = 32;
+
+    box0 = harness_msgbox_count;
+    dev  = rage128_init(&ati_rage128_pro_device);
+    snprintf(what, sizeof(what), "ddc 917: AGP board, %s", tag);
+    wrapped &= ddc917_check_board(what, dev, want, len);
+    close_dev(dev);
+
+    dev = rage128_init(&ati_xpert128_pci_device);
+    snprintf(what, sizeof(what), "ddc 917: PCI board, %s", tag);
+    wrapped &= ddc917_check_board(what, dev, want, len);
+    close_dev(dev);
+
+    maxx = maxx_init(&ati_rage128_maxx_device);
+    snprintf(what, sizeof(what), "ddc 917: MAXX chip A, %s", tag);
+    wrapped &= ddc917_check_board(what, maxx->chip[MAXX_A], want, len);
+    snprintf(what, sizeof(what), "ddc 917: MAXX chip B, %s", tag);
+    wrapped &= ddc917_check_board(what, maxx->chip[MAXX_B], want, len);
+    maxx_close(maxx);
+
+    if (wraps) {
+        snprintf(what, sizeof(what), "ddc 917: every board, %s: 128-255 repeat 0-127", tag);
+        check_true(what, wrapped);
+    }
+
+    snprintf(what, sizeof(what), "ddc 917: error boxes, %s", tag);
+    check32(what, (uint32_t) (harness_msgbox_count - box0), (uint32_t) (4 * msgboxes_per_chip));
+}
+
+static void
+ddc917_check_bare_bus(const char *what, const uint8_t *want)
+{
+    void   *bus = i2c_addbus("ddc917");
+    void   *eep = ddc_init(bus);
+    uint8_t got[256];
+
+    ddc917_bus_read(bus, got);
+    check_true(what, memcmp(got, want, 256) == 0);
+    ddc_close(eep);
+    i2c_removebus(bus);
+}
+
+static void
+run_ddc_edid(void)
+{
+    const uint8_t *card     = ddc_edid_hires_crt;
+    const size_t   card_len = sizeof(ddc_edid_hires_crt);
+    uint8_t       *regular  = NULL;
+    size_t         regular_len;
+    uint8_t        regular256[256], custom[256], custom_want[256];
+    uint8_t        sum = 0;
+
+    /* The unit changes the EDID settings and the reader stub; it restores
+       what it found on exit, the error box count included. */
+    const int      saved_edid     = monitor_edid;
+    const uint8_t *saved_file     = harness_edid_file;
+    const size_t   saved_file_len = harness_edid_file_len;
+    const int      saved_msgboxes = harness_msgbox_count;
+    char           saved_path[sizeof(monitor_edid_path)];
+
+    memcpy(saved_path, monitor_edid_path, sizeof(saved_path));
+
+    /* The regular monitor as the shared code builds it, and the board's
+       own monitor as the shared code holds it. */
+    regular_len = ddc_create_default_edid(&regular);
+    check32("ddc 917: regular EDID is 256 bytes", (uint32_t) regular_len, 256);
+    ddc917_expect(regular256, regular, regular_len);
+    check32("ddc 917: card EDID is 128 bytes", (uint32_t) card_len, 128);
+    for (size_t i = 0; i < card_len; i++)
+        sum += card[i];
+    check32("ddc 917: card EDID block checksum", sum, 0);
+    check32("ddc 917: card EDID has no extension block", card[126], 0);
+    check_true("ddc 917: card EDID differs from the regular one",
+               memcmp(card, regular, card_len) != 0);
+
+    /* The custom file: the regular monitor with its serial number byte
+       changed, so it matches neither monitor. The reader path rewrites
+       both block checksums. */
+    memcpy(custom, regular, 256);
+    custom[12] ^= 0x5a;
+    memcpy(custom_want, custom, 256);
+    sum = 0;
+    for (int i = 0; i < 127; i++)
+        sum += custom_want[i];
+    custom_want[127] = (uint8_t) (0 - sum);
+    sum = 0;
+    for (int i = 128; i < 255; i++)
+        sum += custom_want[i];
+    custom_want[255] = (uint8_t) (0 - sum);
+
+    /* No EDID setting: the board's own monitor. */
+    ddc917_set(0, NULL, NULL, 0);
+    ddc917_check_boards("no EDID setting: card EDID over 0-127", card, card_len, 1, 0);
+
+    /* Custom selected with an empty path: the board's own monitor. */
+    ddc917_set(1, NULL, NULL, 0);
+    ddc917_check_boards("custom, empty path: card EDID over 0-127", card, card_len, 1, 0);
+
+    /* A custom file that cannot be read: the shared code raises the error
+       box once per chip and falls back to the board's own monitor. */
+    ddc917_set(1, "missing.edid", NULL, 0);
+    ddc917_check_boards("custom file missing: card EDID over 0-127", card, card_len, 1, 1);
+
+    /* A readable custom file wins, over all 256 addresses. */
+    ddc917_set(1, "custom.edid", custom, 256);
+    ddc917_check_boards("custom file: presented as set", custom_want, 256, 0, 0);
+
+    /* A custom file holding the card EDID's bytes, as a board configured
+       with that file by name has it: the same block as the board's own
+       monitor over 0-127. Its second half reads zero, so 128-255 differ
+       from the card EDID's wrap and are not compared. */
+    ddc917_set(1, "card.edid", card, card_len);
+    ddc917_check_boards("custom file of the card EDID bytes: same over 0-127", card, card_len, 0, 0);
+
+    /* A card with no monitor of its own. */
+    ddc917_set(0, NULL, NULL, 0);
+    ddc917_check_bare_bus("ddc 917: other card, no setting: regular EDID", regular256);
+    ddc917_set(1, "missing.edid", NULL, 0);
+    ddc917_check_bare_bus("ddc 917: other card, file missing: regular EDID", regular256);
+    ddc917_set(1, "custom.edid", custom, 256);
+    ddc917_check_bare_bus("ddc 917: other card, custom file: as set", custom_want);
+
+    /* R128_DDC_BASELINE names a saved copy of the regular EDID; when it is
+       set, the bare-bus bytes are compared with it too. */
+    {
+        const char *base = getenv("R128_DDC_BASELINE");
+        int         ok   = 1;
+
+        if (base && base[0]) {
+            FILE   *f = fopen(base, "rb");
+            uint8_t saved[257];
+            size_t  n = f ? fread(saved, 1, sizeof(saved), f) : 0;
+
+            if (f)
+                fclose(f);
+            ok = (n == 256) && (memcmp(saved, regular256, 256) == 0);
+            printf("ddc 917: baseline %s: %zu bytes, %s\n", base, n, ok ? "equal" : "DIFFERENT");
+        }
+        check_true("ddc 917: regular EDID equals the saved baseline (if set)", ok);
+    }
+
+    monitor_edid = saved_edid;
+    memcpy(monitor_edid_path, saved_path, sizeof(saved_path));
+    harness_edid_file     = saved_file;
+    harness_edid_file_len = saved_file_len;
+    harness_msgbox_count  = saved_msgboxes;
+    free(regular);
+}
+
+/* ------------------------------------------------------------------ */
+/* The hardware-assisted I2C master at I2C_CNTL_0 (0x0090), I2C_CNTL_1
+   (0x0094) and I2C_DATA (0x0098), with nothing on its bus. Up to the
+   GO-low poll the client sequence is the Video Capture supplement's
+   write sample (Video Capture: Hardware Assisted I2C): clear the status
+   bits with I2C_SOFT_RST, load the address and data bytes, program the
+   counts and the enable, write GO, then poll byte 1 until GO is low.
+   The rows then read byte 0 for the DONE, NACK and HALT status bits
+   (Multimedia Registers: I2C_CNTL_0). The accesses go through the BAR2
+   byte and dword handlers. Clock values follow the supplement's formula
+   for 10 kHz with a 100 MHz XCLK: N = M = 0x32, time limit 2 N = 0x64
+   (Video Capture: Determining Timing Factors for the I2C Clock). */
+/* ------------------------------------------------------------------ */
+#define I2C909_CNTL_0 0x0090u
+#define I2C909_CNTL_1 0x0094u
+#define I2C909_DATA   0x0098u
+
+static void
+i2c909_wl(rage128_t *dev, uint32_t off, uint32_t val)
+{
+    rage128_mmio_writel(dev->mmio_base + off, val, dev);
+}
+
+static void
+i2c909_wb(rage128_t *dev, uint32_t off, uint8_t val)
+{
+    rage128_mmio_writeb(dev->mmio_base + off, val, dev);
+}
+
+static uint8_t
+i2c909_rb(rage128_t *dev, uint32_t off)
+{
+    return rage128_mmio_readb(dev->mmio_base + off, dev);
+}
+
+static uint32_t
+i2c909_rl(rage128_t *dev, uint32_t off)
+{
+    return rage128_mmio_readl(dev->mmio_base + off, dev);
+}
+
+/* The supplement's write sample with one data byte, start and stop:
+   GO write 0x32321340. */
+static void
+i2c909_set1(rage128_t *dev, uint8_t addr, uint8_t data)
+{
+    i2c909_wl(dev, I2C909_CNTL_0, 0x00000027);
+    i2c909_wl(dev, I2C909_DATA, addr);
+    i2c909_wb(dev, I2C909_DATA, data);
+    i2c909_wl(dev, I2C909_CNTL_1, 0x64020101);
+    i2c909_wl(dev, I2C909_CNTL_0, 0x32321340);
+}
+
+/* A one-byte read: the address alone in the buffer and
+   RECEIVE in the GO write, 0x32321740. */
+static void
+i2c909_get1(rage128_t *dev, uint8_t addr)
+{
+    i2c909_wl(dev, I2C909_CNTL_0, 0x00000027);
+    i2c909_wl(dev, I2C909_DATA, addr);
+    i2c909_wl(dev, I2C909_CNTL_1, 0x64020101);
+    i2c909_wl(dev, I2C909_CNTL_0, 0x32321740);
+}
+
+/* A test slave for the acknowledge path: it answers 7-bit address 0x38
+   (bytes 0x70 / 0x71), records what it is sent and returns 0x5a. */
+static struct {
+    int     starts, stops, writes;
+    uint8_t last;
+} i2c909_slave;
+
+static uint8_t
+i2c909_slave_start(void *bus, uint8_t addr, uint8_t read, void *priv)
+{
+    (void) bus; (void) addr; (void) read; (void) priv;
+    i2c909_slave.starts++;
+    return 1;
+}
+
+static uint8_t
+i2c909_slave_read(void *bus, uint8_t addr, void *priv)
+{
+    (void) bus; (void) addr; (void) priv;
+    return 0x5a;
+}
+
+static uint8_t
+i2c909_slave_write(void *bus, uint8_t addr, uint8_t data, void *priv)
+{
+    (void) bus; (void) addr; (void) priv;
+    i2c909_slave.writes++;
+    i2c909_slave.last = data;
+    return 1;
+}
+
+static void
+i2c909_slave_stop(void *bus, uint8_t addr, void *priv)
+{
+    (void) bus; (void) addr; (void) priv;
+    i2c909_slave.stops++;
+}
+
+static void
+vectors_i2c909(rage128_t *dev)
+{
+    uint32_t a, b, c, d, e;
+    uint8_t  r0, r1, r2, r3;
+
+    /* 1: every field resets to 0 */
+    a = i2c909_rl(dev, I2C909_CNTL_0);
+    b = i2c909_rl(dev, I2C909_CNTL_1);
+    c = i2c909_rl(dev, I2C909_DATA);
+    printf("i2c 909: reset %08x %08x %08x\n", a, b, c);
+    check_true("i2c 909: reset reads 0", a == 0 && b == 0 && c == 0);
+
+    /* 2: I2C_CNTL_1 keeps I2C_DATA_COUNT, I2C_ADDR_COUNT, I2C_SEL,
+       I2C_EN and I2C_TIME_LIMIT; the reserved bits read 0 */
+    i2c909_wl(dev, I2C909_CNTL_1, 0xffffffff);
+    check32("i2c 909: CNTL_1 latches defined fields", i2c909_rl(dev, I2C909_CNTL_1), 0xff03070f);
+    i2c909_wl(dev, I2C909_CNTL_1, 0x00000000);
+
+    /* 3: the control fields of I2C_CNTL_0 latch; I2C_SOFT_RST acts at the
+       write and reads 0 */
+    i2c909_wl(dev, I2C909_CNTL_0, 0x141407e0);
+    check32("i2c 909: CNTL_0 latches control fields", i2c909_rl(dev, I2C909_CNTL_0), 0x141407c0);
+
+    /* 4: a write to an empty bus: the address is not acknowledged. GO
+       is low at once, byte 0 is I2C_NACK | I2C_DRIVE_EN */
+    i2c909_set1(dev, 0x70, 0x00);
+    r1 = i2c909_rb(dev, I2C909_CNTL_0 + 1);
+    r0 = i2c909_rb(dev, I2C909_CNTL_0);
+    a  = i2c909_rl(dev, I2C909_CNTL_0);
+    printf("i2c 909: set 0x70: byte1 %02x byte0 %02x cntl_0 %08x\n", r1, r0, a);
+    check_true("i2c 909: one-byte write transfer to 0x70, empty bus: NACK",
+               (r1 & 0x10) == 0 && r0 == 0x42 && a == 0x32320342);
+
+    /* 5: a read from an empty bus */
+    i2c909_get1(dev, 0x71);
+    check32("i2c 909: one-byte read transfer from 0x71, empty bus: NACK", i2c909_rl(dev, I2C909_CNTL_0),
+            0x32320742);
+
+    /* 6: the status bits clear on a written 1 and ignore a written 0 */
+    i2c909_set1(dev, 0x70, 0x00);
+    i2c909_wb(dev, I2C909_CNTL_0, 0x40);
+    a = i2c909_rl(dev, I2C909_CNTL_0);
+    i2c909_wb(dev, I2C909_CNTL_0, 0x42);
+    b = i2c909_rl(dev, I2C909_CNTL_0);
+    i2c909_wl(dev, I2C909_CNTL_0, 0x00000027);
+    c = i2c909_rl(dev, I2C909_CNTL_0);
+    printf("i2c 909: w1c %08x %08x %08x\n", a, b, c);
+    check_true("i2c 909: status is write-1-to-clear",
+               a == 0x32320342 && b == 0x32320340 && c == 0x00000000);
+
+    /* 7: an abort: byte 1 rewritten with ABORT | GO. GO drops,
+       ABORT stays as written, no transfer runs, the old NACK stays */
+    i2c909_set1(dev, 0x70, 0x00);
+    r1 = i2c909_rb(dev, I2C909_CNTL_0 + 1);
+    i2c909_wb(dev, I2C909_CNTL_0 + 1, (uint8_t) ((r1 & 0xe7) | 0x18));
+    check32("i2c 909: abort drops GO, starts nothing", i2c909_rl(dev, I2C909_CNTL_0), 0x32320b42);
+
+    /* 8: the buffer returns bytes in the order written; I2C_SOFT_RST resets
+       both pointers */
+    i2c909_wl(dev, I2C909_CNTL_0, 0x00000020);
+    i2c909_wb(dev, I2C909_DATA, 0xa1);
+    i2c909_wb(dev, I2C909_DATA, 0xb2);
+    i2c909_wb(dev, I2C909_DATA, 0xc3);
+    r0 = i2c909_rb(dev, I2C909_DATA);
+    r1 = i2c909_rb(dev, I2C909_DATA);
+    r2 = i2c909_rb(dev, I2C909_DATA);
+    i2c909_wl(dev, I2C909_CNTL_0, 0x00000020);
+    i2c909_wb(dev, I2C909_DATA, 0xd4);
+    r3 = i2c909_rb(dev, I2C909_DATA);
+    printf("i2c 909: buffer %02x %02x %02x %02x\n", r0, r1, r2, r3);
+    check_true("i2c 909: buffer order and I2C_SOFT_RST",
+               r0 == 0xa1 && r1 == 0xb2 && r2 == 0xc3 && r3 == 0xd4);
+
+    /* 9: a NACK latches I2C_INT, GEN_INT_STATUS bit 17, which drives
+       INTA when GEN_INT_CNTL bit 17 is set; writing 1 clears it. With
+       the enable clear the bit latches and INTA stays low. */
+    wr(dev, RAGE128_GEN_INT_STATUS, 0x00020000);
+    wr(dev, RAGE128_GEN_INT_CNTL, 0x00020000);
+    i2c909_set1(dev, 0x70, 0x00);
+    a = rd(dev, RAGE128_GEN_INT_STATUS) & 0x00020000;
+    b = dev->irq_state;
+    wr(dev, RAGE128_GEN_INT_STATUS, 0x00020000);
+    c = rd(dev, RAGE128_GEN_INT_STATUS) & 0x00020000;
+    d = dev->irq_state;
+    wr(dev, RAGE128_GEN_INT_CNTL, 0x00000000);
+    i2c909_set1(dev, 0x70, 0x00);
+    e = (rd(dev, RAGE128_GEN_INT_STATUS) & 0x00020000) | dev->irq_state;
+    wr(dev, RAGE128_GEN_INT_STATUS, 0x00020000);
+    printf("i2c 909: int %08x %u %08x %u %08x\n", a, b, c, d, e);
+    check_true("i2c 909: NACK raises I2C_INT when enabled",
+               a == 0x00020000 && b == 1 && c == 0 && d == 0 && e == 0x00020000);
+
+    /* 10: the engine's bus is not the monitor DDC bus: the EDID EEPROM
+       answers 0xA0 on the GPIO_MONID lines only */
+    i2c909_set1(dev, 0xa0, 0x00);
+    check32("i2c 909: engine bus is not the DDC bus", i2c909_rl(dev, I2C909_CNTL_0), 0x32320342);
+
+    /* 13: GO with I2C_EN clear runs no transfer: GO drops and the
+       cleared status stays clear */
+    i2c909_wl(dev, I2C909_CNTL_0, 0x00000027);
+    i2c909_wl(dev, I2C909_DATA, 0x70);
+    i2c909_wl(dev, I2C909_CNTL_1, 0x64000101);
+    i2c909_wl(dev, I2C909_CNTL_0, 0x32321340);
+    check32("i2c 909: GO with EN clear starts nothing", i2c909_rl(dev, I2C909_CNTL_0), 0x32320340);
+
+    /* 11: with a slave on the bus the same sequences complete: the
+       transmit ends with DONE and the slave sees one start, the data
+       byte and one stop; the receive ends with DONE and the first
+       I2C_DATA read returns the byte the slave sent */
+    memset(&i2c909_slave, 0, sizeof(i2c909_slave));
+    i2c_sethandler(dev->mm_i2c, 0x38, 1, i2c909_slave_start, i2c909_slave_read,
+                   i2c909_slave_write, i2c909_slave_stop, NULL);
+    i2c909_set1(dev, 0x70, 0x5c);
+    a = i2c909_rl(dev, I2C909_CNTL_0);
+    i2c909_get1(dev, 0x71);
+    b  = i2c909_rl(dev, I2C909_CNTL_0);
+    r0 = i2c909_rb(dev, I2C909_DATA);
+    i2c_removehandler(dev->mm_i2c, 0x38, 1, i2c909_slave_start, i2c909_slave_read,
+                      i2c909_slave_write, i2c909_slave_stop, NULL);
+    printf("i2c 909: slave %08x %08x data %02x starts %d writes %d last %02x stops %d\n", a, b, r0,
+           i2c909_slave.starts, i2c909_slave.writes, i2c909_slave.last, i2c909_slave.stops);
+    check_true("i2c 909: attached slave acknowledges",
+               a == 0x32320341 && b == 0x32320741 && r0 == 0x5a && i2c909_slave.starts == 2
+                   && i2c909_slave.writes == 1 && i2c909_slave.last == 0x5c
+                   && i2c909_slave.stops == 2);
+
+    /* 11b: a repeated start. The transmit goes out with I2C_START and
+       without I2C_STOP (GO write 0x32321140), so the slave stays
+       addressed; the receive that follows starts again with no stop in
+       between, and its own I2C_STOP is the only stop the slave sees.
+       The receive is set up without I2C_SOFT_RST, which would release
+       the bus, so its address byte and the byte received follow the
+       transmit's two entries in the buffer */
+    memset(&i2c909_slave, 0, sizeof(i2c909_slave));
+    i2c_sethandler(dev->mm_i2c, 0x38, 1, i2c909_slave_start, i2c909_slave_read,
+                   i2c909_slave_write, i2c909_slave_stop, NULL);
+    i2c909_wl(dev, I2C909_CNTL_0, 0x00000027);
+    i2c909_wl(dev, I2C909_DATA, 0x70);
+    i2c909_wb(dev, I2C909_DATA, 0x5d);
+    i2c909_wl(dev, I2C909_CNTL_1, 0x64020101);
+    i2c909_wl(dev, I2C909_CNTL_0, 0x32321140);
+    a = i2c909_rl(dev, I2C909_CNTL_0);
+    c = (uint32_t) i2c909_slave.stops;
+    i2c909_wl(dev, I2C909_CNTL_0, 0x00000007);
+    i2c909_wl(dev, I2C909_DATA, 0x71);
+    i2c909_wl(dev, I2C909_CNTL_1, 0x64020101);
+    i2c909_wl(dev, I2C909_CNTL_0, 0x32321740);
+    b  = i2c909_rl(dev, I2C909_CNTL_0);
+    r0 = i2c909_rb(dev, I2C909_DATA);
+    printf("i2c 909: repeated start %08x %08x data %02x starts %d writes %d stops %u then %d\n", a,
+           b, r0, i2c909_slave.starts, i2c909_slave.writes, c, i2c909_slave.stops);
+    check_true("i2c 909: a start after a transfer without stop is a repeated start",
+               a == 0x32320141 && b == 0x32320741 && r0 == 0x5a && i2c909_slave.starts == 2
+                   && i2c909_slave.writes == 1 && c == 0 && i2c909_slave.stops == 1);
+
+    /* 11c: I2C_ABORT sends the stop that releases a slave a transfer
+       left addressed: the same transmit without I2C_STOP, then the
+       abort of row 7 (byte 1 rewritten with ABORT | GO) */
+    memset(&i2c909_slave, 0, sizeof(i2c909_slave));
+    i2c909_wl(dev, I2C909_CNTL_0, 0x00000027);
+    i2c909_wl(dev, I2C909_DATA, 0x70);
+    i2c909_wb(dev, I2C909_DATA, 0x5e);
+    i2c909_wl(dev, I2C909_CNTL_1, 0x64020101);
+    i2c909_wl(dev, I2C909_CNTL_0, 0x32321140);
+    c  = (uint32_t) i2c909_slave.stops;
+    r1 = i2c909_rb(dev, I2C909_CNTL_0 + 1);
+    i2c909_wb(dev, I2C909_CNTL_0 + 1, (uint8_t) ((r1 & 0xe7) | 0x18));
+    a = i2c909_rl(dev, I2C909_CNTL_0);
+    i2c_removehandler(dev->mm_i2c, 0x38, 1, i2c909_slave_start, i2c909_slave_read,
+                      i2c909_slave_write, i2c909_slave_stop, NULL);
+    printf("i2c 909: abort with a slave addressed %08x stops %u then %d\n", a, c,
+           i2c909_slave.stops);
+    check_true("i2c 909: abort sends the stop", a == 0x32320941 && c == 0
+                                                    && i2c909_slave.stops == 1);
+
+    /* 12: a chip reset clears all three registers and the buffer */
+    i2c909_wl(dev, I2C909_CNTL_1, 0xffffffff);
+    i2c909_wb(dev, I2C909_DATA, 0x5a);
+    a = i2c909_rl(dev, I2C909_CNTL_1);
+    rage128_reset(dev);
+    b = i2c909_rl(dev, I2C909_CNTL_1);
+    c = i2c909_rl(dev, I2C909_CNTL_0);
+    d = i2c909_rl(dev, I2C909_DATA);
+    printf("i2c 909: chip reset %08x -> %08x %08x %08x\n", a, b, c, d);
+    check_true("i2c 909: chip reset clears", a == 0xff03070f && b == 0 && c == 0 && d == 0);
+}
+
+/* 14: the two chips of the MAXX each have their own engine: a transfer
+   on chip B ends not acknowledged there and leaves chip A's registers
+   at reset. The address is one the board has no part at. */
+static void
+vectors_i2c909_maxx(void)
+{
+    r128_maxx_t *maxx = maxx_init(&ati_rage128_maxx_device);
+
+    i2c909_set1(maxx->chip[MAXX_B], 0x70, 0x40);
+    check32("i2c 909: MAXX chip B transfer ends NACK",
+            i2c909_rl(maxx->chip[MAXX_B], I2C909_CNTL_0), 0x32320342);
+    check32("i2c 909: MAXX chip A untouched by a chip B transfer",
+            i2c909_rl(maxx->chip[MAXX_A], I2C909_CNTL_0), 0);
+    maxx_close(maxx);
+}
+
+/* The 8-bit A/D and D/A converter on the Rage Fury MAXX, a PCF8591 at
+   7-bit address 0x4C on chip B's bus (address bytes 0x98 to write and
+   0x99 to read). The transmit is the sequence the ATI Windows 98 driver
+   uses for it: I2C_CNTL_0 = 0x14140027 (the status bits cleared,
+   I2C_SOFT_RST, N = M = 0x14), I2C_CNTL_1 = 0x28030100 with the number
+   of bytes after the address in I2C_DATA_COUNT, the bytes to I2C_DATA,
+   then I2C_CNTL_0 rewritten as read with I2C_GO, I2C_STOP and I2C_START
+   added. The receive is the same with the address alone in the buffer
+   and I2C_RECEIVE added to the last write.
+
+   The value I2C_CNTL_0 must read afterwards is worked out from the
+   engine's rules, not typed: a write keeps I2C_DRIVE_EN to I2C_ABORT and
+   I2C_PRESCALE, so the first write leaves the prescale alone; the second
+   adds the control bits it sets; I2C_GO reads 0 once the transfer has
+   ended; and the transfer adds I2C_DONE when every byte is acknowledged
+   or I2C_NACK when one is not. */
+#define I2C920_CLEAR 0x14140027u
+#define I2C920_CNTL1 0x28030100u
+
+static uint32_t
+i2c920_want(uint32_t added, uint32_t status)
+{
+    uint32_t kept = I2C920_CLEAR & RAGE128_I2C_CNTL_0_LATCH;
+
+    return ((kept | added) & RAGE128_I2C_CNTL_0_LATCH) | status;
+}
+
+static uint32_t
+i2c920_send(rage128_t *dev, const uint8_t *bytes, uint32_t n)
+{
+    const uint32_t go = RAGE128_I2C_GO | RAGE128_I2C_STOP | RAGE128_I2C_START;
+
+    i2c909_wl(dev, I2C909_CNTL_0, I2C920_CLEAR);
+    i2c909_wl(dev, I2C909_CNTL_1, I2C920_CNTL1 | (n - 1));
+    for (uint32_t i = 0; i < n; i++)
+        i2c909_wl(dev, I2C909_DATA, bytes[i]);
+    i2c909_wl(dev, I2C909_CNTL_0, i2c909_rl(dev, I2C909_CNTL_0) | go);
+    return i2c909_rl(dev, I2C909_CNTL_0);
+}
+
+/* Receive n bytes from the address byte given; they are left in the
+   buffer after the address, for the caller to read from I2C_DATA. */
+static uint32_t
+i2c920_recv(rage128_t *dev, uint8_t addr, uint32_t n)
+{
+    const uint32_t go = RAGE128_I2C_GO | RAGE128_I2C_RECEIVE | RAGE128_I2C_STOP | RAGE128_I2C_START;
+
+    i2c909_wl(dev, I2C909_CNTL_0, I2C920_CLEAR);
+    i2c909_wl(dev, I2C909_CNTL_1, I2C920_CNTL1 | n);
+    i2c909_wl(dev, I2C909_DATA, addr);
+    i2c909_wl(dev, I2C909_CNTL_0, i2c909_rl(dev, I2C909_CNTL_0) | go);
+    return i2c909_rl(dev, I2C909_CNTL_0);
+}
+
+/* What the converter holds: the control register in bits 15:8 and the
+   DAC data register in bits 7:0. The part cannot be read back over the
+   bus (a read returns A/D results), so the rows look at the board's
+   copy. */
+static uint32_t
+i2c920_part(const r128_maxx_t *maxx)
+{
+    return ((uint32_t) maxx->pcf8591.control << 8) | maxx->pcf8591.dac;
+}
+
+/* The A/D channel the part's next conversion takes, also the board's
+   copy. */
+static uint32_t
+i2c920_channel(const r128_maxx_t *maxx)
+{
+    return maxx->pcf8591.channel;
+}
+
+static void
+vectors_i2c920_maxx(void)
+{
+    static const uint8_t dac_7f[]   = { 0x98, 0x40, 0x7f };
+    static const uint8_t dac_00[]   = { 0x98, 0x40, 0x00 };
+    static const uint8_t dac_two[]  = { 0x98, 0x40, 0x11, 0x22 };
+    static const uint8_t ctl_only[] = { 0x98, 0x00 };
+    static const uint8_t below[]    = { 0x96, 0x40, 0x7f };
+    static const uint8_t above[]    = { 0x9a, 0x40, 0x7f };
+    const uint32_t       tx         = RAGE128_I2C_GO | RAGE128_I2C_STOP | RAGE128_I2C_START;
+    const uint32_t       rx         = tx | RAGE128_I2C_RECEIVE;
+    const uint32_t       tx_done    = i2c920_want(tx, RAGE128_I2C_DONE);
+    const uint32_t       tx_nack    = i2c920_want(tx, RAGE128_I2C_NACK);
+    const uint32_t       rx_done    = i2c920_want(rx, RAGE128_I2C_DONE);
+    r128_maxx_t         *maxx       = maxx_init(&ati_rage128_maxx_device);
+    rage128_t           *a          = maxx->chip[MAXX_A];
+    rage128_t           *b          = maxx->chip[MAXX_B];
+    uint32_t             c0, c1, p0, p1, st, irq;
+    uint8_t              r0, r1, r2;
+
+    printf("maxx i2c: derived I2C_CNTL_0: transmit done %08x, transmit nack %08x, receive done %08x\n",
+           tx_done, tx_nack, rx_done);
+
+    /* 13: at power-on the control register is all zeros; the DAC data
+       register is modeled at 0x00 */
+    check32("maxx i2c: the control and DAC registers power on at 0", i2c920_part(maxx), 0x0000);
+
+    /* 1: the driver's D/A write, address, control byte 0x40 (analog
+       output enable) and one value, is acknowledged byte by byte */
+    c0 = i2c920_send(b, dac_7f, sizeof(dac_7f));
+    printf("maxx i2c: 98 40 7f on chip B: cntl_0 %08x part %08x\n", c0, i2c920_part(maxx));
+    check32("maxx i2c: the D/A write is acknowledged on chip B", c0, tx_done);
+
+    /* 2: the second byte is the control byte and the third the D/A
+       value; a second write replaces the value */
+    p0 = i2c920_part(maxx);
+    i2c920_send(b, dac_00, sizeof(dac_00));
+    p1 = i2c920_part(maxx);
+    check_true("maxx i2c: the DAC data register holds the last data byte",
+               p0 == 0x407f && p1 == 0x4000);
+
+    /* 3: every byte after the control byte is a D/A value; the last one
+       sent stays */
+    c0 = i2c920_send(b, dac_two, sizeof(dac_two));
+    p0 = i2c920_part(maxx);
+    printf("maxx i2c: 98 40 11 22: cntl_0 %08x part %08x\n", c0, p0);
+    check_true("maxx i2c: later data bytes each load the DAC register",
+               c0 == tx_done && p0 == 0x4022);
+
+    /* 4: a write that ends after the control byte changes the control
+       register and leaves the D/A value alone */
+    c0 = i2c920_send(b, ctl_only, sizeof(ctl_only));
+    p0 = i2c920_part(maxx);
+    printf("maxx i2c: 98 00: cntl_0 %08x part %08x\n", c0, p0);
+    check_true("maxx i2c: a control byte alone is acknowledged", c0 == tx_done && p0 == 0x0022);
+
+    /* 5: the first byte the part sends after power-on is 80h */
+    c0 = i2c920_recv(b, 0x99, 1);
+    r0 = i2c909_rb(b, I2C909_DATA);
+    printf("maxx i2c: first read: cntl_0 %08x data %02x\n", c0, r0);
+    check_true("maxx i2c: the first byte read after power-on is 80h", c0 == rx_done && r0 == 0x80);
+
+    /* 6: I2C_INT is for a transfer that ends without an acknowledge; one
+       that is acknowledged leaves GEN_INT_STATUS bit 17 and INTA alone */
+    wr(b, RAGE128_GEN_INT_STATUS, RAGE128_GIS_I2C);
+    wr(b, RAGE128_GEN_INT_CNTL, RAGE128_GIC_I2C_EN);
+    i2c920_send(b, dac_7f, sizeof(dac_7f));
+    st  = rd(b, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_I2C;
+    irq = (uint32_t) b->irq_state;
+    wr(b, RAGE128_GEN_INT_STATUS, RAGE128_GIS_I2C);
+    wr(b, RAGE128_GEN_INT_CNTL, 0x00000000);
+    printf("maxx i2c: after an acknowledged transfer: I2C_INT %08x INTA %u\n", st, irq);
+    check_true("maxx i2c: an acknowledged transfer raises no I2C_INT", st == 0 && irq == 0);
+
+    /* 7: the part answers its own address only: the addresses on either
+       side of it are not acknowledged and do not reach its registers */
+    p0 = i2c920_part(maxx);
+    c0 = i2c920_send(b, below, sizeof(below));
+    c1 = i2c920_send(b, above, sizeof(above));
+    p1 = i2c920_part(maxx);
+    printf("maxx i2c: 96 and 9a on chip B: cntl_0 %08x %08x part %08x -> %08x\n", c0, c1, p0, p1);
+    check_true("maxx i2c: only address 0x4C answers on chip B",
+               c0 == tx_nack && c1 == tx_nack && p0 == p1);
+
+    /* 8: the part is on chip B's bus; the same write on chip A is not
+       acknowledged and the part does not see it */
+    i2c920_send(b, dac_7f, sizeof(dac_7f));
+    p0 = i2c920_part(maxx);
+    c0 = i2c920_send(a, dac_00, sizeof(dac_00));
+    p1 = i2c920_part(maxx);
+    printf("maxx i2c: 98 40 00 on chip A: cntl_0 %08x part %08x -> %08x\n", c0, p0, p1);
+    check_true("maxx i2c: chip A's bus has no part", c0 == tx_nack && p0 == p1);
+
+    /* 10: the part has no reset pin, so the board's bus reset, which
+       resets both chips, leaves its registers as they are */
+    p0 = i2c920_part(maxx);
+    maxx_reset(maxx);
+    c0 = i2c909_rl(b, I2C909_CNTL_0);
+    p1 = i2c920_part(maxx);
+    printf("maxx i2c: bus reset: chip B cntl_0 %08x part %08x -> %08x\n", c0, p0, p1);
+    check_true("maxx i2c: a bus reset does not reset the part",
+               c0 == 0 && p0 == 0x407f && p1 == 0x407f);
+
+    /* 11: a read address starts an A/D conversion and the first byte
+       sent is the result of the one before it; each byte the master
+       acknowledges starts another. The four analog inputs are modeled at
+       0 V and convert to 0x00. The part kept the conversion that row 5's
+       read started across the bus reset, so this read begins with it. */
+    c0 = i2c920_recv(b, 0x99, 3);
+    r0 = i2c909_rb(b, I2C909_DATA);
+    r1 = i2c909_rb(b, I2C909_DATA);
+    r2 = i2c909_rb(b, I2C909_DATA);
+    printf("maxx i2c: second read: cntl_0 %08x data %02x %02x %02x\n", c0, r0, r1, r2);
+    check_true("maxx i2c: later reads return the conversion of inputs at 0 V",
+               c0 == rx_done && r0 == 0x00 && r1 == 0x00 && r2 == 0x00);
+
+    /* 12: the A/D channel number. With the auto-increment flag set it
+       goes up by one per conversion and returns to 0 after the highest
+       channel of the input programming: five conversions from channel 0
+       of four single-ended inputs (control byte 0x44) end on channel 1,
+       and three from channel 0 of the mixed arrangement, which has
+       channels 0 to 2 (0x24), end on channel 0 again. A channel the
+       input programming does not have selects the highest one it has:
+       channel 3 of three differential inputs (0x13) selects channel 2,
+       and channel 3 of two differential inputs (0x33) selects channel 1
+       and stays there with the flag clear; with the flag set as well
+       (0x37) one conversion moves it to channel 0. No bus byte shows
+       the channel while every input converts to 0x00, so the row reads
+       the board's copy. */
+    {
+        static const uint8_t ctl_44[] = { 0x98, 0x44 };
+        static const uint8_t ctl_24[] = { 0x98, 0x24 };
+        static const uint8_t ctl_13[] = { 0x98, 0x13 };
+        static const uint8_t ctl_33[] = { 0x98, 0x33 };
+        static const uint8_t ctl_37[] = { 0x98, 0x37 };
+        uint32_t             ch[6];
+
+        i2c920_send(b, ctl_44, sizeof(ctl_44));
+        ch[0] = i2c920_channel(maxx);
+        i2c920_recv(b, 0x99, 5);
+        ch[1] = i2c920_channel(maxx);
+        i2c920_send(b, ctl_24, sizeof(ctl_24));
+        i2c920_recv(b, 0x99, 3);
+        ch[2] = i2c920_channel(maxx);
+        i2c920_send(b, ctl_13, sizeof(ctl_13));
+        ch[3] = i2c920_channel(maxx);
+        i2c920_send(b, ctl_33, sizeof(ctl_33));
+        i2c920_recv(b, 0x99, 2);
+        ch[4] = i2c920_channel(maxx);
+        i2c920_send(b, ctl_37, sizeof(ctl_37));
+        i2c920_recv(b, 0x99, 1);
+        ch[5] = i2c920_channel(maxx);
+        printf("maxx i2c: channel: 44 %u, +5 reads %u; 24 +3 reads %u; 13 %u; 33 +2 reads %u; 37 +1 read %u\n",
+               ch[0], ch[1], ch[2], ch[3], ch[4], ch[5]);
+        check_true("maxx i2c: auto-increment steps the channel within the input mode",
+                   ch[0] == 0 && ch[1] == 1 && ch[2] == 0 && ch[3] == 2 && ch[4] == 1 && ch[5] == 0);
+    }
+
+    maxx_close(maxx);
+
+    /* 14: the conversion starts at the acknowledge of the read address,
+       whether or not a byte is read. On a board just powered on, with
+       the auto-increment flag set (control byte 0x44), a receive of no
+       data byte is acknowledged and makes one conversion: the channel
+       number goes from 0 to 1. A one-byte read after it sends that
+       conversion's result, 0x00, where the first byte after power-on
+       would be 80h, and makes one more conversion, so the channel number
+       reads 2. */
+    {
+        static const uint8_t ctl_44[] = { 0x98, 0x44 };
+        uint32_t             ch0, ch1, ch2;
+
+        maxx = maxx_init(&ati_rage128_maxx_device);
+        b    = maxx->chip[MAXX_B];
+        i2c920_send(b, ctl_44, sizeof(ctl_44));
+        ch0 = i2c920_channel(maxx);
+        c0  = i2c920_recv(b, 0x99, 0);
+        ch1 = i2c920_channel(maxx);
+        c1  = i2c920_recv(b, 0x99, 1);
+        r0  = i2c909_rb(b, I2C909_DATA);
+        ch2 = i2c920_channel(maxx);
+        printf("maxx i2c: address-only read: cntl_0 %08x channel %u -> %u; then one byte: cntl_0 %08x data %02x channel %u\n",
+               c0, ch0, ch1, c1, r0, ch2);
+        check_true("maxx i2c: a read address alone starts a conversion",
+                   c0 == rx_done && ch0 == 0 && ch1 == 1 && c1 == rx_done && r0 == 0x00 && ch2 == 2);
+        maxx_close(maxx);
+    }
+}
+
+/* 9: a single card has no such part: the same write ends not
+   acknowledged */
+static void
+vectors_i2c920_single(rage128_t *dev)
+{
+    static const uint8_t dac_7f[] = { 0x98, 0x40, 0x7f };
+
+    check32("i2c: a single card has nothing at 0x98", i2c920_send(dev, dac_7f, sizeof(dac_7f)),
+            i2c920_want(RAGE128_I2C_GO | RAGE128_I2C_STOP | RAGE128_I2C_START, RAGE128_I2C_NACK));
+}
+
+static void
+run_i2c909(void)
+{
+    rage128_t *dev;
+
+    harness_cfg_memory_mb = 32;
+    dev = rage128_init(&ati_rage128_pro_device);
+    vectors_i2c909(dev);
+    vectors_i2c920_single(dev);
+    close_dev(dev);
+    vectors_i2c909_maxx();
+    vectors_i2c920_maxx();
+}
+
+/* ------------------------------------------------------------------ */
+/* The descriptor-list bus master behind BM_VIP0_BUF to BM_VIP3_BUF
+   (0x0A20, 0x0A30, 0x0A40, 0x0A50). A descriptor is four dwords in a
+   contiguous table: frame buffer offset, physical system address,
+   command (BYTE_COUNT [20:0], INTERRUPT_DIS 27, end of list 31),
+   reserved (SDK: Creating a Descriptor Table, pp. 7-37-7-38 /
+   PDF 207-208; Bus Master supplement, BM_COMMAND, page BM-1). Writing
+   the table address with trigger 0 (system to frame buffer) or 1 (frame
+   buffer to system) starts the list, and the end of the list sets
+   BUSMASTER_EOL_INT, GEN_INT_STATUS bit 16 (SDK: Setting up a System Bus
+   Master Transfer, p. 7-39 / PDF 209). The client sequence is the one in
+   that SDK section: clear BUS_MASTER_DIS, enable the interrupt,
+   acknowledge it, write the table address, poll bit 16. Source bytes
+   are byte i = (i * 7 + 3) & 0xff at 0x00100000; the destination VRAM
+   is filled with 0x5a first. */
+/* ------------------------------------------------------------------ */
+#define BM910_VIP0_BUF  0x0a20u
+#define BM910_VIP1_BUF  0x0a30u
+#define BM910_VIP2_BUF  0x0a40u
+#define BM910_SRC       0x00100000u
+#define BM910_TABLE     0x00110000u
+#define BM910_SYS_OUT   0x00120000u
+#define BM910_FB        0x00200000u
+#define BM910_EOL       0x80000000u
+#define BM910_INT_DIS   0x08000000u
+#define BM910_EOL_INT   0x00010000u
+/* The modeled cap on a list with no end-of-list entry, in entries. */
+#define BM910_MAX_DESC  65536u
+
+static uint8_t
+bm910_pat(uint32_t i)
+{
+    return (uint8_t) ((i * 7u + 3u) & 0xffu);
+}
+
+static uint32_t
+bm910_pat32(uint32_t i)
+{
+    return (uint32_t) bm910_pat(i) | ((uint32_t) bm910_pat(i + 1) << 8)
+        | ((uint32_t) bm910_pat(i + 2) << 16) | ((uint32_t) bm910_pat(i + 3) << 24);
+}
+
+static void
+bm910_desc(uint32_t table, uint32_t n, uint32_t fb, uint32_t sys, uint32_t cmd)
+{
+    uint32_t d[4] = { fb, sys, cmd, 0 };
+
+    memcpy(ram + table + n * 16u, d, sizeof(d));
+}
+
+static uint32_t
+bm910_vram32(rage128_t *dev, uint32_t a)
+{
+    uint32_t v;
+
+    memcpy(&v, dev->svga.vram + a, 4);
+    return v;
+}
+
+static void
+vectors_bm910(rage128_t *dev)
+{
+    uint32_t a, b, c, d;
+    uint64_t off0, stray0;
+    uint8_t  vb[64];
+    uint32_t pkt[2];
+
+    harness_ram_alloc();
+    pci_wr8(0x04, pci_rd8(0x04) | 0x04);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    for (uint32_t i = 0; i < 960; i++)
+        ram[BM910_SRC + i] = bm910_pat(i);
+    memset(dev->svga.vram + BM910_FB, 0x5a, 0x2000);
+    wr(dev, RAGE128_GEN_INT_CNTL, 0);
+    wr(dev, RAGE128_GEN_INT_STATUS, BM910_EOL_INT);
+
+    /* 1-3, 5: one entry of 320 bytes, the end of the list. The write
+       that starts it reads back; the row lands at the frame buffer
+       offset and stops at its byte count; the end sets bit 16. */
+    bm910_desc(BM910_TABLE, 0, BM910_FB, BM910_SRC, 320u | BM910_EOL);
+    wr(dev, BM910_VIP0_BUF, BM910_TABLE);
+    check32("bm 910: VIP0_BUF reads back", rd(dev, BM910_VIP0_BUF), BM910_TABLE);
+    a = bm910_vram32(dev, BM910_FB);
+    b = bm910_vram32(dev, BM910_FB + 316);
+    printf("bm 910: one entry %08x %08x\n", a, b);
+    check_true("bm 910: one entry copies 320 bytes",
+               a == bm910_pat32(0) && b == bm910_pat32(316));
+    check32("bm 910: byte after the row untouched", bm910_vram32(dev, BM910_FB + 320),
+            0x5a5a5a5a);
+    check32("bm 910: end of list sets BUSMASTER_EOL",
+            rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT, BM910_EOL_INT);
+
+    /* 4, 6, 7: three entries, one 320-byte row each at a 640-byte pitch,
+       with the interrupt enabled: INTA rises at the end, and writing 1
+       to BUSMASTER_EOL_INT_AK clears the status and drops INTA. */
+    wr(dev, RAGE128_GEN_INT_STATUS, BM910_EOL_INT);
+    wr(dev, RAGE128_GEN_INT_CNTL, BM910_EOL_INT);
+    for (uint32_t k = 0; k < 3; k++)
+        bm910_desc(BM910_TABLE, k, BM910_FB + 640u * k, BM910_SRC + 320u * k,
+                   320u | (k == 2 ? BM910_EOL : 0));
+    wr(dev, BM910_VIP0_BUF, BM910_TABLE);
+    check32("bm 910: three entries at pitch 640", bm910_vram32(dev, BM910_FB + 1280),
+            bm910_pat32(640));
+    check32("bm 910: enabled EOL raises INTA", (uint32_t) dev->irq_state, 1);
+    wr(dev, RAGE128_GEN_INT_STATUS, BM910_EOL_INT);
+    a = rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT;
+    printf("bm 910: ack %08x irq %u\n", a, dev->irq_state);
+    check_true("bm 910: write 1 acks EOL", a == 0 && dev->irq_state == 0);
+
+    /* 8: two entries, the first without the end-of-list bit, the
+       second with it and INTERRUPT_DIS: no status at any point */
+    bm910_desc(BM910_TABLE, 0, BM910_FB + 0x800, BM910_SRC, 16u);
+    bm910_desc(BM910_TABLE, 1, BM910_FB + 0x810, BM910_SRC + 16, 16u | BM910_EOL | BM910_INT_DIS);
+    wr(dev, BM910_VIP0_BUF, BM910_TABLE);
+    check32("bm 910: no EOL before the last entry",
+            rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT, 0);
+    wr(dev, RAGE128_GEN_INT_CNTL, 0);
+
+    /* 9: the source address bits [1:0] replace the destination's: from
+       system 0x00100001 to frame buffer offset 0x00200402, 8 bytes land
+       at 0x00200401-0x00200408 */
+    bm910_desc(BM910_TABLE, 0, BM910_FB + 0x402, BM910_SRC + 1, 8u | BM910_EOL);
+    wr(dev, BM910_VIP0_BUF, BM910_TABLE);
+    wr(dev, RAGE128_GEN_INT_STATUS, BM910_EOL_INT);
+    a = dev->svga.vram[BM910_FB + 0x401];
+    b = dev->svga.vram[BM910_FB + 0x408];
+    c = dev->svga.vram[BM910_FB + 0x400];
+    d = dev->svga.vram[BM910_FB + 0x409];
+    printf("bm 910: alignment %02x %02x %02x %02x\n", a, b, c, d);
+    check_true("bm 910: source bits [1:0] pick the destination bytes",
+               a == bm910_pat(1) && b == bm910_pat(8) && c == 0x5a && d == 0x5a);
+
+    /* 10: with BUS_CNTL.BUS_MASTER_DIS set nothing moves and the list
+       does not end */
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) | RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    bm910_desc(BM910_TABLE, 0, BM910_FB + 0xe00, BM910_SRC, 64u | BM910_EOL);
+    wr(dev, BM910_VIP0_BUF, BM910_TABLE);
+    a = bm910_vram32(dev, BM910_FB + 0xe00);
+    b = rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT;
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    printf("bm 910: blocked %08x %08x\n", a, b);
+    check_true("bm 910: BUS_MASTER_DIS blocks the list", a == 0x5a5a5a5a && b == 0);
+
+    /* 11: a table with no end-of-list entry within the modeled cap:
+       the walk stops after BM910_MAX_DESC entries without reaching the
+       end-of-list entry placed just past them, reads nothing outside
+       RAM and sets no status */
+    memset(ram + 0x00400000, 0, (size_t) BM910_MAX_DESC * 16u + 16u);
+    bm910_desc(0x00400000, BM910_MAX_DESC, 0, 0, BM910_EOL);
+    stray0 = harness_sysmem_stray;
+    wr(dev, BM910_VIP1_BUF, 0x00400000);
+    a = rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT;
+    check_true("bm 910: list without end stops at the cap", a == 0 && harness_sysmem_stray == stray0);
+
+    /* 12: trigger 8, a VIP read-buffer trigger, stores the value and
+       starts nothing */
+    bm910_desc(BM910_TABLE, 0, BM910_FB + 0xf00, BM910_SRC, 64u | BM910_EOL);
+    wr(dev, BM910_VIP0_BUF, BM910_TABLE | 8u);
+    a = bm910_vram32(dev, BM910_FB + 0xf00);
+    b = rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT;
+    check_true("bm 910: VIP trigger 8 does nothing", a == 0x5a5a5a5a && b == 0);
+
+    /* 12b: only a write that includes byte 0, the trigger byte, starts a
+       list. With trigger 8 stored, a byte write of 0 to byte 0 makes the
+       trigger 0 and the list above runs. Then, with the trigger still 0
+       and the entry aimed at another offset, a word write to the upper
+       half of the register starts nothing. */
+    rage128_mmio_writeb(dev->mmio_base + BM910_VIP0_BUF, 0x00, dev);
+    a = bm910_vram32(dev, BM910_FB + 0xf00);
+    b = rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT;
+    wr(dev, RAGE128_GEN_INT_STATUS, BM910_EOL_INT);
+    bm910_desc(BM910_TABLE, 0, BM910_FB + 0x1e00, BM910_SRC + 4, 64u | BM910_EOL);
+    c = bm910_vram32(dev, BM910_FB + 0x1e00);
+    rage128_mmio_writew(dev->mmio_base + BM910_VIP0_BUF + 2, (uint16_t) (BM910_TABLE >> 16), dev);
+    d = rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT;
+    printf("bm 910: trigger byte %08x %08x, upper half %08x -> %08x %08x\n", a, b, c,
+           bm910_vram32(dev, BM910_FB + 0x1e00), d);
+    check_true("bm 910: a write of the trigger byte starts the list",
+               a == bm910_pat32(0) && b == BM910_EOL_INT);
+    check_true("bm 910: a write without the trigger byte starts nothing",
+               c != bm910_pat32(4) && bm910_vram32(dev, BM910_FB + 0x1e00) == c && d == 0
+                   && rd(dev, BM910_VIP0_BUF) == BM910_TABLE);
+
+    /* 13: trigger 1 on VIP2, frame buffer to system: 64 bytes from VRAM
+       offset 0x00300000 to system 0x00120000 */
+    for (uint32_t i = 0; i < 64; i++)
+        vb[i] = (uint8_t) (i * 13u + 5u);
+    memcpy(dev->svga.vram + 0x00300000, vb, 64);
+    memset(ram + BM910_SYS_OUT, 0, 64);
+    bm910_desc(BM910_TABLE, 0, 0x00300000, BM910_SYS_OUT, 64u | BM910_EOL);
+    wr(dev, BM910_VIP2_BUF, BM910_TABLE | 1u);
+    wr(dev, RAGE128_GEN_INT_STATUS, BM910_EOL_INT);
+    check_true("bm 910: frame->system copies VRAM to memory",
+               memcmp(ram + BM910_SYS_OUT, vb, 64) == 0);
+
+    /* 14: the same start written by a type-0 packet, which runs on the
+       CCE thread: the list runs on the CPU thread at its next register
+       read, and the interrupt line is never driven off the CPU thread */
+    bm910_desc(BM910_TABLE, 0, BM910_FB + 0x1000, BM910_SRC, 64u | BM910_EOL);
+    wr(dev, RAGE128_GEN_INT_STATUS, BM910_EOL_INT);
+    wr(dev, RAGE128_GEN_INT_CNTL, BM910_EOL_INT);
+    rr_reset(dev);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x70000000);
+    wr(dev, RAGE128_PM4_MICRO_CNTL, 0x40000000);
+    off0   = harness_irq_offthread;
+    pkt[0] = BM910_VIP0_BUF >> 2;
+    pkt[1] = BM910_TABLE;
+    pio_submit(dev, pkt, 2);
+    rr_quiesce(dev);
+    a = rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT;
+    b = bm910_vram32(dev, BM910_FB + 0x1000);
+    c = dev->irq_state;
+    printf("bm 910: ring kick %08x %08x irq %u offthread %llu\n", a, b, c,
+           (unsigned long long) (harness_irq_offthread - off0));
+    check_true("bm 910: ring-packet kick runs at the next read",
+               a == BM910_EOL_INT && b == bm910_pat32(0) && c == 1
+                   && harness_irq_offthread == off0);
+    rr_reset(dev);
+    wr(dev, RAGE128_GEN_INT_CNTL, 0);
+
+    /* 15: a chip reset clears the stored table address and the status */
+    wr(dev, BM910_VIP0_BUF, BM910_TABLE);
+    rage128_reset(dev);
+    a = rd(dev, BM910_VIP0_BUF);
+    b = rd(dev, RAGE128_GEN_INT_STATUS) & BM910_EOL_INT;
+    printf("bm 910: chip reset %08x %08x\n", a, b);
+    check_true("bm 910: reset clears BUF and EOL", a == 0 && b == 0);
+}
+
+static void
+run_bm910(void)
+{
+    rage128_t *dev;
+
+    harness_cfg_memory_mb = 32;
+    dev = rage128_init(&ati_rage128_pro_device);
+    vectors_bm910(dev);
+    close_dev(dev);
 }
 
 static void
@@ -18714,12 +21401,29 @@ vectors_ov0_step_clamp(rage128_t *dev)
     target_free(svga, bm);
 }
 
+/* A horizontal accumulator start image the way the drivers build it:
+   the start pixel's position inside its fetch group plus 2.5 plus half
+   a source step (h_inc / 2^13), rounded to 1/32 of a pixel, with the
+   whole pixels in [31:28] and the fraction in [19:15] (SDK: Setting up
+   the Horizontal Accumulator, p. 7-19 / PDF 189; Multimedia supplement:
+   OV0_P1_H_ACCUM_INIT). */
+static uint32_t
+ov_crop_h_accum(int in_group, uint32_t h_inc)
+{
+    /* start in 1/32 pixels: in_group + 2.5 + h_inc / 2^13, rounded */
+    uint32_t s32 = (uint32_t) in_group * 32 + 80 + (h_inc + 128) / 256;
+
+    return ((s32 >> 5) << 28) | ((s32 & 31) << 15);
+}
+
 /* a planar source's Cr plane is positioned by OV0_P3_X_START_END, not
    P2's. YUV12 with flat Y and Cb and a Cr ramp (0x40 + 4 * x), chroma at
    half the luma step so output i samples chroma index i / 2. Moving P3's
-   start one pixel right shifts the picture two output pixels left (Cr
-   index + 1); moving P2's start instead moves only the flat Cb plane, so
-   the picture is unchanged. */
+   start s chroma pixels right, with P2's start left at 0, shifts the
+   picture 2 * s output pixels left. The start is a whole fetch group (2
+   chroma pixels) and the accumulator start carries no in-group term, so
+   the shift comes from P3's own start field alone. Moving P2's start
+   instead moves only the flat Cb plane, so the picture is unchanged. */
 static void
 vectors_ov0_p3_start(rage128_t *dev)
 {
@@ -18729,6 +21433,7 @@ vectors_ov0_p3_start(rage128_t *dev)
     uint32_t *p;
     uint32_t  a[64], b[64], c[64];
     int       ok_b = 1, ok_c = 1;
+    const int p3_s = 2; /* P3 start, a multiple of the 2-pixel chroma group */
 
     wr(dev, RAGE128_CRTC_H_TOTAL_DISP, (7u << 16) | 20u);
     wr(dev, RAGE128_CRTC_PITCH, 8);
@@ -18787,14 +21492,18 @@ vectors_ov0_p3_start(rage128_t *dev)
     memcpy(a, p, sizeof(a));
     check_true("ov0: control: the Cr ramp renders as a ramp", a[0] != a[2]);
 
-    /* B: Cr starts at 1 -> Cr index + 1 = two output pixels left */
-    wr(dev, RAGE128_OV0_P3_X_START_END, (1u << 16) | 31);
+    /* B: Cr starts at p3_s (a whole group), Cb stays at 0 -> output x
+       shows Cr x / 2 + p3_s, which is control pixel x + 2 * p3_s, clamped
+       at Cr 31 (control pixel 62) */
+    wr(dev, RAGE128_OV0_P3_X_START_END, ((uint32_t) p3_s << 16) | 31);
     memset(p, 0, 64 * sizeof(uint32_t));
     rage128_overlay_draw(svga, 0);
     memcpy(b, p, sizeof(b));
-    for (int x = 0; x < 62; x++)
-        ok_b = ok_b && b[x] == a[x + 2];
-    ok_b = ok_b && b[62] == a[62] && b[63] == a[62]; /* clamped at Cr 31 */
+    for (int x = 0; x < 64; x++) {
+        int src = x + 2 * p3_s;
+
+        ok_b = ok_b && b[x] == a[(src < 64) ? src : 62];
+    }
     check_true("ov0: P3 start moves the Cr plane", ok_b);
 
     /* C: Cb starts at 1 instead -> the flat plane moves, picture unchanged */
@@ -20193,7 +22902,10 @@ vectors_ov0_window_fields(rage128_t *dev)
     check_true("ov0: control: 1:1 window shows source index i at output i",
                p[0] == 0 && p[1] == 0x00010000 && p[5] == 0x445566 && p[63] == 0x003f0000);
 
-    /* P1: the combined word decodes to start 5, end 31 */
+    /* P1: the combined word decodes to start 5, end 31. The start
+       carries the in-group position of 5 (group 4 at STEP_BY 1), as the
+       drivers program it. */
+    wr(dev, RAGE128_OV0_P1_H_ACCUM_INIT, ov_crop_h_accum(5 % 4, 0x1000));
     wr(dev, RAGE128_OV0_P1_X_START_END, 0x0005001f);
     ov_window_line(dev, p);
     memcpy(ctl, p, sizeof(ctl));
@@ -20204,6 +22916,7 @@ vectors_ov0_window_fields(rage128_t *dev)
     check32("ov0: P1 reserved start and end bits, pixel 0 shows source 5", p[0], 0x445566);
     check_true("ov0: P1 reserved bits image equals the valid-field control",
                !memcmp(p, ctl, sizeof(ctl)));
+    wr(dev, RAGE128_OV0_P1_H_ACCUM_INIT, 0);
     wr(dev, RAGE128_OV0_P1_X_START_END, 0x0070001f); /* start-only reserved bits */
     ov_window_line(dev, p);
     check_true("ov0: P1 start-only reserved bits leave start 0",
@@ -20284,6 +22997,207 @@ vectors_ov0_window_fields(rage128_t *dev)
     wr(dev, RAGE128_OV0_P3_X_START_END, 31);
     wr(dev, RAGE128_OV0_SCALE_CNTL, 0);
     wr(dev, RAGE128_OV0_KEY_CNTL, 0);
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save);
+    target_free(svga, bm);
+}
+
+/* A source cropped at its left edge L, programmed the way the drivers
+   program it. The buffer base points at the octword that holds source
+   pixel L, OV0_P1_X_START (and OV0_P2_X_START and OV0_P3_X_START for
+   chroma) holds L's position inside that octword, and the horizontal
+   accumulator start holds L's position inside its fetch group plus 2.5
+   plus half a source step, rounded to 1/32 (SDK: Setting up the
+   Horizontal Accumulator, p. 7-19 / PDF 189; xf86-video-r128
+   r128_video.c R128DisplayVideo422 and R128DisplayVideo420). A fetch
+   group is 4 luma pixels with the two-tap filter (STEP_BY 1 and up), 2
+   with the four-tap filter (STEP_BY 0) and for 16 bpp RGB, and 2 chroma
+   pixels. The first displayed source pixel is L, so each row looks up
+   output pixel 0 in a table rendered from the uncropped source (L = 0,
+   the control) and compares the index it finds with L. */
+static int
+ov_crop_index(const uint32_t *ref, int n, uint32_t px)
+{
+    for (int k = 0; k < n; k++)
+        if (ref[k] == px)
+            return k;
+    return -1;
+}
+
+static void
+vectors_ov0_crop_start(rage128_t *dev)
+{
+    svga_t   *svga     = &dev->svga;
+    uint32_t  gen_save = rd(dev, RAGE128_CRTC_GEN_CNTL);
+    bitmap_t *bm;
+    uint32_t *p;
+    uint32_t  ref[64];
+    char      name[96];
+    int       distinct = 1;
+
+    wr(dev, RAGE128_CRTC_H_TOTAL_DISP, (7u << 16) | 20u);
+    wr(dev, RAGE128_CRTC_PITCH, 8);
+    wr(dev, RAGE128_CRTC_GEN_CNTL,
+       (gen_save & ~((7u << RAGE128_CRTC_PIX_WIDTH_SHIFT)
+                     | RAGE128_CRTC_DISP_REQ_EN_B))
+           | (4u << RAGE128_CRTC_PIX_WIDTH_SHIFT)
+           | RAGE128_CRTC_EXT_DISP_EN | RAGE128_CRTC_EN);
+
+    /* YUY2 source row: Y = 0x20 + 3x, neutral chroma */
+    for (int x = 0; x < 64; x++) {
+        svga->vram[0x500000 + x * 2]     = (uint8_t) (0x20 + 3 * x);
+        svga->vram[0x500000 + x * 2 + 1] = 0x80;
+    }
+    ov0_src_stored(dev, 0x500000, 128);
+    wr(dev, RAGE128_OV0_REG_LOAD_CNTL, 0);
+    wr(dev, RAGE128_OV0_SCALE_CNTL, 0);
+    wr(dev, RAGE128_OV0_AUTO_FLIP_CNTL, 0);
+    wr(dev, RAGE128_OV0_VID_BUF_PITCH0_VALUE, 128);
+    wr(dev, RAGE128_OV0_Y_X_START, 0);
+    wr(dev, RAGE128_OV0_Y_X_END, 63);
+    wr(dev, RAGE128_OV0_V_INC, 0x100000);
+    wr(dev, RAGE128_OV0_P1_V_ACCUM_INIT, 0);
+    wr(dev, RAGE128_OV0_P23_V_ACCUM_INIT, 0);
+    wr(dev, RAGE128_OV0_P1_BLANK_LINES_AT_TOP, 0);
+    wr(dev, RAGE128_OV0_P23_BLANK_LINES_AT_TOP, 0);
+    wr(dev, RAGE128_OV0_P2_X_START_END, 31);
+    wr(dev, RAGE128_OV0_P3_X_START_END, 31);
+    wr(dev, RAGE128_OV0_COLOUR_CNTL, 0);
+    wr(dev, RAGE128_OV0_KEY_CNTL, 0x11); /* video everywhere */
+    wr(dev, RAGE128_OV0_SCALE_CNTL,
+       RAGE128_OV0_SCALER_ENABLE
+           | (RAGE128_OV0_SCALER_SOURCE_VYUY422 << RAGE128_OV0_SCALER_FORMAT_SHIFT));
+
+    bm = target_alloc(svga, 2048, 8);
+    svga->y_add = svga->x_add = 0;
+    svga->overlay_latch.y = 0;
+    svga->memaddr = svga->memaddr_backup = 0;
+    p = bm->line[0];
+
+    /* luma, two-tap at 1:1 (group 4); L = 0 is the control */
+    wr(dev, RAGE128_OV0_H_INC, (0x0800u << 16) | 0x1000u);
+    wr(dev, RAGE128_OV0_STEP_BY, 0x0101);
+    wr(dev, RAGE128_OV0_P23_H_ACCUM_INIT, ov_crop_h_accum(0, 0x0800));
+    for (int l = 0; l <= 8; l++) {
+        int xs = l % 8;
+        int k;
+
+        wr(dev, RAGE128_OV0_VID_BUF0_BASE_ADRS, 0x00500000 + (uint32_t) (l & ~7) * 2);
+        wr(dev, RAGE128_OV0_P1_X_START_END, ((uint32_t) xs << 16) | (uint32_t) (xs + 40 - 1));
+        wr(dev, RAGE128_OV0_P1_H_ACCUM_INIT, ov_crop_h_accum(l % 4, 0x1000));
+        ov_window_line(dev, p);
+        if (l == 0) {
+            memcpy(ref, p, sizeof(ref));
+            for (int a = 0; a < 40; a++)
+                for (int b = a + 1; b < 40; b++)
+                    distinct = distinct && ref[a] != ref[b];
+            check_true("ov0 911: control: the uncropped luma ramp gives 40 distinct pixels",
+                       distinct);
+        }
+        k = ov_crop_index(ref, 40, p[0]);
+        snprintf(name, sizeof(name), "ov0 911: two-tap 1:1 L=%d first source pixel", l);
+        check32(name, (uint32_t) k, (uint32_t) l);
+    }
+
+    /* luma, four-tap at 2x (group 2) */
+    wr(dev, RAGE128_OV0_H_INC, (0x0400u << 16) | 0x0800u);
+    wr(dev, RAGE128_OV0_STEP_BY, 0);
+    wr(dev, RAGE128_OV0_P23_H_ACCUM_INIT, ov_crop_h_accum(0, 0x0400));
+    for (int l = 0; l <= 4; l++) {
+        int xs = l % 8;
+
+        wr(dev, RAGE128_OV0_VID_BUF0_BASE_ADRS, 0x00500000 + (uint32_t) (l & ~7) * 2);
+        wr(dev, RAGE128_OV0_P1_X_START_END, ((uint32_t) xs << 16) | (uint32_t) (xs + 40 - 1));
+        wr(dev, RAGE128_OV0_P1_H_ACCUM_INIT, ov_crop_h_accum(l % 2, 0x0800));
+        ov_window_line(dev, p);
+        snprintf(name, sizeof(name), "ov0 911: four-tap 2x L=%d first source pixel", l);
+        check32(name, (uint32_t) ov_crop_index(ref, 40, p[0]), (uint32_t) l);
+    }
+
+    /* 16 bpp RGB 565 at 1:1 (group 2): pixel x is green x */
+    for (int x = 0; x < 64; x++)
+        *(uint16_t *) &svga->vram[0x500000 + x * 2] = (uint16_t) (x << 5);
+    ov0_src_stored(dev, 0x500000, 128);
+    wr(dev, RAGE128_OV0_H_INC, (0x0800u << 16) | 0x1000u);
+    wr(dev, RAGE128_OV0_STEP_BY, 0x0101);
+    wr(dev, RAGE128_OV0_P23_H_ACCUM_INIT, ov_crop_h_accum(0, 0x0800));
+    wr(dev, RAGE128_OV0_SCALE_CNTL,
+       RAGE128_OV0_SCALER_ENABLE
+           | (RAGE128_OV0_SCALER_SOURCE_16BPP << RAGE128_OV0_SCALER_FORMAT_SHIFT));
+    for (int l = 0; l <= 3; l++) {
+        int xs = l % 8;
+
+        wr(dev, RAGE128_OV0_VID_BUF0_BASE_ADRS, 0x00500000 + (uint32_t) (l & ~7) * 2);
+        wr(dev, RAGE128_OV0_P1_X_START_END, ((uint32_t) xs << 16) | (uint32_t) (xs + 40 - 1));
+        wr(dev, RAGE128_OV0_P1_H_ACCUM_INIT, ov_crop_h_accum(l % 2, 0x1000));
+        ov_window_line(dev, p);
+        if (l == 0) {
+            memcpy(ref, p, sizeof(ref));
+            distinct = 1;
+            for (int a = 0; a < 40; a++)
+                for (int b = a + 1; b < 40; b++)
+                    distinct = distinct && ref[a] != ref[b];
+            check_true("ov0 911: control: the uncropped 565 ramp gives 40 distinct pixels",
+                       distinct);
+        }
+        snprintf(name, sizeof(name), "ov0 911: 16 bpp 1:1 L=%d first source pixel", l);
+        check32(name, (uint32_t) ov_crop_index(ref, 40, p[0]), (uint32_t) l);
+    }
+
+    /* planar 4:2:0 at 1:1: flat Y, Cb and Cr ramps; luma left edge
+       L = 2C, chroma left edge C (group 2); output 2k shows chroma k */
+    memset(&svga->vram[0x500000], 0x80, 128);
+    for (int x = 0; x < 32; x++) {
+        svga->vram[0x510000 + x] = (uint8_t) (0x40 + 4 * x);
+        svga->vram[0x520000 + x] = (uint8_t) (0xc0 - 4 * x);
+    }
+    ov0_src_stored(dev, 0x500000, 128);
+    ov0_src_stored(dev, 0x510000, 32);
+    ov0_src_stored(dev, 0x520000, 32);
+    wr(dev, RAGE128_OV0_VID_BUF1_BASE_ADRS, 0x00510001);
+    wr(dev, RAGE128_OV0_VID_BUF2_BASE_ADRS, 0x00520001);
+    wr(dev, RAGE128_OV0_VID_BUF_PITCH1_VALUE, 64);
+    wr(dev, RAGE128_OV0_COLOUR_CNTL, 0x00101000); /* unity saturation */
+    wr(dev, RAGE128_OV0_SCALE_CNTL,
+       RAGE128_OV0_SCALER_ENABLE
+           | (RAGE128_OV0_SCALER_SOURCE_YUV12 << RAGE128_OV0_SCALER_FORMAT_SHIFT));
+    for (int c = 0; c <= 3; c++) {
+        int l = 2 * c;
+
+        wr(dev, RAGE128_OV0_VID_BUF0_BASE_ADRS, 0x00500000 + (uint32_t) (l & ~15));
+        wr(dev, RAGE128_OV0_P1_X_START_END, ((uint32_t) (l % 16) << 16) | (uint32_t) (l % 16 + 40 - 1));
+        wr(dev, RAGE128_OV0_P1_H_ACCUM_INIT, ov_crop_h_accum(l % 4, 0x1000));
+        wr(dev, RAGE128_OV0_P2_X_START_END, ((uint32_t) (c % 16) << 16) | (uint32_t) (c % 16 + 20 - 1));
+        wr(dev, RAGE128_OV0_P3_X_START_END, ((uint32_t) (c % 16) << 16) | (uint32_t) (c % 16 + 20 - 1));
+        wr(dev, RAGE128_OV0_P23_H_ACCUM_INIT, ov_crop_h_accum(c % 2, 0x0800));
+        ov_window_line(dev, p);
+        if (c == 0) {
+            distinct = 1;
+            for (int k = 0; k < 16; k++)
+                ref[k] = p[2 * k];
+            for (int a = 0; a < 16; a++)
+                for (int b = a + 1; b < 16; b++)
+                    distinct = distinct && ref[a] != ref[b];
+            check_true("ov0 911: control: the uncropped chroma ramps give 16 distinct pixels",
+                       distinct);
+        }
+        snprintf(name, sizeof(name), "ov0 911: planar chroma C=%d first chroma pixel", c);
+        check32(name, (uint32_t) ov_crop_index(ref, 16, p[0]), (uint32_t) c);
+    }
+
+    wr(dev, RAGE128_OV0_SCALE_CNTL, 0);
+    wr(dev, RAGE128_OV0_KEY_CNTL, 0);
+    wr(dev, RAGE128_OV0_COLOUR_CNTL, 0);
+    wr(dev, RAGE128_OV0_H_INC, (0x0800u << 16) | 0x1000u);
+    wr(dev, RAGE128_OV0_STEP_BY, 0x0101);
+    wr(dev, RAGE128_OV0_P1_H_ACCUM_INIT, 0);
+    wr(dev, RAGE128_OV0_P23_H_ACCUM_INIT, 0);
+    wr(dev, RAGE128_OV0_VID_BUF0_BASE_ADRS, 0);
+    wr(dev, RAGE128_OV0_VID_BUF1_BASE_ADRS, 0);
+    wr(dev, RAGE128_OV0_VID_BUF2_BASE_ADRS, 0);
+    wr(dev, RAGE128_OV0_VID_BUF_PITCH1_VALUE, 0);
+    wr(dev, RAGE128_OV0_P1_X_START_END, 63);
+    wr(dev, RAGE128_OV0_P2_X_START_END, 31);
+    wr(dev, RAGE128_OV0_P3_X_START_END, 31);
     wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save);
     target_free(svga, bm);
 }
@@ -21325,9 +24239,10 @@ vectors_scale_half_px_phase(rage128_t *dev)
         }
     check_true("2d scale phase: the general compare keys the phased texel", ok);
 
-    /* 0x97 keyed stretch, CLR_CMP_FN_SRC 5 (draw when not equal) */
+    /* 0x97 keyed stretch, CLR_CMP_FN_SRC 5 (draw when not equal), in the
+       20-dword form, whose GMC carries all four setup bits */
     memset(&dev->svga.vram[0x00300000], 0x11, 64 * 12 * 4);
-    pl[0]  = g6;          pl[1] = 0;           pl[2] = 0x01018000u;
+    pl[0]  = g6 | 0xfu;   pl[1] = 0;           pl[2] = 0x01018000u;
     pl[3]  = 0;           pl[4] = 0;           pl[5] = 0x1fff1fffu;
     pl[6]  = 0x01000005u; pl[7] = SCALE_PHASE_KEY;    pl[8] = 0xffffffffu;
     pl[9]  = 0x500u;      pl[10] = 0x00800000u; pl[11] = 0x02180840u;
@@ -21450,6 +24365,243 @@ vectors_trans_scaling_dst_ref(rage128_t *dev)
     wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, 0);
 #undef TRANS_SCALE_DST
 }
+
+/* Packet 0x97 finds its setup dwords by the GUI_CONTROL bits: bit 0
+   source pitch/offset, bit 1 destination pitch/offset, bit 2 the source
+   scissor, bit 3 the destination scissor pair, then the brush data its
+   brush type asks for and BRUSH_Y_X when bit 31 is set (SDK: Table 4-16,
+   pp. F-12-F-14 / PDF 302-304; SDK: Table F-1, pp. F-14-F-16 / PDF 304-306).
+   CLR_CMP_CNTL, the two reference colors and the 11-dword scaler block
+   follow (SDK: Table F-24, pp. F-36-F-37 / PDF 326-327). Every short form
+   below draws the same keyed 4x4 to 8x8 stretch as the form with all
+   four bits; a clear bit takes its value from the reload the GMC write
+   does, DEFAULT_OFFSET and DEFAULT_PITCH for the destination and 0 and
+   DEFAULT_SC_BOTTOM_RIGHT for the scissor (RRG: DP_GUI_MASTER_CNTL,
+   p. 3-172 / PDF 190), which this test points at the same surface. The
+   key is texel (1,0), so four destination pixels must keep the fill. */
+#define T907_DST   0x00300000u
+#define T907_TEX   0x00310000u
+#define T907_BYTES (64u * 12u * 4u)
+#define T907_FILL  0x11111111u
+#define T907_PX(x, y) (*(uint32_t *) &dev->svga.vram[T907_DST + ((y) * 64u + (x)) * 4u])
+
+static uint32_t t907_tex[8 * 8];
+
+static uint32_t
+t907_build(uint32_t *pl, uint32_t bits, uint32_t brush, uint32_t sc_tl, uint32_t sc_br,
+           uint32_t key)
+{
+    const uint32_t g = (15u << 4) | (6u << 8) | (3u << 12) | (0xccu << 16) | (2u << 24);
+    uint32_t       n = 0;
+
+    pl[n++] = brush ? ((g & ~0xf0u) | (13u << 4) | RAGE128_GMC_LD_BRUSH_Y_X | bits) : (g | bits);
+    if (bits & RAGE128_GMC_SRC_PITCH_OFFSET_LEAVE)
+        pl[n++] = 0x00a5a5a5u; /* a stale source surface the scaler never reads */
+    if (bits & RAGE128_GMC_DST_PITCH_OFFSET_LEAVE)
+        pl[n++] = 0x01018000u; /* 0x300000, 64 pixels */
+    if (bits & RAGE128_GMC_SRC_CLIP_LEAVE)
+        pl[n++] = 0x00070007u;
+    if (bits & RAGE128_GMC_DST_CLIP_LEAVE) {
+        pl[n++] = sc_tl;
+        pl[n++] = sc_br;
+    }
+    if (brush) {
+        pl[n++] = 0x00c0ffeeu; /* type 13: the foreground color */
+        pl[n++] = 0x00000503u; /* BRUSH_Y_X */
+    }
+    pl[n++] = 0x01000005u;
+    pl[n++] = key;
+    pl[n++] = 0;
+    pl[n++] = 0x500u;
+    pl[n++] = 0x00800000u;
+    pl[n++] = 0x02180840u;
+    pl[n++] = 6u;
+    pl[n++] = T907_TEX;
+    pl[n++] = 1u;
+    pl[n++] = 0x00010001u;
+    pl[n++] = 0x7fffu;
+    pl[n++] = 0x7fffu;
+    pl[n++] = (2u << 16) | 2u;
+    pl[n++] = (8u << 16) | 8u;
+    return n;
+}
+
+/* Fill the destination, send the packet, and report whether the device
+   logged it as unhandled. */
+static int
+t907_run(rage128_t *dev, const uint32_t *pl, uint32_t n)
+{
+    flush_sync(dev);
+    memset(&dev->svga.vram[T907_DST], 0x11, T907_BYTES);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffffu);
+    harness_log_tail_reset();
+    rage128_2d_packet3(dev, 0x97u << 8, pl, n);
+    flush_sync(dev);
+    return strstr(harness_log_tail, "[r128 UNHANDLED] op=97") != NULL;
+}
+
+/* The expected destination for the stretch at (2,2), 8x8, clipped to the
+   inclusive scissor (x0,y0)-(x1,y1); also checks that the keyed pixels
+   inside the clip (four unclipped, two under the test's scissor) kept
+   the fill. */
+static int
+t907_expected(rage128_t *dev, int x0, int y0, int x1, int y1)
+{
+    int keyed = 0;
+
+    for (int y = 0; y < 12; y++)
+        for (int x = 0; x < 64; x++) {
+            uint32_t want = T907_FILL;
+
+            if (x >= 2 && x < 10 && y >= 2 && y < 10 && x >= x0 && x <= x1 && y >= y0 && y <= y1) {
+                uint32_t t = t907_tex[((y - 2) >> 1) * 8 + ((x - 2) >> 1)];
+
+                if (t == t907_tex[1])
+                    keyed++;
+                else
+                    want = t;
+            }
+            if (T907_PX(x, y) != want)
+                return 0;
+        }
+    return keyed > 0;
+}
+
+static int
+t907_untouched(rage128_t *dev)
+{
+    for (uint32_t i = 0; i < T907_BYTES; i++)
+        if (dev->svga.vram[T907_DST + i] != 0x11u)
+            return 0;
+    return 1;
+}
+
+static void
+vectors_trans_scaling_907(rage128_t *dev)
+{
+    static uint8_t ref[T907_BYTES], ref_clip[T907_BYTES];
+    const uint32_t sc_tl = (3u << 16) | 4u; /* x 4, y 3 */
+    const uint32_t sc_br = (6u << 16) | 7u; /* x 7, y 6 */
+    const uint32_t all = 0xfu;
+    uint32_t       pl[24], n, def_off, def_pitch, gmc0, key0;
+    uint64_t       q0 = 0, q1 = 0, b0 = 0, b1 = 0;
+    int            gpu = dev->gpu && rage128_gpu_2d_verifying(dev);
+    int            unh;
+
+    flush_sync(dev);
+    def_off   = rd(dev, RAGE128_DEFAULT_OFFSET);
+    def_pitch = rd(dev, RAGE128_DEFAULT_PITCH);
+    wr(dev, RAGE128_DEFAULT_OFFSET, T907_DST);
+    wr(dev, RAGE128_DEFAULT_PITCH, 64u / 8u);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, 0xffffffffu);
+    wr(dev, RAGE128_CLR_CMP_MASK, 0xffffffffu);
+    for (int y = 0; y < 8; y++)
+        for (int x = 0; x < 8; x++) {
+            t907_tex[y * 8 + x] = 0xff400000u | ((uint32_t) y << 12) | ((uint32_t) x << 4);
+            *(uint32_t *) &dev->svga.vram[T907_TEX + y * 32 + x * 4] = t907_tex[y * 8 + x];
+        }
+    if (gpu) {
+        harness_gpu_fab_q2d(dev->gpu, 5, &q0, NULL, NULL, NULL);
+        b0 = harness_gpu_q2d_bad(dev->gpu, 5);
+    }
+
+    /* the controls: all four setup bits, 20 dwords, without and with a
+       scissor that clips */
+    n   = t907_build(pl, all, 0, 0, 0x1fff1fffu, t907_tex[1]);
+    unh = t907_run(dev, pl, n);
+    check_true("2d 907: control: 20 dwords, all four setup bits, draws the keyed stretch",
+               n == 20 && !unh && t907_expected(dev, 0, 0, 0x1fff, 0x1fff));
+    memcpy(ref, &dev->svga.vram[T907_DST], T907_BYTES);
+    n   = t907_build(pl, all, 0, sc_tl, sc_br, t907_tex[1]);
+    unh = t907_run(dev, pl, n);
+    check_true("2d 907: control: 20 dwords with a scissor draws only (4,3)-(7,6)",
+               n == 20 && !unh && t907_expected(dev, 4, 3, 7, 6));
+    memcpy(ref_clip, &dev->svga.vram[T907_DST], T907_BYTES);
+
+    /* no setup bits: the 15-dword form */
+    n   = t907_build(pl, 0, 0, 0, 0, t907_tex[1]);
+    unh = t907_run(dev, pl, n);
+    check_true("2d 907: no setup bits (15 dwords) equals the 20-dword form",
+               n == 15 && !unh && memcmp(&dev->svga.vram[T907_DST], ref, T907_BYTES) == 0
+                   && t907_expected(dev, 0, 0, 0x1fff, 0x1fff));
+
+    n   = t907_build(pl, RAGE128_GMC_DST_PITCH_OFFSET_LEAVE, 0, 0, 0, t907_tex[1]);
+    unh = t907_run(dev, pl, n);
+    check_true("2d 907: destination pitch/offset bit only (16 dwords) equals the 20-dword form",
+               n == 16 && !unh && memcmp(&dev->svga.vram[T907_DST], ref, T907_BYTES) == 0
+                   && t907_expected(dev, 0, 0, 0x1fff, 0x1fff));
+
+    n   = t907_build(pl, RAGE128_GMC_DST_CLIP_LEAVE, 0, sc_tl, sc_br, t907_tex[1]);
+    unh = t907_run(dev, pl, n);
+    check_true("2d 907: destination clip bit only (17 dwords) clips as the 20-dword form",
+               n == 17 && !unh && memcmp(&dev->svga.vram[T907_DST], ref_clip, T907_BYTES) == 0
+                   && t907_expected(dev, 4, 3, 7, 6));
+
+    n   = t907_build(pl, RAGE128_GMC_SRC_PITCH_OFFSET_LEAVE | RAGE128_GMC_DST_PITCH_OFFSET_LEAVE,
+                     0, 0, 0, t907_tex[1]);
+    unh = t907_run(dev, pl, n);
+    check_true("2d 907: source and destination pitch/offset bits (17 dwords) equal the 20-dword form",
+               n == 17 && !unh && memcmp(&dev->svga.vram[T907_DST], ref, T907_BYTES) == 0
+                   && t907_expected(dev, 0, 0, 0x1fff, 0x1fff));
+
+    n   = t907_build(pl, RAGE128_GMC_SRC_PITCH_OFFSET_LEAVE | RAGE128_GMC_DST_PITCH_OFFSET_LEAVE
+                         | RAGE128_GMC_DST_CLIP_LEAVE,
+                     0, sc_tl, sc_br, t907_tex[1]);
+    unh = t907_run(dev, pl, n);
+    check_true("2d 907: three setup bits, no source clip (19 dwords), clips as the 20-dword form",
+               n == 19 && !unh && memcmp(&dev->svga.vram[T907_DST], ref_clip, T907_BYTES) == 0
+                   && t907_expected(dev, 4, 3, 7, 6));
+
+    /* brush type 13 and BRUSH_Y_X sit between the setup dwords and the
+       compare dwords; SRCCOPY does not read the pattern */
+    n   = t907_build(pl, RAGE128_GMC_DST_PITCH_OFFSET_LEAVE, 1, 0, 0, t907_tex[1]);
+    unh = t907_run(dev, pl, n);
+    check_true("2d 907: brush 13 and BRUSH_Y_X after the setup dwords (18 dwords) equal the 20-dword form",
+               n == 18 && !unh && memcmp(&dev->svga.vram[T907_DST], ref, T907_BYTES) == 0
+                   && t907_expected(dev, 0, 0, 0x1fff, 0x1fff));
+    check32("2d 907: the brush 13 dword loads DP_BRUSH_FRGD_CLR",
+            rd(dev, RAGE128_DP_BRUSH_FRGD_CLR), 0x00c0ffeeu);
+    check32("2d 907: the BRUSH_Y_X dword loads BRUSH_Y_X", rd(dev, RAGE128_BRUSH_Y_X), 0x00000503u);
+
+    /* one dword short of what the bits ask for: unhandled, nothing drawn,
+       neither the GMC nor the key latched */
+    gmc0 = rd(dev, RAGE128_DP_GUI_MASTER_CNTL);
+    key0 = rd(dev, RAGE128_CLR_CMP_CLR_SRC);
+    n    = t907_build(pl, 0, 0, 0, 0, 0x00badbadu);
+    unh  = t907_run(dev, pl, n - 1);
+    check_true("2d 907: no setup bits, 14 dwords: unhandled, destination untouched",
+               unh && t907_untouched(dev));
+    check_true("2d 907: no setup bits, 14 dwords: GMC and source key not latched",
+               rd(dev, RAGE128_DP_GUI_MASTER_CNTL) == gmc0 && rd(dev, RAGE128_CLR_CMP_CLR_SRC) == key0);
+    n   = t907_build(pl, all, 0, sc_tl, sc_br, 0x00badbadu);
+    unh = t907_run(dev, pl, n - 1);
+    check_true("2d 907: all four setup bits, 19 dwords: unhandled, destination untouched",
+               unh && t907_untouched(dev));
+    check_true("2d 907: all four setup bits, 19 dwords: GMC and source key not latched",
+               rd(dev, RAGE128_DP_GUI_MASTER_CNTL) == gmc0 && rd(dev, RAGE128_CLR_CMP_CLR_SRC) == key0);
+
+    if (gpu) {
+        harness_gpu_fab_q2d(dev->gpu, 5, &q1, NULL, NULL, NULL);
+        b1 = harness_gpu_q2d_bad(dev->gpu, 5);
+        check_true("2d 907: GPU: the keyed stretches queue on table 5", q1 > q0);
+        check32("2d 907: GPU: the table-5 oracle finds the queue equal to the walk",
+                (uint32_t) (b1 - b0), 0);
+    }
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    wr(dev, RAGE128_CLR_CMP_CLR_SRC, 0);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_DEFAULT_OFFSET, def_off);
+    wr(dev, RAGE128_DEFAULT_PITCH, def_pitch);
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, 0);
+}
+#undef T907_DST
+#undef T907_TEX
+#undef T907_BYTES
+#undef T907_FILL
+#undef T907_PX
 
 /* SCALE_X_INC / SCALE_Y_INC are 4.12 in [19:4], other bits
    reserved (SDK-G04000 F.13 Table F-17 ordinals 8/9; RRG
@@ -21954,7 +25106,8 @@ brush_types_paint(rage128_t *dev, uint32_t bt, uint32_t lsb, const uint32_t *br,
 
 /* Brush types 2-5, 8, 9, 11, and 12 parse at their Table F-2 size and draw: 8x1/1x8 mono and
    color repeat over the rect (Table F-4: the 8 pixels sit in [7:0]),
-   32x32 mono is one dword per row, bit 31 leftmost, anchored mod 32,
+   32x32 mono is one dword per row, read byte-wise (903: byte 0 bit 7
+   leftmost with the order bit clear), anchored mod 32,
    and reaches P on a 0x92 blit and both 0x94 stamps too (the CPU walk;
    the GPU queues refuse it). Reserved type 14 still draws nothing. */
 static void
@@ -22012,15 +25165,15 @@ vectors_brush_types(rage128_t *dev)
         br[2 + i] = 1u << (31 - i);
     brush_types_paint(dev, 8, 0, br, 34, 32, 32);
     BRUSH_TYPES_CHECK("2d: brush 8 (32x32 mono) paints its 32 rows", 0, 32, 32,
-               x == y ? fg : bg);
+               pat32_bytewise_bit(br[2 + y], x, 0) ? fg : bg);
     wr(dev, RAGE128_BRUSH_Y_X, 0x00000301);
     brush_types_paint(dev, 8, 0, br, 34, 32, 32);
     BRUSH_TYPES_CHECK("2d: brush 8 is anchored by BRUSH_Y_X mod 32", 0, 32, 32,
-               ((x + 1) & 31) == ((y + 3) & 31) ? fg : bg);
+               pat32_bytewise_bit(br[2 + ((y + 3) & 31)], x + 1, 0) ? fg : bg);
     wr(dev, RAGE128_BRUSH_Y_X, 0);
     brush_types_paint(dev, 9, 0, br + 1, 33, 32, 32);
     BRUSH_TYPES_CHECK("2d: brush 9 (32x32 mono) leaves clear cells alone", 0, 32, 32,
-               x == y ? fg : pre);
+               pat32_bytewise_bit(br[2 + y], x, 0) ? fg : pre);
 
     /* 8x1 / 1x8 color: 8 pixels, 2*N = 8 dwords at 8888 */
     for (int i = 0; i < 8; i++)
@@ -22036,7 +25189,8 @@ vectors_brush_types(rage128_t *dev)
     brush_types_paint(dev, 14, 0, br, 1, 8, 4);
     BRUSH_TYPES_CHECK("2d: control: reserved brush 14 still draws nothing", 0, 8, 4, pre);
 
-    /* 32x32 diagonal on the other consumers, rows 8-9: set at x 8, 9 */
+    /* 32x32 diagonal on the other consumers, rows 8-9 (byte-wise: row 8
+       is bit 23, set at x 16; row 9 bit 22, set at x 17) */
     for (int i = 0; i < 32; i++)
         br[2 + i] = 1u << (31 - i);
     memset(&dev->svga.vram[0x00300000], 0x99, 64 * 40 * 4);
@@ -22055,7 +25209,7 @@ vectors_brush_types(rage128_t *dev)
     rage128_2d_packet3(dev, 0x92u << 8, pl, n);
     flush_sync(dev);
     BRUSH_TYPES_CHECK("2d: brush 8 feeds P on a 0x92 blit", 8, 32, 2,
-               x == y ? fg : bg);
+               pat32_bytewise_bit(br[2 + y], x, 0) ? fg : bg);
 
     memset(&dev->svga.vram[0x00300000], 0x99, 64 * 40 * 4);
     n = 0;
@@ -22075,7 +25229,7 @@ vectors_brush_types(rage128_t *dev)
     rage128_2d_packet3(dev, 0x94u << 8, pl, n);
     flush_sync(dev);
     BRUSH_TYPES_CHECK("2d: brush 9 feeds P on a 0x94 mono stamp", 8, 32, 2,
-               x == y ? fg : pre);
+               pat32_bytewise_bit(br[2 + y], x, 0) ? fg : pre);
 
     memset(&dev->svga.vram[0x00300000], 0x99, 64 * 40 * 4);
     n = 0;
@@ -22096,7 +25250,7 @@ vectors_brush_types(rage128_t *dev)
     rage128_2d_packet3(dev, 0x94u << 8, pl, n);
     flush_sync(dev);
     BRUSH_TYPES_CHECK("2d: brush 8 feeds P on a 0x94 color stamp", 8, 32, 2,
-               x == y ? fg : bg);
+               pat32_bytewise_bit(br[2 + y], x, 0) ? fg : bg);
     /* GPU lane: the oracle's CPU re-walk owns the pixels read above, so
        a queued 32x32 brush drawn as an 8x8 tile shows only here. */
     check_log("2d: the 2D oracle saw no queued brush mismatch",
@@ -22104,6 +25258,2413 @@ vectors_brush_types(rage128_t *dev)
 #undef BRUSH_TYPES_COL
 #undef BRUSH_TYPES_CHECK
 #undef BRUSH_TYPES
+}
+
+/* 902: a register-started fill (DST_HEIGHT_WIDTH) with the 32-pixel
+   mono brushes, the way a client draws text and patterns. Types 6
+   and 7 are 32x1 (BRUSH_DATA0 on every row), 8 and 9 are 32x32
+   (BRUSH_DATA0-31, a dword per row); 6 and 8 expand to frgd and bkgd,
+   7 and 9 leave clear cells alone (RRG: DP_DATATYPE, p. 3-169 / PDF
+   187). Both forms: no source, and source 2 with ROP F0 (PATCOPY).
+   The 40x34 rect at (3,2) crosses a 32-pixel period both ways; every
+   BRUSH_DATA dword is distinct and asymmetric, so a wrong row, column,
+   phase or leave-alone shows. The expected bit is worked out here from
+   the brush dwords: phase = screen coordinate + BRUSH_Y_X offset, mod
+   32; with DP_BYTE_PIX_ORDER clear byte-wise (903: bit 7 - phase mod 8
+   of byte phase / 8), bit phase with it set. */
+static uint32_t
+brush_reg32_row(int i)
+{
+    uint32_t v = 0x2c1b3c6du * (uint32_t) (i + 1);
+
+    return v ^ (v >> 13) ^ 0x80000001u * (uint32_t) (i & 1) ^ 0x00f00000u;
+}
+
+static void
+vectors_brush_reg32(rage128_t *dev)
+{
+    const uint32_t fg = 0x00808080u, bg = 0x00404040u, pre = 0x99999999u;
+    const int      X0 = 3, Y0 = 2, W = 40, H = 34;
+    static const char *const names[4][2][2] = {
+        { { "2d 902: reg fill brush 6 (32x1 mono), MSB first",
+            "2d 902: reg fill brush 6 (32x1 mono), LSB first" },
+          { "2d 902: reg blit PATCOPY brush 6 (32x1 mono), MSB first",
+            "2d 902: reg blit PATCOPY brush 6 (32x1 mono), LSB first" } },
+        { { "2d 902: reg fill brush 7 (32x1 mono, leave alone), MSB first",
+            "2d 902: reg fill brush 7 (32x1 mono, leave alone), LSB first" },
+          { "2d 902: reg blit PATCOPY brush 7 (32x1 mono, leave alone), MSB first",
+            "2d 902: reg blit PATCOPY brush 7 (32x1 mono, leave alone), LSB first" } },
+        { { "2d 902: reg fill brush 8 (32x32 mono), MSB first",
+            "2d 902: reg fill brush 8 (32x32 mono), LSB first" },
+          { "2d 902: reg blit PATCOPY brush 8 (32x32 mono), MSB first",
+            "2d 902: reg blit PATCOPY brush 8 (32x32 mono), LSB first" } },
+        { { "2d 902: reg fill brush 9 (32x32 mono, leave alone), MSB first",
+            "2d 902: reg fill brush 9 (32x32 mono, leave alone), LSB first" },
+          { "2d 902: reg blit PATCOPY brush 9 (32x32 mono, leave alone), MSB first",
+            "2d 902: reg blit PATCOPY brush 9 (32x32 mono, leave alone), LSB first" } },
+    };
+#define BRUSH_REG32(x, y) (*(uint32_t *) &dev->svga.vram[0x00300000 + ((y) * 64 + (x)) * 4])
+
+    flush_sync(dev);
+    harness_log_tail_reset();
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DST_PITCH_OFFSET, (8u << 21) | (0x300000u >> 5));
+    wr(dev, RAGE128_SRC_PITCH_OFFSET, (8u << 21) | (0x310000u >> 5));
+    wr(dev, RAGE128_DP_CNTL, 0x00000003); /* left to right, top to bottom */
+    wr(dev, RAGE128_DP_BRUSH_FRGD_CLR, fg);
+    wr(dev, RAGE128_DP_BRUSH_BKGD_CLR, bg);
+    for (int i = 0; i < 32; i++)
+        wr(dev, RAGE128_BRUSH_DATA0 + 4u * (uint32_t) i, brush_reg32_row(i));
+    /* source pixels PATCOPY must ignore */
+    for (int i = 0; i < 64 * 40; i++)
+        *(uint32_t *) &dev->svga.vram[0x00310000 + i * 4] = 0x00123456u + (uint32_t) i;
+
+    for (int ti = 0; ti < 4; ti++) {
+        uint32_t bt  = 6u + (uint32_t) ti;
+        int      t32 = bt >= 8;   /* 32x32: one dword per row */
+        int      la  = bt & 1;    /* 7 and 9 leave clear cells alone */
+
+        for (int form = 0; form < 2; form++)
+            for (int lsb = 0; lsb < 2; lsb++) {
+                /* an anchor in half the rows of each type and form */
+                int bx = (form ^ lsb) ? 19 : 0, by = (form ^ lsb) ? 11 : 0;
+                int ok = 1;
+
+                flush_sync(dev);
+                memset(&dev->svga.vram[0x00300000], 0x99, 64 * 40 * 4);
+                wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+                   0x00000003u | (bt << 4) | (6u << 8) | (3u << 12) | (0xf0u << 16)
+                       | ((form ? 2u : 0u) << 24) | (1u << 28) | (1u << 29) | (1u << 30));
+                wr(dev, RAGE128_DP_DATATYPE,
+                   6u | (bt << 8) | (3u << 16) | ((uint32_t) lsb << 30));
+                wr(dev, RAGE128_DP_MIX, (0xf0u << 16) | ((form ? 2u : 0u) << 8));
+                wr(dev, RAGE128_BRUSH_Y_X, ((uint32_t) by << 8) | (uint32_t) bx);
+                wr(dev, RAGE128_SRC_Y_X, (1u << 16) | 1u);
+                wr(dev, RAGE128_DST_Y_X, ((uint32_t) Y0 << 16) | (uint32_t) X0);
+                wr(dev, RAGE128_DST_HEIGHT_WIDTH, ((uint32_t) H << 16) | (uint32_t) W);
+                flush_sync(dev);
+                for (int y = 0; y < Y0 + H + 2; y++)
+                    for (int x = 0; x < X0 + W + 2; x++) {
+                        uint32_t want = pre;
+
+                        if (x >= X0 && x < X0 + W && y >= Y0 && y < Y0 + H) {
+                            uint32_t row = brush_reg32_row(t32 ? (y + by) % 32 : 0);
+                            int      ph  = (x + bx) % 32;
+                            int      bit = lsb ? (int) ((row >> ph) & 1u)
+                                               : pat32_bytewise_bit(row, ph, 0);
+
+                            want = bit ? fg : (la ? pre : bg);
+                        }
+                        ok = ok && BRUSH_REG32(x, y) == want;
+                    }
+                check_true(names[ti][form][lsb], ok);
+            }
+    }
+    wr(dev, RAGE128_BRUSH_Y_X, 0);
+    /* GPU lane: a 32-pixel brush queued as an 8x8 tile shows only here */
+    check_log("2d 902: the 2D oracle saw no queued 32-pixel brush mismatch",
+              "VERIFY MISMATCH", 0);
+#undef BRUSH_REG32
+}
+
+/* 903: the bit order inside a 32-pixel mono pattern row, on the users
+   the earlier vectors do not cover at both settings of
+   DP_BYTE_PIX_ORDER: a packet 32x32 brush (0x9a, type 8), a packet
+   polyline (0x95, type 6) and a register Bresenham line (type 7, leave
+   alone). The rows use brush_reg32_row data, on which the byte-wise
+   reading and a whole dword read from bit 31 disagree on about half
+   the pixels. Expected pixels come
+   from pat32_bytewise_bit on those dwords. 8888 at 0x300000, 64-px
+   pitch, prefill 0x99. */
+static void
+vectors_brush_903(rage128_t *dev)
+{
+    const uint32_t fg = 0x00808080u, bg = 0x00404040u, pre = 0x99999999u;
+    uint32_t       br[34], pl[12];
+    static const char *const pkt32[2] = {
+        "2d 903: packet brush 8 (32x32 mono) rows read byte-wise, order bit 0",
+        "2d 903: packet brush 8 (32x32 mono) rows read bit 0 first, order bit 1"
+    };
+    static const char *const poly[2] = {
+        "2d 903: 0x95 polyline 32x1 pattern read byte-wise, order bit 0",
+        "2d 903: 0x95 polyline 32x1 pattern read bit 0 first, order bit 1"
+    };
+    static const char *const bres[2] = {
+        "2d 903: register line brush 7 pattern read byte-wise, order bit 0",
+        "2d 903: register line brush 7 pattern read bit 0 first, order bit 1"
+    };
+#define B903(x, y) (*(uint32_t *) &dev->svga.vram[0x00300000 + ((y) * 64 + (x)) * 4])
+
+    flush_sync(dev);
+    harness_log_tail_reset();
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DST_PITCH_OFFSET, (8u << 21) | (0x300000u >> 5));
+
+    /* packet 32x32 brush, 40x34 at (0,0), anchor (x 5, y 9) */
+    br[0] = bg;
+    br[1] = fg;
+    for (int i = 0; i < 32; i++)
+        br[2 + i] = brush_reg32_row(i);
+    wr(dev, RAGE128_BRUSH_Y_X, (9u << 8) | 5u);
+    for (int lsb = 0; lsb < 2; lsb++) {
+        int ok = 1;
+
+        brush_types_paint(dev, 8, (uint32_t) lsb, br, 34, 40, 34);
+        for (int y = 0; y < 36; y++)
+            for (int x = 0; x < 42; x++) {
+                uint32_t want = pre;
+
+                if (x < 40 && y < 34)
+                    want = pat32_bytewise_bit(br[2 + ((y + 9) & 31)], x + 5, lsb) ? fg : bg;
+                ok = ok && B903(x, y) == want;
+            }
+        check_true(pkt32[lsb], ok);
+    }
+    wr(dev, RAGE128_BRUSH_Y_X, 0);
+
+    /* 0x95 polyline (0,2) -> (40,2), endpoint excluded, phase seed 3 */
+    for (int lsb = 0; lsb < 2; lsb++) {
+        int ok = 1;
+
+        flush_sync(dev);
+        memset(&dev->svga.vram[0x00300000], 0x99, 64 * 16 * 4);
+        wr(dev, RAGE128_BRUSH_Y_X, 3u << 16);
+        pl[0] = (1u << 1) | (1u << 3) | (6u << 4) | (6u << 8)
+            | ((uint32_t) lsb << 14) | (0xf0u << 16)
+            | (1u << 28) | (1u << 29) | (1u << 30);
+        pl[1] = 0x01018000u;        /* DST_PITCH_OFFSET */
+        pl[2] = 0;                  /* SC_TOP_LEFT */
+        pl[3] = 0x1fff1fffu;        /* SC_BOTTOM_RIGHT */
+        pl[4] = bg;
+        pl[5] = fg;
+        pl[6] = brush_reg32_row(0); /* 32x1 line pattern */
+        pl[7] = (2u << 16) | 0u;    /* (y 2, x 0) */
+        pl[8] = (2u << 16) | 40u;   /* (y 2, x 40) */
+        rage128_2d_packet3(dev, 0x95u << 8, pl, 9);
+        flush_sync(dev);
+        for (int x = 0; x < 42; x++) {
+            uint32_t want = pre;
+
+            if (x < 40)
+                want = pat32_bytewise_bit(brush_reg32_row(0), 3 + x, lsb) ? fg : bg;
+            ok = ok && B903(x, 2) == want && B903(x, 1) == pre && B903(x, 3) == pre;
+        }
+        check_true(poly[lsb], ok);
+    }
+
+    /* register Bresenham line, brush 7, 40 px at y 2, phase seed 3 */
+    wr(dev, RAGE128_DP_BRUSH_FRGD_CLR, fg);
+    wr(dev, RAGE128_DP_BRUSH_BKGD_CLR, bg);
+    wr(dev, RAGE128_BRUSH_DATA0, brush_reg32_row(0));
+    for (int lsb = 0; lsb < 2; lsb++) {
+        int ok = 1;
+
+        flush_sync(dev);
+        memset(&dev->svga.vram[0x00300000], 0x99, 64 * 16 * 4);
+        wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+           (1u << 1) | (1u << 3) | (7u << 4) | (6u << 8) | ((uint32_t) lsb << 14)
+               | (0xf0u << 16) | (1u << 28) | (1u << 29) | (1u << 30));
+        wr(dev, RAGE128_BRUSH_Y_X, 3u << 16);
+        wr(dev, 0x16d0, (1u << 31) | (1u << 15)); /* L->R, T->B, X major */
+        wr(dev, RAGE128_DST_Y_X, (2u << 16) | 0u);
+        wr(dev, 0x1628, 0xffff8);                 /* DST_BRES_ERR -8 */
+        wr(dev, 0x162c, 0);                       /* DST_BRES_INC */
+        wr(dev, 0x1630, 0xffff8);                 /* DST_BRES_DEC -8 */
+        wr(dev, 0x1634, 40);                      /* DST_BRES_LNTH fires */
+        flush_sync(dev);
+        for (int x = 0; x < 42; x++) {
+            uint32_t want = pre;
+
+            if (x < 40 && pat32_bytewise_bit(brush_reg32_row(0), 3 + x, lsb))
+                want = fg;
+            ok = ok && B903(x, 2) == want;
+        }
+        check_true(bres[lsb], ok);
+    }
+    wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+       (1u << 1) | (1u << 3) | (13u << 4) | (6u << 8) | (0xf0u << 16)
+           | (1u << 28) | (1u << 29) | (1u << 30));
+    wr(dev, RAGE128_BRUSH_Y_X, 0);
+    check_log("2d 903: the 2D oracle saw no queued 32-pixel pattern mismatch",
+              "VERIFY MISMATCH", 0);
+#undef B903
+}
+
+/* 904: mono host data of an op started by register writes. With
+   DP_SRC_SOURCE 3 ("loaded thru hostdata (linear trajectory)", RRG:
+   DP_MIX, p. 3-171 / PDF 189) the data is one bit stream, w bits per
+   row, rows back to back with no padding. The stream is read as bytes
+   in memory order (dword n holds bytes 4n to 4n + 3, low byte first),
+   bits within a byte MSB first, or LSB first with DP_BYTE_PIX_ORDER
+   set. Expected pixels are worked out here from the data dwords:
+   pixel (c, r) is stream bit r * w + c. Two ways to start the op:
+   DST_X_Y + DST_WIDTH_HEIGHT with the default offset and pitch (as the
+   SDK's mono expansion example does, SDK: Monochrome Expansion, p. 4-17
+   / PDF 91) and DST_Y_X + DST_HEIGHT_WIDTH
+   with DST_PITCH_OFFSET (as the X driver does). ROP CC (source copy),
+   8888 at 0x300000, 128-px pitch, prefill 0x99. */
+static uint32_t
+hostdata904_dw(int i)
+{
+    uint32_t v = 0x9e3779b9u * (uint32_t) (i + 7);
+
+    return v ^ (v >> 15) ^ (0x01020408u << (i & 3));
+}
+
+static int
+hostdata904_bit(const uint32_t *dw, uint32_t k, int lsb)
+{
+    uint32_t byte = (dw[k / 32] >> (8 * ((k / 8) % 4))) & 0xffu;
+
+    return (int) ((lsb ? byte >> (k % 8) : byte >> (7 - k % 8)) & 1u);
+}
+
+/* One register-started op. start 0 = DST_X_Y + DST_WIDTH_HEIGHT with
+   the defaults, 1 = DST_Y_X + DST_HEIGHT_WIDTH with DST_PITCH_OFFSET.
+   src = DP_SRC_SOURCE (3 or 4), srcdt 0 = frgd/bkgd, 1 = frgd/leave
+   alone. nd dwords are sent, the last through HOST_DATA_LAST. clipw
+   (0 = none) narrows the scissor to x 0..clipw-1, the X driver's way
+   of drawing a width it padded to 32. pitch = stream bits per row the
+   check expects; rows = rows expected painted. */
+static int
+hostdata904_run(rage128_t *dev, int start, uint32_t src, int srcdt, int lsb,
+                int w, int h, const uint32_t *dw, uint32_t nd, int clipw,
+                uint32_t pitch, int rows)
+{
+    const uint32_t fg = 0x00c08040u, bg = 0x00203040u, pre = 0x99999999u;
+    int            ok = 1;
+#define H904(x, y) (*(uint32_t *) &dev->svga.vram[0x00300000 + ((y) * 128 + (x)) * 4])
+
+    flush_sync(dev);
+    memset(&dev->svga.vram[0x00300000], 0x99, 128 * 16 * 4);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT,
+       clipw ? (0x1fffu << 16) | (uint32_t) (clipw - 1) : 0x1fff1fffu);
+    wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+       (start ? 0x00000003u : 0u) | (1u << 3) | (15u << 4) | (6u << 8)
+           | ((uint32_t) srcdt << 12) | ((uint32_t) lsb << 14) | (0xccu << 16)
+           | (src << 24) | (1u << 28) | (1u << 29) | (1u << 30));
+    wr(dev, RAGE128_DP_CNTL, 0x00000003);
+    wr(dev, RAGE128_DP_SRC_FRGD_CLR, fg);
+    wr(dev, RAGE128_DP_SRC_BKGD_CLR, bg);
+    if (start) {
+        wr(dev, RAGE128_DST_Y_X, (1u << 16) | 2u);
+        wr(dev, RAGE128_DST_HEIGHT_WIDTH, ((uint32_t) h << 16) | (uint32_t) w);
+    } else {
+        wr(dev, RAGE128_DST_X_Y, (2u << 16) | 1u);
+        wr(dev, RAGE128_DST_WIDTH_HEIGHT, ((uint32_t) w << 16) | (uint32_t) h);
+    }
+    for (uint32_t i = 0; i + 1 < nd; i++)
+        wr(dev, RAGE128_HOST_DATA0 + 4u * (i & 7), dw[i]);
+    wr(dev, RAGE128_HOST_DATA_LAST, dw[nd - 1]);
+    flush_sync(dev);
+    for (int y = 0; y < h + 3; y++)
+        for (int x = 0; x < w + 4; x++) {
+            uint32_t want = pre;
+            int      c = x - 2, r = y - 1;
+
+            if (c >= 0 && c < w && r >= 0 && r < rows && (!clipw || x < clipw)) {
+                int set = hostdata904_bit(dw, (uint32_t) r * pitch + (uint32_t) c, lsb);
+
+                want = set ? fg : (srcdt ? pre : bg);
+            }
+            ok = ok && H904(x, y) == want;
+        }
+#undef H904
+    return ok;
+}
+
+static void
+vectors_hostdata_904(rage128_t *dev)
+{
+    uint32_t dw[64];
+
+    for (int i = 0; i < 64; i++)
+        dw[i] = hostdata904_dw(i);
+    flush_sync(dev);
+    harness_log_tail_reset();
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DEFAULT_OFFSET, 0x00300000);
+    wr(dev, RAGE128_DEFAULT_PITCH, 16);
+    wr(dev, RAGE128_DST_PITCH_OFFSET, (16u << 21) | (0x300000u >> 5));
+
+    /* widths that are not a multiple of 32: the stream runs on across
+       rows (17 x 6 = 102 bits = 4 dwords, 33 x 5 = 165 bits = 6) */
+    check_true("2d 904: host data 17 wide, DST_X_Y start, frgd/bkgd, LSB first, one stream",
+               hostdata904_run(dev, 0, 3, 0, 1, 17, 6, dw, 4, 0, 17, 6));
+    check_true("2d 904: host data 17 wide, DST_Y_X start, leave alone, MSB first, one stream",
+               hostdata904_run(dev, 1, 3, 1, 0, 17, 6, dw, 4, 0, 17, 6));
+    check_true("2d 904: host data 33 wide, DST_X_Y start, frgd/bkgd, MSB first, one stream",
+               hostdata904_run(dev, 0, 3, 0, 0, 33, 5, dw, 6, 0, 33, 5));
+    check_true("2d 904: host data 33 wide, DST_Y_X start, leave alone, LSB first, one stream",
+               hostdata904_run(dev, 1, 3, 1, 1, 33, 5, dw, 6, 0, 33, 5));
+    /* short data: 2 dwords = 64 bits hold 3 whole 17-bit rows; the rest
+       of the op is not painted */
+    check_true("2d 904: host data 17 wide, 2 of 4 dwords sent, paints the 3 whole rows",
+               hostdata904_run(dev, 0, 3, 0, 1, 17, 6, dw, 2, 0, 17, 3));
+    /* widths that are a multiple of 32: a row ends on a dword, so the
+       stream and dword-padded rows are the same bits */
+    check_true("2d 904: control: host data 32 wide, DST_Y_X start, frgd/bkgd, LSB first",
+               hostdata904_run(dev, 1, 3, 0, 1, 32, 4, dw, 4, 0, 32, 4));
+    check_true("2d 904: control: host data 64 wide, DST_X_Y start, leave alone, MSB first",
+               hostdata904_run(dev, 0, 3, 1, 0, 64, 3, dw, 6, 0, 64, 3));
+    /* the X driver's form: a 20-pixel glyph run padded to 32 and cut
+       back by the scissor */
+    check_true("2d 904: control: X driver width padded to 32 and clipped to 20",
+               hostdata904_run(dev, 1, 3, 1, 1, 32, 4, dw, 4, 22, 32, 4));
+    /* source 4 (byte-aligned host data) keeps dword-padded rows: 17
+       wide reads 32 bits per row, 4 rows from 4 dwords (modeled) */
+    check_true("2d 904: control: source 4 keeps dword-padded rows",
+               hostdata904_run(dev, 1, 4, 0, 1, 17, 4, dw, 4, 0, 32, 4));
+
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+       0x00000003u | (13u << 4) | (6u << 8) | (0xf0u << 16)
+           | (1u << 28) | (1u << 29) | (1u << 30));
+    check_log("2d 904: the 2D oracle saw no queued host-data mismatch",
+              "VERIFY MISMATCH", 0);
+}
+
+/* 905: a register-started Bresenham line with the 8-pixel line brushes
+   (SDK: Drawing Lines, p. 4-15 / PDF 89 lists them for patterned
+   lines): type 2 is 8x1 mono, frgd and bkgd; 3 is 8x1 mono, frgd and
+   leave alone; 11 is 8x1 color in the destination format (SDK: Table
+   F-2, pp. F-16-F-17 / PDF 306-307). The brush is read along the line:
+   pixel i of the line uses pointer p = BRUSH_Y_X [20:16] + i, taken
+   mod 8. Mono: the 8 pixels are the low byte of BRUSH_DATA0, pixel k =
+   bit 7 - k with DP_BYTE_PIX_ORDER clear, bit k with it set. Color:
+   the 8 pixels are packed from BRUSH_DATA0 on, pixel k at byte k * bpp.
+   Lines are 20 pixels: x-major (inc 0, never steps y), y-major, and a
+   diagonal (err 1, inc 0, dec 0: the minor axis steps every pixel).
+   The expected image is built here from the brush registers' values
+   and the pointer; every pixel off the line keeps the 0x99 prefill.
+   ROP F0 (PATCOPY), 64-px pitch at 0x300000. */
+static int
+line905_run(rage128_t *dev, uint32_t bt, int dst_dt, int bpp, int lsb,
+            int kind, int p0, int poly, const uint32_t *brush, int nbrush,
+            uint32_t *yx_after)
+{
+    const uint32_t fg = 0x00c08040u, bg = 0x00204060u;
+    const int      n = 20, x0 = kind == 3 ? 30 : 4, y0 = 4;
+    const int      sx = kind == 1 ? 0 : (kind == 3 ? -1 : 1);
+    const int      sy = kind == 0 ? 0 : 1;
+    uint8_t        want[64 * 32 * 4];
+    const uint8_t *bb = (const uint8_t *) brush;
+    uint32_t       stride = 64u * (uint32_t) bpp;
+    uint8_t       *vr     = &dev->svga.vram[0x00300000];
+    int            ok;
+
+    flush_sync(dev);
+    memset(vr, 0x99, sizeof(want));
+    memset(want, 0x99, sizeof(want));
+    for (int i = 0; i < nbrush; i++)
+        wr(dev, RAGE128_BRUSH_DATA0 + 4u * (uint32_t) i, brush[i]);
+    wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+       (1u << 1) | (1u << 3) | (bt << 4) | ((uint32_t) dst_dt << 8)
+           | ((uint32_t) lsb << 14) | (0xf0u << 16)
+           | (1u << 28) | (1u << 29) | (1u << 30));
+    if (!poly)
+        wr(dev, RAGE128_DP_CNTL, 0x00000003); /* POLY_LINE off */
+    wr(dev, RAGE128_DST_PITCH_OFFSET, (8u << 21) | (0x300000u >> 5));
+    wr(dev, RAGE128_BRUSH_Y_X, (uint32_t) p0 << 16);
+    wr(dev, 0x16d0, (sx < 0 ? 0u : (1u << 31)) | (1u << 15)
+                        | (kind == 1 ? (1u << 2) : 0u));
+    wr(dev, RAGE128_DST_Y_X, ((uint32_t) y0 << 16) | (uint32_t) x0);
+    wr(dev, 0x1628, kind == 2 || kind == 3 ? 1u : 0xffff8u); /* DST_BRES_ERR */
+    wr(dev, 0x162c, 0);                                        /* DST_BRES_INC */
+    wr(dev, 0x1630, kind == 2 || kind == 3 ? 0u : 0xffff8u); /* DST_BRES_DEC */
+    wr(dev, 0x1634, (uint32_t) n);                             /* LNTH fires */
+    flush_sync(dev);
+    *yx_after = rd(dev, RAGE128_BRUSH_Y_X);
+
+    for (int i = 0; i < n; i++) {
+        int      k = (p0 + i) % 32 % 8;
+        int      x = x0 + i * sx, y = y0 + i * sy;
+        uint8_t *w = &want[(uint32_t) y * stride + (uint32_t) x * (uint32_t) bpp];
+
+        if (bt == 11) {
+            memcpy(w, &bb[k * bpp], (size_t) bpp);
+        } else {
+            int set = lsb ? (bb[0] >> k) & 1 : (bb[0] >> (7 - k)) & 1;
+
+            if (set || bt == 2) {
+                uint32_t c = set ? fg : bg;
+
+                memcpy(w, &c, (size_t) bpp);
+            }
+        }
+    }
+    ok = memcmp(vr, want, sizeof(want)) == 0;
+    wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+       (1u << 1) | (1u << 3) | (13u << 4) | (6u << 8) | (0xf0u << 16)
+           | (1u << 28) | (1u << 29) | (1u << 30));
+    wr(dev, RAGE128_BRUSH_Y_X, 0);
+    return ok;
+}
+
+static void
+vectors_line_brush_905(rage128_t *dev)
+{
+    /* mono: low byte 0xb1 (not a bit-palindrome); the upper bytes differ
+       so a reading of the whole dword as a 32x1 pattern shows */
+    const uint32_t mono[1] = { 0x5a3c0fb1u };
+    uint32_t       col[8], yx;
+
+    for (int i = 0; i < 8; i++)
+        col[i] = 0x11223344u + 0x0b1d2f41u * (uint32_t) i;
+    flush_sync(dev);
+    harness_log_tail_reset();
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DP_BRUSH_FRGD_CLR, 0x00c08040u);
+    wr(dev, RAGE128_DP_BRUSH_BKGD_CLR, 0x00204060u);
+
+    /* kind: 0 x-major, 1 y-major, 2 diagonal, 3 diagonal right to left */
+    check_true("2d 905: line brush 2 (8x1 mono) x-major, MSB first, pointer 0",
+               line905_run(dev, 2, 6, 4, 0, 0, 0, 1, mono, 1, &yx));
+    check_true("2d 905: line brush 2 (8x1 mono) y-major, LSB first, pointer 5",
+               line905_run(dev, 2, 6, 4, 1, 1, 5, 1, mono, 1, &yx));
+    check_true("2d 905: line brush 2 (8x1 mono) diagonal, MSB first, pointer 19",
+               line905_run(dev, 2, 6, 4, 0, 2, 19, 1, mono, 1, &yx));
+    check32("2d 905: line brush 2 under POLY_LINE writes the end pointer back",
+            (yx >> 16) & 0x1f, (19 + 20) & 31);
+    check_true("2d 905: line brush 3 (8x1 mono, leave alone) x-major, LSB first, pointer 3",
+               line905_run(dev, 3, 6, 4, 1, 0, 3, 1, mono, 1, &yx));
+    check_true("2d 905: line brush 3 (8x1 mono, leave alone) diagonal right to left, MSB first",
+               line905_run(dev, 3, 6, 4, 0, 3, 0, 0, mono, 1, &yx));
+    check32("2d 905: control: line brush 3 with POLY_LINE off keeps the pointer",
+            yx, 0u);
+    check_true("2d 905: line brush 11 (8x1 color) at 8 bpp, x-major, pointer 0",
+               line905_run(dev, 11, 2, 1, 0, 0, 0, 1, col, 2, &yx));
+    check_true("2d 905: line brush 11 (8x1 color) at 16 bpp, y-major, pointer 6",
+               line905_run(dev, 11, 4, 2, 0, 1, 6, 1, col, 4, &yx));
+    check32("2d 905: line brush 11 under POLY_LINE writes the end pointer back",
+            (yx >> 16) & 0x1f, (6 + 20) & 31);
+    check_true("2d 905: line brush 11 (8x1 color) at 32 bpp, diagonal, pointer 19",
+               line905_run(dev, 11, 6, 4, 0, 2, 19, 0, col, 8, &yx));
+    check32("2d 905: control: line brush 11 with POLY_LINE off keeps the pointer",
+            (yx >> 16) & 0x1f, 19);
+    check_log("2d 905: the 2D oracle saw no queued line mismatch",
+              "VERIFY MISMATCH", 0);
+}
+
+/* 906: the register-started scale blit. The register sequence is the
+   one the guide's scaled-blit example programs (SDK: Drawing Rectangles,
+   pp. 4-12-4-13 / PDF 86-87), with the source format in
+   SCALE_3D_DATATYPE: DP_MIX, DP_DATATYPE, SCALE_3D_CNTL 0x40, TEX_CNTL,
+   MISC_3D_STATE_CNTL_REG, SCALE_3D_DATATYPE (source format),
+   CLR_CMP_MSK_3D, SCALE_SRC_HEIGHT_WIDTH, SCALE_OFFSET_0, SCALE_PITCH,
+   MC_SRC1_CNTL, SCALE_X_INC, SCALE_Y_INC, SCALE_HACC, SCALE_VACC,
+   SRC_Y_X, SCALE_DST_X_Y, and SCALE_DST_HEIGHT_WIDTH last, which starts
+   the op. The drawing cases that have a packet twin are also sent as a
+   0x96 packet with the same values in the slots of the same name, into a
+   second destination 128 KB away; both destinations are prefilled alike
+   and compared byte for byte over the whole 64-pixel-wide window, so the
+   guard band around each rect is compared too. The motion-compensation
+   planes and the SRC_Y_X case are checked against the source bytes; the
+   zero-size, gate and refused-format controls against untouched
+   storage. Old code: the register destination is never written. */
+#define S906_SRC   0x00380000u
+#define S906_DREG  0x003a0000u
+#define S906_DPKT  0x003c0000u
+#define S906_DPX   64u     /* destination pitch, pixels */
+#define S906_ROWS  24u     /* compared rows of each destination window */
+#define S906_FILL  0xa5u
+
+struct s906 {
+    uint32_t ddt, sdt_reg, sdt_pkt, soff, spitch8, sw, sh;
+    uint32_t xinc, yinc, hacc, vacc, s7, srcyx, dx, dy, dw, dh, misc;
+};
+
+static uint32_t
+s906_bpp(uint32_t dt)
+{
+    return (dt == 2 || dt == 7 || dt == 8 || dt == 9) ? 1u
+         : (dt == 6) ? 4u : 2u;
+}
+
+static void
+s906_prefill(rage128_t *dev, uint32_t base, uint32_t ddt)
+{
+    memset(&dev->svga.vram[base], S906_FILL, S906_DPX * s906_bpp(ddt) * S906_ROWS);
+}
+
+/* The register sequence above, in that order. cntl is SCALE_3D_CNTL. */
+static void
+s906_reg(rage128_t *dev, const struct s906 *c, uint32_t cntl)
+{
+    wr(dev, RAGE128_DST_OFFSET, S906_DREG);
+    wr(dev, RAGE128_DST_PITCH, S906_DPX / 8);
+    wr(dev, RAGE128_DP_MIX, 0x00cc0200u);                    /* SRCCOPY | DP_SRC_RECT */
+    wr(dev, RAGE128_DP_DATATYPE, c->ddt | (15u << 8) | (3u << 16));
+    wr(dev, RAGE128_SCALE_3D_CNTL, cntl);
+    wr(dev, RAGE128_TEX_CNTL, 0);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, c->misc);
+    wr(dev, RAGE128_SCALE_3D_DATATYPE, c->sdt_reg);
+    wr(dev, RAGE128_CLR_CMP_MSK_3D, 0xffffffffu);
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, (c->sh << 16) | c->sw);
+    wr(dev, RAGE128_SCALE_OFFSET_0, c->soff);
+    wr(dev, RAGE128_SCALE_PITCH, c->spitch8);
+    wr(dev, RAGE128_MC_SRC1_CNTL, 0);
+    wr(dev, RAGE128_SCALE_X_INC, c->xinc);
+    wr(dev, RAGE128_SCALE_Y_INC, c->yinc);
+    wr(dev, RAGE128_SCALE_HACC, c->hacc);
+    wr(dev, RAGE128_SCALE_VACC, c->vacc);
+    wr(dev, RAGE128_SRC_Y_X, c->srcyx);
+    wr(dev, RAGE128_SCALE_DST_X_Y, (c->dx << 16) | c->dy);
+    wr(dev, RAGE128_SCALE_DST_HEIGHT_WIDTH, (c->dh << 16) | c->dw);
+    flush_sync(dev);
+}
+
+/* The same stretch as a 0x96 packet into S906_DPKT. */
+static void
+s906_pkt(rage128_t *dev, const struct s906 *c)
+{
+    uint32_t pl[13];
+
+    pl[0]  = 0x00000002u | (15u << 4) | (c->ddt << 8) | (3u << 12)
+           | (0xccu << 16) | (2u << 24);
+    pl[1]  = ((S906_DPX / 8) << 21) | (S906_DPKT >> 5);
+    pl[2]  = c->misc;     pl[3] = 0x00800000u; pl[4] = 0x02180840u;
+    pl[5]  = c->sdt_pkt;  pl[6] = c->soff;     pl[7] = c->spitch8;
+    pl[8]  = c->s7;       pl[9] = c->xinc;     pl[10] = c->yinc;
+    pl[11] = (c->dx << 16) | c->dy;
+    pl[12] = (c->dh << 16) | c->dw;
+    rage128_2d_packet3(dev, 0x96u << 8, pl, 13);
+    flush_sync(dev);
+}
+
+/* 1 = the register destination equals the packet destination byte for
+   byte over the whole window and the packet drew something. */
+static int
+s906_same(rage128_t *dev, const struct s906 *c)
+{
+    uint32_t n = S906_DPX * s906_bpp(c->ddt) * S906_ROWS;
+    int      d = 0;
+
+    for (uint32_t i = 0; i < n; i++)
+        if (dev->svga.vram[S906_DPKT + i] != S906_FILL)
+            d = 1;
+    return d && memcmp(&dev->svga.vram[S906_DREG], &dev->svga.vram[S906_DPKT], n) == 0;
+}
+
+static int
+s906_pair(rage128_t *dev, const struct s906 *c, int *nq)
+{
+    s906_prefill(dev, S906_DREG, c->ddt);
+    s906_prefill(dev, S906_DPKT, c->ddt);
+    s906_reg(dev, c, 0x40u);
+    s906_pkt(dev, c);
+    *nq += 2;
+    return s906_same(dev, c);
+}
+
+static int
+s906_untouched(rage128_t *dev, uint32_t base, uint32_t ddt)
+{
+    for (uint32_t i = 0; i < S906_DPX * s906_bpp(ddt) * S906_ROWS; i++)
+        if (dev->svga.vram[base + i] != S906_FILL)
+            return 0;
+    return 1;
+}
+
+static uint32_t s906_rng = 0x906u;
+
+static void
+s906_src(rage128_t *dev, uint32_t nbytes)
+{
+    for (uint32_t i = 0; i < nbytes; i++) {
+        s906_rng = s906_rng * 1103515245u + 12345u;
+        dev->svga.vram[S906_SRC + i] = (uint8_t) (s906_rng >> 16);
+    }
+}
+
+/* The motion-compensation driver's plane copy, sent as type-0 packets
+   through the CCE PIO ports in the order ATI's Windows 98 motion
+   compensation DLL emits it (setup once, then per plane 0x1994, 0x1998,
+   0x199c, DST_PITCH_OFFSET, DST_OFFSET, 0x19b4). SCALE_DST_X_Y,
+   SCALE_HACC and SCALE_VACC are not written; this runs before any other
+   906 row writes them. Expected: an 8 bpp 1:1 copy of w x h from each
+   plane's base to its destination, nothing else in the window. */
+#define MC906_SRC   0x00390000u
+#define MC906_DST   0x003b0000u
+#define MC906_SPX   16u  /* SCALE_PITCH 2: 16 pixels */
+#define MC906_DPX   32u  /* DST_PITCH_OFFSET pitch: 32 pixels */
+#define P0(reg)     ((uint32_t) (reg) >> 2)
+
+static int
+mc906_planes(rage128_t *dev, int *nq)
+{
+    static const uint32_t pw[3] = { 16, 8, 8 }, ph[3] = { 4, 2, 2 };
+    uint32_t pkt[64], micro = rd(dev, RAGE128_PM4_MICRO_CNTL);
+    uint32_t n = 0;
+    int      ok = 1;
+
+    memset(&dev->svga.vram[MC906_DST], S906_FILL, 3 * 0x1000);
+    for (uint32_t i = 0; i < 3 * 0x1000; i++) {
+        s906_rng = s906_rng * 1103515245u + 12345u;
+        dev->svga.vram[MC906_SRC + i] = (uint8_t) (s906_rng >> 16);
+    }
+    pkt[n++] = P0(RAGE128_SCALE_3D_CNTL);     pkt[n++] = 0x40u;
+    pkt[n++] = P0(RAGE128_SCALE_3D_DATATYPE); pkt[n++] = 0x80008u;
+    pkt[n++] = P0(RAGE128_DP_DATATYPE);       pkt[n++] = 0x30d08u;
+    pkt[n++] = P0(RAGE128_DP_MIX);            pkt[n++] = 0xcc0200u;
+    pkt[n++] = P0(RAGE128_SCALE_X_INC);       pkt[n++] = 0x10000u;
+    pkt[n++] = P0(RAGE128_SCALE_Y_INC);       pkt[n++] = 0x10000u;
+    for (int p = 0; p < 3; p++) {
+        pkt[n++] = P0(RAGE128_SCALE_SCR_HEIGHT_WIDTH); pkt[n++] = (ph[p] << 16) | pw[p];
+        pkt[n++] = P0(RAGE128_SCALE_OFFSET_0);   pkt[n++] = MC906_SRC + (uint32_t) p * 0x1000u;
+        pkt[n++] = P0(RAGE128_SCALE_PITCH);      pkt[n++] = MC906_SPX >> 3;
+        pkt[n++] = P0(RAGE128_DST_PITCH_OFFSET); pkt[n++] = (MC906_DPX & ~7u) << 18;
+        pkt[n++] = P0(RAGE128_DST_OFFSET);       pkt[n++] = MC906_DST + (uint32_t) p * 0x1000u;
+        pkt[n++] = P0(RAGE128_SCALE_DST_HEIGHT_WIDTH); pkt[n++] = (ph[p] << 16) | pw[p];
+    }
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0x70000000);
+    wr(dev, RAGE128_PM4_MICRO_CNTL, 0x40000000);
+    pio_submit(dev, pkt, n);
+    rr_quiesce(dev);
+    flush_sync(dev);
+    wr(dev, RAGE128_PM4_BUFFER_CNTL, 0);
+    wr(dev, RAGE128_PM4_MICRO_CNTL, micro);
+    *nq += 3;
+    for (int p = 0; p < 3; p++) {
+        const uint8_t *s = &dev->svga.vram[MC906_SRC + (uint32_t) p * 0x1000u];
+        const uint8_t *d = &dev->svga.vram[MC906_DST + (uint32_t) p * 0x1000u];
+
+        for (uint32_t y = 0; y < 0x1000u / MC906_DPX; y++)
+            for (uint32_t x = 0; x < MC906_DPX; x++) {
+                uint8_t want = (y < ph[p] && x < pw[p]) ? s[y * MC906_SPX + x] : S906_FILL;
+
+                ok = ok && d[y * MC906_DPX + x] == want;
+            }
+    }
+    return ok;
+}
+#undef P0
+
+static void
+vectors_reg_scale_906(rage128_t *dev)
+{
+    struct s906 c;
+    uint64_t    q0 = 0, q1 = 0, b0 = 0, b1 = 0;
+    int         gpu = dev->gpu && rage128_gpu_2d_verifying(dev);
+    int         nq  = 0;
+
+    flush_sync(dev);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    if (gpu) {
+        harness_gpu_fab_q2d(dev->gpu, 5, &q0, NULL, NULL, NULL);
+        b0 = harness_gpu_q2d_bad(dev->gpu, 5);
+    }
+
+    /* 2a first: nothing has written SCALE_DST_X_Y, HACC or VACC yet */
+    check_true("2d 906: MC plane copies (type-0): three 8 bpp 1:1 copies, nothing outside",
+               mc906_planes(dev, &nq));
+
+    memset(&c, 0, sizeof(c));
+    s906_src(dev, 0x4000);
+
+    /* 1: 1:1, 8888, blend */
+    c.ddt = 6; c.sdt_reg = 6; c.sdt_pkt = 6; c.soff = S906_SRC; c.spitch8 = 2;
+    c.sw = 6; c.sh = 5; c.xinc = 0x10000u; c.yinc = 0x10000u;
+    c.dx = 4; c.dy = 4; c.dw = 6; c.dh = 5; c.misc = 0x100u;
+    check_true("2d 906: reg scale 1:1 8888 blend equals the 0x96 packet", s906_pair(dev, &c, &nq));
+
+    /* 2: enlarge 4x4 -> 9x7, 565, blend; increments as the SDK example
+       computes them (SDK: Drawing Rectangles, p. 4-12 / PDF 86) */
+    c.ddt = 4; c.sdt_reg = 4; c.sdt_pkt = 4; c.spitch8 = 2;
+    c.sw = 4; c.sh = 4; c.dw = 9; c.dh = 7;
+    c.xinc = (uint32_t) (4.0 / 9.0 * 65536.0); c.yinc = (uint32_t) (4.0 / 7.0 * 65536.0);
+    check_true("2d 906: reg scale enlarge 4x4 -> 9x7 565 blend equals the 0x96 packet",
+               s906_pair(dev, &c, &nq));
+
+    /* 3: shrink 8x8 -> 5x3, 8888, replicate */
+    c.ddt = 6; c.sdt_reg = 6; c.sdt_pkt = 6; c.sw = 8; c.sh = 8; c.dw = 5; c.dh = 3;
+    c.xinc = (uint32_t) (8.0 / 5.0 * 65536.0); c.yinc = (uint32_t) (8.0 / 3.0 * 65536.0);
+    c.misc = 0x500u;
+    check_true("2d 906: reg scale shrink 8x8 -> 5x3 8888 replicate equals the 0x96 packet",
+               s906_pair(dev, &c, &nq));
+
+    /* 4: CSC, 1555 source into a 565 destination */
+    c.ddt = 4; c.sdt_reg = 3; c.sdt_pkt = 3; c.sw = 6; c.sh = 4; c.dw = 6; c.dh = 4;
+    c.xinc = 0x10000u; c.yinc = 0x10000u; c.misc = 0x100u;
+    check_true("2d 906: CSC 1555 source into 565 equals the 0x96 packet", s906_pair(dev, &c, &nq));
+
+    /* 5: CSC, the two packed YUV 4:2:2 orders into 8888 */
+    c.ddt = 6; c.sdt_reg = 11; c.sdt_pkt = 11; c.sw = 8; c.dw = 8;
+    check_true("2d 906: CSC VYUY source into 8888 equals the 0x96 packet", s906_pair(dev, &c, &nq));
+    c.sdt_reg = 12; c.sdt_pkt = 12;
+    check_true("2d 906: CSC YVYU source into 8888 equals the 0x96 packet", s906_pair(dev, &c, &nq));
+
+    /* 6: only SCALE_3D_DATATYPE [3:0] is the source format */
+    c.sdt_reg = 0x80006u; c.sdt_pkt = 6; c.sw = 6; c.dw = 6;
+    check_true("2d 906: SCALE_3D_DATATYPE 0x80006 draws as source format 6", s906_pair(dev, &c, &nq));
+
+    /* 7: SRC_Y_X is not added to SCALE_OFFSET_0, which holds the row */
+    c.sdt_reg = 6; c.soff = S906_SRC + 4u * 16u * 4u; c.srcyx = 4u << 16;
+    c.sw = 4; c.sh = 2; c.dw = 4; c.dh = 2; c.dx = 0; c.dy = 0;
+    s906_prefill(dev, S906_DREG, 6);
+    s906_reg(dev, &c, 0x40u);
+    nq++;
+    check_true("2d 906: SRC_Y_X is not added: the copy starts at the SCALE_OFFSET_0 row",
+               memcmp(&dev->svga.vram[S906_DREG], &dev->svga.vram[S906_SRC + 4u * 64u], 16) == 0
+                   && memcmp(&dev->svga.vram[S906_DREG + S906_DPX * 4],
+                             &dev->svga.vram[S906_SRC + 5u * 64u], 16) == 0);
+    check_true("2d 906: control: the copy is not source row 8",
+               memcmp(&dev->svga.vram[S906_DREG], &dev->svga.vram[S906_SRC + 8u * 64u], 16) != 0);
+    c.soff = S906_SRC; c.srcyx = 0;
+
+    /* 8: HACC / VACC 0x8000 start the walk half a pixel in, as slot 7's
+       fraction bits do */
+    c.sw = 6; c.sh = 5; c.dw = 5; c.dh = 4; c.dx = 4; c.dy = 4;
+    c.hacc = 0x8000u; c.vacc = 0x8000u; c.s7 = 0x00010001u;
+    check_true("2d 906: HACC/VACC 0x8000 equal the packet's half-pixel slot 7 start",
+               s906_pair(dev, &c, &nq));
+    c.hacc = 0; c.vacc = 0; c.s7 = 0;
+
+    /* 9: SCALE_DST_X_Y holds x high */
+    c.dx = 10; c.dy = 3; c.sw = 2; c.sh = 2; c.dw = 2; c.dh = 2;
+    check_true("2d 906: SCALE_DST_X_Y x high equals the 0x96 packet", s906_pair(dev, &c, &nq));
+    check_true("2d 906: SCALE_DST_X_Y (10 << 16) | 3 lands at x 10, y 3",
+               memcmp(&dev->svga.vram[S906_DREG + (3u * S906_DPX + 10u) * 4], &dev->svga.vram[S906_SRC], 8) == 0);
+
+    /* 10: zero width or height draws nothing */
+    c.dx = 4; c.dy = 4; c.dw = 0; c.dh = 4;
+    s906_prefill(dev, S906_DREG, 6);
+    s906_reg(dev, &c, 0x40u);
+    check_true("2d 906: control: SCALE_DST_HEIGHT_WIDTH width 0 draws nothing",
+               s906_untouched(dev, S906_DREG, 6));
+    c.dw = 4; c.dh = 0;
+    s906_reg(dev, &c, 0x40u);
+    check_true("2d 906: control: SCALE_DST_HEIGHT_WIDTH height 0 draws nothing",
+               s906_untouched(dev, S906_DREG, 6));
+
+    /* 11: the op needs SCALE_3D_CNTL's function field at 1, scaling */
+    c.dh = 4;
+    s906_reg(dev, &c, 0x00u);
+    check_true("2d 906: control: SCALE_3D_CNTL function 0 starts nothing",
+               s906_untouched(dev, S906_DREG, 6));
+    s906_reg(dev, &c, 0x80u);
+    check_true("2d 906: control: SCALE_3D_CNTL function 2 starts nothing",
+               s906_untouched(dev, S906_DREG, 6));
+
+    /* 11b: a started op whose formats the stretch refuses (an 8888
+       source into an 8 bpp destination) draws nothing but still reports
+       the engine idle, as every register-started op does: GUI_IDLE_INT
+       in GEN_INT_STATUS. With the function field off, nothing starts
+       and no event is raised. The setup writes go first (a zero height),
+       the event is acknowledged, then only SCALE_DST_HEIGHT_WIDTH is
+       written. The harness clock is moved on first, so the engine time
+       of the stretches above has run out and the event is not held
+       behind them. */
+    tsc += 1000000;
+    c.ddt = 2; c.dh = 0;
+    s906_prefill(dev, S906_DREG, 2);
+    s906_reg(dev, &c, 0x40u);
+    (void) rd(dev, RAGE128_GEN_INT_STATUS);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_GUI_IDLE);
+    wr(dev, RAGE128_SCALE_DST_HEIGHT_WIDTH, (4u << 16) | c.dw);
+    flush_sync(dev);
+    check_true("2d 906: refused pairing (8888 into 8 bpp) draws nothing",
+               s906_untouched(dev, S906_DREG, 2));
+    check32("2d 906: refused pairing still raises GUI_IDLE_INT",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_GUI_IDLE, RAGE128_GIS_GUI_IDLE);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0);
+    (void) rd(dev, RAGE128_GEN_INT_STATUS);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_GUI_IDLE);
+    wr(dev, RAGE128_SCALE_DST_HEIGHT_WIDTH, (4u << 16) | c.dw);
+    flush_sync(dev);
+    check32("2d 906: control: function field off raises no GUI_IDLE_INT",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_GUI_IDLE, 0);
+    c.ddt = 6; c.dh = 4;
+
+    /* 12: SCALE_PITCH stays the motion-compensation block's register */
+    check32("2d 906: SCALE_PITCH reads back after the op", rd(dev, RAGE128_SCALE_PITCH), 2);
+
+    /* 13: on the GPU lane every op above queues under the 2D oracle */
+    if (gpu) {
+        harness_gpu_fab_q2d(dev->gpu, 5, &q1, NULL, NULL, NULL);
+        b1 = harness_gpu_q2d_bad(dev->gpu, 5);
+        check32("2d 906: GPU: every register and packet stretch queued on table 5",
+                (uint32_t) (q1 - q0), (uint32_t) nq);
+        check32("2d 906: GPU: the table-5 oracle finds the queue equal to the walk",
+                (uint32_t) (b1 - b0), 0);
+    }
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, 0);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0);
+    wr(dev, RAGE128_SCALE_3D_DATATYPE, 0);
+}
+
+/* 921: the stretch walk's row loop for the common case (no compare, no
+   aux scissor, open write mask, ROP3 0xCC, source and destination both
+   565 or both 8888) against the per-pixel walk. The same stretch is
+   drawn twice into two destinations prefilled alike: once with the aux
+   scissors off, which takes the row loop, and once with AUX1 enabled as
+   an additive rectangle. An additive rectangle never clips a 2D op (RRG:
+   AUX_SC_CNTL, pp. 3-156-3-157 / PDF 174-175), but an enabled aux
+   scissor sends every pixel through the per-pixel walk, so the second
+   draw is the reference. The two windows are compared byte for byte,
+   guard band included. The random cases come from a fixed seed, so every
+   run draws the same stretches. On code without the row loop both draws
+   take the per-pixel walk and the rows pass; they fail when the row loop
+   stores a different byte anywhere in the window. */
+#define F921_SRC   S906_SRC
+#define F921_DA    S906_DREG
+#define F921_DB    S906_DPKT
+#define F921_PX    64u /* source and destination pitch, pixels */
+#define F921_ROWS  40u /* compared rows of each destination window */
+#define F921_FILL  0x5au
+
+struct f921 {
+    uint32_t dt, blend, sw, sh, xinc, yinc, s7, dx, dy, dw, dh;
+    uint32_t clip, sc_tl, sc_br; /* clip: the packet carries its scissor */
+};
+
+static uint32_t f921_rng = 0x921u;
+
+static uint32_t
+f921_rand(uint32_t n)
+{
+    f921_rng = f921_rng * 1103515245u + 12345u;
+    return ((f921_rng >> 16) & 0x7fffu) % n;
+}
+
+static uint32_t
+f921_inc(uint32_t s, uint32_t d)
+{
+    uint32_t v = (s << 16) / d;
+
+    return (v > 0xf0000u ? 0xf0000u : v) & 0x000ffff0u;
+}
+
+static void
+f921_case(struct f921 *c, uint32_t dt, uint32_t blend)
+{
+    memset(c, 0, sizeof(*c));
+    c->dt    = dt;
+    c->blend = blend;
+    c->dw    = 1 + f921_rand(48);
+    c->dh    = 1 + f921_rand(30);
+    c->dx    = f921_rand(F921_PX - c->dw + 1);
+    c->dy    = f921_rand(F921_ROWS - c->dh + 1);
+    c->sw    = 2 + f921_rand(46);
+    c->sh    = 2 + f921_rand(38);
+    c->xinc  = f921_inc(c->sw, c->dw);
+    c->yinc  = f921_inc(c->sh, c->dh);
+    /* source start in half pixels: x in [13:0], y in [29:16] */
+    c->s7    = f921_rand(8) | (f921_rand(8) << 16);
+}
+
+/* One stretch as a 0x96 packet into the window at base. scr is the
+   SCALE_SCR_HEIGHT_WIDTH value (the extent the blend's neighbor texels
+   are clamped to). */
+static void
+f921_pkt(rage128_t *dev, const struct f921 *c, uint32_t base, uint32_t scr)
+{
+    uint32_t pl[15], n = 0;
+
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, scr);
+    flush_sync(dev);
+    pl[n++] = 0x00000002u | (c->clip ? RAGE128_GMC_DST_CLIP_LEAVE : 0u) | (15u << 4)
+            | (c->dt << 8) | (3u << 12) | (0xccu << 16) | (2u << 24);
+    pl[n++] = ((F921_PX / 8) << 21) | (base >> 5);
+    if (c->clip) {
+        pl[n++] = c->sc_tl;
+        pl[n++] = c->sc_br;
+    }
+    pl[n++] = c->blend ? 0x00000100u : 0x00000500u; /* SCALE_PIX_REP, bit 10 */
+    pl[n++] = 0x00800000u;
+    pl[n++] = 0x02180840u;
+    pl[n++] = c->dt;
+    pl[n++] = F921_SRC;
+    pl[n++] = F921_PX / 8;
+    pl[n++] = c->s7;
+    pl[n++] = c->xinc;
+    pl[n++] = c->yinc;
+    pl[n++] = (c->dx << 16) | c->dy;
+    pl[n++] = (c->dh << 16) | c->dw;
+    rage128_2d_packet3(dev, 0x96u << 8, pl, n);
+    flush_sync(dev);
+}
+
+/* Draw the case both ways. 1 = the two windows are equal byte for byte;
+   *drew is set when the row-loop window differs from the prefill. */
+static int
+f921_both(rage128_t *dev, const struct f921 *c, uint32_t scr, int *drew)
+{
+    uint32_t n = F921_PX * (c->dt == 6 ? 4u : 2u) * F921_ROWS;
+
+    memset(&dev->svga.vram[F921_DA], F921_FILL, n);
+    memset(&dev->svga.vram[F921_DB], F921_FILL, n);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    f921_pkt(dev, c, F921_DA, scr);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0x00000001u); /* AUX1 on, additive */
+    f921_pkt(dev, c, F921_DB, scr);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    flush_sync(dev);
+    for (uint32_t i = 0; i < n; i++)
+        if (dev->svga.vram[F921_DA + i] != F921_FILL)
+            *drew = 1;
+    return memcmp(&dev->svga.vram[F921_DA], &dev->svga.vram[F921_DB], n) == 0;
+}
+
+static int
+f921_random(rage128_t *dev, uint32_t dt, uint32_t blend)
+{
+    struct f921 c;
+    int         ok = 1, drew = 0;
+
+    for (int i = 0; i < 64; i++) {
+        f921_case(&c, dt, blend);
+        ok = f921_both(dev, &c, (c.sh << 16) | c.sw, &drew) && ok;
+    }
+    return ok && drew;
+}
+
+static void
+vectors_stretch_rows_921(rage128_t *dev)
+{
+    struct f921 c;
+    int         ok, drew;
+
+    flush_sync(dev);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    wr(dev, RAGE128_AUX1_SC_LEFT, 0);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 4, 7);  /* RIGHT */
+    wr(dev, RAGE128_AUX1_SC_LEFT + 8, 0);  /* TOP */
+    wr(dev, RAGE128_AUX1_SC_LEFT + 12, 7); /* BOTTOM */
+    for (uint32_t i = 0; i < 0x8000u; i++) {
+        f921_rng = f921_rng * 1103515245u + 12345u;
+        dev->svga.vram[F921_SRC + i] = (uint8_t) (f921_rng >> 16);
+    }
+
+    check_true("2d 921: 64 random 565 blended stretches: row loop equals the per-pixel walk",
+               f921_random(dev, 4, 1));
+    check_true("2d 921: 64 random 565 replicated stretches: row loop equals the per-pixel walk",
+               f921_random(dev, 4, 0));
+    check_true("2d 921: 64 random 8888 blended stretches: row loop equals the per-pixel walk",
+               f921_random(dev, 6, 1));
+    check_true("2d 921: 64 random 8888 replicated stretches: row loop equals the per-pixel walk",
+               f921_random(dev, 6, 0));
+
+    /* The scissor cuts the left and top of the rect, so the walk starts
+       part-way into the source on both axes, and the right and bottom. */
+    ok = 1; drew = 0;
+    for (int i = 0; i < 32; i++) {
+        f921_case(&c, (i & 1) ? 6 : 4, (i >> 1) & 1);
+        c.dw = 20 + f921_rand(28); c.dh = 12 + f921_rand(18);
+        c.dx = f921_rand(F921_PX - c.dw + 1); c.dy = f921_rand(F921_ROWS - c.dh + 1);
+        c.xinc = f921_inc(c.sw, c.dw); c.yinc = f921_inc(c.sh, c.dh);
+        c.clip  = 1;
+        c.sc_tl = ((c.dy + 1 + f921_rand(5)) << 16) | (c.dx + 1 + f921_rand(9));
+        c.sc_br = ((c.dy + c.dh - 2) << 16) | (c.dx + c.dw - 3);
+        ok = f921_both(dev, &c, (c.sh << 16) | c.sw, &drew) && ok;
+        /* the rect's own first pixel lies outside the scissor */
+        ok = ok && dev->svga.vram[F921_DA + (c.dy * F921_PX + c.dx) * (c.dt == 6 ? 4u : 2u)] == F921_FILL;
+    }
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    check_true("2d 921: 32 stretches cut by the scissor on all four sides: row loop equals the walk",
+               ok && drew);
+
+    /* The source extent is smaller than the span the walk covers, so the
+       blend's right and bottom neighbors are clamped inside the rect. */
+    ok = 1; drew = 0;
+    for (int i = 0; i < 32; i++) {
+        f921_case(&c, (i & 1) ? 6 : 4, 1);
+        ok = f921_both(dev, &c, ((1 + f921_rand(c.sh)) << 16) | (1 + f921_rand(c.sw)), &drew) && ok;
+    }
+    check_true("2d 921: 32 blended stretches with the neighbor clamp inside the rect: row loop equals the walk",
+               ok && drew);
+
+    /* One-pixel-wide and one-pixel-high rects and sources. */
+    ok = 1; drew = 0;
+    for (int i = 0; i < 32; i++) {
+        f921_case(&c, (i & 1) ? 6 : 4, (i >> 1) & 1);
+        if (i & 4)
+            c.dw = 1;
+        else
+            c.dh = 1;
+        if (i & 8)
+            c.sw = 1;
+        if (i & 16)
+            c.sh = 1;
+        c.dx = f921_rand(F921_PX - c.dw + 1); c.dy = f921_rand(F921_ROWS - c.dh + 1);
+        c.xinc = f921_inc(c.sw, c.dw); c.yinc = f921_inc(c.sh, c.dh);
+        ok = f921_both(dev, &c, (c.sh << 16) | c.sw, &drew) && ok;
+    }
+    check_true("2d 921: 32 stretches one pixel wide or high: row loop equals the walk", ok && drew);
+
+    /* A source base 1, 2 and 3 bytes off a 4-byte boundary, so the
+       texels sit at unaligned host addresses: the register-started path,
+       both formats, blended and replicated. The destination offset is
+       written with the same low bits, which that register does not
+       keep (its low four bits read as zero), so the destination stays
+       aligned; the guest cannot place it otherwise. */
+    ok = 1; drew = 0;
+    for (int i = 0; i < 36; i++) {
+        uint32_t so = 1 + (uint32_t) (i % 3), dof = 1 + (uint32_t) ((i / 3) % 3);
+        uint32_t n;
+
+        f921_case(&c, (i & 1) ? 6 : 4, (i >> 1) & 1);
+        n = F921_PX * (c.dt == 6 ? 4u : 2u) * F921_ROWS + 4u;
+        memset(&dev->svga.vram[F921_DA], F921_FILL, n);
+        memset(&dev->svga.vram[F921_DB], F921_FILL, n);
+        for (int pass = 0; pass < 2; pass++) {
+            wr(dev, RAGE128_AUX_SC_CNTL, pass ? 0x00000001u : 0u);
+            wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, (c.sh << 16) | c.sw);
+            wr(dev, RAGE128_DST_OFFSET, (pass ? F921_DB : F921_DA) + dof);
+            wr(dev, RAGE128_DST_PITCH, F921_PX / 8);
+            wr(dev, RAGE128_DP_MIX, 0x00cc0200u);
+            wr(dev, RAGE128_DP_DATATYPE, c.dt | (15u << 8) | (3u << 16));
+            wr(dev, RAGE128_SCALE_3D_CNTL, 0x40u);
+            wr(dev, RAGE128_MISC_3D_STATE_CNTL, c.blend ? 0x00000100u : 0x00000500u);
+            wr(dev, RAGE128_SCALE_3D_DATATYPE, c.dt);
+            wr(dev, RAGE128_SCALE_OFFSET_0, F921_SRC + so);
+            wr(dev, RAGE128_SCALE_PITCH, F921_PX / 8);
+            wr(dev, RAGE128_SCALE_X_INC, c.xinc);
+            wr(dev, RAGE128_SCALE_Y_INC, c.yinc);
+            wr(dev, RAGE128_SCALE_HACC, 0);
+            wr(dev, RAGE128_SCALE_VACC, 0);
+            wr(dev, RAGE128_SCALE_DST_X_Y, (c.dx << 16) | c.dy);
+            wr(dev, RAGE128_SCALE_DST_HEIGHT_WIDTH, (c.dh << 16) | c.dw);
+            flush_sync(dev);
+        }
+        wr(dev, RAGE128_AUX_SC_CNTL, 0);
+        for (uint32_t k = 0; k < n; k++)
+            if (dev->svga.vram[F921_DA + k] != F921_FILL)
+                drew = 1;
+        ok = ok && memcmp(&dev->svga.vram[F921_DA], &dev->svga.vram[F921_DB], n) == 0;
+    }
+    check_true("2d 928: 36 stretches with the source at byte offsets 1 to 3: row loop equals the walk",
+               ok && drew);
+
+    /* A destination that starts 8 pixels left of card address 0 (x = -8
+       at destination offset 0, the scissor's left edge negative so it
+       clips nothing): the first row's stores wrap to the top of video
+       memory, so that row is not one contiguous run and must take the
+       per-pixel walk, which wraps. The reference is the same stretch
+       drawn at x = 8 in a destination that does not wrap. */
+    {
+        uint32_t vs   = (uint32_t) dev->vram_size;
+        uint8_t *save = (uint8_t *) malloc(0x2000);
+
+        ok = 0;
+        if (save) {
+            memcpy(save, dev->svga.vram, 0x1000);
+            memcpy(save + 0x1000, &dev->svga.vram[vs - 0x1000u], 0x1000);
+            memset(&c, 0, sizeof(c));
+            c.dt = 6; c.blend = 1; c.sw = 12; c.sh = 9; c.dw = 20; c.dh = 4; c.dx = 8; c.dy = 0;
+            c.xinc = f921_inc(c.sw, c.dw); c.yinc = f921_inc(c.sh, c.dh);
+            memset(&dev->svga.vram[F921_DA], F921_FILL, F921_PX * 4u * F921_ROWS);
+            f921_pkt(dev, &c, F921_DA, (c.sh << 16) | c.sw);
+            memset(dev->svga.vram, F921_FILL, 0x1000);
+            memset(&dev->svga.vram[vs - 0x1000u], F921_FILL, 0x1000);
+            wr(dev, RAGE128_SC_TOP_LEFT, 0x3f9cu); /* x = -100, y = 0 */
+            wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+            wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, (c.sh << 16) | c.sw);
+            wr(dev, RAGE128_DST_OFFSET, 0);
+            wr(dev, RAGE128_DST_PITCH, F921_PX / 8);
+            wr(dev, RAGE128_DP_MIX, 0x00cc0200u);
+            wr(dev, RAGE128_DP_DATATYPE, 6u | (15u << 8) | (3u << 16));
+            wr(dev, RAGE128_SCALE_3D_CNTL, 0x40u);
+            wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000100u);
+            wr(dev, RAGE128_SCALE_3D_DATATYPE, 6);
+            wr(dev, RAGE128_SCALE_OFFSET_0, F921_SRC);
+            wr(dev, RAGE128_SCALE_PITCH, F921_PX / 8);
+            wr(dev, RAGE128_SCALE_X_INC, c.xinc);
+            wr(dev, RAGE128_SCALE_Y_INC, c.yinc);
+            wr(dev, RAGE128_SCALE_HACC, 0);
+            wr(dev, RAGE128_SCALE_VACC, 0);
+            wr(dev, RAGE128_SCALE_DST_X_Y, (0x3ff8u << 16) | 0u); /* x = -8 */
+            wr(dev, RAGE128_SCALE_DST_HEIGHT_WIDTH, (c.dh << 16) | c.dw);
+            flush_sync(dev);
+            ok = 1;
+            for (uint32_t y = 0; y < c.dh; y++)
+                for (uint32_t i = 0; i < c.dw * 4u; i++) {
+                    uint32_t w = (y * F921_PX * 4u - 32u + i) & dev->vram_mask;
+                    uint32_t r = (y * F921_PX + c.dx) * 4u + i;
+
+                    ok = ok && dev->svga.vram[w] == dev->svga.vram[F921_DA + r];
+                }
+            /* control: the reference drew, and the wrapped pixels of row 0
+               landed at the top of video memory */
+            ok = ok && memcmp(&dev->svga.vram[vs - 32u], &dev->svga.vram[F921_DA + 32u], 32) == 0
+                && dev->svga.vram[vs - 33u] == F921_FILL;
+            {
+                int d2 = 0;
+
+                for (uint32_t i = 0; i < 32; i++)
+                    d2 = d2 || dev->svga.vram[vs - 32u + i] != F921_FILL;
+                ok = ok && d2;
+            }
+            memcpy(dev->svga.vram, save, 0x1000);
+            memcpy(&dev->svga.vram[vs - 0x1000u], save + 0x1000, 0x1000);
+            free(save);
+        }
+        wr(dev, RAGE128_SC_TOP_LEFT, 0);
+        check_true("2d 921: a destination row that wraps the end of video memory takes the per-pixel walk",
+                   ok);
+    }
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, 0);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0);
+    wr(dev, RAGE128_SCALE_3D_DATATYPE, 0);
+    wr(dev, RAGE128_DST_OFFSET, 0);
+}
+
+/* 930: the vector row loops of the blended stretch (8 pixels a step for
+   565, 4 for 8888) against the per-pixel walk, by the method of the 921
+   rows: the same stretch drawn with the aux scissors off, which takes
+   the row loop, and with AUX1 enabled as an additive rectangle, which
+   takes the per-pixel walk; the two windows are compared byte for byte.
+   Every stretch here is started by register writes, which gives the walk
+   a chosen 16.16 start in each direction (SCALE_HACC, SCALE_VACC; the
+   device reads both as multiples of 16, like the steps, so the low four
+   fraction bits of every position are zero) and the source any byte
+   offset. On a build without the vector loops both draws are scalar and
+   the rows pass; they fail when a vector step stores a different byte
+   anywhere in the window.
+   The three exhaustive rows draw 256, 256 and 4096 stretches of up to
+   32,768 pixels each. On the GPU lane every one of them is also queued
+   and checked by the 2D oracle, which costs 14 to 53 ms a stretch
+   there, so that lane draws a sample: 16, 8 and 34 stretches (the row
+   loop under test is the same code on every lane, and the other two
+   lanes draw them all). */
+#define F930_WIN 0x10000u /* compared bytes of the exhaustive rows' windows */
+
+static uint32_t f930_every = 1; /* above 1: the sampled form */
+
+struct f930 {
+    uint32_t dt, soff, sp8, dp8, hacc, vacc, xinc, yinc, dx, dy, dw, dh, scr;
+};
+
+static void
+f930_reg(rage128_t *dev, const struct f930 *c, uint32_t dbase, int walk)
+{
+    wr(dev, RAGE128_AUX_SC_CNTL, walk ? 0x00000001u : 0u); /* AUX1 on, additive */
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, c->scr);
+    wr(dev, RAGE128_DST_OFFSET, dbase);
+    wr(dev, RAGE128_DST_PITCH, c->dp8);
+    wr(dev, RAGE128_DP_MIX, 0x00cc0200u);
+    wr(dev, RAGE128_DP_DATATYPE, c->dt | (15u << 8) | (3u << 16));
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x40u);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000100u); /* blend */
+    wr(dev, RAGE128_SCALE_3D_DATATYPE, c->dt);
+    wr(dev, RAGE128_SCALE_OFFSET_0, c->soff);
+    wr(dev, RAGE128_SCALE_PITCH, c->sp8);
+    wr(dev, RAGE128_SCALE_X_INC, c->xinc);
+    wr(dev, RAGE128_SCALE_Y_INC, c->yinc);
+    wr(dev, RAGE128_SCALE_HACC, c->hacc);
+    wr(dev, RAGE128_SCALE_VACC, c->vacc);
+    wr(dev, RAGE128_SCALE_DST_X_Y, (c->dx << 16) | c->dy);
+    wr(dev, RAGE128_SCALE_DST_HEIGHT_WIDTH, (c->dh << 16) | c->dw);
+    flush_sync(dev);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+}
+
+/* Draw the case both ways into windows of n bytes prefilled alike. 1 =
+   the windows are equal; *drew is set when the row-loop window differs
+   from the prefill. */
+static int
+f930_both(rage128_t *dev, const struct f930 *c, uint32_t n, int *drew)
+{
+    memset(&dev->svga.vram[F921_DA], F921_FILL, n);
+    memset(&dev->svga.vram[F921_DB], F921_FILL, n);
+    f930_reg(dev, c, F921_DA, 0);
+    f930_reg(dev, c, F921_DB, 1);
+    if (!*drew)
+        for (uint32_t i = 0; i < n; i++)
+            if (dev->svga.vram[F921_DA + i] != F921_FILL) {
+                *drew = 1;
+                break;
+            }
+    return memcmp(&dev->svga.vram[F921_DA], &dev->svga.vram[F921_DB], n) == 0;
+}
+
+static void
+f930_base(struct f930 *c, uint32_t dt)
+{
+    memset(c, 0, sizeof(*c));
+    c->dt   = dt;
+    c->soff = F921_SRC;
+    c->sp8  = F921_PX / 8;
+    c->dp8  = F921_PX / 8;
+    c->yinc = 0xb000u;
+    c->vacc = 0x5000u;
+    c->dx   = 9;
+    c->dy   = 2;
+    c->dh   = 3;
+    c->scr  = (40u << 16) | 64u;
+}
+
+static const uint32_t f930_xinc[3] = { 0x00005550u, 0x00010000u, 0x00025550u };
+static const uint32_t f930_hacc[3] = { 0u, 0x00007000u, 0x00012340u };
+
+/* Every width from 1 to two steps and one more, at an enlarging, a 1:1
+   and a shrinking step, three start fractions, the scissor cutting 0 or
+   3 columns off the left (the walk then starts part-way along the row),
+   and the source extent either past every texel or unset (which clamps
+   the neighbor only in the trailing columns that read the row's final
+   texel; several columns can share it). */
+static int
+f930_widths(rage128_t *dev, uint32_t dt, uint32_t wmax)
+{
+    struct f930 c;
+    uint32_t    n  = F921_PX * (dt == 6 ? 4u : 2u) * F921_ROWS;
+    int         ok = 1, drew = 0;
+
+    for (uint32_t w = 1; w <= wmax; w++)
+        for (int xi = 0; xi < 3; xi++)
+            for (int hi = 0; hi < 3; hi++)
+                for (uint32_t cut = 0; cut <= 3; cut += 3)
+                    for (int ext = 0; ext < 2; ext++) {
+                        f930_base(&c, dt);
+                        c.dw   = w + cut;
+                        c.xinc = f930_xinc[xi];
+                        c.hacc = f930_hacc[hi];
+                        c.scr  = ext ? 0u : c.scr;
+                        wr(dev, RAGE128_SC_TOP_LEFT, c.dx + cut);
+                        ok = f930_both(dev, &c, n, &drew) && ok;
+                        /* a column left of the scissor is not drawn */
+                        if (cut)
+                            ok = ok && dev->svga.vram[F921_DA + (c.dy * F921_PX + c.dx) * (dt == 6 ? 4u : 2u)] == F921_FILL;
+                    }
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    return ok && drew;
+}
+
+/* The source extent's width goes from 1 to 64 texels under a row of dw
+   pixels, so the first column whose right neighbor is clamped falls on
+   every column of the row and past its end: the count of leading
+   unclamped columns takes every value from 0 to dw, so every remainder
+   of the step, below, at and above one step. At the 1:1 step with a zero
+   start that count is the extent's width less 1. */
+static int
+f930_clamp(rage128_t *dev, uint32_t dt, uint32_t dw)
+{
+    struct f930 c;
+    uint32_t    n  = F921_PX * (dt == 6 ? 4u : 2u) * F921_ROWS;
+    int         ok = 1, drew = 0;
+
+    for (uint32_t sw = 1; sw <= 64; sw++)
+        for (int xi = 0; xi < 3; xi++)
+            for (int hi = 0; hi < 3; hi++)
+                for (uint32_t cut = 0; cut <= 3; cut += 3) {
+                    f930_base(&c, dt);
+                    c.dw   = dw + cut;
+                    c.dh   = 2;
+                    c.xinc = f930_xinc[xi];
+                    c.hacc = f930_hacc[hi];
+                    c.scr  = (40u << 16) | sw;
+                    wr(dev, RAGE128_SC_TOP_LEFT, c.dx + cut);
+                    ok = f930_both(dev, &c, n, &drew) && ok;
+                }
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    return ok && drew;
+}
+
+/* The source base at every byte offset 0 to 15 of a 16-byte block, and
+   the destination row starting at every pixel of a 16-byte block (8
+   positions for 565, 4 for 8888): the destination offset register does
+   not keep its low four bits and a pixel position moves the row by
+   whole pixels, so a destination row cannot start at a byte address
+   that is not a multiple of the pixel size. */
+static int
+f930_offsets(rage128_t *dev, uint32_t dt, uint32_t dw)
+{
+    struct f930 c;
+    uint32_t    bpp = dt == 6 ? 4u : 2u;
+    uint32_t    n   = F921_PX * bpp * F921_ROWS;
+    int         ok = 1, drew = 0;
+
+    for (uint32_t so = 0; so < 16; so++)
+        for (uint32_t dp = 0; dp < 16 / bpp; dp++)
+            for (int xi = 0; xi < 3; xi++) {
+                f930_base(&c, dt);
+                c.soff = F921_SRC + so;
+                c.dx   = 8 + dp;
+                c.dw   = dw;
+                c.dh   = 2;
+                c.xinc = f930_xinc[xi];
+                c.hacc = f930_hacc[(so + dp) % 3];
+                ok     = f930_both(dev, &c, n, &drew) && ok;
+            }
+    return ok && drew;
+}
+
+/* Source and destination in one surface. The source rows start at pixel
+   (16, 8) of the window, plus 0 to bpp - 1 bytes; the destination starts
+   -step to +step pixels and -1, 0 or +1 rows from there, so its row lies
+   over the walk's own source row, over the blend's second row, or over
+   neither, and a stored pixel is a texel of a later pixel of the same
+   row. The two windows start with the same bytes and must end with the
+   same bytes; one is drawn by the row loop, one by the per-pixel walk,
+   which stores each pixel before it reads the next one's texels. */
+static int
+f930_overlap(rage128_t *dev, uint32_t dt, int step, uint32_t dw)
+{
+    struct f930 c;
+    uint32_t    bpp = dt == 6 ? 4u : 2u;
+    uint32_t    n   = F921_PX * bpp * F921_ROWS;
+    int         ok = 1, diff = 0;
+
+    for (int dp = -step; dp <= step; dp++)
+        for (int dr = -1; dr <= 1; dr++)
+            for (int xi = 0; xi < 3; xi++)
+                for (uint32_t sb = 0; sb < bpp; sb++) {
+                    static const uint32_t inc[3] = { 0x00008000u, 0x00010000u, 0x00018000u };
+
+                    f930_base(&c, dt);
+                    c.dx   = (uint32_t) (16 + dp);
+                    c.dy   = (uint32_t) (8 + dr);
+                    c.dw   = dw;
+                    c.dh   = 3;
+                    c.xinc = inc[xi];
+                    c.yinc = 0x00010000u;
+                    c.vacc = 0x00008000u;
+                    c.hacc = (dp & 1) ? 0x00004000u : 0u;
+                    memcpy(&dev->svga.vram[F921_DA], &dev->svga.vram[F921_SRC], n);
+                    memcpy(&dev->svga.vram[F921_DB], &dev->svga.vram[F921_SRC], n);
+                    c.soff = F921_DA + (8u * F921_PX + 16u) * bpp + sb;
+                    f930_reg(dev, &c, F921_DA, 0);
+                    c.soff = F921_DB + (8u * F921_PX + 16u) * bpp + sb;
+                    f930_reg(dev, &c, F921_DB, 1);
+                    ok   = ok && memcmp(&dev->svga.vram[F921_DA], &dev->svga.vram[F921_DB], n) == 0;
+                    diff = diff || memcmp(&dev->svga.vram[F921_DA], &dev->svga.vram[F921_SRC], n) != 0;
+                }
+    return ok && diff;
+}
+
+/* Every pair of byte values blended at every horizontal weight, 8888.
+   A source row is two texels; the step is 1/256 of a texel, so the 256
+   pixels of a destination row blend that one pair at the weights 0 to
+   255, and the vertical weight is 0, which leaves the horizontal blend
+   as the pixel. Each of the four bytes of a pixel is its own pair: one
+   stretch holds one left value against all 256 right values, placed at
+   byte positions that move from stretch to stretch. */
+static int
+f930_exh_h8888(rage128_t *dev)
+{
+    struct f930 c;
+    int         ok = 1, drew = 0;
+
+    f930_base(&c, 6);
+    c.sp8 = 1; c.dp8 = 32; c.dx = 0; c.dy = 0; c.dw = 256; c.dh = 64;
+    c.xinc = 0x100u; c.yinc = 0x10000u; c.hacc = 0; c.vacc = 0;
+    c.scr = (65u << 16) | 2u;
+    for (uint32_t l = 0; l < 256; l += f930_every > 1 ? 16u : 1u) {
+        for (uint32_t r = 0; r < 65; r++) {
+            uint8_t *p = &dev->svga.vram[F921_SRC + r * 32u];
+
+            for (uint32_t b = 0; b < 4; b++) {
+                p[b]     = (uint8_t) l;
+                p[4 + b] = (uint8_t) (r * 4u + b + l);
+            }
+        }
+        ok = f930_both(dev, &c, F930_WIN, &drew) && ok;
+    }
+    return ok && drew;
+}
+
+/* Every pair of byte values blended at every vertical weight, 8888. The
+   source is two rows of 64 texels; the vertical step is 1/256 of a row,
+   so the 256 destination rows blend the two rows at the weights 0 to
+   255, and the horizontal step is one texel with a zero start, which
+   makes the horizontal weight 0 and leaves each row's own texel. */
+static int
+f930_exh_v8888(rage128_t *dev)
+{
+    struct f930 c;
+    int         ok = 1, drew = 0;
+
+    f930_base(&c, 6);
+    c.sp8 = 9; c.dp8 = 8; c.dx = 0; c.dy = 0; c.dw = 64; c.dh = 256;
+    c.xinc = 0x10000u; c.yinc = 0x100u; c.hacc = 0; c.vacc = 0;
+    c.scr = (2u << 16) | 66u;
+    for (uint32_t t = 0; t < 256; t += f930_every > 1 ? 32u : 1u) {
+        for (uint32_t j = 0; j < 288; j++) {
+            dev->svga.vram[F921_SRC + j]        = (uint8_t) t;
+            dev->svga.vram[F921_SRC + 288u + j] = (uint8_t) (j + t);
+        }
+        ok = f930_both(dev, &c, F930_WIN, &drew) && ok;
+    }
+    return ok && drew;
+}
+
+/* Every 16-bit value as a 565 texel. First as the left and as the right
+   texel of a pair against 0x0000 and against 0xffff at every horizontal
+   weight (the vertical weight is 0): the weights sweep is what makes the
+   low bits the expand repeats into each channel visible after the pack.
+   Then as the left and as the right texel of the blend's second row at
+   16 horizontal weights with the vertical weight 255, against rows of
+   0x0000 and 0xffff. */
+static int
+f930_exh_565(rage128_t *dev)
+{
+    struct f930 c;
+    int         ok = 1, drew = 0;
+
+    f930_base(&c, 4);
+    c.sp8 = 1; c.dp8 = 32; c.dx = 0; c.dy = 0; c.dw = 256; c.dh = 128;
+    c.xinc = 0x100u; c.yinc = 0x10000u; c.hacc = 0; c.vacc = 0;
+    c.scr = (129u << 16) | 2u;
+    for (uint32_t t = 0; t < 2048; t += f930_every > 1 ? 127u : 1u) {
+        uint32_t k = (t & 1) ? 0xffffu : 0u;
+
+        for (uint32_t r = 0; r < 129; r++) {
+            uint8_t *p = &dev->svga.vram[F921_SRC + r * 16u];
+            uint32_t v = ((t >> 2) * 128u + r) & 0xffffu;
+            uint32_t a = (t & 2) ? k : v, b = (t & 2) ? v : k;
+
+            p[0] = (uint8_t) a; p[1] = (uint8_t) (a >> 8);
+            p[2] = (uint8_t) b; p[3] = (uint8_t) (b >> 8);
+        }
+        ok = f930_both(dev, &c, F930_WIN, &drew) && ok;
+    }
+    c.dp8 = 8; c.dw = 16; c.dh = 128;
+    c.xinc = 0x1000u; c.yinc = 0x20000u; c.hacc = 0x0800u; c.vacc = 0xff00u;
+    c.scr = (257u << 16) | 2u;
+    for (uint32_t t = 0; t < 2048; t += f930_every > 1 ? 127u : 1u) {
+        uint32_t k = (t & 1) ? 0xffffu : 0u;
+
+        for (uint32_t r = 0; r < 128; r++) {
+            uint8_t *p = &dev->svga.vram[F921_SRC + r * 32u];
+            uint32_t v = ((t >> 2) * 128u + r) & 0xffffu;
+            uint32_t a = (t & 2) ? k : v, b = (t & 2) ? v : k;
+            uint32_t e = ((r ^ t) & 1) ? 0xffffu : 0u;
+
+            p[0] = (uint8_t) e; p[1] = (uint8_t) (e >> 8);
+            p[2] = (uint8_t) ~e; p[3] = (uint8_t) (~e >> 8);
+            p[16] = (uint8_t) a; p[17] = (uint8_t) (a >> 8);
+            p[18] = (uint8_t) b; p[19] = (uint8_t) (b >> 8);
+        }
+        ok = f930_both(dev, &c, 64u * 2u * 128u, &drew) && ok;
+    }
+    return ok && drew;
+}
+
+static void
+vectors_stretch_rows_930(rage128_t *dev)
+{
+    flush_sync(dev);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    wr(dev, RAGE128_AUX1_SC_LEFT, 0);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 4, 7);  /* RIGHT */
+    wr(dev, RAGE128_AUX1_SC_LEFT + 8, 0);  /* TOP */
+    wr(dev, RAGE128_AUX1_SC_LEFT + 12, 7); /* BOTTOM */
+    f921_rng = 0x930u;
+    for (uint32_t i = 0; i < 0x8000u; i++) {
+        f921_rng = f921_rng * 1103515245u + 12345u;
+        dev->svga.vram[F921_SRC + i] = (uint8_t) (f921_rng >> 16);
+    }
+
+    check_true("2d 930: 565 blended, every width 1 to 17 at three steps: row loop equals the per-pixel walk",
+               f930_widths(dev, 4, 17));
+    check_true("2d 930: 8888 blended, every width 1 to 9 at three steps: row loop equals the per-pixel walk",
+               f930_widths(dev, 6, 9));
+    check_true("2d 930: 565 blended, the neighbor clamp starting at every column: row loop equals the walk",
+               f930_clamp(dev, 4, 40));
+    check_true("2d 930: 8888 blended, the neighbor clamp starting at every column: row loop equals the walk",
+               f930_clamp(dev, 6, 24));
+    check_true("2d 930: 565 blended, source at byte offsets 0 to 15, destination at 8 pixel positions: row loop equals the walk",
+               f930_offsets(dev, 4, 19));
+    check_true("2d 930: 8888 blended, source at byte offsets 0 to 15, destination at 4 pixel positions: row loop equals the walk",
+               f930_offsets(dev, 6, 11));
+    check_true("2d 930: 565 blended, destination over its own source, -8 to +8 pixels and -1 to +1 rows: row loop equals the walk",
+               f930_overlap(dev, 4, 8, 24));
+    check_true("2d 930: 8888 blended, destination over its own source, -4 to +4 pixels and -1 to +1 rows: row loop equals the walk",
+               f930_overlap(dev, 6, 4, 14));
+    f930_every = dev->gpu ? 2u : 1u;
+    check_true("2d 930: 8888 blend, every byte pair at every horizontal weight: row loop equals the walk",
+               f930_exh_h8888(dev));
+    check_true("2d 930: 8888 blend, every byte pair at every vertical weight: row loop equals the walk",
+               f930_exh_v8888(dev));
+    check_true("2d 930: 565 expand and blend, every texel value left, right and below: row loop equals the walk",
+               f930_exh_565(dev));
+
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, 0);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0);
+    wr(dev, RAGE128_SCALE_3D_DATATYPE, 0);
+    wr(dev, RAGE128_DST_OFFSET, 0);
+}
+
+/* 929: the screen-to-screen blit's row store for a solid fill whose
+   ROP3 reads neither source nor destination (0x00, 0x0F, 0xF0, 0xFF;
+   solid brush, write mask open, no compare, aux scissors off) against
+   the blit's per-byte walk. The same op is drawn twice into two windows
+   prefilled alike with random bytes: once with the aux scissors off,
+   which takes the row store, and once with AUX1 enabled as an additive
+   rectangle. An additive rectangle never clips a 2D op (RRG:
+   AUX_SC_CNTL, pp. 3-156-3-157 / PDF 174-175), but an enabled aux
+   scissor keeps every row of the blit on the per-byte walk, so the
+   second draw is the reference. The two windows are compared byte for
+   byte, guard band included, and each row also requires that a first
+   window changed. The cases come from a fixed seed, so every run draws
+   the same ops. On code without the row store both draws take the
+   per-byte walk and the rows pass; they fail when the row store puts a
+   different byte anywhere in the window. */
+#define F929_SRC  S906_SRC
+#define F929_DA   S906_DREG
+#define F929_DB   S906_DPKT
+#define F929_PX   64u /* source and destination pitch, pixels */
+#define F929_ROWS 40u /* compared rows of each destination window */
+
+struct f929 {
+    uint32_t dt, rop, color, mask;
+    uint32_t x, y, w, h, sx, sy;
+    int      rtl, btt; /* register form: start at the right / bottom edge */
+    int      pkt;      /* 1 = a 0x92 packet instead of register writes */
+    int      kind;     /* 0 solid brush; 2 source compare active;
+                          3 8x8 mono brush; 4 8x8 color brush (packet) */
+};
+
+static const uint32_t f929_dts[4] = { 2, 4, 5, 6 }; /* 8, 16, 24, 32 bpp */
+static uint32_t       f929_rng    = 0x929u;
+static uint8_t        f929_pre[F929_PX * 4u * F929_ROWS];
+
+static uint32_t
+f929_rand(uint32_t n)
+{
+    f929_rng = f929_rng * 1103515245u + 12345u;
+    return ((f929_rng >> 16) & 0x7fffu) % n;
+}
+
+static uint32_t
+f929_bpp(uint32_t dt)
+{
+    return dt == 6 ? 4u : dt == 5 ? 3u : dt == 4 ? 2u : 1u;
+}
+
+/* A random rect inside the window, a random source position that keeps
+   the source rect inside the source surface, a random color; ROP3 0xF0,
+   write mask open. */
+static void
+f929_case(struct f929 *c, uint32_t dt, uint32_t wmin, uint32_t hmin)
+{
+    memset(c, 0, sizeof(*c));
+    c->dt    = dt;
+    c->rop   = 0xf0u;
+    c->mask  = 0xffffffffu;
+    c->w     = wmin + f929_rand(F929_PX - wmin + 1);
+    c->h     = hmin + f929_rand(F929_ROWS - hmin + 1);
+    c->x     = f929_rand(F929_PX - c->w + 1);
+    c->y     = f929_rand(F929_ROWS - c->h + 1);
+    c->sx    = f929_rand(F929_PX - c->w + 1);
+    c->sy    = f929_rand(F929_ROWS - c->h + 1);
+    c->color = (f929_rand(0x8000) << 17) | (f929_rand(0x8000) << 2) | f929_rand(4);
+}
+
+/* One op into the window at base: by register writes with the source
+   select on memory (DP_MIX 0x200), the op starting on the
+   DST_HEIGHT_WIDTH write, or as a 0x92 packet. The register form moves
+   the start corner to the far edge for a right-to-left or bottom-to-top
+   walk, as DP_CNTL asks (RRG: DP_CNTL, p. 3-165 / PDF 183). */
+static void
+f929_draw(rage128_t *dev, const struct f929 *c, uint32_t base)
+{
+    uint32_t bpp = f929_bpp(c->dt);
+    /* the pitch field counts 8 pixels, at 24 bpp 8 bytes */
+    uint32_t pf = (bpp == 3 ? F929_PX * 3u : F929_PX) / 8u;
+    uint32_t bt = c->kind == 3 ? 0u : c->kind == 4 ? 10u : 13u;
+
+    wr(dev, RAGE128_DP_WRITE_MASK, c->mask);
+    /* source compare, function 5: draw where the source pixel differs
+       from the key under the compare mask */
+    wr(dev, RAGE128_CLR_CMP_CNTL, c->kind == 2 ? 0x01000005u : 0);
+    if (c->pkt) {
+        uint32_t pl[72], n = 0;
+
+        pl[n++] = 0x00000003u | (bt << 4) | (c->dt << 8) | (3u << 12)
+                | (c->rop << 16) | (2u << 24);
+        pl[n++] = (pf << 21) | (F929_SRC >> 5);
+        pl[n++] = (pf << 21) | (base >> 5);
+        if (bt == 10)
+            for (uint32_t i = 0; i < 64; i++)
+                pl[n++] = c->color ^ (i * 0x01030507u);
+        else
+            pl[n++] = c->color;
+        pl[n++] = (c->sx << 16) | c->sy;
+        pl[n++] = (c->x << 16) | c->y;
+        pl[n++] = (c->w << 16) | c->h;
+        rage128_2d_packet3(dev, 0x92u << 8, pl, n);
+    } else {
+        wr(dev, RAGE128_DST_OFFSET, base);
+        wr(dev, RAGE128_DST_PITCH, pf);
+        wr(dev, RAGE128_SRC_OFFSET, F929_SRC);
+        wr(dev, RAGE128_SRC_PITCH, pf);
+        wr(dev, RAGE128_DP_DATATYPE, c->dt | (bt << 8) | (3u << 16));
+        wr(dev, RAGE128_DP_MIX, (c->rop << 16) | 0x00000200u);
+        wr(dev, RAGE128_DP_BRUSH_FRGD_CLR, c->color);
+        wr(dev, RAGE128_DP_BRUSH_BKGD_CLR, ~c->color);
+        wr(dev, RAGE128_BRUSH_DATA0, c->color ^ 0x5a3cc3a5u);
+        wr(dev, RAGE128_BRUSH_DATA0 + 4, ~c->color ^ 0x0ff0a55au);
+        wr(dev, RAGE128_DP_CNTL, (c->rtl ? 0u : RAGE128_DP_CNTL_DST_X_DIR)
+                                     | (c->btt ? 0u : RAGE128_DP_CNTL_DST_Y_DIR));
+        wr(dev, RAGE128_SRC_Y_X, ((c->sy + (c->btt ? c->h - 1 : 0)) << 16)
+                                     | (c->sx + (c->rtl ? c->w - 1 : 0)));
+        wr(dev, RAGE128_DST_Y_X, ((c->y + (c->btt ? c->h - 1 : 0)) << 16)
+                                     | (c->x + (c->rtl ? c->w - 1 : 0)));
+        wr(dev, RAGE128_DST_HEIGHT_WIDTH, (c->h << 16) | c->w);
+    }
+    flush_sync(dev);
+}
+
+/* Draw the case into both windows, prefilled alike: the first with the
+   aux scissors off, the second with AUX_SC_CNTL set to aux_b. */
+static void
+f929_pair(rage128_t *dev, const struct f929 *c, uint32_t aux_b)
+{
+    uint32_t n = F929_PX * f929_bpp(c->dt) * F929_ROWS;
+
+    for (uint32_t i = 0; i < n; i++) {
+        f929_rng    = f929_rng * 1103515245u + 12345u;
+        f929_pre[i] = (uint8_t) (f929_rng >> 16);
+    }
+    memcpy(&dev->svga.vram[F929_DA], f929_pre, n);
+    memcpy(&dev->svga.vram[F929_DB], f929_pre, n);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    f929_draw(dev, c, F929_DA);
+    wr(dev, RAGE128_AUX_SC_CNTL, aux_b);
+    f929_draw(dev, c, F929_DB);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    flush_sync(dev);
+}
+
+/* Draw the case both ways, the second with AUX1 on as an additive
+   rectangle. 1 = the two windows are equal byte for byte; *drew is set
+   when the first window differs from its prefill. */
+static int
+f929_both(rage128_t *dev, const struct f929 *c, int *drew)
+{
+    uint32_t n = F929_PX * f929_bpp(c->dt) * F929_ROWS;
+
+    f929_pair(dev, c, 0x00000001u);
+    if (memcmp(&dev->svga.vram[F929_DA], f929_pre, n) != 0)
+        *drew = 1;
+    return memcmp(&dev->svga.vram[F929_DA], &dev->svga.vram[F929_DB], n) == 0;
+}
+
+/* 64 fills at one depth. Five in eight are the plain case, one of them
+   under a write mask that is open on the pixel's own bytes only. The
+   other three must stay on the per-byte walk and still equal the
+   reference: one bit of the pixel closed in the write mask, a source
+   compare that passes about half of the pixels, an 8x8 mono brush. */
+static int
+f929_random(rage128_t *dev, uint32_t dt)
+{
+    struct f929 c;
+    int         ok = 1, drew = 0;
+
+    for (int i = 0; i < 64; i++) {
+        f929_case(&c, dt, 1, 1);
+        switch (i & 7) {
+            case 4:
+                c.mask = 0xffffffffu >> (32u - f929_bpp(dt) * 8u);
+                break;
+            case 5:
+                c.mask = ~(1u << f929_rand(f929_bpp(dt) * 8u));
+                break;
+            case 6:
+                c.kind = 2;
+                break;
+            case 7:
+                c.kind = 3;
+                break;
+            default:
+                break;
+        }
+        ok = f929_both(dev, &c, &drew) && ok;
+    }
+    return ok && drew;
+}
+
+static void
+vectors_fill_rows_929(rage128_t *dev)
+{
+    static const uint32_t saved[] = {
+        RAGE128_DP_WRITE_MASK, RAGE128_CLR_CMP_CNTL, RAGE128_CLR_CMP_CLR_SRC,
+        RAGE128_CLR_CMP_MASK, RAGE128_DP_CNTL, RAGE128_BRUSH_DATA0,
+        RAGE128_BRUSH_DATA0 + 4, RAGE128_BRUSH_Y_X, RAGE128_DST_OFFSET,
+        RAGE128_DST_PITCH, RAGE128_SRC_OFFSET, RAGE128_SRC_PITCH,
+        RAGE128_DP_DATATYPE, RAGE128_DP_MIX, RAGE128_DP_BRUSH_FRGD_CLR,
+        RAGE128_DP_BRUSH_BKGD_CLR, RAGE128_SC_TOP_LEFT, RAGE128_SC_BOTTOM_RIGHT,
+        RAGE128_AUX_SC_CNTL, RAGE128_AUX1_SC_LEFT, RAGE128_AUX1_SC_LEFT + 4,
+        RAGE128_AUX1_SC_LEFT + 8, RAGE128_AUX1_SC_LEFT + 12
+    };
+    uint32_t    was[sizeof(saved) / sizeof(saved[0])];
+    struct f929 c;
+    int         ok, drew;
+
+    flush_sync(dev);
+    for (uint32_t i = 0; i < sizeof(saved) / sizeof(saved[0]); i++)
+        was[i] = rd(dev, saved[i]);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_CLR_CMP_CLR_SRC, 0);
+    wr(dev, RAGE128_CLR_CMP_MASK, 1); /* the compare looks at bit 0 only */
+    wr(dev, RAGE128_BRUSH_Y_X, 0);
+    wr(dev, RAGE128_AUX1_SC_LEFT, 0);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 4, 7);  /* RIGHT */
+    wr(dev, RAGE128_AUX1_SC_LEFT + 8, 0);  /* TOP */
+    wr(dev, RAGE128_AUX1_SC_LEFT + 12, 7); /* BOTTOM */
+    for (uint32_t i = 0; i < 0x8000u; i++) {
+        f929_rng = f929_rng * 1103515245u + 12345u;
+        dev->svga.vram[F929_SRC + i] = (uint8_t) (f929_rng >> 16);
+    }
+
+    check_true("2d 929: 64 random solid fills at 8 bpp, memory source select: row store equals the per-byte walk",
+               f929_random(dev, 2));
+    check_true("2d 929: 64 random solid fills at 16 bpp, memory source select: row store equals the per-byte walk",
+               f929_random(dev, 4));
+    check_true("2d 929: 64 random solid fills at 24 bpp, memory source select: row store equals the per-byte walk",
+               f929_random(dev, 5));
+    check_true("2d 929: 64 random solid fills at 32 bpp, memory source select: row store equals the per-byte walk",
+               f929_random(dev, 6));
+
+    /* The other three ROP3 codes that read neither source nor
+       destination: 0x00 stores zeros, 0xFF ones, 0x0F the inverted
+       brush color. With them 0x3C (brush XOR source) and 0x5A (brush
+       XOR destination), which read one of the two and so must stay on
+       the per-byte walk. */
+    ok = 1; drew = 0;
+    for (int i = 0; i < 120; i++) {
+        static const uint32_t rops[5] = { 0x00u, 0x0fu, 0xffu, 0x3cu, 0x5au };
+
+        f929_case(&c, f929_dts[i & 3], 1, 1);
+        c.rop = rops[(i >> 2) % 5];
+        ok = f929_both(dev, &c, &drew) && ok;
+    }
+    check_true("2d 929: ROP3 0x00, 0x0F and 0xFF fills at the four depths, 0x3C and 0x5A on the walk: row store equals the per-byte walk",
+               ok && drew);
+
+    /* The scissor cuts the rect on all four sides, so the stored rows
+       start part-way into the rect and end short of its edges. */
+    ok = 1; drew = 0;
+    for (int i = 0; i < 32; i++) {
+        uint32_t bpp, first, last;
+
+        f929_case(&c, f929_dts[i & 3], 12, 8);
+        bpp   = f929_bpp(c.dt);
+        first = (c.y * F929_PX + c.x) * bpp;
+        last  = ((c.y + c.h - 1) * F929_PX + c.x + c.w - 1) * bpp;
+        wr(dev, RAGE128_SC_TOP_LEFT, ((c.y + 1 + f929_rand(3)) << 16) | (c.x + 1 + f929_rand(5)));
+        wr(dev, RAGE128_SC_BOTTOM_RIGHT, ((c.y + c.h - 2) << 16) | (c.x + c.w - 3));
+        ok = f929_both(dev, &c, &drew) && ok;
+        /* the rect's own first and last pixels lie outside the scissor */
+        ok = ok && memcmp(&dev->svga.vram[F929_DA + first], &f929_pre[first], bpp) == 0
+            && memcmp(&dev->svga.vram[F929_DA + last], &f929_pre[last], bpp) == 0;
+    }
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    /* A subtractive aux rectangle inside the rect cuts its area out of
+       the fill (RRG: AUX_SC_CNTL, pp. 3-156-3-157 / PDF 174-175), so
+       that op must stay on the per-byte walk. The first window is the
+       same fill with the aux scissors off: the second must keep its
+       prefill inside the cut and equal the first everywhere else. */
+    for (int i = 0; i < 8; i++) {
+        uint32_t bpp, l, r, t, b;
+        int      cut = 0;
+
+        f929_case(&c, f929_dts[i & 3], 12, 8);
+        bpp = f929_bpp(c.dt);
+        l   = c.x + 2 + f929_rand(3);
+        r   = c.x + c.w - 3;
+        t   = c.y + 1 + f929_rand(3);
+        b   = c.y + c.h - 2;
+        wr(dev, RAGE128_AUX1_SC_LEFT, l);
+        wr(dev, RAGE128_AUX1_SC_LEFT + 4, r);
+        wr(dev, RAGE128_AUX1_SC_LEFT + 8, t);
+        wr(dev, RAGE128_AUX1_SC_LEFT + 12, b);
+        f929_pair(dev, &c, 0x00000003u); /* AUX1 on, subtractive */
+        for (uint32_t y = 0; y < F929_ROWS; y++)
+            for (uint32_t x = 0; x < F929_PX; x++) {
+                uint32_t o  = (y * F929_PX + x) * bpp;
+                int      in = x >= l && x <= r && y >= t && y <= b;
+
+                ok = ok && memcmp(&dev->svga.vram[F929_DB + o],
+                                  in ? &f929_pre[o] : &dev->svga.vram[F929_DA + o], bpp) == 0;
+                if (in && memcmp(&dev->svga.vram[F929_DA + o], &f929_pre[o], bpp) != 0)
+                    cut = 1;
+            }
+        /* control: the fill without the cut changed a pixel inside it */
+        ok = ok && cut;
+    }
+    wr(dev, RAGE128_AUX1_SC_LEFT, 0);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 4, 7);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 8, 0);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 12, 7);
+    check_true("2d 929: 32 fills cut by the scissor on all four sides, 8 by a subtractive aux rectangle: row store equals the per-byte walk",
+               ok && drew);
+
+    /* One pixel wide, one row high, the full width of the surface, and
+       the whole window. */
+    ok = 1; drew = 0;
+    for (int i = 0; i < 48; i++) {
+        f929_case(&c, f929_dts[i & 3], 1, 1);
+        if (i % 3 == 0)
+            c.w = 1;
+        else if (i % 3 == 1)
+            c.h = 1;
+        else
+            c.w = F929_PX;
+        if (i >= 44) {
+            c.w = F929_PX;
+            c.h = F929_ROWS;
+        }
+        c.x  = f929_rand(F929_PX - c.w + 1);
+        c.y  = f929_rand(F929_ROWS - c.h + 1);
+        c.sx = f929_rand(F929_PX - c.w + 1);
+        c.sy = f929_rand(F929_ROWS - c.h + 1);
+        ok   = f929_both(dev, &c, &drew) && ok;
+    }
+    check_true("2d 929: 48 fills one pixel wide, one row high, full width or the whole window: row store equals the walk",
+               ok && drew);
+
+    /* A destination that starts 8 pixels left of card address 0 (x = -8
+       at destination offset 0, the scissor's left edge negative so it
+       clips nothing): the first row's stores wrap to the top of video
+       memory, so that row is not one contiguous run and must take the
+       per-byte walk, which wraps. The rows below it are contiguous. The
+       reference is the same fill drawn at x = 0 in a window that does
+       not wrap, on the per-byte walk: byte o of that window stands for
+       the byte 8 pixels below o in the wrapped one. */
+    {
+        uint32_t vs   = (uint32_t) dev->vram_size;
+        uint8_t *save = (uint8_t *) malloc(0x2000);
+
+        ok = 0; drew = 0;
+        if (save) {
+            int top = 1;
+
+            memcpy(save, dev->svga.vram, 0x1000);
+            memcpy(save + 0x1000, &dev->svga.vram[vs - 0x1000u], 0x1000);
+            ok = 1;
+            for (int i = 0; i < 4; i++) {
+                uint32_t bpp, n, back;
+                int      t = 0;
+
+                f929_case(&c, f929_dts[i], 1, 1);
+                bpp  = f929_bpp(c.dt);
+                n    = 7u * F929_PX * bpp;
+                back = 8u * bpp;
+                c.y = 0; c.w = 40; c.h = 6; c.sx = 0; c.sy = 0;
+                for (uint32_t o = 0; o < n; o++) {
+                    f929_rng    = f929_rng * 1103515245u + 12345u;
+                    f929_pre[o] = (uint8_t) (f929_rng >> 16);
+                    dev->svga.vram[(o - back) & dev->vram_mask] = f929_pre[o];
+                }
+                memcpy(&dev->svga.vram[F929_DB], f929_pre, n);
+                wr(dev, RAGE128_SC_TOP_LEFT, 0x3f9cu); /* x = -100, y = 0 */
+                wr(dev, RAGE128_AUX_SC_CNTL, 0);
+                c.x = 0x3ff8u; /* x = -8 */
+                f929_draw(dev, &c, 0);
+                wr(dev, RAGE128_SC_TOP_LEFT, 0);
+                wr(dev, RAGE128_AUX_SC_CNTL, 0x00000001u);
+                c.x = 0;
+                f929_draw(dev, &c, F929_DB);
+                wr(dev, RAGE128_AUX_SC_CNTL, 0);
+                flush_sync(dev);
+                for (uint32_t o = 0; o < n; o++) {
+                    uint8_t got = dev->svga.vram[(o - back) & dev->vram_mask];
+
+                    ok = ok && got == dev->svga.vram[F929_DB + o];
+                    if (got != f929_pre[o]) {
+                        drew = 1;
+                        if (o < back)
+                            t = 1; /* a wrapped byte of row 0 */
+                    }
+                }
+                top = top && t;
+            }
+            /* control: at every depth the first 8 pixels of row 0 landed
+               at the top of video memory */
+            ok = ok && top;
+            memcpy(dev->svga.vram, save, 0x1000);
+            memcpy(&dev->svga.vram[vs - 0x1000u], save + 0x1000, 0x1000);
+            free(save);
+        }
+        check_true("2d 929: a destination row that wraps the end of video memory takes the per-byte walk",
+                   ok && drew);
+    }
+
+    /* The same fills as 0x92 packets, and by register writes from the
+       other three start corners; the last four are packets with an 8x8
+       color brush, which must stay on the per-byte walk. */
+    ok = 1; drew = 0;
+    for (int i = 0; i < 68; i++) {
+        f929_case(&c, i < 64 ? f929_dts[i & 3] : 6u, 1, 1);
+        if (i >= 64) {
+            c.pkt  = 1;
+            c.kind = 4;
+        } else
+            switch ((i >> 2) & 3) {
+                case 0:
+                    c.pkt = 1;
+                    break;
+                case 1:
+                    c.rtl = 1;
+                    break;
+                case 2:
+                    c.btt = 1;
+                    break;
+                default:
+                    c.rtl = 1;
+                    c.btt = 1;
+                    break;
+            }
+        ok = f929_both(dev, &c, &drew) && ok;
+    }
+    check_true("2d 929: the fills as 0x92 packets and from the other start corners: row store equals the per-byte walk",
+               ok && drew);
+
+    for (uint32_t i = 0; i < sizeof(saved) / sizeof(saved[0]); i++)
+        wr(dev, saved[i], was[i]);
+    flush_sync(dev);
+}
+
+/* ------------------------------------------------------------------ */
+/* Engine time of register-started ops. An op started by a CPU        */
+/* register write is drawn inside the write, and GUI_STAT then        */
+/* reports the engine busy for the time the op takes: 16 bytes of     */
+/* frame-buffer traffic per cycle of the engine clock, two pixels per */
+/* cycle for the scaler. A register write that arrives meanwhile      */
+/* holds one of the 64 command FIFO entries until the engine gets to  */
+/* it (RRG: GUI_STAT, p. 3-244 / PDF 262). The 64 entries and the     */
+/* two waits are in the development guide                             */
+/* (SDK: Engine Command Queue Maintenance, pp. 4-2-4-3 / PDF 76-77).  */
+/* The rows set the engine clock to 120 MHz; the harness clock counts */
+/* 10 cycles per microsecond and stands still unless a row moves it,  */
+/* so 12 engine clocks, 192 bytes, pass per harness cycle. A 64 x 48  */
+/* fill at 4 bytes per pixel is 12,288 bytes: 768 engine clocks, 64   */
+/* cycles.                                                            */
+/* ------------------------------------------------------------------ */
+#define E918_DST 0x003e0000u
+#define E918_PX  64u
+#define E918_BUSY 0x8c000000u /* GUI_ACTIVE, ENG_2D_BUSY, ENG_2D_SM_BUSY */
+
+/* GUI_STAT once the CCE executor thread is at rest. A soft reset or a
+   drain wakes that thread, and until it has gone back to sleep the
+   register reads PM4_BUSY, which is not what these rows are about. */
+static uint32_t
+e918_stat(rage128_t *dev)
+{
+    rr_quiesce(dev);
+    return rd(dev, RAGE128_GUI_STAT);
+}
+
+static void
+e918_gmc(rage128_t *dev, uint32_t rop, uint32_t src)
+{
+    wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+       0x00000003u | (13u << 4) | (6u << 8) | (rop << 16) | (src << 24)
+           | (1u << 28) | (1u << 29) | (1u << 30));
+    wr(dev, RAGE128_DP_BRUSH_FRGD_CLR, 0x00918918u);
+}
+
+static void
+vectors_eng_time_918(rage128_t *dev)
+{
+    uint64_t tsc_save = tsc;
+    uint32_t xm_save  = pll_rd(dev, RAGE128_PLL_X_MPLL_REF_FB_DIV);
+    uint32_t mc_save  = pll_rd(dev, RAGE128_PLL_MCLK_CNTL);
+    uint32_t po       = ((E918_PX / 8) << 21) | (E918_DST >> 5);
+    uint32_t *d       = (uint32_t *) &dev->svga.vram[E918_DST];
+    struct s906 c;
+
+    flush_sync(dev);
+    /* MPllClk = 2 * 20 * 27 MHz / 9 = 120 MHz, MCLK = MPllClk */
+    pll_wr(dev, RAGE128_PLL_X_MPLL_REF_FB_DIV, (20u << 16) | (20u << 8) | 9u);
+    pll_wr(dev, RAGE128_PLL_MCLK_CNTL, (mc_save & ~7u) | 1u);
+    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+    wr(dev, RAGE128_GEN_RESET_CNTL, 0);
+    tsc = 1000000;
+    wr(dev, RAGE128_DST_PITCH_OFFSET, po);
+    wr(dev, RAGE128_SRC_PITCH_OFFSET, po);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_DP_CNTL, 3);
+    check32("eng 918: control: GUI_STAT idle, 64 free", e918_stat(dev), 0x40);
+
+    /* 1: a fill is busy for its 64 cycles, and its pixels are there at once */
+    memset(d, 0, E918_PX * 64 * 4);
+    e918_gmc(dev, 0xf0, 0);
+    (void) rd(dev, RAGE128_GEN_INT_STATUS);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_GUI_IDLE);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    check32("eng 918: fill: GUI_STAT busy right after the start, 64 free",
+            e918_stat(dev), E918_BUSY | 0x40);
+    flush_sync(dev);
+    check_true("eng 918: control: the fill's pixels are in memory while it reads busy",
+               d[0] == 0x00918918u && d[47 * E918_PX + 63] == 0x00918918u);
+    check32("eng 918: fill: PC_GUI_CTLSTAT busy while the op runs",
+            rd(dev, RAGE128_PC_GUI_CTLSTAT), 0xa0000000u);
+    check32("eng 918: fill: no GUI_IDLE_INT while the op runs",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_GUI_IDLE, 0);
+    /* 2: three register writes behind it take three entries */
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DP_BRUSH_FRGD_CLR, 0x00918918u);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    check32("eng 918: fill: 3 writes behind a running op leave 61 free",
+            e918_stat(dev), E918_BUSY | 61);
+    tsc += 63;
+    check32("eng 918: fill: still busy one cycle before the end",
+            e918_stat(dev), E918_BUSY | 61);
+    tsc += 1;
+    check32("eng 918: fill: idle and 64 free after 64 cycles", e918_stat(dev), 0x40);
+    check32("eng 918: fill: PC_GUI_CTLSTAT idle after the op", rd(dev, RAGE128_PC_GUI_CTLSTAT), 0);
+    check32("eng 918: fill: GUI_IDLE_INT raised when the op's time is up",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_GUI_IDLE, RAGE128_GIS_GUI_IDLE);
+
+    /* 3: a second op queued behind the first starts when the first ends */
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    check32("eng 918: queue: the second op's two writes wait, 62 free",
+            e918_stat(dev), E918_BUSY | 62);
+    tsc += 64;
+    check32("eng 918: queue: first op done, FIFO empty, second op running",
+            e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 63;
+    check32("eng 918: queue: second op still running at 127 cycles",
+            e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 1;
+    check32("eng 918: queue: idle after both, 128 cycles", e918_stat(dev), 0x40);
+
+    /* 4: more writes than entries: the count stops at 0 */
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    for (int i = 0; i < 63; i++)
+        wr(dev, RAGE128_DST_Y_X, 0);
+    check32("eng 918: full: 63 waiting writes leave 1 free",
+            e918_stat(dev), E918_BUSY | 1);
+    for (int i = 0; i < 7; i++)
+        wr(dev, RAGE128_DST_Y_X, 0);
+    check32("eng 918: full: 70 waiting writes read 0 free",
+            e918_stat(dev), E918_BUSY | 0);
+    tsc += 64;
+    check32("eng 918: full: all 64 free again when the op ends", e918_stat(dev), 0x40);
+
+    /* 5: a copy reads its source: twice the traffic, 128 cycles */
+    e918_gmc(dev, 0xcc, 2);
+    wr(dev, RAGE128_SRC_Y_X, 0);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    tsc += 127;
+    check32("eng 918: copy: busy at 127 cycles", e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 1;
+    check32("eng 918: copy: idle at 128 cycles", e918_stat(dev), 0x40);
+
+    /* 5b: the X driver's solid fill: the source select stays on the
+       frame buffer, the ROP uses the brush alone, so no source is
+       read: 64 cycles */
+    e918_gmc(dev, 0xf0, 2);
+    wr(dev, RAGE128_SRC_Y_X, 0);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    tsc += 63;
+    check32("eng 918: PATCOPY with a memory source select: busy at 63 cycles",
+            e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 1;
+    check32("eng 918: PATCOPY with a memory source select: idle at 64 cycles",
+            e918_stat(dev), 0x40);
+
+    /* 6: a fill whose ROP reads the destination: 128 cycles */
+    e918_gmc(dev, 0x5a, 0);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    tsc += 127;
+    check32("eng 918: PATINVERT fill: busy at 127 cycles",
+            e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 1;
+    check32("eng 918: PATINVERT fill: idle at 128 cycles", e918_stat(dev), 0x40);
+
+    /* 7: a copy whose ROP reads the destination too: 192 cycles */
+    e918_gmc(dev, 0x66, 2);
+    wr(dev, RAGE128_SRC_Y_X, 0);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    tsc += 191;
+    check32("eng 918: SRCINVERT copy: busy at 191 cycles",
+            e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 1;
+    check32("eng 918: SRCINVERT copy: idle at 192 cycles", e918_stat(dev), 0x40);
+
+    /* 8: zero size: nothing drawn, no time, the idle event at once */
+    e918_gmc(dev, 0xf0, 0);
+    (void) rd(dev, RAGE128_GEN_INT_STATUS);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_GUI_IDLE);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 0u);
+    check32("eng 918: control: a zero-width op leaves GUI_STAT idle",
+            e918_stat(dev), 0x40);
+    check32("eng 918: control: a zero-width op raises GUI_IDLE_INT at once",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_GUI_IDLE, RAGE128_GIS_GUI_IDLE);
+
+    /* 9: SOFT_RESET_GUI drops the queued work */
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    check32("eng 918: reset: busy with 1 waiting write before the pulse",
+            e918_stat(dev), E918_BUSY | 63);
+    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+    wr(dev, RAGE128_GEN_RESET_CNTL, 0);
+    check32("eng 918: reset: SOFT_RESET_GUI leaves GUI_STAT idle, 64 free",
+            e918_stat(dev), 0x40);
+
+    /* 10: the same write run by the CCE executor's thread is not on
+       the timeline: that thread's own progress is the status */
+    (void) rd(dev, RAGE128_GEN_INT_STATUS);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_GUI_IDLE);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    rage128_on_cce_thread = 1;
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    rage128_on_cce_thread = 0;
+    check32("eng 918: control: an op run by the executor thread adds no engine time",
+            e918_stat(dev), 0x40);
+    check32("eng 918: control: and raises GUI_IDLE_INT at once",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_GUI_IDLE, RAGE128_GIS_GUI_IDLE);
+
+    /* 11: the scaler op: two pixels per engine clock, 64 x 48 pixels
+       = 1,536 clocks = 128 cycles */
+    memset(&c, 0, sizeof(c));
+    s906_src(dev, 0x4000);
+    c.ddt = 6; c.sdt_reg = 6; c.sdt_pkt = 6; c.soff = S906_SRC; c.spitch8 = 2;
+    c.sw = 6; c.sh = 5; c.xinc = 0x1800u; c.yinc = 0x1aaau;
+    c.dx = 0; c.dy = 0; c.dw = 64; c.dh = 48; c.misc = 0x100u;
+    s906_reg(dev, &c, 0x40u);
+    check32("eng 918: scale: busy right after SCALE_DST_HEIGHT_WIDTH",
+            e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 127;
+    check32("eng 918: scale: busy at 127 cycles", e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 1;
+    check32("eng 918: scale: idle at 128 cycles", e918_stat(dev), 0x40);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0);
+
+    /* 12: half the engine clock, twice the time */
+    pll_wr(dev, RAGE128_PLL_MCLK_CNTL, (mc_save & ~7u) | 2u);
+    e918_gmc(dev, 0xf0, 0);
+    wr(dev, RAGE128_DST_PITCH_OFFSET, po);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    tsc += 127;
+    check32("eng 918: MCLK 60 MHz: fill busy at 127 cycles",
+            e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 1;
+    check32("eng 918: MCLK 60 MHz: fill idle at 128 cycles", e918_stat(dev), 0x40);
+
+    /* 12b: an op whose time ran out unseen went idle before the next
+       one started: its event is not lost behind the new op */
+    pll_wr(dev, RAGE128_PLL_MCLK_CNTL, (mc_save & ~7u) | 1u);
+    (void) rd(dev, RAGE128_GEN_INT_STATUS);
+    wr(dev, RAGE128_GEN_INT_STATUS, RAGE128_GIS_GUI_IDLE);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    tsc += 65;
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    rr_quiesce(dev);
+    check32("eng 918: event: GUI_IDLE_INT of an op that ended unseen, next op running",
+            rd(dev, RAGE128_GEN_INT_STATUS) & RAGE128_GIS_GUI_IDLE, RAGE128_GIS_GUI_IDLE);
+    check32("eng 918: event: the next op reads busy", e918_stat(dev), E918_BUSY | 0x40);
+    /* 12c: PM4_STAT's GUI_ACTIVE follows the same engine, PM4_BUSY does
+       not; a write to a register the device handles ahead of the 2D
+       block takes a FIFO entry like any other */
+    check32("eng 918: PM4_STAT GUI_ACTIVE set, PM4_BUSY clear, while the op runs",
+            rd(dev, RAGE128_PM4_STAT) & 0x80010000u, 0x80000000u);
+    wr(dev, RAGE128_PC_GUI_MODE, rd(dev, RAGE128_PC_GUI_MODE));
+    wr(dev, RAGE128_GUI_DEBUG0, rd(dev, RAGE128_GUI_DEBUG0));
+    check32("eng 918: PC_GUI_MODE and GUI_DEBUG0 writes each take an entry, 62 free",
+            e918_stat(dev), E918_BUSY | 62);
+    tsc += 64;
+    check32("eng 918: PM4_STAT GUI_ACTIVE clear when the op ends",
+            rd(dev, RAGE128_PM4_STAT) & 0x80010000u, 0);
+    check32("eng 918: control: idle again", e918_stat(dev), 0x40);
+
+    /* 12d: the timeline's clock wraps (cycle count times 256): an op
+       started 32 cycles before the wrap is busy for its 64 cycles */
+    tsc = (1ull << 56) - 32;
+    (void) e918_stat(dev);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    check32("eng 918: wrap: busy right after a start before the wrap",
+            e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 63;
+    check32("eng 918: wrap: still busy 31 cycles past the wrap", e918_stat(dev), E918_BUSY | 0x40);
+    tsc += 1;
+    check32("eng 918: wrap: idle at 64 cycles", e918_stat(dev), 0x40);
+    tsc = 2000000;
+    (void) e918_stat(dev);
+
+    /* 13: a clock set back (a guest can write its cycle counter) ends
+       the queued work instead of leaving the engine busy until the
+       clock catches up */
+    wr(dev, RAGE128_DST_Y_X, 0);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (48u << 16) | 64u);
+    wr(dev, RAGE128_DST_Y_X, 0);
+    check32("eng 918: clock: busy with 1 waiting write before the clock moves",
+            e918_stat(dev), E918_BUSY | 63);
+    tsc -= 500000;
+    rr_quiesce(dev);
+    check32("eng 918: clock: set back, PC_GUI_CTLSTAT reads idle at the first read",
+            rd(dev, RAGE128_PC_GUI_CTLSTAT), 0);
+    check32("eng 918: clock: set back, GUI_STAT reads idle, 64 free",
+            e918_stat(dev), 0x40);
+
+    pll_wr(dev, RAGE128_PLL_X_MPLL_REF_FB_DIV, xm_save);
+    pll_wr(dev, RAGE128_PLL_MCLK_CNTL, mc_save);
+    tsc = tsc_save;
+    (void) rd(dev, RAGE128_GUI_STAT);
+}
+#undef MC906_SRC
+#undef MC906_DST
+#undef MC906_SPX
+#undef MC906_DPX
+
+/* ------------------------------------------------------------------ */
+/* The status registers follow the work the CCE holds, not its thread. */
+/* PM4_BUSY is the "State of PROMO_4 engine" and GUI_ACTIVE the OR of  */
+/* the busy bits (RRG: GUI_STAT, p. 3-244 / PDF 262). The executor     */
+/* thread makes a pass of its loop on every wake, and a wake can bring */
+/* no work: the release after a reset pulse, the nudge of a drain wait */
+/* that found the executor running. During such a pass the engine is   */
+/* idle and GUI_STAT, PM4_STAT and PC_GUI_CTLSTAT have to read idle.   */
+/* A pass is far too short to hit with a read, so the executor's idle  */
+/* hook, which runs in the pass once it has found the FIFO empty,      */
+/* holds the thread there while the CPU thread reads the registers.    */
+/* The same hold after a real packet catches the executor before it    */
+/* has published idle for that packet: there the registers still read  */
+/* busy. No register in the GUI block is written while the executor    */
+/* is held, because such a write waits for the executor to finish.     */
+/* ------------------------------------------------------------------ */
+static atomic_int  cs_arrived;
+static atomic_int  cs_go;
+static atomic_uint cs_want_rd;
+
+/* Holds only the pass that finds the FIFO read index where the leg
+   expects it, so an earlier wake's pass cannot be taken for the one the
+   leg is about. */
+static void
+cs_idle_hook(rage128_t *dev)
+{
+    if (atomic_load(&cs_go) || atomic_load(&dev->cce_fifo_rd) != atomic_load(&cs_want_rd))
+        return;
+    atomic_store(&cs_arrived, 1);
+    while (!atomic_load(&cs_go))
+        ;
+}
+
+/* Arms the hook for the pass that ends with the FIFO read index at
+   want_rd. The caller then causes that pass and calls cs_held. */
+static void
+cs_arm(uint32_t want_rd)
+{
+    atomic_store(&cs_arrived, 0);
+    atomic_store(&cs_go, 0);
+    atomic_store(&cs_want_rd, want_rd);
+    atomic_store(&rage128_harness_idle_hook, cs_idle_hook);
+}
+
+/* Waits for the executor to reach the hook, reads the three registers
+   into st, lets the executor go and waits for it to settle. Returns 1
+   when the executor was held, executing, with the FIFO empty at
+   want_rd. */
+static int
+cs_held(rage128_t *dev, uint32_t st[3])
+{
+    long spins;
+    int  held;
+
+    for (spins = 0; spins < 2000000000L && !atomic_load(&cs_arrived); spins++)
+        ;
+    held = atomic_load(&cs_arrived) && atomic_load(&dev->cce_executing)
+        && atomic_load(&dev->cce_fifo_rd) == atomic_load(&cs_want_rd)
+        && atomic_load(&dev->cce_fifo_wr) == atomic_load(&cs_want_rd);
+    st[0] = rd(dev, RAGE128_GUI_STAT);
+    st[1] = rd(dev, RAGE128_PM4_STAT);
+    st[2] = rd(dev, RAGE128_PC_GUI_CTLSTAT);
+    atomic_store(&cs_go, 1);
+    atomic_store(&rage128_harness_idle_hook, NULL);
+    rr_quiesce(dev);
+    return held;
+}
+
+static void
+vectors_cce_status_follows_work(rage128_t *dev)
+{
+    uint32_t idle[3], work[3];
+    uint32_t room, wr0;
+    int      held_idle, held_work;
+
+    /* Nothing queued, no GPU segment pending, engine time over. */
+    flush_sync(dev);
+    wr(dev, RAGE128_GEN_RESET_CNTL, RAGE128_GEN_SOFT_RESET_GUI);
+    wr(dev, RAGE128_GEN_RESET_CNTL, 0);
+    rr_quiesce(dev);
+    room = rage128_pm4_fifo_dwords(dev);
+
+    /* 1: a wake that brings no work */
+    cs_arm(atomic_load(&dev->cce_fifo_wr));
+    thread_set_event(dev->cce_wake_event);
+    held_idle = cs_held(dev, idle);
+
+    /* 2: a queued WAIT_UNTIL with no event bit, a two-dword packet the
+       executor runs at once; it is held after the packet, before the
+       idle flush and the busy-to-idle event */
+    wr0 = atomic_load(&dev->cce_fifo_wr);
+    cs_arm(wr0 + 2);
+    wr(dev, RAGE128_WAIT_UNTIL, 0);
+    held_work = cs_held(dev, work);
+
+    printf("cce status: data: no work: held=%d GUI_STAT=%08x PM4_STAT=%08x PC_GUI_CTLSTAT=%08x; "
+           "after a packet: held=%d GUI_STAT=%08x PM4_STAT=%08x PC_GUI_CTLSTAT=%08x\n",
+           held_idle, idle[0], idle[1], idle[2], held_work, work[0], work[1], work[2]);
+    check_true("cce status: control: executor held in a pass with an empty FIFO", held_idle);
+    check32("cce status: GUI_STAT idle, 64 free, in a pass with no work", idle[0], 0x40);
+    check32("cce status: PM4_STAT idle in a pass with no work", idle[1], room);
+    check32("cce status: PC_GUI_CTLSTAT idle in a pass with no work", idle[2], 0);
+    check_true("cce status: busy after a packet until idle is published",
+               held_work && work[0] == RAGE128_GUI_STAT_BUSY
+                   && work[1] == (room | RAGE128_PM4_STAT_BUSY | RAGE128_PM4_STAT_GUI_ACTIVE)
+                   && work[2] == 0xa0000000u);
 }
 
 /* a 24 bpp (DST_TYPE 5) color brush. Type 10 is 64 dwords, one
@@ -22716,6 +28277,216 @@ vectors_lanegap_rmw_cap(rage128_t *dev)
     wr(dev, RAGE128_DP_GUI_MASTER_CNTL, 0);
 }
 
+/* The stretch queue holds one copy per run, 256 at most. A stretch with
+   no key and no auxiliary scissor cutting its rectangle is one run per
+   destination row, so its row count alone says whether it fits, and the
+   queue must refuse a taller one before it works anything out: nothing
+   staged, nothing queued, one refusal counted as the run cap, and the
+   CPU walk draws it. A keyed stretch, or one an enabled subtractive
+   rectangle cuts, has a run count only its pixels decide (whole rows can
+   drop out), so it must still go through the queue path at any height.
+
+   Each leg draws the same 2x stretch twice from the same prefill: once
+   with no backend, which is the CPU walk and the reference image, and
+   once on a fresh fabricated backend, whose counters are then read. The
+   expected run and byte counts are counted off the reference image. When
+   the queue took the stretch, its queued copies are executed on the
+   destination the way the GPU executes them, so both outcomes end in a
+   byte compare against the reference. */
+#define SCAP_DST   0x00400000u /* 64 px rows */
+#define SCAP_SRC   0x00440000u /* 8 px rows */
+#define SCAP_ROWS  304
+#define SCAP_LEN   (SCAP_ROWS * 64 * 4)
+#define SCAP_DX    2
+#define SCAP_DY    1
+#define SCAP_W     8
+#define SCAP_FILL  0x11111111u
+#define SCAP_KEY   0x00c0ffeeu
+
+struct scap_leg {
+    uint64_t queued, runs, staged, cap, other;
+    uint32_t ref_runs, ref_rows, ref_px;
+    uint32_t h;    /* rows the packet asked for */
+    int      exec; /* queued records executed; -1 = one could not be */
+    int      same; /* the destination equals the reference byte for byte */
+};
+
+static uint8_t g_scap_ref[SCAP_LEN];
+
+static void
+scap_leg_run(rage128_t *dev, const char *name, int h, uint32_t misc, struct scap_leg *l)
+{
+    /* stretch GMC: destination pitch and offset from the packet, no
+       brush, 8888, color source from memory, ROP3 0xCC */
+    const uint32_t g = 0x00000002u | (15u << 4) | (6u << 8) | (3u << 12)
+                     | (0xccu << 16) | (2u << 24);
+    uint8_t *dst = &dev->svga.vram[SCAP_DST];
+    uint32_t pl[13], flo = 0, fhi = 0;
+    uint64_t full = 0;
+    void    *fab;
+
+    pl[0]  = g;
+    pl[1]  = (8u << 21) | (SCAP_DST >> 5);
+    pl[2]  = misc;
+    pl[3]  = 0x00800000u;
+    pl[4]  = 0x02180840u;
+    pl[5]  = 6u;
+    pl[6]  = SCAP_SRC;
+    pl[7]  = 1u;
+    pl[8]  = 0;
+    pl[9]  = 0x00008000u;
+    pl[10] = 0x00008000u;
+    pl[11] = ((uint32_t) SCAP_DX << 16) | (uint32_t) SCAP_DY;
+    pl[12] = ((uint32_t) h << 16) | (uint32_t) SCAP_W;
+
+    memset(l, 0, sizeof(*l));
+    l->h = (uint32_t) h;
+    for (uint32_t i = 0; i < SCAP_LEN; i += 4)
+        *(uint32_t *) &dst[i] = SCAP_FILL;
+    fab_in(dev, NULL);
+    rage128_2d_packet3(dev, 0x96u << 8, pl, 13);
+    fab_out(dev);
+    memcpy(g_scap_ref, dst, SCAP_LEN);
+    for (int y = 0; y < SCAP_ROWS; y++) {
+        int in = 0, any = 0;
+
+        for (int x = 0; x < 64; x++) {
+            uint32_t px;
+            int      drawn;
+
+            memcpy(&px, &g_scap_ref[(y * 64 + x) * 4], sizeof(px));
+            drawn = px != SCAP_FILL;
+            l->ref_px += (uint32_t) drawn;
+            l->ref_runs += (uint32_t) (drawn && !in);
+            any |= drawn;
+            in = drawn;
+        }
+        l->ref_rows += (uint32_t) any;
+    }
+
+    for (uint32_t i = 0; i < SCAP_LEN; i += 4)
+        *(uint32_t *) &dst[i] = SCAP_FILL;
+    fab = harness_gpu_fab_alloc();
+    fab_in(dev, fab);
+    rage128_2d_packet3(dev, 0x96u << 8, pl, 13);
+    harness_gpu_fab_q2d(fab, 5, &l->queued, &l->runs, NULL, NULL);
+    harness_gpu_fab_2ds(fab, &full, &l->staged, NULL);
+    for (int b = 0; b < 7; b++) {
+        if (b == 3)
+            l->cap = harness_gpu_fab_qskip(fab, 5, b);
+        else
+            l->other += harness_gpu_fab_qskip(fab, 5, b);
+    }
+    l->other += full + harness_gpu_fab_tiled(fab);
+    l->exec = harness_gpu_fab_fill_exec(fab, dev->svga.vram, dev->vram_size, &flo, &fhi);
+    fab_out(dev);
+    harness_gpu_fab_free(fab);
+    l->same = memcmp(dst, g_scap_ref, SCAP_LEN) == 0;
+    printf("gpu 2d stretch cap: data: %s rows=%d: queued=%llu runs=%llu staged=%llu cap=%llu other=%llu exec=%d same=%d, cpu draw runs=%u rows=%u px=%u\n",
+           name, h, (unsigned long long) l->queued, (unsigned long long) l->runs,
+           (unsigned long long) l->staged, (unsigned long long) l->cap,
+           (unsigned long long) l->other, l->exec, l->same, l->ref_runs, l->ref_rows,
+           l->ref_px);
+    fflush(stdout); /* a leg that kills the process must not take the earlier legs' lines */
+}
+
+/* 1 = the queue took the whole stretch: one operation, no refusal, as
+   many copies queued and executed as the CPU draw has runs, as many
+   bytes staged as it stores, and the executed copies give its image. */
+static int
+scap_leg_queued(const struct scap_leg *l)
+{
+    return l->queued == 1 && l->cap == 0 && l->other == 0 && l->ref_runs != 0
+        && l->runs == l->ref_runs && l->exec == (int) l->ref_runs
+        && l->staged == (uint64_t) l->ref_px * 4u && l->same;
+}
+
+/* 1 = the queue refused the stretch before working anything out: no
+   byte staged, no copy queued or executed, and the one refusal counted
+   is the run cap. */
+static int
+scap_leg_refused(const struct scap_leg *l)
+{
+    return l->staged == 0 && l->runs == 0 && l->queued == 0 && l->exec == 0
+        && l->cap == 1 && l->other == 0;
+}
+
+static void
+vectors_lanegap_stretch_cap(rage128_t *dev)
+{
+    struct scap_leg fit, keyed, cut, edge, tall;
+
+    if (!harness_gpu_available()) {
+        printf("SKIP gpu 2d stretch cap: (built without Vulkan headers)\n");
+        return;
+    }
+    flush_sync(dev);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, 0);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    /* 150 rows of texels, every one distinct, none the prefill or the key */
+    for (int y = 0; y < 150; y++)
+        for (int x = 0; x < 8; x++)
+            *(uint32_t *) &dev->svga.vram[SCAP_SRC + (uint32_t) (y * 8 + x) * 4u]
+                = 0xff000000u | ((uint32_t) y << 12) | ((uint32_t) x << 4) | 0x5u;
+
+    /* A blended stretch of exactly 256 rows fits: one run per row. */
+    scap_leg_run(dev, "plain", 256, 0x100u, &fit);
+    check_true("gpu 2d stretch cap: a 256-row plain stretch queues whole, one run per row",
+               scap_leg_queued(&fit) && fit.ref_runs == fit.h && fit.ref_rows == fit.h
+                   && fit.ref_px == fit.h * SCAP_W);
+
+    /* A subtractive rectangle over the first 50 rows and a 2 px notch in
+       two more: 300 rows, but fewer runs than the cap. */
+    wr(dev, RAGE128_AUX1_SC_LEFT, 0);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 4, 0x1fff);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 8, SCAP_DY);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 12, SCAP_DY + 49);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 16, SCAP_DX + 3);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 20, SCAP_DX + 4);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 24, SCAP_DY + 60);
+    wr(dev, RAGE128_AUX1_SC_LEFT + 28, SCAP_DY + 61);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0x0000000f);
+    scap_leg_run(dev, "aux-cut", 300, 0x100u, &cut);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+
+    /* The same with a source key: 25 texel rows of the key and one key
+       texel further down, replicated. */
+    for (int y = 0; y < 25; y++)
+        for (int x = 0; x < 8; x++)
+            *(uint32_t *) &dev->svga.vram[SCAP_SRC + (uint32_t) (y * 8 + x) * 4u] = SCAP_KEY;
+    *(uint32_t *) &dev->svga.vram[SCAP_SRC + (30 * 8 + 1) * 4] = SCAP_KEY;
+    wr(dev, RAGE128_CLR_CMP_CLR_SRC, SCAP_KEY);
+    wr(dev, RAGE128_CLR_CMP_MASK, 0xffffffff);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0x01000005);
+    scap_leg_run(dev, "keyed", 300, 0x500u, &keyed);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    check_true("gpu 2d stretch cap: a keyed and an aux-cut 300-row stretch still take the queue path",
+               scap_leg_queued(&keyed) && keyed.ref_runs != keyed.ref_rows
+                   && scap_leg_queued(&cut) && cut.ref_runs != cut.ref_rows);
+
+    /* The plain stretch one row past the cap, and at 300 rows: refused
+       at entry, drawn by the walk. */
+    scap_leg_run(dev, "plain", 257, 0x100u, &edge);
+    scap_leg_run(dev, "plain", 300, 0x100u, &tall);
+    check_true("gpu 2d stretch cap: a 257-row and a 300-row plain stretch stage nothing and count one cap refusal each",
+               scap_leg_refused(&edge) && scap_leg_refused(&tall));
+    check_true("gpu 2d stretch cap: their video memory equals the CPU draw byte for byte",
+               edge.same && edge.ref_rows == edge.h && edge.ref_px == edge.h * SCAP_W
+                   && tall.same && tall.ref_rows == tall.h && tall.ref_px == tall.h * SCAP_W);
+}
+#undef SCAP_DST
+#undef SCAP_SRC
+#undef SCAP_ROWS
+#undef SCAP_LEN
+#undef SCAP_DX
+#undef SCAP_DY
+#undef SCAP_W
+#undef SCAP_FILL
+#undef SCAP_KEY
+
 /* An aliased card write marks the installed-VRAM pages it changes.
    On the 16 MB device, stores above installed VRAM wrap to the same bytes
    as their masked addresses. Tiled and linear paths check both the landed
@@ -22813,13 +28584,24 @@ run_gpu2d_verify(void)
     vectors_bres_negative_x_verify_window(dev);
     /* on this device the GPU lane runs the brush-type paints through the 2D queues */
     vectors_brush_types(dev);
+    vectors_brush_reg32(dev);
+    vectors_brush_903(dev);
+    vectors_hostdata_904(dev);
+    vectors_line_brush_905(dev);
     vectors_brush10_24bpp(dev);
     vectors_rmw_24bpp_src_stride(dev);
     /* and the phased stretches through the stretch queue under the oracle */
     vectors_scale_half_px_phase(dev);
     vectors_trans_scaling_dst_ref(dev);
+    vectors_trans_scaling_907(dev);
     vectors_scale_inc_412(dev);
     vectors_scale_pitch_bit9(dev);
+    vectors_reg_scale_906(dev);
+    vectors_stretch_rows_921(dev);
+    vectors_stretch_rows_930(dev);
+    vectors_fill_rows_929(dev);
+    vectors_eng_time_918(dev);
+    vectors_cce_status_follows_work(dev);
     if (gpu_lane)
         check_true("2d line: backend attached with the 2D oracle armed",
                    dev->gpu && rage128_gpu_2d_verifying(dev));
@@ -23019,6 +28801,555 @@ run_gpu_carry(void)
     setenv("R128_GPU", gprev, 1);
 }
 
+
+/* Queued 2D rectangles on the GPU lane: the bytes they leave must equal
+   the CPU walk's, whichever way the backend records them. Each scenario
+   is a seeded stream of register-started fills and screen copies. It
+   runs once on a device with the backend on and once on a device with
+   the backend off, and the surface, with a guard band on each side, is
+   compared byte for byte. The counter rows then pin down how a
+   rectangle is recorded: one dispatch of the rectangle kernel, not one
+   buffer command or copy region per row. */
+#define R2D_PXW   256u        /* surface width and pitch, pixels */
+#define R2D_ROWS  96u
+#define R2D_GUARD 256u        /* bytes compared before and after the surface */
+#define R2D_BASE  0x00200000u /* a multiple of 32: DST_OFFSET counts 32-byte units */
+
+static uint32_t
+r2d_rnd(uint32_t *s)
+{
+    *s ^= *s << 13;
+    *s ^= *s >> 17;
+    *s ^= *s << 5;
+    return *s;
+}
+
+static void
+r2d_fill(rage128_t *dev, uint32_t dt, uint32_t x, uint32_t y, uint32_t w, uint32_t h,
+         uint32_t color)
+{
+    wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+       0x00000003u | (13u << 4) | (dt << 8) | (0xf0u << 16) | (1u << 28) | (1u << 29)
+           | (1u << 30));
+    wr(dev, RAGE128_DP_BRUSH_FRGD_CLR, color);
+    wr(dev, RAGE128_DP_CNTL, 3);
+    wr(dev, RAGE128_DST_Y_X, (y << 16) | x);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (h << 16) | w);
+}
+
+/* A screen copy with the directions and start corners the X driver
+   uses (xf86-video-r128 r128_accel.c R128SetupForScreenToScreenCopy,
+   R128SubsequentScreenToScreenCopy): right to left when the source is
+   left of the destination on the same row, bottom to top when it is
+   above it. */
+static void
+r2d_copy(rage128_t *dev, uint32_t dt, uint32_t sx, uint32_t sy, uint32_t dx, uint32_t dy,
+         uint32_t w, uint32_t h)
+{
+    int xdir = (sx < dx && sy == dy) ? -1 : 1;
+    int ydir = (sy < dy) ? -1 : 1;
+
+    wr(dev, RAGE128_DP_GUI_MASTER_CNTL,
+       0x00000003u | (13u << 4) | (dt << 8) | (0xccu << 16) | (2u << 24) | (1u << 28)
+           | (1u << 29) | (1u << 30));
+    wr(dev, RAGE128_DP_CNTL, (xdir > 0 ? 1u : 0u) | (ydir > 0 ? 2u : 0u));
+    if (xdir < 0) {
+        sx += w - 1;
+        dx += w - 1;
+    }
+    if (ydir < 0) {
+        sy += h - 1;
+        dy += h - 1;
+    }
+    wr(dev, RAGE128_SRC_Y_X, (sy << 16) | sx);
+    wr(dev, RAGE128_DST_Y_X, (dy << 16) | dx);
+    wr(dev, RAGE128_DST_HEIGHT_WIDTH, (h << 16) | w);
+}
+
+enum { R2D_S_RANDOM, R2D_S_THIN, R2D_S_OVERLAP, R2D_S_WORD, R2D_S_END, R2D_S_TILED,
+       R2D_S_CPUSTORE, R2D_S_SRCSTORE };
+
+/* One CPU byte store through the linear aperture beside a copy that was
+   just queued. The store's barrier must submit the open segment, which
+   only says something when the copy was still pending right before the
+   store. *fired: 1 every store so far found work pending and left none,
+   0 one left work pending, -1 one found nothing pending (a verify mode
+   that flushes each blit as it queues), which makes the row untestable. */
+static void
+r2d_store(rage128_t *dev, uint32_t addr, uint8_t val, int *fired)
+{
+    int was = dev->gpu ? harness_gpu_pending(dev->gpu) : 0;
+
+    rage128_lfb_writeb(dev->lfb_base + addr, val, dev);
+    if (!dev->gpu || *fired < 0)
+        return;
+    if (!was)
+        *fired = -1;
+    else if (harness_gpu_pending(dev->gpu))
+        *fired = 0;
+}
+
+/* Run one scenario and return a malloc'd copy of the surface with its
+   guard bands. bpp is bytes per pixel. *nb gets the byte count, *fired
+   the r2d_store verdict of the two store scenarios on a device with the
+   backend (1 elsewhere). */
+static uint8_t *
+r2d_run(rage128_t *dev, int scen, uint32_t bpp, uint32_t *nb, int *fired)
+{
+    static const uint32_t dts[5] = { 0, 2, 4, 5, 6 };
+    uint32_t dt    = dts[bpp];
+    uint32_t pitch = R2D_PXW * bpp;
+    uint32_t size  = pitch * R2D_ROWS;
+    uint32_t base  = scen == R2D_S_END ? dev->vram_size - size : R2D_BASE;
+    uint32_t glo   = R2D_GUARD;
+    uint32_t ghi   = scen == R2D_S_END ? 0 : R2D_GUARD;
+    uint32_t seed  = 0x922u * 2654435761u + (uint32_t) scen * 97u + bpp;
+    /* the pitch field counts 8 pixels, or 8 bytes at 24 bpp (RRG:
+       DST_PITCH, p. 3-137 / PDF 155) */
+    uint32_t po    = (((bpp == 3 ? pitch : R2D_PXW) / 8u) << 21) | (base >> 5)
+        | (scen == R2D_S_TILED ? 0x80000000u : 0u);
+    uint8_t *out;
+
+    *fired = 1;
+    drain_sync(dev);
+    for (uint32_t i = 0; i < glo + size + ghi; i++)
+        dev->svga.vram[base - glo + i] = (uint8_t) (r2d_rnd(&seed) >> 11);
+    wr(dev, RAGE128_DST_PITCH_OFFSET, po);
+    wr(dev, RAGE128_SRC_PITCH_OFFSET, po);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+
+    if (scen == R2D_S_CPUSTORE) {
+        /* a copy whose rows start and end inside a word, then a CPU byte
+           store through the linear aperture to the byte before its first
+           row and to the byte after its last row, with no flush between */
+        uint32_t row0 = base + 40u * pitch + 101u * bpp;
+        uint32_t rowN = base + 47u * pitch + 131u * bpp;
+
+        r2d_copy(dev, dt, 10, 10, 101, 40, 30, 8);
+        r2d_store(dev, row0 - 1u, 0xa5, fired);
+        r2d_copy(dev, dt, 10, 10, 101, 40, 30, 8);
+        r2d_store(dev, rowN, 0x5a, fired);
+    } else if (scen == R2D_S_SRCSTORE) {
+        /* the same on the source side: the copy's source rows start and
+           end inside a word, and the stores go to the byte before the
+           first source row and to the byte after the last one. Neither
+           byte is copied or stored by the copy; the rectangle kernel
+           loads the words that hold them. */
+        uint32_t row0 = base + 10u * pitch + 9u * bpp;
+        uint32_t rowN = base + 17u * pitch + 39u * bpp;
+
+        r2d_copy(dev, dt, 9, 10, 101, 40, 30, 8);
+        r2d_store(dev, row0 - 1u, 0xa5, fired);
+        r2d_copy(dev, dt, 9, 10, 101, 40, 30, 8);
+        r2d_store(dev, rowN, 0x5a, fired);
+    } else
+        for (uint32_t op = 0; op < 240u; op++) {
+            uint32_t r = r2d_rnd(&seed);
+            uint32_t w, h, x, y, sx, sy;
+
+            if (scen == R2D_S_THIN) {
+                w = (r & 1u) ? 1u : 1u + (r >> 8) % 64u;
+                h = (r & 2u) ? 1u : 1u + (r >> 16) % 40u;
+                if ((r & 3u) == 0u)
+                    h = 1u + (r >> 16) % 40u, w = 1u;
+            } else if (scen == R2D_S_OVERLAP) {
+                w = 60u;
+                h = 30u;
+            } else if ((r & 7u) == 0u) {
+                w = 1u + (r >> 8) % 3u;
+                h = 1u + (r >> 16) % 3u;
+            } else {
+                w = 1u + (r >> 8) % 120u;
+                h = 1u + (r >> 16) % 40u;
+            }
+            r = r2d_rnd(&seed);
+            x = r % (R2D_PXW - w + 1u);
+            y = (r >> 12) % (R2D_ROWS - h + 1u);
+            if (scen == R2D_S_END && (op & 3u) == 0u) {
+                /* reach the last byte of video memory */
+                x = R2D_PXW - w;
+                y = R2D_ROWS - h;
+            }
+            r = r2d_rnd(&seed);
+            if (scen == R2D_S_TILED || (scen != R2D_S_OVERLAP && (r & 1u))) {
+                r2d_fill(dev, dt, x, y, w, h, r2d_rnd(&seed));
+                if (scen == R2D_S_WORD && x + 2u * w <= R2D_PXW)
+                    /* a second fill that starts where the first ends: at
+                       1, 2 and 3 bytes a pixel the two share a word */
+                    r2d_fill(dev, dt, x + w, y, w, h, r2d_rnd(&seed));
+                continue;
+            }
+            if (scen == R2D_S_OVERLAP) {
+                /* the source 5 pixels or rows away in each of the eight
+                   directions in turn */
+                static const int ox[8] = { 5, -5, 0, 0, 5, -5, 5, -5 };
+                static const int oy[8] = { 0, 0, 5, -5, 5, 5, -5, -5 };
+                int              tx    = (int) x + ox[op & 7u];
+                int              ty    = (int) y + oy[op & 7u];
+
+                if (tx < 0 || ty < 0 || tx + (int) w > (int) R2D_PXW
+                    || ty + (int) h > (int) R2D_ROWS)
+                    continue;
+                sx = (uint32_t) tx;
+                sy = (uint32_t) ty;
+            } else if ((r & 6u) == 0u) {
+                /* a source a few pixels and rows away */
+                int tx = (int) x + (int) ((r >> 4) % 13u) - 6;
+                int ty = (int) y + (int) ((r >> 9) % 13u) - 6;
+
+                if (tx < 0 || ty < 0 || tx + (int) w > (int) R2D_PXW
+                    || ty + (int) h > (int) R2D_ROWS)
+                    continue;
+                sx = (uint32_t) tx;
+                sy = (uint32_t) ty;
+            } else {
+                sx = (r >> 4) % (R2D_PXW - w + 1u);
+                sy = (r >> 16) % (R2D_ROWS - h + 1u);
+            }
+            r2d_copy(dev, dt, sx, sy, x, y, w, h);
+            if (scen == R2D_S_WORD && x + 2u * w <= R2D_PXW && sx + 2u * w <= R2D_PXW)
+                r2d_copy(dev, dt, sx + w, sy, x + w, y, w, h);
+        }
+    drain_sync(dev);
+    *nb = glo + size + ghi;
+    out = (uint8_t *) malloc(*nb);
+    if (out)
+        memcpy(out, &dev->svga.vram[base - glo], *nb);
+    return out;
+}
+
+/* A scroll whose rows fit the 2 MB staging ring only when they are
+   packed end to end: 4104 rows of 511 bytes are 2,097,144 bytes, and at
+   a stride rounded up to a word they are 2,101,248. One 8 bpp surface
+   512 pixels wide, source rows 0 to 4103, destination rows 1 to 4104.
+   Returns a malloc'd copy of the surface with its guard bands; with the
+   backend, d[0..1] get the growth of the bounce and CPU-walk counters
+   and d[2..4] of the recording counters. */
+#define R2D_BIG_W    512u
+#define R2D_BIG_ROWS 4105u
+
+static uint8_t *
+r2d_big_bounce(rage128_t *dev, uint32_t *nb, uint64_t d[5])
+{
+    uint32_t size = R2D_BIG_W * R2D_BIG_ROWS;
+    uint32_t seed = 0x922u * 40503u + 7u;
+    uint64_t b[5] = { 0, 0, 0, 0, 0 }, a[5] = { 0, 0, 0, 0, 0 };
+    uint8_t *out;
+
+    drain_sync(dev);
+    for (uint32_t i = 0; i < R2D_GUARD + size + R2D_GUARD; i++)
+        dev->svga.vram[R2D_BASE - R2D_GUARD + i] = (uint8_t) (r2d_rnd(&seed) >> 11);
+    wr(dev, RAGE128_DST_PITCH_OFFSET, ((R2D_BIG_W / 8u) << 21) | (R2D_BASE >> 5));
+    wr(dev, RAGE128_SRC_PITCH_OFFSET, ((R2D_BIG_W / 8u) << 21) | (R2D_BASE >> 5));
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    drain_sync(dev);
+    if (dev->gpu) {
+        harness_gpu_blit_rec(dev->gpu, &b[0], &b[1]);
+        harness_gpu_q2d_rec(dev->gpu, &b[2], &b[3], &b[4]);
+    }
+    r2d_copy(dev, 2, 0, 0, 0, 1, R2D_BIG_W - 1u, R2D_BIG_ROWS - 1u);
+    drain_sync(dev);
+    if (dev->gpu) {
+        harness_gpu_blit_rec(dev->gpu, &a[0], &a[1]);
+        harness_gpu_q2d_rec(dev->gpu, &a[2], &a[3], &a[4]);
+    }
+    for (int i = 0; i < 5; i++)
+        d[i] = a[i] - b[i];
+    *nb = R2D_GUARD + size + R2D_GUARD;
+    out = (uint8_t *) malloc(*nb);
+    if (out)
+        memcpy(out, &dev->svga.vram[R2D_BASE - R2D_GUARD], *nb);
+    return out;
+}
+
+/* How the backend recorded what one op queued: the three counters'
+   growth across the op and its flush. */
+static void
+r2d_rec(rage128_t *dev, uint64_t d[3], uint64_t before[3])
+{
+    uint64_t now[3];
+
+    drain_sync(dev);
+    harness_gpu_q2d_rec(dev->gpu, &now[0], &now[1], &now[2]);
+    for (int i = 0; i < 3; i++) {
+        d[i]      = now[i] - before[i];
+        before[i] = now[i];
+    }
+}
+
+static void
+vectors_r2d_counters(rage128_t *dev)
+{
+    uint64_t c[3], d[3];
+    uint32_t T = harness_gpu_r2d_rows();
+    char     name[160];
+
+    wr(dev, RAGE128_DST_PITCH_OFFSET, ((R2D_PXW / 8u) << 21) | (R2D_BASE >> 5));
+    wr(dev, RAGE128_SRC_PITCH_OFFSET, ((R2D_PXW / 8u) << 21) | (R2D_BASE >> 5));
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    drain_sync(dev);
+    if (!dev->gpu || !harness_gpu_async(dev->gpu)) {
+        printf("SKIP r2d counters: no async GPU backend on this host\n");
+        return;
+    }
+    if (!harness_gpu_r2d_on(dev->gpu)) {
+        printf("SKIP r2d counters: the host could not set up the rectangle kernel; "
+               "queued 2D ops keep their buffer commands\n");
+        return;
+    }
+    harness_gpu_q2d_rec(dev->gpu, &c[0], &c[1], &c[2]);
+
+    r2d_fill(dev, 6, 10, 0, 100, 60, 0x00112233);
+    r2d_rec(dev, d, c);
+    snprintf(name, sizeof(name),
+             "r2d: a 60-row fill is one dispatch (commands %llu regions %llu dispatches %llu)",
+             (unsigned long long) d[0], (unsigned long long) d[1], (unsigned long long) d[2]);
+    check_true(name, d[0] == 0 && d[1] == 0 && d[2] == 1);
+
+    r2d_copy(dev, 6, 10, 0, 130, 0, 100, 30);
+    r2d_rec(dev, d, c);
+    /* same rows, side by side: the byte hulls overlap, so it bounces */
+    snprintf(name, sizeof(name),
+             "r2d: a 30-row copy beside its source is two dispatches (commands %llu "
+             "regions %llu dispatches %llu)",
+             (unsigned long long) d[0], (unsigned long long) d[1], (unsigned long long) d[2]);
+    check_true(name, d[0] == 0 && d[1] == 0 && d[2] == 2);
+
+    r2d_copy(dev, 6, 10, 0, 10, 60, 100, 30);
+    r2d_rec(dev, d, c);
+    snprintf(name, sizeof(name),
+             "r2d: a 30-row copy below its source is one dispatch (commands %llu "
+             "regions %llu dispatches %llu)",
+             (unsigned long long) d[0], (unsigned long long) d[1], (unsigned long long) d[2]);
+    check_true(name, d[0] == 0 && d[1] == 0 && d[2] == 1);
+
+    r2d_copy(dev, 6, 10, 0, 14, 4, 100, 30);
+    r2d_rec(dev, d, c);
+    snprintf(name, sizeof(name),
+             "r2d: a 30-row copy over its source is two dispatches (commands %llu "
+             "regions %llu dispatches %llu)",
+             (unsigned long long) d[0], (unsigned long long) d[1], (unsigned long long) d[2]);
+    check_true(name, d[0] == 0 && d[1] == 0 && d[2] == 2);
+
+    /* controls: these keep their buffer commands on any recording */
+    r2d_fill(dev, 6, 0, 70, R2D_PXW, 10, 0x00445566);
+    r2d_rec(dev, d, c);
+    snprintf(name, sizeof(name),
+             "r2d: control: a full-pitch fill stays one command a buffer (commands %llu "
+             "dispatches %llu)",
+             (unsigned long long) d[0], (unsigned long long) d[2]);
+    check_true(name, (d[0] == 1 || d[0] == 2) && d[2] == 0);
+
+    r2d_copy(dev, 6, 10, 0, 10, 60, 100, T - 1u);
+    r2d_rec(dev, d, c);
+    snprintf(name, sizeof(name),
+             "r2d: control: a copy under the row threshold keeps a region a row "
+             "(rows %u regions %llu dispatches %llu)",
+             T - 1u, (unsigned long long) d[1], (unsigned long long) d[2]);
+    check_true(name, d[1] == T - 1u && d[2] == 0);
+}
+
+/* A queued copy with unaligned rows directly after the rows of a 3D
+   draw that is still pending: the draw's rows and the copy's bytes must
+   both be what each leaves alone. 64-pixel 32 bpp target at HZ_A. */
+static void
+vectors_r2d_after_draw(rage128_t *dev)
+{
+    uint32_t ref[32 * 64];
+    uint32_t dst = HZ_A + 32u * 256u + 1u;
+    uint32_t src = HZ_A + 48u * 256u + 2u;
+    int      ok_draw = 1, ok_copy = 1, ok_edge = 1;
+
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0x00000000);
+    wr(dev, 0x16f0, 0x001f003f);
+    wr(dev, 0x16c0, 0x00000003);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0x00000000);
+    wr(dev, 0x16c4, 0x00000006);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000 | (HZ_A >> 5));
+    wr(dev, RAGE128_Z_OFFSET_C, HZ_Z);
+    wr(dev, RAGE128_Z_PITCH_C, 0x00000008);
+    wr(dev, RAGE128_Z_STEN_CNTL_C, 0x00000070);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_SETUP_CNTL, 0x00000020);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+    hz_seed(dev, 0, 0);
+    hz_draw(dev, 0.0f, 31.0f, GC_A);
+    gpu_sync(dev);
+    if (!dev->gpu || !harness_gpu_async(dev->gpu)) {
+        printf("SKIP r2d after a draw: no async GPU backend on this host\n");
+        return;
+    }
+    memcpy(ref, &dev->svga.vram[HZ_A], sizeof(ref));
+
+    hz_seed(dev, 0, 0);
+    for (uint32_t i = 0; i < 8u * 64u; i++) /* rows 32 to 39, below the seeded 32 */
+        *(uint32_t *) &dev->svga.vram[HZ_A + 32u * 256u + i * 4u] = HZ_MARK;
+    for (uint32_t i = 0; i < 8u * 256u; i++)
+        dev->svga.vram[HZ_A + 48u * 256u + i] = (uint8_t) (i * 7u + 3u);
+    hz_draw(dev, 0.0f, 31.0f, GC_A);
+    check_true("r2d: a copy after a pending draw's rows queues",
+               rage128_gpu_2d_blit(dev, dst, 256u, src, 256u, 30u, 8u) == 1);
+    gpu_sync(dev);
+    if (memcmp(ref, &dev->svga.vram[HZ_A], sizeof(ref)))
+        ok_draw = 0;
+    for (uint32_t r = 0; r < 8u; r++) {
+        const uint8_t *d = &dev->svga.vram[dst + r * 256u];
+        const uint8_t *s = &dev->svga.vram[src + r * 256u];
+
+        if (memcmp(d, s, 30))
+            ok_copy = 0;
+        /* the marker's bytes on both sides of the row, in the row's own words */
+        if (d[-1] != (uint8_t) (HZ_MARK & 0xffu) || d[30] != (uint8_t) (HZ_MARK >> 24))
+            ok_edge = 0;
+    }
+    check_true("r2d: the pending draw's rows are as without the copy", ok_draw);
+    check_true("r2d: the copy after the draw's rows lands", ok_copy);
+    check_true("r2d: the bytes beside the copy's rows keep their values", ok_edge);
+}
+
+static void
+run_r2d(void)
+{
+    static const struct {
+        int         scen;
+        uint32_t    bpp;
+        const char *name;
+    } cases[] = {
+        { R2D_S_RANDOM, 1, "random fills and copies, 8 bpp" },
+        { R2D_S_RANDOM, 2, "random fills and copies, 16 bpp" },
+        { R2D_S_RANDOM, 3, "random fills and copies, 24 bpp" },
+        { R2D_S_RANDOM, 4, "random fills and copies, 32 bpp" },
+        { R2D_S_THIN, 1, "one-pixel, one-row and one-column rectangles, 8 bpp" },
+        { R2D_S_THIN, 3, "one-pixel, one-row and one-column rectangles, 24 bpp" },
+        { R2D_S_OVERLAP, 1, "copies overlapping their source in eight directions, 8 bpp" },
+        { R2D_S_OVERLAP, 4, "copies overlapping their source in eight directions, 32 bpp" },
+        { R2D_S_WORD, 1, "rectangles that share a word, 8 bpp" },
+        { R2D_S_WORD, 2, "rectangles that share a word, 16 bpp" },
+        { R2D_S_WORD, 3, "rectangles that share a word, 24 bpp" },
+        { R2D_S_END, 1, "rectangles at the last byte of video memory, 8 bpp" },
+        { R2D_S_END, 4, "rectangles at the last byte of video memory, 32 bpp" },
+        { R2D_S_TILED, 4, "fills of a tiled destination, 32 bpp" },
+        { R2D_S_CPUSTORE, 1, "CPU byte stores beside a queued copy's rows, 8 bpp" },
+        { R2D_S_SRCSTORE, 1, "CPU byte stores beside a queued copy's source rows, 8 bpp" },
+    };
+    enum { NC = sizeof(cases) / sizeof(cases[0]) };
+    uint8_t    *got[NC], *big, *bigw;
+    uint32_t    nb[NC], bign, bigwn;
+    uint64_t    bigd[5], bigdw[5];
+    int         fired[NC], dummy;
+    uint64_t    c0[3] = { 0, 0, 0 }, c1[3] = { 0, 0, 0 };
+    const char *genv = getenv("R128_GPU");
+    char        gprev[32] = "", name[160];
+    rage128_t  *dev;
+    int         have_gpu;
+
+    if (!harness_gpu_available()) {
+        printf("SKIP r2d: built without Vulkan headers\n");
+        return;
+    }
+    if (genv)
+        snprintf(gprev, sizeof(gprev), "%s", genv);
+    harness_cfg_memory_mb = 32;
+
+    setenv("R128_GPU", "1", 1);
+    dev = rage128_init(&ati_rage128_pro_device);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff); /* starts the backend */
+    drain_sync(dev);
+    have_gpu = dev->gpu && harness_gpu_async(dev->gpu);
+    if (!have_gpu) {
+        printf("SKIP r2d: no async GPU backend on this host\n");
+        close_dev(dev);
+        if (genv)
+            setenv("R128_GPU", gprev, 1);
+        else
+            unsetenv("R128_GPU");
+        return;
+    }
+    harness_gpu_q2d_rec(dev->gpu, &c0[0], &c0[1], &c0[2]);
+    for (int i = 0; i < NC; i++)
+        got[i] = r2d_run(dev, cases[i].scen, cases[i].bpp, &nb[i], &fired[i]);
+    harness_gpu_q2d_rec(dev->gpu, &c1[0], &c1[1], &c1[2]);
+    printf("r2d data: scenarios recorded commands=%llu regions=%llu dispatches=%llu\n",
+           (unsigned long long) (c1[0] - c0[0]), (unsigned long long) (c1[1] - c0[1]),
+           (unsigned long long) (c1[2] - c0[2]));
+    big = r2d_big_bounce(dev, &bign, bigd);
+    vectors_r2d_counters(dev);
+    vectors_r2d_after_draw(dev);
+    close_dev(dev);
+
+    setenv("R128_GPU", "0", 1);
+    dev = rage128_init(&ati_rage128_pro_device);
+    for (int i = 0; i < NC; i++) {
+        uint32_t n;
+        uint8_t *want = r2d_run(dev, cases[i].scen, cases[i].bpp, &n, &dummy);
+
+        snprintf(name, sizeof(name), "r2d: %s: equal to the CPU walk", cases[i].name);
+        check_true(name, got[i] && want && n == nb[i] && !memcmp(got[i], want, n));
+        if (got[i] && want && n == nb[i] && memcmp(got[i], want, n)) {
+            uint32_t first = 0, cnt = 0;
+
+            for (uint32_t k = n; k-- > 0;)
+                if (got[i][k] != want[k]) {
+                    first = k;
+                    cnt++;
+                }
+            printf("r2d data: %s: %u bytes differ, the first at surface byte %d "
+                   "(backend %02x, CPU walk %02x)\n",
+                   cases[i].name, cnt, (int) first - (int) R2D_GUARD, got[i][first],
+                   want[first]);
+        }
+        if (cases[i].scen == R2D_S_CPUSTORE || cases[i].scen == R2D_S_SRCSTORE) {
+            const char *row = cases[i].scen == R2D_S_CPUSTORE
+                ? "r2d: a CPU store into a queued copy's edge word waits for the copy"
+                : "r2d: a CPU store into a word a queued copy reads waits for the copy";
+
+            /* the copy must have been pending when the store came, or the
+               row would pass without the barrier doing anything */
+            if (fired[i] < 0)
+                printf("SKIP %s: no work was pending before the store (a verify mode "
+                       "flushes each blit as it queues)\n", row);
+            else
+                check_true(row, fired[i]);
+        }
+        free(want);
+        free(got[i]);
+    }
+    bigw = r2d_big_bounce(dev, &bigwn, bigdw);
+    printf("r2d data: ring-limit scroll: bounced %llu, to the CPU walk %llu, regions %llu, "
+           "dispatches %llu\n",
+           (unsigned long long) bigd[0], (unsigned long long) bigd[1],
+           (unsigned long long) bigd[3], (unsigned long long) bigd[4]);
+    snprintf(name, sizeof(name),
+             "r2d: a scroll that fits the staging ring only unpadded still bounces "
+             "(bounced %llu, to the CPU walk %llu; regions %llu dispatches %llu)",
+             (unsigned long long) bigd[0], (unsigned long long) bigd[1],
+             (unsigned long long) bigd[3], (unsigned long long) bigd[4]);
+    check_true(name, bigd[0] == 1 && bigd[1] == 0);
+    check_true("r2d: a scroll that fits the staging ring only unpadded: equal to the CPU walk",
+               big && bigw && bign == bigwn && !memcmp(big, bigw, bign));
+    free(bigw);
+    free(big);
+    close_dev(dev);
+    if (genv)
+        setenv("R128_GPU", gprev, 1);
+    else
+        unsetenv("R128_GPU");
+}
+
 static void
 run_lanegap(void)
 {
@@ -23072,10 +29403,12 @@ run_lanegap(void)
     vectors_surf_map_span_crosses_agp(dev);
     vectors_scissor_signed_3d(dev);
     vectors_gmc_3d_fcn_clear(dev);
+    vectors_3d_c_alias_read(dev);
     vectors_fpu_supersample(dev);
     vectors_solid_shade(dev);
     vectors_pitch_adj_every_load(dev);
     vectors_lanegap_rmw_cap(dev);
+    vectors_lanegap_stretch_cap(dev);
     vectors_lanegap_aux_split(dev);
     vectors_lanegap_ov0_key(dev);
     vectors_ov0_key_fn(dev);
@@ -23088,6 +29421,7 @@ run_lanegap(void)
     vectors_ov0_flip_at_vblank(dev);
     vectors_ov0_pitch_field(dev);
     vectors_ov0_window_fields(dev);
+    vectors_ov0_crop_start(dev);
     vectors_ov0_v_accum_floor(dev);
     vectors_ov0_src_span_wrap(dev);
     vectors_ov0_src_wrap_bounds(dev);
@@ -24926,10 +31260,11 @@ vectors_gpu_tuple_reload(void)
 static const char *const shard_units[] = {
     "gpu-tuple-reload", "inline-pace", "agp-oracle",
     "agp-16mb", "pci-xpert128", "pci-variant", "monid-mask", "amcgpio",
-    "maxx", "vga-decode", "lanegap", "lanegap-16mb", "gpu2d-verify",
+    "maxx", "ddc-edid", "i2c-hw", "bm-vip", "vga-decode", "lanegap", "lanegap-16mb",
+    "gpu2d-verify",
     "x64legs", "synctel", "yuv-border", "texture-alpha", "dither-init",
     "sec-persp", "sec-only", "dst-1555-4444", "zoff-tfog",
-    "stipple-fast", "lanegap-expectedfail", "gpu-carry"
+    "stipple-fast", "lanegap-expectedfail", "gpu-carry", "gpu-r2d"
 };
 static char *selected_units;
 
@@ -25611,6 +31946,8 @@ main(int argc, char **argv)
     if (unit_selected("pci-xpert128"))
         run_pci_xpert128();
     if (unit_selected("agp-oracle"))
+        run_cpu_walk_hold();
+    if (unit_selected("agp-oracle"))
         run_agp_32mb_threaded();
     if (unit_selected("pci-variant"))
         run_pci_variant();
@@ -25620,6 +31957,12 @@ main(int argc, char **argv)
         run_amcgpio();
     if (unit_selected("maxx"))
         run_maxx();
+    if (unit_selected("ddc-edid"))
+        run_ddc_edid();
+    if (unit_selected("i2c-hw"))
+        run_i2c909();
+    if (unit_selected("bm-vip"))
+        run_bm910();
     if (unit_selected("vga-decode"))
         run_vga_decode();
     if (unit_selected("lanegap"))
@@ -25630,6 +31973,8 @@ main(int argc, char **argv)
         run_gpu2d_verify();
     if (unit_selected("gpu-carry"))
         run_gpu_carry();
+    if (unit_selected("gpu-r2d"))
+        run_r2d();
     if (unit_selected("x64legs"))
         run_x64legs();
     if (unit_selected("synctel"))

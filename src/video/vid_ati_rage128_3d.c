@@ -115,20 +115,20 @@ rage128_3d_reg_read(rage128_t *dev, uint32_t off, uint32_t *val)
         case RAGE128_PLANE_3D_MASK_C:      *val = dev->t3d.plane_3d_mask; return 1;
 
         /* The _C copies of 2D datapath registers in the CCE 3D context
-           block are aliases of the 2D registers (RRG: DST_PITCH_OFFSET_C,
-           p. 3-145 / PDF 163; RRG: DP_GUI_MASTER_CNTL_C, p. 3-177 /
-           PDF 195; RRG: SC_TOP_LEFT_C, p. 3-162 / PDF 180; RRG:
-           SC_BOTTOM_RIGHT_C, p. 3-163 / PDF 181), so they read back the
-           2D state. */
+           block are aliases of the 2D registers: a write lands on the 2D
+           register (the write path below). All four are write-only
+           (RRG: DST_PITCH_OFFSET_C, p. 3-145 / PDF 163; RRG:
+           DP_GUI_MASTER_CNTL_C, p. 3-175 / PDF 193; RRG: SC_TOP_LEFT_C,
+           p. 3-162 / PDF 180; RRG: SC_BOTTOM_RIGHT_C, p. 3-162 /
+           PDF 180), so a read of any of them returns 0 and does not
+           come from the 2D register; the 0 follows the write-only tag
+           and is modeled. */
         case RAGE128_DST_PITCH_OFFSET_C:
         case RAGE128_DP_GUI_MASTER_CNTL_C:
         case RAGE128_SC_TOP_LEFT_C:
         case RAGE128_SC_BOTTOM_RIGHT_C:
-            return rage128_2d_reg_read(dev,
-                (off == RAGE128_DP_GUI_MASTER_CNTL_C) ? RAGE128_DP_GUI_MASTER_CNTL
-              : (off == RAGE128_SC_TOP_LEFT_C)        ? RAGE128_SC_TOP_LEFT
-              : (off == RAGE128_SC_BOTTOM_RIGHT_C)    ? RAGE128_SC_BOTTOM_RIGHT
-              : RAGE128_DST_PITCH_OFFSET, val);
+            *val = 0;
+            return 1;
 
         default:
             break;
@@ -154,10 +154,11 @@ rage128_3d_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
     switch (off) {
         case RAGE128_SCALE_3D_CNTL:        MERGE(dev->t3d.scale_3d_cntl); return 1;
         case RAGE128_SCALE_3D_DATATYPE:
-            /* Latched only. The guides give this register no field list;
-               the CCE 3D supplement names parts of it as aliases of the
-               datatype and palette fields of PRIM_TEX_CNTL_C and
-               SEC_TEX_CNTL_C, and the 3D path reads those registers. */
+            /* The guides give this register no field list; the CCE 3D
+               supplement names parts of it as aliases of the datatype
+               and palette fields of PRIM_TEX_CNTL_C and SEC_TEX_CNTL_C,
+               and the 3D path reads those registers. The 2D engine's
+               register-started scale reads [3:0] as its source format. */
             MERGE(dev->t3d.scale_3d_datatype);
             return 1;
         case RAGE128_COMPOSITE_SHADOW_ID:
@@ -4524,8 +4525,10 @@ r3d_draw_state_derive(rage128_raster_state_t *rs)
        Direct3D driver uses it for a SUBTRACT in this pass on a Pro. The
        function codes are the SDK's; the xf86-video-r128 header numbers
        them differently (R128_LIGHT_MODULATE is 2, R128_LIGHT_ADD 3, and
-       so on; only 0, disable, agrees). The supplement says the functions
-       are ignored when
+       so on; only 0, disable, agrees). Disable is the one value an
+       open-source driver programs (mesa r128_state.c r128DDInitState),
+       so that numbering is never exercised; the model follows the SDK's
+       tables. The supplement says the functions are ignored when
        TEX_EN is 0; the model runs the pass only when a texture stage is
        enabled. */
     ds->lcomb.comb  = (tc >> 14) & 0xf;
@@ -5211,12 +5214,51 @@ rage128_3d_draw_inline(rage128_t *dev, const uint32_t *pl, uint32_t count)
     num    = RAGE128_VC_NUM(cntl);
     stride = rage128_3d_vertex_dwords(fmt);
 
+    /* A header COUNT larger than the vertices need has already been cut
+       to them by the parser (rage128_3d_gen_prim_dwords), so any other
+       mismatch is a packet too short for its vertices, or not the ring
+       walk: no walk is guessed for it. */
     if (stride == 0 || walk != RAGE128_VC_WALK_RING
         || (uint64_t) num * stride != count - 2)
-        return; /* not the packet shape seen in traffic: do not guess a walk */
+        return;
 
     /* Primitive assembly from the inline vertices at pl[2]. */
     r3d_buffer_draw(dev, pl, count, 0, fmt, stride, prim, num, 0, &pl[2]);
+}
+
+/* How many body dwords a 3D_RNDR_GEN_PRIM (0x25) takes from the stream.
+   The packet is VC_FORMAT, VC_CNTL and NUM_VERTEX vertices of the
+   format's size (SDK: Table F-42, p. F-49 / PDF 339), and the header's
+   COUNT gives the body length (SDK: Type-0 CCE Packet, Table 4-12,
+   p. F-9 / PDF 299). The guide does not say what the chip does when
+   COUNT claims more than the vertices fill; it warns only that a
+   malformed packet hangs the chip (SDK: Cautions When Programming
+   RAGE 128 in CCE Mode, p. 5-8 / PDF 104). A sender that ORs each
+   batch's length into a header built once before its batch loop sends
+   that shape: the last, shorter batch of a long figure claims the
+   length of the batches before it, and the sender expects the whole
+   figure drawn. So with the ring walk the packet is modeled as
+   ending at its last vertex, and the next dword is read as the next
+   header. NUM_VERTEX 0 ends it after VC_CNTL. The rule only ever
+   shortens: a COUNT smaller than the vertices need, or any other walk,
+   keeps the header's length, and rage128_3d_draw_inline then refuses to
+   draw it.
+
+   The executor, the indirect-buffer walk and the ring pump's framer all
+   call this once VC_CNTL has arrived. They must agree, because the
+   stream position after a 0x25 is where each of them reads the next
+   header: the framer finds the indirect-buffer submits in the ring by
+   that position, and splices each buffer behind its submit for the
+   executor to run. */
+uint32_t
+rage128_3d_gen_prim_dwords(uint32_t fmt, uint32_t cntl, uint32_t count)
+{
+    uint64_t need;
+
+    if (RAGE128_VC_PRIM_WALK(cntl) != RAGE128_VC_WALK_RING)
+        return count;
+    need = 2 + (uint64_t) RAGE128_VC_NUM(cntl) * rage128_3d_vertex_dwords(fmt);
+    return need < count ? (uint32_t) need : count;
 }
 
 /* NEXT_VERTEX_BUNDLE (0x2e): the payload is index pairs only, a
