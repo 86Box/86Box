@@ -1,4 +1,5 @@
 add_subdirectory(cdrom)
+add_subdirectory(chipset)
 add_subdirectory(cpu)
 add_subdirectory(device)
 add_subdirectory(disk)
