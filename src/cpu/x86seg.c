@@ -144,6 +144,21 @@ null_data_seg(x86seg *s)
         cpu_cur_status |= CPU_STATUS_NOTFLATES;
 }
 
+#define INT_STACK_STATUS (CPU_STATUS_STACK32 | CPU_STATUS_NOTFLATSS | CPU_STATUS_NOTWIDESS | CPU_STATUS_NOT64K)
+
+/* A push of an inner-level interrupt frame faulted. A fault restores the
+   state from before the faulting instruction, so the stack goes back to the
+   interrupted program's: selector, descriptor cache, ESP and size. */
+static void
+int_stack_restore(const x86seg *old_ss, uint32_t old_esp, int old_stack32, uint16_t old_status)
+{
+    cpu_state.seg_ss = *old_ss;
+    ESP              = old_esp;
+    stack32          = old_stack32;
+    cpu_cur_status   = (cpu_cur_status & ~INT_STACK_STATUS) | (old_status & INT_STACK_STATUS);
+    cpl_override     = 0;
+}
+
 /* An exception's error code, sized by the gate it was delivered through, or
    for a task gate by the target TSS (pmodeint) */
 static void
@@ -1666,6 +1681,9 @@ pmodeint(int num, int soft)
     uint32_t     *segdat232 = (uint32_t *) segdat2;
     uint32_t     *segdat332 = (uint32_t *) segdat3;
     const x86seg *dt;
+    x86seg        old_seg_ss;
+    int           old_stack32;
+    uint16_t      old_status;
 
     if ((cpu_state.eflags & VM_FLAG) && (IOPL != 3) && soft && !x86_int_sw_iopl_exempt) {
         x86seg_log("V86 banned int\n");
@@ -1819,6 +1837,9 @@ pmodeint(int num, int soft)
                             x86ss("Int gate loading SS not present", (newss & 0xfffc) + !soft);
                             return;
                         }
+                        old_seg_ss  = cpu_state.seg_ss;
+                        old_stack32 = stack32;
+                        old_status  = cpu_cur_status;
                         SS = newss;
                         set_stack32((segdat3[3] & 0x0040) ? 1 : 0);
                         if (stack32)
@@ -1846,8 +1867,21 @@ pmodeint(int num, int soft)
                                     PUSHL_SEL(DS);
                                     PUSHL_SEL(ES);
                                 }
-                                if (cpu_state.abrt)
+                                if (cpu_state.abrt) {
+                                    int_stack_restore(&old_seg_ss, oldsp, old_stack32, old_status);
                                     return;
+                                }
+                            }
+                            is586 ? PUSHL(oldss) : PUSHL_SEL(oldss);
+                            PUSHL(oldsp);
+                            PUSHL(cpu_state.flags | (cpu_state.eflags << 16));
+                            is586 ? PUSHL(CS) : PUSHL_SEL(CS);
+                            PUSHL(cpu_state.pc);
+                            if (cpu_state.abrt) {
+                                int_stack_restore(&old_seg_ss, oldsp, old_stack32, old_status);
+                                return;
+                            }
+                            if (cpu_state.eflags & VM_FLAG) {
                                 /* Null selectors, as protected mode loads them
                                    (VM is still set, so loadseg would take its
                                    real-mode path): a use before reload is #GP */
@@ -1856,21 +1890,16 @@ pmodeint(int num, int soft)
                                 null_data_seg(&cpu_state.seg_fs);
                                 null_data_seg(&cpu_state.seg_gs);
                             }
-                            is586 ? PUSHL(oldss) : PUSHL_SEL(oldss);
-                            PUSHL(oldsp);
-                            PUSHL(cpu_state.flags | (cpu_state.eflags << 16));
-                            is586 ? PUSHL(CS) : PUSHL_SEL(CS);
-                            PUSHL(cpu_state.pc);
-                            if (cpu_state.abrt)
-                                return;
                         } else {
                             PUSHW(oldss);
                             PUSHW(oldsp);
                             PUSHW(cpu_state.flags);
                             PUSHW(CS);
                             PUSHW(cpu_state.pc);
-                            if (cpu_state.abrt)
+                            if (cpu_state.abrt) {
+                                int_stack_restore(&old_seg_ss, oldsp, old_stack32, old_status);
                                 return;
+                            }
                         }
                         cpl_override            = 0;
                         cpu_state.seg_cs.access = 0x80;

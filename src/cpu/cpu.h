@@ -502,7 +502,9 @@ typedef struct {
 /* Some segment register (CS, DS, ES, SS, FS or GS) has limits other than
    0..0xffff. Clear, a V86 block leaves out the limit checks of accesses
    that can't pass 0xffff (CHECK_SEG_LIMITS). Every write of other limits
-   sets it (cpu_mark_64k_status); only cpu_update_64k_status clears it. */
+   sets it (cpu_mark_64k_status); cpu_update_64k_status clears it, and an
+   interrupt's stack switch undone after a faulting frame push puts back
+   the value from before the switch. */
 #define CPU_STATUS_NOT64K    (1 << 13)
 #define CPU_STATUS_MASK      0xff00
 
