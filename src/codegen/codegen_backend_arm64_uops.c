@@ -273,20 +273,45 @@ lazy_stubs_match(const lazy_stub_t *a, const lazy_stub_t *b)
     return 1;
 }
 
+/*Equal stubs (lazy_stubs_match) hash alike*/
+#    define LAZY_STUB_HASH_BITS 6
+static uint32_t
+lazy_stub_hash(const lazy_stub_t *stub)
+{
+    uint64_t h = ((uintptr_t) stub->route ^ ((uint64_t) (uint32_t) stub->add << 32) ^ (uint64_t) stub->list->nr) * 0x9e3779b97f4a7c15ull;
+
+    for (int i = 0; i < stub->list->nr; i++) {
+        const codegen_lazy_store_t *store = &stub->list->stores[i];
+
+        h = (h ^ store->imm ^ ((uint64_t) store->ireg << 32) ^ ((uint64_t) store->host_reg << 40)) * 0x9e3779b97f4a7c15ull;
+    }
+    return (uint32_t) (h >> (64 - LAZY_STUB_HASH_BITS));
+}
+
 void
 codegen_lazy_stubs_emit(codeblock_t *block)
 {
-    for (int i = 0; i < nr_lazy_stubs; i++) {
-        lazy_stub_t *stub = &lazy_stubs[i];
-        int          j;
+    /*The first stub of each set of equal ones, chained by hash: a later
+      stub equal to it takes its code*/
+    int16_t first[1 << LAZY_STUB_HASH_BITS];
+    int16_t next[CODEGEN_LAZY_SITES_MAX];
 
-        for (j = 0; j < i; j++) {
+    for (int h = 0; h < (1 << LAZY_STUB_HASH_BITS); h++)
+        first[h] = -1;
+    for (int i = 0; i < nr_lazy_stubs; i++) {
+        lazy_stub_t   *stub = &lazy_stubs[i];
+        const uint32_t h    = lazy_stub_hash(stub);
+        int            j;
+
+        for (j = first[h]; j >= 0; j = next[j]) {
             if (lazy_stubs_match(stub, &lazy_stubs[j]))
                 break;
         }
-        if (j < i)
+        if (j >= 0)
             stub->addr = lazy_stubs[j].addr;
         else {
+            next[i]  = first[h];
+            first[h] = i;
             void *dest = codegen_exit_dest(stub->route, stub->add);
 
             codegen_alloc(block, 4);
