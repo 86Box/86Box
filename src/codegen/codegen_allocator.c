@@ -290,7 +290,20 @@ codegen_allocator_clean_blocks(UNUSED(struct mem_block_t *block))
 #    define MEM_BLOCK_VENEER_REGION (MEM_BLOCK_VENEER_STRIDE * MEM_BLOCK_SIZE)
 
 static const void *veneer_targets[MEM_BLOCK_SIZE / 4];
-static int         nr_veneer_targets;
+
+/*i + 1 for veneer_targets[i], at the slot its address hashes to or the
+  first free one after; 0 ends a search. A target is entered once, at its
+  first i*/
+#    define VENEER_INDEX_BITS 9
+#    define VENEER_INDEX_SIZE (1 << VENEER_INDEX_BITS)
+static uint16_t veneer_index[VENEER_INDEX_SIZE];
+_Static_assert(VENEER_INDEX_SIZE > (MEM_BLOCK_SIZE / 4), "the veneer index needs a free slot");
+
+static inline uint32_t
+veneer_index_slot(const void *target)
+{
+    return ((uint32_t) ((uintptr_t) target >> 2) * 0x9e3779b1u) >> (32 - VENEER_INDEX_BITS);
+}
 
 /*Region r's veneer block holds, at i * 4, a B to targets[i]*/
 void
@@ -311,9 +324,17 @@ codegen_allocator_set_veneers(const void **targets, int nr)
         CODEGEN_HOST_CLEAR_CACHE(veneer, &veneer[nr]);
     }
 
-    for (int i = 0; i < nr; i++)
+    for (int i = 0; i < VENEER_INDEX_SIZE; i++)
+        veneer_index[i] = 0;
+    for (int i = 0; i < nr; i++) {
+        uint32_t slot = veneer_index_slot(targets[i]);
+
         veneer_targets[i] = targets[i];
-    nr_veneer_targets = nr;
+        while (veneer_index[slot] && (veneer_targets[veneer_index[slot] - 1] != targets[i]))
+            slot = (slot + 1) & (VENEER_INDEX_SIZE - 1);
+        if (!veneer_index[slot])
+            veneer_index[slot] = i + 1;
+    }
 }
 
 /*A B to dst within 1MB of src (in the first region the routines themselves
@@ -329,7 +350,9 @@ codegen_allocator_veneer(const void *src, const void *dst)
     region = (ptr - mem_block_alloc) / MEM_BLOCK_VENEER_REGION;
     if (!region)
         return NULL;
-    for (int i = 0; i < nr_veneer_targets; i++) {
+    for (uint32_t slot = veneer_index_slot(dst); veneer_index[slot]; slot = (slot + 1) & (VENEER_INDEX_SIZE - 1)) {
+        const int i = veneer_index[slot] - 1;
+
         if (veneer_targets[i] == dst)
             return &mem_block_alloc[(region * MEM_BLOCK_VENEER_REGION) + (i * 4)];
     }
