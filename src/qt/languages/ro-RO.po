@@ -2675,6 +2675,9 @@ msgstr "SLI"
 msgid "Start Address"
 msgstr "Adresă de pornire"
 
+msgid "Allow RAM up to the system ROM"
+msgstr ""
+
 msgid "Contiguous Size"
 msgstr "Dimensiune contiguă"
 

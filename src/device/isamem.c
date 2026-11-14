@@ -669,9 +669,31 @@ isamem_init(const device_t *info)
          * A0000-B7FFF on CGA systems for 704/736KB conventional memory,
          * or providing RAM for UMBs). Configurations with a start address
          * below 640KB behave exactly as before.
+         *
+         * Optionally, on machines whose BIOS ROM starts above 960KB (for
+         * example the 16KB ROM at FC000 of the Amstrad PC1512), the RAM
+         * can go on up to the start of that ROM: it is mapped up to 1MB
+         * and the system BIOS, mapped after the cards, keeps its own range.
+         * Off by default: on some machines the ROM is only partially
+         * decoded and repeats there.
          */
-        if ((dev->board == ISAMEM_GENXT_CARD) && (addr >= RAM_TOPMEM) && (addr < RAM_UMATOP)) {
-            t   = RAM_UMATOP - addr;
+        if ((dev->board == ISAMEM_GENXT_CARD) && (addr >= RAM_TOPMEM) && (addr < 0x100000)) {
+            uint32_t uma_top = RAM_UMATOP;
+
+            /*
+             * The cards are set up before the machine loads its BIOS, so
+             * biosaddr can't be used here: map up to 1MB and let the
+             * system BIOS, mapped afterwards as ROMCS, take its own range.
+             */
+            if (device_get_config_int("uma_to_rom"))
+                uma_top = 0x100000;
+
+            /*
+             * Only the upper memory area is used: nothing is mapped
+             * at or above uma_top, and any RAM left over is unused
+             * (never mapped as extended memory below 1MB).
+             */
+            t   = (addr < uma_top) ? (uma_top - addr) : 0;
             uma = 1;
         }
 
@@ -767,7 +789,7 @@ isamem_init(const device_t *info)
      * real mode (so, not by DOS, for example) but it can be used in
      * protected mode.
      */
-    if (is286 && addr > 0 && tot > 0) {
+    if (is286 && !uma && addr > 0 && tot > 0) {
         t = tot;
         isamem_log("ISAMEM: RAM at %05iKB (%iKB)\n", addr >> 10, t >> 10);
 
@@ -1084,9 +1106,20 @@ static const device_config_t genericxt_config[] = {
         .file_filter    = NULL,
         .spinner        = {
             .min  =   0,
-            .max  = 944,
+            .max  = 992,
             .step =  16
         },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "uma_to_rom",
+        .description    = "Allow RAM up to the system ROM",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
         .selection      = { { 0 } },
         .bios           = { { 0 } }
     },

@@ -2564,6 +2564,9 @@ msgstr "SLI"
 msgid "Start Address"
 msgstr "Địa chỉ bắt đầu"
 
+msgid "Allow RAM up to the system ROM"
+msgstr ""
+
 msgid "Contiguous Size"
 msgstr "Kích thước tiếp giáp"
 

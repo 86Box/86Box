@@ -2573,6 +2573,9 @@ msgstr "SLI"
 msgid "Start Address"
 msgstr "Početna adresa"
 
+msgid "Allow RAM up to the system ROM"
+msgstr ""
+
 msgid "Contiguous Size"
 msgstr "Susjedna veličina"
 

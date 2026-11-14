@@ -2619,6 +2619,9 @@ msgstr "SLI"
 msgid "Start Address"
 msgstr "Başlangıç adresi"
 
+msgid "Allow RAM up to the system ROM"
+msgstr ""
+
 msgid "Contiguous Size"
 msgstr "Bitişik boyut"
 

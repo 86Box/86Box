@@ -2561,6 +2561,9 @@ msgstr "SLI"
 msgid "Start Address"
 msgstr "開始アドレス"
 
+msgid "Allow RAM up to the system ROM"
+msgstr ""
+
 msgid "Contiguous Size"
 msgstr "連続サイズ"
 
