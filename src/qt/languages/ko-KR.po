@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-09-01 17:51+0000\n"
+"PO-Revision-Date: 2026-11-14 02:27+0000\n"
 "Last-Translator: pc1412 <pc1412@gmail.com>\n"
 "Language-Team: Korean <https://weblate.86box.net/projects/86box/86box/ko/>\n"
 "Language: ko-KR\n"
@@ -151,13 +151,13 @@ msgid "4:&3 Integer scale"
 msgstr "4:3 정수배 확대(&3)"
 
 msgid "&Center"
-msgstr ""
+msgstr "중앙(&C)"
 
 msgid "4:3 Cen&ter"
-msgstr ""
+msgstr "4:3 중앙(&T)"
 
 msgid "4:3 Integer scale (&vertical)"
-msgstr ""
+msgstr "4:3 정수 배율(세로)(&V)"
 
 msgid "Inverted VGA monitor"
 msgstr "색상 반전된 VGA 모니터"
@@ -418,31 +418,31 @@ msgid "Memory:"
 msgstr "메모리:"
 
 msgid "Synchronize with host clock"
-msgstr ""
+msgstr "호스트 시계와 동기화"
 
 msgid "Time zone:"
-msgstr ""
+msgstr "시간대:"
 
 msgid "Local"
-msgstr ""
+msgstr "현지 시간"
 
 msgid "UTC"
-msgstr ""
+msgstr "협정 시계시(UTC)"
 
 msgid "Date:"
-msgstr ""
+msgstr "날짜:"
 
 msgid "Match the host"
-msgstr ""
+msgstr "호스트와 일치"
 
 msgid "Offset the year by:"
-msgstr ""
+msgstr "연도 조정:"
 
 msgid "(currently %1)"
-msgstr ""
+msgstr "(현재 %1)"
 
 msgid "Always use the year:"
-msgstr ""
+msgstr "항상 사용할 연도:"
 
 msgid "Do not synchronize the date"
 msgstr ""

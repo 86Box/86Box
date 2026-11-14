@@ -782,10 +782,15 @@ rage128_gen_int_update(rage128_t *dev)
    Every vertical blank, vertical sync and vertical line event
    re-evaluates the line as well. Register writes do not sync, so the
    executor's register writes, which come through the same entry, carry
-   no extra test. */
+   no extra test. A bus-master list that a packet started is run here
+   too, before the line is brought up to date, because it can only run
+   on the CPU thread and its end raises BUSMASTER_EOL_INT
+   (vid_ati_rage128_bm.c). */
 void
 rage128_gen_int_sync(rage128_t *dev)
 {
+    if (atomic_load_explicit(&dev->bm_pend_mask, memory_order_relaxed))
+        rage128_bm_sync(dev);
     if (atomic_load_explicit(&dev->gen_int_stale, memory_order_relaxed))
         rage128_gen_int_update(dev);
 }
@@ -801,6 +806,7 @@ rage128_gen_int_sync(rage128_t *dev)
 static void
 rage128_gen_int_fold_gui_idle(rage128_t *dev)
 {
+    rage128_2d_eng_poll(dev);
     if (atomic_exchange(&dev->gui_idle_event, 0)) {
         atomic_fetch_or(&dev->gen_int_status, RAGE128_GIS_GUI_IDLE);
         rage128_gen_int_update(dev);
@@ -1098,16 +1104,32 @@ rage128_reg_read32(rage128_t *dev, uint32_t off)
         case RAGE128_GUI_STAT:
             /* Read-only engine status (RRG: GUI_STAT, p. 3-244 / PDF 262).
                It reads GUI_ACTIVE and PM4_BUSY while the CCE thread holds
-               fetched work it has not executed, GUI_ACTIVE alone while
+               fetched work it has not executed, and GUI_ACTIVE while
                the ring is drained but the optional GPU backend is still
-               drawing, and idle otherwise. GUI_ACTIVE is the OR of the
-               engine busy bits, so it stays set until the last pixels
-               are written, and a driver's idle poll waits for that in
-               guest time. GUI_FIFOCNT always reads 64 free entries. */
-            if (rage128_pm4_active(dev))
-                return RAGE128_GUI_STAT_BUSY;
-            return rage128_gpu_engine_busy(dev) ? RAGE128_GUI_STAT_ACTIVE
-                                                : RAGE128_GUI_STAT_IDLE;
+               drawing. PM4_BUSY is the "State of PROMO_4 engine", so it
+               follows the work held (rage128_pm4_busy), not whether the
+               CCE thread is awake: that thread makes a pass of its loop
+               on every wake, and a wake can bring no work (the release
+               after a reset pulse, a drain wait's nudge). The GPU
+               backend's test therefore also runs while such a pass is
+               under way; with a segment pending it waits for the pass
+               to end before it submits (rage128_gpu_engine_busy).
+               GUI_ACTIVE is the OR of the engine busy bits, so
+               it stays set until the last pixels are written, and a
+               driver's idle poll waits for that in guest time.
+               GUI_FIFOCNT and the 2D engine's busy bits come from the
+               engine time of ops started by CPU register writes
+               (vid_ati_rage128_2d.c): CCE work is queued on the host
+               side and takes no entry of the 64. */
+            {
+                uint32_t stat = rage128_2d_eng_stat(dev);
+
+                if (rage128_pm4_busy(dev))
+                    return stat | (RAGE128_GUI_STAT_BUSY & ~0xfffu);
+                if (rage128_gpu_engine_busy(dev))
+                    return stat | (RAGE128_GUI_STAT_ACTIVE & ~0xfffu);
+                return stat;
+            }
         case RAGE128_PC_GUI_MODE:
             return dev->pc_gui_mode;
         default:
@@ -1165,6 +1187,12 @@ rage128_reg_read32(rage128_t *dev, uint32_t off)
         /* MPEG-2 macroblock assist (vid_ati_rage128_mpeg.c). */
         if (rage128_mpeg_reg_read(dev, off, &v))
             return v;
+        /* Hardware-assisted I2C master (vid_ati_rage128_i2c.c). */
+        if (rage128_i2c_reg_read(dev, off, &v))
+            return v;
+        /* Descriptor-list bus master (vid_ati_rage128_bm.c). */
+        if (rage128_bm_reg_read(dev, off, &v))
+            return v;
     }
 
     /* Read-only copy of PCI configuration space (RRG: Description of
@@ -1219,6 +1247,8 @@ enum {
     RAGE128_WBLK_PM4,         /* CCE command processor and PCI GART */
     RAGE128_WBLK_3D,          /* 3D engine context */
     RAGE128_WBLK_MPEG,        /* MPEG-2 macroblock assist */
+    RAGE128_WBLK_I2C,         /* hardware-assisted I2C master */
+    RAGE128_WBLK_BM,          /* descriptor-list bus master */
     RAGE128_WBLK_NONE         /* no block claims the offset */
 };
 
@@ -1240,6 +1270,10 @@ rage128_wblk_write(rage128_t *dev, int blk, uint32_t off, uint32_t val, uint32_t
             return rage128_3d_reg_write(dev, off, val, mask);
         case RAGE128_WBLK_MPEG:
             return rage128_mpeg_reg_write(dev, off, val, mask);
+        case RAGE128_WBLK_I2C:
+            return rage128_i2c_reg_write(dev, off, val, mask);
+        case RAGE128_WBLK_BM:
+            return rage128_bm_reg_write(dev, off, val, mask);
         default:
             return 0;
     }
@@ -1256,6 +1290,12 @@ rage128_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
 {
     off &= 0x3ffc;
     val &= mask;
+
+    /* A CPU write to a FIFO'd register takes its place in the command
+       FIFO behind the engine's running work, before any handler below
+       starts an op of its own (vid_ati_rage128_2d.c, engine time). */
+    if (off >= 0x1400 && off < 0x2000 && !rage128_on_cce_thread && !rage128_in_indirect)
+        rage128_2d_eng_fifo_write(dev);
 
     /* A write to the CCE and GUI engine registers from 0x1000 up (RRG:
        Description of Mapped Memory Apertures, Table 2-1, p. 2-5 / PDF 15)
@@ -1696,14 +1736,14 @@ rage128_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
        that does not claim the offset changes nothing. So the owner of an
        offset is found at its first write, by offering that write to the
        blocks in a fixed order (display, overlay, subpicture, 2D, PM4,
-       3D, MPEG; the first claim wins), and remembered, and later writes
-       go straight to it instead of past every block before it. The 3D
-       context registers, most of a game's command stream, would
-       otherwise reach their handler only after five others. An offset
-       no block claims, the read-only copy of configuration space among
-       them, is remembered as such and the write is dropped. Either
-       thread can find an owner first; both store the same block, so the
-       entries are relaxed atomics. */
+       3D, MPEG, I2C, bus master; the first claim wins), and remembered,
+       and later writes go straight to it instead of past every block
+       before it. The 3D context registers, most of a game's command
+       stream, would otherwise reach their handler only after five
+       others. An offset no block claims, the read-only copy of
+       configuration space among them, is remembered as such and the
+       write is dropped. Either thread can find an owner first; both
+       store the same block, so the entries are relaxed atomics. */
     {
         uint32_t idx = off >> 2;
         int      blk = atomic_load_explicit(&dev->reg_wr_blk[idx], memory_order_relaxed);
@@ -2368,8 +2408,16 @@ rage128_pci_write(UNUSED(int func), int addr, UNUSED(int len), uint8_t val, void
                PMI_PMCSR_REG, p. 3-190 / PDF 208; PMI_D2_SUPPORT is 0,
                RRG: PMI_PMC_REG, p. 3-190 / PDF 208). */
             val &= 0x03;
-            if (val != RAGE128_PMI_POWER_STATE_D2)
+            if (val != RAGE128_PMI_POWER_STATE_D2) {
+                const uint8_t old = dev->pci_regs[addr];
+
                 dev->pci_regs[addr] = val;
+                /* Outside D0 the analog DAC powers down by itself (RRG:
+                   DAC_CNTL, p. 3-125 / PDF 143); the display block
+                   redraws when that changes what the DAC puts out.
+                   Nothing else follows the power state. */
+                rage128_dac_power_state_written(dev, old);
+            }
             break;
         default:
             break;
@@ -2548,6 +2596,8 @@ rage128_reset(void *priv)
     rage128_pm4_reset(dev);
     rage128_3d_reset(dev);
     rage128_mpeg_reset(dev);
+    rage128_i2c_reset(dev);
+    rage128_bm_reset(dev);
 
     rage128_vga_decode_update(dev);
 }
@@ -2631,6 +2681,10 @@ rage128_chip_init(const device_t *info, const rage128_chip_cfg_t *cfg)
     dev->i2c = i2c_gpio_init("ddc_ati_rage128");
     dev->ddc = ddc_init_ex(i2c_gpio_get_bus(dev->i2c),
                            ddc_edid_hires_crt, sizeof(ddc_edid_hires_crt));
+
+    /* The multimedia I2C master's own bus, empty on every board
+       (vid_ati_rage128_i2c.c). */
+    rage128_i2c_init(dev);
 
     /* Rasterizer worker pool, size set by the render_threads option. The
        optional GPU backend draws the states it supports and hands the
@@ -2788,6 +2842,7 @@ rage128_chip_close(rage128_t *dev)
                      rage128_vga_in, NULL, NULL,
                      rage128_vga_out, NULL, NULL, dev);
     ddc_close(dev->ddc);
+    rage128_i2c_close(dev);
     i2c_gpio_close(dev->i2c);
     svga_close(&dev->svga);
     free(dev);

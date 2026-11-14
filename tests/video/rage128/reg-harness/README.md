@@ -118,6 +118,18 @@ indirect-buffer fence made visible by the register-write drain. JIT verify
 and GPU modes use one CPU render thread, so deferred-batch checks apply
 only to the threaded CPU lane.
 
+The status vector in `gpu2d-verify` uses the same idle hook to hold the
+executor inside a pass of its loop and reads GUI_STAT, PM4_STAT and
+PC_GUI_CTLSTAT from the CPU thread. In a pass that a wake with no work
+caused, all three read idle; held after a packet and before the executor
+has reported idle for it, all three read busy. The registers follow the
+work the engine holds, not whether the executor thread is awake. A second
+status vector, in `agp-oracle` on the device with render workers, queues
+a batch from the CPU thread with a directly submitted indirect buffer and
+lets a wake with no work make the executor draw it. The bus-master write
+hook holds the executor at the first write of the staged color and depth
+buffers back to AGP memory, and the three registers read busy there.
+
 Capture vectors use an anonymous temporary file. On Windows, a failed
 anonymous-file open falls back to `_sopen_s` in the user's temporary
 directory, with exclusive creation and delete-on-close.

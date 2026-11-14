@@ -719,10 +719,19 @@ rom_present(const char *fn)
 /* ---- DDC / I2C: the real bus (src/device/i2c.c, i2c_gpio.c,
    src/mem/i2c_eeprom.c, src/video/vid_ddc.c) is linked, so the GPIO_MONID
    pad drive reaches an EDID EEPROM at 0x50 exactly as in the emulator.
-   Only vid_ddc.c's custom-EDID plumbing is stubbed: the built-in default
-   EDID is always used. ---- */
+   Only the custom EDID file reader is stubbed. With monitor_edid left at
+   0, as every unit but the EDID one leaves it, vid_ddc.c never calls the
+   reader and no file is opened. The EDID unit sets monitor_edid and a
+   path, and points harness_edid_file at the bytes the reader returns;
+   with harness_edid_file NULL the reader fails, as for a missing file,
+   and vid_ddc.c raises its error box, counted in harness_msgbox_count.
+   ---- */
 int  monitor_edid            = 0;
 char monitor_edid_path[1024] = { 0 };
+
+const uint8_t *harness_edid_file     = NULL;
+size_t         harness_edid_file_len = 0;
+int            harness_msgbox_count  = 0;
 
 char *
 plat_get_string(int id)
@@ -734,14 +743,18 @@ plat_get_string(int id)
 size_t
 ddc_load_edid(char *path, uint8_t *buf, size_t size)
 {
-    (void) path; (void) buf; (void) size;
-    return 0;
+    (void) path;
+    if (!harness_edid_file)
+        return 0;
+    memcpy(buf, harness_edid_file, (harness_edid_file_len < size) ? harness_edid_file_len : size);
+    return harness_edid_file_len;
 }
 
 int
 ui_msgbox_header(int flags, char *header, char *message)
 {
     (void) flags; (void) header; (void) message;
+    harness_msgbox_count++;
     return 0;
 }
 

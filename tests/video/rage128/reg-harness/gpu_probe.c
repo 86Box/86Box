@@ -704,6 +704,43 @@ harness_gpu_async(void *g)
     return ((r128_gpu_t *) g)->async;
 }
 
+int
+harness_gpu_r2d_on(void *g)
+{
+    return ((r128_gpu_t *) g)->r2d_en;
+}
+
+unsigned
+harness_gpu_r2d_rows(void)
+{
+    return GPU_R2D_ROWS;
+}
+
+void
+harness_gpu_q2d_rec(void *gp, uint64_t *cmds, uint64_t *regions, uint64_t *disp)
+{
+    r128_gpu_t *g = (r128_gpu_t *) gp;
+
+    *cmds    = g->st_q2d_cmds;
+    *regions = g->st_q2d_regions;
+    *disp    = g->st_q2d_disp;
+}
+
+int
+harness_gpu_pending(void *g)
+{
+    return atomic_load(&((r128_gpu_t *) g)->pending);
+}
+
+void
+harness_gpu_blit_rec(void *gp, uint64_t *bounce, uint64_t *cpu)
+{
+    r128_gpu_t *g = (r128_gpu_t *) gp;
+
+    *bounce = g->st_blit_bounce;
+    *cpu    = g->st_blit_cpu;
+}
+
 void
 harness_gpu_wait_submitted(void *gp)
 {
@@ -1710,6 +1747,40 @@ harness_gpu_async(void *g)
 {
     (void) g;
     return 0;
+}
+
+int
+harness_gpu_r2d_on(void *g)
+{
+    (void) g;
+    return 0;
+}
+
+unsigned
+harness_gpu_r2d_rows(void)
+{
+    return 0;
+}
+
+void
+harness_gpu_q2d_rec(void *g, uint64_t *cmds, uint64_t *regions, uint64_t *disp)
+{
+    (void) g;
+    *cmds = *regions = *disp = 0;
+}
+
+int
+harness_gpu_pending(void *g)
+{
+    (void) g;
+    return 0;
+}
+
+void
+harness_gpu_blit_rec(void *g, uint64_t *bounce, uint64_t *cpu)
+{
+    (void) g;
+    *bounce = *cpu = 0;
 }
 
 void

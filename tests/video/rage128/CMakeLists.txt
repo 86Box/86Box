@@ -38,6 +38,8 @@ set(R128_DEVICE_SOURCES
     ${R128_SRC}/video/vid_ati_rage128_pm4.c
     ${R128_SRC}/video/vid_ati_rage128_3d.c
     ${R128_SRC}/video/vid_ati_rage128_mpeg.c
+    ${R128_SRC}/video/vid_ati_rage128_i2c.c
+    ${R128_SRC}/video/vid_ati_rage128_bm.c
     ${R128_SRC}/video/vid_ati_rage128_raster.c
     ${R128_SRC}/video/vid_ati_rage128_mem.c
     ${R128_SRC}/video/vid_ati_rage128_jit.c

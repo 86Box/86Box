@@ -917,12 +917,6 @@ MainWindow::MainWindow(QWidget *parent)
 #endif
 
     setContextMenuPolicy(Qt::PreventContextMenu);
-    /* Remove default Shift+F10 handler, which unfocuses keyboard input even with no context menu. */
-#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
-    connect(new QShortcut(QKeySequence(Qt::SHIFT | Qt::Key_F10), this), &QShortcut::activated, this, []() { });
-#else
-    connect(new QShortcut(QKeySequence(Qt::SHIFT + Qt::Key_F10), this), &QShortcut::activated, this, []() { });
-#endif
 
     connect(this, &MainWindow::initRendererMonitor, this, &MainWindow::initRendererMonitorSlot);
     connect(this, &MainWindow::initRendererMonitorForNonQtThread, this, &MainWindow::initRendererMonitorSlot, Qt::BlockingQueuedConnection);
@@ -1719,6 +1713,18 @@ MainWindow::eventFilter(QObject *receiver, QEvent *event)
         auto *widget = qobject_cast<QWidget *>(receiver);
         if (widget && qobject_cast<MemoryViewer *>(widget->window()))
             return QMainWindow::eventFilter(receiver, event);
+    }
+
+    /* Suppress Qt's default Shift-F10 so the combination still
+       reaches the guest. */
+    if (event->type() == QEvent::ShortcutOverride) {
+        auto *ke = static_cast<QKeyEvent *>(event);
+        if (ke->key() == Qt::Key_F10
+            && (ke->modifiers() & Qt::ShiftModifier)
+            && !(ke->modifiers() & ~Qt::ShiftModifier)) {
+            event->accept();
+            return true;
+        }
     }
 
     if (event->type() == QEvent::KeyPress || event->type() == QEvent::KeyRelease) {

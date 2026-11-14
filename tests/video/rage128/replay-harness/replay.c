@@ -1471,6 +1471,11 @@ main(int argc, char **argv)
                         (unsigned long long) pick_shows,
                         (unsigned long long) pick_mutated);
         }
+        /* A bus-master list that a ring packet starts is run by the CPU
+           thread at its next register read. A replay makes no register
+           reads, so the waiting starts are run here, between records,
+           in the final wait below and once after it. */
+        rage128_bm_sync(dev);
         switch (line[0]) {
             case 'D':
             case 'J':
@@ -1606,8 +1611,10 @@ main(int argc, char **argv)
             } else
                 stall++;
             thread_set_event(dev->cce_wake_event);
+            rage128_bm_sync(dev);
             plat_delay_ms(1);
         }
+        rage128_bm_sync(dev);
     }
     /* The stop itself comes after the report and the VRAM dump: clearing
        cce_thread_run releases a WAIT_UNTIL stall, and the executor then

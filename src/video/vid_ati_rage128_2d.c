@@ -56,6 +56,25 @@
 #include <86box/vid_ati_rage128.h>
 #include <86box/vid_ati_rage128_regs.h>
 
+/* The blended stretch has a row loop that works on several pixels at a
+   time with the host's vector instructions (rage128_2d_stretch_row_v565
+   and rage128_2d_stretch_row_v8888). It is built for a little-endian
+   64-bit Arm host, where Advanced SIMD is part of the base instruction
+   set, and for an x86-64 host, where SSE2 is; the x86-64 loops use no
+   later instruction set, so neither host needs a run-time test. Any
+   other host, and a build that defines R128_STRETCH_NOVEC, has only the
+   one-pixel loop. */
+#if !defined(R128_STRETCH_NOVEC) && (defined(__aarch64__) || defined(_M_ARM64)) \
+    && !defined(__AARCH64EB__)
+#    include <arm_neon.h>
+#    define R128_STRETCH_VEC 1
+#elif !defined(R128_STRETCH_NOVEC) && (defined(__x86_64__) || defined(_M_X64))
+#    include <emmintrin.h>
+#    define R128_STRETCH_VEC 2
+#else
+#    define R128_STRETCH_VEC 0
+#endif
+
 /* The executors read the datapath registers DP_MIX and DP_DATATYPE, not
    DP_GUI_MASTER_CNTL. Several GMC fields are documented as "Mapped to"
    a DP_MIX or DP_DATATYPE field (RRG: DP_GUI_MASTER_CNTL,
@@ -134,11 +153,15 @@ rage128_2d_pat_row(const rage128_t *dev, int y)
    (RRG: DP_DATATYPE, p. 3-170 / PDF 188). The code applies it to the
    brush as well as the source: the X driver sets the bit for its
    stipples and dashes and passes the pattern bits LSB-first. So the 8x8
-   row byte reads bit c instead of bit 7 - c. The 32x1 line pattern is
-   read as a dword, bit 31 first; with the bit set it is read bit 0
-   first, which is what the X driver's dashed line expects
-   (xf86-video-r128 r128_accel.c, XAA version, R128SetupForDashedLine).
-   The guide does not say how the bit applies to a 32x1 pattern. */
+   row byte reads bit c instead of bit 7 - c. A 32-pixel row (the 32x1
+   pattern of brush types 6 and 7, and each row of the 32x32 pattern of
+   types 8 and 9) is four such bytes in memory order: pixels 0-7 come
+   from the low byte of the dword, pixels 24-31 from the high byte. The
+   bit flips the order only inside each byte, so with the bit clear
+   pixel c is bit 7 - (c mod 8) of byte c / 8, which is bit c XOR 7 of
+   the dword, and with the bit set it is bit c. With the bit set that
+   is what the X driver's dashed line expects (xf86-video-r128
+   r128_accel.c, XAA version, R128SetupForDashedLine). */
 static inline int
 rage128_2d_pat8_bit(const rage128_t *dev, uint8_t row, int x)
 {
@@ -151,14 +174,13 @@ static inline int
 rage128_2d_pat32_bit(const rage128_t *dev, uint32_t pat32, int phase)
 {
     return rage128_dp_lsb_first(dev) ? (pat32 >> (phase & 31)) & 1
-                                     : (pat32 >> (31 - (phase & 31))) & 1;
+                                     : (pat32 >> ((phase & 31) ^ 7)) & 1;
 }
 
 /* Brush types 8 and 9 are the 32x32 mono pattern (RRG: DP_DATATYPE,
    p. 3-169 / PDF 187). The mono pointer then points at 32 dwords, one
    per row, each read like the 32x1 line pattern, with BRUSH_Y_X taken
-   mod 32. The GPU queue paths model only the 8x8 tile and refuse this
-   brush. */
+   mod 32. */
 static inline int
 rage128_2d_brush_32x32(const rage128_t *dev)
 {
@@ -167,15 +189,34 @@ rage128_2d_brush_32x32(const rage128_t *dev)
     return bt == 8 || bt == 9;
 }
 
-/* One mono brush pixel at screen (x, y). */
+/* Brush types 6 to 9 are the 32-pixel-wide mono patterns: 6 and 7 the
+   32x1 pattern, 8 and 9 the 32x32 one (RRG: DP_DATATYPE, p. 3-169 /
+   PDF 187). A rectangle fill started from the registers hands either
+   one to the mono reader. The GPU queue paths model only the 8x8 tile,
+   so they refuse a mono pointer under any of these types and the CPU
+   walk draws it. */
+static inline int
+rage128_2d_brush_mono32(const rage128_t *dev)
+{
+    int bt = rage128_dp_brush_dt(dev);
+
+    return bt >= 6 && bt <= 9;
+}
+
+/* One mono brush pixel at screen (x, y). The 32x1 pattern is the first
+   dword of the mono pointer, the same on every row; as a fill pattern
+   it lines up with the screen column offset by the BRUSH_Y_X x
+   alignment, mod 32, which is modeled, not documented. */
 static inline int
 rage128_2d_mono_bit(const rage128_t *dev, const uint8_t *mono, int x, int y)
 {
-    if (rage128_2d_brush_32x32(dev)) {
+    if (rage128_2d_brush_mono32(dev)) {
         const uint32_t *rows = (const uint32_t *) (const void *) mono;
+        int             row  = rage128_2d_brush_32x32(dev)
+                       ? (y + (int) ((dev->brush_yx >> 8) & 0x1f)) & 31
+                       : 0;
 
-        return rage128_2d_pat32_bit(dev,
-                                    rows[(y + (int) ((dev->brush_yx >> 8) & 0x1f)) & 31],
+        return rage128_2d_pat32_bit(dev, rows[row],
                                     x + (int) (dev->brush_yx & 0x1f));
     }
     return rage128_2d_pat8_bit(dev, mono[rage128_2d_pat_row(dev, y)], x);
@@ -399,6 +440,7 @@ rage128_2d_reset(rage128_t *dev)
        174-175). */
     dev->aux_sc_cntl = 0;
     memset(dev->aux_sc_rect, 0, sizeof(dev->aux_sc_rect));
+    rage128_2d_eng_reset(dev);
 }
 
 /* DST_PITCH in pixels: the [9:0] field times 8, times the DST_PITCH_ADJ
@@ -1118,7 +1160,7 @@ rage128_2d_queue_pat_rmw(rage128_t *dev, int x, int y, int w, int h,
 {
     if (rage128_2d_tiled_any(dev))
         return 0; /* tiled surfaces take the CPU walk */
-    if (mono8x8 && rage128_2d_brush_32x32(dev))
+    if (mono8x8 && rage128_2d_brush_mono32(dev))
         return 0;
     uint32_t pitch = rage128_2d_dst_stride(dev, bpp);
     uint32_t base  = dev->dst_offset
@@ -1234,7 +1276,7 @@ rage128_2d_queue_mono(rage128_t *dev, int x, int y, int w, int h,
 {
     if (rage128_2d_tiled_any(dev))
         return 0; /* tiled surfaces take the CPU walk */
-    if (pat8x8 && rage128_2d_brush_32x32(dev))
+    if (pat8x8 && rage128_2d_brush_mono32(dev))
         return 0;
     uint32_t v_set = rage128_rop3(rop, dev->dp_brush_frgd_clr,
                                   dev->dp_src_frgd_clr, 0);
@@ -1634,7 +1676,7 @@ rage128_2d_queue_mono_rmw(rage128_t *dev, int x, int y, int w, int h,
 {
     if (rage128_2d_tiled_any(dev))
         return 0; /* tiled surfaces take the CPU walk */
-    if (pat8x8 && rage128_2d_brush_32x32(dev))
+    if (pat8x8 && rage128_2d_brush_mono32(dev))
         return 0;
     int      cx0, cy0, cx1, cy1, rx0, ry0, rx1, ry1, aux;
     uint32_t base, len, rows, pitch, npx, soff;
@@ -1739,7 +1781,7 @@ rage128_2d_queue_hostc_rmw(rage128_t *dev, int x, int y, int w, int h,
 {
     if (rage128_2d_tiled_any(dev))
         return 0; /* tiled surfaces take the CPU walk */
-    if (pat8x8 && rage128_2d_brush_32x32(dev))
+    if (pat8x8 && rage128_2d_brush_mono32(dev))
         return 0;
     uint32_t stride = (uint32_t) w * (uint32_t) bpp;
     int      cx0, cy0, cx1, cy1, rx0, ry0, rx1, ry1, aux;
@@ -1837,7 +1879,7 @@ rage128_2d_queue_pat(rage128_t *dev, int x, int y, int w, int h,
 {
     if (rage128_2d_tiled_any(dev))
         return 0; /* tiled surfaces take the CPU walk */
-    if (mono8x8 && rage128_2d_brush_32x32(dev))
+    if (mono8x8 && rage128_2d_brush_mono32(dev))
         return 0;
     uint32_t pitch = rage128_2d_dst_stride(dev, bpp);
     uint32_t base  = dev->dst_offset
@@ -2061,13 +2103,14 @@ rage128_2d_wmask_full(uint32_t wmask, int bpp)
    mono pattern (0 = foreground and background, 1 = foreground and leave
    alone); brush type 10 is an 8x8 color pattern in the destination
    pixel format (RRG: DP_GUI_MASTER_CNTL, p. 3-173 / PDF 191).
-   mono8x8 points at the two pattern dwords, byte n holding row n, MSB
-   first within the row (the Windows 98 display driver packs rows 0-3
-   into the first dword, RE: ati2draa.drv @6f9a, a file offset), or at
-   the 32 row dwords of brush types 8 and 9 (rage128_2d_mono_bit).
-   col8x8 points at 64 destination-format pixels, row by row. Both are
-   NULL for a solid brush. Patterns line up with the screen, offset by
-   BRUSH_Y_X. */
+   The mono pattern pointer points at the two 8x8 pattern dwords, byte
+   n holding row n, MSB first within the row (the Windows 98 display
+   driver packs rows 0-3 into the first dword, RE: ati2draa.drv @6f9a,
+   a file offset), at the one row dword of brush types 6 and 7, or at
+   the 32 row dwords of brush types 8 and 9 (RRG: DP_DATATYPE, p. 3-169
+   / PDF 187). The color pattern pointer points at 64
+   destination-format pixels, row by row. Both are NULL for a solid
+   brush. Patterns line up with the screen, offset by BRUSH_Y_X. */
 static void
 rage128_2d_paint_rect(rage128_t *dev, int x, int y, int w, int h,
                       const uint8_t *mono8x8, const uint8_t *col8x8, int mono_la)
@@ -2643,8 +2686,9 @@ rage128_2d_queue_bres_rmw(rage128_t *dev, int x, int y, int n, int32_t inc,
    polyline segments is drawn once (which matters under XOR), and the
    endpoint Windows GDI treats as excluded is never drawn. At 1 the last
    pixel is drawn and uses a pattern bit like any other pixel.
-   Brush types 6 and 7 are a 32x1 line pattern: each bit, MSB first,
-   picks foreground or background (6) or foreground or leave alone (7).
+   Brush types 6 and 7 are a 32x1 line pattern: each bit, in the
+   byte-wise pixel order of the 32-pixel pattern reader, picks
+   foreground or background (6) or foreground or leave alone (7).
    The pattern position advances per pixel and carries on into the next
    segment (POLY_LINE "implies BRUSH tiling", RRG: DP_CNTL, p. 3-166 /
    PDF 184). pat_en 0 = solid foreground. */
@@ -2791,12 +2835,21 @@ rage128_2d_line(rage128_t *dev, int x0, int y0, int x1, int y1,
    BRES_SIGN note below) the minor axis steps too and DST_BRES_DEC is
    added; DST_BRES_INC is added every pixel. The
    brush goes through the ROP3, scissor and write mask as in
-   rage128_2d_line: solid foreground, or for brush types 6 and 7 the
-   32x1 line pattern in BRUSH_DATA0 (foreground and background, or
-   foreground and leave alone), starting at the position in BRUSH_Y_X
-   [20:16]. Under POLY_LINE the line leaves that position advanced;
-   otherwise it is left alone (the X driver's dashed line writes it
-   before every segment). */
+   rage128_2d_line. The guide lists five brush types for patterned
+   lines (SDK: Drawing Lines, p. 4-15 / PDF 89): types 2 and 3, the 8x1
+   mono pattern in the low byte of BRUSH_DATA0; types 6 and 7, the 32x1
+   mono pattern in BRUSH_DATA0; and type 11, the 8x1 color pattern of
+   destination-format pixels packed from BRUSH_DATA0 on. Types 2 and 6
+   expand to foreground and background, 3 and 7 to foreground and leave
+   alone. Any other brush type draws the solid foreground. A pattern is
+   read along the line, not by screen position: the pointer starts at
+   BRUSH_Y_X [20:16], "initial value used for BRUSH_X pointer in drawing
+   Lines" (SDK: Table F-1, p. F-16 / PDF 306), and advances by one for
+   every pixel of the walk. A 32-pixel pattern takes it mod 32; an
+   8-pixel pattern taking it mod 8 is modeled, not documented. Under
+   POLY_LINE the line leaves that position advanced; otherwise it is
+   left alone (the X driver's dashed line writes it before every
+   segment). */
 /* DP_CNTL_XDIR_YDIR_YMAJOR holds the DP_CNTL [2:0] direction bits at
    other positions: DST_X_DIR [31], DST_Y_DIR [15], DST_Y_MAJOR [2]
    (RRG: DP_CNTL_XDIR_YDIR_YMAJOR, p. 3-170 / PDF 188; RRG: DP_CNTL,
@@ -2831,10 +2884,17 @@ rage128_2d_bres_line(rage128_t *dev, uint32_t dir)
     uint32_t wmask  = dev->dp_write_mask;
     int      aux_on = (dev->aux_sc_cntl & RAGE128_AUX_SC_ENB_MASK) != 0;
     int      bt     = rage128_dp_brush_dt(dev);
-    int      pat_en = (bt == 6 || bt == 7);
-    int      pat_la = (bt == 7);
-    uint32_t pat32  = dev->brush_data[0];
-    int      phase  = (int) ((dev->brush_yx >> 16) & 0x1f);
+    int      pat_en = (bt == 2 || bt == 3 || bt == 6 || bt == 7);
+    int      pat_la = (bt == 3 || bt == 7);
+    int      col_en = (bt == 11);
+    int      ptr_en = pat_en || col_en; /* the line pointer is in use */
+    /* The 8x1 mono row is the low byte of BRUSH_DATA0. Repeated in all
+       four bytes it reads, through the 32-pixel reader, as pixel
+       (pointer mod 8) of that byte under either byte order, so types 2
+       and 3 share the 32x1 walk. */
+    uint32_t pat32 = (bt == 2 || bt == 3) ? (dev->brush_data[0] & 0xffu) * 0x01010101u
+                                          : dev->brush_data[0];
+    int      phase = (int) ((dev->brush_yx >> 16) & 0x1f);
     int      ymajor = (dir & RAGE128_DP_LINE_Y_MAJOR) != 0;
     int      xstep  = (dir & RAGE128_DP_LINE_X_DIR) ? 1 : -1;
     int      ystep  = (dir & RAGE128_DP_LINE_Y_DIR) ? 1 : -1;
@@ -2902,7 +2962,7 @@ rage128_2d_bres_line(rage128_t *dev, uint32_t dir)
     if (xb > cx1)
         xb = cx1;
     if (ya > yb) { /* entirely outside the scissor in Y */
-        rage128_2d_line_phase_done(dev, pat_en, phase + n);
+        rage128_2d_line_phase_done(dev, ptr_en, phase + n);
         return;
     }
 
@@ -2911,8 +2971,10 @@ rage128_2d_bres_line(rage128_t *dev, uint32_t dir)
        foreground and background runs through the read-modify-write
        dispatch. The walk state is passed by value, so if the queue
        refuses, the CPU plot pass below runs from the same state, and a
-       refused read-modify-write op has recorded nothing. */
-    if (!cca && dev->gpu && !dev->synctel) {
+       refused read-modify-write op has recorded nothing. The queue
+       helpers know two colors only, so the 8x1 color brush always takes
+       the CPU walk. */
+    if (!cca && !col_en && dev->gpu && !dev->synctel) {
         int dind = rage128_2d_rop_dindep(rop)
             && rage128_2d_wmask_full(wmask, bpp) && bpp == 4;
         int bx0 = xa;
@@ -2946,7 +3008,7 @@ rage128_2d_bres_line(rage128_t *dev, uint32_t dir)
             if (dind)
                 rage128_gpu_2d_qdone(dev, 6);
             if (!vq) {
-                rage128_2d_line_phase_done(dev, pat_en, phase);
+                rage128_2d_line_phase_done(dev, ptr_en, phase);
                 return;
             }
             rage128_2d_vq_after(dev, 1);
@@ -2958,23 +3020,33 @@ rage128_2d_bres_line(rage128_t *dev, uint32_t dir)
     if (!rage128_2d_map_span(dev, &sd, &dev->s2d_dst, dev->dst_offset,
                              dev->dst_pitch, bpp, xa < cx0 ? cx0 : xa, ya, yb, xb)) {
         rage128_2d_vq_abort(dev);
-        rage128_2d_line_phase_done(dev, pat_en, phase + n);
+        rage128_2d_line_phase_done(dev, ptr_en, phase + n);
         return;
     }
 
     /* Pass 2: plot DST_BRES_LNTH pixels. */
     for (int i = 0; i < n; i++) {
-        int set = 1;
+        int      set   = 1;
+        uint32_t colpx = 0;
 
         if (pat_en) {
             set = rage128_2d_pat32_bit(dev, pat32, phase);
+            phase++;
+        } else if (col_en) {
+            /* 8x1 color: 8 destination-format pixels packed from
+               BRUSH_DATA0 on, the packet layout (SDK: Table F-2,
+               pp. F-16-F-17 / PDF 306-307); the pointer mod 8 picks
+               one, which is modeled, not documented */
+            memcpy(&colpx, (const uint8_t *) dev->brush_data + (phase & 7) * bpp,
+                   (size_t) bpp);
             phase++;
         }
         if ((set || !pat_la)
             && x >= cx0 && x <= cx1 && y >= cy0 && y <= cy1
             && (!aux_on || rage128_aux_sc_pass_2d(dev->aux_sc_cntl, dev->aux_sc_rect, x, y))) {
             uint32_t a   = dev->dst_offset + ((uint32_t) y * rage128_2d_dst_stride(dev, bpp) + x * bpp);
-            uint32_t pat = set ? dev->dp_brush_frgd_clr : dev->dp_brush_bkgd_clr;
+            uint32_t pat = col_en ? colpx
+                                  : (set ? dev->dp_brush_frgd_clr : dev->dp_brush_bkgd_clr);
             int      cok = 1;
 
             if (cca) {
@@ -3009,7 +3081,7 @@ rage128_2d_bres_line(rage128_t *dev, uint32_t dir)
     }
     r128_surf_commit(dev, &sd);
     rage128_2d_vq_end(dev);
-    rage128_2d_line_phase_done(dev, pat_en, phase);
+    rage128_2d_line_phase_done(dev, ptr_en, phase);
 }
 
 /* Queue a screen-to-screen blit under any ROP3 and write mask as one
@@ -3031,7 +3103,7 @@ rage128_2d_queue_blit_rmw(rage128_t *dev, int sx, int sy, int dx, int dy,
 {
     if (rage128_2d_tiled_any(dev))
         return 0; /* tiled surfaces take the CPU walk */
-    if (pat8x8 && rage128_2d_brush_32x32(dev))
+    if (pat8x8 && rage128_2d_brush_mono32(dev))
         return 0;
     uint32_t dpb   = rage128_2d_dst_stride(dev, bpp);
     uint32_t daddr = dev->dst_offset
@@ -3239,11 +3311,49 @@ rage128_2d_blit_rect_pat(rage128_t *dev, int sx, int sy, int dx, int dy,
     int fast = !aux_on && rage128_2d_wmask_full(wmask, bpp) && rop == 0xccu
         && !cca && !(pat8x8 && mono_la);
 
+    /* Row store for a solid fill that arrives with the source select on
+       memory. A guest that initializes the engine as the development
+       guide does leaves the source select there (SDK: Step 4:
+       Initialize the GUI Engine, p. 3-27 / PDF 73) and then draws a
+       rectangle by writing only the data type, the brush color and the
+       destination (SDK: Drawing Rectangles, pp. 4-4-4-5 / PDF 78-79),
+       so its fills come to this executor and not to the paint. A ROP3
+       code that reads neither the source nor the destination (0x00,
+       0x0F, 0xF0 and 0xFF: each even bit of the code equals the odd bit
+       above it, and bits 0, 1, 4 and 5 each equal the bit two places
+       up) gives one result per brush byte. With a solid brush, the
+       write mask open on every byte of the pixel, no color compare
+       taking part and the aux scissors off, the walk below has nothing
+       left to test per pixel, so each row is filled with that one pixel
+       and its source row is not copied. That stores the same bytes as
+       the walk: the stored byte is rop3(rop, pb, s, d) for any s and d,
+       and the mask byte is 0xff. The source window stays mapped, so the
+       op is drawn or skipped in the same cases either way. A row that
+       is not one contiguous run in the destination window takes the
+       walk, which wraps. */
+    int     fill = !aux_on && rage128_2d_wmask_full(wmask, bpp)
+        && rage128_2d_rop_dindep(rop) && !((rop ^ (rop >> 2)) & 0x33)
+        && !cca && !pat8x8 && !col8x8;
+    uint8_t fpx[4];
+
+    if (fill)
+        for (int b = 0; b < bpp; b++)
+            fpx[b] = (uint8_t) rage128_rop3(rop, (pat >> ((b & 3) * 8)) & 0xff, 0, 0);
+
     for (int i = 0; i < h; i++) {
         int      row   = top_down ? i : (h - 1 - i);
         uint32_t saddr = dev->src_offset + ((uint32_t) (sy + row) * rage128_2d_src_stride(dev, bpp) + sx * bpp);
         uint32_t daddr = dev->dst_offset + ((uint32_t) (dy + row) * rage128_2d_dst_stride(dev, bpp) + dx * bpp);
 
+        if (fill) {
+            uint8_t *run = r128_surf_run(&sdst, daddr, (uint32_t) w * bpp);
+
+            if (run) {
+                r128_row_fill(run, fpx, bpp, w);
+                rage128_2d_mark_dirty(dev, &sdst, daddr, (uint32_t) w * bpp);
+                continue;
+            }
+        }
         for (int b = 0; b < w * bpp; b++)
             rowbuf[b] = *r128_surf_at(&ssrc, saddr + (uint32_t) b);
         if (fast) {
@@ -3841,6 +3951,10 @@ rage128_2d_stretch_resolve(rage128_t *dev, const r128_surf_t *ssrc,
     return 1;
 }
 
+/* The most runs one stretch may queue. A stretch that needs more is
+   refused as too fragmented and drawn by the CPU walk. */
+#define R128_STRETCH_RUN_CAP 256
+
 /* Queue a stretch blit. With a ROP that does not use the destination,
    every stored byte depends only on the brush and the texel, so the
    walk runs here against the mapped source (only its GPU barrier is
@@ -3887,6 +4001,24 @@ rage128_2d_queue_stretch(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
         || dend > (uint64_t) dev->vram_size || (h > 1 && dpb < rowlen)
         || ((uint64_t) daddr0 < shi && dend > (uint64_t) soff)) {
         rage128_gpu_2d_qskip(dev, 5, 32);
+        return 0;
+    }
+    /* A stretch with no key, over a rectangle that no enabled
+       subtractive auxiliary scissor reaches, stores every pixel, so each
+       destination row is exactly one run and the row count is the run
+       count. When that is over the cap the refusal is already decided
+       here, so it is taken before the source is mapped and before any
+       row is worked out: the row loop below would compute and queue the
+       first rows up to the cap, refuse at the next one, and leave the
+       CPU walk to draw every row again after waiting for the copies it
+       queued. It is counted as that same run-cap refusal. With a key or
+       a cutting scissor the run count depends on the texels and on the
+       scissor geometry (whole rows can drop out), so those stretches go
+       through the loop at any height. This split is the emulator's, not
+       the chip's. */
+    if (key_skip < 0 && h > R128_STRETCH_RUN_CAP
+        && !rage128_2d_aux_seg(dev, dx, dy, dx + w - 1, dy + h - 1)) {
+        rage128_gpu_2d_qskip(dev, 5, 8);
         return 0;
     }
     if (!rage128_2d_map_span(dev, &ssrc, &dev->s2d_src, soff, spitch_px,
@@ -3944,7 +4076,7 @@ rage128_2d_queue_stretch(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
                 uint32_t so;
                 uint8_t *st;
 
-                if (++nruns > 256) {
+                if (++nruns > R128_STRETCH_RUN_CAP) {
                     rage128_gpu_2d_qskip(dev, 5, 8);
                     goto refuse;
                 }
@@ -3980,6 +4112,648 @@ refuse:
         rage128_2d_vq_after(dev, 0);
     return 0;
 }
+
+/* A 16- or 32-bit pixel read from or stored to video memory as one
+   unit, low byte first, which is the card's byte order. A run of pixels
+   can start at any byte address, so the access goes through memcpy,
+   which has no alignment requirement and which the compiler turns into
+   a single load or store. A host whose own byte order is not
+   little-endian assembles the bytes one at a time instead. */
+static inline uint32_t
+rage128_2d_get_px(const uint8_t *p, size_t bpp)
+{
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) \
+    && __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+    return (bpp == 4) ? ((uint32_t) p[0] | ((uint32_t) p[1] << 8)
+                         | ((uint32_t) p[2] << 16) | ((uint32_t) p[3] << 24))
+                      : ((uint32_t) p[0] | ((uint32_t) p[1] << 8));
+#else
+    if (bpp == 4) {
+        uint32_t v;
+
+        memcpy(&v, p, 4);
+        return v;
+    } else {
+        uint16_t v;
+
+        memcpy(&v, p, 2);
+        return v;
+    }
+#endif
+}
+
+static inline void
+rage128_2d_put_px(uint8_t *p, uint32_t c, size_t bpp)
+{
+#if defined(__BYTE_ORDER__) && defined(__ORDER_LITTLE_ENDIAN__) \
+    && __BYTE_ORDER__ != __ORDER_LITTLE_ENDIAN__
+    p[0] = (uint8_t) c;
+    p[1] = (uint8_t) (c >> 8);
+    if (bpp == 4) {
+        p[2] = (uint8_t) (c >> 16);
+        p[3] = (uint8_t) (c >> 24);
+    }
+#else
+    if (bpp == 4)
+        memcpy(p, &c, 4);
+    else {
+        uint16_t v = (uint16_t) c;
+
+        memcpy(p, &v, 2);
+    }
+#endif
+}
+
+/* The row loop of the stretch blends with the four channels of a pixel
+   side by side in one 64-bit word, each in the low byte of its own
+   16-bit lane: blue in bits [7:0], red in [23:16], green in [39:32],
+   alpha in [55:48]. This packing is the emulator's own; it gives the
+   same pixel as rage128_2d_lerp_argb, which blends the channels two at
+   a time in 32 bits. The three helpers below convert to the lanes,
+   blend, and convert back. */
+static inline uint64_t
+rage128_2d_lanes(uint32_t argb)
+{
+    return (uint64_t) (argb & 0x00ff00ffu) | ((uint64_t) (argb & 0xff00ff00u) << 24);
+}
+
+static inline uint32_t
+rage128_2d_unlanes(uint64_t x)
+{
+    return (uint32_t) (x & 0x00ff00ffu) | (uint32_t) ((x >> 24) & 0xff00ff00u);
+}
+
+/* Blend two pixels held in lanes, weight w in [0,255] on x1 and
+   256 - w on x0. One 64-bit multiply scales all four channels: a lane
+   holds c0 * (256 - w) + c1 * w, which is at most 255 * 256 = 65280
+   and so fits its 16 bits; no lane carries into the next. The shift by
+   8 leaves each channel's result in the low byte of its lane, with the
+   low byte of the lane above shifted into the byte over it; the mask
+   clears that. Each channel is therefore
+   (c0 * (256 - w) + c1 * w) >> 8, the value rage128_2d_lerp_argb
+   gives for it. */
+static inline uint64_t
+rage128_2d_lerp_lanes(uint64_t x0, uint64_t x1, uint32_t w)
+{
+    return ((x0 * (uint64_t) (256 - w) + x1 * (uint64_t) w) >> 8) & 0x00ff00ff00ff00ffull;
+}
+
+/* An RGB 565 pixel expanded to aRGB 8888 and laid out in lanes, as two
+   table lookups ORed together: one indexed by the pixel's low byte, one
+   by its high byte. It equals the lanes of rage128_2d_val_argb's
+   result because every bit of that result comes from one byte of the
+   pixel alone. Blue is the low byte's bits [4:0] with their top three
+   bits repeated below them. Red is the high byte's bits [7:3], likewise.
+   Green is the six bits made of the high byte's [2:0] above the low
+   byte's [7:5]; its expansion is those six bits shifted up two places,
+   to which each byte contributes its own bits at fixed positions, and
+   the top two green bits repeated at the bottom, which are the high
+   byte's bits [2:1]. Alpha is the constant 0xff. The two contributions
+   never set the same bit, so the OR joins them. */
+#define R128_LANES565_LO(l)                                                      \
+    ((uint64_t) ((((l) & 31) << 3) | (((l) & 31) >> 2)) | ((uint64_t) (((l) >> 5) << 2) << 32))
+#define R128_LANES565_HI(h)                                                      \
+    (((uint64_t) 0xff << 48) | ((uint64_t) ((((h) >> 3) << 3) | ((h) >> 5)) << 16) \
+     | ((uint64_t) ((((h) & 7) << 5) | (((h) & 7) >> 1)) << 32))
+#define R128_TAB4(f, n)   f(n), f((n) + 1), f((n) + 2), f((n) + 3)
+#define R128_TAB16(f, n)  R128_TAB4(f, n), R128_TAB4(f, (n) + 4), R128_TAB4(f, (n) + 8), R128_TAB4(f, (n) + 12)
+#define R128_TAB64(f, n)  R128_TAB16(f, n), R128_TAB16(f, (n) + 16), R128_TAB16(f, (n) + 32), R128_TAB16(f, (n) + 48)
+#define R128_TAB256(f)    R128_TAB64(f, 0), R128_TAB64(f, 64), R128_TAB64(f, 128), R128_TAB64(f, 192)
+static const uint64_t rage128_2d_lanes565[2][256] = {
+    { R128_TAB256(R128_LANES565_LO) },
+    { R128_TAB256(R128_LANES565_HI) }
+};
+#undef R128_TAB256
+#undef R128_TAB64
+#undef R128_TAB16
+#undef R128_TAB4
+#undef R128_LANES565_HI
+#undef R128_LANES565_LO
+
+/* One destination row of a same-format stretch, source and destination
+   both RGB 565 (datatype 4) or both aRGB 8888 (datatype 6), stored as
+   whole pixels. s0 is the source row the walk is on, s1 the blend's
+   second row: the row below it, or the same row again where the walk
+   is on the last row of the source extent (unused without a blend), d
+   the first destination pixel; all three are contiguous runs. The
+   texel positions, the blend weights, the neighbor clamp at sxlim and
+   the order of the three blends are those of
+   rage128_2d_stretch_resolve. A blended pixel is worked out in lanes:
+   the four texels are expanded straight into lanes (a 565 texel
+   through the tables, an 8888 texel by rage128_2d_lanes), blended by
+   rage128_2d_lerp_lanes, and converted back for the pack; each step
+   gives the value of the 32-bit form it stands for, so the pixel is
+   the same. A pixel that is not blended goes through the expand and
+   the pack as before. Every texel of a pixel is read before that pixel
+   is stored, as the per-pixel walk does, so a source that overlaps the
+   destination behaves the same too. Texels are read and pixels stored
+   through rage128_2d_get_px and rage128_2d_put_px (a 565 texel that is
+   blended is read as its two bytes, which index the tables), so no
+   access depends on the host's byte order or on the alignment of a
+   run. dt and blend are constants at each call, which lets the
+   compiler drop the format switches and the blend test. */
+static inline __attribute__((always_inline)) void
+rage128_2d_stretch_row(uint8_t *d, const uint8_t *s0, const uint8_t *s1,
+                       int dt, int blend, int w, int xskip, int sx0,
+                       uint32_t xph, uint32_t xinc, uint32_t wy, int sxlim)
+{
+    const size_t bpp = (dt == 6) ? 4 : 2;
+
+#define R128_STRETCH_LANES(p)                                                   \
+    ((dt == 6) ? rage128_2d_lanes(rage128_2d_get_px(p, 4))                      \
+               : (rage128_2d_lanes565[0][(p)[0]] | rage128_2d_lanes565[1][(p)[1]]))
+    for (int col = 0; col < w; col++) {
+        uint32_t xacc = xph + (uint32_t) (col + xskip) * xinc;
+        size_t   sx   = (size_t) (sx0 + (int) (xacc >> 16));
+        uint8_t *dp   = d + (size_t) col * bpp;
+        uint32_t c;
+
+        if (blend) {
+            size_t   sxb = ((int) sx < sxlim) ? sx + 1 : sx;
+            uint32_t wx  = (xacc & 0xffff) >> 8;
+            uint64_t top = rage128_2d_lerp_lanes(R128_STRETCH_LANES(s0 + sx * bpp),
+                                                 R128_STRETCH_LANES(s0 + sxb * bpp), wx);
+            uint64_t bot = rage128_2d_lerp_lanes(R128_STRETCH_LANES(s1 + sx * bpp),
+                                                 R128_STRETCH_LANES(s1 + sxb * bpp), wx);
+
+            c = rage128_2d_unlanes(rage128_2d_lerp_lanes(top, bot, wy));
+        } else
+            c = rage128_2d_val_argb(rage128_2d_get_px(s0 + sx * bpp, bpp), dt);
+        rage128_2d_put_px(dp, rage128_2d_argb_pack(c, dt), bpp);
+    }
+#undef R128_STRETCH_LANES
+}
+
+#if R128_STRETCH_VEC
+/* The number of leading columns of a blended stretch row whose right
+   neighbor texel is not clamped, out of w columns. Column col reads
+   texel sx0 + (xacc >> 16), xacc = xph + (col + xskip) * xinc, and its
+   neighbor is clamped once that index reaches sxlim. The caller has
+   checked that xacc does not wrap along the row, so the index never
+   decreases and the unclamped columns are a prefix of the row: those
+   with xacc below t = (sxlim - sx0) << 16. The positions j = col + xskip
+   with xph + j * xinc < t number ceil((t - xph) / xinc), counted from
+   j = 0; the first xskip of them lie left of the row. The count is the
+   same for every row of a stretch. */
+static int
+rage128_2d_stretch_unclamped(int w, int xskip, int sx0, uint32_t xph,
+                             uint32_t xinc, int sxlim)
+{
+    int64_t  k = (int64_t) sxlim - (int64_t) sx0;
+    uint64_t t, j;
+
+    if (k <= 0)
+        return 0;
+    t = (uint64_t) k << 16;
+    if ((uint64_t) xph >= t)
+        return 0;
+    if (!xinc)
+        return w;
+    j = (t - xph + xinc - 1) / xinc;
+    if (j <= (uint64_t) xskip)
+        return 0;
+    j -= (uint64_t) xskip;
+    return (j < (uint64_t) w) ? (int) j : w;
+}
+
+/* 1 = the an bytes at a and the bn bytes at b share no byte. */
+static inline int
+rage128_2d_stretch_disjoint(const uint8_t *a, size_t an, const uint8_t *b, size_t bn)
+{
+    uintptr_t ua = (uintptr_t) a;
+    uintptr_t ub = (uintptr_t) b;
+
+    return ua + an <= ub || ub + bn <= ua;
+}
+#endif
+
+#if R128_STRETCH_VEC == 1
+/* The vector row loops below produce the pixels of
+   rage128_2d_stretch_row for a blended row, several pixels a step. The
+   packing into vector lanes is the emulator's own. They rest on three
+   identities with the one-pixel helpers.
+
+   Blend. Each channel is an 8-bit lane, widened to 16 bits for the
+   arithmetic: t = (c0 << 8) + c1 * w - c0 * w, result t >> 8. The exact
+   value of t is c0 * (256 - w) + c1 * w, a weighted sum of two bytes
+   whose weights add to 256, so it lies in 0..65280 and fits 16 bits.
+   Sixteen-bit addition, subtraction and multiplication wrap modulo
+   65536, and the wrapped result of the whole expression equals its
+   exact value modulo 65536, which is the exact value itself; the
+   intermediate sum (c0 << 8) + c1 * w may wrap on the way. Each product
+   alone fits 16 bits (255 * 255), which the widening multiply needs.
+   The result is (c0 * (256 - w) + c1 * w) >> 8, the value
+   rage128_2d_lerp_lanes and rage128_2d_lerp_argb give for a channel.
+   The weights are 8-bit fields of the walk, 0..255.
+
+   RGB 565 expand. For a texel v with red in [15:11], green in [10:5]
+   and blue in [4:0], rage128_2d_val_argb gives red (r << 3) | (r >> 2),
+   green (g << 2) | (g >> 4), blue (b << 3) | (b >> 2). Here the byte
+   v >> 8 holds red in its top five bits; inserting that byte shifted
+   right by 5 into its own low three bits keeps r << 3 and adds r >> 2.
+   The byte (v >> 3) & 0xff holds green in its top six bits; inserting
+   it shifted right by 6 into its low two bits gives (g << 2) | (g >> 4).
+   The byte (v << 3) & 0xff is b << 3; inserting it shifted right by 5
+   adds b >> 2. Alpha is not carried: every expanded 565 texel has alpha
+   0xff, the blend of 0xff with 0xff is 0xff, and the 565 pack drops it.
+
+   RGB 565 pack. rage128_2d_argb_pack keeps the top five bits of red at
+   [15:11], the top six of green at [10:5] and the top five of blue at
+   [4:0]. Here red is placed in the high byte of a 16-bit lane; green,
+   placed likewise, is inserted shifted right by 5, which keeps red's
+   top five bits and writes green's eight bits at [10:3]; blue is
+   inserted shifted right by 11, which keeps [15:5] and writes blue's
+   top five bits at [4:0], leaving green's top six at [10:5].
+
+   An aRGB 8888 pixel is four independent bytes for the expand, the
+   blend and the pack (those helpers are the identity for that format,
+   and the blend treats alpha like a color), so its loop blends the
+   sixteen bytes of four pixels in place.
+
+   Texels are gathered with one small load per pixel per source row,
+   which reads the texel and its right neighbor together: exactly the
+   bytes the one-pixel loop reads for a column whose neighbor is not
+   clamped. No wider load touches a source row, and each step stores
+   exactly its own pixels, so the loops read and write nothing beyond
+   the runs the caller holds. Loads and stores have no alignment
+   requirement. The texel position is kept twice: as the scalar 16.16
+   value the indexes come from, and as a vector of its low 16 bits, one
+   lane per pixel, which a wrapping 16-bit add steps exactly and whose
+   high byte is the horizontal weight.
+
+   A step reads the texels of all its pixels before it stores any of
+   them, where the one-pixel loop stores each pixel before it reads the
+   next one's texels. The caller therefore uses these loops only for a
+   row whose destination bytes are disjoint from both source runs. n is
+   a multiple of the step, and every one of the n columns has an
+   unclamped neighbor. */
+static inline uint8x8_t
+rage128_2d_vlerp(uint8x8_t c0, uint8x8_t c1, uint8x8_t w)
+{
+    uint16x8_t t = vshll_n_u8(c0, 8);
+
+    t = vmlal_u8(t, c1, w);
+    t = vmlsl_u8(t, c0, w);
+    return vshrn_n_u16(t, 8);
+}
+
+static inline uint8x16_t
+rage128_2d_vlerp16(uint8x16_t c0, uint8x16_t c1, uint8x16_t w)
+{
+    uint16x8_t lo = vshll_n_u8(vget_low_u8(c0), 8);
+    uint16x8_t hi = vshll_high_n_u8(c0, 8);
+
+    lo = vmlal_u8(lo, vget_low_u8(c1), vget_low_u8(w));
+    lo = vmlsl_u8(lo, vget_low_u8(c0), vget_low_u8(w));
+    hi = vmlal_high_u8(hi, c1, w);
+    hi = vmlsl_high_u8(hi, c0, w);
+    return vshrn_high_n_u16(vshrn_n_u16(lo, 8), hi, 8);
+}
+
+/* Eight RGB 565 texels expanded to three vectors of 8-bit channels. */
+static inline void
+rage128_2d_vexpand565(uint16x8_t v, uint8x8_t *r, uint8x8_t *g, uint8x8_t *b)
+{
+    uint8x8_t r5 = vshrn_n_u16(v, 8);
+    uint8x8_t g6 = vshrn_n_u16(v, 3);
+    uint8x8_t b5 = vshl_n_u8(vmovn_u16(v), 3);
+
+    *r = vsri_n_u8(r5, r5, 5);
+    *g = vsri_n_u8(g6, g6, 6);
+    *b = vsri_n_u8(b5, b5, 5);
+}
+
+/* Eight pixels of 8-bit channels packed to RGB 565. */
+static inline uint16x8_t
+rage128_2d_vpack565(uint8x8_t r, uint8x8_t g, uint8x8_t b)
+{
+    uint16x8_t t = vshll_n_u8(r, 8);
+
+    t = vsriq_n_u16(t, vshll_n_u8(g, 8), 5);
+    return vsriq_n_u16(t, vshll_n_u8(b, 8), 11);
+}
+
+/* Two RGB 565 texel pairs (a texel and its right neighbor each) as one
+   64-bit value: the first pair in the low half. */
+static inline uint64_t
+rage128_2d_pair565(const uint8_t *p0, const uint8_t *p1)
+{
+    uint32_t a, b;
+
+    memcpy(&a, p0, 4);
+    memcpy(&b, p1, 4);
+    return (uint64_t) a | ((uint64_t) b << 32);
+}
+
+/* n columns of a blended RGB 565 row, 8 a step. */
+static inline void
+rage128_2d_stretch_row_v565(uint8_t *d, const uint8_t *s0, const uint8_t *s1,
+                            int n, int xskip, int sx0, uint32_t xph,
+                            uint32_t xinc, uint32_t wy)
+{
+    uint32_t         xa = xph + (uint32_t) xskip * xinc;
+    uint16_t         f[8];
+    uint16x8_t       xf;
+    const uint16x8_t xstep = vdupq_n_u16((uint16_t) (xinc * 8u));
+    const uint8x8_t  wyv   = vdup_n_u8((uint8_t) wy);
+
+    for (int i = 0; i < 8; i++)
+        f[i] = (uint16_t) (xa + (uint32_t) i * xinc);
+    xf = vld1q_u16(f);
+    for (int col = 0; col < n; col += 8, d += 16) {
+        uint64_t   p[4], q[4];
+        uint16x8_t a0, a1, b0, b1;
+        uint8x8_t  tlr, tlg, tlb, trr, trg, trb, blr, blg, blb, brr, brg, brb;
+        uint8x8_t  wx;
+
+        for (int i = 0; i < 4; i++) {
+            size_t o0, o1;
+
+            o0 = (size_t) (sx0 + (int) (xa >> 16)) * 2;
+            xa += xinc;
+            o1 = (size_t) (sx0 + (int) (xa >> 16)) * 2;
+            xa += xinc;
+            p[i] = rage128_2d_pair565(s0 + o0, s0 + o1);
+            q[i] = rage128_2d_pair565(s1 + o0, s1 + o1);
+        }
+        /* lanes: left 0, right 0, left 1, right 1, ...; the unzips
+           separate the eight left texels from the eight right ones */
+        a0 = vreinterpretq_u16_u64(vcombine_u64(vcreate_u64(p[0]), vcreate_u64(p[1])));
+        a1 = vreinterpretq_u16_u64(vcombine_u64(vcreate_u64(p[2]), vcreate_u64(p[3])));
+        b0 = vreinterpretq_u16_u64(vcombine_u64(vcreate_u64(q[0]), vcreate_u64(q[1])));
+        b1 = vreinterpretq_u16_u64(vcombine_u64(vcreate_u64(q[2]), vcreate_u64(q[3])));
+        rage128_2d_vexpand565(vuzp1q_u16(a0, a1), &tlr, &tlg, &tlb);
+        rage128_2d_vexpand565(vuzp2q_u16(a0, a1), &trr, &trg, &trb);
+        rage128_2d_vexpand565(vuzp1q_u16(b0, b1), &blr, &blg, &blb);
+        rage128_2d_vexpand565(vuzp2q_u16(b0, b1), &brr, &brg, &brb);
+        wx = vshrn_n_u16(xf, 8);
+        xf = vaddq_u16(xf, xstep);
+        tlr = rage128_2d_vlerp(rage128_2d_vlerp(tlr, trr, wx), rage128_2d_vlerp(blr, brr, wx), wyv);
+        tlg = rage128_2d_vlerp(rage128_2d_vlerp(tlg, trg, wx), rage128_2d_vlerp(blg, brg, wx), wyv);
+        tlb = rage128_2d_vlerp(rage128_2d_vlerp(tlb, trb, wx), rage128_2d_vlerp(blb, brb, wx), wyv);
+        vst1q_u8(d, vreinterpretq_u8_u16(rage128_2d_vpack565(tlr, tlg, tlb)));
+    }
+}
+
+/* n columns of a blended aRGB 8888 row, 4 a step. */
+static inline void
+rage128_2d_stretch_row_v8888(uint8_t *d, const uint8_t *s0, const uint8_t *s1,
+                             int n, int xskip, int sx0, uint32_t xph,
+                             uint32_t xinc, uint32_t wy)
+{
+    /* the high byte of each pixel's 16-bit position lane, on that
+       pixel's four bytes */
+    static const uint8_t wsel[16] = { 1, 1, 1, 1, 3, 3, 3, 3, 5, 5, 5, 5, 7, 7, 7, 7 };
+    uint32_t             xa       = xph + (uint32_t) xskip * xinc;
+    uint16_t             f[8];
+    uint16x8_t           xf;
+    const uint16x8_t     xstep = vdupq_n_u16((uint16_t) (xinc * 4u));
+    const uint8x16_t     wyv   = vdupq_n_u8((uint8_t) wy);
+    const uint8x16_t     sel   = vld1q_u8(wsel);
+
+    for (int i = 0; i < 8; i++)
+        f[i] = (uint16_t) (xa + (uint32_t) (i & 3) * xinc);
+    xf = vld1q_u16(f);
+    for (int col = 0; col < n; col += 4, d += 16) {
+        uint8x8_t  p[4], q[4];
+        uint32x4_t a0, a1, b0, b1;
+        uint8x16_t wx, top, bot;
+
+        for (int i = 0; i < 4; i++) {
+            size_t o = (size_t) (sx0 + (int) (xa >> 16)) * 4;
+
+            xa += xinc;
+            p[i] = vld1_u8(s0 + o);
+            q[i] = vld1_u8(s1 + o);
+        }
+        /* lanes: left 0, right 0, left 1, right 1; the unzips separate
+           the four left texels from the four right ones */
+        a0  = vreinterpretq_u32_u8(vcombine_u8(p[0], p[1]));
+        a1  = vreinterpretq_u32_u8(vcombine_u8(p[2], p[3]));
+        b0  = vreinterpretq_u32_u8(vcombine_u8(q[0], q[1]));
+        b1  = vreinterpretq_u32_u8(vcombine_u8(q[2], q[3]));
+        wx  = vqtbl1q_u8(vreinterpretq_u8_u16(xf), sel);
+        xf  = vaddq_u16(xf, xstep);
+        top = rage128_2d_vlerp16(vreinterpretq_u8_u32(vuzp1q_u32(a0, a1)),
+                                 vreinterpretq_u8_u32(vuzp2q_u32(a0, a1)), wx);
+        bot = rage128_2d_vlerp16(vreinterpretq_u8_u32(vuzp1q_u32(b0, b1)),
+                                 vreinterpretq_u8_u32(vuzp2q_u32(b0, b1)), wx);
+        vst1q_u8(d, rage128_2d_vlerp16(top, bot, wyv));
+    }
+}
+#endif
+
+#if R128_STRETCH_VEC == 2
+/* The same two row loops for an x86-64 host, written with SSE2
+   instructions only. The contract is the one stated for the Arm loops:
+   n is a multiple of the step, every one of the n columns has an
+   unclamped neighbor, and the row's destination bytes are disjoint from
+   both source runs. The texel gather is the same too: one 4-byte or
+   8-byte load per pixel per source row, the bytes the one-pixel loop
+   reads for that column, and one 16-byte store per step; no load or
+   store has an alignment requirement. The packing into vector lanes is
+   the emulator's own. What follows is how each step is computed here and
+   why it gives the one-pixel helpers' values.
+
+   Lanes. From the expand to the pack every channel sits in a 16-bit
+   lane with its value, 0..255, in the low byte.
+
+   Blend. t = (c0 << 8) + (c1 - c0) * w, result t >> 8 with a logical
+   shift. The subtraction, the multiply and the addition each keep the
+   low 16 bits of their result: c1 - c0 wraps when it is negative, and
+   the multiply returns the low half of the product, which is the same
+   whether the operands are read as signed or as unsigned. Arithmetic
+   modulo 65536 commutes with reduction, so t is
+   c0 * 256 + (c1 - c0) * w = c0 * (256 - w) + c1 * w modulo 65536. That
+   exact value is a weighted sum of two bytes whose weights add to 256,
+   so it lies in 0..65280, and t is the exact value itself. t >> 8 is
+   (c0 * (256 - w) + c1 * w) >> 8, the value rage128_2d_lerp_lanes and
+   rage128_2d_lerp_argb give for a channel. The weights are 8-bit fields
+   of the walk, 0..255. One multiply serves a blend.
+
+   RGB 565 expand, on a texel v in a 16-bit lane with red r in [15:11],
+   green g in [10:5] and blue b in [4:0]. Red is
+   ((v >> 8) & 0xf8) | (v >> 13): the first term is r << 3, the second
+   r >> 2. Green is ((v >> 3) & 0xfc) | ((v >> 9) & 0x03): g << 2 and
+   g >> 4. Blue is ((v << 3) & 0xf8) | ((v >> 2) & 0x07): b << 3 and
+   b >> 2. These are the channels of rage128_2d_val_argb. Alpha is not
+   carried, for the reason given above the Arm loops.
+
+   RGB 565 pack. ((r & 0xf8) << 8) | ((g & 0xfc) << 3) | (b >> 3) puts
+   the top five bits of red at [15:11], the top six of green at [10:5]
+   and the top five of blue at [4:0], as rage128_2d_argb_pack does.
+
+   Left and right texels. The gathered pairs lie in a vector as left,
+   right, left, right. Interleaving the low halves and the high halves
+   of two vectors, three times over for 16-bit lanes and twice for
+   32-bit lanes, brings the even lanes of the two together in one vector
+   and the odd lanes in another, each in its original order. Lanes are
+   only moved, so no value changes.
+
+   aRGB 8888. The sixteen bytes of four pixels are widened to 16-bit
+   lanes by interleaving them with zero bytes, low eight and high eight
+   apart, blended, and narrowed again with the unsigned saturating pack.
+   That pack reads a lane as a signed 16-bit value and clamps it to
+   0..255; every blend result is already in 0..255, so it never
+   saturates and returns the low byte of each lane, in lane order. The
+   four bytes of a pixel take the same weight.
+
+   Position. The low 16 bits of each pixel's 16.16 texel position sit in
+   a 16-bit lane, stepped by a wrapping 16-bit add, which is exact; a
+   logical shift right by 8 leaves the horizontal weight in the lane.
+   The 8888 loop keeps two such vectors, each pixel's position repeated
+   on the four lanes of its four bytes. */
+static inline __m128i
+rage128_2d_vlerp(__m128i c0, __m128i c1, __m128i w)
+{
+    __m128i t = _mm_mullo_epi16(_mm_sub_epi16(c1, c0), w);
+
+    return _mm_srli_epi16(_mm_add_epi16(_mm_slli_epi16(c0, 8), t), 8);
+}
+
+/* Eight RGB 565 texels expanded to three vectors of channels. */
+static inline void
+rage128_2d_vexpand565(__m128i v, __m128i *r, __m128i *g, __m128i *b)
+{
+    *r = _mm_or_si128(_mm_and_si128(_mm_srli_epi16(v, 8), _mm_set1_epi16(0xf8)),
+                      _mm_srli_epi16(v, 13));
+    *g = _mm_or_si128(_mm_and_si128(_mm_srli_epi16(v, 3), _mm_set1_epi16(0xfc)),
+                      _mm_and_si128(_mm_srli_epi16(v, 9), _mm_set1_epi16(0x03)));
+    *b = _mm_or_si128(_mm_and_si128(_mm_slli_epi16(v, 3), _mm_set1_epi16(0xf8)),
+                      _mm_and_si128(_mm_srli_epi16(v, 2), _mm_set1_epi16(0x07)));
+}
+
+/* Eight pixels of channels packed to RGB 565. */
+static inline __m128i
+rage128_2d_vpack565(__m128i r, __m128i g, __m128i b)
+{
+    __m128i hi = _mm_slli_epi16(_mm_and_si128(r, _mm_set1_epi16(0xf8)), 8);
+    __m128i mid = _mm_slli_epi16(_mm_and_si128(g, _mm_set1_epi16(0xfc)), 3);
+
+    return _mm_or_si128(_mm_or_si128(hi, mid), _mm_srli_epi16(b, 3));
+}
+
+/* Four RGB 565 texel pairs (a texel and its right neighbor each), at
+   the byte offsets o[0..3] of the source row s, as one vector: 16-bit
+   lanes left 0, right 0, left 1, right 1, and so on. */
+static inline __m128i
+rage128_2d_quad565(const uint8_t *s, const size_t *o)
+{
+    int32_t v[4];
+
+    for (int i = 0; i < 4; i++)
+        memcpy(&v[i], s + o[i], 4);
+    return _mm_unpacklo_epi64(_mm_unpacklo_epi32(_mm_cvtsi32_si128(v[0]), _mm_cvtsi32_si128(v[1])),
+                              _mm_unpacklo_epi32(_mm_cvtsi32_si128(v[2]), _mm_cvtsi32_si128(v[3])));
+}
+
+/* The sixteen 16-bit lanes of a0 then a1, split into the eight even
+   ones and the eight odd ones. */
+static inline void
+rage128_2d_vunzip16(__m128i a0, __m128i a1, __m128i *even, __m128i *odd)
+{
+    __m128i t0 = _mm_unpacklo_epi16(a0, a1); /* 0 8 1 9 2 10 3 11 */
+    __m128i t1 = _mm_unpackhi_epi16(a0, a1); /* 4 12 5 13 6 14 7 15 */
+    __m128i u0 = _mm_unpacklo_epi16(t0, t1); /* 0 4 8 12 1 5 9 13 */
+    __m128i u1 = _mm_unpackhi_epi16(t0, t1); /* 2 6 10 14 3 7 11 15 */
+
+    *even = _mm_unpacklo_epi16(u0, u1);
+    *odd  = _mm_unpackhi_epi16(u0, u1);
+}
+
+/* The eight 32-bit lanes of a0 then a1, split likewise. */
+static inline void
+rage128_2d_vunzip32(__m128i a0, __m128i a1, __m128i *even, __m128i *odd)
+{
+    __m128i t0 = _mm_unpacklo_epi32(a0, a1); /* 0 4 1 5 */
+    __m128i t1 = _mm_unpackhi_epi32(a0, a1); /* 2 6 3 7 */
+
+    *even = _mm_unpacklo_epi32(t0, t1);
+    *odd  = _mm_unpackhi_epi32(t0, t1);
+}
+
+/* n columns of a blended RGB 565 row, 8 a step. */
+static inline void
+rage128_2d_stretch_row_v565(uint8_t *d, const uint8_t *s0, const uint8_t *s1,
+                            int n, int xskip, int sx0, uint32_t xph,
+                            uint32_t xinc, uint32_t wy)
+{
+    uint32_t      xa = xph + (uint32_t) xskip * xinc;
+    uint16_t      pos[8];
+    __m128i       xf;
+    const __m128i xstep = _mm_set1_epi16((short) (uint16_t) (xinc * 8u));
+    const __m128i wyv   = _mm_set1_epi16((short) wy);
+
+    for (int i = 0; i < 8; i++)
+        pos[i] = (uint16_t) (xa + (uint32_t) i * xinc);
+    xf = _mm_loadu_si128((const __m128i *) pos);
+    for (int col = 0; col < n; col += 8, d += 16) {
+        size_t  o[8];
+        __m128i tl, tr, bl, br, wx;
+        __m128i tlr, tlg, tlb, trr, trg, trb, blr, blg, blb, brr, brg, brb;
+
+        for (int i = 0; i < 8; i++) {
+            o[i] = (size_t) (sx0 + (int) (xa >> 16)) * 2;
+            xa += xinc;
+        }
+        rage128_2d_vunzip16(rage128_2d_quad565(s0, o), rage128_2d_quad565(s0, o + 4), &tl, &tr);
+        rage128_2d_vunzip16(rage128_2d_quad565(s1, o), rage128_2d_quad565(s1, o + 4), &bl, &br);
+        rage128_2d_vexpand565(tl, &tlr, &tlg, &tlb);
+        rage128_2d_vexpand565(tr, &trr, &trg, &trb);
+        rage128_2d_vexpand565(bl, &blr, &blg, &blb);
+        rage128_2d_vexpand565(br, &brr, &brg, &brb);
+        wx  = _mm_srli_epi16(xf, 8);
+        xf  = _mm_add_epi16(xf, xstep);
+        tlr = rage128_2d_vlerp(rage128_2d_vlerp(tlr, trr, wx), rage128_2d_vlerp(blr, brr, wx), wyv);
+        tlg = rage128_2d_vlerp(rage128_2d_vlerp(tlg, trg, wx), rage128_2d_vlerp(blg, brg, wx), wyv);
+        tlb = rage128_2d_vlerp(rage128_2d_vlerp(tlb, trb, wx), rage128_2d_vlerp(blb, brb, wx), wyv);
+        _mm_storeu_si128((__m128i *) d, rage128_2d_vpack565(tlr, tlg, tlb));
+    }
+}
+
+/* n columns of a blended aRGB 8888 row, 4 a step. */
+static inline void
+rage128_2d_stretch_row_v8888(uint8_t *d, const uint8_t *s0, const uint8_t *s1,
+                             int n, int xskip, int sx0, uint32_t xph,
+                             uint32_t xinc, uint32_t wy)
+{
+    uint32_t      xa = xph + (uint32_t) xskip * xinc;
+    uint16_t      pos[16];
+    __m128i       xlo, xhi;
+    const __m128i xstep = _mm_set1_epi16((short) (uint16_t) (xinc * 4u));
+    const __m128i wyv   = _mm_set1_epi16((short) wy);
+    const __m128i zero  = _mm_setzero_si128();
+
+    for (int i = 0; i < 16; i++)
+        pos[i] = (uint16_t) (xa + (uint32_t) (i >> 2) * xinc);
+    xlo = _mm_loadu_si128((const __m128i *) pos);
+    xhi = _mm_loadu_si128((const __m128i *) (pos + 8));
+    for (int col = 0; col < n; col += 4, d += 16) {
+        __m128i p[4], q[4];
+        __m128i tl, tr, bl, br, wlo, whi, lo, hi;
+
+        for (int i = 0; i < 4; i++) {
+            size_t o = (size_t) (sx0 + (int) (xa >> 16)) * 4;
+
+            xa += xinc;
+            p[i] = _mm_loadl_epi64((const __m128i *) (s0 + o));
+            q[i] = _mm_loadl_epi64((const __m128i *) (s1 + o));
+        }
+        /* 32-bit lanes: left 0, right 0, left 1, right 1 in each vector */
+        rage128_2d_vunzip32(_mm_unpacklo_epi64(p[0], p[1]), _mm_unpacklo_epi64(p[2], p[3]), &tl, &tr);
+        rage128_2d_vunzip32(_mm_unpacklo_epi64(q[0], q[1]), _mm_unpacklo_epi64(q[2], q[3]), &bl, &br);
+        wlo = _mm_srli_epi16(xlo, 8);
+        whi = _mm_srli_epi16(xhi, 8);
+        xlo = _mm_add_epi16(xlo, xstep);
+        xhi = _mm_add_epi16(xhi, xstep);
+        lo  = rage128_2d_vlerp(rage128_2d_vlerp(_mm_unpacklo_epi8(tl, zero), _mm_unpacklo_epi8(tr, zero), wlo),
+                               rage128_2d_vlerp(_mm_unpacklo_epi8(bl, zero), _mm_unpacklo_epi8(br, zero), wlo), wyv);
+        hi  = rage128_2d_vlerp(rage128_2d_vlerp(_mm_unpackhi_epi8(tl, zero), _mm_unpackhi_epi8(tr, zero), whi),
+                               rage128_2d_vlerp(_mm_unpackhi_epi8(bl, zero), _mm_unpackhi_epi8(br, zero), whi), wyv);
+        _mm_storeu_si128((__m128i *) d, _mm_packus_epi16(lo, hi));
+    }
+}
+#endif
 
 /* Stretch blit (packet 0x96, R128_CCE_PACKET3_CNTL_SCALING). The walk
    runs over the destination and steps the source by 16.16 increments
@@ -4120,6 +4894,41 @@ rage128_2d_stretch_rect(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
     uint32_t spb = rage128_2d_span_stride(dev, &dev->s2d_src, soff,
                                           spitch_px, sbpp);
 
+    /* The common stretch takes a row loop that produces the same bytes as
+       the per-pixel walk below (this split is the emulator's, not the
+       chip's). It applies when nothing but the texel decides a stored
+       pixel: no color compare or key, no aux scissor, the write mask
+       open, a ROP3 of 0xCC (the source as it is), no palette lookup, and
+       source and destination both RGB 565 or both aRGB 8888. With those
+       the per-byte ROP and mask stage stores the packed pixel unchanged,
+       so the row loop stores it whole. The source origin must not be
+       negative and the X accumulator must not wrap, so the texel index
+       only grows along a row and the last texel a row can read is known:
+       it ends srun bytes from the start of the source row. A row is
+       taken only when that source span and the destination row are each
+       one contiguous run of the mapped surface.
+       Any other row, and any other stretch, goes through the walk. */
+    int      fast = !cca && !aux_on && !usepal && rop == 0xcc
+        && rage128_2d_wmask_full(wmask, bpp) && sdt == ddt && (ddt == 4 || ddt == 6)
+        && sx0 >= 0 && sy0 >= 0
+        && (uint64_t) xph + (uint64_t) (uint32_t) (w - 1 + xskip) * xinc <= 0xffffffffu;
+    uint32_t srun = (uint32_t) (((blend && sxmax < sxlim) ? sxmax + 1 : sxmax) + 1)
+        * (uint32_t) sbpp;
+#if R128_STRETCH_VEC
+    /* A blended row's leading columns with an unclamped neighbor, rounded
+       down to whole steps of the vector loop (8 pixels for 565, 4 for
+       8888), go to that loop when the row's destination bytes are
+       disjoint from both of its source runs; the one-pixel loop then
+       draws the rest of the row, starting after the columns the vector
+       loop drew on that row: nvec of them, or none when the row
+       overlaps its source. Such a row keeps the one-pixel loop for
+       every column, because that loop stores each pixel before it reads
+       the next one's texels. */
+    int nvec = (fast && blend)
+        ? (rage128_2d_stretch_unclamped(w, xskip, sx0, xph, xinc, sxlim) & ((ddt == 6) ? ~3 : ~7))
+        : 0;
+#endif
+
     for (int row = 0; row < h; row++) {
         uint32_t yacc  = yph + (uint32_t) (row + yskip) * yinc;
         int      sy    = sy0 + (int) (yacc >> 16);
@@ -4129,6 +4938,40 @@ rage128_2d_stretch_rect(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
         uint32_t sbddr = soff + (uint32_t) syb * spb;
         uint32_t daddr = dev->dst_offset + ((uint32_t) (dy + row) * rage128_2d_dst_stride(dev, bpp) + (uint32_t) dx * (uint32_t) bpp);
 
+        if (fast) {
+            const uint8_t *s0 = r128_surf_run(&ssrc, saddr, srun);
+            const uint8_t *s1 = blend ? r128_surf_run(&ssrc, sbddr, srun) : s0;
+            uint8_t       *d  = r128_surf_run(&sdst, daddr, (uint32_t) w * (uint32_t) bpp);
+
+            if (s0 && s1 && d) {
+                int nv = 0; /* columns the vector loop has drawn */
+
+#if R128_STRETCH_VEC
+                if (nvec && rage128_2d_stretch_disjoint(d, (size_t) w * (size_t) bpp, s0, srun)
+                    && rage128_2d_stretch_disjoint(d, (size_t) w * (size_t) bpp, s1, srun)) {
+                    nv = nvec;
+                    if (ddt == 6)
+                        rage128_2d_stretch_row_v8888(d, s0, s1, nv, xskip, sx0, xph, xinc, wy);
+                    else
+                        rage128_2d_stretch_row_v565(d, s0, s1, nv, xskip, sx0, xph, xinc, wy);
+                }
+#endif
+                if (ddt == 6 && blend)
+                    rage128_2d_stretch_row(d + (size_t) nv * 4, s0, s1, 6, 1, w - nv,
+                                           xskip + nv, sx0, xph, xinc, wy, sxlim);
+                else if (ddt == 6)
+                    rage128_2d_stretch_row(d, s0, s1, 6, 0, w, xskip, sx0, xph,
+                                           xinc, wy, sxlim);
+                else if (blend)
+                    rage128_2d_stretch_row(d + (size_t) nv * 2, s0, s1, 4, 1, w - nv,
+                                           xskip + nv, sx0, xph, xinc, wy, sxlim);
+                else
+                    rage128_2d_stretch_row(d, s0, s1, 4, 0, w, xskip, sx0, xph,
+                                           xinc, wy, sxlim);
+                rage128_2d_mark_dirty(dev, &sdst, daddr, (uint32_t) w * bpp);
+                continue;
+            }
+        }
         for (int col = 0; col < w; col++) {
             uint32_t da = daddr + (uint32_t) col * (uint32_t) bpp;
             uint32_t spx;
@@ -4181,44 +5024,26 @@ rage128_2d_stretch_rect(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
     rage128_2d_vq_end(dev);
 }
 
-/* Decode and run the 11-dword scaler data block of packets 0x96 and
-   0x97 (SDK: Table F-17, pp. F-27-F-28 / PDF 317-318). b[0] is
-   MISC_3D_STATE, b[1] and b[2] TEX_CNTL and TEX_COMB_CTL, b[3] the
-   source datatype, b[4] the source byte offset, b[5] the source pitch:
-   SCALE_PITCH in [8:0], units of 8 pixels, with [16:9] reserved and
-   SCALE_PITCH_ADJ in [31:30], 1 = x2 and 2 = x4 (SDK: Table F-21,
-   pp. F-32-F-33 / PDF 322-323).
-   b[6] is the source start, y in [29:16] and x in [13:0], read in half
-   pixels. The SDK calls this slot reserved and says to write 0, and the
-   Windows 98 display driver does. The Windows 2000 display driver
-   writes x << 1 | y << 17 (RE: ati2dvaa.dll @1096b), and the Windows 98
-   Direct3D driver's antialiasing resize writes 0x10001, half a pixel in
-   each direction (RE: ati3draa.dll @b00d28c0); half-pixel units are the
-   reading that fits both. The fraction bit starts the 16.16 walk at
-   0x8000.
-   b[7] and b[8] are the X and Y increments, 4.12 in [19:4] with [3:0]
-   and [31:20] reserved (SDK Table F-17; RRG: SECONDARY_SCALE_X_INC,
-   p. 3-160 / PDF 178, for the same layout). They are masked here, the
-   one place every walk path reads them.
-   b[9] is the destination position as SCALE_DST_X_Y lays it out, x in
-   [29:16] and y in [13:0]; both Windows 98 drivers build it as
-   left << 16 | top (RE: ati3draa.dll @b00bb3e0, from the DirectDraw
-   blit's destination rect; RE: ati2draa.drv @9017, a file offset, whose
-   bottom-to-top arm offsets the low word by the height). b[10] is
-   (height << 16) | width.
-   Returns 0 when the source datatype cannot be paired with the
-   destination format (the caller then reports the packet as
-   unhandled). */
-static int
-rage128_2d_scale_block(rage128_t *dev, const uint32_t *b)
+/* The source pitch in pixels from a SCALE_PITCH value: [8:0] in units of
+   8 pixels, times SCALE_PITCH_ADJ [31:30], 1 = x2 and 2 = x4 (SDK: Table
+   F-21, pp. F-32-F-33 / PDF 322-323). */
+static uint32_t
+rage128_2d_scale_pitch_px(uint32_t v)
 {
-    uint32_t depth  = b[3];
-    uint32_t spitch = (b[5] & 0x1ff) * 8;
+    uint32_t spitch = (v & 0x1ff) * 8;
 
-    if ((b[5] >> 30) == 1)
+    if ((v >> 30) == 1)
         spitch *= 2;
-    else if ((b[5] >> 30) == 2)
+    else if ((v >> 30) == 2)
         spitch *= 4;
+    return spitch;
+}
+
+/* 1 = the scaler can read source datatype depth at byte offset soff
+   into the current destination format. */
+static int
+rage128_2d_scale_pair_ok(rage128_t *dev, uint32_t depth, uint32_t soff)
+{
     /* RGB sources convert. An 8 bpp palette-index source (2) is copied
        raw to an 8 bpp destination, or looked up in the scaler palette
        (loaded by the LOAD_PALETTE packet, 0x2c) for a wider one. The
@@ -4264,7 +5089,7 @@ rage128_2d_scale_block(rage128_t *dev, const uint32_t *b)
                chroma from the wrong pixels, so it is refused (the
                guide requires source lines of whole qwords, RRG:
                SECONDARY_SCALE_PITCH, p. 3-160 / PDF 178). */
-            if (b[4] & 3)
+            if (soff & 3)
                 return 0;
             if (depth != rage128_dp_dst_dt(dev)
                 && rage128_2d_bpp(rage128_dp_dst_dt(dev)) == 1)
@@ -4277,7 +5102,46 @@ rage128_2d_scale_block(rage128_t *dev, const uint32_t *b)
         default:
             return 0;
     }
-    rage128_2d_stretch_rect(dev, b[4], spitch,
+    return 1;
+}
+
+/* Decode and run the 11-dword scaler data block of packets 0x96 and
+   0x97 (SDK: Table F-17, pp. F-27-F-28 / PDF 317-318). b[0] is
+   MISC_3D_STATE, b[1] and b[2] TEX_CNTL and TEX_COMB_CTL, b[3] the
+   source datatype, b[4] the source byte offset, b[5] the source pitch:
+   SCALE_PITCH in [8:0], units of 8 pixels, with [16:9] reserved and
+   SCALE_PITCH_ADJ in [31:30], 1 = x2 and 2 = x4 (SDK: Table F-21,
+   pp. F-32-F-33 / PDF 322-323).
+   b[6] is the source start, y in [29:16] and x in [13:0], read in half
+   pixels. The SDK calls this slot reserved and says to write 0, and the
+   Windows 98 display driver does. The Windows 2000 display driver
+   writes x << 1 | y << 17 (RE: ati2dvaa.dll @1096b), and the Windows 98
+   Direct3D driver's antialiasing resize writes 0x10001, half a pixel in
+   each direction (RE: ati3draa.dll @b00d28c0); half-pixel units are the
+   reading that fits both. The fraction bit starts the 16.16 walk at
+   0x8000.
+   b[7] and b[8] are the X and Y increments, 4.12 in [19:4] with [3:0]
+   and [31:20] reserved (SDK Table F-17; RRG: SECONDARY_SCALE_X_INC,
+   p. 3-160 / PDF 178, for the same layout). They are masked here,
+   before any walk path reads them; the register-started stretch masks
+   SCALE_X_INC and SCALE_Y_INC the same way (rage128_2d_scale_reg_op).
+   b[9] is the destination position as SCALE_DST_X_Y lays it out, x in
+   [29:16] and y in [13:0]; both Windows 98 drivers build it as
+   left << 16 | top (RE: ati3draa.dll @b00bb3e0, from the DirectDraw
+   blit's destination rect; RE: ati2draa.drv @9017, a file offset, whose
+   bottom-to-top arm offsets the low word by the height). b[10] is
+   (height << 16) | width.
+   Returns 0 when the source datatype cannot be paired with the
+   destination format (the caller then reports the packet as
+   unhandled). */
+static int
+rage128_2d_scale_block(rage128_t *dev, const uint32_t *b)
+{
+    uint32_t depth = b[3];
+
+    if (!rage128_2d_scale_pair_ok(dev, depth, b[4]))
+        return 0;
+    rage128_2d_stretch_rect(dev, b[4], rage128_2d_scale_pitch_px(b[5]),
                             (int) ((b[6] & 0x3fff) >> 1),
                             (int) (((b[6] >> 16) & 0x3fff) >> 1),
                             (b[6] & 1u) << 15,
@@ -5434,19 +6298,29 @@ pkt3_scaling(rage128_t *dev, uint32_t g, const uint32_t *pl, uint32_t count)
 }
 
 /* Packet 0x97 (R128_CCE_PACKET3_CNTL_TRANS_SCALING in xf86-video-r128):
-   a color-keyed stretch blit. The SDK layout is the GMC,
-   its setup dwords, then CLR_CMP_CNTL, the source and destination
-   reference colors and the 11-dword scaler block of 0x96 (SDK: Table
-   F-24, pp. F-36-F-37 / PDF 326-327). The code handles only the 20-dword
-   form, with all four setup bits set, that the Windows 98
-   DirectDraw/Direct3D driver sends when a
-   DirectDraw blit asks for a source color key and a stretch at once
-   (RE: ati3draa.dll @b00ba7ea, header 0xc0139700); it is to 0x96 what
-   0x9c is to 0x92. The slot map comes from the shared slot builder (RE:
-   ati3draa.dll @b00bb3e0): p2 is the destination surface in every form,
-   and p1, the source surface, is written only by the 0x92 and 0x9c
-   paths. The stretch paths leave p1 holding an earlier blit's source,
-   so nothing is taken from it:
+   a color-keyed stretch blit; it is to 0x96 what 0x9c is to 0x92. The
+   body is the GMC, then the setup dwords its bits 0-3 ask for (source
+   pitch/offset, destination pitch/offset, the source scissor's
+   bottom-right, the destination scissor pair), the brush data its brush
+   type asks for and BRUSH_Y_X when bit 31 is set (SDK: Table 4-16,
+   pp. F-12-F-14 / PDF 302-304; SDK: Table F-1, pp. F-14-F-16 / PDF
+   304-306), then CLR_CMP_CNTL, the source and destination reference
+   colors and the 11-dword scaler block of 0x96 (SDK: Table F-24,
+   pp. F-36-F-37 / PDF 326-327). With no setup bits and brush type 15
+   that is 15 dwords; a clear setup bit leaves the value the GMC write
+   reloads.
+   The Windows 98 DirectDraw/Direct3D driver sends the packet when a
+   DirectDraw blit asks for a source color key and a stretch at once,
+   always with all four setup bits, brush type 15 and no BRUSH_Y_X: 20
+   dwords (RE: ati3draa.dll @b00ba7ea, header 0xc0139700). The slot map
+   comes from the shared slot builder (RE: ati3draa.dll @b00bb3e0): p2
+   is the destination surface in every form, and p1, the source surface,
+   is written only by the 0x92 and 0x9c paths. The stretch paths leave
+   p1 holding an earlier blit's source, so the source pitch/offset dword
+   is skipped, not latched; the scaler reads its source from p13 and
+   p14, never from SRC_PITCH_OFFSET. The source scissor dword is skipped
+   as well, as in 0x96. Skipping both is modeled: no document says
+   whether the chip latches them. In the driver's form:
      p0 GMC                p1  (stale SRC_PITCH_OFFSET)
      p2 DST_PITCH_OFFSET   p3  SRC_SC_BOTTOM_RIGHT
      p4 SC_TOP_LEFT (0)    p5  SC_BOTTOM_RIGHT (destination rect)
@@ -5458,21 +6332,59 @@ pkt3_scaling(rage128_t *dev, uint32_t g, const uint32_t *pl, uint32_t count)
    equal) in the form the driver sends without p8; the form with p8 ORs
    in 0x400 (CLR_CMP_FN_DST 4) and sets CLR_CMP_SRC 2. The driver always
    writes 0x500 (replicate) in the scaler block's MISC_3D_STATE. The
-   executor uses the latched color compare state directly; the scaler
-   reads its source from p13 and p14, never from SRC_PITCH_OFFSET. */
+   executor uses the latched color compare state directly.
+   The length the setup bits need is checked before anything is
+   latched, so a packet too short for its bits changes no state. Brush
+   data is sized by its type, so brush data that runs into the last 14
+   dwords is found only after the GMC and the setup dwords are latched,
+   and, when only the BRUSH_Y_X dword is missing, after the brush
+   colors of the types that carry them are latched as well. */
 static int
 pkt3_trans_scaling(rage128_t *dev, uint32_t g, const uint32_t *pl, uint32_t count)
 {
-    if (count < 20)
+    const uint8_t *pat = NULL;
+    const uint8_t *col = NULL;
+    int            mono_la, line_en;
+    uint32_t       linepat;
+    uint32_t       p    = 1;
+    uint32_t       need = 1 + 3 + 11;
+
+    if (g & RAGE128_GMC_SRC_PITCH_OFFSET_LEAVE)
+        need++;
+    if (g & RAGE128_GMC_DST_PITCH_OFFSET_LEAVE)
+        need++;
+    if (g & RAGE128_GMC_SRC_CLIP_LEAVE)
+        need++;
+    if (g & RAGE128_GMC_DST_CLIP_LEAVE)
+        need += 2;
+    if (count < need)
         return 0;
-    rage128_2d_apply_gmc(dev, g);               /* p0 */
-    rage128_2d_set_pitch_offset(dev, 1, pl[2]); /* p2 DST_PITCH_OFFSET */
-    dev->sc_top_left     = pl[4];               /* p4 SC_TOP_LEFT */
-    dev->sc_bottom_right = pl[5];               /* p5 SC_BOTTOM_RIGHT */
-    dev->clr_cmp_cntl    = pl[6];
-    dev->clr_cmp_clr_src = pl[7];
-    dev->clr_cmp_clr_dst = pl[8];
-    if (!rage128_2d_scale_block(dev, &pl[9]))
+    rage128_2d_apply_gmc(dev, g);
+    if (g & RAGE128_GMC_SRC_PITCH_OFFSET_LEAVE)
+        p++; /* stale source surface, not latched */
+    if (g & RAGE128_GMC_DST_PITCH_OFFSET_LEAVE)
+        rage128_2d_set_pitch_offset(dev, 1, pl[p++]);
+    if (g & RAGE128_GMC_SRC_CLIP_LEAVE)
+        p++; /* source scissor bottom-right, not latched */
+    if (g & RAGE128_GMC_DST_CLIP_LEAVE) {
+        dev->sc_top_left     = pl[p++];
+        dev->sc_bottom_right = pl[p++];
+    }
+    /* The brush data must end before the 14 compare and scaler dwords.
+       The stretch takes its pattern operand from DP_BRUSH_FRGD_CLR, so
+       only the latched brush state matters, not the returned pointers. */
+    if (!rage128_2d_brush_block(dev, g, pl, count - 14, &p,
+                                &pat, &col, &mono_la, &linepat, &line_en))
+        return 0;
+    (void) pat;
+    (void) col;
+    (void) mono_la;
+    (void) linepat;
+    (void) line_en;
+    dev->clr_cmp_cntl    = pl[p];
+    dev->clr_cmp_clr_src = pl[p + 1];
+    dev->clr_cmp_clr_dst = pl[p + 2];
+    if (!rage128_2d_scale_block(dev, &pl[p + 3]))
         return 0;
     return 1;
 }
@@ -5737,15 +6649,42 @@ rage128_2d_reg_read(rage128_t *dev, uint32_t off, uint32_t *val)
         case RAGE128_SRC_SC_BOTTOM: *val = dev->src_sc_bottom; return 1;
         case RAGE128_PC_GUI_CTLSTAT:
             /* Pixel cache status: PC_BUSY [31] and PC_BUSY_GUI [29] are
-               set while the CCE thread has fetched or running work, and
-               clear otherwise (RRG: PC_GUI_CTLSTAT, p. 3-253 / PDF 271).
+               set while the CCE thread has fetched or running work or a
+               register-started op has engine time left, and clear
+               otherwise (RRG: PC_GUI_CTLSTAT, p. 3-253 / PDF 271).
                The guide gives these bits no description; treating
                PC_BUSY as an OR of the busy bits follows GUI_ACTIVE, "'OR'
-               of the above bits" (RRG: GUI_STAT, p. 3-244 / PDF 262). */
-            *val = rage128_pm4_active(dev) ? 0xa0000000u : 0;
+               of the above bits" (RRG: GUI_STAT, p. 3-244 / PDF 262).
+               The CCE thread awake with no work is not busy. */
+            *val = (rage128_pm4_busy(dev)
+                    || (!rage128_on_cce_thread && rage128_2d_eng_busy(dev)))
+                ? 0xa0000000u : 0;
             return 1;
         case RAGE128_SCALE_SCR_HEIGHT_WIDTH:
             *val = dev->scale_scr_height_width;
+            return 1;
+        /* The register-started scale's registers read back as written
+           (modeled; the guides give them no page). */
+        case RAGE128_SCALE_OFFSET_0:
+            *val = dev->scale_offset_0;
+            return 1;
+        case RAGE128_SCALE_X_INC:
+            *val = dev->scale_x_inc;
+            return 1;
+        case RAGE128_SCALE_Y_INC:
+            *val = dev->scale_y_inc;
+            return 1;
+        case RAGE128_SCALE_HACC:
+            *val = dev->scale_hacc;
+            return 1;
+        case RAGE128_SCALE_VACC:
+            *val = dev->scale_vacc;
+            return 1;
+        case RAGE128_SCALE_DST_X_Y:
+            *val = dev->scale_dst_x_y;
+            return 1;
+        case RAGE128_SCALE_DST_HEIGHT_WIDTH:
+            *val = dev->scale_dst_height_width;
             return 1;
         /* Readback of the gradient registers at 0x1a40-0x1a60 (not
            named in the guides; see grad_start in vid_ati_rage128.h).
@@ -6080,14 +7019,21 @@ rage128_2d_fill_gradient(rage128_t *dev, int x, int y, int w, int h)
 }
 
 /* Paint the host data streamed for an op started by register writes.
-   The op latched the destination rect and the source datatype;
-   hostdata_buf holds the dwords the driver wrote to HOST_DATA0 through
-   HOST_DATA7 and HOST_DATA_LAST (RRG: HOST_DATA0, pp. 3-151-3-153 / PDF
-   169-171). Each scanline is padded to a dword, as the X driver's
-   color expansion sends it (xf86-video-r128 r128_accel.c, XAA version,
-   R128SubsequentScanlineCPUToScreenColorExpandFill: (w + 31) >> 5
-   dwords per scanline); the 0x19 packet path packs mono rows back to
-   back instead. The mono and color executors do the drawing. */
+   The op latched the destination rect, the source and the source
+   datatype; the data buffer holds the dwords the driver wrote to
+   HOST_DATA0 through HOST_DATA7 and HOST_DATA_LAST (RRG: HOST_DATA0,
+   pp. 3-151-3-153 / PDF 169-171). Source 3 is "loaded thru hostdata
+   (linear trajectory)" (RRG: DP_MIX, p. 3-171 / PDF 189): mono data is
+   then one bit stream, w bits per row and rows back to back with no
+   padding, as the 0x19 packet path reads it. The X driver always pads
+   the blit width to a multiple of 32 and cuts the extra pixels with the
+   scissor (xf86-video-r128 r128_accel.c, XAA version,
+   R128SubsequentScanlineCPUToScreenColorExpandFill), so each of its
+   rows ends on a dword and the stream gives the same bits as rows
+   padded to a dword boundary. Source 4 adds "byte-aligned" to the same
+   text; the code pads each of its mono rows to a dword boundary, which
+   is modeled, not documented. The mono and color executors do the
+   drawing. */
 static void
 rage128_2d_hostdata_paint(rage128_t *dev)
 {
@@ -6105,14 +7051,15 @@ rage128_2d_hostdata_paint(rage128_t *dev)
         rage128_2d_host_color_rect(dev, dev->hostdata_x, dev->hostdata_y, w, h,
                                    (const uint8_t *) dev->hostdata_buf, have * 4, NULL, NULL, 0);
     } else {
-        /* Mono: w bits per scanline, each scanline padded to a dword, so
-           bitpitch is the padded width in bits. If fewer dwords arrived
-           than the whole op needs, only the complete rows are painted. */
-        uint32_t dpw      = ((uint32_t) w + 31) >> 5; /* dwords per scanline */
-        uint32_t bitpitch = dpw * 32;
+        /* Mono: bitpitch is w for the source-3 stream and the width
+           padded to a dword otherwise. If fewer dwords arrived than the
+           whole op needs, only the rows whose bits all arrived are
+           painted. */
+        uint32_t bitpitch = (dev->hostdata_src == 3) ? (uint32_t) w
+                                                     : (((uint32_t) w + 31) & ~31u);
 
-        if (have < dpw * (uint32_t) h)
-            h = (int) (have / dpw);
+        if ((uint64_t) have * 32 < (uint64_t) bitpitch * (uint32_t) h)
+            h = (int) (((uint64_t) have * 32) / bitpitch);
         if (h > 0)
             rage128_2d_mono_rect(dev, dev->hostdata_x, dev->hostdata_y, w, h,
                                  (const uint8_t *) dev->hostdata_buf, bitpitch,
@@ -6148,6 +7095,199 @@ rage128_2d_dst_traj_advance(rage128_t *dev, int w, int h)
                                                   + ((dev->dp_cntl & RAGE128_DP_CNTL_DST_Y_DIR) ? h : -h)));
 }
 
+/* Engine time for ops started by CPU register writes.
+
+   An op started by a register write is drawn to the end inside that
+   write, so its pixels are in memory at once. The chip takes time over
+   the same op, and programs pace themselves on that time: before each
+   group of register writes they poll GUI_STAT until GUI_FIFOCNT, the
+   "Number of free CMDFIFO entries", is large enough, and before they
+   touch the frame buffer they wait for GUI_ACTIVE to clear (RRG:
+   GUI_STAT, p. 3-244 / PDF 262; SDK: Engine Command Queue Maintenance,
+   pp. 4-2-4-3 / PDF 76-77). A program that draws in an endless loop with
+   only the FIFO wait between two ops runs as fast as the engine lets
+   it. With an engine that is never busy, such a loop starts hundreds of
+   thousands of ops in an emulated second, and the host has to draw
+   every one of them.
+
+   So the device keeps a timeline in emulated time. Nothing here delays
+   a pixel; the timeline only decides what the status registers report.
+   - eng_done is when the engine finishes the work accepted so far. An
+     op starts when the engine is free and adds its length.
+   - A CPU write to a FIFO'd register, the GUI block from 0x1400 up,
+     that arrives while the engine is busy waits in the command FIFO
+     until the engine gets to it, and holds one of the 64 entries until
+     then. GUI_FIFOCNT is 64 minus the writes still waiting. A write that
+     arrives with all 64 entries taken is applied like any other and the
+     count stays 0; what the chip does with such a write is not
+     documented.
+   - GUI_ACTIVE, ENG_2D_BUSY and ENG_2D_SM_BUSY read 1 until eng_done.
+     Which of the busy bits the chip sets for which op is not
+     documented; the two 2D engine bits are modeled for every
+     register-started op, the scaler op included.
+   - The busy-to-idle event behind GUI_IDLE_INT is raised at eng_done.
+
+   How long an op takes is modeled from two documented figures. The 2D
+   engine has a "128-bits wide" pixel datapath "drawing multiple pixels
+   per clock" (GCS: 2D Engine, p. 4-3 / PDF 51), taken here as 16 bytes of
+   frame-buffer traffic per cycle of the engine clock MCLK (RRG:
+   MCLK_CNTL, p. 3-103 / PDF 121): the destination bytes written, the
+   same number again when the ROP uses a source that is read from the
+   frame buffer, and again when the ROP uses the destination. The X
+   driver leaves the source select on the frame buffer for its solid
+   fills, whose ROP uses the brush alone; such a fill is charged for
+   its destination only. At the 120 MHz the video
+   BIOS programs this is 1.92 gigabytes a second, the memory bandwidth
+   the controller specification gives for the 128-bit interface (GCS:
+   Memory Support, p. 2-6 / PDF 20). The scaler op goes through the 3D
+   pixel pipeline, taken as two pixels per engine clock. Solid fills by
+   SGRAM block write, which the 2D engine can do faster, are charged
+   like any other fill, and an op is charged for the rectangle it asks
+   for, clipped or not.
+
+   Ops run by the CCE thread, from the ring or an indirect buffer, are
+   not on this timeline: that thread's own progress is what the status
+   registers report for them.
+
+   Emulated time is the processor's cycle count, which a guest can set
+   to any value. When it is found behind the last value seen here, the
+   times on the timeline mean nothing any more, so the queued work is
+   taken as done. The count times 256 does not fit 64 bits for ever, so
+   two times are compared by the sign of their difference, which stays
+   right across the wrap. */
+static inline int
+rage128_2d_eng_after(uint64_t a, uint64_t b)
+{
+    return (int64_t) (a - b) > 0;
+}
+
+static uint64_t
+rage128_2d_eng_now(rage128_t *dev)
+{
+    uint64_t now = tsc << 8;
+
+    if (rage128_2d_eng_after(dev->eng_seen, now)) {
+        dev->eng_done   = now;
+        dev->eng_fifo_n = 0;
+    }
+    dev->eng_seen = now;
+    return now;
+}
+
+static void
+rage128_2d_eng_retire(rage128_t *dev, uint64_t now)
+{
+    while (dev->eng_fifo_n && !rage128_2d_eng_after(dev->eng_fifo_pop[dev->eng_fifo_head], now)) {
+        dev->eng_fifo_head = (dev->eng_fifo_head + 1) % RAGE128_GUI_STAT_FIFO_ENTRIES;
+        dev->eng_fifo_n--;
+    }
+}
+
+void
+rage128_2d_eng_reset(rage128_t *dev)
+{
+    dev->eng_done      = tsc << 8;
+    dev->eng_seen      = dev->eng_done;
+    dev->eng_fifo_head = 0;
+    dev->eng_fifo_n    = 0;
+    dev->eng_idle_due  = 0;
+}
+
+int
+rage128_2d_eng_busy(rage128_t *dev)
+{
+    uint64_t now = rage128_2d_eng_now(dev);
+
+    return rage128_2d_eng_after(dev->eng_done, now);
+}
+
+void
+rage128_2d_eng_poll(rage128_t *dev)
+{
+    if (dev->eng_idle_due && !rage128_2d_eng_busy(dev)) {
+        dev->eng_idle_due = 0;
+        atomic_store(&dev->gui_idle_event, 1);
+    }
+}
+
+uint32_t
+rage128_2d_eng_stat(rage128_t *dev)
+{
+    uint64_t now = rage128_2d_eng_now(dev);
+
+    rage128_2d_eng_retire(dev, now);
+    rage128_2d_eng_poll(dev);
+    return (RAGE128_GUI_STAT_FIFO_ENTRIES - dev->eng_fifo_n)
+        | (rage128_2d_eng_after(dev->eng_done, now) ? RAGE128_GUI_STAT_ENG_2D : 0);
+}
+
+void
+rage128_2d_eng_fifo_write(rage128_t *dev)
+{
+    uint64_t now = rage128_2d_eng_now(dev);
+
+    rage128_2d_eng_retire(dev, now);
+    if (!rage128_2d_eng_after(dev->eng_done, now))
+        return; /* a free engine takes the write at once */
+    if (dev->eng_fifo_n == RAGE128_GUI_STAT_FIFO_ENTRIES) {
+        dev->eng_fifo_head = (dev->eng_fifo_head + 1) % RAGE128_GUI_STAT_FIFO_ENTRIES;
+        dev->eng_fifo_n--;
+    }
+    dev->eng_fifo_pop[(dev->eng_fifo_head + dev->eng_fifo_n) % RAGE128_GUI_STAT_FIFO_ENTRIES]
+        = dev->eng_done;
+    dev->eng_fifo_n++;
+}
+
+/* An op that takes this many engine clocks has just been drawn. On the
+   CPU thread it goes on the timeline; on the CCE thread, or inside an
+   indirect-buffer parse, the busy-to-idle event is raised at once, as
+   that thread does for its own work. A stopped engine clock adds no
+   time (modeled). */
+static void
+rage128_2d_eng_op(rage128_t *dev, double clocks)
+{
+    uint64_t now;
+    double   hz;
+
+    if (rage128_on_cce_thread || rage128_in_indirect) {
+        atomic_store(&dev->gui_idle_event, 1);
+        return;
+    }
+    /* An earlier op whose time ran out with nobody looking went idle
+       before this one starts: that event is raised first. */
+    rage128_2d_eng_poll(dev);
+    now = rage128_2d_eng_now(dev);
+    hz  = rage128_mclk_hz(dev);
+    if (!rage128_2d_eng_after(dev->eng_done, now))
+        dev->eng_done = now;
+    if (hz > 0.0 && clocks > 0.0)
+        dev->eng_done += (uint64_t) (clocks * (double) TIMER_USEC
+                                     * (1000000.0 * 256.0 / 4294967296.0) / hz);
+    dev->eng_idle_due = 1;
+}
+
+/* Engine clocks of a register-started 2D op over w x h pixels: 16 bytes
+   a clock, counting the destination write, a source read from the frame
+   buffer when from_mem is set and the ROP uses the source, and the
+   destination read of a ROP that uses it. A ROP3 code holds one result
+   bit per pattern, source and destination bit triple, the source at
+   weight 2 of the index, so it ignores the source when every bit
+   equals the bit two places up. */
+static double
+rage128_2d_eng_rect_clocks(const rage128_t *dev, int w, int h, int from_mem)
+{
+    double  bytes;
+    uint8_t rop;
+
+    if (w <= 0 || h <= 0)
+        return 0.0;
+    bytes = (double) w * (double) h * (double) rage128_2d_bpp((uint32_t) rage128_dp_dst_dt(dev));
+    rop = rage128_dp_rop3(dev);
+    return bytes * (double) (1 + ((from_mem && ((rop ^ (rop >> 2)) & 0x33)) ? 1 : 0)
+                             + (rage128_2d_rop_dindep(rop) ? 0 : 1))
+        / 16.0;
+}
+
 /* One dword written to HOST_DATA0-7 or HOST_DATA_LAST. It is added to
    the waiting op's buffer; the HOST_DATA_LAST write ends the data, so
    the op is painted and closed. Writes with no op waiting are
@@ -6164,7 +7304,8 @@ rage128_2d_hostdata_word(rage128_t *dev, uint32_t off, uint32_t val)
         dev->hostdata_ndw    = 0;
         dev->hostdata_active = 0;
         rage128_2d_dst_traj_advance(dev, dev->hostdata_w, dev->hostdata_h);
-        atomic_store(&dev->gui_idle_event, 1);
+        rage128_2d_eng_op(dev, rage128_2d_eng_rect_clocks(dev, dev->hostdata_w,
+                                                          dev->hostdata_h, 0));
     }
 }
 
@@ -6231,43 +7372,49 @@ rage128_2d_gui_op_run(rage128_t *dev, int w, int h)
             sy -= h - 1;
             dy -= h - 1;
         }
-        /* brush types 0 and 1: the 8x8 mono pattern in BRUSH_DATA0 and
-           BRUSH_DATA1, as for the register-started paint below */
+        /* the mono brush types from the brush registers, as for the
+           register-started paint below */
         {
             uint32_t bt       = (uint32_t) rage128_dp_brush_dt(dev);
-            int      pat_mono = (bt == 0 || bt == 1);
+            int      pat_mono = (bt <= 1 || (bt >= 6 && bt <= 9));
 
             rage128_2d_blit_rect_pat(dev, sx, sy, dx, dy, w, h,
                                      pat_mono ? (const uint8_t *) dev->brush_data
                                               : NULL,
-                                     NULL, bt == 1);
+                                     NULL, bt == 1 || bt == 7 || bt == 9);
         }
     } else if (src >= 3) {
         /* Set up a host-data op (the X driver's color expansion). The
-           destination rect and the source datatype are latched; the data
-           dwords then arrive through HOST_DATA0-7 and HOST_DATA_LAST
-           (rage128_2d_reg_write) and are painted on the HOST_DATA_LAST
-           write. */
+           destination rect, the source and the source datatype are
+           latched; the data dwords then arrive through HOST_DATA0-7 and
+           HOST_DATA_LAST (rage128_2d_reg_write) and are painted on the
+           HOST_DATA_LAST write. */
         dev->hostdata_active = 1;
         dev->hostdata_x      = dev->gui_dst_x;
         dev->hostdata_y      = dev->gui_dst_y;
         dev->hostdata_w      = w;
         dev->hostdata_h      = h;
+        dev->hostdata_src    = src;
         dev->hostdata_srcdt  = (uint32_t) rage128_dp_src_dt(dev);
         dev->hostdata_ndw    = 0;
         return 0;
     } else {
-        /* Brush types 0 and 1: the 8x8 mono pattern in BRUSH_DATA0 and
-           BRUSH_DATA1 (a packet carries its pattern inline; a
-           register-started op uses what the registers hold). Other
-           pattern types paint the solid foreground: no driver traffic
-           seen uses them on this path. */
+        /* A packet carries its pattern inline; a register-started op
+           uses what the brush registers hold (RRG: DP_DATATYPE, p. 3-169
+           / PDF 187). Types 0 and 1 are the 8x8 mono pattern in
+           BRUSH_DATA0 and BRUSH_DATA1, types 6 and 7 the 32x1 mono
+           pattern in BRUSH_DATA0, repeated on every row, and types 8 and
+           9 the 32x32 mono pattern in BRUSH_DATA0-31, a dword per row.
+           Types 0, 6 and 8 expand clear bits to the background color;
+           1, 7 and 9 leave the destination alone there. The other
+           pattern types paint the solid foreground on this path, which
+           is modeled, not documented. */
         uint32_t bt       = (uint32_t) rage128_dp_brush_dt(dev);
-        int      pat_mono = (bt == 0 || bt == 1);
+        int      pat_mono = (bt <= 1 || (bt >= 6 && bt <= 9));
 
         rage128_2d_paint_rect(dev, dev->gui_dst_x, dev->gui_dst_y, w, h,
                               pat_mono ? (const uint8_t *) dev->brush_data : NULL,
-                              NULL, bt == 1);
+                              NULL, bt == 1 || bt == 7 || bt == 9);
     }
     return 1;
 }
@@ -6277,10 +7424,11 @@ rage128_2d_gui_op_run(rage128_t *dev, int w, int h)
    registers first waits for the CCE executor thread to go idle and then
    applies the value (rage128_reg_write in vid_ati_rage128.c;
    rage128_pm4_drain_wait in vid_ati_rage128_pm4.c), so the executor
-   never sees this op, and the busy-to-idle event behind GUI_IDLE_INT is
-   raised here, as the executor raises it when it runs out of work. */
+   never sees this op. Each caller then puts the op on the engine
+   timeline (rage128_2d_eng_op), which raises the busy-to-idle event
+   behind GUI_IDLE_INT when the op's time is up. */
 static void
-rage128_2d_gui_op(rage128_t *dev, int w, int h)
+rage128_2d_reg_op_flush(rage128_t *dev)
 {
     /* Started from the ring (a type-0 register write run by the CCE
        thread): the op uses the same surfaces as any 3D batch still
@@ -6291,9 +7439,92 @@ rage128_2d_gui_op(rage128_t *dev, int w, int h)
         rage128_raster_flush(dev);
     if (dev->gpu)
         rage128_gpu_flush(dev, R128_GPU_2D_REG_GUI);
-    if (rage128_2d_gui_op_run(dev, w, h))
+}
+
+static void
+rage128_2d_gui_op(rage128_t *dev, int w, int h)
+{
+    /* A host-data op is only set up here: it draws, and is charged, on
+       its HOST_DATA_LAST write. */
+    int from_mem = !(dev->dp_gui_master_cntl & RAGE128_GMC_3D_FCN_EN)
+        && rage128_dp_src_source(dev) == 2;
+    int drawn;
+
+    rage128_2d_reg_op_flush(dev);
+    drawn = rage128_2d_gui_op_run(dev, w, h);
+    if (drawn)
         rage128_2d_dst_traj_advance(dev, w, h);
-    atomic_store(&dev->gui_idle_event, 1);
+    rage128_2d_eng_op(dev, drawn ? rage128_2d_eng_rect_clocks(dev, w, h, from_mem) : 0.0);
+}
+
+/* The front-end scaler started by register writes: the stretch the 0x96
+   packet runs, with each value taken from the register of the same name
+   instead of the packet slot. The SDK's scaled-blit example programs the
+   scaler this way and comments the SCALE_DST_HEIGHT_WIDTH write "Perform
+   the blt" (SDK: Drawing Rectangles, pp. 4-12-4-13 / PDF 86-87), so that
+   write starts the op, as a write to DST_HEIGHT_WIDTH starts a fill or a
+   copy.
+   - Source: the byte offset in SCALE_OFFSET_0, the pitch in SCALE_PITCH
+     (8-pixel units of the source format, x2 or x4 by [31:30], as in the
+     packet), the format in SCALE_3D_DATATYPE [3:0], the extent for the
+     blend's edge texels in SCALE_SCR_HEIGHT_WIDTH. The source position
+     is the offset alone: SRC_Y_X only latches here, because a program
+     that writes both puts the source row into SCALE_OFFSET_0 already,
+     and adding SRC_Y_X would read that far down a second time
+     (modeled; no guide says which one the scaler reads).
+   - Steps: SCALE_X_INC and SCALE_Y_INC, 4 integer and 12 fraction bits
+     in [19:4] (SDK: Drawing Rectangles, p. 4-12 / PDF 86; RRG:
+     SECONDARY_SCALE_Y_INC, p. 3-161 / PDF 179, for the same layout).
+     SCALE_HACC and SCALE_VACC set where the walk starts, as 16.16
+     values in the field widths of SECONDARY_SCALE_HACC [27:4] and
+     SECONDARY_SCALE_VACC [26:4] (RRG: SECONDARY_SCALE_HACC to
+     SECONDARY_SCALE_VACC, p. 3-161 / PDF 179); the guides give no page
+     for SCALE_HACC or SCALE_VACC, so these widths are modeled.
+   - Destination: x in SCALE_DST_X_Y [29:16] and y in [13:0], the same
+     layout the packet's destination slot uses; (height << 16) | width in
+     SCALE_DST_HEIGHT_WIDTH; the base, pitch, format, ROP, scissors and
+     write mask from the 2D engine's registers.
+   - SCALE_PIX_REP, MISC_3D_STATE_CNTL_REG bit 10, picks replication (1)
+     or a bilinear blend (0) (RRG: MISC_3D_STATE_CNTL_REG, p. 3-256 /
+     PDF 274).
+   The op runs only while the scale function is selected, SCALE_3D_CNTL
+   [7:6] = 1: the SDK's example writes that value before it programs the
+   scaler (SDK: Drawing Rectangles, p. 4-12 / PDF 86), and no guide
+   describes these registers acting with the field at another value. A
+   DP_GUI_MASTER_CNTL write with GMC_3D_FCN_EN clear zeroes the field
+   (rage128_2d_apply_gmc). The gate is modeled; the packets are not
+   gated on the field. */
+static void
+rage128_2d_scale_reg_op(rage128_t *dev)
+{
+    uint32_t sdt   = dev->t3d.scale_3d_datatype & 0xf;
+    uint32_t dhw   = dev->scale_dst_height_width;
+    int      drawn = 0;
+
+    if (((dev->t3d.scale_3d_cntl >> 6) & 3) != 1)
+        return;
+    /* A started op flushes and goes on the engine timeline like any
+       other register-started op, also when its source and destination
+       formats are a pair the stretch does not draw. */
+    rage128_2d_reg_op_flush(dev);
+    if (rage128_2d_scale_pair_ok(dev, sdt, dev->scale_offset_0)) {
+        drawn = 1;
+        rage128_2d_stretch_rect(dev, dev->scale_offset_0,
+                                rage128_2d_scale_pitch_px(dev->mc.scale_pitch),
+                                0, 0,
+                                dev->scale_hacc & 0x0ffffff0u,
+                                dev->scale_vacc & 0x07fffff0u,
+                                dev->scale_x_inc & 0x000ffff0u,
+                                dev->scale_y_inc & 0x000ffff0u,
+                                rage128_sx14(dev->scale_dst_x_y >> 16),
+                                rage128_sx14(dev->scale_dst_x_y),
+                                (int) (dhw & 0x3fff), (int) ((dhw >> 16) & 0x3fff),
+                                (int) sdt,
+                                !((dev->t3d.misc_3d_state_cntl >> 10) & 1));
+    }
+    /* two pixels per engine clock; a pair that is not drawn takes no time */
+    rage128_2d_eng_op(dev, drawn ? (double) (dhw & 0x3fff) * (double) ((dhw >> 16) & 0x3fff) / 2.0
+                                 : 0.0);
 }
 
 int
@@ -6493,7 +7724,8 @@ rage128_2d_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
             if (dev->gpu)
                 rage128_gpu_flush(dev, R128_GPU_2D_REG_BRES);
             rage128_2d_bres_line(dev, rage128_2d_line_dir(dev));
-            atomic_store(&dev->gui_idle_event, 1);
+            rage128_2d_eng_op(dev, rage128_2d_eng_rect_clocks(dev, (int) (dev->bres_lnth & 0x3fff),
+                                                              1, 0));
             return 1;
             /* clang-format off */
         case RAGE128_DP_BRUSH_BKGD_CLR: MERGE(dev->dp_brush_bkgd_clr); return 1;
@@ -6535,6 +7767,32 @@ rage128_2d_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
                          nothing is waiting to be flushed */
         case RAGE128_SCALE_SCR_HEIGHT_WIDTH:
             MERGE(dev->scale_scr_height_width);
+            return 1;
+        /* The register-started scale (rage128_2d_scale_reg_op). SCALE_PITCH
+           (0x199c), written in the same sequence, belongs to the
+           motion-compensation block, which is offered a write after this
+           one, so it is read from there and not claimed here. */
+        case RAGE128_SCALE_OFFSET_0:
+            MERGE(dev->scale_offset_0);
+            return 1;
+        case RAGE128_SCALE_X_INC:
+            MERGE(dev->scale_x_inc);
+            return 1;
+        case RAGE128_SCALE_Y_INC:
+            MERGE(dev->scale_y_inc);
+            return 1;
+        case RAGE128_SCALE_HACC:
+            MERGE(dev->scale_hacc);
+            return 1;
+        case RAGE128_SCALE_VACC:
+            MERGE(dev->scale_vacc);
+            return 1;
+        case RAGE128_SCALE_DST_X_Y:
+            MERGE(dev->scale_dst_x_y);
+            return 1;
+        case RAGE128_SCALE_DST_HEIGHT_WIDTH:
+            MERGE(dev->scale_dst_height_width);
+            rage128_2d_scale_reg_op(dev);
             return 1;
         default:
             break;

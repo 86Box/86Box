@@ -32,6 +32,7 @@
 #include <sys/stat.h>
 #include <stdalign.h>
 #ifndef _WIN32
+#    include <dirent.h>
 #    include <libgen.h>
 #endif
 #include <86box/86box.h>
@@ -136,6 +137,14 @@ typedef struct
 
 #define dstruct_t mds_disc_struct_t
 
+typedef struct blindwrite_block_t {
+    int64_t       start;
+    int64_t       end;
+    uint64_t      offset;
+    uint32_t      stride;
+    track_file_t *file;
+} blindwrite_block_t;
+
 typedef struct cd_image_t {
     cdrom_t      *dev;
     void         *log;
@@ -155,6 +164,9 @@ typedef struct cd_image_t {
     uint64_t sector_subs_size;
 
     FILE *subs_file;
+
+    blindwrite_block_t *blindwrite_blocks;
+    uint32_t            blindwrite_block_count;
 } cd_image_t;
 
 typedef enum
@@ -2823,7 +2835,6 @@ image_load_nrg(cd_image_t *img, const char *nrgfile)
     return ret;
 }
 
-#ifndef IS_TEST
 /*
    Converts UTF-16 string into UTF-8 string.
 
@@ -2858,6 +2869,8 @@ utf16_to_utf8(const uint16_t *u16_str, size_t u16_str_len,
 
         // check for surrogate pair
         if (codepoint >= 0xD800 && codepoint <= 0xDBFF) {
+            if (i == u16_str_len)
+                return -1;
             uint16_t high_surr = codepoint;
             uint16_t low_surr  = u16_str[i++];
 
@@ -2915,6 +2928,405 @@ utf16_to_utf8(const uint16_t *u16_str, size_t u16_str_len,
     return (long int)j;
 }
 
+/*
+   BlindWrite 5/6 descriptor layout ported from rust-dos (src/cdrom/b6t.rs
+   and src/cdrom/image.rs), based on Rok Mandeljc's libMirage B6T parser.
+ */
+static const char blindwrite_signature[] = "BWT5 STREAM SIGN";
+
+typedef struct blindwrite_cursor_t {
+    const uint8_t *data;
+    size_t         remaining;
+} blindwrite_cursor_t;
+
+static const uint8_t *
+blindwrite_take(blindwrite_cursor_t *cursor, uint64_t size)
+{
+    if (size > cursor->remaining)
+        return NULL;
+
+    const uint8_t *data = cursor->data;
+    cursor->data += size;
+    cursor->remaining -= size;
+    return data;
+}
+
+static uint16_t
+blindwrite_u16(const uint8_t *data)
+{
+    return data[0] | (data[1] << 8);
+}
+
+static uint32_t
+blindwrite_u32(const uint8_t *data)
+{
+    return blindwrite_u16(data) | ((uint32_t) blindwrite_u16(data + 2) << 16);
+}
+
+static int
+blindwrite_data_size(uint32_t stride)
+{
+    return (stride == 2368 || stride == 2448) ? RAW_SECTOR_SIZE : stride;
+}
+
+static int
+blindwrite_compare_blocks(const void *a, const void *b)
+{
+    const blindwrite_block_t *left  = a;
+    const blindwrite_block_t *right = b;
+
+    return (left->start > right->start) - (left->start < right->start);
+}
+
+/* Resolve a path component case-insensitively on case-sensitive hosts. */
+static int
+blindwrite_append_component(char *path, size_t size, const char *name, int directory)
+{
+    const size_t prefix = strlen(path);
+    struct stat  info;
+
+    if (strlen(name) >= size - prefix)
+        return 0;
+    strcpy(path + prefix, name);
+    const int type = directory ? S_IFDIR : S_IFREG;
+    if (!stat(path, &info) && (info.st_mode & S_IFMT) == type)
+        return 1;
+
+#ifndef _WIN32
+    path[prefix] = '\0';
+    DIR *dir = opendir(prefix ? path : ".");
+    if (dir != NULL) {
+        struct dirent *entry;
+        while ((entry = readdir(dir)) != NULL) {
+            if (!strcasecmp(entry->d_name, name) && strlen(entry->d_name) < size - prefix) {
+                strcpy(path + prefix, entry->d_name);
+                if (!stat(path, &info) && (info.st_mode & S_IFMT) == type) {
+                    closedir(dir);
+                    return 1;
+                }
+            }
+        }
+        closedir(dir);
+    }
+#endif
+    return 0;
+}
+
+static track_file_t *
+blindwrite_open_data(cd_image_t *img, const char *descriptor, char *name)
+{
+    char path[sizeof(((track_file_t *) 0)->fn)];
+    char *base = name;
+    size_t prefix = 0;
+    int relative = name[0] != '/' && name[0] != '\\' && strchr(name, ':') == NULL;
+    int error;
+
+    for (const char *p = descriptor; *p; p++)
+        if (*p == '/' || *p == '\\')
+            prefix = p - descriptor + 1;
+    if (prefix >= sizeof(path))
+        return NULL;
+
+    for (char *p = name; *p; p++) {
+        if (*p == '\\')
+            *p = '/';
+        if (*p == '/') {
+            if (p - base == 2 && base[0] == '.' && base[1] == '.')
+                relative = 0;
+            base = p + 1;
+        }
+    }
+    if (!*base || !strcmp(base, ".") || !strcmp(base, ".."))
+        return NULL;
+
+    memcpy(path, descriptor, prefix);
+    path[prefix] = '\0';
+    if (relative && base != name) {
+        char *part = name;
+        while (part < base) {
+            char *slash = strchr(part, '/');
+            *slash = '\0';
+            const int found = !*part || blindwrite_append_component(path, sizeof(path) - 1, part, 1);
+            *slash = '/';
+            if (!found)
+                break;
+            if (strlen(path) && path[strlen(path) - 1] != '/')
+                strcat(path, "/");
+            part = slash + 1;
+        }
+        if (part == base && blindwrite_append_component(path, sizeof(path), base, 0))
+            return bin_init(img->dev->id, path, &error);
+    }
+
+    /* Absolute names and missing relative paths fall back to the descriptor's folder. */
+    path[prefix] = '\0';
+    if (!blindwrite_append_component(path, sizeof(path), base, 0))
+        return NULL;
+    return bin_init(img->dev->id, path, &error);
+}
+
+static int
+blindwrite_load_blocks(cd_image_t *img, blindwrite_cursor_t *cursor, const char *path)
+{
+    const uint8_t *header = blindwrite_take(cursor, 8);
+    if (header == NULL || !blindwrite_take(cursor, blindwrite_u32(header + 4)))
+        return 0;
+
+    const uint32_t count = blindwrite_u32(header);
+    if (!count || count > cursor->remaining / 58)
+        return 0;
+
+    img->blindwrite_blocks = calloc(count, sizeof(blindwrite_block_t));
+    if (img->blindwrite_blocks == NULL)
+        return 0;
+    img->blindwrite_block_count = count;
+
+    for (uint32_t i = 0; i < count; i++) {
+        blindwrite_block_t *block = &img->blindwrite_blocks[i];
+        const uint8_t *entry = blindwrite_take(cursor, 52);
+        if (entry == NULL)
+            return 0;
+
+        const uint32_t bytes = blindwrite_u32(entry + 4);
+        const int32_t sectors = (int32_t) blindwrite_u32(entry + 44);
+        const uint32_t name_bytes = blindwrite_u32(entry + 48);
+        const uint8_t *name = blindwrite_take(cursor, name_bytes);
+        uint16_t units[1024];
+        char filename[sizeof(units) * 2];
+
+        if (sectors <= 0 || name == NULL || !name_bytes || (name_bytes & 1) ||
+            name_bytes > sizeof(units) || !blindwrite_take(cursor, 4))
+            return 0;
+
+        block->stride = bytes / sectors;
+        if (block->stride != 2048 && block->stride != 2336 && block->stride != 2352 &&
+            block->stride != 2368 && block->stride != 2448)
+            return 0;
+
+        block->start = (int32_t) blindwrite_u32(entry + 40);
+        block->end = block->start + sectors;
+        block->offset = blindwrite_u32(entry + 24);
+
+        size_t length = name_bytes / 2;
+        for (size_t j = 0; j < length; j++)
+            units[j] = blindwrite_u16(name + 2 * j);
+        while (length && units[length - 1] == 0)
+            length--;
+        for (size_t j = 0; j < length; j++)
+            if (units[j] == 0)
+                return 0;
+        if (!length || utf16_to_utf8(units, length, (uint8_t *) filename, sizeof(filename)) < 0)
+            return 0;
+
+        block->file = blindwrite_open_data(img, path, filename);
+        if (block->file == NULL ||
+            block->offset + (uint64_t) sectors * block->stride > block->file->get_length(block->file))
+            return 0;
+    }
+
+    qsort(img->blindwrite_blocks, count, sizeof(blindwrite_block_t), blindwrite_compare_blocks);
+    return 1;
+}
+
+static const blindwrite_block_t *
+blindwrite_find_block(const cd_image_t *img, int64_t lba)
+{
+    for (uint32_t i = 0; i < img->blindwrite_block_count; i++) {
+        const blindwrite_block_t *block = &img->blindwrite_blocks[i];
+        if (block->start > lba)
+            break;
+        if (lba < block->end)
+            return block;
+    }
+    return NULL;
+}
+
+static int
+blindwrite_add_track(cd_image_t *img, const uint8_t *entry, uint8_t session)
+{
+    const uint8_t kind = entry[0];
+    const int64_t start = (int32_t) blindwrite_u32(entry + 42);
+    const int32_t length = (int32_t) blindwrite_u32(entry + 46);
+    const uint32_t pregap = blindwrite_u32(entry + 22);
+    const int64_t index1 = start + pregap;
+    const int64_t end = start + length;
+    int size = 0;
+
+    if (start < -150 || length <= 0 || pregap >= (uint32_t) length ||
+        index1 < 0 || end > INT32_MAX)
+        return 0;
+
+    /* Match the track to every data block it intersects, including split files. */
+    for (uint32_t i = 0; i < img->blindwrite_block_count; i++) {
+        const blindwrite_block_t *block = &img->blindwrite_blocks[i];
+        if (block->start >= end)
+            break;
+        if (block->end <= start || block->end <= 0)
+            continue;
+        const int block_size = blindwrite_data_size(block->stride);
+        if (size && size != block_size)
+            return 0;
+        size = block_size;
+    }
+
+    const int mode2 = kind >= 3 && kind <= 5;
+    if ((size == 2048 && kind != 2 && kind != 4 && kind != 6) ||
+        (size == 2336 && !mode2) || !size)
+        return 0;
+
+    track_t *track = image_insert_track(img, session, entry[12]);
+    track->attr = 0x10 | (entry[10] & 0x0f) | (kind != 1 ? 0x04 : 0);
+    track->mode = kind == 1 ? 0 : (mode2 && size != 2048 ? 2 : 1);
+    track->sector_size = size;
+    track->idx[0].type = INDEX_ZERO;
+    track->idx[0].start = start + 150;
+    track->idx[0].length = pregap;
+    track->idx[1].type = INDEX_ZERO;
+    track->idx[1].start = index1 + 150;
+    track->idx[1].length = length - pregap;
+
+    img->has_audio |= kind == 1;
+    img->has_data |= kind != 1;
+    img->is_dvd |= kind == 6;
+    return 1;
+}
+
+static int
+blindwrite_load_sessions(cd_image_t *img, blindwrite_cursor_t *cursor, uint16_t sessions)
+{
+    uint8_t previous_track = 0;
+    uint8_t previous_session = 0;
+
+    for (uint16_t i = 0; i < sessions; i++) {
+        const uint8_t *header = blindwrite_take(cursor, 16);
+        if (header == NULL)
+            return 0;
+
+        const uint16_t session = blindwrite_u16(header);
+        const uint8_t entries = header[2];
+        uint64_t lead_out = 0;
+        int mode2 = 0;
+
+        if (session <= previous_session || session > UINT8_MAX)
+            return 0;
+        previous_session = session;
+
+        const int toc = img->tracks_num;
+        for (unsigned j = 0; j < 3; j++)
+            image_insert_track(img, session, 0xa0 + j);
+        const int first = img->tracks_num;
+
+        for (unsigned j = 0; j < entries; j++) {
+            const uint8_t *entry = blindwrite_take(cursor, 64);
+            if (entry == NULL || entry[0] > 6)
+                return 0;
+            if (entry[0] == 0)
+                continue;
+            if (entry[0] != 6 && !blindwrite_take(cursor, 8))
+                return 0;
+            if (entry[12] < 1 || entry[12] > 99)
+                continue;
+            if (entry[12] <= previous_track || !blindwrite_add_track(img, entry, session))
+                return 0;
+            previous_track = entry[12];
+
+            const track_t *track = &img->tracks[img->tracks_num - 1];
+            lead_out = track->idx[1].start + track->idx[1].length;
+            mode2 |= track->mode == 2;
+        }
+        if (first == img->tracks_num)
+            return 0;
+
+        const uint64_t first_track = img->tracks[first].point;
+        const uint8_t attr = img->tracks[img->tracks_num - 1].attr;
+        const uint64_t toc_frames[] = {
+            first_track * 60 * 75 + (mode2 ? 0x20 * 75 : 0),
+            previous_track * 60 * 75,
+            lead_out
+        };
+        for (unsigned j = 0; j < 3; j++) {
+            track_t *track = &img->tracks[toc + j];
+            track->attr = attr;
+            track->idx[1].start = toc_frames[j];
+        }
+    }
+    return previous_track != 0;
+}
+
+static int
+blindwrite_parse(cd_image_t *img, const uint8_t *data, size_t size, const char *path)
+{
+    blindwrite_cursor_t cursor = { data, size };
+    const uint8_t *header = blindwrite_take(&cursor, 260);
+    if (header == NULL || memcmp(header, blindwrite_signature, sizeof(blindwrite_signature) - 1))
+        return 0;
+
+    const uint16_t profile = blindwrite_u16(header + 48);
+    const int cd = (profile >= 0x08 && profile <= 0x0a) ||
+                   (profile >= 0x20 && profile <= 0x22) ||
+                   (profile >= 0x80 && profile <= 0x82);
+    const uint64_t metadata = (uint64_t) blindwrite_u32(header + 240) + blindwrite_u32(header + 244) +
+                              blindwrite_u16(header + 96) + blindwrite_u16(header + 98) +
+                              blindwrite_u16(header + 100) + blindwrite_u32(header + 104) +
+                              blindwrite_u32(header + 120) +
+                              (cd ? blindwrite_u16(header + 102) : blindwrite_u32(header + 124));
+    if (!blindwrite_take(&cursor, metadata) ||
+        !blindwrite_load_blocks(img, &cursor, path) ||
+        !blindwrite_load_sessions(img, &cursor, blindwrite_u16(header + 50)) ||
+        !blindwrite_take(&cursor, (uint64_t) blindwrite_u32(header + 256) + 4))
+        return 0;
+
+    const uint8_t *footer = blindwrite_take(&cursor, 16);
+    if (footer == NULL || memcmp(footer, "BWT5 STREAM FOOT", 16))
+        return 0;
+
+    if (header[64]) {
+        unsigned i = 0;
+        while (i < 13 && header[65 + i] >= '0' && header[65 + i] <= '9')
+            i++;
+        if (i == 13)
+            memcpy(img->mcn, header + 65, 13);
+    }
+    return 1;
+}
+
+static int
+blindwrite_has_signature(const char *path)
+{
+    FILE *fp = plat_fopen(path, "rb");
+    if (fp == NULL)
+        return 0;
+
+    char signature[sizeof(blindwrite_signature) - 1];
+    const int match = fread(signature, 1, sizeof(signature), fp) == sizeof(signature) &&
+                      !memcmp(signature, blindwrite_signature, sizeof(signature));
+    fclose(fp);
+    return match;
+}
+
+static int
+image_load_blindwrite(cd_image_t *img, const char *path)
+{
+    FILE *fp = plat_fopen(path, "rb");
+    if (fp == NULL)
+        return 0;
+
+    uint8_t *data = NULL;
+    int result = 0;
+    if (!fseeko64(fp, 0, SEEK_END)) {
+        const off64_t size = ftello64(fp);
+        if (size >= 280 && (uint64_t) size <= SIZE_MAX && !fseeko64(fp, 0, SEEK_SET)) {
+            data = malloc(size);
+            if (data != NULL && fread(data, 1, size, fp) == (size_t) size)
+                result = blindwrite_parse(img, data, size, path);
+        }
+    }
+    free(data);
+    fclose(fp);
+    return result;
+}
+
+#ifndef IS_TEST
 static int
 mds_decrypt_error(cd_image_t *img, const char *mdsfile, FILE **fp)
 {
@@ -3762,9 +4174,22 @@ image_read_sector(const void *local, uint8_t *buffer,
     const uint64_t sect   = (uint64_t) lba;
 
     image_get_track_and_index(img, lba, &track, &index);
+    if (track < 0)
+        return 0;
 
     const track_t       *trk          = &(img->tracks[track]);
     const track_index_t *idx          = &(trk->idx[index]);
+    int                   stored       = idx->type >= INDEX_NORMAL;
+    uint8_t               subch_type   = trk->subch_type;
+    const blindwrite_block_t *block    = NULL;
+    if (img->blindwrite_blocks != NULL) {
+        block = blindwrite_find_block(img, (int32_t) lba);
+        stored = ((block != NULL) && (blindwrite_data_size(block->stride) == trk->sector_size));
+        if (!stored && index != 0)
+            return 0;
+        if (stored)
+            subch_type = block->stride == 2448 ? 0x08 : (block->stride == 2368 ? 0x10 : 0);
+    }
     const int            track_is_raw = ((trk->sector_size == RAW_SECTOR_SIZE) ||
                                          (trk->sector_size == 2448));
     const uint64_t       seek         = ((((sect + 150) - idx->start) + idx->file_start) *
@@ -3784,7 +4209,7 @@ image_read_sector(const void *local, uint8_t *buffer,
 
             memset(buffer, 0x00, 2448);
 
-            if ((trk->attr & 0x04) && ((idx->type < INDEX_NORMAL) || !track_is_raw)) {
+            if ((trk->attr & 0x04) && (!stored || !track_is_raw)) {
                 offset += 16ULL;
 
                 /* Construct the header. */
@@ -3807,14 +4232,23 @@ image_read_sector(const void *local, uint8_t *buffer,
                 }
             }
 
-            if (idx->type >= INDEX_NORMAL)
+            if (stored && block != NULL) {
+                const uint64_t pos = block->offset + ((int32_t) lba - block->start) * block->stride;
+                ret = block->file->read(block->file, buffer, pos, block->stride);
+                if (ret > 0 && block->stride == 2448) {
+                    uint8_t linear[96];
+                    memcpy(linear, buf + 2352, sizeof(linear));
+                    cdrom_interleave_subch(buf + 2352, linear);
+                }
+            } else if (stored)
                 /* Read the data from the file. */
                 ret = idx->file->read(idx->file, buffer, seek, trk->sector_size);
             else
                 /* Index is not in the file, no read to fail here. */
                 ret = 1;
 
-            if ((ret > 0) && (trk->attr & 0x04) && ((idx->type < INDEX_NORMAL) || !track_is_raw)) {
+            if ((ret > 0) && (trk->attr & 0x04) && (!stored || !track_is_raw) &&
+                !(stored && block != NULL && trk->sector_size == 2336)) {
                 uint32_t crc;
 
                 if ((trk->mode == 1) && !img->data_tracks_scrambled) {
@@ -3842,22 +4276,26 @@ image_read_sector(const void *local, uint8_t *buffer,
                 }
             }
 
-            if ((ret > 0) && ((idx->type < INDEX_NORMAL) || (trk->subch_type != 0x08))) {
+            if ((ret > 0) && (!stored || subch_type != 0x08)) {
                 buffer -= offset;
 
-                if (trk->subch_type == 0x10)
+                if (subch_type == 0x10)
                     memcpy(q, &(buffer[2352]), 12);
                 else {
                     /* Construct Q. */
                     q[0] = (trk->attr >> 4) | ((trk->attr & 0xf) << 4);
                     q[1] = bin2bcd(trk->point);
-                    q[2] = bin2bcd(index);
-                    const uint64_t track_start = trk->idx[1].start;
-                    const uint64_t frame = (uint32_t) (lba + 150);
-                    /* Track-relative time counts down through index 00 and up from index 01. */
-                    const int32_t relative = (index == 0) ? (track_start - frame - 1) :
-                                                           (frame - track_start);
-                    FRAMES_TO_MSF(relative, &m, &s, &f);
+                    q[2] = index;
+                    if (index == 0) {
+                        /*
+                           Pre-gap sector relative frame addresses count from
+                           00:01:74 downwards.
+                         */
+                        const uint64_t pregap = img->blindwrite_blocks ? idx->length : 150;
+                        FRAMES_TO_MSF((int32_t) (pregap - 1 - (lba + 150 - idx->start)), &m, &s, &f);
+                    } else {
+                        FRAMES_TO_MSF((int32_t) (lba + 150 - idx->start), &m, &s, &f);
+                    }
                     q[3] = bin2bcd(m & 0xff);
                     q[4] = bin2bcd(s & 0xff);
                     q[5] = bin2bcd(f & 0xff);
@@ -4026,6 +4464,10 @@ image_close(void *local)
     if (img != NULL) {
         image_clear_tracks(img);
 
+        for (uint32_t i = 0; i < img->blindwrite_block_count; i++)
+            bin_close(img->blindwrite_blocks[i].file);
+        free(img->blindwrite_blocks);
+
         if (img->subs_file != NULL) {
             fclose(img->subs_file);
             img->subs_file = NULL;
@@ -4094,6 +4536,7 @@ image_open(cdrom_t *dev, const char *path)
 
     if (img != NULL) {
         int       ret;
+        const int is_blindwrite = (dot && (!stricmp(dot, ".b5t") || !stricmp(dot, ".b6t")));
 #ifndef IS_TEST
         const int is_ccd  = ((ext == 4) && !stricmp(path + strlen(path) - ext + 1, "CCD"));
 #endif
@@ -4114,15 +4557,16 @@ image_open(cdrom_t *dev, const char *path)
         img->dev          = dev;
         img->has_data     = 0;
 
+        if (is_blindwrite || blindwrite_has_signature(path)) {
+            ret = image_load_blindwrite(img, path);
 #ifndef IS_TEST
-        if (is_ccd) {
+        } else if (is_ccd) {
             ret = image_load_ccd(img, path);
 
             if (ret >= 1)
                 img->is_dvd = 2;
-        } else
 #endif
-        if (is_toc) {
+        } else if (is_toc) {
             ret = image_load_toc(img, path);
 
             if (ret >= 2)

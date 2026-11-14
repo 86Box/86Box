@@ -2073,13 +2073,14 @@ fdc_read(uint16_t addr, void *priv)
                     } else
                         ret = 0xf9;
                 } else {
-                    if (fdc->dor & (0x10 << drive)) {
-                        if ((drive == 1) && (fdc->flags & FDC_FLAG_TOSHIBA))
-                            ret = 0x00;
-                        else
-                            ret = (drv->changed || drv->empty) ? 0x80 : 0x00;
-                    } else
+                    /* The change line is gated by drive select, not by the
+                       motor: a disk swapped in while the motor is off must
+                       still read as changed, or the guest keeps its cached
+                       media state and never sees the swap. */
+                    if ((drive == 1) && (fdc->flags & FDC_FLAG_TOSHIBA))
                         ret = 0x00;
+                    else
+                        ret = (drv->changed || drv->empty) ? 0x80 : 0x00;
                     if (fdc->flags & FDC_FLAG_DISKCHG_ACTLOW) /*PC2086/3086 seem to reverse this bit*/
                         ret ^= 0x80;
 

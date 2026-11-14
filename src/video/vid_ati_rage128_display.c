@@ -246,7 +246,7 @@ rage128_xclk_hz(const rage128_t *dev)
    0 = PCICLK, 1 to 4 = MPllClk divided by 1, 2, 4 or 8, 5 = XCLK,
    6 reserved, 7 = XTALIN (RRG: MCLK_CNTL, p. 3-103 / PDF 121). The
    reserved code reads as stopped. */
-static double
+double
 rage128_mclk_hz(const rage128_t *dev)
 {
     switch (dev->pll_regs[RAGE128_PLL_MCLK_CNTL] & 0x7) {
@@ -419,6 +419,20 @@ rage128_pll_read(rage128_t *dev)
 }
 
 static void rage128_recalctimings_apply(rage128_t *dev);
+
+/* Whether the analog DAC is powered down. DAC_PDWN powers the DAC macro
+   down, and the guide adds that the DAC powers down by itself whenever
+   PMI_POWER_STATE is not D0 (RRG: DAC_CNTL, p. 3-125 / PDF 143). The
+   power state is PCI configuration 0x60 [1:0], with 0 for D0 (RRG:
+   PMI_PMCSR_REG, p. 3-190 / PDF 208). The same text says the digital
+   outputs, TV and flat panel, are not affected; the model has only the
+   analog output, and the power state reaches nothing else in it. Every
+   test of the analog output's power goes through this one test. */
+static inline int
+rage128_dac_off(uint32_t dac_cntl, uint8_t pmcsr)
+{
+    return (dac_cntl & RAGE128_DAC_PDWN) || ((pmcsr & 0x03) != 0);
+}
 
 /* Display work that a packet on the CCE thread asks for and the CPU
    thread runs: the timing recalculation, the RAMDAC width, and a manual
@@ -1866,6 +1880,25 @@ rage128_recalctimings_apply(rage128_t *dev)
     rage128_scan_install(dev, dev->scanout_tiled, 0);
 }
 
+/* A write to PMI_POWER_STATE (the PCI configuration handler stores the
+   new state first and passes the old one). A move into or out of D0
+   that changes whether the DAC is powered down changes the renderer the
+   same way a DAC_PDWN change does, so it gets the same recalculation
+   and the same forced redraw, VRAM having not changed. A write that
+   leaves the DAC as it was does nothing more. The PCI handler runs on
+   the CPU thread, where the recalculation runs at once. */
+void
+rage128_dac_power_state_written(rage128_t *dev, uint8_t old_pmcsr)
+{
+    svga_t *svga = &dev->svga;
+
+    if (rage128_dac_off(dev->dac_cntl, old_pmcsr)
+        != rage128_dac_off(dev->dac_cntl, dev->pci_regs[0x60])) {
+        svga->fullchange = svga->monitor->mon_changeframecount;
+        rage128_recalctimings_apply(dev);
+    }
+}
+
 void
 rage128_vsync_callback(svga_t *svga)
 {
@@ -2242,13 +2275,13 @@ rage128_recalctimings(svga_t *svga)
         svga->multiplier = rage128_htotal_multiplier(dev,
                                                      svga->htotal * svga->dots_per_clock,
                                                      1, !!(svga->seqregs[1] & 8));
-        /* The DAC follows the CRTC whichever mode it is in, so DAC_PDWN
-           and forced data act on VGA scanout as on extended scanout. The
-           guide limits DAC_MASK in the same register to VGA modes but
-           gives DAC_PDWN no such limit (RRG: DAC_CNTL, p. 3-125 /
-           PDF 143). */
+        /* The DAC follows the CRTC whichever mode it is in, so a
+           powered-down DAC and forced data act on VGA scanout as on
+           extended scanout. The guide limits DAC_MASK in the same
+           register to VGA modes but gives DAC_PDWN no such limit (RRG:
+           DAC_CNTL, p. 3-125 / PDF 143). */
         dev->dac_const_on = 0;
-        if (dev->dac_cntl & RAGE128_DAC_PDWN) {
+        if (rage128_dac_off(dev->dac_cntl, dev->pci_regs[0x60])) {
             dev->dac_const_on    = 1;
             dev->dac_const_color = makecol32(0, 0, 0);
         } else if ((dev->dac_ext_cntl & RAGE128_DAC_FORCE_DATA_EN)
@@ -2461,13 +2494,14 @@ rage128_recalctimings(svga_t *svga)
     }
 
     /* The DAC stage, after graphics, cursor, overlay and border. A
-       powered-down DAC (DAC_PDWN, RRG: DAC_CNTL, p. 3-125 / PDF 143)
-       puts out black; DAC_FORCE_DATA_EN replaces the RGB at the DAC
-       inputs (RRG: DAC_EXT_CNTL, p. 3-217 / PDF 235). The guide gives
-       blank its own override, DAC_FORCE_BLANK_OFF_EN, so forced data is
-       modeled as leaving a blanked frame blank. */
+       powered-down DAC, by DAC_PDWN or by a power state other than D0
+       (RRG: DAC_CNTL, p. 3-125 / PDF 143; the test is defined near the
+       top of this file), puts out black; DAC_FORCE_DATA_EN replaces the
+       RGB at the DAC inputs (RRG: DAC_EXT_CNTL, p. 3-217 / PDF 235). The
+       guide gives blank its own override, DAC_FORCE_BLANK_OFF_EN, so
+       forced data is modeled as leaving a blanked frame blank. */
     dev->dac_const_on = 0;
-    if (dev->dac_cntl & RAGE128_DAC_PDWN) {
+    if (rage128_dac_off(dev->dac_cntl, dev->pci_regs[0x60])) {
         dev->dac_const_on    = 1;
         dev->dac_const_color = makecol32(0, 0, 0);
     } else if ((dev->dac_ext_cntl & RAGE128_DAC_FORCE_DATA_EN)
