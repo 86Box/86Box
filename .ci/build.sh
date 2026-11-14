@@ -858,6 +858,7 @@ then
 	export CMAKE_LIBRARY_PATH="$librashader_target"
 	cmake_flags_extra="$cmake_flags_extra -D LIBRASHADER_STATIC=ON -D LIBRASHADER_STATIC_FIND_LIB=ON"
 fi
+cmake_flags_extra="$cmake_flags_extra -D LIBRASHADER=OFF"
 
 # Point CMake at the toolchain file.
 [ -e "$toolchain_file" ] && cmake_flags_extra="$cmake_flags_extra -D \"CMAKE_TOOLCHAIN_FILE=$toolchain_file\""
