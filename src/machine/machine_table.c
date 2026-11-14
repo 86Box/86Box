@@ -23301,7 +23301,7 @@ const machine_t machines[] = {
     },
     /* Has the VIA VT82C596A southbridge with on-chip KBC identical to the VIA VT82C42N. */
     {
-        .name              = "[VIA MVP3] TriGem Delhi-III",
+        .name              = "[VIA MVP3] TriGem -III",
         .internal_name     = "delhi3",
         .type              = MACHINE_TYPE_SOCKETS7,
         .chipset           = MACHINE_CHIPSET_VIA_APOLLO_MVP3,
@@ -23312,7 +23312,7 @@ const machine_t machines[] = {
         .gpio_acpi_handler = NULL,
         .cpu               = {
             .package     = CPU_PKG_SOCKET5_7,
-            .block       = CPU_BLOCK_NONE;
+            .block       = CPU_BLOCK_NONE,
             .min_bus     = 66666667,
             .max_bus     = 124242424,
             .min_voltage = 2000,
