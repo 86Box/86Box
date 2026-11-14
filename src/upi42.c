@@ -1204,7 +1204,7 @@ upi42_do_init(upi42_t *upi42, uint32_t type, uint8_t *rom)
         upi42->ops[0x33] = NULL; /* EN A20 */
         upi42->ops[0x63] = NULL; /* SEL PMB0 */
         upi42->ops[0x73] = NULL; /* SEL PMB1 */
-        upi42->ops[0x42] = NULL; /* SUSPEND */
+        upi42->ops[0x82] = NULL; /* SUSPEND */
         upi42->ops[0xe2] = NULL; /* SUSPEND */
     }
 
