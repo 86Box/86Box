@@ -34,7 +34,6 @@
 #include <86box/86box.h>
 #include <86box/timer.h>
 #include <86box/config.h>
-#include <86box/disksizes.h>
 #include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/fdd.h>
@@ -88,7 +87,6 @@ static uint8_t   fdf_suppress_final_byte = 0; /* This is hard-coded to 0 -
                                                */
 
 static void img_seek(void *priv, int track);
-static void img_attach(fdd_drive_t *drv, img_t *dev);
 
 
 const uint8_t dmf_r[21] = { 12, 2, 13, 3, 14, 4, 15, 5, 16, 6, 17, 7, 18, 8, 19, 9, 20, 10, 21, 11, 1 };
@@ -423,7 +421,7 @@ img_is_pcjx_360(void *priv, const img_t *dev)
     fdd_drive_t *drv = (fdd_drive_t *) priv;
 
     return fdd_is_pcjx_360(drv) && !dev->is_ioctl && !dev->is_cqm &&
-           (!dev->disk_at_once || drv->folder_image) && !dev->base && (dev->tracks == 40) &&
+           !dev->disk_at_once && !dev->base && (dev->tracks == 40) &&
            (dev->sides == 2) && ((dev->sectors == 8) || (dev->sectors == 9)) &&
            (dev->sector_size == 2);
 }
@@ -437,14 +435,6 @@ write_back(void *priv)
 
     if ((dev->track < 0) || (dev->track >= dev->tracks))
         return;
-
-    if (drv->folder_image) {
-        const size_t side_size = (size_t) dev->sectors * ssize;
-        for (int side = 0; side < dev->sides; side++)
-            memcpy(dev->disk_data + (dev->track * dev->sides + side) * side_size,
-                   dev->track_data[side], side_size);
-        return;
-    }
 
     if (dev->is_ioctl) {
         for (int side = 0; side < dev->sides; side++) {
@@ -629,7 +619,7 @@ img_seek(void *priv, int track)
     const int current_xdft = dev->xdf_type - 1;
     int       ssize        = 128 << ((int) dev->sector_size);
 
-    if (dev->fp == NULL && !dev->is_ioctl && !drv->folder_image)
+    if (dev->fp == NULL && !dev->is_ioctl)
         return;
 
     const int pcjx_360     = img_is_pcjx_360(drv, dev);
@@ -1522,38 +1512,7 @@ jump_if_fdf:
     img_log("Disk flags: %i, track flags: %i\n",
             dev->disk_flags, dev->track_flags);
 
-    img_attach(drv, dev);
-}
-
-int
-img_load_ram(void *priv, uint8_t *data, const disk_size_t *format)
-{
-    fdd_drive_t *drv = (fdd_drive_t *) priv;
-    img_t *dev = (img_t *) calloc(1, sizeof(img_t));
-    if (dev == NULL)
-        return 0;
-
-    dev->disk_data    = data;
-    dev->disk_at_once = 1;
-    dev->tracks       = format->tracks;
-    dev->sides        = format->sides;
-    dev->sectors      = format->sectors;
-    dev->sector_size  = format->sector_len;
-    dev->track_width  = format->tracks > 43;
-    dev->disk_flags   = (format->hole << 1) | ((format->sides - 1) << 3);
-    dev->track_flags  = format->data_rate | (format->encoding << 3) | (format->rpm << 5);
-    dev->gap2_size    = format->data_rate == 3 ? 41 : 22;
-    dev->gap3_size    = gap3_sizes[format->rpm ? 4 : format->data_rate][format->sector_len][format->sectors];
-
-    drv->folder_image = 1;
-    drv->writeprot    = drv->read_only;
-    img_attach(drv, dev);
-    return 1;
-}
-
-static void
-img_attach(fdd_drive_t *drv, img_t *dev)
-{
+    /* Set up the drive unit. */
     drv->local = dev;
 
     /* Attach this format to the D86F engine. */

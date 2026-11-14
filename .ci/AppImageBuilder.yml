@@ -106,7 +106,6 @@ AppDir:
     - libxkbcommon-x11-0 # if QT:BOOL=ON
     - qt6-wayland # if QT:BOOL=ON
     - zlib1g
-    - libminizip1
   files:
     exclude:
     - etc

@@ -21,4 +21,3 @@ rust-src
 cargo
 cargo-c
 zstd
-minizip

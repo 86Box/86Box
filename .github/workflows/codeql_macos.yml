@@ -114,7 +114,6 @@ jobs:
           libserialport
           vulkan-headers
           zstd
-          minizip
           ${{ matrix.ui.packages }}
 
       - name: Checkout repository
@@ -141,7 +140,6 @@ jobs:
           -D Qt5_ROOT=$(brew --prefix qt@5)
           -D Qt5LinguistTools_ROOT=$(brew --prefix qt@5)
           -D OpenAL_ROOT=$(brew --prefix openal-soft)
-          -D minizip_ROOT=$(brew --prefix minizip)
           -D LIBSERIALPORT_ROOT=$(brew --prefix libserialport)
 
       - name: Build

@@ -65,7 +65,6 @@ typedef int sock_t;
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/fdd.h>
-#include <86box/fdd_folder.h>
 #include <86box/cdrom.h>
 #include <86box/hdd.h>
 #include <86box/machine.h>
@@ -2508,20 +2507,11 @@ handle_request(char *line)
             ui_sb_update_icon_state(SB_FLOPPY | id, 1);
             respond_ok_time();
         } else if (!strcmp(argv[1], "load") && (argc >= 4)) {
-            char *path = rest[3];
-            const int wp = !strncmp(path, "wp://", 5);
-            if (plat_dir_check(path + wp * 5)) {
-                if (fdd_mount_folder(&drives[id], path + wp * 5, wp) == FDD_FOLDER_OK)
-                    respond_ok_time();
-                else
-                    respond_error("could not import folder into the configured floppy drive");
-            } else {
-                fdd_close(&drives[id]);
-                drives[id].read_only = 0;
-                fdd_load(&drives[id], path);
-                ui_sb_update_icon_state(SB_FLOPPY | id, drives[id].image_path[0] ? 0 : 1);
-                respond_ok_time();
-            }
+            fdd_close(&drives[id]);
+            drives[id].read_only = 0;
+            fdd_load(&drives[id], rest[3]);
+            ui_sb_update_icon_state(SB_FLOPPY | id, drives[id].image_path[0] ? 0 : 1);
+            respond_ok_time();
         } else
             respond_error("usage: fdd load <drive> <path> | fdd eject <drive>");
     } else if (!strcmp(argv[0], "cd") && (argc >= 3)) {

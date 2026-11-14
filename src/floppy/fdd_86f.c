@@ -3729,9 +3729,6 @@ int
 d86f_export(void *priv, char *fn)
 {
     fdd_drive_t *  drv        = (fdd_drive_t *) priv;
-    if (drv->folder_image)
-        return 0;
-
     d86f_t *       dev        = (d86f_t *) drv->d86f_priv;
     const int      tracks     = 86;
     const uint32_t magic      = 0x46423638;

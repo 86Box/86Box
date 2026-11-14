@@ -18,38 +18,6 @@
 #          All rights reserved.
 #
 
-FetchContent_Declare(sdfat
-    GIT_REPOSITORY https://github.com/adafruit/SdFat.git
-    GIT_TAG 20f3ffa005c1db4e8184735329afbf7e5c90a66a
-    SOURCE_SUBDIR src
-)
-FetchContent_MakeAvailable(sdfat)
-
-# Build the FAT filesystem and block device support without the Arduino drivers.
-set(sdfat_src "${sdfat_SOURCE_DIR}/src")
-add_library(sdfat STATIC
-    fdd_folder.cpp
-    "${sdfat_src}/FatLib/FatFile.cpp"
-    "${sdfat_src}/FatLib/FatFileLFN.cpp"
-    "${sdfat_src}/FatLib/FatName.cpp"
-    "${sdfat_src}/FatLib/FatPartition.cpp"
-    "${sdfat_src}/FatLib/FatVolume.cpp"
-    "${sdfat_src}/common/FmtNumber.cpp"
-    "${sdfat_src}/common/FsCache.cpp"
-    "${sdfat_src}/common/FsDateTime.cpp"
-    "${sdfat_src}/common/FsName.cpp"
-    "${sdfat_src}/common/FsUtf.cpp"
-    "${sdfat_src}/common/upcase.cpp"
-)
-target_include_directories(sdfat SYSTEM PRIVATE "${sdfat_src}")
-target_compile_definitions(sdfat PRIVATE
-    ENABLE_ARDUINO_FEATURES=0 ENABLE_ARDUINO_SERIAL=0 ENABLE_ARDUINO_STRING=0
-    SPI_DRIVER_SELECT=3 USE_FCNTL_H=0
-)
-target_compile_options(sdfat PRIVATE
-    "SHELL:-include \"${CMAKE_CURRENT_SOURCE_DIR}/sdfat_compat.hpp\""
-)
-
 add_library(fdd OBJECT
     fdc_common_upd765.c
     fdc_common_ctrl.c
@@ -73,4 +41,4 @@ add_library(fdd OBJECT
 )
 
 add_subdirectory(lzw)
-target_link_libraries(86Box lzw sdfat)
+target_link_libraries(86Box lzw)

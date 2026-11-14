@@ -6,7 +6,6 @@ openal
 freetype
 sdl3
 zlib
-minizip
 libpng
 rtmidi
 libslirp

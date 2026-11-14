@@ -54,7 +54,6 @@ extern "C" {
 #include <86box/cartridge.h>
 #include <86box/fdd.h>
 #include <86box/fdd_86f.h>
-#include <86box/fdd_folder.h>
 #include <86box/cdrom.h>
 #include <86box/scsi_device.h>
 #include <86box/rdisk.h>
@@ -148,11 +147,6 @@ MediaMenu::refresh(QMenu *parentMenu)
         menu->addSeparator();
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image…"), [this, i]() { floppySelectImage(i, false); });
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)…"), [this, i]() { floppySelectImage(i, true); });
-        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("Mount &folder…"), [this, i]() {
-            const auto path = QFileDialog::getExistingDirectory(parentWidget, tr("Mount folder as a temporary floppy"), getMediaOpenDirectory());
-            if (!path.isEmpty())
-                floppyMount(i, path, false);
-        });
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             floppyImageHistoryPos[slot] = menu->children().count();
@@ -605,7 +599,7 @@ MediaMenu::cartridgeUpdateMenu(int i)
 void
 MediaMenu::floppyNewImage(int i)
 {
-    NewFloppyDialog dialog(NewFloppyDialog::MediaType::Floppy, parentWidget, fdd_get_type(&drives[i]));
+    NewFloppyDialog dialog(NewFloppyDialog::MediaType::Floppy, parentWidget);
     switch (dialog.exec()) {
         default:
             break;
@@ -624,7 +618,7 @@ MediaMenu::floppySelectImage(int i, bool wp)
         QString(),
         getMediaOpenDirectory(),
         tr("All images") %
-        util::DlgFilter({ "0??","1??","??0","86f","bin","cq?","d??","flp","hdm","im?","json","td0","*fd?","mfm","xdf","zip","7z" }) %
+        util::DlgFilter({ "0??","1??","??0","86f","bin","cq?","d??","flp","hdm","im?","json","td0","*fd?","mfm","xdf" }) %
         tr("Advanced sector images") %
         util::DlgFilter({ "imd","json","td0" }) %
         tr("Basic sector images") %
@@ -646,57 +640,20 @@ MediaMenu::floppyMount(int i, const QString &filename, bool wp)
     fdd_drive_t *drv = &drives[i];
 
     auto previous_image = QFileInfo(drv->image_path);
-    const bool prefixed_wp = filename.startsWith("wp://");
-    const QString path = prefixed_wp ? filename.mid(5) : filename;
-    if (!path.isEmpty() && QFileInfo(path).isDir()) {
-        runctl_pause_wait(RUN_PAUSE_SYNC);
-        const auto result = fdd_mount_folder(drv, path.toUtf8().constData(), wp || prefixed_wp);
-        runctl_resume(RUN_PAUSE_SYNC);
-        if (result != FDD_FOLDER_OK) {
-            QString message;
-            switch (result) {
-                case FDD_FOLDER_UNSUPPORTED:
-                    message = tr("The selected drive does not support folder mounting.");
-                    break;
-                case FDD_FOLDER_FULL:
-                    message = tr("The folder exceeds the capacity of the configured floppy drive.");
-                    break;
-                case FDD_FOLDER_CANNOT_CREATE:
-                    message = tr("The floppy is out of directory entries or space, or a filename cannot be represented on FAT12.");
-                    break;
-                case FDD_FOLDER_INVALID_NAME:
-                    message = tr("The folder contains a filename that cannot be represented on FAT12.");
-                    break;
-                case FDD_FOLDER_NO_MEMORY:
-                    message = tr("There is not enough memory to create the floppy image.");
-                    break;
-                default:
-                    message = tr("The folder path is too long or some of its contents could not be read.");
-                    break;
-            }
-            QMessageBox::critical(parentWidget, tr("Unable to mount folder"), message);
-            return;
-        }
-        mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), QString::fromUtf8(drv->image_path));
-    } else {
-        const bool was_folder = drv->folder_image;
-        if (was_folder)
-            runctl_pause_wait(RUN_PAUSE_SYNC);
-        fdd_close(drv);
-        drv->read_only = wp ? 1 : 0;
+    fdd_close(&drives[i]);
+    drv->read_only = wp ? 1 : 0;
+    if (!filename.isEmpty()) {
         QByteArray filenameBytes = filename.toUtf8();
 
-        if (!filename.isEmpty()) {
-            if (prefixed_wp)
-                drv->read_only = 1;
-            else if (drv->read_only)
-                filenameBytes.prepend("wp://");
-            fdd_load(drv, filenameBytes.data());
-        }
-        if (was_folder)
-            runctl_resume(RUN_PAUSE_SYNC);
+        if (filename.left(5) == "wp://")
+            drv->read_only = 1;
+        else if (drv->read_only)
+            filenameBytes = QString::asprintf(R"(wp://%s)", filename.toUtf8().data()).toUtf8();
+
+        fdd_load(&drives[i], filenameBytes.data());
         mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), QString(filenameBytes));
-    }
+    } else
+        mhm.addImageToHistory(i, ui::MediaType::Floppy, previous_image.filePath(), filename);
     ui_sb_update_icon_state(SB_FLOPPY | i, drv->empty);
     ui_sb_update_icon_wp(SB_FLOPPY | i, drv->writeprot);
     floppyUpdateMenu(i);
@@ -710,12 +667,7 @@ MediaMenu::floppyEject(int i)
     fdd_drive_t *drv = &drives[i];
 
     mhm.addImageToHistory(i, ui::MediaType::Floppy, drv->image_path, QString());
-    const bool was_folder = drv->folder_image;
-    if (was_folder)
-        runctl_pause_wait(RUN_PAUSE_SYNC);
-    fdd_close(drv);
-    if (was_folder)
-        runctl_resume(RUN_PAUSE_SYNC);
+    fdd_close(&drives[i]);
     ui_sb_update_icon_state(SB_FLOPPY | i, 1);
     floppyUpdateMenu(i);
     ui_sb_update_tip(SB_FLOPPY | i);
@@ -754,7 +706,7 @@ MediaMenu::floppyUpdateMenu(int i)
     auto *exportMenu = dynamic_cast<QAction *>(childs[floppyExportPos]);
     ejectMenu->setEnabled(!name.isEmpty());
     ejectMenu->setText(name.isEmpty() ? tr("E&ject") : tr("E&ject %1").arg(fi.fileName()));
-    exportMenu->setEnabled(!name.isEmpty() && !drv->folder_image);
+    exportMenu->setEnabled(!name.isEmpty());
 
     for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
         updateImageHistory(i, slot, ui::MediaType::Floppy);
@@ -839,7 +791,7 @@ MediaMenu::cdromMount(int i, int dir, const QString &arg)
     else {
         filename = QFileDialog::getOpenFileName(parentWidget, QString(),
                                                 getMediaOpenDirectory(),
-                                                tr("CD-ROM images") % util::DlgFilter({ "iso", "cue", "toc", "ccd", "mds", "mdx", "b5t", "b6t", "nrg", "aaruf", "aaruformat", "aif", "chd", "zip", "7z" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+                                                tr("CD-ROM images") % util::DlgFilter({ "iso", "cue", "toc", "ccd", "mds", "mdx", "b5t", "b6t", "nrg", "aaruf", "aaruformat", "aif", "chd" }) % tr("All files") % util::DlgFilter({ "*" }, true));
     }
 
     if (filename.isEmpty())

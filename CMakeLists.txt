@@ -300,5 +300,4 @@ endif()
 
 set(CMAKE_TOP_LEVEL_PROCESSED TRUE)
 
-add_subdirectory(src/archive)
 add_subdirectory(src)

@@ -4825,9 +4825,8 @@ save_floppy_and_cdrom_drives(void)
                                    fdd_get_internal_name(fdd_get_type(&drives[c])));
 
         sprintf(temp, "fdd_%02i_fn", c + 1);
-        if (drv->folder_image)
-            ini_section_delete_var(cat, temp);
-        else if (strlen(drv->image_path) == 0 || strstr(drv->image_path, "ioctl://") != NULL) {
+        /* Don't save ioctl:// paths */
+        if (strlen(drv->image_path) == 0 || strstr(drv->image_path, "ioctl://") != NULL) {
             ini_section_delete_var(cat, temp);
 
             drv->read_only = 0;

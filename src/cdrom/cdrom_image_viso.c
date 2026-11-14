@@ -35,7 +35,6 @@
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_image_viso.h>
 #include <86box/log.h>
-#include <86box/media_archive.h>
 #include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/plat_dir.h>
@@ -67,7 +66,6 @@
 
 #define VISO_SECTOR_SIZE COOKED_SECTOR_SIZE
 #define VISO_OPEN_FILES  32
-#define VISO_ARCHIVE_CACHE_SIZE (1024 * 1024)
 
 enum {
     VISO_CHARSET_D = 0,
@@ -101,7 +99,6 @@ typedef struct _viso_entry_ {
         uint64_t data_offset;
     };
     uint16_t pt_idx;
-    size_t archive_id;
 
     struct {
         uint8_t is_dir : 1;
@@ -126,11 +123,6 @@ typedef struct {
     uint8_t  use_version_suffix : 1;
     size_t   metadata_sectors, all_sectors, entry_map_size, sector_size, file_fifo_pos;
     uint8_t *metadata;
-
-    void    *archive;
-    uint8_t *archive_cache;
-    size_t   archive_cache_id, archive_cache_size;
-    uint64_t archive_cache_offset;
 
     track_file_t   tf;
     viso_entry_t  *root_dir;
@@ -682,37 +674,11 @@ viso_compare_entries(const void *a, const void *b)
     return strcmp((*((viso_entry_t **) a))->name_short, (*((viso_entry_t **) b))->name_short);
 }
 
-static int
-viso_read_archive(viso_t *viso, const viso_entry_t *entry, uint8_t *buffer, uint64_t offset, size_t count)
-{
-    if (!count)
-        return 1;
-    if (count > VISO_ARCHIVE_CACHE_SIZE)
-        return media_archive_read(viso->archive, entry->archive_id, offset, buffer, count);
-    if (viso->archive_cache_id != entry->archive_id || offset < viso->archive_cache_offset ||
-        offset - viso->archive_cache_offset >= viso->archive_cache_size ||
-        count > viso->archive_cache_size - (offset - viso->archive_cache_offset)) {
-        viso->archive_cache_size = 0;
-        const size_t size = MIN(VISO_ARCHIVE_CACHE_SIZE, entry->stats.size - offset);
-        if (media_archive_read(viso->archive, entry->archive_id, offset, viso->archive_cache, size) != 1)
-            return -1;
-        viso->archive_cache_id     = entry->archive_id;
-        viso->archive_cache_offset = offset;
-        viso->archive_cache_size   = size;
-    }
-    memcpy(buffer, viso->archive_cache + (offset - viso->archive_cache_offset), count);
-    return 1;
-}
-
 int
 viso_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
 {
     track_file_t *tf   = (track_file_t *) priv;
     viso_t       *viso = (viso_t *) tf->priv;
-
-    const uint64_t length = viso_get_length(priv);
-    if (seek > length || count > length - seek)
-        return -1;
 
     /* Handle reads in a sector by sector basis. */
     while (count > 0) {
@@ -730,13 +696,7 @@ viso_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
 
             /* Get the file entry corresponding to this sector. */
             viso_entry_t *entry = viso->entry_map[sector - viso->metadata_sectors];
-            if (entry && viso->archive) {
-                const uint64_t offset = seek - entry->data_offset;
-                if (offset < entry->stats.size)
-                    read = MIN(sector_remain, entry->stats.size - offset);
-                if (viso_read_archive(viso, entry, buffer, offset, read) != 1)
-                    return -1;
-            } else if (entry) {
+            if (entry) {
                 /* Open file if it's not already open. */
                 if (!entry->file) {
                     /* Close any existing FIFO entry's file. */
@@ -809,12 +769,13 @@ viso_close(void *priv)
     /* De-allocate everything. */
     if (tf->fp)
         fclose(tf->fp);
-    if (viso->tf.fn[0]) {
 #ifdef IMAGE_VISO_LOG
-        if (stricmp(path_get_extension(viso->tf.fn), "iso"))
-#endif
-            remove(nvr_path(viso->tf.fn));
+    if (stricmp(path_get_extension(viso->tf.fn), "iso")) {
+        remove(nvr_path(viso->tf.fn));
     }
+#else
+    remove(nvr_path(viso->tf.fn));
+#endif
 
     viso_entry_t *entry = viso->root_dir;
     viso_entry_t *next_entry;
@@ -831,11 +792,6 @@ viso_close(void *priv)
     if (viso->entry_map)
         free(viso->entry_map);
 
-    if (viso->archive) {
-        media_archive_close(viso->archive);
-        free(viso->archive_cache);
-    }
-
     if (tf->log != NULL)
         log_close(tf->log);
 
@@ -849,22 +805,10 @@ viso_init(const uint8_t id, const char *dirname, int *error)
     viso_t  *viso = (viso_t *) calloc(1, sizeof(viso_t));
     uint8_t *data = NULL;
     uint8_t *p;
-    plat_dir_t context = PLAT_DIR_INIT;
-    viso_entry_t **dir_entries = NULL;
-    size_t pending_entries = 0;
     *error        = 1;
 
     if (viso == NULL)
         goto end;
-
-    if (media_archive_path(dirname) && !plat_dir_check((char *) dirname)) {
-        viso->archive = media_archive_open(dirname);
-        if (!viso->archive)
-            goto end;
-        viso->archive_cache = malloc(VISO_ARCHIVE_CACHE_SIZE);
-        if (!viso->archive_cache)
-            goto end;
-    }
 
     char n[1024]        = { 0 };
 
@@ -919,25 +863,23 @@ viso_init(const uint8_t id, const char *dirname, int *error)
     image_viso_log(viso->tf.log, "[%08X] %s => [root]\n", dir, dir->path);
 
     /* Traverse directories, starting with the root. */
-    const time_t   archive_time = time(NULL);
+    plat_dir_t     context         = PLAT_DIR_INIT;
+    viso_entry_t **dir_entries     = NULL;
     size_t         dir_entries_len = 0;
     while (LIKELY(dir)) {
         /* Open directory for listing. */
-        int    have_dir       = viso->archive || plat_dir_open(&context, dir->path);
-        size_t archive_child  = viso->archive ? media_archive_first(viso->archive, dir->archive_id) : 0;
+        int    have_dir       = plat_dir_open(&context, dir->path);
         size_t children_count = 2; /* include . and .. (terminator is the +1 when allocating) */
         if (UNLIKELY(dir == viso->root_dir)) {
             /* Handle root directory. */
-            if (viso->archive) {
-                dir->stats.is_dir = 1;
-                dir->stats.mtime  = archive_time;
-            } else if (have_dir && plat_dir_is_dir(&context)) {
+            if (have_dir && plat_dir_is_dir(&context)) {
                 viso_fill_stats(dir, &context, viso->format); /* populate stats */
             } else {
+                plat_dir_close(&context);
                 goto end; /* not a directory */
             }
         }
-        if (have_dir && !viso->archive) {
+        if (LIKELY(have_dir)) {
             /* Determine the entry array size. */
             children_count += plat_dir_count_children(&context);
         }
@@ -951,7 +893,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
                 dir_entries     = new_dir_entries;
                 dir_entries_len = children_count;
             } else {
-                goto end;
+                goto next_dir;
             }
         }
 
@@ -959,8 +901,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
         for (children_count = 0; children_count < 2; children_count++) {
             entry = dir_entries[children_count] = (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + 1);
             if (!entry)
-                goto end;
-            pending_entries++;
+                goto next_dir;
             entry->parent = dir;
             if (!children_count)
                 dir->first_child = entry;
@@ -979,53 +920,32 @@ viso_init(const uint8_t id, const char *dirname, int *error)
 
         /* Iterate through this directory's children again, making the entries. */
         if (LIKELY(have_dir)) {
-            while (viso->archive ? archive_child != 0 : plat_dir_read(&context)) {
+            while (plat_dir_read(&context)) {
                 /* Grow array if the original size is inaccurate. */
                 if (UNLIKELY(children_count >= dir_entries_len)) {
-                    size_t         new_entries_len = dir_entries_len * 2;
+                    size_t         new_entries_len = children_count + 1;
                     viso_entry_t **new_dir_entries = (viso_entry_t **) realloc(dir_entries, (new_entries_len + 1) * sizeof(viso_entry_t *));
                     if (LIKELY(new_dir_entries)) {
                         dir_entries     = new_dir_entries;
                         dir_entries_len = new_entries_len;
                     } else {
-                        goto end;
+                        break;
                     }
                 }
 
                 /* Add and fill entry. */
-                const char *path;
-                uint64_t size = 0;
-                int is_directory = 0;
-                const size_t archive_id = archive_child;
-                if (viso->archive)
-                    archive_child = media_archive_entry(viso->archive, archive_id, &path, &size, &is_directory);
-                else
-                    path = plat_dir_get_path(&context);
+                const char *path = plat_dir_get_path(&context);
                 size_t path_buf_size = strlen(path) + 1;
                 entry = dir_entries[children_count] =
                     (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + path_buf_size);
                 if (entry == NULL)
-                    goto end;
+                    continue;
                 entry->parent = dir;
                 memcpy(entry->path, path, path_buf_size);
+                entry->basename = &entry->path[context.path_dir_len + 1];
 
-                /* Populate source metadata. */
-                if (viso->archive) {
-                    entry->archive_id   = archive_id;
-                    entry->basename     = entry->path;
-                    entry->stats.is_dir = is_directory;
-                    entry->stats.size   = MIN(size, UINT32_MAX);
-                    entry->stats.mtime  = archive_time;
-                } else {
-                    entry->basename = &entry->path[context.path_dir_len + 1];
-                    viso_fill_stats(entry, &context, viso->format);
-                }
-
-                /* Register the entry before counting its sectors or retaining boot pointers. */
-                if (viso_fill_fn_short(entry->name_short, entry, dir_entries)) {
-                    free(entry);
-                    continue;
-                }
+                /* Populate stats. */
+                viso_fill_stats(entry, &context, viso->format);
 
                 /* Handle file size and El Torito boot code. */
                 if (!entry->stats.is_dir) {
@@ -1072,8 +992,13 @@ have_eltorito_entry:
                     eltorito_others_present = 0;
                 }
 
+                /* Set short filename and skip this file if it couldn't be disambiguated. */
+                if (viso_fill_fn_short(entry->name_short, entry, dir_entries)) {
+                    free(entry);
+                    continue;
+                }
+
                 children_count++;
-                pending_entries++;
                 image_viso_log(viso->tf.log, "[%08X] %s => [%-12s] %s\n", entry,
                                dir->path, entry->name_short, entry->basename);
             }
@@ -1099,14 +1024,13 @@ have_eltorito_entry:
             }
         }
 
-        pending_entries = 0;
+next_dir:
         /* Move on to the next directory. */
         dir = dir->next_dir;
     }
     plat_dir_close(&context);
-    context = (plat_dir_t) PLAT_DIR_INIT;
-    free(dir_entries);
-    dir_entries = NULL;
+    if (dir_entries)
+        free(dir_entries);
 
     /* Write 16 blank sectors. */
     for (int i = 0; i < 16; i++)
@@ -1570,7 +1494,7 @@ next_entry:
     while (1) {
         image_viso_log(viso->tf.log, "Allocating entry map for %zu %zu-byte sectors\n",
                        viso->entry_map_size, viso->sector_size);
-        viso->entry_map = calloc(MAX(1, viso->entry_map_size), sizeof(viso_entry_t *));
+        viso->entry_map = (viso_entry_t **) calloc(viso->entry_map_size, sizeof(viso_entry_t *));
         if (viso->entry_map) {
             /* Successfully allocated. */
             break;
@@ -1682,8 +1606,9 @@ next_entry:
         goto end;
     fseeko64(viso->tf.fp, 0, SEEK_SET);
     size_t metadata_size = viso->metadata_sectors * viso->sector_size;
-    if (fread(viso->metadata, 1, metadata_size, viso->tf.fp) != metadata_size)
-        goto end;
+    size_t metadata_remain = metadata_size;
+    while (metadata_remain > 0)
+        metadata_remain -= fread(viso->metadata + (metadata_size - metadata_remain), 1, MIN(metadata_remain, viso->sector_size), viso->tf.fp);
 
     /* We no longer need the temporary file; close and delete it. */
     fclose(viso->tf.fp);
@@ -1697,14 +1622,6 @@ next_entry:
     *error = 0;
 
 end:
-    plat_dir_close(&context);
-    for (size_t i = 0; i < pending_entries; i++)
-        free(dir_entries[i]);
-    free(dir_entries);
-    free(data);
-    if (!viso)
-        return NULL;
-
     /* Set the function pointers. */
     viso->tf.priv = viso;
     if (!*error) {
@@ -1715,9 +1632,13 @@ end:
         viso->tf.close      = viso_close;
 
         return &viso->tf;
+    } else {
+        if (viso != NULL) {
+            image_viso_log(viso->tf.log, "Initialization failed\n");
+            if (data)
+                free(data);
+            viso_close(&viso->tf);
+        }
+        return NULL;
     }
-
-    image_viso_log(viso->tf.log, "Initialization failed\n");
-    viso_close(&viso->tf);
-    return NULL;
 }
