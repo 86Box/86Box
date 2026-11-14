@@ -78,4 +78,23 @@ extern void cyrix_load_seg_descriptor_2386(uint32_t addr, x86seg *seg);
 extern void cyrix_write_seg_descriptor(uint32_t addr, x86seg *seg);
 extern void cyrix_load_seg_descriptor(uint32_t addr, x86seg *seg);
 
+/* Descriptors loadseg() has loaded through its protected-mode path, by
+   selector and whether into SS (whose checks differ): the descriptor as read,
+   the CPL it was loaded at, and what it made of the register (x86seg up to
+   checked, which comes from the descriptor alone), with the flat and wide
+   tests made of it. One cache line each. */
+typedef struct seg_load_cache_t {
+    uint32_t raw[2];
+    uint16_t seg;
+    uint8_t  cpl;
+    uint8_t  valid;
+    x86seg   state;
+    uint8_t  notflat; /* not base 0 and limits 0..0xffffffff */
+    uint8_t  notwide; /* cpu_set_wide_status()'s test for DS fails */
+    uint8_t  pad[26];
+} seg_load_cache_t;
+
+#define SEG_LOAD_CACHE_SIZE 512
+extern seg_load_cache_t seg_load_cache[SEG_LOAD_CACHE_SIZE];
+
 #endif /*EMU_X86SEG_H*/

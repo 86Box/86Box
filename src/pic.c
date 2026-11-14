@@ -1243,6 +1243,11 @@ picint_lines(uint16_t num, int level, int set, uint8_t *irq_state, int to_ioapic
        acpi_rtc_status = 1;
 
    if (num) {
+       const uint8_t  irr1    = pic.irr;
+       const uint8_t  irr2    = pic2.irr;
+       const uint16_t smi_sts = smi_irq_status;
+       const uint16_t latched = latched_irqs;
+
        if (irq_callback != NULL)
            irq_callback(num, set, irq_callback_priv);
 
@@ -1287,7 +1292,11 @@ picint_lines(uint16_t num, int level, int set, uint8_t *irq_state, int to_ioapic
             }
         }
 
-        pic_notify();
+        /* A lower of lines already low (FNINIT clears IRQ 13 every time)
+           changes nothing the pending state is worked out from */
+        if (set || (irq_callback != NULL) || (pic.irr != irr1) || (pic2.irr != irr2) ||
+            (smi_irq_status != smi_sts) || (latched_irqs != latched))
+            pic_notify();
     }
 
     /* APIC mirror runs after PIC state/latches settle for this request. */

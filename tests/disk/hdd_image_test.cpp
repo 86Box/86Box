@@ -1,6 +1,9 @@
 #include <gtest/gtest.h>
 
 #include <algorithm>
+#include <cerrno>
+#include <chrono>
+#include <condition_variable>
 #include <cstdarg>
 #include <cstdint>
 #include <cstdio>
@@ -9,9 +12,15 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <mutex>
 #include <string>
 #include <system_error>
+#include <thread>
 #include <vector>
+#ifdef __linux__
+#    include <sys/syscall.h>
+#    include <unistd.h>
+#endif
 
 extern "C" {
 #define HAVE_STDARG_H
@@ -139,7 +148,256 @@ TEST_F(HddImage, IncreasingRawImageGeometryPreservesDataAndZeroFillsAddedCapacit
         << "Added capacity must contain zero-filled sectors";
 }
 
+#ifdef __linux__
+// Guest writes to a file image are written by a thread of their own. The
+// pwrite() below stands in for the host's: it can hold every write until the
+// test lets it through, as a filesystem commit would, or fail one.
+class HddImageWriteBehind : public HddImage {
+protected:
+    static constexpr uint32_t sectors = 4 * 4 * 17;
+
+    void SetUp() override
+    {
+        HddImage::SetUp();
+        host_writes_pass(true);
+        host_write_fail_at(-1);
+    }
+
+    void TearDown() override
+    {
+        host_writes_pass(true);
+        HddImage::TearDown();
+    }
+
+public:
+    static void host_writes_pass(bool pass);
+    static void host_write_fail_at(off_t offset);
+    static int  host_write_calls();
+
+protected:
+    static std::vector<uint8_t> sector_data(uint32_t count, uint8_t seed)
+    {
+        std::vector<uint8_t> data(static_cast<size_t>(count) * 512);
+        for (size_t i = 0; i < data.size(); ++i)
+            data[i] = static_cast<uint8_t>(seed + i * 7 + i / 512);
+        return data;
+    }
+
+    static void put(std::vector<uint8_t> &model, uint32_t sector, const std::vector<uint8_t> &data)
+    {
+        std::copy(data.begin(), data.end(), model.begin() + static_cast<size_t>(sector) * 512);
+    }
+
+    static std::vector<uint8_t> read_sectors(uint32_t sector, uint32_t count)
+    {
+        std::vector<uint8_t> data(static_cast<size_t>(count) * 512, 0xee);
+        EXPECT_EQ(hdd_image_read(0, sector, count, data.data()), 0);
+        return data;
+    }
+};
+
+namespace host {
+std::mutex              mutex;
+std::condition_variable changed;
+bool                    pass    = true;
+off_t                   fail_at = -1;
+int                     calls   = 0;
+}
+
+void
+HddImageWriteBehind::host_writes_pass(bool pass)
+{
+    std::lock_guard<std::mutex> lock(host::mutex);
+    host::pass = pass;
+    host::changed.notify_all();
+}
+
+void
+HddImageWriteBehind::host_write_fail_at(off_t offset)
+{
+    std::lock_guard<std::mutex> lock(host::mutex);
+    host::fail_at = offset;
+}
+
+int
+HddImageWriteBehind::host_write_calls()
+{
+    std::lock_guard<std::mutex> lock(host::mutex);
+    return host::calls;
+}
+
+TEST_F(HddImageWriteBehind, ReadsSeeWritesStillQueuedBehindAStalledHostWrite)
+{
+    ASSERT_EQ(hdd_image_load(0), 1);
+    std::vector<uint8_t> model(static_cast<size_t>(sectors) * 512, 0);
+
+    host_writes_pass(false);
+    const auto a = sector_data(10, 0x11);
+    const auto b = sector_data(10, 0x22);
+    const auto c = sector_data(5, 0x33);
+    auto       a_copy = a;
+    const int  calls  = host_write_calls();
+    // Each returns at once although the host holds the first write
+    ASSERT_EQ(hdd_image_write(0, 10, 10, a_copy.data()), 0);
+    std::fill(a_copy.begin(), a_copy.end(), 0); // the queue keeps its own copy
+    // The writer takes it up and the host holds it there
+    while (host_write_calls() == calls)
+        std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    ASSERT_EQ(hdd_image_write(0, 15, 10, const_cast<uint8_t *>(b.data())), 0);
+    ASSERT_EQ(hdd_image_write(0, 0, 5, const_cast<uint8_t *>(c.data())), 0);
+    ASSERT_EQ(hdd_image_zero(0, 20, 2), 0);
+    put(model, 10, a);
+    put(model, 15, b);
+    put(model, 0, c);
+    put(model, 20, std::vector<uint8_t>(2 * 512, 0));
+
+    // Overlapping the write being made, writes behind it, and none at all
+    EXPECT_EQ(read_sectors(0, 30), std::vector<uint8_t>(model.begin(), model.begin() + 30 * 512));
+    EXPECT_EQ(read_sectors(12, 2), std::vector<uint8_t>(model.begin() + 12 * 512, model.begin() + 14 * 512));
+    EXPECT_EQ(read_sectors(100, 3), std::vector<uint8_t>(3 * 512, 0));
+    EXPECT_EQ(hdd_image_get_pos(0), 103u);
+
+    // Nothing has reached the file yet
+    const auto before = read_image();
+    EXPECT_TRUE(std::all_of(before.begin(), before.end(), [](uint8_t v) { return v == 0; }));
+
+    host_writes_pass(true);
+    EXPECT_EQ(hdd_image_flush(0), 0);
+    EXPECT_EQ(read_image(), model);
+    EXPECT_EQ(read_sectors(0, sectors), model);
+}
+
+TEST_F(HddImageWriteBehind, ARunOfSectorsWrittenOneAtATimeIsOneHostWrite)
+{
+    ASSERT_EQ(hdd_image_load(0), 1);
+    std::vector<uint8_t> model(static_cast<size_t>(sectors) * 512, 0);
+
+    // As an ATA WRITE MULTIPLE or PIO write hands them over
+    host_writes_pass(false);
+    const int calls = host_write_calls();
+    for (uint32_t s = 20; s < 120; ++s) {
+        auto data = sector_data(1, static_cast<uint8_t>(s));
+        ASSERT_EQ(hdd_image_write(0, s, 1, data.data()), 0);
+        put(model, s, data);
+    }
+    EXPECT_EQ(read_sectors(10, 120), std::vector<uint8_t>(model.begin() + 10 * 512, model.begin() + 130 * 512));
+    host_writes_pass(true);
+    EXPECT_EQ(hdd_image_flush(0), 0);
+
+    EXPECT_LE(host_write_calls() - calls, 2);
+    EXPECT_EQ(read_image(), model);
+}
+
+TEST_F(HddImageWriteBehind, AFailedHostWriteIsReportedByTheNextWriteOrFlush)
+{
+    ASSERT_EQ(hdd_image_load(0), 1);
+    auto data = sector_data(4, 0x44);
+
+    host_write_fail_at(50 * 512);
+    EXPECT_EQ(hdd_image_write(0, 50, 4, data.data()), 0);
+    EXPECT_EQ(hdd_image_flush(0), -1);
+    EXPECT_EQ(hdd_image_flush(0), 0) << "Reported once";
+
+    host_write_fail_at(60 * 512);
+    EXPECT_EQ(hdd_image_write(0, 60, 4, data.data()), 0);
+    // A write made once the host has refused that one reports it
+    bool reported = false;
+    for (int tries = 0; (tries < 5000) && !reported; ++tries) {
+        reported = hdd_image_write(0, 70, 4, data.data()) == -1;
+        if (!reported)
+            std::this_thread::sleep_for(std::chrono::milliseconds(1));
+    }
+    EXPECT_TRUE(reported);
+    EXPECT_EQ(hdd_image_flush(0), 0);
+}
+
+TEST_F(HddImageWriteBehind, ClosingWritesEverythingQueued)
+{
+    ASSERT_EQ(hdd_image_load(0), 1);
+    std::vector<uint8_t> model(static_cast<size_t>(sectors) * 512, 0);
+
+    host_writes_pass(false);
+    for (uint32_t s = 0; s < sectors; s += 16) {
+        const uint32_t n    = std::min<uint32_t>(16, sectors - s);
+        auto           data = sector_data(n, static_cast<uint8_t>(s));
+        ASSERT_EQ(hdd_image_write(0, s, n, data.data()), 0);
+        put(model, s, data);
+    }
+    std::thread release([] {
+        std::this_thread::sleep_for(std::chrono::milliseconds(50));
+        HddImageWriteBehind::host_writes_pass(true);
+    });
+    hdd_image_close(0);
+    release.join();
+
+    EXPECT_EQ(read_image(), model);
+}
+
+TEST_F(HddImageWriteBehind, RandomWritesAndReadsMatchTheDisk)
+{
+    ASSERT_EQ(hdd_image_load(0), 1);
+    std::vector<uint8_t> model(static_cast<size_t>(sectors) * 512, 0);
+    uint32_t             seed = 12345;
+    auto                 next = [&seed](uint32_t range) {
+        seed = seed * 1103515245u + 12345u;
+        return (seed >> 8) % range;
+    };
+
+    for (int i = 0; i < 4000; ++i) {
+        // Held stretches stay far below the 16 MB the queue may hold
+        if ((i % 256) == 255)
+            host_writes_pass(true);
+        else if (next(64) == 0)
+            host_writes_pass(next(2) == 0);
+        const uint32_t sector = next(sectors);
+        const uint32_t count  = 1 + next(std::min<uint32_t>(24, sectors - sector));
+        switch (next(5)) {
+            case 0:
+            case 1: {
+                auto data = sector_data(count, static_cast<uint8_t>(i));
+                ASSERT_EQ(hdd_image_write(0, sector, count, data.data()), 0);
+                put(model, sector, data);
+                break;
+            }
+            case 2:
+                ASSERT_EQ(hdd_image_zero(0, sector, count), 0);
+                put(model, sector, std::vector<uint8_t>(static_cast<size_t>(count) * 512, 0));
+                break;
+            default:
+                ASSERT_EQ(read_sectors(sector, count),
+                          std::vector<uint8_t>(model.begin() + static_cast<size_t>(sector) * 512,
+                                               model.begin() + static_cast<size_t>(sector + count) * 512))
+                    << "read " << sector << "+" << count << " at step " << i;
+                break;
+        }
+    }
+    host_writes_pass(true);
+    hdd_image_close(0);
+
+    EXPECT_EQ(read_image(), model);
+}
+#endif
+
 } // namespace
+
+#ifdef __linux__
+// The host's pwrite() as the write-behind thread sees it
+extern "C" ssize_t
+pwrite(int fd, const void *buf, size_t count, off_t offset)
+{
+    {
+        std::unique_lock<std::mutex> lock(host::mutex);
+        host::calls++;
+        host::changed.wait(lock, [] { return host::pass; });
+        if ((host::fail_at >= 0) && (offset == host::fail_at)) {
+            host::fail_at = -1;
+            errno         = EIO;
+            return -1;
+        }
+    }
+    return syscall(SYS_pwrite64, fd, buf, count, offset);
+}
+#endif
 
 extern "C" {
 hard_disk_t hdd[HDD_SLOTS];

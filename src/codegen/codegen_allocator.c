@@ -104,7 +104,34 @@ codegen_allocator_init(void)
                     "MEM_BLOCK_NR * MEM_BLOCK_SIZE exceeds this architecture's direct-branch range");
 
     uint8_t large = 0;
-    mem_block_alloc = plat_mmap(MEM_BLOCK_NR * MEM_BLOCK_SIZE, 1, &large);
+#if defined(__linux__) && defined(__aarch64__) && defined(MAP_FIXED_NOREPLACE)
+    {
+        /*Past the program's data: the link routines then reach its globals
+          with ADRP, a load fewer for each, and blocks the program's
+          functions and data with ADRP and an ADD, where an mmap anywhere
+          left them more than 4 GB away. The heap grows up from the end of
+          the data too, so further places are tried when it has already
+          reached the first; all of them are well within 4 GB of both*/
+        static const uint32_t past_end_mb[] = { 64, 512, 1024, 1536 };
+        extern char end;
+        const size_t size = (size_t) MEM_BLOCK_NR * MEM_BLOCK_SIZE;
+
+        for (size_t c = 0; (c < sizeof(past_end_mb) / sizeof(past_end_mb[0])) && !mem_block_alloc; c++) {
+            uintptr_t hint = ((uintptr_t) &end + ((uintptr_t) past_end_mb[c] << 20)) & ~(uintptr_t) ((2 << 20) - 1);
+            void     *p    = mmap((void *) hint, size, PROT_READ | PROT_WRITE | PROT_EXEC, MAP_ANONYMOUS | MAP_PRIVATE | MAP_FIXED_NOREPLACE, -1, 0);
+
+            if (p == (void *) hint) {
+                mem_block_alloc = p;
+#    ifdef MADV_HUGEPAGE
+                large = !madvise(p, size, MADV_HUGEPAGE);
+#    endif
+            } else if (p != MAP_FAILED)
+                munmap(p, size);
+        }
+    }
+    if (!mem_block_alloc)
+#endif
+        mem_block_alloc = plat_mmap(MEM_BLOCK_NR * MEM_BLOCK_SIZE, 1, &large);
 
     if (large)
         pclog("Allocated %u bytes of large pages of recompiled code memory\n", MEM_BLOCK_NR * MEM_BLOCK_SIZE);
@@ -273,17 +300,27 @@ codeblock_allocator_get_ptr(mem_block_t *block)
 #endif
 
 void
-codegen_allocator_clean_blocks(UNUSED(struct mem_block_t *block))
+codegen_allocator_clean_blocks_used(UNUSED(struct mem_block_t *block), UNUSED(int last_used))
 {
 #if defined __ARM_EABI__ || defined __aarch64__ || defined _M_ARM64 || defined(__loongarch_lp64)
+    /*Each cache line costs an invalidate broadcast to every core, and a
+      block of a few instructions leaves most of its last one unwritten*/
     while (1) {
-        CODEGEN_HOST_CLEAR_CACHE(&mem_block_alloc[block->offset], &mem_block_alloc[block->offset + MEM_BLOCK_SIZE]);
+        int len = block->next ? MEM_BLOCK_SIZE : last_used;
+
+        CODEGEN_HOST_CLEAR_CACHE(&mem_block_alloc[block->offset], &mem_block_alloc[block->offset + len]);
         if (block->next)
             block = &mem_blocks[block->next - 1];
         else
             break;
     }
 #endif
+}
+
+void
+codegen_allocator_clean_blocks(struct mem_block_t *block)
+{
+    codegen_allocator_clean_blocks_used(block, MEM_BLOCK_SIZE);
 }
 
 #ifdef MEM_BLOCK_VENEER_STRIDE

@@ -39,6 +39,10 @@ emit_flags_rebuild_zpna(ir_data_t *ir)
                 break;
         }
     }
+    /*A full rebuild as uops leaves ZPNA as the call would: the rotate's own
+      flags op then decides CF and OF*/
+    if (codegen_flags_rebuild_known(ir, 0))
+        return;
     /*For the op this pass runs after, known or not*/
     call_flags_rebuild(ir, jit_flags_rebuild_zpna_op[cpu_state.flags_op]);
 }
@@ -657,8 +661,18 @@ ropC1_l(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetc
     imm = fastreadb(cs + op_pc + 1) & 0x1f;
     codegen_mark_code_present(block, cs + op_pc + 1, 1);
 
-    if (imm)
+    if (imm) {
+        /*A register rotated with its flags all written over before any is
+          read (codegen_flags_dead()): the rotate alone*/
+        if (((fetchdat & 0xc0) == 0xc0) && !(fetchdat & 0x30) && codegen_flags_dead(block, cs + op_pc + 2)) {
+            if (fetchdat & 0x08)
+                uop_ROR_IMM(ir, IREG_32(fetchdat & 7), IREG_32(fetchdat & 7), imm);
+            else
+                uop_ROL_IMM(ir, IREG_32(fetchdat & 7), IREG_32(fetchdat & 7), imm);
+            return op_pc + 2;
+        }
         return shift_common_32(ir, fetchdat, op_pc, target_seg, imm) + 1;
+    }
     /*A count of 0 shifts nothing: the next instruction is past the count*/
     return op_pc + 2;
 }
@@ -716,6 +730,14 @@ ropD1_l(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetc
         codegen_check_seg_write(block, ir, target_seg);
         CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 3);
         uop_MEM_LOAD_REG(ir, IREG_temp0, ireg_seg_base(target_seg), IREG_eaaddr);
+    } else if (!(fetchdat & 0x30) && codegen_flags_dead(block, cs + op_pc + 1)) {
+        /*A register rotated with its flags all written over before any is
+          read (codegen_flags_dead()): the rotate alone*/
+        if (fetchdat & 0x08)
+            uop_ROR_IMM(ir, IREG_32(fetchdat & 7), IREG_32(fetchdat & 7), 1);
+        else
+            uop_ROL_IMM(ir, IREG_32(fetchdat & 7), IREG_32(fetchdat & 7), 1);
+        return op_pc + 1;
     }
 
     return shift_common_32(ir, fetchdat, op_pc, target_seg, 1);

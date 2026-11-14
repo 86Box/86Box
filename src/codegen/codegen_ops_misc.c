@@ -386,17 +386,8 @@ rebuild_c(ir_data_t *ir)
         }
     }
 
-    if (needs_rebuild && !codegen_flags_rebuild_known(ir, 1)) {
-#if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
-        /*flags_rebuild_c() writes only flags, so the cached registers are
-          written back but left loaded, and flags is reloaded after it. The
-          wrapper is the one for the op this pass runs after*/
-        uop_CALL_FUNC_ORDERED(ir, jit_flags_rebuild_c_op[cpu_state.flags_op]);
-        uop_MOVZX_REG_PTR_16(ir, IREG_flags, &cpu_state.flags);
-#else
-        uop_CALL_FUNC(ir, jit_flags_rebuild_c_op[cpu_state.flags_op]);
-#endif
-    }
+    if (needs_rebuild && !codegen_flags_rebuild_known(ir, 1))
+        codegen_rebuild_c_call(ir);
 }
 
 uint32_t
@@ -1423,11 +1414,18 @@ rop0F01_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op
     }
 
     if (reg == 0x38) {
-        /*INVLPG: the address is not used, as in the op. The flush can remap
-          the page the block runs from: the next block is looked up through
-          the tables*/
+        /*INVLPG: the linear address, as in the op, whose page's entries go
+          (dynarec_invlpg). The flush can remap the page the block runs from:
+          the next block is looked up through the tables. A backend whose
+          calls take no 32-bit argument flushes every page instead*/
+#if defined(__aarch64__) || defined(_M_ARM64)
+        uop_ADD(ir, IREG_temp0, ireg_seg_base(target_seg), IREG_eaaddr);
+        uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp0);
+        uop_CALL_FUNC(ir, dynarec_invlpg);
+#else
         uop_CALL_FUNC(ir, flushmmucache_pc);
         uop_CALL_FUNC(ir, flushmmucache_nopc);
+#endif
         CPU_BLOCK_END();
         return op_pc + 1;
     }

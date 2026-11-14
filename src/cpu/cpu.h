@@ -459,6 +459,18 @@ typedef struct {
        part is what the displacement's bytes on that page add to eaaddr */
     uint32_t handover_walk;
     uint32_t handover_walk_part;
+
+    /* The carry out a family instruction of a CODEBLOCK_ALU_FAMILY block
+       in carry mode left, for an ADC or SBB right after it (codegen.h) */
+    uint32_t alu_family_cf;
+    /* Nonzero once compiled code has called C through a memory access's slow
+       path since the link routine last checked the pending events
+       (codegen_link.h, two_page bit 2) */
+    uint8_t link_c_ran;
+    /* Nonzero once a write changed a byte of code (one in a code_present
+       chunk or byte_code_present byte) since the C loop last ran a block: a
+       byte-mask block leaves after a store that did (codegen.c) */
+    uint8_t code_written;
 #endif
 } cpu_state_t;
 
@@ -485,6 +497,10 @@ typedef struct {
    bails to the interpreter for it (other FPU arith always rounds to
    nearest); such blocks must not be reused once RC changes. */
 #define CPU_STATUS_FPU_RC_NZ (1 << 6)
+/* The caches disabled (CR0.CD): such blocks charge the cycles the
+   interpreter's cache-off timing gave each instruction as it was recorded,
+   not the timing model's (codegen_block_start_recompile()). */
+#define CPU_STATUS_NOCACHE (1 << 7)
 #define CPU_STATUS_FLAGS 0xff
 
 /*If the cpu_state.flags below are set in cpu_cur_status, they must be set in block->status.
@@ -772,6 +788,8 @@ extern int cpu_cycles_read_l;
 extern int cpu_cycles_write;
 extern int cpu_cycles_write_l;
 extern int cpu_prefetch_cycles;
+/* Cycles a store that changes code costs, by CPU (cpu_set()) */
+extern int cpu_smc_penalty;
 extern int cpu_prefetch_width;
 extern int cpu_mem_prefetch_cycles;
 extern int cpu_rom_prefetch_cycles;

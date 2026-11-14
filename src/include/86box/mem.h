@@ -233,6 +233,9 @@ typedef struct page_t {
 
     /*Head of codeblock tree associated with this page*/
     uint32_t head;
+    /*A writelookup slot may send writes to this page's RAM straight there,
+      past write_b/w/l, since mem_flush_write_page() last removed them*/
+    uint32_t write_direct;
 
     uint64_t code_present_mask;
     uint64_t dirty_mask;
@@ -282,7 +285,30 @@ extern page_t  *pages;
 
 /* The lookup tables. */
 extern page_t *page_lookup[1048576];
+extern uintptr_t page_lookup_mem[1048576];
 extern uintptr_t readlookup2[2097152];
+/* An idle loop's watch (386_dynarec.c): while mem_idle_track is set the write
+   lookups stay empty, so every write reaches the handlers, and anything a
+   pass round the loop changes sets mem_idle_dirty: any access to memory that
+   is not RAM or ROM, any port access or an interrupt taken. A write that
+   changes RAM is noted in mem_idle_log instead, with what the RAM held
+   before (mem_idle_note()): a pass that puts back everything it changed, as
+   a stack slot two calls push different return addresses to, changes
+   nothing. One the log has no room for or overlaps differently, and one
+   made by the timers the watch runs itself (mem_idle_timers), sets
+   mem_idle_dirty. */
+#define MEM_IDLE_LOG_MAX 16
+typedef struct mem_idle_log_t {
+    uint8_t *p;   /* the RAM written */
+    uint32_t old; /* what it held before the pass wrote it */
+    int      len;
+} mem_idle_log_t;
+extern int            mem_idle_track;
+extern int            mem_idle_dirty;
+extern int            mem_idle_irq; /* an interrupt was taken: the watch ends, but the loop was idle */
+extern mem_idle_log_t mem_idle_log[MEM_IDLE_LOG_MAX];
+extern int            mem_idle_log_nr;
+extern int            mem_idle_timers;
 extern uintptr_t writelookup2[1048576];
 
 extern uint32_t get_phys_virt;
@@ -359,6 +385,10 @@ extern void     mem_writel_map(uint32_t addr, uint32_t val);
 extern uint8_t *getpccache(uint32_t a);
 extern int      cpu_fetch_device;
 extern uint64_t mmutranslatereal(uint32_t addr, int rw);
+extern int      mmutranslate_fetch(uint32_t addr);
+/* mmutranslate_fetch()'s pages: (page << 1 | ring 3) + 1 at page & 15 */
+#define FETCH_WALK_ENTRIES 16
+extern uint32_t fetch_walk_key[FETCH_WALK_ENTRIES];
 extern uint32_t mmutranslatereal32(uint32_t addr, int rw);
 extern void     addreadlookup(uint32_t virt, uint32_t phys);
 extern void     addwritelookup(uint32_t virt, uint32_t phys);
@@ -476,6 +506,7 @@ extern void mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page);
 extern void mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *page);
 extern void mem_write_raml_page(uint32_t addr, uint32_t val, page_t *page);
 extern void mem_flush_write_page(uint32_t addr, uint32_t virt);
+extern void mem_unflush_write_page(uint32_t addr);
 
 extern void mem_reset_page_blocks(void);
 
@@ -486,6 +517,7 @@ extern void     pae_load_pdptes(void);
 extern void flushmmucache_write(void);
 extern void flushmmucache_pc(void);
 extern void flushmmucache_nopc(void);
+extern void flushmmucache_invlpg(uint32_t addr);
 extern void flushmmucache_ring3(void);
 
 extern void mem_debug_check_addr(uint32_t addr, int write);

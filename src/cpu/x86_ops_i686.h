@@ -195,26 +195,34 @@ sf_fx_save_stor_common(uint32_t fetchdat, int bits)
    which registers hold MMX values, and their exact tags, which the image
    can't give back through the 64-bit register model. Kept here instead, by
    the image's linear address, for an FXRSTOR of that same image -- the same
-   header and register bytes -- to take back; any other image is rebuilt
-   from what it holds. */
+   header and register bytes, kept with them -- to take back; any other
+   image is rebuilt from what it holds. */
 #define FX_EXACT_SLOTS 16
+#define FX_IMAGE_BYTES 160
 static struct {
     uint32_t addr;
-    uint32_t sum;
     uint8_t  tag[8];
     uint8_t  ismmx;
     uint8_t  valid;
+    uint8_t  image[FX_IMAGE_BYTES];
 } fx_exact[FX_EXACT_SLOTS];
 
-/* The image's header and registers (bytes 0 to 159), hashed */
-static uint32_t
-fx_image_sum(uint32_t base)
+/* The image's header and registers (bytes 0 to 159): in place when they are
+   on one page the lookup maps, else read into buf */
+static const uint8_t *
+fx_image(uint32_t base, uint8_t *buf)
 {
-    uint32_t sum = 0x811c9dc5;
+    const uint32_t lin = easeg + base;
 
-    for (int i = 0; i < 40; i++)
-        sum = (sum ^ readmeml(easeg, base + (i << 2))) * 0x01000193;
-    return sum;
+    if ((easeg != 0xffffffff) && (((lin & 0xfff) + FX_IMAGE_BYTES) <= 0x1000) &&
+        (readlookup2[lin >> 12] != (uintptr_t) LOOKUP_INV))
+        return (const uint8_t *) (readlookup2[lin >> 12] + (uintptr_t) lin);
+    for (int i = 0; i < (FX_IMAGE_BYTES / 4); i++) {
+        const uint32_t l = readmeml(easeg, base + (i << 2));
+
+        memcpy(&buf[i << 2], &l, 4);
+    }
+    return buf;
 }
 
 static int
@@ -238,10 +246,12 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
     int      have_exact  = 0;
     uint8_t  exact_tag[8];
     uint8_t  exact_ismmx = 0;
+    uint8_t        img_buf[FX_IMAGE_BYTES];
+    const uint8_t *img = img_buf;
     /* Exp_all_1 Exp_all_0 Frac_all_0 J M FTW_Valid  |  Ent
        ----------------------------------------------+------ */
     uint8_t ftw_table_idx;
-    uint8_t ftw_table[48] = { 0x03,   /* 0         0         0          0 0 0          |  0x00 */
+    static const uint8_t ftw_table[48] = { 0x03,   /* 0         0         0          0 0 0          |  0x00 */
                               0x02,   /* 0         0         0          0 0 1          |  0x01 */
                               0x03,   /* 0         0         0          0 0 0          |  0x02 */
                               0x02,   /* 0         0         0          0 1 1          |  0x03 */
@@ -289,8 +299,8 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
                               0x02,   /* 1         0         1          1 0 1          |  0x2d */
                               0x03,   /* 1         0         1          1 1 0          |  0x2e - Impossible */
                               0x03 }; /* 1         0         1          1 1 1          |  0x2f - Impossible */
-                                      /* M is the most significant bit of the franction, so it is impossible
-                                         for M to o be 1 when the fraction is all 0's. */
+                                                   /* M is the most significant bit of the franction, so it is impossible
+                                                      for M to o be 1 when the fraction is all 0's. */
 
     if (CPUID < 0x650)
         return ILLEGAL(fetchdat);
@@ -356,11 +366,14 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
             x87_op_off = readmemw(easeg, cpu_state.eaaddr +16);
         x87_op_seg = readmemw(easeg, cpu_state.eaaddr + 20);
 
+        /*The header and registers, read once: in place when the lookup maps
+          them on one page (fx_image())*/
+        img = fx_image(old_eaaddr, img_buf);
         for (i = 0; i <= 7; i++) {
             cpu_state.eaaddr = old_eaaddr + 32 + (i << 4);
-            mant             = readmemq(easeg, cpu_state.eaaddr);
+            memcpy(&mant, &img[32 + (i << 4)], 8);
             fraction         = mant & 0x7fffffffffffffffULL;
-            exp              = readmemw(easeg, cpu_state.eaaddr + 8);
+            memcpy(&exp, &img[40 + (i << 4)], 2);
             jm               = (mant >> 62) & 0x03;
             /* FXSAVE stores the abridged FTW valid bits in physical-register order,
                while data slot i holds ST(i) = physical register (TOP+i)&7. Index the
@@ -391,7 +404,8 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
             const uint32_t lin  = easeg + old_eaaddr;
             const int      slot = (lin >> 9) & (FX_EXACT_SLOTS - 1);
 
-            if (fx_exact[slot].valid && (fx_exact[slot].addr == lin) && (fx_exact[slot].sum == fx_image_sum(old_eaaddr))) {
+            if (fx_exact[slot].valid && (fx_exact[slot].addr == lin) &&
+                !memcmp(fx_exact[slot].image, img, FX_IMAGE_BYTES)) {
                 have_exact = 1;
                 for (i = 0; i <= 7; i++)
                     exact_tag[i] = fx_exact[slot].tag[i];
@@ -411,15 +425,34 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
 
         x87_settag(rec_ftw);
 
+        /*From the image read above, which holds the bytes x87_ldmmx() and
+          x87_ld_frstor() would read*/
         if (cpu_state.ismmx) {
             for (i = 0; i <= 7; i++) {
-                cpu_state.eaaddr = old_eaaddr + 32 + (i << 4);
-                x87_ldmmx(&(cpu_state.MM[i]), &(cpu_state.MM_w4[i]));
+                memcpy(&cpu_state.MM[i].l[0], &img[32 + (i << 4)], 4);
+                memcpy(&cpu_state.MM[i].l[1], &img[36 + (i << 4)], 4);
+                memcpy(&cpu_state.MM_w4[i], &img[40 + (i << 4)], 2);
             }
         } else {
             for (i = 0; i <= 7; i++) {
-                cpu_state.eaaddr = old_eaaddr + 32 + (i << 4);
-                x87_ld_frstor(i);
+                const int  reg = (cpu_state.TOP + i) & 7;
+                x87_conv_t conv;
+
+                memcpy(&cpu_state.MM[reg].q, &img[32 + (i << 4)], 8);
+                memcpy(&cpu_state.MM_w4[reg], &img[40 + (i << 4)], 2);
+                if (cpu_state.MM_w4[reg] == 0x5555) {
+                    cpu_state.tag[reg] = TAG_VALID | TAG_UINT64;
+                    cpu_state.ST[reg]  = (double) cpu_state.MM[reg].q;
+                } else {
+                    const uint8_t denormal = (!(cpu_state.MM_w4[reg] & 0x7fff) && cpu_state.MM[reg].q) ? TAG_DENORMAL : 0;
+
+                    conv.eind.ll      = cpu_state.MM[reg].q;
+                    conv.begin        = cpu_state.MM_w4[reg];
+                    cpu_state.ST[reg] = x87_from80(&conv);
+                    /*As x87_ld_frstor(): the tag word says whether it is
+                      empty, the image gives its class, empty or not*/
+                    cpu_state.tag[reg] = (cpu_state.tag[reg] & TAG_VALID) | denormal;
+                }
             }
         }
 
@@ -503,15 +536,50 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
         writememl(easeg, cpu_state.eaaddr + 12, cpu_state.fpu_CS);
         writememl(easeg, cpu_state.eaaddr + 20, cpu_state.fpu_DS);
 
-        if (cpu_state.ismmx) {
-            for (i = 0; i <= 7; i++) {
-                cpu_state.eaaddr = old_eaaddr + 32 + (i << 4);
-                x87_stmmx(cpu_state.MM[i]);
-            }
-        } else {
-            for (i = 0; i <= 7; i++) {
-                cpu_state.eaaddr = old_eaaddr + 32 + (i << 4);
-                x87_st_fsave(i);
+        {
+            /*Straight into the page when the write lookup maps the registers'
+              part of the image (never a page with code, whose writes are
+              tracked), as x87_stmmx() and x87_st_fsave() write them*/
+            const uint32_t  lin = easeg + old_eaaddr;
+            const uintptr_t wl  = writelookup2[lin >> 12];
+
+            if ((easeg != 0xffffffff) && (wl != (uintptr_t) LOOKUP_INV) && (((lin & 0xfff) + FX_IMAGE_BYTES) <= 0x1000) && !cpu_dr_armed) {
+                uint8_t *const p = (uint8_t *) (wl + (uintptr_t) lin);
+
+                for (i = 0; i <= 7; i++) {
+                    uint64_t q;
+                    uint16_t w;
+
+                    if (cpu_state.ismmx) {
+                        q = cpu_state.MM[i].q;
+                        w = 0xffff;
+                    } else {
+                        const int reg = (cpu_state.TOP + i) & 7;
+
+                        if (cpu_state.tag[reg] & TAG_UINT64) {
+                            q = cpu_state.MM[reg].q;
+                            w = 0x5555;
+                        } else {
+                            x87_conv_t conv;
+
+                            x87_to80(cpu_state.ST[reg], &conv);
+                            q = conv.eind.ll;
+                            w = conv.begin;
+                        }
+                    }
+                    memcpy(&p[32 + (i << 4)], &q, 8);
+                    memcpy(&p[40 + (i << 4)], &w, 2);
+                }
+            } else if (cpu_state.ismmx) {
+                for (i = 0; i <= 7; i++) {
+                    cpu_state.eaaddr = old_eaaddr + 32 + (i << 4);
+                    x87_stmmx(cpu_state.MM[i]);
+                }
+            } else {
+                for (i = 0; i <= 7; i++) {
+                    cpu_state.eaaddr = old_eaaddr + 32 + (i << 4);
+                    x87_st_fsave(i);
+                }
             }
         }
 
@@ -519,9 +587,10 @@ fx_save_stor_common(uint32_t fetchdat, int bits)
         if (!cpu_state.abrt) {
             const uint32_t lin  = easeg + old_eaaddr;
             const int      slot = (lin >> 9) & (FX_EXACT_SLOTS - 1);
+            uint8_t        buf[FX_IMAGE_BYTES];
 
             fx_exact[slot].addr = lin;
-            fx_exact[slot].sum  = fx_image_sum(old_eaaddr);
+            memcpy(fx_exact[slot].image, fx_image(old_eaaddr, buf), FX_IMAGE_BYTES);
             for (i = 0; i <= 7; i++)
                 fx_exact[slot].tag[i] = cpu_state.tag[i];
             fx_exact[slot].ismmx = cpu_state.ismmx;

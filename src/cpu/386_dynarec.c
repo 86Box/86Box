@@ -53,6 +53,26 @@
 #endif
 
 #define CPU_BLOCK_END() cpu_block_end = 1
+/* The recompiler may record on into a direct near jump's or call's target */
+extern int codegen_follow_near(void);
+extern int codegen_follow_jcc_taken(void);
+extern int codegen_follow_ret(void);
+extern int codegen_call_budget_out(void);
+#define CPU_BLOCK_END_RET()        \
+    do {                           \
+        if (!codegen_follow_ret()) \
+            cpu_block_end = 1;     \
+    } while (0)
+#define CPU_BLOCK_END_JCC()              \
+    do {                                 \
+        if (!codegen_follow_jcc_taken()) \
+            cpu_block_end = 1;           \
+    } while (0)
+#define CPU_BLOCK_END_NEAR()        \
+    do {                            \
+        if (!codegen_follow_near()) \
+            cpu_block_end = 1;      \
+    } while (0)
 
 int inrecomp                = 0;
 int cpu_block_end           = 0;
@@ -192,10 +212,20 @@ fetch_ea_16_long(uint32_t rmdat)
 
 #include "x86_flags.h"
 
+/* The cycles the instructions charge themselves, their memory and prefetch
+   time with the caches off included, as against what the C they call
+   charges (a far transfer's, a port's or a device's), which compiled code
+   calling the same C charges too: a block compiled with the caches off
+   charges each instruction this much (codegen_nocache_ins_cycles()) */
+int cpu_op_cycles;
+
 #define PREFETCH_RUN(instr_cycles, bytes, modrm, reads, reads_l, writes, writes_l, ea32)      \
     do {                                                                                      \
-        if (cpu_prefetch_cycles)                                                              \
+        if (cpu_prefetch_cycles) {                                                            \
+            const int prefetch_before = cycles;                                               \
             prefetch_run(instr_cycles, bytes, modrm, reads, reads_l, writes, writes_l, ea32); \
+            cpu_op_cycles += prefetch_before - cycles;                                        \
+        }                                                                                     \
     } while (0)
 
 #define PREFETCH_PREFIX()        \
@@ -221,11 +251,15 @@ fetch_ea_16_long(uint32_t rmdat)
 #    define CLOCK_CYCLES_FPU(c)   cycles -= (c)
 #    define CONCURRENCY_CYCLES(c) fpu_cycles = (c)
 #else
-#    define CLOCK_CYCLES(c)     cycles -= (c)
-#    define CLOCK_CYCLES_FPU(c) cycles -= (c)
+#    define CLOCK_CYCLES(c)     \
+        do {                    \
+            cycles -= (c);      \
+            cpu_op_cycles += (c); \
+        } while (0)
+#    define CLOCK_CYCLES_FPU(c) CLOCK_CYCLES(c)
 #    define CONCURRENCY_CYCLES(c)
 #endif
-#define CLOCK_CYCLES_ALWAYS(c) cycles -= (c)
+#define CLOCK_CYCLES_ALWAYS(c) CLOCK_CYCLES(c)
 
 #include "386_ops.h"
 
@@ -327,7 +361,9 @@ dr_blocks_cache(void)
 
 /* dbg is a constant in the dispatch loop (exec386_dynarec_common()), so that
    with the option off the per-block test is not compiled in. */
-#define CACHE_ON_DBG(dbg) (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG) && !((dbg) && cpu_dr_armed && dr_blocks_cache()))
+/* The caches off (CR0.CD) are compiled too, timed as the interpreter times
+   them (CPU_STATUS_NOCACHE) */
+#define CACHE_ON_DBG(dbg) (!(cpu_state.flags & T_FLAG) && !((dbg) && cpu_dr_armed && dr_blocks_cache()))
 #define CACHE_ON()        CACHE_ON_DBG(cpu_debug_regs_486)
 
 #ifdef USE_DYNAREC
@@ -348,6 +384,21 @@ static codegen_link_slot_t *link_from = NULL;
 #    endif
 
 extern int codegen_record_faulted; /* 386_common.c */
+
+/* Where a block's recording last stopped for an exception: a recording that
+   faults is not kept (it ends at the fault, not where its code does), and
+   one of code that faults there every time was made and thrown away on
+   every run, the code before the fault with it. The next recording of a
+   block starting at start stops before stop, so the code before is kept
+   and the faulting instruction starts a block of its own. Ending a block at
+   an instruction is always right; a fault that does not come back only
+   leaves that block shorter. */
+#    define RECORD_STOPS 256
+static struct {
+    uint32_t start;
+    uint32_t stop;
+} record_stop[RECORD_STOPS];
+#    define RECORD_STOP_HASH(pc) ((((pc) >> 2) ^ ((pc) >> 10)) & (RECORD_STOPS - 1))
 
 int
 codegen_mmx_enter(void)
@@ -579,21 +630,62 @@ update_tsc_write(uint64_t new_tsc)
     tsc_old += new_tsc - tsc;
 }
 
-/* dbg is a constant, cpu_debug_regs_486 as the block starts: each caller below
-   gets a copy of the loop, and with the option off the debug register
-   handling is not compiled in at all. */
+/* After each instruction of an interpreted run: the events and conditions
+   that end the run there. dbg is a constant, cpu_debug_regs_486 as the block
+   starts: each caller below gets a copy of the loop, and with the option off
+   the debug register handling is not compiled in at all. */
 __attribute__((always_inline)) static inline void
-exec386_dynarec_int_common(const int dbg)
+exec386_dynarec_int_post(const int dbg)
 {
-    cpu_block_end = 0;
-    x86_was_reset = 0;
-
-    if (trap == 2) {
-        /* Handle the T bit in the new TSS first. */
+    if (cpu_flush_pending == 1)
+        cpu_flush_pending++;
+    else if (cpu_flush_pending == 2) {
+        cpu_flush_pending = 0;
+        flushmmucache_pc();
         CPU_BLOCK_END();
-        goto block_ended;
     }
 
+    if (dbg && !cpu_state.abrt) {
+        if (!rf_flag_no_clear) {
+            cpu_state.eflags &= ~RF_FLAG;
+        }
+
+        rf_flag_no_clear = 0;
+    }
+
+    if (((cs + cpu_state.pc) >> 12) != pccache)
+        CPU_BLOCK_END();
+
+    if (cpu_end_block_after_ins) {
+        cpu_end_block_after_ins--;
+        if (!cpu_end_block_after_ins)
+            CPU_BLOCK_END();
+    }
+
+    if (cpu_init)
+        CPU_BLOCK_END();
+
+    if (cpu_state.abrt)
+        CPU_BLOCK_END();
+    if (smi_line)
+        CPU_BLOCK_END();
+    else if (new_ne)
+        CPU_BLOCK_END();
+    else if (trap)
+        CPU_BLOCK_END();
+    else if (NMI_TAKEABLE())
+        CPU_BLOCK_END();
+    else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending() && !cpu_end_block_after_ins)
+        CPU_BLOCK_END();
+    /* A P_LVL2/P_LVL3 read stopped the processor. */
+    if (cpu_stpclk)
+        CPU_BLOCK_END();
+}
+
+/* The interpreted run's loop, from wherever it is, and its end. */
+__attribute__((always_inline)) static inline void
+exec386_dynarec_int_run(const int dbg)
+{
     while (!cpu_block_end) {
         oldcs  = CS;
         oldcpl = CPL;
@@ -653,52 +745,9 @@ exec386_dynarec_int_common(const int dbg)
             x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
         }
 
-        if (cpu_flush_pending == 1)
-            cpu_flush_pending++;
-        else if (cpu_flush_pending == 2) {
-            cpu_flush_pending = 0;
-            flushmmucache_pc();
-            CPU_BLOCK_END();
-        }
-
-        if (dbg && !cpu_state.abrt) {
-            if (!rf_flag_no_clear) {
-                cpu_state.eflags &= ~RF_FLAG;
-            }
-
-            rf_flag_no_clear = 0;
-        }
-
-        if (((cs + cpu_state.pc) >> 12) != pccache)
-            CPU_BLOCK_END();
-
-        if (cpu_end_block_after_ins) {
-            cpu_end_block_after_ins--;
-            if (!cpu_end_block_after_ins)
-                CPU_BLOCK_END();
-        }
-
-        if (cpu_init)
-            CPU_BLOCK_END();
-
-        if (cpu_state.abrt)
-            CPU_BLOCK_END();
-        if (smi_line)
-            CPU_BLOCK_END();
-        else if (new_ne)
-            CPU_BLOCK_END();
-        else if (trap)
-            CPU_BLOCK_END();
-        else if (NMI_TAKEABLE())
-            CPU_BLOCK_END();
-        else if ((cpu_state.flags & I_FLAG) && x86_external_interrupt_pending() && !cpu_end_block_after_ins)
-            CPU_BLOCK_END();
-        /* A P_LVL2/P_LVL3 read stopped the processor. */
-        if (cpu_stpclk)
-            CPU_BLOCK_END();
+        exec386_dynarec_int_post(dbg);
     }
 
-block_ended:
     if (!cpu_state.abrt && !new_ne && trap) {
         if (trap & 2) dr[6] |= 0x8000;
         if (trap & 1) dr[6] |= 0x4000;
@@ -711,6 +760,22 @@ block_ended:
     }
 
     cpu_end_block_after_ins = 0;
+}
+
+/* dbg is a constant, cpu_debug_regs_486 as the block starts: each caller below
+   gets a copy of the loop, and with the option off the debug register
+   handling is not compiled in at all. */
+__attribute__((always_inline)) static inline void
+exec386_dynarec_int_common(const int dbg)
+{
+    cpu_block_end = 0;
+    x86_was_reset = 0;
+
+    /* Handle the T bit in the new TSS first. */
+    if (trap == 2)
+        CPU_BLOCK_END();
+
+    exec386_dynarec_int_run(dbg);
 }
 
 /* The copy with the debug register handling is kept out of line, so that the
@@ -730,6 +795,111 @@ exec386_dynarec_int(void)
         exec386_dynarec_int_common(0);
 }
 
+/* x as the compiler can know nothing about: a test of it tells it nothing
+   about what x was worked out from */
+#if defined(__GNUC__) || defined(__clang__)
+#    define DEC_OPAQUE(x) __asm__("" : "+r"(x))
+#else
+#    define DEC_OPAQUE(x) (void) (x)
+#endif
+
+/* exec386_dynarec_int_post(0), with the common case first: nothing of what
+   it tests set, read as a few words (the event words are those of
+   cpu_events_due() below: an interrupt the 8259 or local APIC may hold sets
+   cpu_events.irq, which the loop takes none without either), and the next
+   instruction on the same page. */
+__attribute__((always_inline)) static inline void
+exec386_dynarec_int_post_quick(void)
+{
+    uint64_t init_ne;
+    uint64_t nmi_irq;
+    uint16_t abrt_smi;
+
+    memcpy(&init_ne, &cpu_events.init, sizeof(init_ne));
+    memcpy(&nmi_irq, &cpu_events.nmi_req, sizeof(nmi_irq));
+    memcpy(&abrt_smi, &cpu_state.abrt, sizeof(abrt_smi));
+    if (LIKELY(!(init_ne | nmi_irq | abrt_smi | (uint32_t) cpu_flush_pending | (uint32_t) trap | (uint32_t) cpu_end_block_after_ins |
+                 (uint32_t) cpu_stpclk) &&
+               (((cs + cpu_state.pc) >> 12) == pccache)))
+        return;
+    exec386_dynarec_int_post(0);
+}
+
+/* An interpreted run of a block with the instructions its mark ran
+   (codeblock_t::dec): where each instruction is and its first byte come from
+   the list, not from the instruction before it, so its fetch and its handler
+   are found without waiting for that one to finish. Each is checked as it
+   comes: an instruction not where the list has it, or with another first
+   byte, and the run goes on as the plain loop. The checks' results are kept
+   from the compiler, which would otherwise use the values compared with the
+   list's in their place, and wait for them. */
+static __attribute__((noinline)) void
+exec386_dynarec_int_dec(const codeblock_t *block)
+{
+    const uint16_t *e       = block->dec;
+    const uint16_t *e_end   = e + block->dec_n;
+    uint32_t        pc_next = cpu_state.pc;
+
+    cpu_block_end = 0;
+    x86_was_reset = 0;
+
+    /* Handle the T bit in the new TSS first. */
+    if (trap == 2)
+        CPU_BLOCK_END();
+
+    while (!cpu_block_end && (e < e_end)) {
+        const uint32_t pc_now = pc_next;
+        const uint32_t ent    = *e++;
+        int            same   = (cpu_state.pc == pc_now);
+
+        DEC_OPAQUE(same);
+        if (UNLIKELY(!same))
+            break;
+        pc_next = pc_now + (ent >> 8);
+
+        oldcs  = CS;
+        oldcpl = CPL;
+        cpu_state.oldpc = pc_now;
+        cpu_state.op32  = use32;
+
+        cpu_state.ea_seg = &cpu_state.seg_ds;
+        cpu_state.ssegs  = 0;
+
+        fetchdat = fastreadl_fetch(cs + pc_now);
+
+        if (!cpu_state.abrt) {
+            /* Temp variables for FPU exception reporting. */
+            cpu_state.temp_CS = CS;
+            cpu_state.temp_cs = cs;
+            cpu_state.temp_pc = pc_now;
+
+            opcode = fetchdat & 0xFF;
+            fetchdat >>= 8;
+
+            trap = cpu_state.flags & T_FLAG;
+
+            cpu_state.pc = pc_now + 1;
+            {
+                const uint32_t op_ent  = ent & 0xff;
+                int            same_op = (opcode == op_ent);
+
+                DEC_OPAQUE(same_op);
+                if (LIKELY(same_op))
+                    x86_opcodes[(op_ent | cpu_state.op32) & 0x3ff](fetchdat);
+                else {
+                    /* Its code was written since: the rest is fetched as it runs */
+                    e_end = e;
+                    x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
+                }
+            }
+        }
+
+        exec386_dynarec_int_post_quick();
+    }
+
+    exec386_dynarec_int_run(0);
+}
+
 /* pc and _cs as one 64-bit value, so a lookup compares both at once. */
 _Static_assert(offsetof(codeblock_t, _cs) == offsetof(codeblock_t, pc) + 4, "codeblock_t pc/_cs layout");
 _Static_assert(!(offsetof(codeblock_t, pc) & 7), "codeblock_t pc/_cs layout");
@@ -742,6 +912,245 @@ codeblock_pc_cs(const codeblock_t *block)
     memcpy(&pc_cs, (const uint8_t *) block + offsetof(codeblock_t, pc), sizeof(pc_cs));
     return pc_cs;
 }
+
+#if defined(USE_DYNAREC) && defined(CODEGEN_BACKEND_HAS_BLOCK_LINK) && (defined(__aarch64__) || defined(_M_ARM64))
+/*A guest waiting in a loop rather than in HLT: DOS polling INT 16h, a BIOS,
+  most classic idle loops. At the start of a slice the block the loop is
+  about to run becomes an anchor, and the pass round the loop the stretch
+  from one arrival there to the next: links into it are not made, so each
+  arrival comes back here, and the write lookups stay empty, so every write
+  reaches the handlers (mem_idle_track). A pass that changes nothing - every
+  register, the flags, the segments, CR0, CR3, CR4 and the x87 and MMX state
+  as they were, no write changing RAM, no access to memory that is not RAM
+  or ROM, no port access, no interrupt taken (mem_idle_dirty) - does the
+  same again and again until something else changes the machine: a timer or
+  an interrupt. Whole passes are then charged at once, as HLT charges its
+  cycles, up to just before the next timer is due or the slice ends, with no
+  event pending: the time stamp counter, the timers and the interrupts come
+  out where the loop would have taken them. A pass that changes anything,
+  or none ending in time, gives up the anchor, and its address is left
+  alone for a while.*/
+typedef struct idle_state_t {
+    x86reg  regs[8];
+    uint16_t flags, eflags;
+    uint32_t flags_op, flags_res, flags_op1, flags_op2;
+    uint32_t pc;
+    x86seg  segs[6];
+    uint32_t c0, c3, c4;
+    uint8_t  tag[8];
+    int      TOP;
+    uint16_t npxs, npxc;
+    double   ST[8];
+    MMX_REG  MM[8];
+} idle_state_t;
+
+static __inline int cpu_events_due(void);
+static __inline int cpu_irq_sources(void);
+codeblock_t *idle_anchor;
+static idle_state_t idle_snap;
+static uint64_t     idle_snap_tsc;
+static int          idle_arrivals; /*arrivals at the anchor since the snapshot*/
+static int          idle_slice_start;
+static int          idle_slices_wait; /*slices to let go by after a watch that failed*/
+static int          idle_wait_next = 32; /*the next wait, doubled with each failure in a row*/
+static uint32_t     idle_start_pcs[8];   /*the blocks the last slices started on*/
+static int          idle_start_nr;
+static uint32_t     idle_backoff_pc[64];
+static uint64_t     idle_backoff_until[64];
+#    define IDLE_GIVE_UP   (1 << 16)  /*cycles with no pass ending*/
+#    define IDLE_BACK_OFF  (1ull << 25)
+
+static void
+idle_state_take(idle_state_t *st)
+{
+    memset(st, 0, sizeof(*st));
+    memcpy(st->regs, cpu_state.regs, sizeof(st->regs));
+    st->flags     = cpu_state.flags;
+    st->eflags    = cpu_state.eflags;
+    st->flags_op  = cpu_state.flags_op;
+    st->flags_res = cpu_state.flags_res;
+    st->flags_op1 = cpu_state.flags_op1;
+    st->flags_op2 = cpu_state.flags_op2;
+    st->pc        = cpu_state.pc;
+    st->segs[0]   = cpu_state.seg_cs;
+    st->segs[1]   = cpu_state.seg_ds;
+    st->segs[2]   = cpu_state.seg_es;
+    st->segs[3]   = cpu_state.seg_ss;
+    st->segs[4]   = cpu_state.seg_fs;
+    st->segs[5]   = cpu_state.seg_gs;
+    st->c0        = cr0;
+    st->c3        = cr3;
+    st->c4        = cr4;
+    memcpy(st->tag, cpu_state.tag, sizeof(st->tag));
+    st->TOP       = cpu_state.TOP;
+    st->npxs      = cpu_state.npxs;
+    st->npxc      = cpu_state.npxc;
+    memcpy(st->ST, cpu_state.ST, sizeof(st->ST));
+    memcpy(st->MM, cpu_state.MM, sizeof(st->MM));
+}
+
+static void
+idle_disarm(int back_off)
+{
+    if (back_off == 1)
+        idle_slices_wait = 32;
+    if ((back_off == 2) && idle_anchor) {
+        const int h = (idle_anchor->pc ^ (idle_anchor->pc >> 6)) & 63;
+
+        idle_backoff_pc[h]    = idle_anchor->pc;
+        idle_backoff_until[h] = tsc + IDLE_BACK_OFF;
+        idle_slices_wait      = idle_wait_next;
+        if (idle_wait_next < 4096)
+            idle_wait_next <<= 1;
+    }
+    idle_anchor    = NULL;
+    mem_idle_track = 0;
+}
+
+/*Every byte of RAM the pass wrote holds what it did when the pass began
+  (mem_idle_log): with the registers as they were, the machine is as it was*/
+static int
+idle_log_restored(void)
+{
+    for (int c = 0; c < mem_idle_log_nr; c++) {
+        uint32_t v = 0;
+
+        memcpy(&v, mem_idle_log[c].p, mem_idle_log[c].len);
+        if (v != mem_idle_log[c].old)
+            return 0;
+    }
+    return 1;
+}
+
+static int
+dynarec_idle_loop(codeblock_t *block)
+{
+    idle_state_t now;
+
+    if (!idle_anchor) {
+        int h;
+
+        if (!idle_slice_start)
+            return 0;
+        idle_slice_start = 0;
+        if (idle_slices_wait) {
+            idle_slices_wait--;
+            return 0;
+        }
+        /*A loop small enough to be idle starts the slices on a few blocks
+          over and over: one of the last eight*/
+        {
+            int seen = 0;
+
+            for (int c = 0; c < 8; c++)
+                seen |= (idle_start_pcs[c] == block->pc);
+            idle_start_pcs[idle_start_nr++ & 7] = block->pc;
+            if (!seen)
+                return 0;
+        }
+
+        h = (block->pc ^ (block->pc >> 6)) & 63;
+        if ((idle_backoff_pc[h] == block->pc) && (tsc < idle_backoff_until[h]))
+            return 0;
+        mem_idle_irq   = 0;
+        idle_anchor    = block;
+        mem_idle_track = 1;
+        flushmmucache_write();
+        codegen_link_block_changed(block);
+        idle_state_take(&idle_snap);
+        idle_snap_tsc   = tsc;
+        idle_arrivals   = 0;
+        mem_idle_dirty  = 0;
+        mem_idle_log_nr = 0;
+        return 0;
+    }
+    if (mem_idle_irq) {
+        /*An interrupt: the end of an idle stretch, not a busy loop*/
+        mem_idle_irq = 0;
+        idle_disarm(0);
+        return 0;
+    }
+    if (block != idle_anchor) {
+        if ((tsc - idle_snap_tsc) > IDLE_GIVE_UP) {
+            idle_disarm(2);
+        }
+        return 0;
+    }
+    /*Back with no time gone (a skip that stopped for an event): no pass yet*/
+    if (!mem_idle_dirty && (tsc == idle_snap_tsc))
+        return 0;
+    idle_state_take(&now);
+    if (mem_idle_dirty || (tsc < idle_snap_tsc)) {
+        idle_disarm(1);
+        return 0;
+    }
+    /*A loop may reach the anchor more than once round, with other
+      registers each time (two calls of one routine): a pass is the
+      stretch back to the state the snapshot holds, a few arrivals on*/
+    if (memcmp(&now, &idle_snap, sizeof(now)) || !idle_log_restored()) {
+        if (++idle_arrivals >= 8) {
+            idle_disarm(2);
+        }
+        return 0;
+    }
+    idle_arrivals   = 0;
+    mem_idle_log_nr = 0;
+    {
+        /*Pass after pass, timer after timer: the timers run where the
+          loop would have reached them, and while they change nothing the
+          passes go on being charged, to the end of the slice, or until a
+          timer leaves an event or an interrupt pending, even one IF is
+          clear for here: the loop may set it further round (Windows' sti,
+          nop, cli) and take it. The block then makes one more pass,
+          which changes nothing either: for an anchor that is a HLT, the C
+          loop sees it halted when it takes the interrupt, and returns past
+          it, as it would have*/
+        const uint64_t pass    = tsc - idle_snap_tsc;
+        int            skipped = 0;
+
+        mem_idle_dirty = 0;
+        while (!mem_idle_dirty) {
+            int64_t k;
+            int     to_timer = 0;
+
+            if (cpu_events_due() || cpu_irq_sources())
+                break;
+            k = ((int64_t) cycles - 1) / (int64_t) pass;
+            if (TIMER_VAL_LESS_THAN_VAL(tsc, timer_target)) {
+                const int64_t to = (int64_t) ((timer_target - tsc + pass - 1) / pass);
+
+                if (to <= k) {
+                    k        = to;
+                    to_timer = 1;
+                }
+            }
+            if (k <= 0)
+                break;
+            cycles -= (int32_t) (k * (int64_t) pass);
+            tsc += (uint64_t) k * pass;
+            skipped = 1;
+            if (!to_timer)
+                break;
+            /*A write by them is a change the passes did not make*/
+            mem_idle_timers = 1;
+            if (TIMER_VAL_LESS_THAN_VAL(timer_target, tsc))
+                timer_process();
+            mem_idle_timers = 0;
+            /* A timer reset the CPU: the loop is gone */
+            if (x86_was_reset)
+                break;
+        }
+        if (skipped)
+            idle_wait_next = 32;
+        /*The C loop counts what the passes moved tsc on by as already
+          counted (delta), and adds the next pass*/
+        idle_snap_tsc = tsc;
+        if (x86_was_reset)
+            idle_disarm(0);
+        return 0;
+    }
+}
+#endif
 
 /* dbg is the dispatch loop's constant: with the option on, the mark and
    compile passes clear RF before each instruction and after it unless the
@@ -760,12 +1169,20 @@ exec386_dynarec_dyn(const int dbg)
     int      hash      = HASH(phys_addr);
     codeblock_t *block = &codeblock[codeblock_hash[hash]];
     int valid_block = 0;
+#if defined(__GNUC__) || defined(__clang__)
+    /* A block not compiled yet runs from its list (codeblock_t::dec), in
+       another cache line than the lookup's fields: both are fetched at once */
+    __builtin_prefetch(&block->dec[0]);
+#endif
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
     /* Only a path that ends in compiled code sets it again. */
     codegen_link_slot_t *from = link_from;
 
     link_from = NULL;
 #    endif
+
+    /* A block run from here starts with no code written (codegen.c) */
+    cpu_state.code_written = 0;
 
     /* Code in device memory (a BIOS copying a routine into video memory) is
        fetched through the device's read handlers, and nothing tracks writes
@@ -781,9 +1198,10 @@ exec386_dynarec_dyn(const int dbg)
        still takes its key from cpu_cur_status. Stored only when the bits
        differ from npxc's PC and RC fields. ES flatness needs no refresh:
        every write to the ES base or limits sets NOTFLATES as it loads. */
-    uint16_t fpu_status = ((cpu_state.npxc & 0x300) ? 0 : CPU_STATUS_FPU_PC24) | ((cpu_state.npxc & 0xc00) ? CPU_STATUS_FPU_RC_NZ : 0);
-    if ((cpu_cur_status & (CPU_STATUS_FPU_PC24 | CPU_STATUS_FPU_RC_NZ)) != fpu_status)
-        cpu_cur_status = (cpu_cur_status & ~(CPU_STATUS_FPU_PC24 | CPU_STATUS_FPU_RC_NZ)) | fpu_status;
+    uint16_t fpu_status = ((cpu_state.npxc & 0x300) ? 0 : CPU_STATUS_FPU_PC24) | ((cpu_state.npxc & 0xc00) ? CPU_STATUS_FPU_RC_NZ : 0) |
+                          ((cr0 & (1 << 30)) ? CPU_STATUS_NOCACHE : 0);
+    if ((cpu_cur_status & (CPU_STATUS_FPU_PC24 | CPU_STATUS_FPU_RC_NZ | CPU_STATUS_NOCACHE)) != fpu_status)
+        cpu_cur_status = (cpu_cur_status & ~(CPU_STATUS_FPU_PC24 | CPU_STATUS_FPU_RC_NZ | CPU_STATUS_NOCACHE)) | fpu_status;
 
     if (!cpu_state.abrt)
     {
@@ -817,16 +1235,33 @@ exec386_dynarec_dyn(const int dbg)
             }
         }
 
+        /* A block not compiled yet, interpreted until it has run often enough
+           (codeblock_t::warm_left). None of the tests below is for code that
+           is interpreted: what they would find is found at its compile. */
+        if (valid_block && block->warm_left && !(block->flags & CODEBLOCK_WAS_RECOMPILED)) {
+            block->warm_left--;
+            block->used = 1;
+            if (UNLIKELY(cpu_debug_regs_486))
+                exec386_dynarec_int();
+            else
+                exec386_dynarec_int_dec(block);
+            return;
+        }
+
         /* A compiled block off the dirty list, on one page or byte-mask
            chunk (HAS_PAGE2 is set whenever page_mask2 is not 0 on such a
            block), with no dirty code bytes and, with a static TOP,
            compiled for this one, passes every test below without a side
            effect, the SMC cooldown's included: it can only interpret a
-           block that fails one of these. */
+           block that fails one of these. A block on a poly trampoline has
+           no page_mask, and is tested for its trampoline's miss; a family
+           block for an opcode its start found out of the family, and one
+           that gave up its fixed slots for its time to try them again. */
         if (valid_block &&
             ((((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST | CODEBLOCK_HAS_PAGE2)) ^ CODEBLOCK_WAS_RECOMPILED) |
               ((block->TOP ^ cpu_state.TOP) & ((block->flags & CODEBLOCK_STATIC_TOP) ? 7 : 0))) |
-             (block->page_mask & *block->dirty_mask))) {
+             (block->page_mask & *block->dirty_mask) | block->poly | block->family_miss |
+             (block->flags & CODEBLOCK_FAMILY_NOFIX))) {
             page_t *page = &pages[phys_addr >> 12];
 
             /* This block keeps getting its freshly-compiled code rewritten
@@ -836,15 +1271,42 @@ exec386_dynarec_dyn(const int dbg)
                instead until the cooldown lapses. The usual interpreter stopping
                conditions apply. Do not use cpu_end_block_after_ins as a length
                limit: it also inhibits pending maskable IRQs. */
+            /* A compiled block whose bytes were written swaps in a kept version
+               of the bytes now there if it has one (codegen_block_swap_version()),
+               written on either page: it runs on compiled then, cooling down or
+               not, as the swap costs no compile. */
+#        define SWAP_OK(block)                                                                                                                                         \
+            (((block)->flags & (CODEBLOCK_NO_IMMEDIATES | CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST)) == (CODEBLOCK_NO_IMMEDIATES | CODEBLOCK_WAS_RECOMPILED) && \
+             !(block)->family_miss && !(block)->poly && !((block)->page_mask2 && !(block)->dirty_mask2) &&                                                                                \
+             (((block)->page_mask & *(block)->dirty_mask) || ((block)->page_mask2 && ((block)->page_mask2 & *(block)->dirty_mask2))))
             if (valid_block && (block->smc_cooldown_until > tsc) &&
                 (((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST)) != CODEBLOCK_WAS_RECOMPILED) ||
                  (block->page_mask & *block->dirty_mask) ||
-                 (block->page_mask2 && (block->page_mask2 & *block->dirty_mask2)))) {
+                 (block->page_mask2 && (block->page_mask2 & *block->dirty_mask2))) &&
+                !(SWAP_OK(block) && codegen_block_swap_version(block, page, phys_addr))) {
                 exec386_dynarec_int();
                 return;
             }
 
-            if (valid_block && (block->page_mask & *block->dirty_mask)) {
+            /* A block that gave up its fixed family slots (CODEBLOCK_FAMILY_NOFIX)
+               long ago tries them again: the code there may be rewritten less
+               often now */
+            if (valid_block && (block->flags & CODEBLOCK_FAMILY_NOFIX) && ((tsc - block->family_miss_tsc) > (1ull << 24))) {
+                block->flags &= ~CODEBLOCK_FAMILY_NOFIX;
+                codegen_family_nofix_block = block;
+                block->family_miss         = 1;
+            }
+            /* Its start found an opcode out of the family (CODEBLOCK_ALU_FAMILY) */
+            if (valid_block && block->family_miss)
+                codegen_alu_family_miss(block);
+#        ifdef CODEGEN_BACKEND_HAS_POLY
+            /* None of its versions matched the chunk as its trampoline ran */
+            if (valid_block && block->poly && codegen_poly[block->poly - 1].miss)
+                codegen_poly_drop(block);
+#        endif
+            if (valid_block && SWAP_OK(block) && codegen_block_swap_version(block, page, phys_addr)) {
+                /* Swapped in place for a kept version of the bytes now there */
+            } else if (valid_block && (block->page_mask & *block->dirty_mask)) {
                 codegen_check_flush(page, page->dirty_mask, phys_addr);
 #        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
                 /* Covers the flag write just below. */
@@ -864,7 +1326,7 @@ exec386_dynarec_dyn(const int dbg)
                    allow the first page to be interpreted and for
                    the page fault to occur when the page boundary
                    is actually crossed.*/
-                uint32_t phys_addr_2 = get_phys_noabrt(block->pc + ((block->flags & CODEBLOCK_BYTE_MASK) ? 0x40 : 0x400));
+                uint32_t phys_addr_2 = get_phys_noabrt((block->flags & CODEBLOCK_BYTE_MASK) ? (block->pc + 0x40) : block->pc_2);
                 page_t *page_2 = &pages[phys_addr_2 >> 12];
 
                 if ((block->phys_2 ^ phys_addr_2) & ~0xfff)
@@ -884,7 +1346,11 @@ exec386_dynarec_dyn(const int dbg)
             }
             if (valid_block && (block->flags & CODEBLOCK_IN_DIRTY_LIST)) {
                 block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
-                if (block->flags & CODEBLOCK_BYTE_MASK)
+                if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
+#        ifdef CODEGEN_BACKEND_HAS_ALU_FAMILY
+                    block->flags |= CODEBLOCK_ALU_FAMILY;
+#        endif
+                } else if (block->flags & CODEBLOCK_BYTE_MASK)
                     block->flags |= CODEBLOCK_NO_IMMEDIATES;
                 else
                     block->flags |= CODEBLOCK_BYTE_MASK;
@@ -907,19 +1373,61 @@ exec386_dynarec_dyn(const int dbg)
             if (valid_block && (block->flags & CODEBLOCK_IN_DIRTY_LIST) && (block->flags & CODEBLOCK_NO_IMMEDIATES))
                 codegen_block_restore_version(block);
         }
+        /* A byte-mask block left alone for long enough is compiled again
+           as an ordinary block (codeblock_t::compiled_tsc). One whose bytes
+           changed in that time is still being rewritten: it waits another
+           while (codeblock_t::smc_sum). */
+        if (valid_block && ((block->flags & (CODEBLOCK_BYTE_MASK | CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST)) == (CODEBLOCK_BYTE_MASK | CODEBLOCK_WAS_RECOMPILED)) &&
+            ((tsc - block->compiled_tsc) > SMC_BYTE_MASK_DECAY)) {
+            const uint32_t sum = codegen_block_chunk_sum(block);
+
+            if (sum != block->smc_sum) {
+                block->smc_sum      = sum;
+                block->compiled_tsc = tsc;
+            }
+        }
+        if (valid_block && ((block->flags & (CODEBLOCK_BYTE_MASK | CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST)) == (CODEBLOCK_BYTE_MASK | CODEBLOCK_WAS_RECOMPILED)) &&
+            ((tsc - block->compiled_tsc) > SMC_BYTE_MASK_DECAY)) {
+            page_t *page = &pages[phys_addr >> 12];
+
+            block->flags &= ~(CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_BYTE_MASK | CODEBLOCK_NO_IMMEDIATES | CODEBLOCK_ALU_FAMILY | CODEBLOCK_ALU_FAMILY_C | CODEBLOCK_FAMILY_RETIME | CODEBLOCK_FAMILY_NOFIX);
+            block->dirty_mask  = &page->dirty_mask;
+            block->dirty_mask2 = NULL;
+#        ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+            codegen_link_block_changed(block);
+#        endif
+        }
     }
 
     if (valid_block && (block->flags & CODEBLOCK_WAS_RECOMPILED))
     {
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+#        ifndef CODEGEN_BACKEND_HAS_ENTER_ROUT
         codegen_link_slot_t *(*code)(void) = (void *) &block->data[BLOCK_START];
+#        endif
         /* Only codegen_init() and codegen_reset() change it. */
         const int link = codegen_block_link;
 
+#        if defined(__aarch64__) || defined(_M_ARM64)
+        if (link) {
+            /* A reset the slice's timer run raised before the lookup is done
+               with: the block found is the one at the reset vector */
+            x86_was_reset = 0;
+            (void) dynarec_idle_loop(block);
+            /* The timers the skipped passes ran reset the CPU (the keyboard
+               controller's reset pulse): the block is not run, as its exit
+               would store its next pc over the reset vector's, and the next
+               lookup is at the reset vector. A hard reset has freed it. */
+            if (x86_was_reset) {
+                link_from = NULL;
+                return;
+            }
+        }
+#        endif
         /* from may predate the reset that turned linking off. */
         if ((from != NULL) && link)
             codegen_link_patch(from, block, phys_addr);
-#    else
+#    elif !defined(CODEGEN_BACKEND_HAS_ENTER_ROUT)
         void (*code)(void) = (void *) &block->data[BLOCK_START];
 #    endif
 
@@ -930,12 +1438,20 @@ exec386_dynarec_dyn(const int dbg)
            (RDTSC, RDMSR, OUT) must see only a reset raised by this one. */
         x86_was_reset = 0;
         inrecomp = 1;
-#    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+#    if defined(CODEGEN_BACKEND_HAS_BLOCK_LINK) && defined(CODEGEN_BACKEND_HAS_ENTER_ROUT)
+        /* A block compiled without links returns nothing. */
+        if (link)
+            link_from = codegen_enter_block(&block->data[BLOCK_START]);
+        else
+            codegen_enter_block(&block->data[BLOCK_START]);
+#    elif defined(CODEGEN_BACKEND_HAS_BLOCK_LINK)
         /* A block compiled without links returns nothing. */
         if (link)
             link_from = code();
         else
             code();
+#    elif defined(CODEGEN_BACKEND_HAS_ENTER_ROUT)
+        codegen_enter_block(&block->data[BLOCK_START]);
 #    else
         code();
 #    endif
@@ -973,8 +1489,13 @@ exec386_dynarec_dyn(const int dbg)
         codegen_record_faulted = 0;
         codegen_block_start_recompile(block);
         codegen_in_recompile = 1;
+        const uint32_t record_stop_at = (record_stop[RECORD_STOP_HASH(start_pc)].start == start_pc) ?
+                                        record_stop[RECORD_STOP_HASH(start_pc)].stop : 0;
 
         while (!cpu_block_end) {
+            /* Not into the instruction that faulted the last recording. */
+            if (record_stop_at && block->ins && ((cs + cpu_state.pc) == record_stop_at))
+                break;
             oldcs  = CS;
             oldcpl = CPL;
             cpu_state.oldpc = cpu_state.pc;
@@ -1005,7 +1526,12 @@ exec386_dynarec_dyn(const int dbg)
 
                 if (dbg)
                     cpu_state.eflags &= ~(RF_FLAG);
-                x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
+                {
+                    const int op_cycles_before = cpu_op_cycles;
+
+                    x86_opcodes[(opcode | cpu_state.op32) & 0x3ff](fetchdat);
+                    codegen_nocache_ins_cycles(cpu_op_cycles - op_cycles_before);
+                }
 
                 if (x86_was_reset)
                     break;
@@ -1021,8 +1547,22 @@ exec386_dynarec_dyn(const int dbg)
                    will prevent any block from spanning more than
                    2 pages. In practice this limit will never be
                    hit, as host block size is only 2kB*/
+            /* The callee of a CALL followed out of reach has had its count
+               (codegen_call_budget_out()) */
+            if (codegen_call_budget_out())
+                CPU_BLOCK_END();
+#    ifdef CODEGEN_BACKEND_HAS_FAR_PAGE2
+            /* The next instruction must be on one of the block's two pages
+               (an ordinary block's second one any page it reached). */
+            if (block->flags & CODEBLOCK_BYTE_MASK) {
+                if ((((cs + cpu_state.pc) - start_pc) >= max_block_size) && !codegen_family_beyond_ok(block, cs + cpu_state.pc))
+                    CPU_BLOCK_END();
+            } else if (!codegen_record_page_ok(cs + cpu_state.pc, 1))
+                CPU_BLOCK_END();
+#    else
             if (((cs + cpu_state.pc) - start_pc) >= max_block_size)
                 CPU_BLOCK_END();
+#    endif
 
             if (cpu_init)
                 CPU_BLOCK_END();
@@ -1050,6 +1590,14 @@ exec386_dynarec_dyn(const int dbg)
             /* Cut short by an exception delivered as it was recorded: the
                block would keep only the instructions before it for good.
                Not kept; it is recorded afresh next time. */
+            if (codegen_record_faulted || (cpu_state.abrt && !(cpu_state.abrt & ABRT_EXPECTED))) {
+                const uint32_t fault_pc = cs + cpu_state.oldpc;
+
+                if (fault_pc != start_pc) {
+                    record_stop[RECORD_STOP_HASH(start_pc)].start = start_pc;
+                    record_stop[RECORD_STOP_HASH(start_pc)].stop  = fault_pc;
+                }
+            }
             if (codegen_record_faulted) {
                 codegen_record_faulted = 0;
                 codegen_block_remove();
@@ -1070,6 +1618,23 @@ exec386_dynarec_dyn(const int dbg)
                 if (!record_discarded && !(cpu_state.abrt & ABRT_EXPECTED))
                     codegen_block_remove();
                 CPU_BLOCK_END();
+            }
+
+            /* An instruction compiled without its flags, all of them written
+               over by one still to come (codegen_flags_dead()), ends no block
+               before that one is in it: an interrupt or the next block would
+               find them not worked out. An end that cannot wait discards a
+               block that would be kept; it is recorded afresh. */
+            if (cpu_block_end && (block->ins < codegen_flags_debt_ins)) {
+                const int kept = (!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset && !record_discarded &&
+                                 !cpu_fetch_device;
+
+                if (kept && !cpu_state.abrt && !cpu_init && (codegen_reg_versions_left() > 0) && ((block->ins + 1) < MAX_INSTRUCTION_COUNT))
+                    cpu_block_end = 0;
+                else if (kept) {
+                    codegen_block_remove();
+                    record_discarded = 1;
+                }
             }
         }
 
@@ -1104,6 +1669,11 @@ exec386_dynarec_dyn(const int dbg)
 
         codegen_record_faulted = 0;
         codegen_block_init(phys_addr);
+        /* Its instructions as they run, for its interpreted runs
+           (codeblock_t::dec), until one goes elsewhere */
+        codeblock_t *mark_block = &codeblock[block_current];
+        int          dec_on     = 1;
+        uint32_t     mark_ins   = 0;
 
         while (!cpu_block_end) {
             oldcs  = CS;
@@ -1127,6 +1697,9 @@ exec386_dynarec_dyn(const int dbg)
 #    endif
 
             if (!cpu_state.abrt) {
+                const uint32_t ins_pc = cpu_state.pc;
+                const uint8_t  ins_op = fetchdat & 0xff;
+
                 /* Temp variables for FPU exception reporting. */
                 cpu_state.temp_CS = CS;
                 cpu_state.temp_cs = cs;
@@ -1143,6 +1716,18 @@ exec386_dynarec_dyn(const int dbg)
 
                 if (x86_was_reset)
                     break;
+
+                mark_ins++;
+                if (dec_on && (mark_block->dec_n < CODEBLOCK_DEC_NR)) {
+                    /* Its length, or 0 where it went elsewhere: the last */
+                    uint32_t len = cpu_state.pc - ins_pc;
+
+                    if (cpu_state.abrt || ((len - 1) >= 15)) {
+                        len    = 0;
+                        dec_on = 0;
+                    }
+                    mark_block->dec[mark_block->dec_n++] = ins_op | (len << 8);
+                }
             }
 
             if (dbg && !cpu_state.abrt) {
@@ -1212,8 +1797,12 @@ exec386_dynarec_dyn(const int dbg)
         if (new_ne && (!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !x86_was_reset && !cpu_fetch_device && !record_discarded)
             codegen_block_remove();
         else if ((!cpu_state.abrt || (cpu_state.abrt & ABRT_EXPECTED)) && !new_ne && !x86_was_reset && !record_discarded &&
-                 !cpu_fetch_device)
+                 !cpu_fetch_device) {
             codegen_block_end();
+            /* A long block, fewer interpreted runs (CODEGEN_WARM_INSNS) */
+            if (mark_ins && (mark_block->warm_left > (CODEGEN_WARM_INSNS / mark_ins)))
+                mark_block->warm_left = CODEGEN_WARM_INSNS / mark_ins;
+        }
 
         if (x86_was_reset)
             codegen_reset();
@@ -1297,7 +1886,7 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
     uint64_t oldtsc;
     uint64_t delta;
 
-    int32_t cyc_period = cycs / (force_10ms ? 2000 : 200); /*5us*/
+    int32_t cyc_period = cycs / (force_10ms ? 200 : 20); /*50us*/
 
     cycles_main += cycs;
     while (cycles_main > 0) {
@@ -1305,6 +1894,9 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
 
         cycles += cyc_period;
         cycles_start = cycles;
+#    if defined(USE_DYNAREC) && defined(CODEGEN_BACKEND_HAS_BLOCK_LINK) && (defined(__aarch64__) || defined(_M_ARM64))
+        idle_slice_start = 1;
+#    endif
 
         while (cycles > 0) {
             /* STPCLK# held (C2/C3), no instruction runs. */
@@ -1323,6 +1915,17 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
             cycles_old       = cycles;
             oldtsc           = tsc;
             tsc_old          = tsc;
+#    if defined(CODEGEN_BACKEND_HAS_BLOCK_LINK) && (defined(__aarch64__) || defined(_M_ARM64))
+            codegen_link_cycles_min = INT32_MAX;
+            /*The loop ran timers after its event check, which may have raised
+              an interrupt: the link routine checks the events again before
+              it goes on to another block, as the loop would after this one*/
+            cpu_state.link_c_ran = 1;
+#    endif
+            /* A page whose code was written over goes back to direct writes
+               without waiting for the blocks to run out */
+            if (purgable_page_list_head && ((tsc - codegen_purge_tsc) >= CODEGEN_PURGE_INTERVAL))
+                codegen_purge_stale_page();
             if (cpu_force_interpreter || cpu_override_dynarec || cpu_flush_pending || (!CACHE_ON_DBG(dbg))) /*Interpret block*/
             {
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK

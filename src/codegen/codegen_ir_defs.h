@@ -60,7 +60,13 @@
 #define UOP_STORE_P_IMM           (UOP_TYPE_PARAMS_IMM | 0x12)
 #define UOP_STORE_P_IMM_8         (UOP_TYPE_PARAMS_IMM | 0x13)
 /*UOP_LOAD_SEG - load segment in src_reg_a to segment p via loadseg(), check return value and exit block if non-zero*/
-#define UOP_LOAD_SEG (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_POINTER | 0x14 | UOP_TYPE_BARRIER)
+#if defined(__aarch64__) || defined(_M_ARM64)
+/*loadseg() changes no register but the segment's: the others stay in the host
+  registers, which it preserves (codegen_reg_drop_seg() after it)*/
+#    define UOP_LOAD_SEG (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_POINTER | 0x14 | UOP_TYPE_ORDER_BARRIER)
+#else
+#    define UOP_LOAD_SEG (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_POINTER | 0x14 | UOP_TYPE_BARRIER)
+#endif
 /*UOP_JMP - jump to ptr*/
 #define UOP_JMP (UOP_TYPE_PARAMS_POINTER | 0x15 | UOP_TYPE_ORDER_BARRIER)
 /*UOP_CALL_FUNC - call instruction handler at p, dest_reg = return value*/
@@ -443,7 +449,32 @@
   UOP_FCOM_SIGNED_ZERO*/
 #define UOP_FCOM_CHKCOP (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | 0xd4)
 
-#define UOP_MAX     0xd7
+/*UOP_ALU_FAMILY - dest_reg = src_reg_a op src_reg_b, op being ADD, OR, AND, SUB,
+  XOR or CMP's subtraction as the opcode in src_reg_c (05, 0d, 25, 2d, 35 or
+  3d) is*/
+#define UOP_ALU_FAMILY (UOP_TYPE_PARAMS_REGS | 0xd7)
+/*UOP_ALU_FAMILY_FLAGS_OP - dest_reg = the flags op of the UOP_ALU_FAMILY opcode in src_reg_a*/
+#define UOP_ALU_FAMILY_FLAGS_OP (UOP_TYPE_PARAMS_REGS | 0xd8)
+
+/*UOP_ALU_FAMILY_KEEP - dest_reg = src_reg_a if the opcode in src_reg_c is CMP's, else src_reg_b*/
+#define UOP_ALU_FAMILY_KEEP (UOP_TYPE_PARAMS_REGS | 0xd9)
+/*UOP_ALU_FAMILY_C - as UOP_ALU_FAMILY, ADC and SBB taking the carry in from
+  cpu_state.alu_family_cf, and leaving the op's carry out there*/
+#define UOP_ALU_FAMILY_C (UOP_TYPE_PARAMS_REGS | 0xda)
+/*UOP_ALU_FAMILY_CF_STORE - cpu_state.alu_family_cf = src_reg_a*/
+#define UOP_ALU_FAMILY_CF_STORE (UOP_TYPE_PARAMS_REGS | 0xdb)
+/*UOP_ALU_FAMILY_FIXED - dest_reg = src_reg_a op src_reg_b, op being the one
+  family slot imm_data held when compiled (ADD, OR, AND, SUB or XOR), its
+  instruction rewritten in place when the slot's opcode becomes another of
+  those five (codegen_family_fix())*/
+#define UOP_ALU_FAMILY_FIXED (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_IMM | 0xdc)
+/*UOP_FETCH_WALK - dynarec_fetch_walk(imm_data) with paging on, leaving the
+  block on its #PF; with paging off nothing (arm64). Not a barrier: the
+  walk reads and sets page table entries in RAM only, and the registers the
+  allocator keeps guest state in are kept across a C call*/
+#define UOP_FETCH_WALK (UOP_TYPE_PARAMS_IMM | 0xdd | UOP_TYPE_ORDER_BARRIER)
+
+#define UOP_MAX     0xde
 
 #define UOP_INVALID 0xff
 
@@ -487,9 +518,20 @@ typedef struct uop_t {
     ir_host_reg_t src_reg_a_real, src_reg_b_real, src_reg_c_real;
     int           is_a16;
     int           jump_dest_uop;
+    /*A jump's link in the list of the jumps to its destination, which that
+      uop heads with jump_list_head: separate, as a uop can be a jump and the
+      destination of others at once*/
     int           jump_list_next;
+    int           jump_list_head;
     void         *jump_dest;
     uint32_t      pc;
+    /*The writes of pc and oldpc to constants (CODEGEN_META_EV_*) made just
+      before this uop, kept out of the IR (CODEGEN_META_PC), and the
+      constants: after the join for a uop jumped to, as a MOV_IMM there would
+      have been*/
+    uint8_t       meta_ev;
+    uint32_t      meta_pc;
+    uint32_t      meta_oldpc;
 } uop_t;
 
 #define UOP_NR_MAX 4096
@@ -573,8 +615,18 @@ uop_alloc(ir_data_t *ir, uint32_t uop_type)
 
     uop->pc = cpu_state.oldpc;
 
+#ifdef CODEGEN_META_PC
+    uop->meta_ev = codegen_meta_ev;
+    if (codegen_meta_ev) {
+        uop->meta_pc    = codegen_meta_pc;
+        uop->meta_oldpc = codegen_meta_oldpc;
+        codegen_meta_ev = 0;
+    }
+#endif
+
     uop->jump_dest_uop  = -1;
     uop->jump_list_next = -1;
+    uop->jump_list_head = -1;
 
     if (uop_type & UOP_TYPE_IR_ORDER)
         dirty_ir_regs[0] = dirty_ir_regs[1] = ~0ULL;
@@ -600,9 +652,12 @@ uop_alloc_unroll(ir_data_t *ir, uint32_t uop_type)
     uop->src_reg_c  = invalid_ir_reg;
 
     uop->pc = cpu_state.oldpc;
+    /*duplicate_uop() copies the original's*/
+    uop->meta_ev = 0;
 
     uop->jump_dest_uop  = -1;
     uop->jump_list_next = -1;
+    uop->jump_list_head = -1;
 
     if (uop_type & UOP_TYPE_IR_ORDER)
         codegen_reg_mark_as_required();
@@ -610,11 +665,29 @@ uop_alloc_unroll(ir_data_t *ir, uint32_t uop_type)
     return uop;
 }
 
+#ifdef CODEGEN_META_PC
+/*A uop that does nothing (UOP_INVALID), there to carry the constant writes
+  of pc and oldpc not on a uop yet: for a join after them, which they must
+  come before, and for the block's end*/
+static inline void
+uop_meta_carrier(ir_data_t *ir)
+{
+    uop_t *uop = uop_alloc(ir, UOP_INVALID);
+
+    uop->type = UOP_INVALID;
+}
+#endif
+
 static inline void
 uop_set_jump_dest(ir_data_t *ir, int jump_uop)
 {
     uop_t *uop = &ir->uops[jump_uop];
 
+#ifdef CODEGEN_META_PC
+    /*Written on the way that falls through to the join only*/
+    if (codegen_meta_ev)
+        uop_meta_carrier(ir);
+#endif
     uop->jump_dest_uop = ir->wr_pos;
 }
 
@@ -825,6 +898,63 @@ uop_gen_reg_src3_imm(uint32_t uop_type, ir_data_t *ir, int src_reg_a, int src_re
 
     return ir->wr_pos - 1;
 }
+
+#if defined __aarch64__ || defined _M_ARM64
+extern int codegen_flat_ds;
+extern int codegen_flat_ss;
+extern int codegen_flat_es;
+
+/*A segment whose base is 0 here (flat, as CHECK_SEG_LIMITS takes it): its
+  base is not read, and an access through it has no seg_reg (src_reg_a
+  invalid), the address being the linear one*/
+static inline int
+uop_mem_seg_flat(int seg_reg)
+{
+    return ((seg_reg == IREG_DS_base) && codegen_flat_ds && !(cpu_cur_status & CPU_STATUS_NOTFLATDS)) ||
+           ((seg_reg == IREG_SS_base) && codegen_flat_ss && !(cpu_cur_status & CPU_STATUS_NOTFLATSS)) ||
+           ((seg_reg == IREG_ES_base) && codegen_flat_es && !(cpu_cur_status & CPU_STATUS_NOTFLATES));
+}
+
+static inline void
+uop_gen_mem_load(ir_data_t *ir, int dest_reg, int seg_reg, int addr_reg, uint32_t imm)
+{
+    uop_t *uop;
+
+    if (!uop_mem_seg_flat(seg_reg) || (addr_reg == IREG_eaa16)) {
+        uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_REG, ir, dest_reg, seg_reg, addr_reg, imm);
+        return;
+    }
+    uop             = uop_alloc(ir, UOP_MEM_LOAD_REG);
+    uop->type       = UOP_MEM_LOAD_REG;
+    uop->is_a16     = 0;
+    uop->src_reg_a  = invalid_ir_reg;
+    uop->src_reg_b  = codegen_reg_read(addr_reg);
+    uop->dest_reg_a = codegen_reg_write(dest_reg, ir->wr_pos - 1);
+    uop->imm_data   = imm;
+}
+
+/*src_reg -1 for the stores of an immediate*/
+static inline void
+uop_gen_mem_store(uint32_t uop_type, ir_data_t *ir, int seg_reg, int addr_reg, int src_reg, uint32_t imm)
+{
+    uop_t *uop;
+
+    if (!uop_mem_seg_flat(seg_reg)) {
+        if (src_reg == -1)
+            uop_gen_reg_src2_imm(uop_type, ir, seg_reg, addr_reg, imm);
+        else
+            uop_gen_reg_src3_imm(uop_type, ir, seg_reg, addr_reg, src_reg, imm);
+        return;
+    }
+    uop            = uop_alloc(ir, uop_type);
+    uop->type      = uop_type;
+    uop->src_reg_a = invalid_ir_reg;
+    uop->src_reg_b = codegen_reg_read(addr_reg);
+    if (src_reg != -1)
+        uop->src_reg_c = codegen_reg_read(src_reg);
+    uop->imm_data  = imm;
+}
+#endif
 
 static inline int
 uop_gen_reg_dst_src3_imm(uint32_t uop_type, ir_data_t *ir, int dest_reg, int src_reg_a, int src_reg_b, int src_reg_c, uint32_t imm)
@@ -1158,22 +1288,79 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
 #define uop_LOAD_SEG(ir, p, src_reg)                                     uop_gen_reg_src_pointer(UOP_LOAD_SEG, ir, src_reg, p)
 
 #define uop_MEM_LOAD_ABS(ir, dst_reg, seg_reg, imm)                      uop_gen_reg_dst_src_imm(UOP_MEM_LOAD_ABS, ir, dst_reg, seg_reg, imm)
-#define uop_MEM_LOAD_REG(ir, dst_reg, seg_reg, addr_reg)                 uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_REG, ir, dst_reg, seg_reg, addr_reg, 0)
-#define uop_MEM_LOAD_REG_OFFSET(ir, dst_reg, seg_reg, addr_reg, offset)  uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_REG, ir, dst_reg, seg_reg, addr_reg, offset)
+#if defined __aarch64__ || defined _M_ARM64
+#    define uop_MEM_LOAD_REG(ir, dst_reg, seg_reg, addr_reg)                uop_gen_mem_load(ir, dst_reg, seg_reg, addr_reg, 0)
+#    define uop_MEM_LOAD_REG_OFFSET(ir, dst_reg, seg_reg, addr_reg, offset) uop_gen_mem_load(ir, dst_reg, seg_reg, addr_reg, offset)
+#else
+#    define uop_MEM_LOAD_REG(ir, dst_reg, seg_reg, addr_reg)                uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_REG, ir, dst_reg, seg_reg, addr_reg, 0)
+#    define uop_MEM_LOAD_REG_OFFSET(ir, dst_reg, seg_reg, addr_reg, offset) uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_REG, ir, dst_reg, seg_reg, addr_reg, offset)
+#endif
 #define uop_MEM_LOAD_REG_EA(ir, dst_reg, seg_reg, addr_reg)              uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_REG_EA, ir, dst_reg, seg_reg, addr_reg, 0)
 #define uop_MEM_LOAD_SINGLE(ir, dst_reg, seg_reg, addr_reg)              uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_SINGLE, ir, dst_reg, seg_reg, addr_reg, 0)
 #define uop_MEM_LOAD_DOUBLE(ir, dst_reg, seg_reg, addr_reg)              uop_gen_reg_dst_src2_imm(UOP_MEM_LOAD_DOUBLE, ir, dst_reg, seg_reg, addr_reg, 0)
 #define uop_MEM_STORE_ABS(ir, seg_reg, imm, src_reg)                     uop_gen_reg_src2_imm(UOP_MEM_STORE_ABS, ir, seg_reg, src_reg, imm)
-#define uop_MEM_STORE_REG(ir, seg_reg, addr_reg, src_reg)                uop_gen_reg_src3_imm(UOP_MEM_STORE_REG, ir, seg_reg, addr_reg, src_reg, 0)
-#define uop_MEM_STORE_REG_OFFSET(ir, seg_reg, addr_reg, offset, src_reg) uop_gen_reg_src3_imm(UOP_MEM_STORE_REG, ir, seg_reg, addr_reg, src_reg, offset)
-#define uop_MEM_STORE_IMM_8(ir, seg_reg, addr_reg, imm)                  uop_gen_reg_src2_imm(UOP_MEM_STORE_IMM_8, ir, seg_reg, addr_reg, imm)
-#define uop_MEM_STORE_IMM_16(ir, seg_reg, addr_reg, imm)                 uop_gen_reg_src2_imm(UOP_MEM_STORE_IMM_16, ir, seg_reg, addr_reg, imm)
-#define uop_MEM_STORE_IMM_32(ir, seg_reg, addr_reg, imm)                 uop_gen_reg_src2_imm(UOP_MEM_STORE_IMM_32, ir, seg_reg, addr_reg, imm)
+#if defined __aarch64__ || defined _M_ARM64
+#    define uop_MEM_STORE_REG(ir, seg_reg, addr_reg, src_reg)                uop_gen_mem_store(UOP_MEM_STORE_REG, ir, seg_reg, addr_reg, src_reg, 0)
+#    define uop_MEM_STORE_REG_OFFSET(ir, seg_reg, addr_reg, offset, src_reg) uop_gen_mem_store(UOP_MEM_STORE_REG, ir, seg_reg, addr_reg, src_reg, offset)
+#    define uop_MEM_STORE_IMM_8(ir, seg_reg, addr_reg, imm)                  uop_gen_mem_store(UOP_MEM_STORE_IMM_8, ir, seg_reg, addr_reg, -1, imm)
+#    define uop_MEM_STORE_IMM_16(ir, seg_reg, addr_reg, imm)                 uop_gen_mem_store(UOP_MEM_STORE_IMM_16, ir, seg_reg, addr_reg, -1, imm)
+#    define uop_MEM_STORE_IMM_32(ir, seg_reg, addr_reg, imm)                 uop_gen_mem_store(UOP_MEM_STORE_IMM_32, ir, seg_reg, addr_reg, -1, imm)
+#else
+#    define uop_MEM_STORE_REG(ir, seg_reg, addr_reg, src_reg)                uop_gen_reg_src3_imm(UOP_MEM_STORE_REG, ir, seg_reg, addr_reg, src_reg, 0)
+#    define uop_MEM_STORE_REG_OFFSET(ir, seg_reg, addr_reg, offset, src_reg) uop_gen_reg_src3_imm(UOP_MEM_STORE_REG, ir, seg_reg, addr_reg, src_reg, offset)
+#    define uop_MEM_STORE_IMM_8(ir, seg_reg, addr_reg, imm)                  uop_gen_reg_src2_imm(UOP_MEM_STORE_IMM_8, ir, seg_reg, addr_reg, imm)
+#    define uop_MEM_STORE_IMM_16(ir, seg_reg, addr_reg, imm)                 uop_gen_reg_src2_imm(UOP_MEM_STORE_IMM_16, ir, seg_reg, addr_reg, imm)
+#    define uop_MEM_STORE_IMM_32(ir, seg_reg, addr_reg, imm)                 uop_gen_reg_src2_imm(UOP_MEM_STORE_IMM_32, ir, seg_reg, addr_reg, imm)
+#endif
 #define uop_MEM_STORE_SINGLE(ir, seg_reg, addr_reg, src_reg)             uop_gen_reg_src3_imm(UOP_MEM_STORE_SINGLE, ir, seg_reg, addr_reg, src_reg, 0)
 #define uop_MEM_STORE_DOUBLE(ir, seg_reg, addr_reg, src_reg)             uop_gen_reg_src3_imm(UOP_MEM_STORE_DOUBLE, ir, seg_reg, addr_reg, src_reg, 0)
 
 #define uop_MOV(ir, dst_reg, src_reg)                                    uop_gen_reg_dst_src1(UOP_MOV, ir, dst_reg, src_reg)
-#define uop_MOV_IMM(ir, reg, imm)                                        uop_gen_reg_dst_imm(UOP_MOV_IMM, ir, reg, imm)
+#define uop_ALU_FAMILY(ir, dst_reg, src_reg_a, src_reg_b, op_reg)          uop_gen_reg_dst_src3(UOP_ALU_FAMILY, ir, dst_reg, src_reg_a, src_reg_b, op_reg)
+#define uop_ALU_FAMILY_FIXED(ir, dst_reg, src_reg_a, src_reg_b, slot)       uop_gen_reg_dst_src2_imm(UOP_ALU_FAMILY_FIXED, ir, dst_reg, src_reg_a, src_reg_b, slot)
+#define uop_ALU_FAMILY_FLAGS_OP(ir, dst_reg, op_reg)                       uop_gen_reg_dst_src1(UOP_ALU_FAMILY_FLAGS_OP, ir, dst_reg, op_reg)
+#define uop_ALU_FAMILY_KEEP(ir, dst_reg, src_reg_a, src_reg_b, op_reg)     uop_gen_reg_dst_src3(UOP_ALU_FAMILY_KEEP, ir, dst_reg, src_reg_a, src_reg_b, op_reg)
+#define uop_ALU_FAMILY_C(ir, dst_reg, src_reg_a, src_reg_b, op_reg)        uop_gen_reg_dst_src3(UOP_ALU_FAMILY_C, ir, dst_reg, src_reg_a, src_reg_b, op_reg)
+#define uop_ALU_FAMILY_CF_STORE(ir, cf_reg)                                uop_gen_reg_src1(UOP_ALU_FAMILY_CF_STORE, ir, cf_reg)
+
+#ifdef CODEGEN_META_PC
+/*A write left out of the IR counts the version it would have used, so the
+  block ends and its loops unroll as they would with the uop*/
+static inline void
+uop_meta_version(int ireg, int n)
+{
+    const int version = reg_last_version[ireg] + ++codegen_meta_versions[n];
+
+    if (version > REG_VERSION_MAX)
+        CPU_BLOCK_END();
+    if (version > max_version_refcount)
+        max_version_refcount = version;
+}
+#endif
+
+static inline void
+uop_mov_imm(ir_data_t *ir, int reg, uint32_t imm)
+{
+#ifdef CODEGEN_META_PC
+    /*It ends a uop's value: what was written is read no more*/
+    if (IREG_GET_REG(reg) == IREG_pc) {
+        codegen_meta_pc = imm;
+        codegen_meta_ev |= CODEGEN_META_EV_PC;
+        codegen_meta_ir &= ~CODEGEN_META_EV_PC;
+        uop_meta_version(IREG_pc, 0);
+        return;
+    }
+    if (IREG_GET_REG(reg) == IREG_oldpc) {
+        codegen_meta_oldpc = imm;
+        codegen_meta_ev |= CODEGEN_META_EV_OLDPC;
+        codegen_meta_ir &= ~CODEGEN_META_EV_OLDPC;
+        uop_meta_version(IREG_oldpc, 1);
+        return;
+    }
+#endif
+    uop_gen_reg_dst_imm(UOP_MOV_IMM, ir, reg, imm);
+}
+#define uop_MOV_IMM(ir, reg, imm)                                        uop_mov_imm(ir, reg, imm)
 #define uop_MOV_PTR(ir, reg, p)                                          uop_gen_reg_dst_pointer(UOP_MOV_PTR, ir, reg, p)
 #define uop_MOV_REG_PTR(ir, reg, p)                                      uop_gen_reg_dst_pointer(UOP_MOV_REG_PTR, ir, reg, p)
 #define uop_MOVZX_REG_PTR_8(ir, reg, p)                                  uop_gen_reg_dst_pointer(UOP_MOVZX_REG_PTR_8, ir, reg, p)
@@ -1185,6 +1372,7 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
 #define uop_MOV_INT_DOUBLE_64(ir, dst_reg, src_reg_d, src_reg_q, tag)    uop_gen_reg_dst_src3(UOP_MOV_INT_DOUBLE_64, ir, dst_reg, src_reg_d, src_reg_q, tag)
 
 #define uop_NOP_BARRIER(ir)                                              uop_gen(UOP_NOP_BARRIER, ir)
+#define uop_FETCH_WALK(ir, addr)                                         uop_gen_imm(UOP_FETCH_WALK, ir, addr)
 
 #define uop_PACKSSWB(ir, dst_reg, src_reg_a, src_reg_b)                  uop_gen_reg_dst_src2(UOP_PACKSSWB, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_PACKSSDW(ir, dst_reg, src_reg_a, src_reg_b)                  uop_gen_reg_dst_src2(UOP_PACKSSDW, ir, dst_reg, src_reg_a, src_reg_b)

@@ -1611,6 +1611,7 @@ build_link_routine(codeblock_t *block)
     rx_patch(used_set, rx_here());
     rx_rr(block, 0, 0, 0xff, 0, REG_RCX);                       /*INC ECX*/
     rx_rm(block, 0, 0, 0x88, REG_RCX, REG_RDI, LINK_BLOCK(used)); /*MOV block->used, CL*/
+    _Static_assert(SMC_THRASH_MIN_RUNS <= 8, "runs_left is shifted as a byte");
     rx_rm(block, 0, 0, 0xd0, 5, REG_RDI, LINK_BLOCK(runs_left)); /*SHR byte, 1*/
     rx_bytes(block, jmp_r15, 3);
 

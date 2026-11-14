@@ -482,38 +482,29 @@ MainWindow::MainWindow(QWidget *parent)
             keyboard_all_up();
     });
 
+    /* A guest switching video modes can show a frame or two at another size
+       on the way (a 399-line frame, an 80-pixel-wide one during POST), and
+       resizing the window for each of those, a few milliseconds apart, could
+       leave it bouncing between the two sizes against the Wayland compositor
+       (seen on sway) until the next mode change, several thousand times
+       before it ended. The window takes the size asked for last, at most
+       once per resize_settle_ms. */
+    resize_timer = new QTimer(this);
+    resize_timer->setSingleShot(true);
+    resize_timer->setInterval(resize_settle_ms);
+    connect(resize_timer, &QTimer::timeout, this, [this] {
+        applyResizeContents(resize_pending_w, resize_pending_h);
+    });
+    connect(this, &MainWindow::resizeContentsGuest, this, [this](int w, int h) {
+        resize_pending_w = w;
+        resize_pending_h = h;
+        if (!resize_timer->isActive())
+            resize_timer->start();
+    });
+    /* The UI's own resizes (status bar, tool bar, full screen, scaling) take
+       effect at once, as their callers expect */
     connect(this, &MainWindow::resizeContents, this, [this](int w, int h) {
-        if (shownonce) {
-            if (resizableonce == false)
-                ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
-            resizableonce = true;
-        }
-        if (!hide_status_bar) {
-            statusBar()->hide();
-            statusBar()->show();
-        }
-        if (!hide_tool_bar) {
-            ui->toolBar->hide();
-            ui->toolBar->show();
-        }
-        if (!QApplication::platformName().contains("eglfs") && vid_resize != 1) {
-            /* Without HiDPI scaling the size is in device pixels. The window may come out
-               a pixel larger than that, and the renderer then draws the picture without
-               stretching it to fill the extra pixel. */
-            if (!dpi_scale) {
-                const qreal dpr = util::screenOfWidget(this)->devicePixelRatio();
-                w = util::logicalSizeForPixels(w, dpr);
-                h = util::logicalSizeForPixels(h, dpr);
-            }
-
-            const int modifiedHeight = h
-                + menuBar()->height()
-                + (statusBar()->height() * !hide_status_bar)
-                + (ui->toolBar->height() * !hide_tool_bar);
-
-            ui->stackedWidget->resize(w, h);
-            setFixedSize(w, modifiedHeight);
-        }
+        applyResizeContents(w, h);
     });
 
     connect(this, &MainWindow::resizeContentsMonitor, this, [this](int w, int h, int monitor_index) {
@@ -1175,6 +1166,42 @@ MainWindow::updateMouseStrings()
         mouseStringCaptured = tr("Press %1 to release mouse").arg(seq);
 
     mouseStringUncaptured = tr("Click to capture mouse");
+}
+
+void
+MainWindow::applyResizeContents(int w, int h)
+{
+    if (shownonce) {
+        if (resizableonce == false)
+            ui->stackedWidget->setFixedSize(QWIDGETSIZE_MAX, QWIDGETSIZE_MAX);
+        resizableonce = true;
+    }
+    if (!hide_status_bar) {
+        statusBar()->hide();
+        statusBar()->show();
+    }
+    if (!hide_tool_bar) {
+        ui->toolBar->hide();
+        ui->toolBar->show();
+    }
+    if (!QApplication::platformName().contains("eglfs") && vid_resize != 1) {
+        /* Without HiDPI scaling the size is in device pixels. The window may come out
+           a pixel larger than that, and the renderer then draws the picture without
+           stretching it to fill the extra pixel. */
+        if (!dpi_scale) {
+            const qreal dpr = util::screenOfWidget(this)->devicePixelRatio();
+            w = util::logicalSizeForPixels(w, dpr);
+            h = util::logicalSizeForPixels(h, dpr);
+        }
+
+        const int modifiedHeight = h
+            + menuBar()->height()
+            + (statusBar()->height() * !hide_status_bar)
+            + (ui->toolBar->height() * !hide_tool_bar);
+
+        ui->stackedWidget->resize(w, h);
+        setFixedSize(w, modifiedHeight);
+    }
 }
 
 void

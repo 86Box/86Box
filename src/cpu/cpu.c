@@ -673,6 +673,9 @@ SF_FPU_reset(void)
     }
 }
 
+/* Cycles a store that changes code costs (cpu_set())*/
+int cpu_smc_penalty;
+
 void
 cpu_set(void)
 {
@@ -699,6 +702,35 @@ cpu_set(void)
 
     CPUID       = cpu_s->cpuid_model;
     is80c88     = (cpu_s->cpu_type == CPU_80C88);
+
+    /* Running code a store has just changed restarts the pipeline and
+       refills the instruction cache line: "about 19 clock cycles on the P1,
+       31 on the PMMX, and 150 - 300 on the PPro, P2, P3" (Agner Fog, How to
+       optimize for the Pentium family). The K6 refills and predecodes the
+       line again (AMD-K6 Code Optimization, 21828, Data Embedding); no
+       figure is published, so the PMMX's is taken. The others: none known */
+    switch (cpu_s->cpu_type) {
+        case CPU_PENTIUM:
+            cpu_smc_penalty = 19;
+            break;
+        case CPU_PENTIUMMMX:
+        case CPU_K6:
+        case CPU_K6_2:
+        case CPU_K6_2C:
+        case CPU_K6_3:
+        case CPU_K6_2P:
+        case CPU_K6_3P:
+            cpu_smc_penalty = 31;
+            break;
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            cpu_smc_penalty = 150;
+            break;
+        default:
+            cpu_smc_penalty = 0;
+            break;
+    }
     is8086      = (cpu_s->cpu_type > CPU_8088) && !is80c88 && (cpu_s->cpu_type != CPU_V20) && (cpu_s->cpu_type != CPU_188);
     is_mazovia  = (cpu_s->cpu_type == CPU_8086_MAZOVIA);
     is_nec      = (cpu_s->cpu_type == CPU_V20) || (cpu_s->cpu_type == CPU_V30);

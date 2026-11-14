@@ -150,6 +150,86 @@ ropFSTPd(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
     return op_pc + 1;
 }
 
+/*FLD m80 and FSTP m80: the address and the stack as for the others, the
+  80-bit form converted in C (x87_dyn_ld80(), x87_dyn_st80())*/
+extern uint32_t x87_dyn_ld80(uint32_t seg_nr);
+extern uint32_t x87_dyn_st80(uint32_t seg_nr);
+
+static int
+x87_dyn_seg_nr(const x86seg *seg)
+{
+    if (seg == &cpu_state.seg_es)
+        return 0;
+    if (seg == &cpu_state.seg_cs)
+        return 1;
+    if (seg == &cpu_state.seg_ss)
+        return 2;
+    if (seg == &cpu_state.seg_ds)
+        return 3;
+    if (seg == &cpu_state.seg_fs)
+        return 4;
+    return 5;
+}
+
+uint32_t
+ropFLDe(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    x86seg *target_seg;
+
+    uop_FP_ENTER(ir);
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    op_pc--;
+    target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+    codegen_fpu_guard_stack(ir, fetchdat, op_32, op_pc, target_seg, FPU_GUARD_PUSH);
+    codegen_check_seg_read(block, ir, target_seg);
+    CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 9);
+    uop_LOAD_FUNC_ARG_IMM(ir, 0, x87_dyn_seg_nr(target_seg));
+#if defined __aarch64__ || defined _M_ARM64
+    {
+        /*The backend's routine, which goes to x87_dyn_ld80() for what it
+          does not convert itself*/
+        extern void *codegen_fld80_rout;
+
+        uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_fld80_rout);
+    }
+#else
+    uop_CALL_FUNC_RESULT(ir, IREG_temp0, x87_dyn_ld80);
+#endif
+    uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout);
+    fpu_PUSH(block, ir);
+
+    return op_pc + 1;
+}
+uint32_t
+ropFSTPe(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
+{
+    x86seg *target_seg;
+
+    uop_FP_ENTER(ir);
+    uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
+    op_pc--;
+    target_seg = codegen_generate_ea(ir, op_ea_seg, fetchdat, op_ssegs, &op_pc, op_32, 0);
+    codegen_fpu_guard_empty(ir, fetchdat, op_32, op_pc, target_seg); /* an empty ST(0) */
+    codegen_check_seg_write(block, ir, target_seg);
+    CHECK_SEG_LIMITS(block, ir, target_seg, IREG_eaaddr, 9);
+    uop_LOAD_FUNC_ARG_IMM(ir, 0, x87_dyn_seg_nr(target_seg));
+#if defined __aarch64__ || defined _M_ARM64
+    {
+        extern void *codegen_fst80_rout;
+
+        uop_CALL_FUNC_RESULT(ir, IREG_temp0, codegen_fst80_rout);
+    }
+#else
+    uop_CALL_FUNC_RESULT(ir, IREG_temp0, x87_dyn_st80);
+#endif
+    uop_CMP_IMM_JZ(ir, IREG_temp0, 1, codegen_exit_rout);
+    uop_AND_IMM(ir, IREG_NPXS, IREG_NPXS, ~FPU_SW_C1); /*exact: no rounding to report*/
+    uop_MOV_IMM(ir, IREG_tag(0), TAG_EMPTY);
+    fpu_POP(block, ir);
+
+    return op_pc + 1;
+}
+
 uint32_t
 ropFILDw(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, uint32_t op_32, uint32_t op_pc)
 {

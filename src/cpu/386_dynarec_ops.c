@@ -182,15 +182,19 @@ dynarec_rf_after_op(void)
 /*The walk of a compiled block's second page where the interpreter's code
   fetch first reads from it (getpccache(): mmutranslate_read on every change
   of fetch page): the Accessed bits, and the #PF a page that is no longer
-  present raises, from oldpc. Nonzero then, which leaves the block*/
+  present raises, from oldpc. Nonzero then, which leaves the block. Made as
+  a TLB makes it, once for the page until the next flush
+  (mmutranslate_fetch()): a loop running on into a second page walked it on
+  every pass*/
 int
 dynarec_fetch_walk(uint32_t addr)
 {
     if (!(cr0 >> 31))
         return 0;
-    (void) mmutranslatereal(addr, 0);
+    if (cpu_state.abrt)
+        return 1;
 
-    return !!cpu_state.abrt;
+    return mmutranslate_fetch(addr);
 }
 
 /*The compiled SGDT, SIDT, LGDT and LIDT memory forms, the operand at
@@ -291,6 +295,14 @@ dynarec_call_far_l(uint16_t new_cs, uint32_t ret_pc)
 /*The compiled LMSW's register write, op0F01_common's: PE, MP, EM and TS
   load, PE cannot be cleared, and the status follows PE. cpu_cur_status is
   not in cpu_state, where the compiled code stores*/
+/*INVLPG, as the op: the fetch cache, then the entries of addr's page*/
+void
+dynarec_invlpg(uint32_t addr)
+{
+    flushmmucache_pc();
+    flushmmucache_invlpg(addr);
+}
+
 void
 dynarec_lmsw(uint16_t tempw)
 {
@@ -334,6 +346,7 @@ dynarec_mov_cr0(uint32_t rm)
     cr0 = val;
     if (cpu_16bitbus)
         cr0 |= 0x10;
+    cpu_cur_status = (cpu_cur_status & ~CPU_STATUS_NOCACHE) | ((cr0 & (1 << 30)) ? CPU_STATUS_NOCACHE : 0);
     if (hascache && !(cr0 & (1 << 30)))
         cpu_cache_int_enabled = 1;
     else
@@ -442,4 +455,75 @@ dynarec_mov_drx(uint32_t op)
     }
 
     return 0;
+}
+
+/* The memory part of FLD m80 and FSTP m80 as a block compiles them (ropFLDe,
+   ropFSTPe): eaaddr and the segment (0 ES, 1 CS, 2 SS, 3 DS, 4 FS, 5 GS) are
+   checked and the stack is guarded there, which also pushes or pops. The
+   load writes ST(-1) and its tag as x87_push() would; the store converts
+   ST(0). 1 on a fault. */
+static x86seg *const x87_dyn_segs[6] = { &cpu_state.seg_es, &cpu_state.seg_cs, &cpu_state.seg_ss,
+                                         &cpu_state.seg_ds, &cpu_state.seg_fs, &cpu_state.seg_gs };
+
+uint32_t
+x87_dyn_ld80(uint32_t seg_nr)
+{
+    const int r = (cpu_state.TOP - 1) & 7;
+    uint8_t   denormal;
+    uint64_t  signif;
+    double    t;
+    int       pushed;
+
+    cpu_state.ea_seg = x87_dyn_segs[seg_nr];
+    {
+        /* The ten bytes in one go when they are on one page the lookup maps:
+           what x87_ld80()'s three reads give, without a lookup each */
+        const uint32_t  lin = easeg + cpu_state.eaaddr;
+        const uintptr_t l   = readlookup2[lin >> 12];
+
+        if ((easeg != 0xffffffff) && (l != (uintptr_t) LOOKUP_INV) && ((lin & 0xfff) <= 0xff6) && !cpu_dr_armed) {
+            x87_conv_t test;
+
+            memcpy(&test.eind.ll, (const void *) (l + lin), 8);
+            memcpy(&test.begin, (const void *) (l + lin + 8), 2);
+            denormal = (!(test.begin & 0x7fff) && test.eind.ll) ? TAG_DENORMAL : 0;
+            signif   = test.eind.ll;
+            t        = x87_from80(&test);
+        } else {
+            t = x87_ld80(&denormal, &signif);
+            if (cpu_state.abrt)
+                return 1;
+        }
+    }
+    pushed           = X87_STACK_FAULTS && X87_ST_EMPTY(-1);
+    cpu_state.ST[r]  = t;
+    cpu_state.tag[r] = TAG_VALID;
+    if (pushed && denormal) {
+        cpu_state.tag[r] |= denormal;
+        cpu_state.MM[r].q = signif;
+    }
+    return 0;
+}
+
+uint32_t
+x87_dyn_st80(uint32_t seg_nr)
+{
+    cpu_state.ea_seg = x87_dyn_segs[seg_nr];
+    {
+        /* In one go to a page the write lookup maps (never one with code,
+           whose writes are tracked), as x87_st80()'s three writes */
+        const uint32_t  lin = easeg + cpu_state.eaaddr;
+        const uintptr_t l   = writelookup2[lin >> 12];
+
+        if ((easeg != 0xffffffff) && (l != (uintptr_t) LOOKUP_INV) && ((lin & 0xfff) <= 0xff6) && !cpu_dr_armed) {
+            x87_conv_t test;
+
+            x87_to80(ST(0), &test);
+            memcpy((void *) (l + lin), &test.eind.ll, 8);
+            memcpy((void *) (l + lin + 8), &test.begin, 2);
+            return 0;
+        }
+    }
+    x87_st80(ST(0));
+    return cpu_state.abrt ? 1 : 0;
 }

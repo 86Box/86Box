@@ -54,6 +54,12 @@ ropAND_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
 uint32_t
 ropAND_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
+    if (block->flags & CODEBLOCK_ALU_FAMILY) {
+        uint32_t next = codegen_alu_family_eax_imm(block, ir, op_pc);
+
+        if (next)
+            return next;
+    }
     if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
         LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp0, cs + op_pc);
         uop_AND(ir, IREG_EAX, IREG_EAX, IREG_temp0);
@@ -280,6 +286,12 @@ ropOR_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(u
 uint32_t
 ropOR_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
+    if (block->flags & CODEBLOCK_ALU_FAMILY) {
+        uint32_t next = codegen_alu_family_eax_imm(block, ir, op_pc);
+
+        if (next)
+            return next;
+    }
     if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
         LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp0, cs + op_pc);
         uop_OR(ir, IREG_EAX, IREG_EAX, IREG_temp0);
@@ -293,7 +305,6 @@ ropOR_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_
     uop_MOV(ir, IREG_flags_res, IREG_EAX);
 
     codegen_flags_changed = 1;
-    codegen_mark_code_present(block, cs + op_pc, 4);
     return op_pc + 4;
 }
 uint32_t
@@ -641,6 +652,12 @@ ropXOR_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
 uint32_t
 ropXOR_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
+    if (block->flags & CODEBLOCK_ALU_FAMILY) {
+        uint32_t next = codegen_alu_family_eax_imm(block, ir, op_pc);
+
+        if (next)
+            return next;
+    }
     if (block->flags & CODEBLOCK_NO_IMMEDIATES) {
         LOAD_IMMEDIATE_FROM_RAM_32(block, ir, IREG_temp0, cs + op_pc);
         uop_XOR(ir, IREG_EAX, IREG_EAX, IREG_temp0);
@@ -654,7 +671,6 @@ ropXOR_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32
     uop_MOV(ir, IREG_flags_res, IREG_EAX);
 
     codegen_flags_changed = 1;
-    codegen_mark_code_present(block, cs + op_pc, 4);
     return op_pc + 4;
 }
 uint32_t

@@ -20,7 +20,9 @@
 static inline void
 get_cf(ir_data_t *ir, int dest_reg)
 {
-    if (!codegen_flags_cf_known(ir, dest_reg))
+    /*The flag read for ADD32, SUB and ZN first, then the known-flags uops
+      for ADD8 and ADD16*/
+    if (!codegen_flags_cf_known(ir, dest_reg) && !codegen_cf_known(ir, dest_reg))
         uop_CALL_FUNC_RESULT_ORDERED(ir, dest_reg, jit_CF_SET);
 }
 
@@ -73,6 +75,12 @@ ropADC_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
 uint32_t
 ropADC_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
+    if (block->flags & CODEBLOCK_ALU_FAMILY) {
+        uint32_t next = codegen_alu_family_eax_imm(block, ir, op_pc);
+
+        if (next)
+            return next;
+    }
     /*The interpreter fetches the immediate before it changes anything*/
     codegen_fetch_walk_mark(block, cs + op_pc, 4);
     get_cf(ir, IREG_temp0);
@@ -347,6 +355,12 @@ ropADD_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
 uint32_t
 ropADD_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
+    if (block->flags & CODEBLOCK_ALU_FAMILY) {
+        uint32_t next = codegen_alu_family_eax_imm(block, ir, op_pc);
+
+        if (next)
+            return next;
+    }
     /*The interpreter fetches the immediate before it changes anything*/
     codegen_fetch_walk_mark(block, cs + op_pc, 4);
     uop_MOV(ir, IREG_flags_op1, IREG_EAX);
@@ -604,6 +618,12 @@ ropCMP_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
 uint32_t
 ropCMP_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
+    if (block->flags & CODEBLOCK_ALU_FAMILY) {
+        uint32_t next = codegen_alu_family_eax_imm(block, ir, op_pc);
+
+        if (next)
+            return next;
+    }
     /*The interpreter fetches the immediate before it changes anything*/
     codegen_fetch_walk_mark(block, cs + op_pc, 4);
     uop_MOV(ir, IREG_flags_op1, IREG_EAX);
@@ -857,6 +877,12 @@ ropSBB_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
 uint32_t
 ropSBB_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
+    if (block->flags & CODEBLOCK_ALU_FAMILY) {
+        uint32_t next = codegen_alu_family_eax_imm(block, ir, op_pc);
+
+        if (next)
+            return next;
+    }
     /*The interpreter fetches the immediate before it changes anything*/
     codegen_fetch_walk_mark(block, cs + op_pc, 4);
     get_cf(ir, IREG_temp0);
@@ -1133,6 +1159,12 @@ ropSUB_AX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(
 uint32_t
 ropSUB_EAX_imm(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fetchdat, UNUSED(uint32_t op_32), uint32_t op_pc)
 {
+    if (block->flags & CODEBLOCK_ALU_FAMILY) {
+        uint32_t next = codegen_alu_family_eax_imm(block, ir, op_pc);
+
+        if (next)
+            return next;
+    }
     /*The interpreter fetches the immediate before it changes anything*/
     codegen_fetch_walk_mark(block, cs + op_pc, 4);
     uop_MOV(ir, IREG_flags_op1, IREG_EAX);
@@ -2171,17 +2203,8 @@ rebuild_c(ir_data_t *ir)
         }
     }
 
-    if (needs_rebuild && !codegen_flags_rebuild_known(ir, 1)) {
-#if defined __aarch64__ || defined _M_ARM64 || defined __amd64__ || defined _M_X64
-        /*flags_rebuild_c() writes only flags, so the cached registers are
-          written back but left loaded, and flags is reloaded after it. The
-          wrapper is the one for the op this pass runs after*/
-        uop_CALL_FUNC_ORDERED(ir, jit_flags_rebuild_c_op[cpu_state.flags_op]);
-        uop_MOVZX_REG_PTR_16(ir, IREG_flags, &cpu_state.flags);
-#else
-        uop_CALL_FUNC(ir, jit_flags_rebuild_c_op[cpu_state.flags_op]);
-#endif
-    }
+    if (needs_rebuild && !codegen_flags_rebuild_known(ir, 1))
+        codegen_rebuild_c_call(ir);
 }
 
 uint32_t
@@ -2300,6 +2323,7 @@ imul_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32
     int skip_immediate = 0;
     int src;
     int factor;
+    int dead;
 
 #ifndef CODEGEN_BACKEND_HAS_INT_UOPS
     return 0;
@@ -2308,8 +2332,12 @@ imul_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32
     /*As on the interpreter path, the cycles so far are charged before IMUL
       can fault*/
     codegen_accumulate_flush(ir);
-    if (!codegen_flags_rebuild_known(ir, 0))
-        uop_CALL_FUNC(ir, jit_flags_rebuild);
+    /*Flags all written over before any is read (codegen_flags_dead()) are
+      not worked out: neither those it keeps nor CF and OF. The rebuild
+      comes before the operands are loaded: it uses the temporaries*/
+    dead = codegen_flags_dead(block, cs + op_pc + 1 + codegen_ea_extra_len(fetchdat, op_32) + imm_len);
+    if (!dead)
+        codegen_flags_rebuild(ir);
 
     if ((fetchdat & 0xc0) == 0xc0)
         src = size32 ? IREG_32(fetchdat & 7) : IREG_16(fetchdat & 7);
@@ -2355,7 +2383,8 @@ imul_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32
         factor = size32 ? IREG_32(dest_reg) : IREG_16(dest_reg);
 
     if (size32) {
-        uop_IMUL_OV(ir, IREG_temp2, factor, src);
+        if (!dead)
+            uop_IMUL_OV(ir, IREG_temp2, factor, src);
         uop_IMUL(ir, IREG_32(dest_reg), factor, src);
     } else {
         /*Words sign extended always fit a 32-bit product; it overflows the
@@ -2364,15 +2393,19 @@ imul_common(codeblock_t *block, ir_data_t *ir, uint32_t fetchdat, uint32_t op_32
         uop_MOVSX(ir, IREG_temp3, src);
         uop_IMUL(ir, IREG_temp2, IREG_temp2, IREG_temp3);
         uop_MOV(ir, IREG_16(dest_reg), IREG_temp2_W);
-        uop_MOVSX(ir, IREG_temp3, IREG_temp2_W);
-        uop_CMP_SET(ir, IREG_temp2, IREG_temp2, IREG_temp3, UOP_CC_NZ);
+        if (!dead) {
+            uop_MOVSX(ir, IREG_temp3, IREG_temp2_W);
+            uop_CMP_SET(ir, IREG_temp2, IREG_temp2, IREG_temp3, UOP_CC_NZ);
+        }
     }
 
-    /*CF and OF, bits 0 and 11, from the overflow bit in temp2*/
-    uop_SHL_IMM(ir, IREG_temp3, IREG_temp2, 11);
-    uop_OR(ir, IREG_temp3, IREG_temp3, IREG_temp2);
-    uop_AND_IMM(ir, IREG_flags, IREG_flags, (uint16_t) ~(C_FLAG | V_FLAG));
-    uop_OR(ir, IREG_flags, IREG_flags, IREG_temp3_W);
+    if (!dead) {
+        /*CF and OF, bits 0 and 11, from the overflow bit in temp2*/
+        uop_SHL_IMM(ir, IREG_temp3, IREG_temp2, 11);
+        uop_OR(ir, IREG_temp3, IREG_temp3, IREG_temp2);
+        uop_AND_IMM(ir, IREG_flags, IREG_flags, (uint16_t) ~(C_FLAG | V_FLAG));
+        uop_OR(ir, IREG_flags, IREG_flags, IREG_temp3_W);
+    }
 
     if (imm_len && !skip_immediate)
         codegen_mark_code_present(block, cs + op_pc + 1, imm_len);

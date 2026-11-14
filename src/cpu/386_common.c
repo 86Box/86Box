@@ -1899,6 +1899,7 @@ int x86_int_external = 0;
 void
 x86_int(int num)
 {
+    mem_idle_irq = 1; /* an interrupt taken ends an idle loop's watch */
     uint32_t addr;
     /* #DE, #BR, #UD, #NM and #MF are faults: as for those x86_doabrt()
        delivers, the EFLAGS image the handler gets has RF set */
