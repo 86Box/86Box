@@ -568,9 +568,11 @@ uop_alloc(ir_data_t *ir, uint32_t uop_type)
         ir->jump_uops[ir->nr_jump_uops++] = ir->wr_pos - 1;
 
     uop->is_a16     = 0;
-    uop->imm_data2  = uop_type_can_fault(uop_type) ? codegen_exit_cycles(EXIT_FAULT_HELD) : 0;
-    if (uop_type_can_fault(uop_type))
+    if (uop_type_can_fault(uop_type)) {
+        uop->imm_data2 = codegen_exit_cycles(EXIT_FAULT_HELD);
         codegen_record_exit(ir->wr_pos - 1, EXIT_FAULT_HELD);
+    } else
+        uop->imm_data2 = 0;
 
     uop->dest_reg_a = invalid_ir_reg;
     uop->src_reg_a  = invalid_ir_reg;
