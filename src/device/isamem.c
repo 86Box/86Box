@@ -672,14 +672,21 @@ isamem_init(const device_t *info)
          *
          * Optionally, on machines whose BIOS ROM starts above 960KB (for
          * example the 16KB ROM at FC000 of the Amstrad PC1512), the RAM
-         * can go on up to the start of that ROM. Off by default: on some
-         * machines the ROM is only partially decoded and repeats there.
+         * can go on up to the start of that ROM: it is mapped up to 1MB
+         * and the system BIOS, mapped after the cards, keeps its own range.
+         * Off by default: on some machines the ROM is only partially
+         * decoded and repeats there.
          */
         if ((dev->board == ISAMEM_GENXT_CARD) && (addr >= RAM_TOPMEM) && (addr < 0x100000)) {
             uint32_t uma_top = RAM_UMATOP;
 
-            if (device_get_config_int("uma_to_rom") && (biosaddr > RAM_UMATOP))
-                uma_top = biosaddr;
+            /*
+             * The cards are set up before the machine loads its BIOS, so
+             * biosaddr can't be used here: map up to 1MB and let the
+             * system BIOS, mapped afterwards as ROMCS, take its own range.
+             */
+            if (device_get_config_int("uma_to_rom"))
+                uma_top = 0x100000;
 
             /*
              * Only the upper memory area is used: nothing is mapped
