@@ -80,6 +80,7 @@ NewFlashDialog::NewFlashDialog(QWidget *parent)
     comboBoxFormat->addItem(tr("None (blank)"), USB_FLASH_FS_BLANK);
     comboBoxFormat->addItem(tr("FAT16"), USB_FLASH_FS_FAT16);
     comboBoxFormat->addItem(tr("FAT32"), USB_FLASH_FS_FAT32);
+    comboBoxFormat->addItem(tr("exFAT"), USB_FLASH_FS_EXFAT);
     form->addRow(tr("Format:"), comboBoxFormat);
 
     buttonBox = new QDialogButtonBox(QDialogButtonBox::Ok | QDialogButtonBox::Cancel, this);
