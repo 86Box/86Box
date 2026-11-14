@@ -1158,6 +1158,12 @@ upi42_get_psw(upi42_t *upi42)
     return upi42->psw;
 }
 
+uint8_t
+upi42_get_ram(upi42_t *upi42, uint8_t addr)
+{
+    return upi42->ram[addr & upi42->rammask];
+}
+
 void
 upi42_reset(upi42_t *upi42)
 {

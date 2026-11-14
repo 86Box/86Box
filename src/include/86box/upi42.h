@@ -67,5 +67,6 @@ void    upi42_port_write(upi42_t *upi42, int port, uint8_t val);
 uint8_t  upi42_get_sts(upi42_t *upi42);
 uint16_t upi42_get_pc(upi42_t *upi42);
 uint8_t  upi42_get_psw(upi42_t *upi42);
+uint8_t  upi42_get_ram(upi42_t *upi42, uint8_t addr);
 
 #endif /* EMU_UPI42_H */

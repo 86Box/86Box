@@ -46,6 +46,8 @@
 #define KBC_AT_UPI42_KBD_ACK_US      60 /* data line acknowledge hold time */
 #define KBC_AT_UPI42_KBD_START_TICKS 100 /* clock held low before a frame */
 #define KBC_AT_UPI42_KBD_GAP_TICKS   200 /* idle time between frames */
+#define KBC_AT_UPI42_CMD_BYTE        0x20 /* firmware RAM command byte */
+#define KBC_AT_UPI42_CMD_KBD_DIS     0x10 /* keyboard clock disable bit */
 
 typedef struct {
     upi42_t   *mcu;
@@ -172,6 +174,16 @@ kbc_upi42_p2_in(void *priv)
     return 0xff;
 }
 
+/* Drive the keyboard clock line: P2.6 is inverted by the buffer, and the
+   keyboard clock disable bit of the command byte gates it in hardware. */
+static void
+kbc_upi42_update_clock(kbc_upi42_t *dev)
+{
+    uint8_t disabled = upi42_get_ram(dev->mcu, KBC_AT_UPI42_CMD_BYTE) & KBC_AT_UPI42_CMD_KBD_DIS;
+
+    dev->bus.kbc_clk = !((dev->p2 & 0x40) || disabled);
+}
+
 static void
 kbc_upi42_port_out(void *priv, int port, uint8_t val)
 {
@@ -186,9 +198,12 @@ kbc_upi42_port_out(void *priv, int port, uint8_t val)
             uint8_t old = dev->p2;
             dev->p2 = val;
 
-            /* P2.6 drives the keyboard clock (inverted), P2.7 the data line. */
-            dev->bus.kbc_clk  = !(val & 0x40);
+            /* P2.7 drives the data line. */
             dev->bus.kbc_data = !!(val & 0x80);
+
+            /* P2.6 drives the keyboard clock (inverted), gated by the
+               keyboard clock disable bit of the command byte. */
+            kbc_upi42_update_clock(dev);
 
             /* P2.1 gates A20. */
             if ((mem_a20_key ^ val) & 0x02) {
@@ -277,7 +292,19 @@ kbc_upi42_kbd_poll(kbc_upi42_t *dev)
 
     port->poll(port->priv);
 
-    if (dev->kbd_sending || (dev->kbd_rx_state != 0) || (port->out_new == -1))
+    if (dev->kbd_sending || (dev->kbd_rx_state != 0))
+        return;
+
+    /* A command byte from the controller takes priority over scan codes:
+       let the device consume it before handing anything to the wire, or a
+       pending scan code would be transmitted as the command response. */
+    if (port->wantcmd) {
+        port->poll(port->priv);
+        if (port->wantcmd || (port->out_new == -1))
+            return;
+    }
+
+    if (port->out_new == -1)
         return;
 
     /* Leave the bus idle for a while after each frame so the controller can
@@ -375,25 +402,34 @@ kbc_upi42_kbd_rx_tick(kbc_upi42_t *dev)
     switch (dev->kbd_rx_state) {
         case 0:
             if (!dev->bus.kbc_clk && !dev->bus.kbc_data) {
-                /* The controller is starting a command transfer; it waits
-                   for the keyboard to clock the bits, so drop any frame we
-                   were sending and take over. */
+                /* Possible start of a command transfer. Wait for the
+                   controller to release the clock before committing, so a
+                   clock/data line test is not mistaken for a transfer. */
                 dev->kbd_rx_state = 1;
-                dev->kbd_sending  = 0;
-                dev->kbd_wait     = 0;
-                dev->bus.kbd_clk  = 1;
-                dev->bus.kbd_data = 1;
             }
             break;
 
         case 1:
+            if (dev->bus.kbc_data) {
+                /* The controller dropped the start bit before releasing the
+                   clock: this was a bus test, not a transfer. */
+                dev->kbd_rx_state = 0;
+
+                kbc_at_upi42_log("KBC-UPI42: keyboard transfer aborted\n");
+                break;
+            }
+
             /* The controller releases the clock, the keyboard takes over. */
             if (dev->bus.kbc_clk) {
+                dev->kbd_sending  = 0;
+                dev->kbd_wait     = 0;
                 dev->kbd_ack      = 0;
                 dev->kbd_rx_bit   = 0;
                 dev->kbd_rx_state = 2;
                 dev->kbd_rx_phase = 0;
                 dev->kbd_rx_frame = 0;
+                dev->bus.kbd_clk  = 1;
+                dev->bus.kbd_data = 1;
             }
             break;
 
@@ -469,10 +505,15 @@ static uint8_t
 kbc_upi42_data_r(uint16_t port, void *priv)
 {
     kbc_upi42_t *dev = (kbc_upi42_t *) priv;
+    uint8_t      ret;
 
     (void) port;
 
-    return upi42_master_read_data(dev->mcu);
+    ret = upi42_master_read_data(dev->mcu);
+
+    kbc_at_upi42_log("KBC-UPI42: host data read %02X\n", ret);
+
+    return ret;
 }
 
 static void
@@ -514,6 +555,9 @@ kbc_upi42_tick(void *priv)
 {
     kbc_upi42_t *dev = (kbc_upi42_t *) priv;
     int          i;
+
+    /* The firmware changes the command byte without touching P2. */
+    kbc_upi42_update_clock(dev);
 
     if (dev->kbd_sending || (dev->kbd_rx_state != 0)) {
         /* Advance the wire one microsecond at a time so the firmware sees
