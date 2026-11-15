@@ -31,6 +31,7 @@
 #include <86box/plat_dir.h>
 #include <86box/random.h>
 #include <86box/media_archive.h>
+#include <86box/fs_name.h>
 #include <86box/fat_image.h>
 
 #define MAX_DEPTH   64
@@ -117,49 +118,6 @@ put_le32(uint8_t *p, uint32_t v)
     put_le16(p + 2, v >> 16);
 }
 
-/* Decodes one UTF-8 character; invalid sequences decode as U+FFFD. */
-static uint32_t
-utf8_next(const char **s)
-{
-    const uint8_t *p = (const uint8_t *) *s;
-    uint32_t       c = *p++;
-    int            n = 0;
-
-    if (c >= 0xf0 && c < 0xf8) {
-        c &= 0x07;
-        n = 3;
-    } else if (c >= 0xe0) {
-        c &= 0x0f;
-        n = 2;
-    } else if (c >= 0xc0) {
-        c &= 0x1f;
-        n = 1;
-    } else if (c >= 0x80) {
-        c = 0xfffd;
-    }
-    for (; n > 0; n--) {
-        if ((*p & 0xc0) != 0x80) {
-            c = 0xfffd;
-            break;
-        }
-        c = (c << 6) | (*p++ & 0x3f);
-    }
-    *s = (const char *) p;
-    return c;
-}
-
-static uint32_t
-to_upper(uint32_t c)
-{
-    if ((c >= 'a') && (c <= 'z'))
-        return c - 0x20;
-    if ((c >= 0xe0) && (c <= 0xfe) && (c != 0xf7))
-        return c - 0x20;
-    if ((c >= 0x3b1) && (c <= 0x3c9) && (c != 0x3c2))
-        return c - 0x20;
-    return c;
-}
-
 /* Converts a character to code page 437, or returns 0 if it has no equivalent. */
 static uint8_t
 to_oem(uint32_t c)
@@ -178,7 +136,7 @@ valid_short_char(uint8_t c)
 static int
 is_lower(uint32_t c)
 {
-    return to_upper(c) != c;
+    return fs_upcase(c) != c;
 }
 
 static int
@@ -191,90 +149,6 @@ is_upper(uint32_t c)
     return (c >= 0x391) && (c <= 0x3a9) && (c != 0x3a2);
 }
 
-/* Shortens a long name to at most max units, keeping its extension where it fits and never
-   splitting a surrogate pair. Returns the new length. */
-static int
-fit_long_name(uint16_t *buf, int len, int max)
-{
-    if (len <= max)
-        return len;
-
-    int dot = len;
-    for (int i = len - 1; i > 0; i--) {
-        if (buf[i] == '.') {
-            dot = i;
-            break;
-        }
-    }
-    int ext_len = len - dot;
-    if (ext_len > (max / 2))
-        ext_len = 0;
-
-    int stem = max - ext_len;
-    if ((buf[stem] >= 0xdc00) && (buf[stem] <= 0xdfff))
-        stem--;
-    memmove(buf + stem, buf + len - ext_len, ext_len * sizeof(uint16_t));
-    return stem + ext_len;
-}
-
-/* Converts a host name to the long name, replacing what FAT can't hold. */
-static int
-make_long_name(node_t *node)
-{
-    /* Every UTF-16 unit takes at least one UTF-8 byte. */
-    uint16_t   *buf = (uint16_t *) malloc((strlen(node->name) + 1) * sizeof(uint16_t));
-    int         len = 0;
-    const char *p   = node->name;
-
-    if (!buf)
-        return 0;
-    while (*p) {
-        uint32_t c = utf8_next(&p);
-        if ((c < 0x20) || ((c < 0x80) && strchr("\"*/:<>?\\|", c)))
-            c = '_';
-        else if (c > 0x10ffff)
-            c = 0xfffd;
-        if (c >= 0x10000) {
-            c -= 0x10000;
-            buf[len++] = 0xd800 | (c >> 10);
-            buf[len++] = 0xdc00 | (c & 0x3ff);
-        } else {
-            buf[len++] = c;
-        }
-    }
-
-    /* Names from archives can be longer than FAT allows. */
-    len = fit_long_name(buf, len, 255);
-
-    /* Windows ignores trailing dots and spaces. */
-    while (len && ((buf[len - 1] == '.') || (buf[len - 1] == ' ')))
-        len--;
-    if (!len)
-        buf[len++] = '_';
-
-    node->lfn     = buf;
-    node->lfn_len = len;
-    return 1;
-}
-
-static uint16_t
-fold(uint16_t c)
-{
-    return to_upper(c);
-}
-
-static int
-long_names_equal(const node_t *a, const node_t *b)
-{
-    if (a->lfn_len != b->lfn_len)
-        return 0;
-    for (int i = 0; i < a->lfn_len; i++) {
-        if (fold(a->lfn[i]) != fold(b->lfn[i]))
-            return 0;
-    }
-    return 1;
-}
-
 static uint32_t
 hash_bytes(const uint8_t *p, size_t len)
 {
@@ -284,16 +158,15 @@ hash_bytes(const uint8_t *p, size_t len)
     return h;
 }
 
-static uint32_t
-hash_long_name(const node_t *node)
-{
-    uint32_t h = 2166136261U;
-    for (int i = 0; i < node->lfn_len; i++)
-        h = (h ^ fold(node->lfn[i])) * 16777619U;
-    return h;
-}
+/* Long names as Windows makes them. */
+static const fs_long_name_rules_t long_name_rules = {
+    .forbidden     = "\"*/:<>?\\|",
+    .max           = 255,
+    .keep_ext      = 1,
+    .trim_trailing = 1
+};
 
-/* Hash set of short names or long names in one directory. */
+/* Hash set of short names in one directory. */
 typedef struct {
     node_t **slots;
     size_t   mask;
@@ -317,19 +190,6 @@ short_set_add(name_set_t *set, node_t *node)
     size_t i = hash_bytes(node->short_name, 11) & set->mask;
     while (set->slots[i]) {
         if (!memcmp(set->slots[i]->short_name, node->short_name, 11))
-            return 0;
-        i = (i + 1) & set->mask;
-    }
-    set->slots[i] = node;
-    return 1;
-}
-
-static int
-long_set_add(name_set_t *set, node_t *node)
-{
-    size_t i = hash_long_name(node) & set->mask;
-    while (set->slots[i]) {
-        if (long_names_equal(set->slots[i], node))
             return 0;
         i = (i + 1) & set->mask;
     }
@@ -389,7 +249,7 @@ make_basis_name(node_t *node)
         else if (is_upper(c))
             *part_case |= 2;
 
-        uint8_t oem = to_oem(to_upper(c));
+        uint8_t oem = to_oem(fs_upcase(c));
         if (!oem || !valid_short_char(oem)) {
             oem   = '_';
             lossy = 1;
@@ -439,38 +299,6 @@ apply_tail(node_t *node, const uint8_t *basis, uint32_t n)
     memcpy(node->short_name + base_len, tail, tail_len);
 }
 
-/* Inserts " (n)" before the extension of a long name. */
-static int
-number_long_name(node_t *node, const uint16_t *orig, int orig_len, uint32_t n)
-{
-    char     suffix[16];
-    int      suffix_len = snprintf(suffix, sizeof(suffix), " (%u)", n);
-    uint16_t name[255];
-
-    /* Make room for the suffix in a name that is already as long as it can be. */
-    memcpy(name, orig, orig_len * sizeof(uint16_t));
-    int len = fit_long_name(name, orig_len, 255 - suffix_len);
-    int dot = len;
-    for (int i = len - 1; i > 0; i--) {
-        if (name[i] == '.') {
-            dot = i;
-            break;
-        }
-    }
-
-    uint16_t *lfn = (uint16_t *) malloc((len + suffix_len) * sizeof(uint16_t));
-    if (!lfn)
-        return 0;
-    memcpy(lfn, name, dot * sizeof(uint16_t));
-    for (int i = 0; i < suffix_len; i++)
-        lfn[dot + i] = suffix[i];
-    memcpy(lfn + dot + suffix_len, name + dot, (len - dot) * sizeof(uint16_t));
-    free(node->lfn);
-    node->lfn     = lfn;
-    node->lfn_len = len + suffix_len;
-    return 1;
-}
-
 /* Names every child of a directory. */
 static fat_image_result_t
 name_children(node_t *dir)
@@ -479,11 +307,11 @@ name_children(node_t *dir)
     for (node_t *child = dir->children; child; child = child->next)
         count++;
 
-    name_set_t shorts;
-    name_set_t longs;
+    name_set_t    shorts;
+    fs_name_set_t longs;
     if (!name_set_init(&shorts, count))
         return FAT_IMAGE_NO_MEMORY;
-    if (!name_set_init(&longs, count)) {
+    if (!fs_name_set_init(&longs, count)) {
         free(shorts.slots);
         return FAT_IMAGE_NO_MEMORY;
     }
@@ -493,28 +321,14 @@ name_children(node_t *dir)
     /* Long names, and the short names that are valid 8.3 names already, so that
        generated names never take them. */
     for (node_t *child = dir->children; child && (result == FAT_IMAGE_OK); child = child->next) {
-        if (!make_long_name(child)) {
+        /* FAT is case-insensitive: names that only differ by case or by replaced characters get numbered. */
+        int len    = 0;
+        child->lfn = fs_long_name(child->name, &long_name_rules, &len);
+        if (!child->lfn || !fs_name_set_add_unique(&longs, &child->lfn, &len, &long_name_rules)) {
             result = FAT_IMAGE_NO_MEMORY;
             break;
         }
-
-        /* FAT is case-insensitive: number names that only differ by case or by replaced characters. */
-        if (!long_set_add(&longs, child)) {
-            uint16_t *orig     = child->lfn;
-            int       orig_len = child->lfn_len;
-            child->lfn         = NULL;
-            for (uint32_t n = 2;; n++) {
-                if (!number_long_name(child, orig, orig_len, n)) {
-                    result = FAT_IMAGE_NO_MEMORY;
-                    break;
-                }
-                if (long_set_add(&longs, child))
-                    break;
-            }
-            free(orig);
-            if (result != FAT_IMAGE_OK)
-                break;
-        }
+        child->lfn_len = len;
 
         child->needs_tail = make_basis_name(child);
         if (!child->needs_tail && !short_set_add(&shorts, child)) {
@@ -542,7 +356,7 @@ name_children(node_t *dir)
     }
 
     free(shorts.slots);
-    free(longs.slots);
+    fs_name_set_free(&longs);
     return result;
 }
 
@@ -720,7 +534,7 @@ make_label(fat_image_t *image, const char *path)
     memset(image->label, ' ', 11);
     int n = 0;
     for (const char *p = name; *p && (n < 11);) {
-        uint8_t c = to_oem(to_upper(utf8_next(&p)));
+        uint8_t c = to_oem(fs_upcase(fs_utf8_next(&p)));
         if (c && ((c == ' ') || valid_short_char(c)))
             image->label[n++] = c;
     }

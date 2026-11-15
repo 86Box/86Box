@@ -22,6 +22,7 @@ add_library(utils OBJECT
     crc32.c
     fifo.c
     fifo8.c
+    fs_name.c
     ini.c
     log.c
     media_archive.c

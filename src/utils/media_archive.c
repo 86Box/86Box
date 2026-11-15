@@ -33,6 +33,7 @@
 #include <86box/path.h>
 #include <86box/plat.h>
 #include <86box/media_archive.h>
+#include <86box/fs_name.h>
 
 #if defined(_WIN32) && defined(LIBARCHIVE_STATIC)
 #    include <zlib.h>
@@ -204,59 +205,6 @@ media_archive_cp437_encode(uint32_t c)
     return 0;
 }
 
-/* Decodes one character of a valid UTF-8 string. */
-static uint32_t
-utf8_decode(const char **s)
-{
-    const uint8_t *p = (const uint8_t *) *s;
-    uint32_t       c = *p++;
-    int            n = (c >= 0xf0) ? 3 : (c >= 0xe0) ? 2 : (c >= 0xc0) ? 1 : 0;
-
-    if (n)
-        c &= 0x3f >> n;
-    for (; n && ((*p & 0xc0) == 0x80); n--)
-        c = (c << 6) | (*p++ & 0x3f);
-    *s = (const char *) p;
-    return c;
-}
-
-/* Whether a string is well-formed UTF-8 with at least one non-ASCII character. */
-static int
-is_utf8(const uint8_t *p)
-{
-    int non_ascii = 0;
-
-    while (*p) {
-        uint32_t c = *p++;
-        int      n;
-        uint32_t min;
-        if (c < 0x80)
-            continue;
-        if ((c >= 0xc2) && (c <= 0xdf)) {
-            n   = 1;
-            min = 0x80;
-        } else if ((c >= 0xe0) && (c <= 0xef)) {
-            n   = 2;
-            min = 0x800;
-        } else if ((c >= 0xf0) && (c <= 0xf4)) {
-            n   = 3;
-            min = 0x10000;
-        } else {
-            return 0;
-        }
-        c &= 0x3f >> n;
-        for (; n; n--) {
-            if ((*p & 0xc0) != 0x80)
-                return 0;
-            c = (c << 6) | (*p++ & 0x3f);
-        }
-        if ((c < min) || (c > 0x10ffff) || ((c >= 0xd800) && (c <= 0xdfff)))
-            return 0;
-        non_ascii = 1;
-    }
-    return non_ascii;
-}
-
 /* Names not flagged as UTF-8 are read as code page 437, but archivers on Unix and
    macOS store UTF-8 names without the flag. Returns the name as UTF-8 if its code
    page 437 bytes are UTF-8, or NULL to keep it. */
@@ -269,7 +217,7 @@ oem_name_as_utf8(const char *name)
     if (!bytes)
         return NULL;
     while (*name) {
-        uint32_t c = utf8_decode(&name);
+        uint32_t c = fs_utf8_next(&name);
         uint8_t  b = media_archive_cp437_encode(c);
         if (!b) {
             /* Not from code page 437, so it was flagged as UTF-8. */
@@ -279,7 +227,7 @@ oem_name_as_utf8(const char *name)
         bytes[len++] = b;
     }
     bytes[len] = '\0';
-    if (!is_utf8(bytes)) {
+    if (fs_utf8_check((const char *) bytes) <= 0) {
         free(bytes);
         return NULL;
     }

@@ -43,6 +43,7 @@
 #include <86box/nvr.h>
 
 #include <86box/media_archive.h>
+#include <86box/fs_name.h>
 
 #define VISO_SKIP(p, n)         \
     {                           \
@@ -101,6 +102,8 @@ typedef struct _viso_entry_ {
         uint64_t data_offset;
     };
     uint16_t pt_idx;
+    uint8_t  joliet_len;
+    uint16_t *name_joliet;
     const media_archive_entry_t *archive_entry;
 
     struct {
@@ -180,55 +183,6 @@ viso_pwrite(const void *ptr, const uint64_t offset, const size_t size,
         ret = fwrite(ptr, size, count, fp);
     fseeko64(fp, cur_pos, SEEK_SET);
     return ret;
-}
-
-static size_t
-viso_convert_utf8(uint16_t *dest, const char *src, ssize_t buf_size)
-{
-    uint64_t  c;
-    uint16_t *p = dest;
-    size_t    next;
-
-    while (buf_size-- > 0) {
-        /* Interpret source codepoint. */
-        c = *src;
-        if (!c) {
-            /* Terminator. */
-            *p = 0;
-            break;
-        } else if (c & 0x80) {
-            /* Convert UTF-8 sequence into a codepoint. */
-            next = 0;
-            while (c & 0x40) {
-                next++;
-                c <<= 1;
-            }
-            c = *src++ & (0x3f >> next);
-            while ((next-- > 0) && ((*src & 0xc0) == 0x80))
-                c = (c << 6) | (*src++ & 0x3f);
-
-            /* Convert codepoints >= U+10000 to UTF-16 surrogate pairs. */
-            if (c >= 0x10000) {
-                if ((c <= 0x10ffff) && (buf_size-- > 0)) {
-                    /* Encode surrogate pair. */
-                    c -= 0x10000;
-                    *p++ = 0xd800 | (c >> 10);
-                    c    = 0xdc00 | (c & 0x3ff);
-                } else {
-                    /* Codepoint overflow or no room for a pair. */
-                    c = '?';
-                }
-            }
-        } else {
-            /* Pass through sub-UTF-8 codepoints. */
-            src++;
-        }
-
-        /* Write destination codepoint. */
-        *p++ = c;
-    }
-
-    return p - dest;
 }
 
 #define VISO_WRITE_STR_FUNC(func, dst_type, src_type, converter)                    \
@@ -331,9 +285,9 @@ viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries
     /* Collapse each UTF-8 sequence to one byte, which becomes one replacement character. */
     char   collapsed[strlen(basename) + 1];
     size_t collapsed_len = 0;
-    for (const char *p = basename; *p; p++) {
-        if ((*p & 0xc0) != 0x80)
-            collapsed[collapsed_len++] = *p;
+    for (const char *p = basename; *p;) {
+        uint32_t c                   = fs_utf8_next(&p);
+        collapsed[collapsed_len++] = (c < 0x80) ? c : 0x80;
     }
     collapsed[collapsed_len] = '\0';
     int dots_trimmed         = basename != entry->basename;
@@ -398,15 +352,6 @@ viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries
     return 1;
 }
 
-/* Largest length up to len that doesn't split a UTF-8 sequence; s must have at least len bytes. */
-static size_t
-viso_utf8_fit(const char *s, size_t len)
-{
-    while ((len > 0) && ((s[len] & 0xc0) == 0x80))
-        len--;
-    return len;
-}
-
 static size_t
 viso_fill_fn_rr(uint8_t *data, const viso_entry_t *entry, size_t max_len)
 {
@@ -424,12 +369,12 @@ viso_fill_fn_rr(uint8_t *data, const viso_entry_t *entry, size_t max_len)
         ext_len = strlen(ext);
         if (ext_len >= max_len)
             ext_len = max_len - 1; /* don't create a dotfile where there isn't one */
-        ext_len = viso_utf8_fit(ext, ext_len);
+        ext_len = fs_utf8_fit(ext, ext_len);
     }
-    size_t stem = viso_utf8_fit(entry->basename, max_len - ext_len);
+    size_t stem = fs_utf8_fit(entry->basename, max_len - ext_len);
     if (!stem) {
         ext_len = 0;
-        stem    = viso_utf8_fit(entry->basename, max_len);
+        stem    = fs_utf8_fit(entry->basename, max_len);
     }
 
     viso_write_string(data, entry->basename, stem, VISO_CHARSET_FN);
@@ -438,53 +383,44 @@ viso_fill_fn_rr(uint8_t *data, const viso_entry_t *entry, size_t max_len)
     return stem + ext_len;
 }
 
-/* Largest length up to len that doesn't split a UTF-16 surrogate pair; s must have at least len units. */
-static size_t
-viso_utf16_fit(const uint16_t *s, size_t len)
+/* Joliet names fill the directory record, which can't be longer than 255 bytes. */
+#define VISO_JOLIET_MAX_LEN ((254 - 33) / 2)
+
+static const fs_long_name_rules_t viso_joliet_rules[2] = {
+    { .forbidden = "*/:;?\\", .max = VISO_JOLIET_MAX_LEN, .keep_ext = 1 }, /* files */
+    { .forbidden = "*/:;?\\", .max = VISO_JOLIET_MAX_LEN, .keep_ext = 0 }  /* directories */
+};
+
+/* Gives every entry of a directory a Joliet name, numbering names that only differ by case,
+   as Windows can't tell them apart. */
+static int
+viso_name_joliet(viso_entry_t **entries, size_t count)
 {
-    if ((len > 0) && ((s[len] & 0xfc00) == 0xdc00))
-        len--;
-    return len;
+    fs_name_set_t set;
+    int           ret = 0;
+
+    if (!fs_name_set_init(&set, count))
+        return 0;
+    for (size_t i = 0; i < count; i++) {
+        const fs_long_name_rules_t *rules = &viso_joliet_rules[entries[i]->stats.is_dir];
+        int                         len   = 0;
+        entries[i]->name_joliet           = fs_long_name(entries[i]->basename, rules, &len);
+        if (!entries[i]->name_joliet || !fs_name_set_add_unique(&set, &entries[i]->name_joliet, &len, rules))
+            goto end;
+        entries[i]->joliet_len = len;
+    }
+    ret = 1;
+end:
+    fs_name_set_free(&set);
+    return ret;
 }
 
 static size_t
-viso_fill_fn_joliet(uint16_t *data, const viso_entry_t *entry, size_t max_len) /* note: receives and returns byte sizes */
+viso_fill_fn_joliet(uint16_t *data, const viso_entry_t *entry) /* note: returns a byte size */
 {
-    /* Decode filename as UTF-8. */
-    size_t   len = strlen(entry->basename);
-    uint16_t utf8dec[len + 1];
-    len = viso_convert_utf8(utf8dec, entry->basename, len + 1);
-
-    /* Trim decoded filename to max_len if required. */
-    max_len /= 2;
-    if (len <= max_len) {
-        viso_write_wstring(data, utf8dec, len, VISO_CHARSET_FN);
-        return len * 2;
-    }
-
-    /* Relocate extension if the original name exceeds the maximum length. */
-    uint16_t *ext     = NULL;
-    size_t    ext_len = 0;
-    if (!entry->stats.is_dir) { /* do this on files only */
-        for (ext = &utf8dec[len - 1]; (ext > utf8dec) && (*ext != '.'); ext--)
-            ;
-        if (ext > utf8dec) {
-            ext_len = utf8dec + len - ext;
-            if (ext_len >= max_len)
-                ext_len = max_len - 1; /* don't create a dotfile where there isn't one */
-            ext_len = viso_utf16_fit(ext, ext_len);
-        }
-    }
-    size_t stem = viso_utf16_fit(utf8dec, max_len - ext_len);
-    if (!stem) {
-        ext_len = 0;
-        stem    = viso_utf16_fit(utf8dec, max_len);
-    }
-
-    viso_write_wstring(data, utf8dec, stem, VISO_CHARSET_FN);
-    if (ext_len)
-        viso_write_wstring(&data[stem], ext, ext_len, VISO_CHARSET_FN);
-    return (stem + ext_len) * 2;
+    for (int i = 0; i < entry->joliet_len; i++)
+        data[i] = cpu_to_be16(entry->name_joliet[i]);
+    return entry->joliet_len * 2;
 }
 
 static int
@@ -668,7 +604,7 @@ pad_susp:
         case VISO_DIR_JOLIET:
             q = p++; /* save file ID length location for later */
 
-            *q = viso_fill_fn_joliet((uint16_t *) p, entry, 254 - (p - data));
+            *q = viso_fill_fn_joliet((uint16_t *) p, entry);
             p += *q;
 
             if (!(*q & 1)) /* padding for even file ID lengths */
@@ -843,6 +779,7 @@ viso_close(void *priv)
     viso_entry_t *next_entry;
     while (entry) {
         next_entry = entry->next;
+        free(entry->name_joliet);
         free(entry);
         entry = next_entry;
     }
@@ -1105,6 +1042,11 @@ have_eltorito_entry:
         }
 
         pending_entries = 0;
+
+        /* Joliet names, once the entries are linked and freed with the rest on failure. */
+        if (!viso_name_joliet(&dir_entries[2], children_count - 2))
+            goto end;
+
         /* Move on to the next directory. */
         dir = dir->next_dir;
     }
@@ -1168,10 +1110,10 @@ have_eltorito_entry:
 
         if (i) {
             uint16_t wtemp[16];
-            viso_convert_utf8(wtemp, EMU_NAME, 16);
+            fs_utf8_to_utf16(wtemp, 16, EMU_NAME);
             viso_write_wstring((uint16_t *) p, wtemp, 16, VISO_CHARSET_A); /* system ID */
             p += 32;
-            viso_convert_utf8(wtemp, basename, 16);
+            fs_utf8_to_utf16(wtemp, 16, basename);
             viso_write_wstring((uint16_t *) p, wtemp, 16, VISO_CHARSET_D); /* volume ID */
             p += 32;
         } else {
@@ -1216,7 +1158,7 @@ have_eltorito_entry:
             p += 128;
             viso_write_wstring((uint16_t *) p, wtemp, 64, VISO_CHARSET_A); /* data preparer ID */
             p += 128;
-            viso_convert_utf8(wtemp, EMU_NAME " " EMU_VERSION " VIRTUAL ISO", 64);
+            fs_utf8_to_utf16(wtemp, 64, EMU_NAME " " EMU_VERSION " VIRTUAL ISO");
             viso_write_wstring((uint16_t *) p, wtemp, 64, VISO_CHARSET_A); /* application ID */
             p += 128;
             wtemp[0] = '\0';
@@ -1430,7 +1372,7 @@ have_eltorito_entry:
                 data[pt_temp] = 1;
                 *p            = 0x00;
             } else if (i & 2) { /* ...or Joliet... */
-                data[pt_temp] = viso_fill_fn_joliet((uint16_t *) p, dir, 255);
+                data[pt_temp] = viso_fill_fn_joliet((uint16_t *) p, dir);
             } else { /* ...or short name */
                 data[pt_temp] = strlen(dir->name_short);
                 memcpy(p, dir->name_short, data[pt_temp]);
