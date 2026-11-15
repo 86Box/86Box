@@ -27,13 +27,15 @@ add_library(scsi OBJECT
     scsi_aic6360.c
     scsi_aic7xxx.c
     scsi_buslogic.c
+    scsi_maynard.c
     scsi_ncr5380.c
     scsi_ncr53c400.c
-    scsi_t128.c
     scsi_ncr53c8xx.c
+    scsi_wd33c93.c
     scsi_pcscsi.c
     scsi_ql1xxx.c
     scsi_spock.c
+    scsi_t128.c
 )
 
 if(AIC7890)
