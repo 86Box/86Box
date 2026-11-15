@@ -346,6 +346,7 @@ get_voice(const YRW801_WAVE_DATA *wave_data, opl4_midi_t *opl4_midi, uint32_t re
 {
     VOICE_DATA *silent = NULL;
     VOICE_DATA *quietest = NULL;
+    VOICE_DATA *waiting = NULL;
     VOICE_DATA *oldest = NULL;
     uint32_t    quietest_attenuation = 0;
 
@@ -357,6 +358,12 @@ get_voice(const YRW801_WAVE_DATA *wave_data, opl4_midi_t *opl4_midi, uint32_t re
         if (voice->is_active) {
             if (!oldest || voice->activated < oldest->activated)
                 oldest = voice;
+            continue;
+        }
+
+        if (voice->key_change_frame > opl4_midi->rendered_frames) {
+            if (!waiting || voice->key_change_frame < waiting->key_change_frame)
+                waiting = voice;
             continue;
         }
 
@@ -376,6 +383,8 @@ get_voice(const YRW801_WAVE_DATA *wave_data, opl4_midi_t *opl4_midi, uint32_t re
         return silent;
     if (quietest)
         return quietest;
+    if (waiting)
+        return waiting;
     return oldest;
 }
 
@@ -470,6 +479,7 @@ release_voice(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
     voice->has_release_tail = true;
     voice->released_frame = opl4_midi->rendered_frames;
     voice->key_off_pending = false;
+    voice->key_change_frame = opl4_midi->rendered_frames + KEY_OFF_FRAMES;
     voice->reg_misc &= ~OPL4_KEY_ON_BIT;
     opl4_write_wave_register(OPL4_REG_MISC + voice->number, voice->reg_misc, opl4_midi);
 }
@@ -516,6 +526,8 @@ update_vibrato_depth(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
     opl4_write_wave_register(OPL4_REG_LFO_VIBRATO + voice->number, voice->reg_lfo_vibrato, opl4_midi);
 }
 
+static void start_voice(VOICE_DATA *voice, opl4_midi_t *opl4_midi);
+
 static void
 note_on(uint8_t note, uint8_t velocity, MIDI_CHANNEL_DATA *midi_channel, opl4_midi_t *opl4_midi)
 {
@@ -551,13 +563,16 @@ note_on(uint8_t note, uint8_t velocity, MIDI_CHANNEL_DATA *midi_channel, opl4_mi
         slot->held = true;
         slot->activated = sequence;
         slot->key_off_pending = false;
-        slot->key_on_pending = true;
-        /* Give the chip time to clock a stolen voice's key-off. */
-        slot->key_change_frame = opl4_midi->rendered_frames + KEY_OFF_FRAMES;
         slot->pending_wave = wave_data[i];
         slot->midi_channel = midi_channel;
         slot->note = note;
         slot->velocity = velocity & 0x7F;
+
+        /* A recent key-off must reach the chip before reusing this slot. */
+        if (slot->key_change_frame > opl4_midi->rendered_frames)
+            slot->key_on_pending = true;
+        else
+            start_voice(slot, opl4_midi);
     }
 }
 
@@ -590,8 +605,22 @@ program_voice(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
 }
 
 static void
+start_voice(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
+{
+    program_voice(voice, opl4_midi);
+    voice->key_on_pending = false;
+    voice->has_release_tail = false;
+    voice->reg_misc = (voice->reg_misc & ~OPL4_LFO_RESET_BIT) | OPL4_KEY_ON_BIT;
+    opl4_write_wave_register(OPL4_REG_MISC + voice->number, voice->reg_misc, opl4_midi);
+    /* Let the chip clock the key-on before applying an early key-off. */
+    voice->key_change_frame = opl4_midi->rendered_frames + KEY_OFF_FRAMES;
+}
+
+static void
 silence_voice(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
 {
+    if (voice->reg_misc & OPL4_KEY_ON_BIT)
+        voice->key_change_frame = opl4_midi->rendered_frames + KEY_OFF_FRAMES;
     voice->is_active = false;
     voice->held = false;
     voice->key_on_pending = false;
@@ -738,17 +767,10 @@ opl4_render(opl4_midi_t *opl4_midi, uint32_t target)
 
         for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
             VOICE_DATA *voice = &opl4_midi->voice_data[i];
-            if (voice->key_on_pending && voice->key_change_frame <= now) {
-                program_voice(voice, opl4_midi);
-                voice->key_on_pending = false;
-                voice->has_release_tail = false;
-                voice->reg_misc = (voice->reg_misc & 0x1F) | OPL4_KEY_ON_BIT;
-                opl4_write_wave_register(OPL4_REG_MISC + voice->number, voice->reg_misc, opl4_midi);
-                /* Let the chip clock the key-on before applying an early key-off. */
-                voice->key_change_frame = now + KEY_OFF_FRAMES;
-            } else if (voice->key_off_pending && voice->key_change_frame <= now) {
+            if (voice->key_on_pending && voice->key_change_frame <= now)
+                start_voice(voice, opl4_midi);
+            else if (voice->key_off_pending && voice->key_change_frame <= now)
                 release_voice(voice, opl4_midi);
-            }
             if ((voice->key_on_pending || voice->key_off_pending) && voice->key_change_frame < next)
                 next = voice->key_change_frame;
         }
