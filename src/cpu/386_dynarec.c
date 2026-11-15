@@ -951,12 +951,20 @@ exec386_dynarec_dyn(const int dbg)
            block), with no dirty code bytes and, with a static TOP,
            compiled for this one, passes every test below without a side
            effect, the SMC cooldown's included: it can only interpret a
-           block that fails one of these. */
+           block that fails one of these. A block that checks its own code
+           bytes (CODEBLOCK_SELF_CHECK) always goes through here. */
         if (valid_block && !put_back &&
-            ((((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST | CODEBLOCK_HAS_PAGE2)) ^ CODEBLOCK_WAS_RECOMPILED) |
+            ((((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST | CODEBLOCK_HAS_PAGE2 | CODEBLOCK_SELF_CHECK)) ^ CODEBLOCK_WAS_RECOMPILED) |
               ((block->TOP ^ cpu_state.TOP) & ((block->flags & CODEBLOCK_STATIC_TOP) ? 7 : 0))) |
              (block->page_mask & *block->dirty_mask))) {
             page_t *page = &pages[phys_addr >> 12];
+
+            if (block->flags & CODEBLOCK_SELF_CHECK) {
+                if (codegen_block_self_check(block))
+                    goto run_block;
+                if (!block->valid)
+                    valid_block = 0;
+            }
 
             /* This block keeps getting its freshly-compiled code rewritten
                before it has run often enough to pay for compiling it (see
@@ -1087,6 +1095,7 @@ exec386_dynarec_dyn(const int dbg)
         }
     }
 
+run_block:
     if (valid_block && (block->flags & CODEBLOCK_WAS_RECOMPILED))
     {
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
