@@ -325,8 +325,8 @@ msgstr "卸載(&M)"
 msgid "Reload previous image"
 msgstr "載入上一個映像"
 
-msgid "&Folder…"
-msgstr "資料夾(&F)…"
+msgid "Mount &folder…"
+msgstr "掛載資料夾(&F)…"
 
 msgid "Preferences"
 msgstr "偏好設定"
@@ -4366,3 +4366,27 @@ msgstr "四埠 USB 1.1 集線器"
 
 msgid "USB Mass Storage"
 msgstr "USB 大容量儲存裝置"
+
+msgid "Mount folder as a temporary floppy"
+msgstr ""
+
+msgid "The selected drive does not support folder mounting."
+msgstr ""
+
+msgid "The contents exceed the capacity of the configured floppy drive."
+msgstr ""
+
+msgid "The floppy is out of directory entries or space, or a filename cannot be represented on FAT12."
+msgstr ""
+
+msgid "The source contains a filename that cannot be represented on FAT12."
+msgstr ""
+
+msgid "There is not enough memory to create the floppy image."
+msgstr ""
+
+msgid "The source path is too long or its contents could not be read."
+msgstr ""
+
+msgid "Unable to mount folder or ZIP archive"
+msgstr ""

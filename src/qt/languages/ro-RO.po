@@ -326,8 +326,8 @@ msgstr "&Goală"
 msgid "Reload previous image"
 msgstr "Reîncarcă imaginea anterioară"
 
-msgid "&Folder…"
-msgstr "&Dosar…"
+msgid "Mount &folder…"
+msgstr "Montează &dosar…"
 
 msgid "Preferences"
 msgstr "Preferințe"
@@ -4406,4 +4406,28 @@ msgid "4-port USB 1.1 hub"
 msgstr ""
 
 msgid "USB Mass Storage"
+msgstr ""
+
+msgid "Mount folder as a temporary floppy"
+msgstr ""
+
+msgid "The selected drive does not support folder mounting."
+msgstr ""
+
+msgid "The contents exceed the capacity of the configured floppy drive."
+msgstr ""
+
+msgid "The floppy is out of directory entries or space, or a filename cannot be represented on FAT12."
+msgstr ""
+
+msgid "The source contains a filename that cannot be represented on FAT12."
+msgstr ""
+
+msgid "There is not enough memory to create the floppy image."
+msgstr ""
+
+msgid "The source path is too long or its contents could not be read."
+msgstr ""
+
+msgid "Unable to mount folder or ZIP archive"
 msgstr ""
