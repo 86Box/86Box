@@ -2067,8 +2067,15 @@ pmodeint(int num, int soft)
                                     PUSHL_SEL(ES);
                                 }
                                 if (cpu_state.abrt) {
-                                    int_stack_restore(&old_seg_ss, oldsp, old_stack32, old_status);
+                                    if (int_frame_fault_restores)
+                                        int_stack_restore(&old_seg_ss, oldsp, old_stack32, old_status);
                                     return;
+                                }
+                                if (!int_frame_fault_restores) {
+                                    null_data_seg(&cpu_state.seg_ds);
+                                    null_data_seg(&cpu_state.seg_es);
+                                    null_data_seg(&cpu_state.seg_fs);
+                                    null_data_seg(&cpu_state.seg_gs);
                                 }
                             }
                             is586 ? PUSHL(oldss) : PUSHL_SEL(oldss);
@@ -2077,10 +2084,11 @@ pmodeint(int num, int soft)
                             is586 ? PUSHL(CS) : PUSHL_SEL(CS);
                             PUSHL(cpu_state.pc);
                             if (cpu_state.abrt) {
-                                int_stack_restore(&old_seg_ss, oldsp, old_stack32, old_status);
+                                if (int_frame_fault_restores)
+                                    int_stack_restore(&old_seg_ss, oldsp, old_stack32, old_status);
                                 return;
                             }
-                            if (cpu_state.eflags & VM_FLAG) {
+                            if ((cpu_state.eflags & VM_FLAG) && int_frame_fault_restores) {
                                 /* Null selectors, as protected mode loads them
                                    (VM is still set, so loadseg would take its
                                    real-mode path): a use before reload is #GP */
@@ -2096,7 +2104,8 @@ pmodeint(int num, int soft)
                             PUSHW(CS);
                             PUSHW(cpu_state.pc);
                             if (cpu_state.abrt) {
-                                int_stack_restore(&old_seg_ss, oldsp, old_stack32, old_status);
+                                if (int_frame_fault_restores)
+                                    int_stack_restore(&old_seg_ss, oldsp, old_stack32, old_status);
                                 return;
                             }
                         }

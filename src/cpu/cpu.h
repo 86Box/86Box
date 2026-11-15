@@ -598,6 +598,7 @@ extern int retf_checks_eip_limit;
 extern int retf_stack_test;
 extern int call_far_stack_test;
 extern int call_far_checks_eip_limit;
+extern int int_frame_fault_restores;
 extern int is486;
 extern int is586;
 extern int is_am486;

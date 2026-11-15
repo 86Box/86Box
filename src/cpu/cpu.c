@@ -253,6 +253,7 @@ int retf_checks_eip_limit;
 int retf_stack_test;
 int call_far_stack_test;
 int call_far_checks_eip_limit;
+int int_frame_fault_restores;
 int is486 = 1;
 int is586 = 0;
 int cpu_isintel;
@@ -867,6 +868,56 @@ cpu_set(void)
             break;
         default:
             call_far_checks_eip_limit = CALL_FAR_TEST_NONE;
+            break;
+    }
+
+    /* A faulting push of an inner-level interrupt frame puts the stack of
+       the interrupted program back, and a virtual 8086 mode program keeps
+       DS, ES, FS and GS, only on the processors whose own manuals state
+       that a fault leaves the state from before the faulting instruction:
+       386DX PRM p. 9-2, 386SX PRM chapter 9 (the 386EX manual refers to
+       it), i486 PRM p. 9-2, Pentium manual (1995) vol. 3 p. 14-2 (the
+       P24T manual refers to it), the 1997 Intel Architecture manual vol. 3
+       section 5.3 and the 1999 one p. 5-4, Am386 data book (1992) p. 33,
+       Am486 Software User's Manual p. A-4, AMD-K5 Technical Reference
+       Manual p. 5-12, Cx486SLC and Cx486DLC data sheets p. 2-39, and the
+       instruction restart text of the 6x86, 6x86MX, M II and MediaGX MMX
+       data books. */
+    switch (cpu_s->cpu_type) {
+        case CPU_386DX:
+        case CPU_i486SX:
+        case CPU_Am486SX:
+        case CPU_i486DX:
+        case CPU_Am486DX:
+        case CPU_Am486DXL:
+        case CPU_i486SX_SLENH:
+        case CPU_i486DX_SLENH:
+        case CPU_ENH_Am486DX:
+        case CPU_P24T:
+        case CPU_PENTIUM:
+        case CPU_PENTIUMMMX:
+        case CPU_Cx6x86:
+        case CPU_Cx6x86MX:
+        case CPU_Cx6x86L:
+        case CPU_CxGX1:
+        case CPU_K5:
+        case CPU_5K86:
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            int_frame_fault_restores = 1;
+            break;
+        case CPU_386SX:
+            /* Not the M6117. */
+            int_frame_fault_restores = !is6117;
+            break;
+        case CPU_486SLC:
+        case CPU_486DLC:
+            /* Not the clock-doubled Cx486SRx2 / DRx2 (DIR0 06h / 07h). */
+            int_frame_fault_restores = (cpu_s->cyrix_id <= 0x0001);
+            break;
+        default:
+            int_frame_fault_restores = 0;
             break;
     }
 
