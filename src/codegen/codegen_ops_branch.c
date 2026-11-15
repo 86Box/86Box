@@ -87,6 +87,33 @@ jcc_exit(ir_data_t *ir, uint32_t dest_addr)
     uop_NOP_BARRIER(ir);
 }
 
+/* A Jcc taken in the compile pass whose block can go on at its target
+   (codegen_trace_jcc_can, set by ropJ before the _common handler): the
+   handler lays it out as an unrolled loop's branch, leaving by a side exit
+   when not taken, and returns 1 so compiling goes on at the target. */
+static int jcc_trace;
+
+static int
+jcc_can_go_on(codeblock_t *block, ir_data_t *ir, uint32_t next_pc, uint32_t dest_addr)
+{
+    return codegen_can_unroll(block, ir, next_pc, dest_addr) || jcc_trace;
+}
+
+static void
+jcc_trace_start(codeblock_t *block, uint32_t op_pc, int size, uint32_t dest_addr)
+{
+    /* 0 from a handler means it compiled nothing (codegen_can_unroll) */
+    jcc_trace = dest_addr && codegen_trace_jcc_can(block, cs + op_pc + size, cs + dest_addr);
+}
+
+static void
+jcc_trace_end(codeblock_t *block, ir_data_t *ir, uint32_t op_pc, int size, uint32_t dest_addr, int ret)
+{
+    if (ret && jcc_trace && !codegen_ir_unrolling())
+        codegen_trace_jcc_take(block, ir, cs + op_pc + size, cs + dest_addr);
+    jcc_trace = 0;
+}
+
 static int
 NF_SET_01(void)
 {
@@ -183,7 +210,7 @@ ropJB_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t nex
 {
     int jump_uop;
     int cf_reg;
-    int do_unroll = (CF_SET() && codegen_can_unroll(block, ir, next_pc, dest_addr));
+    int do_unroll = (CF_SET() && jcc_can_go_on(block, ir, next_pc, dest_addr));
 
     if (codegen_flags_changed && (cpu_state.flags_op != FLAGS_UNKNOWN))
         codegen_flags_known_use(ir, 0);
@@ -261,7 +288,7 @@ ropJNB_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t ne
 {
     int jump_uop;
     int cf_reg;
-    int do_unroll = (!CF_SET() && codegen_can_unroll(block, ir, next_pc, dest_addr));
+    int do_unroll = (!CF_SET() && jcc_can_go_on(block, ir, next_pc, dest_addr));
 
     if (codegen_flags_changed && (cpu_state.flags_op != FLAGS_UNKNOWN))
         codegen_flags_known_use(ir, 0);
@@ -343,7 +370,7 @@ ropJE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t nex
     int jump_uop;
     int zf_reg;
 
-    if (ZF_SET() && codegen_can_unroll(block, ir, next_pc, dest_addr)) {
+    if (ZF_SET() && jcc_can_go_on(block, ir, next_pc, dest_addr)) {
         if (codegen_flags_changed && flags_res_valid())
             codegen_flags_known_use(ir, 0);
         if (!codegen_flags_changed || !flags_res_valid()) {
@@ -376,7 +403,7 @@ ropJNE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t ne
     int jump_uop;
     int zf_reg;
 
-    if (!ZF_SET() && codegen_can_unroll(block, ir, next_pc, dest_addr)) {
+    if (!ZF_SET() && jcc_can_go_on(block, ir, next_pc, dest_addr)) {
         if (codegen_flags_changed && flags_res_valid())
             codegen_flags_known_use(ir, 0);
         if (!codegen_flags_changed || !flags_res_valid()) {
@@ -410,7 +437,7 @@ ropJBE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t ne
     int jump_uop;
     int jump_uop2 = -1;
     int flag_reg;
-    int do_unroll = ((CF_SET() || ZF_SET()) && codegen_can_unroll(block, ir, next_pc, dest_addr));
+    int do_unroll = ((CF_SET() || ZF_SET()) && jcc_can_go_on(block, ir, next_pc, dest_addr));
 
     if (codegen_flags_changed && (cpu_state.flags_op != FLAGS_UNKNOWN))
         codegen_flags_known_use(ir, 0);
@@ -503,7 +530,7 @@ ropJNBE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t n
     int jump_uop;
     int jump_uop2 = -1;
     int flag_reg;
-    int do_unroll = ((!CF_SET() && !ZF_SET()) && codegen_can_unroll(block, ir, next_pc, dest_addr));
+    int do_unroll = ((!CF_SET() && !ZF_SET()) && jcc_can_go_on(block, ir, next_pc, dest_addr));
 
     if (codegen_flags_changed && (cpu_state.flags_op != FLAGS_UNKNOWN))
         codegen_flags_known_use(ir, 0);
@@ -594,7 +621,7 @@ static int
 ropJS_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t next_pc)
 {
     int jump_uop;
-    int do_unroll = (NF_SET() && codegen_can_unroll(block, ir, next_pc, dest_addr));
+    int do_unroll = (NF_SET() && jcc_can_go_on(block, ir, next_pc, dest_addr));
 
     if (codegen_flags_changed && (cpu_state.flags_op != FLAGS_UNKNOWN))
         codegen_flags_known_use(ir, 0);
@@ -662,7 +689,7 @@ static int
 ropJNS_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t next_pc)
 {
     int jump_uop;
-    int do_unroll = (!NF_SET() && codegen_can_unroll(block, ir, next_pc, dest_addr));
+    int do_unroll = (!NF_SET() && jcc_can_go_on(block, ir, next_pc, dest_addr));
 
     if (codegen_flags_changed && (cpu_state.flags_op != FLAGS_UNKNOWN))
         codegen_flags_known_use(ir, 0);
@@ -754,7 +781,7 @@ static int
 ropJL_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t next_pc)
 {
     int jump_uop;
-    int do_unroll = ((NF_SET() ? 1 : 0) != (VF_SET() ? 1 : 0) && codegen_can_unroll(block, ir, next_pc, dest_addr));
+    int do_unroll = ((NF_SET() ? 1 : 0) != (VF_SET() ? 1 : 0) && jcc_can_go_on(block, ir, next_pc, dest_addr));
 
     if (codegen_flags_changed && (cpu_state.flags_op != FLAGS_UNKNOWN))
         codegen_flags_known_use(ir, 0);
@@ -825,7 +852,7 @@ static int
 ropJNL_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t next_pc)
 {
     int jump_uop;
-    int do_unroll = ((NF_SET() ? 1 : 0) == (VF_SET() ? 1 : 0) && codegen_can_unroll(block, ir, next_pc, dest_addr));
+    int do_unroll = ((NF_SET() ? 1 : 0) == (VF_SET() ? 1 : 0) && jcc_can_go_on(block, ir, next_pc, dest_addr));
 
     if (codegen_flags_changed && (cpu_state.flags_op != FLAGS_UNKNOWN))
         codegen_flags_known_use(ir, 0);
@@ -898,7 +925,7 @@ ropJLE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t ne
 {
     int jump_uop;
     int jump_uop2 = -1;
-    int do_unroll = (((NF_SET() ? 1 : 0) != (VF_SET() ? 1 : 0) || ZF_SET()) && codegen_can_unroll(block, ir, next_pc, dest_addr));
+    int do_unroll = (((NF_SET() ? 1 : 0) != (VF_SET() ? 1 : 0) || ZF_SET()) && jcc_can_go_on(block, ir, next_pc, dest_addr));
 
     if (codegen_flags_changed && (cpu_state.flags_op != FLAGS_UNKNOWN))
         codegen_flags_known_use(ir, 0);
@@ -968,7 +995,7 @@ ropJNLE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t n
 {
     int jump_uop;
     int jump_uop2 = -1;
-    int do_unroll = ((NF_SET() ? 1 : 0) == (VF_SET() ? 1 : 0) && !ZF_SET() && codegen_can_unroll(block, ir, next_pc, dest_addr));
+    int do_unroll = ((NF_SET() ? 1 : 0) == (VF_SET() ? 1 : 0) && !ZF_SET() && jcc_can_go_on(block, ir, next_pc, dest_addr));
 
     if (codegen_flags_changed && (cpu_state.flags_op != FLAGS_UNKNOWN))
         codegen_flags_known_use(ir, 0);
@@ -1050,7 +1077,9 @@ ropJNLE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t n
             dest_addr &= 0xffff;                                        \
         jcc_dynamic_start(block, op_pc, 1, op_pc + 1,                   \
                           !(op_32 & 0x100));                            \
+        jcc_trace_start(block, op_pc, 1, dest_addr);                    \
         ret = ropJ##cond##_common(block, ir, dest_addr, op_pc + 1);     \
+        jcc_trace_end(block, ir, op_pc, 1, dest_addr, ret);             \
         jcc_dynamic_end(block, op_pc, ret);                             \
                                                                         \
         return ret ? dest_addr : (op_pc + 1);                           \
@@ -1067,7 +1096,9 @@ ropJNLE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t n
         int      ret;                                                   \
                                                                         \
         jcc_dynamic_start(block, op_pc, 2, op_pc + 2, 1);               \
+        jcc_trace_start(block, op_pc, 2, dest_addr);                    \
         ret = ropJ##cond##_common(block, ir, dest_addr, op_pc + 2);     \
+        jcc_trace_end(block, ir, op_pc, 2, dest_addr, ret);             \
         jcc_dynamic_end(block, op_pc, ret);                             \
                                                                         \
         return ret ? dest_addr : (op_pc + 2);                           \
@@ -1084,7 +1115,9 @@ ropJNLE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t n
         int      ret;                                                   \
                                                                         \
         jcc_dynamic_start(block, op_pc, 4, op_pc + 4, 0);               \
+        jcc_trace_start(block, op_pc, 4, dest_addr);                    \
         ret = ropJ##cond##_common(block, ir, dest_addr, op_pc + 4);     \
+        jcc_trace_end(block, ir, op_pc, 4, dest_addr, ret);             \
         jcc_dynamic_end(block, op_pc, ret);                             \
                                                                         \
         return ret ? dest_addr : (op_pc + 4);                           \
