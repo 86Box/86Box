@@ -827,6 +827,7 @@ voodoo_codegen_tiled_key(const voodoo_params_t *params)
     return (params->col_tiled ? 1 : 0) | (params->aux_tiled ? 2 : 0);
 }
 
+#if (defined __amd64__ || defined _M_X64)
 /*Whether a block needs a_other, a_local and the combined alpha: for the alpha test, alpha blending,
   the alpha mask, the colour combine, or the alpha planes.*/
 static inline int
@@ -843,7 +844,6 @@ voodoo_codegen_alpha_used(const voodoo_params_t *params)
     return (params->fbzMode & (FBZ_DEPTH_WMASK | FBZ_ALPHA_ENABLE)) == (FBZ_DEPTH_WMASK | FBZ_ALPHA_ENABLE);
 }
 
-#if (defined __amd64__ || defined _M_X64)
 #    include <86box/vid_voodoo_codegen_x86-64.h>
 #elif (defined __aarch64__ || defined _M_ARM64)
 #    include <86box/vid_voodoo_codegen_arm64.h>
