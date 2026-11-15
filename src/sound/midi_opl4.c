@@ -30,15 +30,26 @@
 typedef struct
 {
     uint8_t instrument;
-    uint8_t panpot;
+    int8_t  panpot;
     uint8_t vibrato;
+    uint8_t volume;
+    uint8_t expression;
+    uint8_t rpn_msb;
+    uint8_t rpn_lsb;
+    uint8_t bend_semitones;
+    uint8_t bend_cents;
     int16_t pitch_bend;
+    int16_t fine_tuning;
+    int8_t  coarse_tuning;
+    bool    sustain;
+    bool    reverb;
     bool    drum_channel;
 } MIDI_CHANNEL_DATA;
 
 typedef struct
 {
     bool     is_active;
+    bool     held;
     bool     key_on_pending;
     bool     key_off_pending;
     uint64_t key_change_frame;
@@ -283,6 +294,7 @@ static const uint8_t g_volume_table[128] = {
 #define RENDER_FRAMES    (FREQ_48000 * POLL_INTERVAL_US / 1000000)
 #define BUFFER_SAMPLES   (RENDER_FRAMES * 2 * BUFFER_SEGMENTS)
 #define KEY_OFF_FRAMES   3
+#define PAN_MUTE         0x08
 
 typedef struct opl4_midi {
     fm_drv_t          opl4;
@@ -295,6 +307,7 @@ typedef struct opl4_midi {
     uint32_t          block_frames;
     uint64_t          rendered_frames;
     uint64_t          note_sequence;
+    uint8_t           master_attenuation;
 } opl4_midi_t;
 
 static opl4_midi_t *opl4_midi_cur;
@@ -366,6 +379,12 @@ get_voice(const YRW801_WAVE_DATA *wave_data, opl4_midi_t *opl4_midi, uint32_t re
     return oldest;
 }
 
+static bool
+voice_is_muted(const VOICE_DATA *voice, const opl4_midi_t *opl4_midi)
+{
+    return !voice->midi_channel->volume || !voice->midi_channel->expression || opl4_midi->master_attenuation == UINT8_MAX;
+}
+
 static void
 update_pan(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
 {
@@ -378,20 +397,27 @@ update_pan(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
     else if (pan > 7)
         pan = 7;
 
-    voice->reg_misc = (voice->reg_misc & ~OPL4_PAN_POT_MASK) | (pan & OPL4_PAN_POT_MASK);
+    const uint8_t pan_code = voice_is_muted(voice, opl4_midi) ? PAN_MUTE : pan & OPL4_PAN_POT_MASK;
+    voice->reg_misc = (voice->reg_misc & ~OPL4_PAN_POT_MASK) | pan_code;
     opl4_write_wave_register(OPL4_REG_MISC + voice->number, voice->reg_misc, opl4_midi);
 }
 
 static void
-update_pitch(VOICE_DATA *voice, int16_t pitch_bend, opl4_midi_t *opl4_midi)
+update_pitch(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
 {
-    int32_t pitch = voice->midi_channel->drum_channel ? 0 : (voice->note - 60) * 128;
+    const MIDI_CHANNEL_DATA *channel = voice->midi_channel;
+    int32_t pitch = channel->drum_channel ? 0 : (voice->note - 60) * 128;
     pitch         = pitch * (int) voice->wave_data->key_scaling / 100;
     pitch         = pitch + 7680;
     pitch += voice->wave_data->pitch_offset;
-    pitch += pitch_bend * 256 / 0x2000;
-    if (pitch < 0)
-        pitch = 0;
+    if (!channel->drum_channel) {
+        const int range = channel->bend_semitones * 100 + channel->bend_cents;
+        pitch += (int64_t) channel->pitch_bend * range / (64 * 100);
+        pitch += channel->fine_tuning * 128 / 8192 + channel->coarse_tuning * 128;
+    }
+    /* Yamaha reserves octave code 8. The lowest playable octave is -7. */
+    if (pitch < 0x600)
+        pitch = 0x600;
     else if (pitch > 0x5FFF)
         pitch = 0x5FFF;
 
@@ -407,33 +433,40 @@ update_pitch(VOICE_DATA *voice, int16_t pitch_bend, opl4_midi_t *opl4_midi)
         rate += (octave + correction) * 2 + (fnumber >> 9);
     voice->release_rate = rate < 0 ? 0 : (rate > 63 ? 63 : rate);
 
-    opl4_write_wave_register(OPL4_REG_OCTAVE + voice->number, ((octave & 0x0F) << 4) | ((fnumber >> 7) & 0x07), opl4_midi);
+    const uint8_t reverb = channel->reverb ? OPL4_PSEUDO_REVERB_BIT : 0;
+    opl4_write_wave_register(OPL4_REG_OCTAVE + voice->number, ((octave & 0x0F) << 4) | reverb | (fnumber >> 7), opl4_midi);
     voice->reg_f_number = (voice->reg_f_number & OPL4_TONE_NUMBER_BIT8) | ((fnumber << 1) & OPL4_F_NUMBER_LOW_MASK);
     opl4_write_wave_register(OPL4_REG_F_NUMBER + voice->number, voice->reg_f_number, opl4_midi);
 }
 
-void
+static void
 update_volume(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
 {
-    int16_t att = voice->wave_data->tone_attenuate;
+    const MIDI_CHANNEL_DATA *channel = voice->midi_channel;
+    int att = voice->wave_data->tone_attenuate;
 
     att += g_volume_table[voice->velocity];
     att = 0x7F - (0x7F - att) * (voice->wave_data->volume_factor) / 0xFE;
     att -= 16;
-    if (att < 0)
-        att = 0;
-    else if (att > 0x7E)
-        att = 0x7E;
+    att = MAX(0, att);
+    att += g_volume_table[channel->volume] + g_volume_table[channel->expression] +
+           opl4_midi->master_attenuation;
+    att = MIN(0x7F, att);
 
     opl4_write_wave_register(OPL4_REG_LEVEL + voice->number, (att << 1) | voice->level_direct, opl4_midi);
     voice->level_direct = 0;
     voice->attenuation = att;
+
+    /* Even maximum total-level attenuation remains audible. */
+    if (((voice->reg_misc & OPL4_PAN_POT_MASK) == PAN_MUTE) != voice_is_muted(voice, opl4_midi))
+        update_pan(voice, opl4_midi);
 }
 
 static void
 release_voice(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
 {
     voice->is_active = false;
+    voice->held = false;
     voice->has_release_tail = true;
     voice->released_frame = opl4_midi->rendered_frames;
     voice->key_off_pending = false;
@@ -441,38 +474,49 @@ release_voice(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
     opl4_write_wave_register(OPL4_REG_MISC + voice->number, voice->reg_misc, opl4_midi);
 }
 
-void
-note_off(uint8_t note, uint8_t velocity, MIDI_CHANNEL_DATA *midi_channel, opl4_midi_t *opl4_midi)
+static void
+queue_key_off(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
 {
-    /* Velocity not used */
-    (void) velocity;
+    if (voice->key_on_pending || voice->key_change_frame > opl4_midi->rendered_frames)
+        voice->key_off_pending = true;
+    else
+        release_voice(voice, opl4_midi);
+}
 
-    for (uint8_t i = 0; i < 24; i++) {
+static void
+note_off(uint8_t note, MIDI_CHANNEL_DATA *midi_channel, opl4_midi_t *opl4_midi)
+{
+    uint64_t oldest = UINT64_MAX;
+    for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
         VOICE_DATA *voice = &opl4_midi->voice_data[i];
-        if (voice->is_active && voice->midi_channel == midi_channel && voice->note == note) {
-            if (voice->key_on_pending || voice->key_change_frame > opl4_midi->rendered_frames)
-                voice->key_off_pending = true;
-            else
-                release_voice(voice, opl4_midi);
+        if (voice->held && voice->midi_channel == midi_channel && voice->note == note)
+            oldest = MIN(oldest, voice->activated);
+    }
+    for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
+        VOICE_DATA *voice = &opl4_midi->voice_data[i];
+        if (voice->held && voice->activated == oldest) {
+            voice->held = false;
+            if (!midi_channel->sustain)
+                queue_key_off(voice, opl4_midi);
         }
     }
 }
 
-void
+static void
 update_vibrato_depth(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
 {
     uint16_t depth = voice->reg_lfo_vibrato & OPL4_VIBRATO_DEPTH_MASK;
 
     if (!voice->midi_channel->drum_channel) {
         depth = voice->wave_data->vibrato;
-        depth += ((7 - depth) * (voice->midi_channel->vibrato & 0x7F)) >> 7;
+        depth += (7 - depth) * voice->midi_channel->vibrato / 127;
     }
     voice->reg_lfo_vibrato &= ~OPL4_VIBRATO_DEPTH_MASK;
     voice->reg_lfo_vibrato |= depth & OPL4_VIBRATO_DEPTH_MASK;
     opl4_write_wave_register(OPL4_REG_LFO_VIBRATO + voice->number, voice->reg_lfo_vibrato, opl4_midi);
 }
 
-void
+static void
 note_on(uint8_t note, uint8_t velocity, MIDI_CHANNEL_DATA *midi_channel, opl4_midi_t *opl4_midi)
 {
     const YRW801_REGION_DATA_PTR *instrument = &snd_yrw801_regions[midi_channel->drum_channel ? 0x80 : midi_channel->instrument];
@@ -492,6 +536,7 @@ note_on(uint8_t note, uint8_t velocity, MIDI_CHANNEL_DATA *midi_channel, opl4_mi
     }
 
     uint32_t reserved = 0;
+    const uint64_t sequence = ++opl4_midi->note_sequence;
     for (i = 0; i < voices; i++) {
         voice[i] = get_voice(wave_data[i], opl4_midi, reserved);
         reserved |= 1U << voice[i]->number;
@@ -503,7 +548,8 @@ note_on(uint8_t note, uint8_t velocity, MIDI_CHANNEL_DATA *midi_channel, opl4_mi
             release_voice(slot, opl4_midi);
 
         slot->is_active = true;
-        slot->activated = ++opl4_midi->note_sequence;
+        slot->held = true;
+        slot->activated = sequence;
         slot->key_off_pending = false;
         slot->key_on_pending = true;
         /* Give the chip time to clock a stolen voice's key-off. */
@@ -529,7 +575,7 @@ program_voice(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
     voice->wave_data = wave;
     voice->reg_misc = OPL4_LFO_RESET_BIT;
     update_pan(voice, opl4_midi);
-    update_pitch(voice, voice->midi_channel->pitch_bend, opl4_midi);
+    update_pitch(voice, opl4_midi);
     voice->level_direct = OPL4_LEVEL_DIRECT_BIT;
     update_volume(voice, opl4_midi);
 
@@ -543,56 +589,142 @@ program_voice(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
     update_vibrato_depth(voice, opl4_midi);
 }
 
-void
-control_change(uint8_t midi_channel, uint8_t id, uint8_t value, opl4_midi_t *opl4_midi)
+static void
+silence_voice(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
 {
-    switch (id) {
-        case 10:
-            /* Change stereo panning */
-            if (midi_channel != DRUM_CHANNEL) {
-                opl4_midi->midi_channel_data[midi_channel].panpot = (value - 0x40) >> 3;
-                for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
-                    if (opl4_midi->voice_data[i].is_active && !opl4_midi->voice_data[i].key_on_pending &&
-                        opl4_midi->voice_data[i].midi_channel == &opl4_midi->midi_channel_data[midi_channel]) {
-                        update_pan(&opl4_midi->voice_data[i], opl4_midi);
-                    }
-                }
-            }
-            break;
-    }
+    voice->is_active = false;
+    voice->held = false;
+    voice->key_on_pending = false;
+    voice->key_off_pending = false;
+    voice->has_release_tail = false;
+    voice->reg_misc = OPL4_DAMP_BIT | PAN_MUTE;
+    opl4_write_wave_register(OPL4_REG_MISC + voice->number, voice->reg_misc, opl4_midi);
 }
 
-void
-pitch_wheel(uint8_t midi_channel, uint16_t value, opl4_midi_t *opl4_midi)
+static void
+update_channel_pitch(MIDI_CHANNEL_DATA *channel, opl4_midi_t *opl4_midi)
 {
-    MIDI_CHANNEL_DATA *channel = &opl4_midi->midi_channel_data[midi_channel];
-    channel->pitch_bend = (int) value - 0x2000;
     for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
         VOICE_DATA *voice = &opl4_midi->voice_data[i];
         if (voice->is_active && !voice->key_on_pending && voice->midi_channel == channel)
-            update_pitch(voice, channel->pitch_bend, opl4_midi);
+            update_pitch(voice, opl4_midi);
     }
 }
 
-void
-channel_pressure(uint8_t midi_channel, uint8_t pressure)
+static void
+data_entry(MIDI_CHANNEL_DATA *channel, uint8_t id, uint8_t value, opl4_midi_t *opl4_midi)
 {
-    (void) midi_channel;
-    (void) pressure;
+    if (channel->rpn_msb != 0)
+        return;
+
+    switch (channel->rpn_lsb) {
+        case 0: /* Pitch bend sensitivity */
+            if (id == 6)
+                channel->bend_semitones = value;
+            else
+                channel->bend_cents = MIN(value, 99);
+            break;
+        case 1: { /* Channel fine tuning */
+            int tuning = channel->fine_tuning + 8192;
+            tuning = id == 6 ? (value << 7) | (tuning & 0x7f) : (tuning & 0x3f80) | value;
+            channel->fine_tuning = tuning - 8192;
+            break;
+        }
+        case 2: /* Channel coarse tuning */
+            if (id == 6)
+                channel->coarse_tuning = value - 64;
+            break;
+        default:
+            return;
+    }
+    update_channel_pitch(channel, opl4_midi);
 }
 
-void
-key_pressure(uint8_t midi_channel, uint8_t note, uint8_t pressure)
+static void
+control_change(MIDI_CHANNEL_DATA *channel, uint8_t id, uint8_t value, opl4_midi_t *opl4_midi)
 {
-    (void) midi_channel;
-    (void) note;
-    (void) pressure;
-}
+    switch (id) {
+        case 1:
+            channel->vibrato = value;
+            break;
+        case 6:
+        case 38:
+            data_entry(channel, id, value, opl4_midi);
+            return;
+        case 7:
+            channel->volume = value;
+            break;
+        case 10:
+            channel->panpot = (value >> 3) - 8;
+            break;
+        case 11:
+            channel->expression = value;
+            break;
+        case 64:
+            channel->sustain = value >= 64;
+            break;
+        case 91:
+            channel->reverb = value >= 64;
+            update_channel_pitch(channel, opl4_midi);
+            return;
+        case 98:
+        case 99: /* NRPN selection cancels the RPN selection. */
+            channel->rpn_msb = channel->rpn_lsb = 127;
+            return;
+        case 100:
+            channel->rpn_lsb = value;
+            return;
+        case 101:
+            channel->rpn_msb = value;
+            return;
+        case 121:
+            channel->sustain = false;
+            channel->vibrato = 0;
+            channel->expression = 127;
+            channel->pitch_bend = 0;
+            channel->rpn_msb = channel->rpn_lsb = 127;
+            break;
+        case 120:
+        case 123:
+        case 124:
+        case 125:
+        case 126:
+        case 127:
+            break;
+        default:
+            return;
+    }
 
-void
-program_change(uint8_t midi_channel, uint8_t program, opl4_midi_t *opl4_midi)
-{
-    opl4_midi->midi_channel_data[midi_channel].instrument = program;
+    for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
+        VOICE_DATA *voice = &opl4_midi->voice_data[i];
+        if (voice->midi_channel != channel)
+            continue;
+        if (id == 120 && (voice->is_active || voice->has_release_tail)) {
+            silence_voice(voice, opl4_midi);
+            continue;
+        }
+        if (!voice->is_active) {
+            if (voice->has_release_tail && (id == 7 || id == 11 || id == 121))
+                update_volume(voice, opl4_midi);
+            continue;
+        }
+        if (id >= 123)
+            voice->held = false;
+        if (id >= 121 || id == 64) {
+            if (!voice->held && !channel->sustain && !voice->key_off_pending)
+                queue_key_off(voice, opl4_midi);
+        }
+        if (voice->key_on_pending)
+            continue;
+        if (id == 1 || id == 121)
+            update_vibrato_depth(voice, opl4_midi);
+        if (id == 7 || id == 11 || id == 121)
+            update_volume(voice, opl4_midi);
+        if (id == 10)
+            update_pan(voice, opl4_midi);
+        if (id == 121)
+            update_pitch(voice, opl4_midi);
+    }
 }
 
 static void
@@ -658,56 +790,100 @@ opl4_midi_poll(void *priv)
     }
 }
 
-void
-opl4_midi_msg(uint8_t *val)
+static void
+render_elapsed(opl4_midi_t *opl4_midi)
 {
-    opl4_midi_t *opl4_midi = opl4_midi_cur;
-
-    uint8_t data_byte_1 = val[0];
-    uint8_t data_byte_2 = val[1];
-    uint8_t data_byte_3 = val[2];
-
-    uint8_t midi_channel = data_byte_1 & 0x0F;
-    uint8_t midi_command = data_byte_1 >> 4;
-
-    if (midi_command < 0x8 || midi_command > 0xE)
-        return;
-
-    /* Finish the elapsed part of this block before changing chip registers. */
     const uint64_t remaining = timer_get_remaining_us(&opl4_midi->poll_timer);
     if (remaining < POLL_INTERVAL_US)
         opl4_render(opl4_midi, (POLL_INTERVAL_US - remaining) * RENDER_FRAMES / POLL_INTERVAL_US);
+}
+
+static void
+reset_channels(opl4_midi_t *opl4_midi)
+{
+    for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
+        VOICE_DATA *voice = &opl4_midi->voice_data[i];
+        if (voice->is_active || voice->has_release_tail)
+            silence_voice(voice, opl4_midi);
+    }
+    for (uint8_t i = 0; i < NR_OF_MIDI_CHANNELS; i++) {
+        opl4_midi->midi_channel_data[i] = (MIDI_CHANNEL_DATA) {
+            .volume = 100,
+            .expression = 127,
+            .rpn_msb = 127,
+            .rpn_lsb = 127,
+            .bend_semitones = 2,
+            .drum_channel = i == DRUM_CHANNEL
+        };
+    }
+    opl4_midi->master_attenuation = 0;
+}
+
+static void
+opl4_midi_msg(uint8_t *val)
+{
+    opl4_midi_t *opl4_midi = opl4_midi_cur;
+    const uint8_t midi_command = val[0] >> 4;
+
+    if (val[0] == 0xff) {
+        render_elapsed(opl4_midi);
+        reset_channels(opl4_midi);
+        return;
+    }
+
+    if (midi_command < 0x8 || midi_command > 0xE || midi_command == 0xA || midi_command == 0xD)
+        return;
+
+    MIDI_CHANNEL_DATA *channel = &opl4_midi->midi_channel_data[val[0] & 0x0f];
+    const uint8_t data_byte_2 = val[1] & 0x7f;
+    /* Finish the elapsed part of this block before changing chip registers. */
+    render_elapsed(opl4_midi);
 
     switch (midi_command) {
         case 0x8: // Note OFF
-            note_off(data_byte_2 & 0x7F, data_byte_3, &opl4_midi->midi_channel_data[midi_channel], opl4_midi);
+            note_off(data_byte_2, channel, opl4_midi);
             break;
         case 0x9: // Note ON
-            if (data_byte_3 & 0x7F)
-                note_on(data_byte_2 & 0x7F, data_byte_3, &opl4_midi->midi_channel_data[midi_channel], opl4_midi);
+            if (val[2] & 0x7f)
+                note_on(data_byte_2, val[2] & 0x7f, channel, opl4_midi);
             else
-                note_off(data_byte_2 & 0x7F, 0, &opl4_midi->midi_channel_data[midi_channel], opl4_midi);
-            break;
-        case 0xA: // Key after-touch
+                note_off(data_byte_2, channel, opl4_midi);
             break;
         case 0xB: // Control change
-            control_change(midi_channel, data_byte_2, data_byte_3, opl4_midi);
+            control_change(channel, data_byte_2, val[2] & 0x7f, opl4_midi);
             break;
         case 0xC: // Program change
-            program_change(midi_channel, data_byte_2 & 0x7F, opl4_midi);
-            break;
-        case 0xD: // Channel after-touch
+            channel->instrument = data_byte_2;
             break;
         case 0xE: // Pitch wheel
-            pitch_wheel(midi_channel, ((data_byte_3 & 0x7F) << 7) | (data_byte_2 & 0x7F), opl4_midi);
+            channel->pitch_bend = (((val[2] & 0x7f) << 7) | data_byte_2) - 8192;
+            update_channel_pitch(channel, opl4_midi);
             break;
     }
 }
 
-void
-opl4_midi_sysex(UNUSED(uint8_t *data), UNUSED(unsigned int len))
+static void
+opl4_midi_sysex(uint8_t *data, unsigned int len)
 {
-    //
+    opl4_midi_t *opl4_midi = opl4_midi_cur;
+
+    if (len < 6 || data[0] != 0xf0 || data[len - 1] != 0xf7)
+        return;
+
+    if (len == 6 && data[1] == 0x7e && data[3] == 0x09 && data[4] == 0x01) {
+        render_elapsed(opl4_midi);
+        reset_channels(opl4_midi);
+    } else if (len == 8 && data[1] == 0x7f && data[3] == 0x04 && data[4] == 0x01) {
+        render_elapsed(opl4_midi);
+        const unsigned int level = ((data[6] & 0x7f) << 7) | (data[5] & 0x7f);
+        /* Match the channel volume curve in the chip's 0.375 dB steps. */
+        opl4_midi->master_attenuation = level ? MIN(127, lround(-40.0 * log10(level / 16383.0) / 0.375)) : UINT8_MAX;
+        for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
+            VOICE_DATA *voice = &opl4_midi->voice_data[i];
+            if ((voice->is_active || voice->has_release_tail) && !voice->key_on_pending)
+                update_volume(voice, opl4_midi);
+        }
+    }
 }
 
 void *
@@ -730,7 +906,7 @@ opl4_init(UNUSED(const device_t *info))
     opl4_midi_cur->opl4.write(0x38A, 0x05, opl4_midi_cur->opl4.priv);
     opl4_midi_cur->opl4.write(0x389, 0x3, opl4_midi_cur->opl4.priv);
 
-    opl4_midi_cur->midi_channel_data[9].drum_channel = true;
+    reset_channels(opl4_midi_cur);
 
     for (uint8_t voice = 0; voice < NR_OF_WAVE_CHANNELS; voice++) {
         opl4_midi_cur->voice_data[voice].number          = voice;

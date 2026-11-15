@@ -1653,6 +1653,7 @@ void ymf278b::reset()
 	// reset the engines
 	m_fm.reset();
 	m_pcm.reset();
+	m_load_remaining = 0;
 
 	// next status read will return ID
 	m_next_status_id = true;

@@ -256,11 +256,17 @@ public:
 
     virtual void write(uint16_t addr, uint8_t data) override
     {
+        // Render elapsed samples before a guest PCM data write changes the voice.
+        if (m_type == FM_YMF278B && (addr & 7) == 5)
+            update();
         m_chip.write(addr, data);
     }
 
     virtual uint8_t read(uint16_t addr) override
     {
+        // Advance the wavetable header load before reporting the LD flag.
+        if (m_type == FM_YMF278B && (addr & 7) == 0)
+            update();
         return m_chip.read(addr);
     }
 
