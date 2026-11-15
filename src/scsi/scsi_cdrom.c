@@ -1479,7 +1479,7 @@ scsi_cdrom_insert_blank(void *priv)
 {
     scsi_cdrom_t *dev = (scsi_cdrom_t *) priv;
 
-    if ((dev == NULL) /*|| (dev->drv == NULL)*/)
+    if (dev == NULL)
         return;
 
     scsi_cdrom_log(dev->log, "Inserting blank disc\n");
@@ -5026,10 +5026,10 @@ scsi_cdrom_phase_data_out(scsi_common_t *sc)
                 }
             }
             break;
-        case GPCMD_SEND_CUE_SHEET:
+        case GPCMD_SEND_CUE_SHEET: {
             int data_length = dev->current_cdb[6] << 16 |
-                                    dev->current_cdb[7] << 8 |
-                                   dev->current_cdb[8];
+                              dev->current_cdb[7] << 8 |
+                              dev->current_cdb[8];
             ret = cdrom_send_cuesheet(dev->drv, dev->buffer, data_length);
 
             if (ret) {
@@ -5040,6 +5040,7 @@ scsi_cdrom_phase_data_out(scsi_common_t *sc)
 
             scsi_cdrom_buf_free(dev);
             break;
+        }
         case GPCMD_FORMAT_UNIT: {
             const uint32_t blocks = ((uint32_t) dev->buffer[4] << 24) | (dev->buffer[5] << 16) |
                                     (dev->buffer[6] << 8) | dev->buffer[7];
