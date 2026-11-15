@@ -74,7 +74,8 @@
                 "MOLTENVK_DIR": "/opt/homebrew/opt/molten-vk",
                 "Qt5LinguistTools_DIR": "/opt/homebrew/opt/qt@5/lib/cmake/Qt5LinguistTools",
                 "OpenAL_ROOT": "/opt/homebrew/opt/openal-soft",
-                "LIBSERIALPORT_ROOT": "/opt/homebrew/opt/libserialport"
+                "LIBSERIALPORT_ROOT": "/opt/homebrew/opt/libserialport",
+                "LibArchive_ROOT": "/opt/homebrew/opt/libarchive"
             },
             "inherits": "regular"
         },
@@ -91,6 +92,7 @@
                 "Qt5LinguistTools_DIR": "/opt/homebrew/opt/qt@5/lib/cmake/Qt5LinguistTools",
                 "OpenAL_ROOT": "/opt/homebrew/opt/openal-soft",
                 "LIBSERIALPORT_ROOT": "/opt/homebrew/opt/libserialport",
+                "LibArchive_ROOT": "/opt/homebrew/opt/libarchive",
                 "CMAKE_CXX_FLAGS_DEBUG": "-g -O0 -DENABLE_VDE_LOG",
                 "CMAKE_C_FLAGS_DEBUG": "-g -O0 -DENABLE_VDE_LOG"
             },

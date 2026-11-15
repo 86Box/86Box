@@ -76,6 +76,7 @@ AppDir:
     - sourceline: 'deb http://deb.debian.org/debian trixie-updates main'
       key_url: 'https://keyserver.ubuntu.com/pks/lookup?op=get&search=0x5e04a1e3223a19a20706e20f9904613d4cce68c6'
     include:
+    - libarchive13t64
     - libedit2 # if (CLI:BOOL=ON|QT:BOOL=OFF)
     - libevdev2 # if QT:BOOL=ON
     - libfreetype6
