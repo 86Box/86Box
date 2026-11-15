@@ -328,6 +328,17 @@ viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries
     while (basename[0] == '.')
         basename++;
 
+    /* Collapse each UTF-8 sequence to one byte, which becomes one replacement character. */
+    char   collapsed[strlen(basename) + 1];
+    size_t collapsed_len = 0;
+    for (const char *p = basename; *p; p++) {
+        if ((*p & 0xc0) != 0x80)
+            collapsed[collapsed_len++] = *p;
+    }
+    collapsed[collapsed_len] = '\0';
+    int dots_trimmed         = basename != entry->basename;
+    basename                 = collapsed;
+
     /* Get name and extension length. */
     const char *ext_pos = strrchr(basename, '.');
     size_t      name_len;
@@ -347,7 +358,7 @@ viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries
 
     /* Copy extension to temporary buffer. */
     char ext[5]     = { 0 };
-    int  force_tail = (name_len > 8) || (ext_len == 1) || (basename != entry->basename);
+    int  force_tail = (name_len > 8) || (ext_len == 1) || dots_trimmed;
     if (ext_len > 1) {
         ext[0] = '.';
         if (ext_len > 4) {
@@ -387,30 +398,53 @@ viso_fill_fn_short(char *data, const viso_entry_t *entry, viso_entry_t **entries
     return 1;
 }
 
+/* Largest length up to len that doesn't split a UTF-8 sequence; s must have at least len bytes. */
+static size_t
+viso_utf8_fit(const char *s, size_t len)
+{
+    while ((len > 0) && ((s[len] & 0xc0) == 0x80))
+        len--;
+    return len;
+}
+
 static size_t
 viso_fill_fn_rr(uint8_t *data, const viso_entry_t *entry, size_t max_len)
 {
     /* Trim filename to max_len if required. */
     size_t len = strlen(entry->basename);
-    if (len > max_len) {
-        viso_write_string(data, entry->basename, max_len, VISO_CHARSET_FN);
-
-        /* Relocate extension if the original name exceeds the maximum length. */
-        if (!entry->stats.is_dir) { /* do this on files only */
-            const char *ext = strrchr(entry->basename, '.');
-            if (ext > entry->basename) {
-                len = strlen(ext);
-                if (len >= max_len)
-                    len = max_len - 1; /* don't create a dotfile where there isn't one */
-                viso_write_string(data + (max_len - len), ext, len, VISO_CHARSET_FN);
-            }
-        }
-
-        return max_len;
-    } else {
+    if (len <= max_len) {
         viso_write_string(data, entry->basename, len, VISO_CHARSET_FN);
         return len;
     }
+
+    /* Relocate extension if the original name exceeds the maximum length. */
+    const char *ext     = entry->stats.is_dir ? NULL : strrchr(entry->basename, '.'); /* do this on files only */
+    size_t      ext_len = 0;
+    if (ext > entry->basename) {
+        ext_len = strlen(ext);
+        if (ext_len >= max_len)
+            ext_len = max_len - 1; /* don't create a dotfile where there isn't one */
+        ext_len = viso_utf8_fit(ext, ext_len);
+    }
+    size_t stem = viso_utf8_fit(entry->basename, max_len - ext_len);
+    if (!stem) {
+        ext_len = 0;
+        stem    = viso_utf8_fit(entry->basename, max_len);
+    }
+
+    viso_write_string(data, entry->basename, stem, VISO_CHARSET_FN);
+    if (ext_len)
+        viso_write_string(data + stem, ext, ext_len, VISO_CHARSET_FN);
+    return stem + ext_len;
+}
+
+/* Largest length up to len that doesn't split a UTF-16 surrogate pair; s must have at least len units. */
+static size_t
+viso_utf16_fit(const uint16_t *s, size_t len)
+{
+    if ((len > 0) && ((s[len] & 0xfc00) == 0xdc00))
+        len--;
+    return len;
 }
 
 static size_t
@@ -423,31 +457,34 @@ viso_fill_fn_joliet(uint16_t *data, const viso_entry_t *entry, size_t max_len) /
 
     /* Trim decoded filename to max_len if required. */
     max_len /= 2;
-    if (len > max_len) {
-        viso_write_wstring(data, utf8dec, max_len, VISO_CHARSET_FN);
-
-        /* Relocate extension if the original name exceeds the maximum length. */
-        if (!entry->stats.is_dir) { /* do this on files only */
-            uint16_t *ext = &utf8dec[len];
-            while (ext-- > utf8dec) {
-                if (*ext == '.')
-                    break;
-            }
-            if (ext > utf8dec) {
-                len = utf8dec + len - ext;
-                if (len > max_len)
-                    len = max_len;
-                else if ((len < max_len) && ((data[max_len - len] & be16_to_cpu(0xfc00)) == be16_to_cpu(0xdc00)))
-                    max_len--; /* don't break an UTF-16 pair */
-                viso_write_wstring(&data[max_len - len], ext, len, VISO_CHARSET_FN);
-            }
-        }
-
-        return max_len * 2;
-    } else {
+    if (len <= max_len) {
         viso_write_wstring(data, utf8dec, len, VISO_CHARSET_FN);
         return len * 2;
     }
+
+    /* Relocate extension if the original name exceeds the maximum length. */
+    uint16_t *ext     = NULL;
+    size_t    ext_len = 0;
+    if (!entry->stats.is_dir) { /* do this on files only */
+        for (ext = &utf8dec[len - 1]; (ext > utf8dec) && (*ext != '.'); ext--)
+            ;
+        if (ext > utf8dec) {
+            ext_len = utf8dec + len - ext;
+            if (ext_len >= max_len)
+                ext_len = max_len - 1; /* don't create a dotfile where there isn't one */
+            ext_len = viso_utf16_fit(ext, ext_len);
+        }
+    }
+    size_t stem = viso_utf16_fit(utf8dec, max_len - ext_len);
+    if (!stem) {
+        ext_len = 0;
+        stem    = viso_utf16_fit(utf8dec, max_len);
+    }
+
+    viso_write_wstring(data, utf8dec, stem, VISO_CHARSET_FN);
+    if (ext_len)
+        viso_write_wstring(&data[stem], ext, ext_len, VISO_CHARSET_FN);
+    return (stem + ext_len) * 2;
 }
 
 static int
