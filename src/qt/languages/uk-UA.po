@@ -811,8 +811,8 @@ msgstr "Стрічкові накопичувачі:"
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
-msgid "ISA Memory Expansion"
-msgstr "Карта розширення пам'яті (ISA)"
+msgid "ISA/MCA Memory Expansion"
+msgstr "Карта розширення пам'яті (ISA/MCA)"
 
 msgid "ISA ROM Cards"
 msgstr "Карти ПЗП ISA"

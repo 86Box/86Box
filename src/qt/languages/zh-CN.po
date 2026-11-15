@@ -808,8 +808,8 @@ msgstr "磁带驱动器："
 msgid "ISA RTC:"
 msgstr "ISA 实时时钟:"
 
-msgid "ISA Memory Expansion"
-msgstr "ISA 内存扩展"
+msgid "ISA/MCA Memory Expansion"
+msgstr "ISA/MCA 内存扩展"
 
 msgid "ISA ROM Cards"
 msgstr "ISA ROM 扩展卡"

@@ -807,8 +807,8 @@ msgstr "Bandlaufwerke:"
 msgid "ISA RTC:"
 msgstr "ISA-Echtzeituhr:"
 
-msgid "ISA Memory Expansion"
-msgstr "ISA-Speichererweiterung"
+msgid "ISA/MCA Memory Expansion"
+msgstr "ISA/MCA-Speichererweiterung"
 
 msgid "ISA ROM Cards"
 msgstr "ISA-ROM-Karte"

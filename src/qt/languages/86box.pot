@@ -801,7 +801,7 @@ msgstr ""
 msgid "ISA RTC:"
 msgstr ""
 
-msgid "ISA Memory Expansion"
+msgid "ISA/MCA Memory Expansion"
 msgstr ""
 
 msgid "ISA ROM Cards"

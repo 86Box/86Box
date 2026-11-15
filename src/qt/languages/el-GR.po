@@ -809,8 +809,8 @@ msgstr "Οδηγοί ταινίας:"
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
-msgid "ISA Memory Expansion"
-msgstr "Επέκταση Μνήμης ISA"
+msgid "ISA/MCA Memory Expansion"
+msgstr "Επέκταση Μνήμης ISA/MCA"
 
 msgid "ISA ROM Cards"
 msgstr "Κάρτες ROM ISA"

@@ -807,8 +807,8 @@ msgstr "테이프 드라이브:"
 msgid "ISA RTC:"
 msgstr "ISA RTC 카드:"
 
-msgid "ISA Memory Expansion"
-msgstr "ISA 메모리 확장 카드"
+msgid "ISA/MCA Memory Expansion"
+msgstr "ISA/MCA 메모리 확장 카드"
 
 msgid "ISA ROM Cards"
 msgstr "ISA ROM 카드"

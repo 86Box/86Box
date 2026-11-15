@@ -810,8 +810,8 @@ msgstr "Tapestations:"
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
-msgid "ISA Memory Expansion"
-msgstr "ISA-geheugenuitbreiding"
+msgid "ISA/MCA Memory Expansion"
+msgstr "ISA/MCA-geheugenuitbreiding"
 
 msgid "ISA ROM Cards"
 msgstr "ISA ROM-kaart"

@@ -809,8 +809,8 @@ msgstr "Unità a nastro:"
 msgid "ISA RTC:"
 msgstr "RTC ISA:"
 
-msgid "ISA Memory Expansion"
-msgstr "Espansione memoria ISA"
+msgid "ISA/MCA Memory Expansion"
+msgstr "Espansione memoria ISA/MCA"
 
 msgid "ISA ROM Cards"
 msgstr "Schede ROM ISA"

@@ -807,8 +807,8 @@ msgstr "Teyp sürücüleri:"
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
-msgid "ISA Memory Expansion"
-msgstr "ISA Bellek (RAM) Artırıcı"
+msgid "ISA/MCA Memory Expansion"
+msgstr "ISA/MCA Bellek (RAM) Artırıcı"
 
 msgid "ISA ROM Cards"
 msgstr "ISA ROM Kartları"

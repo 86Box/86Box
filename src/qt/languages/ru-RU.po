@@ -810,8 +810,8 @@ msgstr "Стримеры:"
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
-msgid "ISA Memory Expansion"
-msgstr "Карты расширения памяти ISA"
+msgid "ISA/MCA Memory Expansion"
+msgstr "Карты расширения памяти ISA/MCA"
 
 msgid "ISA ROM Cards"
 msgstr "Карты ПЗУ ISA"

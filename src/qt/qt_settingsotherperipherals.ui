@@ -223,7 +223,7 @@
         <normaloff>:/settings/qt/icons/isa_memory.ico</normaloff>:/settings/qt/icons/isa_memory.ico</iconset>
       </attribute>
       <attribute name="title">
-       <string>ISA Memory Expansion</string>
+       <string>ISA/MCA Memory Expansion</string>
       </attribute>
       <layout class="QVBoxLayout" name="verticalLayoutMemExp">
 

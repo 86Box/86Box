@@ -810,8 +810,8 @@ msgstr "Napędy taśmowe:"
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
-msgid "ISA Memory Expansion"
-msgstr "Rozszerzenie pamięci ISA"
+msgid "ISA/MCA Memory Expansion"
+msgstr "Rozszerzenie pamięci ISA/MCA"
 
 msgid "ISA ROM Cards"
 msgstr "Karty ROM ISA"

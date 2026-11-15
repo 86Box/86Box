@@ -809,8 +809,8 @@ msgstr "Tračne enote:"
 msgid "ISA RTC:"
 msgstr "Ura realnega časa ISA:"
 
-msgid "ISA Memory Expansion"
-msgstr "Razširitev pomnilnika ISA"
+msgid "ISA/MCA Memory Expansion"
+msgstr "Razširitev pomnilnika ISA/MCA"
 
 msgid "ISA ROM Cards"
 msgstr "Kartice ISA z ROM-i"

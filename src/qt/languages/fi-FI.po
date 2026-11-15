@@ -807,8 +807,8 @@ msgstr "Nauha-asemat:"
 msgid "ISA RTC:"
 msgstr "ISA-RTC (kello):"
 
-msgid "ISA Memory Expansion"
-msgstr "ISA-muistilaajennus"
+msgid "ISA/MCA Memory Expansion"
+msgstr "ISA/MCA-muistilaajennus"
 
 msgid "ISA ROM Cards"
 msgstr "ISA ROM-kortit"

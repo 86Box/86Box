@@ -808,8 +808,8 @@ msgstr "Båndstasjoner:"
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
-msgid "ISA Memory Expansion"
-msgstr "ISA-minneutvidelse"
+msgid "ISA/MCA Memory Expansion"
+msgstr "ISA/MCA-minneutvidelse"
 
 msgid "ISA ROM Cards"
 msgstr "ISA ROM-kort"
