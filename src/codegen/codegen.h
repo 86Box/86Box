@@ -171,6 +171,11 @@ extern uint8_t codegen_peekb(uint32_t addr);
   it was put there, and already moved up a compile mode (with
   CODEBLOCK_IN_DIRTY_LIST)*/
 #define CODEBLOCK_REVIVE_HELD 0x1000
+/*Code block is off its page's block list and holds a kept version
+  (codegen_block_restore_version()): its code bytes are checked against that
+  version each time it is entered, instead of writes to them marking it dirty
+  (codegen_block_self_check())*/
+#define CODEBLOCK_SELF_CHECK 0x2000
 
 #define BLOCK_PC_INVALID        0xffffffff
 
@@ -451,6 +456,7 @@ extern void codegen_block_start_recompile(codeblock_t *block);
 extern void codegen_block_end_recompile(codeblock_t *block);
 extern int  codegen_block_restore_version(codeblock_t *block);
 extern int  codegen_block_dirty_patched(const codeblock_t *block);
+extern int  codegen_block_self_check(codeblock_t *block);
 extern void codegen_block_version_check_ins(uint32_t addr);
 extern void codegen_block_end(void);
 extern void codegen_delete_block(codeblock_t *block);

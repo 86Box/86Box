@@ -174,6 +174,20 @@ static uint8_t block_family_hold[BLOCK_SIZE];
 static uint16_t block_jcc_hot_left[BLOCK_SIZE];
 static uint8_t  block_jcc_hot_tries[BLOCK_SIZE];
 
+/*A block whose code keeps being rewritten to bytes it held before has a kept
+  version put back each time (codegen_block_restore_version()), but still
+  takes a dirty marking, a flush and a restore for every rewrite. After
+  SELF_CHECK_ENTER restores with no compile between them it leaves its page's
+  block list (CODEBLOCK_SELF_CHECK): with no other block listed there, writes
+  to the page go straight to memory. Its bytes are checked against its
+  version as it is entered, and another kept version is put in place if one
+  matches. After SELF_CHECK_STABLE entries in a row with the same version it
+  goes back to the list, as it does when no version matches.*/
+#define SELF_CHECK_ENTER  4
+#define SELF_CHECK_STABLE 64
+/*Restores since the last compile, or entries with the same version*/
+static uint8_t block_self_check_count[BLOCK_SIZE];
+
 /*In the compile pass: whether the exit is to be counted; arms the count*/
 int
 codegen_jcc_hot_can(const codeblock_t *block)
@@ -294,6 +308,43 @@ block_versions_free_all(uint32_t block_nr)
         block_version_kept[block_nr] = block_versions[nr].next;
         block_version_free(nr);
     }
+    block_version_owner_sync(block_nr);
+}
+
+/*The block's code is being dropped: keep it as a version if it is its current
+  one, newest first and no more than BLOCK_VERSION_PER_BLOCK, else free it*/
+static void
+block_version_keep_cur(codeblock_t *block)
+{
+    uint32_t block_nr = get_block_nr(block);
+    uint16_t cur      = block_version_cur[block_nr];
+
+    if (!block->head_mem_block)
+        return;
+    if (cur && (block_versions[cur].head_mem_block == block->head_mem_block)) {
+        uint16_t nr;
+        int      c = 1;
+
+        block_versions[cur].state    = BLOCK_VERSION_KEPT;
+        block_version_kept_nr++;
+        block_versions[cur].next     = block_version_kept[block_nr];
+        block_version_kept[block_nr] = cur;
+        for (nr = cur; block_versions[nr].next; nr = block_versions[nr].next) {
+            if (++c > BLOCK_VERSION_PER_BLOCK) {
+                uint16_t oldest             = block_versions[nr].next;
+                block_versions[nr].next     = 0;
+                block_versions[oldest].next = 0;
+                block_version_free(oldest);
+                break;
+            }
+        }
+    } else {
+        if (cur)
+            block_version_free(cur);
+        codegen_allocator_free_version(block->head_mem_block);
+    }
+    block_version_cur[block_nr] = 0;
+    block->head_mem_block       = NULL;
     block_version_owner_sync(block_nr);
 }
 
@@ -489,8 +540,9 @@ codegen_link_patch(codegen_link_slot_t *from, codeblock_t *block, uint32_t phys)
     uintptr_t            xlat_val = 0;
     codegen_link_slot_t *slot;
 
-    /*Only a compiled block the hash already points to.*/
-    if ((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST)) != CODEBLOCK_WAS_RECOMPILED)
+    /*Only a compiled block the hash already points to, and not one that
+      checks its code bytes as it is entered (CODEBLOCK_SELF_CHECK).*/
+    if ((block->flags & (CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST | CODEBLOCK_SELF_CHECK)) != CODEBLOCK_WAS_RECOMPILED)
         return;
     if (codeblock_hash[HASH(phys)] != get_block_nr(block))
         return;
@@ -1172,37 +1224,7 @@ invalidate_block(codeblock_t *block)
         }
     }
     remove_from_block_list(block, old_pc);
-    if (block->head_mem_block) {
-        uint32_t block_nr = get_block_nr(block);
-        uint16_t cur      = block_version_cur[block_nr];
-
-        if (cur && (block_versions[cur].head_mem_block == block->head_mem_block)) {
-            /*Keep it, newest first, and no more than BLOCK_VERSION_PER_BLOCK*/
-            uint16_t nr;
-            int      c = 1;
-
-            block_versions[cur].state    = BLOCK_VERSION_KEPT;
-            block_version_kept_nr++;
-            block_versions[cur].next     = block_version_kept[block_nr];
-            block_version_kept[block_nr] = cur;
-            for (nr = cur; block_versions[nr].next; nr = block_versions[nr].next) {
-                if (++c > BLOCK_VERSION_PER_BLOCK) {
-                    uint16_t oldest          = block_versions[nr].next;
-                    block_versions[nr].next  = 0;
-                    block_versions[oldest].next = 0;
-                    block_version_free(oldest);
-                    break;
-                }
-            }
-        } else {
-            if (cur)
-                block_version_free(cur);
-            codegen_allocator_free_version(block->head_mem_block);
-        }
-        block_version_cur[block_nr] = 0;
-        block->head_mem_block       = NULL;
-        block_version_owner_sync(block_nr);
-    }
+    block_version_keep_cur(block);
     block->head_mem_block = NULL;
     /*After the version is kept: that picks the list*/
     block_dirty_list_add(block);
@@ -1444,6 +1466,7 @@ codegen_block_init(uint32_t phys_addr)
     block->smc_family_score   = 0;
     block_family_hold[block_current] = 0;
     block_jcc_hot_tries[block_current] = 0;
+    block_self_check_count[block_current] = 0;
     /* On a page whose blocks keep being rewritten before they pay for
        compiling, a new one is likely to be too: interpret it for a while
        first. One that pays for itself later takes a strike off the page. */
@@ -1735,10 +1758,24 @@ codegen_block_end(void)
     add_to_block_list(block);
 }
 
+/*Version v matches the block's bytes and the CPU state*/
+static int
+block_version_matches(const codeblock_t *block, const block_version_t *v)
+{
+    if ((v->cs_sel != CS) || ((v->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) ||
+        ((v->status & cpu_cur_status & CPU_STATUS_MASK) != (cpu_cur_status & CPU_STATUS_MASK)) ||
+        ((v->flags & CODEBLOCK_STATIC_TOP) && (v->TOP != (cpu_state.TOP & 7))) ||
+        !block_version_chunk_matches(block->phys, v->exec, v->page_mask, v->code))
+        return 0;
+    return !v->page_mask2 || ((v->phys_2 == (block->phys + 0x40)) &&
+                              block_version_chunk_matches(v->phys_2, v->exec_2, v->page_mask2, &v->code[64]));
+}
+
 /*Takes the kept version of the block matching its bytes and the CPU state,
-  and with none of the flags in skip, out of the kept list; 0 if there is none*/
+  with none of the flags in skip, and with one_chunk on one 64-byte chunk,
+  out of the kept list; 0 if there is none*/
 static uint16_t
-block_version_take(const codeblock_t *block, uint16_t skip)
+block_version_take(const codeblock_t *block, uint16_t skip, int one_chunk)
 {
     uint32_t  block_nr = get_block_nr(block);
     uint16_t *link     = &block_version_kept[block_nr];
@@ -1747,15 +1784,7 @@ block_version_take(const codeblock_t *block, uint16_t skip)
         uint16_t         nr = *link;
         block_version_t *v  = &block_versions[nr];
 
-        if ((v->flags & skip) || (v->cs_sel != CS) || ((v->status ^ cpu_cur_status) & CPU_STATUS_FLAGS) ||
-            ((v->status & cpu_cur_status & CPU_STATUS_MASK) != (cpu_cur_status & CPU_STATUS_MASK)) ||
-            ((v->flags & CODEBLOCK_STATIC_TOP) && (v->TOP != (cpu_state.TOP & 7))) ||
-            !block_version_chunk_matches(block->phys, v->exec, v->page_mask, v->code)) {
-            link = &v->next;
-            continue;
-        }
-        if (v->page_mask2 && ((v->phys_2 != (block->phys + 0x40)) ||
-                              !block_version_chunk_matches(v->phys_2, v->exec_2, v->page_mask2, &v->code[64]))) {
+        if ((v->flags & skip) || (one_chunk && v->page_mask2) || !block_version_matches(block, v)) {
             link = &v->next;
             continue;
         }
@@ -1824,7 +1853,7 @@ int
 codegen_opcode_family_miss(uint32_t block_nr)
 {
     codeblock_t *block = &codeblock[block_nr];
-    uint16_t     nr    = block_version_take(block, CODEBLOCK_OPCODE_FAMILY);
+    uint16_t     nr    = block_version_take(block, CODEBLOCK_OPCODE_FAMILY, 0);
 
     if (nr) {
         invalidate_block(block);
@@ -1859,6 +1888,7 @@ codegen_block_end_recompile(codeblock_t *block)
     block->next_2 = block->prev_2 = BLOCK_INVALID;
     codegen_block_generate_end_mask_recompile();
     add_to_block_list(block);
+    block_self_check_count[get_block_nr(block)] = 0;
 
     if (!(block->flags & CODEBLOCK_HAS_FPU))
         block->flags &= ~CODEBLOCK_STATIC_TOP;
@@ -1924,12 +1954,96 @@ codegen_block_restore_version(codeblock_t *block)
        not while it is off one to try whether they still do
        (smc_family_hold()). Else compile it for the bytes it has. */
     int      skip_family = !smc_family_ready(block->smc_family_score) || (block_family_hold[get_block_nr(block)] & SMC_FAMILY_HOLD_TRIED);
-    uint16_t nr          = block_version_take(block, skip_family ? CODEBLOCK_OPCODE_FAMILY : 0);
+    uint16_t nr          = block_version_take(block, skip_family ? CODEBLOCK_OPCODE_FAMILY : 0, 0);
 
     if (!nr)
         return 0;
     block_version_apply(block, nr);
+    /* Not a block on two chunks, which a write to the second page must
+       still mark, nor one reading its opcodes as it runs, which matches
+       whatever they are. */
+    if (!block->page_mask2 && !(block->flags & CODEBLOCK_OPCODE_FAMILY) &&
+        (++block_self_check_count[get_block_nr(block)] >= SELF_CHECK_ENTER)) {
+        /* No slot links to it: block_version_apply() changed its link_gen,
+           and codegen_link_patch() links no block with the flag. */
+        remove_from_block_list(block, block->pc);
+        block->flags |= CODEBLOCK_SELF_CHECK;
+        block_self_check_count[get_block_nr(block)] = 0;
+    }
     return 1;
+}
+
+/*Called by the dispatcher each time a block with CODEBLOCK_SELF_CHECK is
+  entered. Returns 1 if the block holds compiled code matching its bytes, to
+  be run. Else the block is back on its page's list, as a block that was
+  never off it would be, for the dispatcher to go on with as it does with
+  any block that failed its checks; it may be invalid (no longer valid).*/
+int
+codegen_block_self_check(codeblock_t *block)
+{
+    const uint32_t block_nr = get_block_nr(block);
+    const uint16_t cur      = block_version_cur[block_nr];
+    int            same     = 0;
+
+    /* Not when a hot loop exit cleared CODEBLOCK_WAS_RECOMPILED
+       (codegen_jcc_hot_exit()): that wants it compiled again. */
+    if (block->flags & CODEBLOCK_WAS_RECOMPILED) {
+        if (cur && (block_versions[cur].head_mem_block == block->head_mem_block) &&
+            block_version_matches(block, &block_versions[cur])) {
+            if (++block_self_check_count[block_nr] < SELF_CHECK_STABLE)
+                return 1;
+            same = 1;
+        } else {
+            uint16_t nr = block_version_take(block, CODEBLOCK_OPCODE_FAMILY, 1);
+
+            if (nr) {
+                page_t          *page = &pages[block->phys >> 12];
+                block_version_t *v    = &block_versions[nr];
+
+                /* As block_version_apply(), but the block stays off the
+                   lists. Its slots stay: each is checked against the exit
+                   it is taken from. */
+                block_version_keep_cur(block);
+                v->state                    = BLOCK_VERSION_CURRENT;
+                block_version_cur[block_nr] = nr;
+                block->head_mem_block       = v->head_mem_block;
+                block->data                 = codeblock_allocator_get_ptr(v->head_mem_block);
+                block->page_mask            = v->page_mask;
+                block->status               = v->status;
+                block->TOP                  = v->TOP;
+                block->flags                = (block->flags & ~BLOCK_VERSION_FLAGS) | v->flags | CODEBLOCK_WAS_RECOMPILED;
+                block->runs_left            = CODEBLOCK_RUNS_PAID;
+                page->byte_code_present_mask[(block->phys >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK] |= block->page_mask;
+                block_version_owner_sync(block_nr);
+                block_self_check_count[block_nr] = 0;
+                return 1;
+            }
+        }
+    }
+
+    block->flags &= ~CODEBLOCK_SELF_CHECK;
+    block_self_check_count[block_nr] = 0;
+    /* With no block listed on the page, writes to it went straight to
+       memory: make them mark it again, as codegen_block_init() does. */
+    if (!pages[block->phys >> 12].block)
+        mem_flush_write_page(block->phys, cs + cpu_state.pc);
+    add_to_block_list(block);
+    if (!(block->flags & CODEBLOCK_WAS_RECOMPILED))
+        return 0;
+    /* Dirty bits of its bytes from writes while it was off the list: the
+       dispatcher's flush takes it, as any block they cover. */
+    if (block->page_mask & *block->dirty_mask)
+        return 0;
+    if (same)
+        return 1;
+    /* Its bytes were rewritten with nothing marking it */
+    invalidate_block(block);
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+    /* Covers the flag write just below. */
+    codegen_link_block_changed(block);
+#endif
+    block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
+    return 0;
 }
 
 /*Bytes of a block's code that differ from its newest kept version, counted
