@@ -131,6 +131,7 @@ typedef struct fdc_t {
     uint8_t format_state;
     uint8_t format_n;
     uint8_t step;
+    uint8_t ras_b;
     uint8_t noprec;
     uint8_t data_ready;
     uint16_t xfer_count;

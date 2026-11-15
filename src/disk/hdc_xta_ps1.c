@@ -823,11 +823,17 @@ clear_unused_format(hdc_t *dev)
      * A count of 11h is also a normal full-track transfer on 17-sector
      * drives.  The OS/2 format workaround must never complete a READ
      * VERIFY command early.
+     *
+     * The system ROM is left out, all of it: the Model 25 BIOS formats
+     * from segment F000h, takes the controller for finished as soon as
+     * busy drops, and its request for the sense summary block is then
+     * refused because the format is still running. IBM's Advanced
+     * Diagnostics reports that as "1714 DRIVE NOT READY".
      */
     if (((dev->ccb.cmd == CMD_FORMAT_DRIVE) ||
          (dev->ccb.cmd == CMD_FORMAT_TRACK)) &&
         (dev->ccb.count == 0x11)) /* OS/2 format */
-        if (CS != 0xe000) /* ROM POST */
+        if (CS < 0xe000) /* Not the ROM */
             dev->status &= ~ASR_BUSY;
 }
 

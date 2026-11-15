@@ -3185,9 +3185,11 @@ const machine_t machines[] = {
         .net_device               = NULL,
         .aliases                  = { "" }
     },
-    /* Type 8525-004, original 8 MHz 8086 color model with integrated MCGA. */
+    /* Type 8525, original 8 MHz 8086 with integrated MCGA: the monochrome
+       (8525-001) and color (8525-004) models differ in the built-in display,
+       which is the MCGA's monitor type. */
     {
-        .name              = "[8086] IBM PS/2 model 25 (color)",
+        .name              = "[8086] IBM PS/2 model 25",
         .internal_name     = "ibmps2_m25",
         .type              = MACHINE_TYPE_8086,
         .chipset           = MACHINE_CHIPSET_PROPRIETARY,

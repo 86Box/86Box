@@ -178,18 +178,15 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
     int            owned         = 0;
     const bool  is_ide  = (bus == HDD_BUS_IDE) || (bus == HDD_BUS_ATAPI);
     const bool  is_scsi = (bus == HDD_BUS_SCSI);
+    const bool  is_hdc  = (bus == HDD_BUS_MFM) || (bus == HDD_BUS_XTA) || (bus == HDD_BUS_ESDI);
     switch (bus) {
         case HDD_BUS_MFM:
-            busRows = 2;
-            busesToCheck.append(HDD_BUS_MFM);
-            break;
         case HDD_BUS_XTA:
-            busRows = 2;
-            busesToCheck.append(HDD_BUS_XTA);
-            break;
         case HDD_BUS_ESDI:
+            /* The one controller of the bus, to name on its channels. */
+            owned   = hdcPlan(owners, bus);
             busRows = 2;
-            busesToCheck.append(HDD_BUS_ESDI);
+            busesToCheck.append(bus);
             break;
         case HDD_BUS_IDE:
             owned   = idePlan(owners, conflicts, &conflictCount);
@@ -286,6 +283,8 @@ Harddrives::populateBusChannels(QAbstractItemModel *model, int bus, SettingsBusT
             model->setData(idx, QString("%1:%2 %3").arg(i >> 1).arg(i & 1).arg(ownerName(i >> 1, owners, owned, conflicts, conflictCount)));
         else if (is_scsi)
             model->setData(idx, QString("%1:%2 %3").arg(i >> 4).arg(i & 15, 2, 10, QChar('0')).arg(ownerName(i >> 4, owners, owned)));
+        else if (is_hdc)
+            model->setData(idx, QString("%1:%2 %3").arg(i >> 1).arg(i & 1).arg(ownerName(i >> 1, owners, owned)));
         else
             model->setData(idx, QString("%1:%2").arg(i >> shifter).arg(i & orer, subChannelWidth, 10, QChar('0')));
         model->setData(idx, ((i >> shifter) << shifter) | (i & orer), Qt::UserRole);
@@ -326,14 +325,16 @@ Harddrives::BusChannelName(uint8_t bus, uint8_t channel)
             busName = QString(QObject::tr("Disabled"));
             break;
         case HDD_BUS_MFM:
-            busName = QString("MFM/RLL (%1:%2)").arg(channel >> 1).arg(channel & 1);
-            break;
         case HDD_BUS_XTA:
-            busName = QString("XTA (%1:%2)").arg(channel >> 1).arg(channel & 1);
+        case HDD_BUS_ESDI: {
+            bus_owner_t owner;
+            const int   owned = hdcPlan(&owner, bus);
+
+            busName = QString("%1 %2:%3 %4").arg((bus == HDD_BUS_MFM) ? "MFM/RLL" : ((bus == HDD_BUS_XTA) ? "XTA" : "ESDI"))
+                          .arg(channel >> 1).arg(channel & 1)
+                          .arg(ownerName(channel >> 1, &owner, owned));
             break;
-        case HDD_BUS_ESDI:
-            busName = QString("ESDI (%1:%2)").arg(channel >> 1).arg(channel & 1);
-            break;
+        }
         case HDD_BUS_IDE:
         case HDD_BUS_ATAPI: {
             bus_owner_t owners[IDE_BUS_MAX];
@@ -405,6 +406,26 @@ Harddrives::idePlan(bus_owner_t *owners, ide_conflict_t *conflicts, int *conflic
     }
 
     return ide_plan(owners, mach, hdc, snd, conflicts, conflictCount);
+}
+
+/* The controller of an MFM/RLL, XTA or ESDI bus for what the settings hold
+   now, as for IDE. Returns 1 with one, else 0. */
+int
+Harddrives::hdcPlan(bus_owner_t *owner, int bus)
+{
+    int mach = machine;
+    int hdc[HDC_MAX];
+
+    for (int i = 0; i < HDC_MAX; i++)
+        hdc[i] = hdc_current[i];
+
+    if (Settings::settings != nullptr) {
+        mach = Settings::settings->currentMachine();
+        for (int i = 0; i < HDC_MAX; i++)
+            hdc[i] = Settings::settings->currentHdc(i);
+    }
+
+    return hdc_plan(owner, bus, mach, hdc);
 }
 
 /* The owner of each SCSI bus for what the settings hold now, as for IDE.

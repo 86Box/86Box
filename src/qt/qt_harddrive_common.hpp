@@ -26,6 +26,8 @@ void                        populateSpeeds(QAbstractItemModel *model, SettingsCo
 QString                     BusChannelName(uint8_t bus, uint8_t channel);
 int                         idePlan(bus_owner_t *owners, ide_conflict_t *conflicts = nullptr, int *conflictCount = nullptr);
 int                         scsiPlan(bus_owner_t *owners);
+/* The controller of an MFM/RLL, XTA or ESDI bus; the return is 1 with one, else 0. */
+int                         hdcPlan(bus_owner_t *owner, int bus);
 QString                     ownerName(int bus, const bus_owner_t *owners, int count,
                                       const ide_conflict_t *conflicts = nullptr, int conflictCount = 0);
 QString                     conflictText(int index, const bus_owner_t *owners, int count,

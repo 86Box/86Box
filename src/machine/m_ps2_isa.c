@@ -780,6 +780,14 @@ machine_ps2_8086_init(const machine_t *model)
     dev->uart = device_add_inst(&ns8250_device, 1);
     dev->lpt  = device_add_inst(&lpt_port_device, 1);
     lpt_set_ext(dev->lpt, 1);
+    /*
+     * Bits 7-5 of the printer control register are reserved on this planar.
+     * The port receives when bit 7 of the System Board Control register turns
+     * its output buffer off (Model 25 Technical Reference, 1-8, 1-120, 1-121).
+     * POST sets that bit and then expects port 378h to read back what it
+     * wrote, whatever was left in the control register.
+     */
+    lpt_set_oe_is_dir(dev->lpt, 1);
 
     if (fdc_current[0] == FDC_INTERNAL)
         dev->fdc = device_add(&fdc_ps2_device);
