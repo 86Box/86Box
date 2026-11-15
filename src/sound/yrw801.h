@@ -24,7 +24,8 @@ typedef struct
     uint8_t  reg_attack_decay1;
     uint8_t  reg_level_decay2;
     uint8_t  reg_release_correction;
-    uint8_t  reg_tremolo;   
+    uint8_t  reg_tremolo;
+    int8_t   key_center_offset; /* Pitch reference key relative to MIDI note 60. */
 } YRW801_WAVE_DATA;
 
 typedef struct

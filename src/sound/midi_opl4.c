@@ -415,7 +415,9 @@ static void
 update_pitch(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
 {
     const MIDI_CHANNEL_DATA *channel = voice->midi_channel;
-    int32_t pitch = channel->drum_channel ? 0 : (voice->note - 60) * 128;
+    const int note = channel->drum_channel ? 60 : voice->note;
+    const int key_center = 60 + voice->wave_data->key_center_offset;
+    int32_t pitch = (note - key_center) * 128;
     pitch         = pitch * (int) voice->wave_data->key_scaling / 100;
     pitch         = pitch + 7680;
     pitch += voice->wave_data->pitch_offset;
