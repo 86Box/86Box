@@ -28,14 +28,18 @@ protected:
 
 private:
     void poll();
+    void setShape(int shape);
     void setOnTop(bool onTop);
 
-    QTimer timer;
-    QImage image;
-    QImage glass;
-    char   text[21] = {};
-    int    type     = -1;
-    bool   onTop    = false;
+    QTimer   timer;
+    QImage   image;
+    QImage   glass;
+    char     text[21] = {};
+    uint32_t serial   = 0;
+    int      type     = -1;
+    /* The LCD the window shows: that of the last device that had one. */
+    int  shape = -1;
+    bool onTop = false;
 };
 
 #endif // QT_MIDILCD_HPP

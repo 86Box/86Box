@@ -19,16 +19,24 @@
 
 #define MIDI_LCD_NONE 0
 #define MIDI_LCD_MT32 1
+#define MIDI_LCD_SC55 2
 
 /* Size of the MT-32 LCD image. */
 #define MIDI_LCD_MT32_WIDTH  1016
 #define MIDI_LCD_MT32_HEIGHT 152
 
+/* Size of the SC-55 LCD image. */
+#define MIDI_LCD_SC55_WIDTH  741
+#define MIDI_LCD_SC55_HEIGHT 268
+
 typedef struct midi_lcd_t {
-    int      type;     /* MIDI_LCD_*, NONE when the device has no LCD */
-    uint32_t serial;   /* changes whenever the contents change */
-    char     text[21]; /* MT-32: the display as reported by munt */
-    int      led;      /* MT-32: MIDI MESSAGE LED */
+    int      type;      /* MIDI_LCD_*, NONE when the device has no LCD */
+    uint32_t serial;    /* changes whenever the contents change */
+    char     text[21];  /* MT-32: the display as reported by munt */
+    int      led;       /* MT-32: MIDI MESSAGE LED */
+    int      on;        /* SC-55: the MCU has the display switched on */
+    uint8_t  ddram[80]; /* SC-55: LCD controller display data RAM */
+    uint8_t  cgram[64]; /* SC-55: LCD controller character generator RAM */
 } midi_lcd_t;
 
 #ifdef __cplusplus
@@ -38,6 +46,7 @@ extern "C" {
 /* Called by the MIDI output devices, from any thread. */
 extern void midi_lcd_set_type(int type);
 extern void midi_lcd_set_mt32(const char *text, int led);
+extern void midi_lcd_set_sc55(int on, const uint8_t *ddram, const uint8_t *cgram);
 
 /* Copies the current state, for the UI. */
 extern void midi_lcd_get(midi_lcd_t *lcd);
@@ -48,6 +57,10 @@ extern void midi_lcd_get(midi_lcd_t *lcd);
    characters as munt reports them. */
 extern void midi_lcd_mt32_render_glass(uint32_t *buf, int stride, int on);
 extern void midi_lcd_mt32_render_text(uint32_t *buf, int stride, const char *text);
+
+/* Draw the SC-55 LCD from the controller state in lcd into buf (0xffRRGGBB
+   pixels, stride in pixels). */
+extern void midi_lcd_sc55_render(uint32_t *buf, int stride, const midi_lcd_t *lcd);
 
 #ifdef __cplusplus
 }
