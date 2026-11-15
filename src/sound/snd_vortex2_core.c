@@ -219,16 +219,15 @@ typedef struct v2_a3d_t {
     int   quiet; /* silent input and empty filters: the signal path is skipped */
 } v2_a3d_t;
 
-typedef struct { float re, im; } cpx;
-
-#define XT_N    64             /* FFT size */
-#define XT_P    32             /* partitions of B taps */
 typedef struct v2_xt_t {
-    int   mode; /* 0 pass-through, 1 wide, 2 narrow */
-    float prev[2][B];
-    cpx   fdl[2][XT_P][XT_N / 2 + 1]; /* input spectra (real signals: half) */
-    int   head;
-    int   zb; /* consecutive silent input blocks */
+    float  co[4][5][5]; /* [EQ L, EQ R, XT L, XT R][section][a1 a2 b0 b1 b2] */
+    float  k[4], sh[4]; /* direct gain (shift included) and 2^shift */
+    float  gin[10];
+    int    delay[2];
+    double y[4][5][2];
+    float  x1[4], x2[4];
+    float  dl[2][32];
+    int    dpos;
 } v2_xt_t;
 
 typedef struct v2_eq_t {
@@ -283,9 +282,6 @@ struct v2_chip_t {
 
     int     xt_dirty;
     v2_xt_t xt;
-    cpx     xt_h[2][2][XT_P][XT_N]; /* [mode-1][same/cross][partition][bin] */
-    cpx     tw[XT_N / 2];
-    int     rev[XT_N];
 
     int     eq_dirty;
     v2_eq_t eq;
@@ -1597,193 +1593,120 @@ a3d_run(v2_chip_t *c)
 /* ------------------------------------------------------------------ */
 /* Crosstalk canceller                                                 */
 /*                                                                     */
-/* The coefficient words are not decoded yet, so the driver's three    */
-/* settings are recognised and replaced by measured responses: all    */
-/* gain words zero = headphones (pass-through); otherwise the delay    */
-/* field of 0x24660 tells "satellites" (0xd) from "monitors" (0x7).    */
-/* The measured filters run as uniformly partitioned FFT convolution.  */
+/* Per side, five inputs are mixed with their gains (0x244d0 +, 1.15), */
+/* pass that side's EQ block, and go to that side's output. The other  */
+/* side's EQ output, delayed by its delay line (0x24660: left bits     */
+/* 17-13, right 12-8, in samples), passes that side's XT block and is  */
+/* added:                                                              */
+/*   out_L = EQ_L(mix_L) + XT_R(delay_R(EQ_R(mix_R)))  and mirrored.   */
+/* A block is five second-order sections in parallel plus a direct     */
+/* path, all on the block's input:                                     */
+/*   block(x) = 2^shift * (k * x + sum of the five sections),          */
+/*   section: y = b0 x + b1 x1 + b2 x2 + a1 y1 + a2 y2,                */
+/* with a1, a2, b0, b1, b2 and k as 2.14 words (sections: EQ left      */
+/* 0x24200, EQ right 0x242b4, XT left 0x24368, XT right 0x2441c, nine  */
+/* words apart; k and shift from 0x24538). "XT left" filters the left  */
+/* side's signal into the right output.                                */
+/*                                                                     */
+/* Confirmed on a real card (test-suite runs 2, 3, 5 and 11): with the */
+/* driver's three presets this gives the measured same-side response   */
+/* of satellites and monitors relative to headphones to 0.2 and 0.5 dB */
+/* rms with no fitted constant (level included: scale 1.02 and 0.99),  */
+/* the cross path to 0.6 dB with exactly the register's delay, and a   */
+/* front source's absolute spectrum to 0.3 dB per band; host writes of */
+/* single coefficients moved the output as this arithmetic says. The   */
+/* headphone preset is the same arithmetic with flat sections (sum     */
+/* 1.25), k = 0 and no XT, which makes it a plain gain.                */
+/*                                                                     */
+/* Level: 3D clicks in headphone mode came out +1.37 dB against native */
+/* clicks in the same recording (both gains tried, every octave). With */
+/* the mixer's 0x0a (x 1.25) on the canceller's outputs and the        */
+/* arithmetic above (x 1.25 for headphones) that leaves a factor of    */
+/* 0.75 somewhere in the 3D chain, whose place is not known; it is     */
+/* applied here.                                                       */
+/*                                                                     */
+/* The chip works in fixed point with error feedback; this is the same */
+/* arithmetic in floating point. The enable bit (bit 0 of 0x24660) is  */
+/* not modelled: the driver only drops it while loading a preset.      */
 /* ------------------------------------------------------------------ */
 
-static void
-fft(v2_chip_t *c, cpx *x, int inverse)
-{
-    for (int i = 0; i < XT_N; i++)
-        if (c->rev[i] > i) {
-            cpx t        = x[i];
-            x[i]         = x[c->rev[i]];
-            x[c->rev[i]] = t;
-        }
-    for (int len = 2; len <= XT_N; len <<= 1) {
-        int half = len >> 1, step = XT_N / len;
-        for (int i = 0; i < XT_N; i += len)
-            for (int j = 0; j < half; j++) {
-                cpx w = c->tw[j * step];
-                if (inverse)
-                    w.im = -w.im;
-                cpx u = x[i + j], v = x[i + j + half];
-                cpx t = { v.re * w.re - v.im * w.im, v.re * w.im + v.im * w.re };
-                x[i + j]        = (cpx) { u.re + t.re, u.im + t.im };
-                x[i + j + half] = (cpx) { u.re - t.re, u.im - t.im };
-            }
-    }
-}
+#define XT_3D_LEVEL 0.75f
+
+static const uint32_t xt_block_base[4] = { 0x24200, 0x242b4, 0x24368, 0x2441c }; /* EQ L, EQ R, XT L, XT R */
 
 static void
-xt_prepare(v2_chip_t *c)
+xt_load(v2_chip_t *c)
 {
-    static float hs[XT_P * B], hc[XT_P * B];
-    const float *E[2] = { v2_xt_wide_E, v2_xt_narrow_E };
-    const float *X[2] = { v2_xt_wide_X, v2_xt_narrow_X };
+    v2_xt_t *x = &c->xt;
 
-    for (int i = 0; i < XT_N; i++) {
-        int r = 0;
-        for (int b = 1, j = i; b < XT_N; b <<= 1, j >>= 1)
-            r = (r << 1) | (j & 1);
-        c->rev[i] = r;
+    for (int b = 0; b < 4; b++) {
+        for (int i = 0; i < 5; i++)
+            for (int j = 0; j < 5; j++)
+                x->co[b][i][j] = (float) (int16_t) R(xt_block_base[b] + i * 0x24 + j * 4) / 16384.0f;
+        x->k[b] = ldexpf((float) (int16_t) R(XT_GAIN_EQL + b * 8) / 16384.0f, (int) (R(XT_GAIN_EQL + b * 8 + 4) & 15));
+        x->sh[b] = ldexpf(1.0f, (int) (R(XT_GAIN_EQL + b * 8 + 4) & 15));
     }
-    for (int i = 0; i < XT_N / 2; i++)
-        c->tw[i] = (cpx) { (float) cos(-2.0 * M_PI * i / XT_N), (float) sin(-2.0 * M_PI * i / XT_N) };
-
-    /* The fitted E filters are normalised to 0 dB between 300 Hz and 3 kHz;
-       their absolute level was not part of the fit. Minerva's DirectSound 3D
-       tests, played through the canceller on a real card and with headphones
-       in 86Box (same source, same HRTF taps), put the real canceller below
-       the normalised model by 5.5 dB for satellites and 6.2 dB for monitors,
-       each flat within about 1.5 dB from 200 Hz to 10 kHz (24 half-octave
-       bands over two tests). Run 2's tap fit (-6.5 dB, satellites) agrees. */
-    static const float scale_m[2] = { 0.531f, 0.490f }; /* wide -5.5 dB, narrow -6.2 dB */
-
-    for (int m = 0; m < 2; m++) {
-        /* same side: E delayed by the model latency; cross: E * X */
-        memset(hs, 0, sizeof(hs));
-        memset(hc, 0, sizeof(hc));
-        for (int i = 0; i < V2_XT_TAPS && i + V2_XT_LATENCY < XT_P * B; i++)
-            hs[i + V2_XT_LATENCY] = scale_m[m] * E[m][i];
-        for (int i = 0; i < V2_XT_TAPS; i++)
-            for (int j = 0; j < V2_XT_TAPS && i + j < XT_P * B; j++)
-                hc[i + j] += scale_m[m] * E[m][i] * X[m][j];
-        for (int p = 0; p < XT_P; p++) {
-            cpx bs[XT_N], bc[XT_N];
-            for (int i = 0; i < XT_N; i++) {
-                bs[i] = (cpx) { (i < B) ? hs[p * B + i] : 0.0f, 0.0f };
-                bc[i] = (cpx) { (i < B) ? hc[p * B + i] : 0.0f, 0.0f };
-            }
-            fft(c, bs, 0);
-            fft(c, bc, 0);
-            memcpy(c->xt_h[m][0][p], bs, sizeof(bs));
-            memcpy(c->xt_h[m][1][p], bc, sizeof(bc));
-        }
-    }
-}
-
-static void
-xt_detect(v2_chip_t *c)
-{
-    int mode = 0;
-
-    if ((R(XT_GAIN_EQL) | R(XT_GAIN_EQR) | R(XT_GAIN_XTL) | R(XT_GAIN_XTR)) & 0xffff) {
-        int delay = (R(XT_CTRL) >> 8) & 0x1f;
-        mode      = (delay == 0x0d) ? 1 : ((delay == 0x07) ? 2 : 0);
-    }
-    if (mode != c->xt.mode) {
-        v2_log(c, "Vortex2: crosstalk canceller %s\n", mode == 1 ? "satellites" : (mode == 2 ? "monitors" : "pass-through"));
-        memset(&c->xt, 0, sizeof(c->xt));
-        c->xt.mode = mode;
-    }
+    for (int i = 0; i < 10; i++)
+        x->gin[i] = (float) (int16_t) R(0x244d0 + i * 4) / 32768.0f;
+    x->delay[0] = (R(XT_CTRL) >> 13) & 0x1f;
+    x->delay[1] = (R(XT_CTRL) >> 8) & 0x1f;
     c->xt_dirty = 0;
+}
+
+static inline float
+xt_block(v2_xt_t *x, int b, float in)
+{
+    double acc = 0.0;
+
+    for (int i = 0; i < 5; i++) {
+        const float *q = x->co[b][i];
+        double      *y = x->y[b][i];
+        double       v = q[2] * in + q[3] * x->x1[b] + q[4] * x->x2[b] + q[0] * y[0] + q[1] * y[1];
+        if (!(fabs(v) >= 1e-20 && fabs(v) < 1e3)) /* denormals; and garbage coefficients before a preset is loaded */
+            v = 0.0;
+        y[1] = y[0];
+        y[0] = v;
+        acc += v;
+    }
+    x->x2[b] = x->x1[b];
+    x->x1[b] = in;
+    return x->k[b] * in + x->sh[b] * (float) acc;
 }
 
 static void
 xt_run(v2_chip_t *c)
 {
-    float in[2][B];
+    v2_xt_t *x = &c->xt;
+    float    in[2][B];
 
+    if (c->xt_dirty)
+        xt_load(c);
     for (int s = 0; s < 2; s++) {
         memset(in[s], 0, sizeof(in[s]));
         for (int k = 0; k < 5; k++) {
             int sink = AK_XTIN + s * 5 + k;
-            if (!c->sink_n[sink])
+            if (!c->sink_n[sink] || x->gin[s * 5 + k] == 0.0f)
                 continue;
-            const float *g = gather(c, sink);
+            const float *g  = gather(c, sink);
+            float        gk = x->gin[s * 5 + k];
             for (int n = 0; n < B; n++)
-                in[s][n] += g[n];
+                in[s][n] += g[n] * gk;
         }
     }
-    if (c->xt_dirty)
-        xt_detect(c);
-
-    /* The model's end-to-end 3D levels (headphone pass-through and the
-       canceller's measured scale) were matched to the real card with the
-       driver's 0x0a on the canceller's mixer inputs taken as +1.5 dB. The
-       exponent/mantissa mixer law makes 0x0a +1.94 dB, so the output is
-       trimmed by the difference to keep those measured levels. */
-    const float trim = 1.188502f / mix_gain_tab[0x0a]; /* 10^(1.5/20) / gain */
-
-    if (c->xt.mode == 0) {
-        for (int s = 0; s < 2; s++)
-            for (int n = 0; n < B; n++)
-                c->xt_out[s][n] = in[s][n] * trim;
-    } else {
-        v2_xt_t *x = &c->xt;
-        int      m = x->mode - 1;
-        int      silent = 1;
-        for (int i = 0; i < B && silent; i++)
-            if (in[0][i] != 0.0f || in[1][i] != 0.0f)
-                silent = 0;
-        x->zb = silent ? x->zb + 1 : 0;
-        if (x->zb > XT_P + 1) {
-            /* Every partition holds silence: the output is silence. */
-            memset(c->xt_out, 0, sizeof(c->xt_out));
-            c->xt_done = 1;
-            return;
+    for (int n = 0; n < B; n++) {
+        float e[2], d[2];
+        for (int s = 0; s < 2; s++) {
+            e[s] = xt_block(x, s, in[s][n]);
+            d[s] = x->dl[s][(x->dpos - x->delay[s]) & 31];
+            x->dl[s][x->dpos] = e[s];
         }
-        x->head = (x->head + 1) % XT_P;
-
-        /* Both channels through one complex FFT (left real, right
-           imaginary), then split into the two half spectra. */
-        cpx z[XT_N];
-        for (int i = 0; i < B; i++) {
-            z[i]     = (cpx) { x->prev[0][i], x->prev[1][i] };
-            z[i + B] = (cpx) { in[0][i], in[1][i] };
-        }
-        memcpy(x->prev, in, sizeof(in));
-        fft(c, z, 0);
-        cpx *f0 = x->fdl[0][x->head], *f1 = x->fdl[1][x->head];
-        for (int k = 0; k <= XT_N / 2; k++) {
-            cpx a = z[k], b = z[(XT_N - k) & (XT_N - 1)];
-            f0[k] = (cpx) { 0.5f * (a.re + b.re), 0.5f * (a.im - b.im) };
-            f1[k] = (cpx) { 0.5f * (a.im + b.im), 0.5f * (b.re - a.re) };
-        }
-
-        cpx y[2][XT_N / 2 + 1];
-        memset(y, 0, sizeof(y));
-        for (int s = 0; s < 2; s++)
-            for (int p = 0; p < XT_P; p++) {
-                int        slot = (x->head - p + XT_P) % XT_P;
-                const cpx *xs   = x->fdl[s][slot];
-                const cpx *xo   = x->fdl[s ^ 1][slot];
-                const cpx *hs   = c->xt_h[m][0][p];
-                const cpx *hc   = c->xt_h[m][1][p];
-                for (int k = 0; k <= XT_N / 2; k++) {
-                    y[s][k].re += xs[k].re * hs[k].re - xs[k].im * hs[k].im + xo[k].re * hc[k].re - xo[k].im * hc[k].im;
-                    y[s][k].im += xs[k].re * hs[k].im + xs[k].im * hs[k].re + xo[k].re * hc[k].im + xo[k].im * hc[k].re;
-                }
-            }
-
-        /* Both outputs through one inverse FFT: W = Y0 + i Y1, with the
-           upper bins rebuilt from conjugate symmetry. */
-        cpx w[XT_N];
-        for (int k = 0; k <= XT_N / 2; k++)
-            w[k] = (cpx) { y[0][k].re - y[1][k].im, y[0][k].im + y[1][k].re };
-        for (int k = XT_N / 2 + 1; k < XT_N; k++) {
-            int j = XT_N - k;
-            w[k]  = (cpx) { y[0][j].re + y[1][j].im, y[1][j].re - y[0][j].im };
-        }
-        fft(c, w, 1);
-        for (int n = 0; n < B; n++) {
-            c->xt_out[0][n] = w[B + n].re * (trim / XT_N);
-            c->xt_out[1][n] = w[B + n].im * (trim / XT_N);
-        }
+        if (!x->delay[0])
+            d[0] = e[0];
+        if (!x->delay[1])
+            d[1] = e[1];
+        x->dpos = (x->dpos + 1) & 31;
+        c->xt_out[0][n] = XT_3D_LEVEL * (e[0] + xt_block(x, 3, d[1]));
+        c->xt_out[1][n] = XT_3D_LEVEL * (e[1] + xt_block(x, 2, d[0]));
     }
     c->xt_done = 1;
 }
@@ -2369,7 +2292,6 @@ v2_create(const v2_host_t *host)
         return NULL;
     init_tables();
     c->host = *host;
-    xt_prepare(c);
     v2_reset(c);
     return c;
 }
