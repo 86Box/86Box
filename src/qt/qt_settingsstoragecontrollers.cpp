@@ -290,11 +290,25 @@ SettingsStorageControllers::onCurrentMachineChanged(int machineId)
     }
 
     std::vector<Models::Batch> scsi_rows(models, models + SCSI_CARD_MAX);
+    const bool                 m_has_scsi = machine_has_flags(machineId, MACHINE_SCSI) && machine_get_scsi_device(machineId);
     for (const auto &card : Models::Devices(scsi_card_getdevice, scsi_card_get_internal_name, scsi_card_available, 1)) {
         if (card.available && device_is_valid(card.dev, machineId)) {
+            if ((card.id == SCSI_CARD_INTERNAL) && !m_has_scsi)
+                continue;
+
+            QString entry_name = card.name;
+            if ((card.id == SCSI_CARD_INTERNAL) && m_has_scsi) {
+                const device_t *internal = machine_get_scsi_device(machineId);
+
+                entry_name += QString(" (%1)").arg(DeviceConfig::DeviceName(internal, internal->internal_name, 0));
+            }
+
             for (uint8_t i = 0; i < SCSI_CARD_MAX; ++i) {
-                int row = scsi_rows[i].add(card.name, card.id);
-                scSCSI[i]->addDevice(nullptr, card.name);
+                if ((card.id == SCSI_CARD_INTERNAL) && (i > 0))
+                    continue;
+
+                int row = scsi_rows[i].add(entry_name, card.id);
+                scSCSI[i]->addDevice(nullptr, entry_name);
 
                 if (card.id == scsiCardCurrent[i])
                     selectedRows[i] = row - removeRows_[i];
@@ -440,7 +454,14 @@ SettingsStorageControllers::on_comboBoxSCSI1_currentIndexChanged(int index)
     if (index < 0)
         return;
 
-    ui->pushButtonSCSI1->setEnabled(scsi_card_has_config(ui->comboBoxSCSI1->currentData().toInt()) > 0);
+    int scsiCard = ui->comboBoxSCSI1->currentData().toInt();
+
+    if (scsiCard == SCSI_CARD_INTERNAL)
+        ui->pushButtonSCSI1->setEnabled(machine_has_flags(machineId, MACHINE_SCSI) &&
+                                        machine_get_scsi_device(machineId) &&
+                                        device_has_config(machine_get_scsi_device(machineId)));
+    else
+        ui->pushButtonSCSI1->setEnabled(scsi_card_has_config(scsiCard) > 0);
     if (!inMachineChange)
         scsiCardCurrent[0] = ui->comboBoxSCSI1->currentData().toInt();
 }
@@ -481,7 +502,12 @@ SettingsStorageControllers::on_comboBoxSCSI4_currentIndexChanged(int index)
 void
 SettingsStorageControllers::on_pushButtonSCSI1_clicked()
 {
-    scsi_card_cfg_changed[0] |= DeviceConfig::ConfigureDevice(scsi_card_getdevice(ui->comboBoxSCSI1->currentData().toInt()), 1);
+    int             scsiCard = ui->comboBoxSCSI1->currentData().toInt();
+    const device_t *device   = scsi_card_getdevice(scsiCard);
+
+    if (scsiCard == SCSI_CARD_INTERNAL)
+        device = machine_get_scsi_device(machineId);
+    scsi_card_cfg_changed[0] |= DeviceConfig::ConfigureDevice(device, 1);
 }
 
 void
