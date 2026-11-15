@@ -259,6 +259,7 @@ fdc_ctrl_reset(void *priv, int reset_power_down)
     fdc->st0              = 0;
     fdc->head             = 0;
     fdc->step             = 0;
+    fdc->ras_b            = 0;
     if (reset_power_down)
         fdc->power_down       = 0;
 
@@ -1044,6 +1045,17 @@ fdc_pcjx_dor(fdc_t *fdc, uint8_t val)
     fdc->dor = val;
 }
 
+/* A write or format command turns the write gate on and sends write data,
+   unless the diskette is write-protected. */
+static void
+fdc_ras_b_write(fdc_t *fdc)
+{
+    const fdd_drive_t *drv = (fdd_drive_t *) fdc->fdd[real_drive(fdc, fdc->drive)];
+
+    if (!drv->writeprot)
+        fdc->ras_b |= 0x14;
+}
+
 void
 fdc_write(uint16_t addr, uint8_t val, void *priv)
 {
@@ -1570,6 +1582,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                 break;
                             case 0x05: /* Write data */
                             case 0x09: /* Write deleted data */
+                                fdc_ras_b_write(fdc);
                                 fdc_io_command_phase1(fdc, 1);
                                 if ((fdc->head & 0x01) &&
                                     !fdd_is_double_sided(fdc->fdd[real_drive(fdc, fdc->drive)])) {
@@ -1685,6 +1698,7 @@ fdc_write(uint16_t addr, uint8_t val, void *priv)
                                     fdc_noidam(fdc);
                                 break;
                             case 0x0d: /* Format */
+                                fdc_ras_b_write(fdc);
                                 fdc_rate(fdc, fdc->drive);
                                 fdc->head = (fdc->params[0] & 4) ? 1 : 0;
                                 fdd_set_head(fdc->fdd[real_drive(fdc, fdc->drive)],
@@ -1892,6 +1906,14 @@ fdc_read(uint16_t addr, void *priv)
                     ret   = 0x00;
                     if (!fdd_get_type(fdc->fdd[1]))    /* -Drive 2 Installed */
                         ret |= 0x80;
+                    /* Write Data, Read Data and Write Enable, latched until
+                       the Digital Input register is read (Model 25
+                       Technical Reference, 1-79). A turning diskette in
+                       the selected drive sends read data all the time. */
+                    drv = (fdd_drive_t *) fdc->fdd[drive];
+                    if ((fdc->dor & (0x10 << drive)) && !drv->empty)
+                        fdc->ras_b |= 0x08;
+                    ret |= fdc->ras_b;
                     switch (drive) {                   /* -Drive Select 1,0 */
                         case 0:
                             ret |= 0x43;
@@ -2057,13 +2079,17 @@ fdc_read(uint16_t addr, void *priv)
                 drv = (fdd_drive_t *) fdc->fdd[drive];
 
                 if (fdc->flags & FDC_FLAG_PS2) {
-                    if (fdc->dor & (0x10 << drive)) {
+                    if (fdc->dor & (0x10 << drive))
                         ret = (drv->changed || drv->empty) ? 0x00 : 0x80;
-                        ret |= (fdc->dor & 0x08);
-                        ret |= (fdc->noprec << 2);
-                        ret |= (fdc->rate & 0x03);
-                    } else
+                    else
                         ret = 0x00;
+                    /* DMA Enable, No Write Precomp and 250K bps Rate Select
+                       read back from the gate array's own registers, with
+                       or without a drive running (Model 25 Technical
+                       Reference, 1-80). */
+                    ret |= (fdc->dor & 0x08);
+                    ret |= (fdc->noprec << 2);
+                    ret |= (fdc->rate & 0x03);
                 } else if (fdc->flags & FDC_FLAG_PS2_MCA) {
                     if (fdc->dor & (0x10 << drive)) {
                         ret = (drv->changed || drv->empty) ? 0x80 : 0x00;
@@ -2092,7 +2118,8 @@ fdc_read(uint16_t addr, void *priv)
                         ret |= 0x7F;
                 }
 
-                fdc->step = 0;
+                fdc->step  = 0;
+                fdc->ras_b = 0;
                 break;
             } default:
                 ret = 0xff;

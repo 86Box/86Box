@@ -137,6 +137,9 @@ extern int             hdc_has_config(int hdc);
 extern const device_t *hdc_get_device(int hdc);
 extern int             hdc_get_flags(int hdc);
 extern int             hdc_available(int hdc);
+#ifdef EMU_DEVICE_H
+extern int             hdc_plan(bus_owner_t *owner, int bus, int mach, const int hdc[]);
+#endif
 
 extern void            ps1_hdc_handler(void *priv, int set);
 

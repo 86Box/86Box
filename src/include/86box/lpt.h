@@ -56,6 +56,8 @@ typedef struct lpt_device_s {
 typedef struct lpt_t {
     uint8_t       enabled;
     uint8_t       output_enabled;
+    uint8_t       oe_is_dir;
+    uint8_t       char_ack;
     uint8_t       irq;
     uint8_t       irq_state;
     uint8_t       dma;
@@ -165,6 +167,7 @@ extern void                lpt_irq(void *priv, int raise);
 
 extern void                lpt_set_ext(lpt_t *dev, uint8_t ext);
 extern void                lpt_set_output_enabled(lpt_t *dev, uint8_t enabled);
+extern void                lpt_set_oe_is_dir(lpt_t *dev, uint8_t oe_is_dir);
 extern void                lpt_set_ecp(lpt_t *dev, uint8_t ecp);
 extern void                lpt_set_epp(lpt_t *dev, uint8_t epp);
 extern void                lpt_set_lv2(lpt_t *dev, uint8_t lv2);

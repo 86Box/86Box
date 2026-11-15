@@ -218,6 +218,26 @@ serial_receive_period(const serial_t *dev)
     return dev->rx_period ? dev->rx_period : dev->transmit_period;
 }
 
+/* Take the modem status lines from what is plugged into the port, and latch
+   the delta bits of the ones that changed. */
+static void
+serial_poll_status(serial_t *dev)
+{
+    uint8_t  prev_msr = dev->msr;
+    uint32_t flags    = dev->ep.be->status(dev->ep.be->priv);
+    uint8_t  mask     = CHAR_COM_CTS | CHAR_COM_DSR | CHAR_COM_RI | CHAR_COM_DCD;
+
+    dev->msr = (dev->msr & ~mask) | (flags & mask);
+    mask &= ~CHAR_COM_RI;
+    dev->msr |= ((prev_msr & mask) ^ (dev->msr & mask)) >> 4;
+    if ((prev_msr & CHAR_COM_RI) && !(dev->msr & CHAR_COM_RI))
+        dev->msr |= CHAR_COM_RI >> 4;
+    if (dev->msr & 0x0f) {
+        dev->int_status |= SERIAL_INT_MSR;
+        serial_update_ints(dev);
+    }
+}
+
 static void
 serial_receive_timer(void *priv)
 {
@@ -239,20 +259,8 @@ serial_receive_timer(void *priv)
     /* The modem status lines do not change thousands of times a second, and
        querying them is not free on every host. */
     dev->status_divider++;
-    if ((dev->ep.be != NULL) && (dev->ep.be->status != NULL) && !(dev->status_divider & 0x3f)) {
-        uint8_t prev_msr = dev->msr;
-        uint32_t flags = dev->ep.be->status(dev->ep.be->priv);
-        uint8_t mask = CHAR_COM_CTS | CHAR_COM_DSR | CHAR_COM_RI | CHAR_COM_DCD;
-        dev->msr = (dev->msr & ~mask) | (flags & mask);
-        mask &= ~CHAR_COM_RI;
-        dev->msr |= ((prev_msr & mask) ^ (dev->msr & mask)) >> 4;
-        if ((prev_msr & CHAR_COM_RI) && !(dev->msr & CHAR_COM_RI))
-            dev->msr |= CHAR_COM_RI >> 4;
-        if (dev->msr & 0x0f) {
-            dev->int_status |= SERIAL_INT_MSR;
-            serial_update_ints(dev);
-        }
-    }
+    if ((dev->ep.be != NULL) && (dev->ep.be->status != NULL) && !(dev->status_divider & 0x3f))
+        serial_poll_status(dev);
 
     if (dev->fifo_enabled) {
         /* FIFO mode. */
@@ -795,6 +803,12 @@ serial_write(uint16_t addr, uint8_t val, void *priv)
                     serial_update_ints(dev);
                 }
             }
+            /* What is plugged in answers a change of DTR or RTS at once: a
+               wrap plug ties them straight to the modem status inputs, and
+               IBM's diagnostics read the MSR right after writing the MCR. */
+            if (!(val & 0x10) && ((old ^ val) & 0x03) && (dev->ep.be != NULL) &&
+                (dev->ep.be->control != NULL) && (dev->ep.be->status != NULL))
+                serial_poll_status(dev);
             break;
         case 5:
             dev->lsr = (dev->lsr & 0xe0) | (val & 0x1f);

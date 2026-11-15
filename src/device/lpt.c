@@ -318,6 +318,35 @@ lpt_char_epp_request_read(uint8_t is_addr, void *priv)
     dev->char_port.chardev.read(&dev->in_dat, sizeof(dev->in_dat), dev->char_port.chardev.priv);
 }
 
+/* The level of the -ACK pin, for a character device that reports its status
+   lines as they are. */
+static int
+lpt_char_ack_level(const lpt_t *dev)
+{
+    if (!dev->char_port.attached || (dev->char_port.chardev.status == NULL) ||
+        (dev->char_port.chardev.flags & (CHAR_LPT_NIBBLE | CHAR_LPT_PTI)))
+        return -1;
+
+    return !!(dev->char_port.chardev.status(dev->char_port.chardev.priv) & CHAR_LPT_ACK);
+}
+
+/* Something like a wrap plug moves -ACK as soon as the guest writes the data
+   or control register. The interrupt comes when -ACK goes from active to
+   inactive, also where the same write turns the interrupt enable on. */
+static void
+lpt_char_check_ack(lpt_t *dev)
+{
+    const int ack = lpt_char_ack_level(dev);
+
+    if (ack < 0)
+        return;
+
+    if (ack && !dev->char_ack)
+        lpt_irq(dev, 1);
+
+    dev->char_ack = ack;
+}
+
 void
 lpt_devices_init(void)
 {
@@ -356,6 +385,7 @@ lpt_devices_init(void)
                 if (lpt->char_port.chardev.read)
                     timer_set_delay_u64(&lpt->char_timer, (uint64_t) (2.0 * (double) TIMER_USEC));
                 lpt_char_update_control(lpt, (lpt->char_control & ~0xff00) | ((uint16_t) lpt->ctrl << 8));
+                lpt->char_ack = (lpt_char_ack_level(lpt) > 0);
             }
 
             /* This port is hotunpluggable if the device allows it, unless further lpt_attach attempts are made. */
@@ -439,6 +469,11 @@ lpt_get_ctrl_raw(const lpt_t *dev)
         ret = (dev->dt->read_ctrl(dev->dt->priv) & 0xef) | dev->enable_irq;
     else
         ret = 0xc0 | dev->ctrl | dev->enable_irq;
+
+    /* A port whose data direction comes from an output enable outside the
+       port has no direction bit of its own. */
+    if (dev->oe_is_dir)
+        ret = (ret & 0xdf) | (dev->output_enabled ? 0x00 : 0x20);
 
     return ret;
 }
@@ -664,6 +699,7 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
                     dev->dt->write_data(val, dev->dt->priv);
                 dev->dat = val;
             }
+            lpt_char_check_ack(dev);
             break;
 
         case 0x0001:
@@ -672,7 +708,7 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
         case 0x0002:
             /* A bidirectional port still latches DTR writes while its pins are
                inputs. Drive that latched byte before an output-mode strobe. */
-            if (dev->output_enabled && (dev->ext || dev->epp) &&
+            if (dev->output_enabled && (dev->ext || dev->epp) && !dev->oe_is_dir &&
                 (dev->ctrl & 0x20) && !(val & 0x20) && dev->dt &&
                 dev->dt->write_data && dev->dt->priv)
                 dev->dt->write_data(dev->dat, dev->dt->priv);
@@ -686,6 +722,7 @@ lpt_write(const uint16_t port, const uint8_t val, void *priv)
             if (!(val & 0x10) && (dev->irq != 0xff))
                 picintc(1 << dev->irq);
             dev->irq_state  = 0;
+            lpt_char_check_ack(dev);
             break;
 
         case 0x0003:
@@ -1090,7 +1127,22 @@ lpt_set_ext(lpt_t *dev, const uint8_t ext)
 void
 lpt_set_output_enabled(lpt_t *dev, const uint8_t enabled)
 {
+    /* Where the output enable is also the data direction, turning the
+       drivers back on puts the latched byte on the pins. */
+    if (dev->oe_is_dir && enabled && !dev->output_enabled && dev->dt &&
+        dev->dt->write_data && dev->dt->priv)
+        dev->dt->write_data(dev->dat, dev->dt->priv);
+
     dev->output_enabled = !!enabled;
+}
+
+/* The data direction of the port follows its output enable instead of bit 5
+   of the control register, which then does nothing. */
+void
+lpt_set_oe_is_dir(lpt_t *dev, const uint8_t oe_is_dir)
+{
+    if (lpt_ports[dev->id].enabled)
+        dev->oe_is_dir = !!oe_is_dir;
 }
 
 void
@@ -1235,6 +1287,7 @@ lpt_copy_host_state(lpt_t *dst, const lpt_t *src)
     dst->fifo           = src->fifo;
     dst->char_read      = src->char_read;
     dst->char_control   = src->char_control;
+    dst->char_ack       = src->char_ack;
     dst->char_port      = src->char_port;
     dst->fifo_out_timer = src->fifo_out_timer;
     dst->char_timer     = src->char_timer;
@@ -1252,6 +1305,7 @@ lpt_copy_config_state(lpt_t *dst, const lpt_t *src)
     dst->ecp              = src->ecp;
     dst->lv2              = src->lv2;
     dst->output_enabled   = src->output_enabled;
+    dst->oe_is_dir        = src->oe_is_dir;
     dst->cfg_regs_enabled = src->cfg_regs_enabled;
 }
 
