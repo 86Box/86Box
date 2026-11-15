@@ -778,8 +778,9 @@ extern void rdisk_hard_reset(void);
 extern void rdisk_reset(scsi_common_t *sc);
 extern int  rdisk_is_empty(const uint8_t id);
 extern void rdisk_load(const rdisk_t *dev, const char *fn, const int skip_insert);
-/* Returns a fat_image_result_t. */
-extern int  rdisk_mount_folder(rdisk_t *dev, const char *fn, const int skip_insert);
+/* Mounts a folder or an archive and returns a fat_image_result_t; if left_out isn't NULL, it gets the
+   FAT_IMAGE_LEFT_OUT_* flags of what didn't fit. */
+extern int  rdisk_mount_folder(rdisk_t *dev, const char *fn, const int skip_insert, int *left_out);
 extern void rdisk_close(void);
 #ifdef SCSI_DEVICE_H
 extern scsi_device_t *rdisk_get_lpt_device(const uint8_t port);

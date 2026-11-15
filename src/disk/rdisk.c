@@ -1684,12 +1684,15 @@ rdisk_folder_params(const uint32_t medium, fat_image_params_t *p)
    used if the contents fit, else the smallest medium it writes that they fit. Writes go to the temporary
    file and are lost when the medium is ejected. Returns a fat_image_result_t. */
 int
-rdisk_mount_folder(rdisk_t *dev, const char *fn, const int skip_insert)
+rdisk_mount_folder(rdisk_t *dev, const char *fn, const int skip_insert, int *left_out)
 {
     const int    was_empty = rdisk_is_empty(dev->id);
     const char  *path      = fn;
     fat_image_t *image     = NULL;
     FILE        *fp        = NULL;
+
+    if (left_out)
+        *left_out = 0;
 
     if (!strncmp(path, "wp://", 5)) {
         path += 5;
@@ -1708,7 +1711,8 @@ rdisk_mount_folder(rdisk_t *dev, const char *fn, const int skip_insert)
 
     const uint32_t     type   = rdisk_drive_type_of(dev);
     const uint32_t     def    = rdisk_drive_types[type].default_media;
-    int                medium = -1;
+    int                medium  = -1;
+    int                largest = -1; /* the medium to fill if nothing holds everything */
     fat_image_params_t params;
     uint32_t           tried[KNOWN_RDISK_TYPES] = { 0 };
     result                                      = FAT_IMAGE_UNSUPPORTED;
@@ -1730,12 +1734,22 @@ rdisk_mount_folder(rdisk_t *dev, const char *fn, const int skip_insert)
             continue;
         fat_image_result_t check = fat_image_check(image, &params);
         if (check == FAT_IMAGE_OK) {
-            medium = next;
-            result = FAT_IMAGE_OK;
-            break;
+            if (!fat_image_left_out(image)) {
+                medium = next;
+                result = FAT_IMAGE_OK;
+                break;
+            }
+            if ((largest < 0) || (rdisk_media_bytes(next) > rdisk_media_bytes(largest)))
+                largest = next;
         }
         if ((result == FAT_IMAGE_UNSUPPORTED) || (check != FAT_IMAGE_UNSUPPORTED))
             result = check;
+    }
+
+    /* Nothing holds everything: fill the largest medium with what fits. */
+    if ((medium < 0) && (largest >= 0) && rdisk_folder_params(largest, &params)) {
+        medium = largest;
+        result = FAT_IMAGE_OK;
     }
 
     if (medium >= 0) {
@@ -1746,6 +1760,8 @@ rdisk_mount_folder(rdisk_t *dev, const char *fn, const int skip_insert)
             result = fat_image_write(image, &params, fat_image_write_file, fp);
         if ((result == FAT_IMAGE_OK) && fflush(fp))
             result = FAT_IMAGE_WRITE_ERROR;
+        if ((result == FAT_IMAGE_OK) && left_out)
+            *left_out = fat_image_left_out(image);
     }
     fat_image_free(image);
     if (result != FAT_IMAGE_OK) {
@@ -1780,7 +1796,7 @@ void
 rdisk_load(const rdisk_t *dev, const char *fn, const int skip_insert)
 {
     if (fat_image_is_source((strstr(fn, "wp://") == fn) ? (fn + 5) : fn)) {
-        (void) rdisk_mount_folder((rdisk_t *) dev, fn, skip_insert);
+        (void) rdisk_mount_folder((rdisk_t *) dev, fn, skip_insert, NULL);
         return;
     }
 

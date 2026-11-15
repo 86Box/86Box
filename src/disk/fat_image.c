@@ -57,6 +57,7 @@ typedef struct node_t {
     uint8_t                attr;
     uint8_t                nt_case;
     uint8_t                needs_tail;
+    uint8_t                left_out;  /* doesn't fit on the volume */
     uint8_t                short_name[11];
     uint8_t                lfn_len;   /* in UTF-16 units */
     uint8_t                write_lfn; /* the long name differs from the short name */
@@ -73,6 +74,7 @@ struct fat_image_t {
     char             label[11];
     time_t           now;
     size_t           nodes;
+    int              left_out; /* FAT_IMAGE_LEFT_OUT_* of the last layout */
 };
 
 typedef struct layout_t {
@@ -726,23 +728,59 @@ clusters_for(const layout_t *l, uint64_t bytes)
     return (bytes + l->cluster_size - 1) / l->cluster_size;
 }
 
-/* Allocates every directory, then every file. */
+/* Leaves a node out of the volume, with everything under it. */
+static void
+leave_out(node_t *node, int left_out)
+{
+    node->left_out = left_out;
+    for (node_t *child = node->children; child; child = child->next)
+        leave_out(child, left_out);
+}
+
+/* Leaves out the children that don't fit in their directory's entries, and counts the entries used. */
+static void
+fit_entries(fat_image_t *image, const layout_t *l, node_t *dir)
+{
+    /* The FAT12 and FAT16 root directory has a fixed size; other directories hold up to 65536 entries,
+       less . and .. or the volume label. */
+    const int fixed_root = !dir->parent && (l->bits != 32);
+    uint32_t  avail      = fixed_root ? (l->root_entries - has_label(image)) : (65536 - 2);
+    uint32_t  used       = 0;
+
+    for (node_t *child = dir->children; child; child = child->next) {
+        uint32_t need = 1 + (child->write_lfn ? ((child->lfn_len + 12) / 13) : 0);
+        if ((used + need) > avail) {
+            leave_out(child, 1);
+            image->left_out |= fixed_root ? FAT_IMAGE_LEFT_OUT_ROOT : FAT_IMAGE_LEFT_OUT_SPACE;
+            continue;
+        }
+        used += need;
+        if (child->is_dir)
+            fit_entries(image, l, child);
+    }
+    dir->entries = 2 + used;
+}
+
+/* Allocates every directory, then every file, leaving out what doesn't fit. */
 static fat_image_result_t
-allocate_dirs(layout_t *l, node_t *dir, uint32_t *next)
+allocate_dirs(fat_image_t *image, layout_t *l, node_t *dir, uint32_t *next)
 {
     if (dir->parent || (l->bits == 32)) {
         uint64_t n = clusters_for(l, (uint64_t) dir->entries * 32);
-        if (dir->entries > 65536)
-            return FAT_IMAGE_FULL;
-        if (n > (l->clusters - (*next - 2)))
-            return FAT_IMAGE_FULL;
+        if (n > (l->clusters - (*next - 2))) {
+            if (!dir->parent)
+                return FAT_IMAGE_FULL;
+            leave_out(dir, 1);
+            image->left_out |= FAT_IMAGE_LEFT_OUT_SPACE;
+            return FAT_IMAGE_OK;
+        }
         dir->first_cluster = *next;
         dir->clusters      = (uint32_t) n;
         *next += (uint32_t) n;
     }
     for (node_t *child = dir->children; child; child = child->next) {
-        if (child->is_dir) {
-            fat_image_result_t result = allocate_dirs(l, child, next);
+        if (child->is_dir && !child->left_out) {
+            fat_image_result_t result = allocate_dirs(image, l, child, next);
             if (result != FAT_IMAGE_OK)
                 return result;
         }
@@ -750,24 +788,76 @@ allocate_dirs(layout_t *l, node_t *dir, uint32_t *next)
     return FAT_IMAGE_OK;
 }
 
-static fat_image_result_t
-allocate_files(layout_t *l, node_t *dir, uint32_t *next)
+/* Returns 1 if the file was given its clusters, 0 if it was left out. */
+static int
+allocate_file(fat_image_t *image, const layout_t *l, node_t *file, uint32_t *next)
+{
+    uint64_t n = clusters_for(l, file->size);
+    if ((file->size > 0xffffffffULL) || (n > (l->clusters - (*next - 2)))) {
+        leave_out(file, 1);
+        image->left_out |= FAT_IMAGE_LEFT_OUT_SPACE;
+        return 0;
+    }
+    file->first_cluster = n ? *next : 0;
+    file->clusters      = (uint32_t) n;
+    *next += (uint32_t) n;
+    return 1;
+}
+
+static void
+allocate_files(fat_image_t *image, layout_t *l, node_t *dir, uint32_t *next)
 {
     for (node_t *child = dir->children; child; child = child->next) {
-        if (child->is_dir) {
-            fat_image_result_t result = allocate_files(l, child, next);
+        if (child->left_out)
+            continue;
+        if (child->is_dir)
+            allocate_files(image, l, child, next);
+        else
+            (void) allocate_file(image, l, child, next);
+    }
+}
+
+/* Allocates a directory, its files, then its subdirectories, so that a directory goes in with its
+   contents. A directory none of whose contents fit is left out too, giving its clusters back; nothing
+   has been allocated after them then. */
+static fat_image_result_t
+allocate_tree(fat_image_t *image, layout_t *l, node_t *dir, uint32_t *next)
+{
+    if (dir->parent || (l->bits == 32)) {
+        uint64_t n = clusters_for(l, (uint64_t) dir->entries * 32);
+        if (n > (l->clusters - (*next - 2))) {
+            if (!dir->parent)
+                return FAT_IMAGE_FULL;
+            leave_out(dir, 1);
+            image->left_out |= FAT_IMAGE_LEFT_OUT_SPACE;
+            return FAT_IMAGE_OK;
+        }
+        dir->first_cluster = *next;
+        dir->clusters      = (uint32_t) n;
+        *next += (uint32_t) n;
+    }
+
+    int tried  = 0;
+    int placed = 0;
+    for (node_t *child = dir->children; child; child = child->next) {
+        if (!child->left_out && !child->is_dir) {
+            tried = 1;
+            placed |= allocate_file(image, l, child, next);
+        }
+    }
+    for (node_t *child = dir->children; child; child = child->next) {
+        if (!child->left_out && child->is_dir) {
+            tried = 1;
+            fat_image_result_t result = allocate_tree(image, l, child, next);
             if (result != FAT_IMAGE_OK)
                 return result;
-        } else {
-            if (child->size > 0xffffffffULL)
-                return FAT_IMAGE_FULL;
-            uint64_t n = clusters_for(l, child->size);
-            if (n > (l->clusters - (*next - 2)))
-                return FAT_IMAGE_FULL;
-            child->first_cluster = n ? *next : 0;
-            child->clusters      = (uint32_t) n;
-            *next += (uint32_t) n;
+            placed |= !child->left_out;
         }
+    }
+
+    if (dir->parent && tried && !placed) {
+        *next = dir->first_cluster;
+        leave_out(dir, 1);
     }
     return FAT_IMAGE_OK;
 }
@@ -776,6 +866,9 @@ static fat_image_result_t
 layout_volume(fat_image_t *image, const fat_image_params_t *p, layout_t *l)
 {
     memset(l, 0, sizeof(layout_t));
+    leave_out(image->root, 0);
+    image->left_out = 0;
+
     l->bps = p->sector_size;
     if ((l->bps < 512) || (l->bps > 4096) || (l->bps & (l->bps - 1)) || (p->partition_start >= p->sectors))
         return FAT_IMAGE_UNSUPPORTED;
@@ -788,13 +881,24 @@ layout_volume(fat_image_t *image, const fat_image_params_t *p, layout_t *l)
     l->root_start   = l->fat_start + (uint64_t) l->num_fats * l->fat_sectors;
     l->data_start   = l->root_start + l->root_sectors;
 
-    if ((l->bits != 32) && ((image->root->entries - 2 + has_label(image)) > l->root_entries))
-        return FAT_IMAGE_ROOT_FULL;
+    fit_entries(image, l, image->root);
 
+    /* Directories first, then files, when everything fits. */
     uint32_t           next   = 2;
-    fat_image_result_t result = allocate_dirs(l, image->root, &next);
+    fat_image_result_t result = allocate_dirs(image, l, image->root, &next);
     if (result == FAT_IMAGE_OK)
-        result = allocate_files(l, image->root, &next);
+        allocate_files(image, l, image->root, &next);
+
+    /* Otherwise, the directories that would take space ahead of all files could crowd them out and go
+       in empty: allocate each directory with its contents instead. */
+    if ((result == FAT_IMAGE_OK) && (image->left_out & FAT_IMAGE_LEFT_OUT_SPACE)) {
+        leave_out(image->root, 0);
+        image->left_out = 0;
+        fit_entries(image, l, image->root);
+        next   = 2;
+        result = allocate_tree(image, l, image->root, &next);
+    }
+
     l->used = next - 2;
     return result;
 }
@@ -804,6 +908,12 @@ fat_image_check(fat_image_t *image, const fat_image_params_t *params)
 {
     layout_t l;
     return layout_volume(image, params, &l);
+}
+
+int
+fat_image_left_out(const fat_image_t *image)
+{
+    return image->left_out;
 }
 
 typedef struct {
@@ -855,6 +965,8 @@ fat_chain(const layout_t *l, uint8_t *fat, const node_t *dir)
     const uint32_t eoc = (l->bits == 12) ? 0xfff : ((l->bits == 16) ? 0xffff : 0x0fffffff);
 
     for (const node_t *node = dir; node; node = node->next) {
+        if (node->left_out)
+            continue;
         for (uint32_t i = 0; i < node->clusters; i++)
             fat_set(l, fat, node->first_cluster + i, (i + 1 < node->clusters) ? (node->first_cluster + i + 1) : eoc);
         if (node->is_dir)
@@ -945,6 +1057,8 @@ fill_dir(const fat_image_t *image, const node_t *dir, uint8_t *buf)
     }
 
     for (const node_t *child = dir->children; child; child = child->next) {
+        if (child->left_out)
+            continue;
         if (child->write_lfn) {
             const int     count = (child->lfn_len + 12) / 13;
             const uint8_t sum   = lfn_checksum(child->short_name);
@@ -991,7 +1105,7 @@ write_dirs(const fat_image_t *image, const writer_t *w, const node_t *dir, uint8
     }
 
     for (const node_t *child = dir->children; child; child = child->next) {
-        if (child->is_dir) {
+        if (child->is_dir && !child->left_out) {
             fat_image_result_t result = write_dirs(image, w, child, buf, buf_size);
             if (result != FAT_IMAGE_OK)
                 return result;
@@ -1004,6 +1118,8 @@ static fat_image_result_t
 write_folder_files(const writer_t *w, const node_t *dir, uint8_t *buf)
 {
     for (const node_t *child = dir->children; child; child = child->next) {
+        if (child->left_out)
+            continue;
         if (child->is_dir) {
             fat_image_result_t result = write_folder_files(w, child, buf);
             if (result != FAT_IMAGE_OK)
@@ -1051,7 +1167,7 @@ write_archive_data(void *opaque, media_archive_entry_t *entry, uint64_t offset, 
     archive_writer_t *aw   = (archive_writer_t *) opaque;
     const node_t     *node = (const node_t *) entry->priv;
 
-    if (!node || !size)
+    if (!node || node->left_out || !size)
         return 1;
     if (!emit(aw->w, cluster_offset(aw->w->l, node->first_cluster) + offset, data, size)) {
         aw->write_error = 1;
@@ -1246,7 +1362,7 @@ fat_image_write_file(void *opaque, uint64_t offset, const void *data, size_t siz
 }
 
 fat_image_result_t
-fat_image_create_mem(const char *path, const fat_image_params_t *params, uint8_t **data)
+fat_image_create_mem(const char *path, const fat_image_params_t *params, uint8_t **data, int *left_out)
 {
     fat_image_t       *image;
     fat_image_result_t result = fat_image_scan(path, &image);
@@ -1260,10 +1376,13 @@ fat_image_create_mem(const char *path, const fat_image_params_t *params, uint8_t
             result = FAT_IMAGE_NO_MEMORY;
         } else {
             result = fat_image_write(image, params, fat_image_write_mem, mem);
-            if (result == FAT_IMAGE_OK)
+            if (result == FAT_IMAGE_OK) {
                 *data = mem;
-            else
+                if (left_out)
+                    *left_out = fat_image_left_out(image);
+            } else {
                 free(mem);
+            }
         }
     }
     fat_image_free(image);

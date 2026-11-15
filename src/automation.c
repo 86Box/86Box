@@ -1667,6 +1667,19 @@ respond_ok_time(void)
               (unsigned long long) emu_ms, (unsigned long long) frame_count, held ? "true" : "false");
 }
 
+/* As respond_ok_time(), listing why files were left out of a folder or an archive that was mounted anyway. */
+static void
+respond_ok_left_out(int left_out)
+{
+    respond_ok_time();
+    if (left_out) {
+        resp.len--; /* reopen the object */
+        sb_printf(&resp, ",\"left_out\":[%s%s%s]}", (left_out & FAT_IMAGE_LEFT_OUT_SPACE) ? "\"space\"" : "",
+                  ((left_out & FAT_IMAGE_LEFT_OUT_SPACE) && (left_out & FAT_IMAGE_LEFT_OUT_ROOT)) ? "," : "",
+                  (left_out & FAT_IMAGE_LEFT_OUT_ROOT) ? "\"root\"" : "");
+    }
+}
+
 /* Start a command that consumes emulated time. */
 static void
 begin_timed(int which, uint64_t ms)
@@ -2513,8 +2526,9 @@ handle_request(char *line)
             char *path = rest[3];
             const int wp = !strncmp(path, "wp://", 5);
             if (fat_image_is_source(path + wp * 5)) {
-                if (fdd_mount_folder(&drives[id], path + wp * 5, wp) == FAT_IMAGE_OK)
-                    respond_ok_time();
+                int left_out = 0;
+                if (fdd_mount_folder(&drives[id], path + wp * 5, wp, &left_out) == FAT_IMAGE_OK)
+                    respond_ok_left_out(left_out);
                 else
                     respond_error("could not build a floppy from the folder or archive");
             } else {
@@ -2568,10 +2582,11 @@ handle_request(char *line)
             const int wp        = !strncmp(path, "wp://", 5);
             const int was_empty = rdisk_is_empty(id);
             int       result    = FAT_IMAGE_OK;
+            int       left_out  = 0;
             rdisk_disk_close(dev);
             rdisk_drives[id].read_only = wp;
             if (fat_image_is_source(path + wp * 5))
-                result = rdisk_mount_folder(dev, path, 1);
+                result = rdisk_mount_folder(dev, path, 1, &left_out);
             else
                 rdisk_load(dev, path, 1);
             /* Signal media change to the emulated machine. */
@@ -2582,7 +2597,7 @@ handle_request(char *line)
             if (result != FAT_IMAGE_OK)
                 respond_error("could not build a removable disk from the folder or archive");
             else if (rdisk_drives[id].fp)
-                respond_ok_time();
+                respond_ok_left_out(left_out);
             else
                 respond_error("cannot load the image; the log says why");
         } else

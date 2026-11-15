@@ -792,11 +792,14 @@ fdd_media_inserted(fdd_drive_t *drv)
 /* Mounts a folder or an archive as a FAT12 disk in the drive's own format, built in memory.
    Writes go to that copy and are lost when it is ejected. */
 int
-fdd_mount_folder(void *priv, const char *path, int read_only)
+fdd_mount_folder(void *priv, const char *path, int read_only, int *left_out)
 {
     fdd_drive_t *drv   = (fdd_drive_t *) priv;
     const int    flags = fdd_get_flags(drv);
     char         mounted_path[sizeof(drv->image_path)];
+
+    if (left_out)
+        *left_out = 0;
 
     if (fdd_tape_present(drv) || (drive_types[drv->type].max_track <= 0))
         return FAT_IMAGE_UNSUPPORTED;
@@ -840,7 +843,7 @@ fdd_mount_folder(void *priv, const char *path, int read_only)
         .root_entries      = format.root_dir_entries
     };
     uint8_t           *image  = NULL;
-    fat_image_result_t result = fat_image_create_mem(path, &params, &image);
+    fat_image_result_t result = fat_image_create_mem(path, &params, &image, left_out);
     if (result != FAT_IMAGE_OK)
         return result;
 
@@ -909,7 +912,7 @@ fdd_load(void *priv, char *fn)
     }
 
     if (fat_image_is_source(fn)) {
-        if (fdd_mount_folder(drv, fn, drv->read_only) == FAT_IMAGE_OK)
+        if (fdd_mount_folder(drv, fn, drv->read_only, NULL) == FAT_IMAGE_OK)
             return;
         goto load_failed;
     }

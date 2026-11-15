@@ -108,6 +108,18 @@ folderMountError(int result)
     }
 }
 
+/* Explains why files were left out of a folder or an archive that was mounted anyway. */
+static QString
+folderLeftOutWarning(int left_out, const QString &space)
+{
+    QStringList reasons;
+    if (left_out & FAT_IMAGE_LEFT_OUT_SPACE)
+        reasons << space;
+    if (left_out & FAT_IMAGE_LEFT_OUT_ROOT)
+        reasons << folderMountError(FAT_IMAGE_ROOT_FULL);
+    return reasons.join("\n\n");
+}
+
 
 MediaMenu::MediaMenu(QWidget *parent)
     : QObject(parent)
@@ -683,9 +695,10 @@ MediaMenu::floppyMount(int i, const QString &filename, bool wp)
     const bool prefixed_wp = filename.startsWith("wp://");
     const QString path = prefixed_wp ? filename.mid(5) : filename;
     QByteArray source = path.toUtf8();
+    int left_out = 0;
     if (!source.isEmpty() && fat_image_is_source(source.data())) {
         runctl_pause_wait(RUN_PAUSE_SYNC);
-        const auto result = fdd_mount_folder(drv, source.constData(), wp || prefixed_wp);
+        const auto result = fdd_mount_folder(drv, source.constData(), wp || prefixed_wp, &left_out);
         runctl_resume(RUN_PAUSE_SYNC);
         if (result == FAT_IMAGE_FULL) {
             QMessageBox::critical(parentWidget, tr("Unable to mount folder or archive"),
@@ -720,6 +733,10 @@ MediaMenu::floppyMount(int i, const QString &filename, bool wp)
     floppyUpdateMenu(i);
     ui_sb_update_tip(SB_FLOPPY | i);
     config_save();
+
+    if (left_out)
+        QMessageBox::warning(parentWidget, tr("Warning"),
+                             folderLeftOutWarning(left_out, tr("The contents exceed the capacity of the configured floppy drive.")));
 }
 
 void
@@ -1297,6 +1314,7 @@ MediaMenu::rdiskMount(int i, const QString &filename, bool wp)
     const QByteArray source    = ((filename.left(5) == "wp://") ? filename.mid(5) : filename).toUtf8();
     const bool       is_folder = !source.isEmpty() && fat_image_is_source(source.constData());
     int              result    = FAT_IMAGE_OK;
+    int              left_out  = 0;
 
     /* Building or freeing a folder's image takes a while; keep the drive from being used meanwhile. */
     const bool pause = is_folder || rdisk_drives[i].folder_image;
@@ -1313,7 +1331,7 @@ MediaMenu::rdiskMount(int i, const QString &filename, bool wp)
             filenameBytes = QString::asprintf(R"(wp://%s)", filename.toUtf8().data()).toUtf8();
 
         if (is_folder)
-            result = rdisk_mount_folder(dev, filenameBytes.data(), 1);
+            result = rdisk_mount_folder(dev, filenameBytes.data(), 1, &left_out);
         else
             rdisk_load(dev, filenameBytes.data(), 1);
 
@@ -1339,6 +1357,8 @@ MediaMenu::rdiskMount(int i, const QString &filename, bool wp)
 
     if (result != FAT_IMAGE_OK)
         QMessageBox::critical(parentWidget, tr("Unable to mount folder or archive"), folderMountError(result));
+    else if (left_out)
+        QMessageBox::warning(parentWidget, tr("Warning"), folderLeftOutWarning(left_out, folderMountError(FAT_IMAGE_FULL)));
 }
 
 void
