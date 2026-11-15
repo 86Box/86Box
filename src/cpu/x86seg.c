@@ -1115,12 +1115,43 @@ retf_item_in_limits(uint32_t sp, uint32_t d, int is32)
     return (a >= cpu_state.seg_ss.limit_low) && (((uint64_t) a + n - 1) <= cpu_state.seg_ss.limit_high);
 }
 
+/* Whether the two items a far CALL of that operand size pushes lie within
+   the SS limits, each at the offset and size its push uses. */
+static int
+call_far_frame_in_limits(int is32)
+{
+    const uint32_t width = is32 ? 4 : 2;
+
+    return retf_item_in_limits(ESP, 0 - width, is32) && retf_item_in_limits(ESP, 0 - 2 * width, is32);
+}
+
+#ifndef OPS_286_386
+/* The tests of a real or virtual 8086 mode far CALL, made before CS is
+   loaded and before the first push. The target offset is tested against
+   the limit CS holds at the call: a load in these modes leaves the limit
+   alone on the processor, so this is the limit the target is fetched
+   under. Returns 1 with the fault raised. */
+int
+call_far_rm_fault(uint32_t new_pc, int is32)
+{
+    if ((call_far_stack_test == CALL_FAR_TEST_ALL_MODES) && !call_far_frame_in_limits(is32)) {
+        x86ss(NULL, 0);
+        return 1;
+    }
+    if ((call_far_checks_eip_limit == CALL_FAR_TEST_ALL_MODES) && (new_pc > cpu_state.seg_cs.limit_high)) {
+        x86gpf("call_far_rm_fault(): Target offset > CS limit", 0);
+        return 1;
+    }
+    return 0;
+}
+#endif
+
 #ifdef OPS_286_386
 void
-loadcscall_2386(uint16_t seg, uint32_t old_pc)
+loadcscall_2386(uint16_t seg, uint32_t old_pc, int is32)
 #else
 void
-loadcscall(uint16_t seg, uint32_t old_pc)
+loadcscall(uint16_t seg, uint32_t old_pc, int is32)
 #endif
 {
     uint16_t      seg2;
@@ -1186,6 +1217,15 @@ loadcscall(uint16_t seg, uint32_t old_pc)
             }
             if (!(segdat[2] & 0x8000)) {
                 x86np("Load CS call not present", seg & 0xfffc);
+                return;
+            }
+            /* Nothing is written before these two tests. */
+            if (call_far_stack_test && !call_far_frame_in_limits(is32)) {
+                x86ss(NULL, 0);
+                return;
+            }
+            if (call_far_checks_eip_limit && (cpu_state.pc > desc_limit(segdat))) {
+                x86gpf("loadcscall(): Target offset > CS limit", 0);
                 return;
             }
             set_use32(segdat[3] & 0x0040);

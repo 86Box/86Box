@@ -13,11 +13,14 @@
         old_use32    = use32;            \
         old_status   = cpu_cur_status;   \
         old_pc       = cpu_state.pc;     \
+        if (((call_far_stack_test == CALL_FAR_TEST_ALL_MODES) || (call_far_checks_eip_limit == CALL_FAR_TEST_ALL_MODES)) && \
+            (!(msw & 1) || (cpu_state.eflags & VM_FLAG)) && call_far_rm_fault(new_pc, 0)) \
+            return 1;                    \
         cpu_state.pc = new_pc;           \
         optype       = CALL;             \
         cgate16 = cgate32 = cgate_task = 0; \
         if (msw & 1)                     \
-            op_loadcscall(new_seg, old_pc); \
+            op_loadcscall(new_seg, old_pc, 0); \
         else {                           \
             op_loadcs(new_seg);          \
             cycles -= timing_call_rm;    \
@@ -66,11 +69,14 @@
         old_use32    = use32;            \
         old_status   = cpu_cur_status;   \
         old_pc       = cpu_state.pc;     \
+        if (((call_far_stack_test == CALL_FAR_TEST_ALL_MODES) || (call_far_checks_eip_limit == CALL_FAR_TEST_ALL_MODES)) && \
+            (!(msw & 1) || (cpu_state.eflags & VM_FLAG)) && call_far_rm_fault(new_pc, 1)) \
+            return 1;                    \
         cpu_state.pc = new_pc;           \
         optype       = CALL;             \
         cgate16 = cgate32 = cgate_task = 0; \
         if (msw & 1)                     \
-            op_loadcscall(new_seg, old_pc); \
+            op_loadcscall(new_seg, old_pc, 1); \
         else {                           \
             op_loadcs(new_seg);          \
             cycles -= timing_call_rm;    \

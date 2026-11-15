@@ -251,6 +251,8 @@ int is6117;
 int is386ex;
 int retf_checks_eip_limit;
 int retf_stack_test;
+int call_far_stack_test;
+int call_far_checks_eip_limit;
 int is486 = 1;
 int is586 = 0;
 int cpu_isintel;
@@ -784,6 +786,87 @@ cpu_set(void)
             break;
         default:
             retf_stack_test = RETF_STACK_TEST_NONE;
+            break;
+    }
+
+    /* Far CALL to a code segment tests the room for the whole return
+       address (#SS(0)) before anything is written, only on the processors
+       whose own manuals list that test: 80286 PRM p. B-24, 386DX PRM
+       p. 17-42, i486 PRM p. 26-46, Am486 Software User's Manual p. 2-21 and
+       Pentium manual (1995) p. 25-52 in protected mode; the 1997 Intel
+       Architecture manual vol. 2 p. 3-42 and the 1999 one p. 3-57 in real
+       and virtual 8086 mode as well. */
+    switch (cpu_s->cpu_type) {
+        case CPU_386SX:
+        case CPU_386DX:
+            /* Not the Am386 or the M6117. */
+            call_far_stack_test = !strcmp(cpu_f->manufacturer, "Intel") ? CALL_FAR_TEST_PMODE : CALL_FAR_TEST_NONE;
+            break;
+        case CPU_286:
+        case CPU_i486SX:
+        case CPU_Am486SX:
+        case CPU_i486DX:
+        case CPU_Am486DX:
+        case CPU_Am486DXL:
+        case CPU_i486SX_SLENH:
+        case CPU_i486DX_SLENH:
+        case CPU_ENH_Am486DX:
+        case CPU_P24T:
+        case CPU_PENTIUM:
+            call_far_stack_test = CALL_FAR_TEST_PMODE;
+            break;
+        case CPU_PENTIUMMMX:
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            call_far_stack_test = CALL_FAR_TEST_ALL_MODES;
+            break;
+        default:
+            call_far_stack_test = CALL_FAR_TEST_NONE;
+            break;
+    }
+
+    /* Far CALL to a code segment tests the target offset against the limit
+       of the new code segment (#GP(0)) before CS is loaded, only on the
+       processors whose own manuals state that fault: the pages above, and
+       note r of the instruction summary in the Am386 data book (1992), the
+       Cx486SLC and Cx486DLC data sheets, the 6x86 data book p. 6-28, the
+       6x86MX and M II data books and the MediaGX MMX data book. */
+    switch (cpu_s->cpu_type) {
+        case CPU_286:
+        case CPU_386DX:
+        case CPU_i486SX:
+        case CPU_Am486SX:
+        case CPU_i486DX:
+        case CPU_Am486DX:
+        case CPU_Am486DXL:
+        case CPU_i486SX_SLENH:
+        case CPU_i486DX_SLENH:
+        case CPU_ENH_Am486DX:
+        case CPU_P24T:
+        case CPU_PENTIUM:
+        case CPU_Cx6x86:
+        case CPU_Cx6x86MX:
+        case CPU_Cx6x86L:
+        case CPU_CxGX1:
+            call_far_checks_eip_limit = CALL_FAR_TEST_PMODE;
+            break;
+        case CPU_386SX:
+            call_far_checks_eip_limit = is6117 ? CALL_FAR_TEST_NONE : CALL_FAR_TEST_PMODE;
+            break;
+        case CPU_486SLC:
+        case CPU_486DLC:
+            /* Not the clock-doubled Cx486SRx2 / DRx2 (DIR0 06h / 07h). */
+            call_far_checks_eip_limit = (cpu_s->cyrix_id <= 0x0001) ? CALL_FAR_TEST_PMODE : CALL_FAR_TEST_NONE;
+            break;
+        case CPU_PENTIUMMMX:
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            call_far_checks_eip_limit = CALL_FAR_TEST_ALL_MODES;
+            break;
+        default:
+            call_far_checks_eip_limit = CALL_FAR_TEST_NONE;
             break;
     }
 
