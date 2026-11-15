@@ -324,8 +324,8 @@ msgstr "L&eer"
 msgid "Reload previous image"
 msgstr "Voriges Abbild neu laden"
 
-msgid "&Folder…"
-msgstr "&Verzeichnis…"
+msgid "Mount &folder…"
+msgstr "&Verzeichnis einbinden…"
 
 msgid "Preferences"
 msgstr "Preferenzen"
@@ -4346,3 +4346,27 @@ msgstr ""
 
 msgid "USB Mass Storage"
 msgstr "USB Massenspeicher"
+
+msgid "Mount folder as a temporary floppy"
+msgstr ""
+
+msgid "The selected drive does not support folder mounting."
+msgstr ""
+
+msgid "The contents exceed the capacity of the configured floppy drive."
+msgstr ""
+
+msgid "The floppy is out of directory entries or space, or a filename cannot be represented on FAT12."
+msgstr ""
+
+msgid "The source contains a filename that cannot be represented on FAT12."
+msgstr ""
+
+msgid "There is not enough memory to create the floppy image."
+msgstr ""
+
+msgid "The source path is too long or its contents could not be read."
+msgstr ""
+
+msgid "Unable to mount folder or ZIP archive"
+msgstr ""

@@ -325,8 +325,8 @@ msgstr "&Vazio"
 msgid "Reload previous image"
 msgstr "Recarregar imagem anterior"
 
-msgid "&Folder…"
-msgstr "&Pasta…"
+msgid "Mount &folder…"
+msgstr "Montar &pasta…"
 
 msgid "Preferences"
 msgstr "Preferências"
@@ -4343,3 +4343,27 @@ msgstr "Hub 4-portas USB 1.1"
 
 msgid "USB Mass Storage"
 msgstr "Armazenamento em massa USB"
+
+msgid "Mount folder as a temporary floppy"
+msgstr "Montar pasta como um disquete temporário"
+
+msgid "The selected drive does not support folder mounting."
+msgstr "O drive selecionado não suporta montagem de pasta."
+
+msgid "The contents exceed the capacity of the configured floppy drive."
+msgstr "O conteúdo excede a capacidade do drive de disquete configurado."
+
+msgid "The floppy is out of directory entries or space, or a filename cannot be represented on FAT12."
+msgstr "O disquete está sem espaço ou entradas de diretório, ou um nome de arquivo não pode ser representado em FAT12."
+
+msgid "The source contains a filename that cannot be represented on FAT12."
+msgstr "A fonte contém um nome de arquivo que não pode ser representado em FAT12."
+
+msgid "There is not enough memory to create the floppy image."
+msgstr "Não há memória suficiente para criar uma imagem de disquete."
+
+msgid "The source path is too long or its contents could not be read."
+msgstr "O caminho de origem é muito longo ou seu conteúdo não pode ser lido."
+
+msgid "Unable to mount folder or ZIP archive"
+msgstr "Não foi possível montar a pasta ou arquivo ZIP"
