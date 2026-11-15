@@ -79,7 +79,7 @@ static double ymf71x_input_gain_vols_4bits[16];
 /* YMF71x master volume attenuation is -30dB when all bits are 1, 0dB when all bits are 0 */
 static const double ymf71x_att_2dbstep_4bits[] = {
       32767.0, 26027.0, 20674.0, 16422.0, 13044.0, 10362.0, 8230.0, 6537.0,
-       5192.0,  4125.0,  3276.0,  2602.0,  2067.0,  1641.0, 1304.0,  164.0
+       5192.0,  4125.0,  3276.0,  2602.0,  2067.0,  1641.0, 1304.0, 1036.0
 };
 
 /* Taken from the SoundBlaster code, not quite correct but provides the desired effect
@@ -805,8 +805,8 @@ ymf71x_get_buffer(int32_t *buffer, uint16_t len, void *priv)
             double out_r = 0.0;
             double bass_treble;
 
-            out_l += (ymf71x->ad1848.buffer[c] * ymf71x->master_l);
-            out_r += (ymf71x->ad1848.buffer[c +1] * ymf71x->master_r);
+            out_l += ymf71x->ad1848.buffer[c];
+            out_r += ymf71x->ad1848.buffer[c + 1];
 
             if ((ymf71x->regs[0x15] & 0x07) != 0x00) {
                 bass_treble = ymf71x_bass_treble_3bits[(ymf71x->regs[0x15] & 0x07)];
@@ -832,6 +832,7 @@ ymf71x_get_buffer(int32_t *buffer, uint16_t len, void *priv)
                 out_r += (high_iir(0, 1, out_r) * bass_treble);
             }
 
+            /* Master volume, once (as for FM and CD audio). */
             out_l *= ymf71x->master_l;
             out_r *= ymf71x->master_r;
 
