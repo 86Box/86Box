@@ -41,6 +41,7 @@ typedef struct
     bool     is_active;
     bool     key_on_pending;
     bool     key_off_pending;
+    uint64_t key_change_frame;
     uint64_t activated;
     uint64_t released_frame;
     bool     has_release_tail;
@@ -291,6 +292,7 @@ typedef struct opl4_midi {
     float             buffer_float[BUFFER_SAMPLES];
     pc_timer_t        poll_timer;
     uint32_t          buffer_pos;
+    uint32_t          block_frames;
     uint64_t          rendered_frames;
     uint64_t          note_sequence;
 } opl4_midi_t;
@@ -448,7 +450,7 @@ note_off(uint8_t note, uint8_t velocity, MIDI_CHANNEL_DATA *midi_channel, opl4_m
     for (uint8_t i = 0; i < 24; i++) {
         VOICE_DATA *voice = &opl4_midi->voice_data[i];
         if (voice->is_active && voice->midi_channel == midi_channel && voice->note == note) {
-            if (voice->key_on_pending)
+            if (voice->key_on_pending || voice->key_change_frame > opl4_midi->rendered_frames)
                 voice->key_off_pending = true;
             else
                 release_voice(voice, opl4_midi);
@@ -504,6 +506,8 @@ note_on(uint8_t note, uint8_t velocity, MIDI_CHANNEL_DATA *midi_channel, opl4_mi
         slot->activated = ++opl4_midi->note_sequence;
         slot->key_off_pending = false;
         slot->key_on_pending = true;
+        /* Give the chip time to clock a stolen voice's key-off. */
+        slot->key_change_frame = opl4_midi->rendered_frames + KEY_OFF_FRAMES;
         slot->pending_wave = wave_data[i];
         slot->midi_channel = midi_channel;
         slot->note = note;
@@ -592,29 +596,50 @@ program_change(uint8_t midi_channel, uint8_t program, opl4_midi_t *opl4_midi)
 }
 
 static void
-opl4_render(opl4_midi_t *opl4_midi, int32_t *buffer)
+opl4_render(opl4_midi_t *opl4_midi, uint32_t target)
 {
-    /* Allow for the resampler startup delay before keying on reused voices. */
-    opl4_midi->opl4.generate(opl4_midi->opl4.priv, buffer, KEY_OFF_FRAMES);
-    for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
-        VOICE_DATA *voice = &opl4_midi->voice_data[i];
-        if (voice->key_on_pending) {
-            program_voice(voice, opl4_midi);
-            voice->key_on_pending = false;
-            voice->has_release_tail = false;
-            voice->reg_misc = (voice->reg_misc & 0x1F) | OPL4_KEY_ON_BIT;
-            opl4_write_wave_register(OPL4_REG_MISC + voice->number, voice->reg_misc, opl4_midi);
+    int32_t buffer[RENDER_FRAMES * 2];
+
+    while (opl4_midi->block_frames < target) {
+        const uint64_t now = opl4_midi->rendered_frames;
+        uint64_t next = now + target - opl4_midi->block_frames;
+
+        for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
+            VOICE_DATA *voice = &opl4_midi->voice_data[i];
+            if (voice->key_on_pending && voice->key_change_frame <= now) {
+                program_voice(voice, opl4_midi);
+                voice->key_on_pending = false;
+                voice->has_release_tail = false;
+                voice->reg_misc = (voice->reg_misc & 0x1F) | OPL4_KEY_ON_BIT;
+                opl4_write_wave_register(OPL4_REG_MISC + voice->number, voice->reg_misc, opl4_midi);
+                /* Let the chip clock the key-on before applying an early key-off. */
+                voice->key_change_frame = now + KEY_OFF_FRAMES;
+            } else if (voice->key_off_pending && voice->key_change_frame <= now) {
+                release_voice(voice, opl4_midi);
+            }
+            if ((voice->key_on_pending || voice->key_off_pending) && voice->key_change_frame < next)
+                next = voice->key_change_frame;
         }
-    }
-    opl4_midi->opl4.generate(opl4_midi->opl4.priv, buffer + KEY_OFF_FRAMES * 2, RENDER_FRAMES - KEY_OFF_FRAMES);
 
-    opl4_midi->rendered_frames += RENDER_FRAMES;
+        const uint32_t frames = next - now;
+        opl4_midi->opl4.generate(opl4_midi->opl4.priv, buffer, frames);
+        for (uint32_t i = 0; i < frames * 2; i++) {
+            double sample = buffer[i];
+            if (sound_is_float)
+                sample /= 32768.0;
+            if (filter_midi != NULL)
+                filter_midi(i & 1, &sample, filter_midi_p);
 
-    /* Notes released before key-on get one render block to sound. */
-    for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
-        VOICE_DATA *voice = &opl4_midi->voice_data[i];
-        if (voice->key_off_pending)
-            release_voice(voice, opl4_midi);
+            const uint32_t pos = opl4_midi->buffer_pos + i;
+            if (sound_is_float)
+                opl4_midi->buffer_float[pos] = (float) sample;
+            else
+                opl4_midi->buffer[pos] = (int16_t) round(sample);
+        }
+
+        opl4_midi->block_frames += frames;
+        opl4_midi->rendered_frames = next;
+        opl4_midi->buffer_pos += frames * 2;
     }
 }
 
@@ -622,26 +647,10 @@ static void
 opl4_midi_poll(void *priv)
 {
     opl4_midi_t *opl4_midi = priv;
-    int32_t      buffer[RENDER_FRAMES * 2];
 
     timer_on_auto(&opl4_midi->poll_timer, POLL_INTERVAL_US);
-    opl4_render(opl4_midi, buffer);
-
-    for (uint32_t i = 0; i < RENDER_FRAMES * 2; i++) {
-        double sample = buffer[i];
-        if (sound_is_float)
-            sample /= 32768.0;
-        if (filter_midi != NULL)
-            filter_midi(i & 1, &sample, filter_midi_p);
-
-        const uint32_t pos = opl4_midi->buffer_pos + i;
-        if (sound_is_float)
-            opl4_midi->buffer_float[pos] = (float) sample;
-        else
-            opl4_midi->buffer[pos] = (int16_t) round(sample);
-    }
-
-    opl4_midi->buffer_pos += RENDER_FRAMES * 2;
+    opl4_render(opl4_midi, RENDER_FRAMES);
+    opl4_midi->block_frames = 0;
     if (opl4_midi->buffer_pos == BUFFER_SAMPLES) {
         givealbuffer_midi(sound_is_float ? (const void *) opl4_midi->buffer_float : opl4_midi->buffer,
                           BUFFER_SAMPLES);
@@ -654,13 +663,20 @@ opl4_midi_msg(uint8_t *val)
 {
     opl4_midi_t *opl4_midi = opl4_midi_cur;
 
-    uint32_t msg         = *(uint32_t *) (val);
-    uint8_t  data_byte_1 = msg & 0xFF;
-    uint8_t  data_byte_2 = (msg >> 8) & 0xFF;
-    uint8_t  data_byte_3 = (msg >> 16) & 0xFF;
+    uint8_t data_byte_1 = val[0];
+    uint8_t data_byte_2 = val[1];
+    uint8_t data_byte_3 = val[2];
 
     uint8_t midi_channel = data_byte_1 & 0x0F;
     uint8_t midi_command = data_byte_1 >> 4;
+
+    if (midi_command < 0x8 || midi_command > 0xE)
+        return;
+
+    /* Finish the elapsed part of this block before changing chip registers. */
+    const uint64_t remaining = timer_get_remaining_us(&opl4_midi->poll_timer);
+    if (remaining < POLL_INTERVAL_US)
+        opl4_render(opl4_midi, (POLL_INTERVAL_US - remaining) * RENDER_FRAMES / POLL_INTERVAL_US);
 
     switch (midi_command) {
         case 0x8: // Note OFF
