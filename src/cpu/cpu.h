@@ -586,6 +586,10 @@ extern int is186;
 #define RETF_STACK_TEST_FRAME_FIRST 1 /* outer frame before the return CS is examined */
 #define RETF_STACK_TEST_CS_FIRST    2 /* outer frame after the return CS checks */
 
+#define FAR_LOAD_ORDER_NONE 0
+#define FAR_LOAD_ORDER_PRM  1 /* the programmer's reference manuals' order */
+#define FAR_LOAD_ORDER_IA   2 /* the Intel Architecture manuals' order */
+
 #define CALL_FAR_TEST_NONE      0
 #define CALL_FAR_TEST_PMODE     1 /* protected mode only */
 #define CALL_FAR_TEST_ALL_MODES 2 /* protected, real and virtual 8086 mode */
@@ -599,6 +603,7 @@ extern int retf_stack_test;
 extern int call_far_stack_test;
 extern int call_far_checks_eip_limit;
 extern int int_frame_fault_restores;
+extern int far_load_order;
 extern int is486;
 extern int is586;
 extern int is_am486;

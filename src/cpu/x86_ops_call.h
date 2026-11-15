@@ -6,6 +6,19 @@
             cpu_state.seg_cs = old_cs_seg;                                                          \
             use32            = old_use32;                                                           \
             cpu_cur_status   = (cpu_cur_status & ~CPU_STATUS_USE32) | (old_status & CPU_STATUS_USE32); \
+            call_far_a_pending = 0;                                                                 \
+        } while (0)
+/* The new code segment's Accessed bit, where the manual loads the
+   descriptor after the return address is pushed: a fault of that write
+   undoes the pushes and the CS load */
+#    define CALL_FAR_ACCESSED()                                        \
+        do {                                                           \
+            if (call_far_a_pending && op_call_far_set_accessed()) {    \
+                CALL_FAR_RESTORE_CS();                                 \
+                cpu_cur_status = old_status;                           \
+                ESP            = old_esp;                              \
+                return 1;                                              \
+            }                                                          \
         } while (0)
 #    define CALL_FAR_w(new_seg, new_pc)  \
         old_cs       = CS;               \
@@ -19,6 +32,7 @@
         cpu_state.pc = new_pc;           \
         optype       = CALL;             \
         cgate16 = cgate32 = cgate_task = 0; \
+        call_far_a_pending = 0;          \
         if (msw & 1)                     \
             op_loadcscall(new_seg, old_pc, 0); \
         else {                           \
@@ -28,6 +42,7 @@
         optype = 0;                      \
         if (cpu_state.abrt) {            \
             cgate16 = cgate32 = 0;       \
+            call_far_a_pending = 0;      \
             return 1;                    \
         }                                \
         oldss = ss;                      \
@@ -47,6 +62,7 @@
                 ESP = old_esp;           \
                 return 1;                \
             }                            \
+            CALL_FAR_ACCESSED();         \
         } else {                         \
             uint32_t old_esp = ESP;      \
             PUSH_W(old_cs);              \
@@ -61,6 +77,7 @@
                 ESP = old_esp;           \
                 return 1;                \
             }                            \
+            CALL_FAR_ACCESSED();         \
         }
 
 #    define CALL_FAR_l(new_seg, new_pc)  \
@@ -75,6 +92,7 @@
         cpu_state.pc = new_pc;           \
         optype       = CALL;             \
         cgate16 = cgate32 = cgate_task = 0; \
+        call_far_a_pending = 0;          \
         if (msw & 1)                     \
             op_loadcscall(new_seg, old_pc, 1); \
         else {                           \
@@ -84,6 +102,7 @@
         optype = 0;                      \
         if (cpu_state.abrt) {            \
             cgate16 = cgate32 = 0;       \
+            call_far_a_pending = 0;      \
             return 1;                    \
         }                                \
         oldss = ss;                      \
@@ -103,6 +122,7 @@
                 ESP = old_esp;           \
                 return 1;                \
             }                            \
+            CALL_FAR_ACCESSED();         \
         } else {                         \
             uint32_t old_esp = ESP;      \
             PUSH_L(old_cs);              \
@@ -117,6 +137,7 @@
                 ESP = old_esp;           \
                 return 1;                \
             }                            \
+            CALL_FAR_ACCESSED();         \
         }
 
 static int

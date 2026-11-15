@@ -92,6 +92,19 @@ x86seg_set_accessed(uint32_t addr, uint16_t word4)
     writememb(0, addr + 5, (uint8_t) ((word4 >> 8) | 0x01));
 }
 
+/* The Accessed bits of the two descriptors a transfer between privilege
+   levels loads, in the order given; the second is not written when the
+   first write faults. */
+static void
+x86seg_set_accessed_pair(uint32_t addr1, uint16_t word4_1, uint32_t addr2, uint16_t word4_2)
+{
+    cpl_override = 1;
+    x86seg_set_accessed(addr1, word4_1);
+    if (!cpu_state.abrt)
+        x86seg_set_accessed(addr2, word4_2);
+    cpl_override = 0;
+}
+
 /* A TSS descriptor's Busy bit (the access byte's bit 1), set or cleared by
    a task switch (19.1.2). Answers 0 on a fault. */
 static int
@@ -861,11 +874,12 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
                 x86np("Load CS JMP not present", seg & 0xfffc);
                 return;
             }
-            set_use32(segdat[3] & 0x0040);
-
             cpl_override = 1;
             x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
             cpl_override = 0;
+            if (cpu_state.abrt)
+                return;
+            set_use32(segdat[3] & 0x0040);
 
             CS        = (seg & 0xfffc) | CPL;
             segdat[2] = (segdat[2] & ~(3 << 13)) | (CPL << 13);
@@ -942,6 +956,11 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
                         case 0x1d00:
                         case 0x1e00:
                         case 0x1f00: /* Conforming */
+                            cpl_override = 1;
+                            x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
+                            cpl_override = 0;
+                            if (cpu_state.abrt)
+                                return;
                             {
                                 int jmp_cpl = CPL;
 
@@ -955,10 +974,6 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
                             oldcpl = CPL;
                             set_use32(segdat[3] & 0x40);
                             cpu_state.pc = newpc;
-
-                            cpl_override = 1;
-                            x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
-                            cpl_override = 0;
                             break;
 
                         default:
@@ -1144,7 +1159,30 @@ call_far_rm_fault(uint32_t new_pc, int is32)
     }
     return 0;
 }
+
+/* The Accessed-bit write of the code segment a far CALL has loaded, held
+   back for the caller where the processor's manual pushes the return
+   address before it loads the descriptor. */
+int      call_far_a_pending;
+uint32_t call_far_a_addr;
+uint16_t call_far_a_word;
 #endif
+
+/* Returns 1 when the write faults. Neither kind of CALL that holds the
+   write back changes CPL, so it is made at the CPL of the CALL. */
+int
+#ifdef OPS_286_386
+call_far_set_accessed_2386(void)
+#else
+call_far_set_accessed(void)
+#endif
+{
+    call_far_a_pending = 0;
+    cpl_override       = 1;
+    x86seg_set_accessed(call_far_a_addr, call_far_a_word);
+    cpl_override       = 0;
+    return cpu_state.abrt;
+}
 
 #ifdef OPS_286_386
 void
@@ -1228,11 +1266,19 @@ loadcscall(uint16_t seg, uint32_t old_pc, int is32)
                 x86gpf("loadcscall(): Target offset > CS limit", 0);
                 return;
             }
+            if (far_load_order == FAR_LOAD_ORDER_IA) {
+                /* Written by the caller, after its pushes */
+                call_far_a_addr    = addr;
+                call_far_a_word    = segdat[2];
+                call_far_a_pending = 1;
+            } else {
+                cpl_override = 1;
+                x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
+                cpl_override = 0;
+                if (cpu_state.abrt)
+                    return;
+            }
             set_use32(segdat[3] & 0x0040);
-
-            cpl_override = 1;
-            x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
-            cpl_override = 0;
 
             /* Conforming segments don't change CPL, so preserve existing CPL */
             if (segdat[2] & 0x0400) {
@@ -1365,6 +1411,14 @@ loadcscall(uint16_t seg, uint32_t old_pc, int is32)
                                     x86ss("Call gate loading SS not present", newss & 0xfffc);
                                     return;
                                 }
+                                /* Both descriptors are loaded before anything
+                                   is pushed, at the CPL of the CALL */
+                                if (far_load_order == FAR_LOAD_ORDER_PRM)
+                                    x86seg_set_accessed_pair(oaddr, segdat[2], addr, segdat2[2]);
+                                else
+                                    x86seg_set_accessed_pair(addr, segdat2[2], oaddr, segdat[2]);
+                                if (cpu_state.abrt)
+                                    return;
                                 if (!stack32)
                                     oldsp &= 0xffff;
                                 SS = newss;
@@ -1376,11 +1430,6 @@ loadcscall(uint16_t seg, uint32_t old_pc, int is32)
 
                                 do_seg_load(&cpu_state.seg_ss, segdat2);
 
-                                x86seg_log("Set access 1\n");
-                                cpl_override = 1;
-                                x86seg_set_accessed(addr, segdat2[2]); /* Set accessed bit */
-                                cpl_override = 0;
-
                                 CS = (seg2 & ~3) | DPL;
                                 do_seg_load(&cpu_state.seg_cs, segdat);
                                 if ((CPL == 3) && (oldcpl != 3))
@@ -1388,12 +1437,6 @@ loadcscall(uint16_t seg, uint32_t old_pc, int is32)
                                 oldcpl = CPL;
                                 set_use32(segdat[3] & 0x0040);
                                 cpu_state.pc = newpc;
-
-                                x86seg_log("Set access 2\n");
-
-                                cpl_override = 1;
-                                x86seg_set_accessed(oaddr, segdat[2]); /* Set accessed bit */
-                                cpl_override = 0;
 
                                 x86seg_log("Type %04X\n", type);
                                 if (type == 0x0c00) {
@@ -1488,6 +1531,18 @@ loadcscall(uint16_t seg, uint32_t old_pc, int is32)
                         case 0x1d00:
                         case 0x1e00:
                         case 0x1f00: /* Conforming */
+                            if (far_load_order == FAR_LOAD_ORDER_PRM) {
+                                /* Written by the caller, after its pushes */
+                                call_far_a_addr    = addr;
+                                call_far_a_word    = segdat[2];
+                                call_far_a_pending = 1;
+                            } else {
+                                cpl_override = 1;
+                                x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
+                                cpl_override = 0;
+                                if (cpu_state.abrt)
+                                    return;
+                            }
                             {
                                 int call_cpl = CPL;
 
@@ -1502,10 +1557,6 @@ loadcscall(uint16_t seg, uint32_t old_pc, int is32)
                             oldcpl = CPL;
                             set_use32(segdat[3] & 0x0040);
                             cpu_state.pc = newpc;
-
-                            cpl_override = 1;
-                            x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
-                            cpl_override = 0;
                             cycles -= timing_call_pm_gate;
                             break;
 
@@ -1704,6 +1755,10 @@ pmoderetf(int is32, uint16_t off)
         cpl_override = 1;
         x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
         cpl_override = 0;
+        if (cpu_state.abrt) {
+            ESP = oldsp;
+            return;
+        }
 
         cpu_state.pc = newpc;
         if (segdat[2] & 0x0400)
@@ -1821,6 +1876,14 @@ pmoderetf(int is32, uint16_t off)
             x86gpf("pmoderetf(): EIP past the CS limit", 0);
             return;
         }
+        if (far_load_order != FAR_LOAD_ORDER_NONE)
+            x86seg_set_accessed_pair(oaddr, segdat[2], addr, segdat2[2]);
+        else
+            x86seg_set_accessed_pair(addr, segdat2[2], oaddr, segdat[2]);
+        if (cpu_state.abrt) {
+            ESP = oldsp;
+            return;
+        }
         SS = newss;
         set_stack32((segdat2[3] & 0x0040) ? 1 : 0);
         if (stack32)
@@ -1829,10 +1892,6 @@ pmoderetf(int is32, uint16_t off)
             SP = newsp;
         do_seg_load(&cpu_state.seg_ss, segdat2);
 
-        cpl_override = 1;
-        x86seg_set_accessed(addr, segdat2[2]); /* Set accessed bit */
-        x86seg_set_accessed(oaddr, segdat[2]); /* Set accessed bit */
-        cpl_override = 0;
         /* Conforming segments don't change CPL, so CPL = RPL */
         if (segdat[2] & 0x0400)
             segdat[2] = (segdat[2] & ~(3 << 13)) | ((seg & 3) << 13);
@@ -1883,6 +1942,7 @@ pmodeint(int num, int soft)
     x86seg        old_seg_ss;
     int           old_stack32;
     uint16_t      old_status;
+    int           load_order;
 
     if ((cpu_state.eflags & VM_FLAG) && (IOPL != 3) && soft && !x86_int_sw_iopl_exempt) {
         x86seg_log("V86 banned int\n");
@@ -2036,6 +2096,22 @@ pmodeint(int num, int soft)
                             x86ss("Int gate loading SS not present", (newss & 0xfffc) + !soft);
                             return;
                         }
+                        /* From V86 mode every manual loads CS after the
+                           pushes. Otherwise both descriptors are loaded
+                           before anything is pushed where the manual
+                           says so, at the CPL of the interrupted code. */
+                        load_order = (cpu_state.eflags & VM_FLAG) ? FAR_LOAD_ORDER_NONE : far_load_order;
+                        if (load_order == FAR_LOAD_ORDER_PRM)
+                            x86seg_set_accessed_pair(oaddr, segdat2[2], addr, segdat3[2]);
+                        else if (load_order == FAR_LOAD_ORDER_IA)
+                            x86seg_set_accessed_pair(addr, segdat3[2], oaddr, segdat2[2]);
+                        else {
+                            cpl_override = 1;
+                            x86seg_set_accessed(addr, segdat3[2]); /* Set accessed bit */
+                            cpl_override = 0;
+                        }
+                        if (cpu_state.abrt)
+                            return;
                         old_seg_ss  = cpu_state.seg_ss;
                         old_stack32 = stack32;
                         old_status  = cpu_cur_status;
@@ -2046,10 +2122,6 @@ pmodeint(int num, int soft)
                         else
                             SP = newsp;
                         do_seg_load(&cpu_state.seg_ss, segdat3);
-
-                        cpl_override = 1;
-                        x86seg_set_accessed(addr, segdat3[2]); /* Set accessed bit */
-                        cpl_override = 0;
 
                         x86seg_log("New stack %04X:%08X\n", SS, ESP);
                         cpl_override = 1;
@@ -2088,15 +2160,6 @@ pmodeint(int num, int soft)
                                     int_stack_restore(&old_seg_ss, oldsp, old_stack32, old_status);
                                 return;
                             }
-                            if ((cpu_state.eflags & VM_FLAG) && int_frame_fault_restores) {
-                                /* Null selectors, as protected mode loads them
-                                   (VM is still set, so loadseg would take its
-                                   real-mode path): a use before reload is #GP */
-                                null_data_seg(&cpu_state.seg_ds);
-                                null_data_seg(&cpu_state.seg_es);
-                                null_data_seg(&cpu_state.seg_fs);
-                                null_data_seg(&cpu_state.seg_gs);
-                            }
                         } else {
                             PUSHW(oldss);
                             PUSHW(oldsp);
@@ -2109,9 +2172,28 @@ pmodeint(int num, int soft)
                                 return;
                             }
                         }
+                        cycles -= timing_int_pm_outer - timing_int_pm;
+                        if (load_order == FAR_LOAD_ORDER_NONE) {
+                            /* Still at the CPL of the interrupted code */
+                            x86seg_set_accessed(oaddr, segdat2[2]); /* Set accessed bit */
+                            if (cpu_state.abrt) {
+                                if (int_frame_fault_restores)
+                                    int_stack_restore(&old_seg_ss, oldsp, old_stack32, old_status);
+                                cpl_override = 0;
+                                return;
+                            }
+                        }
+                        if ((type >= 0x0800) && (cpu_state.eflags & VM_FLAG) && int_frame_fault_restores) {
+                            /* Null selectors, as protected mode loads them
+                               (VM is still set, so loadseg would take its
+                               real-mode path): a use before reload is #GP */
+                            null_data_seg(&cpu_state.seg_ds);
+                            null_data_seg(&cpu_state.seg_es);
+                            null_data_seg(&cpu_state.seg_fs);
+                            null_data_seg(&cpu_state.seg_gs);
+                        }
                         cpl_override            = 0;
                         cpu_state.seg_cs.access = 0x80;
-                        cycles -= timing_int_pm_outer - timing_int_pm;
                         break;
                     } else if (DPL2 != CPL) {
                         x86gpf("pmodeint(): DPL != CPL", (seg & 0xfffc) + !soft);
@@ -2133,6 +2215,7 @@ pmodeint(int num, int soft)
                         x86gpf("pmodeint(): conforming or same-level CS in V86 mode", (seg & 0xfffc) + !soft);
                         return;
                     }
+                    oldsp = ESP;
                     if (type > 0x0800) {
                         PUSHL(cpu_state.flags | (cpu_state.eflags << 16));
                         is586 ? PUSHL(CS) : PUSHL_SEL(CS);
@@ -2145,6 +2228,14 @@ pmodeint(int num, int soft)
                         PUSHW(cpu_state.pc);
                         if (cpu_state.abrt)
                             return;
+                    }
+                    cpl_override = 1;
+                    x86seg_set_accessed(oaddr, segdat2[2]); /* Set accessed bit */
+                    cpl_override = 0;
+                    if (cpu_state.abrt) {
+                        if (int_frame_fault_restores)
+                            ESP = oldsp;
+                        return;
                     }
                     new_cpl = CS & 3;
                     break;
@@ -2163,10 +2254,6 @@ pmodeint(int num, int soft)
             else
                 cpu_state.pc = segdat[0];
             set_use32(segdat2[3] & 0x40);
-
-            cpl_override = 1;
-            x86seg_set_accessed(oaddr, segdat2[2]); /* Set accessed bit */
-            cpl_override = 0;
 
             cpu_state.eflags &= ~VM_FLAG;
             cpu_cur_status &= ~CPU_STATUS_V86;
@@ -2460,6 +2547,13 @@ pmodeiret(int is32)
         return;
     }
     if ((seg & 0x0003) == CPL) {
+        cpl_override = 1;
+        x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
+        cpl_override = 0;
+        if (cpu_state.abrt) {
+            ESP = oldsp;
+            return;
+        }
         CS = seg;
         do_seg_load(&cpu_state.seg_cs, segdat);
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | ((CS & 0x0003) << 5);
@@ -2467,10 +2561,6 @@ pmodeiret(int is32)
             flushmmucache_ring3();
         oldcpl = CPL;
         set_use32(segdat[3] & 0x0040);
-
-        cpl_override = 1;
-        x86seg_set_accessed(addr, segdat[2]); /* Set accessed bit */
-        cpl_override = 0;
         cycles -= timing_iret_pm;
     } else { /* Return to outer level */
         oaddr = addr;
@@ -2531,6 +2621,14 @@ pmodeiret(int is32)
             x86np("IRET loading SS not present", newss & 0xfffc);
             return;
         }
+        if (far_load_order == FAR_LOAD_ORDER_PRM)
+            x86seg_set_accessed_pair(oaddr, segdat[2], addr, segdat2[2]);
+        else
+            x86seg_set_accessed_pair(addr, segdat2[2], oaddr, segdat[2]);
+        if (cpu_state.abrt) {
+            ESP = oldsp;
+            return;
+        }
         SS = newss;
         set_stack32((segdat2[3] & 0x40) ? 1 : 0);
         if (stack32)
@@ -2539,10 +2637,6 @@ pmodeiret(int is32)
             SP = newsp;
         do_seg_load(&cpu_state.seg_ss, segdat2);
 
-        cpl_override = 1;
-        x86seg_set_accessed(addr, segdat2[2]); /* Set accessed bit */
-        x86seg_set_accessed(oaddr, segdat[2]); /* Set accessed bit */
-        cpl_override = 0;
         /* Conforming segments don't change CPL, so CPL = RPL */
         if (segdat[2] & 0x0400)
             segdat[2] = (segdat[2] & ~(3 << 13)) | ((seg & 3) << 13);

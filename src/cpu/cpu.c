@@ -254,6 +254,7 @@ int retf_stack_test;
 int call_far_stack_test;
 int call_far_checks_eip_limit;
 int int_frame_fault_restores;
+int far_load_order;
 int is486 = 1;
 int is586 = 0;
 int cpu_isintel;
@@ -918,6 +919,49 @@ cpu_set(void)
             break;
         default:
             int_frame_fault_restores = 0;
+            break;
+    }
+
+    /* Where a far transfer loads the new CS and SS descriptors (and so sets
+       their Accessed bits) among its other steps, only on the processors
+       whose own manuals give the order. The 80286 PRM (pp. B-24, B-49, B-52,
+       B-95), the 386DX PRM (pp. 17-42, 17-74, 17-80, 17-148), the i486 PRM
+       (pp. 26-46, 26-167, 26-175, 26-248), the Am486 Software User's Manual
+       (CALL, INT, IRET, RET) and the Pentium manual (1995, pp. 25-52,
+       25-174, 25-187, 25-272): CS, then SS, both before the pushes of a
+       call gate or an interrupt to an inner level and on RET and IRET to an
+       outer level; a call gate to the same level pushes the return address
+       first. The 1997 Intel Architecture manual vol. 2 (pp. 3-43, 3-223,
+       3-409) and the 1999 one (pp. 3-57, 3-311, 3-611): SS, then CS, both
+       before the pushes to an inner level; CS, then SS on RET to an outer
+       level; a far CALL to a code segment pushes the return address first. */
+    switch (cpu_s->cpu_type) {
+        case CPU_386SX:
+        case CPU_386DX:
+            /* Not the Am386 or the M6117. */
+            far_load_order = !strcmp(cpu_f->manufacturer, "Intel") ? FAR_LOAD_ORDER_PRM : FAR_LOAD_ORDER_NONE;
+            break;
+        case CPU_286:
+        case CPU_i486SX:
+        case CPU_Am486SX:
+        case CPU_i486DX:
+        case CPU_Am486DX:
+        case CPU_Am486DXL:
+        case CPU_i486SX_SLENH:
+        case CPU_i486DX_SLENH:
+        case CPU_ENH_Am486DX:
+        case CPU_P24T:
+        case CPU_PENTIUM:
+            far_load_order = FAR_LOAD_ORDER_PRM;
+            break;
+        case CPU_PENTIUMMMX:
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            far_load_order = FAR_LOAD_ORDER_IA;
+            break;
+        default:
+            far_load_order = FAR_LOAD_ORDER_NONE;
             break;
     }
 

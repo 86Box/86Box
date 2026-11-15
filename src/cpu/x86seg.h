@@ -19,6 +19,12 @@
 
 extern int call_far_rm_fault(uint32_t new_pc, int is32);
 
+extern int      call_far_a_pending;
+extern uint32_t call_far_a_addr;
+extern uint16_t call_far_a_word;
+extern int      call_far_set_accessed(void);
+extern int      call_far_set_accessed_2386(void);
+
 #ifdef OPS_286_386
 
 extern void x86_doabrt_2386(int x86_abrt);
@@ -38,6 +44,7 @@ extern void taskswitch286_2386(uint16_t seg, uint16_t *segdat, int is32);
 #define op_loadcs         loadcs_2386
 #define op_loadcsjmp      loadcsjmp_2386
 #define op_loadcscall     loadcscall_2386
+#define op_call_far_set_accessed call_far_set_accessed_2386
 #define op_pmoderetf      pmoderetf_2386
 #define op_pmodeint       pmodeint_2386
 #define op_pmodeiret      pmodeiret_2386
@@ -70,6 +77,7 @@ extern void taskswitch286(uint16_t seg, uint16_t *segdat, int is32);
 #define op_loadcs         loadcs
 #define op_loadcsjmp      loadcsjmp
 #define op_loadcscall     loadcscall
+#define op_call_far_set_accessed call_far_set_accessed
 #define op_pmoderetf      pmoderetf
 #define op_pmodeint       pmodeint
 #define op_pmodeiret      pmodeiret
