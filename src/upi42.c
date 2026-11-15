@@ -154,19 +154,24 @@ upi42_apply_pending(upi42_t *upi42)
     if (upi42->pend_cmd == 0)
         return;
 
+    /* The input buffer holds a single byte: a host write while IBF is set is
+       ignored by the 8042. The host is expected to wait for IBF to clear, but
+       not every program does (the IBM diagnostics writes the next command as
+       soon as the previous data byte has been posted). */
+    if (upi42->sts & 0x02) {
+        upi42->pend_cmd = 0;
+        return;
+    }
+
     upi42->dbb_in = upi42->pend_data;
     upi42->f1     = (upi42->pend_cmd == 2);
+    upi42->sts   |= 0x02;
 
-    /* The input buffer only raises IBF if it was empty. */
-    if (!(upi42->sts & 0x02)) {
-        upi42->sts |= 0x02;
+    if (upi42->flags)
+        upi42_update_port(upi42, 2);
 
-        if (upi42->flags)
-            upi42_update_port(upi42, 2);
-
-        if (upi42->i)
-            upi42->i_raise = 1;
-    }
+    if (upi42->i)
+        upi42->i_raise = 1;
 
     upi42->pend_cmd = 0;
     upi42_update_irq(upi42);
@@ -1113,6 +1118,12 @@ upi42_master_write_data(upi42_t *upi42, uint8_t val)
 {
     upi42_log("UPI42: dbb_write(%02X)\n", val);
 
+    /* A write that is still waiting for the next boundary makes this one
+       a second write to a single-byte input buffer: after the first is
+       applied, IBF is set, so the 8042 ignores it. */
+    if (upi42->pend_cmd != 0)
+        return;
+
     /* Latched until the next execution boundary. */
     upi42->pend_data = val;
     upi42->pend_cmd  = 1;
@@ -1122,6 +1133,9 @@ void
 upi42_master_write_cmd(upi42_t *upi42, uint8_t val)
 {
     upi42_log("UPI42: cmd_write(%02X)\n", val);
+
+    if (upi42->pend_cmd != 0)
+        return;
 
     /* Latched until the next execution boundary. */
     upi42->pend_data = val;

@@ -46,8 +46,6 @@
 #define KBC_AT_UPI42_KBD_ACK_US      60 /* data line acknowledge hold time */
 #define KBC_AT_UPI42_KBD_START_TICKS 100 /* clock held low before a frame */
 #define KBC_AT_UPI42_KBD_GAP_TICKS   200 /* idle time between frames */
-#define KBC_AT_UPI42_CMD_BYTE        0x20 /* firmware RAM command byte */
-#define KBC_AT_UPI42_CMD_KBD_DIS     0x10 /* keyboard clock disable bit */
 
 typedef struct {
     upi42_t   *mcu;
@@ -174,14 +172,14 @@ kbc_upi42_p2_in(void *priv)
     return 0xff;
 }
 
-/* Drive the keyboard clock line: P2.6 is inverted by the buffer, and the
-   keyboard clock disable bit of the command byte gates it in hardware. */
+/* Drive the keyboard clock line: P2.6 is inverted by the buffer. The command
+   byte's disable bit only stops the firmware from polling the keyboard; the
+   firmware itself drives the clock low while the keyboard is disabled
+   (P2 = 0xCF), so the pin must not be gated again. */
 static void
 kbc_upi42_update_clock(kbc_upi42_t *dev)
 {
-    uint8_t disabled = upi42_get_ram(dev->mcu, KBC_AT_UPI42_CMD_BYTE) & KBC_AT_UPI42_CMD_KBD_DIS;
-
-    dev->bus.kbc_clk = !((dev->p2 & 0x40) || disabled);
+    dev->bus.kbc_clk = !(dev->p2 & 0x40);
 }
 
 static void
@@ -268,14 +266,16 @@ kbc_upi42_kbd_send(kbc_upi42_t *dev, uint8_t val)
 
     /* Bit 0 is the start bit, followed by the data bits LSB first, the parity and the stop bit. */
     dev->kbd_frame   = ((uint16_t) val << 1) | ((uint16_t) parity << 9) | (1u << 10);
+    dev->kbd_wait    = 1;
     dev->kbd_bit     = 0;
     dev->kbd_phase   = 0;
     dev->kbd_sending = 1;
-    dev->kbd_wait    = 1;
 
-    /* Hold the clock line low to request a transmission and keep the data
-       line released until the controller is ready to receive. */
-    dev->bus.kbd_clk  = 0;
+    /* Leave the clock line released while the controller inhibits it: a
+       real keyboard waits with CLK high before starting a frame, and the AT
+       controller's 0xAB interface test reads a keyboard-held CLK as "stuck
+       low". The start bit is driven when the frame actually begins. */
+    dev->bus.kbd_clk  = 1;
     dev->bus.kbd_data = 1;
 
     kbc_at_upi42_log("KBC-UPI42: keyboard sends %02X\n", val);
@@ -328,11 +328,11 @@ kbc_upi42_kbd_tick(kbc_upi42_t *dev)
     if (!dev->kbd_sending)
         return;
 
-    /* Hold the clock low until the controller releases it and stays idle
-       for a while, so the firmware is inside its receive loop before the
+    /* Wait with the clock released until the controller releases it and stays
+       idle for a while, so the firmware is inside its receive loop before the
        frame starts. */
     if (dev->kbd_wait) {
-        dev->bus.kbd_clk  = 0;
+        dev->bus.kbd_clk  = 1;
         dev->bus.kbd_data = 1;
 
         if (!dev->bus.kbc_clk) {
