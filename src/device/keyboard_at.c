@@ -5722,6 +5722,23 @@ keyboard_at_invalid_cmd(atkbc_dev_t *dev)
     kbc_at_dev_queue_add(dev, inv_cmd_response, 0);
 }
 
+/* The enhanced keyboard used by the 101/102/106-key layouts implements the
+   PS/2 command set (F0 to select the scan code set, and the set 3 only F7-FA
+   key type commands) even when it is fitted with an AT connector; the 84-key
+   AT keyboard does not (IBM Keyboards (101- and 102-Key), October 1990,
+   p. 21, 23 and 34). */
+static int
+keyboard_at_has_ps2_commands(atkbc_dev_t *dev)
+{
+    if (dev->type & FLAG_PS2_KBD)
+        return 1;
+
+    if (dev->lk250 || (dev->type & FLAG_AX))
+        return 0;
+
+    return ((dev->type & FLAG_TYPE_MASK) > KBD_84_KEY);
+}
+
 static void
 keyboard_at_write(void *priv)
 {
@@ -5854,7 +5871,7 @@ keyboard_at_write(void *priv)
                 break;
 
             case 0xf0: /* get/set scan code set */
-                if (dev->type & FLAG_PS2_KBD) {
+                if (keyboard_at_has_ps2_commands(dev)) {
                     dev->command = val;
                     keyboard_at_log("%s: scan code set\n", dev->name);
                     dev->flags |= FLAG_CTRLDAT;
@@ -5920,7 +5937,7 @@ keyboard_at_write(void *priv)
                 break;
 
             case 0xf7: /* set all keys to repeat */
-                if (dev->type & FLAG_PS2_KBD) {
+                if (keyboard_at_has_ps2_commands(dev)) {
                     keyboard_at_log("%s: set all keys to repeat\n", dev->name);
                     kbc_at_dev_queue_add(dev, 0xfa, 0);
                     keyboard_set3_all_break = 1;
@@ -5929,7 +5946,7 @@ keyboard_at_write(void *priv)
                 break;
 
             case 0xf8: /* set all keys to give make/break codes */
-                if (dev->type & FLAG_PS2_KBD) {
+                if (keyboard_at_has_ps2_commands(dev)) {
                     keyboard_at_log("%s: set all keys to give make/break codes\n", dev->name);
                     kbc_at_dev_queue_add(dev, 0xfa, 0);
                     keyboard_set3_all_break = 1;
@@ -5938,7 +5955,7 @@ keyboard_at_write(void *priv)
                 break;
 
             case 0xf9: /* set all keys to give make codes only */
-                if (dev->type & FLAG_PS2_KBD) {
+                if (keyboard_at_has_ps2_commands(dev)) {
                     keyboard_at_log("%s: set all keys to give make codes only\n", dev->name);
                     kbc_at_dev_queue_add(dev, 0xfa, 0);
                     keyboard_set3_all_break = 0;
@@ -5947,7 +5964,7 @@ keyboard_at_write(void *priv)
                 break;
 
             case 0xfa: /* set all keys to repeat and give make/break codes */
-                if (dev->type & FLAG_PS2_KBD) {
+                if (keyboard_at_has_ps2_commands(dev)) {
                     keyboard_at_log("%s: set all keys to repeat and give make/break codes\n", dev->name);
                     kbc_at_dev_queue_add(dev, 0xfa, 0);
                     keyboard_set3_all_repeat = 1;
@@ -6078,7 +6095,7 @@ keyboard_at_init(const device_t *info)
     SavedKbd = dev;
     keyboard_update_states(0, 0, 0, 0);
 
-    inv_cmd_response = (dev->type & FLAG_PS2_KBD) ? 0xfe : 0xfa;
+    inv_cmd_response = keyboard_at_has_ps2_commands(dev) ? 0xfe : 0xfa;
 
     is_special = 0;
 
@@ -6247,12 +6264,12 @@ static const device_config_t keyboard_at_config[] = {
         .file_filter    = NULL,
         .spinner        = { 0 },
         .selection      = {
-            { .description = "84",          .value = KBD_84_KEY  },
-            { .description = "101 (ANSI)",  .value = KBD_101_KEY },
-            { .description = "102 (ISO)",   .value = KBD_102_KEY },
-            { .description = "106 (JIS)",   .value = KBD_JIS     },
-            { .description = "103 (KSC)",   .value = KBD_KSC     },
-            { .description = "104 (ABNT2)", .value = KBD_ABNT2   }
+            { .description = "84 (Model F)", .value = KBD_84_KEY  },
+            { .description = "101 (ANSI)",   .value = KBD_101_KEY },
+            { .description = "102 (ISO)",    .value = KBD_102_KEY },
+            { .description = "106 (JIS)",    .value = KBD_JIS     },
+            { .description = "103 (KSC)",    .value = KBD_KSC     },
+            { .description = "104 (ABNT2)",  .value = KBD_ABNT2   }
         },
         .bios           = { { 0 } }
     },
