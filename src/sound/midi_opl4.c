@@ -320,6 +320,7 @@ typedef struct opl4_midi {
     uint64_t          rendered_frames;
     uint64_t          note_sequence;
     uint8_t           master_attenuation;
+    int16_t           master_tuning; /* 1/128 semitone, retained across MIDI resets. */
 } opl4_midi_t;
 
 static opl4_midi_t *opl4_midi_cur;
@@ -428,6 +429,7 @@ update_pitch(VOICE_DATA *voice, opl4_midi_t *opl4_midi)
         const int range = channel->bend_semitones * 100 + channel->bend_cents;
         pitch += (int64_t) channel->pitch_bend * range / (64 * 100);
         pitch += channel->fine_tuning * 128 / 8192 + channel->coarse_tuning * 128;
+        pitch += opl4_midi->master_tuning;
     }
     /* Yamaha reserves octave code 8. The lowest playable octave is -7. */
     if (pitch < 0x600)
@@ -924,22 +926,41 @@ static void
 opl4_midi_sysex(uint8_t *data, unsigned int len)
 {
     opl4_midi_t *opl4_midi = opl4_midi_cur;
+    static const uint8_t xg_system_on[] = { 0x4c, 0x00, 0x00, 0x7e, 0x00 };
+    static const uint8_t master_tuning_address[] = { 0x27, 0x30, 0x00, 0x00 };
 
-    if (len < 6 || data[0] != 0xf0 || data[len - 1] != 0xf7)
+    if (len < 6 || len > 11 || data[0] != 0xf0 || data[len - 1] != 0xf7)
         return;
+    for (unsigned int i = 1; i < len - 1; i++) {
+        if (data[i] & 0x80)
+            return;
+    }
 
-    if (len == 6 && data[1] == 0x7e && data[3] == 0x09 && data[4] == 0x01) {
+    const bool yamaha_parameter_change = data[1] == 0x43 && (data[2] & 0xf0) == 0x10;
+    if ((len == 6 && data[1] == 0x7e && data[3] == 0x09 && data[4] == 0x01) ||
+        (len == 9 && yamaha_parameter_change && !memcmp(data + 3, xg_system_on, sizeof(xg_system_on)))) {
         render_elapsed(opl4_midi);
         reset_channels(opl4_midi);
     } else if (len == 8 && data[1] == 0x7f && data[3] == 0x04 && data[4] == 0x01) {
         render_elapsed(opl4_midi);
-        const unsigned int level = ((data[6] & 0x7f) << 7) | (data[5] & 0x7f);
-        /* Match the channel volume curve in the chip's 0.375 dB steps. */
-        opl4_midi->master_attenuation = level ? MIN(127, lround(-40.0 * log10(level / 16383.0) / 0.375)) : UINT8_MAX;
+        /* The YMF721 uses only the most significant byte. */
+        const unsigned int level = data[6];
+        /* Convert the master level to the chip's 0.375 dB steps. */
+        opl4_midi->master_attenuation = level ? MIN(127, lround(-40.0 * log10(level / 127.0) / 0.375)) : UINT8_MAX;
         for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
             VOICE_DATA *voice = &opl4_midi->voice_data[i];
             if ((voice->is_active || voice->has_release_tail) && !voice->key_on_pending)
                 update_volume(voice, opl4_midi, false);
+        }
+    } else if (len == 11 && yamaha_parameter_change && !memcmp(data + 3, master_tuning_address, sizeof(master_tuning_address))) {
+        render_elapsed(opl4_midi);
+        /* The low nibble of each byte carries tuning data. The trailing data byte is ignored. */
+        const int cents = (((data[7] & 0x0f) << 4) | (data[8] & 0x0f)) - 128;
+        opl4_midi->master_tuning = lround(cents * 128.0 / 100.0);
+        for (uint8_t i = 0; i < NR_OF_WAVE_CHANNELS; i++) {
+            VOICE_DATA *voice = &opl4_midi->voice_data[i];
+            if ((voice->is_active || voice->has_release_tail) && !voice->key_on_pending && !voice->midi_channel->drum_channel)
+                update_pitch(voice, opl4_midi);
         }
     }
 }
