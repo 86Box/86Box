@@ -1021,8 +1021,11 @@ run_block:
         block->runs_left >>= 1; /* reached via block->data */
         /* A reset the slice's timer run raised after the previous block
            left the flag set; the instructions that test it in the block
-           (RDTSC, RDMSR, OUT) must see only a reset raised by this one. */
-        x86_was_reset = 0;
+           (RDTSC, RDMSR, OUT) must see only a reset raised by this one.
+           Stored only when set: the link routine reads it as part of a
+           quadword, which a fresh 32-bit store would stall. */
+        if (x86_was_reset)
+            x86_was_reset = 0;
         inrecomp = 1;
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
         /* A block compiled without links returns nothing. */
