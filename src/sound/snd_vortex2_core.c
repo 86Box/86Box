@@ -197,9 +197,9 @@ typedef struct v2_src_t {
 typedef struct v2_wtv_t {
     double   phase;
     float    hist[4];
-    float    z1, z2; /* treble filter state */
-    int      fbyte;  /* treble byte the coefficients below were made for, -1 = none */
-    float    fb0, fa1, fa2;
+    float    fs[4];  /* filter state: the four one-pole stages */
+    int      fbyte;  /* cut-off byte the coefficient below was made for, -1 = none */
+    float    fcoef;
     uint32_t nin;
 } v2_wtv_t;
 
@@ -1197,11 +1197,8 @@ mix_run(v2_chip_t *c, int m, float *out)
 /* same values with the bits differing, which selects the base word     */
 /* (a register map of the chip; every PARM0/PARM1 pair in the traces).  */
 /* The glide is not modelled. Fields of the base word:                 */
-/*   bits 31-24  treble control: a two-pole low-pass, Q 0.64, whose    */
-/*               cut-off follows log2(fc) = 13.505 + 1.817u + 0.139u^2, */
-/*               u = (byte - 0xcf) / 16 (fitted to the real card's      */
-/*               echoes, test-suite run 14: 0xc2 = 4.7 kHz, 0xac =       */
-/*               1.2 kHz, 0x84 = 250 Hz); 0xcf and above = open         */
+/*   bits 31-24  filter cut-off, 4e4m: the coefficient of a four-stage */
+/*               one-pole low-pass (see wt_filter_set); 0xcf = open     */
 /*   bits 23-16  gain, 4e4m, 0x10 per 6 dB, 0xcf = unity, 0 = silent   */
 /*   bits 15-1   rate: e = bits 15-13, m = bits 12-1,                  */
 /*               rate = 48 kHz * 2^(e-5) * (1 + m/4096)  (confirmed     */
@@ -1255,25 +1252,24 @@ wt_gain(uint32_t p)
     return wt_gain_tab[(p >> 16) & 0xff];
 }
 
-/* Treble low-pass for one voice: RBJ low-pass biquad, unity at DC. The
-   two zeros at Nyquist give b1 = 2 b0, b2 = b0. */
+/* A voice's low-pass filter: four one-pole stages in series, each
+   y += F * (x - y), with F the cut-off byte expanded like the gain byte
+   and taken as a 0.16 fraction (0xcf = 0xffff: open). Measured on a real
+   SQ2500 (run 19: noise on a wavetable voice while the host stepped the
+   byte through 27 values from 0xcc to 0x80; each response against the
+   untouched voice): this matches every step to 0.36 dB rms with nothing
+   fitted, where a free coefficient per step comes out at 1.000-1.010 x
+   the expanded byte. Codes 0xbf, 0xaf and 0x9f measured the same as
+   0xc0, 0xb0 and 0xa0, which is the mantissa repeating. The feedback
+   word (PARM2 bits 31-16) adds resonance around the four stages; the
+   driver leaves it 0 and it is not modelled. */
 static void
 wt_filter_set(v2_wtv_t *w, int f)
 {
     if (f == w->fbyte)
         return;
     w->fbyte = f;
-    if (f >= 0xcf)
-        return;
-    double u  = (f - 0xcf) / 16.0;
-    double fc = pow(2.0, 13.505 + 1.817 * u + 0.139 * u * u);
-    double w0 = 2.0 * M_PI * fc / 48000.0;
-    double al = sin(w0) / (2.0 * 0.64);
-    double cs = cos(w0);
-    double a0 = 1.0 + al;
-    w->fb0    = (float) ((1.0 - cs) / 2.0 / a0);
-    w->fa1    = (float) (-2.0 * cs / a0);
-    w->fa2    = (float) ((1.0 - al) / a0);
+    w->fcoef = wt_gain_tab[f] * (65535.0f / 65536.0f);
 }
 
 static void
@@ -1361,17 +1357,21 @@ wt_bank_run(v2_chip_t *c, int bank)
             y[n] = interp4(w->hist, (float) w->phase);
         }
         if (!open) {
-            /* transposed direct form II */
-            float z1 = w->z1, z2 = w->z2;
+            const float F = w->fcoef;
+            float       s0 = w->fs[0], s1 = w->fs[1], s2 = w->fs[2], s3 = w->fs[3];
             for (int n = 0; n < B; n++) {
-                float x = y[n];
-                float o = w->fb0 * x + z1;
-                z1      = 2.0f * w->fb0 * x - w->fa1 * o + z2;
-                z2      = w->fb0 * x - w->fa2 * o;
-                y[n]    = o;
+                s0 += F * (y[n] - s0);
+                s1 += F * (s0 - s1);
+                s2 += F * (s1 - s2);
+                s3 += F * (s2 - s3);
+                y[n] = s3;
             }
-            w->z1 = z1;
-            w->z2 = z2;
+            if (fabsf(s3) < 1e-20f && fabsf(s0) < 1e-20f)
+                s0 = s1 = s2 = s3 = 0.0f;
+            w->fs[0] = s0;
+            w->fs[1] = s1;
+            w->fs[2] = s2;
+            w->fs[3] = s3;
         }
         if (dir)
             for (int n = 0; n < B; n++)
