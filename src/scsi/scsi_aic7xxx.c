@@ -894,6 +894,7 @@ typedef struct aic7xxx_t {
     uint16_t stack[4];
     uint8_t  sp;
     uint8_t  stack_rd;
+    uint8_t  stack_wr;
     uint8_t  seqram[SEQ_INSNS_MAX * 4];
     uint8_t  fifo[FIFO_SIZE_MAX];
     uint16_t fifo_rd;
@@ -946,6 +947,9 @@ typedef struct aic7xxx_t {
     uint8_t  sg_active_last; /* the running segment is the list's last */
     uint8_t  sg_last_done;   /* its transfer has finished */
     uint8_t  sg_pre_n;       /* preloaded segments waiting */
+    uint8_t  sg_staged;
+    uint32_t sg_staged_addr;
+    uint32_t sg_staged_count;
     struct {
         uint32_t haddr;
         uint32_t hcnt;
@@ -2472,6 +2476,7 @@ aic_scsi_reset_bus(aic7xxx_t *dev)
            twelve byte CDB store through it -- sends it out first. */
         aic_fifo_reset(dev);
         dev->dfcntrl_ack &= ~(SCSIEN | HDMAEN);
+        dev->sg_pre_n = dev->sg_staged = 0;
         timer_stop(&dev->tgt_timer);
         timer_stop(&dev->req_timer);
     }
@@ -2650,6 +2655,25 @@ aic_sg_preload_avail(const aic7xxx_t *dev)
     return dev->chip->sg_preload && (dev->sg_pre_n < 2);
 }
 
+static int
+aic_sg_more(const aic7xxx_t *dev)
+{
+    return dev->chip->sg_preload && !dev->sg_active_last &&
+           ((dev->dfcntrl & (SCSIEN | HDMAEN)) == (SCSIEN | HDMAEN)) &&
+           ((dev->tgt_phase == P_DATAIN) || (dev->tgt_phase == P_DATAOUT));
+}
+
+/* Ultra2 firmware programs the next segment while DMA uses the current one. */
+static void
+aic_sg_stage(aic7xxx_t *dev)
+{
+    if (!dev->sg_staged) {
+        dev->sg_staged_addr  = dev->haddr;
+        dev->sg_staged_count = dev->hcnt;
+        dev->sg_staged       = 1;
+    }
+}
+
 /* The host side of the FIFO. HDMAEN with DIRECTION set fills it from
    memory at HADDR; without, it drains it to memory. HCNT counts down and
    HDONE says it reached zero.
@@ -2723,9 +2747,9 @@ aic_dma_host(aic7xxx_t *dev)
             dev->haddr += n;
             dev->hcnt -= n;
         }
-        /* HDONE: the host side of the count has run out, so HDMAENACK
-           comes down the same way SCSIENACK does. */
-        if (dev->hcnt == 0)
+        /* In a scatter/gather transfer, keep HDMAENACK up at segment
+           boundaries so a PRELOADEN read-modify-write keeps DMA enabled. */
+        if ((dev->hcnt == 0) && !aic_sg_more(dev))
             dev->dfcntrl_ack &= ~HDMAEN;
     }
 
@@ -2795,12 +2819,11 @@ aic_dma_scsi(aic7xxx_t *dev)
     }
     dev->in_dma = 0;
 
-    /* SDONE, or the target gone to another phase: either way the SCSI
-       side of the channel has nothing left to do, and the hardware takes
-       SCSIENACK down with it. The enable stays up until the firmware
-       clears it; the acknowledge is what the firmware's poll loop, the
-       next automatic PIO transfer and the next DFCNTRL write see. */
-    if ((dev->stcnt == 0) || (dev->tgt_phase != (dev->scsisigo & PHASE_MASK)))
+    /* A phase change or the final count releases SCSIENACK. In Ultra2
+       scatter/gather DMA, a zero count at an intermediate segment can
+       still be followed by another preload. */
+    if (((dev->stcnt == 0) && !aic_sg_more(dev)) ||
+        (dev->tgt_phase != (dev->scsisigo & PHASE_MASK)))
         dev->dfcntrl_ack &= ~SCSIEN;
 
     /* A data-in can end inside this call: the engine answers REQs as the
@@ -4072,6 +4095,18 @@ command_channel:
             dev->function1 = val;
             break;
         case STACK:
+            /* Ultra2 firmware saves a return address by reading two bytes
+               from this port, then writes them back before returning. The
+               port is read-only to the host. */
+            if (seq && dev->chip->ultra2) {
+                if (!dev->stack_wr)
+                    dev->stack[dev->sp] = val;
+                else {
+                    dev->stack[dev->sp] |= (uint16_t) (val & 0x03) << 8;
+                    dev->sp = (dev->sp + 1) & 3;
+                }
+                dev->stack_wr ^= 1;
+            }
             break;
 
         case DSCOMMAND0:
@@ -4188,8 +4223,13 @@ command_channel:
                 dev->haddr_hi[addr - HADDR] = val;
                 break;
             }
-            dev->haddr  = (dev->haddr & ~(0xffU << ((addr - HADDR) * 8))) | ((uint32_t) val << ((addr - HADDR) * 8));
-            dev->shaddr = (dev->shaddr & ~(0xffU << ((addr - HADDR) * 8))) | ((uint32_t) val << ((addr - HADDR) * 8));
+            if (dev->chip->sg_preload && (dev->dfcntrl & HDMAEN)) {
+                aic_sg_stage(dev);
+                dev->sg_staged_addr = (dev->sg_staged_addr & ~(0xffU << ((addr - HADDR) * 8))) | ((uint32_t) val << ((addr - HADDR) * 8));
+            } else {
+                dev->haddr  = (dev->haddr & ~(0xffU << ((addr - HADDR) * 8))) | ((uint32_t) val << ((addr - HADDR) * 8));
+                dev->shaddr = (dev->shaddr & ~(0xffU << ((addr - HADDR) * 8))) | ((uint32_t) val << ((addr - HADDR) * 8));
+            }
             break;
         case HCNT:
         case HCNT + 1:
@@ -4197,7 +4237,11 @@ command_channel:
             /* The count carries the same sentence as the address. */
             if ((dev->dfcntrl & HDMAEN) && !dev->chip->sg_preload)
                 aic_hard_error(dev, ILLSADDR, addr, 1);
-            dev->hcnt = (dev->hcnt & ~(0xffU << ((addr - HCNT) * 8))) | ((uint32_t) val << ((addr - HCNT) * 8));
+            if (dev->chip->sg_preload && (dev->dfcntrl & HDMAEN)) {
+                aic_sg_stage(dev);
+                dev->sg_staged_count = (dev->sg_staged_count & ~(0xffU << ((addr - HCNT) * 8))) | ((uint32_t) val << ((addr - HCNT) * 8));
+            } else
+                dev->hcnt = (dev->hcnt & ~(0xffU << ((addr - HCNT) * 8))) | ((uint32_t) val << ((addr - HCNT) * 8));
             break;
         case SCBPTR:
             /* Bits 1:0 pick the page, bit 2 reads back what was put in it
@@ -4335,16 +4379,20 @@ command_channel:
                         dev->sg_pre_n = 0;
                         aic_sg_load(dev, dev->haddr, dev->hcnt, dev->sg_cache_pre);
                     } else if (!(was & HDMAEN)) {
-                        dev->sg_pre_n = 0;
+                        dev->sg_pre_n = dev->sg_staged = 0;
                         aic_sg_load(dev, dev->haddr, dev->hcnt, dev->sg_cache_pre);
                         aic_sg_next(dev);
                     } else if (aic_sg_preload_avail(dev)) {
-                        dev->sg_pre[dev->sg_pre_n].haddr = dev->haddr;
-                        dev->sg_pre[dev->sg_pre_n].hcnt  = dev->hcnt;
+                        aic_sg_stage(dev);
+                        dev->sg_pre[dev->sg_pre_n].haddr = dev->sg_staged_addr;
+                        dev->sg_pre[dev->sg_pre_n].hcnt  = dev->sg_staged_count;
                         dev->sg_pre[dev->sg_pre_n].ptr   = dev->sg_cache_pre;
                         dev->sg_pre_n++;
+                        dev->sg_staged = 0;
                     }
                 }
+                if (!(val & HDMAEN) || (val & FIFORESET))
+                    dev->sg_staged = 0;
                 val &= ~PRELOADEN; /* it is a strobe, and reads back clear */
                 dev->dfcntrl &= ~PRELOADEN;
             }
@@ -5224,14 +5272,17 @@ aic_seq_step(aic7xxx_t *dev)
                    FUNCTION1 and STACK. Walked, that loaded 54010000h out
                    of the function table and the call stack, the command
                    channel then read nothing at 54010000h, and the Ultra2
-                   firmware selected the target in SCB byte FF. */
+                   firmware selected the target in SCB byte FF.
+                   On Ultra2, both bytes of a stack entry use STACK. */
                 uint8_t n = imm ? imm : 1;
                 int     s_fixed = (src == ALLZEROS) || (src == DFDAT)
                               || (src == CCSGRAM) || (src == CCSCBRAM)
-                              || (src == SINDIR) || (src == DINDIR);
+                              || (src == SINDIR) || (src == DINDIR)
+                              || ((src == STACK) && dev->chip->ultra2);
                 int     d_fixed = (dest == ALLZEROS) || (dest == DFDAT)
                                || (dest == CCSGRAM) || (dest == CCSCBRAM)
-                               || (dest == SINDIR) || (dest == DINDIR);
+                              || (dest == SINDIR) || (dest == DINDIR)
+                              || ((dest == STACK) && dev->chip->ultra2);
                 for (uint8_t i = 0; i < n; i++) {
                     if (src == ALLZEROS)
                         res = 0x00;
@@ -5645,7 +5696,7 @@ aic_chip_reset(aic7xxx_t *dev)
     dev->accum = dev->sindex = dev->dindex = 0;
     dev->flags = dev->function1 = 0;
     dev->brkaddr                = 0x8000; /* BRKDIS */
-    dev->sp = dev->stack_rd = 0;
+    dev->sp = dev->stack_rd = dev->stack_wr = 0;
     memset(dev->stack, 0, sizeof(dev->stack));
 
     dev->dscommand0  = 0;
@@ -5683,7 +5734,7 @@ aic_chip_reset(aic7xxx_t *dev)
     dev->qoff_ctlsta = 0;
     dev->dff_thrsh   = 0;
     dev->sg_cache_pre = dev->sg_cache_shadow = 0;
-    dev->sg_active_last = dev->sg_last_done = dev->sg_pre_n = 0;
+    dev->sg_active_last = dev->sg_last_done = dev->sg_pre_n = dev->sg_staged = 0;
     memset(dev->sg_pre, 0, sizeof(dev->sg_pre));
     memset(dev->cchaddr, 0, sizeof(dev->cchaddr));
     dev->scbptr  = 0;
