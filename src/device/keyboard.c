@@ -73,7 +73,7 @@ static keyboard_t keyboard_devices[] = {
 };
 
 #ifdef ENABLE_KBC_AT_LOG
-int kbc_at_do_log = ENABLE_KBC_AT_LOG;
+extern int kbc_at_do_log;
 
 static void
 kbc_at_log(const char* fmt, ...)
