@@ -35,3 +35,7 @@ add_library(scsi OBJECT
     scsi_ql1xxx.c
     scsi_spock.c
 )
+
+if(AIC7890)
+    target_compile_definitions(scsi PRIVATE USE_AIC7890)
+endif()
