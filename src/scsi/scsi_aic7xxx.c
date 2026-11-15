@@ -565,6 +565,7 @@ static const aic_chip_t aic_chip_7770 = {
     .twin_capable   = 1,
     .seq_insns      = SEQ_INSNS,
     .fifo_size      = FIFO_SIZE,
+    .scbcnt_mask    = 0x1f,
     /* PERRORDIS is the one bit here whose reset value the data book gives
        as a one; FASTMODE is not, so the sequencer starts on the slower of
        its two clocks until the firmware asks for the other. */
@@ -606,6 +607,7 @@ static const aic_chip_t aic_chip_788x = {
     .twin_capable   = 0,
     .seq_insns      = SEQ_INSNS,
     .fifo_size      = FIFO_SIZE,
+    .scbcnt_mask    = 0x1f,
     .seqctl_reset   = PERRORDIS | FASTMODE,
     /* The diagnostic LED bits come up set. AUTOFLUSHDIS does not, and
        must not: with it set the part does not flush its data FIFO by
@@ -675,6 +677,7 @@ static const aic_chip_t aic_chip_7870 = {
     .twin_capable  = 0,
     .seq_insns     = SEQ_INSNS,
     .fifo_size     = FIFO_SIZE,
+    .scbcnt_mask   = 0x1f,
     .seqctl_reset  = PERRORDIS | FASTMODE,
     .sblkctl_reset = DIAGLEDEN | DIAGLEDON,
     .own_reset_seen = 1,
