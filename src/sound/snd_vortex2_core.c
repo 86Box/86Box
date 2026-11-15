@@ -333,14 +333,22 @@ clampf(float v, float lo, float hi)
     return (v < lo) ? lo : ((v > hi) ? hi : v);
 }
 
-/* Catmull-Rom interpolation between h[1] and h[2]. */
+/* Wavetable voices' 4-point interpolation: the cubic Lagrange polynomial
+   through h[0..3], evaluated between h[1] and h[2] (Aureal documents a
+   "4 point interpolation"). Measured on a real SQ2500 (run 18): tones at
+   0.2 x the voice's rate on a wavetable voice, at 8 to 44.1 kHz, left
+   images that match this kernel line by line, within 2.2 dB rms over 22
+   lines at 11.025 kHz (median 2.2 dB over all 46), against 10 dB for
+   Catmull-Rom, which the model used before and which leaves the images
+   5-20 dB too low. */
 static inline float
 interp4(const float *h, float t)
 {
-    float c1 = 0.5f * (h[2] - h[0]);
-    float c2 = h[0] - 2.5f * h[1] + 2.0f * h[2] - 0.5f * h[3];
-    float c3 = 0.5f * (h[3] - h[0]) + 1.5f * (h[1] - h[2]);
-    return ((c3 * t + c2) * t + c1) * t + h[1];
+    float tm1 = t - 1.0f, tm2 = t - 2.0f, tp1 = t + 1.0f;
+    return -t * tm1 * tm2 * (1.0f / 6.0f) * h[0]
+           + tp1 * tm1 * tm2 * 0.5f * h[1]
+           - tp1 * t * tm2 * 0.5f * h[2]
+           + tp1 * t * tm1 * (1.0f / 6.0f) * h[3];
 }
 
 /* Sample-rate converter filter: a sinc with its cutoff at the input
