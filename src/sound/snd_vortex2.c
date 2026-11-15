@@ -83,6 +83,8 @@ typedef struct vortex2_t {
     double            cd_phase;
     float             cd_prev[2], cd_cur[2];
     int               cd_primed; /* enough buffered to play without gaps */
+    uint32_t          cd_log_n, cd_log_wr; /* diagnostic log: samples since the last line, cd_wr then */
+    float             cd_log_peak;
     float             cd_level;  /* drive's analog output against codec full scale */
     FILE *logf;
     FILE *tracef; /* register trace, same format as the real-card sessions */
@@ -323,6 +325,22 @@ host_codec_adc(void *priv, float *l, float *r, int n)
         float f = (float) dev->cd_phase;
         l[i] = (dev->cd_prev[0] + (dev->cd_cur[0] - dev->cd_prev[0]) * f) * gl;
         r[i] = (dev->cd_prev[1] + (dev->cd_cur[1] - dev->cd_prev[1]) * f) * gr;
+    }
+    if (dev->log_routes && dev->logf) {
+        /* Every 10 s: whether CD audio is arriving from the drive and how loud it is at the ADC. */
+        for (int i = 0; i < n; i++)
+            if (fabsf(l[i]) > dev->cd_log_peak)
+                dev->cd_log_peak = fabsf(l[i]);
+        dev->cd_log_n += n;
+        if (dev->cd_log_n >= 480000) {
+            fprintf(dev->logf, "Vortex2: [%9.3f] cd: %u frames from the drive in 10 s, ADC peak %.1f dBFS (select %04x, gain %04x, level option %.1f dB)\n",
+                    (double) dev->frames / 48000.0, (unsigned) (dev->cd_wr - dev->cd_log_wr),
+                    dev->cd_log_peak > 0.0f ? 20.0 * log10(dev->cd_log_peak) : -200.0, sel, rg, 20.0 * log10(dev->cd_level));
+            fflush(dev->logf);
+            dev->cd_log_n    = 0;
+            dev->cd_log_wr   = dev->cd_wr;
+            dev->cd_log_peak = 0.0f;
+        }
     }
 }
 
