@@ -1002,7 +1002,8 @@ ts3x00_init(const machine_t *model, const ts3x00_model_t *ts)
     if (bios_only || !ret)
         return ret;
 
-    machine_at_common_init(model);
+    /* The 386EX's own DMA unit takes the place of the AT's 8237As. */
+    machine_at_common_init_ex(model, MACHINE_NONSTANDARD_DMA);
 
     device_add(&port_92_device);
 
