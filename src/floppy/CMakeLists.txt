@@ -27,9 +27,6 @@ add_library(fdd OBJECT
     fdc_qd6500.c
     fdc_pii15xb.c
     fdd.c
-    fdd_folder.c
-    vendor/fatfs/ff.c
-    vendor/fatfs/ffunicode.c
     fdi2raw.c
     fdd_common.c
     fdd_86f.c

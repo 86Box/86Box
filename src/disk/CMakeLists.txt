@@ -16,6 +16,7 @@
 #
 
 add_library(hdd OBJECT
+    fat_image.c
     hdd.c
     hdd_image.c
     hdd_table.c

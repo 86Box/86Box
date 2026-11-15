@@ -47,6 +47,7 @@
 #include <86box/cdrom.h>
 #include <86box/cdrom_image.h>
 #include <86box/cdrom_image_viso.h>
+#include <86box/media_archive.h>
 
 #include <sndfile.h>
 
@@ -569,8 +570,7 @@ index_file_init(const uint8_t id, const char *filename, int *error, int *is_viso
     *is_viso = 0;
 
 #ifndef IS_TEST
-    const char *extension = strrchr(filename, '.');
-    if (extension && !stricmp(extension, ".zip")) {
+    if (media_archive_is_archive(filename)) {
         tf = viso_init(id, filename, error);
         *is_viso = !*error;
         return tf;

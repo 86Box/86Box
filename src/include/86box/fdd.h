@@ -344,6 +344,8 @@ extern int curdrive;
 extern int     fdd_time;
 extern int64_t floppytime;
 
+/* Returns a fat_image_result_t. */
+extern int  fdd_mount_folder(void *priv, const char *path, int read_only);
 extern void fdd_load(void *priv, char *fn);
 extern void fdd_new(void *priv, char *fn);
 extern void fdd_close(void *priv);

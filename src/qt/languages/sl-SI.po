@@ -4324,17 +4324,26 @@ msgstr ""
 msgid "The contents exceed the capacity of the configured floppy drive."
 msgstr ""
 
-msgid "The floppy is out of directory entries or space, or a filename cannot be represented on FAT12."
+msgid "Mount folder as a temporary removable disk"
 msgstr ""
 
-msgid "The source contains a filename that cannot be represented on FAT12."
+msgid "Unable to mount folder or archive"
 msgstr ""
 
-msgid "There is not enough memory to create the floppy image."
+msgid "The contents don't fit on any medium the drive takes, or a file is 4 GB or larger."
 msgstr ""
 
-msgid "The source path is too long or its contents could not be read."
+msgid "There are too many files in the top folder for the root directory of the medium."
 msgstr ""
 
-msgid "Unable to mount folder or ZIP archive"
+msgid "The temporary image could not be written."
+msgstr ""
+
+msgid "There is not enough memory to build the image."
+msgstr ""
+
+msgid "The folder or archive could not be read."
+msgstr ""
+
+msgid "Archives"
 msgstr ""

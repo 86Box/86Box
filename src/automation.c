@@ -65,8 +65,10 @@ typedef int sock_t;
 #include <86box/device.h>
 #include <86box/timer.h>
 #include <86box/fdd.h>
-#include <86box/fdd_folder.h>
+#include <86box/fat_image.h>
 #include <86box/cdrom.h>
+#include <86box/scsi_device.h>
+#include <86box/rdisk.h>
 #include <86box/hdd.h>
 #include <86box/machine.h>
 #include <86box/sound.h>
@@ -2510,11 +2512,11 @@ handle_request(char *line)
         } else if (!strcmp(argv[1], "load") && (argc >= 4)) {
             char *path = rest[3];
             const int wp = !strncmp(path, "wp://", 5);
-            if (fdd_folder_source(path + wp * 5)) {
-                if (fdd_mount_folder(&drives[id], path + wp * 5, wp) == FDD_FOLDER_OK)
+            if (fat_image_is_source(path + wp * 5)) {
+                if (fdd_mount_folder(&drives[id], path + wp * 5, wp) == FAT_IMAGE_OK)
                     respond_ok_time();
                 else
-                    respond_error("could not import folder or ZIP into the configured floppy drive");
+                    respond_error("could not build a floppy from the folder or archive");
             } else {
                 fdd_close(&drives[id]);
                 drives[id].read_only = 0;
@@ -2550,6 +2552,41 @@ handle_request(char *line)
                 respond_error("cannot load the image; the log says why");
         } else
             respond_error("usage: cd load <drive> <path> | cd eject <drive>");
+    } else if (!strcmp(argv[0], "rdisk") && (argc >= 3)) {
+        /* rdisk load <drive> <path> | rdisk eject <drive> */
+        int      id  = atoi(argv[2]);
+        rdisk_t *dev = ((id >= 0) && (id < RDISK_NUM)) ? (rdisk_t *) rdisk_drives[id].priv : NULL;
+        if (!dev) {
+            respond_error("bad drive");
+        } else if (!strcmp(argv[1], "eject")) {
+            rdisk_disk_close(dev);
+            rdisk_drives[id].image_path[0] = 0;
+            ui_sb_update_icon_state(SB_RDISK | id, 1);
+            respond_ok_time();
+        } else if (!strcmp(argv[1], "load") && (argc >= 4)) {
+            char     *path      = rest[3];
+            const int wp        = !strncmp(path, "wp://", 5);
+            const int was_empty = rdisk_is_empty(id);
+            int       result    = FAT_IMAGE_OK;
+            rdisk_disk_close(dev);
+            rdisk_drives[id].read_only = wp;
+            if (fat_image_is_source(path + wp * 5))
+                result = rdisk_mount_folder(dev, path, 1);
+            else
+                rdisk_load(dev, path, 1);
+            /* Signal media change to the emulated machine. */
+            rdisk_insert(dev);
+            if (was_empty)
+                rdisk_insert(dev);
+            ui_sb_update_icon_state(SB_RDISK | id, rdisk_drives[id].fp == NULL);
+            if (result != FAT_IMAGE_OK)
+                respond_error("could not build a removable disk from the folder or archive");
+            else if (rdisk_drives[id].fp)
+                respond_ok_time();
+            else
+                respond_error("cannot load the image; the log says why");
+        } else
+            respond_error("usage: rdisk load <drive> <path> | rdisk eject <drive>");
     } else if (!strcmp(argv[0], "reset") && (argc == 2) && !strcmp(argv[1], "hard")) {
         pc_reset_hard();
         respond_ok_time();

@@ -5065,7 +5065,7 @@ save_other_removable_devices(void)
             ini_section_set_string(cat, temp, hdd_lpt_bridge_get_internal_name(rdisk_drives[c].lpt_bridge));
 
         sprintf(temp, "rdisk_%02i_image_path", c + 1);
-        if ((rdisk_drives[c].bus_type == 0) || (strlen(rdisk_drives[c].image_path) == 0))
+        if ((rdisk_drives[c].bus_type == 0) || (strlen(rdisk_drives[c].image_path) == 0) || rdisk_drives[c].folder_image)
             ini_section_delete_var(cat, temp);
         else
             save_image_file(cat, temp, rdisk_drives[c].image_path);

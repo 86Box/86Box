@@ -42,7 +42,7 @@
 #include <86box/version.h>
 #include <86box/nvr.h>
 
-#include "../miniz_reader.h"
+#include <86box/media_archive.h>
 
 #define VISO_SKIP(p, n)         \
     {                           \
@@ -68,7 +68,6 @@
 
 #define VISO_SECTOR_SIZE COOKED_SECTOR_SIZE
 #define VISO_OPEN_FILES  32
-#define VISO_ZIP_BLOCK_SIZE (64 * 1024)
 
 enum {
     VISO_CHARSET_D = 0,
@@ -91,15 +90,6 @@ enum {
     VISO_FORMAT_RR     = 4  /* Rock Ridge extensions (*nix) */
 };
 
-typedef struct viso_zip_entry {
-    struct viso_zip_entry *next, *sibling, *children;
-    mz_uint  index;
-    uint64_t size;
-    time_t   mtime;
-    int      is_dir;
-    char     name[];
-} viso_zip_entry_t;
-
 typedef struct _viso_entry_ {
     union { /* save some memory */
         uint64_t pt_offsets[4];
@@ -111,7 +101,7 @@ typedef struct _viso_entry_ {
         uint64_t data_offset;
     };
     uint16_t pt_idx;
-    const viso_zip_entry_t *zip_entry;
+    const media_archive_entry_t *archive_entry;
 
     struct {
         uint8_t is_dir : 1;
@@ -142,14 +132,7 @@ typedef struct {
     viso_entry_t **entry_map;
     viso_entry_t  *file_fifo[VISO_OPEN_FILES];
 
-    FILE                            *zip_file;
-    mz_zip_archive                   zip;
-    viso_zip_entry_t                *zip_root, *zip_entries;
-    mz_zip_reader_extract_iter_state *zip_reader;
-    const viso_zip_entry_t          *zip_cached_entry;
-    uint64_t                         zip_offset;
-    size_t                           zip_cached_size;
-    uint8_t                         *zip_block;
+    media_archive_t *archive; /* when mounting an archive */
 } viso_t;
 
 static const char rr_eid[]   = "RRIP_1991A"; /* identifiers used in ER field for Rock Ridge */
@@ -696,147 +679,12 @@ viso_compare_entries(const void *a, const void *b)
     return strcmp((*((viso_entry_t **) a))->name_short, (*((viso_entry_t **) b))->name_short);
 }
 
-static viso_zip_entry_t *
-viso_zip_add(viso_t *viso, viso_zip_entry_t *parent, const char *name, int is_dir)
-{
-    const size_t length = strlen(name) + 1;
-    viso_zip_entry_t *entry = calloc(1, sizeof(*entry) + length);
-    if (!entry)
-        return NULL;
-
-    memcpy(entry->name, name, length);
-    entry->is_dir      = is_dir;
-    entry->next        = viso->zip_entries;
-    viso->zip_entries  = entry;
-    if (parent) {
-        entry->sibling   = parent->children;
-        parent->children = entry;
-    }
-    return entry;
-}
-
+/* Archives are extracted to a temporary file, as most formats can't seek inside their files. */
 static int
-viso_zip_open(viso_t *viso, const char *filename)
+viso_archive_open(viso_t *viso, const char *filename)
 {
-    viso->zip_file = plat_fopen64(filename, "rb");
-    if (!viso->zip_file ||
-        !mz_zip_reader_init_cfile(&viso->zip, viso->zip_file, 0, MZ_ZIP_FLAG_DO_NOT_SORT_CENTRAL_DIRECTORY))
-        return 0;
-
-    viso->zip_root  = viso_zip_add(viso, NULL, "", 1);
-    viso->zip_block = malloc(VISO_ZIP_BLOCK_SIZE);
-    if (!viso->zip_root || !viso->zip_block)
-        return 0;
-
-    /* ZIP filenames have a 16-bit length field. Read the full path. */
-    char name[UINT16_MAX + 1];
-    const mz_uint count = mz_zip_reader_get_num_files(&viso->zip);
-    for (mz_uint i = 0; i < count; i++) {
-        mz_zip_archive_file_stat stat;
-        if (!mz_zip_reader_file_stat(&viso->zip, i, &stat))
-            return 0;
-
-        /* Ignore Unix symlinks and other special files. */
-        const unsigned origin = stat.m_version_made_by >> 8;
-        const unsigned type   = (stat.m_external_attr >> 16) & 0170000;
-        if ((origin == 3 || origin == 19) && type && type != 0100000 && type != 0040000)
-            continue;
-
-        const mz_uint length = mz_zip_reader_get_filename(&viso->zip, i, NULL, 0);
-        if (length < 2 || length > sizeof(name) ||
-            mz_zip_reader_get_filename(&viso->zip, i, name, length) != length ||
-            strlen(name) != length - 1 || strchr(name, '\\'))
-            return 0;
-        if (name[length - 2] == '/') {
-            name[length - 2]    = '\0';
-            stat.m_is_directory = 1;
-        }
-        if (!stat.m_is_directory &&
-            (!stat.m_is_supported || (!stat.m_comp_size && stat.m_uncomp_size)))
-            return 0;
-
-        viso_zip_entry_t *parent = viso->zip_root;
-        for (char *part = name; part;) {
-            char *next = strchr(part, '/');
-            if (next)
-                *next++ = '\0';
-            if (!*part || !strcmp(part, ".") || !strcmp(part, ".."))
-                return 0;
-
-            const int is_dir = next || stat.m_is_directory;
-            viso_zip_entry_t *entry = parent->children;
-            while (entry && strcmp(entry->name, part))
-                entry = entry->sibling;
-            if (entry) {
-                if (!is_dir || !entry->is_dir)
-                    return 0;
-            } else {
-                entry = viso_zip_add(viso, parent, part, is_dir);
-                if (!entry)
-                    return 0;
-            }
-            if (!next) {
-                entry->mtime = stat.m_time;
-                entry->index = i;
-                if (!is_dir)
-                    entry->size = stat.m_uncomp_size;
-            }
-            parent = entry;
-            part   = next;
-        }
-    }
-    return 1;
-}
-
-static int
-viso_zip_read(viso_t *viso, const viso_zip_entry_t *entry, uint8_t *buffer,
-              uint64_t offset, size_t count)
-{
-    while (count) {
-        /* Keep the last decoded block for repeated reads and small backward seeks. */
-        uint64_t start = viso->zip_offset - viso->zip_cached_size;
-        if (entry != viso->zip_cached_entry || offset < start ||
-            (offset >= viso->zip_offset && !viso->zip_reader)) {
-            if (viso->zip_reader)
-                mz_zip_reader_extract_iter_free(viso->zip_reader);
-            viso->zip_reader = mz_zip_reader_extract_iter_new(&viso->zip, entry->index, 0);
-            if (!viso->zip_reader)
-                goto error;
-            viso->zip_cached_entry = entry;
-            viso->zip_cached_size  = 0;
-            viso->zip_offset       = 0;
-        }
-        while (offset >= viso->zip_offset) {
-            const size_t size = MIN(VISO_ZIP_BLOCK_SIZE, entry->size - viso->zip_offset);
-            if (mz_zip_reader_extract_iter_read(viso->zip_reader, viso->zip_block, size) != size)
-                goto error;
-            viso->zip_cached_size = size;
-            viso->zip_offset += size;
-            if (viso->zip_offset == entry->size) {
-                /* Complete the stream to let miniz check its size and CRC. */
-                uint8_t extra;
-                const size_t extra_size = mz_zip_reader_extract_iter_read(viso->zip_reader, &extra, 1);
-                const int valid = mz_zip_reader_extract_iter_free(viso->zip_reader);
-                viso->zip_reader = NULL;
-                if (extra_size || !valid)
-                    goto error;
-            }
-        }
-        start = viso->zip_offset - viso->zip_cached_size;
-        const size_t copied = MIN(count, viso->zip_offset - offset);
-        memcpy(buffer, viso->zip_block + (offset - start), copied);
-        buffer += copied;
-        offset += copied;
-        count  -= copied;
-    }
-    return 1;
-
-error:
-    if (viso->zip_reader)
-        mz_zip_reader_extract_iter_free(viso->zip_reader);
-    viso->zip_reader       = NULL;
-    viso->zip_cached_entry = NULL;
-    return 0;
+    viso->archive = media_archive_open(filename);
+    return viso->archive && media_archive_extract_all(viso->archive);
 }
 
 int
@@ -864,11 +712,11 @@ viso_read(void *priv, uint8_t *buffer, uint64_t seek, size_t count)
 
             /* Get the file entry corresponding to this sector. */
             viso_entry_t *entry = viso->entry_map[sector - viso->metadata_sectors];
-            if (entry && entry->zip_entry) {
+            if (entry && entry->archive_entry) {
                 const uint64_t offset = seek - entry->data_offset;
                 if (offset < entry->stats.size)
                     read = MIN(sector_remain, entry->stats.size - offset);
-                if (!viso_zip_read(viso, entry->zip_entry, buffer, offset, read))
+                if (!media_archive_read(viso->archive, entry->archive_entry, offset, buffer, read))
                     return -1;
             } else if (entry) {
                 /* Open file if it's not already open. */
@@ -967,18 +815,7 @@ viso_close(void *priv)
     if (viso->entry_map)
         free(viso->entry_map);
 
-    if (viso->zip_reader)
-        mz_zip_reader_extract_iter_free(viso->zip_reader);
-    if (viso->zip.m_pState)
-        mz_zip_reader_end(&viso->zip);
-    if (viso->zip_file)
-        fclose(viso->zip_file);
-    while (viso->zip_entries) {
-        viso_zip_entry_t *zip_entry = viso->zip_entries;
-        viso->zip_entries = zip_entry->next;
-        free(zip_entry);
-    }
-    free(viso->zip_block);
+    media_archive_close(viso->archive);
 
     if (tf->log != NULL)
         log_close(tf->log);
@@ -1001,9 +838,8 @@ viso_init(const uint8_t id, const char *dirname, int *error)
     if (viso == NULL)
         goto end;
 
-    const char *extension = strrchr(dirname, '.');
-    if (extension && !stricmp(extension, ".zip") && !plat_dir_check((char *) dirname) &&
-        !viso_zip_open(viso, dirname))
+    if (!plat_dir_check((char *) dirname) && media_archive_is_archive(dirname) &&
+        !viso_archive_open(viso, dirname))
         goto end;
 
     char n[1024]        = { 0 };
@@ -1056,19 +892,19 @@ viso_init(const uint8_t id, const char *dirname, int *error)
         goto end;
     memcpy(dir->path, dirname, dir_path_buf_size);
     dir->parent = dir; /* for the root's path table and .. entries */
-    dir->zip_entry = viso->zip_root;
+    dir->archive_entry = viso->archive ? media_archive_root(viso->archive) : NULL;
     image_viso_log(viso->tf.log, "[%08X] %s => [root]\n", dir, dir->path);
 
     /* Traverse directories, starting with the root. */
     size_t         dir_entries_len = 0;
     while (LIKELY(dir)) {
         /* Open directory for listing. */
-        int    have_dir       = dir->zip_entry || plat_dir_open(&context, dir->path);
-        const viso_zip_entry_t *zip_child = dir->zip_entry ? dir->zip_entry->children : NULL;
+        int    have_dir       = dir->archive_entry || plat_dir_open(&context, dir->path);
+        const media_archive_entry_t *archive_child = dir->archive_entry ? dir->archive_entry->children : NULL;
         size_t children_count = 2; /* include . and .. (terminator is the +1 when allocating) */
         if (UNLIKELY(dir == viso->root_dir)) {
             /* Handle root directory. */
-            if (dir->zip_entry) {
+            if (dir->archive_entry) {
                 dir->stats.is_dir = 1;
                 dir->stats.mtime  = time(NULL);
             } else if (have_dir && plat_dir_is_dir(&context)) {
@@ -1077,7 +913,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
                 goto end; /* not a directory */
             }
         }
-        if (have_dir && !dir->zip_entry) {
+        if (have_dir && !dir->archive_entry) {
             /* Determine the entry array size. */
             children_count += plat_dir_count_children(&context);
         }
@@ -1119,7 +955,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
 
         /* Iterate through this directory's children again, making the entries. */
         if (LIKELY(have_dir)) {
-            while (dir->zip_entry ? zip_child != NULL : plat_dir_read(&context)) {
+            while (dir->archive_entry ? archive_child != NULL : plat_dir_read(&context)) {
                 /* Grow array if the original size is inaccurate. */
                 if (UNLIKELY(children_count >= dir_entries_len)) {
                     size_t         new_entries_len = dir_entries_len * 2;
@@ -1133,7 +969,7 @@ viso_init(const uint8_t id, const char *dirname, int *error)
                 }
 
                 /* Add and fill entry. */
-                const char *path = zip_child ? zip_child->name : plat_dir_get_path(&context);
+                const char *path = archive_child ? archive_child->name : plat_dir_get_path(&context);
                 size_t path_buf_size = strlen(path) + 1;
                 entry = dir_entries[children_count] =
                     (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + path_buf_size);
@@ -1141,13 +977,13 @@ viso_init(const uint8_t id, const char *dirname, int *error)
                     goto end;
                 entry->parent = dir;
                 memcpy(entry->path, path, path_buf_size);
-                if (zip_child) {
-                    entry->zip_entry    = zip_child;
-                    entry->basename     = entry->path;
-                    entry->stats.is_dir = zip_child->is_dir;
-                    entry->stats.size   = MIN(zip_child->size, UINT32_MAX);
-                    entry->stats.mtime  = zip_child->mtime;
-                    zip_child           = zip_child->sibling;
+                if (archive_child) {
+                    entry->archive_entry = archive_child;
+                    entry->basename      = entry->path;
+                    entry->stats.is_dir  = archive_child->is_dir;
+                    entry->stats.size    = MIN(archive_child->size, UINT32_MAX);
+                    entry->stats.mtime   = archive_child->has_header ? archive_child->mtime : time(NULL);
+                    archive_child        = archive_child->next;
                 } else {
                     entry->basename = &entry->path[context.path_dir_len + 1];
                     viso_fill_stats(entry, &context, viso->format);
@@ -1267,11 +1103,13 @@ have_eltorito_entry:
     char saved_trailer    = volume_path[path_len];
     volume_path[path_len] = '\0';
     const char *basename  = path_get_filename(volume_path);
-    char *zip_extension = (viso->zip_root && basename) ? strrchr(basename, '.') : NULL;
-    if (zip_extension && zip_extension != basename)
-        *zip_extension = '\0';
-    else
-        zip_extension = NULL;
+    /* Drop the extension of an archive, including the .tar of a .tar.gz. */
+    char *archive_extension = (viso->archive && basename && basename[0]) ? strrchr(basename + 1, '.') : NULL;
+    if (archive_extension) {
+        if (((archive_extension - basename) > 4) && !strncasecmp(archive_extension - 4, ".tar", 4))
+            archive_extension -= 4;
+        *archive_extension = '\0';
+    }
     if (!basename || !basename[0])
         basename = EMU_NAME;
 
@@ -1417,8 +1255,8 @@ have_eltorito_entry:
             fwrite(data, viso->sector_size, 1, viso->tf.fp);
         }
     }
-    if (zip_extension)
-        *zip_extension = '.';
+    if (archive_extension)
+        *archive_extension = '.';
     volume_path[path_len] = saved_trailer;
 
     /* Fill terminator. */
