@@ -297,6 +297,8 @@ opPUSH_imm_bl(uint32_t fetchdat)
 static int
 opPOPW_a16(uint32_t fetchdat)
 {
+    uint32_t temp_esp = ESP;
+    uint32_t new_esp;
     uint16_t temp;
 
     ILLEGAL_ON(fetchdat & 0x38); /*8F /1-/7*/
@@ -306,14 +308,15 @@ opPOPW_a16(uint32_t fetchdat)
         return 1;
 
     fetch_ea_16(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod == 3) {
+        seteaw(temp);
+    } else {
+        new_esp = ESP;
+        ESP     = temp_esp;
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-    seteaw(temp);
-    if (cpu_state.abrt) {
-        if (stack32)
-            ESP -= 2;
-        else
-            SP -= 2;
+        seteaw(temp);
+        if (!cpu_state.abrt)
+            ESP = new_esp;
     }
 
     if (is486) {
@@ -327,6 +330,8 @@ opPOPW_a16(uint32_t fetchdat)
 static int
 opPOPW_a32(uint32_t fetchdat)
 {
+    uint32_t temp_esp = ESP;
+    uint32_t new_esp;
     uint16_t temp;
 
     ILLEGAL_ON(fetchdat & 0x38); /*8F /1-/7*/
@@ -336,14 +341,15 @@ opPOPW_a32(uint32_t fetchdat)
         return 1;
 
     fetch_ea_32(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod == 3) {
+        seteaw(temp);
+    } else {
+        new_esp = ESP;
+        ESP     = temp_esp;
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-    seteaw(temp);
-    if (cpu_state.abrt) {
-        if (stack32)
-            ESP -= 2;
-        else
-            SP -= 2;
+        seteaw(temp);
+        if (!cpu_state.abrt)
+            ESP = new_esp;
     }
 
     if (is486) {
@@ -358,6 +364,8 @@ opPOPW_a32(uint32_t fetchdat)
 static int
 opPOPL_a16(uint32_t fetchdat)
 {
+    uint32_t temp_esp = ESP;
+    uint32_t new_esp;
     uint32_t temp;
 
     ILLEGAL_ON(fetchdat & 0x38); /*8F /1-/7*/
@@ -367,14 +375,15 @@ opPOPL_a16(uint32_t fetchdat)
         return 1;
 
     fetch_ea_16(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod == 3) {
+        seteal(temp);
+    } else {
+        new_esp = ESP;
+        ESP     = temp_esp;
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-    seteal(temp);
-    if (cpu_state.abrt) {
-        if (stack32)
-            ESP -= 4;
-        else
-            SP -= 4;
+        seteal(temp);
+        if (!cpu_state.abrt)
+            ESP = new_esp;
     }
 
     if (is486) {
@@ -388,6 +397,8 @@ opPOPL_a16(uint32_t fetchdat)
 static int
 opPOPL_a32(uint32_t fetchdat)
 {
+    uint32_t temp_esp = ESP;
+    uint32_t new_esp;
     uint32_t temp;
 
     ILLEGAL_ON(fetchdat & 0x38); /*8F /1-/7*/
@@ -397,14 +408,15 @@ opPOPL_a32(uint32_t fetchdat)
         return 1;
 
     fetch_ea_32(fetchdat);
-    if (cpu_mod != 3)
+    if (cpu_mod == 3) {
+        seteal(temp);
+    } else {
+        new_esp = ESP;
+        ESP     = temp_esp;
         SEG_CHECK_WRITE(cpu_state.ea_seg);
-    seteal(temp);
-    if (cpu_state.abrt) {
-        if (stack32)
-            ESP -= 4;
-        else
-            SP -= 4;
+        seteal(temp);
+        if (!cpu_state.abrt)
+            ESP = new_esp;
     }
 
     if (is486) {
