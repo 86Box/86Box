@@ -113,9 +113,7 @@ static const MIDI_OUT_DEVICE midi_out_devices[] = {
     { &cm32l_device         },
     { &cm32ln_device        },
 #endif /*USE_MUNT */
-#ifdef USE_OPL4ML
     { &opl4_midi_device     },
-#endif /* USE_OPL4ML */
 #ifdef USE_SOUNDCANVAS
     { &soundcanvas_device   },
 #endif /* USE_SOUNDCANVAS */
