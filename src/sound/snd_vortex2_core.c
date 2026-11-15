@@ -1144,18 +1144,29 @@ mix_run(v2_chip_t *c, int m, float *out)
 /* ------------------------------------------------------------------ */
 /* Wavetable voices                                                    */
 /*                                                                     */
-/* PARM0/PARM1 (identical apart from bit 0 = which side):              */
+/* PARM0 is the voice's base word and PARM1 its target word. The chip   */
+/* glides from base to target on the bank's SRAMP only while their      */
+/* bit 0s (state bits) are equal; the Windows driver always writes the  */
+/* same values with the bits differing, which selects the base word     */
+/* (a register map of the chip; every PARM0/PARM1 pair in the traces).  */
+/* The glide is not modelled. Fields of the base word:                 */
 /*   bits 31-24  treble control: a two-pole low-pass, Q 0.64, whose    */
 /*               cut-off follows log2(fc) = 13.505 + 1.817u + 0.139u^2, */
 /*               u = (byte - 0xcf) / 16 (fitted to the real card's      */
 /*               echoes, test-suite run 14: 0xc2 = 4.7 kHz, 0xac =       */
 /*               1.2 kHz, 0x84 = 250 Hz); 0xcf and above = open         */
 /*   bits 23-16  gain, 4e4m, 0x10 per 6 dB, 0xcf = unity, 0 = silent   */
-/*   bits 15-0   rate: e = bits 15-13, m = bits 12-0,                  */
-/*               rate = 48 kHz * 2^(e-5) * (1 + m/8192)  (confirmed     */
-/*               against measured DMA consumption)                     */
-/* PARM3: bits 20-14 pan, 13-7 chorus send, 6-0 reverb send (7-bit     */
-/*   levels, 0x7f = full).                                             */
+/*   bits 15-1   rate: e = bits 15-13, m = bits 12-1,                  */
+/*               rate = 48 kHz * 2^(e-5) * (1 + m/4096)  (confirmed     */
+/*               against measured DMA consumption); e = 0 has no        */
+/*               leading one: 48 kHz * m / 65536                        */
+/* PARM2: bits 31-16 filter feedback gain (resonance; the driver       */
+/*   leaves it 0, not modelled), 15-0 the pitch oscillator's phase.     */
+/* PARM3: bits 31-24 filter input gain (same code as the gain; the      */
+/*   driver writes 0xcf, unity), 23-21 gain state (0 = hard mute, 7 =   */
+/*   normal; the attack and mute ramps in between are never used by    */
+/*   the driver and not modelled), 20-14 pan, 13-7 chorus send, 6-0     */
+/*   reverb send (7-bit levels, 0x7f = full).                          */
 /* A voice whose own ADB source address (bank base + voice) is routed   */
 /* (the driver routes them to A3D inputs) feeds that source. Otherwise  */
 /* its DSREG bit picks the bank's buses: set = the direct-stream pair   */
@@ -1258,11 +1269,17 @@ wt_bank_run(v2_chip_t *c, int bank)
             continue;
         c->dbg |= 2;
         uint32_t p0   = R(bb + WT_PARM + lv * 0x10);
-        uint32_t p1   = R(bb + WT_PARM + lv * 0x10 + 4);
+        uint32_t p3   = R(bb + WT_PARM + lv * 0x10 + 12);
         uint32_t rate = p0 & 0xffff;
-        double   step = ldexp(1.0 + (double) (rate & 0x1fff) / 8192.0, (int) (rate >> 13) - 5);
-        float    gl   = wt_gain(p0);
-        float    gr   = wt_gain(p1);
+        /* 3-bit exponent, 12-bit mantissa (bit 0 is the state bit and
+           adds nothing); exponent 0 has no leading one. */
+        double   step = (rate >> 13) ? ldexp(1.0 + (double) (rate & 0x1ffe) / 8192.0, (int) (rate >> 13) - 5)
+                                     : (double) (rate & 0x1ffe) / 131072.0;
+        /* The base word alone sets the voice (see the header); gain
+           state 0 is a hard mute, and the input gain scales the sample
+           ahead of the filter. */
+        float    gl   = ((p3 >> 21) & 7) ? wt_gain(p0) * wt_gain_tab[p3 >> 24] : 0.0f;
+        float    gr   = gl;
         int      f    = (p0 >> 24) & 0xff;
         wt_filter_set(w, f);
         int      open = f >= 0xcf;
@@ -1273,7 +1290,6 @@ wt_bank_run(v2_chip_t *c, int bank)
         float    g4[4] = { gl, gr, 0.0f, 0.0f };
         float   *b4[4] = { c->wt_bus[bank][0], c->wt_bus[bank][1], NULL, NULL };
         if (!dir && !dsv) {
-            uint32_t p3  = R(bb + WT_PARM + lv * 0x10 + 12);
             float    pan = (float) ((p3 >> 14) & 0x7f) / 127.0f;
             float    g   = gl * hs;
             g4[0] = g * (1.0f - pan);
