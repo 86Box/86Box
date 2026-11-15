@@ -238,7 +238,7 @@ MainWindow::MainWindow(QWidget *parent)
         { ui->actionMIDI_all_notes_off, MIDI_CMD_ALL_NOTES_OFF }
     };
     for (const auto &[action, cmd] : midiCommands) {
-        connect(action, &QAction::triggered, this, [cmd] {
+        connect(action, &QAction::triggered, this, [cmd = cmd] {
             runctl_pause_wait(RUN_PAUSE_SYNC);
             midi_out_send_command(cmd);
             runctl_resume(RUN_PAUSE_SYNC);
