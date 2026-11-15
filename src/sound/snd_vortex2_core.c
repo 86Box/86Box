@@ -413,14 +413,17 @@ src_interp(const float *hist, double phase)
 }
 
 /* Mixer gain byte: a signed 5-bit exponent (bits 7-3) and a 3-bit
-   mantissa (bits 2-0), the fixed-point number .1MMM x 2^EXP: 0x08 =
-   unity, 0x2f = .1111 x 2^5 = 30 (+29.5 dB) is the largest gain, 0x80 =
+   mantissa (bits 2-0), the fixed-point number .1MMMMMM... x 2^EXP, the
+   mantissa repeated to fill the fraction (as the wavetable gain byte
+   is; Aureal's method as relayed, to be checked against the full table
+   of mixer gains, and taken here to 16 bits): 0x08 = unity, 0x2f =
+   0.99998 x 2^5 = 32 (+30.1 dB) is the largest gain, 0x80 =
    .1 x 2^-16 (-102.4 dB) is mute; steps average 0.75 dB (Aureal's
    description of the mixer, relayed with a register map of the chip;
    the real card's measured gains at 0x08, 0x00, 0xf8, 0xe8 and 0xc8 fit
    it). Codes above 0x2f are outside the documented range; the model
    holds them at exponent 5. Half-Life's 0x1f on the second wavetable
-   bank's send buses is +17.5 dB and makes up for those buses' headroom
+   bank's send buses is +18.1 dB and makes up for those buses' headroom
    (see wt_bank_run). Mute is taken as zero: -102 dB is below the
    16-bit output's last bit. mix_mant_tab and mix_exp_tab split the
    output gains for the output stage (see mix_run). */
@@ -444,7 +447,11 @@ init_tables(void)
             int e = (int8_t) b >> 3, m = b & 7;
             if (e > 5)
                 e = 5;
-            mix_mant_tab[b]  = (float) (0.5 + m / 16.0);
+            /* .1 then the mantissa repeated, 16 bits in all */
+            uint32_t f = 0x8000;
+            for (int i = 0; i < 15; i++)
+                f |= (uint32_t) ((m >> (2 - i % 3)) & 1) << (14 - i);
+            mix_mant_tab[b]  = (float) f / 65536.0f;
             mix_shift_tab[b] = (float) ldexp(1.0, e);
             mix_gain_tab[b]  = mix_mant_tab[b] * mix_shift_tab[b];
         }
@@ -1241,7 +1248,7 @@ wt_bank_run(v2_chip_t *c, int bank)
        the rest, so the main and send buses run 24 dB below the
        direct-stream pair, which is the level measured at gain 0xcf. That
        is why Half-Life turns the send buses' mixer inputs up to 0x1f
-       (+17.5 dB). */
+       (+18.1 dB). */
     uint32_t routed = c->wt_routed[bank];
     uint32_t ds     = R(bb + WT_DSREG);
     uint32_t ctl    = R(bb);
@@ -1698,9 +1705,9 @@ xt_run(v2_chip_t *c)
     /* The model's end-to-end 3D levels (headphone pass-through and the
        canceller's measured scale) were matched to the real card with the
        driver's 0x0a on the canceller's mixer inputs taken as +1.5 dB. The
-       exponent/mantissa mixer law makes 0x0a +1.94 dB, so the output is
+       exponent/mantissa mixer law makes 0x0a +2.18 dB, so the output is
        trimmed by the difference to keep those measured levels. */
-    const float trim = 0.950838f; /* 10^(1.5/20) / 1.25 */
+    const float trim = 1.188502f / mix_gain_tab[0x0a]; /* 10^(1.5/20) / gain */
 
     if (c->xt.mode == 0) {
         for (int s = 0; s < 2; s++)
