@@ -60,20 +60,29 @@
 #include <86box/port_6x.h>
 #include <86box/machine.h>
 
+/* An AT's system devices, but for those flags says this one doesn't have (MACHINE_NONSTANDARD_*). */
 void
-machine_at_common_init(const machine_t *model)
+machine_at_common_init_ex(const machine_t *model, uint32_t flags)
 {
-    machine_common_init(model);
+    machine_common_init_ex(model, flags);
 
     refresh_at_enable = 1;
-    pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_at);
+    if (!(flags & MACHINE_NONSTANDARD_PIT))
+        pit_devs[0].set_out_func(pit_devs[0].data, 1, pit_refresh_timer_at);
     pic2_init();
-    dma16_init();
+    if (!(flags & MACHINE_NONSTANDARD_DMA))
+        dma16_init();
 
     if (model->init != machine_at_m290_init)
         device_add(&port_6x_device);
 
     standalone_gameport_type = &gameport_device;
+}
+
+void
+machine_at_common_init(const machine_t *model)
+{
+    machine_at_common_init_ex(model, 0);
 }
 
 void
