@@ -276,6 +276,8 @@ struct v2_chip_t {
     uint8_t  a3d_used[NR_A3D];
     uint32_t graph_hash;
     uint32_t glide_frames; /* sample count for the 64-sample glide tick */
+    uint8_t  mix_sign[NR_MIXOUT * 32 + NR_MIXOUT]; /* sign of each gain's last sample */
+    uint8_t  mix_ran[NR_MIXOUT];
     uint32_t log_clk_last; /* log clock: last 32-bit reading, and the wraps so far */
     uint64_t log_clk_wraps;
     uint32_t wt_routed[2]; /* voices whose own ADB source is routed somewhere */
@@ -1086,53 +1088,100 @@ src_run(v2_chip_t *c, int s, float *out)
 }
 
 /* Mixer output: sum of enabled inputs times their gains, times the
-   output gain. Current gains glide toward their targets. The hardware
-   sums with 5 bits of headroom and clamps the sum at +-32 (full scale =
-   1); the output gain is applied as its exponent shift, clamped at +-2,
-   then its mantissa (.1MMM, 0.5-0.94), and the result is clamped to
-   full scale (Aureal's description of the mixer pipeline). At unity
-   output gain that is a clamp of the sum at full scale. */
+   output gain. The hardware sums with 5 bits of headroom and clamps the
+   sum at +-32 (full scale = 1); the output gain is applied as its
+   exponent shift, clamped at +-2, then its mantissa (.1MMM, 0.5-0.94),
+   and the result is clamped to full scale (Aureal's description of the
+   mixer pipeline). At unity output gain that is a clamp of the sum at
+   full scale.
+
+   A current gain takes its target's value, in one step, at the next
+   zero crossing of the signal it scales (the chip keeps the previous
+   sample's sign beside each current gain; there is no ramp, so a driver
+   that wants one writes the targets in small steps). Here a sample of
+   exactly zero also counts as a crossing, so that a silent input does
+   not hold its old gain for ever, and gains nothing listens to (input
+   disabled, or the mixer's output unrouted) follow their targets at
+   once. */
+static inline int
+mix_cross(v2_chip_t *c, int idx, const float *x)
+{
+    int sg = c->mix_sign[idx], n0 = B;
+
+    for (int n = 0; n < B; n++) {
+        int s = x[n] < 0.0f;
+        if ((s != sg || x[n] == 0.0f) && n0 == B)
+            n0 = n;
+        sg = s;
+    }
+    c->mix_sign[idx] = (uint8_t) sg;
+    return n0;
+}
+
 static void
 mix_ramp(v2_chip_t *c)
 {
     for (int i = 0; i < NR_MIXOUT * 32 + NR_MIXOUT; i++) {
         uint32_t a_cur = (i < 512) ? (MIX_INVOL_B + i * 4) : (MIX_VOL_B + (i - 512) * 4);
         uint32_t a_tgt = (i < 512) ? (MIX_INVOL_A + i * 4) : (MIX_VOL_A + (i - 512) * 4);
+        int      m     = (i < 512) ? (i >> 5) : (i - 512);
         if (c->ro[(a_cur >> 2) >> 3] & (1 << ((a_cur >> 2) & 7)))
             continue;
-        int cur = (int8_t) (R(a_cur) & 0xff);
-        int tgt = (int8_t) (R(a_tgt) & 0xff);
-        if (cur == tgt)
-            continue;
-        cur += (tgt > cur) ? ((tgt - cur > 4) ? 4 : tgt - cur) : ((cur - tgt > 4) ? -4 : tgt - cur);
-        R(a_cur) = (R(a_cur) & ~0xffu) | (uint8_t) cur;
+        if (c->mix_ran[m] && (i >= 512 || (R(MIX_ENIN + ((m << 3) + ((i & 31) >> 2)) * 4) & (1u << (i & 3)))))
+            continue; /* mix_run saw it */
+        if ((R(a_cur) ^ R(a_tgt)) & 0xff)
+            R(a_cur) = (R(a_cur) & ~0xffu) | (R(a_tgt) & 0xff);
     }
+    memset(c->mix_ran, 0, sizeof(c->mix_ran));
 }
 
 static void
 mix_run(v2_chip_t *c, int m, float *out)
 {
     memset(out, 0, sizeof(float) * B);
+    c->mix_ran[m] = 1;
     for (int i = 0; i < NR_MIXIN; i++) {
         if (!(R(MIX_ENIN + ((m << 3) + (i >> 2)) * 4) & (1u << (i & 3))))
             continue;
-        float g = mix_gain_tab[R(MIX_INVOL_B + ((m << 5) + i) * 4) & 0xff];
-        if (g == 0.0f && !c->sink_n[AK_MIXIN + i])
+        uint32_t a_cur = MIX_INVOL_B + ((m << 5) + i) * 4;
+        uint8_t  cb    = R(a_cur) & 0xff, tb = R(MIX_INVOL_A + ((m << 5) + i) * 4) & 0xff;
+        int      fixed = (c->ro[(a_cur >> 2) >> 3] >> ((a_cur >> 2) & 7)) & 1;
+        float    g     = mix_gain_tab[cb];
+        if (cb == tb || fixed) {
+            if (g == 0.0f && !c->sink_n[AK_MIXIN + i])
+                continue;
+            const float *in = gather(c, AK_MIXIN + i);
+            if (g != 0.0f)
+                for (int n = 0; n < B; n++)
+                    out[n] += g * in[n];
+            if (!fixed)
+                (void) mix_cross(c, (m << 5) + i, in);
             continue;
+        }
         const float *in = gather(c, AK_MIXIN + i);
-        if (g == 0.0f)
-            continue;
-        for (int n = 0; n < B; n++)
+        int          n0 = mix_cross(c, (m << 5) + i, in);
+        float        g2 = mix_gain_tab[tb];
+        for (int n = 0; n < n0; n++)
             out[n] += g * in[n];
+        for (int n = n0; n < B; n++)
+            out[n] += g2 * in[n];
+        if (n0 < B)
+            R(a_cur) = (R(a_cur) & ~0xffu) | tb;
     }
-    uint8_t     ob = R(MIX_VOL_B + m * 4) & 0xff;
-    const float sh = mix_shift_tab[ob], mt = mix_mant_tab[ob];
+    uint32_t a_cur = MIX_VOL_B + m * 4;
+    uint8_t  ob = R(a_cur) & 0xff, tb = R(MIX_VOL_A + m * 4) & 0xff;
+    int      n0 = mix_cross(c, 512 + m, out);
+    if (ob == tb || ((c->ro[(a_cur >> 2) >> 3] >> ((a_cur >> 2) & 7)) & 1))
+        n0 = B;
+    else if (n0 < B)
+        R(a_cur) = (R(a_cur) & ~0xffu) | tb;
     for (int n = 0; n < B; n++) {
-        float v = out[n];
+        uint8_t b = n < n0 ? ob : tb;
+        float   v = out[n];
         v = v > 32.0f ? 32.0f : (v < -32.0f ? -32.0f : v);
-        v *= sh;
+        v *= mix_shift_tab[b];
         v = v > 2.0f ? 2.0f : (v < -2.0f ? -2.0f : v);
-        v *= mt;
+        v *= mix_mant_tab[b];
         out[n] = v > 1.0f ? 1.0f : (v < -1.0f ? -1.0f : v);
     }
 }
@@ -1352,11 +1401,13 @@ wt_bank_run(v2_chip_t *c, int bank)
 /*   +0x1e0/0x1e4 ITD current/target: delay in 1/512 sample, low half  */
 /*          left ear, high half right ear                              */
 /* Bank A (0x18000 + slice * 0x2000 + source * 0x3a4) +0x37c..0x388    */
-/* hold the glide time constants (HRTF, gain, filter, ITD): current    */
-/* values step toward targets every 64 samples by TC * 64 / 2^21 of    */
-/* the remaining distance for gain, filter and HRTF, and TC * 64 / 2^19 */
-/* for the ITD (tau = 2^21 / TC and 2^19 / TC samples): read back from  */
-/* the chip's current registers on a real card for every TC word.      */
+/* hold the tracking rates (HRTF, gain, filter, ITD), 1.15 fractions:   */
+/* each update moves a current value TC / 32768 of the way to its      */
+/* target. Gain, filter and HRTF are updated every 64 samples and the  */
+/* ITD every 16 (Aureal's description, relayed with a register map of  */
+/* the chip), which is what reading the current registers back from a  */
+/* real card gave for every TC word: time constants of 2^21 / TC and   */
+/* 2^19 / TC samples.                                                  */
 /* Outputs: slice s left/right = ADB sources A3DOUT(2s)/(2s+1).        */
 /* ------------------------------------------------------------------ */
 
@@ -1441,7 +1492,10 @@ a3d_slot_run(v2_chip_t *c, int s, float *outl, float *outr)
         float kh = glide_k(c, R(ba + 0x37c), 2097152.0);
         float kg = glide_k(c, R(ba + 0x380), 2097152.0);
         float kc = glide_k(c, R(ba + 0x384), 2097152.0);
-        float ki = glide_k(c, R(ba + 0x388), 524288.0);
+        /* The delay is tracked every 16 samples, the rest every 64:
+           four steps of TC / 32768 here. */
+        float ki = glide_k(c, R(ba + 0x388), 2097152.0);
+        ki       = 1.0f - (1.0f - ki) * (1.0f - ki) * (1.0f - ki) * (1.0f - ki);
         if (kh > 0.0f)
             for (int k = 0; k < HRTF_TAPS; k++) {
                 uint32_t w  = R(bb + 0x100 + k * 4);
