@@ -87,12 +87,10 @@ ati68860_ramdac_out(uint16_t addr, uint8_t val, int is_8514, void *priv, svga_t 
     ramdac->regs[addr & 0xf] = val;
 
     switch (addr & 0xf) {
-        case 0x0:
         case 0x4:
             ramdac->dac_addr = val;
             ramdac->dac_pos = 0;
             break;
-        case 0x1:
         case 0x5:
             switch (ramdac->dac_pos) {
                 case 0:
@@ -131,7 +129,7 @@ ati68860_ramdac_out(uint16_t addr, uint8_t val, int is_8514, void *priv, svga_t 
                     break;
                 case 0x83:
                     svga->bpp = 8;
-                    ramdac->render = svga_render_8bpp_highres;
+                    ramdac->render = svga_render_8bpp_clone_highres;
                     break;
                 case 0xa0:
                 case 0xb0:
@@ -163,12 +161,12 @@ ati68860_ramdac_out(uint16_t addr, uint8_t val, int is_8514, void *priv, svga_t 
                     break;
                 default:
                     svga->bpp = 8;
-                    ramdac->render = svga_render_8bpp_highres;
+                    ramdac->render = svga_render_8bpp_clone_highres;
                     break;
             }
             break;
         case 0xc:
-            svga_set_ramdac_type(svga, (val & 1) ? RAMDAC_6BIT : RAMDAC_8BIT);
+            svga_set_ramdac_type(svga, (val & 0x01) ? RAMDAC_6BIT : RAMDAC_8BIT);
             break;
     }
 }
