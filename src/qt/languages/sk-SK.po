@@ -807,8 +807,8 @@ msgstr "Páskové mechaniky:"
 msgid "ISA RTC:"
 msgstr "ISA hodiny:"
 
-msgid "ISA Memory Expansion"
-msgstr "ISA rozšírenie pamäte"
+msgid "ISA/MCA Memory Expansion"
+msgstr "ISA/MCA rozšírenie pamäte"
 
 msgid "ISA ROM Cards"
 msgstr "ISA karty s pamäťou ROM"

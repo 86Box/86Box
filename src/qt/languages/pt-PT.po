@@ -810,8 +810,8 @@ msgstr "Dispositivos de fita:"
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
-msgid "ISA Memory Expansion"
-msgstr "Expansão de memória ISA"
+msgid "ISA/MCA Memory Expansion"
+msgstr "Expansão de memória ISA/MCA"
 
 msgid "ISA ROM Cards"
 msgstr "Placas ROM ISA"

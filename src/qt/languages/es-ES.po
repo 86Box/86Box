@@ -807,8 +807,8 @@ msgstr "Unidades de cinta:"
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
-msgid "ISA Memory Expansion"
-msgstr "Expansión de memoria ISA"
+msgid "ISA/MCA Memory Expansion"
+msgstr "Expansión de memoria ISA/MCA"
 
 msgid "ISA ROM Cards"
 msgstr "Tarjetas ROM ISA"

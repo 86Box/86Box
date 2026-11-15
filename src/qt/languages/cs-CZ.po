@@ -809,8 +809,8 @@ msgstr "Páskové jednotky:"
 msgid "ISA RTC:"
 msgstr "Hodiny reálného času (RTC) ISA:"
 
-msgid "ISA Memory Expansion"
-msgstr "Rozšíření paměti ISA"
+msgid "ISA/MCA Memory Expansion"
+msgstr "Rozšíření paměti ISA/MCA"
 
 msgid "ISA ROM Cards"
 msgstr "Karty ISA s pamětí ROM"

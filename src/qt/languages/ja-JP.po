@@ -808,8 +808,8 @@ msgstr "テープドライブ:"
 msgid "ISA RTC:"
 msgstr "ISA RTCカード:"
 
-msgid "ISA Memory Expansion"
-msgstr "ISAメモリ拡張カード"
+msgid "ISA/MCA Memory Expansion"
+msgstr "ISA/MCAメモリ拡張カード"
 
 msgid "ISA ROM Cards"
 msgstr "ISA ROMカード"

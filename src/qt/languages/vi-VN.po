@@ -810,8 +810,8 @@ msgstr "Ổ đĩa băng:"
 msgid "ISA RTC:"
 msgstr "ISA RTC:"
 
-msgid "ISA Memory Expansion"
-msgstr "Mở rộng bộ nhớ qua ISA"
+msgid "ISA/MCA Memory Expansion"
+msgstr "Mở rộng bộ nhớ qua ISA/MCA"
 
 msgid "ISA ROM Cards"
 msgstr "Thẻ ROM ISA"
