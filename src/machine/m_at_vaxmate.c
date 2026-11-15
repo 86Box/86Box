@@ -432,15 +432,22 @@ machine_at_vaxmate_init(const machine_t *model)
     /* COM1 is a WD8250 ACE (EK-PC500-TD 3.7.2); the ns8250 model has no
        scratch register and no FIFO, which matches the part. */
     vaxmate_com1 = device_add_inst(&ns8250_device, 1);
+    serial_set_next_inst(1);
+
+    /* The modem card answers on the COM2 block at 2F8: POST probes that port
+       while it builds the configuration list, so the printer port must not
+       take it over. The device registers only when COM2 is enabled. */
+    device_add_inst(&ns8250_device, 2);
+    serial_set_next_inst(2);
 
     /* Serial printer port (EK-PC500-TD 3.6.2): a second WD8250 at 0CA0/IRQ11.
-       It takes COM2's slot so the settings page can attach a backend, and
-       serial_setup() then moves the port from 2F8 to its real address. */
-    serial_t *vaxmate_printer = device_add_inst(&ns8250_device, 2);
+       It takes COM3's slot so COM2 stays free, and serial_setup() then moves
+       the port from 3E8 to its real address. */
+    serial_t *vaxmate_printer = device_add_inst(&ns8250_device, 3);
     serial_setup(vaxmate_printer, 0x0ca0, 11);
-    /* On-board UART: it must answer POST even with COM2 off (an
+    /* On-board UART: it must answer POST even with COM3 off (an
        unmapped port reads 0xFF and stalls the XON/XOFF loop), so map it here;
-       serial_setup() skips registration then. Only the backend follows COM2. */
+       serial_setup() skips registration then. Only the backend follows COM3. */
     if ((vaxmate_printer != NULL) && (vaxmate_printer->base_address == 0))
         io_sethandler(0x0ca0, 0x0008,
                       serial_read, NULL, NULL,
