@@ -116,6 +116,7 @@ typedef struct ymf71x_t {
     uint8_t max_reg;
     double  master_l;
     double  master_r;
+    int32_t sb_buffer[SOUNDBUFLEN * 2];
 
     void                   *pnp_card;
     uint8_t                 pnp_rom[512];
@@ -852,7 +853,15 @@ ymf71x_get_sbpro_buffer(int32_t *buffer, uint16_t len, void *priv)
     /* sbprov2 part */
     /* Don't play audio if the SB Compatibility analog or digital sections are powered down */
     if ( (!(ymf71x->regs[0x01] & 0x23)) && (!(ymf71x->regs[0x12] & 0x02)) && (!(ymf71x->regs[0x13] & 0x02)) ) {
-        sb_get_buffer_sbpro(buffer, len, ymf71x->sb);
+        memset(ymf71x->sb_buffer, 0, len * 2 * sizeof(int32_t));
+        sb_get_buffer_sbpro(ymf71x->sb_buffer, len, ymf71x->sb);
+
+        /* The SB DAC output is mixed with the other sources ahead of the
+           master volume, as are WSS, FM and CD audio. */
+        for (uint16_t c = 0; c < len * 2; c += 2) {
+            buffer[c] += (int32_t) (ymf71x->sb_buffer[c] * ymf71x->master_l);
+            buffer[c + 1] += (int32_t) (ymf71x->sb_buffer[c + 1] * ymf71x->master_r);
+        }
     }
 }
 
