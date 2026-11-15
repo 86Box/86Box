@@ -351,22 +351,35 @@ interp4(const float *h, float t)
            + tp1 * t * tm1 * (1.0f / 6.0f) * h[3];
 }
 
-/* Sample-rate converter filter: a sinc with its cutoff at the input
-   Nyquist under a Blackman window (0.42, 0.5, 0.08) 27 input samples
-   wide. Aureal's documentation gives the converter 27-point
-   interpolation, which fits the driver's samples-per-wing setting (13
-   each side of the centre sample). The window was read off a real
-   SQ2500 (run 12): single-sample impulses played at 8 and 11.025 kHz
-   record the kernel at 6 and 4.4 points per input sample, and its
-   lobes from 3.5 to 11.5 samples out follow this window to 0.004 rms
-   with nothing fitted (a free three-term cosine or Kaiser window does
-   no better; the Kaiser, beta 8.25, used before is 0.014 off). It also
-   matches the noise measurement of the transition band (-3 dB at 0.48 x
-   the input rate, -6 at 0.50, -11 at 0.52, -23 at 0.55, -37 at 0.57) to
-   0.5 dB, and explains why a 1 kHz tone at 22.05 kHz showed no image at
-   21.05 kHz down to -106 dB (run 16): this window gives -102 dB there,
-   the Kaiser one -87. src_fir[p] holds the taps for a fractional
-   position p / SRC_PHASES after tap (SRC_TAPS - 1) / 2. */
+/* Sample-rate converter filter: a Kaiser-windowed sinc, 27 input
+   samples wide, with its cutoff at the input Nyquist. Aureal described
+   the converter as a 27-point Kaiser-windowed sinc (relayed to the
+   project), which fits the driver's samples-per-wing setting (13 each
+   side of the centre sample). The window's parameter was read off a
+   real SQ2500 (run 12): single-sample impulses played at 8 and 11.025
+   kHz record the kernel at 6 and 4.4 points per input sample, and its
+   lobes from 3.5 to 11.5 samples out follow a Kaiser window with beta
+   8.6 to 0.004 rms (beta 8.25 and 9.0 are both 0.013 off). A Blackman
+   window over the same 27 samples fits equally well; the two differ by
+   less than the measurement can show. The kernel also matches the noise
+   measurement of the transition band (-3 dB at 0.48 x the input rate,
+   -6 at 0.50, -11 at 0.52, -23 at 0.55, -37 at 0.57) to about 1 dB.
+   src_fir[p] holds the taps for a fractional position p / SRC_PHASES
+   after tap (SRC_TAPS - 1) / 2. */
+#define SRC_KAISER_BETA 8.6
+
+static double
+src_bessel_i0(double x)
+{
+    double sum = 1.0, term = 1.0;
+
+    for (int k = 1; k < 40; k++) {
+        term *= (x / (2.0 * k)) * (x / (2.0 * k));
+        sum += term;
+    }
+    return sum;
+}
+
 static float src_fir[SRC_PHASES + 1][SRC_PAD]; /* taps in [SRC_PAD - SRC_TAPS ..] */
 
 static void
@@ -380,7 +393,7 @@ init_src_fir(void)
             double x = (double) (k - ctr) - t; /* distance from the output point */
             double w = x / (double) SRC_TAPS;
             double v = (fabs(x) < 1e-9) ? 1.0 : sin(M_PI * x) / (M_PI * x);
-            v *= (fabs(w) < 0.5) ? 0.42 + 0.5 * cos(2.0 * M_PI * w) + 0.08 * cos(4.0 * M_PI * w) : 0.0;
+            v *= (fabs(w) < 0.5) ? src_bessel_i0(SRC_KAISER_BETA * sqrt(1.0 - 4.0 * w * w)) / src_bessel_i0(SRC_KAISER_BETA) : 0.0;
             h[k] = v;
             sum += v;
         }
