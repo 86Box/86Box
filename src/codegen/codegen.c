@@ -132,13 +132,14 @@ codegen_trace_ends(uint32_t addr)
   and the target starts a new one, so the cycles charged are those of the two
   blocks. Unrolling a loop is left out of a traced block: its timing replays
   the block's from the loop's head and takes the block for one range. Not
-  with the 486 debug registers, whose blocks the dispatcher ends at a jump*/
-static void
-codegen_trace_jump(codeblock_t *block, ir_data_t *ir, uint32_t end, uint32_t target)
+  with the 486 debug registers, whose blocks the dispatcher ends at a jump.
+  Answers the second page's delta to pick (0 for none) through *delta*/
+static int
+codegen_trace_can(const codeblock_t *block, uint32_t end, uint32_t target, int32_t *delta)
 {
     if ((block->flags & (CODEBLOCK_BYTE_MASK | CODEBLOCK_NO_IMMEDIATES | CODEBLOCK_NO_OPCODES)) || codegen_ir_unrolling() ||
         (codegen_trace_count >= CODEGEN_TRACE_MAX) || ((block->ins + 2) >= MAX_INSTRUCTION_COUNT) || cpu_debug_regs_486)
-        return;
+        return 0;
     /*Pages: the first, and the second once it has bytes or a JMP picked it*/
     const uint32_t page_1     = block->pc & ~0xfffu;
     const int      has_page_2 = block->page_mask2 || codegen_trace_page2;
@@ -148,25 +149,32 @@ codegen_trace_jump(codeblock_t *block, ir_data_t *ir, uint32_t end, uint32_t tar
     int32_t        new_delta  = 0;
 
     if ((end_page != page_1) && !(has_page_2 && (end_page == page_2)))
-        return;
+        return 0;
     if ((tgt_page != page_1) && !(has_page_2 && (tgt_page == page_2))) {
 #if defined __amd64__ || defined _M_X64
         /*Not from a page that is being written to: code there is compiled
           again often, and each time would compile the target's code with it*/
         if (has_page_2 || codegen_page_rewritten(&pages[block->phys >> 12], tsc))
-            return;
+            return 0;
         new_delta = (int32_t) (tgt_page - page_1) >> 12;
         if ((new_delta < INT16_MIN) || (new_delta > INT16_MAX))
-            return;
+            return 0;
 #else
-        return;
+        return 0;
 #endif
     }
     if ((target - codegen_trace_start) < (end - codegen_trace_start))
-        return;
+        return 0;
     if (codegen_trace_ends(target))
-        return;
+        return 0;
 
+    *delta = new_delta;
+    return 1;
+}
+
+static void
+codegen_trace_commit(codeblock_t *block, ir_data_t *ir, uint32_t end, uint32_t target, int32_t new_delta)
+{
     if (new_delta) {
         block->page2_delta  = (int16_t) new_delta;
         codegen_trace_page2 = 1;
@@ -184,6 +192,43 @@ codegen_trace_jump(codeblock_t *block, ir_data_t *ir, uint32_t end, uint32_t tar
     codegen_accumulate_block_start();
 }
 
+static void
+codegen_trace_jump(codeblock_t *block, ir_data_t *ir, uint32_t end, uint32_t target)
+{
+    int32_t delta;
+
+    if (codegen_trace_can(block, end, target, &delta))
+        codegen_trace_commit(block, ir, end, target, delta);
+}
+
+/*A Jcc whose taken direction goes back, ending at end (linear), to target:
+  a loop's branch to a head outside the block. While the compile pass takes
+  it, the block can go on at the target as after a JMP (codegen_trace_jump),
+  leaving by a side exit when it is not taken. Only backward: a forward
+  branch taken once in the compile pass is no sign of the common direction.
+  codegen_trace_jcc_can is asked before the Jcc's uops are made, and
+  codegen_trace_jcc_take after them, with the same arguments*/
+static int32_t codegen_trace_jcc_delta;
+
+int
+codegen_trace_jcc_can(const codeblock_t *block, uint32_t end, uint32_t target)
+{
+    if (target >= end)
+        return 0;
+    return codegen_trace_can(block, end, target, &codegen_trace_jcc_delta);
+}
+
+void
+codegen_trace_jcc_take(codeblock_t *block, ir_data_t *ir, uint32_t end, uint32_t target)
+{
+    /*The fall-back models charge timing_bt for a taken Jcc in its exit, and
+      take it back for the path that goes on (codegen_generate_call): this
+      path is the taken one. The others' jump cycles stand for the decode
+      flush the block's end charges here*/
+    if (!codegen_timing_jump_cycles)
+        codegen_accumulate_jump(ir, -1, timing_bt);
+    codegen_trace_commit(block, ir, end, target, codegen_trace_jcc_delta);
+}
 
 void
 codegen_set_loop_start(ir_data_t *ir, int first_instruction)

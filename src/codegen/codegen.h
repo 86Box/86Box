@@ -699,5 +699,7 @@ extern int      codegen_trace_taken;
 extern uint32_t codegen_trace_bytes;
 extern void     codegen_trace_reset(const codeblock_t *block);
 extern int      codegen_trace_ends(uint32_t addr);
+extern int      codegen_trace_jcc_can(const codeblock_t *block, uint32_t end, uint32_t target);
+extern void     codegen_trace_jcc_take(codeblock_t *block, struct ir_data_t *ir, uint32_t end, uint32_t target);
 
 #endif
