@@ -343,42 +343,36 @@ interp4(const float *h, float t)
     return ((c3 * t + c2) * t + c1) * t + h[1];
 }
 
-/* Sample-rate converter filter. Measured on a real SQ2500 (run 12, noise
-   at 8-44.1 kHz against 48 kHz): flat to 0.45 x the input rate, -3 dB at
-   0.48, -6 dB at 0.50, -11 dB at 0.52, -23 dB at 0.55, -37 dB at 0.57 and
-   below the recording's noise floor (about -60 dB) from 0.60. Aureal's
-   documentation gives the converter 27-point interpolation, which fits the
-   driver's samples-per-wing setting (13 each side of the centre sample). A
-   27-tap Kaiser-windowed sinc (beta 8.25, cutoff at the input Nyquist)
-   matches the measurements to 0.37 dB rms (the earlier 22-tap, beta 6 fit:
-   0.48 dB) with its stopband below -86 dB. src_fir[p] holds the taps for
-   a fractional position p / SRC_PHASES after tap (SRC_TAPS - 1) / 2. */
+/* Sample-rate converter filter: a sinc with its cutoff at the input
+   Nyquist under a Blackman window (0.42, 0.5, 0.08) 27 input samples
+   wide. Aureal's documentation gives the converter 27-point
+   interpolation, which fits the driver's samples-per-wing setting (13
+   each side of the centre sample). The window was read off a real
+   SQ2500 (run 12): single-sample impulses played at 8 and 11.025 kHz
+   record the kernel at 6 and 4.4 points per input sample, and its
+   lobes from 3.5 to 11.5 samples out follow this window to 0.004 rms
+   with nothing fitted (a free three-term cosine or Kaiser window does
+   no better; the Kaiser, beta 8.25, used before is 0.014 off). It also
+   matches the noise measurement of the transition band (-3 dB at 0.48 x
+   the input rate, -6 at 0.50, -11 at 0.52, -23 at 0.55, -37 at 0.57) to
+   0.5 dB, and explains why a 1 kHz tone at 22.05 kHz showed no image at
+   21.05 kHz down to -106 dB (run 16): this window gives -102 dB there,
+   the Kaiser one -87. src_fir[p] holds the taps for a fractional
+   position p / SRC_PHASES after tap (SRC_TAPS - 1) / 2. */
 static float src_fir[SRC_PHASES + 1][SRC_PAD]; /* taps in [SRC_PAD - SRC_TAPS ..] */
-
-static double
-bessel_i0(double x)
-{
-    double s = 1.0, t = 1.0;
-    for (int k = 1; k < 30; k++) {
-        t *= (x / (2.0 * k)) * (x / (2.0 * k));
-        s += t;
-    }
-    return s;
-}
 
 static void
 init_src_fir(void)
 {
-    const double half = SRC_TAPS / 2.0, beta = 8.25, i0b = bessel_i0(beta);
-    const int    ctr  = (SRC_TAPS - 1) / 2; /* the tap just before the output point */
+    const int ctr = (SRC_TAPS - 1) / 2; /* the tap just before the output point */
 
     for (int p = 0; p <= SRC_PHASES; p++) {
         double t = (double) p / SRC_PHASES, sum = 0.0, h[SRC_TAPS];
         for (int k = 0; k < SRC_TAPS; k++) {
             double x = (double) (k - ctr) - t; /* distance from the output point */
-            double w = x / half;
+            double w = x / (double) SRC_TAPS;
             double v = (fabs(x) < 1e-9) ? 1.0 : sin(M_PI * x) / (M_PI * x);
-            v *= (fabs(w) < 1.0) ? bessel_i0(beta * sqrt(1.0 - w * w)) / i0b : 0.0;
+            v *= (fabs(w) < 0.5) ? 0.42 + 0.5 * cos(2.0 * M_PI * w) + 0.08 * cos(4.0 * M_PI * w) : 0.0;
             h[k] = v;
             sum += v;
         }
