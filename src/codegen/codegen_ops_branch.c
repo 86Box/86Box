@@ -114,6 +114,19 @@ jcc_trace_end(codeblock_t *block, ir_data_t *ir, uint32_t op_pc, int size, uint3
     jcc_trace = 0;
 }
 
+/*The taken exit of a Jcc the block could have gone on through
+  (codegen_trace_jcc_can) had the compile pass taken it: counted, so the
+  block is compiled again once it is taken often (codegen_jcc_hot_exit).
+  Code that ran the loop's branch the other way once while it was compiled,
+  say on the first or last time round, otherwise keeps that layout*/
+static void
+jcc_exit_hot(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr)
+{
+    if (jcc_trace && codegen_jcc_hot_can(block))
+        uop_CALL_INSTRUCTION_FUNC(ir, codegen_jcc_hot_exit, get_block_nr(block));
+    jcc_exit(ir, dest_addr);
+}
+
 static int
 NF_SET_01(void)
 {
@@ -279,7 +292,7 @@ ropJB_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t nex
         uop_MOV_IMM(ir, IREG_pc, next_pc);
         uop_JMP(ir, codegen_exit_rout);
     } else
-        jcc_exit(ir, dest_addr);
+        jcc_exit_hot(block, ir, dest_addr);
     uop_set_jump_dest(ir, jump_uop);
     return do_unroll ? 1 : 0;
 }
@@ -358,7 +371,7 @@ ropJNB_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t ne
         uop_MOV_IMM(ir, IREG_pc, next_pc);
         uop_JMP(ir, codegen_exit_rout);
     } else
-        jcc_exit(ir, dest_addr);
+        jcc_exit_hot(block, ir, dest_addr);
     uop_set_jump_dest(ir, jump_uop);
     return do_unroll ? 1 : 0;
 }
@@ -392,7 +405,7 @@ ropJE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t nex
         } else {
             jump_uop = uop_CMP_IMM_JNZ_DEST(ir, IREG_flags_res, 0);
         }
-        jcc_exit(ir, dest_addr);
+        jcc_exit_hot(block, ir, dest_addr);
         uop_set_jump_dest(ir, jump_uop);
     }
     return 0;
@@ -425,7 +438,7 @@ ropJNE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t ne
         } else {
             jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_flags_res, 0);
         }
-        jcc_exit(ir, dest_addr);
+        jcc_exit_hot(block, ir, dest_addr);
         uop_set_jump_dest(ir, jump_uop);
     }
     return 0;
@@ -519,7 +532,7 @@ ropJBE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t ne
     } else {
         if (jump_uop2 != -1)
             uop_set_jump_dest(ir, jump_uop2);
-        jcc_exit(ir, dest_addr);
+        jcc_exit_hot(block, ir, dest_addr);
         uop_set_jump_dest(ir, jump_uop);
         return 0;
     }
@@ -609,7 +622,7 @@ ropJNBE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t n
         uop_set_jump_dest(ir, jump_uop);
         return 1;
     } else {
-        jcc_exit(ir, dest_addr);
+        jcc_exit_hot(block, ir, dest_addr);
         uop_set_jump_dest(ir, jump_uop);
         if (jump_uop2 != -1)
             uop_set_jump_dest(ir, jump_uop2);
@@ -681,7 +694,7 @@ ropJS_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t nex
         uop_MOV_IMM(ir, IREG_pc, next_pc);
         uop_JMP(ir, codegen_exit_rout);
     } else
-        jcc_exit(ir, dest_addr);
+        jcc_exit_hot(block, ir, dest_addr);
     uop_set_jump_dest(ir, jump_uop);
     return do_unroll ? 1 : 0;
 }
@@ -749,7 +762,7 @@ ropJNS_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t ne
         uop_MOV_IMM(ir, IREG_pc, next_pc);
         uop_JMP(ir, codegen_exit_rout);
     } else
-        jcc_exit(ir, dest_addr);
+        jcc_exit_hot(block, ir, dest_addr);
     uop_set_jump_dest(ir, jump_uop);
     return do_unroll ? 1 : 0;
 }
@@ -844,7 +857,7 @@ ropJL_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t nex
         uop_MOV_IMM(ir, IREG_pc, next_pc);
         uop_JMP(ir, codegen_exit_rout);
     } else
-        jcc_exit(ir, dest_addr);
+        jcc_exit_hot(block, ir, dest_addr);
     uop_set_jump_dest(ir, jump_uop);
     return do_unroll ? 1 : 0;
 }
@@ -915,7 +928,7 @@ ropJNL_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t ne
         uop_MOV_IMM(ir, IREG_pc, next_pc);
         uop_JMP(ir, codegen_exit_rout);
     } else
-        jcc_exit(ir, dest_addr);
+        jcc_exit_hot(block, ir, dest_addr);
     uop_set_jump_dest(ir, jump_uop);
     return do_unroll ? 1 : 0;
 }
@@ -985,7 +998,7 @@ ropJLE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t ne
     } else {
         if (jump_uop2 != -1)
             uop_set_jump_dest(ir, jump_uop2);
-        jcc_exit(ir, dest_addr);
+        jcc_exit_hot(block, ir, dest_addr);
         uop_set_jump_dest(ir, jump_uop);
         return 0;
     }
@@ -1053,7 +1066,7 @@ ropJNLE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t n
         uop_set_jump_dest(ir, jump_uop);
         return 1;
     } else {
-        jcc_exit(ir, dest_addr);
+        jcc_exit_hot(block, ir, dest_addr);
         uop_set_jump_dest(ir, jump_uop);
         if (jump_uop2 != -1)
             uop_set_jump_dest(ir, jump_uop2);
