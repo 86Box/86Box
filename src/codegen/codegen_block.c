@@ -257,6 +257,47 @@ uint64_t codegen_family_ops[2];
 /*Per block: smc_family_hold() state*/
 static uint8_t block_family_hold[BLOCK_SIZE];
 
+/*A block that leaves by a loop's branch it could have gone on through
+  (jcc_exit_hot) is compiled again after JCC_HOT_EXITS such exits, so the
+  compile pass can see the branch taken. At most JCC_HOT_TRIES times from
+  codegen_block_init(), so a branch that goes either way does not keep its
+  block compiling.*/
+#define JCC_HOT_EXITS 256
+#define JCC_HOT_TRIES 4
+static uint16_t block_jcc_hot_left[BLOCK_SIZE];
+static uint8_t  block_jcc_hot_tries[BLOCK_SIZE];
+
+/*In the compile pass: whether the exit is to be counted; arms the count*/
+int
+codegen_jcc_hot_can(const codeblock_t *block)
+{
+    const uint32_t block_nr = get_block_nr(block);
+
+    if (block_jcc_hot_tries[block_nr] >= JCC_HOT_TRIES)
+        return 0;
+    block_jcc_hot_left[block_nr] = JCC_HOT_EXITS;
+    return 1;
+}
+
+/*From the block's code, as it takes such an exit. Its code is not freed
+  here: the dispatcher compiles the block again when it is next run.*/
+int
+codegen_jcc_hot_exit(uint32_t block_nr)
+{
+    codeblock_t *block = &codeblock[block_nr];
+
+    if (--block_jcc_hot_left[block_nr])
+        return 0;
+    block_jcc_hot_tries[block_nr]++;
+    if (block->flags & CODEBLOCK_WAS_RECOMPILED) {
+        block->flags &= ~CODEBLOCK_WAS_RECOMPILED;
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+        codegen_link_block_changed(block);
+#endif
+    }
+    return 0;
+}
+
 static void
 block_version_owner_sync(uint32_t block_nr)
 {
@@ -1719,6 +1760,7 @@ codegen_block_init(uint32_t phys_addr)
     block->smc_strikes        = 0;
     block->smc_family_score   = 0;
     block_family_hold[block_current] = 0;
+    block_jcc_hot_tries[block_current] = 0;
     /* On a page whose blocks keep being rewritten before they pay for
        compiling, a new one is likely to be too: interpret it for a while
        first. One that pays for itself later takes a strike off the page. */
