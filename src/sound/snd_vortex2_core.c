@@ -782,6 +782,24 @@ dma_take(v2_chip_t *c, v2_dma_t *d, int idx, int nch, uint32_t *cnt)
     return v;
 }
 
+/* A wavetable voice's phase step per output sample, as a 0.16 fraction
+   (1.0 = 0x10000 = 48 kHz), from the rate field of its base word: 3-bit
+   exponent in bits 15-13, 12-bit mantissa in bits 12-1 (bit 0 is the
+   state bit). Like the chip's other exponent/mantissa codes it has an
+   implicit leading one followed by the mantissa repeated, and the result
+   is cut to 16 fraction bits; exponent 0 is the mantissa alone.
+   Measured on a real SQ2500 (run 18): seven rate words from 0x4aaa to
+   0x9acc played tones whose frequencies all sit 3-14 ppm above this
+   (the recorder's clock), where a mantissa without the repeat leaves
+   them scattered from 3 to 109 ppm. 0x9acc (44.1 kHz) is 0xeb36. */
+static uint32_t
+wt_step(uint32_t rate)
+{
+    uint32_t e = (rate >> 13) & 7, m = (rate >> 1) & 0xfff;
+
+    return e ? ((1u << 24) | (m << 12) | m) >> (13 - e) : m;
+}
+
 /* Capture: write one frame to guest memory. */
 static void
 dma_put_frame(v2_chip_t *c, v2_dma_t *d, const float *v, int nch)
@@ -891,7 +909,7 @@ fifo_ctrl_write(v2_chip_t *c, v2_dma_t *d, uint32_t old, uint32_t val)
                    draining for that long (median 5.5 ms in Half-Life, whose
                    voices run at 11 and 22 kHz) before going idle. */
                 uint32_t p = R((d->ch >> 5) * WT_BANK_STRIDE + WT_PARM + (d->ch & 31) * 0x10);
-                double   step = pow(2.0, (double) ((p >> 13) & 7) - 5.0) * (1.0 + (p & 0x1fff) / 8192.0);
+                double   step = (double) wt_step(p & 0xffff) / 65536.0;
                 if (step < 0.05)
                     step = 0.05;
                 d->drain_end = c->glide_frames + (uint32_t) (56.0 / step);
@@ -1213,10 +1231,9 @@ mix_run(v2_chip_t *c, int m, float *out)
 /*   bits 31-24  filter cut-off, 4e4m: the coefficient of a four-stage */
 /*               one-pole low-pass (see wt_filter_set); 0xcf = open     */
 /*   bits 23-16  gain, 4e4m, 0x10 per 6 dB, 0xcf = unity, 0 = silent   */
-/*   bits 15-1   rate: e = bits 15-13, m = bits 12-1,                  */
-/*               rate = 48 kHz * 2^(e-5) * (1 + m/4096)  (confirmed     */
-/*               against measured DMA consumption); e = 0 has no        */
-/*               leading one: 48 kHz * m / 65536                        */
+/*   bits 15-1   rate: e = bits 15-13, m = bits 12-1; the phase step   */
+/*               is a 0.16 fraction, 1.m with m repeated, shifted by   */
+/*               e - 5 (see wt_step); e = 0 has no leading one         */
 /* PARM2: bits 31-16 filter feedback gain (resonance; the driver       */
 /*   leaves it 0, not modelled), 15-0 the pitch oscillator's phase.     */
 /* PARM3: bits 31-24 filter input gain (same code as the gain; the      */
@@ -1327,10 +1344,7 @@ wt_bank_run(v2_chip_t *c, int bank)
         uint32_t p0   = R(bb + WT_PARM + lv * 0x10);
         uint32_t p3   = R(bb + WT_PARM + lv * 0x10 + 12);
         uint32_t rate = p0 & 0xffff;
-        /* 3-bit exponent, 12-bit mantissa (bit 0 is the state bit and
-           adds nothing); exponent 0 has no leading one. */
-        double   step = (rate >> 13) ? ldexp(1.0 + (double) (rate & 0x1ffe) / 8192.0, (int) (rate >> 13) - 5)
-                                     : (double) (rate & 0x1ffe) / 131072.0;
+        double   step = (double) wt_step(rate) / 65536.0;
         /* The base word alone sets the voice (see the header); gain
            state 0 is a hard mute, and the input gain scales the sample
            ahead of the filter. */
