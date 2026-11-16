@@ -3716,7 +3716,7 @@ r3d_stage_keep_live(struct rage128_tex_stage *ts, uint32_t total)
     return 1;
 }
 
-/* The levels the serial CPU lanes keep for a batch (rage128_t tex_stage
+/* The levels the CPU lanes keep for a batch (rage128_t tex_stage
    keep_lo). These helpers and r3d_keep_reached run on the submit thread.
 
    r3d_keep_stored: has a store from outside the 3D engine landed under
@@ -3749,9 +3749,11 @@ r3d_keep_stored(struct rage128_tex_stage *ts)
    about to be copied were being cleared. The mark is shared by every
    kept level with source bytes in the piece, and the copy about to be
    made refreshes only its own level, so each of those levels stops being
-   kept here: it still serves the draw being captured if that draw
-   staged it, and is staged again by the next draw that binds it. The
-   kept range is left as it is; it only has to cover the kept levels. */
+   kept here. In the serial lanes it still serves the draw being
+   captured if that draw staged it, and is staged again by the next draw
+   that binds it; in the parallel lane no later lookup finds it, and the
+   draws already queued keep its arena bytes. The kept range is left as
+   it is; it only has to cover the kept levels. */
 static void
 r3d_keep_end_piece(struct rage128_tex_stage *ts, uint32_t g)
 {
@@ -3797,16 +3799,46 @@ r3d_keep_begin(rage128_t *dev)
     r128_texcache_unlock(ts);
 }
 
+/* Start a parallel CPU draw's staging. Draws queued earlier in the batch
+   still read their levels from the arena, so nothing in it is released
+   here. When a store from outside the 3D engine has landed under the
+   source range of the batch's levels in local memory, the whole
+   per-batch table ends, the way the enqueue-path flush ends it: the
+   entry count returns to zero and gen moves on, so this draw and the
+   later ones copy their levels again at fresh offsets while the queued
+   draws keep the copies they were captured with. A table already ended
+   by such a flush leaves only the range to empty. */
+static void
+r3d_par_begin(rage128_t *dev)
+{
+    struct rage128_tex_stage *ts = &dev->tex_stage;
+
+    if (ts->keep_hi == ts->keep_lo)
+        return;
+    if (ts->pde_count && !r3d_keep_stored(ts))
+        return;
+    r128_texcache_lock(ts);
+    if (ts->pde_count) {
+        ts->pde_count = 0;
+        ts->gen++;
+    }
+    ts->keep_lo = 0;
+    ts->keep_hi = 0;
+    r128_texcache_unlock(ts);
+}
+
 /* Stage the mip level at card address vm, len bytes, and return its byte
    offset in the arena, or R128_TEX_STAGE_NONE when there is no room (see
    r3d_stage_textures for what the caller then does). A failed read still
    stages, with the bus master-abort value. r3d_stage_reserve has already
    made room, so this never grows the arena. cacheable selects the GPU
    backend's table of levels cached across draws; keep marks a per-batch
-   entry the serial CPU lanes reuse on later draws. Submit thread only. */
+   entry whose source the store marks watch (a level wholly in local
+   memory, in the CPU lanes); par is the parallel CPU lane, where a
+   per-batch entry serves the whole batch. Submit thread only. */
 static uint32_t
 r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
-                uint32_t tbpp, uint32_t tiled_pb, int cacheable, int keep)
+                uint32_t tbpp, uint32_t tiled_pb, int cacheable, int keep, int par)
 {
     struct rage128_tex_stage *ts = &dev->tex_stage;
     uint32_t                  off;
@@ -3814,13 +3846,18 @@ r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
     uint32_t                  slo  = 0;
     uint32_t                  shi  = 0;
     int                       live = 0;
+    int                       prev = -1;
 
     /* key is the raw offset register value. Its tile-mode bits [31:30]
        tell a detiled staging from a linear one at the same address, so
        the two never share an entry; tiled_pb completes the key, because
        two shapes of the same byte length detile to different layouts.
        Per-batch entries are checked against gen and last one batch,
-       or are kept and last until r3d_keep_begin drops them;
+       or are kept and last until r3d_keep_begin drops them. In the
+       parallel lane a watched entry also has to be still marked keep,
+       which a store mark found set takes away (r3d_keep_end_piece), and
+       an entry that is not watched is only a candidate: its level is
+       read again below and compared with it;
        cached entries are checked against the cache generation and last
        until a store lands in their own source bytes or the arena is
        reset. A key is always cacheable or always not (the address decides
@@ -3840,13 +3877,21 @@ r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
             return off;
         }
     } else
-        for (uint32_t i = 0; i < ts->pde_count; i++)
-            if ((ts->pde[i].gen == ts->gen || (keep && ts->pde[i].keep))
-                && r3d_tex_ent_is(&ts->pde[i], key, len, tbpp, tiled_pb)) {
-                off = ts->pde[i].arena_off;
-                r128_texcache_unlock(ts);
-                return off;
+        for (uint32_t i = 0; i < ts->pde_count; i++) {
+            const struct rage128_tex_ent *e = &ts->pde[i];
+
+            if (!(par ? e->gen == ts->gen && (!keep || e->keep)
+                      : e->gen == ts->gen || (keep && e->keep))
+                || !r3d_tex_ent_is(e, key, len, tbpp, tiled_pb))
+                continue;
+            if (par && !keep) {
+                prev = (int) i;
+                break;
             }
+            off = e->arena_off;
+            r128_texcache_unlock(ts);
+            return off;
+        }
 
     /* Place levels on 16-byte boundaries: the GPU kernel reads the arena
        as 16-bit and 32-bit word arrays and needs aligned level bases
@@ -3926,9 +3971,30 @@ r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
            ones) rather than reading local memory: a failed bus
            transaction does not turn into a frame buffer access. */
         memset(ts->arena + off, 0xff, len);
+    if (prev >= 0) {
+        /* Parallel lane, a level the store marks cannot watch (any byte
+           in AGP memory, or read through the end of installed memory):
+           the device sees neither a store into AGP memory nor a changed
+           translation, so the level was read again for this draw. Equal
+           to the copy an earlier draw of the batch staged: that copy
+           serves this draw too and the bytes just read are given back,
+           so a batch that binds one unchanged level many times holds one
+           copy of it. Different: the new copy stays, the entry points at
+           it for the draws that follow, and the earlier draws keep the
+           old one. */
+        uint32_t old = ts->pde[prev].arena_off;
+
+        if (!memcmp(ts->arena + old, ts->arena + off, len))
+            return old;
+        r128_texcache_lock(ts);
+        ts->pde[prev].arena_off = off;
+        r128_texcache_unlock(ts);
+    }
     ts->used = off + len;
     if (ts->used > ts->peak_used)
         ts->peak_used = ts->used;
+    if (prev >= 0)
+        return off;
 
     r128_texcache_lock(ts);
     if (cacheable) {
@@ -4070,7 +4136,7 @@ r3d_stage_textures(rage128_t *dev, rage128_raster_state_t *rs)
 {
     uint32_t        total = 0;
     r3d_stage_lvl_t l;
-    int             keeps = !dev->gpu && rage128_raster_nthreads(dev) <= 1;
+    int             par   = !dev->gpu && rage128_raster_nthreads(dev) > 1;
 
     for (int st = 0; st < 2; st++) {
         uint32_t *stage = st ? rs->sec_stage_off : rs->prim_stage_off;
@@ -4106,18 +4172,21 @@ r3d_stage_textures(rage128_t *dev, rage128_raster_state_t *rs)
                levels in local memory may stay cached across draws:
                every write to local card memory goes through a device
                path that can invalidate the cache, and writes to AGP
-               memory do not. The serial CPU lanes keep such a level for
-               the batch when its source also lies inside the installed
-               memory, so that no byte of it is read through the
-               vram_mask wrap. A level with any byte in AGP memory is
-               staged for every draw in every lane. */
+               memory do not. The CPU lanes keep such a level for the
+               batch, watched by the store marks, when its source also
+               lies inside the installed memory, so that no byte of it
+               is read through the vram_mask wrap. A level with any byte
+               in AGP memory is read from the bus for every draw in
+               every lane; the parallel lane then keeps one copy of it
+               for as long as the bytes read stay the same. */
             stage[s] = r3d_stage_level(dev, l.raw, l.vm,
                                        l.tcov ? l.pb * l.llh : l.llen, tbpp,
                                        l.tcov ? l.pb : 0u,
                                        !l.is_agp && dev->gpu != NULL,
-                                       keeps && !l.is_agp && l.tcov
+                                       !dev->gpu && !l.is_agp && l.tcov
                                            && (uint64_t) l.vm + l.llen
-                                                  <= (uint64_t) dev->vram_mask + 1u);
+                                                  <= (uint64_t) dev->vram_mask + 1u,
+                                       par);
             if (stage[s] == R128_TEX_STAGE_NONE && l.is_agp)
                 rs->stage_dead = 1; /* no room: an AGP level must never be
                                        read from local VRAM, so the draw is
@@ -4848,7 +4917,8 @@ rage128_raster_state_capture(rage128_t *dev, rage128_raster_state_t *rs)
            rage128_raster_flush (a present, a 2D operation or a drain). */
         rage128_z_stage_writeback(dev);
         rage128_c_stage_writeback(dev);
-    }
+    } else if (!dev->gpu)
+        r3d_par_begin(dev); /* a store ends the batch's staged levels */
 
     dev->r3d_draw_seq++;
     rs->t3d        = dev->t3d;

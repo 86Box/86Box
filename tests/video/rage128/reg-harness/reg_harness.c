@@ -31918,6 +31918,332 @@ run_tex_keep(void)
     vectors_tex_keep(dev);
     close_dev(dev);
 }
+
+/* ------------------------------------------------------------------ */
+/* Unit tex-batch: a draw issued after new texels reach its texture's  */
+/* source samples them, in every lane, with no drain or flush between  */
+/* the draws. Three draws are captured and submitted directly; between */
+/* the first two the test changes the source the way a guest can: a    */
+/* store through the linear aperture or MM_DATA into a level in local  */
+/* memory, a guest RAM store behind a level in AGP memory, rewritten   */
+/* GART entries, a store through the card's AGP image, or AGP_BASE     */
+/* cleared. The parallel CPU lane keeps a staged level for the batch,  */
+/* so there the rows also require the draw queued before the store to  */
+/* keep the copy it was captured with, and a third draw with no store  */
+/* before it to reuse the second draw's copy without another one.      */
+/* The executor is held off while a leg draws (tk_hold).               */
+/* ------------------------------------------------------------------ */
+#define TB_OLD      0xff102030u
+#define TB_NEW      0xffa0b0c0u
+#define TB_AGP      0x02000000u /* card address of the AGP level       */
+#define TB_PHYS_OLD 0x00600000u /* PCI GART: pages of the old image    */
+#define TB_PHYS_NEW 0x00680000u /* PCI GART: pages of the new image    */
+#define TB_APER     0x00400000u /* chipset aperture base               */
+#define TB_TEXEL    ((16u * 64u + 16u) * 4u) /* s = t = 0.25 of 64x64   */
+
+enum { TB_LFB, TB_MMDATA, TB_AGP_RAM, TB_GART_PTE, TB_AGP_IMAGE, TB_AGP_BASE };
+
+static rage128_raster_state_t tb_rs;
+
+static uint32_t
+tb_draw(rage128_t *dev, float y0, float y1)
+{
+    r3d_vtx_t v[3];
+
+    memset(v, 0, sizeof(v));
+    for (int k = 0; k < 3; k++) {
+        v[k].z       = 0.25f;
+        v[k].rhw     = 1.0f;
+        v[k].diffuse = 0xffffffffu;
+        v[k].s       = 0.25f;
+        v[k].t       = 0.25f;
+    }
+    v[0].x = 0.0f;  v[0].y = y0;
+    v[1].x = 64.0f; v[1].y = y0;
+    v[2].x = 0.0f;  v[2].y = y1;
+    rage128_raster_state_capture(dev, &tb_rs);
+    rage128_raster_submit_tri(dev, &tb_rs, &v[0], &v[1], &v[2]);
+    return tb_rs.prim_stage_off[0];
+}
+
+static void
+tb_leg(rage128_t *dev, const char *name, uint32_t raw, int kind, uint32_t tex_cntl)
+{
+    struct rage128_tex_stage *ts  = &dev->tex_stage;
+    uint32_t                 *tbl = (uint32_t *) (ram + GART_TABLE_PHYS);
+    mem_mapping_t            *am  = &dev->agp_mapping;
+    uint32_t                  vm  = raw & 0x03ffffffu;
+    uint32_t                  off1, off2, off3, used2, used3, p1, p2, p3, reads3;
+    uint32_t                  want = kind == TB_AGP_BASE ? 0xffffffffu : TB_NEW;
+    int                       par  = !dev->gpu && rage128_raster_nthreads(dev) > 1;
+    int                       pend2;
+    char                      nm[200];
+
+    flush_sync(dev);
+
+    /* Old image everywhere the level can be read from, new image in the
+       pages a remap leg switches to. */
+    for (uint32_t i = 0; i < 16384; i += 4) {
+        *(uint32_t *) &dev->svga.vram[HZ_A + i] = HZ_MARK;
+        rage128_lfb_writel(dev->lfb_base + TL_TEX + i, TB_OLD, dev);
+        *(uint32_t *) (ram + TB_PHYS_OLD + i) = TB_OLD;
+        *(uint32_t *) (ram + TB_PHYS_NEW + i) = TB_NEW;
+        *(uint32_t *) (ram + TB_APER + i)     = TB_OLD;
+    }
+    memset(ram + GART_TABLE_PHYS, 0, 0x2000);
+    for (uint32_t p = 0; p < 4; p++)
+        tbl[p] = TB_PHYS_OLD + p * 0x1000u;
+
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    if (kind == TB_AGP_IMAGE || kind == TB_AGP_BASE) {
+        /* chipset aperture: force bits clear, on-chip table off */
+        wr(dev, RAGE128_BM_CHUNK_0_VAL, 0);
+        wr(dev, RAGE128_PCI_GART_PAGE, 1);
+        wr(dev, RAGE128_AGP_BASE, TB_APER);
+    } else {
+        gart_table_on(dev, GART_TABLE_PHYS);
+        wr(dev, RAGE128_AGP_BASE, 0);
+    }
+
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0x00000000);
+    wr(dev, 0x16f0, 0x003f003f);
+    wr(dev, 0x16c0, 0x00000003);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0x00000000);
+    wr(dev, 0x16c4, 0x00000006);
+    wr(dev, RAGE128_PM4_VC_FPU_SETUP,
+       RAGE128_FPU_BACKFACE_SOLID | RAGE128_FPU_FRONTFACE_SOLID | RAGE128_FPU_COLOR_GOURAUD);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (HZ_A >> 5));
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_SETUP_CNTL, 0x00000020);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+    wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00000606);
+    wr(dev, RAGE128_PRIM_TEX_CNTL_C, 6u << 16);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), raw);
+    wr(dev, RAGE128_PRIM_TEX_COMBINE_CNTL_C, 0x00184041u);
+    wr(dev, RAGE128_TEX_CNTL_C, tex_cntl);
+    drain_sync(dev);
+    tk_hold(dev);
+    flush_sync(dev);
+
+    /* From here to the third draw: no register write in the GUI block,
+       no drain, no flush. */
+    off1 = tb_draw(dev, 0.0f, 4.0f);
+
+    switch (kind) {
+        case TB_LFB: /* linear aperture, dword stores, the BAR0 handler */
+            for (uint32_t i = 0; i < 16384; i += 4)
+                rage128_lfb_writel(dev->lfb_base + vm + i, TB_NEW, dev);
+            break;
+        case TB_MMDATA: /* MM_INDEX with MM_APER, then MM_DATA */
+            for (uint32_t i = 0; i < 16384; i += 4) {
+                rage128_reg_write(dev, RAGE128_MM_INDEX, RAGE128_MM_INDEX_MM_APER | (vm + i),
+                                  0xffffffffu);
+                rage128_reg_write(dev, RAGE128_MM_DATA, TB_NEW, 0xffffffffu);
+            }
+            break;
+        case TB_AGP_RAM: /* plain guest store into the pages behind the level */
+            for (uint32_t i = 0; i < 16384; i += 4)
+                *(uint32_t *) (ram + TB_PHYS_OLD + i) = TB_NEW;
+            break;
+        case TB_GART_PTE: /* the on-chip table's entries now name other pages */
+            for (uint32_t p = 0; p < 4; p++)
+                tbl[p] = TB_PHYS_NEW + p * 0x1000u;
+            break;
+        case TB_AGP_IMAGE: /* store through the card's AGP image (BAR0 upper half) */
+            for (uint32_t i = 0; i < 16384; i += 4)
+                am->write_l(dev->lfb_base + vm + i, TB_NEW, dev);
+            break;
+        case TB_AGP_BASE: /* the aperture is unarmed: the level's bus reads now fail */
+            rage128_reg_write(dev, RAGE128_AGP_BASE, 0, 0xffffffffu);
+            break;
+    }
+
+    off2  = tb_draw(dev, 8.0f, 14.0f);
+    pend2 = atomic_load(&dev->cce_batch_pending);
+    used2 = ts->used;
+    tk_bm_armed          = 0;
+    tk_bm_reads          = 0;
+    harness_bm_read_hook = tk_bm_hook; /* counts the third capture's bus reads
+                                          (the chipset aperture's reach it) */
+    off3                 = tb_draw(dev, 16.0f, 22.0f);
+    harness_bm_read_hook = NULL;
+    reads3               = tk_bm_reads;
+    used3                = ts->used;
+    tk_end();
+
+    flush_sync(dev);
+    p1 = *(uint32_t *) &dev->svga.vram[HZ_A + (2 * 64 + 2) * 4];
+    p2 = *(uint32_t *) &dev->svga.vram[HZ_A + (9 * 64 + 2) * 4];
+    p3 = *(uint32_t *) &dev->svga.vram[HZ_A + (17 * 64 + 2) * 4];
+    printf("tex batch: t%d %s: par=%d pending_at_draw2=%d off=%08x/%08x/%08x used=%u/%u "
+           "reads3=%u pix=%08x/%08x/%08x\n",
+           rage128_raster_nthreads(dev), name, par, pend2, off1, off2, off3, used2, used3,
+           reads3, p1, p2, p3);
+
+    snprintf(nm, sizeof(nm), "tex batch: t%d %s: draw 2 samples the texels stored before it",
+             rage128_raster_nthreads(dev), name);
+    check32(nm, p2, want);
+    if (par && off1 != R128_TEX_STAGE_NONE) {
+        snprintf(nm, sizeof(nm),
+                 "tex batch: t%d %s: the batch is open and the queued draw keeps its copy",
+                 rage128_raster_nthreads(dev), name);
+        check_true(nm, pend2 == 1 && p1 == TB_OLD && off2 != off1);
+        snprintf(nm, sizeof(nm),
+                 "tex batch: t%d %s: a third draw with no store reuses the second draw's copy",
+                 rage128_raster_nthreads(dev), name);
+        check_true(nm, off3 == off2 && used3 == used2 && p3 == want
+                           && (reads3 != 0 || kind != TB_AGP_IMAGE));
+    }
+
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), 0);
+    wr(dev, RAGE128_PRIM_TEX_COMBINE_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_PCI_GART_PAGE, 1);
+    wr(dev, RAGE128_AGP_BASE, 0);
+    wr(dev, RAGE128_BM_CHUNK_0_VAL, 0);
+    flush_sync(dev);
+}
+
+/* Parallel CPU lane only. Two levels whose sources share one 64 KB
+   piece of local memory, as row R9 of unit tex-keep: A is staged by the
+   first draw; a store lands in A while the second capture is under way,
+   after it has looked for stores and before it copies B (the bus read
+   of that draw's other level, in AGP memory, makes the store); the
+   third draw binds A again and must sample the store. The first leg
+   runs the same draws without the store and shows A's copy is otherwise
+   reused after B was staged; a texel changed in the staged copy is the
+   witness. All three draws are still queued when the pixels are read
+   back after the flush, so the target shows the last one. */
+static void
+tb_piece(rage128_t *dev)
+{
+    static rage128_raster_state_t rs, rs2;
+    struct rage128_tex_stage     *ts    = &dev->tex_stage;
+    uint32_t                      lin59 = (9u * 64u + 5u) * 4u;
+
+    if (dev->gpu || rage128_raster_nthreads(dev) <= 1) {
+        printf("SKIP tex batch: shared-piece rows (needs the parallel CPU lane)\n");
+        return;
+    }
+    tk_seed(dev, TK_B, 0x33);
+    tk_bm_dev = dev;
+    for (uint32_t i = 0; i < 16384; i += 4)
+        *(uint32_t *) (ram + TB_APER + i) = TB_OLD;
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    wr(dev, RAGE128_BM_CHUNK_0_VAL, 0);
+    wr(dev, RAGE128_PCI_GART_PAGE, 1);
+    wr(dev, RAGE128_AGP_BASE, TB_APER);
+    for (int leg = 0; leg < 2; leg++) {
+        uint32_t off1, off3, pend;
+
+        tk_begin(dev);
+        tk_draw(dev, &rs, 0xffffffff, 0);
+        off1 = rs.prim_stage_off[0];
+        if (off1 != R128_TEX_STAGE_NONE)
+            *(uint32_t *) &ts->arena[off1 + lin59] = 0xff5a5a5au;
+        tk_wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00000616);
+        tk_wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), TB_AGP);
+        tk_wr(dev, RAGE128_PRIM_TEX_OFFSET_C(1), TK_B | (2u << 30));
+        tk_bm_armed          = leg;
+        tk_bm_reads          = 0;
+        harness_bm_read_hook = tk_bm_hook;
+        tk_draw(dev, &rs2, 0xffffffff, 0);
+        harness_bm_read_hook = NULL;
+        check_true(leg ? "tex batch: shared piece: control: the AGP level's bus read made the store"
+                       : "tex batch: shared piece: control: the AGP level is read from the bus",
+                   tk_bm_reads != 0 && !tk_bm_armed
+                       && *(uint32_t *) &dev->svga.vram[TK_TEX + tl_off(5 * 4, 9, 256)]
+                              == (leg ? 0xff0f1e2du : TK_TEXEL(5, 9)));
+        check_true("tex batch: shared piece: control: B is staged in A's 64 KB piece",
+                   rs2.prim_stage_off[1] != R128_TEX_STAGE_NONE
+                       && rs2.prim_stage_off[1] != off1 && (TK_B >> 16) == (TK_TEX >> 16));
+        tk_wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00000606);
+        tk_wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), TK_TEX | (2u << 30));
+        tk_wr(dev, RAGE128_PRIM_TEX_OFFSET_C(1), 0);
+        tk_draw(dev, &rs, 0xffffffff, 0);
+        off3 = rs.prim_stage_off[0];
+        pend = (uint32_t) atomic_load(&dev->cce_batch_pending);
+        tk_end();
+        flush_sync(dev);
+        printf("tex batch: shared piece leg %d: pending=%u off1=%08x offB=%08x off3=%08x "
+               "pix=%08x\n",
+               leg, pend, off1, rs2.prim_stage_off[1], off3, TK_PIX(5, 9));
+        if (leg) {
+            check32("tex batch: shared piece: a store into A during the capture that stages B "
+                    "shows on the next draw",
+                    TK_PIX(5, 9), 0xff0f1e2du);
+            check_true("tex batch: shared piece: that draw has its own copy and the batch is open",
+                       off3 != off1 && off3 != R128_TEX_STAGE_NONE && pend == 1);
+        } else {
+            check32("tex batch: shared piece: control: with no store A's copy serves the draw "
+                    "after B",
+                    TK_PIX(5, 9), 0xff5a5a5au);
+            check_true("tex batch: shared piece: control: same copy, batch open",
+                       off3 == off1 && off1 != R128_TEX_STAGE_NONE && pend == 1);
+        }
+    }
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), 0);
+    wr(dev, RAGE128_PRIM_TEX_COMBINE_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_AGP_BASE, 0);
+    flush_sync(dev);
+}
+
+static void
+run_tex_batch_dev(int threads)
+{
+    rage128_t *dev;
+
+    harness_cfg_render_threads = threads;
+    dev                        = rage128_init(&ati_rage128_pro_device);
+    harness_ram_alloc();
+    atomic_store(&rage128_harness_idle_hook, tk_idle_hook);
+    printf("tex batch: device: render_threads cfg=%d raster_nthreads=%d gpu=%s\n", threads,
+           rage128_raster_nthreads(dev), dev->gpu ? "attached" : "none");
+    tb_leg(dev, "local tiled, aperture store", TL_TEX | (2u << 30), TB_LFB, 0x00000010u);
+    tb_leg(dev, "local tiled, aperture store, TEX_CACHE_FLUSH set", TL_TEX | (2u << 30), TB_LFB,
+           0x00800010u);
+    tb_leg(dev, "local tiled, MM_DATA store", TL_TEX | (2u << 30), TB_MMDATA, 0x00000010u);
+    tb_leg(dev, "local linear (in place), aperture store", TL_TEX, TB_LFB, 0x00000010u);
+    tb_leg(dev, "AGP linear, guest RAM store (PCI GART)", TB_AGP, TB_AGP_RAM, 0x00000010u);
+    tb_leg(dev, "AGP linear, guest RAM store, TEX_CACHE_FLUSH set", TB_AGP, TB_AGP_RAM,
+           0x00800010u);
+    tb_leg(dev, "AGP tiled, guest RAM store (PCI GART)", TB_AGP | (2u << 30), TB_AGP_RAM,
+           0x00000010u);
+    tb_leg(dev, "AGP linear, GART entry rewrite", TB_AGP, TB_GART_PTE, 0x00000010u);
+    tb_leg(dev, "AGP linear, AGP image store (chipset aperture)", TB_AGP, TB_AGP_IMAGE,
+           0x00000010u);
+    tb_leg(dev, "AGP linear, AGP_BASE unarmed (new = all ones)", TB_AGP, TB_AGP_BASE, 0x00000010u);
+    if (threads > 1)
+        tb_piece(dev);
+    atomic_store(&rage128_harness_idle_hook, NULL);
+    close_dev(dev);
+    harness_cfg_render_threads = 1;
+}
+
+static void
+run_tex_batch(void)
+{
+    uint64_t r0 = tk_hold_retries;
+
+    run_tex_batch_dev(2);
+    run_tex_batch_dev(1);
+    printf("tex batch: hold data: legs waited %llu times for an executor pass to end\n",
+           (unsigned long long) (tk_hold_retries - r0));
+}
+#undef TB_OLD
+#undef TB_NEW
+#undef TB_AGP
+#undef TB_PHYS_OLD
+#undef TB_PHYS_NEW
+#undef TB_APER
+#undef TB_TEXEL
 #undef TK_TEX
 #undef TK_WRAP
 #undef TK_NWRAP
@@ -31932,7 +32258,8 @@ static const char *const shard_units[] = {
     "gpu2d-verify",
     "x64legs", "synctel", "yuv-border", "texture-alpha", "dither-init",
     "sec-persp", "sec-only", "dst-1555-4444", "zoff-tfog",
-    "stipple-fast", "lanegap-expectedfail", "gpu-carry", "gpu-r2d", "tex-keep"
+    "stipple-fast", "lanegap-expectedfail", "gpu-carry", "gpu-r2d", "tex-keep",
+    "tex-batch"
 };
 static char *selected_units;
 
@@ -32665,6 +32992,8 @@ main(int argc, char **argv)
         run_stipple_fast(argc > 1 && !strcmp(argv[1], "-v"));
     if (unit_selected("tex-keep"))
         run_tex_keep();
+    if (unit_selected("tex-batch"))
+        run_tex_batch();
     if (getenv("R128_LANEGAP"))
         if (unit_selected("lanegap-expectedfail"))
             run_lanegap_expectedfail();

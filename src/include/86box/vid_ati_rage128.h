@@ -166,7 +166,7 @@ rage128_now_ns(void)
    across draws, and per-batch levels. */
 #define R128_TEX_CACHE_ENTS 1024u
 #define R128_TEX_BATCH_ENTS 256u
-/* Store marks for the levels the serial CPU lanes keep for a batch
+/* Store marks for the levels the CPU lanes keep for a batch
    (rage128_t tex_stage keep_pg): one per 64 KB of the low 32 MB of card
    memory, which is all of local memory. */
 #define R128_TEX_KEEP_SHIFT 16
@@ -1272,7 +1272,18 @@ typedef struct rage128_t {
            bytes before their mark and the mark before keep_any, so a
            capture that finds keep_any clear has either copied the bytes
            already or will find the flag set next time; no writer waits
-           and none reads the kept range. */
+           and none reads the kept range.
+           The parallel CPU lane uses the same marks for its per-batch
+           entries of levels in local memory, which serve a whole batch
+           there. Its capture is likewise the only reader. Draws queued
+           in the batch still read the arena, so a store ends the entry
+           table (pde_count to zero, gen moved on) and the arena keeps
+           allocating upward until the next recycling flush. keep_redo
+           belongs to the serial lanes: in the parallel lane the
+           enqueue-path flush that orders a draw behind a render into
+           its texture ends the table. Its levels the marks cannot
+           watch (any byte in AGP memory) are read again and compared
+           when a later draw binds them. */
         uint32_t     keep_lo, keep_hi;
         int          keep_redo;
         atomic_uchar keep_any;
@@ -1310,8 +1321,9 @@ typedef struct rage128_t {
                                    of this cached entry                   */
             uint32_t used_lap;  /* lap (below) in which a draw last used
                                    this cached entry                      */
-            uint32_t keep;      /* 1 = a per-batch entry the serial CPU
-                                   lanes keep across draws (keep_lo)      */
+            uint32_t keep;      /* 1 = a per-batch entry the CPU lanes
+                                   keep across draws, watched by the
+                                   store marks (keep_lo)                  */
         } ent[R128_TEX_CACHE_ENTS];
         struct rage128_tex_ent pde[R128_TEX_BATCH_ENTS];
         uint16_t               idx[2 * R128_TEX_CACHE_ENTS];
@@ -3281,12 +3293,12 @@ rage128_gpu_cpu_access(rage128_t *dev, uint32_t addr, uint32_t len, int writes)
         rage128_gpu_cpu_barrier_hit(dev, addr, len, writes);
 }
 /* Local bytes [lo, lo+len) of svga.vram have been stored to by something
-   other than the 3D engine: tell the serial CPU lanes, which may hold a
+   other than the 3D engine: tell the CPU lanes, which may hold a
    texture level copied from those bytes (rage128_t tex_stage keep_lo).
    Called after the store, from any thread. The marks are 64 KB pieces
    walked by length through vram_mask, as r128_vram_hnew walks its pages.
    Setting them costs a few byte stores and is done in every lane; only
-   the serial CPU lanes read them. */
+   the CPU lanes read them. */
 static inline void
 r128_tex_keep_note(rage128_t *dev, uint32_t lo, uint32_t len)
 {
