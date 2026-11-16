@@ -4,6 +4,7 @@ if(BUILD_TESTING)
     find_package(ZLIB REQUIRED)
     add_executable(cdrom_mcn_tests
         cdrom_mcn_test.cpp
+        cdrom_image_toc_test.cpp
         ../../src/cdrom/cdrom.c
         ../../src/cdrom/cdrom_image.c
         ../../src/utils/crc.c
