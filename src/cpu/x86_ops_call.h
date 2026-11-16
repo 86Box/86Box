@@ -4,6 +4,7 @@
 #    define CALL_FAR_RESTORE_CS()                                                                  \
         do {                                                                                        \
             cpu_state.seg_cs = old_cs_seg;                                                          \
+            mem_held_release();                                                                     \
             use32            = old_use32;                                                           \
             cpu_cur_status   = (cpu_cur_status & ~CPU_STATUS_USE32) | (old_status & CPU_STATUS_USE32); \
             call_far_a_pending = 0;                                                                 \

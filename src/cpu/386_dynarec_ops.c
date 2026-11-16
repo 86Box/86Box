@@ -331,6 +331,7 @@ dynarec_mov_cr0(uint32_t rm)
         flushmmucache_write();
     if ((val & 0x01) && !(cr0 & 0x01))
         cpu_state.seg_cs.access &= 0x9f;
+    mem_held_release();
     cr0 = val;
     if (cpu_16bitbus)
         cr0 |= 0x10;

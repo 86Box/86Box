@@ -261,10 +261,10 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
         host_x86_CALL(block, (void *) readmembl);
         host_x86_MOVZX_REG_32_8(block, REG_ECX, REG_EAX);
     } else if (size == 2 && !is_float) {
-        host_x86_CALL(block, (void *) readmemwl);
+        host_x86_CALL(block, ea_rule ? (void *) readmemwl_ea : (void *) readmemwl);
         host_x86_MOVZX_REG_32_16(block, REG_ECX, REG_EAX);
     } else if (size == 4 && !is_float) {
-        host_x86_CALL(block, (void *) readmemll);
+        host_x86_CALL(block, ea_rule ? (void *) readmemll_ea : (void *) readmemll);
         host_x86_MOV32_REG_REG(block, REG_ECX, REG_EAX);
     } else if (size == 4 && is_float) {
         host_x86_CALL(block, (void *) readmemll);

@@ -285,6 +285,62 @@ extern page_t *page_lookup[1048576];
 extern uintptr_t readlookup2[2097152];
 extern uintptr_t writelookup2[1048576];
 
+/* The lookup entries held out of the tables while the CPU is in ring 3
+   (mem.c): how many, what the tables would hold for an access they are held
+   for, and their move into the tables. */
+extern int       mem_held_num;
+extern uintptr_t mem_held_read(uint32_t addr);
+extern page_t   *mem_held_write_page(uint32_t page);
+extern void      mem_held_promote(void);
+
+/* The access functions for a segment base of FFFFFFFFh (386_common.h). */
+extern uint8_t  readmembl_nh(uint32_t addr);
+extern uint16_t readmemwl_nh(uint32_t addr);
+extern uint32_t readmemll_nh(uint32_t addr);
+extern uint64_t readmemql_nh(uint32_t addr);
+extern uint8_t  readmembl_no_mmut_nh(uint32_t addr, uint32_t a64);
+extern uint16_t readmemwl_no_mmut_nh(uint32_t addr, uint32_t *a64);
+extern uint32_t readmemll_no_mmut_nh(uint32_t addr, uint32_t *a64);
+extern void     writemembl_nh(uint32_t addr, uint8_t val);
+extern void     writememwl_nh(uint32_t addr, uint16_t val);
+extern void     writememll_nh(uint32_t addr, uint32_t val);
+extern void     writememql_nh(uint32_t addr, uint64_t val);
+extern void     writemembl_no_mmut_nh(uint32_t addr, uint32_t a64, uint8_t val);
+extern void     writememwl_no_mmut_nh(uint32_t addr, uint32_t *a64, uint16_t val);
+extern void     writememll_no_mmut_nh(uint32_t addr, uint32_t *a64, uint32_t val);
+extern void     do_mmutranslate_nh(uint32_t addr, uint32_t *a64, int num, int write);
+extern void     do_mmutranslate_set2(uint32_t addr, uint32_t *a64, int num, int write);
+
+/* For a caller that would have used an operand pointer (fetch_ea's eal_r
+   and eal_w, the recompiler's routines with that rule) had the lookup
+   entry been there; _eam: past page offset FFCh the memory macro's rule. */
+extern uint8_t  readmembl_eam(uint32_t addr);
+extern uint16_t readmemwl_eam(uint32_t addr);
+extern uint32_t readmemll_eam(uint32_t addr);
+extern uint16_t readmemwl_ea(uint32_t addr);
+extern uint32_t readmemll_ea(uint32_t addr);
+extern void     writemembl_ea(uint32_t addr, uint8_t val);
+extern void     writememwl_ea(uint32_t addr, uint16_t val);
+extern void     writememll_ea(uint32_t addr, uint32_t val);
+
+/* page_lookup, or what an entry held would have put there. */
+static __inline page_t *
+mem_page_lookup(uint32_t page)
+{
+    page_t *p = page_lookup[page];
+
+    if (!p && mem_held_num)
+        p = mem_held_write_page(page);
+    return p;
+}
+
+/* After every change of CPL that can take the CPU out of ring 3. */
+#define mem_held_release()                   \
+    do {                                     \
+        if (mem_held_num && (CPL != 3))      \
+            mem_held_promote();              \
+    } while (0)
+
 extern uint32_t get_phys_virt;
 extern uint32_t get_phys_phys;
 
@@ -515,7 +571,8 @@ extern mem_mapping_t *write_mapping[MEM_MAPPINGS_NO];
 static __inline uint32_t
 get_phys(uint32_t addr)
 {
-    uint64_t pa64;
+    uint64_t  pa64;
+    uintptr_t held;
 
     /*A page-unaligned get_phys_phys is codegen_flush()'s tag: no entry*/
     if (!((addr ^ get_phys_virt) & ~0xfff) && !(get_phys_phys & 0xfff))
@@ -530,6 +587,8 @@ get_phys(uint32_t addr)
 
     if (((int) (readlookup2[addr >> 12])) != -1)
         get_phys_phys = ((uintptr_t) readlookup2[addr >> 12] + (addr & ~0xfff)) - (uintptr_t) ram;
+    else if (mem_held_num && ((held = mem_held_read(addr)) != (uintptr_t) -1))
+        get_phys_phys = (held + (addr & ~0xfff)) - (uintptr_t) ram;
     else {
         pa64 = mmutranslatereal(addr, 0);
         if (pa64 > 0xffffffffULL)
@@ -547,14 +606,17 @@ get_phys(uint32_t addr)
 static __inline uint32_t
 get_phys_noabrt(uint32_t addr)
 {
-    uint64_t phys_addr;
-    uint32_t phys_addr32;
+    uint64_t  phys_addr;
+    uint32_t  phys_addr32;
+    uintptr_t held;
 
     if (!(cr0 >> 31))
         return addr & rammask;
 
     if (((int) (readlookup2[addr >> 12])) != -1)
         return ((uintptr_t) readlookup2[addr >> 12] + addr) - (uintptr_t) ram;
+    if (mem_held_num && ((held = mem_held_read(addr)) != (uintptr_t) -1))
+        return (held + addr) - (uintptr_t) ram;
 
     phys_addr   = mmutranslate_noabrt(addr, 0);
     phys_addr32 = (uint32_t) phys_addr;

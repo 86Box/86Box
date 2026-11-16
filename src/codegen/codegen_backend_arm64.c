@@ -240,9 +240,9 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
     if (size == 1)
         host_arm64_call(block, (void *) readmembl);
     else if (size == 2)
-        host_arm64_call(block, (void *) readmemwl);
+        host_arm64_call(block, ea_rule ? (void *) readmemwl_ea : (void *) readmemwl);
     else if (size == 4)
-        host_arm64_call(block, (void *) readmemll);
+        host_arm64_call(block, ea_rule ? (void *) readmemll_ea : (void *) readmemll);
     else if (size == 8)
         host_arm64_call(block, (void *) readmemql);
     else

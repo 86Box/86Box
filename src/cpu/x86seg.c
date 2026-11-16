@@ -206,6 +206,7 @@ x86_doabrt(int x86_abrt)
     cpu_state.pc             = cpu_state.oldpc;
     cpu_state.seg_cs.access  = (oldcpl << 5) | 0x80;
     cpu_state.seg_cs.ar_high = 0x10;
+    mem_held_release();
 
     task_eip_pending = 0;
     if (msw & 1) {
@@ -646,8 +647,14 @@ loadseg_pm_fast(uint16_t seg, x86seg *s)
         return loadseg(seg, s);
     addr += dt->base;
 
-    /* The readmeml() hit of read_descriptor(); both dwords are in one page */
+    /* The readmeml() hit of read_descriptor(), on the table or on an entry
+       held; both dwords are in one page */
     lookup = readlookup2[addr >> 12];
+    if ((lookup == (uintptr_t) LOOKUP_INV) && mem_held_num) {
+        cpl_override = 1;
+        lookup       = mem_held_read(addr);
+        cpl_override = 0;
+    }
     if ((lookup == (uintptr_t) LOOKUP_INV) || (addr & 7))
         return loadseg(seg, s);
     lo = *(uint32_t *) (lookup + addr);
@@ -737,6 +744,7 @@ loadcs(uint16_t seg)
             CS = (seg & 0xfffc) | CPL;
             do_seg_load(&cpu_state.seg_cs, segdat);
             use32 = (segdat[3] & 0x40) ? 0x300 : 0;
+            mem_held_release();
             if ((CPL == 3) && (oldcpl != 3))
                 flushmmucache_ring3();
             oldcpl = CPL;
@@ -761,6 +769,7 @@ loadcs(uint16_t seg)
         cpu_state.seg_cs.access     = (cpu_state.eflags & VM_FLAG) ? 0xe2 : 0x82;
         cpu_state.seg_cs.ar_high    = 0x10;
         cpu_state.seg_cs.checked    = 1;
+        mem_held_release();
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_ring3();
         oldcpl = CPL;
@@ -885,6 +894,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
             segdat[2] = (segdat[2] & ~(3 << 13)) | (CPL << 13);
 
             do_seg_load(&cpu_state.seg_cs, segdat);
+            mem_held_release();
             if ((CPL == 3) && (oldcpl != 3))
                 flushmmucache_ring3();
             oldcpl = CPL;
@@ -969,6 +979,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
                                 do_seg_load(&cpu_state.seg_cs, segdat);
                                 cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (jmp_cpl << 5);
                             }
+                            mem_held_release();
                             if ((CPL == 3) && (oldcpl != 3))
                                 flushmmucache_ring3();
                             oldcpl = CPL;
@@ -1010,6 +1021,7 @@ loadcsjmp(uint16_t seg, uint32_t old_pc)
         cpu_state.seg_cs.access     = (cpu_state.eflags & VM_FLAG) ? 0xe2 : 0x82;
         cpu_state.seg_cs.ar_high    = 0x10;
         cpu_state.seg_cs.checked    = 1;
+        mem_held_release();
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_ring3();
         oldcpl = CPL;
@@ -1288,6 +1300,7 @@ loadcscall(uint16_t seg, uint32_t old_pc, int is32)
                 seg = (seg & 0xfffc) | CPL;
             CS = seg;
             do_seg_load(&cpu_state.seg_cs, segdat);
+            mem_held_release();
             if ((CPL == 3) && (oldcpl != 3))
                 flushmmucache_ring3();
             oldcpl = CPL;
@@ -1432,6 +1445,7 @@ loadcscall(uint16_t seg, uint32_t old_pc, int is32)
 
                                 CS = (seg2 & ~3) | DPL;
                                 do_seg_load(&cpu_state.seg_cs, segdat);
+                                mem_held_release();
                                 if ((CPL == 3) && (oldcpl != 3))
                                     flushmmucache_ring3();
                                 oldcpl = CPL;
@@ -1552,6 +1566,7 @@ loadcscall(uint16_t seg, uint32_t old_pc, int is32)
                                 do_seg_load(&cpu_state.seg_cs, segdat);
                                 cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (call_cpl << 5);
                             }
+                            mem_held_release();
                             if ((CPL == 3) && (oldcpl != 3))
                                 flushmmucache_ring3();
                             oldcpl = CPL;
@@ -1594,6 +1609,7 @@ loadcscall(uint16_t seg, uint32_t old_pc, int is32)
         cpu_state.seg_cs.access     = (cpu_state.eflags & VM_FLAG) ? 0xe2 : 0x82;
         cpu_state.seg_cs.ar_high    = 0x10;
         cpu_state.seg_cs.checked    = 1;
+        mem_held_release();
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_ring3();
         oldcpl = CPL;
@@ -1766,6 +1782,7 @@ pmoderetf(int is32, uint16_t off)
         CS = seg;
         do_seg_load(&cpu_state.seg_cs, segdat);
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~(3 << 5)) | ((CS & 3) << 5);
+        mem_held_release();
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_ring3();
         oldcpl = CPL;
@@ -1898,6 +1915,7 @@ pmoderetf(int is32, uint16_t off)
         cpu_state.pc = newpc;
         CS           = seg;
         do_seg_load(&cpu_state.seg_cs, segdat);
+        mem_held_release();
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_ring3();
         oldcpl = CPL;
@@ -2194,6 +2212,7 @@ pmodeint(int num, int soft)
                         }
                         cpl_override            = 0;
                         cpu_state.seg_cs.access = 0x80;
+                        mem_held_release();
                         break;
                     } else if (DPL2 != CPL) {
                         x86gpf("pmodeint(): DPL != CPL", (seg & 0xfffc) + !soft);
@@ -2246,6 +2265,7 @@ pmodeint(int num, int soft)
             do_seg_load(&cpu_state.seg_cs, segdat2);
             CS                      = (seg & 0xfffc) | new_cpl;
             cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (new_cpl << 5);
+            mem_held_release();
             if ((CPL == 3) && (oldcpl != 3))
                 flushmmucache_ring3();
             oldcpl = CPL;
@@ -2460,6 +2480,7 @@ pmodeiret(int is32)
             cpu_state.seg_cs.access     = 0xe2;
             cpu_state.seg_cs.ar_high    = 0x10;
             cpu_state.seg_cs.checked    = 1;
+            mem_held_release();
             if ((CPL == 3) && (oldcpl != 3))
                 flushmmucache_ring3();
             oldcpl = CPL;
@@ -2557,6 +2578,7 @@ pmodeiret(int is32)
         CS = seg;
         do_seg_load(&cpu_state.seg_cs, segdat);
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | ((CS & 0x0003) << 5);
+        mem_held_release();
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_ring3();
         oldcpl = CPL;
@@ -2644,6 +2666,7 @@ pmodeiret(int is32)
         CS = seg;
         do_seg_load(&cpu_state.seg_cs, segdat);
         cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | ((CS & 3) << 5);
+        mem_held_release();
         if ((CPL == 3) && (oldcpl != 3))
             flushmmucache_ring3();
         oldcpl = CPL;
@@ -2866,6 +2889,7 @@ task_load_cs(uint16_t sel, const uint16_t *sd, uint32_t addr, int cpl)
     CS = sel;
     do_seg_load(&cpu_state.seg_cs, d);
     cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (cpl << 5);
+    mem_held_release();
     /* The D bit sets the operand size whatever the TSS's type */
     set_use32(d[3] & 0x0040);
 }
@@ -3207,6 +3231,7 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
     if ((cpl == 3) && (CPL != 3))
         flushmmucache_nopc();
     cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (cpl << 5);
+    mem_held_release();
     oldcpl                  = cpl;
     oldcs                   = img.sel_cs;
     CS                      = img.sel_cs;
@@ -3301,6 +3326,8 @@ cyrix_load_seg_descriptor(uint32_t addr, x86seg *seg)
         do_seg_load(seg, segdat);
         seg->seg     = selector;
         seg->checked = 0;
+        if (seg == &cpu_state.seg_cs)
+            mem_held_release();
 #ifdef USE_DYNAREC
         if (seg == &cpu_state.seg_ds)
             codegen_flat_ds = codegen_wide_ds = 0;

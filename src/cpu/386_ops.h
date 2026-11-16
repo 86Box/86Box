@@ -212,10 +212,24 @@ extern void x386_dynarec_log(const char *fmt, ...);
 #    endif
 #endif
 
+/* What readlookup2 would hold for one of checkio()'s reads when its page's
+   entry is held (mem.c), for an access the tables serve without a call. */
+static __inline uintptr_t
+checkio_held(uint32_t addr, uint32_t size)
+{
+#ifndef OPS_286_386
+    /* With a base of FFFFFFFFh the macros below walk whatever is cached. */
+    if (UNLIKELY(mem_held_num) && (tr.base != 0xffffffff) && !(addr & (size - 1)))
+        return mem_held_read(addr);
+#endif
+    return (uintptr_t) LOOKUP_INV;
+}
+
 static int
 checkio(uint32_t port, int mask)
 {
-    uint32_t t;
+    uint32_t  t;
+    uintptr_t held;
 
     if (!(tr.access & 0x08)) {
         if ((CPL) > (IOPL))
@@ -228,8 +242,13 @@ checkio(uint32_t port, int mask)
 
     addr64a_2[0] = addr64a_2[1] = 0x00000000;
 
-    do_mmut_rw(tr.base, 0x66, addr64a_2);
-    t            = readmemw_n(tr.base, 0x66, addr64a_2);
+    held = checkio_held(tr.base + 0x66, 2);
+    if (held != (uintptr_t) LOOKUP_INV)
+        t = *(uint16_t *) (held + (tr.base + 0x66));
+    else {
+        do_mmut_rw(tr.base, 0x66, addr64a_2);
+        t = readmemw_n(tr.base, 0x66, addr64a_2);
+    }
 
     if (UNLIKELY(cpu_state.abrt)) {
         cpl_override = 0;
@@ -248,13 +267,23 @@ checkio(uint32_t port, int mask)
     mask <<= (port & 7);
     if (UNLIKELY(mask & 0xff00)) {
         if (LIKELY(t < tr.limit)) {
-            do_mmut_rw(tr.base, t, addr64a_2);
-            mask &= readmemw_n(tr.base, t, addr64a_2);
+            held = checkio_held(tr.base + t, 2);
+            if (held != (uintptr_t) LOOKUP_INV)
+                mask &= *(uint16_t *) (held + (tr.base + t));
+            else {
+                do_mmut_rw(tr.base, t, addr64a_2);
+                mask &= readmemw_n(tr.base, t, addr64a_2);
+            }
         }
     } else {
         if (LIKELY(t <= tr.limit)) {
-            do_mmut_rb(tr.base, t, addr64a_2);
-            mask &= readmemb_n(tr.base, t, addr64a_2[0]);
+            held = checkio_held(tr.base + t, 1);
+            if (held != (uintptr_t) LOOKUP_INV)
+                mask &= *(uint8_t *) (held + (tr.base + t));
+            else {
+                do_mmut_rb(tr.base, t, addr64a_2);
+                mask &= readmemb_n(tr.base, t, addr64a_2[0]);
+            }
         }
     }
     cpl_override = 0;

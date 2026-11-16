@@ -22,6 +22,7 @@
 #include <stdint.h>
 #include <string.h>
 #include <stdlib.h>
+#include <limits.h>
 #include <wchar.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
@@ -224,10 +225,47 @@ mem_ap_clear(void)
     }
 }
 
+/* An entry added by an access made for ring 3 under cpl_override (descriptor
+   tables, the TSS) to a page ring 3 may not use takes its slot and is
+   charged as any other, but is held out of the tables, which carry no
+   user/supervisor bit. While the CPU stays in ring 3 only such accesses are
+   served from it, as the table would serve them, and a ring 3 access walks
+   and faults; when the CPU leaves ring 3 it goes into the tables
+   (mem_held_release()). Per page (read: per set), the slot + 1 of the entry
+   held, good only while that slot is marked held and still names the page:
+   a flush, which may come from a device thread, ends an entry by clearing
+   its slot as it always has, and writes nothing here. A write entry holds
+   what writelookup2 and page_lookup would. */
+static uint16_t  readlookup_held[2097152];
+static uint16_t  writelookup_held[1048576];
+static uint8_t   readlookup_held_slot[512];
+static uint8_t   writelookup_held_slot[256];
+static uintptr_t readlookup_held_ptr[512];
+static uintptr_t writelookup_held_ptr[256];
+static page_t   *writelookup_held_page[256];
+
+/* Not zero while an entry may be held: the entries held since the CPU last
+   left ring 3, up to INT_MAX, where the count stays until the CPU leaves
+   ring 3. Written by the CPU thread only, as is the list of their
+   slots (write slots from 512) for mem_held_promote(); one more than the
+   size means the list overflowed and the slots get scanned. */
+int              mem_held_num;
+static uint16_t  mem_held_list[64];
+static int       mem_held_list_num;
+
 void
 resetreadlookup(void)
 {
     mem_ap_clear();
+
+    if (mem_held_num) {
+        memset(readlookup_held, 0x00, sizeof(readlookup_held));
+        memset(writelookup_held, 0x00, sizeof(writelookup_held));
+        memset(readlookup_held_slot, 0x00, sizeof(readlookup_held_slot));
+        memset(writelookup_held_slot, 0x00, sizeof(writelookup_held_slot));
+        mem_held_num = 0;
+    }
+    mem_held_list_num = 0;
 
     /* Initialize the page lookup table. */
     memset(page_lookup, 0x00, (1 << 20) * sizeof(page_t *));
@@ -274,6 +312,265 @@ static int      writelookup_ring0_num;
 static uint32_t mmu_walk_page = 0xffffffff;
 static uint32_t mmu_walk_flags;
 
+/* The walk before it: an access across a page boundary walks both pages
+   before the first one's entry is added. */
+static uint32_t mmu_walk_prev_page = 0xffffffff;
+static uint32_t mmu_walk_prev_flags;
+
+/* Whether the page's own walk, when it is one of the last two, found it
+   without the bits in need. */
+static __inline int
+mmu_walk_denies(uint32_t virt, uint32_t need)
+{
+    if (!(cr0 & 0x80000000))
+        return 0;
+    if (mmu_walk_page == (virt >> 12))
+        return (mmu_walk_flags & need) != need;
+    if (mmu_walk_prev_page == (virt >> 12))
+        return (mmu_walk_prev_flags & need) != need;
+    return 0;
+}
+
+static __inline void
+mem_held_listed(int slot)
+{
+    if (mem_held_list_num < 64)
+        mem_held_list[mem_held_list_num] = slot;
+    if (mem_held_list_num <= 64)
+        mem_held_list_num++;
+}
+
+/* The slot of the entry held for a read index or a write page, or -1. */
+static __inline int
+readlookup_held_at(uint32_t index)
+{
+    int slot = (int) readlookup_held[index] - 1;
+
+    if ((slot < 0) || !readlookup_held_slot[slot] || (readlookup[slot] != (int) (index & 0xfffff)) ||
+        ((uint32_t) (slot >> 8) != (index >> 20)))
+        return -1;
+    return slot;
+}
+
+static __inline int
+writelookup_held_at(uint32_t page)
+{
+    int slot = (int) writelookup_held[page] - 1;
+
+    if ((slot < 0) || !writelookup_held_slot[slot] || (writelookup[slot] != (int) page))
+        return -1;
+    return slot;
+}
+
+static void mem_held_promote_read(int slot);
+static void mem_held_promote_write(int slot);
+
+/* Taken by the move of a held entry into the tables and by a flush while
+   it clears the slots. A flush may come from a device thread
+   (mem_mapping_recalc()): it has either cleared the slot before the move
+   looks at it, and nothing goes in, or it finds the entry in the table. */
+static atomic_flag mem_held_lock = ATOMIC_FLAG_INIT;
+
+static __inline void
+mem_held_lock_take(void)
+{
+    while (atomic_flag_test_and_set_explicit(&mem_held_lock, memory_order_acquire))
+        ;
+}
+
+static __inline void
+mem_held_lock_drop(void)
+{
+    atomic_flag_clear_explicit(&mem_held_lock, memory_order_release);
+}
+
+/* How the caller would have used the entry before calling, had it been in
+   the table. The memory macros and the recompiler's ordinary routines
+   (MEM_HELD_MACRO) use it for an aligned access and call for the rest.
+   MEM_HELD_CALLED: the call is made whatever the tables hold (a segment
+   base of FFFFFFFFh, an access with no test before it). The operand
+   pointer rule (fetch_ea's eal_r and eal_w, the recompiler's routines of
+   that name) uses it up to page offset FFCh, aligned or not; past that the
+   call is made whatever the tables hold (MEM_HELD_PTR), or the macro's
+   rule applies (MEM_HELD_PTR_MACRO, geteab() and its like). */
+enum {
+    MEM_HELD_MACRO = 0,
+    MEM_HELD_CALLED,
+    MEM_HELD_PTR,
+    MEM_HELD_PTR_MACRO
+};
+static int mem_held_mode;
+
+static __inline int
+mem_held_before_call(uint32_t addr, uint32_t mask)
+{
+    switch (mem_held_mode) {
+        case MEM_HELD_MACRO:
+            return !(addr & mask);
+        case MEM_HELD_CALLED:
+            return 0;
+        case MEM_HELD_PTR:
+            return (addr & 0xfff) <= 0xffc;
+        default:
+            return ((addr & 0xfff) <= 0xffc) || !(addr & mask);
+    }
+}
+
+/* What the last test for a held entry found. */
+static uintptr_t mem_held_hit;
+
+/* What readlookup2 / writelookup2 would hold for addr, from the entry held:
+   for an access the entry is held for, and for a ring 3 access when the
+   page tables as they are now let ring 3 make it. That one is the table's
+   hit like any other, and the entry goes into the table: it is looked at
+   with the walk that writes nothing and raises nothing, and only that
+   walk's refusal keeps it held: a frame above 4 GB is an answer. */
+static __inline uintptr_t
+mem_held_r(uint32_t addr)
+{
+    uintptr_t ptr;
+    int       slot;
+
+    if (CPL != 3)
+        return (uintptr_t) LOOKUP_INV;
+    slot = readlookup_held_at((is_compare ? 1048576 : 0) | (addr >> 12));
+    if (slot < 0)
+        return (uintptr_t) LOOKUP_INV;
+    ptr = readlookup_held_ptr[slot];
+    if (!cpl_override) {
+        if (mmutranslate_noabrt(addr, 0) == 0xffffffffffffffffULL)
+            return (uintptr_t) LOOKUP_INV;
+        mem_held_promote_read(slot);
+    }
+    return ptr;
+}
+
+static __inline uintptr_t
+mem_held_w(uint32_t addr)
+{
+    uintptr_t ptr;
+    int       slot;
+
+    if (CPL != 3)
+        return (uintptr_t) LOOKUP_INV;
+    slot = writelookup_held_at(addr >> 12);
+    if (slot < 0)
+        return (uintptr_t) LOOKUP_INV;
+    ptr = writelookup_held_ptr[slot];
+    if (!cpl_override) {
+        if (mmutranslate_noabrt(addr, 1) == 0xffffffffffffffffULL)
+            return (uintptr_t) LOOKUP_INV;
+        mem_held_promote_write(slot);
+    }
+    return ptr;
+}
+
+uintptr_t
+mem_held_read(uint32_t addr)
+{
+    return mem_held_r(addr);
+}
+
+page_t *
+mem_held_write_page(uint32_t page)
+{
+    page_t *pl;
+    int     slot;
+
+    if (CPL != 3)
+        return NULL;
+    slot = writelookup_held_at(page);
+    if (slot < 0)
+        return NULL;
+    pl = writelookup_held_page[slot];
+    if (pl && !cpl_override) {
+        if (mmutranslate_noabrt(page << 12, 1) == 0xffffffffffffffffULL)
+            return NULL;
+        mem_held_promote_write(slot);
+    }
+    return pl;
+}
+
+/* The entry a slot holds, if it still does, into the tables; with
+   mem_held_lock taken, so the slot's page is read once and stays. */
+static void
+mem_held_promote_read_locked(int slot)
+{
+    uint32_t index;
+
+    if (!readlookup_held_slot[slot])
+        return;
+    readlookup_held_slot[slot] = 0;
+    if (readlookup[slot] == (int) 0xffffffff)
+        return;
+    index = ((slot & 256) ? 1048576 : 0) | (uint32_t) readlookup[slot];
+    if (readlookup_held[index] == (slot + 1)) {
+        readlookup2[index]     = readlookup_held_ptr[slot];
+        readlookup_held[index] = 0;
+    }
+}
+
+static void
+mem_held_promote_write_locked(int slot)
+{
+    uint32_t page;
+
+    if (!writelookup_held_slot[slot])
+        return;
+    writelookup_held_slot[slot] = 0;
+    if (writelookup[slot] == (int) 0xffffffff)
+        return;
+    page = (uint32_t) writelookup[slot];
+    if (writelookup_held[page] == (slot + 1)) {
+        if (writelookup_held_page[slot])
+            page_lookup[page] = writelookup_held_page[slot];
+        if (writelookup_held_ptr[slot] != (uintptr_t) LOOKUP_INV)
+            writelookup2[page] = writelookup_held_ptr[slot];
+        writelookup_held[page] = 0;
+    }
+}
+
+static void
+mem_held_promote_read(int slot)
+{
+    mem_held_lock_take();
+    mem_held_promote_read_locked(slot);
+    mem_held_lock_drop();
+}
+
+static void
+mem_held_promote_write(int slot)
+{
+    mem_held_lock_take();
+    mem_held_promote_write_locked(slot);
+    mem_held_lock_drop();
+}
+
+/* The CPU has left ring 3: every entry held goes into the tables, which
+   are from here on what they would be had nothing been held. No walk and
+   no charge: the slots were taken and charged when the entries were added. */
+void
+mem_held_promote(void)
+{
+    mem_held_lock_take();
+    if (mem_held_list_num > 64) {
+        for (int c = 0; c < 512; c++)
+            mem_held_promote_read_locked(c);
+        for (int c = 0; c < 256; c++)
+            mem_held_promote_write_locked(c);
+    } else {
+        for (int c = 0; c < mem_held_list_num; c++) {
+            if (mem_held_list[c] >= 512)
+                mem_held_promote_write_locked(mem_held_list[c] - 512);
+            else
+                mem_held_promote_read_locked(mem_held_list[c]);
+        }
+    }
+    mem_held_lock_drop();
+    mem_held_list_num = 0;
+    mem_held_num      = 0;
+}
+
 static void mem_ap_fill(uint32_t addr);
 
 /* The aperture entry for a write at linear addr, while every value it was
@@ -297,6 +594,8 @@ mem_ap_lookup(uint32_t addr)
 static __inline void
 mem_ap_walked(const mem_ap_entry_t *e, uint32_t addr)
 {
+    mmu_walk_prev_page  = mmu_walk_page;
+    mmu_walk_prev_flags = mmu_walk_flags;
     mmu_walk_page    = addr >> 12;
     mmu_walk_flags   = 6;
     addr64a[0]       = (e->pte & ~0xfff) + (addr & 0xfff);
@@ -309,8 +608,10 @@ flush_read_lookup(void)
     /* The page tables may have changed (CR3 load, INVLPG), so the last walk
        no longer describes them. */
     mmu_walk_page        = 0xffffffff;
+    mmu_walk_prev_page   = 0xffffffff;
     readlookup_ring0_num = 0;
 
+    mem_held_lock_take();
     for (int set = 0; set < 2; set++) {
         for (int c = set << 8; c < ((set << 8) + readl_used[set]); c++) {
             if (readlookup[c] != (int) 0xffffffff) {
@@ -322,6 +623,7 @@ flush_read_lookup(void)
         readl_used[set] = 0;
         readlnext[set]  = 0;
     }
+    mem_held_lock_drop();
 }
 
 static void
@@ -330,6 +632,7 @@ flush_write_lookup(void)
     mem_ap_clear();
     writelookup_ring0_num = 0;
 
+    mem_held_lock_take();
     for (int c = 0; c < writel_used; c++) {
         if (writelookup[c] != (int) 0xffffffff) {
             page_lookup[writelookup[c]]  = NULL;
@@ -339,6 +642,7 @@ flush_write_lookup(void)
     }
     writel_used = 0;
     writelnext  = 0;
+    mem_held_lock_drop();
 }
 
 void
@@ -447,12 +751,24 @@ mem_flush_write_page(uint32_t addr, UNUSED(uint32_t virt))
         if (writelookup[c] != (int) 0xffffffff) {
             /* Match every virtual alias of the physical page, not only the
                one being compiled, as each holds its own RAM offset. */
-            uintptr_t virt_page = (uintptr_t) (uint32_t) writelookup[c] << 12;
-            uintptr_t target    = (uintptr_t) &ram[(uintptr_t) (addr & ~0xfff) - virt_page];
-            if ((writelookup2[writelookup[c]] == target) || ((mem != NULL) && (writelookup2[writelookup[c]] == ((uintptr_t) mem - virt_page))) ||
-                (page_lookup[writelookup[c]] == page_target)) {
+            uintptr_t     virt_page = (uintptr_t) (uint32_t) writelookup[c] << 12;
+            uintptr_t     target    = (uintptr_t) &ram[(uintptr_t) (addr & ~0xfff) - virt_page];
+            uintptr_t     w2        = writelookup2[writelookup[c]];
+            const page_t *pl        = page_lookup[writelookup[c]];
+            int           held      = mem_held_num ? writelookup_held_at(writelookup[c]) : -1;
+
+            /* An entry held counts as what it would have put in the tables. */
+            if (held >= 0) {
+                if (pl == NULL)
+                    pl = writelookup_held_page[held];
+                if (w2 == (uintptr_t) LOOKUP_INV)
+                    w2 = writelookup_held_ptr[held];
+            }
+            if ((w2 == target) || ((mem != NULL) && (w2 == ((uintptr_t) mem - virt_page))) || (pl == page_target)) {
                 writelookup2[writelookup[c]] = LOOKUP_INV;
                 page_lookup[writelookup[c]]  = NULL;
+                if (mem_held_num)
+                    writelookup_held[writelookup[c]] = 0;
                 writelookup[c]               = 0xffffffff;
             }
         }
@@ -560,6 +876,8 @@ mmutranslatereal_normal(uint32_t addr, int rw)
         }
 
         rammap(addr2) |= (rw ? 0x60 : 0x20);
+        mmu_walk_prev_page  = mmu_walk_page;
+        mmu_walk_prev_flags = mmu_walk_flags;
         mmu_walk_page  = addr >> 12;
         mmu_walk_flags = temp & 6;
 
@@ -585,6 +903,8 @@ mmutranslatereal_normal(uint32_t addr, int rw)
 
     rammap(addr2) |= 0x20;
     rammap((temp2 & ~0xfff) + ((addr >> 10) & 0xffc)) |= (rw ? 0x60 : 0x20);
+    mmu_walk_prev_page  = mmu_walk_page;
+    mmu_walk_prev_flags = mmu_walk_flags;
     mmu_walk_page  = addr >> 12;
     mmu_walk_flags = temp3 & 6;
 
@@ -648,6 +968,8 @@ mmutranslatereal_pae(uint32_t addr, int rw)
             return 0xffffffffffffffffULL;
         }
         rammap64(addr3) |= (rw ? 0x60 : 0x20);
+        mmu_walk_prev_page  = mmu_walk_page;
+        mmu_walk_prev_flags = mmu_walk_flags;
         mmu_walk_page  = addr >> 12;
         mmu_walk_flags = (uint32_t) (temp & 6);
 
@@ -671,6 +993,8 @@ mmutranslatereal_pae(uint32_t addr, int rw)
 
     rammap64(addr3) |= 0x20;
     rammap64(addr4) |= (rw ? 0x60 : 0x20);
+    mmu_walk_prev_page  = mmu_walk_page;
+    mmu_walk_prev_flags = mmu_walk_flags;
     mmu_walk_page  = addr >> 12;
     mmu_walk_flags = (uint32_t) (temp3 & 6);
 
@@ -822,6 +1146,8 @@ addreadlookup(uint32_t virt, uint32_t phys)
     uint32_t index        = large_offset | (virt >> 12);
     int *    rln          = &(readlnext[is_compare]);
     int      cur_rln      = *rln | (int) small_offset;
+    int      held         = -1;
+    uintptr_t ptr;
 
     /* Nothing goes in while a debug register breakpoint is armed, so that
        every access is checked (cpu_dr7_update()). */
@@ -834,10 +1160,37 @@ addreadlookup(uint32_t virt, uint32_t phys)
     if (readlookup2[index] != (uintptr_t) LOOKUP_INV)
         return;
 
-    if (readlookup[cur_rln] != (int) 0xffffffff)
-        readlookup2[large_offset | readlookup[cur_rln]] = LOOKUP_INV;
+    /* Held: the page is in already. An access that is not one of those the
+       entry is held for has passed its own walk and lets it into the table. */
+    if (mem_held_num)
+        held = readlookup_held_at(index);
+    if (held >= 0) {
+        if (!cpl_override || (CPL != 3))
+            mem_held_promote_read(held);
+        return;
+    }
 
-    readlookup2[index] = (uintptr_t) &ram[(uintptr_t) (phys & ~0xFFF) - (uintptr_t) (virt & ~0xfff)];
+    if (readlookup[cur_rln] != (int) 0xffffffff) {
+        readlookup2[large_offset | readlookup[cur_rln]] = LOOKUP_INV;
+        if (mem_held_num)
+            readlookup_held[large_offset | readlookup[cur_rln]] = 0;
+    }
+
+    /* Held when the page's own walk says ring 3 may not read it; the bit
+       below, from the last walk alone, stays what it was. */
+    ptr = (uintptr_t) &ram[(uintptr_t) (phys & ~0xFFF) - (uintptr_t) (virt & ~0xfff)];
+    if (cpl_override && (CPL == 3) && mmu_walk_denies(virt, 4)) {
+        readlookup_held_ptr[cur_rln]  = ptr;
+        readlookup_held[index]        = cur_rln + 1;
+        readlookup_held_slot[cur_rln] = 1;
+        if (mem_held_num < INT_MAX)
+            mem_held_num++;
+        mem_held_listed(cur_rln);
+    } else {
+        readlookup2[index] = ptr;
+        if (mem_held_num)
+            readlookup_held_slot[cur_rln] = 0;
+    }
 
     readlookup[cur_rln]       = virt >> 12;
     readlookup_ring3[cur_rln] = mmu_ring3_may_use(virt, 4);
@@ -865,6 +1218,11 @@ addwritelookup(uint32_t virt, uint32_t phys)
 void
 addwritelookup_remapped(uint32_t virt, uint32_t phys, uint32_t ram_addr)
 {
+    page_t   *pl    = NULL;
+    uintptr_t ptr   = (uintptr_t) LOOKUP_INV;
+    uintptr_t carry = (uintptr_t) LOOKUP_INV;
+    int       held  = -1;
+
     /* As in addreadlookup(). The RAM write handlers mark code pages dirty
        themselves, so page_lookup is not needed for that meanwhile. */
     if ((virt == 0xffffffff) || cpu_dr_armed)
@@ -876,10 +1234,30 @@ addwritelookup_remapped(uint32_t virt, uint32_t phys, uint32_t ram_addr)
     if (page_lookup[virt >> 12])
         return;
 
+    /* Held, as in addreadlookup(). Only page_lookup ends the call above, so
+       a page held for writelookup2 alone gets a new entry as one in that
+       table does; what it holds for writelookup2 stays with it. */
+    if (mem_held_num)
+        held = writelookup_held_at(virt >> 12);
+    if (held >= 0) {
+        if (!cpl_override || (CPL != 3)) {
+            mem_held_promote_write(held);
+            if (page_lookup[virt >> 12])
+                return;
+        } else if (writelookup_held_page[held])
+            return;
+        else
+            carry = writelookup_held_ptr[held];
+    }
+
     if (writelookup[writelnext] != -1) {
         page_lookup[writelookup[writelnext]]  = NULL;
         writelookup2[writelookup[writelnext]] = LOOKUP_INV;
+        if (mem_held_num)
+            writelookup_held[writelookup[writelnext]] = 0;
     }
+    if ((carry != (uintptr_t) LOOKUP_INV) && (writelookup_held_at(virt >> 12) < 0))
+        carry = (uintptr_t) LOOKUP_INV;
 
     /* A page holds code not only when a block starts in it (block) but also
        when a block crossing a page boundary ends in it (block_2). Writes to
@@ -890,9 +1268,31 @@ addwritelookup_remapped(uint32_t virt, uint32_t phys, uint32_t ram_addr)
 #else
     if (pages[phys >> 12].block || pages[phys >> 12].block_2) {
 #endif
-        page_lookup[virt >> 12]  = &pages[phys >> 12];
+        pl = &pages[phys >> 12];
     } else
-        writelookup2[virt >> 12] = (uintptr_t) &ram[(uintptr_t) (ram_addr & ~0xFFF) - (uintptr_t) (virt & ~0xfff)];
+        ptr = (uintptr_t) &ram[(uintptr_t) (ram_addr & ~0xFFF) - (uintptr_t) (virt & ~0xfff)];
+
+    /* Held when the page's own walk says ring 3 may not write it. */
+    if (cpl_override && (CPL == 3) && mmu_walk_denies(virt, 6)) {
+        writelookup_held_page[writelnext] = pl;
+        writelookup_held_ptr[writelnext]  = pl ? carry : ptr;
+        writelookup_held[virt >> 12]      = writelnext + 1;
+        writelookup_held_slot[writelnext] = 1;
+        if (mem_held_num < INT_MAX)
+            mem_held_num++;
+        mem_held_listed(512 + writelnext);
+    } else {
+        if (pl) {
+            page_lookup[virt >> 12] = pl;
+            if (carry != (uintptr_t) LOOKUP_INV)
+                writelookup2[virt >> 12] = carry;
+        } else
+            writelookup2[virt >> 12] = ptr;
+        if (mem_held_num) {
+            writelookup_held_slot[writelnext] = 0;
+            writelookup_held[virt >> 12]      = 0;
+        }
+    }
 
     writelookup_ring3[writelnext] = mmu_ring3_may_use(virt, 6);
     if (!writelookup_ring3[writelnext] && (writelookup_ring0_num <= 256)) {
@@ -1125,6 +1525,10 @@ readmembl(uint32_t addr)
     mem_mapping_t *map;
     uint64_t       a;
 
+    /* A held entry, as the table's hit before the call. */
+    if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 0) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
+        return *(uint8_t *) (mem_held_hit + addr);
+
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_READ, 1);
     if (cpu_dr_armed)
         mem_debug_check_addr(addr, read_type);
@@ -1156,6 +1560,12 @@ writemembl(uint32_t addr, uint8_t val)
     mem_mapping_t *map;
     uint64_t       a;
 
+    /* A held entry, as the table's hit before the call. */
+    if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 0) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {
+        *(uint8_t *) (mem_held_hit + addr) = val;
+        return;
+    }
+
     GDBSTUB_MEM_ACCESS(addr, GDBSTUB_MEM_WRITE, 1);
     if (cpu_dr_armed)
         mem_debug_check_addr(addr, 2);
@@ -1165,8 +1575,8 @@ writemembl(uint32_t addr, uint8_t val)
 
     high_page = 0;
 
-    if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_b) {
-        page_lookup[addr >> 12]->write_b(addr, val, page_lookup[addr >> 12]);
+    if (mem_page_lookup(addr >> 12) && mem_page_lookup(addr >> 12)->write_b) {
+        mem_page_lookup(addr >> 12)->write_b(addr, val, mem_page_lookup(addr >> 12));
         return;
     }
 
@@ -1185,8 +1595,8 @@ writemembl(uint32_t addr, uint8_t val)
 }
 
 /* Read a byte from memory without MMU translation - result of previous MMU translation passed as value. */
-uint8_t
-readmembl_no_mmut(uint32_t addr, uint32_t a64)
+static uint8_t
+readmembl_no_mmut_body(uint32_t addr, uint32_t a64)
 {
     mem_mapping_t *map;
 
@@ -1209,9 +1619,19 @@ readmembl_no_mmut(uint32_t addr, uint32_t a64)
     return 0xff;
 }
 
+uint8_t
+readmembl_no_mmut(uint32_t addr, uint32_t a64)
+{
+    /* A held entry, as the table's hit before the call. */
+    if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 0) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
+        return *(uint8_t *) (mem_held_hit + addr);
+
+    return readmembl_no_mmut_body(addr, a64);
+}
+
 /* Write a byte to memory without MMU translation - result of previous MMU translation passed as value. */
-void
-writemembl_no_mmut(uint32_t addr, uint32_t a64, uint8_t val)
+static void
+writemembl_no_mmut_body(uint32_t addr, uint32_t a64, uint8_t val)
 {
     mem_mapping_t *map;
 
@@ -1219,8 +1639,8 @@ writemembl_no_mmut(uint32_t addr, uint32_t a64, uint8_t val)
 
     mem_logical_addr = addr;
 
-    if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_b) {
-        page_lookup[addr >> 12]->write_b(addr, val, page_lookup[addr >> 12]);
+    if (mem_page_lookup(addr >> 12) && mem_page_lookup(addr >> 12)->write_b) {
+        mem_page_lookup(addr >> 12)->write_b(addr, val, mem_page_lookup(addr >> 12));
         return;
     }
 
@@ -1237,11 +1657,27 @@ writemembl_no_mmut(uint32_t addr, uint32_t a64, uint8_t val)
         map->write_b(addr, val, map->priv);
 }
 
+void
+writemembl_no_mmut(uint32_t addr, uint32_t a64, uint8_t val)
+{
+    /* A held entry, as the table's hit before the call. */
+    if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 0) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {
+        *(uint8_t *) (mem_held_hit + addr) = val;
+        return;
+    }
+
+    writemembl_no_mmut_body(addr, a64, val);
+}
+
 uint16_t
 readmemwl(uint32_t addr)
 {
     mem_mapping_t *map;
     uint64_t       a;
+
+    /* A held entry, as the table's hit before the call. */
+    if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 1) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
+        return *(uint16_t *) (mem_held_hit + addr);
 
     addr64a[0] = addr;
     addr64a[1] = addr + 1;
@@ -1272,9 +1708,11 @@ readmemwl(uint32_t addr)
                 }
             }
 
-            return readmembl_no_mmut(addr, addr64a[0]) | (((uint16_t) readmembl_no_mmut(addr + 1, addr64a[1])) << 8);
+            return readmembl_no_mmut_body(addr, addr64a[0]) | (((uint16_t) readmembl_no_mmut_body(addr + 1, addr64a[1])) << 8);
         } else if (*rl2 != (uintptr_t) LOOKUP_INV)
             return *(uint16_t *) (*rl2 + addr);
+        else if (UNLIKELY(mem_held_num) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
+            return *(uint16_t *) (mem_held_hit + addr);
     }
 
     if (cr0 >> 31) {
@@ -1307,6 +1745,12 @@ writememwl(uint32_t addr, uint16_t val)
     uint64_t       a;
     uint32_t       va;
 
+    /* A held entry, as the table's hit before the call. */
+    if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 1) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {
+        *(uint16_t *) (mem_held_hit + addr) = val;
+        return;
+    }
+
     addr64a[0] = addr;
     addr64a[1] = addr + 1;
     if (cpu_dr_armed) {
@@ -1328,8 +1772,8 @@ writememwl(uint32_t addr, uint16_t val)
                     /* A page with a valid lookup is already translated: take its physical
                        address from the lookup, since writing the first half can recycle
                        the entry and the second half then falls back to addr64a[]. */
-                    if (page_lookup[(addr + i) >> 12] && page_lookup[(addr + i) >> 12]->write_b) {
-                        a          = ((uint64_t) (page_lookup[(addr + i) >> 12] - pages) << 12) | ((addr + i) & 0xfff);
+                    if (mem_page_lookup((addr + i) >> 12) && mem_page_lookup((addr + i) >> 12)->write_b) {
+                        a          = ((uint64_t) (mem_page_lookup((addr + i) >> 12) - pages) << 12) | ((addr + i) & 0xfff);
                         addr64a[i] = (uint32_t) a;
                     } else {
                         a          = mmutranslate_write(addr + i);
@@ -1343,17 +1787,20 @@ writememwl(uint32_t addr, uint16_t val)
 
             /* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
                their result as a parameter to be used if needed. */
-            writemembl_no_mmut(addr, addr64a[0], val);
-            writemembl_no_mmut(addr + 1, addr64a[1], val >> 8);
+            writemembl_no_mmut_body(addr, addr64a[0], val);
+            writemembl_no_mmut_body(addr + 1, addr64a[1], val >> 8);
             return;
         } else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
             *(uint16_t *) (writelookup2[addr >> 12] + addr) = val;
             return;
+        } else if (UNLIKELY(mem_held_num) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {
+            *(uint16_t *) (mem_held_hit + addr) = val;
+            return;
         }
     }
 
-    if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_w) {
-        page_lookup[addr >> 12]->write_w(addr, val, page_lookup[addr >> 12]);
+    if (mem_page_lookup(addr >> 12) && mem_page_lookup(addr >> 12)->write_w) {
+        mem_page_lookup(addr >> 12)->write_w(addr, val, mem_page_lookup(addr >> 12));
         return;
     }
 
@@ -1394,8 +1841,8 @@ writememwl(uint32_t addr, uint16_t val)
 }
 
 /* Read a word from memory without MMU translation - results of previous MMU translation passed as array. */
-uint16_t
-readmemwl_no_mmut(uint32_t addr, uint32_t *a64)
+static uint16_t
+readmemwl_no_mmut_body(uint32_t addr, uint32_t *a64)
 {
     mem_mapping_t *map;
 
@@ -1415,9 +1862,11 @@ readmemwl_no_mmut(uint32_t addr, uint32_t *a64)
                     return 0xffff;
             }
 
-            return readmembl_no_mmut(addr, a64[0]) | (((uint16_t) readmembl_no_mmut(addr + 1, a64[1])) << 8);
+            return readmembl_no_mmut_body(addr, a64[0]) | (((uint16_t) readmembl_no_mmut_body(addr + 1, a64[1])) << 8);
         } else if (*rl2 != (uintptr_t) LOOKUP_INV)
             return *(uint16_t *) (*rl2 + addr);
+        else if (UNLIKELY(mem_held_num) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
+            return *(uint16_t *) (mem_held_hit + addr);
     }
 
     if (cr0 >> 31) {
@@ -1440,9 +1889,19 @@ readmemwl_no_mmut(uint32_t addr, uint32_t *a64)
     return 0xffff;
 }
 
+uint16_t
+readmemwl_no_mmut(uint32_t addr, uint32_t *a64)
+{
+    /* A held entry, as the table's hit before the call. */
+    if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 1) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
+        return *(uint16_t *) (mem_held_hit + addr);
+
+    return readmemwl_no_mmut_body(addr, a64);
+}
+
 /* Write a word to memory without MMU translation - results of previous MMU translation passed as array. */
-void
-writememwl_no_mmut(uint32_t addr, uint32_t *a64, uint16_t val)
+static void
+writememwl_no_mmut_body(uint32_t addr, uint32_t *a64, uint16_t val)
 {
     mem_mapping_t *map;
 
@@ -1459,17 +1918,20 @@ writememwl_no_mmut(uint32_t addr, uint32_t *a64, uint16_t val)
                     return;
             }
 
-            writemembl_no_mmut(addr, a64[0], val);
-            writemembl_no_mmut(addr + 1, a64[1], val >> 8);
+            writemembl_no_mmut_body(addr, a64[0], val);
+            writemembl_no_mmut_body(addr + 1, a64[1], val >> 8);
             return;
         } else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
             *(uint16_t *) (writelookup2[addr >> 12] + addr) = val;
             return;
+        } else if (UNLIKELY(mem_held_num) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {
+            *(uint16_t *) (mem_held_hit + addr) = val;
+            return;
         }
     }
 
-    if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_w) {
-        page_lookup[addr >> 12]->write_w(addr, val, page_lookup[addr >> 12]);
+    if (mem_page_lookup(addr >> 12) && mem_page_lookup(addr >> 12)->write_w) {
+        mem_page_lookup(addr >> 12)->write_w(addr, val, mem_page_lookup(addr >> 12));
         return;
     }
 
@@ -1495,12 +1957,28 @@ writememwl_no_mmut(uint32_t addr, uint32_t *a64, uint16_t val)
     }
 }
 
+void
+writememwl_no_mmut(uint32_t addr, uint32_t *a64, uint16_t val)
+{
+    /* A held entry, as the table's hit before the call. */
+    if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 1) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {
+        *(uint16_t *) (mem_held_hit + addr) = val;
+        return;
+    }
+
+    writememwl_no_mmut_body(addr, a64, val);
+}
+
 uint32_t
 readmemll(uint32_t addr)
 {
     mem_mapping_t *map;
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
+
+    /* A held entry, as the table's hit before the call. */
+    if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 3) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
+        return *(uint32_t *) (mem_held_hit + addr);
 
     for (i = 0; i < 4; i++)
         addr64a[i] = (uint64_t) (addr + i);
@@ -1544,9 +2022,11 @@ readmemll(uint32_t addr)
 
             /* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
                their result as a parameter to be used if needed. */
-            return readmemwl_no_mmut(addr, addr64a) | (((uint32_t) readmemwl_no_mmut(addr + 2, &(addr64a[2]))) << 16);
+            return readmemwl_no_mmut_body(addr, addr64a) | (((uint32_t) readmemwl_no_mmut_body(addr + 2, &(addr64a[2]))) << 16);
         } else if (*rl2 != (uintptr_t) LOOKUP_INV)
             return *(uint32_t *) (*rl2 + addr);
+        else if (UNLIKELY(mem_held_num) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
+            return *(uint32_t *) (mem_held_hit + addr);
     }
 
     if (cr0 >> 31) {
@@ -1581,6 +2061,12 @@ writememll(uint32_t addr, uint32_t val)
     uint64_t       a = 0x0000000000000000ULL;
     uint32_t       va;
 
+    /* A held entry, as the table's hit before the call. */
+    if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 3) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {
+        *(uint32_t *) (mem_held_hit + addr) = val;
+        return;
+    }
+
     for (i = 0; i < 4; i++)
         addr64a[i] = (uint64_t) (addr + i);
     if (cpu_dr_armed)
@@ -1601,8 +2087,8 @@ writememll(uint32_t addr, uint32_t val)
                     /* A page with a valid lookup is already translated: take its physical
                        address from the lookup, since writing the first part can recycle
                        the entry and the rest then falls back to addr64a[]. */
-                    if (page_lookup[(addr + i) >> 12] && page_lookup[(addr + i) >> 12]->write_b) {
-                        a          = ((uint64_t) (page_lookup[(addr + i) >> 12] - pages) << 12) | ((addr + i) & 0xfff);
+                    if (mem_page_lookup((addr + i) >> 12) && mem_page_lookup((addr + i) >> 12)->write_b) {
+                        a          = ((uint64_t) (mem_page_lookup((addr + i) >> 12) - pages) << 12) | ((addr + i) & 0xfff);
                         addr64a[i] = (uint32_t) a;
                     } else {
                         if (i == 0) {
@@ -1628,17 +2114,20 @@ writememll(uint32_t addr, uint32_t val)
 
             /* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
                their result as a parameter to be used if needed. */
-            writememwl_no_mmut(addr, &(addr64a[0]), val);
-            writememwl_no_mmut(addr + 2, &(addr64a[2]), val >> 16);
+            writememwl_no_mmut_body(addr, &(addr64a[0]), val);
+            writememwl_no_mmut_body(addr + 2, &(addr64a[2]), val >> 16);
             return;
         } else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
             *(uint32_t *) (writelookup2[addr >> 12] + addr) = val;
             return;
+        } else if (UNLIKELY(mem_held_num) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {
+            *(uint32_t *) (mem_held_hit + addr) = val;
+            return;
         }
     }
 
-    if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_l) {
-        page_lookup[addr >> 12]->write_l(addr, val, page_lookup[addr >> 12]);
+    if (mem_page_lookup(addr >> 12) && mem_page_lookup(addr >> 12)->write_l) {
+        mem_page_lookup(addr >> 12)->write_l(addr, val, mem_page_lookup(addr >> 12));
         return;
     }
 
@@ -1685,8 +2174,8 @@ writememll(uint32_t addr, uint32_t val)
 }
 
 /* Read a long from memory without MMU translation - results of previous MMU translation passed as array. */
-uint32_t
-readmemll_no_mmut(uint32_t addr, uint32_t *a64)
+static uint32_t
+readmemll_no_mmut_body(uint32_t addr, uint32_t *a64)
 {
     mem_mapping_t *map;
 
@@ -1706,9 +2195,11 @@ readmemll_no_mmut(uint32_t addr, uint32_t *a64)
                     return 0xffffffff;
             }
 
-            return readmemwl_no_mmut(addr, a64) | ((uint32_t) (readmemwl_no_mmut(addr + 2, &(a64[2]))) << 16);
+            return readmemwl_no_mmut_body(addr, a64) | ((uint32_t) (readmemwl_no_mmut_body(addr + 2, &(a64[2]))) << 16);
         } else if (*rl2 != (uintptr_t) LOOKUP_INV)
             return *(uint32_t *) (*rl2 + addr);
+        else if (UNLIKELY(mem_held_num) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
+            return *(uint32_t *) (mem_held_hit + addr);
     }
 
     if (cr0 >> 31) {
@@ -1733,9 +2224,19 @@ readmemll_no_mmut(uint32_t addr, uint32_t *a64)
     return 0xffffffff;
 }
 
+uint32_t
+readmemll_no_mmut(uint32_t addr, uint32_t *a64)
+{
+    /* A held entry, as the table's hit before the call. */
+    if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 3) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
+        return *(uint32_t *) (mem_held_hit + addr);
+
+    return readmemll_no_mmut_body(addr, a64);
+}
+
 /* Write a long to memory without MMU translation - results of previous MMU translation passed as array. */
-void
-writememll_no_mmut(uint32_t addr, uint32_t *a64, uint32_t val)
+static void
+writememll_no_mmut_body(uint32_t addr, uint32_t *a64, uint32_t val)
 {
     mem_mapping_t *map;
 
@@ -1752,17 +2253,20 @@ writememll_no_mmut(uint32_t addr, uint32_t *a64, uint32_t val)
                     return;
             }
 
-            writememwl_no_mmut(addr, &(a64[0]), val);
-            writememwl_no_mmut(addr + 2, &(a64[2]), val >> 16);
+            writememwl_no_mmut_body(addr, &(a64[0]), val);
+            writememwl_no_mmut_body(addr + 2, &(a64[2]), val >> 16);
             return;
         } else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
             *(uint32_t *) (writelookup2[addr >> 12] + addr) = val;
             return;
+        } else if (UNLIKELY(mem_held_num) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {
+            *(uint32_t *) (mem_held_hit + addr) = val;
+            return;
         }
     }
 
-    if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_l) {
-        page_lookup[addr >> 12]->write_l(addr, val, page_lookup[addr >> 12]);
+    if (mem_page_lookup(addr >> 12) && mem_page_lookup(addr >> 12)->write_l) {
+        mem_page_lookup(addr >> 12)->write_l(addr, val, mem_page_lookup(addr >> 12));
         return;
     }
 
@@ -1794,12 +2298,28 @@ writememll_no_mmut(uint32_t addr, uint32_t *a64, uint32_t val)
     }
 }
 
+void
+writememll_no_mmut(uint32_t addr, uint32_t *a64, uint32_t val)
+{
+    /* A held entry, as the table's hit before the call. */
+    if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 3) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {
+        *(uint32_t *) (mem_held_hit + addr) = val;
+        return;
+    }
+
+    writememll_no_mmut_body(addr, a64, val);
+}
+
 uint64_t
 readmemql(uint32_t addr)
 {
     mem_mapping_t *map;
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
+
+    /* A held entry, as the table's hit before the call. */
+    if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 7) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
+        return *(uint64_t *) (mem_held_hit + addr);
 
     for (i = 0; i < 8; i++)
         addr64a[i] = (uint64_t) (addr + i);
@@ -1842,9 +2362,11 @@ readmemql(uint32_t addr)
 
             /* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
                their result as a parameter to be used if needed. */
-            return readmemll_no_mmut(addr, addr64a) | (((uint64_t) readmemll_no_mmut(addr + 4, &(addr64a[4]))) << 32);
+            return readmemll_no_mmut_body(addr, addr64a) | (((uint64_t) readmemll_no_mmut_body(addr + 4, &(addr64a[4]))) << 32);
         } else if (*rl2 != (uintptr_t) LOOKUP_INV)
             return *(uint64_t *) (*rl2 + addr);
+        else if (UNLIKELY(mem_held_num) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
+            return *(uint64_t *) (mem_held_hit + addr);
     }
 
     if (cr0 >> 31) {
@@ -1889,6 +2411,12 @@ writememql(uint32_t addr, uint64_t val)
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
 
+    /* A held entry, as the table's hit before the call. */
+    if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 7) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {
+        *(uint64_t *) (mem_held_hit + addr) = val;
+        return;
+    }
+
     for (i = 0; i < 8; i++)
         addr64a[i] = (uint64_t) (addr + i);
     if (cpu_dr_armed)
@@ -1908,8 +2436,8 @@ writememql(uint32_t addr, uint64_t val)
                     /* A page with a valid lookup is already translated: take its physical
                        address from the lookup, since writing the first part can recycle
                        the entry and the rest then falls back to addr64a[]. */
-                    if (page_lookup[(addr + i) >> 12] && page_lookup[(addr + i) >> 12]->write_b) {
-                        a          = ((uint64_t) (page_lookup[(addr + i) >> 12] - pages) << 12) | ((addr + i) & 0xfff);
+                    if (mem_page_lookup((addr + i) >> 12) && mem_page_lookup((addr + i) >> 12)->write_b) {
+                        a          = ((uint64_t) (mem_page_lookup((addr + i) >> 12) - pages) << 12) | ((addr + i) & 0xfff);
                         addr64a[i] = (uint32_t) a;
                     } else {
                         if (i == 0) {
@@ -1935,18 +2463,21 @@ writememql(uint32_t addr, uint64_t val)
 
             /* No need to waste precious CPU host cycles on mmutranslate's that were already done, just pass
                their result as a parameter to be used if needed. */
-            writememll_no_mmut(addr, addr64a, val);
-            writememll_no_mmut(addr + 4, &(addr64a[4]), val >> 32);
+            writememll_no_mmut_body(addr, addr64a, val);
+            writememll_no_mmut_body(addr + 4, &(addr64a[4]), val >> 32);
             return;
         } else if (writelookup2[addr >> 12] != (uintptr_t) LOOKUP_INV) {
             *(uint64_t *) (writelookup2[addr >> 12] + addr) = val;
             return;
+        } else if (UNLIKELY(mem_held_num) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {
+            *(uint64_t *) (mem_held_hit + addr) = val;
+            return;
         }
     }
 
-    if (page_lookup[addr >> 12] && page_lookup[addr >> 12]->write_l) {
-        page_lookup[addr >> 12]->write_l(addr, val, page_lookup[addr >> 12]);
-        page_lookup[addr >> 12]->write_l(addr + 4, val >> 32, page_lookup[addr >> 12]);
+    if (mem_page_lookup(addr >> 12) && mem_page_lookup(addr >> 12)->write_l) {
+        mem_page_lookup(addr >> 12)->write_l(addr, val, mem_page_lookup(addr >> 12));
+        mem_page_lookup(addr >> 12)->write_l(addr + 4, val >> 32, mem_page_lookup(addr >> 12));
         return;
     }
 
@@ -1993,6 +2524,12 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
     uint32_t last_addr = addr + (num - 1);
     uint64_t a         = 0x0000000000000000ULL;
 
+    /* A held entry, as the table's hit that keeps an aligned access from
+       coming here. */
+    if (UNLIKELY(mem_held_num) && (mem_held_mode != MEM_HELD_CALLED) && ((num == 1) || !(addr & (num - 1))) &&
+        ((write ? mem_held_w(addr) : mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
+        return;
+
     for (i = 0; i < num; i++)
         a64[i] = (uint64_t) (addr + i);
     if (cpu_dr_armed)
@@ -2001,7 +2538,7 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
 
     if (cr0 >> 31)  for (i = 0; i < num; i++) {
         if (write && ((i == 0) || !(addr & 0xfff)))
-            cond = (!page_lookup[addr >> 12] || !page_lookup[addr >> 12]->write_b);
+            cond = (!mem_page_lookup(addr >> 12) || !mem_page_lookup(addr >> 12)->write_b);
 
         if (cond) {
             /* If we have encountered at least one page fault, mark all subsequent addresses as
@@ -2034,6 +2571,80 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
         addr++;
     }
 }
+
+/* The same accesses for the memory macros when the segment base is
+   FFFFFFFFh: they call these whatever the tables hold. */
+#define MEM_HELD_NH_R(type, name, params, args) \
+    type name##_nh params                       \
+    {                                           \
+        type ret;                               \
+                                                \
+        mem_held_mode = MEM_HELD_CALLED;        \
+        ret           = name args;              \
+        mem_held_mode = MEM_HELD_MACRO;         \
+        return ret;                             \
+    }
+#define MEM_HELD_NH_W(name, params, args) \
+    void name##_nh params                 \
+    {                                     \
+        mem_held_mode = MEM_HELD_CALLED;  \
+        name args;                        \
+        mem_held_mode = MEM_HELD_MACRO;   \
+    }
+MEM_HELD_NH_R(uint8_t, readmembl, (uint32_t addr), (addr))
+MEM_HELD_NH_R(uint16_t, readmemwl, (uint32_t addr), (addr))
+MEM_HELD_NH_R(uint32_t, readmemll, (uint32_t addr), (addr))
+MEM_HELD_NH_R(uint64_t, readmemql, (uint32_t addr), (addr))
+MEM_HELD_NH_R(uint8_t, readmembl_no_mmut, (uint32_t addr, uint32_t a64), (addr, a64))
+MEM_HELD_NH_R(uint16_t, readmemwl_no_mmut, (uint32_t addr, uint32_t *a64), (addr, a64))
+MEM_HELD_NH_R(uint32_t, readmemll_no_mmut, (uint32_t addr, uint32_t *a64), (addr, a64))
+MEM_HELD_NH_W(writemembl, (uint32_t addr, uint8_t val), (addr, val))
+MEM_HELD_NH_W(writememwl, (uint32_t addr, uint16_t val), (addr, val))
+MEM_HELD_NH_W(writememll, (uint32_t addr, uint32_t val), (addr, val))
+MEM_HELD_NH_W(writememql, (uint32_t addr, uint64_t val), (addr, val))
+MEM_HELD_NH_W(writemembl_no_mmut, (uint32_t addr, uint32_t a64, uint8_t val), (addr, a64, val))
+MEM_HELD_NH_W(writememwl_no_mmut, (uint32_t addr, uint32_t *a64, uint16_t val), (addr, a64, val))
+MEM_HELD_NH_W(writememll_no_mmut, (uint32_t addr, uint32_t *a64, uint32_t val), (addr, a64, val))
+MEM_HELD_NH_W(do_mmutranslate, (uint32_t addr, uint32_t *a64, int num, int write), (addr, a64, num, write))
+
+/* For the memory macros that test the second read set (the compare
+   operand of CMPS): the caller sets is_compare only for the read itself. */
+void
+do_mmutranslate_set2(uint32_t addr, uint32_t *a64, int num, int write)
+{
+    const int compare = is_compare;
+
+    is_compare = 1;
+    do_mmutranslate(addr, a64, num, write);
+    is_compare = compare;
+}
+
+/* For the callers with the operand pointer rule. */
+#define MEM_HELD_PTR_R(type, name, suffix, mode) \
+    type name##suffix(uint32_t addr)             \
+    {                                            \
+        type ret;                                \
+                                                 \
+        mem_held_mode = mode;                    \
+        ret           = name(addr);              \
+        mem_held_mode = MEM_HELD_MACRO;          \
+        return ret;                              \
+    }
+#define MEM_HELD_PTR_W(type, name)               \
+    void name##_ea(uint32_t addr, type val)      \
+    {                                            \
+        mem_held_mode = MEM_HELD_PTR;            \
+        name(addr, val);                         \
+        mem_held_mode = MEM_HELD_MACRO;          \
+    }
+MEM_HELD_PTR_R(uint8_t, readmembl, _eam, MEM_HELD_PTR_MACRO)
+MEM_HELD_PTR_R(uint16_t, readmemwl, _eam, MEM_HELD_PTR_MACRO)
+MEM_HELD_PTR_R(uint32_t, readmemll, _eam, MEM_HELD_PTR_MACRO)
+MEM_HELD_PTR_R(uint16_t, readmemwl, _ea, MEM_HELD_PTR)
+MEM_HELD_PTR_R(uint32_t, readmemll, _ea, MEM_HELD_PTR)
+MEM_HELD_PTR_W(uint8_t, writemembl)
+MEM_HELD_PTR_W(uint16_t, writememwl)
+MEM_HELD_PTR_W(uint32_t, writememll)
 
 /* The len bytes at addr in a mapping's exec memory, for the physical
    paths, or NULL where they would fall past the RAM allocated: a mapping

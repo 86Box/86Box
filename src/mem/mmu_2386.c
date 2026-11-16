@@ -465,7 +465,7 @@ writememwl_2386(uint32_t addr, uint16_t val)
                 for (uint8_t i = 0; i < 2; i++) {
                     /* Do not translate a page that has a valid lookup, as that is by definition valid
                        and the whole purpose of the lookup is to avoid repeat identical translations. */
-                    if (!page_lookup[(addr + i) >> 12] || !page_lookup[(addr + i) >> 12]->write_b) {
+                    if (!mem_page_lookup((addr + i) >> 12) || !mem_page_lookup((addr + i) >> 12)->write_b) {
                         a          = mmutranslate_write_2386(addr + i);
                         addr64a[i] = (uint32_t) a;
 
@@ -701,7 +701,7 @@ writememll_2386(uint32_t addr, uint32_t val)
                 for (i = 0; i < 4; i++) {
                     /* Do not translate a page that has a valid lookup, as that is by definition valid
                        and the whole purpose of the lookup is to avoid repeat identical translations. */
-                    if (!page_lookup[(addr + i) >> 12] || !page_lookup[(addr + i) >> 12]->write_b) {
+                    if (!mem_page_lookup((addr + i) >> 12) || !mem_page_lookup((addr + i) >> 12)->write_b) {
                         if (i == 0) {
                             a          = mmutranslate_write_2386(addr + i);
                             addr64a[i] = (uint32_t) a;
@@ -972,7 +972,7 @@ writememql_2386(uint32_t addr, uint64_t val)
                 for (i = 0; i < 8; i++) {
                     /* Do not translate a page that has a valid lookup, as that is by definition valid
                        and the whole purpose of the lookup is to avoid repeat identical translations. */
-                    if (!page_lookup[(addr + i) >> 12] || !page_lookup[(addr + i) >> 12]->write_b) {
+                    if (!mem_page_lookup((addr + i) >> 12) || !mem_page_lookup((addr + i) >> 12)->write_b) {
                         if (i == 0) {
                             a          = mmutranslate_write_2386(addr + i);
                             addr64a[i] = (uint32_t) a;

@@ -72,6 +72,7 @@ void
 x86seg_reset(void)
 {
     seg_reset(&cpu_state.seg_cs);
+    mem_held_release();
     seg_reset(&cpu_state.seg_ds);
     seg_reset(&cpu_state.seg_es);
     seg_reset(&cpu_state.seg_fs);
