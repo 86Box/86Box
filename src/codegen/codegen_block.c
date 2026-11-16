@@ -1474,6 +1474,31 @@ codegen_delete_random_block(int required_mem_block)
     }
 }
 
+/* A block thrown out because its code was written: the lines written are in
+   the processor's caches now, as written data, so the code fetched from them
+   next is not a miss (cpu_code_line_tags). mask has the block's written
+   64-byte chunks on its first page, or with second set on its second. */
+static void
+codegen_code_lines_written(const codeblock_t *block, uint64_t mask, int second)
+{
+    uint32_t line = (block->pc >> CPU_CODE_LINE_SHIFT) + second;
+
+    if (!cpu_code_miss_cycles)
+        return;
+
+    if (!(block->flags & CODEBLOCK_BYTE_MASK)) {
+        line = ((block->pc & ~0xfff) >> CPU_CODE_LINE_SHIFT) + (second ? 64 : 0);
+        while (mask) {
+            const uint32_t tag = line + __builtin_ctzll(mask) + 1;
+
+            cpu_code_line_tags[tag & (CPU_CODE_LINES - 1)] = tag;
+            mask &= mask - 1;
+        }
+        return;
+    }
+    cpu_code_line_tags[(line + 1) & (CPU_CODE_LINES - 1)] = line + 1;
+}
+
 void
 codegen_check_flush(page_t *page, UNUSED(uint64_t mask), UNUSED(uint32_t phys_addr))
 {
@@ -1540,6 +1565,7 @@ codegen_check_flush(page_t *page, UNUSED(uint64_t mask), UNUSED(uint32_t phys_ad
                 uint32_t     next_block = block->next;
 
                 if (*block->dirty_mask & block->page_mask) {
+                    codegen_code_lines_written(block, *block->dirty_mask & block->page_mask, 0);
                     invalidate_block(block);
                 }
 #ifndef RELEASE_BUILD
@@ -1563,6 +1589,7 @@ codegen_check_flush(page_t *page, UNUSED(uint64_t mask), UNUSED(uint32_t phys_ad
             words |= ((c >= 0) && (c < 64)) ? ((uint64_t) 1 << c) : UINT64_MAX;
         }
         if (*block->dirty_mask2 & block->page_mask2) {
+            codegen_code_lines_written(block, *block->dirty_mask2 & block->page_mask2, 1);
             invalidate_block(block);
         }
 #ifndef RELEASE_BUILD
@@ -1660,10 +1687,68 @@ codegen_get_ir_data(void)
     return ir_data;
 }
 
+/* Checks, on entry to the block, that the code lines it was marked over are
+   among those fetched lately (cpu_code_line_tags); one that is not costs a
+   memory read (cpu_code_line_miss()). Compiled code fetches nothing through
+   the slow paths that touch the lines, so without this a compiled block would
+   run free however long ago its code was last fetched. That matters only
+   while the block cache thrashes (codegen_admit()): with more code going
+   round than the cache holds compiled, far more than any processor cache
+   holds, a block runs a few times before it is thrown out, each time from
+   cold. Otherwise the checks would only make compiled code bigger and
+   slower, so blocks get them only then; the reset that ends the thrash
+   phase drops them all. The block's lines are those of its 64-byte chunks
+   in the marking pass's page masks; a byte-mask block's masks are bytes of
+   its chunk and the next one. */
+#define CODEGEN_CODE_LINES_MAX 16
+
+static void
+codegen_code_lines_check(ir_data_t *ir, const codeblock_t *block, uint64_t mask, uint64_t mask2, int byte_mask)
+{
+    uint32_t lines[CODEGEN_CODE_LINES_MAX];
+    int      nr = 0;
+
+    if (!cpu_code_miss_cycles || (codegen_evict_thrash < CODEGEN_ADMIT_THRASH))
+        return;
+
+    if (byte_mask) {
+        lines[nr++] = block->pc >> CPU_CODE_LINE_SHIFT;
+        if (mask2)
+            lines[nr++] = (block->pc >> CPU_CODE_LINE_SHIFT) + 1;
+    } else {
+        const uint32_t base = (block->pc & ~0xfff) >> CPU_CODE_LINE_SHIFT;
+
+        if (!mask && !mask2)
+            mask = (uint64_t) 1 << ((block->pc >> CPU_CODE_LINE_SHIFT) & 63);
+        for (int c = 0; (c < 64) && (nr < CODEGEN_CODE_LINES_MAX); c++) {
+            if (mask & ((uint64_t) 1 << c))
+                lines[nr++] = base + c;
+        }
+        for (int c = 0; (c < 64) && (nr < CODEGEN_CODE_LINES_MAX); c++) {
+            if (mask2 & ((uint64_t) 1 << c))
+                lines[nr++] = base + 64 + c;
+        }
+    }
+
+    for (int c = 0; c < nr; c++) {
+        const uint32_t tag = lines[c] + 1;
+        int            jump_uop;
+
+        uop_MOV_REG_PTR(ir, IREG_temp0, &cpu_code_line_tags[tag & (CPU_CODE_LINES - 1)]);
+        jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_temp0, tag);
+        uop_LOAD_FUNC_ARG_IMM(ir, 0, tag);
+        uop_CALL_FUNC(ir, cpu_code_line_miss);
+        uop_NOP_BARRIER(ir);
+        uop_set_jump_dest(ir, jump_uop);
+    }
+}
+
 void
 codegen_block_start_recompile(codeblock_t *block)
 {
-    page_t *page = &pages[block->phys >> 12];
+    page_t        *page            = &pages[block->phys >> 12];
+    const uint64_t mark_page_mask  = block->page_mask;
+    const uint64_t mark_page_mask2 = block->page_mask2;
 
     if (codegen_evict_thrash && (--codegen_evict_thrash == (CODEGEN_ADMIT_THRASH - 1)))
         codegen_reset_pending = 1;
@@ -1760,6 +1845,8 @@ codegen_block_start_recompile(codeblock_t *block)
     codegen_accumulate_reset();
     codegen_generate_reset();
     codegen_fwd_reset();
+
+    codegen_code_lines_check(ir_data, block, mark_page_mask, mark_page_mask2, block->flags & CODEBLOCK_BYTE_MASK);
 }
 
 void

@@ -822,6 +822,12 @@ extern int cpu_cycles_write_l;
 extern int cpu_prefetch_cycles;
 extern int cpu_prefetch_width;
 extern int cpu_mem_prefetch_cycles;
+extern int cpu_code_miss_cycles;
+/* Code lines fetched lately, for the code fetch miss cost (386_dynarec.c). */
+#define CPU_CODE_LINE_SHIFT 6
+#define CPU_CODE_LINES      8192
+extern uint32_t cpu_code_line_tags[CPU_CODE_LINES];
+extern void     cpu_code_line_miss(uint32_t tag);
 extern int cpu_rom_prefetch_cycles;
 /* The machine has an MCA bus: set by cpu_set(), which every machine change
    reaches before an instruction runs. */
