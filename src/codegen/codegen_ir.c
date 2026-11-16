@@ -68,6 +68,7 @@ codegen_ir_init(void)
 
     codegen_unroll_count = 0;
     codegen_accumulate_begin();
+    codegen_exit_end_charge_clear();
 
     return &ir_block;
 }

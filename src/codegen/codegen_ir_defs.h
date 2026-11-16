@@ -513,6 +513,16 @@ extern void codegen_exit_stamp(ir_data_t *ir, int held);
 extern void codegen_record_exit(int pos, int held);
 extern void codegen_record_route(int pos, void *p);
 
+/* The exits of the uops generated between codegen_exit_end_charge_begin and
+   _end leave where a C call of the last instruction would have raised the
+   fault and left at the block's end: they charge what the timing model
+   drains there in place of the held cycle (codegen_exit_end_charge_apply,
+   from the block's end). For an instruction that ends the block */
+extern void codegen_exit_end_charge_begin(ir_data_t *ir);
+extern void codegen_exit_end_charge_end(ir_data_t *ir);
+extern void codegen_exit_end_charge_apply(ir_data_t *ir, int drain);
+extern void codegen_exit_end_charge_clear(void);
+
 /* Whether the exits taken on a fault, or to run an instruction again,
    charge the timing model's held cycle too */
 #define EXIT_FAULT_HELD 1
