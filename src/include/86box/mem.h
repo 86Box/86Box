@@ -295,6 +295,12 @@ extern uint32_t  mmut_hit_r_page;
 extern uint32_t  mmut_hit_r2_page;
 extern uint32_t  mmut_hit_w_page;
 
+/* What a translate step that walked nothing (its page was in a lookup table,
+   or held) leaves as the operand's first walked address, with paging on. The
+   _no_mmut accesses walk then, if the entry is gone by the access. A walked
+   address equal to it costs a second walk with the same result. */
+#define MMUT_UNWALKED 0xffffffff
+
 /* The lookup entries held out of the tables while the CPU is in ring 3
    (mem.c): how many, what the tables would hold for an access they are held
    for, and their move into the tables. */

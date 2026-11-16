@@ -139,7 +139,9 @@
    readmem*_n() or writemem*_n() access that follows uses that entry and
    does not test the table again: a flush from another thread between the
    two would otherwise leave the access with neither an entry nor a walked
-   address. */
+   address. When it uses an entry, b[0] is MMUT_UNWALKED (mem.h): if a flush
+   or an eviction on the CPU thread drops the entry before the access, the
+   access walks then. */
 
 static __inline void
 do_mmut_hit(uintptr_t *hit, uint32_t *hit_page, uint32_t set, uint32_t s, uint32_t a, uint32_t *b, int num, int write)
@@ -155,6 +157,7 @@ do_mmut_hit(uintptr_t *hit, uint32_t *hit_page, uint32_t set, uint32_t s, uint32
     else
         e = *(volatile uintptr_t *) &readlookup2[set | (addr >> 12)];
     if ((e != (uintptr_t) LOOKUP_INV) && (s != 0xFFFFFFFF) && !(addr & (num - 1))) {
+        b[0]      = MMUT_UNWALKED;
         *hit      = e;
         *hit_page = addr >> 12;
     } else if (s == 0xFFFFFFFF)

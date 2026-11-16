@@ -1748,6 +1748,40 @@ writemembl(uint32_t addr, uint8_t val)
         map->write_b(addr, val, map->priv);
 }
 
+/* The physical address of an aligned access whose translate step walked
+   nothing (MMUT_UNWALKED) and whose entry is gone: a flush or an eviction on
+   the CPU thread came between the two, such as an I/O read handler's that
+   remaps memory. No such handler changes the page tables, so the walk finds
+   what the translate step's entry stood for; the access then goes through
+   the memory map as it is now. A fault leaves cpu_state.abrt set: the access
+   is not made, and the instruction stops there as it would at a fault of
+   its translate step. */
+static uint32_t
+mem_no_mmut_walk(uint32_t addr, int write)
+{
+    const uint64_t a = mmutranslatereal(addr, write);
+
+    if (cpu_state.abrt)
+        return MMUT_UNWALKED;
+    high_page = high_page || (a > 0xffffffffULL);
+    return (uint32_t) a;
+}
+
+/* Non-zero if the walk faulted. */
+static __inline int
+mem_no_mmut_walk_n(uint32_t addr, uint32_t *a64, int num, int write)
+{
+    if ((cr0 >> 31) && (a64[0] == MMUT_UNWALKED) && !(addr & (num - 1))) {
+        const uint32_t a = mem_no_mmut_walk(addr, write);
+
+        if (cpu_state.abrt)
+            return 1;
+        for (int i = 0; i < num; i++)
+            a64[i] = a + i;
+    }
+    return 0;
+}
+
 /* Read a byte from memory without MMU translation - result of previous MMU translation passed as value. */
 static uint8_t
 readmembl_no_mmut_body(uint32_t addr, uint32_t a64)
@@ -1779,6 +1813,12 @@ readmembl_no_mmut(uint32_t addr, uint32_t a64)
     /* A held entry, as the table's hit before the call. */
     if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 0) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
         return *(uint8_t *) (mem_held_hit + addr);
+
+    if ((cr0 >> 31) && (a64 == MMUT_UNWALKED)) {
+        a64 = mem_no_mmut_walk(addr, 0);
+        if (cpu_state.abrt)
+            return 0xff;
+    }
 
     return readmembl_no_mmut_body(addr, a64);
 }
@@ -1818,6 +1858,12 @@ writemembl_no_mmut(uint32_t addr, uint32_t a64, uint8_t val)
     if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 0) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {
         *(uint8_t *) (mem_held_hit + addr) = val;
         return;
+    }
+
+    if ((cr0 >> 31) && (a64 == MMUT_UNWALKED)) {
+        a64 = mem_no_mmut_walk(addr, 1);
+        if (cpu_state.abrt)
+            return;
     }
 
     writemembl_no_mmut_body(addr, a64, val);
@@ -2050,6 +2096,9 @@ readmemwl_no_mmut(uint32_t addr, uint32_t *a64)
     if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 1) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
         return *(uint16_t *) (mem_held_hit + addr);
 
+    if (mem_no_mmut_walk_n(addr, a64, 2, 0))
+        return 0xffff;
+
     return readmemwl_no_mmut_body(addr, a64);
 }
 
@@ -2119,6 +2168,9 @@ writememwl_no_mmut(uint32_t addr, uint32_t *a64, uint16_t val)
         *(uint16_t *) (mem_held_hit + addr) = val;
         return;
     }
+
+    if (mem_no_mmut_walk_n(addr, a64, 2, 1))
+        return;
 
     writememwl_no_mmut_body(addr, a64, val);
 }
@@ -2385,6 +2437,9 @@ readmemll_no_mmut(uint32_t addr, uint32_t *a64)
     if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 3) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
         return *(uint32_t *) (mem_held_hit + addr);
 
+    if (mem_no_mmut_walk_n(addr, a64, 4, 0))
+        return 0xffffffff;
+
     return readmemll_no_mmut_body(addr, a64);
 }
 
@@ -2460,6 +2515,9 @@ writememll_no_mmut(uint32_t addr, uint32_t *a64, uint32_t val)
         *(uint32_t *) (mem_held_hit + addr) = val;
         return;
     }
+
+    if (mem_no_mmut_walk_n(addr, a64, 4, 1))
+        return;
 
     writememll_no_mmut_body(addr, a64, val);
 }
@@ -2681,8 +2739,10 @@ do_mmutranslate(uint32_t addr, uint32_t *a64, int num, int write)
     /* A held entry, as the table's hit that keeps an aligned access from
        coming here. */
     if (UNLIKELY(mem_held_num) && (mem_held_mode != MEM_HELD_CALLED) && ((num == 1) || !(addr & (num - 1))) &&
-        ((write ? mem_held_w(addr) : mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
+        ((write ? mem_held_w(addr) : mem_held_r(addr)) != (uintptr_t) LOOKUP_INV)) {
+        a64[0] = MMUT_UNWALKED;
         return;
+    }
 
     for (i = 0; i < num; i++)
         a64[i] = (uint64_t) (addr + i);

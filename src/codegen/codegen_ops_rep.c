@@ -18,7 +18,8 @@
 /*do_mmut_r*() and do_mmut_w*() of an element inside a run (rep_run_room()):
   the segment bases are known not to be 0xffffffff, and pg is CR0.PG, which
   no element can change. Like them, they leave the entry used in hit and
-  its virtual page in hit_page.*/
+  its virtual page in hit_page, and MMUT_UNWALKED in a64[0] when they used
+  an entry.*/
 #define REP_MMUT(pg, lookup, hit, hit_page, lin, a64, num, write)           \
     do {                                                                    \
         const uint32_t lin_ = (lin);                                        \
@@ -32,6 +33,7 @@
             else {                                                          \
                 (hit)      = e_;                                            \
                 (hit_page) = lin_ >> 12;                                    \
+                (a64)[0]   = MMUT_UNWALKED;                                 \
             }                                                               \
         }                                                                   \
     } while (0)

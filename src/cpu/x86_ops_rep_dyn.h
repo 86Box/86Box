@@ -17,6 +17,8 @@
                                                                                                                   \
             temp = inb(DX);                                                                                       \
             writememb_n(es, DEST_REG, addr64, temp);                                                              \
+            if (cpu_state.abrt)                                                                                   \
+                return 1;                                                                                         \
                                                                                                                   \
             if (cpu_state.flags & D_FLAG)                                                                         \
                 DEST_REG--;                                                                                       \
@@ -50,6 +52,8 @@
                                                                                                                   \
             temp = inw(DX);                                                                                       \
             writememw_n(es, DEST_REG, addr64a, temp);                                                             \
+            if (cpu_state.abrt)                                                                                   \
+                return 1;                                                                                         \
                                                                                                                   \
             if (cpu_state.flags & D_FLAG)                                                                         \
                 DEST_REG -= 2;                                                                                    \
@@ -83,6 +87,8 @@
                                                                                                                   \
             temp = inl(DX);                                                                                       \
             writememl_n(es, DEST_REG, addr64a, temp);                                                             \
+            if (cpu_state.abrt)                                                                                   \
+                return 1;                                                                                         \
                                                                                                                   \
             if (cpu_state.flags & D_FLAG)                                                                         \
                 DEST_REG -= 4;                                                                                    \
@@ -115,6 +121,8 @@
             check_io_perm(DX, 1);                                                                                 \
                                                                                                                   \
             temp = readmemb_n(cpu_state.ea_seg->base, SRC_REG, addr64);                                           \
+            if (cpu_state.abrt)                                                                                   \
+                return 1;                                                                                         \
             outb(DX, temp);                                                                                       \
                                                                                                                   \
             if (cpu_state.flags & D_FLAG)                                                                         \
@@ -147,6 +155,8 @@
             check_io_perm(DX, 2);                                                                                 \
                                                                                                                   \
             temp = readmemw_n(cpu_state.ea_seg->base, SRC_REG, addr64a);                                          \
+            if (cpu_state.abrt)                                                                                   \
+                return 1;                                                                                         \
             outw(DX, temp);                                                                                       \
                                                                                                                   \
             if (cpu_state.flags & D_FLAG)                                                                         \
@@ -179,6 +189,8 @@
             check_io_perm(DX, 4);                                                                                 \
                                                                                                                   \
             temp = readmeml_n(cpu_state.ea_seg->base, SRC_REG, addr64a);                                          \
+            if (cpu_state.abrt)                                                                                   \
+                return 1;                                                                                         \
             outl(DX, temp);                                                                                       \
                                                                                                                   \
             if (cpu_state.flags & D_FLAG)                                                                         \
@@ -221,6 +233,8 @@
                                                                                                                   \
             temp = readmemb_n(cpu_state.ea_seg->base, SRC_REG, addr64);                                           \
             writememb_n(es, DEST_REG, addr64_2, temp);                                                            \
+            if (cpu_state.abrt)                                                                                   \
+                break;                                                                                            \
                                                                                                                   \
             if (cpu_state.flags & D_FLAG) {                                                                       \
                 DEST_REG--;                                                                                       \
@@ -267,6 +281,8 @@
                                                                                                                   \
             temp = readmemw_n(cpu_state.ea_seg->base, SRC_REG, addr64a);                                          \
             writememw_n(es, DEST_REG, addr64a_2, temp);                                                           \
+            if (cpu_state.abrt)                                                                                   \
+                break;                                                                                            \
                                                                                                                   \
             if (cpu_state.flags & D_FLAG) {                                                                       \
                 DEST_REG -= 2;                                                                                    \
@@ -313,6 +329,8 @@
                                                                                                                   \
             temp = readmeml_n(cpu_state.ea_seg->base, SRC_REG, addr64a);                                          \
             writememl_n(es, DEST_REG, addr64a_2, temp);                                                           \
+            if (cpu_state.abrt)                                                                                   \
+                break;                                                                                            \
                                                                                                                   \
             if (cpu_state.flags & D_FLAG) {                                                                       \
                 DEST_REG -= 4;                                                                                    \
@@ -541,6 +559,8 @@
             is_compare = 1;                                                                                       \
             temp2 = readmemb_n2(cpu_state.ea_seg->base, SRC_REG, addr64_2);                                       \
             is_compare = 0;                                                                                       \
+            if (cpu_state.abrt)                                                                                   \
+                return 1;                                                                                         \
                                                                                                                   \
             if (cpu_state.flags & D_FLAG) {                                                                       \
                 DEST_REG--;                                                                                       \
@@ -589,6 +609,8 @@
             is_compare = 1;                                                                                       \
             temp2 = readmemw_n2(cpu_state.ea_seg->base, SRC_REG, addr64a_2);                                      \
             is_compare = 0;                                                                                       \
+            if (cpu_state.abrt)                                                                                   \
+                return 1;                                                                                         \
                                                                                                                   \
             if (cpu_state.flags & D_FLAG) {                                                                       \
                 DEST_REG -= 2;                                                                                    \
@@ -637,6 +659,8 @@
             is_compare = 1;                                                                                       \
             temp2 = readmeml_n2(cpu_state.ea_seg->base, SRC_REG, addr64a_2);                                      \
             is_compare = 0;                                                                                       \
+            if (cpu_state.abrt)                                                                                   \
+                return 1;                                                                                         \
                                                                                                                   \
             if (cpu_state.flags & D_FLAG) {                                                                       \
                 DEST_REG -= 4;                                                                                    \

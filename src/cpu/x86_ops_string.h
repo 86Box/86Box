@@ -21,6 +21,8 @@ opMOVSB_a16_ex(UNUSED(uint32_t fetchdat))
 
     temp = readmemb_n(cpu_state.ea_seg->base, SI, addr64);
     writememb_n(es, DI, addr64_2, temp);
+    if (cpu_state.abrt)
+        return 1;
 
     CLOCK_CYCLES(7);
     PREFETCH_RUN(7, 1, -1, 1, 0, 1, 0, 0);
@@ -68,6 +70,8 @@ opMOVSB_a32(UNUSED(uint32_t fetchdat))
 
     temp = readmemb_n(cpu_state.ea_seg->base, ESI, addr64);
     writememb_n(es, EDI, addr64_2, temp);
+    if (cpu_state.abrt)
+        return 1;
 
     if (cpu_state.flags & D_FLAG) {
         EDI--;
@@ -105,6 +109,8 @@ opMOVSW_a16_ex(UNUSED(uint32_t fetchdat))
 
     temp = readmemw_n(cpu_state.ea_seg->base, SI, addr64a);
     writememw_n(es, DI, addr64a_2, temp);
+    if (cpu_state.abrt)
+        return 1;
 
     CLOCK_CYCLES(7);
     PREFETCH_RUN(7, 1, -1, 1, 0, 1, 0, 0);
@@ -153,6 +159,8 @@ opMOVSW_a32(UNUSED(uint32_t fetchdat))
 
     temp = readmemw_n(cpu_state.ea_seg->base, ESI, addr64a);
     writememw_n(es, EDI, addr64a_2, temp);
+    if (cpu_state.abrt)
+        return 1;
 
     if (cpu_state.flags & D_FLAG) {
         EDI -= 2;
@@ -190,6 +198,8 @@ opMOVSL_a16(UNUSED(uint32_t fetchdat))
 
     temp = readmeml_n(cpu_state.ea_seg->base, SI, addr64a);
     writememl_n(es, DI, addr64a_2, temp);
+    if (cpu_state.abrt)
+        return 1;
 
     if (cpu_state.flags & D_FLAG) {
         DI -= 4;
@@ -226,6 +236,8 @@ opMOVSL_a32(UNUSED(uint32_t fetchdat))
 
     temp = readmeml_n(cpu_state.ea_seg->base, ESI, addr64a);
     writememl_n(es, EDI, addr64a_2, temp);
+    if (cpu_state.abrt)
+        return 1;
 
     if (cpu_state.flags & D_FLAG) {
         EDI -= 4;
@@ -265,6 +277,8 @@ opCMPSB_a16_ex(UNUSED(uint32_t fetchdat))
     is_compare = 1;
     dst = readmemb_n2(cpu_state.ea_seg->base, SI, addr64_2);
     is_compare = 0;
+    if (cpu_state.abrt)
+        return 1;
 
     setsub8(dst, src);
     CLOCK_CYCLES((is486) ? 8 : 10);
@@ -316,6 +330,8 @@ opCMPSB_a32(UNUSED(uint32_t fetchdat))
     is_compare = 1;
     dst = readmemb_n2(cpu_state.ea_seg->base, ESI, addr64_2);
     is_compare = 0;
+    if (cpu_state.abrt)
+        return 1;
 
     setsub8(dst, src);
 
@@ -358,6 +374,8 @@ opCMPSW_a16_ex(UNUSED(uint32_t fetchdat))
     is_compare = 1;
     dst = readmemw_n2(cpu_state.ea_seg->base, SI, addr64a_2);
     is_compare = 0;
+    if (cpu_state.abrt)
+        return 1;
 
     setsub16(dst, src);
     CLOCK_CYCLES((is486) ? 8 : 10);
@@ -410,6 +428,8 @@ opCMPSW_a32(UNUSED(uint32_t fetchdat))
     is_compare = 1;
     dst = readmemw_n2(cpu_state.ea_seg->base, ESI, addr64a_2);
     is_compare = 0;
+    if (cpu_state.abrt)
+        return 1;
 
     setsub16(dst, src);
     if (cpu_state.flags & D_FLAG) {
@@ -451,6 +471,8 @@ opCMPSL_a16(UNUSED(uint32_t fetchdat))
     is_compare = 1;
     dst = readmeml_n2(cpu_state.ea_seg->base, SI, addr64a_2);
     is_compare = 0;
+    if (cpu_state.abrt)
+        return 1;
 
     setsub32(dst, src);
     if (cpu_state.flags & D_FLAG) {
@@ -491,6 +513,8 @@ opCMPSL_a32(UNUSED(uint32_t fetchdat))
     is_compare = 1;
     dst = readmeml_n2(cpu_state.ea_seg->base, ESI, addr64a_2);
     is_compare = 0;
+    if (cpu_state.abrt)
+        return 1;
 
     setsub32(dst, src);
     if (cpu_state.flags & D_FLAG) {
@@ -933,6 +957,8 @@ opINSB_a16_ex(UNUSED(uint32_t fetchdat))
 
     temp = inb(DX);
     writememb_n(es, DI, addr64, temp);
+    if (cpu_state.abrt)
+        return 1;
 
     CLOCK_CYCLES(15);
     PREFETCH_RUN(15, 1, -1, 1, 0, 1, 0, 0);
@@ -970,6 +996,8 @@ opINSB_a32(UNUSED(uint32_t fetchdat))
 
     temp = inb(DX);
     writememb_n(es, EDI, addr64, temp);
+    if (cpu_state.abrt)
+        return 1;
 
     if (cpu_state.flags & D_FLAG)
         EDI--;
@@ -998,6 +1026,8 @@ opINSW_a16_ex(UNUSED(uint32_t fetchdat))
 
     temp = inw(DX);
     writememw_n(es, DI, addr64a, temp);
+    if (cpu_state.abrt)
+        return 1;
 
     CLOCK_CYCLES(15);
     PREFETCH_RUN(15, 1, -1, 1, 0, 1, 0, 0);
@@ -1035,6 +1065,8 @@ opINSW_a32(UNUSED(uint32_t fetchdat))
 
     temp = inw(DX);
     writememw_n(es, EDI, addr64a, temp);
+    if (cpu_state.abrt)
+        return 1;
 
     if (cpu_state.flags & D_FLAG)
         EDI -= 2;
@@ -1063,6 +1095,8 @@ opINSL_a16(UNUSED(uint32_t fetchdat))
 
     temp = inl(DX);
     writememl_n(es, DI, addr64a, temp);
+    if (cpu_state.abrt)
+        return 1;
 
     if (cpu_state.flags & D_FLAG)
         DI -= 4;
@@ -1090,6 +1124,8 @@ opINSL_a32(UNUSED(uint32_t fetchdat))
 
     temp = inl(DX);
     writememl_n(es, EDI, addr64a, temp);
+    if (cpu_state.abrt)
+        return 1;
 
     if (cpu_state.flags & D_FLAG)
         EDI -= 4;
@@ -1115,6 +1151,8 @@ opOUTSB_a16_ex(UNUSED(uint32_t fetchdat))
     check_io_perm(DX, 1);
 
     temp = readmemb_n(cpu_state.ea_seg->base, SI, addr64);
+    if (cpu_state.abrt)
+        return 1;
     outb(DX, temp);
 
     CLOCK_CYCLES(14);
@@ -1150,6 +1188,8 @@ opOUTSB_a32(UNUSED(uint32_t fetchdat))
     check_io_perm(DX, 1);
 
     temp = readmemb_n(cpu_state.ea_seg->base, ESI, addr64);
+    if (cpu_state.abrt)
+        return 1;
     outb(DX, temp);
 
     if (cpu_state.flags & D_FLAG)
@@ -1176,6 +1216,8 @@ opOUTSW_a16_ex(UNUSED(uint32_t fetchdat))
     check_io_perm(DX, 2);
 
     temp = readmemw_n(cpu_state.ea_seg->base, SI, addr64a);
+    if (cpu_state.abrt)
+        return 1;
     outw(DX, temp);
     CLOCK_CYCLES(14);
     PREFETCH_RUN(14, 1, -1, 1, 0, 1, 0, 0);
@@ -1210,6 +1252,8 @@ opOUTSW_a32(UNUSED(uint32_t fetchdat))
     check_io_perm(DX, 2);
 
     temp = readmemw_n(cpu_state.ea_seg->base, ESI, addr64a);
+    if (cpu_state.abrt)
+        return 1;
     outw(DX, temp);
 
     if (cpu_state.flags & D_FLAG)
@@ -1237,6 +1281,8 @@ opOUTSL_a16(UNUSED(uint32_t fetchdat))
     check_io_perm(DX, 4);
 
     temp = readmeml_n(cpu_state.ea_seg->base, SI, addr64a);
+    if (cpu_state.abrt)
+        return 1;
     outl(DX, temp);
 
     if (cpu_state.flags & D_FLAG)
@@ -1262,6 +1308,8 @@ opOUTSL_a32(UNUSED(uint32_t fetchdat))
     check_io_perm(DX, 4);
 
     temp = readmeml_n(cpu_state.ea_seg->base, ESI, addr64a);
+    if (cpu_state.abrt)
+        return 1;
     outl(DX, temp);
 
     if (cpu_state.flags & D_FLAG)
