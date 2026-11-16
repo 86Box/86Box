@@ -3,19 +3,11 @@
 # output every command that modifies files on the build system.
 #export DH_VERBOSE = 1
 
-ARCH=$(shell dpkg-architecture -qDEB_HOST_ARCH)
-
-ifeq ($(ARCH), $(filter $(ARCH), amd64))
-	NDR=off
-else
-	NDR=on
-endif
-
 %:
 	dh $@ --buildsystem cmake+ninja
 
 override_dh_auto_configure:
-	dh_auto_configure --buildsystem cmake+ninja -- --preset regular -DNEW_DYNAREC=$(NDR) -B .
+	dh_auto_configure --buildsystem cmake+ninja -- --preset regular -B .
 
 override_dh_auto_build:
 	dh_auto_build --buildsystem cmake+ninja
