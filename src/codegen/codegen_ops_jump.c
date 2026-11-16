@@ -446,6 +446,67 @@ retf_pm(codeblock_t *block, ir_data_t *ir, uint32_t op_pc, int is32, int has_imm
     return -1;
 }
 
+/*The CS load of a real or virtual 8086 mode far RET, the selector in
+  temp1_W: loadcs()'s real and V86 mode branch, compiled. Taken when, as the
+  block runs, PE and VM are those seen here and oldcpl is the CPL the load
+  leaves, so no ring 3 flush is due and oldcpl is kept, and the held lookup
+  entries are left alone (V86: CPL 3 after the load; real mode: none held);
+  any other case calls loadcs()*/
+static void
+retf_load_cs_rm(ir_data_t *ir)
+{
+#ifdef CODEGEN_BACKEND_HAS_CALL_FAR_RM
+    const int v86 = !!(cpu_state.eflags & VM_FLAG);
+    int       jump_slow[4];
+    int       nr_jump_slow = 0;
+    int       jump_end;
+
+    /*Real mode with VM set loads CS as V86 mode does: the routine*/
+    if (((msw & 1) != v86) || (reg_last_version[IREG_GET_REG(IREG_temp2)] + 8 > REG_VERSION_MAX) ||
+        (reg_last_version[IREG_GET_REG(IREG_CS_seg)] + 4 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_CS_base)] + 4 > REG_VERSION_MAX) ||
+        (reg_last_version[IREG_GET_REG(IREG_CS_limit_low)] + 4 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_CS_limit_high)] + 4 > REG_VERSION_MAX)) {
+        uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
+        uop_CALL_FUNC(ir, loadcs);
+        return;
+    }
+
+    uop_MOV_REG_PTR(ir, IREG_temp2, &cr0);
+    uop_AND_IMM(ir, IREG_temp2, IREG_temp2, 1);
+    jump_slow[nr_jump_slow++] = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp2, v86);
+    uop_MOVZX(ir, IREG_temp2, IREG_eflags);
+    uop_AND_IMM(ir, IREG_temp2, IREG_temp2, VM_FLAG);
+    jump_slow[nr_jump_slow++] = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp2, v86 ? VM_FLAG : 0);
+    uop_MOV_REG_PTR(ir, IREG_temp2, &oldcpl);
+    jump_slow[nr_jump_slow++] = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp2, v86 ? 3 : 0);
+    if (!v86) {
+        uop_MOV_REG_PTR(ir, IREG_temp2, &mem_held_num);
+        jump_slow[nr_jump_slow++] = uop_CMP_IMM_JNZ_DEST(ir, IREG_temp2, 0);
+    }
+
+    uop_MOV(ir, IREG_CS_seg_W, IREG_temp1_W);
+    uop_MOVZX(ir, IREG_CS_base, IREG_temp1_W);
+    uop_SHL_IMM(ir, IREG_CS_base, IREG_CS_base, 4);
+    uop_MOV_IMM(ir, IREG_CS_limit_low, 0);
+    uop_MOV_IMM(ir, IREG_CS_limit_high, 0xffff);
+    uop_STORE_PTR_IMM(ir, &cpu_state.seg_cs.limit, 0xffff);
+    uop_STORE_PTR_IMM_8(ir, &cpu_state.seg_cs.access, v86 ? 0xe2 : 0x82);
+    uop_STORE_PTR_IMM_8(ir, &cpu_state.seg_cs.ar_high, 0x10);
+    uop_STORE_PTR_IMM(ir, &cpu_state.seg_cs.checked, 1);
+    /*Both ways end in a full barrier: the join below reloads nothing*/
+    uop_NOP_BARRIER(ir);
+    jump_end = uop_JMP_DEST(ir);
+
+    for (int c = 0; c < nr_jump_slow; c++)
+        uop_set_jump_dest(ir, jump_slow[c]);
+    uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
+    uop_CALL_FUNC(ir, loadcs);
+    uop_set_jump_dest(ir, jump_end);
+#else
+    uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
+    uop_CALL_FUNC(ir, loadcs);
+#endif
+}
+
 uint32_t
 ropRETF_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc))
 {
@@ -466,8 +527,7 @@ ropRETF_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UN
         uop_MEM_LOAD_REG(ir, IREG_temp1_W, IREG_SS_base, IREG_eaaddr);
     }
     uop_MOVZX(ir, IREG_pc, IREG_temp0_W);
-    uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
-    uop_CALL_FUNC(ir, loadcs);
+    retf_load_cs_rm(ir);
     ADD_SP(ir, 4);
     /*The op's own charge, on top of the timing model's, once nothing can
       fault; the block's end flushes it*/
@@ -494,8 +554,7 @@ ropRETF_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UN
         uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1, IREG_SS_base, IREG_eaaddr, 4);
     }
     uop_MOV(ir, IREG_pc, IREG_temp0);
-    uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
-    uop_CALL_FUNC(ir, loadcs);
+    retf_load_cs_rm(ir);
     ADD_SP(ir, 8);
     codegen_accumulate(ir, ACCREG_cycles, -timing_retf_rm);
 
@@ -525,8 +584,7 @@ ropRETF_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
         uop_MEM_LOAD_REG(ir, IREG_temp1_W, IREG_SS_base, IREG_eaaddr);
     }
     uop_MOVZX(ir, IREG_pc, IREG_temp0_W);
-    uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
-    uop_CALL_FUNC(ir, loadcs);
+    retf_load_cs_rm(ir);
     ADD_SP(ir, 4 + offset);
     codegen_accumulate(ir, ACCREG_cycles, -timing_retf_rm);
 
@@ -555,8 +613,7 @@ ropRETF_imm_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
         uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1, IREG_SS_base, IREG_eaaddr, 4);
     }
     uop_MOV(ir, IREG_pc, IREG_temp0);
-    uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
-    uop_CALL_FUNC(ir, loadcs);
+    retf_load_cs_rm(ir);
     ADD_SP(ir, 8 + offset);
     codegen_accumulate(ir, ACCREG_cycles, -timing_retf_rm);
 
