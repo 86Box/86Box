@@ -46,6 +46,13 @@ typedef struct codegen_link_slot_t {
     uint8_t      top_mask;    /*7 if the block has a static TOP, otherwise 0*/
     uint8_t      top;         /*block->TOP if top_mask is 7, otherwise 0*/
     uint8_t      two_page;    /*1 if block->page_mask2 is set*/
+#ifdef CODEGEN_BACKEND_HAS_LINK_MCACHE
+    /*Read only in a codegen_link_mcache record: 1 while the target is on one
+      page and has used 1 and runs_left 0, so the routine need not touch its
+      codeblock_t at all. Set by codegen_link_patch() and by the routine
+      when it settles the block; the eviction sweep clears it with used.*/
+    uint8_t      settled;
+#endif
 #if defined(CODEGEN_BACKEND_HAS_LINK_SETS) && (defined(__aarch64__) || defined(_M_ARM64))
     /*In the padding of the word block_nr starts, which the routine's hit
       path tests only below bit 33. Every slot record of a set holds the
@@ -117,6 +124,19 @@ typedef union codegen_link_mcache_t {
     uint8_t             pad[1 << CODEGEN_LINK_MCACHE_SHIFT];
 } codegen_link_mcache_t;
 extern codegen_link_mcache_t codegen_link_mcache[CODEGEN_LINK_MCACHE_SIZE];
+/*Stands in for the target of a settled record: used 1, runs_left 0*/
+extern codeblock_t codegen_link_settled_block;
+/*The block's used is about to be cleared: its record is no longer settled*/
+static inline void
+codegen_link_unsettle(codeblock_t *block)
+{
+    if (block->link_mcache) {
+        codegen_link_slot_t *rec = &codegen_link_mcache[block->link_mcache - 1].r;
+
+        if (rec->block == block)
+            rec->settled = 0;
+    }
+}
 #endif
 
 /*Byte offset of the link entry from &block->data[BLOCK_START]: the first

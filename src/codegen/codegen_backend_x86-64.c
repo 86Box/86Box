@@ -1656,6 +1656,21 @@ build_link_routine(codeblock_t *block, int call)
     rx_rr(block, 0, 0, 0xff, 0, REG_RCX);                       /*INC ECX*/
     rx_rm(block, 0, 0, 0x88, REG_RCX, REG_RDI, LINK_BLOCK(used)); /*MOV block->used, CL*/
     rx_rm(block, 0, 1, 0xd1, 5, REG_RDI, LINK_BLOCK(runs_left)); /*SHR qword, 1*/
+#        ifdef CODEGEN_BACKEND_HAS_LINK_MCACHE
+    {
+        /*Settled now, if on one page: mark the record. RBX may be a slot,
+          which never reads the flag.*/
+        int32_t *not_settled = rx_jcc(block, RX_CC_NZ);
+        int32_t *two_page_set;
+
+        rx_rm(block, 0, 0, 0x0fb6, REG_RDX, REG_RBX, LINK_SLOT(two_page));
+        rx_rr(block, 0, 0, 0x85, REG_RDX, REG_RDX);
+        two_page_set = rx_jcc(block, RX_CC_NZ);
+        rx_rm(block, 0, 0, 0x88, REG_RCX, REG_RBX, LINK_SLOT(settled)); /*MOV settled, CL*/
+        rx_patch(not_settled, rx_here());
+        rx_patch(two_page_set, rx_here());
+    }
+#        endif
     if (call) {
         rx_rr(block, 0, 1, 0x85, REG_R15, REG_R15); /*TEST R15, R15*/
         host_x86_RET(block);
@@ -1827,6 +1842,12 @@ build_link_routine(codeblock_t *block, int call)
     rx_rr(block, 0, 1, 0x85, REG_R15, REG_R15);
     miss[nr_miss++] = rx_jcc(block, RX_CC_Z);
     rx_rm(block, 0, 1, 0x8b, REG_RDI, REG_RBX, LINK_SLOT(block));
+    /*A settled target needs no change to used or runs_left: check those of
+      a stand-in instead, already in cache, not the target's own.*/
+    rx_mov_ri64(block, REG_R9, (uint64_t) (uintptr_t) &codegen_link_settled_block);
+    rx_rm(block, 0, 0, 0x0fb6, REG_R10, REG_RBX, LINK_SLOT(settled)); /*MOVZX R10D, settled*/
+    rx_rr(block, 0, 0, 0x85, REG_R10, REG_R10);
+    rx_rr(block, 0, 1, 0x0f45, REG_RDI, REG_R9); /*CMOVNZ RDI, R9*/
     rx_patch(rx_jmp(block), gen_done);
 #        else
     miss[nr_miss++] = rx_jmp(block);
