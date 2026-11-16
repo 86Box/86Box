@@ -1572,6 +1572,7 @@ rdisk_load_abort(const rdisk_t *dev)
     if (dev->drv->fp)
         fclose(dev->drv->fp);
     dev->drv->fp           = NULL;
+    dev->drv->folder_image = 0;
     dev->drv->medium_size = 0;
     rdisk_eject(dev->id); /* Make sure the host OS knows we've rejected (and ejected) the image. */
     return 0;
@@ -1605,7 +1606,7 @@ rdisk_is_empty(const uint8_t id)
 static int
 rdisk_folder_params(const uint32_t medium, fat_image_params_t *p)
 {
-    const uint32_t bps = rdisk_types[medium].bytes_per_sector;
+    uint32_t       bps = rdisk_types[medium].bytes_per_sector;
 
     memset(p, 0, sizeof(fat_image_params_t));
     if (medium == RDISK_MEDIUM_FD_640K)
@@ -1683,10 +1684,21 @@ rdisk_folder_params(const uint32_t medium, fat_image_params_t *p)
 /* Mounts a folder or an archive as a FAT medium, built in a temporary file. The drive's default medium is
    used if the contents fit, else the smallest medium it writes that they fit. Writes go to the temporary
    file and are lost when the medium is ejected. Returns a fat_image_result_t. */
+
+/* A medium the drive can be given a folder on, for fat_image_pick(). */
+static int
+rdisk_folder_medium(void *opaque, int medium, fat_image_params_t *params)
+{
+    uint32_t type = *(const uint32_t *) opaque;
+
+    return rdisk_drive_types[type].supported_media[medium] && !rdisk_medium_is_read_only(type, medium) &&
+           rdisk_folder_params(medium, params);
+}
+
 int
 rdisk_mount_folder(rdisk_t *dev, const char *fn, const int skip_insert, int *left_out)
 {
-    const int    was_empty = rdisk_is_empty(dev->id);
+    int          was_empty = rdisk_is_empty(dev->id);
     const char  *path      = fn;
     fat_image_t *image     = NULL;
     FILE        *fp        = NULL;
@@ -1709,57 +1721,12 @@ rdisk_mount_folder(rdisk_t *dev, const char *fn, const int skip_insert, int *lef
         return result;
     }
 
-    const uint32_t     type   = rdisk_drive_type_of(dev);
-    const uint32_t     def    = rdisk_drive_types[type].default_media;
-    int                medium  = -1;
-    int                largest = -1; /* the medium to fill if nothing holds everything */
+    uint32_t           type = rdisk_drive_type_of(dev);
     fat_image_params_t params;
-    uint32_t           tried[KNOWN_RDISK_TYPES] = { 0 };
-    result                                      = FAT_IMAGE_UNSUPPORTED;
-    for (;;) {
-        /* The default medium first, then the smallest one not tried yet. */
-        int next = -1;
-        if (!tried[def] && rdisk_drive_types[type].supported_media[def])
-            next = def;
-        for (uint32_t i = 0; (next != (int) def) && (i < KNOWN_RDISK_TYPES); i++) {
-            if (!tried[i] && rdisk_drive_types[type].supported_media[i] &&
-                ((next < 0) || (rdisk_media_bytes(i) < rdisk_media_bytes(next))))
-                next = i;
-        }
-        if (next < 0)
-            break;
-        tried[next] = 1;
-
-        if (rdisk_medium_is_read_only(type, next) || !rdisk_folder_params(next, &params))
-            continue;
-        fat_image_result_t check = fat_image_check(image, &params);
-        if (check == FAT_IMAGE_OK) {
-            if (!fat_image_left_out(image)) {
-                medium = next;
-                result = FAT_IMAGE_OK;
-                break;
-            }
-            if ((largest < 0) || (rdisk_media_bytes(next) > rdisk_media_bytes(largest)))
-                largest = next;
-        }
-        if ((result == FAT_IMAGE_UNSUPPORTED) || (check != FAT_IMAGE_UNSUPPORTED))
-            result = check;
-    }
-
-    /* Nothing holds everything: fill the largest medium with what fits. */
-    if ((medium < 0) && (largest >= 0) && rdisk_folder_params(largest, &params)) {
-        medium = largest;
-        result = FAT_IMAGE_OK;
-    }
-
+    int                medium = fat_image_pick(image, KNOWN_RDISK_TYPES, rdisk_drive_types[type].default_media,
+                                               rdisk_folder_medium, &type, &params, &result);
     if (medium >= 0) {
-        fp = media_temp_file("rdisk");
-        if (!fp || !media_temp_file_set_size(fp, rdisk_media_bytes(medium)))
-            result = FAT_IMAGE_WRITE_ERROR;
-        else
-            result = fat_image_write(image, &params, fat_image_write_file, fp);
-        if ((result == FAT_IMAGE_OK) && fflush(fp))
-            result = FAT_IMAGE_WRITE_ERROR;
+        result = fat_image_write_temp(image, &params, "rdisk", &fp);
         if ((result == FAT_IMAGE_OK) && left_out)
             *left_out = fat_image_left_out(image);
     }

@@ -795,7 +795,7 @@ int
 fdd_mount_folder(void *priv, const char *path, int read_only, int *left_out)
 {
     fdd_drive_t *drv   = (fdd_drive_t *) priv;
-    const int    flags = fdd_get_flags(drv);
+    int          flags = fdd_get_flags(drv);
     char         mounted_path[sizeof(drv->image_path)];
 
     if (left_out)

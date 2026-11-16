@@ -17,6 +17,7 @@
 #define EMU_FAT_IMAGE_H
 
 #include <stdint.h>
+#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -77,6 +78,19 @@ extern int fat_image_left_out(const fat_image_t *image);
 /* Writes the volume, including all file data. */
 extern fat_image_result_t fat_image_write(fat_image_t *image, const fat_image_params_t *params,
                                           fat_image_write_t write, void *opaque);
+
+/* Fills in the layout of a medium; returns 0 if the drive can't take a folder on it. */
+typedef int (*fat_image_medium_t)(void *opaque, int medium, fat_image_params_t *params);
+
+/* Picks one of count media for the tree: the default one if it holds everything, else the smallest
+   that does, else the largest, with what fits. Returns the medium with its layout in params, or -1
+   with the reason in result. The tree is laid out for the picked medium. */
+extern int fat_image_pick(fat_image_t *image, int count, int def, fat_image_medium_t medium, void *opaque,
+                          fat_image_params_t *params, fat_image_result_t *result);
+
+/* Writes the volume into a new temporary file of the medium's size; *fp is NULL on failure. */
+extern fat_image_result_t fat_image_write_temp(fat_image_t *image, const fat_image_params_t *params,
+                                               const char *prefix, FILE **fp);
 
 /* Convenience writer and generator for an image held in memory. */
 extern int                fat_image_write_mem(void *opaque, uint64_t offset, const void *data, size_t size);

@@ -372,6 +372,11 @@ MediaMenu::refresh(QMenu *parentMenu)
         menu->addSeparator();
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image…"), [this, i]() { moSelectImage(i, false); });
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)…"), [this, i]() { moSelectImage(i, true); });
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("Mount &folder…"), [this, i]() {
+            const auto path = QFileDialog::getExistingDirectory(parentWidget, tr("Mount folder as a temporary removable disk"), getMediaOpenDirectory());
+            if (!path.isEmpty())
+                moMount(i, path, false);
+        });
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
             moImageHistoryPos[slot] = menu->children().count();
@@ -1504,10 +1509,8 @@ MediaMenu::moSelectImage(int i, bool wp)
         parentWidget,
         QString(),
         getMediaOpenDirectory(),
-        tr("MO images") % util::DlgFilter({ "im?", "mdi" }) % tr("All files") % util::DlgFilter({
-                                                                                                    "*",
-                                                                                                },
-                                                                                                true));
+        tr("MO images") % util::DlgFilter({ "im?", "mdi" }) % tr("Archives") % util::DlgFilter(archive_extensions) %
+        tr("All files") % util::DlgFilter({ "*" }, true));
 
     if (!filename.isEmpty())
         moMount(i, filename, wp);
@@ -1516,9 +1519,17 @@ MediaMenu::moSelectImage(int i, bool wp)
 void
 MediaMenu::moMount(int i, const QString &filename, bool wp)
 {
-    const auto dev       = static_cast<mo_t *>(mo_drives[i].priv);
-    int        was_empty = mo_is_empty(i);
+    const auto       dev       = static_cast<mo_t *>(mo_drives[i].priv);
+    int              was_empty = mo_is_empty(i);
+    const QByteArray source    = ((filename.left(5) == "wp://") ? filename.mid(5) : filename).toUtf8();
+    bool             is_folder = !source.isEmpty() && fat_image_is_source(source.constData());
+    int              result    = FAT_IMAGE_OK;
+    int              left_out  = 0;
 
+    /* Building or freeing a folder's image takes a while; keep the drive from being used meanwhile. */
+    bool pause = is_folder || mo_drives[i].folder_image;
+    if (pause)
+        runctl_pause_wait(RUN_PAUSE_SYNC);
     mo_disk_close(dev);
     mo_drives[i].read_only = wp;
     if (!filename.isEmpty()) {
@@ -1529,7 +1540,10 @@ MediaMenu::moMount(int i, const QString &filename, bool wp)
         else if (mo_drives[i].read_only)
             filenameBytes = QString::asprintf(R"(wp://%s)", filename.toUtf8().data()).toUtf8();
 
-        mo_load(dev, filenameBytes.data(), 1);
+        if (is_folder)
+            result = mo_mount_folder(dev, filenameBytes.data(), 1, &left_out);
+        else
+            mo_load(dev, filenameBytes.data(), 1);
 
         /* Signal media change to the emulated machine. */
         mo_insert(dev);
@@ -1538,6 +1552,8 @@ MediaMenu::moMount(int i, const QString &filename, bool wp)
         if (was_empty)
             mo_insert(dev);
     }
+    if (pause)
+        runctl_resume(RUN_PAUSE_SYNC);
     mhm.addImageToHistory(i, ui::MediaType::Mo, mo_drives[i].prev_image_path, mo_drives[i].image_path);
 
     ui_sb_update_icon_state(SB_MO | i, mo_drives[i].fp == nullptr);
@@ -1545,6 +1561,11 @@ MediaMenu::moMount(int i, const QString &filename, bool wp)
     ui_sb_update_tip(SB_MO | i);
 
     config_save();
+
+    if (result != FAT_IMAGE_OK)
+        QMessageBox::critical(parentWidget, tr("Unable to mount folder or archive"), folderMountError(result));
+    else if (left_out)
+        QMessageBox::warning(parentWidget, tr("Warning"), folderLeftOutWarning(left_out, folderMountError(FAT_IMAGE_FULL)));
 }
 
 void
@@ -2004,6 +2025,11 @@ MediaMenu::usbPortUpdateMenu(int port)
     menu->addSeparator();
     menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image…"), [this, label] { usbPortSelectImage(label, false); });
     menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)…"), [this, label] { usbPortSelectImage(label, true); });
+    menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Browse), tr("Mount &folder…"), [this, label] {
+        const auto path = QFileDialog::getExistingDirectory(parentWidget, tr("Mount folder as a temporary removable disk"), getMediaOpenDirectory());
+        if (!path.isEmpty())
+            usbPortPlug(label, path, false);
+    });
     menu->addSeparator();
 
     /* An empty port takes any of the machine's USB devices: one in another
@@ -2061,12 +2087,27 @@ MediaMenu::usbPortUpdateMenu(int port)
         menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Eject), tr("&Unplug"))->setEnabled(false);
 }
 
-/* The image must be a disk image; it may already be in another port, and
+/* The image must be a disk image, a folder or an archive; it may already be in another port, and
    then it moves here. */
 void
 MediaMenu::usbPortPlug(const QString &label, const QString &fn, bool wp)
 {
-    QFileInfo fi(fn);
+    QFileInfo        fi(fn);
+    const QByteArray source = fn.toUtf8();
+
+    if (fat_image_is_source(source.constData())) {
+        int left_out = 0;
+        int result   = usb_flash_prepare_folder(source.constData(), &left_out);
+        if (result != FAT_IMAGE_OK) {
+            QMessageBox::critical(parentWidget, tr("Unable to mount folder or archive"), folderMountError(result));
+            return;
+        }
+        usb_port_flash_want(label.toUtf8().constData(), source.constData(), wp ? 1 : 0);
+        config_save();
+        if (left_out)
+            QMessageBox::warning(parentWidget, tr("Warning"), folderLeftOutWarning(left_out, folderMountError(FAT_IMAGE_FULL)));
+        return;
+    }
 
     if (!fi.exists() || (fi.size() < 512)) {
         QMessageBox::warning(parentWidget, tr("USB flash drive"), tr("%1 is not a disk image.").arg(fn));
@@ -2091,6 +2132,7 @@ MediaMenu::usbPortSelectImage(const QString &label, bool wp)
 {
     const QString fn = QFileDialog::getOpenFileName(parentWidget, QString(), getMediaOpenDirectory(),
                                                     tr("Flash drive images") % util::DlgFilter({ "img", "ima", "bin", "raw" }) %
+                                                    tr("Archives") % util::DlgFilter(archive_extensions) %
                                                     tr("All files") % util::DlgFilter({ "*" }, true));
 
     if (!fn.isEmpty())

@@ -436,7 +436,7 @@ scan_folder(fat_image_t *image, node_t *dir, const char *path, int depth)
     }
 
     while (plat_dir_read_no_links(&context)) {
-        const int is_dir = plat_dir_is_dir(&context);
+        int       is_dir = plat_dir_is_dir(&context);
         if (!is_dir && !plat_dir_is_file(&context))
             continue;
 
@@ -644,7 +644,7 @@ set_type(layout_t *l, int bits)
 static int
 choose_layout(const fat_image_params_t *p, layout_t *l)
 {
-    const uint64_t bytes = l->volume_sectors * l->bps;
+    uint64_t       bytes = l->volume_sectors * l->bps;
     uint32_t       cluster_size;
 
     l->num_fats = 2;
@@ -743,7 +743,7 @@ fit_entries(fat_image_t *image, const layout_t *l, node_t *dir)
 {
     /* The FAT12 and FAT16 root directory has a fixed size; other directories hold up to 65536 entries,
        less . and .. or the volume label. */
-    const int fixed_root = !dir->parent && (l->bits != 32);
+    int       fixed_root = !dir->parent && (l->bits != 32);
     uint32_t  avail      = fixed_root ? (l->root_entries - has_label(image)) : (65536 - 2);
     uint32_t  used       = 0;
 
@@ -962,7 +962,7 @@ fat_set(const layout_t *l, uint8_t *fat, uint32_t cluster, uint32_t value)
 static void
 fat_chain(const layout_t *l, uint8_t *fat, const node_t *dir)
 {
-    const uint32_t eoc = (l->bits == 12) ? 0xfff : ((l->bits == 16) ? 0xffff : 0x0fffffff);
+    uint32_t       eoc = (l->bits == 12) ? 0xfff : ((l->bits == 16) ? 0xffff : 0x0fffffff);
 
     for (const node_t *node = dir; node; node = node->next) {
         if (node->left_out)
@@ -1047,7 +1047,7 @@ fill_dir(const fat_image_t *image, const node_t *dir, uint8_t *buf)
 
     if (dir->parent) {
         const node_t  *parent         = dir->parent;
-        const uint32_t parent_cluster = parent->parent ? parent->first_cluster : 0;
+        uint32_t       parent_cluster = parent->parent ? parent->first_cluster : 0;
         dir_entry(p, dot, ATTR_DIRECTORY, 0, dir->mtime, dir->first_cluster, 0);
         dir_entry(p + 32, dotdot, ATTR_DIRECTORY, 0, parent->parent ? parent->mtime : dir->mtime, parent_cluster, 0);
         p += 64;
@@ -1060,8 +1060,8 @@ fill_dir(const fat_image_t *image, const node_t *dir, uint8_t *buf)
         if (child->left_out)
             continue;
         if (child->write_lfn) {
-            const int     count = (child->lfn_len + 12) / 13;
-            const uint8_t sum   = lfn_checksum(child->short_name);
+            int           count = (child->lfn_len + 12) / 13;
+            uint8_t       sum   = lfn_checksum(child->short_name);
             for (int seq = count; seq >= 1; seq--) {
                 static const uint8_t offsets[13] = { 1, 3, 5, 7, 9, 14, 16, 18, 20, 22, 24, 28, 30 };
                 memset(p, 0, 32);
@@ -1344,6 +1344,94 @@ fat_image_write(fat_image_t *image, const fat_image_params_t *p, fat_image_write
         result = write_folder_files(&w, image->root, buf);
         free(buf);
     }
+    return result;
+}
+
+int
+fat_image_pick(fat_image_t *image, int count, int def, fat_image_medium_t medium, void *opaque,
+               fat_image_params_t *params, fat_image_result_t *result)
+{
+    fat_image_params_t p;
+    int                picked        = -1;
+    int                largest       = -1; /* the medium to fill if none holds everything */
+    uint64_t           largest_bytes = 0;
+    uint8_t            tried[256];
+
+    *result = FAT_IMAGE_UNSUPPORTED;
+    if ((count <= 0) || (count > (int) sizeof(tried)))
+        return -1;
+    memset(tried, 0, count);
+    if ((def >= 0) && (def < count) && !medium(opaque, def, &p))
+        tried[def] = 1;
+
+    for (;;) {
+        /* The default medium first, then the smallest one not tried yet. */
+        int      next       = -1;
+        uint64_t next_bytes = 0;
+        if ((def >= 0) && (def < count) && !tried[def]) {
+            next = def;
+        } else {
+            for (int i = 0; i < count; i++) {
+                if (tried[i] || !medium(opaque, i, &p))
+                    continue;
+                if ((next < 0) || ((p.sectors * p.sector_size) < next_bytes)) {
+                    next       = i;
+                    next_bytes = p.sectors * p.sector_size;
+                }
+            }
+        }
+        if (next < 0)
+            break;
+        tried[next] = 1;
+        (void) medium(opaque, next, &p);
+        next_bytes = p.sectors * p.sector_size;
+
+        fat_image_result_t check = fat_image_check(image, &p);
+        if (check == FAT_IMAGE_OK) {
+            if (!fat_image_left_out(image)) {
+                picked  = next;
+                *params = p;
+                break;
+            }
+            if ((largest < 0) || (next_bytes > largest_bytes)) {
+                largest       = next;
+                largest_bytes = next_bytes;
+            }
+        }
+        if ((*result == FAT_IMAGE_UNSUPPORTED) || (check != FAT_IMAGE_UNSUPPORTED))
+            *result = check;
+    }
+
+    /* Nothing holds everything: fill the largest medium with what fits. */
+    if ((picked < 0) && (largest >= 0)) {
+        (void) medium(opaque, largest, params);
+        (void) fat_image_check(image, params);
+        picked = largest;
+    }
+    if (picked >= 0)
+        *result = FAT_IMAGE_OK;
+    return picked;
+}
+
+fat_image_result_t
+fat_image_write_temp(fat_image_t *image, const fat_image_params_t *params, const char *prefix, FILE **out)
+{
+    fat_image_result_t result;
+    FILE              *fp = media_temp_file(prefix);
+
+    if (!fp || !media_temp_file_set_size(fp, params->sectors * params->sector_size))
+        result = FAT_IMAGE_WRITE_ERROR;
+    else
+        result = fat_image_write(image, params, fat_image_write_file, fp);
+    if ((result == FAT_IMAGE_OK) && fflush(fp))
+        result = FAT_IMAGE_WRITE_ERROR;
+
+    if (result != FAT_IMAGE_OK) {
+        if (fp)
+            fclose(fp);
+        fp = NULL;
+    }
+    *out = fp;
     return result;
 }
 

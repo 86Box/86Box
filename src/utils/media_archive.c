@@ -347,7 +347,7 @@ entry_from_path(media_archive_t *archive, const char *path, int is_dir, int *err
         if ((length == 2) && (path[0] == '.') && (path[1] == '.'))
             return NULL;
 
-        const int last = !path[length] || !path[length + strspn(path + length, "/\\")];
+        int       last = !path[length] || !path[length + strspn(path + length, "/\\")];
         for (entry = parent->children; entry; entry = entry->next) {
             if (!strncmp(entry->name, path, length) && !entry->name[length])
                 break;
@@ -445,7 +445,7 @@ media_archive_list(const char *path)
     struct archive_entry  *header;
     int                    ret;
     while ((ret = archive_read_next_header(a, &header)) == ARCHIVE_OK || (ret == ARCHIVE_WARN)) {
-        const uint32_t index = archive->headers++;
+        uint32_t       index = archive->headers++;
         if (index >= index_size) {
             index_size                     = index_size ? (index_size * 2) : 256;
             media_archive_entry_t **by_index = (media_archive_entry_t **) realloc(archive->by_index, index_size * sizeof(media_archive_entry_t *));
@@ -455,7 +455,7 @@ media_archive_list(const char *path)
         }
         archive->by_index[index] = NULL;
 
-        const unsigned int type = archive_entry_filetype(header);
+        unsigned int       type = archive_entry_filetype(header);
         if (((type != AE_IFREG) && (type != AE_IFDIR)) || archive_entry_hardlink(header))
             continue;
 
@@ -629,7 +629,7 @@ media_archive_read(media_archive_t *archive, const media_archive_entry_t *entry,
         return 0;
 
     /* Data that an archive did not hold reads as zeros. */
-    const size_t read = fread(buffer, 1, count, archive->data);
+    size_t       read = fread(buffer, 1, count, archive->data);
     memset((uint8_t *) buffer + read, 0x00, count - read);
     return !ferror(archive->data);
 }

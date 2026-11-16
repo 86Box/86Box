@@ -72,6 +72,7 @@
 #include <86box/mouse.h>
 #include <86box/mem.h>
 #include <86box/usb.h>
+#include <86box/fat_image.h>
 #include <86box/thread.h>
 #include <86box/network.h>
 #include <86box/scsi.h>
@@ -4322,7 +4323,8 @@ save_usb_flash_drives(void)
     uint8_t       wp;
 
     for (int c = 0; c < USB_PORTS_MAX; c++) {
-        if (usb_flash_cfg_get(c, label, fn, &wp)) {
+        /* A stick built from a folder or an archive isn't kept, as on the other drives. */
+        if (usb_flash_cfg_get(c, label, fn, &wp) && !fat_image_is_source(fn)) {
             sprintf(temp, "usb_flash_%02i_port", c + 1);
             ini_section_set_string(cat, temp, label);
             sprintf(temp, "usb_flash_%02i_fn", c + 1);
@@ -5114,7 +5116,7 @@ save_other_removable_devices(void)
         }
 
         sprintf(temp, "mo_%02i_image_path", c + 1);
-        if ((mo_drives[c].bus_type == 0) || (strlen(mo_drives[c].image_path) == 0))
+        if ((mo_drives[c].bus_type == 0) || (strlen(mo_drives[c].image_path) == 0) || mo_drives[c].folder_image)
             ini_section_delete_var(cat, temp);
         else
             save_image_file(cat, temp, mo_drives[c].image_path);

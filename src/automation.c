@@ -69,12 +69,14 @@ typedef int sock_t;
 #include <86box/cdrom.h>
 #include <86box/scsi_device.h>
 #include <86box/rdisk.h>
+#include <86box/mo.h>
 #include <86box/hdd.h>
 #include <86box/machine.h>
 #include <86box/sound.h>
 #include <86box/keyboard.h>
 #include <86box/io.h>
 #include <86box/mem.h>
+#include <86box/usb.h>
 #include <86box/mouse.h>
 #include <86box/path.h>
 #include <86box/pci.h>
@@ -2579,8 +2581,8 @@ handle_request(char *line)
             respond_ok_time();
         } else if (!strcmp(argv[1], "load") && (argc >= 4)) {
             char     *path      = rest[3];
-            const int wp        = !strncmp(path, "wp://", 5);
-            const int was_empty = rdisk_is_empty(id);
+            int       wp        = !strncmp(path, "wp://", 5);
+            int       was_empty = rdisk_is_empty(id);
             int       result    = FAT_IMAGE_OK;
             int       left_out  = 0;
             rdisk_disk_close(dev);
@@ -2602,6 +2604,84 @@ handle_request(char *line)
                 respond_error("cannot load the image; the log says why");
         } else
             respond_error("usage: rdisk load <drive> <path> | rdisk eject <drive>");
+    } else if (!strcmp(argv[0], "mo") && (argc >= 3)) {
+        /* mo load <drive> <path> | mo eject <drive> */
+        int   id  = atoi(argv[2]);
+        mo_t *dev = ((id >= 0) && (id < MO_NUM)) ? (mo_t *) mo_drives[id].priv : NULL;
+        if (!dev) {
+            respond_error("bad drive");
+        } else if (!strcmp(argv[1], "eject")) {
+            mo_disk_close(dev);
+            mo_drives[id].image_path[0] = 0;
+            ui_sb_update_icon_state(SB_MO | id, 1);
+            respond_ok_time();
+        } else if (!strcmp(argv[1], "load") && (argc >= 4)) {
+            char *path      = rest[3];
+            int   wp        = !strncmp(path, "wp://", 5);
+            int   was_empty = mo_is_empty(id);
+            int   result    = FAT_IMAGE_OK;
+            int   left_out  = 0;
+            mo_disk_close(dev);
+            mo_drives[id].read_only = wp;
+            if (fat_image_is_source(path + wp * 5))
+                result = mo_mount_folder(dev, path, 1, &left_out);
+            else
+                mo_load(dev, path, 1);
+            /* Signal media change to the emulated machine. */
+            mo_insert(dev);
+            if (was_empty)
+                mo_insert(dev);
+            ui_sb_update_icon_state(SB_MO | id, mo_drives[id].fp == NULL);
+            if (result != FAT_IMAGE_OK)
+                respond_error("could not build an M.O. disk from the folder or archive");
+            else if (mo_drives[id].fp)
+                respond_ok_left_out(left_out);
+            else
+                respond_error("cannot load the image; the log says why");
+        } else
+            respond_error("usage: mo load <drive> <path> | mo eject <drive>");
+    } else if (!strcmp(argv[0], "usb") && (argc >= 2)) {
+        /* usb ports | usb plug <port> <path> | usb unplug <port> */
+        if (!strcmp(argv[1], "ports")) {
+            usb_port_info_t ports[USB_PORTS_MAX];
+            int             n = usb_ports_get(ports, USB_PORTS_MAX);
+            static const char *states[] = { "empty", "flash", "device", "off" };
+            respond_ok_time();
+            resp.len--; /* reopen the object */
+            sb_printf(&resp, ",\"ports\":[");
+            for (int k = 0; k < n; k++) {
+                sb_printf(&resp, "%s{\"port\":", k ? "," : "");
+                sb_json_string(&resp, ports[k].label);
+                sb_printf(&resp, ",\"state\":\"%s\"", ((ports[k].state >= 0) && (ports[k].state < 4)) ? states[ports[k].state] : "?");
+                if (ports[k].state == USB_PORT_FLASH) {
+                    sb_printf(&resp, ",\"image\":");
+                    sb_json_string(&resp, ports[k].image);
+                    sb_printf(&resp, ",\"wp\":%s,\"online\":%s", ports[k].wp ? "true" : "false", ports[k].online ? "true" : "false");
+                } else if (ports[k].state == USB_PORT_DEVICE) {
+                    sb_printf(&resp, ",\"device\":");
+                    sb_json_string(&resp, ports[k].name);
+                }
+                sb_printf(&resp, "}");
+            }
+            sb_printf(&resp, "]}");
+        } else if (!strcmp(argv[1], "unplug") && (argc >= 3)) {
+            usb_port_flash_want(argv[2], NULL, 0);
+            respond_ok_time();
+        } else if (!strcmp(argv[1], "plug") && (argc >= 4)) {
+            char *path     = rest[3];
+            int   wp       = !strncmp(path, "wp://", 5);
+            int   left_out = 0;
+            int   result   = FAT_IMAGE_OK;
+            if (fat_image_is_source(path + wp * 5))
+                result = usb_flash_prepare_folder(path + wp * 5, &left_out);
+            if (result != FAT_IMAGE_OK) {
+                respond_error("could not build a flash drive from the folder or archive");
+            } else {
+                usb_port_flash_want(argv[2], path + wp * 5, wp);
+                respond_ok_left_out(left_out);
+            }
+        } else
+            respond_error("usage: usb ports | usb plug <port> <path> | usb unplug <port>");
     } else if (!strcmp(argv[0], "reset") && (argc == 2) && !strcmp(argv[1], "hard")) {
         pc_reset_hard();
         respond_ok_time();
