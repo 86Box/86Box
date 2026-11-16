@@ -250,13 +250,15 @@ codegen_flags_is_rebuild_zpna(const void *p)
     }
 
 /*After INC, DEC and FLAGS_UNKNOWN flags_rebuild_c() leaves flags as they
-  are: CF_SET() is the C bit in flags itself*/
-#define JIT_FLAGS_REBUILD_C_KEPT(op)                   \
-    static JIT_WRAPPER_OP void                         \
-    jit_flags_rebuild_c_##op(void)                     \
-    {                                                  \
-        if (cpu_state.flags_op != op)                  \
-            jit_flags_rebuild_c();                     \
+  are: CF_SET() is the C bit in flags itself. That holds for any of them,
+  not only the op the block was compiled after*/
+#define JIT_FLAGS_REBUILD_C_KEPT(op)                                                   \
+    static JIT_WRAPPER_OP void                                                         \
+    jit_flags_rebuild_c_##op(void)                                                     \
+    {                                                                                  \
+        if ((cpu_state.flags_op != FLAGS_UNKNOWN) &&                                   \
+            ((unsigned) (cpu_state.flags_op - FLAGS_INC8) > (FLAGS_DEC32 - FLAGS_INC8))) \
+            jit_flags_rebuild_c();                                                     \
     }
 
 JIT_FLAGS_REBUILD_C_KEPT(FLAGS_UNKNOWN)
