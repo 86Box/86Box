@@ -3815,7 +3815,7 @@ msgstr "要求範圍內無映射記憶體。"
 msgid "The search is limited to %1 bytes."
 msgstr "限制於 %1 位元組中搜尋。"
 
-msgid "Searching memory..."
+msgid "Searching memory…"
 msgstr "搜尋記憶體…"
 
 msgid "The search was cancelled. The selection did not move."
@@ -3851,7 +3851,7 @@ msgstr "拷貝選取 (hex)"
 msgid "Copy selection (ASCII)"
 msgstr "拷貝選取 (ASCII)"
 
-msgid "Fill selection..."
+msgid "Fill selection…"
 msgstr "填入選取…"
 
 msgid "Copy address"
@@ -3860,7 +3860,7 @@ msgstr "拷貝位址"
 msgid "Disassemble here"
 msgstr "反組譯此處"
 
-msgid "Dump memory from here..."
+msgid "Dump memory from here…"
 msgstr "從此處傾印記憶體…"
 
 msgid "Memory viewer"
@@ -3890,7 +3890,7 @@ msgstr "執行"
 msgid "Live update"
 msgstr "實時更新"
 
-msgid "Dump..."
+msgid "Dump…"
 msgstr "傾印…"
 
 msgid "Commands"
@@ -3935,7 +3935,7 @@ msgstr "找尋下一個"
 msgid "Search downwards from the selection (F3)"
 msgstr "在選取中往後搜尋 (F3)"
 
-msgid "Range..."
+msgid "Range…"
 msgstr "範圍…"
 
 msgid "Search within an address range instead of all memory"
@@ -4045,7 +4045,7 @@ msgstr "單步執行後停止。"
 msgid "Stopped."
 msgstr "停止。"
 
-msgid "Stepping..."
+msgid "Stepping…"
 msgstr "單步執行…"
 
 msgid "Running."
@@ -4141,8 +4141,9 @@ msgstr "設置"
 msgid "cleared"
 msgstr "已清除"
 
-msgid "%1 breakpoint(s), linear addresses:"
-msgstr "%1 中斷點，線性位址:"
+msgid "%n breakpoint(s), linear addresses:"
+msgid_plural "%n breakpoints, linear addresses:"
+msgstr[0] "%1 中斷點，線性位址:"
 
 msgid "Pause the processor before accessing I/O ports."
 msgstr "存取 I/O 埠前暫停處理器。"
@@ -4152,9 +4153,6 @@ msgstr "未知的命令或不可用的參數。輸入 help 以取得語法。"
 
 msgid "Dump memory"
 msgstr "傾印記憶體"
-
-msgid "Browse..."
-msgstr "瀏覽…"
 
 msgid "Start (hex, register or seg:off):"
 msgstr "起始 (16 進制，暫存器或區段:偏移):"
@@ -4187,7 +4185,7 @@ msgstr "充填位元組必須為從 00 到 FF 的 16 進制數值。"
 msgid "Could not open %1 for writing."
 msgstr "無法開啟 %1 以寫入。"
 
-msgid "Dumping memory..."
+msgid "Dumping memory…"
 msgstr "記憶體傾印中…"
 
 msgid "Could not write to %1."

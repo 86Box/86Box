@@ -3825,8 +3825,8 @@ msgstr "Im angeforderten Bereich ist kein Speicher zugeordnet."
 msgid "The search is limited to %1 bytes."
 msgstr "Die Suche ist auf %1 Bytes beschränkt."
 
-msgid "Searching memory..."
-msgstr "Durchsuche Speicher..."
+msgid "Searching memory…"
+msgstr "Durchsuche Speicher…"
 
 msgid "The search was cancelled. The selection did not move."
 msgstr "Die Suche wurde abgebrochen. Die Auswahl hat sich nicht verändert."
@@ -3861,8 +3861,8 @@ msgstr "Auswahl kopieren (Hexadezimal)"
 msgid "Copy selection (ASCII)"
 msgstr "Auswahl kopieren (ASCII)"
 
-msgid "Fill selection..."
-msgstr "Auswahl auffüllen..."
+msgid "Fill selection…"
+msgstr "Auswahl auffüllen…"
 
 msgid "Copy address"
 msgstr "Adresse kopieren"
@@ -3870,8 +3870,8 @@ msgstr "Adresse kopieren"
 msgid "Disassemble here"
 msgstr "Hier dekompilieren"
 
-msgid "Dump memory from here..."
-msgstr "Speicherauszug von hier..."
+msgid "Dump memory from here…"
+msgstr "Speicherauszug von hier…"
 
 msgid "Memory viewer"
 msgstr "Arbeitsspeicher Betrachter"
@@ -3900,8 +3900,8 @@ msgstr "Los"
 msgid "Live update"
 msgstr "Live-Aktualisierung"
 
-msgid "Dump..."
-msgstr "Datensatzausgabe..."
+msgid "Dump…"
+msgstr "Datensatzausgabe…"
 
 msgid "Commands"
 msgstr "Befehle"
@@ -3945,8 +3945,8 @@ msgstr "Weiter suchen"
 msgid "Search downwards from the selection (F3)"
 msgstr "Von der Auswahl aus nach unten suchen (F3)"
 
-msgid "Range..."
-msgstr "Bereich..."
+msgid "Range…"
+msgstr "Bereich…"
 
 msgid "Search within an address range instead of all memory"
 msgstr "In einem Adressbereich suchen statt im gesamten Speicher"
@@ -4055,8 +4055,8 @@ msgstr "Nach Schritt angehalten."
 msgid "Stopped."
 msgstr "Angehalten."
 
-msgid "Stepping..."
-msgstr "Schritte..."
+msgid "Stepping…"
+msgstr "Schritte…"
 
 msgid "Running."
 msgstr "Läuft."
@@ -4127,8 +4127,10 @@ msgstr "setzen"
 msgid "cleared"
 msgstr "geleert"
 
-msgid "%1 breakpoint(s), linear addresses:"
-msgstr "%1 Haltepunkt/e, lineare Adressen:"
+msgid "%n breakpoint(s), linear addresses:"
+msgid_plural "%n breakpoints, linear addresses:"
+msgstr[0] "%1 Haltepunkt, lineare Adressen:"
+msgstr[1] "%1 Haltepunkte, lineare Adressen:"
 
 msgid "Pause the processor before accessing I/O ports."
 msgstr "Halten Sie den Prozessor an, bevor auf I/O-Anschlüsse zugreifen wird."
@@ -4138,9 +4140,6 @@ msgstr "Unbekannter Befehl oder ungültige Argumente. Geben Sie help ein, um die
 
 msgid "Dump memory"
 msgstr "Speicherauszug erstellen"
-
-msgid "Browse..."
-msgstr "Durchsuchen…"
 
 msgid "Start (hex, register or seg:off):"
 msgstr "Start (Hexadezimalwert, Register oder Seg:off):"
@@ -4172,8 +4171,8 @@ msgstr "Das Füllbyte muss eine Hexadezimalzahl zwischen 00 und FF sein."
 msgid "Could not open %1 for writing."
 msgstr "%1 konnte nicht zum Schreiben geöffnet werden."
 
-msgid "Dumping memory..."
-msgstr "Erstelle Speicherabbild..."
+msgid "Dumping memory…"
+msgstr "Erstelle Speicherabbild…"
 
 msgid "Could not write to %1."
 msgstr "Es konnte nicht nach %1 geschrieben werden."

@@ -882,7 +882,7 @@ MemoryHexView::find(const QByteArray &pattern, bool forward, uint32_t from, uint
     uint32_t         bufBase = 0; /* the address of buf[0] */
     const int        keep    = plen - 1;
 
-    QProgressDialog progress(tr("Searching memory..."), tr("Cancel"), 0,
+    QProgressDialog progress(tr("Searching memory…"), tr("Cancel"), 0,
                              (int) qMin<uint64_t>(0x7fffffff, (scanTotal + 0xffff) / 0x10000), this);
     progress.setWindowModality(Qt::WindowModal);
     progress.setMinimumDuration(500);
@@ -1079,11 +1079,11 @@ MemoryHexView::contextMenuEvent(QContextMenuEvent *event)
     QMenu    menu(this);
     QAction *copy    = menu.addAction(tr("Copy selection (hex)"));
     QAction *copyAsc = menu.addAction(tr("Copy selection (ASCII)"));
-    QAction *fill = menu.addAction(tr("Fill selection..."));
+    QAction *fill = menu.addAction(tr("Fill selection…"));
     menu.addSeparator();
     QAction *addrAct = menu.addAction(tr("Copy address"));
     QAction *dis     = menu.addAction(tr("Disassemble here"));
-    QAction *dump    = menu.addAction(tr("Dump memory from here..."));
+    QAction *dump    = menu.addAction(tr("Dump memory from here…"));
     dis->setEnabled(space_ == DEBUGGER_SPACE_LINEAR);
 
     QAction *chosen = menu.exec(event->globalPos());
@@ -1166,7 +1166,7 @@ MemoryViewer::MemoryViewer(QWidget *parent)
     auto *goBtn = new QPushButton(tr("Go"), this);
     liveBox_    = new QCheckBox(tr("Live update"), this);
     liveBox_->setChecked(true);
-    auto *dumpBtn = new QPushButton(tr("Dump..."), this);
+    auto *dumpBtn = new QPushButton(tr("Dump…"), this);
     auto *commandsBtn = new QPushButton(tr("Commands"), this);
     commandsBtn->setCheckable(true);
     commandsBtn->setChecked(true);
@@ -1207,7 +1207,7 @@ MemoryViewer::MemoryViewer(QWidget *parent)
     auto *searchNextBtn = new QPushButton(tr("Find next"), this);
     searchNextBtn->setToolTip(tr("Search downwards from the selection (F3)"));
     searchNextBtn->setShortcut(QKeySequence(Qt::Key_F3));
-    auto *rangeBtn = new QPushButton(tr("Range..."), this);
+    auto *rangeBtn = new QPushButton(tr("Range…"), this);
     rangeBtn->setCheckable(true);
     rangeBtn->setToolTip(tr("Search within an address range instead of all memory"));
     rangeFromEdit_ = new QLineEdit(this);
@@ -1604,7 +1604,7 @@ MemoryViewer::updateStatus()
             }
             break;
         case DEBUGGER_STEP:
-            text = tr("Stepping...");
+            text = tr("Stepping…");
             break;
         default:
             text = tr("Running.");
@@ -2105,7 +2105,7 @@ MemoryViewer::executeCommand()
     } else if (cmd == QStringLiteral("bl") && !n) {
         uint32_t list[DEBUGGER_MAX_BREAKPOINTS];
         const int count = debugger_breakpoints(list, DEBUGGER_MAX_BREAKPOINTS);
-        print(tr("%1 breakpoint(s), linear addresses:").arg(count));
+        print(tr("%n breakpoint(s), linear addresses:", "", count));
         for (int i = 0; i < count; i++)
             print(QString::asprintf("%08X", list[i]));
     } else if ((cmd == QStringLiteral("peek") && (n == 1 || n == 2)) ||
@@ -2161,7 +2161,7 @@ MemoryViewer::onDump(uint32_t start, uint32_t len)
     auto *fillEdit = new QLineEdit(QStringLiteral("FF"), &dlg);
     fillEdit->setMaxLength(2);
     auto *fileEdit = new QLineEdit(&dlg);
-    auto *browse   = new QPushButton(tr("Browse..."), &dlg);
+    auto *browse   = new QPushButton(tr("Browse…"), &dlg);
     auto *fileRow  = new QHBoxLayout;
     fileRow->addWidget(fileEdit, 1);
     fileRow->addWidget(browse);
@@ -2233,7 +2233,7 @@ MemoryViewer::onDump(uint32_t start, uint32_t len)
     QVector<uint8_t>   cls(chunk);
     uint64_t           unreadable = 0;
     uint64_t           done       = 0;
-    QProgressDialog    progress(tr("Dumping memory..."), tr("Cancel"), 0, (int) (((uint64_t) dumpLen + chunk - 1) / chunk), this);
+    QProgressDialog    progress(tr("Dumping memory…"), tr("Cancel"), 0, (int) (((uint64_t) dumpLen + chunk - 1) / chunk), this);
     progress.setWindowModality(Qt::WindowModal);
     progress.setMinimumDuration(500);
 

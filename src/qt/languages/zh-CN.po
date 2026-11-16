@@ -3789,8 +3789,8 @@ msgstr "在请求范围内没有已映射的内存。"
 msgid "The search is limited to %1 bytes."
 msgstr "搜索被限制为%1字节。"
 
-msgid "Searching memory..."
-msgstr "正在搜索内存..."
+msgid "Searching memory…"
+msgstr "正在搜索内存…"
 
 msgid "The search was cancelled. The selection did not move."
 msgstr "搜索已被取消。选块未被移动。"
@@ -3825,8 +3825,8 @@ msgstr "复制选块（十六进制）"
 msgid "Copy selection (ASCII)"
 msgstr "复制选块（ASCII）"
 
-msgid "Fill selection..."
-msgstr "填充选块..."
+msgid "Fill selection…"
+msgstr "填充选块…"
 
 msgid "Copy address"
 msgstr "复制地址"
@@ -3834,8 +3834,8 @@ msgstr "复制地址"
 msgid "Disassemble here"
 msgstr "对此处反汇编"
 
-msgid "Dump memory from here..."
-msgstr "从此处转储内存..."
+msgid "Dump memory from here…"
+msgstr "从此处转储内存…"
 
 msgid "Memory viewer"
 msgstr "内存查看器"
@@ -3864,8 +3864,8 @@ msgstr ""
 msgid "Live update"
 msgstr "实时更新"
 
-msgid "Dump..."
-msgstr "转储..."
+msgid "Dump…"
+msgstr "转储…"
 
 msgid "Commands"
 msgstr "命令"
@@ -3909,8 +3909,8 @@ msgstr "查找下一个"
 msgid "Search downwards from the selection (F3)"
 msgstr ""
 
-msgid "Range..."
-msgstr "范围..."
+msgid "Range…"
+msgstr "范围…"
 
 msgid "Search within an address range instead of all memory"
 msgstr "在指定地址范围内搜索，而非搜索全部内存"
@@ -4020,7 +4020,7 @@ msgstr ""
 msgid "Stopped."
 msgstr ""
 
-msgid "Stepping..."
+msgid "Stepping…"
 msgstr ""
 
 msgid "Running."
@@ -4092,8 +4092,9 @@ msgstr "设置"
 msgid "cleared"
 msgstr "清除"
 
-msgid "%1 breakpoint(s), linear addresses:"
-msgstr ""
+msgid "%n breakpoint(s), linear addresses:"
+msgid_plural "%n breakpoints, linear addresses:"
+msgstr[0] ""
 
 msgid "Pause the processor before accessing I/O ports."
 msgstr "在访问I/O端口前暂停处理器。"
@@ -4103,9 +4104,6 @@ msgstr ""
 
 msgid "Dump memory"
 msgstr "转储内存"
-
-msgid "Browse..."
-msgstr "浏览…"
 
 msgid "Start (hex, register or seg:off):"
 msgstr ""
@@ -4137,7 +4135,7 @@ msgstr ""
 msgid "Could not open %1 for writing."
 msgstr ""
 
-msgid "Dumping memory..."
+msgid "Dumping memory…"
 msgstr "正在转储内存…"
 
 msgid "Could not write to %1."
