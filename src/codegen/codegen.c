@@ -1,4 +1,5 @@
 #include <stdint.h>
+#include <string.h>
 #include <86box/86box.h>
 #include "cpu.h"
 #include <86box/mem.h>
@@ -138,7 +139,8 @@ static int
 codegen_trace_can(const codeblock_t *block, uint32_t end, uint32_t target, int32_t *delta)
 {
     if ((block->flags & CODEBLOCK_NO_OPCODES) || codegen_ir_unrolling() ||
-        (codegen_trace_count >= CODEGEN_TRACE_MAX) || ((block->ins + 2) >= MAX_INSTRUCTION_COUNT) || cpu_debug_regs_486)
+        (codegen_trace_count >= CODEGEN_TRACE_MAX) || ((block->ins + 2) >= MAX_INSTRUCTION_COUNT) || cpu_debug_regs_486 ||
+        (codegen_fwd_jump >= 0))
         return 0;
     /*A byte-mask block covers its first 64-byte chunk and the next: only
       forward on the same page, the bytes skipped counted in its size
@@ -239,6 +241,229 @@ codegen_trace_jcc_take(codeblock_t *block, ir_data_t *ir, uint32_t end, uint32_t
     if (!codegen_timing_jump_cycles)
         codegen_accumulate_jump(ir, -1, timing_bt);
     codegen_trace_commit(block, ir, end, target, codegen_trace_jcc_delta);
+}
+
+/*A short forward Jcc the compile pass did not take (codegen_fwd_arm): its
+  taken exit jumps over the instructions it skips to a join made where the
+  compile pass reaches its target, instead of leaving the block. Code where
+  a test skips one or two instructions (jz +1; inc ebx) otherwise leaves the
+  block half the time, and compiles its target again as a block of its own.
+  The join writes every register back, charges the cycles of the path that
+  went through the skipped instructions, and forgets what the IR knew of the
+  flags. Given up, with the exit left in, when anything the compiler assumes
+  for the code after the target differs between the two paths*/
+int codegen_fwd_jump = -1;
+int codegen_fwd_used;
+
+static uint32_t codegen_fwd_armed;
+static uint32_t codegen_fwd_dest;
+static uint32_t codegen_fwd_next;
+static uint32_t codegen_fwd_jcc;
+
+static struct {
+    uint32_t cs_base;
+    uint32_t flags_other;
+    uint32_t eflags;
+    uint16_t status;
+    uint16_t cs_sel;
+    int      TOP;
+    int      fpu_entered;
+    int      fpu_es_check;
+    int      mmx_entered;
+    int      fpu_class_dirty;
+    int      fpu_loaded_iq[8];
+    uint8_t  tag_valid;
+    uint8_t  tag_empty;
+    int      page2_walked;
+    int      flat_ds;
+    int      flat_ss;
+    int      flat_es;
+    int      wide_ds;
+    int      wide_ss;
+    int      v86_64k;
+    int      checked[4];
+} codegen_fwd_state;
+
+void
+codegen_fwd_reset(void)
+{
+    codegen_fwd_armed = 0;
+    codegen_fwd_jump  = -1;
+    codegen_fwd_used  = 0;
+}
+
+void
+codegen_fwd_arm(const codeblock_t *block, uint32_t jcc, uint32_t next, uint32_t dest)
+{
+    if ((block->flags & (CODEBLOCK_BYTE_MASK | CODEBLOCK_NO_IMMEDIATES | CODEBLOCK_NO_OPCODES)) || codegen_ir_unrolling() ||
+        cpu_debug_regs_486 || (codegen_fwd_jump >= 0) || ((block->ins + 2) >= MAX_INSTRUCTION_COUNT))
+        return;
+    if ((dest <= next) || ((dest - next) > CODEGEN_FWD_MAX))
+        return;
+    /*On the block's first page, short of where an instruction can cross
+      onto the next one*/
+    if (((dest ^ block->pc) & ~0xfffu) || ((dest & 0xfff) >= 0xff0))
+        return;
+    codegen_fwd_armed = dest;
+    codegen_fwd_next  = next;
+    codegen_fwd_jcc   = jcc;
+}
+
+void
+codegen_fwd_disarm(void)
+{
+    codegen_fwd_armed = 0;
+}
+
+static void
+codegen_fwd_snapshot(void)
+{
+    codegen_fwd_state.cs_base         = cs;
+    codegen_fwd_state.cs_sel          = CS;
+    codegen_fwd_state.flags_other     = cpu_state.flags & ~0x8d5;
+    codegen_fwd_state.eflags          = cpu_state.eflags;
+    codegen_fwd_state.status          = cpu_cur_status;
+    codegen_fwd_state.TOP             = cpu_state.TOP & 7;
+    codegen_fwd_state.fpu_entered     = codegen_fpu_entered;
+    codegen_fwd_state.fpu_es_check    = codegen_fpu_es_check;
+    codegen_fwd_state.mmx_entered     = codegen_mmx_entered;
+    codegen_fwd_state.fpu_class_dirty = codegen_fpu_class_dirty;
+    memcpy(codegen_fwd_state.fpu_loaded_iq, codegen_fpu_loaded_iq, sizeof(codegen_fwd_state.fpu_loaded_iq));
+    codegen_fwd_state.tag_valid    = codegen_fpu_tag_valid;
+    codegen_fwd_state.tag_empty    = codegen_fpu_tag_empty;
+    codegen_fwd_state.page2_walked = codegen_page2_walked;
+    codegen_fwd_state.flat_ds      = codegen_flat_ds;
+    codegen_fwd_state.flat_ss      = codegen_flat_ss;
+    codegen_fwd_state.flat_es      = codegen_flat_es;
+    codegen_fwd_state.wide_ds      = codegen_wide_ds;
+    codegen_fwd_state.wide_ss      = codegen_wide_ss;
+    codegen_fwd_state.v86_64k      = codegen_v86_64k;
+    codegen_fwd_state.checked[0]   = cpu_state.seg_ds.checked;
+    codegen_fwd_state.checked[1]   = cpu_state.seg_es.checked;
+    codegen_fwd_state.checked[2]   = cpu_state.seg_fs.checked;
+    codegen_fwd_state.checked[3]   = cpu_state.seg_gs.checked;
+}
+
+/*From jcc_exit: the taken exit of the armed Jcc to dest (cs relative).
+  1 when it is made as the jump to the join*/
+int
+codegen_fwd_exit(ir_data_t *ir, uint32_t dest)
+{
+    if (!codegen_fwd_armed || ((cs + dest) != codegen_fwd_armed))
+        return 0;
+    uop_MOV_IMM(ir, IREG_pc, dest);
+    codegen_fwd_jump  = uop_JMP_DEST(ir);
+    codegen_fwd_dest  = codegen_fwd_armed;
+    codegen_fwd_armed = 0;
+    codegen_fwd_snapshot();
+    return 1;
+}
+
+/*Whether the code the jump skips over left everything the compiler assumes
+  past the join as it was at the Jcc*/
+static int
+codegen_fwd_can_join(const ir_data_t *ir)
+{
+    if ((cs != codegen_fwd_state.cs_base) || (CS != codegen_fwd_state.cs_sel) ||
+        ((cpu_state.flags & ~0x8d5) != codegen_fwd_state.flags_other) || (cpu_state.eflags != codegen_fwd_state.eflags) ||
+        (cpu_cur_status != codegen_fwd_state.status) || ((cpu_state.TOP & 7) != codegen_fwd_state.TOP) ||
+        (codegen_fpu_entered != codegen_fwd_state.fpu_entered) || (codegen_fpu_es_check != codegen_fwd_state.fpu_es_check) ||
+        (codegen_mmx_entered != codegen_fwd_state.mmx_entered) || (codegen_fpu_class_dirty != codegen_fwd_state.fpu_class_dirty) ||
+        memcmp(codegen_fpu_loaded_iq, codegen_fwd_state.fpu_loaded_iq, sizeof(codegen_fwd_state.fpu_loaded_iq)) ||
+        (codegen_fpu_tag_valid != codegen_fwd_state.tag_valid) || (codegen_fpu_tag_empty != codegen_fwd_state.tag_empty) ||
+        (codegen_page2_walked != codegen_fwd_state.page2_walked) || codegen_mov_ss_pair_valid)
+        return 0;
+
+    /*Nothing that changes the processor's state behind the compiler: an
+      instruction left to the interpreter, a segment load, the x87 control
+      word, a control or debug register*/
+    for (int c = codegen_fwd_jump + 1; c < ir->wr_pos; c++) {
+        const uop_t   *uop  = &ir->uops[c];
+        const uint32_t type = uop->type & UOP_MASK;
+
+        if ((type == (UOP_CALL_INSTRUCTION_FUNC & UOP_MASK)) || (type == (UOP_LOAD_SEG & UOP_MASK)) ||
+            (type == (UOP_FP_CONTROL_SET & UOP_MASK)))
+            return 0;
+        if ((type == (UOP_CALL_FUNC & UOP_MASK)) || (type == (UOP_CALL_FUNC_RESULT & UOP_MASK)) ||
+            (type == (UOP_CALL_FUNC_ORDERED & UOP_MASK)) || (type == (UOP_CALL_FUNC_RESULT_ORDERED & UOP_MASK))) {
+            if ((uop->p == (void *) dynarec_lmsw) || (uop->p == (void *) dynarec_mov_cr0) || (uop->p == (void *) dynarec_mov_cr2) ||
+                (uop->p == (void *) dynarec_mov_cr3) || (uop->p == (void *) dynarec_mov_cr4) || (uop->p == (void *) dynarec_mov_drx) ||
+                (uop->p == (void *) dynarec_mov_drx_gd) || (uop->p == (void *) dynarec_dtr) || (uop->p == (void *) dynarec_iret_pm) ||
+                (uop->p == (void *) dynarec_iret_cs) || (uop->p == (void *) dynarec_call_far_w) || (uop->p == (void *) dynarec_call_far_l))
+                return 0;
+        }
+    }
+    return 1;
+}
+
+static void
+codegen_fwd_join(ir_data_t *ir)
+{
+    codegen_accumulate_flush(ir);
+    uop_NOP_BARRIER(ir);
+    uop_set_jump_dest(ir, codegen_fwd_jump);
+    codegen_fwd_jump = -1;
+    codegen_fwd_used = 1;
+
+    /*What one of the paths has not checked is not checked*/
+    codegen_flat_ds &= codegen_fwd_state.flat_ds;
+    codegen_flat_ss &= codegen_fwd_state.flat_ss;
+    codegen_flat_es &= codegen_fwd_state.flat_es;
+    codegen_wide_ds &= codegen_fwd_state.wide_ds;
+    codegen_wide_ss &= codegen_fwd_state.wide_ss;
+    codegen_v86_64k &= codegen_fwd_state.v86_64k;
+    cpu_state.seg_ds.checked = cpu_state.seg_ds.checked && codegen_fwd_state.checked[0];
+    cpu_state.seg_es.checked = cpu_state.seg_es.checked && codegen_fwd_state.checked[1];
+    cpu_state.seg_fs.checked = cpu_state.seg_fs.checked && codegen_fwd_state.checked[2];
+    cpu_state.seg_gs.checked = cpu_state.seg_gs.checked && codegen_fwd_state.checked[3];
+
+    codegen_flags_changed     = 0;
+    codegen_mov_ss_pair_valid = 0;
+    codegen_generate_reset();
+}
+
+/*The taken path leaves the block after all, from here: the code before
+  goes on past it*/
+static void
+codegen_fwd_give_up(ir_data_t *ir)
+{
+    int jump_uop = uop_JMP_DEST(ir);
+
+    uop_set_jump_dest(ir, codegen_fwd_jump);
+    /*The taken path skipped whatever changed CS since the Jcc*/
+    uop_MOV_IMM(ir, IREG_pc, codegen_fwd_dest - codegen_fwd_state.cs_base);
+    uop_JMP(ir, codegen_exit_rout);
+    uop_NOP_BARRIER(ir);
+    uop_set_jump_dest(ir, jump_uop);
+    codegen_fwd_jump = -1;
+}
+
+/*Before the instruction at addr (linear) is compiled, with a jump pending*/
+void
+codegen_fwd_check(uint32_t addr)
+{
+    ir_data_t *ir = codegen_get_ir_data();
+
+    if ((addr == codegen_fwd_dest) && codegen_fwd_can_join(ir))
+        codegen_fwd_join(ir);
+    else if ((addr < codegen_fwd_next) || (addr >= codegen_fwd_dest) || (cs != codegen_fwd_state.cs_base))
+        codegen_fwd_give_up(ir);
+}
+
+/*At the block's end, at addr (linear) after the instruction at last*/
+void
+codegen_fwd_end(uint32_t addr, uint32_t last)
+{
+    ir_data_t *ir = codegen_get_ir_data();
+
+    if (codegen_fwd_jump < 0)
+        return;
+    /*Not when the compile pass took the Jcc: the code after it is its
+      not-taken exit, which goes to the instruction after it*/
+    if ((addr == codegen_fwd_dest) && (last != codegen_fwd_jcc) && codegen_fwd_can_join(ir))
+        codegen_fwd_join(ir);
+    else
+        codegen_fwd_give_up(ir);
 }
 
 void

@@ -59,6 +59,8 @@ jcc_dynamic_end(codeblock_t *block, uint32_t op_pc, int unrolled)
 static void
 jcc_exit(ir_data_t *ir, uint32_t dest_addr)
 {
+    if (!jcc_dynamic.active && codegen_fwd_exit(ir, dest_addr))
+        return;
     if (!jcc_dynamic.active) {
         uop_MOV_IMM(ir, IREG_pc, dest_addr);
         uop_JMP(ir, codegen_exit_rout);
@@ -112,6 +114,17 @@ jcc_trace_start(codeblock_t *block, uint32_t op_pc, int size, uint32_t dest_addr
     jcc_trace    = dest_addr && codegen_trace_jcc_can(block, cs + op_pc + size, cs + dest_addr);
     jcc_in_block = codegen_unroll_dest_ok(block, op_pc + size, dest_addr);
     jcc_taken    = 0;
+}
+
+/*A short forward Jcc whose taken exit can become a jump inside the block
+  (codegen_fwd_arm)*/
+static void
+jcc_fwd_arm(codeblock_t *block, uint32_t op_pc, int size, uint32_t dest_addr)
+{
+    uint32_t next = op_pc + size;
+
+    if (!jcc_dynamic.active && !jcc_trace && (dest_addr > next) && ((dest_addr - next) <= CODEGEN_FWD_MAX))
+        codegen_fwd_arm(block, cs + op_pc, cs + next, cs + dest_addr);
 }
 
 static void
@@ -1100,7 +1113,9 @@ ropJNLE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t n
         jcc_dynamic_start(block, op_pc, 1, op_pc + 1,                   \
                           !(op_32 & 0x100));                            \
         jcc_trace_start(block, op_pc, 1, dest_addr);                    \
+        jcc_fwd_arm(block, op_pc, 1, dest_addr);                        \
         ret = ropJ##cond##_common(block, ir, dest_addr, op_pc + 1);     \
+        codegen_fwd_disarm();                                           \
         jcc_trace_end(block, ir, op_pc, 1, dest_addr, ret);             \
         jcc_dynamic_end(block, op_pc, ret);                             \
                                                                         \
@@ -1119,7 +1134,9 @@ ropJNLE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t n
                                                                         \
         jcc_dynamic_start(block, op_pc, 2, op_pc + 2, 1);               \
         jcc_trace_start(block, op_pc, 2, dest_addr);                    \
+        jcc_fwd_arm(block, op_pc, 2, dest_addr);                        \
         ret = ropJ##cond##_common(block, ir, dest_addr, op_pc + 2);     \
+        codegen_fwd_disarm();                                           \
         jcc_trace_end(block, ir, op_pc, 2, dest_addr, ret);             \
         jcc_dynamic_end(block, op_pc, ret);                             \
                                                                         \
@@ -1138,7 +1155,9 @@ ropJNLE_common(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr, uint32_t n
                                                                         \
         jcc_dynamic_start(block, op_pc, 4, op_pc + 4, 0);               \
         jcc_trace_start(block, op_pc, 4, dest_addr);                    \
+        jcc_fwd_arm(block, op_pc, 4, dest_addr);                        \
         ret = ropJ##cond##_common(block, ir, dest_addr, op_pc + 4);     \
+        codegen_fwd_disarm();                                           \
         jcc_trace_end(block, ir, op_pc, 4, dest_addr, ret);             \
         jcc_dynamic_end(block, op_pc, ret);                             \
                                                                         \

@@ -674,6 +674,17 @@ extern int      codegen_trace_ends(uint32_t addr);
 extern int      codegen_trace_jcc_can(const codeblock_t *block, uint32_t end, uint32_t target);
 extern void     codegen_trace_jcc_take(codeblock_t *block, struct ir_data_t *ir, uint32_t end, uint32_t target);
 extern int      codegen_jcc_hot_can(const codeblock_t *block);
+
+/*A short forward Jcc's taken exit as a jump inside the block (codegen.c)*/
+#define CODEGEN_FWD_MAX 16
+extern int  codegen_fwd_jump;
+extern int  codegen_fwd_used;
+extern void codegen_fwd_reset(void);
+extern void codegen_fwd_arm(const codeblock_t *block, uint32_t jcc, uint32_t next, uint32_t dest);
+extern void codegen_fwd_disarm(void);
+extern int  codegen_fwd_exit(struct ir_data_t *ir, uint32_t dest);
+extern void codegen_fwd_check(uint32_t addr);
+extern void codegen_fwd_end(uint32_t addr, uint32_t last);
 extern int      codegen_jcc_hot_exit(uint32_t block_nr);
 
 #endif
