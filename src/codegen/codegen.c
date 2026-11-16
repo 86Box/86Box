@@ -137,8 +137,19 @@ codegen_trace_ends(uint32_t addr)
 static int
 codegen_trace_can(const codeblock_t *block, uint32_t end, uint32_t target, int32_t *delta)
 {
-    if ((block->flags & (CODEBLOCK_BYTE_MASK | CODEBLOCK_NO_IMMEDIATES | CODEBLOCK_NO_OPCODES)) || codegen_ir_unrolling() ||
+    if ((block->flags & CODEBLOCK_NO_OPCODES) || codegen_ir_unrolling() ||
         (codegen_trace_count >= CODEGEN_TRACE_MAX) || ((block->ins + 2) >= MAX_INSTRUCTION_COUNT) || cpu_debug_regs_486)
+        return 0;
+    /*A byte-mask block covers its first 64-byte chunk and the next: only
+      forward on the same page, the bytes skipped counted in its size
+      (codegen_trace_commit), so it spans no more than without the JMP*/
+    if (block->flags & CODEBLOCK_BYTE_MASK) {
+        if ((target < end) || ((target ^ block->pc) & ~0xfffu) || ((end - 1) ^ block->pc) & ~0xfffu)
+            return 0;
+        *delta = 0;
+        return 1;
+    }
+    if (block->flags & CODEBLOCK_NO_IMMEDIATES)
         return 0;
     /*Pages: the first, and the second once it has bytes or a JMP picked it*/
     const uint32_t page_1     = block->pc & ~0xfffu;
@@ -183,7 +194,7 @@ codegen_trace_commit(codeblock_t *block, ir_data_t *ir, uint32_t end, uint32_t t
     codegen_trace_range[codegen_trace_count][0] = codegen_trace_start;
     codegen_trace_range[codegen_trace_count][1] = end;
     codegen_trace_count++;
-    codegen_trace_bytes += end - codegen_trace_start;
+    codegen_trace_bytes += ((block->flags & CODEBLOCK_BYTE_MASK) ? target : end) - codegen_trace_start;
     codegen_trace_start = target;
     codegen_trace_taken = 1;
 
