@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-14 02:27+0000\n"
+"PO-Revision-Date: 2026-11-16 02:24+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -248,27 +248,39 @@ msgid "Sound &gain…"
 msgstr "音量增益(&G)…"
 
 msgid "M&IDI output device"
-msgstr ""
+msgstr "MIDI 輸出裝置(&I)"
 
 msgid "Restart &device"
-msgstr ""
+msgstr "重新啟動機器(&D)"
 
 msgid "Send MIDI &command"
-msgstr ""
+msgstr "傳送 MIDI 命令(&C)"
 
 msgid "&GM System On"
-msgstr ""
+msgstr "開啟 GM 系統(&G)"
 
 msgid "G&S Reset"
-msgstr ""
+msgstr "重設 GS (&S)"
 
 msgid "&XG System On"
-msgstr ""
+msgstr "開啟 XG 系統(&X)"
 
 msgid "&MT-32 Reset"
-msgstr ""
+msgstr "重設 MT-32 (&M)"
 
 msgid "All &notes off"
+msgstr "關閉所有音符(&N)"
+
+msgid "Show MIDI &LCD"
+msgstr ""
+
+msgid "MIDI LCD"
+msgstr ""
+
+msgid "Always on &top"
+msgstr ""
+
+msgid "&Close"
 msgstr ""
 
 msgid "Begin trace"
@@ -2585,7 +2597,7 @@ msgid "Start Address"
 msgstr "起始位址"
 
 msgid "Allow RAM up to the system ROM"
-msgstr ""
+msgstr "允許主記憶體覆蓋系統 ROM"
 
 msgid "Contiguous Size"
 msgstr "連續大小"
@@ -4368,13 +4380,13 @@ msgid "USB Mass Storage"
 msgstr "USB 大容量儲存裝置"
 
 msgid "Mount folder as a temporary floppy"
-msgstr ""
+msgstr "將資料夾載掛成臨時軟碟機"
 
 msgid "The selected drive does not support folder mounting."
-msgstr ""
+msgstr "選取的磁碟機不支援資料夾載掛。"
 
 msgid "The contents exceed the capacity of the configured floppy drive."
-msgstr ""
+msgstr "內容超出軟碟機組態的容量。"
 
 msgid "Mount folder as a temporary removable disk"
 msgstr ""

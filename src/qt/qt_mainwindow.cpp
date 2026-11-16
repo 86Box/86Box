@@ -25,6 +25,7 @@
 
 #include "qt_specifydimensions.h"
 #include "qt_soundgain.hpp"
+#include "qt_midilcd.hpp"
 #include "qt_models_common.hpp"
 #include "qt_preferences.hpp"
 #include "qt_mcadevicelist.hpp"
@@ -59,6 +60,7 @@ extern "C" {
 #include <86box/acpi.h>
 #include <86box/renderdefs.h>
 #include <86box/midi.h>
+#include <86box/midi_lcd.h>
 #ifdef USE_RTMIDI
 #    include <86box/midi_rtmidi.h>
 #endif
@@ -228,8 +230,15 @@ MainWindow::MainWindow(QWidget *parent)
     midiOutGroup->setExclusive(true);
     connect(ui->menuMIDI, &QMenu::aboutToShow, this, &MainWindow::refreshMidiOutMenu);
     connect(ui->menuSound, &QMenu::aboutToShow, this, [this] {
+        midi_lcd_t lcd;
+
         ui->menuMIDI_command->setEnabled(midi_out_device_is_open());
+        midi_lcd_get(&lcd);
+        ui->actionMIDI_LCD->setEnabled((lcd.type != MIDI_LCD_NONE) || ui->actionMIDI_LCD->isChecked());
     });
+    connect(ui->actionMIDI_LCD, &QAction::triggered, this, &MainWindow::showMidiLcd);
+    if (config_get_int("MIDI LCD", "visible", 0))
+        QTimer::singleShot(0, this, [this] { showMidiLcd(true); });
     const std::pair<QAction *, int> midiCommands[] = {
         { ui->actionMIDI_reset_GM,      MIDI_CMD_GM_ON         },
         { ui->actionMIDI_reset_GS,      MIDI_CMD_GS_RESET      },
@@ -1086,6 +1095,14 @@ MainWindow::closeEvent(QCloseEvent *event)
             renderers[i]->show();
             renderers[i]->switchRenderer(RendererStack::Renderer::Software);
         }
+    }
+
+    /* Keep "visible" as it is now: the window closing with the main window
+       must not count as the user closing it. */
+    if (midiLcd) {
+        disconnect(midiLcd, nullptr, this, nullptr);
+        midiLcd->saveSettings();
+        config_save();
     }
 
     qt_nvr_save();
@@ -2628,6 +2645,22 @@ MainWindow::on_actionSound_gain_triggered()
 {
     SoundGain gain(this);
     gain.exec();
+}
+
+void
+MainWindow::showMidiLcd(bool show)
+{
+    if (!midiLcd) {
+        if (!show)
+            return;
+        midiLcd = new MidiLcdWindow(this);
+        connect(midiLcd, &MidiLcdWindow::visibilityChanged, this, [this](bool visible) {
+            ui->actionMIDI_LCD->setChecked(visible);
+            midiLcd->saveSettings();
+            config_save();
+        });
+    }
+    midiLcd->setVisible(show);
 }
 
 /* The list is built each time the menu opens, as the settings may have

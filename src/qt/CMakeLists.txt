@@ -256,6 +256,9 @@ add_library(ui STATIC
     qt_soundgain.cpp
     qt_soundgain.ui
 
+    qt_midilcd.hpp
+    qt_midilcd.cpp
+
     qt_styleoverride.cpp
     qt_styleoverride.hpp
     qt_util.hpp

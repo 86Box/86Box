@@ -133,6 +133,7 @@
      <addaction name="separator"/>
      <addaction name="menuMIDI"/>
      <addaction name="menuMIDI_command"/>
+     <addaction name="actionMIDI_LCD"/>
     </widget>
     <addaction name="actionSettings"/>
     <addaction name="actionUpdate_status_bar_icons"/>
@@ -791,6 +792,14 @@
   <action name="actionMIDI_restart_device">
    <property name="text">
     <string>Restart &amp;device</string>
+   </property>
+  </action>
+  <action name="actionMIDI_LCD">
+   <property name="checkable">
+    <bool>true</bool>
+   </property>
+   <property name="text">
+    <string>Show MIDI &amp;LCD</string>
    </property>
   </action>
   <action name="actionOpenGL">
