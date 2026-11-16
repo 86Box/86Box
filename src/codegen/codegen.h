@@ -497,6 +497,7 @@ extern void codegen_delete_random_block(int required_mem_block);
 #define CODEGEN_ADMIT_SHIFT      16
 #define CODEGEN_GHOST_SHIFT      13
 extern int      codegen_evict_thrash;
+extern int      codegen_reset_pending;
 extern uint32_t codegen_admit_filter[1 << (32 - CODEGEN_ADMIT_SHIFT)];
 extern uint32_t codegen_evict_ghost[1 << (32 - CODEGEN_GHOST_SHIFT)];
 
