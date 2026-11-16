@@ -68,6 +68,10 @@
 /*UOP_JMP_DEST - jump to ptr*/
 #define UOP_JMP_DEST       (UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0x17 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
 #define UOP_NOP_BARRIER    (UOP_TYPE_BARRIER | 0x18)
+/*UOP_NOP_JOIN - destination of the one jump over the uops before it: the
+  host registers that hold the same register version on both paths stay
+  loaded (codegen_reg_join), the others are forgotten*/
+#define UOP_NOP_JOIN (UOP_TYPE_ORDER_BARRIER | 0x1c)
 #define UOP_STORE_P_IMM_16 (UOP_TYPE_PARAMS_IMM | 0x19)
 /*UOP_ADD_P_IMM - add imm to the 32-bit word at p*/
 #define UOP_ADD_P_IMM (UOP_TYPE_PARAMS_IMM | 0x1b)
@@ -1236,6 +1240,7 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
 #define uop_MOV_INT_DOUBLE_64(ir, dst_reg, src_reg_d, src_reg_q, tag)    uop_gen_reg_dst_src3(UOP_MOV_INT_DOUBLE_64, ir, dst_reg, src_reg_d, src_reg_q, tag)
 
 #define uop_NOP_BARRIER(ir)                                              uop_gen(UOP_NOP_BARRIER, ir)
+#define uop_NOP_JOIN(ir)                                                 uop_gen(UOP_NOP_JOIN, ir)
 
 #define uop_PACKSSWB(ir, dst_reg, src_reg_a, src_reg_b)                  uop_gen_reg_dst_src2(UOP_PACKSSWB, ir, dst_reg, src_reg_a, src_reg_b)
 #define uop_PACKSSDW(ir, dst_reg, src_reg_a, src_reg_b)                  uop_gen_reg_dst_src2(UOP_PACKSSDW, ir, dst_reg, src_reg_a, src_reg_b)
