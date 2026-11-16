@@ -317,8 +317,6 @@ extern void     do_mmutranslate_set2(uint32_t addr, uint32_t *a64, int num, int 
 extern uint8_t  readmembl_eam(uint32_t addr);
 extern uint16_t readmemwl_eam(uint32_t addr);
 extern uint32_t readmemll_eam(uint32_t addr);
-extern uint16_t readmemwl_ea(uint32_t addr);
-extern uint32_t readmemll_ea(uint32_t addr);
 extern void     writemembl_eam(uint32_t addr, uint8_t val);
 extern void     writememwl_eam(uint32_t addr, uint16_t val);
 extern void     writememll_eam(uint32_t addr, uint32_t val);

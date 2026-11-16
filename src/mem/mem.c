@@ -416,13 +416,12 @@ mem_held_lock_drop(void)
    MEM_HELD_CALLED: the call is made whatever the tables hold (a segment
    base of FFFFFFFFh, an access with no test before it). The operand
    pointer rule (fetch_ea's eal_r and eal_w, the recompiler's routines of
-   that name) uses it up to page offset FFCh, aligned or not; past that the
-   call is made whatever the tables hold (MEM_HELD_PTR), or the macro's
-   rule applies (MEM_HELD_PTR_MACRO, geteab(), seteab() and their like). */
+   that name) uses it up to page offset FFCh, aligned or not, and past that
+   the macro's rule applies (MEM_HELD_PTR_MACRO, geteab(), seteab() and
+   their like). */
 enum {
     MEM_HELD_MACRO = 0,
     MEM_HELD_CALLED,
-    MEM_HELD_PTR,
     MEM_HELD_PTR_MACRO
 };
 static int mem_held_mode;
@@ -435,8 +434,6 @@ mem_held_before_call(uint32_t addr, uint32_t mask)
             return !(addr & mask);
         case MEM_HELD_CALLED:
             return 0;
-        case MEM_HELD_PTR:
-            return (addr & 0xfff) <= 0xffc;
         default:
             return ((addr & 0xfff) <= 0xffc) || !(addr & mask);
     }
@@ -2680,8 +2677,6 @@ do_mmutranslate_set2(uint32_t addr, uint32_t *a64, int num, int write)
 MEM_HELD_PTR_R(uint8_t, readmembl, _eam, MEM_HELD_PTR_MACRO)
 MEM_HELD_PTR_R(uint16_t, readmemwl, _eam, MEM_HELD_PTR_MACRO)
 MEM_HELD_PTR_R(uint32_t, readmemll, _eam, MEM_HELD_PTR_MACRO)
-MEM_HELD_PTR_R(uint16_t, readmemwl, _ea, MEM_HELD_PTR)
-MEM_HELD_PTR_R(uint32_t, readmemll, _ea, MEM_HELD_PTR)
 MEM_HELD_PTR_W(uint8_t, writemembl)
 MEM_HELD_PTR_W(uint16_t, writememwl)
 MEM_HELD_PTR_W(uint32_t, writememll)
