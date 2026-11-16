@@ -171,6 +171,13 @@ rage128_now_ns(void)
    memory, which is all of local memory. */
 #define R128_TEX_KEEP_SHIFT 16
 #define R128_TEX_KEEP_MARKS (0x02000000u >> R128_TEX_KEEP_SHIFT)
+/* Store marks for the levels cached with a GPU backend (rage128_t
+   tex_stage cst_pg): one per 4 KB page of the same 32 MB. They are finer
+   than the marks above because a cached level lasts across batches: with
+   64 KB marks a guest that streams stores into one texture would end
+   every cached level in the same 64 KB at each of their lookups. */
+#define R128_TEX_CST_SHIFT 12
+#define R128_TEX_CST_MARKS (0x02000000u >> R128_TEX_CST_SHIFT)
 
 typedef struct rage128_t {
     svga_t svga;
@@ -1289,6 +1296,27 @@ typedef struct rage128_t {
         atomic_uchar keep_any;
         atomic_uchar keep_all;
         atomic_uchar keep_pg[R128_TEX_KEEP_MARKS];
+        /* Store marks for the cached levels (ent, GPU backend attached).
+           The check a store makes before its bytes (r128_texcache_dirty)
+           has to come first, because the same call waits for the queued
+           GPU work that still reads the old bytes; but the submit thread
+           can copy and cache a level between that check and the bytes,
+           and the copy then holds the old bytes with nothing left to end
+           it. So every writer also reports after its bytes
+           (r128_tex_cache_note): it sets the mark of each 4 KB page it
+           stored into, indexed through vram_mask as the host-newer map
+           is, or cst_all when its address is not known here. The submit
+           thread returns a cached level only while the marks under its
+           source and cst_all are clear. Before it copies a level it
+           takes the level's marks with an exchange; a mark it finds set
+           ends every cached level with source bytes in that page, since
+           one mark stands for all of them, and cst_all found set ends
+           every cached level. A writer stores its bytes and then its
+           mark, so a copy made after the exchange that took a mark holds
+           that store's bytes, and a store whose mark is set later is
+           seen by the next lookup. No writer waits or takes the lock. */
+        atomic_uchar cst_all;
+        atomic_uchar cst_pg[R128_TEX_CST_MARKS];
         /* Staged levels. A cached entry (ent, the GPU backend's levels in
            local memory) serves later draws until a store lands in its
            source bytes or the arena is reset; a per-batch entry (pde: AGP
@@ -3274,6 +3302,24 @@ r128_gpu_store_note(rage128_t *dev, uint32_t addr, uint32_t len)
         dev->ov0.gpu_frame = 0;
 }
 
+#ifdef REG_HARNESS
+/* Register harness only: called after a guest store's check and barrier
+   and before its bytes are stored, so a test can capture a draw between
+   the two. Null outside those tests; the call does not exist in the
+   emulator's build. */
+extern _Atomic(void (*)(rage128_t *dev, uint32_t addr, uint32_t len)) rage128_harness_store_hook;
+static inline void
+r128_harness_store_site(rage128_t *dev, uint32_t addr, uint32_t len)
+{
+    void (*hook)(rage128_t *, uint32_t, uint32_t) = atomic_load(&rage128_harness_store_hook);
+
+    if (hook)
+        hook(dev, addr, len);
+}
+#else
+#    define r128_harness_store_site(dev, addr, len) ((void) 0)
+#endif
+
 /* A guest CPU access through an aperture, with the GPU backend on: the
    store bookkeeping, then the hazard summary decides the common case,
    an access no GPU work touches, without calling into the backend. A
@@ -3284,6 +3330,8 @@ rage128_gpu_cpu_access(rage128_t *dev, uint32_t addr, uint32_t len, int writes)
 {
     if (dev->lfbt.sample) {
         rage128_gpu_cpu_barrier(dev, addr, len, writes);
+        if (writes)
+            r128_harness_store_site(dev, addr, len);
         return;
     }
     if (writes)
@@ -3291,6 +3339,8 @@ rage128_gpu_cpu_access(rage128_t *dev, uint32_t addr, uint32_t len, int writes)
     if (r128_gpu_hull_maybe((struct rage128_gpu_hull *) dev->gpu, addr,
                             addr + len, writes))
         rage128_gpu_cpu_barrier_hit(dev, addr, len, writes);
+    if (writes)
+        r128_harness_store_site(dev, addr, len);
 }
 /* Local bytes [lo, lo+len) of svga.vram have been stored to by something
    other than the 3D engine: tell the CPU lanes, which may hold a
@@ -3328,10 +3378,41 @@ r128_tex_keep_note_all(rage128_t *dev)
     atomic_store_explicit(&dev->tex_stage.keep_any, 1, memory_order_release);
 }
 
+/* The same report for the levels cached with a GPU backend (rage128_t
+   tex_stage cst_pg): one mark per 4 KB page stored into. Called after
+   the store, from any thread; the release store orders the bytes before
+   the mark. The mark is stored without looking at it first: a writer
+   that read it set and skipped the store could have its bytes still
+   unseen by a copy whose exchange then clears that mark. Nearly every
+   store lies in one page and costs one mark. */
+static inline void
+r128_tex_cache_note(rage128_t *dev, uint32_t lo, uint32_t len)
+{
+    struct rage128_tex_stage *ts = &dev->tex_stage;
+    uint32_t                  m  = dev->vram_mask;
+    uint32_t                  p0 = (lo & m) >> R128_TEX_CST_SHIFT;
+    uint32_t                  p1 = ((lo + len - 1u) & m) >> R128_TEX_CST_SHIFT;
+
+    if (!len)
+        return;
+    if (len > m) {
+        atomic_store_explicit(&ts->cst_all, 1, memory_order_release);
+        return;
+    }
+    atomic_store_explicit(&ts->cst_pg[p0], 1, memory_order_release);
+    if (p1 == p0 && len <= 1u << R128_TEX_CST_SHIFT)
+        return;
+    for (uint32_t o = 1u << R128_TEX_CST_SHIFT; o < len; o += 1u << R128_TEX_CST_SHIFT)
+        atomic_store_explicit(&ts->cst_pg[((lo + o) & m) >> R128_TEX_CST_SHIFT], 1,
+                              memory_order_release);
+    atomic_store_explicit(&ts->cst_pg[p1], 1, memory_order_release);
+}
+
 /* Local bytes [lo, lo+len) of svga.vram have been stored to, so the GPU
    backend's mirror may lack them: mark their pages host-newer. Called
    after the store. Every such writer reports here, so this also passes
-   the store to r128_tex_keep_note. The release store orders the bytes before the mark,
+   the store to r128_tex_keep_note and, with a backend attached, to
+   r128_tex_cache_note. The release store orders the bytes before the mark,
    and the submit thread clears the mark with an acquire exchange before
    it records the page's copy, so the copy sees every store whose mark it
    cleared; a store that lands after the clear sets the mark again and is
@@ -3346,6 +3427,8 @@ r128_vram_hnew(rage128_t *dev, uint32_t lo, uint32_t len)
     uint32_t      m = dev->vram_mask;
 
     r128_tex_keep_note(dev, lo, len);
+    if (dev->gpu)
+        r128_tex_cache_note(dev, lo, len);
     if (!h || !len)
         return;
     if (len > m) {
@@ -3363,6 +3446,8 @@ static inline void
 r128_vram_hnew_all(rage128_t *dev)
 {
     r128_tex_keep_note_all(dev);
+    if (dev->gpu)
+        atomic_store_explicit(&dev->tex_stage.cst_all, 1, memory_order_release);
     if (dev->vram_hnew)
         atomic_store_explicit(&dev->vram_hnew_all, 1, memory_order_release);
 }

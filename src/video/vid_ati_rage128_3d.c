@@ -3827,6 +3827,109 @@ r3d_par_begin(rage128_t *dev)
     r128_texcache_unlock(ts);
 }
 
+/* The store marks of the levels cached with a GPU backend (rage128_t
+   tex_stage cst_pg). These helpers run on the submit thread, under the
+   lock.
+
+   r3d_cst_touches: does a level whose source is [lo, hi), read through
+   vram_mask m, have a byte in the pages p0 to p1 of the marks? A source
+   that runs past the end of memory wraps to page 0, as the marks of a
+   store into it do. */
+static int
+r3d_cst_touches(uint32_t m, uint32_t lo, uint32_t hi, uint32_t p0, uint32_t p1)
+{
+    uint32_t a = (lo & m) >> R128_TEX_CST_SHIFT;
+    uint32_t b = ((hi - 1u) & m) >> R128_TEX_CST_SHIFT;
+
+    if (hi - lo > m)
+        return 1;
+    return a <= b ? a <= p1 && b >= p0 : p0 <= b || p1 >= a;
+}
+
+/* r3d_cst_set: has a store been reported under the source [lo, hi) of a
+   cached level since its marks were last taken? */
+static int
+r3d_cst_set(rage128_t *dev, uint32_t lo, uint32_t hi)
+{
+    struct rage128_tex_stage *ts = &dev->tex_stage;
+    uint32_t                  m  = dev->vram_mask;
+
+    if (atomic_load_explicit(&ts->cst_all, memory_order_acquire))
+        return 1;
+    if (hi - lo > m) {
+        lo = 0;
+        hi = m + 1u;
+    }
+    for (uint64_t a = lo & ~((1u << R128_TEX_CST_SHIFT) - 1u); a < hi;
+         a += 1u << R128_TEX_CST_SHIFT) {
+        if (atomic_load_explicit(&ts->cst_pg[((uint32_t) a & m) >> R128_TEX_CST_SHIFT],
+                                 memory_order_acquire))
+            return 1;
+    }
+    return 0;
+}
+
+/* r3d_cst_end: end every cached level with a source byte in the pages
+   p0 to p1, the way a store into it ends it. The combined source range
+   and the page bits keep covering the ended levels, which both allow. */
+static void
+r3d_cst_end(struct rage128_tex_stage *ts, uint32_t m, uint32_t p0, uint32_t p1)
+{
+    for (uint32_t i = 0; i < ts->ent_count; i++)
+        if (!ts->ent[i].dead && ts->ent[i].gen == ts->tgen
+            && r3d_cst_touches(m, ts->ent[i].src_lo, ts->ent[i].src_hi, p0, p1)) {
+            ts->ent[i].dead = 1;
+            ts->ent_dead++;
+        }
+}
+
+/* r3d_cst_take: clear the marks under the source [lo, hi) of a level
+   that is about to be copied, so a mark found later means a store the
+   copy may lack. A mark that is set may stand for a store into another
+   cached level with bytes in the same page, and a lookup of that level
+   could not tell once the mark is gone, so every cached level
+   under a mark taken here ends with it (consecutive set pages are ended
+   in one pass over the table); cst_all taken ends every cached level.
+   The exchange reads the writer's release store, which follows the
+   writer's bytes, so the copy that comes after it reads those bytes. The
+   fence states the same order for the plain loads of the copy on every
+   host: all the exchanges are complete before the first byte is read. */
+static void
+r3d_cst_take(rage128_t *dev, uint32_t lo, uint32_t hi)
+{
+    struct rage128_tex_stage *ts  = &dev->tex_stage;
+    uint32_t                  m   = dev->vram_mask;
+    uint32_t                  r0  = 0;
+    uint32_t                  r1  = 0;
+    int                       run = 0;
+
+    if (atomic_exchange_explicit(&ts->cst_all, 0, memory_order_acq_rel))
+        r3d_cst_end(ts, m, 0, m >> R128_TEX_CST_SHIFT);
+    if (hi - lo > m) {
+        lo = 0;
+        hi = m + 1u;
+    }
+    for (uint64_t a = lo & ~((1u << R128_TEX_CST_SHIFT) - 1u); a < hi;
+         a += 1u << R128_TEX_CST_SHIFT) {
+        uint32_t p = ((uint32_t) a & m) >> R128_TEX_CST_SHIFT;
+
+        if (!atomic_exchange_explicit(&ts->cst_pg[p], 0, memory_order_acq_rel))
+            continue;
+        if (run && p == r1 + 1u) {
+            r1 = p;
+            continue;
+        }
+        if (run)
+            r3d_cst_end(ts, m, r0, r1);
+        run = 1;
+        r0  = p;
+        r1  = p;
+    }
+    if (run)
+        r3d_cst_end(ts, m, r0, r1);
+    atomic_thread_fence(memory_order_seq_cst);
+}
+
 /* Stage the mip level at card address vm, len bytes, and return its byte
    offset in the arena, or R128_TEX_STAGE_NONE when there is no room (see
    r3d_stage_textures for what the caller then does). A failed read still
@@ -3860,16 +3963,20 @@ r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
        read again below and compared with it;
        cached entries are checked against the cache generation and last
        until a store lands in their own source bytes or the arena is
-       reset. A key is always cacheable or always not (the address decides
-       it), so each kind is looked up in its own table. The lookup runs
-       under the lock because a store on the CPU thread can end an entry
-       at any time. */
+       reset; one with a store mark set under its source is not returned,
+       because the store that set the mark may have come after the level
+       was copied (rage128_t tex_stage cst_pg), and the level is copied
+       again below. A key is always cacheable or always not (the address
+       decides it), so each kind is looked up in its own table. The lookup
+       runs under the lock because a store on the CPU thread can end an
+       entry at any time. */
     r128_texcache_lock(ts);
     tg = ts->tgen;
     if (cacheable) {
         int i = r3d_tex_idx_find(ts, key, len, tbpp, tiled_pb);
 
-        if (i >= 0 && ts->ent[i].gen == tg && !ts->ent[i].dead) {
+        if (i >= 0 && ts->ent[i].gen == tg && !ts->ent[i].dead
+            && !r3d_cst_set(dev, ts->ent[i].src_lo, ts->ent[i].src_hi)) {
             ts->n_hit++;
             ts->ent[i].used_lap = ts->lap;
             off = ts->ent[i].arena_off;
@@ -3927,6 +4034,10 @@ r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
             if (shi > ts->src_hi)
                 ts->src_hi = shi;
         }
+        /* Take the level's store marks before its bytes are read. An
+           entry of this level that the lookup above passed over for a
+           set mark ends here with the mark. */
+        r3d_cst_take(dev, slo, shi);
     }
     r128_texcache_unlock(ts);
 
