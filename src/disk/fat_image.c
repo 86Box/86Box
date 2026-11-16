@@ -101,10 +101,27 @@ typedef struct layout_t {
 
 /* Boot code for the MBR and the boot sector. It runs from any segment:offset and prints the message after it. */
 static const uint8_t boot_code[] = {
-    0xfa, 0x31, 0xc0, 0x8e, 0xd0, 0xbc, 0x00, 0x7c, 0xfb, 0x0e, 0x1f, 0xe8, /* cli; xor ax,ax; mov ss,ax; mov sp,7C00h; sti; push cs; pop ds; call $+3 */
-    0x00, 0x00, 0x5e, 0x83, 0xc6, 0x1a, 0xac, 0x84, 0xc0, 0x74, 0x09, 0xb4, /* pop si; add si,1Ah; lodsb; test al,al; jz +9; mov ah,0Eh */
-    0x0e, 0xbb, 0x07, 0x00, 0xcd, 0x10, 0xeb, 0xf2, 0x31, 0xc0, 0xcd, 0x16, /* mov bx,7; int 10h; jmp -14; xor ax,ax; int 16h */
-    0xcd, 0x19, 0xeb, 0xfe                                                  /* int 19h; jmp $ */
+    0xfa,              /* cli */
+    0x31, 0xc0,        /* xor ax, ax */
+    0x8e, 0xd0,        /* mov ss, ax */
+    0xbc, 0x00, 0x7c,  /* mov sp, 7C00h */
+    0xfb,              /* sti */
+    0x0e,              /* push cs */
+    0x1f,              /* pop ds */
+    0xe8, 0x00, 0x00,  /* call $+3 */
+    0x5e,              /* pop si */
+    0x83, 0xc6, 0x1a,  /* add si, 1Ah */
+    0xac,              /* lodsb */
+    0x84, 0xc0,        /* test al, al */
+    0x74, 0x09,        /* jz $+11 */
+    0xb4, 0x0e,        /* mov ah, 0Eh */
+    0xbb, 0x07, 0x00,  /* mov bx, 7 */
+    0xcd, 0x10,        /* int 10h */
+    0xeb, 0xf2,        /* jmp $-12 */
+    0x31, 0xc0,        /* xor ax, ax */
+    0xcd, 0x16,        /* int 16h */
+    0xcd, 0x19,        /* int 19h */
+    0xeb, 0xfe         /* jmp $ */
 };
 static const char boot_message[] = "\r\nThis disk is not bootable.\r\n"
                                    "Insert a system disk and press any key to restart.\r\n";
