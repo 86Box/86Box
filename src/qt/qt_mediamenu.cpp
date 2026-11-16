@@ -209,7 +209,7 @@ MediaMenu::refresh(QMenu *parentMenu)
         }
         QIcon cdr_img_icon    = QIcon(":/settings/qt/icons/cdrw_image.ico");
         QIcon cdrw_img_icon   = QIcon(":/settings/qt/icons/cdrw_image.ico");
-        cdromMutePos = menu->children().count();
+        cdromMutePos[i] = menu->children().count();
         menu->addAction(QIcon(":/settings/qt/icons/cdrom_mute.ico"), tr("&Mute"), [this, i]() { cdromMute(i); })->setCheckable(true);
         if (cdrom_is_writable(t))
             menu->addSeparator();
@@ -262,7 +262,7 @@ MediaMenu::refresh(QMenu *parentMenu)
         }
         menu->addSeparator();
 #endif
-        cdromEjectPos = menu->children().count();
+        cdromEjectPos[i] = menu->children().count();
         menu->addAction(tr("E&ject"), [this, i]() { cdromEject(i); })->setCheckable(false);
         cdromMenus[i] = menu;
         cdromUpdateMenu(i);
@@ -1175,11 +1175,11 @@ MediaMenu::cdromUpdateMenu(int i)
     }
     QIcon mute_icon   = QIcon(":/settings/qt/icons/cdrom_mute.ico");
 
-    auto *muteMenu = dynamic_cast<QAction *>(childs[cdromMutePos]);
+    auto *muteMenu = dynamic_cast<QAction *>(childs[cdromMutePos[i]]);
     muteMenu->setIcon((cdrom[i].sound_on == 0) ? unmute_icon : mute_icon);
     muteMenu->setText((cdrom[i].sound_on == 0) ? tr("&Unmute") : tr("&Mute"));
 
-    auto *ejectMenu = dynamic_cast<QAction *>(childs[cdromEjectPos]);
+    auto *ejectMenu = dynamic_cast<QAction *>(childs[cdromEjectPos[i]]);
     ejectMenu->setEnabled(!name.isEmpty());
     QString menu_item_name;
     if (name.left(8) == "ioctl://") {
