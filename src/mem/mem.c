@@ -418,7 +418,7 @@ mem_held_lock_drop(void)
    pointer rule (fetch_ea's eal_r and eal_w, the recompiler's routines of
    that name) uses it up to page offset FFCh, aligned or not; past that the
    call is made whatever the tables hold (MEM_HELD_PTR), or the macro's
-   rule applies (MEM_HELD_PTR_MACRO, geteab() and its like). */
+   rule applies (MEM_HELD_PTR_MACRO, geteab(), seteab() and their like). */
 enum {
     MEM_HELD_MACRO = 0,
     MEM_HELD_CALLED,
@@ -2663,9 +2663,9 @@ do_mmutranslate_set2(uint32_t addr, uint32_t *a64, int num, int write)
         return ret;                              \
     }
 #define MEM_HELD_PTR_W(type, name)               \
-    void name##_ea(uint32_t addr, type val)      \
+    void name##_eam(uint32_t addr, type val)     \
     {                                            \
-        mem_held_mode = MEM_HELD_PTR;            \
+        mem_held_mode = MEM_HELD_PTR_MACRO;      \
         name(addr, val);                         \
         mem_held_mode = MEM_HELD_MACRO;          \
     }

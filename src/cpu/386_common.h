@@ -110,6 +110,23 @@
             (((s) == 0xFFFFFFFF) ? writememql_nh : writememql)((s) + (a), v);                                                                                       \
         else                                                                                                                \
             *(uint64_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
+/* The same for seteab() and its like when fetch_ea left no operand pointer:
+   the call says so. */
+#    define writememb_ea(s, a, v)                                                                      \
+        if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || (s) == 0xFFFFFFFF) \
+            (((s) == 0xFFFFFFFF) ? writemembl_nh : writemembl_eam)((s) + (a), v);                       \
+        else                                                                                           \
+            *(uint8_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
+#    define writememw_ea(s, a, v)                                                                                           \
+        if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) \
+            (((s) == 0xFFFFFFFF) ? writememwl_nh : writememwl_eam)((s) + (a), v);                                            \
+        else                                                                                                                \
+            *(uint16_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
+#    define writememl_ea(s, a, v)                                                                                           \
+        if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) \
+            (((s) == 0xFFFFFFFF) ? writememll_nh : writememll_eam)((s) + (a), v);                                            \
+        else                                                                                                                \
+            *(uint32_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
 
 /* With paging off and no debug register breakpoint armed, do_mmutranslate()
    has nothing to do: the _no_mmut accessors only read the addresses it fills
@@ -903,7 +920,7 @@ seteaq(uint64_t v)
 {
     if (seteaq_cwc())
         return;
-    writememql_nh(easeg + cpu_state.eaaddr, v);
+    writememq(easeg, cpu_state.eaaddr, v);
 }
 
 #    define seteab(v)                                                                 \
@@ -912,7 +929,7 @@ seteaq(uint64_t v)
             if (eal_w)                                                                \
                 *(uint8_t *) eal_w = v;                                               \
             else                                                                      \
-                ((easeg == 0xFFFFFFFF) ? writemembl_nh : writemembl_ea)(easeg + cpu_state.eaaddr, v);                              \
+                writememb_ea(easeg, cpu_state.eaaddr, v);                             \
         } else if (cpu_rm & 4)                                                        \
             cpu_state.regs[cpu_rm & 3].b.h = v;                                       \
         else                                                                          \
@@ -923,7 +940,7 @@ seteaq(uint64_t v)
             if (eal_w)                                                                    \
                 *(uint16_t *) eal_w = v;                                                  \
             else                                                                          \
-                ((easeg == 0xFFFFFFFF) ? writememwl_nh : writememwl_ea)(easeg + cpu_state.eaaddr, v);                                  \
+                writememw_ea(easeg, cpu_state.eaaddr, v);                                 \
         } else                                                                            \
             cpu_state.regs[cpu_rm].w = v
 #    define seteal(v)                                                                     \
@@ -932,7 +949,7 @@ seteaq(uint64_t v)
             if (eal_w)                                                                    \
                 *eal_w = v;                                                               \
             else                                                                          \
-                ((easeg == 0xFFFFFFFF) ? writememll_nh : writememll_ea)(easeg + cpu_state.eaaddr, v);                                  \
+                writememl_ea(easeg, cpu_state.eaaddr, v);                                 \
         } else                                                                            \
             cpu_state.regs[cpu_rm].l = v
 
@@ -940,20 +957,20 @@ seteaq(uint64_t v)
         if (eal_w)                  \
             *(uint8_t *) eal_w = v; \
         else                        \
-            ((easeg == 0xFFFFFFFF) ? writemembl_nh : writemembl_ea)(easeg + cpu_state.eaaddr, v);
+            writememb_ea(easeg, cpu_state.eaaddr, v);
 #    define seteaw_mem(v)            \
         if (eal_w)                   \
             *(uint16_t *) eal_w = v; \
         else                         \
-            ((easeg == 0xFFFFFFFF) ? writememwl_nh : writememwl_ea)(easeg + cpu_state.eaaddr, v);
+            writememw_ea(easeg, cpu_state.eaaddr, v);
 #    define seteal_mem(v) \
         if (eal_w)        \
             *eal_w = v;   \
         else              \
-            ((easeg == 0xFFFFFFFF) ? writememll_nh : writememll_ea)(easeg + cpu_state.eaaddr, v);
+            writememl_ea(easeg, cpu_state.eaaddr, v);
 
-/* For the bit operations, which clear the operand pointers: the read is the
-   memory macro's, the store a call whatever the lookup tables hold. */
+/* For the bit operations, which clear the operand pointers: the read and the
+   store are the memory macros'. */
 static __inline uint16_t
 geteaw_noptr(void)
 {
@@ -977,13 +994,13 @@ geteal_noptr(void)
 #    define seteaw_noptr(v)                                                               \
         if (cpu_mod != 3) {                                                               \
             CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1); \
-            writememwl_nh(easeg + cpu_state.eaaddr, v);                                   \
+            writememw(easeg, cpu_state.eaaddr, v);                                        \
         } else                                                                            \
             cpu_state.regs[cpu_rm].w = v
 #    define seteal_noptr(v)                                                               \
         if (cpu_mod != 3) {                                                               \
             CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3); \
-            writememll_nh(easeg + cpu_state.eaaddr, v);                                   \
+            writememl(easeg, cpu_state.eaaddr, v);                                        \
         } else                                                                            \
             cpu_state.regs[cpu_rm].l = v
 #endif
