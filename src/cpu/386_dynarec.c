@@ -1084,10 +1084,10 @@ exec386_dynarec_dyn(const int dbg)
             rf_flag_no_clear = 0;
 
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
-        if (x86_was_reset)
+        if (x86_was_reset | codegen_reset_pending)
             link_from = NULL;
 #    endif
-        if (x86_was_reset)
+        if (x86_was_reset | codegen_reset_pending)
             codegen_reset();
     } else if (valid_block && !cpu_state.abrt) {
         start_pc                 = cs + cpu_state.pc;

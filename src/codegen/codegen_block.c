@@ -976,6 +976,7 @@ codegen_reset(void)
     memset(codeblock, 0, BLOCK_SIZE * sizeof(codeblock_t));
     memset(codeblock_hash, 0, HASH_SIZE * sizeof(uint32_t));
     codegen_evict_thrash = 0;
+    codegen_reset_pending = 0;
     family_review_reset();
     mem_reset_page_blocks();
     block_chunk_lists_nr   = 0;
@@ -1697,6 +1698,7 @@ codegen_invalidate_page_masks(page_t *page)
 }
 
 int      codegen_evict_thrash = 0;
+int      codegen_reset_pending = 0;
 uint32_t codegen_admit_filter[1 << (32 - CODEGEN_ADMIT_SHIFT)];
 uint32_t codegen_evict_ghost[1 << (32 - CODEGEN_GHOST_SHIFT)];
 
@@ -1963,8 +1965,8 @@ codegen_block_start_recompile(codeblock_t *block)
 {
     page_t *page = &pages[block->phys >> 12];
 
-    if (codegen_evict_thrash)
-        codegen_evict_thrash--;
+    if (codegen_evict_thrash && (--codegen_evict_thrash == (CODEGEN_ADMIT_THRASH - 1)))
+        codegen_reset_pending = 1;
 
     if (!page->block)
         mem_flush_write_page(block->phys, cs + cpu_state.pc);
