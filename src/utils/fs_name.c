@@ -13,6 +13,9 @@
  *
  *          Copyright 2026 RichardG.
  */
+#ifndef _GNU_SOURCE
+#    define _GNU_SOURCE /* dladdr() */
+#endif
 #include <stdint.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -23,6 +26,12 @@
 #elif defined(USE_ICONV)
 #    include <errno.h>
 #    include <iconv.h>
+#    ifdef __GLIBC__
+#        include <dlfcn.h>
+#        include <limits.h>
+#        include <sys/stat.h>
+#        include <gnu/libc-version.h>
+#    endif
 #endif
 #include <86box/fs_name.h>
 
@@ -236,29 +245,29 @@ fs_name_set_init(fs_name_set_t *set, size_t count)
     size_t size = 16;
     while (size < (count * 2))
         size <<= 1;
-    set->slots = (struct fs_name_slot_t *) calloc(size, sizeof(struct fs_name_slot_t));
+    set->table = (struct fs_name_slot_t *) calloc(size, sizeof(struct fs_name_slot_t));
     set->mask  = size - 1;
-    return set->slots != NULL;
+    return set->table != NULL;
 }
 
 void
 fs_name_set_free(fs_name_set_t *set)
 {
-    free(set->slots);
-    set->slots = NULL;
+    free(set->table);
+    set->table = NULL;
 }
 
 int
 fs_name_set_add(fs_name_set_t *set, const uint16_t *name, int len)
 {
     size_t i = hash_name(name, len) & set->mask;
-    while (set->slots[i].name) {
-        if (names_equal(set->slots[i].name, set->slots[i].len, name, len))
+    while (set->table[i].name) {
+        if (names_equal(set->table[i].name, set->table[i].len, name, len))
             return 0;
         i = (i + 1) & set->mask;
     }
-    set->slots[i].name = name;
-    set->slots[i].len  = len;
+    set->table[i].name = name;
+    set->table[i].len  = len;
     return 1;
 }
 
@@ -393,6 +402,57 @@ fs_codepage_encode(int cp, uint32_t c, uint8_t *out)
     return (int) n;
 #else
     return 0;
+#endif
+}
+
+void
+fs_codepage_init(void)
+{
+#if defined(USE_ICONV) && defined(__GLIBC__)
+    /* In an AppImage on a system older than it, the C library is the bundled one, which would load the
+       system's converters, built for another version of it. Put the ones bundled next to it first in
+       GCONV_PATH, ahead of any the user set, for as long as it reads its list of converters, which it
+       does once; then put GCONV_PATH back, so that programs run from here get the environment they had. */
+    const char *appdir = getenv("APPDIR");
+    const char *user   = getenv("GCONV_PATH");
+    Dl_info     info;
+    char        path[PATH_MAX];
+    struct stat st;
+
+    if (!appdir || !appdir[0] || !dladdr((void *) gnu_get_libc_version, &info) || !info.dli_fname ||
+        strncmp(info.dli_fname, appdir, strlen(appdir)) || (info.dli_fname[strlen(appdir)] != '/'))
+        return;
+    snprintf(path, sizeof(path), "%s", info.dli_fname);
+    char *slash = strrchr(path, '/');
+    snprintf(slash, sizeof(path) - (slash - path), "/gconv");
+    if (stat(path, &st) || !S_ISDIR(st.st_mode))
+        return;
+
+    /* setenv() may free the string getenv() returned. */
+    char  *saved    = user ? strdup(user) : NULL;
+    size_t len      = strlen(path) + (saved ? (strlen(saved) + 1) : 0) + 1;
+    char  *combined = (char *) malloc(len);
+    if (!combined || (user && !saved)) {
+        free(combined);
+        free(saved);
+        return;
+    }
+    if (saved && saved[0])
+        snprintf(combined, len, "%s:%s", path, saved);
+    else
+        snprintf(combined, len, "%s", path);
+
+    setenv("GCONV_PATH", combined, 1);
+    iconv_t cd = iconv_open("CP932", "UTF-8");
+    if (cd != (iconv_t) -1)
+        iconv_close(cd);
+    if (saved)
+        setenv("GCONV_PATH", saved, 1);
+    else
+        unsetenv("GCONV_PATH");
+
+    free(combined);
+    free(saved);
 #endif
 }
 

@@ -33,6 +33,8 @@ extern size_t fs_utf8_fit(const char *s, size_t len);
    Returns the number of units written, not counting the terminator. */
 extern size_t fs_utf8_to_utf16(uint16_t *dest, size_t size, const char *src);
 
+/* Sets up the code page conversions; called before anything else. */
+extern void fs_codepage_init(void);
 /* DOS code pages: 437, and on Windows any OEM code page, elsewhere 932 too. Encodes a character in 1 or 2
    bytes, or returns 0 if the code page has no exact equivalent. */
 extern int fs_codepage_encode(int cp, uint32_t c, uint8_t *out);
@@ -60,7 +62,7 @@ extern uint16_t *fs_long_name(const char *utf8, const fs_long_name_rules_t *rule
 /* Long names in one directory, compared without case. The set points to the names, which must
    outlive it. */
 typedef struct fs_name_set_t {
-    struct fs_name_slot_t *slots;
+    struct fs_name_slot_t *table;
     size_t                 mask;
 } fs_name_set_t;
 

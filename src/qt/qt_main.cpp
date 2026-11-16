@@ -56,6 +56,7 @@ Q_IMPORT_PLUGIN(QWindowsVistaStylePlugin)
 #endif
 
 extern "C" {
+#include <86box/fs_name.h>
 #include <86box/86box.h>
 #include <86box/config.h>
 #include <86box/plat.h>
@@ -482,6 +483,7 @@ WindowsDarkModeFilter *vmm_dark_mode_filter = nullptr;
 int
 main(int argc, char *argv[])
 {
+    fs_codepage_init();
 #ifdef Q_OS_WINDOWS
 #    ifdef USE_QDARKSTYLE
     bool wasDarkTheme = false;
