@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-11 07:33+0000\n"
+"PO-Revision-Date: 2026-11-16 18:42+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -248,13 +248,13 @@ msgid "Sound &gain…"
 msgstr "音量增益(&G)…"
 
 msgid "M&IDI output device"
-msgstr ""
+msgstr "MIDI输出设备(&I)"
 
 msgid "Restart &device"
-msgstr ""
+msgstr "重启设备(&D)"
 
 msgid "Send MIDI &command"
-msgstr ""
+msgstr "发送MIDI命令(&C)"
 
 msgid "&GM System On"
 msgstr ""
@@ -272,16 +272,16 @@ msgid "All &notes off"
 msgstr ""
 
 msgid "Show MIDI &LCD"
-msgstr ""
+msgstr "显示MIDI &LCD"
 
 msgid "MIDI LCD"
-msgstr ""
+msgstr "MIDI LCD"
 
 msgid "Always on &top"
-msgstr ""
+msgstr "置于顶层(&T)"
 
 msgid "&Close"
-msgstr ""
+msgstr "关闭(&C)"
 
 msgid "Begin trace"
 msgstr "开始追踪"
@@ -2577,7 +2577,7 @@ msgid "Start Address"
 msgstr "起始地址"
 
 msgid "Allow RAM up to the system ROM"
-msgstr ""
+msgstr "允许主内存覆盖系统ROM"
 
 msgid "Contiguous Size"
 msgstr "连续大小"
@@ -3445,7 +3445,7 @@ msgid "&Fast forward"
 msgstr "快进(&F)"
 
 msgid "Fast forward at startup"
-msgstr ""
+msgstr "在启动时快进"
 
 msgid "Start new machines in fast forward"
 msgstr ""
@@ -4081,7 +4081,7 @@ msgid "Wrote %1 of %2 bytes; read-only or inaccessible bytes are skipped."
 msgstr ""
 
 msgid "Disassembly is not available in this build."
-msgstr ""
+msgstr "反汇编在此版本中不可用。"
 
 msgid "Breakpoint %1 at %2."
 msgstr ""
@@ -4096,7 +4096,7 @@ msgid "%1 breakpoint(s), linear addresses:"
 msgstr ""
 
 msgid "Pause the processor before accessing I/O ports."
-msgstr ""
+msgstr "在访问I/O端口前暂停处理器。"
 
 msgid "Unknown command or invalid arguments. Type help for syntax."
 msgstr ""
@@ -4330,25 +4330,25 @@ msgid "USB Mass Storage"
 msgstr "USB大容量存储设备"
 
 msgid "Mount folder as a temporary floppy"
-msgstr ""
+msgstr "将文件夹挂载为临时软盘"
 
 msgid "The selected drive does not support folder mounting."
-msgstr ""
+msgstr "选中的驱动器不支持文件夹挂载。"
 
 msgid "The contents exceed the capacity of the configured floppy drive."
-msgstr ""
+msgstr "内容超出当前配置的软驱容量上限。"
 
 msgid "The floppy is out of directory entries or space, or a filename cannot be represented on FAT12."
 msgstr ""
 
 msgid "The source contains a filename that cannot be represented on FAT12."
-msgstr ""
+msgstr "来源包含不能在FAT12文件系统中表示的文件名。"
 
 msgid "There is not enough memory to create the floppy image."
-msgstr ""
+msgstr "内存不足，无法创建软盘镜像。"
 
 msgid "The source path is too long or its contents could not be read."
-msgstr ""
+msgstr "来源路径过长或内容无法读取。"
 
 msgid "Unable to mount folder or ZIP archive"
-msgstr ""
+msgstr "无法挂载文件夹或ZIP"
