@@ -790,12 +790,20 @@ mem_flush_write_page(uint32_t addr, UNUSED(uint32_t virt))
                 if (w2 == (uintptr_t) LOOKUP_INV)
                     w2 = writelookup_held_ptr[held];
             }
+            /* The translation stays where it is, as the processor's TLB
+               keeps it: dropping it would make the next write walk the
+               page tables again. Writes through it take the page's
+               tracked path instead, the form an entry made for a page
+               holding code has. */
             if ((w2 == target) || ((mem != NULL) && (w2 == ((uintptr_t) mem - virt_page))) || (pl == page_target)) {
-                writelookup2[writelookup[c]] = LOOKUP_INV;
-                page_lookup[writelookup[c]]  = NULL;
-                if (mem_held_num)
-                    writelookup_held[writelookup[c]] = 0;
-                writelookup[c]               = 0xffffffff;
+                if ((writelookup2[writelookup[c]] != (uintptr_t) LOOKUP_INV) || (page_lookup[writelookup[c]] != NULL)) {
+                    writelookup2[writelookup[c]] = LOOKUP_INV;
+                    page_lookup[writelookup[c]]  = (page_t *) page_target;
+                }
+                if (held >= 0) {
+                    writelookup_held_page[held] = (page_t *) page_target;
+                    writelookup_held_ptr[held]  = LOOKUP_INV;
+                }
             }
         }
     }
