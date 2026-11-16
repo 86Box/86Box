@@ -11377,16 +11377,17 @@ vectors_stage_arena(rage128_t *dev)
     fab_out(dev);
     harness_gpu_fab_free(fab);
 
-    /* Serial CPU control: the backend gone, capture recycles per draw
-       and nothing caches. */
+    /* Serial CPU control: the backend gone, a level in local memory is
+       kept for the batch, so the later captures copy nothing and recycle
+       nothing, and nothing joins the cache across batches. */
     wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), TL_TEX | (2u << 30));
     rage128_raster_state_capture(dev, &rs); /* prime: arena holds a level */
     draw0 = ts->n_rec_draw;
     rage128_raster_state_capture(dev, &rs);
     off1 = rs.prim_stage_off[0];
     rage128_raster_state_capture(dev, &rs);
-    check_true("gpu arena: serial CPU capture still recycles per draw",
-               rs.prim_stage_off[0] == off1 && ts->n_rec_draw == draw0 + 2);
+    check_true("gpu arena: serial CPU capture keeps a local level for the batch",
+               rs.prim_stage_off[0] == off1 && ts->n_rec_draw == draw0);
     check_true("gpu arena: serial CPU stagings never join the cache",
                ts->src_lo == ts->src_hi);
 
@@ -31445,6 +31446,485 @@ vectors_gpu_tuple_reload(void)
 /* A unit retains each device's vector order and lifetime. The serial and
    threaded AGP runners share a captured pixel oracle and therefore select
    together, even though other device runners occur between them. */
+/* ------------------------------------------------------------------ */
+/* Texture levels kept across the draws of a batch (the serial CPU     */
+/* raster lanes: one render thread, no GPU backend). A tiled level in  */
+/* local memory is detiled into the staging arena once and serves the  */
+/* later draws of the batch. The rows check that the copy is reused,   */
+/* and that it ends at every event that can change its source bytes: a */
+/* raster flush, a store through the linear aperture, MM_DATA or a VGA */
+/* window, a 3D draw into the bytes, a 2D operation, and an arena      */
+/* wrap. A level in AGP memory is staged for every draw.               */
+/* ------------------------------------------------------------------ */
+#define TK_TEX   TL_TEX       /* 64x64 ARGB8888, tiled, 256 B rows      */
+#define TK_WRAP  0x00500000u  /* 80 more such levels, 16 KB apart       */
+#define TK_NWRAP 80u
+#define TK_B     (TK_TEX + 0x4000u) /* a second level, in TK_TEX's 64 KB piece */
+#define TK_TEXEL(u, v) (0xff000000u | ((uint32_t) (v) << 8) | (uint32_t) (u))
+#define TK_PIX(x, y)   (*(uint32_t *) &dev->svga.vram[HZ_A + ((y) * 64 + (x)) * 4])
+
+/* A register write as the command stream makes it: no drain before it,
+   and none of the page marks wr() adds, so the device's own bookkeeping
+   is all that tells the capture about the event under test. */
+static void
+tk_wr(rage128_t *dev, uint32_t off, uint32_t val)
+{
+    int old = rage128_on_cce_thread;
+
+    rage128_on_cce_thread = 1;
+    rage128_reg_write(dev, off, val, 0xffffffffu);
+    rage128_on_cce_thread = old;
+}
+
+/* The lower-left triangle of the 64x64 target, texel (x, y) on pixel
+   (x, y); or both triangles, to cover the whole target. */
+static void
+tk_draw(rage128_t *dev, rage128_raster_state_t *rs, uint32_t argb, int whole)
+{
+    r3d_vtx_t v[4];
+
+    memset(v, 0, sizeof(v));
+    for (int k = 0; k < 4; k++) {
+        v[k].z       = 0.25f;
+        v[k].rhw     = 1.0f;
+        v[k].diffuse = argb;
+    }
+    v[0].x = 0.0f;  v[0].y = 0.0f;  v[0].s = 0.0f; v[0].t = 0.0f;
+    v[1].x = 64.0f; v[1].y = 0.0f;  v[1].s = 1.0f; v[1].t = 0.0f;
+    v[2].x = 0.0f;  v[2].y = 64.0f; v[2].s = 0.0f; v[2].t = 1.0f;
+    v[3].x = 64.0f; v[3].y = 64.0f; v[3].s = 1.0f; v[3].t = 1.0f;
+    rage128_raster_state_capture(dev, rs);
+    rage128_raster_submit_tri(dev, rs, &v[0], &v[1], &v[2]);
+    if (whole)
+        rage128_raster_submit_tri(dev, rs, &v[1], &v[3], &v[2]);
+}
+
+static void
+tk_seed(rage128_t *dev, uint32_t base, uint32_t tag)
+{
+    for (uint32_t vv = 0; vv < 64; vv++)
+        for (uint32_t uu = 0; uu < 64; uu++)
+            *(uint32_t *) &dev->svga.vram[base + tl_off(uu * 4, vv, 256)]
+                = TK_TEXEL(uu, vv) | (tag << 16);
+}
+
+static void
+tk_target(rage128_t *dev)
+{
+    for (uint32_t i = 0; i < 16384; i += 4)
+        *(uint32_t *) &dev->svga.vram[HZ_A + i] = HZ_MARK;
+}
+
+/* The rows draw from the harness thread. On the device a batch is drawn
+   by the executor, or by the CPU thread while it holds the executor off,
+   so the executor cannot run out of work, and flush, in the middle of
+   one. Here a pass the executor makes after a leg's register writes can
+   reach its out-of-work flush while the leg is drawing. The legs hold
+   this mutex while they draw, and the executor's out-of-work hook waits
+   for it, which stops a pass before that flush. The hook returns before
+   the flush runs, so a pass that got through the hook ahead of the leg
+   may still have its flush to make: tk_hold, which starts a leg, takes
+   the mutex and then looks at cce_executing. The executor sets that flag
+   at the top of each pass, ahead of the hook, and clears it on this
+   path only after the flush has returned. So with the mutex held and
+   the flag clear, every pass is either over, flush included, or has not
+   reached the hook and will wait in it until tk_end. A set flag means a
+   pass is in the hook or between the hook and the end of its flush:
+   tk_hold lets go of the mutex, yields and looks again. Nothing that
+   drains the engine may run while the mutex is held. */
+static pthread_mutex_t tk_mtx = PTHREAD_MUTEX_INITIALIZER;
+static uint64_t        tk_hold_retries;
+
+static void
+tk_idle_hook(rage128_t *dev)
+{
+    (void) dev;
+    pthread_mutex_lock(&tk_mtx);
+    pthread_mutex_unlock(&tk_mtx);
+}
+
+static void
+tk_hold(rage128_t *dev)
+{
+    for (;;) {
+        pthread_mutex_lock(&tk_mtx);
+        if (!atomic_load(&dev->cce_executing))
+            return;
+        pthread_mutex_unlock(&tk_mtx);
+        tk_hold_retries++;
+        sched_yield();
+    }
+}
+
+static void
+tk_end(void)
+{
+    pthread_mutex_unlock(&tk_mtx);
+}
+
+/* R9's store: made from inside a capture, by the bus read of a level
+   in AGP memory, so that it lands after the capture has looked for
+   stores and before the capture copies the level staged next. Returns 0:
+   the read is then served from harness RAM as usual. */
+static rage128_t *tk_bm_dev;
+static int        tk_bm_armed;
+static uint32_t   tk_bm_reads;
+
+static int
+tk_bm_hook(uint32_t addr, uint8_t *dst, uint32_t len)
+{
+    (void) addr;
+    (void) dst;
+    (void) len;
+    tk_bm_reads++;
+    if (tk_bm_armed) {
+        tk_bm_armed = 0;
+        rage128_lfb_writel(tk_bm_dev->lfb_base + TK_TEX + tl_off(5 * 4, 9, 256), 0xff0f1e2du,
+                           tk_bm_dev);
+    }
+    return 0;
+}
+
+/* Start a leg: a new batch, the texture seeded, the 3D state set for a
+   1:1 textured copy onto the 64x64 target at HZ_A; returns with the
+   executor held off (tk_end ends the leg). */
+static void
+tk_begin(rage128_t *dev)
+{
+    tk_seed(dev, TK_TEX, 0);
+    tk_target(dev);
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0x00000000);
+    wr(dev, 0x16f0, 0x003f003f);
+    wr(dev, 0x16c0, 0x00000003);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0x00000000);
+    wr(dev, 0x16c4, 0x00000006);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_SETUP_CNTL, 0x00000020);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (HZ_A >> 5));
+    wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00000606);
+    wr(dev, RAGE128_PRIM_TEX_CNTL_C, 6u << 16);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), TK_TEX | (2u << 30));
+    wr(dev, RAGE128_PRIM_TEX_COMBINE_CNTL_C, 0x00184041u);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000010);
+    tk_hold(dev);
+    flush_sync(dev);
+}
+
+static void
+vectors_tex_keep(rage128_t *dev)
+{
+    static rage128_raster_state_t rs, rs2;
+    struct rage128_tex_stage     *ts = &dev->tex_stage;
+    uint32_t                      off1, lin59 = (9u * 64u + 5u) * 4u;
+    uint32_t                     *tbl;
+    uint32_t                      bad;
+    uint64_t                      wrap0;
+    uint32_t                      gen_save;
+
+    check32("tex keep: setup: one render thread", (uint32_t) rage128_raster_nthreads(dev), 1);
+    check_true("tex keep: setup: no GPU backend", dev->gpu == NULL);
+    atomic_store(&rage128_harness_idle_hook, tk_idle_hook);
+
+    /* R1: the second draw of a batch copies no level. The witness is a
+       texel changed in the staged copy itself, which only a draw that
+       reuses that copy can show. */
+    tk_begin(dev);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    off1 = rs.prim_stage_off[0];
+    check_true("tex keep: R1: the level is staged", off1 != R128_TEX_STAGE_NONE);
+    check32("tex keep: R1: first draw samples the texture", TK_PIX(5, 9), TK_TEXEL(5, 9));
+    if (off1 != R128_TEX_STAGE_NONE)
+        *(uint32_t *) &ts->arena[off1 + lin59] = 0xff5a5a5au;
+    tk_target(dev);
+    tk_draw(dev, &rs2, 0xffffffff, 0);
+    check_true("tex keep: R1: second draw of the batch reuses the staged level",
+               rs2.prim_stage_off[0] == off1 && off1 != R128_TEX_STAGE_NONE
+                   && *(uint32_t *) &ts->arena[off1 + lin59] == 0xff5a5a5au);
+    check32("tex keep: R1: second draw samples the kept copy", TK_PIX(5, 9), 0xff5a5a5au);
+    /* a store outside the kept source leaves the copy in use */
+    rage128_lfb_writel(dev->lfb_base + HZ_Z, 0x01020304u, dev);
+    tk_target(dev);
+    tk_draw(dev, &rs2, 0xffffffff, 0);
+    check32("tex keep: R1: a store elsewhere keeps the copy", TK_PIX(5, 9), 0xff5a5a5au);
+    /* A raster flush ends the batch and the copy with it. The flush is
+       called alone: flush_sync would first report a store at an unknown
+       address, which ends the copy by itself. The store elsewhere above
+       was consumed by the draw that followed it, so nothing but the
+       flush stands between that draw and the next. */
+    rage128_raster_flush(dev);
+    tk_target(dev);
+    tk_draw(dev, &rs2, 0xffffffff, 0);
+    check32("tex keep: R1: a flush ends the kept copy", TK_PIX(5, 9), TK_TEXEL(5, 9));
+    tk_end();
+
+    /* R2: a store through the linear aperture into the texture. */
+    tk_begin(dev);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    rage128_lfb_writel(dev->lfb_base + TK_TEX + tl_off(5 * 4, 9, 256), 0xff123456u, dev);
+    tk_target(dev);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    check32("tex keep: R2: aperture store shows on the next draw", TK_PIX(5, 9), 0xff123456u);
+    check32("tex keep: R2: the other texels stay", TK_PIX(6, 9), TK_TEXEL(6, 9));
+    rage128_lfb_writeb(dev->lfb_base + TK_TEX + tl_off(7 * 4, 3, 256), 0x77, dev);
+    tk_target(dev);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    check32("tex keep: R2: byte store shows on the next draw", TK_PIX(7, 3),
+            (TK_TEXEL(7, 3) & 0xffffff00u) | 0x77u);
+    tk_end();
+
+    /* R3: the same through MM_INDEX (MM_APER) and MM_DATA, and through
+       the banked VGA window. */
+    tk_begin(dev);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    rage128_reg_write(dev, RAGE128_MM_INDEX,
+                      RAGE128_MM_INDEX_MM_APER | (TK_TEX + tl_off(5 * 4, 9, 256)), 0xffffffffu);
+    rage128_reg_write(dev, RAGE128_MM_DATA, 0xff654321u, 0xffffffffu);
+    rage128_reg_write(dev, RAGE128_MM_INDEX, 0, 0xffffffffu);
+    tk_target(dev);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    check32("tex keep: R3: MM_DATA store shows on the next draw", TK_PIX(5, 9), 0xff654321u);
+    tk_end();
+
+    gen_save = rd(dev, RAGE128_CRTC_GEN_CNTL);
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save | RAGE128_CRTC_EXT_DISP_EN);
+    wr(dev, RAGE128_MEM_VGA_WP_SEL, TK_TEX / RAGE128_VGA_PAGE_SIZE);
+    wr(dev, RAGE128_MEM_VGA_RP_SEL, TK_TEX / RAGE128_VGA_PAGE_SIZE);
+    dev->svga.gdcreg[6] &= ~0x0c;
+    rage128_update_banking(dev);
+    rage128_updatemapping(dev);
+    tk_begin(dev);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    /* byte 64 of the tiled image is byte 0 of texel (0, 1) */
+    dev->svga.mapping.write_b(0xa0000 + 64u, 0x5a, dev->svga.mapping.priv);
+    tk_target(dev);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    check32("tex keep: R3: control: the window store reached the texture",
+            dev->svga.vram[TK_TEX + 64], 0x5a);
+    check32("tex keep: R3: VGA window store shows on the next draw", TK_PIX(0, 1),
+            (TK_TEXEL(0, 1) & 0xffffff00u) | 0x5au);
+    tk_end();
+    wr(dev, RAGE128_CRTC_GEN_CNTL, gen_save);
+
+    /* R4: a draw whose color target is the texture's bytes; it samples
+       a second texture of one solid color. */
+    for (uint32_t i = 0; i < 16384; i += 4)
+        *(uint32_t *) &dev->svga.vram[TK_WRAP + i] = 0xff445566u;
+    tk_begin(dev);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    tk_wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), TK_WRAP | (2u << 30));
+    tk_wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (TK_TEX >> 5));
+    tk_draw(dev, &rs2, 0xffffffff, 1);
+    tk_wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (HZ_A >> 5));
+    tk_wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), TK_TEX | (2u << 30));
+    check32("tex keep: R4: control: the draw rendered over the texture",
+            *(uint32_t *) &dev->svga.vram[TK_TEX + lin59], 0xff445566u);
+    tk_target(dev);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    check32("tex keep: R4: rendered texels show on the next draw", TK_PIX(5, 9), 0xff445566u);
+    tk_end();
+
+    /* R8: a draw that samples the texture and renders into its bytes.
+       It reads the copy staged at its capture; the draw after it must
+       see what it rendered. Pixel (21, 0) of the linear target is byte
+       84, which is texel (5, 1) of the tiled image. */
+    tk_begin(dev);
+    tk_wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (TK_TEX >> 5));
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    tk_wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (HZ_A >> 5));
+    check32("tex keep: R8: control: the draw rendered texel (21,0) over byte 84",
+            *(uint32_t *) &dev->svga.vram[TK_TEX + 84], TK_TEXEL(21, 0));
+    tk_target(dev);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    check32("tex keep: R8: the draw after a self-render sees the result", TK_PIX(5, 1),
+            TK_TEXEL(21, 0));
+    tk_end();
+
+    /* R5: a 2D fill, started by its register write, into the texture.
+       Pixel (5, 0) of the fill's linear target is texel (5, 0). */
+    tk_begin(dev);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    tk_end(); /* the register writes below drain the engine */
+    rage128_reg_write(dev, RAGE128_DP_GUI_MASTER_CNTL,
+                      0x00000003u | (13u << 4) | (6u << 8) | (0xf0u << 16)
+                          | (1u << 28) | (1u << 29) | (1u << 30), 0xffffffffu);
+    rage128_reg_write(dev, RAGE128_DP_BRUSH_FRGD_CLR, 0xffc0ffeeu, 0xffffffffu);
+    rage128_reg_write(dev, RAGE128_DST_OFFSET, TK_TEX, 0xffffffffu);
+    rage128_reg_write(dev, RAGE128_DST_PITCH, 8, 0xffffffffu);
+    rage128_reg_write(dev, RAGE128_DST_X, 5, 0xffffffffu);
+    rage128_reg_write(dev, RAGE128_DST_Y, 0, 0xffffffffu);
+    rage128_reg_write(dev, RAGE128_DST_WIDTH_HEIGHT, (1u << 16) | 1u, 0xffffffffu);
+    rage128_reg_write(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (HZ_A >> 5),
+                      0xffffffffu);
+    rage128_reg_write(dev, 0x16c4, 0x00000006, 0xffffffffu);
+    rage128_reg_write(dev, 0x16c0, 0x00000003, 0xffffffffu);
+    rage128_reg_write(dev, 0x16f0, 0x003f003f, 0xffffffffu);
+    rage128_pm4_drain_wait(dev);
+    tk_hold(dev);
+    check32("tex keep: R5: control: the fill landed in the texture",
+            *(uint32_t *) &dev->svga.vram[TK_TEX + 20], 0xffc0ffeeu);
+    tk_target(dev);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    check32("tex keep: R5: 2D fill shows on the next draw", TK_PIX(5, 0), 0xffc0ffeeu);
+    tk_end();
+
+    /* R7: more distinct levels in one batch than the arena holds. Two
+       passes over 80 levels of 16 KB; every draw must sample its own
+       level, across the wraps and from the copies kept in between. */
+    for (uint32_t k = 0; k < TK_NWRAP; k++)
+        tk_seed(dev, TK_WRAP + k * 0x4000u, k + 1u);
+    tk_begin(dev);
+    wrap0 = ts->n_rec_wrap;
+    bad   = 0;
+    for (uint32_t pass = 0; pass < 2; pass++)
+        for (uint32_t k = 0; k < TK_NWRAP; k++) {
+            tk_wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), (TK_WRAP + k * 0x4000u) | (2u << 30));
+            tk_target(dev);
+            tk_draw(dev, &rs, 0xffffffff, 0);
+            if (TK_PIX(5, 9) != (TK_TEXEL(5, 9) | ((k + 1u) << 16))
+                || TK_PIX(37, 2) != (TK_TEXEL(37, 2) | ((k + 1u) << 16)))
+                bad++;
+        }
+    printf("tex keep: R7 data: arena cap=%u wraps=%llu wrong draws=%u of %u\n", ts->cap,
+           (unsigned long long) (ts->n_rec_wrap - wrap0), bad, 2u * TK_NWRAP);
+    check32("tex keep: R7: every draw samples its own level across arena wraps", bad, 0);
+    tk_wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), TK_TEX | (2u << 30));
+    tk_end();
+
+    /* R6: a level in AGP memory is staged for every draw: the guest
+       writes that memory without the device seeing the store. */
+    flush_sync(dev);
+    harness_ram_alloc();
+    tbl = (uint32_t *) (ram + GART_TABLE_PHYS);
+    memset(ram + GART_TABLE_PHYS, 0, 0x2000);
+    for (uint32_t p = 0; p < 4; p++)
+        tbl[p] = TAT_PHYS + p * 0x1000u;
+    pci_wr8(0x04, 0x07);
+    wr(dev, RAGE128_BUS_CNTL, rd(dev, RAGE128_BUS_CNTL) & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    gart_table_on(dev, GART_TABLE_PHYS);
+    wr(dev, RAGE128_AGP_BASE, 0);
+    for (uint32_t vv = 0; vv < 64; vv++)
+        for (uint32_t uu = 0; uu < 64; uu++)
+            *(uint32_t *) (ram + TAT_PHYS + tl_off(uu * 4, vv, 256)) = TK_TEXEL(uu, vv) | 0xa00000u;
+    tk_begin(dev);
+    tk_wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), 0x02000000u | (2u << 30));
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    check32("tex keep: R6: control: the AGP level is sampled", TK_PIX(5, 9),
+            TK_TEXEL(5, 9) | 0xa00000u);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    *(uint32_t *) (ram + TAT_PHYS + tl_off(5 * 4, 9, 256)) = 0xff0badedu;
+    tk_target(dev);
+    tk_draw(dev, &rs, 0xffffffff, 0);
+    check32("tex keep: R6: a change in AGP memory shows on the next draw", TK_PIX(5, 9),
+            0xff0badedu);
+    tk_end();
+
+    /* R9: two levels whose sources share one 64 KB piece of local
+       memory. Level A is kept. A store lands in A while a later capture
+       is under way: after that capture has looked for stores, and before
+       it copies B, a level in the same piece that it has not staged
+       before. That draw has two mip levels: the small one lies in AGP
+       memory, reached through AGP_BASE, and is staged first, and its bus
+       read makes the store; the large one is B. The draw after it samples A again and must see the
+       store. The first leg runs the same draws without the store and
+       shows that A is otherwise reused, so the second leg's result is
+       due to the store alone. A changed texel in the staged copy is the
+       witness of reuse, as in R1. */
+    tk_seed(dev, TK_B, 0x33);
+    tk_bm_dev = dev;
+    wr(dev, RAGE128_AGP_BASE, 0x00400000); /* card 0x02200000 = bus TAT_PHYS */
+    for (int leg = 0; leg < 2; leg++) {
+        tk_begin(dev);
+        tk_draw(dev, &rs, 0xffffffff, 0);
+        off1 = rs.prim_stage_off[0];
+        if (off1 != R128_TEX_STAGE_NONE)
+            *(uint32_t *) &ts->arena[off1 + lin59] = 0xff5a5a5au;
+        tk_wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00000616);
+        tk_wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), 0x02000000u | (TAT_PHYS - 0x00400000u));
+        tk_wr(dev, RAGE128_PRIM_TEX_OFFSET_C(1), TK_B | (2u << 30));
+        tk_bm_armed = leg;
+        tk_bm_reads = 0;
+        harness_bm_read_hook = tk_bm_hook;
+        tk_target(dev);
+        tk_draw(dev, &rs2, 0xffffffff, 0);
+        harness_bm_read_hook = NULL;
+        check_true(leg ? "tex keep: R9: control: the AGP level's bus read made the store"
+                       : "tex keep: R9: control: the AGP level is read from the bus",
+                   tk_bm_reads != 0 && !tk_bm_armed
+                       && *(uint32_t *) &dev->svga.vram[TK_TEX + tl_off(5 * 4, 9, 256)]
+                              == (leg ? 0xff0f1e2du : TK_TEXEL(5, 9)));
+        check_true(leg ? "tex keep: R9: control: B is staged by the draw of the store"
+                       : "tex keep: R9: control: B is staged in A's 64 KB piece",
+                   rs2.prim_stage_off[1] != R128_TEX_STAGE_NONE
+                       && rs2.prim_stage_off[1] != off1
+                       && (TK_B >> 16) == (TK_TEX >> 16));
+        check32(leg ? "tex keep: R9: control: the draw of the store samples B"
+                    : "tex keep: R9: control: the two-level draw samples B",
+                TK_PIX(5, 9), TK_TEXEL(5, 9) | (0x33u << 16));
+        tk_wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00000606);
+        tk_wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), TK_TEX | (2u << 30));
+        tk_wr(dev, RAGE128_PRIM_TEX_OFFSET_C(1), 0);
+        tk_target(dev);
+        tk_draw(dev, &rs, 0xffffffff, 0);
+        if (leg)
+            check32("tex keep: R9: a store into A during the capture that stages B shows on the "
+                    "next draw",
+                    TK_PIX(5, 9), 0xff0f1e2du);
+        else
+            check32("tex keep: R9: control: with no store A's copy serves the draw after B",
+                    TK_PIX(5, 9), 0xff5a5a5au);
+        tk_end();
+    }
+    wr(dev, RAGE128_AGP_BASE, 0);
+    atomic_store(&rage128_harness_idle_hook, NULL);
+    printf("tex keep: hold data: legs waited %llu times for an executor pass to end\n",
+           (unsigned long long) tk_hold_retries);
+
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), 0);
+    wr(dev, RAGE128_PRIM_TEX_COMBINE_CNTL_C, 0x00000000);
+    flush_sync(dev);
+}
+
+/* The rows above on their own device, in the serial CPU lane whatever
+   lane the run asks for: the GPU backend is held off while the device
+   initializes. */
+static void
+run_tex_keep(void)
+{
+    rage128_t  *dev;
+    const char *genv = getenv("R128_GPU");
+    char        gprev[32] = "";
+
+    if (genv)
+        snprintf(gprev, sizeof(gprev), "%s", genv);
+    setenv("R128_GPU", "0", 1);
+    harness_cfg_memory_mb      = 32;
+    harness_cfg_render_threads = 1;
+    dev = rage128_init(&ati_rage128_pro_device);
+    if (genv)
+        setenv("R128_GPU", gprev, 1);
+    else
+        unsetenv("R128_GPU");
+    vectors_tex_keep(dev);
+    close_dev(dev);
+}
+#undef TK_TEX
+#undef TK_WRAP
+#undef TK_NWRAP
+#undef TK_B
+#undef TK_TEXEL
+#undef TK_PIX
+
 static const char *const shard_units[] = {
     "gpu-tuple-reload", "inline-pace", "agp-oracle",
     "agp-16mb", "pci-xpert128", "pci-variant", "monid-mask", "amcgpio",
@@ -31452,7 +31932,7 @@ static const char *const shard_units[] = {
     "gpu2d-verify",
     "x64legs", "synctel", "yuv-border", "texture-alpha", "dither-init",
     "sec-persp", "sec-only", "dst-1555-4444", "zoff-tfog",
-    "stipple-fast", "lanegap-expectedfail", "gpu-carry", "gpu-r2d"
+    "stipple-fast", "lanegap-expectedfail", "gpu-carry", "gpu-r2d", "tex-keep"
 };
 static char *selected_units;
 
@@ -32183,6 +32663,8 @@ main(int argc, char **argv)
         run_zoff_tfog(argc > 1 && !strcmp(argv[1], "-v"));
     if (unit_selected("stipple-fast"))
         run_stipple_fast(argc > 1 && !strcmp(argv[1], "-v"));
+    if (unit_selected("tex-keep"))
+        run_tex_keep();
     if (getenv("R128_LANEGAP"))
         if (unit_selected("lanegap-expectedfail"))
             run_lanegap_expectedfail();

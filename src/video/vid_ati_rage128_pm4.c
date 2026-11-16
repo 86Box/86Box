@@ -1124,6 +1124,9 @@ rage128_pm4_gui_reset(rage128_t *dev)
     }
     atomic_store(&dev->cce_fifo_rd, atomic_load(&dev->cce_fifo_wr));
     atomic_store(&dev->cce_hung, 0);
+    /* The abandoned batch's kept texture levels go with it: the next
+       draw stages its levels again. */
+    r128_tex_keep_note_all(dev);
     /* The work the executor had taken is abandoned with the rest. It
        stores cce_work only in a pass that has seen cce_abort clear, so
        this store cannot race it while it is parked. The pulse leaves

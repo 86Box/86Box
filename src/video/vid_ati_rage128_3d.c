@@ -3506,13 +3506,13 @@ r3d_fetch_vertex_cached(rage128_t *dev, uint32_t base, uint32_t stride,
    draw about to be staged. The arena grows only at a batch boundary: if
    the bytes do not fit, the pending batch is flushed first, and only
    then is the arena reallocated. (In parallel mode the flush joins the
-   workers and sets used back to zero; serial CPU mode already reset it in
-   rage128_raster_state_capture; the GPU lane allocates upward across
-   draws, so a wrap retires its queued segments here before the offsets
-   are reused.) So a realloc never moves the arena while a worker or a
-   segment holds a pointer into it, and the reset never overwrites a
-   level of the current draw, because this runs before any of them is
-   staged. Submit thread only. */
+   workers and sets used back to zero; in the serial CPU lanes it empties
+   the arena, with the levels kept for the batch; the GPU lane allocates
+   upward across draws, so a wrap retires its queued segments here before
+   the offsets are reused.) So a realloc never moves the arena while a
+   worker or a segment holds a pointer into it, and the reset never
+   overwrites a level of the current draw, because this runs before any
+   of them is staged. Submit thread only. */
 static int r3d_stage_keep_live(struct rage128_tex_stage *ts, uint32_t total);
 
 static void
@@ -3525,7 +3525,7 @@ r3d_stage_reserve(rage128_t *dev, uint32_t total)
 
     if (ts->used)
         ts->n_rec_wrap++;      /* forced by a full arena: count it as a wrap */
-    rage128_raster_flush(dev); /* parallel: render and recycle; serial: no-op */
+    rage128_raster_flush(dev); /* parallel: render and recycle; serial: recycle */
 
     /* GPU lane: the flush above reclaims only an idle arena. When the
        arena really wraps, the queued segments must retire before the
@@ -3716,14 +3716,97 @@ r3d_stage_keep_live(struct rage128_tex_stage *ts, uint32_t total)
     return 1;
 }
 
+/* The levels the serial CPU lanes keep for a batch (rage128_t tex_stage
+   keep_lo). These helpers and r3d_keep_reached run on the submit thread.
+
+   r3d_keep_stored: has a store from outside the 3D engine landed under
+   the kept range since the capture last looked? keep_any is tested
+   first, so a capture pays one load while nothing stores. On a hit the
+   marks under the range are cleared: the caller drops every kept level,
+   and a mark left set between two levels would drop them again on every
+   later capture. */
+static int
+r3d_keep_stored(struct rage128_tex_stage *ts)
+{
+    uint32_t g0  = ts->keep_lo >> R128_TEX_KEEP_SHIFT;
+    uint32_t g1  = (ts->keep_hi - 1u) >> R128_TEX_KEEP_SHIFT;
+    int      hit;
+
+    if (!atomic_load_explicit(&ts->keep_any, memory_order_acquire))
+        return 0;
+    atomic_store_explicit(&ts->keep_any, 0, memory_order_release);
+    atomic_thread_fence(memory_order_seq_cst);
+    hit = atomic_exchange_explicit(&ts->keep_all, 0, memory_order_acq_rel);
+    for (uint32_t g = g0; g <= g1 && !hit; g++)
+        hit = atomic_load_explicit(&ts->keep_pg[g], memory_order_acquire);
+    if (hit)
+        for (uint32_t g = g0; g <= g1; g++)
+            atomic_store_explicit(&ts->keep_pg[g], 0, memory_order_relaxed);
+    return hit;
+}
+
+/* A store mark of 64 KB piece g was found set while the marks of a level
+   about to be copied were being cleared. The mark is shared by every
+   kept level with source bytes in the piece, and the copy about to be
+   made refreshes only its own level, so each of those levels stops being
+   kept here: it still serves the draw being captured if that draw
+   staged it, and is staged again by the next draw that binds it. The
+   kept range is left as it is; it only has to cover the kept levels. */
+static void
+r3d_keep_end_piece(struct rage128_tex_stage *ts, uint32_t g)
+{
+    uint32_t lo = g << R128_TEX_KEEP_SHIFT;
+    uint32_t hi = lo + (1u << R128_TEX_KEEP_SHIFT);
+
+    r128_texcache_lock(ts);
+    for (uint32_t i = 0; i < ts->pde_count; i++)
+        if (ts->pde[i].keep && ts->pde[i].src_lo < hi && ts->pde[i].src_hi > lo)
+            ts->pde[i].keep = 0;
+    r128_texcache_unlock(ts);
+}
+
+/* Start a serial CPU draw's staging. The kept levels stay unless the
+   draw before this one rendered into their source (keep_redo) or a store
+   landed in it; the other per-batch entries, levels in AGP memory, last
+   one draw and are removed here. With nothing kept the arena is empty
+   again, which bounds it for a batch that keeps no level. */
+static void
+r3d_keep_begin(rage128_t *dev)
+{
+    struct rage128_tex_stage *ts   = &dev->tex_stage;
+    uint32_t                  n    = 0;
+    int                       drop = ts->keep_redo;
+
+    ts->keep_redo = 0;
+    if (!drop && ts->keep_hi != ts->keep_lo)
+        drop = r3d_keep_stored(ts);
+    r128_texcache_lock(ts);
+    if (!drop)
+        for (uint32_t i = 0; i < ts->pde_count; i++)
+            if (ts->pde[i].keep)
+                ts->pde[n++] = ts->pde[i];
+    ts->pde_count = n;
+    if (!n) {
+        if (ts->used)
+            ts->n_rec_draw++;
+        ts->used = 0;
+        r128_texcache_reset_locked(ts);
+        ts->src_lo = 0;
+        ts->src_hi = 0;
+    }
+    r128_texcache_unlock(ts);
+}
+
 /* Stage the mip level at card address vm, len bytes, and return its byte
    offset in the arena, or R128_TEX_STAGE_NONE when there is no room (see
    r3d_stage_textures for what the caller then does). A failed read still
    stages, with the bus master-abort value. r3d_stage_reserve has already
-   made room, so this never grows the arena. Submit thread only. */
+   made room, so this never grows the arena. cacheable selects the GPU
+   backend's table of levels cached across draws; keep marks a per-batch
+   entry the serial CPU lanes reuse on later draws. Submit thread only. */
 static uint32_t
 r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
-                uint32_t tbpp, uint32_t tiled_pb, int cacheable)
+                uint32_t tbpp, uint32_t tiled_pb, int cacheable, int keep)
 {
     struct rage128_tex_stage *ts = &dev->tex_stage;
     uint32_t                  off;
@@ -3736,7 +3819,8 @@ r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
        tell a detiled staging from a linear one at the same address, so
        the two never share an entry; tiled_pb completes the key, because
        two shapes of the same byte length detile to different layouts.
-       Per-batch entries are checked against gen and last one batch;
+       Per-batch entries are checked against gen and last one batch,
+       or are kept and last until r3d_keep_begin drops them;
        cached entries are checked against the cache generation and last
        until a store lands in their own source bytes or the arena is
        reset. A key is always cacheable or always not (the address decides
@@ -3757,7 +3841,7 @@ r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
         }
     } else
         for (uint32_t i = 0; i < ts->pde_count; i++)
-            if (ts->pde[i].gen == ts->gen
+            if ((ts->pde[i].gen == ts->gen || (keep && ts->pde[i].keep))
                 && r3d_tex_ent_is(&ts->pde[i], key, len, tbpp, tiled_pb)) {
                 off = ts->pde[i].arena_off;
                 r128_texcache_unlock(ts);
@@ -3801,6 +3885,35 @@ r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
     }
     r128_texcache_unlock(ts);
 
+    if (keep) {
+        /* A level about to be kept: clear the store marks of its source
+           before copying it, so a mark found later means a store the copy
+           may lack. The fence puts the cleared marks ahead of the copy's
+           reads: a store whose mark this clear erased has its bytes in
+           memory by then. A mark that was set may also stand for a store
+           into another kept level of the same 64 KB piece, made since the
+           capture last looked, so the exchange reports it and those
+           levels end (r3d_keep_end_piece); no mark is erased without
+           that. The first kept level of a batch also clears the two
+           summary flags, which stores made while nothing was kept have
+           left set; with nothing kept, nothing depends on them. */
+        slo = vm;
+        shi = vm + r3d_level_bytes_tiled(tiled_pb, len / tiled_pb);
+        if (ts->pde_count >= R128_TEX_BATCH_ENTS)
+            keep = 0; /* no entry to record it in: staged for this draw only */
+        else {
+            if (ts->keep_hi == ts->keep_lo) {
+                atomic_store_explicit(&ts->keep_all, 0, memory_order_relaxed);
+                atomic_store_explicit(&ts->keep_any, 0, memory_order_relaxed);
+            }
+            for (uint32_t g = slo >> R128_TEX_KEEP_SHIFT;
+                 g <= (shi - 1u) >> R128_TEX_KEEP_SHIFT; g++)
+                if (atomic_exchange_explicit(&ts->keep_pg[g], 0, memory_order_acq_rel))
+                    r3d_keep_end_piece(ts, g);
+            atomic_thread_fence(memory_order_seq_cst);
+        }
+    }
+
     if (tiled_pb) {
         /* Tiled level: gather its detiled linear image, so every lane
            samples it with its linear path. The local and AGP parts are
@@ -3836,6 +3949,20 @@ r3d_stage_level(rage128_t *dev, uint32_t key, uint32_t vm, uint32_t len,
             e->tiled_pb  = tiled_pb;
             e->arena_off = off;
             e->gen       = ts->gen;
+            if (keep) {
+                e->keep   = 1;
+                e->src_lo = slo;
+                e->src_hi = shi;
+                if (ts->keep_hi == ts->keep_lo) {
+                    ts->keep_lo = slo;
+                    ts->keep_hi = shi;
+                } else {
+                    if (slo < ts->keep_lo)
+                        ts->keep_lo = slo;
+                    if (shi > ts->keep_hi)
+                        ts->keep_hi = shi;
+                }
+            }
         }
     } else if (live) {
         if (ts->ent_count == R128_TEX_CACHE_ENTS && ts->ent_dead)
@@ -3943,6 +4070,7 @@ r3d_stage_textures(rage128_t *dev, rage128_raster_state_t *rs)
 {
     uint32_t        total = 0;
     r3d_stage_lvl_t l;
+    int             keeps = !dev->gpu && rage128_raster_nthreads(dev) <= 1;
 
     for (int st = 0; st < 2; st++) {
         uint32_t *stage = st ? rs->sec_stage_off : rs->prim_stage_off;
@@ -3978,11 +4106,18 @@ r3d_stage_textures(rage128_t *dev, rage128_raster_state_t *rs)
                levels in local memory may stay cached across draws:
                every write to local card memory goes through a device
                path that can invalidate the cache, and writes to AGP
-               memory do not. */
+               memory do not. The serial CPU lanes keep such a level for
+               the batch when its source also lies inside the installed
+               memory, so that no byte of it is read through the
+               vram_mask wrap. A level with any byte in AGP memory is
+               staged for every draw in every lane. */
             stage[s] = r3d_stage_level(dev, l.raw, l.vm,
                                        l.tcov ? l.pb * l.llh : l.llen, tbpp,
                                        l.tcov ? l.pb : 0u,
-                                       !l.is_agp && dev->gpu != NULL);
+                                       !l.is_agp && dev->gpu != NULL,
+                                       keeps && !l.is_agp && l.tcov
+                                           && (uint64_t) l.vm + l.llen
+                                                  <= (uint64_t) dev->vram_mask + 1u);
             if (stage[s] == R128_TEX_STAGE_NONE && l.is_agp)
                 rs->stage_dead = 1; /* no room: an AGP level must never be
                                        read from local VRAM, so the draw is
@@ -3996,7 +4131,7 @@ r3d_stage_textures(rage128_t *dev, rage128_raster_state_t *rs)
 /* Write a staged Z or color buffer (in AGP memory) back to guest memory;
    thin wrappers over the span-stage code. Submit thread only, and only
    at the two points where the arenas are known to be idle: the flush
-   barrier (all workers joined) and the serial per-draw recycle in
+   barrier (all workers joined) and the start of a serial draw's
    rage128_raster_state_capture. Calling one twice is harmless. */
 void
 rage128_z_stage_writeback(rage128_t *dev)
@@ -4135,6 +4270,23 @@ r3d_plan_cbuffer(const rage128_raster_state_t *rs, r3d_surf_plan_t *p)
     p->agp    = r128_card_is_agp(p->vm)
         || r128_card_is_agp(p->vm + p->extent - 1u);
     p->stage = p->agp;
+}
+
+/* Does the draw's Z or color surface reach the source bytes of a kept
+   level? The draw renders after its levels are staged, so the caller
+   lets it use the copies and has the next capture drop them. A local
+   surface that runs past the installed memory wraps through vram_mask
+   and can land anywhere, so it counts as reaching them. */
+static int
+r3d_keep_reached(const rage128_t *dev, const r3d_surf_plan_t *p)
+{
+    const struct rage128_tex_stage *ts = &dev->tex_stage;
+
+    if (!p->extent || p->agp)
+        return 0;
+    if ((uint64_t) p->vm + p->extent > (uint64_t) dev->vram_mask + 1u)
+        return 1;
+    return p->vm < ts->keep_hi && p->vm + p->extent > ts->keep_lo;
 }
 
 /* Does this plan need a copy that the pending batch would make wrong?
@@ -4664,9 +4816,9 @@ rage128_raster_state_capture(rage128_t *dev, rage128_raster_state_t *rs)
     uint32_t        tc;
     r3d_surf_plan_t zp, cp;
 
-    /* Serial mode never flushes, so the staging arena is recycled per
-       draw here (a serial draw is finished before the next capture).
-       Parallel mode recycles it in rage128_raster_flush instead. */
+    /* A serial draw is finished before the next capture, so the staging
+       arena can be recycled here, between two draws. Parallel mode
+       recycles it in rage128_raster_flush only. */
     if (rage128_raster_nthreads(dev) <= 1) {
         /* GPU lane: queued segments may still sample staged texels, so
            the arena keeps allocating upward across draws instead of
@@ -4675,15 +4827,11 @@ rage128_raster_state_capture(rage128_t *dev, rage128_raster_state_t *rs)
            The gen bump still ends every per-draw entry: no per-draw
            staged copy is reused by a later draw. */
         if (!dev->gpu) {
-            /* A serial CPU draw is finished by the time it returns. */
-            if (dev->tex_stage.used)
-                dev->tex_stage.n_rec_draw++;
-            dev->tex_stage.used = 0;
-            r128_texcache_lock(&dev->tex_stage);
-            r128_texcache_reset_locked(&dev->tex_stage);
-            dev->tex_stage.src_lo = 0;
-            dev->tex_stage.src_hi = 0;
-            r128_texcache_unlock(&dev->tex_stage);
+            /* CPU lanes: the levels kept for the batch stay, with the
+               arena bytes under them, and everything else staged for the
+               previous draw goes; a draw that finds nothing kept starts
+               with an empty arena. */
+            r3d_keep_begin(dev);
         } else {
             /* Keep the cached entries (a dead one stays until the table
                fills); drop the previous draw's per-batch entries. */
@@ -4742,6 +4890,12 @@ rage128_raster_state_capture(rage128_t *dev, rage128_raster_state_t *rs)
     }
     r3d_stage_guard(dev, &zp, &cp); /* end the batch the old stages belong to */
     r3d_stage_textures(dev, rs);    /* mip levels in AGP memory, and tiled ones */
+    /* Serial CPU lanes: a draw that renders into the source bytes of a
+       kept level, its own levels included, ends them at the next capture.
+       No flush stands between a 3D draw and the draw after it. */
+    if (!dev->gpu && rage128_raster_nthreads(dev) <= 1
+        && (r3d_keep_reached(dev, &zp) || r3d_keep_reached(dev, &cp)))
+        dev->tex_stage.keep_redo = 1;
 
     rs->z_staged = r3d_stage_surface(dev, rs, &dev->z_stage, &zp,
                                      &rs->z_detiled);

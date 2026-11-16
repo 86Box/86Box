@@ -166,6 +166,11 @@ rage128_now_ns(void)
    across draws, and per-batch levels. */
 #define R128_TEX_CACHE_ENTS 1024u
 #define R128_TEX_BATCH_ENTS 256u
+/* Store marks for the levels the serial CPU lanes keep for a batch
+   (rage128_t tex_stage keep_pg): one per 64 KB of the low 32 MB of card
+   memory, which is all of local memory. */
+#define R128_TEX_KEEP_SHIFT 16
+#define R128_TEX_KEEP_MARKS (0x02000000u >> R128_TEX_KEEP_SHIFT)
 
 typedef struct rage128_t {
     svga_t svga;
@@ -1178,9 +1183,11 @@ typedef struct rage128_t {
        into this arena on the submit thread when the draw state is
        captured, and workers read the copy. A tiled level is copied here
        too, untiled, so every lane samples it as a linear image. The arena
-       is reset only in rage128_raster_flush, after all workers are joined
-       (in serial mode, per draw at capture), so its base pointer never
-       moves while a batch is in flight. */
+       is reset only in rage128_raster_flush, after all workers are joined,
+       so its base pointer never moves while a batch is in flight. The
+       serial lanes, whose draws are finished when they return, also reset
+       it at capture: the CPU lanes whenever no level is kept for the
+       batch (see keep_lo below). */
     struct rage128_tex_stage {
         uint8_t *arena; /* byte arena, allocated on first use         */
         uint32_t cap;   /* allocated bytes                            */
@@ -1241,14 +1248,46 @@ typedef struct rage128_t {
         uint64_t n_wrap_kept; /* wraps that kept the live cached levels */
         uint32_t lap;         /* passes through the arena: one per wrap */
         uint32_t peak_used;
+        /* Levels kept for a batch by the serial CPU lanes (one render
+           thread, no GPU backend). A tiled level that lies wholly in
+           installed local memory is detiled once and its per-batch entry
+           (pde, marked keep) serves every later draw until the batch
+           ends, so a frame that binds one texture on many draws copies it
+           once. [keep_lo, keep_hi) is the card range covering the source
+           bytes of every kept level (equal = none); keep_redo makes the
+           next capture drop them all, because the draw captured last
+           renders into that range after its own levels were staged. Both
+           belong to the submit thread. The kept levels end at every
+           raster flush that recycles the arena, which precedes each 2D
+           operation and motion-compensation launch, and at the first
+           capture after a store into local memory from outside the 3D
+           engine. Such a store is reported by r128_tex_keep_note: after
+           storing its bytes the writer sets the mark of each 64 KB piece
+           it touched (keep_pg), or keep_all when its address is not known
+           here, and then keep_any. The capture looks at the marks under
+           the kept range only when keep_any is set, and clears a level's
+           marks before it copies the level; a mark it finds set there
+           ends every kept level with source bytes in that piece, since
+           one mark stands for all of them. The release stores order the
+           bytes before their mark and the mark before keep_any, so a
+           capture that finds keep_any clear has either copied the bytes
+           already or will find the flag set next time; no writer waits
+           and none reads the kept range. */
+        uint32_t     keep_lo, keep_hi;
+        int          keep_redo;
+        atomic_uchar keep_any;
+        atomic_uchar keep_all;
+        atomic_uchar keep_pg[R128_TEX_KEEP_MARKS];
         /* Staged levels. A cached entry (ent, the GPU backend's levels in
            local memory) serves later draws until a store lands in its
            source bytes or the arena is reset; a per-batch entry (pde: AGP
            levels, and every level without the GPU backend) serves only the
-           batch whose gen it carries. A dead cached entry keeps its slot
-           until the table fills, when the table is compacted; idx is an
-           open-addressed index of the cached entries by key, slot + 1 per
-           bucket, 0 = empty, so a lookup does not scan the table. */
+           batch whose gen it carries, or, when it is marked keep, every
+           draw until the kept levels are dropped. A dead cached entry
+           keeps its slot until the table fills, when the table is
+           compacted; idx is an open-addressed index of the cached entries
+           by key, slot + 1 per bucket, 0 = empty, so a lookup does not
+           scan the table. */
         uint32_t ent_count;
         uint32_t ent_dead;
         uint32_t pde_count;
@@ -1264,12 +1303,15 @@ typedef struct rage128_t {
             uint32_t gen;       /* gen (per-batch entry) or tgen (cached
                                    entry) when it was staged              */
             uint32_t src_lo;    /* card bytes [src_lo, src_hi) the level
-                                   was copied from (a cached entry)       */
+                                   was copied from (a cached entry, and a
+                                   kept per-batch entry)                  */
             uint32_t src_hi;
             uint32_t dead;      /* 1 = a store landed in the source bytes
                                    of this cached entry                   */
             uint32_t used_lap;  /* lap (below) in which a draw last used
                                    this cached entry                      */
+            uint32_t keep;      /* 1 = a per-batch entry the serial CPU
+                                   lanes keep across draws (keep_lo)      */
         } ent[R128_TEX_CACHE_ENTS];
         struct rage128_tex_ent pde[R128_TEX_BATCH_ENTS];
         uint16_t               idx[2 * R128_TEX_CACHE_ENTS];
@@ -3108,6 +3150,8 @@ r128_texcache_reset_locked(struct rage128_tex_stage *ts)
     ts->ent_count = 0;
     ts->ent_dead  = 0;
     ts->pde_count = 0;
+    ts->keep_lo   = 0; /* the kept levels were per-batch entries */
+    ts->keep_hi   = 0;
 }
 
 /* Returns 0 for a store outside the combined source range, 1 for one
@@ -3236,9 +3280,46 @@ rage128_gpu_cpu_access(rage128_t *dev, uint32_t addr, uint32_t len, int writes)
                             addr + len, writes))
         rage128_gpu_cpu_barrier_hit(dev, addr, len, writes);
 }
+/* Local bytes [lo, lo+len) of svga.vram have been stored to by something
+   other than the 3D engine: tell the serial CPU lanes, which may hold a
+   texture level copied from those bytes (rage128_t tex_stage keep_lo).
+   Called after the store, from any thread. The marks are 64 KB pieces
+   walked by length through vram_mask, as r128_vram_hnew walks its pages.
+   Setting them costs a few byte stores and is done in every lane; only
+   the serial CPU lanes read them. */
+static inline void
+r128_tex_keep_note(rage128_t *dev, uint32_t lo, uint32_t len)
+{
+    struct rage128_tex_stage *ts = &dev->tex_stage;
+    uint32_t                  m  = dev->vram_mask;
+
+    if (!len)
+        return;
+    if (len > m)
+        atomic_store_explicit(&ts->keep_all, 1, memory_order_release);
+    else {
+        for (uint32_t o = 0; o < len; o += 1u << R128_TEX_KEEP_SHIFT)
+            atomic_store_explicit(&ts->keep_pg[((lo + o) & m) >> R128_TEX_KEEP_SHIFT], 1,
+                                  memory_order_release);
+        atomic_store_explicit(&ts->keep_pg[((lo + len - 1u) & m) >> R128_TEX_KEEP_SHIFT], 1,
+                              memory_order_release);
+    }
+    atomic_store_explicit(&ts->keep_any, 1, memory_order_release);
+}
+
+/* The same for a store whose resolved address is not known to the device
+   (the svga core's planar and banked paths), and for a reset. */
+static inline void
+r128_tex_keep_note_all(rage128_t *dev)
+{
+    atomic_store_explicit(&dev->tex_stage.keep_all, 1, memory_order_release);
+    atomic_store_explicit(&dev->tex_stage.keep_any, 1, memory_order_release);
+}
+
 /* Local bytes [lo, lo+len) of svga.vram have been stored to, so the GPU
    backend's mirror may lack them: mark their pages host-newer. Called
-   after the store. The release store orders the bytes before the mark,
+   after the store. Every such writer reports here, so this also passes
+   the store to r128_tex_keep_note. The release store orders the bytes before the mark,
    and the submit thread clears the mark with an acquire exchange before
    it records the page's copy, so the copy sees every store whose mark it
    cleared; a store that lands after the clear sets the mark again and is
@@ -3252,6 +3333,7 @@ r128_vram_hnew(rage128_t *dev, uint32_t lo, uint32_t len)
     atomic_uchar *h = dev->vram_hnew;
     uint32_t      m = dev->vram_mask;
 
+    r128_tex_keep_note(dev, lo, len);
     if (!h || !len)
         return;
     if (len > m) {
@@ -3268,6 +3350,7 @@ r128_vram_hnew(rage128_t *dev, uint32_t lo, uint32_t len)
 static inline void
 r128_vram_hnew_all(rage128_t *dev)
 {
+    r128_tex_keep_note_all(dev);
     if (dev->vram_hnew)
         atomic_store_explicit(&dev->vram_hnew_all, 1, memory_order_release);
 }

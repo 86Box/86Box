@@ -2468,6 +2468,8 @@ rage128_reset(void *priv)
     /* Quiesce the CCE thread before any block clears the state it
        executes against (no-op before the thread exists). */
     rage128_pm4_drain_wait(dev);
+    /* No texture level staged before the reset serves a draw after it. */
+    r128_tex_keep_note_all(dev);
 
     dev->mm_index = 0;
     memset(dev->bios_scratch, 0, sizeof(dev->bios_scratch));
