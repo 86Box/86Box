@@ -783,6 +783,7 @@ typedef struct gdbstub_mem_state_t {
     int                saved_read_type;
     int                saved_cpu_old_paging;
     int                saved_cpl_override;
+    int                saved_cpl_override_wp_exempt;
     int                saved_cpu_dr_armed;
     int                pt_num;
     gdbstub_pt_entry_t pt[4]; /* two levels for each of two pages */
@@ -872,6 +873,7 @@ gdbstub_mem_enter(gdbstub_mem_state_t *state, uint32_t addr, int width)
     state->saved_read_type        = read_type;
     state->saved_cpu_old_paging   = cpu_old_paging;
     state->saved_cpl_override     = cpl_override;
+    state->saved_cpl_override_wp_exempt = cpl_override_wp_exempt;
     state->saved_cpu_dr_armed     = cpu_dr_armed;
     state->pt_num           = 0;
     state->phys[0] = state->phys[1] = 0xffffffffffffffffULL;
@@ -884,11 +886,15 @@ gdbstub_mem_enter(gdbstub_mem_state_t *state, uint32_t addr, int width)
 
     /* As the CPU would make the access in the debugger's place: free of a
        pending abort (which fails every translation), with the current paging
-       state, as a data read, and with the privilege checks of supervisor mode. */
+       state, as a data read, and with the privilege checks of supervisor mode;
+       but free to write into read-only pages while CR0.WP is set, whatever
+       the processor's own writes may do, so that breakpoints can go into
+       guest code. */
     cpu_state.abrt = 0;
     read_type      = 4;
     cpu_old_paging = 0;
     cpl_override   = 1;
+    cpl_override_wp_exempt = CPL_OVERRIDE_ON | CPL_OVERRIDE_TSS_WRITE | CPL_OVERRIDE_TSS_BUSY;
     cpu_dr_armed   = 1;
 }
 
@@ -952,6 +958,7 @@ gdbstub_mem_leave(gdbstub_mem_state_t *state, uint32_t addr, uint8_t *buf, int w
     read_type        = state->saved_read_type;
     cpu_old_paging   = state->saved_cpu_old_paging;
     cpl_override     = state->saved_cpl_override;
+    cpl_override_wp_exempt = state->saved_cpl_override_wp_exempt;
     cpu_dr_armed     = state->saved_cpu_dr_armed;
 
     return ret;

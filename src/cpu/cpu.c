@@ -986,6 +986,55 @@ cpu_set(void)
             break;
     }
 
+    /* Which kinds of cpl_override write skip the CR0.WP test. The i486 PRM
+       (6.8.3, p. 6-24), the Pentium manual (1995, vol. 3, 12.8.3, p. 12-26)
+       and the Am486 Software User's Manual (A.2.3.8.3, p. A-42) check the
+       descriptor tables, the TSS and the inner stack as accesses at
+       privilege level 0, which WP=1 keeps out of read-only pages; the P24T
+       and Am5x86 sheets defer to those books. The Pentium Pro manual (1996,
+       vol. 3, 4.11.5, p. 4-28) and the 1999 Intel Architecture manual (vol.
+       3, 4.11.5, p. 4-32) list the descriptor tables and the inner stack
+       but not the TSS; the Cx486SLC and Cx486DLC data sheets, the 6x86,
+       6x86MX and M II data books (p. 2-14) and the MediaGX MMX data book
+       (1998, p. 49) have WP=1 fault a write to a read-only page from any
+       privilege level, with nothing on a task switch. On those a task
+       switch's writes, its Busy bits included, keep the exemption. Every
+       other processor keeps every kind exempt. */
+    switch (cpu_s->cpu_type) {
+        case CPU_i486SX:
+        case CPU_Am486SX:
+        case CPU_i486DX:
+        case CPU_Am486DX:
+        case CPU_Am486DXL:
+        case CPU_i486SX_SLENH:
+        case CPU_i486DX_SLENH:
+        case CPU_ENH_Am486DX:
+        case CPU_P24T:
+        case CPU_PENTIUM:
+            cpl_override_wp_exempt = 0;
+            break;
+        case CPU_486SLC:
+        case CPU_486DLC:
+            /* Not the clock-doubled Cx486SRx2 / DRx2 (DIR0 06h / 07h). */
+            cpl_override_wp_exempt = CPL_OVERRIDE_TSS_WRITE | CPL_OVERRIDE_TSS_BUSY;
+            if (cpu_s->cyrix_id > 0x0001)
+                cpl_override_wp_exempt |= CPL_OVERRIDE_ON;
+            break;
+        case CPU_PENTIUMMMX:
+        case CPU_Cx6x86:
+        case CPU_Cx6x86MX:
+        case CPU_Cx6x86L:
+        case CPU_CxGX1:
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            cpl_override_wp_exempt = CPL_OVERRIDE_TSS_WRITE | CPL_OVERRIDE_TSS_BUSY;
+            break;
+        default:
+            cpl_override_wp_exempt = CPL_OVERRIDE_ON | CPL_OVERRIDE_TSS_WRITE | CPL_OVERRIDE_TSS_BUSY;
+            break;
+    }
+
     cpu_isintel = !strcmp(cpu_f->manufacturer, "Intel");
     cpu_iscyrix = !strcmp(cpu_f->manufacturer, "Cyrix") || !strcmp(cpu_f->manufacturer, "ST");
 

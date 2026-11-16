@@ -308,7 +308,9 @@ static uint8_t  writelookup_ring0[256];
 static int      writelookup_ring0_num;
 
 /* The page of the last successful walk and its combined user (bit 2) and
-   writable (bit 1) bits, for the ring 3 bits of the lookup entries. */
+   writable (bit 1) bits, for the ring 3 bits of the lookup entries, and
+   MMU_WALK_WP_EXEMPT when the walk let a write through only because its
+   cpl_override kind is exempt from CR0.WP. */
 static uint32_t mmu_walk_page = 0xffffffff;
 static uint32_t mmu_walk_flags;
 
@@ -328,6 +330,30 @@ mmu_walk_denies(uint32_t virt, uint32_t need)
         return (mmu_walk_flags & need) != need;
     if (mmu_walk_prev_page == (virt >> 12))
         return (mmu_walk_prev_flags & need) != need;
+    return 0;
+}
+
+#define MMU_WALK_WP_EXEMPT 8
+
+/* MMU_WALK_WP_EXEMPT for a walk of a write that passes with R/W clear
+   while CR0.WP is set, which only an exempt cpl_override kind gets past. */
+static __inline uint32_t
+mmu_walk_wp_exempt(int rw, uint64_t flags)
+{
+    return (rw && (cpl_override & cpl_override_wp_exempt) && !(flags & 2) && (cr0 & WP_FLAG)) ? MMU_WALK_WP_EXEMPT : 0;
+}
+
+/* Whether the page's own walk, when it is one of the last two, let the
+   write that is now being made through only because of its kind. */
+static __inline int
+mmu_walk_wp_exempted(uint32_t virt)
+{
+    if (!(cpl_override & cpl_override_wp_exempt))
+        return 0;
+    if (mmu_walk_page == (virt >> 12))
+        return !!(mmu_walk_flags & MMU_WALK_WP_EXEMPT);
+    if (mmu_walk_prev_page == (virt >> 12))
+        return !!(mmu_walk_prev_flags & MMU_WALK_WP_EXEMPT);
     return 0;
 }
 
@@ -862,7 +888,7 @@ mmutranslatereal_normal(uint32_t addr, int rw)
 
     if ((temp & 0x80) && (cr4 & CR4_PSE)) {
         /*4MB page*/
-        if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !cpl_override && !(temp & 2) && (((CPL == 3) && !cpl_override) || ((is486 || isibm486) && (cr0 & WP_FLAG))))) {
+        if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !(cpl_override & cpl_override_wp_exempt) && !(temp & 2) && (((CPL == 3) && !cpl_override) || ((is486 || isibm486) && (cr0 & WP_FLAG))))) {
             cr2 = addr;
             temp &= 1;
             if (CPL == 3)
@@ -879,7 +905,7 @@ mmutranslatereal_normal(uint32_t addr, int rw)
         mmu_walk_prev_page  = mmu_walk_page;
         mmu_walk_prev_flags = mmu_walk_flags;
         mmu_walk_page  = addr >> 12;
-        mmu_walk_flags = temp & 6;
+        mmu_walk_flags = (temp & 6) | mmu_walk_wp_exempt(rw, temp);
 
         uint64_t page = temp & ~0x3fffff;
         if (cpu_features & CPU_FEATURE_PSE36)
@@ -889,7 +915,7 @@ mmutranslatereal_normal(uint32_t addr, int rw)
 
     temp  = rammap((temp & ~0xfff) + ((addr >> 10) & 0xffc));
     temp3 = temp & temp2;
-    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !cpl_override && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || ((is486 || isibm486) && (cr0 & WP_FLAG))))) {
+    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(cpl_override & cpl_override_wp_exempt) && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || ((is486 || isibm486) && (cr0 & WP_FLAG))))) {
         cr2 = addr;
         temp &= 1;
         if (CPL == 3)
@@ -906,7 +932,7 @@ mmutranslatereal_normal(uint32_t addr, int rw)
     mmu_walk_prev_page  = mmu_walk_page;
     mmu_walk_prev_flags = mmu_walk_flags;
     mmu_walk_page  = addr >> 12;
-    mmu_walk_flags = temp3 & 6;
+    mmu_walk_flags = (temp3 & 6) | mmu_walk_wp_exempt(rw, temp3);
 
     return (uint64_t) ((temp & ~0xfff) + (addr & 0xfff));
 }
@@ -955,7 +981,7 @@ mmutranslatereal_pae(uint32_t addr, int rw)
 
     if (temp & 0x80) {
         /*2MB page*/
-        if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !cpl_override && !(temp & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
+        if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !(cpl_override & cpl_override_wp_exempt) && !(temp & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
             cr2 = addr;
             temp &= 1;
             if (CPL == 3)
@@ -971,7 +997,7 @@ mmutranslatereal_pae(uint32_t addr, int rw)
         mmu_walk_prev_page  = mmu_walk_page;
         mmu_walk_prev_flags = mmu_walk_flags;
         mmu_walk_page  = addr >> 12;
-        mmu_walk_flags = (uint32_t) (temp & 6);
+        mmu_walk_flags = (uint32_t) (temp & 6) | mmu_walk_wp_exempt(rw, temp);
 
         return ((temp & ~0x1fffffULL) + (addr & 0x1fffffULL)) & 0x000000ffffffffffULL;
     }
@@ -979,7 +1005,7 @@ mmutranslatereal_pae(uint32_t addr, int rw)
     addr4 = (temp & ~0xfffULL) + ((addr >> 9) & 0xff8);
     temp  = rammap64(addr4) & 0x000000ffffffffffULL;
     temp3 = temp & temp4;
-    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !cpl_override && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
+    if (!(temp & 1) || ((CPL == 3) && !(temp3 & 4) && !cpl_override) || (rw && !(cpl_override & cpl_override_wp_exempt) && !(temp3 & 2) && (((CPL == 3) && !cpl_override) || (cr0 & WP_FLAG)))) {
         cr2 = addr;
         temp &= 1;
         if (CPL == 3)
@@ -996,7 +1022,7 @@ mmutranslatereal_pae(uint32_t addr, int rw)
     mmu_walk_prev_page  = mmu_walk_page;
     mmu_walk_prev_flags = mmu_walk_flags;
     mmu_walk_page  = addr >> 12;
-    mmu_walk_flags = (uint32_t) (temp3 & 6);
+    mmu_walk_flags = (uint32_t) (temp3 & 6) | mmu_walk_wp_exempt(rw, temp3);
 
     return ((temp & ~0xfffULL) + ((uint64_t) (addr & 0xfff))) & 0x000000ffffffffffULL;
 }
@@ -1232,6 +1258,12 @@ addwritelookup_remapped(uint32_t virt, uint32_t phys, uint32_t ram_addr)
         return;
 
     if (page_lookup[virt >> 12])
+        return;
+
+    /* No entry for a write that its walk let through only because its kind
+       is exempt from CR0.WP, on a processor where descriptor and stack
+       writes are not: the entry would let those through without a walk. */
+    if (!(cpl_override_wp_exempt & CPL_OVERRIDE_ON) && mmu_walk_wp_exempted(virt))
         return;
 
     /* Held, as in addreadlookup(). Only page_lookup ends the call above, so

@@ -590,6 +590,11 @@ extern int is186;
 #define FAR_LOAD_ORDER_PRM  1 /* the programmer's reference manuals' order */
 #define FAR_LOAD_ORDER_IA   2 /* the Intel Architecture manuals' order */
 
+/* The kinds of access cpl_override is set for, one bit each */
+#define CPL_OVERRIDE_ON        1 /* descriptor tables, inner stacks */
+#define CPL_OVERRIDE_TSS_WRITE 2 /* a task switch's writes into a TSS */
+#define CPL_OVERRIDE_TSS_BUSY  4 /* a task switch's Busy-bit writes */
+
 #define CALL_FAR_TEST_NONE      0
 #define CALL_FAR_TEST_PMODE     1 /* protected mode only */
 #define CALL_FAR_TEST_ALL_MODES 2 /* protected, real and virtual 8086 mode */
@@ -724,6 +729,7 @@ extern uint64_t tsc;
 extern msr_t    msr;
 extern uint8_t  opcode;
 extern int      cpl_override;
+extern int      cpl_override_wp_exempt;
 extern int      CPUID;
 extern uint64_t xt_cpu_multi;
 extern int      isa_cycles;

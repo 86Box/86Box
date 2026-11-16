@@ -65,6 +65,11 @@ int nmi_enable = 1;
 
 int alt_access;
 int cpl_override = 0;
+/* The kinds of cpl_override access (CPL_OVERRIDE_*) whose writes skip the
+   CR0.WP test, as every such write did before; set per processor by
+   cpu_set(). The CPL 3 half of the page protection is lifted for every
+   kind whatever this says. */
+int cpl_override_wp_exempt = CPL_OVERRIDE_ON | CPL_OVERRIDE_TSS_WRITE | CPL_OVERRIDE_TSS_BUSY;
 
 uint16_t cpu_cur_status = 0;
 

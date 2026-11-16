@@ -124,13 +124,17 @@ x86seg_tss_busy(uint32_t dt_base, uint16_t sel, int busy)
 {
     uint32_t off = (sel & 0xfff8) + 5;
     uint8_t  v;
+    int      old;
 
     v = readmemb(dt_base, off);
     if (cpu_state.abrt)
         return 0;
     if (busy && task_busy_undo)
         tss_busy_a64 = tss_busy_translate(dt_base + off);
+    old          = cpl_override;
+    cpl_override = CPL_OVERRIDE_TSS_BUSY;
     writememb(dt_base, off, busy ? (v | 0x02) : (v & ~0x02));
+    cpl_override = old;
     return !cpu_state.abrt;
 }
 
@@ -146,12 +150,15 @@ x86seg_tss_busy_undo(uint16_t sel)
     const uint32_t a64  = (uint32_t) tss_busy_a64;
     const int      abrt = cpu_state.abrt;
     const uint8_t  high = high_page;
+    const int      old  = cpl_override;
     uint8_t        v;
 
     cpu_state.abrt = 0;
     high_page      = (tss_busy_a64 > 0xffffffffULL);
     v              = readmemb_n(gdt.base, off, a64);
+    cpl_override   = CPL_OVERRIDE_TSS_BUSY;
     writememb_n(gdt.base, off, a64, v & ~0x02);
+    cpl_override   = old;
     cpu_state.abrt = abrt;
     high_page      = high;
 }
@@ -2787,6 +2794,9 @@ task_read_image(uint32_t base, int is32, task_image_t *t)
 static void
 task_save(uint32_t flags)
 {
+    const int old = cpl_override;
+
+    cpl_override = CPL_OVERRIDE_TSS_WRITE;
     if (tr.access & 8) {
         writememl(tr.base, 0x20, cpu_state.pc);
         writememl(tr.base, 0x24, flags);
@@ -2808,6 +2818,7 @@ task_save(uint32_t flags)
         writememw(tr.base, 0x26, SS);
         writememw(tr.base, 0x28, DS);
     }
+    cpl_override = old;
 }
 
 /* The descriptor a selector from the new TSS names: 0 for a null
@@ -3216,7 +3227,11 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
         }
     }
     if ((optype == OPTYPE_INT) || (optype == CALL)) {
+        const int old = cpl_override;
+
+        cpl_override = CPL_OVERRIDE_TSS_WRITE;
         writememw(base, 0, tr.seg);
+        cpl_override = old;
         if (cpu_state.abrt) {
             if (task_busy_undo)
                 x86seg_tss_busy_undo(seg);
