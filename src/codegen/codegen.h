@@ -480,6 +480,61 @@ extern void codegen_flush_evict_list(int max);
   will only be called when the allocator is out of memory*/
 extern void codegen_delete_random_block(int required_mem_block);
 
+/*Code that runs through more blocks than the cache holds before it comes
+  back round (8 MiB of functions, each run once a pass) keeps the eviction
+  sweep throwing out blocks that were only marked: each visit pays for a new
+  block, its page list and tree entries and its deletion, and compiles
+  nothing. codegen_evict_ghost holds addresses whose block went that way, or
+  that codegen_admit() turned away; codegen_evict_thrash counts addresses
+  wanted again while still in it, less blocks compiled (code that paid for
+  its block). Past CODEGEN_ADMIT_THRASH a first visit to an address is
+  interpreted with no block, and only one back while codegen_admit_filter
+  (smaller than the cache) still holds it gets a block. The next code wears
+  the count down as it gets compiled, so a cache left full of such blocks
+  does not hold it back.*/
+#define CODEGEN_ADMIT_THRASH     64
+#define CODEGEN_ADMIT_THRASH_MAX 256
+#define CODEGEN_ADMIT_SHIFT      16
+#define CODEGEN_GHOST_SHIFT      13
+extern int      codegen_evict_thrash;
+extern uint32_t codegen_admit_filter[1 << (32 - CODEGEN_ADMIT_SHIFT)];
+extern uint32_t codegen_evict_ghost[1 << (32 - CODEGEN_GHOST_SHIFT)];
+
+static inline uint32_t *
+codegen_ghost_slot(uint32_t phys_addr)
+{
+    return &codegen_evict_ghost[(phys_addr * 0x9e3779b1u) >> CODEGEN_GHOST_SHIFT];
+}
+
+/*Whether a block may be made for phys_addr, which has none, now*/
+static inline int
+codegen_admit(uint32_t phys_addr)
+{
+    uint32_t *const ghost = codegen_ghost_slot(phys_addr);
+    const uint32_t  key   = phys_addr + 1;
+
+    if (codegen_evict_thrash < CODEGEN_ADMIT_THRASH) {
+        if (*ghost == key) {
+            *ghost = 0;
+            codegen_evict_thrash += 2;
+        }
+        return 1;
+    }
+
+    uint32_t *const slot = &codegen_admit_filter[(phys_addr * 0x9e3779b1u) >> CODEGEN_ADMIT_SHIFT];
+
+    if (*slot == key) {
+        if (*ghost == key)
+            *ghost = 0;
+        return 1;
+    }
+    *slot = key;
+    if ((*ghost == key) && (codegen_evict_thrash < CODEGEN_ADMIT_THRASH_MAX))
+        codegen_evict_thrash += 2;
+    *ghost = key;
+    return 0;
+}
+
 extern int      cpu_block_end;
 extern uint32_t codegen_endpc;
 /*Opcode bytes of the block being compiled that its code reads as it runs

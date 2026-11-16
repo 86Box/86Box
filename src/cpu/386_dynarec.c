@@ -1209,6 +1209,10 @@ run_block:
 #    endif
     } else if (!cpu_state.abrt) {
         /* Mark block but do not recompile */
+        if (!codegen_admit(phys_addr)) {
+            exec386_dynarec_int();
+            return;
+        }
         start_pc                 = cs + cpu_state.pc;
         const int max_block_size = (block->flags & CODEBLOCK_BYTE_MASK) ? ((128 - 25) - (start_pc & 0x3f)) : 1000;
 
