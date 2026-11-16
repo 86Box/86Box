@@ -59,6 +59,11 @@ AppDir:
       done
       rm -f "$dir/gconv-modules.cache"
     done
+    for icudata in "$TARGET_APPDIR"/usr/lib/*/libicudata.so.*.*
+    do
+      [ -f "$icudata" ] || continue
+      python3 .ci/trim_icu_data.py --cc "$libdir-gcc" "$icudata" || echo "Failed to trim $icudata"
+    done
   after_runtime: |
     case "$arch_appimage" in
       x86_64)

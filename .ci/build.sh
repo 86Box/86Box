@@ -1084,6 +1084,13 @@ then
 			mv archive_tmp/assets "$data_dir/Resources/assets"
 		fi
 
+		# Remove the code page conversion tables from ICU's data, as nothing uses them.
+		for icudata in "archive_tmp/"*".app/Contents/Frameworks/libicudata."*".dylib"
+		do
+			[ -f "$icudata" -a ! -L "$icudata" ] || continue
+			python3 .ci/trim_icu_data.py "$icudata" || echo [!] Failed to trim [$icudata]
+		done
+
 		# Sign app bundle, unless we're in an universal build.
 		[ $skip_archive -eq 0 ] && codesign --force --deep $(mac_signidentity) -o runtime --entitlements src/mac/entitlements.plist --timestamp "archive_tmp/"*".app"
 	elif [ "$BUILD_TAG" = "precondition" ]
