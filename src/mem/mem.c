@@ -99,6 +99,11 @@ static int writel_used;
 /* The lookup tables. */
 page_t *page_lookup[1048576] = { 0 };
 uintptr_t readlookup2[2097152] = { 0 };
+/* Read entries a code fetch may take without a walk: their RAM page is the
+   bus page the processor's own walk translated the page to. Not one that
+   get_phys_noabrt() made (the emulator checking a block's pages) or one a
+   remapping read handler made (its RAM page is not the bus page). */
+static uint8_t readlookup_fetch[1048576];
 uintptr_t writelookup2[1048576] = { 0 };
 
 
@@ -318,6 +323,30 @@ static uint32_t mmu_walk_flags;
    before the first one's entry is added. */
 static uint32_t mmu_walk_prev_page = 0xffffffff;
 static uint32_t mmu_walk_prev_flags;
+
+/* The bus pages those two walks translated to. */
+static uint64_t mmu_walk_frame      = 0xffffffffffffffffULL;
+static uint64_t mmu_walk_prev_frame = 0xffffffffffffffffULL;
+
+/* An access that reaches memory without a walk that records (the 386 loop's
+   walks, the walk that raises nothing, physical accesses) leaves no frame,
+   so an entry its read handler makes proves nothing from an older walk. */
+void
+mmu_walk_forget(void)
+{
+    mmu_walk_frame      = 0xffffffffffffffffULL;
+    mmu_walk_prev_frame = 0xffffffffffffffffULL;
+}
+
+static __inline uint64_t
+mmu_walk_frame_of(uint32_t virt)
+{
+    if (mmu_walk_page == (virt >> 12))
+        return mmu_walk_frame;
+    if (mmu_walk_prev_page == (virt >> 12))
+        return mmu_walk_prev_frame;
+    return 0xffffffffffffffffULL;
+}
 
 /* Whether the page's own walk, when it is one of the last two, found it
    without the bits in need. */
@@ -619,8 +648,10 @@ mem_ap_walked(const mem_ap_entry_t *e, uint32_t addr)
 {
     mmu_walk_prev_page  = mmu_walk_page;
     mmu_walk_prev_flags = mmu_walk_flags;
+    mmu_walk_prev_frame = mmu_walk_frame;
     mmu_walk_page    = addr >> 12;
     mmu_walk_flags   = 6;
+    mmu_walk_frame   = e->pte & ~0xfff;
     addr64a[0]       = (e->pte & ~0xfff) + (addr & 0xfff);
     mem_logical_addr = 0xffffffff;
 }
@@ -640,6 +671,7 @@ flush_read_lookup(void)
             if (readlookup[c] != (int) 0xffffffff) {
                 readlookup2[readlookup[c]]           = LOOKUP_INV;
                 readlookup2[readlookup[c] | 1048576] = LOOKUP_INV;
+                readlookup_fetch[readlookup[c]]      = 0;
                 readlookup[c]                        = 0xffffffff;
             }
         }
@@ -715,6 +747,7 @@ drop_ring0_read_entry(int c)
 {
     if ((readlookup[c] != (int) 0xffffffff) && !readlookup_ring3[c]) {
         readlookup2[readlookup[c]]           = LOOKUP_INV;
+        readlookup_fetch[readlookup[c]]      = 0;
         readlookup2[readlookup[c] | 1048576] = LOOKUP_INV;
         readlookup[c]                        = 0xffffffff;
     }
@@ -909,12 +942,14 @@ mmutranslatereal_normal(uint32_t addr, int rw)
         rammap(addr2) |= (rw ? 0x60 : 0x20);
         mmu_walk_prev_page  = mmu_walk_page;
         mmu_walk_prev_flags = mmu_walk_flags;
+        mmu_walk_prev_frame = mmu_walk_frame;
         mmu_walk_page  = addr >> 12;
         mmu_walk_flags = (temp & 6) | mmu_walk_wp_exempt(rw, temp);
 
         uint64_t page = temp & ~0x3fffff;
         if (cpu_features & CPU_FEATURE_PSE36)
             page |= (uint64_t) (temp & 0x1e000) << 19;
+        mmu_walk_frame = page + (addr & 0x3ff000);
         return page + (addr & 0x3fffff);
     }
 
@@ -936,8 +971,10 @@ mmutranslatereal_normal(uint32_t addr, int rw)
     rammap((temp2 & ~0xfff) + ((addr >> 10) & 0xffc)) |= (rw ? 0x60 : 0x20);
     mmu_walk_prev_page  = mmu_walk_page;
     mmu_walk_prev_flags = mmu_walk_flags;
+    mmu_walk_prev_frame = mmu_walk_frame;
     mmu_walk_page  = addr >> 12;
     mmu_walk_flags = (temp3 & 6) | mmu_walk_wp_exempt(rw, temp3);
+    mmu_walk_frame = temp & ~0xfff;
 
     return (uint64_t) ((temp & ~0xfff) + (addr & 0xfff));
 }
@@ -1001,8 +1038,10 @@ mmutranslatereal_pae(uint32_t addr, int rw)
         rammap64(addr3) |= (rw ? 0x60 : 0x20);
         mmu_walk_prev_page  = mmu_walk_page;
         mmu_walk_prev_flags = mmu_walk_flags;
+        mmu_walk_prev_frame = mmu_walk_frame;
         mmu_walk_page  = addr >> 12;
         mmu_walk_flags = (uint32_t) (temp & 6) | mmu_walk_wp_exempt(rw, temp);
+        mmu_walk_frame = ((temp & ~0x1fffffULL) + (addr & 0x1ff000ULL)) & 0x000000ffffffffffULL;
 
         return ((temp & ~0x1fffffULL) + (addr & 0x1fffffULL)) & 0x000000ffffffffffULL;
     }
@@ -1026,8 +1065,10 @@ mmutranslatereal_pae(uint32_t addr, int rw)
     rammap64(addr4) |= (rw ? 0x60 : 0x20);
     mmu_walk_prev_page  = mmu_walk_page;
     mmu_walk_prev_flags = mmu_walk_flags;
+    mmu_walk_prev_frame = mmu_walk_frame;
     mmu_walk_page  = addr >> 12;
     mmu_walk_flags = (uint32_t) (temp3 & 6) | mmu_walk_wp_exempt(rw, temp3);
+    mmu_walk_frame = temp & ~0xfffULL;
 
     return ((temp & ~0xfffULL) + ((uint64_t) (addr & 0xfff))) & 0x000000ffffffffffULL;
 }
@@ -1140,6 +1181,8 @@ mmutranslate_noabrt_pae(uint32_t addr, int rw)
 uint64_t
 mmutranslate_noabrt(uint32_t addr, int rw)
 {
+    mmu_walk_forget();
+
     /* Fast path to return invalid without any call if an exception has occurred beforehand. */
     if (cpu_state.abrt)
         return 0xffffffffffffffffULL;
@@ -1203,6 +1246,8 @@ addreadlookup(uint32_t virt, uint32_t phys)
 
     if (readlookup[cur_rln] != (int) 0xffffffff) {
         readlookup2[large_offset | readlookup[cur_rln]] = LOOKUP_INV;
+        if (!large_offset)
+            readlookup_fetch[readlookup[cur_rln]] = 0;
         if (mem_held_num)
             readlookup_held[large_offset | readlookup[cur_rln]] = 0;
     }
@@ -1210,6 +1255,8 @@ addreadlookup(uint32_t virt, uint32_t phys)
     /* Held when the page's own walk says ring 3 may not read it; the bit
        below, from the last walk alone, stays what it was. */
     ptr = (uintptr_t) &ram[(uintptr_t) (phys & ~0xFFF) - (uintptr_t) (virt & ~0xfff)];
+    if (!large_offset)
+        readlookup_fetch[index] = (cr0 >> 31) && (mmu_walk_frame_of(virt) == (uint64_t) ((ptr + (virt & ~0xfff)) - (uintptr_t) ram));
     if (cpl_override && (CPL == 3) && mmu_walk_denies(virt, 4)) {
         readlookup_held_ptr[cur_rln]  = ptr;
         readlookup_held[index]        = cur_rln + 1;
@@ -1416,6 +1463,46 @@ mem_read_misaligned_cycles(uint32_t addr)
     return timing_misaligned;
 }
 
+/* addreadlookup() for an entry the processor did not make. */
+void
+addreadlookup_quiet(uint32_t virt, uint32_t phys)
+{
+    const int fresh = (readlookup2[virt >> 12] == (uintptr_t) LOOKUP_INV) && !is_compare;
+
+    addreadlookup(virt, phys);
+    if (fresh)
+        readlookup_fetch[virt >> 12] = 0;
+}
+
+/* A code fetch has walked linear addr to bus address phys: the page's entry
+   may serve fetches from now on if its RAM page is that bus page. */
+void
+mem_fetch_walked(uint32_t addr, uint64_t phys)
+{
+    uintptr_t e = readlookup2[addr >> 12];
+
+    if ((e != (uintptr_t) LOOKUP_INV) && !(phys >> 32) &&
+        !((((uint32_t) ((e + addr) - (uintptr_t) ram)) ^ (uint32_t) phys) & ~0xfff))
+        readlookup_fetch[addr >> 12] = 1;
+}
+
+/* The physical address a code fetch at linear addr takes from the lookup
+   tables, or from an entry held, as get_phys() does before it walks; -1 when
+   neither has an entry readlookup_fetch[] allows, which walks as before. */
+uint64_t
+mem_fetch_lookup(uint32_t addr)
+{
+    uintptr_t e = readlookup2[addr >> 12];
+
+    if (!readlookup_fetch[addr >> 12])
+        return 0xffffffffffffffffULL;
+    if ((e == (uintptr_t) LOOKUP_INV) && mem_held_num)
+        e = mem_held_read(addr);
+    if (e == (uintptr_t) LOOKUP_INV)
+        return 0xffffffffffffffffULL;
+    return (uint32_t) ((e + addr) - (uintptr_t) ram);
+}
+
 uint8_t *
 getpccache(uint32_t a)
 {
@@ -1448,7 +1535,13 @@ getpccache(uint32_t a)
     }
 
     if (cr0 >> 31) {
-        a64 = mmutranslate_read(a64);
+        /* A page in the lookup tables is the TLB's hit: no walk. */
+        a64 = mem_fetch_lookup(a);
+        if (a64 == 0xffffffffffffffffULL) {
+            a64 = mmutranslate_read(a);
+            if (a64 != 0xffffffffffffffffULL)
+                mem_fetch_walked(a, a64);
+        }
 
         if (a64 == 0xffffffffffffffffULL)
             return ram;
@@ -1486,6 +1579,7 @@ read_mem_b(uint32_t addr)
     mem_mapping_t *map;
     uint8_t        ret        = 0xff;
 
+    mmu_walk_forget();
     mem_logical_addr = addr;
     addr &= rammask;
 
@@ -1502,6 +1596,7 @@ read_mem_w(uint32_t addr)
     mem_mapping_t *map;
     uint16_t       ret        = 0xffff;
 
+    mmu_walk_forget();
     mem_logical_addr = addr;
     addr &= rammask;
 
@@ -2807,6 +2902,7 @@ mem_readb_phys(uint32_t addr)
     mem_mapping_t *map = read_mapping_bus[addr >> MEM_GRANULARITY_BITS];
     uint8_t        ret = 0xff;
 
+    mmu_walk_forget();
     mem_logical_addr = 0xffffffff;
 
     if (map) {
@@ -2828,6 +2924,7 @@ mem_readw_phys(uint32_t addr)
     uint16_t        ret;
     const uint16_t *p;
 
+    mmu_walk_forget();
     mem_logical_addr = 0xffffffff;
 
     if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_HBOUND) && (p = (uint16_t *) mem_phys_exec(map, addr, 2))) {
@@ -2849,6 +2946,7 @@ mem_readl_phys(uint32_t addr)
     uint32_t        ret;
     const uint32_t *p;
 
+    mmu_walk_forget();
     mem_logical_addr = 0xffffffff;
 
     if (((addr & MEM_GRANULARITY_MASK) <= MEM_GRANULARITY_QBOUND) && (p = (uint32_t *) mem_phys_exec(map, addr, 4))) {
@@ -2890,6 +2988,7 @@ mem_read_phys_block(void *dest, uint32_t addr, uint32_t len)
     uint8_t *p    = (uint8_t *) dest;
     uint32_t done = 0;
 
+    mmu_walk_forget();
     mem_logical_addr = 0xffffffff;
 
     if (!cpu_use_exec)

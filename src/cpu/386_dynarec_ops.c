@@ -180,15 +180,20 @@ dynarec_rf_after_op(void)
 }
 
 /*The walk of a compiled block's second page where the interpreter's code
-  fetch first reads from it (getpccache(): mmutranslate_read on every change
-  of fetch page): the Accessed bits, and the #PF a page that is no longer
-  present raises, from oldpc. Nonzero then, which leaves the block*/
+  fetch first reads from it (getpccache(): mmutranslate_read on a change of
+  fetch page that mem_fetch_lookup() does not answer): the Accessed bits, and
+  the #PF a page that is no longer present raises, from oldpc. Nonzero then,
+  which leaves the block*/
 int
 dynarec_fetch_walk(uint32_t addr)
 {
-    if (!(cr0 >> 31))
+    uint64_t phys;
+
+    if (!(cr0 >> 31) || (mem_fetch_lookup(addr) != 0xffffffffffffffffULL))
         return 0;
-    (void) mmutranslatereal(addr, 0);
+    phys = mmutranslatereal(addr, 0);
+    if (!cpu_state.abrt)
+        mem_fetch_walked(addr, phys);
 
     return !!cpu_state.abrt;
 }

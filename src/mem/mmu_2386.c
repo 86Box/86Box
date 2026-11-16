@@ -179,6 +179,7 @@ mmutranslatereal_2386(uint32_t addr, int rw)
     uint32_t temp3;
     uint32_t addr2;
 
+    mmu_walk_forget();
     if (cpu_state.abrt)
         return 0xffffffffffffffffULL;
 
@@ -245,6 +246,7 @@ mmutranslate_noabrt_2386(uint32_t addr, int rw)
     uint32_t temp3;
     uint32_t addr2;
 
+    mmu_walk_forget();
     if (cpu_state.abrt)
         return 0xffffffffffffffffULL;
 

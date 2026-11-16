@@ -415,6 +415,10 @@ extern int      cpu_fetch_device;
 extern uint64_t mmutranslatereal(uint32_t addr, int rw);
 extern uint32_t mmutranslatereal32(uint32_t addr, int rw);
 extern void     addreadlookup(uint32_t virt, uint32_t phys);
+extern uint64_t mem_fetch_lookup(uint32_t addr);
+extern void     mem_fetch_walked(uint32_t addr, uint64_t phys);
+extern void     addreadlookup_quiet(uint32_t virt, uint32_t phys);
+extern void     mmu_walk_forget(void);
 extern void     addwritelookup(uint32_t virt, uint32_t phys);
 extern void     addwritelookup_remapped(uint32_t virt, uint32_t phys, uint32_t ram_addr);
 
@@ -619,7 +623,7 @@ get_phys_noabrt(uint32_t addr)
     phys_addr   = mmutranslate_noabrt(addr, 0);
     phys_addr32 = (uint32_t) phys_addr;
     if ((phys_addr != 0xffffffffffffffffULL) && (phys_addr <= 0xffffffffULL) && mem_addr_is_ram(phys_addr32 & rammask))
-        addreadlookup(addr, phys_addr32 & rammask);
+        addreadlookup_quiet(addr, phys_addr32 & rammask);
 
     if (phys_addr > 0xffffffffULL)
         phys_addr32 = 0xffffffff;
