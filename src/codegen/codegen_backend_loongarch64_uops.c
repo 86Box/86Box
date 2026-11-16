@@ -1198,6 +1198,16 @@ codegen_OR_IMM(codeblock_t *block, uop_t *uop)
 }
 
 static int
+codegen_ADD_PTR_IMM(codeblock_t *block, uop_t *uop)
+{
+    host_loong64_MOVX_IMM(block, REG_TEMP, (uint64_t) (uintptr_t) uop->p);
+    host_loong64_LDR_W_IMM(block, REG_TEMP2, REG_TEMP, 0);
+    host_loong64_ADD_W_IMM(block, REG_TEMP2, REG_TEMP2, uop->imm_data);
+    host_loong64_STR_W_IMM(block, REG_TEMP2, REG_TEMP, 0);
+    return 0;
+}
+
+static int
 codegen_SUB(codeblock_t *block, uop_t *uop)
 {
     int dest_reg   = HOST_REG_GET(uop->dest_reg_a_real);
@@ -2304,6 +2314,7 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_MOVZX_REG_PTR_8 & UOP_MASK]  = codegen_MOVZX_REG_PTR_8,
     [UOP_MOVZX_REG_PTR_16 & UOP_MASK] = codegen_MOVZX_REG_PTR_16,
 
+    [UOP_ADD_P_IMM & UOP_MASK] = codegen_ADD_PTR_IMM,
     [UOP_ADD & UOP_MASK]       = codegen_ADD,
     [UOP_ADD_IMM & UOP_MASK]   = codegen_ADD_IMM,
     [UOP_ADD_LSHIFT & UOP_MASK] = codegen_ADD_LSHIFT,

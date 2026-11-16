@@ -58,6 +58,13 @@ smc_thrash_rewritten(uint8_t *block_strikes, uint8_t *page_strikes, int paid_bac
 #define SMC_FAMILY_MIN_RUNS 64
 #define SMC_FAMILY_SCORE    4
 
+/*SMC_FAMILY_MIN_RUNS for a block compiled for its bytes whose rewrite only
+  changed opcodes it would read as it runs: where between one change to the
+  opcodes of the code it is part of every few runs (reading them pays) and
+  one every few hundred (it does not), each block of that code gets one
+  only every so many runs*/
+#define SMC_FAMILY_CAND_MIN_RUNS 128
+
 /*A compiled block is being rewritten after it ran (at least SMC_FAMILY_MIN_RUNS
   times if ran_long).*/
 static inline void

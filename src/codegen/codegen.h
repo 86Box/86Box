@@ -518,6 +518,10 @@ extern uint32_t codegen_endpc;
   (CODEBLOCK_OPCODE_FAMILY): bit n of word c is byte 64 * c + n from the
   start of the block's first 64-byte chunk*/
 extern uint64_t codegen_family_ops[2];
+/*Runs counted by the code of a block compiled for its bytes with
+  CODEBLOCK_NO_IMMEDIATES that has opcodes it would read as it runs with
+  CODEBLOCK_NO_OPCODES, since it was last compiled or rewritten*/
+extern uint32_t block_family_runs[];
 
 extern int cpu_reps;
 extern int cpu_notreps;

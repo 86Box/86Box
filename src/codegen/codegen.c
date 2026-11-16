@@ -1921,8 +1921,28 @@ generate_call:
     /*An ALU EAX,imm32 in a block that reads those opcodes as it runs: neither
       the opcode nor the immediate is marked. Not the block's first
       instruction, whose opcode keeps a byte of the first chunk marked*/
+    if (((block->flags & (CODEBLOCK_NO_IMMEDIATES | CODEBLOCK_NO_OPCODES)) == CODEBLOCK_NO_IMMEDIATES) && block->ins && (op_table == x86_dynarec_opcodes) &&
+        ((opcode & 0xc7) == 0x05) && (op_32 & 0x100) && (op_pc == old_pc + 1) && !in_lock && !(((cs + old_pc + 4) ^ block->pc) & ~0xfff)) {
+        /*One such a block would read as it runs: kept with the version
+          (block_family_cand_changed()). The first has the code count its
+          runs from here on.*/
+        uint32_t off = (cs + old_pc) - (block->pc & ~0x3f);
+
+        if (off < 128) {
+            if (!(codegen_family_ops[0] | codegen_family_ops[1])) {
+                block_family_runs[block_current] = 0;
+                uop_ADD_PTR_IMM(ir, &block_family_runs[block_current], 1);
+            }
+            codegen_family_ops[off >> 6] |= (uint64_t) 1 << (off & 63);
+        }
+    }
     if ((block->flags & CODEBLOCK_NO_OPCODES) && block->ins && (op_table == x86_dynarec_opcodes) && ((opcode & 0xc7) == 0x05) && (op_32 & 0x100) &&
         (op_pc == old_pc + 1) && !in_lock && !(((cs + old_pc + 4) ^ block->pc) & ~0xfff)) {
+        if (!(codegen_family_ops[0] | codegen_family_ops[1])) {
+            /*Its code counts its runs from the first (codegen_family_review())*/
+            block_family_runs[block_current] = 0;
+            uop_ADD_PTR_IMM(ir, &block_family_runs[block_current], 1);
+        }
         codegen_ea_target_seg   = NULL;
         codegen_instr_pc        = old_pc;
         codegen_instr_first_uop = ir->wr_pos;
