@@ -85,7 +85,10 @@ extern codegen_link_slot_t codegen_link_slots[BLOCK_SIZE][CODEGEN_LINK_SLOTS];
 
 typedef struct codegen_link_set_t {
     uint8_t             order;   /*codegen_link_set_mtf state*/
-    uint8_t             pad[7];
+    uint8_t             pad[3];
+    /*x86-64: offset in codegen_link_mcache of the record the routine last
+      found there for this set's exit; set 0 stands for exits with none*/
+    uint32_t            last_mcache;
     codegen_link_slot_t e[3];
 } codegen_link_set_t;
 
@@ -119,9 +122,19 @@ extern uint16_t codegen_link_site_set[BLOCK_SIZE * CODEGEN_LINK_SLOTS];
 #    define CODEGEN_LINK_MCACHE_INDEX(virt) ((uint32_t) ((uint32_t) (virt) * CODEGEN_LINK_MCACHE_MUL) >> (32 - CODEGEN_LINK_MCACHE_BITS))
 /*Each record on its own aligned pair of cache lines*/
 #    define CODEGEN_LINK_MCACHE_SHIFT 7
+/*hint_rec and hint_entry: the record found after this one the last time
+  an exit went on to this one's target and then (from the same exit, or
+  another with no set) to another, and its link entry. The routine
+  prefetches both when it finds this record, so an exit that goes through
+  its targets in the same order as before finds the next one's record and
+  code in cache. Only ever prefetched; neither is checked.*/
 typedef union codegen_link_mcache_t {
-    codegen_link_slot_t r;
-    uint8_t             pad[1 << CODEGEN_LINK_MCACHE_SHIFT];
+    struct {
+        codegen_link_slot_t r;
+        void               *hint_rec;
+        uint8_t            *hint_entry;
+    };
+    uint8_t pad[1 << CODEGEN_LINK_MCACHE_SHIFT];
 } codegen_link_mcache_t;
 extern codegen_link_mcache_t codegen_link_mcache[CODEGEN_LINK_MCACHE_SIZE];
 /*Stands in for the target of a settled record: used 1, runs_left 0*/
