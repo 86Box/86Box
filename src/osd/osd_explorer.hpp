@@ -25,6 +25,7 @@ struct OsdExplorerConfig {
     const char        *accept_label    = "Open";
     OsdExplorerMode    mode            = OsdExplorerMode::File;
     const char *const *extension_globs = nullptr;
+    bool               archives        = false; /* also list archives that mount as media */
     const char        *initial_path    = nullptr;
 };
 

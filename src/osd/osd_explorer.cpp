@@ -10,6 +10,8 @@
 
 #include "osd_core.hpp"
 
+#include <86box/media_archive.h>
+
 #ifdef USE_STD_FILESYSTEM
 #include <filesystem>
 namespace fs = std::filesystem;
@@ -608,7 +610,8 @@ OsdExplorer::RefreshEntries()
             entry.kind = EntryKind::Directory;
             entry.name += fs::path::preferred_separator;
             directory_entries_.push_back(entry);
-        } else if (config_.mode == OsdExplorerMode::File && (show_all_files_ || matches_filter(entry.name.c_str(), config_.extension_globs))) {
+        } else if (config_.mode == OsdExplorerMode::File && (show_all_files_ || matches_filter(entry.name.c_str(), config_.extension_globs) ||
+                                                                  (config_.archives && media_archive_is_archive(entry.name.c_str())))) {
             entry.kind = EntryKind::File;
             file_entries_.push_back(entry);
         }

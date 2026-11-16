@@ -246,22 +246,16 @@ static const char *const floppy_exts[] = {
     ".0??", ".1??", ".??0",
     ".86f", ".cq?", ".ddi", ".dsk",
     ".fdf", ".fdi", ".flp", ".hdm", ".im?", ".json", ".mfm", ".td0", ".vfd", ".xdf",
-    /* Archives, mounted as a FAT disk */
-    ".7z", ".cab", ".lha", ".lzh", ".rar", ".tar", ".tgz", ".tbz2", ".txz", ".zip",
     nullptr
 };
 
 /* .ccd/.nrg/.mdf not supported by backend; .mdx is encrypted MDS. */
 static const char *const cd_exts[] = {
-    ".iso", ".cue", ".toc", ".ccd", ".mds", ".mdx", ".b5t", ".b6t", ".nrg", ".aaruf", ".aaruformat", ".aif", ".chd",
-    /* Archives, mounted as a virtual ISO */
-    ".7z", ".cab", ".lha", ".lzh", ".rar", ".tar", ".tgz", ".tbz2", ".txz", ".zip", nullptr
+    ".iso", ".cue", ".toc", ".ccd", ".mds", ".mdx", ".b5t", ".b6t", ".nrg", ".aaruf", ".aaruformat", ".aif", ".chd", nullptr
 };
 
 static const char *const rdisk_exts[] = {
-    ".im?", ".rdi", ".sdi", ".zdi",
-    /* Archives, mounted as a FAT disk */
-    ".7z", ".cab", ".lha", ".lzh", ".rar", ".tar", ".tgz", ".tbz2", ".txz", ".zip", nullptr
+    ".im?", ".rdi", ".sdi", ".zdi", nullptr
 };
 
 static const char *const cart_exts[] = {
@@ -583,6 +577,9 @@ open_browser(OsdView view)
     explorer_config.accept_label    = view_accept_label(view);
     explorer_config.mode            = (view == VIEW_CD_FOLDER) ? OsdExplorerMode::Directory : OsdExplorerMode::File;
     explorer_config.extension_globs = exts_for_view(view);
+    /* Archives mount as a FAT disk, or as a virtual ISO on a CD. */
+    explorer_config.archives        = (view == VIEW_FILE_FLOPPY) || (view == VIEW_FILE_CD) || (view == VIEW_FILE_RDISK) ||
+                                      (view == VIEW_FILE_MO);
     explorer_config.initial_path    = browser_initial_path(view);
 
     explorer.Open(explorer_config);
