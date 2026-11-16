@@ -71,14 +71,12 @@ typedef struct mouse_wacom_t {
     int8_t      type; /* type of this device */
     int8_t      port;
     uint8_t     flags; /* device flags */
-    uint8_t     but;
     uint8_t     status;
     uint8_t     bits;
     uint8_t     data_rec[0x200];
     int         abs_x;
     int         abs_y;
-    int         rel_x;
-    int         rel_y;
+    int         relative_origin_valid;
     int         oldb;
     int         b;
 
@@ -214,8 +212,7 @@ wacom_process_settings_dword(mouse_wacom_t *wacom, uint32_t dword)
         default:
             break;
     }
-    if (!mouse_both_enabled())
-        mouse_input_mode = !wacom->settings_bits.coord_sys;
+    wacom->relative_origin_valid = 0;
     wacom->x_res = wacom->y_res = wacom_resolution_values[wacom->settings_bits.resolution];
 }
 
@@ -235,8 +232,6 @@ wacom_reset(mouse_wacom_t *wacom)
     wacom->settings_bits.remote_mode = wacom->remote_req = 0;
     wacom->settings_bits.out_of_range_data               = 0;
 
-    if (!mouse_both_enabled())
-        mouse_input_mode = 1;
     wacom_process_settings_dword(wacom, 0xA21BC800);
 }
 
@@ -258,8 +253,6 @@ wacom_reset_artpad(mouse_wacom_t *wacom)
     wacom->settings_bits.out_of_range_data = 0;
 
     wacom_process_settings_dword(wacom, 0xE203C000);
-    if (!mouse_both_enabled())
-        mouse_input_mode = 1;
 }
 
 static void
@@ -369,10 +362,7 @@ wacom_write(UNUSED(struct serial_s *serial), void *priv, uint8_t data)
             int scan_res = 0;
             sscanf((const char *) wacom->data_rec, "DE%d", &scan_res);
             wacom->settings_bits.coord_sys = scan_res;
-            if (!mouse_both_enabled()) {
-                mouse_input_mode = !wacom->settings_bits.coord_sys;
-                plat_mouse_capture(0);
-            }
+            wacom->relative_origin_valid = 0;
         } else if (!memcmp(wacom->data_rec, "SU", 2)) {
             sscanf((const char *) wacom->data_rec, "SU%d", &wacom->suppressed_increment);
             wacom->settings_bits.transfer_mode = wacom->mode = WACOM_MODE_SUPPRESSED;
@@ -380,6 +370,7 @@ wacom_write(UNUSED(struct serial_s *serial), void *priv, uint8_t data)
             sscanf((const char *) wacom->data_rec, "PH%d", &wacom->pressure_mode);
         } else if (!memcmp(wacom->data_rec, "IC", 2)) {
             sscanf((const char *) wacom->data_rec, "IC%d", &wacom->measurement);
+            wacom->relative_origin_valid = 0;
         } else if (!memcmp(wacom->data_rec, "SW", 2)) {
             wacom->mode = WACOM_MODE_SWITCH;
         } else if (!memcmp(wacom->data_rec, "AL", 2)) {
@@ -399,6 +390,7 @@ wacom_write(UNUSED(struct serial_s *serial), void *priv, uint8_t data)
         } else if (!memcmp(wacom->data_rec, "NR", 2)) {
             sscanf((const char *) wacom->data_rec, "NR%d", &wacom->x_res);
             wacom->y_res = wacom->x_res;
+            wacom->relative_origin_valid = 0;
         } else if (wacom->tablet_type->type == WACOM_TYPE_IV && wacom->data_rec[0] == '~') {
             if (!memcmp(wacom->data_rec, "~*", 2)) {
                 uint32_t settings_dword = wacom->settings;
@@ -433,13 +425,10 @@ static int
 wacom_poll(void *priv)
 {
     mouse_wacom_t *wacom = (mouse_wacom_t *) priv;
-    int delta_x;
-    int delta_y;
-    int b = (mouse_input_mode >= 1) ? tablet_get_buttons_ex() : mouse_get_buttons_ex();
+    int b = tablet_get_buttons_ex();
     double abs_x;
     double abs_y;
 
-    mouse_subtract_coords(&delta_x, &delta_y, NULL, NULL, -32768, 32767, 0, 0);
     mouse_get_abs_coords(&abs_x, &abs_y);
 
     if (wacom->settings_bits.cmd_set == WACOM_CMDSET_IV) {
@@ -451,13 +440,19 @@ wacom_poll(void *priv)
         if (wacom->abs_x > (wacom->measurement ? 4566 : 5800))
             wacom->abs_x = (wacom->measurement ? 4566 : 5800);
         if (wacom->abs_y > (wacom->measurement ? 2972 : 3774))
-            wacom->abs_x = (wacom->measurement ? 2972 : 3774);
+            wacom->abs_y = (wacom->measurement ? 2972 : 3774);
         if (wacom->abs_x < 0)
             wacom->abs_x = 0;
         if (wacom->abs_y < 0)
             wacom->abs_y = 0;
-        wacom->rel_x = delta_x;
-        wacom->rel_y = delta_y;
+    }
+    if (!mouse_tablet_in_proximity) {
+        wacom->relative_origin_valid = 0;
+    } else if (wacom->settings_bits.coord_sys && !wacom->relative_origin_valid) {
+        /* The first in-range sample establishes the origin without producing motion. */
+        wacom->last_abs_x = wacom->abs_x;
+        wacom->last_abs_y = wacom->abs_y;
+        wacom->relative_origin_valid = 1;
     }
     if (wacom->b != b)
         wacom->oldb = wacom->b;
@@ -557,7 +552,7 @@ wacom_transmit_prepare(mouse_wacom_t *wacom, int x, int y)
         uint8_t data[128];
         data[0] = 0;
         snprintf((char *) data, sizeof(data), "*,%05d,%05d,%d\r\n",
-                 wacom->abs_x, wacom->abs_y,
+                 x, y,
                  wacom->pressure_mode ? ((wacom->b & 0x1) ? (uint8_t) -31 : (uint8_t) 15) : ((wacom->b & 0x1) ? 21 : 00));
         fifo8_push_all(&wacom->data, data, strlen((char *)data));
     }
@@ -570,11 +565,20 @@ wacom_report_timer(void *priv)
     mouse_wacom_t *wacom           = (mouse_wacom_t *) priv;
     double         milisecond_diff = ((double) (tsc - wacom->old_tsc)) / cpuclock * 1000.0;
     int            relative_mode   = wacom->settings_bits.coord_sys;
-    int            x               = (relative_mode ? wacom->rel_x : wacom->abs_x);
-    int            y               = (relative_mode ? wacom->rel_y : wacom->abs_y);
-    int            x_diff          = abs(relative_mode ? wacom->rel_x : (wacom->abs_x - wacom->last_abs_x));
-    int            y_diff          = abs(relative_mode ? wacom->rel_y : (wacom->abs_y - wacom->last_abs_y));
+    int            dx              = wacom->abs_x - wacom->last_abs_x;
+    int            dy              = wacom->abs_y - wacom->last_abs_y;
+    int            x               = wacom->abs_x;
+    int            y               = wacom->abs_y;
     int            increment       = wacom->suppressed_increment ? wacom->suppressed_increment : wacom->increment;
+
+    if (!mouse_tablet_in_proximity)
+        wacom->relative_origin_valid = 0;
+    if (relative_mode) {
+        x = wacom->relative_origin_valid ? dx : 0;
+        y = wacom->relative_origin_valid ? dy : 0;
+        dx = x;
+        dy = y;
+    }
 
     timer_on_auto(&wacom->report_timer, wacom->transmit_period);
     if ((((double) (tsc - wacom->reset_tsc)) / cpuclock * 1000.0) <= 10)
@@ -623,7 +627,7 @@ wacom_report_timer(void *priv)
         if (increment && !mouse_tablet_in_proximity)
             return;
 
-        if (increment && !(x_diff > increment || y_diff > increment)) {
+        if (increment && !(abs(dx) > increment || abs(dy) > increment)) {
             if (wacom->suppressed_increment && (wacom->b == wacom->oldb))
                 return;
 
@@ -651,7 +655,6 @@ wacom_init_tablet(const device_t *info)
 
     dev       = (mouse_wacom_t *) calloc(1, sizeof(mouse_wacom_t));
     dev->name = info->name;
-    dev->but  = 3;
     dev->bits = 10;
     if (info->local == 0) {
         dev->tablet_type = &sd510_id;
@@ -664,7 +667,7 @@ wacom_init_tablet(const device_t *info)
 
     dev->serial = serial_attach(dev->port, wacom_callback, wacom_write, dev);
     timer_add(&dev->report_timer, wacom_report_timer, dev, 0);
-    mouse_set_buttons(dev->but);
+    mouse_set_buttons(3);
 
     if (dev->tablet_type->type == WACOM_TYPE_IV) {
         wacom_reset_artpad(dev);
