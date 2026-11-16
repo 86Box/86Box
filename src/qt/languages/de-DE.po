@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-10-20 09:11+0000\n"
-"Last-Translator: creopard <support@creopard.de>\n"
+"PO-Revision-Date: 2026-11-16 18:42+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: German <https://weblate.86box.net/projects/86box/86box/de/>\n"
 "Language: de-DE\n"
 "MIME-Version: 1.0\n"
@@ -457,7 +457,7 @@ msgid "Synchronize with host clock"
 msgstr "Uhrzeit mit Host synchronisieren"
 
 msgid "Time zone:"
-msgstr "Zeitzone"
+msgstr "Zeitzone:"
 
 msgid "Local"
 msgstr "Lokal"
@@ -3862,7 +3862,7 @@ msgid "Copy selection (ASCII)"
 msgstr "Auswahl kopieren (ASCII)"
 
 msgid "Fill selection..."
-msgstr "Auswahl auffüllen"
+msgstr "Auswahl auffüllen..."
 
 msgid "Copy address"
 msgstr "Adresse kopieren"
@@ -4000,7 +4000,9 @@ msgid "Note"
 msgstr "Notiz"
 
 msgid "Double-click a line to set or clear a breakpoint there"
-msgstr "Doppelklicken Sie auf eine Zeile, um dort einen Haltepunkt zu setzen oder zu entfernen."
+msgstr ""
+"Doppelklicken Sie auf eine Zeile, um dort einen Haltepunkt zu setzen oder zu "
+"entfernen"
 
 msgid "Disassembly"
 msgstr "Dekompilierung"
