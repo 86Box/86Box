@@ -222,10 +222,12 @@ int  codegen_flags_jcc_read(ir_data_t *ir, int flag);
 uint32_t codegen_ud(ir_data_t *ir);
 
 int codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, uint32_t next_pc, uint32_t dest_addr);
+/*Whether a branch ending at next_pc to dest_addr is a loop's within the block,
+  one codegen_can_unroll() could unroll had the compile pass taken it*/
 static inline int
-codegen_can_unroll(codeblock_t *block, ir_data_t *ir, uint32_t next_pc, uint32_t dest_addr)
+codegen_unroll_dest_ok(const codeblock_t *block, uint32_t next_pc, uint32_t dest_addr)
 {
-    if ((block->flags & CODEBLOCK_BYTE_MASK) || codegen_trace_count)
+    if (codegen_trace_count)
         return 0;
 
     /*An unrolled loop's handler returns the loop's start, and a handler
@@ -238,6 +240,14 @@ codegen_can_unroll(codeblock_t *block, ir_data_t *ir, uint32_t next_pc, uint32_t
     if (dest_addr > next_pc)
         return 0;
     if ((cs + dest_addr) < block->pc)
+        return 0;
+
+    return 1;
+}
+static inline int
+codegen_can_unroll(codeblock_t *block, ir_data_t *ir, uint32_t next_pc, uint32_t dest_addr)
+{
+    if (!codegen_unroll_dest_ok(block, next_pc, dest_addr))
         return 0;
 
     return codegen_can_unroll_full(block, ir, next_pc, dest_addr);
