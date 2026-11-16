@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-14 23:14+0000\n"
-"Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
+"PO-Revision-Date: 2026-11-16 18:42+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
 "Language: pt-BR\n"
@@ -1378,7 +1378,7 @@ msgstr "Usando %1"
 
 msgid "%n machine(s) active"
 msgid_plural "%n machines active"
-msgstr[0] "%n máquina(s) ativa(s)"
+msgstr[0] "%n máquina ativa"
 msgstr[1] "%n máquinas ativas"
 
 msgid " (+%n more)"
