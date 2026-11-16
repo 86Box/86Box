@@ -105,6 +105,18 @@ x86seg_set_accessed_pair(uint32_t addr1, uint16_t word4_1, uint32_t addr2, uint1
     cpl_override = 0;
 }
 
+#ifdef OPS_286_386
+extern uint64_t mmutranslate_noabrt_2386(uint32_t addr, int rw);
+#    define tss_busy_translate(a) mmutranslate_noabrt_2386(a, 0)
+#else
+#    define tss_busy_translate(a) mmutranslate_noabrt(a, 0)
+#endif
+
+/* Where the last Busy bit set went: the translation of its byte taken just
+   before the write, while the page tables are as the read found them (the
+   write may change them: the byte can be part of a page table entry). */
+static uint64_t tss_busy_a64;
+
 /* A TSS descriptor's Busy bit (the access byte's bit 1), set or cleared by
    a task switch (19.1.2). Answers 0 on a fault. */
 static int
@@ -116,8 +128,32 @@ x86seg_tss_busy(uint32_t dt_base, uint16_t sel, int busy)
     v = readmemb(dt_base, off);
     if (cpu_state.abrt)
         return 0;
+    if (busy && task_busy_undo)
+        tss_busy_a64 = tss_busy_translate(dt_base + off);
     writememb(dt_base, off, busy ? (v | 0x02) : (v & ~0x02));
     return !cpu_state.abrt;
+}
+
+/* Clears the Busy bit a task switch set before a later step faulted, in the
+   byte the set wrote: the lookup entries and held entries the set used are
+   still in place, and without one the set's own translation is used, not a
+   walk of the page tables the set may have changed. The fault already
+   raised (cpu_state.abrt, cr2, abrt_error) is kept. */
+static void
+x86seg_tss_busy_undo(uint16_t sel)
+{
+    const uint32_t off  = (sel & 0xfff8) + 5;
+    const uint32_t a64  = (uint32_t) tss_busy_a64;
+    const int      abrt = cpu_state.abrt;
+    const uint8_t  high = high_page;
+    uint8_t        v;
+
+    cpu_state.abrt = 0;
+    high_page      = (tss_busy_a64 > 0xffffffffULL);
+    v              = readmemb_n(gdt.base, off, a64);
+    writememb_n(gdt.base, off, a64, v & ~0x02);
+    cpu_state.abrt = abrt;
+    high_page      = high;
 }
 
 #ifdef ENABLE_X86SEG_LOG
@@ -3173,13 +3209,19 @@ taskswitch286(uint16_t seg, uint16_t *segdat, int is32)
 
     /* Busy bits (TSS descriptors live only in the GDT) and the link */
     if ((optype == JMP) || (optype == IRET)) {
-        if (!x86seg_tss_busy(gdt.base, tr.seg, 0))
+        if (!x86seg_tss_busy(gdt.base, tr.seg, 0)) {
+            if ((optype == JMP) && task_busy_undo)
+                x86seg_tss_busy_undo(seg);
             return;
+        }
     }
     if ((optype == OPTYPE_INT) || (optype == CALL)) {
         writememw(base, 0, tr.seg);
-        if (cpu_state.abrt)
+        if (cpu_state.abrt) {
+            if (task_busy_undo)
+                x86seg_tss_busy_undo(seg);
             return;
+        }
     }
 
     /* Commit: from here a fault is taken in the new task */

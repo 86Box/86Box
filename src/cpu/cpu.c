@@ -255,6 +255,7 @@ int call_far_stack_test;
 int call_far_checks_eip_limit;
 int int_frame_fault_restores;
 int far_load_order;
+int task_busy_undo;
 int is486 = 1;
 int is586 = 0;
 int cpu_isintel;
@@ -962,6 +963,26 @@ cpu_set(void)
             break;
         default:
             far_load_order = FAR_LOAD_ORDER_NONE;
+            break;
+    }
+
+    /* Whether a task switch that faults after marking the new TSS busy
+       (clearing the old task's Busy bit for a JMP, writing the new TSS's
+       link field for a CALL or an interrupt) marks the new TSS available
+       again. The Pentium Pro manual (1996, vol. 3, 6.3, p. 6-11), the 1997
+       Intel Architecture manual (vol. 3, 6.3, pp. 6-11 and 6-12) and the
+       1999 one (vol. 3, 6.3, pp. 6-11 and 6-12) set the new task's Busy flag
+       only after the point from which the switch completes, and an error
+       before it leaves the processor as it was before the instruction. */
+    switch (cpu_s->cpu_type) {
+        case CPU_PENTIUMMMX:
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            task_busy_undo = 1;
+            break;
+        default:
+            task_busy_undo = 0;
             break;
     }
 
