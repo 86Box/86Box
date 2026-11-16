@@ -730,10 +730,11 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                     extra_bytes = 1;
                 } else {
                     new_eaaddr = (uint32_t) (int8_t) fastreadb(cs + (*op_pc) + 1);
-                    uop_MOV_IMM(ir, IREG_eaaddr, new_eaaddr);
+                    uop_ADD_IMM(ir, IREG_eaaddr, sib & 7, new_eaaddr);
                     extra_bytes = 2;
                 }
-                uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, sib & 7);
+                if (block->flags & CODEBLOCK_NO_IMMEDIATES)
+                    uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, sib & 7);
                 (*op_pc)++;
                 break;
             case 2:
@@ -742,11 +743,12 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                     extra_bytes = 1;
                 } else {
                     new_eaaddr = fastreadl(cs + (*op_pc) + 1);
-                    uop_MOV_IMM(ir, IREG_eaaddr, new_eaaddr);
+                    uop_ADD_IMM(ir, IREG_eaaddr, sib & 7, new_eaaddr);
                     extra_bytes = 5;
                 }
                 (*op_pc) += 4;
-                uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, sib & 7);
+                if (block->flags & CODEBLOCK_NO_IMMEDIATES)
+                    uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, sib & 7);
                 break;
 
             default:
@@ -796,7 +798,9 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
 
             (*op_pc) += 4;
         } else {
-            uop_MOV(ir, IREG_eaaddr, cpu_rm);
+            /*Base plus an immediate displacement in one ADD_IMM (an LEA)*/
+            if (!cpu_mod || (block->flags & CODEBLOCK_NO_IMMEDIATES))
+                uop_MOV(ir, IREG_eaaddr, cpu_rm);
             if (cpu_mod) {
                 if (cpu_rm == 5 && !op_ssegs)
                     op_ea_seg = &cpu_state.seg_ss;
@@ -806,7 +810,7 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                         uop_MOVSX(ir, IREG_temp0, IREG_temp0_B);
                         uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_temp0);
                     } else {
-                        uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, (uint32_t) (int8_t) (fetchdat >> 8));
+                        uop_ADD_IMM(ir, IREG_eaaddr, cpu_rm, (uint32_t) (int8_t) (fetchdat >> 8));
                         extra_bytes = 1;
                     }
                     (*op_pc)++;
@@ -816,7 +820,7 @@ codegen_generate_ea_32_long(ir_data_t *ir, x86seg *op_ea_seg, uint32_t fetchdat,
                         uop_ADD(ir, IREG_eaaddr, IREG_eaaddr, IREG_temp0);
                     } else {
                         new_eaaddr = fastreadl(cs + (*op_pc) + 1);
-                        uop_ADD_IMM(ir, IREG_eaaddr, IREG_eaaddr, new_eaaddr);
+                        uop_ADD_IMM(ir, IREG_eaaddr, cpu_rm, new_eaaddr);
                         extra_bytes = 4;
                     }
                     (*op_pc) += 4;
