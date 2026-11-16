@@ -1111,10 +1111,28 @@ codegen_reg_alloc_write_reg(codeblock_t *block, ir_reg_t ir_reg)
         }
 
         if (c == reg_set->nr_regs) {
-            /*No unused registers. Search for an unlocked register*/
-            for (c = 0; c < reg_set->nr_regs; c++) {
-                if (!(reg_set->locked & (1 << c)) && host_reg_can_hold(reg_set, c, ir_reg))
-                    break;
+            /*No unused registers. Take an unlocked register, preferring one
+              no uop reads any more (it is not loaded again later), and of
+              those one that needs no writeback*/
+            int best = 3;
+
+            for (int s = 0; s < reg_set->nr_regs; s++) {
+                int cost;
+
+                if ((reg_set->locked & (1 << s)) || !host_reg_can_hold(reg_set, s, ir_reg))
+                    continue;
+                if (ir_get_refcount(reg_set->regs[s]))
+                    cost = 2;
+                else if (reg_set->dirty[s] && !ireg_data[IREG_GET_REG(reg_set->regs[s].reg)].is_volatile)
+                    cost = 1;
+                else
+                    cost = 0;
+                if (cost < best) {
+                    best = cost;
+                    c    = s;
+                    if (!cost)
+                        break;
+                }
             }
 #ifndef RELEASE_BUILD
             if (c == reg_set->nr_regs)
