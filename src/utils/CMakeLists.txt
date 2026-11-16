@@ -38,6 +38,11 @@ endif()
 pkg_check_modules(LIBARCHIVE REQUIRED IMPORTED_TARGET libarchive)
 target_link_libraries(utils PkgConfig::LIBARCHIVE)
 target_link_libraries(86Box PkgConfig::LIBARCHIVE)
+# Names that macOS gives decomposed are composed again through CoreFoundation.
+if(APPLE)
+    target_link_libraries(86Box "-framework CoreFoundation")
+endif()
+
 # Names in Shift-JIS for Japanese machines and languages go through iconv; Windows has its own code pages.
 if(NOT WIN32)
     find_package(Iconv)

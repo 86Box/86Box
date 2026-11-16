@@ -425,6 +425,19 @@ media_archive_open(const char *path)
 #endif
 }
 
+/* A header's name in UTF-8, which the caller frees; composed, as libarchive decomposes names on macOS. */
+static char *
+header_name(struct archive_entry *header)
+{
+    const char *name = archive_entry_pathname_utf8(header);
+    if (!name)
+        name = archive_entry_pathname(header);
+    if (!name)
+        return NULL;
+    char *composed = fs_utf8_compose(name);
+    return composed ? composed : strdup(name);
+}
+
 /* The name of every header as read in a DOS code page other than 437, for formats whose names may be in
    one; NULL if there are none. */
 static char **
@@ -449,8 +462,7 @@ list_cp_names(media_archive_t *archive, int cp, uint32_t *count)
                 break;
             names = grown;
         }
-        const char *name = archive_entry_pathname_utf8(header);
-        names[(*count)++] = name ? strdup(name) : NULL;
+        names[(*count)++] = header_name(header);
     }
     archive_read_free(a);
     if (!*count) {
@@ -506,9 +518,7 @@ media_archive_list(const char *path)
         if (((type != AE_IFREG) && (type != AE_IFDIR)) || archive_entry_hardlink(header))
             continue;
 
-        const char *name = archive_entry_pathname_utf8(header);
-        if (!name)
-            name = archive_entry_pathname(header);
+        char *name = header_name(header);
         if (!name)
             continue;
         char *recoded = has_oem_names(a) ? oem_name(name, (index < cp_count) ? cp_names[index] : NULL) : NULL;
@@ -516,6 +526,7 @@ media_archive_list(const char *path)
         int                    alloc_error = 0;
         media_archive_entry_t *entry       = entry_from_path(archive, recoded ? recoded : name, type == AE_IFDIR, &alloc_error);
         free(recoded);
+        free(name);
         if (alloc_error)
             goto end;
         if (!entry || (entry == archive->root))

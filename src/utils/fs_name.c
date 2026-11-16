@@ -20,6 +20,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef __APPLE__
+#    include <CoreFoundation/CoreFoundation.h>
+#endif
 #ifdef _WIN32
 #    define WIN32_LEAN_AND_MEAN
 #    include <windows.h>
@@ -115,6 +118,33 @@ fs_utf8_fit(const char *s, size_t len)
     while ((len > 0) && ((s[len] & 0xc0) == 0x80))
         len--;
     return len;
+}
+
+char *
+fs_utf8_compose(const char *s)
+{
+#ifdef __APPLE__
+    char       *out    = NULL;
+    CFStringRef string = CFStringCreateWithCString(kCFAllocatorDefault, s, kCFStringEncodingUTF8);
+    if (!string)
+        return NULL;
+    CFMutableStringRef composed = CFStringCreateMutableCopy(kCFAllocatorDefault, 0, string);
+    CFRelease(string);
+    if (!composed)
+        return NULL;
+    CFStringNormalize(composed, kCFStringNormalizationFormC);
+    CFIndex size = CFStringGetMaximumSizeForEncoding(CFStringGetLength(composed), kCFStringEncodingUTF8) + 1;
+    out          = (char *) malloc(size);
+    if (out && (!CFStringGetCString(composed, out, size, kCFStringEncodingUTF8) || !strcmp(out, s))) {
+        free(out);
+        out = NULL;
+    }
+    CFRelease(composed);
+    return out;
+#else
+    (void) s;
+    return NULL;
+#endif
 }
 
 size_t

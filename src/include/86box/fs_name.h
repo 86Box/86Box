@@ -29,6 +29,9 @@ extern uint32_t fs_utf8_next(const char **s);
 extern int fs_utf8_check(const char *s);
 /* The largest length up to len that doesn't split a UTF-8 sequence; s must have at least len bytes. */
 extern size_t fs_utf8_fit(const char *s, size_t len);
+/* The string in composed form (NFC), which the caller frees, or NULL if it is already. Only macOS
+   gives names in decomposed form: as HFS+ stores them, and through libarchive. */
+extern char *fs_utf8_compose(const char *s);
 /* Converts to UTF-16, never splitting a surrogate pair, and terminates the result if there is room.
    Returns the number of units written, not counting the terminator. */
 extern size_t fs_utf8_to_utf16(uint16_t *dest, size_t size, const char *src);

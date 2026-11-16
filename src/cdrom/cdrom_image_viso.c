@@ -945,10 +945,15 @@ viso_init(const uint8_t id, const char *dirname, int *error)
                 /* Add and fill entry. */
                 const char *path = archive_child ? archive_child->name : plat_dir_get_path(&context);
                 size_t path_buf_size = strlen(path) + 1;
+                /* Names stored decomposed (on macOS) are composed for the disc; the path keeps the host's form. */
+                char  *composed      = archive_child ? NULL : fs_utf8_compose(&path[context.path_dir_len + 1]);
+                size_t composed_size = composed ? (strlen(composed) + 1) : 0;
                 entry = dir_entries[children_count] =
-                    (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + path_buf_size);
-                if (entry == NULL)
+                    (viso_entry_t *) calloc(1, sizeof(viso_entry_t) + path_buf_size + composed_size);
+                if (entry == NULL) {
+                    free(composed);
                     goto end;
+                }
                 entry->parent = dir;
                 memcpy(entry->path, path, path_buf_size);
                 if (archive_child) {
@@ -959,9 +964,15 @@ viso_init(const uint8_t id, const char *dirname, int *error)
                     entry->stats.mtime   = archive_child->has_header ? archive_child->mtime : time(NULL);
                     archive_child        = archive_child->next;
                 } else {
-                    entry->basename = &entry->path[context.path_dir_len + 1];
+                    if (composed) {
+                        memcpy(&entry->path[path_buf_size], composed, composed_size);
+                        entry->basename = &entry->path[path_buf_size];
+                    } else {
+                        entry->basename = &entry->path[context.path_dir_len + 1];
+                    }
                     viso_fill_stats(entry, &context, viso->format);
                 }
+                free(composed);
 
                 /* Set short filename and skip this file if it couldn't be disambiguated. */
                 if (viso_fill_fn_short(entry->name_short, entry, dir_entries)) {

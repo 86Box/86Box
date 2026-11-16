@@ -450,7 +450,10 @@ scan_folder(fat_image_t *image, node_t *dir, const char *path, int depth)
         if (!is_dir && !plat_dir_is_file(&context))
             continue;
 
-        node_t *node = node_new(image, dir, plat_dir_get_name(&context));
+        /* Names stored decomposed (on macOS) are composed, as FAT names are. */
+        char   *composed = fs_utf8_compose(plat_dir_get_name(&context));
+        node_t *node     = node_new(image, dir, composed ? composed : plat_dir_get_name(&context));
+        free(composed);
         if (!node || !(node->host_path = strdup(plat_dir_get_path(&context)))) {
             free(node);
             result = FAT_IMAGE_NO_MEMORY;
