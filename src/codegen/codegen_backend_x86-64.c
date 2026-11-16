@@ -1359,6 +1359,9 @@ _Static_assert(offsetof(cpu_events_t, flush_pending) == offsetof(cpu_events_t, w
                    && offsetof(cpu_events_t, throttle_run) == offsetof(cpu_events_t, stpclk) + 4,
                "the event flags are read as quadwords of two adjacent fields");
 #        define LINK_SET_E(n) ((int32_t) offsetof(codegen_link_set_t, e[n]))
+#        ifdef CODEGEN_BACKEND_HAS_LINK_MCACHE
+#            define LINK_MCACHE(field) ((int32_t) offsetof(codegen_link_mcache_t, field))
+#        endif
 
 /*op reg, [p] for a global p: RBP-relative when in reach, as globals in the
   image next to cpu_state are, otherwise through R11*/
@@ -1825,9 +1828,11 @@ build_link_routine(codeblock_t *block, int call)
       go on with RBX = the record at the target's index in
       codegen_link_mcache if it holds the key. RAX stays the slot, so a miss
       from here returns it and the C loop fills it.*/
-    rx_patch(set_miss[0], rx_here());
-    rx_patch(set_miss[1], rx_here());
 #        ifdef CODEGEN_BACKEND_HAS_LINK_MCACHE
+    /*RDI = the set, set 0 for an exit with none*/
+    rx_patch(set_miss[0], rx_here());
+    rx_mov_ri64(block, REG_RDI, (uint64_t) (uintptr_t) &codegen_link_sets[0]);
+    rx_patch(set_miss[1], rx_here());
     rx_rr(block, 0, 0, 0x89, REG_RSI, REG_R9); /*MOV R9D, ESI*/
     rx_mov_ri(block, REG_R10, CODEGEN_LINK_MCACHE_MUL);
     rx_rr(block, 0, 0, 0x0faf, REG_R9, REG_R10); /*IMUL R9D, R10D*/
@@ -1837,8 +1842,23 @@ build_link_routine(codeblock_t *block, int call)
     rx_rr(block, 0, 1, 0x01, REG_R9, REG_RBX); /*ADD RBX, R9*/
     rx_rm(block, 0, 1, 0x3b, REG_R8, REG_RBX, LINK_SLOT(exit_pc));
     miss[nr_miss++] = rx_jcc(block, RX_CC_NZ);
+    /*This record is the hint of the one the set's exit found last, R11*/
+    rx_rm(block, 0, 0, 0x8b, REG_R10, REG_RDI, offsetof(codegen_link_set_t, last_mcache));
+    rx_rm(block, 0, 0, 0x89, REG_R9, REG_RDI, offsetof(codegen_link_set_t, last_mcache));
+    rx_rr(block, 0, 1, 0x89, REG_RBX, REG_R11); /*MOV R11, RBX*/
+    rx_rr(block, 0, 1, 0x29, REG_R9, REG_R11);  /*SUB R11, R9*/
+    rx_rr(block, 0, 1, 0x01, REG_R10, REG_R11); /*ADD R11, R10*/
+    rx_rm(block, 0, 1, 0x89, REG_RBX, REG_R11, LINK_MCACHE(hint_rec));
     /*The record is emptied when its block changes: no link_gen check*/
     rx_rm(block, 0, 1, 0x8b, REG_R15, REG_RBX, LINK_SLOT(entry));
+    rx_rm(block, 0, 1, 0x89, REG_R15, REG_R11, LINK_MCACHE(hint_entry));
+    /*Prefetch this record's hint and the start of its code*/
+    rx_rm(block, 0, 1, 0x8b, REG_R10, REG_RBX, LINK_MCACHE(hint_rec));
+    rx_rm(block, 0, 0, 0x0f18, 1, REG_R10, 0);  /*PREFETCHT0*/
+    rx_rm(block, 0, 0, 0x0f18, 1, REG_R10, 64); /*PREFETCHT0*/
+    rx_rm(block, 0, 1, 0x8b, REG_R10, REG_RBX, LINK_MCACHE(hint_entry));
+    for (int c = 0; c < 4; c++)
+        rx_rm(block, 0, 0, 0x0f18, 1, REG_R10, c * 64); /*PREFETCHT0*/
     rx_rr(block, 0, 1, 0x85, REG_R15, REG_R15);
     miss[nr_miss++] = rx_jcc(block, RX_CC_Z);
     rx_rm(block, 0, 1, 0x8b, REG_RDI, REG_RBX, LINK_SLOT(block));
@@ -1850,6 +1870,8 @@ build_link_routine(codeblock_t *block, int call)
     rx_rr(block, 0, 1, 0x0f45, REG_RDI, REG_R9); /*CMOVNZ RDI, R9*/
     rx_patch(rx_jmp(block), gen_done);
 #        else
+    rx_patch(set_miss[0], rx_here());
+    rx_patch(set_miss[1], rx_here());
     miss[nr_miss++] = rx_jmp(block);
 #        endif
 
