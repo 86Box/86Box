@@ -140,7 +140,4 @@ if(PCL)
     target_compile_definitions(dev PRIVATE USE_PCL)
 endif()
 
-if(WACOM)
-    target_compile_definitions(dev PRIVATE USE_WACOM)
-    target_sources(dev PRIVATE mouse_wacom_tablet.c)
-endif()
+target_sources(dev PRIVATE mouse_wacom_tablet.c)

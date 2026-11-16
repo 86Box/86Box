@@ -414,11 +414,7 @@ MainWindow::MainWindow(QWidget *parent)
         if (mouse_input_mode >= 1 && QApplication::overrideCursor())
             while (QApplication::overrideCursor())
                 QApplication::restoreOverrideCursor();
-#ifdef USE_WACOM
         ui->menuTablet_tool->menuAction()->setVisible(tablet_type && (strstr(tablet_get_internal_name(tablet_type), "wacom") != NULL));
-#else
-        ui->menuTablet_tool->menuAction()->setVisible(false);
-#endif
 
         bool enable_comp_option = false;
         for (int i = 0; i < MONITORS_NUM; i++) {
