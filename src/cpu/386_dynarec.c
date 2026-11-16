@@ -341,6 +341,46 @@ dr_blocks_cache(void)
 #define CACHE_ON()        CACHE_ON_DBG(cpu_debug_regs_486)
 
 int32_t         cycles_main = 0;
+
+/* Code lines fetched lately: a direct-mapped 512 KiB of 64-byte lines by
+   linear address, standing in for the processor's L2 and board cache. The slow
+   paths below (record, compile, interpret) touch each line they fetch from;
+   while the block cache thrashes, a compiled block checks the lines it was
+   built from on entry (codegen_code_lines_check()). A line not there costs
+   cpu_code_miss_cycles, a memory read per 32 bytes, as on a real machine
+   first running code that is not in any cache: an operating system's first
+   boot, say, or code too large for the cache, run round in turn. Tags are
+   line + 1, so 0 is empty. */
+uint32_t        cpu_code_line_tags[CPU_CODE_LINES];
+static uint32_t code_line_last;
+
+static __inline void
+cpu_code_line_touch(uint32_t addr)
+{
+    const uint32_t line = (addr >> CPU_CODE_LINE_SHIFT) + 1;
+
+    if (line != code_line_last) {
+        uint32_t *tag = &cpu_code_line_tags[line & (CPU_CODE_LINES - 1)];
+
+        code_line_last = line;
+        if (*tag != line) {
+            *tag = line;
+            cycles -= cpu_code_miss_cycles;
+        }
+    }
+}
+
+/* A compiled block's entry check missed line tag - 1. */
+void
+cpu_code_line_miss(uint32_t tag)
+{
+    cpu_code_line_tags[tag & (CPU_CODE_LINES - 1)] = tag;
+    /* The slow paths skip a line that is code_line_last: it may be the line
+       this one replaced. */
+    code_line_last = 0;
+    cycles -= cpu_code_miss_cycles;
+}
+
 #    ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
 /* The block link routine does the loop-top stores itself. */
 int32_t  cycles_old = 0;
@@ -678,6 +718,7 @@ exec386_dynarec_int_common(const int dbg)
             break;
         }
 
+        cpu_code_line_touch(cs + cpu_state.pc);
         fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 #    ifdef ENABLE_386_DYNAREC_LOG
         if (in_smm)
@@ -1115,6 +1156,7 @@ exec386_dynarec_dyn(const int dbg)
             cpu_state.ea_seg = &cpu_state.seg_ds;
             cpu_state.ssegs  = 0;
 
+            cpu_code_line_touch(cs + cpu_state.pc);
             fetchdat = fastreadl_fetch(cs + cpu_state.pc);
 #    ifdef ENABLE_386_DYNAREC_LOG
             if (in_smm)
@@ -1272,6 +1314,7 @@ exec386_dynarec_dyn(const int dbg)
                a long last instruction's tail is marked, on whichever page. */
             codegen_endpc = (cs + cpu_state.pc) + 14;
 
+            cpu_code_line_touch(cs + cpu_state.pc);
             fetchdat      = fastreadl_fetch(cs + cpu_state.pc);
 
 #    ifdef ENABLE_386_DYNAREC_LOG

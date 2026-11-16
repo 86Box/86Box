@@ -191,6 +191,7 @@ int cpu_cycles_write_l;
 int cpu_prefetch_cycles;
 int cpu_prefetch_width;
 int cpu_mem_prefetch_cycles;
+int cpu_code_miss_cycles;
 int cpu_rom_prefetch_cycles;
 int cpu_mca_bus;
 int cpu_waitstates;
@@ -5666,6 +5667,11 @@ cpu_update_waitstates(void)
             cpu_prefetch_cycles = (cpu_prefetch_cycles * 11) / 16;
 
         cpu_mem_prefetch_cycles = cpu_prefetch_cycles;
+
+        /* With the internal cache on, a code fetch costs nothing, and the
+           dynarec charges memory cycles only for a 64-byte code line not
+           fetched lately (cpu_code_line_tags): a memory read per 32 bytes. */
+        cpu_code_miss_cycles = cpu_cache_int_enabled ? (2 * cpu_s->mem_read_cycles) : 0;
 
         if (cpu_s->rspeed <= 8000000)
             cpu_rom_prefetch_cycles = cpu_mem_prefetch_cycles;
