@@ -270,6 +270,18 @@ msgstr ""
 msgid "All &notes off"
 msgstr "&Alle Noten aus"
 
+msgid "Show MIDI &LCD"
+msgstr "MIDI-&LCD anzeigen"
+
+msgid "MIDI LCD"
+msgstr "MIDI-LCD"
+
+msgid "Always on &top"
+msgstr "Immer im &Vordergrund"
+
+msgid "&Close"
+msgstr "&Schließen"
+
 msgid "Begin trace"
 msgstr "Tracing starten"
 

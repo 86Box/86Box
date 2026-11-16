@@ -271,6 +271,18 @@ msgstr ""
 msgid "All &notes off"
 msgstr ""
 
+msgid "Show MIDI &LCD"
+msgstr ""
+
+msgid "MIDI LCD"
+msgstr ""
+
+msgid "Always on &top"
+msgstr ""
+
+msgid "&Close"
+msgstr ""
+
 msgid "Begin trace"
 msgstr "Start sporing"
 
