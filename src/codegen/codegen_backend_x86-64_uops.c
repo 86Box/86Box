@@ -3715,23 +3715,17 @@ codegen_SHR_IMM(codeblock_t *block, uop_t *uop)
     return 0;
 }
 
+/*The emitters address cpu_state, wherever it is, relative to RBP, and fail
+  on a pointer they cannot reach*/
 static int
 codegen_STORE_PTR_IMM(codeblock_t *block, uop_t *uop)
 {
-#    ifdef RECOMPILER_DEBUG
-    if (((uintptr_t) uop->p) >> 32)
-        fatal("STORE_PTR_IMM 64-bit addr\n");
-#    endif
     host_x86_MOV32_ABS_IMM(block, uop->p, uop->imm_data);
     return 0;
 }
 static int
 codegen_STORE_PTR_IMM_8(codeblock_t *block, uop_t *uop)
 {
-#    ifdef RECOMPILER_DEBUG
-    if (((uintptr_t) uop->p) >> 32)
-        fatal("STORE_PTR_IMM_8 64-bit addr\n");
-#    endif
     host_x86_MOV8_ABS_IMM(block, uop->p, uop->imm_data);
     return 0;
 }
