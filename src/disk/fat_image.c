@@ -74,7 +74,8 @@ struct fat_image_t {
     char             label[11];
     time_t           now;
     size_t           nodes;
-    int              left_out; /* FAT_IMAGE_LEFT_OUT_* of the last layout */
+    int              left_out;
+    int              cp;       /* code page of the short names and the label */ /* FAT_IMAGE_LEFT_OUT_* of the last layout */
 };
 
 typedef struct layout_t {
@@ -120,13 +121,15 @@ put_le32(uint8_t *p, uint32_t v)
     put_le16(p + 2, v >> 16);
 }
 
-/* Converts a character to code page 437, or returns 0 if it has no equivalent. */
-static uint8_t
-to_oem(uint32_t c)
+/* Converts a character to the code page in 1 or 2 bytes, or returns 0 if it has no equivalent. */
+static int
+to_oem(int cp, uint32_t c, uint8_t *out)
 {
-    if ((c >= 0x20) && (c < 0x7f))
-        return c;
-    return (c >= 0x80) ? media_archive_cp437_encode(c) : 0;
+    if ((c >= 0x20) && (c < 0x7f)) {
+        out[0] = c;
+        return 1;
+    }
+    return (c >= 0x80) ? fs_codepage_encode(cp, c, out) : 0;
 }
 
 static int
@@ -202,10 +205,10 @@ short_set_add(name_set_t *set, node_t *node)
 /* Makes the short name from the long name, following the Windows basis-name algorithm.
    Returns 1 if a numeric tail is needed, 0 if the name is already a valid 8.3 name. */
 static int
-make_basis_name(node_t *node)
+make_basis_name(node_t *node, int cp)
 {
-    uint8_t base[256];
-    uint8_t ext[256];
+    uint8_t base[512];
+    uint8_t ext[512];
     size_t  base_len = 0;
     size_t  ext_len  = 0;
     int     lossy    = 0;
@@ -251,15 +254,22 @@ make_basis_name(node_t *node)
         else if (is_upper(c))
             *part_case |= 2;
 
-        uint8_t oem = to_oem(fs_upcase(c));
-        if (!oem || !valid_short_char(oem)) {
-            oem   = '_';
-            lossy = 1;
+        uint8_t oem[2];
+        int     n = to_oem(cp, fs_upcase(c), oem);
+        if ((n == 1) && !valid_short_char(oem[0]))
+            n = 0;
+        if (!n) {
+            oem[0] = '_';
+            n      = 1;
+            lossy  = 1;
         }
-        if ((i > last_dot) && (last_dot >= 0))
-            ext[ext_len++] = oem;
-        else
-            base[base_len++] = oem;
+        if ((i > last_dot) && (last_dot >= 0)) {
+            memcpy(ext + ext_len, oem, n);
+            ext_len += n;
+        } else {
+            memcpy(base + base_len, oem, n);
+            base_len += n;
+        }
     }
 
     /* A name that is a valid 8.3 name apart from its case keeps it as the short name; only a
@@ -269,8 +279,9 @@ make_basis_name(node_t *node)
         base[0]  = '_';
         base_len = 1;
     }
-    memcpy(node->short_name, base, MIN(base_len, 8));
-    memcpy(node->short_name + 8, ext, MIN(ext_len, 3));
+    /* Cut without splitting a double-byte character. */
+    memcpy(node->short_name, base, fs_codepage_fit(cp, base, base_len, 8));
+    memcpy(node->short_name + 8, ext, fs_codepage_fit(cp, ext, ext_len, 3));
     if (node->short_name[0] == 0xe5)
         node->short_name[0] = 0x05;
 
@@ -285,7 +296,7 @@ make_basis_name(node_t *node)
 }
 
 static void
-apply_tail(node_t *node, const uint8_t *basis, uint32_t n)
+apply_tail(node_t *node, const uint8_t *basis, uint32_t n, int cp)
 {
     char tail[12];
     int  tail_len = snprintf(tail, sizeof(tail), "~%u", n);
@@ -294,16 +305,15 @@ apply_tail(node_t *node, const uint8_t *basis, uint32_t n)
     memcpy(node->short_name, basis, 11);
     while (base_len && (basis[base_len - 1] == ' '))
         base_len--;
-    if (base_len > 8 - tail_len)
-        base_len = 8 - tail_len;
-    /* Don't split a double-byte character; code page 437 has none, so this is just the cut. */
+    /* Don't split a double-byte character. */
+    base_len = (int) fs_codepage_fit(cp, basis, base_len, 8 - tail_len);
     memset(node->short_name + base_len, ' ', 8 - base_len);
     memcpy(node->short_name + base_len, tail, tail_len);
 }
 
 /* Names every child of a directory. */
 static fat_image_result_t
-name_children(node_t *dir)
+name_children(node_t *dir, int cp)
 {
     size_t count = 0;
     for (node_t *child = dir->children; child; child = child->next)
@@ -332,7 +342,7 @@ name_children(node_t *dir)
         }
         child->lfn_len = len;
 
-        child->needs_tail = make_basis_name(child);
+        child->needs_tail = make_basis_name(child, cp);
         if (!child->needs_tail && !short_set_add(&shorts, child)) {
             /* The same 8.3 name as an earlier one; only possible through case folding. */
             child->needs_tail = 1;
@@ -352,7 +362,7 @@ name_children(node_t *dir)
                 result = FAT_IMAGE_ROOT_FULL;
                 break;
             }
-            apply_tail(child, basis, n++);
+            apply_tail(child, basis, n++, cp);
         } while (!short_set_add(&shorts, child));
         child->nt_case = 0;
     }
@@ -497,16 +507,16 @@ scan_archive(fat_image_t *image, node_t *dir, media_archive_entry_t *entry, int 
 }
 
 static fat_image_result_t
-name_tree(node_t *dir)
+name_tree(node_t *dir, int cp)
 {
-    fat_image_result_t result = name_children(dir);
+    fat_image_result_t result = name_children(dir, cp);
 
     /* . and .. in subdirectories, the volume label in the root. */
     dir->entries = 2;
     for (node_t *child = dir->children; child && (result == FAT_IMAGE_OK); child = child->next) {
         dir->entries += 1 + (child->write_lfn ? ((child->lfn_len + 12) / 13) : 0);
         if (child->is_dir)
-            result = name_tree(child);
+            result = name_tree(child, cp);
     }
     return result;
 }
@@ -536,9 +546,14 @@ make_label(fat_image_t *image, const char *path)
     memset(image->label, ' ', 11);
     int n = 0;
     for (const char *p = name; *p && (n < 11);) {
-        uint8_t c = to_oem(fs_upcase(fs_utf8_next(&p)));
-        if (c && ((c == ' ') || valid_short_char(c)))
-            image->label[n++] = c;
+        uint8_t c[2];
+        int     len = to_oem(image->cp, fs_upcase(fs_utf8_next(&p)), c);
+        if ((len == 1) && (c[0] != ' ') && !valid_short_char(c[0]))
+            len = 0;
+        if ((n + len) > 11)
+            break;
+        memcpy(image->label + n, c, len);
+        n += len;
     }
     /* A label can't start with a space. */
     while ((n > 0) && (image->label[0] == ' ')) {
@@ -546,6 +561,8 @@ make_label(fat_image_t *image, const char *path)
         image->label[10] = ' ';
         n--;
     }
+    if ((uint8_t) image->label[0] == 0xe5)
+        image->label[0] = 0x05;
 }
 
 int
@@ -561,6 +578,7 @@ fat_image_scan(const char *path, fat_image_t **out)
     if (!image)
         return FAT_IMAGE_NO_MEMORY;
     image->now  = time(NULL);
+    image->cp   = media_codepage();
     image->root = node_new(image, NULL, "");
     if (!image->root) {
         free(image);
@@ -577,7 +595,7 @@ fat_image_scan(const char *path, fat_image_t **out)
                                           FAT_IMAGE_READ_ERROR;
     }
     if (result == FAT_IMAGE_OK)
-        result = name_tree(image->root);
+        result = name_tree(image->root, image->cp);
     if (result == FAT_IMAGE_OK)
         make_label(image, path);
 

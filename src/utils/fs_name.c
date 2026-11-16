@@ -17,6 +17,13 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
+#ifdef _WIN32
+#    define WIN32_LEAN_AND_MEAN
+#    include <windows.h>
+#elif defined(USE_ICONV)
+#    include <errno.h>
+#    include <iconv.h>
+#endif
 #include <86box/fs_name.h>
 
 struct fs_name_slot_t {
@@ -295,4 +302,129 @@ fs_name_set_add_unique(fs_name_set_t *set, uint16_t **name, int *len, const fs_l
         }
         free(numbered);
     }
+}
+
+/* Code page 437, 80h to FFh. */
+static const uint16_t cp437[128] = {
+    0x00c7, 0x00fc, 0x00e9, 0x00e2, 0x00e4, 0x00e0, 0x00e5, 0x00e7, 0x00ea, 0x00eb, 0x00e8, 0x00ef, 0x00ee, 0x00ec, 0x00c4, 0x00c5,
+    0x00c9, 0x00e6, 0x00c6, 0x00f4, 0x00f6, 0x00f2, 0x00fb, 0x00f9, 0x00ff, 0x00d6, 0x00dc, 0x00a2, 0x00a3, 0x00a5, 0x20a7, 0x0192,
+    0x00e1, 0x00ed, 0x00f3, 0x00fa, 0x00f1, 0x00d1, 0x00aa, 0x00ba, 0x00bf, 0x2310, 0x00ac, 0x00bd, 0x00bc, 0x00a1, 0x00ab, 0x00bb,
+    0x2591, 0x2592, 0x2593, 0x2502, 0x2524, 0x2561, 0x2562, 0x2556, 0x2555, 0x2563, 0x2551, 0x2557, 0x255d, 0x255c, 0x255b, 0x2510,
+    0x2514, 0x2534, 0x252c, 0x251c, 0x2500, 0x253c, 0x255e, 0x255f, 0x255a, 0x2554, 0x2569, 0x2566, 0x2560, 0x2550, 0x256c, 0x2567,
+    0x2568, 0x2564, 0x2565, 0x2559, 0x2558, 0x2552, 0x2553, 0x256b, 0x256a, 0x2518, 0x250c, 0x2588, 0x2584, 0x258c, 0x2590, 0x2580,
+    0x03b1, 0x00df, 0x0393, 0x03c0, 0x03a3, 0x03c3, 0x00b5, 0x03c4, 0x03a6, 0x0398, 0x03a9, 0x03b4, 0x221e, 0x03c6, 0x03b5, 0x2229,
+    0x2261, 0x00b1, 0x2265, 0x2264, 0x2320, 0x2321, 0x00f7, 0x2248, 0x00b0, 0x2219, 0x00b7, 0x221a, 0x207f, 0x00b2, 0x25a0, 0x00a0
+};
+
+/* DOS code pages. Code page 437 has its table; others come from the host: any OEM code page on Windows,
+   and Shift-JIS (932) through iconv elsewhere. */
+int
+fs_codepage_encode(int cp, uint32_t c, uint8_t *out)
+{
+    if (c < 0x80) {
+        out[0] = c;
+        return 1;
+    }
+    if (cp == 437) {
+        for (int i = 0; i < 128; i++) {
+            if (cp437[i] == c) {
+                out[0] = 0x80 + i;
+                return 1;
+            }
+        }
+        return 0;
+    }
+    if ((c > 0x10ffff) || ((c >= 0xd800) && (c <= 0xdfff)))
+        return 0;
+
+#ifdef _WIN32
+    WCHAR w[2];
+    int   wlen = 1;
+    BOOL  lossy = FALSE;
+    char  buf[8];
+    if (c >= 0x10000) {
+        w[0] = 0xd800 | ((c - 0x10000) >> 10);
+        w[1] = 0xdc00 | ((c - 0x10000) & 0x3ff);
+        wlen = 2;
+    } else {
+        w[0] = c;
+    }
+    int n = WideCharToMultiByte(cp, WC_NO_BEST_FIT_CHARS, w, wlen, buf, sizeof(buf), NULL, &lossy);
+    if ((n <= 0) || (n > 2) || lossy)
+        return 0;
+    memcpy(out, buf, n);
+    return n;
+#elif defined(USE_ICONV)
+    if (cp != 932)
+        return 0;
+    /* The character as UTF-8. */
+    char   in[4];
+    size_t in_len;
+    if (c < 0x800) {
+        in[0]  = 0xc0 | (c >> 6);
+        in[1]  = 0x80 | (c & 0x3f);
+        in_len = 2;
+    } else if (c < 0x10000) {
+        in[0]  = 0xe0 | (c >> 12);
+        in[1]  = 0x80 | ((c >> 6) & 0x3f);
+        in[2]  = 0x80 | (c & 0x3f);
+        in_len = 3;
+    } else {
+        in[0]  = 0xf0 | (c >> 18);
+        in[1]  = 0x80 | ((c >> 12) & 0x3f);
+        in[2]  = 0x80 | ((c >> 6) & 0x3f);
+        in[3]  = 0x80 | (c & 0x3f);
+        in_len = 4;
+    }
+    iconv_t cd = iconv_open("CP932", "UTF-8");
+    if (cd == (iconv_t) -1)
+        return 0;
+    char   buf[8];
+    char  *inp      = in;
+    char  *outp     = buf;
+    size_t out_left = sizeof(buf);
+    size_t ret      = iconv(cd, &inp, &in_len, &outp, &out_left);
+    iconv_close(cd);
+    size_t n = sizeof(buf) - out_left;
+    /* Characters iconv substitutes count as not there. */
+    if ((ret != 0) || in_len || (n == 0) || (n > 2))
+        return 0;
+    memcpy(out, buf, n);
+    return (int) n;
+#else
+    return 0;
+#endif
+}
+
+int
+fs_codepage_encode1(int cp, uint32_t c)
+{
+    uint8_t out[2];
+    return (fs_codepage_encode(cp, c, out) == 1) ? out[0] : 0;
+}
+
+int
+fs_codepage_is_lead(int cp, uint8_t b)
+{
+    if ((cp == 437) || (b < 0x80))
+        return 0;
+#ifdef _WIN32
+    return IsDBCSLeadByteEx(cp, b);
+#else
+    return (cp == 932) && (((b >= 0x81) && (b <= 0x9f)) || ((b >= 0xe0) && (b <= 0xfc)));
+#endif
+}
+
+size_t
+fs_codepage_fit(int cp, const uint8_t *s, size_t len, size_t max)
+{
+    size_t i = 0;
+
+    while (i < len) {
+        size_t n = (fs_codepage_is_lead(cp, s[i]) && ((i + 1) < len)) ? 2 : 1;
+        if ((i + n) > max)
+            break;
+        i += n;
+    }
+    return i;
 }

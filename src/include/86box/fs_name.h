@@ -33,6 +33,16 @@ extern size_t fs_utf8_fit(const char *s, size_t len);
    Returns the number of units written, not counting the terminator. */
 extern size_t fs_utf8_to_utf16(uint16_t *dest, size_t size, const char *src);
 
+/* DOS code pages: 437, and on Windows any OEM code page, elsewhere 932 too. Encodes a character in 1 or 2
+   bytes, or returns 0 if the code page has no exact equivalent. */
+extern int fs_codepage_encode(int cp, uint32_t c, uint8_t *out);
+/* The same for a character that takes one byte; 0 otherwise. */
+extern int fs_codepage_encode1(int cp, uint32_t c);
+/* Whether a byte starts a double-byte character. */
+extern int fs_codepage_is_lead(int cp, uint8_t b);
+/* The largest length up to max that doesn't split a double-byte character. */
+extern size_t fs_codepage_fit(int cp, const uint8_t *s, size_t len, size_t max);
+
 /* Upper case for case-insensitive names: ASCII, Latin-1 and Greek. */
 extern uint32_t fs_upcase(uint32_t c);
 

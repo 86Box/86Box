@@ -32,6 +32,7 @@
 #include <86box/nvr.h>
 #include <86box/path.h>
 #include <86box/plat.h>
+#include <86box/machine.h>
 #include <86box/media_archive.h>
 #include <86box/fs_name.h>
 
@@ -181,44 +182,44 @@ archive_skip_cb(UNUSED(struct archive *a), void *priv, la_int64_t request)
     return request;
 }
 
-/* Code page 437, 80h to FFh. */
-static const uint16_t cp437[128] = {
-    0x00c7, 0x00fc, 0x00e9, 0x00e2, 0x00e4, 0x00e0, 0x00e5, 0x00e7, 0x00ea, 0x00eb, 0x00e8, 0x00ef, 0x00ee, 0x00ec, 0x00c4, 0x00c5,
-    0x00c9, 0x00e6, 0x00c6, 0x00f4, 0x00f6, 0x00f2, 0x00fb, 0x00f9, 0x00ff, 0x00d6, 0x00dc, 0x00a2, 0x00a3, 0x00a5, 0x20a7, 0x0192,
-    0x00e1, 0x00ed, 0x00f3, 0x00fa, 0x00f1, 0x00d1, 0x00aa, 0x00ba, 0x00bf, 0x2310, 0x00ac, 0x00bd, 0x00bc, 0x00a1, 0x00ab, 0x00bb,
-    0x2591, 0x2592, 0x2593, 0x2502, 0x2524, 0x2561, 0x2562, 0x2556, 0x2555, 0x2563, 0x2551, 0x2557, 0x255d, 0x255c, 0x255b, 0x2510,
-    0x2514, 0x2534, 0x252c, 0x251c, 0x2500, 0x253c, 0x255e, 0x255f, 0x255a, 0x2554, 0x2569, 0x2566, 0x2560, 0x2550, 0x256c, 0x2567,
-    0x2568, 0x2564, 0x2565, 0x2559, 0x2558, 0x2552, 0x2553, 0x256b, 0x256a, 0x2518, 0x250c, 0x2588, 0x2584, 0x258c, 0x2590, 0x2580,
-    0x03b1, 0x00df, 0x0393, 0x03c0, 0x03a3, 0x03c3, 0x00b5, 0x03c4, 0x03a6, 0x0398, 0x03a9, 0x03b4, 0x221e, 0x03c6, 0x03b5, 0x2229,
-    0x2261, 0x00b1, 0x2265, 0x2264, 0x2320, 0x2321, 0x00f7, 0x2248, 0x00b0, 0x2219, 0x00b7, 0x221a, 0x207f, 0x00b2, 0x25a0, 0x00a0
-};
-
-uint8_t
-media_archive_cp437_encode(uint32_t c)
+int
+media_codepage(void)
 {
-    if (c < 0x80)
-        return c;
-    for (int i = 0; i < 128; i++) {
-        if (cp437[i] == c)
-            return 0x80 + i;
+    char lang[32];
+
+    plat_ui_language(lang, sizeof(lang));
+    if (((lang[0] | 0x20) == 'j') && ((lang[1] | 0x20) == 'a') && ((lang[2] == '\0') || (lang[2] == '-') || (lang[2] == '_')))
+        return 932;
+    if (machine_has_flags(machine, MACHINE_JAPANESE))
+        return 932;
+#ifdef _WIN32
+    /* Not GetOEMCP(): the manifest makes this process's code pages UTF-8, so ask for the system's. */
+    WCHAR buf[8];
+    if (GetLocaleInfoW(LOCALE_SYSTEM_DEFAULT, LOCALE_IDEFAULTCODEPAGE, buf, sizeof(buf) / sizeof(buf[0])) > 0) {
+        int cp = _wtoi(buf);
+        if ((cp > 0) && (cp != CP_UTF8) && IsValidCodePage(cp))
+            return cp;
     }
-    return 0;
+#endif
+    return 437;
 }
 
-/* Names not flagged as UTF-8 are read as code page 437, but archivers on Unix and
-   macOS store UTF-8 names without the flag. Returns the name as UTF-8 if its code
-   page 437 bytes are UTF-8, or NULL to keep it. */
+/* Names not flagged as UTF-8 are listed in code page 437 first, as that gives back their bytes: archivers
+   on Unix and macOS store UTF-8 names without the flag. Returns the name to use instead, or NULL to keep it:
+   the name in UTF-8 if its bytes are UTF-8, else cp_name, the name read in the DOS code page, if that came
+   out different, which means the name wasn't flagged. */
 static char *
-oem_name_as_utf8(const char *name)
+oem_name(const char *name, const char *cp_name)
 {
-    uint8_t *bytes = (uint8_t *) malloc(strlen(name) + 1);
-    size_t   len   = 0;
+    const char *p     = name;
+    uint8_t    *bytes = (uint8_t *) malloc(strlen(name) + 1);
+    size_t      len   = 0;
 
     if (!bytes)
         return NULL;
-    while (*name) {
-        uint32_t c = fs_utf8_next(&name);
-        uint8_t  b = media_archive_cp437_encode(c);
+    while (*p) {
+        uint32_t c = fs_utf8_next(&p);
+        uint8_t  b = fs_codepage_encode1(437, c);
         if (!b) {
             /* Not from code page 437, so it was flagged as UTF-8. */
             free(bytes);
@@ -227,11 +228,13 @@ oem_name_as_utf8(const char *name)
         bytes[len++] = b;
     }
     bytes[len] = '\0';
-    if (fs_utf8_check((const char *) bytes) <= 0) {
-        free(bytes);
-        return NULL;
-    }
-    return (char *) bytes;
+    if (fs_utf8_check((const char *) bytes) > 0)
+        return (char *) bytes;
+    free(bytes);
+
+    if (cp_name && strcmp(cp_name, name))
+        return strdup(cp_name);
+    return NULL;
 }
 
 /* Formats whose names are in the DOS code page unless flagged as UTF-8. */
@@ -250,21 +253,23 @@ has_oem_names(struct archive *a)
 }
 
 static struct archive *
-archive_start(media_archive_t *archive)
+archive_start(media_archive_t *archive, int cp)
 {
+    char charset[16];
     struct archive *a = archive_read_new();
     if (!a)
         return NULL;
 
     archive_read_support_filter_all(a);
     archive_read_support_format_all(a);
-    /* Names not flagged as UTF-8 are in code page 437, as the ZIP specification says and DOS
-       archivers wrote them. Otherwise they would be read in the host's locale, which is the
-       C locale on Windows. */
-    archive_read_set_format_option(a, "zip", "hdrcharset", "CP437");
-    archive_read_set_format_option(a, "lha", "hdrcharset", "CP437");
-    archive_read_set_format_option(a, "cab", "hdrcharset", "CP437");
-    archive_read_set_format_option(a, "rar", "hdrcharset", "CP437");
+    /* Names not flagged as UTF-8 are in a DOS code page: 437, as the ZIP specification says, or the one
+       of the system that made the archive. Otherwise they would be read in the host's locale, which is
+       the C locale on Windows. */
+    snprintf(charset, sizeof(charset), "CP%d", cp);
+    archive_read_set_format_option(a, "zip", "hdrcharset", charset);
+    archive_read_set_format_option(a, "lha", "hdrcharset", charset);
+    archive_read_set_format_option(a, "cab", "hdrcharset", charset);
+    archive_read_set_format_option(a, "rar", "hdrcharset", charset);
     archive_read_set_read_callback(a, archive_read_cb);
     archive_read_set_seek_callback(a, archive_seek_cb);
     archive_read_set_skip_callback(a, archive_skip_cb);
@@ -420,12 +425,50 @@ media_archive_open(const char *path)
 #endif
 }
 
+/* The name of every header as read in a DOS code page other than 437, for formats whose names may be in
+   one; NULL if there are none. */
+static char **
+list_cp_names(media_archive_t *archive, int cp, uint32_t *count)
+{
+    struct archive       *a     = archive_start(archive, cp);
+    struct archive_entry *header;
+    char                **names = NULL;
+    uint32_t              size  = 0;
+    int                   ret;
+
+    *count = 0;
+    if (!a)
+        return NULL;
+    while (((ret = archive_read_next_header(a, &header)) == ARCHIVE_OK) || (ret == ARCHIVE_WARN)) {
+        if (!has_oem_names(a))
+            break;
+        if (*count >= size) {
+            size         = size ? (size * 2) : 256;
+            char **grown = (char **) realloc(names, size * sizeof(char *));
+            if (!grown)
+                break;
+            names = grown;
+        }
+        const char *name = archive_entry_pathname_utf8(header);
+        names[(*count)++] = name ? strdup(name) : NULL;
+    }
+    archive_read_free(a);
+    if (!*count) {
+        free(names);
+        names = NULL;
+    }
+    return names;
+}
+
 static media_archive_t *
 media_archive_list(const char *path)
 {
-    media_archive_t *archive = (media_archive_t *) calloc(1, sizeof(media_archive_t));
-    struct archive  *a       = NULL;
-    int              error   = 1;
+    media_archive_t *archive  = (media_archive_t *) calloc(1, sizeof(media_archive_t));
+    struct archive  *a        = NULL;
+    int              error    = 1;
+    int              cp       = media_codepage();
+    char           **cp_names = NULL;
+    uint32_t         cp_count = 0;
 
     if (!archive)
         return NULL;
@@ -437,7 +480,11 @@ media_archive_list(const char *path)
     if (!archive->root)
         goto end;
 
-    a = archive_start(archive);
+    /* Names that aren't flagged as UTF-8 are told apart by reading them in two code pages. */
+    if (cp != 437)
+        cp_names = list_cp_names(archive, cp, &cp_count);
+
+    a = archive_start(archive, 437);
     if (!a)
         goto end;
 
@@ -464,7 +511,7 @@ media_archive_list(const char *path)
             name = archive_entry_pathname(header);
         if (!name)
             continue;
-        char *recoded = has_oem_names(a) ? oem_name_as_utf8(name) : NULL;
+        char *recoded = has_oem_names(a) ? oem_name(name, (index < cp_count) ? cp_names[index] : NULL) : NULL;
 
         int                    alloc_error = 0;
         media_archive_entry_t *entry       = entry_from_path(archive, recoded ? recoded : name, type == AE_IFDIR, &alloc_error);
@@ -505,6 +552,9 @@ media_archive_list(const char *path)
 end:
     if (a)
         archive_read_free(a);
+    for (uint32_t i = 0; i < cp_count; i++)
+        free(cp_names[i]);
+    free(cp_names);
     if (error) {
         media_archive_close(archive);
         return NULL;
@@ -547,7 +597,7 @@ media_archive_count(media_archive_t *archive)
 int
 media_archive_extract(media_archive_t *archive, media_archive_data_t callback, void *opaque)
 {
-    struct archive *a = archive_start(archive);
+    struct archive *a = archive_start(archive, 437);
     if (!a)
         return 0;
 

@@ -120,6 +120,7 @@
 #define MACHINE_USB               0x0000000080000000ULL /* sys has int USB */
 #define MACHINE_ZENITH            0x0000000100000000ULL /* sys is Zenith */
 #define MACHINE_IDE_INTERNAL      0x0000000800000000ULL /* sys int IDE only with the Internal controller */
+#define MACHINE_JAPANESE          0x0000001000000000ULL /* sys is Japanese: its DOS uses code page 932 */
 /* Combined flags. */
 #define MACHINE_LPT               (MACHINE_LPT_PRI | MACHINE_LPT_SEC | MACHINE_LPT_TER)
 #define MACHINE_UART              (MACHINE_UART_PRI | MACHINE_UART_SEC | \

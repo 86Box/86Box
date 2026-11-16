@@ -3159,7 +3159,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PC,
-        .flags     = MACHINE_VIDEO_FIXED | MACHINE_FDC | MACHINE_KEYBOARD | MACHINE_MOUSE,
+        .flags     = MACHINE_VIDEO_FIXED | MACHINE_FDC | MACHINE_KEYBOARD | MACHINE_MOUSE | MACHINE_JAPANESE,
         .ram       = {
             .min  = 256,
             .max  = 640,
@@ -7705,7 +7705,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA,
-        .flags     = MACHINE_VIDEO | MACHINE_ESDI,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI | MACHINE_JAPANESE,
         .ram       = {
             /* 1MB is not enough for the reference disk */
             .min  = 2048,
@@ -9176,7 +9176,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
-        .flags     = MACHINE_VIDEO | MACHINE_ESDI,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI | MACHINE_JAPANESE,
         .ram       = {
             .min  = 2048,
             .max  = 65536,
@@ -9224,7 +9224,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
-        .flags     = MACHINE_VIDEO | MACHINE_ESDI,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI | MACHINE_JAPANESE,
         .ram       = {
             .min  = 2048,
             .max  = 65536,
@@ -9611,7 +9611,7 @@ const machine_t machines[] = {
             .max_multi   = 0
         },
         .bus_flags = MACHINE_PS2_MCA | MACHINE_BUS_MCA32,
-        .flags     = MACHINE_VIDEO | MACHINE_ESDI,
+        .flags     = MACHINE_VIDEO | MACHINE_ESDI | MACHINE_JAPANESE,
         .ram       = {
             .min  = 4096,
             .max  = 65536,

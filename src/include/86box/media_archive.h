@@ -64,8 +64,10 @@ extern int media_archive_extract_all(media_archive_t *archive);
 extern int media_archive_read(media_archive_t *archive, const media_archive_entry_t *entry,
                               uint64_t offset, void *buffer, size_t count);
 
-/* Converts a character to code page 437, or returns 0 if it has no equivalent. */
-extern uint8_t media_archive_cp437_encode(uint32_t c);
+/* The code page of the names written for DOS, and read from archives that don't flag them as UTF-8:
+   932 (Shift-JIS) when 86Box is in Japanese or the machine is Japanese, else the host's OEM code page on
+   Windows and 437 elsewhere. */
+extern int media_codepage(void);
 
 /* Opens an anonymous temporary file in the VM directory, deleted when closed. */
 extern FILE *media_temp_file(const char *prefix);
