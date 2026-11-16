@@ -545,6 +545,7 @@ link_set_keep(codegen_link_slot_t *slot)
 #    ifdef CODEGEN_BACKEND_HAS_LINK_MCACHE
 codegen_link_mcache_t codegen_link_mcache[CODEGEN_LINK_MCACHE_SIZE] __attribute__((aligned(1 << CODEGEN_LINK_MCACHE_SHIFT)));
 _Static_assert(sizeof(codegen_link_mcache_t) == (1 << CODEGEN_LINK_MCACHE_SHIFT), "mcache record size");
+codeblock_t codegen_link_settled_block = { .used = 1 };
 #    endif
 
 void
@@ -665,8 +666,9 @@ codegen_link_patch(codegen_link_slot_t *from, codeblock_t *block, uint32_t phys)
         if (set && (set != CODEGEN_LINK_SET_ONE)) {
             const uint32_t idx = CODEGEN_LINK_MCACHE_INDEX(virt);
 
-            codegen_link_mcache[idx].r = *slot;
-            block->link_mcache       = idx + 1;
+            codegen_link_mcache[idx].r         = *slot;
+            codegen_link_mcache[idx].r.settled = block->used && !block->runs_left && !block->page_mask2;
+            block->link_mcache                 = idx + 1;
         }
     }
 #    endif
@@ -838,6 +840,9 @@ block_recycle_stale(void)
         if (!block_nr || (block_nr == block_current) || !block->valid || (block->flags & CODEBLOCK_IN_DIRTY_LIST))
             continue;
         if (block->used) {
+#ifdef CODEGEN_BACKEND_HAS_LINK_MCACHE
+            codegen_link_unsettle(block);
+#endif
             block->used = 0;
             continue;
         }
@@ -1556,6 +1561,9 @@ codegen_delete_random_block(int required_mem_block)
             codeblock_t *block = &codeblock[block_nr];
 
             if (block->valid && block->used) {
+#ifdef CODEGEN_BACKEND_HAS_LINK_MCACHE
+                codegen_link_unsettle(block);
+#endif
                 block->used = 0;
                 block_nr    = (block_nr + 1) & BLOCK_MASK;
                 continue;
