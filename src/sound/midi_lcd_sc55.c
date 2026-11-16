@@ -24,8 +24,8 @@
 #include <stdint.h>
 #include <string.h>
 #include <86box/midi_lcd.h>
-#include "midi_lcd_sc55_back.h"
 #include "midi_lcd_sc55_font.h"
+#include "midi_lcd_sc55_print.h"
 
 #define W MIDI_LCD_SC55_WIDTH
 #define H MIDI_LCD_SC55_HEIGHT
@@ -56,6 +56,42 @@ lcd_fill(uint32_t *buf, int stride, int x, int y, int w, int h, uint32_t color)
     for (int yy = y; yy < (y + h); yy++)
         for (int xx = x; xx < (x + w); xx++)
             buf[yy * stride + xx] = color;
+}
+
+/* Print text in the typeface of the glass, from the top left corner. */
+static void
+lcd_print(uint32_t *buf, int stride, int x, int y, const char *text)
+{
+    for (; *text; text++) {
+        const sc55_print_glyph_t *g = NULL;
+
+        for (unsigned i = 0; i < (sizeof(sc55_print_glyphs) / sizeof(sc55_print_glyphs[0])); i++)
+            if (sc55_print_glyphs[i].ch == *text)
+                g = &sc55_print_glyphs[i];
+        if (g == NULL) {
+            x += SC55_PRINT_SPACE;
+            continue;
+        }
+
+        const int w = (int) strlen(g->rows[0]);
+        for (int row = 0; row < SC55_PRINT_HEIGHT; row++)
+            for (int col = 0; col < w; col++)
+                if (g->rows[row][col] == '#')
+                    buf[(y + row) * stride + x + col] = SC55_INK;
+        x += w;
+    }
+}
+
+/* A round dot of the level scale: a square without its corner pixels. */
+static void
+lcd_scale_dot(uint32_t *buf, int stride, int y, int size)
+{
+    const int x = 287 - (size / 2);
+
+    for (int row = 0; row < size; row++)
+        for (int col = 0; col < size; col++)
+            if (((row != 0) && (row != (size - 1))) || ((col != 0) && (col != (size - 1))))
+                buf[(y + row) * stride + x + col] = SC55_INK;
 }
 
 /* A character of 5x7 dots, 5x5 pixels each at a pitch of 6. */
@@ -157,18 +193,17 @@ static const struct {
 void
 midi_lcd_sc55_render(uint32_t *buf, int stride, const midi_lcd_t *lcd)
 {
-    /* Glass and printed layer. Switched off, the LCD shows them dimmed. */
-    for (int y = 0; y < H; y++)
-        for (int x = 0; x < W; x++) {
-            const uint32_t c = sc55_back_palette[sc55_back_data[y * W + x]];
-
-            buf[y * stride + x] = lcd->on ? c : lcd_mix(c, 64);
-        }
+    /* Glass and printed layer. Switched off, the LCD shows the glass dimmed. */
+    lcd_fill(buf, stride, 0, 0, W, H, lcd->on ? SC55_GLASS : lcd_mix(SC55_GLASS, 64));
+    for (unsigned i = 0; i < (sizeof(sc55_print_labels) / sizeof(sc55_print_labels[0])); i++)
+        lcd_print(buf, stride, sc55_print_labels[i].x, sc55_print_labels[i].y, sc55_print_labels[i].text);
+    for (unsigned i = 0; i < (sizeof(sc55_print_scale) / sizeof(sc55_print_scale[0])); i++)
+        lcd_scale_dot(buf, stride, sc55_print_scale[i].y, sc55_print_scale[i].size);
     if (!lcd->on)
         return;
 
     /* Dot colours at Nuked-SC55-GUI-Float's default contrast (8). */
-    const uint32_t unlit = lcd_mix(sc55_back_palette[0], 238);
+    const uint32_t unlit = lcd_mix(SC55_GLASS, 238);
     const uint32_t lit   = lcd_mix(unlit, 136);
 
     for (unsigned i = 0; i < (sizeof(lcd_fields) / sizeof(lcd_fields[0])); i++)
