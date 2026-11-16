@@ -2167,6 +2167,9 @@ _Static_assert(BLOCK_SIZE <= 0x10000, "block numbers and codeblock_hash entries 
   Globals are addressed from the PC (link_addr), so no load is spent on an
   address. Loads are paired wherever the layout allows, since on a hit the
   routine is limited by how many loads it issues rather than by its length.*/
+/*The block numbers (low bits) whose code the link routine last prefetched*/
+#    define LINK_PREFETCH_FILTER_BITS 6
+static uint16_t link_prefetch_filter[1 << LINK_PREFETCH_FILTER_BITS];
 /*Lines of the next block's code the link routine prefetches*/
 #    define LINK_NEXT_CODE_LINES 16
 /*Prefetch the first code, the codeblock_t line and the end slot of the
@@ -2869,6 +2872,8 @@ build_link_set_routine(codeblock_t *block)
     /*The link routine's prefetch of the next block's code, then the target*/
     uint8_t *next_dest = &block_write_data[block_pos];
     {
+        uint32_t *filter_hit;
+
         host_arm64_branch_set_offset(link_next_branch, &block_write_data[block_pos]);
         host_arm64_LDRH_IMM(block, REG_W4, REG_X1, LINK_SLOT(block_nr));
         host_arm64_LDRB_IMM_W(block, REG_W5, REG_X1, LINK_SLOT(end_slot));
@@ -2877,8 +2882,21 @@ build_link_set_routine(codeblock_t *block)
         link_addr_exact(block, REG_X5, codegen_link_slots);
         host_arm64_ADDX_REG(block, REG_X5, REG_X5, REG_X4, 6);
         host_arm64_LDR_IMM_X(block, REG_X6, REG_X5, LINK_SLOT(entry));
+        /*Code of a block this routine prefetched for last time round, among
+          the last few hundred, is still in the cache: a loop of blocks pays
+          for the prefetch once, only a footprint past the cache pays on every
+          pass*/
+        host_arm64_LDRH_IMM(block, REG_W7, REG_X5, LINK_SLOT(block_nr));
+        host_arm64_UBFX(block, REG_W8, REG_W7, 0, LINK_PREFETCH_FILTER_BITS);
+        link_addr_exact(block, REG_X9, link_prefetch_filter);
+        host_arm64_ADDX_REG(block, REG_X9, REG_X9, REG_X8, 1);
+        host_arm64_LDRH_IMM(block, REG_W8, REG_X9, 0);
+        host_arm64_CMP_REG(block, REG_W8, REG_W7);
+        filter_hit = host_arm64_BEQ_SHORT_(block);
+        host_arm64_STRH_IMM(block, REG_W7, REG_X9, 0);
         for (int c = 0; c < LINK_NEXT_CODE_LINES; c++)
             host_arm64_PRFM_I_IMM(block, REG_X6, c * 64);
+        host_arm64_short_branch_set_offset(filter_hit, &block_write_data[block_pos]);
         /*and its codeblock_t line, which the hop to it reads*/
         host_arm64_LDRH_IMM(block, REG_W7, REG_X5, LINK_SLOT(block_nr));
         offset = link_addr(block, REG_X8, &codeblock);
