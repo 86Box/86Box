@@ -248,8 +248,9 @@ codegen_trace_jcc_take(codeblock_t *block, ir_data_t *ir, uint32_t end, uint32_t
   compile pass reaches its target, instead of leaving the block. Code where
   a test skips one or two instructions (jz +1; inc ebx) otherwise leaves the
   block half the time, and compiles its target again as a block of its own.
-  The join writes every register back, charges the cycles of the path that
-  went through the skipped instructions, and forgets what the IR knew of the
+  The join writes every register back, keeps loaded the host registers both
+  paths hold the same value in, charges the cycles of the path that went
+  through the skipped instructions, and forgets what the IR knew of the
   flags. Given up, with the exit left in, when anything the compiler assumes
   for the code after the target differs between the two paths*/
 int codegen_fwd_jump = -1;
@@ -399,9 +400,27 @@ codegen_fwd_can_join(const ir_data_t *ir)
 static void
 codegen_fwd_join(ir_data_t *ir)
 {
+    int join = 0;
+
     codegen_accumulate_flush(ir);
-    uop_NOP_BARRIER(ir);
-    uop_set_jump_dest(ir, codegen_fwd_jump);
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    /*The registers kept are those the jump's path holds: no other jump may
+      land here*/
+    join = 1;
+    for (int c = 0; c < ir->wr_pos; c++) {
+        if ((ir->uops[c].type & UOP_TYPE_JUMP) && (ir->uops[c].jump_dest_uop == ir->wr_pos)) {
+            join = 0;
+            break;
+        }
+    }
+#endif
+    if (join) {
+        uop_set_jump_dest(ir, codegen_fwd_jump);
+        uop_NOP_JOIN(ir);
+    } else {
+        uop_NOP_BARRIER(ir);
+        uop_set_jump_dest(ir, codegen_fwd_jump);
+    }
     codegen_fwd_jump = -1;
     codegen_fwd_used = 1;
 

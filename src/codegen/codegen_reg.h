@@ -487,6 +487,10 @@ void codegen_reg_reset(void);
 void codegen_reg_flush(struct ir_data_t *ir, codeblock_t *block);
 /*Write back and evict all registers*/
 void codegen_reg_flush_invalidate(struct ir_data_t *ir, codeblock_t *block);
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+void codegen_reg_join_snapshot(int usable);
+void codegen_reg_join(struct ir_data_t *ir, codeblock_t *block);
+#endif
 /*Evict IREG_cycles if it is cached and clean*/
 void codegen_reg_drop_cycles(void);
 

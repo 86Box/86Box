@@ -2434,6 +2434,7 @@ const uOpFn uop_handlers[UOP_MAX] = {
     [UOP_MEM_STORE_IMM_32 & UOP_MASK] = codegen_MEM_STORE_IMM_32,
 
     [UOP_NOP_BARRIER & UOP_MASK] = codegen_NOP,
+    [UOP_NOP_JOIN & UOP_MASK]    = codegen_NOP,
 
 #ifdef DEBUG_EXTRA
     [UOP_LOG_INSTR & UOP_MASK] = codegen_LOG_INSTR,

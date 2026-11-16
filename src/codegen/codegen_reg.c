@@ -379,6 +379,13 @@ codegen_check_regs(void)
     }
 }
 
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+/*The host registers at the jump to a UOP_NOP_JOIN, after its order barrier
+  wrote them back*/
+static ir_reg_t join_regs[CODEGEN_HOST_REGS];
+static int      join_valid;
+#endif
+
 void
 codegen_reg_reset(void)
 {
@@ -388,6 +395,9 @@ codegen_reg_reset(void)
     host_reg_set.dirty       = _host_reg_dirty;
     host_reg_set.reg_list    = codegen_host_reg_list;
     host_reg_set.locked      = 0;
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+    join_valid               = 0;
+#endif
     host_reg_set.nr_regs     = CODEGEN_HOST_REGS;
     host_fp_reg_set.regs     = host_fp_regs;
     host_fp_reg_set.dirty    = host_fp_reg_dirty;
@@ -1531,6 +1541,47 @@ codegen_reg_cold_rejoin(codeblock_t *block)
     codegen_reg_cold_restore();
 }
 
+#endif
+
+#ifdef CODEGEN_BACKEND_HAS_LAZY_WRITEBACK
+void
+codegen_reg_join_snapshot(int usable)
+{
+    for (int c = 0; c < CODEGEN_HOST_REGS; c++)
+        join_regs[c] = host_reg_set.regs[c];
+    join_valid = usable;
+}
+
+/*At a UOP_NOP_JOIN, after the jump destination's flush wrote back the path
+  that falls through: memory is current on both paths, so a host register
+  that holds the same version of a register on both holds the same value and
+  stays loaded. One the jump's path does not have it in is forgotten, to be
+  loaded from memory, which holds what each path left there*/
+void
+codegen_reg_join(ir_data_t *ir, codeblock_t *block)
+{
+    host_reg_set_t *reg_set = &host_reg_set;
+
+    if (!join_valid) {
+        codegen_reg_flush_invalidate(ir, block);
+        return;
+    }
+    join_valid = 0;
+    for (int c = 0; c < reg_set->nr_regs; c++) {
+        if (ir_reg_is_invalid(reg_set->regs[c]))
+            continue;
+        if (reg_set->dirty[c] || (reg_set->regs[c].reg != join_regs[c].reg) || (reg_set->regs[c].version != join_regs[c].version)) {
+            host_reg_assign(reg_set, c, invalid_ir_reg);
+            reg_set->dirty[c] = 0;
+        }
+    }
+
+    reg_set = &host_fp_reg_set;
+    for (int c = 0; c < reg_set->nr_regs; c++) {
+        host_reg_assign(reg_set, c, invalid_ir_reg);
+        reg_set->dirty[c] = 0;
+    }
+}
 #endif
 
 void
