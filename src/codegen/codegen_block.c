@@ -121,7 +121,7 @@ typedef struct block_version_t {
     struct mem_block_t *head_mem_block;
     const uint8_t      *exec, *exec_2; /*_mem_exec[] of each chunk's page when compiled*/
     uint64_t            page_mask, page_mask2;
-    uint64_t            family_ops[2]; /*codegen_family_ops when compiled*/
+    uint64_t            family_ops[2]; /*codegen_family_ops when compiled: without CODEBLOCK_OPCODE_FAMILY, the opcodes it would read as it runs*/
     uint32_t            phys_2;
     uint32_t            owner; /*Number of the code block*/
     uint16_t            cs_sel; /*CS selector: x87 code stores it as the FPU CS*/
@@ -163,6 +163,7 @@ uint64_t codegen_family_ops[2];
 
 /*Per block: smc_family_hold() state*/
 static uint8_t block_family_hold[BLOCK_SIZE];
+uint32_t block_family_runs[BLOCK_SIZE];
 
 /*A block that leaves by a loop's branch it could have gone on through
   (jcc_exit_hot) is compiled again after JCC_HOT_EXITS such exits, so the
@@ -1100,6 +1101,63 @@ block_family_ops_changed(const codeblock_t *block)
     return 0;
 }
 
+/*Bytes of the chunk at phys, under mask, that differ from code. -1 if the
+  chunk is no longer mapped where it was.*/
+static uint64_t
+block_version_chunk_diff_mask(uint32_t phys, const uint8_t *exec, uint64_t mask, const uint8_t *code)
+{
+    const uint8_t *fetch = _mem_exec[phys >> MEM_GRANULARITY_BITS];
+    uint64_t       diff  = 0;
+
+    if (!fetch || (fetch != exec))
+        return (uint64_t) -1;
+    fetch = &fetch[(phys & MEM_GRANULARITY_MASK) & ~0x3f];
+    while (mask) {
+        int c = __builtin_ctzll(mask);
+
+        if (fetch[c] != code[c])
+            diff |= (uint64_t) 1 << c;
+        mask &= mask - 1;
+    }
+    return diff;
+}
+
+/*A block compiled for its bytes with CODEBLOCK_NO_IMMEDIATES is being
+  rewritten: whether only opcodes it would read as it runs with
+  CODEBLOCK_NO_OPCODES changed, each to another of that family. Such code
+  would have run on through the rewrite.*/
+static int
+block_family_cand_changed(const codeblock_t *block)
+{
+    uint16_t               cur;
+    const block_version_t *v;
+    const uint8_t         *fetch;
+    uint64_t               diff[2];
+
+    if ((block->flags & (CODEBLOCK_NO_IMMEDIATES | CODEBLOCK_OPCODE_FAMILY)) != CODEBLOCK_NO_IMMEDIATES)
+        return 0;
+    cur = block_version_cur[get_block_nr(block)];
+    if (!cur)
+        return 0;
+    v = &block_versions[cur];
+    if ((v->head_mem_block != block->head_mem_block) || (v->flags & CODEBLOCK_OPCODE_FAMILY) || !(v->family_ops[0] | v->family_ops[1]))
+        return 0;
+    diff[0] = block_version_chunk_diff_mask(block->phys, v->exec, v->page_mask, v->code);
+    diff[1] = v->page_mask2 ? block_version_chunk_diff_mask(v->phys_2, v->exec_2, v->page_mask2, &v->code[64]) : 0;
+    if (!(diff[0] | diff[1]) || (diff[0] & ~v->family_ops[0]) || (diff[1] & ~v->family_ops[1]))
+        return 0;
+    for (int h = 0; h < 2; h++) {
+        if (!diff[h])
+            continue;
+        fetch = &_mem_exec[(h ? v->phys_2 : block->phys) >> MEM_GRANULARITY_BITS][((h ? v->phys_2 : block->phys) & MEM_GRANULARITY_MASK) & ~0x3f];
+        for (uint64_t m = diff[h]; m; m &= m - 1) {
+            if ((fetch[__builtin_ctzll(m)] & 0xc7) != 0x05)
+                return 0;
+        }
+    }
+    return 1;
+}
+
 /*Blocks that read their opcodes as they run. Only a rewrite decides whether a
   block keeps doing so, and opcode writes no longer rewrite it: code whose
   opcodes stopped changing would stay in that slower form for good. Checked
@@ -1107,9 +1165,56 @@ block_family_ops_changed(const codeblock_t *block)
 #define FAMILY_REVIEW_MAX    256
 #define FAMILY_REVIEW_STABLE 2
 
+/*A block also comes off when its opcodes change, but less often than every
+  SMC_FAMILY_CAND_MIN_RUNS runs on average over FAMILY_REVIEW_CHANGES
+  changes: compiling it for its bytes after each change costs less*/
+#define FAMILY_REVIEW_CHANGES 16
+
 static uint32_t family_review_nr[FAMILY_REVIEW_MAX];
 static uint8_t  family_review_stable[FAMILY_REVIEW_MAX];
 static uint64_t family_review_listed[BLOCK_SIZE / 64];
+/*Per entry: the block's opcode bytes as last seen, block_family_runs then,
+  and the runs and opcode changes counted since the last decision*/
+static uint8_t  family_review_code[FAMILY_REVIEW_MAX][128];
+static uint32_t family_review_runs[FAMILY_REVIEW_MAX];
+static uint32_t family_review_acc_runs[FAMILY_REVIEW_MAX];
+static uint32_t family_review_acc_changes[FAMILY_REVIEW_MAX];
+
+static void
+family_review_start(int c, uint32_t block_nr)
+{
+    family_review_stable[c] = 0;
+    memcpy(family_review_code[c], block_versions[block_version_cur[block_nr]].code, 128);
+    family_review_runs[c]        = block_family_runs[block_nr];
+    family_review_acc_runs[c]    = 0;
+    family_review_acc_changes[c] = 0;
+}
+
+/*Opcodes of the version v of a listed block changed since last seen*/
+static int
+family_review_changes(int c, uint32_t phys, const block_version_t *v)
+{
+    int n = 0;
+
+    for (int h = 0; h < 2; h++) {
+        uint64_t       m     = v->family_ops[h];
+        uint32_t       p     = h ? (phys + 0x40) : phys;
+        const uint8_t *fetch = _mem_exec[p >> MEM_GRANULARITY_BITS];
+
+        if (!m || !fetch || (fetch != (h ? v->exec_2 : v->exec)))
+            continue;
+        fetch = &fetch[(p & MEM_GRANULARITY_MASK) & ~0x3f];
+        for (; m; m &= m - 1) {
+            int b = __builtin_ctzll(m);
+
+            if (fetch[b] != family_review_code[c][h * 64 + b]) {
+                family_review_code[c][h * 64 + b] = fetch[b];
+                n++;
+            }
+        }
+    }
+    return n;
+}
 
 static void
 family_review_add(uint32_t block_nr)
@@ -1119,7 +1224,7 @@ family_review_add(uint32_t block_nr)
     if (family_review_listed[block_nr >> 6] & bit) {
         for (int c = 0; c < family_review_count; c++) {
             if (family_review_nr[c] == block_nr) {
-                family_review_stable[c] = 0;
+                family_review_start(c, block_nr);
                 break;
             }
         }
@@ -1128,8 +1233,8 @@ family_review_add(uint32_t block_nr)
     if (family_review_count >= FAMILY_REVIEW_MAX)
         return;
     family_review_listed[block_nr >> 6] |= bit;
-    family_review_nr[family_review_count]     = block_nr;
-    family_review_stable[family_review_count] = 0;
+    family_review_nr[family_review_count] = block_nr;
+    family_review_start(family_review_count, block_nr);
     family_review_count++;
 }
 
@@ -1151,11 +1256,38 @@ codegen_family_review(void)
         uint16_t               cur      = block_version_cur[block_nr];
         const block_version_t *v        = &block_versions[cur];
         int                    drop     = 0;
+        int                    changes  = 0;
 
         if (!block->valid || !cur || (v->head_mem_block != block->head_mem_block) ||
             ((block->flags & (CODEBLOCK_OPCODE_FAMILY | CODEBLOCK_WAS_RECOMPILED | CODEBLOCK_IN_DIRTY_LIST)) != (CODEBLOCK_OPCODE_FAMILY | CODEBLOCK_WAS_RECOMPILED)))
             drop = 1;
-        else if (block_family_ops_changed(block))
+        else {
+            uint32_t runs = block_family_runs[block_nr];
+
+            changes = family_review_changes(c, block->phys, v);
+            family_review_acc_runs[c] += (runs >= family_review_runs[c]) ? (runs - family_review_runs[c]) : runs;
+            family_review_runs[c] = runs;
+            family_review_acc_changes[c] += changes;
+        }
+        if (drop)
+            ;
+        else if (family_review_acc_changes[c] >= FAMILY_REVIEW_CHANGES) {
+            if (family_review_acc_runs[c] >= (uint32_t) SMC_FAMILY_CAND_MIN_RUNS * family_review_acc_changes[c]) {
+                /* Its opcodes change, but too seldom: compile it for
+                   them, each time. */
+#ifdef CODEGEN_BACKEND_HAS_BLOCK_LINK
+                codegen_link_block_changed(block);
+#endif
+                block->flags &= ~(CODEBLOCK_NO_OPCODES | CODEBLOCK_OPCODE_FAMILY | CODEBLOCK_WAS_RECOMPILED);
+                block->smc_family_score       = 0;
+                block_family_hold[block_nr]   = 0;
+                drop                          = 1;
+            } else {
+                family_review_stable[c]      = 0;
+                family_review_acc_runs[c]    = 0;
+                family_review_acc_changes[c] = 0;
+            }
+        } else if (changes || block_family_ops_changed(block))
             family_review_stable[c] = 0;
         else if (codeblock_ran(block->runs_left, SMC_FAMILY_MIN_RUNS) && (++family_review_stable[c] >= FAMILY_REVIEW_STABLE)) {
             /* Still the opcodes it compiled with, over a whole check
@@ -1173,8 +1305,12 @@ codegen_family_review(void)
         if (drop) {
             family_review_listed[block_nr >> 6] &= ~(1ULL << (block_nr & 63));
             family_review_count--;
-            family_review_nr[c]     = family_review_nr[family_review_count];
-            family_review_stable[c] = family_review_stable[family_review_count];
+            family_review_nr[c]          = family_review_nr[family_review_count];
+            family_review_stable[c]      = family_review_stable[family_review_count];
+            family_review_runs[c]        = family_review_runs[family_review_count];
+            family_review_acc_runs[c]    = family_review_acc_runs[family_review_count];
+            family_review_acc_changes[c] = family_review_acc_changes[family_review_count];
+            memcpy(family_review_code[c], family_review_code[family_review_count], 128);
         } else
             c++;
     }
@@ -1215,12 +1351,22 @@ invalidate_block(codeblock_t *block)
             int      ran_long = codeblock_ran(block->runs_left, SMC_FAMILY_MIN_RUNS);
             int      keep     = 0;
 
+            /* Code whose opcodes change all over gives one block of it a
+               change only now and then: often just over
+               SMC_FAMILY_MIN_RUNS runs apart, where reading them as it
+               runs still pays. Such a block counts its runs further
+               (block_family_runs). */
+            if (ran_long && block_family_cand_changed(block))
+                ran_long = block_family_runs[get_block_nr(block)] >= SMC_FAMILY_CAND_MIN_RUNS;
+            block_family_runs[get_block_nr(block)] = 0;
+
             if (!ran_long || !(block->flags & CODEBLOCK_OPCODE_FAMILY))
                 smc_family_hold_rewritten(hold, ran_long);
             else if (block_family_ops_changed(block))
                 keep = smc_family_hold(hold);
             else
                 *hold = 0;
+
             if (!keep)
                 smc_family_rewritten(&block->smc_family_score, ran_long);
         }
@@ -1470,6 +1616,7 @@ codegen_block_init(uint32_t phys_addr)
     block->smc_strikes        = 0;
     block->smc_family_score   = 0;
     block_family_hold[block_current] = 0;
+    block_family_runs[block_current] = 0;
     block_jcc_hot_tries[block_current] = 0;
     block_self_check_count[block_current] = 0;
     /* On a page whose blocks keep being rewritten before they pay for

@@ -69,6 +69,8 @@
 #define UOP_JMP_DEST       (UOP_TYPE_PARAMS_IMM | UOP_TYPE_PARAMS_POINTER | 0x17 | UOP_TYPE_ORDER_BARRIER | UOP_TYPE_JUMP)
 #define UOP_NOP_BARRIER    (UOP_TYPE_BARRIER | 0x18)
 #define UOP_STORE_P_IMM_16 (UOP_TYPE_PARAMS_IMM | 0x19)
+/*UOP_ADD_P_IMM - add imm to the 32-bit word at p*/
+#define UOP_ADD_P_IMM (UOP_TYPE_PARAMS_IMM | 0x1b)
 /*UOP_CALL_FUNC_RESULT_ORDERED - dest_reg = C function at p, with registers written back but left
   loaded. The function must only read guest state*/
 #define UOP_CALL_FUNC_RESULT_ORDERED (UOP_TYPE_PARAMS_REGS | UOP_TYPE_PARAMS_POINTER | 0x1a | UOP_TYPE_ORDER_BARRIER)
@@ -1277,6 +1279,7 @@ extern void codegen_fpu_record_pointers(ir_data_t *ir);
 #define uop_STORE_PTR_IMM(ir, p, imm)                                    uop_gen_pointer_imm(UOP_STORE_P_IMM, ir, p, imm)
 #define uop_STORE_PTR_IMM_8(ir, p, imm)                                  uop_gen_pointer_imm(UOP_STORE_P_IMM_8, ir, p, imm)
 #define uop_STORE_PTR_IMM_16(ir, p, imm)                                 uop_gen_pointer_imm(UOP_STORE_P_IMM_16, ir, p, imm)
+#define uop_ADD_PTR_IMM(ir, p, imm)                                      uop_gen_pointer_imm(UOP_ADD_P_IMM, ir, p, imm)
 
 #define uop_TEST_JNS_DEST(ir, src_reg)                                   uop_gen_reg_src1(UOP_TEST_JNS_DEST, ir, src_reg)
 #define uop_TEST_JS_DEST(ir, src_reg)                                    uop_gen_reg_src1(UOP_TEST_JS_DEST, ir, src_reg)
