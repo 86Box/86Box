@@ -247,6 +247,13 @@ uint32_t addr64_2;
 uint32_t addr64a[8];
 uint32_t addr64a_2[8];
 
+uintptr_t mmut_hit_r  = (uintptr_t) LOOKUP_INV;
+uintptr_t mmut_hit_r2 = (uintptr_t) LOOKUP_INV;
+uintptr_t mmut_hit_w  = (uintptr_t) LOOKUP_INV;
+uint32_t  mmut_hit_r_page;
+uint32_t  mmut_hit_r2_page;
+uint32_t  mmut_hit_w_page;
+
 static pc_timer_t *cpu_fast_off_timer  = NULL;
 static double      cpu_fast_off_period = 0.0;
 

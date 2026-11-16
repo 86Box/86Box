@@ -285,6 +285,16 @@ extern page_t *page_lookup[1048576];
 extern uintptr_t readlookup2[2097152];
 extern uintptr_t writelookup2[1048576];
 
+/* The entries the string instructions' translate steps found (386_common.h)
+   and their virtual pages. A flush, or an eviction of that page, on the CPU
+   thread drops them; one from another thread does not. */
+extern uintptr_t mmut_hit_r;
+extern uintptr_t mmut_hit_r2;
+extern uintptr_t mmut_hit_w;
+extern uint32_t  mmut_hit_r_page;
+extern uint32_t  mmut_hit_r2_page;
+extern uint32_t  mmut_hit_w_page;
+
 /* The lookup entries held out of the tables while the CPU is in ring 3
    (mem.c): how many, what the tables would hold for an access they are held
    for, and their move into the tables. */

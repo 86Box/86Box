@@ -155,6 +155,10 @@ x86seg_tss_busy_undo(uint16_t sel)
 
     cpu_state.abrt = 0;
     high_page      = (tss_busy_a64 > 0xffffffffULL);
+#ifndef OPS_286_386
+    mmut_hit_r     = (uintptr_t) LOOKUP_INV;
+    mmut_hit_w     = (uintptr_t) LOOKUP_INV;
+#endif
     v              = readmemb_n(gdt.base, off, a64);
     cpl_override   = CPL_OVERRIDE_TSS_BUSY;
     writememb_n(gdt.base, off, a64, v & ~0x02);

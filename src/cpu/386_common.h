@@ -59,12 +59,12 @@
 /* No test for debug register breakpoints is needed on the fast paths: while
    one is armed no page is entered into the lookup tables, so every access
    takes the slow path, which makes the check (cpu_dr7_update()). */
-#    define readmemb_n(s, a, b)  ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF)) ? (((s) == 0xFFFFFFFF) ? readmembl_no_mmut_nh : readmembl_no_mmut)((s) + (a), b) : *(uint8_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))))
-#    define readmemw_n(s, a, b)  ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) ? (((s) == 0xFFFFFFFF) ? readmemwl_no_mmut_nh : readmemwl_no_mmut)((s) + (a), b) : *(uint16_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uint32_t) ((s) + (a))))
-#    define readmeml_n(s, a, b)  ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) ? (((s) == 0xFFFFFFFF) ? readmemll_no_mmut_nh : readmemll_no_mmut)((s) + (a), b) : *(uint32_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uint32_t) ((s) + (a))))
-#    define readmemb_n2(s, a, b) ((readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF)) ? (((s) == 0xFFFFFFFF) ? readmembl_no_mmut_nh : readmembl_no_mmut)((s) + (a), b) : *(uint8_t *) (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] + (uintptr_t) ((s) + (a))))
-#    define readmemw_n2(s, a, b) ((readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) ? (((s) == 0xFFFFFFFF) ? readmemwl_no_mmut_nh : readmemwl_no_mmut)((s) + (a), b) : *(uint16_t *) (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] + (uint32_t) ((s) + (a))))
-#    define readmeml_n2(s, a, b) ((readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) ? (((s) == 0xFFFFFFFF) ? readmemll_no_mmut_nh : readmemll_no_mmut)((s) + (a), b) : *(uint32_t *) (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] + (uint32_t) ((s) + (a))))
+#    define readmemb_n(s, a, b)  mmut_readb(mmut_hit_r, 0, s, a, b)
+#    define readmemw_n(s, a, b)  mmut_readw(mmut_hit_r, 0, s, a, b)
+#    define readmeml_n(s, a, b)  mmut_readl(mmut_hit_r, 0, s, a, b)
+#    define readmemb_n2(s, a, b) mmut_readb(mmut_hit_r2, 1048576, s, a, b)
+#    define readmemw_n2(s, a, b) mmut_readw(mmut_hit_r2, 1048576, s, a, b)
+#    define readmeml_n2(s, a, b) mmut_readl(mmut_hit_r2, 1048576, s, a, b)
 #    define readmemb(s, a)       ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF)) ? (((s) == 0xFFFFFFFF) ? readmembl_nh : readmembl)((s) + (a)) : *(uint8_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))))
 #    define readmemw(s, a)       ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) ? (((s) == 0xFFFFFFFF) ? readmemwl_nh : readmemwl)((s) + (a)) : *(uint16_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uint32_t) ((s) + (a))))
 #    define readmeml(s, a)       ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) ? (((s) == 0xFFFFFFFF) ? readmemll_nh : readmemll)((s) + (a)) : *(uint32_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uint32_t) ((s) + (a))))
@@ -75,21 +75,9 @@
 #    define readmemw_ea(s, a)    ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) ? (((s) == 0xFFFFFFFF) ? readmemwl_nh : readmemwl_eam)((s) + (a)) : *(uint16_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uint32_t) ((s) + (a))))
 #    define readmeml_ea(s, a)    ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) ? (((s) == 0xFFFFFFFF) ? readmemll_nh : readmemll_eam)((s) + (a)) : *(uint32_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uint32_t) ((s) + (a))))
 
-#    define writememb_n(s, a, b, v)                                                                    \
-        if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF)) \
-            (((s) == 0xFFFFFFFF) ? writemembl_no_mmut_nh : writemembl_no_mmut)((s) + (a), b, v);                                                       \
-        else                                                                                           \
-            *(uint8_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
-#    define writememw_n(s, a, b, v)                                                                                         \
-        if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) \
-            (((s) == 0xFFFFFFFF) ? writememwl_no_mmut_nh : writememwl_no_mmut)((s) + (a), b, v);                                                                            \
-        else                                                                                                                \
-            *(uint16_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
-#    define writememl_n(s, a, b, v)                                                                                         \
-        if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) \
-            (((s) == 0xFFFFFFFF) ? writememll_no_mmut_nh : writememll_no_mmut)((s) + (a), b, v);                                                                            \
-        else                                                                                                                \
-            *(uint32_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
+#    define writememb_n(s, a, b, v) mmut_writeb(s, a, b, v)
+#    define writememw_n(s, a, b, v) mmut_writew(s, a, b, v)
+#    define writememl_n(s, a, b, v) mmut_writel(s, a, b, v)
 #    define writememb(s, a, v)                                                                         \
         if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || (s) == 0xFFFFFFFF) \
             (((s) == 0xFFFFFFFF) ? writemembl_nh : writemembl)((s) + (a), v);                                                                  \
@@ -133,34 +121,127 @@
    in while paging is on. */
 #    define do_mmut_needed() ((cr0 >> 31) || cpu_dr_armed)
 
-#    define do_mmut_rb(s, a, b)                                                                                           \
-        if (do_mmut_needed() && (readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF))) \
-        (((s) == 0xFFFFFFFF) ? do_mmutranslate_nh : do_mmutranslate)((s) + (a), b, 1, 0)
-#    define do_mmut_rw(s, a, b)                                                                                                                  \
-        if (do_mmut_needed() && (readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1))) \
-        (((s) == 0xFFFFFFFF) ? do_mmutranslate_nh : do_mmutranslate)((s) + (a), b, 2, 0)
-#    define do_mmut_rl(s, a, b)                                                                                                                  \
-        if (do_mmut_needed() && (readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3))) \
-        (((s) == 0xFFFFFFFF) ? do_mmutranslate_nh : do_mmutranslate)((s) + (a), b, 4, 0)
-#    define do_mmut_rb2(s, a, b)                                                                                                       \
-        if (do_mmut_needed() && (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF))) \
-        (((s) == 0xFFFFFFFF) ? do_mmutranslate_nh : do_mmutranslate_set2)((s) + (a), b, 1, 0)
-#    define do_mmut_rw2(s, a, b)                                                                                                                              \
-        if (do_mmut_needed() && (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1))) \
-        (((s) == 0xFFFFFFFF) ? do_mmutranslate_nh : do_mmutranslate_set2)((s) + (a), b, 2, 0)
-#    define do_mmut_rl2(s, a, b)                                                                                                                              \
-        if (do_mmut_needed() && (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3))) \
-        (((s) == 0xFFFFFFFF) ? do_mmutranslate_nh : do_mmutranslate_set2)((s) + (a), b, 4, 0)
+#    define do_mmut_rb(s, a, b)  do_mmut_hit(&mmut_hit_r, &mmut_hit_r_page, 0, s, a, b, 1, 0)
+#    define do_mmut_rw(s, a, b)  do_mmut_hit(&mmut_hit_r, &mmut_hit_r_page, 0, s, a, b, 2, 0)
+#    define do_mmut_rl(s, a, b)  do_mmut_hit(&mmut_hit_r, &mmut_hit_r_page, 0, s, a, b, 4, 0)
+#    define do_mmut_rb2(s, a, b) do_mmut_hit(&mmut_hit_r2, &mmut_hit_r2_page, 1048576, s, a, b, 1, 0)
+#    define do_mmut_rw2(s, a, b) do_mmut_hit(&mmut_hit_r2, &mmut_hit_r2_page, 1048576, s, a, b, 2, 0)
+#    define do_mmut_rl2(s, a, b) do_mmut_hit(&mmut_hit_r2, &mmut_hit_r2_page, 1048576, s, a, b, 4, 0)
 
-#    define do_mmut_wb(s, a, b)                                                                                            \
-        if (do_mmut_needed() && (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF))) \
-        (((s) == 0xFFFFFFFF) ? do_mmutranslate_nh : do_mmutranslate)((s) + (a), b, 1, 1)
-#    define do_mmut_ww(s, a, b)                                                                                                                   \
-        if (do_mmut_needed() && (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1))) \
-        (((s) == 0xFFFFFFFF) ? do_mmutranslate_nh : do_mmutranslate)((s) + (a), b, 2, 1)
-#    define do_mmut_wl(s, a, b)                                                                                                                   \
-        if (do_mmut_needed() && (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3))) \
-        (((s) == 0xFFFFFFFF) ? do_mmutranslate_nh : do_mmutranslate)((s) + (a), b, 4, 1)
+#    define do_mmut_wb(s, a, b)  do_mmut_hit(&mmut_hit_w, &mmut_hit_w_page, 0, s, a, b, 1, 1)
+#    define do_mmut_ww(s, a, b)  do_mmut_hit(&mmut_hit_w, &mmut_hit_w_page, 0, s, a, b, 2, 1)
+#    define do_mmut_wl(s, a, b)  do_mmut_hit(&mmut_hit_w, &mmut_hit_w_page, 0, s, a, b, 4, 1)
+
+/* do_mmut_*() leaves the lookup entry it found and used in place of a walk
+   in mmut_hit_r, mmut_hit_r2 (the compare operand's reads, second read set)
+   or mmut_hit_w (mem.h), and its virtual page in the matching _page, or
+   LOOKUP_INV when it walked or made no test. The
+   readmem*_n() or writemem*_n() access that follows uses that entry and
+   does not test the table again: a flush from another thread between the
+   two would otherwise leave the access with neither an entry nor a walked
+   address. */
+
+static __inline void
+do_mmut_hit(uintptr_t *hit, uint32_t *hit_page, uint32_t set, uint32_t s, uint32_t a, uint32_t *b, int num, int write)
+{
+    const uint32_t addr = s + a;
+    uintptr_t      e;
+
+    *hit = (uintptr_t) LOOKUP_INV;
+    if (!do_mmut_needed())
+        return;
+    if (write)
+        e = *(volatile uintptr_t *) &writelookup2[addr >> 12];
+    else
+        e = *(volatile uintptr_t *) &readlookup2[set | (addr >> 12)];
+    if ((e != (uintptr_t) LOOKUP_INV) && (s != 0xFFFFFFFF) && !(addr & (num - 1))) {
+        *hit      = e;
+        *hit_page = addr >> 12;
+    } else if (s == 0xFFFFFFFF)
+        do_mmutranslate_nh(addr, b, num, write);
+    else if (set)
+        do_mmutranslate_set2(addr, b, num, write);
+    else
+        do_mmutranslate(addr, b, num, write);
+}
+
+static __inline uint8_t
+mmut_readb(uintptr_t hit, uint32_t set, uint32_t s, uint32_t a, uint32_t b)
+{
+    const uint32_t addr = s + a;
+
+    if (hit == (uintptr_t) LOOKUP_INV)
+        hit = *(volatile uintptr_t *) &readlookup2[set | (addr >> 12)];
+    if ((hit == (uintptr_t) LOOKUP_INV) || (s == 0xFFFFFFFF))
+        return ((s == 0xFFFFFFFF) ? readmembl_no_mmut_nh : readmembl_no_mmut)(addr, b);
+    return *(uint8_t *) (hit + (uintptr_t) addr);
+}
+
+static __inline uint16_t
+mmut_readw(uintptr_t hit, uint32_t set, uint32_t s, uint32_t a, uint32_t *b)
+{
+    const uint32_t addr = s + a;
+
+    if (hit == (uintptr_t) LOOKUP_INV)
+        hit = *(volatile uintptr_t *) &readlookup2[set | (addr >> 12)];
+    if ((hit == (uintptr_t) LOOKUP_INV) || (s == 0xFFFFFFFF) || (addr & 1))
+        return ((s == 0xFFFFFFFF) ? readmemwl_no_mmut_nh : readmemwl_no_mmut)(addr, b);
+    return *(uint16_t *) (hit + (uintptr_t) addr);
+}
+
+static __inline uint32_t
+mmut_readl(uintptr_t hit, uint32_t set, uint32_t s, uint32_t a, uint32_t *b)
+{
+    const uint32_t addr = s + a;
+
+    if (hit == (uintptr_t) LOOKUP_INV)
+        hit = *(volatile uintptr_t *) &readlookup2[set | (addr >> 12)];
+    if ((hit == (uintptr_t) LOOKUP_INV) || (s == 0xFFFFFFFF) || (addr & 3))
+        return ((s == 0xFFFFFFFF) ? readmemll_no_mmut_nh : readmemll_no_mmut)(addr, b);
+    return *(uint32_t *) (hit + (uintptr_t) addr);
+}
+
+static __inline void
+mmut_writeb(uint32_t s, uint32_t a, uint32_t b, uint8_t v)
+{
+    const uint32_t addr = s + a;
+    uintptr_t      hit  = mmut_hit_w;
+
+    if (hit == (uintptr_t) LOOKUP_INV)
+        hit = *(volatile uintptr_t *) &writelookup2[addr >> 12];
+    if ((hit == (uintptr_t) LOOKUP_INV) || (s == 0xFFFFFFFF))
+        ((s == 0xFFFFFFFF) ? writemembl_no_mmut_nh : writemembl_no_mmut)(addr, b, v);
+    else
+        *(uint8_t *) (hit + (uintptr_t) addr) = v;
+}
+
+static __inline void
+mmut_writew(uint32_t s, uint32_t a, uint32_t *b, uint16_t v)
+{
+    const uint32_t addr = s + a;
+    uintptr_t      hit  = mmut_hit_w;
+
+    if (hit == (uintptr_t) LOOKUP_INV)
+        hit = *(volatile uintptr_t *) &writelookup2[addr >> 12];
+    if ((hit == (uintptr_t) LOOKUP_INV) || (s == 0xFFFFFFFF) || (addr & 1))
+        ((s == 0xFFFFFFFF) ? writememwl_no_mmut_nh : writememwl_no_mmut)(addr, b, v);
+    else
+        *(uint16_t *) (hit + (uintptr_t) addr) = v;
+}
+
+static __inline void
+mmut_writel(uint32_t s, uint32_t a, uint32_t *b, uint32_t v)
+{
+    const uint32_t addr = s + a;
+    uintptr_t      hit  = mmut_hit_w;
+
+    if (hit == (uintptr_t) LOOKUP_INV)
+        hit = *(volatile uintptr_t *) &writelookup2[addr >> 12];
+    if ((hit == (uintptr_t) LOOKUP_INV) || (s == 0xFFFFFFFF) || (addr & 3))
+        ((s == 0xFFFFFFFF) ? writememll_no_mmut_nh : writememll_no_mmut)(addr, b, v);
+    else
+        *(uint32_t *) (hit + (uintptr_t) addr) = v;
+}
 #endif
 
 /* readmemb() of an immediate in the instruction stream: a code fetch, which

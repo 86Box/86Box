@@ -231,7 +231,10 @@ checkio_held(uint32_t addr, uint32_t size)
 #else
 /* One of checkio()'s reads from a single load of its lookup entry. The
    do_mmut / readmem_n pair tests the entry twice, and a flush from another
-   thread between the two leaves the reader with no translation. */
+   thread between the two leaves the reader with no translation. A base of
+   FFFFFFFFh takes the _nh calls that pair makes for it, without the pair:
+   OUTS checks the port between its source's translate step and its access,
+   and the pair would overwrite the entry that step saved. */
 static __inline uint16_t
 checkio_readw(uint32_t base, uint32_t off)
 {
@@ -239,8 +242,9 @@ checkio_readw(uint32_t base, uint32_t off)
     uintptr_t e;
 
     if (base == 0xffffffff) {
-        do_mmut_rw(base, off, addr64a_2);
-        return readmemw_n(base, off, addr64a_2);
+        if (do_mmut_needed())
+            do_mmutranslate_nh(addr, addr64a_2, 2, 0);
+        return readmemwl_no_mmut_nh(addr, addr64a_2);
     }
     e = *(volatile uintptr_t *) &readlookup2[addr >> 12];
     if ((e != (uintptr_t) LOOKUP_INV) && !(addr & 1))
@@ -257,8 +261,9 @@ checkio_readb(uint32_t base, uint32_t off)
     uintptr_t e;
 
     if (base == 0xffffffff) {
-        do_mmut_rb(base, off, addr64a_2);
-        return readmemb_n(base, off, addr64a_2[0]);
+        if (do_mmut_needed())
+            do_mmutranslate_nh(addr, addr64a_2, 1, 0);
+        return readmembl_no_mmut_nh(addr, addr64a_2[0]);
     }
     e = *(volatile uintptr_t *) &readlookup2[addr >> 12];
     if (e != (uintptr_t) LOOKUP_INV)

@@ -262,6 +262,9 @@ void
 resetreadlookup(void)
 {
     mem_ap_clear();
+    mmut_hit_r  = (uintptr_t) LOOKUP_INV;
+    mmut_hit_r2 = (uintptr_t) LOOKUP_INV;
+    mmut_hit_w  = (uintptr_t) LOOKUP_INV;
 
     if (mem_held_num) {
         memset(readlookup_held, 0x00, sizeof(readlookup_held));
@@ -664,6 +667,10 @@ flush_read_lookup(void)
     mmu_walk_page        = 0xffffffff;
     mmu_walk_prev_page   = 0xffffffff;
     readlookup_ring0_num = 0;
+    if (is_cpu_thread) {
+        mmut_hit_r  = (uintptr_t) LOOKUP_INV;
+        mmut_hit_r2 = (uintptr_t) LOOKUP_INV;
+    }
 
     mem_held_lock_take();
     for (int set = 0; set < 2; set++) {
@@ -686,6 +693,8 @@ flush_write_lookup(void)
 {
     mem_ap_clear();
     writelookup_ring0_num = 0;
+    if (is_cpu_thread)
+        mmut_hit_w = (uintptr_t) LOOKUP_INV;
 
     mem_held_lock_take();
     for (int c = 0; c < writel_used; c++) {
@@ -775,6 +784,9 @@ drop_ring0_write_entry(int c)
 void
 flushmmucache_ring3(void)
 {
+    mmut_hit_r  = (uintptr_t) LOOKUP_INV;
+    mmut_hit_r2 = (uintptr_t) LOOKUP_INV;
+    mmut_hit_w  = (uintptr_t) LOOKUP_INV;
     if (readlookup_ring0_num > 512) {
         for (int set = 0; set < 2; set++) {
             for (int c = set << 8; c < ((set << 8) + readl_used[set]); c++)
@@ -802,6 +814,8 @@ mem_flush_write_page(uint32_t addr, UNUSED(uint32_t virt))
     const page_t *page_target = &pages[addr >> 12];
     /* Where the page is stored, if not at ram[addr] (remapped RAM). */
     const uint8_t *mem        = ((page_target->mem != NULL) && (page_target->mem != page_ff)) ? page_target->mem : NULL;
+
+    mmut_hit_w = (uintptr_t) LOOKUP_INV;
 
     for (uint16_t c = 0; c < 256; c++) {
         if (writelookup[c] != (int) 0xffffffff) {
@@ -1245,6 +1259,10 @@ addreadlookup(uint32_t virt, uint32_t phys)
     }
 
     if (readlookup[cur_rln] != (int) 0xffffffff) {
+        /* An entry a string instruction saved for this page goes with it
+           (386_common.h). */
+        if (is_cpu_thread && ((uint32_t) readlookup[cur_rln] == (is_compare ? mmut_hit_r2_page : mmut_hit_r_page)))
+            *(is_compare ? &mmut_hit_r2 : &mmut_hit_r) = (uintptr_t) LOOKUP_INV;
         readlookup2[large_offset | readlookup[cur_rln]] = LOOKUP_INV;
         if (!large_offset)
             readlookup_fetch[readlookup[cur_rln]] = 0;
@@ -1335,6 +1353,10 @@ addwritelookup_remapped(uint32_t virt, uint32_t phys, uint32_t ram_addr)
     }
 
     if (writelookup[writelnext] != -1) {
+        /* An entry a string instruction saved for this page goes with it
+           (386_common.h). */
+        if (is_cpu_thread && ((uint32_t) writelookup[writelnext] == mmut_hit_w_page))
+            mmut_hit_w = (uintptr_t) LOOKUP_INV;
         page_lookup[writelookup[writelnext]]  = NULL;
         writelookup2[writelookup[writelnext]] = LOOKUP_INV;
         if (mem_held_num)
