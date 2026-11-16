@@ -1671,13 +1671,16 @@ codegen_LOAD_SEG(codeblock_t *block, uop_t *uop)
         fatal("LOAD_SEG %02x %p\n", uop->src_reg_a_real, uop->p);
 #    endif
 #    if _WIN64
-    host_x86_MOV16_REG_REG(block, REG_CX, src_reg);
+    host_x86_MOVZX_REG_32_16(block, REG_ECX, src_reg);
     host_x86_MOV64_REG_IMM(block, REG_EDX, (uint64_t) uop->p);
 #    else
-    host_x86_MOV16_REG_REG(block, REG_DI, src_reg);
+    host_x86_MOVZX_REG_32_16(block, REG_EDI, src_reg);
     host_x86_MOV64_REG_IMM(block, REG_ESI, (uint64_t) uop->p);
 #    endif
-    host_x86_CALL(block, (void *) loadseg);
+    if ((uop->p == &cpu_state.seg_ds) || (uop->p == &cpu_state.seg_es) || (uop->p == &cpu_state.seg_fs) || (uop->p == &cpu_state.seg_gs))
+        host_x86_CALL(block, (void *) loadseg_pm_fast);
+    else
+        host_x86_CALL(block, (void *) loadseg);
     host_x86_TEST32_REG(block, REG_EAX, REG_EAX);
     codegen_exit_Jcc(block, uop, codegen_exit_rout, host_x86_JNZ_long, host_x86_JZ_long);
 
