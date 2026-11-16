@@ -614,6 +614,17 @@ typedef struct rage128_t {
     int32_t  grad_slope_y[3]; /* signed per-pixel y slope: 0x1a44 / 0x1a50 / 0x1a5c */
     int      grad_valid;      /* a burst was written since DP_GUI_MASTER_CNTL
                                  was last loaded with bit 27 clear */
+    /* The scaler's interpolator alpha, the source alpha of a scaler
+       alpha blend whose ALPHA_LIGHT_FN is copy input. The three
+       registers at 0x1a88-0x1a90 are not named in the guides. The
+       Windows 2000 display driver's AlphaBlend writes them before each
+       blended stretch as (0, 0, constant alpha << 16) (RE: ati2dvaa.dll
+       @00010839). They are modeled with the layout of the color gradient
+       above: a slope along x, a slope along y and a start value, 8.16
+       fixed point. */
+    int32_t  alpha_slope_x; /* 0x1a88 */
+    int32_t  alpha_slope_y; /* 0x1a8c */
+    uint32_t alpha_start;   /* 0x1a90 */
     uint32_t gui_scratch[6];
     uint32_t scale_scr_height_width;
     /* The front-end scaler's register-started stretch (0x1998 and

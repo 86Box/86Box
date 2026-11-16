@@ -26119,6 +26119,193 @@ vectors_reg_scale_906(rage128_t *dev)
     wr(dev, RAGE128_SCALE_3D_DATATYPE, 0);
 }
 
+/* 939: the scaler alpha blend in the shape the Windows 2000 display
+   driver's AlphaBlend sends it (Explorer's translucent selection
+   rectangle): the interpolator alpha at 0x1a88-0x1a90 set to (0, 0,
+   constant alpha << 16), then a 1:1 0x96 stretch of an aRGB 8888
+   surface whose texel alpha is 0, with MISC_3D_STATE 0x00540500
+   (ALPHA_BLND_SRC SRCALPHA, ALPHA_BLND_DST INVSRCALPHA, replicate) and
+   TEX_CNTL 0x00880200 (ALPHA_EN, ALPHA_LIGHT_FN copy input), onto a
+   white 8888 destination. Each channel must come out as the source
+   times a plus the destination times 1 - a, a = constant alpha / 255,
+   rounded to nearest, worked out here in double precision; the alpha
+   channel gets the same equation with the source alpha a. With
+   ALPHA_EN clear the same packet copies the texel. On code without the
+   blend the stretch copies 00316ac5 for every constant alpha, and the
+   three registers read back as 0. */
+#define S939_W   12u
+#define S939_H   5u
+#define S939_X   3u
+#define S939_Y   2u
+#define S939_SRC 0x00316ac5u
+#define S939_DST 0x00ffffffu
+
+static uint32_t
+s939_expect(uint32_t s, uint32_t d, uint32_t ca)
+{
+    double   a   = (double) ca / 255.0;
+    uint32_t out = 0;
+
+    for (int sh = 0; sh < 24; sh += 8) {
+        double v = (double) ((s >> sh) & 0xff) * a + (double) ((d >> sh) & 0xff) * (1.0 - a);
+
+        out |= (uint32_t) (v + 0.5) << sh;
+    }
+    /* alpha: As * a + Ad * (1 - a), with As = a and Ad = the destination's */
+    return out | ((uint32_t) ((double) ca * a + (double) (d >> 24) * (1.0 - a) + 0.5) << 24);
+}
+
+/* Draw the stretch into S906_DPKT (pitch S906_DPX) prefilled with
+   S939_DST; returns 1 when every pixel inside the rect is want and every
+   pixel of the window outside it is still S939_DST. */
+static int
+s939_draw(rage128_t *dev, uint32_t a90, uint32_t tex_cntl, uint32_t want)
+{
+    uint32_t pl[14], n = 0;
+    uint32_t *d = (uint32_t *) &dev->svga.vram[S906_DPKT];
+    int       ok = 1;
+
+    for (uint32_t i = 0; i < S906_DPX * 16u; i++)
+        d[i] = S939_DST;
+    for (uint32_t i = 0; i < 16u * 16u; i++)
+        ((uint32_t *) &dev->svga.vram[S906_SRC])[i] = S939_SRC;
+    wr(dev, 0x1a88, 0);
+    wr(dev, 0x1a8c, 0);
+    wr(dev, 0x1a90, a90);
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, (S939_H << 16) | S939_W);
+    flush_sync(dev);
+    pl[n++] = 0x00000002u | (15u << 4) | (6u << 8) | (3u << 12) | (0xccu << 16) | (2u << 24);
+    pl[n++] = ((S906_DPX / 8) << 21) | (S906_DPKT >> 5);
+    pl[n++] = 0x00540500u;
+    pl[n++] = tex_cntl;
+    pl[n++] = 0x02180840u;
+    pl[n++] = 6;
+    pl[n++] = S906_SRC;
+    pl[n++] = 16 / 8;
+    pl[n++] = 0;
+    pl[n++] = 0x00010000u;
+    pl[n++] = 0x00010000u;
+    pl[n++] = (S939_X << 16) | S939_Y;
+    pl[n++] = (S939_H << 16) | S939_W;
+    rage128_2d_packet3(dev, 0x96u << 8, pl, n);
+    flush_sync(dev);
+    for (uint32_t y = 0; y < 16u; y++)
+        for (uint32_t x = 0; x < S906_DPX; x++) {
+            int in = x >= S939_X && x < S939_X + S939_W && y >= S939_Y && y < S939_Y + S939_H;
+
+            if (d[y * S906_DPX + x] != (in ? want : S939_DST))
+                ok = 0;
+        }
+    return ok;
+}
+
+/* RGB 332 (datatype 7) blends per channel: red 0xe0 (red 7, green 0,
+   blue 0) over black at constant alpha 0x80. Each channel is widened by
+   repeating its top bits, blended, rounded, and truncated back to its
+   bits; green and blue must stay 0. On code that blends the byte as a
+   gray value the result is 0x70, which carries green. */
+static uint32_t
+s939_332_expect(uint32_t s, uint32_t d, uint32_t ca)
+{
+    static const int sh[3] = { 5, 2, 0 }, bits[3] = { 3, 3, 2 };
+    double   a   = (double) ca / 255.0;
+    uint32_t out = 0;
+
+    for (int c = 0; c < 3; c++) {
+        uint32_t m  = (1u << bits[c]) - 1;
+        uint32_t sv = (s >> sh[c]) & m, dv = (d >> sh[c]) & m;
+        /* widen to 8 bits by repeating the top bits */
+        uint32_t s8 = (bits[c] == 3) ? ((sv << 5) | (sv << 2) | (sv >> 1)) : sv * 0x55u;
+        uint32_t d8 = (bits[c] == 3) ? ((dv << 5) | (dv << 2) | (dv >> 1)) : dv * 0x55u;
+        uint32_t v  = (uint32_t) ((double) s8 * a + (double) d8 * (1.0 - a) + 0.5);
+
+        out |= (v >> (8 - bits[c])) << sh[c];
+    }
+    return out;
+}
+
+static void
+s939_rgb332(rage128_t *dev)
+{
+    uint32_t pl[14], n = 0;
+    uint8_t *d    = &dev->svga.vram[S906_DPKT];
+    uint32_t want = s939_332_expect(0xe0, 0x00, 0x80);
+    int      ok   = 1;
+    char     row[160];
+
+    memset(d, 0, S906_DPX * 16u);
+    memset(&dev->svga.vram[S906_SRC], 0xe0, 16u * 16u);
+    wr(dev, 0x1a88, 0);
+    wr(dev, 0x1a8c, 0);
+    wr(dev, 0x1a90, 0x80u << 16);
+    wr(dev, RAGE128_SCALE_SCR_HEIGHT_WIDTH, (S939_H << 16) | S939_W);
+    flush_sync(dev);
+    pl[n++] = 0x00000002u | (15u << 4) | (7u << 8) | (3u << 12) | (0xccu << 16) | (2u << 24);
+    pl[n++] = ((S906_DPX / 8) << 21) | (S906_DPKT >> 5);
+    pl[n++] = 0x00540500u;
+    pl[n++] = 0x00880200u;
+    pl[n++] = 0x02180840u;
+    pl[n++] = 7;
+    pl[n++] = S906_SRC;
+    pl[n++] = 16 / 8;
+    pl[n++] = 0;
+    pl[n++] = 0x00010000u;
+    pl[n++] = 0x00010000u;
+    pl[n++] = (S939_X << 16) | S939_Y;
+    pl[n++] = (S939_H << 16) | S939_W;
+    rage128_2d_packet3(dev, 0x96u << 8, pl, n);
+    flush_sync(dev);
+    for (uint32_t y = 0; y < 16u; y++)
+        for (uint32_t x = 0; x < S906_DPX; x++) {
+            int in = x >= S939_X && x < S939_X + S939_W && y >= S939_Y && y < S939_Y + S939_H;
+
+            if (d[y * S906_DPX + x] != (in ? want : 0u))
+                ok = 0;
+        }
+    snprintf(row, sizeof(row),
+             "2d 939: RGB 332 blends per channel: red e0 over black at alpha 80 is %02x, green 0", want);
+    check_true(row, ok && !(want & 0x1c));
+}
+
+static void
+vectors_scale_alpha_939(rage128_t *dev)
+{
+    static const uint32_t cas[] = { 0x46, 0x00, 0xff, 0x85 };
+    char                  row[160];
+
+    flush_sync(dev);
+    wr(dev, RAGE128_DP_WRITE_MASK, 0xffffffff);
+    wr(dev, RAGE128_DEFAULT_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_SC_TOP_LEFT, 0);
+    wr(dev, RAGE128_SC_BOTTOM_RIGHT, 0x1fff1fff);
+    wr(dev, RAGE128_CLR_CMP_CNTL, 0);
+    wr(dev, RAGE128_AUX_SC_CNTL, 0);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000040);
+
+    wr(dev, 0x1a88, 0x00012345);
+    wr(dev, 0x1a8c, 0xfffe0000);
+    wr(dev, 0x1a90, 0x00460000);
+    check_true("2d 939: 0x1a88 / 0x1a8c / 0x1a90 read back as written",
+               rd(dev, 0x1a88) == 0x00012345 && rd(dev, 0x1a8c) == 0xfffe0000
+                   && rd(dev, 0x1a90) == 0x00460000);
+    for (size_t i = 0; i < sizeof(cas) / sizeof(cas[0]); i++) {
+        uint32_t want = s939_expect(S939_SRC, S939_DST, cas[i]);
+
+        snprintf(row, sizeof(row),
+                 "2d 939: AlphaBlend stretch, constant alpha %02x: 316ac5 over white is %08x",
+                 cas[i], want);
+        check_true(row, s939_draw(dev, cas[i] << 16, 0x00880200u, want));
+    }
+    check_true("2d 939: control: ALPHA_EN clear copies the texel",
+               s939_draw(dev, 0x46u << 16, 0x00880000u, S939_SRC));
+    /* The start field is 8.16 in [23:0]: a set top byte must not
+       saturate the alpha, so 0xff460000 blends as 0x46 does. */
+    check_true("2d 939: interpolator alpha start ignores bits 31:24 (0xff460000 blends as 0x46)",
+               s939_draw(dev, 0xff460000u, 0x00880200u, s939_expect(S939_SRC, S939_DST, 0x46)));
+    s939_rgb332(dev);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+}
+
 /* 921: the stretch walk's row loop for the common case (no compare, no
    aux scissor, open write mask, ROP3 0xCC, source and destination both
    565 or both 8888) against the per-pixel walk. The same stretch is
@@ -28599,6 +28786,7 @@ run_gpu2d_verify(void)
     vectors_reg_scale_906(dev);
     vectors_stretch_rows_921(dev);
     vectors_stretch_rows_930(dev);
+    vectors_scale_alpha_939(dev);
     vectors_fill_rows_929(dev);
     vectors_eng_time_918(dev);
     vectors_cce_status_follows_work(dev);
