@@ -18,6 +18,7 @@
 add_library(utils OBJECT
     # Core
     cJSON.c
+    civil_time.c
     crc.c
     crc32.c
     fifo.c

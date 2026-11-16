@@ -32,6 +32,7 @@
 #include <86box/random.h>
 #include <86box/media_archive.h>
 #include <86box/fs_name.h>
+#include <86box/civil_time.h>
 #include <86box/fat_image.h>
 
 #define MAX_DEPTH   64
@@ -74,8 +75,9 @@ struct fat_image_t {
     char             label[11];
     time_t           now;
     size_t           nodes;
-    int              left_out;
-    int              cp;       /* code page of the short names and the label */ /* FAT_IMAGE_LEFT_OUT_* of the last layout */
+    int              left_out;  /* FAT_IMAGE_LEFT_OUT_* of the last layout */
+    int              cp;        /* code page of the short names and the label */
+    int              tz_offset; /* host offset from UTC now, for times the C library can't place */
 };
 
 typedef struct layout_t {
@@ -580,8 +582,9 @@ fat_image_scan(const char *path, fat_image_t **out)
     fat_image_t *image = (fat_image_t *) calloc(1, sizeof(fat_image_t));
     if (!image)
         return FAT_IMAGE_NO_MEMORY;
-    image->now  = time(NULL);
-    image->cp   = media_codepage();
+    image->now       = time(NULL);
+    image->cp        = media_codepage();
+    image->tz_offset = civil_time_local_offset(image->now, 0);
     image->root = node_new(image, NULL, "");
     if (!image->root) {
         free(image);
@@ -996,39 +999,32 @@ fat_chain(const layout_t *l, uint8_t *fat, const node_t *dir)
 }
 
 static void
-fat_time(time_t t, uint16_t *date, uint16_t *time_out, uint8_t *tenth)
+fat_time(int64_t t, int tz_offset, uint16_t *date, uint16_t *time_out, uint8_t *tenth)
 {
-    struct tm tm;
-#ifdef _WIN32
-    if (localtime_s(&tm, &t))
-        memset(&tm, 0, sizeof(tm));
-#else
-    if (!localtime_r(&t, &tm))
-        memset(&tm, 0, sizeof(tm));
-#endif
-    if (tm.tm_year < 80) {
-        tm.tm_year = 80;
-        tm.tm_mon  = 0;
-        tm.tm_mday = 1;
-        tm.tm_hour = tm.tm_min = tm.tm_sec = 0;
-    } else if (tm.tm_year > 207) {
-        tm.tm_year = 207;
-        tm.tm_mon  = 11;
-        tm.tm_mday = 31;
-        tm.tm_hour = 23;
-        tm.tm_min  = 59;
-        tm.tm_sec  = 58;
+    /* FAT holds local times, as the clock showed them then. */
+    civil_time_t civil;
+    civil_time_from_seconds(t + civil_time_local_offset(t, tz_offset), &civil);
+    if (civil.year < 1980) {
+        civil.year  = 1980;
+        civil.month = civil.day = 1;
+        civil.hour = civil.minute = civil.second = 0;
+    } else if (civil.year > 2107) {
+        civil.year   = 2107;
+        civil.month  = 12;
+        civil.day    = 31;
+        civil.hour   = 23;
+        civil.minute = 59;
+        civil.second = 58;
     }
-    if (tm.tm_sec > 59)
-        tm.tm_sec = 59;
-    *date     = ((tm.tm_year - 80) << 9) | ((tm.tm_mon + 1) << 5) | tm.tm_mday;
-    *time_out = (tm.tm_hour << 11) | (tm.tm_min << 5) | (tm.tm_sec >> 1);
+    *date     = ((civil.year - 1980) << 9) | (civil.month << 5) | civil.day;
+    *time_out = (civil.hour << 11) | (civil.minute << 5) | (civil.second >> 1);
     if (tenth)
-        *tenth = (tm.tm_sec & 1) ? 100 : 0;
+        *tenth = (civil.second & 1) ? 100 : 0;
 }
 
 static void
-dir_entry(uint8_t *p, const uint8_t *name, uint8_t attr, uint8_t nt_case, time_t mtime, uint32_t cluster, uint32_t size)
+dir_entry(uint8_t *p, const uint8_t *name, uint8_t attr, uint8_t nt_case, time_t mtime, int tz_offset, uint32_t cluster,
+          uint32_t size)
 {
     uint16_t date;
     uint16_t time_v;
@@ -1037,7 +1033,7 @@ dir_entry(uint8_t *p, const uint8_t *name, uint8_t attr, uint8_t nt_case, time_t
     memcpy(p, name, 11);
     p[11] = attr;
     p[12] = nt_case;
-    fat_time(mtime, &date, &time_v, &tenth);
+    fat_time(mtime, tz_offset, &date, &time_v, &tenth);
     p[13] = tenth;
     put_le16(p + 14, time_v); /* creation */
     put_le16(p + 16, date);
@@ -1069,11 +1065,11 @@ fill_dir(const fat_image_t *image, const node_t *dir, uint8_t *buf)
     if (dir->parent) {
         const node_t  *parent         = dir->parent;
         uint32_t       parent_cluster = parent->parent ? parent->first_cluster : 0;
-        dir_entry(p, dot, ATTR_DIRECTORY, 0, dir->mtime, dir->first_cluster, 0);
-        dir_entry(p + 32, dotdot, ATTR_DIRECTORY, 0, parent->parent ? parent->mtime : dir->mtime, parent_cluster, 0);
+        dir_entry(p, dot, ATTR_DIRECTORY, 0, dir->mtime, image->tz_offset, dir->first_cluster, 0);
+        dir_entry(p + 32, dotdot, ATTR_DIRECTORY, 0, parent->parent ? parent->mtime : dir->mtime, image->tz_offset, parent_cluster, 0);
         p += 64;
     } else if (has_label(image)) {
-        dir_entry(p, (const uint8_t *) image->label, ATTR_VOLUME_ID, 0, image->now, 0, 0);
+        dir_entry(p, (const uint8_t *) image->label, ATTR_VOLUME_ID, 0, image->now, image->tz_offset, 0, 0);
         p += 32;
     }
 
@@ -1098,7 +1094,7 @@ fill_dir(const fat_image_t *image, const node_t *dir, uint8_t *buf)
             }
         }
         dir_entry(p, child->short_name, child->is_dir ? ATTR_DIRECTORY : (ATTR_ARCHIVE | child->attr), child->nt_case,
-                  child->mtime, child->first_cluster, child->is_dir ? 0 : (uint32_t) child->size);
+                  child->mtime, image->tz_offset, child->first_cluster, child->is_dir ? 0 : (uint32_t) child->size);
         p += 32;
     }
     return p - buf;

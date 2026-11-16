@@ -44,6 +44,7 @@
 
 #include <86box/media_archive.h>
 #include <86box/fs_name.h>
+#include <86box/civil_time.h>
 
 #define VISO_SKIP(p, n)         \
     {                           \
@@ -426,30 +427,15 @@ viso_fill_fn_joliet(uint16_t *data, const viso_entry_t *entry) /* note: returns 
 static int
 viso_fill_time(uint8_t *data, int64_t time, int format, int longform)
 {
-    /* Get time. */
-    time += tz_offset_sec;
-    int64_t secs = time % 86400;
-    int64_t days = time / 86400;
-    if (UNLIKELY(secs < 0)) {
-        secs += 86400;
-        days -= 1;
-    }
-    int hour = secs / 3600;
-    int min  = (secs % 3600) / 60;
-    int sec  = secs % 60;
-    int csec = 0;
-
-    /* Get date.
-       Based on: https://howardhinnant.github.io/date_algorithms.html#civil_from_days */
-    days += 719468;
-    int64_t era  = (LIKELY(days >= 0) ? days : (days - 146096)) / 146097;
-    int64_t doe  = days - (era * 146097);
-    int64_t yoe  = (doe - (doe / 1460) + (doe / 36524) - (doe / 146096)) / 365;
-    int64_t doy  = doe - ((365 * yoe) + (yoe / 4) - (yoe / 100));
-    int64_t mp   = ((5 * doy) + 2) / 153;
-    int     day  = doy - (((153 * mp) + 2) / 5) + 1;
-    int     mon  = mp + ((mp < 10) ? 3 : -9);
-    int     year = yoe + (era * 400) + (mon <= 2);
+    civil_time_t civil;
+    civil_time_from_seconds(time + tz_offset_sec, &civil);
+    int64_t year = civil.year;
+    int     mon  = civil.month;
+    int     day  = civil.day;
+    int     hour = civil.hour;
+    int     min  = civil.minute;
+    int     sec  = civil.second;
+    int     csec = 0;
 
     /* Clamp to supported ranges. */
     if (UNLIKELY(year < (UNLIKELY(longform) ? 0 : 1900))) {
@@ -470,7 +456,7 @@ viso_fill_time(uint8_t *data, int64_t time, int format, int longform)
     if (UNLIKELY(longform)) {
         p += 16;
         snprintf((char *) data, p - data + 1, "%04u%02u%02u%02u%02u%02u%02u",
-                 year, mon, day, hour, min, sec, csec);
+                 (unsigned) year, mon, day, hour, min, sec, csec);
     } else {
         *p++ = (uint8_t) (year - 1900); /* year since 1900 */
         *p++ = (uint8_t) mon;           /* month */
@@ -1074,14 +1060,8 @@ have_eltorito_entry:
        the timezone offset for descriptors and file times to use. */
     tzset();
     time_t now = time(NULL);
-    struct tm now_tm;
     if (viso->format & VISO_FORMAT_ISO) { /* timezones are ISO only */
-#ifdef _WIN32
-        gmtime_s(&now_tm, &now);  /* Windows: output first param, input second */
-#else
-        gmtime_r(&now, &now_tm);  /* POSIX: input first param, output second */
-#endif
-        tz_offset_sec = now - mktime(&now_tm);
+        tz_offset_sec = civil_time_local_offset(now, 0);
         tz_offset_iso = tz_offset_sec / 900; /* 15-minute interval */
     }
 
