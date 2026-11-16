@@ -91,6 +91,7 @@ extern const device_t mouse_pxl_380_device;
 extern const device_t mouse_wacom_tablet_device;
 extern const device_t mouse_wacom_artpad_tablet_device;
 extern const device_t mouse_mtouch_device;
+extern const device_t mouse_elo_device;
 /* The IBM 7690 optical touch panel at interface-adapter ports F300h-F303h. */
 extern const device_t mouse_ibm7690_touch_device;
 extern const device_t mouse_cga_lightpen_device;
