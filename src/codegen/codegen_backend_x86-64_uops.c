@@ -1812,6 +1812,7 @@ typedef struct mem_slow_t {
     codegen_lazy_list_t *lazy;
     int                  kind;
     int                  dest_reg;
+    int                  src_reg;
     int                  store;
     int                  add;
 } mem_slow_t;
@@ -1825,7 +1826,12 @@ codegen_mem_slow(codeblock_t *block, const mem_slow_t *slow)
     if (slow->misaligned_p)
         jump_here(slow->misaligned_p);
     jump_here(slow->miss_p);
-    host_x86_MOV32_REG_REG(block, REG_ESI, slow->store ? REG_EDI : REG_ECX);
+    /*A store keeps its address in ESI; the data goes to ECX here when the
+      fast path stored it from its own register*/
+    if (!slow->store)
+        host_x86_MOV32_REG_REG(block, REG_ESI, REG_ECX);
+    else if (slow->src_reg >= 0)
+        host_x86_MOV32_REG_REG(block, REG_ECX, slow->src_reg);
     host_x86_CALL(block, slow->rout);
     host_x86_TEST32_REG(block, REG_ESI, REG_ESI);
     codegen_exit_Jcc_add(block, slow->add, codegen_exit_rout, host_x86_JNZ_long, host_x86_JZ_long);
@@ -1850,7 +1856,7 @@ codegen_mem_slow(codeblock_t *block, const mem_slow_t *slow)
 /*The fast path ends here: the slow path goes behind the block, or inline
   with a jump over it*/
 static void
-codegen_mem_slow_add(codeblock_t *block, uop_t *uop, uint32_t *misaligned_p, uint32_t *miss_p, int kind, int dest_reg, int store, void *rout)
+codegen_mem_slow_add(codeblock_t *block, uop_t *uop, uint32_t *misaligned_p, uint32_t *miss_p, int kind, int dest_reg, int src_reg, int store, void *rout)
 {
     mem_slow_t  inline_slow;
     mem_slow_t *slow = (nr_mem_slow < MEM_SLOW_MAX) ? &mem_slow[nr_mem_slow++] : &inline_slow;
@@ -1862,6 +1868,7 @@ codegen_mem_slow_add(codeblock_t *block, uop_t *uop, uint32_t *misaligned_p, uin
     slow->lazy         = codegen_lazy_site;
     slow->kind         = kind;
     slow->dest_reg     = dest_reg;
+    slow->src_reg      = src_reg;
     slow->store        = store;
     slow->add          = uop->imm_data2;
     if (slow != &inline_slow) {
@@ -1925,42 +1932,45 @@ codegen_mem_load(codeblock_t *block, uop_t *uop, int kind, int dest_reg, void *r
             host_x86_MOVQ_XREG_BASE_INDEX(block, dest_reg, REG_RSI, REG_RCX);
             break;
     }
-    codegen_mem_slow_add(block, uop, misaligned_p, miss_p, kind, dest_reg, 0, rout);
+    codegen_mem_slow_add(block, uop, misaligned_p, miss_p, kind, dest_reg, -1, 0, rout);
 }
 
+/*ESI = the address; the data in ECX (XMM_TEMP), or for MEM_W/MEM_L in
+  src_reg (-1 for ECX), which only the slow path then copies to ECX*/
 static void
-codegen_mem_store(codeblock_t *block, uop_t *uop, int kind, void *rout)
+codegen_mem_store(codeblock_t *block, uop_t *uop, int kind, void *rout, int src_reg)
 {
     uint32_t *misaligned_p = NULL;
     uint32_t *miss_p;
+    int       data_reg = (src_reg >= 0) ? src_reg : REG_ECX;
 
     host_x86_MOV32_REG_REG(block, REG_EDI, REG_ESI);
-    host_x86_SHR32_IMM(block, REG_ESI, 12);
-    host_x86_MOV64_REG_TABLE_INDEX(block, REG_RSI, REG_R8, writelookup2, REG_RSI);
+    host_x86_SHR32_IMM(block, REG_EDI, 12);
+    host_x86_MOV64_REG_TABLE_INDEX(block, REG_RDI, REG_R8, writelookup2, REG_RDI);
     if (mem_access_size(kind) != 1) {
-        host_x86_TEST8_REG_IMM(block, REG_EDI, mem_access_size(kind) - 1);
+        host_x86_TEST8_REG_IMM(block, REG_ESI, mem_access_size(kind) - 1);
         misaligned_p = host_x86_JNZ_long(block);
     }
-    host_x86_CMP64_REG_IMM(block, REG_RSI, (uint32_t) -1);
+    host_x86_CMP64_REG_IMM(block, REG_RDI, (uint32_t) -1);
     miss_p = host_x86_JZ_long(block);
     switch (kind) {
         case MEM_B:
-            host_x86_MOV8_BASE_INDEX_REG(block, REG_RSI, REG_RDI, REG_ECX);
+            host_x86_MOV8_BASE_INDEX_REG(block, REG_RDI, REG_RSI, REG_ECX);
             break;
         case MEM_W:
-            host_x86_MOV16_BASE_INDEX_REG(block, REG_RSI, REG_RDI, REG_ECX);
+            host_x86_MOV16_BASE_INDEX_REG(block, REG_RDI, REG_RSI, data_reg);
             break;
         case MEM_L:
-            host_x86_MOV32_BASE_INDEX_REG(block, REG_RSI, REG_RDI, REG_ECX);
+            host_x86_MOV32_BASE_INDEX_REG(block, REG_RDI, REG_RSI, data_reg);
             break;
         case MEM_SINGLE:
-            host_x86_MOVD_BASE_INDEX_XREG(block, REG_RSI, REG_RDI, REG_XMM_TEMP);
+            host_x86_MOVD_BASE_INDEX_XREG(block, REG_RDI, REG_RSI, REG_XMM_TEMP);
             break;
         default:
-            host_x86_MOVQ_BASE_INDEX_XREG(block, REG_RSI, REG_RDI, REG_XMM_TEMP);
+            host_x86_MOVQ_BASE_INDEX_XREG(block, REG_RDI, REG_RSI, REG_XMM_TEMP);
             break;
     }
-    codegen_mem_slow_add(block, uop, misaligned_p, miss_p, kind, -1, 1, rout);
+    codegen_mem_slow_add(block, uop, misaligned_p, miss_p, kind, -1, src_reg, 1, rout);
 }
 
 /*ESI = the linear address of an access: the segment base, which a flat
@@ -2093,13 +2103,11 @@ codegen_MEM_STORE_ABS(codeblock_t *block, uop_t *uop)
     codegen_mem_addr(block, uop, -1, uop->imm_data);
     if (REG_IS_B(src_size)) {
         host_x86_MOV8_REG_REG(block, REG_ECX, src_reg);
-        codegen_mem_store(block, uop, MEM_B, codegen_mem_store_byte);
+        codegen_mem_store(block, uop, MEM_B, codegen_mem_store_byte, -1);
     } else if (REG_IS_W(src_size)) {
-        host_x86_MOV16_REG_REG(block, REG_ECX, src_reg);
-        codegen_mem_store(block, uop, MEM_W, codegen_mem_store_word);
+        codegen_mem_store(block, uop, MEM_W, codegen_mem_store_word, src_reg);
     } else if (REG_IS_L(src_size)) {
-        host_x86_MOV32_REG_REG(block, REG_ECX, src_reg);
-        codegen_mem_store(block, uop, MEM_L, codegen_mem_store_long);
+        codegen_mem_store(block, uop, MEM_L, codegen_mem_store_long, src_reg);
     }
 #    ifdef RECOMPILER_DEBUG
     else
@@ -2116,7 +2124,7 @@ codegen_MEM_STORE_IMM_8(codeblock_t *block, uop_t *uop)
 
     codegen_mem_addr(block, uop, addr_reg, 0);
     host_x86_MOV8_REG_IMM(block, REG_ECX, uop->imm_data);
-    codegen_mem_store(block, uop, MEM_B, codegen_mem_store_byte);
+    codegen_mem_store(block, uop, MEM_B, codegen_mem_store_byte, -1);
 
     return 0;
 }
@@ -2127,7 +2135,7 @@ codegen_MEM_STORE_IMM_16(codeblock_t *block, uop_t *uop)
 
     codegen_mem_addr(block, uop, addr_reg, 0);
     host_x86_MOV32_REG_IMM(block, REG_ECX, uop->imm_data & 0xffff); /*only CX is stored*/
-    codegen_mem_store(block, uop, MEM_W, codegen_mem_store_word);
+    codegen_mem_store(block, uop, MEM_W, codegen_mem_store_word, -1);
 
     return 0;
 }
@@ -2138,7 +2146,7 @@ codegen_MEM_STORE_IMM_32(codeblock_t *block, uop_t *uop)
 
     codegen_mem_addr(block, uop, addr_reg, 0);
     host_x86_MOV32_REG_IMM(block, REG_ECX, uop->imm_data);
-    codegen_mem_store(block, uop, MEM_L, codegen_mem_store_long);
+    codegen_mem_store(block, uop, MEM_L, codegen_mem_store_long, -1);
 
     return 0;
 }
@@ -2153,16 +2161,14 @@ codegen_MEM_STORE_REG(codeblock_t *block, uop_t *uop)
     codegen_mem_addr(block, uop, addr_reg, uop->imm_data);
     if (REG_IS_B(src_size)) {
         host_x86_MOV8_REG_REG(block, REG_ECX, src_reg);
-        codegen_mem_store(block, uop, MEM_B, codegen_mem_store_byte);
+        codegen_mem_store(block, uop, MEM_B, codegen_mem_store_byte, -1);
     } else if (REG_IS_W(src_size)) {
-        host_x86_MOV16_REG_REG(block, REG_ECX, src_reg);
-        codegen_mem_store(block, uop, MEM_W, codegen_mem_store_word);
+        codegen_mem_store(block, uop, MEM_W, codegen_mem_store_word, src_reg);
     } else if (REG_IS_L(src_size)) {
-        host_x86_MOV32_REG_REG(block, REG_ECX, src_reg);
-        codegen_mem_store(block, uop, MEM_L, codegen_mem_store_long);
+        codegen_mem_store(block, uop, MEM_L, codegen_mem_store_long, src_reg);
     } else if (REG_IS_Q(src_size)) {
         host_x86_MOVQ_XREG_XREG(block, REG_XMM_TEMP, src_reg);
-        codegen_mem_store(block, uop, MEM_Q, codegen_mem_store_quad);
+        codegen_mem_store(block, uop, MEM_Q, codegen_mem_store_quad, -1);
     }
 #    ifdef RECOMPILER_DEBUG
     else
@@ -2185,7 +2191,7 @@ codegen_MEM_STORE_SINGLE(codeblock_t *block, uop_t *uop)
 #    endif
     codegen_mem_addr(block, uop, addr_reg, uop->imm_data);
     host_x86_CVTSD2SS_XREG_XREG(block, REG_XMM_TEMP, src_reg);
-    codegen_mem_store(block, uop, MEM_SINGLE, codegen_mem_store_single);
+    codegen_mem_store(block, uop, MEM_SINGLE, codegen_mem_store_single, -1);
 
     return 0;
 }
@@ -2202,7 +2208,7 @@ codegen_MEM_STORE_DOUBLE(codeblock_t *block, uop_t *uop)
 #    endif
     codegen_mem_addr(block, uop, addr_reg, uop->imm_data);
     host_x86_MOVQ_XREG_XREG(block, REG_XMM_TEMP, src_reg);
-    codegen_mem_store(block, uop, MEM_DOUBLE, codegen_mem_store_double);
+    codegen_mem_store(block, uop, MEM_DOUBLE, codegen_mem_store_double, -1);
 
     return 0;
 }
