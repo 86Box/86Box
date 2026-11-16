@@ -1064,7 +1064,9 @@ codegen_reg_alloc_write_reg(codeblock_t *block, ir_reg_t ir_reg)
     host_reg_set_t *reg_set = get_reg_set(ir_reg);
     int             c;
 
-    if (!reg_is_native_size(ir_reg)) {
+    /*A temporary's value on block entry is undefined, so its first partial
+      write in the block has no parent to read in*/
+    if (!reg_is_native_size(ir_reg) && !(ireg_data[IREG_GET_REG(ir_reg.reg)].is_volatile && ir_reg.version == 1)) {
         /*Read in parent register so we can do partial accesses to it*/
         ir_reg_t parent_reg;
 
