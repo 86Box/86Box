@@ -225,6 +225,50 @@ checkio_held(uint32_t addr, uint32_t size)
     return (uintptr_t) LOOKUP_INV;
 }
 
+#ifdef OPS_286_386
+#    define checkio_readw(s, a) (do_mmut_rw(s, a, addr64a_2), readmemw_n(s, a, addr64a_2))
+#    define checkio_readb(s, a) (do_mmut_rb(s, a, addr64a_2), readmemb_n(s, a, addr64a_2[0]))
+#else
+/* One of checkio()'s reads from a single load of its lookup entry. The
+   do_mmut / readmem_n pair tests the entry twice, and a flush from another
+   thread between the two leaves the reader with no translation. */
+static __inline uint16_t
+checkio_readw(uint32_t base, uint32_t off)
+{
+    uint32_t  addr = base + off;
+    uintptr_t e;
+
+    if (base == 0xffffffff) {
+        do_mmut_rw(base, off, addr64a_2);
+        return readmemw_n(base, off, addr64a_2);
+    }
+    e = *(volatile uintptr_t *) &readlookup2[addr >> 12];
+    if ((e != (uintptr_t) LOOKUP_INV) && !(addr & 1))
+        return *(uint16_t *) (e + addr);
+    if (do_mmut_needed())
+        do_mmutranslate(addr, addr64a_2, 2, 0);
+    return readmemwl_no_mmut(addr, addr64a_2);
+}
+
+static __inline uint8_t
+checkio_readb(uint32_t base, uint32_t off)
+{
+    uint32_t  addr = base + off;
+    uintptr_t e;
+
+    if (base == 0xffffffff) {
+        do_mmut_rb(base, off, addr64a_2);
+        return readmemb_n(base, off, addr64a_2[0]);
+    }
+    e = *(volatile uintptr_t *) &readlookup2[addr >> 12];
+    if (e != (uintptr_t) LOOKUP_INV)
+        return *(uint8_t *) (e + addr);
+    if (do_mmut_needed())
+        do_mmutranslate(addr, addr64a_2, 1, 0);
+    return readmembl_no_mmut(addr, addr64a_2[0]);
+}
+#endif
+
 static int
 checkio(uint32_t port, int mask)
 {
@@ -245,10 +289,8 @@ checkio(uint32_t port, int mask)
     held = checkio_held(tr.base + 0x66, 2);
     if (held != (uintptr_t) LOOKUP_INV)
         t = *(uint16_t *) (held + (tr.base + 0x66));
-    else {
-        do_mmut_rw(tr.base, 0x66, addr64a_2);
-        t = readmemw_n(tr.base, 0x66, addr64a_2);
-    }
+    else
+        t = checkio_readw(tr.base, 0x66);
 
     if (UNLIKELY(cpu_state.abrt)) {
         cpl_override = 0;
@@ -270,20 +312,16 @@ checkio(uint32_t port, int mask)
             held = checkio_held(tr.base + t, 2);
             if (held != (uintptr_t) LOOKUP_INV)
                 mask &= *(uint16_t *) (held + (tr.base + t));
-            else {
-                do_mmut_rw(tr.base, t, addr64a_2);
-                mask &= readmemw_n(tr.base, t, addr64a_2);
-            }
+            else
+                mask &= checkio_readw(tr.base, t);
         }
     } else {
         if (LIKELY(t <= tr.limit)) {
             held = checkio_held(tr.base + t, 1);
             if (held != (uintptr_t) LOOKUP_INV)
                 mask &= *(uint8_t *) (held + (tr.base + t));
-            else {
-                do_mmut_rb(tr.base, t, addr64a_2);
-                mask &= readmemb_n(tr.base, t, addr64a_2[0]);
-            }
+            else
+                mask &= checkio_readb(tr.base, t);
         }
     }
     cpl_override = 0;
