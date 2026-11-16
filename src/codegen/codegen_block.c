@@ -2060,6 +2060,7 @@ codegen_block_start_recompile(codeblock_t *block)
     codegen_reg_reset();
     codegen_accumulate_reset();
     codegen_generate_reset();
+    codegen_fwd_reset();
 }
 
 void
@@ -2396,6 +2397,7 @@ codegen_block_end_recompile(codeblock_t *block)
     uint64_t page_mask2_compiled = block->page_mask2;
     int      drain_from;
 
+    codegen_fwd_end(cs + cpu_state.pc, cs + cpu_state.oldpc);
     codegen_accumulate_record(ACC_END, 0, 0, 0, 0, 0);
     drain_from = codegen_block_cycles;
     codegen_timing_block_end();

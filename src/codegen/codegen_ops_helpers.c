@@ -1050,6 +1050,10 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
     uint8_t head_tag_valid;
     uint8_t head_tag_empty;
 
+    /*Not over a short forward Jcc's jump inside the block (codegen_fwd_arm)*/
+    if ((codegen_fwd_jump >= 0) || codegen_fwd_used)
+        return 0;
+
     /*Check that dest instruction was actually compiled into block*/
     start = codegen_get_instruction_uop(block, dest_addr, &first_instruction, &TOP);
 

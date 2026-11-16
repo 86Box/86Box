@@ -1132,6 +1132,8 @@ exec386_dynarec_dyn(const int dbg)
 
                 cpu_state.pc++;
 
+                if (codegen_fwd_jump >= 0)
+                    codegen_fwd_check(cs + cpu_state.oldpc);
                 codegen_generate_call(opcode, x86_opcodes[(opcode | cpu_state.op32) & 0x3ff], fetchdat, cpu_state.pc, cpu_state.pc - 1);
                 codegen_block_version_check_ins(cs + cpu_state.oldpc);
 
