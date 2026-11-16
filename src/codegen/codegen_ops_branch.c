@@ -92,10 +92,16 @@ jcc_exit(ir_data_t *ir, uint32_t dest_addr)
    handler lays it out as an unrolled loop's branch, leaving by a side exit
    when not taken, and returns 1 so compiling goes on at the target. */
 static int jcc_trace;
+/* A loop's branch within the block (codegen_unroll_dest_ok), and whether the
+   compile pass took it: one it did not take is laid out as a plain exit,
+   which counts as jcc_exit_hot's do. */
+static int jcc_in_block;
+static int jcc_taken;
 
 static int
 jcc_can_go_on(codeblock_t *block, ir_data_t *ir, uint32_t next_pc, uint32_t dest_addr)
 {
+    jcc_taken = 1;
     return codegen_can_unroll(block, ir, next_pc, dest_addr) || jcc_trace;
 }
 
@@ -103,7 +109,9 @@ static void
 jcc_trace_start(codeblock_t *block, uint32_t op_pc, int size, uint32_t dest_addr)
 {
     /* 0 from a handler means it compiled nothing (codegen_can_unroll) */
-    jcc_trace = dest_addr && codegen_trace_jcc_can(block, cs + op_pc + size, cs + dest_addr);
+    jcc_trace    = dest_addr && codegen_trace_jcc_can(block, cs + op_pc + size, cs + dest_addr);
+    jcc_in_block = codegen_unroll_dest_ok(block, op_pc + size, dest_addr);
+    jcc_taken    = 0;
 }
 
 static void
@@ -115,14 +123,15 @@ jcc_trace_end(codeblock_t *block, ir_data_t *ir, uint32_t op_pc, int size, uint3
 }
 
 /*The taken exit of a Jcc the block could have gone on through
-  (codegen_trace_jcc_can) had the compile pass taken it: counted, so the
+  (codegen_trace_jcc_can), or unrolled as a loop within the block
+  (codegen_unroll_dest_ok), had the compile pass taken it: counted, so the
   block is compiled again once it is taken often (codegen_jcc_hot_exit).
   Code that ran the loop's branch the other way once while it was compiled,
   say on the first or last time round, otherwise keeps that layout*/
 static void
 jcc_exit_hot(codeblock_t *block, ir_data_t *ir, uint32_t dest_addr)
 {
-    if (jcc_trace && codegen_jcc_hot_can(block))
+    if ((jcc_trace || (jcc_in_block && !jcc_taken)) && codegen_jcc_hot_can(block))
         uop_CALL_INSTRUCTION_FUNC(ir, codegen_jcc_hot_exit, get_block_nr(block));
     jcc_exit(ir, dest_addr);
 }
@@ -1188,7 +1197,9 @@ ropLOOP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32
     if (!(op_32 & 0x100))
         dest_addr &= 0xffff;
 
-    if (((op_32 & 0x200) ? ECX : CX) != 1 && codegen_can_unroll(block, ir, op_pc + 1, dest_addr)) {
+    const int taken = ((op_32 & 0x200) ? ECX : CX) != 1;
+
+    if (taken && codegen_can_unroll(block, ir, op_pc + 1, dest_addr)) {
         if (op_32 & 0x200) {
             uop_SUB_IMM(ir, IREG_ECX, IREG_ECX, 1);
             jump_uop = uop_CMP_IMM_JNZ_DEST(ir, IREG_ECX, 0);
@@ -1207,6 +1218,10 @@ ropLOOP(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32
             uop_SUB_IMM(ir, IREG_CX, IREG_CX, 1);
             jump_uop = uop_CMP_IMM_JZ_DEST(ir, IREG_CX, 0);
         }
+        /*Compiled on the loop's last time round: counted as a Jcc's
+          (jcc_exit_hot), so the block is compiled again to unroll it*/
+        if (!taken && codegen_unroll_dest_ok(block, op_pc + 1, dest_addr) && codegen_jcc_hot_can(block))
+            uop_CALL_INSTRUCTION_FUNC(ir, codegen_jcc_hot_exit, get_block_nr(block));
         uop_MOV_IMM(ir, IREG_pc, dest_addr);
         ret_addr = op_pc + 1;
     }

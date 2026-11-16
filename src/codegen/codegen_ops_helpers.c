@@ -1065,6 +1065,17 @@ codegen_can_unroll_full(codeblock_t *block, ir_data_t *ir, UNUSED(uint32_t next_
     if (TOP != cpu_state.TOP)
         return 0;
 
+    /*A byte-mask block's page is written as code: a loop that wrote its own
+      bytes would run the copies stale, where the branch's exit would have
+      seen them dirty. So there only a loop that reaches neither memory nor
+      a helper, whose uops other than jumps are no barriers*/
+    if (block->flags & CODEBLOCK_BYTE_MASK) {
+        for (int c = start; c < ir->wr_pos; c++) {
+            if ((ir->uops[c].type & (UOP_TYPE_BARRIER | UOP_TYPE_ORDER_BARRIER)) && !(ir->uops[c].type & UOP_TYPE_JUMP))
+                return 0;
+        }
+    }
+
     /*An x87 or MMX instruction compiled after the block has entered the FPU
       or MMX leaves out its entry check (and MMX's, its setting of every tag
       valid), and the copies run the loop's first instruction again after its
