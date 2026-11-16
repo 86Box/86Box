@@ -1002,7 +1002,7 @@ codegen_timing_686_opcode(uint8_t opcode, uint32_t fetchdat, int op_32, UNUSED(u
             last_regmask_modified = regmask_modified;
             regmask_modified      = prev_regmask;
         } else if (((timings[opcode] & PAIR_MASK) == PAIR_X || (timings[opcode] & PAIR_MASK) == PAIR_X_BRANCH)
-                   && (prev_timings[opcode] & PAIR_MASK) == PAIR_X) {
+                   && (prev_timings[prev_opcode] & PAIR_MASK) == PAIR_X) {
             /*Instruction can not pair with previous*/
             /*Run previous now*/
             codegen_block_cycles += COUNT(prev_timings[prev_opcode], prev_op_32) + decode_delay + agi_stall;
