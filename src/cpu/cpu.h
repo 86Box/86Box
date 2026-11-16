@@ -586,6 +586,10 @@ extern int is186;
 #define RETF_STACK_TEST_FRAME_FIRST 1 /* outer frame before the return CS is examined */
 #define RETF_STACK_TEST_CS_FIRST    2 /* outer frame after the return CS checks */
 
+#define RETF_EIP_TEST_NONE      0
+#define RETF_EIP_TEST_PMODE     1 /* protected mode only */
+#define RETF_EIP_TEST_ALL_MODES 2 /* the 16-bit form in real and V86 mode too */
+
 #define FAR_LOAD_ORDER_NONE 0
 #define FAR_LOAD_ORDER_PRM  1 /* the programmer's reference manuals' order */
 #define FAR_LOAD_ORDER_IA   2 /* the Intel Architecture manuals' order */

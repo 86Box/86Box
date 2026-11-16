@@ -722,7 +722,11 @@ cpu_set(void)
     is386ex = (cpu_f->package == CPU_PKG_386EX);
 
     /* Far RET tests the return EIP against the new CS limit (#GP(0)) only on
-       the processors whose own manuals state that test. */
+       the processors whose own manuals state that test. The 1997 Intel
+       Architecture manual vol. 2 p. 3-409, the Pentium Pro manual vol. 2
+       p. 11-337 and the 1999 one p. 3-610 also test the 16-bit form's IP
+       against the CS limit in real and virtual 8086 mode, before CS is
+       popped. */
     switch (cpu_s->cpu_type) {
         case CPU_286:
         case CPU_386DX:
@@ -736,26 +740,28 @@ cpu_set(void)
         case CPU_ENH_Am486DX:
         case CPU_P24T:
         case CPU_PENTIUM:
-        case CPU_PENTIUMMMX:
         case CPU_Cx6x86:
         case CPU_Cx6x86MX:
         case CPU_Cx6x86L:
         case CPU_CxGX1:
+            retf_checks_eip_limit = RETF_EIP_TEST_PMODE;
+            break;
+        case CPU_PENTIUMMMX:
         case CPU_PENTIUMPRO:
         case CPU_PENTIUM2:
         case CPU_PENTIUM2D:
-            retf_checks_eip_limit = 1;
+            retf_checks_eip_limit = RETF_EIP_TEST_ALL_MODES;
             break;
         case CPU_386SX:
-            retf_checks_eip_limit = !is6117;
+            retf_checks_eip_limit = is6117 ? RETF_EIP_TEST_NONE : RETF_EIP_TEST_PMODE;
             break;
         case CPU_486SLC:
         case CPU_486DLC:
             /* Not the clock-doubled Cx486SRx2 / DRx2 (DIR0 06h / 07h). */
-            retf_checks_eip_limit = (cpu_s->cyrix_id <= 0x0001);
+            retf_checks_eip_limit = (cpu_s->cyrix_id <= 0x0001) ? RETF_EIP_TEST_PMODE : RETF_EIP_TEST_NONE;
             break;
         default:
-            retf_checks_eip_limit = 0;
+            retf_checks_eip_limit = RETF_EIP_TEST_NONE;
             break;
     }
 

@@ -507,9 +507,25 @@ retf_load_cs_rm(ir_data_t *ir)
 #endif
 }
 
+/*The 16-bit form in real and V86 mode, where the CPU's manual has the test:
+  the popped IP, in temp0_W, against the CS limit as held, before CS is
+  popped. Returns 1 when it was made, with the IP in pc*/
+static int
+retf_rm_ip_test(ir_data_t *ir)
+{
+    if (retf_checks_eip_limit != RETF_EIP_TEST_ALL_MODES)
+        return 0;
+
+    uop_MOVZX(ir, IREG_pc, IREG_temp0_W);
+    uop_CMP_JNBE(ir, IREG_pc, IREG_CS_limit_high, codegen_gpf_rout);
+    return 1;
+}
+
 uint32_t
 ropRETF_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), UNUSED(uint32_t op_pc))
 {
+    int ip_set;
+
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG))
         return retf_pm(block, ir, op_pc, 0, 0);
 
@@ -517,16 +533,19 @@ ropRETF_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UN
 
     if (stack32) {
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_ESP);
+        ip_set = retf_rm_ip_test(ir);
         uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, IREG_SS_base, IREG_ESP, 2);
     } else {
         uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_eaaddr);
+        ip_set = retf_rm_ip_test(ir);
         /*CS at SP + 2 wrapping at 64 KB, as the op reads it*/
         uop_ADD_IMM(ir, IREG_eaaddr_W, IREG_SP, 2);
         uop_MOVZX(ir, IREG_eaaddr, IREG_eaaddr_W);
         uop_MEM_LOAD_REG(ir, IREG_temp1_W, IREG_SS_base, IREG_eaaddr);
     }
-    uop_MOVZX(ir, IREG_pc, IREG_temp0_W);
+    if (!ip_set)
+        uop_MOVZX(ir, IREG_pc, IREG_temp0_W);
     retf_load_cs_rm(ir);
     ADD_SP(ir, 4);
     /*The op's own charge, on top of the timing model's, once nothing can
@@ -565,6 +584,7 @@ uint32_t
 ropRETF_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     uint16_t offset;
+    int      ip_set;
 
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG))
         return retf_pm(block, ir, op_pc, 0, 1);
@@ -574,16 +594,19 @@ ropRETF_imm_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED
 
     if (stack32) {
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_ESP);
+        ip_set = retf_rm_ip_test(ir);
         uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, IREG_SS_base, IREG_ESP, 2);
     } else {
         uop_MOVZX(ir, IREG_eaaddr, IREG_SP);
         uop_MEM_LOAD_REG(ir, IREG_temp0_W, IREG_SS_base, IREG_eaaddr);
+        ip_set = retf_rm_ip_test(ir);
         /*CS at SP + 2 wrapping at 64 KB, as the op reads it*/
         uop_ADD_IMM(ir, IREG_eaaddr_W, IREG_SP, 2);
         uop_MOVZX(ir, IREG_eaaddr, IREG_eaaddr_W);
         uop_MEM_LOAD_REG(ir, IREG_temp1_W, IREG_SS_base, IREG_eaaddr);
     }
-    uop_MOVZX(ir, IREG_pc, IREG_temp0_W);
+    if (!ip_set)
+        uop_MOVZX(ir, IREG_pc, IREG_temp0_W);
     retf_load_cs_rm(ir);
     ADD_SP(ir, 4 + offset);
     codegen_accumulate(ir, ACCREG_cycles, -timing_retf_rm);

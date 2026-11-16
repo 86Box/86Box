@@ -1,3 +1,12 @@
+/* Real and V86 mode: the popped IP against the CS limit as held, before CS
+   is popped, where the CPU's manual has that test */
+#define RETF_RM_IP_TEST()                                                         \
+    if ((retf_checks_eip_limit == RETF_EIP_TEST_ALL_MODES) && !cpu_state.abrt && \
+        (cpu_state.pc > cpu_state.seg_cs.limit_high)) {                           \
+        x86gpf(NULL, 0);                                                          \
+        return 1;                                                                 \
+    }
+
 #define RETF_a16(stack_offset)                        \
     if ((msw & 1) && !(cpu_state.eflags & VM_FLAG)) { \
         op_pmoderetf(0, stack_offset);                \
@@ -5,9 +14,11 @@
     }                                                 \
     if (stack32) {                                    \
         cpu_state.pc = readmemw(ss, ESP);             \
+        RETF_RM_IP_TEST();                            \
         op_loadcs(readmemw(ss, ESP + 2));             \
     } else {                                          \
         cpu_state.pc = readmemw(ss, SP);              \
+        RETF_RM_IP_TEST();                            \
         op_loadcs(readmemw(ss, (SP + 2) & 0xffff));   \
     }                                                 \
     if (cpu_state.abrt)                               \
