@@ -133,15 +133,14 @@ static mouse_t mouse_devices[] = {
 static mouse_t tablet_devices[] = {
     { &mouse_none_device                },
     { &tablet_internal_device           },
-#ifdef USE_WACOM
     { &mouse_wacom_tablet_device        },
     { &mouse_wacom_artpad_tablet_device },
-#endif
     { &mouse_mtouch_device              },
     { &mouse_ibm7690_touch_device        },
     { &mouse_cga_lightpen_device        },
     { &mouse_pxl_380_device             },
     { &tablet_usb_device                },
+    { &mouse_elo_device                 },
     { NULL                              }
 };
 

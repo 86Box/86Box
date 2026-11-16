@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-14 17:46+0000\n"
-"Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
+"PO-Revision-Date: 2026-11-16 18:42+0000\n"
+"Last-Translator: Alexander Babikov <lemondrops358@gmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
 "MIME-Version: 1.0\n"
@@ -247,40 +247,40 @@ msgid "Sound &gain…"
 msgstr "&Ενίσχυση ήχου…"
 
 msgid "M&IDI output device"
-msgstr ""
+msgstr "Συσκευή εξόδου M&IDI"
 
 msgid "Restart &device"
-msgstr ""
+msgstr "Επανεκκίνηση &συσκευής"
 
 msgid "Send MIDI &command"
-msgstr ""
+msgstr "Αποστολή &εντολής MIDI"
 
 msgid "&GM System On"
-msgstr ""
+msgstr "Σύστημα &GM Ενεργό"
 
 msgid "G&S Reset"
-msgstr ""
+msgstr "Επαναφορά G&S"
 
 msgid "&XG System On"
-msgstr ""
+msgstr "Σύστημα &XG Ενεργό"
 
 msgid "&MT-32 Reset"
-msgstr ""
+msgstr "Επαναφορά &MT-32"
 
 msgid "All &notes off"
-msgstr ""
+msgstr "Όλες οι &νότες απενεργοποιημένες"
 
 msgid "Show MIDI &LCD"
-msgstr ""
+msgstr "Εμφάνιση MIDI &LCD"
 
 msgid "MIDI LCD"
-msgstr ""
+msgstr "MIDI LCD"
 
 msgid "Always on &top"
-msgstr ""
+msgstr "Πάντα στο &προσκήνιο"
 
 msgid "&Close"
-msgstr ""
+msgstr "&Κλείσιμο"
 
 msgid "Begin trace"
 msgstr "Αρχλη καταγραφής"
@@ -1388,7 +1388,7 @@ msgstr "Χρήση %1"
 
 msgid "%n machine(s) active"
 msgid_plural "%n machines active"
-msgstr[0] "%n ενεργή(ές) μηχανή(ές)"
+msgstr[0] "%n ενεργή μηχανή"
 msgstr[1] "%n ενεργές μηχανές"
 
 msgid " (+%n more)"
@@ -2616,7 +2616,7 @@ msgid "Start Address"
 msgstr "Διεύθυνση εκκίνησης"
 
 msgid "Allow RAM up to the system ROM"
-msgstr ""
+msgstr "Επιτρέψτε RAM έως το μέγεθος της ROM του συστήματος"
 
 msgid "Contiguous Size"
 msgstr "Μέγεθος συνέχειας"
@@ -3952,184 +3952,205 @@ msgid "Run the given number of instructions (F11)"
 msgstr "Εκτέλεσε τον καθορισμένο αριθμό εντολών (F11)"
 
 msgid "Instructions per step"
-msgstr ""
+msgstr "Εντολές ανα βήμα"
 
 msgid "Physical"
-msgstr ""
+msgstr "Φυσικό"
 
 msgid "Address, register or seg:off"
-msgstr ""
+msgstr "Διεύθυνση, καταχωρητής ή seg:off"
 
 msgid "Go"
-msgstr ""
+msgstr "Πάμε"
 
 msgid "Live update"
-msgstr ""
+msgstr "Live ενημέρωση"
 
 msgid "Dump..."
-msgstr ""
+msgstr "Εξαγωγή..."
 
 msgid "Commands"
-msgstr ""
+msgstr "Εντολές"
 
 msgid "Show or hide debugger commands (Ctrl+D)"
-msgstr ""
+msgstr "Εμφάνιση ή απόκρυψη εντολών αποσφαλμάτωσης (Ctrl+D)"
 
 msgid "Hex bytes"
-msgstr ""
+msgstr "Δεκαεξαδικά bytes"
 
 msgid "ASCII text"
-msgstr ""
+msgstr "Κείμενο ASCII"
 
 msgid "Value, byte"
-msgstr ""
+msgstr "Τιμή, byte"
 
 msgid "Value, word"
-msgstr ""
+msgstr "Τιμή, word"
 
 msgid "Value, dword"
-msgstr ""
+msgstr "Τιμή, dword"
 
 msgid "What to look for: raw hex bytes, text, or a hex value stored little-endian, as in the hex view."
 msgstr ""
+"Προς αναζήτηση: ακατέργαστα bytes σε δεκαεξαδική μορφή, κείμενο ή μια "
+"δεκαεξαδική τιμή αποθηκευμένη σε μορφή little-endian, όπως εμφανίζεται στην "
+"προβολή δεκαεξαδικών δεδομένων."
 
 msgid "Memory search"
-msgstr ""
+msgstr "Αναζήτηση μνήμης"
 
 msgid "Ctrl+F focuses this box; Enter or F3 finds the next match, Shift+F3 the previous."
 msgstr ""
+"Το Ctrl+F εστιάζει σε αυτό το πλαίσιο; Το Enter ή το F3 εντοπίζει την "
+"επόμενη αντιστοίχιση, ενώ το Shift+F3 την προηγούμενη."
 
 msgid "Find previous"
-msgstr ""
+msgstr "Εύρεση προηγούμενου"
 
 msgid "Search upwards from the selection (Shift+F3)"
-msgstr ""
+msgstr "Αναζήτηση προς τα πάνω από την επιλογή (Shift+F3)"
 
 msgid "Find next"
-msgstr ""
+msgstr "Εύρεση επόμενου"
 
 msgid "Search downwards from the selection (F3)"
-msgstr ""
+msgstr "Αναζήτηση προς τα κάτω από την επιλογή (F3)"
 
 msgid "Range..."
-msgstr ""
+msgstr "Εύρος..."
 
 msgid "Search within an address range instead of all memory"
-msgstr ""
+msgstr "Αναζήτηση εντός εύρους διευθύνσεων αντί για ολόκληρη τη μνήμη"
 
 msgid "From"
-msgstr ""
+msgstr "Από"
 
 msgid "Where the search starts (hex, register or seg:off; empty means the first mapped byte; . means the selection start)."
 msgstr ""
+"Το σημείο έναρξης της αναζήτησης (δεκαεξαδική μορφή, καταχωρητής ή seg:off; "
+"το κενό υποδηλώνει το πρώτο αντιστοιχισμένο byte; ενώ το . υποδηλώνει την "
+"αρχή της επιλογής)."
 
 msgid "To (inclusive)"
-msgstr ""
+msgstr "Έως (συμπεριλαμβανομένου)"
 
 msgid "Where the search ends, that address included (hex, register or seg:off; empty means the last mapped byte; . means the selection end)."
 msgstr ""
+"Εκεί όπου τελειώνει η αναζήτηση, συμπεριλαμβανομένης της συγκεκριμένης "
+"διεύθυνσης (δεκαεξαδική μορφή, καταχωρητής ή seg:off; το κενό υποδηλώνει το "
+"τελευταίο αντιστοιχισμένο byte; το . υποδηλώνει το τέλος της επιλογής)."
 
 msgid "Range from"
-msgstr ""
+msgstr "Εύρος από"
 
 msgid "to"
-msgstr ""
+msgstr "έως"
 
 msgid "RAM"
-msgstr ""
+msgstr "RAM"
 
 msgid "Mapped, not RAM"
-msgstr ""
+msgstr "Αντιστοιχισμένη (μνήμη), όχι RAM"
 
 msgid "Unmapped"
-msgstr ""
+msgstr "Μη αντιστοιχισμένο"
 
 msgid "Inaccessible"
-msgstr ""
+msgstr "Μη προσβάσιμο"
 
 msgid "Inaccessible: only device handlers answer there (reading would have side effects), or the linear page is not present."
 msgstr ""
+"Μη προσβάσιμο: εκεί απαντούν μόνο χειριστές συσκευών (η ανάγνωση θα είχε "
+"παρενέργειες), ή η γραμμική σελίδα δεν είναι παρούσα."
 
 msgid "Linear address, register or seg:off"
-msgstr ""
+msgstr "Γραμμική διεύθυνση, καταχωρητής ή seg:off"
 
 msgid "Follow CS:IP"
-msgstr ""
+msgstr "Ακολούθηση CS:IP"
 
 msgid "Bytes"
-msgstr ""
+msgstr "Bytes"
 
 msgid "Instruction"
-msgstr ""
+msgstr "Εντολή"
 
 msgid "Note"
-msgstr ""
+msgstr "Σημείωση"
 
 msgid "Double-click a line to set or clear a breakpoint there"
 msgstr ""
+"Κάντε διπλό κλικ σε μια γραμμή για να ορίσετε ή να καταργήσετε ένα σημείο "
+"διακοπής σε αυτήν"
 
 msgid "Disassembly"
-msgstr ""
+msgstr "Αποσυναρμολόγηση"
 
 msgid "Disassembly (not available in this build)"
-msgstr ""
+msgstr "Αποσυναρμολόγηση (μη διαθέσιμη σε αυτό το build)"
 
 msgid "Viewer message"
-msgstr ""
+msgstr "Μήνυμα προγράμματος προβολής"
 
 msgid "Selected range"
-msgstr ""
+msgstr "Επιλεγμένο εύρος"
 
 msgid "Debugger commands"
-msgstr ""
+msgstr "Εντολές αποσφαλμάτωσης"
 
 msgid "Debugger command output"
-msgstr ""
+msgstr "Έξοδος εντολής αποσφαλματωτή"
 
 msgid "Debugger command"
-msgstr ""
+msgstr "Εντολή αποσφαλμάτωσης"
 
 msgid "help — commands; Up/Down — history; . — selected address"
-msgstr ""
+msgstr "βοήθεια — εντολές; Πάνω/Κάτω — ιστορικό; . — επιλεγμένη διεύθυνση"
 
 msgid "Commands share the memory viewer's address space and selection. Type help for commands."
 msgstr ""
+"Οι εντολές μοιράζονται τον χώρο διευθύνσεων και την επιλογή του προβολέα "
+"μνήμης. Πληκτρολογήστε help για τις εντολές."
 
 msgid "Let the processor run (F5)"
-msgstr ""
+msgstr "Άφησε τον επεξεργαστή να εκτελέσει (F5)"
 
 msgid "Stop the processor at the next instruction (F5)"
-msgstr ""
+msgstr "Διακοπή του επεξεργαστή στην επόμενη εντολή (F5)"
 
 msgid "Too many breakpoints."
-msgstr ""
+msgstr "Πάρα πολλά σημεία διακοπής."
 
 msgid "Stopped: %1"
-msgstr ""
+msgstr "Διακόπηκε: %1"
 
 msgid "The emulator is busy; the view was not updated."
-msgstr ""
+msgstr "Ο εξομοιωτής είναι απασχολημένος; η προβολή δεν ενημερώθηκε."
 
 msgid "Stopped at a breakpoint."
-msgstr ""
+msgstr "Η εκτέλεση σταμάτησε σε ένα σημείο διακοπής."
 
 msgid "Stopped after stepping."
-msgstr ""
+msgstr "Η εκτέλεση σταμάτησε μετά από βήμα εκτέλεσης."
 
 msgid "Stopped."
-msgstr ""
+msgstr "Διακόπηκε."
 
 msgid "Stepping..."
-msgstr ""
+msgstr "Εκτέλεση βήματος..."
 
 msgid "Running."
-msgstr ""
+msgstr "Εκτελείται."
 
 msgid "The emulator is paused; resume it to run or step."
 msgstr ""
+"Ο εξομοιωτής βρίσκεται σε παύση; συνεχίστε τη λειτουργία του για εκτέλεση ή "
+"εκτέλεση βήμα προς βήμα."
 
 msgid "The dynamic recompiler is off while this window is open."
 msgstr ""
+"Ο δυναμικός αναμεταγλωττιστής είναι απενεργοποιημένος όσο αυτό το παράθυρο "
+"είναι ανοιχτό."
 
 msgid "Enter an address."
 msgstr ""

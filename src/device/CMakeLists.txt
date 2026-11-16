@@ -69,6 +69,7 @@ add_library(dev OBJECT
     mouse_bus.c
     mouse_ibm7690_tablet.c
     mouse_microtouch_touchscreen.c
+    mouse_elo_touchscreen.c
     mouse_ps2.c
     mouse_upc.c
     mouse_serial.c
@@ -140,7 +141,4 @@ if(PCL)
     target_compile_definitions(dev PRIVATE USE_PCL)
 endif()
 
-if(WACOM)
-    target_compile_definitions(dev PRIVATE USE_WACOM)
-    target_sources(dev PRIVATE mouse_wacom_tablet.c)
-endif()
+target_sources(dev PRIVATE mouse_wacom_tablet.c)

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-16 02:24+0000\n"
+"PO-Revision-Date: 2026-11-16 02:46+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -272,16 +272,16 @@ msgid "All &notes off"
 msgstr "關閉所有音符(&N)"
 
 msgid "Show MIDI &LCD"
-msgstr ""
+msgstr "顯示 MIDI LCD (&L)"
 
 msgid "MIDI LCD"
-msgstr ""
+msgstr "MIDI LCD"
 
 msgid "Always on &top"
-msgstr ""
+msgstr "固定最上層顯示 (&T)"
 
 msgid "&Close"
-msgstr ""
+msgstr "闗閉 (&C)"
 
 msgid "Begin trace"
 msgstr "開始追踪"

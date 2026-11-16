@@ -216,6 +216,12 @@
 #define CMD_SET_GEOMETRY_DTC     0xfe /* DTC */
 #define CMD_GET_GEOMETRY_DTC     0xff /* DTC */
 
+/* The DTC parameter block written by CMD_SET_GEOMETRY_DTC and read back by
+   CMD_GET_GEOMETRY_DTC: "DTCCXD01", then cylinders, heads, reduced write
+   current and precompensation cylinders, and so on, padded to 64 bytes. The
+   CXD21A BIOS always transfers all 64 bytes. */
+#define DTC_GEOMETRY_SIZE        64
+
 enum {
     STATE_IDLE,
     STATE_RECEIVE_COMMAND,
@@ -1252,7 +1258,7 @@ write_error:
                     st506_xt_log("ST506: DTC_GET_GEOMETRY(%i) %i\n",
                                  dev->drive_sel, val);
                     dev->buff_pos = 0;
-                    dev->buff_cnt = 16;
+                    dev->buff_cnt = DTC_GEOMETRY_SIZE;
                     dev->status   = STAT_BSY | STAT_REQ;
                     dev->state    = STATE_RECEIVE_DATA;
                     break;
@@ -1274,7 +1280,7 @@ write_error:
                     st506_xt_log("ST506: DTC_GET_GEOMETRY(%i) %i\n",
                                  dev->drive_sel, val);
                     dev->buff_pos = 0;
-                    dev->buff_cnt = 16;
+                    dev->buff_cnt = DTC_GEOMETRY_SIZE;
                     memset(dev->buff, 0x00, dev->buff_cnt);
                     dev->buff[4]  = drive->tracks & 0xff;
                     dev->buff[5]  = (drive->tracks >> 8) & 0xff;
