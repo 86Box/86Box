@@ -1417,7 +1417,7 @@ static codegen_link_slot_t *link_table_last[3] = { &link_table_hint_none, &link_
   enters compiled code)*/
 int32_t codegen_link_cycles_min = INT32_MAX;
 /*Lines of the block's code fetched from its entry*/
-#    define LINK_HINT_CODE_LINES 12
+#    define LINK_HINT_CODE_LINES 10
 
 /*X<reg> = ptr itself*/
 static void
