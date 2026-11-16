@@ -4159,8 +4159,8 @@ msgstr "Datei:"
 msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessible bytes are not read; the fill byte is written in their place."
 msgstr "Es wird ausschließlich RAM und anderer direkt zugeordneter Speicher gelesen. Nicht zugeordnete und nicht zugängliche Bytes werden nicht gelesen; an ihrer Stelle wird das Füllbyte geschrieben."
 
-msgid "Binary files (*.bin);;All files (*)"
-msgstr "Binärdateien (*.bin);;Alle Dateien (*)"
+msgid "Binary files"
+msgstr "Binärdateien"
 
 msgid "The length must be a hex number above 0."
 msgstr "Die Länge muss eine Hexadezimalzahl größer als 0 sein."

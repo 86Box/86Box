@@ -4173,8 +4173,8 @@ msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessi
 msgstr "僅主記憶體及其他直接映射記憶體被讀取。未映射及不可存取之位元組未被讀取；在其"
 "位置以充填位元組顯示。"
 
-msgid "Binary files (*.bin);;All files (*)"
-msgstr "二進位檔 (*.bin)；全部檔案 (*)"
+msgid "Binary files"
+msgstr "二進位檔"
 
 msgid "The length must be a hex number above 0."
 msgstr "長度必須為非 0 之 16 進制數。"

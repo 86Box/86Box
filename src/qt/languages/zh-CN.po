@@ -4123,7 +4123,7 @@ msgstr "文件："
 msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessible bytes are not read; the fill byte is written in their place."
 msgstr ""
 
-msgid "Binary files (*.bin);;All files (*)"
+msgid "Binary files"
 msgstr ""
 
 msgid "The length must be a hex number above 0."

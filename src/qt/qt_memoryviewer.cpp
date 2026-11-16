@@ -18,6 +18,7 @@
  *          contiguously.
  */
 #include "qt_memoryviewer.hpp"
+#include "qt_util.hpp"
 
 #include <algorithm>
 
@@ -51,6 +52,7 @@
 #include <QShortcut>
 #include <QSpinBox>
 #include <QSplitter>
+#include <QStringBuilder>
 #include <QTimer>
 #include <QTreeWidget>
 #include <QVBoxLayout>
@@ -2182,7 +2184,7 @@ MemoryViewer::onDump(uint32_t start, uint32_t len)
     layout->addWidget(buttons);
 
     connect(browse, &QPushButton::clicked, &dlg, [&dlg, fileEdit]() {
-        const QString name = QFileDialog::getSaveFileName(&dlg, tr("Dump memory"), fileEdit->text(), tr("Binary files (*.bin);;All files (*)"));
+        const QString name = QFileDialog::getSaveFileName(&dlg, tr("Dump memory"), fileEdit->text(), tr("Binary files") % util::DlgFilter({ "bin" }) % tr("All files") % util::DlgFilter({ "*" }, true));
         if (!name.isEmpty())
             fileEdit->setText(name);
     });
@@ -2214,7 +2216,7 @@ MemoryViewer::onDump(uint32_t start, uint32_t len)
         if (((uint64_t) addr + dumpLen) > 0x100000000ULL)
             dumpLen = (uint32_t) (0x100000000ULL - addr);
         if (fileEdit->text().isEmpty()) {
-            const QString name = QFileDialog::getSaveFileName(&dlg, tr("Dump memory"), QString::asprintf("mem_%08X.bin", addr), tr("Binary files (*.bin);;All files (*)"));
+            const QString name = QFileDialog::getSaveFileName(&dlg, tr("Dump memory"), QString::asprintf("mem_%08X.bin", addr), tr("Binary files") % util::DlgFilter({ "bin" }) % tr("All files") % util::DlgFilter({ "*" }, true));
             if (name.isEmpty())
                 continue;
             fileEdit->setText(name);

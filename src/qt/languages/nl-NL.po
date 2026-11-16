@@ -4224,8 +4224,8 @@ msgstr ""
 "toegewezen en niet-toegankelijke bytes worden niet uitgelezen; in plaats "
 "daarvan wordt de opvulbyte ingevuld."
 
-msgid "Binary files (*.bin);;All files (*)"
-msgstr "Binaire bestanden (*.bin);;Alle bestanden (*)"
+msgid "Binary files"
+msgstr "Binaire bestanden"
 
 msgid "The length must be a hex number above 0."
 msgstr "De lengte moet een hexadecimaal getal groter dan 0 zijn."
