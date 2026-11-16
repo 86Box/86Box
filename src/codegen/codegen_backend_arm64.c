@@ -197,10 +197,10 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
       LDP X29, X30, [SP, #-16]
       RET
     */
-    /*With the misaligned path, at most 55 instructions with every MOVX_IMM
-      at four and the C call through MOVX_IMM + BLR: one chunk, so the short
-      branches reach*/
-    codegen_alloc(block, has_misaligned ? 220 : 80);
+    /*With every MOVX_IMM at four and the C call through MOVX_IMM + BLR, at
+      most 55 instructions with the misaligned path, 25 with ea_rule and 21
+      for a byte: one chunk, so the short branches reach*/
+    codegen_alloc(block, has_misaligned ? 220 : (ea_rule ? 100 : 84));
     host_arm64_MOV_REG_LSR(block, REG_W1, REG_W0, 12);
     host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) readlookup2);
     host_arm64_LDRX_REG_LSL3(block, REG_X1, REG_X2, REG_X1);
