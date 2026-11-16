@@ -10,7 +10,7 @@
  *
  * Authors: Claude (Anthropic)
  *
- *          Copyright 2026 Claude (Anthropic).
+ *          Copyright 2026 Xeon3D.
  */
 
 /* Reference: Elo TouchSystems, "SmartSet Touchscreen Controller Family
