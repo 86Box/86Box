@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-16 02:24+0000\n"
+"PO-Revision-Date: 2026-11-16 02:46+0000\n"
 "Last-Translator: bozoscum <bozoscum@users.noreply.weblate.86box.net>\n"
 "Language-Team: Chinese (Traditional Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hant/>\n"
@@ -272,16 +272,16 @@ msgid "All &notes off"
 msgstr "關閉所有音符(&N)"
 
 msgid "Show MIDI &LCD"
-msgstr ""
+msgstr "顯示 MIDI LCD (&L)"
 
 msgid "MIDI LCD"
-msgstr ""
+msgstr "MIDI LCD"
 
 msgid "Always on &top"
-msgstr ""
+msgstr "固定最上層顯示 (&T)"
 
 msgid "&Close"
-msgstr ""
+msgstr "闗閉 (&C)"
 
 msgid "Begin trace"
 msgstr "開始追踪"
@@ -4389,16 +4389,16 @@ msgid "The contents exceed the capacity of the configured floppy drive."
 msgstr "內容超出軟碟機組態的容量。"
 
 msgid "The floppy is out of directory entries or space, or a filename cannot be represented on FAT12."
-msgstr "軟碟空間或目錄項不足，或檔案名無法於 FAT12 呈現。"
+msgstr "軟碟空間或目錄項不足，或檔案名稱無法於 FAT12 呈現。"
 
 msgid "The source contains a filename that cannot be represented on FAT12."
-msgstr ""
+msgstr "來源包含一個無法以 FAT12 呈現之檔案名稱。"
 
 msgid "There is not enough memory to create the floppy image."
-msgstr ""
+msgstr "記憶體不足，無法創建軟碟映像。"
 
 msgid "The source path is too long or its contents could not be read."
-msgstr ""
+msgstr "來源路徑過長或內容無法讀取。"
 
 msgid "Unable to mount folder or ZIP archive"
-msgstr ""
+msgstr "無法載掛資料夾或 ZIP 壓縮檔"
