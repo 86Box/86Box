@@ -61,6 +61,8 @@ void host_x86_LAHF(codeblock_t *block);
 
 void host_x86_LEA_REG_IMM(codeblock_t *block, int dst_reg, int src_reg, uint32_t offset);
 void host_x86_LEA_REG_REG(codeblock_t *block, int dst_reg, int src_reg_a, int src_reg_b);
+/*index_reg may be NO_INDEX (-1); the shortest displacement that encodes*/
+void host_x86_LEA32_REG_DISP(codeblock_t *block, int dst_reg, int base_reg, int index_reg, uint32_t disp);
 void host_x86_LEA_REG_REG_SHIFT(codeblock_t *block, int dst_reg, int src_reg_a, int src_reg_b, int shift);
 
 void host_x86_MOV8_ABS_IMM(codeblock_t *block, void *p, uint32_t imm_data);
