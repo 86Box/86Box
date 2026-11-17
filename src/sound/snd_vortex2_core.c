@@ -367,8 +367,10 @@ interp4(const float *h, float t)
    sum in double precision, which holds it exactly for 16-bit inputs, so a
    stream played straight from DMA comes out bit for bit as on the card.
    Inputs from elsewhere in the model (a mixer output) are not rounded to
-   16 bits first; what the chip does at full scale (wrap or saturate) is not
-   measured, and the sum is passed on unclamped. A Kaiser window (beta 7.70 over a
+   16 bits first. Past full scale (srcprobe clip, 2026-11-17) the output
+   saturates at 32767 / -32768, but the sum itself wraps first: a sum
+   beyond +-65536 (2.26 x 32767 at the half-sample phase) comes out with
+   the wrong sign and then saturates, as if the accumulator held 31 bits. A Kaiser window (beta 7.70 over a
    half-width of 12.85 samples) fits the table to 0.65 LSB; Aureal
    described the converter as a Kaiser-windowed sinc. src_fir[p] holds the
    taps for a fractional position p / SRC_PHASES after tap
@@ -427,8 +429,14 @@ src_interp(const float *hist, double phase)
     for (int k = 0; k < SRC_PAD; k += 4)
         for (int j = 0; j < 4; j++)
             a[j] += h0[k + j] * (double) hist[k + j];
-    double sum = ((a[0] + a[1]) + (a[2] + a[3])) * 32768.0; /* in LSB x 16384 */
-    return (float) (floor((sum + 0x2200) / 16384.0) / 32768.0);
+    double  sum = ((a[0] + a[1]) + (a[2] + a[3])) * 32768.0; /* in LSB x 16384 */
+    int64_t y   = (int64_t) floor((sum + 0x2200) / 16384.0);
+    y = ((y + 65536) & 131071) - 65536; /* the 31-bit accumulator wraps */
+    if (y > 32767)
+        y = 32767;
+    else if (y < -32768)
+        y = -32768;
+    return (float) y / 32768.0f;
 }
 
 /* Mixer gain byte: a signed 5-bit exponent (bits 7-3) and a 3-bit
