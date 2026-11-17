@@ -102,6 +102,7 @@ typedef struct netcard_conf_t {
     char     secret[256];
     uint8_t  promisc_mode;
     char     slirp_net[16];
+    uint8_t  slirp_8023_rx;
     char     nrs_hostname[128];
 } netcard_conf_t;
 
