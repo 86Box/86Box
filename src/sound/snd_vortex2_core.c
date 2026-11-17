@@ -1329,10 +1329,13 @@ wt_bank_run(v2_chip_t *c, int bank)
        playing DirectSound voice silenced it, 87 dB down, with only 32/33
        routed). Clear = the main pair 34/35, panned by PARM3, plus the
        reverb send on 36 and the chorus send on 37, scaled by PARM3's send
-       fields (Plausible: a register map of the chip gives these outputs
-       and fields; Half-Life plays voices 4-29 of the second bank with
-       DSREG 0, routes that bank's 36 to the left mix and 37 to the right,
-       and sets each voice's two send fields per sound).
+       fields (Confirmed, wtprobe on a real SQ2500, 2026-11-17: a voice
+       with DSREG clear read digitally on each output while PARM3 was
+       stepped. Pan is a linear crossfade, 0 = output 34 (left); each send
+       is linear, full scale equal to one side of the main pair, and does
+       not change with pan. Half-Life plays voices 4-29 of the second bank
+       with DSREG 0, routes that bank's 36 to the left mix and 37 to the
+       right, and pans with the two send fields).
        Headroom: the control word (bank + 0) gives the direct-stream pair
        bits 12-10 and the other buses bits 8-6, each the number of bits
        the 32-voice sum is shifted up before its top 16 bits are taken.
