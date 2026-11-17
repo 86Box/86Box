@@ -583,7 +583,7 @@ main(int argc, char *argv[])
 #ifdef Q_OS_MACOS
         qt_set_sequence_auto_mnemonic(false);
 #else
-        qt_set_sequence_auto_mnemonic(!!kbd_req_capture);
+        qt_set_sequence_auto_mnemonic(dopause || (kbd_req_capture && !mouse_capture));
 #endif
     app.setStyle(new StyleOverride());
 

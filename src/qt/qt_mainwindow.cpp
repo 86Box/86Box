@@ -225,6 +225,7 @@ MainWindow::MainWindow(QWidget *parent)
     extern MainWindow *main_window;
     main_window = this;
     ui->setupUi(this);
+    updateMenuKeyboardState();
     status->setSoundMenu(ui->menuSound);
     midiOutGroup = new QActionGroup(this);
     midiOutGroup->setExclusive(true);
@@ -482,16 +483,7 @@ MainWindow::MainWindow(QWidget *parent)
             }
             ui->stackedWidget->unsetCursor();
         }
-#ifndef Q_OS_MACOS
-        if (kbd_req_capture) {
-            qt_set_sequence_auto_mnemonic(!mouse_capture);
-            /* Hack to get the menubar to update the internal Alt+shortcut table */
-            if (!video_fullscreen) {
-                ui->menubar->hide();
-                ui->menubar->show();
-            }
-        }
-#endif
+        updateMenuKeyboardState();
     });
 
     connect(qApp, &QGuiApplication::applicationStateChanged, [this](Qt::ApplicationState state) {
@@ -1349,17 +1341,29 @@ MainWindow::showEvent(QShowEvent *event)
 }
 
 void
-MainWindow::on_actionKeyboard_requires_capture_triggered()
+MainWindow::updateMenuKeyboardState()
 {
-    kbd_req_capture ^= 1;
 #ifndef Q_OS_MACOS
-    qt_set_sequence_auto_mnemonic(!!kbd_req_capture);
-    /* Hack to get the menubar to update the internal Alt+shortcut table */
-    if (!video_fullscreen) {
+    const bool enabled = dopause || (kbd_req_capture && !mouse_capture);
+    if (menu_keyboard_state == enabled)
+        return;
+
+    menu_keyboard_state = enabled;
+    qt_set_sequence_auto_mnemonic(enabled);
+    /* Changing mnemonic generation does not rebuild QMenuBar's shortcut table.
+       Refresh it only when visible, without revealing a hidden fullscreen menu. */
+    if (ui->menubar->isVisible()) {
         ui->menubar->hide();
         ui->menubar->show();
     }
 #endif
+}
+
+void
+MainWindow::on_actionKeyboard_requires_capture_triggered()
+{
+    kbd_req_capture ^= 1;
+    updateMenuKeyboardState();
 }
 
 void
@@ -2773,6 +2777,7 @@ MainWindow::setSendKeyboardInput(bool enabled)
 void
 MainWindow::updateUiPauseState()
 {
+    updateMenuKeyboardState();
     const auto pause_icon   = dopause ? QIcon(":/menuicons/qt/icons/run.ico") : QIcon(":/menuicons/qt/icons/pause.ico");
     const auto tooltip_text = dopause ? QString(tr("Resume execution")) : QString(tr("Pause execution"));
     const auto menu_text    = dopause ? QString(tr("Re&sume")) : QString(tr("&Pause"));
