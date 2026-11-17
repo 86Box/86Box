@@ -57,6 +57,8 @@ typedef struct fat_image_t fat_image_t;
 /* Why files were left out of a volume they don't all fit on. */
 #define FAT_IMAGE_LEFT_OUT_SPACE 0x01 /* out of space, or a file of 4 GB or more */
 #define FAT_IMAGE_LEFT_OUT_ROOT  0x02 /* the FAT12 or FAT16 root directory is full */
+#define FAT_IMAGE_LEFT_OUT_READ  0x04 /* files or folders could not be read; files that fail partway
+                                         through are kept, reading as zeros past the failure */
 
 /* Writes data at an offset of the image; the image must start out filled with zeros.
    Returns 0 on failure. */
@@ -65,14 +67,14 @@ typedef int (*fat_image_write_t)(void *opaque, uint64_t offset, const void *data
 /* Whether the path is a folder or an archive that can be turned into a volume. */
 extern int fat_image_is_source(const char *path);
 
-/* Reads the folder or archive tree. */
+/* Reads the folder or archive tree. Files and folders inside it that can't be read are left out. */
 extern fat_image_result_t fat_image_scan(const char *path, fat_image_t **image);
 extern void               fat_image_free(fat_image_t *image);
 
 /* Lays the tree out on a volume without writing anything. Files and folders that don't fit are
    left out, and the rest goes on; fat_image_left_out() then says why. */
 extern fat_image_result_t fat_image_check(fat_image_t *image, const fat_image_params_t *params);
-/* FAT_IMAGE_LEFT_OUT_* flags for the last check or write; 0 if everything fits. */
+/* FAT_IMAGE_LEFT_OUT_* flags for the last check or write; 0 if everything fits and could be read. */
 extern int fat_image_left_out(const fat_image_t *image);
 
 /* Writes the volume, including all file data. */

@@ -56,8 +56,13 @@ extern void                   media_archive_close(media_archive_t *archive);
 extern media_archive_entry_t *media_archive_root(media_archive_t *archive);
 extern uint32_t               media_archive_count(media_archive_t *archive);
 
-/* Streams the data of every regular file, in archive order. Returns 1 on success. */
+/* Streams the data of every regular file, in archive order. Files that can't be read are passed
+   over, and media_archive_unreadable() then says so. Returns 0 if the archive can't be read
+   again or the callback stops it. */
 extern int media_archive_extract(media_archive_t *archive, media_archive_data_t callback, void *opaque);
+/* Whether files were left out of the listing, or were only partly extracted, as they could not be
+   read. */
+extern int media_archive_unreadable(const media_archive_t *archive);
 
 /* Extracts every regular file into an anonymous temporary file for random access. */
 extern int media_archive_extract_all(media_archive_t *archive);

@@ -1675,10 +1675,24 @@ respond_ok_left_out(int left_out)
 {
     respond_ok_time();
     if (left_out) {
+        static const struct {
+            int         flag;
+            const char *name;
+        } reasons[] = {
+            { FAT_IMAGE_LEFT_OUT_SPACE, "space" },
+            { FAT_IMAGE_LEFT_OUT_ROOT,  "root"  },
+            { FAT_IMAGE_LEFT_OUT_READ,  "read"  }
+        };
+        const char *sep = "";
         resp.len--; /* reopen the object */
-        sb_printf(&resp, ",\"left_out\":[%s%s%s]}", (left_out & FAT_IMAGE_LEFT_OUT_SPACE) ? "\"space\"" : "",
-                  ((left_out & FAT_IMAGE_LEFT_OUT_SPACE) && (left_out & FAT_IMAGE_LEFT_OUT_ROOT)) ? "," : "",
-                  (left_out & FAT_IMAGE_LEFT_OUT_ROOT) ? "\"root\"" : "");
+        sb_printf(&resp, ",\"left_out\":[");
+        for (size_t i = 0; i < (sizeof(reasons) / sizeof(reasons[0])); i++) {
+            if (left_out & reasons[i].flag) {
+                sb_printf(&resp, "%s\"%s\"", sep, reasons[i].name);
+                sep = ",";
+            }
+        }
+        sb_printf(&resp, "]}");
     }
 }
 

@@ -117,6 +117,8 @@ folderLeftOutWarning(int left_out, const QString &space)
         reasons << space;
     if (left_out & FAT_IMAGE_LEFT_OUT_ROOT)
         reasons << folderMountError(FAT_IMAGE_ROOT_FULL);
+    if (left_out & FAT_IMAGE_LEFT_OUT_READ)
+        reasons << MediaMenu::tr("Unable to read file");
     return reasons.join("\n\n");
 }
 

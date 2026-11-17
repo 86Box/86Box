@@ -75,7 +75,8 @@ struct fat_image_t {
     char             label[11];
     time_t           now;
     size_t           nodes;
-    int              left_out;  /* FAT_IMAGE_LEFT_OUT_* of the last layout */
+    int              left_out;   /* FAT_IMAGE_LEFT_OUT_* of the last layout */
+    int              unreadable; /* files or folders could not be read */
     int              cp;        /* code page of the short names and the label */
     int              tz_offset; /* host offset from UTC now, for times the C library can't place */
 };
@@ -450,6 +451,27 @@ sort_children(node_t *dir)
     return 1;
 }
 
+static int
+file_readable(const char *path)
+{
+    FILE *fp = plat_fopen64(path, "rb");
+    if (!fp)
+        return 0;
+    fclose(fp);
+    return 1;
+}
+
+/* Leaves out a folder that could not be read, which holds nothing yet. */
+static void
+drop_node(fat_image_t *image, node_t **link)
+{
+    node_t *node = *link;
+    *link        = node->next;
+    node->next   = NULL;
+    node_free(node);
+    image->unreadable = 1;
+}
+
 static fat_image_result_t
 scan_folder(fat_image_t *image, node_t *dir, const char *path, int depth)
 {
@@ -468,6 +490,10 @@ scan_folder(fat_image_t *image, node_t *dir, const char *path, int depth)
         int       is_dir = plat_dir_is_dir(&context);
         if (!is_dir && !plat_dir_is_file(&context))
             continue;
+        if (!is_dir && plat_dir_get_size(&context) && !file_readable(plat_dir_get_path(&context))) {
+            image->unreadable = 1;
+            continue;
+        }
 
         /* Names stored decomposed (on macOS) are composed, as FAT names are. */
         char   *composed = fs_utf8_compose(plat_dir_get_name(&context));
@@ -489,9 +515,16 @@ scan_folder(fat_image_t *image, node_t *dir, const char *path, int depth)
 
     if ((result == FAT_IMAGE_OK) && !sort_children(dir))
         result = FAT_IMAGE_NO_MEMORY;
-    for (node_t *child = dir->children; child && (result == FAT_IMAGE_OK); child = child->next) {
-        if (child->is_dir)
-            result = scan_folder(image, child, child->host_path, depth + 1);
+    for (node_t **link = &dir->children; *link && (result == FAT_IMAGE_OK);) {
+        if ((*link)->is_dir) {
+            result = scan_folder(image, *link, (*link)->host_path, depth + 1);
+            if (result == FAT_IMAGE_READ_ERROR) {
+                drop_node(image, link);
+                result = FAT_IMAGE_OK;
+                continue;
+            }
+        }
+        link = &(*link)->next;
     }
     return result;
 }
@@ -518,12 +551,18 @@ scan_archive(fat_image_t *image, node_t *dir, media_archive_entry_t *entry, int 
         *tail        = node;
         tail         = &node->next;
     }
-    for (node_t *child = dir->children; child; child = child->next) {
-        if (child->is_dir) {
-            fat_image_result_t result = scan_archive(image, child, child->entry, depth + 1);
+    for (node_t **link = &dir->children; *link;) {
+        if ((*link)->is_dir) {
+            fat_image_result_t result = scan_archive(image, *link, (*link)->entry, depth + 1);
+            if (result == FAT_IMAGE_READ_ERROR) {
+                (*link)->entry->priv = NULL;
+                drop_node(image, link);
+                continue;
+            }
             if (result != FAT_IMAGE_OK)
                 return result;
         }
+        link = &(*link)->next;
     }
     return FAT_IMAGE_OK;
 }
@@ -616,6 +655,8 @@ fat_image_scan(const char *path, fat_image_t **out)
         image->archive = media_archive_open(path);
         result         = image->archive ? scan_archive(image, image->root, media_archive_root(image->archive), 0) :
                                           FAT_IMAGE_READ_ERROR;
+        if (image->archive && media_archive_unreadable(image->archive))
+            image->unreadable = 1;
     }
     if (result == FAT_IMAGE_OK)
         result = name_tree(image->root, image->cp);
@@ -954,7 +995,7 @@ fat_image_check(fat_image_t *image, const fat_image_params_t *params)
 int
 fat_image_left_out(const fat_image_t *image)
 {
-    return image->left_out;
+    return image->left_out | (image->unreadable ? FAT_IMAGE_LEFT_OUT_READ : 0);
 }
 
 typedef struct {
@@ -1148,14 +1189,15 @@ write_dirs(const fat_image_t *image, const writer_t *w, const node_t *dir, uint8
     return FAT_IMAGE_OK;
 }
 
+/* Files that can't be read keep zeros where their data could not be read. */
 static fat_image_result_t
-write_folder_files(const writer_t *w, const node_t *dir, uint8_t *buf)
+write_folder_files(const writer_t *w, const node_t *dir, uint8_t *buf, int *unreadable)
 {
     for (const node_t *child = dir->children; child; child = child->next) {
         if (child->left_out)
             continue;
         if (child->is_dir) {
-            fat_image_result_t result = write_folder_files(w, child, buf);
+            fat_image_result_t result = write_folder_files(w, child, buf, unreadable);
             if (result != FAT_IMAGE_OK)
                 return result;
             continue;
@@ -1164,8 +1206,10 @@ write_folder_files(const writer_t *w, const node_t *dir, uint8_t *buf)
             continue;
 
         FILE *fp = plat_fopen64(child->host_path, "rb");
-        if (!fp)
-            return FAT_IMAGE_READ_ERROR;
+        if (!fp) {
+            *unreadable = 1;
+            continue;
+        }
 
         /* A file that has shrunk since the scan reads as zeros past its end. */
         uint64_t offset = cluster_offset(w->l, child->first_cluster);
@@ -1182,10 +1226,9 @@ write_folder_files(const writer_t *w, const node_t *dir, uint8_t *buf)
             offset += read;
             remain -= read;
         }
-        int error = ferror(fp);
+        if (ferror(fp))
+            *unreadable = 1;
         fclose(fp);
-        if (error)
-            return FAT_IMAGE_READ_ERROR;
     }
     return FAT_IMAGE_OK;
 }
@@ -1371,11 +1414,13 @@ fat_image_write(fat_image_t *image, const fat_image_params_t *p, fat_image_write
         archive_writer_t aw = { .w = &w };
         if (!media_archive_extract(image->archive, write_archive_data, &aw))
             return aw.write_error ? FAT_IMAGE_WRITE_ERROR : FAT_IMAGE_READ_ERROR;
+        if (media_archive_unreadable(image->archive))
+            image->unreadable = 1;
     } else {
         buf = (uint8_t *) malloc(COPY_BUFFER);
         if (!buf)
             return FAT_IMAGE_NO_MEMORY;
-        result = write_folder_files(&w, image->root, buf);
+        result = write_folder_files(&w, image->root, buf, &image->unreadable);
         free(buf);
     }
     return result;
@@ -1422,7 +1467,7 @@ fat_image_pick(fat_image_t *image, int count, int def, fat_image_medium_t medium
 
         fat_image_result_t check = fat_image_check(image, &p);
         if (check == FAT_IMAGE_OK) {
-            if (!fat_image_left_out(image)) {
+            if (!image->left_out) {
                 picked  = next;
                 *params = p;
                 break;

@@ -68,8 +68,12 @@ struct media_archive_t {
     uint32_t                headers;
     uint32_t                count;
     uint8_t                *block;
-    FILE                   *data;     /* extracted data, see media_archive_extract_all() */
+    FILE                   *data;       /* extracted data, see media_archive_extract_all() */
+    int                     unreadable; /* some files could not be read */
 };
+
+/* A header that can be read past, or the end of what can be read. */
+#define HEADER_USABLE(ret) (((ret) == ARCHIVE_OK) || ((ret) == ARCHIVE_WARN) || ((ret) == ARCHIVE_FAILED))
 
 /* Extensions handled as archives. Raw disk images are never matched, as
    libarchive would also read some of them (such as ISO 9660). */
@@ -452,8 +456,8 @@ list_cp_names(media_archive_t *archive, int cp, uint32_t *count)
     *count = 0;
     if (!a)
         return NULL;
-    while (((ret = archive_read_next_header(a, &header)) == ARCHIVE_OK) || (ret == ARCHIVE_WARN)) {
-        if (!has_oem_names(a))
+    while (HEADER_USABLE(ret = archive_read_next_header(a, &header))) {
+        if ((ret != ARCHIVE_FAILED) && !has_oem_names(a))
             break;
         if (*count >= size) {
             size         = size ? (size * 2) : 256;
@@ -462,7 +466,7 @@ list_cp_names(media_archive_t *archive, int cp, uint32_t *count)
                 break;
             names = grown;
         }
-        names[(*count)++] = header_name(header);
+        names[(*count)++] = (ret == ARCHIVE_FAILED) ? NULL : header_name(header);
     }
     archive_read_free(a);
     if (!*count) {
@@ -503,7 +507,8 @@ media_archive_list(const char *path)
     size_t                 index_size = 0;
     struct archive_entry  *header;
     int                    ret;
-    while ((ret = archive_read_next_header(a, &header)) == ARCHIVE_OK || (ret == ARCHIVE_WARN)) {
+    int                    stop = 0;
+    while (!stop && HEADER_USABLE(ret = archive_read_next_header(a, &header))) {
         uint32_t       index = archive->headers++;
         if (index >= index_size) {
             index_size                     = index_size ? (index_size * 2) : 256;
@@ -514,7 +519,12 @@ media_archive_list(const char *path)
         }
         archive->by_index[index] = NULL;
 
-        unsigned int       type = archive_entry_filetype(header);
+        /* Files that can't be read, including encrypted ones, are left out. */
+        unsigned int type = archive_entry_filetype(header);
+        if ((ret == ARCHIVE_FAILED) || ((type == AE_IFREG) && archive_entry_is_data_encrypted(header))) {
+            archive->unreadable = 1;
+            continue;
+        }
         if (((type != AE_IFREG) && (type != AE_IFDIR)) || archive_entry_hardlink(header))
             continue;
 
@@ -545,18 +555,26 @@ media_archive_list(const char *path)
         if (archive_entry_size_is_set(header)) {
             entry->size = (uint64_t) archive_entry_size(header);
         } else {
-            /* Streamed entries may not record their size; measure it. */
+            /* Streamed entries may not record their size; measure it. What can't be read is
+               counted up to where it stops. */
             la_ssize_t read;
             entry->size = 0;
             while ((read = archive_read_data(a, archive->block, BLOCK_SIZE)) > 0)
                 entry->size += read;
-            if (read < 0)
-                goto end;
+            if (read < 0) {
+                archive->unreadable = 1;
+                stop                = (read == ARCHIVE_FATAL);
+            }
         }
         archive->by_index[index] = entry;
     }
-    if (ret != ARCHIVE_EOF)
-        goto end;
+
+    /* An archive that breaks off keeps the files before the break, unless there are none. */
+    if (stop || (ret != ARCHIVE_EOF)) {
+        if (!archive->headers)
+            goto end;
+        archive->unreadable = 1;
+    }
 
     error = !entry_sort(archive->root);
 
@@ -606,6 +624,12 @@ media_archive_count(media_archive_t *archive)
 }
 
 int
+media_archive_unreadable(const media_archive_t *archive)
+{
+    return archive->unreadable;
+}
+
+int
 media_archive_extract(media_archive_t *archive, media_archive_data_t callback, void *opaque)
 {
     struct archive *a = archive_start(archive, 437);
@@ -613,15 +637,19 @@ media_archive_extract(media_archive_t *archive, media_archive_data_t callback, v
         return 0;
 
     struct archive_entry *header;
-    uint32_t              index = 0;
-    int                   ret;
+    uint32_t              index   = 0;
     int                   success = 0;
-    while ((ret = archive_read_next_header(a, &header)) == ARCHIVE_OK || (ret == ARCHIVE_WARN)) {
-        if (index >= archive->headers)
-            goto end;
+    while (index < archive->headers) {
+        int ret = archive_read_next_header(a, &header);
+        if (!HEADER_USABLE(ret))
+            break;
         media_archive_entry_t *entry = archive->by_index[index++];
         if (!entry)
             continue;
+        if (ret == ARCHIVE_FAILED) {
+            archive->unreadable = 1;
+            continue;
+        }
 
         const void *data;
         size_t      size;
@@ -635,13 +663,35 @@ media_archive_extract(media_archive_t *archive, media_archive_data_t callback, v
             if (!callback(opaque, entry, offset, data, size))
                 goto end;
         }
-        if (ret != ARCHIVE_EOF)
-            goto end;
+        if (ret == ARCHIVE_EOF)
+            continue;
+
+        /* The rest of a file that can't be read is left to the consumer, which reads zeros. */
+        archive->unreadable = 1;
+        if (ret != ARCHIVE_FATAL)
+            continue;
+
+        /* A reader stops at a fatal error, but a new one may get past it where files are compressed
+           separately, as in a ZIP. Each restart moves on by a file, so this ends. */
+        archive_read_free(a);
+        a = archive_start(archive, 437);
+        uint32_t skipped = 0;
+        while (a && (skipped < index) && HEADER_USABLE(archive_read_next_header(a, &header)))
+            skipped++;
+        if (skipped < index)
+            break;
     }
-    success = (ret == ARCHIVE_EOF) && (index == archive->headers);
+
+    /* Files after a break in the archive can't be read either. */
+    for (; index < archive->headers; index++) {
+        if (archive->by_index[index])
+            archive->unreadable = 1;
+    }
+    success = 1;
 
 end:
-    archive_read_free(a);
+    if (a)
+        archive_read_free(a);
     return success;
 }
 
