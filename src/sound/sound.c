@@ -911,6 +911,33 @@ midi_poll_ex(UNUSED(void *priv))
     midi_poll();
 }
 
+/* Delay from a timer's current timestamp to a tick halfway between two sound
+   poll ticks, between half and one and a half output samples away. Timers due
+   on the same integer timestamp swap order every time they are re-armed, so a
+   timer running at the output rate in step with the sound poll timer makes its
+   card write two samples, then none. Returns latch if the sound poll timer is
+   not running. */
+uint64_t
+sound_poll_offset_delay(pc_timer_t *timer, uint64_t latch)
+{
+    int64_t period = (int64_t) sound_poll_latch;
+    int64_t diff;
+
+    if (!period || !timer_is_enabled(&sound_poll_timer))
+        return latch;
+
+    /* The two timestamps are at most a few samples apart. */
+    diff = (int64_t) ((sound_poll_timer.ts_integer - timer->ts_integer) << 32) +
+           (int64_t) sound_poll_timer.ts_frac - (int64_t) timer->ts_frac;
+    diff = (diff + (period / 2)) % period;
+    if (diff < 0)
+        diff += period;
+    if (diff < (period / 2))
+        diff += period;
+
+    return (uint64_t) diff;
+}
+
 void
 sound_poll(UNUSED(void *priv))
 {

@@ -186,6 +186,7 @@ typedef struct gus_t {
 
     pc_timer_t samp_timer;
     uint64_t   samp_latch;
+    uint64_t   samp_latch_cur; /* period the sample timer runs at */
 
     uint8_t *ram;
     uint8_t *rom;
@@ -2332,7 +2333,15 @@ gus_poll_wave(void *priv)
 
     gus_update(gus);
 
-    timer_advance_u64(&gus->samp_timer, gus->samp_latch);
+    /* The guest changes the period by changing the voice count. Re-phase the
+       timer then: on a period equal to the output rate, at a phase where both
+       timers are due on the same integer timestamp, they swap order on every
+       tick, which makes gus_update() write two samples, then none. */
+    if (gus->samp_latch != gus->samp_latch_cur) {
+        gus->samp_latch_cur = gus->samp_latch;
+        timer_advance_u64(&gus->samp_timer, sound_poll_offset_delay(&gus->samp_timer, gus->samp_latch));
+    } else
+        timer_advance_u64(&gus->samp_timer, gus->samp_latch);
 
     gus->out_l = gus->out_r = 0;
 
@@ -3719,11 +3728,7 @@ gus_init(UNUSED(const device_t *info))
                       ad1848_read, NULL, NULL, ad1848_write, NULL, NULL, &gus->ad1848);
     }
 
-    /* Start half a sample after the sound poll timer: at the same rate, timers
-       due together swap order on every tick, which makes gus_update() write
-       two samples, then none. */
-    timer_add(&gus->samp_timer, gus_poll_wave, gus, 0);
-    timer_set_delay_u64(&gus->samp_timer, gus->samp_latch / 2);
+    timer_add(&gus->samp_timer, gus_poll_wave, gus, 1);
     timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
     timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
     timer_add(&gus->sample_timer, gus_input_poll, gus, 0);
@@ -3850,11 +3855,7 @@ gus_extreme_init(UNUSED(const device_t *info))
 
     gus->base = 0;
 
-    /* Start half a sample after the sound poll timer: at the same rate, timers
-       due together swap order on every tick, which makes gus_update() write
-       two samples, then none. */
-    timer_add(&gus->samp_timer, gus_poll_wave, gus, 0);
-    timer_set_delay_u64(&gus->samp_timer, gus->samp_latch / 2);
+    timer_add(&gus->samp_timer, gus_poll_wave, gus, 1);
     timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
     timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
 
@@ -4025,11 +4026,7 @@ gus_pnp_init(const device_t *info)
     ad1848_setdma(&gus->ad1848, 0);
 
 
-    /* Start half a sample after the sound poll timer: at the same rate, timers
-       due together swap order on every tick, which makes gus_update() write
-       two samples, then none. */
-    timer_add(&gus->samp_timer, gus_poll_wave, gus, 0);
-    timer_set_delay_u64(&gus->samp_timer, gus->samp_latch / 2);
+    timer_add(&gus->samp_timer, gus_poll_wave, gus, 1);
     timer_add(&gus->timer_1, gus_poll_timer_1, gus, 1);
     timer_add(&gus->timer_2, gus_poll_timer_2, gus, 1);
     timer_add(&gus->sample_timer, gus_input_poll, gus, 0);
