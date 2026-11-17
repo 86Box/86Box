@@ -135,7 +135,7 @@ private:
 
     int cdromMutePos[32];
     int cdromEjectPos[32];
-    int cdromImageHistoryPos[MAX_PREV_IMAGES];
+    int cdromImageHistoryPos[32][MAX_PREV_IMAGES];
 
     int rdiskEjectPos;
     int rdiskImageHistoryPos[MAX_PREV_IMAGES];

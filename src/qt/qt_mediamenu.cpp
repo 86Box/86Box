@@ -222,7 +222,7 @@ MediaMenu::refresh(QMenu *parentMenu)
         menu->addAction(getIconWithIndicator(folder_icon, pixmap_size, QIcon::Normal, Browse), tr("Mount &folder…"), [this, i]() { cdromMount(i, 1, nullptr); })->setCheckable(false);
         menu->addSeparator();
         for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
-            cdromImageHistoryPos[slot] = menu->children().count();
+            cdromImageHistoryPos[i][slot] = menu->children().count();
             menu->addAction(tr("Image %1").arg(slot), [this, i, slot]() { cdromReload(i, slot); })->setCheckable(false);
         }
         menu->addSeparator();
@@ -1022,7 +1022,7 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
             }
             menu                  = cdromMenus[index];
             children              = menu->children();
-            imageHistoryUpdatePos = dynamic_cast<QAction *>(children[cdromImageHistoryPos[slot]]);
+            imageHistoryUpdatePos = dynamic_cast<QAction *>(children[cdromImageHistoryPos[index][slot]]);
             if (fn.left(8) == "ioctl://") {
                 menu_icon = host_icon;
 #ifdef Q_OS_WINDOWS
