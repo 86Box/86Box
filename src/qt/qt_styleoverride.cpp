@@ -43,8 +43,8 @@ StyleOverride::styleHint(
     const QWidget      *widget,
     QStyleHintReturn   *returnData) const
 {
-    /* Disable using menu with alt key */
-    if (!start_vmm && (!kbd_req_capture || mouse_capture) && (hint == QStyle::SH_MenuBar_AltKeyNavigation))
+    /* Keep Alt in the guest while it is running and accepting keyboard input. */
+    if (!start_vmm && !dopause && (!kbd_req_capture || mouse_capture) && (hint == QStyle::SH_MenuBar_AltKeyNavigation))
         return 0;
 
     return QProxyStyle::styleHint(hint, option, widget, returnData);
