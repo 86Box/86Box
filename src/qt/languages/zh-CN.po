@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-16 18:42+0000\n"
+"PO-Revision-Date: 2026-11-17 11:28+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -326,7 +326,7 @@ msgid "&Image…"
 msgstr "映像(&I)…"
 
 msgid "E&xport to 86F…"
-msgstr "导出为 86F 格式(&x)…"
+msgstr "导出为 86F 格式(&X)…"
 
 msgid "&Mute"
 msgstr "静音(&M)"
@@ -4124,7 +4124,7 @@ msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessi
 msgstr ""
 
 msgid "Binary files"
-msgstr ""
+msgstr "二进制文件"
 
 msgid "The length must be a hex number above 0."
 msgstr ""
