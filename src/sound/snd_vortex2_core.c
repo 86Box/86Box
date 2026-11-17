@@ -1316,7 +1316,15 @@ wt_filter_set(v2_wtv_t *w, int f)
     w->fcoef = wt_gain_tab[f] * (65535.0f / 65536.0f);
 }
 
-#define WT_VOICE_SCALE 1.5871f
+/* A voice's own output (its ADB source, which the driver routes to A3D
+   inputs) is 0.7998 x its input at gain and input gain 0xcf, whatever
+   DSREG and the pan say (wtprobe own: 4096 -> 3276, 8192 -> 6552). The
+   mixed pairs take that sample x 2 (the driver's headroom on the direct-
+   stream pair) x the pan or send field as a 0.7 fraction: (127 - p) / 128
+   left, p / 128 right, f / 128 on a send; the main pair and sends 16 x
+   lower. That reproduces every level wtprobe read: 1.5871 x the input at
+   pan 0, 0.7998 and 0.7873 at the driver's centre pan 0x3f. */
+#define WT_OWN_SCALE 0.7998f
 
 static void
 wt_bank_run(v2_chip_t *c, int bank)
@@ -1386,16 +1394,16 @@ wt_bank_run(v2_chip_t *c, int bank)
            (127 - p) / 127 left and p / 127 right, on both pairs. So a
            direct-stream voice at the driver's centre pan (0x3f) plays at
            0.80 and 0.79 of the ADB path's level on the two sides. */
-        float    pan  = (float) ((p3 >> 14) & 0x7f) / 127.0f;
-        float    gv   = gl * WT_VOICE_SCALE;
-        float    g4[4] = { gv * (1.0f - pan), gv * pan, 0.0f, 0.0f };
+        float    pan  = (float) ((p3 >> 14) & 0x7f);
+        float    gv   = gl * WT_OWN_SCALE * 2.0f / 128.0f;
+        float    g4[4] = { gv * (127.0f - pan), gv * pan, 0.0f, 0.0f };
         float   *b4[4] = { c->wt_bus[bank][0], c->wt_bus[bank][1], NULL, NULL };
         if (!dir && !dsv) {
             float    g   = gv * hs;
-            g4[0] = g * (1.0f - pan);
+            g4[0] = g * (127.0f - pan);
             g4[1] = g * pan;
-            g4[2] = g * (float) (p3 & 0x7f) / 127.0f;
-            g4[3] = g * (float) ((p3 >> 7) & 0x7f) / 127.0f;
+            g4[2] = g * (float) (p3 & 0x7f);
+            g4[3] = g * (float) ((p3 >> 7) & 0x7f);
             for (int k = 0; k < 4; k++)
                 b4[k] = c->wt_bus[bank][2 + k];
         }
@@ -1432,7 +1440,7 @@ wt_bank_run(v2_chip_t *c, int bank)
         }
         if (dir)
             for (int n = 0; n < B; n++)
-                od[n] = y[n] * gl;
+                od[n] = y[n] * gl * WT_OWN_SCALE;
         else
             for (int k = 0; k < 4; k++) {
                 if (!bus[k] || g4[k] == 0.0f)
