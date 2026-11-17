@@ -1391,7 +1391,7 @@ wt_bank_run(v2_chip_t *c, int bank)
            and input gain 0xcf comes out at 1.587 x its input on the
            direct-stream pair when panned to one side, and 1/16 of that on
            the main pair and each send; the pan field is a linear crossfade,
-           (127 - p) / 127 left and p / 127 right, on both pairs. So a
+           (127 - p) / 128 left and p / 128 right, on both pairs. So a
            direct-stream voice at the driver's centre pan (0x3f) plays at
            0.80 and 0.79 of the ADB path's level on the two sides. */
         float    pan  = (float) ((p3 >> 14) & 0x7f);
