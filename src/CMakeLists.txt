@@ -340,3 +340,9 @@ endif()
 if(CMAKE_SYSTEM_NAME MATCHES "NetBSD")
     add_custom_command(TARGET 86Box POST_BUILD COMMAND paxctl ARGS +m $<TARGET_FILE:86Box> COMMENT "Disable PaX MPROTECT")
 endif()
+
+# MSYS2's static OpenSSL (pulled in through LibVNCServer) now needs bcrypt for
+# BCryptGenRandom; listed last so it follows libcrypto on the link line.
+if(WIN32)
+    target_link_libraries(86Box bcrypt)
+endif()
