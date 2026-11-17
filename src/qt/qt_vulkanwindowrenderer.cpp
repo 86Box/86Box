@@ -1404,13 +1404,15 @@ VulkanWindowRenderer::initialize()
                 phys_device       = phys_devices[std::clamp((uint32_t)video_vk_device, 0u, physicalDevices - 1u)];
 
                 if (!isPhysicalDeviceUsable(phys_device)) {
+                    phys_device = nullptr;
                     for (uint32_t i = 0; i < phys_devices.size(); i++) {
                         if (isPhysicalDeviceUsable(phys_devices[i])) {
                             phys_device = phys_devices[i];
                             break;
                         }
                     }
-                    throw vulkan_init_error(tr("No usable Vulkan physical devices found."));
+                    if (!phys_device)
+                        throw vulkan_init_error(tr("No usable Vulkan physical devices found."));
                 }
 
                 if (vk_res_refcnt_dev)
