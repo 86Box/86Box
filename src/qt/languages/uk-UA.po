@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-10 18:59+0000\n"
+"PO-Revision-Date: 2026-11-18 07:12+0000\n"
 "Last-Translator: Broifonn_9 <molodchina812@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
@@ -249,40 +249,44 @@ msgid "Sound &gain…"
 msgstr "&Посилення звуку…"
 
 msgid "M&IDI output device"
-msgstr ""
+msgstr "Пристрій виводу M&IDI"
 
 msgid "Restart &device"
-msgstr ""
+msgstr "Перезавантажити пр&истрій"
 
 msgid "Send MIDI &command"
-msgstr ""
+msgstr "Відправити &команду MIDI"
 
+#, fuzzy
 msgid "&GM System On"
-msgstr ""
+msgstr "Вмикнути систему &GM"
 
+#, fuzzy
 msgid "G&S Reset"
-msgstr ""
+msgstr "Перезавантажити G&S"
 
+#, fuzzy
 msgid "&XG System On"
-msgstr ""
+msgstr "Вмикнути систему &XG"
 
+#, fuzzy
 msgid "&MT-32 Reset"
-msgstr ""
+msgstr "Перезавантажити &MT-32"
 
 msgid "All &notes off"
 msgstr ""
 
 msgid "Show MIDI &LCD"
-msgstr ""
+msgstr "Показати &LCD-екран MIDI"
 
 msgid "MIDI LCD"
-msgstr ""
+msgstr "LCD-екран MIDI"
 
 msgid "Always on &top"
-msgstr ""
+msgstr "Завжди з&верху"
 
 msgid "&Close"
-msgstr ""
+msgstr "З&акрити"
 
 msgid "Begin trace"
 msgstr "Почати трасування"
@@ -1648,10 +1652,10 @@ msgid "Hard disk (%1)"
 msgstr "Жорсткий диск (%1)"
 
 msgid "Board LED"
-msgstr ""
+msgstr "Світлодіод плати"
 
 msgid "Board LED %1"
-msgstr ""
+msgstr "Світлодіод плати (%1)"
 
 msgid "Custom…"
 msgstr "Задати вручну…"
@@ -2548,7 +2552,7 @@ msgid "Snow emulation"
 msgstr "Емуляція снігу"
 
 msgid "Display Enhancement Board (GO329)"
-msgstr ""
+msgstr "Плата покращення зображення GO329"
 
 msgid "Monitor type"
 msgstr "Тип монітора"
@@ -2611,7 +2615,7 @@ msgid "Start Address"
 msgstr "Початкова адреса"
 
 msgid "Allow RAM up to the system ROM"
-msgstr ""
+msgstr "Дозволити ОЗП до системного ПЗП"
 
 msgid "Contiguous Size"
 msgstr "Суміжний розмір"
@@ -3409,7 +3413,7 @@ msgid "The virtual machine \"%1\"'s process has unexpectedly terminated with exi
 msgstr "Процес віртуальної машини «%1» несподівано завершився з кодом завершення %2."
 
 msgid "The system will not be added."
-msgstr "Система не буде додана."
+msgstr "Систему не буде додано."
 
 msgid "&Update mouse every CPU frame"
 msgstr "&Оновлювати мишу при кожному кадрі ЦП"
@@ -3445,7 +3449,7 @@ msgid "Export EDID"
 msgstr "Експорт EDID"
 
 msgid "EDID file \"%s\" is invalid."
-msgstr "Файл EDID «%s» є недійсним."
+msgstr "Файл EDID «%s» недійсний."
 
 msgid "EDID file \"%s\" is too large."
 msgstr "Файл EDID «%s» занадто великий."
@@ -3478,22 +3482,24 @@ msgid "&Allow recompilation"
 msgstr "&Дозволити рекомпіляцію"
 
 msgid "&Fast forward"
-msgstr "&Перемотай вперед"
+msgstr "&Перемотування вперед"
 
 msgid "Fast forward at startup"
-msgstr ""
+msgstr "Перемотування вперед при запуску"
 
 msgid "Start new machines in fast forward"
-msgstr ""
+msgstr "Запустити нові машини в режимі перемотування вперед"
 
 msgid "Only affects machines created from now on. Each machine can be changed in its settings, under Machine > Performance."
 msgstr ""
+"Стосується лише щойно створених машин. Кожну машину можна змінити в її "
+"налаштуванні, під вкладкою \"Машина\" > \"Продуктивність\"."
 
 msgid "Fast forward at &startup"
-msgstr ""
+msgstr "Перемотування вперед при зап&уску"
 
 msgid "Fast forward"
-msgstr "Перемотай вперед"
+msgstr "Перемотування вперед"
 
 msgid "&Non-maskable interrupt"
 msgstr "&Переривання, яке не можна заблокувати"
@@ -3811,10 +3817,10 @@ msgid "Software-initiated poweroff device (IBM 5140)"
 msgstr "Пристрій програмного вимкнення живлення (IBM 5140)"
 
 msgid "Memory &viewer"
-msgstr ""
+msgstr "Перег&лядач пам'яті"
 
 msgid "The emulator is busy; the memory view was not updated."
-msgstr ""
+msgstr "Емулятор зайнятий. Перегляд пам'яті не було оновлено."
 
 msgid "The match is not on mapped memory; the selection and the view did not move."
 msgstr ""
@@ -4174,13 +4180,13 @@ msgid "Fill byte for memory that cannot be read:"
 msgstr ""
 
 msgid "File:"
-msgstr ""
+msgstr "Файл:"
 
 msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessible bytes are not read; the fill byte is written in their place."
 msgstr ""
 
 msgid "Binary files"
-msgstr ""
+msgstr "Бінарні файли"
 
 msgid "The length must be a hex number above 0."
 msgstr ""
@@ -4207,7 +4213,7 @@ msgid "\"%1\" is not made of hex bytes."
 msgstr ""
 
 msgid "Enter a hex value from 0 to %1."
-msgstr ""
+msgstr "Введіть Hex-значення від 0 до %1."
 
 msgid "The value is too large for %1 bytes."
 msgstr ""
@@ -4219,181 +4225,189 @@ msgid "The range ends before it starts."
 msgstr ""
 
 msgid "Serial Plug and Play"
-msgstr ""
+msgstr "Послідовний Plug and Play"
 
 msgid "Standard 9600 bps modem (PNPC100)"
-msgstr ""
+msgstr "Звичайний модем 9600 біт/с (PNPC100)"
 
 msgid "Standard 14400 bps modem (PNPC101)"
-msgstr ""
+msgstr "Звичайний модем 14400 біт/с (PNPC101)"
 
 msgid "Standard 28800 bps modem (PNPC102)"
-msgstr ""
+msgstr "Звичайний модем 28800 біт/с (PNPC102)"
 
 msgid "Standard modem (PNPC103)"
-msgstr ""
+msgstr "Звичайний модем (PNPC103)"
 
 msgid "Enhanced 9600 bps modem (PNPC104)"
-msgstr ""
+msgstr "Покращений модем 9600 біт/с (PNPC104)"
 
 msgid "Enhanced 14400 bps modem (PNPC105)"
-msgstr ""
+msgstr "Покращений модем 14400 біт/с (PNPC105)"
 
 msgid "Enhanced 28800 bps modem (PNPC106)"
-msgstr ""
+msgstr "Покращений модем 28800 біт/с (PNPC106)"
 
 msgid "Enhanced modem (PNPC107)"
-msgstr ""
+msgstr "Покращений модем (PNPC107)"
 
 msgid "Telephone Tone Region"
-msgstr ""
+msgstr "Регіон сигналів телефону"
 
 msgid "North America"
-msgstr ""
+msgstr "Півн. Америка"
 
 msgid "United Kingdom"
-msgstr ""
+msgstr "Велика Британія"
 
 msgid "Continental Europe"
-msgstr ""
+msgstr "Конт. Європа"
 
 msgid "Japan"
-msgstr ""
+msgstr "Японія"
 
 msgid "Handshake Modem Standard"
-msgstr ""
+msgstr "Стандарт модемного квитування"
 
 msgid "Automatic (from DTE speed)"
-msgstr ""
+msgstr "Автоматично (від швидкості DTE)"
 
 msgid "Connection Type"
-msgstr ""
+msgstr "Тип підключення"
 
 msgid "Username"
-msgstr ""
+msgstr "Ім'я користувача"
 
 msgid "Password"
-msgstr ""
+msgstr "Пароль"
 
 msgid "PPP Compression and Encryption"
-msgstr ""
+msgstr "Стиснення та шифрування PPP"
 
 msgid "Automatic"
-msgstr ""
+msgstr "Автоматично"
 
 msgid "Require MPPE"
-msgstr ""
+msgstr "Вимагати MPPE"
 
 msgid "PPP Multilink Group (same on each link)"
-msgstr ""
+msgstr "Группа мульти-зв'язку PPP (однакова в одному зв'язку)"
 
 msgid "PPP Primary DNS Server"
-msgstr ""
+msgstr "Первинний DNS-сервер PPP"
 
 msgid "PPP Secondary DNS Server"
-msgstr ""
+msgstr "Вторинний DNS-сервер PPP"
 
 msgid "CCP Directional Negotiation"
-msgstr ""
+msgstr "Узгодження напрямку CCP"
 
 msgid "Bidirectional"
-msgstr ""
+msgstr "Двостороннє"
 
 msgid "Transmit-Only"
-msgstr ""
+msgstr "Тільки передача"
 
 msgid "Receive-Only"
-msgstr ""
+msgstr "Тільки прийом"
 
 msgid "Asymmetric Preferred"
-msgstr ""
+msgstr "Бажано асиметричне"
 
 msgid "PPP Callback (Microsoft CBCP)"
-msgstr ""
+msgstr "Зворотний виклик PPP (Microsoft CBCP)"
 
 msgid "Offered (caller may decline)"
-msgstr ""
+msgstr "Запропонований (абонент може відхилити)"
 
 msgid "Required (caller must accept)"
-msgstr ""
+msgstr "Потрібний (абонент повинен прийняти)"
 
 msgid "PPP Keepalive Interval (seconds, 0 = off)"
-msgstr ""
+msgstr "Інтервал підтримання з'єднання PPP (у секундах, 0 = вимк.)"
 
 msgid "Report received DTMF to the host (<DLE>digit)"
-msgstr ""
+msgstr "Повідомляти основній системі про отриманий DTMF-сигнал (<DLE>цифра)"
 
 msgid "Off (only with +VDR=1)"
-msgstr ""
+msgstr "Вимкнено (тільки коли +VDR=1)"
 
 msgid "Caller ID between emulator instances (enable on both)"
-msgstr ""
+msgstr "ID абонента між вікнами емулятора (увімкнути на обох)"
 
 msgid "Caller ID sent when dialling (number,name)"
-msgstr ""
+msgstr "ID абонента, відправлений при набору номера (номер, ім'я)"
 
 msgid "Network to guest queue limit (back-pressure)"
-msgstr ""
+msgstr "Ліміт черги мережі до гостя (стримування навантаження)"
 
 msgid "Unlimited (legacy)"
-msgstr ""
+msgstr "Необмежений (застаріле)"
 
 msgid "250 ms of line time"
-msgstr ""
+msgstr "250 мс"
 
 msgid "500 ms of line time"
-msgstr ""
+msgstr "500 мс"
 
 msgid "1 s of line time"
-msgstr ""
+msgstr "1 с"
 
 msgid "2 s of line time"
-msgstr ""
+msgstr "2 с"
 
 msgid "TCP send timeout"
-msgstr ""
+msgstr "Таймаут відправлення TCP"
 
 msgid "Card:"
-msgstr ""
+msgstr "Карта:"
 
 msgid "Hub:"
-msgstr ""
+msgstr "Хаб:"
 
 msgid "Mass storage:"
-msgstr ""
+msgstr "Накопичувач:"
 
 msgid "Its drives are hard disks, CD-ROM drives and other removable devices set up on their own pages, on bus SCSI, in the channels named \"USB Mass Storage\". Each drive is one logical unit, in channel order."
 msgstr ""
+"Його дисками є жорсткі диски, дисководи CD-ROM та інших з'ємних пристроїв, "
+"налаштованих на своїх сторінках, через шину SCSI, в каналі під назвою "
+"\"USB Mass Storage\". Кожний диск є однією логічною одиницею, впорядковані "
+"до послідовності каналів."
 
 msgid "Hard disks…"
-msgstr ""
+msgstr "Жорсткі диски…"
 
 msgid "CD-ROM drives…"
-msgstr ""
+msgstr "Дисководи CD-ROM…"
 
 msgid "Other removable devices…"
-msgstr ""
+msgstr "Інші з'ємні пристрої…"
 
 msgid "4-port USB 1.1 hub"
-msgstr ""
+msgstr "Чотирьохпортовий хаб USB 1.1"
 
 msgid "USB Mass Storage"
-msgstr ""
+msgstr "USB-накопичувач"
 
 msgid "Mount folder as a temporary floppy"
-msgstr ""
+msgstr "Підключити теку як тимчасовий гнучкий диск"
 
 msgid "The selected drive does not support folder mounting."
-msgstr ""
+msgstr "Вибраний диск не підтримує підключення тек."
 
 msgid "The contents exceed the capacity of the configured floppy drive."
 msgstr ""
+"Обсяг даних перевищує підтриману ємність налаштованого дисковода гнучких "
+"дисків."
 
 msgid "Mount folder as a temporary removable disk"
 msgstr ""
+"На гнучкому диску закінчилися записи в каталозі або вільне місце, або ім'я "
+"файлу неможливо представити у FAT12."
 
 msgid "Unable to mount folder or archive"
-msgstr ""
+msgstr "Не вдалося прикріпити теку або архів"
 
 msgid "The contents don't fit on any medium the drive takes, or a file is 4 GB or larger."
 msgstr ""
