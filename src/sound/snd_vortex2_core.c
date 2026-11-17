@@ -362,14 +362,19 @@ interp4(const float *h, float t)
    its 16384 values in turn, which gives the 26 taps at that phase exactly
    as the chip uses them (snd_vortex2_srctab.h). They are 14-bit fractions,
    and each output is (sum of coefficient x sample + 0x2200) >> 14, rounded
-   to nearest with an extra 1/32 LSB; the model works in floating point and
-   leaves out that last rounding. A Kaiser window (beta 7.70 over a
+   to nearest with an extra 1/32 LSB (srcprobe ampsweep: 576 impulse heights
+   at two phases, every central-tap output exact). The model does the same
+   sum in double precision, which holds it exactly for 16-bit inputs, so a
+   stream played straight from DMA comes out bit for bit as on the card.
+   Inputs from elsewhere in the model (a mixer output) are not rounded to
+   16 bits first; what the chip does at full scale (wrap or saturate) is not
+   measured, and the sum is passed on unclamped. A Kaiser window (beta 7.70 over a
    half-width of 12.85 samples) fits the table to 0.65 LSB; Aureal
    described the converter as a Kaiser-windowed sinc. src_fir[p] holds the
    taps for a fractional position p / SRC_PHASES after tap
    (SRC_TAPS - 1) / 2; the chip uses the fraction as it stands, without
    interpolating between phases. */
-static float src_fir[SRC_PHASES][SRC_PAD]; /* taps in [SRC_PAD - SRC_TAPS ..] */
+static double src_fir[SRC_PHASES][SRC_PAD]; /* integer coefficients (16384 = 1.0) in [SRC_PAD - SRC_TAPS ..] */
 
 static void
 init_src_fir(void)
@@ -393,12 +398,12 @@ init_src_fir(void)
         }
     for (int p = 0; p < SRC_PHASES; p++) {
         for (int k = 0; k < SRC_PAD; k++)
-            src_fir[p][k] = 0.0f;
+            src_fir[p][k] = 0.0;
         /* tap i (input sample i - 12 from the one before the output point)
            is model tap k = i + 1 of SRC_TAPS, stored at SRC_PAD - SRC_TAPS + k */
         for (int i = 0; i < V2_SRCTAB_TAPS; i++) {
             int v = (p <= V2_SRCTAB_PHASES / 2) ? t[p][i] : t[V2_SRCTAB_PHASES - p][V2_SRCTAB_TAPS - 1 - i];
-            src_fir[p][SRC_PAD - SRC_TAPS + i + 1] = (float) v / 16384.0f;
+            src_fir[p][SRC_PAD - SRC_TAPS + i + 1] = (double) v;
         }
     }
 }
@@ -407,20 +412,23 @@ init_src_fir(void)
 static inline float
 src_interp(const float *hist, double phase)
 {
-    int          p  = (int) (phase * SRC_PHASES);
-    const float *h0;
-    float        a[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    int           p = (int) (phase * SRC_PHASES);
+    const double *h0;
+    double        a[4] = { 0.0, 0.0, 0.0, 0.0 };
 
     if (p < 0)
         p = 0;
     else if (p >= SRC_PHASES)
         p = SRC_PHASES - 1;
     h0 = src_fir[p];
-    /* Four independent lanes, so the compiler can use SSE. */
+    /* Four independent lanes, so the compiler can vectorise. Each product of
+       a 16-bit sample and a coefficient is an integer below 2^29, so the sum
+       of 28 is exact in a double. */
     for (int k = 0; k < SRC_PAD; k += 4)
         for (int j = 0; j < 4; j++)
-            a[j] += h0[k + j] * hist[k + j];
-    return (a[0] + a[1]) + (a[2] + a[3]);
+            a[j] += h0[k + j] * (double) hist[k + j];
+    double sum = ((a[0] + a[1]) + (a[2] + a[3])) * 32768.0; /* in LSB x 16384 */
+    return (float) (floor((sum + 0x2200) / 16384.0) / 32768.0);
 }
 
 /* Mixer gain byte: a signed 5-bit exponent (bits 7-3) and a 3-bit
