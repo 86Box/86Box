@@ -329,6 +329,11 @@ rage128_lfb_read_n(uint32_t addr, void *priv, uint32_t len)
     return v;
 }
 
+#ifdef REG_HARNESS
+/* Register harness only: see r128_harness_store_site. */
+_Atomic(void (*)(rage128_t *dev, uint32_t addr, uint32_t len)) rage128_harness_store_hook;
+#endif
+
 static uint16_t
 rage128_lfb_readw(uint32_t addr, void *priv)
 {
@@ -1351,8 +1356,10 @@ rage128_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
                 uint32_t *p = (uint32_t *) &dev->svga.vram[a];
                 if (dev->synctel)
                     rage128_synctel_cpu_write(dev, a, 4);
-                if (dev->gpu)
+                if (dev->gpu) {
                     rage128_gpu_cpu_barrier(dev, a, 4, 1);
+                    r128_harness_store_site(dev, a, 4);
+                }
                 *p                             = (*p & ~mask) | (val & mask);
                 dev->svga.changedvram[a >> 12] = dev->svga.monitor->mon_changeframecount;
                 r128_vram_hnew(dev, a, 4);
@@ -2468,6 +2475,8 @@ rage128_reset(void *priv)
     /* Quiesce the CCE thread before any block clears the state it
        executes against (no-op before the thread exists). */
     rage128_pm4_drain_wait(dev);
+    /* No texture level staged before the reset serves a draw after it. */
+    r128_tex_keep_note_all(dev);
 
     dev->mm_index = 0;
     memset(dev->bios_scratch, 0, sizeof(dev->bios_scratch));

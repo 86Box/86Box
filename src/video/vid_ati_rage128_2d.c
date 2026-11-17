@@ -3910,14 +3910,16 @@ rage128_2d_lerp_argb(uint32_t c0, uint32_t c1, uint32_t w)
    optional bilinear blend, pack to the destination format. Returns 1 =
    store *out, 0 = keyed out. The CPU walk and the queue path both use
    it, so the two cannot differ. xph is the 16.16 fraction the
-   accumulator starts at. */
+   accumulator starts at. argb, when not NULL, also gets the texel as
+   ARGB8888 before the pack, for the scaler alpha blend. */
 static int
 rage128_2d_stretch_resolve(rage128_t *dev, const r128_surf_t *ssrc,
                            int sbpp, int sdt, int ddt, int usepal,
                            int blend, int sx0, uint32_t xph, uint32_t xinc,
                            int xskip, int col, uint32_t saddr, uint32_t sbddr,
                            uint32_t wy, int sxlim, uint32_t key,
-                           uint32_t kmask, int key_skip, uint32_t *out)
+                           uint32_t kmask, int key_skip, uint32_t *out,
+                           uint32_t *argb)
 {
     uint32_t xacc = xph + (uint32_t) (col + xskip) * xinc;
     int      sx   = sx0 + (int) (xacc >> 16);
@@ -3947,6 +3949,8 @@ rage128_2d_stretch_resolve(rage128_t *dev, const r128_surf_t *ssrc,
 
         c = rage128_2d_lerp_argb(top, bot, wy);
     }
+    if (argb)
+        *argb = c;
     *out = rage128_2d_argb_pack(c, ddt);
     return 1;
 }
@@ -4060,7 +4064,7 @@ rage128_2d_queue_stretch(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
                                               usepal, blend, sx0, xph, xinc,
                                               xskip, col, saddr, sbddr,
                                               wy, sxlim, key, kmask,
-                                              key_skip, &spx);
+                                              key_skip, &spx, NULL);
 
             if (store) {
                 if (rs < 0)
@@ -4755,6 +4759,194 @@ rage128_2d_stretch_row_v8888(uint8_t *d, const uint8_t *s0, const uint8_t *s1,
 }
 #endif
 
+/* Alpha blend state of one scaler block (packets 0x96 and 0x97), taken
+   when the block's TEX_CNTL sets ALPHA_EN, bit 9 (SDK: Table F-19,
+   p. F-31 / PDF 321). misc is the block's MISC_3D_STATE: ALPHA_COMB_FCN
+   [13:12], ALPHA_BLND_SRC [19:16] and ALPHA_BLND_DST [23:20] (SDK: Table
+   F-18, pp. F-28-F-30 / PDF 318-320). afn is ALPHA_LIGHT_FN, TEX_CNTL
+   [20:18], which "determines the src alpha to be used for alpha
+   blending" and "is valid and used for scaling" (CCE 3D supplement,
+   TEX_CNTL_C). tex_aen is TEX_MAP_AEN, SCALE_3D_CNTL [30]: when it is
+   clear the texel alpha is taken as 0xff (CCE 3D supplement,
+   SCALE_3D_CNTL). */
+typedef struct r128_sblend_t {
+    uint32_t misc;
+    uint32_t afn;
+    int      tex_aen;
+} r128_sblend_t;
+
+/* Blend factor for an ALPHA_BLND_SRC or ALPHA_BLND_DST code as four
+   floats 0..1 in R, G, B, A order, the scaler's copy of the 3D raster's
+   table (SDK: Table F-18, pp. F-29-F-30 / PDF 319-320). sc and dc are
+   the source and destination colors with alpha in [3]. Codes 11 and 12,
+   which set both factors, are done by the caller; the reserved codes
+   are taken as ONE. */
+static void
+rage128_2d_scale_bfactor(uint32_t code, const float sc[4], const float dc[4],
+                         float out[4])
+{
+    float f;
+
+    switch (code & 0xf) {
+        case 0x0:
+            out[0] = out[1] = out[2] = out[3] = 0.0f;
+            return;
+        case 0x2:
+            for (int c = 0; c < 4; c++)
+                out[c] = sc[c];
+            return;
+        case 0x3:
+            for (int c = 0; c < 4; c++)
+                out[c] = 1.0f - sc[c];
+            return;
+        case 0x4:
+            out[0] = out[1] = out[2] = out[3] = sc[3];
+            return;
+        case 0x5:
+            out[0] = out[1] = out[2] = out[3] = 1.0f - sc[3];
+            return;
+        case 0x6:
+            out[0] = out[1] = out[2] = out[3] = dc[3];
+            return;
+        case 0x7:
+            out[0] = out[1] = out[2] = out[3] = 1.0f - dc[3];
+            return;
+        case 0x8:
+            for (int c = 0; c < 4; c++)
+                out[c] = dc[c];
+            return;
+        case 0x9:
+            for (int c = 0; c < 4; c++)
+                out[c] = 1.0f - dc[c];
+            return;
+        case 0xa: /* SRCALPHASAT: (f, f, f, 1), f = min(As, 1 - Ad) */
+            f      = sc[3] < 1.0f - dc[3] ? sc[3] : 1.0f - dc[3];
+            out[0] = out[1] = out[2] = f;
+            out[3]                   = 1.0f;
+            return;
+        default:
+            out[0] = out[1] = out[2] = out[3] = 1.0f;
+            return;
+    }
+}
+
+/* One pixel of a scaler alpha blend. texel is the stretched source and
+   dst the destination pixel, both ARGB8888; the result is ARGB8888.
+   The source alpha As comes from ALPHA_LIGHT_FN, with the codes and
+   operations of the texture-lighting alpha function (CCE 3D supplement,
+   TEX_CNTL_C): the texel alpha At, and the input alpha Ai, the
+   interpolator alpha at 0x1a88-0x1a90 (start plus slope times the pixel's
+   distance from the destination rectangle's top-left, as for the color
+   gradient; the slopes are modeled, every captured write of them is 0).
+   The Windows 2000 display driver's AlphaBlend selects copy input with
+   the constant alpha in the interpolator start, so the blend ignores
+   the texel alpha, as AlphaBlend without per-pixel alpha must. The
+   blend equation, the factors and ALPHA_COMB_FCN are those of the 3D
+   raster; channel precision and rounding inside the chip are not
+   documented, and the result is rounded to nearest here. */
+static uint32_t
+rage128_2d_scale_blend_px(const rage128_t *dev, const r128_sblend_t *ab,
+                          uint32_t texel, uint32_t dst, int kx, int ky)
+{
+    float    sc[4], dc[4], fs[4], fd[4];
+    float    ta = ab->tex_aen ? (float) (texel >> 24) / 255.0f : 1.0f;
+    /* the start is 8.16 in [23:0]; [31:24] are not part of the field */
+    int64_t  acc = (int64_t) (dev->alpha_start & 0x00ffffffu)
+        + (int64_t) dev->alpha_slope_x * kx + (int64_t) dev->alpha_slope_y * ky;
+    int      ai8 = (int) (acc >> 16);
+    float    ia  = (float) (ai8 < 0 ? 0 : (ai8 > 255 ? 255 : ai8)) / 255.0f;
+    uint32_t bsrc = (ab->misc >> 16) & 0xf;
+    uint32_t bdst = (ab->misc >> 20) & 0xf;
+    uint32_t bfcn = (ab->misc >> 12) & 3;
+    uint32_t out  = 0;
+
+    sc[0] = (float) ((texel >> 16) & 0xff) / 255.0f;
+    sc[1] = (float) ((texel >> 8) & 0xff) / 255.0f;
+    sc[2] = (float) (texel & 0xff) / 255.0f;
+    dc[0] = (float) ((dst >> 16) & 0xff) / 255.0f;
+    dc[1] = (float) ((dst >> 8) & 0xff) / 255.0f;
+    dc[2] = (float) (dst & 0xff) / 255.0f;
+    dc[3] = (float) (dst >> 24) / 255.0f;
+    /* ALPHA_LIGHT_FN: 0 disable and 1 copy give At, 2 copy input Ai,
+       3 Ai * At, 4 and 5 that times 2 and 4, 6 Ai + At, 7 Ai + At - 0.5,
+       each clamped to [0, 1]. */
+    switch (ab->afn & 7) {
+        case 0:
+        case 1:
+            sc[3] = ta;
+            break;
+        case 2:
+            sc[3] = ia;
+            break;
+        case 4:
+            sc[3] = ia * ta * 2.0f;
+            break;
+        case 5:
+            sc[3] = ia * ta * 4.0f;
+            break;
+        case 6:
+            sc[3] = ia + ta;
+            break;
+        case 7:
+            sc[3] = ia + ta - 0.5f;
+            break;
+        default: /* 3 */
+            sc[3] = ia * ta;
+            break;
+    }
+    sc[3] = sc[3] < 0.0f ? 0.0f : (sc[3] > 1.0f ? 1.0f : sc[3]);
+    if (bsrc == 0xb || bsrc == 0xc) { /* BOTHSRCALPHA, BOTHINVSRCALPHA */
+        float sa = (bsrc == 0xb) ? sc[3] : 1.0f - sc[3];
+
+        fs[0] = fs[1] = fs[2] = fs[3] = sa;
+        fd[0] = fd[1] = fd[2] = fd[3] = 1.0f - sa;
+    } else {
+        rage128_2d_scale_bfactor(bsrc, sc, dc, fs);
+        rage128_2d_scale_bfactor(bdst, sc, dc, fd);
+    }
+    /* ALPHA_COMB_FCN: 0 add and clamp, 1 add, 2 source minus destination
+       and clamp, 3 the same without the clamp; without the clamp the
+       8-bit result wraps (modeled, as in the 3D raster). */
+    for (int c = 0; c < 4; c++) {
+        float    v = (bfcn & 2) ? sc[c] * fs[c] - dc[c] * fd[c]
+                                : sc[c] * fs[c] + dc[c] * fd[c];
+        uint32_t v8;
+
+        if (bfcn & 1)
+            v8 = (uint32_t) (int32_t) (v * 255.0f + (v < 0.0f ? -0.5f : 0.5f)) & 0xff;
+        else
+            v8 = (uint32_t) ((v < 0.0f ? 0.0f : (v > 1.0f ? 1.0f : v)) * 255.0f + 0.5f);
+        out |= v8 << ((c == 3) ? 24 : (16 - 8 * c));
+    }
+    return out;
+}
+
+/* RGB 332 (datatype 7, "8 bpp RGB 332"; SDK: Table F-20, p. F-32 /
+   PDF 322) to ARGB8888 for the scaler alpha blend, alpha 0xff. The
+   guides name the format but not its bit order; red [7:5], green [4:2]
+   and blue [1:0] is modeled, the order the 3D texture decode uses. Each
+   channel is widened by repeating its top bits, as the other scaler
+   expands do, so the pack below gives the byte back. The stretch itself
+   copies 8 bpp sources as raw bytes; only the blend needs the channels
+   apart. */
+static uint32_t
+rage128_2d_rgb332_argb(uint32_t v)
+{
+    uint32_t r = (v >> 5) & 7;
+    uint32_t g = (v >> 2) & 7;
+    uint32_t b = v & 3;
+
+    return 0xff000000u | (((r << 5) | (r << 2) | (r >> 1)) << 16)
+        | (((g << 5) | (g << 2) | (g >> 1)) << 8) | (b * 0x55u);
+}
+
+/* ARGB8888 to RGB 332, truncating, the inverse of the expand above. */
+static uint32_t
+rage128_2d_argb_rgb332(uint32_t argb)
+{
+    return ((argb >> 16) & 0xe0) | ((argb >> 11) & 0x1c) | ((argb >> 6) & 0x03);
+}
+
 /* Stretch blit (packet 0x96, R128_CCE_PACKET3_CNTL_SCALING). The walk
    runs over the destination and steps the source by 16.16 increments
    from (sx0, sy0), starting at the 16.16 fractions (xph, yph).
@@ -4771,12 +4963,15 @@ rage128_2d_stretch_row_v8888(uint8_t *d, const uint8_t *s0, const uint8_t *s1,
    blending. Captured Windows 98 traffic sends 0x97 only with
    replication, so blend plus key has not been observed. key_skip 1 = skip
    when equal (CLR_CMP_FN_SRC 5, draw when not equal), 0 = skip when not
-   equal (CLR_CMP_FN_SRC 4), -1 = no key. */
+   equal (CLR_CMP_FN_SRC 4), -1 = no key.
+   ab, when not NULL, blends each stretched pixel with the destination
+   (the scaler alpha blend above) before the ROP3 and write mask stage. */
 static void
 rage128_2d_stretch_rect(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
                         int sx0, int sy0, uint32_t xph, uint32_t yph,
                         uint32_t xinc, uint32_t yinc,
-                        int dx, int dy, int w, int h, int sdt, int blend)
+                        int dx, int dy, int w, int h, int sdt, int blend,
+                        const r128_sblend_t *ab)
 {
     int         ddt    = rage128_dp_dst_dt(dev);
     int         bpp    = rage128_2d_bpp(ddt);
@@ -4846,7 +5041,8 @@ rage128_2d_stretch_rect(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
     if (dev->gpu && !dev->synctel) {
         int why = 0;
 
-        if (!rage128_2d_rop_dindep(rop))
+        /* an alpha blend reads the destination, as such a ROP does */
+        if (!rage128_2d_rop_dindep(rop) || ab)
             why |= 1;
         if (!rage128_2d_wmask_full(wmask, bpp))
             why |= 2;
@@ -4908,7 +5104,7 @@ rage128_2d_stretch_rect(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
        taken only when that source span and the destination row are each
        one contiguous run of the mapped surface.
        Any other row, and any other stretch, goes through the walk. */
-    int      fast = !cca && !aux_on && !usepal && rop == 0xcc
+    int      fast = !ab && !cca && !aux_on && !usepal && rop == 0xcc
         && rage128_2d_wmask_full(wmask, bpp) && sdt == ddt && (ddt == 4 || ddt == 6)
         && sx0 >= 0 && sy0 >= 0
         && (uint64_t) xph + (uint64_t) (uint32_t) (w - 1 + xskip) * xinc <= 0xffffffffu;
@@ -5003,11 +5199,33 @@ rage128_2d_stretch_rect(rage128_t *dev, uint32_t soff, uint32_t spitch_px,
                     continue;
                 }
             }
+            uint32_t sargb;
+
             if (!rage128_2d_stretch_resolve(dev, &ssrc, sbpp, sdt, ddt,
                                             usepal, blend, sx0, xph, xinc,
                                             xskip, col, saddr, sbddr, wy,
-                                            sxlim, key, kmask, key_skip, &spx))
+                                            sxlim, key, kmask, key_skip, &spx,
+                                            &sargb))
                 continue; /* keyed out: transparent pixel */
+            if (ab) {
+                uint32_t dpx = 0;
+
+                for (int b = 0; b < bpp; b++)
+                    dpx |= (uint32_t) *r128_surf_at(&sdst, da + (uint32_t) b)
+                        << (b * 8);
+                if (ddt == 7) /* RGB 332: blend the channels, not the byte */
+                    spx = rage128_2d_argb_rgb332(
+                        rage128_2d_scale_blend_px(dev, ab,
+                                                  rage128_2d_rgb332_argb(spx & 0xff),
+                                                  rage128_2d_rgb332_argb(dpx & 0xff),
+                                                  col + xskip, row + yskip));
+                else
+                    spx = rage128_2d_argb_pack(
+                        rage128_2d_scale_blend_px(dev, ab, sargb,
+                                                  rage128_2d_val_argb(dpx, ddt),
+                                                  col + xskip, row + yskip),
+                        ddt);
+            }
             for (int b = 0; b < bpp; b++) {
                 uint8_t *dp = r128_surf_at(&sdst, da + (uint32_t) b);
                 uint8_t  s  = (uint8_t) (spx >> (b * 8));
@@ -5107,7 +5325,11 @@ rage128_2d_scale_pair_ok(rage128_t *dev, uint32_t depth, uint32_t soff)
 
 /* Decode and run the 11-dword scaler data block of packets 0x96 and
    0x97 (SDK: Table F-17, pp. F-27-F-28 / PDF 317-318). b[0] is
-   MISC_3D_STATE, b[1] and b[2] TEX_CNTL and TEX_COMB_CTL, b[3] the
+   MISC_3D_STATE, b[1] and b[2] TEX_CNTL and TEX_COMB_CTL; when b[1] sets
+   ALPHA_EN the stretch is blended with the destination (the scaler
+   alpha blend above; the Windows 2000 display driver's AlphaBlend sends
+   MISC_3D_STATE 0x00540500 and TEX_CNTL 0x00880200, RE: ati2dvaa.dll
+   @00010ab7). b[3] is the
    source datatype, b[4] the source byte offset, b[5] the source pitch:
    SCALE_PITCH in [8:0], units of 8 pixels, with [16:9] reserved and
    SCALE_PITCH_ADJ in [31:30], 1 = x2 and 2 = x4 (SDK: Table F-21,
@@ -5137,7 +5359,9 @@ rage128_2d_scale_pair_ok(rage128_t *dev, uint32_t depth, uint32_t soff)
 static int
 rage128_2d_scale_block(rage128_t *dev, const uint32_t *b)
 {
-    uint32_t depth = b[3];
+    uint32_t      depth = b[3];
+    r128_sblend_t ab    = { b[0], (b[1] >> 18) & 7,
+                            (int) ((dev->t3d.scale_3d_cntl >> 30) & 1) };
 
     if (!rage128_2d_scale_pair_ok(dev, depth, b[4]))
         return 0;
@@ -5152,7 +5376,8 @@ rage128_2d_scale_block(rage128_t *dev, const uint32_t *b)
                             (int) (b[10] & 0x3fff),
                             (int) ((b[10] >> 16) & 0x3fff),
                             (int) depth,
-                            !((b[0] >> 10) & 1) /* SCALE_PIX_REP, bit 10 */);
+                            !((b[0] >> 10) & 1) /* SCALE_PIX_REP, bit 10 */,
+                            (b[1] & (1u << 9)) ? &ab : NULL);
     return 1;
 }
 
@@ -6701,6 +6926,11 @@ rage128_2d_reg_read(rage128_t *dev, uint32_t off, uint32_t *val)
         case 0x1a58: *val = (uint32_t) dev->grad_slope_x[2]; return 1;
         case 0x1a5c: *val = (uint32_t) dev->grad_slope_y[2]; return 1;
         case 0x1a60: *val = dev->grad_start[2];              return 1;
+        /* The interpolator alpha registers read back as written, like
+           the gradient registers they are modeled on. */
+        case 0x1a88: *val = (uint32_t) dev->alpha_slope_x;   return 1;
+        case 0x1a8c: *val = (uint32_t) dev->alpha_slope_y;   return 1;
+        case 0x1a90: *val = dev->alpha_start;                return 1;
         default:
             break;
     }
@@ -7520,7 +7750,7 @@ rage128_2d_scale_reg_op(rage128_t *dev)
                                 rage128_sx14(dev->scale_dst_x_y),
                                 (int) (dhw & 0x3fff), (int) ((dhw >> 16) & 0x3fff),
                                 (int) sdt,
-                                !((dev->t3d.misc_3d_state_cntl >> 10) & 1));
+                                !((dev->t3d.misc_3d_state_cntl >> 10) & 1), NULL);
     }
     /* two pixels per engine clock; a pair that is not drawn takes no time */
     rage128_2d_eng_op(dev, drawn ? (double) (dhw & 0x3fff) * (double) ((dhw >> 16) & 0x3fff) / 2.0
@@ -7564,6 +7794,11 @@ rage128_2d_reg_write(rage128_t *dev, uint32_t off, uint32_t val, uint32_t mask)
         case 0x1a58: MERGE(dev->grad_slope_x[2]); dev->grad_valid = 1; return 1;
         case 0x1a5c: MERGE(dev->grad_slope_y[2]); return 1;
         case 0x1a60: MERGE(dev->grad_start[2]); return 1;
+        /* The scaler's interpolator alpha at 0x1a88-0x1a90, not named
+           in the guides; see alpha_start in vid_ati_rage128.h. */
+        case 0x1a88: MERGE(dev->alpha_slope_x); return 1;
+        case 0x1a8c: MERGE(dev->alpha_slope_y); return 1;
+        case 0x1a90: MERGE(dev->alpha_start); return 1;
         /* clang-format on */
         /* Ops started by register writes (the X server's 2D path): the
            position registers only latch; a write to a size register
