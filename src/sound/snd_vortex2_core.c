@@ -39,6 +39,7 @@
 
 #include "snd_vortex2_core.h"
 #include "snd_vortex2_tables.h"
+#include "snd_vortex2_srctab.h"
 
 #define B V2_BLOCK
 
@@ -182,7 +183,7 @@ typedef struct v2_route_t {
 } v2_route_t;
 
 #define SRC_TAPS   27  /* converter FIR length in input samples */
-#define SRC_PHASES 256
+#define SRC_PHASES 16384 /* the converter's 14-bit time fraction */
 #define SRC_PAD    28  /* SRC_TAPS rounded up to a multiple of 4 (leading zero taps) */
 
 typedef struct v2_src_t {
@@ -351,57 +352,54 @@ interp4(const float *h, float t)
            + tp1 * t * tm1 * (1.0f / 6.0f) * h[3];
 }
 
-/* Sample-rate converter filter: a Kaiser-windowed sinc, 27 input
-   samples wide (13 each side of the centre, the driver's samples-per-wing
-   setting), with its cutoff at the input Nyquist. Aureal described the
-   converter as a 27-point Kaiser-windowed sinc (relayed to the project).
-   The window was read digitally off a real SQ2500 (srcprobe sweep,
-   2026-11-17): with the card idle on the host, a single-sample impulse was
-   routed FIFO -> converter -> output double buffer at a conversion ratio
-   of 1, and the converter's time fraction stepped through 1,024 phases,
-   giving the 26 taps at each phase as the chip computes them. A Kaiser
-   window with beta 7.70 and half-width 12.85 samples fits all of them to
-   0.65 LSB rms of a 16384 impulse (3.99e-5), about rounding; the earlier
-   fit from analog recordings (beta 8.6 over 13.5, run 12) was 2.0 LSB off.
-   The taps at each phase sum to the impulse, so they are normalised here.
-   src_fir[p] holds the taps for a fractional position p / SRC_PHASES
-   after tap (SRC_TAPS - 1) / 2. */
-#define SRC_KAISER_BETA 7.70
-#define SRC_KAISER_HALF 12.85
-
-static double
-src_bessel_i0(double x)
-{
-    double sum = 1.0, term = 1.0;
-
-    for (int k = 1; k < 40; k++) {
-        term *= (x / (2.0 * k)) * (x / (2.0 * k));
-        sum += term;
-    }
-    return sum;
-}
-
-static float src_fir[SRC_PHASES + 1][SRC_PAD]; /* taps in [SRC_PAD - SRC_TAPS ..] */
+/* Sample-rate converter filter: the card's own coefficients. The
+   converter interpolates with a 27-point windowed sinc (13 input samples
+   each side of the centre, the driver's samples-per-wing setting), and its
+   time fraction is 14 bits. The coefficients were read digitally off a real
+   SQ2500 (srcprobe, 2026-11-17): with the card idle on the host, a single
+   impulse was routed FIFO -> converter -> output double buffer at a
+   conversion ratio of 1 and the converter's time fraction set to each of
+   its 16384 values in turn, which gives the 26 taps at that phase exactly
+   as the chip uses them (snd_vortex2_srctab.h). They are 14-bit fractions,
+   and each output is (sum of coefficient x sample + 0x2200) >> 14, rounded
+   to nearest with an extra 1/32 LSB; the model works in floating point and
+   leaves out that last rounding. A Kaiser window (beta 7.70 over a
+   half-width of 12.85 samples) fits the table to 0.65 LSB; Aureal
+   described the converter as a Kaiser-windowed sinc. src_fir[p] holds the
+   taps for a fractional position p / SRC_PHASES after tap
+   (SRC_TAPS - 1) / 2; the chip uses the fraction as it stands, without
+   interpolating between phases. */
+static float src_fir[SRC_PHASES][SRC_PAD]; /* taps in [SRC_PAD - SRC_TAPS ..] */
 
 static void
 init_src_fir(void)
 {
-    const int ctr = (SRC_TAPS - 1) / 2; /* the tap just before the output point */
+    static int16_t t[V2_SRCTAB_PHASES / 2 + 1][V2_SRCTAB_TAPS];
+    int            row = 1, tap = 0;
 
-    for (int p = 0; p <= SRC_PHASES; p++) {
-        double t = (double) p / SRC_PHASES, sum = 0.0, h[SRC_TAPS];
-        for (int k = 0; k < SRC_TAPS; k++) {
-            double x = (double) (k - ctr) - t; /* distance from the output point */
-            double w = x / (2.0 * SRC_KAISER_HALF);
-            double v = (fabs(x) < 1e-9) ? 1.0 : sin(M_PI * x) / (M_PI * x);
-            v *= (fabs(w) < 0.5) ? src_bessel_i0(SRC_KAISER_BETA * sqrt(1.0 - 4.0 * w * w)) / src_bessel_i0(SRC_KAISER_BETA) : 0.0;
-            h[k] = v;
-            sum += v;
+    memset(t[0], 0, sizeof(t[0]));
+    t[0][12] = 16384;
+    for (int l = 0; v2_srctab_delta[l] && row <= V2_SRCTAB_PHASES / 2; l++)
+        for (const char *q = v2_srctab_delta[l]; *q && row <= V2_SRCTAB_PHASES / 2; q++) {
+            int code = *q - 'A';
+            for (int h = 0; h < 2; h++) {
+                int d = (h ? code % 5 : code / 5) - 2;
+                t[row][tap] = (int16_t) (t[row - 1][tap] + d);
+                if (++tap == V2_SRCTAB_TAPS) {
+                    tap = 0;
+                    row++;
+                }
+            }
         }
-        for (int k = 0; k < SRC_PAD - SRC_TAPS; k++)
+    for (int p = 0; p < SRC_PHASES; p++) {
+        for (int k = 0; k < SRC_PAD; k++)
             src_fir[p][k] = 0.0f;
-        for (int k = 0; k < SRC_TAPS; k++)
-            src_fir[p][SRC_PAD - SRC_TAPS + k] = (float) (h[k] / sum);
+        /* tap i (input sample i - 12 from the one before the output point)
+           is model tap k = i + 1 of SRC_TAPS, stored at SRC_PAD - SRC_TAPS + k */
+        for (int i = 0; i < V2_SRCTAB_TAPS; i++) {
+            int v = (p <= V2_SRCTAB_PHASES / 2) ? t[p][i] : t[V2_SRCTAB_PHASES - p][V2_SRCTAB_TAPS - 1 - i];
+            src_fir[p][SRC_PAD - SRC_TAPS + i + 1] = (float) v / 16384.0f;
+        }
     }
 }
 
@@ -409,21 +407,20 @@ init_src_fir(void)
 static inline float
 src_interp(const float *hist, double phase)
 {
-    double       fp = phase * SRC_PHASES;
-    int          p  = (int) fp;
-    float        f  = (float) (fp - p);
-    const float *h0 = src_fir[p], *h1 = src_fir[p + 1];
-    float        a[4] = { 0.0f, 0.0f, 0.0f, 0.0f }, b[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
+    int          p  = (int) (phase * SRC_PHASES);
+    const float *h0;
+    float        a[4] = { 0.0f, 0.0f, 0.0f, 0.0f };
 
+    if (p < 0)
+        p = 0;
+    else if (p >= SRC_PHASES)
+        p = SRC_PHASES - 1;
+    h0 = src_fir[p];
     /* Four independent lanes, so the compiler can use SSE. */
     for (int k = 0; k < SRC_PAD; k += 4)
-        for (int j = 0; j < 4; j++) {
+        for (int j = 0; j < 4; j++)
             a[j] += h0[k + j] * hist[k + j];
-            b[j] += h1[k + j] * hist[k + j];
-        }
-    float sa = (a[0] + a[1]) + (a[2] + a[3]);
-    float sb = (b[0] + b[1]) + (b[2] + b[3]);
-    return sa + (sb - sa) * f;
+    return (a[0] + a[1]) + (a[2] + a[3]);
 }
 
 /* Mixer gain byte: a signed 5-bit exponent (bits 7-3) and a 3-bit
