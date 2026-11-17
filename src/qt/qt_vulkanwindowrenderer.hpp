@@ -116,7 +116,6 @@ private:
 
     // Stuff to use.
     VkImage src_image = nullptr;
-    VkImageView src_image_view = nullptr;
     // Optimal copy of src_image to blit from, on devices that can't blit from linear images.
     VkImage blit_src_image = nullptr;
     VmaAllocation blit_src_allocation = nullptr;
