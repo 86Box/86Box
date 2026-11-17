@@ -52,6 +52,10 @@ static video_timings_t timing_default = { .type = VIDEO_ISA, .write_b = 8, .writ
 
 static int was_reset = 0;
 
+#ifdef USE_VERITE
+extern const device_t verite_v1000_device;
+#endif
+
 static const VIDEO_CARD
 video_cards[] = {
   // clang-format off
@@ -168,6 +172,9 @@ video_cards[] = {
     { .device = &et4000w32i_vlb_device,                         .flags = VIDEO_FLAG_TYPE_NONE      },
     { .device = &et4000w32p_vlb_device,                         .flags = VIDEO_FLAG_TYPE_NONE      },
     /* PCI */
+#ifdef USE_VERITE
+    { .device = &verite_v1000_device,                            .flags = VIDEO_FLAG_TYPE_SPECIAL   },
+#endif
     { .device = &voodoo_banshee_pci_device,                     .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &voodoo_3_1000_device,                          .flags = VIDEO_FLAG_TYPE_SEC       },
     { .device = &voodoo_3_2000_device,                          .flags = VIDEO_FLAG_TYPE_SEC       },
