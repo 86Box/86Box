@@ -2239,20 +2239,56 @@ typedef struct toc_track_t {
 
 static int image_load_cue_fp(cd_image_t *img, const char *cuefile, FILE *fp);
 
+/* Convert a cdrdao length or position to frames.  MM:SS:FF is already in
+   frames; a bare number counts units of unit_size bytes (4-byte samples for
+   audio positions, single bytes for DATAFILE lengths). */
 static uint64_t
-image_toc_get_frame(char **line, const uint32_t sector_size)
+image_toc_get_frame(char **line, const uint32_t unit_size, const uint32_t sector_size)
 {
     char value[64] = { 0 };
     unsigned int m, s, f;
-    uint64_t bytes;
+    uint64_t count;
 
     if (!image_cue_get_buffer(value, line, 0))
         return 0;
     if (sscanf(value, "%u:%u:%u", &m, &s, &f) == 3)
         return ((uint64_t) m * 60 + s) * 75 + f;
-    if (sscanf(value, "%" SCNu64, &bytes) == 1)
-        return sector_size ? bytes / sector_size : 0;
+    if (sscanf(value, "%" SCNu64, &count) == 1)
+        return sector_size ? (count * unit_size) / sector_size : 0;
     return 0;
+}
+
+/* Parse the arguments after the file name of a TOC file directive:
+       DATAFILE "file" [#byte-offset] [length]
+       FILE|AUDIOFILE "file" [#byte-offset] start [length]
+   and return the position of the track's first sector in the file. The
+   length is not needed, the CUE loader ends each track at the next index in
+   the same file or at the end of the file. */
+static int
+image_toc_get_file_start(char **line, const int is_data, const uint32_t sector_size,
+                         uint64_t *start)
+{
+    char     value[64] = { 0 };
+    char    *next      = *line;
+    uint64_t offset    = 0;
+    uint64_t bytes;
+    char     extra;
+
+    *start = 0;
+    if (image_cue_get_buffer(value, &next, 0) && (value[0] == '#')) {
+        /* The CUE model addresses files in whole sectors, a byte offset
+           that splits a sector cannot be represented. */
+        if ((sscanf(value + 1, "%" SCNu64 "%c", &bytes, &extra) != 1) ||
+            (sector_size == 0) || (bytes % sector_size))
+            return 0;
+        offset = bytes / sector_size;
+        *line  = next;
+    }
+    /* A DATAFILE's only positional argument is its length. */
+    if (!is_data)
+        *start = image_toc_get_frame(line, 4, 2352);
+    *start += offset;
+    return 1;
 }
 
 /* Read the cdrdao TOC format and feed its normalized layout to the CUE
@@ -2279,6 +2315,9 @@ image_load_toc(cd_image_t *img, const char *tocfile)
         char *type;
         if (comment != NULL)
             *comment = '\0';
+        /* The tokenizer only splits on blanks, keep line ends out of the
+           last argument. */
+        buf[strcspn(buf, "\r\n")] = '\0';
         if (!image_cue_get_keyword(&command, &line)) {
             success = 0;
             break;
@@ -2317,14 +2356,18 @@ image_load_toc(cd_image_t *img, const char *tocfile)
                 strcpy(track->file_type, "WAVE");
             uint32_t sector_size = !strcmp(track->cue_type, "AUDIO") ? 2352 :
                                    (strrchr(track->cue_type, '/') ? atoi(strrchr(track->cue_type, '/') + 1) : 2352);
-            track->offset = image_toc_get_frame(&line, sector_size);
+            if (!image_toc_get_file_start(&line, !strcmp(command, "DATAFILE"), sector_size,
+                                          &track->offset)) {
+                success = 0;
+                break;
+            }
         } else if (!strcmp(command, "START")) {
             if (track != NULL)
-                track->start = image_toc_get_frame(&line, 2352);
+                track->start = image_toc_get_frame(&line, 4, 2352);
         } else if (!strcmp(command, "PREGAP") || !strcmp(command, "SILENCE") ||
                    !strcmp(command, "ZERO")) {
             if (track != NULL)
-                track->pregap += image_toc_get_frame(&line, 2352);
+                track->pregap += image_toc_get_frame(&line, 4, 2352);
         } else if (!strcmp(command, "COPY")) {
             if (track != NULL)
                 track->flags |= 1;
