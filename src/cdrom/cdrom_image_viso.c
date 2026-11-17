@@ -1567,6 +1567,7 @@ next_entry:
         if (entry->stats.is_dir) {
             /* Deallocate directory entries to save some memory. */
             prev_entry->next = entry->next;
+            free(entry->name_joliet);
             free(entry);
             entry = prev_entry->next;
             continue;
