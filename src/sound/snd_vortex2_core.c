@@ -352,21 +352,22 @@ interp4(const float *h, float t)
 }
 
 /* Sample-rate converter filter: a Kaiser-windowed sinc, 27 input
-   samples wide, with its cutoff at the input Nyquist. Aureal described
-   the converter as a 27-point Kaiser-windowed sinc (relayed to the
-   project), which fits the driver's samples-per-wing setting (13 each
-   side of the centre sample). The window's parameter was read off a
-   real SQ2500 (run 12): single-sample impulses played at 8 and 11.025
-   kHz record the kernel at 6 and 4.4 points per input sample, and its
-   lobes from 3.5 to 11.5 samples out follow a Kaiser window with beta
-   8.6 to 0.004 rms (beta 8.25 and 9.0 are both 0.013 off). A Blackman
-   window over the same 27 samples fits equally well; the two differ by
-   less than the measurement can show. The kernel also matches the noise
-   measurement of the transition band (-3 dB at 0.48 x the input rate,
-   -6 at 0.50, -11 at 0.52, -23 at 0.55, -37 at 0.57) to about 1 dB.
+   samples wide (13 each side of the centre, the driver's samples-per-wing
+   setting), with its cutoff at the input Nyquist. Aureal described the
+   converter as a 27-point Kaiser-windowed sinc (relayed to the project).
+   The window was read digitally off a real SQ2500 (srcprobe sweep,
+   2026-11-17): with the card idle on the host, a single-sample impulse was
+   routed FIFO -> converter -> output double buffer at a conversion ratio
+   of 1, and the converter's time fraction stepped through 1,024 phases,
+   giving the 26 taps at each phase as the chip computes them. A Kaiser
+   window with beta 7.70 and half-width 12.85 samples fits all of them to
+   0.65 LSB rms of a 16384 impulse (3.99e-5), about rounding; the earlier
+   fit from analog recordings (beta 8.6 over 13.5, run 12) was 2.0 LSB off.
+   The taps at each phase sum to the impulse, so they are normalised here.
    src_fir[p] holds the taps for a fractional position p / SRC_PHASES
    after tap (SRC_TAPS - 1) / 2. */
-#define SRC_KAISER_BETA 8.6
+#define SRC_KAISER_BETA 7.70
+#define SRC_KAISER_HALF 12.85
 
 static double
 src_bessel_i0(double x)
@@ -391,7 +392,7 @@ init_src_fir(void)
         double t = (double) p / SRC_PHASES, sum = 0.0, h[SRC_TAPS];
         for (int k = 0; k < SRC_TAPS; k++) {
             double x = (double) (k - ctr) - t; /* distance from the output point */
-            double w = x / (double) SRC_TAPS;
+            double w = x / (2.0 * SRC_KAISER_HALF);
             double v = (fabs(x) < 1e-9) ? 1.0 : sin(M_PI * x) / (M_PI * x);
             v *= (fabs(w) < 0.5) ? src_bessel_i0(SRC_KAISER_BETA * sqrt(1.0 - 4.0 * w * w)) / src_bessel_i0(SRC_KAISER_BETA) : 0.0;
             h[k] = v;
