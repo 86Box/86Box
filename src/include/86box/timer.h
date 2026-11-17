@@ -73,8 +73,9 @@ extern void timer_add(pc_timer_t *timer, void (*callback)(void *priv), void *pri
 /*1us in 32:32 format*/
 extern uint64_t TIMER_USEC;
 
-/*True if timer a expires before timer b*/
-#define TIMER_LESS_THAN(a, b) ((int64_t) ((a)->ts_integer - (b)->ts_integer) <= 0)
+/*True if timer a expires before timer b: the full 32.32 timestamp, and false on an exact tie,
+  so timers due together keep the order they were armed in*/
+#define TIMER_LESS_THAN(a, b) (((int64_t) ((a)->ts_integer - (b)->ts_integer) < 0) || (((a)->ts_integer == (b)->ts_integer) && ((a)->ts_frac < (b)->ts_frac)))
 /*True if timer a expires before 32 bit integer timestamp b*/
 #define TIMER_LESS_THAN_VAL(a, b) ((int64_t) ((a)->ts_integer - (b)) <= 0)
 /*True if 32 bit integer timestamp a expires before 32 bit integer timestamp b*/
