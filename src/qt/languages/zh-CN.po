@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-17 11:28+0000\n"
+"PO-Revision-Date: 2026-11-18 07:12+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -17,7 +17,7 @@ msgid "&Action"
 msgstr "操作(&A)"
 
 msgid "&Keyboard requires capture"
-msgstr "键盘需要捕捉(&K)"
+msgstr "键盘需要捕获(&K)"
 
 msgid "&Right CTRL is left ALT"
 msgstr "将右 CTRL 键映射为左 ALT 键(&R)"
@@ -71,7 +71,7 @@ msgid "Open&GL"
 msgstr "OpenGL(&G)"
 
 msgid "&Vulkan"
-msgstr "&Vulkan(&V)"
+msgstr "Vulkan(&V)"
 
 msgid "V&NC"
 msgstr "VNC(&N)"
@@ -146,10 +146,10 @@ msgid "&Square pixels (Keep ratio)"
 msgstr "保持比例(&S)"
 
 msgid "&Integer scale"
-msgstr "整数比例(&I)"
+msgstr "整数缩放(&I)"
 
 msgid "4:&3 Integer scale"
-msgstr "4:3 整数比例(&3)"
+msgstr "4:3 整数缩放(&3)"
 
 msgid "&Center"
 msgstr "居中(&C)"
@@ -158,7 +158,7 @@ msgid "4:3 Cen&ter"
 msgstr "4:3居中(&T)"
 
 msgid "4:3 Integer scale (&vertical)"
-msgstr "4:3 整数比例（垂直方向）(&V)"
+msgstr "4:3 整数缩放（垂直方向）(&V)"
 
 msgid "Inverted VGA monitor"
 msgstr "VGA 显示器反色显示"
@@ -257,16 +257,16 @@ msgid "Send MIDI &command"
 msgstr "发送MIDI命令(&C)"
 
 msgid "&GM System On"
-msgstr ""
+msgstr "开启GM系统(&G)"
 
 msgid "G&S Reset"
-msgstr ""
+msgstr "重置GS(&S)"
 
 msgid "&XG System On"
-msgstr ""
+msgstr "开启XG系统(&X)"
 
 msgid "&MT-32 Reset"
-msgstr ""
+msgstr "重置MT-32(&M)"
 
 msgid "All &notes off"
 msgstr ""
@@ -299,13 +299,13 @@ msgid "&About 86Box…"
 msgstr "关于 86Box(&A)…"
 
 msgid "&New image…"
-msgstr "新建映像(&N)…"
+msgstr "新建镜像(&N)…"
 
 msgid "&Existing image…"
-msgstr "打开已存在的映像(&E)…"
+msgstr "打开已存在的镜像(&E)…"
 
 msgid "Existing image (&Write-protected)…"
-msgstr "打开已存在的映像并写保护(&W)…"
+msgstr "以写保护方式打开已存在的镜像(&W)…"
 
 msgid "&Record"
 msgstr "录制(&R)"
@@ -323,7 +323,7 @@ msgid "E&ject"
 msgstr "弹出(&J)"
 
 msgid "&Image…"
-msgstr "映像(&I)…"
+msgstr "镜像(&I)…"
 
 msgid "E&xport to 86F…"
 msgstr "导出为 86F 格式(&X)…"
@@ -335,7 +335,7 @@ msgid "E&mpty"
 msgstr "空置驱动器(&M)"
 
 msgid "Reload previous image"
-msgstr "载入上一个映像"
+msgstr "重新加载上一个镜像"
 
 msgid "Mount &folder…"
 msgstr "挂载文件夹(&F)…"
@@ -347,7 +347,7 @@ msgid "Sound Gain"
 msgstr "音量增益"
 
 msgid "New Image"
-msgstr "新建映像"
+msgstr "新建镜像"
 
 msgid "Settings"
 msgstr "设置"
@@ -413,7 +413,7 @@ msgid "[1995] Socket 7 (Single Voltage)"
 msgstr "[1995] Socket 7（单电压）"
 
 msgid "[1996] Socket 7 (Dual Voltage)"
-msgstr "[1995] Socket 7（双电压）"
+msgstr "[1996] Socket 7（双电压）"
 
 msgid "Miscellaneous"
 msgstr "杂项"
@@ -554,7 +554,7 @@ msgid "&Mouse"
 msgstr "鼠标(&M)"
 
 msgid "Tablet:"
-msgstr "触控板："
+msgstr "数位板:"
 
 msgid "Tablet"
 msgstr "触控板"
@@ -722,7 +722,7 @@ msgid "Bus:"
 msgstr "总线:"
 
 msgid "Channel:"
-msgstr "通道:"
+msgstr "声道:"
 
 msgid "ID:"
 msgstr "ID:"
@@ -743,7 +743,7 @@ msgid "Type:"
 msgstr "类型:"
 
 msgid "Image Format:"
-msgstr "映像格式:"
+msgstr "镜像格式:"
 
 msgid "Block Size:"
 msgstr "块大小:"
@@ -872,7 +872,7 @@ msgid "&Removable disk %1 (%2): %3"
 msgstr "可移动磁盘(&R) %1 (%2): %3"
 
 msgid "Removable disk images"
-msgstr "可移动磁盘映像"
+msgstr "可移动磁盘镜像"
 
 msgid "Tape %1 (%2): %3"
 msgstr "磁带%1 (%2)：%3"
@@ -884,7 +884,7 @@ msgid "Tape images"
 msgstr "磁带镜像"
 
 msgid "Image %1"
-msgstr "映像 %1"
+msgstr "镜像%1"
 
 msgid "%1 could not find any usable ROM images.\n\nPlease <a href=\"%2\">download</a> a ROM set and extract it into the \"roms\" directory."
 msgstr "%1 找不到任何可用的 ROM 映像。\n\n请<a href=\"%2\">下载</a> ROM 包并将其解压到 \"roms\" 文件夹中。"
@@ -905,13 +905,13 @@ msgid "Off"
 msgstr "关"
 
 msgid "All images"
-msgstr "所有映像"
+msgstr "所有镜像"
 
 msgid "Basic sector images"
-msgstr "基本扇区映像"
+msgstr "基本扇区镜像"
 
 msgid "Surface images"
-msgstr "表面映像"
+msgstr "表面镜像"
 
 msgid "Machine \"%s\" is not available due to missing ROMs in the roms/machines directory. Switching to an available machine."
 msgstr "由于 roms/machines 文件夹中缺少合适的 ROM，机型 \"%s\" 不可用。将切换到其他可用机型。"
@@ -1013,7 +1013,7 @@ msgid "Other devices"
 msgstr "其他设备"
 
 msgid "Click to capture mouse"
-msgstr "单击窗口捕捉鼠标"
+msgstr "单击窗口捕获鼠标"
 
 msgid "Press %1 to release mouse"
 msgstr "按下 %1 释放鼠标"
@@ -1149,13 +1149,13 @@ msgid "&Floppy %1 (%2): %3"
 msgstr "软盘(&F) %1 (%2): %3"
 
 msgid "Advanced sector images"
-msgstr "高级扇区映像"
+msgstr "高级扇区镜像"
 
 msgid "Flux images"
-msgstr "Flux 映像"
+msgstr "磁通量镜像"
 
 msgid "Are you sure you want to hard reset the emulated machine?"
-msgstr "确定要硬重置模拟器吗？"
+msgstr "确定要硬重置虚拟机吗？"
 
 msgid "Are you sure you want to exit 86Box?"
 msgstr "确定要退出 86Box 吗？"
@@ -1173,7 +1173,7 @@ msgid "&MO %1 (%2): %3"
 msgstr "磁光盘(&M) %1 (%2): %3"
 
 msgid "MO images"
-msgstr "磁光盘映像"
+msgstr "磁光盘（MO）镜像"
 
 msgid "Welcome to 86Box!"
 msgstr "欢迎使用 86Box！"
@@ -1206,7 +1206,7 @@ msgid "Do you want to save the settings?"
 msgstr "要保存设置吗？"
 
 msgid "This will hard reset the emulated machine."
-msgstr "此操作将硬重置模拟器。"
+msgstr "此操作将硬重置虚拟机。"
 
 msgid "Save"
 msgstr "保存"
@@ -1224,7 +1224,7 @@ msgid "Don't show this message again"
 msgstr "不要再显示此消息"
 
 msgid "CD-ROM images"
-msgstr "光盘映像"
+msgstr "光盘镜像"
 
 msgid "%1 Device Configuration"
 msgstr "%1 设备配置"
@@ -1236,7 +1236,7 @@ msgid "GLSL shaders"
 msgstr "GLSL 着色器"
 
 msgid "You are loading an unsupported configuration"
-msgstr "正在载入一个不受支持的配置"
+msgstr "正在加载不受支持的配置"
 
 msgid "CPU type filtering based on selected machine is disabled for this emulated machine.\n\nThis makes it possible to choose a CPU that is otherwise incompatible with the selected machine. However, you may run into incompatibilities with the machine BIOS or other software.\n\nEnabling this setting is not officially supported and any bug reports filed may be closed as invalid."
 msgstr "此模拟计算机禁用了基于选定计算机的 CPU 类型过滤。\n\n能够选中与所选机器本不兼容的 CPU，但是可能会遇到与机器 BIOS 或其他软件不兼容的问题。\n\n启用此设置不受官方支持，并且提交的任何错误报告可能会视为无效而关闭。"
@@ -1372,15 +1372,15 @@ msgstr "正在使用%1"
 
 msgid "%n machine(s) active"
 msgid_plural "%n machines active"
-msgstr[0] "%n个机器正在活跃"
+msgstr[0] "%n台虚拟机正在运行"
 
 msgid " (+%n more)"
 msgid_plural " (+%n more)"
-msgstr[0] " （+%n以上）"
+msgstr[0] " （还有%n台）"
 
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
-msgstr[0] "%n 个计算机当前处于活动状态。您确定要退出虚拟机管理器吗？"
+msgstr[0] "%n 个计算机当前处于活动状态。确定要退出虚拟机管理器吗？"
 
 msgid "Add new system wizard"
 msgstr "添加新系统向导"
@@ -1389,7 +1389,7 @@ msgid "Introduction"
 msgstr "概述"
 
 msgid "This will help you add a new system to 86Box."
-msgstr "这将帮助您在86Box中添加一个新系统。"
+msgstr "此向导将协助在86Box中添加一个新系统。"
 
 msgid "New configuration"
 msgstr "新配置"
@@ -1545,16 +1545,19 @@ msgid "&Kill"
 msgstr "强制终止(&K)"
 
 msgid "Killing a virtual machine can cause data loss. Only do this if the 86Box process gets stuck.\n\nDo you really wish to kill the virtual machine \"%1\"?"
-msgstr "强制终止虚拟机可能导致数据丢失。仅在86Box进程卡住时才执行此操作。\n\n您确定要强制终止虚拟机 \"%1\" 吗？"
+msgstr ""
+"强制终止虚拟机可能导致数据丢失。仅在86Box进程卡住时才执行此操作。\n"
+"\n"
+"确定要强制终止虚拟机 \"%1\" 吗？"
 
 msgid "&Delete"
 msgstr "删除(&D)"
 
 msgid "Do you really want to delete the virtual machine \"%1\" and all its files?"
-msgstr "你真的想删除虚拟机 \"%1\" 及其所有文件吗？"
+msgstr "确定要删除虚拟机“%1”及其所有文件吗？"
 
 msgid "This action cannot be undone!"
-msgstr "此操作无法撤消！"
+msgstr "此操作无法撤销！"
 
 msgid "Show &config file"
 msgstr "显示配置文件(&C)"
@@ -1629,13 +1632,13 @@ msgid "Add Existing Hard Disk"
 msgstr "添加已存在的硬盘"
 
 msgid "HDI disk images cannot be larger than 4 GB."
-msgstr "HDI 磁盘映像不能超过 4 GB。"
+msgstr "HDI磁盘镜像不能超过4GB。"
 
 msgid "Disk images cannot be larger than 127 GB."
-msgstr "磁盘映像不能超过 127 GB。"
+msgstr "磁盘镜像不能超过127GB。"
 
 msgid "Hard disk images"
-msgstr "硬盘映像"
+msgstr "硬盘镜像"
 
 msgid "Unable to read file"
 msgstr "无法读取文件"
@@ -1644,16 +1647,16 @@ msgid "Unable to write file"
 msgstr "无法写入文件"
 
 msgid "HDI or HDX images with a sector size other than 512 are not supported."
-msgstr "不支持非 512 字节扇区大小的 HDI 或 HDX 映像。"
+msgstr "不支持非 512 字节扇区大小的 HDI 或 HDX 镜像。"
 
 msgid "Disk image file already exists"
-msgstr "磁盘映像文件已存在"
+msgstr "磁盘镜像文件已存在"
 
 msgid "Please specify a valid file name."
 msgstr "请指定有效的文件名。"
 
 msgid "Disk image created"
-msgstr "已创建磁盘映像"
+msgstr "已创建磁盘镜像"
 
 msgid "Make sure the file exists and is readable."
 msgstr "请确定此文件存在并可读取。"
@@ -1662,16 +1665,16 @@ msgid "Make sure the file is being saved to a writable directory."
 msgstr "请确定此文件保存在可写入目录中。"
 
 msgid "Disk image too large"
-msgstr "磁盘映像太大"
+msgstr "镜像映像太大"
 
 msgid "Remember to partition and format the newly-created drive."
-msgstr "请记得为新创建的映像分区并格式化。"
+msgstr "请记得分区并格式化新创建的驱动器。"
 
 msgid "The selected file will be overwritten. Are you sure you want to use it?"
 msgstr "选定的文件将被覆盖。确定继续使用此文件吗？"
 
 msgid "Unsupported disk image"
-msgstr "不支持的磁盘映像"
+msgstr "不支持的磁盘镜像"
 
 msgid "Unable to read device"
 msgstr "无法读取设备"
@@ -1704,13 +1707,13 @@ msgid "The disk image has been successfully created."
 msgstr "磁盘镜像创建成功。"
 
 msgid "Raw image"
-msgstr "原始映像"
+msgstr "原始镜像"
 
 msgid "HDI image"
-msgstr "HDI 映像"
+msgstr "HDI镜像"
 
 msgid "HDX image"
-msgstr "HDX 映像"
+msgstr "HDX镜像"
 
 msgid "Fixed-size VHD"
 msgstr "固定大小 VHD"
@@ -1725,13 +1728,13 @@ msgid "(N/A)"
 msgstr "(不适用)"
 
 msgid "Raw image (.img)"
-msgstr "原始映像 (.img)"
+msgstr "原始镜像 (.img)"
 
 msgid "HDI image (.hdi)"
-msgstr "HDI 映像 (.hdi)"
+msgstr "HDI镜像 (.hdi)"
 
 msgid "HDX image (.hdx)"
-msgstr "HDX 映像 (.hdx)"
+msgstr "HDX镜像 (.hdx)"
 
 msgid "Fixed-size VHD (.vhd)"
 msgstr "固定大小 VHD (.vhd)"
@@ -1773,7 +1776,7 @@ msgid "CD-ROM %1 (%2): %3"
 msgstr "光盘 %1 (%2): %3"
 
 msgid "&CD-ROM %1 (%2): %3"
-msgstr "光盘 %1 (%2): %3(&C)"
+msgstr "光盘%1（%2）(&C)：%3"
 
 msgid "160 KB"
 msgstr "160 KB"
@@ -1866,7 +1869,7 @@ msgid "Mouse sensitivity:"
 msgstr "鼠标灵敏度:"
 
 msgid "Select media images from program working directory"
-msgstr "从程序工作目录中选择介质映像"
+msgstr "从程序工作目录中选择介质镜像"
 
 msgid "PIT mode:"
 msgstr "PIT 模式:"
@@ -1890,7 +1893,15 @@ msgid "WinBox is no longer supported"
 msgstr "WinBox已不再受支持"
 
 msgid "Development of the WinBox manager stopped in 2022 due to a lack of maintainers. As we direct our efforts towards making 86Box even better, we have made the decision to no longer support WinBox as a manager.\n\nNo further updates will be provided through WinBox, and you may encounter incorrect behavior should you continue using it with newer versions of 86Box. Any bug reports related to WinBox behavior will be closed as invalid.\n\nGo to 86box.net for a list of other managers you can use."
-msgstr "由于缺乏维护者，WinBox 管理器的开发工作已于 2022 年停止。由于我们正努力将 86Box 做得更好，因此决定不再支持 WinBox 作为管理器。\n\nWinBox 将不再提供更新，如果你继续在 86Box 的新版本中使用 WinBox，可能会遇到不正确的行为。任何与 WinBox 行为相关的错误报告都将被视为无效而关闭。\n\n请访问 86box.net，查看你可以使用的其他管理器列表。"
+msgstr ""
+"由于缺乏维护者，WinBox 管理器的开发工作已于 2022 年停止。由于我们正努力将 "
+"86Box 做得更好，因此决定不再支持 WinBox 作为管理器。\n"
+"\n"
+"WinBox 将不再提供更新，如果选择继续在 86Box 的新版本中使用 "
+"WinBox，可能会遇到不正确的行为。任何与 WinBox "
+"行为相关的错误报告都将被视为无效而关闭。\n"
+"\n"
+"请访问 86box.net，查看你可以使用的其他管理器列表。"
 
 msgid "Generate"
 msgstr "生成"
@@ -1914,7 +1925,7 @@ msgid "List of MCA devices:"
 msgstr "MCA 设备清单："
 
 msgid "&Tablet tool"
-msgstr "平板工具(&T)"
+msgstr "数位板工具(&T)"
 
 msgid "About &Qt"
 msgstr "关于 &Qt"
@@ -1938,7 +1949,7 @@ msgid "&Pen"
 msgstr "笔(&P)"
 
 msgid "&Host CD/DVD Drive (%1)"
-msgstr "主机 CD/DVD 驱动器 (%1) (&H)"
+msgstr "主机CD/DVD驱动器（%1）(&H)"
 
 msgid "&Connected"
 msgstr "已连接(&C)"
@@ -2013,7 +2024,10 @@ msgid "This machine might have been moved or copied."
 msgstr "这台机器可能被移动或复制过。"
 
 msgid "In order to ensure proper networking functionality, 86Box needs to know if this machine was moved or copied.\n\nSelect \"I Copied It\" if you are not sure."
-msgstr "为了确保网络功能正常，86Box 需要知道这台机器是否被移动或复制。\n\n如果您不确定，请选择\"我已复制这台机器\"。"
+msgstr ""
+"为了确保网络功能正常，86Box确定知道这台机器是否被移动或复制。\n"
+"\n"
+"如不确定，请选择\"我已复制这台机器\"。"
 
 msgid "I Moved It"
 msgstr "我已移动这台机器"
@@ -2466,7 +2480,7 @@ msgid "SB low DMA"
 msgstr "Sound Blaster 低 DMA"
 
 msgid "6CH variant (6-channel)"
-msgstr "6 通道变体（6 通道）"
+msgstr "6声道变体"
 
 msgid "Enable CMS"
 msgstr "启用 CMS"
@@ -2934,7 +2948,7 @@ msgid "Generic PCL Printer"
 msgstr "通用 PCL 打印机"
 
 msgid "Parallel Line Internet Protocol"
-msgstr "并行线路因特网协议"
+msgstr "并行线路Internet协议"
 
 msgid "Protection Dongle for Savage Quest"
 msgstr "Savage Quest 保护加密狗"
@@ -3129,7 +3143,7 @@ msgid "[Generic HDD] Device Configuration"
 msgstr "[通用HDD] 设备配置"
 
 msgid "Failed to initialize Vulkan renderer."
-msgstr "Vulkan 渲染器初始化失败。"
+msgstr "Vulkan渲染器初始化失败。"
 
 msgid "Failed to create Vulkan 1.3 instance."
 msgstr "无法创建 Vulkan 1.3 实例。"
@@ -3282,7 +3296,11 @@ msgid "&Wipe NVRAM"
 msgstr "清除 NVRAM(&W)"
 
 msgid "This will delete all NVRAM (and related) files of the virtual machine located in the \"nvr\" subdirectory. You'll have to reconfigure the BIOS (and possibly other devices inside the VM) settings again if applicable.\n\nAre you sure you want to wipe all NVRAM contents of the virtual machine \"%1\"?"
-msgstr "这将删除虚拟机位于 \"nvr\" 子目录中的所有 NVRAM 文件（及相关文件）。如果应用，您需要重新配置 BIOS（以及虚拟机内可能的其他设备）设置。\n\n您确定要擦除虚拟机 \"%1\" 的所有 NVRAM 内容吗？"
+msgstr ""
+"这将删除虚拟机位于“nvr”子目录中的所有NVRAM文件（及相关文件），可能需要重新配"
+"置BIOS（以及虚拟机内可能的其他设备）设置。\n"
+"\n"
+"确定要擦除虚拟机“%1”的所有NVRAM内容吗？"
 
 msgid "Success"
 msgstr "成功"
@@ -3325,7 +3343,7 @@ msgid "beta"
 msgstr "测试版"
 
 msgid "You are running the latest %1 version of 86Box: %2"
-msgstr "您正在运行 86Box 的最新 %1 版本：%2"
+msgstr "正在运行86Box的最新%1版本：%2"
 
 msgid "version"
 msgstr "版本"
@@ -3334,19 +3352,19 @@ msgid "build"
 msgstr "构建"
 
 msgid "You are currently running version <b>%1</b>."
-msgstr "您当前正在运行版本 <b>%1</b>。"
+msgstr "当前正在运行版本 <b>%1</b>。"
 
 msgid "<b>Version %1</b> is now available."
-msgstr "<b>版本 %1</b>现已可用。"
+msgstr "<b>版本 %1</b> 现已可用。"
 
 msgid "You are currently running build <b>%1</b>."
-msgstr "您当前正在运行构建 <b>%1</b>。"
+msgstr "当前正在运行构建 <b>%1</b>。"
 
 msgid "<b>Build %1</b> is now available."
 msgstr "<b>构建 %1</b>现已可用。"
 
 msgid "Would you like to visit the download page?"
-msgstr "您想访问下载页面吗？"
+msgstr "访问下载页面？"
 
 msgid "Visit download page"
 msgstr "访问下载页面"
@@ -3448,13 +3466,13 @@ msgid "Fast forward at startup"
 msgstr "在启动时快进"
 
 msgid "Start new machines in fast forward"
-msgstr ""
+msgstr "在开始新机器时快进"
 
 msgid "Only affects machines created from now on. Each machine can be changed in its settings, under Machine > Performance."
 msgstr ""
 
 msgid "Fast forward at &startup"
-msgstr ""
+msgstr "启动时快进(&S)"
 
 msgid "Fast forward"
 msgstr "快进"
@@ -3490,17 +3508,16 @@ msgid "Unable to open MDS file \"%s\"."
 msgstr "无法打开 MDS 文件 \"%s\"。"
 
 msgid "Unable to load CD-ROM image \"%s\"."
-msgstr "无法加载 CD-ROM 映像 \"%s\"。"
+msgstr "无法加载光盘镜像“%s”。"
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Daemon Tools MDS v2 and MDX image support."
-msgstr "无法加载映像 \"%s\"：缺少 %1，这是 Daemon Tools MDS v2和 MDX "
-"映像支持所必需的。"
+msgstr "无法加载镜像“%s”：缺少%1，这是Daemon Tools MDS v2和MDX镜像支持所必需的。"
 
 msgid "Unable to load image \"%s\": %1 is missing, which is required for Aaru format image support."
-msgstr "无法加载映像“%s”：缺少%1，这是Aaru格式映像支持所必需的。"
+msgstr "无法加载镜像“%s”：缺少%1，这是Aaru格式镜像支持所必需的。"
 
 msgid "The DVD image \"%s\" has been inserted into a drive that does not support DVD media and will be ignored."
-msgstr "DVD 映像 \"%s\" 已插入不支持 DVD 介质的驱动器，将被忽略。"
+msgstr "DVD镜像“%s”已插入不支持DVD介质的驱动器，将被忽略。"
 
 msgid "%s: Could not connect to %s: %s"
 msgstr "%s: 无法连接至 %s: %s"
@@ -3677,7 +3694,7 @@ msgid "VFIO %s: Device not found."
 msgstr "VFIO %s：未找到设备。"
 
 msgid "VFIO %s: Device has no IOMMU group. Make sure VT-d or IOMMU is enabled on your system."
-msgstr "VFIO %s：设备没有 IOMMU 组。请确保您的系统已启用 VT-d 或 IOMMU 功能。"
+msgstr "VFIO %s：设备没有IOMMU组。请确保系统已启用VT-d或IOMMU功能。"
 
 msgid "VFIO %s: Device is not bound to vfio-pci."
 msgstr "VFIO %s：设备未绑定到vfio-pci。"
@@ -3689,7 +3706,7 @@ msgid "VFIO %s: IOMMU group %d is not viable. All devices in the group must be b
 msgstr "VFIO %s：IOMMU 组 %d 不可行。组中的所有设备都必须绑定到 vfio-pci。"
 
 msgid "VFIO: Could not map guest memory for DMA: %s. The locked memory limit (ulimit -l) may be too low."
-msgstr "VFIO：无法映射 DMA：%s 的客户机内存。锁定的内存限制（ulimit -l）可能太低。"
+msgstr "VFIO：无法为DMA映射客户机内存：%s。锁定的内存限制（ulimit -l）可能太低。"
 
 msgid "VFIO %s: Could not read ROM file \"%s\"; using the device's own ROM."
 msgstr "VFIO %s：无法读取 ROM 文件 “%s”；使用设备自己的ROM。"
@@ -3766,13 +3783,13 @@ msgid "Only RAM and video memory can be written."
 msgstr "只有内存和显存区域可被写入。"
 
 msgid "not written (not writable RAM or video memory, or the emulator is busy)."
-msgstr ""
+msgstr "未写入（目标为不可写RAM或VRAM，或模拟器正忙）。"
 
 msgid "The emulator is busy; try again."
 msgstr "模拟器正忙；请重试。"
 
 msgid "Copied %1 bytes from %2 to the clipboard"
-msgstr "从%2拷贝%1个字节至剪贴板"
+msgstr "从%2复制%1个字节至剪贴板"
 
 msgid " (%1 could not be read)"
 msgstr " （无法读取%1）"
@@ -3859,7 +3876,7 @@ msgid "Address, register or seg:off"
 msgstr "地址、寄存器或seg:off"
 
 msgid "Go"
-msgstr ""
+msgstr "前往"
 
 msgid "Live update"
 msgstr "实时更新"
@@ -3926,8 +3943,8 @@ msgid "To (inclusive)"
 msgstr "至（含）"
 
 msgid "Where the search ends, that address included (hex, register or seg:off; empty means the last mapped byte; . means the selection end)."
-msgstr "搜索结束地址（十六进制、寄存器或seg:off；留空表示第一个已映射字节；.表示选区"
-"结束地址）。"
+msgstr "搜索结束地址（十六进制、寄存器或seg:off；留空表示最后一个已映射字节；.表示选"
+"区结束地址）。"
 
 msgid "Range from"
 msgstr "范围起始"
@@ -3994,7 +4011,7 @@ msgid "help — commands; Up/Down — history; . — selected address"
 msgstr ""
 
 msgid "Commands share the memory viewer's address space and selection. Type help for commands."
-msgstr ""
+msgstr "调试器命令与内存查看器共享地址空间及选块。输入help以显示命令帮助。"
 
 msgid "Let the processor run (F5)"
 msgstr ""
@@ -4003,7 +4020,7 @@ msgid "Stop the processor at the next instruction (F5)"
 msgstr ""
 
 msgid "Too many breakpoints."
-msgstr ""
+msgstr "断点过多。"
 
 msgid "Stopped: %1"
 msgstr ""
@@ -4012,7 +4029,7 @@ msgid "The emulator is busy; the view was not updated."
 msgstr ""
 
 msgid "Stopped at a breakpoint."
-msgstr ""
+msgstr "已在断点处停止。"
 
 msgid "Stopped after stepping."
 msgstr ""
@@ -4066,13 +4083,13 @@ msgid "Register unavailable, value invalid, or processor not paused at a complet
 msgstr ""
 
 msgid "Pause the processor before side-effecting memory access."
-msgstr ""
+msgstr "在存在副作用的内存访问前暂停处理器。"
 
 msgid "Write exceeds 4096 bytes or wraps the address space."
-msgstr ""
+msgstr "写入超过4096字节或地址空间回卷。"
 
 msgid "Pause the processor before writing memory."
-msgstr ""
+msgstr "在写入内存前暂停处理器。"
 
 msgid "Issued %1 of %2 byte writes; devices may ignore writes. Untranslated addresses are skipped."
 msgstr ""
@@ -4084,7 +4101,7 @@ msgid "Disassembly is not available in this build."
 msgstr "反汇编在此版本中不可用。"
 
 msgid "Breakpoint %1 at %2."
-msgstr ""
+msgstr "断点%1位于%2。"
 
 msgid "set"
 msgstr "设置"
@@ -4094,13 +4111,13 @@ msgstr "清除"
 
 msgid "%n breakpoint(s), linear addresses:"
 msgid_plural "%n breakpoints, linear addresses:"
-msgstr[0] ""
+msgstr[0] "%n断点，线性地址："
 
 msgid "Pause the processor before accessing I/O ports."
 msgstr "在访问I/O端口前暂停处理器。"
 
 msgid "Unknown command or invalid arguments. Type help for syntax."
-msgstr ""
+msgstr "命令未知或参数无效。输入help以显示语法帮助。"
 
 msgid "Dump memory"
 msgstr "转储内存"
@@ -4112,7 +4129,7 @@ msgid "Length (hex bytes):"
 msgstr "长度（十六进制字节）："
 
 msgid "Address space:"
-msgstr ""
+msgstr "地址空间："
 
 msgid "Fill byte for memory that cannot be read:"
 msgstr ""
@@ -4280,7 +4297,7 @@ msgid "Network to guest queue limit (back-pressure)"
 msgstr ""
 
 msgid "Unlimited (legacy)"
-msgstr ""
+msgstr "无限制（老式）"
 
 msgid "250 ms of line time"
 msgstr ""
