@@ -1258,7 +1258,7 @@ mix_run(v2_chip_t *c, int m, float *out)
 /* A voice whose own ADB source address (bank base + voice) is routed   */
 /* (the driver routes them to A3D inputs) feeds that source. Otherwise  */
 /* its DSREG bit picks the bank's buses: set = the direct-stream pair   */
-/* 32/33 (PARM0's gain left, PARM1's right); clear = the main pair      */
+/* 32/33, panned like the main pair (wtprobe); clear = the main pair    */
 /* 34/35 (panned) plus the reverb (36) and chorus (37) sends, which run */
 /* with less headroom (see wt_bank_run).                                */
 /* ------------------------------------------------------------------ */
@@ -1316,6 +1316,8 @@ wt_filter_set(v2_wtv_t *w, int f)
     w->fcoef = wt_gain_tab[f] * (65535.0f / 65536.0f);
 }
 
+#define WT_VOICE_SCALE 1.5871f
+
 static void
 wt_bank_run(v2_chip_t *c, int bank)
 {
@@ -1362,11 +1364,13 @@ wt_bank_run(v2_chip_t *c, int bank)
         uint32_t p3   = R(bb + WT_PARM + lv * 0x10 + 12);
         uint32_t rate = p0 & 0xffff;
         double   step = (double) wt_step(rate) / 65536.0;
-        /* The base word alone sets the voice (see the header); gain
-           state 0 is a hard mute, and the input gain scales the sample
-           ahead of the filter. */
-        float    gl   = ((p3 >> 21) & 7) ? wt_gain(p0) * wt_gain_tab[p3 >> 24] : 0.0f;
-        float    gr   = gl;
+        /* The base word alone sets the voice (see the header); the input
+           gain scales the sample ahead of the filter. Gain state (PARM3
+           bits 23-21), measured digitally (wtprobe state): 0, 1, 2 and 4
+           silent, 3 and 7 full, 5 and 6 0.812 of full; the driver uses 7
+           and 0. */
+        static const float wt_state_gain[8] = { 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.812f, 0.812f, 1.0f };
+        float    gl   = wt_state_gain[(p3 >> 21) & 7] * wt_gain(p0) * wt_gain_tab[p3 >> 24];
         int      f    = (p0 >> 24) & 0xff;
         wt_filter_set(w, f);
         int      open = f >= 0xcf;
@@ -1374,11 +1378,20 @@ wt_bank_run(v2_chip_t *c, int bank)
         int      dsv  = (ds >> lv) & 1;
         float   *od   = c->wt_direct[bank][lv];
         float  **bus  = NULL;
-        float    g4[4] = { gl, gr, 0.0f, 0.0f };
+        /* Mixed outputs (wtprobe, read digitally on a real SQ2500 with the
+           mixer and the plain ADB path for reference): a full voice at gain
+           and input gain 0xcf comes out at 1.587 x its input on the
+           direct-stream pair when panned to one side, and 1/16 of that on
+           the main pair and each send; the pan field is a linear crossfade,
+           (127 - p) / 127 left and p / 127 right, on both pairs. So a
+           direct-stream voice at the driver's centre pan (0x3f) plays at
+           0.80 and 0.79 of the ADB path's level on the two sides. */
+        float    pan  = (float) ((p3 >> 14) & 0x7f) / 127.0f;
+        float    gv   = gl * WT_VOICE_SCALE;
+        float    g4[4] = { gv * (1.0f - pan), gv * pan, 0.0f, 0.0f };
         float   *b4[4] = { c->wt_bus[bank][0], c->wt_bus[bank][1], NULL, NULL };
         if (!dir && !dsv) {
-            float    pan = (float) ((p3 >> 14) & 0x7f) / 127.0f;
-            float    g   = gl * hs;
+            float    g   = gv * hs;
             g4[0] = g * (1.0f - pan);
             g4[1] = g * pan;
             g4[2] = g * (float) (p3 & 0x7f) / 127.0f;
