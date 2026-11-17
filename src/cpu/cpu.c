@@ -254,6 +254,7 @@ int retf_stack_test;
 int call_far_stack_test;
 int call_far_checks_eip_limit;
 int int_frame_fault_restores;
+int call_gate_fault_restores;
 int far_load_order;
 int task_busy_undo;
 int is486 = 1;
@@ -926,6 +927,37 @@ cpu_set(void)
             break;
         default:
             int_frame_fault_restores = 0;
+            break;
+    }
+
+    /* A fault in a CALL through a call gate to a more privileged level, after
+       the new CS, stack and CPL are loaded (the parameter copy or a push),
+       puts back the caller's CS, stack and CPL, only on the Intel processors
+       whose own manuals give both the order and that a fault leaves the
+       state from before the instruction: the 80286 PRM (pp. 9-9, 9-10, B-24,
+       7-20), the 386DX PRM (pp. 9-2, 17-43), the i486 PRM (pp. 9-2, 26-47),
+       the Pentium manual (1995) vol. 3 (pp. 14-2, 25-53), the Pentium Pro
+       manual vol. 3 p. 5-4 and the 1999 Intel Architecture manual vol. 2
+       p. 3-57. Every other processor puts back the selectors alone. */
+    switch (cpu_s->cpu_type) {
+        case CPU_286:
+        case CPU_386SX:
+        case CPU_386DX:
+        case CPU_i486SX:
+        case CPU_i486DX:
+        case CPU_i486SX_SLENH:
+        case CPU_i486DX_SLENH:
+        case CPU_P24T:
+        case CPU_PENTIUM:
+        case CPU_PENTIUMMMX:
+        case CPU_PENTIUMPRO:
+        case CPU_PENTIUM2:
+        case CPU_PENTIUM2D:
+            /* Not the Am386, the M6117 or another maker's 286. */
+            call_gate_fault_restores = !strcmp(cpu_f->manufacturer, "Intel");
+            break;
+        default:
+            call_gate_fault_restores = 0;
             break;
     }
 

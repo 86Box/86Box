@@ -1479,6 +1479,8 @@ loadcscall(uint16_t seg, uint32_t old_pc, int is32)
                                     x86seg_set_accessed_pair(addr, segdat2[2], oaddr, segdat[2]);
                                 if (cpu_state.abrt)
                                     return;
+                                if (call_gate_fault_restores)
+                                    call_gate_undo_save();
                                 if (!stack32)
                                     oldsp &= 0xffff;
                                 SS = newss;
@@ -1504,9 +1506,13 @@ loadcscall(uint16_t seg, uint32_t old_pc, int is32)
                                     is586 ? PUSHL(oldss) : PUSHL_SEL(oldss);
                                     PUSHL(oldsp2);
                                     if (cpu_state.abrt) {
-                                        SS  = oldss;
-                                        ESP = oldsp2;
-                                        CS = oldcs;
+                                        if (call_gate_undo.active)
+                                            call_gate_undo_restore();
+                                        else {
+                                            SS  = oldss;
+                                            ESP = oldsp2;
+                                            CS = oldcs;
+                                        }
                                         return;
                                     }
                                     if (count) {
@@ -1537,9 +1543,13 @@ loadcscall(uint16_t seg, uint32_t old_pc, int is32)
                                                     break;
                                             }
                                             if (cpu_state.abrt) {
-                                                SS  = oldss;
-                                                ESP = oldsp2;
-                                                CS = oldcs;
+                                                if (call_gate_undo.active)
+                                                    call_gate_undo_restore();
+                                                else {
+                                                    SS  = oldss;
+                                                    ESP = oldsp2;
+                                                    CS = oldcs;
+                                                }
                                                 return;
                                             }
                                         }
@@ -1550,9 +1560,13 @@ loadcscall(uint16_t seg, uint32_t old_pc, int is32)
                                     x86seg_log("Write SS to %04X:%04X\n", SS, SP);
                                     PUSHW(oldsp2);
                                     if (cpu_state.abrt) {
-                                        SS  = oldss;
-                                        ESP = oldsp2;
-                                        CS = oldcs;
+                                        if (call_gate_undo.active)
+                                            call_gate_undo_restore();
+                                        else {
+                                            SS  = oldss;
+                                            ESP = oldsp2;
+                                            CS = oldcs;
+                                        }
                                         return;
                                     }
                                     x86seg_log("Write SP to %04X:%04X\n", SS, SP);
@@ -1573,9 +1587,13 @@ loadcscall(uint16_t seg, uint32_t old_pc, int is32)
                                                     break;
                                             }
                                             if (cpu_state.abrt) {
-                                                SS  = oldss;
-                                                ESP = oldsp2;
-                                                CS = oldcs;
+                                                if (call_gate_undo.active)
+                                                    call_gate_undo_restore();
+                                                else {
+                                                    SS  = oldss;
+                                                    ESP = oldsp2;
+                                                    CS = oldcs;
+                                                }
                                                 return;
                                             }
                                         }

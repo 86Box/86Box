@@ -9,6 +9,13 @@
             cpu_cur_status   = (cpu_cur_status & ~CPU_STATUS_USE32) | (old_status & CPU_STATUS_USE32); \
             call_far_a_pending = 0;                                                                 \
         } while (0)
+/* A push of the return address that faults after a call gate to a more
+   privileged level also puts back the caller's stack and CPL */
+#    define CALL_FAR_UNDO_GATE()                \
+        do {                                    \
+            if (call_gate_undo.active)          \
+                call_gate_undo_restore();       \
+        } while (0)
 /* The new code segment's Accessed bit, where the manual loads the
    descriptor after the return address is pushed: a fault of that write
    undoes the pushes and the CS load */
@@ -34,6 +41,7 @@
         optype       = CALL;             \
         cgate16 = cgate32 = cgate_task = 0; \
         call_far_a_pending = 0;          \
+        call_gate_undo.active = 0;       \
         if (msw & 1)                     \
             op_loadcscall(new_seg, old_pc, 0); \
         else {                           \
@@ -55,12 +63,14 @@
             if (cpu_state.abrt) {        \
                 CALL_FAR_RESTORE_CS();    \
                 cgate16 = cgate32 = 0;   \
+                CALL_FAR_UNDO_GATE();    \
                 return 1;                \
             }                            \
             PUSH_L(old_pc);              \
             if (cpu_state.abrt) {        \
                 CALL_FAR_RESTORE_CS();    \
                 ESP = old_esp;           \
+                CALL_FAR_UNDO_GATE();    \
                 return 1;                \
             }                            \
             CALL_FAR_ACCESSED();         \
@@ -70,12 +80,14 @@
             if (cpu_state.abrt) {        \
                 CALL_FAR_RESTORE_CS();    \
                 cgate16 = cgate32 = 0;   \
+                CALL_FAR_UNDO_GATE();    \
                 return 1;                \
             }                            \
             PUSH_W(old_pc);              \
             if (cpu_state.abrt) {        \
                 CALL_FAR_RESTORE_CS();    \
                 ESP = old_esp;           \
+                CALL_FAR_UNDO_GATE();    \
                 return 1;                \
             }                            \
             CALL_FAR_ACCESSED();         \
@@ -94,6 +106,7 @@
         optype       = CALL;             \
         cgate16 = cgate32 = cgate_task = 0; \
         call_far_a_pending = 0;          \
+        call_gate_undo.active = 0;       \
         if (msw & 1)                     \
             op_loadcscall(new_seg, old_pc, 1); \
         else {                           \
@@ -115,12 +128,14 @@
             if (cpu_state.abrt) {        \
                 CALL_FAR_RESTORE_CS();    \
                 cgate16 = cgate32 = 0;   \
+                CALL_FAR_UNDO_GATE();    \
                 return 1;                \
             }                            \
             PUSH_W(old_pc);              \
             if (cpu_state.abrt) {        \
                 CALL_FAR_RESTORE_CS();    \
                 ESP = old_esp;           \
+                CALL_FAR_UNDO_GATE();    \
                 return 1;                \
             }                            \
             CALL_FAR_ACCESSED();         \
@@ -130,12 +145,14 @@
             if (cpu_state.abrt) {        \
                 CALL_FAR_RESTORE_CS();    \
                 cgate16 = cgate32 = 0;   \
+                CALL_FAR_UNDO_GATE();    \
                 return 1;                \
             }                            \
             PUSH_L(old_pc);              \
             if (cpu_state.abrt) {        \
                 CALL_FAR_RESTORE_CS();    \
                 ESP = old_esp;           \
+                CALL_FAR_UNDO_GATE();    \
                 return 1;                \
             }                            \
             CALL_FAR_ACCESSED();         \

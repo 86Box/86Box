@@ -612,6 +612,7 @@ extern int retf_stack_test;
 extern int call_far_stack_test;
 extern int call_far_checks_eip_limit;
 extern int int_frame_fault_restores;
+extern int call_gate_fault_restores;
 extern int far_load_order;
 extern int task_busy_undo;
 extern int is486;
