@@ -1254,6 +1254,9 @@ load_network(void)
             nc->slirp_net[0] = '\0';
         }
 
+        sprintf(temp, "net_%02i_slirp_8023_rx", c + 1);
+        nc->slirp_8023_rx = (nc->net_type == NET_TYPE_SLIRP) && ini_section_get_int(cat, temp, 0);
+
         sprintf(temp, "net_%02i_secret", c + 1);
         p = ini_section_get_string(cat, temp, NULL);
         strncpy(nc->secret, p ? p : "", sizeof(nc->secret) - 1);
@@ -4110,6 +4113,12 @@ save_network(void)
             sprintf(temp, "net_%02i_addr", c + 1);
             ini_section_delete_var(cat, temp);
         }
+
+        sprintf(temp, "net_%02i_slirp_8023_rx", c + 1);
+        if (nc->net_type == NET_TYPE_SLIRP && nc->slirp_8023_rx)
+            ini_section_set_int(cat, temp, 1);
+        else
+            ini_section_delete_var(cat, temp);
 
         sprintf(temp, "net_%02i_secret", c + 1);
         if (nc->secret[0] == '\0')
