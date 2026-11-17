@@ -607,6 +607,11 @@ clean_up_rest:
 #endif
     m_devFuncs->vkDestroyImageView(logi_device, src_image_view, nullptr);
     vmaDestroyImage(allocator, src_image, img_allocation);
+    if (blit_src_image) {
+        vmaDestroyImage(allocator, blit_src_image, blit_src_allocation);
+        blit_src_image      = nullptr;
+        blit_src_allocation = nullptr;
+    }
     vmaDestroyAllocator(allocator);
     vk_res_refcnt_dev--;
     if (vk_res_refcnt_dev <= 0) {
@@ -868,7 +873,35 @@ VulkanWindowRenderer::render()
 
     m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, 0, 1, &clear_memory_barrier);
 
-    if (noshadersloaded) {
+    if (noshadersloaded && blit_src_image) {
+        VkImageMemoryBarrier blit_src_barrier { };
+        blit_src_barrier.sType                           = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER;
+        blit_src_barrier.image                           = blit_src_image;
+        blit_src_barrier.oldLayout                       = VK_IMAGE_LAYOUT_UNDEFINED;
+        blit_src_barrier.newLayout                       = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        blit_src_barrier.srcQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+        blit_src_barrier.dstQueueFamilyIndex             = VK_QUEUE_FAMILY_IGNORED;
+        blit_src_barrier.subresourceRange.aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT;
+        blit_src_barrier.subresourceRange.baseMipLevel   = 0;
+        blit_src_barrier.subresourceRange.levelCount     = 1;
+        blit_src_barrier.subresourceRange.baseArrayLayer = 0;
+        blit_src_barrier.subresourceRange.layerCount     = 1;
+        blit_src_barrier.srcAccessMask                   = VK_ACCESS_TRANSFER_READ_BIT;
+        blit_src_barrier.dstAccessMask                   = VK_ACCESS_TRANSFER_WRITE_BIT;
+        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &blit_src_barrier);
+
+        VkImageCopy blit_src_region = cregion;
+        blit_src_region.dstOffset   = cregion.srcOffset;
+        m_devFuncs->vkCmdCopyImage(cmdBufs, src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, blit_src_image, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &blit_src_region);
+
+        blit_src_barrier.oldLayout     = VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL;
+        blit_src_barrier.newLayout     = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
+        blit_src_barrier.srcAccessMask = VK_ACCESS_TRANSFER_WRITE_BIT;
+        blit_src_barrier.dstAccessMask = VK_ACCESS_TRANSFER_READ_BIT;
+        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, nullptr, 0, nullptr, 1, &blit_src_barrier);
+
+        m_devFuncs->vkCmdBlitImage(cmdBufs, blit_src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapchainImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bregion, cur_video_filter_method ? VK_FILTER_LINEAR : VK_FILTER_NEAREST);
+    } else if (noshadersloaded) {
         m_devFuncs->vkCmdBlitImage(cmdBufs, src_image, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, swapchainImages[swapchain_image_index], VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bregion, cur_video_filter_method ? VK_FILTER_LINEAR : VK_FILTER_NEAREST);
     } else {
 #ifdef LIBRA_RUNTIME_VULKAN
@@ -1282,7 +1315,10 @@ VulkanWindowRenderer::isPhysicalDeviceUsable(VkPhysicalDevice &phys_dev)
     if (!(format_prop.optimalTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_BLIT_DST_BIT)) {
         return false;
     }
-    if (!(format_prop.linearTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_BLIT_SRC_BIT)) {
+    /* Without blits from linear images, the source image is copied into an optimal image and blitted from there. */
+    if (!(format_prop.linearTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_BLIT_SRC_BIT)
+        && !((format_prop.linearTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_TRANSFER_SRC_BIT)
+             && (format_prop.optimalTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_BLIT_SRC_BIT))) {
         return false;
     }
 
@@ -1545,6 +1581,21 @@ VulkanWindowRenderer::initialize()
 
                 if (m_devFuncs->vkCreateImageView(logi_device, &imageViewInfo, nullptr, &src_image_view) != VK_SUCCESS) {
                     throw vulkan_init_error("Failed to create source image view");
+                }
+
+                VkFormatProperties format_prop { };
+                vk_resources.vk_instance->functions()->vkGetPhysicalDeviceFormatProperties(phys_device, VK_FORMAT_B8G8R8A8_UNORM, &format_prop);
+                if (!(format_prop.linearTilingFeatures & VkFormatFeatureFlagBits::VK_FORMAT_FEATURE_BLIT_SRC_BIT)) {
+                    img_info.tiling        = VK_IMAGE_TILING_OPTIMAL;
+                    img_info.usage         = VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+                    img_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+
+                    allocInfo       = { };
+                    allocInfo.usage = VmaMemoryUsage::VMA_MEMORY_USAGE_AUTO_PREFER_DEVICE;
+
+                    if (vmaCreateImage(allocator, &img_info, &allocInfo, &blit_src_image, &blit_src_allocation, nullptr) != VK_SUCCESS) {
+                        throw vulkan_init_error("Failed to create blit source image");
+                    }
                 }
 
                 updateOptions();
