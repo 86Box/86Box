@@ -4395,6 +4395,9 @@ msgstr ""
 msgid "&Unplug"
 msgstr ""
 
+msgid "&Unplug %1"
+msgstr ""
+
 msgid "Size:"
 msgstr ""
 

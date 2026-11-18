@@ -4406,6 +4406,9 @@ msgstr "&Novo disco flash USB…"
 msgid "&Unplug"
 msgstr "&Desconectar"
 
+msgid "&Unplug %1"
+msgstr "&Desconectar %1"
+
 msgid "Size:"
 msgstr "Tamanho:"
 
