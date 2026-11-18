@@ -4398,10 +4398,10 @@ msgid "Archives"
 msgstr ""
 
 msgid "New USB flash drive"
-msgstr "Novo drive USB flash"
+msgstr "Novo disco flash USB"
 
 msgid "&New USB flash drive…"
-msgstr "&Novo drive USB flash…"
+msgstr "&Novo disco flash USB…"
 
 msgid "&Unplug"
 msgstr "&Desconectar"
