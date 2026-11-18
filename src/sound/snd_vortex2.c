@@ -75,6 +75,15 @@ typedef struct vortex2_t {
     uint16_t mpu_addr, game_addr;
     uint8_t  game_fired; /* unplugged port: one-shots triggered and never timing out */
 
+    /* FM front end (ports 388h-38bh): the chip latches the index, keeps a
+       packed copy of the OPL3 registers at 0x29900 and runs the two OPL
+       timers; the sound itself is made by the driver's software from that
+       copy (sbprobe fm and fmmap, 2026-11-18). */
+    int        fm_on;
+    uint8_t    fm_index, fm_bank, fm_new;
+    uint8_t    fm_t[2], fm_ctl, fm_flags;
+    pc_timer_t fm_timer[2];
+
     pc_timer_t block_timer;
     pc_timer_t irq_timer;
     uint64_t   irq_period;
@@ -225,6 +234,17 @@ trace_time(const vortex2_t *dev)
 #define V2_GAME_AXIS   0x28810
 #define V2_CHIP_CTRL   0x2a00c
 #define V2_IRQ_MIDI    0x2000
+#define V2_FM_LATCH 0x29854 /* low byte: last index; bit 8: OPL3 mode; 9-11 kept */
+#define V2_FM_FILE  0x29900 /* 256 bytes: the packed register file */
+#define V2_FM_TRASH 0xd4    /* where registers the chip does not keep land */
+#define V2_IRQ_FMTIMER 0x40 /* set in IRQ_SOURCE when an unmasked timer ran out */
+/* Which control-word bit enables the FM decode is not settled: AU30DOS and
+   the Windows driver set bits 1 and 2 together (0x0118326e); one of them is
+   the FM decode and the other probably the Sound Blaster ports. */
+#define V2_CTRL_FM_EN 0x6
+
+static uint8_t fm_read(uint16_t port, void *priv);
+static void    fm_write(uint16_t port, uint8_t val, void *priv);
 
 static void
 legacy_remap(vortex2_t *dev)
@@ -243,6 +263,146 @@ legacy_remap(vortex2_t *dev)
         dev->game_addr = game;
         vortex2_log("Vortex2: game port at %03x\n", game);
     }
+    int fm = !!(ctl & V2_CTRL_FM_EN);
+    if (fm != dev->fm_on) {
+        if (fm)
+            io_sethandler(0x388, 4, fm_read, NULL, NULL, fm_write, NULL, NULL, dev);
+        else
+            io_removehandler(0x388, 4, fm_read, NULL, NULL, fm_write, NULL, NULL, dev);
+        dev->fm_on = fm;
+        vortex2_log("Vortex2: FM ports %s\n", fm ? "on" : "off");
+    }
+}
+
+/* ---------------------------------------------------------------- FM */
+
+/* Where an OPL3 register lands in the packed file (fmmap): operator groups
+   of 18, channel groups of 9, bank 1 0x78 bytes on. */
+static int
+fm_offset(int bank, uint8_t reg)
+{
+    static const uint8_t op_base[8] = { 0, 0x02, 0x14, 0x26, 0x38, 0, 0, 0x66 };
+    int                  b          = bank ? 0x78 : 0;
+    int                  grp        = reg >> 5;
+
+    if (reg == 0x01)
+        return b;
+    if (!bank && reg == 0x08)
+        return 0x01;
+    if (bank && reg == 0x04)
+        return 0x79;
+    if (!bank && reg == 0xbd)
+        return 0x5c;
+    if (op_base[grp]) {
+        int lo = reg & 0x1f, slot;
+        if (lo < 6)
+            slot = lo;
+        else if (lo >= 8 && lo < 0x0e)
+            slot = lo - 2;
+        else if (lo >= 0x10 && lo < 0x16)
+            slot = lo - 4;
+        else
+            return V2_FM_TRASH;
+        return b + op_base[grp] + slot;
+    }
+    if (reg >= 0xa0 && reg <= 0xa8)
+        return b + 0x4a + (reg - 0xa0);
+    if (reg >= 0xb0 && reg <= 0xb8)
+        return b + 0x53 + (reg - 0xb0);
+    if (reg >= 0xc0 && reg <= 0xc8)
+        return b + 0x5d + (reg - 0xc0);
+    return V2_FM_TRASH;
+}
+
+static void
+fm_file_or(vortex2_t *dev, int off, uint8_t v, int replace)
+{
+    uint32_t a = V2_FM_FILE + (off & ~3), sh = (off & 3) * 8;
+    uint32_t w = v2_read(dev->chip, a);
+    w          = replace ? ((w & ~(0xffu << sh)) | ((uint32_t) v << sh)) : (w | ((uint32_t) v << sh));
+    v2_write(dev->chip, a, w);
+}
+
+static void
+fm_latch_update(vortex2_t *dev)
+{
+    uint32_t l = v2_read(dev->chip, V2_FM_LATCH);
+    v2_write(dev->chip, V2_FM_LATCH, (l & 0xe00) | (dev->fm_new ? 0x100 : 0) | dev->fm_index);
+}
+
+static void
+fm_timer_start(vortex2_t *dev, int t)
+{
+    /* timer 1 counts 80 us steps, timer 2 320 us, from the preset to 256 */
+    double us = (256 - dev->fm_t[t]) * (t ? 320.0 : 80.0);
+    timer_on_auto(&dev->fm_timer[t], us);
+}
+
+static void
+fm_timer_cb(vortex2_t *dev, int t)
+{
+    if (!(dev->fm_ctl & (1 << t)))
+        return;
+    if (!(dev->fm_ctl & (t ? 0x20 : 0x40))) {
+        dev->fm_flags |= t ? 0x20 : 0x40;
+        v2_ext_irq(dev->chip, V2_IRQ_FMTIMER, 1);
+    }
+    fm_timer_start(dev, t); /* an OPL timer reloads and keeps running */
+}
+static void fm_timer1(void *p) { fm_timer_cb((vortex2_t *) p, 0); }
+static void fm_timer2(void *p) { fm_timer_cb((vortex2_t *) p, 1); }
+
+static uint8_t
+fm_read(uint16_t port, void *priv)
+{
+    vortex2_t *dev = (vortex2_t *) priv;
+
+    if (port != 0x388)
+        return 0xff; /* as read on the card: only 388h gives the status */
+    return dev->fm_flags ? (0x80 | dev->fm_flags) : 0x00;
+}
+
+static void
+fm_write(uint16_t port, uint8_t val, void *priv)
+{
+    vortex2_t *dev = (vortex2_t *) priv;
+
+    if (!(port & 1)) {
+        dev->fm_index = val;
+        dev->fm_bank  = (port & 2) >> 1;
+        fm_latch_update(dev);
+        return;
+    }
+    if (!dev->fm_bank && dev->fm_index >= 0x02 && dev->fm_index <= 0x04) {
+        if (dev->fm_index < 0x04) {
+            dev->fm_t[dev->fm_index - 2] = val;
+            return;
+        }
+        if (val & 0x80) { /* reset the flags; the rest of the byte is ignored */
+            dev->fm_flags = 0;
+            return;
+        }
+        dev->fm_ctl = val;
+        for (int t = 0; t < 2; t++) {
+            if (val & (1 << t))
+                fm_timer_start(dev, t);
+            else
+                timer_disable(&dev->fm_timer[t]);
+        }
+        return;
+    }
+    if (dev->fm_bank && dev->fm_index == 0x05) {
+        dev->fm_new = val & 1;
+        fm_latch_update(dev);
+    }
+    int off = fm_offset(dev->fm_bank, dev->fm_index);
+    if ((dev->fm_index & 0xf0) == 0xb0 && off != V2_FM_TRASH && dev->fm_index != 0xbd)
+        fm_file_or(dev, off, val | 0x80, 1); /* the chip flags a key-on byte as written */
+    else
+        fm_file_or(dev, off, val, 1);
+    if (!dev->fm_bank && dev->fm_index == 0xbd)
+        for (int k = 0x59; k <= 0x5b; k++) /* rhythm: channels 6-8 flagged */
+            fm_file_or(dev, k, 0xc0, 0);
 }
 
 static void
@@ -346,6 +506,18 @@ tr_write(vortex2_t *dev, uint32_t a, uint32_t v)
         fprintf(dev->tracef, "%11.6f  W 0x%05x mmio 0x%08x\n", trace_time(dev), a, v);
     if (a >= V2_MIDI_DATA && a < V2_MIDI_DATA + 0x20 && legacy_write(dev, a, v))
         return;
+    if (a == V2_FM_LATCH) {
+        /* bits 9-11 hold what is written; the index and the OPL3 bit stay */
+        uint32_t l = v2_read(dev->chip, V2_FM_LATCH);
+        v2_write(dev->chip, V2_FM_LATCH, (l & 0x1ff) | (v & 0xe00));
+        return;
+    }
+    if (a == 0x29808) {
+        /* reads back 0xff; its byte goes to the latch's low byte (sbprobe) */
+        dev->fm_index = v & 0xff;
+        fm_latch_update(dev);
+        return;
+    }
     v2_write(dev->chip, a, v);
     if (a == V2_CHIP_CTRL)
         legacy_remap(dev);
@@ -902,6 +1074,9 @@ vortex2_reset(void *priv)
     if (dev->codec)
         ac97_codec_reset(dev->codec);
     dev->game_fired = 0;
+    timer_disable(&dev->fm_timer[0]);
+    timer_disable(&dev->fm_timer[1]);
+    dev->fm_ctl = dev->fm_flags = dev->fm_new = dev->fm_index = dev->fm_bank = 0;
     legacy_remap(dev);
 }
 
@@ -976,6 +1151,8 @@ vortex2_init(UNUSED(const device_t *info))
        which then holds the address the Vortex's Gameport Interface asks
        for. Off, nothing answers there and the card's legacy byte reads as
        an empty port. */
+    timer_add(&dev->fm_timer[0], fm_timer1, dev, 0);
+    timer_add(&dev->fm_timer[1], fm_timer2, dev, 0);
     if (device_get_config_int("gameport")) {
         dev->gameport = gameport_add(&gameport_device);
         gameport_remap(dev->gameport, 0);
