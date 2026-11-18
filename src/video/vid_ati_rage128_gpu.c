@@ -10496,6 +10496,11 @@ rage128_gpu_stage_read_barrier(rage128_t *dev, uint32_t lo, uint32_t len)
         return;
     }
     gpu_flush_cause(dev, GF_TEX);
+    /* With async on, this flush only submits: under the 2D differential
+       oracle or synchronization telemetry the stores are still in flight
+       here, so the ring is drained before the copy reads them. */
+    if (!gpu_cause_drains(g, GF_TEX))
+        gpu_drain_all(g, GF_TEX);
 }
 
 /* Queue a solid fill on the GPU instead of draining and filling on the

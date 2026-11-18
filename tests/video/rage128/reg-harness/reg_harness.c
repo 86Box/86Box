@@ -29371,6 +29371,66 @@ run_gpu_carry(void)
     setenv("R128_GPU", gprev, 1);
 }
 
+/* The stage read barrier in the two debug modes that leave the async
+   GPU lane's fence path: the 2D differential oracle (R128_GPU_2D=verify)
+   and synchronization telemetry (R128_GPU_SYNC_TELEMETRY). With async
+   on, a flush there only submits the pending segment, so the barrier
+   must also wait for it before the second draw's staged copy reads its
+   texture. Each mode gets its own device with the backend on and async,
+   and runs the two-draws-in-sequence byte rows of the render-to-texture
+   group: the second draw has to sample the first one's pixels. */
+static void
+run_gpu_stage_modes(void)
+{
+    const char *genv = getenv("R128_GPU");
+    char        gprev[32] = "";
+
+    if (!harness_gpu_available()) {
+        printf("SKIP gpu stage modes: built without Vulkan headers\n");
+        return;
+    }
+    if (genv)
+        snprintf(gprev, sizeof(gprev), "%s", genv);
+    for (int mode = 0; mode < 2; mode++) {
+        const char *key = mode ? "R128_GPU_SYNC_TELEMETRY" : "R128_GPU_2D";
+        const char *env = getenv(key);
+        char        prev[256] = "", what[160];
+        rage128_t  *dev;
+        int         armed;
+
+        if (env)
+            snprintf(prev, sizeof(prev), "%s", env);
+        harness_cfg_memory_mb = 32;
+        setenv("R128_GPU", "1", 1);
+        /* the telemetry path names a CSV; the bit bucket keeps the run
+           clean. The 2D oracle is read at the backend's deferred init,
+           inside the first accelerated register write, so it stays set
+           through the rows. */
+        setenv(key, mode ? "/dev/null" : "verify", 1);
+        dev = rage128_init(&ati_rage128_pro_device);
+        rts_ctx(dev, RTS_C, 64, 33, RTS_C); /* fires the deferred init */
+        /* R128_JIT=verify keeps the backend off, as for the carry rows */
+        if (!dev->gpu || !harness_gpu_async(dev->gpu))
+            printf("SKIP gpu stage modes: no async GPU backend on this device\n");
+        else {
+            armed = mode ? dev->synctel != NULL : rage128_gpu_2d_verifying(dev);
+            snprintf(what, sizeof(what), "gpu stage modes: %s: mode armed",
+                     mode ? "sync telemetry" : "2d verify");
+            check_true(what, armed);
+            rts_bytes2(dev, mode ? "sync telemetry, two draws in sequence"
+                                 : "2d verify, two draws in sequence",
+                       RTS_C, 64, 32);
+            rts_bytes2(dev, mode ? "sync telemetry, two over-cap draws in sequence"
+                                 : "2d verify, two over-cap draws in sequence",
+                       RTS_B, 256, 256);
+            rts_restore(dev);
+        }
+        close_dev(dev);
+        setenv(key, prev, 1);
+        setenv("R128_GPU", gprev, 1);
+    }
+}
+
 
 /* Queued 2D rectangles on the GPU lane: the bytes they leave must equal
    the CPU walk's, whichever way the backend records them. Each scenario
@@ -33120,7 +33180,7 @@ static const char *const shard_units[] = {
     "x64legs", "synctel", "yuv-border", "texture-alpha", "dither-init",
     "sec-persp", "sec-only", "dst-1555-4444", "zoff-tfog",
     "stipple-fast", "lanegap-expectedfail", "gpu-carry", "gpu-r2d", "tex-keep",
-    "tex-batch", "tex-cache-store"
+    "tex-batch", "tex-cache-store", "gpu-stage-modes"
 };
 static char *selected_units;
 
@@ -33829,6 +33889,8 @@ main(int argc, char **argv)
         run_gpu2d_verify();
     if (unit_selected("gpu-carry"))
         run_gpu_carry();
+    if (unit_selected("gpu-stage-modes"))
+        run_gpu_stage_modes();
     if (unit_selected("gpu-r2d"))
         run_r2d();
     if (unit_selected("x64legs"))
