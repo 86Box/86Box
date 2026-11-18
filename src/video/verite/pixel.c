@@ -876,8 +876,14 @@ depth_pass(unsigned mode, uint32_t z, verite_memory mem, uint32_t addr)
     }
 }
 
+typedef struct {
+    uint32_t dst_stride, z_stride, mask, pmask;
+    unsigned format, bytes, rop_code, texture_func, depth_mode;
+    bool     perspective, bgr, blend, read_disabled, read_dst, copy;
+} pixel_span;
+
 static void
-pixel_full(verite_core *core, int32_t x, int32_t y, bool perspective, verite_memory mem)
+pixel_full(verite_core *core, int32_t x, int32_t y, const pixel_span *span, verite_memory mem)
 {
     static const unsigned dither_matrix[4][4] = {
         { 0,  12, 3,  15 },
@@ -889,13 +895,12 @@ pixel_full(verite_core *core, int32_t x, int32_t y, bool perspective, verite_mem
     bool          background;
     if (!pattern_pixel(pe, &background) || !inside(pe, x, y) || (pe->z_ovf && (pe->src_mode & SRC_Z_SCISSOR)))
         return;
-    color    c    = background ? argb(pe->bg) : (color) {
-        { sat(pe->r), sat(pe->g), sat(pe->b), sat(pe->a) }
-    };
-    unsigned func = (pe->src_mode >> 4) & 7;
+    /* The parameter setters already keep the saturated channels in FG. */
+    color    c    = argb(background ? pe->bg : pe->fg);
+    unsigned func = span->texture_func;
     if (func) {
         int32_t u = pe->u, v = pe->v;
-        if (perspective && pe->q) {
+        if (span->perspective && pe->q) {
             u = (int32_t) (((int64_t) u * (INT64_C(1) << 24)) / pe->q);
             v = (int32_t) (((int64_t) v * (INT64_C(1) << 24)) / pe->q);
         }
@@ -917,21 +922,15 @@ pixel_full(verite_core *core, int32_t x, int32_t y, bool perspective, verite_mem
         for (unsigned k = 0; k < 3; k++)
             c.channel[k] = f * (c.channel[k] - fog.channel[k]) / 255 + fog.channel[k];
     }
-    uint32_t z_addr = pe->z_base + line_stride(pe->stride >> 16) * (uint32_t) y + 2 * (uint32_t) x;
+    uint32_t z_addr = pe->z_base + span->z_stride * (uint32_t) y + 2 * (uint32_t) x;
     uint32_t z      = (uint32_t) (pe->z >> 11) & 0xffff;
-    if (!depth_pass((pe->dst_mode >> 12) & 7, z, mem, z_addr))
+    if (!depth_pass(span->depth_mode, z, mem, z_addr))
         return;
 
-    unsigned fmt = pe->dst_fmt & 15, bytes = dst_bytes(pe);
-    uint32_t addr = dst_at(pe, x, y);
-    uint32_t mask = pixel_mask(bytes), pmask = pe->pmask & mask;
-    unsigned code          = pe->dst_mode & 15;
-    bool     blending      = !!(pe->dst_mode & DST_BLEND);
-    bool     read_disabled = !!(pe->dst_mode & DST_READ_DISABLE);
-    bool     bgr           = !!(pe->dst_mode & DST_BGR);
-    uint32_t old           = (blending || rop_reads(code) || pmask != mask) && !read_disabled ? read_pixel(mem, addr, bytes) : 0;
-    if (blending) {
-        color d = read_disabled ? argb(pe->dst_color) : decode(fmt, old, bgr, !!(pe->dst_mode & DST_NO_PAD));
+    uint32_t addr = pe->dst_base + span->dst_stride * (uint32_t) y + (uint32_t) x * span->bytes;
+    uint32_t old  = span->read_dst ? read_pixel(mem, addr, span->bytes) : 0;
+    if (span->blend) {
+        color d = span->read_disabled ? argb(pe->dst_color) : decode(span->format, old, span->bgr, !!(pe->dst_mode & DST_NO_PAD));
         c       = blend(pe, c, d);
     } else if (pe->dst_mode & DST_YUV2RGB)
         c = yuv_to_rgb(pe, c);
@@ -942,9 +941,9 @@ pixel_full(verite_core *core, int32_t x, int32_t y, bool perspective, verite_mem
         unsigned dy = ((uint32_t) y + ((pe->dither_offset >> 4) & 3)) & 3;
         dither      = dither_matrix[dy][dx];
     }
-    uint32_t encoded = encode(fmt, c, dither, bgr);
-    uint32_t out     = (rop(code, encoded, old) & pmask) | (old & ~pmask);
-    write_pixel(mem, addr, bytes, out & mask);
+    uint32_t encoded = encode(span->format, c, dither, span->bgr);
+    uint32_t out     = span->copy ? encoded : (rop(span->rop_code, encoded, old) & span->pmask) | (old & ~span->pmask);
+    write_pixel(mem, addr, span->bytes, out & span->mask);
     if (pe->dst_mode & DST_ZBUF_WRITE)
         mem_write16(mem, z_addr, z);
     pe->pick_hit = core->drew = true;
@@ -994,27 +993,49 @@ pixel_draw_param(verite_core *c, uint8_t op, uint8_t d, uint8_t s2, uint8_t s1, 
     if (cnt <= 0)
         return;
 
-    bool perspective = false, shadow = p1.shadow;
+    bool     shadow = p1.shadow;
+    int      q_index = -1;
+    unsigned active[10], active_count = 0;
     for (unsigned i = 0; i < count; i++) {
         if (params[i] == P_Q)
-            perspective = true;
+            q_index = (int) i;
+        else if (params[i] != P_NONE)
+            active[active_count++] = i;
         if (params[i] == P_X)
             shadow = false;
     }
+
+    pixel_span span = {
+        .dst_stride    = line_stride(pe->stride >> 8),
+        .z_stride      = line_stride(pe->stride >> 16),
+        .format        = pe->dst_fmt & 15,
+        .bytes         = dst_bytes(pe),
+        .rop_code      = pe->dst_mode & 15,
+        .texture_func  = (pe->src_mode >> 4) & 7,
+        .depth_mode    = (pe->dst_mode >> 12) & 7,
+        .perspective   = q_index >= 0,
+        .bgr           = !!(pe->dst_mode & DST_BGR),
+        .blend         = !!(pe->dst_mode & DST_BLEND),
+        .read_disabled = !!(pe->dst_mode & DST_READ_DISABLE),
+    };
+    span.mask     = pixel_mask(span.bytes);
+    span.pmask    = pe->pmask & span.mask;
+    span.copy     = span.rop_code == 12 && span.pmask == span.mask;
+    span.read_dst = !span.read_disabled && (span.blend || rop_reads(span.rop_code) || span.pmask != span.mask);
+
     uint32_t step     = pe->x_dir ? 0U - 0x10000 : 0x10000;
     bool     repeated = !!(op & 1);
     int      n        = repeated ? cnt : 1;
     for (int i = 0; i < n; i++) {
-        uint32_t next_q = pe->q;
-        for (unsigned k = 0; k < count; k++) {
-            if (params[k] == P_Q)
-                next_q = values[k];
-            else
-                pixel_set(pe, params[k], values[k]);
+        for (unsigned k = 0; k < active_count; k++) {
+            unsigned param = active[k];
+            pixel_set(pe, params[param], values[param]);
         }
         int32_t x = (shadow ? pe->x_shadow : pe->x) >> 16;
-        pixel_full(c, x, pe->y >> 16, perspective, mem);
-        pe->q = next_q;
+        pixel_full(c, x, pe->y >> 16, &span, mem);
+        /* Perspective uses the previous Q. Commit the last Q operand after drawing. */
+        if (q_index >= 0)
+            pe->q = values[q_index];
         if (shadow)
             pe->x_shadow = (int32_t) ((uint32_t) pe->x_shadow + step);
         if (repeated && i + 1 < n)

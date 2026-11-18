@@ -357,6 +357,29 @@ texture_masks(void)
 }
 
 static void
+perspective_uses_previous_q(void)
+{
+    fixture f = machine(NULL, 0, 0);
+    sixteen_bit(f.core);
+    pixel_engine *pe = &f.core->pe;
+    pe->src_base     = 0x30000;
+    pe->src_mode     = 4 | (1 << 4);
+    pe->drawctl      = 5; /* Q and U, with shadow X. */
+    pe->cnt          = 2;
+    f.core->reg[160] = 2U << 24;
+    f.core->reg[161] = 2U << 16;
+    mem_write16(f.mem, 0x30002, 0x07e0);
+    mem_write16(f.mem, 0x30004, 0xf800);
+
+    pixel_draw_param(f.core, 0xf1, 192, 160, 176, f.mem);
+
+    assert(mem_read16(f.mem, 0x10000) == 0xf800);
+    assert(mem_read16(f.mem, 0x10002) == 0x07e0);
+    assert(pe->q == (2U << 24) && pe->x_shadow == (2 << 16) && !pe->cnt);
+    done(&f);
+}
+
+static void
 rom_loader(void)
 {
     uint32_t start = 0x3ff800;
@@ -526,6 +549,7 @@ main(void)
     five_pair_alignment();
     draw_fifo_order();
     texture_masks();
+    perspective_uses_previous_q();
     rom_loader();
     palette_loader();
     loader_key(false);
@@ -536,6 +560,6 @@ main(void)
     raster_ops();
     pixel_formats();
     dither_before_quantizing();
-    puts("24 Vérité regression cases passed");
+    puts("25 Vérité regression cases passed");
     return 0;
 }
