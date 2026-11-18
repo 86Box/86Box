@@ -451,6 +451,15 @@ msgstr "Estados de espera:"
 msgid "MB"
 msgstr "MB"
 
+msgid "GB"
+msgstr "GB"
+
+msgid "%1 MB"
+msgstr "%1 MB"
+
+msgid "%1 GB"
+msgstr "%1 GB"
+
 msgid "Memory:"
 msgstr "Memória:"
 
@@ -4387,3 +4396,36 @@ msgstr ""
 
 msgid "Archives"
 msgstr ""
+
+msgid "New USB flash drive"
+msgstr "Novo drive USB flash"
+
+msgid "&New USB flash drive…"
+msgstr "&Novo drive USB flash…"
+
+msgid "&Unplug"
+msgstr "&Desconectar"
+
+msgid "Size:"
+msgstr "Tamanho:"
+
+msgid "Custom size:"
+msgstr "Tamanho personalizado:"
+
+msgid "None (blank)"
+msgstr "Nenhum (em branco)"
+
+msgid "FAT16"
+msgstr "FAT16"
+
+msgid "FAT32"
+msgstr "FAT32"
+
+msgid "Format:"
+msgstr "Formato:"
+
+msgid "Could not create %1."
+msgstr "Não foi possível criar %1."
+
+msgid "%1 already exists. Replace it?"
+msgstr "%1 já existe. Substituir?"

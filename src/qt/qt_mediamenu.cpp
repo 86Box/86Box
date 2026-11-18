@@ -2035,7 +2035,7 @@ MediaMenu::usbPortUpdateMenu(int port)
         return;
     }
 
-    menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, New), tr("&New flash drive…"), [this, label] { usbPortNewImage(label); });
+    menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, New), tr("&New USB flash drive…"), [this, label] { usbPortNewImage(label); });
     menu->addSeparator();
     menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image…"), [this, label] { usbPortSelectImage(label, false); });
     menu->addAction(getIconWithIndicator(icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)…"), [this, label] { usbPortSelectImage(label, true); });

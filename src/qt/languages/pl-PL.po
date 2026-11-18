@@ -451,6 +451,15 @@ msgstr "Stany oczekiwania:"
 msgid "MB"
 msgstr "MB"
 
+msgid "GB"
+msgstr ""
+
+msgid "%1 MB"
+msgstr ""
+
+msgid "%1 GB"
+msgstr ""
+
 msgid "Memory:"
 msgstr "Pamięć:"
 
@@ -4363,4 +4372,37 @@ msgid "The folder or archive could not be read."
 msgstr ""
 
 msgid "Archives"
+msgstr ""
+
+msgid "New USB flash drive"
+msgstr ""
+
+msgid "&New USB flash drive…"
+msgstr ""
+
+msgid "&Unplug"
+msgstr ""
+
+msgid "Size:"
+msgstr ""
+
+msgid "Custom size:"
+msgstr ""
+
+msgid "None (blank)"
+msgstr ""
+
+msgid "FAT16"
+msgstr ""
+
+msgid "FAT32"
+msgstr ""
+
+msgid "Format:"
+msgstr ""
+
+msgid "Could not create %1."
+msgstr ""
+
+msgid "%1 already exists. Replace it?"
 msgstr ""

@@ -48,7 +48,7 @@ NewFlashDialog::NewFlashDialog(QWidget *parent, const QString &title)
     auto *form = new QFormLayout(this);
 
     lineEditFile    = new QLineEdit(this);
-    auto *browse    = new QPushButton(tr("&Specify…"), this);
+    auto *browse    = new QPushButton(tr("Browse…"), this);
     auto *fileRow   = new QHBoxLayout();
     fileRow->addWidget(lineEditFile);
     fileRow->addWidget(browse);
@@ -91,7 +91,7 @@ NewFlashDialog::NewFlashDialog(QWidget *parent, const QString &title)
     connect(browse, &QPushButton::clicked, this, [this] {
         /* Replacing a file is confirmed once, on OK. */
         QString name = QFileDialog::getSaveFileName(this, tr("Create…"), QString(),
-                                                    tr("Raw images") % util::DlgFilter({ "img" }, true), nullptr,
+                                                    tr("Raw image") % util::DlgFilter({ "img" }, true), nullptr,
                                                     QFileDialog::DontConfirmOverwrite);
         if (name.isEmpty())
             return;
