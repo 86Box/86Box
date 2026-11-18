@@ -44,8 +44,9 @@ typedef struct {
     void         *ramdac;
     uint8_t       regs[256];
     uint8_t       pci_slot, irq_state, irq_line, irq_asserted, command;
-    uint8_t       bar_hi, io_hi, io_installed, endian, pci_control, mode;
+    uint8_t       bar_hi, io_hi, io_installed, endian, pci_control, mode, dac_command0;
     uint32_t      rom_bar, bank, frame, pitch;
+    int           native_bpp;
     uint64_t      time_ns;
     uint32_t      frame_flags;
 } verite_t;
@@ -78,7 +79,7 @@ verite_render(svga_t *svga)
 
     for (int x = 0; x < svga->hdisp; x++) {
         uint32_t a = addr & (VRAM_SIZE - 1);
-        switch (svga->bpp) {
+        switch (v->native_bpp) {
             case 8:
                 pixel[x] = svga->map8[ram[a ^ 3] & svga->dac_mask];
                 addr++;
@@ -87,7 +88,7 @@ verite_render(svga_t *svga)
             case 16:
                 {
                     uint16_t color = ((uint16_t) ram[a ^ 2] << 8) | ram[((a + 1) & (VRAM_SIZE - 1)) ^ 2];
-                    pixel[x]       = (svga->bpp == 15 ? video_15to32 : video_16to32)[color];
+                    pixel[x]       = (v->native_bpp == 15 ? video_15to32 : video_16to32)[color];
                     addr += 2;
                     break;
                 }
@@ -104,7 +105,11 @@ verite_recalctimings(svga_t *svga)
 {
     verite_t *v   = svga->priv;
     uint32_t  ctl = verite_reg(v, CRTC_CTL);
-    if (!(ctl & 0x1000) || !(v->mode & 1))
+    int       native = (ctl & 0x1000) && (v->mode & 1);
+
+    svga_set_ramdac_type(svga, native && (v->dac_command0 & 2) ? RAMDAC_8BIT : RAMDAC_6BIT);
+    svga->dac_hwcursor_draw = native ? bt48x_hwcursor_draw : NULL;
+    if (!native)
         return;
 
     int bpp;
@@ -142,18 +147,22 @@ verite_recalctimings(svga_t *svga)
     if (v->pitch < bytes)
         v->pitch = bytes;
 
-    svga->render = verite_render;
-    svga->bpp    = bpp;
+    v->native_bpp                   = bpp;
+    svga->render                   = verite_render;
     svga->hdisp = svga->hdisp_time = width;
     svga->htotal                   = total;
     svga->hblankstart              = width - 1;
     svga->hblank_end_val           = total - 1;
     svga->hblank_end_mask          = 0xfff;
     svga->dots_per_clock           = 1;
+    svga->char_width               = 1;
     svga->dispend = svga->vblankstart = lines;
     svga->vsyncstart                  = lines + front;
     svga->vtotal                      = lines + front + sync + back;
     svga->clock                       = (cpuclock * (double) (1ULL << 32)) / (60.0 * total * svga->vtotal);
+    /* Cancel the VGA sequencer's dot clock divide when using native timings. */
+    if (svga->seqregs[1] & 8)
+        svga->clock *= 0.5;
     svga->interlace = svga->linedbl = svga->rowcount = 0;
     svga->split                                      = 0x1000;
     svga->monitor->mon_overscan_x = svga->monitor->mon_overscan_y = 0;
@@ -198,6 +207,29 @@ verite_ext_read(void *priv, uint8_t reg, uint8_t len)
 }
 
 static void
+verite_dac_write(verite_t *v, uint16_t port, int rs2, int rs3, uint8_t value)
+{
+    svga_t *svga     = &v->vga.svga;
+    uint8_t gdc_mode = svga->gdcreg[5];
+    int     dac_type = svga->ramdac_type;
+    int     command0 = port == 0x3c6 && rs2 && !rs3;
+
+    if (command0)
+        v->dac_command0 = value;
+    bt48x_ramdac_out(port, rs2, rs3, value, v->ramdac, svga);
+    if (command0)
+        svga->ramdac_type = dac_type;
+
+    /* Native pixel formats come from CRTC_CTL. Keep the VGA mode registers
+       independent of changes to the RAMDAC's native pixel format. */
+    if (command0 || svga->bpp != 8 || svga->gdcreg[5] != gdc_mode) {
+        svga->bpp       = 8;
+        svga->gdcreg[5] = gdc_mode;
+        svga_recalctimings(svga);
+    }
+}
+
+static void
 verite_ext_write(void *priv, uint8_t reg, uint32_t value, uint8_t len)
 {
     verite_t *v = priv;
@@ -205,7 +237,7 @@ verite_ext_write(void *priv, uint8_t reg, uint32_t value, uint8_t len)
         uint8_t r    = reg + i;
         uint8_t byte = value >> (8 * i);
         if (r >= RAMDAC && r < RAMDAC + 16) {
-            bt48x_ramdac_out(dac_ports[r & 3], r & 4, r & 8, byte, v->ramdac, &v->vga.svga);
+            verite_dac_write(v, dac_ports[r & 3], r & 4, r & 8, byte);
         } else {
             v->regs[r] = byte;
         }
@@ -372,7 +404,7 @@ verite_vga_out(uint16_t port, uint8_t value, void *priv)
 {
     verite_t *v = priv;
     if (port >= 0x3c6 && port <= 0x3c9)
-        bt48x_ramdac_out(port, 0, 0, value, v->ramdac, &v->vga.svga);
+        verite_dac_write(v, port, 0, 0, value);
     else
         vga_out(port, value, &v->vga);
     if (port == 0x3cf && v->vga.svga.gdcaddr == 6)
@@ -585,7 +617,6 @@ verite_init(const device_t *info)
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &verite_timing);
     svga_init(info, &v->vga.svga, v, VRAM_SIZE, verite_recalctimings,
               verite_vga_in, verite_vga_out, NULL, NULL);
-    v->vga.svga.dac_hwcursor_draw = bt48x_hwcursor_draw;
     v->vga.svga.ramdac            = v->ramdac;
     v->vga.svga.vsync_callback    = verite_vsync;
     mem_mapping_add(&v->linear, 0, 0, linear_read, NULL, NULL, linear_write, NULL, NULL,
