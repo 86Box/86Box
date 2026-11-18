@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-17 11:28+0000\n"
+"PO-Revision-Date: 2026-11-18 18:28+0000\n"
 "Last-Translator: Nelson Kerber Hennemann Filho <nelsonhf@outlook.com>\n"
 "Language-Team: Portuguese (Brazil) <https://weblate.86box.net/projects/86box/"
 "86box/pt_BR/>\n"
@@ -4365,25 +4365,27 @@ msgid "The contents exceed the capacity of the configured floppy drive."
 msgstr "O conteúdo excede a capacidade do drive de disquete configurado."
 
 msgid "Mount folder as a temporary removable disk"
-msgstr ""
+msgstr "Montar pasta como um disco removível temporário"
 
 msgid "Unable to mount folder or archive"
-msgstr ""
+msgstr "Não foi possível montar a pasta ou arquivo"
 
 msgid "The contents don't fit on any medium the drive takes, or a file is 4 GB or larger."
 msgstr ""
+"O conteúdo não cabe em qualquer mídia que o drive aceita, ou um arquivo é de "
+"4GB ou maior."
 
 msgid "There are too many files in the top folder for the root directory of the medium."
-msgstr ""
+msgstr "Há muitos arquivos na pasta principal para o diretório root da mídia."
 
 msgid "The temporary image could not be written."
-msgstr ""
+msgstr "A imagem temporária não pode ser escrita."
 
 msgid "There is not enough memory to build the image."
-msgstr ""
+msgstr "Não há memória suficiente para criar a imagem."
 
 msgid "The folder or archive could not be read."
-msgstr ""
+msgstr "Não foi possível ler a pasta ou o arquivo."
 
 msgid "Archives"
-msgstr ""
+msgstr "Arquivos"

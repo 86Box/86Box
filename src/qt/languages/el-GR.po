@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-18 07:12+0000\n"
+"PO-Revision-Date: 2026-11-18 18:28+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -4247,276 +4247,295 @@ msgid "Disassembly is not available in this build."
 msgstr "Η αποσυναρμολόγηση δεν είναι διαθέσιμη σε αυτήν την έκδοση."
 
 msgid "Breakpoint %1 at %2."
-msgstr ""
+msgstr "Σημείο διακοπής %1 στο %2."
 
 msgid "set"
-msgstr ""
+msgstr "σειρά"
 
 msgid "cleared"
-msgstr ""
+msgstr "εκκαθαρίστηκε"
 
 msgid "%n breakpoint(s), linear addresses:"
 msgid_plural "%n breakpoints, linear addresses:"
-msgstr[0] ""
-msgstr[1] ""
+msgstr[0] "%n σημείο διακοπής, γραμμικές διευθύνσεις:"
+msgstr[1] "%n σημεία διακοπής, γραμμικές διευθύνσεις:"
 
 msgid "Pause the processor before accessing I/O ports."
 msgstr ""
+"Κάντε παύση τον επεξεργαστή πριν αποκτήσετε πρόσβαση στις θύρες "
+"εισόδου/εξόδου."
 
 msgid "Unknown command or invalid arguments. Type help for syntax."
 msgstr ""
+"Άγνωστη εντολή ή μη έγκυρα ορίσματα. Πληκτρολογήστε help για τη σύνταξη."
 
 msgid "Dump memory"
-msgstr ""
+msgstr "Εξαγωγή μνήμης"
 
 msgid "Start (hex, register or seg:off):"
-msgstr ""
+msgstr "Έναρξη (δεκαεξαδικό, καταχωρητής ή seg:off):"
 
 msgid "Length (hex bytes):"
-msgstr ""
+msgstr "Μήκος (δεκαεξαδικά bytes):"
 
 msgid "Address space:"
-msgstr ""
+msgstr "Χώρος διευθύνσεων:"
 
 msgid "Fill byte for memory that cannot be read:"
-msgstr ""
+msgstr "Byte πλήρωσης για μη αναγνώσιμη μνήμη:"
 
 msgid "File:"
-msgstr ""
+msgstr "Αρχείο:"
 
 msgid "Only RAM and other directly mapped memory is read. Unmapped and inaccessible bytes are not read; the fill byte is written in their place."
 msgstr ""
+"Γίνεται ανάγνωση μόνο της μνήμης RAM και άλλης άμεσα αντιστοιχισμένης "
+"μνήμης. Τα μη αντιστοιχισμένα και μη προσβάσιμα bytes δεν διαβάζονται; στη "
+"θέση τους εγγράφεται το byte πλήρωσης."
 
 msgid "Binary files"
-msgstr ""
+msgstr "Δυαδικά αρχεία"
 
 msgid "The length must be a hex number above 0."
-msgstr ""
+msgstr "Το μήκος πρέπει να είναι ένας δεκαεξαδικός αριθμός άνω του 0."
 
 msgid "The fill byte must be a hex number from 00 to FF."
 msgstr ""
+"Το byte συμπλήρωσης πρέπει να είναι ένας δεκαεξαδικός αριθμός από 00 έως FF."
 
 msgid "Could not open %1 for writing."
-msgstr ""
+msgstr "Δεν ήταν δυνατό το άνοιγμα του %1 για εγγραφή."
 
 msgid "Dumping memory…"
-msgstr ""
+msgstr "Εξαγωγή περιεχομένων μνήμης…"
 
 msgid "Could not write to %1."
-msgstr ""
+msgstr "Δεν ήταν δυνατή η εγγραφή στο %1."
 
 msgid "Dumped %1 bytes from %2 to %3 (%4 bytes could not be read and were filled)."
 msgstr ""
+"Εξήχθησαν %1 bytes από %2 σε %3 (%4 bytes δεν μπόρεσαν να διαβαστούν και "
+"συμπληρώθηκαν)."
 
 msgid "Enter hex bytes in pairs, e.g. \"8B 44 24 08\"."
-msgstr ""
+msgstr "Εισαγάγετε δεκαεξαδικά bytes ανά ζεύγη, π.χ. \"8B 44 24 08\"."
 
 msgid "\"%1\" is not made of hex bytes."
-msgstr ""
+msgstr "Το \"%1\" δεν αποτελείται από δεκαεξαδικά bytes."
 
 msgid "Enter a hex value from 0 to %1."
-msgstr ""
+msgstr "Εισάγετε μια δεκαεξαδική τιμή από το 0 έως το %1."
 
 msgid "The value is too large for %1 bytes."
-msgstr ""
+msgstr "Η τιμή είναι πολύ μεγάλη για %1 bytes."
 
 msgid "Enter something to search for."
-msgstr ""
+msgstr "Εισάγετε κάτι για αναζήτηση."
 
 msgid "The range ends before it starts."
-msgstr ""
+msgstr "Το εύρος τελειώνει πριν ξεκινήσει."
 
 msgid "Serial Plug and Play"
-msgstr ""
+msgstr "Σειριακό Plug and Play"
 
 msgid "Standard 9600 bps modem (PNPC100)"
-msgstr ""
+msgstr "Πρότυπο 9600 bps μόντεμ (PNPC100)"
 
 msgid "Standard 14400 bps modem (PNPC101)"
-msgstr ""
+msgstr "Πρότυπο 14400 bps μόντεμ (PNPC101)"
 
 msgid "Standard 28800 bps modem (PNPC102)"
-msgstr ""
+msgstr "Πρότυπο 28800 bps μόντεμ (PNPC102)"
 
 msgid "Standard modem (PNPC103)"
-msgstr ""
+msgstr "Πρότυπο μόντεμ (PNPC103)"
 
 msgid "Enhanced 9600 bps modem (PNPC104)"
-msgstr ""
+msgstr "Ενισχυμένο 9600 bps μόντεμ (PNPC104)"
 
 msgid "Enhanced 14400 bps modem (PNPC105)"
-msgstr ""
+msgstr "Ενισχυμένο 14400 bps μόντεμ (PNPC105)"
 
 msgid "Enhanced 28800 bps modem (PNPC106)"
-msgstr ""
+msgstr "Ενισχυμένο 28800 bps μόντεμ (PNPC106)"
 
 msgid "Enhanced modem (PNPC107)"
-msgstr ""
+msgstr "Ενισχυμένο μόντεμ (PNPC107)"
 
 msgid "Telephone Tone Region"
-msgstr ""
+msgstr "Περιοχή Τόνου Τηλεφώνου"
 
 msgid "North America"
-msgstr ""
+msgstr "Βόρεια Αμερική"
 
 msgid "United Kingdom"
-msgstr ""
+msgstr "Ηνωμένο Βασίλειο"
 
 msgid "Continental Europe"
-msgstr ""
+msgstr "Ηπειρωτική Ευρώπη"
 
 msgid "Japan"
-msgstr ""
+msgstr "Ιαπωνία"
 
 msgid "Handshake Modem Standard"
-msgstr ""
+msgstr "Πρότυπο συγχρονισμού μόντεμ"
 
 msgid "Automatic (from DTE speed)"
-msgstr ""
+msgstr "Αυτόματο (από την ταχύτητα DTE)"
 
 msgid "Connection Type"
-msgstr ""
+msgstr "Τύπος Σύνδεσης"
 
 msgid "Username"
-msgstr ""
+msgstr "Όνομα χρήστη"
 
 msgid "Password"
-msgstr ""
+msgstr "Κωδικός"
 
 msgid "PPP Compression and Encryption"
-msgstr ""
+msgstr "Συμπίεση και Κρυπτογράφηση PPP"
 
 msgid "Automatic"
-msgstr ""
+msgstr "Αυτόματο"
 
 msgid "Require MPPE"
-msgstr ""
+msgstr "Απαίτηση MPPE"
 
 msgid "PPP Multilink Group (same on each link)"
-msgstr ""
+msgstr "Ομάδα PPP Multilink (ίδια σε κάθε ζεύξη)"
 
 msgid "PPP Primary DNS Server"
-msgstr ""
+msgstr "Πρωτεύων διακομιστής DNS PPP"
 
 msgid "PPP Secondary DNS Server"
-msgstr ""
+msgstr "Δευτερεύων διακομιστής DNS PPP"
 
 msgid "CCP Directional Negotiation"
-msgstr ""
+msgstr "Κατευθυντική διαπραγμάτευση CCP"
 
 msgid "Bidirectional"
-msgstr ""
+msgstr "Αμφίδρομη"
 
 msgid "Transmit-Only"
-msgstr ""
+msgstr "Μόνο αποστολή"
 
 msgid "Receive-Only"
-msgstr ""
+msgstr "Μόνο λήψη"
 
 msgid "Asymmetric Preferred"
-msgstr ""
+msgstr "Προτίμηση ασύμμετρης"
 
 msgid "PPP Callback (Microsoft CBCP)"
-msgstr ""
+msgstr "Επανάκληση PPP (Microsoft CBCP)"
 
 msgid "Offered (caller may decline)"
-msgstr ""
+msgstr "Προσφερόμενη (με δυνατότητα απόρριψης)"
 
 msgid "Required (caller must accept)"
-msgstr ""
+msgstr "Απαιτείται (ο καλών πρέπει να την αποδεχτεί)"
 
 msgid "PPP Keepalive Interval (seconds, 0 = off)"
-msgstr ""
+msgstr "Διάστημα διατήρησης σύνδεσης PPP (δευτερόλεπτα, 0 = ανενεργό)"
 
 msgid "Report received DTMF to the host (<DLE>digit)"
-msgstr ""
+msgstr "Αναφορά ληφθέντων σημάτων DTMF στον κεντρικό υπολογιστή (<DLE>ψηφίο)"
 
 msgid "Off (only with +VDR=1)"
-msgstr ""
+msgstr "Ανενεργό (μόνο με +VDR=1)"
 
 msgid "Caller ID between emulator instances (enable on both)"
 msgstr ""
+"Αναγνώριση κλήσης μεταξύ διεργασιών εξομοιωτή (ενεργοποίηση και στις δύο)"
 
 msgid "Caller ID sent when dialing (number,name)"
-msgstr ""
+msgstr "Αναγνώριση κλήσης που αποστέλλεται κατά την κλήση (αριθμός,όνομα)"
 
 msgid "Network to guest queue limit (back-pressure)"
-msgstr ""
+msgstr "Όριο ουράς από το δίκτυο προς τον επισκέπτη (back-pressure)"
 
 msgid "Unlimited (legacy)"
-msgstr ""
+msgstr "Απεριόριστο (παλαιού τύπου)"
 
 msgid "250 ms of line time"
-msgstr ""
+msgstr "250 ms χρόνου γραμμής"
 
 msgid "500 ms of line time"
-msgstr ""
+msgstr "500 ms χρόνου γραμμής"
 
 msgid "1 s of line time"
-msgstr ""
+msgstr "1 s χρόνου γραμμής"
 
 msgid "2 s of line time"
-msgstr ""
+msgstr "2 s χρόνου γραμμής"
 
 msgid "TCP send timeout"
-msgstr ""
+msgstr "Χρονικό όριο αποστολής TCP"
 
 msgid "Card:"
-msgstr ""
+msgstr "Κάρτα:"
 
 msgid "Hub:"
-msgstr ""
+msgstr "Διανομέας:"
 
 msgid "Mass storage:"
-msgstr ""
+msgstr "Μαζική αποθήκευση:"
 
 msgid "Its drives are hard disks, CD-ROM drives and other removable devices set up on their own pages, on bus SCSI, in the channels named \"USB Mass Storage\". Each drive is one logical unit, in channel order."
 msgstr ""
+"Οι μονάδες δίσκου του είναι σκληροί δίσκοι, μονάδες CD-ROM και άλλες "
+"αφαιρούμενες συσκευές που ρυθμίζονται στις δικές τους σελίδες, στον δίαυλο "
+"SCSI, στα κανάλια με την ονομασία \"USB Mass Storage\". Κάθε μονάδα δίσκου "
+"αντιστοιχεί σε μία λογική μονάδα, με τη σειρά των καναλιών."
 
 msgid "Hard disks…"
-msgstr ""
+msgstr "Σκληροί Δίσκοι…"
 
 msgid "CD-ROM drives…"
-msgstr ""
+msgstr "Οδηγοί CD-ROM…"
 
 msgid "Other removable devices…"
-msgstr ""
+msgstr "Άλλες αφαιρούμενες συσκευές…"
 
 msgid "4-port USB 1.1 hub"
-msgstr ""
+msgstr "Διανομέας USB 1.1 4 θυρών"
 
 msgid "USB Mass Storage"
-msgstr ""
+msgstr "Μαζική αποθήκευση USB"
 
 msgid "Mount folder as a temporary floppy"
-msgstr ""
+msgstr "Προσάρτηση φακέλου ως προσωρινή δισκέτα"
 
 msgid "The selected drive does not support folder mounting."
-msgstr ""
+msgstr "Η επιλεγμένη μονάδα δίσκου δεν υποστηρίζει προσάρτηση φακέλου."
 
 msgid "The contents exceed the capacity of the configured floppy drive."
 msgstr ""
+"Τα περιεχόμενα υπερβαίνουν τη χωρητικότητα της ρυθμισμένης μονάδας δισκέτας."
 
 msgid "Mount folder as a temporary removable disk"
-msgstr ""
+msgstr "Προσάρτηση φακέλου ως προσωρινός αφαιρούμενος δίσκος"
 
 msgid "Unable to mount folder or archive"
-msgstr ""
+msgstr "Αδυναμία προσάρτησης φακέλου ή συμπιεσμένου αρχείου"
 
 msgid "The contents don't fit on any medium the drive takes, or a file is 4 GB or larger."
 msgstr ""
+"Τα περιεχόμενα δεν χωρούν σε κανένα μέσο που δέχεται η μονάδα δίσκου, ή "
+"κάποιο αρχείο είναι 4 GB ή μεγαλύτερο."
 
 msgid "There are too many files in the top folder for the root directory of the medium."
 msgstr ""
+"Υπάρχουν πάρα πολλά αρχεία στον ανώτατο φάκελο για τον ριζικό κατάλογο του "
+"μέσου."
 
 msgid "The temporary image could not be written."
-msgstr ""
+msgstr "Δεν ήταν δυνατή η εγγραφή του προσωρινού αρχείου εικόνας."
 
 msgid "There is not enough memory to build the image."
-msgstr ""
+msgstr "Δεν υπάρχει αρκετή μνήμη για τη δημιουργία του αρχείου εικόνας."
 
 msgid "The folder or archive could not be read."
-msgstr ""
+msgstr "Δεν ήταν δυνατή η ανάγνωση του φακέλου ή του συμπιεσμένου αρχείου."
 
 msgid "Archives"
-msgstr ""
+msgstr "Συμπιεσμένα αρχεία"
