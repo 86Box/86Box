@@ -353,7 +353,12 @@ clampf(float v, float lo, float hi)
    images that match this kernel line by line, within 2.2 dB rms over 22
    lines at 11.025 kHz (median 2.2 dB over all 46), against 10 dB for
    Catmull-Rom, which the model used before and which leaves the images
-   5-20 dB too low. */
+   5-20 dB too low. Read digitally (lastprobe interp, 2026-11-17): an
+   impulse at step 1 with the pitch phase set to 64 fractions gave this
+   kernel's four weights at each, times 0x3330 / 0x4000, within 1.6 LSB of
+   13,104, and the driver's 44.1 kHz step gave the impulse response this
+   predicts within 5 LSB; so the 44.1 kHz image line that recorded 6 dB
+   under the model is not in the chip's arithmetic. */
 static inline float
 interp4(const float *h, float t)
 {
@@ -1356,7 +1361,11 @@ wt_filter_set(v2_wtv_t *w, int f)
    left, p / 128 right, f / 128 on a send; the main pair and sends 16 x
    lower. That reproduces every level wtprobe read: 1.5871 x the input at
    pan 0, 0.7998 and 0.7873 at the driver's centre pan 0x3f. */
-#define WT_OWN_SCALE 0.7998f
+/* The 0.7998 is 0x3330 / 0x4000 exactly (lastprobe interp, 2026-11-17: a
+   single-sample 16,384 at phase 0 read back 13,104 = 0x3330, and at every
+   other phase the four weights were Lagrange's cubic times that, within
+   1.6 LSB, so the scale rides on the interpolator's coefficients). */
+#define WT_OWN_SCALE (13104.0f / 16384.0f)
 
 /* Gain states and ramps (PARM3 bits 23-21). Aureal's description, relayed
    by the map's author, gives the attack and smooth-mute sequences; wtprobe
