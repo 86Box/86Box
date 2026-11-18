@@ -97,22 +97,23 @@
 #define ISAMEM_IBMAT_128K_CARD 4
 #define ISAMEM_IBMAT_512K_CARD 5
 #define ISAMEM_IBMAT_640K_CARD 6
-#define ISAMEM_IBMAT_CARD      7
-#define ISAMEM_GENAT_CARD      8
-#define ISAMEM_P5PAK_CARD      9
-#define ISAMEM_A6PAK_CARD      10
-#define ISAMEM_EMS5150_CARD    11
-#define ISAMEM_EV159_CARD      12
-#define ISAMEM_RAMPAGEXT_CARD  13
-#define ISAMEM_ABOVEBOARD_CARD 14
-#define ISAMEM_BRXT_CARD       15
-#define ISAMEM_BRAT_CARD       16
-#define ISAMEM_EV165A_CARD     17
-#define ISAMEM_LOTECH_EMS_CARD 18
-#define ISAMEM_MPLUS2_CARD     19
-#define ISAMEM_IBMPCJR_CARD    20
-#define ISAMEM_GENPCJR_CARD    21
-#define ISAMEM_JRIDE_CARD      22
+#define ISAMEM_IBMAT_2MB_CARD  7
+#define ISAMEM_IBMAT_CARD      8
+#define ISAMEM_GENAT_CARD      9
+#define ISAMEM_P5PAK_CARD      10
+#define ISAMEM_A6PAK_CARD      11
+#define ISAMEM_EMS5150_CARD    12
+#define ISAMEM_EV159_CARD      13
+#define ISAMEM_RAMPAGEXT_CARD  14
+#define ISAMEM_ABOVEBOARD_CARD 15
+#define ISAMEM_BRXT_CARD       16
+#define ISAMEM_BRAT_CARD       17
+#define ISAMEM_EV165A_CARD     18
+#define ISAMEM_LOTECH_EMS_CARD 19
+#define ISAMEM_MPLUS2_CARD     20
+#define ISAMEM_IBMPCJR_CARD    21
+#define ISAMEM_GENPCJR_CARD    22
+#define ISAMEM_JRIDE_CARD      23
 
 #define ISAMEM_DEBUG           0
 
@@ -549,6 +550,18 @@ isamem_init(const device_t *info)
         case ISAMEM_IBMAT_640K_CARD: /* IBM PC/AT 128KB/640KB Memory Expansion Option */
             dev->total_size = 640;
             dev->start_addr = device_get_config_int("start");
+            tot             = dev->total_size;
+            dev->flags |= FLAG_WIDE;
+            break;
+
+        case ISAMEM_IBMAT_2MB_CARD: /* IBM PC/AT 512KB/2MB Memory Expansion Option */
+            dev->total_size = device_get_config_int("size");
+            dev->start_addr = device_get_config_int("start");
+            /* Keep the memory expansion bank below 15.5MB. */
+            if ((dev->start_addr + dev->total_size) > 15872) {
+                dev->total_size = 15872 - dev->start_addr;
+                isamem_log("ISAMEM: memory size clamped to %iKB\n", dev->total_size);
+            }
             tot             = dev->total_size;
             dev->flags |= FLAG_WIDE;
             break;
@@ -1435,6 +1448,56 @@ static const device_t ibmat_640k_device = {
     .config        = ibmat_512k_config
 };
 
+static const device_config_t ibmat_2mb_config[] = {
+  // clang-format off
+    {
+        .name           = "size",
+        .description    = "Memory size",
+        .type           = CONFIG_SPINNER,
+        .default_string = NULL,
+        .default_int    = 512,
+        .file_filter    = NULL,
+        .spinner        = {
+            .min  =  512,
+            .max  = 2048,
+            .step =  512
+        },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "start",
+        .description    = "Start Address",
+        .type           = CONFIG_SPINNER,
+        .default_string = NULL,
+        .default_int    = 1024,
+        .file_filter    = NULL,
+        .spinner        = {
+            .min  =  1024,
+            .max  = 15360,
+            .step =   512
+        },
+        .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+  // clang-format on
+};
+
+static const device_t ibmat_2mb_device = {
+    .name          = "IBM PC/AT 512KB/2MB Memory Expansion Option",
+    .internal_name = "ibmat_2mb",
+    .flags         = DEVICE_ISA16,
+    .local         = ISAMEM_IBMAT_2MB_CARD,
+    .init          = isamem_init,
+    .close         = isamem_close,
+    .reset         = NULL,
+    .available     = NULL,
+    .speed_changed = NULL,
+    .force_redraw  = NULL,
+    .config        = ibmat_2mb_config
+};
+
 static const device_config_t ibmat_config[] = {
   // clang-format off
     {
@@ -1525,7 +1588,7 @@ static const device_config_t genericat_config[] = {
 static const device_t genericat_device = {
     .name          = "Generic PC/AT Memory Expansion",
     .internal_name = "genericat",
-    .flags         = DEVICE_ISA,
+    .flags         = DEVICE_ISA16,
     .local         = ISAMEM_GENAT_CARD,
     .init          = isamem_init,
     .close         = isamem_close,
@@ -2434,6 +2497,7 @@ static const struct {
     { &ibmat_128k_device   },
     { &ibmat_512k_device   },
     { &ibmat_640k_device   },
+    { &ibmat_2mb_device    },
     { &ibmat_device        },
     { &genericat_device    },
     // EMS Cards
