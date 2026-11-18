@@ -179,7 +179,10 @@ machine_at_cubx_init(const machine_t *model)
 
     device_add(&i440bx_device);
     device_add(&piix4e_device);
-    device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR));
+    /* PANSWOUT# goes to the PIIX4 LID input (PANSWIN# is not connected), where
+       the DSDT has the keyboard and mouse wake on GPE 0Bh; the BIOS sets
+       LID_POL for the active low pulse. */
+    device_add_params(&w83977_device, (void *) (W83977EF | W83977_AMI | W83977_NO_NVR | W83977_PANSWOUT_LID));
     device_add(machine_get_ide_device(machine));
     device_add(ics9xxx_get(ICS9250_08));
     device_add(&sst_flash_39sf020_device);
