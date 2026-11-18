@@ -7101,6 +7101,10 @@ mach32_hwcursor_draw(svga_t *svga, int displine)
     int           y_pos;
     int           shift = 0;
 
+    /* The Mach32 cursor is available only on the accelerator output. */
+    if (!dev->on)
+        return;
+
     offset = svga->hwcursor_latch.x - svga->hwcursor_latch.xoff;
     if (!dev->vram_512k_8514 && ((mach->accel.ext_ge_config & 0x30) == 0x00))
         shift = 1;
