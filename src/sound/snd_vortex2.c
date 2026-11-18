@@ -505,6 +505,21 @@ tr_read(vortex2_t *dev, uint32_t a)
     v = v2_read(dev->chip, a);
     if (dev->tracef)
         fprintf(dev->tracef, "%11.6f  R 0x%05x mmio 0x%08x\n", trace_time(dev), a, v);
+    if (a >= V2_FM_FILE + 0x50 && a < V2_FM_FILE + 0xd4) {
+        /* Key-on bytes (0xb0-0xb8 of each bank) carry bit 7 for "written"
+           and bits 7-6 after a rhythm write. Taken as cleared once read
+           (Hypothesis): left set, AU30DOS's FM renderer, which polls the
+           whole file and never writes it, saw every note as struck again
+           on every poll and the music came out badly distorted. */
+        uint32_t m = 0;
+        for (int b = 0; b < 4; b++) {
+            int off = (a - V2_FM_FILE) + b;
+            if ((off >= 0x53 && off <= 0x5b) || (off >= 0xcb && off <= 0xd3))
+                m |= 0xc0u << (8 * b);
+        }
+        if (m && (v & m))
+            v2_write(dev->chip, a, v & ~m);
+    }
     return v;
 }
 
