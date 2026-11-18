@@ -500,6 +500,8 @@ tr_read(vortex2_t *dev, uint32_t a)
     return v;
 }
 
+static void vortex2_chip_reset(vortex2_t *dev);
+
 static void
 tr_write(vortex2_t *dev, uint32_t a, uint32_t v)
 {
@@ -517,6 +519,17 @@ tr_write(vortex2_t *dev, uint32_t a, uint32_t v)
         /* reads back 0xff; its byte goes to the latch's low byte (sbprobe) */
         dev->fm_index = v & 0xff;
         fm_latch_update(dev);
+        return;
+    }
+    if (a == V2_CHIP_CTRL && v == 0xffffffff) {
+        /* All ones resets the chip (Plausible): AU30DOS writes it first thing and then,
+           after a pause, the reset word with bit 21 cleared (0x103260); the
+           driver writes it on shutting down, and on a start-up without
+           AU30DOS writes it, reads the word back and clears bit 21. Kept
+           as written, the driver read all ones back and turned every legacy
+           decode on, the FM ports included, which then made AU30DOS see
+           388h as taken after "Restart in MS-DOS mode" (error #7). */
+        vortex2_chip_reset(dev);
         return;
     }
     v2_write(dev->chip, a, v);
@@ -1064,6 +1077,20 @@ vortex2_speed_changed(void *priv)
     vortex2_t *dev = (vortex2_t *) priv;
 
     dev->block_latch = (uint64_t) ((double) TIMER_USEC * (1000000.0 * V2_BLOCK / (double) V2_RATE));
+}
+
+static void
+vortex2_chip_reset(vortex2_t *dev)
+{
+    /* Only the control word is put back to its reset value: what else the
+       chip clears is not known (the driver reads 0x2a804 straight after and
+       rewrites everything it uses), and the legacy decodes follow the word. */
+    v2_write(dev->chip, V2_CHIP_CTRL, 0x00303260);
+    dev->game_fired = 0;
+    timer_disable(&dev->fm_timer[0]);
+    timer_disable(&dev->fm_timer[1]);
+    dev->fm_ctl = dev->fm_flags = dev->fm_new = dev->fm_index = dev->fm_bank = 0;
+    legacy_remap(dev);
 }
 
 static void
