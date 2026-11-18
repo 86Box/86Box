@@ -2099,6 +2099,22 @@ es137x_io_set(es137x_t *dev, int set)
     }
 }
 
+/* Drivers rewrite the command register often, and remapping the 64 ports costs
+   an allocation and a free per port, so only remap when the decoding changes. */
+static void
+es137x_io_update(es137x_t *dev, uint8_t command, uint32_t base_addr)
+{
+    if (((command ^ dev->pci_command) & PCI_COMMAND_IO) || ((base_addr ^ dev->base_addr) & 0xffff)) {
+        es137x_io_set(dev, 0);
+        dev->pci_command = command;
+        dev->base_addr   = base_addr;
+        es137x_io_set(dev, 1);
+    } else {
+        dev->pci_command = command;
+        dev->base_addr   = base_addr;
+    }
+}
+
 static void
 es1370_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 {
@@ -2109,23 +2125,17 @@ es1370_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 
     switch (addr) {
         case 0x04:
-            es137x_io_set(dev, 0);
-            dev->pci_command = val & 0x05;
-            es137x_io_set(dev, 1);
+            es137x_io_update(dev, val & 0x05, dev->base_addr);
             break;
         case 0x05:
             dev->pci_serr = val & 1;
             break;
 
         case 0x10:
-            es137x_io_set(dev, 0);
-            dev->base_addr = (dev->base_addr & 0xffffff00) | (val & 0xc0);
-            es137x_io_set(dev, 1);
+            es137x_io_update(dev, dev->pci_command, (dev->base_addr & 0xffffff00) | (val & 0xc0));
             break;
         case 0x11:
-            es137x_io_set(dev, 0);
-            dev->base_addr = (dev->base_addr & 0xffff00c0) | (val << 8);
-            es137x_io_set(dev, 1);
+            es137x_io_update(dev, dev->pci_command, (dev->base_addr & 0xffff00c0) | (val << 8));
             break;
         case 0x12:
             dev->base_addr = (dev->base_addr & 0xff00ffc0) | (val << 16);
@@ -2160,23 +2170,17 @@ es1371_pci_write(int func, int addr, UNUSED(int len), uint8_t val, void *priv)
 
     switch (addr) {
         case 0x04:
-            es137x_io_set(dev, 0);
-            dev->pci_command = val & 0x05;
-            es137x_io_set(dev, 1);
+            es137x_io_update(dev, val & 0x05, dev->base_addr);
             break;
         case 0x05:
             dev->pci_serr = val & 1;
             break;
 
         case 0x10:
-            es137x_io_set(dev, 0);
-            dev->base_addr = (dev->base_addr & 0xffffff00) | (val & 0xc0);
-            es137x_io_set(dev, 1);
+            es137x_io_update(dev, dev->pci_command, (dev->base_addr & 0xffffff00) | (val & 0xc0));
             break;
         case 0x11:
-            es137x_io_set(dev, 0);
-            dev->base_addr = (dev->base_addr & 0xffff00c0) | (val << 8);
-            es137x_io_set(dev, 1);
+            es137x_io_update(dev, dev->pci_command, (dev->base_addr & 0xffff00c0) | (val << 8));
             break;
         case 0x12:
             dev->base_addr = (dev->base_addr & 0xff00ffc0) | (val << 16);

@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-14 02:27+0000\n"
+"PO-Revision-Date: 2026-11-18 18:28+0000\n"
 "Last-Translator: sharkbyte16 <mjacobs74@protonmail.com>\n"
 "Language-Team: Dutch <https://weblate.86box.net/projects/86box/86box/nl/>\n"
 "Language: nl-NL\n"
@@ -247,40 +247,40 @@ msgid "Sound &gain…"
 msgstr "&Geluidsversterking…"
 
 msgid "M&IDI output device"
-msgstr ""
+msgstr "M&IDI-uitgangsapparaat"
 
 msgid "Restart &device"
-msgstr ""
+msgstr "Herstart &apparaat"
 
 msgid "Send MIDI &command"
-msgstr ""
+msgstr "Stuur MIDI-opdracht"
 
 msgid "&GM System On"
-msgstr ""
+msgstr "&GM Systeem Aan"
 
 msgid "G&S Reset"
-msgstr ""
+msgstr "G&S Reset"
 
 msgid "&XG System On"
-msgstr ""
+msgstr "&XG Systeem Aan"
 
 msgid "&MT-32 Reset"
-msgstr ""
+msgstr "&MT-32 Reset"
 
 msgid "All &notes off"
-msgstr ""
+msgstr "Alle &notities uit"
 
 msgid "Show MIDI &LCD"
-msgstr ""
+msgstr "Toon MIDI-&LCD"
 
 msgid "MIDI LCD"
-msgstr ""
+msgstr "MIDI-LCD"
 
 msgid "Always on &top"
-msgstr ""
+msgstr "Altijd op de &voorgrond houden"
 
 msgid "&Close"
-msgstr ""
+msgstr "&Sluiten"
 
 msgid "Begin trace"
 msgstr "Begin traceren"
@@ -2588,7 +2588,7 @@ msgid "Start Address"
 msgstr "Startadres"
 
 msgid "Allow RAM up to the system ROM"
-msgstr ""
+msgstr "RAM toestaan tot aan het systeem-ROM"
 
 msgid "Contiguous Size"
 msgstr "Aaneengesloten grootte"
@@ -4441,37 +4441,40 @@ msgid "USB Mass Storage"
 msgstr "USB-massaopslag"
 
 msgid "Mount folder as a temporary floppy"
-msgstr ""
+msgstr "Map als tijdelijke floppy koppelen"
 
 msgid "The selected drive does not support folder mounting."
-msgstr ""
+msgstr "Het geselecteerde station ondersteunt het koppelen van mappen niet."
 
 msgid "The contents exceed the capacity of the configured floppy drive."
 msgstr ""
+"De inhoud overschrijdt de capaciteit van het geconfigureerde diskettestation."
 
 msgid "Mount folder as a temporary removable disk"
-msgstr ""
+msgstr "Map als tijdelijke verwisselbare schijf koppelen"
 
 msgid "Unable to mount folder or archive"
-msgstr ""
+msgstr "Kan de map of het archief niet koppelen"
 
 msgid "The contents don't fit on any medium the drive takes, or a file is 4 GB or larger."
 msgstr ""
+"De inhoud past niet op een van de opslagmedia die het station ondersteunt, "
+"of een bestand is 4 GB of groter."
 
 msgid "There are too many files in the top folder for the root directory of the medium."
-msgstr ""
+msgstr "Er staan te veel bestanden in de hoofdmap van het opslagmedium."
 
 msgid "The temporary image could not be written."
-msgstr ""
+msgstr "De tijdelijke schijfimage kon niet worden weggeschreven."
 
 msgid "There is not enough memory to build the image."
-msgstr ""
+msgstr "Er is onvoldoende geheugen om de schijfkopie aan te maken."
 
 msgid "The folder or archive could not be read."
-msgstr ""
+msgstr "De map of het archief kon niet worden gelezen."
 
 msgid "Archives"
-msgstr ""
+msgstr "Archieven"
 
 msgid "New USB flash drive"
 msgstr ""
