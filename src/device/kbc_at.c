@@ -159,6 +159,9 @@ typedef struct atkbc_t {
 
     void (*p2_write_hook)(void *priv, uint8_t old_p2, uint8_t new_p2);
     void *p2_priv;
+
+    void (*wire_hook)(void *priv, int channel, uint8_t val);
+    void *wire_priv;
 } atkbc_t;
 
 /* Keyboard controller ports. */
@@ -499,6 +502,15 @@ kbc_param_take(atkbc_t *dev)
     kbc_at_process_cmd(dev);
 }
 
+/* A byte from a device has crossed the clock and data lines: let whatever
+   watches the lines see it. */
+static void
+kbc_at_wire(atkbc_t *dev, int channel, uint8_t val)
+{
+    if (dev->wire_hook != NULL)
+        dev->wire_hook(dev->wire_priv, channel, val);
+}
+
 static void
 kbc_scan_kbd_at(atkbc_t *dev)
 {
@@ -507,6 +519,7 @@ kbc_scan_kbd_at(atkbc_t *dev)
         /* XT mode. */
         if (dev->mem[0x20] & 0x20) {
             if ((dev->ports[0] != NULL) && (dev->ports[0]->out_new != -1)) {
+                kbc_at_wire(dev, 1, dev->ports[0]->out_new);
                 kbc_send_to_ob(dev, dev->ports[0]->out_new, 1, 0x00);
                 dev->ports[0]->out_new = -1;
                 dev->state             = STATE_MAIN_IBF;
@@ -520,6 +533,7 @@ kbc_scan_kbd_at(atkbc_t *dev)
             if ((dev->ports[0] != NULL) && (dev->ports[0]->out_new != -1)) {
                 /* In our case, we never have noise on the line, so we can simplify this. */
                 /* Read data from the keyboard. */
+                kbc_at_wire(dev, 1, dev->ports[0]->out_new);
                 if (dev->mem[0x20] & 0x40) {
                     if ((dev->mem[0x20] & 0x08) || (dev->p1 & 0x80))
                         kbc_send_to_ob(dev, dev->ports[0]->out_new, 1, 0x00);
@@ -623,6 +637,7 @@ kbc_scan_kbd_ps2(atkbc_t *dev)
 {
     if ((dev->ports[0] != NULL) && (dev->ports[0]->out_new != -1)) {
         kbc_at_log("ATkbc: %02X coming from channel 1\n", dev->ports[0]->out_new & 0xff);
+        kbc_at_wire(dev, 1, dev->ports[0]->out_new);
         kbc_send_to_ob(dev, dev->ports[0]->out_new, 1, 0x00);
         dev->ports[0]->out_new = -1;
         dev->state             = STATE_MAIN_IBF;
@@ -641,6 +656,7 @@ kbc_scan_aux_ps2(atkbc_t *dev)
 
     if ((dev->ports[1] != NULL) && (dev->ports[1]->out_new != -1)) {
         kbc_at_log("ATkbc: %02X coming from channel 2\n", dev->ports[1]->out_new & 0xff);
+        kbc_at_wire(dev, 2, dev->ports[1]->out_new);
         kbc_send_to_ob(dev, dev->ports[1]->out_new, 2, 0x00);
         dev->ports[1]->out_new = -1;
         dev->state             = STATE_MAIN_IBF;
@@ -3028,6 +3044,18 @@ kbc_at_set_p2_write_hook(void *priv,
 
     dev->p2_write_hook = p2_write_hook;
     dev->p2_priv       = p2_priv;
+}
+
+/* Watch the bytes the keyboard (channel 1) and the auxiliary device
+   (channel 2) send over their lines, as a Super I/O chip's wake-up logic
+   does. */
+void
+kbc_at_set_wire_hook(void *priv, void (*wire_hook)(void *priv, int channel, uint8_t val), void *wire_priv)
+{
+    atkbc_t *dev = (atkbc_t *) priv;
+
+    dev->wire_hook = wire_hook;
+    dev->wire_priv = wire_priv;
 }
 
 static void *
