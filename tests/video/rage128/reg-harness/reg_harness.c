@@ -20741,6 +20741,96 @@ rts_bytes2(rage128_t *dev, const char *leg, uint32_t dst, uint32_t px,
            leg, bad, (unsigned long long) (s1 - s0), (unsigned long long) (b1 - b0));
 }
 
+/* A tiled level that starts in local memory and runs past its 32 MB end
+   into the AGP half: the staged copy reads the local part from VRAM run
+   by run and the rest over the bus, so the local part must hold every
+   earlier draw's stores. Level L is 512 x 512 ARGB8888 at RTS_L, 1 MB,
+   texel rows 0-255 local and the rest in AGP memory. Draw A, untextured,
+   rewrites texel rows 0-31 (it renders into L's own surface). Draw B
+   samples texel (x, y - 40) into rows 40-71 of the same surface. The
+   only register written between the two draws is the texture enable,
+   so in the GPU lane A is still queued when B's state is captured. B
+   must see A's pixels: the expected bytes are L's rows 0-31 read back
+   after both draws. */
+#define RTS_L 0x01f80000u
+
+static void
+rts_agp_level(rage128_t *dev)
+{
+    static rage128_raster_state_t rs;
+    static uint8_t                pre[2048 * 72], post[2048 * 72];
+    r3d_vtx_t                     v[6];
+    uint32_t                      pitch = 2048u, bad = 0, chg = 0;
+    uint32_t                      bus = rd(dev, RAGE128_BUS_CNTL);
+    uint32_t                      agp = rd(dev, RAGE128_AGP_BASE);
+    uint8_t                       cmd = pci_rd8(0x04);
+    uint64_t                      s0 = 0, b0 = 0, s1 = 0, b1 = 0;
+    int                           gv;
+    static const float            qx[6] = { 0, 1, 0, 1, 1, 0 };
+    static const float            qy[6] = { 0, 0, 1, 0, 1, 1 };
+
+    /* the AGP half readable: mastering on, aperture at 4 MB of RAM */
+    harness_ram_alloc();
+    pci_wr8(0x04, cmd | 0x04);
+    wr(dev, RAGE128_BUS_CNTL, bus & ~RAGE128_BUS_CNTL_BUS_MASTER_DIS);
+    wr(dev, RAGE128_AGP_BASE, 0x00400000);
+
+    rts_ctx(dev, RTS_L, 512, 72, RTS_L);
+    wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00000909); /* 512 x 512, one level */
+    rts_seed(dev, RTS_L, pitch * 80u, 0x4b000000u); /* tile rows 0-4, all local */
+    flush_sync(dev);
+    r128_card_copy_tiled(dev, RTS_L, pitch, 0, pre, pitch * 72u, 0);
+
+    memset(v, 0, sizeof(v));
+    for (int k = 0; k < 6; k++) {
+        v[k].z       = 0.25f;
+        v[k].rhw     = 1.0f;
+        v[k].diffuse = 0xff3a6c9eu;
+    }
+    gv = harness_gpu_verify_stats(dev, &s0, &b0);
+    /* A: rows 0-32, columns 0-63, untextured */
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+    for (int k = 0; k < 6; k++) {
+        v[k].x = qx[k] * 64.0f;
+        v[k].y = qy[k] * 33.0f;
+    }
+    rage128_raster_state_capture(dev, &rs);
+    rage128_raster_submit_tri(dev, &rs, &v[0], &v[1], &v[2]);
+    rage128_raster_submit_tri(dev, &rs, &v[3], &v[4], &v[5]);
+    /* B: rows 40-71 from texel rows 0-31 */
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000010);
+    for (int k = 0; k < 6; k++) {
+        v[k].y = 40.0f + qy[k] * 32.0f;
+        v[k].s = qx[k] * 64.0f / 512.0f;
+        v[k].t = qy[k] * 32.0f / 512.0f;
+    }
+    rage128_raster_state_capture(dev, &rs);
+    rage128_raster_submit_tri(dev, &rs, &v[0], &v[1], &v[2]);
+    rage128_raster_submit_tri(dev, &rs, &v[3], &v[4], &v[5]);
+    flush_sync(dev);
+    r128_card_copy_tiled(dev, RTS_L, pitch, 0, post, pitch * 72u, 0);
+
+    for (uint32_t y = 0; y < 32; y++)
+        for (uint32_t x = 0; x < 64; x++) {
+            chg += memcmp(post + y * pitch + x * 4u, pre + y * pitch + x * 4u, 4) != 0;
+            bad += memcmp(post + (40u + y) * pitch + x * 4u, post + y * pitch + x * 4u, 4) != 0;
+        }
+    check32("gpu rtt-staged: level into AGP: setup: the first draw changed every sampled texel",
+            chg, 2048);
+    check32("gpu rtt-staged: level into AGP: the second draw samples the first one's pixels",
+            bad, 0);
+    if (gv && harness_gpu_verify_stats(dev, &s1, &b1))
+        check_true("gpu rtt-staged: level into AGP: gpu verify mismatched nothing", b1 == b0);
+    printf("gpu rtt-staged: level into AGP bytes: changed=%u wrong=%u verify segments +%llu"
+           " mismatched +%llu\n",
+           chg, bad, (unsigned long long) (s1 - s0), (unsigned long long) (b1 - b0));
+
+    flush_sync(dev);
+    wr(dev, RAGE128_AGP_BASE, agp);
+    wr(dev, RAGE128_BUS_CNTL, bus);
+    pci_wr8(0x04, cmd);
+}
+
 static void
 vectors_gpu_rtt_staged(rage128_t *dev)
 {
@@ -20753,6 +20843,7 @@ vectors_gpu_rtt_staged(rage128_t *dev)
     rts_bytes(dev, "texture over the Z rows", RTS_C, 64, 32, RTS_Z, 1);
     rts_bytes2(dev, "two draws in sequence", RTS_C, 64, 32);
     rts_bytes2(dev, "two over-cap draws in sequence", RTS_B, 256, 256);
+    rts_agp_level(dev);
     rts_restore(dev);
 
     if (!harness_gpu_available()) {
