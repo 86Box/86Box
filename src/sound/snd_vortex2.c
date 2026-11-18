@@ -971,8 +971,15 @@ vortex2_init(UNUSED(const device_t *info))
     dev->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
     mpu401_init(dev->mpu, 0, -1, M_UART, device_get_config_int("receive_input401"));
     mpu401_irq_attach(dev->mpu, legacy_mpu_irq, legacy_mpu_irq_pending, dev);
-    dev->gameport = gameport_add(&gameport_device);
-    gameport_remap(dev->gameport, 0);
+    /* The game port can be left off: Windows' legacy detection finds any
+       port answering at 0x201 and adds its own "Gameport Joystick" entry,
+       which then holds the address the Vortex's Gameport Interface asks
+       for. Off, nothing answers there and the card's legacy byte reads as
+       an empty port. */
+    if (device_get_config_int("gameport")) {
+        dev->gameport = gameport_add(&gameport_device);
+        gameport_remap(dev->gameport, 0);
+    }
 
     vortex2_speed_changed(dev);
     timer_add(&dev->block_timer, vortex2_block, dev, 1);
@@ -1027,6 +1034,17 @@ static const device_config_t vortex2_config[] = {
             { .description = "-24 dB",                           .value = -24 },
             { .description = ""                                               }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "gameport",
+        .description    = "Game port",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 1,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
