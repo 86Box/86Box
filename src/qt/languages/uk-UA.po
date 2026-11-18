@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-18 07:12+0000\n"
+"PO-Revision-Date: 2026-11-18 18:28+0000\n"
 "Last-Translator: Broifonn_9 <molodchina812@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
@@ -4402,7 +4402,7 @@ msgstr ""
 "дисків."
 
 msgid "Mount folder as a temporary removable disk"
-msgstr ""
+msgstr "Підключити теку як тимчасовий з'ємний диск"
 
 msgid "Unable to mount folder or archive"
 msgstr "Не вдалося прикріпити теку або архів"
