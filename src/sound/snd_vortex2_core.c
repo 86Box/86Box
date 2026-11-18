@@ -1162,6 +1162,14 @@ src_run(v2_chip_t *c, int s, float *out)
    mixer pipeline). At unity output gain that is a clamp of the sum at
    full scale.
 
+   Read on a real SQ2500 (restprobe mix, 2026-11-17): every input gain
+   from 0x00 to 0x1f gave exactly floor(x x gain) for values from 1 LSB
+   to full scale, both signs (0x04 on 7 gave 5, on -3 gave -3; 0x1f on
+   3 gave 22, on -1 gave -8), the result saturating at 16 bits; two
+   inputs summed and saturated (24,576 + 24,576 = 32,767); the output
+   gain followed the same law. The model floors each product and the
+   output to the 16-bit step.
+
    A current gain takes its target's value, in one step, at the next
    zero crossing of the signal it scales (the chip keeps the previous
    sample's sign beside each current gain; there is no ramp, so a driver
@@ -1218,9 +1226,12 @@ mix_run(v2_chip_t *c, int m, float *out)
             if (g == 0.0f && !c->sink_n[AK_MIXIN + i])
                 continue;
             const float *in = gather(c, AK_MIXIN + i);
+            /* each input's product is floored to the 16-bit step, as the
+               card does (restprobe mix: 0x00 on 1, 3, -1, -3 gave 0, 1,
+               -1, -2; 0x0c on 3 and -3 gave 4 and -5) */
             if (g != 0.0f)
                 for (int n = 0; n < B; n++)
-                    out[n] += g * in[n];
+                    out[n] += floorf(g * in[n] * 32768.0f) * (1.0f / 32768.0f);
             if (!fixed)
                 (void) mix_cross(c, (m << 5) + i, in);
             continue;
@@ -1229,9 +1240,9 @@ mix_run(v2_chip_t *c, int m, float *out)
         int          n0 = mix_cross(c, (m << 5) + i, in);
         float        g2 = mix_gain_tab[tb];
         for (int n = 0; n < n0; n++)
-            out[n] += g * in[n];
+            out[n] += floorf(g * in[n] * 32768.0f) * (1.0f / 32768.0f);
         for (int n = n0; n < B; n++)
-            out[n] += g2 * in[n];
+            out[n] += floorf(g2 * in[n] * 32768.0f) * (1.0f / 32768.0f);
         if (n0 < B)
             R(a_cur) = (R(a_cur) & ~0xffu) | tb;
     }
@@ -1249,7 +1260,8 @@ mix_run(v2_chip_t *c, int m, float *out)
         v *= mix_shift_tab[b];
         v = v > 2.0f ? 2.0f : (v < -2.0f ? -2.0f : v);
         v *= mix_mant_tab[b];
-        out[n] = v > 1.0f ? 1.0f : (v < -1.0f ? -1.0f : v);
+        v      = floorf(v * 32768.0f) * (1.0f / 32768.0f);
+        out[n] = v > 32767.0f / 32768.0f ? 32767.0f / 32768.0f : (v < -1.0f ? -1.0f : v);
     }
 }
 
@@ -1269,7 +1281,7 @@ mix_run(v2_chip_t *c, int m, float *out)
 /*               is a 0.16 fraction, 1.m with m repeated, shifted by   */
 /*               e - 5 (see wt_step); e = 0 has no leading one         */
 /* PARM2: bits 31-16 filter feedback gain (resonance; the driver       */
-/*   leaves it 0, not modelled), 15-0 the pitch oscillator's phase.     */
+/*   leaves it 0; see wt_bank_run), 15-0 the pitch oscillator's phase.  */
 /* PARM3: bits 31-24 filter input gain (same code as the gain; the      */
 /*   driver writes 0xcf, unity), 23-21 gain state (0 = hard mute, 7 =   */
 /*   normal; the attack and mute ramps in between are never used by    */
