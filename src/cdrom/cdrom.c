@@ -3971,7 +3971,7 @@ cdrom_hard_reset(void)
                     break;
                 }
             }
-            if (!mitsumi_bus_enabled) {                
+            if (!mitsumi_bus_enabled) {
                 cdrom[0].priv        = NULL;
                 cdrom[0].ops         = NULL;
                 cdrom[0].local       = NULL;
@@ -3995,10 +3995,11 @@ cdrom_hard_reset(void)
             dev->id       = i;
 
             const char *vendor = cdrom_drive_types[dev->type].vendor;
+            const char *model = cdrom_drive_types[dev->type].model;
 
             dev->is_early   = cdrom_is_early(dev->type);
             dev->is_bcd     = (dev->bus_type == CDROM_BUS_ATAPI) &&
-                              !strcmp(vendor, "NEC");
+                              !strcmp(vendor, "NEC") && !strcmp(model, "CD-ROM DRIVE:260");
             dev->is_nec     = (dev->bus_type == CDROM_BUS_SCSI) &&
                               !strcmp(vendor, "NEC");
             dev->is_chinon  = !strcmp(vendor, "CHINON");
