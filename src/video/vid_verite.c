@@ -87,7 +87,7 @@ verite_render(svga_t *svga)
             case 15:
             case 16:
                 {
-                    uint16_t color = ((uint16_t) ram[a ^ 2] << 8) | ram[((a + 1) & (VRAM_SIZE - 1)) ^ 2];
+                    uint16_t color = ram[a ^ 2] | ((uint16_t) ram[((a + 1) & (VRAM_SIZE - 1)) ^ 2] << 8);
                     pixel[x]       = (v->native_bpp == 15 ? video_15to32 : video_16to32)[color];
                     addr += 2;
                     break;
@@ -176,20 +176,54 @@ verite_redraw(void *priv)
 }
 
 static uint32_t
+verite_crtc_status(verite_t *v)
+{
+    svga_t *svga   = &v->vga.svga;
+    int     native = svga->render == verite_render;
+    int     line   = svga->vc;
+    int     phase, end;
+
+    if (line < svga->dispend) {
+        phase = 0;
+        end   = svga->dispend;
+    } else if (line < svga->vsyncstart) {
+        phase = 1;
+        end   = svga->vsyncstart;
+    } else {
+        int sync_lines = native ? ((verite_reg(v, CRTC_VERT) >> 17) & 7) + 1
+                                : ((svga->crtc[0x11] - svga->vsyncstart - 1) & 15) + 1;
+        end   = svga->vsyncstart + sync_lines;
+        phase = 3;
+        if (line >= end) {
+            phase = 2;
+            end   = svga->vtotal;
+        }
+    }
+
+    unsigned horizontal = native ? !!svga->linepos : !!(svga->cgastat & 1);
+    if (horizontal && native) {
+        uint32_t horz      = verite_reg(v, CRTC_HORZ);
+        unsigned back      = ((horz >> 9) & 63) + 1;
+        unsigned sync      = ((horz >> 16) & 31) + 1;
+        unsigned blank     = back + sync + ((horz >> 21) & 7) + 1;
+        uint64_t remaining = timer_get_remaining_u64(&svga->timer);
+        if (remaining * blank <= svga->dispofftime * back)
+            horizontal = 2;
+        else if (remaining * blank <= svga->dispofftime * (back + sync))
+            horizontal = 3;
+    }
+
+    /* Vertical phase, scanlines remaining in that phase, horizontal phase. */
+    unsigned lines_left = end > line ? end - line : 0;
+    return ((uint32_t) phase << 22) | (MIN(lines_left, 0x7ffU) << 11) | (horizontal << 9);
+}
+
+static uint32_t
 verite_ext_read(void *priv, uint8_t reg, uint8_t len)
 {
     verite_t *v      = priv;
     svga_t   *svga   = &v->vga.svga;
-    uint32_t  status = 0;
-    int       native = svga->render == verite_render;
-    if (svga->cgastat & 8)
-        status = 3 << 11;
-    else if (svga->vc >= svga->dispend)
-        status = (svga->vc < svga->vsyncstart ? 1 : 2) << 11;
-    if (svga->cgastat & 1)
-        status |= 1 << 9;
-    if (native)
-        status |= (svga->dispend - svga->vc) & 0x1ff;
+    uint32_t  status = (reg < CRTC_STATUS + 4 && reg + len > CRTC_STATUS) ? verite_crtc_status(v) : 0;
 
     uint32_t value = 0;
     for (unsigned i = 0; i < len; i++) {
