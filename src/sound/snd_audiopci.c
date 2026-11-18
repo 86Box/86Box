@@ -220,10 +220,14 @@ static double akm4531_gain_2dbstep_5bits[0x20];
 #define INT_ES1370_ADC_STOP       (1u << 31)
 #define INT_ES1371_ADC_STOP       (1 << 13)
 
+#define SI_P2_END_INC_SHIFT       19
+#define SI_P2_END_INC_MASK        (7 << SI_P2_END_INC_SHIFT)
 #define SI_R1_LOOP_SEL            (1 << 15)
-#define SI_R1_INT_EN              (1 << 10)
+#define SI_P2_LOOP_SEL            (1 << 14)
+#define SI_P1_LOOP_SEL            (1 << 13)
 #define SI_P2_PAUSE               (1 << 12)
 #define SI_P1_PAUSE               (1 << 11)
+#define SI_R1_INT_EN              (1 << 10)
 #define SI_P2_INTR_EN             (1 << 9)
 #define SI_P1_INTR_EN             (1 << 8)
 
@@ -770,6 +774,25 @@ es137x_write_frame_reg(es137x_t *dev, int frame, int page, uint32_t val)
     }
 }
 
+/* A DAC channel being enabled starts over from its frame registers, and its
+   sample counter from the sample count register: the first interrupt comes
+   after SAMP_CT + 1 samples, not whenever the counter left by the previous
+   transfer runs out. */
+static void
+es137x_dac_start(es137x_t *dev, int dac_nr)
+{
+    dev->dac[dac_nr].curr_samp_ct   = dev->dac[dac_nr].samp_ct;
+    dev->dac[dac_nr].stopped        = 0;
+    dev->dac[dac_nr].addr           = dev->dac[dac_nr].addr_latch;
+    dev->dac[dac_nr].buffer_pos     = 0;
+    dev->dac[dac_nr].buffer_pos_end = 0;
+    dev->dac[dac_nr].prev_out_l     = 0;
+    dev->dac[dac_nr].prev_out_r     = 0;
+    if (dev->type == AUDIOPCI_ES1370)
+        dev->dac[dac_nr].ac = 0;
+    es137x_fetch(dev, dac_nr);
+}
+
 static uint8_t
 es137x_inb(uint16_t port, void *priv)
 {
@@ -1130,26 +1153,10 @@ es137x_outb(uint16_t port, uint8_t val, void *priv)
                 es137x_adc_start(dev);
             else if ((dev->int_ctrl & INT_ADC_EN) && !(val & INT_ADC_EN))
                 es137x_adc_input(dev, 0);
-            if (!(dev->int_ctrl & INT_DAC1_EN) && (val & INT_DAC1_EN)) {
-                dev->dac[0].addr           = dev->dac[0].addr_latch;
-                dev->dac[0].buffer_pos     = 0;
-                dev->dac[0].buffer_pos_end = 0;
-                dev->dac[0].prev_out_l     = 0;
-                dev->dac[0].prev_out_r     = 0;
-                if (dev->type == AUDIOPCI_ES1370)
-                    dev->dac[0].ac = 0;
-                es137x_fetch(dev, 0);
-            }
-            if (!(dev->int_ctrl & INT_DAC2_EN) && (val & INT_DAC2_EN)) {
-                dev->dac[1].addr           = dev->dac[1].addr_latch;
-                dev->dac[1].buffer_pos     = 0;
-                dev->dac[1].buffer_pos_end = 0;
-                dev->dac[1].prev_out_l     = 0;
-                dev->dac[1].prev_out_r     = 0;
-                if (dev->type == AUDIOPCI_ES1370)
-                    dev->dac[1].ac = 0;
-                es137x_fetch(dev, 1);
-            }
+            if (!(dev->int_ctrl & INT_DAC1_EN) && (val & INT_DAC1_EN))
+                es137x_dac_start(dev, 0);
+            if (!(dev->int_ctrl & INT_DAC2_EN) && (val & INT_DAC2_EN))
+                es137x_dac_start(dev, 1);
             // audiopci_log("INTCTRL 0x%02X\n", val & 0xff);
             dev->int_ctrl = (dev->int_ctrl & 0xffffff00) | val;
             break;
@@ -1299,26 +1306,10 @@ es137x_outw(uint16_t port, uint16_t val, void *priv)
         /* Interrupt/Chip Select Control Register, Address 00H
            Addressable as byte, word, longword */
         case 0x00:
-            if (!(dev->int_ctrl & INT_DAC1_EN) && (val & INT_DAC1_EN)) {
-                dev->dac[0].addr           = dev->dac[0].addr_latch;
-                dev->dac[0].buffer_pos     = 0;
-                dev->dac[0].buffer_pos_end = 0;
-                dev->dac[0].prev_out_l     = 0;
-                dev->dac[0].prev_out_r     = 0;
-                if (dev->type == AUDIOPCI_ES1370)
-                    dev->dac[0].ac = 0;
-                es137x_fetch(dev, 0);
-            }
-            if (!(dev->int_ctrl & INT_DAC2_EN) && (val & INT_DAC2_EN)) {
-                dev->dac[1].addr           = dev->dac[1].addr_latch;
-                dev->dac[1].buffer_pos     = 0;
-                dev->dac[1].buffer_pos_end = 0;
-                dev->dac[1].prev_out_l     = 0;
-                dev->dac[1].prev_out_r     = 0;
-                if (dev->type == AUDIOPCI_ES1370)
-                    dev->dac[1].ac = 0;
-                es137x_fetch(dev, 1);
-            }
+            if (!(dev->int_ctrl & INT_DAC1_EN) && (val & INT_DAC1_EN))
+                es137x_dac_start(dev, 0);
+            if (!(dev->int_ctrl & INT_DAC2_EN) && (val & INT_DAC2_EN))
+                es137x_dac_start(dev, 1);
             if (!(dev->int_ctrl & INT_ADC_EN) && (val & INT_ADC_EN))
                 es137x_adc_start(dev);
             else if ((dev->int_ctrl & INT_ADC_EN) && !(val & INT_ADC_EN))
@@ -1432,26 +1423,10 @@ es137x_outl(uint16_t port, uint32_t val, void *priv)
            Addressable as byte, word, longword */
         case 0x00:
             {
-                if (!(dev->int_ctrl & INT_DAC1_EN) && (val & INT_DAC1_EN)) {
-                    dev->dac[0].addr           = dev->dac[0].addr_latch;
-                    dev->dac[0].buffer_pos     = 0;
-                    dev->dac[0].buffer_pos_end = 0;
-                    dev->dac[0].prev_out_l     = 0;
-                    dev->dac[0].prev_out_r     = 0;
-                    if (dev->type == AUDIOPCI_ES1370)
-                        dev->dac[0].ac = 0;
-                    es137x_fetch(dev, 0);
-                }
-                if (!(dev->int_ctrl & INT_DAC2_EN) && (val & INT_DAC2_EN)) {
-                    dev->dac[1].addr           = dev->dac[1].addr_latch;
-                    dev->dac[1].buffer_pos     = 0;
-                    dev->dac[1].buffer_pos_end = 0;
-                    dev->dac[1].prev_out_l     = 0;
-                    dev->dac[1].prev_out_r     = 0;
-                    if (dev->type == AUDIOPCI_ES1370)
-                        dev->dac[1].ac = 0;
-                    es137x_fetch(dev, 1);
-                }
+                if (!(dev->int_ctrl & INT_DAC1_EN) && (val & INT_DAC1_EN))
+                    es137x_dac_start(dev, 0);
+                if (!(dev->int_ctrl & INT_DAC2_EN) && (val & INT_DAC2_EN))
+                    es137x_dac_start(dev, 1);
                 if (!(dev->int_ctrl & INT_ADC_EN) && (val & INT_ADC_EN))
                     es137x_adc_start(dev);
                 else if ((dev->int_ctrl & INT_ADC_EN) && !(val & INT_ADC_EN))
@@ -2425,6 +2400,27 @@ es137x_update(es137x_t *dev)
     }
 }
 
+/* At the end of each loop, DAC2's sample address advances by P2_END_INC bytes
+   instead of the usual 1 (8-bit) or 2 (16-bit). Drivers set it higher to skip
+   the padding of a buffer whose length is not a whole number of longwords (the
+   frame size is in longwords): the DOS SB emulation does this for odd-sized
+   auto-init DMA buffers, alternating END_INC between 1 and 3 for an 8-bit
+   buffer of 4n + 2 bytes. */
+static void
+es137x_dac2_loop_end(es137x_t *dev)
+{
+    int format = (dev->si_cr >> 2) & 3;
+    int width  = (format & 2) ? 2 : 1; /* bytes per channel sample */
+    int frame  = width << (format & 1);
+    int skip   = ((int) ((dev->si_cr & SI_P2_END_INC_MASK) >> SI_P2_END_INC_SHIFT) - width) / frame;
+
+    while (skip-- > 0) {
+        if (dev->dac[1].buffer_pos >= dev->dac[1].buffer_pos_end)
+            es137x_fetch(dev, 1);
+        dev->dac[1].buffer_pos++;
+    }
+}
+
 static void
 es137x_sample_count(es137x_t *dev, int dac_nr)
 {
@@ -2433,6 +2429,11 @@ es137x_sample_count(es137x_t *dev, int dac_nr)
         dev->int_status |= dac_nr ? INT_STATUS_DAC2 : INT_STATUS_DAC1;
         es137x_update_irqs(dev);
         dev->dac[dac_nr].curr_samp_ct = dev->dac[dac_nr].samp_ct;
+        /* Stop mode: the channel plays its last sample until restarted. */
+        if (dev->si_cr & (dac_nr ? SI_P2_LOOP_SEL : SI_P1_LOOP_SEL))
+            dev->dac[dac_nr].stopped = 1;
+        else if (dac_nr)
+            es137x_dac2_loop_end(dev);
     }
 }
 
@@ -2470,7 +2471,7 @@ es1370_poll_dac(es137x_t *dev, int dac_nr)
     const uint32_t divider = dev->dac[dac_nr].clock_divider;
 
     dev->dac[dac_nr].ac += dev->dac[dac_nr].vf;
-    while (dev->dac[dac_nr].ac >= divider) {
+    while ((dev->dac[dac_nr].ac >= divider) && !dev->dac[dac_nr].stopped) {
         if (dev->dac[dac_nr].buffer_pos >= dev->dac[dac_nr].buffer_pos_end)
             es137x_fetch(dev, dac_nr);
 
@@ -2479,6 +2480,12 @@ es1370_poll_dac(es137x_t *dev, int dac_nr)
         dev->dac[dac_nr].buffer_pos++;
         dev->dac[dac_nr].ac -= divider;
         es137x_sample_count(dev, dac_nr);
+    }
+
+    if (dev->dac[dac_nr].stopped) {
+        dev->dac[dac_nr].out_l = dev->dac[dac_nr].prev_out_l;
+        dev->dac[dac_nr].out_r = dev->dac[dac_nr].prev_out_r;
+        return;
     }
 
     if (dev->dac[dac_nr].buffer_pos >= dev->dac[dac_nr].buffer_pos_end)
@@ -2690,8 +2697,9 @@ es137x_poll(void *priv)
         const uint32_t pause  = dac_nr ? SI_P2_PAUSE : SI_P1_PAUSE;
         const uint32_t bypass = dac_nr ? INT_DAC2_BYPASS : INT_DAC1_BYPASS;
 
-        /* Pause holds the last output sample, DMA position and sample count. */
-        if (!(dev->int_ctrl & enable) || (dev->si_cr & pause))
+        /* Pause holds the last output sample, DMA position and sample count,
+           and so does the end of a transfer in stop mode. */
+        if (!(dev->int_ctrl & enable) || (dev->si_cr & pause) || dev->dac[dac_nr].stopped)
             continue;
 
         if (dev->type == AUDIOPCI_ES1370) {
