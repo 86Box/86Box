@@ -4403,8 +4403,6 @@ msgstr ""
 
 msgid "Mount folder as a temporary removable disk"
 msgstr ""
-"На гнучкому диску закінчилися записи в каталозі або вільне місце, або ім'я "
-"файлу неможливо представити у FAT12."
 
 msgid "Unable to mount folder or archive"
 msgstr "Не вдалося прикріпити теку або архів"
