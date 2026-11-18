@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-18 07:12+0000\n"
+"PO-Revision-Date: 2026-11-18 09:33+0000\n"
 "Last-Translator: BlueRain-debug <bluerain.debug@gmail.com>\n"
 "Language-Team: Chinese (Simplified Han script) <https://weblate.86box.net/"
 "projects/86box/86box/zh_Hans/>\n"
@@ -1665,7 +1665,7 @@ msgid "Make sure the file is being saved to a writable directory."
 msgstr "请确定此文件保存在可写入目录中。"
 
 msgid "Disk image too large"
-msgstr "镜像映像太大"
+msgstr "磁盘镜像太大"
 
 msgid "Remember to partition and format the newly-created drive."
 msgstr "请记得分区并格式化新创建的驱动器。"
