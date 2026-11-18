@@ -903,6 +903,9 @@ msgstr "O %1 não conseguiu encontrar nenhuma imagem de ROM utilizável.\n\nPor 
 msgid "(empty)"
 msgstr "(vazio)"
 
+msgid "(not available)"
+msgstr "(não disponível)"
+
 msgid "All files"
 msgstr "Todos os arquivos"
 
@@ -4405,11 +4408,20 @@ msgstr "Novo disco flash USB"
 msgid "&New USB flash drive…"
 msgstr "&Novo disco flash USB…"
 
+msgid "unplugged"
+msgstr "desconectado"
+
 msgid "&Unplug"
 msgstr "&Desconectar"
 
 msgid "&Unplug %1"
 msgstr "&Desconectar %1"
+
+msgid "Plug in %1 (%2)"
+msgstr "Conectar em %1 (%2)"
+
+msgid "&Move %1 to"
+msgstr "&Mover %1 para"
 
 msgid "Size:"
 msgstr "Tamanho:"
@@ -4434,3 +4446,21 @@ msgstr "Não foi possível criar %1."
 
 msgid "%1 already exists. Replace it?"
 msgstr "%1 já existe. Substituir?"
+
+msgid "USB port %1 (%2)"
+msgstr "Porta USB %1 (%2)"
+
+msgid "USB port"
+msgstr "Porta USB"
+
+msgid "PCI card"
+msgstr "Placa PCI"
+
+msgid "hub"
+msgstr "hub"
+
+msgid "board"
+msgstr "placa"
+
+msgid "now in port %1"
+msgstr "agora na porta %1"

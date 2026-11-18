@@ -902,6 +902,9 @@ msgstr "%1 nije mogao pronaći upotrebljive ROM datoteke.\n\nMolimte posjetite <
 msgid "(empty)"
 msgstr "(prazno)"
 
+msgid "(not available)"
+msgstr ""
+
 msgid "All files"
 msgstr "Sve datoteke"
 
@@ -4380,10 +4383,19 @@ msgstr ""
 msgid "&New USB flash drive…"
 msgstr ""
 
+msgid "unplugged"
+msgstr ""
+
 msgid "&Unplug"
 msgstr ""
 
 msgid "&Unplug %1"
+msgstr ""
+
+msgid "Plug in %1 (%2)"
+msgstr ""
+
+msgid "&Move %1 to"
 msgstr ""
 
 msgid "Size:"
@@ -4408,4 +4420,22 @@ msgid "Could not create %1."
 msgstr ""
 
 msgid "%1 already exists. Replace it?"
+msgstr ""
+
+msgid "USB port %1 (%2)"
+msgstr ""
+
+msgid "USB port"
+msgstr ""
+
+msgid "PCI card"
+msgstr ""
+
+msgid "hub"
+msgstr ""
+
+msgid "board"
+msgstr ""
+
+msgid "now in port %1"
 msgstr ""
