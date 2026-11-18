@@ -73,6 +73,7 @@ typedef struct vortex2_t {
     mpu_t   *mpu;
     void    *gameport;
     uint16_t mpu_addr, game_addr;
+    uint8_t  game_fired; /* unplugged port: one-shots triggered and never timing out */
 
     pc_timer_t block_timer;
     pc_timer_t irq_timer;
@@ -272,10 +273,18 @@ legacy_read(vortex2_t *dev, uint32_t a, uint32_t *v)
             *v = dev->mpu ? mpu401_read(1, dev->mpu) : 0xff;
             return 1;
         case V2_GAME_LEGACY:
-            /* through the game port where it is decoded; with the legacy
-               decode off, an unplugged port (0xf0 read on the real card
-               with nothing connected and the decode off) */
-            *v = dev->game_addr ? inb(dev->game_addr) : 0xf0;
+            /* With a joystick selected and the legacy decode on, through the
+               game port. Otherwise the port as the real card reads with
+               nothing plugged in (legacyprobe game): 0xf0 at rest (buttons
+               up, one-shots idle), then 0xff from the first trigger write on,
+               since with no stick the one-shots never time out. Returning
+               0xf0 for good, as before, looked like a stick with four axes
+               at zero, which Windows took for a joystick. With a joystick
+               selected but the decode off, the stick is not reached here. */
+            if (dev->game_addr && joystick_type[0] != JS_TYPE_NONE)
+                *v = inb(dev->game_addr);
+            else
+                *v = dev->game_fired ? 0xff : 0xf0;
             return 1;
         default:
             if (a >= V2_GAME_AXIS && a < V2_GAME_AXIS + 16) {
@@ -305,8 +314,10 @@ legacy_write(vortex2_t *dev, uint32_t a, uint32_t v)
                 mpu401_write(1, v & 0xff, dev->mpu);
             return 1;
         case V2_GAME_LEGACY:
-            if (dev->game_addr)
+            if (dev->game_addr && joystick_type[0] != JS_TYPE_NONE)
                 outb(dev->game_addr, v & 0xff);
+            else
+                dev->game_fired = 1;
             return 1;
         default:
             return 0;
@@ -890,6 +901,7 @@ vortex2_reset(void *priv)
     v2_reset(dev->chip);
     if (dev->codec)
         ac97_codec_reset(dev->codec);
+    dev->game_fired = 0;
     legacy_remap(dev);
 }
 
