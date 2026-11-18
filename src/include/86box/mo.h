@@ -36,6 +36,8 @@ typedef struct mo_type_t {
 } mo_type_t;
 
 #define KNOWN_MO_TYPES 19
+/* The M.O. disks come first in the table; the rest are MiniDiscs. */
+#define KNOWN_MO_DISK_TYPES 10
 static const mo_type_t mo_types[KNOWN_MO_TYPES] = {
   // 3.5" standard M.O. disks
     { "3.5\" 128 MB (ISO 10090)", 248826,   512 },
@@ -149,7 +151,7 @@ typedef struct mo_drive_t {
     uint8_t            read_only; /* Struct variable reserved for
                                      media status. */
     uint8_t            pad;
-    uint8_t            pad0;
+    uint8_t            folder_image; /* the medium was built from a folder or an archive */
 
     FILE              *fp;
     void              *priv;
@@ -236,6 +238,9 @@ extern void mo_hard_reset(void);
 extern void mo_reset(scsi_common_t *sc);
 extern int  mo_is_empty(const uint8_t id);
 extern void mo_load(const mo_t *dev, const char *fn, const int skip_insert);
+/* Mounts a folder or an archive and returns a fat_image_result_t; if left_out isn't NULL, it gets the
+   FAT_IMAGE_LEFT_OUT_* flags of what didn't fit. */
+extern int  mo_mount_folder(mo_t *dev, const char *fn, const int skip_insert, int *left_out);
 extern void mo_close(void);
 
 #ifdef __cplusplus

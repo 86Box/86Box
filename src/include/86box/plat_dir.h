@@ -204,9 +204,16 @@ plat_dir_read_entry(plat_dir_t *context, int follow_links)
     return 0;
 }
 
+/* Seconds since 1970 from a FILETIME, negative for times before 1970. */
+static inline int64_t
+plat_dir_convert_time(FILETIME ft)
+{
+    int64_t ticks = (int64_t) (((uint64_t) ft.dwHighDateTime << 32) | ft.dwLowDateTime) - 116444736000000000LL;
+    return (ticks >= 0) ? (ticks / 10000000LL) : -((-ticks + 9999999LL) / 10000000LL);
+}
+
 #    define plat_dir_get_name(context)      ((context)->data.cFileName)
 #    define plat_dir_get_size(context)      (((uint64_t) (context)->data.nFileSizeHigh << 32) | (context)->data.nFileSizeLow)
-#    define plat_dir_convert_time(ft)       (((((uint64_t) (ft).dwHighDateTime << 32) | (ft).dwLowDateTime) - 116444736000000000ULL) / 10000000ULL)
 #    define PLAT_DIR_HAS_BIRTHTIME          1
 #    define plat_dir_get_birthtime(context) (plat_dir_convert_time((context)->data.ftCreationTime))
 #    define plat_dir_get_mtime(context)     (plat_dir_convert_time((context)->data.ftLastWriteTime))

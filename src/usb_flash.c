@@ -39,6 +39,7 @@
 #include <86box/usb.h>
 #include <86box/usb_dev.h>
 #include <86box/usb_msd.h>
+#include <86box/fat_image.h>
 
 #define FLASH_BLOCK 512
 
@@ -465,6 +466,9 @@ static const usb_msd_target_ops_t usb_flash_target_ops = {
     .stop        = usb_flash_stop
 };
 
+static FILE *usb_flash_take_folder(const char *fn);
+static int    usb_flash_build_folder(const char *fn, FILE **fp, int *left_out);
+
 /* A new stick on no port yet, or NULL when the image cannot be used. */
 static usb_flash_t *
 usb_flash_new(const char *fn, uint8_t wp)
@@ -476,12 +480,20 @@ usb_flash_new(const char *fn, uint8_t wp)
     snprintf(dev->fn, sizeof(dev->fn), "%s", fn);
     dev->req_wp = wp;
     dev->wp     = wp;
-    if (!dev->wp)
-        dev->fp = plat_fopen64(fn, "rb+");
-    /* A file the host does not let us write is a write-protected stick. */
-    if (dev->fp == NULL) {
-        dev->fp = plat_fopen64(fn, "rb");
-        dev->wp = 1;
+    if (fat_image_is_source(fn)) {
+        /* A folder or an archive: the image built when it was plugged in, or a new one when the
+           stick comes back on a hard reset. */
+        dev->fp = usb_flash_take_folder(fn);
+        if ((dev->fp == NULL) && (usb_flash_build_folder(fn, &dev->fp, NULL) != FAT_IMAGE_OK))
+            dev->fp = NULL;
+    } else {
+        if (!dev->wp)
+            dev->fp = plat_fopen64(fn, "rb+");
+        /* A file the host does not let us write is a write-protected stick. */
+        if (dev->fp == NULL) {
+            dev->fp = plat_fopen64(fn, "rb");
+            dev->wp = 1;
+        }
     }
     if (dev->fp != NULL) {
         fseeko64(dev->fp, 0, SEEK_END);
@@ -904,6 +916,108 @@ const device_t usb_flash_device = {
     .config        = NULL
 };
 
+/* Sticks built from folders and archives. They are partitioned like new images (below), in the sizes
+   the new image dialog offers; the default is the dialog's too. */
+static const uint32_t usb_flash_folder_mb[] = { 16, 32, 64, 128, 256, 512, 1024, 2048, 4096, 8192, 16384, 32768 };
+#define USB_FLASH_FOLDER_SIZES   (sizeof(usb_flash_folder_mb) / sizeof(usb_flash_folder_mb[0]))
+#define USB_FLASH_FOLDER_DEFAULT 4 /* 256 MB */
+
+static uint32_t usb_flash_heads(uint32_t total);
+
+static int
+usb_flash_folder_medium(UNUSED(void *opaque), int medium, fat_image_params_t *p)
+{
+    memset(p, 0x00, sizeof(fat_image_params_t));
+    p->sectors           = (uint64_t) usb_flash_folder_mb[medium] << 11;
+    p->sector_size       = FLASH_BLOCK;
+    p->sectors_per_track = 63;
+    p->heads             = usb_flash_heads((uint32_t) p->sectors);
+    p->partition_start   = 63;
+    p->drive_number      = 0x80;
+    return 1;
+}
+
+static int
+usb_flash_build_folder(const char *fn, FILE **fp, int *left_out)
+{
+    fat_image_t       *image;
+    fat_image_params_t params;
+    fat_image_result_t result = fat_image_scan(fn, &image);
+
+    *fp = NULL;
+    if (left_out)
+        *left_out = 0;
+    if (result != FAT_IMAGE_OK)
+        return result;
+    if (fat_image_pick(image, USB_FLASH_FOLDER_SIZES, USB_FLASH_FOLDER_DEFAULT, usb_flash_folder_medium, NULL,
+                       &params, &result) >= 0) {
+        result = fat_image_write_temp(image, &params, "usb", fp);
+        if ((result == FAT_IMAGE_OK) && left_out)
+            *left_out = fat_image_left_out(image);
+    }
+    fat_image_free(image);
+    return result;
+}
+
+/* Images built for folders the user is plugging in, until their sticks take them. */
+static struct {
+    char  fn[MAX_IMAGE_PATH_LEN];
+    FILE *fp;
+} usb_flash_folders[USB_PORTS_MAX];
+
+int
+usb_flash_prepare_folder(const char *fn, int *left_out)
+{
+    FILE *fp;
+    int   result;
+    int   slot = -1;
+
+    if (usb_flash_mutex == NULL)
+        return FAT_IMAGE_UNSUPPORTED;
+    result = usb_flash_build_folder(fn, &fp, left_out);
+    if (result != FAT_IMAGE_OK)
+        return result;
+
+    /* A folder built again replaces its earlier image; else it takes the first free place, or the
+       first place. */
+    thread_wait_mutex(usb_flash_mutex);
+    for (int i = 0; (i < USB_PORTS_MAX) && (slot < 0); i++) {
+        if (usb_flash_folders[i].fp && !strcmp(usb_flash_folders[i].fn, fn))
+            slot = i;
+    }
+    for (int i = 0; (i < USB_PORTS_MAX) && (slot < 0); i++) {
+        if (!usb_flash_folders[i].fp)
+            slot = i;
+    }
+    if (slot < 0)
+        slot = 0;
+    if (usb_flash_folders[slot].fp)
+        fclose(usb_flash_folders[slot].fp);
+    snprintf(usb_flash_folders[slot].fn, sizeof(usb_flash_folders[slot].fn), "%s", fn);
+    usb_flash_folders[slot].fp = fp;
+    thread_release_mutex(usb_flash_mutex);
+    return FAT_IMAGE_OK;
+}
+
+static FILE *
+usb_flash_take_folder(const char *fn)
+{
+    FILE *fp = NULL;
+
+    if (usb_flash_mutex == NULL)
+        return NULL;
+    thread_wait_mutex(usb_flash_mutex);
+    for (int i = 0; i < USB_PORTS_MAX; i++) {
+        if (usb_flash_folders[i].fp && !strcmp(usb_flash_folders[i].fn, fn)) {
+            fp                      = usb_flash_folders[i].fp;
+            usb_flash_folders[i].fp = NULL;
+            break;
+        }
+    }
+    thread_release_mutex(usb_flash_mutex);
+    return fp;
+}
+
 /* Called on hard reset after the other USB devices. */
 void
 usb_flash_hard_reset(void)
@@ -947,6 +1061,17 @@ static const flash_spc_t flash_fat32_spc[] = {
     { 0xffffffff, 64 }
 };
 
+/* The fewest heads out of 16, 32, 64, 128 and 255 that keep the cylinders within 1024. */
+static uint32_t
+usb_flash_heads(uint32_t total)
+{
+    for (uint32_t h = 16; h <= 128; h <<= 1) {
+        if (total <= (1024 * h * 63))
+            return h;
+    }
+    return 255;
+}
+
 /* Lays out the volume; returns 0 when the type cannot hold the size. */
 static int
 flash_layout(uint64_t bytes, int fs, flash_layout_t *l)
@@ -962,13 +1087,7 @@ flash_layout(uint64_t bytes, int fs, flash_layout_t *l)
         return 0;
 
     l->total = (uint32_t) (bytes / FLASH_BLOCK);
-    l->heads = 255;
-    for (uint32_t h = 16; h <= 128; h <<= 1) {
-        if (l->total <= (1024 * h * 63)) {
-            l->heads = h;
-            break;
-        }
-    }
+    l->heads = usb_flash_heads(l->total);
 
     if (fs == USB_FLASH_FS_BLANK)
         return 1;

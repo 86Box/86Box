@@ -5,6 +5,7 @@
 #endif
 
 #include <stdbool.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
@@ -262,6 +263,21 @@ plat_language_code_r(UNUSED(int id), UNUSED(char *outbuf), UNUSED(int len))
 {
     /* or maybe not */
     return;
+}
+
+/* The SDL UI isn't translated; the host's language is what the locale says. */
+void
+plat_ui_language(char *outbuf, int len)
+{
+    static const char *vars[] = { "LANGUAGE", "LC_ALL", "LC_MESSAGES", "LANG" };
+    outbuf[0]                 = '\0';
+    for (size_t i = 0; i < (sizeof(vars) / sizeof(vars[0])); i++) {
+        const char *v = getenv(vars[i]);
+        if (v && v[0]) {
+            snprintf(outbuf, len, "%s", v);
+            return;
+        }
+    }
 }
 
 /*

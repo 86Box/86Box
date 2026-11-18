@@ -36,6 +36,9 @@
 #include <86box/hdd.h>
 #include <86box/lpt.h>
 #include <86box/rdisk.h>
+#include <86box/disksizes.h>
+#include <86box/fat_image.h>
+#include <86box/media_archive.h>
 #include <86box/version.h>
 
 #define IDE_ATAPI_IS_EARLY             id->sc->pad0
@@ -1345,6 +1348,7 @@ rdisk_find_ms_set(const uint32_t type)
 // clang-format on
 
 static void rdisk_command_complete(rdisk_t *dev);
+static void rdisk_disk_unload(const rdisk_t *dev);
 static void rdisk_init(rdisk_t *dev);
 
 /* A medium's capacity in bytes, from the media table in rdisk.h. */
@@ -1568,6 +1572,7 @@ rdisk_load_abort(const rdisk_t *dev)
     if (dev->drv->fp)
         fclose(dev->drv->fp);
     dev->drv->fp           = NULL;
+    dev->drv->folder_image = 0;
     dev->drv->medium_size = 0;
     rdisk_eject(dev->id); /* Make sure the host OS knows we've rejected (and ejected) the image. */
     return 0;
@@ -1597,9 +1602,171 @@ rdisk_is_empty(const uint8_t id)
     return ret;
 }
 
+/* The volume layout for a folder mounted as a medium. Returns 0 if the medium can't take one. */
+static int
+rdisk_folder_params(const uint32_t medium, fat_image_params_t *p)
+{
+    uint32_t       bps = rdisk_types[medium].bytes_per_sector;
+
+    memset(p, 0, sizeof(fat_image_params_t));
+    if (medium == RDISK_MEDIUM_FD_640K)
+        return 0; /* the drive presents it with blocks that the image doesn't have */
+
+    /* Bernoulli cartridges with 256-byte blocks are used in 512-byte sectors. */
+    p->sector_size = (bps < 512) ? 512 : bps;
+    p->sectors     = rdisk_media_bytes(medium) / p->sector_size;
+
+    /* PC floppy formats get the same layout as a floppy disk. */
+    for (int k = 0; k < KNOWN_DISK_SIZES; k++) {
+        const disk_size_t *ds = &disk_sizes[k];
+        if ((ds->sides <= 2) && ((uint64_t) (ds->sides * ds->tracks * ds->sectors) == p->sectors) &&
+            ((128U << ds->sector_len) == p->sector_size)) {
+            p->sectors_per_track = ds->sectors;
+            p->heads             = ds->sides;
+            p->pc98              = ds->sector_len == 3;
+            p->media_desc        = ds->media_desc;
+            p->spc               = ds->spc;
+            p->num_fats          = ds->num_fats;
+            p->spfat             = ds->spfat;
+            p->root_entries      = ds->root_dir_entries;
+            return 1;
+        }
+    }
+
+    switch (medium) {
+        /* Floppy-like media are formatted without a partition table, in the geometry the drives report. */
+        case RDISK_MEDIUM_FD32MB:
+            p->sectors_per_track = 32;
+            p->heads             = 2;
+            return 1;
+        case RDISK_MEDIUM_SUPERDISK_120:
+            p->sectors_per_track = 32;
+            p->heads             = 8;
+            return 1;
+        case RDISK_MEDIUM_SUPERDISK_240:
+            p->sectors_per_track = 56;
+            p->heads             = 32;
+            return 1;
+        case RDISK_MEDIUM_HIFD_150:
+        case RDISK_MEDIUM_HIFD_200:
+            p->sectors_per_track = 34;
+            p->heads             = 13;
+            return 1;
+        case RDISK_MEDIUM_FLOPTICAL_20:
+            p->sectors_per_track = 27;
+            p->heads             = 2;
+            return 1;
+        case RDISK_MEDIUM_UHD144:
+            p->sectors_per_track = 32;
+            p->heads             = 64;
+            return 1;
+
+        default:
+            /* Hard disk-like media have a partition table. Iomega formats Zip disks with partition 4,
+               at the start of the second track of a 64-head, 32-sector translation. */
+            if ((p->sectors * p->sector_size) <= (1024ULL * 64 * 32 * 512)) {
+                p->sectors_per_track = 32;
+                p->heads             = 64;
+            } else {
+                p->sectors_per_track = 63;
+                p->heads             = 255;
+            }
+            p->partition_start = p->sectors_per_track;
+            p->drive_number    = 0x80;
+            if ((medium >= RDISK_MEDIUM_ZIP_100) && (medium <= RDISK_MEDIUM_ZIP_750)) {
+                p->partition_slot   = 3;
+                p->partition_active = 1;
+            }
+            return 1;
+    }
+}
+
+/* Mounts a folder or an archive as a FAT medium, built in a temporary file. The drive's default medium is
+   used if the contents fit, else the smallest medium it writes that they fit. Writes go to the temporary
+   file and are lost when the medium is ejected. Returns a fat_image_result_t. */
+
+/* A medium the drive can be given a folder on, for fat_image_pick(). */
+static int
+rdisk_folder_medium(void *opaque, int medium, fat_image_params_t *params)
+{
+    uint32_t type = *(const uint32_t *) opaque;
+
+    return rdisk_drive_types[type].supported_media[medium] && !rdisk_medium_is_read_only(type, medium) &&
+           rdisk_folder_params(medium, params);
+}
+
+int
+rdisk_mount_folder(rdisk_t *dev, const char *fn, const int skip_insert, int *left_out)
+{
+    int          was_empty = rdisk_is_empty(dev->id);
+    const char  *path      = fn;
+    fat_image_t *image     = NULL;
+    FILE        *fp        = NULL;
+
+    if (left_out)
+        *left_out = 0;
+
+    if (!strncmp(path, "wp://", 5)) {
+        path += 5;
+        dev->drv->read_only = 1;
+    }
+    if (strlen(fn) >= sizeof(dev->drv->image_path)) {
+        rdisk_load_abort(dev);
+        return FAT_IMAGE_READ_ERROR;
+    }
+
+    fat_image_result_t result = fat_image_scan(path, &image);
+    if (result != FAT_IMAGE_OK) {
+        rdisk_load_abort(dev);
+        return result;
+    }
+
+    uint32_t           type = rdisk_drive_type_of(dev);
+    fat_image_params_t params;
+    int                medium = fat_image_pick(image, KNOWN_RDISK_TYPES, rdisk_drive_types[type].default_media,
+                                               rdisk_folder_medium, &type, &params, &result);
+    if (medium >= 0) {
+        result = fat_image_write_temp(image, &params, "rdisk", &fp);
+        if ((result == FAT_IMAGE_OK) && left_out)
+            *left_out = fat_image_left_out(image);
+    }
+    fat_image_free(image);
+    if (result != FAT_IMAGE_OK) {
+        if (fp)
+            fclose(fp);
+        rdisk_load_abort(dev);
+        return result;
+    }
+
+    rdisk_disk_unload(dev);
+    dev->drv->fp           = fp;
+    dev->drv->base         = 0;
+    dev->drv->medium_type  = (uint32_t) medium;
+    dev->drv->medium_size  = rdisk_medium_blocks((uint32_t) medium);
+    dev->drv->folder_image = 1;
+    if (dev->drv->image_path != fn)
+        snprintf(dev->drv->image_path, sizeof(dev->drv->image_path), "%s", fn);
+
+    if (!skip_insert) {
+        /* Signal media change to the emulated machine. */
+        rdisk_insert(dev);
+
+        /* The drive was previously empty, transition directly to UNIT ATTENTION. */
+        if (was_empty)
+            rdisk_insert(dev);
+    }
+    ui_sb_update_icon_wp(SB_RDISK | dev->id, dev->drv->read_only);
+    return FAT_IMAGE_OK;
+}
+
 void
 rdisk_load(const rdisk_t *dev, const char *fn, const int skip_insert)
 {
+    if (fat_image_is_source((strstr(fn, "wp://") == fn) ? (fn + 5) : fn)) {
+        (void) rdisk_mount_folder((rdisk_t *) dev, fn, skip_insert, NULL);
+        return;
+    }
+
     const int was_empty = rdisk_is_empty(dev->id);
     int       ret       = 0;
     int       offs      = 0;
@@ -1708,7 +1875,8 @@ rdisk_disk_unload(const rdisk_t *dev)
 {
     if ((dev->drv != NULL) && (dev->drv->fp != NULL)) {
         fclose(dev->drv->fp);
-        dev->drv->fp = NULL;
+        dev->drv->fp           = NULL;
+        dev->drv->folder_image = 0;
     }
 }
 

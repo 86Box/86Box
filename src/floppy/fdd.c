@@ -44,7 +44,8 @@
 #include <86box/fdd_td0.h>
 #include <86box/fdd_tape.h>
 #include <86box/fdd_audio.h>
-#include <86box/fdd_folder.h>
+#include <86box/disksizes.h>
+#include <86box/fat_image.h>
 #include <86box/plat_floppy_ioctl.h>
 
 /* Flags:
@@ -788,18 +789,23 @@ fdd_media_inserted(fdd_drive_t *drv)
     ui_sb_update_icon_wp(SB_FLOPPY | drv->id, drv->writeprot);
 }
 
-fdd_folder_result_t
-fdd_mount_folder(void *priv, const char *path, int read_only)
+/* Mounts a folder or an archive as a FAT12 disk in the drive's own format, built in memory.
+   Writes go to that copy and are lost when it is ejected. */
+int
+fdd_mount_folder(void *priv, const char *path, int read_only, int *left_out)
 {
-    fdd_drive_t *drv = (fdd_drive_t *) priv;
-    const int flags = fdd_get_flags(drv);
-    char mounted_path[sizeof(drv->image_path)];
+    fdd_drive_t *drv   = (fdd_drive_t *) priv;
+    int          flags = fdd_get_flags(drv);
+    char         mounted_path[sizeof(drv->image_path)];
 
-    if (fdd_tape_present(drv) || drive_types[drv->type].max_track <= 0)
-        return FDD_FOLDER_UNSUPPORTED;
+    if (left_out)
+        *left_out = 0;
+
+    if (fdd_tape_present(drv) || (drive_types[drv->type].max_track <= 0))
+        return FAT_IMAGE_UNSUPPORTED;
     const int path_length = snprintf(mounted_path, sizeof(mounted_path), "%s%s", read_only ? "wp://" : "", path);
-    if (path_length < 0 || (size_t) path_length >= sizeof(mounted_path))
-        return FDD_FOLDER_READ_ERROR;
+    if ((path_length < 0) || ((size_t) path_length >= sizeof(mounted_path)))
+        return FAT_IMAGE_READ_ERROR;
 
     disk_size_t format;
     if (flags & FLAG_525) {
@@ -824,9 +830,21 @@ fdd_mount_folder(void *priv, const char *path, int read_only)
         }
     }
 
-    uint8_t *image = NULL;
-    const fdd_folder_result_t result = fdd_folder_create(path, &format, &image);
-    if (result != FDD_FOLDER_OK)
+    fat_image_params_t params = {
+        .sectors           = (uint64_t) format.tracks * format.sides * format.sectors,
+        .sector_size       = 128 << format.sector_len,
+        .sectors_per_track = format.sectors,
+        .heads             = format.sides,
+        .pc98              = format.sector_len == 3,
+        .media_desc        = format.media_desc,
+        .spc               = format.spc,
+        .num_fats          = format.num_fats,
+        .spfat             = format.spfat,
+        .root_entries      = format.root_dir_entries
+    };
+    uint8_t           *image  = NULL;
+    fat_image_result_t result = fat_image_create_mem(path, &params, &image, left_out);
+    if (result != FAT_IMAGE_OK)
         return result;
 
     if (drv->d86f_priv)
@@ -836,12 +854,12 @@ fdd_mount_folder(void *priv, const char *path, int read_only)
     if (!img_load_ram(drv, image, &format)) {
         free(image);
         fdd_close(drv);
-        return FDD_FOLDER_NO_MEMORY;
+        return FAT_IMAGE_NO_MEMORY;
     }
     memcpy(drv->image_path, mounted_path, (size_t) path_length + 1);
     fdd_media_inserted(drv);
     ui_sb_update_icon_state(SB_FLOPPY | drv->id, 0);
-    return FDD_FOLDER_OK;
+    return FAT_IMAGE_OK;
 }
 
 void
@@ -893,8 +911,8 @@ fdd_load(void *priv, char *fn)
         return;
     }
 
-    if (fdd_folder_source(fn)) {
-        if (fdd_mount_folder(drv, fn, drv->read_only) == FDD_FOLDER_OK)
+    if (fat_image_is_source(fn)) {
+        if (fdd_mount_folder(drv, fn, drv->read_only, NULL) == FAT_IMAGE_OK)
             return;
         goto load_failed;
     }

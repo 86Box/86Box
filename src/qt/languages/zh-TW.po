@@ -4386,17 +4386,26 @@ msgstr "選取的磁碟機不支援資料夾載掛。"
 msgid "The contents exceed the capacity of the configured floppy drive."
 msgstr "內容超出軟碟機組態的容量。"
 
-msgid "The floppy is out of directory entries or space, or a filename cannot be represented on FAT12."
-msgstr "軟碟空間或目錄項不足，或檔案名稱無法於 FAT12 呈現。"
+msgid "Mount folder as a temporary removable disk"
+msgstr ""
 
-msgid "The source contains a filename that cannot be represented on FAT12."
-msgstr "來源包含一個無法以 FAT12 呈現之檔案名稱。"
+msgid "Unable to mount folder or archive"
+msgstr ""
 
-msgid "There is not enough memory to create the floppy image."
-msgstr "記憶體不足，無法創建軟碟映像。"
+msgid "The contents don't fit on any medium the drive takes, or a file is 4 GB or larger."
+msgstr ""
 
-msgid "The source path is too long or its contents could not be read."
-msgstr "來源路徑過長或內容無法讀取。"
+msgid "There are too many files in the top folder for the root directory of the medium."
+msgstr ""
 
-msgid "Unable to mount folder or ZIP archive"
-msgstr "無法載掛資料夾或 ZIP 壓縮檔"
+msgid "The temporary image could not be written."
+msgstr ""
+
+msgid "There is not enough memory to build the image."
+msgstr ""
+
+msgid "The folder or archive could not be read."
+msgstr ""
+
+msgid "Archives"
+msgstr ""

@@ -743,7 +743,7 @@ else
 	# ...and the ones we do want listed. Non-dev packages fill missing spots on the list.
 	libpkgs=""
 	longest_libpkg=0
-	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype-dev libx11-dev libsdl3-dev libpng-dev librtmidi-dev qt6-declarative-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev libvdeplug-dev libfluidsynth-dev libsndfile1-dev libserialport-dev libvncserver-dev libzstd-dev
+	for pkg in libc6-dev libstdc++6 libopenal-dev libfreetype-dev libx11-dev libsdl3-dev libpng-dev librtmidi-dev qt6-declarative-dev libwayland-dev libevdev-dev libxkbcommon-x11-dev libglib2.0-dev libslirp-dev libaudio-dev libjack-jackd2-dev libpipewire-0.3-dev libsamplerate0-dev libsndio-dev libvdeplug-dev libfluidsynth-dev libsndfile1-dev libserialport-dev libvncserver-dev libzstd-dev libarchive-dev
 	do
 		libpkgs="$libpkgs $pkg:$arch_deb"
 		length=$(echo -n $pkg | sed 's/-dev$//' | sed "s/-declarative$//" | wc -c)
@@ -1083,6 +1083,13 @@ then
 			mkdir -p "$data_dir/Resources"
 			mv archive_tmp/assets "$data_dir/Resources/assets"
 		fi
+
+		# Remove the code page conversion tables from ICU's data, as nothing uses them.
+		for icudata in "archive_tmp/"*".app/Contents/Frameworks/libicudata."*".dylib"
+		do
+			[ -f "$icudata" -a ! -L "$icudata" ] || continue
+			python3 .ci/trim_icu_data.py "$icudata" || echo [!] Failed to trim [$icudata]
+		done
 
 		# Sign app bundle, unless we're in an universal build.
 		[ $skip_archive -eq 0 ] && codesign --force --deep $(mac_signidentity) -o runtime --entitlements src/mac/entitlements.plist --timestamp "archive_tmp/"*".app"

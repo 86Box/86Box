@@ -122,6 +122,9 @@ extern void usb_flash_hard_reset(void);
    USB_FLASH_MAX_SIZE): partitioned and formatted with fs, or all zeros for
    USB_FLASH_FS_BLANK. Returns 1 on success. */
 extern int  usb_flash_create(const char *fn, uint64_t bytes, int fs);
+/* Builds the stick for a folder or an archive about to be plugged in and returns a fat_image_result_t;
+   if left_out isn't NULL, it gets the FAT_IMAGE_LEFT_OUT_* flags of what didn't fit. */
+extern int  usb_flash_prepare_folder(const char *fn, int *left_out);
 /* Whether a volume of that many bytes can be formatted with fs. */
 extern int  usb_flash_fs_ok(uint64_t bytes, int fs);
 extern int  usb_flash_fs_default(uint64_t bytes);

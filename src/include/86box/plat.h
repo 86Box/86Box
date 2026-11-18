@@ -211,6 +211,8 @@ extern void     plat_resize(int x, int y, int monitor_index);
 extern void     plat_resize_request(int x, int y, int monitor_index);
 extern int      plat_language_code(char *langcode);
 extern void     plat_language_code_r(int id, char *outbuf, int len);
+/* The language code of the UI as it is shown: the one chosen, or the host's for the system language. */
+extern void     plat_ui_language(char *outbuf, int len);
 extern void     plat_get_cpu_string(char *outbuf, uint8_t len);
 #ifdef _WIN32
 extern void     plat_get_system_directory(char *outbuf);

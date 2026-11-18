@@ -31,6 +31,7 @@
 #include <algorithm>
 #include <map>
 
+#include <QLocale>
 #include <QDebug>
 
 #include <QApplication>
@@ -884,6 +885,15 @@ plat_language_code_r(int id, char *outbuf, int len)
 {
     qstrncpy(outbuf, Preferences::languageIdToCode(id).toUtf8().constData(), len);
     return;
+}
+
+void
+plat_ui_language(char *outbuf, int len)
+{
+    QString code = Preferences::languageIdToCode(lang_id);
+    if (code == "system")
+        code = QLocale::system().uiLanguages().value(0, QLocale::system().name());
+    qstrncpy(outbuf, code.toUtf8().constData(), len);
 }
 
 #ifndef Q_OS_WINDOWS
