@@ -3048,6 +3048,26 @@ acpi_sleep_run(int32_t cycs)
         acpi_sleeping = 0;
 }
 
+/* An interrupt request while the machine sleeps. On the PIIX4, with
+   IRQ_RSM_EN (GLBEN bit 11) set, an unmasked IRQ 1, 3-7 or 9-15 resumes
+   the system from Power On Suspend and sets IRQ_RSM_STS (GLBSTS bit 11);
+   it does not resume from Suspend to RAM or Soft Off (PIIX4 7.2.10 and
+   7.2.12, pp. 143-144, and Table 36, p. 230). irqs is the set of
+   unmasked IRQs being raised. */
+void
+acpi_irq_resume(uint16_t irqs)
+{
+    acpi_t *dev = acpi_active;
+
+    if ((dev == NULL) || !dev->sleeping || (dev->vendor != VEN_INTEL) ||
+        !(dev->regs.glben & 0x0800) || (dev->sleep_flags & SUS_NVR) ||
+        !(irqs & 0xfefa))
+        return;
+
+    dev->regs.glbsts |= 0x0800;
+    dev->wake_pending = 1;
+}
+
 /* An event on one of the chip's general-purpose inputs: its status
    bit is set, and SCI, SMI# or a wake follows as the enables say. */
 void

@@ -235,6 +235,8 @@ extern void    acpi_pwrbut_hold(void);
 extern void    acpi_sleep_run(int32_t cycs);
 /* An event on a general-purpose input of the board's ACPI chip. */
 extern void    acpi_gpe_event(int source);
+/* Unmasked IRQs raised while the machine sleeps (PIIX4 IRQ resume). */
+extern void    acpi_irq_resume(uint16_t irqs);
 extern void    acpi_update_irq(acpi_t *dev);
 extern void    acpi_raise_smi(void *priv, int do_smi);
 extern void    acpi_gp_timer_timeout(void *priv, int n);
