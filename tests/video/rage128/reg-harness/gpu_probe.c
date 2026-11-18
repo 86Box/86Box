@@ -29,7 +29,46 @@
 static void probe_span_tap(uint32_t i, int64_t e0, int64_t e1, int64_t e2, int64_t z);
 #define R128_GPU_SPAN_TAP(i, e0, e1, e2, z) probe_span_tap(i, e0, e1, e2, z)
 
+/* The capture handshake's wait and signal, watched (harness_gpu_group_wake):
+   for the condition variable the probe names, each wait records that the
+   waiter is inside it and the signal count when it began, and each signal
+   is counted. Both happen under the mutex the backend holds around them,
+   so the probe reads them consistently under the same mutex. Any other
+   condition variable passes straight through. */
+#include <pthread.h>
+static pthread_cond_t *probe_cv_watch;
+static int             probe_cv_in;
+static uint64_t        probe_cv_waits, probe_cv_signals, probe_cv_sig_at;
+
+static int
+probe_cond_wait(pthread_cond_t *c, pthread_mutex_t *m)
+{
+    int r;
+
+    if (c != probe_cv_watch)
+        return pthread_cond_wait(c, m);
+    probe_cv_in     = 1;
+    probe_cv_sig_at = probe_cv_signals;
+    probe_cv_waits++;
+    r           = pthread_cond_wait(c, m);
+    probe_cv_in = 0;
+    return r;
+}
+
+static int
+probe_cond_signal(pthread_cond_t *c)
+{
+    if (c == probe_cv_watch)
+        probe_cv_signals++;
+    return pthread_cond_signal(c);
+}
+#define pthread_cond_wait   probe_cond_wait
+#define pthread_cond_signal probe_cond_signal
+
 #include "../../../../src/video/vid_ati_rage128_gpu.c"
+
+#undef pthread_cond_wait
+#undef pthread_cond_signal
 
 #ifdef R128_GPU_HAVE_VULKAN
 static int64_t probe_walk[GPU_SPAN_BUF][4]; /* indexed by span, every partition region */
@@ -440,6 +479,60 @@ harness_gpu_submit_probe(rage128_t *dev, const rage128_raster_state_t *rs,
 
         res->seg_px += gpu_span_len(sp);
     }
+    free(g->slot[0].b_spans.map);
+    free(g->slot[0].b_tris.map);
+    free(g->slot[0].b_draws.map);
+    free(g->slot[0].b_pal.map);
+    harness_gpu_dispose(g);
+    return 1;
+}
+
+int
+harness_gpu_alias_probe(rage128_t *dev, const rage128_raster_state_t *rs,
+                        const r3d_vtx_t *a, const r3d_vtx_t *b,
+                        const r3d_vtx_t *c, harness_gpu_alias_t *res)
+{
+    r128_gpu_t *g   = harness_gpu_alloc();
+    void       *old = dev->gpu;
+    uint64_t    spans;
+
+    memset(res, 0, sizeof(*res));
+    res->serial = -1;
+    if (!g)
+        return 0;
+    g->slot[0].b_spans.map = calloc(GPU_SPAN_CAP, sizeof(seg_span_t));
+    g->slot[0].b_tris.map  = calloc(GPU_TRI_CAP, sizeof(seg_tri_t));
+    g->slot[0].b_draws.map = calloc(GPU_TRI_CAP, sizeof(seg_draw_t));
+    g->slot[0].b_pal.map   = calloc(GPU_PAL_BUF * 256, sizeof(uint32_t));
+    if (!g->slot[0].b_spans.map || !g->slot[0].b_tris.map
+        || !g->slot[0].b_draws.map
+        || !g->slot[0].b_pal.map) {
+        free(g->slot[0].b_spans.map);
+        free(g->slot[0].b_tris.map);
+        free(g->slot[0].b_draws.map);
+        free(g->slot[0].b_pal.map);
+        harness_gpu_dispose(g);
+        return 0;
+    }
+    /* A live backend publishes this once its serial pipelines exist;
+       without it every aliasing draw is refused, and the probe could not
+       tell a serial run from a parallel one. */
+    atomic_store_explicit(&g->serial_ready, 1, memory_order_release);
+
+    probe_tri_need(rs, a, b, c, &spans, &res->need_px);
+
+    dev->gpu      = g;
+    res->accepted = rage128_gpu_submit_tri(dev, rs, a, b, c);
+    gpu_cap_catchup(dev, g); /* the capture admission deferred */
+    dev->gpu      = old;
+
+    if (g->nruns)
+        res->serial = (int) g->runs[g->nruns - 1].serial;
+    for (int k = 0; k < 2; k++) {
+        res->ser[k] = g->st_alias_ser[k];
+        res->rej[k] = g->st_alias_rej[k];
+    }
+    res->stg = g->st_alias_stg;
     free(g->slot[0].b_spans.map);
     free(g->slot[0].b_tris.map);
     free(g->slot[0].b_draws.map);
@@ -1444,6 +1537,176 @@ harness_gpu_rng_fold(uint32_t vram_mask, int staged, uint32_t *lo, uint32_t *hi)
     rng_fold(vram_mask, staged, lo, hi);
 }
 
+/* The grouping handshake between the submit thread and the capture
+   threads, run as a stress loop. gpu_group_wait asks every capture
+   thread to group its rows and waits for all of them: it spins for
+   GPU_CAP_JOIN_SPIN_NS, then sets cap_waiting and sleeps on cap_done_cv.
+   A capture thread that finishes stores its grp_done and signals only
+   when it reads cap_waiting set. The two sides form a store-then-load
+   pair each, so a thread that finishes just as the waiter turns from
+   spinning to sleeping is the case that matters. The loop sizes each
+   partition's grouping work so it lands at the end of the spin: one
+   more row of spans after a round that ended inside the spin, one fewer
+   after a round that slept.
+
+   The waiter runs on its own thread so a lost wakeup cannot stop the
+   harness. The caller watches its round count. When a round makes no
+   progress for a second it takes cap_mtx and checks for a lost wakeup:
+   the waiter is inside its wait on cap_done_cv, no signal reached that
+   variable since the wait began, every thread's grp_done equals the
+   request, and every capture thread is asleep on cap_cv, so each has
+   passed the point where it decides to signal and none can signal
+   later. Then nothing will ever wake the waiter. The caller counts it
+   and broadcasts cap_done_cv itself, which the waiter's predicate check
+   lets through, so the loop runs on. A round stalled thirty seconds
+   without that state fails the row. Sleeps are the waits on cap_done_cv
+   counted by the wrapper above, not elapsed time. */
+#    define PROBE_GW_ROW  16u   /* spans per row: one leveling scan each */
+#    define PROBE_GW_ROWS 4096u /* rows at most, PROBE_GW_ROW * this <= GPU_SPAN_CAP */
+
+typedef struct probe_gw_t {
+    r128_gpu_t      *g;
+    uint32_t         rounds;
+    _Atomic uint32_t done;
+    uint32_t         rows_lo, rows_hi;
+} probe_gw_t;
+
+static void *
+probe_gw_waiter(void *arg)
+{
+    probe_gw_t *p    = (probe_gw_t *) arg;
+    r128_gpu_t *g    = p->g;
+    uint32_t    rows = 16;
+
+    p->rows_lo = PROBE_GW_ROWS;
+    for (uint32_t i = 0; i < p->rounds; i++) {
+        uint64_t t0;
+
+        g->runs[0].pymax = (int32_t) rows - 1;
+        for (int w = 0; w < g->cap_nthr; w++)
+            g->cw[w].run[0].s1 = g->cw[w].run[0].s0 + rows * PROBE_GW_ROW;
+        t0 = prof_now();
+        gpu_group_wait(g);
+        if (prof_now() - t0 >= GPU_CAP_JOIN_SPIN_NS) {
+            if (rows > 1)
+                rows--;
+        } else if (rows < PROBE_GW_ROWS)
+            rows++;
+        if (rows < p->rows_lo)
+            p->rows_lo = rows;
+        if (rows > p->rows_hi)
+            p->rows_hi = rows;
+        atomic_store_explicit(&p->done, i + 1u, memory_order_release);
+    }
+    return NULL;
+}
+
+int
+harness_gpu_group_wake(uint32_t rounds, uint32_t *lost, uint32_t *slept,
+                       uint32_t *rows_lo, uint32_t *rows_hi)
+{
+    r128_gpu_t *g = (r128_gpu_t *) calloc(1, sizeof(*g));
+    seg_span_t *sp;
+    probe_gw_t  p;
+    pthread_t   thr;
+    uint32_t    seen = 0;
+    uint64_t    still = 0;
+    int         ok    = 1;
+
+    *lost = *slept = *rows_lo = *rows_hi = 0;
+    if (!g)
+        return 0;
+    gpu_capw_setup(NULL, g, 2, 1);
+    sp = (seg_span_t *) calloc(GPU_SPAN_BUF, sizeof(seg_span_t));
+    if (g->cap_nthr != 2 || !sp) {
+        gpu_capw_free(g);
+        free(sp);
+        free(g);
+        return 0;
+    }
+    /* one run of up to PROBE_GW_ROWS rows in each partition; every span
+       of a row overlaps every other in color and z, so each row levels
+       to one batch per span */
+    g->slot[g->build_slot].b_spans.map = sp;
+    g->nruns                           = 1;
+    g->runs[0].pymin                   = 0;
+    for (int w = 0; w < g->cap_nthr; w++) {
+        uint32_t b = g->cw[w].base;
+
+        g->cw[w].run[0].s0 = b;
+        for (uint32_t j = 0; j < PROBE_GW_ROWS * PROBE_GW_ROW; j++) {
+            g->py_of[b + j]   = (uint16_t) (j / PROBE_GW_ROW);
+            g->bb_of[b + j].c0 = 0;
+            g->bb_of[b + j].c1 = 64;
+            g->bb_of[b + j].z0 = 0x100000;
+            g->bb_of[b + j].z1 = 0x100040;
+        }
+    }
+    memset(&p, 0, sizeof(p));
+    p.g      = g;
+    p.rounds = rounds;
+    pthread_mutex_lock(&g->cap_mtx);
+    probe_cv_watch   = &g->cap_done_cv;
+    probe_cv_in      = 0;
+    probe_cv_waits   = 0;
+    probe_cv_signals = 0;
+    pthread_mutex_unlock(&g->cap_mtx);
+    if (pthread_create(&thr, NULL, probe_gw_waiter, &p) != 0) {
+        ok = 0;
+        goto out;
+    }
+    for (;;) {
+        uint32_t d = atomic_load_explicit(&p.done, memory_order_acquire);
+        struct timespec ts = { 0, 10 * 1000 * 1000 };
+
+        if (d >= rounds)
+            break;
+        if (d != seen) {
+            seen  = d;
+            still = 0;
+        } else if (++still % 100 == 0) {
+            uint64_t gen;
+            int      lw;
+
+            pthread_mutex_lock(&g->cap_mtx);
+            gen = atomic_load_explicit(&g->grp_gen, memory_order_seq_cst);
+            lw  = probe_cv_in && probe_cv_signals == probe_cv_sig_at
+                && atomic_load_explicit(&g->cap_sleepers, memory_order_seq_cst) == g->cap_nthr;
+            for (int w = 0; w < g->cap_nthr; w++)
+                if (atomic_load_explicit(&g->cw[w].grp_done, memory_order_seq_cst) != gen)
+                    lw = 0;
+            if (lw) {
+                (*lost)++;
+                pthread_cond_broadcast(&g->cap_done_cv);
+            }
+            pthread_mutex_unlock(&g->cap_mtx);
+            if (!lw && still >= 3000) {
+                /* thirty seconds stalled, and not in the lost-wakeup
+                   state: report the row failed and stop */
+                ok = 0;
+                break;
+            }
+        }
+        nanosleep(&ts, NULL);
+    }
+    if (ok)
+        pthread_join(thr, NULL);
+out:
+    pthread_mutex_lock(&g->cap_mtx);
+    *slept         = (uint32_t) probe_cv_waits;
+    probe_cv_watch = NULL;
+    pthread_mutex_unlock(&g->cap_mtx);
+    *rows_lo = p.rows_lo;
+    *rows_hi = p.rows_hi;
+    if (ok) {
+        g->slot[g->build_slot].b_spans.map = NULL;
+        gpu_capw_free(g);
+        free(sp);
+        free(g);
+    }
+    return ok ? 1 : -1;
+}
+
 #else /* !R128_GPU_HAVE_VULKAN */
 
 unsigned
@@ -1539,6 +1802,17 @@ harness_gpu_submit_probe(rage128_t *dev, const rage128_raster_state_t *rs,
 {
     (void) dev; (void) rs; (void) a; (void) b; (void) c;
     memset(res, 0, sizeof(*res));
+    return 0;
+}
+
+int
+harness_gpu_alias_probe(rage128_t *dev, const rage128_raster_state_t *rs,
+                        const r3d_vtx_t *a, const r3d_vtx_t *b,
+                        const r3d_vtx_t *c, harness_gpu_alias_t *res)
+{
+    (void) dev; (void) rs; (void) a; (void) b; (void) c;
+    memset(res, 0, sizeof(*res));
+    res->serial = -1;
     return 0;
 }
 
@@ -1856,6 +2130,15 @@ int
 harness_gpu_fab_scan_req(void *g, int set)
 {
     (void) g; (void) set;
+    return 0;
+}
+
+int
+harness_gpu_group_wake(uint32_t rounds, uint32_t *lost, uint32_t *slept,
+                       uint32_t *rows_lo, uint32_t *rows_hi)
+{
+    (void) rounds;
+    *lost = *slept = *rows_lo = *rows_hi = 0;
     return 0;
 }
 

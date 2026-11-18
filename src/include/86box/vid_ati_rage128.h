@@ -2895,6 +2895,11 @@ extern void rage128_gpu_abandon(rage128_t *dev);
    texture reads of those bytes must finish too. */
 extern void rage128_gpu_2d_barrier(rage128_t *dev, uint32_t lo, uint32_t len,
                                    int writes);
+/* Wait for GPU stores into local bytes [lo, lo+len) before a state
+   capture copies a texture level from them into the staging arena.
+   Submit thread, between draws. */
+extern void rage128_gpu_stage_read_barrier(rage128_t *dev, uint32_t lo,
+                                           uint32_t len);
 /* Queue a solid rectangle fill at any dst bpp (pixel = the low bpp bytes
    of color) on the GPU, after the pending segment. 1 = queued (the
    caller skips its store loop); 0 = not eligible (the caller fills on

@@ -4259,8 +4259,41 @@ r3d_stage_textures(rage128_t *dev, rage128_raster_state_t *rs)
         if (!r3d_stage_slots(rs, st, &tsp, &top, &cntl))
             continue;
         for (int s = 0; s <= top; s++)
-            if (r3d_stage_level_plan(rs, st, tsp, cntl, s, &l))
+            if (r3d_stage_level_plan(rs, st, tsp, cntl, s, &l)) {
                 total += (l.llen + 15u) & ~15u; /* r3d_stage_level aligns to 16 */
+                /* GPU lane: the level's source may still be the target of
+                   earlier draws queued on the GPU. Their stores must be in
+                   VRAM before the copy below, or this draw would sample
+                   bytes older than the interpreter's. Waiting here, before
+                   the arena is reserved, keeps the wait from landing
+                   between two levels of one draw. The wait covers the
+                   bytes the copy reads from VRAM. A tiled level that
+                   starts in local memory is gathered run by run, and
+                   each run is cut at the 32 MB line, past which it
+                   reads AGP memory (r128_card_copy_tiled); so a level
+                   that crosses the line waits for its local part. A
+                   linear level with any byte in AGP memory is read
+                   whole over the bus and waits for nothing. A local
+                   level is read through the VRAM mask, so a source past
+                   the end of installed memory continues at its start. */
+                if (dev->gpu && !r128_card_is_agp(l.vm) && (l.tcov || !l.is_agp)) {
+                    uint64_t n   = l.tcov ? r3d_level_bytes_tiled(l.pb, l.llh) : l.llen;
+                    uint64_t loc = R128_CARD_AGP_HALF - (l.vm & (R128_CARD_AGP_HALF - 1u));
+                    uint64_t sz  = (uint64_t) dev->vram_mask + 1u;
+                    uint32_t lo  = l.vm & dev->vram_mask;
+
+                    if (n > loc)
+                        n = loc;
+                    if (n > sz)
+                        n = sz;
+                    if (lo + n <= sz)
+                        rage128_gpu_stage_read_barrier(dev, lo, (uint32_t) n);
+                    else {
+                        rage128_gpu_stage_read_barrier(dev, lo, (uint32_t) (sz - lo));
+                        rage128_gpu_stage_read_barrier(dev, 0, (uint32_t) (lo + n - sz));
+                    }
+                }
+            }
     }
 
     if (!total)
