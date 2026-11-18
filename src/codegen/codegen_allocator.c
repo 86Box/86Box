@@ -287,8 +287,8 @@ void
 codegen_allocator_clean_blocks(UNUSED(struct mem_block_t *block))
 {
 #if defined __aarch64__ || defined _M_ARM64
-    /*Only the locations written need the clean (ARM DDI 0487 M.d p. B2-252);
-      a block with no end recorded is cleaned whole*/
+    /*Only the locations written need the clean (ARM DDI 0487 M.d
+      pp. B2-252, B2-253); a block with no end recorded is cleaned whole*/
     while (1) {
         const uint32_t len = block->written ? block->written : MEM_BLOCK_SIZE;
 

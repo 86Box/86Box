@@ -938,7 +938,8 @@ cpu_set(void)
        7-20), the 386DX PRM (pp. 9-2, 17-43), the i486 PRM (pp. 9-2, 26-47),
        the Pentium manual (1995) vol. 3 (pp. 14-2, 25-53), the Pentium Pro
        manual vol. 3 p. 5-4 and the 1999 Intel Architecture manual vol. 2
-       p. 3-57. Every other processor puts back the selectors alone. */
+       (pp. 3-59, 3-60). Every other processor puts back the selectors
+       alone. */
     switch (cpu_s->cpu_type) {
         case CPU_286:
         case CPU_386SX:
@@ -971,9 +972,10 @@ cpu_set(void)
        call gate or an interrupt to an inner level and on RET and IRET to an
        outer level; a call gate to the same level pushes the return address
        first. The 1997 Intel Architecture manual vol. 2 (pp. 3-43, 3-223,
-       3-409) and the 1999 one (pp. 3-57, 3-311, 3-611): SS, then CS, both
-       before the pushes to an inner level; CS, then SS on RET to an outer
-       level; a far CALL to a code segment pushes the return address first. */
+       3-409) and the 1999 one (pp. 3-57, 3-59, 3-60, 3-311, 3-611): SS,
+       then CS, both before the pushes to an inner level; CS, then SS on RET
+       to an outer level; a far CALL to a code segment pushes the return
+       address first. */
     switch (cpu_s->cpu_type) {
         case CPU_386SX:
         case CPU_386DX:
