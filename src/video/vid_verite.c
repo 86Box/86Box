@@ -592,7 +592,7 @@ verite_init(const device_t *info)
                     NULL, MEM_MAPPING_EXTERNAL, v);
     mem_mapping_add(&v->banked, 0xa0000, 0x10000, banked_read, NULL, NULL, banked_write, NULL, NULL,
                     NULL, MEM_MAPPING_EXTERNAL, v);
-    pci_add_card(PCI_ADD_VIDEO, verite_pci_read, verite_pci_write, v, &v->pci_slot);
+    pci_add_card(PCI_ADD_NORMAL, verite_pci_read, verite_pci_write, v, &v->pci_slot);
     verite_reset(v);
     timer_add(&v->timer, verite_timer, v, 0);
     timer_set_delay_u64(&v->timer, TICK_US * TIMER_USEC);
