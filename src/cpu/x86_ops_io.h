@@ -2,11 +2,19 @@
    read brings the TSC up to date): the instruction then ends the recompiled
    block, and the reset is done (x86_reset_deferred). A trapped I/O cycle
    asserts SMI# during the instruction, also taken at its boundary. A read
-   of an ACPI P_LVL2/P_LVL3 register stops the processor at it (cpu_stpclk). */
+   of an ACPI P_LVL2/P_LVL3 register stops the processor at it (cpu_stpclk).
+   A port matching an I/O breakpoint (trap bit 2) takes #DB right after the
+   instruction, which compiled code leaves to the loop (io_op_trap). */
+static __inline int
+io_op_trap(void)
+{
+    return !!(trap & 4);
+}
+
 static __inline int
 io_op_end(void)
 {
-    return x86_was_reset || smi_line || (nmi && nmi_enable && nmi_mask) || cpu_stpclk;
+    return x86_was_reset || smi_line || (nmi && nmi_enable && nmi_mask) || cpu_stpclk || io_op_trap();
 }
 
 static int
@@ -58,7 +66,7 @@ opOUT_AL_imm(uint32_t fetchdat)
     CLOCK_CYCLES(10 + io_waitstates);
     PREFETCH_RUN(10, 2, -1, 0, 0, 1, 0, 0);
     if (port == 0x64)
-        return x86_was_reset || smi_line;
+        return x86_was_reset || smi_line || io_op_trap();
     if (smi_line || NMI_TAKEABLE())
         return 1;
     return io_op_end();
