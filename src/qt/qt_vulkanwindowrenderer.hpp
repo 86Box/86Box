@@ -4,6 +4,8 @@
 #include <QWindow>
 #include <QVulkanWindow>
 #include <QTimer>
+#include <QPointer>
+#include <QMessageBox>
 
 #include <vector>
 #include <tuple>
@@ -72,6 +74,8 @@ private:
 
     void cleanupSwapchain();
     void recreateSwapchain();
+    void                  showSwapchainError(const QString &message);
+    QPointer<QMessageBox> swapchainErrorBox;
 
     bool isPhysicalDeviceUsable(VkPhysicalDevice& phys_dev);
 
@@ -91,6 +95,7 @@ private:
     VkPhysicalDevice phys_device = nullptr;
     VkDevice logi_device = nullptr;
     VkSwapchainKHR dev_swapchain = nullptr;
+    bool swapchainComplete = false;
     VkCommandPool commandPool = nullptr;
     VkQueue gfx_queue_o = nullptr;
 

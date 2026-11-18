@@ -333,6 +333,7 @@ VulkanWindowRenderer::cleanupSwapchain()
 {
     if (isFinalized || !isInitialized)
         return;
+    swapchainComplete = false;
     m_devFuncs->vkDeviceWaitIdle(logi_device);
 #ifdef LIBRA_RUNTIME_VULKAN
     cleanupShaderSrcImages();
@@ -577,6 +578,20 @@ VulkanWindowRenderer::recreateSwapchain()
 #ifdef LIBRA_RUNTIME_VULKAN
     recreateShaderSrcImages();
 #endif
+    swapchainComplete = true;
+}
+
+/* Not a modal box: its event loop would run inside the event handler that failed and deliver events into a
+   renderer without a swapchain. */
+void
+VulkanWindowRenderer::showSwapchainError(const QString &message)
+{
+    if (!swapchainErrorBox) {
+        swapchainErrorBox = new QMessageBox(QMessageBox::Critical, tr("Error"), message, QMessageBox::Ok, main_window);
+        swapchainErrorBox->setAttribute(Qt::WA_DeleteOnClose);
+        swapchainErrorBox->show();
+    }
+    main_window->reloadAllRenderers();
 }
 
 VulkanWindowRenderer::~VulkanWindowRenderer()
@@ -643,7 +658,8 @@ VulkanWindowRenderer::updateOptions()
 void
 VulkanWindowRenderer::render()
 {
-    if (!isInitialized || isFinalized)
+    /* After a failed recreateSwapchain(), wait for the next resize to retry. */
+    if (!isInitialized || isFinalized || !swapchainComplete)
         return;
     auto fence_res = m_devFuncs->vkWaitForFences(logi_device, 1, &presentFences[current_frame], VK_TRUE, UINT64_MAX);
     if (fence_res == VK_ERROR_DEVICE_LOST) {
@@ -698,8 +714,7 @@ VulkanWindowRenderer::render()
         try {
             recreateSwapchain();
         } catch (const vulkan_init_error &e) {
-            QMessageBox::critical(main_window, tr("Error"), e.what());
-            main_window->reloadAllRenderers();
+            showSwapchainError(e.what());
         }
         return;
     }
@@ -1292,8 +1307,7 @@ VulkanWindowRenderer::render()
         try {
             recreateSwapchain();
         } catch (const vulkan_init_error &e) {
-            QMessageBox::critical(main_window, tr("Error"), e.what());
-            main_window->reloadAllRenderers();
+            showSwapchainError(e.what());
         }
     } else if (result != VK_SUCCESS) {
         QMessageBox::critical(main_window, tr("Error"), Vulkan_GetResultString(res));
@@ -1752,8 +1766,7 @@ VulkanWindowRenderer::exposeEvent(QExposeEvent *event)
         try {
             recreateSwapchain();
         } catch (const vulkan_init_error &e) {
-            QMessageBox::critical(main_window, tr("Error"), e.what());
-            main_window->reloadAllRenderers();
+            showSwapchainError(e.what());
         }
     }
 }
@@ -1771,8 +1784,7 @@ VulkanWindowRenderer::resizeEvent(QResizeEvent *event)
             if (video_framerate == -1)
                 render();
         } catch (const vulkan_init_error &e) {
-            QMessageBox::critical(main_window, tr("Error"), e.what());
-            main_window->reloadAllRenderers();
+            showSwapchainError(e.what());
         }
     }
 }
@@ -1844,8 +1856,7 @@ VulkanWindowRenderer::onBlit(int buf_idx, int x, int y, int w, int h)
             if (isInitialized && isExposed())
                 recreateSwapchain();
         } catch (const vulkan_init_error &e) {
-            QMessageBox::critical(main_window, tr("Error"), e.what());
-            main_window->reloadAllRenderers();
+            showSwapchainError(e.what());
         }
     }
     if (isExposed() && video_framerate == -1 && !isFinalized) {
