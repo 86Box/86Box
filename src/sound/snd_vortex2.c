@@ -404,13 +404,21 @@ fm_write(uint16_t port, uint8_t val, void *priv)
         dev->fm_new = val & 1;
         fm_latch_update(dev);
     }
+    /* Bank 1 is kept only in OPL3 mode (sbprobe fmflag: with register
+       0x105 clear, a bank-1 write left the file as it was). */
+    if (dev->fm_bank && !dev->fm_new && dev->fm_index != 0x05)
+        return;
     int off = fm_offset(dev->fm_bank, dev->fm_index);
-    if ((dev->fm_index & 0xf0) == 0xb0 && off != V2_FM_TRASH && dev->fm_index != 0xbd)
-        fm_file_or(dev, off, val | 0x80, 1); /* the chip flags a key-on byte as written */
-    else
+    if ((dev->fm_index & 0xf0) == 0xb0 && dev->fm_index <= 0xb8 && off != V2_FM_TRASH) {
+        /* A key-off write (bit 5 clear) is stored with bits 7-6 set, which
+           clear when the word is read; a key-on write is stored as written
+           (sbprobe fmflag, 2026-11-18). The renderer polls the file and so
+           sees each key-off once, even one written over a key-off. */
+        fm_file_or(dev, off, (val & 0x20) ? val : (val | 0xc0), 1);
+    } else
         fm_file_or(dev, off, val, 1);
-    if (!dev->fm_bank && dev->fm_index == 0xbd)
-        for (int k = 0x59; k <= 0x5b; k++) /* rhythm: channels 6-8 flagged */
+    if (!dev->fm_bank && dev->fm_index == 0xbd && !(val & 0x20))
+        for (int k = 0x59; k <= 0x5b; k++) /* rhythm off: key-off on channels 6-8 (fmmap: 0xbd = 0x5a) */
             fm_file_or(dev, k, 0xc0, 0);
 }
 
@@ -506,11 +514,10 @@ tr_read(vortex2_t *dev, uint32_t a)
     if (dev->tracef)
         fprintf(dev->tracef, "%11.6f  R 0x%05x mmio 0x%08x\n", trace_time(dev), a, v);
     if (a >= V2_FM_FILE + 0x50 && a < V2_FM_FILE + 0xd4) {
-        /* Key-on bytes (0xb0-0xb8 of each bank) carry bit 7 for "written"
-           and bits 7-6 after a rhythm write. Taken as cleared once read
-           (Hypothesis): left set, AU30DOS's FM renderer, which polls the
-           whole file and never writes it, saw every note as struck again
-           on every poll and the music came out badly distorted. */
+        /* Key-on bytes (0xb0-0xb8 of each bank) carry bits 7-6 after a
+           key-off write; reading the word clears them (sbprobe fmflag: the
+           first read gave 0xc5, the next ones 0x05, and unread they stayed
+           set for 20 ms). */
         uint32_t m = 0;
         for (int b = 0; b < 4; b++) {
             int off = (a - V2_FM_FILE) + b;
