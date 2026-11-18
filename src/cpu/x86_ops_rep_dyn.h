@@ -15,10 +15,17 @@
             if (cpu_state.abrt)                                                                                   \
                 return 1;                                                                                         \
                                                                                                                   \
+            const uint32_t dr6 = dr[6];                                                                           \
+            const int      tr  = trap;                                                                            \
             temp = inb(DX);                                                                                       \
             writememb_n(es, DEST_REG, addr64, temp);                                                              \
-            if (cpu_state.abrt)                                                                                   \
+            if (cpu_state.abrt) {                                                                                 \
+                /* The store faulted, so the instruction did not execute and its port                             \
+                   read takes no I/O breakpoint trap (Intel 1999 vol. 3 p. 15-9). */                              \
+                dr[6] = dr6;                                                                                      \
+                trap  = tr;                                                                                       \
                 return 1;                                                                                         \
+            }                                                                                                     \
                                                                                                                   \
             if (cpu_state.flags & D_FLAG)                                                                         \
                 DEST_REG--;                                                                                       \
@@ -50,10 +57,17 @@
             if (cpu_state.abrt)                                                                                   \
                 return 1;                                                                                         \
                                                                                                                   \
+            const uint32_t dr6 = dr[6];                                                                           \
+            const int      tr  = trap;                                                                            \
             temp = inw(DX);                                                                                       \
             writememw_n(es, DEST_REG, addr64a, temp);                                                             \
-            if (cpu_state.abrt)                                                                                   \
+            if (cpu_state.abrt) {                                                                                 \
+                /* The store faulted, so the instruction did not execute and its port                             \
+                   read takes no I/O breakpoint trap (Intel 1999 vol. 3 p. 15-9). */                              \
+                dr[6] = dr6;                                                                                      \
+                trap  = tr;                                                                                       \
                 return 1;                                                                                         \
+            }                                                                                                     \
                                                                                                                   \
             if (cpu_state.flags & D_FLAG)                                                                         \
                 DEST_REG -= 2;                                                                                    \
@@ -85,10 +99,17 @@
             if (cpu_state.abrt)                                                                                   \
                 return 1;                                                                                         \
                                                                                                                   \
+            const uint32_t dr6 = dr[6];                                                                           \
+            const int      tr  = trap;                                                                            \
             temp = inl(DX);                                                                                       \
             writememl_n(es, DEST_REG, addr64a, temp);                                                             \
-            if (cpu_state.abrt)                                                                                   \
+            if (cpu_state.abrt) {                                                                                 \
+                /* The store faulted, so the instruction did not execute and its port                             \
+                   read takes no I/O breakpoint trap (Intel 1999 vol. 3 p. 15-9). */                              \
+                dr[6] = dr6;                                                                                      \
+                trap  = tr;                                                                                       \
                 return 1;                                                                                         \
+            }                                                                                                     \
                                                                                                                   \
             if (cpu_state.flags & D_FLAG)                                                                         \
                 DEST_REG -= 4;                                                                                    \

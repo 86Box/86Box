@@ -866,10 +866,17 @@ opINSB_a16(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1;
 
+    const uint32_t dr6 = dr[6];
+    const int      tr  = trap;
     temp = inb(DX);
     writememb_n(es, DI, addr64, temp);
-    if (cpu_state.abrt)
+    if (cpu_state.abrt) {
+        /* The store faulted, so the instruction did not execute and its port
+           read takes no I/O breakpoint trap (Intel 1999 vol. 3 p. 15-9). */
+        dr[6] = dr6;
+        trap  = tr;
         return 1;
+    }
 
     if (cpu_state.flags & D_FLAG)
         DI--;
@@ -895,10 +902,17 @@ opINSB_a32(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1;
 
+    const uint32_t dr6 = dr[6];
+    const int      tr  = trap;
     temp = inb(DX);
     writememb_n(es, EDI, addr64, temp);
-    if (cpu_state.abrt)
+    if (cpu_state.abrt) {
+        /* The store faulted, so the instruction did not execute and its port
+           read takes no I/O breakpoint trap (Intel 1999 vol. 3 p. 15-9). */
+        dr[6] = dr6;
+        trap  = tr;
         return 1;
+    }
 
     if (cpu_state.flags & D_FLAG)
         EDI--;
@@ -925,10 +939,17 @@ opINSW_a16(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1;
 
+    const uint32_t dr6 = dr[6];
+    const int      tr  = trap;
     temp = inw(DX);
     writememw_n(es, DI, addr64a, temp);
-    if (cpu_state.abrt)
+    if (cpu_state.abrt) {
+        /* The store faulted, so the instruction did not execute and its port
+           read takes no I/O breakpoint trap (Intel 1999 vol. 3 p. 15-9). */
+        dr[6] = dr6;
+        trap  = tr;
         return 1;
+    }
 
     if (cpu_state.flags & D_FLAG)
         DI -= 2;
@@ -954,10 +975,17 @@ opINSW_a32(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1;
 
+    const uint32_t dr6 = dr[6];
+    const int      tr  = trap;
     temp = inw(DX);
     writememw_n(es, EDI, addr64a, temp);
-    if (cpu_state.abrt)
+    if (cpu_state.abrt) {
+        /* The store faulted, so the instruction did not execute and its port
+           read takes no I/O breakpoint trap (Intel 1999 vol. 3 p. 15-9). */
+        dr[6] = dr6;
+        trap  = tr;
         return 1;
+    }
 
     if (cpu_state.flags & D_FLAG)
         EDI -= 2;
@@ -984,10 +1012,17 @@ opINSL_a16(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1;
 
+    const uint32_t dr6 = dr[6];
+    const int      tr  = trap;
     temp = inl(DX);
     writememl_n(es, DI, addr64a, temp);
-    if (cpu_state.abrt)
+    if (cpu_state.abrt) {
+        /* The store faulted, so the instruction did not execute and its port
+           read takes no I/O breakpoint trap (Intel 1999 vol. 3 p. 15-9). */
+        dr[6] = dr6;
+        trap  = tr;
         return 1;
+    }
 
     if (cpu_state.flags & D_FLAG)
         DI -= 4;
@@ -1013,10 +1048,17 @@ opINSL_a32(UNUSED(uint32_t fetchdat))
     if (cpu_state.abrt)
         return 1;
 
+    const uint32_t dr6 = dr[6];
+    const int      tr  = trap;
     temp = inl(DX);
     writememl_n(es, EDI, addr64a, temp);
-    if (cpu_state.abrt)
+    if (cpu_state.abrt) {
+        /* The store faulted, so the instruction did not execute and its port
+           read takes no I/O breakpoint trap (Intel 1999 vol. 3 p. 15-9). */
+        dr[6] = dr6;
+        trap  = tr;
         return 1;
+    }
 
     if (cpu_state.flags & D_FLAG)
         EDI -= 4;
