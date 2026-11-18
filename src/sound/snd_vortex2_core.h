@@ -58,6 +58,10 @@ extern void       v2_reset(v2_chip_t *c);
 extern uint32_t v2_read(v2_chip_t *c, uint32_t addr);
 extern void     v2_write(v2_chip_t *c, uint32_t addr, uint32_t val);
 
+/* Set or clear interrupt-source bits from outside the chip model (the
+   host's MPU-401: IRQ_MIDI, 0x2000). The interrupt mask and enable apply. */
+extern void v2_ext_irq(v2_chip_t *c, uint32_t bits, int set);
+
 /* Called when the timer armed through host->timer_arm runs out. */
 extern void v2_timer_expired(v2_chip_t *c);
 

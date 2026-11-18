@@ -13,7 +13,11 @@
  *
  *          This file connects the chip model to 86Box: PCI identity and
  *          BARs, bus-master DMA, the interrupt line, the sample timer,
- *          the STAC9708 AC'97 codec and the sound output.
+ *          the STAC9708 AC'97 codec and the sound output, and the
+ *          chip's legacy MPU-401 UART and game port (on 86Box's own
+ *          MPU-401 and game port, so MIDI goes to whatever MIDI device
+ *          is configured, standing in for a board on the card's Wave
+ *          Blaster header).
  *
  *          PCI configuration values were read from an SQ2500 (AU8830,
  *          revision 0xfa).
@@ -39,6 +43,8 @@
 #include <86box/timer.h>
 #include <86box/sound.h>
 #include <86box/snd_ac97.h>
+#include <86box/snd_mpu401.h>
+#include <86box/gameport.h>
 #include <86box/plat_unused.h>
 #include <86box/plat.h>
 #include <86box/path.h>
@@ -63,6 +69,10 @@ typedef struct vortex2_t {
     uint32_t index;
 
     mem_mapping_t mmio;
+
+    mpu_t   *mpu;
+    void    *gameport;
+    uint16_t mpu_addr, game_addr;
 
     pc_timer_t block_timer;
     pc_timer_t irq_timer;
@@ -188,10 +198,131 @@ trace_time(const vortex2_t *dev)
     return (double) host_clock((void *) dev) / (256.0 * 48000.0);
 }
 
+/* ------------------------------------------------------------------ */
+/* Legacy MIDI and game port                                           */
+/*                                                                     */
+/* Read on a real SQ2500 from the host (legacyprobe, 2026-11-17): the  */
+/* MPU-401 is a UART at 0x28800 (data) and 0x28804 (command/status),   */
+/* acknowledging reset (0xff) and UART mode (0x3f) with 0xfe, with a   */
+/* 16-byte transmit FIFO and 31,670 baud from the 49.152 MHz crystal / */
+/* (16 x the divider in CTRL2 bits 15-8, 0x61 from the driver). The    */
+/* game port's byte is at 0x28808 (buttons 7-4, one-shots 3-0), and in */
+/* ADC mode (CTRL2 0x2880c bit 6) four 13-bit axis words sit at        */
+/* 0x28810. The chip control word 0x2a00c enables the legacy I/O       */
+/* decodes: bit 0 the MPU-401 at the address in bits 6-5, bit 3 the    */
+/* game port at the address in bits 11-9. The Windows driver sets      */
+/* fields 3 and 1 and talks to the MPU-401 only through the legacy     */
+/* port. Field 3 is 0x330 (ALSA); the rest of each encoding was not    */
+/* readable on the probe machine, so fields map to 0x300 + 0x10 x n    */
+/* and 0x200 + n (field 1 = 0x201, the usual game port).               */
+/* ------------------------------------------------------------------ */
+
+#define V2_MIDI_DATA   0x28800
+#define V2_MIDI_CMD    0x28804
+#define V2_GAME_LEGACY 0x28808
+#define V2_CTRL2       0x2880c
+#define V2_GAME_AXIS   0x28810
+#define V2_CHIP_CTRL   0x2a00c
+#define V2_IRQ_MIDI    0x2000
+
+static void
+legacy_remap(vortex2_t *dev)
+{
+    uint32_t ctl  = v2_read(dev->chip, V2_CHIP_CTRL);
+    uint16_t midi = (ctl & 1) ? (0x300 + 0x10 * ((ctl >> 5) & 3)) : 0;
+    uint16_t game = (ctl & 8) ? (0x200 + ((ctl >> 9) & 7)) : 0;
+
+    if (dev->mpu && midi != dev->mpu_addr) {
+        mpu401_change_addr(dev->mpu, midi);
+        dev->mpu_addr = midi;
+        vortex2_log("Vortex2: MPU-401 at %03x\n", midi);
+    }
+    if (dev->gameport && game != dev->game_addr) {
+        gameport_remap(dev->gameport, game);
+        dev->game_addr = game;
+        vortex2_log("Vortex2: game port at %03x\n", game);
+    }
+}
+
+static void
+legacy_mpu_irq(void *priv, int set)
+{
+    vortex2_t *dev = (vortex2_t *) priv;
+
+    v2_ext_irq(dev->chip, V2_IRQ_MIDI, set);
+}
+
+static int
+legacy_mpu_irq_pending(void *priv)
+{
+    vortex2_t *dev = (vortex2_t *) priv;
+
+    return !!(v2_read(dev->chip, 0x2a000) & V2_IRQ_MIDI);
+}
+
+/* Registers 0x28800-0x2881f; returns 1 if handled. */
+static int
+legacy_read(vortex2_t *dev, uint32_t a, uint32_t *v)
+{
+    switch (a) {
+        case V2_MIDI_DATA:
+            *v = dev->mpu ? mpu401_read(0, dev->mpu) : 0xff;
+            return 1;
+        case V2_MIDI_CMD:
+            *v = dev->mpu ? mpu401_read(1, dev->mpu) : 0xff;
+            return 1;
+        case V2_GAME_LEGACY:
+            /* through the game port where it is decoded; with the legacy
+               decode off, an unplugged port (0xf0 read on the real card
+               with nothing connected and the decode off) */
+            *v = dev->game_addr ? inb(dev->game_addr) : 0xf0;
+            return 1;
+        default:
+            if (a >= V2_GAME_AXIS && a < V2_GAME_AXIS + 16) {
+                /* ADC mode: 13-bit axis values; 0x1fff (read as 0xffff on
+                   the card) when nothing is plugged in */
+                int i = (a - V2_GAME_AXIS) >> 2;
+                if (joystick_type[0] != JS_TYPE_NONE && i < joystick_get_axis_count(joystick_type[0]))
+                    *v = ((uint32_t) (joystick_state[0][0].axis[i] + 32768) >> 3) & 0x1fff;
+                else
+                    *v = 0xffff;
+                return 1;
+            }
+            return 0;
+    }
+}
+
+static int
+legacy_write(vortex2_t *dev, uint32_t a, uint32_t v)
+{
+    switch (a) {
+        case V2_MIDI_DATA:
+            if (dev->mpu)
+                mpu401_write(0, v & 0xff, dev->mpu);
+            return 1;
+        case V2_MIDI_CMD:
+            if (dev->mpu)
+                mpu401_write(1, v & 0xff, dev->mpu);
+            return 1;
+        case V2_GAME_LEGACY:
+            if (dev->game_addr)
+                outb(dev->game_addr, v & 0xff);
+            return 1;
+        default:
+            return 0;
+    }
+}
+
 static uint32_t
 tr_read(vortex2_t *dev, uint32_t a)
 {
-    uint32_t v = v2_read(dev->chip, a);
+    uint32_t v;
+    if (a >= V2_MIDI_DATA && a < V2_MIDI_DATA + 0x20 && legacy_read(dev, a, &v)) {
+        if (dev->tracef)
+            fprintf(dev->tracef, "%11.6f  R 0x%05x mmio 0x%08x\n", trace_time(dev), a, v);
+        return v;
+    }
+    v = v2_read(dev->chip, a);
     if (dev->tracef)
         fprintf(dev->tracef, "%11.6f  R 0x%05x mmio 0x%08x\n", trace_time(dev), a, v);
     return v;
@@ -202,7 +333,11 @@ tr_write(vortex2_t *dev, uint32_t a, uint32_t v)
 {
     if (dev->tracef)
         fprintf(dev->tracef, "%11.6f  W 0x%05x mmio 0x%08x\n", trace_time(dev), a, v);
+    if (a >= V2_MIDI_DATA && a < V2_MIDI_DATA + 0x20 && legacy_write(dev, a, v))
+        return;
     v2_write(dev->chip, a, v);
+    if (a == V2_CHIP_CTRL)
+        legacy_remap(dev);
 }
 
 static uint16_t
@@ -755,6 +890,7 @@ vortex2_reset(void *priv)
     v2_reset(dev->chip);
     if (dev->codec)
         ac97_codec_reset(dev->codec);
+    legacy_remap(dev);
 }
 
 static void *
@@ -819,6 +955,13 @@ vortex2_init(UNUSED(const device_t *info))
 
     sound_add_handler(vortex2_get_buffer, dev);
 
+    /* Legacy MIDI and game port, mapped when the driver enables them. */
+    dev->mpu = (mpu_t *) calloc(1, sizeof(mpu_t));
+    mpu401_init(dev->mpu, 0, -1, M_UART, device_get_config_int("receive_input401"));
+    mpu401_irq_attach(dev->mpu, legacy_mpu_irq, legacy_mpu_irq_pending, dev);
+    dev->gameport = gameport_add(&gameport_device);
+    gameport_remap(dev->gameport, 0);
+
     vortex2_speed_changed(dev);
     timer_add(&dev->block_timer, vortex2_block, dev, 1);
     timer_set_delay_u64(&dev->block_timer, dev->block_latch);
@@ -832,6 +975,7 @@ vortex2_close(void *priv)
     vortex2_t *dev = (vortex2_t *) priv;
 
     v2_destroy(dev->chip);
+    free(dev->mpu);
     if (dev->logf)
         fclose(dev->logf);
     if (dev->tracef)
@@ -871,6 +1015,17 @@ static const device_config_t vortex2_config[] = {
             { .description = "-24 dB",                           .value = -24 },
             { .description = ""                                               }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "receive_input401",
+        .description    = "Receive MIDI input (MPU-401)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {

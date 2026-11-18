@@ -517,6 +517,16 @@ raise_irq(v2_chip_t *c, uint32_t bits)
 }
 
 void
+v2_ext_irq(v2_chip_t *c, uint32_t bits, int set)
+{
+    if (set)
+        c->irq_src |= bits;
+    else
+        c->irq_src &= ~bits;
+    update_irq(c);
+}
+
+void
 v2_timer_expired(v2_chip_t *c)
 {
     if (c->timer_fired) {
