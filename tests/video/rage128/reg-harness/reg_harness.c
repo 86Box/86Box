@@ -20476,6 +20476,368 @@ vectors_lanegap_gpu_pricing(rage128_t *dev)
     wr(dev, RAGE128_WINDOW_XY_OFFSET, 0);
 }
 
+/* ------------------------------------------------------------------ */
+/* Render-to-texture draws that sample a staged copy. A tiled level the
+   transform covers is copied, detiled, into the texture staging arena
+   at state capture, before the draw's first pixel, in every lane; its
+   pixels sample that copy, never the bytes the draw itself writes. Such
+   a draw cannot see its own stores through the texture, so in the GPU
+   lane it runs as an ordinary parallel draw, at any size, instead of as
+   a one-lane serial run. A stage with any reachable level read from
+   VRAM keeps the serial run, and so does a color target overlapping
+   its own Z. Probe rows read admission's answer on a fabricated
+   backend; byte rows draw a feedback footprint (each pixel samples the
+   texel one row up, which the draw writes) and require the pre-draw
+   image moved down one row, in every lane. */
+/* ------------------------------------------------------------------ */
+#define RTS_C 0x00c00000u /* 64 px ARGB8888 color target, tiled, 256 B/row */
+#define RTS_Z 0x00c20000u /* 16-bit Z, 64 px = 128 B/row                    */
+#define RTS_B 0x00d00000u /* 256 px ARGB8888 color target, tiled, 1 KB/row  */
+
+/* Context: a tiled px-wide ARGB8888 target at dst with a rows-high
+   scissor, stage 0 a px x px tiled ARGB8888 level at tex whose combine
+   outputs the texel, Z at RTS_Z (16-bit, ALWAYS, enabled by the caller),
+   nearest filtering. */
+static void
+rts_ctx(rage128_t *dev, uint32_t dst, uint32_t px, uint32_t rows, uint32_t tex)
+{
+    uint32_t lg = px == 256 ? 8u : 6u;
+
+    flush_sync(dev);
+    wr(dev, 0x16e8, 0x1fff1fff);
+    wr(dev, 0x16ec, 0x00000000);
+    wr(dev, 0x16f0, ((rows - 1u) << 16) | (px - 1u));
+    wr(dev, 0x16c0, 0x00000003);
+    wr(dev, 0x16cc, 0xffffffff);
+    wr(dev, 0x1660, 0x00000000);
+    wr(dev, 0x16c4, 0x00000006);
+    wr(dev, RAGE128_MISC_3D_STATE_CNTL, 0x00000000);
+    wr(dev, RAGE128_PLANE_3D_MASK_C, 0xffffffff);
+    wr(dev, RAGE128_SETUP_CNTL, 0x00000020);
+    wr(dev, RAGE128_WINDOW_XY_OFFSET, 0x00000000);
+    wr(dev, RAGE128_PM4_VC_FPU_SETUP,
+       RAGE128_FPU_BACKFACE_SOLID | RAGE128_FPU_FRONTFACE_SOLID | RAGE128_FPU_COLOR_GOURAUD);
+    /* TEX_MAP_AEN [30]: the texel's own alpha reaches the pixel */
+    wr(dev, RAGE128_SCALE_3D_CNTL, 1u << 30);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, (1u << 31) | ((px / 8u) << 21) | (dst >> 5));
+    wr(dev, RAGE128_Z_OFFSET_C, RTS_Z);
+    wr(dev, RAGE128_Z_PITCH_C, 0x00000008);
+    wr(dev, RAGE128_Z_STEN_CNTL_C, 0x00000070);
+    wr(dev, RAGE128_PRIM_TEX_COMBINE_CNTL_C, COMB_DISABLE_COMB(0, 0, 4, 4, 0, 6, 2));
+    wr(dev, RAGE128_SEC_TEX_COMBINE_CNTL_C, COMB_DISABLE_COMB(0, 0, 4, 4, 0, 6, 2));
+    wr(dev, RAGE128_PRIM_TEX_CNTL_C, 6u << 16);
+    wr(dev, RAGE128_SEC_TEX_CNTL_C, 6u << 16);
+    wr(dev, RAGE128_TEX_SIZE_PITCH_C, (lg << 8) | lg);
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), tex | (2u << 30));
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000010);
+}
+
+static void
+rts_restore(rage128_t *dev)
+{
+    flush_sync(dev);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_SCALE_3D_CNTL, 0x00000000);
+    wr(dev, RAGE128_PRIM_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_SEC_TEX_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_PRIM_TEX_COMBINE_CNTL_C, 0x00000000);
+    wr(dev, RAGE128_SEC_TEX_COMBINE_CNTL_C, 0x00000000);
+    for (int s = 0; s < 2; s++) {
+        wr(dev, RAGE128_PRIM_TEX_OFFSET_C(s), 0);
+        wr(dev, RAGE128_SEC_TEX_OFFSET_C(s), 0);
+    }
+    wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00000000);
+    wr(dev, RAGE128_Z_STEN_CNTL_C, 0x00000000);
+    wr(dev, 0x16f0, 0x1fff1fff);
+    wr(dev, RAGE128_DST_PITCH_OFFSET_C, 0x01000000u | (HZ_A >> 5));
+}
+
+/* One w x h right triangle at the origin through admission; kill >= 0
+   marks stage 0's level kill as read from VRAM after the capture, which
+   is what a staging that found no room leaves behind. */
+static int
+rts_probe(rage128_t *dev, float w, float h, int kill, harness_gpu_alias_t *al,
+          int *staged0)
+{
+    static rage128_raster_state_t rs;
+    r3d_vtx_t                     v[3];
+
+    memset(v, 0, sizeof(v));
+    for (int k = 0; k < 3; k++) {
+        v[k].z       = 0.25f;
+        v[k].rhw     = 1.0f;
+        v[k].diffuse = 0xff808080u;
+    }
+    v[1].x = w;
+    v[1].s = 1.0f;
+    v[2].y = h;
+    v[2].t = 1.0f;
+    rage128_raster_state_capture(dev, &rs);
+    *staged0 = rs.prim_stage_off[rs.d.sh[0].top] != R128_TEX_STAGE_NONE;
+    if (kill >= 0)
+        rs.prim_stage_off[kill] = R128_TEX_STAGE_NONE;
+    return harness_gpu_alias_probe(dev, &rs, &v[0], &v[1], &v[2], al);
+}
+
+static void
+rts_print(const char *leg, const harness_gpu_alias_t *al)
+{
+    printf("gpu rtt-staged: %s: accepted=%d serial=%d cz-ser=%llu rtt-ser=%llu"
+           " cz-rej=%llu rtt-rej=%llu rtt-stg=%llu px=%llu\n",
+           leg, al->accepted, al->serial, (unsigned long long) al->ser[0],
+           (unsigned long long) al->ser[1], (unsigned long long) al->rej[0],
+           (unsigned long long) al->rej[1], (unsigned long long) al->stg,
+           (unsigned long long) al->need_px);
+}
+
+/* Parallel: accepted, a non-serial run, nothing counted serial or
+   refused, one draw counted as exempted. */
+static int
+rts_parallel(const harness_gpu_alias_t *al)
+{
+    return al->accepted && al->serial == 0 && !al->ser[0] && !al->ser[1]
+        && !al->rej[0] && !al->rej[1] && al->stg == 1;
+}
+
+/* Serial: a serial run, counted under k, and not exempted. */
+static int
+rts_serial(const harness_gpu_alias_t *al, int k)
+{
+    return al->accepted && al->serial == 1 && al->ser[k] == 1 && !al->ser[!k]
+        && !al->rej[0] && !al->rej[1] && al->stg == 0;
+}
+
+/* Fill [base, base + len) with distinct words and report the store the
+   way a guest store is reported, so no cached staging survives it. */
+static void
+rts_seed(rage128_t *dev, uint32_t base, uint32_t len, uint32_t salt)
+{
+    for (uint32_t i = 0; i < len / 4u; i++)
+        *(uint32_t *) &dev->svga.vram[base + i * 4u] = (i * 0x9e3779b1u) ^ salt;
+    if (dev->gpu)
+        rage128_gpu_cpu_barrier(dev, base, len, 1);
+}
+
+/* Byte row: the px x px tiled level at tex is sampled by a quad over
+   target rows 1..rows, pixel (x, y) reading texel (x, y - 1). Every
+   covered pixel must hold the texel from before the draw; a lane that
+   sampled live would read a texel the quad already rewrote. Under
+   R128_GPU=verify the backend's own replay must also agree. */
+static void
+rts_bytes(rage128_t *dev, const char *leg, uint32_t dst, uint32_t px,
+          uint32_t rows, uint32_t tex, int z)
+{
+    static rage128_raster_state_t rs;
+    static uint8_t                pre[256 * 256 * 4], post[256 * 257 * 4];
+    r3d_vtx_t                     v[6];
+    uint32_t                      pitch = px * 4u, bad = 0;
+    uint64_t                      s0 = 0, b0 = 0, s1 = 0, b1 = 0;
+    int                           gv;
+    char                          what[160];
+    static const float            qx[6] = { 0, 1, 0, 1, 1, 0 };
+    static const float            qy[6] = { 0, 0, 1, 0, 1, 1 };
+
+    rts_ctx(dev, dst, px, rows + 1u, tex);
+    if (z)
+        wr(dev, RAGE128_TEX_CNTL_C, 0x00000013); /* Z_EN | Z_WR | TEX_EN */
+    rts_seed(dev, dst, pitch * (rows + 1u), 0x5a000000u);
+    rts_seed(dev, tex, pitch * px, 0x3c000000u);
+    if (z)
+        rts_seed(dev, RTS_Z, 128u * (rows + 1u), 0x3c000000u ^ 0x00a50000u);
+    flush_sync(dev);
+    r128_card_copy_tiled(dev, tex, pitch, 0, pre, pitch * px, 0);
+
+    memset(v, 0, sizeof(v));
+    for (int k = 0; k < 6; k++) {
+        v[k].z       = 0.25f;
+        v[k].rhw     = 1.0f;
+        v[k].diffuse = 0xff808080u;
+        v[k].x       = qx[k] * (float) px;
+        v[k].y       = 1.0f + qy[k] * (float) rows;
+        v[k].s       = qx[k];
+        v[k].t       = qy[k] * (float) rows / (float) px;
+    }
+    gv = harness_gpu_verify_stats(dev, &s0, &b0);
+    rage128_raster_state_capture(dev, &rs);
+    rage128_raster_submit_tri(dev, &rs, &v[0], &v[1], &v[2]);
+    rage128_raster_submit_tri(dev, &rs, &v[3], &v[4], &v[5]);
+    flush_sync(dev);
+    r128_card_copy_tiled(dev, dst, pitch, 0, post, pitch * (rows + 1u), 0);
+    for (uint32_t y = 1; y <= rows; y++)
+        for (uint32_t x = 0; x < px; x++)
+            bad += memcmp(post + y * pitch + x * 4u, pre + (y - 1u) * pitch + x * 4u, 4) != 0;
+    snprintf(what, sizeof(what), "gpu rtt-staged: %s: every pixel holds the pre-draw texel", leg);
+    check32(what, bad, 0);
+    if (gv && harness_gpu_verify_stats(dev, &s1, &b1)) {
+        snprintf(what, sizeof(what), "gpu rtt-staged: %s: gpu verify mismatched nothing", leg);
+        check_true(what, b1 == b0);
+        snprintf(what, sizeof(what), "gpu rtt-staged: %s: the draw reached the GPU kernel", leg);
+        check_true(what, s1 > s0);
+    }
+    printf("gpu rtt-staged: %s bytes: wrong=%u verify segments +%llu mismatched +%llu\n",
+           leg, bad, (unsigned long long) (s1 - s0), (unsigned long long) (b1 - b0));
+}
+
+/* Two byte rows in sequence: draw A, then draw B captured after it,
+   each sampling the texel one row up of the same px x px tiled target.
+   B's staged copy is taken when B's state is captured, after A, so it
+   must hold A's pixels: in the overlap every pixel ends up two rows
+   down from the pre-draw image. A copy taken while A's stores are
+   still queued would hold the pre-draw bytes and leave a one-row
+   shift. */
+static void
+rts_bytes2(rage128_t *dev, const char *leg, uint32_t dst, uint32_t px,
+           uint32_t rows)
+{
+    static rage128_raster_state_t rs;
+    static uint8_t                pre[256 * 257 * 4], mid[256 * 257 * 4],
+        post[256 * 257 * 4];
+    r3d_vtx_t                     v[6];
+    uint32_t                      pitch = px * 4u, bad = 0;
+    uint64_t                      s0 = 0, b0 = 0, s1 = 0, b1 = 0;
+    int                           gv;
+    char                          what[160];
+    static const float            qx[6] = { 0, 1, 0, 1, 1, 0 };
+    static const float            qy[6] = { 0, 0, 1, 0, 1, 1 };
+
+    rts_ctx(dev, dst, px, rows + 1u, dst);
+    rts_seed(dev, dst, pitch * (rows + 1u), 0x69000000u);
+    flush_sync(dev);
+    r128_card_copy_tiled(dev, dst, pitch, 0, pre, pitch * (rows + 1u), 0);
+    /* the image after A: rows 1..rows from one row up, row 0 kept */
+    memcpy(mid, pre, pitch);
+    for (uint32_t y = 1; y <= rows; y++)
+        memcpy(mid + y * pitch, pre + (y - 1u) * pitch, pitch);
+
+    memset(v, 0, sizeof(v));
+    for (int k = 0; k < 6; k++) {
+        v[k].z       = 0.25f;
+        v[k].rhw     = 1.0f;
+        v[k].diffuse = 0xff808080u;
+        v[k].x       = qx[k] * (float) px;
+        v[k].y       = 1.0f + qy[k] * (float) rows;
+        v[k].s       = qx[k];
+        v[k].t       = qy[k] * (float) rows / (float) px;
+    }
+    gv = harness_gpu_verify_stats(dev, &s0, &b0);
+    for (int d = 0; d < 2; d++) {
+        rage128_raster_state_capture(dev, &rs);
+        rage128_raster_submit_tri(dev, &rs, &v[0], &v[1], &v[2]);
+        rage128_raster_submit_tri(dev, &rs, &v[3], &v[4], &v[5]);
+    }
+    flush_sync(dev);
+    r128_card_copy_tiled(dev, dst, pitch, 0, post, pitch * (rows + 1u), 0);
+    for (uint32_t y = 1; y <= rows; y++)
+        for (uint32_t x = 0; x < px; x++)
+            bad += memcmp(post + y * pitch + x * 4u, mid + (y - 1u) * pitch + x * 4u, 4) != 0;
+    snprintf(what, sizeof(what),
+             "gpu rtt-staged: %s: the second draw samples the first one's pixels", leg);
+    check32(what, bad, 0);
+    if (gv && harness_gpu_verify_stats(dev, &s1, &b1)) {
+        snprintf(what, sizeof(what), "gpu rtt-staged: %s: gpu verify mismatched nothing", leg);
+        check_true(what, b1 == b0);
+    }
+    printf("gpu rtt-staged: %s bytes: wrong=%u verify segments +%llu mismatched +%llu\n",
+           leg, bad, (unsigned long long) (s1 - s0), (unsigned long long) (b1 - b0));
+}
+
+static void
+vectors_gpu_rtt_staged(rage128_t *dev)
+{
+    harness_gpu_alias_t al;
+    int                 stg;
+
+    /* Byte rows first: they need no probe and run in every lane. */
+    rts_bytes(dev, "own color target", RTS_C, 64, 32, RTS_C, 0);
+    rts_bytes(dev, "over-cap own color target", RTS_B, 256, 256, RTS_B, 0);
+    rts_bytes(dev, "texture over the Z rows", RTS_C, 64, 32, RTS_Z, 1);
+    rts_bytes2(dev, "two draws in sequence", RTS_C, 64, 32);
+    rts_bytes2(dev, "two over-cap draws in sequence", RTS_B, 256, 256);
+    rts_restore(dev);
+
+    if (!harness_gpu_available()) {
+        printf("SKIP gpu rtt-staged: admission rows (built without Vulkan headers)\n");
+        return;
+    }
+
+    /* 1: the staged level is the color target's own bytes. */
+    rts_ctx(dev, RTS_C, 64, 64, RTS_C);
+    check_true("gpu rtt-staged: probe ran",
+               rts_probe(dev, 64.0f, 32.0f, -1, &al, &stg));
+    rts_print("own color target", &al);
+    check_true("gpu rtt-staged: setup: the tiled level is staged", stg);
+    check_true("gpu rtt-staged: tiled level under its own color target runs parallel",
+               rts_parallel(&al));
+
+    /* 1b: a two-level chain, both levels tiled and staged. */
+    wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x00000616);         /* 64x64, 2 levels */
+    wr(dev, RAGE128_PRIM_TEX_CNTL_C, (6u << 16) | 0x04);   /* MIN mip         */
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(1), RTS_C | (2u << 30));
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), (RTS_C + 0x2000u) | (2u << 30));
+    rts_probe(dev, 64.0f, 32.0f, -1, &al, &stg);
+    rts_print("staged mip chain", &al);
+    check_true("gpu rtt-staged: mip chain with every level staged runs parallel",
+               rts_parallel(&al));
+
+    /* 9: the same chain with the lower level linear, read from VRAM. */
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), RTS_C + 0x2000u);
+    rts_probe(dev, 64.0f, 32.0f, -1, &al, &stg);
+    rts_print("mip chain, lower level live", &al);
+    check_true("gpu rtt-staged: mip chain with one level read from VRAM stays serial",
+               rts_serial(&al, 1));
+
+    /* 6: the level's staging found no room. */
+    rts_ctx(dev, RTS_C, 64, 64, RTS_C);
+    rts_probe(dev, 64.0f, 32.0f, 0, &al, &stg);
+    rts_print("staging failed", &al);
+    check_true("gpu rtt-staged: a level whose staging failed stays serial",
+               rts_serial(&al, 1));
+
+    /* 5: a linear texture under its own target is read from VRAM. */
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), RTS_C);
+    rts_probe(dev, 64.0f, 32.0f, -1, &al, &stg);
+    rts_print("linear texture", &al);
+    check_true("gpu rtt-staged: linear texture under its own target stays serial",
+               rts_serial(&al, 1));
+
+    /* 7: stage 0 staged, stage 1 linear over the same bytes. */
+    wr(dev, RAGE128_PRIM_TEX_OFFSET_C(0), RTS_C | (2u << 30));
+    wr(dev, RAGE128_SEC_TEX_OFFSET_C(0), RTS_C);
+    wr(dev, RAGE128_TEX_SIZE_PITCH_C, 0x06060606);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000030);               /* both stages enabled */
+    rts_probe(dev, 64.0f, 32.0f, -1, &al, &stg);
+    rts_print("second stage live", &al);
+    check_true("gpu rtt-staged: a second stage read from VRAM keeps the draw serial",
+               rts_serial(&al, 1));
+
+    /* 8: the color target overlaps its own Z; the texture is staged. */
+    rts_ctx(dev, RTS_C, 64, 64, RTS_C);
+    wr(dev, RAGE128_Z_OFFSET_C, RTS_C + 0x1000u);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000013);
+    rts_probe(dev, 64.0f, 32.0f, -1, &al, &stg);
+    rts_print("color over Z", &al);
+    check_true("gpu rtt-staged: color over Z with a staged texture stays serial",
+               rts_serial(&al, 0));
+
+    /* 3: the staged level lies in the Z rows, not the color rows. */
+    rts_ctx(dev, RTS_C, 64, 64, RTS_Z);
+    wr(dev, RAGE128_TEX_CNTL_C, 0x00000013);
+    rts_probe(dev, 64.0f, 32.0f, -1, &al, &stg);
+    rts_print("texture over the Z rows", &al);
+    check_true("gpu rtt-staged: texture over the Z rows runs parallel",
+               rts_parallel(&al));
+
+    /* 2: over GPU_SERIAL_PX_CAP pixels. */
+    rts_ctx(dev, RTS_B, 256, 257, RTS_B);
+    rts_probe(dev, 256.0f, 256.0f, -1, &al, &stg);
+    rts_print("over-cap", &al);
+    check_true("gpu rtt-staged: setup: the over-cap draw prices past 16384 px",
+               al.need_px > 16384u);
+    check_true("gpu rtt-staged: over-cap staged self-sampling draw stays on the GPU",
+               rts_parallel(&al));
+    rts_restore(dev);
+}
+
 /* Shared CCE bring-up + batch body for the ring vectors, the
    same context vectors_cce_ring programs. */
 static void
@@ -29594,6 +29956,7 @@ run_lanegap(void)
     vectors_ov0_end_inclusive(dev);
     vectors_lanegap_jit_dst_dt(dev);
     vectors_lanegap_gpu_pricing(dev);
+    vectors_gpu_rtt_staged(dev);
     vectors_lanegap_texkey(dev);
     vectors_lanegap_vga_barrier(dev);
     vectors_lanegap_2d_telemetry(dev);

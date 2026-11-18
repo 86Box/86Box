@@ -152,6 +152,26 @@ int harness_gpu_submit_probe(rage128_t *dev, const rage128_raster_state_t *rs,
                              const r3d_vtx_t *a, const r3d_vtx_t *b,
                              const r3d_vtx_t *c, harness_gpu_sub_t *res);
 
+/* What admission's self-alias test did with one triangle: the
+   production rage128_gpu_submit_tri on a fabricated backend whose serial
+   pipelines are reported built, so an aliasing draw can take the serial
+   run as on a live backend. ser / rej = the color-over-Z [0] and
+   render-to-texture [1] counts of draws kept as serial runs and refused
+   to the CPU; stg = render-to-texture draws that ran parallel because
+   every level they sample is a staged copy; serial = the flag of the
+   run the draw went to (-1 = no run). */
+typedef struct harness_gpu_alias_t {
+    int      accepted;
+    int      serial;
+    uint64_t ser[2], rej[2], stg;
+    uint64_t need_px;
+} harness_gpu_alias_t;
+
+/* Returns 0 if the probe is unavailable. */
+int harness_gpu_alias_probe(rage128_t *dev, const rage128_raster_state_t *rs,
+                            const r3d_vtx_t *a, const r3d_vtx_t *b,
+                            const r3d_vtx_t *c, harness_gpu_alias_t *res);
+
 /* Exact texture-read hazard list (the exact texture range list of
    r128_gpu_t) behind the q hull: draws captured into one pending
    segment on a fabricated backend, then the 2D executor's texture test

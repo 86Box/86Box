@@ -1512,6 +1512,7 @@ typedef struct r128_gpu_t {
         int                           agp[2];   /* stage's hull starts in AGP memory */
         int                           odd_c, odd_z;
         int                           q_on[2];  /* stage feeds the texture hull */
+        int                           stg_all[2]; /* every level it reaches is staged */
         uint32_t                      qlo[2], qhi[2];
         int                           smip;     /* some sampled slot is staged */
         r3d_stage_desc_t              sd0, sd1; /* resolved slots */
@@ -1935,8 +1936,13 @@ typedef struct r128_gpu_t {
     uint64_t dry_spans, dry_px;
     /* per-site split of the two alias rejects feeding st_fallback:
        [0] = color/z cross-alias, [1] = render-to-texture self-sample.
-       ser = draws kept on GPU by the serial path instead. */
+       ser = draws kept on GPU by the serial path instead. stg = draws
+       that sample their own bytes only through staged levels and run
+       parallel. */
     uint64_t st_alias_rej[2], st_alias_ser[2];
+    uint64_t st_alias_stg;
+    /* texture stagings that waited for GPU stores into their source */
+    uint64_t st_stage_rd_wait;
     /* accepted draws on the straddling-cell path (odd dst/z offset) */
     uint64_t st_odd_c, st_odd_z;
     /* runs flagged row-alias: a span reached past the surface pitch
@@ -9031,8 +9037,9 @@ gpu_adm_draw(rage128_t *dev, r128_gpu_t *g, const rage128_raster_state_t *rs)
     g->adm.odd_z     = (rs->d.z_en || rs->d.sten_on)
         && (rs->t3d.z_offset & (uint32_t) (rs->d.zbpp - 1)) != 0;
     for (int st = 0; st < 2; st++) {
-        g->adm.agp[st]  = r128_card_is_agp(rs->tex_lo[st]);
-        g->adm.q_on[st] = rs->tex_hi[st] > rs->tex_lo[st] && !g->adm.agp[st];
+        g->adm.agp[st]     = r128_card_is_agp(rs->tex_lo[st]);
+        g->adm.q_on[st]    = rs->tex_hi[st] > rs->tex_lo[st] && !g->adm.agp[st];
+        g->adm.stg_all[st] = 0;
         if (g->adm.q_on[st]) {
             const r3d_stage_hdr_t *h   = &rs->d.sh[st];
             const uint32_t        *off = st ? rs->sec_stage_off : rs->prim_stage_off;
@@ -9054,8 +9061,9 @@ gpu_adm_draw(rage128_t *dev, r128_gpu_t *g, const rage128_raster_state_t *rs)
                 if (off[sl] == R128_TEX_STAGE_NONE)
                     staged = 0;
             rng_fold(dev->vram_mask, staged, &qlo, &qhi);
-            g->adm.qlo[st] = qlo;
-            g->adm.qhi[st] = qhi;
+            g->adm.qlo[st]     = qlo;
+            g->adm.qhi[st]     = qhi;
+            g->adm.stg_all[st] = staged;
         }
     }
     g->adm.smip = 0;
@@ -9285,18 +9293,35 @@ gpu_submit_prim_body(rage128_t *dev, const rage128_raster_state_t *rs,
        the way the interpreter does. So does a draw over
        GPU_SERIAL_PX_CAP pixels, or one that arrives before the serial
        pipelines are built. A line arrives with c equal to b; gc is null
-       for it, so the ranges take the line's column bound. */
+       for it, so the ranges take the line's column bound.
+
+       A stage whose every reachable level is staged does not alias its
+       draw. Each such level was copied into the staging arena when the
+       state was captured, before the draw's first pixel, and every lane,
+       the interpreter included, samples that copy, so no pixel can read
+       a store of the same draw through it and the serial order changes
+       no byte. That draw runs as an ordinary parallel draw, at any size.
+       The levels tested are the ones the stage's texture hull covers,
+       found staged when admission derived the draw's values; one level
+       read from VRAM keeps the stage in the test. The color-over-Z test
+       and the render-to-texture flush below still see such a stage. */
     prim_ranges(rs, dev->vram_mask, a, b, gc, &clo, &chi, &zlo, &zhi);
     {
         int cz  = rng_hit(clo, chi, zlo, zhi) != 0;
-        int rtt = 0, agp = 0;
+        int rtt = 0, agp = 0, stg = 0;
 
         for (int st = 0; st < 2; st++)
             if (r3d_tex_rng_hit(rs, st, clo, chi)
                 || r3d_tex_rng_hit(rs, st, zlo, zhi)) {
+                if (g->adm.stg_all[st]) {
+                    stg = 1;
+                    continue;
+                }
                 rtt = 1;
                 agp |= g->adm.agp[st];
             }
+        if (stg && !cz && !rtt)
+            g->st_alias_stg++;
         if (cz || rtt) {
             if (rs->c_staged || rs->z_staged || agp
                 || need_px > GPU_SERIAL_PX_CAP
@@ -10437,6 +10462,40 @@ rage128_gpu_2d_barrier(rage128_t *dev, uint32_t lo, uint32_t len, int writes)
        once the stores are done. */
     if (writes)
         r128_vram_hnew(dev, lo, len);
+}
+
+/* A state capture is about to copy a texture level out of local bytes
+   [lo, lo+len) into the staging arena. The copy is what every lane
+   samples for the whole draw, so it must hold the stores of every
+   earlier draw: GPU work that stores there (the pending segment or a
+   submitted slot) is submitted and waited for first, and its stores
+   reach VRAM before the copy reads it. Queued texture reads of those
+   bytes are no conflict, since the copy only reads. The test is the
+   2D executor's, which runs on the same thread as the capture and
+   never during one. */
+void
+rage128_gpu_stage_read_barrier(rage128_t *dev, uint32_t lo, uint32_t len)
+{
+    r128_gpu_t *g  = (r128_gpu_t *) dev->gpu;
+    uint64_t    hi = (uint64_t) lo + len;
+
+    if (!g || !len)
+        return;
+    if (hi > 0xffffffffull)
+        hi = 0xffffffffull;
+    if (!gpu_range_hit_2d(g, lo, (uint32_t) hi, 0))
+        return;
+    gpu_reap(g);
+    if (!gpu_range_hit_2d(g, lo, (uint32_t) hi, 0))
+        return;
+    g->st_stage_rd_wait++;
+    if (g->async && !g->verify && !g->verify2d && !dev->synctel) {
+        if (gpu_pending_hit_2d(g, lo, (uint32_t) hi, 0))
+            gpu_flush_cause(dev, GF_TEX);
+        gpu_fence_range(g, lo, (uint32_t) hi, 0, GF_TEX);
+        return;
+    }
+    gpu_flush_cause(dev, GF_TEX);
 }
 
 /* Queue a solid fill on the GPU instead of draining and filling on the
@@ -14077,7 +14136,7 @@ gpu_stats_core(rage128_t *dev, r128_gpu_t *g)
             (unsigned long long) g->st_carry);
     gpu_log("RAGE128 GPU: close: segments=%llu runs=%llu spans=%llu tris=%llu fallback_draws=%llu"
             " reprice=%llu reprice-miss=%llu toobig=%llu spandrop=%llu pxdrop=%llu cz-alias=%llu rtt-alias=%llu"
-            " cz-serial=%llu rtt-serial=%llu line-fb=%llu point-fb=%llu"
+            " cz-serial=%llu rtt-serial=%llu rtt-stg=%llu stg-rdwait=%llu line-fb=%llu point-fb=%llu"
             " px=%llu wide-spans=%llu wide-px=%llu odd-c=%llu odd-z=%llu row-alias=%llu\n",
             (unsigned long long) g->st_segments, (unsigned long long) g->st_runs,
             (unsigned long long) g->st_spans,
@@ -14090,6 +14149,8 @@ gpu_stats_core(rage128_t *dev, r128_gpu_t *g)
             (unsigned long long) g->st_alias_rej[1],
             (unsigned long long) g->st_alias_ser[0],
             (unsigned long long) g->st_alias_ser[1],
+            (unsigned long long) g->st_alias_stg,
+            (unsigned long long) g->st_stage_rd_wait,
             (unsigned long long) g->st_fb_line,
             (unsigned long long) g->st_fb_point,
             (unsigned long long) g->st_px_total,
@@ -15018,6 +15079,13 @@ rage128_gpu_2d_barrier(rage128_t *dev, uint32_t lo, uint32_t len, int writes)
     (void) lo;
     (void) len;
     (void) writes;
+}
+void
+rage128_gpu_stage_read_barrier(rage128_t *dev, uint32_t lo, uint32_t len)
+{
+    (void) dev;
+    (void) lo;
+    (void) len;
 }
 int
 rage128_gpu_2d_fill(rage128_t *dev, uint32_t addr, uint32_t pitch,

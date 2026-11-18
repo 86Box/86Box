@@ -448,6 +448,60 @@ harness_gpu_submit_probe(rage128_t *dev, const rage128_raster_state_t *rs,
     return 1;
 }
 
+int
+harness_gpu_alias_probe(rage128_t *dev, const rage128_raster_state_t *rs,
+                        const r3d_vtx_t *a, const r3d_vtx_t *b,
+                        const r3d_vtx_t *c, harness_gpu_alias_t *res)
+{
+    r128_gpu_t *g   = harness_gpu_alloc();
+    void       *old = dev->gpu;
+    uint64_t    spans;
+
+    memset(res, 0, sizeof(*res));
+    res->serial = -1;
+    if (!g)
+        return 0;
+    g->slot[0].b_spans.map = calloc(GPU_SPAN_CAP, sizeof(seg_span_t));
+    g->slot[0].b_tris.map  = calloc(GPU_TRI_CAP, sizeof(seg_tri_t));
+    g->slot[0].b_draws.map = calloc(GPU_TRI_CAP, sizeof(seg_draw_t));
+    g->slot[0].b_pal.map   = calloc(GPU_PAL_BUF * 256, sizeof(uint32_t));
+    if (!g->slot[0].b_spans.map || !g->slot[0].b_tris.map
+        || !g->slot[0].b_draws.map
+        || !g->slot[0].b_pal.map) {
+        free(g->slot[0].b_spans.map);
+        free(g->slot[0].b_tris.map);
+        free(g->slot[0].b_draws.map);
+        free(g->slot[0].b_pal.map);
+        harness_gpu_dispose(g);
+        return 0;
+    }
+    /* A live backend publishes this once its serial pipelines exist;
+       without it every aliasing draw is refused, and the probe could not
+       tell a serial run from a parallel one. */
+    atomic_store_explicit(&g->serial_ready, 1, memory_order_release);
+
+    probe_tri_need(rs, a, b, c, &spans, &res->need_px);
+
+    dev->gpu      = g;
+    res->accepted = rage128_gpu_submit_tri(dev, rs, a, b, c);
+    gpu_cap_catchup(dev, g); /* the capture admission deferred */
+    dev->gpu      = old;
+
+    if (g->nruns)
+        res->serial = (int) g->runs[g->nruns - 1].serial;
+    for (int k = 0; k < 2; k++) {
+        res->ser[k] = g->st_alias_ser[k];
+        res->rej[k] = g->st_alias_rej[k];
+    }
+    res->stg = g->st_alias_stg;
+    free(g->slot[0].b_spans.map);
+    free(g->slot[0].b_tris.map);
+    free(g->slot[0].b_draws.map);
+    free(g->slot[0].b_pal.map);
+    harness_gpu_dispose(g);
+    return 1;
+}
+
 /* The texq probe's backend between begin and end: the fabricated
    backend installed as dev->gpu, the backend it displaced, and whether
    every draw so far was accepted. */
@@ -1539,6 +1593,17 @@ harness_gpu_submit_probe(rage128_t *dev, const rage128_raster_state_t *rs,
 {
     (void) dev; (void) rs; (void) a; (void) b; (void) c;
     memset(res, 0, sizeof(*res));
+    return 0;
+}
+
+int
+harness_gpu_alias_probe(rage128_t *dev, const rage128_raster_state_t *rs,
+                        const r3d_vtx_t *a, const r3d_vtx_t *b,
+                        const r3d_vtx_t *c, harness_gpu_alias_t *res)
+{
+    (void) dev; (void) rs; (void) a; (void) b; (void) c;
+    memset(res, 0, sizeof(*res));
+    res->serial = -1;
     return 0;
 }
 
