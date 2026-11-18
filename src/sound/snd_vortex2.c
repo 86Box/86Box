@@ -35,6 +35,7 @@
 #include <math.h>
 #define HAVE_STDARG_H
 #include <86box/86box.h>
+#include "cpu.h"
 #include <86box/device.h>
 #include <86box/dma.h>
 #include <86box/io.h>
@@ -358,6 +359,12 @@ fm_read(uint16_t port, void *priv)
 {
     vortex2_t *dev = (vortex2_t *) priv;
 
+    /* A legacy port access takes bus time, as on any AdLib-compatible
+       part. Without it the reads cost nothing here, and detection loops
+       that wait for timer 1's 80 us by reading the status port (Apogee's:
+       about 135 reads) finished before it ran out: "Could not detect FM
+       chip" in Duke Nukem 3D's setup. */
+    cycles -= ISA_CYCLES(8);
     if (port != 0x388)
         return 0xff; /* as read on the card: only 388h gives the status */
     return dev->fm_flags ? (0x80 | dev->fm_flags) : 0x00;
@@ -368,6 +375,7 @@ fm_write(uint16_t port, uint8_t val, void *priv)
 {
     vortex2_t *dev = (vortex2_t *) priv;
 
+    cycles -= ISA_CYCLES(8);
     if (!(port & 1)) {
         dev->fm_index = val;
         dev->fm_bank  = (port & 2) >> 1;
