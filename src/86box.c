@@ -62,6 +62,7 @@
 #include <86box/random.h>
 #include <86box/nvr.h>
 #include <86box/machine.h>
+#include <86box/weitek.h>
 #include <86box/bugger.h>
 #include <86box/postcard.h>
 #include <86box/unittester.h>
@@ -2048,6 +2049,9 @@ pc_reset_hard_init(void)
 
     /* Reset any ISA RTC cards. */
     isartc_reset();
+
+    if (weitek_fitted())
+        device_add(&weitek_3167_device);
 
     /* The PC Card controller and its cards, if fitted. */
     pcmcia_reset();
