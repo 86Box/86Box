@@ -33258,6 +33258,33 @@ run_tex_cache_store(void)
     atomic_store(&rage128_harness_store_hook, NULL);
     close_dev(dev);
 }
+/* The capture threads' grouping handshake under stress
+   (harness_gpu_group_wake): rounds sized to finish as the submit thread
+   turns from spinning to sleeping, where a completion that neither
+   signals nor is seen leaves the submit thread asleep for good. The row
+   needs rounds that reached the sleep, or it proves nothing.
+   R128_CAPWAKE_ROUNDS sets the round count for a longer stress run. */
+static void
+run_gpu_cap_wake(void)
+{
+    uint32_t rounds = 4000, lost, slept, lo, hi;
+    int      r;
+    char     nm[96];
+
+    if (getenv("R128_CAPWAKE_ROUNDS"))
+        rounds = (uint32_t) strtoul(getenv("R128_CAPWAKE_ROUNDS"), NULL, 0);
+    r = harness_gpu_group_wake(rounds, &lost, &slept, &lo, &hi);
+    if (!r) {
+        printf("SKIP gpu cap wake: no capture threads (built without Vulkan headers)\n");
+        return;
+    }
+    printf("gpu cap wake: rounds=%u lost=%u slept=%u rows=%u..%u\n", rounds, lost,
+           slept, lo, hi);
+    check_true("gpu cap wake: the loop finishes", r > 0);
+    check_true("gpu cap wake: rounds reached the sleep", slept > 0);
+    snprintf(nm, sizeof(nm), "gpu cap wake: lost wakeups in %u rounds", rounds);
+    check32(nm, lost, 0);
+}
 #undef CS_OLD
 #undef CS_NEW
 #undef CS_LEN
@@ -33271,7 +33298,7 @@ static const char *const shard_units[] = {
     "x64legs", "synctel", "yuv-border", "texture-alpha", "dither-init",
     "sec-persp", "sec-only", "dst-1555-4444", "zoff-tfog",
     "stipple-fast", "lanegap-expectedfail", "gpu-carry", "gpu-r2d", "tex-keep",
-    "tex-batch", "tex-cache-store", "gpu-stage-modes"
+    "tex-batch", "tex-cache-store", "gpu-stage-modes", "gpu-cap-wake"
 };
 static char *selected_units;
 
@@ -34010,6 +34037,8 @@ main(int argc, char **argv)
         run_tex_batch();
     if (unit_selected("tex-cache-store"))
         run_tex_cache_store();
+    if (unit_selected("gpu-cap-wake"))
+        run_gpu_cap_wake();
     if (getenv("R128_LANEGAP"))
         if (unit_selected("lanegap-expectedfail"))
             run_lanegap_expectedfail();

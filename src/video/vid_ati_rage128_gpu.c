@@ -8434,9 +8434,20 @@ gpu_cap_thread(void *arg)
             break;
         /* A flush asks for grouping only once every command is captured
            (it caught up first), so this partition's spans are final. */
+        /* The store of grp_done (or done, below) and the load of
+           cap_waiting after it pair with the waiter's store of
+           cap_waiting and its load of the same counter, and each side
+           stores before it loads. Release and acquire let each load be
+           served before the same thread's store is visible to the other,
+           so both can read the old value: this thread sees no waiter, skips
+           the signal while the waiter sees the work unfinished and
+           sleeps, and nothing wakes it. All four accesses are
+           sequentially consistent, which puts them in one total order:
+           whichever store comes first is seen by the other side's load,
+           so either this thread signals or the waiter does not sleep. */
         if (gg != atomic_load_explicit(&pw->grp_done, memory_order_relaxed)) {
             gpu_part_group(g, pw);
-            atomic_store_explicit(&pw->grp_done, gg, memory_order_release);
+            atomic_store_explicit(&pw->grp_done, gg, memory_order_seq_cst);
             if (atomic_load_explicit(&g->cap_waiting, memory_order_seq_cst)) {
                 pthread_mutex_lock(&g->cap_mtx);
                 pthread_cond_signal(&g->cap_done_cv);
@@ -8454,7 +8465,7 @@ gpu_cap_thread(void *arg)
             atomic_store_explicit(&pw->prog,
                                   ((uint64_t) (pw->nsp - pw->base) << 32) | cnt,
                                   memory_order_release);
-            atomic_store_explicit(&pw->done, pub, memory_order_release);
+            atomic_store_explicit(&pw->done, pub, memory_order_seq_cst);
             if (atomic_load_explicit(&g->cap_waiting, memory_order_seq_cst)) {
                 pthread_mutex_lock(&g->cap_mtx);
                 pthread_cond_signal(&g->cap_done_cv);
@@ -8512,12 +8523,15 @@ gpu_cap_publish(r128_gpu_t *g)
     }
 }
 
-/* Have every partition captured every published command? */
+/* Have every partition captured every published command? The load is
+   sequentially consistent because a catch-up that sleeps calls this
+   after it stores cap_waiting, and a capture thread decides whether to
+   signal from the opposite pair (gpu_cap_thread). */
 static int
 gpu_cap_all_done(r128_gpu_t *g, uint64_t pub)
 {
     for (int w = 0; w < g->cap_nthr; w++)
-        if (atomic_load_explicit(&g->cw[w].done, memory_order_acquire) != pub)
+        if (atomic_load_explicit(&g->cw[w].done, memory_order_seq_cst) != pub)
             return 0;
     return 1;
 }
@@ -8723,12 +8737,16 @@ gpu_group_wait(r128_gpu_t *g)
         }
     }
     if (!all) {
+        /* cap_waiting set, then grp_done read: both sequentially
+           consistent, against the capture thread's store of grp_done
+           and read of cap_waiting (gpu_cap_thread), so a thread that
+           finishes now either is seen here or signals */
         pthread_mutex_lock(&g->cap_mtx);
         atomic_store_explicit(&g->cap_waiting, 1, memory_order_seq_cst);
         for (;;) {
             all = 1;
             for (int w = 0; w < g->cap_nthr; w++)
-                if (atomic_load_explicit(&g->cw[w].grp_done, memory_order_acquire) != gen)
+                if (atomic_load_explicit(&g->cw[w].grp_done, memory_order_seq_cst) != gen)
                     all = 0;
             if (all)
                 break;
