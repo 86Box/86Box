@@ -16,6 +16,13 @@
 
 add_library(vid OBJECT
 
+    # Rendition Vérité V1000
+    vid_verite.c
+    verite/core.c
+    verite/loader.c
+    verite/pixel.c
+    verite/risc.c
+
     # Video Core
     agpgart.c
     video.c
@@ -308,28 +315,4 @@ add_library(voodoo OBJECT
 
 if(NOT MSVC AND (ARCH STREQUAL "i386" OR ARCH STREQUAL "x86_64"))
     target_compile_options(voodoo PRIVATE "-msse2")
-endif()
-
-option(VERITE "Build the Rendition Verite V1000 (requires Rust 1.85+)" OFF)
-if(VERITE)
-    find_program(VERITE_RUSTC NAMES rustc REQUIRED)
-    set(verite_core "${CMAKE_CURRENT_BINARY_DIR}/${CMAKE_STATIC_LIBRARY_PREFIX}verite_core${CMAKE_STATIC_LIBRARY_SUFFIX}")
-    add_custom_command(OUTPUT "${verite_core}"
-        COMMAND "${VERITE_RUSTC}" --edition=2024 --crate-type=staticlib
-                --crate-name=verite_core -C opt-level=3 -C panic=abort
-                -o "${verite_core}" "${CMAKE_CURRENT_SOURCE_DIR}/verite/core.rs"
-        DEPENDS verite/core.rs verite/lle/mod.rs verite/lle/loader.rs
-                verite/lle/pixel.rs verite/lle/risc.rs
-        VERBATIM)
-    add_custom_target(verite_core_build DEPENDS "${verite_core}")
-    add_dependencies(86Box verite_core_build)
-    target_sources(vid PRIVATE vid_verite.c)
-    target_compile_definitions(vid PRIVATE USE_VERITE)
-    target_link_libraries(86Box "${verite_core}")
-    if(WIN32)
-        target_link_libraries(86Box userenv ws2_32 ntdll dbghelp bcrypt)
-    elseif(UNIX)
-        find_package(Threads REQUIRED)
-        target_link_libraries(86Box Threads::Threads ${CMAKE_DL_LIBS} m)
-    endif()
 endif()

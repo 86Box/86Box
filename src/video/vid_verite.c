@@ -568,12 +568,19 @@ static void *
 verite_init(const device_t *info)
 {
     verite_t *v = calloc(1, sizeof(*v));
+    if (!v)
+        return NULL;
+    v->core = verite_core_new();
+    if (!v->core) {
+        free(v);
+        return NULL;
+    }
     if (rom_init(&v->bios, VERITE_ROM, 0xc0000, ROM_SIZE, ROM_SIZE - 1, 0, MEM_MAPPING_EXTERNAL)) {
+        verite_core_free(v->core);
         free(v);
         return NULL;
     }
 
-    v->core   = verite_core_new();
     v->ramdac = device_add(&bt485_ramdac_device);
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &verite_timing);
     svga_init(info, &v->vga.svga, v, VRAM_SIZE, verite_recalctimings,

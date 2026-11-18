@@ -138,5 +138,15 @@ if(BUILD_TESTING)
     endif()
     add_test(NAME Voodoo.LodLog2 COMMAND voodoo_lod_log2_tests)
 
+    add_executable(verite_tests
+        vid_verite_test.c
+        ../../src/video/verite/core.c
+        ../../src/video/verite/loader.c
+    )
+    if(NOT MSVC)
+        target_link_libraries(verite_tests PRIVATE m)
+    endif()
+    add_test(NAME Verite.Core COMMAND verite_tests)
+
     add_subdirectory(rage128)
 endif()

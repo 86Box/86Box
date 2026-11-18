@@ -2,6 +2,9 @@
 #ifndef VIDEO_VERITE_CORE_H
 #define VIDEO_VERITE_CORE_H
 
+#include <stddef.h>
+#include <stdint.h>
+
 typedef struct verite_core verite_core;
 
 typedef struct verite_board {
