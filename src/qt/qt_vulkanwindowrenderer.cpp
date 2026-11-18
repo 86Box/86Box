@@ -1653,7 +1653,10 @@ VulkanWindowRenderer::initialize()
 #endif
                             shader->param_list.parameters = 0;
                             filter_chain_vk_opt_t vk{};
-                            vk.use_dynamic_rendering = 1;
+                            /* Render pass objects tell the driver the size of the output image. With dynamic rendering, Mesa's V3D
+                               driver (Raspberry Pi 5) can't tell whether a pass covers the whole image when its size isn't a
+                               multiple of the tile size, so it loads the image and clears it with a draw on every frame. */
+                            vk.use_dynamic_rendering = 0;
 #ifndef LIBRASHADER_STATIC
                             auto err = librashader_inst.vk_filter_chain_create(&shader->shader_preset, vk_dev, &vk, &filter_chain);
 #else
