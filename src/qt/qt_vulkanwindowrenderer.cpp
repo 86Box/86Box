@@ -185,6 +185,12 @@ VulkanWindowRenderer::VulkanWindowRenderer(QWidget *parent)
             list.push_back("VK_KHR_get_physical_device_properties2");
             vk_resources.vk_instance->setExtensions(list);
         }
+        /* Needed for VK_COLOR_SPACE_PASS_THROUGH_EXT. */
+        if (vk_resources.vk_instance->supportedExtensions().contains("VK_EXT_swapchain_colorspace")) {
+            auto list = vk_resources.vk_instance->extensions();
+            list.push_back("VK_EXT_swapchain_colorspace");
+            vk_resources.vk_instance->setExtensions(list);
+        }
         if (!vk_resources.vk_instance->create()) {
             vk_resources.vk_instance.reset();
             throw vulkan_init_error(tr("Failed to create Vulkan 1.3 instance."));
@@ -378,9 +384,11 @@ VulkanWindowRenderer::recreateSwapchain()
     fn_vkGetPhysicalDeviceSurfaceFormatsKHR(phys_device, window_surface, &format_count, surface_formats.data());
 #if defined __unix__ && !defined __HAIKU__
     bool passthrough_found = false;
+    /* VK_COLOR_SPACE_PASS_THROUGH_EXT is only valid with this extension enabled. */
+    bool colorspace_ext = vk_resources.vk_instance->extensions().contains("VK_EXT_swapchain_colorspace");
 
     for (auto& surface_format : surface_formats) {
-        if (surface_format.format == VK_FORMAT_B8G8R8A8_UNORM && surface_format.colorSpace == VK_COLOR_SPACE_PASS_THROUGH_EXT) {
+        if (colorspace_ext && surface_format.format == VK_FORMAT_B8G8R8A8_UNORM && surface_format.colorSpace == VK_COLOR_SPACE_PASS_THROUGH_EXT) {
             passthrough_found = true;
         }
     }
