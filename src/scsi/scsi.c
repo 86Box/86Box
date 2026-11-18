@@ -315,6 +315,9 @@ scsi_plan_check(void)
     int         net[NET_CARD_MAX];
     int         pccard[PCMCIA_SOCKETS];
 
+    for (int i = 0; i < NET_CARD_MAX; i++)
+        net[i] = net_cards_conf[i].device_num;
+
     for (int s = 0; s < PCMCIA_SOCKETS; s++)
         pccard[s] = pcmcia_enabled ? pcmcia_card_type[s] : 0;
 
