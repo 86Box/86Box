@@ -340,20 +340,23 @@ is_fifo(const verite_core *c, uint8_t field)
 }
 
 static bool
-fifo_wait(const verite_core *c, uint32_t ir)
+fifo_wait(const verite_core *c, uint8_t op, uint8_t d, uint8_t s2, uint8_t s1)
 {
-    uint8_t  op = ir >> 24, d = ir >> 16, s2 = ir >> 8, s1 = ir;
+    bool output_blocked = c->out_count >= OUT_FIFO && !(c->flag & 0x40000000);
+    /* No instruction checked here needs more than two input words or one output slot. */
+    if (c->in_count >= 2 && !output_blocked)
+        return false;
+
     unsigned pops      = 0;
     bool     out       = false;
-    bool     dest_fifo = resolve(c, d) == FIFO;
     if (op <= 0x0f || (op >= 0x40 && op <= 0x4d)) {
         pops = is_fifo(c, s2);
-        out  = op != 0x0e && dest_fifo;
+        out  = op != 0x0e;
     } else if (op == 0x4f) {
         pops = is_fifo(c, s2);
     } else if ((op >= 0x10 && op <= 0x1f) || (op >= 0x50 && op <= 0x5e)) {
         pops = is_fifo(c, s1) + (op != 0x52 && is_fifo(c, s2));
-        out  = op != 0x1e && dest_fifo;
+        out  = op != 0x1e;
     } else if (op == 0x5f || (op >= 0x78 && op <= 0x7f) || (op >= 0xd0 && op <= 0xd7)) {
         pops = is_fifo(c, s2) + is_fifo(c, s1);
     } else if ((op >= 0x20 && op <= 0x2f) || (op >= 0xd8 && op <= 0xdf)) {
@@ -362,13 +365,13 @@ fifo_wait(const verite_core *c, uint32_t ir)
         pops = is_fifo(c, s2 & ~1) + is_fifo(c, s1);
     } else if ((op >= 0x60 && op <= 0x65) || (op >= 0x6f && op <= 0x75)) {
         pops = is_fifo(c, s1);
-        out  = op >= 0x6f && dest_fifo;
+        out  = op >= 0x6f;
     } else if (op == 0x6b || op == 0x76 || op == 0x77) {
-        out = dest_fifo;
+        out = true;
     } else if (op >= 0xc0 && op <= 0xc3) {
         pops = is_fifo(c, s1);
     }
-    return pops > c->in_count || (out && c->out_count >= OUT_FIFO && !(c->flag & 0x40000000));
+    return pops > c->in_count || (output_blocked && out && resolve(c, d) == FIFO);
 }
 
 static void
@@ -589,9 +592,9 @@ execute_memory(verite_core *c, uint8_t op, uint8_t d, uint8_t s2, uint8_t s1,
 }
 
 static void
-execute(verite_core *c, uint32_t ir, uint32_t cur, verite_memory mem, verite_bus bus)
+execute(verite_core *c, uint32_t ir, uint8_t op, uint8_t d, uint8_t s2, uint8_t s1,
+        uint32_t cur, verite_memory mem, verite_bus bus)
 {
-    uint8_t  op = ir >> 24, d = ir >> 16, s2 = ir >> 8, s1 = ir;
     uint32_t link = relative(cur, 2);
     if (op <= 0x1f) {
         if (op == 0x0e || op == 0x1e) {
@@ -721,13 +724,17 @@ risc_step(verite_core *c, bool forced, uint32_t ir, verite_memory mem, verite_bu
     uint32_t cur = c->pc;
     if (!forced)
         ir = risc_fetch(c, cur, mem);
-    c->stalled = fifo_wait(c, ir);
+    uint8_t op = ir >> 24;
+    uint8_t d  = ir >> 16;
+    uint8_t s2 = ir >> 8;
+    uint8_t s1 = ir;
+    c->stalled = fifo_wait(c, op, d, s2, s1);
     if (c->stalled)
         return false;
     /* Branches change NPC, leaving the instruction in the delay slot at PC. */
     c->pc  = c->npc;
     c->npc = risc_next(c->npc);
     c->timer++;
-    execute(c, ir, cur, mem, bus);
+    execute(c, ir, op, d, s2, s1, cur, mem, bus);
     return true;
 }
