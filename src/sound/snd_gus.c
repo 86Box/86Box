@@ -186,6 +186,7 @@ typedef struct gus_t {
 
     pc_timer_t samp_timer;
     uint64_t   samp_latch;
+    uint64_t   samp_latch_cur; /* period the sample timer runs at */
 
     uint8_t *ram;
     uint8_t *rom;
@@ -2340,7 +2341,15 @@ gus_poll_wave(void *priv)
 
     gus_update(gus);
 
-    timer_advance_u64(&gus->samp_timer, gus->samp_latch);
+    /* The guest changes the period by changing the voice count. Re-phase the
+       timer then: on a period equal to the output rate, at a phase where both
+       timers are due on the same integer timestamp, they swap order on every
+       tick, which makes gus_update() write two samples, then none. */
+    if (gus->samp_latch != gus->samp_latch_cur) {
+        gus->samp_latch_cur = gus->samp_latch;
+        timer_advance_u64(&gus->samp_timer, sound_poll_offset_delay(&gus->samp_timer, gus->samp_latch));
+    } else
+        timer_advance_u64(&gus->samp_timer, gus->samp_latch);
 
     gus->out_l = gus->out_r = 0;
 

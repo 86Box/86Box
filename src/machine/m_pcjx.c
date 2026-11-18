@@ -1386,7 +1386,10 @@ pcjx_init(const machine_t *model, unsigned profile)
     if (dev->rtc_enabled)
         pcjx_clock_init(&dev->clock);
     sound_add_handler(pcjx_cassette_mix, dev);
-    timer_add(&dev->cassette_timer, pcjx_cassette_sample, dev, 1);
+    /* Start half a sample after the sound poll timer: timers due together swap
+       order on every tick, which makes the update write two samples, then none. */
+    timer_add(&dev->cassette_timer, pcjx_cassette_sample, dev, 0);
+    timer_set_delay_u64(&dev->cassette_timer, TIMER_USEC * 1000000 / SOUND_FREQ / 2);
     mem_mapping_disable(&ram_low_mapping);
     mem_mapping_disable(&ram_mid_mapping);
     mem_mapping_disable(&ram_high_mapping);

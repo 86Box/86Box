@@ -128,6 +128,9 @@ extern void sound_in_remove_handler(void (*put_buffer)(int16_t *buffer,
                                                         int len, void *priv),
                                     void *priv);
 
+struct pc_timer_t;
+extern uint64_t sound_poll_offset_delay(struct pc_timer_t *timer, uint64_t latch);
+
 extern void sound_in_start_input(void);
 extern void sound_in_stop_input(void);
 extern void sound_in_set_test_tone(double hz, double dbfs); /* automation "audio tone" */
