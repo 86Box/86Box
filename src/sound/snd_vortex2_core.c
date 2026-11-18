@@ -1929,20 +1929,21 @@ a3d_run(v2_chip_t *c)
 /* headphone preset is the same arithmetic with flat sections (sum     */
 /* 1.25), k = 0 and no XT, which makes it a plain gain.                */
 /*                                                                     */
-/* Level: 3D clicks in headphone mode came out +1.37 dB against native */
-/* clicks in the same recording (both gains tried, every octave). With */
-/* the mixer's 0x0a (x 1.25) on the canceller's outputs and the        */
-/* arithmetic above (x 1.25 for headphones) that leaves a factor of    */
-/* 0.75 in the 3D chain. Half of it is the slices' output shift        */
-/* (a3dprobe, see a3d_run); the remaining 1.5 has not been located and */
-/* is applied here.                                                    */
+/* Level (Confirmed, pathprobe on a real SQ2500, 2026-11-17): with the */
+/* driver's registers from test-suite run 4 a constant through a 3D    */
+/* slot read 2,273 at the slice (the slices' output shift, a3d_run),   */
+/* 2,841 at the canceller (x 1.25, headphones) and 2,663 at mixer 0    */
+/* (x 0.9375, the driver's 0x07), against 4,096 through the native     */
+/* path (mixer 6's 0x00, x 0.5): exactly this arithmetic, with nothing */
+/* added. An earlier factor of 0.75 here came from a hand calculation  */
+/* that took the canceller's mixer input as 0x0a and the native path   */
+/* as unity; it made 3D sound 3.5 dB too loud and is gone.             */
 /*                                                                     */
 /* The chip works in fixed point with error feedback; this is the same */
 /* arithmetic in floating point. The enable bit (bit 0 of 0x24660) is  */
 /* not modelled: the driver only drops it while loading a preset.      */
 /* ------------------------------------------------------------------ */
 
-#define XT_3D_LEVEL 1.5f
 
 static const uint32_t xt_block_base[4] = { 0x24200, 0x242b4, 0x24368, 0x2441c }; /* EQ L, EQ R, XT L, XT R */
 
@@ -2017,8 +2018,8 @@ xt_run(v2_chip_t *c)
         if (!x->delay[1])
             d[1] = e[1];
         x->dpos = (x->dpos + 1) & 31;
-        c->xt_out[0][n] = XT_3D_LEVEL * (e[0] + xt_block(x, 3, d[1]));
-        c->xt_out[1][n] = XT_3D_LEVEL * (e[1] + xt_block(x, 2, d[0]));
+        c->xt_out[0][n] = e[0] + xt_block(x, 3, d[1]);
+        c->xt_out[1][n] = e[1] + xt_block(x, 2, d[0]);
     }
     c->xt_done = 1;
 }
