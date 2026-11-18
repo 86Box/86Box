@@ -1058,14 +1058,14 @@ VulkanWindowRenderer::render()
     info.renderArea = { { 0, 0 }, curExtent };
     info.viewMask = 0;
     info.layerCount = 1;
-    fn_vkCmdBeginRendering(cmdBufs, &info);
 
+    /* Even an empty pass loads and stores the whole swapchain image on tiling GPUs. */
     if (qt_osd_needs_render()) {
+        fn_vkCmdBeginRendering(cmdBufs, &info);
         qt_osd_set_layout_scale_hint(osdLayoutScaleHint());
         qt_osd_render(width(), height(), devicePixelRatio(), (void*)cmdBufs);
+        fn_vkCmdEndRendering(cmdBufs);
     }
-
-    fn_vkCmdEndRendering(cmdBufs);
 
     if (monitors[r_monitor_index].mon_screenshots || monitors[r_monitor_index].mon_screenshots_clipboard) {
         const VkImageMemoryBarrier image3_memory_barrier {
