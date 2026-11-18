@@ -238,10 +238,11 @@ trace_time(const vortex2_t *dev)
 #define V2_FM_FILE  0x29900 /* 256 bytes: the packed register file */
 #define V2_FM_TRASH 0xd4    /* where registers the chip does not keep land */
 #define V2_IRQ_FMTIMER 0x40 /* set in IRQ_SOURCE when an unmasked timer ran out */
-/* Which control-word bit enables the FM decode is not settled: AU30DOS and
-   the Windows driver set bits 1 and 2 together (0x0118326e); one of them is
-   the FM decode and the other probably the Sound Blaster ports. */
-#define V2_CTRL_FM_EN 0x6
+/* Control-word bit 2 enables the FM decode (sbprobe fmbit: 388h answers
+   with bit 2 alone and stops with only bit 2 taken away; bits 1, 4, 19 and
+   24 do nothing to it). Bit 1, set with it by AU30DOS and the driver, is
+   probably the Sound Blaster ports, which this host does not forward. */
+#define V2_CTRL_FM_EN 0x4
 
 static uint8_t fm_read(uint16_t port, void *priv);
 static void    fm_write(uint16_t port, uint8_t val, void *priv);
