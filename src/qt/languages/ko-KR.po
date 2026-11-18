@@ -51,7 +51,7 @@ msgstr "상태 바 숨기기(&H)"
 msgid "Hide &toolbar"
 msgstr "도구 모음 숨기기(&T)"
 
-msgid "&Resizeable window"
+msgid "&Resizable window"
 msgstr "창 크기 조절 가능(&R)"
 
 msgid "R&emember size && position"
@@ -4330,7 +4330,7 @@ msgstr ""
 msgid "Caller ID between emulator instances (enable on both)"
 msgstr ""
 
-msgid "Caller ID sent when dialling (number,name)"
+msgid "Caller ID sent when dialing (number,name)"
 msgstr ""
 
 msgid "Network to guest queue limit (back-pressure)"

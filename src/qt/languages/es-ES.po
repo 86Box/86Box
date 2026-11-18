@@ -51,7 +51,7 @@ msgstr "&Ocultar barra de estado"
 msgid "Hide &toolbar"
 msgstr "Ocultar &barra de herramientas"
 
-msgid "&Resizeable window"
+msgid "&Resizable window"
 msgstr "Ven&tana redimensionable"
 
 msgid "R&emember size && position"
@@ -4262,7 +4262,7 @@ msgstr ""
 msgid "Caller ID between emulator instances (enable on both)"
 msgstr ""
 
-msgid "Caller ID sent when dialling (number,name)"
+msgid "Caller ID sent when dialing (number,name)"
 msgstr ""
 
 msgid "Network to guest queue limit (back-pressure)"

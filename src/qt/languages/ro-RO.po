@@ -53,7 +53,7 @@ msgstr "&Ascunde bara de stare"
 msgid "Hide &toolbar"
 msgstr "Ascunde &bara de unelte"
 
-msgid "&Resizeable window"
+msgid "&Resizable window"
 msgstr "&Fereastră redimensionabilă"
 
 msgid "R&emember size && position"
@@ -4369,7 +4369,7 @@ msgstr ""
 msgid "Caller ID between emulator instances (enable on both)"
 msgstr ""
 
-msgid "Caller ID sent when dialling (number,name)"
+msgid "Caller ID sent when dialing (number,name)"
 msgstr ""
 
 msgid "Network to guest queue limit (back-pressure)"

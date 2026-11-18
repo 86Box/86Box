@@ -52,7 +52,7 @@ msgstr "ステータス バーを隠す(&H)"
 msgid "Hide &toolbar"
 msgstr "ツール バーを隠す(&T)"
 
-msgid "&Resizeable window"
+msgid "&Resizable window"
 msgstr "ウィンドウのサイズを変更可能(&R)"
 
 msgid "R&emember size && position"
@@ -4255,7 +4255,7 @@ msgstr ""
 msgid "Caller ID between emulator instances (enable on both)"
 msgstr ""
 
-msgid "Caller ID sent when dialling (number,name)"
+msgid "Caller ID sent when dialing (number,name)"
 msgstr ""
 
 msgid "Network to guest queue limit (back-pressure)"

@@ -52,7 +52,7 @@ msgstr "隱藏狀態列(&H)"
 msgid "Hide &toolbar"
 msgstr "隱藏工具列(&T)"
 
-msgid "&Resizeable window"
+msgid "&Resizable window"
 msgstr "視窗大小可調(&R)"
 
 msgid "R&emember size && position"
@@ -4323,8 +4323,8 @@ msgstr "關閉 (僅與 +VDR=1)"
 msgid "Caller ID between emulator instances (enable on both)"
 msgstr "模擬器實例間呼叫者識別 (雙方皆啟用)"
 
-msgid "Caller ID sent when dialling (number,name)"
-msgstr "撥號時傳送呼叫者識別 (門號，名稱)"
+msgid "Caller ID sent when dialing (number,name)"
+msgstr "撥號時傳送呼叫者識別 (門號,名稱)"
 
 msgid "Network to guest queue limit (back-pressure)"
 msgstr "網路至客戶端佇列限制 (回壓機制)"

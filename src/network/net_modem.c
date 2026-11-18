@@ -5563,7 +5563,7 @@ static const device_config_t modem_config[] = {
     },
     {
         .name           = "caller_id_sent",
-        .description    = "Caller ID sent when dialling (number,name)",
+        .description    = "Caller ID sent when dialing (number,name)",
         .type           = CONFIG_STRING,
         .default_string = "5550100,86Box",
         .default_int    = 0,

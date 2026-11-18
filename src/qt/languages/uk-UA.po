@@ -53,7 +53,7 @@ msgstr "&Приховати рядок стану"
 msgid "Hide &toolbar"
 msgstr "&Приховати панель інструментів"
 
-msgid "&Resizeable window"
+msgid "&Resizable window"
 msgstr "&Змінний розмір вікна"
 
 msgid "R&emember size && position"
@@ -4335,8 +4335,8 @@ msgstr "Вимкнено (тільки коли +VDR=1)"
 msgid "Caller ID between emulator instances (enable on both)"
 msgstr "ID абонента між вікнами емулятора (увімкнути на обох)"
 
-msgid "Caller ID sent when dialling (number,name)"
-msgstr "ID абонента, відправлений при набору номера (номер, ім'я)"
+msgid "Caller ID sent when dialing (number,name)"
+msgstr "ID абонента, відправлений при набору номера (номер,ім'я)"
 
 msgid "Network to guest queue limit (back-pressure)"
 msgstr "Ліміт черги мережі до гостя (стримування навантаження)"

@@ -471,7 +471,7 @@
     <bool>true</bool>
    </property>
    <property name="text">
-    <string>&amp;Resizeable window</string>
+    <string>&amp;Resizable window</string>
    </property>
   </action>
   <action name="actionRemember_size_and_position">

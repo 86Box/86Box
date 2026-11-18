@@ -53,7 +53,7 @@ msgstr "&Sakrij statusni redak"
 msgid "Hide &toolbar"
 msgstr "&Sakrij alatni redak"
 
-msgid "&Resizeable window"
+msgid "&Resizable window"
 msgstr "&Prozor s promjenjivim veličinama"
 
 msgid "R&emember size && position"
@@ -4281,7 +4281,7 @@ msgstr ""
 msgid "Caller ID between emulator instances (enable on both)"
 msgstr ""
 
-msgid "Caller ID sent when dialling (number,name)"
+msgid "Caller ID sent when dialing (number,name)"
 msgstr ""
 
 msgid "Network to guest queue limit (back-pressure)"

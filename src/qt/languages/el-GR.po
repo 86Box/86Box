@@ -51,7 +51,7 @@ msgstr "&Απόκρυψη γραμμής κατάστασης"
 msgid "Hide &toolbar"
 msgstr "Απόκρυψη &γραμμής εργαλείων"
 
-msgid "&Resizeable window"
+msgid "&Resizable window"
 msgstr "&Προσαρμόσιμο παράθυρο"
 
 msgid "R&emember size && position"
@@ -4437,7 +4437,7 @@ msgstr ""
 msgid "Caller ID between emulator instances (enable on both)"
 msgstr ""
 
-msgid "Caller ID sent when dialling (number,name)"
+msgid "Caller ID sent when dialing (number,name)"
 msgstr ""
 
 msgid "Network to guest queue limit (back-pressure)"

@@ -54,6 +54,16 @@ msgid_plural "%n waiting"
 msgstr[0] "%n waiting"
 msgstr[1] "%n waiting"
 
+msgid "%n machine(s) active"
+msgid_plural "%n machines active"
+msgstr[0] "%n machine active"
+msgstr[1] "%n machines active"
+
+msgid " (+%n more)"
+msgid_plural " (+%n more)"
+msgstr[0] " (+%n more)"
+msgstr[1] " (+%n more)"
+
 msgid "%n machine(s) are currently active. Are you sure you want to exit the VM manager anyway?"
 msgid_plural "%n machines are currently active. Are you sure you want to exit the VM manager anyway?"
 msgstr[0] "%n machine is currently active. Are you sure you want to exit the VM manager anyway?"
@@ -150,3 +160,11 @@ msgstr "&Centre"
 
 msgid "4:3 Cen&ter"
 msgstr "4:3 Cen&tre"
+
+msgid "%n breakpoint(s), linear addresses:"
+msgid_plural "%n breakpoints, linear addresses:"
+msgstr[0] "%n breakpoint, linear addresses:"
+msgstr[1] "%n breakpoints, linear addresses:"
+
+msgid "Caller ID sent when dialing (number,name)"
+msgstr "Caller ID sent when dialling (number,name)"

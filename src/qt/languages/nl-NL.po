@@ -51,7 +51,7 @@ msgstr "&Statusbalk verbergen"
 msgid "Hide &toolbar"
 msgstr "&Toolbar verbergen"
 
-msgid "&Resizeable window"
+msgid "&Resizable window"
 msgstr "&Venster met aanpasbare grootte"
 
 msgid "R&emember size && position"
@@ -4376,7 +4376,7 @@ msgstr "Uit (alleen met +VDR=1)"
 msgid "Caller ID between emulator instances (enable on both)"
 msgstr "Beller-ID tussen emulatorinstanties (op beide inschakelen)"
 
-msgid "Caller ID sent when dialling (number,name)"
+msgid "Caller ID sent when dialing (number,name)"
 msgstr "Beller-ID verzenden bij het bellen (nummer,naam)"
 
 msgid "Network to guest queue limit (back-pressure)"

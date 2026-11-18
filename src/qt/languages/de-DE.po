@@ -51,7 +51,7 @@ msgstr "&Statusleiste ausblenden"
 msgid "Hide &toolbar"
 msgstr "&Werkzeugleiste ausblenden"
 
-msgid "&Resizeable window"
+msgid "&Resizable window"
 msgstr "G&rößenverstellbares Fenster"
 
 msgid "R&emember size && position"
@@ -4309,8 +4309,8 @@ msgstr "Aus (nur bei +VDR=1)"
 msgid "Caller ID between emulator instances (enable on both)"
 msgstr "Anrufer ID zwischen Emulatorinstanzen (auf beiden aktivieren)"
 
-msgid "Caller ID sent when dialling (number,name)"
-msgstr "Beim Wählen übermittelte Anrufer-ID (Nummer, Name)"
+msgid "Caller ID sent when dialing (number,name)"
+msgstr "Beim Wählen übermittelte Anrufer-ID (Nummer,Name)"
 
 msgid "Network to guest queue limit (back-pressure)"
 msgstr "Begrenzung der Netzwerk-zu-Gast-Warteschlange (back-pressure)"

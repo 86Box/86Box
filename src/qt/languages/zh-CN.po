@@ -52,7 +52,7 @@ msgstr "隐藏状态栏(&H)"
 msgid "Hide &toolbar"
 msgstr "隐藏工具栏(&T)"
 
-msgid "&Resizeable window"
+msgid "&Resizable window"
 msgstr "窗口大小可调(&R)"
 
 msgid "R&emember size && position"
@@ -4290,7 +4290,7 @@ msgstr ""
 msgid "Caller ID between emulator instances (enable on both)"
 msgstr ""
 
-msgid "Caller ID sent when dialling (number,name)"
+msgid "Caller ID sent when dialing (number,name)"
 msgstr ""
 
 msgid "Network to guest queue limit (back-pressure)"
