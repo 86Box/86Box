@@ -52,6 +52,10 @@
 #define WT_DSREG       0x0008 /* direct-stream bits, one per voice */
 #define WT_STEREO      0x0080 /* + (voice / 2) * 4 */
 #define WT_RUN         0x0180 /* + voice * 4 */
+#define WT_MRAMP       0x000c /* mute-ramp rate: added to a 32-bit phase each sample */
+#define WT_GMODE       0x0010 /* gain-mode bits, one per voice */
+#define WT_ARAMP       0x0014 /* attack-ramp rate, likewise */
+#define WT_MUTE        0x0100 /* + voice * 4: 1 starts a smooth mute */
 #define WT_PARM        0x0200 /* + voice * 0x10 + n * 4 */
 
 #define FIFO_WTCTRL    0x16000 /* + channel * 4, 64 channels */
@@ -202,6 +206,11 @@ typedef struct v2_wtv_t {
     int      fbyte;  /* cut-off byte the coefficient below was made for, -1 = none */
     float    fcoef;
     uint32_t nin;
+    int      ramp; /* the gain ramp under way: 3 attack, 6 mute, 0 none */
+    float    env;  /* attack: fraction of the target gain reached */
+    float    rate; /* per-sample step of the ramp under way */
+    float    mpos; /* mute: fraction of the starting level left */
+    float    mlvl; /* the voice's gain as it last played, where a mute starts from */
 } v2_wtv_t;
 
 typedef struct v2_a3d_t {
@@ -282,6 +291,9 @@ struct v2_chip_t {
     uint32_t log_clk_last; /* log clock: last 32-bit reading, and the wraps so far */
     uint64_t log_clk_wraps;
     uint32_t wt_routed[2]; /* voices whose own ADB source is routed somewhere */
+    uint32_t wt_aacc[2];   /* attack- and mute-ramp phase accumulators, per bank */
+    uint32_t wt_macc[2];
+    uint32_t wt_gmode[2];  /* gain-mode bits: 1 = the voice's gain ramp is done */
 
     int     xt_dirty;
     v2_xt_t xt;
@@ -1324,6 +1336,140 @@ wt_filter_set(v2_wtv_t *w, int f)
    pan 0, 0.7998 and 0.7873 at the driver's centre pan 0x3f. */
 #define WT_OWN_SCALE 0.7998f
 
+/* Gain states and ramps (PARM3 bits 23-21). Aureal's description, relayed
+   by the map's author, gives the attack and smooth-mute sequences; wtprobe
+   ramp timed them on a real SQ2500 (2026-11-17), reading the voice's output
+   and registers as they changed:
+     0  hard mute.  1, 4: silent, never leave by themselves.
+     2  attack_init: at the next 1/32 of the attack-ramp period the voice
+        goes to 3, and PARM0's gain byte (in attack mode: phase in bits 7-3,
+        slope in bits 2-0) takes that interval number as its phase.
+     3  attack: the gain rises linearly in amplitude from 0 to PARM1's gain
+        over (8 - slope) / 8 of the period (slope 7 is the fastest, 1/8;
+        measured 62.9, 125, 188, 250, 314, 372, 433 and 485 samples for
+        slopes 7 to 0 at the driver's rate, against 500 for the full
+        period), then the voice goes to 7, PARM0's gain byte takes PARM1's
+        and the voice's gain-mode bit is set. Written directly, 3 finishes
+        at once.
+     5  mute_init: entered when 1 is written to the voice's mute word (one
+        word per voice, as ALSA has it; a bit in voice 0's word did
+        nothing), which also sets both gain bytes to 0xff. At the next wrap
+        of the mute-ramp phase the voice goes to 6.
+     6  mute: the level falls linearly to 0 over one mute-ramp period, then
+        the voice goes to 0, its mute word clears and its gain-mode bit is
+        set.
+     7  play (interpolation) at PARM0's gain, or PARM1's if PARM1's bit 0
+        is clear (the driver always sets it).
+   Each period is 2^32 / rate samples, the rate added to a 32-bit phase each
+   sample: mute rates 0x20000000, 0x10000000, 0x08000000, 0x01000000 and
+   0x00100000 gave 8, 16, 32, 256 and 4096 samples, attack rates 0x01060000,
+   0x00830000, 0x00410000 and 0x00030000 at slope 4 gave 125, 250, 504 and
+   10,921, all as 2^32 / rate predicts. The driver writes 0x10000000 and
+   0x00830000 (16 samples and 10.4 ms) and uses only states 0 and 7, fading
+   by the gain byte itself; the ramps are for other drivers (DOS, MIDI). */
+static void
+wt_mute_write(v2_chip_t *c, int bank, int lv, uint32_t val)
+{
+    uint32_t a = bank * WT_BANK_STRIDE + WT_PARM + lv * 0x10;
+    if (!(val & 1))
+        return;
+    if (((R(a + 12) >> 21) & 7) == 0) {
+        /* already hard-muted: nothing to do */
+        R(bank * WT_BANK_STRIDE + WT_MUTE + lv * 4) = 0;
+        return;
+    }
+    R(a + 12) = (R(a + 12) & ~(7u << 21)) | (5u << 21);
+    R(a)      = R(a) | 0x00ff0000u;
+    R(a + 4)  = R(a + 4) | 0x00ff0000u;
+    c->wt_gmode[bank] &= ~(1u << lv);
+    c->wtv[bank * 32 + lv].ramp = 0;
+}
+
+/* One block of a voice's gain: fills g[] and moves the state machine. */
+static void
+wt_gain_run(v2_chip_t *c, int bank, int lv, float *g)
+{
+    uint32_t  bb   = bank * WT_BANK_STRIDE;
+    uint32_t  a    = bb + WT_PARM + lv * 0x10;
+    v2_wtv_t *w    = &c->wtv[bank * 32 + lv];
+    uint32_t  p3   = R(a + 12);
+    int       st   = (p3 >> 21) & 7, st0 = st;
+    uint32_t  ainc = R(bb + WT_ARAMP), minc = R(bb + WT_MRAMP);
+    uint32_t  aa   = c->wt_aacc[bank], ma = c->wt_macc[bank];
+
+    for (int n = 0; n < B; n++) {
+        uint32_t na = aa + ainc, nm = ma + minc;
+        switch (st) {
+            case 2:
+                g[n] = 0.0f;
+                if ((na >> 27) != (aa >> 27)) {
+                    int slope = (R(a) >> 16) & 7;
+                    st        = 3;
+                    w->ramp   = 3;
+                    w->env    = 0.0f;
+                    w->rate   = (float) ((double) ainc / 4294967296.0 * 8.0 / (8 - slope));
+                    R(a)      = (R(a) & ~0x00ff0000u) | ((((na >> 27) << 3) | slope) << 16);
+                    c->wt_gmode[bank] &= ~(1u << lv);
+                }
+                break;
+            case 3:
+                if (w->ramp == 3)
+                    w->env += w->rate;
+                if (w->ramp != 3 || w->env >= 1.0f) {
+                    w->env  = 1.0f;
+                    w->ramp = 0;
+                    st      = 7;
+                    R(a)    = (R(a) & ~0x00ff0000u) | (R(a + 4) & 0x00ff0000u);
+                    c->wt_gmode[bank] |= 1u << lv;
+                    g[n] = w->mlvl = wt_gain(R(a));
+                } else
+                    g[n] = w->mlvl = w->env * wt_gain(R(a + 4));
+                break;
+            case 5:
+                g[n] = w->mlvl;
+                if (nm < ma) {
+                    st      = 6;
+                    w->ramp = 6;
+                    w->mpos = 1.0f;
+                    w->rate = (float) ((double) minc / 4294967296.0);
+                    c->wt_gmode[bank] &= ~(1u << lv);
+                }
+                break;
+            case 6:
+                if (w->ramp != 6) {
+                    w->ramp = 6;
+                    w->mpos = 1.0f;
+                    w->rate = (float) ((double) minc / 4294967296.0);
+                }
+                w->mpos -= w->rate;
+                if (w->mpos <= 0.0f) {
+                    w->mpos = 0.0f;
+                    w->ramp = 0;
+                    w->mlvl = 0.0f;
+                    st      = 0;
+                    R(bb + WT_MUTE + lv * 4) = 0;
+                    c->wt_gmode[bank] |= 1u << lv;
+                }
+                g[n] = w->mlvl * w->mpos;
+                break;
+            case 7:
+                /* PARM1 bit 0 set (as the driver always writes it): PARM0's
+                   gain; clear: PARM1's (one pair of wtprobe ramp cases,
+                   PARM0's byte 0x04 and PARM1's 0xcf: silent, full). */
+                g[n] = w->mlvl = wt_gain((R(a + 4) & 1) ? R(a) : R(a + 4));
+                break;
+            default: /* 0, 1, 4 */
+                g[n] = w->mlvl = 0.0f;
+                w->ramp = 0;
+                break;
+        }
+        aa = na;
+        ma = nm;
+    }
+    if (st != st0)
+        R(a + 12) = (R(a + 12) & ~(7u << 21)) | ((uint32_t) st << 21);
+}
+
 static void
 wt_bank_run(v2_chip_t *c, int bank)
 {
@@ -1363,20 +1509,27 @@ wt_bank_run(v2_chip_t *c, int bank)
         int       v = bank * 32 + lv;
         v2_dma_t *d = &c->wt[v];
         v2_wtv_t *w = &c->wtv[v];
-        if (d->state == DMA_IDLE)
+        if (d->state == DMA_IDLE) {
+            /* a ramp still runs to its end on a stopped voice */
+            uint32_t st = (R(bb + WT_PARM + lv * 0x10 + 12) >> 21) & 7;
+            if (st == 2 || st == 3 || st == 5 || st == 6) {
+                float ge[B];
+                wt_gain_run(c, bank, lv, ge);
+            }
             continue;
+        }
         c->dbg |= 2;
         uint32_t p0   = R(bb + WT_PARM + lv * 0x10);
         uint32_t p3   = R(bb + WT_PARM + lv * 0x10 + 12);
         uint32_t rate = p0 & 0xffff;
         double   step = (double) wt_step(rate) / 65536.0;
         /* The base word alone sets the voice (see the header); the input
-           gain scales the sample ahead of the filter. Gain state (PARM3
-           bits 23-21), measured digitally (wtprobe state): 0, 1, 2 and 4
-           silent, 3 and 7 full, 5 and 6 0.812 of full; the driver uses 7
-           and 0. */
-        static const float wt_state_gain[8] = { 0.0f, 0.0f, 0.0f, 1.0f, 0.0f, 0.812f, 0.812f, 1.0f };
-        float    gl   = wt_state_gain[(p3 >> 21) & 7] * wt_gain(p0) * wt_gain_tab[p3 >> 24];
+           gain scales the sample ahead of the filter. The voice's own gain
+           and its state and ramps (above) are applied per sample, below. */
+        float    ge[B];
+        wt_gain_run(c, bank, lv, ge);
+        p0            = R(bb + WT_PARM + lv * 0x10);
+        float    gl   = wt_gain_tab[p3 >> 24];
         int      f    = (p0 >> 24) & 0xff;
         wt_filter_set(w, f);
         int      open = f >= 0xcf;
@@ -1419,6 +1572,9 @@ wt_bank_run(v2_chip_t *c, int bank)
             }
             y[n] = interp4(w->hist, (float) w->phase);
         }
+        int quiet = 1;
+        for (int n = 0; n < B; n++)
+            quiet &= ge[n] == 0.0f;
         if (!open) {
             const float F = w->fcoef;
             float       s0 = w->fs[0], s1 = w->fs[1], s2 = w->fs[2], s3 = w->fs[3];
@@ -1436,6 +1592,10 @@ wt_bank_run(v2_chip_t *c, int bank)
             w->fs[2] = s2;
             w->fs[3] = s3;
         }
+        if (quiet)
+            continue;
+        for (int n = 0; n < B; n++)
+            y[n] *= ge[n];
         if (dir)
             for (int n = 0; n < B; n++)
                 od[n] = y[n] * gl * WT_OWN_SCALE;
@@ -1449,6 +1609,8 @@ wt_bank_run(v2_chip_t *c, int bank)
                     o[n] += y[n] * gk;
             }
     }
+    c->wt_aacc[bank] += (uint32_t) B * R(bb + WT_ARAMP);
+    c->wt_macc[bank] += (uint32_t) B * R(bb + WT_MRAMP);
     c->wt_done[bank] = 1;
 }
 
@@ -1706,6 +1868,22 @@ a3d_run(v2_chip_t *c)
         c->a3d[s].active = 1;
         a3d_slot_run(c, s, c->a3d_out[(s >> 2) * 2], c->a3d_out[(s >> 2) * 2 + 1]);
     }
+    /* Each slice's outputs saturate at 16 bits and are then halved
+       (a3dprobe on a real SQ2500, 2026-11-17: with one source set up as the
+       driver's pass-through, one tap 0x7fff, gain 0x7fff, b0 0x4000, any
+       input x read back as x / 2 rounded toward zero, from 1 LSB to full
+       scale, both ears; with b0 0x7fff (2.0) a full-scale input read
+       16,383, so the clip comes before the shift. This is the one-bit
+       shift on the A3D outputs in the map's author's register map.) The
+       same run confirmed the arithmetic above: taps and gain Q15 with
+       0x8000 = -1, the filter's coefficients Q14 (b0 0x2000, 0x4000,
+       0x7fff = 0.5, 1, 2; a1 0x2000 a pole at 0.5), the delay in 1/512
+       sample with linear interpolation (0x80: 0.75 / 0.25), a tap's
+       index its delay in samples, and the targets' low half and the
+       currents' high half the left ear. */
+    for (int o = 0; o < 8; o++)
+        for (int n = 0; n < B; n++)
+            c->a3d_out[o][n] = 0.5f * clampf(c->a3d_out[o][n], -1.0f, 32767.0f / 32768.0f);
     c->a3d_done = 1;
 }
 
@@ -1741,15 +1919,16 @@ a3d_run(v2_chip_t *c)
 /* clicks in the same recording (both gains tried, every octave). With */
 /* the mixer's 0x0a (x 1.25) on the canceller's outputs and the        */
 /* arithmetic above (x 1.25 for headphones) that leaves a factor of    */
-/* 0.75 somewhere in the 3D chain, whose place is not known; it is     */
-/* applied here.                                                       */
+/* 0.75 in the 3D chain. Half of it is the slices' output shift        */
+/* (a3dprobe, see a3d_run); the remaining 1.5 has not been located and */
+/* is applied here.                                                    */
 /*                                                                     */
 /* The chip works in fixed point with error feedback; this is the same */
 /* arithmetic in floating point. The enable bit (bit 0 of 0x24660) is  */
 /* not modelled: the driver only drops it while loading a preset.      */
 /* ------------------------------------------------------------------ */
 
-#define XT_3D_LEVEL 0.75f
+#define XT_3D_LEVEL 1.5f
 
 static const uint32_t xt_block_base[4] = { 0x24200, 0x242b4, 0x24368, 0x2441c }; /* EQ L, EQ R, XT L, XT R */
 
@@ -2182,11 +2361,13 @@ v2_read(v2_chip_t *c, uint32_t addr)
                bits 8-10 and 6-7 vary with activity and are not modelled. */
             v = (R(IRQ_STAT) & ~1u) | 0x4200u | (c->irq_level ? 1 : 0);
             break;
-        case 0x00010:
-        case 0x00010 + WT_BANK_STRIDE:
-            /* Polled by the MIDI synthesiser about 100 times a second; the real
-               card returned all ones throughout run 12 (no hardware voices in use). */
-            v = 0xffffffffu;
+        case WT_GMODE:
+        case WT_GMODE + WT_BANK_STRIDE:
+            /* Gain-mode bits, one per voice: cleared when an attack or a
+               smooth mute starts, set when it ends (wtprobe ramp). Polled by
+               the MIDI synthesiser about 100 times a second; with no ramp
+               under way it reads all ones, as the real card did in run 12. */
+            v = c->wt_gmode[addr >> 15];
             break;
         case CODEC_CTRL:
             v = R(CODEC_CTRL) | 0x100; /* codec ready */
@@ -2256,6 +2437,10 @@ v2_write(v2_chip_t *c, uint32_t addr, uint32_t val)
             memset(d->frame, 0, sizeof(d->frame));
             memset(c->wtv[ch].hist, 0, sizeof(c->wtv[ch].hist));
         }
+        return;
+    }
+    if (addr < 2 * WT_BANK_STRIDE && (addr & (WT_BANK_STRIDE - 1)) >= WT_MUTE && (addr & (WT_BANK_STRIDE - 1)) < WT_MUTE + 32 * 4) {
+        wt_mute_write(c, addr >> 15, ((addr & (WT_BANK_STRIDE - 1)) - WT_MUTE) >> 2, val);
         return;
     }
     if (addr >= A3D_BASE && addr < A3D_END) {
@@ -2390,6 +2575,8 @@ v2_reset(v2_chip_t *c)
     memset(c->wtv, 0, sizeof(c->wtv));
     for (int i = 0; i < NR_WTDMA; i++)
         c->wtv[i].fbyte = -1;
+    c->wt_aacc[0] = c->wt_aacc[1] = c->wt_macc[0] = c->wt_macc[1] = 0;
+    c->wt_gmode[0] = c->wt_gmode[1] = 0xffffffffu;
     memset(c->a3d, 0, sizeof(c->a3d));
     memset(c->a3d_cur_dirty, 1, sizeof(c->a3d_cur_dirty));
     memset(c->a3d_tgt_dirty, 1, sizeof(c->a3d_tgt_dirty));
