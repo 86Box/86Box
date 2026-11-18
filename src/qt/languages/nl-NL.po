@@ -903,6 +903,9 @@ msgstr "%1 kon geen bruikbare ROM imagebestanden vinden.\n\n<a href=\"%2\">Downl
 msgid "(empty)"
 msgstr "(leeg)"
 
+msgid "(not available)"
+msgstr ""
+
 msgid "All files"
 msgstr "Alle bestanden"
 
@@ -4482,10 +4485,19 @@ msgstr ""
 msgid "&New USB flash drive…"
 msgstr ""
 
+msgid "unplugged"
+msgstr ""
+
 msgid "&Unplug"
 msgstr ""
 
 msgid "&Unplug %1"
+msgstr ""
+
+msgid "Plug in %1 (%2)"
+msgstr ""
+
+msgid "&Move %1 to"
 msgstr ""
 
 msgid "Size:"
@@ -4510,4 +4522,22 @@ msgid "Could not create %1."
 msgstr ""
 
 msgid "%1 already exists. Replace it?"
+msgstr ""
+
+msgid "USB port %1 (%2)"
+msgstr ""
+
+msgid "USB port"
+msgstr ""
+
+msgid "PCI card"
+msgstr ""
+
+msgid "hub"
+msgstr ""
+
+msgid "board"
+msgstr ""
+
+msgid "now in port %1"
 msgstr ""
