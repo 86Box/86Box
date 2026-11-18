@@ -1315,8 +1315,8 @@ wt_gain(uint32_t p)
    fitted, where a free coefficient per step comes out at 1.000-1.010 x
    the expanded byte. Codes 0xbf, 0xaf and 0x9f measured the same as
    0xc0, 0xb0 and 0xa0, which is the mantissa repeating. The feedback
-   word (PARM2 bits 31-16) adds resonance around the four stages; the
-   driver leaves it 0 and it is not modelled. */
+   word (PARM2 bits 31-16) adds resonance around the four stages (see
+   wt_bank_run); the driver leaves it 0. */
 static void
 wt_filter_set(v2_wtv_t *w, int f)
 {
@@ -1575,14 +1575,28 @@ wt_bank_run(v2_chip_t *c, int bank)
         int quiet = 1;
         for (int n = 0; n < B; n++)
             quiet &= ge[n] == 0.0f;
-        if (!open) {
-            const float F = w->fcoef;
+        /* Resonance: PARM2 bits 31-16 feed the last stage back to the
+           first, u = x - k * y[n-1], with k = (-word mod 2^16) / 2^14: 0 off,
+           0xffff almost 0, 0xc000 1, 0x8000 2, 0x0400 3.94 (wtprobe reso,
+           2026-11-17: a step through cut-offs 0xb0, 0xb8 and 0xc0 at 16
+           words fitted k within about 0.15 of this law, the shape of a
+           four-pole ladder). With the filter open the loop is a single
+           delay: k 0.5 (0xe000) gave 2/3 of the level, k 1 (0xc000) a
+           tone at half the sample rate, and k above 1 silence, which is
+           what this gives; any other loop that runs away is cleared. */
+        uint32_t fw = R(bb + WT_PARM + lv * 0x10 + 8) >> 16;
+        float    kr = (float) ((0x10000u - fw) & 0xffffu) / 16384.0f;
+        if (!open || kr != 0.0f) {
+            const float F  = w->fcoef > 1.0f ? 1.0f : w->fcoef;
             float       s0 = w->fs[0], s1 = w->fs[1], s2 = w->fs[2], s3 = w->fs[3];
             for (int n = 0; n < B; n++) {
-                s0 += F * (y[n] - s0);
+                float u = y[n] - kr * s3;
+                s0 += F * (u - s0);
                 s1 += F * (s0 - s1);
                 s2 += F * (s1 - s2);
                 s3 += F * (s2 - s3);
+                if (!(fabsf(s3) < 4.0f) || (open && kr > 1.0f))
+                    s0 = s1 = s2 = s3 = 0.0f;
                 y[n] = s3;
             }
             if (fabsf(s3) < 1e-20f && fabsf(s0) < 1e-20f)
