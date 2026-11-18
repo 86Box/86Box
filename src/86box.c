@@ -12,6 +12,7 @@
  *          Miran Grca, <mgrca8@gmail.com>
  *          Fred N. van Kempen, <decwiz@yahoo.com>
  *          Jasmine Iwanek, <jriwanek@gmail.com>
+ *          Marcos Alves
  *
  *          Copyright 2008-2020 Sarah Walker.
  *          Copyright 2016-2020 Miran Grca.
@@ -20,6 +21,7 @@
  *          Copyright 2021      dob205
  *          Copyright 2021      Andreas J. Reichel.
  *          Copyright 2021-2026 Jasmine Iwanek.
+ *          Copyright 2026      Marcos Alves.
  */
 #include <inttypes.h>
 #include <stdarg.h>
@@ -70,6 +72,7 @@
 #include <86box/isamem.h>
 #include <86box/isarom.h>
 #include <86box/isartc.h>
+#include <86box/pcmcia.h>
 #include <86box/lpt.h>
 #include <86box/serial.h>
 #include <86box/keyboard.h>
@@ -2045,6 +2048,9 @@ pc_reset_hard_init(void)
 
     /* Reset any ISA RTC cards. */
     isartc_reset();
+
+    /* The PC Card controller and its cards, if fitted. */
+    pcmcia_reset();
 
     /* Initialize the Voodoo cards here inorder to minimize
        the chances of the SCSI controller ending up on the bridge. */
