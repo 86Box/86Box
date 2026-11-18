@@ -904,7 +904,7 @@ msgid "(empty)"
 msgstr "(vazio)"
 
 msgid "(not available)"
-msgstr ""
+msgstr "(não disponível)"
 
 msgid "All files"
 msgstr "Todos os arquivos"
@@ -4409,7 +4409,7 @@ msgid "&New USB flash drive…"
 msgstr "&Novo disco flash USB…"
 
 msgid "unplugged"
-msgstr ""
+msgstr "desconectado"
 
 msgid "&Unplug"
 msgstr "&Desconectar"
@@ -4418,10 +4418,10 @@ msgid "&Unplug %1"
 msgstr "&Desconectar %1"
 
 msgid "Plug in %1 (%2)"
-msgstr ""
+msgstr "Conectar em %1 (%2)"
 
 msgid "&Move %1 to"
-msgstr ""
+msgstr "&Mover %1 para"
 
 msgid "Size:"
 msgstr "Tamanho:"
@@ -4448,19 +4448,19 @@ msgid "%1 already exists. Replace it?"
 msgstr "%1 já existe. Substituir?"
 
 msgid "USB port %1 (%2)"
-msgstr ""
+msgstr "Porta USB %1 (%2)"
 
 msgid "USB port"
-msgstr ""
+msgstr "Porta USB"
 
 msgid "PCI card"
-msgstr ""
+msgstr "Placa PCI"
 
 msgid "hub"
-msgstr ""
+msgstr "hub"
 
 msgid "board"
-msgstr ""
+msgstr "placa"
 
 msgid "now in port %1"
-msgstr ""
+msgstr "agora na porta %1"
