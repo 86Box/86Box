@@ -1241,12 +1241,12 @@ aic_update_irq(aic7xxx_t *dev)
    cleared and went on reading -- Windows 98's driver and this model spun
    on that pair a million times a second and the log ate the emulator.
 
-   It is the event that pauses, not the standing bit. A sequencer
+   Interrupts can set PAUSE when raised. A sequencer
    interrupt is the instruction that raises it, and it pauses every time
    even when the host has not cleared the last one; a SCSI interrupt is a
    condition, and pauses when it appears. A host that releases PAUSE with
-   the interrupt still standing gets its one instruction and a running
-   sequencer, as the book says: "When PAUSE is cleared, the Sequencer will
+   the interrupt still standing gets one instruction before the next
+   pause. The book says "When PAUSE is cleared, the Sequencer will
    always execute at least one instruction, even if some other event is
    active to pause the Sequencer." An earlier attempt held the sequencer
    for as long as INTSTAT had the bit, and an option ROM that never
@@ -5514,6 +5514,10 @@ aic_seq_run(aic7xxx_t *dev)
         last_pc = dev->pc;
 
         aic_seq_step(dev);
+
+        /* Reapply a pending pause after the instruction guaranteed on
+           unpause (e.g. NT's ARROW.SYS with SEQINT still set). */
+        aic_int_pause(dev, dev->intstat, 0);
 
         /* Single step: one instruction, and PAUSE sets itself again.
            This comes before the loop bookkeeping: a step that happens to
