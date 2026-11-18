@@ -615,7 +615,7 @@ VulkanWindowRenderer::finalize()
     if (!ensure_librashader_instance())
         goto clean_up_rest;
 #endif
-    for (unsigned int i = 0; i < shaderFilterChains.size(); i++)
+    for (unsigned int i = 0; i < shaderLibraFilterChains.size(); i++)
 #ifndef LIBRASHADER_STATIC
         librashader_inst.vk_filter_chain_free(&shaderLibraFilterChains[i]);
 #else
