@@ -39,6 +39,8 @@
 #include <86box/pci.h>
 #include <86box/sio.h>
 #include <86box/keyboard.h>
+#include <86box/nvr.h>
+#include <86box/acpi.h>
 #include <86box/kbc_test.h>
 
 #define STAT_PARITY        0x80
@@ -670,10 +672,16 @@ kbc_scan_aux_ps2(atkbc_t *dev)
 /* While whatever watches the lines has taken a channel over, the controller
    no longer inhibits that device: a byte the controller is not ready for
    (output buffer full or interface disabled) reaches the watcher and is lost
-   to the controller. */
+   to the controller.
+
+   In suspend to RAM the controller, which runs on the main power, has no
+   power at all, while the devices may run on standby power: whatever they
+   send reaches the watcher alone. */
 static void
 kbc_at_wire_takeover(atkbc_t *dev)
 {
+    const int unpowered = !!(acpi_sleeping & SUS_NVR);
+
     switch (dev->state) {
         default:
             /* The controller is talking to a device or outputting bytes of its own. */
@@ -686,9 +694,9 @@ kbc_at_wire_takeover(atkbc_t *dev)
     }
 
     for (int i = 0; i < 2; i++) {
-        if (!(dev->wire_takeover & (1 << i)) || (dev->ports[i] == NULL) || (dev->ports[i]->out_new == -1))
+        if ((!unpowered && !(dev->wire_takeover & (1 << i))) || (dev->ports[i] == NULL) || (dev->ports[i]->out_new == -1))
             continue;
-        if (!(dev->status & STAT_OFULL) && !(dev->mem[0x20] & (0x10 << i)))
+        if (!unpowered && !(dev->status & STAT_OFULL) && !(dev->mem[0x20] & (0x10 << i)))
             continue;
 
         kbc_at_log("ATkbc: %02X from channel %i taken over\n", dev->ports[i]->out_new & 0xff, i + 1);
@@ -707,7 +715,7 @@ kbc_at_poll_ps2(atkbc_t *dev)
     else if (dev->aux_delay > 0)
         dev->aux_delay--;
 
-    if (UNLIKELY(dev->wire_takeover))
+    if (UNLIKELY(dev->wire_takeover || (acpi_sleeping & SUS_NVR)))
         kbc_at_wire_takeover(dev);
 
     switch (dev->state) {

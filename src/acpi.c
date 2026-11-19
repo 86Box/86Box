@@ -1384,7 +1384,7 @@ acpi_reg_write_common_regs(UNUSED(int size), uint16_t addr, uint8_t val, void *p
                     dev->sleep_typ    = (val >> 2) & 7;
                     dev->sleep_flags  = sus_typ;
                     dev->wake_pending = 0;
-                    acpi_sleeping     = 1;
+                    acpi_sleeping     = sus_typ;
                     acpi_log("ACPI: sleeping (SLP_TYP %i)\n", dev->sleep_typ);
                 }
             }

@@ -215,8 +215,10 @@ extern int        acpi_rtc_status;
 extern atomic_int acpi_pwrbut_pressed;
 #endif
 extern int        acpi_enabled;
-/* Nonzero while the machine is in an ACPI sleeping state: pc_run() then calls
-   acpi_sleep_run() instead of running the CPU. */
+/* While the machine is in an ACPI sleeping state, that state's SUS_* flags,
+   and 0 otherwise: pc_run() then calls acpi_sleep_run() instead of running
+   the CPU. SUS_NVR marks suspend to RAM, where the main power (VCC) is off
+   and only the resume well and the devices on standby power still run. */
 extern int        acpi_sleeping;
 
 extern const device_t acpi_ali_device;
