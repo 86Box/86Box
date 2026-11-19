@@ -502,13 +502,15 @@ key_color(const pixel_engine *pe)
                                                : (color) { 0 };
 }
 
-static color
-texel(const pixel_engine *pe, int32_t x, int32_t y, verite_memory mem)
+static uint32_t
+texture_coord(int32_t coord, uint32_t mask, bool clamped)
 {
-    uint32_t tx  = pe->src_mode & SRC_U_CLAMP ? (uint32_t) clamp(x, pe->u_mask) : (uint32_t) x & pe->u_mask;
-    uint32_t ty  = pe->src_mode & SRC_V_CLAMP ? (uint32_t) clamp(y, pe->v_mask) : (uint32_t) y & pe->v_mask;
-    unsigned fmt = src_fmt(pe);
-    uint32_t row = pe->src_base + line_stride(pe->stride) * ty;
+    return clamped ? (uint32_t) clamp(coord, mask) : (uint32_t) coord & mask;
+}
+
+static color
+texel(const pixel_engine *pe, unsigned fmt, uint32_t row, uint32_t tx, verite_memory mem)
+{
     bool     bgr = !!(pe->src_mode & SRC_BGR), no_pad = !!(pe->src_mode & SRC_NO_PAD);
     if (fmt >= 8 && fmt <= 10) {
         uint32_t byte  = mem_read8(mem, row + tx / 2);
@@ -531,19 +533,21 @@ texel(const pixel_engine *pe, int32_t x, int32_t y, verite_memory mem)
 }
 
 static color
-sample_bilinear_565(const pixel_engine *pe, int32_t x, int32_t y, const int32_t weights[4], verite_memory mem)
+sample_bilinear_565(const uint32_t taps[4], const int32_t weights[4], bool no_pad)
 {
-    /* Each tap still clamps or wraps independently at the texture edge. */
-    uint32_t x0 = pe->src_mode & SRC_U_CLAMP ? (uint32_t) clamp(x, pe->u_mask) : (uint32_t) x & pe->u_mask;
-    uint32_t x1 = pe->src_mode & SRC_U_CLAMP ? (uint32_t) clamp(x + 1, pe->u_mask) : (uint32_t) (x + 1) & pe->u_mask;
-    uint32_t y0 = pe->src_mode & SRC_V_CLAMP ? (uint32_t) clamp(y, pe->v_mask) : (uint32_t) y & pe->v_mask;
-    uint32_t y1 = pe->src_mode & SRC_V_CLAMP ? (uint32_t) clamp(y + 1, pe->v_mask) : (uint32_t) (y + 1) & pe->v_mask;
-    uint32_t stride = line_stride(pe->stride);
-    uint32_t row0   = pe->src_base + stride * y0;
-    uint32_t row1   = pe->src_base + stride * y1;
-    uint32_t taps[] = { mem_read16(mem, row0 + 2 * x0), mem_read16(mem, row0 + 2 * x1),
-                        mem_read16(mem, row1 + 2 * x0), mem_read16(mem, row1 + 2 * x1) };
     color sum = { { 0, 0, 0, 255 } };
+    if (!no_pad) {
+        /* Expand each padded texel before filtering to preserve its rounding. */
+        for (unsigned i = 0; i < 4; i++) {
+            sum.channel[0] += widen(taps[i] >> 11, 5, false) * weights[i];
+            sum.channel[1] += widen(taps[i] >> 5, 6, false) * weights[i];
+            sum.channel[2] += widen(taps[i], 5, false) * weights[i];
+        }
+        for (unsigned i = 0; i < 3; i++)
+            sum.channel[i] = (sum.channel[i] + 32768) >> 16;
+        return sum;
+    }
+
     for (unsigned i = 0; i < 4; i++) {
         sum.channel[0] += (taps[i] >> 11) * weights[i];
         sum.channel[1] += ((taps[i] >> 5) & 63) * weights[i];
@@ -558,16 +562,37 @@ sample_bilinear_565(const pixel_engine *pe, int32_t x, int32_t y, const int32_t 
 static color
 sample(const pixel_engine *pe, int32_t u, int32_t v, verite_memory mem)
 {
-    int32_t tx = u >> 16, ty = v >> 16;
-    if (!(pe->src_mode & SRC_FILTER))
-        return texel(pe, tx, ty, mem);
+    uint32_t mode = pe->src_mode;
+    unsigned fmt  = src_fmt(pe);
+    int32_t  tx = u >> 16, ty = v >> 16;
+    uint32_t stride = line_stride(pe->stride);
+    uint32_t x0     = texture_coord(tx, pe->u_mask, mode & SRC_U_CLAMP);
+    uint32_t row0   = pe->src_base + stride * texture_coord(ty, pe->v_mask, mode & SRC_V_CLAMP);
+    if (!(mode & SRC_FILTER))
+        return texel(pe, fmt, row0, x0, mem);
+
+    /* Map each neighbor independently so a tap can wrap or clamp at an edge. */
+    uint32_t x1   = texture_coord(tx + 1, pe->u_mask, mode & SRC_U_CLAMP);
+    uint32_t row1 = pe->src_base + stride * texture_coord(ty + 1, pe->v_mask, mode & SRC_V_CLAMP);
     int32_t fu = (u >> 8) & 255, fv = (v >> 8) & 255;
     int32_t weights[] = { (256 - fu) * (256 - fv), fu * (256 - fv), (256 - fu) * fv, fu * fv };
-    if ((pe->src_mode & (SRC_NO_PAD | SRC_BGR | SRC_CHROMA)) == SRC_NO_PAD && src_fmt(pe) == 4)
-        return sample_bilinear_565(pe, tx, ty, weights, mem);
-    color   sum       = { 0 };
-    for (int tap = 0; tap < 4; tap++) {
-        color c = texel(pe, tx + (tap & 1), ty + (tap >> 1), mem);
+    if (fmt == 4 && !(mode & (SRC_BGR | SRC_CHROMA))) {
+        uint32_t taps[] = { mem_read16(mem, row0 + 2 * x0), mem_read16(mem, row0 + 2 * x1),
+                            mem_read16(mem, row1 + 2 * x0), mem_read16(mem, row1 + 2 * x1) };
+        return sample_bilinear_565(taps, weights, mode & SRC_NO_PAD);
+    }
+    if (fmt == 2 && !(mode & SRC_CHROMA)) {
+        int32_t intensity = mem_read8(mem, row0 + x0) * weights[0] + mem_read8(mem, row0 + x1) * weights[1]
+                          + mem_read8(mem, row1 + x0) * weights[2] + mem_read8(mem, row1 + x1) * weights[3];
+        intensity = (intensity + 32768) >> 16;
+        return (color) { { intensity, intensity, intensity, 255 } };
+    }
+
+    const uint32_t rows[] = { row0, row1 };
+    const uint32_t xs[]   = { x0, x1 };
+    color          sum    = { 0 };
+    for (unsigned tap = 0; tap < 4; tap++) {
+        color c = texel(pe, fmt, rows[tap >> 1], xs[tap & 1], mem);
         for (unsigned k = 0; k < 4; k++)
             sum.channel[k] += c.channel[k] * weights[tap];
     }

@@ -568,6 +568,50 @@ bilinear_unpadded_565(void)
     check_color(sample(&pe, 0x1c000, -0x8000, mem), 0, 252, 0, 255);
 }
 
+static void
+bilinear_matches_nearest_taps(void)
+{
+    uint8_t data[512];
+    uint32_t bits = 1;
+    for (unsigned i = 0; i < COUNT(data); i++) {
+        bits    = bits * 1664525U + 1013904223U;
+        data[i] = bits >> 24;
+    }
+    verite_memory mem = { data, sizeof(data) - 1 };
+    pixel_engine pe;
+    pixel_reset(&pe);
+    pe.src_base = sizeof(data) - 4;
+    pe.stride   = 0x14;
+    pe.u_mask = pe.v_mask = 3;
+    pe.chroma_mask = 0xff;
+
+    static const unsigned modes[] = { 0, 2, 4, 4 | SRC_NO_PAD, 4 | SRC_BGR,
+                                      4 | SRC_CHROMA, 2 | SRC_CHROMA, 5, 8, 13 };
+    static const int32_t coords[] = { -0x18000, -0x100, 0, 0x7000, 0x1ff00, 0x3e000, 0x51000 };
+    for (unsigned mode = 0; mode < COUNT(modes); mode++) {
+        for (unsigned edge = 0; edge < 4; edge++) {
+            pe.src_mode = modes[mode] | ((edge & 1) ? SRC_U_CLAMP : 0) | ((edge & 2) ? SRC_V_CLAMP : 0);
+            for (unsigned y = 0; y < COUNT(coords); y++) {
+                for (unsigned x = 0; x < COUNT(coords); x++) {
+                    int32_t u = coords[x], v = coords[y];
+                    int32_t fu = (u >> 8) & 255, fv = (v >> 8) & 255;
+                    int32_t u0 = (u >> 16) * 65536, v0 = (v >> 16) * 65536;
+                    color taps[] = { sample(&pe, u0, v0, mem), sample(&pe, u0 + 65536, v0, mem),
+                                     sample(&pe, u0, v0 + 65536, mem), sample(&pe, u0 + 65536, v0 + 65536, mem) };
+                    pe.src_mode |= SRC_FILTER;
+                    color filtered = sample(&pe, u, v, mem);
+                    pe.src_mode &= ~SRC_FILTER;
+                    for (unsigned k = 0; k < 4; k++) {
+                        int32_t top = taps[0].channel[k] * (256 - fu) + taps[1].channel[k] * fu;
+                        int32_t bot = taps[2].channel[k] * (256 - fu) + taps[3].channel[k] * fu;
+                        assert(filtered.channel[k] == (top * (256 - fv) + bot * fv + 32768) / 65536);
+                    }
+                }
+            }
+        }
+    }
+}
+
 #ifdef VERITE_JIT_X64
 static void
 jit_option(void)
@@ -733,7 +777,8 @@ main(void)
     dither_before_quantizing();
     copy_unpadded_565();
     bilinear_unpadded_565();
-    puts("29 Vérité regression cases passed");
+    bilinear_matches_nearest_taps();
+    puts("Vérité regression cases passed");
 #ifdef VERITE_JIT_X64
     jit_option();
     jit_differential();
