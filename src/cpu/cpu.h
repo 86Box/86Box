@@ -729,7 +729,9 @@ extern uint32_t _tr[8];
    effect on a hard reset. */
 extern int cpu_debug_regs_486;
 /* cpu_debug_regs_486 and an enabled breakpoint in DR7: the per-access checks
-   are made only while cpu_dr_armed (cpu_events) is set. */
+   are made only while cpu_dr_armed (cpu_events) is set, an execution or data
+   breakpoint, or cpu_dr_io_armed, an I/O breakpoint. */
+extern int  cpu_dr_io_armed;
 extern void cpu_dr7_update(void);
 
 /* For the Cyrix 6x86(MX) */

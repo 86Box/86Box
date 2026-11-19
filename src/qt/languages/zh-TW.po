@@ -451,6 +451,15 @@ msgstr "等待狀態 (WS):"
 msgid "MB"
 msgstr "MB"
 
+msgid "GB"
+msgstr ""
+
+msgid "%1 MB"
+msgstr ""
+
+msgid "%1 GB"
+msgstr ""
+
 msgid "Memory:"
 msgstr "記憶體:"
 
@@ -894,6 +903,9 @@ msgstr ""
 
 msgid "(empty)"
 msgstr "(空)"
+
+msgid "(not available)"
+msgstr ""
 
 msgid "All files"
 msgstr "所有檔案"
@@ -4408,4 +4420,67 @@ msgid "The folder or archive could not be read."
 msgstr ""
 
 msgid "Archives"
+msgstr ""
+
+msgid "New USB flash drive"
+msgstr ""
+
+msgid "&New USB flash drive…"
+msgstr ""
+
+msgid "unplugged"
+msgstr ""
+
+msgid "&Unplug"
+msgstr ""
+
+msgid "&Unplug %1"
+msgstr ""
+
+msgid "Plug in %1 (%2)"
+msgstr ""
+
+msgid "&Move %1 to"
+msgstr ""
+
+msgid "Size:"
+msgstr ""
+
+msgid "Custom size:"
+msgstr ""
+
+msgid "None (blank)"
+msgstr ""
+
+msgid "FAT16"
+msgstr ""
+
+msgid "FAT32"
+msgstr ""
+
+msgid "Format:"
+msgstr ""
+
+msgid "Could not create %1."
+msgstr ""
+
+msgid "%1 already exists. Replace it?"
+msgstr ""
+
+msgid "USB port %1 (%2)"
+msgstr ""
+
+msgid "USB port"
+msgstr ""
+
+msgid "PCI card"
+msgstr ""
+
+msgid "hub"
+msgstr ""
+
+msgid "board"
+msgstr ""
+
+msgid "now in port %1"
 msgstr ""

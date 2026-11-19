@@ -300,10 +300,10 @@ cpu_throttle_stall(int32_t ran)
     cycles -= stall;
 }
 
-/* Compiled blocks hold no debug-register checks. Data and I/O breakpoints can
-   fire on any access, so they still disable the recompiler outright; an
-   execution breakpoint only blocks the block covering it, and a block spans at
-   most two pages. Out of line, as it only runs with a breakpoint armed. */
+/* Compiled blocks hold no debug-register checks. Data breakpoints can fire on
+   any access, so they still disable the recompiler outright; an execution
+   breakpoint only blocks the block covering it, and a block spans at most two
+   pages. Out of line, as it only runs with a breakpoint armed. */
 static __attribute__((noinline)) int
 dr_blocks_cache(void)
 {
@@ -314,9 +314,17 @@ dr_blocks_cache(void)
         if (!((dr[7] >> (i << 1)) & 0x03))
             continue;
 
-        /* RW 00 is execution; DR0-3 and cs + pc are both linear. */
-        if ((dr[7] >> (16 + (i << 2))) & 0x03)
-            return 1;
+        /* RW 00 is execution; DR0-3 and cs + pc are both linear. An I/O
+           breakpoint (RW 10) needs nothing of the recompiled code: the port
+           access checks it, and the instruction ends the block (io_op_end). */
+        switch ((dr[7] >> (16 + (i << 2))) & 0x03) {
+            case 0x00:
+                break;
+            case 0x02:
+                continue;
+            default:
+                return 1;
+        }
 
         if (((dr[i] >> 12) == page) || ((dr[i] >> 12) == (page + 1)))
             return 1;
@@ -1031,6 +1039,9 @@ exec386_dynarec_dyn(const int dbg)
                 CPU_BLOCK_END();
             if ((cpu_state.flags & T_FLAG) || (trap == 2))
                 CPU_BLOCK_END();
+            /* An I/O breakpoint matched: #DB right after this instruction. */
+            if (trap & 4)
+                CPU_BLOCK_END();
             if (smi_line)
                 CPU_BLOCK_END();
             if (NMI_TAKEABLE())
@@ -1340,6 +1351,17 @@ exec386_dynarec_common(int32_t cycs, const int dbg)
                    last instruction executed. */
                 if (cpu_flush_pending == 1)
                     cpu_flush_pending++;
+                /* A port matched an I/O breakpoint: the instruction ended the
+                   block (io_op_trap), and #DB comes right after it, as the
+                   interpreted block does it (block_ended). Data and execution
+                   breakpoints keep the code interpreted (dr_blocks_cache()). */
+                if (dbg && (trap & 4) && !cpu_state.abrt && !new_ne) {
+                    flags_rebuild();
+                    trap            = 0;
+                    oldcs           = CS;
+                    cpu_state.oldpc = cpu_state.pc;
+                    x86_int(1);
+                }
             }
             /* Moved on by linked blocks, and by a TSC write (update_tsc_write()). */
             oldtsc = tsc_old;

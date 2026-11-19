@@ -50,6 +50,7 @@ uint32_t cr4;
 uint32_t dr[8];
 
 int cpu_debug_regs_486 = 0;
+int cpu_dr_io_armed    = 0;
 
 /* One cache line, read as two words by the block-to-block transfer */
 cpu_events_t cpu_events __attribute__((aligned(64)));
@@ -2161,11 +2162,27 @@ cpu_386_flags_rebuild(void)
    lookup tables, so every data access takes the slow path, which makes the
    check. The memory access macros and the effective-address fast path then
    need no test of their own, and cost nothing with the option off. The tables
-   are flushed as a breakpoint gets armed. */
+   are flushed as a breakpoint gets armed. An I/O breakpoint (R/W 10b) is
+   checked by the port access alone (io.c), so it arms cpu_dr_io_armed
+   instead and leaves memory accesses and recompiled code at full speed. */
 void
 cpu_dr7_update(void)
 {
-    int armed = cpu_debug_regs_486 && is386 && (dr[7] & 0xff);
+    int armed    = 0;
+    int io_armed = 0;
+
+    if (cpu_debug_regs_486 && is386) {
+        for (uint8_t i = 0; i < 4; i++) {
+            if (!((dr[7] >> (i << 1)) & 0x03))
+                continue;
+            if (((dr[7] >> (16 + (i << 2))) & 0x03) == 0x02)
+                io_armed = 1;
+            else
+                armed = 1;
+        }
+    }
+
+    cpu_dr_io_armed = io_armed;
 
     if (armed && !cpu_dr_armed) {
         cpu_dr_armed = 1;

@@ -73,7 +73,11 @@ struct media_archive_t {
 };
 
 /* A header that can be read past, or the end of what can be read. */
-#define HEADER_USABLE(ret) (((ret) == ARCHIVE_OK) || ((ret) == ARCHIVE_WARN) || ((ret) == ARCHIVE_FAILED))
+static int
+header_usable(int ret)
+{
+    return (ret == ARCHIVE_OK) || (ret == ARCHIVE_WARN) || (ret == ARCHIVE_FAILED);
+}
 
 /* Extensions handled as archives. Raw disk images are never matched, as
    libarchive would also read some of them (such as ISO 9660). */
@@ -456,7 +460,7 @@ list_cp_names(media_archive_t *archive, int cp, uint32_t *count)
     *count = 0;
     if (!a)
         return NULL;
-    while (HEADER_USABLE(ret = archive_read_next_header(a, &header))) {
+    while (header_usable(ret = archive_read_next_header(a, &header))) {
         if ((ret != ARCHIVE_FAILED) && !has_oem_names(a))
             break;
         if (*count >= size) {
@@ -508,7 +512,7 @@ media_archive_list(const char *path)
     struct archive_entry  *header;
     int                    ret;
     int                    stop = 0;
-    while (!stop && HEADER_USABLE(ret = archive_read_next_header(a, &header))) {
+    while (!stop && header_usable(ret = archive_read_next_header(a, &header))) {
         uint32_t       index = archive->headers++;
         if (index >= index_size) {
             index_size                     = index_size ? (index_size * 2) : 256;
@@ -641,7 +645,7 @@ media_archive_extract(media_archive_t *archive, media_archive_data_t callback, v
     int                   success = 0;
     while (index < archive->headers) {
         int ret = archive_read_next_header(a, &header);
-        if (!HEADER_USABLE(ret))
+        if (!header_usable(ret))
             break;
         media_archive_entry_t *entry = archive->by_index[index++];
         if (!entry)
@@ -676,7 +680,7 @@ media_archive_extract(media_archive_t *archive, media_archive_data_t callback, v
         archive_read_free(a);
         a = archive_start(archive, 437);
         uint32_t skipped = 0;
-        while (a && (skipped < index) && HEADER_USABLE(archive_read_next_header(a, &header)))
+        while (a && (skipped < index) && header_usable(archive_read_next_header(a, &header)))
             skipped++;
         if (skipped < index)
             break;

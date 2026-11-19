@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-18 07:12+0000\n"
+"PO-Revision-Date: 2026-11-18 18:28+0000\n"
 "Last-Translator: Broifonn_9 <molodchina812@gmail.com>\n"
 "Language-Team: Ukrainian <https://weblate.86box.net/projects/86box/86box/uk/>"
 "\n"
@@ -456,6 +456,15 @@ msgstr "Цикли очікування:"
 msgid "MB"
 msgstr "МБ"
 
+msgid "GB"
+msgstr ""
+
+msgid "%1 MB"
+msgstr ""
+
+msgid "%1 GB"
+msgstr ""
+
 msgid "Memory:"
 msgstr "Пам'ять:"
 
@@ -902,6 +911,9 @@ msgstr ""
 
 msgid "(empty)"
 msgstr "(порожньо)"
+
+msgid "(not available)"
+msgstr ""
 
 msgid "All files"
 msgstr "Всі файли"
@@ -4402,7 +4414,7 @@ msgstr ""
 "дисків."
 
 msgid "Mount folder as a temporary removable disk"
-msgstr ""
+msgstr "Підключити теку як тимчасовий з'ємний диск"
 
 msgid "Unable to mount folder or archive"
 msgstr "Не вдалося прикріпити теку або архів"
@@ -4423,4 +4435,67 @@ msgid "The folder or archive could not be read."
 msgstr ""
 
 msgid "Archives"
+msgstr ""
+
+msgid "New USB flash drive"
+msgstr ""
+
+msgid "&New USB flash drive…"
+msgstr ""
+
+msgid "unplugged"
+msgstr ""
+
+msgid "&Unplug"
+msgstr ""
+
+msgid "&Unplug %1"
+msgstr ""
+
+msgid "Plug in %1 (%2)"
+msgstr ""
+
+msgid "&Move %1 to"
+msgstr ""
+
+msgid "Size:"
+msgstr ""
+
+msgid "Custom size:"
+msgstr ""
+
+msgid "None (blank)"
+msgstr ""
+
+msgid "FAT16"
+msgstr ""
+
+msgid "FAT32"
+msgstr ""
+
+msgid "Format:"
+msgstr ""
+
+msgid "Could not create %1."
+msgstr ""
+
+msgid "%1 already exists. Replace it?"
+msgstr ""
+
+msgid "USB port %1 (%2)"
+msgstr ""
+
+msgid "USB port"
+msgstr ""
+
+msgid "PCI card"
+msgstr ""
+
+msgid "hub"
+msgstr ""
+
+msgid "board"
+msgstr ""
+
+msgid "now in port %1"
 msgstr ""
