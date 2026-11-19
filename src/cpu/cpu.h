@@ -60,6 +60,7 @@
 
 #define EM_FLAG    0x00004 /* in CR0 */
 #define WP_FLAG    0x10000 /* in CR0 */
+#define AM_FLAG    0x40000 /* in CR0 */
 
 #define CR4_VME    (1 << 0) /* Virtual 8086 Mode Extensions */
 #define CR4_PVI    (1 << 1) /* Protected-mode Virtual Interrupts */
@@ -625,6 +626,10 @@ extern uint64_t star;
 
 #define cr0                  cpu_state.CR0.l
 #define msw                  cpu_state.CR0.w
+/* Alignment checking is on: CR0.AM and EFLAGS.AC. A misaligned data access
+   then raises #AC at CPL 3 (Pentium Vol. 3, 14.17, Interrupt 17); the 386
+   has no AC flag, so this never holds on it. */
+#define CPU_AC_ARMED()       ((cr0 & AM_FLAG) && (cpu_state.eflags & AC_FLAG))
 extern uint32_t cr2;
 extern uint32_t cr3;
 extern uint32_t cr4;

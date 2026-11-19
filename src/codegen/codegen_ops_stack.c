@@ -709,12 +709,12 @@ popf_common(ir_data_t *ir, uint32_t op_pc, int is32)
 #ifndef CODEGEN_BACKEND_HAS_INT_UOPS
     return 0;
 #endif
-    /*Room for the register versions below (at most 9 of temp0, 16 of temp1,
-      16 of temp2, 11 of temp3, 2 of the flags registers) without passing
+    /*Room for the register versions below (at most 9 of temp0, 17 of temp1,
+      16 of temp2, 16 of temp3, 2 of the flags registers) without passing
       REG_VERSION_MAX, which only ends the block after the current
       instruction*/
-    if ((reg_last_version[IREG_GET_REG(IREG_temp0)] + 16 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_temp1)] + 16 > REG_VERSION_MAX) ||
-        (reg_last_version[IREG_GET_REG(IREG_temp2)] + 16 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_temp3)] + 16 > REG_VERSION_MAX) ||
+    if ((reg_last_version[IREG_GET_REG(IREG_temp0)] + 16 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_temp1)] + 20 > REG_VERSION_MAX) ||
+        (reg_last_version[IREG_GET_REG(IREG_temp2)] + 16 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_temp3)] + 20 > REG_VERSION_MAX) ||
         (reg_last_version[IREG_GET_REG(IREG_flags)] + 4 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_eflags)] + 4 > REG_VERSION_MAX) ||
         (reg_last_version[IREG_GET_REG(IREG_flags_op)] + 4 > REG_VERSION_MAX) || (reg_last_version[IREG_GET_REG(IREG_pc)] + 4 > REG_VERSION_MAX))
         return 0;
@@ -824,8 +824,9 @@ popf_common(ir_data_t *ir, uint32_t op_pc, int is32)
     uop_MOV(ir, IREG_flags, IREG_temp0_W);
     uop_MOV_IMM(ir, IREG_flags_op, FLAGS_UNKNOWN);
 
-    /*TF turned on, or IF set with an interrupt pending: the block ends with
-      the PC past the instruction*/
+    /*TF turned on, IF set with an interrupt pending, or (POPFD) AC set with
+      CR0.AM, alignment checking, which the loop interprets under: the block
+      ends with the PC past the instruction*/
     uop_XOR(ir, IREG_temp1, IREG_temp1, IREG_temp0);
     uop_AND(ir, IREG_temp1, IREG_temp1, IREG_temp0);
     uop_AND_IMM(ir, IREG_temp1, IREG_temp1, T_FLAG);
@@ -833,6 +834,15 @@ popf_common(ir_data_t *ir, uint32_t op_pc, int is32)
     uop_SHL_IMM(ir, IREG_temp2, IREG_temp2, 9);
     uop_AND(ir, IREG_temp2, IREG_temp2, IREG_temp0);
     uop_OR(ir, IREG_temp1, IREG_temp1, IREG_temp2);
+    if (is32 && (cpu_eflags_implemented() & AC_FLAG)) {
+        /*CR0.AM (bit 18) shifted onto AC (EFLAGS bit 18, bit 2 of the upper
+          word)*/
+        uop_MOV_REG_PTR(ir, IREG_temp3, &cr0);
+        uop_SHR_IMM(ir, IREG_temp3, IREG_temp3, 16);
+        uop_AND_IMM(ir, IREG_temp3, IREG_temp3, AC_FLAG);
+        uop_AND(ir, IREG_temp3_W, IREG_temp3_W, IREG_eflags);
+        uop_OR(ir, IREG_temp1, IREG_temp1, IREG_temp3);
+    }
     uop_MOV_IMM(ir, IREG_pc, op_pc);
     uop_TEST_SET(ir, IREG_temp1, IREG_temp1, UOP_CC_NZ);
     uop_CMP_IMM_JZ(ir, IREG_temp1, 1, codegen_exit_rout);
