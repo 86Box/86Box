@@ -697,7 +697,7 @@ codegen_link_block_changed(codeblock_t *block)
 #    if defined(__aarch64__) || defined(_M_ARM64)
     /*Its exits' slots may leave oldcs and oldcpl only for the code they were
       filled for*/
-    for (int c = 0; c < CODEGEN_LINK_SLOTS; c++) {
+    for (int c = 0; block->slots_used && (c < CODEGEN_LINK_SLOTS); c++) {
         codegen_link_slots[get_block_nr(block)][c].two_page &= 9;
 #        ifdef CODEGEN_BACKEND_HAS_LINK_SETS
         /*and the records kept in its sets, which the routine runs on too*/
@@ -728,6 +728,9 @@ codegen_link_block_changed(codeblock_t *block)
 static void
 link_slots_clear(codeblock_t *block)
 {
+    if (!block->slots_used)
+        return;
+    block->slots_used = 0;
 #    ifdef CODEGEN_BACKEND_HAS_LINK_SETS
     for (int c = 0; c < CODEGEN_LINK_SLOTS; c++)
         link_site_release(get_block_nr(block) * CODEGEN_LINK_SLOTS + c);
@@ -888,8 +891,9 @@ codegen_link_patch(codegen_link_slot_t *from, codeblock_t *block, uint32_t phys)
     /*One of a block's own slots, the block calling no C: CS and the CPL are
       as at the loop top when it exits (codegen_link_slot_t::two_page)*/
     if ((slot >= &codegen_link_slots[0][0]) && (slot < (&codegen_link_slots[0][0] + (size_t) BLOCK_SIZE * CODEGEN_LINK_SLOTS))) {
-        const codeblock_t *src = &codeblock[(slot - &codegen_link_slots[0][0]) / CODEGEN_LINK_SLOTS];
+        codeblock_t *src = &codeblock[(slot - &codegen_link_slots[0][0]) / CODEGEN_LINK_SLOTS];
 
+        src->slots_used = 1;
         if (!(src->flags & CODEBLOCK_CALLS_C))
             slot->two_page |= 2;
         if (!(src->flags & (CODEBLOCK_CALLS_C | CODEBLOCK_LINK_STATE))) {
@@ -1174,6 +1178,8 @@ codegen_init(void)
 #endif
 }
 
+uint32_t codeblock_chain[1 << CODEBLOCK_CHAIN_BITS];
+
 void
 codegen_reset(void)
 {
@@ -1200,6 +1206,7 @@ codegen_reset(void)
 
     memset(codeblock, 0, BLOCK_SIZE * sizeof(codeblock_t));
     memset(codeblock_hash, 0, HASH_SIZE * sizeof(uint32_t));
+    memset(codeblock_chain, 0, sizeof(codeblock_chain));
     mem_reset_page_blocks();
     block_chunk_lists_nr   = 0;
     block_chunk_lists_free = 0;
