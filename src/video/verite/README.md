@@ -5,8 +5,9 @@ an 86Box ROM search path. Select **Rendition Vérité V1000** as the video
 card on a PCI machine. The card emulates 4 MiB of VRAM.
 
 The Phoenix ROM runs on the guest x86 CPU. The RISC and pixel engine
-come from rust-dos's low-level Vérité implementation, including its
-synthetic RISC-side ROM and microcode loader. Native display timing
+come from rust-dos's low-level Vérité implementation. Creative 3D Blaster
+PCI CGL loaders require a dump of the card's RISC ROM and are currently
+unsupported. Native display timing
 uses the programmed CRTC totals and the pixel clock latched through the
 V1000's serial PLL port.
 

@@ -399,24 +399,6 @@ perspective_uses_previous_q(void)
 }
 
 static void
-rom_loader(void)
-{
-    uint32_t start = 0x3ff800;
-    fixture  f     = machine(NULL, 0, start);
-    for (unsigned i = 0; i < 6; i++)
-        mem_write32(f.mem, start + 4 * i, risc_fetch(f.core, 0xff010000 + 4 * i, f.mem));
-    run_core(&f);
-    assert(f.core->loader.active);
-    const uint32_t words[] = { 0x2000, 2, 0x11111111, HALT, 0x3000, 1, 7, 0, 0 };
-    for (unsigned i = 0; i < COUNT(words); i++)
-        write_io(&f, VIO_FIFO, 4, words[i]);
-    run_core(&f);
-    assert(!f.core->loader.active && f.core->halted && f.core->pc == 0x2004);
-    assert(mem_read32(f.mem, 0x2000) == 0x11111111 && mem_read32(f.mem, 0x3000) == 7);
-    done(&f);
-}
-
-static void
 palette_loader(void)
 {
     const uint32_t program[] = {
@@ -435,40 +417,6 @@ palette_loader(void)
     assert(f.writes[0].port == 0xb0 && f.writes[0].value == 5 && f.writes[0].len == 1);
     for (unsigned i = 0; i < COUNT(rgb); i++)
         assert(f.writes[i + 1].port == 0xb1 && f.writes[i + 1].value == rgb[i] && f.writes[i + 1].len == 1);
-    done(&f);
-}
-
-static void
-loader_key(bool keyed)
-{
-    fixture f = machine(NULL, 0, 0);
-    verite_loader_begin(f.core);
-    uint32_t expected[512];
-    uint8_t  key[128];
-    for (unsigned i = 0; i < COUNT(key); i++)
-        key[i] = (uint8_t) (i * 37 + 11) | 1;
-    for (unsigned i = 0; i < COUNT(expected); i++)
-        expected[i] = i % 7 == 0 ? 0x6c000200 : 0;
-
-    /* A short second section uses the key from the first one. */
-    for (unsigned section = 0; section < 2; section++) {
-        unsigned length = section ? 4 : COUNT(expected);
-        uint32_t addr   = section ? 0x3000 : 0x2000;
-        write_io(&f, VIO_FIFO, 4, addr);
-        write_io(&f, VIO_FIFO, 4, length);
-        for (unsigned i = 0; i < length; i++) {
-            uint32_t word = expected[i];
-            if (keyed) {
-                word = verite_bswap(word);
-                for (unsigned b = 0; b < 4; b++)
-                    word ^= (uint32_t) key[(4 * i + b) & 127] << (8 * b);
-            }
-            write_io(&f, VIO_FIFO, 4, word);
-            verite_loader_pump(f.core, f.mem);
-        }
-        for (unsigned i = 0; i < length; i++)
-            assert(mem_read32(f.mem, addr + 4 * i) == expected[i]);
-    }
     done(&f);
 }
 
@@ -759,10 +707,7 @@ main(void)
     texture_masks();
     perspective_uses_previous_q();
     perspective_division();
-    rom_loader();
     palette_loader();
-    loader_key(false);
-    loader_key(true);
     absolute_jumps();
     float_conversion();
     signed_products();

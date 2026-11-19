@@ -19,7 +19,6 @@ add_library(vid OBJECT
     # Rendition Vérité V1000
     vid_verite.c
     verite/core.c
-    verite/loader.c
     verite/pixel.c
     verite/risc.c
     verite/risc_jit_x64.c

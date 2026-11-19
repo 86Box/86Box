@@ -56,7 +56,6 @@ enum { IN_FIFO  = 32,
        OUT_FIFO = 8,
        ROM_SIZE = 128 * 1024 };
 #define RESET_PC    UINT32_C(0xfffffff0)
-#define LOADER_PORT UINT32_C(0xffe00ff8)
 #define LOCAL_END   UINT32_C(0x01000000)
 #define RISC_RA     254
 
@@ -148,18 +147,6 @@ typedef struct {
     uint8_t  swap;
 } verite_dma;
 
-typedef enum { LOADER_ADDRESS,
-               LOADER_LENGTH,
-               LOADER_WORDS } loader_state;
-typedef struct {
-    bool         active, has_start, keyed;
-    loader_state expect;
-    uint32_t     address, left, start;
-    uint32_t    *words;
-    size_t       count, capacity;
-    uint8_t      key[128];
-} verite_loader;
-
 struct verite_core {
     uint32_t      reg[256], pc, npc, flag, seg, seed, scale, seed_index, clip;
     uint32_t      timer, riscintr;
@@ -174,7 +161,6 @@ struct verite_core {
     uint8_t       regs[0x80];
     uint16_t      intr;
     verite_dma    dma;
-    verite_loader loader;
     uint8_t       rom[ROM_SIZE];
     uint64_t      last_ns;
     int64_t       credit;
@@ -260,10 +246,6 @@ risc_next(uint32_t addr)
 
 bool verite_pop_input(verite_core *core, uint32_t *value);
 void verite_push_output(verite_core *core, uint32_t value);
-void verite_loader_reset(verite_core *core);
-void verite_loader_begin(verite_core *core);
-void verite_loader_pump(verite_core *core, verite_memory mem);
-void verite_init_rom(verite_core *core);
 
 uint32_t risc_fetch(const verite_core *core, uint32_t addr, verite_memory mem);
 uint32_t risc_peek(const verite_core *core, uint8_t reg);

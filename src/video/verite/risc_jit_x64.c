@@ -786,8 +786,8 @@ risc_jit_run(verite_core *c, verite_memory mem, unsigned budget)
     if (limit < 2)
         return 0;
 
-    /* Validate once per entry for writes from the CPU, RISC, loader and
-       renderer. A native store can run only as the final instruction. */
+    /* Validate once per entry for writes from the CPU, RISC and renderer.
+       A native store can run only as the final instruction. */
     bool fast_memory = !c->slow_precharge && canonical_memory && mem.mask >= 7;
     bool match       = block->count && block->pc == pc && block->count <= limit && block->fast_memory == fast_memory;
     if (match && local) {

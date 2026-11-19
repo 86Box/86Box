@@ -47,7 +47,6 @@ core_reset(verite_core *c, bool hard)
     c->partial_mask                                       = 0;
     c->has_forced                                         = false;
     c->dma                                                = (verite_dma) { 0 };
-    verite_loader_reset(c);
     if (hard) {
         memset(c->regs, 0, sizeof(c->regs));
         memset(c->reg, 0, sizeof(c->reg));
@@ -65,7 +64,9 @@ verite_core_new(void)
 {
     verite_core *c = calloc(1, sizeof(*c));
     if (c) {
-        verite_init_rom(c);
+        /* Keep the reset vector and its delay slot until a RISC ROM is available. */
+        memset(c->rom, 0xff, sizeof(c->rom));
+        memcpy(c->rom + ROM_SIZE - 16, "\x68\xff\xff\xff\0\0\0\0", 8);
         core_reset(c, true);
     }
     return c;
@@ -75,7 +76,6 @@ void
 verite_core_free(verite_core *c)
 {
     if (c) {
-        verite_loader_reset(c);
         risc_jit_free(c);
         free(c->output);
         free(c);
@@ -136,8 +136,6 @@ verite_core_refresh(verite_core *c, unsigned cycles)
 static bool
 runnable(const verite_core *c)
 {
-    if (c->loader.active)
-        return c->in_count != 0;
     return !(core_byte(c, VIO_DEBUG) & (VDEBUG_SOFT_RESET | VDEBUG_HOLD)) && !c->halted && !c->stalled;
 }
 
@@ -308,11 +306,6 @@ run(verite_core *c, verite_memory mem, verite_bus bus, int64_t budget)
     while (used < budget && c->polls < POLLS) {
         if (c->dma.busy)
             dma_pump(c, bus);
-        if (c->loader.active) {
-            verite_loader_pump(c, mem);
-            if (c->loader.active)
-                break;
-        }
         if (!runnable(c))
             break;
         unsigned compiled = risc_jit_run(c, mem, (unsigned) (budget - used));

@@ -313,8 +313,6 @@ store(verite_core *c, uint32_t addr, uint32_t value, unsigned size, verite_memor
                 break;
         }
         c->drew = true;
-    } else if ((addr & ~7U) == LOADER_PORT) {
-        verite_loader_begin(c);
     } else if (addr >= BOARD_REGS && addr < PE_STATE) {
         unsigned io = 0x80 + ((addr - BOARD_REGS) >> 3);
         /* The RISC's writes to CRTC timing and control do not take effect. */
