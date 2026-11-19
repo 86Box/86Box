@@ -64,7 +64,7 @@ typedef struct w83977_t {
     void         *kbc;
     serial_t     *uart[2];
     lpt_t        *lpt;
-    int           panswout_lid;
+    uint32_t      panswout; /* W83977_PANSWOUT_*: what the board wires PANSWOUT# to. */
     uint8_t       kbwk_key[15];
     uint8_t       kbwk_shift[15];
     uint8_t       mswk_byte;
@@ -583,8 +583,12 @@ w83977_panswout(w83977_t *dev, uint8_t sts)
     dev->ld_regs[0x0a][0xe4] &= ~0x04;
     dev->ld_regs[0x0a][0xe3] |= sts;
 
-    if (dev->panswout_lid)
+    /* The pulse lasts 0.5 to 1 second (tWKUPW, p. 127), a power button
+       press well short of the four second override. */
+    if (dev->panswout & W83977_PANSWOUT_LID)
         acpi_gpe_event(ACPI_GPE_LID);
+    else if (dev->panswout & W83977_PANSWOUT_PWRBTN)
+        acpi_pwrbut_press();
 }
 
 /* The wake-up logic watches the keyboard and mouse lines (W83977EF-AW 8.6,
@@ -1440,7 +1444,7 @@ w83977_init(const device_t *info)
     }
 
     if ((dev->kbc != NULL) && (dev->type == W83977EF)) {
-        dev->panswout_lid = !!(info->local & W83977_PANSWOUT_LID);
+        dev->panswout = info->local & (W83977_PANSWOUT_LID | W83977_PANSWOUT_PWRBTN);
         kbc_at_set_wire_hook(dev->kbc, w83977_wire, dev);
     }
 
