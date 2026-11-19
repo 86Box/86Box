@@ -1332,9 +1332,12 @@ uhci_schedule_detect(uhci_t *dev)
     }
 }
 
-/* Power-on state. A chip reset and GRESET both land here: they differ only
-   in that GRESET also signals reset on the bus (UHCI 1.1 s2.1.1 bit 2,
-   p. 12 / PDF 18). */
+/* Power-on state. A chip reset and GRESET both land here: they differ in
+   that GRESET also signals reset on the bus (UHCI 1.1 s2.1.1 bit 2, p. 12
+   / PDF 18). FLBASEADD has no reset value in the PIIX4 data sheet (6.2.5),
+   and the SGI Visual Workstation firmware relies on that: it programs the
+   base once, then issues GRESET in the same init sequence before starting
+   controller, and never reloads it, so reset path shouldn't clear it. */
 static void
 uhci_power_on_reset(uhci_t *dev)
 {
@@ -1347,7 +1350,6 @@ uhci_power_on_reset(uhci_t *dev)
     dev->sts          = 0x0000;
     dev->intr         = 0x0000;
     dev->frnum        = 0x0000;
-    dev->flbaseadd    = 0x00000000;
     dev->sofmod       = 0x40;
     dev->int_ioc      = 0;
     dev->int_spd      = 0;
@@ -1365,11 +1367,11 @@ uhci_power_on_reset(uhci_t *dev)
     uhci_update_irq(dev);
 }
 
-/* HCRESET resets timers, counters and state machines (UHCI 1.1 s2.1.1
-   bit 1, p. 12 / PDF 18) and SOFMOD (s2.1.6, p. 15 / PDF 21); USBINTR and
-   FLBASEADD keep their values. Resetting each port's connect state machine
-   is a virtual disconnect: CCS, PE and LSDA clear, CSC and PEDC are set
-   where they changed, and the device is detected again shortly after. */
+/* HCRESET resets the timers, counters and state machines (PIIX4 6.2.7)
+   and SOFMOD (6.2.6), and touches bits 8 and 3:0 of PORTSC; USBINTR is
+   not among them. A port's connect state machine restarting is a virtual
+   disconnect: CCS, PE and LSDA clear, CSC and PEDC are set where they
+   changed, and the device is detected again shortly after. */
 static void
 uhci_hc_reset(uhci_t *dev)
 {
