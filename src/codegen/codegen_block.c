@@ -1054,7 +1054,7 @@ remove_from_block_list(codeblock_t *block, UNUSED(uint32_t pc))
             pb->next_free    = page_blocks_free;
             page_blocks_free = page->block;
             page->block      = 0;
-            mem_flush_write_page(block->phys, 0);
+            mem_write_page_uncoded(block->phys);
         }
     }
 
@@ -1076,7 +1076,7 @@ remove_from_block_list(codeblock_t *block, UNUSED(uint32_t pc))
         if (block->next_2)
             codeblock[block->next_2].prev_2 = BLOCK_INVALID;
         else
-            mem_flush_write_page(block->phys_2, 0);
+            mem_write_page_uncoded(block->phys_2);
     }
 }
 

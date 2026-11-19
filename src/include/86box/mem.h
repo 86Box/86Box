@@ -561,6 +561,7 @@ extern void mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page);
 extern void mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *page);
 extern void mem_write_raml_page(uint32_t addr, uint32_t val, page_t *page);
 extern void mem_flush_write_page(uint32_t addr, uint32_t virt);
+extern void mem_write_page_uncoded(uint32_t addr);
 
 extern void mem_reset_page_blocks(void);
 

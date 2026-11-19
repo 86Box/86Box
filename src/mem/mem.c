@@ -122,6 +122,11 @@ static uint64_t writelookup_used[4];
    form it leaves, which it would not change again. */
 static uint64_t writelookup_direct[1 << 14];
 static uint64_t writelookup_tracked[1 << 14];
+/* A bit for each 4 KiB page a page_lookup[] entry may point to, set where
+   one is made, so that mem_write_page_uncoded() goes through the entries
+   only for those. Unlike writelookup_tracked[], mem_flush_write_page()
+   leaves it set, as the entries it goes through point to the page then. */
+static uint64_t writelookup_paged[1 << 14];
 
 #define WL_TEST(map, pg)  ((map)[(pg) >> 6] & ((uint64_t) 1 << ((pg) & 63)))
 #define WL_SET(map, pg)   ((map)[(pg) >> 6] |= ((uint64_t) 1 << ((pg) & 63)))
@@ -882,6 +887,7 @@ mem_flush_write_page(uint32_t addr, UNUSED(uint32_t virt))
                 if ((writelookup2[writelookup[c]] != (uintptr_t) LOOKUP_INV) || (page_lookup[writelookup[c]] != NULL)) {
                     writelookup2[writelookup[c]] = LOOKUP_INV;
                     page_lookup[writelookup[c]]  = (page_t *) page_target;
+                    WL_SET(writelookup_paged, addr >> 12);
                 }
                 if (held >= 0) {
                     writelookup_held_page[held] = (page_t *) page_target;
@@ -895,6 +901,63 @@ mem_flush_write_page(uint32_t addr, UNUSED(uint32_t virt))
     WL_CLEAR(writelookup_tracked, addr >> 12);
     if (mem_ram_page != 0xffffffff)
         WL_CLEAR(writelookup_direct, mem_ram_page);
+}
+
+/* The page at addr has no block left in it. The entries a page holding
+   code has, tracked, go back to the form an entry made for it now has,
+   writing the page directly: mem_flush_write_page() keeps the translations
+   when the page's first block is compiled, but nothing else would change
+   them back, and every later write to the page would take the tracked path.
+   Entries held for ring 3 stay as they are. With code still in the page,
+   as the second page of a block, the entries are what mem_flush_write_page()
+   makes them. */
+void
+mem_write_page_uncoded(uint32_t addr)
+{
+    const page_t *page_target = &pages[addr >> 12];
+    uint8_t      *mem         = page_target->mem;
+    int           direct      = 0;
+    int           left        = 0;
+
+#ifdef USE_DYNAREC
+    if (page_target->block || page_target->block_2 || ((addr & ~0xfff) == recomp_page) || ((addr & ~0xfff) == recomp_page2)) {
+#else
+    if (page_target->block || page_target->block_2) {
+#endif
+        mem_flush_write_page(addr, 0);
+        return;
+    }
+    if (!WL_TEST(writelookup_paged, addr >> 12) || (mem == NULL) || (mem == page_ff) || cpu_dr_armed)
+        return;
+
+    for (int w = 0; w < 4; w++) {
+        uint64_t bits = writelookup_used[w];
+
+        while (bits) {
+            const int      c    = (w << 6) | __builtin_ctzll(bits);
+            const uint32_t virt = (uint32_t) writelookup[c];
+
+            bits &= bits - 1;
+            if ((writelookup[c] == (int) 0xffffffff) || (page_lookup[virt] != page_target))
+                continue;
+            if ((writelookup2[virt] != (uintptr_t) LOOKUP_INV) || (mem_held_num && (writelookup_held_at(virt) >= 0)) ||
+                GDBSTUB_WATCHED(virt << 12)) {
+                left = 1;
+                continue;
+            }
+            writelookup2[virt] = (uintptr_t) mem - ((uintptr_t) virt << 12);
+            page_lookup[virt]  = NULL;
+            direct             = 1;
+        }
+    }
+
+    if (direct) {
+        WL_SET(writelookup_direct, addr >> 12);
+        if ((mem >= ram) && ((size_t) (mem - ram) < ((size_t) mem_size << 10)))
+            WL_SET(writelookup_direct, (uint32_t) ((mem - ram) >> 12));
+    }
+    if (!left)
+        WL_CLEAR(writelookup_paged, addr >> 12);
 }
 
 #define mmutranslate_read(addr)  mmutranslatereal(addr, 0)
@@ -1422,6 +1485,7 @@ addwritelookup_remapped(uint32_t virt, uint32_t phys, uint32_t ram_addr)
 #endif
         pl = &pages[phys >> 12];
         WL_SET(writelookup_tracked, phys >> 12);
+        WL_SET(writelookup_paged, phys >> 12);
     } else {
         ptr = (uintptr_t) &ram[(uintptr_t) (ram_addr & ~0xFFF) - (uintptr_t) (virt & ~0xfff)];
         WL_SET(writelookup_direct, ram_addr >> 12);
