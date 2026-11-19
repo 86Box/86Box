@@ -60,6 +60,7 @@ extern "C" {
 #include <86box/rdisk.h>
 #include <86box/mo.h>
 #include <86box/scsi_tape.h>
+#include <86box/md.h>
 #include <86box/sound.h>
 #include <86box/ui.h>
 #include <86box/runctl.h>
@@ -410,6 +411,26 @@ MediaMenu::refresh(QMenu *parentMenu)
         menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Eject), tr("E&ject"), [this, i]() { tapeEject(i); });
         tapeMenus[i] = menu;
         tapeUpdateMenu(i);
+    });
+
+    mdMenus.clear();
+    MachineStatus::iterateMD([this, parentMenu](int i) {
+        auto *menu     = parentMenu->addMenu("");
+        QIcon img_icon = QIcon(":/settings/qt/icons/mo_image.ico");
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, New), tr("&New image…"), [this, i]() { mdNewImage(i); });
+        menu->addSeparator();
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Browse), tr("&Existing image…"), [this, i]() { mdSelectImage(i, false); });
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, WriteProtectedBrowse), tr("Existing image (&Write-protected)…"), [this, i]() { mdSelectImage(i, true); });
+        menu->addSeparator();
+        for (int slot = 0; slot < MAX_PREV_IMAGES; slot++) {
+            mdImageHistoryPos[slot] = menu->children().count();
+            menu->addAction(img_icon, tr("Image %1").arg(slot), [this, i, slot]() { mdReload(i, slot); })->setCheckable(false);
+        }
+        menu->addSeparator();
+        mdEjectPos = menu->children().count();
+        menu->addAction(getIconWithIndicator(img_icon, pixmap_size, QIcon::Normal, Eject), tr("E&ject"), [this, i]() { mdEject(i); });
+        mdMenus[i] = menu;
+        mdUpdateMenu(i);
     });
 
     netMenus.clear();
@@ -1134,6 +1155,25 @@ MediaMenu::updateImageHistory(int index, int slot, ui::MediaType type)
                 imageHistoryUpdatePos->setIcon(menu_icon);
             }
             break;
+        case ui::MediaType::Md:
+            if (!mdMenus.contains(index))
+                return;
+            menu                  = mdMenus[index];
+            children              = menu->children();
+            imageHistoryUpdatePos = dynamic_cast<QAction *>(children[mdImageHistoryPos[slot]]);
+            menu_icon             = QIcon(":/settings/qt/icons/mo_image.ico");
+            if (fn.left(5) == "wp://")
+                fi.setFile(fn.right(fn.length() - 5));
+            else
+                fi.setFile(fn);
+            if (!fi.fileName().isEmpty() && (fn.left(5) == "wp://")) {
+                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : "🔒 " + fn.right(fn.length() - 5);
+                imageHistoryUpdatePos->setIcon(getIconWithIndicator(menu_icon, pixmap_size, QIcon::Normal, WriteProtected));
+            } else {
+                menu_item_name = fi.fileName().isEmpty() ? tr("Reload previous image") : fn;
+                imageHistoryUpdatePos->setIcon(menu_icon);
+            }
+            break;
     }
 
 #ifndef Q_OS_MACOS
@@ -1826,6 +1866,143 @@ MediaMenu::tapeUpdateMenu(int i)
 }
 
 void
+MediaMenu::mdNewImage(int i)
+{
+    const QString filename = QFileDialog::getSaveFileName(parentWidget, tr("Create…"), getMediaOpenDirectory(),
+                                                          tr("MD DATA images") % util::DlgFilter({ "img" }));
+
+    if (filename.isEmpty())
+        return;
+
+    if (md_create_image(filename.toUtf8().constData()) != 0) {
+        QMessageBox::critical(parentWidget, tr("Unable to create image"), filename);
+        return;
+    }
+
+    mdMount(i, filename, false);
+}
+
+void
+MediaMenu::mdSelectImage(int i, bool wp)
+{
+    const auto filename = QFileDialog::getOpenFileName(
+        parentWidget,
+        QString(),
+        getMediaOpenDirectory(),
+        tr("MD DATA images") % util::DlgFilter({ "img" }) % tr("All files") % util::DlgFilter({ "*" }, true));
+
+    if (!filename.isEmpty())
+        mdMount(i, filename, wp);
+}
+
+void
+MediaMenu::mdMount(int i, const QString &filename, bool wp)
+{
+    const auto dev       = static_cast<md_t *>(md_drives[i].priv);
+    int        was_empty = md_is_empty(i);
+
+    if (dev == nullptr)
+        return;
+
+    md_disk_close(dev);
+    md_drives[i].read_only = wp;
+    if (!filename.isEmpty()) {
+        QByteArray filenameBytes = filename.toUtf8();
+
+        if (filename.left(5) == "wp://")
+            md_drives[i].read_only = 1;
+        else if (md_drives[i].read_only)
+            filenameBytes = QString::asprintf(R"(wp://%s)", filename.toUtf8().data()).toUtf8();
+
+        md_load(dev, filenameBytes.data(), 1);
+
+        /* Signal media change to the emulated machine. */
+        md_insert(dev);
+
+        /* The drive was previously empty, transition directly to UNIT ATTENTION. */
+        if (was_empty)
+            md_insert(dev);
+    }
+    mhm.addImageToHistory(i, ui::MediaType::Md, md_drives[i].prev_image_path, md_drives[i].image_path);
+
+    ui_sb_update_icon_state(SB_MD | i, md_drives[i].fp == nullptr);
+    mdUpdateMenu(i);
+    ui_sb_update_tip(SB_MD | i);
+
+    config_save();
+}
+
+void
+MediaMenu::mdEject(int i)
+{
+    const auto dev = static_cast<md_t *>(md_drives[i].priv);
+
+    if (dev == nullptr)
+        return;
+
+    mhm.addImageToHistory(i, ui::MediaType::Md, md_drives[i].image_path, QString());
+    md_disk_close(dev);
+    md_drives[i].image_path[0] = 0;
+    if (md_drives[i].bus_type) {
+        /* Signal disk change to the emulated machine. */
+        md_insert(dev);
+    }
+
+    ui_sb_update_icon_state(SB_MD | i, 1);
+    mdUpdateMenu(i);
+    ui_sb_update_tip(SB_MD | i);
+    config_save();
+}
+
+void
+MediaMenu::mdReloadPrev(int i)
+{
+    const auto dev = static_cast<md_t *>(md_drives[i].priv);
+
+    if (dev == nullptr)
+        return;
+
+    md_disk_reload(dev);
+    ui_sb_update_icon_state(SB_MD | i, strlen(md_drives[i].image_path) == 0);
+    ui_sb_update_icon_wp(SB_MD | i, md_drives[i].read_only);
+
+    mdUpdateMenu(i);
+    ui_sb_update_tip(SB_MD | i);
+
+    config_save();
+}
+
+void
+MediaMenu::mdReload(int index, int slot)
+{
+    const QString filename = mhm.getImageForSlot(index, slot, ui::MediaType::Md);
+    mdMount(index, filename, false);
+    mdUpdateMenu(index);
+    ui_sb_update_tip(SB_MD | index);
+}
+
+void
+MediaMenu::mdUpdateMenu(int i)
+{
+    QString   name = md_drives[i].image_path;
+    QFileInfo fi(md_drives[i].image_path);
+    if (!mdMenus.contains(i))
+        return;
+    auto *menu   = mdMenus[i];
+    auto  childs = menu->children();
+
+    auto *ejectMenu = dynamic_cast<QAction *>(childs[mdEjectPos]);
+    ejectMenu->setEnabled(!name.isEmpty());
+    ejectMenu->setText(name.isEmpty() ? tr("E&ject") : tr("E&ject %1").arg(fi.fileName()));
+
+    menu->setTitle(tr("&MD DATA %1 (%2): %3").arg(QString::number(i + 1), "SCSI", name.isEmpty() ? tr("(empty)") : name));
+    menu->setToolTip(tr("MD DATA %1 (%2): %3").arg(QString::number(i + 1), "SCSI", name.isEmpty() ? tr("(empty)") : name));
+
+    for (int slot = 0; slot < MAX_PREV_IMAGES; slot++)
+        updateImageHistory(i, slot, ui::MediaType::Md);
+}
+
+void
 MediaMenu::nicConnect(int i)
 {
     network_connect(i, 1);
@@ -2269,6 +2446,24 @@ void
 tape_reload(uint8_t id)
 {
     MediaMenu::ptr->tapeReloadPrev(id);
+}
+
+void
+md_eject(uint8_t id)
+{
+    MediaMenu::ptr->mdEject(id);
+}
+
+void
+md_mount(uint8_t id, char *fn, uint8_t wp)
+{
+    MediaMenu::ptr->mdMount(id, QString(fn), wp);
+}
+
+void
+md_reload(uint8_t id)
+{
+    MediaMenu::ptr->mdReloadPrev(id);
 }
 }
 
