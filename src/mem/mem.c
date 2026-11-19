@@ -106,6 +106,27 @@ uintptr_t readlookup2[2097152] = { 0 };
 static uint8_t readlookup_fetch[1048576];
 uintptr_t writelookup2[1048576] = { 0 };
 
+/* A bit for each writelookup[] slot that may be in use, so that
+   mem_flush_write_page() visits only those: the table is mostly empty while
+   code is being rewritten. Set when a slot is filled; a slot emptied
+   elsewhere keeps its bit until mem_flush_write_page() or a flush of the
+   whole table finds it empty. */
+static uint64_t writelookup_used[4];
+
+/* A bit for each 4 KiB page that mem_flush_write_page() may find an entry
+   to change for: writelookup_direct[] by the RAM page a writelookup2[] or
+   held pointer writes, set where such a pointer is made, and
+   writelookup_tracked[] by the page a page_lookup[] or held page entry
+   points to. Every such pointer or entry made since mem_flush_write_page()
+   last went through the page has its bit; one it went through is in the
+   form it leaves, which it would not change again. */
+static uint64_t writelookup_direct[1 << 14];
+static uint64_t writelookup_tracked[1 << 14];
+
+#define WL_TEST(map, pg)  ((map)[(pg) >> 6] & ((uint64_t) 1 << ((pg) & 63)))
+#define WL_SET(map, pg)   ((map)[(pg) >> 6] |= ((uint64_t) 1 << ((pg) & 63)))
+#define WL_CLEAR(map, pg) ((map)[(pg) >> 6] &= ~((uint64_t) 1 << ((pg) & 63)))
+
 
 uint32_t mem_logical_addr;
 
@@ -285,6 +306,7 @@ resetreadlookup(void)
         if (c < 256)
             writelookup[c] = 0xffffffff;
     }
+    memset(writelookup_used, 0, sizeof(writelookup_used));
 
     /* Initialize the tables for high (> 1024K) RAM. */
     memset(readlookup2, 0xff, (2 << 20) * sizeof(uintptr_t));
@@ -704,6 +726,7 @@ flush_write_lookup(void)
             writelookup[c]               = 0xffffffff;
         }
     }
+    memset(writelookup_used, 0, sizeof(writelookup_used));
     writel_used = 0;
     writelnext  = 0;
     mem_held_lock_drop();
@@ -814,11 +837,27 @@ mem_flush_write_page(uint32_t addr, UNUSED(uint32_t virt))
     const page_t *page_target = &pages[addr >> 12];
     /* Where the page is stored, if not at ram[addr] (remapped RAM). */
     const uint8_t *mem        = ((page_target->mem != NULL) && (page_target->mem != page_ff)) ? page_target->mem : NULL;
+    uint32_t       mem_ram_page = 0xffffffff;
 
     mmut_hit_w = (uintptr_t) LOOKUP_INV;
 
-    for (uint16_t c = 0; c < 256; c++) {
-        if (writelookup[c] != (int) 0xffffffff) {
+    if ((mem != NULL) && (mem >= ram) && ((size_t) (mem - ram) < ((size_t) mem_size << 10)))
+        mem_ram_page = (uint32_t) ((mem - ram) >> 12);
+    if (!WL_TEST(writelookup_direct, addr >> 12) && !WL_TEST(writelookup_tracked, addr >> 12) &&
+        ((mem_ram_page == 0xffffffff) || !WL_TEST(writelookup_direct, mem_ram_page)))
+        return;
+
+    for (int w = 0; w < 4; w++) {
+        uint64_t bits = writelookup_used[w];
+
+        while (bits) {
+            int c = (w << 6) | __builtin_ctzll(bits);
+
+            bits &= bits - 1;
+            if (writelookup[c] == (int) 0xffffffff) {
+                writelookup_used[w] &= ~((uint64_t) 1 << (c & 63));
+                continue;
+            }
             /* Match every virtual alias of the physical page, not only the
                one being compiled, as each holds its own RAM offset. */
             uintptr_t     virt_page = (uintptr_t) (uint32_t) writelookup[c] << 12;
@@ -851,6 +890,11 @@ mem_flush_write_page(uint32_t addr, UNUSED(uint32_t virt))
             }
         }
     }
+
+    WL_CLEAR(writelookup_direct, addr >> 12);
+    WL_CLEAR(writelookup_tracked, addr >> 12);
+    if (mem_ram_page != 0xffffffff)
+        WL_CLEAR(writelookup_direct, mem_ram_page);
 }
 
 #define mmutranslate_read(addr)  mmutranslatereal(addr, 0)
@@ -1375,8 +1419,11 @@ addwritelookup_remapped(uint32_t virt, uint32_t phys, uint32_t ram_addr)
     if (pages[phys >> 12].block || pages[phys >> 12].block_2) {
 #endif
         pl = &pages[phys >> 12];
-    } else
+        WL_SET(writelookup_tracked, phys >> 12);
+    } else {
         ptr = (uintptr_t) &ram[(uintptr_t) (ram_addr & ~0xFFF) - (uintptr_t) (virt & ~0xfff)];
+        WL_SET(writelookup_direct, ram_addr >> 12);
+    }
 
     /* Held when the page's own walk says ring 3 may not write it. */
     if (cpl_override && (CPL == 3) && mmu_walk_denies(virt, 6)) {
@@ -1406,6 +1453,7 @@ addwritelookup_remapped(uint32_t virt, uint32_t phys, uint32_t ram_addr)
             writelookup_ring0[writelookup_ring0_num] = writelnext;
         writelookup_ring0_num++;
     }
+    writelookup_used[writelnext >> 6] |= (uint64_t) 1 << (writelnext & 63);
     writelookup[writelnext++] = virt >> 12;
     writelnext &= (cachesize - 1);
     if (writel_used < cachesize)
@@ -3436,17 +3484,17 @@ page_remove_from_evict_list(page_t *page)
     purgeable_page_count--;
 }
 
+/* An unchanged value marks nothing dirty, also while a block is compiled: the
+   compile pass fetches each instruction before running it, so a block that
+   stores into its own code was compiled from the bytes the store leaves,
+   unless the store changed them, which marks them. */
 void
 mem_write_ramb_page(uint32_t addr, uint8_t val, page_t *page)
 {
     if (page == NULL)
         return;
 
-#    ifdef USE_DYNAREC
-    if ((page->mem == NULL) || (page->mem == page_ff) || (val != page->mem[addr & 0xfff]) || codegen_in_recompile) {
-#    else
     if ((page->mem == NULL) || (page->mem == page_ff) || (val != page->mem[addr & 0xfff])) {
-#    endif
         uint64_t mask        = (uint64_t) 1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
         int      byte_offset = (addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
         uint64_t byte_mask   = (uint64_t) 1 << (addr & PAGE_BYTE_MASK_MASK);
@@ -3467,11 +3515,7 @@ mem_write_ramw_page(uint32_t addr, uint16_t val, page_t *page)
     if (page == NULL)
         return;
 
-#    ifdef USE_DYNAREC
-    if ((page->mem == NULL) || (page->mem == page_ff) || (val != *(uint16_t *) &page->mem[addr & 0xfff]) || codegen_in_recompile) {
-#    else
     if ((page->mem == NULL) || (page->mem == page_ff) || (val != *(uint16_t *) &page->mem[addr & 0xfff])) {
-#    endif
         uint64_t mask        = (uint64_t) 1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
         int      byte_offset = (addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
         uint64_t byte_mask   = (uint64_t) 1 << (addr & PAGE_BYTE_MASK_MASK);
@@ -3502,11 +3546,7 @@ mem_write_raml_page(uint32_t addr, uint32_t val, page_t *page)
     if (page == NULL)
         return;
 
-#    ifdef USE_DYNAREC
-    if ((page->mem == NULL) || (page->mem == page_ff) || (val != *(uint32_t *) &page->mem[addr & 0xfff]) || codegen_in_recompile) {
-#    else
     if ((page->mem == NULL) || (page->mem == page_ff) || (val != *(uint32_t *) &page->mem[addr & 0xfff])) {
-#    endif
         uint64_t mask        = (uint64_t) 1 << ((addr >> PAGE_MASK_SHIFT) & PAGE_MASK_MASK);
         int      byte_offset = (addr >> PAGE_BYTE_MASK_SHIFT) & PAGE_BYTE_MASK_OFFSET_MASK;
         uint64_t byte_mask   = (uint64_t) 0xf << (addr & PAGE_BYTE_MASK_MASK);
