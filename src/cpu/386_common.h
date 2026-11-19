@@ -30,6 +30,9 @@
 #    define readmemw_n2(s, a, b)    readmemwl_no_mmut_2386((s) + (a), b)
 #    define readmeml_n2(s, a, b)    readmemll_no_mmut_2386((s) + (a), b)
 #    define readmemb(s, a)          readmembl_2386((s) + (a))
+#    define readmemb_ea(s, a)       readmembl_2386((s) + (a))
+#    define readmemw_ea(s, a)       readmemwl_2386((s) + (a))
+#    define readmeml_ea(s, a)       readmemll_2386((s) + (a))
 #    define readmemw(s, a)          readmemwl_2386((s) + (a))
 #    define readmeml(s, a)          readmemll_2386((s) + (a))
 #    define readmemq(s, a)          readmemql_2386((s) + (a))
@@ -56,86 +59,192 @@
 /* No test for debug register breakpoints is needed on the fast paths: while
    one is armed no page is entered into the lookup tables, so every access
    takes the slow path, which makes the check (cpu_dr7_update()). */
-#    define readmemb_n(s, a, b)  ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF)) ? readmembl_no_mmut((s) + (a), b) : *(uint8_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))))
-#    define readmemw_n(s, a, b)  ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) ? readmemwl_no_mmut((s) + (a), b) : *(uint16_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uint32_t) ((s) + (a))))
-#    define readmeml_n(s, a, b)  ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) ? readmemll_no_mmut((s) + (a), b) : *(uint32_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uint32_t) ((s) + (a))))
-#    define readmemb_n2(s, a, b) ((readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF)) ? readmembl_no_mmut((s) + (a), b) : *(uint8_t *) (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] + (uintptr_t) ((s) + (a))))
-#    define readmemw_n2(s, a, b) ((readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) ? readmemwl_no_mmut((s) + (a), b) : *(uint16_t *) (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] + (uint32_t) ((s) + (a))))
-#    define readmeml_n2(s, a, b) ((readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) ? readmemll_no_mmut((s) + (a), b) : *(uint32_t *) (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] + (uint32_t) ((s) + (a))))
-#    define readmemb(s, a)       ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF)) ? readmembl((s) + (a)) : *(uint8_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))))
-#    define readmemw(s, a)       ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) ? readmemwl((s) + (a)) : *(uint16_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uint32_t) ((s) + (a))))
-#    define readmeml(s, a)       ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) ? readmemll((s) + (a)) : *(uint32_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uint32_t) ((s) + (a))))
-#    define readmemq(s, a)       ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 7)) ? readmemql((s) + (a)) : *(uint64_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))))
+#    define readmemb_n(s, a, b)  mmut_readb(mmut_hit_r, 0, s, a, b)
+#    define readmemw_n(s, a, b)  mmut_readw(mmut_hit_r, 0, s, a, b)
+#    define readmeml_n(s, a, b)  mmut_readl(mmut_hit_r, 0, s, a, b)
+#    define readmemb_n2(s, a, b) mmut_readb(mmut_hit_r2, 1048576, s, a, b)
+#    define readmemw_n2(s, a, b) mmut_readw(mmut_hit_r2, 1048576, s, a, b)
+#    define readmeml_n2(s, a, b) mmut_readl(mmut_hit_r2, 1048576, s, a, b)
+#    define readmemb(s, a)       ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF)) ? (((s) == 0xFFFFFFFF) ? readmembl_nh : readmembl)((s) + (a)) : *(uint8_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))))
+#    define readmemw(s, a)       ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) ? (((s) == 0xFFFFFFFF) ? readmemwl_nh : readmemwl)((s) + (a)) : *(uint16_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uint32_t) ((s) + (a))))
+#    define readmeml(s, a)       ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) ? (((s) == 0xFFFFFFFF) ? readmemll_nh : readmemll)((s) + (a)) : *(uint32_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uint32_t) ((s) + (a))))
+#    define readmemq(s, a)       ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 7)) ? (((s) == 0xFFFFFFFF) ? readmemql_nh : readmemql)((s) + (a)) : *(uint64_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))))
+/* The same for geteab() and its like, which had no operand pointer to use:
+   the call says so. */
+#    define readmemb_ea(s, a)    ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF)) ? (((s) == 0xFFFFFFFF) ? readmembl_nh : readmembl_eam)((s) + (a)) : *(uint8_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))))
+#    define readmemw_ea(s, a)    ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) ? (((s) == 0xFFFFFFFF) ? readmemwl_nh : readmemwl_eam)((s) + (a)) : *(uint16_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uint32_t) ((s) + (a))))
+#    define readmeml_ea(s, a)    ((readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) ? (((s) == 0xFFFFFFFF) ? readmemll_nh : readmemll_eam)((s) + (a)) : *(uint32_t *) (readlookup2[(uint32_t) ((s) + (a)) >> 12] + (uint32_t) ((s) + (a))))
 
-#    define writememb_n(s, a, b, v)                                                                    \
-        if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF)) \
-            writemembl_no_mmut((s) + (a), b, v);                                                       \
-        else                                                                                           \
-            *(uint8_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
-#    define writememw_n(s, a, b, v)                                                                                         \
-        if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) \
-            writememwl_no_mmut((s) + (a), b, v);                                                                            \
-        else                                                                                                                \
-            *(uint16_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
-#    define writememl_n(s, a, b, v)                                                                                         \
-        if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) \
-            writememll_no_mmut((s) + (a), b, v);                                                                            \
-        else                                                                                                                \
-            *(uint32_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
+#    define writememb_n(s, a, b, v) mmut_writeb(s, a, b, v)
+#    define writememw_n(s, a, b, v) mmut_writew(s, a, b, v)
+#    define writememl_n(s, a, b, v) mmut_writel(s, a, b, v)
 #    define writememb(s, a, v)                                                                         \
         if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || (s) == 0xFFFFFFFF) \
-            writemembl((s) + (a), v);                                                                  \
+            (((s) == 0xFFFFFFFF) ? writemembl_nh : writemembl)((s) + (a), v);                                                                  \
         else                                                                                           \
             *(uint8_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
 #    define writememw(s, a, v)                                                                                              \
         if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) \
-            writememwl((s) + (a), v);                                                                                       \
+            (((s) == 0xFFFFFFFF) ? writememwl_nh : writememwl)((s) + (a), v);                                                                                       \
         else                                                                                                                \
             *(uint16_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
 #    define writememl(s, a, v)                                                                                              \
         if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) \
-            writememll((s) + (a), v);                                                                                       \
+            (((s) == 0xFFFFFFFF) ? writememll_nh : writememll)((s) + (a), v);                                                                                       \
         else                                                                                                                \
             *(uint32_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
 #    define writememq(s, a, v)                                                                                              \
         if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 7)) \
-            writememql((s) + (a), v);                                                                                       \
+            (((s) == 0xFFFFFFFF) ? writememql_nh : writememql)((s) + (a), v);                                                                                       \
         else                                                                                                                \
             *(uint64_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
+/* The same for seteab() and its like when fetch_ea left no operand pointer:
+   the call says so. */
+#    define writememb_ea(s, a, v)                                                                      \
+        if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || (s) == 0xFFFFFFFF) \
+            (((s) == 0xFFFFFFFF) ? writemembl_nh : writemembl_eam)((s) + (a), v);                       \
+        else                                                                                           \
+            *(uint8_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
+#    define writememw_ea(s, a, v)                                                                                           \
+        if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1)) \
+            (((s) == 0xFFFFFFFF) ? writememwl_nh : writememwl_eam)((s) + (a), v);                                            \
+        else                                                                                                                \
+            *(uint16_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
+#    define writememl_ea(s, a, v)                                                                                           \
+        if (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3)) \
+            (((s) == 0xFFFFFFFF) ? writememll_nh : writememll_eam)((s) + (a), v);                                            \
+        else                                                                                                                \
+            *(uint32_t *) (writelookup2[(uint32_t) ((s) + (a)) >> 12] + (uintptr_t) ((s) + (a))) = v
 
 /* With paging off and no debug register breakpoint armed, do_mmutranslate()
    has nothing to do: the _no_mmut accessors only read the addresses it fills
    in while paging is on. */
 #    define do_mmut_needed() ((cr0 >> 31) || cpu_dr_armed)
 
-#    define do_mmut_rb(s, a, b)                                                                                           \
-        if (do_mmut_needed() && (readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF))) \
-        do_mmutranslate((s) + (a), b, 1, 0)
-#    define do_mmut_rw(s, a, b)                                                                                                                  \
-        if (do_mmut_needed() && (readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1))) \
-        do_mmutranslate((s) + (a), b, 2, 0)
-#    define do_mmut_rl(s, a, b)                                                                                                                  \
-        if (do_mmut_needed() && (readlookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3))) \
-        do_mmutranslate((s) + (a), b, 4, 0)
-#    define do_mmut_rb2(s, a, b)                                                                                                       \
-        if (do_mmut_needed() && (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF))) \
-        do_mmutranslate((s) + (a), b, 1, 0)
-#    define do_mmut_rw2(s, a, b)                                                                                                                              \
-        if (do_mmut_needed() && (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1))) \
-        do_mmutranslate((s) + (a), b, 2, 0)
-#    define do_mmut_rl2(s, a, b)                                                                                                                              \
-        if (do_mmut_needed() && (readlookup2[1048576 | ((uint32_t) ((s) + (a)) >> 12)] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3))) \
-        do_mmutranslate((s) + (a), b, 4, 0)
+#    define do_mmut_rb(s, a, b)  do_mmut_hit(&mmut_hit_r, &mmut_hit_r_page, 0, s, a, b, 1, 0)
+#    define do_mmut_rw(s, a, b)  do_mmut_hit(&mmut_hit_r, &mmut_hit_r_page, 0, s, a, b, 2, 0)
+#    define do_mmut_rl(s, a, b)  do_mmut_hit(&mmut_hit_r, &mmut_hit_r_page, 0, s, a, b, 4, 0)
+#    define do_mmut_rb2(s, a, b) do_mmut_hit(&mmut_hit_r2, &mmut_hit_r2_page, 1048576, s, a, b, 1, 0)
+#    define do_mmut_rw2(s, a, b) do_mmut_hit(&mmut_hit_r2, &mmut_hit_r2_page, 1048576, s, a, b, 2, 0)
+#    define do_mmut_rl2(s, a, b) do_mmut_hit(&mmut_hit_r2, &mmut_hit_r2_page, 1048576, s, a, b, 4, 0)
 
-#    define do_mmut_wb(s, a, b)                                                                                            \
-        if (do_mmut_needed() && (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF))) \
-        do_mmutranslate((s) + (a), b, 1, 1)
-#    define do_mmut_ww(s, a, b)                                                                                                                   \
-        if (do_mmut_needed() && (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 1))) \
-        do_mmutranslate((s) + (a), b, 2, 1)
-#    define do_mmut_wl(s, a, b)                                                                                                                   \
-        if (do_mmut_needed() && (writelookup2[(uint32_t) ((s) + (a)) >> 12] == (uintptr_t) LOOKUP_INV || ((s) == 0xFFFFFFFF) || (((s) + (a)) & 3))) \
-        do_mmutranslate((s) + (a), b, 4, 1)
+#    define do_mmut_wb(s, a, b)  do_mmut_hit(&mmut_hit_w, &mmut_hit_w_page, 0, s, a, b, 1, 1)
+#    define do_mmut_ww(s, a, b)  do_mmut_hit(&mmut_hit_w, &mmut_hit_w_page, 0, s, a, b, 2, 1)
+#    define do_mmut_wl(s, a, b)  do_mmut_hit(&mmut_hit_w, &mmut_hit_w_page, 0, s, a, b, 4, 1)
+
+/* do_mmut_*() leaves the lookup entry it found and used in place of a walk
+   in mmut_hit_r, mmut_hit_r2 (the compare operand's reads, second read set)
+   or mmut_hit_w (mem.h), and its virtual page in the matching _page, or
+   LOOKUP_INV when it walked or made no test. The
+   readmem*_n() or writemem*_n() access that follows uses that entry and
+   does not test the table again: a flush from another thread between the
+   two would otherwise leave the access with neither an entry nor a walked
+   address. When it uses an entry, b[0] is MMUT_UNWALKED (mem.h): if a flush
+   or an eviction on the CPU thread drops the entry before the access, the
+   access walks then. */
+
+static __inline void
+do_mmut_hit(uintptr_t *hit, uint32_t *hit_page, uint32_t set, uint32_t s, uint32_t a, uint32_t *b, int num, int write)
+{
+    const uint32_t addr = s + a;
+    uintptr_t      e;
+
+    *hit = (uintptr_t) LOOKUP_INV;
+    if (!do_mmut_needed())
+        return;
+    if (write)
+        e = *(volatile uintptr_t *) &writelookup2[addr >> 12];
+    else
+        e = *(volatile uintptr_t *) &readlookup2[set | (addr >> 12)];
+    if ((e != (uintptr_t) LOOKUP_INV) && (s != 0xFFFFFFFF) && !(addr & (num - 1))) {
+        b[0]      = MMUT_UNWALKED;
+        *hit      = e;
+        *hit_page = addr >> 12;
+    } else if (s == 0xFFFFFFFF)
+        do_mmutranslate_nh(addr, b, num, write);
+    else if (set)
+        do_mmutranslate_set2(addr, b, num, write);
+    else
+        do_mmutranslate(addr, b, num, write);
+}
+
+static __inline uint8_t
+mmut_readb(uintptr_t hit, uint32_t set, uint32_t s, uint32_t a, uint32_t b)
+{
+    const uint32_t addr = s + a;
+
+    if (hit == (uintptr_t) LOOKUP_INV)
+        hit = *(volatile uintptr_t *) &readlookup2[set | (addr >> 12)];
+    if ((hit == (uintptr_t) LOOKUP_INV) || (s == 0xFFFFFFFF))
+        return ((s == 0xFFFFFFFF) ? readmembl_no_mmut_nh : readmembl_no_mmut)(addr, b);
+    return *(uint8_t *) (hit + (uintptr_t) addr);
+}
+
+static __inline uint16_t
+mmut_readw(uintptr_t hit, uint32_t set, uint32_t s, uint32_t a, uint32_t *b)
+{
+    const uint32_t addr = s + a;
+
+    if (hit == (uintptr_t) LOOKUP_INV)
+        hit = *(volatile uintptr_t *) &readlookup2[set | (addr >> 12)];
+    if ((hit == (uintptr_t) LOOKUP_INV) || (s == 0xFFFFFFFF) || (addr & 1))
+        return ((s == 0xFFFFFFFF) ? readmemwl_no_mmut_nh : readmemwl_no_mmut)(addr, b);
+    return *(uint16_t *) (hit + (uintptr_t) addr);
+}
+
+static __inline uint32_t
+mmut_readl(uintptr_t hit, uint32_t set, uint32_t s, uint32_t a, uint32_t *b)
+{
+    const uint32_t addr = s + a;
+
+    if (hit == (uintptr_t) LOOKUP_INV)
+        hit = *(volatile uintptr_t *) &readlookup2[set | (addr >> 12)];
+    if ((hit == (uintptr_t) LOOKUP_INV) || (s == 0xFFFFFFFF) || (addr & 3))
+        return ((s == 0xFFFFFFFF) ? readmemll_no_mmut_nh : readmemll_no_mmut)(addr, b);
+    return *(uint32_t *) (hit + (uintptr_t) addr);
+}
+
+static __inline void
+mmut_writeb(uint32_t s, uint32_t a, uint32_t b, uint8_t v)
+{
+    const uint32_t addr = s + a;
+    uintptr_t      hit  = mmut_hit_w;
+
+    if (hit == (uintptr_t) LOOKUP_INV)
+        hit = *(volatile uintptr_t *) &writelookup2[addr >> 12];
+    if ((hit == (uintptr_t) LOOKUP_INV) || (s == 0xFFFFFFFF))
+        ((s == 0xFFFFFFFF) ? writemembl_no_mmut_nh : writemembl_no_mmut)(addr, b, v);
+    else
+        *(uint8_t *) (hit + (uintptr_t) addr) = v;
+}
+
+static __inline void
+mmut_writew(uint32_t s, uint32_t a, uint32_t *b, uint16_t v)
+{
+    const uint32_t addr = s + a;
+    uintptr_t      hit  = mmut_hit_w;
+
+    if (hit == (uintptr_t) LOOKUP_INV)
+        hit = *(volatile uintptr_t *) &writelookup2[addr >> 12];
+    if ((hit == (uintptr_t) LOOKUP_INV) || (s == 0xFFFFFFFF) || (addr & 1))
+        ((s == 0xFFFFFFFF) ? writememwl_no_mmut_nh : writememwl_no_mmut)(addr, b, v);
+    else
+        *(uint16_t *) (hit + (uintptr_t) addr) = v;
+}
+
+static __inline void
+mmut_writel(uint32_t s, uint32_t a, uint32_t *b, uint32_t v)
+{
+    const uint32_t addr = s + a;
+    uintptr_t      hit  = mmut_hit_w;
+
+    if (hit == (uintptr_t) LOOKUP_INV)
+        hit = *(volatile uintptr_t *) &writelookup2[addr >> 12];
+    if ((hit == (uintptr_t) LOOKUP_INV) || (s == 0xFFFFFFFF) || (addr & 3))
+        ((s == 0xFFFFFFFF) ? writememll_no_mmut_nh : writememll_no_mmut)(addr, b, v);
+    else
+        *(uint32_t *) (hit + (uintptr_t) addr) = v;
+}
 #endif
 
 /* readmemb() of an immediate in the instruction stream: a code fetch, which
@@ -382,9 +491,9 @@ readmembl_fetch(uint32_t a)
     uint8_t ret;
 
     if (!mem_a20_reset_line)
-        return readmembl(a);
+        return readmembl_nh(a);
     mem_a20_reset_line_fetch = 1;
-    ret                      = readmembl(a);
+    ret                      = readmembl_nh(a);
     mem_a20_reset_line_fetch = 0;
     return ret;
 }
@@ -395,9 +504,9 @@ readmemwl_fetch(uint32_t a)
     uint16_t ret;
 
     if (!mem_a20_reset_line)
-        return readmemwl(a);
+        return readmemwl_nh(a);
     mem_a20_reset_line_fetch = 1;
-    ret                      = readmemwl(a);
+    ret                      = readmemwl_nh(a);
     mem_a20_reset_line_fetch = 0;
     return ret;
 }
@@ -408,9 +517,9 @@ readmemll_fetch(uint32_t a)
     uint32_t ret;
 
     if (!mem_a20_reset_line)
-        return readmemll(a);
+        return readmemll_nh(a);
     mem_a20_reset_line_fetch = 1;
-    ret                      = readmemll(a);
+    ret                      = readmemll_nh(a);
     mem_a20_reset_line_fetch = 0;
     return ret;
 }
@@ -751,6 +860,12 @@ seteaq(uint64_t v)
     writememql(easeg + cpu_state.eaaddr, v);
 }
 
+/* For the bit operations, which clear the operand pointers. */
+#    define geteaw_noptr() geteaw()
+#    define geteal_noptr() geteal()
+#    define seteaw_noptr(v) seteaw(v)
+#    define seteal_noptr(v) seteal(v)
+
 #    define seteab(v)                                                                 \
         if (cpu_mod != 3) {                                                           \
             CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr); \
@@ -813,7 +928,7 @@ geteab(void)
         return 0;
     if (eal_r)
         return *(uint8_t *) eal_r;
-    return readmemb(easeg, cpu_state.eaaddr);
+    return readmemb_ea(easeg, cpu_state.eaaddr);
 }
 
 static __inline uint16_t
@@ -825,7 +940,7 @@ geteaw(void)
         return 0;
     if (eal_r)
         return *(uint16_t *) eal_r;
-    return readmemw(easeg, cpu_state.eaaddr);
+    return readmemw_ea(easeg, cpu_state.eaaddr);
 }
 
 static __inline uint32_t
@@ -837,7 +952,7 @@ geteal(void)
         return 0;
     if (eal_r)
         return *eal_r;
-    return readmeml(easeg, cpu_state.eaaddr);
+    return readmeml_ea(easeg, cpu_state.eaaddr);
 }
 
 static __inline uint64_t
@@ -855,7 +970,7 @@ geteab_mem(void)
         return 0;
     if (eal_r)
         return *(uint8_t *) eal_r;
-    return readmemb(easeg, cpu_state.eaaddr);
+    return readmemb_ea(easeg, cpu_state.eaaddr);
 }
 static __inline uint16_t
 geteaw_mem(void)
@@ -864,7 +979,7 @@ geteaw_mem(void)
         return 0;
     if (eal_r)
         return *(uint16_t *) eal_r;
-    return readmemw(easeg, cpu_state.eaaddr);
+    return readmemw_ea(easeg, cpu_state.eaaddr);
 }
 static __inline uint32_t
 geteal_mem(void)
@@ -873,7 +988,7 @@ geteal_mem(void)
         return 0;
     if (eal_r)
         return *eal_r;
-    return readmeml(easeg, cpu_state.eaaddr);
+    return readmeml_ea(easeg, cpu_state.eaaddr);
 }
 
 static __inline int
@@ -889,7 +1004,7 @@ seteaq(uint64_t v)
 {
     if (seteaq_cwc())
         return;
-    writememql(easeg + cpu_state.eaaddr, v);
+    writememq(easeg, cpu_state.eaaddr, v);
 }
 
 #    define seteab(v)                                                                 \
@@ -898,7 +1013,7 @@ seteaq(uint64_t v)
             if (eal_w)                                                                \
                 *(uint8_t *) eal_w = v;                                               \
             else                                                                      \
-                writemembl(easeg + cpu_state.eaaddr, v);                              \
+                writememb_ea(easeg, cpu_state.eaaddr, v);                             \
         } else if (cpu_rm & 4)                                                        \
             cpu_state.regs[cpu_rm & 3].b.h = v;                                       \
         else                                                                          \
@@ -909,7 +1024,7 @@ seteaq(uint64_t v)
             if (eal_w)                                                                    \
                 *(uint16_t *) eal_w = v;                                                  \
             else                                                                          \
-                writememwl(easeg + cpu_state.eaaddr, v);                                  \
+                writememw_ea(easeg, cpu_state.eaaddr, v);                                 \
         } else                                                                            \
             cpu_state.regs[cpu_rm].w = v
 #    define seteal(v)                                                                     \
@@ -918,7 +1033,7 @@ seteaq(uint64_t v)
             if (eal_w)                                                                    \
                 *eal_w = v;                                                               \
             else                                                                          \
-                writememll(easeg + cpu_state.eaaddr, v);                                  \
+                writememl_ea(easeg, cpu_state.eaaddr, v);                                 \
         } else                                                                            \
             cpu_state.regs[cpu_rm].l = v
 
@@ -926,17 +1041,52 @@ seteaq(uint64_t v)
         if (eal_w)                  \
             *(uint8_t *) eal_w = v; \
         else                        \
-            writemembl(easeg + cpu_state.eaaddr, v);
+            writememb_ea(easeg, cpu_state.eaaddr, v);
 #    define seteaw_mem(v)            \
         if (eal_w)                   \
             *(uint16_t *) eal_w = v; \
         else                         \
-            writememwl(easeg + cpu_state.eaaddr, v);
+            writememw_ea(easeg, cpu_state.eaaddr, v);
 #    define seteal_mem(v) \
         if (eal_w)        \
             *eal_w = v;   \
         else              \
-            writememll(easeg + cpu_state.eaaddr, v);
+            writememl_ea(easeg, cpu_state.eaaddr, v);
+
+/* For the bit operations, which clear the operand pointers: the read and the
+   store are the memory macros'. */
+static __inline uint16_t
+geteaw_noptr(void)
+{
+    if (cpu_mod == 3)
+        return cpu_state.regs[cpu_rm].w;
+    if (ea_outside_limit(2))
+        return 0;
+    return readmemw(easeg, cpu_state.eaaddr);
+}
+
+static __inline uint32_t
+geteal_noptr(void)
+{
+    if (cpu_mod == 3)
+        return cpu_state.regs[cpu_rm].l;
+    if (ea_outside_limit(4))
+        return 0;
+    return readmeml(easeg, cpu_state.eaaddr);
+}
+
+#    define seteaw_noptr(v)                                                               \
+        if (cpu_mod != 3) {                                                               \
+            CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 1); \
+            writememw(easeg, cpu_state.eaaddr, v);                                        \
+        } else                                                                            \
+            cpu_state.regs[cpu_rm].w = v
+#    define seteal_noptr(v)                                                               \
+        if (cpu_mod != 3) {                                                               \
+            CHECK_WRITE_COMMON(cpu_state.ea_seg, cpu_state.eaaddr, cpu_state.eaaddr + 3); \
+            writememl(easeg, cpu_state.eaaddr, v);                                        \
+        } else                                                                            \
+            cpu_state.regs[cpu_rm].l = v
 #endif
 
 #define getbytef()          \

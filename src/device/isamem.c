@@ -118,11 +118,10 @@
 #define ISAMEM_DEBUG           0
 
 #define RAM_TOPMEM             (640 << 10)  /* end of low memory */
+#define RAM_UMAMEM             (384 << 10)  /* size of upper memory block */
 #define RAM_UMATOP             (960 << 10)  /* end of usable upper memory (generic XT) */
-#define RAM_UMAMEM             (384 << 10)  /* upper memory block */
-#define RAM_EXTMEM             (1024 << 10) /* start of high memory */
 
-#define IBM_BASE_MEM_2         (128 << 10)  /* size of IBM base memory in 512k mode */
+#define IBM_BASE_MEM           (128 << 10)  /* size of IBM 128K/640K adapter base memory */
 #define EV159_BASE_MEM         (128 << 10)  /* size of EV-159 base memory in cs8220 mode */
 #define EV159_EXT_1536         (1536 << 10) /* start of EV-159 high memory in cs8220 mode */
 #define EV159_EXT_1024         (1024 << 10) /* start of EV-159 high memory in backfill mode */
@@ -485,9 +484,10 @@ isamem_init(const device_t *info)
     memdev_t *dev;
     uint32_t  k;
     uint32_t  t;
-    uint32_t  addr;
     uint32_t  tot;
-    int       uma = 0;  /* RAM mapped into the upper memory area */
+    uint32_t  addr;
+    uint32_t  uma = 0;      /* RAM mapped into the upper memory area */
+    uint32_t  basemem = 0;  /* installed base memory size in KB */
     /* EMS 3.2 cannot have more than 2048KB per board. */
     uint32_t  ems_max = EMS_MAXSIZE;
     uint8_t  *ptr;
@@ -567,6 +567,18 @@ isamem_init(const device_t *info)
             break;
 
         case ISAMEM_IBMAT_CARD: /* IBM PC/AT Memory Expansion Card */
+            dev->total_size = device_get_config_int("size");
+            dev->start_addr = device_get_config_int("start");
+            /* Keep the memory expansion bank below 15.5MB. */
+            if ((dev->start_addr + dev->total_size) > 15872) {
+                dev->total_size = 15872 - dev->start_addr;
+                isamem_log("ISAMEM: memory size clamped to %iKB\n", dev->total_size);
+            }
+            basemem         = device_get_config_int("basemem");
+            tot             = dev->total_size;
+            dev->flags |= FLAG_WIDE;
+            break;
+
         case ISAMEM_GENAT_CARD: /* Generic PC/AT Memory Expansion Card */
             dev->total_size = device_get_config_int("size");
             dev->start_addr = device_get_config_int("start");
@@ -711,8 +723,8 @@ isamem_init(const device_t *info)
             uint32_t uma_top = RAM_UMATOP;
 
             /*
-             * The cards are set up before the machine loads its BIOS, so
-             * biosaddr can't be used here: map up to 1MB and let the
+             * The cards are set up before the machine loads its BIOS, 
+             * so biosaddr can't be used here: map up to 1MB and let the
              * system BIOS, mapped afterwards as ROMCS, take its own range.
              */
             if (device_get_config_int("uma_to_rom"))
@@ -733,8 +745,17 @@ isamem_init(const device_t *info)
          * there; the start address is restored for the expansion bank.
          */
         if (dev->board == ISAMEM_IBMAT_640K_CARD) {
-            t = IBM_BASE_MEM_2;
+            t = IBM_BASE_MEM;
             addr = RAM_TOPMEM - t;
+        }
+
+        /*
+         * IBM PC/AT card: the base memory bank starts at the installed
+         * base memory size, independently of the start address.
+         */
+        if ((dev->board == ISAMEM_IBMAT_CARD) && (basemem < 640)) {
+            t    = RAM_TOPMEM - (basemem << 10);
+            addr = basemem << 10;
         }
 
         /* Check for Everex EV-159 cards in CS8220 backfill mode. */
@@ -779,7 +800,8 @@ isamem_init(const device_t *info)
         }
 
         /* Restore configured start address for the expansion bank. */
-        if (dev->board == ISAMEM_IBMAT_640K_CARD)
+        if (((dev->board == ISAMEM_IBMAT_CARD) && (basemem < 640)) ||
+            (dev->board == ISAMEM_IBMAT_640K_CARD))
             addr = dev->start_addr;
 
         /* Assign high memory address for EV-159 in backfill modes. */
@@ -1523,17 +1545,34 @@ static const device_config_t ibmat_config[] = {
         .default_int    = 1024,
         .file_filter    = NULL,
         .spinner        = {
-            .min  =     0,
-            .max  = 15872,
+            .min  =  1024,
+            .max  = 15360,
             .step =   512
         },
         .selection      = { { 0 } },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "basemem",
+        .description    = "Base Memory",
+        .type           = CONFIG_SELECTION,
+        .default_string = NULL,
+        .default_int    = 640,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = {
+            { .description = "256 KB", .value = 256 },
+            { .description = "512 KB", .value = 512 },
+            { .description = "640 KB", .value = 640 },
+            { .description = ""                     }
+        },
         .bios           = { { 0 } }
     },
     { .name = "", .description = "", .type = CONFIG_END }
   // clang-format on
 };
 
+// 3MB/6MB/12MB Memory Expansion use the same type
 static const device_t ibmat_device = {
     .name          = "IBM PC/AT Memory Expansion",
     .internal_name = "ibmat",

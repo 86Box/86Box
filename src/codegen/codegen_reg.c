@@ -14,6 +14,7 @@ int      max_version_refcount;
 uint16_t reg_dead_list = 0;
 
 uint8_t       reg_last_version[IREG_COUNT];
+uint64_t      reg_touched[(IREG_COUNT + 63) / 64];
 reg_version_t reg_version[IREG_COUNT][256];
 
 ir_reg_t invalid_ir_reg = { IREG_INVALID };
@@ -396,10 +397,17 @@ codegen_reg_reset(void)
 
     dirty_ir_regs[0] = dirty_ir_regs[1] = 0;
 
-    for (c = 0; c < IREG_COUNT; c++) {
-        reg_last_version[c]        = 0;
-        reg_version[c][0].refcount = 0;
-        reg_version[c][0].uncounted = 0;
+    for (int w = 0; w < (int) (sizeof(reg_touched) / sizeof(reg_touched[0])); w++) {
+        uint64_t touched = reg_touched[w];
+
+        reg_touched[w] = 0;
+        while (touched) {
+            c = (w << 6) + __builtin_ctzll(touched);
+            touched &= touched - 1;
+            reg_last_version[c]        = 0;
+            reg_version[c][0].refcount = 0;
+            reg_version[c][0].uncounted = 0;
+        }
     }
     for (c = 0; c < CODEGEN_HOST_REGS; c++) {
         host_reg_assign(&host_reg_set, c, invalid_ir_reg);

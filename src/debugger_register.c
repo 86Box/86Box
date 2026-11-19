@@ -106,6 +106,8 @@ debugger_set_segment(x86seg *s, uint16_t selector, int system)
     }
     s->access = access;
     s->seg    = selector;
+    if (s == &cpu_state.seg_cs)
+        mem_held_release();
     debugger_segment_changed(s);
     return 1;
 }
@@ -256,6 +258,7 @@ debugger_register_access(const char *name, uint32_t *val, uint32_t *seg_base, in
             const uint32_t old = cr0;
             if ((value & 1) && !(old & 1))
                 cpu_state.seg_cs.access &= 0x9f;
+            mem_held_release();
             cr0                   = value | (cpu_16bitbus ? 0x10 : 0);
             cpu_cache_int_enabled = hascache && !(cr0 & (1U << 30));
             if ((old ^ cr0) & (1U << 30)) {

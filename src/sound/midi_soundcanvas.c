@@ -39,9 +39,11 @@
 #include <86box/path.h>
 #include <86box/rom.h>
 #include <86box/log.h>
+#include <86box/midi_lcd.h>
 
 #include "clap/clap_host.h"
 #include "clap/clap_event_list.h"
+#include "clap/nuked_sc55_lcd.h"
 
 #define RENDER_RATE      100
 #define BUFFER_SEGMENTS  10
@@ -77,6 +79,10 @@ typedef struct soundcanvas {
 
     int  sample_rate;
     int  model_index;
+
+    /* LCD extension, NULL if the plugin doesn't have it */
+    const nuked_sc55_plugin_lcd_t *lcd_ext;
+    const clap_plugin_t           *lcd_plugin;
 
     /* audio buffers */
     float    *buf_left;
@@ -269,6 +275,14 @@ soundcanvas_thread(void *param)
 
         thread_release_mutex(data->midi_mutex);
 
+        /* The LCD changes while the plugin renders. */
+        if (data->lcd_ext) {
+            nuked_sc55_lcd_state_t lcd;
+
+            if (data->lcd_ext->get_state(data->lcd_plugin, &lcd))
+                midi_lcd_set_sc55(lcd.enabled, lcd.ddram, lcd.cgram);
+        }
+
         /* Interleave into output buffer */
         if (sound_is_float) {
             float *buf = (float *)((uint8_t *)data->out_buffer + buf_pos);
@@ -451,6 +465,14 @@ soundcanvas_init(UNUSED(const device_t *info))
     /* Set up volume control */
     data->vol_ctrl = (device_get_config_int("output_gain") / 100.0f);
 
+    /* Plugin versions without the LCD extension show no LCD. Look it up
+       before activating: the plugin only tracks the LCD for hosts that did. */
+    data->lcd_ext = (const nuked_sc55_plugin_lcd_t *) clap_host_get_extension(data->clap_inst, NUKED_SC55_EXT_LCD,
+                                                                              &data->lcd_plugin);
+    scanvas_log(data->log, "Sound Canvas: LCD extension %s\n", data->lcd_ext ? "found" : "not found");
+    if (data->lcd_ext)
+        midi_lcd_set_type(MIDI_LCD_SC55);
+
     /* Activate plugin */
     clap_host_activate(data->clap_inst, data->sample_rate);
 
@@ -518,6 +540,11 @@ soundcanvas_close(void *priv)
     data->start_event = NULL;
 
     /* Destroy CLAP instance */
+    if (data->lcd_ext) {
+        midi_lcd_set_type(MIDI_LCD_NONE);
+        data->lcd_ext    = NULL;
+        data->lcd_plugin = NULL;
+    }
     if (data->clap_inst) {
         clap_host_destroy(data->clap_inst);
         data->clap_inst = NULL;

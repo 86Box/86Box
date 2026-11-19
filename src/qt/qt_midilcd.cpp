@@ -32,15 +32,14 @@ extern "C" {
 
 MidiLcdWindow::MidiLcdWindow(QWidget *parent)
     : QWidget(parent, Qt::Window)
-    , image(MIDI_LCD_MT32_WIDTH, MIDI_LCD_MT32_HEIGHT, QImage::Format_RGB32)
     , glass(MIDI_LCD_MT32_WIDTH, MIDI_LCD_MT32_HEIGHT, QImage::Format_RGB32)
 {
     midi_lcd_mt32_render_glass(reinterpret_cast<uint32_t *>(glass.bits()), glass.bytesPerLine() / 4, 1);
 
     setWindowTitle(tr("MIDI LCD"));
     setAttribute(Qt::WA_OpaquePaintEvent);
-    setMinimumSize(MIDI_LCD_MT32_WIDTH / 4, MIDI_LCD_MT32_HEIGHT / 4);
-    resize(MIDI_LCD_MT32_WIDTH / 2, MIDI_LCD_MT32_HEIGHT / 2);
+    setShape(MIDI_LCD_MT32);
+    resize(image.width() / 2, image.height() / 2);
 
     if (window_remember) {
         const int w = config_get_int(LCD_SECTION, "window_w", 0);
@@ -85,22 +84,55 @@ MidiLcdWindow::poll()
 
     midi_lcd_get(&lcd);
 
-    /* The LED changes with every MIDI message; it isn't drawn, so only the
-       type and the text count. */
-    if ((lcd.type == type) && !memcmp(lcd.text, text, sizeof(text)))
-        return;
-    type = lcd.type;
+    /* The MT-32 LED changes with every MIDI message; it isn't drawn, so
+       only the text counts. The SC-55 state counts only real changes. */
+    if (lcd.type == type) {
+        if ((type == MIDI_LCD_MT32) && !memcmp(lcd.text, text, sizeof(text)))
+            return;
+        if ((type == MIDI_LCD_SC55) && (lcd.serial == serial))
+            return;
+        if (type == MIDI_LCD_NONE)
+            return;
+    }
+    type   = lcd.type;
+    serial = lcd.serial;
     memcpy(text, lcd.text, sizeof(text));
+
+    if (type != MIDI_LCD_NONE)
+        setShape(type);
 
     uint32_t *bits   = reinterpret_cast<uint32_t *>(image.bits());
     const int stride = image.bytesPerLine() / 4;
 
-    if (type == MIDI_LCD_MT32) {
+    if (shape == MIDI_LCD_SC55) {
+        /* Without the device, show its LCD switched off. */
+        if (type != MIDI_LCD_SC55)
+            lcd.on = 0;
+        midi_lcd_sc55_render(bits, stride, &lcd);
+    } else if (type == MIDI_LCD_MT32) {
         memcpy(bits, glass.constBits(), image.sizeInBytes());
         midi_lcd_mt32_render_text(bits, stride, text);
     } else
         midi_lcd_mt32_render_glass(bits, stride, 0);
     update();
+}
+
+/* Switch the image to another LCD, keeping the window's width. */
+void
+MidiLcdWindow::setShape(int newShape)
+{
+    if (newShape == shape)
+        return;
+
+    const bool first = (shape < 0);
+    QSize      size  = (newShape == MIDI_LCD_SC55) ? QSize(MIDI_LCD_SC55_WIDTH, MIDI_LCD_SC55_HEIGHT)
+                                                   : QSize(MIDI_LCD_MT32_WIDTH, MIDI_LCD_MT32_HEIGHT);
+
+    shape = newShape;
+    image = QImage(size, QImage::Format_RGB32);
+    setMinimumSize(size / 4);
+    if (!first)
+        resize(width(), (width() * size.height()) / size.width());
 }
 
 void

@@ -17,10 +17,26 @@
 
 /*do_mmut_r*() and do_mmut_w*() of an element inside a run (rep_run_room()):
   the segment bases are known not to be 0xffffffff, and pg is CR0.PG, which
-  no element can change.*/
-#define REP_MMUT(pg, lookup, lin, a64, num, write)                                                  \
-    if (((pg) || cpu_dr_armed) && (((lookup)[(lin) >> 12] == (uintptr_t) LOOKUP_INV) || ((lin) & ((num) - 1)))) \
-    do_mmutranslate(lin, a64, num, write)
+  no element can change. Like them, they leave the entry used in hit and
+  its virtual page in hit_page, and MMUT_UNWALKED in a64[0] when they used
+  an entry.*/
+#define REP_MMUT(pg, lookup, hit, hit_page, lin, a64, num, write)           \
+    do {                                                                    \
+        const uint32_t lin_ = (lin);                                        \
+        uintptr_t      e_;                                                  \
+                                                                            \
+        (hit) = (uintptr_t) LOOKUP_INV;                                     \
+        if ((pg) || cpu_dr_armed) {                                         \
+            e_ = *(volatile uintptr_t *) &(lookup)[lin_ >> 12];             \
+            if ((e_ == (uintptr_t) LOOKUP_INV) || (lin_ & ((num) - 1)))     \
+                do_mmutranslate(lin_, a64, num, write);                     \
+            else {                                                          \
+                (hit)      = e_;                                            \
+                (hit_page) = lin_ >> 12;                                    \
+                (a64)[0]   = MMUT_UNWALKED;                                 \
+            }                                                               \
+        }                                                                   \
+    } while (0)
 
 /*One element of each REP MOVS/STOS form, written as the loop body of the
   interpreter's REP handlers in x86_ops_rep_dyn.h, for the loops below.
@@ -40,7 +56,7 @@
             }                                                                                   \
             high_page = 0;                                                                      \
             if (run) {                                                                          \
-                REP_MMUT(pg, readlookup2, seg->base + SRC_REG, &addr64, 1, 0);                  \
+                REP_MMUT(pg, readlookup2, mmut_hit_r, mmut_hit_r_page, seg->base + SRC_REG, &addr64, 1, 0);                  \
             } else {                                                                            \
                 do_mmut_rb(seg->base, SRC_REG, &addr64);                                        \
             }                                                                                   \
@@ -53,7 +69,7 @@
             }                                                                                   \
             high_page = 0;                                                                      \
             if (run) {                                                                          \
-                REP_MMUT(pg, writelookup2, es + DEST_REG, &addr64_2, 1, 1);                     \
+                REP_MMUT(pg, writelookup2, mmut_hit_w, mmut_hit_w_page, es + DEST_REG, &addr64_2, 1, 1);                     \
             } else {                                                                            \
                 do_mmut_wb(es, DEST_REG, &addr64_2);                                            \
             }                                                                                   \
@@ -79,7 +95,7 @@
             }                                                                                   \
             high_page = 0;                                                                      \
             if (run) {                                                                          \
-                REP_MMUT(pg, readlookup2, seg->base + SRC_REG, addr64a, 2, 0);                  \
+                REP_MMUT(pg, readlookup2, mmut_hit_r, mmut_hit_r_page, seg->base + SRC_REG, addr64a, 2, 0);                  \
             } else {                                                                            \
                 do_mmut_rw(seg->base, SRC_REG, addr64a);                                        \
             }                                                                                   \
@@ -92,7 +108,7 @@
             }                                                                                   \
             high_page = 0;                                                                      \
             if (run) {                                                                          \
-                REP_MMUT(pg, writelookup2, es + DEST_REG, addr64a_2, 2, 1);                     \
+                REP_MMUT(pg, writelookup2, mmut_hit_w, mmut_hit_w_page, es + DEST_REG, addr64a_2, 2, 1);                     \
             } else {                                                                            \
                 do_mmut_ww(es, DEST_REG, addr64a_2);                                            \
             }                                                                                   \
@@ -118,7 +134,7 @@
             }                                                                                   \
             high_page = 0;                                                                      \
             if (run) {                                                                          \
-                REP_MMUT(pg, readlookup2, seg->base + SRC_REG, addr64a, 4, 0);                  \
+                REP_MMUT(pg, readlookup2, mmut_hit_r, mmut_hit_r_page, seg->base + SRC_REG, addr64a, 4, 0);                  \
             } else {                                                                            \
                 do_mmut_rl(seg->base, SRC_REG, addr64a);                                        \
             }                                                                                   \
@@ -131,7 +147,7 @@
             }                                                                                   \
             high_page = 0;                                                                      \
             if (run) {                                                                          \
-                REP_MMUT(pg, writelookup2, es + DEST_REG, addr64a_2, 4, 1);                     \
+                REP_MMUT(pg, writelookup2, mmut_hit_w, mmut_hit_w_page, es + DEST_REG, addr64a_2, 4, 1);                     \
             } else {                                                                            \
                 do_mmut_wl(es, DEST_REG, addr64a_2);                                            \
             }                                                                                   \

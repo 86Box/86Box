@@ -79,6 +79,14 @@ void clap_host_process(clap_host_instance_t *inst,
                        clap_event_list_t *event_list);
 
 /*
+ * Look up an extension of the plugin, e.g. a plugin-specific one.
+ * Returns NULL if the plugin doesn't offer it. *plugin receives the
+ * plugin pointer that the extension's functions take.
+ */
+const void *clap_host_get_extension(clap_host_instance_t *inst, const char *id,
+                                    const clap_plugin_t **plugin);
+
+/*
  * Destroy the plugin instance and unload the library.
  */
 void clap_host_destroy(clap_host_instance_t *inst);

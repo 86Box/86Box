@@ -65,6 +65,11 @@ int nmi_enable = 1;
 
 int alt_access;
 int cpl_override = 0;
+/* The kinds of cpl_override access (CPL_OVERRIDE_*) whose writes skip the
+   CR0.WP test, as every such write did before; set per processor by
+   cpu_set(). The CPL 3 half of the page protection is lifted for every
+   kind whatever this says. */
+int cpl_override_wp_exempt = CPL_OVERRIDE_ON | CPL_OVERRIDE_TSS_WRITE | CPL_OVERRIDE_TSS_BUSY;
 
 uint16_t cpu_cur_status = 0;
 
@@ -241,6 +246,13 @@ uint32_t addr64;
 uint32_t addr64_2;
 uint32_t addr64a[8];
 uint32_t addr64a_2[8];
+
+uintptr_t mmut_hit_r  = (uintptr_t) LOOKUP_INV;
+uintptr_t mmut_hit_r2 = (uintptr_t) LOOKUP_INV;
+uintptr_t mmut_hit_w  = (uintptr_t) LOOKUP_INV;
+uint32_t  mmut_hit_r_page;
+uint32_t  mmut_hit_r2_page;
+uint32_t  mmut_hit_w_page;
 
 static pc_timer_t *cpu_fast_off_timer  = NULL;
 static double      cpu_fast_off_period = 0.0;
@@ -851,6 +863,7 @@ smram_restore_state_p5(uint32_t *saved_state)
     cpu_state.seg_cs.access  = (saved_state[SMRAM_FIELD_P5_CS_ACCESS] >> 8) & 0xff;
     cpu_state.seg_cs.ar_high = (saved_state[SMRAM_FIELD_P5_CS_ACCESS] >> 16) & 0xff;
     smm_seg_load(&cpu_state.seg_cs);
+    mem_held_release();
 
     /* DS */
     cpu_state.seg_ds.seg     = saved_state[SMRAM_FIELD_P5_DS_SELECTOR];
@@ -1049,7 +1062,9 @@ smram_restore_state_p6(uint32_t *saved_state)
     cpu_state.seg_cs.access  = (saved_state[SMRAM_FIELD_P6_CS_SELECTOR_AR] >> 16) & 0xff;
     cpu_state.seg_cs.ar_high = (saved_state[SMRAM_FIELD_P6_CS_SELECTOR_AR] >> 24) & 0xff;
     smm_seg_load(&cpu_state.seg_cs);
+    mem_held_release();
     cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | ((saved_state[SMRAM_FIELD_P6_CPL] & 0x03) << 5);
+    mem_held_release();
 
     /* DS */
     cpu_state.seg_ds.seg     = saved_state[SMRAM_FIELD_P6_DS_SELECTOR];
@@ -1243,6 +1258,7 @@ smram_restore_state_amd_k(uint32_t *saved_state)
     cpu_state.seg_cs.access  = (saved_state[SMRAM_FIELD_AMD_K_CS_ACCESS] >> 8) & 0xff;
     cpu_state.seg_cs.ar_high = (saved_state[SMRAM_FIELD_AMD_K_CS_ACCESS] >> 16) & 0xff;
     smm_seg_load(&cpu_state.seg_cs);
+    mem_held_release();
 
     /* DS */
     cpu_state.seg_ds.seg     = saved_state[SMRAM_FIELD_AMD_K_DS_SELECTOR];
@@ -1259,6 +1275,7 @@ smram_restore_state_amd_k(uint32_t *saved_state)
     cpu_state.seg_ss.access = (saved_state[SMRAM_FIELD_AMD_K_SS_ACCESS] >> 8) & 0xff;
     /* The actual CPL (DPL of CS) is overwritten with DPL of SS. */
     cpu_state.seg_cs.access  = (cpu_state.seg_cs.access & ~0x60) | (cpu_state.seg_ss.access & 0x60);
+    mem_held_release();
     cpu_state.seg_ss.ar_high = (saved_state[SMRAM_FIELD_AMD_K_SS_ACCESS] >> 16) & 0xff;
     smm_seg_load(&cpu_state.seg_ss);
 
@@ -1333,6 +1350,7 @@ gxm_smm_load_cs(uint32_t addr, x86seg *seg)
     do_seg_load(seg, segdat);
     seg->seg     = sel & 0xffff;
     seg->checked = 0;
+    mem_held_release();
 
     use32 = (segdat[3] & 0x40) ? 0x300 : 0;
     if (use32)
@@ -1353,7 +1371,7 @@ cyrix_smm_decode_op(int *is_rep)
 
     *is_rep = 0;
     for (int c = 0; c < 15; c++) {
-        op = readmembl(cs + ((cpu_state.oldpc + c) & (use32 ? 0xffffffff : 0xffff)));
+        op = readmembl_nh(cs + ((cpu_state.oldpc + c) & (use32 ? 0xffffffff : 0xffff)));
         if (cpu_state.abrt)
             break;
         if ((op == 0xf2) || (op == 0xf3))
@@ -1452,6 +1470,7 @@ smram_restore_state_cyrix(uint32_t *saved_state)
     /* Restore CPL: the DPL bits alone, the rest of the access rights are
        the descriptor's (on the MediaGX, bits 21-22 are its DPL anyway). */
     cpu_state.seg_cs.access = (cpu_state.seg_cs.access & ~0x60) | (((saved_state[5] >> 21) & 0x03) << 5);
+    mem_held_release();
 
     /* The header's ESI or EDI, of a REP INS or OUTS that was trapped, is the
        one RSM restores (the handler may have backed it up to restart). */
@@ -1607,6 +1626,7 @@ enter_smm(int in_hlt)
         cpu_state.seg_cs.checked = 1;
 
         smm_seg_load(&cpu_state.seg_cs);
+        mem_held_release();
     } else {
         cpu_state.pc             = 0x8000;
         cpu_state.seg_ds.seg     = 0x00000000;
@@ -1634,6 +1654,7 @@ enter_smm(int in_hlt)
 
         smm_seg_load(&cpu_state.seg_es);
         smm_seg_load(&cpu_state.seg_cs);
+        mem_held_release();
         smm_seg_load(&cpu_state.seg_ds);
         smm_seg_load(&cpu_state.seg_ss);
         smm_seg_load(&cpu_state.seg_fs);
@@ -2270,6 +2291,7 @@ sysenter(UNUSED(uint32_t fetchdat))
     cpu_state.seg_cs.access     = 0x9b;
     cpu_state.seg_cs.ar_high    = 0xcf;
     cpu_state.seg_cs.checked    = 1;
+    mem_held_release();
     oldcpl                      = 0;
 
     cpu_state.seg_ss.seg        = ((msr.sysenter_cs + 8) & 0xfffc);
@@ -2413,6 +2435,7 @@ syscall_op(UNUSED(uint32_t fetchdat))
     cpu_state.seg_cs.access     = 0x9b;
     cpu_state.seg_cs.ar_high    = 0xcf;
     cpu_state.seg_cs.checked    = 1;
+    mem_held_release();
     oldcpl                      = 0;
 
     /* SS */

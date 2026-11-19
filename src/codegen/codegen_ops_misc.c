@@ -488,6 +488,8 @@ ropFF_16(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
         case 0x18: /*CALL far*/
             uop_MOVZX(ir, IREG_pc, src_reg);
             uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, ireg_seg_base(target_seg), IREG_eaaddr, 2);
+            if (call_far_rm(block, ir, 0, IREG_temp1_W, 0, op_pc + 1))
+                return -1;
             uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
             uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 1);
             uop_CALL_FUNC(ir, dynarec_call_far_w);
@@ -612,6 +614,8 @@ ropFF_32(codeblock_t *block, ir_data_t *ir, UNUSED(uint8_t opcode), uint32_t fet
         case 0x18: /*CALL far*/
             uop_MOV(ir, IREG_pc, src_reg);
             uop_MEM_LOAD_REG_OFFSET(ir, IREG_temp1_W, ireg_seg_base(target_seg), IREG_eaaddr, 4);
+            if (call_far_rm(block, ir, 1, IREG_temp1_W, 0, op_pc + 1))
+                return -1;
             uop_LOAD_FUNC_ARG_REG(ir, 0, IREG_temp1_W);
             uop_LOAD_FUNC_ARG_IMM(ir, 1, op_pc + 1);
             uop_CALL_FUNC(ir, dynarec_call_far_l);

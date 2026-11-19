@@ -44,6 +44,9 @@ midi_lcd_set_type(int type)
     lcd_state.serial++;
     memset(lcd_state.text, 0, sizeof(lcd_state.text));
     lcd_state.led = 0;
+    lcd_state.on  = 0;
+    memset(lcd_state.ddram, ' ', sizeof(lcd_state.ddram));
+    memset(lcd_state.cgram, 0, sizeof(lcd_state.cgram));
     lcd_release();
 }
 
@@ -55,6 +58,22 @@ midi_lcd_set_mt32(const char *text, int led)
         strncpy(lcd_state.text, text, sizeof(lcd_state.text) - 1);
     lcd_state.led = led;
     lcd_state.serial++;
+    lcd_release();
+}
+
+/* Called after every render block: count only real changes, so the UI
+   redraws only then. */
+void
+midi_lcd_set_sc55(int on, const uint8_t *ddram, const uint8_t *cgram)
+{
+    lcd_acquire();
+    if ((lcd_state.on != on) || memcmp(lcd_state.ddram, ddram, sizeof(lcd_state.ddram))
+        || memcmp(lcd_state.cgram, cgram, sizeof(lcd_state.cgram))) {
+        lcd_state.on = on;
+        memcpy(lcd_state.ddram, ddram, sizeof(lcd_state.ddram));
+        memcpy(lcd_state.cgram, cgram, sizeof(lcd_state.cgram));
+        lcd_state.serial++;
+    }
     lcd_release();
 }
 

@@ -498,6 +498,10 @@ typedef struct ir_data_t {
     uop_t               uops[UOP_NR_MAX];
     int                 wr_pos;
     struct codeblock_t *block;
+    /*Every uop allocated with UOP_TYPE_JUMP, in order. No uop gains the type
+      later*/
+    int                 jump_uops[UOP_NR_MAX];
+    int                 nr_jump_uops;
 } ir_data_t;
 
 /* What an exit taken before the block's end adds to cycles: the cycles
@@ -508,6 +512,16 @@ extern int  codegen_exit_cycles(int held);
 extern void codegen_exit_stamp(ir_data_t *ir, int held);
 extern void codegen_record_exit(int pos, int held);
 extern void codegen_record_route(int pos, void *p);
+
+/* The exits of the uops generated between codegen_exit_end_charge_begin and
+   _end leave where a C call of the last instruction would have raised the
+   fault and left at the block's end: they charge what the timing model
+   drains there in place of the held cycle (codegen_exit_end_charge_apply,
+   from the block's end). For an instruction that ends the block */
+extern void codegen_exit_end_charge_begin(ir_data_t *ir);
+extern void codegen_exit_end_charge_end(ir_data_t *ir);
+extern void codegen_exit_end_charge_apply(ir_data_t *ir, int drain);
+extern void codegen_exit_end_charge_clear(void);
 
 /* Whether the exits taken on a fault, or to run an instruction again,
    charge the timing model's held cycle too */
@@ -560,11 +574,15 @@ uop_alloc(ir_data_t *ir, uint32_t uop_type)
         fatal("Exceeded uOP max\n");
 
     uop = &ir->uops[ir->wr_pos++];
+    if (uop_type & UOP_TYPE_JUMP)
+        ir->jump_uops[ir->nr_jump_uops++] = ir->wr_pos - 1;
 
     uop->is_a16     = 0;
-    uop->imm_data2  = uop_type_can_fault(uop_type) ? codegen_exit_cycles(EXIT_FAULT_HELD) : 0;
-    if (uop_type_can_fault(uop_type))
+    if (uop_type_can_fault(uop_type)) {
+        uop->imm_data2 = codegen_exit_cycles(EXIT_FAULT_HELD);
         codegen_record_exit(ir->wr_pos - 1, EXIT_FAULT_HELD);
+    } else
+        uop->imm_data2 = 0;
 
     uop->dest_reg_a = invalid_ir_reg;
     uop->src_reg_a  = invalid_ir_reg;
@@ -591,6 +609,8 @@ uop_alloc_unroll(ir_data_t *ir, uint32_t uop_type)
         fatal("Exceeded uOP max\n");
 
     uop = &ir->uops[ir->wr_pos++];
+    if (uop_type & UOP_TYPE_JUMP)
+        ir->jump_uops[ir->nr_jump_uops++] = ir->wr_pos - 1;
 
     uop->is_a16     = 0;
 

@@ -170,14 +170,16 @@ build_load_misaligned(codeblock_t *block, int size, int is_float, uint32_t **to_
     host_arm64_RET(block, REG_X30);
 }
 
-/*ea_rule: take the direct load whenever the address is at most 0xffc into
-  its page, aligned or not, as the interpreter's eal_r path does; readmemwl
-  and readmemll charge timing_misaligned only on the slow path.*/
+/*ea_rule: take the direct load whenever the address is aligned or at most
+  0xffc into its page, as the interpreter's geteaw()/geteal() do (eal_r up
+  to 0xffc, then the memory macro's test); readmemwl and readmemll charge
+  timing_misaligned only on the slow path.*/
 static void
 build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
 {
     uint32_t *branch_offset;
     uint32_t *misaligned_offset = NULL;
+    uint32_t *aligned_offset;
     uint32_t *to_c[2];
     int       has_misaligned = !ea_rule && (size != 1);
 
@@ -197,17 +199,20 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
       LDP X29, X30, [SP, #-16]
       RET
     */
-    /*With the misaligned path, at most 55 instructions with every MOVX_IMM
-      at four and the C call through MOVX_IMM + BLR: one chunk, so the short
-      branches reach*/
-    codegen_alloc(block, has_misaligned ? 220 : 80);
+    /*With every MOVX_IMM at four and the C call through MOVX_IMM + BLR, at
+      most 55 instructions with the misaligned path, 28 with ea_rule and 21
+      for a byte: one chunk, so the short branches reach*/
+    codegen_alloc(block, has_misaligned ? 220 : (ea_rule ? 112 : 84));
     host_arm64_MOV_REG_LSR(block, REG_W1, REG_W0, 12);
     host_arm64_MOVX_IMM(block, REG_X2, (uint64_t) readlookup2);
     host_arm64_LDRX_REG_LSL3(block, REG_X1, REG_X2, REG_X1);
     if (ea_rule) {
+        host_arm64_TST_IMM(block, REG_W0, size - 1);
+        aligned_offset = host_arm64_BEQ_(block);
         host_arm64_AND_IMM(block, REG_W2, REG_W0, 0xfff);
         host_arm64_CMP_IMM(block, REG_W2, 0xffc);
         misaligned_offset = host_arm64_BHI_(block);
+        host_arm64_branch_set_offset(aligned_offset, &block_write_data[block_pos]);
     } else if (size != 1) {
         host_arm64_TST_IMM(block, REG_W0, size - 1);
         misaligned_offset = host_arm64_BNE_(block);
@@ -240,9 +245,9 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
     if (size == 1)
         host_arm64_call(block, (void *) readmembl);
     else if (size == 2)
-        host_arm64_call(block, (void *) readmemwl);
+        host_arm64_call(block, ea_rule ? (void *) readmemwl_eam : (void *) readmemwl);
     else if (size == 4)
-        host_arm64_call(block, (void *) readmemll);
+        host_arm64_call(block, ea_rule ? (void *) readmemll_eam : (void *) readmemll);
     else if (size == 8)
         host_arm64_call(block, (void *) readmemql);
     else
@@ -1856,6 +1861,7 @@ codegen_backend_init(void)
     build_link_set_routine(block);
 #    endif
 
+    codegen_allocator_written(block_write_data, block_pos);
     block_write_data = NULL;
 
     codegen_allocator_clean_blocks(block->head_mem_block);
@@ -1942,6 +1948,7 @@ codegen_backend_epilogue(codeblock_t *block)
     if (codegen_block_link) {
         codegen_link_exit(block);
         codegen_lazy_stubs_emit(block);
+        codegen_allocator_written(block_write_data, block_pos);
         codegen_allocator_clean_blocks(block->head_mem_block);
         return;
     }
@@ -1955,6 +1962,7 @@ codegen_backend_epilogue(codeblock_t *block)
     host_arm64_RET(block, REG_X30);
 
     codegen_lazy_stubs_emit(block);
+    codegen_allocator_written(block_write_data, block_pos);
     codegen_allocator_clean_blocks(block->head_mem_block);
 }
 

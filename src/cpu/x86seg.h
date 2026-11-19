@@ -17,6 +17,14 @@
 #ifndef EMU_X86SEG_H
 #define EMU_X86SEG_H
 
+extern int call_far_rm_fault(uint32_t new_pc, int is32);
+
+extern int      call_far_a_pending;
+extern uint32_t call_far_a_addr;
+extern uint16_t call_far_a_word;
+extern int      call_far_set_accessed(void);
+extern int      call_far_set_accessed_2386(void);
+
 #ifdef OPS_286_386
 
 extern void x86_doabrt_2386(int x86_abrt);
@@ -24,7 +32,7 @@ extern void x86_fault_in_delivery_2386(int first, int second);
 extern int  loadseg_2386(uint16_t seg, x86seg *s);
 extern void loadcs_2386(uint16_t seg);
 extern void loadcsjmp_2386(uint16_t seg, uint32_t old_pc);
-extern void loadcscall_2386(uint16_t seg, uint32_t old_pc);
+extern void loadcscall_2386(uint16_t seg, uint32_t old_pc, int is32);
 extern void pmoderetf_2386(int is32, uint16_t off);
 extern void pmodeint_2386(int num, int soft);
 extern void pmodeiret_2386(int is32);
@@ -36,6 +44,7 @@ extern void taskswitch286_2386(uint16_t seg, uint16_t *segdat, int is32);
 #define op_loadcs         loadcs_2386
 #define op_loadcsjmp      loadcsjmp_2386
 #define op_loadcscall     loadcscall_2386
+#define op_call_far_set_accessed call_far_set_accessed_2386
 #define op_pmoderetf      pmoderetf_2386
 #define op_pmodeint       pmodeint_2386
 #define op_pmodeiret      pmodeiret_2386
@@ -47,11 +56,14 @@ extern void taskswitch286_2386(uint16_t seg, uint16_t *segdat, int is32);
 extern void x86_doabrt(int x86_abrt);
 extern void x86_fault_in_delivery(int first, int second);
 extern int  loadseg(uint16_t seg, x86seg *s);
+#ifdef USE_DYNAREC
+extern int  loadseg_pm_fast(uint16_t seg, x86seg *s);
+#endif
 /* The prototype of loadcs_2386() is needed here for reset. */
 extern void loadcs_2386(uint16_t seg);
 extern void loadcs(uint16_t seg);
 extern void loadcsjmp(uint16_t seg, uint32_t old_pc);
-extern void loadcscall(uint16_t seg, uint32_t old_pc);
+extern void loadcscall(uint16_t seg, uint32_t old_pc, int is32);
 extern void pmoderetf(int is32, uint16_t off);
 /* The prototype of pmodeint_2386() is needed here for 386_common.c interrupts. */
 extern void pmodeint_2386(int num, int soft);
@@ -65,6 +77,7 @@ extern void taskswitch286(uint16_t seg, uint16_t *segdat, int is32);
 #define op_loadcs         loadcs
 #define op_loadcsjmp      loadcsjmp
 #define op_loadcscall     loadcscall
+#define op_call_far_set_accessed call_far_set_accessed
 #define op_pmoderetf      pmoderetf
 #define op_pmodeint       pmodeint
 #define op_pmodeiret      pmodeiret

@@ -18,10 +18,83 @@
 #include "codegen_ops_helpers.h"
 #include "codegen_ops_jit_wrappers.h"
 
-JIT_WRAPPER void
+/*flatten: every function called from the wrapper is inlined into it*/
+#define JIT_WRAPPER_OP __attribute__((noinline, used, flatten))
+
+/*flags_rebuild() with one test of the flags op. Each case has the
+  rebuild's body with the flag functions called from it, which flatten
+  inlines where the op is a constant: each keeps only that op's expression
+  and nothing is called. FLAGS_UNKNOWN has nothing to rebuild; any other
+  value takes the rebuild as it is*/
+#define JIT_FLAGS_REBUILD_CASE(op)                                           \
+    case op:                                                                 \
+        if (cpu_state.flags_op == op) {                                      \
+            uint16_t tempf = 0;                                              \
+            if (CF_SET())                                                    \
+                tempf |= C_FLAG;                                             \
+            if (PF_SET())                                                    \
+                tempf |= P_FLAG;                                             \
+            if (AF_SET())                                                    \
+                tempf |= A_FLAG;                                             \
+            if (ZF_SET())                                                    \
+                tempf |= Z_FLAG;                                             \
+            if (NF_SET())                                                    \
+                tempf |= N_FLAG;                                             \
+            if (VF_SET())                                                    \
+                tempf |= V_FLAG;                                             \
+            cpu_state.flags    = (cpu_state.flags & ~0x8d5) | tempf;         \
+            cpu_state.flags_op = FLAGS_UNKNOWN;                              \
+        }                                                                    \
+        break;
+
+JIT_WRAPPER_OP void
 jit_flags_rebuild(void)
 {
-    flags_rebuild();
+    switch (cpu_state.flags_op) {
+        case FLAGS_UNKNOWN:
+            break;
+        JIT_FLAGS_REBUILD_CASE(FLAGS_ZN8)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_ZN16)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_ZN32)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_ADD8)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_ADD16)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_ADD32)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_SUB8)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_SUB16)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_SUB32)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_SHL8)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_SHL16)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_SHL32)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_SHR8)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_SHR16)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_SHR32)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_SAR8)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_SAR16)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_SAR32)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_ROL8)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_ROL16)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_ROL32)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_ROR8)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_ROR16)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_ROR32)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_INC8)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_INC16)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_INC32)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_DEC8)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_DEC16)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_DEC32)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_ADC8)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_ADC16)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_ADC32)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_SBC8)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_SBC16)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_SBC32)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_SHRD16)
+        JIT_FLAGS_REBUILD_CASE(FLAGS_SHRD32)
+        default:
+            flags_rebuild();
+            break;
+    }
 }
 
 /*flags_rebuild() for SAHF, which then replaces bits 0-7 of flags before
@@ -52,7 +125,6 @@ jit_flags_rebuild_zpna(void)
   inlines them and the test of cpu_state.flags_op leaves only that op's
   case of each; for any other op, the plain wrapper. Each is the rebuild
   itself for every op it runs after*/
-#define JIT_WRAPPER_OP __attribute__((noinline, used, flatten))
 
 /*flags_rebuild_zpna() for an op other than FLAGS_UNKNOWN*/
 #define JIT_FLAGS_REBUILD_ZPNA_OP(op)                                        \
@@ -1128,8 +1200,10 @@ codegen_addr_bound(ir_data_t *ir, int addr_reg, uint32_t *bound, int *is_const)
     uop = &ir->uops[parent];
     if ((IREG_GET_REG(uop->dest_reg_a.reg) != reg) || (IREG_GET_SIZE(uop->dest_reg_a.reg) != IREG_SIZE_L) || (uop->dest_reg_a.version != version))
         return 0;
-    for (int c = 0; c < ir->wr_pos; c++) {
-        if ((ir->uops[c].type & UOP_TYPE_JUMP) && (ir->uops[c].jump_dest_uop > parent) && (ir->uops[c].jump_dest_uop <= ir->wr_pos))
+    for (int i = 0; i < ir->nr_jump_uops; i++) {
+        const uop_t *jump = &ir->uops[ir->jump_uops[i]];
+
+        if ((jump->type & UOP_TYPE_JUMP) && (jump->jump_dest_uop > parent) && (jump->jump_dest_uop <= ir->wr_pos))
             return 0;
     }
 

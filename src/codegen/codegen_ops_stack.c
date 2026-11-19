@@ -377,11 +377,31 @@ ropLEAVE_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), U
     return op_pc;
 }
 
+/*Whether the block's IR can hold PUSHA or POPA: on a 16-bit stack it writes
+  eaaddr twice for most slots (versions), and it reads the stack base once
+  per slot. REG_VERSION_MAX and REG_REFCOUNT_MAX only end the block after the
+  current instruction, so one that writes or reads more than five times
+  could wrap their 8-bit counts. Where it would, the instruction is left to
+  the op and the block ends after it, where it would have ended anyway*/
+static int
+pusha_popa_fits(int versions, int reads)
+{
+    if (!stack32 && ((reg_last_version[IREG_GET_REG(IREG_eaaddr)] + versions) > 255))
+        return 0;
+    if ((reg_version[IREG_GET_REG(IREG_SS_base)][reg_last_version[IREG_GET_REG(IREG_SS_base)]].refcount + reads) > 255)
+        return 0;
+    return 1;
+}
+
 uint32_t
 ropPUSHA_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UNUSED(uint32_t fetchdat), UNUSED(uint32_t op_32), uint32_t op_pc)
 {
     int sp_reg;
 
+    if (!pusha_popa_fits(16, 8)) {
+        CPU_BLOCK_END();
+        return 0;
+    }
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     if (stack32) {
         sp_reg = LOAD_SP_WITH_OFFSET(ir, -16);
@@ -420,6 +440,10 @@ ropPUSHA_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), U
 {
     int sp_reg;
 
+    if (!pusha_popa_fits(16, 8)) {
+        CPU_BLOCK_END();
+        return 0;
+    }
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     if (stack32) {
         sp_reg = LOAD_SP_WITH_OFFSET(ir, -32);
@@ -459,6 +483,10 @@ ropPOPA_16(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UN
 {
     int sp_reg;
 
+    if (!pusha_popa_fits(13, 7)) {
+        CPU_BLOCK_END();
+        return 0;
+    }
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     if (stack32) {
         sp_reg = LOAD_SP(ir);
@@ -494,6 +522,10 @@ ropPOPA_32(UNUSED(codeblock_t *block), ir_data_t *ir, UNUSED(uint8_t opcode), UN
 {
     int sp_reg;
 
+    if (!pusha_popa_fits(13, 7)) {
+        CPU_BLOCK_END();
+        return 0;
+    }
     uop_MOV_IMM(ir, IREG_oldpc, cpu_state.oldpc);
     if (stack32) {
         sp_reg = LOAD_SP(ir);

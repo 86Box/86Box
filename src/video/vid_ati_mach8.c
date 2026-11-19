@@ -3389,7 +3389,10 @@ ati8514_recalctimings(svga_t *svga)
             dev->vdisp = dev->dispend;
         }
 
-        dev->accel.ge_offset -= mach->accel.crt_offset;
+        /* The CRT starts each frame at CRT_OFFSET; the engine draws at GE_OFFSET
+           independently, so a page flip is a CRT_OFFSET write alone. */
+        dev->memaddr_latch     = mach->accel.crt_offset >> 2;
+        mach->accel.crt_offset = 0;
         _8514_clock_sel = (mach->accel.clock_sel >> 2) & 0x0f;
 
         mach->accel.src_pitch = dev->pitch;
@@ -3472,9 +3475,14 @@ mach8_recalctimings(svga_t *svga)
         if (dev->bpp) {
             dev->accel.ge_offset <<= 1;
             mach->accel.crt_offset <<= 1;
+            dev->memaddr_latch = 0;
         } else {
             dev->accel.ge_offset <<= 2;
             mach->accel.crt_offset <<= 2;
+            /* 8 bpp: the CRT starts each frame at CRT_OFFSET and the engine draws
+               at GE_OFFSET independently, so a page flip is a CRT_OFFSET write. */
+            dev->memaddr_latch     = mach->accel.crt_offset >> 2;
+            mach->accel.crt_offset = 0;
         }
 
         dev->accel.ge_offset -= mach->accel.crt_offset;
@@ -4602,12 +4610,16 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                 WRITE8(port, mach->accel.crt_offset_lo, val);
             }
             mach_log(mach->log,"ATI 8514/A: (0x%04x) CRT Offset Low val=0x%02x, len=%d.\n", port, val, len);
+            if (!ATI_MACH32 && !dev->bpp)
+                dev->memaddr_latch = mach->accel.crt_offset_lo | (mach->accel.crt_offset_hi << 16);
             break;
 
         case 0x2eee:
         case 0x2eef:
             mach->accel.crt_offset_hi = val & 0x0f;
             mach_log(mach->log,"ATI 8514/A: (0x%04x) CRT Offset High val=0x%02x, len=%d.\n", port, val, len);
+            if (!ATI_MACH32 && !dev->bpp)
+                dev->memaddr_latch = mach->accel.crt_offset_lo | (mach->accel.crt_offset_hi << 16);
             break;
 
         case 0x32ee:
@@ -4625,7 +4637,8 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                 mach->fifo_test_idx = 0;
                 dev->fifo_idx       = 0;
                 for (int i = 0; i < queued; i++) {
-                    dev->accel_out_fifo(mach, mach->fifo_test_port[i], mach->fifo_test_data[i], 2);
+                    dev->accel_out_fifo(ATI_8514A_ULTRA ? (void *) svga : (void *) mach,
+                                        mach->fifo_test_port[i], mach->fifo_test_data[i], 2);
                 }
             }
             if (ATI_GRAPHICS_ULTRA || ATI_MACH32)

@@ -212,10 +212,73 @@ extern void x386_dynarec_log(const char *fmt, ...);
 #    endif
 #endif
 
+/* What readlookup2 would hold for one of checkio()'s reads when its page's
+   entry is held (mem.c), for an access the tables serve without a call. */
+static __inline uintptr_t
+checkio_held(uint32_t addr, uint32_t size)
+{
+#ifndef OPS_286_386
+    /* With a base of FFFFFFFFh the macros below walk whatever is cached. */
+    if (UNLIKELY(mem_held_num) && (tr.base != 0xffffffff) && !(addr & (size - 1)))
+        return mem_held_read(addr);
+#endif
+    return (uintptr_t) LOOKUP_INV;
+}
+
+#ifdef OPS_286_386
+#    define checkio_readw(s, a) (do_mmut_rw(s, a, addr64a_2), readmemw_n(s, a, addr64a_2))
+#    define checkio_readb(s, a) (do_mmut_rb(s, a, addr64a_2), readmemb_n(s, a, addr64a_2[0]))
+#else
+/* One of checkio()'s reads from a single load of its lookup entry. The
+   do_mmut / readmem_n pair tests the entry twice, and a flush from another
+   thread between the two leaves the reader with no translation. A base of
+   FFFFFFFFh takes the _nh calls that pair makes for it, without the pair:
+   OUTS checks the port between its source's translate step and its access,
+   and the pair would overwrite the entry that step saved. */
+static __inline uint16_t
+checkio_readw(uint32_t base, uint32_t off)
+{
+    uint32_t  addr = base + off;
+    uintptr_t e;
+
+    if (base == 0xffffffff) {
+        if (do_mmut_needed())
+            do_mmutranslate_nh(addr, addr64a_2, 2, 0);
+        return readmemwl_no_mmut_nh(addr, addr64a_2);
+    }
+    e = *(volatile uintptr_t *) &readlookup2[addr >> 12];
+    if ((e != (uintptr_t) LOOKUP_INV) && !(addr & 1))
+        return *(uint16_t *) (e + addr);
+    if (do_mmut_needed())
+        do_mmutranslate(addr, addr64a_2, 2, 0);
+    return readmemwl_no_mmut(addr, addr64a_2);
+}
+
+static __inline uint8_t
+checkio_readb(uint32_t base, uint32_t off)
+{
+    uint32_t  addr = base + off;
+    uintptr_t e;
+
+    if (base == 0xffffffff) {
+        if (do_mmut_needed())
+            do_mmutranslate_nh(addr, addr64a_2, 1, 0);
+        return readmembl_no_mmut_nh(addr, addr64a_2[0]);
+    }
+    e = *(volatile uintptr_t *) &readlookup2[addr >> 12];
+    if (e != (uintptr_t) LOOKUP_INV)
+        return *(uint8_t *) (e + addr);
+    if (do_mmut_needed())
+        do_mmutranslate(addr, addr64a_2, 1, 0);
+    return readmembl_no_mmut(addr, addr64a_2[0]);
+}
+#endif
+
 static int
 checkio(uint32_t port, int mask)
 {
-    uint32_t t;
+    uint32_t  t;
+    uintptr_t held;
 
     if (!(tr.access & 0x08)) {
         if ((CPL) > (IOPL))
@@ -228,8 +291,11 @@ checkio(uint32_t port, int mask)
 
     addr64a_2[0] = addr64a_2[1] = 0x00000000;
 
-    do_mmut_rw(tr.base, 0x66, addr64a_2);
-    t            = readmemw_n(tr.base, 0x66, addr64a_2);
+    held = checkio_held(tr.base + 0x66, 2);
+    if (held != (uintptr_t) LOOKUP_INV)
+        t = *(uint16_t *) (held + (tr.base + 0x66));
+    else
+        t = checkio_readw(tr.base, 0x66);
 
     if (UNLIKELY(cpu_state.abrt)) {
         cpl_override = 0;
@@ -248,13 +314,19 @@ checkio(uint32_t port, int mask)
     mask <<= (port & 7);
     if (UNLIKELY(mask & 0xff00)) {
         if (LIKELY(t < tr.limit)) {
-            do_mmut_rw(tr.base, t, addr64a_2);
-            mask &= readmemw_n(tr.base, t, addr64a_2);
+            held = checkio_held(tr.base + t, 2);
+            if (held != (uintptr_t) LOOKUP_INV)
+                mask &= *(uint16_t *) (held + (tr.base + t));
+            else
+                mask &= checkio_readw(tr.base, t);
         }
     } else {
         if (LIKELY(t <= tr.limit)) {
-            do_mmut_rb(tr.base, t, addr64a_2);
-            mask &= readmemb_n(tr.base, t, addr64a_2[0]);
+            held = checkio_held(tr.base + t, 1);
+            if (held != (uintptr_t) LOOKUP_INV)
+                mask &= *(uint8_t *) (held + (tr.base + t));
+            else
+                mask &= checkio_readb(tr.base, t);
         }
     }
     cpl_override = 0;

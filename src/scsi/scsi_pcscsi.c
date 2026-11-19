@@ -318,10 +318,10 @@ esp_irq(esp_t *dev, int level)
 {
     if (dev->mca) {
         if (level) {
-            picintlevel(1 << dev->irq, &dev->irq_state);
+            picint(1 << dev->irq);
             esp_log("Raising IRQ...\n");
         } else {
-            picintclevel(1 << dev->irq, &dev->irq_state);
+            picintc(1 << dev->irq);
             esp_log("Lowering IRQ...\n");
         }
     } else {
@@ -653,12 +653,9 @@ esp_dma_enable(esp_t *dev, int level)
         esp_log("ESP DMA Enabled\n");
         dev->dma_enabled = 1;
         timer_stop(&dev->timer);
-        if (((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_TI) && ((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_PAD)) {
-            if (dev->wregs[ESP_WCCF] & 0x07)
-                timer_on_auto(&dev->timer, ((double)(dev->wregs[ESP_WCCF] & 0x07)) * 5.0);
-            else
-                timer_on_auto(&dev->timer, 40.0);
-        } else {
+        if (((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_TI) && ((dev->rregs[ESP_CMD] & CMD_CMD) != CMD_PAD))
+            timer_on_auto(&dev->timer, 40.0);
+        else {
             esp_log("Period = %lf\n", dev->period);
             timer_on_auto(&dev->timer, dev->period);
         }
@@ -1302,10 +1299,7 @@ esp_timer_on(esp_t *dev, scsi_device_t *sd, double p)
         dev->period = (p > 0.0) ? p : (((double) sd->buffer_length) * 0.2);
     }
 
-    if ((dev->wregs[ESP_WCCF] & 0x07) == 0x00)
-        timer_on_auto(&dev->timer, dev->period + 40.0);
-    else
-        timer_on_auto(&dev->timer, dev->period + (((double)(dev->wregs[ESP_WCCF] & 0x07)) * 5.0));
+    timer_on_auto(&dev->timer, dev->period + 40.0);
 }
 
 static void

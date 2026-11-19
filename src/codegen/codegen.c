@@ -783,6 +783,44 @@ codegen_exit_cycles(int held)
     return add;
 }
 
+static int exit_end_first = -1;
+static int exit_end_last;
+static int exit_end_held;
+
+void
+codegen_exit_end_charge_begin(ir_data_t *ir)
+{
+    exit_end_first = ir->wr_pos;
+    exit_end_last  = ir->wr_pos;
+    exit_end_held  = codegen_timing_jump_cycles ? codegen_timing_jump_cycles() : 0;
+}
+
+void
+codegen_exit_end_charge_end(ir_data_t *ir)
+{
+    exit_end_last = ir->wr_pos;
+}
+
+/* drain = the cycles the timing model's block end added */
+void
+codegen_exit_end_charge_apply(ir_data_t *ir, int drain)
+{
+    if (exit_end_first >= 0) {
+        for (int c = exit_end_first; c < exit_end_last; c++) {
+            if (uop_type_can_fault(ir->uops[c].type))
+                ir->uops[c].imm_data2 += exit_end_held - drain;
+        }
+    }
+    exit_end_first = -1;
+}
+
+/* At every block start (codegen_ir_init) */
+void
+codegen_exit_end_charge_clear(void)
+{
+    exit_end_first = -1;
+}
+
 void
 codegen_exit_stamp(ir_data_t *ir, int held)
 {

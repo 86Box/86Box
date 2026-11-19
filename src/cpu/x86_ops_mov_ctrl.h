@@ -214,6 +214,7 @@ opMOV_CRx_r_a16(uint32_t fetchdat)
             /* Make sure CPL = 0 when switching from real mode to protected mode. */
             if ((new_cr0 & 0x01) && !(cr0 & 0x01))
                 cpu_state.seg_cs.access &= 0x9f;
+            mem_held_release();
             cr0 = new_cr0;
             if (cpu_16bitbus)
                 cr0 |= 0x10;
@@ -311,6 +312,7 @@ opMOV_CRx_r_a32(uint32_t fetchdat)
             /* Make sure CPL = 0 when switching from real mode to protected mode. */
             if ((new_cr0 & 0x01) && !(cr0 & 0x01))
                 cpu_state.seg_cs.access &= 0x9f;
+            mem_held_release();
             cr0 = new_cr0;
             if (cpu_16bitbus)
                 cr0 |= 0x10;
