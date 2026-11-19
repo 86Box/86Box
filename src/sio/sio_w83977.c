@@ -599,15 +599,18 @@ w83977_wake_takeover(w83977_t *dev)
 /* The keyboard and mouse wake-up logic pulses PANSWOUT# (W83977EF-AW 8.6,
    p. 74). How a board wires that pin is up to the board.
 
-   The pulse is for waking the system from soft-off; with VCC up, it only
-   comes when CR E4 bit 2 lets the CR E0 events wake the system from S1/S2,
-   and the event clears that bit. The W83977EF-AW datasheet marks the bit
+   The pulse is for waking the system with VCC off, from soft-off or suspend
+   to RAM, where the logic runs on standby power. With VCC up, it only comes
+   when CR E4 bit 2 lets the CR E0 events wake the system from S1/S2, and
+   the event clears that bit. The W83977EF-AW datasheet marks the bit
    reserved, but the later W83627HF documents it (CRE4, p. 164), and the
-   ASUS CUBX sets it in _PTS for S1 and clears it in _WAK. */
+   ASUS CUBX sets it in _PTS for S1 and clears it in _WAK. The CUBX BIOS
+   turns S1 into suspend to RAM if Setup asks for it, and does not set the
+   bit then. */
 static void
 w83977_panswout(w83977_t *dev, uint8_t sts)
 {
-    if (!(dev->ld_regs[0x0a][0xe4] & 0x04))
+    if (!(dev->ld_regs[0x0a][0xe4] & 0x04) && !(acpi_sleeping & SUS_NVR))
         return;
 
     dev->ld_regs[0x0a][0xe4] &= ~0x04;
