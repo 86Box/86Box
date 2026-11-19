@@ -86,6 +86,7 @@
 #include <86box/rdisk.h>
 #include <86box/mo.h>
 #include <86box/scsi_tape.h>
+#include <86box/md.h>
 #include <86box/sound.h>
 #include <86box/midi.h>
 #include <86box/snd_mpu401.h>
@@ -2840,6 +2841,70 @@ go_to_mo:
             }
         }
     }
+    /* MD DATA drives. */
+    memset(temp, 0x00, sizeof(temp));
+    for (c = 0; c < MD_NUM; c++) {
+        sprintf(temp, "md_%02i_parameters", c + 1);
+        p = ini_section_get_string(cat, temp, NULL);
+        if (p != NULL)
+            sscanf(p, "%u, %s", &md_drives[c].type, s);
+        else
+            sscanf("01, none", "%u, %s", &md_drives[c].type, s);
+        md_drives[c].bus_type = (hdd_string_to_bus(s, 1) == HDD_BUS_SCSI) ? MD_BUS_SCSI : MD_BUS_DISABLED;
+
+        if (md_drives[c].type >= KNOWN_MD_DRIVE_TYPES)
+            md_drives[c].type = MD_TYPE_SONY_MDH10;
+
+        /* Default values, needed for proper operation of the Settings dialog. */
+        md_drives[c].scsi_device_id = c + 2;
+
+        sprintf(temp, "md_%02i_scsi_location", c + 1);
+        if (md_drives[c].bus_type == MD_BUS_SCSI) {
+            sprintf(tmp2, "%01u:%02u", 0, c + 2);
+            p = ini_section_get_string(cat, temp, tmp2);
+            sscanf(p, "%01u:%02u", &board, &dev);
+            board %= SCSI_BUS_MAX;
+            dev &= 15;
+            md_drives[c].scsi_device_id = (board << 4) + dev;
+        } else
+            ini_section_delete_var(cat, temp);
+
+        sprintf(temp, "md_%02i_image_path", c + 1);
+        p = ini_section_get_string(cat, temp, "");
+
+        if (!strcmp(p, usr_path))
+            p[0] = 0x00;
+
+        if (p[0] != 0x00) {
+            if (load_image_file(md_drives[c].image_path, p, &(md_drives[c].read_only)))
+                fatal("Configuration: Length of md_%02i_image_path is more than 511\n", c + 1);
+        }
+
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            md_drives[c].image_history[i] = (char *) calloc((MAX_IMAGE_PATH_LEN + 1) << 1, sizeof(char));
+            sprintf(temp, "md_%02i_image_history_%02i", c + 1, i + 1);
+            p = ini_section_get_string(cat, temp, NULL);
+            if (p) {
+                if (load_image_file(md_drives[c].image_history[i], p, NULL))
+                    fatal("Configuration: Length of md_%02i_image_history_%02i is more than %i\n",
+                          c + 1, i + 1, MAX_IMAGE_PATH_LEN - 1);
+            }
+        }
+
+        /* If the MD drive is disabled, delete all its variables. */
+        if (md_drives[c].bus_type == MD_BUS_DISABLED) {
+            sprintf(temp, "md_%02i_parameters", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            sprintf(temp, "md_%02i_image_path", c + 1);
+            ini_section_delete_var(cat, temp);
+
+            for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+                sprintf(temp, "md_%02i_image_history_%02i", c + 1, i + 1);
+                ini_section_delete_var(cat, temp);
+            }
+        }
+    }
 }
 
 /* Load "Other Peripherals" section. */
@@ -5301,6 +5366,38 @@ save_other_removable_devices(void)
                 ini_section_delete_var(cat, temp);
             else
                 save_image_file(cat, temp, tape_drives[c].image_history[i]);
+        }
+    }
+
+    for (c = 0; c < MD_NUM; c++) {
+        sprintf(temp, "md_%02i_parameters", c + 1);
+        if (md_drives[c].bus_type == MD_BUS_DISABLED)
+            ini_section_delete_var(cat, temp);
+        else {
+            sprintf(tmp2, "%u, %s", md_drives[c].type, hdd_bus_to_string(HDD_BUS_SCSI, 1));
+            ini_section_set_string(cat, temp, tmp2);
+        }
+
+        sprintf(temp, "md_%02i_scsi_location", c + 1);
+        if (md_drives[c].bus_type != MD_BUS_SCSI)
+            ini_section_delete_var(cat, temp);
+        else {
+            sprintf(tmp2, "%01u:%02u", md_drives[c].scsi_device_id >> 4, md_drives[c].scsi_device_id & 15);
+            ini_section_set_string(cat, temp, tmp2);
+        }
+
+        sprintf(temp, "md_%02i_image_path", c + 1);
+        if ((md_drives[c].bus_type == MD_BUS_DISABLED) || (strlen(md_drives[c].image_path) == 0))
+            ini_section_delete_var(cat, temp);
+        else
+            save_image_file(cat, temp, md_drives[c].image_path);
+
+        for (int i = 0; i < MAX_PREV_IMAGES; i++) {
+            sprintf(temp, "md_%02i_image_history_%02i", c + 1, i + 1);
+            if ((md_drives[c].image_history[i] == 0) || strlen(md_drives[c].image_history[i]) == 0)
+                ini_section_delete_var(cat, temp);
+            else
+                save_image_file(cat, temp, md_drives[c].image_history[i]);
         }
     }
 

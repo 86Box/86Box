@@ -20,6 +20,7 @@ extern "C" {
 #include <86box/rdisk.h>
 #include <86box/mo.h>
 #include <86box/scsi_tape.h>
+#include <86box/md.h>
 #include <86box/hdd.h>
 #include <86box/thread.h>
 #include <86box/network.h>
@@ -62,6 +63,13 @@ machine_status_init(void)
         machine_status.tape[i].active       = false;
         machine_status.tape[i].write_active = false;
         machine_status.tape[i].write_prot   = !!tape_drives[i].read_only;
+    }
+
+    for (size_t i = 0; i < MD_NUM; i++) {
+        machine_status.md[i].empty        = (strlen(md_drives[i].image_path) == 0);
+        machine_status.md[i].active       = false;
+        machine_status.md[i].write_active = false;
+        machine_status.md[i].write_prot   = !!md_drives[i].read_only;
     }
 
     for (size_t i = 0; i < 2; i++)

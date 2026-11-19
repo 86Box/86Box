@@ -277,7 +277,7 @@ VulkanWindowRenderer::recreateShaderSrcImages()
         img_info.tiling            = VK_IMAGE_TILING_OPTIMAL;
         img_info.usage             = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT;
         img_info.samples           = VK_SAMPLE_COUNT_1_BIT;
-        img_info.initialLayout     = VK_IMAGE_LAYOUT_PREINITIALIZED;
+        img_info.initialLayout     = VK_IMAGE_LAYOUT_UNDEFINED;
         img_info.sharingMode       = VK_SHARING_MODE_EXCLUSIVE;
         img_info.flags             = 0;
 
@@ -1665,6 +1665,9 @@ VulkanWindowRenderer::initialize()
                                driver (Raspberry Pi 5) can't tell whether a pass covers the whole image when its size isn't a
                                multiple of the tile size, so it loads the image and clears it with a draw on every frame. */
                             vk.use_dynamic_rendering = 0;
+                            /* render() keeps one frame in flight per swapchain image. librashader frees a frame's
+                               resources that many frames later (3 if not set). */
+                            vk.frames_in_flight = swapchainImages.size();
 #ifndef LIBRASHADER_STATIC
                             auto err = librashader_inst.vk_filter_chain_create(&shader->shader_preset, vk_dev, &vk, &filter_chain);
 #else

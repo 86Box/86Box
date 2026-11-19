@@ -144,6 +144,7 @@ target_link_libraries(86Box
     cdrom
     rdisk
     mo
+    md
     hdd
     net
     print

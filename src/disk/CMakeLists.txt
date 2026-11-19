@@ -49,6 +49,7 @@ add_library(hdd OBJECT
 add_library(rdisk OBJECT rdisk.c)
 
 add_library(mo OBJECT mo.c)
+add_library(md OBJECT md.c)
 
 add_subdirectory(minivhd)
 target_link_libraries(86Box minivhd)

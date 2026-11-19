@@ -97,25 +97,9 @@ static const mode_sense_pages_t mo_mode_sense_pages_default_scsi = { 0 };
 static const mode_sense_pages_t mo_mode_sense_pages_changeable   = { 0 };
 
 /*
-   Sony MD Data and Hi-MD pages, rebuilt from the decoded values in Aaru device reports 324 (MDM110), 273
-   (MDH-10) and 173 (Hi-MD WALKMAN).  Pages 20h, 21h and 1Bh are in the reports without values, so their lengths
-   are ESTIMATED and they are all zero.
+   Sony Hi-MD pages, rebuilt from the decoded values in Aaru device report 173.  Page 1Bh is in the report without
+   values, so its length is ESTIMATED and it is all zero.
  */
-static const mode_sense_pages_t mdm110_mode_sense_pages_default = {
-    { [0x01] = { GPMODE_R_W_ERROR_PAGE,  0x0a, 0x80, 0x03, 0x00, 0x00, 0x00, 0x00, 0x03, 0x00, 0x00, 0x00 },
-      [0x07] = { 0x07,                   0x0a, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-      [0x08] = { GPMODE_CACHING_PAGE,    0x0a, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-      [0x20] = { 0x20,                   0x0a } }
-};
-
-static const mode_sense_pages_t mdh10_mode_sense_pages_default = {
-    { [0x01] = { GPMODE_R_W_ERROR_PAGE,  0x0a, 0x80, 0x05, 0x00, 0x00, 0x00, 0x00, 0x05, 0x00, 0x00, 0x00 },
-      [0x07] = { 0x07,                   0x0a, 0x00, 0x03, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-      [0x08] = { GPMODE_CACHING_PAGE,    0x0a, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
-      [0x20] = { 0x20,                   0x0a },
-      [0x21] = { 0x21,                   0x0a } }
-};
-
 static const mode_sense_pages_t himd_mode_sense_pages_default = {
     { [0x01] = { GPMODE_R_W_ERROR_PAGE,  0x0a, 0xa5, 0x06, 0x00, 0x00, 0x00, 0x00, 0x06, 0x00, 0x00, 0x00 },
       [0x08] = { GPMODE_CACHING_PAGE,    0x0a, 0x04, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 },
@@ -123,26 +107,16 @@ static const mode_sense_pages_t himd_mode_sense_pages_default = {
 };
 
 /* What can be changed: nothing, only the lengths are needed. */
-static const mode_sense_pages_t md_mode_sense_pages_changeable = {
+static const mode_sense_pages_t himd_mode_sense_pages_changeable = {
     { [0x01] = { GPMODE_R_W_ERROR_PAGE,  0x0a },
-      [0x07] = { 0x07,                   0x0a },
       [0x08] = { GPMODE_CACHING_PAGE,    0x0a },
-      [0x1b] = { 0x1b,                   0x0a },
-      [0x20] = { 0x20,                   0x0a },
-      [0x21] = { 0x21,                   0x0a } }
+      [0x1b] = { 0x1b,                   0x0a } }
 };
-
-#define IS_SONY_MD(t) (((t) == MO_TYPE_SONY_MDM110) || ((t) == MO_TYPE_SONY_MDH10) || ((t) == MO_TYPE_SONY_HIMD))
 
 static uint64_t
 mo_page_flags(const mo_t *dev)
 {
     switch (dev->drv->type) {
-        case MO_TYPE_SONY_MDM110:
-            return GPMODEP_R_W_ERROR_PAGE | (1ULL << 0x07) | GPMODEP_CACHING_PAGE | (1ULL << 0x20) | GPMODEP_ALL_PAGES;
-        case MO_TYPE_SONY_MDH10:
-            return GPMODEP_R_W_ERROR_PAGE | (1ULL << 0x07) | GPMODEP_CACHING_PAGE | (1ULL << 0x20) | (1ULL << 0x21) |
-                   GPMODEP_ALL_PAGES;
         case MO_TYPE_SONY_HIMD:
             return GPMODEP_R_W_ERROR_PAGE | GPMODEP_CACHING_PAGE | (1ULL << 0x1b) | GPMODEP_ALL_PAGES;
         default:
@@ -154,10 +128,6 @@ static const mode_sense_pages_t *
 mo_pages_default(const mo_t *dev)
 {
     switch (dev->drv->type) {
-        case MO_TYPE_SONY_MDM110:
-            return &mdm110_mode_sense_pages_default;
-        case MO_TYPE_SONY_MDH10:
-            return &mdh10_mode_sense_pages_default;
         case MO_TYPE_SONY_HIMD:
             return &himd_mode_sense_pages_default;
         default:
@@ -168,14 +138,14 @@ mo_pages_default(const mo_t *dev)
 static const mode_sense_pages_t *
 mo_pages_changeable(const mo_t *dev)
 {
-    return IS_SONY_MD(dev->drv->type) ? &md_mode_sense_pages_changeable : &mo_mode_sense_pages_changeable;
+    return (dev->drv->type == MO_TYPE_SONY_HIMD) ? &himd_mode_sense_pages_changeable : &mo_mode_sense_pages_changeable;
 }
 
-/* Can this disc not be written?  The 2336-byte MiniDisc media are audio discs to a computer. */
+/* Can this disc not be written? */
 static int
 mo_write_blocked(const mo_t *dev)
 {
-    return dev->drv->read_only || (dev->drv->sector_size == 2336);
+    return dev->drv->read_only;
 }
 
 /* The medium type of the mode parameter header. */
@@ -244,7 +214,7 @@ mo_is_empty(const uint8_t id)
 }
 
 /* The volume layout for a folder mounted as a medium. M.O. disks are formatted without a partition
-   table, as Windows does; MiniDiscs can't take a folder. Returns 0 if the medium can't take one. */
+   table, as Windows does; Hi-MD discs can't take a folder. Returns 0 if the medium can't take one. */
 static int
 mo_folder_params(int medium, fat_image_params_t *p)
 {
@@ -1880,12 +1850,11 @@ mo_command(scsi_common_t *sc, const uint8_t *cdb)
                     dev->buffer[7] = 0x20;    /* Wide bus supported */
                 }
                 dev->buffer[7] |= 0x02;
-                if (IS_SONY_MD(dev->drv->type)) {
-                    /* Reports 324 and 273 have no wide transfers.  Report 173 claims no standard. */
+                if (dev->drv->type == MO_TYPE_SONY_HIMD) {
+                    /* Report 173 has no wide transfers and claims no standard. */
                     dev->buffer[6] = 0x00;
                     dev->buffer[7] = 0x00;
-                    if (dev->drv->type == MO_TYPE_SONY_HIMD)
-                        dev->buffer[2] = 0x00;
+                    dev->buffer[2] = 0x00;
                 }
 
                 if (dev->drv->type > 0) {

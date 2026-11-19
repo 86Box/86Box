@@ -92,6 +92,7 @@
 #include <86box/rdisk.h>
 #include <86box/mo.h>
 #include <86box/scsi_tape.h>
+#include <86box/md.h>
 #include <86box/scsi_disk.h>
 #include <86box/thread.h>
 #include <86box/network.h>
@@ -1506,6 +1507,7 @@ usage:
         rdisk_global_init();
         mo_global_init();
         tape_global_init();
+        md_global_init();
 
         /*
            Set the ID of all the floppy drives so their configuration
@@ -1917,6 +1919,7 @@ pc_reset_hard_close(void)
     mo_close();
 
     tape_close();
+    md_close();
 
     scsi_disk_close();
 
@@ -2052,6 +2055,7 @@ pc_reset_hard_init(void)
     mo_hard_reset();
 
     tape_hard_reset();
+    md_hard_reset();
 
     rdisk_hard_reset();
 
@@ -2206,6 +2210,7 @@ pc_close(UNUSED(thread_t *ptr))
     mo_close();
 
     tape_close();
+    md_close();
 
     scsi_disk_close();
 
