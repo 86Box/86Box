@@ -1029,6 +1029,39 @@ pixel_full(verite_core *core, int32_t x, int32_t y, const pixel_span *span, veri
     pe->pick_hit = core->drew = true;
 }
 
+/* Repeated Q/U, Z/V draws step shadow X and latch Q after each pixel. */
+static void
+pixel_draw_perspective_span(verite_core *c, const pixel_span *span, const uint32_t values[4],
+                            const uint32_t deltas[4], int count, uint32_t x_step, verite_memory mem)
+{
+    pixel_engine *pe        = &c->pe;
+    bool          swap      = !!(pe->src_mode & SRC_SWAP_UV);
+    bool          z_scissor = !!(pe->src_mode & SRC_Z_SCISSOR);
+    unsigned      u_index   = swap ? 3 : 1;
+    unsigned      v_index   = swap ? 1 : 3;
+    uint32_t      q         = values[0], dq = deltas[0];
+    uint32_t      u         = values[u_index], du = deltas[u_index];
+    uint32_t      z         = values[2], dz = deltas[2];
+    uint32_t      v         = values[v_index], dv = deltas[v_index];
+    pe->u_mask = pe->src_mask & 0x7ff;
+    pe->v_mask = (pe->src_mask >> 16) & 0x7ff;
+
+    for (int i = 0; i < count; i++) {
+        pe->u     = (int32_t) u;
+        pe->v     = (int32_t) v;
+        pe->z     = (int32_t) z;
+        pe->z_ovf = z_scissor && (z & 0xf8000000);
+        pixel_full(c, pe->x_shadow >> 16, pe->y >> 16, span, mem);
+        pe->q        = q;
+        pe->x_shadow = (int32_t) ((uint32_t) pe->x_shadow + x_step);
+        q += dq;
+        u += du;
+        z += dz;
+        v += dv;
+    }
+    pe->cnt = 0;
+}
+
 /* Unpadded RGB565 expands to multiples of its quantization step. The dither
    offset is smaller than that step, so replace-mode draws can copy the texel. */
 static void
@@ -1146,6 +1179,10 @@ pixel_draw_param(verite_core *c, uint8_t op, uint8_t d, uint8_t s2, uint8_t s1, 
     span.read_dst = !span.read_disabled && (span.blend || rop_reads(span.rop_code) || span.pmask != span.mask);
 
     uint32_t step     = pe->x_dir ? 0U - 0x10000 : 0x10000;
+    if (op == 0xf3 && params[0] == P_Q && params[1] == P_U && params[2] == P_Z && params[3] == P_V) {
+        pixel_draw_perspective_span(c, &span, values, deltas, cnt, step, mem);
+        return;
+    }
     bool     repeated = !!(op & 1);
     int      n        = repeated ? cnt : 1;
     for (int i = 0; i < n; i++) {

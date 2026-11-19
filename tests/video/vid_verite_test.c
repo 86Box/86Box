@@ -399,6 +399,43 @@ perspective_uses_previous_q(void)
 }
 
 static void
+perspective_span_swapped_uv(void)
+{
+    fixture f = machine(NULL, 0, 0);
+    sixteen_bit(f.core);
+    pixel_engine *pe = &f.core->pe;
+    pe->src_base     = 0x30000;
+    pe->src_mode     = 4 | (1 << 4) | SRC_SWAP_UV | SRC_Z_SCISSOR;
+    pe->src_mask     = 0x00030001;
+    pe->stride       = 0x0414;
+    pe->drawctl      = 0xd5; /* Q/U and Z/V, with shadow X. */
+    pe->x_shadow     = 3 << 16;
+    pe->x_dir        = true;
+    pe->cnt          = 3;
+    f.core->reg[160]  = 2U << 24;
+    f.core->reg[161]  = 2U << 16;
+    f.core->reg[163]  = 3U << 16;
+    f.core->reg[176]  = 1U << 24;
+    f.core->reg[177]  = 1U << 16;
+    f.core->reg[178]  = 1U << 26;
+    f.core->reg[179]  = 1U << 16;
+    mem_write16(f.mem, 0x30000 + 42, 0xf800);
+    mem_write16(f.mem, 0x30000 + 20, 0x07e0);
+    mem_write16(f.mem, 0x10002, 0x1111);
+
+    pixel_draw_param(f.core, 0xf3, 192, 160, 176, f.mem);
+
+    assert(mem_read16(f.mem, 0x10006) == 0xf800);
+    assert(mem_read16(f.mem, 0x10004) == 0x07e0);
+    assert(mem_read16(f.mem, 0x10002) == 0x1111);
+    assert(pe->u_mask == 1 && pe->v_mask == 3);
+    assert(pe->u == (5 << 16) && pe->v == (4 << 16));
+    assert(pe->z == (1 << 27) && pe->z_ovf);
+    assert(pe->q == (4U << 24) && !pe->x_shadow && !pe->cnt);
+    done(&f);
+}
+
+static void
 palette_loader(void)
 {
     const uint32_t program[] = {
@@ -767,6 +804,7 @@ main(void)
     draw_fifo_order();
     texture_masks();
     perspective_uses_previous_q();
+    perspective_span_swapped_uv();
     perspective_division();
     palette_loader();
     absolute_jumps();
