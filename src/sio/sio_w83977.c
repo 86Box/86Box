@@ -68,6 +68,7 @@ typedef struct w83977_t {
     uint8_t       kbwk_key[15];
     uint8_t       kbwk_shift[15];
     uint8_t       mswk_byte;
+    uint64_t      mswk_tsc;
     uint8_t       mswk_button;
     uint8_t       mswk_clicks;
 } w83977_t;
@@ -591,6 +592,8 @@ w83977_panswout(w83977_t *dev, uint8_t sts)
         acpi_pwrbut_press();
 }
 
+#define W83977_MSWK_GAP_US 2000ULL
+
 /* The wake-up logic watches the keyboard and mouse lines (W83977EF-AW 8.6,
    p. 74, and LD A CR E0-E3, p. 109-110):
    - The keyboard wakes the system on any byte with KBXKEY (CR E0 bit 0) set,
@@ -600,7 +603,14 @@ w83977_panswout(w83977_t *dev, uint8_t sts)
      29h to index 0 and F0h to index 1, the key's set 2 break code.
    - The mouse wakes the system on any byte with MSXKEY (CR E0 bit 1) set,
      otherwise on two clicks of the button that MSRKEY (CR E0 bit 4)
-     selects, without the mouse moving in between. */
+     selects, without the mouse moving in between.
+
+   The datasheet does not say how the mouse logic finds the packets in what
+   the mouse sends, which includes its replies to commands (FAh, AAh 00h,
+   the ID) as well. The bytes of a packet follow each other at once, about
+   1 ms apart at 10 to 16.7 kHz, while packets and replies come at least a
+   sample interval (5 ms at the fastest rate) apart, so a byte after a gap
+   starts a new packet. */
 static void
 w83977_wire(void *priv, int channel, uint8_t val)
 {
@@ -630,6 +640,10 @@ w83977_wire(void *priv, int channel, uint8_t val)
 
         w83977_panswout(dev, 0x01);
     } else {
+        if ((tsc - dev->mswk_tsc) > ((W83977_MSWK_GAP_US * TIMER_USEC) >> 32))
+            dev->mswk_byte = 0;
+        dev->mswk_tsc = tsc;
+
         /* Follow the standard three-byte packets: the first byte has bit 3
            set. */
         if ((dev->mswk_byte == 0) && !(val & 0x08))
@@ -1341,6 +1355,7 @@ w83977_reset(void *priv)
     dev->mswk_byte   = 0;
     dev->mswk_button = 0;
     dev->mswk_clicks = 0;
+    dev->mswk_tsc    = 0;
 
     w83977_lpt_handler(dev);
     w83977_serial_handler(dev, 0);
