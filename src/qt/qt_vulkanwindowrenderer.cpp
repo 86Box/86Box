@@ -433,7 +433,10 @@ VulkanWindowRenderer::recreateSwapchain()
     swapchain_creation.imageColorSpace          = VK_COLOR_SPACE_SRGB_NONLINEAR_KHR;
 #endif
     swapchain_creation.imageArrayLayers         = 1;
-    swapchain_creation.imageUsage               = VK_IMAGE_USAGE_SAMPLED_BIT | VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
+    /* No VK_IMAGE_USAGE_SAMPLED_BIT: nothing samples the swapchain images. Drivers that can't sample linear images
+       (V3D on the Raspberry Pi 5) can't create the swapchain with it when the compositor offers only linear buffers,
+       as sway does for a fullscreen window on the Pi's HDMI output. */
+    swapchain_creation.imageUsage               = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT | VK_IMAGE_USAGE_TRANSFER_SRC_BIT | VK_IMAGE_USAGE_TRANSFER_DST_BIT;
     swapchain_creation.minImageCount            = std::clamp(surfaceCaps.minImageCount + 1u, surfaceCaps.minImageCount, surfaceCaps.maxImageCount ? surfaceCaps.maxImageCount : std::numeric_limits<uint32_t>::max());
     swapchain_creation.imageExtent              = curExtent;
     swapchain_creation.preTransform             = surfaceCaps.currentTransform;
@@ -791,28 +794,6 @@ VulkanWindowRenderer::render()
     }
     vmaFlushAllocation(allocator, img_allocation, 0, VK_WHOLE_SIZE);
 
-#ifdef LIBRA_RUNTIME_VULKAN
-    if (shaderSrcImageTransitioned[swapchain_image_index] && !noshadersloaded) {
-        const VkImageMemoryBarrier image3_memory_barrier {
-            .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            .srcAccessMask    = VK_ACCESS_MEMORY_READ_BIT,
-            .dstAccessMask    = 0,
-            .oldLayout        = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR,
-            .newLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
-            .image            = swapchainImages[swapchain_image_index],
-            .subresourceRange = {
-                                .aspectMask     = VK_IMAGE_ASPECT_COLOR_BIT,
-                                .baseMipLevel   = 0,
-                                .levelCount     = 1,
-                                .baseArrayLayer = 0,
-                                .layerCount     = 1,
-                                }
-        };
-
-        m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT, VK_PIPELINE_STAGE_BOTTOM_OF_PIPE_BIT, 0, 0, nullptr, 0, 0, 1, &image3_memory_barrier);
-    }
-#endif
-
     VkClearColorValue clr_val = {};
     clr_val.float32[0] = 0;
     clr_val.float32[1] = 0;
@@ -967,6 +948,8 @@ VulkanWindowRenderer::render()
     m_devFuncs->vkCmdPipelineBarrier(cmdBufs, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT | (noshadersloaded ? VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT : 0) | VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, nullptr, 0, 0, 1, &image2_memory_barrier);
     if (!shaderSrcImageTransitioned[swapchain_image_index] && !noshadersloaded) {
         for (unsigned int i = 0; i < shaderFilterChains[swapchain_image_index].size(); i++) {
+            if (shaderFilterChains[swapchain_image_index][i].next_image_chain == swapchainImages[swapchain_image_index])
+                continue;
             const VkImageMemoryBarrier image_shader_memory_barrier {
                 .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
                 .srcAccessMask    = 0,
@@ -988,11 +971,14 @@ VulkanWindowRenderer::render()
     }
 
     for (unsigned int i = 0; i < shaderFilterChains[swapchain_image_index].size(); i++) {
+        /* The last chain draws into the swapchain image. Nothing samples that image, and the chain clears it, so it
+           goes straight to COLOR_ATTACHMENT_OPTIMAL and doesn't need VK_IMAGE_USAGE_SAMPLED_BIT. */
+        const bool                 to_swapchain = shaderFilterChains[swapchain_image_index][i].next_image_chain == swapchainImages[swapchain_image_index];
         const VkImageMemoryBarrier image_shader_memory_barrier {
             .sType            = VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER,
-            .srcAccessMask    = VK_ACCESS_SHADER_READ_BIT,
+            .srcAccessMask    = to_swapchain ? (VkAccessFlags) 0 : (VkAccessFlags) VK_ACCESS_SHADER_READ_BIT,
             .dstAccessMask    = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT,
-            .oldLayout        = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
+            .oldLayout        = to_swapchain ? VK_IMAGE_LAYOUT_UNDEFINED : VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
             .newLayout        = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL,
             .image            = shaderFilterChains.at(swapchain_image_index).at(i).next_image_chain,
             .subresourceRange = {
