@@ -88,6 +88,16 @@ verite_core_reset(verite_core *c)
     core_reset(c, true);
 }
 
+#ifdef VERITE_JIT_X64
+void
+verite_core_set_jit(verite_core *c, int enabled)
+{
+    c->jit_disabled = !enabled;
+    if (c->jit_disabled)
+        risc_jit_free(c);
+}
+#endif
+
 uint8_t
 verite_core_mode(const verite_core *c)
 {

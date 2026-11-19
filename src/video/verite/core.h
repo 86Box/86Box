@@ -5,6 +5,10 @@
 #include <stddef.h>
 #include <stdint.h>
 
+#if (defined(__x86_64__) || defined(_M_X64)) && UINTPTR_MAX == UINT64_MAX && !defined(VERITE_NO_JIT)
+#    define VERITE_JIT_X64 1
+#endif
+
 typedef struct verite_core verite_core;
 
 typedef struct verite_board {
@@ -16,6 +20,9 @@ typedef struct verite_board {
 verite_core *verite_core_new(void);
 void         verite_core_free(verite_core *core);
 void         verite_core_reset(verite_core *core);
+#ifdef VERITE_JIT_X64
+void         verite_core_set_jit(verite_core *core, int enabled);
+#endif
 uint32_t     verite_core_read(verite_core *core, uint8_t reg, uint8_t len,
                               const uint8_t *vram, size_t size);
 void         verite_core_write(verite_core *core, uint8_t reg, uint32_t value, uint8_t len,

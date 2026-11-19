@@ -59,10 +59,6 @@ enum { IN_FIFO  = 32,
 #define LOCAL_END   UINT32_C(0x01000000)
 #define RISC_RA     254
 
-#if (defined(__x86_64__) || defined(_M_X64)) && UINTPTR_MAX == UINT64_MAX && !defined(VERITE_NO_JIT)
-#    define VERITE_JIT_X64 1
-#endif
-
 typedef enum {
     P_NONE,
     P_XSHADOW,
@@ -170,6 +166,7 @@ struct verite_core {
     unsigned      polls;
 #ifdef VERITE_JIT_X64
     struct verite_jit *jit;
+    bool               jit_disabled;
     bool               jit_unavailable;
 #endif
 };

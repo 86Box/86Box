@@ -874,6 +874,9 @@ verite_init(const device_t *info)
         free(v);
         return NULL;
     }
+#ifdef VERITE_JIT_X64
+    verite_core_set_jit(v->core, device_get_config_int("recompiler"));
+#endif
     if (rom_init(&v->bios, VERITE_ROM, 0xc0000, ROM_SIZE, ROM_SIZE - 1, 0, MEM_MAPPING_EXTERNAL)) {
         verite_core_free(v->core);
         free(v);
@@ -925,6 +928,18 @@ verite_close(void *priv)
     free(v);
 }
 
+#ifdef VERITE_JIT_X64
+static const device_config_t verite_config[] = {
+    {
+        .name        = "recompiler",
+        .description = "Dynamic recompiler",
+        .type        = CONFIG_BINARY,
+        .default_int = 1
+    },
+    { .name = "", .description = "", .type = CONFIG_END }
+};
+#endif
+
 const device_t verite_v1000_device = {
     .name          = "Rendition Vérité V1000",
     .internal_name = "verite_v1000",
@@ -934,5 +949,8 @@ const device_t verite_v1000_device = {
     .reset         = verite_reset,
     .available     = verite_available,
     .speed_changed = verite_speed_changed,
-    .force_redraw  = verite_redraw
+    .force_redraw  = verite_redraw,
+#ifdef VERITE_JIT_X64
+    .config        = verite_config
+#endif
 };

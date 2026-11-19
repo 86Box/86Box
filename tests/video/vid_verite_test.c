@@ -569,6 +569,23 @@ bilinear_unpadded_565(void)
 }
 
 #ifdef VERITE_JIT_X64
+static void
+jit_option(void)
+{
+    static const uint32_t program[] = {
+        IMM(0x76, 128, 40), INS(0x00, 128, 128, 2), HALT
+    };
+    fixture f = machine(program, COUNT(program), 0);
+    assert(!f.core->jit_disabled);
+    verite_core_set_jit(f.core, 0);
+    run_core(&f);
+    assert(f.core->halted && f.core->reg[128] == 42);
+    assert(!f.core->jit && !f.core->jit_unavailable);
+    verite_core_reset(f.core);
+    assert(f.core->jit_disabled);
+    done(&f);
+}
+
 static unsigned
 jit_compare(fixture *native, fixture *reference, unsigned budget)
 {
@@ -718,6 +735,7 @@ main(void)
     bilinear_unpadded_565();
     puts("29 Vérité regression cases passed");
 #ifdef VERITE_JIT_X64
+    jit_option();
     jit_differential();
 #endif
     return 0;

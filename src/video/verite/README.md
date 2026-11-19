@@ -20,5 +20,7 @@ cycle budget using approximate EDO timing.
 On x86-64 hosts, the RISC runs cached native blocks for integer and paired
 arithmetic, branches, and common local VRAM accesses. The cache checks
 instruction bytes before entering a block so microcode changes take effect.
+The card's **Dynamic recompiler** option is enabled by default. Turn it off
+in the video card settings to run all RISC instructions in the interpreter.
 FIFO, device and pixel-engine operations use the interpreter, which also
 runs the RISC on other hosts or when executable memory is unavailable.

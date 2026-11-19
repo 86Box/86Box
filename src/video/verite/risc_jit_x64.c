@@ -760,7 +760,7 @@ unsigned
 risc_jit_run(verite_core *c, verite_memory mem, unsigned budget)
 {
     uint32_t pc = c->pc;
-    if (budget < 2 || (pc & 3) || c->npc != risc_next(pc) || c->jit_unavailable)
+    if (c->jit_disabled || c->jit_unavailable || budget < 2 || (pc & 3) || c->npc != risc_next(pc))
         return 0;
 
     bool local            = pc < LOCAL_END;
