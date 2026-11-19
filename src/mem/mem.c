@@ -1020,6 +1020,11 @@ mmu_ring3_may_use(uint32_t virt, uint32_t need)
     return !(cr0 & 0x80000000) || ((mmu_walk_page == (virt >> 12)) && ((mmu_walk_flags & need) == need));
 }
 
+/* With PSE-36 (36-bit physical addresses), bits 16:13 of a 4 MiB PDE hold
+   address bits 35:32 and bits 21:17 are reserved: setting one gives #PF
+   with the RSVD error code bit. */
+#define PSE36_PDE_RSVD 0x003e0000
+
 static __inline uint64_t
 mmutranslatereal_normal(uint32_t addr, int rw)
 {
@@ -1047,6 +1052,17 @@ mmutranslatereal_normal(uint32_t addr, int rw)
 
     if ((temp & 0x80) && (cr4 & CR4_PSE)) {
         /*4MB page*/
+        if ((temp & PSE36_PDE_RSVD) && (cpu_features & CPU_FEATURE_PSE36)) {
+            cr2  = addr;
+            temp = 9;
+            if (CPL == 3)
+                temp |= 4;
+            if (rw)
+                temp |= 2;
+            cpu_state.abrt = ABRT_PF;
+            abrt_error     = temp;
+            return 0xffffffffffffffffULL;
+        }
         if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !(cpl_override & cpl_override_wp_exempt) && !(temp & 2) && (((CPL == 3) && !cpl_override) || ((is486 || isibm486) && (cr0 & WP_FLAG))))) {
             cr2 = addr;
             temp &= 1;
@@ -1237,6 +1253,8 @@ mmutranslate_noabrt_normal(uint32_t addr, int rw)
 
     if ((temp & 0x80) && (cr4 & CR4_PSE)) {
         /*4MB page*/
+        if ((temp & PSE36_PDE_RSVD) && (cpu_features & CPU_FEATURE_PSE36))
+            return 0xffffffffffffffffULL;
         if (((CPL == 3) && !(temp & 4) && !cpl_override) || (rw && !cpl_override && !(temp & 2) && ((CPL == 3) || (cr0 & WP_FLAG))))
             return 0xffffffffffffffffULL;
 
