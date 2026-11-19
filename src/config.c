@@ -388,6 +388,7 @@ load_general(void)
 
     rctrl_is_lalt = ini_section_get_int(cat, "rctrl_is_lalt", 0);
     update_icons  = ini_section_get_int(cat, "update_icons", 1);
+    usb_activity  = !!ini_section_get_int(cat, "usb_activity", 1);
 
     start_in_fullscreen |= ini_section_get_int(cat, "start_in_fullscreen", 0);
 
@@ -3644,6 +3645,11 @@ save_general(void)
         ini_section_delete_var(cat, "update_icons");
     else
         ini_section_set_int(cat, "update_icons", update_icons);
+
+    if (usb_activity == 1)
+        ini_section_delete_var(cat, "usb_activity");
+    else
+        ini_section_set_int(cat, "usb_activity", usb_activity);
 
     if (window_remember)
         ini_section_set_int(cat, "window_remember", window_remember);

@@ -50,6 +50,7 @@ extern SDL_Window         *sdl_win;
 
 int             rctrl_is_lalt;
 int             update_icons;
+int             usb_activity = 1;
 int             kbd_req_capture;
 int             hide_status_bar;
 int             hide_tool_bar;
