@@ -1621,6 +1621,9 @@ VulkanWindowRenderer::initialize()
                             shader->param_list.parameters = 0;
                             filter_chain_vk_opt_t vk{};
                             vk.use_dynamic_rendering = 1;
+                            /* render() keeps one frame in flight per swapchain image. librashader frees a frame's
+                               resources that many frames later (3 if not set). */
+                            vk.frames_in_flight = swapchainImages.size();
 #ifndef LIBRASHADER_STATIC
                             auto err = librashader_inst.vk_filter_chain_create(&shader->shader_preset, vk_dev, &vk, &filter_chain);
 #else
