@@ -4613,9 +4613,9 @@ ibm8514_poll(void *priv)
                     svga->vslines    = 0;
 
                     if (dev->interlace && dev->oddeven)
-                        dev->memaddr = dev->memaddr_backup = (dev->rowoffset << 1);
+                        dev->memaddr = dev->memaddr_backup = dev->memaddr_latch + (dev->rowoffset << 1);
                     else
-                        dev->memaddr = dev->memaddr_backup = 0;
+                        dev->memaddr = dev->memaddr_backup = dev->memaddr_latch;
 
                     dev->memaddr     = (dev->memaddr << 2);
                     dev->memaddr_backup = (dev->memaddr_backup << 2);
