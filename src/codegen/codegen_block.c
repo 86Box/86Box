@@ -1231,7 +1231,7 @@ remove_from_block_list(codeblock_t *block, UNUSED(uint32_t pc))
         if (block->next)
             codeblock[block->next].prev = BLOCK_INVALID;
         else {
-            mem_flush_write_page(block->phys, 0);
+            mem_write_page_uncoded(block->phys);
             block_chunk_lists_release(block->phys >> 12);
         }
     }
@@ -1255,7 +1255,7 @@ remove_from_block_list(codeblock_t *block, UNUSED(uint32_t pc))
         if (block->next_2)
             codeblock[block->next_2].prev_2 = BLOCK_INVALID;
         else {
-            mem_flush_write_page(block->phys_2, 0);
+            mem_write_page_uncoded(block->phys_2);
             block_chunk_lists_release(block->phys_2 >> 12);
         }
     }
