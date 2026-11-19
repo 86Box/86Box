@@ -482,6 +482,7 @@ extern void    bt481_recalctimings(void *priv, svga_t *svga);
 extern void    bt48x_ramdac_out(uint16_t addr, int rs2, int rs3, uint8_t val, void *priv, svga_t *svga);
 extern uint8_t bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga);
 extern void    bt48x_recalctimings(void *priv, svga_t *svga);
+extern int     bt48x_clock_doubled(const void *priv);
 extern void    bt48x_hwcursor_draw(svga_t *svga, int displine);
 
 extern void    ibm_rgb528_ramdac_out(uint16_t addr, int rs2, uint8_t val, void *priv, svga_t *svga);

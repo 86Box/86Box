@@ -24,6 +24,9 @@
 #define BAR_SIZE   0x1000000
 #define TICK_US    50
 #define CRTC_CTL_LINE_DOUBLE 0x20000
+#define PLL_VGA_CLOCK        0x40000
+#define PLL_WORD_MASK        0xfffff
+#define PLL_REF_HZ           14318180.0
 
 enum {
     CRTC_CTL    = 0x84,
@@ -32,7 +35,8 @@ enum {
     FRAME_BASE  = 0x94,
     CRTC_OFFSET = 0x98,
     CRTC_STATUS = 0x9c,
-    RAMDAC      = 0xb0
+    RAMDAC      = 0xb0,
+    PLL_DEVICE  = 0xc0
 };
 
 typedef struct {
@@ -50,6 +54,8 @@ typedef struct {
     int           native_bpp;
     uint64_t      time_ns;
     uint32_t      frame_flags;
+    uint32_t      pll_shift;
+    double        pixel_clock_hz;
 } verite_t;
 
 static const uint16_t dac_ports[] = { 0x3c8, 0x3c9, 0x3c6, 0x3c7 };
@@ -181,7 +187,11 @@ verite_recalctimings(svga_t *svga)
     svga->dispend = svga->vblankstart = lines;
     svga->vsyncstart                  = lines + front;
     svga->vtotal                      = lines + front + sync + back;
-    svga->clock                       = (cpuclock * (double) (1ULL << 32)) / (60.0 * total * svga->vtotal);
+    /* Without a programmed PLL clock, use the VGA clock selected above. */
+    if (v->pixel_clock_hz)
+        svga->clock = (cpuclock * (double) (1ULL << 32)) / v->pixel_clock_hz;
+    if (bt48x_clock_doubled(v->ramdac))
+        svga->clock *= 0.5;
     /* Cancel the VGA sequencer's dot clock divide when using native timings. */
     if (svga->seqregs[1] & 8)
         svga->clock *= 0.5;
@@ -240,10 +250,28 @@ verite_crtc_status(verite_t *v)
     return ((uint32_t) phase << 22) | (MIN(lines_left, 0x7ffU) << 11) | (horizontal << 9);
 }
 
+static void
+verite_latch_pixel_clock(verite_t *v)
+{
+    uint32_t word = v->pll_shift;
+    unsigned m    = ((word >> 10) & 0xff) + 2;
+    unsigned n    = (word & 0xff) + 2;
+    unsigned p    = (word >> 8) & 3;
+    double   hz   = (word & PLL_VGA_CLOCK) ? 0.0 : 2.0 * PLL_REF_HZ * m / (n << p);
+
+    if (hz != v->pixel_clock_hz) {
+        v->pixel_clock_hz = hz;
+        svga_recalctimings(&v->vga.svga);
+    }
+}
+
 static uint32_t
 verite_ext_read(void *priv, uint8_t reg, uint8_t len)
 {
     verite_t *v      = priv;
+    /* Reading the PLL port transfers the serial word to the clock generator. */
+    if (reg <= PLL_DEVICE && reg + len > PLL_DEVICE)
+        verite_latch_pixel_clock(v);
     svga_t   *svga   = &v->vga.svga;
     uint32_t  status = (reg < CRTC_STATUS + 4 && reg + len > CRTC_STATUS) ? verite_crtc_status(v) : 0;
 
@@ -296,6 +324,9 @@ verite_ext_write(void *priv, uint8_t reg, uint32_t value, uint8_t len)
             verite_dac_write(v, dac_ports[r & 3], r & 4, r & 8, byte);
         } else {
             v->regs[r] = byte;
+            /* The guest clocks one bit per write, most significant bit first. */
+            if (r == PLL_DEVICE)
+                v->pll_shift = ((v->pll_shift << 1) | (byte & 1)) & PLL_WORD_MASK;
         }
     }
     if (reg < FRAME_BASE + 4 && reg + len > FRAME_BASE)
@@ -646,6 +677,8 @@ verite_reset(void *priv)
     v->bar_hi = v->io_hi = v->irq_line = v->pci_control = 0;
     v->rom_bar                                          = 0xc0001;
     v->frame_flags                                      = 0;
+    v->pll_shift                                        = PLL_VGA_CLOCK;
+    v->pixel_clock_hz                                   = 0.0;
     v->mode                                             = verite_core_mode(v->core);
     verite_decode(v, 1);
     verite_settle(v);

@@ -7,4 +7,5 @@ card on a PCI machine. The card emulates 4 MiB of VRAM.
 The Phoenix ROM runs on the guest x86 CPU. The RISC and pixel engine
 come from rust-dos's low-level Vérité implementation, including its
 synthetic RISC-side ROM and microcode loader. Native display timing
-uses the programmed CRTC totals and a fixed 60 Hz refresh rate.
+uses the programmed CRTC totals and the pixel clock latched through the
+V1000's serial PLL port.

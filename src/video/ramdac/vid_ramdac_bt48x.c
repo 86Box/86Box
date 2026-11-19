@@ -361,18 +361,22 @@ bt48x_ramdac_in(uint16_t addr, int rs2, int rs3, void *priv, svga_t *svga)
     return temp;
 }
 
+int
+bt48x_clock_doubled(const void *priv)
+{
+    const bt48x_ramdac_t *ramdac = priv;
+    return !!(ramdac->cmd_r3 & 0x08);
+}
+
 void
 bt48x_recalctimings(void *priv, svga_t *svga)
 {
     bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) priv;
 
     svga->interlace = !!(ramdac->cmd_r2 & 0x08);
-    svga->clock_multiplier = 0;
+    svga->clock_multiplier = bt48x_clock_doubled(ramdac);
     svga->multiplexing_rate = 0;
     svga->true_color_bypass = 0;
-    if (ramdac->cmd_r3 & 0x08) /* x2 clock multiplier */
-        svga->clock_multiplier = 1;
-
     svga->multiplexing_rate = (ramdac->cmd_r1 & 0x60) >> 5;
     if (svga->bpp >= 15)
         svga->true_color_bypass = !!(ramdac->cmd_r1 & 0x10);
