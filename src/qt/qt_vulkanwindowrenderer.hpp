@@ -4,6 +4,8 @@
 #include <QWindow>
 #include <QVulkanWindow>
 #include <QTimer>
+#include <QPointer>
+#include <QMessageBox>
 
 #include <vector>
 #include <tuple>
@@ -72,6 +74,8 @@ private:
 
     void cleanupSwapchain();
     void recreateSwapchain();
+    void                  showSwapchainError(const QString &message);
+    QPointer<QMessageBox> swapchainErrorBox;
 
     bool isPhysicalDeviceUsable(VkPhysicalDevice& phys_dev);
 
@@ -91,6 +95,7 @@ private:
     VkPhysicalDevice phys_device = nullptr;
     VkDevice logi_device = nullptr;
     VkSwapchainKHR dev_swapchain = nullptr;
+    bool swapchainComplete = false;
     VkCommandPool commandPool = nullptr;
     VkQueue gfx_queue_o = nullptr;
 
@@ -116,7 +121,9 @@ private:
 
     // Stuff to use.
     VkImage src_image = nullptr;
-    VkImageView src_image_view = nullptr;
+    // Optimal copy of src_image to blit from, on devices that can't blit from linear images.
+    VkImage blit_src_image = nullptr;
+    VmaAllocation blit_src_allocation = nullptr;
 
     int cur_video_filter_method = -1;
 
