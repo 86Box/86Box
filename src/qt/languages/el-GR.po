@@ -1,6 +1,6 @@
 msgid ""
 msgstr ""
-"PO-Revision-Date: 2026-11-18 18:28+0000\n"
+"PO-Revision-Date: 2026-11-19 23:29+0000\n"
 "Last-Translator: DimMan88 <dimman88@hotmail.com>\n"
 "Language-Team: Greek <https://weblate.86box.net/projects/86box/86box/el/>\n"
 "Language: el-GR\n"
@@ -451,13 +451,13 @@ msgid "MB"
 msgstr "MB"
 
 msgid "GB"
-msgstr ""
+msgstr "GB"
 
 msgid "%1 MB"
-msgstr ""
+msgstr "%1 MB"
 
 msgid "%1 GB"
-msgstr ""
+msgstr "%1 GB"
 
 msgid "Memory:"
 msgstr "Μνήμη:"
@@ -903,7 +903,7 @@ msgid "(empty)"
 msgstr "(κενό)"
 
 msgid "(not available)"
-msgstr ""
+msgstr "(μη διαθέσιμο)"
 
 msgid "All files"
 msgstr "Όλα τα αρχεία"
@@ -4553,64 +4553,64 @@ msgid "Archives"
 msgstr "Συμπιεσμένα αρχεία"
 
 msgid "New USB flash drive"
-msgstr ""
+msgstr "Νέα μονάδα flash USB"
 
 msgid "&New USB flash drive…"
-msgstr ""
+msgstr "&Νέα μονάδα flash USB…"
 
 msgid "unplugged"
-msgstr ""
+msgstr "Αποσυνδεδεμένη"
 
 msgid "&Unplug"
-msgstr ""
+msgstr "&Αποσύνδεση"
 
 msgid "&Unplug %1"
-msgstr ""
+msgstr "&Αποσύνδεση %1"
 
 msgid "Plug in %1 (%2)"
-msgstr ""
+msgstr "Σύνδεση %1 (%2)"
 
 msgid "&Move %1 to"
-msgstr ""
+msgstr "&Μετακίνηση %1 σε"
 
 msgid "Size:"
-msgstr ""
+msgstr "Μέγεθος:"
 
 msgid "Custom size:"
-msgstr ""
+msgstr "Προσαρμοσμένο μέγεθος:"
 
 msgid "None (blank)"
-msgstr ""
+msgstr "Κανένα (κενό)"
 
 msgid "FAT16"
-msgstr ""
+msgstr "FAT16"
 
 msgid "FAT32"
-msgstr ""
+msgstr "FAT32"
 
 msgid "Format:"
-msgstr ""
+msgstr "Μορφοποίηση:"
 
 msgid "Could not create %1."
-msgstr ""
+msgstr "Δεν ήταν δυνατή η δημιουργία του %1."
 
 msgid "%1 already exists. Replace it?"
-msgstr ""
+msgstr "Το %1 υπάρχει ήδη. Να αντικατασταθεί;"
 
 msgid "USB port %1 (%2)"
-msgstr ""
+msgstr "Θύρα USB %1 (%2)"
 
 msgid "USB port"
-msgstr ""
+msgstr "Θύρα USB"
 
 msgid "PCI card"
-msgstr ""
+msgstr "Κάρτα PCI"
 
 msgid "hub"
-msgstr ""
+msgstr "διανομέας"
 
 msgid "board"
-msgstr ""
+msgstr "πλακέτα"
 
 msgid "now in port %1"
-msgstr ""
+msgstr "τώρα στη θύρα %1"
