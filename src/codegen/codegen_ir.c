@@ -59,7 +59,8 @@ codegen_ir_uncounted_since(ir_data_t *ir, int start)
 ir_data_t *
 codegen_ir_init(void)
 {
-    ir_block.wr_pos = 0;
+    ir_block.wr_pos       = 0;
+    ir_block.nr_jump_uops = 0;
 #ifdef CODEGEN_BACKEND_HAS_COLD_REGION
     memset(codegen_uop_uncounted, 0, uncounted_end);
     uncounted_end = 0;
@@ -67,6 +68,7 @@ codegen_ir_init(void)
 
     codegen_unroll_count = 0;
     codegen_accumulate_begin();
+    codegen_exit_end_charge_clear();
 
     return &ir_block;
 }

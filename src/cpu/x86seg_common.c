@@ -44,6 +44,46 @@ int cgate_task;
 
 int intgatesize;
 
+call_gate_undo_t call_gate_undo;
+
+#define CALL_GATE_STATUS (CPU_STATUS_USE32 | CPU_STATUS_STACK32 | CPU_STATUS_NOTFLATSS | CPU_STATUS_NOTWIDESS | CPU_STATUS_NOT64K)
+
+/* A CALL through a call gate to a more privileged level loads the new CS,
+   the new stack and the new CPL before it pushes the caller's SS:ESP, copies
+   the parameters and pushes the return address (Pentium manual vol. 3
+   p. 25-53). A fault in any of those leaves the state from before the CALL
+   (p. 14-2), so what the transfer changed is kept here to be put back. */
+void
+call_gate_undo_save(void)
+{
+    call_gate_undo.stack_seg = cpu_state.seg_ss;
+    call_gate_undo.code_seg  = cpu_state.seg_cs;
+    call_gate_undo.esp       = ESP;
+    call_gate_undo.stack32   = stack32;
+    call_gate_undo.use32     = use32;
+    call_gate_undo.status    = cpu_cur_status;
+    call_gate_undo.oldcpl    = oldcpl;
+    call_gate_undo.active    = 1;
+}
+
+void
+call_gate_undo_restore(void)
+{
+    cpu_state.seg_ss = call_gate_undo.stack_seg;
+    cpu_state.seg_cs = call_gate_undo.code_seg;
+    mem_held_release();
+    ESP              = call_gate_undo.esp;
+    stack32          = call_gate_undo.stack32;
+    use32            = call_gate_undo.use32;
+    cpu_cur_status   = (cpu_cur_status & ~CALL_GATE_STATUS) | (call_gate_undo.status & CALL_GATE_STATUS);
+    /* Back in ring 3: what the transfer added to the lookup tables at the
+       gate's level skipped the ring 3 checks of the page walk */
+    if ((CPL == 3) && (oldcpl != 3))
+        flushmmucache_ring3();
+    oldcpl           = call_gate_undo.oldcpl;
+    call_gate_undo.active = 0;
+}
+
 static void
 seg_reset(x86seg *s)
 {
@@ -72,6 +112,7 @@ void
 x86seg_reset(void)
 {
     seg_reset(&cpu_state.seg_cs);
+    mem_held_release();
     seg_reset(&cpu_state.seg_ds);
     seg_reset(&cpu_state.seg_es);
     seg_reset(&cpu_state.seg_fs);

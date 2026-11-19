@@ -182,14 +182,16 @@ build_load_misaligned(codeblock_t *block, int size, int is_float, uint8_t *c_pat
         *to_c[c] = (uint8_t) ((uintptr_t) c_path - (uintptr_t) to_c[c]) - 1;
 }
 
-/*ea_rule: take the direct load whenever the address is at most 0xffc into
-  its page, aligned or not, as the interpreter's eal_r path does; readmemwl
-  and readmemll charge timing_misaligned only on the slow path.*/
+/*ea_rule: take the direct load whenever the address is aligned or at most
+  0xffc into its page, as the interpreter's geteaw()/geteal() do (eal_r up
+  to 0xffc, then the memory macro's test); readmemwl and readmemll charge
+  timing_misaligned only on the slow path.*/
 static void
 build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
 {
     uint8_t *branch_offset;
     uint8_t *misaligned_offset = NULL;
+    uint8_t *aligned_offset;
     uint8_t *c_path;
 
     /*In - ESI = address
@@ -217,10 +219,13 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
     host_x86_MOV64_REG_IMM(block, REG_RDI, (uint64_t) (uintptr_t) readlookup2);
     host_x86_MOV64_REG_BASE_INDEX_SHIFT(block, REG_RSI, REG_RDI, REG_RSI, 3);
     if (ea_rule) {
+        host_x86_TEST32_REG_IMM(block, REG_ECX, size - 1);
+        aligned_offset = host_x86_JZ_short(block);
         host_x86_MOV32_REG_REG(block, REG_EDI, REG_ECX);
         host_x86_AND32_REG_IMM(block, REG_EDI, 0xfff);
         host_x86_CMP32_REG_IMM(block, REG_EDI, 0xffc);
         misaligned_offset = host_x86_JNBE_short(block);
+        *aligned_offset   = (uint8_t) ((uintptr_t) &block_write_data[block_pos] - (uintptr_t) aligned_offset) - 1;
     } else if (size != 1) {
         host_x86_TEST32_REG_IMM(block, REG_ECX, size - 1);
         misaligned_offset = host_x86_JNZ_short(block);
@@ -261,10 +266,10 @@ build_load_routine(codeblock_t *block, int size, int is_float, int ea_rule)
         host_x86_CALL(block, (void *) readmembl);
         host_x86_MOVZX_REG_32_8(block, REG_ECX, REG_EAX);
     } else if (size == 2 && !is_float) {
-        host_x86_CALL(block, (void *) readmemwl);
+        host_x86_CALL(block, ea_rule ? (void *) readmemwl_eam : (void *) readmemwl);
         host_x86_MOVZX_REG_32_16(block, REG_ECX, REG_EAX);
     } else if (size == 4 && !is_float) {
-        host_x86_CALL(block, (void *) readmemll);
+        host_x86_CALL(block, ea_rule ? (void *) readmemll_eam : (void *) readmemll);
         host_x86_MOV32_REG_REG(block, REG_ECX, REG_EAX);
     } else if (size == 4 && is_float) {
         host_x86_CALL(block, (void *) readmemll);

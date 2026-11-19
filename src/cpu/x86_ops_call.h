@@ -4,8 +4,29 @@
 #    define CALL_FAR_RESTORE_CS()                                                                  \
         do {                                                                                        \
             cpu_state.seg_cs = old_cs_seg;                                                          \
+            mem_held_release();                                                                     \
             use32            = old_use32;                                                           \
             cpu_cur_status   = (cpu_cur_status & ~CPU_STATUS_USE32) | (old_status & CPU_STATUS_USE32); \
+            call_far_a_pending = 0;                                                                 \
+        } while (0)
+/* A push of the return address that faults after a call gate to a more
+   privileged level also puts back the caller's stack and CPL */
+#    define CALL_FAR_UNDO_GATE()                \
+        do {                                    \
+            if (call_gate_undo.active)          \
+                call_gate_undo_restore();       \
+        } while (0)
+/* The new code segment's Accessed bit, where the manual loads the
+   descriptor after the return address is pushed: a fault of that write
+   undoes the pushes and the CS load */
+#    define CALL_FAR_ACCESSED()                                        \
+        do {                                                           \
+            if (call_far_a_pending && op_call_far_set_accessed()) {    \
+                CALL_FAR_RESTORE_CS();                                 \
+                cpu_cur_status = old_status;                           \
+                ESP            = old_esp;                              \
+                return 1;                                              \
+            }                                                          \
         } while (0)
 #    define CALL_FAR_w(new_seg, new_pc)  \
         old_cs       = CS;               \
@@ -13,11 +34,16 @@
         old_use32    = use32;            \
         old_status   = cpu_cur_status;   \
         old_pc       = cpu_state.pc;     \
+        if (((call_far_stack_test == CALL_FAR_TEST_ALL_MODES) || (call_far_checks_eip_limit == CALL_FAR_TEST_ALL_MODES)) && \
+            (!(msw & 1) || (cpu_state.eflags & VM_FLAG)) && call_far_rm_fault(new_pc, 0)) \
+            return 1;                    \
         cpu_state.pc = new_pc;           \
         optype       = CALL;             \
         cgate16 = cgate32 = cgate_task = 0; \
+        call_far_a_pending = 0;          \
+        call_gate_undo.active = 0;       \
         if (msw & 1)                     \
-            op_loadcscall(new_seg, old_pc); \
+            op_loadcscall(new_seg, old_pc, 0); \
         else {                           \
             op_loadcs(new_seg);          \
             cycles -= timing_call_rm;    \
@@ -25,6 +51,7 @@
         optype = 0;                      \
         if (cpu_state.abrt) {            \
             cgate16 = cgate32 = 0;       \
+            call_far_a_pending = 0;      \
             return 1;                    \
         }                                \
         oldss = ss;                      \
@@ -36,28 +63,34 @@
             if (cpu_state.abrt) {        \
                 CALL_FAR_RESTORE_CS();    \
                 cgate16 = cgate32 = 0;   \
+                CALL_FAR_UNDO_GATE();    \
                 return 1;                \
             }                            \
             PUSH_L(old_pc);              \
             if (cpu_state.abrt) {        \
                 CALL_FAR_RESTORE_CS();    \
                 ESP = old_esp;           \
+                CALL_FAR_UNDO_GATE();    \
                 return 1;                \
             }                            \
+            CALL_FAR_ACCESSED();         \
         } else {                         \
             uint32_t old_esp = ESP;      \
             PUSH_W(old_cs);              \
             if (cpu_state.abrt) {        \
                 CALL_FAR_RESTORE_CS();    \
                 cgate16 = cgate32 = 0;   \
+                CALL_FAR_UNDO_GATE();    \
                 return 1;                \
             }                            \
             PUSH_W(old_pc);              \
             if (cpu_state.abrt) {        \
                 CALL_FAR_RESTORE_CS();    \
                 ESP = old_esp;           \
+                CALL_FAR_UNDO_GATE();    \
                 return 1;                \
             }                            \
+            CALL_FAR_ACCESSED();         \
         }
 
 #    define CALL_FAR_l(new_seg, new_pc)  \
@@ -66,11 +99,16 @@
         old_use32    = use32;            \
         old_status   = cpu_cur_status;   \
         old_pc       = cpu_state.pc;     \
+        if (((call_far_stack_test == CALL_FAR_TEST_ALL_MODES) || (call_far_checks_eip_limit == CALL_FAR_TEST_ALL_MODES)) && \
+            (!(msw & 1) || (cpu_state.eflags & VM_FLAG)) && call_far_rm_fault(new_pc, 1)) \
+            return 1;                    \
         cpu_state.pc = new_pc;           \
         optype       = CALL;             \
         cgate16 = cgate32 = cgate_task = 0; \
+        call_far_a_pending = 0;          \
+        call_gate_undo.active = 0;       \
         if (msw & 1)                     \
-            op_loadcscall(new_seg, old_pc); \
+            op_loadcscall(new_seg, old_pc, 1); \
         else {                           \
             op_loadcs(new_seg);          \
             cycles -= timing_call_rm;    \
@@ -78,6 +116,7 @@
         optype = 0;                      \
         if (cpu_state.abrt) {            \
             cgate16 = cgate32 = 0;       \
+            call_far_a_pending = 0;      \
             return 1;                    \
         }                                \
         oldss = ss;                      \
@@ -89,28 +128,34 @@
             if (cpu_state.abrt) {        \
                 CALL_FAR_RESTORE_CS();    \
                 cgate16 = cgate32 = 0;   \
+                CALL_FAR_UNDO_GATE();    \
                 return 1;                \
             }                            \
             PUSH_W(old_pc);              \
             if (cpu_state.abrt) {        \
                 CALL_FAR_RESTORE_CS();    \
                 ESP = old_esp;           \
+                CALL_FAR_UNDO_GATE();    \
                 return 1;                \
             }                            \
+            CALL_FAR_ACCESSED();         \
         } else {                         \
             uint32_t old_esp = ESP;      \
             PUSH_L(old_cs);              \
             if (cpu_state.abrt) {        \
                 CALL_FAR_RESTORE_CS();    \
                 cgate16 = cgate32 = 0;   \
+                CALL_FAR_UNDO_GATE();    \
                 return 1;                \
             }                            \
             PUSH_L(old_pc);              \
             if (cpu_state.abrt) {        \
                 CALL_FAR_RESTORE_CS();    \
                 ESP = old_esp;           \
+                CALL_FAR_UNDO_GATE();    \
                 return 1;                \
             }                            \
+            CALL_FAR_ACCESSED();         \
         }
 
 static int

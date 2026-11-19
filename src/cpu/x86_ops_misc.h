@@ -1026,6 +1026,7 @@ opLOADALL(UNUSED(uint32_t fetchdat))
     AX                      = readmemw(0, 0x834);
     loadall_load_segment(0x836, &cpu_state.seg_es);
     loadall_load_segment(0x83c, &cpu_state.seg_cs);
+    mem_held_release();
     loadall_load_segment(0x842, &cpu_state.seg_ss);
     loadall_load_segment(0x848, &cpu_state.seg_ds);
     loadall_load_segment(0x84e, &gdt);
@@ -1044,6 +1045,8 @@ loadall386_load_segment(uint32_t addr, x86seg *s)
     uint32_t segdat3 = (attrib >> 16) & 0xff;
     s->access        = (attrib >> 8) & 0xff;
     s->ar_high       = segdat3;
+    if (s == &cpu_state.seg_cs)
+        mem_held_release();
     s->base          = readmeml(0, addr + 4);
     s->limit         = readmeml(0, addr + 8);
     s->checked       = 0;
