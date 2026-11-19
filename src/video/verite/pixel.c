@@ -909,6 +909,35 @@ typedef struct {
     bool     perspective, bgr, blend, read_disabled, read_dst, copy;
 } pixel_span;
 
+static int32_t
+perspective_coord(int32_t coord, int64_t q, double scale)
+{
+    int64_t num = (int64_t) coord * (INT64_C(1) << 24);
+    int64_t estimate = (int64_t) (coord * scale);
+    int64_t remainder = num - estimate * q;
+    if (num < 0)
+        estimate += (remainder > 0) - (remainder <= -q);
+    else
+        estimate += (remainder >= q) - (remainder < 0);
+    return (int32_t) estimate;
+}
+
+static void
+perspective_uv(int32_t *u, int32_t *v, uint32_t q)
+{
+    /* For q >= 64 the quotient magnitude is at most 2^49. The two
+       double-precision operations miss by less than one, so one
+       remainder correction gives the exact truncating quotient. */
+    if (q >= 64) {
+        double scale = (double) (1 << 24) / q;
+        *u = perspective_coord(*u, q, scale);
+        *v = perspective_coord(*v, q, scale);
+    } else {
+        *u = (int32_t) (((int64_t) *u * (INT64_C(1) << 24)) / q);
+        *v = (int32_t) (((int64_t) *v * (INT64_C(1) << 24)) / q);
+    }
+}
+
 static void
 pixel_full(verite_core *core, int32_t x, int32_t y, const pixel_span *span, verite_memory mem)
 {
@@ -922,15 +951,19 @@ pixel_full(verite_core *core, int32_t x, int32_t y, const pixel_span *span, veri
     bool          background;
     if (!pattern_pixel(pe, &background) || !inside(pe, x, y) || (pe->z_ovf && (pe->src_mode & SRC_Z_SCISSOR)))
         return;
+    uint32_t z_addr = pe->z_base + span->z_stride * (uint32_t) y + 2 * (uint32_t) x;
+    uint32_t z      = (uint32_t) (pe->z >> 11) & 0xffff;
+    /* A rejected pixel cannot modify either buffer. Test depth before sampling. */
+    if (!depth_pass(span->depth_mode, z, mem, z_addr))
+        return;
+
     /* The parameter setters already keep the saturated channels in FG. */
     color    c    = argb(background ? pe->bg : pe->fg);
     unsigned func = span->texture_func;
     if (func) {
         int32_t u = pe->u, v = pe->v;
-        if (span->perspective && pe->q) {
-            u = (int32_t) (((int64_t) u * (INT64_C(1) << 24)) / pe->q);
-            v = (int32_t) (((int64_t) v * (INT64_C(1) << 24)) / pe->q);
-        }
+        if (span->perspective && pe->q)
+            perspective_uv(&u, &v, pe->q);
         color t = sample(pe, u, v, mem);
         if (func == 2) {
             for (unsigned k = 0; k < 3; k++)
@@ -949,11 +982,6 @@ pixel_full(verite_core *core, int32_t x, int32_t y, const pixel_span *span, veri
         for (unsigned k = 0; k < 3; k++)
             c.channel[k] = f * (c.channel[k] - fog.channel[k]) / 255 + fog.channel[k];
     }
-    uint32_t z_addr = pe->z_base + span->z_stride * (uint32_t) y + 2 * (uint32_t) x;
-    uint32_t z      = (uint32_t) (pe->z >> 11) & 0xffff;
-    if (!depth_pass(span->depth_mode, z, mem, z_addr))
-        return;
-
     uint32_t addr = pe->dst_base + span->dst_stride * (uint32_t) y + (uint32_t) x * span->bytes;
     uint32_t old  = span->read_dst ? read_pixel(mem, addr, span->bytes) : 0;
     if (span->blend) {

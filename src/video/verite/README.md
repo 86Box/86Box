@@ -15,3 +15,9 @@ paths. Native scanout supports Bt485 palette addressing, interlaced fields,
 and frame-sequential stereo from the two framebuffer bases.
 The DRAM controller accounts for refresh and slow precharge in the RISC
 cycle budget using approximate EDO timing.
+
+On x86-64 hosts, the RISC runs cached native blocks for integer and paired
+arithmetic, branches, and common local VRAM accesses. The cache checks
+instruction bytes before entering a block so microcode changes take effect.
+FIFO, device and pixel-engine operations use the interpreter, which also
+runs the RISC on other hosts or when executable memory is unavailable.

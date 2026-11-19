@@ -475,7 +475,7 @@ loader_key(bool keyed)
 static void
 absolute_jumps(void)
 {
-    assert(absolute(0x200) == 0x800 && absolute(0xfffffc) == RESET_PC);
+    assert(risc_absolute(0x200) == 0x800 && risc_absolute(0xfffffc) == RESET_PC);
     assert(risc_next(0x00fffffc) == 0 && risc_next(0xfffffffc) == 0xff000000);
 }
 
@@ -582,6 +582,23 @@ copy_unpadded_565(void)
 }
 
 static void
+perspective_division(void)
+{
+    uint32_t bits = 0x12345678;
+    static const int32_t edge[] = { INT32_MIN, INT32_MIN + 1, -1, 0, 1, INT32_MAX - 1, INT32_MAX };
+    for (unsigned i = 1; i <= 8192; i++) {
+        bits = bits * 1664525U + 1013904223U;
+        uint32_t q = i <= 1024 ? i : (bits | 1);
+        int32_t u = edge[i % COUNT(edge)];
+        int32_t v = (int32_t) bits;
+        int32_t ref_u = (int32_t) (((int64_t) u * (INT64_C(1) << 24)) / q);
+        int32_t ref_v = (int32_t) (((int64_t) v * (INT64_C(1) << 24)) / q);
+        perspective_uv(&u, &v, q);
+        assert(u == ref_u && v == ref_v);
+    }
+}
+
+static void
 bilinear_unpadded_565(void)
 {
     uint8_t       data[512] = { 0 };
@@ -603,6 +620,125 @@ bilinear_unpadded_565(void)
     check_color(sample(&pe, 0x1c000, -0x8000, mem), 0, 252, 0, 255);
 }
 
+#ifdef VERITE_JIT_X64
+static unsigned
+jit_compare(fixture *native, fixture *reference, unsigned budget)
+{
+    verite_core *a = native->core;
+    verite_core *b = reference->core;
+    unsigned cycles = risc_jit_run(a, native->mem, budget);
+    for (unsigned used = 0; used < cycles;) {
+        assert(risc_step(b, false, 0, reference->mem, (verite_bus) { &board, reference }));
+        used += 1 + b->dram_wait;
+        assert(used <= cycles);
+    }
+    assert(a->pc == b->pc && a->npc == b->npc && a->timer == b->timer);
+    assert(a->dram_row == b->dram_row && a->dram_wait == b->dram_wait);
+    assert(a->clip == b->clip && a->drew == b->drew && a->stalled == b->stalled);
+    assert(!memcmp(a->reg, b->reg, sizeof(a->reg)));
+    assert(!memcmp(native->mem.data, reference->mem.data, native->mem.mask + 1));
+    return cycles;
+}
+
+static void
+jit_program(fixture *a, fixture *b, const uint32_t *words, size_t count)
+{
+    a->core->pc = b->core->pc = 0;
+    a->core->npc = b->core->npc = 4;
+    for (size_t i = 0; i < count; i++) {
+        mem_write32(a->mem, i * 4, words[i]);
+        mem_write32(b->mem, i * 4, words[i]);
+    }
+}
+
+static void
+jit_differential(void)
+{
+    static const uint32_t loop[] = {
+        INS(0x01, 128, 128, 1),
+        INS(0x61, 0xff, 0xfe, 128),          /* bnez r128, entry */
+        INS(0x00, 129, 129, 7),              /* delay slot */
+        HALT
+    };
+    fixture a = machine(loop, COUNT(loop), 0);
+    fixture b = machine(loop, COUNT(loop), 0);
+    a.core->reg[128] = b.core->reg[128] = 7;
+    a.core->timer = b.core->timer = UINT32_MAX - 9;
+    unsigned cycles = jit_compare(&a, &b, 11);
+    if (a.core->jit_unavailable) {
+        done(&a);
+        done(&b);
+        return;
+    }
+    assert(cycles == 9 && a.core->pc == 0);
+    assert(jit_compare(&a, &b, 40) == 12 && a.core->pc == 12);
+    assert(a.core->reg[129] == 49);
+
+    /* Recompile the same PC after VRAM changes. Cover all native arithmetic
+       forms, including segmented aliasing and signed multiply edge cases. */
+    static const uint8_t ops[] = {
+        0x40, 0x41, 0x43, 0x44, 0x45, 0x46, 0x47, 0x48, 0x49, 0x4a, 0x4b, 0x4c, 0x4d,
+        0x52, 0x54, 0x55, 0x56, 0x57, 0x58, 0x59, 0x5a, 0x5c, 0x5d, 0x5e,
+        0x76, 0x77
+    };
+    static const uint8_t fields[] = { 0, 3, 13, 16, 64, 65, 87, 112, 128, 129, 164, 231, 255 };
+    uint32_t value = 0x12345678;
+    for (unsigned round = 0; round < 12; round++) {
+        uint32_t code[33];
+        for (unsigned r = 128; r < 256; r++) {
+            value = value * 1664525U + 1013904223U;
+            a.core->reg[r] = b.core->reg[r] = value;
+        }
+        a.core->seg = b.core->seg = round * 0x463U;
+        unsigned n = COUNT(fields);
+        for (unsigned i = 0; i < 32; i++) {
+            unsigned op = round < 8 ? ((round & 3) << 4) | (i % 15)
+                                    : ops[i % COUNT(ops)];
+            if ((op & 15) == 15)
+                op--;
+            value = value * 1664525U + 1013904223U;
+            unsigned s1 = (op < 0x10 || (op >= 0x40 && op < 0x50)) ? (uint8_t) value : fields[(value >> 24) % n];
+            code[i] = INS(op, fields[((value >> 8) + i) % n], fields[(value >> 16) % n], s1);
+        }
+        code[32] = HALT;
+        jit_program(&a, &b, code, 33);
+        a.core->slow_precharge = b.core->slow_precharge = round == 0;
+        assert(jit_compare(&a, &b, 40) == (round == 0 ? 33 : 32));
+    }
+
+    static const uint32_t memory[] = {
+        INS(0x70, 129, 0, 128), INS(0x71, 130, 0, 128), INS(0x72, 131, 0, 128),
+        INS(0x78, 1, 131, 128), 0, INS(0x79, 2, 131, 128),
+        0, INS(0x7a, 8, 132, 128), HALT,
+        INS(0x74, 135, 1, 128), INS(0x7c, 16, 135, 128), HALT
+    };
+    jit_program(&a, &b, memory, COUNT(memory));
+    a.core->reg[128] = b.core->reg[128] = 0;
+    a.core->reg[132] = b.core->reg[132] = IMM(0x76, 140, 0xface);
+    assert(jit_compare(&a, &b, 5) == 4);
+    assert(jit_compare(&a, &b, 5) == 2);
+    assert(jit_compare(&a, &b, 5) == 2);
+    assert(mem_read32(a.mem, 32) == a.core->reg[132]);
+    assert(jit_compare(&a, &b, 5) == 3);
+    assert(a.core->reg[140] == 0xface);
+
+    static const uint32_t side_exit[] = {
+        IMM(0x76, 140, 0x1234),
+        INS(0x72, 131, 0, 128),
+        IMM(0x76, 140, 0xffff),
+        HALT
+    };
+    jit_program(&a, &b, side_exit, COUNT(side_exit));
+    a.core->reg[128] = b.core->reg[128] = 0xffe00400;
+    assert(jit_compare(&a, &b, 5) == 1);
+    assert(a.core->pc == 4 && a.core->reg[140] == 0x1234);
+    assert(jit_compare(&a, &b, 5) == 0);
+    done(&a);
+    done(&b);
+    puts("Vérité x86-64 JIT differential cases passed");
+}
+#endif
+
 int
 main(void)
 {
@@ -622,6 +758,7 @@ main(void)
     draw_fifo_order();
     texture_masks();
     perspective_uses_previous_q();
+    perspective_division();
     rom_loader();
     palette_loader();
     loader_key(false);
@@ -634,6 +771,9 @@ main(void)
     dither_before_quantizing();
     copy_unpadded_565();
     bilinear_unpadded_565();
-    puts("28 Vérité regression cases passed");
+    puts("29 Vérité regression cases passed");
+#ifdef VERITE_JIT_X64
+    jit_differential();
+#endif
     return 0;
 }

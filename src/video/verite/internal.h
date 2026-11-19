@@ -57,6 +57,12 @@ enum { IN_FIFO  = 32,
        ROM_SIZE = 128 * 1024 };
 #define RESET_PC    UINT32_C(0xfffffff0)
 #define LOADER_PORT UINT32_C(0xffe00ff8)
+#define LOCAL_END   UINT32_C(0x01000000)
+#define RISC_RA     254
+
+#if (defined(__x86_64__) || defined(_M_X64)) && UINTPTR_MAX == UINT64_MAX && !defined(VERITE_NO_JIT)
+#    define VERITE_JIT_X64 1
+#endif
 
 typedef enum {
     P_NONE,
@@ -176,6 +182,10 @@ struct verite_core {
     bool          slow_precharge;
     unsigned      dram_wait;
     unsigned      polls;
+#ifdef VERITE_JIT_X64
+    struct verite_jit *jit;
+    bool               jit_unavailable;
+#endif
 };
 
 static inline uint32_t
@@ -260,6 +270,39 @@ uint32_t risc_peek(const verite_core *core, uint8_t reg);
 uint32_t risc_special_src(verite_core *core, uint8_t reg);
 void     risc_special_dst(verite_core *core, uint8_t reg, uint32_t value);
 bool     risc_step(verite_core *core, bool forced, uint32_t ir, verite_memory mem, verite_bus bus);
+uint32_t risc_constant(unsigned reg);
+
+#ifdef VERITE_JIT_X64
+unsigned risc_jit_run(verite_core *core, verite_memory mem, unsigned budget);
+void     risc_jit_free(verite_core *core);
+#else
+static inline unsigned
+risc_jit_run(verite_core *core, verite_memory mem, unsigned budget)
+{
+    (void) core;
+    (void) mem;
+    (void) budget;
+    return 0;
+}
+
+static inline void
+risc_jit_free(verite_core *core)
+{
+    (void) core;
+}
+#endif
+
+static inline uint32_t
+risc_relative(uint32_t addr, int32_t words)
+{
+    return (addr & 0xff000000) | ((addr + (uint32_t) words * 4) & 0x00ffffff);
+}
+
+static inline uint32_t
+risc_absolute(uint32_t field)
+{
+    return ((field & 0xffffff) << 2) | ((field & 0x800000) ? 0xfc000000 : 0);
+}
 
 static inline unsigned
 risc_resolve(const verite_core *c, uint8_t field)

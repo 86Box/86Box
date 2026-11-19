@@ -18,10 +18,8 @@ enum {
     NPFIFO,
     DRAWCTL  = 40,
     WINCLIP  = 46,
-    RISCINTR = 47,
-    RA       = 254
+    RISCINTR = 47
 };
-#define LOCAL_END   UINT32_C(0x01000000)
 #define CONTROL     UINT32_C(0xffe00000)
 #define BOARD_REGS  UINT32_C(0xffe00400)
 #define PE_STATE    UINT32_C(0xffe00800)
@@ -38,16 +36,10 @@ static const uint32_t constants[32] = {
     0xb000, 0xb800, 0xc000, 0xc800, 0xd000, 0xd800, 0xe000, 0xe800, 0xf000, 0xf800
 };
 
-static uint32_t
-relative(uint32_t addr, int32_t words)
+uint32_t
+risc_constant(unsigned reg)
 {
-    return (addr & 0xff000000) | ((addr + (uint32_t) words * 4) & 0x00ffffff);
-}
-
-static uint32_t
-absolute(uint32_t field)
-{
-    return ((field & 0xffffff) << 2) | ((field & 0x800000) ? 0xfc000000 : 0);
+    return constants[reg];
 }
 
 static uint32_t
@@ -603,7 +595,7 @@ static void
 execute(verite_core *c, uint32_t ir, uint8_t op, uint8_t d, uint8_t s2, uint8_t s1,
         uint32_t cur, verite_memory mem, verite_bus bus)
 {
-    uint32_t link = relative(cur, 2);
+    uint32_t link = risc_relative(cur, 2);
     if (op <= 0x1f) {
         if (op == 0x0e || op == 0x1e) {
             uint32_t b = op == 0x0e ? s1 : risc_src(c, s1);
@@ -634,7 +626,7 @@ execute(verite_core *c, uint32_t ir, uint8_t op, uint8_t d, uint8_t s2, uint8_t 
         int32_t v      = (int32_t) risc_src(c, s1);
         bool    take[] = { v == 0, v != 0, v >= 0, v < 0, v > 0, v <= 0 };
         if (take[op - 0x60])
-            c->npc = relative(c->pc, (int16_t) (ir >> 8));
+            c->npc = risc_relative(c->pc, (int16_t) (ir >> 8));
     } else if ((op >= 0x70 && op <= 0x75) || (op >= 0x78 && op <= 0x7f && op != 0x7b)) {
         execute_memory(c, op, d, s2, s1, mem, bus);
     } else if (op >= 0xd0 && op <= 0xdf) {
@@ -655,8 +647,8 @@ execute(verite_core *c, uint32_t ir, uint8_t op, uint8_t d, uint8_t s2, uint8_t 
             case 0x68:
             case 0x6a:
                 if (op == 0x6a)
-                    risc_dst(c, RA, link);
-                c->npc = relative(c->pc, (int32_t) (ir << 8) >> 8);
+                    risc_dst(c, RISC_RA, link);
+                c->npc = risc_relative(c->pc, (int32_t) (ir << 8) >> 8);
                 break;
             case 0x6b:
                 risc_dst(c, d, link);
@@ -664,8 +656,8 @@ execute(verite_core *c, uint32_t ir, uint8_t op, uint8_t d, uint8_t s2, uint8_t 
             case 0x6c:
             case 0x6e:
                 if (op == 0x6e)
-                    risc_dst(c, RA, link);
-                c->npc = absolute(ir);
+                    risc_dst(c, RISC_RA, link);
+                c->npc = risc_absolute(ir);
                 break;
             case 0x6d:
                 c->halted = true;

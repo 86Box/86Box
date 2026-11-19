@@ -142,6 +142,7 @@ if(BUILD_TESTING)
         vid_verite_test.c
         ../../src/video/verite/core.c
         ../../src/video/verite/loader.c
+        ../../src/video/verite/risc_jit_x64.c
     )
     if(NOT MSVC)
         target_link_libraries(verite_tests PRIVATE m)

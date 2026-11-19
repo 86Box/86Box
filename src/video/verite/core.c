@@ -76,6 +76,7 @@ verite_core_free(verite_core *c)
 {
     if (c) {
         verite_loader_reset(c);
+        risc_jit_free(c);
         free(c->output);
         free(c);
     }
@@ -312,7 +313,14 @@ run(verite_core *c, verite_memory mem, verite_bus bus, int64_t budget)
             if (c->loader.active)
                 break;
         }
-        if (!runnable(c) || !risc_step(c, false, 0, mem, bus))
+        if (!runnable(c))
+            break;
+        unsigned compiled = risc_jit_run(c, mem, (unsigned) (budget - used));
+        if (compiled) {
+            used += compiled;
+            continue;
+        }
+        if (!risc_step(c, false, 0, mem, bus))
             break;
         used += 1 + c->dram_wait;
     }
