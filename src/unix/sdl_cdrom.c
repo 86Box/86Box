@@ -33,6 +33,7 @@
 #include <86box/mo.h>
 #include <86box/rdisk.h>
 #include <86box/scsi_tape.h>
+#include <86box/md.h>
 #include <86box/scsi_disk.h>
 #include <86box/plat.h>
 #include <86box/ui.h>
@@ -305,6 +306,60 @@ tape_reload(uint8_t id)
     }
 
     ui_sb_update_tip(SB_TAPE | id);
+
+    config_save();
+}
+
+void
+md_eject(uint8_t id)
+{
+    md_t *dev = (md_t *) md_drives[id].priv;
+    if (!dev) return;
+
+    md_disk_close(dev);
+    if (md_drives[id].bus_type) {
+        /* Signal disk change to the emulated machine. */
+        md_insert(dev);
+    }
+
+    ui_sb_update_icon_state(SB_MD | id, 1);
+
+    ui_sb_update_tip(SB_MD | id);
+
+    config_save();
+}
+
+void
+md_mount(uint8_t id, char *fn, uint8_t wp)
+{
+    md_t *dev = (md_t *) md_drives[id].priv;
+    if (!dev) return;
+
+    md_disk_close(dev);
+    md_drives[id].read_only = wp;
+    md_load(dev, fn, 0);
+
+    ui_sb_update_icon_state(SB_MD | id, strlen(md_drives[id].image_path) ? 0 : 1);
+
+    ui_sb_update_tip(SB_MD | id);
+
+    config_save();
+}
+
+void
+md_reload(uint8_t id)
+{
+    md_t *dev = (md_t *) md_drives[id].priv;
+    if (!dev) return;
+
+    md_disk_reload(dev);
+    if (strlen(md_drives[id].image_path) == 0) {
+        ui_sb_update_icon_state(SB_MD | id, 1);
+    } else {
+        ui_sb_update_icon_state(SB_MD | id, 0);
+    }
+
+    ui_sb_update_tip(SB_MD | id);
 
     config_save();
 }

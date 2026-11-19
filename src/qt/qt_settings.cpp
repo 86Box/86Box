@@ -308,6 +308,26 @@ Settings::ensurePage(int index)
                         &SettingsOtherRemovable::reloadBusChannels_Tape);
                 connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, otherRemovable,
                         &SettingsOtherRemovable::reloadBusChannels_Tape);
+                connect(otherRemovable, &SettingsOtherRemovable::mdChannelChanged, harddisks,
+                        &SettingsHarddisks::reloadBusChannels);
+                connect(otherRemovable, &SettingsOtherRemovable::mdChannelChanged, floppyCdrom,
+                        &SettingsFloppyCDROM::reloadBusChannels);
+                connect(otherRemovable, &SettingsOtherRemovable::mdChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_MO);
+                connect(otherRemovable, &SettingsOtherRemovable::mdChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_RDisk);
+                connect(otherRemovable, &SettingsOtherRemovable::mdChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_Tape);
+                connect(otherRemovable, &SettingsOtherRemovable::moChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_MD);
+                connect(otherRemovable, &SettingsOtherRemovable::rdiskChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_MD);
+                connect(otherRemovable, &SettingsOtherRemovable::tapeChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_MD);
+                connect(harddisks, &SettingsHarddisks::driveChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_MD);
+                connect(floppyCdrom, &SettingsFloppyCDROM::cdromChannelChanged, otherRemovable,
+                        &SettingsOtherRemovable::reloadBusChannels_MD);
 
                 if (machineId != ::machine)
                     floppyCdrom->onCurrentMachineChanged(machineId);

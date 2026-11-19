@@ -354,6 +354,113 @@
 
       </layout>
      </widget>
+     <widget class="QWidget" name="tabMD">
+      <attribute name="icon">
+       <iconset resource="../qt_resources.qrc">
+        <normaloff>:/settings/qt/icons/mo.ico</normaloff>:/settings/qt/icons/mo.ico</iconset>
+      </attribute>
+      <attribute name="title">
+       <string>MD DATA drives</string>
+      </attribute>
+      <layout class="QVBoxLayout" name="verticalLayoutMD">
+
+       <item>
+        <widget class="QTreeView" name="treeViewMD">
+         <property name="editTriggers">
+          <set>QAbstractItemView::NoEditTriggers</set>
+         </property>
+         <property name="selectionMode">
+          <enum>QAbstractItemView::SingleSelection</enum>
+         </property>
+         <property name="selectionBehavior">
+          <enum>QAbstractItemView::SelectRows</enum>
+         </property>
+         <property name="tabKeyNavigation">
+          <bool>false</bool>
+         </property>
+         <property name="rootIsDecorated">
+          <bool>false</bool>
+         </property>
+         <property name="allColumnsShowFocus">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item>
+        <widget class="QWidget" name="mdControls" native="true">
+         <layout class="QGridLayout" name="gridLayout_4">
+          <item row="0" column="0">
+           <widget class="QLabel" name="labelMDBus">
+            <property name="text">
+             <string>Bus:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="1">
+           <widget class="QComboBox" name="comboBoxMDBus">
+            <property name="maxVisibleItems">
+             <number>30</number>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="2">
+           <widget class="QLabel" name="labelMDChannel">
+            <property name="text">
+             <string>Channel:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="0" column="3">
+           <widget class="QComboBox" name="comboBoxMDChannel">
+            <property name="sizeAdjustPolicy">
+             <enum>QComboBox::AdjustToMinimumContentsLengthWithIcon</enum>
+            </property>
+            <property name="minimumContentsLength">
+             <number>20</number>
+            </property>
+            <property name="maxVisibleItems">
+             <number>30</number>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="0">
+           <widget class="QLabel" name="labelMDType">
+            <property name="text">
+             <string>Type:</string>
+            </property>
+           </widget>
+          </item>
+          <item row="1" column="1" colspan="3">
+           <widget class="QComboBox" name="comboBoxMDType">
+            <property name="maxVisibleItems">
+             <number>30</number>
+            </property>
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="MinimumExpanding" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+
+      </layout>
+     </widget>
     </widget>
    </item>
 
@@ -372,6 +479,10 @@
   <tabstop>comboBoxTapeBus</tabstop>
   <tabstop>comboBoxTapeChannel</tabstop>
   <tabstop>comboBoxTapeType</tabstop>
+  <tabstop>treeViewMD</tabstop>
+  <tabstop>comboBoxMDBus</tabstop>
+  <tabstop>comboBoxMDChannel</tabstop>
+  <tabstop>comboBoxMDType</tabstop>
  </tabstops>
  <resources/>
  <connections/>

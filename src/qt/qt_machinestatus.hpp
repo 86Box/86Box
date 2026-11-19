@@ -89,6 +89,7 @@ public:
     static void iterateRDisk(const std::function<void(int i)> &cb);
     static void iterateMO(const std::function<void(int i)> &cb);
     static void iterateTape(const std::function<void(int i)> &cb);
+    static void iterateMD(const std::function<void(int i)> &cb);
     static void iterateNIC(const std::function<void(int i)> &cb);
 
     QString getMessage();
