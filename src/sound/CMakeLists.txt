@@ -26,6 +26,7 @@ add_library(snd OBJECT
     midi.c
     midi_lcd.c
     midi_lcd_mt32.c
+    midi_lcd_sc55.c
     snd_speaker.c
     snd_lpt_adlipt.c
     snd_lpt_cms.c
