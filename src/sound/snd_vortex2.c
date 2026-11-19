@@ -49,6 +49,7 @@
 #include <86box/plat_unused.h>
 #include <86box/plat.h>
 #include <86box/path.h>
+#include <86box/snd_opl.h>
 
 #include "snd_vortex2_core.h"
 
@@ -81,6 +82,8 @@ typedef struct vortex2_t {
        timers; the sound itself is made by the driver's software from that
        copy (sbprobe fm and fmmap, 2026-11-18). */
     int        fm_on;
+    int        fm_vortex; /* 1: Aureal's own FM (the driver's software synth); 0: 86Box's OPL3 */
+    fm_drv_t   opl;
     uint8_t    fm_index, fm_bank, fm_new;
     uint8_t    fm_t[2], fm_ctl, fm_flags;
     pc_timer_t fm_timer[2];
@@ -267,10 +270,17 @@ legacy_remap(vortex2_t *dev)
     }
     int fm = !!(ctl & V2_CTRL_FM_EN);
     if (fm != dev->fm_on) {
-        if (fm)
-            io_sethandler(0x388, 4, fm_read, NULL, NULL, fm_write, NULL, NULL, dev);
-        else
-            io_removehandler(0x388, 4, fm_read, NULL, NULL, fm_write, NULL, NULL, dev);
+        if (dev->fm_vortex) {
+            if (fm)
+                io_sethandler(0x388, 4, fm_read, NULL, NULL, fm_write, NULL, NULL, dev);
+            else
+                io_removehandler(0x388, 4, fm_read, NULL, NULL, fm_write, NULL, NULL, dev);
+        } else {
+            if (fm)
+                io_sethandler(0x388, 4, dev->opl.read, NULL, NULL, dev->opl.write, NULL, NULL, dev->opl.priv);
+            else
+                io_removehandler(0x388, 4, dev->opl.read, NULL, NULL, dev->opl.write, NULL, NULL, dev->opl.priv);
+        }
         dev->fm_on = fm;
         vortex2_log("Vortex2: FM ports %s\n", fm ? "on" : "off");
     }
@@ -796,6 +806,21 @@ vortex2_get_buffer(int32_t *buffer, uint16_t len, void *priv)
     dev->pos = 0;
 }
 
+/* With "Vortex FM synthesis" off (the default), the FM ports go to 86Box's
+   OPL3 instead of the chip's front end, and its output is mixed in here.
+   The chip's register copy then stays empty, so Aureal's software synth,
+   which renders from it, stays silent. */
+static void
+vortex2_get_music_buffer(int32_t *buffer, uint16_t len, void *priv)
+{
+    vortex2_t     *dev = (vortex2_t *) priv;
+    const int32_t *opl_buf = dev->opl.update(dev->opl.priv);
+
+    for (uint16_t c = 0; c < len * 2; c++)
+        buffer[c] += (int32_t) (opl_buf[c] * 0.7171630859375);
+    dev->opl.reset_buffer(dev->opl.priv);
+}
+
 static void
 vortex2_irq_timer(void *priv)
 {
@@ -1209,6 +1234,11 @@ vortex2_init(UNUSED(const device_t *info))
        which then holds the address the Vortex's Gameport Interface asks
        for. Off, nothing answers there and the card's legacy byte reads as
        an empty port. */
+    dev->fm_vortex = device_get_config_int("vortex_fm");
+    if (!dev->fm_vortex) {
+        fm_driver_get(FM_YMF262, &dev->opl);
+        music_add_handler(vortex2_get_music_buffer, dev);
+    }
     timer_add(&dev->fm_timer[0], fm_timer1, dev, 0);
     timer_add(&dev->fm_timer[1], fm_timer2, dev, 0);
     if (device_get_config_int("gameport")) {
@@ -1269,6 +1299,17 @@ static const device_config_t vortex2_config[] = {
             { .description = "-24 dB",                           .value = -24 },
             { .description = ""                                               }
         },
+        .bios           = { { 0 } }
+    },
+    {
+        .name           = "vortex_fm",
+        .description    = "Vortex FM synthesis (Aureal's software FM, as on the real card)",
+        .type           = CONFIG_BINARY,
+        .default_string = NULL,
+        .default_int    = 0,
+        .file_filter    = NULL,
+        .spinner        = { 0 },
+        .selection      = { { 0 } },
         .bios           = { { 0 } }
     },
     {
