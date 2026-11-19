@@ -179,7 +179,13 @@ call_far_rm(codeblock_t *block, ir_data_t *ir, int is32, int sel_reg, uint16_t s
 
     /*The routine runs its first tests with the PC past the instruction, and
       the pushes with the target in it*/
-    uop_MOV(ir, IREG_temp0, IREG_pc);
+#ifdef CODEGEN_META_PC
+    /*A constant pc is kept out of the IR: its value is known here*/
+    if (!(codegen_meta_ir & CODEGEN_META_EV_PC))
+        uop_MOV_IMM(ir, IREG_temp0, codegen_meta_pc);
+    else
+#endif
+        uop_MOV(ir, IREG_temp0, IREG_pc);
     uop_MOV_IMM(ir, IREG_pc, ret_pc);
 
     /*Each fault below leaves where dynarec_call_far_w/l would raise it and
