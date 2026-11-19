@@ -4637,7 +4637,8 @@ mach_accel_out_fifo(mach_t *mach, svga_t *svga, ibm8514_t *dev, uint16_t port, u
                 mach->fifo_test_idx = 0;
                 dev->fifo_idx       = 0;
                 for (int i = 0; i < queued; i++) {
-                    dev->accel_out_fifo(mach, mach->fifo_test_port[i], mach->fifo_test_data[i], 2);
+                    dev->accel_out_fifo(ATI_8514A_ULTRA ? (void *) svga : (void *) mach,
+                                        mach->fifo_test_port[i], mach->fifo_test_data[i], 2);
                 }
             }
             if (ATI_GRAPHICS_ULTRA || ATI_MACH32)
