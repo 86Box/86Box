@@ -531,6 +531,31 @@ texel(const pixel_engine *pe, int32_t x, int32_t y, verite_memory mem)
 }
 
 static color
+sample_bilinear_565(const pixel_engine *pe, int32_t x, int32_t y, const int32_t weights[4], verite_memory mem)
+{
+    /* Each tap still clamps or wraps independently at the texture edge. */
+    uint32_t x0 = pe->src_mode & SRC_U_CLAMP ? (uint32_t) clamp(x, pe->u_mask) : (uint32_t) x & pe->u_mask;
+    uint32_t x1 = pe->src_mode & SRC_U_CLAMP ? (uint32_t) clamp(x + 1, pe->u_mask) : (uint32_t) (x + 1) & pe->u_mask;
+    uint32_t y0 = pe->src_mode & SRC_V_CLAMP ? (uint32_t) clamp(y, pe->v_mask) : (uint32_t) y & pe->v_mask;
+    uint32_t y1 = pe->src_mode & SRC_V_CLAMP ? (uint32_t) clamp(y + 1, pe->v_mask) : (uint32_t) (y + 1) & pe->v_mask;
+    uint32_t stride = line_stride(pe->stride);
+    uint32_t row0   = pe->src_base + stride * y0;
+    uint32_t row1   = pe->src_base + stride * y1;
+    uint32_t taps[] = { mem_read16(mem, row0 + 2 * x0), mem_read16(mem, row0 + 2 * x1),
+                        mem_read16(mem, row1 + 2 * x0), mem_read16(mem, row1 + 2 * x1) };
+    color sum = { { 0, 0, 0, 255 } };
+    for (unsigned i = 0; i < 4; i++) {
+        sum.channel[0] += (taps[i] >> 11) * weights[i];
+        sum.channel[1] += ((taps[i] >> 5) & 63) * weights[i];
+        sum.channel[2] += (taps[i] & 31) * weights[i];
+    }
+    sum.channel[0] = (sum.channel[0] + 4096) >> 13;
+    sum.channel[1] = (sum.channel[1] + 8192) >> 14;
+    sum.channel[2] = (sum.channel[2] + 4096) >> 13;
+    return sum;
+}
+
+static color
 sample(const pixel_engine *pe, int32_t u, int32_t v, verite_memory mem)
 {
     int32_t tx = u >> 16, ty = v >> 16;
@@ -538,6 +563,8 @@ sample(const pixel_engine *pe, int32_t u, int32_t v, verite_memory mem)
         return texel(pe, tx, ty, mem);
     int32_t fu = (u >> 8) & 255, fv = (v >> 8) & 255;
     int32_t weights[] = { (256 - fu) * (256 - fv), fu * (256 - fv), (256 - fu) * fv, fu * fv };
+    if ((pe->src_mode & (SRC_NO_PAD | SRC_BGR | SRC_CHROMA)) == SRC_NO_PAD && src_fmt(pe) == 4)
+        return sample_bilinear_565(pe, tx, ty, weights, mem);
     color   sum       = { 0 };
     for (int tap = 0; tap < 4; tap++) {
         color c = texel(pe, tx + (tap & 1), ty + (tap >> 1), mem);
@@ -949,6 +976,40 @@ pixel_full(verite_core *core, int32_t x, int32_t y, const pixel_span *span, veri
     pe->pick_hit = core->drew = true;
 }
 
+/* Unpadded RGB565 expands to multiples of its quantization step. The dither
+   offset is smaller than that step, so replace-mode draws can copy the texel. */
+static void
+pixel_copy_565(verite_core *c, uint8_t d, uint8_t s2, uint8_t s1, verite_memory mem)
+{
+    uint32_t x  = risc_src(c, s2 & ~1);
+    uint32_t u  = risc_src(c, s2 | 1);
+    uint32_t dx = risc_src(c, s1 & ~1);
+    uint32_t du = risc_src(c, s1 | 1);
+    pixel_engine *pe = &c->pe;
+    int cnt = (int16_t) pe->cnt;
+    if (cnt <= 0)
+        return;
+
+    pe->x = (int32_t) x;
+    pe->u = (int32_t) u;
+    pe->u_mask = pe->src_mask & 0x7ff;
+    int32_t px = pe->x >> 16, py = pe->y >> 16;
+    if (inside(pe, px, py)) {
+        uint32_t tx = (u >> 16) & pe->u_mask;
+        uint32_t ty = (uint32_t) (pe->v >> 16) & pe->v_mask;
+        uint32_t texel = mem_read16(mem, pe->src_base + line_stride(pe->stride) * ty + 2 * tx);
+        bool transparent = keyed(pe, texel, 2);
+        if (!(pe->dst_mode & DST_TRANSP_REJECT) || (!transparent && (pe->alpha_thres & 255) < 255)) {
+            uint32_t addr = pe->dst_base + line_stride(pe->stride >> 8) * (uint32_t) py + 2 * (uint32_t) px;
+            mem_write16(mem, addr, transparent ? 0 : texel);
+            pe->pick_hit = c->drew = true;
+        }
+    }
+    pe->cnt = cnt - 1;
+    risc_dst(c, d & ~1, x + dx);
+    risc_dst(c, d | 1, u + du);
+}
+
 /* Parameterized draws take the group of values before the group of deltas. */
 void
 pixel_draw_param(verite_core *c, uint8_t op, uint8_t d, uint8_t s2, uint8_t s1, verite_memory mem)
@@ -956,6 +1017,14 @@ pixel_draw_param(verite_core *c, uint8_t op, uint8_t d, uint8_t s2, uint8_t s1, 
     pixel_engine *pe  = &c->pe;
     uint32_t      ctl = pe->drawctl;
     unsigned      count;
+    if (op == 0xf0 && (ctl & 15) == 4 && !(pe->pat_mode & 0x10000)
+        && (pe->dst_fmt & 15) == 4 && src_fmt(pe) == 4
+        && (pe->src_mode & ~(15U | SRC_CHROMA)) == (0x10 | SRC_NO_PAD)
+        && (pe->dst_mode & ~(0xff0U | DST_DITHER | DST_NO_PAD | DST_READ_DISABLE | DST_TRANSP_REJECT)) == 12
+        && (pe->pmask & 0xffff) == 0xffff) {
+        pixel_copy_565(c, d, s2, s1, mem);
+        return;
+    }
     switch (op & 0xfe) {
         case 0xf0:
             count = 2;

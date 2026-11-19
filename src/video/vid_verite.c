@@ -70,12 +70,24 @@ verite_render(svga_t *svga)
         return;
 
     uint32_t      *pixel = &svga->monitor->target_buffer->line[y][svga->x_add];
-    uint32_t       addr  = v->frame + v->pitch * (svga->displine >> !!(verite_reg(v, CRTC_CTL) & 0x20000));
+    uint32_t       addr  = (v->frame + v->pitch * (svga->displine >> !!(verite_reg(v, CRTC_CTL) & 0x20000))) & (VRAM_SIZE - 1);
     const uint8_t *ram   = svga->vram;
 
     if (svga->firstline_draw == 2000)
         svga->firstline_draw = svga->displine;
     svga->lastline_draw = svga->displine;
+
+    const uint32_t *colors = v->native_bpp == 15 ? video_15to32 : video_16to32;
+    if ((v->native_bpp == 15 || v->native_bpp == 16) && !(addr & 3)
+        && !(svga->hdisp & 1) && 2U * svga->hdisp <= VRAM_SIZE - addr) {
+        /* VRAM stores the two 16-bit pixels in each dword in reverse order. */
+        for (int x = 0; x < svga->hdisp; x += 2) {
+            const uint8_t *pair = ram + addr + 2 * x;
+            pixel[x]     = colors[pair[2] | (pair[3] << 8)];
+            pixel[x + 1] = colors[pair[0] | (pair[1] << 8)];
+        }
+        return;
+    }
 
     for (int x = 0; x < svga->hdisp; x++) {
         uint32_t a = addr & (VRAM_SIZE - 1);
@@ -88,7 +100,7 @@ verite_render(svga_t *svga)
             case 16:
                 {
                     uint16_t color = ram[a ^ 2] | ((uint16_t) ram[((a + 1) & (VRAM_SIZE - 1)) ^ 2] << 8);
-                    pixel[x]       = (v->native_bpp == 15 ? video_15to32 : video_16to32)[color];
+                    pixel[x]       = colors[color];
                     addr += 2;
                     break;
                 }

@@ -6,6 +6,7 @@
 #include <stdbool.h>
 #include <stddef.h>
 #include <stdint.h>
+#include <string.h>
 #include "core.h"
 
 enum {
@@ -203,7 +204,13 @@ static inline uint32_t
 mem_read32(verite_memory mem, uint32_t addr)
 {
     size_t i = (addr & mem.mask) & ~(size_t) 3;
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    uint32_t value;
+    memcpy(&value, mem.data + i, sizeof(value));
+    return value;
+#else
     return mem.data[i] | ((uint32_t) mem.data[i + 1] << 8) | ((uint32_t) mem.data[i + 2] << 16) | ((uint32_t) mem.data[i + 3] << 24);
+#endif
 }
 
 static inline void
@@ -224,8 +231,12 @@ static inline void
 mem_write32(verite_memory mem, uint32_t addr, uint32_t value)
 {
     size_t i = (addr & mem.mask) & ~(size_t) 3;
+#if defined(__BYTE_ORDER__) && __BYTE_ORDER__ == __ORDER_LITTLE_ENDIAN__
+    memcpy(mem.data + i, &value, sizeof(value));
+#else
     for (unsigned byte = 0; byte < 4; byte++)
         mem.data[i + byte] = value >> (8 * byte);
+#endif
 }
 
 static inline uint32_t
@@ -243,9 +254,32 @@ void verite_init_rom(verite_core *core);
 
 uint32_t risc_fetch(const verite_core *core, uint32_t addr, verite_memory mem);
 uint32_t risc_peek(const verite_core *core, uint8_t reg);
-uint32_t risc_src(verite_core *core, uint8_t reg);
-void     risc_dst(verite_core *core, uint8_t reg, uint32_t value);
+uint32_t risc_special_src(verite_core *core, uint8_t reg);
+void     risc_special_dst(verite_core *core, uint8_t reg, uint32_t value);
 bool     risc_step(verite_core *core, bool forced, uint32_t ir, verite_memory mem, verite_bus bus);
+
+static inline unsigned
+risc_resolve(const verite_core *c, uint8_t field)
+{
+    if ((field & 0xc0) == 0x40)
+        return 128 | (((c->seg >> ((field >> 4 & 3) * 4)) & 7) << 4) | (field & 15);
+    return field;
+}
+
+static inline uint32_t
+risc_src(verite_core *c, uint8_t field)
+{
+    return field >= 64 ? c->reg[risc_resolve(c, field)] : risc_special_src(c, field);
+}
+
+static inline void
+risc_dst(verite_core *c, uint8_t field, uint32_t value)
+{
+    if (field >= 64)
+        c->reg[risc_resolve(c, field)] = value;
+    else
+        risc_special_dst(c, field, value);
+}
 
 void     pixel_reset(pixel_engine *pe);
 void     pixel_set(pixel_engine *pe, pixel_param param, uint32_t value);

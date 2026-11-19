@@ -532,6 +532,58 @@ dither_before_quantizing(void)
     assert((encode(4, c, 0, false) >> 11) == 0);
 }
 
+static void
+copy_unpadded_565(void)
+{
+    fixture       f  = machine(NULL, 0, 0);
+    pixel_engine *pe = &f.core->pe;
+    sixteen_bit(f.core);
+    pe->src_mode     = 0x10 | SRC_NO_PAD | SRC_CHROMA;
+    pe->dst_mode     = 12 | DST_DITHER | DST_TRANSP_REJECT;
+    pe->chroma_color = 0x12341234;
+    pe->chroma_mask  = UINT32_MAX;
+    pe->drawctl      = 4;
+    pe->src_base     = 0x20000;
+    pe->src_mask     = 3;
+    pe->cnt          = 2;
+    f.core->reg[160] = 1 << 16;
+    f.core->reg[161] = 5 << 16;
+    f.core->reg[176] = 1 << 16;
+    f.core->reg[177] = 1 << 16;
+    mem_write16(f.mem, pe->src_base + 2, 0x1234);
+    mem_write16(f.mem, pe->src_base + 4, 0xdefb);
+    mem_write16(f.mem, pe->dst_base + 2, 0xabcd);
+    pixel_draw_param(f.core, 0xf0, 160, 160, 176, f.mem);
+    assert(mem_read16(f.mem, pe->dst_base + 2) == 0xabcd && !f.core->drew);
+    assert(pe->x == 1 << 16 && pe->u == 5 << 16 && pe->u_mask == 3 && pe->cnt == 1);
+    pixel_draw_param(f.core, 0xf0, 160, 160, 176, f.mem);
+    assert(mem_read16(f.mem, pe->dst_base + 4) == 0xdefb && f.core->drew);
+    assert(f.core->reg[160] == 3U << 16 && f.core->reg[161] == 7U << 16 && !pe->cnt);
+    done(&f);
+}
+
+static void
+bilinear_unpadded_565(void)
+{
+    uint8_t       data[512] = { 0 };
+    verite_memory mem = { data, sizeof(data) - 1 };
+    pixel_engine  pe;
+    pixel_reset(&pe);
+    pe.src_base = 508;
+    pe.stride   = 4;
+    pe.u_mask = pe.v_mask = 1;
+    mem_write16(mem, 508, 0xf800);
+    mem_write16(mem, 510, 0x07e0);
+    mem_write16(mem, 0, 0x001f);
+    mem_write16(mem, 2, 0xffff);
+
+    pe.src_mode = 4 | SRC_FILTER | SRC_NO_PAD;
+    check_color(sample(&pe, 0x8000, 0x8000, mem), 124, 126, 124, 255);
+    check_color(sample(&pe, 0x1c000, -0x8000, mem), 124, 63, 124, 255);
+    pe.src_mode |= SRC_U_CLAMP | SRC_V_CLAMP;
+    check_color(sample(&pe, 0x1c000, -0x8000, mem), 0, 252, 0, 255);
+}
+
 int
 main(void)
 {
@@ -560,6 +612,8 @@ main(void)
     raster_ops();
     pixel_formats();
     dither_before_quantizing();
-    puts("25 Vérité regression cases passed");
+    copy_unpadded_565();
+    bilinear_unpadded_565();
+    puts("27 Vérité regression cases passed");
     return 0;
 }

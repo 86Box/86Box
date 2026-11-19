@@ -99,14 +99,6 @@ alu(uint8_t op, uint32_t a, uint32_t b)
     }
 }
 
-static unsigned
-resolve(const verite_core *c, uint8_t field)
-{
-    if ((field & 0xc0) == 0x40)
-        return 128 | (((c->seg >> ((field >> 4 & 3) * 4)) & 7) << 4) | (field & 15);
-    return field;
-}
-
 static uint32_t
 special_value(const verite_core *c, unsigned reg)
 {
@@ -147,7 +139,7 @@ input_front(const verite_core *c)
 uint32_t
 risc_peek(const verite_core *c, uint8_t field)
 {
-    unsigned r = resolve(c, field);
+    unsigned r = risc_resolve(c, field);
     if (r >= 64)
         return c->reg[r];
     switch (r) {
@@ -163,13 +155,12 @@ risc_peek(const verite_core *c, uint8_t field)
 }
 
 uint32_t
-risc_src(verite_core *c, uint8_t field)
+risc_special_src(verite_core *c, uint8_t field)
 {
-    unsigned r = resolve(c, field);
-    if (r == SWFIFO || r == FIFO) {
+    if (field == SWFIFO || field == FIFO) {
         uint32_t value = 0;
         verite_pop_input(c, &value);
-        return r == SWFIFO ? verite_bswap(value) : value;
+        return field == SWFIFO ? verite_bswap(value) : value;
     }
     return risc_peek(c, field);
 }
@@ -177,7 +168,7 @@ risc_src(verite_core *c, uint8_t field)
 static reg_pair
 src_pair(verite_core *c, uint8_t field)
 {
-    unsigned r = resolve(c, field & ~1);
+    unsigned r = field & ~1;
     if (r == SWFIFO || r == NPSWFIFO) {
         uint32_t word = input_front(c);
         if (r == SWFIFO)
@@ -189,14 +180,9 @@ src_pair(verite_core *c, uint8_t field)
 }
 
 void
-risc_dst(verite_core *c, uint8_t field, uint32_t value)
+risc_special_dst(verite_core *c, uint8_t field, uint32_t value)
 {
-    unsigned r = resolve(c, field);
-    if (r >= 64) {
-        c->reg[r] = value;
-        return;
-    }
-    switch (r) {
+    switch (field) {
         case FIFO:
             verite_push_output(c, value);
             break;
@@ -333,15 +319,17 @@ store(verite_core *c, uint32_t addr, uint32_t value, unsigned size, verite_memor
 }
 
 static bool
-is_fifo(const verite_core *c, uint8_t field)
+is_fifo(uint8_t field)
 {
-    unsigned r = resolve(c, field);
-    return r == SWFIFO || r == FIFO;
+    return field == SWFIFO || field == FIFO;
 }
 
 static bool
 fifo_wait(const verite_core *c, uint8_t op, uint8_t d, uint8_t s2, uint8_t s1)
 {
+    /* Segmented operands always resolve to general-purpose registers. */
+    if (!is_fifo(s1) && !is_fifo(s2) && d != FIFO)
+        return false;
     bool output_blocked = c->out_count >= OUT_FIFO && !(c->flag & 0x40000000);
     /* No instruction checked here needs more than two input words or one output slot. */
     if (c->in_count >= 2 && !output_blocked)
@@ -350,28 +338,28 @@ fifo_wait(const verite_core *c, uint8_t op, uint8_t d, uint8_t s2, uint8_t s1)
     unsigned pops      = 0;
     bool     out       = false;
     if (op <= 0x0f || (op >= 0x40 && op <= 0x4d)) {
-        pops = is_fifo(c, s2);
+        pops = is_fifo(s2);
         out  = op != 0x0e;
     } else if (op == 0x4f) {
-        pops = is_fifo(c, s2);
+        pops = is_fifo(s2);
     } else if ((op >= 0x10 && op <= 0x1f) || (op >= 0x50 && op <= 0x5e)) {
-        pops = is_fifo(c, s1) + (op != 0x52 && is_fifo(c, s2));
+        pops = is_fifo(s1) + (op != 0x52 && is_fifo(s2));
         out  = op != 0x1e;
     } else if (op == 0x5f || (op >= 0x78 && op <= 0x7f) || (op >= 0xd0 && op <= 0xd7)) {
-        pops = is_fifo(c, s2) + is_fifo(c, s1);
+        pops = is_fifo(s2) + is_fifo(s1);
     } else if ((op >= 0x20 && op <= 0x2f) || (op >= 0xd8 && op <= 0xdf)) {
-        pops = is_fifo(c, s2 & ~1) + is_fifo(c, s1 & ~1);
+        pops = is_fifo(s2 & ~1) + is_fifo(s1 & ~1);
     } else if (op >= 0x30 && op <= 0x3f) {
-        pops = is_fifo(c, s2 & ~1) + is_fifo(c, s1);
+        pops = is_fifo(s2 & ~1) + is_fifo(s1);
     } else if ((op >= 0x60 && op <= 0x65) || (op >= 0x6f && op <= 0x75)) {
-        pops = is_fifo(c, s1);
+        pops = is_fifo(s1);
         out  = op >= 0x6f;
     } else if (op == 0x6b || op == 0x76 || op == 0x77) {
         out = true;
     } else if (op >= 0xc0 && op <= 0xc3) {
-        pops = is_fifo(c, s1);
+        pops = is_fifo(s1);
     }
-    return pops > c->in_count || (output_blocked && out && resolve(c, d) == FIFO);
+    return pops > c->in_count || (output_blocked && out && d == FIFO);
 }
 
 static void
@@ -474,7 +462,7 @@ sort_segments(verite_core *c, uint8_t s3, uint8_t s2, uint8_t s1)
     }
     unsigned bases = 0;
     for (unsigned i = 0; i < 3; i++)
-        bases |= ((resolve(c, entries[i].field) >> 4) & 7) << (4 * i);
+        bases |= ((risc_resolve(c, entries[i].field) >> 4) & 7) << (4 * i);
     c->seg  = (c->seg & ~0x777U) | bases;
     c->clip = ((c->clip << 4) & 0xfc) | ((int64_t) entries[2].value - 1 < entries[0].value ? 0x3c : 0);
 }
@@ -528,7 +516,7 @@ step_op(verite_core *c, uint8_t op, uint8_t d, uint8_t s2, uint8_t s1)
     if (op < 0xd8) {
         uint32_t a = risc_src(c, s2);
         uint32_t b = risc_src(c, s1);
-        step_param(c, scalar[op & 7][resolve(c, s2) & 1], a, b);
+        step_param(c, scalar[op & 7][s2 & 1], a, b);
         risc_dst(c, d, a + b);
     } else {
         reg_pair a = src_pair(c, s2);
