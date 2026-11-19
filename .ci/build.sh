@@ -1145,8 +1145,6 @@ else
 	fi
 	prefix_build="$prefix-build-$arch_deb-$cmake_build_type"
 	sdl_ui=OFF
-	printf '[-] CMake executable: %s\n' "$(command -v cmake)"
-	cmake --version
 	cmake -G Ninja -D SDL_SHARED=ON -D SDL_STATIC=OFF \
 		\
 		-D SDL_AUDIO=OFF -D SDL_DUMMYAUDIO=OFF -D SDL_DISKAUDIO=OFF -D SDL_OSS=OFF -D SDL_ALSA=OFF \
