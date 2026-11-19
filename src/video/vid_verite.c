@@ -83,6 +83,7 @@ typedef struct {
     uint8_t       pci_slot, irq_state, irq_line, irq_asserted, command;
     uint8_t       bar_hi, io_hi, io_installed, endian, pci_control, mode, dac_command0;
     uint32_t      rom_bar, bank, frame_base_b, frame[2], pitch[2];
+    unsigned      scanout_offset;
     int           native_bpp;
     uint64_t      time_ns;
     uint64_t      dram_last_refresh_ns;
@@ -188,6 +189,18 @@ verite_render(svga_t *svga)
 }
 
 static void
+verite_update_pitch(verite_t *v, unsigned width, unsigned bpp, uint32_t ctl)
+{
+    unsigned bytes = width * ((bpp + 7) / 8);
+    unsigned fifo  = (ctl & 0x10) ? 128 : 64;
+
+    for (unsigned eye = 0; eye < 2; eye++) {
+        unsigned pitch = (bytes - !(v->frame[eye] & 7)) / fifo * fifo + v->scanout_offset;
+        v->pitch[eye]  = MAX(pitch, bytes);
+    }
+}
+
+static void
 verite_recalctimings(svga_t *svga)
 {
     verite_t *v   = svga->priv;
@@ -228,16 +241,8 @@ verite_recalctimings(svga_t *svga)
     int      front = ((vert >> 20) & 63) + 1;
     int      sync  = ((vert >> 17) & 7) + 1;
     int      back  = ((vert >> 11) & 63) + 1;
-    unsigned bytes = width * ((bpp + 7) / 8);
-    unsigned fifo  = (ctl & 0x10) ? 128 : 64;
 
-    unsigned offset = verite_reg(v, CRTC_OFFSET) & 0xffff;
-    v->frame[0] = verite_reg(v, FRAME_BASE_A) & 0xffffff;
-    v->frame[1] = v->frame_base_b & 0xffffff;
-    for (unsigned eye = 0; eye < 2; eye++) {
-        unsigned pitch = ((bytes - !(v->frame[eye] & 7)) / fifo * fifo) + offset;
-        v->pitch[eye]  = MAX(pitch, bytes);
-    }
+    verite_update_pitch(v, width, bpp, ctl);
 
     v->native_bpp                   = bpp;
     svga->lut_map                  = bpp > 8 && !bt48x_clut_bypass(v->ramdac);
@@ -560,9 +565,18 @@ verite_timer(void *priv)
 static void
 verite_vsync(svga_t *svga)
 {
-    verite_t *v    = svga->priv;
+    verite_t *v   = svga->priv;
+    uint32_t  ctl = verite_reg(v, CRTC_CTL);
+
+    /* Address registers take effect at retrace, even with RISC retrace disabled. */
+    v->frame[0]       = verite_reg(v, FRAME_BASE_A) & 0xffffff;
+    v->frame[1]       = v->frame_base_b & 0xffffff;
+    v->scanout_offset = verite_reg(v, CRTC_OFFSET) & 0xffff;
+    if (svga->render == verite_render)
+        verite_update_pitch(v, svga->hdisp / svga->dots_per_clock, v->native_bpp, ctl);
+
     v->frame_flags = (v->frame_flags ^ CRTC_CTL_EVEN_FRAME) | CRTC_CTL_DISPLAYED | CRTC_CTL_SWITCHED;
-    if (verite_reg(v, CRTC_CTL) & CRTC_CTL_VSYNC) {
+    if (ctl & CRTC_CTL_VSYNC) {
         v->ddc1_bit = (v->ddc1_bit + 1) % (sizeof(v->ddc1_edid) * 9);
         verite_core_retrace(v->core);
         verite_settle(v);
@@ -830,6 +844,9 @@ verite_reset(void *priv)
     v->rom_bar                                          = 0xc0001;
     v->frame_flags                                      = 0;
     v->frame_base_b                                     = 0;
+    v->frame[0] = v->frame[1]                            = 0;
+    v->pitch[0] = v->pitch[1]                            = 0;
+    v->scanout_offset                                   = 0;
     v->pll_shift                                        = PLL_VGA_CLOCK;
     v->pixel_clock_hz                                   = 0.0;
     v->dram_last_refresh_ns                             = v->time_ns;
