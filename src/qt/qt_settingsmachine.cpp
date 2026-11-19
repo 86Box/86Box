@@ -184,6 +184,7 @@ SettingsMachine::SettingsMachine(QWidget *parent)
     ui->checkBoxOverrideInterpreter->setChecked(cpu_override_interpreter ? true : false);
     ui->checkBoxDebugRegs486->setChecked(cpu_debug_regs_486 ? true : false);
     ui->checkBoxWeitek->setChecked(weitek_3167 != 0);
+    ui->checkBoxWeitek4167->setChecked(weitek_4167 != 0);
 
 #ifndef USE_DYNAREC
     ui->checkBoxDynamicRecompiler->setEnabled(false);
@@ -215,6 +216,7 @@ SettingsMachine::changed()
     has_changed |= (cpu_override_interpreter   != (ui->checkBoxOverrideInterpreter->isChecked() ? 1 : 0));
     has_changed |= (cpu_debug_regs_486         != (ui->checkBoxDebugRegs486->isChecked() ? 1 : 0));
     has_changed |= (weitek_3167                != ui->checkBoxWeitek->isChecked());
+    has_changed |= (weitek_4167                != ui->checkBoxWeitek4167->isChecked());
 #ifdef USE_DYNAREC
     has_changed |= (cpu_use_dynarec            != (ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0));
     has_changed |= (cpu_dyn_accurate_fpu_env   != (ui->checkBoxAccurateFPUEnvironment->isChecked() ? 1 : 0));
@@ -290,6 +292,7 @@ SettingsMachine::save(int soft)
     cpu_override_interpreter = ui->checkBoxOverrideInterpreter->isChecked() ? 1 : 0;
     cpu_debug_regs_486       = ui->checkBoxDebugRegs486->isChecked() ? 1 : 0;
     weitek_3167              = ui->checkBoxWeitek->isChecked();
+    weitek_4167              = ui->checkBoxWeitek4167->isChecked();
 #ifdef USE_DYNAREC
     cpu_use_dynarec          = ui->checkBoxDynamicRecompiler->isChecked() ? 1 : 0;
     cpu_dyn_accurate_fpu_env = ui->checkBoxAccurateFPUEnvironment->isChecked() ? 1 : 0;
@@ -514,6 +517,7 @@ SettingsMachine::on_comboBoxSpeed_currentIndexChanged(int index)
         // A board without an FPU socket only offers the CPU's own FPU.
         bool  noFpuSocket = machine_has_flags(machineId, MACHINE_NO_FPU_SOCKET);
         ui->checkBoxWeitek->setEnabled(!noFpuSocket && weitek_cpu_family_ok(cpuFamily));
+        ui->checkBoxWeitek4167->setEnabled(weitek_4167_supported(cpuFamily, machineId));
         auto *modelFpu    = ui->comboBoxFPU->model();
         int   removeRows  = modelFpu->rowCount();
 

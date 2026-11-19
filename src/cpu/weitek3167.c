@@ -7,7 +7,9 @@
  *          This file is part of the 86Box distribution.
  *
  *          Weitek WTL 3167 floating-point coprocessor ("Abacus"), from its
- *          data sheet (Preliminary Data, September 1988).
+ *          data sheet (Preliminary Data, September 1988). The WTL 4167
+ *          uses the same programming interface on the 486 bus (4167
+ *          Advance Data, July 1989, section "3167 and 4167 Compatibility").
  *
  *          A memory-mapped device in the 121-pin socket beside the 386DX:
  *          it decodes only A31-A25 (C0000000-C1FFFFFF; by convention
@@ -106,6 +108,7 @@ typedef struct weitek_t {
 } weitek_t;
 
 int weitek_3167 = 0;
+int weitek_4167 = 0;
 
 #ifdef ENABLE_WEITEK_LOG
 int weitek_do_log = ENABLE_WEITEK_LOG;
@@ -136,6 +139,23 @@ int
 weitek_fitted(void)
 {
     return weitek_3167 && weitek_cpu_family_ok(cpu_f) && !machine_has_flags(machine, MACHINE_NO_FPU_SOCKET);
+}
+
+int
+weitek_4167_supported(const cpu_family_t *family, int machine_id)
+{
+    /* The option supplies the 4167 socket on a native 486 bus. A 486
+       upgrade in a 386 socket still uses the 386 bus. */
+    const uint32_t packages = CPU_PKG_SOCKET1 | CPU_PKG_SOCKET3 | CPU_PKG_SOCKET3_PC330;
+
+    return (family != NULL) && (family->package & machines[machine_id].cpu.package & packages)
+           && !machine_has_flags(machine_id, MACHINE_NO_FPU_SOCKET);
+}
+
+int
+weitek_4167_fitted(void)
+{
+    return weitek_4167 && weitek_4167_supported(cpu_f, machine);
 }
 
 /* INTR: an exception accumulated in AE whose mask bit in EM is low. It is a
@@ -697,6 +717,9 @@ weitek_init(UNUSED(const device_t *info))
 {
     weitek_t *dev = (weitek_t *) calloc(1, sizeof(weitek_t));
 
+    if (dev == NULL)
+        return NULL;
+
     weitek_reset(dev);
 
     /* A31-A25 select it: the whole 32 MB at C0000000 */
@@ -730,4 +753,12 @@ const device_t weitek_3167_device = {
     .speed_changed = NULL,
     .force_redraw  = NULL,
     .config        = NULL
+};
+
+const device_t weitek_4167_device = {
+    .name          = "Weitek WTL 4167",
+    .internal_name = "weitek_4167",
+    .init          = weitek_init,
+    .close         = weitek_close,
+    .reset         = weitek_reset
 };

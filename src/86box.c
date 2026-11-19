@@ -2052,6 +2052,8 @@ pc_reset_hard_init(void)
 
     if (weitek_fitted())
         device_add(&weitek_3167_device);
+    else if (weitek_4167_fitted())
+        device_add(&weitek_4167_device);
 
     /* The PC Card controller and its cards, if fitted. */
     pcmcia_reset();
