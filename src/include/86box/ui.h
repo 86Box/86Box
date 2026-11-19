@@ -62,6 +62,7 @@ extern void ui_progress_wait(const char *message, int total,
 #define SB_NETWORK    0x80
 #define SB_SOUND      0x90
 #define SB_TEXT       0xA0
+#define SB_MD         0xB0
 
 extern void  ui_emu_status(int speed_percent);
 
