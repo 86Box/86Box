@@ -125,7 +125,10 @@ fetch_ea_32_long(uint32_t rmdat)
             cpu_state.eaaddr = getlong();
         }
     }
-    if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
+    /* A misaligned operand while alignment checking is on goes through the
+       memory helpers, which raise #AC. */
+    if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC &&
+        (!((easeg + cpu_state.eaaddr) & 3) || !CPU_AC_ARMED())) {
         uint32_t addr = easeg + cpu_state.eaaddr;
         if (readlookup2[addr >> 12] != (uintptr_t) -1)
             eal_r = (uint32_t *) (readlookup2[addr >> 12] + addr);
@@ -161,7 +164,10 @@ fetch_ea_16_long(uint32_t rmdat)
         }
         cpu_state.eaaddr &= 0xFFFF;
     }
-    if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC) {
+    /* A misaligned operand while alignment checking is on goes through the
+       memory helpers, which raise #AC. */
+    if (easeg != 0xFFFFFFFF && ((easeg + cpu_state.eaaddr) & 0xFFF) <= 0xFFC &&
+        (!((easeg + cpu_state.eaaddr) & 3) || !CPU_AC_ARMED())) {
         uint32_t addr = easeg + cpu_state.eaaddr;
         if (readlookup2[addr >> 12] != (uintptr_t) -1)
             eal_r = (uint32_t *) (readlookup2[addr >> 12] + addr);
@@ -336,8 +342,10 @@ dr_blocks_cache(void)
 }
 
 /* dbg is a constant in the dispatch loop (exec386_dynarec_common()), so that
-   with the option off the per-block test is not compiled in. */
-#define CACHE_ON_DBG(dbg) (!(cr0 & (1 << 30)) && !(cpu_state.flags & T_FLAG) && !((dbg) && cpu_dr_armed && dr_blocks_cache()))
+   with the option off the per-block test is not compiled in. With alignment
+   checking on, code is interpreted: generated code does misaligned accesses
+   inline, without the #AC check the memory helpers make. */
+#define CACHE_ON_DBG(dbg) (!(cr0 & (1 << 30)) && !CPU_AC_ARMED() && !(cpu_state.flags & T_FLAG) && !((dbg) && cpu_dr_armed && dr_blocks_cache()))
 #define CACHE_ON()        CACHE_ON_DBG(cpu_debug_regs_486)
 
 int32_t         cycles_main = 0;

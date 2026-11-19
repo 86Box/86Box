@@ -30,6 +30,7 @@ enum {
     ABRT_SS   = 0xC,
     ABRT_GPF  = 0xD,
     ABRT_PF   = 0xE,
+    ABRT_AC   = 0x11,
     ABRT_DE   = 0x40 /* INT 0, but we have to distinguish it from ABRT_NONE. */
 };
 

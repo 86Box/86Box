@@ -2001,11 +2001,41 @@ writemembl_no_mmut(uint32_t addr, uint32_t a64, uint8_t val)
     writemembl_no_mmut_body(addr, a64, val);
 }
 
+/* #AC (Pentium Vol. 3, 14.17, Interrupt 17): with CR0.AM and EFLAGS.AC
+   set, a misaligned data access at CPL 3 faults with error code 0 before
+   any of it is done. Misaligned accesses always reach the helpers below
+   (the inline fast paths take aligned ones only). cpl_override marks the
+   implicit supervisor accesses (descriptor tables, TSS) and the debugger's,
+   which are never checked. */
+static __attribute__((noinline, cold)) int
+mem_ac_fault_check(void)
+{
+    if (!(cpu_state.eflags & AC_FLAG) || cpl_override || cpu_state.abrt ||
+        ((CPL != 3) && !(cpu_state.eflags & VM_FLAG)))
+        return 0;
+
+    cpu_state.abrt = ABRT_AC;
+    abrt_error     = 0;
+    return 1;
+}
+
+static __inline int
+mem_ac_fault(uint32_t addr, uint32_t mask)
+{
+    if (UNLIKELY((addr & mask) && (cr0 & AM_FLAG)))
+        return mem_ac_fault_check();
+
+    return 0;
+}
+
 uint16_t
 readmemwl(uint32_t addr)
 {
     mem_mapping_t *map;
     uint64_t       a;
+
+    if (mem_ac_fault(addr, 1))
+        return 0xffff;
 
     /* A held entry, as the table's hit before the call. */
     if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 1) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
@@ -2076,6 +2106,9 @@ writememwl(uint32_t addr, uint16_t val)
     mem_mapping_t *map;
     uint64_t       a;
     uint32_t       va;
+
+    if (mem_ac_fault(addr, 1))
+        return;
 
     /* A held entry, as the table's hit before the call. */
     if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 1) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {
@@ -2224,6 +2257,9 @@ readmemwl_no_mmut_body(uint32_t addr, uint32_t *a64)
 uint16_t
 readmemwl_no_mmut(uint32_t addr, uint32_t *a64)
 {
+    if (mem_ac_fault(addr, 1))
+        return 0xffff;
+
     /* A held entry, as the table's hit before the call. */
     if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 1) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
         return *(uint16_t *) (mem_held_hit + addr);
@@ -2295,6 +2331,9 @@ writememwl_no_mmut_body(uint32_t addr, uint32_t *a64, uint16_t val)
 void
 writememwl_no_mmut(uint32_t addr, uint32_t *a64, uint16_t val)
 {
+    if (mem_ac_fault(addr, 1))
+        return;
+
     /* A held entry, as the table's hit before the call. */
     if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 1) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {
         *(uint16_t *) (mem_held_hit + addr) = val;
@@ -2313,6 +2352,9 @@ readmemll(uint32_t addr)
     mem_mapping_t *map;
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
+
+    if (mem_ac_fault(addr, 3))
+        return 0xffffffff;
 
     /* A held entry, as the table's hit before the call. */
     if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 3) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
@@ -2398,6 +2440,9 @@ writememll(uint32_t addr, uint32_t val)
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
     uint32_t       va;
+
+    if (mem_ac_fault(addr, 3))
+        return;
 
     /* A held entry, as the table's hit before the call. */
     if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 3) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {
@@ -2565,6 +2610,9 @@ readmemll_no_mmut_body(uint32_t addr, uint32_t *a64)
 uint32_t
 readmemll_no_mmut(uint32_t addr, uint32_t *a64)
 {
+    if (mem_ac_fault(addr, 3))
+        return 0xffffffff;
+
     /* A held entry, as the table's hit before the call. */
     if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 3) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
         return *(uint32_t *) (mem_held_hit + addr);
@@ -2642,6 +2690,9 @@ writememll_no_mmut_body(uint32_t addr, uint32_t *a64, uint32_t val)
 void
 writememll_no_mmut(uint32_t addr, uint32_t *a64, uint32_t val)
 {
+    if (mem_ac_fault(addr, 3))
+        return;
+
     /* A held entry, as the table's hit before the call. */
     if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 3) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {
         *(uint32_t *) (mem_held_hit + addr) = val;
@@ -2660,6 +2711,9 @@ readmemql(uint32_t addr)
     mem_mapping_t *map;
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
+
+    if (mem_ac_fault(addr, 7))
+        return 0xffffffffffffffffULL;
 
     /* A held entry, as the table's hit before the call. */
     if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 7) && ((mem_held_hit = mem_held_r(addr)) != (uintptr_t) LOOKUP_INV))
@@ -2754,6 +2808,9 @@ writememql(uint32_t addr, uint64_t val)
     mem_mapping_t *map;
     int            i;
     uint64_t       a = 0x0000000000000000ULL;
+
+    if (mem_ac_fault(addr, 7))
+        return;
 
     /* A held entry, as the table's hit before the call. */
     if (UNLIKELY(mem_held_num) && mem_held_before_call(addr, 7) && ((mem_held_hit = mem_held_w(addr)) != (uintptr_t) LOOKUP_INV)) {

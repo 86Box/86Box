@@ -296,9 +296,10 @@ x86_doabrt(int x86_abrt)
 }
 
 /* A fault while delivering an exception: a #PF after a contributory
-   exception is taken on its own (Pentium Vol. 3, Table 14-4); any other
-   pair is a double fault, which always pushes an error code of 0. A
-   fault while delivering that is left in cpu_state.abrt: shutdown. */
+   exception is taken on its own (Pentium Vol. 3, Table 14-4), and so is
+   any pair with one #AC, which is benign; any other pair is a double
+   fault, which always pushes an error code of 0. A fault while delivering
+   that is left in cpu_state.abrt: shutdown. */
 void
 #ifdef OPS_286_386
 x86_fault_in_delivery_2386(int first, int second)
@@ -306,8 +307,8 @@ x86_fault_in_delivery_2386(int first, int second)
 x86_fault_in_delivery(int first, int second)
 #endif
 {
-    if ((second == 14) && (first != 14)) {
-        op_doabrt(14);
+    if (((second == 14) && (first != 14)) || ((first == 17) != (second == 17))) {
+        op_doabrt(second);
         if (!cpu_state.abrt)
             return;
         cpu_state.abrt = 0;
