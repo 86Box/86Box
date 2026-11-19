@@ -567,6 +567,35 @@ w83977_state_change(w83977_t *dev, const uint8_t locked)
         fdc_3f1_enable(dev->fdc, !locked);
 }
 
+/* While CR E4 bit 2 arms the S1/S2 wake-up, the wake-up logic takes over
+   the clock and data lines of each device whose wake-up is enabled in CR E0,
+   as it does in soft-off with the keyboard controller unpowered: a byte the
+   keyboard controller holds the device off from sending (output buffer full
+   or interface disabled) reaches the wake-up logic instead. Otherwise a
+   sleeping system that has not read the first byte of a key or a mouse
+   packet would leave the rest of it, and the wake-up, stuck behind the
+   keyboard controller's inhibit, and the BIOS key and double click settings
+   could never wake it. Nothing documents this, but the ASUS P3V4X arms the
+   bit in _PTS with only those settings available. */
+static void
+w83977_wake_takeover(w83977_t *dev)
+{
+    const uint8_t *ld       = dev->ld_regs[0x0a];
+    uint8_t        channels = 0x00;
+
+    if ((dev->kbc == NULL) || (dev->type != W83977EF))
+        return;
+
+    if (ld[0xe4] & 0x04) {
+        if (ld[0xe0] & 0x40)
+            channels |= 0x01;
+        if (ld[0xe0] & 0x20)
+            channels |= 0x02;
+    }
+
+    kbc_at_set_wire_takeover(dev->kbc, channels);
+}
+
 /* The keyboard and mouse wake-up logic pulses PANSWOUT# (W83977EF-AW 8.6,
    p. 74). How a board wires that pin is up to the board.
 
@@ -583,6 +612,7 @@ w83977_panswout(w83977_t *dev, uint8_t sts)
 
     dev->ld_regs[0x0a][0xe4] &= ~0x04;
     dev->ld_regs[0x0a][0xe3] |= sts;
+    w83977_wake_takeover(dev);
 
     /* The pulse lasts 0.5 to 1 second (tWKUPW, p. 127), a power button
        press well short of the four second override. */
@@ -1098,6 +1128,7 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                             break;
                         case 0xe0:
                             dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0xf7;
+                            w83977_wake_takeover(dev);
                             break;
                         case 0xe1:
                         case 0xfe: case 0xff:
@@ -1117,6 +1148,7 @@ w83977_write(uint16_t port, uint8_t val, void *priv)
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val & 0xf4;
                             else
                                 dev->ld_regs[dev->regs[7]][dev->cur_reg] = val;
+                            w83977_wake_takeover(dev);
                             break;
                         case 0xe5:
                             if (dev->type == W83977EF)
@@ -1356,6 +1388,7 @@ w83977_reset(void *priv)
     dev->mswk_button = 0;
     dev->mswk_clicks = 0;
     dev->mswk_tsc    = 0;
+    w83977_wake_takeover(dev);
 
     w83977_lpt_handler(dev);
     w83977_serial_handler(dev, 0);
