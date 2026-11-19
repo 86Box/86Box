@@ -23,6 +23,7 @@
 #define VRAM_SIZE  0x400000
 #define BAR_SIZE   0x1000000
 #define TICK_US    50
+#define CRTC_CTL_LINE_DOUBLE 0x20000
 
 enum {
     CRTC_CTL    = 0x84,
@@ -70,8 +71,9 @@ verite_render(svga_t *svga)
         return;
 
     uint32_t      *pixel = &svga->monitor->target_buffer->line[y][svga->x_add];
-    uint32_t       addr  = (v->frame + v->pitch * (svga->displine >> !!(verite_reg(v, CRTC_CTL) & 0x20000))) & (VRAM_SIZE - 1);
+    uint32_t       addr  = (v->frame + v->pitch * (svga->displine >> !!(verite_reg(v, CRTC_CTL) & CRTC_CTL_LINE_DOUBLE))) & (VRAM_SIZE - 1);
     const uint8_t *ram   = svga->vram;
+    int            width = svga->hdisp / svga->dots_per_clock;
 
     if (svga->firstline_draw == 2000)
         svga->firstline_draw = svga->displine;
@@ -79,36 +81,41 @@ verite_render(svga_t *svga)
 
     const uint32_t *colors = v->native_bpp == 15 ? video_15to32 : video_16to32;
     if ((v->native_bpp == 15 || v->native_bpp == 16) && !(addr & 3)
-        && !(svga->hdisp & 1) && 2U * svga->hdisp <= VRAM_SIZE - addr) {
+        && !(width & 1) && 2U * width <= VRAM_SIZE - addr) {
         /* VRAM stores the two 16-bit pixels in each dword in reverse order. */
-        for (int x = 0; x < svga->hdisp; x += 2) {
+        for (int x = 0; x < width; x += 2) {
             const uint8_t *pair = ram + addr + 2 * x;
             pixel[x]     = colors[pair[2] | (pair[3] << 8)];
             pixel[x + 1] = colors[pair[0] | (pair[1] << 8)];
         }
-        return;
+    } else {
+        for (int x = 0; x < width; x++) {
+            uint32_t a = addr & (VRAM_SIZE - 1);
+            switch (v->native_bpp) {
+                case 8:
+                    pixel[x] = svga->map8[ram[a ^ 3] & svga->dac_mask];
+                    addr++;
+                    break;
+                case 15:
+                case 16:
+                    {
+                        uint16_t color = ram[a ^ 2] | ((uint16_t) ram[((a + 1) & (VRAM_SIZE - 1)) ^ 2] << 8);
+                        pixel[x]       = colors[color];
+                        addr += 2;
+                        break;
+                    }
+                default:
+                    pixel[x] = ((uint32_t) ram[(a + 2) & (VRAM_SIZE - 1)] << 16) | ((uint32_t) ram[(a + 1) & (VRAM_SIZE - 1)] << 8) | ram[a];
+                    addr += 4;
+                    break;
+            }
+        }
     }
 
-    for (int x = 0; x < svga->hdisp; x++) {
-        uint32_t a = addr & (VRAM_SIZE - 1);
-        switch (v->native_bpp) {
-            case 8:
-                pixel[x] = svga->map8[ram[a ^ 3] & svga->dac_mask];
-                addr++;
-                break;
-            case 15:
-            case 16:
-                {
-                    uint16_t color = ram[a ^ 2] | ((uint16_t) ram[((a + 1) & (VRAM_SIZE - 1)) ^ 2] << 8);
-                    pixel[x]       = colors[color];
-                    addr += 2;
-                    break;
-                }
-            default:
-                pixel[x] = ((uint32_t) ram[(a + 2) & (VRAM_SIZE - 1)] << 16) | ((uint32_t) ram[(a + 1) & (VRAM_SIZE - 1)] << 8) | ram[a];
-                addr += 4;
-                break;
-        }
+    if (svga->dots_per_clock == 2) {
+        /* Expand from right to left so the source pixels are still available. */
+        for (int x = width - 1; x >= 0; x--)
+            pixel[2 * x] = pixel[2 * x + 1] = pixel[x];
     }
 }
 
@@ -161,12 +168,15 @@ verite_recalctimings(svga_t *svga)
 
     v->native_bpp                   = bpp;
     svga->render                   = verite_render;
-    svga->hdisp = svga->hdisp_time = width;
+    /* Low-resolution scanout repeats rows and needs matching horizontal
+       expansion in the host buffer. Keep CRTC timing and pitch in source units. */
+    svga->dots_per_clock           = (ctl & CRTC_CTL_LINE_DOUBLE) && width <= 1024 ? 2 : 1;
+    svga->hdisp                   = width * svga->dots_per_clock;
+    svga->hdisp_time              = width;
     svga->htotal                   = total;
     svga->hblankstart              = width - 1;
     svga->hblank_end_val           = total - 1;
     svga->hblank_end_mask          = 0xfff;
-    svga->dots_per_clock           = 1;
     svga->char_width               = 1;
     svga->dispend = svga->vblankstart = lines;
     svga->vsyncstart                  = lines + front;
