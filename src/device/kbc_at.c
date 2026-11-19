@@ -162,6 +162,7 @@ typedef struct atkbc_t {
 
     void (*wire_hook)(void *priv, int channel, uint8_t val);
     void *wire_priv;
+    uint8_t wire_takeover;
 } atkbc_t;
 
 /* Keyboard controller ports. */
@@ -666,6 +667,36 @@ kbc_scan_aux_ps2(atkbc_t *dev)
     return 0;
 }
 
+/* While whatever watches the lines has taken a channel over, the controller
+   no longer inhibits that device: a byte the controller is not ready for
+   (output buffer full or interface disabled) reaches the watcher and is lost
+   to the controller. */
+static void
+kbc_at_wire_takeover(atkbc_t *dev)
+{
+    switch (dev->state) {
+        default:
+            /* The controller is talking to a device or outputting bytes of its own. */
+            return;
+        case STATE_MAIN_IBF:
+        case STATE_MAIN_KBD:
+        case STATE_MAIN_AUX:
+        case STATE_MAIN_BOTH:
+            break;
+    }
+
+    for (int i = 0; i < 2; i++) {
+        if (!(dev->wire_takeover & (1 << i)) || (dev->ports[i] == NULL) || (dev->ports[i]->out_new == -1))
+            continue;
+        if (!(dev->status & STAT_OFULL) && !(dev->mem[0x20] & (0x10 << i)))
+            continue;
+
+        kbc_at_log("ATkbc: %02X from channel %i taken over\n", dev->ports[i]->out_new & 0xff, i + 1);
+        kbc_at_wire(dev, i + 1, dev->ports[i]->out_new);
+        dev->ports[i]->out_new = -1;
+    }
+}
+
 static void
 kbc_at_poll_ps2(atkbc_t *dev)
 {
@@ -675,6 +706,9 @@ kbc_at_poll_ps2(atkbc_t *dev)
         dev->aux_delay = AUX_ENABLE_DELAY;
     else if (dev->aux_delay > 0)
         dev->aux_delay--;
+
+    if (UNLIKELY(dev->wire_takeover))
+        kbc_at_wire_takeover(dev);
 
     switch (dev->state) {
         case STATE_RESET:
@@ -3056,6 +3090,18 @@ kbc_at_set_wire_hook(void *priv, void (*wire_hook)(void *priv, int channel, uint
 
     dev->wire_hook = wire_hook;
     dev->wire_priv = wire_priv;
+}
+
+/* Let whatever watches the lines take the keyboard (bit 0) and auxiliary
+   device (bit 1) channels over, clocking in the bytes the controller holds
+   the device off from sending, as a Super I/O chip's armed wake-up logic
+   does. */
+void
+kbc_at_set_wire_takeover(void *priv, uint8_t channels)
+{
+    atkbc_t *dev = (atkbc_t *) priv;
+
+    dev->wire_takeover = channels;
 }
 
 static void *
