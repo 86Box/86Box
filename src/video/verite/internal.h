@@ -172,6 +172,9 @@ struct verite_core {
     uint8_t       rom[ROM_SIZE];
     uint64_t      last_ns;
     int64_t       credit;
+    uint32_t      dram_row;
+    bool          slow_precharge;
+    unsigned      dram_wait;
     unsigned      polls;
 };
 

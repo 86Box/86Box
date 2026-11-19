@@ -7,12 +7,14 @@
 #include <86box/86box.h>
 #include <86box/device.h>
 #include <86box/dma.h>
+#include <86box/i2c.h>
 #include <86box/io.h>
 #include <86box/mem.h>
 #include <86box/pci.h>
 #include <86box/rom.h>
 #include <86box/timer.h>
 #include <86box/video.h>
+#include <86box/vid_ddc.h>
 #include <86box/vid_svga.h>
 #include <86box/vid_vga.h>
 
@@ -23,18 +25,43 @@
 #define VRAM_SIZE  0x400000
 #define BAR_SIZE   0x1000000
 #define TICK_US    50
+#define MODE_VESA            0x01
+#define MODE_VGA             0x02
+#define CRTC_CTL_DDC_DRIVE   0x20
+#define CRTC_CTL_DDC_SCL     0x40
+#define CRTC_CTL_DDC_SDA     0x80
+#define CRTC_CTL_VSYNC       0x400
+#define CRTC_CTL_VIDEO       0x1000
+#define CRTC_CTL_STEREO      0x2000
+#define CRTC_CTL_DISPLAYED   0x4000
+#define CRTC_CTL_BGR         0x8000
+#define CRTC_CTL_EVEN_FRAME  0x10000
 #define CRTC_CTL_LINE_DOUBLE 0x20000
+#define CRTC_CTL_SWITCHED    0x40000
+#define CRTC_CTL_FRAME_FLAGS (CRTC_CTL_DISPLAYED | CRTC_CTL_EVEN_FRAME | CRTC_CTL_SWITCHED)
+#define CRTC_TEST_VBLANK     0x40000
+#define CRTC_TEST_NOT_VBLANK 0x10000
+#define DRAM_SLOW_PRECHARGE  0x0010
+#define DRAM_REFRESH_VBLANK  0x2000
+#define DRAM_REFRESH_DISABLE 0x8000
+#define DRAM_REFRESH_COUNT   0xff0000
+/* Approximate EDO refresh costs in the 25 MHz RISC clock domain. */
+#define DRAM_REFRESH_UNIT_NS 320
+#define DRAM_REFRESH_CYCLES  2
 #define PLL_VGA_CLOCK        0x40000
 #define PLL_WORD_MASK        0xfffff
 #define PLL_REF_HZ           14318180.0
 
 enum {
+    CRTC_TEST   = 0x80,
     CRTC_CTL    = 0x84,
     CRTC_HORZ   = 0x88,
     CRTC_VERT   = 0x8c,
-    FRAME_BASE  = 0x94,
+    FRAME_BASE_B = 0x90,
+    FRAME_BASE_A = 0x94,
     CRTC_OFFSET = 0x98,
     CRTC_STATUS = 0x9c,
+    DRAM_CTL    = 0xa0,
     RAMDAC      = 0xb0,
     PLL_DEVICE  = 0xc0
 };
@@ -47,12 +74,19 @@ typedef struct {
     pc_timer_t    timer;
     verite_core  *core;
     void         *ramdac;
+    void         *ddc_bus;
+    void         *ddc_monitor;
+    uint8_t       ddc1_edid[128];
+    unsigned      ddc1_bit;
+    int           ddc2_active;
     uint8_t       regs[256];
     uint8_t       pci_slot, irq_state, irq_line, irq_asserted, command;
     uint8_t       bar_hi, io_hi, io_installed, endian, pci_control, mode, dac_command0;
-    uint32_t      rom_bar, bank, frame, pitch;
+    uint32_t      rom_bar, bank, frame_base_b, frame[2], pitch[2];
     int           native_bpp;
     uint64_t      time_ns;
+    uint64_t      dram_last_refresh_ns;
+    unsigned      dram_refresh_pending;
     uint32_t      frame_flags;
     uint32_t      pll_shift;
     double        pixel_clock_hz;
@@ -76,8 +110,12 @@ verite_render(svga_t *svga)
     if (y < 0 || y >= 2048 || !svga->monitor->target_buffer)
         return;
 
+    uint32_t       ctl   = verite_reg(v, CRTC_CTL);
+    /* Stereoscopic scanout uses A on even frames and B on odd frames. */
+    unsigned       eye   = (ctl & CRTC_CTL_STEREO) && !(v->frame_flags & CRTC_CTL_EVEN_FRAME);
+    unsigned       row   = svga->displine >> !!(ctl & CRTC_CTL_LINE_DOUBLE);
     uint32_t      *pixel = &svga->monitor->target_buffer->line[y][svga->x_add];
-    uint32_t       addr  = (v->frame + v->pitch * (svga->displine >> !!(verite_reg(v, CRTC_CTL) & CRTC_CTL_LINE_DOUBLE))) & (VRAM_SIZE - 1);
+    uint32_t       addr  = (v->frame[eye] + v->pitch[eye] * row) & (VRAM_SIZE - 1);
     const uint8_t *ram   = svga->vram;
     int            width = svga->hdisp / svga->dots_per_clock;
 
@@ -118,6 +156,30 @@ verite_render(svga_t *svga)
         }
     }
 
+    if (v->native_bpp > 8) {
+        if (ctl & CRTC_CTL_BGR) {
+            for (int x = 0; x < width; x++)
+                pixel[x] = makecol32(getcolb(pixel[x]), getcolg(pixel[x]), getcolr(pixel[x]));
+        }
+        if (svga->lut_map && v->native_bpp < 32) {
+            /* The Bt485 routes the 5/6-bit components to either end of
+               the palette address, filling the unused bits with zero. */
+            unsigned green_shift = v->native_bpp == 16 ? 2 : 3;
+            int contiguous = bt48x_clut_contiguous(v->ramdac);
+            unsigned rb_address_shift = contiguous ? 0 : 3;
+            unsigned g_address_shift  = contiguous ? 0 : green_shift;
+            for (int x = 0; x < width; x++) {
+                unsigned r = (getcolr(pixel[x]) >> 3) << rb_address_shift;
+                unsigned g = (getcolg(pixel[x]) >> green_shift) << g_address_shift;
+                unsigned b = (getcolb(pixel[x]) >> 3) << rb_address_shift;
+                pixel[x] = svga_lookup_lut_ram(svga, makecol32(r, g, b));
+            }
+        } else if (svga->lut_map) {
+            for (int x = 0; x < width; x++)
+                pixel[x] = svga_lookup_lut_ram(svga, pixel[x]);
+        }
+    }
+
     if (svga->dots_per_clock == 2) {
         /* Expand from right to left so the source pixels are still available. */
         for (int x = width - 1; x >= 0; x--)
@@ -130,10 +192,12 @@ verite_recalctimings(svga_t *svga)
 {
     verite_t *v   = svga->priv;
     uint32_t  ctl = verite_reg(v, CRTC_CTL);
-    int       native = (ctl & 0x1000) && (v->mode & 1);
+    int       native = (ctl & CRTC_CTL_VIDEO) && !(v->mode & MODE_VGA);
 
     svga_set_ramdac_type(svga, native && (v->dac_command0 & 2) ? RAMDAC_8BIT : RAMDAC_6BIT);
     svga->dac_hwcursor_draw = native ? bt48x_hwcursor_draw : NULL;
+    svga->lut_map           = 0;
+    svga->hoverride         = 0;
     if (!native)
         return;
 
@@ -167,13 +231,18 @@ verite_recalctimings(svga_t *svga)
     unsigned bytes = width * ((bpp + 7) / 8);
     unsigned fifo  = (ctl & 0x10) ? 128 : 64;
 
-    v->frame = verite_reg(v, FRAME_BASE) & 0xffffff;
-    v->pitch = ((bytes - !(v->frame & 7)) / fifo * fifo) + (verite_reg(v, CRTC_OFFSET) & 0xffff);
-    if (v->pitch < bytes)
-        v->pitch = bytes;
+    unsigned offset = verite_reg(v, CRTC_OFFSET) & 0xffff;
+    v->frame[0] = verite_reg(v, FRAME_BASE_A) & 0xffffff;
+    v->frame[1] = v->frame_base_b & 0xffffff;
+    for (unsigned eye = 0; eye < 2; eye++) {
+        unsigned pitch = ((bytes - !(v->frame[eye] & 7)) / fifo * fifo) + offset;
+        v->pitch[eye]  = MAX(pitch, bytes);
+    }
 
     v->native_bpp                   = bpp;
+    svga->lut_map                  = bpp > 8 && !bt48x_clut_bypass(v->ramdac);
     svga->render                   = verite_render;
+    svga->hoverride                = 1;
     /* Low-resolution scanout repeats rows and needs matching horizontal
        expansion in the host buffer. Keep CRTC timing and pitch in source units. */
     svga->dots_per_clock           = (ctl & CRTC_CTL_LINE_DOUBLE) && width <= 1024 ? 2 : 1;
@@ -195,8 +264,10 @@ verite_recalctimings(svga_t *svga)
     /* Cancel the VGA sequencer's dot clock divide when using native timings. */
     if (svga->seqregs[1] & 8)
         svga->clock *= 0.5;
-    svga->interlace = svga->linedbl = svga->rowcount = 0;
-    svga->split                                      = 0x1000;
+    /* Native vertical timing counts field lines. The SVGA poller weaves them. */
+    svga->interlace                = bt48x_interlaced(v->ramdac);
+    svga->linedbl = svga->rowcount = 0;
+    svga->split                   = 0x1000;
     svga->monitor->mon_overscan_x = svga->monitor->mon_overscan_y = 0;
 }
 
@@ -232,22 +303,60 @@ verite_crtc_status(verite_t *v)
         }
     }
 
-    unsigned horizontal = native ? !!svga->linepos : !!(svga->cgastat & 1);
+    unsigned horizontal = !!svga->linepos;
+    uint64_t remaining  = timer_get_remaining_u64(&svga->timer);
+    uint64_t duration   = horizontal ? svga->dispofftime : svga->dispontime;
+    unsigned clocks     = horizontal ? MAX(0, svga->htotal - svga->hdisp_time) : svga->hdisp_time;
+    if (native)
+        clocks /= 8;
+    if (duration) {
+        remaining = MIN(remaining, duration);
+        clocks = (unsigned) (((uint128_t) remaining * clocks + duration - 1) / duration);
+    }
     if (horizontal && native) {
         uint32_t horz      = verite_reg(v, CRTC_HORZ);
         unsigned back      = ((horz >> 9) & 63) + 1;
         unsigned sync      = ((horz >> 16) & 31) + 1;
-        unsigned blank     = back + sync + ((horz >> 21) & 7) + 1;
-        uint64_t remaining = timer_get_remaining_u64(&svga->timer);
-        if (remaining * blank <= svga->dispofftime * back)
+        if (clocks <= back)
             horizontal = 2;
-        else if (remaining * blank <= svga->dispofftime * (back + sync))
+        else if (clocks <= back + sync)
             horizontal = 3;
+        if (horizontal == 1)
+            clocks -= back + sync;
+        else if (horizontal == 3)
+            clocks -= back;
     }
 
-    /* Vertical phase, scanlines remaining in that phase, horizontal phase. */
+    /* Phase and clocks remaining in each direction. */
     unsigned lines_left = end > line ? end - line : 0;
-    return ((uint32_t) phase << 22) | (MIN(lines_left, 0x7ffU) << 11) | (horizontal << 9);
+    return ((uint32_t) phase << 22) | (MIN(lines_left, 0x7ffU) << 11)
+           | (horizontal << 9) | MIN(clocks, 0xffU);
+}
+
+static int
+verite_ddc_data(verite_t *v)
+{
+    uint8_t ctl = v->regs[CRTC_CTL];
+    if (!(ctl & CRTC_CTL_DDC_DRIVE))
+        return i2c_gpio_get_sda(v->ddc_bus);
+    if (v->ddc2_active)
+        return !!(ctl & CRTC_CTL_DDC_SDA);
+
+    /* DDC1 sends the base EDID MSB first, with a zero after each byte. */
+    unsigned bit = v->ddc1_bit % 9;
+    return bit < 8 && (v->ddc1_edid[v->ddc1_bit / 9] & (0x80 >> bit));
+}
+
+static void
+verite_ddc_drive(verite_t *v, uint8_t previous)
+{
+    uint8_t ctl = v->regs[CRTC_CTL];
+    if ((previous ^ ctl) & CRTC_CTL_DDC_SCL)
+        v->ddc2_active = 1;
+    /* The direction bit releases SDA only. The BIOS still clocks SCL
+       while reading data from the monitor. */
+    i2c_gpio_set(v->ddc_bus, !!(ctl & CRTC_CTL_DDC_SCL),
+                 !(ctl & CRTC_CTL_DDC_DRIVE) || !!(ctl & CRTC_CTL_DDC_SDA));
 }
 
 static void
@@ -274,6 +383,8 @@ verite_ext_read(void *priv, uint8_t reg, uint8_t len)
         verite_latch_pixel_clock(v);
     svga_t   *svga   = &v->vga.svga;
     uint32_t  status = (reg < CRTC_STATUS + 4 && reg + len > CRTC_STATUS) ? verite_crtc_status(v) : 0;
+    uint32_t  test   = (verite_reg(v, CRTC_TEST) & ~(CRTC_TEST_VBLANK | CRTC_TEST_NOT_VBLANK))
+                       | (svga->vc >= svga->vblankstart ? CRTC_TEST_VBLANK : CRTC_TEST_NOT_VBLANK);
 
     uint32_t value = 0;
     for (unsigned i = 0; i < len; i++) {
@@ -283,8 +394,16 @@ verite_ext_read(void *priv, uint8_t reg, uint8_t len)
             byte = bt48x_ramdac_in(dac_ports[r & 3], r & 4, r & 8, v->ramdac, svga);
         else if (r >= CRTC_STATUS && r < CRTC_STATUS + 4)
             byte = status >> (8 * (r - CRTC_STATUS));
-        else if (r >= CRTC_CTL && r < CRTC_CTL + 4)
-            byte |= v->frame_flags >> (8 * (r - CRTC_CTL));
+        else if (r >= CRTC_TEST && r < CRTC_TEST + 4)
+            byte = test >> (8 * (r - CRTC_TEST));
+        else if (r >= FRAME_BASE_B && r < FRAME_BASE_A)
+            byte = v->frame_base_b >> (8 * (r - FRAME_BASE_B));
+        else if (r == CRTC_CTL)
+            byte = (byte & ~CRTC_CTL_DDC_SDA) | (verite_ddc_data(v) ? CRTC_CTL_DDC_SDA : 0);
+        else if (r > CRTC_CTL && r < CRTC_CTL + 4) {
+            unsigned shift = 8 * (r - CRTC_CTL);
+            byte = (byte & ~(CRTC_CTL_FRAME_FLAGS >> shift)) | (v->frame_flags >> shift);
+        }
         value |= (uint32_t) byte << (8 * i);
     }
     return value;
@@ -317,6 +436,8 @@ static void
 verite_ext_write(void *priv, uint8_t reg, uint32_t value, uint8_t len)
 {
     verite_t *v = priv;
+    uint8_t   previous_ctl = v->regs[CRTC_CTL];
+    uint32_t  previous_dram = verite_reg(v, DRAM_CTL);
     for (unsigned i = 0; i < len; i++) {
         uint8_t r    = reg + i;
         uint8_t byte = value >> (8 * i);
@@ -329,8 +450,21 @@ verite_ext_write(void *priv, uint8_t reg, uint32_t value, uint8_t len)
                 v->pll_shift = ((v->pll_shift << 1) | (byte & 1)) & PLL_WORD_MASK;
         }
     }
-    if (reg < FRAME_BASE + 4 && reg + len > FRAME_BASE)
-        v->frame_flags &= ~0x44000;
+    if (reg <= CRTC_CTL && reg + len > CRTC_CTL)
+        verite_ddc_drive(v, previous_ctl);
+    if (reg < DRAM_CTL + 4 && reg + len > DRAM_CTL) {
+        uint32_t dram = verite_reg(v, DRAM_CTL);
+        if ((dram ^ previous_dram) & (DRAM_REFRESH_DISABLE | DRAM_REFRESH_COUNT)) {
+            v->dram_last_refresh_ns = v->time_ns;
+            v->dram_refresh_pending = 0;
+        }
+        verite_core_set_precharge(v->core, !!(dram & DRAM_SLOW_PRECHARGE));
+    }
+    if (reg < FRAME_BASE_A + 4 && reg + len > FRAME_BASE_A) {
+        /* Writing A commits the pending B address as part of the same pair. */
+        v->frame_base_b = verite_reg(v, FRAME_BASE_B);
+        v->frame_flags &= ~(CRTC_CTL_DISPLAYED | CRTC_CTL_SWITCHED);
+    }
     if (reg < CRTC_STATUS && reg + len > CRTC_CTL) {
         svga_recalctimings(&v->vga.svga);
         verite_redraw(v);
@@ -354,18 +488,16 @@ static void
 verite_update_bank(verite_t *v)
 {
     uint32_t bank = verite_core_bank(v->core) & 0xffe000;
-    int      vesa = v->mode & 1;
+    int      vga  = v->mode & MODE_VGA;
     v->bank       = bank;
-    if (!(v->command & 2)) {
-        mem_mapping_disable(&v->vga.svga.mapping);
-        mem_mapping_disable(&v->banked);
-    } else if (vesa) {
-        mem_mapping_disable(&v->vga.svga.mapping);
-        mem_mapping_enable(&v->banked);
-    } else {
-        mem_mapping_disable(&v->banked);
+    if ((v->command & 2) && vga)
         mem_mapping_enable(&v->vga.svga.mapping);
-    }
+    else
+        mem_mapping_disable(&v->vga.svga.mapping);
+    if ((v->command & 2) && !vga && (v->mode & MODE_VESA))
+        mem_mapping_enable(&v->banked);
+    else
+        mem_mapping_disable(&v->banked);
 }
 
 static void
@@ -375,7 +507,7 @@ verite_settle(verite_t *v)
     uint32_t             status       = verite_core_status(v->core);
     v->endian                         = endian_xor[(status >> 8) & 3];
     uint8_t mode                      = verite_core_mode(v->core);
-    if ((v->mode ^ mode) & 1) {
+    if ((v->mode ^ mode) & (MODE_VESA | MODE_VGA)) {
         v->mode = mode;
         verite_update_bank(v);
         svga_recalctimings(&v->vga.svga);
@@ -398,11 +530,30 @@ verite_run(verite_t *v)
 }
 
 static void
+verite_dram_refresh(verite_t *v)
+{
+    uint32_t dram     = verite_reg(v, DRAM_CTL);
+    unsigned interval = ((dram & DRAM_REFRESH_COUNT) >> 16) * DRAM_REFRESH_UNIT_NS;
+    if (!interval || (dram & DRAM_REFRESH_DISABLE))
+        return;
+
+    unsigned refreshes = (v->time_ns - v->dram_last_refresh_ns) / interval;
+    v->dram_last_refresh_ns += (uint64_t) refreshes * interval;
+    v->dram_refresh_pending += refreshes;
+    if ((dram & DRAM_REFRESH_VBLANK) && v->vga.svga.dispon)
+        return;
+
+    verite_core_refresh(v->core, v->dram_refresh_pending * (DRAM_REFRESH_CYCLES + !!(dram & DRAM_SLOW_PRECHARGE)));
+    v->dram_refresh_pending = 0;
+}
+
+static void
 verite_timer(void *priv)
 {
     verite_t *v = priv;
     timer_advance_u64(&v->timer, TICK_US * TIMER_USEC);
     v->time_ns += TICK_US * 1000;
+    verite_dram_refresh(v);
     verite_run(v);
 }
 
@@ -410,8 +561,9 @@ static void
 verite_vsync(svga_t *svga)
 {
     verite_t *v    = svga->priv;
-    v->frame_flags = (v->frame_flags ^ 0x10000) | 0x44000;
-    if (verite_reg(v, CRTC_CTL) & 0x400) {
+    v->frame_flags = (v->frame_flags ^ CRTC_CTL_EVEN_FRAME) | CRTC_CTL_DISPLAYED | CRTC_CTL_SWITCHED;
+    if (verite_reg(v, CRTC_CTL) & CRTC_CTL_VSYNC) {
+        v->ddc1_bit = (v->ddc1_bit + 1) % (sizeof(v->ddc1_edid) * 9);
         verite_core_retrace(v->core);
         verite_settle(v);
     }
@@ -677,8 +829,17 @@ verite_reset(void *priv)
     v->bar_hi = v->io_hi = v->irq_line = v->pci_control = 0;
     v->rom_bar                                          = 0xc0001;
     v->frame_flags                                      = 0;
+    v->frame_base_b                                     = 0;
     v->pll_shift                                        = PLL_VGA_CLOCK;
     v->pixel_clock_hz                                   = 0.0;
+    v->dram_last_refresh_ns                             = v->time_ns;
+    v->dram_refresh_pending                             = 0;
+    v->ddc1_bit                                         = 0;
+    v->ddc2_active                                      = 0;
+    /* Terminate any transaction carried over from before the reset. */
+    i2c_gpio_set(v->ddc_bus, 0, 0);
+    i2c_gpio_set(v->ddc_bus, 1, 0);
+    i2c_gpio_set(v->ddc_bus, 1, 1);
     v->mode                                             = verite_core_mode(v->core);
     verite_decode(v, 1);
     verite_settle(v);
@@ -703,6 +864,15 @@ verite_init(const device_t *info)
     }
 
     v->ramdac = device_add(&bt485_ramdac_device);
+    v->ddc_bus = i2c_gpio_init("Vérité DDC");
+    v->ddc_monitor = ddc_init(i2c_gpio_get_bus(v->ddc_bus));
+    const uint8_t *edid = ddc_get_edid(v->ddc_monitor);
+    if (edid) {
+        memcpy(v->ddc1_edid, edid, sizeof(v->ddc1_edid));
+        /* DDC1 can only carry one block. Remove the extension count. */
+        v->ddc1_edid[127] += v->ddc1_edid[126];
+        v->ddc1_edid[126] = 0;
+    }
     video_inform(VIDEO_FLAG_TYPE_SPECIAL, &verite_timing);
     svga_init(info, &v->vga.svga, v, VRAM_SIZE, verite_recalctimings,
               verite_vga_in, verite_vga_out, NULL, NULL);
@@ -731,6 +901,8 @@ verite_close(void *priv)
     mem_mapping_disable(&v->banked);
     mem_mapping_disable(&v->bios.mapping);
     svga_close(&v->vga.svga);
+    ddc_close(v->ddc_monitor);
+    i2c_gpio_close(v->ddc_bus);
     verite_core_free(v->core);
     free(v->bios.rom);
     free(v);

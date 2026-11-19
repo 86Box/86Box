@@ -21,6 +21,7 @@ extern const uint8_t ddc_edid_hires_crt[128];
 
 extern void  *ddc_init(void *i2c);
 extern void  *ddc_init_ex(void *i2c, const uint8_t *card_edid, size_t card_edid_size);
+extern const uint8_t *ddc_get_edid(const void *priv);
 extern size_t ddc_get_default_edid(const uint8_t *card_edid, size_t card_edid_size, uint8_t **out);
 extern void   ddc_close(void *priv);
 extern size_t ddc_create_default_edid(uint8_t **size_out);

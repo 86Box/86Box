@@ -106,6 +106,25 @@ force(fixture *f, uint32_t ir)
 }
 
 static void
+dram_precharge_and_refresh(void)
+{
+    const uint32_t program[] = { 0, 0, HALT };
+    fixture f = machine(program, COUNT(program), 0xffc);
+    verite_core_set_precharge(f.core, 1);
+
+    assert(risc_step(f.core, false, 0, f.mem, (verite_bus) { &board, &f }));
+    assert(f.core->timer == 2);
+    assert(risc_step(f.core, false, 0, f.mem, (verite_bus) { &board, &f }));
+    assert(f.core->timer == 4);
+
+    verite_core_refresh(f.core, 2);
+    assert(f.core->timer == 6 && f.core->credit == -2);
+    assert(risc_step(f.core, false, 0, f.mem, (verite_bus) { &board, &f }));
+    assert(f.core->timer == 8 && f.core->halted);
+    done(&f);
+}
+
+static void
 alu_and_delay_slots(void)
 {
     const uint32_t program[] = {
@@ -587,6 +606,7 @@ bilinear_unpadded_565(void)
 int
 main(void)
 {
+    dram_precharge_and_refresh();
     alu_and_delay_slots();
     vector_register_pairs();
     link_addresses();
@@ -614,6 +634,6 @@ main(void)
     dither_before_quantizing();
     copy_unpadded_565();
     bilinear_unpadded_565();
-    puts("27 Vérité regression cases passed");
+    puts("28 Vérité regression cases passed");
     return 0;
 }

@@ -23,6 +23,8 @@ void         verite_core_write(verite_core *core, uint8_t reg, uint32_t value, u
 void         verite_core_run(verite_core *core, uint64_t now_ns, uint8_t *vram, size_t size,
                              const verite_board *board, void *opaque);
 void         verite_core_retrace(verite_core *core);
+void         verite_core_set_precharge(verite_core *core, int slow);
+void         verite_core_refresh(verite_core *core, unsigned cycles);
 uint32_t     verite_core_status(verite_core *core);
 uint32_t     verite_core_bank(const verite_core *core);
 uint8_t      verite_core_mode(const verite_core *core);

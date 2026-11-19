@@ -55,6 +55,8 @@ core_reset(verite_core *c, bool hard)
         c->regs[VIO_MODE]  = VMODE_VGA;
         c->regs[0x5c]      = 4;
         c->intr            = 0;
+        c->slow_precharge  = false;
+        c->dram_row        = UINT32_MAX;
     }
 }
 
@@ -110,6 +112,24 @@ verite_core_retrace(verite_core *c)
 {
     c->intr |= VINTR_VERT;
     c->riscintr |= 1;
+}
+
+void
+verite_core_set_precharge(verite_core *c, int slow)
+{
+    if (c->slow_precharge != !!slow)
+        c->dram_row = UINT32_MAX;
+    c->slow_precharge = !!slow;
+}
+
+void
+verite_core_refresh(verite_core *c, unsigned cycles)
+{
+    if (cycles) {
+        c->dram_row = UINT32_MAX;
+        c->credit  -= cycles;
+        c->timer   += cycles;
+    }
 }
 
 static bool
@@ -294,7 +314,7 @@ run(verite_core *c, verite_memory mem, verite_bus bus, int64_t budget)
         }
         if (!runnable(c) || !risc_step(c, false, 0, mem, bus))
             break;
-        used++;
+        used += 1 + c->dram_wait;
     }
     return used;
 }

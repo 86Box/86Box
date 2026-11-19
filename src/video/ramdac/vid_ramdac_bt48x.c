@@ -368,18 +368,39 @@ bt48x_clock_doubled(const void *priv)
     return !!(ramdac->cmd_r3 & 0x08);
 }
 
+int
+bt48x_interlaced(const void *priv)
+{
+    const bt48x_ramdac_t *ramdac = priv;
+    return !!(ramdac->cmd_r2 & 0x08);
+}
+
+int
+bt48x_clut_bypass(const void *priv)
+{
+    const bt48x_ramdac_t *ramdac = priv;
+    return !!(ramdac->cmd_r1 & 0x10);
+}
+
+int
+bt48x_clut_contiguous(const void *priv)
+{
+    const bt48x_ramdac_t *ramdac = priv;
+    return !!(ramdac->cmd_r2 & 0x04);
+}
+
 void
 bt48x_recalctimings(void *priv, svga_t *svga)
 {
     bt48x_ramdac_t *ramdac = (bt48x_ramdac_t *) priv;
 
-    svga->interlace = !!(ramdac->cmd_r2 & 0x08);
+    svga->interlace = bt48x_interlaced(ramdac);
     svga->clock_multiplier = bt48x_clock_doubled(ramdac);
     svga->multiplexing_rate = 0;
     svga->true_color_bypass = 0;
     svga->multiplexing_rate = (ramdac->cmd_r1 & 0x60) >> 5;
     if (svga->bpp >= 15)
-        svga->true_color_bypass = !!(ramdac->cmd_r1 & 0x10);
+        svga->true_color_bypass = bt48x_clut_bypass(ramdac);
 
 #if 0
     pclog("CR0=%02x, CR1=%02x, CR2=%02x.\n", ramdac->cmd_r0, ramdac->cmd_r1, ramdac->cmd_r2);

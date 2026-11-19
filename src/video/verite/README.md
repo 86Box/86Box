@@ -9,3 +9,9 @@ come from rust-dos's low-level Vérité implementation, including its
 synthetic RISC-side ROM and microcode loader. Native display timing
 uses the programmed CRTC totals and the pixel clock latched through the
 V1000's serial PLL port.
+
+The emulated monitor exposes EDID through the VGA connector's DDC1 and DDC2
+paths. Native scanout supports Bt485 palette addressing, interlaced fields,
+and frame-sequential stereo from the two framebuffer bases.
+The DRAM controller accounts for refresh and slow precharge in the RISC
+cycle budget using approximate EDO timing.

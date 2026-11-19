@@ -257,11 +257,26 @@ control_read(verite_core *c, uint32_t addr, uint8_t len, verite_bus bus)
     return 0;
 }
 
+static inline void
+dram_access(verite_core *c, uint32_t addr, verite_memory mem)
+{
+    if (c->slow_precharge) {
+        /* Approximate the extra precharge wait on a local DRAM row change. */
+        uint32_t row = (addr & mem.mask) >> 12;
+        if (row != c->dram_row) {
+            c->dram_row = row;
+            c->dram_wait++;
+        }
+    }
+}
+
 static uint32_t
 load32(verite_core *c, uint32_t addr, verite_memory mem, verite_bus bus)
 {
-    if (addr < LOCAL_END)
+    if (addr < LOCAL_END) {
+        dram_access(c, addr, mem);
         return mem_read32(mem, addr);
+    }
     if (addr >= CONTROL && addr < CONTROL_END)
         return control_read(c, addr & ~3U, 4, bus);
     return addr >= 0xff000000 ? rom_word(c, addr) : 0;
@@ -270,16 +285,20 @@ load32(verite_core *c, uint32_t addr, verite_memory mem, verite_bus bus)
 static uint32_t
 load16(verite_core *c, uint32_t addr, verite_memory mem, verite_bus bus)
 {
-    if (addr < LOCAL_END)
+    if (addr < LOCAL_END) {
+        dram_access(c, addr, mem);
         return mem_read16(mem, addr);
+    }
     return (load32(c, addr & ~3U, mem, bus) >> (16 - (addr & 2) * 8)) & 0xffff;
 }
 
 static uint32_t
 load8(verite_core *c, uint32_t addr, verite_memory mem, verite_bus bus)
 {
-    if (addr < LOCAL_END)
+    if (addr < LOCAL_END) {
+        dram_access(c, addr, mem);
         return mem_read8(mem, addr);
+    }
     if (addr >= BOARD_REGS && addr < PE_STATE)
         return control_read(c, addr & ~7U, 1, bus) & 0xff;
     return (load32(c, addr & ~3U, mem, bus) >> (24 - (addr & 3) * 8)) & 0xff;
@@ -289,6 +308,7 @@ static void
 store(verite_core *c, uint32_t addr, uint32_t value, unsigned size, verite_memory mem, verite_bus bus)
 {
     if (addr < LOCAL_END) {
+        dram_access(c, addr, mem);
         switch (size) {
             case 1:
                 mem_write8(mem, addr, value);
@@ -710,8 +730,12 @@ bool
 risc_step(verite_core *c, bool forced, uint32_t ir, verite_memory mem, verite_bus bus)
 {
     uint32_t cur = c->pc;
-    if (!forced)
+    c->dram_wait = 0;
+    if (!forced) {
+        if (cur < LOCAL_END)
+            dram_access(c, cur, mem);
         ir = risc_fetch(c, cur, mem);
+    }
     uint8_t op = ir >> 24;
     uint8_t d  = ir >> 16;
     uint8_t s2 = ir >> 8;
@@ -724,5 +748,6 @@ risc_step(verite_core *c, bool forced, uint32_t ir, verite_memory mem, verite_bu
     c->npc = risc_next(c->npc);
     c->timer++;
     execute(c, ir, op, d, s2, s1, cur, mem, bus);
+    c->timer += c->dram_wait;
     return true;
 }

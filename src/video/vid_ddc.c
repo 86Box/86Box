@@ -354,6 +354,12 @@ ddc_init(void *i2c)
     return ddc_init_ex(i2c, NULL, 0);
 }
 
+const uint8_t *
+ddc_get_edid(const void *priv)
+{
+    const ddc_t *ddc = priv;
+    return ddc ? ddc->edid : NULL;
+}
 
 void
 ddc_close(void *priv)
