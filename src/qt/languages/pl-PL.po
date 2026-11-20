@@ -1,7 +1,7 @@
 msgid ""
 msgstr ""
 "PO-Revision-Date: 2026-11-20 09:02+0000\n"
-"Last-Translator: Lili Kurek <lili@lili.lgbt>\n"
+"Last-Translator: ciapa <thepatryczek12@gmail.com>\n"
 "Language-Team: Polish <https://weblate.86box.net/projects/86box/86box/pl/>\n"
 "Language: pl-PL\n"
 "MIME-Version: 1.0\n"
@@ -3958,10 +3958,12 @@ msgstr ""
 "puste oznacza pierwszy zmapowany bajt; . oznacza początek zaznaczenia)."
 
 msgid "To (inclusive)"
-msgstr ""
+msgstr "Do (włącznie)"
 
 msgid "Where the search ends, that address included (hex, register or seg:off; empty means the last mapped byte; . means the selection end)."
 msgstr ""
+"Miejsca końca wyszukiwania (hex, rejestr lub segment:przesunięcie; pustka "
+"oznacza ostatni zmapowany bajt; . oznacza koniec zaznaczenia)."
 
 msgid "Range from"
 msgstr ""
